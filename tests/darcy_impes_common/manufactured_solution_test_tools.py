@@ -14,10 +14,12 @@ import re
 import numpy
 import glob
 from test_tools import Command, CommandList, HandlerLevel, \
-   CompositeHandler, LeafHandler, WriteXMLSnippet, RunSimulation, \
-   WriteToReport, error_norms_filename, error_rates_filename, verbose
+   CompositeHandler, LeafHandler, WriteXMLFile, RunSimulation, \
+   WriteToReport, error_norms_filename, error_rates_filename, verbose, \
+   join_with_underscores
 from fluidity_tools import stat_parser
-from getpass import getuser
+from solution_generator import generate
+from importlib import import_module
 
 verbose(True)
 debug = False
@@ -43,19 +45,21 @@ class Parameterisation:
 
       # filenames
       if dim==1:
-         m_t = ''
+         m_t = None
          g_e = '.sh'
          m_e_l = ['.bound', '.ele', '.node']
       else:
-         m_t = '_'+mesh_type
+         m_t = mesh_type
          g_e = '.geo'
          m_e_l = ['.msh']
-      self.mesh_name = self.domain_shape+m_t+'_'+mesh_suffix
+      self.mesh_name = join_with_underscores((self.domain_shape, 
+                                              m_t, mesh_suffix))
       self.options_template_filename = "template_"+case+".diml"
-      self.options_name = case+'_'+str(dim)+'d'+m_t+'_'+mesh_suffix
+      self.options_name = join_with_underscores((case, 
+         str(dim)+'d', m_t, mesh_suffix))
       self.options_filename = self.options_name+'.diml'
-      self.geo_template_filename = mesh_template_prefix+'_'+\
-                                   self.domain_shape+m_t+g_e
+      self.geo_template_filename = join_with_underscores((
+         mesh_template_prefix, self.domain_shape, m_t))+g_e
       self.geo_filename = self.mesh_name+'.geo'
       self.mesh_filenames = []
       for m_e in m_e_l:
@@ -96,7 +100,7 @@ class Parameterisation:
          self.wall_num = '4'
 
 
-class MSTestToolsCommand(Command):
+class MMSCommand(Command):
    """This abstract class, to be extended by concrete Commands, has a
 method for doing the boring job of storing level details, i.e. recording
 where the Command is in the Handler tree.
@@ -117,25 +121,45 @@ where the Command is in the Handler tree.
          self.mesh_type = value
       if level_name == 'mesh_suffix':
          self.mesh_suffix = value
-      
+
+         
+class GenerateSymbols(MMSCommand):
    
+   def __init__(self):
+      MMSCommand.__init__(self)
       
-class ExpandOptionsTemplate(MSTestToolsCommand):
+   def execute(self, level_name, value, indent):
+      # upper levels just record level details; the last level does all
+      # the important stuff
+      self.store_level_details(level_name, value)
+      if level_name == 'stem':
+      
+         # write dictionary
+         solution_name = join_with_underscores((self.stem))
+         generate(solution_name)
+
+      
+class ExpandOptionsTemplate(MMSCommand):
    
-   def __init__(self, finish_time, solution_dict=None):
-      MSTestToolsCommand.__init__(self)
+   def __init__(self, finish_time):
+      MMSCommand.__init__(self)
       self.finish_time = finish_time
-      # solution_dict may come from an external file generated as part of a
-      # manufactured solution.
-      self.solution_dict = solution_dict
       
    def execute(self, level_name, value, indent):
       # all levels record level details
       self.store_level_details(level_name, value)
-      if level_name == 'mesh_suffix':
-         # the last level does the important stuff
+      
+      if level_name == 'stem':
+         # at this level it is appropriate to read in the expressions
+         # generated from GenerateSymbols (in this instance, once only)
+         solution_name = join_with_underscores((self.stem))
+         solution_expressions = import_module(solution_name)
+         self.solution_dict = solution_expressions.solution_dict
          
-         # compute useful parameters
+      if level_name == 'mesh_suffix':
+         # this last level does most of the important stuff
+            
+         # compute useful stuff
          param = Parameterisation(self.stem, self.dim,
                                   self.mesh_type, self.mesh_suffix)
          param.compute_more_options()
@@ -145,10 +169,8 @@ class ExpandOptionsTemplate(MSTestToolsCommand):
             'MESH_FILE': param.mesh_name,
             'MESH_FORMAT': param.mesh_format,
             'DOMAIN_DIM': str(self.dim),
-
-   'TIME_STEP': str(self.compute_time_step()),
-
-   'FINISH_TIME': self.finish_time,
+            'TIME_STEP': str(self.compute_time_step()),
+            'FINISH_TIME': self.finish_time,
             'INLET_ID': param.inlet_ID,
             'OUTLET_ID': param.outlet_ID,
             'WALL_IDS': param.wall_IDs,
@@ -164,7 +186,7 @@ class ExpandOptionsTemplate(MSTestToolsCommand):
          try:
             buf = string.Template(buf)
             buf = buf.safe_substitute(self.solution_dict)
-         except Attribute_error:
+         except AttributeError:
             pass
          with open(param.options_filename, 'w') as tgt:
             tgt.write(buf)
@@ -179,18 +201,29 @@ class ExpandOptionsTemplate(MSTestToolsCommand):
       return scale_factor * self.finish_time
       
             
-class ProcessMesh(MSTestToolsCommand):
+class ProcessMesh(MMSCommand):
 
-   def __init__(self, domain_extents):
-      MSTestToolsCommand.__init__(self)
+   def __init__(self):
+      MMSCommand.__init__(self)
       self.binary_path = "../../bin/darcy_impes"
-      self.domain_extents = domain_extents
       
    def execute(self, level_name, value, indent):
       # all levels record level details
       self.store_level_details(level_name, value)
+      
+      if level_name == 'stem':
+         # at this level it is appropriate to read in the expressions
+         # generated from GenerateSymbols (in this instance, once only)
+         solution_name = join_with_underscores((self.stem))
+         solution_expressions = import_module(solution_name)
+
+         # needed for e.g. creating 1D meshes, but do not rely on this
+         # for true mesh dimensions otherwise
+         self.domain_extents = solution_expressions.solution_dict\
+                               ['domain_extents']
+
       if level_name == 'mesh_suffix':
-         # the last level does the important stuff
+         # this last level does most of the important stuff
 
          # compute useful parameters
          param = Parameterisation(self.stem, self.dim, self.mesh_type,
@@ -234,17 +267,14 @@ class ProcessMesh(MSTestToolsCommand):
                             stdout=open(os.devnull, 'wb'))
 
             
-class CleanUp(MSTestToolsCommand):
+class CleanUp(MMSCommand):
    """Removes generated geometry, mesh, and options files, but leaves
     results intact.  This ensures templates do not get deleted
     (compared with rm -f *.geo, etc)
    """
 
    def __init__(self):
-      MSTestToolsCommand.__init__(self)
-      self.stem = None
-      self.dim = None
-      self.mesh_type = None
+      MMSCommand.__init__(self)
       
    def execute(self, level_name, value, indent):
       # all levels record level details
@@ -267,41 +297,33 @@ class CleanUp(MSTestToolsCommand):
 
          
 class ManufacturedSolutionTestSuite:
-   def __init__(self, case_name, solution_dict, finish_time,
+   def __init__(self, case_name, finish_time,
                 mesh_type_list, mesh_suffix_list_per_dimension,
                 field_name_list, norm_list):
 
       self.case_name = case_name
-      self.solution_dict = solution_dict
       self.finish_time = finish_time
-
-      # needed for e.g. creating 1D meshes, but do not rely on this
-      # for true mesh dimensions otherwise
-      self.domain_extents = solution_dict['domain_extents']
       
       # build handlers
       mesh_type_handler_level = HandlerLevel('mesh_type', mesh_type_list)
       field_handler_level = HandlerLevel('field', field_name_list)
       norm_handler_level = HandlerLevel('norm', norm_list)
-      # maintain one tree for running simulations etc. and one
-      # for postprocessing 
-      for hdlr_type in ('main', 'post', 'post_onemesh'):
+
+      # maintain a (trivial) tree for generating symbols
+      self.shallow_handler = LeafHandler(
+         'stem', case_name)
+
+      # maintain one tree for running simulations etc. and a deeper one
+      # for configuring and computing norms and convergence rates
+      for hdlr_type in ('main', 'deep'):
          dim_handlers = []
          
          for dim in (1, 2, 3):
-            # start with mesh suffix list.  If 'onemesh', choose only
-            # the first mesh (the last mesh was originally chosen, but higher domain dimensions might finish with lower mesh resolutions)
-            if hdlr_type=='post_onemesh':
-               if len(mesh_suffix_list_per_dimension[dim-1]) > 0:
-                  children = HandlerLevel(
-                     'mesh_suffix', [mesh_suffix_list_per_dimension[dim-1][0]])
-               else:
-                  children = []
-            else:
-               children = HandlerLevel(
-                  'mesh_suffix', mesh_suffix_list_per_dimension[dim-1])
+            # start with mesh suffix list
+            children = HandlerLevel(
+               'mesh_suffix', mesh_suffix_list_per_dimension[dim-1])
             # if postprocessing, first need to treat fields and norms
-            if hdlr_type[0:4]=='post':
+            if hdlr_type[0:4]=='deep':
                children = field_handler_level.add_sub(
                   norm_handler_level.add_sub(children))
             # if dim > 1, also treat irreg and reg meshes 
@@ -310,62 +332,24 @@ class ManufacturedSolutionTestSuite:
             dim_handlers.append(CompositeHandler('dim', dim, children))
 
          hdlr = CompositeHandler('stem', case_name, dim_handlers)
-         if hdlr_type=='post':
-            self.post_handler = hdlr
-         elif hdlr_type=='post_onemesh':
-            self.post_onemesh_handler = hdlr
+         if hdlr_type=='deep':
+            self.deep_handler = hdlr
          else:
             self.main_handler = hdlr
 
-            
-   def write_xml_begin(self):
-      self.xml_file = open(self.case_name+'.xml', 'w')
-      self.xml_file.write("""<?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
 
-<testproblem>
-  <name>{0}</name>
-  <owner userid="{1}"/>
-  <tags>diml</tags>
-  <problem_definition length="short" nprocs="1">
-    <command_line>
-python processing.py pre proc post clean
-    </command_line>
-  </problem_definition>
-  <pass_tests>
-    <test name="Solvers converged" language="python">
-import os
-files = os.listdir("./")
-assert(not "matrixdump" in files and not "matrixdump.info" in files)
-    </test>""".format(self.case_name, getuser()))
-
-      
-   def write_xml_end(self):
-      self.xml_file.write("""
-  </pass_tests>
-  <warn_tests>
-  </warn_tests>
-</testproblem>""".format(self.case_name, getuser()))
-      self.xml_file.close()
+   def generate_symbols(self):
+      self.shallow_handler.handle( GenerateSymbols() )
 
 
    def write_xml(self):
-      self.write_xml_begin()
-      self.post_onemesh_handler.handle(
-         # expect results for the first mesh to be good to within 5%
-         WriteXMLSnippet(self.xml_file, 'norm', 0.05,
-                         self.solution_dict))
-      self.post_handler.handle(
-         # expect rates to be better than 0.6
-         WriteXMLSnippet(self.xml_file, 'rate', 0.6,
-                         self.solution_dict))
-      self.write_xml_end()
+      self.deep_handler.handle( WriteXMLFile('stem', 0.05, 0.6) )
 
 
    def preprocess(self):
       cmds = CommandList([
-         ExpandOptionsTemplate(self.finish_time, self.solution_dict),
-         ProcessMesh(self.domain_extents)])
+         ExpandOptionsTemplate(self.finish_time),
+         ProcessMesh()])
       self.main_handler.handle( cmds )
 
 
@@ -376,7 +360,7 @@ assert(not "matrixdump" in files and not "matrixdump.info" in files)
    def postprocess(self):
       with open(error_norms_filename, 'w') as f_norms:
          with open(error_rates_filename, 'w') as f_rates:
-            self.post_handler.handle(
+            self.deep_handler.handle(
                WriteToReport(f_norms, f_rates))
 
 
@@ -387,6 +371,9 @@ assert(not "matrixdump" in files and not "matrixdump.info" in files)
    def do(self, what):
       """Front end for various methods"""
       what = str.lower(what[0:3])
+      if what=='gen' or what=='all':
+         if verbose(): print '\nGenerating symbols'
+         self.generate_symbols()
       if what=='xml' or what=='all':
          if verbose(): print '\nGenerating XML file'
          self.write_xml()

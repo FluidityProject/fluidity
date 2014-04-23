@@ -6,7 +6,7 @@ mesh_type_list = ["reg"]
 mesh_suffix_list_per_dimension = [
     ["B", "C", "D", "E"],
     ["B", "C", "D"],
-    []]
+    ["B", "C"]]
 field_name_list = ["Phase1::Pressure", "Phase2::Saturation"]
 norm_list = [2]
 finish_time = 1.0
@@ -30,18 +30,11 @@ if len(argv)==1:
     exit()
 
 
-# regenerate symbols?
-arg1 = str.lower(argv[1][0:3])
-if arg1=='gen' or arg1=='all':
-    from solution_generator import generate
-    generate()
-
 # initialise helper object
-from solution_expressions import solution_dict
 from manufactured_solution_test_tools import ManufacturedSolutionTestSuite
 test_helper = ManufacturedSolutionTestSuite(
-    case_name, solution_dict, finish_time,
-    mesh_type_list, mesh_suffix_list_per_dimension, field_name_list, norm_list)
+    case_name, finish_time, mesh_type_list, mesh_suffix_list_per_dimension, 
+    field_name_list, norm_list)
 
 # pass client commands
 for arg in argv[1:]:

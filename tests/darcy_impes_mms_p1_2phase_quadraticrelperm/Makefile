@@ -17,6 +17,9 @@ geo:
 gen:
 	python processing.py gen
 
+xml:
+	python processing.py xml
+
 pre:
 	python processing.py pre
 

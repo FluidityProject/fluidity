@@ -2,9 +2,7 @@ from sympy import Symbol, Function, diff, integrate, sin, cos, pi, exp
 from manufactured_solution_generation_tools import \
     ManufacturedSolution, SolutionHarness, generate_coords
 
-def generate():
-    print '\nGenerating expressions...'
-
+def generate(solution_name):
     # N.B. mesh elements will be sized such that there are mesh_res
     # elements along domain edges in the x-direction, where mesh_res is
     # 5 for mesh 'A', 10 for 'B', etc.  Irregular meshes will try to
@@ -27,7 +25,7 @@ def generate():
     s2 = 0.01
 
     sh = SolutionHarness(D, g_mag, ka, phi, mu, rho, K,
-                         p, s2)
+                         p, s2, solution_name)
 
     # helper 1D functions
     fs = lambda x: 3*(1. - x)*(1.5*x)**2
@@ -56,5 +54,3 @@ def generate():
 
     # generate expressions for the manufactured solution
     sh.write_dict([ms1d, ms2d, ms3d])
-
-    print 'done.'

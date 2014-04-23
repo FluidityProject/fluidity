@@ -6,6 +6,8 @@ import subprocess
 import numpy
 import sys
 from fluidity_tools import stat_parser
+from importlib import import_module
+from getpass import getuser
 
 error_rates_filename = "error_rates.txt"
 error_norms_filename = "error_norms.txt"
@@ -14,9 +16,13 @@ error_norms_filename = "error_norms.txt"
 
 def join_with_underscores(strings):
     result = None
+    # convert string to tuple if it isn't already
+    if isinstance(strings, str):
+        strings = (strings, )
     for s in strings:
         # for flexibility, any nil values are ignored
         if s is None: continue
+        # convert any non-strings
         if s is not str: s = str(s)
         if result is None:
             result = s
@@ -53,17 +59,13 @@ def find(report_filename, key):
 def find_norm(key): return find(error_norms_filename, key)
 def find_rate(key): return find(error_rates_filename, key)
 
-    
-class WriteXMLSnippet(Command):
-    def __init__(self, xml_file, metric_type, threshold, solution_dict):
-        self.xml_file = xml_file
-        self.metric_type = metric_type
-        if metric_type=='norm':
-            self.rel_op = 'lt'
-        else:
-            self.rel_op = 'gt'
-        self.threshold = threshold
-        self.solution_dict = solution_dict
+
+class WriteXMLFile(Command):
+    def __init__(self, trigger_level_name,
+                 norm_threshold=None, rate_threshold=None):
+        self.trigger_level_name = trigger_level_name
+        self.norm_threshold = norm_threshold
+        self.rate_threshold = rate_threshold
         self.stem = None
         self.model = None
         self.saturation2_scale = None
@@ -75,9 +77,60 @@ class WriteXMLSnippet(Command):
         self.field_short = None
         self.norm = None
         self.mesh_suffix_0 = None
+
+
+    def __del__(self):
+        # finalise any outstanding open file
+            try:
+                self.write_xml_end()
+            except:
+                pass
+            
+
+    def write_xml_begin(self):
+        case_name = join_with_underscores((
+                self.stem, self.saturation2_scale, self.gravity_magnitude))
+        self.xml_file = open(case_name+'.xml', 'w')
+        self.xml_file.write("""<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>{0}</name>
+  <owner userid="{1}"/>
+  <tags>diml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>
+python processing.py pre proc post clean
+    </command_line>
+  </problem_definition>
+  <pass_tests>
+    <test name="Solvers converged" language="python">
+import os
+files = os.listdir("./")
+assert(not "matrixdump" in files and not "matrixdump.info" in files)
+    </test>""".format(case_name, getuser()))
+
         
-      
+    def write_xml_end(self):
+        self.xml_file.write("""
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>""")
+        self.xml_file.close()
+
+            
+    def write_xml_snippet(self, metric_type, key, rel_op, threshold):
+        self.xml_file.write("""
+    <test name="{1}: expect {0} {2} {3:g}" language="python">
+from test_tools import find_{0}
+assert(find_{0}("{1}") &{2}; {3:g})
+    </test>""".format(metric_type, key, rel_op, 
+                      threshold))
+
+        
     def execute(self, level_name, value, indent):
+        # store upper level details
         # TODO - remove the dependence on named members;
         #   have a client-specified (generic) list of levels
         if level_name == 'stem':
@@ -86,9 +139,25 @@ class WriteXMLSnippet(Command):
             self.saturation2_scale = value
         elif level_name == 'gravity_magnitude':
             self.gravity_magnitude = value
+
+        # if appropriate, read in generated expressions
+        # and initialise XML file
+        if level_name == self.trigger_level_name:
+            # close any outstanding open file
+            try:
+                self.write_xml_end()
+            except:
+                pass
+            solution_name = join_with_underscores((
+                self.stem, self.saturation2_scale, self.gravity_magnitude))
+            solution_expressions = import_module(solution_name)
+            self.solution_dict = solution_expressions.solution_dict
+            self.write_xml_begin()
+
+        # continue to the lower levels
         if level_name == 'dim':
             self.dim = value
-        if level_name == 'mesh_type':
+        elif level_name == 'mesh_type':
             self.mesh_type = value
         elif level_name == 'field':
             # split up field name into useful bits
@@ -97,11 +166,9 @@ class WriteXMLSnippet(Command):
             self.var_name = re.sub(pattern, '\\2', value)
             self.field_short = str.lower(self.var_name)+self.phase_index
             # read in field magnitudes for computing the norm properly
-            if self.metric_type=='norm':
-                self.rescaled_threshold = self.threshold*self.solution_dict[
-                    self.field_short+'_scale']
-            else:
-                self.rescaled_threshold = self.threshold
+            if self.norm_threshold is not None:
+                self.rescaled_norm_threshold = self.norm_threshold* \
+                     self.solution_dict[self.field_short+'_scale']
             
         elif level_name == 'norm':
             self.norm = value
@@ -115,25 +182,26 @@ class WriteXMLSnippet(Command):
             key_stem = join_with_underscores((
                 self.model, str(self.dim)+'d', self.mesh_type,
                 self.field_short, 'l'+str(self.norm)))
-            
-            if self.metric_type=='norm':
+
+            # write norm check
+            if self.norm_threshold is not None:
                 key = join_with_underscores((key_stem, mesh_suffix))
-            else:
+                self.write_xml_snippet('norm', key, 'lt',
+                                   self.rescaled_norm_threshold)
+                
+            # write rate check
+            if self.rate_threshold is not None:
                 if self.mesh_suffix_0 is None:
                     self.mesh_suffix_0 = mesh_suffix
                     return
                 key = join_with_underscores((key_stem,
                                              self.mesh_suffix_0+mesh_suffix))
+                self.write_xml_snippet('rate', key, 'gt',
+                                   self.rate_threshold)
                 self.mesh_suffix_0 = mesh_suffix
+        
+
     
-            self.xml_file.write("""
-    <test name="{1}: expect {0} {2} {3:g}" language="python">
-from test_tools import find_{0}
-assert(find_{0}("{1}") &{2}; {3:g})
-    </test>""".format(self.metric_type, key, self.rel_op, 
-                      self.rescaled_threshold))
-
-
 class RunSimulation(Command):
 
     def __init__(self):
