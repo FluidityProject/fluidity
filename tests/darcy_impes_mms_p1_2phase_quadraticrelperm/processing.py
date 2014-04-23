@@ -6,7 +6,7 @@ mesh_type_list = ["reg"]
 mesh_suffix_list_per_dimension = [
     ["B", "C", "D", "E"],
     ["B", "C", "D"],
-    ["B", "C"]]
+    []]
 field_name_list = ["Phase1::Pressure", "Phase2::Saturation"]
 norm_list = [2]
 finish_time = 1.0

@@ -125,10 +125,10 @@ class ManufacturedSolution:
         
 
 class SolutionHarness:
-    def __init__(self, D, g_mag, ka, phi, mu, rho, K, p_scale, s2_scale):
-        # settings
-        self.genfilename = 'solution_expressions.py'
+    def __init__(self, D, g_mag, ka, phi, mu, rho, K, p_scale, s2_scale,
+                 solution_name='solution_expressions'):
         # parameters
+        self.genfilename = solution_name+'.py'
         self.D = D                  # domain extents
         self.g_mag = g_mag          # gravity magnitude
         self.ka = ka                # absolute permeability

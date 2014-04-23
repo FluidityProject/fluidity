@@ -14,6 +14,9 @@ geo:
 	cp ../darcy_impes_common/mesh_data/template_cuboid_reg.geo .
 	cp ../darcy_impes_common/mesh_data/template_cuboid_irreg.geo .
 
+gen:
+	python processing.py gen
+
 pre:
 	python processing.py pre
 
@@ -27,12 +30,7 @@ all:
 	python processing.py all
 
 clean:
-	rm -f *.ele
-	rm -f *.node
-	rm -f *.bound
-	rm -f *.edge
-	rm -f *.face
-	rm -f *.msh
+	python processing.py clean
 	rm -f *.vtu 
 	rm -f *.pvtu 
 	rm -f *.s 

@@ -17,10 +17,13 @@ def join_with_underscores(strings):
     for s in strings:
         # for flexibility, any nil values are ignored
         if s is None: continue
+        if s is not str: s = str(s)
         if result is None:
             result = s
         else:
             result = result + '_' + s
+    # for safety (making filenames), replace any points with 'p'
+    result = re.sub('\.', 'p', result)
     return result
 
 
@@ -63,6 +66,8 @@ class WriteXMLSnippet(Command):
         self.solution_dict = solution_dict
         self.stem = None
         self.model = None
+        self.saturation2_scale = None
+        self.gravity_magnitude = None
         self.dim = None
         self.mesh_type = None
         self.phase_index = None
@@ -73,8 +78,14 @@ class WriteXMLSnippet(Command):
         
       
     def execute(self, level_name, value, indent):
+        # TODO - remove the dependence on named members;
+        #   have a client-specified (generic) list of levels
         if level_name == 'stem':
             self.stem = value
+        elif level_name == 'saturation2_scale':
+            self.saturation2_scale = value
+        elif level_name == 'gravity_magnitude':
+            self.gravity_magnitude = value
         if level_name == 'dim':
             self.dim = value
         if level_name == 'mesh_type':
@@ -131,6 +142,8 @@ class RunSimulation(Command):
             raise IOError("Cannot find the binary.")
         # can add more levels to this list
         self.stem = None
+        self.saturation2_scale = None
+        self.gravity_magnitude = None
         self.model = None
         self.dim = None
         self.mesh_type = None
@@ -139,6 +152,10 @@ class RunSimulation(Command):
         # can add more levels to this list
         if level_name == 'stem':
             self.stem = value
+        elif level_name == 'saturation2_scale':
+            self.saturation2_scale = value
+        elif level_name == 'gravity_magnitude':
+            self.gravity_magnitude = value
         elif level_name == 'model':
             self.model = value
         elif level_name == 'dim':
@@ -149,9 +166,11 @@ class RunSimulation(Command):
             mesh_suffix = value
 
             filename = join_with_underscores((
-                self.stem, self.model, str(self.dim)+'d',
+                self.stem,
+                self.saturation2_scale, self.gravity_magnitude, 
+                self.model, str(self.dim)+'d',
                 self.mesh_type, mesh_suffix)) + '.diml'
-            
+
             # start simulation (TODO: guard against absent mesh)
             subprocess.call([self.binary_path, filename,
                              '-v3'], stdout=open(os.devnull, 'wb'))
@@ -167,6 +186,8 @@ class WriteToReport(Command):
         # can add more levels to this list
         self.stem = None
         self.model = None
+        self.saturation2_scale = None
+        self.gravity_magnitude = None
         self.dim = None
         self.mesh_type = None
         self.phase_index = None
@@ -187,6 +208,10 @@ class WriteToReport(Command):
         # can add more levels to this list
         if level_name == 'stem':
             self.stem = value
+        elif level_name == 'saturation2_scale':
+            self.saturation2_scale = value
+        elif level_name == 'gravity_magnitude':
+            self.gravity_magnitude = value
         elif level_name == 'model':
             self.model = value
         elif level_name == 'dim':
@@ -210,6 +235,7 @@ class WriteToReport(Command):
 
             err = self.get_norm()
             key_stem = join_with_underscores((
+                self.saturation2_scale, self.gravity_magnitude, 
                 self.model, str(self.dim)+'d', self.mesh_type,
                 self.field_short, 'l'+str(self.norm)))
 
@@ -237,8 +263,9 @@ class WriteToReport(Command):
     def get_norm(self):
         # Clients may want to override this method
         filename = join_with_underscores((
-            self.stem, self.model, str(self.dim)+'d',
-            self.mesh_type, self.mesh_suffix)) + '.stat'
+            self.stem, self.saturation2_scale, self.gravity_magnitude, 
+            self.model, str(self.dim)+'d', self.mesh_type,
+            self.mesh_suffix)) + '.stat'
         if self.norm==1:
             self.calc_type = "integral"
         elif self.norm==2:

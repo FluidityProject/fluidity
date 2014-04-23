@@ -22,23 +22,24 @@ from getpass import getuser
 verbose(True)
 debug = False
 
+# constants
+mesh_template_prefix = 'template'
+domain_shape_dict = {1:'line', 2:'rectangle', 3:'cuboid'}
+mesh_res_dict = {'A':5, 'B':10, 'C':20, 'D':40,
+                            'E':80, 'F':160}
+
+
 class Parameterisation:
    """Parameters determined from a small, fixed set of
    variables can be determined here.
    """
 
    def __init__(self, case, dim, mesh_type, mesh_suffix):
-      # constants
-      self.options_template_filename = "template_"+case+".diml"
-      self.mesh_template_prefix = 'template'
-      self.domain_shape_dict = {1:'line', 2:'rectangle', 3:'cuboid'}
-      self.mesh_res_dict = {'A':5, 'B':10, 'C':20, 'D':40,
-                            'E':80, 'F':160}
       
       # basic parameterisations
       self.dim = dim
-      self.domain_shape = self.domain_shape_dict[dim]
-      self.mesh_res = self.mesh_res_dict[mesh_suffix]
+      self.domain_shape = domain_shape_dict[dim]
+      self.mesh_res = mesh_res_dict[mesh_suffix]
 
       # filenames
       if dim==1:
@@ -50,11 +51,12 @@ class Parameterisation:
          g_e = '.geo'
          m_e_l = ['.msh']
       self.mesh_name = self.domain_shape+m_t+'_'+mesh_suffix
+      self.options_template_filename = "template_"+case+".diml"
       self.options_name = case+'_'+str(dim)+'d'+m_t+'_'+mesh_suffix
-      self.geo_template_filename = self.mesh_template_prefix+'_'+\
+      self.options_filename = self.options_name+'.diml'
+      self.geo_template_filename = mesh_template_prefix+'_'+\
                                    self.domain_shape+m_t+g_e
       self.geo_filename = self.mesh_name+'.geo'
-      self.options_filename = self.options_name+'.diml'
       self.mesh_filenames = []
       for m_e in m_e_l:
          self.mesh_filenames.append(self.mesh_name+m_e)
@@ -64,9 +66,6 @@ class Parameterisation:
       """Options template expansion typically requires more stuff.
       It is placed here so as not to burden other clients.
       """
-
-      self.timestep_scale_factor = float(self.mesh_res_dict['A'])/\
-                                   float(self.mesh_res)
       
       # dictionary entries
       if self.dim==1:
@@ -95,22 +94,21 @@ class Parameterisation:
          self.inlet_ID = '29'
          self.wall_IDs = '30 31 32 33'
          self.wall_num = '4'
-         
-      
-class ExpandOptionsTemplate(Command):
+
+
+class MSTestToolsCommand(Command):
+   """This abstract class, to be extended by concrete Commands, has a
+method for doing the boring job of storing level details, i.e. recording
+where the Command is in the Handler tree.
+   """
    
-   def __init__(self, finish_time, solution_dict=None):
-      self.finish_time = finish_time
-      # solution_dict may come from an external file generated as part of a
-      # manufactured solution.
-      self.solution_dict = solution_dict
+   def __init__(self):
       self.stem = None
       self.dim = None
       self.mesh_type = None
+      self.mesh_suffix = None
       
-   def execute(self, level_name, value, indent):
-      # upper levels just record level names; the last level does all
-      # the important stuff
+   def store_level_details(self, level_name, value):
       if level_name == 'stem':
          self.stem = value
       if level_name == 'dim':
@@ -118,23 +116,39 @@ class ExpandOptionsTemplate(Command):
       if level_name == 'mesh_type':
          self.mesh_type = value
       if level_name == 'mesh_suffix':
-         mesh_suffix = value
-         # compute useful stuff
-         param = Parameterisation(self.stem, self.dim,
-                                  self.mesh_type, mesh_suffix)
-         param.compute_more_options()
+         self.mesh_suffix = value
+      
+   
+      
+class ExpandOptionsTemplate(MSTestToolsCommand):
+   
+   def __init__(self, finish_time, solution_dict=None):
+      MSTestToolsCommand.__init__(self)
+      self.finish_time = finish_time
+      # solution_dict may come from an external file generated as part of a
+      # manufactured solution.
+      self.solution_dict = solution_dict
+      
+   def execute(self, level_name, value, indent):
+      # all levels record level details
+      self.store_level_details(level_name, value)
+      if level_name == 'mesh_suffix':
+         # the last level does the important stuff
          
-         # let the coarsest mesh have one time step and maintain a
-         # constant Courant number for all meshes
-         time_step = self.finish_time * param.timestep_scale_factor
+         # compute useful parameters
+         param = Parameterisation(self.stem, self.dim,
+                                  self.mesh_type, self.mesh_suffix)
+         param.compute_more_options()
 
          # compose the dictionary
          options_dict = {
             'MESH_FILE': param.mesh_name,
             'MESH_FORMAT': param.mesh_format,
-            'DOMAIN_DIM': str(self.dim), 
-            'TIME_STEP': str(time_step),
-            'FINISH_TIME': self.finish_time,
+            'DOMAIN_DIM': str(self.dim),
+
+   'TIME_STEP': str(self.compute_time_step()),
+
+   'FINISH_TIME': self.finish_time,
             'INLET_ID': param.inlet_ID,
             'OUTLET_ID': param.outlet_ID,
             'WALL_IDS': param.wall_IDs,
@@ -155,29 +169,32 @@ class ExpandOptionsTemplate(Command):
          with open(param.options_filename, 'w') as tgt:
             tgt.write(buf)
 
+   def compute_time_step(self):
+      """Extracted so as to be overrideable"""
+      
+      # let the coarsest mesh have one time step and maintain a
+      # constant Courant number for all meshes
+      scale_factor = float(mesh_res_dict['A'])/ \
+                     float(mesh_res_dict[self.mesh_suffix])
+      return scale_factor * self.finish_time
+      
             
-class ProcessMesh(Command):
+class ProcessMesh(MSTestToolsCommand):
 
    def __init__(self, domain_extents):
+      MSTestToolsCommand.__init__(self)
       self.binary_path = "../../bin/darcy_impes"
-      self.stem = None
-      self.dim = None
-      self.mesh_type = None
       self.domain_extents = domain_extents
       
    def execute(self, level_name, value, indent):
-      if level_name == 'stem':
-         self.stem = value
-      if level_name == 'dim':
-         self.dim = value
-      if level_name == 'mesh_type':
-         self.mesh_type = value
+      # all levels record level details
+      self.store_level_details(level_name, value)
       if level_name == 'mesh_suffix':
-         mesh_suffix = value
+         # the last level does the important stuff
 
-         # compute useful stuff
+         # compute useful parameters
          param = Parameterisation(self.stem, self.dim, self.mesh_type,
-                                  mesh_suffix)
+                                  self.mesh_suffix)
          
          # compose the dictionary
          geo_dict = {'MESH_NAME': str(param.mesh_name)}
@@ -187,7 +204,7 @@ class ProcessMesh(Command):
             # higher mesh resolutions
             D = self.domain_extents[i]
              # reference number along x-edge
-            nx_A = param.mesh_res_dict['A']
+            nx_A = mesh_res_dict['A']
             # reference number along edge in this dimension
             n_A = numpy.round(nx_A * D / self.domain_extents[0])
             # number scaled up for this mesh resolution
@@ -217,32 +234,31 @@ class ProcessMesh(Command):
                             stdout=open(os.devnull, 'wb'))
 
             
-class CleanUp(Command):
-   """Removes generated geometry, mesh, options and results files, but leaves
-    stat files and error reports intact."""
+class CleanUp(MSTestToolsCommand):
+   """Removes generated geometry, mesh, and options files, but leaves
+    results intact.  This ensures templates do not get deleted
+    (compared with rm -f *.geo, etc)
+   """
 
    def __init__(self):
+      MSTestToolsCommand.__init__(self)
       self.stem = None
       self.dim = None
       self.mesh_type = None
       
    def execute(self, level_name, value, indent):
-      if level_name == 'stem':
-         self.stem = value
-      if level_name == 'dim':
-         self.dim = value
-      if level_name == 'mesh_type':
-         self.mesh_type = value
+      # all levels record level details
+      self.store_level_details(level_name, value)
       if level_name == 'mesh_suffix':
-         mesh_suffix = value
+         # the last level does the important stuff
 
-         # compute useful stuff
+         # compute useful parameters
          param = Parameterisation(self.stem, self.dim, self.mesh_type,
-                                  mesh_suffix)
+                                  self.mesh_suffix)
 
          # try removing input files, mesh files, results files
          for f in [param.options_filename, param.geo_filename] + \
-             param.mesh_filenames + glob.glob(param.options_name+'_*.vtu'):
+             param.mesh_filenames:
             try:
                os.remove(f)
                if verbose(): sys.stdout.write('\n'+indent+'   removed '+f)
@@ -274,10 +290,13 @@ class ManufacturedSolutionTestSuite:
          
          for dim in (1, 2, 3):
             # start with mesh suffix list.  If 'onemesh', choose only
-            # the last mesh
+            # the first mesh (the last mesh was originally chosen, but higher domain dimensions might finish with lower mesh resolutions)
             if hdlr_type=='post_onemesh':
-               children = HandlerLevel(
-                  'mesh_suffix', [mesh_suffix_list_per_dimension[dim-1][-1]])
+               if len(mesh_suffix_list_per_dimension[dim-1]) > 0:
+                  children = HandlerLevel(
+                     'mesh_suffix', [mesh_suffix_list_per_dimension[dim-1][0]])
+               else:
+                  children = []
             else:
                children = HandlerLevel(
                   'mesh_suffix', mesh_suffix_list_per_dimension[dim-1])
@@ -329,39 +348,57 @@ assert(not "matrixdump" in files and not "matrixdump.info" in files)
 </testproblem>""".format(self.case_name, getuser()))
       self.xml_file.close()
 
+
+   def write_xml(self):
+      self.write_xml_begin()
+      self.post_onemesh_handler.handle(
+         # expect results for the first mesh to be good to within 5%
+         WriteXMLSnippet(self.xml_file, 'norm', 0.05,
+                         self.solution_dict))
+      self.post_handler.handle(
+         # expect rates to be better than 0.6
+         WriteXMLSnippet(self.xml_file, 'rate', 0.6,
+                         self.solution_dict))
+      self.write_xml_end()
+
+
+   def preprocess(self):
+      cmds = CommandList([
+         ExpandOptionsTemplate(self.finish_time, self.solution_dict),
+         ProcessMesh(self.domain_extents)])
+      self.main_handler.handle( cmds )
+
+
+   def process(self):
+      self.main_handler.handle( RunSimulation() )
+
+
+   def postprocess(self):
+      with open(error_norms_filename, 'w') as f_norms:
+         with open(error_rates_filename, 'w') as f_rates:
+            self.post_handler.handle(
+               WriteToReport(f_norms, f_rates))
+
+
+   def clean_up(self):
+      self.main_handler.handle( CleanUp() )
+      
             
    def do(self, what):
+      """Front end for various methods"""
       what = str.lower(what[0:3])
-      
       if what=='xml' or what=='all':
          if verbose(): print '\nGenerating XML file'
-         self.write_xml_begin()
-         self.post_onemesh_handler.handle(
-            WriteXMLSnippet(self.xml_file, 'norm', 0.01,
-                            self.solution_dict))
-         self.post_handler.handle(
-            WriteXMLSnippet(self.xml_file, 'rate', 0.6,
-                            self.solution_dict))
-         self.write_xml_end()
-      
+         self.write_xml()
       if what=='pre' or what=='all':
          if verbose(): print '\nPreprocessing'
-         cmds = CommandList([
-            ExpandOptionsTemplate(self.finish_time, self.solution_dict),
-            ProcessMesh(self.domain_extents)])
-         self.main_handler.handle( cmds )
-         
+         self.preprocess()
       if what=='pro' or what=='all':
          if verbose(): print '\nRunning simulations'
-         self.main_handler.handle( RunSimulation() )
-         
+         self.process()
       if what=='pos' or what=='all':
          if verbose(): print '\nAnalysing'
-         with open(error_norms_filename, 'w') as f_norms:
-            with open(error_rates_filename, 'w') as f_rates:
-               self.post_handler.handle(
-                  WriteToReport(f_norms, f_rates))
-
+         self.postprocess()
       if what=='cle':
          if verbose(): print '\nCleaning up'
-         self.main_handler.handle( CleanUp() )
+         self.clean_up()
