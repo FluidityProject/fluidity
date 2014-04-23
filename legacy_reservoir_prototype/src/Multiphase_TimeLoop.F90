@@ -90,7 +90,7 @@
 
 !!$ additional state variables for multiphase & multicomponent
 
-      type(state_type) :: packed_state, backup_state
+      type(state_type) :: packed_state
       type(state_type), dimension(:), pointer :: multiphase_state, multicomponent_state
 
 
@@ -259,9 +259,9 @@
       Repeat_time_step = .false.!Initially has to be false
       nonLinearAdaptTs = have_option(  '/timestepping/nonlinear_iterations/nonlinear_iterations_automatic/adaptive_timestep_nonlinear')
 
-     !If adaptive time_stepping then we need to create backup_state
-    if (nonLinearAdaptTs)  call pack_multistate(state,backup_state,multiphase_state,&
-           multicomponent_state)
+!     !If adaptive time_stepping then we need to create backup_state
+!    if (nonLinearAdaptTs)  call pack_multistate(state,backup_state,multiphase_state,&
+!           multicomponent_state)
 
 !!$ Compute primary scalars used in most of the code
       call Get_Primary_Scalars( state, &         
@@ -617,7 +617,7 @@
 
         ExitNonLinearLoop = .false.
         !Store backup to be able to repeat a timestep
-         if (nonLinearAdaptTs) call Adaptive_NonLinear(packed_state, backup_state, reference_field, its, &
+         if (nonLinearAdaptTs) call Adaptive_NonLinear(packed_state, reference_field, its, &
         Repeat_time_step, ExitNonLinearLoop,nonLinearAdaptTs,1)
 
 
@@ -678,7 +678,7 @@
          end if
 
             !Store the field we want to compare with to check how are the computations going
-            call Adaptive_NonLinear(packed_state, backup_state, reference_field, its, &
+            call Adaptive_NonLinear(packed_state, reference_field, its, &
             Repeat_time_step, ExitNonLinearLoop,nonLinearAdaptTs,2)
 
             call Calculate_All_Rhos( state, packed_state, ncomp, nphase, ndim, cv_nonods, cv_nloc, totele, &
@@ -1126,15 +1126,19 @@
             end if Conditional_Components
 
             !Check if the results are good so far and act in consequence, only does something if requested by the user
-            call Adaptive_NonLinear(packed_state, backup_state, reference_field, its,&
+            call Adaptive_NonLinear(packed_state, reference_field, its,&
             Repeat_time_step, ExitNonLinearLoop,nonLinearAdaptTs,3)
             if (ExitNonLinearLoop) exit Loop_NonLinearIteration
 
          end do Loop_NonLinearIteration
 
         if (nonLinearAdaptTs) then
-             !If repeat timestep we don't want to adapt mesh or dump results
-             if ( Repeat_time_step ) then
+            !As the value of dt and acctim may have changed we retrieve their values
+            !to make sure that everything is coherent
+            call get_option( '/timestepping/current_time', acctim )
+            call get_option( '/timestepping/timestep', dt)
+            !If repeat timestep we don't want to adapt mesh or dump results
+            if ( Repeat_time_step ) then
                 itime = itime - 1
                 cycle Loop_Time
             end if
@@ -1292,12 +1296,12 @@ end do
             call deallocate(packed_state)
             call pack_multistate(state,packed_state,&
                  multiphase_state,multicomponent_state)
-        !If we are using adaptive time stepping, backup_state needs also to be redone
-        if (nonLinearAdaptTs) then
-            call deallocate(backup_state)
-            call pack_multistate(state,backup_state,&
-                 multiphase_state,multicomponent_state)
-        end if
+!        !If we are using adaptive time stepping, backup_state needs also to be redone
+!        if (nonLinearAdaptTs) then
+!            call deallocate(backup_state)
+!            call pack_multistate(state,backup_state,&
+!                 multiphase_state,multicomponent_state)
+!        end if
 
 !!$ Deallocating array variables:
             deallocate( &

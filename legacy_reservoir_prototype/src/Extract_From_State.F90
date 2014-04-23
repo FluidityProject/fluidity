@@ -2683,16 +2683,13 @@
     end subroutine add_dependant_fields_to_tensor_from_state
 
 
-    !########THIS SUBROUTINE WILL NOT WORK UNTIL THE PROGRAM DOES NOT USE, ########
-    !########AT LEAST THE PHASEVOLUMEFRACTION FROM PACKED_STATE########
-    !#####MAYBE VARIABLES ITERATED* CAN BE HANDY HERE??#######
-    subroutine Adaptive_NonLinear(packed_state, backup_state, reference_field, its,&
+    subroutine Adaptive_NonLinear(packed_state, reference_field, its,&
         Repeat_time_step, ExitNonLinearLoop,nonLinearAdaptTs,order)
         !This subroutine either store variables before the nonlinear timeloop starts, or checks
         !how the nonlinear iterations are going and depending on that increase the timestep
         !or decreases the timestep and repeats that timestep
         Implicit none
-        type(state_type), intent(inout) :: packed_state, backup_state
+        type(state_type), intent(inout) :: packed_state!, backup_state
         real, dimension(:,:,:), allocatable, intent(inout) :: reference_field
         logical, intent(inout) :: Repeat_time_step, ExitNonLinearLoop
         logical, intent(in) :: nonLinearAdaptTs
@@ -2700,9 +2697,14 @@
         !Local variables
         real :: dt
         real, parameter :: check_sat_threshold = 1d-6
-        type(scalar_field), pointer :: sfield
-        type(vector_field), pointer :: vfield
-        type(tensor_field), pointer :: tfield
+        real, dimension(:), pointer :: pressure
+        real, dimension(:,:), pointer :: phasevolumefraction
+        real, dimension(:,:,:), pointer :: velocity
+
+!        real, dimension(:,:,:), pointer :: tVar, tVar_it
+!        real, dimension(:,:), pointer :: vVar, vVar_it
+!        real, dimension(:,:), pointer :: sVar, sVar_it
+
         !Variables for automatic non-linear iterations
         real :: tolerance_between_non_linear, initial_dt, min_ts, max_ts, increase_ts_switch, decrease_ts_switch
         !Variables for adaptive time stepping based on non-linear iterations
@@ -2713,10 +2715,10 @@
         call get_option( '/timestepping/nonlinear_iterations/nonlinear_iterations_automatic', tolerance_between_non_linear, default = -1. )
         if (tolerance_between_non_linear<0) return
         call get_option( '/timestepping/nonlinear_iterations', NonLinearIteration, default = 3 )
-        !Get data from diamond. Despite this is slow, as it is done in the outest loop, it should not affect the performance.
-      variable_selection = 3 !Variable to check how good nonlinear iterations are going 1 (Pressure), 2 (Velocity), 3 (Saturation)
-      call get_option( '/timestepping/nonlinear_iterations/nonlinear_iterations_automatic/adaptive_timestep_nonlinear', &
-           variable_selection, default = 3)
+          !Get data from diamond. Despite this is slow, as it is done in the outest loop, it should not affect the performance.
+         !Variable to check how good nonlinear iterations are going 1 (Pressure), 2 (Velocity), 3 (Saturation)
+        call get_option( '/timestepping/nonlinear_iterations/nonlinear_iterations_automatic/adaptive_timestep_nonlinear', &
+        variable_selection, default = 3)
         call get_option( '/timestepping/nonlinear_iterations/nonlinear_iterations_automatic/adaptive_timestep_nonlinear/increase_factor', &
         increaseFactor, default = 1.2 )
         call get_option( '/timestepping/nonlinear_iterations/nonlinear_iterations_automatic/adaptive_timestep_nonlinear/decrease_factor', &
@@ -2736,107 +2738,87 @@
         s_or, default=0.0)
         !Get time step
         call get_option( '/timestepping/timestep', initial_dt )
+        dt = initial_dt
         !By default the minimum time-steps is ten orders smaller than the initial timestep
         if(min_ts<0) min_ts = initial_dt * 1d-10
 
-        !RIGHT NOW I AM DOING A BACKUP OF EVERYTHING
-        !UNNECESSARY FOR OLD VARIABLES??? I HAVE TO CHANGE THAT IN THE FUTURE
 
         select case (order)
             case (1)!Store or get from backup
                 !If we do not have adaptive time stepping then there is nothing to backup
                 if (.not.nonLinearAdaptTs) return
                 !we either store the data or we recover it if repeting a timestep
-                 !Procedure to repeat time-steps
-                if (.not.Repeat_time_step) then
-                    !Backup scalar_fields
-                    do i=1,size(packed_state%scalar_fields)
-                        backup_state%scalar_fields(1)%ptr = packed_state%scalar_fields(i)%ptr
-                    end do
-                    !Backup vector_fields
-                    do i=1,size(packed_state%vector_fields)
-                        backup_state%vector_fields(1)%ptr = packed_state%vector_fields(i)%ptr
-                    end do
-                    !Backup tensor_fields
-                    do i=1,size(packed_state%tensor_fields)
-                        backup_state%tensor_fields(1)%ptr = packed_state%tensor_fields(i)%ptr
-                    end do
-                else
-                    !Recover scalar_fields
-                    do i=1,size(backup_state%scalar_fields)
-                        packed_state%scalar_fields(i)%ptr = backup_state%scalar_fields(1)%ptr
-                    end do
-                    !Recover vector_fields
-                    do i=1,size(backup_state%vector_fields)
-                        packed_state%vector_fields(i)%ptr = backup_state%vector_fields(1)%ptr
-                    end do
-                    !Recover tensor_fields
-                    do i=1,size(backup_state%tensor_fields)
-                        packed_state%tensor_fields(i)%ptr = backup_state%tensor_fields(1)%ptr
-                    end do
-                end if
+                !Procedure to repeat time-steps
+                !If  Repeat_time_step then we recover values, else we store them
+                call copy_packed_new_to_iterated(packed_state, Repeat_time_step)
             case (2)!Calculate and store reference_field
                 if (its==1) then
                     !Store variable to check afterwards
+                    call get_var_from_packed_state(packed_state, velocity = velocity, pressure = pressure,&
+                    phasevolumefraction = phasevolumefraction)
+                    if (allocated(reference_field)) deallocate(reference_field)
                     select case (variable_selection)
                         case (1)
-                            tfield => extract_tensor_field( packed_state, "PackedPressure" )
+                            allocate (reference_field(1,1,size(pressure,1) ))
+                            reference_field(1,1, :) = pressure
                         case (2)
-                            tfield => extract_tensor_field( packed_state, "PackedVelocity" )
+                            allocate (reference_field(size(velocity,1),size(velocity,2),size(velocity,3) ))
+                            reference_field(:,:,:) = velocity
                         case default
-                            tfield => extract_tensor_field( packed_state, "PackedPhaseVolumeFraction" )
-                    end select
-                    allocate (reference_field(size(tfield%val,1),size(tfield%val,2),size(tfield%val,3) ))
-                    reference_field = tfield%val
+                            allocate (reference_field(1,size(phasevolumefraction,1),size(phasevolumefraction,2) ))
+                            reference_field(1,:,:) = phasevolumefraction
+                        end select
                 end if
+
             case default!Check how is the process going on and decide
                  !If Automatic_NonLinerIterations then we compare the variation of the a property from one time step to the next one
                 ExitNonLinearLoop = .false.
                 Repeat_time_step = .false.
                 if (its > 1 ) then
 
-                    select case (variable_selection)
-                        case (1)!Check that the names are the same!!
-                            tfield => extract_tensor_field( packed_state, "PackedPressure" )
-                        case (2)
-                            tfield => extract_tensor_field( packed_state, "PackedVelocity" )
-                        case default
-                            tfield => extract_tensor_field( packed_state, "PackedPhaseVolumeFraction" )
-                    end select
-                    ts_ref_val = maxval(abs(reference_field-tfield%val))
+                    call get_var_from_packed_state(packed_state, velocity = velocity, pressure = pressure,&
+                    phasevolumefraction = phasevolumefraction)
 
+                    select case (variable_selection)
+                        case (1)
+                            ts_ref_val = maxval(abs(reference_field(1,1,:)-pressure))
+                        case (2)
+                             ts_ref_val = maxval(abs(reference_field-velocity))
+                        case default
+                            ts_ref_val = maxval(abs(reference_field(1,:,:)-phasevolumefraction))
+                    end select
                     !If only non-linear iterations
                     if (.not.nonLinearAdaptTs) then
                         !Automatic non-linear iteration checking
                         if (ts_ref_val < tolerance_between_non_linear)  ExitNonLinearLoop = .true.
                         return
                     end if
-
                     !Check that saturation is between bounds, works for two phases only!!
                     if (have_option(  '/timestepping/nonlinear_iterations/&
                             &nonlinear_iterations_automatic/adaptive_timestep_nonlinear/keep_sat_bounds') )  then
-                        tfield => EXTRACT_TENSOR_FIELD( packed_state, "PackedPhaseVolumeFraction" )
-                        Repeat_time_step = (maxval(s_gc-tfield%val(:,1,:))>check_sat_threshold&
-                        .or.maxval(s_or-tfield%val(:,2,:))>check_sat_threshold)
+                        Repeat_time_step = (maxval(s_gc-phasevolumefraction(1,:))>check_sat_threshold&
+                        .or.maxval(s_or-phasevolumefraction(2,:))>check_sat_threshold)
                     end if
+
                      !Increase Ts section
                     if ((ts_ref_val < increase_ts_switch .and.dt*increaseFactor<max_ts).and..not.Repeat_time_step) then
                         call get_option( '/timestepping/timestep', dt )
                         dt = dt * increaseFactor
                         call set_option( '/timestepping/timestep', dt )
                         print *, "Time step increased to:", dt
-                    end if
-
-                    !Exit loop section
-                    if ((ts_ref_val < tolerance_between_non_linear).and..not.Repeat_time_step) then
                         ExitNonLinearLoop = .true.
-                        deallocate(reference_field)
                         return
                     end if
 
-                    !Decrease Ts section only if we have done at least the 75% of the  nonLinearIterations
-                    if ((ts_ref_val > decrease_ts_switch .and.its>=int(0.75*NonLinearIteration)).or.&
-                    (repeat_time_step.and.its>=NonLinearIteration)) then
+!                    !Exit loop section
+!                    if ((ts_ref_val < tolerance_between_non_linear).and..not.Repeat_time_step) then
+!                        ExitNonLinearLoop = .true.
+!                        return
+!                    end if
+
+                    !Decrease Ts section only if we have done at least the 70% of the  nonLinearIterations
+                    if ((ts_ref_val > decrease_ts_switch.or.repeat_time_step) &
+                    .and.its>=int(0.70*NonLinearIteration)) then
 
                         if ( dt / decreaseFactor < min_ts) then
                             !Do not decrease
@@ -2856,13 +2838,71 @@
                         print *, "Time step decreased to:", dt
                         Repeat_time_step = .true.
                         ExitNonLinearLoop = .true.
-                        deallocate(reference_field)
                     end if
                 end if
+
         end select
 
     end subroutine Adaptive_NonLinear
 
+
+   subroutine copy_packed_new_to_iterated(packed_state, viceversa)
+    !Values from packed_state are stored in iterated unless viceversa is true, in that case
+    !the iterated values are moved to the new values
+     type(state_type), intent(inout) :: packed_state
+     logical, intent(in) :: viceversa
+
+     type(scalar_field), pointer :: sfield, nsfield
+     type(vector_field), pointer :: vfield, nvfield
+     type(tensor_field), pointer :: tfield, ntfield
+
+     integer :: i
+
+     do i=1,size(packed_state%scalar_fields)
+        sfield=>packed_state%scalar_fields(i)%ptr
+        if (sfield%name(1:14)=="PackedIterated") then
+            nsfield=>extract_scalar_field(packed_state,"Packed"//sfield%name(15:))
+            if (viceversa) then
+                nsfield%val = sfield%val
+            else
+                sfield%val=nsfield%val
+            end if
+        end if
+    end do
+
+    do i=1,size(packed_state%vector_fields)
+        vfield=>packed_state%vector_fields(i)%ptr
+         if (vfield%name(1:14)=="PackedIterated") then
+             nvfield=>extract_vector_field(packed_state,"Packed"//vfield%name(15:))
+             if (viceversa) then
+                 nvfield%val = vfield%val
+             else
+                 vfield%val=nvfield%val
+             end if
+         end if
+     end do
+
+     do i=1,size(packed_state%tensor_fields)
+         tfield=>packed_state%tensor_fields(i)%ptr
+         if (tfield%name(1:14)=="PackedIterated") then
+             ntfield=>extract_tensor_field(packed_state,"Packed"//tfield%name(15:))
+             if (viceversa) then
+                 ntfield%val  = tfield%val
+             else
+                 tfield%val=ntfield%val
+             end if
+         end if
+     end do
+
+     sfield=>extract_scalar_field(packed_state,"OldFEPressure")
+     nsfield=>extract_scalar_field(packed_state,"FEPressure")
+     sfield%val=nsfield%val
+
+     sfield=>extract_scalar_field(packed_state,"OldCVPressure")
+     nsfield=>extract_scalar_field(packed_state,"CVPressure")
+     sfield%val=nsfield%val
+
+   end subroutine copy_packed_new_to_iterated
 
     subroutine get_var_from_packed_state(packed_state,FEDensity,&
     OldFEDensity,IteratedFEDensity,Density,OldDensity,IteratedDensity,PhaseVolumeFraction,&
