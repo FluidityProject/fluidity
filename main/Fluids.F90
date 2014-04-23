@@ -931,9 +931,9 @@ contains
     end if
 
     ! cleanup k_epsilon
-    if (have_k_epsilon) then
-        call keps_cleanup()
-    end if
+    !if (have_k_epsilon) then
+    !    call keps_cleanup()
+    !end if
 
    ! if (have_option("/material_phase[0]/sediment")) then
     !    call sediment_cleanup()
