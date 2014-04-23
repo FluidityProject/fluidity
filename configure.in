@@ -71,21 +71,9 @@ fi
 #
 # Name fluidity
 #
-AC_ARG_ENABLE(gcov,
-    [AC_HELP_STRING([--enable-gcov],
-	    [turns on GNUs coverage tool - gcov])])
-
 AC_ARG_ENABLE(debugging,
     [AC_HELP_STRING([--enable-debugging],
 	    [turns on debugging flags])])
-
-if test "x$enable_gcov" == "xyes" ; then
-    enable_debugging="yes"
-    FCFLAGS="$FCFLAGS -fprofile-arcs -ftest-coverage"
-    CFLAGS="$CFLAGS -fprofile-arcs -ftest-coverage"
-    CXXFLAGS="$CXXFLAGS -fprofile-arcs -ftest-coverage"
-    LDFLAGS="$LDFLAGS -fprofile-arcs -ftest-coverage"
-fi
  
 FLFEMDEM="femdem"
 
@@ -95,15 +83,13 @@ AC_CANONICAL_HOST
 # Find compilers
 AC_MSG_NOTICE([*** Fishing for legacy fortran compiler.])
 AC_PROG_F77(ifort ifc efc sunf95 gfortran pgf95 pathf95 g95 f90,,f90,$PATH)
-AC_F77_LIBRARY_LDFLAGS
 fcompiler=`basename $F77`
 
 AC_MSG_NOTICE([*** Fishing for modern Fortran compiler])
 AC_PROG_FC(ifort ifc efc sunf95 gfortran pgf95 pathf95 g95 f90,,f90,$PATH)
-AC_FC_LIBRARY_LDFLAGS
 fccompiler=`basename $FC`
 
-if test "$fcompiler" = "sunf95" ; then
+if test "x$fcompiler" = "xsunf95" ; then
     MODINC_FLAG="-M"
     FFLAGS="-M../include $FFLAGS"
     FCFLAGS="-M../include $FCFLAGS"
@@ -156,7 +142,6 @@ if test "$fcompiler" = "ifort" ; then
     FCFLAGS="$FCFLAGS -vec-report=0"
 fi
 
-
 AC_PROG_CC(icc ecc suncc pgcc gcc cc)
 AC_PROG_CXX(icpc icc ecc sunCC pgCC g++ CC)
 AC_PROG_CPP
@@ -165,8 +150,6 @@ LINKER=$CXX
 AC_LONG_64_BITS
 
 # Find fortran libraries required when linking with C++ main.
-
-AC_F77_LIBRARY_LDFLAGS
 AC_FC_LIBRARY_LDFLAGS
 
 AC_F77_WRAPPERS
@@ -176,7 +159,7 @@ AC_ARG_ENABLE(python,
 [AC_HELP_STRING([--enable-python],
 [embed python in fluidity for generic functions.])])
 
-if test "$enable_python" != "no"
+if test "x$enable_python" != "xno"
 then
     AC_MSG_NOTICE([Checking for Python automagic.])
     AC_LANG_PUSH([C++])
@@ -203,13 +186,13 @@ then
         AC_PYTHON_DEVEL
         CPPFLAGS=$mycppflag
     # Save variables...
-        if test "$pythonexists" = "yes";
+        if test "x$pythonexists" = "xyes";
         then
 	    if  test "$fcompiler" = "pgf90"; then
 	        PYTHON_EXTRA_LDFLAGS=${PYTHON_EXTRA_LDFLAGS/-Xlinker/}
 	        PYTHON_EXTRA_LDFLAGS=${PYTHON_EXTRA_LDFLAGS/-export-dynamic/}
 	    fi
-      if test "$enable_debugging" = "yes"; then
+      if test "x$enable_debugging" = "xyes"; then
         export PYTHON_EXTRA_LDFLAGS=$(echo $PYTHON_EXTRA_LDFLAGS | sed -e 's/-O1/-O0/g' -e 's/-O2/-O0/g' -e 's/-O3/-O0/g')
       fi
 	    LIBS="$LIBS $PYTHON_LDFLAGS $PYTHON_EXTRA_LDFLAGS $PYTHON_EXTRA_LIBS"
@@ -235,17 +218,10 @@ fi
 AC_SUBST(HAVE_PYTHON)
 
 AC_ARG_ENABLE(cgal, [AC_HELP_STRING([--enable-cgal], [turns on use of the CGAL library])])
-if test "$enable_cgal" = "yes" ; then
-  AC_CHECK_LIB(CGAL, cos, [HAVE_CGAL=yes], [HAVE_CGAL=no])
+if test "x$enable_cgal" = "xyes" ; then
+  ACX_lib_automagic(CGAL, _ZNK4CGAL6Random8get_seedEv, [HAVE_CGAL=yes; AC_DEFINE(HAVE_LIBCGAL)], AC_MSG_ERROR("Use of CGAL enabled but cannot identify CGAL. Check that it is installed."))
   AC_SUBST(HAVE_CGAL)
-  if test "$HAVE_CGAL" = "yes"; then
-    cat >> confdefs.h << EOF
-#define HAVE_CGAL 1
-EOF
-    LIBS="$LIBS -lCGAL -lgmp -lmpfr"
-  else
-    AC_MSG_ERROR("Use of CGAL enabled but cannot identify CGAL. Check that it is installed.")
-  fi
+  LIBS="$LIBS -lgmp -lmpfr"
 fi
 
 # Find a library which will give us blas and lapack routines
@@ -615,6 +591,8 @@ else
 #define NDEBUG 1
 EOF
     OPTIMIZATION_FFLAGS="$OPTIMIZATION_FFLAGS -O3"
+
+    AC_CHECK_LIB(tcmalloc,malloc,,AC_MSG_WARN([No tcmalloc support available.]))
 fi
 
 FFLAGS="$FFLAGS $OPTIMIZATION_FFLAGS"
@@ -700,8 +678,6 @@ CC=$MPICC
 CXX=$MPICXX
 
 AC_MSG_CHECKING([if we can compile and link without using -lmpi])
-LIBS_bck="$LIBS"
-LIBS=""
 AC_TRY_LINK([
 #include <mpi.h>
 ],[
@@ -709,11 +685,9 @@ int flag;
 MPI_Initialized(&flag);
 ],[
 AC_MSG_RESULT([yes])
-LIBS="$LIBS_bck"
 mpi="yes"
 ],[
 AC_MSG_RESULT([no])
-LIBS="$LIBS_bck"
 check_for_lmpi="yes"
 ])
 
@@ -761,14 +735,6 @@ if test "$check_for_mpich" = "yes" ; then
   ])
 fi
 
-# should this go inside the "$mpi" = "yes" test below?
-# i.e. only bother looking for pmpich++ if mpi is enabled...?
-# shouldn't really do this, since it assumes we know the name
-# of the mpich C++ library (but it can be different to below)
-# Also, we only needed it when trying to link C++ with Fortran
-# main -but that won't work reliably across compilers (gcc is ok)
-#AC_CHECK_LIB(pmpich++,main,,)
-
 if test "$mpi" = "yes" ; then
 cat >> confdefs.h << EOF
 #define HAVE_MPI 1
@@ -804,22 +770,31 @@ if test "$with_netcdf" != "no" ; then
       LIBS="$LIBS -L$with_netcdf"
     fi
   fi
-  AC_CHECK_LIB(netcdf, nc_create)
-  if test $ac_cv_lib_netcdf_nc_create = yes; then
-cat >> confdefs.h << EOF
-#define HAVE_NETCDF 1
-EOF
-    LIBS="$LIBS -lnetcdf"
-  fi
-  # Check for separate fortran lib.
-  AC_CHECK_LIB(netcdff, ncopn_)
-  if test $ac_cv_lib_netcdff_ncopn_ = yes; then
-    LIBS="$LIBS -lnetcdff"
-  fi
+  ACX_lib_automagic(netcdf, nc_create, [AC_DEFINE(HAVE_LIBNETCDF, [1])])
+  ACX_lib_automagic(netcdff, nc_create, [AC_DEFINE(HAVE_LIBNETCDFF, [1])])
 fi
 
-# Parmetis and zoltan
-ACX_ParMetis([AC_MSG_NOTICE(["ParMetis found"])], [AC_MSG_WARN(["ParMetis not found"])])
+# Exodus-II support
+HAVE_EXODUSII=no
+AC_LANG_PUSH([C])
+AC_ARG_WITH(exodusii,
+[AC_HELP_STRING([--with-exodusii@<:@=exodus_ROOT@:>@],
+[specify where to find lib/ and include/ for exodusii])])
+
+if test "$with_exodusii" = "yes" ; then
+    if test -d "$with_exodusii" ; then
+      LIBS="$LIBS -L$with_exodusii/lib"
+    fi
+    ACX_lib_automagic(exoIIv2c, ex_close, [
+                                           AC_DEFINE(HAVE_LIBEXOIIV2C, [1])
+                                           HAVE_EXODUSII=yes
+                                           ])
+fi
+AC_SUBST(HAVE_EXODUSII)
+
+# Metis, ParMetis
+ACX_lib_automagic(metis, METIS_PartGraphKway, [AC_DEFINE(HAVE_LIBMETIS, [1])])
+ACX_lib_automagic(parmetis, ParMETIS_V3_AdaptiveRepart, [AC_DEFINE(HAVE_LIBPARMETIS, [1])])
 
 AC_ARG_ENABLE(sam,
               [AC_HELP_STRING([--enable-sam],
@@ -827,17 +802,12 @@ AC_ARG_ENABLE(sam,
 if test "$enable_sam" = "yes"; then
   HAVE_ZOLTAN=no
 else
-  if test "$with_zoltan" = no; then
-    HAVE_ZOLTAN=no
-    echo "Warning: zoltan disabled, using libsam instead"
-  else
-    HAVE_ZOLTAN=yes
-    zoltan=yes
-    ACX_zoltan([AC_MSG_NOTICE(["Zoltan found"])], [AC_MSG_WARN(["Zoltan not found"])])
-  fi
+  ACX_lib_automagic(zoltan, Zoltan_Create, [
+                                            AC_DEFINE(HAVE_ZOLTAN, [1])
+                                            HAVE_ZOLTAN=yes
+                                            ])
 fi
 AC_SUBST(HAVE_ZOLTAN)
-
 
 HAVE_ADJOINT=no
 CAN_USE_ADJOINT=yes
@@ -1186,8 +1156,8 @@ if test -d libadaptivity ; then
         fi
     fi
     popd
-    BUILD_LIBADAPT="@cd libadaptivity; echo '    MAKE libadaptivity'; \$(MAKE) -s ; cp lib/libadaptivity.a ../lib/; cd .."
-    CLEAN_LIBADAPT="@cd libadaptivity; echo '    CLEAN libadaptivity'; \$(MAKE) -s clean;cd .."
+    BUILD_LIBADAPT="@echo '    MAKE libadaptivity'; \$(MAKE) -s -C libadaptivity && cp libadaptivity/lib/libadaptivity.a lib/"
+    CLEAN_LIBADAPT="@echo '    CLEAN libadaptivity'; \$(MAKE) -s -C libadaptivity clean"
     AC_SUBST(BUILD_LIBADAPT)
     AC_SUBST(CLEAN_LIBADAPT)
 
@@ -1236,13 +1206,18 @@ if test -d libspud ; then
     # Check if we're on hector xe6
     if echo $(hostname) | grep -q "^hector-xe6"; then
         AC_MSG_NOTICE([Building on hector xe6; disabling shared libraries])
-        SHFLAG=--disable-shared
+        CONFIG_FLAG=--disable-shared
         SPUD_ONLY="yes"
         FLLINKER=$CXX
     else
         FLLINKER=$FC
-        SHFLAG=--enable-shared
+        CONFIG_FLAG=--enable-shared
     fi
+
+    if test "$enable_profiling" = "yes" ; then
+        CONFIG_FLAG="${CONFIG_FLAG} --enable-profiling"
+    fi
+
     AC_SUBST(SPUD_ONLY)
 
     cd libspud
@@ -1253,7 +1228,7 @@ if test -d libspud ; then
     # fluidity's (except for MPI)
     echo "${env_fcflags}"
     echo "${env_fflags}"
-    FC="${saved_FC}" F77="${saved_F77}" F90="${saved_F90}" LIBS="${env_libs}" FCFLAGS="${env_fcflags}" FFLAGS="${env_fflags} $PIC_FLAG $PROFILING_FLAG" CFLAGS="${env_cflags} $PIC_FLAG $PROFILING_FLAG" CXXFLAGS="${env_cxxflags} $PIC_FLAG $PROFILING_FLAG" CPPFLAGS="${env_cppflags}" ./configure --prefix=${PWD}/.. ${SHFLAG}
+    FC="${saved_FC}" F77="${saved_F77}" F90="${saved_F90}" LIBS="${env_libs}" FCFLAGS="${env_fcflags}" FFLAGS="${env_fflags} $PIC_FLAG $PROFILING_FLAG" CFLAGS="${env_cflags} $PIC_FLAG $PROFILING_FLAG" CXXFLAGS="${env_cxxflags} $PIC_FLAG $PROFILING_FLAG" CPPFLAGS="${env_cppflags}" ./configure --prefix=${PWD}/.. ${CONFIG_FLAG}
     if test "$?" -ne "0"; then
       AC_MSG_ERROR([Configuration of libspud has failed.])
       exit -1
@@ -1270,14 +1245,14 @@ fi
 #*************SpatialIndex******
 AC_ARG_ENABLE(spatialindex-version, 
 [AC_HELP_STRING([--enable-spatialindex-version],
-[Select required version of spatialindex library: 1.5])])
+[Select required version of spatialindex library: 1.8.0])])
 
 if test "x$enable_spatialindex_version" != "x"
 then
   SPATIALINDEXDIR="spatialindex-$enable_spatialindex_version"
 else
-  enable_spatialindex_version="1.5"
-  SPATIALINDEXDIR="spatialindex-1.5"
+  enable_spatialindex_version="1.8.0"
+  SPATIALINDEXDIR="spatialindex-1.8.0"
 fi
 AC_SUBST(SPATIALINDEXDIR)
 
@@ -1311,7 +1286,7 @@ if test -n "$with_arpack_lib" ; then
     CPPFLAGS="-DHAVE_ARPACK $CPPFLAGS"
     LIBS="$with_arpack_lib $LIBS"
 else
-    AC_CHECK_LIB(arpack, dsaupd,,)
+    ACX_lib_automagic(arpack, dsaupd,,)
 fi
 
 vtk_header_relative_path=""
@@ -1344,7 +1319,7 @@ if test "$enable_vtk" != "no" ; then
 	    search_for_vtk=yes	    
 	])
     
-    if test "x$search_for_vtk" == "xyes" ; then
+    if test "x$search_for_vtk" = "xyes" ; then
         # Usually the location of the libraries is not a mystery. The
         # header files are another matter.
         AC_CHECK_LIB(dl, main)
@@ -1460,7 +1435,7 @@ AC_ARG_ENABLE(2d-adaptivity,
 [AC_HELP_STRING([--enable-2d-adaptivity],
 [Link against 2D adaptivity library (GPL license)])])
 
-if test "$enable_2d_adaptivity" = "yes"; then
+if test "x$enable_2d_adaptivity" = "xyes"; then
   echo "#define HAVE_MBA_2D 1" >> include/confdefs.h
   LIBS="-lmba2d $LIBS"
   MBA2D="yes"
@@ -1471,36 +1446,25 @@ AC_ARG_ENABLE(mba3d,
 [AC_HELP_STRING([--enable-mba3d],
 [Enabled libmba3d 3D adaptivity library])])
 
-if test "$enable_mba3d" = "yes"; then
+if test "x$enable_mba3d" = "xyes"; then
   echo "#define HAVE_MBA_3D 1" >> include/confdefs.h
   LIBS="$LIBS -lmba3d"
   MBA3D="yes"
   AC_SUBST(MBA3D)
 fi
 
-AC_ARG_ENABLE(algencan,
-[AC_HELP_STRING([--enable-algencan],
-[Enabled algencan optimisation library])])
-
-if test "$enable_algencan" = "yes"; then
-  echo "#define HAVE_ALGENCAN 1" >> include/confdefs.h
-  LIBS="$LIBS -lalgencan"
-  ALGENCAN="yes"
-  AC_SUBST(ALGENCAN)
-fi
-
 AC_ARG_ENABLE(memory_stats,
 [AC_HELP_STRING([--enable-memory-stats],
 [Enable memory statistics])])
 
-if test "$enable_debugging" = "yes" ; then
-  if test "$enable_memory_stats" != "no"; then
+if test "x$enable_debugging" = "xyes" ; then
+  if test "x$enable_memory_stats" != "xno"; then
     echo "#define HAVE_MEMORY_STATS 1" >> include/confdefs.h
     MEMORY_STATS="yes"
     AC_SUBST(MEMORY_STATS)
   fi
 else
-  if test "$enable_memory_stats" = "yes"; then
+  if test "x$enable_memory_stats" = "xyes"; then
     echo "#define HAVE_MEMORY_STATS 1" >> include/confdefs.h
     MEMORY_STATS="yes"
     AC_SUBST(MEMORY_STATS)
@@ -1570,7 +1534,6 @@ AC_OUTPUT(Makefile
           libjudy/src/JudyL/Makefile
           libjudy/src/JudySL/Makefile
           libjudy/src/JudyHS/Makefile
-      	  libalgencan/Makefile
           libwm/Makefile
           libvtkfortran/Makefile
           schemas/flml

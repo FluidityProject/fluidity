@@ -195,6 +195,7 @@ the absorption term is included in the pressure correction (being a necessity as
             </mass_terms>
             <viscosity_scheme>
               <compact_discontinuous_galerkin/>
+              <tensor_form/>
             </viscosity_scheme>
             <advection_scheme>
               <none/>
@@ -514,6 +515,7 @@ for n in range(field.node_count):
             </mass_terms>
             <viscosity_scheme>
               <compact_discontinuous_galerkin/>
+              <tensor_form/>
             </viscosity_scheme>
             <advection_scheme>
               <none/>

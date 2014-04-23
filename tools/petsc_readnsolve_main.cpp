@@ -40,7 +40,7 @@ void usage(int argc, char **argv){
   char flml_extension[]=".flml";
   char *flml_file=NULL;
   PetscErrorCode ierr;
-#if PETSC_VERSION_MINOR==2
+#if PETSC_VERSION_MINOR>=2
   PetscBool      flg;
 #else
   PetscTruth     flg;

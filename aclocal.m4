@@ -401,16 +401,29 @@ dnl check for the required PETSc library
 dnl ----------------------------------------------------------------------------
 AC_DEFUN([ACX_PETSc], [
 AC_REQUIRE([ACX_BLAS])
-AC_REQUIRE([ACX_ParMetis])
 BLAS_LIBS="$BLAS_LIBS $FLIBS"
 AC_REQUIRE([ACX_LAPACK])
 LAPACK_LIBS="$LAPACK_LIBS $BLAS_LIBS"
 AC_PATH_XTRA
 
 if test "x$PETSC_DIR" == "x"; then
+  AC_MSG_WARN( [No PETSC_DIR set - trying to autodetect] )
+
+  # Try to identify the obvious choice
+  if test -f /usr/lib/petsc/include/petscversion.h ; then
+    export PETSC_DIR=/usr/lib/petsc
+  elif test -f /usr/include/petscversion.h ; then
+    export PETSC_DIR=/usr
+  elif test -f /usr/local/include/petscversion.h ; then
+    export PETSC_DIR=/usr/local
+  fi
+fi
+# Check again incase we failed.
+if test "x$PETSC_DIR" == "x"; then 
   AC_MSG_WARN( [No PETSC_DIR set - do you need to load a petsc module?] )
   AC_MSG_ERROR( [You need to set PETSC_DIR to point at your PETSc installation... exiting] )
 fi
+AC_MSG_NOTICE([Using PETSC_DIR=$PETSC_DIR])
 
 PETSC_LINK_LIBS=`make -s -f petsc_makefile getlinklibs`
 LIBS="$PETSC_LINK_LIBS $LIBS"
@@ -469,33 +482,18 @@ program test_petsc
 #include "petscversion.h"
 #ifdef HAVE_PETSC_MODULES
   use petsc
-#if PETSC_VERSION_MINOR==0
-  use petscvec 
-  use petscmat 
-  use petscksp 
-  use petscpc
-#endif
 #endif
 implicit none
 #ifdef HAVE_PETSC_MODULES
-#include "finclude/petscvecdef.h"
-#include "finclude/petscmatdef.h"
-#include "finclude/petsckspdef.h"
-#include "finclude/petscpcdef.h"
+#include "finclude/petscdef.h"
 #else
 #include "finclude/petsc.h"
-#if PETSC_VERSION_MINOR==0
-#include "finclude/petscvec.h"
-#include "finclude/petscmat.h"
-#include "finclude/petscksp.h"
-#include "finclude/petscpc.h"
-#endif
 #endif
       double precision  norm
       PetscInt  i,j,II,JJ,m,n,its
       PetscInt  Istart,Iend,ione
       PetscErrorCode ierr
-#if PETSC_VERSION_MINOR==2
+#if PETSC_VERSION_MINOR>=2
       PetscBool flg
 #else
       PetscTruth  flg
@@ -585,49 +583,29 @@ AC_LANG_RESTORE
 
 # finally check we have the right petsc version
 AC_COMPUTE_INT(PETSC_VERSION_MAJOR, "PETSC_VERSION_MAJOR", [#include "petscversion.h"], 
-  [AC_MSG_ERROR([Unknown petsc version])])
-if test "x$PETSC_VERSION_MAJOR" == "x3" ; then
-  AC_MSG_NOTICE([Detected PETSc version 3])
-else
-  AC_MSG_NOTICE([Detected PETSc version "$PETSC_VERSION_MAJOR"])
-  AC_MSG_ERROR([Fluidity needs PETSc version 3])
+  [AC_MSG_ERROR([Unknown petsc major version])])
+AC_COMPUTE_INT(PETSC_VERSION_MINOR, "PETSC_VERSION_MINOR", [#include "petscversion.h"], 
+  [AC_MSG_ERROR([Unknown petsc minor version])])
+AC_MSG_NOTICE([Detected PETSc version "$PETSC_VERSION_MAJOR"."$PETSC_VERSION_MINOR"])
+# if major<3 or minor<1
+if test "0$PETSC_VERSION_MAJOR" -lt 3 -o "0$PETSC_VERSION_MINOR" -lt 1; then
+  AC_MSG_ERROR([Fluidity needs PETSc version >=3.1])
 fi
 
 AC_DEFINE(HAVE_PETSC,1,[Define if you have the PETSc library.])
 
+# define HAVE_PETSC33 for use in the Makefiles (including petsc's makefiles
+# would require having PETSC_DIR+PETSC_ARCH set correctly for every make)
+if test "0$PETSC_VERSION_MINOR" -ge 3; then
+  HAVE_PETSC33=yes
+else
+  HAVE_PETSC33=no
+fi
+AC_SUBST(HAVE_PETSC33)
+
 ])dnl ACX_PETSc
 
-AC_DEFUN([ACX_ParMetis], [
-# Set variables...
-AC_ARG_WITH(
-	[ParMetis],
-	[  --with-ParMetis=PFX        Prefix where ParMetis is installed],
-	[ParMetis="$withval"],
-    [])
-ParMetis_LIBS_PATH="$ParMetis/lib"
-
-# Check that the compiler uses the library we specified...
-if test -e $ParMetis_LIBS_PATH/libparmetis.a; then
-	echo "note: using $ParMetis_LIBS_PATH/libparmetis.a"
-fi 
-
-# Ensure the comiler finds the library...
-tmpLIBS=$LIBS
-tmpCPPFLAGS=$CPPFLAGS
-AC_LANG_SAVE
-AC_LANG_C
-LIBS="$tmpLIBS -L$ParMetis_LIBS_PATH -lparmetis -lmetis -lm $ZOLTAN_DEPS"
-AC_CHECK_LIB(
-	[parmetis],
-	[ParMETIS_V3_AdaptiveRepart],
-	[AC_DEFINE(HAVE_PARMETIS,1,[Define if you have ParMetis library.])],
-	[AC_MSG_ERROR( [Could not link in the ParMetis library... exiting] )] )
-tmpLIBS="$tmpLIBS -L$ParMetis_LIBS_PATH -lparmetis -lmetis"
-# Save variables...
-AC_LANG_RESTORE
-LIBS=$tmpLIBS
-CPPFLAGS=$tmpCPPFLAGS
-])dnl ACX_ParMetis
+m4_include(m4/ACX_lib_automagic.m4)
 
 dnl ----------------------------------------------------------------------------
 dnl check for the optional hypre library (linked in with PETSc)
@@ -1070,7 +1048,7 @@ AC_LANG_SAVE
 AC_LANG_C
 AC_CHECK_LIB(
 	[adjoint],
-	[adj_register_equation],
+	[adj_get_adjoint_equation],
 	[AC_DEFINE(HAVE_ADJOINT,1,[Define if you have libadjoint.])HAVE_ADJOINT=yes],
 	[AC_MSG_WARN( [Could not link in libadjoint ... ] );HAVE_ADJOINT=no;LIBS=$bakLIBS] )
 # Save variables...

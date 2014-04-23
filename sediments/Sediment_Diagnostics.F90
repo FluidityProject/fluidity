@@ -36,6 +36,7 @@ module sediment_diagnostics
   use fields
   use state_module
 
+  use fefields
   use global_parameters, only:FIELD_NAME_LEN, OPTION_PATH_LEN, dt, timestep
   use spud
   use sediment
@@ -54,19 +55,20 @@ contains
   subroutine calculate_sediment_flux(state)
     !!< Calculate the advected flux of the sediment through the surfaces of
     !!< the domain.
-    !!< Since we don't actually know what the advection scheme was, this is
-    !!< only an estimate based on the value at the end of the timestep.
+    !!< This is determined based upon a fixed theta of 0.5
+    !!< Currently erosion bc is calculated explicitly and the value is consistent here
     type(state_type), intent(inout)                        :: state
     type(mesh_type), dimension(:), allocatable             :: surface_mesh
     type surface_nodes_array
        integer, dimension(:), pointer                      :: nodes
     end type surface_nodes_array
     type(surface_nodes_array), dimension(:), allocatable   :: surface_nodes
-    type(vector_field), pointer                            :: X, U, gravity
+    type(vector_field), pointer                            :: X, old_U, new_U, gravity
     type(scalar_field), dimension(:), allocatable          :: deposited_sediment, erosion
     type(scalar_field), pointer                            :: erosion_flux, bedload_field&
-         &, sediment_field, sink_U, diagnostic_field
-    type(scalar_field)                                     :: masslump
+         &, old_sediment_field, new_sediment_field, sink_U, diagnostic_field
+    type(vector_field)                                     :: U
+    type(scalar_field)                                     :: masslump, sediment_field
     integer                                                :: n_sediment_fields,&
          & i_field, i_bcs, i_node, ele, n_bcs, stat
     integer, dimension(2)                                  :: surface_id_count
@@ -76,16 +78,21 @@ contains
     character(len=FIELD_NAME_LEN)                          :: bc_name, bc_type
     character(len=OPTION_PATH_LEN)                         :: bc_path
 
-    ! check if this is before the first timestep (no deposited sediment)
-    if (timestep == 0) return
-
     ewrite(1,*) "In calculate_sediment_bedload"
 
     ! obtain some required model variables
     n_sediment_fields = get_n_sediment_fields()
+    if (n_sediment_fields == 0) return
+
     X => extract_vector_field(state, "Coordinate")
-    U => extract_vector_field(state, "Velocity")
     gravity => extract_vector_field(state, "GravityDirection")
+
+    new_U => extract_vector_field(state, "Velocity")
+    old_U => extract_vector_field(state, "OldVelocity")
+    call allocate(U, new_U%dim, new_U%mesh, name="CNVelocity")
+    call zero(U)
+    call addto(U, old_U, 0.5)
+    call addto(U, new_U, 0.5)
     
     ! allocate space for erosion and deposit field arrays
     allocate(erosion(n_sediment_fields))
@@ -98,7 +105,7 @@ contains
     erosion_fields_loop: do i_field=1, n_sediment_fields 
 
        ! obtain scalar fields for this sediment class
-       call get_sediment_item(state, i_field, sediment_field)
+       call get_sediment_item(state, i_field, new_sediment_field)
        call get_sediment_item(state, i_field, "Bedload", bedload_field)
 
        ! generate a surface mesh for this field
@@ -111,7 +118,7 @@ contains
        call zero(erosion(i_field))
        
        ! get boundary condition path and number of boundary conditions
-       bc_path = trim(sediment_field%option_path)//'/prognostic/boundary_conditions'
+       bc_path = trim(new_sediment_field%option_path)//'/prognostic/boundary_conditions'
        n_bcs = option_count(bc_path)
 
        ! Loop over boundary conditions for field
@@ -125,11 +132,11 @@ contains
           if ((trim(bc_type) .eq. "sediment_reentrainment")) then
 
              ! get boundary condition info
-             call get_boundary_condition(sediment_field, name=bc_name, type=bc_type, &
+             call get_boundary_condition(new_sediment_field, name=bc_name, type=bc_type, &
                surface_element_list=surface_element_list)
 
              ! get erosion flux
-             erosion_flux => extract_surface_field(sediment_field, bc_name=bc_name,&
+             erosion_flux => extract_surface_field(new_sediment_field, bc_name=bc_name,&
                   & name="value")
              
              ! set erosion field values
@@ -156,7 +163,12 @@ contains
     deposit_fields_loop: do i_field=1, n_sediment_fields
 
        ! obtain scalar fields for this sediment class
-       call get_sediment_item(state, i_field, sediment_field)
+       call get_sediment_item(state, i_field, old_sediment_field, old = .true.)
+       call get_sediment_item(state, i_field, new_sediment_field)
+       call allocate(sediment_field, new_sediment_field%mesh, name="CNSedimentField")
+       call zero(sediment_field)
+       call addto(sediment_field, old_sediment_field, 0.5)
+       call addto(sediment_field, new_sediment_field, 0.5)
        call get_sediment_item(state, i_field, "Bedload", bedload_field)
        call get_sediment_item(state, i_field, "SinkingVelocity", sink_U) 
        
@@ -173,19 +185,11 @@ contains
        end if
        
        ! obtain surface ids over which to record deposition
-       if (have_option(trim(bedload_field%option_path)//"/diagnostic")) then
-          surface_id_count=option_shape(trim(bedload_field%option_path)//&
-               &"/diagnostic/surface_ids")
-          allocate(surface_ids(surface_id_count(1)))
-          call get_option(trim(bedload_field%option_path)//"/diagnostic/surface_ids", &
-               & surface_ids)
-       else
-          surface_id_count=option_shape(trim(bedload_field%option_path)//&
-               &"/prescribed/surface_ids")
-          allocate(surface_ids(surface_id_count(1)))
-          call get_option(trim(bedload_field%option_path)//"/prescribed/surface_ids", &
-               & surface_ids)
-       end if
+       surface_id_count=option_shape(trim(bedload_field%option_path)//&
+            &"/prognostic/surface_ids")
+       allocate(surface_ids(surface_id_count(1)))
+       call get_option(trim(bedload_field%option_path)//"/prognostic/surface_ids", &
+            & surface_ids)
 
        ! loop through elements in surface field
        elements: do ele=1,element_count(deposited_sediment(i_field))
@@ -213,14 +217,6 @@ contains
           call deallocate(masslump)
        end if
 
-    end do deposit_fields_loop
-    
-    ! third loop to calculate net flux of sediment for this timestep
-    net_flux_loop: do i_field=1, n_sediment_fields
-       
-       ! obtain scalar fields for this sediment class
-       call get_sediment_item(state, i_field, "Bedload", bedload_field)
-
        ! get erosion rate diagnostic field
        call get_sediment_item(state, i_field, "BedloadDepositRate", diagnostic_field, stat)
        if (stat == 0) then
@@ -232,18 +228,17 @@ contains
           call scale(diagnostic_field, 1./dt)
        end if
 
-       ! get deposit rate diagnostic field
-       call get_sediment_item(state, i_field, "BedloadErosionRate", diagnostic_field, stat)
-       if (stat == 0) then
-          call zero(diagnostic_field)
-          do i_node = 1, node_count(surface_mesh(i_field))
-             call set(diagnostic_field, surface_nodes(i_field)%nodes(i_node), &
-                  & node_val(erosion(i_field), i_node))
-          end do
-          call scale(diagnostic_field, 1./dt)
-       end if
+       call deallocate(sediment_field)
+
+    end do deposit_fields_loop
+    
+    ! third loop to calculate net flux of sediment for this timestep
+    net_flux_loop: do i_field=1, n_sediment_fields
        
-       if (.not. have_option(trim(bedload_field%option_path)//'/prescribed')) then
+       ! obtain scalar fields for this sediment class
+       call get_sediment_item(state, i_field, "Bedload", bedload_field)
+       
+       if (.not. have_option(trim(bedload_field%option_path)//'/prognostic/disable_calculation')) then
           ! Add on sediment falling in and subtract sediment coming out
           do i_node = 1, node_count(surface_mesh(i_field))
              ! add deposited sediment
@@ -252,12 +247,7 @@ contains
              ! remove eroded sediment
              call addto(bedload_field, surface_nodes(i_field)%nodes(i_node), &
                   & -1.0 * node_val(erosion(i_field), i_node))
-             
-             ! make sure bedload is positive
-             if (node_val(bedload_field, surface_nodes(i_field)%nodes(i_node)) < 0.0) then
-                call set(bedload_field, surface_nodes(i_field)%nodes(i_node), 0.0)
-             end if
-          end do
+           end do
        end if
 
        ewrite_minmax(deposited_sediment(i_field)) 
@@ -267,9 +257,11 @@ contains
        call deallocate(deposited_sediment(i_field))
        call deallocate(erosion(i_field))
        call deallocate(surface_mesh(i_field))
+       deallocate(surface_nodes(i_field)%nodes)
 
     end do net_flux_loop
 
+    call deallocate(U)
     deallocate(deposited_sediment)
     deallocate(erosion)
     deallocate(surface_mesh)
@@ -282,8 +274,8 @@ contains
 
     integer, intent(in) :: ele, i_field
     type(scalar_field), dimension(:), intent(inout) :: deposited_sediment
-    type(vector_field), pointer, intent(in) :: X, U, gravity
-    type(scalar_field), pointer, intent(in) :: sink_U, sediment_field
+    type(vector_field), intent(in) :: X, U, gravity
+    type(scalar_field), intent(in) :: sink_U, sediment_field
     type(scalar_field), intent(inout) :: masslump
 
     integer, dimension(:), pointer :: s_ele
@@ -291,7 +283,7 @@ contains
          & ele_loc(deposited_sediment(i_field), ele)) :: invmass
     real, dimension(ele_loc(deposited_sediment(i_field), ele)) :: flux
     real, dimension(ele_ngi(deposited_sediment(i_field), ele)) :: detwei,&
-         & U_normal_detwei, G_normal_detwei, U_sink_detwei
+         & G_normal_detwei, U_sink_detwei
     real, dimension(U%dim, ele_ngi(deposited_sediment(i_field), ele)) :: normal
     type(element_type), pointer :: s_shape
 
@@ -308,19 +300,11 @@ contains
        invmass=inverse(shape_shape(s_shape, s_shape, detwei))
     end if
     
-    U_normal_detwei=sum(face_val_at_quad(U,ele)*normal,1)*detwei
     G_normal_detwei=sum(face_val_at_quad(gravity,ele)*normal,1)*detwei
-
-    if(associated(sink_U)) then
-       U_sink_detwei=G_normal_detwei&
-            *face_val_at_quad(sink_U,ele)          
-    else
-       U_sink_detwei=0.0
-    end if
+    U_sink_detwei=G_normal_detwei*face_val_at_quad(sink_U,ele)  
 
     flux=dt*shape_rhs(s_shape, &
-         face_val_at_quad(sediment_field, ele)*&
-         (U_normal_detwei+U_sink_detwei))
+         face_val_at_quad(sediment_field, ele)*U_sink_detwei)
 
     if(continuity(deposited_sediment(i_field))<0) then
        ! DG case.
@@ -336,8 +320,9 @@ contains
     type(state_type), intent(inout) :: state
 
     type(scalar_field_pointer), dimension(:), allocatable     :: sediment_concs
-    type(scalar_field), pointer                               :: unhindered_sink_u, sink_u  
-    type(scalar_field)                                        :: rhs
+    type(scalar_field), pointer                               :: unhindered_sink_u, sink_u 
+    type(vector_field), pointer                               :: X
+    type(scalar_field)                                        :: rhs, rhs_projection
     integer                                                   :: n_sediment_fields,&
          & i_field, i_node
 
@@ -360,7 +345,11 @@ contains
     
     ! raise rhs to power of 2.39
     do i_node = 1, node_count(rhs)
-      call set(rhs, i_node, node_val(rhs, i_node)**2.39)
+       if (node_val(rhs, i_node) > 1e-3) then
+          call set(rhs, i_node, node_val(rhs, i_node)**2.39)
+       else
+          call set(rhs, i_node, 1e-3**2.39)
+       end if
     end do 
 
     do i_field=1, n_sediment_fields
@@ -384,12 +373,19 @@ contains
 
           sink_u => extract_scalar_field(state, &
                & trim(sediment_concs(i_field)%ptr%name)//'SinkingVelocity')
-          
+
           ! calculate hindered sinking velocity
           call set(sink_u, unhindered_sink_u)
-          call scale(sink_u, rhs)
-          ewrite_minmax(sink_u)   
-
+          if (rhs%mesh==sink_u%mesh) then
+             call scale(sink_u, rhs)
+          else
+             call allocate(rhs_projection, sink_u%mesh, name="RhsProjection")
+             X => extract_vector_field(state, 'Coordinate')
+             call project_field(rhs, rhs_projection, X)
+             call scale(sink_u, rhs_projection)
+             call deallocate(rhs_projection)
+          end if
+          ewrite_minmax(sink_u) 
        endif
 
     end do
@@ -563,6 +559,7 @@ contains
     deallocate(diameter) 
     call deallocate(sigma_surface)
     call deallocate(surface_mesh)
+    deallocate(surface_node_list)
     deallocate(surface_ids)
     
   end subroutine calculate_sediment_active_layer_sigma
@@ -626,7 +623,7 @@ contains
     elsewhere
         sigma_squared = 0.0
     end where
-    sigma = shape_rhs(shape, sigma_squared**0.5 * detwei)
+    sigma = shape_rhs(shape, dsqrt(sigma_squared) * detwei)
 
     if(continuity(sigma_surface)<0) then
        ! DG case.
@@ -687,19 +684,11 @@ contains
        end if
 
        ! obtain sediment bedload surface ids
-       if (have_option(trim(bedload%option_path)//"/diagnostic")) then
-          surface_id_count=option_shape(trim(bedload%option_path)//&
-               &"/diagnostic/surface_ids")
-          allocate(surface_ids(surface_id_count(1)))
-          call get_option(trim(bedload%option_path)//"/diagnostic/surface_ids", &
-               & surface_ids)
-       else
-          surface_id_count=option_shape(trim(bedload%option_path)//&
-               &"/prescribed/surface_ids")
-          allocate(surface_ids(surface_id_count(1)))
-          call get_option(trim(bedload%option_path)//"/prescribed/surface_ids", &
-               & surface_ids)
-       end if
+       surface_id_count=option_shape(trim(bedload%option_path)//&
+            &"/prognostic/surface_ids")
+       allocate(surface_ids(surface_id_count(1)))
+       call get_option(trim(bedload%option_path)//"/prognostic/surface_ids", &
+            & surface_ids)
        
        ! loop through elements in surface field
        elements: do i_ele=1, element_count(volume_fraction_surface)
@@ -734,6 +723,7 @@ contains
 
        call deallocate(volume_fraction_surface)
        call deallocate(surface_mesh)
+       deallocate(surface_node_list)
        deallocate(surface_ids)
        
     end do calculation_loop

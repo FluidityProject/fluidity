@@ -3,21 +3,16 @@ FLMLMODEL = stokes-1e4-p1p1-parallel
 FLUIDITY = dfluidity
 MESH = square-structured-linear
 MODEL = Stokes-square-convection-1e4-p1p1
-NP = 2
 
 default: input
 
 input: src/$(MESH).edge src/$(MESH).ele src/$(MESH).node clean
 	cp src/$(MESH).edge src/$(MESH).ele src/$(MESH).node .
 
-ifdef NP
-	fldecomp -n $(NP) -v $(MESH) > decomp.log 2> decomp_err.log
-endif
-
 clean: clean-mesh clean-run-debug
 clean-mesh:
 	rm -f $(MESH).ele $(MESH).face $(MESH).node $(MESH).edge
-	rm -f $(MESH)_?*.ele $(MESH)_?*.edge $(MESH)_?*.face $(MESH)_?*.halo $(MESH)_?*.node decomp.log decomp_err.log
+	rm -f $(MESH)_?*.ele $(MESH)_?*.edge $(MESH)_?*.face $(MESH)_?*.halo $(MESH)_?*.node
 clean-run:
 	rm -f $(FLMLMODEL)_?*.pvtu $(FLMLMODEL)_?*.vtu
 	rm -f $(FLMLMODEL).detectors.dat $(FLMLMODEL).detectors $(FLMLMODEL).stat tmpf*
@@ -28,6 +23,7 @@ clean-run:
 	rm -f $(FLMLMODEL)_?*_?*_checkpoint.pvtu $(FLMLMODEL)_?*_?*_checkpoint.vtu
 	rm -f $(FLMLMODEL)_?*_checkpoint.ele $(FLMLMODEL)_?*_checkpoint.face $(FLMLMODEL)_?*_checkpoint.node
 	rm -f $(FLMLMODEL)_?*_checkpoint.vtu
+	rm -rf *flredecomp*
 clean-run-debug: clean-run
 	rm -f adapted_mesh_?*.vtu bounding_box_?*_?*.vtu final_metric_?*.vtu gmon.out gradation_metric_?*.vtu interpolation_metric_final_?*.vtu interpolation_metric_hessian_?*_?*.vtu interpolation_metric_merge_?*_?*.vtu interpolation_metric_metric_?*_?*.vtu metric_input_?*_?*.vtu
 	rm -rf $(FLMLMODEL)_?

@@ -150,5 +150,6 @@ Tidal_Diagnostics.o ../include/tidal_diagnostics.mod: Tidal_Diagnostics.F90 \
    ../include/fields_manipulation.mod ../include/fldebug.mod \
    ../include/global_parameters.mod ../include/initialise_fields_module.mod \
    ../include/spud.mod ../include/state_fields_module.mod \
-   ../include/state_module.mod ../include/tidal_module.mod
+   ../include/state_module.mod ../include/tidal_module.mod \
+   ../include/write_state_module.mod
 

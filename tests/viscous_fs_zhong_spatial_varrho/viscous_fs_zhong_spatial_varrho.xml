@@ -1,0 +1,33 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>viscous_fs_zhong</name>
+  <owner userid="cwilson"/>
+  <tags>flml</tags>
+  <problem_definition length="medium" nprocs="1">
+    <command_line>fluidity -v2 -l viscous_fs_zhong_A.flml; fluidity -v2 -l viscous_fs_zhong_B.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="finish_time_a" language="python">from fluidity_tools import stat_parser as stat
+
+file1 = "viscous_fs_zhong_A.stat"
+
+finish_time_a = stat(file1)["ElapsedTime"]["value"][-1]</variable>
+    <variable name="ab_convergence_fs" language="python">import calculate_order_zhong_spatial_varrho as calculate_order
+
+file1 = "viscous_fs_zhong_A.stat"
+file2 = "viscous_fs_zhong_B.stat"
+
+ab_convergence_fs = calculate_order.report_convergence(file1, file2)</variable>
+    <variable name="finish_time_b" language="python">from fluidity_tools import stat_parser as stat
+
+file1 = "viscous_fs_zhong_B.stat"
+
+finish_time_b = stat(file1)["ElapsedTime"]["value"][-1]</variable>
+  </variables>
+  <pass_tests>
+    <test name="afinish" language="python">assert(finish_time_a&gt;64.0)</test>
+    <test name="bfinish" language="python">assert(finish_time_b&gt;64.0)</test>
+    <test name="abtop" language="python">assert(ab_convergence_fs[0]&gt;1.95)</test>
+    <test name="abbot" language="python">assert(ab_convergence_fs[1]&gt;1.95)</test>
+  </pass_tests>
+</testproblem>

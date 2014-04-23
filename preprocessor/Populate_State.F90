@@ -57,6 +57,7 @@ module populate_state_module
   use data_structures
   use fields_halos
   use read_triangle
+  use initialise_ocean_forcing_module
 
   implicit none
 
@@ -96,7 +97,7 @@ module populate_state_module
        
   !! A list of relative paths under /material_phase[i]
   !! that are searched for additional fields to be added.
-  character(len=OPTION_PATH_LEN), dimension(8) :: additional_fields_relative=&
+  character(len=OPTION_PATH_LEN), dimension(13) :: additional_fields_relative=&
        (/ &
        "/subgridscale_parameterisations/Mellor_Yamada                                                       ", &
        "/subgridscale_parameterisations/prescribed_diffusivity                                              ", &
@@ -104,8 +105,13 @@ module populate_state_module
        "/subgridscale_parameterisations/k-epsilon                                                           ", &
        "/subgridscale_parameterisations/k-epsilon/debugging_options/source_term_output_fields               ", &
        "/subgridscale_parameterisations/k-epsilon/debugging_options/prescribed_source_terms                 ", &
+       "/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/second_order", &
+       "/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/fourth_order", &
+       "/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/wale        ", &
        "/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/dynamic_les ", &
-       "/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/second_order" &
+       "/vector_field::Velocity/prognostic/equation::ShallowWater                                           ", &
+       "/vector_field::Velocity/prognostic/equation::ShallowWater/bottom_drag                               ", &
+       "/vector_field::BedShearStress/diagnostic/calculation_method/velocity_gradient                       " &
        /)
 
   !! Relative paths under a field that are searched for grandchildren
@@ -136,6 +142,8 @@ contains
        call nullify(states(i))
        call set_option_path(states(i), "/material_phase["//int2str(i-1)//"]")
     end do
+
+    call initialise_ocean_forcing_readers
 
     call insert_external_mesh(states, save_vtk_cache = .true.)
 
@@ -229,10 +237,12 @@ contains
           call get_option("/geometry/quadrature/degree", quad_degree)
           quad_family = get_quad_family()
 
+          ! to make sure that the dimension is set even if MPI is not being used
+          call get_option('/geometry/dimension', dim)
 
           if (is_active_process) then
             select case (mesh_file_format)
-            case ("triangle", "gmsh")
+            case ("triangle", "gmsh", "exodusii")
               ! Get mesh dimension if present
               call get_option(trim(mesh_path)//"/from_file/dimension", mdim, stat)
               ! Read mesh
@@ -246,6 +256,16 @@ contains
                       quad_degree=quad_degree, &
                       quad_family=quad_family, &
                       format=mesh_file_format)
+              end if
+              ! After successfully reading in an ExodusII mesh, change the option
+              ! mesh file format to "gmsh", as the write routines for ExodusII are currently
+              ! not implemented. Thus, checkpoints etc are dumped as gmsh mesh files
+              if (trim(mesh_file_format)=="exodusii") then
+                mesh_file_format = "gmsh"
+                call set_option_attribute(trim(from_file_path)//"/format/name", trim(mesh_file_format), stat=stat)
+                if (stat /= SPUD_NO_ERROR) then
+                  FLAbort("Failed to set the mesh format to gmsh (required for checkpointing). Spud error code is: "//int2str(stat))
+                end if
               end if
               mesh=position%mesh
             case ("vtu")
@@ -297,14 +317,21 @@ contains
                 else
                   mesh_dims(3)=0
                 end if
+                ! The coordinate dimension is not the same as the mesh dimension
+                ! in the case of spherical shells, and needs to be broadcast as
+                ! well.  And this needs to be here to allow for the special case
+                ! below
+                dim=position%dim
               else
                 ! this is a special case for a unit test with 1 inactive process
                 call get_option('/geometry/dimension', mesh_dims(1))
                 mesh_dims(2)=mesh_dims(1)+1
                 mesh_dims(3)=0
+                dim = mesh_dims(1)
               end if
             end if
             call MPI_bcast(mesh_dims, 3, getpinteger(), 0, MPI_COMM_FEMTOOLS, stat)
+            call MPI_bcast(dim, 1, getpinteger(), 0, MPI_COMM_FEMTOOLS, stat)
           end if
 
           
@@ -313,14 +340,14 @@ contains
             ! see the comment in Global_Parameters. In this block, 
             ! we want to allocate an empty mesh and positions.
 
-            dim=mesh_dims(1)
+            mdim=mesh_dims(1)
             loc=mesh_dims(2)
             column_ids=mesh_dims(3)
 
             allocate(quad)
             allocate(shape)
-            quad = make_quadrature(loc, dim, degree=quad_degree, family=quad_family)
-            shape=make_element_shape(loc, dim, 1, quad)
+            quad = make_quadrature(loc, mdim, degree=quad_degree, family=quad_family)
+            shape=make_element_shape(loc, mdim, 1, quad)
             call allocate(mesh, nodes=0, elements=0, shape=shape, name="EmptyMesh")
             call allocate(position, dim, mesh, "EmptyCoordinate")
             call add_faces(mesh)
@@ -336,6 +363,7 @@ contains
             
             deallocate(quad)
             deallocate(shape)
+
           end if
 
           ! if there is a derived mesh which specifies periodic bcs 
@@ -756,7 +784,7 @@ contains
           if (mesh_name=="CoordinateMesh") then
             call allocate(coordinateposition, modelposition%dim, mesh, "Coordinate")
           else
-            call allocate(coordinateposition, modelposition%dim, mesh, trim(mesh_name)//"/Coordinate")
+            call allocate(coordinateposition, modelposition%dim, mesh, trim(mesh_name)//"Coordinate")
           end if
                 
           ! remap the external mesh positions onto the CoordinateMesh... this requires that the space
@@ -1619,7 +1647,6 @@ contains
     type(tensor_field) :: tfield
 
     integer :: i, s, stat
-    real :: Pr
 
     ! Prescribed diffusivity
     do i = 1, size(states)
@@ -1891,12 +1918,12 @@ contains
     adapt_path=trim(path)//"/adaptivity_options"
     if(have_option(trim(adapt_path)//"/absolute_measure")) then
        adapt_path=trim(adapt_path)//"/absolute_measure/scalar_field::InterpolationErrorBound"
-       call allocate_and_insert_scalar_field(adapt_path, state, parent_mesh=mesh_name, &
+       call allocate_and_insert_scalar_field(adapt_path, state, parent_mesh=topology_mesh_name, &
           parent_name=lfield_name, &
           dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
     else if(have_option(trim(adapt_path)//"/relative_measure")) then
        adapt_path=trim(adapt_path)//"/relative_measure/scalar_field::InterpolationErrorBound"
-       call allocate_and_insert_scalar_field(adapt_path, state, parent_mesh=mesh_name, &
+       call allocate_and_insert_scalar_field(adapt_path, state, parent_mesh=topology_mesh_name, &
           parent_name=lfield_name, &
           dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
     end if
@@ -2024,11 +2051,11 @@ contains
     adapt_path=trim(path)//"/adaptivity_options"
     if(have_option(trim(adapt_path)//"/absolute_measure")) then
        adapt_path=trim(adapt_path)//"/absolute_measure/vector_field::InterpolationErrorBound"
-       call allocate_and_insert_vector_field(adapt_path, state, mesh_name, lfield_name, &
+       call allocate_and_insert_vector_field(adapt_path, state, topology_mesh_name, lfield_name, &
           dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
     else if(have_option(trim(adapt_path)//"/relative_measure")) then
        adapt_path=trim(adapt_path)//"/relative_measure/vector_field::InterpolationErrorBound"
-       call allocate_and_insert_vector_field(adapt_path, state, mesh_name, lfield_name, &
+       call allocate_and_insert_vector_field(adapt_path, state, topology_mesh_name, lfield_name, &
           dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
     end if
 
@@ -2144,11 +2171,11 @@ contains
     adapt_path=trim(path)//"/adaptivity_options"
     if(have_option(trim(adapt_path)//"/absolute_measure")) then
        adapt_path=trim(adapt_path)//"/absolute_measure/tensor_field::InterpolationErrorBound"
-       call allocate_and_insert_tensor_field(adapt_path, state, mesh_name, field_name, &
+       call allocate_and_insert_tensor_field(adapt_path, state, topology_mesh_name, field_name, &
             dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
     else if(have_option(trim(adapt_path)//"/relative_measure")) then
        adapt_path=trim(adapt_path)//"/relative_measure/tensor_field::InterpolationErrorBound"
-       call allocate_and_insert_tensor_field(adapt_path, state, mesh_name, field_name, &
+       call allocate_and_insert_tensor_field(adapt_path, state, topology_mesh_name, field_name, &
             dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
     end if
 
@@ -3099,6 +3126,7 @@ contains
     type(vector_field), pointer :: positions
     integer :: ele
     real :: vol
+    type(scalar_field) :: temp_s_field
 
     positions => extract_vector_field(states(1), "Coordinate")
     if (allocated(domain_bbox)) then
@@ -3123,8 +3151,11 @@ contains
 
     !If on-the-sphere, calculate the radius of the sphere.
     if (have_option("/geometry/spherical_earth/")) then
-      surface_radius = maxval(magnitude(positions))
+      temp_s_field = magnitude(positions)
+      surface_radius = maxval(temp_s_field)
       call allmax(surface_radius)
+      ! Need to deallocate the magnitude field create, or we get a leak
+      call deallocate(temp_s_field)
     end if
 
 
@@ -3744,103 +3775,90 @@ if (.not.have_option("/material_phase[0]/vector_field::Velocity/prognostic/vecto
     ! Check options for Stokes flow simulations.
 
     integer :: i, nmat
-    character(len=OPTION_PATH_LEN) :: velocity_path, pressure_path
-    character(len=FIELD_NAME_LEN) :: schur_preconditioner, inner_matrix
+    character(len=OPTION_PATH_LEN) :: velocity_path, pressure_path, schur_path
+    character(len=FIELD_NAME_LEN)  :: schur_preconditioner, inner_matrix, pc_type
     logical :: exclude_mass, exclude_advection
     real :: theta
 
     nmat = option_count("/material_phase")
 
     do i = 0, nmat-1
-      velocity_path="/material_phase["//int2str(i)//"]/vector_field::Velocity/prognostic"
+       velocity_path="/material_phase["//int2str(i)//"]/vector_field::Velocity/prognostic"
 
-      if (have_option(trim(velocity_path))) then
+       if (have_option(trim(velocity_path))) then
+         
+          ! Check that mass and advective terms are excluded:
+          exclude_mass = have_option(trim(velocity_path)//&
+               "/spatial_discretisation/continuous_galerkin/mass_terms"//&
+               &"/exclude_mass_terms").or.&
+               have_option(trim(velocity_path)//&
+               "/spatial_discretisation/discontinuous_galerkin/mass_terms"//&
+               &"/exclude_mass_terms")
+          
+          exclude_advection = have_option(trim(velocity_path)//&
+               "/spatial_discretisation/continuous_galerkin/advection_terms"//&
+               &"/exclude_advection_terms").or.&
+               have_option(trim(velocity_path)//&
+               "/spatial_discretisation/discontinuous_galerkin/advection_scheme/none") 
+          
+          if(.not.(exclude_mass) .OR. .not.(exclude_advection)) then
+             FLExit("For Stokes problems you need to exclude the mass and advection terms.")
+          end if
 
-         ! Check that mass and advective terms are excluded:
-         exclude_mass = have_option(trim(velocity_path)//&
-              "/spatial_discretisation"//&
-              &"/continuous_galerkin/mass_terms"//&
-              &"/exclude_mass_terms").or.&
-                        have_option(trim(velocity_path)//&
-              "/spatial_discretisation"//&
-              &"/discontinuous_galerkin/mass_terms"//&
-              &"/exclude_mass_terms")
+          ! Check that theta = 1 (we must be implicit as we have no time term!)
+          call get_option(trim(velocity_path)//'/temporal_discretisation/theta/', theta)
+          if(theta /= 1.) then
+             FLExit("For Stokes problems, theta (under velocity) must = 1")
+          end if
 
-         exclude_advection = have_option(trim(velocity_path)//&
-              "/spatial_discretisation"//&
-              &"/continuous_galerkin/advection_terms"//&
-              &"/exclude_advection_terms").or.&
-                             have_option(trim(velocity_path)//&
-              "/spatial_discretisation"//&
-              &"/discontinuous_galerkin/advection_scheme/none") 
+       end if
 
-         if(.not.(exclude_mass) .OR. .not.(exclude_advection)) then
-            FLExit("For Stokes problems you need to exclude the mass and advection terms.")
-         end if
+       pressure_path="/material_phase["//int2str(i)//"]/scalar_field::Pressure/prognostic"
 
-         ! Check that theta = 1 (we must be implicit as we have no time term!)
-         call get_option(trim(velocity_path)//'/temporal_discretisation/theta/', theta)
-         if(theta /= 1.) then
-            FLExit("For Stokes problems, theta (under velocity) must = 1")
-         end if
+       if (have_option(trim(pressure_path))) then  
 
-      end if
+          schur_path = "/material_phase["//int2str(i)//"]/scalar_field::Pressure/prognostic/"//&
+               &"scheme/use_projection_method/full_schur_complement"
 
-      pressure_path="/material_phase["//int2str(i)//"]/scalar_field::Pressure/prognostic"
+          if(have_option(trim(schur_path))) then
+             
+             call get_option(trim(schur_path)//"/preconditioner_matrix[0]/name", schur_preconditioner)
+             
+             select case(schur_preconditioner)
+             case("ScaledPressureMassMatrix")
+                ! Check pressure_mass_matrix preconditioner is compatible with viscosity tensor:
+                if(have_option(trim(velocity_path)//&
+                     &"/tensor_field::Viscosity/prescribed/value"//&
+                     &"/anisotropic_symmetric").or.&
+                     have_option(trim(velocity_path)//&
+                     &"/tensor_field::Viscosity/prescribed/value"//&
+                     &"/anisotropic_asymmetric")) then
+                   ewrite(-1,*) "WARNING - At present, the viscosity scaling for the pressure mass matrix is"
+                   ewrite(-1,*) "taken from the 1st component of the viscosity tensor. Such a scaling"
+                   ewrite(-1,*) "is only valid when all components of each viscosity tensor are constant."
+                end if
+             case("NoPreconditionerMatrix")
+                ! Check no preconditioner is selected when no preconditioner matrix is desired:
+                call get_option("/material_phase["//int2str(i)//&
+                     "]/scalar_field::Pressure/prognostic/solver/preconditioner/name", pc_type)
+                if(pc_type /= 'none') FLExit("If no preconditioner is desired, set pctype='none'.")
+             end select
+             
+             ! Check inner matrix is valid for Stokes - must have full viscous terms
+             ! included. Stokes does not have a mass matrix.
+             call get_option(trim(schur_path)//"/inner_matrix[0]/name", inner_matrix)
+             
+             if(trim(inner_matrix)/="FullMomentumMatrix") then
+                ewrite(-1,*) "For Stokes problems, FullMomentumMatrix must be specified under:"
+                ewrite(-1,*) "scalar_field::Pressure/prognostic/scheme/use_projection_method& "
+                ewrite(-1,*) "&/full_schur_complement/inner_matrix"
+                FLExit("For Stokes problems, change --> FullMomentumMatrix")
+             end if
 
-      if (have_option(trim(pressure_path))) then  
-
-         ! Check pressure_mass_matrix preconditioner is compatible with viscosity tensor:
-          if(have_option("/material_phase["//int2str(i)//&
-               "]/vector_field::Velocity/prognostic"//&
-               &"/tensor_field::Viscosity/prescribed/value"//&
-               &"/anisotropic_symmetric").or.&
-             have_option("/material_phase["//int2str(i)//&
-               "]/vector_field::Velocity/prognostic"//&
-               &"/tensor_field::Viscosity/prescribed/value"//&
-               &"/anisotropic_asymmetric")) then
-
-            if(have_option("/material_phase["//int2str(i)//&
-                 "]/scalar_field::Pressure/prognostic"//&
-                 &"/scheme/use_projection_method")) then
-
-               if(have_option("/material_phase["//int2str(i)//&
-                    "]/scalar_field::Pressure/prognostic"//&
-                    &"/scheme/use_projection_method"//&
-                    &"/full_schur_complement")) then
-
-                  call get_option("/material_phase["//int2str(i)//&
-                       &"]/scalar_field::Pressure/prognostic/scheme/use_projection_method"//&
-                       &"/full_schur_complement/preconditioner_matrix[0]/name", schur_preconditioner)
-
-                  select case(schur_preconditioner)
-                  case("ScaledPressureMassMatrix")
-                     ewrite(-1,*) "WARNING - At present, the viscosity scaling for the pressure mass matrix is"
-                     ewrite(-1,*) "taken from the 1st component of the viscosity tensor. Such a scaling"
-                     ewrite(-1,*) "is only valid when all components of each viscosity tensor are constant."
-                  end select
-
-                  ! Check inner matrix is valid for Stokes - must have full viscous terms
-                  ! included. Stokes does not have a mass matrix.
-                  call get_option("/material_phase["//int2str(i)//&
-                       &"]/scalar_field::Pressure/prognostic/scheme/use_projection_method"//&
-                       &"/full_schur_complement/inner_matrix[0]/name", inner_matrix)
-                  
-                  if(trim(inner_matrix)/="FullMomentumMatrix") then
-                     ewrite(-1,*) "For Stokes problems, FullMomentumMatrix must be specified under:"
-                     ewrite(-1,*) "scalar_field::Pressure/prognostic/scheme/use_projection_method& "
-                     ewrite(-1,*) "&/full_schur_complement/inner_matrix"
-                     FLExit("For Stokes problems, change --> FullMomentumMatrix")
-                  end if
-
-               end if
-
-            end if
-
-         end if
-
-      end if
-
+          end if
+          
+       end if
+       
     end do
 
   end subroutine check_stokes_options
@@ -3890,11 +3908,11 @@ if (.not.have_option("/material_phase[0]/vector_field::Velocity/prognostic/vecto
     if (have_option(trim(pressure_path))) then
 
        ! Check that compressible projection method is used:
-       compressible_projection = have_option(trim(pressure_path)//&
-            "/scheme/use_compressible_projection_method")
+       compressible_projection = have_option("/material_phase[0]"//&
+            "/equation_of_state/compressible")
 
        if(.not.(compressible_projection)) then
-          FLExit("For foam problems you need to use the compressible projection method.")
+          FLExit("For foam problems you need to use a compressible eos.")
        end if
     end if
 

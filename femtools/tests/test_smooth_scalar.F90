@@ -43,18 +43,17 @@ subroutine test_smooth_scalar
   integer, parameter :: quad_degree = 2
   logical :: fail
   real, dimension(2) :: minmax
-  real, dimension(:, :), allocatable :: alpha
+  real :: alpha
   type(scalar_field) :: s_field, smoothed_s_field
   type(vector_field) :: positions
   
-  positions = read_triangle_files("data/square.1", quad_degree = quad_degree)
+  positions = read_triangle_files("data/square-2d_A", quad_degree = quad_degree)
   
   call allocate(s_field, positions%mesh, "Scalar")
   do i = 1, node_count(s_field)
     call set(s_field, i, node_val(positions, 1, i) ** 3)
   end do
   
-  allocate(alpha(positions%dim, positions%dim))
   alpha = 0.0
   
   call allocate(smoothed_s_field, positions%mesh, "SmoothedScalar")
@@ -69,10 +68,7 @@ subroutine test_smooth_scalar
   end do  
   call report_test("[Not smoothed]", fail, .false., "Smoothed")
   
-  alpha = 0.0
-  do i = 1, positions%dim
-    alpha(i, i) = 1.0e6
-  end do
+  alpha = 1.0e10
   
   call smooth_scalar(s_field, positions, smoothed_s_field, alpha, path)
   
@@ -81,9 +77,9 @@ subroutine test_smooth_scalar
     minmax(1) = min(minmax(1), node_val(smoothed_s_field, i))
     minmax(2) = max(minmax(2), node_val(smoothed_s_field, i))
   end do  
+  
   call report_test("[Smoothed]", fnequals(minmax(2), minmax(1), tol = 1.0e-6), .false., "Not smoothed")
   
-  deallocate(alpha)
   call deallocate(smoothed_s_field)
   call deallocate(s_field)
   call deallocate(positions)

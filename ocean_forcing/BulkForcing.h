@@ -60,12 +60,6 @@ extern "C" {
                               double *solar, double *thermal, double *Q_solar, double *Q, double *F, 
                               double *tau_u, double *tau_v);
 
-#define rotate_wind_fc F77_FUNC(rotate_wind, ROTATE_WIND)
-  extern void rotate_wind_fc(double *longitude, double *latitude, const double *r3u, 
-                            const double *r3v, const double *r3w,
-                            double *u, double *v);
-
-
 #define get_era40_fluxes_fc F77_FUNC(get_era40_fluxes, GET_ERA40_FLUXES)
     void get_era40_fluxes_fc(double *time, const double *X, const double *Y, const double *Z, 
                      double *T, const double *Vx, const double *Vy, const double *Vz, double *Sal,

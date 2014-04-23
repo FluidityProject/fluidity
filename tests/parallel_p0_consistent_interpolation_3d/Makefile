@@ -6,7 +6,6 @@ default: input
 input: src/$(MESH).geo
 	gmsh -3 src/$(MESH).geo
 	../../bin/gmsh2triangle src/$(MESH).msh
-	../../bin/fldecomp -n 3 $(MESH)
 
 clean: clean-mesh clean-run
 	rm -rf parallel_p0_consistent_interpolation_[01]* parallel_p0_consistent_interpolation.stat
@@ -17,3 +16,4 @@ clean-mesh:
 clean-run:
 	rm -f $(FLMLMODEL)_?*.pvtu $(FLMLMODEL)_?*_?*.vtu $(FLMLMODEL).stat fluidity.err-* fluidity.log-* \
 	matrixdump matrixdump.info
+	rm -rf *flredecomp*

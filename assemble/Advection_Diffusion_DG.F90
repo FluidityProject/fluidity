@@ -45,6 +45,7 @@ module advection_diffusion_DG
   use petsc_solve_state_module
   use boundary_conditions
   use boundary_conditions_from_options
+  use field_options
   use spud
   use upwind_stabilisation
   use slope_limiters_dg
@@ -67,7 +68,8 @@ module advection_diffusion_DG
   character(len=255), private :: message
 
   private
-  public solve_advection_diffusion_dg, construct_advection_diffusion_dg
+  public solve_advection_diffusion_dg, construct_advection_diffusion_dg, &
+       advection_diffusion_dg_check_options
 
   ! Local private control parameters. These are module-global parameters
   ! because it would be expensive and/or inconvenient to re-evaluate them
@@ -3120,5 +3122,84 @@ contains
     end subroutine initialise_aijxy
      
   end function masslumped_rt0_aij
+    
+  subroutine advection_diffusion_dg_check_options
+    !!< Check DG advection-diffusion specific options
+    
+    character(len = FIELD_NAME_LEN) :: field_name, mesh_0, mesh_1, state_name
+    character(len = OPTION_PATH_LEN) :: path
+    integer :: i, j, stat
+    real :: beta, l_theta
+
+    if(option_count("/material_phase/scalar_field/prognostic/spatial_discretisation/discontinuous_galerkin") == 0) then
+       ! Nothing to check
+       return
+    end if
+
+    ewrite(2, *) "Checking DG advection-diffusion options"
+
+    do i = 0, option_count("/material_phase") - 1
+       path = "/material_phase[" // int2str(i) // "]"
+       call get_option(trim(path) // "/name", state_name)
+
+       do j = 0, option_count(trim(path) // "/scalar_field") - 1
+          path = "/material_phase[" // int2str(i) // "]/scalar_field[" // int2str(j) // "]"
+          call get_option(trim(path) // "/name", field_name)
+
+          if(field_name /= "Pressure") then
+
+             path = trim(path) // "/prognostic"
+
+             if(have_option(trim(path) // "/spatial_discretisation/discontinuous_galerkin").and.&
+                  have_option(trim(path) // "/equation[0]")) then   
+                 
+                if (have_option(trim(path) // "/scalar_field::SinkingVelocity")) then
+                   call get_option(trim(complete_field_path(trim(path) // &
+                        "/scalar_field::SinkingVelocity"))//"/mesh[0]/name", &
+                        mesh_0, stat)
+                   if(stat == SPUD_NO_ERROR) then
+                      call get_option(trim(complete_field_path("/material_phase[" // int2str(i) // &
+                           "]/vector_field::Velocity")) // "/mesh[0]/name", mesh_1)
+                      if(trim(mesh_0) /= trim(mesh_1)) then
+                         call field_warning(state_name, field_name, &
+                              "SinkingVelocity is on a different mesh to the Velocity field this could "//&
+                              "cause problems. If using advection_scheme/project_velocity_to_continuous "//&
+                              "and a discontinuous Velocity field, then SinkingVelocity must be on a "//&
+                              "continuous mesh and hence should not be on the same mesh as the Velocity")
+                      end if
+                   end if
+                end if
+
+             end if
+
+          end if
+       end do
+    end do
+
+    ewrite(2, *) "Finished checking CG advection-diffusion options"
+
+  contains
+
+    subroutine field_warning(state_name, field_name, msg)
+      character(len = *), intent(in) :: state_name
+      character(len = *), intent(in) :: field_name
+      character(len = *), intent(in) :: msg
+
+      ewrite(0, *) "Warning: For field " // trim(field_name) // " in state " // trim(state_name)
+      ewrite(0, *) trim(msg)
+
+    end subroutine field_warning
+
+    subroutine field_error(state_name, field_name, msg)
+      character(len = *), intent(in) :: state_name
+      character(len = *), intent(in) :: field_name
+      character(len = *), intent(in) :: msg
+
+      ewrite(-1, *) "For field " // trim(field_name) // " in state " // trim(state_name)
+      FLExit(trim(msg))
+
+    end subroutine field_error
+
+  end subroutine advection_diffusion_dg_check_options
 
 end module advection_diffusion_DG

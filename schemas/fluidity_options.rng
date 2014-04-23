@@ -1584,6 +1584,24 @@ Elias et al 2007: "Simple finite element-based computation of distance functions
                       </element>
                     </element>
                   </optional>
+                  <optional>
+                    <element name="scalar_field">
+                      <a:documentation>VLES Filter function (diagnostic).
+Run a VLES by switching this option on.
+If so then filtering is applied to the eddy viscosity.</a:documentation>
+                      <attribute name="rank">
+                        <value>0</value>
+                      </attribute>
+                      <attribute name="name">
+                        <value>VLESFilter</value>
+                      </attribute>
+                      <element name="diagnostic">
+                        <ref name="internal_algorithm"/>
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="diagnostic_scalar_field"/>
+                      </element>
+                    </element>
+                  </optional>
                   <element name="C_mu">
                     <a:documentation>Eddy-viscosity coefficient: nu_T = density * C_mu * k**2 / epsilon.
 Recommended value (default): 0.09.</a:documentation>
@@ -1617,53 +1635,72 @@ for thermal fields. This is used to calculate the turbulent buoyancy term.
 Recommended value (default): 1.0.</a:documentation>
                     <ref name="real"/>
                   </element>
-                  <optional>
-                    <element name="implicit_source">
-                      <a:documentation>Implicit source term - lump production term into absorbtion so that it is calculated 
-implicitly</a:documentation>
-                      <empty/>
+                  <element name="time_discretisation">
+                    <a:documentation>Time discretisation of the source terms in the k and epsilon equations and also
+of the eddy viscosity</a:documentation>
+                    <element name="theta">
+                      <a:documentation>Implicit/explicit control (THETA) of source terms and eddy viscosity in
+the k-epsilon model
+ = 0.  -- explicit
+ = 0.5 -- Crank-Nicolson
+ = 1.  -- implicit</a:documentation>
+                      <ref name="real"/>
                     </element>
-                  </optional>
-                  <optional>
-                    <element name="implicit_buoyancy">
-                      <a:documentation>Implicit buoyancy term - lump buoyancy term into absorbtion so that it is calculated 
-implicitly</a:documentation>
-                      <empty/>
+                    <element name="source_term_implementation">
+                      <a:documentation>Each term in the k and epsilon equations can be implemented as either a 
+source or as an absorbtion term. See the manual under 
+'Parameterisations/Turbulent flow modelling and simulation/Reynolds Averaged Navier Stokes (RANS) Modelling/Standard k − ε Turbulence Model/Time Discretisation and Coupling' 
+for more information.</a:documentation>
+                      <element name="production_term">
+                        <choice>
+                          <value>source</value>
+                          <value>absorbtion</value>
+                        </choice>
+                      </element>
+                      <element name="destruction_term">
+                        <choice>
+                          <value>source</value>
+                          <value>absorbtion</value>
+                        </choice>
+                      </element>
+                      <element name="buoyancy_term">
+                        <choice>
+                          <value>source</value>
+                          <value>absorbtion</value>
+                        </choice>
+                      </element>
                     </element>
-                  </optional>
-                  <optional>
-                    <element name="explicit_absorbtion">
-                      <a:documentation>Explicit absorbtion term - lump absorbtion term into source so that it is calculated 
-explicitly</a:documentation>
-                      <empty/>
-                    </element>
-                  </optional>
-                  <element name="mass_lumping_in_diagnostics">
+                  </element>
+                  <element name="mass_terms">
+                    <a:documentation>The source terms in the k-epsilon model are calculated before the field is 
+solved. The process requires inversion of a mass matrix. This element contains
+options for defining how this is done. For P1 meshes mass lumping can be used,
+for other discretisations the mass matrix can not be easily inverted and so a 
+solve must be carried out, with solver options specified.</a:documentation>
                     <choice>
                       <element name="lump_mass">
                         <empty/>
                       </element>
-                      <element name="solve_using_mass_matrix">
+                      <element name="use_consistent_mass_matrix">
                         <element name="solver">
-                          <ref name="linear_solver_options_asym"/>
+                          <ref name="linear_solver_options_asym_scalar"/>
                         </element>
                       </element>
                     </choice>
                   </element>
                   <optional>
                     <element name="debugging_options">
-                      <a:documentation>produce vtu output of individual kk and eps source terms and set prescribed source terms
-for k and epsilon fields (for mms tests)</a:documentation>
+                      <a:documentation>produce vtu output of individual kk and eps source terms and set prescribed 
+source terms for k and epsilon fields (for mms tests)</a:documentation>
                       <element name="source_term_output_fields">
-                        <a:documentation>output fields for each of the source and absorbtion terms in the k-epsilon 
-model</a:documentation>
+                        <a:documentation>output fields for each of the source terms in the k-epsilon model</a:documentation>
                         <optional>
                           <element name="scalar_field">
                             <attribute name="rank">
                               <value>0</value>
                             </attribute>
                             <attribute name="name">
-                              <value>TurbulentKineticEnergyProduction</value>
+                              <value>TurbulentKineticEnergy_production_term</value>
                             </attribute>
                             <element name="diagnostic">
                               <ref name="internal_algorithm"/>
@@ -1678,7 +1715,7 @@ model</a:documentation>
                               <value>0</value>
                             </attribute>
                             <attribute name="name">
-                              <value>TurbulentKineticEnergyBuoyancyTerm</value>
+                              <value>TurbulentKineticEnergy_destruction_term</value>
                             </attribute>
                             <element name="diagnostic">
                               <ref name="internal_algorithm"/>
@@ -1693,7 +1730,7 @@ model</a:documentation>
                               <value>0</value>
                             </attribute>
                             <attribute name="name">
-                              <value>TurbulentKineticEnergyDestruction</value>
+                              <value>TurbulentKineticEnergy_buoyancy_term</value>
                             </attribute>
                             <element name="diagnostic">
                               <ref name="internal_algorithm"/>
@@ -1708,7 +1745,7 @@ model</a:documentation>
                               <value>0</value>
                             </attribute>
                             <attribute name="name">
-                              <value>TurbulentDissipationProduction</value>
+                              <value>TurbulentDissipation_production_term</value>
                             </attribute>
                             <element name="diagnostic">
                               <ref name="internal_algorithm"/>
@@ -1723,7 +1760,7 @@ model</a:documentation>
                               <value>0</value>
                             </attribute>
                             <attribute name="name">
-                              <value>TurbulentDissipationBuoyancyTerm</value>
+                              <value>TurbulentDissipation_destruction_term</value>
                             </attribute>
                             <element name="diagnostic">
                               <ref name="internal_algorithm"/>
@@ -1738,7 +1775,7 @@ model</a:documentation>
                               <value>0</value>
                             </attribute>
                             <attribute name="name">
-                              <value>TurbulentDissipationDestruction</value>
+                              <value>TurbulentDissipation_buoyancy_term</value>
                             </attribute>
                             <element name="diagnostic">
                               <ref name="internal_algorithm"/>
@@ -1781,19 +1818,19 @@ This is useful for MMS tests</a:documentation>
                         </optional>
                       </element>
                       <optional>
-                        <element name="disable_production">
+                        <element name="disable_production_term">
                           <a:documentation>enabling this option disables the production term in the k and epsilon equations</a:documentation>
                           <empty/>
                         </element>
                       </optional>
                       <optional>
-                        <element name="disable_destruction">
+                        <element name="disable_destruction_term">
                           <a:documentation>enabling this option disables the destruction term in the k and epsilon equation</a:documentation>
                           <empty/>
                         </element>
                       </optional>
                       <optional>
-                        <element name="disable_buoyancy">
+                        <element name="disable_buoyancy_term">
                           <a:documentation>enabling this option disables the bouyancy term in the k and epsilon equation</a:documentation>
                           <empty/>
                         </element>
@@ -2560,30 +2597,43 @@ field
               <a:documentation>Sediment bedload diagnostic which records the sediment 
 deposited through the prescribed boundary.
 
-The units are in unit distances as a depth of sediment.</a:documentation>
+The units are in unit distances as a depth of sediment.
+
+- The equation type must be set to SedimentBedload
+
+- Spatial discretisation should be as the parent sediment class
+
+- Initial conditions can be set as normal
+
+- Most other settings are irrelevant
+    - No solver settings are required as the sediment model only works
+      for p1 discretisations where the mass matrix can be easily inverted.
+    - The bedload is always calculated completely explicitly
+    - You cannot apply Source or Absorbtion terms to the bedload
+    - There is no diffusion of the bedload</a:documentation>
               <attribute name="rank">
                 <value>0</value>
               </attribute>
               <attribute name="name">
                 <value>Bedload</value>
               </attribute>
-              <choice>
+              <group>
                 <a:documentation>Field type</a:documentation>
-                <element name="diagnostic">
+                <element name="prognostic">
                   <element name="surface_ids">
                     <a:documentation>Surface ids over which to calculate the bedload:</a:documentation>
                     <ref name="integer_vector"/>
                   </element>
-                  <ref name="diagnostic_scalar_field"/>
+                  <ref name="prognostic_scalar_field"/>
+                  <optional>
+                    <element name="disable_calculation">
+                      <a:documentation>Disables calculation of change to bedload due to 
+erosion/deposition (generally only used for mms testing):</a:documentation>
+                      <empty/>
+                    </element>
+                  </optional>
                 </element>
-                <element name="prescribed">
-                  <element name="surface_ids">
-                    <a:documentation>Surface ids over which to calculate the bedload deposition:</a:documentation>
-                    <ref name="integer_vector"/>
-                  </element>
-                  <ref name="prescribed_scalar_field"/>
-                </element>
-              </choice>
+              </group>
             </element>
             <element name="scalar_field">
               <a:documentation>Sediment bedload diagnostic which records the sediment 
@@ -2647,7 +2697,9 @@ This uses the equation developed by Richardson and Zaki [1954].
 If the 'SinkingVelocity' is not set to diagnostic, this field will not be used.
 
 As with the sinking velocity, this velocity is in the direction of gravity so if the substance
-floats upwards, this field should be negative.</a:documentation>
+floats upwards, this field should be negative.
+
+This should be on the same mesh as the associated SinkingVelocity field.</a:documentation>
                 <attribute name="name">
                   <value>UnhinderedSinkingVelocity</value>
                 </attribute>
@@ -2655,6 +2707,7 @@ floats upwards, this field should be negative.</a:documentation>
                   <value>0</value>
                 </attribute>
                 <element name="prescribed">
+                  <ref name="velocity_mesh_choice"/>
                   <ref name="prescribed_scalar_field"/>
                 </element>
               </element>
@@ -2831,7 +2884,7 @@ parts.</a:documentation>
       <choice>
         <element name="solver">
           <a:documentation>Solver</a:documentation>
-          <ref name="linear_solver_options_asym"/>
+          <ref name="linear_solver_options_asym_scalar"/>
         </element>
         <element name="explicit">
           <a:documentation>Assume this field is being solved explicitly and skip the solver.
@@ -3281,15 +3334,9 @@ This is calculated at all boundaries</a:documentation>
           <ref name="real"/>
         </element>
         <element name="velocity_gradient">
-          <a:documentation>velocity_gradient - nu * grad(u)
+          <a:documentation>nu * (grad(u) + grad(u).T)
 This uses the velocity gradient at the boundaries to calculate the 
-bed shear stress. Valid for non parameterised velocity boundaries</a:documentation>
-          <empty/>
-        </element>
-        <element name="wall_treatment">
-          <a:documentation>This diagnostic can only be used in conjunction with a near-wall treatment
-velocity boundary condition. It is calculated at the same time as that boundary condition.
-The shear stress depends upon parameters set for the near-wall treatment algorithm.</a:documentation>
+bed shear stress. Valid for non parameterised velocity boundaries.</a:documentation>
           <empty/>
         </element>
       </choice>
@@ -3588,17 +3635,52 @@ on the Velocity field.</a:documentation>
         <attribute name="name">
           <value>free_surface</value>
         </attribute>
-        <optional>
-          <element name="surface_stabilisation">
-            <a:documentation>This options adds a surface stabilisation term to the free surface. Works only for cg velocity so far. 
-Note: Once activated, the stabilisation term will occur in all free surface areas in the domain. 
-IN DEVELOPMENT</a:documentation>
-            <element name="scale_factor">
-              <a:documentation>Scale factor for the surface stabilisation.</a:documentation>
+        <group>
+          <optional>
+            <element name="no_normal_stress">
+              <a:documentation>The default free_surface implements the physical boundary
+condition p=0 (this is full pressure without subtracting the hydrostatic component)
+For viscous fluids the correct boundary condition is a no normal
+stress condition, which includes a viscosity term. When using
+this option a prognostic FreeSurface field is required.</a:documentation>
+              <optional>
+                <element name="explicit">
+                  <a:documentation>Treat the free surface evolution equation separately from the momentum equation.  
+i.e. stagger the solves.
+
+Requires a prognostic FreeSurface field.</a:documentation>
+                  <empty/>
+                </element>
+              </optional>
+            </element>
+          </optional>
+          <optional>
+            <element name="variable_density">
+              <a:documentation>When selected the density at the surface is calculated using the Density field.  Therefore
+this requires a Density field!</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="external_density">
+              <a:documentation>When selected a hydrostatic pressure distribution on the outside is assumed
+using the specified density, i.e. instead of applying p=0 (resp.
+normal_stress=0) we apply p=p_external (resp. normal_stress=p_external) where p_external is determined by dp_external/dz=external_density*g</a:documentation>
               <ref name="real"/>
             </element>
-          </element>
-        </optional>
+          </optional>
+          <optional>
+            <element name="surface_stabilisation">
+              <a:documentation>This options adds a surface stabilisation term to the free surface. Works only for cg velocity so far. 
+Note: Once activated, the stabilisation term will occur in all free surface areas in the domain. 
+IN DEVELOPMENT</a:documentation>
+              <element name="scale_factor">
+                <a:documentation>Scale factor for the surface stabilisation.</a:documentation>
+                <ref name="real"/>
+              </element>
+            </element>
+          </optional>
+        </group>
       </element>
       <element name="type">
         <a:documentation>Apply quadratic drag. Specify drag coefficient. If you
@@ -3723,35 +3805,37 @@ boundary condition on the surface_ids specified.</a:documentation>
         <empty/>
       </element>
       <element name="type">
-        <a:documentation>Implements a penalty function for the near wall region.
-Using this option coarse meshes can
-be used in the near wall region.
-
-Should be used in combination with a no_normal_flow condition. 
-
-See Bazilevs et al. 2007</a:documentation>
+        <a:documentation>Implements a prescribed normal flow. Works for DG only. This
+implements a weakly imposed bounadry condition normal to the surface.
+Note: Positive points out of the domain, negative into the domain.</a:documentation>
         <attribute name="name">
-          <value>near_wall_treatment</value>
+          <value>prescribed_normal_flow</value>
         </attribute>
-        <element name="tolerance">
-          <ref name="real"/>
-        </element>
-        <optional>
-          <element name="Cb">
-            <a:documentation>if not set then Cb=2*h, where h is the element size</a:documentation>
-            <ref name="real"/>
-          </element>
-        </optional>
+        <ref name="input_choice_real_bc_component"/>
       </element>
       <element name="type">
-        <a:documentation>Log law of the wall
+        <a:documentation>Flux boundary condition. 
 
-Should be used in combination with a no_normal_flow condition. </a:documentation>
+Weakly enforces a flux across a boundary</a:documentation>
         <attribute name="name">
-          <value>log_law_of_wall</value>
+          <value>flux</value>
         </attribute>
-        <element name="surface_roughness">
-          <ref name="real"/>
+        <element name="align_bc_with_cartesian">
+          <optional>
+            <element name="x_component">
+              <ref name="input_choice_real_bc_component"/>
+            </element>
+          </optional>
+          <optional>
+            <element name="y_component">
+              <ref name="input_choice_real_bc_component"/>
+            </element>
+          </optional>
+          <optional>
+            <element name="z_component">
+              <ref name="input_choice_real_bc_component"/>
+            </element>
+          </optional>
         </element>
       </element>
     </choice>
@@ -4059,19 +4143,26 @@ iteration in the .stat file.</a:documentation>
       <a:documentation>Specify how the values of this field used in the nonlinear iteration are added to the .stat file.</a:documentation>
       <ref name="vector_field_stat_options_disabled_default"/>
     </element>
-    <optional>
+    <zeroOrMore>
       <element name="compute_body_forces_on_surfaces">
-        <a:documentation>What surface IDs do you want to do the calculation over?</a:documentation>
-        <optional>
-          <element name="output_terms">
-            <a:documentation>Enable to output the pressure and viscous terms separately (as well
-as the total force)</a:documentation>
-            <ref name="comment"/>
+        <attribute name="name">
+          <data type="string"/>
+        </attribute>
+        <group>
+          <element name="surface_ids">
+            <a:documentation>What surface IDs do you want to do the calculation over?</a:documentation>
+            <ref name="integer_vector"/>
           </element>
-        </optional>
-        <ref name="integer_vector"/>
+          <optional>
+            <element name="output_terms">
+              <a:documentation>Enable to output the pressure and viscous terms separately (as well
+as the total force)</a:documentation>
+              <ref name="comment"/>
+            </element>
+          </optional>
+        </group>
       </element>
-    </optional>
+    </zeroOrMore>
     <optional>
       <element name="divergence_stats">
         <a:documentation>Compute the divergence of this field at the Gauss points
@@ -4387,33 +4478,86 @@ i.e. excluding the components</a:documentation>
       </element>
       <element name="scalar_field">
         <a:documentation>Free Surface
-NOTE: if you are using the free_surface boundary condition
-applied to the Velocity field (recommended), you should not 
-use the prognostic FreeSurface field. In this case you may 
-(optionally) add a diagnostic FreeSurface field.</a:documentation>
+Use in combination with a free_surface boundary condition on velocity
+Without the no_normal_stress option, this field should be diagnostic
+and is optional. With the no_normal_stress option this field is required
+and should be prognostic.</a:documentation>
         <attribute name="rank">
           <value>0</value>
         </attribute>
         <attribute name="name">
           <value>FreeSurface</value>
         </attribute>
-        <element name="diagnostic">
-          <a:documentation>Free Surface
-NOTE: the diagnostic FreeSurface field only works in combination
+        <choice>
+          <element name="diagnostic">
+            <a:documentation>Free Surface elevation, to be used in combination with:
+
+* a free_surface boundary condition applied to the Velocity
+field, without the no_normal_stress_option.
+It gives you a full dimensional field (constant over the vertical)
+of the free surface elevation.
+
+* equation type ShallowWater for Velocity. It simply divides 
+Pressure by g, the gravitational constant.</a:documentation>
+            <ref name="internal_algorithm"/>
+            <ref name="pressure_mesh_choice">
+              <a:documentation>Must be on the same mesh as Pressure</a:documentation>
+            </ref>
+            <ref name="diagnostic_scalar_field"/>
+          </element>
+          <element name="prognostic">
+            <a:documentation>Free Surface
+NOTE: the prognostic FreeSurface field only works in combination
 with the free_surface boundary condition applied to the Velocity
-field. It gives you a 3D field (constant over the vertical)
-of the free surface elevation.</a:documentation>
-          <ref name="internal_algorithm"/>
-          <!--
-            this is hard-coded on the PressureMesh as long as the Pressure is
-            if this is no longer true, it should be option-checked to be on the
-            same mesh as Pressure
-          -->
-          <ref name="pressure_mesh_choice">
-            <a:documentation>Must be on the same mesh as Pressure</a:documentation>
-          </ref>
-          <ref name="diagnostic_scalar_field"/>
-        </element>
+field in combination with the no_normal_stress_option.
+It gives you a full dimensional field (constant over the vertical)
+of the free surface elevation. Initial and boundary conditions
+for free surface should be set on this field.</a:documentation>
+            <ref name="pressure_mesh_choice">
+              <a:documentation>Must be on the same mesh as Pressure</a:documentation>
+            </ref>
+            <oneOrMore>
+              <choice>
+                <element name="initial_condition">
+                  <a:documentation>Initial condition for WholeMesh
+
+Only specify one condition if not using mesh regions.
+Otherwise select other initial_condition option, specify region_ids
+and distinct names.  Then add extra intial conditions for other regions.</a:documentation>
+                  <attribute name="name">
+                    <value>WholeMesh</value>
+                  </attribute>
+                  <ref name="input_choice_initial_condition_real"/>
+                </element>
+                <element name="initial_condition">
+                  <a:documentation>Multiple initial_conditions are allowed if specifying
+different values in different
+regions of the mesh (defined by region_ids).  In this case
+each initial_condition
+requires a distinct name for the options dictionary.</a:documentation>
+                  <attribute name="name">
+                    <data type="string" datatypeLibrary=""/>
+                  </attribute>
+                  <optional>
+                    <ref name="region_ids"/>
+                  </optional>
+                  <ref name="input_choice_initial_condition_real"/>
+                </element>
+              </choice>
+            </oneOrMore>
+            <element name="solver">
+              <a:documentation>Solver - only necessary in combination with an explicit no_normal_stress free_surface bc under Velocity.</a:documentation>
+              <ref name="linear_solver_options_sym"/>
+            </element>
+            <ref name="prognostic_scalar_output_options"/>
+            <ref name="prognostic_scalar_stat_options"/>
+            <ref name="scalar_convergence_options"/>
+            <ref name="prognostic_detector_options"/>
+            <ref name="scalar_steady_state_options"/>
+            <ref name="adaptivity_options_prognostic_scalar_field"/>
+            <ref name="interpolation_algorithm_scalar"/>
+          </element>
+        </choice>
       </element>
       <element name="scalar_field">
         <a:documentation>Wetting and drying alpha coefficient. Alpha is 1 in dry and 0 in wet regions.</a:documentation>
@@ -6923,9 +7067,8 @@ Assumes both fields are on the same mesh as the AbsoluteDifference field.</a:doc
         </choice>
       </element>
       <element name="vector_field">
-        <a:documentation>Bed Shear Stress = density*drag_coeff*|u|*u
+        <a:documentation>Bed Shear Stress
 
-at the moment this assumes the density and drag coefficients are constants.
 This diagnostic vector field is only calculated over surface elements/nodes, 
 interior nodes will have zero value.</a:documentation>
         <attribute name="rank">
@@ -6939,6 +7082,10 @@ interior nodes will have zero value.</a:documentation>
             <ref name="internal_algorithm"/>
             <ref name="velocity_mesh_choice"/>
             <ref name="diagnostic_vector_field_bed_shear_stress"/>
+          </element>
+          <element name="prescribed">
+            <ref name="velocity_mesh_choice"/>
+            <ref name="prescribed_vector_field_no_adapt"/>
           </element>
           <element name="aliased">
             <ref name="generic_aliased_field"/>
@@ -7139,6 +7286,11 @@ in a multimaterial simulation.</a:documentation>
           <element name="prescribed">
             <ref name="mesh_choice"/>
             <ref name="prescribed_tensor_field"/>
+          </element>
+          <element name="diagnostic">
+            <ref name="mesh_choice"/>
+            <ref name="tensor_python_diagnostic_algorithm"/>
+            <ref name="diagnostic_tensor_field"/>
           </element>
           <element name="aliased">
             <ref name="generic_aliased_field"/>
@@ -8420,7 +8572,68 @@ These &lt;b&gt;must&lt;/b&gt; be on the velocity mesh</a:documentation>
           <optional>
             <element name="M2">
               <a:documentation>M2</a:documentation>
-              <empty/>
+              <optional>
+                <element name="frequency">
+                  <a:documentation>Ancient frequencies:
+
+Ma     Frequency
+
+0        1.405e-4
+
+10      1.408e-4
+
+50      1.416e-4
+
+100    1.423e-4
+
+200    1.428e-4
+
+300    1.431e-4
+
+350    1.434e-4
+
+400    1.436e-4
+
+450    1.441e-4
+
+500    1.451e-4
+
+570    1.469e-4
+
+From Poliakow,2005</a:documentation>
+                  <ref name="real"/>
+                </element>
+              </optional>
+              <optional>
+                <element name="amplitude">
+                  <a:documentation>Ma     Amplitude
+
+0        0.2423
+
+10      0.2428
+
+50      0.2446
+
+100    0.2460
+
+200    0.2471
+
+300    0.2477
+
+350    0.2485
+
+400    0.2489
+
+450    0.2499
+
+500    0.2521
+
+570    0.2560
+
+From Poliakow,2005</a:documentation>
+                  <ref name="real"/>
+                </element>
+              </optional>
             </element>
           </optional>
           <optional>
@@ -8491,10 +8704,26 @@ These &lt;b&gt;must&lt;/b&gt; be on the velocity mesh</a:documentation>
           </optional>
           <optional>
             <element name="love_number">
-              <a:documentation>Sets a user defined Love number. If not active a value of 1.0 is used.</a:documentation>
+              <a:documentation>Sets a user defined Love number. If not active a value of 1.0 is used.
+Recommended value is 0.693</a:documentation>
               <element name="value">
                 <ref name="real"/>
               </element>
+            </element>
+          </optional>
+          <optional>
+            <element name="sal">
+              <a:documentation>Self attraction and loading term (SAL). This is a simple implementation
+that uses a constant beta value</a:documentation>
+              <element name="beta">
+                <ref name="real"/>
+              </element>
+            </element>
+          </optional>
+          <optional>
+            <element name="chi">
+              <a:documentation>Add the CHI term to the harmonics. You probably only want to do this is you're simulating a specific time</a:documentation>
+              <empty/>
             </element>
           </optional>
         </element>
@@ -8607,7 +8836,7 @@ galerkin formulation will result. </a:documentation>
     </element>
     <element name="solver">
       <a:documentation>Solver</a:documentation>
-      <ref name="linear_solver_options_asym"/>
+      <ref name="linear_solver_options_asym_scalar"/>
     </element>
     <!-- Alas, no initial_condition either, so we'd better not checkpoint it... -->
     <element name="exclude_from_checkpointing">

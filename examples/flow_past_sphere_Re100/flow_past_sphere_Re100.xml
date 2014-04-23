@@ -7,14 +7,15 @@
   <owner userid="piggt01"/>
   <tags>flml</tags>
   <problem_definition length="long" nprocs="8">
-    <command_line>mpiexec fluidity -v1 -l flow_past_sphere_Re100.flml</command_line>
+    <command_line>mpiexec flredecomp -i 1 -o 8 -v -l flow_past_sphere_Re100 flow_past_sphere_Re100_flredecomp &amp;&amp;
+mpiexec fluidity -v1 -l flow_past_sphere_Re100_flredecomp.flml</command_line>
   </problem_definition>
   <variables>
     <variable name="time_average_xforce" language="python">
 import fluidity_tools
 s = fluidity_tools.stat_parser("flow_past_sphere_Re100.stat")
-print s["0"]["Velocity"]["force%1"][-20:]
-time_average_xforce = sum(s["0"]["Velocity"]["force%1"][-20:])/20
+print s["0"]["Velocity"]["force_sphere%1"][-20:]
+time_average_xforce = sum(s["0"]["Velocity"]["force_sphere%1"][-20:])/20
 print time_average_xforce
     </variable>
     <variable name="exact_xforce" language="python">
