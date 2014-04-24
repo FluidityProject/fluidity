@@ -2451,13 +2451,13 @@ contains
         !! get boundary information
         
         call get_entire_boundary_condition(pressure,&
-           ['dirichlet','neumann  ','robin    '],&
+           ['dirichlet'],&
            pressure_BCs,WIC_P_BC_ALL)
         call get_entire_boundary_condition(velocity,&
-           ['dirichlet','neumann  ','robin    '],&
+           ['dirichlet','robin    '],&
            velocity_BCs,WIC_U_BC_ALL,boundary_second_value=velocity_BCs_robin2)
         call get_entire_boundary_condition(velocity,&
-           ['momentum '],&
+           ['momentum     ','momentuminout'],&
            momentum_BCs,WIC_MOMU_BC_ALL)
 
         WIC_NU_BC_ALL=WIC_U_BC_ALL

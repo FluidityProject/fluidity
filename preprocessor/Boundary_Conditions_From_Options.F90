@@ -362,6 +362,10 @@ contains
          bc_type = "weak"//trim(bc_type)
        end if
 
+       if(have_option(trim(bc_path_i)//"/type[0]/boundary/open")) then
+          bc_type = trim(bc_type)//"inout"
+       end if
+
        select case(trim(bc_type))
        case("dirichlet", "neumann", "weakdirichlet", "momentum")
 

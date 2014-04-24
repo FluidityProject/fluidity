@@ -47,7 +47,7 @@ module cv_advection
        WIC_U_BC_DIRICHLET = 1, &
        WIC_U_BC_ROBIN = 2, &
        WIC_U_BC_DIRI_ADV_AND_ROBIN = 3, &
-       WIC_U_BC_DIRICHLET_INOUT = 5, &
+       WIC_U_BC_DIRICHLET_INOUT = 2, &
        WIC_P_BC_DIRICHLET = 1
 
 contains
@@ -277,9 +277,6 @@ contains
 
       ! Local variables
       REAL, PARAMETER :: ZERO_OR_TWO_THIRDS = 0.0
-      INTEGER, PARAMETER :: WIC_T_BC_DIRICHLET = 1, WIC_T_BC_ROBIN = 2, &
-           WIC_T_BC_DIRI_ADV_AND_ROBIN = 3, WIC_D_BC_DIRICHLET = 1, &
-           WIC_U_BC_DIRICHLET = 1
 ! if integrate_other_side then just integrate over a face when cv_nodj>cv_nodi
       logical, PARAMETER :: integrate_other_side=.true.
 ! if .not.correct_method_petrov_method then we can compare our results directly with previous code...
@@ -507,18 +504,18 @@ contains
       !! Get boundary conditions from field
 
       call get_entire_boundary_condition(tracer,&
-           ['dirichlet','neumann  ','robin    '],&
+           ['dirichlet','robin    '],&
            tracer_BCs,WIC_T_BC_ALL,boundary_second_value=tracer_BCs_robin2)
       call get_entire_boundary_condition(density,&
-           ['dirichlet','neumann  ','robin    '],&
+           ['dirichlet'],&
            density_BCs,WIC_D_BC_ALL)
       if (present(saturation))&
            call get_entire_boundary_condition(saturation,&
-           ['dirichlet','neumann  ','robin    '],&
+           ['dirichlet','robin    '],&
            saturation_BCs,WIC_T2_BC_ALL,&
            boundary_second_value=saturation_BCs_robin2)
       call get_entire_boundary_condition(velocity,&
-           ['dirichlet','neumann  ','momentum '],&
+           ['dirichlet'],&
            velocity_BCs,WIC_U_BC_ALL)
       
       !! reassignments to old arrays, to be discussed
