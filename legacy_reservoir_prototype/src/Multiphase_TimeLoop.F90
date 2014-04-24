@@ -210,6 +210,7 @@
       real, dimension(:,:,:), allocatable  :: reference_field
 
       type( tensor_field ), pointer :: NU_s, NUOLD_s, U_s, UOLD_s, D_s, DOLD_s, DC_s, DCOLD_s
+      type( tensor_field ), pointer :: MFC_s, MFCOLD_s!, MFC_FEMT_s, MFCOLD_FEMT_s
 
       !! face value storage
       integer :: ncv_faces
@@ -508,7 +509,7 @@
 !!$
  if( have_temperature_field ) then
             call Calculate_All_Rhos( state, packed_state, ncomp, nphase, ndim, cv_nonods, cv_nloc, totele, &
-                 cv_ndgln, Component, DRhoDPressure )
+                 cv_ndgln, DRhoDPressure )
       end if
 
          if( have_component_field ) then
@@ -594,7 +595,21 @@
          if( have_component_field ) then
             DC_s  => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedComponentDensity" )
             DCOLD_s  => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedOldComponentDensity" )
+            MFC_s  => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedComponentMassFraction" )
+            MFCOLD_s  => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedOldComponentMassFraction" )
          end if
+
+!! Temporal working array:
+         DO CV_INOD = 1, CV_NONODS
+            DO IPHASE = 1, NPHASE
+               DO ICOMP = 1, NCOMP
+                  MFC_s%val(ICOMP, IPHASE, CV_INOD) = &
+                      COMPONENT( CV_INOD + ( IPHASE - 1 ) * CV_NONODS + ( ICOMP - 1 ) * NPHASE * CV_NONODS )
+                  MFCOLD_s%val(ICOMP, IPHASE, CV_INOD) = &         
+                      COMPONENT_OLD( CV_INOD + ( IPHASE - 1 ) * CV_NONODS + ( ICOMP - 1 ) * NPHASE * CV_NONODS )
+               END DO
+            END DO
+         END DO
 
          ! evaluate prescribed fields at time = current_time+dt
          call set_prescribed_field_values( state, exclude_interpolated = .true., &
@@ -636,12 +651,13 @@
             Repeat_time_step, ExitNonLinearLoop,nonLinearAdaptTs,2)
 
             call Calculate_All_Rhos( state, packed_state, ncomp, nphase, ndim, cv_nonods, cv_nloc, totele, &
-                 cv_ndgln, Component, DRhoDPressure )
+                 cv_ndgln, DRhoDPressure )
 
             if( its == 1 ) then
                DOLD_s%val = D_s%val
                if( have_component_field ) then
                   DCOLD_s%val = DC_s%val
+                  MFCOLD_s%val = MFC_s%val
                end if 
 
             end if
@@ -726,7 +742,7 @@
                end do
 
                call Calculate_All_Rhos( state, packed_state, ncomp, nphase, ndim, cv_nonods, cv_nloc, totele, &
-                    cv_ndgln, Component, DRhoDPressure )
+                    cv_ndgln, DRhoDPressure )
 
             end if Conditional_ScalarAdvectionField
 
@@ -989,27 +1005,41 @@
 
                end do Loop_Components
 
+!! Temporal working array:
+         DO CV_INOD = 1, CV_NONODS
+            DO IPHASE = 1, NPHASE
+               DO ICOMP = 1, NCOMP
+                  MFC_s%val(ICOMP, IPHASE, CV_INOD) = &
+                      COMPONENT( CV_INOD + ( IPHASE - 1 ) * CV_NONODS + ( ICOMP - 1 ) * NPHASE * CV_NONODS )
+               END DO
+            END DO
+         END DO
+
+
                if( have_option( '/material_phase[' // int2str( nstate - ncomp ) // & 
                     ']/is_multiphase_component/Comp_Sum2One/Enforce_Comp_Sum2One' ) ) then
                   ! Initially clip and then ensure the components sum to unity so we don't get surprising results...
-                  DO I = 1, CV_NONODS * NPHASE * NCOMP
-                     COMPONENT( I ) = MIN( MAX( COMPONENT( I ), 0. ), 1. )
-                  END DO
+!                  DO I = 1, CV_NONODS * NPHASE * NCOMP
+!                     COMPONENT( I ) = MIN( MAX( COMPONENT( I ), 0. ), 1. )
+!                  END DO
+                   MFC_s % val = min ( max ( MFC_s % val, 0.0), 1.0)
 
                   ALLOCATE( RSUM( NPHASE ) )
                   DO CV_INOD = 1, CV_NONODS
                      RSUM = 0.0
                      DO IPHASE = 1, NPHASE
-                        DO ICOMP = 1, NCOMP
-                           RSUM( IPHASE ) = RSUM( IPHASE ) + &
-                                COMPONENT( CV_INOD + ( IPHASE - 1 ) * CV_NONODS + ( ICOMP - 1 ) * NPHASE * CV_NONODS )
-                        END DO
+                        RSUM( IPHASE ) = SUM (MFC_s % val (:, IPHASE, CV_INOD) )
+!                        DO ICOMP = 1, NCOMP
+!                           RSUM( IPHASE ) = RSUM( IPHASE ) + &
+!                                COMPONENT( CV_INOD + ( IPHASE - 1 ) * CV_NONODS + ( ICOMP - 1 ) * NPHASE * CV_NONODS )
+!                        END DO
                      END DO
                      DO IPHASE = 1, NPHASE
-                        DO ICOMP = 1, NCOMP
-                           COMPONENT( CV_INOD + ( IPHASE - 1 ) * CV_NONODS + ( ICOMP - 1 ) * NPHASE * CV_NONODS ) = &
-                                COMPONENT( CV_INOD + ( IPHASE - 1 ) * CV_NONODS + ( ICOMP - 1 ) * NPHASE * CV_NONODS ) / RSUM( IPHASE )
-                        END DO
+                        MFC_s % val (:, IPHASE, CV_INOD) = MFC_s % val (:, IPHASE, CV_INOD) / RSUM( IPHASE )
+!                        DO ICOMP = 1, NCOMP
+!                           COMPONENT( CV_INOD + ( IPHASE - 1 ) * CV_NONODS + ( ICOMP - 1 ) * NPHASE * CV_NONODS ) = &
+!                                COMPONENT( CV_INOD + ( IPHASE - 1 ) * CV_NONODS + ( ICOMP - 1 ) * NPHASE * CV_NONODS ) / RSUM( IPHASE )
+!                        END DO
                      END DO
                   END DO
                   DEALLOCATE( RSUM )
@@ -1043,7 +1073,8 @@
                            ScalarField_Source_Component( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) = &
                                 ScalarField_Source_Component( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) - &
                                 Component_Absorption( CV_NODI, IPHASE, JPHASE ) * &
-                                Component( CV_NODI + ( JPHASE - 1 ) * CV_NONODS + ( ICOMP - 1 ) * NPHASE * CV_NONODS ) / &
+!                                Component( CV_NODI + ( JPHASE - 1 ) * CV_NONODS + ( ICOMP - 1 ) * NPHASE * CV_NONODS ) / &
+                                MFC_s%val(ICOMP, JPHASE, CV_NODI) / &
                                 DC_s%val( icomp, iphase, cv_nodi  )
                         END DO
                      end do Loop_Phase_SourceTerm2
@@ -1054,7 +1085,8 @@
                      DO CV_NODI = 1, CV_NONODS
                         ScalarField_Source_Component( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) = &
                              ScalarField_Source_Component( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) &
-                             + Mean_Pore_CV( CV_NODI ) * Component_Old( CV_NODI + ( IPHASE - 1 ) * CV_NONODS + ( ICOMP - 1 ) * NPHASE * CV_NONODS ) &
+!                             + Mean_Pore_CV( CV_NODI ) * Component_Old( CV_NODI + ( IPHASE - 1 ) * CV_NONODS + ( ICOMP - 1 ) * NPHASE * CV_NONODS ) &
+                             + Mean_Pore_CV( CV_NODI ) * MFCOLD_s%val(ICOMP, IPHASE, CV_NODI) &
                              * ( DCOLD_s%val( ICOMP, IPHASE, CV_NODI ) - DC_s%val( ICOMP, IPHASE, CV_NODI) ) &
                              * OldSAT_s( IPHASE, CV_NONODS ) &
                              / ( DC_s%val( ICOMP, IPHASE, CV_NODI ) * DT )
@@ -1067,9 +1099,18 @@
                     ']/is_multiphase_component/Comp_Sum2One' ) .and. ( ncomp > 1 ) ) then
                   call Cal_Comp_Sum2One_Sou( packed_state, ScalarField_Source_Component, cv_nonods, nphase, ncomp, dt, its, &
                        NonLinearIteration, &
-                       Mean_Pore_CV,&
-                       Component, Component_Old )
+                       Mean_Pore_CV )
                end if
+
+!! Temporal working array:
+               DO CV_INOD = 1, CV_NONODS
+                  DO IPHASE = 1, NPHASE
+                     DO ICOMP = 1, NCOMP
+                      COMPONENT( CV_INOD + ( IPHASE - 1 ) * CV_NONODS + ( ICOMP - 1 ) * NPHASE * CV_NONODS ) = &
+                           MFC_s%val(ICOMP, IPHASE, CV_INOD)
+                     END DO
+                  END DO
+               END DO
 
                ! Update state memory
                do icomp = 1, ncomp

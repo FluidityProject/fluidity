@@ -794,7 +794,7 @@
 
 
     SUBROUTINE CAL_COMP_SUM2ONE_SOU( packed_state, V_SOURCE_COMP, CV_NONODS, NPHASE, NCOMP2, DT, ITS, NITS, &
-         MEAN_PORE_CV, COMP, COMPOLD )
+         MEAN_PORE_CV )
       ! make sure the composition sums to 1.0 
       use futils
       implicit none
@@ -804,7 +804,7 @@
       real, dimension( : ), intent( inout ) :: V_SOURCE_COMP
       real, dimension( : ), intent( in ) :: MEAN_PORE_CV
 !      real, dimension( : ), intent( in ) :: SATURA
-      real, dimension( : ), intent( in ) :: COMP, COMPOLD
+!      real, dimension( : ), intent( in ) :: COMP, COMPOLD
 
       ! the relaxing (sum2one_relax) is to help convergence. 
       ! =1 is full adjustment to make sure we have sum to 1. 
@@ -814,9 +814,10 @@
       logical :: ensure_positive
     !Working pointer
       real, dimension(:,:), pointer ::satura
+      type( tensor_field ), pointer :: MFC_s
 
      call get_var_from_packed_state(packed_state,PhaseVolumeFraction = satura)
-
+     MFC_s  => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedComponentMassFraction" )
 
       if( have_option( '/material_phase[' // int2str( nphase ) // &
            ']/is_multiphase_component/Comp_Sum2One/Relaxation_Coefficient' ) ) then
@@ -835,11 +836,8 @@
       DO IPHASE = 1, NPHASE
          DO CV_NODI = 1, CV_NONODS
 
-            COMP_SUM=0.
-            DO ICOMP = 1, NCOMP2
-               COMP_SUM = COMP_SUM + &
-                    COMP( CV_NODI + ( IPHASE - 1 ) * CV_NONODS + ( ICOMP - 1 ) * NPHASE * CV_NONODS )
-            END DO
+
+            COMP_SUM = SUM (MFC_s % val (:, IPHASE, CV_NODI) )
             !ewrite(3,*)'IPHASE,CV_NODI,S,COMP_SUM:',IPHASE,CV_NODI,SATURA( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ),COMP_SUM
 
             IF ( ENSURE_POSITIVE ) THEN

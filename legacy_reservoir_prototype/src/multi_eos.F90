@@ -61,7 +61,7 @@
   contains
 
     subroutine Calculate_All_Rhos( state, packed_state, ncomp_in, nphase, ndim, cv_nonods, cv_nloc, totele, &
-         cv_ndgln, Component, DRhoDPressure )
+         cv_ndgln, DRhoDPressure )
 
       implicit none
 
@@ -70,13 +70,12 @@
       integer, intent( in ) :: ncomp_in, nphase, ndim, cv_nonods, cv_nloc, totele
       integer, dimension( : ), intent( in ) :: cv_ndgln
 
-      real, dimension( : ), intent( in ) :: Component
       real, dimension( nphase, cv_nonods ), intent( inout ), optional :: DRhoDPressure
 
       real, dimension( : ), allocatable :: Rho, dRhodP, Density_Bulk, DensityCp_Bulk, &
                                                Density_Component, Cp, Component_l, c_cv_nod
       character( len = option_path_len ), dimension( : ), allocatable :: eos_option_path
-      type( tensor_field ), pointer :: field1, field2, field3
+      type( tensor_field ), pointer :: field1, field2, field3, field4
       type( scalar_field ), pointer :: Cp_s
       integer :: icomp, iphase, ncomp, sc, ec, sp, ep, stat, cv_iloc, cv_nod, ele
 
@@ -125,8 +124,8 @@
                  nphase, ncomp_in, eos_option_path( (icomp - 1 ) * nphase + iphase ), Rho, dRhodP )
 
             if( ncomp > 1 ) then
-
-               Component_l = Component( sc : ec )
+               field4 => extract_tensor_field( packed_state, "PackedComponentMassFraction" )
+               Component_l = field4 % val ( icomp, iphase, :)
                if ( have_option( '/material_phase[0]/linearise_component' ) ) then
                   ! linearise component
                   if ( cv_nloc==6 .or. (cv_nloc==10 .and. ndim==3) ) then ! P2 triangle or tet
@@ -163,7 +162,7 @@
                Cp_s => extract_scalar_field( state( nphase + icomp ), &
                     'ComponentMassFractionPhase' // int2str( iphase ) // 'HeatCapacity', stat )
                if( stat == 0 ) Cp = Cp_s % val
-               DensityCp_Bulk( sp : ep ) = DensityCp_Bulk( sp : ep ) + Rho * Cp * Component( sc : ec )
+               DensityCp_Bulk( sp : ep ) = DensityCp_Bulk( sp : ep ) + Rho * Cp * Component_l
 
             else
 
@@ -203,7 +202,7 @@
       end do ! iphase
 
 
-      deallocate( Rho, dRhodP, Cp, Component_l )
+      deallocate( Rho, dRhodP, Cp, Component_l)
       deallocate( Density_Component, Density_Bulk, DensityCp_Bulk )
       deallocate( eos_option_path )
 
