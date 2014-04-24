@@ -741,30 +741,22 @@
 
 
     subroutine Extracting_MeshDependentFields_From_State( state, packed_state, initialised, &
-         PhaseVolumeFraction, PhaseVolumeFraction_BC_Spatial, PhaseVolumeFraction_BC, PhaseVolumeFraction_Source, &
-         Pressure_FEM_BC_Spatial, Pressure_FEM_BC, &
-         Density_BC_Spatial, Density_BC, &
-         Component, Component_BC_Spatial, Component_BC, Component_Source, &
-         Velocity_U_BC_Spatial,  wic_momu_bc, Velocity_U_BC, Velocity_V_BC, Velocity_W_BC, &
-         suf_momu_bc, suf_momv_bc, suf_momw_bc, Velocity_U_Source, Velocity_Absorption, &
-         Temperature, Temperature_BC_Spatial, Temperature_BC, Temperature_Source, suf_t_bc_rob1, suf_t_bc_rob2, &
+         PhaseVolumeFraction, PhaseVolumeFraction_Source, &
+         Component, Component_Source, &
+         Velocity_U_Source, Velocity_Absorption, &
+         Temperature, Temperature_Source,  &
          Porosity, Permeability  )
       implicit none
       type( state_type ), dimension( : ), intent( inout ) :: state
       type( state_type ), intent( inout ) :: packed_state
 
       logical, intent( in ) :: initialised
-      integer, dimension( : ), intent( inout ) :: PhaseVolumeFraction_BC_Spatial, Pressure_FEM_BC_Spatial, &
-           Density_BC_Spatial, Component_BC_Spatial, Velocity_U_BC_Spatial, Temperature_BC_Spatial, &
-           wic_momu_bc
       real, dimension( : ), intent( inout ) :: &
-           PhaseVolumeFraction, PhaseVolumeFraction_BC, PhaseVolumeFraction_Source, &
-           Pressure_FEM_BC, &
-           Density_BC, &
-           Component, Component_BC, Component_Source, &
-           Velocity_U_BC,  Velocity_V_BC, Velocity_W_BC, Velocity_U_Source, &
-           Temperature, Temperature_BC, Temperature_Source, suf_t_bc_rob1, suf_t_bc_rob2, &
-           Porosity, suf_momu_bc, suf_momv_bc, suf_momw_bc
+           PhaseVolumeFraction, PhaseVolumeFraction_Source, &
+           Component, Component_Source, &
+           Velocity_U_Source, &
+           Temperature, Temperature_Source,&
+           Porosity
       real, dimension( :, :, : ), intent( inout ) :: Velocity_Absorption, Permeability
 
 !!$ Local variables
@@ -833,8 +825,7 @@
          scalarfield => extract_scalar_field( state( iphase ), 'PhaseVolumeFraction' )
          knod = ( iphase - 1 ) * node_count( scalarfield )
          call Get_ScalarFields_Outof_State( state, initialised, iphase, scalarfield, &
-              PhaseVolumeFraction( knod + 1 : knod + node_count( scalarfield ) ), PhaseVolumeFraction_BC_Spatial, &
-              PhaseVolumeFraction_BC, &
+              PhaseVolumeFraction( knod + 1 : knod + node_count( scalarfield ) ), &
               field_prot_source = PhaseVolumeFraction_Source )
       end do Loop_VolumeFraction
 
@@ -843,15 +834,7 @@
 !!$
       scalarfield => extract_scalar_field( state( 1 ), 'Pressure' )
       call Get_ScalarFields_Outof_State( state, initialised, 1, scalarfield, &
-           dummy, Pressure_FEM_BC_Spatial, Pressure_FEM_BC )
-      if( nphase > 1 ) then ! Copy this to the other phases
-         do iphase = 2, nphase
-            Pressure_FEM_BC_Spatial( ( iphase - 1 ) * stotel + 1 : iphase * stotel ) = &
-                 Pressure_FEM_BC_Spatial( 1 : stotel )
-            Pressure_FEM_BC( ( iphase - 1 ) * stotel * p_snloc + 1 : iphase * stotel * p_snloc ) = &
-                 Pressure_FEM_BC( 1 : stotel * p_snloc )
-         end do
-      end if
+           dummy )
 
 !!$
 !!$ Extracting Density Field:
@@ -860,7 +843,7 @@
          scalarfield => extract_scalar_field( state( iphase ), 'Density' )
          !knod = ( iphase - 1 ) * node_count( scalarfield )
          call Get_ScalarFields_Outof_State( state, initialised, iphase, scalarfield, &
-              dummy, Density_BC_Spatial, Density_BC )
+              dummy)
       end do Loop_Density
 
 !!$
@@ -876,9 +859,7 @@
                  ( iphase - 1 ) * stotel * cv_snloc
 
             call Get_CompositionFields_Outof_State( state, initialised, nphase, icomp, iphase, scalarfield, &
-                 Component( knod + 1 : knod + cv_nonods ), Component_BC_Spatial, &
-                 knod2 + 1, knod2 + stotel * cv_snloc, &
-                 Component_BC( knod2 + 1 : knod2 + stotel * cv_snloc ), &
+                 Component( knod + 1 : knod + cv_nonods ), &
                  field_prot_source = Component_Source( ( iphase - 1 ) * cv_nonods + 1 : &
                  ( iphase - 1 ) * cv_nonods + cv_nonods ) )
 
@@ -891,9 +872,6 @@
       Loop_Velocity: do iphase = 1, nphase
          vectorfield => extract_vector_field( state( iphase ), 'Velocity' )
          call Get_VectorFields_Outof_State( state, initialised, iphase, vectorfield, &
-              Velocity_U_BC_Spatial, wic_momu_bc, &
-              Velocity_U_BC, Velocity_V_BC, Velocity_W_BC, &
-              suf_momu_bc, suf_momv_bc, suf_momw_bc, &
               field_prot_source=Velocity_U_Source, field_prot_absorption=Velocity_Absorption )
       end do Loop_Velocity
 
@@ -907,9 +885,7 @@
             knod = ( iphase - 1 ) * node_count( scalarfield )
             call Get_ScalarFields_Outof_State( state, initialised, iphase, scalarfield, &
                  Temperature( knod + 1 : knod + node_count( scalarfield ) ), &
-                 Temperature_BC_Spatial, Temperature_BC, &
-                 field_prot_source = Temperature_Source( knod + 1 : knod + node_count( scalarfield ) ), &
-                 suf_bc_rob1 = suf_t_bc_rob1, suf_bc_rob2 = suf_t_bc_rob2 )
+                 field_prot_source = Temperature_Source( knod + 1 : knod + node_count( scalarfield ) ) )
          end if Conditional_Temperature
       end do
 
@@ -965,8 +941,8 @@
       type( scalar_field ), pointer :: field, field_prot_bc, field_prot_bc1, field_prot_bc2
       real, dimension( : ), intent( inout ) :: field_prot
       real, dimension( : ), intent( inout ), optional :: field_prot_source, field_prot_absorption, suf_bc_rob1, suf_bc_rob2
-      integer, dimension( : ), intent( inout ) :: wic_bc
-      real, dimension( : ), intent( inout ) :: suf_bc
+      integer, dimension( : ), intent( inout ), optional :: wic_bc
+      real, dimension( : ), intent( inout ), optional :: suf_bc
 
       ! Local variables
       type( mesh_type ), pointer :: pmesh, cmesh
@@ -1066,6 +1042,8 @@
       end if Conditional_InitialisationFromFLML
 
 !!$ Boundary conditions
+      if (present( wic_bc ) ) then
+      
       option_path2 = trim( option_path ) // '/prognostic/boundary_conditions['
       nobcs = get_boundary_condition_count( field )
       Loop_BC: do k = 1, nobcs
@@ -1116,6 +1094,8 @@
 
       end do Loop_BC
 
+   end if
+
       return
     end subroutine Get_ScalarFields_Outof_State
 
@@ -1132,9 +1112,9 @@
       type( scalar_field ), pointer :: field, field_prot_bc
       real, dimension( : ), intent( inout ) :: field_prot
       real, dimension( : ), intent( inout ), optional :: field_prot_source, field_prot_absorption
-      integer, dimension( : ), intent( inout ) :: wic_bc
-      integer, intent( in ) :: kprime, kprime2
-      real, dimension( kprime : kprime2 ), intent( inout ) :: suf_bc
+      integer, dimension( : ), intent( inout ), optional :: wic_bc
+      integer, intent( in ), optional  :: kprime, kprime2
+      real, dimension(  :  ), intent( inout ), optional  :: suf_bc
       ! Local variables
       type( mesh_type ), pointer :: pmesh, cmesh
       type(scalar_field), pointer :: pressure, field_source, field_absorption
@@ -1201,8 +1181,9 @@
          end if Conditional_Composition_MassFraction
 
       end if Conditional_InitialisedFromFLML
+      if ( present(wic_bc)) then  
 
-
+      
       Conditional_Composition_BC: if ( have_option( trim( option_path ) // &
            '/prognostic/boundary_conditions[0]/type::dirichlet' )) then
 
@@ -1242,6 +1223,8 @@
 
       end if Conditional_Composition_BC
 
+   end if
+
 
       if ( have_source )  then
          do j = 1, node_count( field_source )
@@ -1275,9 +1258,9 @@
  !          field_nu_prot, field_nv_prot, field_nw_prot
       real, dimension( : ), intent( inout ), optional :: field_prot_source
       real, dimension( : , :, : ), intent( inout ), optional :: field_prot_absorption
-      integer, dimension( : ), intent( inout ) :: wic_bc, wic_momu_bc 
-      real, dimension( : ), intent( inout ) :: suf_u_bc, suf_v_bc, suf_w_bc
-      real, dimension( : ), intent( inout ) :: suf_momu_bc, suf_momv_bc, suf_momw_bc
+      integer, dimension( : ), intent( inout ), optional :: wic_bc, wic_momu_bc 
+      real, dimension( : ), intent( inout ), optional :: suf_u_bc, suf_v_bc, suf_w_bc
+      real, dimension( : ), intent( inout ), optional :: suf_momu_bc, suf_momv_bc, suf_momw_bc
 
       ! Local variables
       type( mesh_type ), pointer :: pmesh, cmesh
@@ -1331,6 +1314,7 @@
          end if
       end if Conditional_AbsorptionField
 
+      if (present(wic_bc)) then
 
       option_path = '/material_phase[' // int2str( iphase - 1 )// ']/vector_field::' // trim( field_name )
       option_path2 = trim( option_path ) // '/prognostic/boundary_conditions['
@@ -1407,6 +1391,8 @@
          deallocate( face_nodes, SufID_BC )
 
       end do Loop_BC
+
+   end if
 
       return
     end subroutine Get_VectorFields_Outof_State
@@ -2197,6 +2183,9 @@
       call allocate_multiphase_scalar_bcs(packed_state,multi_state,"PhaseVolumeFraction")
       call allocate_multiphase_vector_bcs(packed_state,multi_state,"Velocity")
 
+      call allocate_multicomponent_scalar_bcs(multicomponent_state,multi_state,"ComponentMassFraction")
+      call allocate_multicomponent_scalar_bcs(multicomponent_state,multi_state,"ComponentDensity")
+
       !! // How to add density as a dependant of olddensity,  as an example
       !! // Suppose we have a previous declaration
 
@@ -2233,26 +2222,26 @@
           integer :: icomp
 
           type(tensor_field), pointer :: component, density
-          type(vector_field) :: vfield
+          type(tensor_field) :: vfield
 
 
           component=>extract_tensor_field(mstate,"PackedComponentMassFraction")
           density=>extract_tensor_field(mstate,"PackedComponentDensity")
 
           do icomp=1,ncomp
-             call allocate(vfield,nphase,component%mesh,"ComponentMassFraction",field_type=FIELD_TYPE_DEFERRED)
+             call allocate(vfield,component%mesh,"ComponentMassFraction",field_type=FIELD_TYPE_DEFERRED,dim=[1,nphase])
              vfield%option_path=component%option_path
              deallocate(vfield%val)
-             vfield%val=>component%val(icomp,:,:)
+             vfield%val=>component%val(icomp:icomp,:,:)
              vfield%wrapped=.true.
              call insert(mcstate(icomp),vfield,vfield%name)
              call deallocate(vfield)
 
 
-             call allocate(vfield,nphase,component%mesh,"ComponentDensity",field_type=FiELD_TYPE_DEFERRED)
+             call allocate(vfield,component%mesh,"ComponentDensity",field_type=FiELD_TYPE_DEFERRED,dim=[1,nphase])
              vfield%option_path=component%option_path
              deallocate(vfield%val)
-             vfield%val=>component%val(icomp,:,:)
+             vfield%val=>component%val(icomp:icomp,:,:)
              vfield%wrapped=.true.
              call insert(mcstate(icomp),vfield,vfield%name)
              call deallocate(vfield)
@@ -2587,6 +2576,65 @@
           end do
 
        end subroutine allocate_multiphase_vector_bcs
+
+
+subroutine allocate_multicomponent_scalar_bcs(s,ms,name)
+
+          type(state_type), dimension(:), intent(inout) :: s
+          type(state_type), dimension(:,:), intent(inout) :: ms
+          character( len=*) :: name
+
+          type(tensor_field), pointer :: mfield
+          type(scalar_field), pointer :: sfield
+          type(tensor_boundary_condition) :: tbc
+          type(scalar_boundary_condition), pointer ::  bc
+          type(tensor_boundary_condition), dimension(:), pointer :: temp
+
+          integer :: iphase,icomp,stat, n, nbc
+
+
+          do icomp=1,size(s)
+             nbc=0
+             mfield=>extract_tensor_field(s(icomp),name)
+             allocate(mfield%bc)
+          
+             do iphase=1,mfield%dim(2)
+                sfield=>extract_scalar_field( ms(icomp,iphase),trim(name)//"Phase"//int2str(iphase),stat)
+                if (stat/= 0 ) cycle
+
+                allocate(tbc%applies(mfield%dim(1),mfield%dim(2)))
+                tbc%applies= .false.
+                tbc%applies(icomp,iphase)=.true.
+                
+                do n=1,get_boundary_condition_count(sfield)
+                   
+                   bc=>sfield%bc%boundary_condition(n)
+                   
+                  tbc%name=bc%name
+                  tbc%type=bc%type
+                  tbc%surface_element_list=>bc%surface_element_list
+                  tbc%surface_node_list=>bc%surface_node_list
+                  tbc%surface_mesh=>bc%surface_mesh
+                  call incref(tbc%surface_mesh)
+                  tbc%scalar_surface_fields=>bc%surface_fields
+                  
+                  nbc=nbc+1
+                  if (nbc>1) then
+                     temp=>mfield%bc%boundary_condition
+                     allocate(mfield%bc%boundary_condition(nbc))
+                     mfield%bc%boundary_condition(1:nbc-1)=temp
+                     deallocate(temp)
+                     mfield%bc%boundary_condition(nbc)=tbc
+                  else
+                     allocate(mfield%bc%boundary_condition(nbc))
+                     mfield%bc%boundary_condition(nbc)=tbc
+                  end if
+               end do
+            end do
+         end do
+               
+
+       end subroutine allocate_multicomponent_scalar_bcs
 
        function check_paired(sfield1,sfield2) result(unpaired)
          type(scalar_field) :: sfield1,sfield2
@@ -2960,11 +3008,11 @@
         end if
         if (present(CVPressure)) then
             sfield => extract_scalar_field( packed_state, "CVPressure" )
-            Pressure =>  sfield%val(:)
+            CVPressure =>  sfield%val(:)
         end if
         if (present(OldCVPressure)) then
             sfield => extract_scalar_field( packed_state, "OldCVPressure" )
-            Pressure =>  sfield%val(:)
+            OldCVPressure =>  sfield%val(:)
         end if
 
         !Vectors stored

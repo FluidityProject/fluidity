@@ -68,6 +68,7 @@ module multiphase_1D_engine
 contains
 
     SUBROUTINE INTENERGE_ASSEM_SOLVE( state, packed_state, &
+         tracer, velocity, density, &
     NCOLACV, FINACV, COLACV, MIDACV, &
     SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
     block_to_global_acv, global_dense_block_acv, &
@@ -81,9 +82,7 @@ contains
     T, TOLD, &
     MAT_NLOC,MAT_NDGLN,MAT_NONODS, TDIFFUSION, IGOT_THERM_VIS, THERM_U_DIFFUSION, &
     T_DISOPT, T_DG_VEL_INT_OPT, DT, T_THETA, T_BETA, &
-    SUF_T_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
-    SUF_T_BC_ROB1, SUF_T_BC_ROB2,  &
-    WIC_T_BC, WIC_D_BC, WIC_U_BC, &
+    SUF_SIG_DIAGTEN_BC, &
     DERIV, &
     T_SOURCE, T_ABSORB, VOLFRA_PORE, &
     NDIM, &
@@ -93,19 +92,21 @@ contains
     T_FEMT, DEN_FEMT, &
     IGOT_T2, T2, T2OLD, igot_theta_flux,SCVNGI_THETA, GET_THETA_FLUX, USE_THETA_FLUX, &
     THETA_GDIFF, &
-    SUF_T2_BC, SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, WIC_T2_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
+    IN_ELE_UPWIND, DG_ELE_UPWIND, &
     NOIT_DIM, &
     MEAN_PORE_CV, &
     option_path, &
     mass_ele_transp, &
     thermal, THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J, &
-    StorageIndexes, icomp )
+    StorageIndexes, icomp, saturation )
 
         ! Solve for internal energy using a control volume method.
 
         implicit none
         type( state_type ), dimension( : ), intent( inout ) :: state
         type( state_type ), intent( inout ) :: packed_state
+        type(tensor_field), intent(inout) :: tracer
+        type(tensor_field), intent(in) :: velocity, density
 
         INTEGER, intent( in ) :: NCOLACV, NCOLCT, CV_NONODS, U_NONODS, X_NONODS, MAT_NONODS, TOTELE, &
         U_ELE_TYPE, CV_ELE_TYPE, CV_SELE_TYPE, NPHASE, CV_NLOC, U_NLOC, X_NLOC,  MAT_NLOC, &
@@ -121,8 +122,6 @@ contains
         INTEGER, DIMENSION( : ), intent( in ) :: MAT_NDGLN
         INTEGER, DIMENSION( : ), intent( in ) :: CV_SNDGLN
         INTEGER, DIMENSION( : ), intent( in ) :: U_SNDGLN
-        INTEGER, DIMENSION( : ), intent( in ) ::  WIC_T_BC, WIC_D_BC, WIC_U_BC
-        INTEGER, DIMENSION( : ), intent( in ) ::  WIC_T2_BC
         INTEGER, DIMENSION( : ), intent( in ) :: FINACV
         INTEGER, DIMENSION( : ), intent( in ) :: COLACV
         INTEGER, DIMENSION( : ), intent( in ) :: MIDACV
@@ -142,12 +141,7 @@ contains
         INTEGER, intent( in ) :: T_DISOPT, T_DG_VEL_INT_OPT
         REAL, intent( in ) :: DT, T_THETA
         REAL, intent( in ) :: T_BETA
-        REAL, DIMENSION( : ), intent( in ) :: SUF_T_BC, SUF_D_BC
-        REAL, DIMENSION( : ), intent( in ) :: SUF_T2_BC
-        REAL, DIMENSION( : ), intent( in ) :: SUF_U_BC, SUF_V_BC, SUF_W_BC
         REAL, DIMENSION( :, : ), intent( in ) :: SUF_SIG_DIAGTEN_BC
-        REAL, DIMENSION( : ), intent( in ) :: SUF_T_BC_ROB1, SUF_T_BC_ROB2
-        REAL, DIMENSION( : ), intent( in ) :: SUF_T2_BC_ROB1, SUF_T2_BC_ROB2
         REAL, DIMENSION( NPHASE, CV_NONODS ), intent( in ) :: DERIV
         REAL, DIMENSION( : ), intent( in ) :: T_SOURCE
         REAL, DIMENSION( : , : , : ), intent( in ) :: T_ABSORB
@@ -163,6 +157,8 @@ contains
         character( len = * ), intent( in ), optional :: option_path
         real, dimension( : ), intent( inout ), optional :: mass_ele_transp
         integer, dimension(:), intent(inout) :: StorageIndexes
+        type(tensor_field), intent(in), optional :: saturation
+        
         integer, optional :: icomp
         ! Local variables
         LOGICAL, PARAMETER :: GETCV_DISC = .TRUE., GETCT= .FALSE.
@@ -180,6 +176,13 @@ contains
         INTEGER :: STAT
         character( len = option_path_len ) :: path
         type( tensor_field ), pointer :: den_all2, denold_all2
+        integer :: lcomp
+
+        if (present(icomp)) then
+           lcomp=icomp
+        else
+           lcomp=0
+        end if
 
         ALLOCATE( ACV( NCOLACV ) )
         ALLOCATE( mass_mn_pres( size(small_COLACV ) ))
@@ -197,7 +200,7 @@ contains
            denold_all2 => extract_tensor_field( packed_state, "PackedOldDensityHeatCapacity" )
            den_all    = den_all2    % val ( 1, :, : )
            denold_all = denold_all2 % val ( 1, :, : )
-        else if ( icomp > 0 ) then
+        else if ( lcomp > 0 ) then
            p => extract_scalar_field( packed_state, "FEPressure" )
            den_all2 => extract_tensor_field( packed_state, "PackedComponentDensity" )
            denold_all2 => extract_tensor_field( packed_state, "PackedOldComponentDensity" )
@@ -240,6 +243,7 @@ contains
 
 
             call CV_ASSEMB( state, packed_state, &
+                 tracer, velocity, density, &
             CV_RHS, &
             NCOLACV, block_acv, DENSE_BLOCK_MATRIX, FINACV, COLACV, MIDACV, &
             SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV,&
@@ -253,9 +257,7 @@ contains
             DEN_ALL, DENOLD_ALL, &
             MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, IGOT_THERM_VIS, THERM_U_DIFFUSION, &
             T_DISOPT, T_DG_VEL_INT_OPT, DT, T_THETA, SECOND_THETA, T_BETA, &
-            SUF_T_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
-            SUF_T_BC_ROB1, SUF_T_BC_ROB2,  &
-            WIC_T_BC, WIC_D_BC, WIC_U_BC, &
+            SUF_SIG_DIAGTEN_BC, &
             DERIV, P%val, &
             T_SOURCE, T_ABSORB, VOLFRA_PORE, &
             NDIM, GETCV_DISC, GETCT, &
@@ -265,12 +267,13 @@ contains
             DEN_FEMT, &
             IGOT_T2, T2, T2OLD,IGOT_THETA_FLUX ,SCVNGI_THETA, GET_THETA_FLUX, USE_THETA_FLUX, &
             THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J, THETA_GDIFF, &
-            SUF_T2_BC, SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, WIC_T2_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
+            IN_ELE_UPWIND, DG_ELE_UPWIND, &
             NOIT_DIM, &
             MEAN_PORE_CV, &
             SMALL_FINACV, SMALL_COLACV, size(small_colacv), mass_Mn_pres, THERMAL, &
             mass_ele_transp,&
-            StorageIndexes, -1, T_input = T, TOLD_input=TOLD, FEMT_input =  T_FEMT )
+            StorageIndexes, -1, T_input = T, TOLD_input=TOLD, FEMT_input =  T_FEMT ,&
+            saturation=saturation)
             t=0.
 
             Conditional_Lumping: IF ( LUMP_EQNS ) THEN
@@ -351,6 +354,7 @@ contains
 
 
     SUBROUTINE CV_ASSEMB_CV_DG( state, packed_state, &
+         tracer, velocity, density, pressure, &
     CV_RHS, &
     NCOLACV, ACV, DENSE_BLOCK_MATRIX, FINACV, COLACV, MIDACV, &
     SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
@@ -366,9 +370,7 @@ contains
     T, TOLD, DEN, DENOLD, IDIVID_BY_VOL_FRAC, FEM_VOL_FRAC, &
     MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, &
     T_DISOPT, T_DG_VEL_INT_OPT, DT, T_THETA, SECOND_THETA, T_BETA, &
-    SUF_T_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
-    SUF_T_BC_ROB1, SUF_T_BC_ROB2,  &
-    WIC_T_BC, WIC_D_BC, WIC_U_BC, &
+    SUF_SIG_DIAGTEN_BC, &
     DERIV, P,  &
     T_SOURCE, T_ABSORB, VOLFRA_PORE, &
     NDIM, &
@@ -378,7 +380,7 @@ contains
     DEN_FEMT, &
     IGOT_T2, T2, T2OLD, IGOT_THETA_FLUX, SCVNGI_THETA, GET_THETA_FLUX, USE_THETA_FLUX, &
     THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J, THETA_GDIFF, &
-    SUF_T2_BC, SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, WIC_T2_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
+    IN_ELE_UPWIND, DG_ELE_UPWIND, &
     NOIT_DIM, &
     MEAN_PORE_CV, &
     THERMAL, &
@@ -390,6 +392,9 @@ contains
         implicit none
         type( state_type ), dimension( : ), intent( inout ) :: state
         type( state_type ), intent( inout ) :: packed_state
+        type(tensor_field), intent(inout) :: tracer
+        type(tensor_field), intent(in) :: velocity, density
+        type(scalar_field), intent(in) :: pressure
 
         INTEGER, intent( in ) :: NCOLACV, NCOLCT, CV_NONODS, U_NONODS, X_NONODS, MAT_NONODS, TOTELE, &
         CV_ELE_TYPE, NPHASE, CV_NLOC, U_NLOC, X_NLOC,  MAT_NLOC, &
@@ -405,8 +410,6 @@ contains
         INTEGER, DIMENSION( : ), intent( in ) :: MAT_NDGLN
         INTEGER, DIMENSION( : ), intent( in ) :: CV_SNDGLN
         INTEGER, DIMENSION( : ), intent( in ) :: U_SNDGLN
-        INTEGER, DIMENSION( : ), intent( in ) ::  WIC_T_BC, WIC_D_BC, WIC_U_BC
-        INTEGER, DIMENSION( : ), intent( in ) ::  WIC_T2_BC
         INTEGER, DIMENSION( : ), intent( in ) :: FINACV
         INTEGER, DIMENSION( : ), intent( in ) :: COLACV
         INTEGER, DIMENSION( : ), intent( in ) :: MIDACV
@@ -432,12 +435,7 @@ contains
         INTEGER, intent( in ) :: T_DISOPT, T_DG_VEL_INT_OPT
         REAL, intent( in ) :: DT, T_THETA
         REAL, intent( in ) :: T_BETA
-        REAL, DIMENSION( : ), intent( in ) :: SUF_T_BC, SUF_D_BC
-        REAL, DIMENSION( : ), intent( in ) :: SUF_T2_BC
-        REAL, DIMENSION( : ), intent( in ) :: SUF_U_BC, SUF_V_BC, SUF_W_BC
         REAL, DIMENSION( :, : ), intent( in ) :: SUF_SIG_DIAGTEN_BC
-        REAL, DIMENSION( : ), intent( in ) :: SUF_T_BC_ROB1, SUF_T_BC_ROB2
-        REAL, DIMENSION( : ), intent( in ) :: SUF_T2_BC_ROB1, SUF_T2_BC_ROB2
         REAL, DIMENSION( NPHASE, CV_NONODS ), intent( in ) :: DERIV
         REAL, DIMENSION( : ), intent( in ) :: P
         REAL, DIMENSION( : ), intent( in ) :: T_SOURCE
@@ -480,6 +478,7 @@ contains
             ALLOCATE( THERM_U_DIFFUSION(NDIM,NDIM,NPHASE,MAT_NONODS*IGOT_THERM_VIS ) )
 
             CALL CV_ASSEMB( state, packed_state, &
+                 tracer, velocity, density, &
             CV_RHS1, &
             NCOLACV, ACV, DENSE_BLOCK_MATRIX, FINACV, COLACV, MIDACV, &
             SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
@@ -493,9 +492,7 @@ contains
             DEN, DENOLD, &
             MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, IGOT_THERM_VIS, THERM_U_DIFFUSION, &
             T_DISOPT, T_DG_VEL_INT_OPT, DT, T_THETA, SECOND_THETA, T_BETA, &
-            SUF_T_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
-            SUF_T_BC_ROB1, SUF_T_BC_ROB2, &
-            WIC_T_BC, WIC_D_BC, WIC_U_BC, &
+            SUF_SIG_DIAGTEN_BC, &
             DERIV, P, &
             T_SOURCE, T_ABSORB, VOLFRA_PORE, &
             NDIM, GETCV_DISC, GETCT, &
@@ -505,7 +502,7 @@ contains
             DEN_FEMT, &
             IGOT_T2, T2, T2OLD, IGOT_THETA_FLUX, SCVNGI_THETA, GET_THETA_FLUX, USE_THETA_FLUX, &
             THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J, THETA_GDIFF, &
-            SUF_T2_BC, SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, WIC_T2_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
+            IN_ELE_UPWIND, DG_ELE_UPWIND, &
             NOIT_DIM, &
             MEAN_PORE_CV, &
             FINACv, COLACV, NCOLACV, ACV, THERMAL, &
@@ -518,7 +515,8 @@ contains
             allocate(ACV(NCOLACV))
 
 
-            CALL WRAPPER_ASSEMB_FORCE_CTY( state, &
+            CALL WRAPPER_ASSEMB_FORCE_CTY( state, packed_state, &
+                 velocity,pressure, &
             NDIM, NPHASE, U_NLOC, X_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
             U_ELE_TYPE, CV_ELE_TYPE, &
             U_NONODS, CV_NONODS, X_NONODS, MAT_NONODS, &
@@ -529,11 +527,6 @@ contains
             NU, NV, NW, NUOLD, NVOLD, NWOLD, &
             DEN, DENOLD, IDIVID_BY_VOL_FRAC, FEM_VOL_FRAC, &
             DT, &
-            SUF_T_BC, &
-            SUF_U_BC, SUF_V_BC, SUF_W_BC,  &
-            SUF_T_BC_ROB1, SUF_T_BC_ROB2,  &
-            WIC_T_BC,  &
-            WIC_U_BC,  &
             CV_RHS, &
             ACV, NCOLACV, FINACV, COLACV, & ! Force balance sparsity
             NCOLELE, FINELE, COLELE, & ! Element connectivity.
@@ -548,7 +541,8 @@ contains
 
 
 
-    SUBROUTINE WRAPPER_ASSEMB_FORCE_CTY( state, &
+    SUBROUTINE WRAPPER_ASSEMB_FORCE_CTY( state, packed_state,&
+         velocity,pressure, &
     NDIM, NPHASE, U_NLOC, X_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
     U_ELE_TYPE, CV_ELE_TYPE, &
     U_NONODS, CV_NONODS, X_NONODS, MAT_NONODS, &
@@ -559,11 +553,6 @@ contains
     U, V, W, UOLD, VOLD, WOLD, &
     DEN_ALL, DENOLD_ALL, IDIVID_BY_VOL_FRAC, FEM_VOL_FRAC, &
     DT, &
-    SUF_T_BC, &
-    SUF_U_BC, SUF_V_BC, SUF_W_BC,  &
-    SUF_T_BC_ROB1, SUF_T_BC_ROB2,  &
-    WIC_T_BC,  &
-    WIC_U_BC,  &
     CV_RHS, &
     ACV, NCOLACV, FINACV, COLACV, & ! Force balance sparsity
     NCOLELE, FINELE, COLELE, & ! Element connectivity.
@@ -574,6 +563,9 @@ contains
         implicit none
 
         type( state_type ), dimension( : ), intent( inout ) :: state
+        type( state_type ), intent( inout ) :: packed_state
+        type(tensor_field), intent(in) :: velocity
+        type(scalar_field), intent(in) :: pressure
         INTEGER, intent( in ) :: NDIM, NPHASE, U_NLOC, X_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
         U_ELE_TYPE, CV_ELE_TYPE, U_NONODS, CV_NONODS, X_NONODS, &
         MAT_NONODS, STOTEL, U_SNLOC, CV_SNLOC, &
@@ -585,11 +577,6 @@ contains
         INTEGER, DIMENSION( : ), intent( in ) :: MAT_NDGLN
         INTEGER, DIMENSION( : ), intent( in ) :: U_SNDGLN
         INTEGER, DIMENSION( : ), intent( in ) :: CV_SNDGLN
-        INTEGER, DIMENSION( : ), intent( in ) ::  WIC_T_BC,WIC_U_BC
-
-        REAL, DIMENSION( : ), intent( in ) :: SUF_U_BC, SUF_V_BC, SUF_W_BC
-        REAL, DIMENSION( : ), intent( in ) :: SUF_T_BC
-        REAL, DIMENSION( : ), intent( in ) :: SUF_T_BC_ROB1, SUF_T_BC_ROB2
         REAL, DIMENSION( : ), intent( in ) :: X, Y, Z
         REAL, DIMENSION( :, :, : ), intent( in ) :: T_ABSORB
         REAL, DIMENSION( : ), intent( in ) :: T_SOURCE
@@ -621,10 +608,7 @@ contains
         REAL, DIMENSION( :, :, : ), allocatable :: U_ALL, UOLD_ALL, T_SOURCE_ALL, T_ABSORB_ALL
         REAL, DIMENSION( :, : ), allocatable :: X_ALL
 
-        INTEGER, DIMENSION( :, :, : ), allocatable :: WIC_T_BC_ALL, WIC_NU_BC_ALL
         INTEGER, DIMENSION( :, : ), allocatable :: IZERO2
-        REAL, DIMENSION( :, :, :, : ), allocatable :: SUF_T_BC_ALL, SUF_NU_BC_ALL, &
-        SUF_T_ROB1_BC_ALL, SUF_T_ROB2_BC_ALL
 
 
         ndim_in = 1 ; nphase_in = 1
@@ -709,64 +693,11 @@ contains
         allocate( t_in( ndim_in, nphase_in, u_nonods ) ) ; t_in(1,1,:) = t
         allocate( told_in( ndim_in, nphase_in, u_nonods ) ) ; told_in(1,1,:) = t
 
-        ALLOCATE( WIC_T_BC_ALL( NDIM_IN,NPHASE_IN,STOTEL ) ) ; WIC_T_BC_ALL = 0
-        ALLOCATE( WIC_NU_BC_ALL( NDIM_IN,NPHASE_IN,STOTEL ) ) ; WIC_NU_BC_ALL = 0
         ALLOCATE( IZERO2( NPHASE_IN,STOTEL ) ) ; IZERO2 = 0
         ALLOCATE( RDUM3( NPHASE_IN,CV_SNLOC,STOTEL ) ) ; RDUM3 = 0.
 
-        ALLOCATE( SUF_T_BC_ALL( NDIM_IN,NPHASE_IN,U_SNLOC,STOTEL ) ) ; SUF_T_BC_ALL = 0.0
-        ALLOCATE( SUF_NU_BC_ALL( NDIM,NPHASE_IN,U_SNLOC,STOTEL ) ) ; SUF_NU_BC_ALL = 0.0
-        ALLOCATE( SUF_T_ROB1_BC_ALL( NDIM_IN,NPHASE_IN,U_SNLOC,STOTEL ) ) ; SUF_T_ROB1_BC_ALL = 0.0
-        ALLOCATE( SUF_T_ROB2_BC_ALL( NDIM_IN,NPHASE_IN,U_SNLOC,STOTEL ) ) ; SUF_T_ROB2_BC_ALL = 0.0
-
-        do sele = 1, stotel
-            do iphase = 1, nphase
-                wic_t_bc_all( :,iphase,sele ) = wic_u_bc( sele+(iphase-1)*stotel )
-                wic_nu_bc_all( :,iphase,sele ) = wic_u_bc( sele+(iphase-1)*stotel )
-            end do
-        end do
-
-        do sele = 1, stotel
-            do u_siloc = 1, u_snloc
-                do iphase = 1, nphase_in
-                    i = ( iphase - 1 ) * stotel * u_snloc + ( sele - 1 ) * u_snloc + u_siloc
-               
-                    do idim = 1, ndim_in
-                        if ( idim == 1 ) then
-                            suf_t_bc_all( idim,iphase,u_siloc,sele ) = suf_t_bc( i )
-                            suf_t_rob1_bc_all( idim,iphase,u_siloc,sele ) = suf_t_bc_rob1( i )
-                            suf_t_rob2_bc_all( idim,iphase,u_siloc,sele ) = suf_t_bc_rob2( i )
-                        else if ( idim == 2 ) then
-                            suf_t_bc_all( idim,iphase,u_siloc,sele ) = suf_t_bc( i )
-                            suf_t_rob1_bc_all( idim,iphase,u_siloc,sele ) = suf_t_bc_rob1( i )
-                            suf_t_rob2_bc_all( idim,iphase,u_siloc,sele ) = suf_t_bc_rob2( i )
-                        else if ( idim == 3 ) then
-                            suf_t_bc_all( idim,iphase,u_siloc,sele ) = suf_t_bc( i )
-                            suf_t_rob1_bc_all( idim,iphase,u_siloc,sele ) = suf_t_bc_rob1( i )
-                            suf_t_rob2_bc_all( idim,iphase,u_siloc,sele ) = suf_t_bc_rob2( i )
-                        end if
-                    end do
-
-                    do idim = 1, ndim
-                        if ( idim == 1 ) then
-                            suf_nu_bc_all( idim,iphase,u_siloc,sele ) = suf_u_bc( i )
-                        else if ( idim == 2 ) then
-                            suf_nu_bc_all( idim,iphase,u_siloc,sele ) = suf_v_bc( i )
-                        else if ( idim == 3 ) then
-                            suf_nu_bc_all( idim,iphase,u_siloc,sele ) = suf_w_bc( i )
-                        end if
-                    end do
-
-                end do
-            end do
-        end do
-
-
-
-
-
-
-        CALL ASSEMB_FORCE_CTY( state, &
+        CALL ASSEMB_FORCE_CTY( state, packed_state, &
+             velocity,pressure, &
         NDIM, NPHASE_IN, U_NLOC, X_NLOC, CV_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
         U_ELE_TYPE, CV_ELE_TYPE, &
         U_NONODS, CV_NONODS, X_NONODS, MAT_NONODS, &
@@ -777,13 +708,6 @@ contains
         U_ALL, UOLD_ALL, &
         DEN_ALL, DENOLD_ALL, IDIVID_BY_VOL_FRAC, FEM_VOL_FRAC, &
         DT, &
-
-        SUF_T_BC_ALL, &
-        SUF_T_BC_ALL, &
-        SUF_NU_BC_ALL, RDUM3, &
-        SUF_T_ROB1_BC_ALL, SUF_T_ROB2_BC_ALL, &
-        WIC_T_BC_ALL, WIC_T_BC_ALL, WIC_NU_BC_ALL, IZERO2, &
-
         CV_RHS, &
         RDUM3, 0, IDUM, IDUM, &
         ACV, NCOLACV, FINACV, COLACV, &! Force balance sparsity
@@ -883,8 +807,7 @@ contains
     CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
     MAT_NLOC,MAT_NDGLN,MAT_NONODS, &
     V_DISOPT, V_DG_VEL_INT_OPT, DT, V_THETA, V_BETA, &
-    SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
-    WIC_VOL_BC, WIC_D_BC, WIC_U_BC, &
+    SUF_SIG_DIAGTEN_BC, &
     DERIV, &
     V_SOURCE, V_ABSORB, VOLFRA_PORE, &
     NDIM, &
@@ -918,7 +841,6 @@ contains
         INTEGER, DIMENSION( : ), intent( in ) :: XU_NDGLN
         INTEGER, DIMENSION( : ), intent( in ) :: CV_SNDGLN
         INTEGER, DIMENSION( : ), intent( in ) :: U_SNDGLN
-        INTEGER, DIMENSION( : ), intent( in ) ::  WIC_VOL_BC, WIC_D_BC, WIC_U_BC
         INTEGER, DIMENSION( : ), intent( in ) :: FINACV
         INTEGER, DIMENSION( : ), intent( in ) :: COLACV
         INTEGER, DIMENSION( : ), intent( in ) :: MIDACV
@@ -932,8 +854,6 @@ contains
         INTEGER, intent( in ) :: V_DISOPT, V_DG_VEL_INT_OPT
         REAL, intent( in ) :: DT, V_THETA
         REAL, intent( inout ) :: V_BETA
-        REAL, DIMENSION( : ), intent( in ) :: SUF_VOL_BC, SUF_D_BC
-        REAL, DIMENSION( : ), intent( in ) :: SUF_U_BC, SUF_V_BC, SUF_W_BC
         REAL, DIMENSION( :, : ), intent( in ) :: SUF_SIG_DIAGTEN_BC
         REAL, DIMENSION( NPHASE, CV_NONODS ), intent( in ) :: DERIV
         REAL, DIMENSION( : ), intent( in ) :: V_SOURCE
@@ -952,11 +872,9 @@ contains
         ! Local Variables
         LOGICAL, PARAMETER :: THERMAL= .false.
         integer :: nits_flux_lim, its_flux_lim, igot_t2
-        REAL, DIMENSION( : ), allocatable :: ACV, mass_mn_pres, block_ACV, CV_RHS, DIAG_SCALE_PRES, CT_RHS, SUF_VOL_BC_ROB1, SUF_VOL_BC_ROB2
+        REAL, DIMENSION( : ), allocatable :: ACV, mass_mn_pres, block_ACV, CV_RHS, DIAG_SCALE_PRES, CT_RHS
         REAL, DIMENSION( :,:,: ), allocatable :: dense_block_matrix, CT
         REAL, DIMENSION( :,:,:,: ), allocatable :: TDIFFUSION
-        REAL, DIMENSION( : ), allocatable :: SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, SUF_T2_BC
-        INTEGER, DIMENSION( : ), allocatable :: WIC_T2_BC
         REAL, DIMENSION( :, : ), allocatable :: THETA_GDIFF, DEN_ALL, DENOLD_ALL
         REAL, DIMENSION( : ), allocatable :: T2, T2OLD, MEAN_PORE_CV
         REAL, DIMENSION( : ), allocatable :: DENSITY_OR_ONE, DENSITYOLD_OR_ONE
@@ -973,6 +891,9 @@ contains
         !Working pointers
         real, dimension(:), pointer :: p
         real, dimension(:,:), pointer :: satura,saturaold
+        type(tensor_field), pointer :: tracer, velocity, density
+
+        
 
       call get_var_from_packed_state(packed_state,FEPressure = P,&
       PhaseVolumeFraction = satura,OldPhaseVolumeFraction = saturaold )
@@ -983,10 +904,6 @@ contains
 
         ALLOCATE( T2( CV_NONODS * NPHASE * IGOT_T2 ))
         ALLOCATE( T2OLD( CV_NONODS * NPHASE * IGOT_T2 ))
-        ALLOCATE( SUF_T2_BC_ROB1( STOTEL * CV_SNLOC * NPHASE * IGOT_T2  ))
-        ALLOCATE( SUF_T2_BC_ROB2( STOTEL * CV_SNLOC * NPHASE * IGOT_T2  ))
-        ALLOCATE( SUF_T2_BC( STOTEL * CV_SNLOC * NPHASE * IGOT_T2  ))
-        ALLOCATE( WIC_T2_BC( STOTEL * CV_SNLOC * NPHASE * IGOT_T2  ))
         ALLOCATE( THETA_GDIFF( NPHASE * IGOT_T2, CV_NONODS * IGOT_T2 ))
 
         ewrite(3,*) 'In VOLFRA_ASSEM_SOLVE'
@@ -1000,8 +917,6 @@ contains
         ALLOCATE( DIAG_SCALE_PRES( CV_NONODS ) )
         ALLOCATE( CT_RHS( CV_NONODS ) )
         ALLOCATE( TDIFFUSION( MAT_NONODS, NDIM, NDIM, NPHASE ) )
-        ALLOCATE( SUF_VOL_BC_ROB1(STOTEL * CV_SNLOC * NPHASE ) )
-        ALLOCATE( SUF_VOL_BC_ROB2(STOTEL * CV_SNLOC * NPHASE ) )
         ALLOCATE( MEAN_PORE_CV( CV_NONODS ) )
 
 
@@ -1018,8 +933,6 @@ contains
 
 
         TDIFFUSION = 0.0
-        SUF_VOL_BC_ROB1 = 0.0
-        SUF_VOL_BC_ROB2 = 0.0
         V_BETA = 1.0
 
         path = '/material_phase[0]/scalar_field::PhaseVolumeFraction/prognostic/temporal_discretisation/' // &
@@ -1038,12 +951,17 @@ contains
 
 !        allocate(relperm(size(satura,1), size(satura,2)), relpermOld(size(satura,1), size(satura,2)))
 
+        tracer=>extract_tensor_field(packed_state,"PackedPhaseVolumeFraction")
+        velocity=>extract_tensor_field(packed_state,"PackedVelocity")
+        density=>extract_tensor_field(packed_state,"PackedDensity")
+
         Loop_NonLinearFlux: DO ITS_FLUX_LIM = 1, 1 !nits_flux_lim
 
             !Calculate and store the old value of relperm
 !            call get_InvRelperm(packed_state, relpermOld, .true.)
 
             call CV_ASSEMB( state, packed_state, &
+                 tracer, velocity, density, &
             CV_RHS, &
             NCOLACV, block_acv, DENSE_BLOCK_MATRIX, FINACV, COLACV, MIDACV, &
             SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV,&
@@ -1057,9 +975,7 @@ contains
             DEN_ALL, DENOLD_ALL, &
             MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, IGOT_THERM_VIS, THERM_U_DIFFUSION, &
             V_DISOPT, V_DG_VEL_INT_OPT, DT, V_THETA, SECOND_THETA, V_BETA, &
-            SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
-            SUF_VOL_BC_ROB1, SUF_VOL_BC_ROB2,  &
-            WIC_VOL_BC, WIC_D_BC, WIC_U_BC, &
+            SUF_SIG_DIAGTEN_BC, &
             DERIV, P, &
             V_SOURCE, V_ABSORB, VOLFRA_PORE, &
             NDIM, GETCV_DISC, GETCT, &
@@ -1069,7 +985,7 @@ contains
             DEN_FEMT, &
             IGOT_T2, T2, T2OLD, igot_theta_flux, SCVNGI_THETA, GET_THETA_FLUX, USE_THETA_FLUX, &
             THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J, THETA_GDIFF, &
-            SUF_T2_BC, SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, WIC_T2_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
+            IN_ELE_UPWIND, DG_ELE_UPWIND, &
             NOIT_DIM, &
             MEAN_PORE_CV, &
             SMALL_FINACV, SMALL_COLACV, size(small_colacv), mass_Mn_pres, THERMAL, &
@@ -1114,14 +1030,8 @@ contains
         DEALLOCATE( DIAG_SCALE_PRES )
         DEALLOCATE( CT_RHS )
         DEALLOCATE( TDIFFUSION )
-        DEALLOCATE( SUF_VOL_BC_ROB1 )
-        DEALLOCATE( SUF_VOL_BC_ROB2 )
         DEALLOCATE( T2 )
         DEALLOCATE( T2OLD )
-        DEALLOCATE( SUF_T2_BC_ROB1 )
-        DEALLOCATE( SUF_T2_BC_ROB2 )
-        DEALLOCATE( SUF_T2_BC )
-        DEALLOCATE( WIC_T2_BC )
         DEALLOCATE( THETA_GDIFF )
 
         ewrite(3,*) 'Leaving VOLFRA_ASSEM_SOLVE'
@@ -1135,6 +1045,7 @@ contains
 
 
     SUBROUTINE FORCE_BAL_CTY_ASSEM_SOLVE( state, packed_state, &
+         velocity,pressure, &
     NDIM, NPHASE, NCOMP, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
     U_ELE_TYPE, P_ELE_TYPE, &
     U_NONODS, CV_NONODS, X_NONODS, MAT_NONODS, &
@@ -1154,11 +1065,7 @@ contains
     NCOLCT, FINDCT, COLCT, & ! CT sparcity - global cty eqn.
     CV_ELE_TYPE, &
     V_DISOPT, V_DG_VEL_INT_OPT, V_THETA, &
-    SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
-    SUF_MOMU_BC, SUF_MOMV_BC, SUF_MOMW_BC, SUF_P_BC, &
-    SUF_U_BC_ROB1, SUF_U_BC_ROB2, SUF_V_BC_ROB1, SUF_V_BC_ROB2, &
-    SUF_W_BC_ROB1, SUF_W_BC_ROB2, &
-    WIC_VOL_BC, WIC_D_BC, WIC_U_BC, WIC_MOMU_BC, WIC_P_BC, &
+    SUF_SIG_DIAGTEN_BC, &
     V_SOURCE, V_ABSORB, VOLFRA_PORE, &
     NCOLM, FINDM, COLM, MIDM, & ! Sparsity for the CV-FEM
     XU_NLOC, XU_NDGLN, &
@@ -1175,6 +1082,8 @@ contains
         IMPLICIT NONE
         type( state_type ), dimension( : ), intent( inout ) :: state
         type( state_type ), intent( inout ) :: packed_state
+        type( tensor_field ), intent(in) :: velocity
+        type( scalar_field ), intent(in) :: pressure
         INTEGER, intent( in ) :: NDIM, NPHASE, NCOMP, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, &
         TOTELE, U_ELE_TYPE, P_ELE_TYPE, &
         U_NONODS, CV_NONODS, X_NONODS, MAT_NONODS, &
@@ -1195,7 +1104,6 @@ contains
 
         INTEGER, DIMENSION(  : ), intent( in ) :: CV_SNDGLN
         INTEGER, DIMENSION(  : ), intent( in ) :: XU_NDGLN
-        INTEGER, DIMENSION(  : ), intent( in ) :: WIC_VOL_BC, WIC_D_BC, WIC_U_BC, WIC_MOMU_BC, WIC_P_BC
         REAL, DIMENSION(  :, :, :  ), intent( inout ) :: U_ABS_STAB, U_ABSORBIN, MAT_ABSORB
         REAL, DIMENSION(  :  ), intent( in ) :: U_SOURCE
         REAL, DIMENSION(  :  ), intent( inout ) :: U_SOURCE_CV
@@ -1204,13 +1112,7 @@ contains
 !        REAL, DIMENSION(  :  ), intent( inout ) :: SATURA
         REAL, DIMENSION(  NPHASE, CV_NONODS ), intent( in ) :: DERIV
         REAL, DIMENSION(  NPHASE*IDIVID_BY_VOL_FRAC, CV_NONODS *IDIVID_BY_VOL_FRAC ), intent( in ) :: FEM_VOL_FRAC
-        REAL, DIMENSION(  :  ), intent( in ) :: SUF_VOL_BC, SUF_D_BC
-        REAL, DIMENSION(  :  ), intent( in ) :: SUF_U_BC, SUF_V_BC, SUF_W_BC
-        REAL, DIMENSION(  :  ), intent( in ) :: SUF_MOMU_BC, SUF_MOMV_BC, SUF_MOMW_BC
         REAL, DIMENSION(  : , :  ), intent( in ) :: SUF_SIG_DIAGTEN_BC
-        REAL, DIMENSION(  :  ), intent( in ) :: SUF_P_BC
-        REAL, DIMENSION(  :  ), intent( in ) :: SUF_U_BC_ROB1, SUF_U_BC_ROB2, &
-        SUF_V_BC_ROB1, SUF_V_BC_ROB2, SUF_W_BC_ROB1, SUF_W_BC_ROB2
         REAL, intent( in ) :: DT
         INTEGER, DIMENSION(  :  ), intent( in ) :: FINDC
         INTEGER, DIMENSION(  :  ), intent( in ) :: COLC
@@ -1271,12 +1173,6 @@ contains
         REAL, DIMENSION( :, : ), allocatable :: X_ALL, UDEN_ALL, UDENOLD_ALL, DEN_ALL, DENOLD_ALL, PLIKE_GRAD_SOU_COEF_ALL, PLIKE_GRAD_SOU_GRAD_ALL
         REAL, DIMENSION( :, :, :, : ), allocatable :: UDIFFUSION_ALL
 
-        INTEGER, DIMENSION ( :, :, : ), allocatable :: WIC_U_BC_ALL, WIC_MOMU_BC_ALL
-        INTEGER, DIMENSION ( :, : ), allocatable :: WIC_P_BC_ALL
-        REAL, DIMENSION ( :, :, :, : ), allocatable :: SUF_U_BC_ALL, SUF_MOMU_BC_ALL, SUF_NU_BC_ALL
-        REAL, DIMENSION ( :, :, :, : ), allocatable :: SUF_U_ROB1_BC_ALL, SUF_U_ROB2_BC_ALL
-        REAL, DIMENSION ( :, :, : ), allocatable :: SUF_P_BC_ALL
-
         type( tensor_field ), pointer :: u_all2, uold_all2, den_all2, denold_all2
         type( vector_field ), pointer :: x_all2
         type( scalar_field ), pointer :: p_all, cvp_all, Pressure_State
@@ -1287,16 +1183,6 @@ contains
         DEN_ALL( NPHASE, CV_NONODS ), DENOLD_ALL( NPHASE, CV_NONODS ) )
         U_ALL = 0. ; UOLD_ALL = 0. ; X_ALL = 0. ; UDEN_ALL = 0. ; UDENOLD_ALL = 0.
         DEN_ALL = 0. ; DENOLD_ALL = 0.
-
-        ALLOCATE( WIC_U_BC_ALL( NDIM,NPHASE,STOTEL ) ) ; WIC_U_BC_ALL = 0
-        ALLOCATE( WIC_MOMU_BC_ALL( NDIM,NPHASE,STOTEL ) ) ; WIC_MOMU_BC_ALL = 0
-        ALLOCATE( WIC_P_BC_ALL( NPHASE,STOTEL ) ) ; WIC_P_BC_ALL = 0
-        ALLOCATE( SUF_U_BC_ALL( NDIM,NPHASE,U_SNLOC,STOTEL ) ) ; SUF_U_BC_ALL = 0.0
-        ALLOCATE( SUF_MOMU_BC_ALL( NDIM,NPHASE,U_SNLOC,STOTEL ) ) ; SUF_MOMU_BC_ALL = 0.0
-        ALLOCATE( SUF_NU_BC_ALL( NDIM,NPHASE,U_SNLOC,STOTEL ) ) ; SUF_NU_BC_ALL = 0.0
-        ALLOCATE( SUF_U_ROB1_BC_ALL( NDIM,NPHASE,U_SNLOC,STOTEL ) ) ; SUF_U_ROB1_BC_ALL = 0.0
-        ALLOCATE( SUF_U_ROB2_BC_ALL( NDIM,NPHASE,U_SNLOC,STOTEL ) ) ; SUF_U_ROB2_BC_ALL = 0.0
-        ALLOCATE( SUF_P_BC_ALL( NPHASE,P_SNLOC,STOTEL ) ) ; SUF_P_BC_ALL = 0.0
 
         ewrite(3,*) 'In FORCE_BAL_CTY_ASSEM_SOLVE'
 
@@ -1380,59 +1266,6 @@ contains
         U_ABSORB = U_ABSORBIN + MAT_ABSORB
 
 
-
-
-
-
-
-
-
-
-
-
-        do sele = 1, stotel
-            do iphase = 1, nphase
-                wic_u_bc_all( :,iphase,sele ) = wic_u_bc( sele+(iphase-1)*stotel )
-                wic_momu_bc_all( :,iphase,sele ) = wic_momu_bc( sele+(iphase-1)*stotel )
-                wic_p_bc_all( iphase,sele ) = wic_p_bc( sele+(iphase-1)*stotel )
-            end do
-        end do
-
-        do sele = 1, stotel
-            do u_siloc = 1, u_snloc
-                do iphase = 1, nphase
-                    i = ( iphase - 1 ) * stotel * u_snloc + ( sele - 1 ) * u_snloc + u_siloc
-                    do idim = 1, ndim
-                        if ( idim == 1 ) then
-                            suf_u_bc_all( idim,iphase,u_siloc,sele ) = suf_u_bc( i )
-                            suf_momu_bc_all( idim,iphase,u_siloc,sele ) = suf_momu_bc( i )
-                            suf_u_rob1_bc_all( idim,iphase,u_siloc,sele ) = suf_u_bc_rob1( i )
-                            suf_u_rob2_bc_all( idim,iphase,u_siloc,sele ) = suf_u_bc_rob2( i )
-                        else if ( idim == 2 ) then
-                            suf_u_bc_all( idim,iphase,u_siloc,sele ) = suf_v_bc( i )
-                            suf_momu_bc_all( idim,iphase,u_siloc,sele ) = suf_momv_bc( i )
-                            suf_u_rob1_bc_all( idim,iphase,u_siloc,sele ) = suf_v_bc_rob1( i )
-                            suf_u_rob2_bc_all( idim,iphase,u_siloc,sele ) = suf_v_bc_rob2( i )
-                        else if ( idim == 3 ) then
-                            suf_u_bc_all( idim,iphase,u_siloc,sele ) = suf_w_bc( i )
-                            suf_momu_bc_all( idim,iphase,u_siloc,sele ) = suf_momw_bc( i )
-                            suf_u_rob1_bc_all( idim,iphase,u_siloc,sele ) = suf_w_bc_rob1( i )
-                            suf_u_rob2_bc_all( idim,iphase,u_siloc,sele ) = suf_w_bc_rob2( i )
-                        end if
-                    end do
-                end do
-            end do
-        end do
-
-        do sele = 1, stotel
-            do p_sjloc = 1, p_snloc
-                do iphase = 1, nphase
-                    i = ( SELE - 1 ) * P_SNLOC + P_SJLOC  + (IPHASE-1)*STOTEL*P_SNLOC
-                    suf_p_bc_all( iphase,p_sjloc,sele ) = suf_p_bc( i )
-                end do
-            end do
-        end do
-
         ALLOCATE( U_SOURCE_ALL( NDIM, NPHASE, U_NONODS ) )
         ALLOCATE( U_SOURCE_CV_ALL( NDIM, NPHASE, CV_NONODS ) )
         DO IPHASE = 1, NPHASE
@@ -1468,6 +1301,7 @@ contains
 
 
         CALL CV_ASSEMB_FORCE_CTY( state, packed_state, &
+             velocity,pressure, &
         NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
         U_ELE_TYPE, P_ELE_TYPE, &
         U_NONODS, CV_NONODS, X_NONODS, MAT_NONODS, &
@@ -1487,10 +1321,7 @@ contains
         NCOLCT, FINDCT, COLCT, &
         CV_ELE_TYPE, &
         V_DISOPT, V_DG_VEL_INT_OPT, V_THETA, &
-        SUF_VOL_BC, SUF_D_BC, SUF_U_BC_ALL, SUF_SIG_DIAGTEN_BC, &
-        SUF_MOMU_BC_ALL, SUF_P_BC_ALL, &
-        suf_u_rob1_bc_all, suf_u_rob2_bc_all, &
-        WIC_VOL_BC, WIC_D_BC, WIC_U_BC_ALL, WIC_MOMU_BC_ALL, WIC_P_BC_ALL, &
+        SUF_SIG_DIAGTEN_BC, &
         V_SOURCE, V_ABSORB, VOLFRA_PORE, &
         NCOLM, FINDM, COLM, MIDM, &
         XU_NLOC, XU_NDGLN, &
@@ -1824,6 +1655,7 @@ contains
 
 
     SUBROUTINE CV_ASSEMB_FORCE_CTY( state, packed_state, &
+         velocity,pressure, &
     NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
     U_ELE_TYPE, P_ELE_TYPE, &
     U_NONODS, CV_NONODS, X_NONODS, MAT_NONODS, &
@@ -1843,10 +1675,7 @@ contains
     NCOLCT, FINDCT, COLCT, &
     CV_ELE_TYPE, &
     V_DISOPT, V_DG_VEL_INT_OPT, V_THETA, &
-    SUF_VOL_BC, SUF_D_BC, SUF_U_BC_ALL, SUF_SIG_DIAGTEN_BC, &
-    SUF_MOMU_BC_ALL, SUF_P_BC_ALL, &
-    SUF_U_BC_ROB1_ALL, SUF_U_BC_ROB2_ALL, &
-    WIC_VOL_BC, WIC_D_BC, WIC_U_BC_ALL, WIC_MOMU_BC_ALL, WIC_P_BC_ALL,  &
+    SUF_SIG_DIAGTEN_BC, &
     V_SOURCE, V_ABSORB, VOLFRA_PORE, &
     NCOLM, FINDM, COLM, MIDM, &
     XU_NLOC, XU_NDGLN, &
@@ -1867,6 +1696,8 @@ contains
 
         type( state_type ), dimension( : ), intent( inout ) :: state
         type( state_type ), intent( inout ) :: packed_state
+        type( tensor_field ), intent(in) :: velocity
+        type( scalar_field ), intent(in) :: pressure
 
         INTEGER, intent( in ) :: NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, &
         TOTELE, U_ELE_TYPE, P_ELE_TYPE, &
@@ -1915,15 +1746,7 @@ contains
         INTEGER, DIMENSION(  :  ), intent( in ) :: FINDCT
         INTEGER, DIMENSION(  :  ), intent( in ) :: COLCT
         REAL, intent( in ) :: V_THETA
-        REAL, DIMENSION(  :  ), intent( in ) :: SUF_VOL_BC, SUF_D_BC
-        REAL, DIMENSION( : , :, : ,:), intent( in ) :: SUF_U_BC_ALL
-        REAL, DIMENSION(  :, :, :, :  ), intent( in ) :: SUF_MOMU_BC_ALL
-        INTEGER, DIMENSION ( :, :, : ), intent(in) :: WIC_U_BC_ALL, WIC_MOMU_BC_ALL
-        INTEGER, DIMENSION ( :, : ), intent(in) :: WIC_P_BC_ALL
         REAL, DIMENSION(  : , : ), intent( in ) :: SUF_SIG_DIAGTEN_BC
-        REAL, DIMENSION(  :, :, :  ), intent( in ) :: SUF_P_BC_ALL
-        REAL, DIMENSION(  :, :, :, :  ), intent( in ) :: SUF_U_BC_ROB1_ALL, SUF_U_BC_ROB2_ALL
-        INTEGER, DIMENSION(  :  ), intent( in ) :: WIC_VOL_BC, WIC_D_BC
         REAL, DIMENSION(  :  ), intent( in ) :: V_SOURCE
         REAL, DIMENSION( :, :, : ), intent( in ) :: V_ABSORB
         REAL, DIMENSION( : ), intent( in ) :: VOLFRA_PORE
@@ -1967,12 +1790,7 @@ contains
         INTEGER :: U_NLOC2, ILEV, NLEV, ELE, U_ILOC, U_INOD, IPHASE, IDIM, X_ILOC, X_INOD, MAT_INOD, S, E
 
 
-        REAL, DIMENSION ( :, :, :, : ), allocatable :: SUF_NU_BC_ALL
-        !Temporary variables to convert from new to old
-        integer, dimension(NPHASE*STOTEL) :: wic_u_bc
-        real, dimension(STOTEL * U_SNLOC * NPHASE) :: SUF_U_BC, SUF_V_BC, SUF_W_BC
-        SUF_U_BC =0.0; SUF_V_BC=0.0; SUF_W_BC=0.0;
-
+        type(tensor_field), pointer :: tracer, density
 
         ewrite(3,*)'In CV_ASSEMB_FORCE_CTY'
 
@@ -1988,10 +1806,6 @@ contains
  
         ALLOCATE( T2( CV_NONODS * NPHASE * IGOT_T2 )) ; T2 = 0.
         ALLOCATE( T2OLD( CV_NONODS * NPHASE * IGOT_T2 )) ; T2OLD =0.
-        ALLOCATE( SUF_T2_BC_ROB1( STOTEL * CV_SNLOC * NPHASE * IGOT_T2  ))
-        ALLOCATE( SUF_T2_BC_ROB2( STOTEL * CV_SNLOC * NPHASE * IGOT_T2  ))
-        ALLOCATE( SUF_T2_BC( STOTEL * CV_SNLOC * NPHASE * IGOT_T2  )) ; SUF_T2_BC = 0.
-        ALLOCATE( WIC_T2_BC( STOTEL * CV_SNLOC * NPHASE * IGOT_T2  )) ; WIC_T2_BC = 0
         ALLOCATE( THETA_GDIFF( NPHASE * IGOT_T2, CV_NONODS * IGOT_T2 )) ; THETA_GDIFF = 0.
         ALLOCATE( ACV( NCOLACV )) ; ACV = 0.
         ALLOCATE( BLOCK_ACV( NPHASE*size(SMALL_COLACV )))  ; BLOCK_ACV = 0.
@@ -2006,35 +1820,13 @@ contains
         allocate( dummy_transp( totele ) ) ; dummy_transp = 0.
 
 
-        ALLOCATE( SUF_NU_BC_ALL( NDIM,NPHASE,U_SNLOC,STOTEL ) ) ; SUF_NU_BC_ALL = 0.0
-
         TDIFFUSION = 0.0
 
         IF( GLOBAL_SOLVE ) MCY = 0.0
 
-
-
-        do sele = 1, stotel
-            do u_siloc = 1, u_snloc
-                do iphase = 1, nphase
-                    i = ( iphase - 1 ) * stotel * u_snloc + ( sele - 1 ) * u_snloc + u_siloc
-                    do idim = 1, ndim
-                        if ( idim == 1 ) then
-                            suf_nu_bc_all( idim,iphase,u_siloc,sele ) = suf_u_bc( i )
-                        else if ( idim == 2 ) then
-                            suf_nu_bc_all( idim,iphase,u_siloc,sele ) = suf_v_bc( i )
-                        else if ( idim == 3 ) then
-                            suf_nu_bc_all( idim,iphase,u_siloc,sele ) = suf_w_bc( i )
-                        end if
-                    end do
-                end do
-            end do
-        end do
-
-
-
         ! Obtain the momentum and C matricies
-        CALL ASSEMB_FORCE_CTY( state, &
+        CALL ASSEMB_FORCE_CTY( state, packed_state, &
+             velocity,pressure, &
         NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
         U_ELE_TYPE, P_ELE_TYPE, &
         U_NONODS, CV_NONODS, X_NONODS, MAT_NONODS, &
@@ -2045,13 +1837,6 @@ contains
         U_ALL, UOLD_ALL, &    ! This is nu...
         UDEN_ALL, UDENOLD_ALL, IDIVID_BY_VOL_FRAC, FEM_VOL_FRAC, &
         DT, &
-
-        SUF_U_BC_ALL, &
-        SUF_MOMU_BC_ALL, &
-        SUF_NU_BC_ALL, SUF_P_BC_ALL, &
-        SUF_U_BC_ROB1_ALL, SUF_U_BC_ROB2_ALL, &
-        WIC_U_BC_ALL, WIC_MOMU_BC_ALL, WIC_U_BC_ALL, WIC_P_BC_ALL, &
-
         U_RHS, &
         C, NCOLC, FINDC, COLC, & ! C sparsity - global cty eqn
         DGM_PHA, NCOLDGM_PHA, FINDGM_PHA, COLDGM_PHA, &! Force balance sparsity
@@ -2112,37 +1897,15 @@ contains
         ! unused at this stage
         second_theta = 0.0
 
-
-        !CONVERT FROM NEW TO OLD FOR THE NEXT SUBROUTINE
-        do sele = 1, stotel
-            do iphase = 1, nphase
-                wic_u_bc( sele+(iphase-1)*stotel ) = wic_u_bc_all( 1,iphase,sele )
-            end do
-        end do
-
-        do sele = 1, stotel
-            do u_siloc = 1, u_snloc
-                do iphase = 1, nphase
-                    i = ( iphase - 1 ) * stotel * u_snloc + ( sele - 1 ) * u_snloc + u_siloc
-                    do idim = 1, ndim
-                        if ( idim == 1 ) then
-                            suf_u_bc( i ) = suf_u_bc_all( idim,iphase,u_siloc,sele )
-                        else if ( idim == 2 ) then
-                            suf_v_bc( i ) = suf_u_bc_all( idim,iphase,u_siloc,sele )
-                        else if ( idim == 3 ) then
-                            suf_w_bc( i ) = suf_u_bc_all( idim,iphase,u_siloc,sele )
-                        end if
-                    end do
-                end do
-            end do
-        end do
-
-          !############################################
         IGOT_THERM_VIS=0
         ALLOCATE( THERM_U_DIFFUSION(NDIM,NDIM,NPHASE,MAT_NONODS*IGOT_THERM_VIS ) )
 
 
+        tracer=>extract_tensor_field(packed_state,"PackedPhaseVolumeFraction") 
+        density=>extract_tensor_field(packed_state,"PackedDensity")
+
         call CV_ASSEMB( state, packed_state, &
+             tracer, velocity, density, &
         CV_RHS, &
         NCOLACV,  ACV, DENSE_BLOCK_MATRIX, FINACV, COLACV, MIDACV, &
         SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV,&
@@ -2156,9 +1919,7 @@ contains
         DEN_OR_ONE, DENOLD_OR_ONE, &
         MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, IGOT_THERM_VIS, THERM_U_DIFFUSION, &
         V_DISOPT, V_DG_VEL_INT_OPT, DT, V_THETA, SECOND_THETA, V_BETA, &
-        SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
-        SUF_VOL_BC_ROB1, SUF_VOL_BC_ROB2,  &
-        WIC_VOL_BC, WIC_D_BC, WIC_U_BC, &
+        SUF_SIG_DIAGTEN_BC, &
         DERIV, CV_P, &
         V_SOURCE, V_ABSORB, VOLFRA_PORE, &
         NDIM, GETCV_DISC, GETCT, &
@@ -2168,7 +1929,7 @@ contains
         DEN_FEMT, &
         IGOT_T2, T2, T2OLD, IGOT_THETA_FLUX, SCVNGI_THETA, GET_THETA_FLUX, USE_THETA_FLUX, &
         THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J, THETA_GDIFF, &
-        SUF_T2_BC, SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, WIC_T2_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
+        IN_ELE_UPWIND, DG_ELE_UPWIND, &
         NOIT_DIM, &
         MEAN_PORE_CV, &
         FINDCMC, COLCMC, NCOLCMC, MASS_MN_PRES, THERMAL, &
@@ -2190,10 +1951,6 @@ contains
 
         DEALLOCATE( T2 )
         DEALLOCATE( T2OLD )
-        DEALLOCATE( SUF_T2_BC_ROB1 )
-        DEALLOCATE( SUF_T2_BC_ROB2 )
-        DEALLOCATE( SUF_T2_BC )
-        DEALLOCATE( WIC_T2_BC )
         DEALLOCATE( THETA_GDIFF )
         DEALLOCATE( ACV )
         DEALLOCATE( BLOCK_ACV )
@@ -2362,7 +2119,8 @@ contains
 
 
 
-    SUBROUTINE ASSEMB_FORCE_CTY( state, &
+    SUBROUTINE ASSEMB_FORCE_CTY( state, packed_state,&
+         velocity,pressure, &
     NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
     U_ELE_TYPE, P_ELE_TYPE, &
     U_NONODS, CV_NONODS, X_NONODS, MAT_NONODS, &
@@ -2373,14 +2131,7 @@ contains
     U_ALL, UOLD_ALL, &
     NU_ALL, NUOLD_ALL, &
     UDEN, UDENOLD,  IDIVID_BY_VOL_FRAC, FEM_VOL_FRAC, &
-    DT, &
-         
-    SUF_U_BC_ALL, &
-    SUF_MOMU_BC_ALL, &
-    SUF_NU_BC_ALL, SUF_P_BC_ALL, &
-    SUF_U_ROB1_BC_ALL, SUF_U_ROB2_BC_ALL, &
-    WIC_U_BC_ALL, WIC_MOMU_BC_ALL, WIC_NU_BC_ALL, WIC_P_BC_ALL, &
-         
+    DT, &      
     U_RHS, &
     C, NCOLC, FINDC, COLC, & ! C sparsity - global cty eqn
     DGM_PHA, NCOLDGM_PHA, FINDGM_PHA, COLDGM_PHA, &! Force balance sparsity
@@ -2397,6 +2148,9 @@ contains
         implicit none
 
         type( state_type ), dimension( : ), intent( inout ) :: state
+        type( state_type ), intent( inout ) :: packed_state
+        type(tensor_field), intent(in) :: velocity
+        type(scalar_field), intent(in) :: pressure
 ! If IGOT_VOL_X_PRESSURE=1 then have a voln fraction in the pressure term and multiply density by volume fraction...
         INTEGER, PARAMETER :: IGOT_VOL_X_PRESSURE = 0
         INTEGER, intent( in ) :: NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
@@ -2414,12 +2168,6 @@ contains
         INTEGER, DIMENSION( : ), intent( in ) :: U_SNDGLN
         INTEGER, DIMENSION( : ), intent( in ) :: P_SNDGLN
         INTEGER, DIMENSION( : ), intent( in ) :: CV_SNDGLN
-
-        INTEGER, DIMENSION ( :, :, : ), intent( in ) :: WIC_U_BC_ALL, WIC_MOMU_BC_ALL, WIC_NU_BC_ALL
-        INTEGER, DIMENSION ( :, : ), intent( in ) :: WIC_P_BC_ALL
-        REAL, DIMENSION ( :, :, :, : ), intent( in ) :: SUF_U_BC_ALL, SUF_MOMU_BC_ALL, SUF_NU_BC_ALL
-        REAL, DIMENSION ( :, :, :, : ), intent( in ) :: SUF_U_ROB1_BC_ALL, SUF_U_ROB2_BC_ALL
-        REAL, DIMENSION ( :, :, : ), intent( in ) :: SUF_P_BC_ALL
         REAL, DIMENSION( :, : ), intent( in ) :: X_ALL
 
         REAL, DIMENSION( :, :, : ), intent( in ) :: U_ABS_STAB
@@ -2451,9 +2199,6 @@ contains
         ! This is for decifering WIC_U_BC & WIC_P_BC
         type( tensor_field ), pointer :: tensorfield
         character( len = option_path_len ) :: option_path
-        INTEGER, PARAMETER :: WIC_U_BC_DIRICHLET = 1, WIC_U_BC_DIRICHLET_INOUT = 5
-        INTEGER, PARAMETER :: WIC_U_BC_ROBIN = 2, WIC_U_BC_DIRI_ADV_AND_ROBIN = 3
-        INTEGER, PARAMETER :: WIC_P_BC_DIRICHLET = 1
         LOGICAL, PARAMETER :: VOL_ELE_INT_PRES = .TRUE., STRESS_FORM=.FALSE., STAB_VISC_WITH_ABS=.FALSE.
         ! if STAB_VISC_WITH_ABS then stabilize (in the projection mehtod) the viscosity using absorption.
         !      REAL, PARAMETER :: WITH_NONLIN = 1.0, TOLER = 1.E-10, ZERO_OR_TWO_THIRDS=2.0/3.0
@@ -2472,7 +2217,6 @@ contains
         INTEGER, PARAMETER :: IDO_STORE_AC_SPAR_PT=0
         ! re-calculate C matrix...
         LOGICAL :: got_c_matrix
-
 
         INTEGER, DIMENSION( :, : ), allocatable ::  FACE_ELE
         INTEGER, DIMENSION( : ), allocatable :: CV_SLOC2LOC, U_SLOC2LOC, &
@@ -2654,6 +2398,19 @@ contains
         real, dimension(:,:,:), pointer :: Point_C_Mat
 
 
+        
+        !! Boundary_conditions
+
+        INTEGER, DIMENSION ( ndim , nphase , surface_element_count(velocity) )  :: WIC_U_BC_ALL, WIC_MOMU_BC_ALL, WIC_NU_BC_ALL
+        INTEGER, DIMENSION ( surface_element_count(pressure) ) :: WIC_P_BC_ALL
+        REAL, DIMENSION ( :, :, : ), pointer  :: SUF_U_BC_ALL, SUF_MOMU_BC_ALL, SUF_NU_BC_ALL
+        REAL, DIMENSION ( :, :, : ), pointer :: SUF_U_ROB2_BC_ALL
+        REAL, DIMENSION ( : ), pointer :: SUF_P_BC_ALL
+
+        type(scalar_field) :: pressure_BCs
+        type(tensor_field) :: velocity_BCs, velocity_BCs_robin2
+        type(tensor_field) :: momentum_BCs
+
         capillary_pressure_activated = have_option( '/material_phase[0]/multiphase_properties/capillary_pressure' )
 
         !If we do not have an index where we have stored C, then we need to calculate it
@@ -2690,6 +2447,28 @@ contains
 
 
         ewrite(3,*) 'In ASSEMB_FORCE_CTY'
+
+        !! get boundary information
+        
+        call get_entire_boundary_condition(pressure,&
+           ['dirichlet','neumann  ','robin    '],&
+           pressure_BCs,WIC_P_BC_ALL)
+        call get_entire_boundary_condition(velocity,&
+           ['dirichlet','neumann  ','robin    '],&
+           velocity_BCs,WIC_U_BC_ALL,boundary_second_value=velocity_BCs_robin2)
+        call get_entire_boundary_condition(velocity,&
+           ['momentum '],&
+           momentum_BCs,WIC_MOMU_BC_ALL)
+
+        WIC_NU_BC_ALL=WIC_U_BC_ALL
+        SUF_P_BC_ALL=>pressure_BCs%val
+        SUF_U_BC_ALL=>velocity_BCs%val
+        SUF_NU_BC_ALL=>velocity_BCs%val
+        SUF_MOMU_BC_ALL=>momentum_BCs%val
+        SUF_U_ROB2_BC_ALL=>velocity_BCs_robin2%val
+        
+        
+
         !ewrite(3,*) 'Just double-checking sparsity patterns memory allocation:'
         !ewrite(3,*) 'FINDC with size,', size( FINDC ), ':', FINDC( 1 :  size( FINDC ) )
         !ewrite(3,*) 'COLC with size,', size( COLC ), ':', COLC( 1 :  size( COLC ) )
@@ -4289,7 +4068,7 @@ contains
                                 END IF
 
                                 Loop_Phase2: DO IPHASE = 1, NPHASE
-                                    IF( WIC_P_BC_ALL( IPHASE, SELE ) == WIC_P_BC_DIRICHLET ) THEN
+                                    IF( WIC_P_BC_ALL( SELE ) == WIC_P_BC_DIRICHLET ) THEN
 
                                         DO IDIM = 1, NDIM_VEL
                                             IF(IGOT_VOL_X_PRESSURE==1) THEN
@@ -4298,14 +4077,14 @@ contains
                                                    + VOL_FRA_NMX_ALL( IDIM, IPHASE ) * SELE_OVERLAP_SCALE( P_JLOC )
                                                END IF
                                                LOC_U_RHS( IDIM, IPHASE, U_ILOC) =  LOC_U_RHS( IDIM, IPHASE, U_ILOC ) &
-                                               - VOL_FRA_NMX_ALL( IDIM, IPHASE ) * SUF_P_BC_ALL( IPHASE, P_SJLOC, SELE ) * SELE_OVERLAP_SCALE( P_JLOC )
+                                               - VOL_FRA_NMX_ALL( IDIM, IPHASE ) * SUF_P_BC_ALL( P_SJLOC + P_SNLOC * ( SELE - 1) ) * SELE_OVERLAP_SCALE( P_JLOC )
                                             ELSE
                                                IF ( .NOT.GOT_C_MATRIX ) THEN
                                                    C( IDIM, IPHASE, COUNT ) = C( IDIM, IPHASE, COUNT ) &
                                                    + NMX_ALL( IDIM ) * SELE_OVERLAP_SCALE( P_JLOC )
                                                END IF
                                                LOC_U_RHS( IDIM, IPHASE, U_ILOC) =  LOC_U_RHS( IDIM, IPHASE, U_ILOC ) &
-                                               - NMX_ALL( IDIM ) * SUF_P_BC_ALL( IPHASE, P_SJLOC, SELE ) * SELE_OVERLAP_SCALE( P_JLOC )
+                                               - NMX_ALL( IDIM ) * SUF_P_BC_ALL( P_SJLOC + P_SNLOC* ( SELE - 1 ) ) * SELE_OVERLAP_SCALE( P_JLOC )
                                             ENDIF
                                         END DO
 
@@ -4438,9 +4217,9 @@ contains
                                 IF( WIC_U_BC_ALL( 1, IPHASE, SELE2 ) == WIC_U_BC_DIRICHLET) THEN
                                     DO U_SILOC=1,U_SNLOC
                                         DO SGI=1,SBCVNGI
-                                            SUD2_ALL(:,IPHASE,SGI)=SUD2_ALL(:,IPHASE,SGI) + SBUFEN(U_SILOC,SGI) * suf_nu_bc_all( :,iphase,u_siloc,sele2 )
+                                            SUD2_ALL(:,IPHASE,SGI)=SUD2_ALL(:,IPHASE,SGI) + SBUFEN(U_SILOC,SGI) * suf_nu_bc_all( :,iphase,u_siloc + u_SNLOC * ( sele2 - 1 ) )
 
-                                            SUDOLD2_ALL(:,IPHASE,SGI)=SUDOLD2_ALL(:,IPHASE,SGI) + SBUFEN(U_SILOC,SGI) * suf_nu_bc_all( :,iphase,u_siloc,sele2 )
+                                            SUDOLD2_ALL(:,IPHASE,SGI)=SUDOLD2_ALL(:,IPHASE,SGI) + SBUFEN(U_SILOC,SGI) * suf_nu_bc_all( :,iphase,u_siloc + u_SNLOC * ( sele2 - 1 ) )
                                         END DO
                                     END DO
 
@@ -4763,17 +4542,17 @@ contains
 
                                             IF(NO_MATRIX_STORE) THEN
                                                 LOC_U_RHS( IDIM,IPHASE,U_ILOC ) = LOC_U_RHS( IDIM,IPHASE,U_ILOC ) &
-                                                - VLM * SUF_U_ROB1_BC_ALL( IDIM,IPHASE,U_SJLOC,SELE2 )*SLOC_U( IDIM,IPHASE,U_SJLOC )
+                                                - VLM * SUF_U_BC_ALL( IDIM,IPHASE,U_SJLOC + U_SNLOC* ( SELE2 - 1 ) )*SLOC_U( IDIM,IPHASE,U_SJLOC )
 
                                             ELSE
                                                 DIAG_BIGM_CON(IDIM,JDIM,IPHASE,JPHASE,U_ILOC,U_JLOC,ELE) &
-                                                =DIAG_BIGM_CON(IDIM,JDIM,IPHASE,JPHASE,U_ILOC,U_JLOC,ELE)+ VLM * SUF_U_ROB1_BC_ALL( IDIM,IPHASE,U_SJLOC,SELE2 )
+                                                =DIAG_BIGM_CON(IDIM,JDIM,IPHASE,JPHASE,U_ILOC,U_JLOC,ELE)+ VLM * SUF_U_BC_ALL( IDIM,IPHASE,U_SJLOC + U_SNLOC * ( SELE2 - 1 ) )
                                             ENDIF
-                                            LOC_U_RHS( IDIM,IPHASE,U_ILOC ) =  LOC_U_RHS( IDIM,IPHASE,U_ILOC ) - VLM * SUF_U_ROB2_BC_ALL( IDIM,IPHASE,U_SJLOC,SELE2 )
+                                            LOC_U_RHS( IDIM,IPHASE,U_ILOC ) =  LOC_U_RHS( IDIM,IPHASE,U_ILOC ) - VLM * SUF_U_ROB2_BC_ALL( IDIM,IPHASE,U_SJLOC + U_SNLOC * ( SELE2 - 1 ) )
 
                                             RHS_DIFF_U( IDIM,IPHASE,U_ILOC ) = RHS_DIFF_U( IDIM,IPHASE,U_ILOC ) &
-                                            - VLM * SUF_U_ROB1_BC_ALL( IDIM, IPHASE, U_SJLOC, SELE2 ) * SLOC_U( IDIM, IPHASE, U_SJLOC ) &
-                                            - VLM * SUF_U_ROB2_BC_ALL( IDIM, IPHASE, U_SJLOC, SELE2 )
+                                            - VLM * SUF_U_BC_ALL( IDIM, IPHASE, U_SJLOC + U_SNLOC * (  SELE2 - 1 ) ) * SLOC_U( IDIM, IPHASE, U_SJLOC ) &
+                                            - VLM * SUF_U_ROB2_BC_ALL( IDIM, IPHASE, U_SJLOC + U_SNLOC * (  SELE2 - 1 ) )
 
                                         ENDIF
                                         ! BC for incoming momentum...
@@ -4789,7 +4568,7 @@ contains
                                                     - NN_SNDOTQ_OUT * SLOC_U( IDIM,IPHASE,U_SJLOC )
                                                 ENDIF
                                                 LOC_U_RHS( IDIM,IPHASE,U_ILOC ) =  LOC_U_RHS( IDIM,IPHASE,U_ILOC ) &
-                                                - ( NN_SNDOTQ_IN + NN_SNDOTQOLD_IN )*SUF_MOMU_BC_ALL( IDIM,IPHASE,U_SJLOC,SELE2 ) &
+                                                - ( NN_SNDOTQ_IN + NN_SNDOTQOLD_IN )*SUF_MOMU_BC_ALL( IDIM,IPHASE,U_SJLOC + U_SNLOC * ( SELE2 - 1 ) ) &
                                                 - NN_SNDOTQOLD_OUT * SLOC_UOLD(IDIM,IPHASE,U_SJLOC)
 
                                                ! ENDOF IF(MOM_CONSERV) THEN...
@@ -4803,7 +4582,7 @@ contains
                                                     + NN_SNDOTQ_IN * SLOC_U( IDIM,IPHASE,U_SJLOC )
                                                 ENDIF
                                                 LOC_U_RHS( IDIM,IPHASE,U_ILOC ) =  LOC_U_RHS( IDIM,IPHASE,U_ILOC ) &
-                                                - ( NN_SNDOTQ_IN + NN_SNDOTQOLD_IN )*SUF_MOMU_BC_ALL( IDIM,IPHASE,U_SJLOC,SELE2 ) &
+                                                - ( NN_SNDOTQ_IN + NN_SNDOTQOLD_IN )*SUF_MOMU_BC_ALL( IDIM,IPHASE,U_SJLOC + U_SNLOC * ( SELE2 - 1 ) ) &
                                                 + NN_SNDOTQOLD_IN * SLOC_UOLD(IDIM,IPHASE,U_SJLOC)
 
                                                ! END OF IF(MOM_CONSERV) THEN ELSE...
@@ -4815,7 +4594,7 @@ contains
                                             IF(MOM_CONSERV) THEN
 
                                                 LOC_U_RHS( IDIM,IPHASE,U_ILOC ) =  LOC_U_RHS( IDIM,IPHASE,U_ILOC ) &
-                                                - ( NN_SNDOTQ_IN + NN_SNDOTQOLD_IN + NN_SNDOTQ_OUT + NN_SNDOTQOLD_OUT)*SUF_MOMU_BC_ALL( IDIM,IPHASE,U_SJLOC,SELE2 )
+                                                - ( NN_SNDOTQ_IN + NN_SNDOTQOLD_IN + NN_SNDOTQ_OUT + NN_SNDOTQOLD_OUT)*SUF_MOMU_BC_ALL( IDIM,IPHASE,U_SJLOC + U_SNLOC * ( SELE2 - 1 ) )
 
                                                ! ENDOF IF(MOM_CONSERV) THEN...
                                             ELSE
@@ -4829,7 +4608,7 @@ contains
                                                 ENDIF
 
                                                 LOC_U_RHS( IDIM,IPHASE,U_ILOC ) =  LOC_U_RHS( IDIM,IPHASE,U_ILOC ) &
-                                                - ( NN_SNDOTQ_IN + NN_SNDOTQOLD_IN + NN_SNDOTQ_OUT + NN_SNDOTQOLD_OUT)*SUF_MOMU_BC_ALL( IDIM,IPHASE,U_SJLOC,SELE2 ) &
+                                                - ( NN_SNDOTQ_IN + NN_SNDOTQOLD_IN + NN_SNDOTQ_OUT + NN_SNDOTQOLD_OUT)*SUF_MOMU_BC_ALL( IDIM,IPHASE,U_SJLOC + U_SNLOC * ( SELE2 - 1 ) ) &
                                                 + (NN_SNDOTQOLD_IN + NN_SNDOTQOLD_OUT) * SLOC_UOLD(IDIM,IPHASE,U_SJLOC)
 
                                                ! END OF IF(MOM_CONSERV) THEN ELSE...
@@ -5017,6 +4796,12 @@ contains
         DEALLOCATE( UDIFF_SUF_STAB )
 
         DEALLOCATE( VLK_UVW )
+
+
+        call deallocate(velocity_BCs)
+        call deallocate(velocity_BCs_robin2)
+        call deallocate(momentum_BCs)
+        call deallocate(pressure_BCs)
 
 
         ewrite(3,*)'Leaving assemb_force_cty'
@@ -5999,7 +5784,6 @@ contains
     NDIM,  &
     NCOLM, FINDM, COLM, MIDM, &
     XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
-    WIC_COMP_BC, SUF_COMP_BC,&
     StorageIndexes )
 
         IMPLICIT NONE
@@ -6032,9 +5816,6 @@ contains
         integer, dimension( : ), intent( in ) :: COLCT
 
         real, dimension( : ), intent( in ) :: COMP
-
-        real, dimension( : ), intent( in ) :: SUF_COMP_BC
-        integer, dimension( : ), intent( in ) :: WIC_COMP_BC
 
         integer, dimension( : ), intent( in ) :: FINDM
         integer, dimension( : ), intent( in ) :: COLM
@@ -6133,7 +5914,7 @@ contains
                     NDIM, USE_PRESSURE_FORCE, &
                     NCOLM, FINDM, COLM, MIDM, &
                     XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
-                    DUMMY_WIC_COMP_BC, DUMMY_SUF_COMP_BC, USE_SMOOTHING,&
+                    USE_SMOOTHING,&
                     StorageIndexes )
 
                 end do
@@ -6182,7 +5963,7 @@ contains
     NDIM, USE_PRESSURE_FORCE, &
     NCOLM, FINDM, COLM, MIDM, &
     XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
-    WIC_COMP_BC, SUF_COMP_BC, USE_SMOOTHING,&
+    USE_SMOOTHING,&
     StorageIndexes )
 
         ! Calculate the surface tension force: U_FORCE_X_SUF_TEN,U_FORCE_X_SUF_TEN,U_FORCE_X_SUF_TEN
@@ -6348,9 +6129,6 @@ contains
 
         REAL, DIMENSION( : ), intent( in ) :: VOLUME_FRAC
 
-        REAL, DIMENSION( : ), intent( in ) :: SUF_COMP_BC
-        INTEGER, DIMENSION( : ), intent( in ) :: WIC_COMP_BC
-
         REAL, DIMENSION( : ), intent( in ) :: X, Y, Z
         INTEGER, DIMENSION( : ), intent( in ) :: FINDM
         INTEGER, DIMENSION( : ), intent( in ) :: COLM
@@ -6471,6 +6249,7 @@ contains
         real, pointer :: VOLUME
 
         REAL, DIMENSION(1,1) :: DUMMY_THETA_GDIFF
+        type(tensor_field) :: tfield
       
 
         ALLOCATE(DUMMY_ELE(TOTELE))
@@ -7180,6 +6959,7 @@ contains
 
 
             CALL INTENERGE_ASSEM_SOLVE( state, packed_state, &
+                 tfield, tfield,tfield,&
             NCOLACV, FINACV, COLACV, MIDACV, &
             SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
             block_to_global_acv, global_dense_block_acv, &
@@ -7193,9 +6973,7 @@ contains
             CURVATURE, VOLUME_FRAC, &
             MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, IGOT_THERM_VIS, THERM_U_DIFFUSION, &
             CV_DISOPT, CV_DG_VEL_INT_OPT, DT, T_THETA, T_BETA, &
-            RZERO, RZERO, RZERO, RZERO, RZERO, RZERO_DIAGTEN, &
-            RZERO, RZERO, &
-            IDUM, IDUM, IDUM, &
+            RZERO_DIAGTEN, &
             RZERO, &
             RZERO, T_ABSORB, RZERO, &
             NDIM,  &
@@ -7205,7 +6983,7 @@ contains
             RDUM, CV_ONE, &
             IGOT_T2, CURVATURE, VOLUME_FRAC,IGOT_THETA_FLUX, SCVNGI_THETA, GET_THETA_FLUX, USE_THETA_FLUX, &
             DUMMY_THETA_GDIFF, &
-            RZERO, RZERO, RZERO, IDUM, IN_ELE_UPWIND, DG_ELE_UPWIND, &
+            IN_ELE_UPWIND, DG_ELE_UPWIND, &
             NOIT_DIM, &
             ! nits_flux_lim_t
             RZERO, &

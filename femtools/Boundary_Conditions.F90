@@ -1361,7 +1361,8 @@ integer function get_tensor_boundary_condition_count(field)
   end subroutine get_entire_vector_boundary_condition
 
   subroutine get_entire_tensor_boundary_condition(field, &
-     types, boundary_value, bc_type_list, bc_number_list)
+     types, boundary_value, bc_type_list, bc_number_list,&
+     boundary_second_value)
     !!< Gets the boundary conditions on the entire surface mesh for all
     !!< bc types requested
     
@@ -1387,8 +1388,11 @@ integer function get_tensor_boundary_condition_count(field)
     !! which can be used to extract further information
     !! BC can be set for each component separately, so ndim x surface_element_count()
     integer, dimension(:,:,:), intent(out), optional:: bc_number_list
+    !! boundary_second value stores second value from robin style bcs
+    type(tensor_field), intent(out), optional, target :: boundary_second_value
     
     type(tensor_field), pointer:: surface_field
+    type(scalar_field), pointer:: surface_field_second_value
     type(vector_field), pointer:: vector_surface_field
     type(scalar_field), pointer:: scalar_surface_field
     type(mesh_type), pointer:: surface_mesh, volume_mesh
@@ -1407,6 +1411,11 @@ integer function get_tensor_boundary_condition_count(field)
        name=trim(field%name)//"EntireBC", dim=field%dim)
     call zero(boundary_value)
     bc_type_list=0
+
+    if (present(boundary_second_value)) then
+       call allocate(boundary_second_value, surface_mesh, name=trim(field%name)//"EntireBCSecondValue", dim=field%dim)
+       call zero(boundary_second_value)    
+    end if
     
     bcloop: do i=1, get_boundary_condition_count(field)
        call get_boundary_condition(field, i, type=bctype, applies=applies, &
@@ -1423,7 +1432,7 @@ integer function get_tensor_boundary_condition_count(field)
           surface_field => field%bc%boundary_condition(i)%surface_fields(1)
        else
           nullify(surface_field)
-       end if   
+       end if
        
        if (associated(field%bc%boundary_condition(i)%vector_surface_fields)) then
           ! extract 1st surface field
@@ -1435,10 +1444,23 @@ integer function get_tensor_boundary_condition_count(field)
        if (associated(field%bc%boundary_condition(i)%scalar_surface_fields)) then
           ! extract 1st surface field
           scalar_surface_field => field%bc%boundary_condition(i)%scalar_surface_fields(1)
+          if (trim(bctype) == 'robin') then
+             if (present(boundary_second_value)) then
+                if (size(field%bc%boundary_condition(i)%scalar_surface_fields) > 1) then
+                   surface_field_second_value => &
+                        field%bc%boundary_condition(i)%scalar_surface_fields(2)
+                else
+                   FLAbort('Robin boundary condition cannot be assigned without the optional argument boundary_second_value')  
+                end if
+             end if
+          else
+             nullify(surface_field_second_value)
+          end if
        else
           nullify(scalar_surface_field)
+          nullify(surface_field_second_value)
        end if
-       
+
        faceloop: do k=1, size(surface_element_list)
           sele=surface_element_list(k)
           
@@ -1476,6 +1498,11 @@ integer function get_tensor_boundary_condition_count(field)
                    if (associated(scalar_surface_field)) then
                       call set(boundary_value, n,m, ele_nodes(surface_mesh, sele), &
                            ele_val(scalar_surface_field ,k))
+                   end if
+
+                   if (associated(surface_field_second_value)) then
+                      call set(boundary_second_value,n,m, ele_nodes(surface_mesh, sele), &
+                           ele_val(surface_field_second_value, k))
                    end if
                    
                 end if

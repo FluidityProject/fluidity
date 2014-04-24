@@ -1442,7 +1442,7 @@
     subroutine calculate_SUF_SIG_DIAGTEN_BC( packed_state, suf_sig_diagten_bc, totele, stotel, cv_nloc, &
          cv_snloc, nphase, ndim, nface, mat_nonods, cv_nonods, x_nloc, ncolele, cv_ele_type, &
          finele, colele, cv_ndgln, cv_sndgln, x_ndgln, mat_ndgln, perm, material_absorption, &
-         wic_u_bc, wic_vol_bc, vol, state, x_nonods )
+         state, x_nonods )
 
       implicit none
       type( state_type ), intent( inout ) :: packed_state
@@ -1454,11 +1454,9 @@
       integer, dimension( : ), intent( in ) :: cv_sndgln
       integer, dimension( : ), intent( in ) :: x_ndgln
       integer, dimension( : ), intent( in ) :: mat_ndgln
-      integer, dimension( : ), intent( in ) :: wic_u_bc, wic_vol_bc
       real, dimension( :, :, : ), intent( in ) :: perm
       real, dimension( :, :, : ), intent( inout ) :: material_absorption
-      real, dimension( : ), intent( in ) :: vol
-      type(state_type), dimension( : ) :: state
+      type(state_type), dimension( : ) :: state  
 
       real, dimension(stotel * cv_snloc * nphase, ndim ), intent( inout ) :: suf_sig_diagten_bc
 
@@ -1472,6 +1470,9 @@
       integer, dimension( mat_nonods*nphase ) :: idone
       integer, dimension(nface, cv_snloc ) :: cv_sloclist
       integer, dimension( cv_snloc ) :: cv_sloc2loc
+
+      integer, dimension( :, :, :),  allocatable :: wic_u_bc, wic_vol_bc
+
       integer, parameter :: WIC_BC_DIRICHLET = 1
 !!$ for the pressure b.c. and overlapping method 
 !!$ make the material property change just inside the domain else on the surface only...
@@ -1484,8 +1485,23 @@
       !Working pointers
       real, dimension(:,:), pointer :: Sat
 
+      type(tensor_field), pointer :: velocity, volfrac
+      type(tensor_field) :: velocity_BCs, volfrac_BCs
+
     !Get from packed_state
+      volfrac=>extract_tensor_field(packed_state,"PackedPhaseVolumeFraction")
+      velocity=>extract_tensor_field(packed_state,"PackedVelocity")
     call get_var_from_packed_state(packed_state,PhaseVolumeFraction = Sat)
+
+    allocate(wic_u_bc(velocity%dim(1),velocity%dim(2),&
+         surface_element_count(velocity)))
+    allocate(wic_vol_bc(volfrac%dim(1),volfrac%dim(2),&
+         surface_element_count(volfrac)))
+
+    call get_entire_boundary_condition(velocity,&
+           ['dirichlet'],velocity_BCs,WIC_U_BC)
+    call get_entire_boundary_condition(volfrac,&
+           ['dirichlet'],volfrac_BCs,WIC_vol_BC)
 
       if( have_option( '/physical_parameters/mobility' ) )then
          call get_option( '/physical_parameters/mobility', mobility )
@@ -1539,8 +1555,8 @@
                sele  = sele2
 
                if ( sele > 0 ) then
-                  if ( wic_u_bc( sele + ( iphase - 1 ) * stotel ) /= WIC_BC_DIRICHLET .and. &
-                     wic_vol_bc( sele + ( iphase - 1 ) * stotel ) == WIC_BC_DIRICHLET ) then
+                  if ( wic_u_bc(1,iphase,sele) /= WIC_BC_DIRICHLET .and. &
+                     wic_vol_bc(1,iphase,sele) == WIC_BC_DIRICHLET ) then
 
                      cv_sloc2loc( : ) = cv_sloclist( iface, : )
 
@@ -1603,7 +1619,7 @@
 
                   end if
                end if
-
+               
             end do
          end do
 

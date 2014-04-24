@@ -162,9 +162,6 @@
       logical :: do_reallocate_fields, not_to_move_det_yet = .false., initialised
 
 !!$ Working arrays:
-      integer, dimension( : ), allocatable :: PhaseVolumeFraction_BC_Spatial, Pressure_FEM_BC_Spatial, &
-           Density_BC_Spatial, Component_BC_Spatial, Velocity_U_BC_Spatial, Temperature_BC_Spatial, &
-           wic_momu_bc
       real, dimension( : ), pointer :: &
            Temperature, PhaseVolumeFraction, &
            Component, Temperature_Old, &
@@ -172,13 +169,8 @@
            Porosity, &
            Velocity_U_Source, Velocity_U_Source_CV, Temperature_Source, PhaseVolumeFraction_Source, &
            ScalarField_Source, Component_Source, ScalarAdvectionField_Source, &
-           PhaseVolumeFraction_BC, Pressure_FEM_BC, &
-           Density_BC, Component_BC, Velocity_U_BC, Velocity_V_BC, Velocity_W_BC, Temperature_BC, &
-           suf_u_bc_rob1, suf_v_bc_rob1, suf_w_bc_rob1, suf_u_bc_rob2, suf_v_bc_rob2, suf_w_bc_rob2, &
-           suf_t_bc_rob1, suf_t_bc_rob2, suf_vol_bc_rob1, suf_vol_bc_rob2, suf_comp_bc_rob1, suf_comp_bc_rob2, &
            ScalarField_Source_Store, ScalarField_Source_Component, &
-           mass_ele, dummy_ele, &
-           suf_momu_bc, suf_momv_bc, suf_momw_bc
+           mass_ele, dummy_ele
 
       real, dimension( :, :, :, : ), allocatable :: THERM_U_DIFFUSION
 
@@ -230,6 +222,9 @@
 
             !Working pointers
       real, dimension(:,:), pointer :: SAT_s, OldSAT_s, FESAT_s
+
+      type( tensor_field ), pointer :: tracer_field, velocity_field, density_field, saturation_field
+      type(scalar_field), pointer :: pressure_field
 
       !Initially we set to use Stored data and that we have a new mesh
       StorageIndexes = 0!Initialize them as zero !
@@ -351,29 +346,14 @@
            Temperature_Old( nphase * cv_nonods ), &
            PhaseVolumeFraction_Old( nphase * cv_nonods ), Component_Old( nphase * cv_nonods * ncomp ), &
 !!$
-           PhaseVolumeFraction_BC_Spatial( stotel * nphase ), Pressure_FEM_BC_Spatial( stotel * nphase ), &
-           Density_BC_Spatial( stotel * nphase ), Component_BC_Spatial( stotel * nphase ), &
-           Velocity_U_BC_Spatial( stotel * nphase ), wic_momu_bc( stotel * nphase ), Temperature_BC_Spatial( stotel * nphase ), &
-           PhaseVolumeFraction_BC( stotel * cv_snloc * nphase ), Pressure_FEM_BC( stotel * p_snloc * nphase ), &
-           Density_BC( stotel * cv_snloc * nphase ), Temperature_BC( stotel * cv_snloc * nphase ), &
-           Component_BC( stotel * cv_snloc * nphase * ncomp ), &
-           Velocity_U_BC( stotel * u_snloc * nphase ), Velocity_V_BC( stotel * u_snloc * nphase ), &
-           Velocity_W_BC( stotel * u_snloc * nphase ), Temperature_Source( cv_nonods * nphase ), &
-           suf_u_bc_rob1( stotel * u_snloc * nphase ), suf_v_bc_rob1( stotel * u_snloc * nphase ), &
-           suf_w_bc_rob1( stotel * u_snloc * nphase ), suf_u_bc_rob2( stotel * u_snloc * nphase ), &
-           suf_v_bc_rob2( stotel * u_snloc * nphase ), suf_w_bc_rob2( stotel * u_snloc * nphase ), &
-           suf_t_bc_rob1( stotel * cv_snloc * nphase ), suf_t_bc_rob2( stotel * cv_snloc * nphase ), &
-           suf_vol_bc_rob1( stotel * cv_snloc * nphase ), suf_vol_bc_rob2( stotel * cv_snloc * nphase ), &
-           suf_comp_bc_rob1( stotel * cv_snloc * nphase ), suf_comp_bc_rob2( stotel * cv_snloc * nphase ), &
            suf_sig_diagten_bc( stotel * cv_snloc * nphase, ndim ), &
-           suf_momu_bc( stotel * u_snloc * nphase ), suf_momv_bc( stotel * u_snloc * nphase ), suf_momw_bc( stotel * u_snloc * nphase ), &
-!!$
            Porosity( totele ), &
            PhaseVolumeFraction_FEMT( cv_nonods * nphase ), Temperature_FEMT( cv_nonods * nphase ), &
            Density_FEMT( cv_nonods * nphase ), Component_FEMT( cv_nonods * nphase * ncomp ), &
            Mean_Pore_CV( cv_nonods ),  SumConc_FEMT( cv_nonods * ncomp ), &
            Dummy_PhaseVolumeFraction_FEMT( cv_nonods * nphase ), dummy_ele( totele ), mass_ele( totele ), &
 !!$
+           Temperature_Source( nphase * cv_nonods ), &
            PhaseVolumeFraction_Source( cv_nonods * nphase ), Velocity_U_Source( u_nonods * nphase * ndim ), &
            Velocity_U_Source_CV( cv_nonods * nphase * ndim ), Component_Source( cv_nonods * nphase ), &
            ScalarField_Source( cv_nonods * nphase ), ScalarAdvectionField_Source( cv_nonods * nphase ), &
@@ -403,23 +383,8 @@
       Temperature_Old=0.
       PhaseVolumeFraction_Old=0. ; Component_Old=0.
 !!$
-      PhaseVolumeFraction_BC_Spatial=0 ; Pressure_FEM_BC_Spatial=0
-      Density_BC_Spatial=0 ; Component_BC_Spatial=0
-      Velocity_U_BC_Spatial=0 ; Temperature_BC_Spatial=0
-      PhaseVolumeFraction_BC=0. ; Pressure_FEM_BC=0.
-      Density_BC=0. ; Temperature_BC=0.
-      Component_BC=0.
-      Velocity_U_BC=0. ; Velocity_V_BC=0.
-      Velocity_W_BC=0. ; Temperature_Source=0.
-      suf_u_bc_rob1=0. ; suf_v_bc_rob1=0.
-      suf_w_bc_rob1=0. ; suf_u_bc_rob2=0.
-      suf_v_bc_rob2=0. ; suf_w_bc_rob2=0.
-      suf_t_bc_rob1=0. ; suf_t_bc_rob2=0.
-      suf_vol_bc_rob1=0. ; suf_vol_bc_rob2=0.
-      suf_comp_bc_rob1=0. ; suf_comp_bc_rob2=0.
+      Temperature_Source=0.
       suf_sig_diagten_bc=0.
-      suf_momu_bc=0. ; suf_momv_bc=0. ; suf_momw_bc=0.
-      wic_momu_bc=0
 !!$
       Porosity=0.
       PhaseVolumeFraction_FEMT=0. ; Temperature_FEMT=0.
@@ -450,13 +415,10 @@
 !!$ Extracting Mesh Dependent Fields
       initialised = .false.
       call Extracting_MeshDependentFields_From_State( state, packed_state, initialised, &
-           PhaseVolumeFraction, PhaseVolumeFraction_BC_Spatial, PhaseVolumeFraction_BC, PhaseVolumeFraction_Source, &
-           Pressure_FEM_BC_Spatial, Pressure_FEM_BC, &
-           Density_BC_Spatial, Density_BC, &
-           Component, Component_BC_Spatial, Component_BC, Component_Source, &
-           Velocity_U_BC_Spatial, wic_momu_bc, Velocity_U_BC, Velocity_V_BC, Velocity_W_BC, &
-           suf_momu_bc, suf_momv_bc, suf_momw_bc, Velocity_U_Source, Velocity_Absorption, &
-           Temperature, Temperature_BC_Spatial, Temperature_BC, Temperature_Source, suf_t_bc_rob1, suf_t_bc_rob2, &
+           PhaseVolumeFraction, PhaseVolumeFraction_Source,&
+           Component, Component_Source, &
+           Velocity_U_Source, Velocity_Absorption, &
+           Temperature, Temperature_Source, &
            Porosity, Permeability )
 !!$ Calculate diagnostic fields
       call calculate_diagnostic_variables( state, exclude_nonrecalculated = .true. )
@@ -469,9 +431,6 @@
 !!$
 !!$ Initialising Robin boundary conditions --  this still need to be defined in the schema:
 !!$
-      suf_u_bc_rob1 = 0. ; suf_v_bc_rob1 = 0. ; suf_w_bc_rob1 = 0. ; suf_u_bc_rob2 = 0. ; suf_v_bc_rob2 = 0.
-      suf_w_bc_rob2 = 0. ; suf_vol_bc_rob1 = 0. ; suf_vol_bc_rob2 = 0.
-      suf_comp_bc_rob1 = 0. ; suf_comp_bc_rob2 = 0.
 
 !!$
 !!$ Initialising Absorption terms that do not appear in the schema
@@ -656,11 +615,6 @@
 !                 &            velocity_absorption, permeability, porosity )
 !         end if
 
-         ! time varying boundary conditions for Temperature
-         if( have_temperature_field ) &
-              call update_boundary_conditions( state, stotel, cv_snloc, nphase, & 
-              Temperature_BC, suf_t_bc_rob1, suf_t_bc_rob2 )
-
 !!$ Start non-linear loop
          Loop_NonLinearIteration: do  its = 1, NonLinearIteration
 
@@ -705,7 +659,6 @@
                   call calculate_SUF_SIG_DIAGTEN_BC( packed_state, suf_sig_diagten_bc, totele, stotel, cv_nloc, &
                        cv_snloc, nphase, ndim, nface, mat_nonods, cv_nonods, x_nloc, ncolele, cv_ele_type, &
                        finele, colele, cv_ndgln, cv_sndgln, x_ndgln, mat_ndgln, permeability, material_absorption, &
-                       Velocity_U_BC_Spatial, PhaseVolumeFraction_BC_Spatial,  PhaseVolumeFraction_BC, &
                        state, x_nonods )
                end if
             end if
@@ -721,7 +674,12 @@
                call calculate_diffusivity( state, ncomp, nphase, ndim, cv_nonods, mat_nonods, &
                                            mat_nloc, totele, mat_ndgln, ScalarAdvectionField_Diffusion )
 
+               tracer_field=>extract_tensor_field(packed_state,"PackedTemperature")
+               velocity_field=>extract_tensor_field(packed_state,"PackedVelocity")
+               density_field=>extract_tensor_field(packed_state,"PackedDensity",stat)
+
               call INTENERGE_ASSEM_SOLVE( state, packed_state, &
+                   tracer_field,velocity_field,density_field,&
                     NCOLACV, FINACV, COLACV, MIDACV, &
                     small_FINACV, small_COLACV, small_MIDACV, &
                     block_to_global_acv, global_dense_block_acv, &
@@ -737,9 +695,7 @@
 !!$
                     MAT_NLOC, MAT_NDGLN, MAT_NONODS, ScalarAdvectionField_Diffusion, IGOT_THERM_VIS, THERM_U_DIFFUSION, &
                     t_disopt, t_dg_vel_int_opt, dt, t_theta, t_beta, &
-                    Temperature_BC, Density_BC, Velocity_U_BC, Velocity_V_BC, Velocity_W_BC, &
-                    suf_sig_diagten_bc, suf_t_bc_rob1, suf_t_bc_rob2, &
-                    Temperature_BC_Spatial, Density_BC_Spatial, Velocity_U_BC_Spatial, &
+                    suf_sig_diagten_bc,&
                     DRhoDPressure, &
                     Temperature_Source, Temperature_Absorption, Porosity, &
                     ndim, &
@@ -753,7 +709,6 @@
                     0,Temperature, Temperature_Old,igot_theta_flux, scvngi_theta, &
                     t_get_theta_flux, t_use_theta_flux, &
                     THETA_GDIFF, &
-                    Temperature_BC, suf_t_bc_rob1, suf_t_bc_rob2, Temperature_BC_Spatial, &
                     in_ele_upwind, dg_ele_upwind, &
 !!$                    
                     NOIT_DIM, & ! This need to be removed as it is already deprecated
@@ -811,12 +766,15 @@
                     NDIM,  &
                     NCOLM, FINDM, COLM, MIDM, &
                     XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
-                    Component_BC_Spatial, Component_BC ,&
                     StorageIndexes=StorageIndexes )
 
 
 
+               velocity_field=>extract_tensor_field(packed_state,"PackedVelocity")
+               pressure_field=>extract_scalar_field(state(1),"Pressure")
+
                CALL FORCE_BAL_CTY_ASSEM_SOLVE( state, packed_state, &
+                    velocity_field, pressure_field, &
                     NDIM, NPHASE, NCOMP, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
                     U_ELE_TYPE, P_ELE_TYPE, &
                     U_NONODS, CV_NONODS, X_NONODS, MAT_NONODS, &
@@ -840,11 +798,7 @@
                     CV_ELE_TYPE, &
 !!$
                     v_disopt, v_dg_vel_int_opt, v_theta, &
-                    PhaseVolumeFraction_BC, Density_BC, Velocity_U_BC, Velocity_V_BC, Velocity_W_BC, SUF_SIG_DIAGTEN_BC, &
-                    SUF_MOMU_BC, SUF_MOMV_BC, SUF_MOMW_BC, Pressure_FEM_BC, &
-                    suf_u_bc_rob1, suf_u_bc_rob2, suf_v_bc_rob1, suf_v_bc_rob2, &
-                    suf_w_bc_rob1, suf_w_bc_rob2, &
-                    PhaseVolumeFraction_BC_Spatial, Density_BC_Spatial, Velocity_U_BC_Spatial, WIC_MOMU_BC, Pressure_FEM_BC_Spatial, &
+                    SUF_SIG_DIAGTEN_BC, &
                     ScalarField_Source_Store, ScalarField_Absorption, Porosity, &
 !!$
                     NCOLM, FINDM, COLM, MIDM, & ! Sparsity for the CV-FEM
@@ -887,8 +841,7 @@
                     MAT_NLOC, MAT_NDGLN, MAT_NONODS, &
 !!$
                     v_disopt, v_dg_vel_int_opt, dt, v_theta, v_beta, &
-                    PhaseVolumeFraction_BC, Density_BC, Velocity_U_BC, Velocity_V_BC, Velocity_W_BC, SUF_SIG_DIAGTEN_BC, &
-                    PhaseVolumeFraction_BC_Spatial, Density_BC_Spatial, Velocity_U_BC_Spatial, &
+                    SUF_SIG_DIAGTEN_BC, &
                     DRhoDPressure, &
                     ScalarField_Source_Store, ScalarField_Absorption, Porosity, &
 !!$
@@ -917,8 +870,16 @@
 !!$ Starting loop over components
             sum_theta_flux = 0. ; sum_one_m_theta_flux = 0. ; sum_theta_flux_j = 0. ; sum_one_m_theta_flux_j = 0. ; ScalarField_Source_Component = 0.
 
+            velocity_field=>extract_tensor_field(packed_state,"PackedVelocity")
+            saturation_field=>extract_tensor_field(packed_state,"PackedPhaseVolumeFraction")
+               
+
+
             Conditional_Components:if( have_component_field ) then
                Loop_Components: do icomp = 1, ncomp
+
+                  tracer_field=>extract_tensor_field(multicomponent_state(icomp),"ComponentMassFraction")
+                  density_field=>extract_tensor_field(multicomponent_state(icomp),"ComponentDensity",stat)
 
 !!$ Computing the absorption term for the multi-components equation
                   call Calculate_ComponentAbsorptionTerm( state, packed_state, &
@@ -965,6 +926,7 @@
                      comp_use_theta_flux = .false. ; comp_get_theta_flux = .true.
 
                      call INTENERGE_ASSEM_SOLVE( state, packed_state, &
+                          tracer_field,velocity_field,density_field,&
                           NCOLACV, FINACV, COLACV, MIDACV, & ! CV sparsity pattern matrix
                           SMALL_FINACV, SMALL_COLACV, small_MIDACV,&
                           block_to_global_acv, global_dense_block_acv, &
@@ -981,12 +943,9 @@
 !!$
                           MAT_NLOC, MAT_NDGLN, MAT_NONODS, Component_Diffusion, 0, THERM_U_DIFFUSION, &
                           v_disopt, v_dg_vel_int_opt, dt, v_theta, v_beta, &
-                          Component_BC( 1 + stotel * cv_snloc * nphase * ( icomp - 1 ) : stotel * cv_snloc * nphase * icomp ), &
-                          Density_BC, Velocity_U_BC, Velocity_V_BC, Velocity_W_BC, SUF_SIG_DIAGTEN_BC,&
-                          suf_comp_bc_rob1, suf_comp_bc_rob2, &
-                          Component_BC_Spatial, Density_BC_Spatial, Velocity_U_BC_Spatial, &
-                          DRhoDPressure, &
-                          Component_Source, Component_Absorption, Porosity, &
+                         SUF_SIG_DIAGTEN_BC,&
+                         DRhoDPressure, &
+                         Component_Source, Component_Absorption, Porosity, &
 !!$
                           NDIM,  &
                           NCOLM, FINDM, COLM, MIDM, &
@@ -998,7 +957,6 @@
                           igot_t2, PhaseVolumeFraction, PhaseVolumeFraction_Old, igot_theta_flux, scvngi_theta, &
                           comp_get_theta_flux, comp_use_theta_flux, &
                           theta_gdiff, &
-                          PhaseVolumeFraction_BC, suf_vol_bc_rob1, suf_vol_bc_rob2, PhaseVolumeFraction_BC_Spatial, &
                           in_ele_upwind, dg_ele_upwind, &
 !!$
                           NOIT_DIM, & ! This need to be removed as it is already deprecated
@@ -1007,7 +965,7 @@
                           mass_ele_transp = dummy_ele, &
                           thermal = .false.,& ! the false means that we don't add an extra source term
                           theta_flux=theta_flux, one_m_theta_flux=one_m_theta_flux, theta_flux_j=theta_flux_j, one_m_theta_flux_j=one_m_theta_flux_j,&
-                          StorageIndexes=StorageIndexes, icomp=icomp )
+                          StorageIndexes=StorageIndexes, icomp=icomp, saturation=saturation_field )
 
                    Component( ( icomp - 1 ) * nphase * cv_nonods + 1 : icomp * nphase * cv_nonods )  &
 !                       =min(  max(Component( ( icomp - 1 ) * nphase * cv_nonods + 1 : icomp * nphase * cv_nonods ),0.0), 0.95) 
@@ -1323,8 +1281,6 @@ end do
 !!$ Variables used in the diffusion-like term: capilarity and surface tension:
                  plike_grad_sou_grad, plike_grad_sou_coef, &
 !!$ Working arrays
-                 PhaseVolumeFraction_BC_Spatial, Pressure_FEM_BC_Spatial, &
-                 Density_BC_Spatial, Component_BC_Spatial, Velocity_U_BC_Spatial, wic_momu_bc, Temperature_BC_Spatial, &
                  Temperature, PhaseVolumeFraction, &
                  Component, &
                  Temperature_Old, &
@@ -1333,11 +1289,7 @@ end do
                  Porosity, &
                  Velocity_U_Source, Velocity_U_Source_CV, Temperature_Source, PhaseVolumeFraction_Source, &
                  ScalarField_Source, Component_Source, ScalarAdvectionField_Source, &
-                 PhaseVolumeFraction_BC, Pressure_FEM_BC, &
-                 Density_BC, Component_BC, Velocity_U_BC, Velocity_V_BC, Velocity_W_BC, Temperature_BC, &
-                 suf_u_bc_rob1, suf_v_bc_rob1, suf_w_bc_rob1, suf_u_bc_rob2, suf_v_bc_rob2, suf_w_bc_rob2, &
-                 suf_sig_diagten_bc, suf_momu_bc, suf_momv_bc, suf_momw_bc, &
-                 suf_t_bc_rob1, suf_t_bc_rob2, suf_vol_bc_rob1, suf_vol_bc_rob2, suf_comp_bc_rob1, suf_comp_bc_rob2, &
+                 suf_sig_diagten_bc, &
                  theta_gdiff,  ScalarField_Source_Store, ScalarField_Source_Component, &
                  mass_ele, dummy_ele, &
                  Permeability, Material_Absorption, Material_Absorption_Stab, &
@@ -1428,24 +1380,8 @@ end do
 !!$
                  Temperature_Old( nphase * cv_nonods ), &
                  PhaseVolumeFraction_Old( nphase * cv_nonods ), Component_Old( nphase * cv_nonods * ncomp ), &
-!!$
-                 PhaseVolumeFraction_BC_Spatial( stotel * nphase ), Pressure_FEM_BC_Spatial( stotel * nphase ), &
-                 Density_BC_Spatial( stotel * nphase ), Component_BC_Spatial( stotel * nphase ), &
-                 Velocity_U_BC_Spatial( stotel * nphase ), wic_momu_bc( stotel * nphase ), Temperature_BC_Spatial( stotel * nphase ), &
-                 PhaseVolumeFraction_BC( stotel * cv_snloc * nphase ), Pressure_FEM_BC( stotel * p_snloc * nphase ), &
-                 Density_BC( stotel * cv_snloc * nphase ), Temperature_BC( stotel * cv_snloc * nphase ), &
-                 Component_BC( stotel * cv_snloc * nphase * ncomp ), &
-                 Velocity_U_BC( stotel * u_snloc * nphase ), Velocity_V_BC( stotel * u_snloc * nphase ), &
-                 Velocity_W_BC( stotel * u_snloc * nphase ), Temperature_Source( cv_nonods * nphase ), &
-                 suf_u_bc_rob1( stotel * u_snloc * nphase ), suf_v_bc_rob1( stotel * u_snloc * nphase ), &
-                 suf_w_bc_rob1( stotel * u_snloc * nphase ), suf_u_bc_rob2( stotel * u_snloc * nphase ), &
-                 suf_v_bc_rob2( stotel * u_snloc * nphase ), suf_w_bc_rob2( stotel * u_snloc * nphase ), &
-                 suf_t_bc_rob1( stotel * cv_snloc * nphase ), suf_t_bc_rob2( stotel * cv_snloc * nphase ), &
-                 suf_vol_bc_rob1( stotel * cv_snloc * nphase ), suf_vol_bc_rob2( stotel * cv_snloc * nphase ), &
-                 suf_comp_bc_rob1( stotel * cv_snloc * nphase ), suf_comp_bc_rob2( stotel * cv_snloc * nphase ), &
+!!$             
                  suf_sig_diagten_bc( stotel * cv_snloc * nphase, ndim ), &
-                 suf_momu_bc( stotel * u_snloc * nphase ), suf_momv_bc( stotel * u_snloc * nphase ), suf_momw_bc( stotel * u_snloc * nphase ), &
-!!$
                  Porosity( totele ), &
                  PhaseVolumeFraction_FEMT( cv_nonods * nphase ), Temperature_FEMT( cv_nonods * nphase ), &
                  Density_FEMT( cv_nonods * nphase ), Component_FEMT( cv_nonods * nphase * ncomp ), &
@@ -1471,24 +1407,19 @@ end do
                  plike_grad_sou_coef( cv_nonods * nphase ) )    
 !!$
             Velocity_U_Source = 0. ; Velocity_Absorption = 0. ; Velocity_U_Source_CV = 0. 
-            Velocity_U_BC_Spatial=0 ; Velocity_U_BC=0. ; Velocity_V_BC=0. ; Velocity_W_BC=0.
             Momentum_Diffusion=0.
 !!$
-            Temperature=0. ; Temperature_Source=0. ; Temperature_BC_Spatial=0 ; Temperature_BC=0.
+            Temperature=0. ; Temperature_Source=0. ; 
             Temperature_FEMT=0. ; Temperature_Absorption=0.
 !!$
-            Component=0. ; Component_BC_Spatial=0 ; Component_BC=0. ; Component_Source=0.
+            Component=0. ; Component_Source=0.
             Component_Diffusion=0. ; Component_Absorption=0.
 !!$
             Porosity=0. ; Permeability=0.
 !!$
-            Pressure_FEM_BC_Spatial=0 ; Pressure_FEM_BC=0.
 !!$
-            PhaseVolumeFraction=0. ; PhaseVolumeFraction_Old=0. ; PhaseVolumeFraction_BC_Spatial=0
-            PhaseVolumeFraction_BC=0. ; PhaseVolumeFraction_Source=0.
+            PhaseVolumeFraction=0. ; PhaseVolumeFraction_Old=0. ; PhaseVolumeFraction_Source=0.
             PhaseVolumeFraction_FEMT=0. ; Dummy_PhaseVolumeFraction_FEMT=0.
-!!$
-            Density_BC_Spatial=0 ; Density_BC=0.
 !!$
             ScalarAdvectionField_Diffusion=0. ; ScalarField_Absorption=0.
             ScalarField_Source=0. ; ScalarAdvectionField_Source=0.
@@ -1497,26 +1428,16 @@ end do
 !!$
             plike_grad_sou_grad=0. ; plike_grad_sou_coef=0.
 !!$
-            suf_u_bc_rob1=0. ; suf_v_bc_rob1=0. 
-            suf_w_bc_rob1=0. ; suf_u_bc_rob2=0. 
-            suf_v_bc_rob2=0. ; suf_w_bc_rob2=0. 
-            suf_t_bc_rob1=0. ; suf_t_bc_rob2=0. 
-            suf_vol_bc_rob1=0. ; suf_comp_bc_rob1=0. ; suf_comp_bc_rob2=0.
             suf_sig_diagten_bc=0.
-            suf_momu_bc=0. ; suf_momv_bc=0. ; suf_momw_bc=0.
-            wic_momu_bc=0
 !!$
 
 !!$ Extracting Mesh Dependent Fields
             initialised = .true.
             call Extracting_MeshDependentFields_From_State( state, packed_state, initialised, &
-                 PhaseVolumeFraction, PhaseVolumeFraction_BC_Spatial, PhaseVolumeFraction_BC, PhaseVolumeFraction_Source, &
-                 Pressure_FEM_BC_Spatial, Pressure_FEM_BC, &
-                 Density_BC_Spatial, Density_BC, &
-                 Component, Component_BC_Spatial, Component_BC, Component_Source, &
-                 Velocity_U_BC_Spatial, wic_momu_bc, Velocity_U_BC, Velocity_V_BC, Velocity_W_BC,&
-                 suf_momu_bc, suf_momv_bc, suf_momw_bc, Velocity_U_Source, Velocity_Absorption, &
-                 Temperature, Temperature_BC_Spatial, Temperature_BC, Temperature_Source, suf_t_bc_rob1, suf_t_bc_rob2, &
+                 PhaseVolumeFraction, PhaseVolumeFraction_Source, &
+                 Component, Component_Source, &
+                 Velocity_U_Source, Velocity_Absorption, &
+                 Temperature,  Temperature_Source, &
                  Porosity, Permeability )
 
 !!$ Dummy field used in the scalar advection option:
@@ -1525,13 +1446,6 @@ end do
 
             ncv_faces=CV_count_faces( packed_state, CV_ELE_TYPE, stotel, cv_sndgln, u_sndgln )
 
-
-!!$
-!!$ Initialising Robin boundary conditions --  this still need to be defined in the schema:
-!!$
-            suf_u_bc_rob1 = 0. ; suf_v_bc_rob1 = 0. ; suf_w_bc_rob1 = 0. ; suf_u_bc_rob2 = 0. ; suf_v_bc_rob2 = 0.
-            suf_w_bc_rob2 = 0. ; suf_vol_bc_rob1 = 0. ; suf_vol_bc_rob2 = 0.
-            suf_comp_bc_rob1 = 0. ; suf_comp_bc_rob2 = 0.
 
 !!$
 !!$ Initialising Absorption terms that do not appear in the schema
@@ -1616,8 +1530,6 @@ end do
 !!$ Variables used in the diffusion-like term: capilarity and surface tension:
            plike_grad_sou_grad, plike_grad_sou_coef, &
 !!$ Working arrays
-           PhaseVolumeFraction_BC_Spatial, Pressure_FEM_BC_Spatial, &
-           Density_BC_Spatial, Component_BC_Spatial, Velocity_U_BC_Spatial, Temperature_BC_Spatial, &
            Temperature, PhaseVolumeFraction, &
            Component, &
            Temperature_Old, &
@@ -1626,10 +1538,6 @@ end do
            Porosity, &
            Velocity_U_Source, Velocity_U_Source_CV, Temperature_Source, PhaseVolumeFraction_Source, &
            ScalarField_Source, Component_Source, ScalarAdvectionField_Source, &
-           PhaseVolumeFraction_BC, Pressure_FEM_BC, &
-           Density_BC, Component_BC, Velocity_U_BC, Velocity_V_BC, Velocity_W_BC, Temperature_BC, &
-           suf_u_bc_rob1, suf_v_bc_rob1, suf_w_bc_rob1, suf_u_bc_rob2, suf_v_bc_rob2, suf_w_bc_rob2, &
-           suf_t_bc_rob1, suf_t_bc_rob2, suf_vol_bc_rob1, suf_vol_bc_rob2, suf_comp_bc_rob1, suf_comp_bc_rob2, &
            theta_gdiff,  ScalarField_Source_Store, ScalarField_Source_Component, &
            mass_ele, dummy_ele, &
            Permeability, Material_Absorption, Material_Absorption_Stab, &
