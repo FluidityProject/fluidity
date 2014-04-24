@@ -91,8 +91,12 @@ class ManufacturedSolution:
         t = Symbol('t')
         g = g_mag*self.g_dir
         i = phase_num - 1
+        try:
+            grad_p_eff = self.grad_p - rho*g
+        except TypeError:
+            grad_p_eff = self.grad_p - array(rho*g)
         # n.b. K is a function of s[i]
-        u = -K(self.s[i])/mu*(self.grad_p - rho*g)
+        u = -K(self.s[i])/mu*grad_p_eff
         self.u_mag[i] = mag(u)
         self.q[i] = -diff(phi*self.s[i], t) + div(u)
 
@@ -193,8 +197,11 @@ class SolutionHarness:
             line = re.sub('y', 'X[1]', line.rstrip())
             line = re.sub('z', 'X[2]', line.rstrip())
             # sympy writes fractions with integers, e.g. 1/2, so
-            # need to append decimal points
-            line = re.sub('([^e*][ /\*-+()][0-9]+)([ /\*-+()])', '\\1.\\2', line.rstrip())
-            # a second pass is needed here
-            line = re.sub('([^e*][ /\*-+()][0-9]+)([ /\*-+()])', '\\1.\\2', line.rstrip())
+            # need to append decimal points to all integers that aren't acting as 
+            # exponents, array subscripts or labels.  "1/2." is fine though
+            line = re.sub('([^e*][ /*\-+()][0-9]+)([ /*\-+()"])', '\\1.\\2', line.rstrip())
+            # a second pass is needed due to that pattern absorbing neighbouring candidates
+            line = re.sub('([^e*][ /*\-+()][0-9]+)([ /*\-+()"])', '\\1.\\2', line.rstrip())
+            # another important conversions
+            line = re.sub('Abs', 'abs', line.rstrip())
             print(line)

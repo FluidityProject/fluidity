@@ -103,6 +103,7 @@ class WriteXMLFile(Command):
 python processing.py pre proc post clean
     </command_line>
   </problem_definition>
+  <variables/>
   <pass_tests>
     <test name="Solvers converged" language="python">
 import os
