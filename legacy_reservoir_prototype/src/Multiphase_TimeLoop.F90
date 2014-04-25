@@ -201,7 +201,6 @@
       real, dimension( : ), allocatable :: rsum
 
       real, dimension(:, :), allocatable :: SUF_SIG_DIAGTEN_BC
-      integer :: I
 
       type( scalar_field ), pointer :: cfl, rc_field
       real :: c, rc, minc, maxc, ic
@@ -621,14 +620,9 @@
          call update_velocity_absorption( state, ndim, nphase, mat_nonods, velocity_absorption )
 
 !!$ FEMDEM...
-!         if ( .false. ) then
-!            !call femdem( state, totele, cv_nonods, u_nonods, ndim, nphase, cv_nloc, &
-!            !     &            cv_ndgln, dt, density_femt, pressure_fem, velocity_u, velocity_v, &
-!            !     &            velocity_absorption, permeability, porosity )
-!            call blasting( state, totele, cv_nonods, u_nonods, ndim, nphase, cv_nloc, &
-!                 &            cv_ndgln, dt, density_femt, pressure_fem, velocity_u, velocity_v, &
-!                 &            velocity_absorption, permeability, porosity )
-!         end if
+         if ( .false. ) then
+            call blasting( packed_state, nphase )
+         end if
 
 !!$ Start non-linear loop
          Loop_NonLinearIteration: do  its = 1, NonLinearIteration

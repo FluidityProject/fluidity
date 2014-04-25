@@ -3315,6 +3315,24 @@ Sums up the divergence of each phase's bulk velocity, i.e. \sum{ div(vfrac*u) }<
           </element>
         </element>
       </element>
+      <element name="scalar_field">
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>SolidConcentration</value>
+        </attribute>
+        <choice>
+          <element name="diagnostic">
+            <ref name="internal_algorithm"/>
+            <ref name="velocity_mesh_choice"/>
+            <ref name="diagnostic_scalar_field"/>
+          </element>
+          <element name="aliased">
+            <ref name="generic_aliased_field"/>
+          </element>
+        </choice>
+      </element>
     </choice>
     <!--
       Insert new diagnostic scalar fields here using the template:
@@ -3698,6 +3716,24 @@ less accurate but faster and might give smoother result.                  </a:do
                 <ref name="linear_solver_options_sym"/>
               </element>
             </optional>
+            <ref name="diagnostic_vector_field"/>
+          </element>
+          <element name="aliased">
+            <ref name="generic_aliased_field"/>
+          </element>
+        </choice>
+      </element>
+      <element name="vector_field">
+        <attribute name="rank">
+          <value>1</value>
+        </attribute>
+        <attribute name="name">
+          <value>U_hat</value>
+        </attribute>
+        <choice>
+          <element name="diagnostic">
+            <ref name="internal_algorithm"/>
+            <ref name="mesh_choice"/>
             <ref name="diagnostic_vector_field"/>
           </element>
           <element name="aliased">
