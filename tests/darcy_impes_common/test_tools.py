@@ -100,7 +100,7 @@ class WriteXMLFile(Command):
   <tags>diml</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>
-python processing.py pre proc post clean
+python processing.py pre proc post
     </command_line>
   </problem_definition>
   <variables/>

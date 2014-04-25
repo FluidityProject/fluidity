@@ -1,6 +1,6 @@
 include ../darcy_impes_common/Depend.mk
 
-input: clean code geo
+input: code geo clean-generated
 
 code:
 	$(call import_python_code,batch_tools.py)
@@ -32,7 +32,7 @@ post:
 all:
 	python processing.py all
 
-clean:
+clean-generated:
 	python processing.py clean
 	rm -f *.vtu 
 	rm -f *.pvtu 
@@ -48,6 +48,15 @@ clean:
 	rm -f *.pyc
 	rm -f *.stat
 	rm -f *.txt
+
+clean-geo:
+	rm -f template_*.sh
+	rm -f template_*.geo
+
+clean-code:
 	rm -f manufactured_solution_test_tools.py
 	rm -f test_tools.py
 	rm -f batch_tools.py
+
+clean: clean-generated clean-geo clean-code
+
