@@ -166,7 +166,6 @@
            Temperature, PhaseVolumeFraction, &
            Component, Temperature_Old, &
            PhaseVolumeFraction_Old, Component_Old, &
-           Porosity, &
            Velocity_U_Source, Velocity_U_Source_CV, Temperature_Source, PhaseVolumeFraction_Source, &
            ScalarField_Source, Component_Source, ScalarAdvectionField_Source, &
            ScalarField_Source_Store, ScalarField_Source_Component, &
@@ -224,7 +223,7 @@
       real, dimension(:,:), pointer :: SAT_s, OldSAT_s, FESAT_s
 
       type( tensor_field ), pointer :: tracer_field, velocity_field, density_field, saturation_field
-      type(scalar_field), pointer :: pressure_field
+      type(scalar_field), pointer :: pressure_field, porosity_field
 
       !Initially we set to use Stored data and that we have a new mesh
       StorageIndexes = 0!Initialize them as zero !
@@ -347,7 +346,6 @@
            PhaseVolumeFraction_Old( nphase * cv_nonods ), Component_Old( nphase * cv_nonods * ncomp ), &
 !!$
            suf_sig_diagten_bc( stotel * cv_snloc * nphase, ndim ), &
-           Porosity( totele ), &
            PhaseVolumeFraction_FEMT( cv_nonods * nphase ), Temperature_FEMT( cv_nonods * nphase ), &
            Density_FEMT( cv_nonods * nphase ), Component_FEMT( cv_nonods * nphase * ncomp ), &
            Mean_Pore_CV( cv_nonods ),  SumConc_FEMT( cv_nonods * ncomp ), &
@@ -386,7 +384,6 @@
       Temperature_Source=0.
       suf_sig_diagten_bc=0.
 !!$
-      Porosity=0.
       PhaseVolumeFraction_FEMT=0. ; Temperature_FEMT=0.
       Density_FEMT=1. ; Component_FEMT=0.
       Mean_Pore_CV=0. ; SumConc_FEMT=0.
@@ -419,7 +416,7 @@
            Component, Component_Source, &
            Velocity_U_Source, Velocity_Absorption, &
            Temperature, Temperature_Source, &
-           Porosity, Permeability )
+           Permeability )
 !!$ Calculate diagnostic fields
       call calculate_diagnostic_variables( state, exclude_nonrecalculated = .true. )
       call calculate_diagnostic_variables_new( state, exclude_nonrecalculated = .true. )
@@ -598,6 +595,8 @@
             MFCOLD_s  => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedOldComponentMassFraction" )
          end if
 
+         porosity_field=>extract_scalar_field(packed_state,"Porosity")
+
 !! Temporal working array:
          DO CV_INOD = 1, CV_NONODS
             DO IPHASE = 1, NPHASE
@@ -659,7 +658,6 @@
             if( solve_force_balance ) then
                call Calculate_AbsorptionTerm( state, packed_state,&
                     cv_ndgln, mat_ndgln, &
-                    Permeability, &
                     nopt_vel_upwind_coefs, opt_vel_upwind_coefs, Material_Absorption )
 
                ! calculate SUF_SIG_DIAGTEN_BC this is \sigma_in^{-1} \sigma_out
@@ -668,7 +666,7 @@
                if( is_overlapping ) then
                   call calculate_SUF_SIG_DIAGTEN_BC( packed_state, suf_sig_diagten_bc, totele, stotel, cv_nloc, &
                        cv_snloc, nphase, ndim, nface, mat_nonods, cv_nonods, x_nloc, ncolele, cv_ele_type, &
-                       finele, colele, cv_ndgln, cv_sndgln, x_ndgln, mat_ndgln, permeability, material_absorption, &
+                       finele, colele, cv_ndgln, cv_sndgln, x_ndgln, mat_ndgln, material_absorption, &
                        state, x_nonods )
                end if
             end if
@@ -707,7 +705,7 @@
                     t_disopt, t_dg_vel_int_opt, dt, t_theta, t_beta, &
                     suf_sig_diagten_bc,&
                     DRhoDPressure, &
-                    Temperature_Source, Temperature_Absorption, Porosity, &
+                    Temperature_Source, Temperature_Absorption, Porosity_field%val, &
                     ndim, &
 !!$
                     NCOLM, FINDM, COLM, MIDM, &
@@ -809,7 +807,7 @@
 !!$
                     v_disopt, v_dg_vel_int_opt, v_theta, &
                     SUF_SIG_DIAGTEN_BC, &
-                    ScalarField_Source_Store, ScalarField_Absorption, Porosity, &
+                    ScalarField_Source_Store, ScalarField_Absorption, Porosity_field%val, &
 !!$
                     NCOLM, FINDM, COLM, MIDM, & ! Sparsity for the CV-FEM
                     XU_NLOC, XU_NDGLN, &
@@ -853,7 +851,7 @@
                     v_disopt, v_dg_vel_int_opt, dt, v_theta, v_beta, &
                     SUF_SIG_DIAGTEN_BC, &
                     DRhoDPressure, &
-                    ScalarField_Source_Store, ScalarField_Absorption, Porosity, &
+                    ScalarField_Source_Store, ScalarField_Absorption, Porosity_field%val, &
 !!$
                     NDIM, &
                     NCOLM, FINDM, COLM, MIDM, &
@@ -894,7 +892,7 @@
 !!$ Computing the absorption term for the multi-components equation
                   call Calculate_ComponentAbsorptionTerm( state, packed_state, &
                        icomp, cv_ndgln, & 
-                       D_s%val, Porosity, mass_ele, &
+                       D_s%val, Porosity_field%val, mass_ele, &
                        Component_Absorption )
 
                   Conditional_SmoothAbsorption: if( have_option( '/material_phase[' // int2str( nstate - ncomp ) // &
@@ -955,7 +953,7 @@
                           v_disopt, v_dg_vel_int_opt, dt, v_theta, v_beta, &
                          SUF_SIG_DIAGTEN_BC,&
                          DRhoDPressure, &
-                         Component_Source, Component_Absorption, Porosity, &
+                         Component_Source, Component_Absorption, Porosity_field%val, &
 !!$
                           NDIM,  &
                           NCOLM, FINDM, COLM, MIDM, &
@@ -1043,7 +1041,7 @@
 
                   call Calculate_ComponentAbsorptionTerm( state, packed_state,&
                        icomp, cv_ndgln, & 
-                       D_s%val, Porosity, mass_ele, &
+                       D_s%val, Porosity_field%val, mass_ele, &
                        Component_Absorption )
 
                   if( have_option( '/material_phase[' // int2str( nstate - ncomp ) // &
@@ -1321,7 +1319,6 @@ end do
                  Temperature_Old, &
                  PhaseVolumeFraction_Old, Component_Old, &
                  DRhoDPressure, &
-                 Porosity, &
                  Velocity_U_Source, Velocity_U_Source_CV, Temperature_Source, PhaseVolumeFraction_Source, &
                  ScalarField_Source, Component_Source, ScalarAdvectionField_Source, &
                  suf_sig_diagten_bc, &
@@ -1417,7 +1414,6 @@ end do
                  PhaseVolumeFraction_Old( nphase * cv_nonods ), Component_Old( nphase * cv_nonods * ncomp ), &
 !!$             
                  suf_sig_diagten_bc( stotel * cv_snloc * nphase, ndim ), &
-                 Porosity( totele ), &
                  PhaseVolumeFraction_FEMT( cv_nonods * nphase ), Temperature_FEMT( cv_nonods * nphase ), &
                  Density_FEMT( cv_nonods * nphase ), Component_FEMT( cv_nonods * nphase * ncomp ), &
                  Mean_Pore_CV( cv_nonods ), SumConc_FEMT( cv_nonods * ncomp ), &
@@ -1450,7 +1446,7 @@ end do
             Component=0. ; Component_Source=0.
             Component_Diffusion=0. ; Component_Absorption=0.
 !!$
-            Porosity=0. ; Permeability=0.
+            Permeability=0.
 !!$
 !!$
             PhaseVolumeFraction=0. ; PhaseVolumeFraction_Old=0. ; PhaseVolumeFraction_Source=0.
@@ -1473,7 +1469,7 @@ end do
                  Component, Component_Source, &
                  Velocity_U_Source, Velocity_Absorption, &
                  Temperature,  Temperature_Source, &
-                 Porosity, Permeability )
+                 Permeability )
 
 !!$ Dummy field used in the scalar advection option:
             Dummy_PhaseVolumeFraction_FEMT = 1.
@@ -1570,7 +1566,6 @@ end do
            Temperature_Old, &
            PhaseVolumeFraction_Old, Component_Old, &
            DRhoDPressure, FEM_VOL_FRAC, &
-           Porosity, &
            Velocity_U_Source, Velocity_U_Source_CV, Temperature_Source, PhaseVolumeFraction_Source, &
            ScalarField_Source, Component_Source, ScalarAdvectionField_Source, &
            theta_gdiff,  ScalarField_Source_Store, ScalarField_Source_Component, &

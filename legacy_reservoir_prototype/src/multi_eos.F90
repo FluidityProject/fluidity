@@ -635,7 +635,6 @@
 
     subroutine Calculate_AbsorptionTerm( state, packed_state,&
          cv_ndgln, mat_ndgln, &
-         perm, &
          nopt_vel_upwind_coefs, opt_vel_upwind_coefs, u_absorb )
       ! Calculate absorption for momentum eqns
       use matrix_operations
@@ -643,7 +642,6 @@
       type( state_type ), dimension( : ), intent( in ) :: state
       type( state_type ), intent( inout ) :: packed_state
       integer, dimension( : ), intent( in ) :: cv_ndgln, mat_ndgln
-      real, dimension( :, :, : ), intent( in ) :: perm
       integer, intent( in ) :: nopt_vel_upwind_coefs
       real, dimension( : ), intent( inout ) :: opt_vel_upwind_coefs
       real, dimension( :, :, : ), intent( inout ) :: u_absorb
@@ -660,8 +658,12 @@
       !Working pointers
       real, dimension(:,:), pointer :: Satura
 
+      type( tensor_field ), pointer :: perm
+
     !Get from packed_state
     call get_var_from_packed_state(packed_state,PhaseVolumeFraction = Satura)
+
+    perm=>extract_tensor_field(packed_state,"Permeability")
 
 !!$ Obtaining a few scalars that will be used in the current subroutine tree:
       call Get_Primary_Scalars( state, &         
@@ -669,6 +671,8 @@
            u_nloc, xu_nloc, cv_nloc, x_nloc, x_nloc_p1, p_nloc, mat_nloc, &
            x_snloc, cv_snloc, u_snloc, p_snloc, &
            cv_nonods, mat_nonods, u_nonods, xu_nonods, x_nonods, x_nonods_p1, p_nonods )
+
+
 
 
       ewrite(3,*) 'In calculate_absorption'
@@ -689,7 +693,7 @@
 
       CALL calculate_absorption2( MAT_NONODS, CV_NONODS, NPHASE, NDIM, SATURA, TOTELE, CV_NLOC, MAT_NLOC, &
            CV_NDGLN, MAT_NDGLN, &
-           U_ABSORB, PERM, MOBILITY)
+           U_ABSORB, PERM%val, MOBILITY)
 
       PERT = 0.0001
 !      SATURA2( 1 : CV_NONODS ) = SATURA( 1 : CV_NONODS ) + PERT
@@ -700,7 +704,7 @@
 
       CALL calculate_absorption2( MAT_NONODS, CV_NONODS, NPHASE, NDIM, SATURA2, TOTELE, CV_NLOC, MAT_NLOC, &
            CV_NDGLN, MAT_NDGLN, &
-           U_ABSORB2, PERM, MOBILITY)
+           U_ABSORB2, PERM%val, MOBILITY)
 
       DO ELE = 1, TOTELE
          DO CV_ILOC = 1, CV_NLOC
@@ -761,12 +765,12 @@
 
 
       ewrite(3,*) 'In calculate_absorption2'
-      ALLOCATE( INV_PERM( TOTELE, NDIM, NDIM ))
-      ALLOCATE( PERM( TOTELE, NDIM, NDIM ))
+      ALLOCATE( INV_PERM(  NDIM, NDIM, TOTELE ))
+      ALLOCATE( PERM( NDIM, NDIM , TOTELE))
 
       perm=perm2
       do ele = 1, totele
-         inv_perm(ele, :, :)=inverse(perm(ele, :, :))
+         inv_perm( :, :, ele)=inverse(perm( :, :, ele))
       end do
 
 
@@ -815,11 +819,11 @@
                      if (is_corey) then
                           if (options%is_Corey_epsilon_method) then
                              CALL relperm_corey_epsilon( U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ), MOBILITY, &
-                                 INV_PERM( ELE, IDIM, JDIM ), min(1.0,max(0.0,SATURA(1,CV_NOD))), IPHASE,&
+                                 INV_PERM( IDIM, JDIM, ELE ), min(1.0,max(0.0,SATURA(1,CV_NOD))), IPHASE,&
                                  options)!Second phase is considered inside the subroutine
                           else
                                 CALL relperm_corey( U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ), MOBILITY, &
-                                     INV_PERM( ELE, IDIM, JDIM ), min(1.0,max(0.0,SATURA(1,CV_NOD))), IPHASE,&
+                                     INV_PERM( IDIM, JDIM, ELE ), min(1.0,max(0.0,SATURA(1,CV_NOD))), IPHASE,&
                                      options)
                              end if
 
@@ -829,7 +833,7 @@
 
                      else if (is_land) then
                         CALL relperm_land( U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ), MOBILITY, &
-                             INV_PERM( ELE, IDIM, JDIM ), min(1.0,max(0.0,SATURA(1,CV_NOD))), IPHASE,&
+                             INV_PERM( IDIM, JDIM, ELE ), min(1.0,max(0.0,SATURA(1,CV_NOD))), IPHASE,&
                              options)
                      else
                         U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ) = 0.0
@@ -1440,7 +1444,7 @@
 
     subroutine calculate_SUF_SIG_DIAGTEN_BC( packed_state, suf_sig_diagten_bc, totele, stotel, cv_nloc, &
          cv_snloc, nphase, ndim, nface, mat_nonods, cv_nonods, x_nloc, ncolele, cv_ele_type, &
-         finele, colele, cv_ndgln, cv_sndgln, x_ndgln, mat_ndgln, perm, material_absorption, &
+         finele, colele, cv_ndgln, cv_sndgln, x_ndgln, mat_ndgln, material_absorption, &
          state, x_nonods )
 
       implicit none
@@ -1453,7 +1457,6 @@
       integer, dimension( : ), intent( in ) :: cv_sndgln
       integer, dimension( : ), intent( in ) :: x_ndgln
       integer, dimension( : ), intent( in ) :: mat_ndgln
-      real, dimension( :, :, : ), intent( in ) :: perm
       real, dimension( :, :, : ), intent( inout ) :: material_absorption
       type(state_type), dimension( : ) :: state  
 
@@ -1484,12 +1487,13 @@
       !Working pointers
       real, dimension(:,:), pointer :: Sat
 
-      type(tensor_field), pointer :: velocity, volfrac
+      type(tensor_field), pointer :: velocity, volfrac, perm
       type(tensor_field) :: velocity_BCs, volfrac_BCs
 
     !Get from packed_state
       volfrac=>extract_tensor_field(packed_state,"PackedPhaseVolumeFraction")
       velocity=>extract_tensor_field(packed_state,"PackedVelocity")
+      perm=>extract_tensor_field(packed_state,"Permeability")
     call get_var_from_packed_state(packed_state,PhaseVolumeFraction = Sat)
 
     allocate(wic_u_bc(velocity%dim(1),velocity%dim(2),&
@@ -1545,7 +1549,7 @@
 
          do ele = 1, totele
 
-            inv_perm = inverse( perm(ele, :, :) )
+            inv_perm = inverse( perm%val(:, :, ele) )
 
             do iface = 1, nface
 

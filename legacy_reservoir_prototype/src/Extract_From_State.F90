@@ -745,7 +745,7 @@
          Component, Component_Source, &
          Velocity_U_Source, Velocity_Absorption, &
          Temperature, Temperature_Source,  &
-         Porosity, Permeability  )
+         Permeability  )
       implicit none
       type( state_type ), dimension( : ), intent( inout ) :: state
       type( state_type ), intent( inout ) :: packed_state
@@ -755,8 +755,7 @@
            PhaseVolumeFraction, PhaseVolumeFraction_Source, &
            Component, Component_Source, &
            Velocity_U_Source, &
-           Temperature, Temperature_Source,&
-           Porosity
+           Temperature, Temperature_Source
       real, dimension( :, :, : ), intent( inout ) :: Velocity_Absorption, Permeability
 
 !!$ Local variables
@@ -887,16 +886,6 @@
                  Temperature( knod + 1 : knod + node_count( scalarfield ) ), &
                  field_prot_source = Temperature_Source( knod + 1 : knod + node_count( scalarfield ) ) )
          end if Conditional_Temperature
-      end do
-
-!!$
-!!$ Extracting Porosity field (assuming for now that porosity is constant
-!!$  across an element):
-!!$
-      scalarfield => extract_scalar_field( state, 'Porosity' )
-      do ele = 1, element_count( scalarfield )
-         element_nodes => ele_nodes( scalarfield, ele )
-         Porosity( ele ) = scalarfield % val ( element_nodes( 1 ) )
       end do
 
 !!$
@@ -1968,14 +1957,16 @@
 
       type(state_type), dimension(:,:), pointer :: multi_state
       
-      integer :: i,nphase,ncomp,ndim, stat, iphase, icomp
+      integer :: i,nphase,ncomp,ndim, stat, iphase, icomp, idim
       
-      type(scalar_field), pointer :: pressure, p2
-      type(vector_field), pointer :: velocity, position
+      type(scalar_field), pointer :: pressure, p2,sfield
+      type(vector_field), pointer :: velocity, position, vfield
       
+      type(scalar_field) :: porosity
       type(vector_field) :: p_position, u_position, m_position
-      type(mesh_type) :: ovmesh,lmesh,nvmesh
-      type(element_type) :: overlapping_shape, vel_shape
+      type(tensor_field) :: permeability
+      type(mesh_type) :: ovmesh,lmesh,nvmesh, element_mesh
+      type(element_type) :: overlapping_shape, vel_shape, element_shape
       character( len = option_path_len ) :: vel_element_type
 
       logical :: has_density, has_phase_volume_fraction
@@ -1985,7 +1976,8 @@
       position=>extract_vector_field(state(1),"Coordinate")
       ndim=mesh_dim(position)
 
-      
+      element_shape=make_element_shape(position%mesh%shape,degree=0)
+      element_mesh=make_mesh(position%mesh,element_shape,continuity=-1)
 
       call get_option('/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/element_type', &
            vel_element_type )
@@ -2017,10 +2009,12 @@
 
 
       if (option_count("/material_phase/scalar_field::Temperature")>0) then
-         call insert_sfield(packed_state,"Temperature",1,nphase)
+         call insert_sfield(packed_state,"Temperature",1,nphase,&
+	         add_source=.true.,add_absorption=.true.)
           call insert_sfield(packed_state,"FETemperature",1,nphase)
       end if
-      call insert_sfield(packed_state,"PhaseVolumeFraction",1,nphase)
+      call insert_sfield(packed_state,"PhaseVolumeFraction",1,nphase,&
+           add_source=.true.)
       call insert_sfield(packed_state,"FEPhaseVolumeFraction",1,nphase)
 
       velocity=>extract_vector_field(state(1),"Velocity")
@@ -2080,13 +2074,13 @@
                velocity%mesh%overlapping_shape=overlapping_shape
             end if
          end do
-         call insert_vfield(packed_state,"Velocity",ovmesh)
+         call insert_vfield(packed_state,"Velocity",ovmesh,add_source=.true.)
          call insert_vfield(packed_state,"NonlinearVelocity",ovmesh)
          call insert(state(1),ovmesh,"InternalVelocityMesh")
          call insert(packed_state,ovmesh,"InternalVelocityMesh")
       else
          call insert(packed_state,velocity%mesh,"InternalVelocityMesh")
-         call insert_vfield(packed_state,"Velocity")
+         call insert_vfield(packed_state,"Velocity",add_source=.true.)
          call insert_vfield(packed_state,"NonlinearVelocity")
          call insert(state(1),velocity%mesh,"InternalVelocityMesh")
       end if
@@ -2094,7 +2088,8 @@
       call unpack_multiphase(packed_state,multiphase_state)  
       if (ncomp>0) then
          call insert_sfield(packed_state,"ComponentDensity",ncomp,nphase)
-         call insert_sfield(packed_state,"ComponentMassFraction",ncomp,nphase)
+         call insert_sfield(packed_state,"ComponentMassFraction",ncomp,&
+              nphase,add_source=.true.)
 
          call insert_sfield(packed_state,"FEComponentDensity",ncomp,nphase)
          call insert_sfield(packed_state,"FEComponentMassFraction",ncomp,nphase)
@@ -2150,6 +2145,8 @@
                call unpack_sfield(state(i),packed_state,"Temperature",1,iphase)
                call unpack_sfield(state(i),packed_state,"OldTemperate",1,iphase)
                call unpack_sfield(state(i),packed_state,"IteratedTemperature",1,iphase)
+               call unpack_sfield(state(i),packed_state,"TemperatureSource",1,iphase)
+               call unpack_sfield(state(i),packed_state,"TemperatureAbsorption",1,iphase)
                call insert(multi_state(1,iphase), extract_scalar_field(state(i),"Temperature"),"Temperature")
             end if
 
@@ -2162,6 +2159,7 @@
                     check_paired(extract_scalar_field(state(i),"PhaseVolumeFraction"),&
                     extract_scalar_field(state(i),"OldPhaseVolumeFraction")))
                call unpack_sfield(state(i),packed_state,"PhaseVolumeFraction",1,iphase)
+               call unpack_sfield(state(i),packed_state,"PhaseVolumeFractionSource",1,iphase)
                call insert(multi_state(1,iphase), extract_scalar_field(state(i),"PhaseVolumeFraction"),"PhaseVolumeFraction")
             end if
 
@@ -2211,6 +2209,43 @@
          pmulti_state=>multi_state
       else
          deallocate(multi_state)
+      end if
+
+
+      if (has_scalar_field(state(1),"Porosity")) then
+         call insert(packed_state,extract_scalar_field(state(1),"Porosity"),"Porosity")
+      else
+         call allocate(porosity,element_mesh,"Porosity")
+         call set(porosity,1.0)
+         call insert(packed_state,porosity,"Porosity")
+         call deallocate(porosity)
+      end if
+
+      if (has_scalar_field(state(1),"Permeability")) then
+         call allocate(permeability,element_mesh,"Permeability",&
+              dim=[mesh_dim(position),mesh_dim(position)])
+         call zero(permeability)
+         sfield=>extract_scalar_field(state(1),"Permeability")
+         do idim=1,mesh_dim(position)
+            call set(permeability,idim,idim,sfield)
+         end do
+         call insert(packed_state,permeability,"Permeability")
+         call deallocate(permeability)
+      else if (has_vector_field(state(1),"Permeability")) then
+         call allocate(permeability,element_mesh,"Permeability",&
+              dim=[mesh_dim(position),mesh_dim(position)])
+         call zero(permeability)
+         vfield=>extract_vector_field(state(1),"Permeability")
+         call set(permeability,vfield)
+         call insert(packed_state,permeability,"Permeability")
+         call deallocate(permeability)
+      else if (has_vector_field(state(1),"Permeability")) then
+         call insert(packed_state,extract_tensor_field(state(1),"Permeability"),"Permeability")
+      else
+         call allocate(permeability,element_mesh,"Permeability")
+         call zero(permeability)
+         call insert(packed_state,permeability,"Permeability")
+         call deallocate(permeability)
       end if
 
       contains
@@ -2291,16 +2326,31 @@
         end subroutine add_new_memory
           
 
-        subroutine insert_sfield(mstate,name,ncomp,nphase,nmesh)
+        subroutine insert_sfield(mstate,name,ncomp,nphase,nmesh,&
+             add_source, add_absorption)
           type(state_type), intent(inout) :: mstate
           character(len=*), intent(in) :: name
           type(mesh_type),optional, target :: nmesh
           integer, intent(in) :: ncomp,nphase
+          logical, optional, intent(in) :: add_source, add_absorption
 
           type(scalar_field), pointer :: nfield
           type(mesh_type), pointer :: lmesh
           type(tensor_field) :: mfield
           integer :: stat
+          logical :: ladd_source, ladd_absorption
+
+          if (present(add_source)) then
+             ladd_source=add_source
+          else
+             ladd_source=.false.
+          end if
+
+          if (present(add_absorption)) then
+             ladd_absorption=add_absorption
+          else
+             ladd_absorption=.false.
+          end if
 
           nfield=>extract_scalar_field(state(1),name,stat)
           if (stat/=0) then
@@ -2322,17 +2372,35 @@
           call allocate(mfield,lmesh,"PackedIterated"//name,dim=[ncomp,nphase])
           call insert(mstate,mfield,"PackedIterated"//name)
           call deallocate(mfield)
+          
+          if (ladd_source) then
+             call allocate(mfield,lmesh,"Packed"//trim(name)//"Source",&
+                  dim=[ncomp,nphase])
+             call zero(mfield)
+             call insert(mstate,mfield,"Packed"//trim(name)//"Source")
+             call deallocate(mfield)
+          end if
+
+          if (ladd_absorption) then
+             call allocate(mfield,lmesh,"Packed"//trim(name)//"Absorption",&
+                  dim=[ncomp,nphase])
+             call zero(mfield)
+             call insert(mstate,mfield,"Packed"//trim(name)//"Absorption")
+             call deallocate(mfield)
+          end if
 
         end subroutine insert_sfield
 
-        subroutine insert_vfield(mstate,name,nmesh)
+        subroutine insert_vfield(mstate,name,nmesh, add_source, add_absorption)
           type(state_type), intent(inout) :: mstate
           character(len=*), intent(in) :: name
           type(mesh_type), optional, target :: nmesh
+          logical, optional, intent(in) :: add_source, add_absorption   
 
           type(vector_field), pointer :: nfield
           type(mesh_type), pointer :: lmesh
           type(tensor_field)  :: mfield
+          logical :: ladd_source, ladd_absorption
 
           nfield=>extract_vector_field(state(1),name)
           if (present(nmesh)) then
@@ -2340,6 +2408,19 @@
           else
              lmesh=>nfield%mesh
           end if
+
+          if (present(add_source)) then
+             ladd_source=add_source
+          else
+             ladd_source=.false.
+          end if
+
+          if (present(add_absorption)) then
+             ladd_absorption=add_absorption
+          else
+             ladd_absorption=.false.
+          end if
+
           
           call allocate(mfield,lmesh,"Packed"//name,dim=[ndim,nphase])
           call insert(mstate,mfield,"Packed"//name)
@@ -2351,12 +2432,28 @@
           call insert(mstate,mfield,"PackedIterated"//name)
           call deallocate(mfield)
 
+          if (ladd_source) then
+             call allocate(mfield,lmesh,"Packed"//trim(name)//"Source",&
+                  dim=[ndim,nphase])
+             call zero(mfield)
+             call insert(mstate,mfield,"Packed"//trim(name)//"Source")
+             call deallocate(mfield)
+          end if
+
+          if (ladd_absorption) then
+             call allocate(mfield,lmesh,"Packed"//trim(name)//"Absorption",&
+                  dim=[ndim,nphase])
+             call zero(mfield)
+             call insert(mstate,mfield,"Packed"//trim(name)//"Absorption")
+             call deallocate(mfield)
+          end if
+
         end subroutine insert_vfield
 
         subroutine unpack_sfield(nstate,mstate,name,icomp, iphase,free)
           type(state_type), intent(inout) :: nstate, mstate
           character(len=*) :: name
-          integer :: icomp, iphase
+          integer :: icomp,iphase, stat
           logical, optional :: free 
 
           type(scalar_field), pointer :: nfield
@@ -2372,23 +2469,24 @@
 
           mfield=>extract_tensor_field(mstate,"Packed"//name)
 
-          nfield=>extract_scalar_field(nstate,name)
-          mfield%val(icomp,iphase,:)=nfield%val(:)
-          if (icomp==1 .and. iphase == 1) then
-             mfield%option_path=nfield%option_path
-          end if
-          if(lfree) deallocate(nfield%val)
-          nfield%val=>mfield%val(icomp,iphase,:)
-          nfield%val_stride=ncomp*nphase
-          nfield%wrapped=.true.
-          
+          nfield=>extract_scalar_field(nstate,name,stat)
+          if (stat==0) then
+             mfield%val(icomp,iphase,:)=nfield%val(:)
+             if (icomp==1 .and. iphase == 1) then
+                mfield%option_path=nfield%option_path
+             end if
+             if(lfree) deallocate(nfield%val)
+             nfield%val=>mfield%val(icomp,iphase,:)
+             nfield%val_stride=ncomp*nphase
+             nfield%wrapped=.true.
+          end if          
 
         end subroutine unpack_sfield
 
         subroutine unpack_vfield(nstate,mstate,name,iphase,free)
           type(state_type), intent(inout) :: nstate, mstate
           character(len=*) :: name
-          integer :: iphase
+          integer :: iphase, stat
           logical, optional :: free 
 
           
@@ -2402,22 +2500,25 @@
              lfree=.true.
           end if
 
-          nfield=>extract_vector_field(nstate,name)
+          nfield=>extract_vector_field(nstate,name,stat)
           mfield=>extract_tensor_field(mstate,"Packed"//name)
 
-          mfield%val(:,iphase,:)=nfield%val(:,1:node_count(mfield))
-          if (icomp==1 .and. iphase == 1) then
-             mfield%option_path=nfield%option_path
-          end if
-          if (lfree) then
+          if (stat==0) then
+             mfield%val(:,iphase,:)=nfield%val(:,1:node_count(mfield))
+             if (icomp==1 .and. iphase == 1) then
+                mfield%option_path=nfield%option_path
+             end if
+             if (lfree) then
 #ifdef HAVE_MEMORY_STATS
-             call register_deallocation("vector_field", "real", &
-                  size(nfield%val), name=nfield%name)
+                call register_deallocation("vector_field", "real", &
+                     size(nfield%val), name=nfield%name)
 #endif
-             deallocate(nfield%val)
+                deallocate(nfield%val)
+             end if
+             nfield%val=>mfield%val(:,iphase,:)
+             nfield%wrapped=.true.
           end if
-          nfield%val=>mfield%val(:,iphase,:)
-          nfield%wrapped=.true.
+
 
         end subroutine unpack_vfield
 
