@@ -207,8 +207,9 @@ contains
            den_all = den_all2 % val ( icomp, :, : )
            denold_all = denold_all2 % val ( icomp, :, : )
         else
-              den_all=0.0
-              denold_all=0.0
+           p => extract_scalar_field( packed_state, "Pressure" )
+              den_all=1.0
+              denold_all=1.0
         end if
 
 
