@@ -1419,6 +1419,7 @@ end do
                  Mean_Pore_CV( cv_nonods ), SumConc_FEMT( cv_nonods * ncomp ), &
                  Dummy_PhaseVolumeFraction_FEMT( cv_nonods * nphase ), dummy_ele( totele ), mass_ele( totele ), &
 !!$
+                 Temperature_Source( cv_nonods * nphase ), &
                  PhaseVolumeFraction_Source( cv_nonods * nphase ), Velocity_U_Source( u_nonods * nphase * ndim ), &
                  Velocity_U_Source_CV( cv_nonods * nphase * ndim ), Component_Source( cv_nonods * nphase ), &
                  ScalarField_Source( cv_nonods * nphase ), ScalarAdvectionField_Source( cv_nonods * nphase ), &
