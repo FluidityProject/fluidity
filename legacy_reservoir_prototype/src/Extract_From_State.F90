@@ -40,7 +40,7 @@
     use diagnostic_variables
     use diagnostic_fields
     use diagnostic_fields_wrapper
-    use global_parameters, only: option_path_len, is_overlapping
+    use global_parameters, only: option_path_len, is_overlapping, is_compact_overlapping
     use diagnostic_fields_wrapper_new
     use element_numbering
     use shape_functions
@@ -119,6 +119,9 @@
            vel_element_type )
       is_overlapping = .false.
       if ( trim( vel_element_type ) == 'overlapping' ) is_overlapping = .true.
+
+      is_compact_overlapping = .false.
+      if ( trim( vel_element_type ) == 'is_compact_overlapping' ) is_compact_overlapping = .true.
 
       positions => extract_vector_field( state, 'Coordinate' )
       pressure_cg_mesh => extract_mesh( state, 'PressureMesh_Continuous' )

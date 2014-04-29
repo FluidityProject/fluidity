@@ -32,7 +32,7 @@
     use fldebug
 
     use spud
-    use global_parameters, only: option_path_len, is_overlapping
+    use global_parameters, only: option_path_len, is_overlapping, is_compact_overlapping
 
   contains
 

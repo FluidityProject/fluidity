@@ -32,7 +32,7 @@ module cv_advection
 
   use solvers_module
   use spud
-  use global_parameters, only: option_path_len, field_name_len, timestep, is_overlapping
+  use global_parameters, only: option_path_len, field_name_len, timestep, is_overlapping, is_compact_overlapping
   use futils, only: int2str
   use adapt_state_prescribed_module
   use sparsity_patterns

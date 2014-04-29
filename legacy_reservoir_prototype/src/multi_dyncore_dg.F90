@@ -33,7 +33,7 @@ module multiphase_1D_engine
     use fields
     use field_options
     use spud
-    use global_parameters, only: option_path_len, is_overlapping
+    use global_parameters, only: option_path_len, is_overlapping, is_compact_overlapping
     use futils, only: int2str
 
     use Fields_Allocates, only : allocate
@@ -914,19 +914,14 @@ contains
         LOGICAL, PARAMETER :: GETCV_DISC = .TRUE., GETCT= .FALSE.
         real, dimension(:), allocatable :: X
         type( tensor_field ), pointer :: den_all2, denold_all2
-        real, dimension(:, :), allocatable :: relperm, relpermOld
         !type( scalar_field ), pointer :: p
         !Working pointers
         real, dimension(:), pointer :: p
         real, dimension(:,:), pointer :: satura,saturaold
         type(tensor_field), pointer :: tracer, velocity, density
 
-        
-
-      call get_var_from_packed_state(packed_state,FEPressure = P,&
-      PhaseVolumeFraction = satura,OldPhaseVolumeFraction = saturaold )
-
-
+        call get_var_from_packed_state(packed_state,FEPressure = P,&
+        PhaseVolumeFraction = satura,OldPhaseVolumeFraction = saturaold)
         GET_THETA_FLUX = .FALSE.
         IGOT_T2 = 0
 
@@ -949,15 +944,15 @@ contains
 
 
 
-      ALLOCATE( DEN_ALL( NPHASE, CV_NONODS  ), DENOLD_ALL( NPHASE, CV_NONODS ) )
-      IF ( IGOT_THETA_FLUX == 1 ) THEN
-         ! use DEN=1 because the density is already in the theta variables
-         DEN_ALL=1.0 ; DENOLD_ALL=1.0
-      ELSE
-         DEN_ALL2 => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedDensity" )
-         DENOLD_ALL2 => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedOldDensity" )
-         DEN_ALL = DEN_ALL2%VAL( 1, :, : ) ; DENOLD_ALL = DENOLD_ALL2%VAL( 1, :, : )
-      END IF
+        ALLOCATE( DEN_ALL( NPHASE, CV_NONODS  ), DENOLD_ALL( NPHASE, CV_NONODS ) )
+        IF ( IGOT_THETA_FLUX == 1 ) THEN
+            ! use DEN=1 because the density is already in the theta variables
+            DEN_ALL=1.0 ; DENOLD_ALL=1.0
+        ELSE
+            DEN_ALL2 => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedDensity" )
+            DENOLD_ALL2 => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedOldDensity" )
+            DEN_ALL = DEN_ALL2%VAL( 1, :, : ) ; DENOLD_ALL = DENOLD_ALL2%VAL( 1, :, : )
+        END IF
 
 
         TDIFFUSION = 0.0
@@ -970,14 +965,11 @@ contains
 
         ! THIS DOES NOT WORK FOR NITS_FLUX_LIM>1 (NOBODY KNOWS WHY)
 
-            IGOT_THERM_VIS=0
-            ALLOCATE( THERM_U_DIFFUSION(NDIM,NDIM,NPHASE,MAT_NONODS*IGOT_THERM_VIS ) )
+        IGOT_THERM_VIS=0
+        ALLOCATE( THERM_U_DIFFUSION(NDIM,NDIM,NPHASE,MAT_NONODS*IGOT_THERM_VIS ) )
 
 !         p => extract_scalar_field( packed_state, "FEPressure" )
-         allocate(X(size(CV_RHS,1)))
-
-
-!        allocate(relperm(size(satura,1), size(satura,2)), relpermOld(size(satura,1), size(satura,2)))
+        allocate(X(size(CV_RHS,1)))
 
         tracer=>extract_tensor_field(packed_state,"PackedPhaseVolumeFraction")
         velocity=>extract_tensor_field(packed_state,"PackedVelocity")
@@ -985,11 +977,8 @@ contains
 
         Loop_NonLinearFlux: DO ITS_FLUX_LIM = 1, 1 !nits_flux_lim
 
-            !Calculate and store the old value of relperm
-!            call get_InvRelperm(packed_state, relpermOld, .true.)
-
             call CV_ASSEMB( state, packed_state, &
-                 tracer, velocity, density, &
+            tracer, velocity, density, &
             CV_RHS, &
             NCOLACV, block_acv, DENSE_BLOCK_MATRIX, FINACV, COLACV, MIDACV, &
             SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV,&
@@ -1022,8 +1011,6 @@ contains
 
 !            satura=0.0 !saturaold([([(i+(j-1)*cv_nonods,j=1,nphase)],i=1,cv_nonods)])
 
-
-
             X = 0.
             call assemble_global_multiphase_csr(acv,&
             block_acv,dense_block_matrix,&
@@ -1033,20 +1020,18 @@ contains
             FINACV, COLACV, &
             trim(option_path) )
 
-
-            !Copy and force to be between bounds
+            !Copy to phaseVolumeFraction in packed_state
             do j = 1, cv_nonods
-                satura(:,j) = min(max(x(1+(j-1)*NPHASE : j*NPHASE),0.0),1.0)
+                satura(:,j) = x(1+(j-1)*NPHASE : j*NPHASE)
             end do
 
-            !Get new value of relperm
-!            call get_InvRelperm(packed_state, relperm, .true.)
-
+!            call partial_update_velocity(packed_state, totele, CV_NLOC, U_NLOC, U_NDGLN, CV_NDGLN)
 
 !            satura([([(i+(j-1)*cv_nonods,j=1,nphase)],i=1,cv_nonods)])=satura
         END DO Loop_NonLinearFlux
         deallocate(X)
-!        deallocate(relperm, relpermOld)
+        !Set saturation to be between bounds
+        satura = min(max(satura,0.0), 1.0)
 
 
         DEALLOCATE( ACV )
@@ -1068,7 +1053,57 @@ contains
     end subroutine VolumeFraction_Assemble_Solve
 
 
+    !#############EXPERIMENTAL, DO NOT USE!!##############
+    subroutine partial_update_velocity(packed_state, totele, CV_NLOC, U_NLOC, U_NDGLN, CV_NDGLN )
+        !This subroutine calculates the relative permeability using the saturation (new and old)
+        !in packed_state and modifies the velocity in packed_stated to use an average of permeabilities
+        implicit none
+        type( state_type ), intent(inout) :: packed_state
+        integer, dimension(:), intent(in) :: U_NDGLN, CV_NDGLN
+        integer, intent(in) :: totele, CV_NLOC, U_NLOC
+        !Local variables
+        real :: rsum
+        real, parameter :: extrapolator = 0.2
+        integer :: U_ILOC, U_INOD, IPHASE, NPHASE, ele, CV_ILOC, CV_INOD
+        real, dimension(:,:), allocatable :: Inv_relperm, Inv_relpermOld
+        real, dimension(:,:), pointer :: satura
+        real, dimension(:,:,:), pointer :: velocity, Nvelocity
 
+        !Prepare data
+        call get_var_from_packed_state(packed_state,velocity = velocity,&
+        NonlinearVelocity = Nvelocity, phasevolumefraction = satura)
+        NPHASE = size(satura,1)
+        allocate(Inv_relperm(NPHASE, size(satura,2)), Inv_relpermOld(NPHASE, size(satura,2)))
+
+        !Get Old value of Inv_relperm
+        call get_InvRelperm_with_saturation(packed_state, Inv_relpermOld, .true.)
+
+        !Get new value of relperm
+        call get_InvRelperm_with_saturation(packed_state, Inv_relperm, .false.)
+
+        !We try to obtain an effective Inv_relperm for the next iteration considering the previous step
+        where (Inv_relperm > 1d-10)
+            Inv_relperm = Inv_relperm + extrapolator * (Inv_relperm - Inv_relpermOld)
+        end where
+
+        !Modify velocity
+        !THIS PART IS NOT CORRECT...
+        do ele = 1, totele
+            DO CV_ILOC = 1, CV_NLOC
+                CV_INOD = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_ILOC )
+                 do U_ILOC = 1+(CV_ILOC-1)*(U_NLOC/CV_NLOC), CV_ILOC*(U_NLOC/CV_NLOC)
+                    U_INOD = U_NDGLN( ( ELE - 1 ) * U_NLOC + U_ILOC )
+                    do IPHASE = 1, NPHASE
+                     rsum = Inv_relperm(IPHASE,CV_INOD)/ Inv_relpermOld(IPHASE,CV_INOD)
+                     velocity( :, IPHASE, U_INOD ) = rsum * velocity( :, IPHASE, U_INOD )
+                     Nvelocity( :, IPHASE, U_INOD ) = rsum* Nvelocity( :, IPHASE, U_INOD )
+                    end do
+                end do
+            end do
+        end do
+
+        deallocate(Inv_relperm, Inv_relpermOld)
+    end subroutine partial_update_velocity
 
 
 
@@ -1489,6 +1524,7 @@ contains
             end if
 
             if( cv_nonods == x_nonods .or. .true. ) then ! a continuous pressure
+
                CALL SOLVER( CMC, DP, P_RHS, &
                     FINDCMC, COLCMC, &
                     option_path = '/material_phase[0]/scalar_field::Pressure' )

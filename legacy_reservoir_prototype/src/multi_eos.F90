@@ -951,7 +951,7 @@
         !Make sure that the relperm is between bounds
         KR = min(max(1d-20, KR),Krmax)!Lower value just to make sure we do not divide by zero.
         ABSP = INV_PERM * (VISC * max(1d-10,SATURATION)) / KR !The value1d-10 is only used if the boundaries have values of saturation of zero.
-                                                                                                         !Otherwise, the saturation should never be zero, since immobile fraction is always bigger than zero.
+        !Otherwise, the saturation should never be zero, since immobile fraction is always bigger than zero.
       RETURN
     END SUBROUTINE relperm_corey_epsilon
 
@@ -1061,13 +1061,13 @@
     END SUBROUTINE relperm_land
 
 
-    subroutine get_InvRelperm(packed_state, relperm, FEM_representation)
+    subroutine get_InvRelperm_with_saturation(packed_state, relperm, OldPhaseVolumeFraction)
         !Returns the inverse of the relative permeability values in relperm
         !Only works for Brooks-Corey
         Implicit none
         type( state_type ), intent( inout ) :: packed_state
         real, dimension(:, :), intent(inout) :: relperm!dim(Nphase, cv_nonods)
-        logical, intent(in) :: FEM_representation
+        logical, intent(in) :: OldPhaseVolumeFraction
         !Local variables
         integer :: k,iphase
         type(corey_options) :: options
@@ -1080,8 +1080,8 @@
         call get_corey_options(options)
 
         !Assign pointers
-        if (FEM_representation) then
-            call get_var_from_packed_state(packed_state, FEPhaseVolumeFraction = Satura)
+        if (OldPhaseVolumeFraction) then
+            call get_var_from_packed_state(packed_state, OldPhaseVolumeFraction = Satura)
         else
             call get_var_from_packed_state(packed_state, PhaseVolumeFraction = Satura)
         end if
@@ -1096,7 +1096,7 @@
                end if
            end do
        end do
-    end subroutine get_InvRelperm
+    end subroutine get_InvRelperm_with_saturation
 
 
 !    SUBROUTINE calculate_capillary_pressure( state, CV_NONODS, NPHASE, capillary_pressure, SATURA )

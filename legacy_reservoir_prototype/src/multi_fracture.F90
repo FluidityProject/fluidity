@@ -37,7 +37,7 @@ module multiphase_fractures
   use state_module
   use copy_outof_state
   use spud
-  use global_parameters, only: option_path_len, field_name_len, is_overlapping
+  use global_parameters, only: option_path_len, field_name_len, is_overlapping, is_compact_overlapping
   use futils, only: int2str
   use solvers
   use implicit_solids

@@ -33,7 +33,7 @@
     use shape_functions_linear_quadratic
     use Copy_Outof_State
     use futils, only: int2str
-    use global_parameters, only: is_overlapping
+    use global_parameters, only: is_overlapping, is_compact_overlapping
 
   contains
 

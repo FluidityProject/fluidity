@@ -45,7 +45,7 @@ mesh_info =
                ## and is undefined on the element interior (used for 
                ## enforcing continuity by Lagrange multipliers).
               element string_value{
-                 "lagrangian" | "bubble" | "trace" | "overlapping"
+                 "lagrangian" | "bubble" | "trace" | "overlapping" | "compact_overlapping"
               }
             }?
          }?,

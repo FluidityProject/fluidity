@@ -37,7 +37,7 @@
          check_diagnostic_dependencies
     use global_parameters, only: timestep, simulation_start_time, simulation_start_cpu_time, &
                                simulation_start_wall_time, &
-                               topology_mesh_name, current_time, is_overlapping
+                               topology_mesh_name, current_time, is_overlapping, is_compact_overlapping
     use fldebug
     use state_module
     use fields
