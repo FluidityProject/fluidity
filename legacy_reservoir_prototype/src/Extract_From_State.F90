@@ -62,7 +62,7 @@
     public :: Get_Primary_Scalars, Compute_Node_Global_Numbers, Extracting_MeshDependentFields_From_State, &
          Extract_TensorFields_Outof_State, Extract_Position_Field, xp1_2_xp2, Get_Ele_Type, Get_Discretisation_Options, &
          print_from_state, update_boundary_conditions, pack_multistate, finalise_multistate, get_ndglno, Adaptive_NonLinear,&
-         get_var_from_packed_state
+         get_var_from_packed_state, as_vector
 
     interface Get_Ndgln
        module procedure Get_Scalar_Ndgln, Get_Vector_Ndgln, Get_Mesh_Ndgln
@@ -1976,8 +1976,14 @@
       position=>extract_vector_field(state(1),"Coordinate")
       ndim=mesh_dim(position)
 
-      element_shape=make_element_shape(position%mesh%shape,degree=0)
-      element_mesh=make_mesh(position%mesh,element_shape,continuity=-1)
+      if (has_scalar_field(state(1),"Porosity")) then
+         sfield=>extract_scalar_field(state(1),"Porosity")
+         element_mesh=sfield%mesh
+      else
+         element_shape=make_element_shape(position%mesh%shape,degree=0)
+         element_mesh=make_mesh(position%mesh,element_shape,&
+              continuity=-1,name="ElementMesh")
+      end if
 
       call get_option('/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/element_type', &
            vel_element_type )
@@ -2774,6 +2780,35 @@ subroutine allocate_multicomponent_scalar_bcs(s,ms,name)
         tfield%option_path=field%option_path
 
       end function wrap_as_tensor
+
+      function as_vector(tfield,dim,slice) result(vfield)
+
+        type(tensor_field), intent(inout) :: tfield  
+        integer, intent(in) :: dim
+        integer, intent(in), optional :: slice
+        
+        type(vector_field)  :: vfield 
+        integer :: lslice
+
+        if (present(slice)) then
+           lslice=slice
+        else
+           lslice=1
+        end if
+
+        vfield%name=tfield%name
+        vfield%mesh=tfield%mesh
+        vfield%option_path=tfield%option_path
+        vfield%dim=tfield%dim(dim)
+        select case(dim)
+        case(1)
+           vfield%val=>tfield%val(:,lslice,:)
+        case(2)
+           vfield%val=>tfield%val(lslice,:,:)
+        end select
+        vfield%wrapped=.true.
+
+      end function as_vector
 
 
       subroutine finalise_multistate(packed_state,multiphase_state,&

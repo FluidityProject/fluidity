@@ -727,11 +727,11 @@
                     thermal = have_option( '/material_phase[0]/scalar_field::Temperature/prognostic/equation::InternalEnergy'),&
                     StorageIndexes=StorageIndexes )
 
-!!$ Update state memory
-               do iphase = 1, nphase
-                  Temperature_State => extract_scalar_field( state( iphase ), 'Temperature' )
-                  Temperature_State % val = Temperature( 1 + ( iphase - 1 ) * cv_nonods : iphase * cv_nonods )
-               end do
+!!$  Update state memory
+!!$               do iphase = 1, nphase
+!!$                  Temperature_State => extract_scalar_field( state( iphase ), 'Temperature' )
+!!$                  Temperature_State % val = Temperature( 1 + ( iphase - 1 ) * cv_nonods : iphase * cv_nonods )
+!!$               end do
 
                call Calculate_All_Rhos( state, packed_state, ncomp, nphase, ndim, cv_nonods, cv_nloc, totele, &
                     cv_ndgln, DRhoDPressure )

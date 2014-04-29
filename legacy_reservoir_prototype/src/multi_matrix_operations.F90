@@ -37,6 +37,8 @@
     use Fields_Allocates, only : allocate
     use fields_data_types, only: mesh_type, scalar_field
     use state_module
+    use sparse_tools
+    use sparse_tools_petsc
     implicit none
 
   contains
@@ -1681,6 +1683,63 @@
 
 
     end subroutine assemble_global_multiphase_csr
+
+
+ subroutine assemble_global_multiphase_petsc_csr(global_petsc,&
+         block_csr,dense_block_matrix,finacv,colacv)
+
+      type(petsc_csr_matrix)    ::  global_petsc
+      real, dimension(:), intent(in)     :: block_csr
+      real, dimension(:,:,:), intent(in) :: dense_block_matrix
+      integer, dimension(:), intent(in)  :: finacv,colacv
+
+      integer :: node, iphase, jphase, count, node_count, nphase, j,my_pos
+
+      type(csr_sparsity) :: sparsity
+      integer, dimension(:), pointer :: row
+
+      node_count=size(dense_block_matrix,3)
+      nphase=size(dense_block_matrix,2)
+
+
+      ewrite(3,*), "In  assemble_global_multiphase_petsc_csr"
+      
+      sparsity=wrap(finacv,colm=colacv,name='ACVSparsity')
+      call allocate(global_petsc,sparsity,[nphase,nphase],"ACV",.true.)
+      call zero(global_petsc)
+
+      my_pos=0
+      do node=1,node_count
+
+         row=>row_m_ptr(sparsity,node)
+
+         do j=1,size(row)
+            do jphase=1,nphase
+               my_pos=my_pos+1
+               call addto(global_petsc,jphase,jphase,node,row(j),block_csr(my_pos))
+            end do
+         end do
+
+      end do
+
+
+      ! now for the dense block
+     
+
+      do node=1,node_count
+         do jphase=1,nphase
+            do iphase=1,nphase
+               call addto(global_petsc,iphase,jphase,node,node,dense_block_matrix(iphase,jphase,node))
+            end do
+         end do
+      end do
+
+      call deallocate(sparsity)
+
+      ewrite(3,*), "Leaving assemble_global_multiphase_petsc_csr"
+
+
+    end subroutine assemble_global_multiphase_petsc_csr
 
   end module matrix_operations
 

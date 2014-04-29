@@ -46,7 +46,9 @@ module multiphase_1D_engine
     use spact
     use Copy_Outof_State
     use multiphase_EOS
+    use Copy_Outof_State, only: as_vector
     use fldebug
+    use solvers
 
     implicit none
 
@@ -175,14 +177,20 @@ contains
         REAL :: SECOND_THETA
         INTEGER :: STAT
         character( len = option_path_len ) :: path
+        type(vector_field) :: rhs_field
         type( tensor_field ), pointer :: den_all2, denold_all2
         integer :: lcomp
+
+        type(petsc_csr_matrix) :: petsc_acv
+        type(vector_field)  :: vtracer
 
         if (present(icomp)) then
            lcomp=icomp
         else
            lcomp=0
         end if
+
+        call allocate(rhs_field,nphase,tracer%mesh,"RHS")
 
         ALLOCATE( ACV( NCOLACV ) )
         ALLOCATE( mass_mn_pres( size(small_COLACV ) ))
@@ -310,20 +318,38 @@ contains
                 call assemble_global_multiphase_csr(acv,&
                      block_acv,dense_block_matrix,&
                      block_to_global_acv,global_dense_block_acv)
+
+                call assemble_global_multiphase_petsc_csr(petsc_acv,&
+                     block_acv,dense_block_matrix,&
+                     finacv,colacv)
             
                 T([([(i+(j-1)*nphase,j=1,cv_nonods)],i=1,nphase)]) = T
 
                 IF ( IGOT_T2 == 1) THEN
-                   CALL SOLVER( ACV, T, CV_RHS, &
-                        FINACV, COLACV, &
-                        trim('/material_phase::Component1/scalar_field::ComponentMassFractionPhase1/prognostic') )
+                   vtracer=as_vector(tracer,dim=2)
+                   
+                   call zero (vtracer)
+                   rhs_field%val(:,:)=reshape(cv_rhs,[nphase,cv_nonods])
+                   call petsc_solve(vtracer,petsc_acv,rhs_field,'/material_phase::Component1/scalar_field::ComponentMassFractionPhase1/prognostic')
+!                   CALL SOLVER( ACV, T, CV_RHS, &
+!                        FINACV, COLACV, &
+!                        trim('/material_phase::Component1/scalar_field::ComponentMassFractionPhase1/prognostic') )
+
+                   T([([(i+(j-1)*cv_nonods,j=1,nphase)],i=1,cv_nonods)]) = [vtracer%val]
+
                 ELSE
-                   CALL SOLVER( ACV, T, CV_RHS, &
-                        FINACV, COLACV, &
-                        trim(option_path) )
+                   vtracer=as_vector(tracer,dim=2)
+                   call zero (vtracer)
+                   rhs_field%val(:,:)=reshape(cv_rhs,[nphase,cv_nonods])
+                   call petsc_solve(vtracer,petsc_acv,rhs_field,trim(option_path))
+!                   CALL SOLVER( ACV, T, CV_RHS, &
+!                        FINACV, COLACV, &
+!                        trim(option_path) )
+
+                   T([([(i+(j-1)*cv_nonods,j=1,nphase)],i=1,cv_nonods)]) = [tracer%val]
+
                 END IF
 
-                T([([(i+(j-1)*cv_nonods,j=1,nphase)],i=1,cv_nonods)]) = T
 
                 !ewrite(3,*)'cv_rhs:', cv_rhs
                 !ewrite(3,*)'SUF_T_BC:',SUF_T_BC
@@ -339,6 +365,7 @@ contains
         deALLOCATE( mass_mn_pres )
         deallocate( block_acv, dense_block_matrix )
         DEALLOCATE( CV_RHS )
+        call deallocate(RHS_FIELD)
 
         ewrite(3,*)'t:', t
         !ewrite(3,*)'told:', told
