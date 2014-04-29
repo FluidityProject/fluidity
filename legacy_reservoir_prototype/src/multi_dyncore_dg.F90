@@ -964,7 +964,6 @@ contains
         call get_option( trim( path ) // 'number_advection_iterations', nits_flux_lim, default = 1 )
 
         ! THIS DOES NOT WORK FOR NITS_FLUX_LIM>1 (NOBODY KNOWS WHY)
-
         IGOT_THERM_VIS=0
         ALLOCATE( THERM_U_DIFFUSION(NDIM,NDIM,NPHASE,MAT_NONODS*IGOT_THERM_VIS ) )
 
@@ -1025,8 +1024,6 @@ contains
                 satura(:,j) = x(1+(j-1)*NPHASE : j*NPHASE)
             end do
 
-!            call partial_update_velocity(packed_state, totele, CV_NLOC, U_NLOC, U_NDGLN, CV_NDGLN)
-
 !            satura([([(i+(j-1)*cv_nonods,j=1,nphase)],i=1,cv_nonods)])=satura
         END DO Loop_NonLinearFlux
         deallocate(X)
@@ -1051,60 +1048,6 @@ contains
 
         RETURN
     end subroutine VolumeFraction_Assemble_Solve
-
-
-    !#############EXPERIMENTAL, DO NOT USE!!##############
-    subroutine partial_update_velocity(packed_state, totele, CV_NLOC, U_NLOC, U_NDGLN, CV_NDGLN )
-        !This subroutine calculates the relative permeability using the saturation (new and old)
-        !in packed_state and modifies the velocity in packed_stated to use an average of permeabilities
-        implicit none
-        type( state_type ), intent(inout) :: packed_state
-        integer, dimension(:), intent(in) :: U_NDGLN, CV_NDGLN
-        integer, intent(in) :: totele, CV_NLOC, U_NLOC
-        !Local variables
-        real :: rsum
-        real, parameter :: extrapolator = 0.2
-        integer :: U_ILOC, U_INOD, IPHASE, NPHASE, ele, CV_ILOC, CV_INOD
-        real, dimension(:,:), allocatable :: Inv_relperm, Inv_relpermOld
-        real, dimension(:,:), pointer :: satura
-        real, dimension(:,:,:), pointer :: velocity, Nvelocity
-
-        !Prepare data
-        call get_var_from_packed_state(packed_state,velocity = velocity,&
-        NonlinearVelocity = Nvelocity, phasevolumefraction = satura)
-        NPHASE = size(satura,1)
-        allocate(Inv_relperm(NPHASE, size(satura,2)), Inv_relpermOld(NPHASE, size(satura,2)))
-
-        !Get Old value of Inv_relperm
-        call get_InvRelperm_with_saturation(packed_state, Inv_relpermOld, .true.)
-
-        !Get new value of relperm
-        call get_InvRelperm_with_saturation(packed_state, Inv_relperm, .false.)
-
-        !We try to obtain an effective Inv_relperm for the next iteration considering the previous step
-        where (Inv_relperm > 1d-10)
-            Inv_relperm = Inv_relperm + extrapolator * (Inv_relperm - Inv_relpermOld)
-        end where
-
-        !Modify velocity
-        !THIS PART IS NOT CORRECT...
-        do ele = 1, totele
-            DO CV_ILOC = 1, CV_NLOC
-                CV_INOD = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_ILOC )
-                 do U_ILOC = 1+(CV_ILOC-1)*(U_NLOC/CV_NLOC), CV_ILOC*(U_NLOC/CV_NLOC)
-                    U_INOD = U_NDGLN( ( ELE - 1 ) * U_NLOC + U_ILOC )
-                    do IPHASE = 1, NPHASE
-                     rsum = Inv_relperm(IPHASE,CV_INOD)/ Inv_relpermOld(IPHASE,CV_INOD)
-                     velocity( :, IPHASE, U_INOD ) = rsum * velocity( :, IPHASE, U_INOD )
-                     Nvelocity( :, IPHASE, U_INOD ) = rsum* Nvelocity( :, IPHASE, U_INOD )
-                    end do
-                end do
-            end do
-        end do
-
-        deallocate(Inv_relperm, Inv_relpermOld)
-    end subroutine partial_update_velocity
-
 
 
     SUBROUTINE FORCE_BAL_CTY_ASSEM_SOLVE( state, packed_state, &
