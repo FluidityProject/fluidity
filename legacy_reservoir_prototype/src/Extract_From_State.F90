@@ -2150,9 +2150,9 @@
             end if
 
             if(have_option(trim(state(i)%option_path)&
-                 //'scalar_field::Temperature')) then
+                 //'/scalar_field::Temperature')) then
                call unpack_sfield(state(i),packed_state,"Temperature",1,iphase)
-               call unpack_sfield(state(i),packed_state,"OldTemperate",1,iphase)
+               call unpack_sfield(state(i),packed_state,"OldTemperature",1,iphase)
                call unpack_sfield(state(i),packed_state,"IteratedTemperature",1,iphase)
                call unpack_sfield(state(i),packed_state,"TemperatureSource",1,iphase)
                call unpack_sfield(state(i),packed_state,"TemperatureAbsorption",1,iphase)
@@ -2480,6 +2480,7 @@
 
           nfield=>extract_scalar_field(nstate,name,stat)
           if (stat==0) then
+             print*, trim(nfield%name)
              mfield%val(icomp,iphase,:)=nfield%val(:)
              if (icomp==1 .and. iphase == 1) then
                 mfield%option_path=nfield%option_path

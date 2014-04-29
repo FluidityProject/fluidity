@@ -1104,15 +1104,15 @@
                   END DO
                END DO
 
-               ! Update state memory
-               do icomp = 1, ncomp
-                  do iphase = 1, nphase
-                     Component_State => extract_scalar_field( state( icomp + nphase ), & 
-                          'ComponentMassFractionPhase' // int2str( iphase ) )
-                     Component_State % val = component( 1 + ( iphase - 1 ) * cv_nonods + ( icomp - 1 ) * &
-                          nphase * cv_nonods : iphase * cv_nonods + ( icomp - 1 ) * nphase * cv_nonods )
-                  end do
-               end do
+!!$               ! Update state memory
+!!$               do icomp = 1, ncomp
+!!$                  do iphase = 1, nphase
+!!$                     Component_State => extract_scalar_field( state( icomp + nphase ), & 
+!!$                          'ComponentMassFractionPhase' // int2str( iphase ) )
+!!$                     Component_State % val = component( 1 + ( iphase - 1 ) * cv_nonods + ( icomp - 1 ) * &
+!!$                          nphase * cv_nonods : iphase * cv_nonods + ( icomp - 1 ) * nphase * cv_nonods )
+!!$                  end do
+!!$               end do
 
             end if Conditional_Components
 
@@ -1151,9 +1151,9 @@ end do
     !#############################################################
 
 !!$ Copying fields back to state:
-         call copy_into_state( state, & ! Copying main fields into state
-              PhaseVolumeFraction, Temperature, &
-              Component, ncomp, nphase, cv_ndgln )
+!         call copy_into_state( state, & ! Copying main fields into state
+!              PhaseVolumeFraction, Temperature, &
+!              Component, ncomp, nphase, cv_ndgln )
 
 
 !!$ Calculate diagnostic fields
