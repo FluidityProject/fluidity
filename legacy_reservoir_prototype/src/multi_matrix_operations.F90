@@ -39,6 +39,7 @@
     use state_module
     use sparse_tools
     use sparse_tools_petsc
+    use halo_data_types
     implicit none
 
   contains
@@ -1686,12 +1687,13 @@
 
 
  subroutine assemble_global_multiphase_petsc_csr(global_petsc,&
-         block_csr,dense_block_matrix,finacv,colacv)
+         block_csr,dense_block_matrix,finacv,colacv,halos)
 
       type(petsc_csr_matrix)    ::  global_petsc
       real, dimension(:), intent(in)     :: block_csr
       real, dimension(:,:,:), intent(in) :: dense_block_matrix
       integer, dimension(:), intent(in)  :: finacv,colacv
+      type(halo_type), dimension(:), pointer :: halos
 
       integer :: node, iphase, jphase, count, node_count, nphase, j,my_pos
 
@@ -1704,7 +1706,11 @@
 
       ewrite(3,*), "In  assemble_global_multiphase_petsc_csr"
       
-      sparsity=wrap(finacv,colm=colacv,name='ACVSparsity')
+      if (associated(halos)) then
+         sparsity=wrap(finacv,colm=colacv,name='ACVSparsity',row_halo=halos(1),column_halo=halos(1))
+      else
+         sparsity=wrap(finacv,colm=colacv,name='ACVSparsity')
+      end if
       call allocate(global_petsc,sparsity,[nphase,nphase],"ACV",.true.)
       call zero(global_petsc)
 

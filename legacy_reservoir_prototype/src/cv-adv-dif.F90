@@ -449,6 +449,8 @@ contains
            SUF_T2_BC_ALL, SUF_T2_BC_ROB2_ALL   
       REAL, DIMENSION(:,:,: ), pointer :: SUF_U_BC_ALL
 
+      type( tensor_field ) :: femvals
+
 
       !#################SET WORKING VARIABLES#################
       call get_var_from_packed_state(packed_state,PressureCoordinate = X_ALL,&
@@ -985,6 +987,18 @@ contains
 !      print *,'after allocate'
 
       ! END OF TEMP STUFF HERE
+
+
+      
+!!$      CALL PROJ_CV_TO_FEM_state( state, tracer,&
+!!$           FEMT_ALL, FEMTOLD_ALL, FEMDEN_ALL, FEMDENOLD_ALL, T_ALL, TOLD_ALL, DEN_ALL, DENOLD_ALL, &
+!!$           IGOT_T2, T2_ALL,T2OLD_ALL, FEMT2_ALL,FEMT2OLD_ALL, &
+!!$           XC_CV_ALL, MASS_CV, MASS_ELE, &
+!!$           NDIM, NPHASE, CV_NONODS, TOTELE, CV_NDGLN, X_NLOC, X_NDGLN, &
+!!$           CV_NGI_SHORT, CV_NLOC, CVN_SHORT, CVWEIGHT_SHORT, &
+!!$           CVFEN_SHORT, CVFENLX_SHORT_ALL(1,:,:), CVFENLX_SHORT_ALL(2,:,:), CVFENLX_SHORT_ALL(3,:,:), &
+!!$           X_NONODS, X_ALL, NCOLM, FINDM, COLM, MIDM, &
+!!$           IGETCT, MASS_MN_PRES, FINDCMC, COLCMC, NCOLCMC )
 
       CALL PROJ_CV_TO_FEM_4( state, &
            FEMT_ALL, FEMTOLD_ALL, FEMDEN_ALL, FEMDENOLD_ALL, T_ALL, TOLD_ALL, DEN_ALL, DENOLD_ALL, &
@@ -3502,6 +3516,8 @@ end if
             COLM, &
             option_path = trim(path) )
     END DO
+
+!    FEMPSI=PSI
 
     DEALLOCATE( MASS_CV )
     DEALLOCATE( FEMPSI_RHS )

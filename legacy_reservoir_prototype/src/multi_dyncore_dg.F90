@@ -321,7 +321,7 @@ contains
 
                 call assemble_global_multiphase_petsc_csr(petsc_acv,&
                      block_acv,dense_block_matrix,&
-                     finacv,colacv)
+                     finacv,colacv,p%mesh%halos)
             
                 T([([(i+(j-1)*nphase,j=1,cv_nonods)],i=1,nphase)]) = T
 
@@ -349,6 +349,8 @@ contains
                    T([([(i+(j-1)*cv_nonods,j=1,nphase)],i=1,cv_nonods)]) = [tracer%val]
 
                 END IF
+
+!!                call dump_petsc_csr_matrix(petsc_acv)
 
 
                 !ewrite(3,*)'cv_rhs:', cv_rhs

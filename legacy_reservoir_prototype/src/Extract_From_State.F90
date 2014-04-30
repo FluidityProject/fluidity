@@ -2130,8 +2130,7 @@
             call unpack_component_sfield(state(i),packed_state,"ComponentDensity",icomp)
             call unpack_component_sfield(state(i),packed_state,"ComponentMassFraction",icomp)
 
-
-
+            call insert_components_in_multi_state(multi_state(icomp,:),state(i))
 
             icomp=icomp+1
             cycle
@@ -2189,6 +2188,7 @@
       call allocate_multiphase_scalar_bcs(packed_state,multi_state,"Density")
       call allocate_multiphase_scalar_bcs(packed_state,multi_state,"PhaseVolumeFraction")
       call allocate_multiphase_vector_bcs(packed_state,multi_state,"Velocity")
+
 
       call allocate_multicomponent_scalar_bcs(multicomponent_state,multi_state,"ComponentMassFraction")
       call allocate_multicomponent_scalar_bcs(multicomponent_state,multi_state,"ComponentDensity")
@@ -2258,6 +2258,31 @@
       end if
 
       contains
+
+        subroutine insert_components_in_multi_state(ms,s)
+          type(state_type), dimension(:) :: ms
+          type(state_type) :: s
+
+          integer :: i
+          character(len=FIELD_NAME_LEN) :: full_name, short_name
+
+          do i=1,size(ms)
+             full_name="ComponentMassFractionPhase"//int2str(i)
+             short_name="ComponentMassFraction"
+             if (has_scalar_field(s,trim(full_name))) then
+                call insert(ms(i),extract_scalar_field(s,trim(full_name)),short_name)
+             end if
+          end do
+
+          do i=1,size(ms)
+             full_name="ComponentDensityPhase"//int2str(i)
+             short_name="ComponentDensity"
+             if (has_scalar_field(s,trim(full_name))) then
+                call insert(ms(i),extract_scalar_field(s,trim(full_name)),short_name)
+             end if
+          end do
+
+        end subroutine insert_components_in_multi_state
 
         subroutine unpack_multicomponent(mstate,mcstate)
           type(state_type) :: mstate
@@ -2480,7 +2505,6 @@
 
           nfield=>extract_scalar_field(nstate,name,stat)
           if (stat==0) then
-             print*, trim(nfield%name)
              mfield%val(icomp,iphase,:)=nfield%val(:)
              if (icomp==1 .and. iphase == 1) then
                 mfield%option_path=nfield%option_path
@@ -2710,7 +2734,8 @@ subroutine allocate_multicomponent_scalar_bcs(s,ms,name)
              allocate(mfield%bc)
           
              do iphase=1,mfield%dim(2)
-                sfield=>extract_scalar_field( ms(icomp,iphase),trim(name)//"Phase"//int2str(iphase),stat)
+                sfield=>extract_scalar_field( ms(icomp,iphase),trim(name),stat)
+
                 if (stat/= 0 ) cycle
 
                 allocate(tbc%applies(mfield%dim(1),mfield%dim(2)))
