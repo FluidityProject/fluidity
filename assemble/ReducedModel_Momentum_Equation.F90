@@ -1089,7 +1089,7 @@
                       if (have_option("/reduced_model/training")) then
                           ctrl_timestep=1499
                    else 
-                          ctrl_timestep=19
+                          ctrl_timestep=305
                    endif
                     
                  

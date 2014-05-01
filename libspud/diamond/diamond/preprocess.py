@@ -51,7 +51,7 @@ def preprocess(schemafile):
     file = None
     filename = include.attrib["href"]
     possible_files = [os.path.join(os.path.dirname(schemafile), filename), filename]
-    possible_files.append(os.path.join("/home/dxiao/Fluidity/ROM_Non_Intru/libspud/../share/spud", filename))
+    possible_files.append(os.path.join("/data/dunhui/ROM_Non-intrusive-ann/libspud/../share/spud", filename))
     possible_files.append(os.path.join(os.path.dirname(__file__) + "/../../schema", filename))
 
     for possible_file in possible_files:

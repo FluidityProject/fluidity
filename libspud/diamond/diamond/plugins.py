@@ -34,7 +34,7 @@ def register_plugin(applies, name, cb):
 def configure_plugins(suffix):
   homedir = os.path.expanduser('~')
   dirs = [os.path.join(homedir, ".diamond", "plugins", suffix),
-      "/home/dxiao/Fluidity/ROM_Non_Intru/libspud/../share/diamond/plugins/" + suffix]
+      "/data/dunhui/ROM_Non-intrusive-ann/libspud/../share/diamond/plugins/" + suffix]
   if sys.platform != "win32" and sys.platform != "win64":
     dirs.append("/etc/diamond/plugins/" + suffix)
 
