@@ -4,12 +4,11 @@ case_name = "darcy_impes_mms_p1_2phase_quadraticrelperm"
 # irreg meshes also possible, but their convergence rates are unruly
 mesh_type_list = ["reg"]
 mesh_suffix_list_per_dimension = [
-    ["B", "C", "D", "E"],
+    ["B", "C", "D", "E"], 
     ["B", "C", "D"],
     ["B", "C"]]
 field_name_list = ["Phase1::Pressure", "Phase2::Saturation"]
 norm_list = [2]
-finish_time = 1.0
 
 
 ## SCRIPT
@@ -33,7 +32,7 @@ if len(argv)==1:
 # initialise helper object
 from manufactured_solution_test_tools import ManufacturedSolutionTestSuite
 test_helper = ManufacturedSolutionTestSuite(
-    case_name, finish_time, mesh_type_list, mesh_suffix_list_per_dimension, 
+    case_name, mesh_type_list, mesh_suffix_list_per_dimension, 
     field_name_list, norm_list)
 
 # pass client commands

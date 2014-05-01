@@ -11,6 +11,7 @@ from getpass import getuser
 
 error_rates_filename = "error_rates.txt"
 error_norms_filename = "error_norms.txt"
+cfl_max_filename = "cfl_max.txt"
 
 ## HELPER FUNCTIONS/CLASSES
 
@@ -58,6 +59,7 @@ def find(report_filename, key):
 
 def find_norm(key): return find(error_norms_filename, key)
 def find_rate(key): return find(error_rates_filename, key)
+def find_cfl(key): return find(cfl_max_filename, key)
 
 
 class WriteXMLFile(Command):
@@ -100,7 +102,7 @@ class WriteXMLFile(Command):
   <tags>diml</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>
-python processing.py pre proc post
+python processing.py pre proc post clean
     </command_line>
   </problem_definition>
   <variables/>
@@ -325,6 +327,7 @@ class WriteToReport(Command):
                     indent, key, rate))
                 if verbose(): sys.stdout.write ('   rate: {0:.6f}'.\
                                                 format(rate))
+
             self.err0 = err
             self.mesh_suffix_0 = self.mesh_suffix
 
@@ -343,6 +346,63 @@ class WriteToReport(Command):
             ['Phase'+self.phase_index]\
             [self.var_name+'AbsError']\
             [self.calc_type][-1]
+
+
+
+class WriteCFLToReport(Command):
+    """Writes max CFL to file"""
+
+    def __init__(self, cfl_max_file):
+        self.cfl_max_file = cfl_max_file
+        # can add more levels to this list
+        self.stem = None
+        self.model = None
+        self.saturation2_scale = None
+        self.gravity_magnitude = None
+        self.dim = None
+        self.mesh_type = None
+        self.mesh_suffix = None
+        
+    def execute(self, level_name, value, indent):
+        if level_name!='mesh_suffix':
+            level_str = '{0}{1}: {2}\n'.format(indent, level_name, value)
+            self.cfl_max_file.write(level_str)
+            
+        # can add more levels to this list
+        if level_name == 'stem':
+            self.stem = value
+        elif level_name == 'saturation2_scale':
+            self.saturation2_scale = value
+        elif level_name == 'gravity_magnitude':
+            self.gravity_magnitude = value
+        elif level_name == 'model':
+            self.model = value
+        elif level_name == 'dim':
+            self.dim = value
+        elif level_name == 'mesh_type':
+            self.mesh_type = value
+        elif level_name == 'mesh_suffix':
+            self.mesh_suffix = value
+
+            cfl_max = max(self.get_cfl_max(1), self.get_cfl_max(2))
+            key = join_with_underscores((
+                self.saturation2_scale, self.gravity_magnitude, 
+                self.model, str(self.dim)+'d', self.mesh_type,
+                self.mesh_suffix))
+            self.cfl_max_file.write('{0}{1}{2:12.3e}\n'.format(
+                    indent, key, cfl_max))
+            if verbose(): sys.stdout.write ('   cfl_max: {0:.3e}'.\
+                                                format(cfl_max))
+
+    def get_cfl_max(self, phase):
+        filename = join_with_underscores((
+            self.stem, self.saturation2_scale, self.gravity_magnitude, 
+            self.model, str(self.dim)+'d', self.mesh_type,
+            self.mesh_suffix)) + '.stat'
+        return stat_parser(filename)\
+            ['Phase'+str(phase)]\
+            ['DarcyVelocityOverPorosityCFL']\
+            ['max'][-1]
 
                
 # class Dummy(Command):

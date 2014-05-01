@@ -1,5 +1,8 @@
 include ../darcy_impes_common/Depend.mk
 
+all: geo
+	python processing.py all
+
 input: code geo clean-generated
 
 code:
@@ -28,9 +31,6 @@ proc:
 
 post:
 	python processing.py post
-
-all:
-	python processing.py all
 
 clean-generated:
 	python processing.py clean

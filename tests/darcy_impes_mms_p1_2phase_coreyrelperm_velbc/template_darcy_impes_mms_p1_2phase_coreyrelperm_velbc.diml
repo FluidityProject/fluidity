@@ -140,7 +140,7 @@
         <initial_condition name="WholeMesh">
           <python>
             <string_value lines="20" type="code" language="python">def val(X, t):
-  from numpy import pi, sin, cos, exp
+  from numpy import sqrt, pi, cos, sin, exp
   return $PRESSURE_${DOMAIN_DIM}D</string_value>
           </python>
         </initial_condition>
@@ -150,28 +150,28 @@
           </surface_ids>
           <type name="dirichlet">
             <apply_strongly/>
-	    <python>
-              <string_value lines="20" type="code" language="python">def val(X, t):
-  from numpy import pi, cos, sin, exp
-  return $PRESSURE_${DOMAIN_DIM}D</string_value>
-	    </python>
-          </type>
-        </boundary_conditions>
-	$BEGIN_RM_IF_1D
-        <boundary_conditions name="wall_pressure"> 
-          <surface_ids> 
-            <integer_value shape="$WALL_NUM" rank="1">$WALL_IDS</integer_value> 
-          </surface_ids> 
-          <type name="dirichlet">
-            <apply_strongly/>
   	    <python>
               <string_value lines="20" type="code" language="python">def val(X, t):
-  from numpy import pi, cos, sin, exp
+  from numpy import sqrt, pi, cos, sin, exp
   return $PRESSURE_${DOMAIN_DIM}D</string_value>
   	    </python>
           </type>
         </boundary_conditions>
-	$END_RM_IF_1D
+  	$BEGIN_RM_IF_1D
+        <boundary_conditions name="wall_pressure">
+          <surface_ids>
+            <integer_value shape="$WALL_NUM" rank="1">$WALL_IDS</integer_value>
+          </surface_ids>
+          <type name="dirichlet">
+            <apply_strongly/>
+  	    <python>
+              <string_value lines="20" type="code" language="python">def val(X, t):
+  from numpy import sqrt, pi, cos, sin, exp
+  return $PRESSURE_${DOMAIN_DIM}D</string_value>
+  	    </python>
+          </type>
+        </boundary_conditions>
+  	$END_RM_IF_1D
         <stat>
           <include_cv_stats/>
         </stat>
@@ -188,7 +188,7 @@
             <value name="WholeMesh">
               <python>
                 <string_value type="code" lines="20" language="python">def val(X, t):
-  from numpy import pi, sin, cos, exp  
+  from numpy import sqrt, pi, cos, sin, exp
   return $SOURCE_SATURATION1_${DOMAIN_DIM}D</string_value>
               </python>
             </value>
@@ -210,10 +210,7 @@
       <diagnostic>
         <mesh name="PressureMesh"/>
         <algorithm name="Internal"/>
-        <correlation name="PowerLaw">
-          <exponents>
-            <real_value shape="2" rank="1">2 2</real_value>
-          </exponents>
+        <correlation name="Corey2Phase">
         </correlation>
         <face_value name="FirstOrderUpwind"/>
         <stat>
@@ -254,6 +251,27 @@
     <vector_field name="DarcyVelocity" rank="0">
       <diagnostic>
         <mesh name="PressureMesh"/>
+  <!-- 	<boundary_conditions name="inlet_velocity"> -->
+  <!--         <surface_ids> -->
+  <!--           <integer_value shape="1" rank="1">$INLET_ID</integer_value> -->
+  <!--         </surface_ids> -->
+  <!--         <type name="prescribed_normal_flow"> -->
+  <!--           <python> -->
+  <!--             <string_value type="code" lines="20" language="python">def val(X, t): -->
+  <!-- from numpy import sqrt, pi, cos, sin, exp -->
+  <!-- return $DARCY_VELOCITY1_X_${DOMAIN_DIM}D</string_value> -->
+  <!--           </python> -->
+  <!--         </type> -->
+  <!--       </boundary_conditions> -->
+  <!-- 	$BEGIN_RM_IF_1D -->
+  <!-- 	<boundary_conditions name="wall_velocity"> -->
+  <!--         <surface_ids> -->
+  <!--           <integer_value shape="$WALL_NUM" rank="1">$WALL_IDS</integer_value> -->
+  <!--         </surface_ids> -->
+  <!--         <type name="no_normal_flow"> -->
+  <!--         </type> -->
+  <!--       </boundary_conditions> -->
+  <!-- 	$END_RM_IF_1D -->
         <algorithm name="Internal"/>
         <stat>
           <include_cv_stats/>
@@ -357,7 +375,7 @@
         <value name="WholeMesh">
           <python>
             <string_value lines="20" type="code" language="python">def val(X, t):
-  from numpy import pi, cos, sin, exp
+  from numpy import sqrt, pi, cos, sin, exp
   return $PRESSURE_${DOMAIN_DIM}D</string_value>
           </python>
         </value>
@@ -384,7 +402,7 @@
         <value name="WholeMesh">
           <python>
             <string_value lines="20" type="code" language="python">def val(X, t):
-  from numpy import pi, cos, sin, exp, sqrt
+  from numpy import sqrt, pi, cos, sin, exp
   return $DARCY_VELOCITY1_MAGNITUDE_${DOMAIN_DIM}D</string_value>
           </python>
         </value>
@@ -411,44 +429,45 @@
         <initial_condition name="WholeMesh">
           <python>
             <string_value lines="20" type="code" language="python">def val(X, t):
+  from numpy import sqrt, pi, cos, sin, exp
   return $SATURATION2_${DOMAIN_DIM}D</string_value>
           </python>
         </initial_condition>
-        <boundary_conditions name="inlet_saturation">
-          <surface_ids>
-            <integer_value shape="1" rank="1">$INLET_ID</integer_value>
-          </surface_ids>
-          <type name="dirichlet">
-            <apply_strongly/>
-  	    <python>
-              <string_value lines="20" type="code" language="python">def val(X, t):
-  from numpy import pi, cos, sin, exp
-  return $SATURATION2_${DOMAIN_DIM}D</string_value>
-  	    </python>
-          </type>
-        </boundary_conditions>
-	$BEGIN_RM_IF_1D
-        <boundary_conditions name="wall_saturation">
-          <surface_ids>
-            <integer_value shape="$WALL_NUM" rank="1">$WALL_IDS</integer_value>
-          </surface_ids>
-          <type name="dirichlet">
-            <apply_strongly/>
-  	    <python>
-              <string_value lines="20" type="code" language="python">def val(X, t):
-  from numpy import pi, cos, sin, exp
-  return $SATURATION2_${DOMAIN_DIM}D</string_value>
-  	    </python>
-          </type>
-        </boundary_conditions>
-	$END_RM_IF_1D
+  <!--       <boundary_conditions name="inlet_saturation"> -->
+  <!--         <surface_ids> -->
+  <!--           <integer_value shape="1" rank="1">$INLET_ID</integer_value> -->
+  <!--         </surface_ids> -->
+  <!--         <type name="dirichlet"> -->
+  <!--           <apply_strongly/> -->
+  <!-- 	    <python> -->
+  <!--             <string_value lines="20" type="code" language="python">def val(X, t): -->
+  <!-- from numpy import sqrt, pi, cos, sin, exp -->
+  <!-- return $SATURATION2_${DOMAIN_DIM}D</string_value> -->
+  <!-- 	    </python> -->
+  <!--         </type> -->
+  <!--       </boundary_conditions> -->
+  <!-- 	$BEGIN_RM_IF_1D -->
+  <!--       <boundary_conditions name="wall_saturation"> -->
+  <!--         <surface_ids> -->
+  <!--           <integer_value shape="$WALL_NUM" rank="1">$WALL_IDS</integer_value> -->
+  <!--         </surface_ids> -->
+  <!--         <type name="dirichlet"> -->
+  <!--           <apply_strongly/> -->
+  <!-- 	    <python> -->
+  <!--             <string_value lines="20" type="code" language="python">def val(X, t): -->
+  <!-- from numpy import sqrt, pi, cos, sin, exp -->
+  <!-- return $SATURATION2_${DOMAIN_DIM}D</string_value> -->
+  <!-- 	    </python> -->
+  <!--         </type> -->
+  <!--       </boundary_conditions> -->
+  <!-- 	$END_RM_IF_1D -->
         <scalar_field name="Source" rank="0">
           <prescribed>
             <mesh name="SaturationSourceMesh"/>
             <value name="WholeMesh">
               <python>
                 <string_value lines="20" type="code" language="python">def val(X, t):
-  from numpy import pi, sin, cos, exp  
+  from numpy import sqrt, pi, cos, sin, exp
   return $SOURCE_SATURATION2_${DOMAIN_DIM}D</string_value>
               </python>
             </value>
@@ -508,6 +527,27 @@
       <diagnostic>
         <mesh name="PressureMesh"/>
         <algorithm name="Internal"/>
+	<boundary_conditions name="inlet_velocity">
+          <surface_ids>
+            <integer_value shape="1" rank="1">$INLET_ID</integer_value>
+          </surface_ids>
+          <type name="prescribed_normal_flow">
+            <python>
+              <string_value type="code" lines="20" language="python">def val(X, t):
+  from numpy import sqrt, pi, cos, sin, exp
+  return $DARCY_VELOCITY2_X_${DOMAIN_DIM}D</string_value>
+            </python>
+          </type>
+        </boundary_conditions>
+	$BEGIN_RM_IF_1D
+	<boundary_conditions name="wall_velocity">
+          <surface_ids>
+            <integer_value shape="$WALL_NUM" rank="1">$WALL_IDS</integer_value>
+          </surface_ids>
+          <type name="no_normal_flow">
+          </type>
+        </boundary_conditions>
+	$END_RM_IF_1D
         <stat>
           <include_cv_stats/>
         </stat>
@@ -550,7 +590,7 @@
         <value name="WholeMesh">
           <python>
             <string_value lines="20" type="code" language="python">def val(X, t):
-  from numpy import pi, sin, cos, exp
+  from numpy import sqrt, pi, cos, sin, exp
   return $SATURATION2_${DOMAIN_DIM}D</string_value>
           </python>
         </value>
@@ -577,7 +617,7 @@
         <value name="WholeMesh">
           <python>
             <string_value lines="20" type="code" language="python">def val(X, t):
-  from numpy import pi, cos, sin, exp, sqrt
+  from numpy import sqrt, pi, cos, sin, exp
   return $DARCY_VELOCITY2_MAGNITUDE_${DOMAIN_DIM}D</string_value>
           </python>
         </value>

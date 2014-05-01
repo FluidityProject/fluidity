@@ -89,14 +89,14 @@ class Parameterisation:
          self.wall_IDs = ''
          self.wall_num = '0'
       elif self.dim==2:
-         self.outlet_ID = '11'
-         self.inlet_ID = '13'
-         self.wall_IDs = '12 14'
+         self.outlet_ID = '12'
+         self.inlet_ID = '14'
+         self.wall_IDs = '11 13'
          self.wall_num = '2'
       elif self.dim==3:
-         self.outlet_ID = '28'
-         self.inlet_ID = '29'
-         self.wall_IDs = '30 31 32 33'
+         self.outlet_ID = '32'
+         self.inlet_ID = '30'
+         self.wall_IDs = '28 29 31 33'
          self.wall_num = '4'
 
 
@@ -141,9 +141,9 @@ class GenerateSymbols(MMSCommand):
       
 class ExpandOptionsTemplate(MMSCommand):
    
-   def __init__(self, finish_time):
+   def __init__(self, mesh_A_number_of_timesteps=1):
       MMSCommand.__init__(self)
-      self.finish_time = finish_time
+      self.mesh_A_number_of_timesteps = mesh_A_number_of_timesteps
       
    def execute(self, level_name, value, indent):
       # all levels record level details
@@ -155,6 +155,8 @@ class ExpandOptionsTemplate(MMSCommand):
          solution_name = join_with_underscores((self.stem))
          solution_expressions = import_module(solution_name)
          self.solution_dict = solution_expressions.solution_dict
+         self.finish_time = solution_expressions.solution_dict\
+                               ['finish_time']
          
       if level_name == 'mesh_suffix':
          # this last level does most of the important stuff
@@ -163,7 +165,7 @@ class ExpandOptionsTemplate(MMSCommand):
          param = Parameterisation(self.stem, self.dim,
                                   self.mesh_type, self.mesh_suffix)
          param.compute_more_options()
-
+         
          # compose the dictionary
          options_dict = {
             'MESH_FILE': param.mesh_name,
@@ -194,11 +196,10 @@ class ExpandOptionsTemplate(MMSCommand):
    def compute_time_step(self):
       """Extracted so as to be overrideable"""
       
-      # let the coarsest mesh have one time step and maintain a
-      # constant Courant number for all meshes
+      # maintain a constant Courant number for all meshes
       scale_factor = float(mesh_res_dict['A'])/ \
                      float(mesh_res_dict[self.mesh_suffix])
-      return scale_factor * self.finish_time
+      return scale_factor * self.finish_time / self.mesh_A_number_of_timesteps
       
             
 class ProcessMesh(MMSCommand):
@@ -255,6 +256,7 @@ class ProcessMesh(MMSCommand):
             tgt.write(buf)
 
          # call interval or gmsh
+         # TODO tell user to 'make geo' if needed
          if self.dim==1:
             lx=self.domain_extents[0]
             dx=lx/float(param.mesh_res)
@@ -297,12 +299,11 @@ class CleanUp(MMSCommand):
 
          
 class ManufacturedSolutionTestSuite:
-   def __init__(self, case_name, finish_time,
-                mesh_type_list, mesh_suffix_list_per_dimension,
-                field_name_list, norm_list):
+   def __init__(self, case_name, mesh_type_list,
+                mesh_suffix_list_per_dimension, field_name_list,
+                norm_list, mesh_A_number_of_timesteps=1):
 
       self.case_name = case_name
-      self.finish_time = finish_time
       
       # build handlers
       mesh_type_handler_level = HandlerLevel('mesh_type', mesh_type_list)
@@ -337,6 +338,8 @@ class ManufacturedSolutionTestSuite:
          else:
             self.main_handler = hdlr
 
+      self.mesh_A_number_of_timesteps = mesh_A_number_of_timesteps
+
 
    def generate_symbols(self):
       self.shallow_handler.handle( GenerateSymbols() )
@@ -348,7 +351,7 @@ class ManufacturedSolutionTestSuite:
 
    def preprocess(self):
       cmds = CommandList([
-         ExpandOptionsTemplate(self.finish_time),
+         ExpandOptionsTemplate(self.mesh_A_number_of_timesteps),
          ProcessMesh()])
       self.main_handler.handle( cmds )
 

@@ -16,16 +16,22 @@ def grad(scalar, dim):
     return vector
 
 def div(vector):
-    scalar = 0.
-    for i in range(len(vector)):
-        scalar = scalar + diff(vector[i], spacetime[i])
-    return scalar
+    try:
+        scalar = 0.
+        for i in range(len(vector)):
+            scalar = scalar + diff(vector[i], spacetime[i])
+        return scalar
+    except TypeError:
+        return diff(vector, spacetime[0])
 
 def mag(vector):
-    scalar = 0.
-    for i in range(len(vector)):
-        scalar = scalar + vector[i]**2
-    return sqrt(scalar)
+    try:
+        scalar = 0.
+        for i in range(len(vector)):
+            scalar = scalar + vector[i]**2
+        return sqrt(scalar)
+    except TypeError:
+        return abs(vector)
 
 def spacetime_lambdify(expression, dim):
     Xt = spacetime[:dim] + spacetime[3:]
@@ -84,7 +90,7 @@ class ManufacturedSolution:
         self.p = p
         self.s = (1 - s2, s2)
         self.grad_p = grad(p, dim)
-        self.u_mag = [Symbol('0')]*2
+        self.u = [[Symbol('0')]*dim]*2
         self.q = [Symbol('0')]*2
         
     def compute_phase(self, phase_num, phi, K, mu, rho, g_mag):
@@ -95,9 +101,9 @@ class ManufacturedSolution:
             grad_p_eff = self.grad_p - rho*g
         except TypeError:
             grad_p_eff = self.grad_p - array(rho*g)
-        # n.b. K is a function of s[i]
-        u = -K(self.s[i])/mu*grad_p_eff
-        self.u_mag[i] = mag(u)
+        # n.b. for flexibility, K is a function of both sats
+        u = -K(self.s)/mu*grad_p_eff
+        self.u[i] = u
         self.q[i] = -diff(phi*self.s[i], t) + div(u)
 
     def check_max_velocity(self, phase_num, coords_and_time):
@@ -121,38 +127,42 @@ class ManufacturedSolution:
         # append domain dimension to each variable name
         suf = '_' + str(self.dim) + 'D'
         i = phase_num-1
+        for j in range(self.dim):
+            xi = spacetime[j]
+            write_expression_txt(
+                genfile, 'DARCY_VELOCITY'+str(i+1)+'_'+str.upper(str(xi))+suf,
+                self.u[i][j])
         write_expression_txt(
-            genfile, 'DARCY_VELOCITY'+str(i+1)+'_MAGNITUDE'+suf,
-            self.u_mag[i])
+            genfile, 'DARCY_VELOCITY'+str(i+1)+'_MAGNITUDE'+suf, mag(self.u[i]))
         write_expression_txt(
             genfile, 'SOURCE_SATURATION'+str(i+1)+suf, self.q[i])
         
 
 class SolutionHarness:
-    def __init__(self, D, g_mag, ka, phi, mu, rho, K, p_scale, s2_scale,
+    def __init__(self, D, T, g_mag, ka, phi, mu, rho, K, p_scale, s2_scale,
                  solution_name='solution_expressions'):
         # parameters
         self.genfilename = solution_name+'.py'
         self.D = D                  # domain extents
+        self.T = T                  # finish time 
         self.g_mag = g_mag          # gravity magnitude
         self.ka = ka                # absolute permeability
         self.phi = phi              # porosity
         # the following should be two elements long
         self.mu = mu            # viscosity
         self.rho = rho;         # density
-        # the following should be a lambda func
-        self.K = K              # relperm
+        self.K = K              # relperm (functions of s)
         # field magnitudes, for scaling error norms appropriately
         self.p_scale = p_scale 
         self.s2_scale = s2_scale 
 
-    def compute_reference_p_grad( 
-            self, phase_num, reference_saturation,
-            reference_darcy_velocity ):
-        i = phase_num-1
-        return self.rho[i]*self.g_mag - \
-            reference_darcy_velocity*self.mu[i]/ \
-            self.K(reference_saturation)
+    # def compute_reference_p_grad( 
+    #         self, phase_num, reference_saturation,
+    #         reference_darcy_velocity ):
+    #     i = phase_num-1
+    #     return self.rho[i]*self.g_mag - \
+    #         reference_darcy_velocity*self.mu[i]/ \
+    #         self.K(reference_saturation)
         
     def write_dict(self, manufactured_solution_list):
 
@@ -164,6 +174,7 @@ class SolutionHarness:
         
         # stuff that will be used again in Python code
         write_expression_py(f, 'domain_extents', self.D)
+        write_expression_py(f, 'finish_time', self.T)
         
         # constants
         write_expression_py(f, 'pressure1_scale', self.p_scale)
@@ -181,7 +192,7 @@ class SolutionHarness:
             ms.write_main_expressions(f)
             for i, phase_num in enumerate((1, 2)):
                 ms.compute_phase(phase_num, self.phi,
-                                 self.K, self.mu[i],
+                                 self.K[i], self.mu[i],
                                  self.rho[i], self.g_mag)
                 ms.write_phase_expressions(f, phase_num)
             
