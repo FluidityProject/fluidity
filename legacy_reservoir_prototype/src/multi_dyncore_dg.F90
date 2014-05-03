@@ -966,6 +966,7 @@ contains
         call get_option( trim( path ) // 'number_advection_iterations', nits_flux_lim, default = 1 )
 
         ! THIS DOES NOT WORK FOR NITS_FLUX_LIM>1 (NOBODY KNOWS WHY)
+
         IGOT_THERM_VIS=0
         ALLOCATE( THERM_U_DIFFUSION(NDIM,NDIM,NPHASE,MAT_NONODS*IGOT_THERM_VIS ) )
 
@@ -1022,9 +1023,7 @@ contains
             trim(option_path) )
 
             !Copy to phaseVolumeFraction in packed_state
-            do j = 1, cv_nonods
-                satura(:,j) = x(1+(j-1)*NPHASE : j*NPHASE)
-            end do
+            satura = RESHAPE( x, (/ size(satura,1), size(satura,2) /) )
 
 !            satura([([(i+(j-1)*cv_nonods,j=1,nphase)],i=1,cv_nonods)])=satura
         END DO Loop_NonLinearFlux
@@ -1050,6 +1049,7 @@ contains
 
         RETURN
     end subroutine VolumeFraction_Assemble_Solve
+
 
 
     SUBROUTINE FORCE_BAL_CTY_ASSEM_SOLVE( state, packed_state, &
@@ -2977,17 +2977,21 @@ contains
                 LOC_P( P_ILOC ) = P( P_INOD )
             END DO
 
-            DO MAT_ILOC = 1, MAT_NLOC
-                MAT_INOD = MAT_NDGLN( ( ELE - 1 ) * MAT_NLOC + MAT_ILOC )
-                LOC_U_ABSORB( :, :, MAT_ILOC ) = U_ABSORB( :, :, MAT_INOD )
-                LOC_U_ABS_STAB( :, :, MAT_ILOC ) = U_ABS_STAB( :, :, MAT_INOD )
-                IF ( GOT_DIFFUS ) THEN
-                   LOC_UDIFFUSION( :, :, :, MAT_ILOC ) = UDIFFUSION_ALL( :, :, :, MAT_INOD )
-                ELSE
-                   LOC_UDIFFUSION( :, :, :, MAT_ILOC ) = 0.0
-                ENDIF
-            END DO
-
+            if (is_compact_overlapping) then
+                !We disable the U_absortion since the velocity already includes the sigma
+                LOC_U_ABSORB = 1.0
+            else
+                DO MAT_ILOC = 1, MAT_NLOC
+                    MAT_INOD = MAT_NDGLN( ( ELE - 1 ) * MAT_NLOC + MAT_ILOC )
+                    LOC_U_ABSORB( :, :, MAT_ILOC ) = U_ABSORB( :, :, MAT_INOD )
+                    LOC_U_ABS_STAB( :, :, MAT_ILOC ) = U_ABS_STAB( :, :, MAT_INOD )
+                    IF ( GOT_DIFFUS ) THEN
+                       LOC_UDIFFUSION( :, :, :, MAT_ILOC ) = UDIFFUSION_ALL( :, :, :, MAT_INOD )
+                    ELSE
+                       LOC_UDIFFUSION( :, :, :, MAT_ILOC ) = 0.0
+                    ENDIF
+                END DO
+            end if
 
             ! *********subroutine Determine local vectors...
 
@@ -3105,11 +3109,11 @@ contains
                     DO IPHA_IDIM = 1, NDIM_VEL * NPHASE
                         DO JPHA_JDIM = 1, NDIM_VEL * NPHASE
                             SIGMAGI( IPHA_IDIM, JPHA_JDIM, GI ) = SIGMAGI( IPHA_IDIM, JPHA_JDIM, GI ) &
-                                  !+ CVFEN( MAT_ILOC, GI ) * LOC_U_ABSORB( IPHA_IDIM, JPHA_JDIM, MAT_ILOC )
-                            + CVN( MAT_ILOC, GI ) * LOC_U_ABSORB( IPHA_IDIM, JPHA_JDIM, MAT_ILOC )
+                                      !+ CVFEN( MAT_ILOC, GI ) * LOC_U_ABSORB( IPHA_IDIM, JPHA_JDIM, MAT_ILOC )
+                                + CVN( MAT_ILOC, GI ) * LOC_U_ABSORB( IPHA_IDIM, JPHA_JDIM, MAT_ILOC )
                             SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM, GI ) = SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM, GI ) &
-                                  !+ CVFEN( MAT_ILOC, GI ) * LOC_U_ABS_STAB( IPHA_IDIM, JPHA_JDIM, MAT_ILOC )
-                            + CVN( MAT_ILOC, GI ) * LOC_U_ABS_STAB( IPHA_IDIM, JPHA_JDIM, MAT_ILOC )
+                                      !+ CVFEN( MAT_ILOC, GI ) * LOC_U_ABS_STAB( IPHA_IDIM, JPHA_JDIM, MAT_ILOC )
+                                + CVN( MAT_ILOC, GI ) * LOC_U_ABS_STAB( IPHA_IDIM, JPHA_JDIM, MAT_ILOC )
                         END DO
                     END DO
                     TEN_XX( :, :, :, GI ) = TEN_XX( :, :, :, GI ) + CVFEN( MAT_ILOC, GI ) * LOC_UDIFFUSION( :, :, :, MAT_ILOC )

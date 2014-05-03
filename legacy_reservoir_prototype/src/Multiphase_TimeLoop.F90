@@ -225,6 +225,7 @@
       type( tensor_field ), pointer :: tracer_field, velocity_field, density_field, saturation_field
       type(scalar_field), pointer :: pressure_field, porosity_field
 
+      real, dimension(:,:), allocatable :: dummy_to_print_FEM
       !Initially we set to use Stored data and that we have a new mesh
       StorageIndexes = 0!Initialize them as zero !
 
@@ -412,15 +413,16 @@
 !!$ Extracting Mesh Dependent Fields
       initialised = .false.
       call Extracting_MeshDependentFields_From_State( state, packed_state, initialised, &
-           PhaseVolumeFraction, PhaseVolumeFraction_Source,&
+           PhaseVolumeFraction_Source,&
            Component, Component_Source, &
            Velocity_U_Source, Velocity_Absorption, &
            Temperature, Temperature_Source, &
            Permeability )
+     !We set initially OldSat_s to be SAT_s
+     OldSAT_s = SAT_s
 !!$ Calculate diagnostic fields
       call calculate_diagnostic_variables( state, exclude_nonrecalculated = .true. )
       call calculate_diagnostic_variables_new( state, exclude_nonrecalculated = .true. )
-
 
 !!$ Dummy field used in the scalar advection option:
       Dummy_PhaseVolumeFraction_FEMT = 1.
@@ -532,14 +534,6 @@
    !   stop 282
 
 
-    !######TEMPORARY CONVERSION FROM OLD PhaseVolumeFraction TO PACKED######
-    do cv_inod = 1, size(SAT_s,2)
-        do iphase = 1, size(SAT_s,1)
-            SAT_s(iphase,cv_inod) = phaseVolumeFraction(cv_inod +(iphase-1)*size(SAT_s,2))
-            OldSAT_s(iphase,cv_inod) = PhaseVolumeFraction_Old(cv_inod +(iphase-1)*size(SAT_s,2))
-        end do
-    end do
-    !#############################################################
 !!$ Starting Time Loop
       itime = 0
       dtime = 0
@@ -578,7 +572,8 @@
 
 
 !!$ Update all fields from time-step 'N - 1'
-         PhaseVolumeFraction_Old = PhaseVolumeFraction ; Temperature_Old = Temperature ; Component_Old = Component
+!         PhaseVolumeFraction_Old = PhaseVolumeFraction ;
+         Temperature_Old = Temperature ; Component_Old = Component
 
          U_s  => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedVelocity" )
          UOLD_s  => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedOldVelocity" )
@@ -791,7 +786,6 @@
                     U_SNLOC, P_SNLOC, CV_SNLOC, &
 !!$
                     Material_Absorption_Stab, Material_Absorption, Velocity_Absorption, Velocity_U_Source, Velocity_U_Source_CV, &
-!                    PhaseVolumeFraction, PhaseVolumeFraction_Old, & 
                     DRhoDPressure, IDIVID_BY_VOL_FRAC, FEM_VOL_FRAC, &
                     dt, &
 !!$
@@ -844,8 +838,6 @@
                     CV_NDGLN, X_NDGLN, U_NDGLN, &
                     CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
 !!$
-!!                    PhaseVolumeFraction, PhaseVolumeFraction_Old, &
-!!$
                     MAT_NLOC, MAT_NDGLN, MAT_NONODS, &
 !!$
                     v_disopt, v_dg_vel_int_opt, dt, v_theta, v_beta, &
@@ -869,8 +861,6 @@
                     theta_flux=sum_theta_flux, one_m_theta_flux=sum_one_m_theta_flux, &
                     theta_flux_j=sum_theta_flux_j, one_m_theta_flux_j=sum_one_m_theta_flux_j,&
                     StorageIndexes=StorageIndexes )
-
-!               PhaseVolumeFraction = min( max( PhaseVolumeFraction, 0.0 ), 1.0 )!<==Now this is inside VolumeFraction_Assemble_Solve
 
             end if Conditional_PhaseVolumeFraction
 
@@ -898,12 +888,12 @@
                   Conditional_SmoothAbsorption: if( have_option( '/material_phase[' // int2str( nstate - ncomp ) // &
                        ']/is_multiphase_component/KComp_Sigmoid' ) .and. nphase > 1 ) then
                      do cv_nodi = 1, cv_nonods
-                        if( PhaseVolumeFraction( cv_nodi ) > 0.95 ) then
+                        if( SAT_s(1, cv_nodi ) > 0.95 ) then
                            do iphase = 1, nphase
                               do jphase = min( iphase + 1, nphase ), nphase
                                  Component_Absorption( cv_nodi, iphase, jphase ) = &
                                       Component_Absorption( cv_nodi, iphase, jphase ) * max( 0.01, &
-                                      20. * ( 1. - PhaseVolumeFraction( cv_nodi ) ) )
+                                      20. * ( 1. - SAT_s(1, cv_nodi ) ) )
                               end do
                            end do
                         end if
@@ -1047,12 +1037,12 @@
                   if( have_option( '/material_phase[' // int2str( nstate - ncomp ) // &
                        ']/is_multiphase_component/KComp_Sigmoid' ) .and. nphase > 1 ) then
                      do cv_nodi = 1, cv_nonods
-                        if( PhaseVolumeFraction( cv_nodi ) > 0.95 ) then
+                        if( SAT_s(1, cv_nodi ) > 0.95 ) then
                            do iphase = 1, nphase
                               do jphase = min( iphase + 1, nphase ), nphase
                                  Component_Absorption( cv_nodi, iphase, jphase ) = &
                                       Component_Absorption( cv_nodi, iphase, jphase ) * max( 0.01, &
-                                      20. * ( 1. - SAT_s(1, cv_nodi ) ) )
+                                      20. * ( 1. - SAT_s(1,cv_nodi ) ) )
                               end do
                            end do
                         end if
@@ -1140,16 +1130,6 @@
 
          current_time = acctim
 
-    !######TEMPORARY CONVERSION FROM PACKED PhaseVolumeFraction TO OLD######
-do cv_inod = 1, size(SAT_s,2)
-    do iphase = 1, size(SAT_s,1)
-        phaseVolumeFraction(cv_inod +(iphase-1)*size(SAT_s,2)) = SAT_s(iphase,cv_inod)
-        PhaseVolumeFraction_Old(cv_inod +(iphase-1)*size(OldSAT_s,2)) = OldSAT_s(iphase,cv_inod)
-        phaseVolumeFraction_FEMT(cv_inod +(iphase-1)*size(FESAT_s,2)) = FESAT_s(iphase,cv_inod)
-    end do
-end do
-    !#############################################################
-
 !!$ Copying fields back to state:
 !         call copy_into_state( state, & ! Copying main fields into state
 !              PhaseVolumeFraction, Temperature, &
@@ -1169,11 +1149,18 @@ end do
                checkpoint_number=checkpoint_number+1
             end if
 
-            if ( have_option( "/io/output_scalars_fem" ) ) &
+            if ( have_option( "/io/output_scalars_fem" ) ) then
+                 !As SAT_s is pointing into state, we need to use a backup to print the FE saturation.
+                 allocate(dummy_to_print_FEM(size(SAT_s,1),size(SAT_s,2)))
+                 dummy_to_print_FEM = SAT_s!<=create backup
+
                  call copy_into_state( state, & ! Copying main fields into state
-                 PhaseVolumeFraction_FEMT, Temperature_FEMT, &
+                 FESAT_s, Temperature_FEMT, &
                  Component_FEMT, ncomp, nphase, cv_ndgln )
 
+                 SAT_s = dummy_to_print_FEM!<= retrieve backup
+                 deallocate(dummy_to_print_FEM)
+            end if
             call get_option( '/timestepping/current_time', current_time ) ! Find the current time 
 
             call write_diagnostics( state, current_time, dt, itime/dump_period_in_timesteps )  ! Write stat file
@@ -1182,7 +1169,7 @@ end do
 
             if ( have_option( "/io/output_scalars_fem" ) ) &
                  call copy_into_state( state, & ! Copying main fields into state
-                 PhaseVolumeFraction, Temperature, &
+                 SAT_s, Temperature, &
                  Component, ncomp, nphase, cv_ndgln )
 
          end if Conditional_TimeDump
@@ -1466,7 +1453,7 @@ end do
 !!$ Extracting Mesh Dependent Fields
             initialised = .true.
             call Extracting_MeshDependentFields_From_State( state, packed_state, initialised, &
-                 PhaseVolumeFraction, PhaseVolumeFraction_Source, &
+                 PhaseVolumeFraction_Source, &
                  Component, Component_Source, &
                  Velocity_U_Source, Velocity_Absorption, &
                  Temperature,  Temperature_Source, &

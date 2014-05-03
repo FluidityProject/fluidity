@@ -744,7 +744,7 @@
 
 
     subroutine Extracting_MeshDependentFields_From_State( state, packed_state, initialised, &
-         PhaseVolumeFraction, PhaseVolumeFraction_Source, &
+         PhaseVolumeFraction_Source, &
          Component, Component_Source, &
          Velocity_U_Source, Velocity_Absorption, &
          Temperature, Temperature_Source,  &
@@ -755,7 +755,7 @@
 
       logical, intent( in ) :: initialised
       real, dimension( : ), intent( inout ) :: &
-           PhaseVolumeFraction, PhaseVolumeFraction_Source, &
+           PhaseVolumeFraction_Source, &
            Component, Component_Source, &
            Velocity_U_Source, &
            Temperature, Temperature_Source
@@ -780,6 +780,11 @@
       real, dimension( :, : ), allocatable :: constant
       real, dimension( : ), allocatable :: x, y, z, dummy
 
+      !Pointers to packed_state
+      real, dimension(:,:), pointer :: SAT_s
+
+      call get_var_from_packed_state(packed_state,PhaseVolumeFraction = SAT_s)
+
 !!$ Extracting spatial resolution
       call Get_Primary_Scalars( state, &         
            nphase, nstate, ncomp, totele, ndim, stotel, &
@@ -789,7 +794,7 @@
 
 !!$ Calculating Global Node Numbers
       allocate( cv_sndgln( stotel * cv_snloc ), p_sndgln( stotel * p_snloc ), &
-           u_sndgln( stotel * u_snloc ), dummy( cv_nonods ) )
+           u_sndgln( stotel * u_snloc ))
 
 !      x_ndgln_p1 = 0 ; x_ndgln = 0 ; cv_ndgln = 0 ; p_ndgln = 0 ; mat_ndgln = 0
  !     u_ndgln = 0 ;  xu_ndgln = 0 ; 
@@ -823,14 +828,24 @@
 !!$
 !!$ Extracting Volume Fraction (or Saturation) Field:
 !!$
+      allocate(dummy(size(SAT_s,1)* size(SAT_s,2)))
       Loop_VolumeFraction: do iphase = 1, nphase
          scalarfield => extract_scalar_field( state( iphase ), 'PhaseVolumeFraction' )
          knod = ( iphase - 1 ) * node_count( scalarfield )
          call Get_ScalarFields_Outof_State( state, initialised, iphase, scalarfield, &
-              PhaseVolumeFraction( knod + 1 : knod + node_count( scalarfield ) ), &
+              dummy( knod + 1 : knod + node_count( scalarfield ) ), &
               field_prot_source = PhaseVolumeFraction_Source )
-      end do Loop_VolumeFraction
 
+      end do Loop_VolumeFraction
+      !Store into packed_state
+      do knod = 1, size(SAT_s,2)
+          do iphase = 1, size(SAT_s,1)
+              SAT_s(iphase,knod) = dummy(knod +(iphase-1)*size(SAT_s,2))
+          end do
+      end do
+
+    deallocate(dummy)
+    allocate(dummy( cv_nonods ) )
 !!$
 !!$ Extracting Pressure Field:
 !!$
