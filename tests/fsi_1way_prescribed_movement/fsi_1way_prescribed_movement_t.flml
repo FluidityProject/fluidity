@@ -512,6 +512,7 @@
               </python>
             </python_movement>
             <mesh name="frontcylinderSolidCoordinateMesh"/>
+            <move_solid_mesh/>
             <output/>
             <stat>
               <include_in_stat/>
