@@ -161,7 +161,6 @@ subroutine drag_surface(bigm, rhs, state, density)
 
                  ! START drag in dry regions
                  ! The manning-strickler formulation takes the form n**2g|u|u/(H**0.3333), where H is the water level, g is gravity and n is the Manning coefficient      
-                 ! Note that distance_bottom+distance_top is the current water level H 
                  if(have_manning_strickler_scale) then
                    depth_at_quads = face_val_at_quad(depth, sele)
                    do k=1, sngi
