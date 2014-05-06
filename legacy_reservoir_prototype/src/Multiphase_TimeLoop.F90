@@ -146,7 +146,7 @@
 !!$ For output:
       real, dimension( : ), allocatable :: PhaseVolumeFraction_FEMT, Temperature_FEMT, Density_FEMT, &
            Component_FEMT, Mean_Pore_CV, SumConc_FEMT, Dummy_PhaseVolumeFraction_FEMT
-      type( scalar_field ), pointer :: Temperature_State, Component_State
+      type( scalar_field ), pointer :: Component_State
 
 !!$ Variables that can be effectively deleted as they are not used anymore:
       integer :: noit_dim
@@ -619,9 +619,9 @@
          call update_velocity_absorption( state, ndim, nphase, mat_nonods, velocity_absorption )
 
 !!$ FEMDEM...
-         if ( .false. ) then
-            call blasting( packed_state, nphase )
-         end if
+#ifdef USING_FEMDEM
+         call blasting( packed_state, nphase )
+#endif
 
 !!$ Start non-linear loop
          Loop_NonLinearIteration: do  its = 1, NonLinearIteration

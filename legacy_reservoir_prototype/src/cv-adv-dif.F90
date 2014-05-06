@@ -13383,28 +13383,20 @@ contains
 
     Conditional_SELE: IF( SELE /= 0 ) THEN ! On the boundary of the domain. 
        DO IPHASE = 1, NPHASE
-       IF( WIC_U_BC_ALL( 1, IPHASE, SELE) /= WIC_U_BC_DIRICHLET ) THEN ! velocity free boundary
-          UDGI_ALL(:, IPHASE) = 0.0
-          DO U_KLOC = 1, U_NLOC
+          IF( WIC_U_BC_ALL( 1, IPHASE, SELE) /= WIC_U_BC_DIRICHLET ) THEN ! velocity free boundary
+             UDGI_ALL(:, IPHASE) = 0.0
+             DO U_KLOC = 1, U_NLOC
                 UDGI_ALL(:, IPHASE) = UDGI_ALL(:, IPHASE) + SUFEN( U_KLOC, GI ) * LOC_NU( :, IPHASE, U_KLOC )
                 UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC) = 1.0
-          END DO
-       ELSE ! Specified vel bc.
-          UDGI_ALL(:, IPHASE) = 0.0
-          DO U_SKLOC = 1, U_SNLOC
-             U_KLOC = U_SLOC2LOC( U_SKLOC )
-
-             IF (WIC_U_BC_ALL(1, IPHASE, SELE) == 10) THEN
-                UDGI_ALL(:, IPHASE) = UDGI_ALL(:, IPHASE) + SUFEN( U_KLOC, GI ) * 0.5 * &
-                                     ( SLOC_NU( :, IPHASE, U_SKLOC ) + SUF_U_BC_ALL( :, IPHASE, U_SNLOC* (SELE-1) + U_SKLOC ))
-                UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC) = 0.5   
-             ELSE
+             END DO
+          ELSE ! Specified vel bc.
+             UDGI_ALL(:, IPHASE) = 0.0
+             DO U_SKLOC = 1, U_SNLOC
+                U_KLOC = U_SLOC2LOC( U_SKLOC )
                 UDGI_ALL(:, IPHASE) = UDGI_ALL(:, IPHASE) + SUFEN( U_KLOC, GI ) * SUF_U_BC_ALL(:, IPHASE, U_SNLOC* (SELE-1) + U_SKLOC )
                 UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC) = 0.0  
-             END IF
-
-          END DO
-       END IF
+             END DO
+          END IF
        END DO
 
     ELSE ! Conditional_SELE. Not on the boundary of the domain.

@@ -73,11 +73,10 @@ module multiphase_fractures
   end interface
 
   interface
-     subroutine y2dfemdem( string, dt, rho, p, u, v, u_s, v_s )
+     subroutine y2dfemdem( string, p, u_r, v_r, u_s, v_s, du_s, dv_s )
        character( len = * ), intent( in ) :: string
-       real, intent( in ) :: dt
-       real, dimension( * ), intent( in ) :: rho, p, u, v
-       real, dimension( * ), intent( out ) :: u_s, v_s
+       real, dimension( * ), intent( in ) :: p, u_r, v_r, u_s, v_s
+       real, dimension( * ), intent( out ) :: du_s, dv_s
      end subroutine y2dfemdem
   end interface
 #endif
@@ -100,7 +99,7 @@ contains
     type( state_type ), intent( in ) :: packed_state
 
     real, dimension( : ), allocatable :: p_r
-    real, dimension( :, : ), allocatable :: uf_r, du_s
+    real, dimension( :, : ), allocatable :: uf_r, uf_v, du_s
     integer :: r_nonods, v_nonods
 
     ! read in ring and solid volume meshes
@@ -110,18 +109,20 @@ contains
 
     r_nonods = node_count( positions_r )
     v_nonods = node_count( positions_v )
-    allocate( p_r( r_nonods ), uf_r( ndim, r_nonods ), du_s( ndim, v_nonods ) )
-    p_r=0. ; uf_r=0. ; du_s=0.
+    allocate( p_r( r_nonods ), uf_r( ndim, r_nonods ), uf_v( ndim, v_nonods ), du_s( ndim, v_nonods ) )
+    p_r=0. ; uf_r=0. ; uf_v=0. ; du_s=0.
 
-    call interpolate_fields_out( packed_state, nphase, p_r, uf_r )
+    call interpolate_fields_out_r( packed_state, nphase, p_r, uf_r )
+    call interpolate_fields_out_v( packed_state, nphase, uf_v )
 
-    call y2dfemdem( trim( femdem_mesh_name ) // char( 0 ), p_r, uf_r( 1, : ), uf_r( 2, : ), du_s( 1, : ), du_s( 2, : ) )
+    call y2dfemdem( trim( femdem_mesh_name ) // char( 0 ), p_r, uf_r( 1, : ), uf_r( 2, : ), &
+                     uf_v( 1, : ), uf_v( 2, : ), du_s( 1, : ), du_s( 2, : ) )
 
-    call interpolate_fields_in( packed_state, nphase, du_s )
+    call interpolate_fields_in( packed_state, du_s )
 
     ! deallocate
     call deallocate_femdem
-    deallocate( p_r, uf_r, du_s )
+    deallocate( p_r, uf_r, uf_v, du_s )
 
     return
   end subroutine blasting
@@ -280,11 +281,10 @@ contains
 
   !----------------------------------------------------------------------------------------------------------
 
-  subroutine calculate_volume_fraction( states, totele, vf )
+  subroutine calculate_volume_fraction( states, vf )
 
     implicit none
 
-    integer, intent( in ) :: totele
     type( state_type ), dimension( : ), intent( in ) :: states
     real, dimension( : ), intent( inout ) :: vf
     !Local variables
@@ -581,7 +581,7 @@ contains
 
   !----------------------------------------------------------------------------------------------------------
 
-  subroutine interpolate_fields_out( packed_state, nphase, p_r, u_r )
+  subroutine interpolate_fields_out_r( packed_state, nphase, p_r, u_r )
 
     implicit none
 
@@ -601,10 +601,9 @@ contains
     type( state_type ) :: alg_ext, alg_fl
     real, dimension( :, :, : ), allocatable :: u_tmp
     integer, dimension( : ), pointer :: fl_ele_nodes, cv_ndgln
-    integer :: ele, totele, u_nloc, cv_nloc, nlev, i, j, k, u_nonods, &
-         &     stat, idim, ilev, iphase, u_iloc, u_inod, u_nloc2
-    character( len = OPTION_PATH_LEN ) :: vel_element_type, &
-         &                                path = "/tmp/galerkin_projection/continuous"
+    integer :: ele, totele, u_nloc, cv_nloc, u_nonods, &
+         &     stat
+    character( len = OPTION_PATH_LEN ) :: path = "/tmp/galerkin_projection/continuous"
 
     p_r = 0. ; u_r = 0.
 
@@ -678,9 +677,9 @@ contains
     call insert( alg_fl, fl_mesh, "Mesh" )
     call insert( alg_fl, fl_positions, "Coordinate" )
 
-    call insert(alg_fl, field_fl_p, "Pressure")
-    call insert(alg_fl, field_fl_u, "Velocity1")
-    call insert(alg_fl, field_fl_v, "Velocity2")
+    call insert( alg_fl, field_fl_p, "Pressure" )
+    call insert( alg_fl, field_fl_u, "Velocity1" )
+    call insert( alg_fl, field_fl_v, "Velocity2" )
 
     ! ring state
     call insert( alg_ext, positions_r%mesh, "Mesh" )
@@ -731,16 +730,130 @@ contains
     deallocate( u_tmp )
 
     return
-  end subroutine interpolate_fields_out
+  end subroutine interpolate_fields_out_r
 
   !----------------------------------------------------------------------------------------------------------
 
-  subroutine interpolate_fields_in( packed_state, nphase, du_s )
+  subroutine interpolate_fields_out_v( packed_state, nphase, u_v )
 
     implicit none
 
     type( state_type ), intent( in ) :: packed_state
     integer, intent( in ) :: nphase
+    real, dimension( :, : ), intent( inout ) :: u_v
+
+    !Local variables
+    type( mesh_type ), pointer :: fl_mesh, u_mesh
+    type( scalar_field ) :: field_fl_u, field_fl_v, &
+         &                  field_ext_u, field_ext_v, &
+         &                  u_dg, v_dg
+    type( vector_field ) :: fl_positions
+    type( tensor_field ), pointer :: velocity
+    type( state_type ) :: alg_ext, alg_fl
+    real, dimension( :, :, : ), allocatable :: u_tmp
+    integer :: stat, u_nonods
+    character( len = OPTION_PATH_LEN ) :: path = "/tmp/galerkin_projection/continuous"
+
+    u_v = 0.
+
+    fl_mesh => extract_mesh( packed_state, "CoordinateMesh" )
+    fl_positions = extract_vector_field( packed_state, "Coordinate" )
+
+    call set_solver_options( path, &
+         ksptype = "cg", &
+         pctype = "hypre", &
+         rtol = 1.e-10, &
+         atol = 0., &
+         max_its = 10000 )
+    call add_option( &
+         trim(path)//"/solver/preconditioner[0]/hypre_type[0]/name", stat)
+    call set_option( &
+         trim(path)//"/solver/preconditioner[0]/hypre_type[0]/name", "boomeramg")
+
+    path = "/tmp"
+
+    call allocate( field_fl_u, fl_mesh, "Velocity1" )
+    call zero( field_fl_u )
+
+    call allocate( field_fl_v, fl_mesh, "Velocity2" )
+    call zero( field_fl_v )
+
+    ! deal with velocity - this part needs optimisation...
+    velocity => extract_tensor_field( packed_state, "PackedVelocity" )
+    u_nonods = node_count( velocity )
+
+    allocate( u_tmp( ndim, nphase, u_nonods ) )
+    u_tmp = velocity % val ! not true for overlapping elements, need
+                           ! to take an average of the verious levels 
+
+    u_mesh => extract_mesh( packed_state, "VelocityMesh" )
+
+    call allocate( u_dg, u_mesh, "u_dg" )
+    call zero( u_dg )
+    call allocate( v_dg, u_mesh, "v_dg" )
+    call zero( v_dg )
+    u_dg % val = u_tmp( 1, 1, : ) ; v_dg % val = u_tmp( 2, 1, : ) 
+
+    call project_field( u_dg, field_fl_u, fl_positions )
+    call project_field( v_dg, field_fl_v, fl_positions )
+
+    ! fluidity state
+    call insert( alg_fl, fl_mesh, "Mesh" )
+    call insert( alg_fl, fl_positions, "Coordinate" )
+
+    call insert( alg_fl, field_fl_u, "Velocity1" )
+    call insert( alg_fl, field_fl_v, "Velocity2" )
+
+    ! ring state
+    call insert( alg_ext, positions_v%mesh, "Mesh" )
+    call insert( alg_ext, positions_v, "Coordinate" )
+
+    call allocate( field_ext_u, positions_v%mesh, "Velocity1" )
+    call zero( field_ext_u )
+    field_ext_u % option_path = path
+    call insert( alg_ext, field_ext_u, "Velocity1" )
+
+    call allocate( field_ext_v, positions_v%mesh, "Velocity2" )
+    call zero( field_ext_v )
+    field_ext_v % option_path = path
+    call insert( alg_ext, field_ext_v, "Velocity2" )
+
+    ewrite(3,*) "...interpolating"
+
+    ! interpolate
+    call interpolation_galerkin_femdem( alg_fl, alg_ext, femdem_out = .true. )
+
+    ! copy memory
+    u_v( 1, : ) = field_ext_u % val
+    u_v( 2, : ) = field_ext_v % val
+
+    ! deallocate
+    call deallocate( fl_positions )
+
+    call deallocate( field_fl_u )
+    call deallocate( field_fl_v )
+
+    call deallocate( field_ext_u )
+    call deallocate( field_ext_v )
+
+    call deallocate( alg_fl )
+    call deallocate( alg_ext )
+
+    call deallocate( u_dg )
+    call deallocate( v_dg )
+
+    deallocate( u_tmp )
+
+    return
+  end subroutine interpolate_fields_out_v
+
+  !----------------------------------------------------------------------------------------------------------
+
+  subroutine interpolate_fields_in( packed_state, du_s )
+
+    implicit none
+
+    type( state_type ), intent( in ) :: packed_state
     real, dimension( :, : ), intent( in ) :: du_s
 
     !Local variables
@@ -796,7 +909,7 @@ contains
     call insert( alg_ext, field_ext_u, "Velocity1" )
 
     call allocate( field_ext_v, positions_v%mesh, "Velocity2" )
-    field_ext_u % val = du_s( 2, : )
+    field_ext_v % val = du_s( 2, : )
     field_ext_v % option_path = path
     call insert( alg_ext, field_ext_v, "Velocity2" )
 
@@ -842,22 +955,7 @@ contains
   end subroutine interpolate_fields_in
 
   !----------------------------------------------------------------------------------------------------------
-
-
-  subroutine calculate_u_hat( packed_state, du_f )
-
-    implicit none
-
-    type( state_type ), intent( in ) :: packed_state
-    real, dimension( :, : ), intent( in ) :: du_f
-
-
-    return
-
-  end subroutine calculate_u_hat
-
-  !----------------------------------------------------------------------------------------------------------
-
+  
   subroutine coarsen_mesh_2d( f, c )
 
     implicit none
