@@ -163,7 +163,7 @@ contains
         
         integer, optional :: icomp
         ! Local variables
-        LOGICAL, PARAMETER :: GETCV_DISC = .TRUE., GETCT= .FALSE.
+        LOGICAL, PARAMETER :: GETCV_DISC = .TRUE., GETCT= .FALSE., RETRIEVE_SOLID_CTY=.FALSE.
         integer :: nits_flux_lim, its_flux_lim
         logical :: lump_eqns
         REAL, DIMENSION( : ), allocatable :: ACV, CV_RHS, DIAG_SCALE_PRES, CT_RHS
@@ -279,7 +279,7 @@ contains
             IN_ELE_UPWIND, DG_ELE_UPWIND, &
             NOIT_DIM, &
             MEAN_PORE_CV, &
-            SMALL_FINACV, SMALL_COLACV, size(small_colacv), mass_Mn_pres, THERMAL, &
+            SMALL_FINACV, SMALL_COLACV, size(small_colacv), mass_Mn_pres, THERMAL, RETRIEVE_SOLID_CTY, &
             mass_ele_transp,&
             StorageIndexes, -1, T_input = T, TOLD_input=TOLD, FEMT_input =  T_FEMT ,&
             saturation=saturation)
@@ -483,7 +483,7 @@ contains
         character( len = * ), intent( in ), optional :: option_path
         integer, dimension(:), intent(inout) :: StorageIndexes
         ! Local variables
-        LOGICAL, PARAMETER :: GETCV_DISC = .TRUE., GETCT= .FALSE.
+        LOGICAL, PARAMETER :: GETCV_DISC = .TRUE., GETCT= .FALSE., RETRIEVE_SOLID_CTY= .FALSE.
         INTEGER :: ITS_FLUX_LIM, IGOT_THERM_VIS
         INTEGER :: NCOLACV_SUB, IPHASE, I, J
         REAL :: SECOND_THETA
@@ -535,7 +535,7 @@ contains
             IN_ELE_UPWIND, DG_ELE_UPWIND, &
             NOIT_DIM, &
             MEAN_PORE_CV, &
-            FINACv, COLACV, NCOLACV, ACV, THERMAL, &
+            FINACv, COLACV, NCOLACV, ACV, THERMAL, RETRIEVE_SOLID_CTY, &
             mass_ele_transp , &
             StorageIndexes, Field_selector)!-1,  T_input = T, TOLD_input=TOLD )
 
@@ -913,7 +913,7 @@ contains
         REAL :: SECOND_THETA
         INTEGER :: STAT, i,j, IGOT_THERM_VIS
         character( len = option_path_len ) :: path
-        LOGICAL, PARAMETER :: GETCV_DISC = .TRUE., GETCT= .FALSE.
+        LOGICAL, PARAMETER :: GETCV_DISC = .TRUE., GETCT= .FALSE., RETRIEVE_SOLID_CTY= .FALSE.
         real, dimension(:), allocatable :: X
         type( tensor_field ), pointer :: den_all2, denold_all2
         !type( scalar_field ), pointer :: p
@@ -1006,7 +1006,7 @@ contains
             IN_ELE_UPWIND, DG_ELE_UPWIND, &
             NOIT_DIM, &
             MEAN_PORE_CV, &
-            SMALL_FINACV, SMALL_COLACV, size(small_colacv), mass_Mn_pres, THERMAL, &
+            SMALL_FINACV, SMALL_COLACV, size(small_colacv), mass_Mn_pres, THERMAL, RETRIEVE_SOLID_CTY, &
             mass_ele_transp,&
             StorageIndexes, 3 )
 
@@ -1782,8 +1782,9 @@ contains
         integer, dimension(:), intent(inout) :: StorageIndexes
         ! Local variables
         REAL, PARAMETER :: V_BETA = 1.0
+! NEED TO CHANGE RETRIEVE_SOLID_CTY TO MAKE AN OPTION
         REAL :: SECOND_THETA
-        LOGICAL, PARAMETER :: GETCV_DISC = .FALSE., GETCT= .TRUE., THERMAL= .FALSE.
+        LOGICAL, PARAMETER :: GETCV_DISC = .FALSE., GETCT= .TRUE., THERMAL= .FALSE., RETRIEVE_SOLID_CTY=.FALSE.
         REAL, DIMENSION( : ), allocatable :: ACV, Block_acv, CV_RHS, SUF_VOL_BC_ROB1, SUF_VOL_BC_ROB2, &
         SAT_FEMT, DEN_FEMT, dummy_transp
         REAL, DIMENSION( :,:,:), allocatable :: DENSE_BLOCK_MATRIX
@@ -1941,7 +1942,7 @@ contains
         IN_ELE_UPWIND, DG_ELE_UPWIND, &
         NOIT_DIM, &
         MEAN_PORE_CV, &
-        FINDCMC, COLCMC, NCOLCMC, MASS_MN_PRES, THERMAL, &
+        FINDCMC, COLCMC, NCOLCMC, MASS_MN_PRES, THERMAL,  RETRIEVE_SOLID_CTY,&
         dummy_transp, &
         StorageIndexes, 3 )
 

@@ -80,7 +80,7 @@ contains
          IN_ELE_UPWIND, DG_ELE_UPWIND, &
          NOIT_DIM, &
          MEAN_PORE_CV, &
-         FINDCMC, COLCMC, NCOLCMC, MASS_MN_PRES, THERMAL, &
+         FINDCMC, COLCMC, NCOLCMC, MASS_MN_PRES, THERMAL, RETRIEVE_SOLID_CTY, &
          MASS_ELE_TRANSP, &
          StorageIndexes, Field_selector, icomp,&
          option_path_spatial_discretisation,T_input,TOLD_input, FEMT_input,&
@@ -256,7 +256,7 @@ contains
       REAL, DIMENSION( : ), intent( in ) :: SOURCT
       REAL, DIMENSION( :, :, : ), intent( in ) :: ABSORBT
       REAL, DIMENSION( : ), intent( in ) :: VOLFRA_PORE
-      LOGICAL, intent( in ) :: GETCV_DISC, GETCT, GET_THETA_FLUX, USE_THETA_FLUX, THERMAL
+      LOGICAL, intent( in ) :: GETCV_DISC, GETCT, GET_THETA_FLUX, USE_THETA_FLUX, THERMAL, RETRIEVE_SOLID_CTY
       INTEGER, DIMENSION( : ), intent( in ) :: FINDM
       INTEGER, DIMENSION( : ), intent( in ) :: COLM
       INTEGER, DIMENSION( : ), intent( in ) :: MIDM
@@ -335,6 +335,7 @@ contains
 ! Variables used in GET_INT_VEL_NEW: 
       REAL, DIMENSION ( :, :, : ), allocatable :: LOC_U, LOC2_U
       REAL, DIMENSION ( :, :, : ), allocatable :: LOC_NU, LOC2_NU, SLOC_NU, LOC_NUOLD, LOC2_NUOLD, SLOC_NUOLD
+      REAL, DIMENSION ( :, : ), allocatable :: LOC_U_HAT, LOC2_U_HAT
       INTEGER :: CV_KNOD, CV_KNOD2, U_SNODK
       REAL, DIMENSION ( :, : ), allocatable :: LOC_FEMT, LOC2_FEMT, LOC_FEMTOLD, LOC2_FEMTOLD
       REAL, DIMENSION ( :, : ), allocatable :: LOC_FEMT2, LOC2_FEMT2, LOC_FEMT2OLD, LOC2_FEMT2OLD
@@ -403,7 +404,7 @@ contains
       INTEGER :: U_KLOC2,U_NODK2,U_NODK2_IPHA,U_SKLOC
       INTEGER :: IPT,ILOOP,IMID,JMID,JDIM,IJ
       LOGICAL :: STORE, integrate_other_side_and_not_boundary, prep_stop, GOT_VIS
-      REAL :: R
+      REAL :: R, NDOTQ_HAT
       REAL :: LIMT_keep(NPHASE ),  LIMTOLD_keep( NPHASE ), LIMD_keep( NPHASE ),   LIMDOLD_keep( NPHASE ), LIMT2_keep( NPHASE ),   LIMT2OLD_keep(NPHASE)
       REAL , DIMENSION( : ), ALLOCATABLE :: F_CV_NODI, F_CV_NODJ
       REAL , DIMENSION( :, : ), ALLOCATABLE :: NUOLDGI_ALL, NUGI_ALL, NU_LEV_GI
@@ -431,7 +432,9 @@ contains
 !      type( vector_field ), pointer:: x
       !Working pointers
       real, dimension(:), allocatable :: T, TOLD !<= TEMPORARY, TO REMOVE WHEN CONVERSION IS FINISHED
-      real, dimension(:,:), allocatable, target :: T_ALL_TARGET, TOLD_ALL_TARGET, FEMT_ALL_TARGET, FEMTOLD_ALL_TARGET
+      real, dimension(:), allocatable :: VOL_FRA_FLUID ! for solid coupling
+      real, dimension(:, :), allocatable :: U_HAT_ALL ! for solid coupling
+      real, dimension(:,:), allocatable, target :: T_ALL_TARGET, TOLD_ALL_TARGET, FEMT_ALL_TARGET, FEMTOLD_ALL_TARGET, T_TEMP, TOLD_TEMP
       real, dimension(:,:), pointer :: T_ALL, TOLD_ALL, X_ALL, FEMT_ALL, FEMTOLD_ALL
       real, dimension(:, :, :), pointer :: comp, comp_old, fecomp, fecomp_old, U_ALL, NU_ALL, NUOLD_ALL
 
@@ -448,6 +451,10 @@ contains
       REAL, DIMENSION(:,:,: ), pointer :: SUF_D_BC_ALL,&
            SUF_T2_BC_ALL, SUF_T2_BC_ROB2_ALL   
       REAL, DIMENSION(:,:,: ), pointer :: SUF_U_BC_ALL
+
+!! femdem
+      type( vector_field ), pointer :: u_hat_all2
+      type( scalar_field ), pointer :: solid_vol_fra
 
       type( tensor_field ) :: femvals
 
@@ -475,9 +482,40 @@ contains
                       FLAbort('Component field require to introduce icomp')
                   end if
               case (3)!Saturation
+!                  call get_var_from_packed_state(packed_state,PhaseVolumeFraction = T_ALL,&
                   call get_var_from_packed_state(packed_state,PhaseVolumeFraction = T_ALL,&
                   OldPhaseVolumeFraction = TOLD_ALL, Velocity = U_ALL,&
                   FEPhaseVolumeFraction =FEMT_ALL, OldFEPhaseVolumeFraction = FEMTOLD_ALL)
+
+                  IF( GETCT ) THEN
+                     IF(RETRIEVE_SOLID_CTY) THEN
+                        ALLOCATE(VOL_FRA_FLUID(CV_NONODS))
+                        ALLOCATE(U_HAT_ALL(NDIM,U_NONODS))
+
+                        u_hat_all2 => extract_vector_field( packed_state, "U_hat"  )
+                        u_hat_all=u_hat_all2%val ! ndim, u_nonods
+
+                        Solid_vol_fra => extract_scalar_field( packed_state, "SolidConcentration"  )
+                        VOL_FRA_FLUID = 1.0 - solid_vol_fra%val ! cv_nonods
+
+! Amend the saturations to produce the real voln fractions -only is we have just one phase.
+                        IF(NPHASE==1) THEN
+                           ALLOCATE(T_TEMP(NPHASE,CV_NONODS), TOLD_TEMP(NPHASE,CV_NONODS))
+                           DO CV_NODI=1,CV_NONODS
+!                              T_TEMP(CV_NODI,:)   =T_ALL(CV_NODI,:)*VOL_FRA_FLUID(CV_NODI)  ! T is an allocatable target
+!                              TOLD_TEMP(CV_NODI,:)=TOLD_ALL(CV_NODI,:)*VOL_FRA_FLUID(CV_NODI)
+                              T_TEMP(CV_NODI,:)   =VOL_FRA_FLUID(CV_NODI)  ! T is an allocatable target
+                              TOLD_TEMP(CV_NODI,:)=VOL_FRA_FLUID(CV_NODI)
+                           END DO
+! switch off caching of CV face values as this will be wrong. 
+                           T_ALL=>T_TEMP
+                           TOLD_ALL=>TOLD_TEMP
+                        ENDIF
+! CONV = A*B ! conV is an allocatable target
+! T_ALL=>CONV ! conV is an allocatable target
+
+                     ENDIF 
+                  ENDIF
               case default
                   FLAbort('Invalid field_selector value')
           end select
@@ -499,6 +537,9 @@ contains
           FEMTOLD_ALL => FEMTOLD_ALL_TARGET
       end if
       allocate (T (NPHASE* CV_NONODS), TOLD(NPHASE* CV_NONODS))!TEMPORARY
+
+
+
 
      !##################END OF SET VARIABLES##################
 
@@ -830,6 +871,7 @@ contains
 ! FOR packing as well as for detemining which variables to apply interface tracking**********
 !          STORE=.TRUE.
           STORE=.FALSE.
+          IF( GETCT .AND. RETRIEVE_SOLID_CTY) STORE=.FALSE. ! Avoid storing and retrieving solids voln frac. until we have sorted the code for this. 
 
           IGOT_T_PACK=.TRUE.
           IGOT_T_CONST      =.FALSE.
@@ -942,6 +984,7 @@ contains
       ALLOCATE( LOC_NU(NDIM, NPHASE, U_NLOC), LOC2_NU(NDIM, NPHASE, U_NLOC) )
       ALLOCATE( SLOC_NU(NDIM, NPHASE, U_SNLOC) )
       ALLOCATE( LOC_NUOLD(NDIM, NPHASE, U_NLOC), LOC2_NUOLD(NDIM, NPHASE, U_NLOC) )
+      IF(GETCT.AND.RETRIEVE_SOLID_CTY)  ALLOCATE( LOC_U_HAT(NDIM, U_NLOC), LOC2_U_HAT(NDIM, U_NLOC) )
       ALLOCATE( SLOC_NUOLD(NDIM, NPHASE, U_SNLOC) )
       ALLOCATE( LOC_FEMT(NPHASE, CV_NLOC), LOC2_FEMT(NPHASE, CV_NLOC) )
       ALLOCATE( LOC_FEMTOLD(NPHASE, CV_NLOC), LOC2_FEMTOLD(NPHASE, CV_NLOC) )
@@ -1272,6 +1315,7 @@ contains
                LOC_U( :, :, U_ILOC)=U_ALL( :, :, U_INOD)
                LOC_NU( :, :, U_ILOC)=NU_ALL( :, :, U_INOD)
                LOC_NUOLD( :, :, U_ILOC)=NUOLD_ALL( :, :, U_INOD)
+               IF(GETCT.AND.RETRIEVE_SOLID_CTY) LOC_U_HAT( :, U_ILOC)=U_HAT_ALL( :, U_INOD)
             END DO
          END DO 
 
@@ -1628,6 +1672,7 @@ contains
                 LOC2_U(:, :, U_KLOC) = U_ALL(:, :, U_NODK2)
                 LOC2_NU(:, :, U_KLOC) = NU_ALL(:, :, U_NODK2)
                 LOC2_NUOLD(:, :, U_KLOC) = NUOLD_ALL(:, :, U_NODK2)
+                IF(GETCT.AND.RETRIEVE_SOLID_CTY) LOC2_U_HAT(:, U_KLOC) = U_HAT_ALL(:, U_NODK2)
              END IF
           END DO
 
@@ -1776,6 +1821,17 @@ contains
                                 IANISOLIM, &
                                 NUGI_ALL, TUPWIND_MAT_ALL( :, COUNT_IN), TUPWIND_MAT_ALL( :, COUNT_OUT) )
                         ENDIF
+
+                        IF(GETCT.AND.RETRIEVE_SOLID_CTY) THEN
+                           NDOTQ_HAT = 0.0
+                           DO U_KLOC = 1, U_NLOC
+                              IF (ELE2/=0) THEN ! Between elements...
+                                 NDOTQ_HAT =  NDOTQ_HAT + SUFEN( U_KLOC, GI ) * 0.5 * SUM( CVNORMX_ALL(:, GI) * (LOC_U_HAT( :, U_KLOC ) + LOC2_U_HAT( :, U_KLOC )) )
+                              ELSE
+                                 NDOTQ_HAT =  NDOTQ_HAT + SUFEN( U_KLOC, GI ) * SUM( CVNORMX_ALL(:, GI) * LOC_U_HAT( :, U_KLOC ) )
+                              ENDIF
+                           END DO
+                        ENDIF
                      
 
                      INCOME_J=1.-INCOME
@@ -1869,6 +1925,7 @@ contains
 
           LIMDTT2=LIMD*LIMT*LIMT2
           LIMDTT2OLD=LIMDOLD*LIMTOLD*LIMT2OLD
+
 !      ENDIF
 ! Generate some local F variables ***************...
 
@@ -1947,8 +2004,9 @@ contains
                              SUFEN, SCVDETWEI, CVNORMX_ALL, DEN_ALL, CV_NODI, CV_NODJ, &
                              UGI_COEF_ELE_ALL,  &
                              UGI_COEF_ELE2_ALL,  &
-                             NDOTQNEW(IPHASE), NDOTQOLD(IPHASE), LIMDT(IPHASE), LIMDTOLD(IPHASE), &
-                             FTHETA_T2, ONE_M_FTHETA_T2OLD, FTHETA_T2_J, ONE_M_FTHETA_T2OLD_J, integrate_other_side_and_not_boundary )
+                             NDOTQNEW(IPHASE), NDOTQOLD(IPHASE), NDOTQ_HAT, LIMT(IPHASE), LIMTOLD(IPHASE), LIMDT(IPHASE), LIMDTOLD(IPHASE), &
+                             FTHETA_T2, ONE_M_FTHETA_T2OLD, FTHETA_T2_J, ONE_M_FTHETA_T2OLD_J, integrate_other_side_and_not_boundary, &
+                             RETRIEVE_SOLID_CTY) 
 
                      ENDIF Conditional_GETCT2
 
@@ -10980,14 +11038,15 @@ CONTAINS
        SUFEN, SCVDETWEI, CVNORMX_ALL, DEN_ALL, CV_NODI, CV_NODJ, &
        UGI_COEF_ELE_ALL,  &
        UGI_COEF_ELE2_ALL,  &
-       NDOTQ, NDOTQOLD, LIMDT, LIMDTOLD, &
-       FTHETA_T2, ONE_M_FTHETA_T2OLD, FTHETA_T2_J, ONE_M_FTHETA_T2OLD_J, integrate_other_side_and_not_boundary)
+       NDOTQ, NDOTQOLD, NDOTQ_HAT, LIMT, LIMTOLD, LIMDT, LIMDTOLD, &
+       FTHETA_T2, ONE_M_FTHETA_T2OLD, FTHETA_T2_J, ONE_M_FTHETA_T2OLD_J, integrate_other_side_and_not_boundary, &
+       RETRIEVE_SOLID_CTY)
     ! This subroutine caculates the discretised cty eqn acting on the velocities i.e. CT, CT_RHS
     IMPLICIT NONE
     INTEGER, intent( in ) :: U_NLOC, SCVNGI, GI, NCOLCT, NDIM, &
          CV_NONODS, U_NONODS, NPHASE, IPHASE, TOTELE,  ELE, ELE2, SELE, &
          CV_NODI, CV_NODJ
-    LOGICAL, intent( in ) :: integrate_other_side_and_not_boundary
+    LOGICAL, intent( in ) :: integrate_other_side_and_not_boundary, RETRIEVE_SOLID_CTY
     INTEGER, DIMENSION( : ), intent( in ) :: U_NDGLN
     INTEGER, DIMENSION( : ), intent( in ) :: JCOUNT_KLOC, JCOUNT_KLOC2, ICOUNT_KLOC, ICOUNT_KLOC2, U_OTHER_LOC
     REAL, DIMENSION( :, :, : ), intent( inout ) :: CT
@@ -10998,19 +11057,38 @@ CONTAINS
     REAL, DIMENSION( NDIM, SCVNGI ), intent( in ) :: CVNORMX_ALL
     REAL, DIMENSION( NDIM, NPHASE, U_NONODS ), intent( in ) :: NU_ALL
     REAL, DIMENSION( NPHASE, CV_NONODS ), intent( in ) :: DEN_ALL
-    REAL, intent( in ) :: NDOTQ, NDOTQOLD, LIMDT, LIMDTOLD, FTHETA_T2, ONE_M_FTHETA_T2OLD, FTHETA_T2_J, ONE_M_FTHETA_T2OLD_J
+    REAL, intent( in ) :: NDOTQ, NDOTQOLD, NDOTQ_HAT, LIMT, LIMTOLD, LIMDT, LIMDTOLD 
+    REAL, intent( in ) :: FTHETA_T2, ONE_M_FTHETA_T2OLD, FTHETA_T2_J, ONE_M_FTHETA_T2OLD_J
 
     ! Local variables...
     INTEGER :: U_KLOC, U_KLOC2, JCOUNT_IPHA, IDIM, U_NODK, U_NODK_IPHA, JCOUNT2_IPHA, &
          U_KLOC_LEV, U_NLOC_LEV
     REAL :: RCON,RCON_J, UDGI_IMP_ALL(NDIM), NDOTQ_IMP
+    REAL :: UDGI_ALL(NDIM), UOLDDGI_ALL(NDIM), UDGI_HAT_ALL(NDIM)
 
 
+    IF(RETRIEVE_SOLID_CTY) THEN ! For solid modelling...
+
+       CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) + SCVDETWEI( GI ) * ( &
+            FTHETA_T2 * LIMT * NDOTQ     &
+           +ONE_M_FTHETA_T2OLD * LIMTOLD *  NDOTQOLD      ) 
+! flux from the other side (change of sign because normal is -ve)...
+    if(integrate_other_side_and_not_boundary) then
+       CT_RHS( CV_NODJ ) = CT_RHS( CV_NODJ ) - SCVDETWEI( GI ) * (  &
+            FTHETA_T2 * LIMT * NDOTQ     &
+           +ONE_M_FTHETA_T2OLD * LIMTOLD * NDOTQOLD        ) 
+    endif
+
+    ENDIF ! For solid modelling...
 
     DO U_KLOC = 1, U_NLOC
 
-       RCON    = SCVDETWEI( GI ) * FTHETA_T2 * LIMDT  &
+       RCON    = SCVDETWEI( GI ) * FTHETA_T2 * LIMDT &
             * SUFEN( U_KLOC, GI ) / DEN_ALL( IPHASE, CV_NODI )
+       IF(RETRIEVE_SOLID_CTY) THEN ! For solid modelling...
+          RCON    = RCON    + SCVDETWEI( GI ) * FTHETA_T2  *(1.0 + LIMT) &
+               * SUFEN( U_KLOC, GI ) / REAL( NPHASE )
+       ENDIF ! For solid modelling...
 
        DO IDIM = 1, NDIM
           CT( IDIM, IPHASE, JCOUNT_KLOC( U_KLOC ) ) &
@@ -11019,8 +11097,12 @@ CONTAINS
        END DO
 ! flux from the other side (change of sign because normal is -ve)...
     if(integrate_other_side_and_not_boundary) then
-       RCON_J    = SCVDETWEI( GI ) * FTHETA_T2_J * LIMDT  &
+       RCON_J    = SCVDETWEI( GI ) * FTHETA_T2_J * LIMDT &
             * SUFEN( U_KLOC, GI ) / DEN_ALL( IPHASE, CV_NODJ )
+       IF(RETRIEVE_SOLID_CTY) THEN ! For solid modelling...
+          RCON_J    = RCON_J  + SCVDETWEI( GI ) * FTHETA_T2_J * (1.0 + LIMT)  &
+            * SUFEN( U_KLOC, GI ) / REAL( NPHASE )
+       ENDIF ! For solid modelling...
 
        DO IDIM = 1, NDIM
           CT( IDIM, IPHASE, ICOUNT_KLOC( U_KLOC ) ) &
@@ -11044,6 +11126,9 @@ CONTAINS
             ONE_M_FTHETA_T2OLD * LIMDTOLD * NDOTQOLD &
             + FTHETA_T2  * LIMDT * (NDOTQ-NDOTQ_IMP) &
             ) / DEN_ALL( IPHASE, CV_NODI )
+
+       IF(RETRIEVE_SOLID_CTY) THEN ! For solid modelling...
+       ENDIF ! For solid modelling...
 
     ELSE
 
