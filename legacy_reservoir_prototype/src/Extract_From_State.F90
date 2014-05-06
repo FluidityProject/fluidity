@@ -755,10 +755,11 @@
 
       logical, intent( in ) :: initialised
       real, dimension( : ), intent( inout ) :: &
-           PhaseVolumeFraction, PhaseVolumeFraction_Source, &
+           PhaseVolumeFraction_Source, &
            Component, Component_Source, &
            Velocity_U_Source, &
            Temperature, Temperature_Source
+      real, dimension(:,:), intent(inout) :: PhaseVolumeFraction
       real, dimension( :, :, : ), intent( inout ) :: Velocity_Absorption, Permeability
 
 !!$ Local variables
@@ -826,8 +827,11 @@
       Loop_VolumeFraction: do iphase = 1, nphase
          scalarfield => extract_scalar_field( state( iphase ), 'PhaseVolumeFraction' )
          knod = ( iphase - 1 ) * node_count( scalarfield )
+!         call Get_ScalarFields_Outof_State( state, initialised, iphase, scalarfield, &
+!              PhaseVolumeFraction( knod + 1 : knod + node_count( scalarfield ) ), &
+!              field_prot_source = PhaseVolumeFraction_Source )
          call Get_ScalarFields_Outof_State( state, initialised, iphase, scalarfield, &
-              PhaseVolumeFraction( knod + 1 : knod + node_count( scalarfield ) ), &
+              PhaseVolumeFraction( iphase,:), &
               field_prot_source = PhaseVolumeFraction_Source )
       end do Loop_VolumeFraction
 

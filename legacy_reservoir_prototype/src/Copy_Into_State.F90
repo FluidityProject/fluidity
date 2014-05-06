@@ -69,7 +69,7 @@
       !!< Copy prototype solution arrays into fluidity state array for output
 
       type(state_type), dimension(:), intent(inout) :: state
-      real, dimension(:), intent(in) :: proto_saturations
+      real, dimension(:,:), intent(in) :: proto_saturations
       real, dimension(:), intent(in) :: proto_temperatures
       real, dimension(:), intent(in) :: proto_components
       integer, intent(in) :: ncomp
@@ -114,10 +114,12 @@
 
             volf_node_loop: do j = 1,nloc
 
+!               call set(phasevolumefraction, &
+!                    element_nodes(j), &
+!                    proto_saturations((cv_ndgln((i-1)*nloc+j)) + (p-1)*number_nodes))
                call set(phasevolumefraction, &
                     element_nodes(j), &
-                    proto_saturations((cv_ndgln((i-1)*nloc+j)) + (p-1)*number_nodes))
-
+                    proto_saturations(p,cv_ndgln((i-1)*nloc+j)))
             end do volf_node_loop
 
          end do volf_ele_loop
