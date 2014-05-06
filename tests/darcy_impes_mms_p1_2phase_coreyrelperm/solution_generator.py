@@ -6,7 +6,7 @@ def generate(solution_name):
     
     D = (1.0, 1.2, 0.8)         # domain size [see note 1]
     T = 1.0                     # finish time
-    g_mag = 0.0                 # gravity magnitude [see note 2]
+    g_mag = 1.                 # gravity magnitude [see note 2]
     ka = 1.567346939e-9         # absolute permeability
     phi = .4                    # porosity
     
@@ -28,11 +28,11 @@ def generate(solution_name):
     # initialise object containing solution parameters
     sh = SolutionHarness(D, T, g_mag, ka, phi, mu, rho, K,
                          p, s2, solution_name)
-
-    # # introduce time dependence
-    # t = Symbol('t')
-    # p = p * 1/(1 + t/T)
-    # s2 = s2 * (3 + cos(pi*t/T))/4
+ 
+    # introduce time dependence
+    t = Symbol('t')
+    p = p * (3 + cos(pi*t/T))/4
+    s2 = s2 * 1/(1 + t/T)
 
     # helper functions for space dependence
     fs_lon = lambda xi: exp(-xi)
@@ -60,7 +60,7 @@ def generate(solution_name):
     s2 = s2*fs_lat(z/D[2])
     p = p*fp_lat(z/D[2])
     ms3d = ManufacturedSolution(3, g_dir, p, s2)
-
+    
     # generate expressions for the manufactured solution
     sh.write_dict([ms1d, ms2d, ms3d])
 
@@ -76,6 +76,7 @@ def generate(solution_name):
     # 
     # [2] high levels of saturation and rho*g_mag/mu have been found to
     # cause numerical instability well below the expected CFL limit.
-    # This seems to be caused by forcing of an unnatural pressure field;
-    # it only happens with MMS.
+    # This may be caused by having a highly nonlinear relative
+    # permeability term and forcing an unnatural pressure field; it only
+    # happens with MMS.
     

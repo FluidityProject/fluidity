@@ -6,7 +6,7 @@ def generate(solution_name):
     
     D = (1.0, 1.2, 0.8)         # domain size [see note 1]
     T = 1.0                     # finish time
-    g_mag = 1.0                 # gravity magnitude [see note 2]
+    g_mag = 1.                 # gravity magnitude [see note 2]
     ka = 1.567346939e-9         # absolute permeability
     phi = .4                    # porosity
     
@@ -24,34 +24,36 @@ def generate(solution_name):
     sh = SolutionHarness(D, T, g_mag, ka, phi, mu, rho, K,
                          p, s2, solution_name)
 
-    # # introduce time dependence
-    # t = Symbol('t')
-    # p = p * 1/(1 + t/T)
-    # s2 = s2 * (3 + cos(pi*t/T))/4
+    # introduce time dependence
+    t = Symbol('t')
+    p = p * (3 + cos(pi*t/T))/4
+    s2 = s2 * 1/(1 + t/T)
 
     # helper functions for space dependence
-    fs = lambda xi: 3*(1. - xi)*(1.5*xi)**2
-    fp = lambda xi: sin(pi*xi)**2
+    fs_lon = lambda xi: exp(-xi)
+    fs_lat = lambda xi: 3*(1. - xi)*(1.5*xi)**2
+    fp_lon = lambda xi: cos(pi*xi)
+    fp_lat = lambda xi: sin(pi*xi)**2
     
     # 1D
     x = Symbol('x')
-    g_dir = (-1)
-    s2 = s2*fs(x/D[0])
-    p = p*fp(x/D[0])
+    g_dir = (1)
+    s2 = s2*fs_lon(x/D[0])
+    p = p*fp_lon(x/D[0])
     ms1d = ManufacturedSolution(1, g_dir, p, s2)
     
     # 2D
     y = Symbol('y')
-    g_dir = (-1, 0)
-    s2 = s2*fs(y/D[1])
-    p = p*fp(y/D[1])
+    g_dir = (1, 0)
+    s2 = s2*fs_lat(y/D[1])
+    p = p*fp_lat(y/D[1])
     ms2d = ManufacturedSolution(2, g_dir, p, s2)
     
     # 3D
     z = Symbol('z')
-    g_dir = (-1, 0, 0)
-    s2 = s2*fs(z/D[2])
-    p = p*fp(z/D[2])
+    g_dir = (1, 0, 0)
+    s2 = s2*fs_lat(z/D[2])
+    p = p*fp_lat(z/D[2])
     ms3d = ManufacturedSolution(3, g_dir, p, s2)
 
     # generate expressions for the manufactured solution
@@ -67,8 +69,8 @@ def generate(solution_name):
     # the domain probably needs to be sized 'nicely' in each dimension
     # if there is to be good convergence on these meshes.
     # 
-    # [2] high levels of saturation and rho*g_mag have been found to
+    # [2] high levels of saturation and rho*g_mag/mu have been found to
     # cause numerical instability well below the expected CFL limit.
-    # This seems to be caused by forcing of an unnatural pressure field;
-    # it only happens with MMS.
-    
+    # This may be caused by having a highly nonlinear relative
+    # permeability term and forcing an unnatural pressure field; it only
+    # happens with MMS.

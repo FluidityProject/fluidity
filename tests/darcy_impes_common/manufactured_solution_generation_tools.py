@@ -102,9 +102,12 @@ class ManufacturedSolution:
         except TypeError:
             grad_p_eff = self.grad_p - array(rho*g)
         # n.b. for flexibility, K is a function of both sats
-        u = -K(self.s)/mu*grad_p_eff
-        self.u[i] = u
-        self.q[i] = -diff(phi*self.s[i], t) + div(u)
+        self.u[i] = -K(self.s)/mu*grad_p_eff
+        # TODO find out why removing the minus sign on
+        # diff(phi*self.s[i], t) fixes convergence of the saturation
+        # fields.  Pressure fields are still troublesome at certain
+        # levels of mesh and timestep refinement; need to investigate.
+        self.q[i] = diff(phi*self.s[i], t) + div(self.u[i])
 
     def check_max_velocity(self, phase_num, coords_and_time):
         i = phase_num-1

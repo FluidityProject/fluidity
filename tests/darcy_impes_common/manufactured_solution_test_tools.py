@@ -12,7 +12,6 @@ import string
 import subprocess
 import re
 import numpy
-import glob
 from test_tools import Command, CommandList, HandlerLevel, \
    CompositeHandler, LeafHandler, WriteXMLFile, RunSimulation, \
    WriteToReport, error_norms_filename, error_rates_filename, verbose, \
@@ -28,7 +27,7 @@ debug = False
 mesh_template_prefix = 'template'
 domain_shape_dict = {1:'line', 2:'rectangle', 3:'cuboid'}
 mesh_res_dict = {'A':5, 'B':10, 'C':20, 'D':40,
-                            'E':80, 'F':160}
+                 'E':80, 'F':160, 'G':320, 'H':640}
 
 
 class Parameterisation:
