@@ -2956,6 +2956,35 @@ case $host_os in *\ *) host_os=`echo "$host_os" | sed 's/ /-/g'`;; esac
 
 
 
+case $host_os in
+     darwin* )
+	     LINUX=no
+       DARWIN=yes
+       METIS3=no
+	     FCFLAGS="-DDARWIN $FCFLAGS"
+	     CXXFLAGS="-DDARWIN -fpermissive $CXXFLAGS"
+	     CPPFLAGS="-DDARWIN $CPPFLAGS"
+# Should really check for Mac OS vs. straight Darwin here, or at least test
+# that the framework is valid
+	     LIBS="$LIBS -framework Carbon";;
+     linux*  )
+       LINUX=yes
+       METIS3=yes
+       DARWIN=no;;
+     *       )
+       LINUX=no
+       METIS3=yes
+	     DARWIN=no;;
+esac
+
+# Check to see if the old interface to Metis is in place
+# Needs to be more intelligent than based on the host OS!
+if test "$METIS3" = "yes"; then
+     FCFLAGS="-DMETIS3 $FCFLAGS"
+     CXXFLAGS="-DMETIS3 $CXXFLAGS"
+     CPPFLAGS="-DMETIS3 $CPPFLAGS"
+fi
+
 # Find compilers
 { $as_echo "$as_me:${as_lineno-$LINENO}: *** Fishing for legacy fortran compiler." >&5
 $as_echo "$as_me: *** Fishing for legacy fortran compiler." >&6;}
@@ -10526,7 +10555,9 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
     FCFLAGS="-fbounds-check -Wall -Wimplicit-interface -Wno-surprising ${FCFLAGS}"
     CFLAGS="-fbounds-check -Wall ${CFLAGS}"
     CXXFLAGS="-fbounds-check -Wall ${CXXFLAGS}"
-    LDFLAGS="-rdynamic ${LDFLAGS}"
+    if test "$DARWIN" = "no" ; then
+        LDFLAGS="-rdynamic ${LDFLAGS}"
+    fi
   elif test "$fcompiler" = "g95" ; then
     FFLAGS="-fbounds-check -ftrace=full ${FFLAGS}"
     FCFLAGS="-fbounds-check -ftrace=full ${FCFLAGS}"

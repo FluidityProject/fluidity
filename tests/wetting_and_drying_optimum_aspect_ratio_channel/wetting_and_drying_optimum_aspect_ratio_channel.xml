@@ -1,0 +1,84 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>wetting_and_drying_optimum_aspect_ratio_channel</name>
+  <owner userid="asc"/>
+  <tags>flml wetdry wetdryaspectratio</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>
+for folder in 1 2 3 4 5; do cd ${folder}; fluidity -l -v3 channel.flml; cd ..; done
+    </command_line>
+  </problem_definition>
+  <variables>
+    <variable name="tolerance" language="python">
+      tolerance = 0
+    </variable>
+    <variable name="solvers_converged" language="python">
+import os
+solvers_converged = []
+for folder in range(5): 
+  files = os.listdir(str(folder + 1))
+  solvers_converged.append(not "matrixdump" in files and not "matrixdump.info" in files)
+    </variable>
+    <variable name="ElapsedTime" language="python">from fluidity_tools import stat_parser
+ElapsedTime = []
+for folder in range(5): 
+  s = stat_parser(str(folder + 1) + '/channel.stat')
+  ElapsedTime.append(s["ElapsedTime"]["value"][-1])</variable>
+    <variable name="pressure_iterations" language="python">
+    from pressure_iterations_maximum import find_iterations_pressure
+pressure_iterations = []
+savedmaximums = [259, 154, 38, 65, 109]
+savedaverages = [257, 146, 37, 64, 107]
+for folder in range(5): 
+  p = find_iterations_pressure(str(folder + 1) + '/fluidity.log-0')
+  p['run'] = folder
+  p['savedmaximum'] = savedmaximums[folder]
+  p['savedaverage'] = savedaverages[folder]
+  pressure_iterations.append(p)
+print 'Pressure iterations summary:'
+for p in pressure_iterations:
+  print '  Run %(run)i: %(entries)i solves with maximum %(maximum)i and average %(average)i (tested to %(savedmaximum)i and %(savedaverage)i)' % p
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(all(solvers_converged))
+    </test>
+    <test name="endtime" language="python">
+      assert(all(t >= 1.0 for t in ElapsedTime))
+    </test>
+    <test name="Pressure solves" language="python">
+      assert(all(pressure_iterations[i]['entries'] == 2 for i in range(5)))
+    </test>
+    <test name="Pressure_iterations_max_a_0.01" language="python">
+      assert(  abs(pressure_iterations[0]['maximum'] - pressure_iterations[0]['savedmaximum']) &lt;= tolerance )
+    </test>
+    <test name="Pressure_iterations_max_a_0.1" language="python">
+      assert(  abs(pressure_iterations[1]['maximum'] - pressure_iterations[1]['savedmaximum']) &lt;= tolerance )
+    </test>
+    <test name="Pressure_iterations_max_a_1" language="python">
+      assert(  abs(pressure_iterations[2]['maximum'] - pressure_iterations[2]['savedmaximum']) &lt;= tolerance )
+    </test>
+    <test name="Pressure_iterations_max_a_10" language="python">
+      assert(  abs(pressure_iterations[3]['maximum'] - pressure_iterations[3]['savedmaximum']) &lt;= tolerance )
+    </test>
+    <test name="Pressure_iterations_max_a_100" language="python">
+      assert(  abs(pressure_iterations[4]['maximum'] - pressure_iterations[4]['savedmaximum']) &lt;= tolerance )
+    </test>
+    <test name="Pressure_iterations_mean_a_0.01" language="python">
+      assert(  abs(pressure_iterations[0]['average'] - pressure_iterations[0]['savedaverage']) &lt;= tolerance )
+    </test>
+    <test name="Pressure_iterations_mean_a_0.1" language="python">
+      assert(  abs(pressure_iterations[1]['average'] - pressure_iterations[1]['savedaverage']) &lt;= tolerance )
+    </test>
+    <test name="Pressure_iterations_mean_a_1" language="python">
+      assert(  abs(pressure_iterations[2]['average'] - pressure_iterations[2]['savedaverage']) &lt;= tolerance )
+    </test>
+    <test name="Pressure_iterations_mean_a_10" language="python">
+      assert(  abs(pressure_iterations[3]['average'] - pressure_iterations[3]['savedaverage']) &lt;= tolerance )
+    </test>
+    <test name="Pressure_iterations_mean_a_100" language="python">
+      assert(  abs(pressure_iterations[4]['average'] - pressure_iterations[4]['savedaverage']) &lt;= tolerance )
+    </test>
+  </pass_tests>
+</testproblem>

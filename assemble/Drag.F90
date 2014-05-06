@@ -60,8 +60,30 @@ subroutine drag_surface(bigm, rhs, state, density)
    integer, dimension(:), pointer:: surface_element_list
    integer i, j, k, nobcs, stat
    integer snloc, sele, sngi
-   logical:: parallel_dg, have_distance_bottom, have_distance_top, have_gravity, manning_strickler
-     
+   logical:: parallel_dg, have_distance_bottom, have_distance_top, have_gravity, have_manning_strickler
+
+
+   ! START drag in dry region initialisation
+   logical :: have_wd, have_manning_strickler_scale 
+   real :: d0, dry_region_scale_factor
+   type(scalar_field), pointer :: dtt, dtb
+   real, dimension(:), allocatable:: depth_at_quads, dry_region_drag
+   type(scalar_field) :: depth
+   integer:: node
+
+   have_wd = have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")
+   if (have_wd) then
+     call get_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/d0", d0)
+   end if
+   dtt => extract_scalar_field(state, "DistanceToTop")
+   dtb => extract_scalar_field(state, "DistanceToBottom")
+   call allocate(depth, dtt%mesh, "Depth")
+   do node=1, node_count(dtt)
+      call set(depth, node, node_val(dtt, node) + node_val(dtb, node))
+   end do
+   ! END drag in dry region initialisation
+
+
    ewrite(1,*) 'Inside drag_surface'
    
    velocity => extract_vector_field(state, "Velocity")
@@ -86,21 +108,30 @@ subroutine drag_surface(bigm, rhs, state, density)
    sngi=face_ngi(velocity, 1)
    snloc=face_loc(velocity,1)
    
+
+   ! NOTE ADDITIONS for drag in dry region initialisation
    allocate(faceglobalnodes(1:snloc), &
      face_detwei(1:sngi), coefficient(1:sngi), &
-     drag_mat(1:snloc,1:snloc), density_face_gi(1:sngi))
-   
+     drag_mat(1:snloc,1:snloc), density_face_gi(1:sngi), &
+     depth_at_quads(1:sngi), dry_region_drag(1:sngi))
    nobcs=option_count(trim(velocity%option_path)//'/prognostic/boundary_conditions')
    do i=1, nobcs
       call get_boundary_condition(velocity, i, type=bctype, &
          surface_element_list=surface_element_list)
       if (bctype=='drag') then
-         manning_strickler=have_option(trim(velocity%option_path)//&
+         have_manning_strickler=have_option(trim(velocity%option_path)//&
                '/prognostic/boundary_conditions['//int2str(i-1)//']/type[0]/quadratic_drag/manning-strickler')
-         if (manning_strickler) then
+         have_manning_strickler_scale = have_option(trim(velocity%option_path)//&
+               '/prognostic/boundary_conditions['//int2str(i-1)//']/type[0]/quadratic_drag/manning-strickler/dry_region_scale_factor')
+         call get_option(trim(velocity%option_path)//&
+               '/prognostic/boundary_conditions['//int2str(i-1)//']/type[0]/quadratic_drag/manning-strickler/dry_region_scale_factor', dry_region_scale_factor, default=0.0)
+         if (have_manning_strickler) then
             if (.not. have_distance_bottom .or. .not. have_distance_top .or. .not. have_gravity) then
                ewrite(-1,*) "Manning-strickler drag needs DistanceToTop and DistanceToBottom fields and gravity."
                FLExit("Turn on ocean_boundaries underneath geometry.")
+            end if
+            if (have_manning_strickler_scale) then
+               ewrite(3,*) "Manning-strickler additional drag in dry regions by factor, ", dry_region_scale_factor
             end if
          end if
          drag_coefficient => extract_scalar_surface_field(velocity, i, "DragCoefficient")
@@ -123,10 +154,25 @@ subroutine drag_surface(bigm, rhs, state, density)
               ! drag coefficient: C_D * |u|
               coefficient=ele_val_at_quad(drag_coefficient, j)* &
                 sqrt(sum(face_val_at_quad(nl_velocity, sele)**2, dim=1))
-              if (manning_strickler) then
+              if (have_manning_strickler) then
                  ! The manning-strickler formulation takes the form n**2g|u|u/(H**0.3333), where H is the water level, g is gravity and n is the Manning coefficient
                  ! Note that distance_bottom+distance_top is the current water level H
-                 coefficient=ele_val_at_quad(drag_coefficient, j)*gravity_magnitude*coefficient/((face_val_at_quad(distance_bottom, sele)+face_val_at_quad(distance_top, sele))**(1./3.))
+                 !coefficient=ele_val_at_quad(drag_coefficient, j)*gravity_magnitude*coefficient/((face_val_at_quad(distance_bottom, sele)+face_val_at_quad(distance_top, sele))**(1./3.))
+
+                 ! START drag in dry regions
+                 ! The manning-strickler formulation takes the form n**2g|u|u/(H**0.3333), where H is the water level, g is gravity and n is the Manning coefficient      
+                 if(have_manning_strickler_scale) then
+                   depth_at_quads = face_val_at_quad(depth, sele)
+                   do k=1, sngi
+                     dry_region_drag(k) = max((2 * d0 - depth_at_quads(k)) / d0, 0.0) * dry_region_scale_factor
+                   end do
+                   coefficient = (ele_val_at_quad(drag_coefficient,j) + dry_region_drag)*gravity_magnitude *coefficient/((face_val_at_quad(distance_bottom, sele)+face_val_at_quad(distance_top, sele))**(1./3.))   
+                 else
+                   coefficient = ele_val_at_quad(drag_coefficient,j) * gravity_magnitude*coefficient/((face_val_at_quad(distance_bottom, sele)+face_val_at_quad(distance_top, sele))**(1./3.))  
+                 end if
+                 ! END drag in dry regions
+                    
+                    
                end if
             end if
                
@@ -149,7 +195,7 @@ subroutine drag_surface(bigm, rhs, state, density)
       end if
    end do
      
-   deallocate(faceglobalnodes, face_detwei, coefficient, drag_mat)
+   deallocate(faceglobalnodes, face_detwei, coefficient, drag_mat,density_face_gi, depth_at_quads, dry_region_drag)
    
 end subroutine drag_surface
 

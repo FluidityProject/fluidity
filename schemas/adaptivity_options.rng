@@ -2147,6 +2147,15 @@ geometry.</a:documentation>
                     <ref name="real"/>
                   </element>
                   <optional>
+                    <element name="optimum_aspect_ratio">
+                      <a:documentation>Wetting and drying vertical absorption for thin layers.
+
+The optimum element aspect ratio to aim for.
+This should be kept close to 1.0, and 7.0 is the suggested value to try.</a:documentation>
+                      <ref name="real"/>
+                    </element>
+                  </optional>
+                  <optional>
                     <element name="dry_absorption">
                       <a:documentation>Specifies the amount of absorption in dry areas. If a pressure corrected absorption term is desired, please add a pressure corrected absorption under Velocity (of magnitude 0).
 Note: If you double d0, this value has to be doubled as well to achieve the same amount of absorption.</a:documentation>

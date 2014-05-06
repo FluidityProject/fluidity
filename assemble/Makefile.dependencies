@@ -208,7 +208,8 @@ Diagnostic_fields_wrapper.o ../include/diagnostic_fields_wrapper.mod: \
    ../include/parallel_tools.mod ../include/sediment_diagnostics.mod \
    ../include/sparse_matrices_fields.mod ../include/spontaneous_potentials.mod \
    ../include/spud.mod ../include/state_module.mod ../include/tidal_module.mod \
-   ../include/vorticity_diagnostics.mod
+   ../include/vorticity_diagnostics.mod \
+   ../include/wetting_and_drying_stabilisation.mod
 
 ../include/discrete_properties_module.mod: Discrete_Properties.o
 	@true
@@ -538,7 +539,8 @@ Momentum_CG.o ../include/momentum_cg.mod: Momentum_CG.F90 \
    ../include/sparsity_patterns_meshes.mod ../include/spud.mod \
    ../include/state_fields_module.mod ../include/state_matrices_module.mod \
    ../include/state_module.mod ../include/transform_elements.mod \
-   ../include/upwind_stabilisation.mod ../include/vector_tools.mod
+   ../include/upwind_stabilisation.mod ../include/vector_tools.mod \
+   ../include/wetting_and_drying_stabilisation.mod
 
 ../include/momentum_dg.mod: Momentum_DG.o
 	@true
@@ -560,7 +562,8 @@ Momentum_DG.o ../include/momentum_dg.mod: Momentum_DG.F90 \
    ../include/sparsity_patterns_meshes.mod ../include/spud.mod \
    ../include/state_module.mod ../include/transform_elements.mod \
    ../include/turbine.mod ../include/vector_tools.mod \
-   ../include/vtk_interfaces.mod
+   ../include/vtk_interfaces.mod \
+   ../include/wetting_and_drying_stabilisation.mod
 
 ../include/momentum_diagnostic_fields.mod: Momentum_Diagnostic_Fields.o
 	@true
@@ -850,6 +853,20 @@ Vorticity_Diagnostics.o ../include/vorticity_diagnostics.mod: \
    ../include/fdebug.h ../include/field_derivatives.mod \
    ../include/field_options.mod ../include/fields.mod ../include/fldebug.mod \
    ../include/state_fields_module.mod ../include/state_module.mod
+
+../include/wetting_and_drying_stabilisation.mod: \
+   Wetting_and_Drying_Stabilisation.o
+	@true
+
+Wetting_and_Drying_Stabilisation.o \
+   ../include/wetting_and_drying_stabilisation.mod: \
+   Wetting_and_Drying_Stabilisation.F90 ../include/fdebug.h \
+   ../include/field_options.mod ../include/fields.mod \
+   ../include/fields_base.mod ../include/fields_manipulation.mod \
+   ../include/petsc_solve_state_module.mod \
+   ../include/sparse_matrices_fields.mod ../include/sparse_tools.mod \
+   ../include/sparse_tools_petsc.mod ../include/spud.mod \
+   ../include/state_module.mod
 
 ../include/zoltan_callbacks.mod: Zoltan_callbacks.o
 	@true

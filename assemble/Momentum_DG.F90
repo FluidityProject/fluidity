@@ -66,7 +66,7 @@ module momentum_DG
   use omp_lib
 #endif
   use multiphase_module
-
+  use wetting_and_drying_stabilisation, only:calculate_wetdry_vertical_absorption
 
   implicit none
 
@@ -83,7 +83,13 @@ module momentum_DG
   ! do dictionary lookups for every element (or element face!)
   real :: dt, theta, theta_nl
   logical :: lump_mass, lump_abs, lump_source, subcycle
-
+  ! Wetting and Drying optimum aspect ratio 
+  logical :: have_wetdry_optimum_aspect_ratio
+  real :: wetdry_optimum_aspect_ratio
+  logical :: assemble_mass_matrix
+  logical :: assemble_inverse_masslump
+  logical :: exclude_mass
+  logical :: cmc_lump_mass
   ! Whether the advection term is only integrated by parts once.
   logical :: integrate_by_parts_once=.false.
   ! Whether the conservation term is integrated by parts or not
@@ -379,9 +385,19 @@ contains
 
     ! If we have vertical velocity relaxation set then grab the required fields
     ! sigma = n_z*g*dt*_rho_o/depth
+    have_wetdry_optimum_aspect_ratio = have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/optimum_aspect_ratio")
     have_vertical_velocity_relaxation=have_option(trim(U%option_path)//"/prognostic/vertical_stabilization/vertical_velocity_relaxation")
     if (have_vertical_velocity_relaxation) then
       call get_option(trim(U%option_path)//"/prognostic/vertical_stabilization/vertical_velocity_relaxation/scale_factor", vvr_sf)
+    end if
+    if (have_vertical_velocity_relaxation .or. have_wetdry_optimum_aspect_ratio) then
+      if (have_wetdry_optimum_aspect_ratio .and. on_sphere) then
+        ewrite(-1,*) 'Wetting and drying optimum aspect ratio scheme implemention on the sphere is experimental'
+      end if
+      if (have_wetdry_optimum_aspect_ratio) then
+        call get_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/optimum_aspect_ratio", wetdry_optimum_aspect_ratio)
+        ewrite(4,*) "Wetting and drying optimum aspect ratio scheme applied to the wetting and drying approach"
+      end if
       dtt => extract_scalar_field(state, "DistanceToTop")
       dtb => extract_scalar_field(state, "DistanceToBottom")
       call allocate(depth, dtt%mesh, "Depth")
@@ -513,7 +529,7 @@ contains
          &"/lump_absorption")
     pressure_corrected_absorption=have_option(trim(u%option_path)//&
         &"/prognostic/vector_field::Absorption"//&
-        &"/include_pressure_correction") .or. (have_vertical_stabilization)
+        &"/include_pressure_correction") .or. (have_vertical_stabilization).or. (have_wetdry_optimum_aspect_ratio)
         
     if (pressure_corrected_absorption) then
        ! as we add the absorption into the mass matrix
@@ -706,7 +722,18 @@ contains
 
     !$OMP PARALLEL DEFAULT(SHARED) &
     !$OMP PRIVATE(clr, nnid, ele, len)
-
+    
+    exclude_mass = have_option(trim(u%option_path)//&
+          &"/prognostic/spatial_discretisation"//&
+          &"/continuous_galerkin/mass_terms/exclude_mass_terms")
+    cmc_lump_mass = have_option(trim(p%option_path)//&
+          &"/prognostic/scheme"//&
+          &"/use_projection_method/full_schur_complement"//&
+          &"/preconditioner_matrix::LumpedSchurComplement")
+    assemble_inverse_masslump = lump_mass .or. cmc_lump_mass
+    assemble_mass_matrix = have_option(trim(p%option_path)//&
+          &"/prognostic/scheme/use_projection_method"//&
+          &"/full_schur_complement/inner_matrix::FullMassMatrix")
     colour_loop: do clr = 1, size(colours) 
       len = key_count(colours(clr))
 
@@ -969,6 +996,7 @@ contains
     real :: turbine_fluxfac
 
     real, dimension(ele_ngi(u,ele)) :: alpha_u_quad
+    real, dimension(u%dim, ele_ngi(u,ele)) :: wetdry_vert_absorption
 
     ! added for partial stress form (sp911)
     logical, intent(in) :: partial_stress
@@ -1340,7 +1368,7 @@ contains
       end if
     end if
 
-    if((have_absorption.or.have_vertical_stabilization.or.have_wd_abs .or. have_swe_bottom_drag) .and. &
+    if((have_absorption.or.have_vertical_stabilization.or.have_wd_abs .or. have_wetdry_optimum_aspect_ratio .or. have_swe_bottom_drag) .and. &
          (assemble_element .or. pressure_corrected_absorption)) then
 
       absorption_gi=0.0
@@ -1407,13 +1435,18 @@ contains
      
       end if
 
+      ! Wetting and drying vertical absorption for large aspect-ratio domains
+      if(have_wetdry_optimum_aspect_ratio) then
+        call calculate_wetdry_vertical_absorption(wetdry_vert_absorption, ele, X, gravity, dt, wetdry_optimum_aspect_ratio)
+        absorption_gi = absorption_gi - wetdry_vert_absorption
+        ! TODO: Add correct tensor form to tensor_absorption_gi
+      end if
+      
       ! Add any vertical stabilization to the absorption term
       if (on_sphere) then
-        tensor_absorption_gi=tensor_absorption_gi-vvr_abs-ib_abs
-        absorption_gi=absorption_gi-vvr_abs_diag-ib_abs_diag
-      else
-        absorption_gi=absorption_gi-vvr_abs_diag-ib_abs_diag
+        tensor_absorption_gi = tensor_absorption_gi - vvr_abs - ib_abs
       end if
+      absorption_gi = absorption_gi - vvr_abs_diag - ib_abs_diag
 
       if (have_swe_bottom_drag) then
         ! first compute total water depth H
@@ -1564,7 +1597,7 @@ contains
 
     end if
       
-    if ((((.not.have_absorption).and.(.not.have_vertical_stabilization).and.(.not.have_wd_abs)) .or. (.not.pressure_corrected_absorption)).and.(have_mass)) then
+    if ((((.not.have_absorption).and.(.not.have_vertical_stabilization).and.(.not.have_wd_abs)) .or. (.not.pressure_corrected_absorption)).and.(have_mass).and. (.not. have_wetdry_optimum_aspect_ratio)) then
       ! no absorption: all mass matrix components are the same
       if (present(inverse_mass) .and. .not. lump_mass) then
         inverse_mass_mat=inverse(rho_mat)

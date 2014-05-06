@@ -1819,7 +1819,14 @@ mesh_adaptivity_options =
                  ## Specifies the d0 value which is the waterlevel kept in dry areas.
                  element d0 {
                       real
-                 },
+                 }, 
+                 ## Wetting and drying vertical absorption for thin layers.
+                 ##
+                 ## The optimum element aspect ratio to aim for.
+                 ## This should be kept close to 1.0, and 7.0 is the suggested value to try.
+                 element optimum_aspect_ratio {
+                      real
+                 }?,
                  ## Specifies the amount of absorption in dry areas. If a pressure corrected absorption term is desired, please add a pressure corrected absorption under Velocity (of magnitude 0).
                  ## Note: If you double d0, this value has to be doubled as well to achieve the same amount of absorption.
                  element dry_absorption {real_dim_vector}?,

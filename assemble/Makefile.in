@@ -68,6 +68,7 @@ OBJS    = Momentum_Diagnostic_Fields.o \
 	Adapt_Integration.o Node_Locking.o Mba3d_Integration.o \
 	Adapt_State.o Adapt_State_Prescribed.o Adapt_State_Unittest.o \
 	Upwind_Stabilisation.o \
+	Wetting_and_Drying_Stabilisation.o \
         Coriolis.o Full_Projection.o \
         Mba2d_Integration.o Slope_limiters_DG.o \
         Spontaneous_Potentials.o LES.o \
