@@ -2340,6 +2340,12 @@ contains
                END DO
             END DO
          END DO
+
+         IF ( GETCT .and. RETRIEVE_SOLID_CTY) THEN 
+! VOL_FRA_FLUID is the old voln fraction of total fluid...
+            CT_RHS = CT_RHS + VOL_FRA_FLUID/DT
+         ENDIF
+
       END IF
 
       !ewrite(3,*)'upwind fraction:'
@@ -11071,12 +11077,14 @@ CONTAINS
 
        CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) + SCVDETWEI( GI ) * ( &
             FTHETA_T2 * LIMT * NDOTQ     &
-           +ONE_M_FTHETA_T2OLD * LIMTOLD *  NDOTQOLD      ) 
+           +ONE_M_FTHETA_T2OLD * LIMTOLD *  NDOTQOLD  ) !  &
+!           -NDOTQ /REAL(NPHASE)  ) 
 ! flux from the other side (change of sign because normal is -ve)...
     if(integrate_other_side_and_not_boundary) then
        CT_RHS( CV_NODJ ) = CT_RHS( CV_NODJ ) - SCVDETWEI( GI ) * (  &
             FTHETA_T2 * LIMT * NDOTQ     &
-           +ONE_M_FTHETA_T2OLD * LIMTOLD * NDOTQOLD        ) 
+           +ONE_M_FTHETA_T2OLD * LIMTOLD * NDOTQOLD     &
+           -NDOTQ /REAL(NPHASE) )     
     endif
 
     ENDIF ! For solid modelling...
@@ -11086,8 +11094,8 @@ CONTAINS
        RCON    = SCVDETWEI( GI ) * FTHETA_T2 * LIMDT &
             * SUFEN( U_KLOC, GI ) / DEN_ALL( IPHASE, CV_NODI )
        IF(RETRIEVE_SOLID_CTY) THEN ! For solid modelling...
-          RCON    = RCON    + SCVDETWEI( GI ) * FTHETA_T2  *(1.0 + LIMT) &
-               * SUFEN( U_KLOC, GI ) / REAL( NPHASE )
+          RCON    = RCON    - SCVDETWEI( GI ) * FTHETA_T2  * LIMT &
+               * SUFEN( U_KLOC, GI ) 
        ENDIF ! For solid modelling...
 
        DO IDIM = 1, NDIM
@@ -11100,8 +11108,8 @@ CONTAINS
        RCON_J    = SCVDETWEI( GI ) * FTHETA_T2_J * LIMDT &
             * SUFEN( U_KLOC, GI ) / DEN_ALL( IPHASE, CV_NODJ )
        IF(RETRIEVE_SOLID_CTY) THEN ! For solid modelling...
-          RCON_J    = RCON_J  + SCVDETWEI( GI ) * FTHETA_T2_J * (1.0 + LIMT)  &
-            * SUFEN( U_KLOC, GI ) / REAL( NPHASE )
+          RCON_J    = RCON_J  - SCVDETWEI( GI ) * FTHETA_T2_J * LIMT  &
+            * SUFEN( U_KLOC, GI ) 
        ENDIF ! For solid modelling...
 
        DO IDIM = 1, NDIM
@@ -11127,8 +11135,8 @@ CONTAINS
             + FTHETA_T2  * LIMDT * (NDOTQ-NDOTQ_IMP) &
             ) / DEN_ALL( IPHASE, CV_NODI )
 
-       IF(RETRIEVE_SOLID_CTY) THEN ! For solid modelling...
-       ENDIF ! For solid modelling...
+!       IF(RETRIEVE_SOLID_CTY) THEN ! For solid modelling...
+!       ENDIF ! For solid modelling...
 
     ELSE
 
