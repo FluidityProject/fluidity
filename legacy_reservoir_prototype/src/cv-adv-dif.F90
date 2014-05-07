@@ -2319,7 +2319,8 @@ contains
 
             IF(RETRIEVE_SOLID_CTY) THEN 
 ! VOL_FRA_FLUID is the old voln fraction of total fluid...
-               CT_RHS = CT_RHS  -(1.0 - VOL_FRA_FLUID) * R
+! multiply by solid-voln fraction: (1.-VOL_FRA_FLUID)
+               CT_RHS( CV_NODI ) = CT_RHS( CV_NODI )  + (1.-VOL_FRA_FLUID( CV_NODI )) * R
             ENDIF
 
             DO IPHASE = 1, NPHASE
@@ -11076,17 +11077,11 @@ CONTAINS
 
 
     IF(RETRIEVE_SOLID_CTY) THEN ! For solid modelling...
-
-       CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) + SCVDETWEI( GI ) * ( &
-            FTHETA_T2 * LIMT * NDOTQ     &
-           +ONE_M_FTHETA_T2OLD * LIMTOLD *  NDOTQOLD  ) !  &
-!           -NDOTQ /REAL(NPHASE)  ) 
+! Use backward Euler...
+       CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) + SCVDETWEI( GI ) * (NDOTQ + NDOTQ_HAT)/REAL(NPHASE)   
 ! flux from the other side (change of sign because normal is -ve)...
     if(integrate_other_side_and_not_boundary) then
-       CT_RHS( CV_NODJ ) = CT_RHS( CV_NODJ ) - SCVDETWEI( GI ) * (  &
-            FTHETA_T2 * LIMT * NDOTQ     &
-           +ONE_M_FTHETA_T2OLD * LIMTOLD * NDOTQOLD     &
-           -NDOTQ /REAL(NPHASE) )     
+       CT_RHS( CV_NODJ ) = CT_RHS( CV_NODJ ) - SCVDETWEI( GI ) * (NDOTQ + NDOTQ_HAT)/REAL(NPHASE)  
     endif
 
     ENDIF ! For solid modelling...
@@ -11095,8 +11090,8 @@ CONTAINS
 
        RCON    = SCVDETWEI( GI ) * FTHETA_T2 * LIMDT &
             * SUFEN( U_KLOC, GI ) / DEN_ALL( IPHASE, CV_NODI )
-       IF(RETRIEVE_SOLID_CTY) THEN ! For solid modelling...
-          RCON    = RCON    - SCVDETWEI( GI ) * FTHETA_T2  * LIMT &
+       IF(RETRIEVE_SOLID_CTY) THEN ! For solid modelling use backward Euler for this part...
+          RCON    = RCON    + SCVDETWEI( GI )  * (1.0/REAL(NPHASE) - LIMT)  &
                * SUFEN( U_KLOC, GI ) 
        ENDIF ! For solid modelling...
 
@@ -11110,7 +11105,7 @@ CONTAINS
        RCON_J    = SCVDETWEI( GI ) * FTHETA_T2_J * LIMDT &
             * SUFEN( U_KLOC, GI ) / DEN_ALL( IPHASE, CV_NODJ )
        IF(RETRIEVE_SOLID_CTY) THEN ! For solid modelling...
-          RCON_J    = RCON_J  - SCVDETWEI( GI ) * FTHETA_T2_J * LIMT  &
+          RCON_J    = RCON_J  - SCVDETWEI( GI ) * (1.0/REAL(NPHASE) - LIMT)  &
             * SUFEN( U_KLOC, GI ) 
        ENDIF ! For solid modelling...
 
@@ -11137,9 +11132,6 @@ CONTAINS
             + FTHETA_T2  * LIMDT * (NDOTQ-NDOTQ_IMP) &
             ) / DEN_ALL( IPHASE, CV_NODI )
 
-!       IF(RETRIEVE_SOLID_CTY) THEN ! For solid modelling...
-!       ENDIF ! For solid modelling...
-
     ELSE
 
        CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) - SCVDETWEI( GI ) * ( &
@@ -11161,6 +11153,10 @@ CONTAINS
 
              RCON = SCVDETWEI( GI ) * FTHETA_T2 * LIMDT  &
                   * SUFEN( U_KLOC, GI ) / DEN_ALL( IPHASE, CV_NODI )
+             IF(RETRIEVE_SOLID_CTY) THEN ! For solid modelling use backward Euler for this part...
+                RCON    = RCON    + SCVDETWEI( GI )  * (1.0/REAL(NPHASE) - LIMT)  &
+                  * SUFEN( U_KLOC, GI ) 
+             ENDIF ! For solid modelling...
 
              DO IDIM = 1, NDIM
                 CT( IDIM, IPHASE, JCOUNT_KLOC2( U_KLOC2 ) ) &
@@ -11171,6 +11167,11 @@ CONTAINS
     if(integrate_other_side_and_not_boundary) then
              RCON_J = SCVDETWEI( GI ) * FTHETA_T2_J * LIMDT  &
                   * SUFEN( U_KLOC, GI ) / DEN_ALL( IPHASE, CV_NODJ )
+             IF(RETRIEVE_SOLID_CTY) THEN ! For solid modelling...
+                RCON_J    = RCON_J  - SCVDETWEI( GI ) * (1.0/REAL(NPHASE) - LIMT)  &
+                 * SUFEN( U_KLOC, GI ) 
+             ENDIF ! For solid modelling...
+
 
              DO IDIM = 1, NDIM
                 CT( IDIM, IPHASE, ICOUNT_KLOC2( U_KLOC2 ) ) &
