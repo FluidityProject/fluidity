@@ -2343,7 +2343,7 @@ contains
 
          IF ( GETCT .and. RETRIEVE_SOLID_CTY) THEN 
 ! VOL_FRA_FLUID is the old voln fraction of total fluid...
-            CT_RHS = CT_RHS + VOL_FRA_FLUID/DT
+            CT_RHS = CT_RHS  -(1.0 - VOL_FRA_FLUID)/DT
          ENDIF
 
       END IF
