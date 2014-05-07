@@ -2323,8 +2323,8 @@ contains
             ENDIF
 
             DO IPHASE = 1, NPHASE
-               CV_NODI_IPHA = CV_NODI + ( IPHASE - 1 ) * CV_NONODS
-               RHS_NODI_IPHA = IPHASE + (CV_NODI-1 ) * NPHASE
+!               CV_NODI_IPHA = CV_NODI + ( IPHASE - 1 ) * CV_NONODS
+!               RHS_NODI_IPHA = IPHASE + (CV_NODI-1 ) * NPHASE
 
                CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) &
                     - R * ( &
