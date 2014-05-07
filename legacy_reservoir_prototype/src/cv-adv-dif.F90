@@ -2309,12 +2309,22 @@ contains
 
          DIAG_SCALE_PRES = 0.0
 
-         DO IPHASE = 1, NPHASE
-            DO CV_NODI = 1, CV_NONODS
+         DO CV_NODI = 1, CV_NONODS
+
+            R = MASS_CV( CV_NODI ) * MEAN_PORE_CV( CV_NODI ) / DT
+! Add constraint to force sum of volume fracts to be unity...
+                  ! W_SUM_ONE==1 applies the constraint
+                  ! W_SUM_ONE==0 does NOT apply the constraint
+            CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) - ( W_SUM_ONE1 - W_SUM_ONE2 ) * R
+
+            IF(RETRIEVE_SOLID_CTY) THEN 
+! VOL_FRA_FLUID is the old voln fraction of total fluid...
+               CT_RHS = CT_RHS  -(1.0 - VOL_FRA_FLUID) * R
+            ENDIF
+
+            DO IPHASE = 1, NPHASE
                CV_NODI_IPHA = CV_NODI + ( IPHASE - 1 ) * CV_NONODS
                RHS_NODI_IPHA = IPHASE + (CV_NODI-1 ) * NPHASE
-
-               R = MASS_CV( CV_NODI ) * MEAN_PORE_CV( CV_NODI ) / DT
 
                CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) &
                     - R * ( &
@@ -2322,11 +2332,6 @@ contains
                     + ( TOLD_ALL( IPHASE, CV_NODI ) * ( DEN_ALL( IPHASE, CV_NODI ) - DENOLD_ALL( IPHASE, CV_NODI ) ) &
                     - DERIV( IPHASE, CV_NODI ) * CV_P( CV_NODI ) * T_ALL( IPHASE, CV_NODI ) ) / DEN_ALL( IPHASE, CV_NODI ) )
 
-               IF ( IPHASE == 1 ) THEN ! Add constraint to force sum of volume fracts to be unity...
-                  ! W_SUM_ONE==1 applies the constraint
-                  ! W_SUM_ONE==0 does NOT apply the constraint
-                  CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) - ( W_SUM_ONE1 - W_SUM_ONE2 ) * R
-               END IF
 
                DIAG_SCALE_PRES( CV_NODI ) = DIAG_SCALE_PRES( CV_NODI ) + &
                     MEAN_PORE_CV( CV_NODI ) * T_ALL( IPHASE, CV_NODI ) * DERIV( IPHASE, CV_NODI )  &
@@ -2339,12 +2344,9 @@ contains
                        - MASS_CV( CV_NODI ) * ABSORBT_ALL( IPHASE, JPHASE, CV_NODI ) * T_ALL( JPHASE, CV_NODI ) / DEN_ALL( IPHASE, CV_NODI )
                END DO
             END DO
-         END DO
 
-         IF ( GETCT .and. RETRIEVE_SOLID_CTY) THEN 
-! VOL_FRA_FLUID is the old voln fraction of total fluid...
-            CT_RHS = CT_RHS  -(1.0 - VOL_FRA_FLUID)/DT
-         ENDIF
+
+         END DO
 
       END IF
 
