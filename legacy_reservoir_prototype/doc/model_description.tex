@@ -3833,6 +3833,278 @@ simulations.
 
 
 
+\section{Solution method for solid-fluid coupling} 
+
+
+
+\subsection{Fluid velocity or moment equation} 
+Here our aim continues to be to solve a set of equations 
+for pressure even within the solid and in these situations 
+the pressure matrix must not disappear and be well possed. 
+We will thus proceed by writing the momentum equation 
+across the entire domain and then divide through by the 
+fluid volume fraction before discretizing the momentum equation. 
+
+The momentum equation partially discretized in time is:
+
+\begin{eqnarray}
+\alpha_f ( \rho_f (\frac{u_f^{n+1}-u_f^n}{\Delta t})
++ \rho_f u_f\cdot \nabla u_f 
++\nabla (p+\tau)  -s_c -\rho_f g k)=0
+\label{mom-for-div-by-apha}
+\end{eqnarray}
+
+in which $s_c$ contains exchange forces between the 
+solid and fluid due to the viscous terms. 
+
+\subsubsection{Form of the solid-fluid coupling source term $s_c$}
+In order to write equation \ref{mom-for-div-by-apha} 
+the solid-fluid coupling source term must be expressed 
+as $\alpha_f s_c$. 
+This source term has the form expressed as a discretized equation 
+for the solid as: 
+
+\begin{eqnarray}
+\int_{V_s} N_i^s (\alpha_f s_c)^s dV= \int_{\Gamma_s} N_i^s \tau d\Gamma = \int_{\Gamma_s} N_i^s \gamma (u^s_f - u^s_s) d\Gamma
+\end{eqnarray}
+with say $(\alpha_f s_c)^s=\sum_j N_j^s (\alpha_f s_c)^s_j$ 
+and $\tau$ just contains the viscous components of force 
+on the surface of the solid. The force $(\alpha_f s_c)^s$ is 
+then mapped onto the fluids mesh forming $(\alpha_s(\alpha_f s_c))^f$ 
+in which $\alpha_s$ acknowledges the volume fraction of the 
+solid which is automatically incorporated into 
+a field if it is mapped from the solid mesh 
+to the fluid mesh. 
+
+We need to determine $s_c^f$ (assuming it has a FEM expansion 
+$s_c^f=\sum_j N_j^f {s_c^f}_j$ on the fluids mesh and we 
+do this simply with: 
+
+\begin{eqnarray}
+{s_c^f}_i= \frac{(\alpha_s(\alpha_f s_c))^f_i}{{\alpha_f}_i}
+\label{divid-f-by-alpha-f}
+\end{eqnarray}
+
+However, it is important to note that the integral we 
+must conserve is: 
+
+\begin{eqnarray}
+\int_V (\alpha_s(\alpha_f s_c))^f dV.
+\end{eqnarray}
+Thus one can move the interface slightly as long as this expression 
+is conserved so that it moves into a area in which there is a 
+larger volume fraction of fluid $\alpha_f$ and thus we 
+can divide through $(\alpha_s(\alpha_f s_c))^f$ by $\alpha_f$ as in equation 
+\ref{divid-f-by-alpha-f}. If the force is moved to a neighboring cell/node 
+then one must adjust its force according to the volume ration 
+of the two cells/nodes. That is if the force is moved 
+from cell/node $k$ to $i$ then: 
+\begin{eqnarray}
+{s_c^f}_i= \frac{{M_l}_i}{{M_l}_k} \frac{(\alpha_s(\alpha_f s_c))^f_k}{{\alpha_f}_i}. 
+\label{divid-f-by-alpha-f-moved}
+\end{eqnarray}
+Another possible way to approx the surface integral that we want on the 
+fluids mesh is to map it onto a thin shell of elements surrounding the solid. 
+We then map this thin shell to the fluids. 
+This also has the advantage that we can always divide the resulting force by the 
+volume fraction of the fluid as the fluid volume fraction will be non-zero. 
+This then avoids the need to use equation \ref{divid-f-by-alpha-f-moved}. 
+
+
+In addition where there there is no fluid $\alpha^f_f=0$ then 
+we can apply the zero force $\alpha^f_f s_c^f$ with:
+\begin{eqnarray}
+{s_c^f}_i= \hat\sigma ({u^f_f}_i-u^f_i)
+\label{zero-f}
+\end{eqnarray}
+and bearing in mind that 
+\begin{eqnarray}
+\hat\sigma (u_f-u)
+= \hat\sigma (u_f - (\alpha_f u_f +\alpha_s u_s) ) 
+= \hat\sigma \alpha_s(u_f-u_s) 
+\end{eqnarray}
+this has the effect of relaxing 
+the fluid velocity to the solid velocity. 
+The zero condition \ref{zero-f} 
+may be used to provide an upper bound 
+on ${s_c^f}_i$ in equation \ref{divid-f-by-alpha-f-moved} using: 
+\begin{eqnarray}
+{s_c^f}_i= min_{abs}\{ \frac{{M_l}_i}{{M_l}_k} \frac{(\alpha_s(\alpha_f s_c))^f_k}{{\alpha_f}_i},  \hat\sigma \alpha_s(u_f-u_s)  \} 
+\label{divid-f-by-alpha-f-moved-limited}
+\end{eqnarray}
+in which $min_{abs}$ chooses the number with the 
+minimum absolute value and uses that number. 
+Within equation \ref{divid-f-by-alpha-f-moved-limited} we choose 
+within the solid when ${\alpha_f}_i$ the limiting case: 
+\begin{eqnarray}
+{s_c^f}_i=  \hat\sigma \alpha_s(u_f-u_s). 
+\label{s-c-simple}
+\end{eqnarray}
+
+
+We can treat $s_c$ implicitly simply by using:
+
+\begin{eqnarray}
+s_c= s_c \left( \frac{u^f_f - u^f}{u^f_f - u^f}\right). 
+\label{imp-s-c}
+\end{eqnarray} 
+This may then be treated implicitly in pressure or 
+explicitly in pressure and implicitly in momentum. 
+
+
+
+\subsection{Solids equation} 
+The solid equation discretised 
+on the immersed solid mesh is:
+
+
+\begin{eqnarray}
+\int_{V_s} N_i ({\cal L} u - \rho_s g k)
++\int_{\Gamma_s} N_i n (p+\tau)d\Gamma=0
+\label{solids-forced}
+\end{eqnarray}
+
+in which the surface integral contain the forces 
+exerted by the fluid on the solid and is also 
+used to form the source $s_c$ after mapping to the fluid mesh. 
+
+\subsection{Supplementary equation}
+Since it is difficult to imbed the solids equations into 
+the fluids equations. Hee we achieve the coupling with the 
+introduction of the equation:
+
+\begin{eqnarray}
+\hat\sigma (\hat u^f - u_f^f) = \hat\sigma( u_s^s-u_f^s)
+\label{sigma-hat-eqn}
+\end{eqnarray}
+
+in which $\hat\sigma=\frac{\rho_f}{\Delta t}$. 
+
+The continuity equation can then expressed as 
+
+\begin{eqnarray}
+\nabla \cdot \hat u^f=0
+\end{eqnarray}
+
+with as before the bulk velocity defined:
+
+\begin{eqnarray}
+\hat u^f=\alpha_f u_f^f + \alpha_s u_s^f= \hat u_f^f + \hat u_s^f
+\end{eqnarray}
+
+Notice that if $u_s^s$ is mapped from the solids mesh to 
+the fluids mesh we get $\hat u_s^f$. 
+
+Thus from equation \ref{sigma-hat-eqn} when $\alpha_f=1$, $\alpha_s=0$ 
+then $\hat u^f=u_f^f$ and when $\alpha_f=0$, 
+$\alpha_s=1$ then $\hat u^f=u_s^f$.  
+
+
+\subsection{Pressure equation}
+Here we derive the pressure equation. 
+
+It will be useful to remind ourselves that if:
+\begin{equation}
+A=
+\begin{pmatrix}
+ a & b \\ c & d
+\end{pmatrix} 
+\end{equation}
+
+then
+\begin{eqnarray}
+A^{-1} =\frac{1}{ad-bc}
+\begin{pmatrix}
+  d & -b \\ -c & a 
+\end{pmatrix} 
+\end{eqnarray}
+
+The coupling matrix $M_c$ between between $u_f^f$ and $\hat u$ is
+
+\begin{eqnarray}
+M_c 
+\begin{pmatrix}
+u_f^f \\ \hat u^f
+\end{pmatrix}  
+=
+\begin{pmatrix}
+\frac{\rho_f}{\Delta t}  & 0 \\ 
+-\hat\sigma  &\hat\sigma 
+\end{pmatrix} 
+\begin{pmatrix}
+u_f^f \\ \hat u^f
+\end{pmatrix}  
+\end{eqnarray}
+
+and thus:
+
+\begin{eqnarray}
+M_c^{-1}=\frac{1}{ \frac{\hat\sigma\rho_f}{\Delta t}} 
+\begin{pmatrix}
+\hat\sigma  & 0 \\ 
+ \hat\sigma  & \frac{\rho_f}{\Delta t} 
+\end{pmatrix}  
+\end{eqnarray}
+
+Thus the pressure equation becomes:
+
+\begin{eqnarray}
+(0 \;\; C^T) {\bf M}_c^{-1} 
+\begin{pmatrix}
+ C \\ 0  
+\end{pmatrix}  
+\underline{\Delta p} 
+= \frac{1}{\Delta t} 
+C^T M_{\rho L}^{-1} C \underline{\Delta p}= - C^T \underline{ \hat u^f }
+\label{delt-p-classic27}
+\end{eqnarray} 
+with diagonal entries of ${M_{\rho L}}_{ii}=\int_V N_i \rho_f dV$.
+
+Thus this equation is identical to the previous pressure equation. 
+
+\subsection{Traditional immersed boundary forcing} 
+If one is willing to use the traditionally used 
+source term for momentum of the immersed boundary 
+approach then we obtain a formulation very similar to the 
+immersed boundary approach but with the correct 
+representation of inertia and viscosity. 
+This force is:
+
+\begin{eqnarray}
+\alpha_f^f s_c^f = \alpha_f \hat\sigma (u^f_f -u^f)
+\label{immersed-bc-force-traditional}
+\end{eqnarray}
+and thus $\alpha_f^f s_c^f = \alpha_f^f \hat\sigma \alpha_s^f (u^f_f -u^f_s)$  
+and for the solids the source term becomes 
+(replacing the term involving $\tau$ in equation \ref{solids-forced}): 
+
+\begin{eqnarray}
+\alpha_f^s s_c^s=\hat \sigma (u_s^s -u^s)
+\label{immersed-bc-force}
+\end{eqnarray}
+and thus 
+$ \alpha_f^s s_c^s=\hat \sigma \alpha_f^s(u_s^s -u^s_f)$.
+
+The latter equation \ref{immersed-bc-force} on mapping to the fluids becomes:
+\begin{eqnarray}
+\alpha_f^f s_c^f=\hat \sigma \alpha_s^f (u_s^f -u^f)
+=\hat\sigma \alpha_s^f \alpha_f^f(u_s^f -u^f_f)
+\end{eqnarray} which 
+is equal and opposite to the force applied to the fluids \ref{immersed-bc-force-traditional}. 
+
+Notice that we can divide equation \ref{immersed-bc-force-traditional} 
+thus making it compatible with equation \ref{mom-for-div-by-apha} in which we need to 
+divide by the volume fraction $\alpha_f^f$ in order to solve this equation 
+within the solid. 
+Notice that from equation \ref{sigma-hat-eqn} in the solid $u^f=u^f_s$ and thus this 
+in the solid the force applied by equation \ref{immersed-bc-force} is zero. 
+
+
+\subsection{The continuity equation and mass balance} 
+
+
+
+
 
 \pagebreak
 
