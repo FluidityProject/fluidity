@@ -3470,6 +3470,370 @@ the equations to calculate the saturations. Thus the final step in the iteration
 for a time step is to determine $y_i^j$. 
 
 
+
+
+\pagebreak
+
+
+\section{LES and Q-Scheme Modelling} 
+\label{LES and Q-Scheme Modelling} 
+
+
+
+\subsection{Theory of new SFS model}
+\label{SFSm} In the standard formalism of LES, the separation of
+scales into resolved and sub-filter scales (usually but
+inappropriately called sub-grid scales) is achieved using a
+spatial filtering operation:
+\begin{equation}
+\mathbf{\tilde{u}}(\mathbf{x},t)= \int_{R} \mathbf{u}(\mathbf{x}')
+G(\mathbf{x}-\mathbf{x}')\,\mathrm{d}\mathbf{x}'
+\label{eq:Les-filter}
+\end{equation}
+where the tilde denotes a filtered quantity and $G$ represents the
+(arbitrarily defined) filter. The filter has the effect of
+removing (or suppressing) those scales of motion smaller than the
+filter width $\Delta$. Provided the filter $G$ is invariant in
+space and time\label{homo}, the filtered continuity and
+Navier-Stokes equations can be written:
+\begin{equation}
+\frac{\partial \tilde{u}_i}{\partial x_i}=0
+\end{equation}
+\begin{equation}
+\frac{\partial \tilde{u}_i}{\partial t}+ \tilde{u}_j
+\frac{\partial \tilde{u}_i}{\partial x_j}= -\frac{1}{\rho}
+\frac{\partial \tilde{p}}{\partial x_i}+ \frac{\partial}{\partial
+x_j} \left[\nu\left(\frac{\partial \tilde{u}_i}{\partial x_j}+
+\frac{\partial \tilde{u}_j}{\partial x_i}\right)+\tau_{ij}\right]
+\label{eq:Les-NS2}
+\end{equation}
+The quantity $\tau_{ij}$ is called the SFS tensor. It represents
+the effect of the unresolved scales on the resolved flow-field,
+and is given by
+\begin{equation}
+\tau_{ij} = \tilde{u}_i \tilde{u}_j - \widetilde{u_i u_j}
+\end{equation}
+The scalar field equation is treated in a similar fashion. Like
+Reynolds' stresses in the RANS equations, the presence of the SFS
+tensor means that the filtered Navier-Stokes equations are not
+closed. A model for this tensor is required, to account for the
+effects of the unresolved fluctuations on the filtered field. Such
+a model is called a sub-filter scale or SFS model.
+
+The large variety of models proposed for the sub-filter scale
+tensor has been reviewed extensively -- for example, see
+\cite{LnM96} or \cite{MnK00}. The models most frequently used in
+complex flows are based on the eddy viscosity assumption, i.e.~the
+assumption that the unresolved scales act primarily to drain
+energy from the resolved scales, in the same way that molecular
+viscosity removes energy from laminar flow. If this assumption is
+made, the filtered Navier-Stokes equation can be written in the
+following form (cf Equation \ref{eq:Les-NS2}):
+\begin{equation}
+\frac{\partial \tilde{u}_i}{\partial t}+ \tilde{u}_j
+\frac{\partial \tilde{u}_i}{\partial x_j}= -\frac{1}{\rho}
+\frac{\partial \tilde{p}}{\partial x_i}+ \frac{\partial}{\partial
+x_j} \left[2\left(\nu+\nu_{\textrm{t}}\right)
+\tilde{S}_{ij}\right]
+\end{equation}
+where
+\begin{equation}
+\tilde{S}_{ij}=\frac{1}{2} \left(\frac{\partial
+\tilde{u}_i}{\partial x_j}+ \frac{\partial \tilde{u}_j}{\partial
+x_i}\right)
+\end{equation}
+is the strain rate and $\nu_{\textrm{t}}$ is the eddy or turbulent
+viscosity. This eddy viscosity can be modelled in various ways,
+but the simplest and most popular is the mixing-length-type model
+proposed by \cite{Sma63}:
+\begin{equation}
+\nu_{\textrm{t}}=l_{\textrm{S}}^2\,\vert\tilde{\mathcal{S}}\vert=
+\left(C_{\textrm{S}}\Delta\right)^2\vert\tilde{\mathcal{S}}\vert
+\label{eq:Smag}
+\end{equation}
+where $l_{\textrm{S}}$ is a length-scale, taken to be the product
+of the filter width and a constant, and the local strain rate is
+defined by $ |\tilde{\mathcal{S}}|=
+(2\tilde{S}_{ij}\tilde{S}_{ij})^{1/2} $. The value of the
+Smagorinsky constant $C_{\textrm{S}}$ can be found from global
+energy balance considerations and is $\sim$ 0.1 (see for example
+\cite{LnM96}).
+
+The Smagorinsky model has been criticised for being too
+dissipative of turbulent kinetic energy, and too simplistic in
+assuming that the same length-scale can be employed throughout the
+flow. An improvement to this basic model has been proposed by
+Germano et al.~\cite{GPM91}, as mentioned in Section \ref{intro}.
+Their dynamic model allows the length-scale to vary by tuning the
+`constant' according to local flow attributes. Although
+undoubtedly more accurate than the Smagorinsky model, the dynamic
+model requires a double filtering operation, which adds
+computational expense, and suffers from problems of stability
+\cite{LnM96}. In this paper two new SFS models are presented,
+which allow the length-scale to vary both in space and direction
+by introducing a length-scale tensor, without requiring an
+explicit filtering operation.
+
+\subsection{SFS-a1 model}
+SFS-a1 is based on the eddy-viscosity assumption and is similar to
+the Smagorinsky model (Equation \ref{eq:Smag}). The advantage of
+SFS-a1 is that the length-scale $l_{\textrm{S}}$ is related
+directly to the local length-scale of the flow, and is allowed to
+vary in space and direction, rather than being fixed and
+pre-determined. SFS-a1 is also implemented somewhat differently
+from Smagorinsky's model. In the filtered Navier-Stokes equations,
+the SFS tensor term from Equation \ref{eq:Les-NS2} is modelled as
+\begin{equation}
+\frac{\partial \tau_{ij}}{\partial x_j} = \frac{\partial}{\partial
+x_i} \left[\nu_{jk} \frac{\partial u_j}{\partial x_k}\right]
+\label{eq:Tlike}
+\end{equation}
+where $\nu_{jk}$ is a tensorial eddy-viscosity. This
+implementation involves treating each velocity component as an
+independent scalar, in the same way as the temperature or
+concentration can be treated, but is equivalent to solving the
+filtered Navier-Stokes momentum equations.
+
+The local length-scale of the flow in each direction is already
+calculated as part of the mesh adaptivity routine in the FLUIDITY
+code used for these simulations (see \cite{PUO01}) -- it is
+related to the size of the mesh elements. This fact was used to
+develop a novel tensorial model for the eddy viscosity, as
+follows. (Matrix notation is used in the derivation because it is
+clearer.) Consider a matrix of eddy viscosities, equivalent to the
+tensor $\nu_{jk}$ in Equation \ref{eq:Tlike}:
+\begin{equation}
+\mbox{\boldmath$\nu$}_{\textrm{t}} = \left[ \begin{array}{ccc}
+\nu_{\textrm{t}xx} & \nu_{\textrm{t}xy} & \nu_{\textrm{t}xz} \\
+\nu_{\textrm{t}yx} & \nu_{\textrm{t}yy} & \nu_{\textrm{t}yz} \\
+\nu_{\textrm{t}zx} & \nu_{\textrm{t}zy} & \nu_{\textrm{t}zz}
+\end{array} \right] =
+\mathbf{V}^{\textrm{T}} \left[ \begin{array}{ccc}
+\nu_{\textrm{t}\zeta\zeta} & 0 & 0 \\
+0 & \nu_{\textrm{t}\eta\eta} & 0 \\
+0 & 0 & \nu_{\textrm{t}\xi\xi}
+\end{array} \right] \mathbf{V}
+\end{equation}
+where the multiplication by $\mathbf{V}^{\textrm{T}}$ and
+$\mathbf{V}$ represents a rotation from the local element
+co-ordinate system $(\zeta,\eta,\xi)$ to the global simulation
+co-ordinates. Employing the Smagorinsky model in each direction:
+\begin{equation}
+\mbox{\boldmath$\nu$}_{\textrm{t}} =
+C_{\textrm{S}}^2|\tilde{\mathcal{S}}| \mathbf{V}^{\textrm{T}}
+\left[ \begin{array}{ccc}
+\Delta_\zeta^2 & 0 & 0 \\
+0 & \Delta_\eta^2 & 0 \\
+0 & 0 & \Delta_\xi^2
+\end{array} \right] \mathbf{V}
+\end{equation}
+The filter width for separation into resolved and unresolved
+scales is set to twice the local element size
+$(h_\zeta,h_\eta,h_\xi)$; this allows a truer representation of
+the resolved scales than the usual convention of setting the
+filter equal to element size -- see \cite{Pop00} for details.
+\begin{equation}
+\mbox{\boldmath$\nu$}_{\textrm{t}} =
+4C_{\textrm{S}}^2|\tilde{\mathcal{S}}| \mathbf{V}^{\textrm{T}}
+\left[ \begin{array}{ccc}
+h_\zeta^2 & 0 & 0 \\
+0 & h_\eta^2 & 0 \\
+0 & 0 & h_\xi^2
+\end{array} \right] \mathbf{V}
+\end{equation}
+In the mesh adaptivity process (see Section \ref{adapt}) a term
+known as the metric $\mathcal{M}$ is used. This metric can be
+expressed as
+\begin{equation}
+\mathcal{M} = \mathbf{V}^{\textrm{T}} \mbox{\boldmath$\Lambda$}
+\mathbf{V} = \mathbf{V}^{\textrm{T}} \left[ \begin{array}{ccc}
+\lambda_\zeta & 0 & 0 \\
+0 & \lambda_\eta & 0 \\
+0 & 0 & \lambda_\xi
+\end{array} \right] \mathbf{V}
+\end{equation}
+where $\mathbf{V}$ is a rotation matrix containing the normalised
+eigenvectors of $\mathcal{M}$ and {\boldmath$\Lambda$} is a
+diagonal matrix containing its eigenvalues. The eigenvalues
+$\lambda_i$ correspond to $h_i^{-2}$, where $h_i$ is the size of
+the element in each of its principal directions. The rotations
+$\mathbf{V}^{\textrm{T}}$ and $\mathbf{V}$ transform from the
+local co-ordinate system of the element (with axes aligned with
+its principal directions) to the global system. It is easy to show
+that
+\begin{equation}
+\mathcal{M}^{-1} = \mathbf{V}^{-1}\mbox{\boldmath$\Lambda$}^{-1}
+\left(\mathbf{V}^{\textrm{T}} \right)^{-1} =
+\mathbf{V}^{\textrm{T}} \mbox{\boldmath$\Lambda$}^{-1} \mathbf{V}
+= \mathbf{V}^{\textrm{T}} \left[ \begin{array}{ccc}
+h_\zeta^2 & 0 & 0 \\
+0 & h_\eta^2 & 0 \\
+0 & 0 & h_\xi^2
+\end{array} \right] \mathbf{V}
+\end{equation}
+and so we can write
+\begin{equation}
+\mbox{\boldmath $\nu$}_{\textrm{t}} =
+4C_{\textrm{S}}^2|\tilde{\mathcal{S}}| \mathcal{M}^{-1}
+\end{equation}
+which is the desired anisotropic viscosity matrix (or tensor).
+
+\subsection{SFS-a2 model}
+SFS-a2 is very similar to SFS-a1 in conception, except that the
+Navier-Stokes equations are solved in stress form:
+\begin{equation}
+\left[ \begin{array}{c}
+\sigma_x \\ \sigma_y \\ \sigma_z \\
+\tau_{xy} \\ \tau_{xz} \\ \tau_{yz}
+\end{array} \right] =
+\rho \begin{bmatrix} \frac{4}{3}\nu_{xx} & -\frac{2}{3}\nu_{xy} &
+-\frac{2}{3}\nu_{xz} & 0 & 0 & 0 \\
+-\frac{2}{3}\nu_{xy} & \frac{4}{3}\nu_{yy} &
+-\frac{2}{3}\nu_{yz} & 0 & 0 & 0 \\
+-\frac{2}{3}\nu_{xz} & -\frac{2}{3}\nu_{yz} &
+\frac{4}{3}\nu_{zz} & 0 & 0 & 0 \\
+0 & 0 & 0 & \nu_{xy} & 0 & 0 \\
+0 & 0 & 0 & 0 & \nu_{xz} & 0 \\
+0 & 0 & 0 & 0 & 0 & \nu_{xy} \end{bmatrix} \left[ \begin{array}{c}
+\epsilon_x \\ \epsilon_y \\ \epsilon_z \\
+\gamma_{xy} \\ \gamma_{xz} \\ \gamma_{yz}
+\end{array} \right]
+\end{equation}
+where $\sigma$ is a plane stress, $\tau$ a shear stress,
+$\epsilon$ a plane strain and $\gamma$ a shear strain. This can be
+written more concisely as
+\begin{equation}
+\mbox{\boldmath $\sigma$} = \mathbf{E} \mbox{\boldmath $\epsilon$}
+\end{equation}
+where $\mathbf{E}$ is known as the stiffness matrix. The
+components of viscosity are calculated using the Smagorinsky model
+as in SFS-a1, with the filter width again set to twice the local
+element size. Cross terms such as $\nu_{xy}$ are based on the
+assumption that $\nu_{xy}\approx\sqrt{\nu_{xx}\nu_{yy}}$, and thus
+are modelled as follows:
+\begin{equation}
+\nu_{xy}=\sqrt{\nu_{xx}}\sqrt{\nu_{yy}}= \sqrt{4 C_{\textrm{S}}^2
+h_x^2 |\tilde{\mathcal{S}}|} \sqrt{4 C_{\textrm{S}}^2 h_y^2
+|\tilde{\mathcal{S}}|} = 4 C_{\textrm{S}}^2 |\tilde{\mathcal{S}}|
+h_x h_y
+\end{equation}
+The element size in each direction is already known in the
+coordinate system local to the element -- this information is
+contained in the metric $\mathcal{M}$. If we denote the local
+coordinate system $(\zeta,\eta,\xi)$ with a dash $'$ we can write:
+\begin{equation}
+\mbox{\boldmath $\sigma$} = \mathbf{R}^{\textrm{T}} \mathbf{E}'
+\mathbf{R} \mbox{\boldmath $\epsilon$} \label{eq:Stress-shortr}
+\end{equation}
+where $\mathbf{R}$ is a rotation matrix which transforms the
+stiffness matrix from global to local coordinates. The local
+stiffness matrix $\mathbf{E}'$ is given by:
+\begin{equation}
+\mathbf{E}' = 4\rho C_{\textrm{S}}^2 |\tilde{\mathcal{S}}|
+\begin{bmatrix}
+\frac{4}{3}h_\zeta^2 & -\frac{2}{3}h_\zeta h_\nu &
+-\frac{2}{3}h_\zeta h_\xi & 0 & 0 & 0 \\
+-\frac{2}{3}h_\zeta h_\nu & \frac{4}{3}h_\nu^2 &
+-\frac{2}{3}h_\nu h_\xi & 0 & 0 & 0 \\
+-\frac{2}{3}h_\zeta h_\xi & -\frac{2}{3}h_\nu h_\xi &
+\frac{4}{3}h_\xi^2 & 0 & 0 & 0 \\
+0 & 0 & 0 & h_\zeta h_\nu & 0 & 0 \\
+0 & 0 & 0 & 0 & h_\zeta h_\xi & 0 \\
+0 & 0 & 0 & 0 & 0 & h_\nu h_\xi \end{bmatrix}
+\end{equation}
+so we know all the terms in Equation \ref{eq:Stress-shortr} except
+the rotation matrix $\mathbf{R}$. However, this can be calculated
+from the components of the known rotation matrix $\mathbf{V}$ (the
+eigenvectors of $\mathcal{M}$), after a straightforward but
+tedious expansion and gathering of terms -- see \cite{CMP89} for
+details. If the components of $\mathbf{V}$ are given by:
+\begin{equation}
+\mathbf{V}=\left[ \begin{array}{ccc}
+l_1 & m_1 & n_1 \\
+l_2 & m_2 & n_2 \\
+l_3 & m_3 & n_3
+\end{array} \right]
+\end{equation}
+then the components of $\mathbf{R}$ are: {\small
+\begin{equation}
+\mathbf{R}= \begin{bmatrix}
+l_1^2 & m_1^2 & n_1^2 & l_1 m_1 & m_1 n_1 & n_1 l_1 \\
+l_2^2 & m_2^2 & n_2^2 & l_2 m_2 & m_2 n_2 & n_2 l_2 \\
+l_3^2 & m_3^2 & n_3^2 & l_3 m_3 & m_3 n_3 & n_3 l_3 \\
+2l_1 l_2 & 2m_1 m_2 & 2n_1 n_2 &
+l_1m_2+l_2m_1 & m_1n_2+m_2n_1 & n_1l_2+n_2l_1 \\
+2l_2 l_3 & 2m_2 m_3 & 2n_2 n_3 &
+l_2m_3+l_3m_2 & m_2n_3+m_3n_2 & n_2l_3+n_3l_2 \\
+2l_3 l_1 & 2m_3 m_1 & 2n_3 n_1 & l_3m_1+l_1m_3 & m_3n_1+m_1n_3 &
+n_3l_1+n_1l_3
+\end{bmatrix}
+\end{equation}
+}
+We therefore have another model, SFS-a2, which is similar to
+SFS-a1 but formulated for the Navier-Stokes equations in stress
+form.
+
+\subsection{SFS-i isotropic model}
+SFS-i is an isotropic variant of SFS-a1, in which the filter width
+is allowed to vary in space but not direction. The purpose of this
+model is to allow the effects of anisotropy in the SFS model to be
+seen. Local eddy viscosity $\nu_{\textrm{t}}$ is calculated as
+follows:
+\begin{equation}
+\nu_{\textrm{t}} = 4 C_{\textrm{S}}^2 |\tilde{\mathcal{S}}|
+\left(\frac{h_{\zeta}^2+h_{\eta}^2+h_\xi^2}{3}\right)^\frac{1}{2}
+\end{equation}
+This is the formula recommended by Bardina et al.~\cite{BFR80} for
+a scalar viscosity to be used with an anisotropic mesh.
+
+\subsection{Commutation errors in LES}
+Commutation errors are error terms which appear in the filtered
+Navier-Stokes equations as a result of the filtering operation not
+commuting with differentiation. These errors occur as follows.
+Recall the definition of a filtered variable (Equation
+\ref{eq:Les-filter}). If the filter is applied to a differential:
+\begin{align}
+\widetilde{\frac{\partial u}{\partial x}}&= \int_{R}
+\frac{\partial u(\mathbf{x}',t)}{\partial x}
+\,G(\mathbf{x}-\mathbf{x}')\,\mathrm{d}\mathbf{x}'\nonumber\\
+&=\frac{\partial}{\partial x}\int_{R}u(\mathbf{x}',t)
+G(\mathbf{x}-\mathbf{x}')\,\mathrm{d}\mathbf{x}' -\int_{R}
+u(\mathbf{x}',t)\frac{\partial}{\partial x}
+\left(G(\mathbf{x}-\mathbf{x}')\right)\,\mathrm{d}\mathbf{x}'\nonumber\\
+&=\frac{\partial \tilde{u}}{\partial x}\:- \int_{R}
+u(\mathbf{x}',t)\frac{\partial}{\partial x}
+\left(G(\mathbf{x}-\mathbf{x}')\right)\,\mathrm{d}\mathbf{x}'
+\end{align}
+If the filter is invariant in space (or time, if the differential
+in question is with respect to time), the second term on the
+right-hand side is zero. Therefore the equations for the filtered
+variables (i.e.~the LES equivalents of the mass conservation and
+Navier-Stokes equations) will resemble their unfiltered
+counterparts only if the filter is constant in space and time. If
+the filter is allowed to vary, error terms of the form:
+\begin{equation}
+\epsilon_r= \int_{R} u(\mathbf{x}',t)\frac{\partial}{\partial r}
+\left(G(\mathbf{x}-\mathbf{x}')\right)\,\mathrm{d}\mathbf{x}'
+\label{eq:Error-term}
+\end{equation}
+appear in both equations, where $r$ is any dimension over which
+the filter varies. These terms are known as `commutation errors'.
+
+The LES approach adopted in this paper takes advantage of the
+adaptive mesh capability of the FLUIDITY code by linking the
+filter width to the local element size. The filter varies
+therefore in both space and time. However, Ghosal \& Moin
+\cite{GnM95} have shown that, for an arbitrary filter, the
+magnitude of the commutation error is second order in $\Delta$,
+the filter width. The numerical scheme used by FLUIDITY to solve
+the LES equations is second-order accurate (on regular meshes), so
+commutation error will not reduce the accuracy of these
+simulations.
+
+
+
+
+
 \pagebreak
 
 
