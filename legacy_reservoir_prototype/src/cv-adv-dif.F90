@@ -346,7 +346,7 @@ contains
 ! NPHASE Variables: 
       REAL, DIMENSION( : ), allocatable :: DIFF_COEF_DIVDX, DIFF_COEFOLD_DIVDX, &
                NDOTQNEW,  NDOTQOLD, INCOMEOLD,  INCOME_J, INCOMEOLD_J, LIMT2OLD, LIMDTOLD, &
-               NDOTQ, INCOME, LIMT2, LIMTOLD, LIMT, &
+               NDOTQ, INCOME, LIMT2, LIMTOLD, LIMT, LIMT_HAT, &
                FVTOLD, FVT2OLD, FVDOLD, &
                LIMDOLD, LIMDTT2OLD,&
                FVT, FVT2, FVD, LIMD,  &
@@ -1015,11 +1015,12 @@ contains
 ! NFIELD Variables: 
       ALLOCATE(DIFF_COEF_DIVDX(NPHASE), DIFF_COEFOLD_DIVDX(NPHASE), &
                NDOTQNEW(NPHASE),  NDOTQOLD(NPHASE), INCOMEOLD(NPHASE), LIMT2OLD(NPHASE), LIMDTOLD(NPHASE), &
-               NDOTQ(NPHASE), INCOME(NPHASE), LIMT2(NPHASE), LIMTOLD(NPHASE), LIMT(NPHASE), &
+               NDOTQ(NPHASE), INCOME(NPHASE), LIMT2(NPHASE), LIMTOLD(NPHASE), LIMT(NPHASE), LIMT_HAT(NPHASE), &
                FVTOLD(NPHASE), FVT2OLD(NPHASE), FVDOLD(NPHASE), &
                LIMDOLD(NPHASE), LIMDTT2OLD(NPHASE),&
                FVT(NPHASE), FVT2(NPHASE), FVD(NPHASE), LIMD(NPHASE),  &
                LIMDT(NPHASE), LIMDTT2(NPHASE), SUM_LIMT(NPHASE), SUM_LIMTOLD(NPHASE)  )
+      LIMT_HAT=0.0
       ALLOCATE(INCOME_J(NPHASE),INCOMEold_J(NPHASE)) 
 
       ndotq = 0. ; ndotqold = 0.
@@ -1822,18 +1823,6 @@ contains
                                 NUGI_ALL, TUPWIND_MAT_ALL( :, COUNT_IN), TUPWIND_MAT_ALL( :, COUNT_OUT) )
                         ENDIF
 
-                        IF(GETCT.AND.RETRIEVE_SOLID_CTY) THEN
-                           NDOTQ_HAT = 0.0
-                           DO U_KLOC = 1, U_NLOC
-                              IF (ELE2/=0) THEN ! Between elements...
-                                 NDOTQ_HAT =  NDOTQ_HAT + SUFEN( U_KLOC, GI ) * 0.5 * SUM( CVNORMX_ALL(:, GI) * (LOC_U_HAT( :, U_KLOC ) + LOC2_U_HAT( :, U_KLOC )) )
-                              ELSE
-                                 NDOTQ_HAT =  NDOTQ_HAT + SUFEN( U_KLOC, GI ) * SUM( CVNORMX_ALL(:, GI) * LOC_U_HAT( :, U_KLOC ) )
-                              ENDIF
-                           END DO
-                        ENDIF
-                     
-
                      INCOME_J=1.-INCOME
                      INCOMEold_J=1.-INCOMEold
 
@@ -1883,6 +1872,25 @@ contains
 ! it does not matter about bcs for FVT below as its zero'ed out in the eqns:
                         FVT(:)=T_ALL(:,CV_NODI)*(1.0-INCOME(:)) + T_ALL(:,CV_NODJ)*INCOME(:) 
 !                        FVD(:)=DEN_ALL(:,CV_NODI)*(1.0-INCOME(:)) + DEN_ALL(:,CV_NODJ)*INCOME(:) 
+
+
+                        IF(GETCT.AND.RETRIEVE_SOLID_CTY) THEN
+                           NDOTQ_HAT = 0.0
+                           DO U_KLOC = 1, U_NLOC
+                              IF (ELE2/=0) THEN ! Between elements...
+                                 NDOTQ_HAT =  NDOTQ_HAT + SUFEN( U_KLOC, GI ) * 0.5 * SUM( CVNORMX_ALL(:, GI) * (LOC_U_HAT( :, U_KLOC ) + LOC2_U_HAT( :, U_KLOC )) )
+                              ELSE
+                                 NDOTQ_HAT =  NDOTQ_HAT + SUFEN( U_KLOC, GI ) * SUM( CVNORMX_ALL(:, GI) * LOC_U_HAT( :, U_KLOC ) )
+                              ENDIF
+                           END DO
+                      
+                           DO IPHASE=1,NPHASE
+                              LIMT_HAT(IPHASE)=MAX(1.E-7,LIMT(IPHASE))
+                           END DO
+                           R=SUM(LIMT_HAT(:))
+                           LIMT_HAT(:)=LIMT_HAT(:)/R
+                        ENDIF
+                     
 
 
 !           print *,'done temp'
@@ -2004,7 +2012,7 @@ contains
                              SUFEN, SCVDETWEI, CVNORMX_ALL, DEN_ALL, CV_NODI, CV_NODJ, &
                              UGI_COEF_ELE_ALL,  &
                              UGI_COEF_ELE2_ALL,  &
-                             NDOTQNEW(IPHASE), NDOTQOLD(IPHASE), NDOTQ_HAT, LIMT(IPHASE), LIMTOLD(IPHASE), LIMDT(IPHASE), LIMDTOLD(IPHASE), &
+                             NDOTQNEW(IPHASE), NDOTQOLD(IPHASE), NDOTQ_HAT, LIMT(IPHASE), LIMTOLD(IPHASE), LIMDT(IPHASE), LIMDTOLD(IPHASE), LIMT_HAT(IPHASE), &
                              FTHETA_T2, ONE_M_FTHETA_T2OLD, FTHETA_T2_J, ONE_M_FTHETA_T2OLD_J, integrate_other_side_and_not_boundary, &
                              RETRIEVE_SOLID_CTY) 
 
@@ -11047,7 +11055,7 @@ CONTAINS
        SUFEN, SCVDETWEI, CVNORMX_ALL, DEN_ALL, CV_NODI, CV_NODJ, &
        UGI_COEF_ELE_ALL,  &
        UGI_COEF_ELE2_ALL,  &
-       NDOTQ, NDOTQOLD, NDOTQ_HAT, LIMT, LIMTOLD, LIMDT, LIMDTOLD, &
+       NDOTQ, NDOTQOLD, NDOTQ_HAT, LIMT, LIMTOLD, LIMDT, LIMDTOLD, LIMT_HAT, &
        FTHETA_T2, ONE_M_FTHETA_T2OLD, FTHETA_T2_J, ONE_M_FTHETA_T2OLD_J, integrate_other_side_and_not_boundary, &
        RETRIEVE_SOLID_CTY)
     ! This subroutine caculates the discretised cty eqn acting on the velocities i.e. CT, CT_RHS
@@ -11066,7 +11074,8 @@ CONTAINS
     REAL, DIMENSION( NDIM, SCVNGI ), intent( in ) :: CVNORMX_ALL
     REAL, DIMENSION( NDIM, NPHASE, U_NONODS ), intent( in ) :: NU_ALL
     REAL, DIMENSION( NPHASE, CV_NONODS ), intent( in ) :: DEN_ALL
-    REAL, intent( in ) :: NDOTQ, NDOTQOLD, NDOTQ_HAT, LIMT, LIMTOLD, LIMDT, LIMDTOLD 
+    REAL, intent( in ) :: NDOTQ, NDOTQOLD, NDOTQ_HAT, LIMT, LIMTOLD, LIMDT, LIMDTOLD, LIMT_HAT
+! LIMT_HAT is the normalised voln fraction
     REAL, intent( in ) :: FTHETA_T2, ONE_M_FTHETA_T2OLD, FTHETA_T2_J, ONE_M_FTHETA_T2OLD_J
 
     ! Local variables...
@@ -11078,10 +11087,10 @@ CONTAINS
 
     IF(RETRIEVE_SOLID_CTY) THEN ! For solid modelling...
 ! Use backward Euler...
-       CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) + SCVDETWEI( GI ) * (NDOTQ + NDOTQ_HAT)/REAL(NPHASE)   
+       CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) + SCVDETWEI( GI ) * ( NDOTQ*LIMT_HAT + NDOTQ_HAT/REAL(NPHASE)  ) 
 ! flux from the other side (change of sign because normal is -ve)...
     if(integrate_other_side_and_not_boundary) then
-       CT_RHS( CV_NODJ ) = CT_RHS( CV_NODJ ) - SCVDETWEI( GI ) * (NDOTQ + NDOTQ_HAT)/REAL(NPHASE)  
+       CT_RHS( CV_NODJ ) = CT_RHS( CV_NODJ ) - SCVDETWEI( GI ) * ( NDOTQ*LIMT_HAT + NDOTQ_HAT/REAL(NPHASE)  )
     endif
 
     ENDIF ! For solid modelling...
@@ -11091,7 +11100,7 @@ CONTAINS
        RCON    = SCVDETWEI( GI ) * FTHETA_T2 * LIMDT &
             * SUFEN( U_KLOC, GI ) / DEN_ALL( IPHASE, CV_NODI )
        IF(RETRIEVE_SOLID_CTY) THEN ! For solid modelling use backward Euler for this part...
-          RCON    = RCON    + SCVDETWEI( GI )  * (1.0/REAL(NPHASE) - LIMT)  &
+          RCON    = RCON    + SCVDETWEI( GI )  * (LIMT_HAT - LIMT)  &
                * SUFEN( U_KLOC, GI ) 
        ENDIF ! For solid modelling...
 
@@ -11105,7 +11114,7 @@ CONTAINS
        RCON_J    = SCVDETWEI( GI ) * FTHETA_T2_J * LIMDT &
             * SUFEN( U_KLOC, GI ) / DEN_ALL( IPHASE, CV_NODJ )
        IF(RETRIEVE_SOLID_CTY) THEN ! For solid modelling...
-          RCON_J    = RCON_J  - SCVDETWEI( GI ) * (1.0/REAL(NPHASE) - LIMT)  &
+          RCON_J    = RCON_J  - SCVDETWEI( GI ) * (LIMT_HAT - LIMT)  &
             * SUFEN( U_KLOC, GI ) 
        ENDIF ! For solid modelling...
 
@@ -11154,7 +11163,7 @@ CONTAINS
              RCON = SCVDETWEI( GI ) * FTHETA_T2 * LIMDT  &
                   * SUFEN( U_KLOC, GI ) / DEN_ALL( IPHASE, CV_NODI )
              IF(RETRIEVE_SOLID_CTY) THEN ! For solid modelling use backward Euler for this part...
-                RCON    = RCON    + SCVDETWEI( GI )  * (1.0/REAL(NPHASE) - LIMT)  &
+                RCON    = RCON    + SCVDETWEI( GI )  * (LIMT_HAT - LIMT)  &
                   * SUFEN( U_KLOC, GI ) 
              ENDIF ! For solid modelling...
 
@@ -11168,7 +11177,7 @@ CONTAINS
              RCON_J = SCVDETWEI( GI ) * FTHETA_T2_J * LIMDT  &
                   * SUFEN( U_KLOC, GI ) / DEN_ALL( IPHASE, CV_NODJ )
              IF(RETRIEVE_SOLID_CTY) THEN ! For solid modelling...
-                RCON_J    = RCON_J  - SCVDETWEI( GI ) * (1.0/REAL(NPHASE) - LIMT)  &
+                RCON_J    = RCON_J  - SCVDETWEI( GI ) * (LIMT_HAT - LIMT)  &
                  * SUFEN( U_KLOC, GI ) 
              ENDIF ! For solid modelling...
 
