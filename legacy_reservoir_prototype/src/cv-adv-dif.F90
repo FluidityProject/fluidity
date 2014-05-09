@@ -10919,7 +10919,7 @@ CONTAINS
     INTEGER, DIMENSION( : ), intent( inout ) :: U_SLOC2LOC
     INTEGER, DIMENSION( : ), intent( inout ) :: CV_SLOC2LOC
     ! local variables
-    INTEGER :: IFACE, ELE2, SELE2, CV_JLOC, CV_JNOD, &
+    INTEGER :: IFACE, ELE2, ELE3, SELE2, CV_JLOC, CV_JNOD, &
          U_JLOC, U_JNOD, CV_KLOC, CV_SKNOD, &
          U_KLOC, U_SKLOC, U_SKNOD, CV_SKLOC, CV_SKLOC2, I
     LOGICAL :: FOUND
@@ -10949,9 +10949,20 @@ CONTAINS
                 IF ( CV_SKNOD == LOG_ON_BOUND( CV_SKLOC2 ) ) FOUND = .FALSE.
              END DO
           END DO
-          IF( FOUND ) SELE = SELE2
+          IF( FOUND ) THEN
+             SELE = SELE2
+             ELE3 = ELE2
+          ENDIF
        END IF
     END DO
+
+    IF(SELE==0) THEN
+       IF(ELE3==0) THEN
+! dont integrate here as we are not between elements and or on the boundary of the domain - we are on the 
+! boundary of a subdomain partition between subdomains. 
+          
+       ENDIF
+    ENDIF
 
     ! Calculate CV_SLOC2LOC  
     Conditional_Sele: IF ( SELE /= 0 ) THEN   

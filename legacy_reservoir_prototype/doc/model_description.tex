@@ -4109,8 +4109,7 @@ The continuity equation for incompressible solid is:
 \begin{eqnarray}
 \frac{ \alpha_s^{n+1} -\alpha_s^n}{\Delta t} + \nabla\cdot \alpha_s^{n+1} u_s^{n+1} =0
 \end{eqnarray} 
-
-and for each fluid phase is: 
+and for each fluid phase, $k$ with $ k\in\{1,2,...,{\cal P}\}$, is: 
 
 
 \begin{eqnarray}
@@ -4186,7 +4185,7 @@ pressure matrix equation becomes:
 \end{eqnarray} 
 in which $\hat B^T u^{n+1}$ is a discretization of $\sum_k ( \nabla\cdot \hat\alpha_k^{n+1} u_k^{n+1} )$ 
 and $\hat\alpha_k^{n+1} =\frac{max( \epsilon, \alpha_k^{n+1}) } {\sum_k max( \epsilon, \alpha_k^{n+1}) }$ 
-and thus $\sum_k\hat\alpha_k^{n+1} =1$. 
+and thus $\sum_{k=1}^{\cal P} \hat\alpha_k^{n+1} =1$. 
 Here $\epsilon=1\times 10^{-7}$. In addition, 
 
 \begin{eqnarray}
@@ -4194,7 +4193,7 @@ Here $\epsilon=1\times 10^{-7}$. In addition,
 \end{eqnarray} 
 in which $ \underline{\underline{\hat\alpha_k^{n+1}}}, \forall k\in\{1,2,...,{\cal P}\} $ 
 are diagonal matricies with entries equal to the control volume values of   ${\hat\alpha_k^{n+1}} $ 
-and $\cal P$ is the number of phases. 
+and $\cal P$ is the number of phases. For a single phase system $\hat N = I$.
 
 
 \pagebreak
