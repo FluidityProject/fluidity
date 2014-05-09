@@ -849,18 +849,19 @@
                    write(101,*)(pod_coef(i),i=1,(u%dim+1)*size(POD_state,1))
                    close(101)
                    print * ,'pod_coef(i)', pod_coef((u%dim)*size(POD_state,1))
-
-                   allocate(pod_coef_all_temp(total_timestep,((u%dim+1)*size(POD_state,1))))
-                   open(11,file='coef_pod_all_obv')
-                  !open(11,file='coef_pod_all_obv',position='append',ACTION='READ')
-                  read(11,*)((pod_coef_all_temp(i,j),j=1,(u%dim+1)*size(POD_state,1)),i=1,total_timestep)                  
-                  close(11)
-                    !pod_coef(:)=pod_coef_all_temp(timestep,:) ! test the rom using full model's results
+                  
+                   
+                 !  allocate(pod_coef_all_temp(total_timestep,((u%dim+1)*size(POD_state,1))))
+                !   open(11,file='coef_pod_all_obv')
+                   ! !open(11,file='coef_pod_all_obv',position='append',ACTION='READ')
+                !  read(11,*)((pod_coef_all_temp(i,j),j=1,(u%dim+1)*size(POD_state,1)),i=1,total_timestep)                  
+                !  close(11)
+                 !   !pod_coef(:)=pod_coef_all_temp(timestep,:) ! test the rom using full model's results
 
                    rmsestep=timestep
                    call project_full(delta_u, delta_p, pod_sol_velocity, pod_sol_pressure, POD_state(:,:,istate), pod_coef)
                    
-                   deallocate(pod_coef_all_temp)
+               !   deallocate(pod_coef_all_temp)
                 endif ! timestep          
                 
                 !1000 continue
@@ -1076,7 +1077,7 @@
             IF(.NOT.ALLOCATED(pod_coef_all_temp)) then        
                    allocate(pod_coef_all_temp(total_timestep,((u%dim+1)*size(POD_state,1))))
                    open(11,file='coef_pod_all_obv')
-                  !open(11,file='coef_pod_all_obv',position='append',ACTION='READ')
+                   
                   read(11,*)((pod_coef_all_temp(i,j),j=1,(u%dim+1)*size(POD_state,1)),i=1,total_timestep)                  
                   close(11)
               !    read_obv=.true.
@@ -1089,7 +1090,7 @@
                       if (have_option("/reduced_model/training")) then
                           ctrl_timestep=1499
                    else 
-                          ctrl_timestep=305
+                          ctrl_timestep=19
                    endif
                     
                  
@@ -1097,7 +1098,7 @@
                       
                         ! i= (u%dim)*size(POD_state,1) 
                         ! call  ann_bp_main(total_timestep,timestep,pod_coef(i),i) 
-                        do i=1,  (u%dim+1)*size(POD_state,1) 
+                        do i=1,  (u%dim)*size(POD_state,1) 
                           output=0.0  
                           pod_coef(i)=0           
                           call  ann_bp_main(total_timestep,timestep,pod_coef(i),i) !recalculate the pod_coef(i) using BP_ANN one by one

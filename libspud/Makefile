@@ -55,7 +55,7 @@ VPATH = src/
 default: libspud.la build-diamond
 
 libspud.la: $(OBJS)
-	./libtool --mode=link --tag=FC $(FC) $(FCFLAGS) -o $(LIB) $(OBJS) $(LIBS) -rpath /data/dunhui/ROM_Non-intrusive-ann/libspud/../lib 
+	./libtool --mode=link --tag=FC $(FC) $(FCFLAGS) -o $(LIB) $(OBJS) $(LIBS) -rpath /data2/dunhui/Fluidity/ROM_Non-intrusive-ann/libspud/../lib 
 	if test -f .libs/libspud.a; then cp .libs/libspud.a .; fi
 	(if test -f .libs/libspud.so; then cp .libs/libspud.so ./libspud.so.0; ln -s libspud.so.0 libspud.so; fi) || true
 
@@ -75,37 +75,37 @@ doc:
 install: install-libspud install-spudtools install-diamond install-pyspud install-dxdiff
 
 install-libspud: libspud.la
-	/usr/bin/install -c -d $(DESTDIR)/data/dunhui/ROM_Non-intrusive-ann/libspud/../lib
-	/usr/bin/install -c -d $(DESTDIR)/data/dunhui/ROM_Non-intrusive-ann/libspud/../include
-	/usr/bin/install -c libspud.a $(DESTDIR)/data/dunhui/ROM_Non-intrusive-ann/libspud/../lib
-	(if test -f libspud.so.0; then /usr/bin/install -c libspud.so.0 $(DESTDIR)/data/dunhui/ROM_Non-intrusive-ann/libspud/../lib; fi) || true
-	(if test -f libspud.so; then cd $(DESTDIR)/data/dunhui/ROM_Non-intrusive-ann/libspud/../lib/; ln -s libspud.so.0 libspud.so; cd -; fi) || true
-	/usr/bin/install -c $(MODS) $(DESTDIR)/data/dunhui/ROM_Non-intrusive-ann/libspud/../include
-	/usr/bin/install -c $(HEADERS) $(DESTDIR)/data/dunhui/ROM_Non-intrusive-ann/libspud/../include
+	/usr/bin/install -c -d $(DESTDIR)/data2/dunhui/Fluidity/ROM_Non-intrusive-ann/libspud/../lib
+	/usr/bin/install -c -d $(DESTDIR)/data2/dunhui/Fluidity/ROM_Non-intrusive-ann/libspud/../include
+	/usr/bin/install -c libspud.a $(DESTDIR)/data2/dunhui/Fluidity/ROM_Non-intrusive-ann/libspud/../lib
+	(if test -f libspud.so.0; then /usr/bin/install -c libspud.so.0 $(DESTDIR)/data2/dunhui/Fluidity/ROM_Non-intrusive-ann/libspud/../lib; fi) || true
+	(if test -f libspud.so; then cd $(DESTDIR)/data2/dunhui/Fluidity/ROM_Non-intrusive-ann/libspud/../lib/; ln -s libspud.so.0 libspud.so; cd -; fi) || true
+	/usr/bin/install -c $(MODS) $(DESTDIR)/data2/dunhui/Fluidity/ROM_Non-intrusive-ann/libspud/../include
+	/usr/bin/install -c $(HEADERS) $(DESTDIR)/data2/dunhui/Fluidity/ROM_Non-intrusive-ann/libspud/../include
 
 install-spudtools: 
-	/usr/bin/install -c -d $(DESTDIR)/data/dunhui/ROM_Non-intrusive-ann/libspud/../share/spud
-	/usr/bin/install -c -d $(DESTDIR)/data/dunhui/ROM_Non-intrusive-ann/libspud/../bin
-	/usr/bin/install -c -m755 bin/spud-preprocess $(DESTDIR)/data/dunhui/ROM_Non-intrusive-ann/libspud/../bin
-	/usr/bin/install -c -m755 bin/spud-set $(DESTDIR)/data/dunhui/ROM_Non-intrusive-ann/libspud/../bin
-	/usr/bin/install -c -m644 schema/spud_base.rnc $(DESTDIR)/data/dunhui/ROM_Non-intrusive-ann/libspud/../share/spud
-	/usr/bin/install -c -m644 schema/spud_base.rng $(DESTDIR)/data/dunhui/ROM_Non-intrusive-ann/libspud/../share/spud
+	/usr/bin/install -c -d $(DESTDIR)/data2/dunhui/Fluidity/ROM_Non-intrusive-ann/libspud/../share/spud
+	/usr/bin/install -c -d $(DESTDIR)/data2/dunhui/Fluidity/ROM_Non-intrusive-ann/libspud/../bin
+	/usr/bin/install -c -m755 bin/spud-preprocess $(DESTDIR)/data2/dunhui/Fluidity/ROM_Non-intrusive-ann/libspud/../bin
+	/usr/bin/install -c -m755 bin/spud-set $(DESTDIR)/data2/dunhui/Fluidity/ROM_Non-intrusive-ann/libspud/../bin
+	/usr/bin/install -c -m644 schema/spud_base.rnc $(DESTDIR)/data2/dunhui/Fluidity/ROM_Non-intrusive-ann/libspud/../share/spud
+	/usr/bin/install -c -m644 schema/spud_base.rng $(DESTDIR)/data2/dunhui/Fluidity/ROM_Non-intrusive-ann/libspud/../share/spud
 
 install-diamond:
-	cd diamond;	python setup.py install --prefix=$(DESTDIR)/data/dunhui/ROM_Non-intrusive-ann/libspud/..; cd ..
+	cd diamond;	python setup.py install --prefix=$(DESTDIR)/data2/dunhui/Fluidity/ROM_Non-intrusive-ann/libspud/..; cd ..
 
 install-pyspud:
 ifeq ($(origin BUILDING_DEBIAN),undefined)
-	cd python; python setup.py install --prefix=$(DESTDIR)/data/dunhui/ROM_Non-intrusive-ann/libspud/..; cd ..
+	cd python; python setup.py install --prefix=$(DESTDIR)/data2/dunhui/Fluidity/ROM_Non-intrusive-ann/libspud/..; cd ..
 else
-	cd python; for python in $(shell pyversions -r); do $$python setup.py install --prefix=$(DESTDIR)/data/dunhui/ROM_Non-intrusive-ann/libspud/.. --install-layout=deb; done; cd ..
+	cd python; for python in $(shell pyversions -r); do $$python setup.py install --prefix=$(DESTDIR)/data2/dunhui/Fluidity/ROM_Non-intrusive-ann/libspud/.. --install-layout=deb; done; cd ..
 endif
 
 install-dxdiff:
 ifeq ($(origin DESTDIR),undefined)
-	cd dxdiff; python setup.py install --prefix=$(DESTDIR)/data/dunhui/ROM_Non-intrusive-ann/libspud/..; cd ..
+	cd dxdiff; python setup.py install --prefix=$(DESTDIR)/data2/dunhui/Fluidity/ROM_Non-intrusive-ann/libspud/..; cd ..
 else
-	cd dxdiff; for python in $(shell pyversions -r); do $$python setup.py install --prefix=$(DESTDIR)/data/dunhui/ROM_Non-intrusive-ann/libspud/.. --install-layout=deb; done; cd ..
+	cd dxdiff; for python in $(shell pyversions -r); do $$python setup.py install --prefix=$(DESTDIR)/data2/dunhui/Fluidity/ROM_Non-intrusive-ann/libspud/.. --install-layout=deb; done; cd ..
 endif
 
 clean:

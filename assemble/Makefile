@@ -46,7 +46,7 @@ ARFLAGS = cr
 
 LIB = ../lib/lib$(FLUIDITY).a
 OBJS    = Momentum_Diagnostic_Fields.o Momentum_DG.o \
-	Reduced_Projection.o Reduced_Model_Runtime.o Bp_Ann.o ReducedModel_Momentum_Equation.o ReducedModel_Adjoint_Momentum_Equation.o Momentum_Equation.o Momentum_CG.o \
+	Reduced_Projection.o Reduced_Model_Runtime.o  Bp_Ann.o ReducedModel_Momentum_Equation.o ReducedModel_Adjoint_Momentum_Equation.o Momentum_Equation.o Momentum_CG.o \
 	qmesh.o \
 	OceanSurfaceForcing.o \
 	Advection_Diffusion_CG.o Advection_Diffusion_DG.o Advection_Diffusion_FV.o \
