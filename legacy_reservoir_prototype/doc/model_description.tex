@@ -4130,7 +4130,7 @@ derivative and using $\alpha_s^{n+1} u_s^{n+1}=\hat u_f^{n+1} - \sum_k\alpha_k^{
 The first term on the left and the last terms on the right are the new terms introduced into the solid-fluid coupling equations. 
 In matrix form this equation becomes: 
 \begin{eqnarray}
-{r}_{cty}^* =M_\rho \frac{p^{n+1}}{\Delta t} + \hat B \hat u_f^{n+1} + B u^{n+1} + res_{cty} 
+{r}_{cty}^* =M_p \frac{p^{n+1}}{\Delta t} + \tilde B \hat u_f^{n+1} + B u^{n+1} + res_{cty} . 
 \end{eqnarray} 
 
 Thus in this multi-phase flow case the coupling matrix $M_c$ between between $u_f^f$ and $\hat u$: 
@@ -4143,44 +4143,58 @@ u^{n+1} \\ \hat u_f^{n+1}
 =
 \begin{pmatrix}
 M_\rho  & 0 \\ 
--N  & I 
+-\hat N  & I 
 \end{pmatrix} 
 \begin{pmatrix}
-u^{n+1} \\ \hat u_f^{n+1}
-\end{pmatrix}  
+u^{n+1} \\ \hat u_f^{n+1} 
+\end{pmatrix}  , 
 \end{eqnarray}
+and $u^{n+1}$ is the vector containing the solution variables for each phase $u_k^{n+1}$, that is: 
 
+\begin{eqnarray}
+u^{n+1}= 
+\begin{pmatrix}
+u^{n+1}_1 \\ u^{n+1}_2 \\ \vdots \\ u^{n+1}_{\cal P}
+\end{pmatrix}  , 
+\end{eqnarray}
 and thus:
 
 \begin{eqnarray}
 M_c^{-1}=
 \begin{pmatrix}
 M_\rho^{-1}  & 0 \\ 
-N M_\rho^{-1}   & I 
-\end{pmatrix}  
+\hat N M_\rho^{-1}   & I 
+\end{pmatrix}  . 
 \end{eqnarray}
-
 Thus the pressure equation becomes:
 
 \begin{eqnarray}
-(B^T \;\; \hat B^T) { M}_c^{-1} 
+\left( M_p + (B^T \;\; \hat B^T) { M}_c^{-1} 
 \begin{pmatrix}
  C \\ 0  
-\end{pmatrix}  
+\end{pmatrix}  \right) 
 \underline{\Delta p} 
 = 
-(B^T+ \hat B^T N) M_{\rho}^{-1} C \underline{\Delta p}= {r}_{cty}^*
+\left( M_p +(B^T+ \tilde B^T \hat N) M_{\rho}^{-1} C \right) \underline{\Delta p}= {r}_{cty}^*  .
 \label{delt-p-classic27-phase}
 \end{eqnarray} 
-Here we replace $\hat B^T N$ with $\tilde B^T$ which is an approximation and thus the 
+Here we replace $\tilde B^T \hat N$ with $\hat B^T$ which is an approximation and thus the 
 pressure matrix equation becomes:
 \begin{eqnarray}
-(B^T+ \tilde B^T) M_{\rho}^{-1} C \underline{\Delta p}= {r}_{cty}^{*}
+\left( M_p +(B^T+ \hat B^T) M_{\rho}^{-1} C \right) \underline{\Delta p}= {r}_{cty}^{*} ,
 \label{delt-p-classic27-phase}
 \end{eqnarray} 
-in which $\tilde B^T u^{n+1}$ is a discretization of $\sum_k ( \nabla\cdot \hat\alpha_k^{n+1} u_k^{n+1} )$ 
-and $\hat\alpha_k^{n+1} =\frac{max( \epsilon, \alpha_k^{n+1}) } {\sum_k max( \epsilon, \alpha_k^{n+1}) }$s. 
-Here $\epsilon=1\times 10^{-7}$. 
+in which $\hat B^T u^{n+1}$ is a discretization of $\sum_k ( \nabla\cdot \hat\alpha_k^{n+1} u_k^{n+1} )$ 
+and $\hat\alpha_k^{n+1} =\frac{max( \epsilon, \alpha_k^{n+1}) } {\sum_k max( \epsilon, \alpha_k^{n+1}) }$ 
+and thus $\sum_k\hat\alpha_k^{n+1} =1$. 
+Here $\epsilon=1\times 10^{-7}$. In addition, 
+
+\begin{eqnarray}
+\hat N = \left( \underline{\underline{\hat\alpha_1^{n+1}}} \;\;\; \underline{\underline{\hat\alpha_2^{n+1}} } \;\;\;... \;\;\;  \underline{\underline{\hat\alpha_{\cal P}^{n+1}} }  \right) , 
+\end{eqnarray} 
+in which $ \underline{\underline{\hat\alpha_k^{n+1}}}, \forall k\in\{1,2,...,{\cal P}\} $ 
+are diagonal matricies with entries equal to the control volume values of   ${\hat\alpha_k^{n+1}} $ 
+and $\cal P$ is the number of phases. 
 
 
 \pagebreak
