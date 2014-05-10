@@ -4129,7 +4129,7 @@ derivative and using $\alpha_s^{n+1} u_s^{n+1}=\hat u_f^{n+1} - \sum_k\alpha_k^{
 The first term on the left and the last terms on the right are the new terms introduced into the solid-fluid coupling equations. 
 In matrix form this equation becomes: 
 \begin{eqnarray}
-{r}_{cty}^* =M_p \frac{p^{n+1}}{\Delta t} + \tilde B \hat u_f^{n+1} + B u^{n+1} + res_{cty} . 
+{r}_{cty}^* =-M_p \frac{p^{n+1}}{\Delta t} - \tilde B^T \hat u_f^{n+1} - B^T u^{n+1} - res_{cty} . 
 \end{eqnarray} 
 
 Thus in this multi-phase flow case the coupling matrix $M_c$ between between $u_f^f$ and $\hat u$: 

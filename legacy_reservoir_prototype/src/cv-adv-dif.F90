@@ -396,7 +396,7 @@ contains
       INTEGER :: IDUM(1)
       REAL :: RDUM(1),n1,n2,n3
 
-      INTEGER :: I, NLEV, U_NLOC2, ILEV, IDIM, U_ILOC, U_INOD
+      INTEGER :: I, NLEV, U_NLOC2, ILEV, IDIM, U_ILOC, U_INOD, ELE3
       INTEGER :: NFIELD, CV_KLOC, CV_NODK, CV_NODK_IPHA
       INTEGER :: IT, ITOLD, ID, IDOLD, IT2, IT2OLD, IFI
       INTEGER :: COUNT_IN, COUNT_OUT,CV_KLOC2,CV_NODK2,CV_NODK2_IPHA,CV_SKLOC, CV_SNODK, CV_SNODK_IPHA
@@ -1390,16 +1390,19 @@ contains
                   IF ( INTEGRAT_AT_GI ) THEN
                      CV_JLOC = CV_OTHER_LOC( CV_ILOC )
                      SELE = 0
+                     ELE3=0
 
-                     IF ( CV_JLOC == 0 ) THEN ! We are on the boundary of the domain
+                     IF ( CV_JLOC == 0 ) THEN ! We are on the boundary of the domain or subdomain
                         CV_JLOC = CV_ILOC
                         ! Calculate SELE, CV_SILOC, U_SLOC2LOC, CV_SLOC2LOC
-                        CALL CALC_SELE( ELE, SELE, CV_SILOC, CV_ILOC, U_SLOC2LOC, CV_SLOC2LOC, &
+                        CALL CALC_SELE( ELE, ELE3, SELE, CV_SILOC, CV_ILOC, U_SLOC2LOC, CV_SLOC2LOC, &
                              FACE_ELE, NFACE, CVFEM_ON_FACE( :, GI ), &
                              CV_NONODS, CV_NLOC, U_NLOC, CV_SNLOC, U_SNLOC, &
                              CV_NDGLN, U_NDGLN, CV_SNDGLN, U_SNDGLN )
                      END IF
                      INTEGRAT_AT_GI = .NOT.( (ELE==ELE2) .AND. (SELE==0) )
+!                     INTEGRAT_AT_GI = .NOT.( (ELE3==0) .AND. (SELE==0) )
+!                      if(
                   END IF
 
                   IF(INTEGRAT_AT_GI)  THEN 
@@ -10900,7 +10903,7 @@ CONTAINS
 
 
 
-  SUBROUTINE CALC_SELE( ELE, SELE, CV_SILOC, CV_ILOC, U_SLOC2LOC, CV_SLOC2LOC, &
+  SUBROUTINE CALC_SELE( ELE, ELE3, SELE, CV_SILOC, CV_ILOC, U_SLOC2LOC, CV_SLOC2LOC, &
        FACE_ELE, NFACE, CVFEM_ON_FACE, &
        CV_NONODS, CV_NLOC, U_NLOC, CV_SNLOC, U_SNLOC, &
        CV_NDGLN, U_NDGLN, CV_SNDGLN, U_SNDGLN ) 
@@ -10915,11 +10918,11 @@ CONTAINS
     INTEGER, DIMENSION( : ), intent( in ) :: U_SNDGLN
     INTEGER, DIMENSION( :, : ), intent( in ) :: FACE_ELE
     LOGICAL, DIMENSION( : ), intent( in )  :: CVFEM_ON_FACE
-    INTEGER, intent( inout ) :: SELE, CV_SILOC
+    INTEGER, intent( inout ) :: SELE, ELE3, CV_SILOC 
     INTEGER, DIMENSION( : ), intent( inout ) :: U_SLOC2LOC
     INTEGER, DIMENSION( : ), intent( inout ) :: CV_SLOC2LOC
     ! local variables
-    INTEGER :: IFACE, ELE2, ELE3, SELE2, CV_JLOC, CV_JNOD, &
+    INTEGER :: IFACE, ELE2, SELE2, CV_JLOC, CV_JNOD, &
          U_JLOC, U_JNOD, CV_KLOC, CV_SKNOD, &
          U_KLOC, U_SKLOC, U_SKNOD, CV_SKLOC, CV_SKLOC2, I
     LOGICAL :: FOUND
@@ -10936,6 +10939,7 @@ CONTAINS
     END DO
 
     SELE = 0
+    ELE3 = 0
     ! What face are we on        
     DO IFACE = 1, NFACE
        ELE2 = FACE_ELE( IFACE, ELE )
@@ -10956,13 +10960,13 @@ CONTAINS
        END IF
     END DO
 
-    IF(SELE==0) THEN
-       IF(ELE3==0) THEN
+!    IF(SELE==0) THEN
+!       IF(ELE3==0) THEN
 ! dont integrate here as we are not between elements and or on the boundary of the domain - we are on the 
 ! boundary of a subdomain partition between subdomains. 
-          
-       ENDIF
-    ENDIF
+!          
+!       ENDIF
+!    ENDIF
 
     ! Calculate CV_SLOC2LOC  
     Conditional_Sele: IF ( SELE /= 0 ) THEN   
