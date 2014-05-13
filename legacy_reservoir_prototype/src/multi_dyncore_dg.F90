@@ -2541,7 +2541,7 @@ contains
         ewrite(3,*) 'RESID_BASED_STAB_DIF, U_NONLIN_SHOCK_COEF, RNO_P_IN_A_DOT:', &
         RESID_BASED_STAB_DIF, U_NONLIN_SHOCK_COEF, RNO_P_IN_A_DOT
 
-        QUAD_OVER_WHOLE_ELE = is_overlapping ! Do NOT divide element into CV's to form quadrature.
+        QUAD_OVER_WHOLE_ELE = is_overlapping.OR.POROUS_VEL ! Do NOT divide element into CV's to form quadrature.
         call retrieve_ngi( ndim, u_ele_type, cv_nloc, u_nloc, &
         cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface, QUAD_OVER_WHOLE_ELE )
         if ( is_overlapping ) then
