@@ -1877,25 +1877,6 @@ contains
 !                        FVD(:)=DEN_ALL(:,CV_NODI)*(1.0-INCOME(:)) + DEN_ALL(:,CV_NODJ)*INCOME(:) 
 
 
-                        IF(GETCT.AND.RETRIEVE_SOLID_CTY) THEN
-                           NDOTQ_HAT = 0.0
-                           DO U_KLOC = 1, U_NLOC
-                              IF (ELE2/=0) THEN ! Between elements...
-                                 NDOTQ_HAT =  NDOTQ_HAT + SUFEN( U_KLOC, GI ) * 0.5 * SUM( CVNORMX_ALL(:, GI) * (LOC_U_HAT( :, U_KLOC ) + LOC2_U_HAT( :, U_KLOC )) )
-                              ELSE
-                                 NDOTQ_HAT =  NDOTQ_HAT + SUFEN( U_KLOC, GI ) * SUM( CVNORMX_ALL(:, GI) * LOC_U_HAT( :, U_KLOC ) )
-                              ENDIF
-                           END DO
-                      
-                           DO IPHASE=1,NPHASE
-                              LIMT_HAT(IPHASE)=MAX(1.E-7,LIMT(IPHASE))
-                           END DO
-                           R=SUM(LIMT_HAT(:))
-                           LIMT_HAT(:)=LIMT_HAT(:)/R
-                        ENDIF
-                     
-
-
 !           print *,'done temp'
 ! Generate some local F variables ***************
 !       IF(.true.) THEN
@@ -1918,6 +1899,25 @@ contains
                 SCVNGI*TOTELE,state, 'limf5', StorageIndexes(38) )
              CALL UNPACK_LOC( LIMF(:), LIMT2OLD( : ), NPHASE, NFIELD, IPT, STORE, IGOT_T_PACK(:,6), GLOBAL_FACE, IGOT_T_CONST(:,6), IGOT_T_CONST_VALUE(:,6),&
                 SCVNGI*TOTELE,state, 'limf6', StorageIndexes(39) )
+
+
+                        IF(GETCT.AND.RETRIEVE_SOLID_CTY) THEN
+                           NDOTQ_HAT = 0.0
+                           DO U_KLOC = 1, U_NLOC
+                              IF (ELE2/=0) THEN ! Between elements...
+                                 NDOTQ_HAT =  NDOTQ_HAT + SUFEN( U_KLOC, GI ) * 0.5 * SUM( CVNORMX_ALL(:, GI) * (LOC_U_HAT( :, U_KLOC ) + LOC2_U_HAT( :, U_KLOC )) )
+                              ELSE
+                                 NDOTQ_HAT =  NDOTQ_HAT + SUFEN( U_KLOC, GI ) * SUM( CVNORMX_ALL(:, GI) * LOC_U_HAT( :, U_KLOC ) )
+                              ENDIF
+                           END DO
+                      
+                           DO IPHASE=1,NPHASE
+                              LIMT_HAT(IPHASE)=MAX(1.E-7,LIMT(IPHASE))
+                           END DO
+                           R=SUM(LIMT_HAT(:))
+                           LIMT_HAT(:)=LIMT_HAT(:)/R
+                        ENDIF
+                     
 
     ! Amend for porosity...
           IF ( ELE2 /= 0 ) THEN 
