@@ -13370,7 +13370,9 @@ CONTAINS
     REAL, DIMENSION( NPHASE ), intent( in ) :: TUPWIND_IN, TUPWIND_OUT
     ! local variables
     LOGICAL, PARAMETER :: POROUS_VEL = .false. ! For reduced variable porous media treatment.
-    INTEGER :: U_NLOC_LEV,U_KLOC_LEV,U_KLOC,U_NODK_IPHA, U_KLOC2, U_NODK2_IPHA
+    INTEGER :: U_NLOC_LEV,U_KLOC_LEV,U_KLOC,U_NODK_IPHA, U_KLOC2, U_NODK2_IPHA, IPHASE
+    REAL, ALLOCATABLE, DIMENSION(:,:,:) :: INV_GI_LOC_OPT_VEL_UPWIND_COEFS, INV_GJ_LOC_OPT_VEL_UPWIND_COEFS
+    REAL, ALLOCATABLE, DIMENSION(:,:) :: NUGI_ALL_OTHER
 
     logical, parameter :: LIMIT_USE_2ND=.false.
 
@@ -13439,10 +13441,25 @@ CONTAINS
        END DO
        NUGI_ALL(:, :) = NUGI_ALL(:, :) + SUFEN( U_KLOC, GI )*LOC_NU(:, :, U_KLOC)
     END DO
+
+    IF( POROUS_VEL ) THEN
+       ALLOCATE(INV_GI_LOC_OPT_VEL_UPWIND_COEFS(NDIM,NDIM,NPHASE),INV_GJ_LOC_OPT_VEL_UPWIND_COEFS(NDIM,NDIM,NPHASE)) 
+       ALLOCATE(NUGI_ALL_OTHER(NDIM,NPHASE))
+       INV_GI_LOC_OPT_VEL_UPWIND_COEFS = GI_LOC_OPT_VEL_UPWIND_COEFS
+       INV_GJ_LOC_OPT_VEL_UPWIND_COEFS = GJ_LOC_OPT_VEL_UPWIND_COEFS
+       DO IPHASE=1,NPHASE
+          call invert(INV_GI_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE))
+          call invert(INV_GJ_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE))
+       END DO
+       DO IPHASE=1,NPHASE
+          NUGI_ALL(:, IPHASE) = NUGI_ALL(:, IPHASE) +  matmul(INV_GI_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE),NUGI_ALL(:, IPHASE))
+       END DO
+    ENDIF
     !     endif
 
     IF( (ELE2 /= 0) .AND. (ELE2 /= ELE) ) THEN
        NUGI_ALL(:, :) = 0.5*NUGI_ALL(:, :) ! Reduce by half and take the other half from the other side of element...
+       NUGI_ALL_OTHER(:, :) = 0.0
        ! We have a discontinuity between elements so integrate along the face...
        DO U_KLOC = 1, U_NLOC
           U_KLOC2 = U_OTHER_LOC( U_KLOC )
@@ -13451,9 +13468,16 @@ CONTAINS
                 NDOTQNEW=NDOTQNEW + SUFEN( U_KLOC, GI ) * UGI_COEF_ELE2_ALL(IDIM, :,U_KLOC2) & 
                            * ( LOC2_U(IDIM,:, U_KLOC ) - LOC2_NU(IDIM,:,U_KLOC ) ) * CVNORMX_ALL(IDIM, GI)
              END DO
-             NUGI_ALL(:, :) = NUGI_ALL(:, :) + 0.5*SUFEN( U_KLOC, GI )*LOC2_NU(:, :, U_KLOC)
+             NUGI_ALL_OTHER(:, :) = NUGI_ALL_OTHER(:, :) + 0.5*SUFEN( U_KLOC, GI )*LOC2_NU(:, :, U_KLOC)
           END IF
        END DO
+       IF( POROUS_VEL ) THEN
+          DO IPHASE=1,NPHASE
+             NUGI_ALL(:, IPHASE) = NUGI_ALL(:, IPHASE) +  matmul(INV_GJ_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE),NUGI_ALL_OTHER(:, IPHASE))
+          END DO
+       ELSE
+          NUGI_ALL(:, :) = NUGI_ALL(:, :) +  NUGI_ALL_OTHER(:, :)
+       ENDIF
     END IF
 
 
@@ -15071,8 +15095,9 @@ CONTAINS
     real :: T_PELE, T_PELEOT, TMIN_PELE, TMAX_PELE, TMIN_PELEOT, TMAX_PELEOT
 
     ! Local variable for indirect addressing
-    REAL, DIMENSION ( NDIM, NPHASE ) :: UDGI_ALL, UDGI2_ALL, UDGI_INT_ALL
-    real :: courant_or_minus_one_new(Nphase),XI_LIMIT(Nphase)
+    REAL, DIMENSION ( NDIM, NPHASE ) :: UDGI_ALL, UDGI2_ALL, UDGI_INT_ALL, UDGI_ALL_FOR_INV
+    REAL, DIMENSION ( NDIM, NDIM, NPHASE ) :: INV_GI_LOC_OPT_VEL_UPWIND_COEFS, INV_GJ_LOC_OPT_VEL_UPWIND_COEFS
+    real :: courant_or_minus_one_new(Nphase),XI_LIMIT(Nphase), VEC_NDIM(NDIM), VEC2_NDIM(NDIm)
     INTEGER :: IPHASE, CV_NODI_IPHA, CV_NODJ_IPHA
 
 
@@ -15088,6 +15113,14 @@ CONTAINS
     U_NLOC_LEV = U_NLOC / CV_NLOC
     U_SNLOC_LEV = U_SNLOC / CV_NLOC
 
+! Find the inverse of the absoption matricies either side of face: 
+    INV_GI_LOC_OPT_VEL_UPWIND_COEFS = GI_LOC_OPT_VEL_UPWIND_COEFS
+    INV_GJ_LOC_OPT_VEL_UPWIND_COEFS = GJ_LOC_OPT_VEL_UPWIND_COEFS
+    DO IPHASE=1,NPHASE
+       call invert(INV_GI_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE))
+       call invert(INV_GJ_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE))
+    END DO
+
 
     got_dt_ij=.false.
 
@@ -15096,10 +15129,10 @@ CONTAINS
      DO IPHASE = 1, NPHASE
        IF( WIC_U_BC_ALL( 1, IPHASE, SELE) /= WIC_U_BC_DIRICHLET ) THEN ! velocity free boundary
           UDGI_ALL(:, IPHASE) = 0.0
-          DO U_KLOC_LEV = 1, U_NLOC_LEV
-             U_KLOC=(CV_ILOC-1)*U_NLOC_LEV + U_KLOC_LEV
+          DO U_KLOC = 1, U_NLOC
              UDGI_ALL(:, IPHASE) = UDGI_ALL(:, IPHASE) + SUFEN( U_KLOC, GI ) * LOC_NU( :, IPHASE, U_KLOC )
           END DO
+          UDGI_ALL(:, IPHASE) = matmul(INV_GI_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE),UDGI_ALL(:, IPHASE))
 
           ! Here we assume that sigma_out/sigma_in is a diagonal matrix 
           ! which effectively assumes that the anisotropy just inside the domain 
@@ -15119,14 +15152,15 @@ CONTAINS
 
           ! Only modify boundary velocity for incoming velocity...
           UGI_COEF_ELE_ALL(:, IPHASE, :)=0.0
-          DO U_KLOC_LEV = 1, U_NLOC_LEV
-             U_KLOC=(CV_ILOC-1)*U_NLOC_LEV + U_KLOC_LEV
+          DO U_KLOC = 1, U_NLOC
              IF (DOT_PRODUCT(UDGI_ALL(:, IPHASE), CVNORMX_ALL(:, GI)).LT.0.0) THEN ! Incomming...
                 UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC)=UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC) &
                                                     +1.0*SUF_SIG_DIAGTEN_BC_GI(:)
              ELSE
                 UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC)=UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC)+1.0
              ENDIF
+
+             UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC)= matmul(INV_GI_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE),UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC)) 
           END DO
 
           IF(DOT_PRODUCT(UDGI_ALL(:, IPHASE), CVNORMX_ALL(:, GI)).LT.0.0) THEN ! Incomming...
@@ -15137,21 +15171,28 @@ CONTAINS
        ELSE ! Specified vel bc.
 
           UDGI_ALL(:, IPHASE) = 0.0
+          UDGI_ALL_FOR_INV(:, IPHASE) = 0.0
           UGI_COEF_ELE_ALL(:, IPHASE, :) = 0.0 
-          DO U_SKLOC_LEV = 1, U_SNLOC_LEV
-             U_SKLOC = (CV_ILOC-1)*U_SNLOC_LEV + U_SKLOC_LEV
+          DO U_SKLOC = 1, U_SNLOC
              U_KLOC = U_SLOC2LOC( U_SKLOC )
 
              IF(WIC_U_BC_ALL( 1, IPHASE, SELE ) == 10) THEN
                 UDGI_ALL(:, IPHASE) = UDGI_ALL(:, IPHASE) + SUFEN( U_KLOC, GI ) * 0.5 * &
-                                      (SLOC_NU(:, IPHASE, U_SKLOC) + SUF_U_BC_ALL(:, IPHASE, U_SNLOC_LEV* (SELE-1) +U_SKLOC_LEV))
+                                      SUF_U_BC_ALL(:, IPHASE, U_SNLOC* (SELE-1) +U_SKLOC)
+
+                UDGI_ALL_FOR_INV(:, IPHASE) = UDGI_ALL_FOR_INV(:, IPHASE) + SUFEN( U_KLOC, GI ) * 0.5 * &
+                                      SLOC_NU(:, IPHASE, U_SKLOC) 
 
                 UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC)=UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC) + 0.5
+                UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC)= matmul(INV_GI_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE),UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC)) 
              ELSE
 
-                UDGI_ALL(:, IPHASE) = UDGI_ALL(:, IPHASE) + SUFEN( U_KLOC, GI )*SUF_U_BC_ALL(:, IPHASE, U_SNLOC_LEV* (SELE-1) +U_SKLOC_LEV)
+                UDGI_ALL(:, IPHASE) = UDGI_ALL(:, IPHASE) + SUFEN( U_KLOC, GI )*SUF_U_BC_ALL(:, IPHASE, U_SNLOC* (SELE-1) +U_SKLOC)
              END IF
           END DO
+          UDGI_ALL(:, IPHASE) = UDGI_ALL(:, IPHASE)  + matmul(INV_GI_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE),UDGI_ALL_FOR_INV(:, IPHASE))
+
+
        END IF
      END DO ! PHASE LOOP
 
@@ -15160,16 +15201,14 @@ CONTAINS
 
           UDGI_ALL(:, :) = 0.0
 
-          UDGI2_ALL(:, :) = 0.0
-          DO U_KLOC_LEV = 1, U_NLOC_LEV
-             U_KLOC =(CV_ILOC-1)*U_NLOC_LEV + U_KLOC_LEV
-             U_KLOC2=(CV_JLOC-1)*U_NLOC_LEV + U_KLOC_LEV
-
+          DO U_KLOC = 1, U_NLOC
              UDGI_ALL(:, :) = UDGI_ALL(:, :) + SUFEN( U_KLOC, GI ) * LOC_NU( :, :, U_KLOC )
-
-             UDGI2_ALL(:, :) = UDGI2_ALL(:, :) + SUFEN( U_KLOC2, GI ) * LOC_NU( :, :, U_KLOC2 )
-
           END DO
+
+          DO IPHASE=1,NPHASE
+             UDGI_ALL(:, IPHASE)  = matmul(INV_GI_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE),UDGI_ALL(:, IPHASE))
+             UDGI2_ALL(:, IPHASE) = matmul(INV_GJ_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE),UDGI_ALL(:, IPHASE))
+          END DO 
 
           NDOTQ  = MATMUL( CVNORMX_ALL(:, GI), UDGI_ALL )
           NDOTQ2 = MATMUL( CVNORMX_ALL(:, GI), UDGI2_ALL )
@@ -15404,20 +15443,21 @@ CONTAINS
           UDGI_ALL(:, IPHASE) = 0.0
 
           UGI_COEF_ELE_ALL(:, IPHASE, :) = 0.0
-          DO U_KLOC_LEV = 1, U_NLOC_LEV
-             U_KLOC =(CV_ILOC-1)*U_NLOC_LEV + U_KLOC_LEV
-             U_KLOC2=(CV_JLOC-1)*U_NLOC_LEV + U_KLOC_LEV
+          DO U_KLOC = 1, U_NLOC
 
              UDGI_ALL(:, IPHASE) = UDGI_ALL(:, IPHASE) &
                                  + SUFEN( U_KLOC,  GI ) * LOC_NU( :, IPHASE, U_KLOC  ) * (1.0-INCOME(IPHASE)) &
                                  + SUFEN( U_KLOC2, GI ) * LOC_NU( :, IPHASE, U_KLOC2 ) * INCOME(IPHASE)
 
+             VEC_NDIM(:) =1.0-INCOME(IPHASE)
+             VEC2_NDIM(:)=INCOME(IPHASE)
 
-             UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC)=UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC) + 1.0-INCOME(IPHASE)
-
-             UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC2)=UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC2) + INCOME(IPHASE)
+             UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC)=UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC) + matmul(INV_GI_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE),VEC_NDIM(:)) &
+                                                                                     + matmul(INV_GJ_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE),VEC2_NDIM(:))
 
           END DO
+
+          UDGI_ALL(:, IPHASE) = matmul(INV_GI_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE),UDGI_ALL(:, IPHASE))
           END DO ! PHASE LOOP
 
 
@@ -15427,27 +15467,37 @@ CONTAINS
           UDGI_ALL(:, :) = 0.0
 
           UGI_COEF_ELE_ALL(:, :, :) = 0.0
-          DO U_KLOC_LEV = 1, U_NLOC_LEV
-             U_KLOC=(CV_ILOC-1)*U_NLOC_LEV + U_KLOC_LEV
+          DO U_KLOC = 1, U_NLOC
 
              UDGI_ALL(:, :) = UDGI_ALL(:, :) + SUFEN( U_KLOC,  GI ) * LOC_NU( :, :, U_KLOC  )
 
-             UGI_COEF_ELE_ALL(:, :, U_KLOC)=UGI_COEF_ELE_ALL(:, :, U_KLOC) + 1.0
+             VEC_NDIM(:) =1.0
+             DO IPHASE=1,NPHASE
+                UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC)=UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC) + matmul(INV_GI_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE),VEC_NDIM(:))
+             END DO
+          END DO
+          DO IPHASE=1,NPHASE
+             UDGI_ALL(:, IPHASE) = matmul(INV_GI_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE),UDGI_ALL(:, IPHASE))
           END DO
 
 
           UDGI2_ALL(:, :) = 0.0
 
           UGI_COEF_ELE2_ALL(:, :, :) = 0.0
-          DO U_KLOC_LEV = 1, U_NLOC_LEV
-             U_KLOC=(CV_ILOC-1)*U_NLOC_LEV + U_KLOC_LEV
+          DO U_KLOC = 1, U_NLOC
              U_KLOC2 = U_OTHER_LOC( U_KLOC )
              IF( U_KLOC2 /= 0 ) THEN
                 UDGI2_ALL(:, :) = UDGI2_ALL(:, :) + SUFEN( U_KLOC,  GI ) * LOC2_NU( :, :, U_KLOC )
 
-                UGI_COEF_ELE2_ALL(:, :, U_KLOC2)=UGI_COEF_ELE2_ALL(:, :, U_KLOC2) + 1.0
+                VEC2_NDIM(:) =1.0
+                DO IPHASE=1,NPHASE
+                   UGI_COEF_ELE2_ALL(:, IPHASE, U_KLOC2)=UGI_COEF_ELE2_ALL(:, IPHASE, U_KLOC2) + matmul(INV_GJ_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE),VEC2_NDIM(:))
+                END DO
 
              END IF
+          END DO
+          DO IPHASE=1,NPHASE
+             UDGI2_ALL(:, IPHASE) = matmul(INV_GJ_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE),UDGI2_ALL(:, IPHASE))
           END DO
 
           NDOTQ  = MATMUL( CVNORMX_ALL(:, GI), UDGI_ALL )
