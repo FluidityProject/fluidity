@@ -15046,7 +15046,7 @@ CONTAINS
     REAL :: NVEC(NDIM),SUF_SIG_DIAGTEN_BC_GI(NDIM), UGI_TMP(NDIM)
     INTEGER :: U_KLOC,U_NODK,U_NODK2,U_NODK2_IPHA,U_NODK_IPHA,U_KLOC2,U_SKLOC, &
          U_SNODK,U_SNODK_IPHA, II,  COUNT, &
-         U_KLOC_LEV, U_NLOC_LEV, U_SKLOC_LEV, U_SNLOC_LEV, CV_KLOC, CV_KNOD, &
+         CV_KLOC, CV_KNOD, &
          CV_KLOC2, CV_KNOD2, IDIM, JDIM, IJ, MAT_NODI, MAT_NODJ, &
          CV_SKLOC, CV_SNODK, CV_SNODK_IPHA, CV_STAR_IPHA, CV_KNOD_IPHA, CV_KNOD2_IPHA, &
          U_NODK3,U_NODK3_IPHA, U_KLOC3
@@ -15097,7 +15097,7 @@ CONTAINS
     ! Local variable for indirect addressing
     REAL, DIMENSION ( NDIM, NPHASE ) :: UDGI_ALL, UDGI2_ALL, UDGI_INT_ALL, UDGI_ALL_FOR_INV
     REAL, DIMENSION ( NDIM, NDIM, NPHASE ) :: INV_GI_LOC_OPT_VEL_UPWIND_COEFS, INV_GJ_LOC_OPT_VEL_UPWIND_COEFS
-    real :: courant_or_minus_one_new(Nphase),XI_LIMIT(Nphase), VEC_NDIM(NDIM), VEC2_NDIM(NDIm)
+    real :: courant_or_minus_one_new(Nphase),XI_LIMIT(Nphase), VEC_NDIM(NDIM), VEC2_NDIM(NDIm), UDGI_ALL_OTHER(NDIM, NPHASE)
     INTEGER :: IPHASE, CV_NODI_IPHA, CV_NODJ_IPHA
 
 
@@ -15110,8 +15110,8 @@ CONTAINS
     ! coefficients for this element ELE2
     UGI_COEF_ELE2_ALL=0.0
 
-    U_NLOC_LEV = U_NLOC / CV_NLOC
-    U_SNLOC_LEV = U_SNLOC / CV_NLOC
+!    U_NLOC_LEV = U_NLOC / CV_NLOC
+!    U_SNLOC_LEV = U_SNLOC / CV_NLOC
 
 ! Find the inverse of the absoption matricies either side of face: 
     INV_GI_LOC_OPT_VEL_UPWIND_COEFS = GI_LOC_OPT_VEL_UPWIND_COEFS
@@ -15441,13 +15441,15 @@ CONTAINS
           DO IPHASE = 1, NPHASE
 
           UDGI_ALL(:, IPHASE) = 0.0
+          UDGI_ALL_OTHER(:, IPHASE) = 0.0
 
           UGI_COEF_ELE_ALL(:, IPHASE, :) = 0.0
           DO U_KLOC = 1, U_NLOC
 
              UDGI_ALL(:, IPHASE) = UDGI_ALL(:, IPHASE) &
-                                 + SUFEN( U_KLOC,  GI ) * LOC_NU( :, IPHASE, U_KLOC  ) * (1.0-INCOME(IPHASE)) &
-                                 + SUFEN( U_KLOC2, GI ) * LOC_NU( :, IPHASE, U_KLOC2 ) * INCOME(IPHASE)
+                                 + SUFEN( U_KLOC,  GI ) * LOC_NU( :, IPHASE, U_KLOC  ) * (1.0-INCOME(IPHASE)) 
+             UDGI_ALL_OTHER(:, IPHASE) = UDGI_ALL_OTHER(:, IPHASE) &
+                                 + SUFEN( U_KLOC, GI ) * LOC_NU( :, IPHASE, U_KLOC ) * INCOME(IPHASE)
 
              VEC_NDIM(:) =1.0-INCOME(IPHASE)
              VEC2_NDIM(:)=INCOME(IPHASE)
@@ -15457,7 +15459,8 @@ CONTAINS
 
           END DO
 
-          UDGI_ALL(:, IPHASE) = matmul(INV_GI_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE),UDGI_ALL(:, IPHASE))
+          UDGI_ALL(:, IPHASE) = matmul(INV_GI_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE),UDGI_ALL(:, IPHASE)) &
+                              + matmul(INV_GJ_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE),UDGI_ALL_OTHER(:, IPHASE)) 
           END DO ! PHASE LOOP
 
 
