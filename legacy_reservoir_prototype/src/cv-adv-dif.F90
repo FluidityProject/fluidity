@@ -15200,14 +15200,16 @@ CONTAINS
        Conditional_ELE2: IF(( ELE2 == 0 ).OR.( ELE2 == ELE)) THEN
 
           UDGI_ALL(:, :) = 0.0
+          UDGI2_ALL(:, :) = 0.0
 
           DO U_KLOC = 1, U_NLOC
              UDGI_ALL(:, :) = UDGI_ALL(:, :) + SUFEN( U_KLOC, GI ) * LOC_NU( :, :, U_KLOC )
+             UDGI2_ALL(:, :) = UDGI2_ALL(:, :) + SUFEN( U_KLOC, GI ) * LOC_NU( :, :, U_KLOC )
           END DO
 
           DO IPHASE=1,NPHASE
              UDGI_ALL(:, IPHASE)  = matmul(INV_GI_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE),UDGI_ALL(:, IPHASE))
-             UDGI2_ALL(:, IPHASE) = matmul(INV_GJ_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE),UDGI_ALL(:, IPHASE))
+             UDGI2_ALL(:, IPHASE) = matmul(INV_GJ_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE),UDGI2_ALL(:, IPHASE))
           END DO 
 
           NDOTQ  = MATMUL( CVNORMX_ALL(:, GI), UDGI_ALL )
