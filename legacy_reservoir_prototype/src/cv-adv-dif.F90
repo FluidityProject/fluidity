@@ -1910,6 +1910,10 @@ contains
                                  NDOTQ_HAT =  NDOTQ_HAT + SUFEN( U_KLOC, GI ) * SUM( CVNORMX_ALL(:, GI) * LOC_U_HAT( :, U_KLOC ) )
                               ENDIF
                            END DO
+
+                           if(.true.) then ! use an average to make sure all is well in terms of propagation of information...
+                               LIMT(:)=0.5*(LOC_T_I( : )+LOC_T_J( : )) 
+                           endif
                       
                            DO IPHASE=1,NPHASE
                               LIMT_HAT(IPHASE)=MAX(1.E-7,LIMT(IPHASE))
