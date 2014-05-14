@@ -2541,7 +2541,7 @@ contains
         ewrite(3,*) 'RESID_BASED_STAB_DIF, U_NONLIN_SHOCK_COEF, RNO_P_IN_A_DOT:', &
         RESID_BASED_STAB_DIF, U_NONLIN_SHOCK_COEF, RNO_P_IN_A_DOT
 
-        QUAD_OVER_WHOLE_ELE = is_overlapping.OR.is_compact_overlapping ! Do NOT divide element into CV's to form quadrature.
+        QUAD_OVER_WHOLE_ELE = is_overlapping!.OR.is_compact_overlapping ! Do NOT divide element into CV's to form quadrature.
         call retrieve_ngi( ndim, u_ele_type, cv_nloc, u_nloc, &
         cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface, QUAD_OVER_WHOLE_ELE )
         if ( is_overlapping ) then
@@ -2856,6 +2856,8 @@ contains
         FINDGPTS, COLGPTS, NCOLGPTS, &
         SELE_OVERLAP_SCALE, QUAD_OVER_WHOLE_ELE,&
         state, 'ASEMCTY', StorageIndexes(41))
+
+
         ! Memory for rapid retreval...
         ! Storage for pointers to the other side of the element.
         ALLOCATE( STORED_U_ILOC_OTHER_SIDE( U_SNLOC, NFACE, TOTELE*ISTORED_OTHER_SIDE ) )
@@ -2979,10 +2981,10 @@ contains
                 LOC_P( P_ILOC ) = P( P_INOD )
             END DO
 
+            LOC_U_ABSORB = 0.0
             DO MAT_ILOC = 1, MAT_NLOC
                 MAT_INOD = MAT_NDGLN( ( ELE - 1 ) * MAT_NLOC + MAT_ILOC )
                 IF(is_compact_overlapping) THEN ! Set to the identity - NOT EFFICIENT BUT GOOD ENOUGH FOR NOW AS ITS SIMPLE...
-                   LOC_U_ABSORB( :, :, MAT_ILOC ) = 0.0 
                    DO I=1,NDIM_VEL* NPHASE
                       LOC_U_ABSORB( I, I, MAT_ILOC ) = 1.0 
                    END DO
@@ -2996,7 +2998,6 @@ contains
                    LOC_UDIFFUSION( :, :, :, MAT_ILOC ) = 0.0
                 ENDIF
             END DO
-
 
             ! *********subroutine Determine local vectors...
 
@@ -3116,6 +3117,7 @@ contains
                             SIGMAGI( IPHA_IDIM, JPHA_JDIM, GI ) = SIGMAGI( IPHA_IDIM, JPHA_JDIM, GI ) &
                                   !+ CVFEN( MAT_ILOC, GI ) * LOC_U_ABSORB( IPHA_IDIM, JPHA_JDIM, MAT_ILOC )
                             + CVN( MAT_ILOC, GI ) * LOC_U_ABSORB( IPHA_IDIM, JPHA_JDIM, MAT_ILOC )
+
                             SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM, GI ) = SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM, GI ) &
                                   !+ CVFEN( MAT_ILOC, GI ) * LOC_U_ABS_STAB( IPHA_IDIM, JPHA_JDIM, MAT_ILOC )
                             + CVN( MAT_ILOC, GI ) * LOC_U_ABS_STAB( IPHA_IDIM, JPHA_JDIM, MAT_ILOC )
@@ -3235,7 +3237,6 @@ contains
                                             NN_SIGMAGI_ELE(IPHA_IDIM, U_ILOC, JPHA_JDIM, U_JLOC ) &
                                             + NN_SIGMAGI_STAB_ELE(IPHA_IDIM, U_ILOC, JPHA_JDIM, U_JLOC ) &
                                             + NN_MASS_ELE(IPHA_IDIM, U_ILOC, JPHA_JDIM, U_JLOC )/DT
-
                                         END IF
 
                                         IF ( .NOT.NO_MATRIX_STORE ) THEN
@@ -3262,6 +3263,7 @@ contains
                         END DO
                     END DO
                 END DO
+
 
                 Loop_DGNods1: DO U_ILOC = 1 + (ILEV-1)*U_NLOC2, ILEV*U_NLOC2
                     GLOBI = U_NDGLN( ( ELE - 1 ) * U_NLOC + U_ILOC )
@@ -7346,5 +7348,6 @@ contains
 
         return
     end subroutine linearise_field
+
 
 end module multiphase_1D_engine

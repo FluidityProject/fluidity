@@ -535,10 +535,10 @@
       in_ele_upwind = 3 ; dg_ele_upwind = 3
 
       ! simplify things...
-      !in_ele_upwind = 1 ; dg_ele_upwind = 1
-      !u_dg_vel_int_opt = 1
-      !v_dg_vel_int_opt = 1
-      !v_disopt = 0
+!      in_ele_upwind = 1 ; dg_ele_upwind = 1
+!      u_dg_vel_int_opt = 1
+!      v_dg_vel_int_opt = 1
+!      v_disopt = 0
 
       return
     end subroutine Get_Discretisation_Options
@@ -3354,6 +3354,36 @@ subroutine allocate_multicomponent_scalar_bcs(s,ms,name)
 
     end subroutine get_var_from_packed_state
 
+
+    !Subroutine to print Arrays by (columns,rows)
+    !Matrix = Square 2D Array
+    subroutine printMatrix(Matrix)
+        implicit none
+
+        Integer :: length,i,j, k
+        character (len=1000000) :: cadena
+        character (len=100) :: aux
+        double precision, intent(in), dimension(:,:):: Matrix
+
+        length = size(Matrix,1);
+
+        do i = 1,size(Matrix,2)
+            print *,""
+            cadena = ""
+            do j = 1 , length
+                write(aux,*), Matrix(j,i)
+                k = index(trim(aux),"E",.true.)
+                if (k/=0) then
+                    aux = aux(1:k-6)//trim(aux(k:))
+                end if
+
+                cadena = trim(cadena)//' '//trim(aux)
+            end do
+            print '(A $)', trim(cadena)
+        end do
+
+        print *,"";
+    end subroutine PrintMatrix
 
   end module Copy_Outof_State
 

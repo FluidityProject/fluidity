@@ -1348,7 +1348,7 @@ contains
 
 ! Generate some local F variables ***************
             F_CV_NODI(:)= LOC_F(:, CV_ILOC)
-            IF ( IS_OVERLAPPING ) THEN
+            IF ( IS_OVERLAPPING .or. is_compact_overlapping ) THEN
 
                DO IPHASE=1,NPHASE
                   DO IDIM=1,NDIM
@@ -1744,7 +1744,7 @@ contains
 
 
 
-                   IF ( IS_OVERLAPPING ) THEN
+                   IF ( IS_OVERLAPPING.or. is_compact_overlapping ) THEN
 
                       DO IPHASE=1,NPHASE
                          DO IDIM=1,NDIM
@@ -13415,7 +13415,6 @@ CONTAINS
             IN_ELE_UPWIND, DG_ELE_UPWIND, &
             IANISOTROPIC, &
             TUPWIND_IN, TUPWIND_OUT)
-
     ELSE
        CALL GET_INT_VEL_ORIG_NEW( NPHASE, NDOTQ, INCOME, &
             HDC, GI, SUFEN, U_NLOC, SCVNGI, TOTELE, U_NONODS, CV_NONODS,  &
@@ -13475,6 +13474,7 @@ CONTAINS
           DO IPHASE=1,NPHASE
              NUGI_ALL(:, IPHASE) = NUGI_ALL(:, IPHASE) +  matmul(INV_GJ_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE),NUGI_ALL_OTHER(:, IPHASE))
           END DO
+          deallocate(INV_GI_LOC_OPT_VEL_UPWIND_COEFS, INV_GJ_LOC_OPT_VEL_UPWIND_COEFS, NUGI_ALL_OTHER)
        ELSE
           NUGI_ALL(:, :) = NUGI_ALL(:, :) +  NUGI_ALL_OTHER(:, :)
        ENDIF
@@ -15115,6 +15115,7 @@ CONTAINS
 
     INV_GI_LOC_OPT_VEL_UPWIND_COEFS = GI_LOC_OPT_VEL_UPWIND_COEFS
     INV_GJ_LOC_OPT_VEL_UPWIND_COEFS = GJ_LOC_OPT_VEL_UPWIND_COEFS
+
 ! Find the inverse of the absoption matricies either side of face: 
     DO IPHASE=1,NPHASE
        call invert(INV_GI_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE))
@@ -15133,6 +15134,7 @@ CONTAINS
              UDGI_ALL(:, IPHASE) = UDGI_ALL(:, IPHASE) + SUFEN( U_KLOC, GI ) * LOC_NU( :, IPHASE, U_KLOC )
           END DO
           UDGI_ALL(:, IPHASE) = matmul(INV_GI_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE),UDGI_ALL(:, IPHASE))
+
 
           ! Here we assume that sigma_out/sigma_in is a diagonal matrix 
           ! which effectively assumes that the anisotropy just inside the domain 
@@ -15181,7 +15183,7 @@ CONTAINS
                                       SUF_U_BC_ALL(:, IPHASE, U_SNLOC* (SELE-1) +U_SKLOC)
 
                 UDGI_ALL_FOR_INV(:, IPHASE) = UDGI_ALL_FOR_INV(:, IPHASE) + SUFEN( U_KLOC, GI ) * 0.5 * &
-                                      SLOC_NU(:, IPHASE, U_SKLOC) 
+                                      SLOC_NU(:, IPHASE, U_SKLOC)
 
                 UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC)=UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC) + 0.5
                 UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC)= matmul(INV_GI_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE),UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC)) 
@@ -15376,7 +15378,7 @@ CONTAINS
 
                      CALL ONVDLIM_ANO( cv_nonods, &
                         LIMT3(iPHASE), FEMTGI_IPHA(iPHASE), INCOME3(iPHASE), cv_nodi, cv_nodj, &
-                        LOC_T_I(iPHASE), LOC_T_J(iPHASE),   .false., .false., courant_or_minus_one_new(IPHASE), &
+                        LOC_T_I(iPHASE), LOC_T_J(iPHASE),   FORCE_UPWIND_VEL, .false., courant_or_minus_one_new(IPHASE), &
                         TUPWIND_IN(iPHASE), TUPWIND_OUT(iPHASE) )
 
                   ENDIF ! ENDOF if(IANISOTROPIC==0) then ELSE
@@ -15445,7 +15447,7 @@ CONTAINS
           DO U_KLOC = 1, U_NLOC
 
              UDGI_ALL(:, IPHASE) = UDGI_ALL(:, IPHASE) &
-                                 + SUFEN( U_KLOC,  GI ) * LOC_NU( :, IPHASE, U_KLOC  ) * (1.0-INCOME(IPHASE)) 
+                                 + SUFEN( U_KLOC,  GI ) * LOC_NU( :, IPHASE, U_KLOC  ) * (1.0-INCOME(IPHASE))
              UDGI_ALL_OTHER(:, IPHASE) = UDGI_ALL_OTHER(:, IPHASE) &
                                  + SUFEN( U_KLOC, GI ) * LOC_NU( :, IPHASE, U_KLOC ) * INCOME(IPHASE)
 
