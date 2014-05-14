@@ -790,7 +790,7 @@
                      ! also requires reassemble. NOTE that this is not optimal in that the ct_rhs
                      ! was formed already above. The call here will overwrite those values.
                      call assemble_divergence_matrix_cv(ctp_m(istate)%ptr, state(istate), ct_rhs=ct_rhs(istate), &
-                                                        test_mesh=p%mesh, field=u, get_ct=reassemble_ct_m)
+                                                        test_mesh=p_theta%mesh, field=u, get_ct=reassemble_ct_m)
                     if (implicit_prognostic_fs .and. reassemble_ct_m) then
                       call add_implicit_viscous_free_surface_integrals_cv(state(istate), &
                         ctp_m(istate)%ptr, u, p_mesh, free_surface)
