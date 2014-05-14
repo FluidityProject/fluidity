@@ -15131,7 +15131,7 @@ CONTAINS
     real :: T_PELE, T_PELEOT, TMIN_PELE, TMAX_PELE, TMIN_PELEOT, TMAX_PELEOT
 
     ! Local variable for indirect addressing
-    REAL, DIMENSION ( NDIM, NPHASE ) :: UDGI_ALL, UDGI2_ALL, UDGI_INT_ALL, UDGI_ALL_FOR_INV
+    REAL, DIMENSION ( NDIM, NPHASE ) :: UDGI_ALL, UDGI2_ALL, UDGI_INT_ALL, UDGI_ALL_FOR_INV, ROW_SUM_INV_GI, ROW_SUM_INV_GJ
 !    REAL, DIMENSION ( NDIM, NDIM, NPHASE ) :: INV_GI_LOC_OPT_VEL_UPWIND_COEFS, INV_GJ_LOC_OPT_VEL_UPWIND_COEFS
     real :: courant_or_minus_one_new(Nphase),XI_LIMIT(Nphase), VEC_NDIM(NDIM), VEC2_NDIM(NDIm), UDGI_ALL_OTHER(NDIM, NPHASE)
     INTEGER :: IPHASE, CV_NODI_IPHA, CV_NODJ_IPHA
@@ -15157,6 +15157,13 @@ CONTAINS
 !       call invert(INV_GI_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE))
 !       call invert(INV_GJ_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE))
 !    END DO
+
+     DO IPHASE=1,NPHASE
+        DO IDIM=1,NDIM
+           ROW_SUM_INV_GI(IDIM,IPHASE)=SUM(INV_GI_LOC_OPT_VEL_UPWIND_COEFS(IDIM,:,IPHASE)) 
+           ROW_SUM_INV_GJ(IDIM,IPHASE)=SUM(INV_GJ_LOC_OPT_VEL_UPWIND_COEFS(IDIM,:,IPHASE)) 
+        END DO
+     END DO
 
 
     got_dt_ij=.false.
@@ -15189,13 +15196,11 @@ CONTAINS
           END DO
 
           ! Only modify boundary velocity for incoming velocity...
-          UGI_COEF_ELE_ALL(:, IPHASE, :)=0.0
           DO U_KLOC = 1, U_NLOC
              IF (DOT_PRODUCT(UDGI_ALL(:, IPHASE), CVNORMX_ALL(:, GI)).LT.0.0) THEN ! Incomming...
-                UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC)=UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC) &
-                                                    +1.0*SUF_SIG_DIAGTEN_BC_GI(:)
+                UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC)=SUF_SIG_DIAGTEN_BC_GI(:)
              ELSE
-                UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC)=UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC)+1.0
+                UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC)=1.0
              ENDIF
 
              UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC)= matmul(INV_GI_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE),UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC)) 
@@ -15221,8 +15226,9 @@ CONTAINS
                 UDGI_ALL_FOR_INV(:, IPHASE) = UDGI_ALL_FOR_INV(:, IPHASE) + SUFEN( U_KLOC, GI ) * 0.5 * &
                                       SLOC_NU(:, IPHASE, U_SKLOC)
 
-                UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC)=UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC) + 0.5
-                UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC)= matmul(INV_GI_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE),UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC)) 
+!                UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC)=0.5
+!                UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC)= matmul(INV_GI_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE),UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC)) 
+                UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC)=0.5*ROW_SUM_INV_GI(:,IPHASE) 
              ELSE
 
                 UDGI_ALL(:, IPHASE) = UDGI_ALL(:, IPHASE) + SUFEN( U_KLOC, GI )*SUF_U_BC_ALL(:, IPHASE, U_SNLOC* (SELE-1) +U_SKLOC)
@@ -15487,11 +15493,14 @@ CONTAINS
              UDGI_ALL_OTHER(:, IPHASE) = UDGI_ALL_OTHER(:, IPHASE) &
                                  + SUFEN( U_KLOC, GI ) * LOC_NU( :, IPHASE, U_KLOC ) * INCOME(IPHASE)
 
-             VEC_NDIM(:) =1.0-INCOME(IPHASE)
-             VEC2_NDIM(:)=INCOME(IPHASE)
+!             VEC_NDIM(:) =1.0-INCOME(IPHASE)
+!             VEC2_NDIM(:)=INCOME(IPHASE)
 
-             UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC)=UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC) + matmul(INV_GI_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE),VEC_NDIM(:)) &
-                                                                                     + matmul(INV_GJ_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE),VEC2_NDIM(:))
+!             UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC)=UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC) + matmul(INV_GI_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE),VEC_NDIM(:)) &
+!                                                                                     + matmul(INV_GJ_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE),VEC2_NDIM(:))
+
+             UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC)=ROW_SUM_INV_GI(:,IPHASE)* (1.0-INCOME(IPHASE)) &
+                                                +ROW_SUM_INV_GJ(:,IPHASE)* INCOME(IPHASE)
 
           END DO
 
@@ -15510,9 +15519,10 @@ CONTAINS
 
              UDGI_ALL(:, :) = UDGI_ALL(:, :) + SUFEN( U_KLOC,  GI ) * LOC_NU( :, :, U_KLOC  )
 
-             VEC_NDIM(:) =1.0
+!             VEC_NDIM(:) =1.0
              DO IPHASE=1,NPHASE
-                UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC)=UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC) + matmul(INV_GI_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE),VEC_NDIM(:))
+!                UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC)=UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC) + matmul(INV_GI_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE),VEC_NDIM(:))
+                UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC) = ROW_SUM_INV_GI(:,IPHASE)*1.0 
              END DO
           END DO
           DO IPHASE=1,NPHASE
@@ -15528,9 +15538,10 @@ CONTAINS
              IF( U_KLOC2 /= 0 ) THEN
                 UDGI2_ALL(:, :) = UDGI2_ALL(:, :) + SUFEN( U_KLOC,  GI ) * LOC2_NU( :, :, U_KLOC )
 
-                VEC2_NDIM(:) =1.0
+!                VEC2_NDIM(:) =1.0
                 DO IPHASE=1,NPHASE
-                   UGI_COEF_ELE2_ALL(:, IPHASE, U_KLOC2)=UGI_COEF_ELE2_ALL(:, IPHASE, U_KLOC2) + matmul(INV_GJ_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE),VEC2_NDIM(:))
+!                   UGI_COEF_ELE2_ALL(:, IPHASE, U_KLOC2)=UGI_COEF_ELE2_ALL(:, IPHASE, U_KLOC2) + matmul(INV_GJ_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE),VEC2_NDIM(:))
+                   UGI_COEF_ELE2_ALL(:, IPHASE, U_KLOC2) = ROW_SUM_INV_GJ(:,IPHASE)*1.0 
                 END DO
 
              END IF
