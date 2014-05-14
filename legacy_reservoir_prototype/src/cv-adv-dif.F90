@@ -14060,6 +14060,7 @@ end SUBROUTINE GET_INT_VEL_NEW
 
                   ELSE ! ENDOF if(IANISOTROPIC==0) then
 
+!                     CALL ONVDLIM_ANO_sqrt( cv_nonods, &
                      CALL ONVDLIM_ANO( cv_nonods, &
                         LIMT3(iPHASE), FEMTGI_IPHA(iPHASE), INCOME3(iPHASE), cv_nodi, cv_nodj, &
                         LOC_T_I(iPHASE), LOC_T_J(iPHASE),   .false., .false., courant_or_minus_one_new(IPHASE), &
@@ -15418,6 +15419,7 @@ CONTAINS
 
                   ELSE ! ENDOF if(IANISOTROPIC==0) then
 
+!                     CALL ONVDLIM_ANO_sqrt( cv_nonods, &
                      CALL ONVDLIM_ANO( cv_nonods, &
                         LIMT3(iPHASE), FEMTGI_IPHA(iPHASE), INCOME3(iPHASE), cv_nodi, cv_nodj, &
                         LOC_T_I(iPHASE), LOC_T_J(iPHASE),   FORCE_UPWIND_VEL, .false., courant_or_minus_one_new(IPHASE), &
