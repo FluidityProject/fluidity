@@ -9587,10 +9587,10 @@ end if
 
 !       if((cv_nodi==433).and.(cv_nodj==435)) then
 !!       if((cv_nodi==67).and.(cv_nodj==736)) then
-       if((cv_nodi==26).and.(cv_nodj==26)) then
-          print *,'iphase,TUPWIN, TUPWI2,T(CV_NODI_IPHA), t(CV_NODj_IPHA), LIMT, FEMTGI,INCOME:', &
-                   iphase,TUPWIN, TUPWI2,T(CV_NODI_IPHA), t(CV_NODj_IPHA), LIMT, FEMTGI,INCOME
-       endif
+!       if((cv_nodi==26).and.(cv_nodj==26)) then
+!          print *,'iphase,TUPWIN, TUPWI2,T(CV_NODI_IPHA), t(CV_NODj_IPHA), LIMT, FEMTGI,INCOME:', &
+!                   iphase,TUPWIN, TUPWI2,T(CV_NODI_IPHA), t(CV_NODj_IPHA), LIMT, FEMTGI,INCOME
+!       endif
 
     CALL ONVDLIM_ALL( CV_NONODS, &
          LIMD, FEMDGI, INCOME, CV_NODI, CV_NODJ, &
