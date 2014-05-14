@@ -66,9 +66,16 @@ enforcing continuity by Lagrange multipliers).</a:documentation>
                     <value>bubble</value>
                     <value>trace</value>
                     <value>overlapping</value>
-                    <value>compact_overlapping</value>
                   </choice>
                 </element>
+              </element>
+            </optional>
+            <optional>
+              <element name="Compact_overlapping">
+                <a:documentation>If lagrangian elements are selected, this option implements
+a light version of overlapping finite elements. Velocity only.
+(Recommended)</a:documentation>
+                <ref name="comment"/>
               </element>
             </optional>
           </element>

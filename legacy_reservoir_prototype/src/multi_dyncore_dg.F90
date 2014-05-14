@@ -2210,7 +2210,7 @@ contains
         type( tensor_field ), pointer :: tensorfield
         character( len = option_path_len ) :: option_path
         LOGICAL, PARAMETER :: VOL_ELE_INT_PRES = .TRUE., STRESS_FORM=.FALSE., STAB_VISC_WITH_ABS=.FALSE.
-        LOGICAL, PARAMETER :: POROUS_VEL = .false. ! For reduced variable porous media treatment.
+!        LOGICAL, PARAMETER :: POROUS_VEL = .false. ! For reduced variable porous media treatment.
         ! if STAB_VISC_WITH_ABS then stabilize (in the projection mehtod) the viscosity using absorption.
         !      REAL, PARAMETER :: WITH_NONLIN = 1.0, TOLER = 1.E-10, ZERO_OR_TWO_THIRDS=2.0/3.0
         REAL, PARAMETER :: WITH_NONLIN = 1.0, TOLER = 1.E-10, ZERO_OR_TWO_THIRDS=0.0
@@ -2541,7 +2541,7 @@ contains
         ewrite(3,*) 'RESID_BASED_STAB_DIF, U_NONLIN_SHOCK_COEF, RNO_P_IN_A_DOT:', &
         RESID_BASED_STAB_DIF, U_NONLIN_SHOCK_COEF, RNO_P_IN_A_DOT
 
-        QUAD_OVER_WHOLE_ELE = is_overlapping.OR.POROUS_VEL ! Do NOT divide element into CV's to form quadrature.
+        QUAD_OVER_WHOLE_ELE = is_overlapping.OR.is_compact_overlapping ! Do NOT divide element into CV's to form quadrature.
         call retrieve_ngi( ndim, u_ele_type, cv_nloc, u_nloc, &
         cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface, QUAD_OVER_WHOLE_ELE )
         if ( is_overlapping ) then
@@ -2981,7 +2981,7 @@ contains
 
             DO MAT_ILOC = 1, MAT_NLOC
                 MAT_INOD = MAT_NDGLN( ( ELE - 1 ) * MAT_NLOC + MAT_ILOC )
-                IF(POROUS_VEL) THEN ! Set to the identity - NOT EFFICIENT BUT GOOD ENOUGH FOR NOW AS ITS SIMPLE...
+                IF(is_compact_overlapping) THEN ! Set to the identity - NOT EFFICIENT BUT GOOD ENOUGH FOR NOW AS ITS SIMPLE...
                    LOC_U_ABSORB( :, :, MAT_ILOC ) = 0.0 
                    DO I=1,NDIM_VEL* NPHASE
                       LOC_U_ABSORB( I, I, MAT_ILOC ) = 1.0 

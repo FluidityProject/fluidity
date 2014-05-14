@@ -45,9 +45,13 @@ mesh_info =
                ## and is undefined on the element interior (used for 
                ## enforcing continuity by Lagrange multipliers).
               element string_value{
-                 "lagrangian" | "bubble" | "trace" | "overlapping" | "compact_overlapping"
+                 "lagrangian" | "bubble" | "trace" | "overlapping"
               }
-            }?
+            }?,
+             ## If lagrangian elements are selected, this option implements
+             ## a light version of overlapping finite elements. Velocity only.
+             ## (Recommended)
+             element Compact_overlapping { comment }?
          }?,
          element mesh_continuity {
             element string_value{

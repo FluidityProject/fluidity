@@ -959,7 +959,7 @@ contains
 !         print *,'DOWNWIND_EXTRAP_INDIVIDUAL:',DOWNWIND_EXTRAP_INDIVIDUAL
 ! FOR packing as well as for detemining which variables to apply interface tracking**********
 
-           IF ( IS_OVERLAPPING ) THEN
+           IF ( IS_OVERLAPPING .or. is_compact_overlapping ) THEN
 
                ALLOCATE( VI_LOC_OPT_VEL_UPWIND_COEFS(NDIM,NDIM,NPHASE),  GI_LOC_OPT_VEL_UPWIND_COEFS(NDIM,NDIM,NPHASE),  &
                          VJ_LOC_OPT_VEL_UPWIND_COEFS(NDIM,NDIM,NPHASE),  GJ_LOC_OPT_VEL_UPWIND_COEFS(NDIM,NDIM,NPHASE) )
@@ -13369,7 +13369,7 @@ CONTAINS
     INTEGER, intent( in ) :: IANISOTROPIC
     REAL, DIMENSION( NPHASE ), intent( in ) :: TUPWIND_IN, TUPWIND_OUT
     ! local variables
-    LOGICAL, PARAMETER :: POROUS_VEL = .false. ! For reduced variable porous media treatment.
+!    LOGICAL, PARAMETER :: POROUS_VEL = .false. ! For reduced variable porous media treatment.
     INTEGER :: U_NLOC_LEV,U_KLOC_LEV,U_KLOC,U_NODK_IPHA, U_KLOC2, U_NODK2_IPHA, IPHASE
     REAL, ALLOCATABLE, DIMENSION(:,:,:) :: INV_GI_LOC_OPT_VEL_UPWIND_COEFS, INV_GJ_LOC_OPT_VEL_UPWIND_COEFS
     REAL, ALLOCATABLE, DIMENSION(:,:) :: NUGI_ALL_OTHER
@@ -13398,7 +13398,7 @@ CONTAINS
             IANISOTROPIC, &
             TUPWIND_IN, TUPWIND_OUT)
 
-    ELSE IF( POROUS_VEL ) THEN
+    ELSE IF( is_compact_overlapping ) THEN
        ! For reduced variable porous media treatment.
        CALL GET_INT_VEL_POROUS_VEL( NPHASE, NDOTQ, INCOME, &
             HDC, GI, SUFEN, U_NLOC, SCVNGI, TOTELE, U_NONODS, CV_NONODS,  &
@@ -13442,7 +13442,7 @@ CONTAINS
        NUGI_ALL(:, :) = NUGI_ALL(:, :) + SUFEN( U_KLOC, GI )*LOC_NU(:, :, U_KLOC)
     END DO
 
-    IF( POROUS_VEL ) THEN
+    IF( is_compact_overlapping ) THEN
        ALLOCATE(INV_GI_LOC_OPT_VEL_UPWIND_COEFS(NDIM,NDIM,NPHASE),INV_GJ_LOC_OPT_VEL_UPWIND_COEFS(NDIM,NDIM,NPHASE)) 
        ALLOCATE(NUGI_ALL_OTHER(NDIM,NPHASE))
        INV_GI_LOC_OPT_VEL_UPWIND_COEFS = GI_LOC_OPT_VEL_UPWIND_COEFS
@@ -13471,7 +13471,7 @@ CONTAINS
              NUGI_ALL_OTHER(:, :) = NUGI_ALL_OTHER(:, :) + 0.5*SUFEN( U_KLOC, GI )*LOC2_NU(:, :, U_KLOC)
           END IF
        END DO
-       IF( POROUS_VEL ) THEN
+       IF( is_compact_overlapping ) THEN
           DO IPHASE=1,NPHASE
              NUGI_ALL(:, IPHASE) = NUGI_ALL(:, IPHASE) +  matmul(INV_GJ_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE),NUGI_ALL_OTHER(:, IPHASE))
           END DO
@@ -15113,9 +15113,9 @@ CONTAINS
 !    U_NLOC_LEV = U_NLOC / CV_NLOC
 !    U_SNLOC_LEV = U_SNLOC / CV_NLOC
 
-! Find the inverse of the absoption matricies either side of face: 
     INV_GI_LOC_OPT_VEL_UPWIND_COEFS = GI_LOC_OPT_VEL_UPWIND_COEFS
     INV_GJ_LOC_OPT_VEL_UPWIND_COEFS = GJ_LOC_OPT_VEL_UPWIND_COEFS
+! Find the inverse of the absoption matricies either side of face: 
     DO IPHASE=1,NPHASE
        call invert(INV_GI_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE))
        call invert(INV_GJ_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE))
@@ -15197,7 +15197,7 @@ CONTAINS
      END DO ! PHASE LOOP
 
     ELSE ! Conditional_SELE. Not on the boundary of the domain.
-       Conditional_ELE2: IF(( ELE2 == 0 ).OR.( ELE2 == ELE)) THEN
+       Conditional_ELE2: IF(( ELE2 == 0 ).OR.( ELE2 == ELE)) THEN!same element
 
           UDGI_ALL(:, :) = 0.0
           UDGI2_ALL(:, :) = 0.0
@@ -15422,10 +15422,6 @@ CONTAINS
                    END WHERE
                 END WHERE
              endif
-
-
-
-
 
           ELSE
 

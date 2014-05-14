@@ -121,7 +121,9 @@
       if ( trim( vel_element_type ) == 'overlapping' ) is_overlapping = .true.
 
       is_compact_overlapping = .false.
-      if ( trim( vel_element_type ) == 'is_compact_overlapping' ) is_compact_overlapping = .true.
+      if (trim(vel_element_type)=='lagrangian') &
+        is_compact_overlapping = have_option('/geometry/mesh::VelocityMesh/from_mesh/&
+            mesh_shape/Compact_overlapping' )
 
       positions => extract_vector_field( state, 'Coordinate' )
       pressure_cg_mesh => extract_mesh( state, 'PressureMesh_Continuous' )
