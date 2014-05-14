@@ -1505,7 +1505,7 @@
            ['dirichlet'],velocity_BCs,WIC_U_BC)
     call get_entire_boundary_condition(volfrac,&
            ['dirichlet'],volfrac_BCs,WIC_vol_BC)
-
+print *, WIC_vol_BC
       if( have_option( '/physical_parameters/mobility' ) )then
          call get_option( '/physical_parameters/mobility', mobility )
       elseif( have_option( '/material_phase[1]/vector_field::Velocity/prognostic/tensor_field::Viscosity' // &

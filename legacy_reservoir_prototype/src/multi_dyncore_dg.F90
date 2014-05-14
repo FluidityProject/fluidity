@@ -2541,7 +2541,7 @@ contains
         ewrite(3,*) 'RESID_BASED_STAB_DIF, U_NONLIN_SHOCK_COEF, RNO_P_IN_A_DOT:', &
         RESID_BASED_STAB_DIF, U_NONLIN_SHOCK_COEF, RNO_P_IN_A_DOT
 
-        QUAD_OVER_WHOLE_ELE = is_overlapping!.OR.is_compact_overlapping ! Do NOT divide element into CV's to form quadrature.
+        QUAD_OVER_WHOLE_ELE = is_overlapping.OR.is_compact_overlapping ! Do NOT divide element into CV's to form quadrature.
         call retrieve_ngi( ndim, u_ele_type, cv_nloc, u_nloc, &
         cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface, QUAD_OVER_WHOLE_ELE )
         if ( is_overlapping ) then
@@ -3110,23 +3110,28 @@ contains
 
             SIGMAGI = 0.0 ; SIGMAGI_STAB = 0.0
             TEN_XX  = 0.0
-            DO MAT_ILOC = 1, MAT_NLOC
-                DO GI = 1, CV_NGI
-                    DO IPHA_IDIM = 1, NDIM_VEL * NPHASE
-                        DO JPHA_JDIM = 1, NDIM_VEL * NPHASE
-                            SIGMAGI( IPHA_IDIM, JPHA_JDIM, GI ) = SIGMAGI( IPHA_IDIM, JPHA_JDIM, GI ) &
-                                  !+ CVFEN( MAT_ILOC, GI ) * LOC_U_ABSORB( IPHA_IDIM, JPHA_JDIM, MAT_ILOC )
-                            + CVN( MAT_ILOC, GI ) * LOC_U_ABSORB( IPHA_IDIM, JPHA_JDIM, MAT_ILOC )
+            if (is_compact_overlapping) then
+               DO IPHA_IDIM = 1, NDIM_VEL * NPHASE
+                    SIGMAGI( IPHA_IDIM, IPHA_IDIM, : ) = 1.0
+               end do
+            else
+                DO MAT_ILOC = 1, MAT_NLOC
+                    DO GI = 1, CV_NGI
+                        DO IPHA_IDIM = 1, NDIM_VEL * NPHASE
+                            DO JPHA_JDIM = 1, NDIM_VEL * NPHASE
+                                SIGMAGI( IPHA_IDIM, JPHA_JDIM, GI ) = SIGMAGI( IPHA_IDIM, JPHA_JDIM, GI ) &
+                                      !+ CVFEN( MAT_ILOC, GI ) * LOC_U_ABSORB( IPHA_IDIM, JPHA_JDIM, MAT_ILOC )
+                                + CVN( MAT_ILOC, GI ) * LOC_U_ABSORB( IPHA_IDIM, JPHA_JDIM, MAT_ILOC )
 
-                            SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM, GI ) = SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM, GI ) &
-                                  !+ CVFEN( MAT_ILOC, GI ) * LOC_U_ABS_STAB( IPHA_IDIM, JPHA_JDIM, MAT_ILOC )
-                            + CVN( MAT_ILOC, GI ) * LOC_U_ABS_STAB( IPHA_IDIM, JPHA_JDIM, MAT_ILOC )
+                                SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM, GI ) = SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM, GI ) &
+                                      !+ CVFEN( MAT_ILOC, GI ) * LOC_U_ABS_STAB( IPHA_IDIM, JPHA_JDIM, MAT_ILOC )
+                                + CVN( MAT_ILOC, GI ) * LOC_U_ABS_STAB( IPHA_IDIM, JPHA_JDIM, MAT_ILOC )
+                            END DO
                         END DO
+                        TEN_XX( :, :, :, GI ) = TEN_XX( :, :, :, GI ) + CVFEN( MAT_ILOC, GI ) * LOC_UDIFFUSION( :, :, :, MAT_ILOC )
                     END DO
-                    TEN_XX( :, :, :, GI ) = TEN_XX( :, :, :, GI ) + CVFEN( MAT_ILOC, GI ) * LOC_UDIFFUSION( :, :, :, MAT_ILOC )
                 END DO
-            END DO
-
+            end if
             RHS_DIFF_U=0.0
 
             Loop_ilev_DGNods1: DO ILEV = 1, NLEV
@@ -6434,7 +6439,6 @@ contains
                              ! Define the gauss points that lie on the surface of the CV...
         FINDGPTS, COLGPTS, NCOLGPTS, &
         SELE_OVERLAP_SCALE, QUAD_OVER_WHOLE_ELE )
-
 
         ! Determine FEMT (finite element wise) etc from T (control volume wise)
         ! Also determine the CV mass matrix MASS_CV and centre of the CV's XC_CV,YC_CV,ZC_CV.

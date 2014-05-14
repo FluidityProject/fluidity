@@ -62,7 +62,7 @@
     public :: Get_Primary_Scalars, Compute_Node_Global_Numbers, Extracting_MeshDependentFields_From_State, &
          Extract_TensorFields_Outof_State, Extract_Position_Field, xp1_2_xp2, Get_Ele_Type, Get_Discretisation_Options, &
          print_from_state, update_boundary_conditions, pack_multistate, finalise_multistate, get_ndglno, Adaptive_NonLinear,&
-         get_var_from_packed_state, as_vector
+         get_var_from_packed_state, as_vector, PrintMatrix
 
     interface Get_Ndgln
        module procedure Get_Scalar_Ndgln, Get_Vector_Ndgln, Get_Mesh_Ndgln
