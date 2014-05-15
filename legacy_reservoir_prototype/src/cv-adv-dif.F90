@@ -574,6 +574,7 @@ contains
          SUF_T2_BC_ROB2_ALL=>saturation_BCs_robin2%val
       end if
 
+
 !      x => extract_vector_field( packed_state, "PressureCoordinate" )
 !      allocate( x_all( ndim, x_nonods ) ) ; x_all=0.0
 !      x_all( 1, : ) = x % val( 1, : )
@@ -13474,9 +13475,9 @@ CONTAINS
        NUGI_ALL(:, :) = NUGI_ALL(:, :) + SUFEN( U_KLOC, GI )*LOC_NU(:, :, U_KLOC)
     END DO
 
+   ALLOCATE(NUGI_ALL_OTHER(NDIM,NPHASE))
     IF( is_compact_overlapping ) THEN
 !       ALLOCATE(INV_GI_LOC_OPT_VEL_UPWIND_COEFS(NDIM,NDIM,NPHASE),INV_GJ_LOC_OPT_VEL_UPWIND_COEFS(NDIM,NDIM,NPHASE)) 
-       ALLOCATE(NUGI_ALL_OTHER(NDIM,NPHASE))
 !       INV_GI_LOC_OPT_VEL_UPWIND_COEFS = GI_LOC_OPT_VEL_UPWIND_COEFS
 !       INV_GJ_LOC_OPT_VEL_UPWIND_COEFS = GJ_LOC_OPT_VEL_UPWIND_COEFS
 !       DO IPHASE=1,NPHASE
@@ -13488,6 +13489,7 @@ CONTAINS
        END DO
     ENDIF
     !     endif
+
 
     IF( (ELE2 /= 0) .AND. (ELE2 /= ELE) ) THEN
        NUGI_ALL(:, :) = 0.5*NUGI_ALL(:, :) ! Reduce by half and take the other half from the other side of element...
@@ -13507,13 +13509,13 @@ CONTAINS
           DO IPHASE=1,NPHASE
              NUGI_ALL(:, IPHASE) = NUGI_ALL(:, IPHASE) +  matmul(INV_GJ_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE),NUGI_ALL_OTHER(:, IPHASE))
           END DO
-          deallocate(NUGI_ALL_OTHER)
 !          deallocate(INV_GI_LOC_OPT_VEL_UPWIND_COEFS, INV_GJ_LOC_OPT_VEL_UPWIND_COEFS, NUGI_ALL_OTHER)
        ELSE
           NUGI_ALL(:, :) = NUGI_ALL(:, :) +  NUGI_ALL_OTHER(:, :)
        ENDIF
     END IF
 
+    deallocate(NUGI_ALL_OTHER)
 
     RETURN
 
