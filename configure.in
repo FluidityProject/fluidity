@@ -1206,7 +1206,7 @@ if test -d libspud ; then
     AC_MSG_NOTICE([%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%])
 
     # Check if we're on hector xe6
-    if test "x$ARCHER" -ne "x" ; then
+    if test "x$ARCHER" != "x" ; then
         AC_MSG_NOTICE([Building on ARCHER; disabling shared libraries])
         CONFIG_FLAG=--disable-shared
         SPUD_ONLY="yes"

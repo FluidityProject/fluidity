@@ -13630,7 +13630,7 @@ $as_echo "$as_me: Configuring libspud" >&6;}
 $as_echo "$as_me: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&6;}
 
     # Check if we're on hector xe6
-    if test "x$ARCHER" -ne "x" ; then
+    if test "x$ARCHER" != "x" ; then
         { $as_echo "$as_me:${as_lineno-$LINENO}: Building on ARCHER; disabling shared libraries" >&5
 $as_echo "$as_me: Building on ARCHER; disabling shared libraries" >&6;}
         CONFIG_FLAG=--disable-shared
