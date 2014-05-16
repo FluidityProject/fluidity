@@ -216,6 +216,7 @@ timestep 'dt' are passed to the python function.</a:documentation>
             </element>
           </choice>
           <ref name="fsi_model_mesh_choice"/>
+          <ref name="apply_velocity_to_solid_mesh"/>
           <ref name="diagnostic_vector_field"/>
         </group>
         <!--
@@ -323,5 +324,25 @@ interface below.</a:documentation>
         </element>
       </choice>
     </element>
+  </define>
+  <define name="apply_velocity_to_solid_mesh">
+    <!--
+         ## Determines whether the given velocity is actually applied
+         ## to the solid mesh or not:
+         element apply_solid_velocity_to_mesh
+         {
+    -->
+    <choice>
+      <element name="move_solid_mesh">
+        <a:documentation>apply the velocity to the solid body</a:documentation>
+        <empty/>
+      </element>
+      <element name="stationary_solid_mesh">
+        <a:documentation>do not apply the velocity to the mesh, e.g. symmetrical,
+rotational bodies such as a tyre:</a:documentation>
+        <empty/>
+      </element>
+    </choice>
+    <!--    } -->
   </define>
 </grammar>

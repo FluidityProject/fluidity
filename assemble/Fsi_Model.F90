@@ -262,7 +262,13 @@ module fsi_model
                 call fsi_move_solid_mesh(state, solid_states(i+1), mesh_name, solid_moved)
 
                 if (solid_moved) then
-                  ewrite(1,*) "moved solid mesh: ", trim(mesh_name)
+                  if (have_option(trim(fsi_path)//'solid_phase::'//trim(mesh_name)//'/vector_field::SolidVelocity/prescribed/move_solid_mesh')) then
+                    ewrite(1,*) "moved solid mesh: ", trim(mesh_name)
+                  else if (have_option(trim(fsi_path)//'solid_phase::'//trim(mesh_name)//'/vector_field::SolidVelocity/prescribed/stationary_solid_mesh')) then
+                    ewrite(1,*) "applied given velocity to solid mesh: "//trim(mesh_name)//" but kept its geometry stationary."
+                  else
+                    FLExit("Got an unvalid option path in "//trim(fsi_path)//"solid_phase::"//trim(mesh_name)//"/vector_field::SolidVelocity/prescribed")
+                  end if
                 else
                   ewrite(1,*) "solid mesh "//trim(mesh_name)//" did not move this timestep, although it has a prescribed velocity/position/movement."
                 end if
@@ -962,16 +968,26 @@ module fsi_model
         if (have_option(trim(fsi_path)//'solid_phase::'//trim(mesh_name)//'/vector_field::SolidVelocity/prescribed/python_velocity')) then
             ! Set solid velocity:
             call set(solid_velocity_mesh, solid_python_return_field) ! Here solid_python_return_field is the solid velocity
-            ! Compute the distance travelled within dt:
-            call addto(solid_movement_mesh, solid_python_return_field, dt) ! Here solid_python_return_field is the solid velocity
-            ! Set new coordinates:
-            call addto(solid_position_mesh, solid_movement_mesh)
+            ! Compute new location of solid IF and ONLY IF
+            ! the user did not switch on the option "stationary_solid_mesh", which is designed for 
+            ! symmetrical and rotational solid bodies, e.g. a deformed tyre:
+            if (.not. have_option(trim(fsi_path)//'solid_phase::'//trim(mesh_name)//'/vector_field::SolidVelocity/prescribed/stationary_solid_mesh')) then
+                ! Compute the distance travelled within dt:
+                call addto(solid_movement_mesh, solid_python_return_field, dt) ! Here solid_python_return_field is the solid velocity
+                ! Set new coordinates:
+                call addto(solid_position_mesh, solid_movement_mesh)
+            end if
         ! Then for SolidMovement:
         else if (have_option(trim(fsi_path)//'solid_phase::'//trim(mesh_name)//'/vector_field::SolidVelocity/prescribed/python_movement')) then
             ! Set solid velocity:
             call addto(solid_velocity_mesh, solid_python_return_field, 1.0/dt) ! Here solid_python_return_field is the travelled distance
-            ! Set new coordinates:
-            call addto(solid_position_mesh, solid_python_return_field) ! Here solid_python_return_field is the travelled distance
+            ! Compute new location of solid IF and ONLY IF
+            ! the user did not switch on the option "stationary_solid_mesh", which is designed for 
+            ! symmetrical and rotational solid bodies, e.g. a deformed tyre:
+            if (.not. have_option(trim(fsi_path)//'solid_phase::'//trim(mesh_name)//'/vector_field::SolidVelocity/prescribed/stationary_solid_mesh')) then
+                ! Set new coordinates:
+                call addto(solid_position_mesh, solid_python_return_field) ! Here solid_python_return_field is the travelled distance
+            end if
         end if
       end if
 

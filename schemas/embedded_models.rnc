@@ -181,6 +181,7 @@ fsi_model_solid_velocity_mesh =
           }
        ),
        fsi_model_mesh_choice,
+       apply_velocity_to_solid_mesh,
        diagnostic_vector_field
        # prescribed_output_options,
        # prescribed_vector_stat_options,
@@ -281,3 +282,20 @@ time_variable_python_interface =
         ## interface below.
         element current_timestep {empty}
     }
+
+apply_velocity_to_solid_mesh =
+#    ## Determines whether the given velocity is actually applied
+#    ## to the solid mesh or not:
+(
+        ## Choose whether the given velocity is applied to the solid
+        ## mesh. This results in a moving solid mesh.
+        element move_solid_mesh {empty}
+        |
+        ## Choose whether the given velocity is applied to the solid
+        ## mesh. This option applies the given velocity to a solid, 
+        ## but the solid geometry/mesh stays stationary. This can 
+        ## be useful for e.g. symmetrical and rotational bodies such
+        ## as a tyre deformed tyre, which deformation should
+        ## remain constant in time.
+       element stationary_solid_mesh {empty}
+)
