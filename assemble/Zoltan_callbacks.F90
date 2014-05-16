@@ -182,26 +182,16 @@ contains
     character (len = OPTION_PATH_LEN) :: filename    
     
     ! variables for recording various element quality functional values 
-    real :: quality, min_quality, my_min_quality, nocut_edge_fraction
+    real :: quality, min_quality, my_min_quality
     
     ! variables for recording the local maximum/minimum edge weights and local 90th percentile edge weight
-    real(zoltan_float) :: min_weight, max_weight, nocut_weight, my_max_weight, my_min_weight
+    real(zoltan_float) :: min_weight, max_weight, ninety_weight, my_max_weight, my_min_weight
     
     integer, dimension(:), pointer :: my_nelist, nbor_nelist
     
     integer :: total_num_edges, my_num_edges
     
     real :: value
-
-    ! sorted ewgts
-    real(zoltan_float), dimension(:), allocatable :: s_ewgts 
-    real(zoltan_float) :: my_nocut_weight
-    real :: nocut_edge_weight
-
-    ! ele-ele weight searching
-    type(csr_sparsity), pointer :: eelist
-    logical, dimension(ele_count(zoltan_global_zz_positions)) :: tested
-    integer :: search_levels
     
     ewrite(1,*) "In zoltan_cb_get_edge_list"
     
@@ -214,7 +204,6 @@ contains
     
     my_num_edges = sum(num_edges(1:num_obj))
     
-    ewrite(2,*) 'zoltan_global_calculate_edge_weights? ', zoltan_global_calculate_edge_weights
     if (.NOT. zoltan_global_calculate_edge_weights) then
        
        ! Three reasons why we might not want to use edge-weighting:
@@ -253,18 +242,9 @@ contains
     ! Aim is to assign high edge weights to poor quality elements
     ! so that when we load balance poor quality elements are placed
     ! in the centre of partitions and can be adapted
-
-    ! obtain ele-ele lists
-    eelist => extract_eelist(zoltan_global_zz_mesh)
-
-    ! how many levels of elements are we searching through
-    call get_option(trim(zoltan_global_base_option_path) // "/worst_ele_search_levels", search_levels, default=2)
     
     ! loop over the nodes you own
     do node=1,count
-
-       ! we haven't tested any elements for this edge yet
-       tested = .false.
        
        ! find nodes neighbours
        neighbours => row_m_ptr(zoltan_global_zz_sparsity_one, local_ids(node))
@@ -277,34 +257,54 @@ contains
        
        ! find owning proc for each neighbour
        nbor_procs(head:head+size(neighbours)-1) = halo_node_owners(zoltan_global_zz_halo, neighbours) - 1
-         
-       my_min_quality = 1.0
-
+       
        ! get elements associated with current node
        my_nelist => row_m_ptr(zoltan_global_zz_nelist, local_ids(node))
-
-       ! loop through neighbour elements and find worst quality
-       call find_worst_element(my_nelist, search_levels, my_min_quality)
-
+       
+       my_min_quality = 1.0
+       
+       ! find quality of worst element node is associated with
+       do i=1,size(my_nelist)
+          quality = minval(ele_val(zoltan_global_element_quality, my_nelist(i)))
+          
+          if (quality .LT. my_min_quality) then
+             my_min_quality = quality
+          end if
+       end do
+       
        ! loop over all neighbouring nodes
        do j=1,size(neighbours)
+          
+          min_quality = my_min_quality
+          
+          ! get elements associated with neighbour node
+          nbor_nelist => row_m_ptr(zoltan_global_zz_nelist, neighbours(j))
+          
+          ! loop over all the elements of the neighbour node
+          do i=1, size(nbor_nelist)
+             ! determine the quality of the element
+             quality = minval(ele_val(zoltan_global_element_quality, nbor_nelist(i)))
+             
+             ! store the element quality if it's less (worse) than any previous elements
+             if (quality .LT. min_quality) then
+                min_quality = quality
+             end if
+          end do
 
-         min_quality = my_min_quality
+          ! Keep track of the lowest quality element of all those we've looked at
+          ! Will be used in zoltan_drive to calculate a global minimum element quality
+          if(min_quality .LT. zoltan_global_local_min_quality) then
+             zoltan_global_local_min_quality = min_quality
+          end if
 
-         ! get elements associated with neighbour node
-         nbor_nelist => row_m_ptr(zoltan_global_zz_nelist, neighbours(j))
-
-         ! loop through n_levels of neighbour element and find worst quality 
-         call find_worst_element(nbor_nelist, search_levels, min_quality)
-
-         ! Keep track of the lowest quality element of all those we've looked at
-         ! Will be used in zoltan_drive to calculate a global minimum element quality
-         if(min_quality .LT. zoltan_global_local_min_quality) then
-           zoltan_global_local_min_quality = min_quality
-         end if
-
-         ! set ewgts for edge
-         ewgts(head + j - 1) = (1.0 - min_quality) * 20
+          ! check if the quality is within the tolerance         
+          if (min_quality .GT. zoltan_global_quality_tolerance) then
+             ! if it is
+             ewgts(head + j - 1) = 1.0
+          else
+             ! if it's not
+             ewgts(head + j - 1) = ceiling((1.0 - min_quality) * 20)
+          end if
        end do
        
        head = head + size(neighbours)
@@ -312,29 +312,34 @@ contains
     
     zoltan_global_calculated_local_min_quality = .true.
 
-    assert(head == sum(num_edges(1:num_obj))+1) 
-
-    ! calculate ewgt to mark as uncuttable
-    call get_option(trim(zoltan_global_base_option_path)//"/uncuttable_edge_fraction", &
-         nocut_edge_fraction, default=0.1)
-    my_nocut_weight = max( (maxval(ewgts(1:head-1)) - minval(ewgts(1:head-1))) * (1.0 - nocut_edge_fraction), &
-         20*(1.0-2*zoltan_global_quality_tolerance) ) 
-    call MPI_ALLREDUCE(my_nocut_weight,nocut_weight,1,MPI_REAL,MPI_MAX,MPI_COMM_FEMTOOLS,err)
-    ewrite(1,*) 'zoltan nocut_weight (best: 0 - worst: 20) = ', nocut_weight
-
-    ! make poor elements uncuttable
-    do i=1,head-1
-      if (ewgts(i) .GT. nocut_weight) then
-        ! ewgts(i) = (total_num_edges + 1) 
-        ewgts(i) = (total_num_edges + 1) 
-      else
-        ewgts(i) = 1.0
-      end if
-    end do
+    assert(head == sum(num_edges(1:num_obj))+1)
     
-    ! debugging output
+    ! calculate the local maximum edge weight
+    my_max_weight = maxval(ewgts(1:head-1))
+    
+    ! calculate the local minimum edge weight
+    my_min_weight = minval(ewgts(1:head-1))
+
+    ! calculate global maximum edge weight
+    call MPI_ALLREDUCE(my_max_weight,max_weight,1,MPI_REAL,MPI_MAX, MPI_COMM_FEMTOOLS,err)
+
+    ! calculate global minimum edge weight
+    call MPI_ALLREDUCE(my_min_weight,min_weight,1,MPI_REAL,MPI_MIN, MPI_COMM_FEMTOOLS,err)
+
+    ! calculate the local 90th percentile edge weight   
+    ninety_weight = max_weight * 0.90
+    
+    ! don't want to adjust the weights if all the elements are of a similar quality
+    if (min_weight < ninety_weight) then
+       ! make the worst 10% of elements uncuttable
+       do i=1,head-1
+          if (ewgts(i) .GT. ninety_weight) then
+             ewgts(i) = total_num_edges + 1
+          end if
+       end do
+    end if
+    
     if (zoltan_global_output_edge_weights) then
-       call zero(zoltan_global_max_edge_weight_on_node)
        head = 1
        do node=1,count
           neighbours => row_m_ptr(zoltan_global_zz_sparsity_one, local_ids(node))
@@ -354,43 +359,8 @@ contains
     end if
 
     ierr = ZOLTAN_OK
-
-  contains
-    
-    recursive subroutine find_worst_element(e_list, n_levels, worst_quality)
-
-      integer, dimension(:), pointer, intent(in) :: e_list 
-      integer, intent(in) :: n_levels
-      real, intent(inout) :: worst_quality
-
-      integer, dimension(:), pointer :: nl_e_list 
-      integer :: i_ele
-
-      if (n_levels > 0) then
-        do i_ele=1,size(e_list)
-          if (e_list(i_ele) > 0) then
-            if (tested(e_list(i_ele)) .eqv. .false.) then
-              
-              quality = minval(ele_val(zoltan_global_element_quality, e_list(i_ele)))
-              tested(e_list(i_ele)) = .true.
-
-              if (quality .LT. my_min_quality) then
-                worst_quality = quality
-              end if
-
-              ! get elements neighbouring this element
-              nl_e_list => row_m_ptr(eelist, e_list(i_ele))
-
-              call find_worst_element(nl_e_list, n_levels - 1, worst_quality)
-
-            end if
-          end if
-        end do
-      end if
-
-    end subroutine find_worst_element
-
   end subroutine zoltan_cb_get_edge_list
+
 
   ! Here is how we pack nodal positions for phase one migration:
   ! --------------------------------------------------------------------------------------------------------------
