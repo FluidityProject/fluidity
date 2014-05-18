@@ -4114,7 +4114,7 @@ and for each fluid phase, $k$ with $ k\in\{1,2,...,{\cal P}\}$, is:
 
 \begin{eqnarray}
 \frac{ \rho_k^{n+1} \alpha_k^{n+1} -\rho_k^{n}\alpha_k^n}{ \rho_k^{n+1}\Delta t} 
-+ \frac{1}{\rho_k^{n+1} } \nabla\cdot (\theta \rho_k^{n+1} \alpha_k^{n+1} u_k^{n+1}+(1-\theta) \rho_k^{n} \alpha_k^{n} u_k^{n}) =0
++ \frac{1}{\rho_k^{n+1} } \nabla\cdot (\theta \rho_k^{n+1} \alpha_k^{n+1} u_k^{n+1}+(1-\theta) \rho_k^{n} \alpha_k^{n} u_k^{n}) =0. 
 \end{eqnarray} 
 
 Summing all these equations the global continuity equation is and using the fact that $ \alpha_s^{n+1}+\sum_k\alpha_k^{n+1}=1$ in the time 
@@ -4128,13 +4128,26 @@ derivative and using $\alpha_s^{n+1} u_s^{n+1}=\hat u_f^{n+1} - \sum_k\alpha_k^{
 + 
 \{ 
 \frac{1}{\rho_k^{n+1} } \nabla\cdot (\theta \rho_k^{n+1} \alpha_k^{n+1} u_k^{n+1}+(1-\theta) \rho_k^{n} \alpha_k^{n} u_k^{n}) 
++\left[ \nabla\cdot\alpha_s^{n+1} u_s^{n+1} \right] \} 
+=0, 
+\end{eqnarray} 
+or in an alternative form using $\alpha_s^{n+1} u_s^{n+1}=\hat u_f^{n+1} - \sum_k\alpha_k^{n+1} u_k^{n+1}$, then:
+\begin{eqnarray}
+{\cal{R}}_{cty} =\frac{1-\alpha_s^n}{\Delta t} + 
+\frac{1}{\Delta t} \sum_k\{ 
+\frac{  - \alpha_k^n\rho_k^{n}} {\rho_k^{n+1}} 
+-  \frac{\partial \rho_k^{n+1}}{\partial p_{CV}^{n+1}} p_{CV}^{n+1} \alpha_k^{n+1} \}
+\\
++ 
+\{ 
+\frac{1}{\rho_k^{n+1} } \nabla\cdot (\theta \rho_k^{n+1} \alpha_k^{n+1} u_k^{n+1}+(1-\theta) \rho_k^{n} \alpha_k^{n} u_k^{n}) 
 +\left[ \nabla\cdot\hat u_f^{n+1} - \sum_k \nabla\cdot \alpha_k^{n+1} u_k^{n+1} \right] \} 
-=0
+=0. 
 \end{eqnarray} 
 The first term on the left and the last terms on the right are the new terms introduced into the solid-fluid coupling equations. 
 In matrix form this equation becomes: 
 \begin{eqnarray}
-{r}_{cty}^* =-M_p \frac{p^{n+1}}{\Delta t} - \tilde B^T \hat u_f^{n+1} - B^T u^{n+1} - res_{cty} . 
+{r}_{cty}^* =M_p \frac{p^{n+1}}{\Delta t} + \tilde B^T \hat u_f^{n+1} + B^T u^{n+1} + res_{cty} . 
 \end{eqnarray} 
 
 Thus in this multi-phase flow case the coupling matrix $M_c$ between between $u_f^f$ and $\hat u$: 
@@ -4179,13 +4192,13 @@ Thus the pressure equation becomes:
 \end{pmatrix}  \right) 
 \underline{\Delta p} 
 = 
-\left( M_p +(B^T+ \tilde B^T \hat N) M_{\rho}^{-1} C \right) \underline{\Delta p}= {r}_{cty}^*  .
+\left( M_p +(B^T+ \tilde B^T \hat N) M_{\rho}^{-1} C \right) \underline{\Delta p}= -{r}_{cty}^*  .
 \label{delt-p-classic27-phase}
 \end{eqnarray} 
 Here we replace $\tilde B^T \hat N$ with $\hat B^T$ which is an approximation and thus the 
 pressure matrix equation becomes:
 \begin{eqnarray}
-\left( M_p +(B^T+ \hat B^T) M_{\rho}^{-1} C \right) \underline{\Delta p}= {r}_{cty}^{*} ,
+\left( M_p +(B^T+ \hat B^T) M_{\rho}^{-1} C \right) \underline{\Delta p}= -{r}_{cty}^{*} ,
 \label{delt-p-classic27-phase}
 \end{eqnarray} 
 in which $\hat B^T u^{n+1}$ is a discretization of $\sum_k ( \nabla\cdot \hat\alpha_k^{n+1} u_k^{n+1} )$ 

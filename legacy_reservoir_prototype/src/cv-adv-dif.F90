@@ -574,7 +574,6 @@ contains
          SUF_T2_BC_ROB2_ALL=>saturation_BCs_robin2%val
       end if
 
-
 !      x => extract_vector_field( packed_state, "PressureCoordinate" )
 !      allocate( x_all( ndim, x_nonods ) ) ; x_all=0.0
 !      x_all( 1, : ) = x % val( 1, : )
@@ -11137,9 +11136,11 @@ CONTAINS
 
     IF(RETRIEVE_SOLID_CTY) THEN ! For solid modelling...
 ! Use backward Euler... (This is for the div uhat term - we subtract what we put in the CT matrix and add what we really want)
+!       CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) + SCVDETWEI( GI ) * ( (LIMT_HAT - LIMT)*NDOTQ - NDOTQ_S*LIMS/REAL(NPHASE) ) 
        CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) + SCVDETWEI( GI ) * ( LIMT_HAT*NDOTQ - NDOTQ_HAT/REAL(NPHASE) ) 
 ! flux from the other side (change of sign because normal is -ve)...
     if(integrate_other_side_and_not_boundary) then
+!       CT_RHS( CV_NODJ ) = CT_RHS( CV_NODJ ) - SCVDETWEI( GI ) * ( (LIMT_HAT - LIMT)*NDOTQ - NDOTQ_S*LIMS/REAL(NPHASE) )
        CT_RHS( CV_NODJ ) = CT_RHS( CV_NODJ ) - SCVDETWEI( GI ) * ( LIMT_HAT*NDOTQ - NDOTQ_HAT/REAL(NPHASE) )
     endif
 
@@ -13445,6 +13446,7 @@ CONTAINS
             VOLFRA_PORE_ELE, VOLFRA_PORE_ELE2, CV_ELE_TYPE, CV_SLOC2LOC, CV_NLOC, CV_SNLOC, CV_ILOC, CV_JLOC, SCVFEN, CV_OTHER_LOC, &
             VI_LOC_OPT_VEL_UPWIND_COEFS, GI_LOC_OPT_VEL_UPWIND_COEFS,  VJ_LOC_OPT_VEL_UPWIND_COEFS, GJ_LOC_OPT_VEL_UPWIND_COEFS, &
        INV_GI_LOC_OPT_VEL_UPWIND_COEFS, INV_GJ_LOC_OPT_VEL_UPWIND_COEFS, &
+       NUGI_ALL, &
             MASS_CV_I, MASS_CV_J, NDIM, MAT_NLOC, MAT_NONODS, &
             IN_ELE_UPWIND, DG_ELE_UPWIND, &
             IANISOTROPIC, &
@@ -13466,6 +13468,9 @@ CONTAINS
  
     ! Calculate NDOTQNEW from NDOTQ
     NDOTQNEW = NDOTQ ! initialize it like this so that it contains the b.c's
+
+  IF(.NOT. is_compact_overlapping ) THEN
+
     NUGI_ALL=0.0
     DO U_KLOC = 1, U_NLOC
        DO IDIM = 1, NDIM
@@ -13475,23 +13480,8 @@ CONTAINS
        NUGI_ALL(:, :) = NUGI_ALL(:, :) + SUFEN( U_KLOC, GI )*LOC_NU(:, :, U_KLOC)
     END DO
 
-   ALLOCATE(NUGI_ALL_OTHER(NDIM,NPHASE))
-    IF( is_compact_overlapping ) THEN
-!       ALLOCATE(INV_GI_LOC_OPT_VEL_UPWIND_COEFS(NDIM,NDIM,NPHASE),INV_GJ_LOC_OPT_VEL_UPWIND_COEFS(NDIM,NDIM,NPHASE)) 
-!       INV_GI_LOC_OPT_VEL_UPWIND_COEFS = GI_LOC_OPT_VEL_UPWIND_COEFS
-!       INV_GJ_LOC_OPT_VEL_UPWIND_COEFS = GJ_LOC_OPT_VEL_UPWIND_COEFS
-!       DO IPHASE=1,NPHASE
-!          call invert(INV_GI_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE))
-!          call invert(INV_GJ_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE))
-!       END DO
-       DO IPHASE=1,NPHASE
-          NUGI_ALL(:, IPHASE) = NUGI_ALL(:, IPHASE) +  matmul(INV_GI_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE),NUGI_ALL(:, IPHASE))
-       END DO
-    ENDIF
-    !     endif
-
-
     IF( (ELE2 /= 0) .AND. (ELE2 /= ELE) ) THEN
+       ALLOCATE(NUGI_ALL_OTHER(NDIM,NPHASE))
        NUGI_ALL(:, :) = 0.5*NUGI_ALL(:, :) ! Reduce by half and take the other half from the other side of element...
        NUGI_ALL_OTHER(:, :) = 0.0
        ! We have a discontinuity between elements so integrate along the face...
@@ -13505,17 +13495,12 @@ CONTAINS
              NUGI_ALL_OTHER(:, :) = NUGI_ALL_OTHER(:, :) + 0.5*SUFEN( U_KLOC, GI )*LOC2_NU(:, :, U_KLOC)
           END IF
        END DO
-       IF( is_compact_overlapping ) THEN
-          DO IPHASE=1,NPHASE
-             NUGI_ALL(:, IPHASE) = NUGI_ALL(:, IPHASE) +  matmul(INV_GJ_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE),NUGI_ALL_OTHER(:, IPHASE))
-          END DO
-!          deallocate(INV_GI_LOC_OPT_VEL_UPWIND_COEFS, INV_GJ_LOC_OPT_VEL_UPWIND_COEFS, NUGI_ALL_OTHER)
-       ELSE
-          NUGI_ALL(:, :) = NUGI_ALL(:, :) +  NUGI_ALL_OTHER(:, :)
-       ENDIF
+       NUGI_ALL(:, :) = NUGI_ALL(:, :) +  NUGI_ALL_OTHER(:, :)
     END IF
 
-    deallocate(NUGI_ALL_OTHER)
+! ENDOF IF(.NOT. is_compact_overlapping ) THEN
+  ENDIF
+
 
     RETURN
 
@@ -15034,6 +15019,7 @@ CONTAINS
        VOLFRA_PORE_ELE, VOLFRA_PORE_ELE2, CV_ELE_TYPE, CV_SLOC2LOC, CV_NLOC, CV_SNLOC, CV_ILOC, CV_JLOC, SCVFEN, CV_OTHER_LOC, &
        VI_LOC_OPT_VEL_UPWIND_COEFS, GI_LOC_OPT_VEL_UPWIND_COEFS,  VJ_LOC_OPT_VEL_UPWIND_COEFS, GJ_LOC_OPT_VEL_UPWIND_COEFS, &
        INV_GI_LOC_OPT_VEL_UPWIND_COEFS, INV_GJ_LOC_OPT_VEL_UPWIND_COEFS, &
+       UDGI_ALL, &
        MASS_CV_I, MASS_CV_J, NDIM, MAT_NLOC, MAT_NONODS, &
        IN_ELE_UPWIND, DG_ELE_UPWIND, &
        IANISOTROPIC,  &
@@ -15049,6 +15035,7 @@ CONTAINS
          IN_ELE_UPWIND, DG_ELE_UPWIND
     REAL, intent( in ) :: HDC, MASS_CV_I, MASS_CV_J, VOLFRA_PORE_ELE, VOLFRA_PORE_ELE2
     REAL, DIMENSION( : ), intent( inout ) :: NDOTQ, INCOME
+    REAL, DIMENSION( :, :  ), intent( inout ) :: UDGI_ALL
     INTEGER, DIMENSION( : ), intent( in ) :: U_OTHER_LOC
     INTEGER, DIMENSION( : ), intent( in ) :: U_SLOC2LOC
     INTEGER, DIMENSION( :, :, : ), intent( in ) :: WIC_U_BC_ALL
@@ -15134,7 +15121,8 @@ CONTAINS
     real :: T_PELE, T_PELEOT, TMIN_PELE, TMAX_PELE, TMIN_PELEOT, TMAX_PELEOT
 
     ! Local variable for indirect addressing
-    REAL, DIMENSION ( NDIM, NPHASE ) :: UDGI_ALL, UDGI2_ALL, UDGI_INT_ALL, UDGI_ALL_FOR_INV, ROW_SUM_INV_GI, ROW_SUM_INV_GJ
+    REAL, DIMENSION ( NDIM, NPHASE ) :: UDGI2_ALL, UDGI_INT_ALL, UDGI_ALL_FOR_INV, ROW_SUM_INV_GI, ROW_SUM_INV_GJ
+!    REAL, DIMENSION ( NDIM, NPHASE ) :: UDGI_ALL, UDGI2_ALL, UDGI_INT_ALL, UDGI_ALL_FOR_INV, ROW_SUM_INV_GI, ROW_SUM_INV_GJ
 !    REAL, DIMENSION ( NDIM, NDIM, NPHASE ) :: INV_GI_LOC_OPT_VEL_UPWIND_COEFS, INV_GJ_LOC_OPT_VEL_UPWIND_COEFS
     real :: courant_or_minus_one_new(Nphase),XI_LIMIT(Nphase), VEC_NDIM(NDIM), VEC2_NDIM(NDIm), UDGI_ALL_OTHER(NDIM, NPHASE)
     INTEGER :: IPHASE, CV_NODI_IPHA, CV_NODJ_IPHA
@@ -15277,6 +15265,11 @@ CONTAINS
                    INCOME=0.5
              END WHERE
 
+             DO IPHASE=1,NPHASE
+                UDGI_ALL(:, IPHASE)  =UDGI_ALL(:, IPHASE) * (1.-INCOME(IPHASE)) + UDGI2_ALL(:, IPHASE) *INCOME(IPHASE)
+             END DO 
+             
+
 
 
           ELSE IF(IN_ELE_UPWIND==2) THEN ! the best
@@ -15287,6 +15280,9 @@ CONTAINS
              ELSE WHERE
                 INCOME=0.2 ! MAKE SURE IT IS RIGHT?
              END WHERE
+             DO IPHASE=1,NPHASE
+                UDGI_ALL(:, IPHASE)  =UDGI_ALL(:, IPHASE) * (1.-INCOME(IPHASE)) + UDGI2_ALL(:, IPHASE) *INCOME(IPHASE)
+             END DO 
 
           ELSE IF(IN_ELE_UPWIND==3) THEN ! the best optimal upwind frac.
 
