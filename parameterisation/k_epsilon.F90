@@ -215,8 +215,10 @@ subroutine keps_calculate_rhs(state)
 
   type(vector_field) :: bc_value
   integer, dimension(:,:), allocatable :: bc_type    
+  logical :: dg_velocity
 
   option_path = trim(state%option_path)//'/subgridscale_parameterisations/k-epsilon/'
+  dg_velocity = continuity(u)<0
 
   if (.not. have_option(trim(option_path))) then 
      return
@@ -247,7 +249,7 @@ subroutine keps_calculate_rhs(state)
   dummydensity%option_path = ""
 
   !! required for dg gradient calculation of u
-  if(continuity(u)<0) then
+  if(dg_velocity) then
       allocate(bc_type(u%dim, 1:surface_element_count(u)))	
       call get_entire_boundary_condition(u, (/"weakdirichlet"/), bc_value, bc_type)	
   end if
@@ -300,11 +302,28 @@ subroutine keps_calculate_rhs(state)
      !-----------------------------------------------------------------------------------
 
      ! Assembly loop
-     do ele = 1, ele_count(fields(1))
-        call assemble_rhs_ele(src_abs_terms, fields(i), fields(3-i), scalar_eddy_visc, u, &
-             density, buoyancy_density, have_buoyancy_turbulence, g, g_magnitude, x, &
-             c_eps_1, c_eps_2, sigma_p, f_1, f_2, ele, i, bc_value, bc_type)
+     do ele = 1, ele_count(fields(1))  
+       ! In parallel, we construct terms on elements we own and those in
+       ! the L1 element halo.
+       ! This is because we need neighbour info to determin jumps between elements and 
+       ! calculate a dg gradient.
+       ! Note that element_neighbour_owned(u, ele) may return .false. if
+       ! ele is owned.  For example, if ele is the only owned element on
+       ! this process.  Hence we have to check for element ownership
+       ! directly as well.
+       if (.not.dg_velocity.or.element_neighbour_owned(u, ele).or.element_owned(u, ele)) then
+         call assemble_rhs_ele(src_abs_terms, fields(i), fields(3-i), scalar_eddy_visc, u, &
+              density, buoyancy_density, have_buoyancy_turbulence, g, g_magnitude, x, &
+              c_eps_1, c_eps_2, sigma_p, f_1, f_2, ele, i, bc_value, bc_type)
+       end if
      end do
+
+     ! halo update to fill in halo_2 values with a dg velocity
+     if (dg_velocity) then
+       do term = 1, 3
+         call halo_update(src_abs_terms(term))
+       end do
+     end if
 
      ! For non-DG we apply inverse mass globally
      if(continuity(fields(1))>=0) then
