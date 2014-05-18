@@ -797,6 +797,11 @@ contains
     end if
     ewrite_minmax(rhs)
 
+    if (associated(eddy_visc)) then
+      ! eddy visc is calculated in momentum_dg element loop. we need to do a halo_update
+      call halo_update(eddy_visc)
+    end if
+
     ! Drop the reference to the fields we may have made.
     call deallocate(Viscosity)
     call deallocate(Abs)
