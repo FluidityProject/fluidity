@@ -13416,6 +13416,9 @@ CONTAINS
     ! Local variable for indirect addressing
     INTEGER :: IDIM
 
+!     print *,'is_overlapping,is_compact_overlapping:',is_overlapping,is_compact_overlapping
+!      stop 21 
+
 
     IF( is_overlapping ) THEN
        ! For overlapping basis function approach.
@@ -13473,7 +13476,7 @@ CONTAINS
     NDOTQNEW = NDOTQ ! initialize it like this so that it contains the b.c's
 
   IF(.NOT. is_compact_overlapping ) THEN
-
+!  IF(.false.) THEN
     NUGI_ALL=0.0
     DO U_KLOC = 1, U_NLOC
        DO IDIM = 1, NDIM
@@ -13503,6 +13506,59 @@ CONTAINS
 
 ! ENDOF IF(.NOT. is_compact_overlapping ) THEN
   ENDIF
+
+if(.fALSE.) then
+    NUGI_ALL=0.0
+    DO U_KLOC = 1, U_NLOC
+       DO IDIM = 1, NDIM
+          NDOTQNEW=NDOTQNEW + SUFEN( U_KLOC, GI ) * UGI_COEF_ELE_ALL(IDIM, :,U_KLOC) & 
+                           * ( LOC_U(IDIM,:, U_KLOC ) - LOC_NU(IDIM,:,U_KLOC ) ) * CVNORMX_ALL(IDIM, GI)
+       END DO
+       NUGI_ALL(:, :) = NUGI_ALL(:, :) + SUFEN( U_KLOC, GI )*LOC_NU(:, :, U_KLOC)
+    END DO
+
+    IF( is_compact_overlapping ) THEN
+!       ALLOCATE(INV_GI_LOC_OPT_VEL_UPWIND_COEFS(NDIM,NDIM,NPHASE),INV_GJ_LOC_OPT_VEL_UPWIND_COEFS(NDIM,NDIM,NPHASE)) 
+!       ALLOCATE(NUGI_ALL_OTHER(NDIM,NPHASE))
+!       INV_GI_LOC_OPT_VEL_UPWIND_COEFS = GI_LOC_OPT_VEL_UPWIND_COEFS
+!       INV_GJ_LOC_OPT_VEL_UPWIND_COEFS = GJ_LOC_OPT_VEL_UPWIND_COEFS
+!       DO IPHASE=1,NPHASE
+!          call invert(INV_GI_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE))
+!          call invert(INV_GJ_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE))
+!       END DO
+       DO IPHASE=1,NPHASE
+          NUGI_ALL(:, IPHASE) = NUGI_ALL(:, IPHASE) +  matmul(INV_GI_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE),NUGI_ALL(:, IPHASE))
+       END DO
+    ENDIF
+    !     endif
+
+    IF( (ELE2 /= 0) .AND. (ELE2 /= ELE) ) THEN
+       ALLOCATE(NUGI_ALL_OTHER(NDIM,NPHASE))
+       NUGI_ALL(:, :) = 0.5*NUGI_ALL(:, :) ! Reduce by half and take the other half from the other side of element...
+       NUGI_ALL_OTHER(:, :) = 0.0
+       ! We have a discontinuity between elements so integrate along the face...
+       DO U_KLOC = 1, U_NLOC
+          U_KLOC2 = U_OTHER_LOC( U_KLOC )
+          IF( U_KLOC2 /= 0 ) THEN
+             DO IDIM = 1, NDIM
+                NDOTQNEW=NDOTQNEW + SUFEN( U_KLOC, GI ) * UGI_COEF_ELE2_ALL(IDIM, :,U_KLOC2) & 
+                           * ( LOC2_U(IDIM,:, U_KLOC ) - LOC2_NU(IDIM,:,U_KLOC ) ) * CVNORMX_ALL(IDIM, GI)
+             END DO
+             NUGI_ALL_OTHER(:, :) = NUGI_ALL_OTHER(:, :) + 0.5*SUFEN( U_KLOC, GI )*LOC2_NU(:, :, U_KLOC)
+          END IF
+       END DO
+       IF( is_compact_overlapping ) THEN
+          DO IPHASE=1,NPHASE
+             NUGI_ALL(:, IPHASE) = NUGI_ALL(:, IPHASE) +  matmul(INV_GJ_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE),NUGI_ALL_OTHER(:, IPHASE))
+          END DO
+          deallocate(NUGI_ALL_OTHER)
+!          deallocate(INV_GI_LOC_OPT_VEL_UPWIND_COEFS, INV_GJ_LOC_OPT_VEL_UPWIND_COEFS, NUGI_ALL_OTHER)
+       ELSE
+          NUGI_ALL(:, :) = NUGI_ALL(:, :) +  NUGI_ALL_OTHER(:, :)
+       ENDIF
+    END IF
+endif
+
 
 
     RETURN
@@ -14031,7 +14087,20 @@ end SUBROUTINE GET_INT_VEL_NEW
 
              abs_tilde    = min(abs_max, max(abs_min,  abs_tilde ))
 
-             NDOTQ_KEEP_IN =  0.5*( NDOTQ*ABS_CV_NODI_IPHA + NDOTQ2*ABS_CV_NODJ_IPHA ) / abs_tilde
+           if(.false.) then ! new rel perm function
+!             NDOTQ_KEEP_IN(1)    =  0.5*( NDOTQ(1)*get_relperm_epsilon(LOC_T_I(1),1, 0.2, 0.3, 2., 1.) + NDOTQ2(1)*get_relperm_epsilon(LOC_T_J(1),1, 0.2, 0.3, 2., 1.) ) &
+!               / get_relperm_epsilon(LIMT3(1),1, 0.2, 0.3, 2., 1.)
+!             NDOTQ_KEEP_IN(2)    =  0.5*( NDOTQ(2)*get_relperm_epsilon(LOC_T_I(2),2, 0.3, 0.2, 2., 1.) + NDOTQ2(2)*get_relperm_epsilon(LOC_T_J(2),2, 0.3, 0.2, 2., 1.) ) &
+!               / get_relperm_epsilon(LIMT3(2),2, 0.3, 0.2, 2., 1.)
+
+             NDOTQ_KEEP_IN(1)    =  0.5*( NDOTQ(1)*inv_get_relperm_epsilon(LOC_T_I(1),1, 0.2, 0.3, 2., 1.) + NDOTQ2(1)*inv_get_relperm_epsilon(LOC_T_J(1),1, 0.2, 0.3, 2., 1.) ) &
+               / inv_get_relperm_epsilon(LIMT3(1),1, 0.2, 0.3, 2., 1.)
+             NDOTQ_KEEP_IN(2)    =  0.5*( NDOTQ(2)*inv_get_relperm_epsilon(LOC_T_I(2),2, 0.3, 0.2, 2., 1.) + NDOTQ2(2)*inv_get_relperm_epsilon(LOC_T_J(2),2, 0.3, 0.2, 2., 1.) ) &
+               / inv_get_relperm_epsilon(LIMT3(2),2, 0.3, 0.2, 2., 1.)
+           else
+
+             NDOTQ_KEEP_IN    =  0.5*( NDOTQ*ABS_CV_NODI_IPHA    + NDOTQ2*ABS_CV_NODJ_IPHA )    /abs_tilde
+           endif
 
              INCOME    = MIN(1.0, MAX(0.0,  (NDOTQ_KEEP_IN - NDOTQ)/VTOLFUN( NDOTQ2 - NDOTQ ) ))
              WHERE (abs(NDOTQ2 - NDOTQ).lt. 1.e-7) 
@@ -15117,6 +15186,7 @@ CONTAINS
                 SUF_SIG_DIAGTEN_BC_GI( 1:NDIM ) = SUF_SIG_DIAGTEN_BC( CV_SNODK_IPHA, 1:NDIM )
              ENDIF
           END DO
+!            print *,'sele, SUF_SIG_DIAGTEN_BC_GI:',sele, SUF_SIG_DIAGTEN_BC_GI
 
           ! Only modify boundary velocity for incoming velocity...
           DO U_KLOC = 1, U_NLOC
@@ -16335,6 +16405,32 @@ CONTAINS
 
 !
 ! 
+! 
+! 
+    real function get_relperm_epsilon(sat,iphase, Sr1, Sr2, kr_exp, krmax)
+        Implicit none
+        real, intent( in ) :: Sat, Sr1, Sr2, kr_exp, krmax
+        integer, intent(in) :: iphase
+
+            get_relperm_epsilon = min(max(1d-20, Krmax*( ( Sat - Sr1) / ( 1. - Sr1 - Sr2 ) ** kr_exp)), Krmax)
+            !Make sure that the relperm is between bounds
+            !Lower value just to make sure we do not divide by zero.
+
+    end function get_relperm_epsilon
+! 
+! 
+    real function inv_get_relperm_epsilon(sat,iphase, Sr1, Sr2, kr_exp, krmax)
+        Implicit none
+        real, intent( in ) :: Sat, Sr1, Sr2, kr_exp, krmax
+        integer, intent(in) :: iphase
+
+            inv_get_relperm_epsilon =  1.0/ min(max(1d-20, Krmax*( ( Sat - Sr1) / ( 1. - Sr1 - Sr2 ) ** kr_exp)), Krmax)
+            !Make sure that the relperm is between bounds
+            !Lower value just to make sure we do not divide by zero.
+
+    end function inv_get_relperm_epsilon
+! -----------------------------------------------------------------------------
+
 ! 
 ! -----------------------------------------------------------------------------
 

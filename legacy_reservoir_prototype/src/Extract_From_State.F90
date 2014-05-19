@@ -125,6 +125,9 @@
         is_compact_overlapping = have_option('/geometry/mesh::VelocityMesh/from_mesh/&
             mesh_shape/Compact_overlapping' )
 
+!      print *,'is_overlapping,is_compact_overlapping:',is_overlapping,is_compact_overlapping
+!      stop 81
+
       positions => extract_vector_field( state, 'Coordinate' )
       pressure_cg_mesh => extract_mesh( state, 'PressureMesh_Continuous' )
 
