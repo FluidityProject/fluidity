@@ -1491,6 +1491,8 @@
       type(tensor_field), pointer :: velocity, volfrac, perm
       type(tensor_field) :: velocity_BCs, volfrac_BCs
 
+      logical :: Avoid_epsilon
+
     !Get from packed_state
       volfrac=>extract_tensor_field(packed_state,"PackedPhaseVolumeFraction")
       velocity=>extract_tensor_field(packed_state,"PackedVelocity")
@@ -1574,11 +1576,21 @@
                         ! of the first phase
 !                        satura_bc = sat( cv_snodi )
                         satura_bc = sat(1,cv_nodi )!We consider only the first phase, the second is calculated inside the subroutine if necessary
-                      !  sigma_out = 0.
+
+                        !If the initial state have a sat == to the irresidual saturation
+                        !the absorption term would be extremely high, hence it is better to switch to the corey method.
+                        select case (iphase)
+                            case (1)
+                                Avoid_epsilon = satura_bc - options%s_gc < 1d-8
+                            case default
+                                Avoid_epsilon = satura_bc - options%s_or < 1d-8
+                        end select
+
+!                        sigma_out = 0.
                         do idim = 1, ndim
                            do jdim = 1, ndim
                               if (is_corey) then
-                                if (options%is_Corey_epsilon_method) then
+                                if (options%is_Corey_epsilon_method.and..not.Avoid_epsilon) then
                                      call relperm_corey_epsilon( sigma_out( idim, jdim ), mobility, &
                                           inv_perm( idim, jdim ), satura_bc, iphase,options)
                                  else

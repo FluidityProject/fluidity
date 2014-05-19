@@ -14092,7 +14092,7 @@ end SUBROUTINE GET_INT_VEL_NEW
 !               / get_relperm_epsilon(LIMT3(1),1, 0.2, 0.3, 2., 1.)
 !             NDOTQ_KEEP_IN(2)    =  0.5*( NDOTQ(2)*get_relperm_epsilon(LOC_T_I(2),2, 0.3, 0.2, 2., 1.) + NDOTQ2(2)*get_relperm_epsilon(LOC_T_J(2),2, 0.3, 0.2, 2., 1.) ) &
 !               / get_relperm_epsilon(LIMT3(2),2, 0.3, 0.2, 2., 1.)
-
+                                                                        !VALUES FOR RELPERM ARE HARD CODED!!
              NDOTQ_KEEP_IN(1)    =  0.5*( NDOTQ(1)*inv_get_relperm_epsilon(LOC_T_I(1),1, 0.2, 0.3, 2., 1.) + NDOTQ2(1)*inv_get_relperm_epsilon(LOC_T_J(1),1, 0.2, 0.3, 2., 1.) ) &
                / inv_get_relperm_epsilon(LIMT3(1),1, 0.2, 0.3, 2., 1.)
              NDOTQ_KEEP_IN(2)    =  0.5*( NDOTQ(2)*inv_get_relperm_epsilon(LOC_T_I(2),2, 0.3, 0.2, 2., 1.) + NDOTQ2(2)*inv_get_relperm_epsilon(LOC_T_J(2),2, 0.3, 0.2, 2., 1.) ) &
@@ -15287,12 +15287,9 @@ CONTAINS
              END DO
 
           ELSE IF(IN_ELE_UPWIND==3) THEN ! the best optimal upwind frac.
+             !Calculate vel at GI
+             FEMTGI_IPHA = matmul(LOC_FEMT, SCVFEN(:,GI) )
 
-             FEMTGI_IPHA = 0.0
-             DO CV_KLOC=1,CV_NLOC
-                FEMTGI_IPHA = FEMTGI_IPHA &
-                     + SCVFEN(CV_KLOC,GI) * LOC_FEMT(:, CV_KLOC)
-             END DO
              ! Central is fine as its within an element with equally spaced nodes. 
              !FEMTGI_IPHA = 0.5*( t(cv_nodi_ipha)+t(cv_nodj_ipha) )
              !FEMTOLDGI_IPHA = 0.5*( told(cv_nodi_ipha)+told(cv_nodj_ipha) )
@@ -15303,35 +15300,14 @@ CONTAINS
              GEOMTGI_IPHA = ( MASS_CV_J * LOC_T_I + &
                   MASS_CV_I * LOC_T_J ) / (MASS_CV_I+MASS_CV_J)
 
-             !NVEC(1)=CVNORMX(GI)
-             !NVEC(2)=CVNORMY(GI)
-             !NVEC(3)=CVNORMZ(GI)
-             NVEC=CVNORMX_ALL(:, GI)
-             ABS_CV_NODI_IPHA      = 0.0
-             GRAD_ABS_CV_NODI_IPHA = 0.0
-             ABS_CV_NODJ_IPHA      = 0.0
-             GRAD_ABS_CV_NODJ_IPHA = 0.0
+             !We perform: n' * sigma * n
              DO IPHASE = 1, NPHASE
-             DO IDIM=1,NDIM
-                V_NODI=0.0
-                G_NODI=0.0
-                V_NODJ=0.0
-                G_NODJ=0.0
-                DO JDIM=1,NDIM
-                   V_NODI = V_NODI + VI_LOC_OPT_VEL_UPWIND_COEFS(IDIM,JDIM,IPHASE) * NVEC(JDIM)
-                   G_NODI = G_NODI + GI_LOC_OPT_VEL_UPWIND_COEFS(IDIM,JDIM,IPHASE) * NVEC(JDIM)
-
-                   V_NODJ = V_NODJ + VJ_LOC_OPT_VEL_UPWIND_COEFS(IDIM,JDIM,IPHASE) * NVEC(JDIM)
-                   G_NODJ = G_NODJ + GJ_LOC_OPT_VEL_UPWIND_COEFS(IDIM,JDIM,IPHASE) * NVEC(JDIM)
-                END DO
-                ABS_CV_NODI_IPHA(IPHASE)      = ABS_CV_NODI_IPHA(IPHASE)  + NVEC(IDIM)*V_NODI
-                GRAD_ABS_CV_NODI_IPHA(IPHASE)  = GRAD_ABS_CV_NODI_IPHA(IPHASE)  + NVEC(IDIM)*G_NODI
-                ABS_CV_NODJ_IPHA(IPHASE)       = ABS_CV_NODJ_IPHA(IPHASE)  + NVEC(IDIM)*V_NODJ
-                GRAD_ABS_CV_NODJ_IPHA(IPHASE)  = GRAD_ABS_CV_NODJ_IPHA(IPHASE)  + NVEC(IDIM)*G_NODJ
+                 ABS_CV_NODI_IPHA(IPHASE) = dot_product(CVNORMX_ALL(:, GI),matmul(VI_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE), CVNORMX_ALL(:, GI)))
+                 GRAD_ABS_CV_NODI_IPHA(IPHASE) = dot_product(CVNORMX_ALL(:, GI),matmul(GI_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE), CVNORMX_ALL(:, GI)))
+                 ABS_CV_NODJ_IPHA(IPHASE) = dot_product(CVNORMX_ALL(:, GI),matmul(VJ_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE), CVNORMX_ALL(:, GI)))
+                 GRAD_ABS_CV_NODJ_IPHA(IPHASE) = dot_product(CVNORMX_ALL(:, GI),matmul(GJ_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE), CVNORMX_ALL(:, GI)))
              END DO
-             END DO
-
-             !        print *,'-iphase,cv_nodi,cv_nodj,ABS_CV_NODI_IPHA,ABS_CV_NODJ_IPHA:',iphase,cv_nodi,cv_nodj,ABS_CV_NODI_IPHA,ABS_CV_NODJ_IPHA
+!        print *,'-iphase,cv_nodi,cv_nodj,ABS_CV_NODI_IPHA,ABS_CV_NODJ_IPHA:',iphase,cv_nodi,cv_nodj,ABS_CV_NODI_IPHA,ABS_CV_NODJ_IPHA
 
 
 
