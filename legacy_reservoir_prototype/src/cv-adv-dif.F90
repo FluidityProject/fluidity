@@ -11133,7 +11133,7 @@ CONTAINS
 
     IF(RETRIEVE_SOLID_CTY) THEN ! For solid modelling...
 ! Use backward Euler... (This is for the div uhat term - we subtract what we put in the CT matrix and add what we really want)
-!       CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) + SCVDETWEI( GI ) * ( (LIMT_HAT - LIMT)*NDOTQ - NDOTQ_S*LIMS/REAL(NPHASE) ) 
+!       CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) + SCVDETWEI( GI ) * ( (LIMT_HAT - LIMT)*NDOTQ - NDOTQ_S*LIMS/REAL(NPHASE) )
        CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) + SCVDETWEI( GI ) * ( LIMT_HAT*NDOTQ - NDOTQ_HAT/REAL(NPHASE) ) 
 ! flux from the other side (change of sign because normal is -ve)...
     if(integrate_other_side_and_not_boundary) then
@@ -12936,7 +12936,6 @@ CONTAINS
                 END IF
 
                 XC_ALL(1:NDIM) = X_ALL(:,1) + REFX_ALL(1:NDIM)*FRALINE
-print *,     XC_ALL(1:NDIM)
             ENDIF
          ENDIF
       ENDIF
@@ -15200,8 +15199,8 @@ CONTAINS
 
              DO IPHASE=1,NPHASE
                 UDGI_ALL(:, IPHASE)  =UDGI_ALL(:, IPHASE) * (1.-INCOME(IPHASE)) + UDGI2_ALL(:, IPHASE) *INCOME(IPHASE)
-             END DO 
-             
+             END DO
+
 
 
 
@@ -15215,7 +15214,7 @@ CONTAINS
              END WHERE
              DO IPHASE=1,NPHASE
                 UDGI_ALL(:, IPHASE)  =UDGI_ALL(:, IPHASE) * (1.-INCOME(IPHASE)) + UDGI2_ALL(:, IPHASE) *INCOME(IPHASE)
-             END DO 
+             END DO
 
           ELSE IF(IN_ELE_UPWIND==3) THEN ! the best optimal upwind frac.
 

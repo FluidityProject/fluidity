@@ -1467,7 +1467,7 @@
       type(tensor_field), pointer :: viscosity_ph1, viscosity_ph2
       integer :: iphase, ele, sele, cv_siloc, cv_snodi, cv_snodi_ipha, iface, s, e, &
            ele2, sele2, cv_iloc, idim, jdim, i, mat_nod
-      real :: mobility, satura_bc
+      real :: mobility, satura_bc, cv_nodi
       real, dimension( ndim, ndim ) :: inv_perm, sigma_out, sigma_in, mat, mat_inv
       integer, dimension( nface, totele) :: face_ele
       integer, dimension( mat_nonods*nphase ) :: idone
@@ -1567,13 +1567,14 @@
 
                         cv_iloc = cv_sloc2loc( cv_siloc )
                         cv_snodi = ( sele - 1 ) * cv_snloc + cv_siloc
+                        cv_nodi =cv_sndgln(cv_snodi)
                         cv_snodi_ipha = cv_snodi + ( iphase - 1 ) * stotel * cv_snloc
                         mat_nod = mat_ndgln( (ele-1)*cv_nloc + cv_iloc  )
                         ! this is the boundary condition
                         ! of the first phase
 !                        satura_bc = sat( cv_snodi )
-                        satura_bc = sat(1,cv_snodi )!We consider only the first phase, the second is calculated inside the subroutine if necessary
-                        sigma_out = 0.
+                        satura_bc = sat(1,cv_nodi )!We consider only the first phase, the second is calculated inside the subroutine if necessary
+                      !  sigma_out = 0.
                         do idim = 1, ndim
                            do jdim = 1, ndim
                               if (is_corey) then
