@@ -15489,42 +15489,31 @@ CONTAINS
 
        ELSE ! Conditional_ELE2: IF( ELE2 /= 0 ) THEN
 
-
           UDGI_ALL(:, :) = 0.0
-
-          UGI_COEF_ELE_ALL(:, :, :) = 0.0
-          DO U_KLOC = 1, U_NLOC
-
-             UDGI_ALL(:, :) = UDGI_ALL(:, :) + SUFEN( U_KLOC,  GI ) * LOC_NU( :, :, U_KLOC  )
-
-!             VEC_NDIM(:) =1.0
-             DO IPHASE=1,NPHASE
-!                UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC)=UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC) + matmul(INV_GI_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE),VEC_NDIM(:))
-                UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC) = ROW_SUM_INV_GI(:,IPHASE)*1.0 
-             END DO
-          END DO
-          DO IPHASE=1,NPHASE
-             UDGI_ALL(:, IPHASE) = matmul(INV_GI_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE),UDGI_ALL(:, IPHASE))
-          END DO
-
-
           UDGI2_ALL(:, :) = 0.0
 
+          UGI_COEF_ELE_ALL(:, :, :) = 0.0
           UGI_COEF_ELE2_ALL(:, :, :) = 0.0
+
           DO U_KLOC = 1, U_NLOC
              U_KLOC2 = U_OTHER_LOC( U_KLOC )
              IF( U_KLOC2 /= 0 ) THEN
+                UDGI_ALL(:, :)  = UDGI_ALL(:, :)  + SUFEN( U_KLOC,  GI ) * LOC_NU( :, :, U_KLOC  )
                 UDGI2_ALL(:, :) = UDGI2_ALL(:, :) + SUFEN( U_KLOC,  GI ) * LOC2_NU( :, :, U_KLOC )
 
 !                VEC2_NDIM(:) =1.0
                 DO IPHASE=1,NPHASE
 !                   UGI_COEF_ELE2_ALL(:, IPHASE, U_KLOC2)=UGI_COEF_ELE2_ALL(:, IPHASE, U_KLOC2) + matmul(INV_GJ_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE),VEC2_NDIM(:))
+                   UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC)   = ROW_SUM_INV_GI(:,IPHASE)*1.0 
                    UGI_COEF_ELE2_ALL(:, IPHASE, U_KLOC2) = ROW_SUM_INV_GJ(:,IPHASE)*1.0 
                 END DO
 
              END IF
           END DO
+
+
           DO IPHASE=1,NPHASE
+             UDGI_ALL(:, IPHASE) = matmul(INV_GI_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE),UDGI_ALL(:, IPHASE))
              UDGI2_ALL(:, IPHASE) = matmul(INV_GJ_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE),UDGI2_ALL(:, IPHASE))
           END DO
 
