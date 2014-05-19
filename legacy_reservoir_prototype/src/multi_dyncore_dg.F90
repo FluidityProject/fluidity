@@ -1032,7 +1032,6 @@ contains
         !Set saturation to be between bounds
         satura = min(max(satura,0.0), 1.0)
 
-
         DEALLOCATE( ACV )
         DEALLOCATE( mass_mn_pres )
         deallocate( block_acv )
@@ -2477,7 +2476,6 @@ contains
         SUF_NU_BC_ALL=>velocity_BCs%val
         SUF_MOMU_BC_ALL=>momentum_BCs%val
         SUF_U_ROB2_BC_ALL=>velocity_BCs_robin2%val
-        
         
 
         !ewrite(3,*) 'Just double-checking sparsity patterns memory allocation:'

@@ -955,6 +955,7 @@
       RETURN
     END SUBROUTINE relperm_corey_epsilon
 
+
     SUBROUTINE relperm_corey( ABSP, MOBILITY, INV_PERM, SAT, IPHASE,options )
       IMPLICIT NONE
       REAL, intent( inout ) :: ABSP
@@ -1568,7 +1569,6 @@
                         cv_snodi = ( sele - 1 ) * cv_snloc + cv_siloc
                         cv_snodi_ipha = cv_snodi + ( iphase - 1 ) * stotel * cv_snloc
                         mat_nod = mat_ndgln( (ele-1)*cv_nloc + cv_iloc  )
-
                         ! this is the boundary condition
                         ! of the first phase
 !                        satura_bc = sat( cv_snodi )

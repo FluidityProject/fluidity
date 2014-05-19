@@ -1423,6 +1423,7 @@ contains
                              CV_NONODS, CV_NLOC, U_NLOC, CV_SNLOC, U_SNLOC, &
                              CV_NDGLN, U_NDGLN, CV_SNDGLN, U_SNDGLN )
                      END IF
+
                      INTEGRAT_AT_GI = .NOT.( (ELE==ELE2) .AND. (SELE==0) )
 !                     INTEGRAT_AT_GI = .NOT.( (ELE3==0) .AND. (SELE==0) )
 !                      if(
@@ -1451,7 +1452,6 @@ contains
                   ENDIF
 
                END IF Conditional_CheckingNeighbourhood
-
                ! Avoid integrating across the middle of a CV on the boundaries of elements
                Conditional_integration: IF ( INTEGRAT_AT_GI ) THEN
 
@@ -1658,7 +1658,6 @@ contains
                    CALL PACK_LOC( SLOC_SUF_F_BC( :, CV_SKLOC ), SUF_T2_BC_ALL( :, :, CV_SKLOC + CV_SNLOC*( SELE- 1) ),    NPHASE, NFIELD, IPT, IGOT_T_PACK(:,6) )
                ENDIF
             END DO
-
 
          ENDIF ! IF( SELE > 0 ) THEN
 ! local surface information***********
@@ -1944,7 +1943,6 @@ contains
 !                           if(.true.) then ! use an average to make sure all is well in terms of propagation of information...
 !                               LIMT(:)=0.5*(LOC_T_I( : )+LOC_T_J( : )) 
 !                           endif
-                      
                            DO IPHASE=1,NPHASE
                               LIMT_HAT(IPHASE)=MAX(1.E-7,LIMT(IPHASE))
                            END DO
@@ -2042,7 +2040,6 @@ contains
 
                      !====================== ACV AND RHS ASSEMBLY ===================
                      Conditional_GETCT2 : IF ( GETCT ) THEN ! Obtain the CV discretised CT eqations plus RHS
-
                         CALL PUT_IN_CT_RHS( CT, CT_RHS, U_NLOC, SCVNGI, GI, NCOLCT, NDIM, &
                              CV_NONODS, U_NONODS, NPHASE, IPHASE, TOTELE, ELE, ELE2, SELE, &
                              JCOUNT_KLOC, JCOUNT_KLOC2, ICOUNT_KLOC, ICOUNT_KLOC2, U_OTHER_LOC, U_NDGLN, U_ALL, &
@@ -2088,6 +2085,7 @@ contains
                                  CV_RHS( RHS_NODI_IPHA ) =  CV_RHS( RHS_NODI_IPHA ) &
                                       + FTHETA * SCVDETWEI( GI ) * DIFF_COEF_DIVDX(IPHASE) &
                                       * tracer_BCs%val(1,iphase,cv_siloc+(sele-1)*CV_SNLOC)
+
                                  IF(GET_GTHETA) THEN
                                     THETA_GDIFF( IPHASE, CV_NODI ) =  THETA_GDIFF( IPHASE, CV_NODI ) &
                                          + FTHETA * SCVDETWEI( GI ) * DIFF_COEF_DIVDX(IPHASE) &
@@ -9774,7 +9772,7 @@ end if
 
 
     ! By default do not use first-order upwinding
-!    FIRSTORD = .FALSE.
+    FIRSTORD = .false.
 
     ! No limiting if CV_DISOPT is 6 or 7  (why not just define limt=femt and skip to assembly?)
     NOLIMI = ( INT( CV_DISOPT / 2 ) == 3 ) 
@@ -9959,7 +9957,7 @@ end if
      do ifield=1,nfield
        CALL ONVDLIM_ANO( cv_nonods, &
             LIMF(ifield), FEMFGI(ifield), f_INCOME(ifield), cv_nodi, cv_nodj, &
-            F_CV_NODI(ifield), F_CV_NODJ(ifield),   .false., .false., courant_or_minus_one_new(IFIELD), &
+            F_CV_NODI(ifield), F_CV_NODJ(ifield),   FIRSTORD, .false., courant_or_minus_one_new(IFIELD), &
             FUPWIND_IN(ifield), FUPWIND_OUT(ifield) )
      end do
    endif
@@ -9967,7 +9965,6 @@ end if
        ENDIF Conditional_CV_DISOPT_ELE2
 
     END SELECT
-
 
     RETURN
 
@@ -11150,6 +11147,7 @@ CONTAINS
 
        RCON    = SCVDETWEI( GI ) * FTHETA_T2 * LIMDT &
             * SUFEN( U_KLOC, GI ) / DEN_ALL( IPHASE, CV_NODI )
+
        IF(RETRIEVE_SOLID_CTY) THEN ! For solid modelling use backward Euler for this part...
           RCON    = RCON    + SCVDETWEI( GI )  * (LIMT_HAT - LIMT)  &
                * SUFEN( U_KLOC, GI ) 
@@ -12448,7 +12446,7 @@ CONTAINS
 
     LOGICAL :: D3,DCYL
     ! Allocate memory for the interpolated upwind values
-    LOGICAL, PARAMETER :: BOUND  = .TRUE., REFLECT = .FALSE. ! limiting options
+    LOGICAL, PARAMETER :: BOUND  = .TRUE., REFLECT = .false. ! limiting options
     INTEGER, DIMENSION( : ), allocatable :: NOD_FINDELE,NOD_COLELE, NLIST, INLIST, DUMMYINT
     REAL, DIMENSION( : ), allocatable :: DUMMYREAL
     INTEGER MXNCOLEL,NCOLEL,adapt_time_steps
@@ -12869,7 +12867,6 @@ CONTAINS
       REAL, intent(inout) :: LOCCORDSK(NLOC)
 !     
 !     Local variables...
-      REAL, dimension(NDIM) ::  XC_ALL, VX_ALL, REFX_ALL, REFX2_ALL, T2X_ALL, T1X_ALL
       REAL, dimension(4):: LOCCORDS
       INTEGER , dimension(4) :: LOCNODS,LOCNODSK
       INTEGER, dimension(4) :: NLOCNODS,NLOCNODSK
@@ -12878,13 +12875,17 @@ CONTAINS
       REAL :: DIST12,RN,RMATPSI
       REAL :: FRALINE
       LOGICAL IS_DG
+      !The dimension of the variables below should be NDIM, however, due to cross products
+      !we need three dimensions
+      REAL, dimension(3) ::  XC_ALL, VX_ALL, REFX_ALL, REFX2_ALL, T2X_ALL, T1X_ALL, AUXNORMX1_ALL
+
 
       IS_DG=NONODS.NE.X_NONODS
 !     
       FRALINE=FRALINE2
       IF(IS_DG) FRALINE=1.0
-
-      XC_ALL = X1_ALL - FRALINE*(X2_ALL-X1_ALL)
+      XC_ALL = 0.
+      XC_ALL(1:NDIM) = X1_ALL - FRALINE*(X2_ALL-X1_ALL)
 
       
       IF(REFLECT) THEN
@@ -12895,22 +12896,25 @@ CONTAINS
 !     T1X   T1Y   T1Z
 !     T2X   T2Y   T2Z
 !
-            VX_ALL = X1_ALL - X2_ALL
+            VX_ALL = 0.
+            VX_ALL(1:NDIM) = X1_ALL - X2_ALL
 !     
-            CALL XPROD(T2X_ALL,NORMX1_ALL, VX_ALL)
+            AUXNORMX1_ALL = 0.
+            AUXNORMX1_ALL(1:NDIM) = NORMX1_ALL
+            CALL XPROD(T2X_ALL,AUXNORMX1_ALL, VX_ALL)
 !     
             !DIST12=SQRT((X1-X2)**2+(Y1-Y2)**2+(Z1-Z2)**2)
             DIST12 = SQRT(DOT_PRODUCT(X1_ALL-X2_ALL,X1_ALL-X2_ALL))
             RN = SQRT(DOT_PRODUCT(T2X_ALL,T2X_ALL))
             IF(RN.LT.(1.E-5)*DIST12) THEN
 !     Simply have VX,VY,VZ going in the opposite direction...
-                XC_ALL = X1_ALL - VX_ALL*FRALINE
+                XC_ALL(1:NDIM) = X1_ALL - VX_ALL(1:NDIM)*FRALINE
             ELSE
                 T2X_ALL = T2X_ALL/RN
 !     T1=Nx (-T2)
-               CALL XPROD(T1X_ALL, NORMX1_ALL, -T2X_ALL)
+               CALL XPROD(T1X_ALL, AUXNORMX1_ALL, -T2X_ALL)
 !     
-               REFX2_ALL(1) = SUM(NORMX1_ALL*VX_ALL)
+               REFX2_ALL(1) = SUM(NORMX1_ALL*VX_ALL(1:NDIM))
                REFX2_ALL(2) = SUM(T1X_ALL(:)*VX_ALL)
 
 
@@ -12931,9 +12935,9 @@ CONTAINS
                     REFX_ALL(3) =  NORMX1_ALL(3) * REFX2_ALL(1) + T1X_ALL(3) * REFX2_ALL(2)+ T2X_ALL(3) * REFX2_ALL(3)
                 END IF
 
-                XC_ALL = X_ALL(:,1) + REFX_ALL*FRALINE
+                XC_ALL(1:NDIM) = X_ALL(:,1) + REFX_ALL(1:NDIM)*FRALINE
+print *,     XC_ALL(1:NDIM)
             ENDIF
-
          ENDIF
       ENDIF
 !     
@@ -13805,7 +13809,6 @@ end SUBROUTINE GET_INT_VEL_NEW
 
     got_dt_ij=.false.
 
-
     Conditional_SELE: IF( SELE /= 0 ) THEN ! On the boundary of the domain. 
      DO IPHASE = 1, NPHASE
        IF( WIC_U_BC_ALL( 1, IPHASE, SELE) /= WIC_U_BC_DIRICHLET ) THEN ! velocity free boundary
@@ -13847,7 +13850,6 @@ end SUBROUTINE GET_INT_VEL_NEW
              UGI_TMP = SUF_SIG_DIAGTEN_BC_GI(:) * UDGI_ALL(:, IPHASE)
              UDGI_ALL(:, IPHASE) = UGI_TMP
           ENDIF
-
        ELSE ! Specified vel bc.
 
           UDGI_ALL(:, IPHASE) = 0.0
@@ -13916,14 +13918,9 @@ end SUBROUTINE GET_INT_VEL_NEW
 
           ELSE IF(IN_ELE_UPWIND==3) THEN ! the best optimal upwind frac.
 
-             FEMTGI_IPHA = 0.0
-             DO CV_KLOC=1,CV_NLOC
-                FEMTGI_IPHA = FEMTGI_IPHA &
-                     + SCVFEN(CV_KLOC,GI) * LOC_FEMT(:, CV_KLOC)
-             END DO
-             ! Central is fine as its within an element with equally spaced nodes. 
-             !FEMTGI_IPHA = 0.5*( t(cv_nodi_ipha)+t(cv_nodj_ipha) )
-             !FEMTOLDGI_IPHA = 0.5*( told(cv_nodi_ipha)+told(cv_nodj_ipha) )
+             !Calculate vel at GI
+             FEMTGI_IPHA = matmul(LOC_FEMT, SCVFEN(:,GI) )
+
              if(IANISOTROPIC==0) then ! this is the only needed for isotropic limiting for velocity...
                 FEMTGI_IPHA = ( MASS_CV_J * LOC_T_I + &
                      MASS_CV_I * LOC_T_J ) / (MASS_CV_I+MASS_CV_J)
@@ -13931,40 +13928,13 @@ end SUBROUTINE GET_INT_VEL_NEW
              GEOMTGI_IPHA = ( MASS_CV_J * LOC_T_I + &
                   MASS_CV_I * LOC_T_J ) / (MASS_CV_I+MASS_CV_J)
 
-             !NVEC(1)=CVNORMX(GI)
-             !NVEC(2)=CVNORMY(GI)
-             !NVEC(3)=CVNORMZ(GI)
-             NVEC=CVNORMX_ALL(:, GI)
-             ABS_CV_NODI_IPHA      = 0.0
-             GRAD_ABS_CV_NODI_IPHA = 0.0
-             ABS_CV_NODJ_IPHA      = 0.0
-             GRAD_ABS_CV_NODJ_IPHA = 0.0
+             !We perform: n' * sigma * n
              DO IPHASE = 1, NPHASE
-             DO IDIM=1,NDIM
-                V_NODI=0.0
-                G_NODI=0.0
-                V_NODJ=0.0
-                G_NODJ=0.0
-                DO JDIM=1,NDIM
-                   V_NODI = V_NODI + VI_LOC_OPT_VEL_UPWIND_COEFS(IDIM,JDIM,IPHASE) * NVEC(JDIM)
-                   G_NODI = G_NODI + GI_LOC_OPT_VEL_UPWIND_COEFS(IDIM,JDIM,IPHASE) * NVEC(JDIM)
-
-                   V_NODJ = V_NODJ + VJ_LOC_OPT_VEL_UPWIND_COEFS(IDIM,JDIM,IPHASE) * NVEC(JDIM)
-                   G_NODJ = G_NODJ + GJ_LOC_OPT_VEL_UPWIND_COEFS(IDIM,JDIM,IPHASE) * NVEC(JDIM)
-                END DO
-                ABS_CV_NODI_IPHA(IPHASE)      = ABS_CV_NODI_IPHA(IPHASE)  + NVEC(IDIM)*V_NODI
-                GRAD_ABS_CV_NODI_IPHA(IPHASE)  = GRAD_ABS_CV_NODI_IPHA(IPHASE)  + NVEC(IDIM)*G_NODI
-                ABS_CV_NODJ_IPHA(IPHASE)       = ABS_CV_NODJ_IPHA(IPHASE)  + NVEC(IDIM)*V_NODJ
-                GRAD_ABS_CV_NODJ_IPHA(IPHASE)  = GRAD_ABS_CV_NODJ_IPHA(IPHASE)  + NVEC(IDIM)*G_NODJ
+                 ABS_CV_NODI_IPHA(IPHASE) = dot_product(CVNORMX_ALL(:, GI),matmul(VI_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE), CVNORMX_ALL(:, GI)))
+                 GRAD_ABS_CV_NODI_IPHA(IPHASE) = dot_product(CVNORMX_ALL(:, GI),matmul(GI_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE), CVNORMX_ALL(:, GI)))
+                 ABS_CV_NODJ_IPHA(IPHASE) = dot_product(CVNORMX_ALL(:, GI),matmul(VJ_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE), CVNORMX_ALL(:, GI)))
+                 GRAD_ABS_CV_NODJ_IPHA(IPHASE) = dot_product(CVNORMX_ALL(:, GI),matmul(GJ_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE), CVNORMX_ALL(:, GI)))
              END DO
-             END DO
-
-             !        print *,'-iphase,cv_nodi,cv_nodj,ABS_CV_NODI_IPHA,ABS_CV_NODJ_IPHA:',iphase,cv_nodi,cv_nodj,ABS_CV_NODI_IPHA,ABS_CV_NODJ_IPHA
-
-
-
-
-
              ! Make sure we have some sort of velocity (only needed between elements)...
              ! take the mean of the underlying velocity...
              !                        Q_UNDERLY=0.5*( NDOTQ*ABS_CV_NODI_IPHA + NDOTQ2*ABS_CV_NODJ_IPHA )
@@ -13993,20 +13963,14 @@ end SUBROUTINE GET_INT_VEL_NEW
 
              endif
 
-
-
              ! high order order (low order is an option above)
 
-
-
-             WHERE (0.5*(NDOTQ_TILDE+NDOTQ2_TILDE) < 0.0) 
+             WHERE (NDOTQ_TILDE+NDOTQ2_TILDE < 0.0)
                 INCOME3=1.0
                 ! Make sure the fem description is not biased to the downwind...         
              ELSE WHERE
                 INCOME3=0.0
              END WHERE
-
-
 
 ! limiter *************
 
@@ -14047,10 +14011,10 @@ end SUBROUTINE GET_INT_VEL_NEW
 
                   ELSE ! ENDOF if(IANISOTROPIC==0) then
 
-!                     CALL ONVDLIM_ANO_sqrt( cv_nonods, &
+
                      CALL ONVDLIM_ANO( cv_nonods, &
                         LIMT3(iPHASE), FEMTGI_IPHA(iPHASE), INCOME3(iPHASE), cv_nodi, cv_nodj, &
-                        LOC_T_I(iPHASE), LOC_T_J(iPHASE),   .false., .false., courant_or_minus_one_new(IPHASE), &
+                        LOC_T_I(iPHASE), LOC_T_J(iPHASE), .false., .false., courant_or_minus_one_new(IPHASE), &
                         TUPWIND_IN(iPHASE), TUPWIND_OUT(iPHASE) )
 
                   ENDIF ! ENDOF if(IANISOTROPIC==0) then ELSE
@@ -14060,22 +14024,15 @@ end SUBROUTINE GET_INT_VEL_NEW
 
 
 ! limiter *************
-
-
-
-          DO IPHASE=1,NPHASE
-             abs_tilde(IPHASE) =  0.5*(  ABS_CV_NODI_IPHA(IPHASE)  + ( LIMT3(IPHASE)   -  LOC_T_I(IPHASE)  ) * GRAD_ABS_CV_NODI_IPHA(IPHASE)   +   &
-                  ABS_CV_NODJ_IPHA(IPHASE)  + ( LIMT3(IPHASE)   -  LOC_T_J(IPHASE)  ) * GRAD_ABS_CV_NODJ_IPHA(IPHASE) )
-          END DO
+             abs_tilde =  0.5*(  ABS_CV_NODI_IPHA  + ( LIMT3   -  LOC_T_I  ) * GRAD_ABS_CV_NODI_IPHA   +   &
+                  ABS_CV_NODJ_IPHA  + ( LIMT3   -  LOC_T_J  ) * GRAD_ABS_CV_NODJ_IPHA )
 
              abs_max=max(ABS_CV_NODI_IPHA,  ABS_CV_NODJ_IPHA)
              abs_min=min(ABS_CV_NODI_IPHA,  ABS_CV_NODJ_IPHA)
 
              abs_tilde    = min(abs_max, max(abs_min,  abs_tilde ))
 
-             NDOTQ_KEEP_IN    =  0.5*( NDOTQ*ABS_CV_NODI_IPHA    + NDOTQ2*ABS_CV_NODJ_IPHA )    /abs_tilde
-             
-             
+             NDOTQ_KEEP_IN =  0.5*( NDOTQ*ABS_CV_NODI_IPHA + NDOTQ2*ABS_CV_NODJ_IPHA ) / abs_tilde
 
              INCOME    = MIN(1.0, MAX(0.0,  (NDOTQ_KEEP_IN - NDOTQ)/VTOLFUN( NDOTQ2 - NDOTQ ) ))
              WHERE (abs(NDOTQ2 - NDOTQ).lt. 1.e-7) 
@@ -14097,12 +14054,7 @@ end SUBROUTINE GET_INT_VEL_NEW
                 END WHERE
              endif
 
-
-
-
-
           ELSE
-
              UPWIND_FRAC=0.5
              WHERE (NDOTQ_TILDE < 0.0) 
                 !INCOME=0.8
@@ -14152,7 +14104,6 @@ end SUBROUTINE GET_INT_VEL_NEW
 
 
           UDGI2_ALL(:, :) = 0.0
-
           UGI_COEF_ELE2_ALL(:, :, :) = 0.0
           DO U_KLOC_LEV = 1, U_NLOC_LEV
              U_KLOC=(CV_ILOC-1)*U_NLOC_LEV + U_KLOC_LEV
@@ -14235,6 +14186,7 @@ end SUBROUTINE GET_INT_VEL_NEW
 
              ! between these limits work out which are associated with the flux limited saturation at this interface. 
 
+
              if(ROE_AVE) then
 
                 ! do the Roe average of the rest of the velocity...
@@ -14294,7 +14246,6 @@ end SUBROUTINE GET_INT_VEL_NEW
                 abs_tilde1    = min(1000.*abs_max, max(0.001*abs_min,  abs_tilde1 )) 
 
                 abs_tilde2    = min(1000.*abs_max, max(0.001*abs_min,  abs_tilde2 )) 
-
 
 
                 got_dt_ij=.true.
@@ -14536,13 +14487,6 @@ end SUBROUTINE GET_INT_VEL_NEW
                 ! endof IF ( DG_ELE_UPWIND==3 ) THEN ELSE...
              ENDIF
 
-
-
-
-
-
-
-
              if(.not.got_dt_ij) then
 
                 DT_I = 1.0 - INCOME
@@ -14550,10 +14494,7 @@ end SUBROUTINE GET_INT_VEL_NEW
 
              endif
 
-
           END IF
-
-
 
           ! Amend weighting for porosity only across elements...
           IF((ABS(CV_DG_VEL_INT_OPT ) == 2).OR.(ABS(CV_DG_VEL_INT_OPT ) == 3)) THEN 
@@ -14586,8 +14527,6 @@ end SUBROUTINE GET_INT_VEL_NEW
              UDGI_INT_ALL(:, IPHASE) = DT_I(IPHASE) * UDGI_ALL(:, IPHASE) + DT_J(IPHASE) * UDGI2_ALL(:, IPHASE)
           END DO
 
-
-
           IF( CV_DG_VEL_INT_OPT < 0 ) THEN
    !          FLAbort('2821') ! should not be going in here??
    !          if(got_dt_ij) FLAbort('2611') ! we can not use these CV_DG_VEL_INT_OPT < 0, got_dt_ij=.true. options together.
@@ -14610,9 +14549,7 @@ end SUBROUTINE GET_INT_VEL_NEW
 
           END IF
 
-
           UDGI_ALL = UDGI_INT_ALL
-
 
           DO IPHASE = 1, NPHASE
              UGI_COEF_ELE_ALL(:, IPHASE, :) = DT_I(IPHASE) * UGI_COEF_ELE_ALL(:, IPHASE, :) 
@@ -14620,11 +14557,9 @@ end SUBROUTINE GET_INT_VEL_NEW
              UGI_COEF_ELE2_ALL(:, IPHASE, :) = DT_J(IPHASE) * UGI_COEF_ELE2_ALL(:, IPHASE, :) 
           END DO
 
-
        END IF Conditional_ELE2
 
     END IF Conditional_SELE
-
 
     NDOTQ =  MATMUL( CVNORMX_ALL(:, GI), UDGI_ALL )
 
@@ -14635,7 +14570,6 @@ end SUBROUTINE GET_INT_VEL_NEW
     END WHERE
     !  IF( NDOTQ_tilde >= 0. ) INCOME = 0.
     !IF( NDOTQ > 0. ) INCOME = 0.
-    
 
     RETURN  
 
@@ -15168,7 +15102,6 @@ CONTAINS
              UDGI_ALL(:, IPHASE) = UDGI_ALL(:, IPHASE) + SUFEN( U_KLOC, GI ) * LOC_NU( :, IPHASE, U_KLOC )
           END DO
           UDGI_ALL(:, IPHASE) = matmul(INV_GI_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE),UDGI_ALL(:, IPHASE))
-
 
           ! Here we assume that sigma_out/sigma_in is a diagonal matrix 
           ! which effectively assumes that the anisotropy just inside the domain 
@@ -16387,15 +16320,6 @@ CONTAINS
 
 
 
-
-
-
-
-
-
-
-
-
   function vtolfun(val) result(v_tolfun)
 
     implicit none
@@ -16413,8 +16337,7 @@ CONTAINS
 !
 ! 
 ! 
-
 ! -----------------------------------------------------------------------------
 
   end module cv_advection
-      
+
