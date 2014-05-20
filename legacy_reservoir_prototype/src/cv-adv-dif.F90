@@ -15633,11 +15633,9 @@ CONTAINS
                 ! Between elements...
 
 
-
-
                 ! redefine so that it detects oscillations...
-                abs_tilde1 =  ABS_CV_NODI_IPHA  + 0.5*( LOC_T_J   -  LOC_T_I  ) * GRAD_ABS_CV_NODI_IPHA   
-                abs_tilde2 =  ABS_CV_NODJ_IPHA  + 0.5*( LOC_T_I   -  LOC_T_J  ) * GRAD_ABS_CV_NODJ_IPHA 
+                abs_tilde1 =  ABS_CV_NODI_IPHA  + 0.5*( LOC_T_J   -  LOC_T_I  ) * GRAD_ABS_CV_NODI_IPHA
+                abs_tilde2 =  ABS_CV_NODJ_IPHA  + 0.5*( LOC_T_I   -  LOC_T_J  ) * GRAD_ABS_CV_NODJ_IPHA
 
 
                 abs_max=max(ABS_CV_NODI_IPHA,  ABS_CV_NODJ_IPHA)

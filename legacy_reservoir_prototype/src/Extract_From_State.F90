@@ -527,7 +527,7 @@
 
 !!$ Options below are hardcoded and need to be added into the schema
       t_dg_vel_int_opt = 1 ; u_dg_vel_int_opt = 4 ; v_dg_vel_int_opt = 4 ; w_dg_vel_int_opt = 0
-      if( .not. is_overlapping ) v_dg_vel_int_opt = 1
+      if( .not. (is_overlapping .or. is_compact_overlapping)) v_dg_vel_int_opt = 1
       comp_diffusion_opt = 0 ; ncomp_diff_coef = 0
       volfra_use_theta_flux = .false. ; volfra_get_theta_flux = .true.
       comp_use_theta_flux = .false. ; comp_get_theta_flux = .true.
