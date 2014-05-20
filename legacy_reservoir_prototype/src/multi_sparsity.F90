@@ -1513,7 +1513,7 @@
 
 !!$ Assuming the DG representation requires the more storage space
       mx_ncolcmc = mx_nface_p1 **3 * cv_nloc * cv_nloc * totele 
-      if(is_overlapping) then
+      if(is_overlapping .or. is_compact_overlapping) then
          mx_ncoldgm_pha = 1
          mx_ncolmcy     = 1
       !   mx_ncolm = 1
@@ -1619,7 +1619,8 @@ integer, dimension(:), pointer ::  colcmc, colm, colmcy, colct, colc, coldgm_pha
 !!$      ewrite(3,*)'colele: ', size( colele ), ncolele, '==>', colele( 1 : ncolele )
 !!$      ewrite(3,*)'midele: ', size( midele ), '==>', midele( 1 : totele )
 
-      if ( .not. is_overlapping ) then
+!      if ( .not. is_overlapping ) then
+      if(.not.(is_overlapping .or. is_compact_overlapping)) then
       !-
       !- Computing sparsity for force balance
       !-
@@ -1729,7 +1730,7 @@ integer, dimension(:), pointer ::  colcmc, colm, colmcy, colct, colc, coldgm_pha
       !-
       !- Computing the sparsity for the force balance plus cty multi-phase eqns
       !- 
-    if(.not.is_overlapping) then
+    if(.not.(is_overlapping .or. is_compact_overlapping)) then
       finmcy = 0 ; colmcy = 0 ; midmcy = 0
       call exten_sparse_mom_cty( ndim, findgm_pha, coldgm_pha, nphase * u_nonods * ndim, ncoldgm_pha, ncolct, &
            cv_nonods, findct, colct, &

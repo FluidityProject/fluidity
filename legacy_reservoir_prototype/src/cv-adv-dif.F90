@@ -13419,6 +13419,8 @@ CONTAINS
 !     print *,'is_overlapping,is_compact_overlapping:',is_overlapping,is_compact_overlapping
 !      stop 21 
 
+!          print *,'CV_DG_VEL_INT_OPT:',CV_DG_VEL_INT_OPT
+!           stop 2197
 
     IF( is_overlapping ) THEN
        ! For overlapping basis function approach.
@@ -15495,6 +15497,8 @@ CONTAINS
           UGI_COEF_ELE_ALL(:, :, :) = 0.0
           UGI_COEF_ELE2_ALL(:, :, :) = 0.0
 
+!          print *,'U_OTHER_LOC:', U_OTHER_LOC
+!          stop 811
           DO U_KLOC = 1, U_NLOC
              U_KLOC2 = U_OTHER_LOC( U_KLOC )
              IF( U_KLOC2 /= 0 ) THEN
@@ -15519,6 +15523,10 @@ CONTAINS
 
           NDOTQ  = MATMUL( CVNORMX_ALL(:, GI), UDGI_ALL )
           NDOTQ2 = MATMUL( CVNORMX_ALL(:, GI), UDGI2_ALL )
+
+
+!          print *,'CV_DG_VEL_INT_OPT:',CV_DG_VEL_INT_OPT
+!           stop 297
 
           IF( ABS( CV_DG_VEL_INT_OPT ) == 1 ) THEN
              DT_I=1.0
@@ -15936,7 +15944,8 @@ CONTAINS
              UDGI_INT_ALL(:, IPHASE) = DT_I(IPHASE) * UDGI_ALL(:, IPHASE) + DT_J(IPHASE) * UDGI2_ALL(:, IPHASE)
           END DO
 
-
+  !        print *,'CV_DG_VEL_INT_OPT:',CV_DG_VEL_INT_OPT
+  !        stop 181
 
           IF( CV_DG_VEL_INT_OPT < 0 ) THEN
    !          FLAbort('2821') ! should not be going in here??
