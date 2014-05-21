@@ -278,9 +278,9 @@ contains
       ! Local variables
       REAL, PARAMETER :: ZERO_OR_TWO_THIRDS = 0.0
 ! if integrate_other_side then just integrate over a face when cv_nodj>cv_nodi
-      logical, PARAMETER :: integrate_other_side=  .true.   !.false. !.true.
+      logical, PARAMETER :: integrate_other_side= .false.
 ! if .not.correct_method_petrov_method then we can compare our results directly with previous code...
-      logical, PARAMETER :: correct_method_petrov_method= .false.  !.true.
+      logical, PARAMETER :: correct_method_petrov_method= .true.
       LOGICAL, DIMENSION( : ), allocatable :: X_SHARE
       LOGICAL, DIMENSION( :, : ), allocatable :: CV_ON_FACE, U_ON_FACE, &
            CVFEM_ON_FACE, UFEM_ON_FACE
@@ -2877,7 +2877,7 @@ end if
       call retrieve_ngi( TOTELE, cv_ele_type, CV_NLOC,U_NLOC, &
            cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface, QUAD_OVER_WHOLE_ELE )
 
-                  global_face=totele * SCVNGI 
+                  global_face=totele * SCVNGI * 2
                   return
 
 
