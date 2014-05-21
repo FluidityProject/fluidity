@@ -284,7 +284,7 @@ contains
     if(from_field%mesh==to_field%mesh) then
        
        call set(to_field, from_field)
-       
+      
     else
 
        if (to_field%mesh%continuity<0) then
@@ -312,7 +312,7 @@ contains
           call scale(to_field, masslump)
           
           call deallocate(masslump)
-          
+
        end if
 
     end if
@@ -339,7 +339,7 @@ contains
 
       call set(to_field, ele_nodes(to_field, ele), &
            matmul(mass, &
-           shape_rhs(to_shape, ele_val(from_field, ele)*detwei)))
+           shape_rhs(to_shape, ele_val_at_quad(from_field, ele)*detwei)))
 
     end subroutine dg_projection_ele
 
@@ -360,7 +360,7 @@ contains
            shape_rhs(to_shape, detwei))
 
       call addto(to_field, ele_nodes(to_field, ele), &
-           shape_rhs(to_shape, ele_val(from_field, ele)*detwei))
+           shape_rhs(to_shape, ele_val_at_quad(from_field, ele)*detwei))
 
     end subroutine cg_projection_ele
 

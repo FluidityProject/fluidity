@@ -1182,7 +1182,7 @@ contains
 
         type( tensor_field ), pointer :: u_all2, uold_all2, den_all2, denold_all2
         type( vector_field ), pointer :: x_all2
-        type( scalar_field ), pointer :: p_all, cvp_all, Pressure_State
+        type( scalar_field ), pointer :: p_all, cvp_all, Pressure_State, sf
 
 
         ALLOCATE( U_ALL( NDIM, NPHASE, U_NONODS ), UOLD_ALL( NDIM, NPHASE, U_NONODS ), &
@@ -1257,6 +1257,13 @@ contains
               UDENOLD_ALL = DENOLD_ALL2%VAL( 1, :, : )
            end if
         end if
+
+        !sf => EXTRACT_SCALAR_FIELD( PACKED_STATE, "SolidConcentration" )
+
+        !UDEN_ALL(1,:) = UDEN_ALL(1,:) * ( 1. - sf%val)     +   1000. *  sf%val
+        !UDENOLD_ALL(1,:) = UDENOLD_ALL(1,:) * ( 1. - sf%val)     +   1000. *  sf%val
+
+
 
         call calculate_u_source_cv( state, cv_nonods, ndim, nphase, uden_all, U_Source_CV )
 
@@ -1418,7 +1425,9 @@ contains
             CALL CT_MULT2( P_RHS, UP_VEL, CV_NONODS, U_NONODS, NDIM, NPHASE, &
             CT, NCOLCT, FINDCT, COLCT )
 
+
             P_RHS = -P_RHS + CT_RHS
+            !!P_RHS =  CT_RHS
 
             ! Matrix vector involving the mass diagonal term
             DO CV_NOD = 1, CV_NONODS
@@ -1428,6 +1437,14 @@ contains
                     -DIAG_SCALE_PRES( CV_NOD ) * MASS_MN_PRES( COUNT ) * P_ALL%VAL( CV_JNOD )
                 END DO
             END DO
+
+
+
+
+           ! Sf => extract_scalar_field( packed_state, "SolidConcentration" )
+           !p_rhs = p_rhs * ( 1. - sf%val )
+           !p_rhs = p_rhs * ( 0.5 )
+
 
             call get_option( '/material_phase[0]/scalar_field::Pressure/' // &
             'prognostic/reference_node', ndpset, default = 0 )
@@ -1783,7 +1800,7 @@ contains
         REAL, PARAMETER :: V_BETA = 1.0
 ! NEED TO CHANGE RETRIEVE_SOLID_CTY TO MAKE AN OPTION
         REAL :: SECOND_THETA
-        LOGICAL, PARAMETER :: GETCV_DISC = .FALSE., GETCT= .TRUE., THERMAL= .FALSE., RETRIEVE_SOLID_CTY=.FALSE.
+        LOGICAL, PARAMETER :: GETCV_DISC = .FALSE., GETCT= .TRUE., THERMAL= .FALSE., RETRIEVE_SOLID_CTY=.FALSE. !.TRUE.
         REAL, DIMENSION( : ), allocatable :: ACV, Block_acv, CV_RHS, SUF_VOL_BC_ROB1, SUF_VOL_BC_ROB2, &
         SAT_FEMT, DEN_FEMT, dummy_transp
         REAL, DIMENSION( :,:,:), allocatable :: DENSE_BLOCK_MATRIX
@@ -2407,8 +2424,9 @@ contains
         type(scalar_field), target :: Targ_C_Mat
         real, dimension(:,:,:), pointer :: Point_C_Mat
 
+type(scalar_field), pointer :: sf
+integer :: cv_nodi
 
-        
         !! Boundary_conditions
 
         INTEGER, DIMENSION ( ndim , nphase , surface_element_count(velocity) )  :: WIC_U_BC_ALL, WIC_MOMU_BC_ALL, WIC_NU_BC_ALL
@@ -2420,6 +2438,9 @@ contains
         type(scalar_field) :: pressure_BCs
         type(tensor_field) :: velocity_BCs, velocity_BCs_robin2
         type(tensor_field) :: momentum_BCs
+
+        INTEGER, DIMENSION( 4 ), PARAMETER :: ELEMENT_CORNERS=(/1,3,6,10/)
+
 
         capillary_pressure_activated = have_option( '/material_phase[0]/multiphase_properties/capillary_pressure' )
 
@@ -2902,6 +2923,17 @@ contains
         ENDIF
 
 
+!sf=> extract_scalar_field( packed_state, "SolidConcentration" )
+
+!DO ELE = 1, TOTELE
+!DO CV_ILOC = 1, CV_NLOC
+!MAT_NODI = MAT_NDGLN(  (ELE-1)*CV_NLOC + CV_ILOC )
+!CV_NODI = CV_NDGLN(  (ELE-1)*CV_NLOC + CV_ILOC )
+!UDIFFUSION_ALL( :,:,:, MAT_NODI ) = UDIFFUSION_ALL( :,:,:, MAT_NODI ) * sf%val( CV_NODI )
+!END DO
+!END DO
+
+
 
         !This term is obtained from the surface tension and curvature
         !For capillary pressure we are using the entry pressure method instead of
@@ -2987,7 +3019,16 @@ contains
                       LOC_U_ABSORB( I, I, MAT_ILOC ) = 1.0 
                    END DO
                 ELSE
+
                    LOC_U_ABSORB( :, :, MAT_ILOC ) = U_ABSORB( :, :, MAT_INOD )
+
+
+                   !LOC_U_ABSORB( 1, 1, MAT_ILOC ) = 1000.  * sf%val(cv_inod) !  U_ABSORB( :, :, MAT_INOD )
+                   !LOC_U_ABSORB( 1, 2, MAT_ILOC ) = 0.  * sf%val(cv_inod) !  U_ABSORB( :, :, MAT_INOD )
+                   !LOC_U_ABSORB( 2, 1, MAT_ILOC ) = 0.  * sf%val(cv_inod) !  U_ABSORB( :, :, MAT_INOD )
+                   !LOC_U_ABSORB( 2, 2, MAT_ILOC ) = 1000.  * sf%val(cv_inod) !  U_ABSORB( :, :, MAT_INOD )
+
+
                 ENDIF
                 LOC_U_ABS_STAB( :, :, MAT_ILOC ) = U_ABS_STAB( :, :, MAT_INOD )
                 IF ( GOT_DIFFUS ) THEN
@@ -3269,25 +3310,47 @@ contains
 
 
                 Loop_DGNods1: DO U_ILOC = 1 + (ILEV-1)*U_NLOC2, ILEV*U_NLOC2
-                    GLOBI = U_NDGLN( ( ELE - 1 ) * U_NLOC + U_ILOC )
-                    IF ( NLEV==1 .AND. LUMP_MASS ) GLOBI_CV = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + U_ILOC )
+                    !GLOBI = U_NDGLN( ( ELE - 1 ) * U_NLOC + U_ILOC )
+                    !IF ( NLEV==1 .AND. LUMP_MASS ) GLOBI_CV = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + U_ILOC )
+
                     ! put CV source in...
                     Loop_CVNods2: DO CV_JLOC = 1, CV_NLOC
-
                         NM = SUM( UFEN( U_ILOC, : ) * CVN( CV_JLOC,  : ) * DETWEI( : ) )
                         IF ( LUMP_MASS ) THEN
+                            ! This is bugged...fix me!
+                            STOP 6378
                             IF ( CV_NLOC==6 .OR. (CV_NLOC==10 .AND. NDIM==3) ) THEN
                                 IF ( CV_JLOC==1 .OR. CV_JLOC==3 .OR. CV_JLOC==6 .OR. CV_JLOC==10 ) THEN
+                                    CV_ILOC = ELEMENT_CORNERS( U_ILOC )
                                     LOC_U_RHS( :, :, U_ILOC ) = LOC_U_RHS( :, :, U_ILOC ) + NM * LOC_U_SOURCE_CV( :, :, CV_ILOC )
                                 END IF
                             ELSE
+                                CV_ILOC = U_ILOC
                                 LOC_U_RHS( :, :, U_ILOC ) = LOC_U_RHS( :, :, U_ILOC ) + NM * LOC_U_SOURCE_CV( :, :, CV_ILOC )
                             END IF
                         ELSE
                             LOC_U_RHS( :, :, U_ILOC ) = LOC_U_RHS( :, :, U_ILOC ) + NM * LOC_U_SOURCE_CV( :, :, CV_JLOC )
                         END IF
-
                     END DO LOOP_CVNODS2
+
+
+            !        IF ( LUMP_MASS ) THEN
+            !           IF ( CV_NLOC==6 .OR. (CV_NLOC==10 .AND. NDIM==3) ) THEN
+            !              CV_ILOC = ELEMENT_CORNERS( U_ILOC )
+            !           ELSE
+            !              CV_ILOC = U_ILOC
+            !           END IF
+            !           DO CV_JLOC = 1, CV_NLOC
+            !              NM = SUM( UFEN( U_ILOC, : ) * CVN( CV_JLOC,  : ) * DETWEI( : ) )
+            !              LOC_U_RHS( :, :, U_ILOC ) = LOC_U_RHS( :, :, U_ILOC ) + NM * LOC_U_SOURCE_CV( :, :, CV_ILOC )
+            !           END DO
+            !        ELSE
+            !           DO CV_JLOC = 1, CV_NLOC
+            !              NM = SUM( UFEN( U_ILOC, : ) * CVN( CV_JLOC,  : ) * DETWEI( : ) )
+            !              LOC_U_RHS( :, :, U_ILOC ) = LOC_U_RHS( :, :, U_ILOC ) + NM * LOC_U_SOURCE_CV( :, :, CV_JLOC )
+            !           END DO
+            !        END IF
+
 
                     Loop_DGNods2: DO U_JLOC = 1 + (ILEV-1)*U_NLOC2, ILEV*U_NLOC2
 

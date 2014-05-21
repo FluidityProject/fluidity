@@ -278,9 +278,9 @@ contains
       ! Local variables
       REAL, PARAMETER :: ZERO_OR_TWO_THIRDS = 0.0
 ! if integrate_other_side then just integrate over a face when cv_nodj>cv_nodi
-      logical, PARAMETER :: integrate_other_side=.true.
+      logical, PARAMETER :: integrate_other_side=  .true.   !.false. !.true.
 ! if .not.correct_method_petrov_method then we can compare our results directly with previous code...
-      logical, PARAMETER :: correct_method_petrov_method=.false.
+      logical, PARAMETER :: correct_method_petrov_method= .false.  !.true.
       LOGICAL, DIMENSION( : ), allocatable :: X_SHARE
       LOGICAL, DIMENSION( :, : ), allocatable :: CV_ON_FACE, U_ON_FACE, &
            CVFEM_ON_FACE, UFEM_ON_FACE
@@ -484,30 +484,27 @@ contains
                       FLAbort('Component field require to introduce icomp')
                   end if
               case (3)!Saturation
-!                  call get_var_from_packed_state(packed_state,PhaseVolumeFraction = T_ALL,&
                   call get_var_from_packed_state(packed_state,PhaseVolumeFraction = T_ALL,&
-                  OldPhaseVolumeFraction = TOLD_ALL, Velocity = U_ALL,&
-                  FEPhaseVolumeFraction =FEMT_ALL, OldFEPhaseVolumeFraction = FEMTOLD_ALL)
+                        OldPhaseVolumeFraction = TOLD_ALL, Velocity = U_ALL,&
+                        FEPhaseVolumeFraction = FEMT_ALL, OldFEPhaseVolumeFraction = FEMTOLD_ALL)
 
                   IF( GETCT ) THEN
-                     IF(RETRIEVE_SOLID_CTY) THEN
+                     IF( RETRIEVE_SOLID_CTY ) THEN
                         ALLOCATE(VOL_FRA_FLUID(CV_NONODS))
                         ALLOCATE(U_HAT_ALL(NDIM,U_NONODS))
 
-                        u_hat_all2 => extract_vector_field( packed_state, "U_hat"  )
-                        u_hat_all=u_hat_all2%val ! ndim, u_nonods
+                        u_hat_all2 => extract_vector_field( packed_state, "U_hat" )
+                        u_hat_all = u_hat_all2%val + u_all( :, 1, :) ! ndim, u_nonods
 
-                        Solid_vol_fra => extract_scalar_field( packed_state, "SolidConcentration"  )
-                        VOL_FRA_FLUID = 1.0 - solid_vol_fra%val ! cv_nonods
+                        Solid_vol_fra => extract_scalar_field( packed_state, "SolidConcentration" )
+                        VOL_FRA_FLUID = 1.0 - 0.9 * solid_vol_fra%val   ! cv_nonods
 
 ! Amend the saturations to produce the real voln fractions -only is we have just one phase.
                         IF(NPHASE==1) THEN
                            ALLOCATE(T_TEMP(NPHASE,CV_NONODS), TOLD_TEMP(NPHASE,CV_NONODS))
                            DO CV_NODI=1,CV_NONODS
-!                              T_TEMP(CV_NODI,:)   =T_ALL(CV_NODI,:)*VOL_FRA_FLUID(CV_NODI)  ! T is an allocatable target
-!                              TOLD_TEMP(CV_NODI,:)=TOLD_ALL(CV_NODI,:)*VOL_FRA_FLUID(CV_NODI)
-                              T_TEMP(CV_NODI,:)   =VOL_FRA_FLUID(CV_NODI)  ! T is an allocatable target
-                              TOLD_TEMP(CV_NODI,:)=VOL_FRA_FLUID(CV_NODI)
+                              T_TEMP(:,CV_NODI)   =VOL_FRA_FLUID(CV_NODI)  ! T is an allocatable target
+                              TOLD_TEMP(:,CV_NODI)=VOL_FRA_FLUID(CV_NODI)
                            END DO
 ! switch off caching of CV face values as this will be wrong. 
                            T_ALL=>T_TEMP
@@ -516,11 +513,11 @@ contains
 ! CONV = A*B ! conV is an allocatable target
 ! T_ALL=>CONV ! conV is an allocatable target
 
-                     ENDIF 
+                     ENDIF
                   ENDIF
               case default
                   FLAbort('Invalid field_selector value')
-          end select
+              end select
 
       else
           ALLOCATE( T_ALL_TARGET( NPHASE, CV_NONODS ), TOLD_ALL_TARGET( NPHASE, CV_NONODS ), FEMT_ALL_TARGET(NPHASE, CV_NONODS) )
@@ -1930,26 +1927,26 @@ contains
                 SCVNGI*TOTELE,state, 'limf6', StorageIndexes(39) )
 
 
-                        IF(GETCT.AND.RETRIEVE_SOLID_CTY) THEN
-                           NDOTQ_HAT = 0.0
-                           DO U_KLOC = 1, U_NLOC
-                              IF (ELE2/=0) THEN ! Between elements...
-                                 NDOTQ_HAT =  NDOTQ_HAT + SUFEN( U_KLOC, GI ) * 0.5 * SUM( CVNORMX_ALL(:, GI) * (LOC_U_HAT( :, U_KLOC ) + LOC2_U_HAT( :, U_KLOC )) )
-                              ELSE
-                                 NDOTQ_HAT =  NDOTQ_HAT + SUFEN( U_KLOC, GI ) * SUM( CVNORMX_ALL(:, GI) * LOC_U_HAT( :, U_KLOC ) )
-                              ENDIF
-                           END DO
-
-!                           if(.true.) then ! use an average to make sure all is well in terms of propagation of information...
-!                               LIMT(:)=0.5*(LOC_T_I( : )+LOC_T_J( : )) 
-!                           endif
-                           DO IPHASE=1,NPHASE
-                              LIMT_HAT(IPHASE)=MAX(1.E-7,LIMT(IPHASE))
-                           END DO
-                           R=SUM(LIMT_HAT(:))
-                           LIMT_HAT(:)=LIMT_HAT(:)/R
-                        ENDIF
-                     
+                IF(GETCT.AND.RETRIEVE_SOLID_CTY) THEN
+                   NDOTQ_HAT = 0.0
+                   DO U_KLOC = 1, U_NLOC
+                      IF (ELE2/=0) THEN ! Between elements...
+                         NDOTQ_HAT =  NDOTQ_HAT + SUFEN( U_KLOC, GI ) * 0.5 * SUM( CVNORMX_ALL(:, GI) * (LOC_U_HAT( :, U_KLOC ) + LOC2_U_HAT( :, U_KLOC )) )
+                      ELSE
+                         NDOTQ_HAT =  NDOTQ_HAT + SUFEN( U_KLOC, GI ) * SUM( CVNORMX_ALL(:, GI) * LOC_U_HAT( :, U_KLOC ) )
+                      ENDIF
+                   END DO
+                   
+                   if(.false.) then ! use an average to make sure all is well in terms of propagation of information...
+                      LIMT(:)=0.5*(LOC_T_I( : )+LOC_T_J( : )) 
+                   endif
+                      
+                   DO IPHASE=1,NPHASE
+                      LIMT_HAT(IPHASE) = MAX(1.E-7,LIMT(IPHASE))
+                   END DO
+                   R=SUM(LIMT_HAT(:))
+                   LIMT_HAT(:)=LIMT_HAT(:)/R
+                ENDIF
 
     ! Amend for porosity...
           IF ( ELE2 /= 0 ) THEN 
@@ -2046,12 +2043,10 @@ contains
                              SUFEN, SCVDETWEI, CVNORMX_ALL, DEN_ALL, CV_NODI, CV_NODJ, &
                              UGI_COEF_ELE_ALL,  &
                              UGI_COEF_ELE2_ALL,  &
-                             NDOTQNEW(IPHASE), NDOTQOLD(IPHASE), NDOTQ_HAT, LIMT(IPHASE), LIMTOLD(IPHASE), LIMDT(IPHASE), LIMDTOLD(IPHASE), LIMT_HAT(IPHASE), &
+                             NDOTQNEW(IPHASE), NDOTQOLD(IPHASE), NDOTQ_HAT, LIMD(IPHASE), LIMT(IPHASE), LIMTOLD(IPHASE), LIMDT(IPHASE), LIMDTOLD(IPHASE), LIMT_HAT(IPHASE), &
                              FTHETA_T2, ONE_M_FTHETA_T2OLD, FTHETA_T2_J, ONE_M_FTHETA_T2OLD_J, integrate_other_side_and_not_boundary, &
-                             RETRIEVE_SOLID_CTY) 
-
+                             RETRIEVE_SOLID_CTY)
                      ENDIF Conditional_GETCT2
-
 
 
                      Conditional_GETCV_DISC: IF ( GETCV_DISC ) THEN
@@ -2347,14 +2342,27 @@ contains
       END IF Conditional_GETCV_DISC2
 
       IF ( GETCT ) THEN
+      
+!      print *, 'edw11.33'
+!      print *, CT_RHS
+!      print *, 1.-VOL_FRA_FLUID
+
+      
+      
+      
+      
          W_SUM_ONE1 = 1.0 !If == 1.0 applies constraint to T
          W_SUM_ONE2 = 0.0 !If == 1.0 applies constraint to TOLD
+
+!T_ALL=1.
+!TOLD_ALL=1.
 
          DIAG_SCALE_PRES = 0.0
 
          DO CV_NODI = 1, CV_NONODS
 
             R = MASS_CV( CV_NODI ) * MEAN_PORE_CV( CV_NODI ) / DT
+
 ! Add constraint to force sum of volume fracts to be unity...
                   ! W_SUM_ONE==1 applies the constraint
                   ! W_SUM_ONE==0 does NOT apply the constraint
@@ -2391,6 +2399,10 @@ contains
 
 
          END DO
+
+!print *, 'edw11.34'
+!print *, CT_RHS
+!print *, 1.-VOL_FRA_FLUID
 
       END IF
 
@@ -11101,7 +11113,7 @@ CONTAINS
        SUFEN, SCVDETWEI, CVNORMX_ALL, DEN_ALL, CV_NODI, CV_NODJ, &
        UGI_COEF_ELE_ALL,  &
        UGI_COEF_ELE2_ALL,  &
-       NDOTQ, NDOTQOLD, NDOTQ_HAT, LIMT, LIMTOLD, LIMDT, LIMDTOLD, LIMT_HAT, &
+       NDOTQ, NDOTQOLD, NDOTQ_HAT, LIMD, LIMT, LIMTOLD, LIMDT, LIMDTOLD, LIMT_HAT, &
        FTHETA_T2, ONE_M_FTHETA_T2OLD, FTHETA_T2_J, ONE_M_FTHETA_T2OLD_J, integrate_other_side_and_not_boundary, &
        RETRIEVE_SOLID_CTY)
     ! This subroutine caculates the discretised cty eqn acting on the velocities i.e. CT, CT_RHS
@@ -11120,7 +11132,7 @@ CONTAINS
     REAL, DIMENSION( NDIM, SCVNGI ), intent( in ) :: CVNORMX_ALL
     REAL, DIMENSION( NDIM, NPHASE, U_NONODS ), intent( in ) :: NU_ALL
     REAL, DIMENSION( NPHASE, CV_NONODS ), intent( in ) :: DEN_ALL
-    REAL, intent( in ) :: NDOTQ, NDOTQOLD, NDOTQ_HAT, LIMT, LIMTOLD, LIMDT, LIMDTOLD, LIMT_HAT
+    REAL, intent( in ) :: NDOTQ, NDOTQOLD, NDOTQ_HAT, LIMT, LIMTOLD, LIMDT, LIMDTOLD, LIMT_HAT, LIMD
 ! LIMT_HAT is the normalised voln fraction
     REAL, intent( in ) :: FTHETA_T2, ONE_M_FTHETA_T2OLD, FTHETA_T2_J, ONE_M_FTHETA_T2OLD_J
 
@@ -11130,17 +11142,29 @@ CONTAINS
     REAL :: RCON,RCON_J, UDGI_IMP_ALL(NDIM), NDOTQ_IMP
     REAL :: UDGI_ALL(NDIM), UOLDDGI_ALL(NDIM), UDGI_HAT_ALL(NDIM)
 
-
     IF(RETRIEVE_SOLID_CTY) THEN ! For solid modelling...
 ! Use backward Euler... (This is for the div uhat term - we subtract what we put in the CT matrix and add what we really want)
-!       CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) + SCVDETWEI( GI ) * ( (LIMT_HAT - LIMT)*NDOTQ - NDOTQ_S*LIMS/REAL(NPHASE) )
-       CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) + SCVDETWEI( GI ) * ( LIMT_HAT*NDOTQ - NDOTQ_HAT/REAL(NPHASE) ) 
-! flux from the other side (change of sign because normal is -ve)...
-    if(integrate_other_side_and_not_boundary) then
-!       CT_RHS( CV_NODJ ) = CT_RHS( CV_NODJ ) - SCVDETWEI( GI ) * ( (LIMT_HAT - LIMT)*NDOTQ - NDOTQ_S*LIMS/REAL(NPHASE) )
-       CT_RHS( CV_NODJ ) = CT_RHS( CV_NODJ ) - SCVDETWEI( GI ) * ( LIMT_HAT*NDOTQ - NDOTQ_HAT/REAL(NPHASE) )
-    endif
 
+!       CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) + SCVDETWEI( GI ) * ( LIMT_HAT*NDOTQ - NDOTQ_HAT/REAL(NPHASE) ) 
+ !      CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) + SCVDETWEI( GI ) * ( (LIMT_HAT-LIMT)*NDOTQ -   0. * NDOTQ_HAT/REAL(NPHASE) ) 
+     !  CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) + SCVDETWEI( GI ) * ( limd * (LIMT_HAT-LIMT)*NDOTQ /DEN_ALL( IPHASE, CV_NODI )-   0. * NDOTQ_HAT/REAL(NPHASE) ) 
+!       CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) + SCVDETWEI( GI ) * ( (LIMT_HAT - LIMT)*NDOTQ - NDOTQ_S*LIMS/REAL(NPHASE) ) 
+
+     ! CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) + SCVDETWEI( GI ) * ( (LIMT_HAT-LIMT)*NDOTQ -   0. * NDOTQ_HAT/REAL(NPHASE) ) * 0.5
+     ! CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) + SCVDETWEI( GI ) * ( LIMT_HAT*NDOTQ - NDOTQ_HAT/REAL(NPHASE) ) * 0.5
+
+       CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) + SCVDETWEI( GI ) * (  (LIMT_HAT-LIMT)*NDOTQ *0. - 0. * NDOTQ_HAT/REAL(NPHASE) ) &
+                                             - SCVDETWEI( GI ) * (  LIMDT * NDOTQ ) / DEN_ALL( IPHASE, CV_NODI ) 
+! flux from the other side (change of sign because normal is -ve)...
+       if(integrate_other_side_and_not_boundary) then
+!          CT_RHS( CV_NODJ ) = CT_RHS( CV_NODJ ) - SCVDETWEI( GI ) * ( LIMT_HAT*NDOTQ - NDOTQ_HAT/REAL(NPHASE) )
+!          CT_RHS( CV_NODJ ) = CT_RHS( CV_NODJ ) - SCVDETWEI( GI ) * (  (LIMT_HAT-LIMT)*NDOTQ-  0. * NDOTQ_HAT/REAL(NPHASE) )
+          CT_RHS( CV_NODJ ) = CT_RHS( CV_NODJ ) - SCVDETWEI( GI ) * ( limd* (LIMT_HAT-LIMT)*NDOTQ/DEN_ALL( IPHASE, CV_NODJ ) -  0. * NDOTQ_HAT/REAL(NPHASE) )
+!       CT_RHS( CV_NODJ ) = CT_RHS( CV_NODJ ) - SCVDETWEI( GI ) * ( (LIMT_HAT - LIMT)*NDOTQ - NDOTQ_S*LIMS/REAL(NPHASE) )
+
+!       CT_RHS( CV_NODJ ) = CT_RHS( CV_NODJ ) - SCVDETWEI( GI ) * ( (LIMT_HAT-LIMT)*NDOTQ -  0. * NDOTQ_HAT/REAL(NPHASE) ) * 0.5
+!       CT_RHS( CV_NODJ ) = CT_RHS( CV_NODJ ) - SCVDETWEI( GI ) * ( LIMT_HAT*NDOTQ - NDOTQ_HAT/REAL(NPHASE) ) * 0.5
+       endif
     ENDIF ! For solid modelling...
 
     DO U_KLOC = 1, U_NLOC
@@ -11149,8 +11173,10 @@ CONTAINS
             * SUFEN( U_KLOC, GI ) / DEN_ALL( IPHASE, CV_NODI )
 
        IF(RETRIEVE_SOLID_CTY) THEN ! For solid modelling use backward Euler for this part...
-          RCON    = RCON    + SCVDETWEI( GI )  * (LIMT_HAT - LIMT)  &
-               * SUFEN( U_KLOC, GI ) 
+          RCON    = RCON    + SCVDETWEI( GI )  *  LIMD * (LIMT_HAT - LIMT) &
+               * SUFEN( U_KLOC, GI )  / DEN_ALL( IPHASE, CV_NODI )
+          !RCON    = RCON    + SCVDETWEI( GI )  *  (LIMT_HAT - LIMT) &
+          !     * SUFEN( U_KLOC, GI )
        ENDIF ! For solid modelling...
 
        DO IDIM = 1, NDIM
@@ -11163,7 +11189,9 @@ CONTAINS
        RCON_J    = SCVDETWEI( GI ) * FTHETA_T2_J * LIMDT &
             * SUFEN( U_KLOC, GI ) / DEN_ALL( IPHASE, CV_NODJ )
        IF(RETRIEVE_SOLID_CTY) THEN ! For solid modelling...
-          RCON_J    = RCON_J  + SCVDETWEI( GI ) * (LIMT_HAT - LIMT)  &
+          !RCON    = RCON    + SCVDETWEI( GI )  *  LIMD * (LIMT_HAT - LIMT) &
+          !     * SUFEN( U_KLOC, GI )  / DEN_ALL( IPHASE, CV_NODJ )
+          RCON_J    = RCON_J  + SCVDETWEI( GI ) * (LIMT_HAT - LIMT) &
             * SUFEN( U_KLOC, GI ) 
        ENDIF ! For solid modelling...
 
@@ -11195,6 +11223,7 @@ CONTAINS
        CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) - SCVDETWEI( GI ) * ( &
             ONE_M_FTHETA_T2OLD * LIMDTOLD * NDOTQOLD &
             ) / DEN_ALL( IPHASE, CV_NODI ) 
+
 ! flux from the other side (change of sign because normal is -ve)...
     if(integrate_other_side_and_not_boundary) then
        CT_RHS( CV_NODJ ) = CT_RHS( CV_NODJ ) + SCVDETWEI( GI ) * ( &

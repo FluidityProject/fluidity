@@ -76,7 +76,7 @@
                                                Density_Component, Cp, Component_l, c_cv_nod
       character( len = option_path_len ), dimension( : ), allocatable :: eos_option_path
       type( tensor_field ), pointer :: field1, field2, field3, field4
-      type( scalar_field ), pointer :: Cp_s
+      type( scalar_field ), pointer :: Cp_s, sf
       integer :: icomp, iphase, ncomp, sc, ec, sp, ep, stat, cv_iloc, cv_nod, ele
 
       DRhoDPressure = 0.
@@ -187,11 +187,13 @@
       field2 => extract_tensor_field( packed_state, "PackedDensityHeatCapacity" )
       if( ncomp > 1 ) field3 => extract_tensor_field( packed_state, "PackedComponentDensity" )
 
+      !sf => extract_scalar_field( packed_state, "SolidConcentration" )
+
       do iphase = 1, nphase
          sp = ( iphase - 1 ) * cv_nonods + 1 
          ep = iphase * cv_nonods 
-         field1 % val ( 1, iphase, :) = Density_Bulk( sp : ep )
-         field2 % val ( 1, iphase, :) = DensityCp_Bulk( sp : ep )
+         field1 % val ( 1, iphase, :) = Density_Bulk( sp : ep )         !* ( 1. - sf%val)     +   1000. *  sf%val
+         field2 % val ( 1, iphase, :) = DensityCp_Bulk( sp : ep )       !* ( 1. - sf%val)     +   1000. *  sf%val
          if( ncomp > 1 ) then
             do icomp = 1, ncomp
                sc = ( icomp - 1 ) * nphase * cv_nonods + ( iphase - 1 ) * cv_nonods + 1

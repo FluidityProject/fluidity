@@ -538,10 +538,10 @@
       in_ele_upwind = 3 ; dg_ele_upwind = 3
 
       ! simplify things...
-!      in_ele_upwind = 1 ; dg_ele_upwind = 1
-!      u_dg_vel_int_opt = 1
-!      v_dg_vel_int_opt = 1
-!      v_disopt = 0
+      !in_ele_upwind = 1 ; dg_ele_upwind = 1
+      !u_dg_vel_int_opt = 1
+      !v_dg_vel_int_opt = 1
+      !v_disopt = 0 ; t_disopt = 0
 
       return
     end subroutine Get_Discretisation_Options
@@ -1988,6 +1988,17 @@
       position=>extract_vector_field(state(1),"Coordinate")
       ndim=mesh_dim(position)
 
+      call insert(packed_state,position%mesh,"CoordinateMesh")
+
+
+#ifdef USING_FEMDEM
+      sfield => extract_scalar_field( state(1), "SolidConcentration" )
+      call insert( packed_state, sfield, "SolidConcentration" )
+
+      vfield => extract_vector_field( state(1), "U_hat" )
+      call insert( packed_state, vfield, "U_hat" )
+#endif
+
       if (has_scalar_field(state(1),"Porosity")) then
          sfield=>extract_scalar_field(state(1),"Porosity")
          element_mesh=sfield%mesh
@@ -2028,7 +2039,7 @@
 
       if (option_count("/material_phase/scalar_field::Temperature")>0) then
          call insert_sfield(packed_state,"Temperature",1,nphase,&
-	         add_source=.true.,add_absorption=.true.)
+           add_source=.true.,add_absorption=.true.)
           call insert_sfield(packed_state,"FETemperature",1,nphase)
       end if
       call insert_sfield(packed_state,"PhaseVolumeFraction",1,nphase,&

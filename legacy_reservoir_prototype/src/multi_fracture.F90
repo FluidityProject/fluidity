@@ -73,9 +73,10 @@ module multiphase_fractures
   end interface
 
   interface
-     subroutine y2dfemdem( string, p, u_r, v_r, u_s, v_s, du_s, dv_s )
+     subroutine y2dfemdem( string, dt, p, uf_r, vf_r, uf_v, vf_v, du_s, dv_s )
        character( len = * ), intent( in ) :: string
-       real, dimension( * ), intent( in ) :: p, u_r, v_r, u_s, v_s
+       real, intent( in ) :: dt
+       real, dimension( * ), intent( in ) :: p, uf_r, vf_r, uf_v, vf_v
        real, dimension( * ), intent( out ) :: du_s, dv_s
      end subroutine y2dfemdem
   end interface
@@ -91,6 +92,9 @@ module multiphase_fractures
 
 contains
 
+
+
+
   subroutine blasting( packed_state, nphase )
 
     implicit none
@@ -101,6 +105,7 @@ contains
     real, dimension( : ), allocatable :: p_r
     real, dimension( :, : ), allocatable :: uf_r, uf_v, du_s
     integer :: r_nonods, v_nonods
+    real :: dt
 
     ! read in ring and solid volume meshes
     ! and simplify the volume mesh
@@ -114,11 +119,13 @@ contains
 
     call interpolate_fields_out_r( packed_state, nphase, p_r, uf_r )
     call interpolate_fields_out_v( packed_state, nphase, uf_v )
+    call get_option( "/timestepping/timestep", dt )
 
-    call y2dfemdem( trim( femdem_mesh_name ) // char( 0 ), p_r, uf_r( 1, : ), uf_r( 2, : ), &
+    call y2dfemdem( trim( femdem_mesh_name ) // char( 0 ), dt, p_r, uf_r( 1, : ), uf_r( 2, : ), &
                      uf_v( 1, : ), uf_v( 2, : ), du_s( 1, : ), du_s( 2, : ) )
 
     call interpolate_fields_in( packed_state, du_s )
+
 
     ! deallocate
     call deallocate_femdem
@@ -595,8 +602,8 @@ contains
     type( scalar_field ) :: field_fl_p, field_fl_u, field_fl_v, &
          &                  field_ext_p, field_ext_u, field_ext_v, &
          &                  u_dg, v_dg
-    type( vector_field ) :: fl_positions
     type( scalar_field ), pointer :: pressure
+    type( vector_field ), pointer :: fl_positions
     type( tensor_field ), pointer :: velocity
     type( state_type ) :: alg_ext, alg_fl
     real, dimension( :, :, : ), allocatable :: u_tmp
@@ -613,7 +620,7 @@ contains
     cv_nloc = ele_loc( pressure, 1 )
 
     fl_mesh => extract_mesh( packed_state, "CoordinateMesh" )
-    fl_positions = extract_vector_field( packed_state, "Coordinate" )
+    fl_positions => extract_vector_field( packed_state, "Coordinate" )
 
     totele = ele_count( fl_mesh )
 
@@ -711,8 +718,6 @@ contains
     u_r( 2, : ) = field_ext_v % val
 
     ! deallocate
-    call deallocate( fl_positions )
-
     call deallocate( field_fl_p )
     call deallocate( field_fl_u )
     call deallocate( field_fl_v )
@@ -747,7 +752,7 @@ contains
     type( scalar_field ) :: field_fl_u, field_fl_v, &
          &                  field_ext_u, field_ext_v, &
          &                  u_dg, v_dg
-    type( vector_field ) :: fl_positions
+    type( vector_field ), pointer :: fl_positions
     type( tensor_field ), pointer :: velocity
     type( state_type ) :: alg_ext, alg_fl
     real, dimension( :, :, : ), allocatable :: u_tmp
@@ -757,7 +762,7 @@ contains
     u_v = 0.
 
     fl_mesh => extract_mesh( packed_state, "CoordinateMesh" )
-    fl_positions = extract_vector_field( packed_state, "Coordinate" )
+    fl_positions => extract_vector_field( packed_state, "Coordinate" )
 
     call set_solver_options( path, &
          ksptype = "cg", &
@@ -828,8 +833,6 @@ contains
     u_v( 2, : ) = field_ext_v % val
 
     ! deallocate
-    call deallocate( fl_positions )
-
     call deallocate( field_fl_u )
     call deallocate( field_fl_v )
 
@@ -861,8 +864,7 @@ contains
     type( scalar_field ), pointer :: solid, f
     type( scalar_field ) :: field_fl_u, field_fl_v, &
          &                  field_ext_u, field_ext_v, f2
-    type( vector_field ), pointer :: u_hat
-    type( vector_field ) :: fl_positions
+    type( vector_field ), pointer :: fl_positions, u_hat
     type( tensor_field ), pointer :: u_f
     type( state_type ) :: alg_ext, alg_fl
     integer :: stat, idim
@@ -882,7 +884,7 @@ contains
     path = "/tmp"
 
     fl_mesh => extract_mesh( packed_state, "CoordinateMesh" )
-    fl_positions = extract_vector_field( packed_state, "Coordinate" )
+    fl_positions => extract_vector_field( packed_state, "Coordinate" )
 
     ! fluidity state
     call insert( alg_fl, fl_mesh, "Mesh" )
@@ -905,12 +907,10 @@ contains
 
     call allocate( field_ext_u, positions_v%mesh, "Velocity1" )
     field_ext_u % val = du_s( 1, : )
-    field_ext_u % option_path = path
     call insert( alg_ext, field_ext_u, "Velocity1" )
 
     call allocate( field_ext_v, positions_v%mesh, "Velocity2" )
     field_ext_v % val = du_s( 2, : )
-    field_ext_v % option_path = path
     call insert( alg_ext, field_ext_v, "Velocity2" )
 
     solid => extract_scalar_field( packed_state, "SolidConcentration" )
@@ -925,21 +925,19 @@ contains
     ! calculate u_hat using the supplementary equation (Eq. 124)
     ! that is u_hat = du + u_f
     u_hat => extract_vector_field( packed_state, "U_hat" )
-    u_f => extract_tensor_field( packed_state, "Velocity" )
+    u_f => extract_tensor_field( packed_state, "PackedVelocity" )
 
     u_mesh => extract_mesh( packed_state, "VelocityMesh" )
     call allocate( f2, u_mesh, "dummy" )
 
     do idim = 1, ndim
-       f => extract_scalar_field( alg_ext, "Velocity" // int2str( idim ) )
+       f => extract_scalar_field( alg_fl, "Velocity" // int2str( idim ) )
        call project_field( f, f2, fl_positions )
-       u_hat % val( idim, : ) = f2 % val + u_f % val( idim, 1, : )
+       !u_hat % val( idim, : ) = f2 % val + u_f % val( idim, 1, : )
+       u_hat % val( idim, : ) = f2 % val
     end do
 
-
     ! deallocate
-    call deallocate( fl_positions )
-
     call deallocate( field_fl_u )
     call deallocate( field_fl_v )
 

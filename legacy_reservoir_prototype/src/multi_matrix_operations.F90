@@ -154,16 +154,70 @@
       end interface
 
       LWORK=N*N
+      
+      mat=a
 
       call dgetrf(N,N,A,NMAX,IPIV,INFO)
       call dgetri(N,A,NMAX,IPIV,WORK,max(1,LWORK),INFO)
       if (info==0) then
          return
       else
+         ewrite(2,*) MAT
+         print *, 'mat', mat
          FLAbort("PIVIT Matrix block inversion failed")
       end if
 
     END SUBROUTINE MATINV
+
+    SUBROUTINE MATINVold( A, N, NMAX, MAT, MAT2, X, B)
+      ! This sub finds the inverse of the matrix A and puts it back in A. 
+      ! MAT, MAT2, X and B are working vectors. 
+      IMPLICIT NONE
+      INTEGER, intent( in ) :: N, NMAX
+      REAL, DIMENSION( NMAX, NMAX ), intent( inout ) ::  A
+      REAL, DIMENSION( N, N ), intent( inout ) :: MAT, MAT2
+      REAL, DIMENSION( N ), intent( inout ) :: X, B
+      ! Local variables
+      INTEGER :: ICOL, IM, JM
+      INTEGER , DIMENSION(N,N) :: IPIV
+
+      ! Solve MAT XL=BX (NB BDIAG is overwritten)
+      ICOL = 1
+      B( 1 : N ) = 0.
+      B( ICOL ) = 1.
+
+      MAT = A( 1:N,1:N )
+
+      CALL SMLINNGOT( MAT, X, B, N, N,IPIV, .FALSE. ) ! X contains the column ICOL of inverse
+
+      DO IM = 1, N
+         MAT2( IM, ICOL ) = X( IM )
+      END DO
+
+      DO ICOL = 2, N ! Form column ICOL of the inverse. 
+         B = 0.
+         B( ICOL ) = 1.0 ! Solve MAT X=B (NB MAT is overwritten).  
+
+         CALL SMLINNGOT( MAT, X, B, N, N,IPIV, .TRUE. ) ! X contains the column ICOL of inverse
+
+         DO IM = 1, N
+            MAT2( IM, ICOL ) = X( IM )
+         END DO
+      END DO
+
+      !
+      ! Set A to MAT2
+      Loop_IM2: DO IM = 1, N
+         Loop_JM2: DO JM = 1, N
+            A( IM, JM ) = MAT2( IM, JM )
+         END DO Loop_JM2
+      END DO Loop_IM2
+
+      RETURN
+    END SUBROUTINE MATINVold
+
+
+
 
     SUBROUTINE MATMASSINV( MASINV, MMAT, NONODS, NLOC, TOTELE )
       IMPLICIT NONE
@@ -924,8 +978,12 @@
       ! Local variables
       INTEGER :: ELE
 
+      REAL, DIMENSION( NBLOCK , NBLOCK ) :: MAT, MAT2
+      REAL, DIMENSION( NBLOCK ) :: X, B
+
       DO ELE = 1, TOTELE
-         CALL MATINV( PIVIT_MAT( :, :, ele ), NBLOCK, NBLOCK )
+         !CALL MATINV( PIVIT_MAT( :, :, ele ), NBLOCK, NBLOCK )
+         CALL MATINVold( PIVIT_MAT( :, :, ele ), NBLOCK, NBLOCK, MAT, MAT2, X, B )
       END DO
 
       RETURN
