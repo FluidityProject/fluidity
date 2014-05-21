@@ -718,12 +718,12 @@
                      IJ = ( IPHASE - 1 ) * MAT_NONODS * NDIM * NDIM + ( IMAT - 1 ) * NDIM * NDIM + &
                           ( IDIM - 1 ) * NDIM + JDIM
                      OPT_VEL_UPWIND_COEFS( IJ ) &
-                          = U_ABSORB( IMAT, IDIM + ( IPHASE - 1 ) * NDIM, JDIM + ( IPHASE - 1 ) * NDIM ) 
-                     ! This is the gradient...
+                          = U_ABSORB( IMAT, IDIM + ( IPHASE - 1 ) * NDIM, JDIM + ( IPHASE - 1 ) * NDIM )
+!                     ! This is the gradient...
                      OPT_VEL_UPWIND_COEFS( IJ + NPHASE * MAT_NONODS * NDIM * NDIM ) &
-                          = ( U_ABSORB2( IMAT, IDIM + ( IPHASE - 1 ) * NDIM, JDIM + ( IPHASE - 1 ) * NDIM ) &
-                          - U_ABSORB( IMAT, IDIM + ( IPHASE - 1 ) * NDIM, JDIM + ( IPHASE - 1 ) * NDIM ) )  &
-                          / ( SATURA2(IPHASE, ICV ) - SATURA(IPHASE, ICV))
+                          = (U_ABSORB2( IMAT, IDIM + ( IPHASE - 1 ) * NDIM, JDIM + ( IPHASE - 1 ) * NDIM ) -&
+                        U_ABSORB( IMAT, IDIM + ( IPHASE - 1 ) * NDIM, JDIM + ( IPHASE - 1 ) * NDIM ))&
+                         / ( SATURA2(IPHASE, ICV ) - SATURA(IPHASE, ICV))
                   END DO
                END DO
             END DO
@@ -769,6 +769,7 @@
       ewrite(3,*) 'In calculate_absorption2'
       ALLOCATE( INV_PERM(  NDIM, NDIM, TOTELE ))
       ALLOCATE( PERM( NDIM, NDIM , TOTELE))
+
 
       perm=perm2
       do ele = 1, totele
@@ -885,12 +886,14 @@
 
     subroutine get_corey_options(options)
       type(corey_options) :: options
-      !    S_GC = 0.1
+      !WE HAVE TO REMOVE THE DEFAULTS OF s_gc AND s_or
+      !BUT THE TEST CASES WONT WORK IF WE DO IT NOW.
       call get_option("/material_phase[0]/multiphase_properties/immobile_fraction", &
            options%s_gc, default=0.1)
-      !    S_OR = 0.3
       call get_option("/material_phase[1]/multiphase_properties/immobile_fraction", &
            options%s_or, default=0.3)
+
+
       call get_option("/material_phase[0]/multiphase_properties/relperm_type/Corey/relperm_max", &
            options%kr1_max, default=1.0)
       call get_option("/material_phase[1]/multiphase_properties/relperm_type/Corey/relperm_max", &
@@ -954,6 +957,7 @@
         KR = min(max(1d-20, KR),Krmax)!Lower value just to make sure we do not divide by zero.
         ABSP = INV_PERM * (VISC * max(1d-10,SATURATION)) / KR !The value1d-10 is only used if the boundaries have values of saturation of zero.
         !Otherwise, the saturation should never be zero, since immobile fraction is always bigger than zero.
+
       RETURN
     END SUBROUTINE relperm_corey_epsilon
 

@@ -415,7 +415,7 @@ contains
                   option_path = path )
 
 
-   if(.true.) then
+   if(.false.) then
 ! optimize smoother contribution to solution...
        DP_DG=p-ustep
        p=ustep
