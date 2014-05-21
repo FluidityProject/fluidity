@@ -971,7 +971,7 @@ contains
                         DO IDIM=1,NDIM
                            DO JDIM=1,NDIM
                               IJ=(IPHASE-1)*MAT_NONODS*NDIM*NDIM + (MAT_NODI-1)*NDIM*NDIM + (IDIM-1)*NDIM +JDIM
-                              INV_GI_LOC_OPT_VEL_UPWIND_COEFS(IDIM,JDIM,IPHASE) = OPT_VEL_UPWIND_COEFS(IJ+NPHASE*MAT_NONODS*NDIM*NDIM) 
+                              INV_GI_LOC_OPT_VEL_UPWIND_COEFS(IDIM,JDIM,IPHASE) = OPT_VEL_UPWIND_COEFS(IJ) 
                            END DO
                         END DO
                         call invert(INV_GI_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE))
