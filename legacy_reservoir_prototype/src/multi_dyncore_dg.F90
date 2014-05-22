@@ -1246,8 +1246,9 @@ contains
         DENOLD_ALL = DENOLD_ALL2%VAL( 1, :, : )
 
         if ( have_option ( '/material_phase[0]/multiphase_properties/relperm_type' ) )then
-           UDEN_ALL=0.0
-           UDENOLD_ALL=0.0
+           UDEN_ALL=0.0; UDENOLD_ALL=0.0
+           !Calculate gravity effects for porous media
+           call calculate_u_source_cv( state, cv_nonods, ndim, nphase, DEN_ALL, U_Source_CV )
         else
            if ( linearise_density ) then
               call linearise_field( DEN_ALL2, UDEN_ALL )
@@ -1256,6 +1257,7 @@ contains
               UDEN_ALL = DEN_ALL2%VAL( 1, :, : )
               UDENOLD_ALL = DENOLD_ALL2%VAL( 1, :, : )
            end if
+            call calculate_u_source_cv( state, cv_nonods, ndim, nphase, uden_all, U_Source_CV )
         end if
 
         !sf => EXTRACT_SCALAR_FIELD( PACKED_STATE, "SolidConcentration" )
@@ -1263,9 +1265,6 @@ contains
         !UDEN_ALL(1,:) = UDEN_ALL(1,:) * ( 1. - sf%val)     +   1000. *  sf%val
         !UDENOLD_ALL(1,:) = UDENOLD_ALL(1,:) * ( 1. - sf%val)     +   1000. *  sf%val
 
-
-
-        call calculate_u_source_cv( state, cv_nonods, ndim, nphase, uden_all, U_Source_CV )
 
         ! calculate the viscosity for the momentum equation...
         !if ( its == 1 ) 
