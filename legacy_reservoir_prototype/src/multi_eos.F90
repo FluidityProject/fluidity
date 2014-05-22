@@ -1315,9 +1315,9 @@
                    end do
             end do
          end do
+          deallocate(aux_FEM_den)
       end if
 
-      deallocate(aux_FEM_den)
       deallocate(g)
     end subroutine calculate_u_source
 
