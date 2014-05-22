@@ -1184,6 +1184,7 @@ contains
         type( vector_field ), pointer :: x_all2
         type( scalar_field ), pointer :: p_all, cvp_all, Pressure_State, sf
 
+        real, dimension(:,:), pointer :: den_fem
 
         ALLOCATE( U_ALL( NDIM, NPHASE, U_NONODS ), UOLD_ALL( NDIM, NPHASE, U_NONODS ), &
         X_ALL( NDIM, X_NONODS ), UDEN_ALL( NPHASE, CV_NONODS ), UDENOLD_ALL( NPHASE, CV_NONODS ), &
@@ -1245,10 +1246,13 @@ contains
         DEN_ALL = DEN_ALL2%VAL( 1, :, : )
         DENOLD_ALL = DENOLD_ALL2%VAL( 1, :, : )
 
+        !Calculate gravity source terms
         if ( have_option ( '/material_phase[0]/multiphase_properties/relperm_type' ) )then
            UDEN_ALL=0.0; UDENOLD_ALL=0.0
            !Calculate gravity effects for porous media
-           call calculate_u_source_cv( state, cv_nonods, ndim, nphase, DEN_ALL, U_Source_CV )
+           !Compact overlapping calculation is after the conversion from old to new
+           if (is_overlapping) &
+                call calculate_u_source_cv( state, cv_nonods, ndim, nphase, DEN_ALL, U_Source_CV )
         else
            if ( linearise_density ) then
               call linearise_field( DEN_ALL2, UDEN_ALL )
@@ -1312,6 +1316,13 @@ contains
         END DO
         !##########TEMPORARY ADAPT FROM OLD VARIABLES TO NEW############
 
+        !Calculate the RHS for compact_overlapping
+        if (is_compact_overlapping) then
+           !FEM representation
+           call get_var_from_packed_state(packed_state, FEDensity = den_fem)
+           call calculate_u_source( state, den_fem, U_SOURCE_ALL )
+        end if
+
 
         CALL CV_ASSEMB_FORCE_CTY( state, packed_state, &
              velocity,pressure, &
@@ -1365,7 +1376,6 @@ contains
         END IF
 
         DEALLOCATE( ACV )
-
         NO_MATRIX_STORE = ( NCOLDGM_PHA <= 1 )
 
         IF ( GLOBAL_SOLVE ) THEN
@@ -3311,7 +3321,6 @@ integer :: cv_nodi
                 Loop_DGNods1: DO U_ILOC = 1 + (ILEV-1)*U_NLOC2, ILEV*U_NLOC2
                     !GLOBI = U_NDGLN( ( ELE - 1 ) * U_NLOC + U_ILOC )
                     !IF ( NLEV==1 .AND. LUMP_MASS ) GLOBI_CV = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + U_ILOC )
-
                     ! put CV source in...
                     Loop_CVNods2: DO CV_JLOC = 1, CV_NLOC
                         NM = SUM( UFEN( U_ILOC, : ) * CVN( CV_JLOC,  : ) * DETWEI( : ) )
@@ -3732,7 +3741,6 @@ integer :: cv_nodi
 
                             DO IDIM = 1, NDIM_VEL
                                 JDIM = IDIM
-
                                 IF ( .NOT.JUST_BL_DIAG_MAT ) THEN
                                     IF ( NO_MATRIX_STORE ) THEN
                                         LOC_U_RHS( IDIM, IPHASE, U_ILOC ) = LOC_U_RHS( IDIM, IPHASE, U_ILOC ) &
@@ -3777,7 +3785,6 @@ integer :: cv_nodi
                ! endof IF(RESID_BASED_STAB_DIF.NE.0) THEN
             END IF
             ! **********REVIEWER 2-END**********************
-
 
             ! copy local memory
             DO U_ILOC = 1, U_NLOC

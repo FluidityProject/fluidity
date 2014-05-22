@@ -3369,7 +3369,7 @@ subroutine allocate_multicomponent_scalar_bcs(s,ms,name)
     end subroutine get_var_from_packed_state
 
 
-    !Subroutine to print Arrays by (columns,rows)
+    !Subroutine to print Arrays by (rows,columns)
     !Matrix = Square 2D Array
     subroutine printMatrix(Matrix)
         implicit none
@@ -3377,15 +3377,14 @@ subroutine allocate_multicomponent_scalar_bcs(s,ms,name)
         Integer :: length,i,j, k
         character (len=1000000) :: cadena
         character (len=100) :: aux
-        double precision, intent(in), dimension(:,:):: Matrix
+        real, intent(in), dimension(:,:):: Matrix
 
-        length = size(Matrix,1);
-
-        do i = 1,size(Matrix,2)
+        length = size(Matrix,2);
+        do i = 1,size(Matrix,1)
             print *,""
             cadena = ""
             do j = 1 , length
-                write(aux,*), Matrix(j,i)
+                write(aux,*), Matrix(i,j)
                 k = index(trim(aux),"E",.true.)
                 if (k/=0) then
                     aux = aux(1:k-6)//trim(aux(k:))
