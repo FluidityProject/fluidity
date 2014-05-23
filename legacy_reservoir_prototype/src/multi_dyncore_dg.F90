@@ -1266,8 +1266,8 @@ contains
 
         !sf => EXTRACT_SCALAR_FIELD( PACKED_STATE, "SolidConcentration" )
 
-        !UDEN_ALL(1,:) = UDEN_ALL(1,:) * ( 1. - sf%val)     +   1000. *  sf%val
-        !UDENOLD_ALL(1,:) = UDENOLD_ALL(1,:) * ( 1. - sf%val)     +   1000. *  sf%val
+        !UDEN_ALL(1,:) = UDEN_ALL(1,:) * ( 1. - sf%val)
+        !UDENOLD_ALL(1,:) = UDENOLD_ALL(1,:) * ( 1. - sf%val)
 
 
         ! calculate the viscosity for the momentum equation...
@@ -1434,9 +1434,7 @@ contains
             CALL CT_MULT2( P_RHS, UP_VEL, CV_NONODS, U_NONODS, NDIM, NPHASE, &
             CT, NCOLCT, FINDCT, COLCT )
 
-
             P_RHS = -P_RHS + CT_RHS
-            !!P_RHS =  CT_RHS
 
             ! Matrix vector involving the mass diagonal term
             DO CV_NOD = 1, CV_NONODS
@@ -1446,8 +1444,6 @@ contains
                     -DIAG_SCALE_PRES( CV_NOD ) * MASS_MN_PRES( COUNT ) * P_ALL%VAL( CV_JNOD )
                 END DO
             END DO
-
-
 
 
            ! Sf => extract_scalar_field( packed_state, "SolidConcentration" )
@@ -3023,6 +3019,7 @@ integer :: cv_nodi
             LOC_U_ABSORB = 0.0
             DO MAT_ILOC = 1, MAT_NLOC
                 MAT_INOD = MAT_NDGLN( ( ELE - 1 ) * MAT_NLOC + MAT_ILOC )
+
                 IF(is_compact_overlapping) THEN ! Set to the identity - NOT EFFICIENT BUT GOOD ENOUGH FOR NOW AS ITS SIMPLE...
                    DO I=1,NDIM_VEL* NPHASE
                       LOC_U_ABSORB( I, I, MAT_ILOC ) = 1.0 
@@ -3031,14 +3028,19 @@ integer :: cv_nodi
 
                    LOC_U_ABSORB( :, :, MAT_ILOC ) = U_ABSORB( :, :, MAT_INOD )
 
+                   !CV_INOD = CV_NDGLN( ( ELE - 1 ) * MAT_NLOC + MAT_ILOC )
 
-                   !LOC_U_ABSORB( 1, 1, MAT_ILOC ) = 1000.  * sf%val(cv_inod) !  U_ABSORB( :, :, MAT_INOD )
-                   !LOC_U_ABSORB( 1, 2, MAT_ILOC ) = 0.  * sf%val(cv_inod) !  U_ABSORB( :, :, MAT_INOD )
-                   !LOC_U_ABSORB( 2, 1, MAT_ILOC ) = 0.  * sf%val(cv_inod) !  U_ABSORB( :, :, MAT_INOD )
-                   !LOC_U_ABSORB( 2, 2, MAT_ILOC ) = 1000.  * sf%val(cv_inod) !  U_ABSORB( :, :, MAT_INOD )
+                   !LOC_U_ABSORB( 1, 1, MAT_ILOC ) = 1.e+3  * sf%val(cv_inod)
+                   !LOC_U_ABSORB( 1, 2, MAT_ILOC ) = 0.  * sf%val(cv_inod)
+                   !LOC_U_ABSORB( 2, 1, MAT_ILOC ) = 0.  * sf%val(cv_inod)
+                   !LOC_U_ABSORB( 2, 2, MAT_ILOC ) = 1.e+3  * sf%val(cv_inod)
 
+                   !LOC_U_ABSORB( 1, 1, MAT_ILOC ) = den_f / dt * sf%val(cv_inod)
+                   !LOC_U_ABSORB( 1, 2, MAT_ILOC ) = 0.  * sf%val(cv_inod)
+                   !LOC_U_ABSORB( 2, 1, MAT_ILOC ) = 0.  * sf%val(cv_inod)
+                   !LOC_U_ABSORB( 2, 2, MAT_ILOC ) = den_f / dt * sf%val(cv_inod)
 
-                ENDIF
+                END IF
                 LOC_U_ABS_STAB( :, :, MAT_ILOC ) = U_ABS_STAB( :, :, MAT_INOD )
                 IF ( GOT_DIFFUS ) THEN
                    LOC_UDIFFUSION( :, :, :, MAT_ILOC ) = UDIFFUSION_ALL( :, :, :, MAT_INOD )

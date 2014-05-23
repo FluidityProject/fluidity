@@ -192,9 +192,11 @@
       do iphase = 1, nphase
          sp = ( iphase - 1 ) * cv_nonods + 1 
          ep = iphase * cv_nonods 
+         
          field1 % val ( 1, iphase, :) = Density_Bulk( sp : ep )         !* ( 1. - sf%val)     +   1000. *  sf%val
          field2 % val ( 1, iphase, :) = DensityCp_Bulk( sp : ep )       !* ( 1. - sf%val)     +   1000. *  sf%val
-         if( ncomp > 1 ) then
+
+        if( ncomp > 1 ) then
             do icomp = 1, ncomp
                sc = ( icomp - 1 ) * nphase * cv_nonods + ( iphase - 1 ) * cv_nonods + 1
                ec = ( icomp - 1 ) * nphase * cv_nonods + iphase * cv_nonods

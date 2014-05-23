@@ -497,7 +497,7 @@ contains
                         u_hat_all = u_hat_all2%val + u_all( :, 1, :) ! ndim, u_nonods
 
                         Solid_vol_fra => extract_scalar_field( packed_state, "SolidConcentration" )
-                        VOL_FRA_FLUID = 1.0 - 0.9 * solid_vol_fra%val   ! cv_nonods
+                        VOL_FRA_FLUID = 1.0 - 1.0 * solid_vol_fra%val   ! cv_nonods
 
 ! Amend the saturations to produce the real voln fractions -only is we have just one phase.
                         IF(NPHASE==1) THEN
@@ -2346,9 +2346,6 @@ contains
 !      print *, 'edw11.33'
 !      print *, CT_RHS
 !      print *, 1.-VOL_FRA_FLUID
-
-      
-      
       
       
          W_SUM_ONE1 = 1.0 !If == 1.0 applies constraint to T
@@ -2372,6 +2369,7 @@ contains
 ! VOL_FRA_FLUID is the old voln fraction of total fluid...
 ! multiply by solid-voln fraction: (1.-VOL_FRA_FLUID)
                CT_RHS( CV_NODI ) = CT_RHS( CV_NODI )  + (1.-VOL_FRA_FLUID( CV_NODI )) * R
+
             ENDIF
 
             DO IPHASE = 1, NPHASE
@@ -11133,7 +11131,7 @@ CONTAINS
     REAL, DIMENSION( NDIM, NPHASE, U_NONODS ), intent( in ) :: NU_ALL
     REAL, DIMENSION( NPHASE, CV_NONODS ), intent( in ) :: DEN_ALL
     REAL, intent( in ) :: NDOTQ, NDOTQOLD, NDOTQ_HAT, LIMT, LIMTOLD, LIMDT, LIMDTOLD, LIMT_HAT, LIMD
-! LIMT_HAT is the normalised voln fraction
+    ! LIMT_HAT is the normalised voln fraction
     REAL, intent( in ) :: FTHETA_T2, ONE_M_FTHETA_T2OLD, FTHETA_T2_J, ONE_M_FTHETA_T2OLD_J
 
     ! Local variables...
@@ -11142,73 +11140,54 @@ CONTAINS
     REAL :: RCON,RCON_J, UDGI_IMP_ALL(NDIM), NDOTQ_IMP
     REAL :: UDGI_ALL(NDIM), UOLDDGI_ALL(NDIM), UDGI_HAT_ALL(NDIM)
 
-    IF(RETRIEVE_SOLID_CTY) THEN ! For solid modelling...
-! Use backward Euler... (This is for the div uhat term - we subtract what we put in the CT matrix and add what we really want)
-
-!       CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) + SCVDETWEI( GI ) * ( LIMT_HAT*NDOTQ - NDOTQ_HAT/REAL(NPHASE) ) 
- !      CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) + SCVDETWEI( GI ) * ( (LIMT_HAT-LIMT)*NDOTQ -   0. * NDOTQ_HAT/REAL(NPHASE) ) 
-     !  CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) + SCVDETWEI( GI ) * ( limd * (LIMT_HAT-LIMT)*NDOTQ /DEN_ALL( IPHASE, CV_NODI )-   0. * NDOTQ_HAT/REAL(NPHASE) ) 
-!       CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) + SCVDETWEI( GI ) * ( (LIMT_HAT - LIMT)*NDOTQ - NDOTQ_S*LIMS/REAL(NPHASE) ) 
-
-     ! CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) + SCVDETWEI( GI ) * ( (LIMT_HAT-LIMT)*NDOTQ -   0. * NDOTQ_HAT/REAL(NPHASE) ) * 0.5
-     ! CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) + SCVDETWEI( GI ) * ( LIMT_HAT*NDOTQ - NDOTQ_HAT/REAL(NPHASE) ) * 0.5
-
-       CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) + SCVDETWEI( GI ) * (  (LIMT_HAT-LIMT)*NDOTQ *0. - 0. * NDOTQ_HAT/REAL(NPHASE) ) &
-                                             - SCVDETWEI( GI ) * (  LIMDT * NDOTQ ) / DEN_ALL( IPHASE, CV_NODI ) 
-! flux from the other side (change of sign because normal is -ve)...
-       if(integrate_other_side_and_not_boundary) then
-!          CT_RHS( CV_NODJ ) = CT_RHS( CV_NODJ ) - SCVDETWEI( GI ) * ( LIMT_HAT*NDOTQ - NDOTQ_HAT/REAL(NPHASE) )
-!          CT_RHS( CV_NODJ ) = CT_RHS( CV_NODJ ) - SCVDETWEI( GI ) * (  (LIMT_HAT-LIMT)*NDOTQ-  0. * NDOTQ_HAT/REAL(NPHASE) )
-          CT_RHS( CV_NODJ ) = CT_RHS( CV_NODJ ) - SCVDETWEI( GI ) * ( limd* (LIMT_HAT-LIMT)*NDOTQ/DEN_ALL( IPHASE, CV_NODJ ) -  0. * NDOTQ_HAT/REAL(NPHASE) )
-!       CT_RHS( CV_NODJ ) = CT_RHS( CV_NODJ ) - SCVDETWEI( GI ) * ( (LIMT_HAT - LIMT)*NDOTQ - NDOTQ_S*LIMS/REAL(NPHASE) )
-
-!       CT_RHS( CV_NODJ ) = CT_RHS( CV_NODJ ) - SCVDETWEI( GI ) * ( (LIMT_HAT-LIMT)*NDOTQ -  0. * NDOTQ_HAT/REAL(NPHASE) ) * 0.5
-!       CT_RHS( CV_NODJ ) = CT_RHS( CV_NODJ ) - SCVDETWEI( GI ) * ( LIMT_HAT*NDOTQ - NDOTQ_HAT/REAL(NPHASE) ) * 0.5
-       endif
-    ENDIF ! For solid modelling...
+    IF ( RETRIEVE_SOLID_CTY ) THEN ! For solid modelling...
+       ! Use backward Euler... (This is for the div uhat term - we subtract what we put in the CT matrix and add what we really want)
+       CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) + SCVDETWEI( GI ) * ( LIMT_HAT*NDOTQ - NDOTQ_HAT/REAL(NPHASE) ) 
+       ! flux from the other side (change of sign because normal is -ve)...
+       if ( integrate_other_side_and_not_boundary ) then
+          CT_RHS( CV_NODJ ) = CT_RHS( CV_NODJ ) - SCVDETWEI( GI ) * ( LIMT_HAT*NDOTQ - NDOTQ_HAT / REAL(NPHASE) )
+       end if
+    END IF ! For solid modelling...
 
     DO U_KLOC = 1, U_NLOC
 
-       RCON    = SCVDETWEI( GI ) * FTHETA_T2 * LIMDT &
+       RCON = SCVDETWEI( GI ) * FTHETA_T2 * LIMDT &               
             * SUFEN( U_KLOC, GI ) / DEN_ALL( IPHASE, CV_NODI )
 
-       IF(RETRIEVE_SOLID_CTY) THEN ! For solid modelling use backward Euler for this part...
-          RCON    = RCON    + SCVDETWEI( GI )  *  LIMD * (LIMT_HAT - LIMT) &
-               * SUFEN( U_KLOC, GI )  / DEN_ALL( IPHASE, CV_NODI )
-          !RCON    = RCON    + SCVDETWEI( GI )  *  (LIMT_HAT - LIMT) &
-          !     * SUFEN( U_KLOC, GI )
-       ENDIF ! For solid modelling...
+       IF ( RETRIEVE_SOLID_CTY ) THEN ! For solid modelling use backward Euler for this part...
+          RCON = RCON + SCVDETWEI( GI ) * (LIMT_HAT - LIMT) &
+               * SUFEN( U_KLOC, GI )
+       END IF ! For solid modelling...
 
        DO IDIM = 1, NDIM
           CT( IDIM, IPHASE, JCOUNT_KLOC( U_KLOC ) ) &
-            = CT( IDIM, IPHASE, JCOUNT_KLOC( U_KLOC ) ) &
-            + RCON * UGI_COEF_ELE_ALL( IDIM, IPHASE, U_KLOC ) * CVNORMX_ALL( IDIM, GI )
+               = CT( IDIM, IPHASE, JCOUNT_KLOC( U_KLOC ) ) &
+               + RCON * UGI_COEF_ELE_ALL( IDIM, IPHASE, U_KLOC ) * CVNORMX_ALL( IDIM, GI )
        END DO
-! flux from the other side (change of sign because normal is -ve)...
-    if(integrate_other_side_and_not_boundary) then
-       RCON_J    = SCVDETWEI( GI ) * FTHETA_T2_J * LIMDT &
-            * SUFEN( U_KLOC, GI ) / DEN_ALL( IPHASE, CV_NODJ )
-       IF(RETRIEVE_SOLID_CTY) THEN ! For solid modelling...
-          !RCON    = RCON    + SCVDETWEI( GI )  *  LIMD * (LIMT_HAT - LIMT) &
-          !     * SUFEN( U_KLOC, GI )  / DEN_ALL( IPHASE, CV_NODJ )
-          RCON_J    = RCON_J  + SCVDETWEI( GI ) * (LIMT_HAT - LIMT) &
-            * SUFEN( U_KLOC, GI ) 
-       ENDIF ! For solid modelling...
+       ! flux from the other side (change of sign because normal is -ve)...
+       if ( integrate_other_side_and_not_boundary ) then
+          RCON_J = SCVDETWEI( GI ) * FTHETA_T2_J * LIMDT &
+               * SUFEN( U_KLOC, GI ) / DEN_ALL( IPHASE, CV_NODJ )
+          IF ( RETRIEVE_SOLID_CTY ) THEN ! For solid modelling...
+             RCON_J = RCON_J  + SCVDETWEI( GI ) * (LIMT_HAT - LIMT) &
+                  * SUFEN( U_KLOC, GI ) 
+          END IF ! For solid modelling...
 
-       DO IDIM = 1, NDIM
-          CT( IDIM, IPHASE, ICOUNT_KLOC( U_KLOC ) ) &
-            = CT( IDIM, IPHASE, ICOUNT_KLOC( U_KLOC ) ) &
-            - RCON_J * UGI_COEF_ELE_ALL( IDIM, IPHASE, U_KLOC ) * CVNORMX_ALL( IDIM, GI )
-       END DO
-    endif
+          DO IDIM = 1, NDIM
+             CT( IDIM, IPHASE, ICOUNT_KLOC( U_KLOC ) ) &
+                  = CT( IDIM, IPHASE, ICOUNT_KLOC( U_KLOC ) ) &
+                  - RCON_J * UGI_COEF_ELE_ALL( IDIM, IPHASE, U_KLOC ) * CVNORMX_ALL( IDIM, GI )
+          END DO
+       end if
 
     END DO
 
-    IF(SELE /= 0) THEN
+    IF ( SELE /= 0 ) THEN
        UDGI_IMP_ALL=0.0
        DO U_KLOC = 1, U_NLOC
           U_NODK = U_NDGLN( ( ELE - 1 ) * U_NLOC + U_KLOC )
-          UDGI_IMP_ALL(:) = UDGI_IMP_ALL(:) + SUFEN( U_KLOC, GI ) * UGI_COEF_ELE_ALL( :, IPHASE, U_KLOC ) * NU_ALL( :, IPHASE, U_NODK ) 
+          UDGI_IMP_ALL(:) = UDGI_IMP_ALL(:) + SUFEN( U_KLOC, GI ) * &
+               UGI_COEF_ELE_ALL( :, IPHASE, U_KLOC ) * NU_ALL( :, IPHASE, U_NODK ) 
        END DO
 
        NDOTQ_IMP= SUM( CVNORMX_ALL( :,GI ) * UDGI_IMP_ALL(:) ) 
@@ -11224,15 +11203,15 @@ CONTAINS
             ONE_M_FTHETA_T2OLD * LIMDTOLD * NDOTQOLD &
             ) / DEN_ALL( IPHASE, CV_NODI ) 
 
-! flux from the other side (change of sign because normal is -ve)...
-    if(integrate_other_side_and_not_boundary) then
-       CT_RHS( CV_NODJ ) = CT_RHS( CV_NODJ ) + SCVDETWEI( GI ) * ( &
-            ONE_M_FTHETA_T2OLD_J * LIMDTOLD * NDOTQOLD &
-            ) / DEN_ALL( IPHASE, CV_NODJ ) 
-    endif
+       ! flux from the other side (change of sign because normal is -ve)...
+       if ( integrate_other_side_and_not_boundary ) then
+          CT_RHS( CV_NODJ ) = CT_RHS( CV_NODJ ) + SCVDETWEI( GI ) * ( &
+               ONE_M_FTHETA_T2OLD_J * LIMDTOLD * NDOTQOLD &
+               ) / DEN_ALL( IPHASE, CV_NODJ ) 
+       end if
     END IF
 
-    IF((ELE2 /= 0).AND.(ELE2 /= ELE)) THEN
+    IF ( (ELE2 /= 0) .AND. (ELE2 /= ELE) ) THEN
        ! We have a discontinuity between elements so integrate along the face...
        DO U_KLOC = 1, U_NLOC
           U_KLOC2 = U_OTHER_LOC( U_KLOC)
@@ -11240,38 +11219,35 @@ CONTAINS
 
              RCON = SCVDETWEI( GI ) * FTHETA_T2 * LIMDT  &
                   * SUFEN( U_KLOC, GI ) / DEN_ALL( IPHASE, CV_NODI )
-             IF(RETRIEVE_SOLID_CTY) THEN ! For solid modelling use backward Euler for this part...
+             IF ( RETRIEVE_SOLID_CTY ) THEN ! For solid modelling use backward Euler for this part...
                 RCON    = RCON    + SCVDETWEI( GI )  * (LIMT_HAT - LIMT)  &
-                  * SUFEN( U_KLOC, GI ) 
-             ENDIF ! For solid modelling...
+                     * SUFEN( U_KLOC, GI ) 
+             END IF ! For solid modelling...
 
              DO IDIM = 1, NDIM
                 CT( IDIM, IPHASE, JCOUNT_KLOC2( U_KLOC2 ) ) &
-                  = CT( IDIM, IPHASE, JCOUNT_KLOC2( U_KLOC2 ) ) &
-                  + RCON * UGI_COEF_ELE2_ALL( IDIM, IPHASE, U_KLOC2 ) * CVNORMX_ALL( IDIM, GI )
+                     = CT( IDIM, IPHASE, JCOUNT_KLOC2( U_KLOC2 ) ) &
+                     + RCON * UGI_COEF_ELE2_ALL( IDIM, IPHASE, U_KLOC2 ) * CVNORMX_ALL( IDIM, GI )
              END DO
-! flux from the other side (change of sign because normal is -ve)...
-    if(integrate_other_side_and_not_boundary) then
-             RCON_J = SCVDETWEI( GI ) * FTHETA_T2_J * LIMDT  &
-                  * SUFEN( U_KLOC, GI ) / DEN_ALL( IPHASE, CV_NODJ )
-             IF(RETRIEVE_SOLID_CTY) THEN ! For solid modelling...
-                RCON_J    = RCON_J  + SCVDETWEI( GI ) * (LIMT_HAT - LIMT)  &
-                 * SUFEN( U_KLOC, GI ) 
-             ENDIF ! For solid modelling...
+             ! flux from the other side (change of sign because normal is -ve)...
+             if ( integrate_other_side_and_not_boundary ) then
+                RCON_J = SCVDETWEI( GI ) * FTHETA_T2_J * LIMDT  &
+                     * SUFEN( U_KLOC, GI ) / DEN_ALL( IPHASE, CV_NODJ )
+                IF(RETRIEVE_SOLID_CTY) THEN ! For solid modelling...
+                   RCON_J    = RCON_J  + SCVDETWEI( GI ) * (LIMT_HAT - LIMT)  &
+                        * SUFEN( U_KLOC, GI ) 
+                END IF ! For solid modelling...
 
-
-             DO IDIM = 1, NDIM
-                CT( IDIM, IPHASE, ICOUNT_KLOC2( U_KLOC2 ) ) &
-                  = CT( IDIM, IPHASE, ICOUNT_KLOC2( U_KLOC2 ) ) &
-                  - RCON_J * UGI_COEF_ELE2_ALL( IDIM, IPHASE, U_KLOC2 ) * CVNORMX_ALL( IDIM, GI )
-             END DO
-    endif
+                DO IDIM = 1, NDIM
+                   CT( IDIM, IPHASE, ICOUNT_KLOC2( U_KLOC2 ) ) &
+                        = CT( IDIM, IPHASE, ICOUNT_KLOC2( U_KLOC2 ) ) &
+                        - RCON_J * UGI_COEF_ELE2_ALL( IDIM, IPHASE, U_KLOC2 ) * CVNORMX_ALL( IDIM, GI )
+                END DO
+             end if
 
           END IF
        END DO
     END IF
-
-    !ewrite(3,*)'check ct:,', NCOLCT * NDIM * NPHASE, size(ct), ct(1:NCOLCT * NDIM * NPHASE)
 
     RETURN
   END SUBROUTINE PUT_IN_CT_RHS
