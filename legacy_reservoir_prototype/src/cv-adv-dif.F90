@@ -2343,16 +2343,10 @@ contains
 
       IF ( GETCT ) THEN
       
-!      print *, 'edw11.33'
-!      print *, CT_RHS
-!      print *, 1.-VOL_FRA_FLUID
-      
       
          W_SUM_ONE1 = 1.0 !If == 1.0 applies constraint to T
          W_SUM_ONE2 = 0.0 !If == 1.0 applies constraint to TOLD
 
-!T_ALL=1.
-!TOLD_ALL=1.
 
          DIAG_SCALE_PRES = 0.0
 
@@ -2398,9 +2392,6 @@ contains
 
          END DO
 
-!print *, 'edw11.34'
-!print *, CT_RHS
-!print *, 1.-VOL_FRA_FLUID
 
       END IF
 
@@ -13514,59 +13505,6 @@ CONTAINS
 ! ENDOF IF(.NOT. is_compact_overlapping ) THEN
   ENDIF
 
-if(.fALSE.) then
-    NUGI_ALL=0.0
-    DO U_KLOC = 1, U_NLOC
-       DO IDIM = 1, NDIM
-          NDOTQNEW=NDOTQNEW + SUFEN( U_KLOC, GI ) * UGI_COEF_ELE_ALL(IDIM, :,U_KLOC) & 
-                           * ( LOC_U(IDIM,:, U_KLOC ) - LOC_NU(IDIM,:,U_KLOC ) ) * CVNORMX_ALL(IDIM, GI)
-       END DO
-       NUGI_ALL(:, :) = NUGI_ALL(:, :) + SUFEN( U_KLOC, GI )*LOC_NU(:, :, U_KLOC)
-    END DO
-
-    IF( is_compact_overlapping ) THEN
-!       ALLOCATE(INV_VI_LOC_OPT_VEL_UPWIND_COEFS(NDIM,NDIM,NPHASE),INV_VJ_LOC_OPT_VEL_UPWIND_COEFS(NDIM,NDIM,NPHASE))
-!       ALLOCATE(NUGI_ALL_OTHER(NDIM,NPHASE))
-!       INV_VI_LOC_OPT_VEL_UPWIND_COEFS = GI_LOC_OPT_VEL_UPWIND_COEFS
-!       INV_VJ_LOC_OPT_VEL_UPWIND_COEFS = GJ_LOC_OPT_VEL_UPWIND_COEFS
-!       DO IPHASE=1,NPHASE
-!          call invert(INV_VI_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE))
-!          call invert(INV_VJ_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE))
-!       END DO
-       DO IPHASE=1,NPHASE
-          NUGI_ALL(:, IPHASE) = NUGI_ALL(:, IPHASE) +  matmul(INV_VI_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE),NUGI_ALL(:, IPHASE))
-       END DO
-    ENDIF
-    !     endif
-
-    IF( (ELE2 /= 0) .AND. (ELE2 /= ELE) ) THEN
-       ALLOCATE(NUGI_ALL_OTHER(NDIM,NPHASE))
-       NUGI_ALL(:, :) = 0.5*NUGI_ALL(:, :) ! Reduce by half and take the other half from the other side of element...
-       NUGI_ALL_OTHER(:, :) = 0.0
-       ! We have a discontinuity between elements so integrate along the face...
-       DO U_KLOC = 1, U_NLOC
-          U_KLOC2 = U_OTHER_LOC( U_KLOC )
-          IF( U_KLOC2 /= 0 ) THEN
-             DO IDIM = 1, NDIM
-                NDOTQNEW=NDOTQNEW + SUFEN( U_KLOC, GI ) * UGI_COEF_ELE2_ALL(IDIM, :,U_KLOC2) & 
-                           * ( LOC2_U(IDIM,:, U_KLOC ) - LOC2_NU(IDIM,:,U_KLOC ) ) * CVNORMX_ALL(IDIM, GI)
-             END DO
-             NUGI_ALL_OTHER(:, :) = NUGI_ALL_OTHER(:, :) + 0.5*SUFEN( U_KLOC, GI )*LOC2_NU(:, :, U_KLOC)
-          END IF
-       END DO
-       IF( is_compact_overlapping ) THEN
-          DO IPHASE=1,NPHASE
-             NUGI_ALL(:, IPHASE) = NUGI_ALL(:, IPHASE) +  matmul(INV_VJ_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE),NUGI_ALL_OTHER(:, IPHASE))
-          END DO
-          deallocate(NUGI_ALL_OTHER)
-!          deallocate(INV_VI_LOC_OPT_VEL_UPWIND_COEFS, INV_VJ_LOC_OPT_VEL_UPWIND_COEFS, NUGI_ALL_OTHER)
-       ELSE
-          NUGI_ALL(:, :) = NUGI_ALL(:, :) +  NUGI_ALL_OTHER(:, :)
-       ENDIF
-    END IF
-endif
-
-
 
     RETURN
 
@@ -15130,15 +15068,12 @@ CONTAINS
     real :: T_PELE, T_PELEOT, TMIN_PELE, TMAX_PELE, TMIN_PELEOT, TMAX_PELEOT
 
     ! Local variable for indirect addressing
-    REAL, DIMENSION ( NDIM, NPHASE ) :: UDGI2_ALL, UDGI_INT_ALL, UDGI_ALL_FOR_INV, ROW_SUM_INV_GI, ROW_SUM_INV_GJ
-!    REAL, DIMENSION ( NDIM, NPHASE ) :: UDGI_ALL, UDGI2_ALL, UDGI_INT_ALL, UDGI_ALL_FOR_INV, ROW_SUM_INV_GI, ROW_SUM_INV_GJ
+    REAL, DIMENSION ( NDIM, NPHASE ) :: UDGI2_ALL, UDGI_INT_ALL, UDGI_ALL_FOR_INV, ROW_SUM_INV_VI, ROW_SUM_INV_VJ
+!    REAL, DIMENSION ( NDIM, NPHASE ) :: UDGI_ALL, UDGI2_ALL, UDGI_INT_ALL, UDGI_ALL_FOR_INV, ROW_SUM_INV_VI, ROW_SUM_INV_VJ
 !    REAL, DIMENSION ( NDIM, NDIM, NPHASE ) :: INV_VI_LOC_OPT_VEL_UPWIND_COEFS, INV_VJ_LOC_OPT_VEL_UPWIND_COEFS
     real :: courant_or_minus_one_new(Nphase),XI_LIMIT(Nphase), VEC_NDIM(NDIM), VEC2_NDIM(NDIm), UDGI_ALL_OTHER(NDIM, NPHASE)
     INTEGER :: IPHASE, CV_NODI_IPHA, CV_NODJ_IPHA
 
-
-    ! print *,'IN_ELE_UPWIND,CV_DG_VEL_INT_OPT,  DG_ELE_UPWIND, IANISOTROPIC:',IN_ELE_UPWIND,CV_DG_VEL_INT_OPT,  DG_ELE_UPWIND, IANISOTROPIC
-    !  stop 8721
 
     ! coefficients for this element ELE
     UGI_COEF_ELE_ALL=0.0
@@ -15146,22 +15081,11 @@ CONTAINS
     ! coefficients for this element ELE2
     UGI_COEF_ELE2_ALL=0.0
 
-!    U_NLOC_LEV = U_NLOC / CV_NLOC
-!    U_SNLOC_LEV = U_SNLOC / CV_NLOC
-
-!    INV_VI_LOC_OPT_VEL_UPWIND_COEFS = GI_LOC_OPT_VEL_UPWIND_COEFS
-!    INV_VJ_LOC_OPT_VEL_UPWIND_COEFS = GJ_LOC_OPT_VEL_UPWIND_COEFS
-
-! Find the inverse of the absoption matricies either side of face: 
-!    DO IPHASE=1,NPHASE
-!       call invert(INV_VI_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE))
-!       call invert(INV_VJ_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE))
-!    END DO
 
      DO IPHASE=1,NPHASE
         DO IDIM=1,NDIM
-           ROW_SUM_INV_GI(IDIM,IPHASE)=SUM(INV_VI_LOC_OPT_VEL_UPWIND_COEFS(IDIM,:,IPHASE))
-           ROW_SUM_INV_GJ(IDIM,IPHASE)=SUM(INV_VJ_LOC_OPT_VEL_UPWIND_COEFS(IDIM,:,IPHASE))
+           ROW_SUM_INV_VI(IDIM,IPHASE)=SUM(INV_VI_LOC_OPT_VEL_UPWIND_COEFS(IDIM,:,IPHASE))
+           ROW_SUM_INV_VJ(IDIM,IPHASE)=SUM(INV_VJ_LOC_OPT_VEL_UPWIND_COEFS(IDIM,:,IPHASE))
         END DO
      END DO
 
@@ -15228,7 +15152,7 @@ CONTAINS
 
 !                UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC)=0.5
 !                UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC)= matmul(INV_VI_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE),UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC))
-                UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC)=0.5*ROW_SUM_INV_GI(:,IPHASE) 
+                UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC)=0.5*ROW_SUM_INV_VI(:,IPHASE) 
              ELSE
 
                 UDGI_ALL(:, IPHASE) = UDGI_ALL(:, IPHASE) + SUFEN( U_KLOC, GI )*SUF_U_BC_ALL(:, IPHASE, U_SNLOC* (SELE-1) +U_SKLOC)
@@ -15484,8 +15408,8 @@ CONTAINS
 !             UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC)=UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC) + matmul(INV_VI_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE),VEC_NDIM(:)) &
 !                                                                                     + matmul(INV_VJ_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE),VEC2_NDIM(:))
 
-             UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC)=ROW_SUM_INV_GI(:,IPHASE)* (1.0-INCOME(IPHASE)) &
-                                                +ROW_SUM_INV_GJ(:,IPHASE)* INCOME(IPHASE)
+             UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC)=ROW_SUM_INV_VI(:,IPHASE)* (1.0-INCOME(IPHASE)) &
+                                                +ROW_SUM_INV_VJ(:,IPHASE)* INCOME(IPHASE)
 
           END DO
 
@@ -15513,8 +15437,8 @@ CONTAINS
 !                VEC2_NDIM(:) =1.0
                 DO IPHASE=1,NPHASE
 !                   UGI_COEF_ELE2_ALL(:, IPHASE, U_KLOC2)=UGI_COEF_ELE2_ALL(:, IPHASE, U_KLOC2) + matmul(INV_VJ_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE),VEC2_NDIM(:))
-                   UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC)   = ROW_SUM_INV_GI(:,IPHASE)*1.0 
-                   UGI_COEF_ELE2_ALL(:, IPHASE, U_KLOC2) = ROW_SUM_INV_GJ(:,IPHASE)*1.0 
+                   UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC)   = ROW_SUM_INV_VI(:,IPHASE)*1.0 
+                   UGI_COEF_ELE2_ALL(:, IPHASE, U_KLOC2) = ROW_SUM_INV_VJ(:,IPHASE)*1.0 
                 END DO
 
              END IF

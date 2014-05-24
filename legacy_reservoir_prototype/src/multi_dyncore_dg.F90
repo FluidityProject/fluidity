@@ -3028,17 +3028,14 @@ integer :: cv_nodi
 
                    LOC_U_ABSORB( :, :, MAT_ILOC ) = U_ABSORB( :, :, MAT_INOD )
 
+! Switch on for solid fluid-coupling...
                    !CV_INOD = CV_NDGLN( ( ELE - 1 ) * MAT_NLOC + MAT_ILOC )
-
-                   !LOC_U_ABSORB( 1, 1, MAT_ILOC ) = 1.e+3  * sf%val(cv_inod)
-                   !LOC_U_ABSORB( 1, 2, MAT_ILOC ) = 0.  * sf%val(cv_inod)
-                   !LOC_U_ABSORB( 2, 1, MAT_ILOC ) = 0.  * sf%val(cv_inod)
-                   !LOC_U_ABSORB( 2, 2, MAT_ILOC ) = 1.e+3  * sf%val(cv_inod)
-
-                   !LOC_U_ABSORB( 1, 1, MAT_ILOC ) = den_f / dt * sf%val(cv_inod)
-                   !LOC_U_ABSORB( 1, 2, MAT_ILOC ) = 0.  * sf%val(cv_inod)
-                   !LOC_U_ABSORB( 2, 1, MAT_ILOC ) = 0.  * sf%val(cv_inod)
-                   !LOC_U_ABSORB( 2, 2, MAT_ILOC ) = den_f / dt * sf%val(cv_inod)
+                  ! DO IDIM=1,NDIM
+                  !    DO IPHASE=1,NPHASE
+                   !      I=IDIM + (IPHASE-1)*NDIM
+                   !LOC_U_ABSORB( I, I, MAT_ILOC ) = (den_f(IPHASE,cv_inod) / dt) * sf%val(cv_inod)
+                   !   END DO
+                   !END DO
 
                 END IF
                 LOC_U_ABS_STAB( :, :, MAT_ILOC ) = U_ABS_STAB( :, :, MAT_INOD )
