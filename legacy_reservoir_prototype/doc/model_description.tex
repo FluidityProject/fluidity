@@ -3857,6 +3857,15 @@ The momentum equation partially discretized in time is:
 in which $s_c$ contains exchange forces between the 
 solid and fluid due to the viscous terms. 
 
+For Gidaspow's model B the momentum equations written in conservative form are: 
+
+\begin{eqnarray}
+(\frac{\alpha_f^{n+1} \rho_f^{n+1} u_f^{n+1}-\alpha_f^{n} \rho_f^{n} u_f^n}{\Delta t})
++ \nabla \alpha_f \rho_f u_f\cdot u_f 
++\nabla (p+\tau)  -s_c -\rho_f g k=0
+\label{mom-for-div-by-apha-modelB}
+\end{eqnarray}
+
 \subsubsection{Form of the solid-fluid coupling source term $s_c$}
 In order to write equation \ref{mom-for-div-by-apha} 
 the solid-fluid coupling source term must be expressed 
@@ -3962,6 +3971,12 @@ on the immersed solid mesh is:
 \int_{V_s} N_i ({\cal L} u - \rho_s g k)
 +\int_{\Gamma_s} N_i n (p+\tau)d\Gamma=0
 \label{solids-forced}
+\end{eqnarray}
+and for model B this equation becomes:
+\begin{eqnarray}
+\int_{V_s} N_i ({\cal L} u - (\rho_s-\rho_f) g k)
++\int_{\Gamma_s} N_i n (p+\tau)d\Gamma=0
+\label{solids-forced-modelB}
 \end{eqnarray}
 
 in which the surface integral contain the forces 
