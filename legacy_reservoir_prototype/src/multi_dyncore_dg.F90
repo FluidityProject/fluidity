@@ -1275,8 +1275,10 @@ contains
            sf => EXTRACT_SCALAR_FIELD( PACKED_STATE, "SolidConcentration" )
 
            IF(MODEL_B) THEN ! Gidaspow model B - can use conservative from of momentum
-              UDEN_ALL(1,:) = UDEN_ALL(1,:) * ( 1. - sf%val)
-              UDENOLD_ALL(1,:) = UDENOLD_ALL(1,:) * ( 1. - sf%val)
+              DO IPHASE=1,NPHASE
+                 UDEN_ALL(IPHASE,:) = UDEN_ALL(IPHASE,:) * ( 1. - sf%val)
+                 UDENOLD_ALL(IPHASE,:) = UDENOLD_ALL(IPHASE,:) * ( 1. - sf%val)
+              END DO
            ENDIF
         ENDIF
 
@@ -2340,6 +2342,8 @@ contains
 !                               =4 Take the max length scale h
             REAL, PARAMETER :: LES_THETA=1.0
 ! LES_THETA =1 is backward Euler for the LES viscocity.
+! COEFF_SOLID_FLUID is the coeffficient that determins the magnitude of the relaxation to the solid vel...
+            REAL, PARAMETER :: COEFF_SOLID_FLUID = 1.0
 
         !
         ! Variables used to reduce indirect addressing...
@@ -3047,7 +3051,7 @@ sf=> extract_scalar_field( packed_state, "SolidConcentration" )
                       DO IDIM=1,NDIM
                          DO IPHASE=1,NPHASE
                             I=IDIM + (IPHASE-1)*NDIM
-                      LOC_U_ABSORB( I, I, MAT_ILOC ) =LOC_U_ABSORB( I, I, MAT_ILOC ) + (DEN_ALL(IPHASE,cv_inod) / dt) * sf%val(cv_inod)
+                      LOC_U_ABSORB( I, I, MAT_ILOC ) =LOC_U_ABSORB( I, I, MAT_ILOC ) + COEFF_SOLID_FLUID*(DEN_ALL(IPHASE,cv_inod) / dt) * sf%val(cv_inod)
                       !LOC_U_ABSORB( I, I, MAT_ILOC ) =LOC_U_ABSORB( I, I, MAT_ILOC ) + 10000. * sf%val(cv_inod)
                          END DO
                       END DO
