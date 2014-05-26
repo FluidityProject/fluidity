@@ -744,7 +744,7 @@ contains
         NCOLELE, FINELE, COLELE, & ! Element connectivity.
         XU_NLOC, XU_NDGLN, &
         RZERO, JUST_BL_DIAG_MAT,  &
-        TDIFFUSION, & ! TDiffusion need to be obtained down in the tree according to the option_path
+        TDIFFUSION, DEN_ALL, DENOLD_ALL, .FALSE., & ! TDiffusion need to be obtained down in the tree according to the option_path
         IPLIKE_GRAD_SOU, RDUM2, RDUM2, &
         RDUM, NDIM_IN, &
         StorageIndexes )
@@ -1161,6 +1161,11 @@ contains
         LOGICAL, PARAMETER :: GLOBAL_SOLVE = .FALSE.
         ! If IGOT_CMC_PRECON=1 use a sym matrix as pressure preconditioner,=0 else CMC as preconditioner as well.
         INTEGER, PARAMETER :: IGOT_CMC_PRECON = 0
+! Gidaspow model B - can use conservative from of
+        LOGICAL, PARAMETER :: MODEL_B = .TRUE.
+! switch on solid fluid coupling (THE ONLY SWITCH THAT NEEDS TO BE SWITCHED ON FOR SOLID-FLUID COUPLING)...
+        LOGICAL, PARAMETER :: RETRIEVE_SOLID_CTY = .FALSE.
+!        LOGICAL, PARAMETER :: RETRIEVE_SOLID_CTY = .TRUE.
 
         REAL, DIMENSION( : ), allocatable :: CT_RHS, DIAG_SCALE_PRES, &
         MCY_RHS, MCY, &
@@ -1264,10 +1269,16 @@ contains
             call calculate_u_source_cv( state, cv_nonods, ndim, nphase, uden_all, U_Source_CV )
         end if
 
-        !sf => EXTRACT_SCALAR_FIELD( PACKED_STATE, "SolidConcentration" )
+        IF(RETRIEVE_SOLID_CTY) THEN
+!        IF(.TRUE.) THEN
+! if model B and solid-fluid coupling: 
+           sf => EXTRACT_SCALAR_FIELD( PACKED_STATE, "SolidConcentration" )
 
-        !UDEN_ALL(1,:) = UDEN_ALL(1,:) * ( 1. - sf%val)
-        !UDENOLD_ALL(1,:) = UDENOLD_ALL(1,:) * ( 1. - sf%val)
+           IF(MODEL_B) THEN ! Gidaspow model B - can use conservative from of momentum
+              UDEN_ALL(1,:) = UDEN_ALL(1,:) * ( 1. - sf%val)
+              UDENOLD_ALL(1,:) = UDENOLD_ALL(1,:) * ( 1. - sf%val)
+           ENDIF
+        ENDIF
 
 
         ! calculate the viscosity for the momentum equation...
@@ -1356,7 +1367,7 @@ contains
         IGOT_THETA_FLUX, SCVNGI_THETA, USE_THETA_FLUX, &
         THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J, &
         IN_ELE_UPWIND, DG_ELE_UPWIND, &
-        NOIT_DIM, &
+        NOIT_DIM, RETRIEVE_SOLID_CTY, &
         IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF_ALL, PLIKE_GRAD_SOU_GRAD_ALL,scale_momentum_by_volume_fraction ,&
         StorageIndexes)
 
@@ -1716,7 +1727,7 @@ contains
     IGOT_THETA_FLUX, SCVNGI_THETA, USE_THETA_FLUX, &
     THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J, &
     IN_ELE_UPWIND, DG_ELE_UPWIND, &
-    NOIT_DIM, &
+    NOIT_DIM, RETRIEVE_SOLID_CTY, &
     IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF_ALL, PLIKE_GRAD_SOU_GRAD_ALL ,scale_momentum_by_volume_fraction,&
     StorageIndexes)
         use printout
@@ -1738,7 +1749,7 @@ contains
         CV_ELE_TYPE, V_DISOPT, V_DG_VEL_INT_OPT, NCOLM, XU_NLOC, &
         NLENMCY, NCOLMCY, NOPT_VEL_UPWIND_COEFS, IGOT_THETA_FLUX, SCVNGI_THETA, &
         IN_ELE_UPWIND, DG_ELE_UPWIND, IPLIKE_GRAD_SOU,  IDIVID_BY_VOL_FRAC
-        LOGICAL, intent( in ) :: USE_THETA_FLUX,scale_momentum_by_volume_fraction
+        LOGICAL, intent( in ) :: USE_THETA_FLUX,scale_momentum_by_volume_fraction, RETRIEVE_SOLID_CTY
         INTEGER, DIMENSION( : ), intent( in ) :: U_NDGLN
         INTEGER, DIMENSION( :  ), intent( in ) :: P_NDGLN
         INTEGER, DIMENSION(  :  ), intent( in ) :: CV_NDGLN
@@ -1805,7 +1816,7 @@ contains
         REAL, PARAMETER :: V_BETA = 1.0
 ! NEED TO CHANGE RETRIEVE_SOLID_CTY TO MAKE AN OPTION
         REAL :: SECOND_THETA
-        LOGICAL, PARAMETER :: GETCV_DISC = .FALSE., GETCT= .TRUE., THERMAL= .FALSE., RETRIEVE_SOLID_CTY=.FALSE. !.TRUE.
+        LOGICAL, PARAMETER :: GETCV_DISC = .FALSE., GETCT= .TRUE., THERMAL= .FALSE.
         REAL, DIMENSION( : ), allocatable :: ACV, Block_acv, CV_RHS, SUF_VOL_BC_ROB1, SUF_VOL_BC_ROB2, &
         SAT_FEMT, DEN_FEMT, dummy_transp
         REAL, DIMENSION( :,:,:), allocatable :: DENSE_BLOCK_MATRIX
@@ -1874,7 +1885,7 @@ contains
         NCOLELE, FINELE, COLELE, & ! Element connectivity.
         XU_NLOC, XU_NDGLN, &
         PIVIT_MAT, JUST_BL_DIAG_MAT, &
-        UDIFFUSION_ALL, &
+        UDIFFUSION_ALL,  DEN_ALL, DENOLD_ALL, RETRIEVE_SOLID_CTY, &
         IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF_ALL, PLIKE_GRAD_SOU_GRAD_ALL, &
         P, NDIM, StorageIndexes=StorageIndexes )
         ! scale the momentum equations by the volume fraction / saturation for the matrix and rhs
@@ -2169,8 +2180,7 @@ contains
     NCOLELE, FINELE, COLELE, & ! Element connectivity.
     XU_NLOC, XU_NDGLN, &
     PIVIT_MAT, JUST_BL_DIAG_MAT,  &
-         
-    UDIFFUSION, &
+    UDIFFUSION, DEN_ALL, DENOLD_ALL, RETRIEVE_SOLID_CTY, &
     IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD, &
          
     P, NDIM_VEL,&
@@ -2225,6 +2235,8 @@ contains
         LOGICAL, intent( inout ) :: JUST_BL_DIAG_MAT
         REAL, DIMENSION( :, : ), intent( in ) :: PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD
         REAL, DIMENSION( : ), intent( in ) :: P
+        REAL, DIMENSION(  :, :  ), intent( in ) :: DEN_ALL, DENOLD_ALL
+        LOGICAL, intent( in ) :: RETRIEVE_SOLID_CTY
         integer, dimension(:), intent(inout) :: StorageIndexes
         ! Local Variables
         ! This is for decifering WIC_U_BC & WIC_P_BC
@@ -2928,7 +2940,7 @@ integer :: cv_nodi
         ENDIF
 
 
-!sf=> extract_scalar_field( packed_state, "SolidConcentration" )
+sf=> extract_scalar_field( packed_state, "SolidConcentration" )
 
 !DO ELE = 1, TOTELE
 !DO CV_ILOC = 1, CV_NLOC
@@ -3029,13 +3041,17 @@ integer :: cv_nodi
                    LOC_U_ABSORB( :, :, MAT_ILOC ) = U_ABSORB( :, :, MAT_INOD )
 
 ! Switch on for solid fluid-coupling...
-                   !CV_INOD = CV_NDGLN( ( ELE - 1 ) * MAT_NLOC + MAT_ILOC )
-                  ! DO IDIM=1,NDIM
-                  !    DO IPHASE=1,NPHASE
-                   !      I=IDIM + (IPHASE-1)*NDIM
-                   !LOC_U_ABSORB( I, I, MAT_ILOC ) = (den_f(IPHASE,cv_inod) / dt) * sf%val(cv_inod)
-                   !   END DO
-                   !END DO
+!                   IF(.TRUE.) THEN
+                   IF(RETRIEVE_SOLID_CTY) THEN
+                      CV_INOD = CV_NDGLN( ( ELE - 1 ) * MAT_NLOC + MAT_ILOC )
+                      DO IDIM=1,NDIM
+                         DO IPHASE=1,NPHASE
+                            I=IDIM + (IPHASE-1)*NDIM
+                      LOC_U_ABSORB( I, I, MAT_ILOC ) =LOC_U_ABSORB( I, I, MAT_ILOC ) + (DEN_ALL(IPHASE,cv_inod) / dt) * sf%val(cv_inod)
+                      !LOC_U_ABSORB( I, I, MAT_ILOC ) =LOC_U_ABSORB( I, I, MAT_ILOC ) + 10000. * sf%val(cv_inod)
+                         END DO
+                      END DO
+                   ENDIF
 
                 END IF
                 LOC_U_ABS_STAB( :, :, MAT_ILOC ) = U_ABS_STAB( :, :, MAT_INOD )

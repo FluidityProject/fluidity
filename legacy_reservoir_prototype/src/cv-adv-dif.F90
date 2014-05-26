@@ -278,7 +278,7 @@ contains
       ! Local variables
       REAL, PARAMETER :: ZERO_OR_TWO_THIRDS = 0.0
 ! if integrate_other_side then just integrate over a face when cv_nodj>cv_nodi
-      logical, PARAMETER :: integrate_other_side= .false.
+      logical, PARAMETER :: integrate_other_side= .true.
 ! if .not.correct_method_petrov_method then we can compare our results directly with previous code...
       logical, PARAMETER :: correct_method_petrov_method= .true.
       LOGICAL, DIMENSION( : ), allocatable :: X_SHARE
