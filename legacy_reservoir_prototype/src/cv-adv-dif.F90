@@ -11126,6 +11126,10 @@ CONTAINS
     REAL, intent( in ) :: FTHETA_T2, ONE_M_FTHETA_T2OLD, FTHETA_T2_J, ONE_M_FTHETA_T2OLD_J
 
     ! Local variables...
+! THETA_CTY_SOLID =1 TREATS THE SOLID-FLUID COUPLING IMPLICITLY IN CTY
+! THETA_CTY_SOLID =0.0 assumes the cty for the solid is already satified. 
+! THETA_CTY_SOLID \in [0.5,1.0] is recommended...
+    REAL, PARAMETER :: THETA_CTY_SOLID = 1.0
     INTEGER :: U_KLOC, U_KLOC2, JCOUNT_IPHA, IDIM, U_NODK, U_NODK_IPHA, JCOUNT2_IPHA, &
          U_KLOC_LEV, U_NLOC_LEV
     REAL :: RCON,RCON_J, UDGI_IMP_ALL(NDIM), NDOTQ_IMP
@@ -11133,15 +11137,15 @@ CONTAINS
 
     IF ( RETRIEVE_SOLID_CTY ) THEN ! For solid modelling...
        ! Use backward Euler... (This is for the div uhat term - we subtract what we put in the CT matrix and add what we really want)
-       CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) + SCVDETWEI( GI ) * ( LIMT_HAT*NDOTQ - NDOTQ_HAT/REAL(NPHASE) ) 
+       CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) + THETA_CTY_SOLID * SCVDETWEI( GI ) * ( LIMT_HAT*NDOTQ - NDOTQ_HAT/REAL(NPHASE) ) 
 ! assume cty is satified for solids...
-      ! CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) + SCVDETWEI( GI ) * (LIMT_HAT - LIMT)*NDOTQ 
+       CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) + (1.0-THETA_CTY_SOLID) * SCVDETWEI( GI ) * (LIMT_HAT - LIMT)*NDOTQ 
        ! flux from the other side (change of sign because normal is -ve)...
        if ( integrate_other_side_and_not_boundary ) then
 ! assume cty is satified for solids...
-          CT_RHS( CV_NODJ ) = CT_RHS( CV_NODJ ) - SCVDETWEI( GI ) * ( LIMT_HAT*NDOTQ - NDOTQ_HAT / REAL(NPHASE) )
+          CT_RHS( CV_NODJ ) = CT_RHS( CV_NODJ ) - THETA_CTY_SOLID * SCVDETWEI( GI ) * ( LIMT_HAT*NDOTQ - NDOTQ_HAT / REAL(NPHASE) )
 ! assume cty is satified for solids...
-         ! CT_RHS( CV_NODJ ) = CT_RHS( CV_NODJ )  - SCVDETWEI( GI ) * (LIMT_HAT - LIMT)*NDOTQ
+          CT_RHS( CV_NODJ ) = CT_RHS( CV_NODJ ) - (1.0-THETA_CTY_SOLID) * SCVDETWEI( GI ) * (LIMT_HAT - LIMT)*NDOTQ
        end if
     END IF ! For solid modelling...
 
