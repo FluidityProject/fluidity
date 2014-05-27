@@ -1946,6 +1946,10 @@ contains
                    END DO
                    R=SUM(LIMT_HAT(:))
                    LIMT_HAT(:)=LIMT_HAT(:)/R
+
+                   if(sele.ne.0) then ! effectively apply the bcs to NDOTQ_HAT
+                     NDOTQ_HAT =SUM(LIMT_HAT(:)*NDOTQNEW(:))
+                   endif
                 ENDIF
 
     ! Amend for porosity...
@@ -11129,7 +11133,7 @@ CONTAINS
 ! THETA_CTY_SOLID =1 TREATS THE SOLID-FLUID COUPLING IMPLICITLY IN CTY
 ! THETA_CTY_SOLID =0.0 assumes the cty for the solid is already satified. 
 ! THETA_CTY_SOLID \in [0.5,1.0] is recommended...
-    REAL, PARAMETER :: THETA_CTY_SOLID = 0.5   
+    REAL, PARAMETER :: THETA_CTY_SOLID = 0.5
     INTEGER :: U_KLOC, U_KLOC2, JCOUNT_IPHA, IDIM, U_NODK, U_NODK_IPHA, JCOUNT2_IPHA, &
          U_KLOC_LEV, U_NLOC_LEV
     REAL :: RCON,RCON_J, UDGI_IMP_ALL(NDIM), NDOTQ_IMP
