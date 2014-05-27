@@ -234,7 +234,6 @@
       !Read info for adaptive timestep based on non_linear_iterations
 
     !! JRP changes to make a multiphasic state
-
       call pack_multistate(state,packed_state,multiphase_state,&
            multicomponent_state)
 
@@ -424,7 +423,6 @@
 !!$ Calculate diagnostic fields
       call calculate_diagnostic_variables( state, exclude_nonrecalculated = .true. )
       call calculate_diagnostic_variables_new( state, exclude_nonrecalculated = .true. )
-
 
 !!$ Dummy field used in the scalar advection option:
       Dummy_PhaseVolumeFraction_FEMT = 1.

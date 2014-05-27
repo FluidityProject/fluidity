@@ -2453,8 +2453,8 @@ contains
         type(scalar_field), target :: Targ_C_Mat
         real, dimension(:,:,:), pointer :: Point_C_Mat
 
-type(scalar_field), pointer :: sf
-integer :: cv_nodi
+        type(scalar_field), pointer :: sf
+        integer :: cv_nodi
 
         !! Boundary_conditions
 
@@ -2952,8 +2952,7 @@ integer :: cv_nodi
         ENDIF
 
 
-sf=> extract_scalar_field( packed_state, "SolidConcentration" )
-
+        if ( have_option( '/blasting' ) ) sf=> extract_scalar_field( packed_state, "SolidConcentration" )
 !DO ELE = 1, TOTELE
 !DO CV_ILOC = 1, CV_NLOC
 !MAT_NODI = MAT_NDGLN(  (ELE-1)*CV_NLOC + CV_ILOC )
