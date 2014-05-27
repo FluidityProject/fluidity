@@ -957,6 +957,34 @@ the Darcy velocity (=porosity*velocity)</a:documentation>
           </optional>
         </element>
       </optional>
+      <optional>
+        <element name="blasting">
+          <a:documentation>Blasting options</a:documentation>
+          <element name="femdem_input_file">
+            <a:documentation>Specify FEMDEM input file</a:documentation>
+            <attribute name="name">
+              <data type="string"/>
+            </attribute>
+          </element>
+          <element name="Gidaspow_model">
+            <attribute name="rank">
+              <value>0</value>
+            </attribute>
+            <choice>
+              <value>A</value>
+              <value>B</value>
+            </choice>
+          </element>
+          <optional>
+            <element name="theta_cty_solid">
+              <a:documentation>=1 treats the solid-fluid coupling implicitly in continuity.
+=0 assumes the continuity for the solid is already satified.
+Recommended value: [0.5,1.0]. Default =1.</a:documentation>
+              <ref name="real"/>
+            </element>
+          </optional>
+        </element>
+      </optional>
     </element>
   </start>
   <define name="prognostic_density_field">

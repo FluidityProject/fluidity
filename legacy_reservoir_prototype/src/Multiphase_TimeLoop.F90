@@ -626,13 +626,15 @@
 
 !!$ FEMDEM...
 #ifdef USING_FEMDEM
-         call blasting( packed_state, nphase )
-         sfield1 => extract_scalar_field( state(1), "SolidConcentration" )
-         sfield2 => extract_scalar_field( packed_state, "SolidConcentration" )
-         call set( sfield1, sfield2 )
-         vfield1 => extract_vector_field( state(1), "U_hat" )
-         vfield2 => extract_vector_field( packed_state, "U_hat" )
-         call set( vfield1, vfield2 )
+         if ( have_option( '/blasting' ) ) then
+            call blasting( packed_state, nphase )
+            sfield1 => extract_scalar_field( state(1), "SolidConcentration" )
+            sfield2 => extract_scalar_field( packed_state, "SolidConcentration" )
+            call set( sfield1, sfield2 )
+            vfield1 => extract_vector_field( state(1), "U_hat" )
+            vfield2 => extract_vector_field( packed_state, "U_hat" )
+            call set( vfield1, vfield2 )
+         end if
 #endif
 
 !!$ Start non-linear loop

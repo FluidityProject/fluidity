@@ -732,6 +732,23 @@ start =
             ## Solve for the actual velocity, not
             ## the Darcy velocity (=porosity*velocity)
             element actual_velocity { empty }?
+         }?,
+         ## Blasting options
+         element blasting {
+            ## Specify FEMDEM input file
+            element femdem_input_file {
+               attribute name { xsd:string }
+            },
+            element Gidaspow_model {
+               attribute rank {"0"},
+               ("A"|"B")
+            },
+            ## =1 treats the solid-fluid coupling implicitly in continuity.
+            ## =0 assumes the continuity for the solid is already satified.
+            ## Recommended value: [0.5,1.0]. Default =1.
+            element theta_cty_solid {
+               real
+            }?
          }?
       }
    )

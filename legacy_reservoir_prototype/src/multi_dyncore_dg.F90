@@ -1162,10 +1162,10 @@ contains
         ! If IGOT_CMC_PRECON=1 use a sym matrix as pressure preconditioner,=0 else CMC as preconditioner as well.
         INTEGER, PARAMETER :: IGOT_CMC_PRECON = 0
 ! Gidaspow model B - can use conservative from of
-        LOGICAL, PARAMETER :: SOLID_FLUID_MODEL_B = .TRUE.
+        LOGICAL :: SOLID_FLUID_MODEL_B = .TRUE.
 ! switch on solid fluid coupling (THE ONLY SWITCH THAT NEEDS TO BE SWITCHED ON FOR SOLID-FLUID COUPLING)...
-        LOGICAL, PARAMETER :: RETRIEVE_SOLID_CTY = .FALSE.
-!        LOGICAL, PARAMETER :: RETRIEVE_SOLID_CTY = .TRUE. 
+        LOGICAL :: RETRIEVE_SOLID_CTY = .FALSE.
+        character( len = option_path_len ) :: opt
 
         REAL, DIMENSION( : ), allocatable :: CT_RHS, DIAG_SCALE_PRES, &
         MCY_RHS, MCY, &
@@ -1268,6 +1268,14 @@ contains
            end if
             call calculate_u_source_cv( state, cv_nonods, ndim, nphase, uden_all, U_Source_CV )
         end if
+
+
+         if ( have_option( '/blasting' ) ) then
+            RETRIEVE_SOLID_CTY = .true.
+            call get_option( '/blasting/Gidaspow_model', opt )
+            if ( trim( opt ) == "A" ) SOLID_FLUID_MODEL_B = .false.
+         end if
+
 
         IF(RETRIEVE_SOLID_CTY) THEN
 !        IF(.TRUE.) THEN

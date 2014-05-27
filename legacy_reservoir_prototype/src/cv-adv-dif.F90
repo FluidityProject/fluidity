@@ -457,8 +457,7 @@ contains
 !! femdem
       type( vector_field ), pointer :: u_hat_all2
       type( scalar_field ), pointer :: solid_vol_fra
-
-      type( tensor_field ) :: femvals
+      real :: theta_cty_solid
 
 
       !#################SET WORKING VARIABLES#################
@@ -512,6 +511,8 @@ contains
                         ENDIF
 ! CONV = A*B ! conV is an allocatable target
 ! T_ALL=>CONV ! conV is an allocatable target
+
+                        call get_option( '/blasting/theta_cty_solid', theta_cty_solid, default=1.  )
 
                      ENDIF
                   ENDIF
@@ -2049,7 +2050,7 @@ contains
                              UGI_COEF_ELE2_ALL,  &
                              NDOTQNEW(IPHASE), NDOTQOLD(IPHASE), NDOTQ_HAT, LIMD(IPHASE), LIMT(IPHASE), LIMTOLD(IPHASE), LIMDT(IPHASE), LIMDTOLD(IPHASE), LIMT_HAT(IPHASE), &
                              FTHETA_T2, ONE_M_FTHETA_T2OLD, FTHETA_T2_J, ONE_M_FTHETA_T2OLD_J, integrate_other_side_and_not_boundary, &
-                             RETRIEVE_SOLID_CTY)
+                             RETRIEVE_SOLID_CTY,theta_cty_solid)
                      ENDIF Conditional_GETCT2
 
 
@@ -11108,7 +11109,7 @@ CONTAINS
        UGI_COEF_ELE2_ALL,  &
        NDOTQ, NDOTQOLD, NDOTQ_HAT, LIMD, LIMT, LIMTOLD, LIMDT, LIMDTOLD, LIMT_HAT, &
        FTHETA_T2, ONE_M_FTHETA_T2OLD, FTHETA_T2_J, ONE_M_FTHETA_T2OLD_J, integrate_other_side_and_not_boundary, &
-       RETRIEVE_SOLID_CTY)
+       RETRIEVE_SOLID_CTY,theta_cty_solid)
     ! This subroutine caculates the discretised cty eqn acting on the velocities i.e. CT, CT_RHS
     IMPLICIT NONE
     INTEGER, intent( in ) :: U_NLOC, SCVNGI, GI, NCOLCT, NDIM, &
@@ -11127,13 +11128,9 @@ CONTAINS
     REAL, DIMENSION( NPHASE, CV_NONODS ), intent( in ) :: DEN_ALL
     REAL, intent( in ) :: NDOTQ, NDOTQOLD, NDOTQ_HAT, LIMT, LIMTOLD, LIMDT, LIMDTOLD, LIMT_HAT, LIMD
     ! LIMT_HAT is the normalised voln fraction
-    REAL, intent( in ) :: FTHETA_T2, ONE_M_FTHETA_T2OLD, FTHETA_T2_J, ONE_M_FTHETA_T2OLD_J
+    REAL, intent( in ) :: FTHETA_T2, ONE_M_FTHETA_T2OLD, FTHETA_T2_J, ONE_M_FTHETA_T2OLD_J, theta_cty_solid 
 
     ! Local variables...
-! THETA_CTY_SOLID =1 TREATS THE SOLID-FLUID COUPLING IMPLICITLY IN CTY
-! THETA_CTY_SOLID =0.0 assumes the cty for the solid is already satified. 
-! THETA_CTY_SOLID \in [0.5,1.0] is recommended...
-    REAL, PARAMETER :: THETA_CTY_SOLID = 0.5
     INTEGER :: U_KLOC, U_KLOC2, JCOUNT_IPHA, IDIM, U_NODK, U_NODK_IPHA, JCOUNT2_IPHA, &
          U_KLOC_LEV, U_NLOC_LEV
     REAL :: RCON,RCON_J, UDGI_IMP_ALL(NDIM), NDOTQ_IMP

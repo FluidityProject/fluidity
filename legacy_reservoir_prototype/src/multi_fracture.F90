@@ -158,8 +158,8 @@ contains
 
     ewrite(3,*) "inside initialise_femdem"
 
-    !call get_option( "/femdem/name", femdem_mesh_name )
-    femdem_mesh_name = "rock.msh"
+    call get_option( "/blasting/femdem_input_file/name", femdem_mesh_name )
+    femdem_mesh_name = trim( femdem_mesh_name ) // ".msh"
 
     call get_option( "/geometry/quadrature/degree", quad_degree )
     call get_option( "/geometry/dimension", ndim )
