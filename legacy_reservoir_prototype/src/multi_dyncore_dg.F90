@@ -1162,7 +1162,7 @@ contains
         ! If IGOT_CMC_PRECON=1 use a sym matrix as pressure preconditioner,=0 else CMC as preconditioner as well.
         INTEGER, PARAMETER :: IGOT_CMC_PRECON = 0
 ! Gidaspow model B - can use conservative from of
-        LOGICAL, PARAMETER :: MODEL_B = .TRUE.
+        LOGICAL, PARAMETER :: SOLID_FLUID_MODEL_B = .TRUE.
 ! switch on solid fluid coupling (THE ONLY SWITCH THAT NEEDS TO BE SWITCHED ON FOR SOLID-FLUID COUPLING)...
         LOGICAL, PARAMETER :: RETRIEVE_SOLID_CTY = .FALSE.
 !        LOGICAL, PARAMETER :: RETRIEVE_SOLID_CTY = .TRUE. 
@@ -1274,7 +1274,7 @@ contains
 ! if model B and solid-fluid coupling: 
            sf => EXTRACT_SCALAR_FIELD( PACKED_STATE, "SolidConcentration" )
 
-           IF(MODEL_B) THEN ! Gidaspow model B - can use conservative from of momentum
+           IF(SOLID_FLUID_MODEL_B) THEN ! Gidaspow model B - can use conservative from of momentum
               DO IPHASE=1,NPHASE
                  UDEN_ALL(IPHASE,:) = UDEN_ALL(IPHASE,:) * ( 1. - sf%val)
                  UDENOLD_ALL(IPHASE,:) = UDENOLD_ALL(IPHASE,:) * ( 1. - sf%val)
