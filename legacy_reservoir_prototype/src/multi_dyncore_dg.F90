@@ -2951,16 +2951,7 @@ contains
            ENDIF
         ENDIF
 
-
-        if ( have_option( '/blasting' ) ) sf=> extract_scalar_field( packed_state, "SolidConcentration" )
-!DO ELE = 1, TOTELE
-!DO CV_ILOC = 1, CV_NLOC
-!MAT_NODI = MAT_NDGLN(  (ELE-1)*CV_NLOC + CV_ILOC )
-!CV_NODI = CV_NDGLN(  (ELE-1)*CV_NLOC + CV_ILOC )
-!UDIFFUSION_ALL( :,:,:, MAT_NODI ) = UDIFFUSION_ALL( :,:,:, MAT_NODI ) * sf%val( CV_NODI )
-!END DO
-!END DO
-
+        if ( RETRIEVE_SOLID_CTY ) sf=> extract_scalar_field( packed_state, "SolidConcentration" )
 
 
         !This term is obtained from the surface tension and curvature
@@ -3052,14 +3043,13 @@ contains
                    LOC_U_ABSORB( :, :, MAT_ILOC ) = U_ABSORB( :, :, MAT_INOD )
 
 ! Switch on for solid fluid-coupling...
-!                   IF(.TRUE.) THEN
                    IF(RETRIEVE_SOLID_CTY) THEN
                       CV_INOD = CV_NDGLN( ( ELE - 1 ) * MAT_NLOC + MAT_ILOC )
                       DO IDIM=1,NDIM
                          DO IPHASE=1,NPHASE
                             I=IDIM + (IPHASE-1)*NDIM
-                      LOC_U_ABSORB( I, I, MAT_ILOC ) =LOC_U_ABSORB( I, I, MAT_ILOC ) + COEFF_SOLID_FLUID*(DEN_ALL(IPHASE,cv_inod) / dt) * sf%val(cv_inod)
-                      !LOC_U_ABSORB( I, I, MAT_ILOC ) =LOC_U_ABSORB( I, I, MAT_ILOC ) + 10000. * sf%val(cv_inod)
+                            LOC_U_ABSORB( I, I, MAT_ILOC ) = LOC_U_ABSORB( I, I, MAT_ILOC ) + &
+                                   COEFF_SOLID_FLUID * ( DEN_ALL( IPHASE, cv_inod ) / dt ) * sf%val( cv_inod )
                          END DO
                       END DO
                    ENDIF
