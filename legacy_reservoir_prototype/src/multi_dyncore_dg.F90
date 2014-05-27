@@ -1164,8 +1164,8 @@ contains
 ! Gidaspow model B - can use conservative from of
         LOGICAL, PARAMETER :: MODEL_B = .TRUE.
 ! switch on solid fluid coupling (THE ONLY SWITCH THAT NEEDS TO BE SWITCHED ON FOR SOLID-FLUID COUPLING)...
-!        LOGICAL, PARAMETER :: RETRIEVE_SOLID_CTY = .FALSE.
-        LOGICAL, PARAMETER :: RETRIEVE_SOLID_CTY = .TRUE. 
+        LOGICAL, PARAMETER :: RETRIEVE_SOLID_CTY = .FALSE.
+!        LOGICAL, PARAMETER :: RETRIEVE_SOLID_CTY = .TRUE. 
 
         REAL, DIMENSION( : ), allocatable :: CT_RHS, DIAG_SCALE_PRES, &
         MCY_RHS, MCY, &
