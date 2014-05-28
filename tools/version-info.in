@@ -18,7 +18,7 @@ if [ x"$PACKAGE_VERSION" = x"" ]; then
     if [ "@FLUIDITY_VERSION@" = "" ]; then
         GIT_COMMIT=`git --no-pager log --pretty=format:'%H' -n 1`
         GIT_BRANCH=`git rev-parse --abbrev-ref HEAD`
-        PACKAGE_VERSION=$GIT_BRANCH.$GIT_COMMIT
+        PACKAGE_VERSION=$GIT_BRANCH:$GIT_COMMIT
     else
         PACKAGE_VERSION="@FLUIDITY_VERSION@"
     fi
