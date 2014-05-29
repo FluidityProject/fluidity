@@ -10,47 +10,54 @@
         </choice>
       </element>
       <element name="software">
-        <a:documentation>This element will be populated with the article ID and DOI of the published software.</a:documentation>
+        <a:documentation>Software (source code) publishing options.</a:documentation>
         <optional>
           <element name="article_id">
+            <a:documentation>The ID of an existing software publication. This is optional. If left disabled, it will be enabled and populated by the fluidity-publish tool.</a:documentation>
             <ref name="integer"/>
           </element>
         </optional>
         <optional>
           <element name="doi">
+            <a:documentation>The DOI of an existing software publication. This is optional. If left disabled, it will be enabled and populated by the fluidity-publish tool.</a:documentation>
             <ref name="anystring"/>
           </element>
         </optional>
       </element>
       <element name="input_data">
         <element name="files">
-          <a:documentation>A list of the files which you want to publish.</a:documentation>
+          <a:documentation>A list of the files which you want to publish. This should be a Python list of strings (e.g. ["file1", "file2", "file3"]).
+Note that wildcard characters can be used here (e.g. "*.msh" will publish all .msh files).</a:documentation>
           <ref name="anystring"/>
         </element>
         <optional>
           <element name="article_id">
+            <a:documentation>The ID of an existing input data publication. This is optional. If left disabled, it will be enabled and populated by the fluidity-publish tool.</a:documentation>
             <ref name="integer"/>
           </element>
         </optional>
         <optional>
           <element name="doi">
+            <a:documentation>The DOI of an existing input data publication. This is optional. If left disabled, it will be enabled and populated by the fluidity-publish tool.</a:documentation>
             <ref name="anystring"/>
           </element>
         </optional>
       </element>
       <element name="output_data">
         <element name="files">
-          <a:documentation>A list of the files which you would like to publish.
+          <a:documentation>A list of the files which you would like to publish. This should be a Python list of strings (e.g. ["file1", "file2", "file3"]).
 Note that wildcard characters can be used here (e.g. "*.vtu" will publish all VTU files).</a:documentation>
           <ref name="anystring"/>
         </element>
         <optional>
           <element name="article_id">
+            <a:documentation>The ID of an existing output data publication. This is optional. If left disabled, it will be enabled and populated by the fluidity-publish tool.</a:documentation>
             <ref name="integer"/>
           </element>
         </optional>
         <optional>
           <element name="doi">
+            <a:documentation>The DOI of an existing output data publication. This is optional. If left disabled, it will be enabled and populated by the fluidity-publish tool.</a:documentation>
             <ref name="anystring"/>
           </element>
         </optional>
