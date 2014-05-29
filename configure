@@ -11804,15 +11804,17 @@ bakLIBS=$LIBS
 tmpLIBS=$LIBS
 tmpCPPFLAGS=$CPPFLAGS
 if test "$adjoint" != "no"; then
-  if test "$adjoint" != "yes"; then
+  if test -d "$adjoint" ; then
     adjoint_LIBS_PATH="$adjoint/lib"
     adjoint_INCLUDES_PATH="$adjoint/include"
     # Ensure the comiler finds the library...
     tmpLIBS="$tmpLIBS -L$adjoint/lib"
     tmpCPPFLAGS="$tmpCPPFLAGS  -I$adjoint/include -I$adjoint/include/libadjoint"
   fi
-  tmpLIBS="$tmpLIBS -L/usr/lib -L/usr/local/lib/ -ladjoint"
-  tmpCPPFLAGS="$tmpCPPFLAGS -I/usr/include/ -I/usr/local/include/ -I/usr/include/libadjoint -I/usr/local/include/libadjoint"
+  if [ -f /usr/lib/libadjoint.a -o -f /usr/local/lib/libadjoint.a ] ; then
+    tmpLIBS="$tmpLIBS -L/usr/lib -L/usr/local/lib/ -ladjoint"
+    tmpCPPFLAGS="$tmpCPPFLAGS -I/usr/include/ -I/usr/local/include/ -I/usr/include/libadjoint -I/usr/local/include/libadjoint"
+  fi
 fi
 LIBS=$tmpLIBS
 CPPFLAGS=$tmpCPPFLAGS
@@ -13105,6 +13107,8 @@ fi
 if test "$HAVE_HYPRE" == "1"; then
   CPPFLAGS="$CPPFLAGS -DHAVE_HYPRE"
 fi
+CPPFLAGS=`echo $CPPFLAGS | sed 's/-petsc-version-/3.4.2.0/' | sed 's/x86_64\/x86_64/x86_64/'`
+FCFLAGS=`echo $FCFLAGS | sed 's/-petsc-version-/3.4.2.0/' | sed 's/x86_64\/x86_64/x86_64/'`
 
 # Double precision.
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking what voodoo is required to get 64 bit reals...." >&5
@@ -13626,9 +13630,9 @@ $as_echo "$as_me: Configuring libspud" >&6;}
 $as_echo "$as_me: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&6;}
 
     # Check if we're on hector xe6
-    if echo $(hostname) | grep -q "^hector-xe6"; then
-        { $as_echo "$as_me:${as_lineno-$LINENO}: Building on hector xe6; disabling shared libraries" >&5
-$as_echo "$as_me: Building on hector xe6; disabling shared libraries" >&6;}
+    if test "x$ARCHER" != "x" ; then
+        { $as_echo "$as_me:${as_lineno-$LINENO}: Building on ARCHER; disabling shared libraries" >&5
+$as_echo "$as_me: Building on ARCHER; disabling shared libraries" >&6;}
         CONFIG_FLAG=--disable-shared
         SPUD_ONLY="yes"
         FLLINKER=$CXX

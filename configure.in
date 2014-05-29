@@ -851,6 +851,8 @@ fi
 if test "$HAVE_HYPRE" == "1"; then
   CPPFLAGS="$CPPFLAGS -DHAVE_HYPRE"
 fi
+CPPFLAGS=`echo $CPPFLAGS | sed 's/-petsc-version-/3.4.2.0/' | sed 's/x86_64\/x86_64/x86_64/'`
+FCFLAGS=`echo $FCFLAGS | sed 's/-petsc-version-/3.4.2.0/' | sed 's/x86_64\/x86_64/x86_64/'`
 
 # Double precision.
 AC_MSG_CHECKING(what voodoo is required to get 64 bit reals....)
@@ -1204,8 +1206,8 @@ if test -d libspud ; then
     AC_MSG_NOTICE([%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%])
 
     # Check if we're on hector xe6
-    if echo $(hostname) | grep -q "^hector-xe6"; then
-        AC_MSG_NOTICE([Building on hector xe6; disabling shared libraries])
+    if test "x$ARCHER" != "x" ; then
+        AC_MSG_NOTICE([Building on ARCHER; disabling shared libraries])
         CONFIG_FLAG=--disable-shared
         SPUD_ONLY="yes"
         FLLINKER=$CXX
