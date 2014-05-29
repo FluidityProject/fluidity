@@ -4825,8 +4825,6 @@ contains
                                            DIAG_BIGM_CON(IDIM,JDIM,IPHASE,JPHASE,U_ILOC,U_JLOC,ELE)  &
                                            =DIAG_BIGM_CON(IDIM,JDIM,IPHASE,JPHASE,U_ILOC,U_JLOC,ELE) + VLM_NEW
 
-                            !   DGM_PHA( COUNT )  =  DGM_PHA( COUNT )  + VLM_NEW
-
                                            LOC_U_RHS( IDIM,IPHASE,U_ILOC ) =  LOC_U_RHS( IDIM,IPHASE,U_ILOC ) -VLM_OLD * SLOC_UOLD( IDIM,IPHASE,U_SJLOC )
 
                                            LOC_U_RHS( IDIM,IPHASE,U_ILOC ) &
