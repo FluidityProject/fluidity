@@ -18,6 +18,7 @@
   <include href="porous_media.rng"/>
   <include href="multiphase_interaction.rng"/>
   <include href="equation_of_state.rng"/>
+  <include href="publishing.rng"/>
   <start>
     <element name="fluidity_options">
       <a:documentation>The root node of the options dictionary.</a:documentation>
@@ -2544,6 +2545,9 @@ while a factor of 1 represents a connected domain.</a:documentation>
       </optional>
       <optional>
         <ref name="multiphase_interaction"/>
+      </optional>
+      <optional>
+        <ref name="publishing"/>
       </optional>
     </element>
   </start>

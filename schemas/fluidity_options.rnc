@@ -17,6 +17,7 @@ include "flredecomp.rnc"
 include "porous_media.rnc"
 include "multiphase_interaction.rnc"
 include "equation_of_state.rnc"
+include "publishing.rnc"
 
 start =
    (
@@ -1810,7 +1811,8 @@ start =
          porous_media_model?,
          embedded_models?,
          flredecomp?,
-         multiphase_interaction?
+         multiphase_interaction?,
+         publishing?
       }
    )      
 

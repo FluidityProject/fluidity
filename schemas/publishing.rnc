@@ -1,0 +1,44 @@
+publishing = 
+   (
+      element publish
+      {
+         ## The online publishing service that you would like to use.
+         element service {
+            ( "figshare" | "zenodo" )
+         },
+         ## This element will be populated with the article ID and DOI of the published software.
+         element software {
+            element article_id {
+               integer
+            }?,
+            element doi {
+               anystring
+            }?
+         },
+         element input_data {
+            ## A list of the files which you want to publish.
+            element files {
+               anystring
+            },
+            element article_id {
+               integer
+            }?,
+            element doi {
+               anystring
+            }?
+         },
+         element output_data {
+            ## A list of the files which you would like to publish.
+            ## Note that wildcard characters can be used here (e.g. "*.vtu" will publish all VTU files).
+            element files {
+               anystring
+            },
+            element article_id {
+               integer
+            }?,
+            element doi {
+               anystring
+            }?
+         }
+      }
+   )
