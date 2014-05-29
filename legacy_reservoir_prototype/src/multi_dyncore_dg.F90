@@ -4820,10 +4820,22 @@ contains
                                     ELSE
 
 
+                              I=IDIM + (IPHASE-1)*NDIM_VEL + (U_ILOC-1)*NDIM_VEL*NPHASE
+                              J=JDIM + (JPHASE-1)*NDIM_VEL + (U_JLOC-1)*NDIM_VEL*NPHASE
+                              IU_NOD_DIM_PHA = I + (ELE-1)*NDIM_VEL*NPHASE*U_NLOC
+                              JU_NOD_DIM_PHA = J + (ELE-1)*NDIM_VEL*NPHASE*U_NLOC
+
+                              IF(.NOT.NO_MATRIX_STORE) THEN
+                                 CALL POSINMAT( COUNT, IU_NOD_DIM_PHA, JU_NOD_DIM_PHA, &
+                                   U_NONODS * NPHASE * NDIM_VEL, FINDGM_PHA, COLDGM_PHA, NCOLDGM_PHA )
+                              ENDIF
+
                                         IF( WIC_U_BC_ALL( IDIM, IPHASE, SELE2 ) == WIC_U_BC_DIRICHLET ) THEN
 
-                                           DIAG_BIGM_CON(IDIM,JDIM,IPHASE,JPHASE,U_ILOC,U_JLOC,ELE)  &
-                                           =DIAG_BIGM_CON(IDIM,JDIM,IPHASE,JPHASE,U_ILOC,U_JLOC,ELE) + VLM_NEW
+                                    !       DIAG_BIGM_CON(IDIM,JDIM,IPHASE,JPHASE,U_ILOC,U_JLOC,ELE)  &
+                                    !       =DIAG_BIGM_CON(IDIM,JDIM,IPHASE,JPHASE,U_ILOC,U_JLOC,ELE) + VLM_NEW
+
+                                 DGM_PHA( COUNT )  =  DGM_PHA( COUNT )  + VLM_NEW
 
                                            LOC_U_RHS( IDIM,IPHASE,U_ILOC ) =  LOC_U_RHS( IDIM,IPHASE,U_ILOC ) -VLM_OLD * SLOC_UOLD( IDIM,IPHASE,U_SJLOC )
 
@@ -5624,10 +5636,7 @@ contains
                                             CALL POSINMAT( COUNT, U_INOD_IDIM_IPHA, U_JNOD_JDIM_JPHA, &
                                             U_NONODS * NPHASE * NDIM_VEL, FINDGM_PHA, COLDGM_PHA, NCOLDGM_PHA )
                                             IF(COUNT.NE.0) THEN
-
-                                                DGM_PHA(COUNT) = LOC_DGM_PHA(IDIM,JDIM,IPHASE,JPHASE,U_ILOC,U_JLOC)
-                                                !DGM_PHA(COUNT) = DGM_PHA(COUNT)+LOC_DGM_PHA(IDIM,JDIM,IPHASE,JPHASE,U_ILOC,U_JLOC)
-
+                                                DGM_PHA(COUNT) = DGM_PHA(COUNT) + LOC_DGM_PHA(IDIM,JDIM,IPHASE,JPHASE,U_ILOC,U_JLOC)
                                             END IF
 
                                         END IF
