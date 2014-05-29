@@ -7,13 +7,14 @@ import vtktools
 import numpy
 import pylab
 import re
+from matplotlib import rc
 
-def get_filelist(type, sample, start):
+def get_filelist(sample, start):
 
     def key(s):
         return int(s.split('_')[-1].split('.')[0])
    
-    list = glob.glob("*"+str(type)+"*.vtu")
+    list = glob.glob("*vtu")
     list = [l for l in list if 'check' not in l]
     vtu_nos = [float(s.split('_')[-1].split('.')[0]) for s in list]
     vals = zip(vtu_nos, list)
@@ -101,7 +102,7 @@ def reattachment_length(filelist):
     pts = numpy.array(pts)
 
     ##### Get x-velocity on bottom boundary
-    uvw = datafile.ProbeData(pts, "Velocity")
+    uvw = datafile.ProbeData(pts, "AverageVelocity")
     u = []
     u = uvw[:,0]
     points = 0.0
@@ -114,10 +115,10 @@ def reattachment_length(filelist):
         p = pts[i][0] + (pts[i+1][0]-pts[i][0]) * (0.0-u[i]) / (u[i+1]-u[i]) -5.0
         print 'p ', p
         ##### Ignore spurious corner points
-        if(p>1.0):
+        if(p>2):
           points = p
-        ##### We have our first point on this plane so...
-        break
+          ##### We have our first point on this plane so...
+          break
     print "reattachment point found at: ", points
 
     ##### Append actual reattachment point and time:
@@ -144,10 +145,12 @@ def meanvelo(file,x,y):
   datafile = vtktools.vtu(file)
 
   ##### Get x-velocity
-  uvw = datafile.ProbeData(pts, "Velocity")
-  umax = 2.3
-  u = uvw[:,0]/umax
+  uvw = datafile.ProbeData(pts, "AverageVelocity")
+  u = uvw[:,0]
   u=u.reshape([x.size,y.size])
+  for i in range(len(x)):
+    umax = max(u[i,:])
+    u[i,:] = u[i,:]/umax
   profiles[:,:] = u
 
   print "\n...Finished writing data files.\n"
@@ -174,93 +177,102 @@ def plot_length(type,reattachment_length):
   pylab.legend(("Fluidity","Kim expt.","Ilinca sim."), loc="best")
   rlmax = max(reattachment_length[:,0])
   pylab.axis([0, reattachment_length[-1,1], 0, max(kim[-1],rlmax)+0.1])
-  pylab.savefig("reattachment_length_kim_"+str(type)+".pdf")
+  pylab.savefig("../reattachment_length_kim_"+str(type)+".pdf")
   return
 
 #########################################################################
 
 def plot_meanvelo(type,profiles,xarray,yarray):
   ##### Plot evolution of velocity profiles at different points behind step
-  plot1 = pylab.figure(figsize = (20.0, 8.5))
-  pylab.suptitle("U-velocity profile: Re=132000, "+str(type), fontsize=20)
 
   # get profiles from Ilinca's experimental/numerical data
-  datafile = open('Ilinca-data/Ilinca-U-expt-1.33.dat', 'r')
+  datafile = open('../Ilinca-data/Ilinca-U-expt-1.33.dat', 'r')
   print "reading in data from file: Ilinca-U-expt-1.33.dat"
   y1=[];U1=[]
   for line in datafile:
     U1.append(float(line.split()[0]))
     y1.append(float(line.split()[1]))
-  datafile = open('Ilinca-data/Ilinca-U-num-1.33.dat', 'r')
+  datafile = open('../Ilinca-data/Ilinca-U-num-1.33.dat', 'r')
   print "reading in data from file: Ilinca-U-num-1.33.dat"
   yn1=[];Un1=[]
   for line in datafile:
     Un1.append(float(line.split()[0]))
     yn1.append(float(line.split()[1]))
 
-  datafile = open('Ilinca-data/Ilinca-U-expt-2.66.dat', 'r')
+  datafile = open('../Ilinca-data/Ilinca-U-expt-2.66.dat', 'r')
   print "reading in data from file: Ilinca-U-expt-2.66.dat"
   y3=[];U3=[]
   for line in datafile:
     U3.append(float(line.split()[0]))
     y3.append(float(line.split()[1]))
-  datafile = open('Ilinca-data/Ilinca-U-num-2.66.dat', 'r')
+  datafile = open('../Ilinca-data/Ilinca-U-num-2.66.dat', 'r')
   print "reading in data from file: Ilinca-U-num-2.66.dat"
   yn3=[];Un3=[]
   for line in datafile:
     Un3.append(float(line.split()[0]))
     yn3.append(float(line.split()[1]))
 
-  datafile = open('Ilinca-data/Ilinca-U-expt-5.33.dat', 'r')
+  datafile = open('../Ilinca-data/Ilinca-U-expt-5.33.dat', 'r')
   print "reading in data from file: Ilinca-U-expt-5.33.dat"
   y5=[];U5=[]
   for line in datafile:
     U5.append(float(line.split()[0]))
     y5.append(float(line.split()[1]))
-  datafile = open('Ilinca-data/Ilinca-U-num-5.33.dat', 'r')
+  datafile = open('../Ilinca-data/Ilinca-U-num-5.33.dat', 'r')
   print "reading in data from file: Ilinca-U-num-5.33.dat"
   yn5=[];Un5=[]
   for line in datafile:
     Un5.append(float(line.split()[0]))
     yn5.append(float(line.split()[1]))
 
-  datafile = open('Ilinca-data/Ilinca-U-expt-8.0.dat', 'r')
+  datafile = open('../Ilinca-data/Ilinca-U-expt-8.0.dat', 'r')
   print "reading in data from file: Ilinca-U-expt-8.0.dat"
   y8=[];U8=[]
   for line in datafile:
     U8.append(float(line.split()[0]))
     y8.append(float(line.split()[1]))
-  datafile = open('Ilinca-data/Ilinca-U-num-8.0.dat', 'r')
+  datafile = open('../Ilinca-data/Ilinca-U-num-8.0.dat', 'r')
   print "reading in data from file: Ilinca-U-num-8.0.dat"
   yn8=[];Un8=[]
   for line in datafile:
     Un8.append(float(line.split()[0]))
     yn8.append(float(line.split()[1]))
 
-  datafile = open('Ilinca-data/Ilinca-U-expt-16.0.dat', 'r')
+  datafile = open('../Ilinca-data/Ilinca-U-expt-16.0.dat', 'r')
   print "reading in data from file: Ilinca-U-expt-16.0.dat"
   y16=[];U16=[]
   for line in datafile:
     U16.append(float(line.split()[0]))
     y16.append(float(line.split()[1]))
-  datafile = open('Ilinca-data/Ilinca-U-num-16.0.dat', 'r')
+  datafile = open('../Ilinca-data/Ilinca-U-num-16.0.dat', 'r')
   print "reading in data from file: Ilinca-U-num-16.0.dat"
   yn16=[];Un16=[]
   for line in datafile:
     Un16.append(float(line.split()[0]))
     yn16.append(float(line.split()[1]))
 
+  plot1 = pylab.figure(figsize = (20, 8))
+  pylab.suptitle("U-velocity profile: Re=132000, "+str(type), fontsize=20)
+
   size = 15
   ax = pylab.subplot(151)
   leg_end = []
 
-  ax.plot(profiles[0,:],yarray, linestyle="solid",color='blue', marker = 'o', markerfacecolor='white', markersize=6, markeredgecolor='black')
+  ax.plot(profiles[0,:],yarray, linestyle="solid",color='blue', marker = 'o', markerfacecolor='white', markersize=8, markeredgecolor='black')
+  ax.plot(U1,y1, linestyle='none',color='black', marker = 'x', markerfacecolor='black', markersize=8)
+  ax.plot(Un1,yn1, linestyle="solid",color="red")
+
   leg_end.append("Fluidity")
   leg_end.append("Kim expt.")
   leg_end.append("Ilinca sim.")
-  ax.plot(U1,y1, linestyle="solid",color="black")
-  ax.plot(Un1,yn1, linestyle="solid",color="red")
-  pylab.legend((leg_end), loc="upper left")
+  pylab.legend((leg_end), loc="lower right")
+  leg = pylab.gca().get_legend()
+  ltext = leg.get_texts()
+  pylab.setp(ltext, fontsize = 18, color = 'black')
+  frame=leg.get_frame()
+  frame.set_fill(False)
+  frame.set_visible(False)
+
   ax.set_title('(a) x/h='+str(xarray[0]), fontsize=16)
   for tick in ax.xaxis.get_major_ticks():
     tick.label1.set_fontsize(size)
@@ -268,8 +280,8 @@ def plot_meanvelo(type,profiles,xarray,yarray):
     tick.label1.set_fontsize(size)
 
   bx = pylab.subplot(152, sharex=ax, sharey=ax)
-  bx.plot(profiles[1,:],yarray, linestyle="solid",color='blue', marker = 'o', markerfacecolor='white', markersize=6, markeredgecolor='black')
-  bx.plot(U3,y3, linestyle="solid",color='black')
+  bx.plot(profiles[1,:],yarray, linestyle="solid",color='blue', marker = 'o', markerfacecolor='white', markersize=8, markeredgecolor='black')
+  bx.plot(U3,y3, linestyle='none',color='black', marker = 'x', markerfacecolor='black', markersize=8)
   bx.plot(Un3,yn3, linestyle="solid",color='red')
   bx.set_title('(b) x/h='+str(xarray[1]), fontsize=16)
   for tick in bx.xaxis.get_major_ticks():
@@ -277,8 +289,8 @@ def plot_meanvelo(type,profiles,xarray,yarray):
   pylab.setp(bx.get_yticklabels(), visible=False)
 
   cx = pylab.subplot(153, sharex=ax, sharey=ax)
-  cx.plot(profiles[2,:],yarray, linestyle="solid",color='blue', marker = 'o', markerfacecolor='white', markersize=6, markeredgecolor='black')
-  cx.plot(U5,y5, linestyle="solid",color='black')
+  cx.plot(profiles[2,:],yarray, linestyle="solid",color='blue', marker = 'o', markerfacecolor='white', markersize=8, markeredgecolor='black')
+  cx.plot(U5,y5, linestyle='none',color='black', marker = 'x', markerfacecolor='black', markersize=8)
   cx.plot(Un5,yn5, linestyle="solid",color='red')
   cx.set_title('(c) x/h='+str(xarray[2]), fontsize=16)
   for tick in cx.xaxis.get_major_ticks():
@@ -286,8 +298,8 @@ def plot_meanvelo(type,profiles,xarray,yarray):
   pylab.setp(cx.get_yticklabels(), visible=False)
 
   dx = pylab.subplot(154, sharex=ax, sharey=ax)
-  dx.plot(profiles[3,:],yarray, linestyle="solid",color='blue', marker = 'o', markerfacecolor='white', markersize=6, markeredgecolor='black')
-  dx.plot(U8,y8, linestyle="solid",color='black')
+  dx.plot(profiles[3,:],yarray, linestyle="solid",color='blue', marker = 'o', markerfacecolor='white', markersize=8, markeredgecolor='black')
+  dx.plot(U8,y8, linestyle='none',color='black', marker = 'x', markerfacecolor='black', markersize=8)
   dx.plot(Un8,yn8, linestyle="solid",color='red')
   dx.set_title('(d) x/h='+str(xarray[3]), fontsize=16)
   for tick in dx.xaxis.get_major_ticks():
@@ -295,19 +307,19 @@ def plot_meanvelo(type,profiles,xarray,yarray):
   pylab.setp(dx.get_yticklabels(), visible=False)
 
   ex = pylab.subplot(155, sharex=ax, sharey=ax)
-  ex.plot(profiles[4,:],yarray, linestyle="solid",color='blue', marker = 'o', markerfacecolor='white', markersize=6, markeredgecolor='black')
-  ex.plot(U16,y16, linestyle="solid",color='black')
+  ex.plot(profiles[4,:],yarray, linestyle="solid",color='blue', marker = 'o', markerfacecolor='white', markersize=8, markeredgecolor='black')
+  ex.plot(U16,y16, linestyle='none',color='black', marker = 'x', markerfacecolor='black', markersize=8)
   ex.plot(Un16,yn16, linestyle="solid",color='red')
   ex.set_title('(e) x/h='+str(xarray[4]), fontsize=16)
   for tick in ex.xaxis.get_major_ticks():
     tick.label1.set_fontsize(size)
   pylab.setp(ex.get_yticklabels(), visible=False)
 
-  pylab.axis([-0.5, 1.1, 0., 3.])
-  bx.set_xlabel('Normalised U-velocity (U/Umax)', fontsize=24)
-  ax.set_ylabel('z/h', fontsize=24)
+  pylab.axis([-0.25, 1.15, 0., 3.])
+  cx.set_xlabel('Normalised U-velocity (U/Umax)', fontsize=24)
+  ax.set_ylabel('y', fontsize=24)
 
-  pylab.savefig("velocity_profiles_kim_"+str(type)+".pdf")
+  pylab.savefig("../velocity_profiles_kim_"+str(type)+".pdf")
   return
 
 #########################################################################
@@ -317,7 +329,7 @@ def main():
     type = sys.argv[1]
 
     ##### Only process every nth file:
-    filelist = get_filelist(type, sample=5, start=0)
+    filelist = get_filelist(sample=5, start=0)
 
     ##### Call reattachment_length function
     reatt_length = numpy.array(reattachment_length(filelist))

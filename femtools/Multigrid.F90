@@ -800,7 +800,7 @@ integer, optional, dimension(:), intent(out):: cluster
   
   !
   call VecCopy(diag, sqrt_diag, ierr)
-#if PETSC_VERSION_MINOR>=3
+#if PETSC_VERSION_MINOR>=2
   call VecSqrtAbs(sqrt_diag, ierr)
 #else
   call VecSqrt(sqrt_diag, ierr)

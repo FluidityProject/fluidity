@@ -37,7 +37,7 @@
 #endif
 
 extern "C" {
-#ifdef HAVE_NETCDF
+#ifdef HAVE_LIBNETCDF
 #include <netcdf.h>
 #endif
 }

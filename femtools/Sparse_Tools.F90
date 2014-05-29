@@ -781,7 +781,7 @@ contains
     if (ldiag) then
        allocate(sparsity%centrm(min(rows, columns)), stat=lstat)
        if (lstat/=0) goto 42
-       totalmem=totalmem + rows 
+       totalmem=totalmem + size(sparsity%centrm)
     else
        ! fix for 'old' gfortran bug:
        nullify(sparsity%centrm) 
@@ -4791,7 +4791,7 @@ contains
     type(csr_sparsity), intent(in):: sparsity
     
     integer, dimension(:), pointer:: cols
-    integer i, j, col
+    integer i, j 
     logical sorted
     
     do i=1, size(sparsity,1)
@@ -4892,6 +4892,7 @@ contains
     sparsityC%sorted_rows=.true.
         
   end function sparsity_merge
+
   
   subroutine csr_matrix2file(filename, matrix)
     !!< Write the dense form of matrix to filename.

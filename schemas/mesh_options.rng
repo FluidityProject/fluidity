@@ -131,7 +131,14 @@ boundary node and returns the coordinate of a physical
 boundary node.
 Note that in adaptive simulations this will be applied to
 arbitrary points in space, not just those on the original aliased
-boundary.</a:documentation>
+boundary.
+Python function prescribing real input. Functions should be of the form:
+
+ def val(X, t):
+    # Function code
+    return # Return value
+
+where X is a tuple of length geometry dimension and t is time</a:documentation>
               <ref name="python_code"/>
             </element>
             <optional>
@@ -140,7 +147,14 @@ boundary.</a:documentation>
 boundary node and returns the coordinate of an aliased
 boundary node. This is used in adaptive simulations to
 keep the adapted domain inside the bounding box of the
-original domain.</a:documentation>
+original domain.
+Python function prescribing real input. Functions should be of the form:
+
+ def val(X, t):
+    # Function code
+    return # Return value
+
+where X is a tuple of length geometry dimension and t is time</a:documentation>
                 <ref name="python_code"/>
               </element>
             </optional>

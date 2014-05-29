@@ -19,12 +19,14 @@ This chapter introduces the paramateristations that are available in \fluidity.
 \index{GLS|see{generic length scale model}}
 \index{generic length scale model}
 
-The generic length scale (GLS) turbulence parameterisation is capable of simulating vertical
+The generic length scale (GLS) turbulence parameterisation is capable of simulating \emph{vertical}
 turbulence at a scale lower than that of the mesh. There is no dependency on the mesh resolution,
 so is ideal for adaptive ocean-scale problems. GLS has the additional advantage that it
 can be set-up to behave as a number of classical turbulence models:
 $k-\epsilon$, $k-kl$, $k-\omega$,
-and an additional model based on \citet{umlauf2003}, the $gen$ model.
+and an additional model based on \citet{umlauf2003}, the $gen$ model. Further details are
+available in \citet{hill2012}, along with test cases and a demonstration of how GLS can be
+used in conjuction with adaptive remeshing.
 
 Briefly, all implementations rely on a local, temporally varying, kinematic eddy
 viscosity $K_M$ that parametrises turbulence (local Reynolds stresses) in terms of mean-flow
@@ -424,24 +426,6 @@ The associated boundary conditions are:
   \right ). \label{eq:epsbc1}
 \end{align}
 
-\par{\textbf{High Reynolds number boundary conditions}\\}
-For high Reynolds numbers ($Re>10^4$), the \option{high\_Re} wall functions are
-recommended \citep{wilcox1998turbulence}:
-
-\begin{align}
-  \bmu &= u_* \left [ \frac{1}{\kappa} \ln (\rho u_* y / \mu) + B \right ], \label{eq:ubc2}\\
-  k &= \frac{u_*^2}{C_{\mu}^{1/2}}, \label{eq:kbc2}\\
-  \epsilon &= \frac{u_*^3}{\kappa y}, \label{eq:epsbc2}\\
-  u_* &= (\tau_w / \rho)^{1/2} = \left ( \frac{\mu_T}{\rho} \ppx[n]{U_S} \right
-  )^{1/2}, \label{eq:ustar}
-\end{align}
-where $B$ is a model constant, $y$ is the distance to the wall, $u_*$ is the friction
-velocity, $U_S$ is the streamwise velocity parallel to the wall, $\kappa=0.43$ is Von
-Karman's constant, $\mu$ is the dynamic laminar (background) viscosity, $\mu_T$ is the
-dynamic eddy (turbulent) viscosity, $\rho$ is the density and $\ppx[n]{}$ is the gradient
-operator in the wall-normal direction. For implementation details see
-\ref{sec:kepsilon_usage}.
-
 \par{\textbf{Turbulent diffusivity of scalar fields}\\}
 When using scalar fields, such as a temperature or sediment field, The k-$\epsilon$ model
 simulates subgridscale eddies by increasing the diffusivity of the scalar fields such that
@@ -670,9 +654,17 @@ with the anisotropic tensorial eddy viscosity:
 \nu_{jk} = 4C_s^2 \left | \mathcal{\overline{S}} \right | \mathcal{M}^{-1},
 \end{equation}
 where $\mathcal{M}$ is the length-scale metric from the adaptivity process (see \citet{pain2001}),
-used here to relate eddy viscosity to the local grid size. The factor of 4 arises because the filter
-width separating resolved and unresolved scales is assumed to be twice the local element size, which is squared in
-the viscosity model.
+used here to relate eddy viscosity to the local grid size. The factor of 4 arises in both of the above formula because the filter width separating resolved and unresolved scales is assumed to be twice the local element size, which is squared in the viscosity model.
+
+There is also a scalar (rather than tensorial) length scale metric available, defined by
+\begin{equation}
+ l = 2V^{\frac{1}{n}},
+\end{equation}
+where $n$ is the dimension of the problem, and $V$ is the volume (if $n=3$) or area (if $n=2$) of the element. Using this yields an isotropic eddy viscosity tensor:
+\begin{equation}
+ \nu_{jk} = 4C_s^2 \left | \mathcal{\overline{S}} \right |V^{\frac{1}{n}}.
+\end{equation}
+
 \par
 The options for this model are available under the spud path 
 \lstinline+.../les_model/second_order+. The following options are available to the user:
@@ -682,6 +674,8 @@ The options for this model are available under the spud path
       However, many researchers have carried out calibration studies for particular flows and mesh
       resolutions, for example see \cite{deardorff1971}, \cite{nicoud1999}, \cite{germano1991} and
       \cite{canuto_cheng1997}.
+\item \lstinline+.../les_model/second_order/length_scale_type+\ : (Compulsory) The user can select between
+      the scalar or tensor length scales, described above.
 \item \lstinline+.../les_model/second_order/tensor_field::EddyViscosity+\ : (Optional) When this
       option is active the eddy viscocity is calculated as a diagnostic field. Further sub-options
       allow the user to store this field for later visualisation and post-processing.

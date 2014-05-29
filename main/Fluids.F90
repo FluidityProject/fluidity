@@ -76,7 +76,6 @@ module fluids_module
   use foam_flow_module, only: calculate_potential_flow, calculate_foam_velocity
   use momentum_equation
   use timeloop_utilities
-  use free_surface_module
   use field_priority_lists
   use boundary_conditions
   use spontaneous_potentials, only: calculate_electrical_potential
@@ -103,6 +102,7 @@ module fluids_module
   use multiphase_module
   use detector_parallel, only: sync_detector_coordinates, deallocate_detector_list_array
   use momentum_diagnostic_fields, only: calculate_densities
+  use sediment_diagnostics, only: calculate_sediment_flux
 
   implicit none
 
@@ -491,6 +491,10 @@ contains
           ! For the free surface this is dealt with within move_mesh_free_surface() below
           call set_vector_field_in_state(state(1), "OldCoordinate", "Coordinate")
        end if
+       ! if we're using an implicit (prognostic) viscous free surface then there will be a surface field stored
+       ! under the boundary condition _implicit_free_surface on the FreeSurface field that we need to update
+       ! - it has an old and a new timelevel and the old one needs to be set to the now old new values.
+       call update_implicit_scaled_free_surface(state)
 
        ! this may already have been done in populate_state, but now
        ! we evaluate at the correct "shifted" time level:
@@ -694,8 +698,7 @@ contains
 
                    ! Solve the pure control volume form of the equations
                    call solve_field_eqn_cv(field_name=trim(field_name_list(it)), &
-                        state=state(field_state_list(it):field_state_list(it)), &
-                        global_it=its)
+                        state=state, istate=field_state_list(it), global_it=its)
 
                 else if(have_option(trim(field_optionpath_list(it)) // &
                      & "/prognostic/spatial_discretisation/continuous_galerkin")) then
@@ -784,6 +787,9 @@ contains
           end if
 
        end do nonlinear_iteration_loop
+
+       ! Calculate prognostic sediment deposit fields
+       call calculate_sediment_flux(state(1))
 
        ! Reset the number of nonlinear iterations in case it was overwritten by nonlinear_iterations_adapt
        call get_option('/timestepping/nonlinear_iterations',nonlinear_iterations,&
@@ -1016,7 +1022,6 @@ contains
     real, intent(inout) :: dt
     integer, intent(inout) :: nonlinear_iterations, nonlinear_iterations_adapt
     type(state_type), dimension(:), pointer :: sub_state
-    integer :: i
 
     ! Overwrite the number of nonlinear iterations if the option is switched on
     if(have_option("/timestepping/nonlinear_iterations/nonlinear_iterations_at_adapt")) then

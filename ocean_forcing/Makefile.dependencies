@@ -3,7 +3,23 @@
 	@true
 
 ClimateReader_interface.o ../include/climatology.mod: \
-   ClimateReader_interface.F90 ../include/fldebug.mod
+   ClimateReader_interface.F90 ../include/fldebug.mod \
+   ../include/global_parameters.mod
+
+../include/fluxes.mod: FluxesReader_interface.o
+	@true
+
+FluxesReader_interface.o ../include/fluxes.mod: FluxesReader_interface.F90 \
+   ../include/fldebug.mod ../include/global_parameters.mod
+
+../include/initialise_ocean_forcing_module.mod: InitialiseOceanForcing.o
+	@true
+
+InitialiseOceanForcing.o ../include/initialise_ocean_forcing_module.mod: \
+   InitialiseOceanForcing.F90 ../include/climatology.mod ../include/fdebug.h \
+   ../include/fldebug.mod ../include/fluxes.mod \
+   ../include/global_parameters.mod ../include/nemo_states_module.mod \
+   ../include/spud.mod
 
 ../include/nemo_states_module.mod: NEMO_load_fields.o
 	@true
@@ -12,7 +28,7 @@ NEMO_load_fields.o ../include/nemo_states_module.mod: NEMO_load_fields.F90 \
    ../include/boundary_conditions.mod ../include/coordinates.mod \
    ../include/field_options.mod ../include/fields.mod \
    ../include/global_parameters.mod ../include/nemo_load_fields_vars.mod \
-   ../include/spud.mod ../include/state_module.mod
+   ../include/nemo_v2.mod ../include/spud.mod ../include/state_module.mod
 
 ../include/nemo_load_fields_vars.mod: NEMO_load_fields_vars.o
 	@true
@@ -23,6 +39,12 @@ NEMO_load_fields_vars.o ../include/nemo_load_fields_vars.mod: \
    ../include/state_module.mod
 
 NEMOdataload_rotation.o : NEMOdataload_rotation.F90 ../include/coordinates.mod
+
+../include/nemo_v2.mod: NemoReader_interface.o
+	@true
+
+NemoReader_interface.o ../include/nemo_v2.mod: NemoReader_interface.F90 \
+   ../include/fldebug.mod ../include/global_parameters.mod
 
 ../include/netcdfwriter.mod: NetCDFWriter.o
 	@true

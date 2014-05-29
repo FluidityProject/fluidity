@@ -92,6 +92,13 @@ mesh_info =
             ## Note that in adaptive simulations this will be applied to
             ## arbitrary points in space, not just those on the original aliased
             ## boundary.
+            ## Python function prescribing real input. Functions should be of the form:
+            ##
+            ##  def val(X, t):
+            ##     # Function code
+            ##     return # Return value
+            ##
+            ## where X is a tuple of length geometry dimension and t is time
             element coordinate_map {
                python_code
             },
@@ -100,6 +107,13 @@ mesh_info =
             ## boundary node. This is used in adaptive simulations to
             ## keep the adapted domain inside the bounding box of the
             ## original domain.
+            ## Python function prescribing real input. Functions should be of the form:
+            ##
+            ##  def val(X, t):
+            ##     # Function code
+            ##     return # Return value
+            ##
+            ## where X is a tuple of length geometry dimension and t is time
             element inverse_coordinate_map {
                python_code
             }?,

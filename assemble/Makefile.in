@@ -70,7 +70,7 @@ OBJS    = Momentum_Diagnostic_Fields.o \
 	Upwind_Stabilisation.o \
         Coriolis.o Full_Projection.o \
         Mba2d_Integration.o Slope_limiters_DG.o \
-        Spontaneous_Potentials.o LES_viscosity.o \
+        Spontaneous_Potentials.o LES.o \
         Saturation_Distribution_Search_HookeJeeves.o \
         Petsc_Solve_State.o Adaptivity_1D.o \
 	Linear_Shallow_Water.o \

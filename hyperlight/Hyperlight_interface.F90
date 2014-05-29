@@ -31,6 +31,8 @@ module hyperlight
   use state_module
   use fields
   use global_parameters, only:   OPTION_PATH_LEN
+  use fluxes
+
   implicit none
 contains
 

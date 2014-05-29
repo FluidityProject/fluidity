@@ -293,7 +293,7 @@
    Sv = adv*rho*(sin(x)**2*cos(y)*sin(y) + cos(x)**2*cos(y)*sin(y)) - 2*nu*cos(x)*sin(y) - cos(x)*sin(y)
    return (Su, Sv)</string_value>
                 <comment>u(x,y,rho,beta,nu,adv,mass,t) = sin(x)*cos(y)&#13;
-v(x,y,rho,beta,nu,adv,masst) = -cos(x)*sin(y)
+v(x,y,rho,beta,nu,adv,mass,t) = -cos(x)*sin(y)
 p(x,y,rho,beta,nu,adv,mass,t) = cos(x)*cos(y)&#13;
 
 u_t = diff(u,t)

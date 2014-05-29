@@ -1,10 +1,8 @@
-PROJECT = channel
-
 input: clean
 
 clean:
-	rm -f $(PROJECT) $(PROJECT)0 $(PROJECT).fld
-	rm -f $(PROJECT).s $(PROJECT).stat
+	rm -f channel channel0 channel.fld
+	rm -f channel.s channel.stat
 	rm -f *.d.* *.vtu
 	rm -f fluidity.err-0 fluidity.log-0
 	rm -f *.ele *.face *.node *.edge *.stat *.halo

@@ -119,7 +119,7 @@ template<class NodeType>
 NodeVector<NodeType>& NodeVector<NodeType>::operator=(const NodeVector<NodeType>& in){
   len = in.len;
   plen = in.plen;
-  insert( (*this).end(), in.begin(), in.end() );
+  this->insert( (*this).end(), in.begin(), in.end() );
   complete_unn2gnn = in.complete_unn2gnn;
   complete_pcnt    = in.complete_pcnt;
   
@@ -154,7 +154,7 @@ void NodeVector<NodeType>::push_back(const NodeType& node){
   complete_unn2gnn = false;
   
   // Add node.
-  insert(this->end(), node);
+  this->insert(this->end(), node);
   
   // Update count
   len++;
@@ -237,7 +237,7 @@ void NodeVector<NodeType>::clear(){
   made_edit();
   len = 0;
   unn2gnn.clear();
-  erase(this->begin(), this->end());
+  this->erase(this->begin(), this->end());
 }
 
 template<class NodeType>

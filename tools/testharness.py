@@ -5,23 +5,35 @@ import os
 import os.path
 import glob
 import time
-import fluidity.regressiontest as regressiontest
+
+try:
+ import fluidity.regressiontest as regressiontest
+except ImportError:
+ # try again by adding the path "../python" relative to testharness' own location to sys.path
+ head,tail = os.path.split(sys.argv[0])
+ python_path = os.path.abspath(os.path.join(head,'..','python'))
+ sys.path.append(python_path)
+ import fluidity.regressiontest as regressiontest
+
 import traceback
 import threading
 import xml.parsers.expat
+import string
 
-
+# make sure we use the correct version of regressiontest
 sys.path.insert(0, os.path.join(os.getcwd(), os.path.dirname(sys.argv[0]), os.pardir, "python"))
+import fluidity.regressiontest as regressiontest
+
 try:
   import xml.etree.ElementTree as etree
 except ImportError:
   import elementtree.ElementTree as etree
 
 class TestHarness:
-    def __init__(self, length="any", parallel=False, exclude_tags=None,
+    def __init__(self, length="any", parallel="any", exclude_tags=None,
                  tags=None, file="", from_file=None,
                  verbose=True, justtest=False,
-                 valgrind=False):
+                 valgrind=False, genpbs=False):
         self.tests = []
         self.verbose = verbose
         self.length = length
@@ -33,6 +45,7 @@ class TestHarness:
         self.completed_tests = []
         self.justtest = justtest
         self.valgrind = valgrind
+        self.genpbs = genpbs
 
         fluidity_command = self.decide_fluidity_command()
 
@@ -87,9 +100,12 @@ class TestHarness:
 
         if files:
           for (subdir, xml_file) in [os.path.split(x) for x in xml_files]:
-            if xml_file in files:
+            if xml_file == file:
+              p = etree.parse(os.path.join(subdir,xml_file))
+              prob_defn = p.findall("problem_definition")[0]
+              prob_nprocs = int(prob_defn.attrib["nprocs"])                
               testprob = regressiontest.TestProblem(filename=os.path.join(subdir, xml_file),
-                           verbose=self.verbose, replace=self.modify_command_line())
+                           verbose=self.verbose, replace=self.modify_command_line(prob_nprocs), genpbs=genpbs)
               self.tests.append((subdir, testprob))
               files.remove(xml_file)
           if files != []:
@@ -107,12 +123,14 @@ class TestHarness:
           prob_length = prob_defn.attrib["length"]
           prob_nprocs = int(prob_defn.attrib["nprocs"])
           if prob_length == length or (length == "any" and prob_length not in ["special", "long"]):
-            if self.parallel is True:
+            if self.parallel == "parallel":
               if prob_nprocs > 1:
                 working_set.append(xml_file)
-            else:
+            elif self.parallel == "serial":
               if prob_nprocs == 1:
                 working_set.append(xml_file)
+            elif self.parallel == "any":
+              working_set.append(xml_file)
                 
         def get_xml_file_tags(xml_file):
           p = etree.parse(xml_file)
@@ -157,8 +175,12 @@ class TestHarness:
           tagged_set = working_set
 
         for (subdir, xml_file) in [os.path.split(x) for x in tagged_set]:
+          # need to grab nprocs here to pass through to modify_command_line
+          p = etree.parse(os.path.join(subdir,xml_file))
+          prob_defn = p.findall("problem_definition")[0]
+          prob_nprocs = int(prob_defn.attrib["nprocs"])
           testprob = regressiontest.TestProblem(filename=os.path.join(subdir, xml_file),
-                       verbose=self.verbose, replace=self.modify_command_line())
+                       verbose=self.verbose, replace=self.modify_command_line(prob_nprocs))
           self.tests.append((subdir, testprob))
 
         if len(self.tests) == 0:
@@ -211,9 +233,9 @@ class TestHarness:
               
         return None
 
-    def modify_command_line(self):
+    def modify_command_line(self, nprocs):
       flucmd = self.decide_fluidity_command()
-
+      print flucmd
       def f(s):
         if not flucmd in [None, "fluidity"]:
           s = s.replace('fluidity ', flucmd + ' ')
@@ -222,6 +244,11 @@ class TestHarness:
           s = "valgrind --tool=memcheck --leak-check=full -v" + \
               " --show-reachable=yes --num-callers=8 --error-limit=no " + \
               "--log-file=test.log " + s
+
+        # when calling genpbs, genpbs should take care of inserting the right -n <NPROCS> magic
+        if not self.genpbs:
+          s = s.replace('mpiexec ', 'mpiexec -n %(nprocs)d ' % {'nprocs': nprocs})
+
         return s
 
       return f
@@ -341,9 +368,9 @@ if __name__ == "__main__":
     import optparse
 
     parser = optparse.OptionParser()
-    parser.add_option("-l", "--length", dest="length", help="length of problem (default=short)", default="any")
-    parser.add_option("-p", "--parallelism", dest="parallel", help="parallelism of problem (default=serial)",
-                      default="serial")
+    parser.add_option("-l", "--length", dest="length", help="length of problem (default=any)", default="any")
+    parser.add_option("-p", "--parallelism", dest="parallel", help="parallelism of problem: options are serial, parallel or any (default=any)",
+                      default="any")
     parser.add_option("-e", "--exclude-tags", dest="exclude_tags", help="run only tests that do not have specific tags (takes precidence over -t)", default=[], action="append")
     parser.add_option("-t", "--tags", dest="tags", help="run tests with specific tags", default=[], action="append")
     parser.add_option("-f", "--file", dest="file", help="specific test case to run (by filename)", default="")
@@ -355,14 +382,14 @@ if __name__ == "__main__":
     parser.add_option("-c", "--clean", action="store_true", dest="clean", default = False)
     parser.add_option("--just-test", action="store_true", dest="justtest")
     parser.add_option("--just-list", action="store_true", dest="justlist")
+    parser.add_option("--genpbs", action="store_true", dest="genpbs")
     (options, args) = parser.parse_args()
 
     if len(args) > 0: parser.error("Too many arguments.")
 
-    if options.parallel == "serial":     para = False
-    elif options.parallel == "parallel": para = True
-    else: parser.error("Specify either serial or parallel.")
-
+    if options.parallel not in ['serial', 'parallel', 'any']:
+      parser.error("Specify parallelism as either serial, parallel or any.")
+    
     os.environ["PATH"] = os.path.abspath(os.path.join(os.path.dirname(sys.argv[0]), "..", "bin")) + ":" + os.environ["PATH"]
     try:
       os.environ["PYTHONPATH"] = os.path.abspath(os.path.join(os.path.dirname(sys.argv[0]), "..", "python")) + ":" + os.environ["PYTHONPATH"]
@@ -388,12 +415,13 @@ if __name__ == "__main__":
     else:
       tags = options.tags
 
-    testharness = TestHarness(length=options.length, parallel=para,
+    testharness = TestHarness(length=options.length, parallel=options.parallel,
                               exclude_tags=exclude_tags, tags=tags,
                               file=options.file, verbose=True,
                               justtest=options.justtest,
                               valgrind=options.valgrind,
-                              from_file=options.from_file)
+                              from_file=options.from_file,
+                              genpbs=options.genpbs)
 
     if options.justlist:
       testharness.list()
