@@ -3862,8 +3862,28 @@ For Gidaspow's model B the momentum equations written in conservative form are:
 \begin{eqnarray}
 (\frac{\alpha_f^{n+1} \rho_f^{n+1} u_f^{n+1}-\alpha_f^{n} \rho_f^{n} u_f^n}{\Delta t})
 + \nabla \alpha_f \rho_f u_f\cdot u_f 
-+\nabla (p+\tau)  -s_c -\rho_f g k=0
++\nabla (p+\tau)  -s_c -\rho_f g k=0. 
 \label{mom-for-div-by-apha-modelB}
+\end{eqnarray}
+For $\alpha_f^{n+1}=1-\alpha_s^{n+1}$ we may use the expression, suitable for incompressible solids: 
+\begin{eqnarray}
+\alpha_s^{n+1}= \alpha_s^{n} - \Delta t \nabla \cdot \alpha_s u_s
+\end{eqnarray}
+to obtain: 
+\begin{eqnarray}
+(\frac{\alpha_f^{n} \rho_f^{n+1} u_f^{n+1}-\alpha_f^{n} \rho_f^{n} u_f^n}{\Delta t})
+-\rho_f^{n+1} u_f^{n+1} (\nabla \cdot \alpha_s u_s) 
++ \nabla \alpha_f \rho_f u_f\cdot u_f 
++\nabla (p+\tau)  -s_c -\rho_f g k=0, 
+\label{mom-for-div-by-apha-modelB-with-grad}
+\end{eqnarray}
+or: 
+\begin{eqnarray}
+(\frac{\alpha_f^{n} \rho_f^{n+1} u_f^{n+1}-\alpha_f^{n} \rho_f^{n} u_f^n}{\Delta t})
+-\rho_f^{n+1} u_f^{n+1} (\nabla \cdot (\hat u - \alpha_f u_f)) 
++ \nabla \alpha_f \rho_f u_f\cdot u_f 
++\nabla (p+\tau)  -s_c -\rho_f g k=0. 
+\label{mom-for-div-by-apha-modelB-with-grad-or}
 \end{eqnarray}
 
 \subsubsection{Form of the solid-fluid coupling source term $s_c$}

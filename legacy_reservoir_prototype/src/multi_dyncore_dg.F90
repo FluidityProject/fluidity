@@ -2290,7 +2290,7 @@ contains
 !        SBCVN, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFENLX, SBCVFENLY, SBCVFENLZ, &
 !        SBUFEN, SBUFENSLX, SBUFENSLY, SBUFENLX, SBUFENLY, SBUFENLZ
         REAL, DIMENSION( : ), allocatable :: X, Y, Z
-        REAL, DIMENSION ( : , :,  : ), allocatable :: SIGMAGI, SIGMAGI_STAB,&
+        REAL, DIMENSION ( : , :,  : ), allocatable :: SIGMAGI, SIGMAGI_STAB, SIGMAGI_STAB_SOLID_RHS, &
         DUX_ELE, DUY_ELE, DUZ_ELE, DUOLDX_ELE, DUOLDY_ELE, DUOLDZ_ELE, &
         DVX_ELE, DVY_ELE, DVZ_ELE, DVOLDX_ELE, DVOLDY_ELE, DVOLDZ_ELE, &
         DWX_ELE, DWY_ELE, DWZ_ELE, DWOLDX_ELE, DWOLDY_ELE, DWOLDZ_ELE, &
@@ -2359,7 +2359,7 @@ contains
         !INTEGER, DIMENSION ( :, :, : ), allocatable :: WIC_U_BC_ALL
         REAL, DIMENSION ( :, :, : ), allocatable :: LOC_U_RHS
         REAL, DIMENSION ( :, :, :, : ), allocatable :: UFENX_JLOC_U
-        REAL, DIMENSION ( :, :, : ), allocatable :: LOC_U, LOC_UOLD
+        REAL, DIMENSION ( :, :, : ), allocatable :: LOC_U, LOC_UOLD, LOC_US, LOC_U_ABS_STAB_SOLID_RHS
         REAL, DIMENSION ( :, :, : ), allocatable :: LOC_NU, LOC_NUOLD
         REAL, DIMENSION ( :, :, : ), allocatable :: LOC_U_ABSORB, LOC_U_ABS_STAB
         REAL, DIMENSION ( :, :, :, : ), allocatable :: LOC_UDIFFUSION, U_DX_ALL, UOLD_DX_ALL, DIFF_FOR_BETWEEN_U
@@ -2437,7 +2437,7 @@ contains
         integer :: IPIV(U_NLOC)
 
         !Variables to improve PIVIT_MAT creation speed
-        REAL, DIMENSION ( :, :, :, : ), allocatable :: NN_SIGMAGI_ELE, NN_SIGMAGI_STAB_ELE,NN_MASS_ELE,NN_MASSOLD_ELE
+        REAL, DIMENSION ( :, :, :, : ), allocatable :: NN_SIGMAGI_ELE, NN_SIGMAGI_STAB_ELE, NN_SIGMAGI_STAB_SOLID_RHS_ELE, NN_MASS_ELE, NN_MASSOLD_ELE
         REAL, DIMENSION ( :, :, :, :, : ), allocatable :: STRESS_IJ_ELE, DUX_ELE_ALL, DUOLDX_ELE_ALL
         REAL, DIMENSION ( :, :, : ), allocatable :: VLK_ELE
         REAL, DIMENSION ( :, :, :, : ), allocatable :: UDIFFUSION_ALL, LES_UDIFFUSION
@@ -2454,6 +2454,8 @@ contains
         type(scalar_field), target :: Targ_C_Mat
         real, dimension(:,:,:), pointer :: Point_C_Mat
 
+!! femdem
+        type( vector_field ), pointer :: delta_u_all, us_all
         type(scalar_field), pointer :: sf
         integer :: cv_nodi
 
@@ -2650,6 +2652,12 @@ contains
         ALLOCATE( STRESS_IJ_ELE( NDIM, NDIM, NPHASE, U_NLOC,U_NLOC ))
         ALLOCATE( VLK_ELE( NPHASE, U_NLOC, U_NLOC ))
 
+
+        IF(RETRIEVE_SOLID_CTY) THEN
+           ALLOCATE( SIGMAGI_STAB_SOLID_RHS( NDIM_VEL * NPHASE, NDIM_VEL * NPHASE, CV_NGI ))
+           ALLOCATE(NN_SIGMAGI_STAB_SOLID_RHS_ELE( NDIM_VEL * NPHASE, U_NLOC, NDIM_VEL * NPHASE,U_NLOC ))
+        ENDIF
+
         ALLOCATE( NXUDN( SCVNGI ))
 
         ALLOCATE( SDETWE( SBCVNGI ))
@@ -2767,6 +2775,10 @@ contains
 
         ! Variables used to reduce indirect addressing...
         ALLOCATE( LOC_U(NDIM_VEL, NPHASE, U_NLOC),  LOC_UOLD(NDIM_VEL, NPHASE, U_NLOC) )
+        IF(RETRIEVE_SOLID_CTY) THEN
+           ALLOCATE( LOC_US(NDIM_VEL, NPHASE, U_NLOC))
+           ALLOCATE( LOC_U_ABS_STAB_SOLID_RHS(NDIM_VEL* NPHASE, NDIM_VEL* NPHASE, MAT_NLOC))
+        ENDIF
         ALLOCATE( LOC_NU(NDIM, NPHASE, U_NLOC),  LOC_NUOLD(NDIM, NPHASE, U_NLOC) )
         ALLOCATE( LOC_UDEN(NPHASE, CV_NLOC),  LOC_UDENOLD(NPHASE, CV_NLOC) )
         ALLOCATE( LOC_P(P_NLOC) )
@@ -2952,7 +2964,11 @@ contains
            ENDIF
         ENDIF
 
-        if ( RETRIEVE_SOLID_CTY ) sf=> extract_scalar_field( packed_state, "SolidConcentration" )
+        if( RETRIEVE_SOLID_CTY ) THEN
+           sf=> extract_scalar_field( packed_state, "SolidConcentration" )
+           delta_u_all => extract_vector_field( packed_state, "delta_U" ) ! this is delta_u
+           us_all => extract_vector_field( packed_state, "solid_U" )
+        endif
 
 
         !This term is obtained from the surface tension and curvature
@@ -2988,6 +3004,7 @@ contains
                             LOC_U( IDIM, IPHASE, U_ILOC ) = U_ALL( IDIM, IPHASE, U_INOD )
                             LOC_UOLD( IDIM, IPHASE, U_ILOC ) = UOLD_ALL( IDIM, IPHASE, U_INOD )
                             LOC_U_SOURCE( IDIM, IPHASE, U_ILOC ) = U_SOURCE( IDIM, IPHASE, U_INOD )
+     IF(RETRIEVE_SOLID_CTY) LOC_US( IDIM, IPHASE, U_ILOC ) = us_all%val( IDIM, U_INOD )
                         END DO
                     END DO
                 END DO
@@ -3032,6 +3049,8 @@ contains
             END DO
 
             LOC_U_ABSORB = 0.0
+            IF(RETRIEVE_SOLID_CTY) LOC_U_ABS_STAB_SOLID_RHS=0.0
+
             DO MAT_ILOC = 1, MAT_NLOC
                 MAT_INOD = MAT_NDGLN( ( ELE - 1 ) * MAT_NLOC + MAT_ILOC )
 
@@ -3051,12 +3070,33 @@ contains
                             I=IDIM + (IPHASE-1)*NDIM
                             LOC_U_ABSORB( I, I, MAT_ILOC ) = LOC_U_ABSORB( I, I, MAT_ILOC ) + &
                                    COEFF_SOLID_FLUID * ( DEN_ALL( IPHASE, cv_inod ) / dt ) * sf%val( cv_inod )
+
+                            LOC_U_ABS_STAB_SOLID_RHS( I, I, MAT_ILOC ) = LOC_U_ABS_STAB_SOLID_RHS( I, I, MAT_ILOC )  &
+                                  + COEFF_SOLID_FLUID * ( DEN_ALL( IPHASE, cv_inod ) / dt ) 
                          END DO
                       END DO
                    ENDIF
 
                 END IF
                 LOC_U_ABS_STAB( :, :, MAT_ILOC ) = U_ABS_STAB( :, :, MAT_INOD )
+
+! Switch on for solid fluid-coupling apply stabilization term...
+!                   IF(RETRIEVE_SOLID_CTY) THEN
+!                      CV_INOD = CV_NDGLN( ( ELE - 1 ) * MAT_NLOC + MAT_ILOC )
+!                      DO IDIM=1,NDIM
+!                         DO IPHASE=1,NPHASE
+!                            I=IDIM + (IPHASE-1)*NDIM
+!                            LOC_U_ABS_STAB( I, I, MAT_ILOC ) = LOC_U_ABS_STAB( I, I, MAT_ILOC ) + &
+!                                   COEFF_SOLID_FLUID * ( DEN_ALL( IPHASE, cv_inod ) / dt ) * sf%val( cv_inod )
+!   
+!                            LOC_U_ABS_STAB_SOLID_RHS( I, I, MAT_ILOC ) = LOC_U_ABS_STAB_SOLID_RHS( I, I, MAT_ILOC )  &
+!                                  + COEFF_SOLID_FLUID * ( DEN_ALL( IPHASE, cv_inod ) / dt ) 
+!                         END DO
+!                      END DO
+!                        
+!                   ENDIF
+
+
                 IF ( GOT_DIFFUS ) THEN
                    LOC_UDIFFUSION( :, :, :, MAT_ILOC ) = UDIFFUSION_ALL( :, :, :, MAT_INOD )
                 ELSE
@@ -3174,6 +3214,7 @@ contains
             DENGIOLD = MAX( 0.0, DENGIOLD )
 
             SIGMAGI = 0.0 ; SIGMAGI_STAB = 0.0
+            IF(RETRIEVE_SOLID_CTY) SIGMAGI_STAB_SOLID_RHS=0.0
             TEN_XX  = 0.0
             if (is_compact_overlapping) then
                DO IPHA_IDIM = 1, NDIM_VEL * NPHASE
@@ -3184,6 +3225,24 @@ contains
                     DO GI = 1, CV_NGI
                         DO IPHA_IDIM = 1, NDIM_VEL * NPHASE
                             DO JPHA_JDIM = 1, NDIM_VEL * NPHASE
+
+                   IF(RETRIEVE_SOLID_CTY) THEN
+                                SIGMAGI( IPHA_IDIM, JPHA_JDIM, GI ) = SIGMAGI( IPHA_IDIM, JPHA_JDIM, GI ) &
+                                      !+ CVFEN( MAT_ILOC, GI ) * LOC_U_ABSORB( IPHA_IDIM, JPHA_JDIM, MAT_ILOC )
+!                                + CVN( MAT_ILOC, GI ) * LOC_U_ABSORB( IPHA_IDIM, JPHA_JDIM, MAT_ILOC )
+                                + CVFEN( MAT_ILOC, GI ) * LOC_U_ABSORB( IPHA_IDIM, JPHA_JDIM, MAT_ILOC )
+
+                                SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM, GI ) = SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM, GI ) &
+                                      !+ CVFEN( MAT_ILOC, GI ) * LOC_U_ABS_STAB( IPHA_IDIM, JPHA_JDIM, MAT_ILOC )
+                                + CVFEN( MAT_ILOC, GI ) * LOC_U_ABS_STAB( IPHA_IDIM, JPHA_JDIM, MAT_ILOC )
+
+                                SIGMAGI_STAB_SOLID_RHS( IPHA_IDIM, JPHA_JDIM, GI ) = SIGMAGI_STAB_SOLID_RHS( IPHA_IDIM, JPHA_JDIM, GI ) &
+                           !     + CVN( MAT_ILOC, GI ) * LOC_U_ABS_STAB_SOLID_RHS( IPHA_IDIM, JPHA_JDIM, MAT_ILOC ) 
+                                + CVFEN( MAT_ILOC, GI ) * LOC_U_ABS_STAB_SOLID_RHS( IPHA_IDIM, JPHA_JDIM, MAT_ILOC ) 
+
+                                SIGMAGI( IPHA_IDIM, JPHA_JDIM, GI ) = max(0.0, SIGMAGI( IPHA_IDIM, JPHA_JDIM, GI ) ) 
+                                SIGMAGI_STAB_SOLID_RHS( IPHA_IDIM, JPHA_JDIM, GI ) = max(0.0, SIGMAGI_STAB_SOLID_RHS( IPHA_IDIM, JPHA_JDIM, GI ) )
+                   ELSE
                                 SIGMAGI( IPHA_IDIM, JPHA_JDIM, GI ) = SIGMAGI( IPHA_IDIM, JPHA_JDIM, GI ) &
                                       !+ CVFEN( MAT_ILOC, GI ) * LOC_U_ABSORB( IPHA_IDIM, JPHA_JDIM, MAT_ILOC )
                                 + CVN( MAT_ILOC, GI ) * LOC_U_ABSORB( IPHA_IDIM, JPHA_JDIM, MAT_ILOC )
@@ -3191,6 +3250,8 @@ contains
                                 SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM, GI ) = SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM, GI ) &
                                       !+ CVFEN( MAT_ILOC, GI ) * LOC_U_ABS_STAB( IPHA_IDIM, JPHA_JDIM, MAT_ILOC )
                                 + CVN( MAT_ILOC, GI ) * LOC_U_ABS_STAB( IPHA_IDIM, JPHA_JDIM, MAT_ILOC )
+                   ENDIF
+
                             END DO
                         END DO
                         TEN_XX( :, :, :, GI ) = TEN_XX( :, :, :, GI ) + CVFEN( MAT_ILOC, GI ) * LOC_UDIFFUSION( :, :, :, MAT_ILOC )
@@ -3202,6 +3263,7 @@ contains
             Loop_ilev_DGNods1: DO ILEV = 1, NLEV
                 NN_SIGMAGI_ELE = 0.0
                 NN_SIGMAGI_STAB_ELE = 0.0
+                IF(RETRIEVE_SOLID_CTY) NN_SIGMAGI_STAB_SOLID_RHS_ELE = 0.0
                 NN_MASS_ELE = 0.0
                 NN_MASSOLD_ELE = 0.0
                 VLK_ELE = 0.0
@@ -3275,6 +3337,11 @@ contains
                                             NN_SIGMAGI_STAB_ELE(IPHA_IDIM, U_ILOC, JPHA_JDIM, U_JLOC ) &
                                             = NN_SIGMAGI_STAB_ELE(IPHA_IDIM, U_ILOC, JPHA_JDIM, U_JLOC ) + RNN *  &
                                             SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM, GI )
+                   IF(RETRIEVE_SOLID_CTY) THEN
+                                            NN_SIGMAGI_STAB_SOLID_RHS_ELE(IPHA_IDIM, U_ILOC, JPHA_JDIM, U_JLOC ) &
+                                            = NN_SIGMAGI_STAB_SOLID_RHS_ELE(IPHA_IDIM, U_ILOC, JPHA_JDIM, U_JLOC ) + RNN *  &
+                                            SIGMAGI_STAB_SOLID_RHS( IPHA_IDIM, JPHA_JDIM, GI )
+                   ENDIF
                                         END DO
                                     END DO
                                 END DO
@@ -3429,20 +3496,28 @@ contains
                                                 LOC_U_RHS( IDIM, IPHASE, U_ILOC ) = LOC_U_RHS( IDIM, IPHASE, U_ILOC ) &
                                                 + NN_SIGMAGI_STAB_ELE( IPHA_IDIM, U_ILOC,JPHA_JDIM, U_JLOC ) * LOC_U( JDIM, JPHASE, U_JLOC )     &
                                                 + ( NN_MASSOLD_ELE( IPHA_IDIM, U_ILOC, JPHA_JDIM, U_JLOC ) / DT ) * LOC_UOLD( JDIM, JPHASE, U_ILOC )
+                                                IF(RETRIEVE_SOLID_CTY) LOC_U_RHS( IDIM, IPHASE, U_ILOC ) = LOC_U_RHS( IDIM, IPHASE, U_ILOC ) &
+                                                + NN_SIGMAGI_STAB_SOLID_RHS_ELE( IPHA_IDIM, U_ILOC,JPHA_JDIM, U_JLOC ) * LOC_US( JDIM, JPHASE, U_JLOC )    
                                             ELSE
                                                 LOC_U_RHS( IDIM, IPHASE, U_ILOC ) = LOC_U_RHS( IDIM, IPHASE, U_ILOC ) &
-                                                + NN_SIGMAGI_STAB_ELE( IPHA_IDIM, U_ILOC,JPHA_JDIM, U_JLOC ) * LOC_U( JDIM, JPHASE, U_JLOC ) &
+                                                + NN_SIGMAGI_STAB_ELE( IPHA_IDIM, U_ILOC,JPHA_JDIM, U_JLOC ) * LOC_U( JDIM, JPHASE, U_JLOC )  &
                                                 + ( NN_MASSOLD_ELE( IPHA_IDIM, U_ILOC, JPHA_JDIM, U_JLOC ) / DT ) * LOC_UOLD( JDIM, JPHASE, U_JLOC )
+                                                IF(RETRIEVE_SOLID_CTY) LOC_U_RHS( IDIM, IPHASE, U_ILOC ) = LOC_U_RHS( IDIM, IPHASE, U_ILOC ) &
+                                                + NN_SIGMAGI_STAB_SOLID_RHS_ELE( IPHA_IDIM, U_ILOC,JPHA_JDIM, U_JLOC ) * LOC_US( JDIM, JPHASE, U_JLOC )  
                                             END IF
                                         ELSE
                                             IF ( LUMP_MASS ) THEN
                                                 LOC_U_RHS( IDIM, IPHASE, U_ILOC ) = LOC_U_RHS( IDIM, IPHASE, U_ILOC ) &
-                                                + NN_SIGMAGI_STAB_ELE( IPHA_IDIM, U_ILOC,JPHA_JDIM, U_JLOC ) * LOC_U(JDIM,JPHASE,U_JLOC) &
+                                                + NN_SIGMAGI_STAB_ELE( IPHA_IDIM, U_ILOC,JPHA_JDIM, U_JLOC ) * LOC_U( JDIM, JPHASE, U_JLOC )  &
                                                 + ( NN_MASS_ELE( IPHA_IDIM, U_ILOC, JPHA_JDIM, U_JLOC ) / DT ) * LOC_UOLD( JDIM, JPHASE, U_ILOC )
+                                                IF(RETRIEVE_SOLID_CTY) LOC_U_RHS( IDIM, IPHASE, U_ILOC ) = LOC_U_RHS( IDIM, IPHASE, U_ILOC ) &
+                                                + NN_SIGMAGI_STAB_SOLID_RHS_ELE( IPHA_IDIM, U_ILOC,JPHA_JDIM, U_JLOC ) * LOC_US( JDIM, JPHASE, U_JLOC ) 
                                             ELSE
                                                 LOC_U_RHS( IDIM, IPHASE, U_ILOC ) = LOC_U_RHS( IDIM, IPHASE, U_ILOC ) &
-                                                + NN_SIGMAGI_STAB_ELE( IPHA_IDIM, U_ILOC,JPHA_JDIM, U_JLOC ) * LOC_U( JDIM, JPHASE, U_JLOC ) &
+                                                + NN_SIGMAGI_STAB_ELE( IPHA_IDIM, U_ILOC,JPHA_JDIM, U_JLOC ) * LOC_U( JDIM, JPHASE, U_JLOC )  &
                                                 + ( NN_MASS_ELE( IPHA_IDIM, U_ILOC, JPHA_JDIM, U_JLOC ) / DT ) * LOC_UOLD( JDIM, JPHASE, U_JLOC )
+                                                IF(RETRIEVE_SOLID_CTY) LOC_U_RHS( IDIM, IPHASE, U_ILOC ) = LOC_U_RHS( IDIM, IPHASE, U_ILOC ) &
+                                                + NN_SIGMAGI_STAB_SOLID_RHS_ELE( IPHA_IDIM, U_ILOC,JPHA_JDIM, U_JLOC ) * LOC_US( JDIM, JPHASE, U_JLOC )  
                                             END IF
                                         END IF
 
