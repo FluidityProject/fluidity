@@ -1187,7 +1187,7 @@ contains
 
         type( tensor_field ), pointer :: u_all2, uold_all2, den_all2, denold_all2
         type( vector_field ), pointer :: x_all2
-        type( scalar_field ), pointer :: p_all, cvp_all, Pressure_State, sf
+        type( scalar_field ), pointer :: p_all, cvp_all, Pressure_State, sf, soldf
 
         real, dimension(:,:), pointer :: den_fem
 
@@ -1281,11 +1281,12 @@ contains
 !        IF(.TRUE.) THEN
 ! if model B and solid-fluid coupling: 
            sf => EXTRACT_SCALAR_FIELD( PACKED_STATE, "SolidConcentration" )
+           soldf => EXTRACT_SCALAR_FIELD( PACKED_STATE, "OldSolidConcentration" )
 
            IF(SOLID_FLUID_MODEL_B) THEN ! Gidaspow model B - can use conservative from of momentum
               DO IPHASE=1,NPHASE
                  UDEN_ALL(IPHASE,:) = UDEN_ALL(IPHASE,:) * ( 1. - sf%val)
-                 UDENOLD_ALL(IPHASE,:) = UDENOLD_ALL(IPHASE,:) * ( 1. - sf%val)
+                 UDENOLD_ALL(IPHASE,:) = UDENOLD_ALL(IPHASE,:) * ( 1. - soldf%val)
               END DO
            ENDIF
         ENDIF

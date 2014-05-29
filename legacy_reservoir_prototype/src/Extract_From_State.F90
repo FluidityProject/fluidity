@@ -1992,11 +1992,17 @@
 
 
 #ifdef USING_FEMDEM
-      sfield => extract_scalar_field( state(1), "SolidConcentration" )
-      call insert( packed_state, sfield, "SolidConcentration" )
+      if ( have_option( '/blasting' ) ) then
+         sfield => extract_scalar_field( state(1), "SolidConcentration" )
+         call insert( packed_state, sfield, "SolidConcentration" )
+         call add_new_memory(packed_state,sfield,"OldSolidConcentration")
 
-      vfield => extract_vector_field( state(1), "U_hat" )
-      call insert( packed_state, vfield, "U_hat" )
+         vfield => extract_vector_field( state(1), "delta_U" )
+         call insert( packed_state, vfield, "delta_U" )
+
+         vfield => extract_vector_field( state(1), "solid_U" )
+         call insert( packed_state, vfield, "solid_U" )
+      end if
 #endif
 
       if (has_scalar_field(state(1),"Porosity")) then

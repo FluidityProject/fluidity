@@ -3004,7 +3004,21 @@ vector_field_choice =
          }|
          element vector_field {
              attribute rank { "1" },
-             attribute name { "U_hat" },
+             attribute name { "delta_U" },
+             (
+                element diagnostic {
+                   internal_algorithm,
+                   mesh_choice,
+                   diagnostic_vector_field
+                }|
+                element aliased {
+                   generic_aliased_field
+                }
+             )
+         }|
+         element vector_field {
+             attribute rank { "1" },
+             attribute name { "solid_U" },
              (
                 element diagnostic {
                    internal_algorithm,

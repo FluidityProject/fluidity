@@ -455,7 +455,7 @@ contains
       REAL, DIMENSION(:,:,: ), pointer :: SUF_U_BC_ALL
 
 !! femdem
-      type( vector_field ), pointer :: u_hat_all2
+      type( vector_field ), pointer :: u_hat_all2, us_all
       type( scalar_field ), pointer :: solid_vol_fra
       real :: theta_cty_solid
 
@@ -492,8 +492,10 @@ contains
                         ALLOCATE(VOL_FRA_FLUID(CV_NONODS))
                         ALLOCATE(U_HAT_ALL(NDIM,U_NONODS))
 
-                        u_hat_all2 => extract_vector_field( packed_state, "U_hat" )
+                        u_hat_all2 => extract_vector_field( packed_state, "delta_U" )
                         u_hat_all = u_hat_all2%val + u_all( :, 1, :) ! ndim, u_nonods
+
+                        us_all => extract_vector_field( packed_state, "solid_U" )
 
                         Solid_vol_fra => extract_scalar_field( packed_state, "SolidConcentration" )
                         VOL_FRA_FLUID = 1.0 - 1.0 * solid_vol_fra%val   ! cv_nonods

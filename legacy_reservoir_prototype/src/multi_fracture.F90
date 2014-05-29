@@ -88,7 +88,7 @@ module multiphase_fractures
   integer, save :: ndim
 
   private
-  public :: blasting
+  public :: blasting, update_blasting_memory
 
 contains
 
@@ -103,7 +103,7 @@ contains
     type( state_type ), intent( in ) :: packed_state
 
     real, dimension( : ), allocatable :: p_r
-    real, dimension( :, : ), allocatable :: uf_r, uf_v, du_s
+    real, dimension( :, : ), allocatable :: uf_r, uf_v, du_s, u_s
     integer :: r_nonods, v_nonods
     real :: dt
 
@@ -114,8 +114,9 @@ contains
 
     r_nonods = node_count( positions_r )
     v_nonods = node_count( positions_v )
-    allocate( p_r( r_nonods ), uf_r( ndim, r_nonods ), uf_v( ndim, v_nonods ), du_s( ndim, v_nonods ) )
-    p_r=0. ; uf_r=0. ; uf_v=0. ; du_s=0.
+    allocate( p_r( r_nonods ), uf_r( ndim, r_nonods ), uf_v( ndim, v_nonods ) )
+    allocate( du_s( ndim, v_nonods ), u_s( ndim, v_nonods ) )
+    p_r=0. ; uf_r=0. ; uf_v=0. ; du_s=0. ; u_s=0.
 
     call interpolate_fields_out_r( packed_state, nphase, p_r, uf_r )
     call interpolate_fields_out_v( packed_state, nphase, uf_v )
@@ -124,12 +125,12 @@ contains
     call y2dfemdem( trim( femdem_mesh_name ) // char( 0 ), dt, p_r, uf_r( 1, : ), uf_r( 2, : ), &
                      uf_v( 1, : ), uf_v( 2, : ), du_s( 1, : ), du_s( 2, : ) )
 
-    call interpolate_fields_in( packed_state, du_s )
+    call interpolate_fields_in( packed_state, du_s, u_s )
 
 
     ! deallocate
     call deallocate_femdem
-    deallocate( p_r, uf_r, uf_v, du_s )
+    deallocate( p_r, uf_r, uf_v, du_s, u_s )
 
     return
   end subroutine blasting
@@ -852,19 +853,21 @@ contains
 
   !----------------------------------------------------------------------------------------------------------
 
-  subroutine interpolate_fields_in( packed_state, du_s )
+  subroutine interpolate_fields_in( packed_state, du_s, u_s )
 
     implicit none
 
     type( state_type ), intent( in ) :: packed_state
-    real, dimension( :, : ), intent( in ) :: du_s
+    real, dimension( :, : ), intent( in ) :: du_s, u_s
 
     !Local variables
     type( mesh_type ), pointer :: fl_mesh, u_mesh
-    type( scalar_field ), pointer :: solid, f
-    type( scalar_field ) :: field_fl_u, field_fl_v, &
-         &                  field_ext_u, field_ext_v, f2
-    type( vector_field ), pointer :: fl_positions, u_hat
+    type( scalar_field ), pointer :: solid, old_solid, f
+    type( scalar_field ) :: field_fl_du, field_fl_dv, &
+         &                  field_fl_us, field_fl_vs, &
+         &                  field_ext_du, field_ext_dv, &
+         &                  field_ext_us, field_ext_vs, f2
+    type( vector_field ), pointer :: fl_positions, delta_u, solid_u
     type( tensor_field ), pointer :: u_f
     type( state_type ) :: alg_ext, alg_fl
     integer :: stat, idim
@@ -890,30 +893,52 @@ contains
     call insert( alg_fl, fl_mesh, "Mesh" )
     call insert( alg_fl, fl_positions, "Coordinate" )
 
-    call allocate( field_fl_u, fl_positions%mesh, "Velocity1" )
-    call zero( field_fl_u )
-    field_fl_u % option_path = path
-    call insert( alg_fl, field_fl_u, "Velocity1" )
+    call allocate( field_fl_du, fl_positions%mesh, "deltaVelocity1" )
+    call zero( field_fl_du )
+    field_fl_du % option_path = path
+    call insert( alg_fl, field_fl_du, "deltaVelocity1" )
 
-    call allocate( field_fl_v, fl_positions%mesh, "Velocity2" )
-    call zero( field_fl_v )
-    field_fl_v % option_path = path
-    call insert( alg_fl, field_fl_v, "Velocity2" )
+    call allocate( field_fl_dv, fl_positions%mesh, "deltaVelocity2" )
+    call zero( field_fl_dv )
+    field_fl_dv % option_path = path
+    call insert( alg_fl, field_fl_dv, "deltaVelocity2" )
+
+    call allocate( field_fl_us, fl_positions%mesh, "SolidVelocity1" )
+    call zero( field_fl_us )
+    field_fl_us % option_path = path
+    call insert( alg_fl, field_fl_us, "SolidVelocity1" )
+
+    call allocate( field_fl_vs, fl_positions%mesh, "SolidVelocity2" )
+    call zero( field_fl_vs )
+    field_fl_vs % option_path = path
+    call insert( alg_fl, field_fl_vs, "SolidVelocity2" )
 
 
     ! solid volume state
     call insert( alg_ext, positions_v%mesh, "Mesh" )
     call insert( alg_ext, positions_v, "Coordinate" )
 
-    call allocate( field_ext_u, positions_v%mesh, "Velocity1" )
-    field_ext_u % val = du_s( 1, : )
-    call insert( alg_ext, field_ext_u, "Velocity1" )
+    call allocate( field_ext_du, positions_v%mesh, "deltaVelocity1" )
+    field_ext_du % val = du_s( 1, : )
+    call insert( alg_ext, field_ext_du, "deltaVelocity1" )
 
-    call allocate( field_ext_v, positions_v%mesh, "Velocity2" )
-    field_ext_v % val = du_s( 2, : )
-    call insert( alg_ext, field_ext_v, "Velocity2" )
+    call allocate( field_ext_dv, positions_v%mesh, "deltaVelocity2" )
+    field_ext_dv % val = du_s( 2, : )
+    call insert( alg_ext, field_ext_dv, "deltaVelocity2" )
+
+    call allocate( field_ext_us, positions_v%mesh, "SolidVelocity1" )
+    field_ext_us % val = u_s( 1, : )
+    call insert( alg_ext, field_ext_us, "SolidVelocity1" )
+
+    call allocate( field_ext_vs, positions_v%mesh, "SolidVelocity2" )
+    field_ext_vs % val = u_s( 2, : )
+    call insert( alg_ext, field_ext_vs, "SolidVelocity2" )
 
     solid => extract_scalar_field( packed_state, "SolidConcentration" )
+    old_solid => extract_scalar_field( packed_state, "OldSolidConcentration" )
+
+    call set( old_solid, solid )
+
     call zero( solid )
 
     ! interpolate
@@ -922,27 +947,36 @@ contains
     ! bound volume fraction
     call bound_volume_fraction( solid % val )
 
-    ! calculate u_hat using the supplementary equation (Eq. 124)
-    ! that is u_hat = du + u_f
-    u_hat => extract_vector_field( packed_state, "U_hat" )
-    u_f => extract_tensor_field( packed_state, "PackedVelocity" )
-
     u_mesh => extract_mesh( packed_state, "VelocityMesh" )
     call allocate( f2, u_mesh, "dummy" )
 
+    ! to be used for the supplementary equation (Eq. 124)
+    ! that is u_hat = delta_u + u_f
+    delta_u => extract_vector_field( packed_state, "delta_U" )
     do idim = 1, ndim
-       f => extract_scalar_field( alg_fl, "Velocity" // int2str( idim ) )
+       f => extract_scalar_field( alg_fl, "deltaVelocity" // int2str( idim ) )
        call project_field( f, f2, fl_positions )
-       !u_hat % val( idim, : ) = f2 % val + u_f % val( idim, 1, : )
-       u_hat % val( idim, : ) = f2 % val
+       delta_u % val( idim, : ) = f2 % val
     end do
 
-    ! deallocate
-    call deallocate( field_fl_u )
-    call deallocate( field_fl_v )
+    solid_u => extract_vector_field( packed_state, "solid_U" )
+    do idim = 1, ndim
+       f => extract_scalar_field( alg_fl, "SolidVelocity" // int2str( idim ) )
+       call project_field( f, f2, fl_positions )
+       solid_u % val( idim, : ) = f2 % val
+    end do
 
-    call deallocate( field_ext_u )
-    call deallocate( field_ext_v )
+
+    ! deallocate
+    call deallocate( field_fl_du )
+    call deallocate( field_fl_dv )
+    call deallocate( field_fl_us )
+    call deallocate( field_fl_vs )
+    
+    call deallocate( field_ext_du )
+    call deallocate( field_ext_dv )
+    call deallocate( field_ext_us )
+    call deallocate( field_ext_vs )
 
     call deallocate( alg_fl )
     call deallocate( alg_ext )
@@ -1319,6 +1353,40 @@ contains
 
     return
   end subroutine deallocate_femdem
+
+  subroutine update_blasting_memory ( packed_state, state, timestep )
+
+    implicit none
+
+    type( state_type ), intent( inout ) :: packed_state
+    type( state_type ), dimension( : ), intent( inout ) :: state
+    integer, intent ( in ) :: timestep
+
+    type( scalar_field ), pointer :: sfield1, sfield2, sfield3
+    type( vector_field ), pointer :: vfield1, vfield2
+
+    sfield1 => extract_scalar_field( state(1), "SolidConcentration" )
+    sfield2 => extract_scalar_field( packed_state, "SolidConcentration" )
+    sfield3 => extract_scalar_field( packed_state, "OldSolidConcentration" )
+    call set( sfield1, sfield2 )
+    if (timestep==1) call set( sfield3, sfield2 )
+
+    vfield1 => extract_vector_field( state(1), "delta_U" )
+    vfield2 => extract_vector_field( packed_state, "delta_U" )
+    call set( vfield1, vfield2 )
+
+    vfield1 => extract_vector_field( state(1), "solid_U" )
+    vfield2 => extract_vector_field( packed_state, "solid_U" )
+    call set( vfield1, vfield2 )
+
+    return
+  end subroutine update_blasting_memory
+
+
+
+
+
+
 
   real function triangle_area( x1, y1, x2, y2, x3, y3 )
 
