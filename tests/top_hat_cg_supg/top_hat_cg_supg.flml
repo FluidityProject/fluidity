@@ -180,4 +180,18 @@
       </prognostic>
     </scalar_field>
   </material_phase>
+  <publish>
+    <service>figshare</service>
+    <software/>
+    <input_data>
+      <files>
+        <string_value lines="1">["top_hat_cg_supg.flml", "line.*", "top_hat_cg_supg.xml", "Makefile"]</string_value>
+      </files>
+    </input_data>
+    <output_data>
+      <files>
+        <string_value lines="1">["top_hat_cg_supg.flml", "top_hat_cg_supg.stat", "*.vtu"]</string_value>
+      </files>
+    </output_data>
+  </publish>
 </fluidity_options>
