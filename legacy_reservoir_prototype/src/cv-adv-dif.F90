@@ -6582,7 +6582,7 @@ end if
     REAL, DIMENSION( NDIM,NPHASE,SBCVNGI ), intent( inout ) :: DIFF_COEF_DIVDX, DIFF_COEFOLD_DIVDX
     INTEGER, DIMENSION( NPHASE,STOTEL ), intent( in ) ::WIC_U_BC
     REAL, DIMENSION( CV_SNLOC, SBCVNGI  ), intent( in ) :: SBCVFEN
-    REAL, DIMENSION( NDIM,NDIM,NPHASE,CV_SNLOC ), intent( in ) :: SLOC_UDIFFUSION, SLOC2_UDIFFUSION
+    REAL, DIMENSION( NDIM,NDIM,NPHASE,U_SNLOC ), intent( in ) :: SLOC_UDIFFUSION, SLOC2_UDIFFUSION
     ! DIFF_GI_ADDED( IDIM, :,:) is for dimension IDIM e.g IDIM=1 corresponds to U 
     ! the rest is for the diffusion tensor. 
     REAL, DIMENSION( NDIM_VEL, NDIM,NDIM, NPHASE, SBCVNGI), intent( in ) :: DIFF_GI_ADDED
@@ -6594,7 +6594,7 @@ end if
     ! DIFF_MIN_FRAC is the fraction of the standard diffusion coefficient to use 
     ! in the non-linear diffusion scheme. DIFF_MAX_FRAC is the maximum fraction. 
     ! If SIMPLE_DIFF_CALC then use a simple and fast diffusion calculation.
-    LOGICAL, PARAMETER :: SIMPLE_DIFF_CALC2 = .TRUE.
+    LOGICAL, PARAMETER :: SIMPLE_DIFF_CALC2 = .false.  !.TRUE.
     !REAL, PARAMETER :: DIFF_MIN_FRAC = 0.005, DIFF_MAX_FRAC = 200.0
     REAL, PARAMETER :: DIFF_MIN_FRAC = 0.1, DIFF_MAX_FRAC = 10.0
 
@@ -6679,7 +6679,7 @@ end if
              DO SGI=1,SBCVNGI
                 DO IPHASE=1, NPHASE
                    DIFF_GI( 1:NDIM , 1:NDIM, IPHASE, SGI ) = DIFF_GI( 1:NDIM , 1:NDIM, IPHASE, SGI ) &
-                     + SBCVFEN(CV_SKLOC,SGI) * SLOC_UDIFFUSION( 1:NDIM , 1:NDIM , IPHASE, CV_SKLOC )
+                     !+ SBCVFEN(CV_SKLOC,SGI) * SLOC_UDIFFUSION( 1:NDIM , 1:NDIM , IPHASE, CV_SKLOC )
                 END DO
              END DO
           END DO
@@ -6691,7 +6691,7 @@ end if
                 DO SGI=1,SBCVNGI
                    DO IPHASE=1, NPHASE
                       DIFF_GI2( 1:NDIM, 1:NDIM, IPHASE, SGI )= DIFF_GI2( 1:NDIM, 1:NDIM, IPHASE, SGI ) +SBCVFEN(CV_SKLOC,SGI) &
-                        *SLOC2_UDIFFUSION(1:NDIM, 1:NDIM ,IPHASE, CV_SKLOC)
+                        !*SLOC2_UDIFFUSION(1:NDIM, 1:NDIM ,IPHASE, CV_SKLOC)
                    END DO
                 END DO
              END DO
