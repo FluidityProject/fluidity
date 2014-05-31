@@ -30,8 +30,8 @@ SHELL = @SHELL@
 
 LIB	= ../lib/libadaptivity.a
 
-srcdir 	= .
-VPATH 	= .:./src
+# we need to add @srcdir@ as well to make all the include/foo.h below (which are in @srcdir@/include/foo.h) work
+VPATH	= @srcdir@/src:@srcdir@
 
 FC      = @FC@
 CC      = @CC@
@@ -46,7 +46,9 @@ ARFLAGS = @ARFLAGS@
 
 INSTALL = @INSTALL@
 
-CPPFLAGS= -I./include -I../include @CPPFLAGS@ 
+# ../include (which is different than @srcdir@/../include in a out-of-tree build) 
+# contains the configure created include files
+CPPFLAGS = @CPPFLAGS@ -I@srcdir@/include -I@srcdir@/../include -I../include
 
 CFLAGS	= $(CPPFLAGS) @CFLAGS@
 CXXFLAGS= $(CPPFLAGS) @CXXFLAGS@

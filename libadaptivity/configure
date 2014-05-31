@@ -10195,6 +10195,8 @@ fi
 
     fi
 fi
+
+mkdir -p include
 cat > include/vtk.h <<EOF
 #ifndef VTK_H
 #define VTK_H
@@ -10248,6 +10250,7 @@ typedef float vtkFloatingPointType;
 #endif
 #endif
 EOF
+
 
 
 ac_ext=cpp
@@ -11540,7 +11543,7 @@ LINKER=$CXX
 
 
 # It appears this is not good practice but...go sue me
-mkdir -p include adapt3d/include load_balance/include
+mkdir -p include
 cat confdefs.h | grep "^#[dua][enl][fdl][ieo][nfw]" | sed -e 's/^#allow//' > include/confdefs.h
 cp include/confdefs.h adapt3d/include/
 cp include/confdefs.h load_balance/include

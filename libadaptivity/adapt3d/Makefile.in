@@ -29,7 +29,9 @@ SHELL = @SHELL@
 
 LIB 	= ../lib/libadaptivity.a
 
-CPPFLAGS = @CPPFLAGS@ -I./include -I../include
+# ../include (which is different than @srcdir@/../include in a out-of-tree build) 
+# contains the configure created include files
+CPPFLAGS = @CPPFLAGS@ -I@srcdir@/include -I@srcdir@/../include -I../include
 
 FC	= @FC@
 FCFLAGS	= $(CPPFLAGS) @FCFLAGS@
@@ -43,7 +45,8 @@ LFLAGS	= @LIBS@ @FLIBS@
 MAKE	= @MAKE@
 INSTALL = @INSTALL@
 
-VPATH	= ./src
+# we need to add @srcdir@ as well to make all the include/foo.h below (which are in @srcdir@/include/foo.h) work
+VPATH	= @srcdir@/src:@srcdir@
 
 OBJS = Debug.o AdaptProgress.o write_log.o adapt1.o  addedg.o  addele.o  addfac.o  addnd.o   adfrnd.o \
 		adptvy.o  angedg.o  angfac.o  chkfac.o  chkgmy.o  cmlced.o \
@@ -80,7 +83,7 @@ $(LIB): $(OBJS)
 	@mkdir -p ../lib
 	@$(AR) $(ARFLAGS) $(LIB) $(OBJS)
 
-include/fdebug_adapt.h: include/confdefs.h include/ewrite.h
+include/fdebug_adapt.h: ../include/confdefs.h include/ewrite.h
 
 Debug.o: include/fdebug_adapt.h write_log.o
 
