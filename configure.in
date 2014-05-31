@@ -1131,12 +1131,24 @@ CXX=$MPICXX
 LINKER=$CXX
 
 # Configure adaptivity
-if test -d libadaptivity ; then
+if test -d "$srcdir/libadaptivity" ; then
     AC_MSG_NOTICE([%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%])
     AC_MSG_NOTICE([Configuring libadaptivity])
     AC_MSG_NOTICE([%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%])
 
+    if test ! -d libadaptivity ; then
+      # libadaptivity does not exist in the current directory:
+      # apparently we're not in the $srcdir and we're doing an out-of-tree build
+      # the portable way of doing this would probably be to use AC_CONFIG_SUBDIRS
+      # but calling libadaptivity's configure directly is what we've always done
+      # and I don't want to break things
+      mkdir -p libadaptivity
+    fi
     pushd libadaptivity
+    # we want to run configure in $srcdir/libadaptivity, but $srcdir
+    # might be relative to the build directory which is one up from where we are now:
+    configure_path=../$srcdir/libadaptivity
+
     # We don't really want to use the same FFLAGS and LIBS as fluidity has
     # worked out, because they contain all sorts of fluidity-specific junk,
     # so we let libadapt's configure work out everything for itself
@@ -1144,14 +1156,14 @@ if test -d libadaptivity ; then
     # fluidity's (except for MPI)
     if test "$enable_dp" = "yes" ; then     
         FC="${saved_FC}" F77="${saved_F77}" F90="${saved_F90}" LIBS="${env_libs}" \
-            FFLAGS="${env_fflags} $PIC_FLAG $PROFILING_FLAG" FCFLAGS="${env_fcflags} $PIC_FLAG $PROFILING_FLAG" ./configure
+            FFLAGS="${env_fflags} $PIC_FLAG $PROFILING_FLAG" FCFLAGS="${env_fcflags} $PIC_FLAG $PROFILING_FLAG" $configure_path/configure
         if test "$?" -ne "0"; then
           AC_MSG_ERROR([Configuration of libadaptivity has failed.])
           exit -1
         fi
     else
         FC="${saved_FC}" F77="${saved_F77}" F90="${saved_F90}" LIBS="${env_libs}" \
-            FFLAGS="${env_fflags} $PIC_FLAG $PROFILING_FLAG" FCFLAGS="${env_fcflags} $PIC_FLAG $PROFILING_FLAG" ./configure --enable-dp=no
+            FFLAGS="${env_fflags} $PIC_FLAG $PROFILING_FLAG" FCFLAGS="${env_fcflags} $PIC_FLAG $PROFILING_FLAG" $configure_path/configure --enable-dp=no
         if test "$?" -ne "0"; then
           AC_MSG_ERROR([Configuration of libadaptivity has failed.])
           exit -1
@@ -1171,18 +1183,30 @@ else
 fi
 
 # Configure libjudy
-if test -d libjudy ; then
+if test -d $srcdir/libjudy ; then
     AC_MSG_NOTICE([%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%])
     AC_MSG_NOTICE([Configuring libjudy])
     AC_MSG_NOTICE([%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%])
 
-    cd libjudy
-    FC="${saved_FC}" F77="${saved_F77}" F90="${saved_F90}" LIBS="${env_libs}" FCFLAGS="${env_fcflags}" FFLAGS="${env_fflags} $PIC_FLAG $PROFILING_FLAG" CC="${saved_CC}" ./configure --prefix=${PWD}/..
+    if test ! -d libjudy ; then
+      # libjudy does not exist in the current directory:
+      # apparently we're not in the $srcdir and we're doing an out-of-tree build
+      # the portable way of doing this would probably be to use AC_CONFIG_SUBDIRS
+      # but calling libjudy's configure directly is what we've always done
+      # and I don't want to break things
+      mkdir -p libjudy
+    fi
+    pushd libjudy
+    # we want to run configure in $srcdir/libjudy, but $srcdir
+    # might be relative to the build directory which is one up from where we are now:
+    configure_path=../$srcdir/libjudy
+
+    FC="${saved_FC}" F77="${saved_F77}" F90="${saved_F90}" LIBS="${env_libs}" FCFLAGS="${env_fcflags}" FFLAGS="${env_fflags} $PIC_FLAG $PROFILING_FLAG" CC="${saved_CC}" $configure_path/configure --prefix=${PWD}/..
     if test "$?" -ne "0"; then
       AC_MSG_ERROR([Configuration of libjudy has failed.])
       exit -1
     fi
-    cd ..
+    popd
     AC_CHECK_SIZEOF(void *)
     if test "$ac_cv_sizeof_void_p" = 8; then
         JUDY_CFLAGS="-DJU_64BIT"
@@ -1200,7 +1224,7 @@ else
 fi
 
 # Configure libspud
-if test -d libspud ; then
+if test -d $srcdir/libspud ; then
     AC_MSG_NOTICE([%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%])
     AC_MSG_NOTICE([Configuring libspud])
     AC_MSG_NOTICE([%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%])
@@ -1222,7 +1246,19 @@ if test -d libspud ; then
 
     AC_SUBST(SPUD_ONLY)
 
-    cd libspud
+    if test ! -d libspud ; then
+      # libspud does not exist in the current directory:
+      # apparently we're not in the $srcdir and we're doing an out-of-tree build
+      # the portable way of doing this would probably be to use AC_CONFIG_SUBDIRS
+      # but calling libspud's configure directly is what we've always done
+      # and I don't want to break things
+      mkdir -p libspud
+    fi
+    pushd libspud
+    # we want to run configure in $srcdir/libspud, but $srcdir
+    # might be relative to the build directory which is one up from where we are now:
+    configure_path=../$srcdir/libspud
+
     # We don't really want to use the same FFLAGS and LIBS as fluidity has
     # worked out, because they contain all sorts of fluidity-specific junk,
     # so we let libadapt's configure work out everything for itself
@@ -1230,12 +1266,12 @@ if test -d libspud ; then
     # fluidity's (except for MPI)
     echo "${env_fcflags}"
     echo "${env_fflags}"
-    FC="${saved_FC}" F77="${saved_F77}" F90="${saved_F90}" LIBS="${env_libs}" FCFLAGS="${env_fcflags}" FFLAGS="${env_fflags} $PIC_FLAG $PROFILING_FLAG" CFLAGS="${env_cflags} $PIC_FLAG $PROFILING_FLAG" CXXFLAGS="${env_cxxflags} $PIC_FLAG $PROFILING_FLAG" CPPFLAGS="${env_cppflags}" ./configure --prefix=${PWD}/.. ${CONFIG_FLAG}
+    FC="${saved_FC}" F77="${saved_F77}" F90="${saved_F90}" LIBS="${env_libs}" FCFLAGS="${env_fcflags}" FFLAGS="${env_fflags} $PIC_FLAG $PROFILING_FLAG" CFLAGS="${env_cflags} $PIC_FLAG $PROFILING_FLAG" CXXFLAGS="${env_cxxflags} $PIC_FLAG $PROFILING_FLAG" CPPFLAGS="${env_cppflags}" $configure_path/configure --prefix=${PWD}/.. ${CONFIG_FLAG}
     if test "$?" -ne "0"; then
       AC_MSG_ERROR([Configuration of libspud has failed.])
       exit -1
     fi
-    cd ..
+    popd
     
 cat >> confdefs.h << EOF
 #define HAVE_SPUD 1
@@ -1258,10 +1294,28 @@ else
 fi
 AC_SUBST(SPATIALINDEXDIR)
 
+if test ! -d "$srcdir/$SPATIALINDEXDIR" ; then
+  # check first if the spatialindex srcdir actually exists to avoid
+  # a wrong error message below
+  AC_MSG_ERROR("$SPATIALINDEXDIR directory missing!!")
+fi
+
+if test ! -d "$SPATIALINDEXDIR" ; then
+  # libspatialindex does not exist in the current directory:
+  # apparently we're not in the $srcdir and we're doing an out-of-tree build
+  # the portable way of doing this would probably be to use AC_CONFIG_SUBDIRS
+  # but calling libspatialindex's configure directly is what we've always done
+  # and I don't want to break things
+  mkdir -p "$SPATIALINDEXDIR"
+fi
 AC_MSG_NOTICE([%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%])
 AC_MSG_NOTICE([Configuring spatialindex])
 AC_MSG_NOTICE([%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%])
-cd $SPATIALINDEXDIR
+pushd $SPATIALINDEXDIR
+# we want to run configure in $srcdir/$SPATIALINDEXDIR, but $srcdir
+# might be relative to the build directory which is one up from where we are now:
+configure_path=../$srcdir/$SPATIALINDEXDIR
+
 if test "$enable_debugging" = "yes" ; then
    SPATIALINDEX_CONFIGURE_DEBUG_OPTION=--enable-debug=yes
 fi
@@ -1269,13 +1323,13 @@ if test "$enable_profiling" = "yes" ; then
    SPATIALINDEX_CONFIGURE_PROF_OPTION=--enable-profiling=yes
 fi
 CC="${CC}" CXX="${CXX}" CFLAGS="${env_cflags}" CXXFLAGS="${env_cxxflags}" CPPFLAGS="-D_GNU_SOURCE" \
-    LIBS="${env_lib}" ./configure --prefix=${PWD}/../ --disable-shared --without-pic \
+    LIBS="${env_lib}" $configure_path/configure --prefix=${PWD}/../ --disable-shared --without-pic \
     ${SPATIALINDEX_CONFIGURE_DEBUG_OPTION} ${SPATIALINDEX_CONFIGURE_PROF_OPTION} --disable-maintainer-mode
 if test "$?" -ne "0"; then
   AC_MSG_ERROR([Configuration of spatialindex has failed.])
   exit -1
 fi
-cd ../
+popd
 
 #*************ARPACK*********
 AC_LANG_PUSH([Fortran])
@@ -1368,6 +1422,7 @@ if test "$enable_vtk" != "no" ; then
           ])
     fi
 fi
+mkdir -p include
 cat > include/vtk.h <<EOF
 #ifndef VTK_H
 #define VTK_H
@@ -1419,6 +1474,7 @@ typedef float vtkFloatingPointType;
 #endif
 #endif
 EOF
+mkdir -p libvtkfortran/include
 cp include/vtk.h libvtkfortran/include/
 
 AC_SUBST(ARFLAGS)
@@ -1427,6 +1483,7 @@ AC_SUBST(MODINC_FLAG)
 
 # It appears this is not good practice but...go sue me
 #cat confdefs.h | grep -v std > include/confdefs.h    <-- see below...
+mkdir -p libvtkfortran/include include
 cat confdefs.h | grep DOUBLEP > libvtkfortran/include/confdefs.h
 cat confdefs.h | grep F77_FUNC >> libvtkfortran/include/confdefs.h
 cat confdefs.h | grep VTK >> libvtkfortran/include/confdefs.h
@@ -1539,4 +1596,5 @@ AC_OUTPUT(Makefile
           libwm/Makefile
           libvtkfortran/Makefile
           schemas/flml
-	  reduced_modelling/Makefile)
+	  reduced_modelling/Makefile
+          manual/Makefile)

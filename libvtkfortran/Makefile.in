@@ -26,13 +26,15 @@
 #  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 #  USA
 
+VPATH = @srcdir@
+
 SHELL = @SHELL@
 
 FC = @FC@
-FCFLAGS = -I./include @CPPFLAGS@ @FCFLAGS@
+FCFLAGS = -I@srcdir@/include -I./include @CPPFLAGS@ @FCFLAGS@
 
 CXX = @CXX@
-CXXFLAGS = -I./include @CPPFLAGS@ @CXXFLAGS@
+CXXFLAGS = -I@srcdir@/include -I./include @CPPFLAGS@ @CXXFLAGS@
 
 LINKER = @CXX@
 LIBS = @LIBS@

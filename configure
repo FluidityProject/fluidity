@@ -12916,10 +12916,10 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: Using PETSC_DIR=$PETSC_DIR" >&5
 $as_echo "$as_me: Using PETSC_DIR=$PETSC_DIR" >&6;}
 
-PETSC_LINK_LIBS=`make -s -f petsc_makefile getlinklibs`
+PETSC_LINK_LIBS=`make -s -f $srcdir/petsc_makefile getlinklibs`
 LIBS="$PETSC_LINK_LIBS $LIBS"
 
-PETSC_INCLUDE_FLAGS=`make -s -f petsc_makefile getincludedirs`
+PETSC_INCLUDE_FLAGS=`make -s -f $srcdir/petsc_makefile getincludedirs`
 CPPFLAGS="$CPPFLAGS $PETSC_INCLUDE_FLAGS"
 FCFLAGS="$FCFLAGS $PETSC_INCLUDE_FLAGS"
 
@@ -13618,7 +13618,7 @@ CXX=$MPICXX
 LINKER=$CXX
 
 # Configure adaptivity
-if test -d libadaptivity ; then
+if test -d "$srcdir/libadaptivity" ; then
     { $as_echo "$as_me:${as_lineno-$LINENO}: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&5
 $as_echo "$as_me: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&6;}
     { $as_echo "$as_me:${as_lineno-$LINENO}: Configuring libadaptivity" >&5
@@ -13626,7 +13626,19 @@ $as_echo "$as_me: Configuring libadaptivity" >&6;}
     { $as_echo "$as_me:${as_lineno-$LINENO}: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&5
 $as_echo "$as_me: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&6;}
 
+    if test ! -d libadaptivity ; then
+      # libadaptivity does not exist in the current directory:
+      # apparently we're not in the $srcdir and we're doing an out-of-tree build
+      # the portable way of doing this would probably be to use AC_CONFIG_SUBDIRS
+      # but calling libadaptivity's configure directly is what we've always done
+      # and I don't want to break things
+      mkdir -p libadaptivity
+    fi
     pushd libadaptivity
+    # we want to run configure in $srcdir/libadaptivity, but $srcdir
+    # might be relative to the build directory which is one up from where we are now:
+    configure_path=../$srcdir/libadaptivity
+
     # We don't really want to use the same FFLAGS and LIBS as fluidity has
     # worked out, because they contain all sorts of fluidity-specific junk,
     # so we let libadapt's configure work out everything for itself
@@ -13634,14 +13646,14 @@ $as_echo "$as_me: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&6;}
     # fluidity's (except for MPI)
     if test "$enable_dp" = "yes" ; then
         FC="${saved_FC}" F77="${saved_F77}" F90="${saved_F90}" LIBS="${env_libs}" \
-            FFLAGS="${env_fflags} $PIC_FLAG $PROFILING_FLAG" FCFLAGS="${env_fcflags} $PIC_FLAG $PROFILING_FLAG" ./configure
+            FFLAGS="${env_fflags} $PIC_FLAG $PROFILING_FLAG" FCFLAGS="${env_fcflags} $PIC_FLAG $PROFILING_FLAG" $configure_path/configure
         if test "$?" -ne "0"; then
           as_fn_error $? "Configuration of libadaptivity has failed." "$LINENO" 5
           exit -1
         fi
     else
         FC="${saved_FC}" F77="${saved_F77}" F90="${saved_F90}" LIBS="${env_libs}" \
-            FFLAGS="${env_fflags} $PIC_FLAG $PROFILING_FLAG" FCFLAGS="${env_fcflags} $PIC_FLAG $PROFILING_FLAG" ./configure --enable-dp=no
+            FFLAGS="${env_fflags} $PIC_FLAG $PROFILING_FLAG" FCFLAGS="${env_fcflags} $PIC_FLAG $PROFILING_FLAG" $configure_path/configure --enable-dp=no
         if test "$?" -ne "0"; then
           as_fn_error $? "Configuration of libadaptivity has failed." "$LINENO" 5
           exit -1
@@ -13661,7 +13673,7 @@ else
 fi
 
 # Configure libjudy
-if test -d libjudy ; then
+if test -d $srcdir/libjudy ; then
     { $as_echo "$as_me:${as_lineno-$LINENO}: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&5
 $as_echo "$as_me: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&6;}
     { $as_echo "$as_me:${as_lineno-$LINENO}: Configuring libjudy" >&5
@@ -13669,13 +13681,25 @@ $as_echo "$as_me: Configuring libjudy" >&6;}
     { $as_echo "$as_me:${as_lineno-$LINENO}: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&5
 $as_echo "$as_me: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&6;}
 
-    cd libjudy
-    FC="${saved_FC}" F77="${saved_F77}" F90="${saved_F90}" LIBS="${env_libs}" FCFLAGS="${env_fcflags}" FFLAGS="${env_fflags} $PIC_FLAG $PROFILING_FLAG" CC="${saved_CC}" ./configure --prefix=${PWD}/..
+    if test ! -d libjudy ; then
+      # libjudy does not exist in the current directory:
+      # apparently we're not in the $srcdir and we're doing an out-of-tree build
+      # the portable way of doing this would probably be to use AC_CONFIG_SUBDIRS
+      # but calling libjudy's configure directly is what we've always done
+      # and I don't want to break things
+      mkdir -p libjudy
+    fi
+    pushd libjudy
+    # we want to run configure in $srcdir/libjudy, but $srcdir
+    # might be relative to the build directory which is one up from where we are now:
+    configure_path=../$srcdir/libjudy
+
+    FC="${saved_FC}" F77="${saved_F77}" F90="${saved_F90}" LIBS="${env_libs}" FCFLAGS="${env_fcflags}" FFLAGS="${env_fflags} $PIC_FLAG $PROFILING_FLAG" CC="${saved_CC}" $configure_path/configure --prefix=${PWD}/..
     if test "$?" -ne "0"; then
       as_fn_error $? "Configuration of libjudy has failed." "$LINENO" 5
       exit -1
     fi
-    cd ..
+    popd
     # The cast to long int works around a bug in the HP C Compiler
 # version HP92453-01 B.11.11.23709.GP, which incorrectly rejects
 # declarations like `int a3[[(sizeof (unsigned char)) >= 0]];'.
@@ -13725,7 +13749,7 @@ else
 fi
 
 # Configure libspud
-if test -d libspud ; then
+if test -d $srcdir/libspud ; then
     { $as_echo "$as_me:${as_lineno-$LINENO}: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&5
 $as_echo "$as_me: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&6;}
     { $as_echo "$as_me:${as_lineno-$LINENO}: Configuring libspud" >&5
@@ -13751,7 +13775,19 @@ $as_echo "$as_me: Building on ARCHER; disabling shared libraries" >&6;}
 
 
 
-    cd libspud
+    if test ! -d libspud ; then
+      # libspud does not exist in the current directory:
+      # apparently we're not in the $srcdir and we're doing an out-of-tree build
+      # the portable way of doing this would probably be to use AC_CONFIG_SUBDIRS
+      # but calling libspud's configure directly is what we've always done
+      # and I don't want to break things
+      mkdir -p libspud
+    fi
+    pushd libspud
+    # we want to run configure in $srcdir/libspud, but $srcdir
+    # might be relative to the build directory which is one up from where we are now:
+    configure_path=../$srcdir/libspud
+
     # We don't really want to use the same FFLAGS and LIBS as fluidity has
     # worked out, because they contain all sorts of fluidity-specific junk,
     # so we let libadapt's configure work out everything for itself
@@ -13759,12 +13795,12 @@ $as_echo "$as_me: Building on ARCHER; disabling shared libraries" >&6;}
     # fluidity's (except for MPI)
     echo "${env_fcflags}"
     echo "${env_fflags}"
-    FC="${saved_FC}" F77="${saved_F77}" F90="${saved_F90}" LIBS="${env_libs}" FCFLAGS="${env_fcflags}" FFLAGS="${env_fflags} $PIC_FLAG $PROFILING_FLAG" CFLAGS="${env_cflags} $PIC_FLAG $PROFILING_FLAG" CXXFLAGS="${env_cxxflags} $PIC_FLAG $PROFILING_FLAG" CPPFLAGS="${env_cppflags}" ./configure --prefix=${PWD}/.. ${CONFIG_FLAG}
+    FC="${saved_FC}" F77="${saved_F77}" F90="${saved_F90}" LIBS="${env_libs}" FCFLAGS="${env_fcflags}" FFLAGS="${env_fflags} $PIC_FLAG $PROFILING_FLAG" CFLAGS="${env_cflags} $PIC_FLAG $PROFILING_FLAG" CXXFLAGS="${env_cxxflags} $PIC_FLAG $PROFILING_FLAG" CPPFLAGS="${env_cppflags}" $configure_path/configure --prefix=${PWD}/.. ${CONFIG_FLAG}
     if test "$?" -ne "0"; then
       as_fn_error $? "Configuration of libspud has failed." "$LINENO" 5
       exit -1
     fi
-    cd ..
+    popd
 
 cat >> confdefs.h << EOF
 #define HAVE_SPUD 1
@@ -13789,13 +13825,31 @@ else
 fi
 
 
+if test ! -d "$srcdir/$SPATIALINDEXDIR" ; then
+  # check first if the spatialindex srcdir actually exists to avoid
+  # a wrong error message below
+  as_fn_error $? "\"$SPATIALINDEXDIR directory missing!!\"" "$LINENO" 5
+fi
+
+if test ! -d "$SPATIALINDEXDIR" ; then
+  # libspatialindex does not exist in the current directory:
+  # apparently we're not in the $srcdir and we're doing an out-of-tree build
+  # the portable way of doing this would probably be to use AC_CONFIG_SUBDIRS
+  # but calling libspatialindex's configure directly is what we've always done
+  # and I don't want to break things
+  mkdir -p "$SPATIALINDEXDIR"
+fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&5
 $as_echo "$as_me: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&6;}
 { $as_echo "$as_me:${as_lineno-$LINENO}: Configuring spatialindex" >&5
 $as_echo "$as_me: Configuring spatialindex" >&6;}
 { $as_echo "$as_me:${as_lineno-$LINENO}: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&5
 $as_echo "$as_me: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&6;}
-cd $SPATIALINDEXDIR
+pushd $SPATIALINDEXDIR
+# we want to run configure in $srcdir/$SPATIALINDEXDIR, but $srcdir
+# might be relative to the build directory which is one up from where we are now:
+configure_path=../$srcdir/$SPATIALINDEXDIR
+
 if test "$enable_debugging" = "yes" ; then
    SPATIALINDEX_CONFIGURE_DEBUG_OPTION=--enable-debug=yes
 fi
@@ -13803,13 +13857,13 @@ if test "$enable_profiling" = "yes" ; then
    SPATIALINDEX_CONFIGURE_PROF_OPTION=--enable-profiling=yes
 fi
 CC="${CC}" CXX="${CXX}" CFLAGS="${env_cflags}" CXXFLAGS="${env_cxxflags}" CPPFLAGS="-D_GNU_SOURCE" \
-    LIBS="${env_lib}" ./configure --prefix=${PWD}/../ --disable-shared --without-pic \
+    LIBS="${env_lib}" $configure_path/configure --prefix=${PWD}/../ --disable-shared --without-pic \
     ${SPATIALINDEX_CONFIGURE_DEBUG_OPTION} ${SPATIALINDEX_CONFIGURE_PROF_OPTION} --disable-maintainer-mode
 if test "$?" -ne "0"; then
   as_fn_error $? "Configuration of spatialindex has failed." "$LINENO" 5
   exit -1
 fi
-cd ../
+popd
 
 #*************ARPACK*********
 ac_ext=${ac_fc_srcext-f}
@@ -14703,6 +14757,7 @@ fi
 
     fi
 fi
+mkdir -p include
 cat > include/vtk.h <<EOF
 #ifndef VTK_H
 #define VTK_H
@@ -14754,6 +14809,7 @@ typedef float vtkFloatingPointType;
 #endif
 #endif
 EOF
+mkdir -p libvtkfortran/include
 cp include/vtk.h libvtkfortran/include/
 
 
@@ -14762,6 +14818,7 @@ cp include/vtk.h libvtkfortran/include/
 
 # It appears this is not good practice but...go sue me
 #cat confdefs.h | grep -v std > include/confdefs.h    <-- see below...
+mkdir -p libvtkfortran/include include
 cat confdefs.h | grep DOUBLEP > libvtkfortran/include/confdefs.h
 cat confdefs.h | grep F77_FUNC >> libvtkfortran/include/confdefs.h
 cat confdefs.h | grep VTK >> libvtkfortran/include/confdefs.h
@@ -15031,7 +15088,7 @@ fi
 
 #*******************
 
-ac_config_files="$ac_config_files Makefile debug/Makefile bathymetry/Makefile ocean_forcing/Makefile ocean_forcing/tests/Makefile sediments/Makefile hyperlight/Makefile femtools/Makefile femtools/tests/Makefile forward_interfaces/Makefile horizontal_adaptivity/Makefile horizontal_adaptivity/tests/Makefile preprocessor/Makefile error_measures/Makefile error_measures/tests/Makefile parameterisation/Makefile parameterisation/tests/Makefile fldecomp/Makefile assemble/Makefile assemble/tests/Makefile diagnostics/Makefile main/Makefile tools/Makefile tools/version-info python/setup.py adjoint/Makefile adjoint/tests/Makefile climatology/Makefile libmba2d/Makefile libmba3d/Makefile libjudy/Makefile libjudy/src/Makefile libjudy/src/JudyCommon/Makefile libjudy/src/Judy1/Makefile libjudy/src/JudyL/Makefile libjudy/src/JudySL/Makefile libjudy/src/JudyHS/Makefile libwm/Makefile libvtkfortran/Makefile schemas/flml reduced_modelling/Makefile"
+ac_config_files="$ac_config_files Makefile debug/Makefile bathymetry/Makefile ocean_forcing/Makefile ocean_forcing/tests/Makefile sediments/Makefile hyperlight/Makefile femtools/Makefile femtools/tests/Makefile forward_interfaces/Makefile horizontal_adaptivity/Makefile horizontal_adaptivity/tests/Makefile preprocessor/Makefile error_measures/Makefile error_measures/tests/Makefile parameterisation/Makefile parameterisation/tests/Makefile fldecomp/Makefile assemble/Makefile assemble/tests/Makefile diagnostics/Makefile main/Makefile tools/Makefile tools/version-info python/setup.py adjoint/Makefile adjoint/tests/Makefile climatology/Makefile libmba2d/Makefile libmba3d/Makefile libjudy/Makefile libjudy/src/Makefile libjudy/src/JudyCommon/Makefile libjudy/src/Judy1/Makefile libjudy/src/JudyL/Makefile libjudy/src/JudySL/Makefile libjudy/src/JudyHS/Makefile libwm/Makefile libvtkfortran/Makefile schemas/flml reduced_modelling/Makefile manual/Makefile"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -15765,6 +15822,7 @@ do
     "libvtkfortran/Makefile") CONFIG_FILES="$CONFIG_FILES libvtkfortran/Makefile" ;;
     "schemas/flml") CONFIG_FILES="$CONFIG_FILES schemas/flml" ;;
     "reduced_modelling/Makefile") CONFIG_FILES="$CONFIG_FILES reduced_modelling/Makefile" ;;
+    "manual/Makefile") CONFIG_FILES="$CONFIG_FILES manual/Makefile" ;;
 
   *) as_fn_error $? "invalid argument: \`$ac_config_target'" "$LINENO" 5;;
   esac

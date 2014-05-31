@@ -280,7 +280,7 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 noinst_LTLIBRARIES = liblibrary.la
-AM_CPPFLAGS = -I../../include
+AM_CPPFLAGS = -I@srcdir@/../../include
 liblibrary_la_SOURCES = Point.cc Region.cc LineSegment.cc MovingPoint.cc MovingRegion.cc TimePoint.cc TimeRegion.cc SpatialIndexImpl.cc
 all: all-am
 

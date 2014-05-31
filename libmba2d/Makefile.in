@@ -25,13 +25,15 @@
 #    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 #    USA
 
+VPATH = @srcdir@
+
 SHELL = @SHELL@
 
 FC      = @FC@
-FCFLAGS = -I../include @FCFLAGS@
+FCFLAGS = -I@srcdir@/../include -I../include @FCFLAGS@
 
 F77      = @F77@
-FFLAGS = -I../include @FFLAGS@
+FFLAGS = -I@srcdir@/../include -I../include @FFLAGS@
 
 UTFC    = ../bin/unittest_f90
 
@@ -68,7 +70,7 @@ OBJS = ani2.o auxSE.o auxSF.o auxSP.o calcrv.o clpsF.o delaunay.o dsort.o error.
 	$(FC) $(FCFLAGS) -c $<
 .cpp.o:
 	@echo "        CXX $<"
-	$(CXX) $(CXXFLAGS) -I../include -c $<
+	$(CXX) $(CXXFLAGS) -I@srcdir@/../include -I../include -c $<
 
 default: $(OBJS)
 	$(AR) $(ARFLAGS) $(LIB) $(OBJS)

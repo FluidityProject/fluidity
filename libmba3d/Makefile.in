@@ -24,13 +24,15 @@
 #    License along with this library; if not, write to the Free Software
 #    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 #    USA
+VPATH = @srcdir@
+
 SHELL = @SHELL@
 
 FC      = @FC@
-FCFLAGS = -I../include @FCFLAGS@
+FCFLAGS = -I@srcdir@/../include -I../include @FCFLAGS@
 
 F77      = @F77@
-FFLAGS = -I../include @FFLAGS@
+FFLAGS = -I@srcdir@/../include -I../include @FFLAGS@
 
 CC      = @CC@
 CFLAGS  = @CFLAGS@
@@ -71,10 +73,10 @@ OBJS = mba_analytic.o mba_nodal.o \
 	$(FC) $(FCFLAGS) -c $<
 .c.o:
 	@echo "        CC $<"
-	$(CC) $(CFLAGS) -I../include -c $<
+	$(CC) $(CFLAGS) -I@srcdir@/../include -I../include -c $<
 .cpp.o:
 	@echo "        CXX $<"
-	$(CXX) $(CXXFLAGS) -I../include -c $<
+	$(CXX) $(CXXFLAGS) -I@srcdir@/../include -I../include -c $<
 
 default: $(OBJS)
 	$(AR) $(ARFLAGS) $(LIB) $(OBJS)

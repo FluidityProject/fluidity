@@ -297,7 +297,7 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 noinst_LTLIBRARIES = librtree.la
-AM_CPPFLAGS = -I../../include 
+AM_CPPFLAGS = -I@srcdir@/../../include
 librtree_la_SOURCES = BulkLoader.cc Index.cc Leaf.cc Node.cc RTree.cc Statistics.cc BulkLoader.h Index.h Leaf.h Node.h PointerPoolNode.h RTree.h Statistics.h
 all: all-am
 

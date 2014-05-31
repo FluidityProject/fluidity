@@ -25,21 +25,23 @@
 #    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 #    USA
 
+VPATH = @srcdir@
+
 SHELL = @SHELL@
 
 PACKAGE_NAME = @PACKAGE_NAME@
 FLUIDITY = $(PACKAGE_NAME)
 
 FC      = @FC@
-FCFLAGS = -I../include @MOD_FLAG@../include @CPPFLAGS@ @FCFLAGS@ -I/usr/local/include -I./
+FCFLAGS = -I@srcdir@/../include -I../include @MOD_FLAG@../include @CPPFLAGS@ @FCFLAGS@ -I/usr/local/include -I./
 
 MPIF90  = @MPIF90@
 
 CC      = @CC@
-CFLAGS  = @CPPFLAGS@ @CFLAGS@ -I../include -I/usr/local/include -g
+CFLAGS  = @CPPFLAGS@ @CFLAGS@ -I@srcdir@/../include -I../include -I/usr/local/include -g
 
 CXX     = @CXX@
-CXXFLAGS= @CPPFLAGS@ @CXXFLAGS@ -I../include -I/usr/local/include
+CXXFLAGS= @CPPFLAGS@ @CXXFLAGS@ -I@srcdir@/../include -I../include -I/usr/local/include
 
 MAKE    = @MAKE@
 AR  = @AR@
@@ -49,7 +51,8 @@ LIB = ../lib/lib$(FLUIDITY).a
 
 AUTO_WRAPPER = Diagnostic_Fields_New
 DISABLED_DIAGS = $(AUTO_WRAPPER) Diagnostic_Source_Fields Diagnostic_Fields_Interfaces
-DIAGOBJS = $(addsuffix .o, $(filter-out $(DISABLED_DIAGS), $(basename $(wildcard *.F90))))
+ALLF90FILES = $(notdir $(basename $(wildcard @srcdir@/*.F90)))
+DIAGOBJS = $(addsuffix .o, $(filter-out $(DISABLED_DIAGS), $(ALLF90FILES)))
 OBJS = $(AUTO_WRAPPER).o $(DIAGOBJS) Diagnostic_Source_Fields.o  Diagnostic_Fields_Interfaces.o
 
 .SUFFIXES: .F90 .c .cpp .o .a
@@ -72,11 +75,11 @@ default: $(LIB)
 # cancel implicit rule that tries to make .o from .mod with m2c:
 %.o: %.mod
 
-$(addsuffix .o, $(filter-out Diagnostic_Source_Fields, $(basename $(wildcard *.F90)))): Diagnostic_Source_Fields.o
+$(addsuffix .o, $(filter-out Diagnostic_Source_Fields, $(ALLF90FILES))): Diagnostic_Source_Fields.o
 
-$(AUTO_WRAPPER).F90: $(DIAGOBJS) $(AUTO_WRAPPER).F90.in \
+$(AUTO_WRAPPER).F90: $(AUTO_WRAPPER).F90.in $(DIAGOBJS) \
   ../bin/make_diagnostic_fields
-	../bin/make_diagnostic_fields
+	../bin/make_diagnostic_fields $<
 
 Diagnostic_Fields_New.o: $(DIAGOBJS) $(AUTO_WRAPPER).F90
 Diagnostic_Fields_Interfaces.o: Diagnostic_Fields_New.o
@@ -85,4 +88,4 @@ clean:
 	rm -f *.o *.d *.mod
 	rm -f $(AUTO_WRAPPER).F90
 
-include Makefile.dependencies
+include @srcdir@/Makefile.dependencies

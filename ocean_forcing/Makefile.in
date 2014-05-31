@@ -24,6 +24,8 @@
 #    License along with this library; if not, write to the Free Software
 #    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 #    USA
+VPATH = @srcdir@
+
 SHELL = @SHELL@
 
 PACKAGE_NAME = @PACKAGE_NAME@
@@ -45,9 +47,9 @@ LINKER = $(CXX)
 # If /usr/include occurs too early it's going to
 # interfere with other compilers - and it would completely
 # stuff C++ with obsecure, ungoogleable, error messages. 
-FCFLAGS   = -I../include @MOD_FLAG@../include @FCFLAGS@ @CPPFLAGS@ -I/usr/include
+FCFLAGS   = -I@srcdir@/../include -I../include @MOD_FLAG@../include @FCFLAGS@ @CPPFLAGS@ -I/usr/include
 
-CXXFLAGS = -I../include @CXXFLAGS@ @CPPFLAGS@
+CXXFLAGS = -I@srcdir@/../include -I../include @CXXFLAGS@ @CPPFLAGS@
 
 LDFLAGS   = @LDFLAGS@
 LIBS    = -L../lib -l$(FLUIDITY) @LIBS@ @BLAS_LIBS@ \
@@ -97,4 +99,4 @@ clean:
 
 forcingERA40.o: forcingERA40_fortran.o
 
-include Makefile.dependencies
+include @srcdir@/Makefile.dependencies

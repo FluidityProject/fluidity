@@ -24,18 +24,20 @@
 #    License along with this library; if not, write to the Free Software
 #    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 #    USA
+VPATH = @srcdir@
+
 SHELL = @SHELL@
 
 FC      = @FC@
-FCFLAGS = -I../include @FCFLAGS@
+FCFLAGS = -I@srcdir@/../include -I../include @FCFLAGS@
 
 MPIF90  = @MPIF90@
 
 CC      = @CC@
-CFLAGS  = @CFLAGS@  -I../include
+CFLAGS  = @CFLAGS@  -I@srcdir@/../include -I../include
 
 CXX     = @CXX@
-CXXFLAGS= @CXXFLAGS@  -I../include
+CXXFLAGS= @CXXFLAGS@  -I@srcdir@/../include -I../include
 
 MAKE    = @MAKE@
 AR  = @AR@
@@ -65,7 +67,7 @@ FLDECOMP = ../bin/fldecomp
 	$(CXX) $(CXXFLAGS) -c $<
 
 fldecomp: $(LIB) $(OBJS) 
-	@$(EVAL) $(LINKER) @OPENMP_CXXFLAGS@ -o $(FLDECOMP) -I../include/ \
+	@$(EVAL) $(LINKER) @OPENMP_CXXFLAGS@ -o $(FLDECOMP) -I@srcdir@/../include -I../include/ \
 	    $(OBJS) $(LIBS) 
 
 clean:
