@@ -50,8 +50,9 @@ ARFLAGS = @ARFLAGS@
 LIB = ../lib/lib$(FLUIDITY).a
 
 AUTO_WRAPPER = Diagnostic_Fields_New
-DISABLED_DIAGS = @srcdir@/$(AUTO_WRAPPER) @srcdir@/Diagnostic_Source_Fields @srcdir@/Diagnostic_Fields_Interfaces
-DIAGOBJS = $(addsuffix .o, $(filter-out $(DISABLED_DIAGS), $(basename $(wildcard @srcdir@/*.F90))))
+DISABLED_DIAGS = $(AUTO_WRAPPER) Diagnostic_Source_Fields Diagnostic_Fields_Interfaces
+ALLF90FILES = $(notdir $(basename $(wildcard @srcdir@/*.F90)))
+DIAGOBJS = $(addsuffix .o, $(filter-out $(DISABLED_DIAGS), $(ALLF90FILES)))
 OBJS = $(AUTO_WRAPPER).o $(DIAGOBJS) Diagnostic_Source_Fields.o  Diagnostic_Fields_Interfaces.o
 
 .SUFFIXES: .F90 .c .cpp .o .a
@@ -74,7 +75,7 @@ default: $(LIB)
 # cancel implicit rule that tries to make .o from .mod with m2c:
 %.o: %.mod
 
-$(addsuffix .o, $(filter-out @srcdir@/Diagnostic_Source_Fields, $(basename $(wildcard @srcdir@/*.F90)))): Diagnostic_Source_Fields.o
+$(addsuffix .o, $(filter-out Diagnostic_Source_Fields, $(ALLF90FILES))): Diagnostic_Source_Fields.o
 
 $(AUTO_WRAPPER).F90: $(AUTO_WRAPPER).F90.in $(DIAGOBJS) \
   ../bin/make_diagnostic_fields
