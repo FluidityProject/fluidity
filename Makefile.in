@@ -84,6 +84,10 @@ ifeq (@MBA3D@,yes)
 LIBMBA3D = lib/libmba3d.a
 endif
 
+# note that in an out-of-tree build @srcdir@ != $(CURDIR)
+SPUD_PYTHON_SRC_DIR = @srcdir@/libspud/python/
+SPUD_PYTHON_BUILD_DIR = $(CURDIR)/libspud/python/build
+
 # Thread count for make test.
 THREADS=1
 
@@ -140,14 +144,13 @@ lib/libvtkfortran.a:
 
 lib/libspatialindex.a:
 	@echo '    MKDIR lib'; mkdir -p lib
-	echo '    MAKE libspatialindex'; $(MAKE) -C @SPATIALINDEXDIR@ && $(MAKE) -C @SPATIALINDEXDIR@ install >> make.log 2>&1
+	@echo '    MAKE libspatialindex'; $(MAKE) -C @SPATIALINDEXDIR@ && $(MAKE) -C @SPATIALINDEXDIR@ install >> make.log 2>&1
 
 lib/libspud.a:
 	@echo '    MKDIR lib'; mkdir -p lib
-ifeq (@SPUD_ONLY@,yes)
-	echo '    MAKE libspud'; $(MAKE) -C libspud && $(MAKE) -C libspud install-libspud
-else
-	echo '    MAKE libspud'; $(MAKE) -C libspud &&  $(MAKE) -C libspud install-libspud && cd libspud/python && python setup.py build && cd ../.. && cp libspud/python/build/lib*/libspud.so python/
+	@echo '    MAKE libspud'; $(MAKE) -C libspud && $(MAKE) -C libspud install-libspud
+ifneq (@SPUD_ONLY@,yes)
+	@echo '    MAKE libspud python'; mkdir -p $(SPUD_PYTHON_BUILD_DIR) && pushd $(SPUD_PYTHON_SRC_DIR) && python setup.py build -b $(SPUD_PYTHON_BUILD_DIR) && popd && cp $(SPUD_PYTHON_BUILD_DIR)/lib*/libspud.so python/
 endif
 
 libfemtools: sub_system

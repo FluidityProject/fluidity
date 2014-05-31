@@ -27,10 +27,10 @@
 SHELL = /bin/sh
 
 FC      = @FC@
-FCFLAGS = -Iinclude @CPPFLAGS@ @FCFLAGS@
+FCFLAGS = -I@srcdir@/include @CPPFLAGS@ @FCFLAGS@
 
 CXX     = @CXX@
-CXXFLAGS= -Iinclude @CPPFLAGS@ @CXXFLAGS@
+CXXFLAGS= -I@srcdir@/include @CPPFLAGS@ @CXXFLAGS@
 
 MAKE    = @MAKE@
 AR      = @AR@
@@ -39,11 +39,11 @@ ARFLAGS = @ARFLAGS@
 LIB = libspud.la
 LIBS = $(shell echo @LIBS@ | sed 's/-L /-L/g')
 
-HEADERS = include/spud.h include/spud include/spud_enums.h include/tinystr.h include/tinyxml.h
+HEADERS = @srcdir@/include/spud.h @srcdir@/include/spud @srcdir@/include/spud_enums.h @srcdir@/include/tinystr.h @srcdir@/include/tinyxml.h
 MODS = spud.mod
 OBJS = spud.lo spud_interfaces.lo tinystr.lo tinyxml.lo tinyxmlerror.lo tinyxmlparser.lo fspud.lo
 
-VPATH = src/
+VPATH = @srcdir@/src/
 
 .SUFFIXES: .f90 .F90 .c .cpp .lo .la
 
