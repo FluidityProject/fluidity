@@ -1,6 +1,6 @@
 ## Makefile.am -- Process this file with automake to produce Makefile.in
 noinst_LTLIBRARIES = libsidxc.la
-INCLUDES = -I../../include -I../../include/capi
+INCLUDES = -I@srcdir@/../../include -I@srcdir@/../../include/capi
 libsidxc_la_SOURCES =	BoundsQuery.cc \
 						CountVisitor.cc \
 						CustomStorage.cc \
