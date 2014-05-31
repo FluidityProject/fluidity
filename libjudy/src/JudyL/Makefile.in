@@ -25,6 +25,8 @@
 #    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 #    USA
 
+VPATH = @srcdir@
+
 SHELL = @SHELL@
 
 PACKAGE_NAME = @PACKAGE_NAME@
@@ -33,7 +35,7 @@ FLUIDITY = $(PACKAGE_NAME)
 MPIF90  = @MPIF90@
 
 CC      = @CC@
-CFLAGS  = @CPPFLAGS@ @CFLAGS@ @JUDY_CFLAGS@ -I../include -I/usr/local/include -I.. -I../JudyCommon -DJUDYL
+CFLAGS  = @CPPFLAGS@ @CFLAGS@ @JUDY_CFLAGS@ -I@srcdir@/../include -I/usr/local/include -I@srcdir@/.. -I@srcdir@ -I@srcdir@/../JudyCommon -DJUDYL
 
 MAKE    = @MAKE@
 
@@ -83,7 +85,7 @@ JudyLTables.o: JudyLTables.c
 	$(CC) $(CFLAGS) -c $<
 
 JudyLTables.c:
-	$(CC) $(CFLAGS) -DJUDYL JudyLTablesGen.c -o JudyLTablesGen
+	$(CC) $(CFLAGS) -DJUDYL @srcdir@/JudyLTablesGen.c -o JudyLTablesGen
 	./JudyLTablesGen
 
 clean:
