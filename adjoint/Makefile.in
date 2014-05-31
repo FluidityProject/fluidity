@@ -48,7 +48,7 @@ ARFLAGS = @ARFLAGS@
 
 LIB = ../lib/lib$(FLUIDITY).a
 
-OBJS    = $(patsubst %.F90,%.o,$(wildcard *.F90)) $(patsubst %.f90,%.o,$(wildcard *.f90)) $(patsubst %.c,%.o,$(wildcard *.c)) $(patsubst %.f,%.o,$(wildcard *.f)) 
+OBJS    = $(foreach ext, F90 f90 c f, $(notdir $(patsubst %.$(ext),%.o,$(wildcard @srcdir@/*.$(ext)))))
 
 .SUFFIXES: .f .f90 .F90 .c .cpp .o .a
 

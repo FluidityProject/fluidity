@@ -24,6 +24,8 @@
 #    License along with this library; if not, write to the Free Software
 #    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 #    USA
+VPATH = @srcdir@
+
 SHELL = @SHELL@
 
 PACKAGE_NAME = @PACKAGE_NAME@
@@ -58,7 +60,7 @@ CC	= @CC@
 CFLAGS	= @CPPFLAGS@ @CFLAGS@
 
 CXX	= @CXX@
-CXXFLAGS= @CPPFLAGS@ @CXXFLAGS@ -I./include
+CXXFLAGS= @CPPFLAGS@ @CXXFLAGS@ -I./include -I@srcdir@/include
 
 LINKER  = @LINKER@ @LDFLAGS@
 
@@ -75,7 +77,7 @@ AR = @AR@
 
 ARFLAGS	= -cr
 
-EVAL = tools/silenteval.sh
+EVAL = bin/silenteval
 
 ifeq (@MBA2D@,yes)
 LIBMBA2D = lib/libmba2d.a
@@ -326,10 +328,10 @@ endif
 	@echo "    MAKE main"
 	@cd main; $(MAKE)
 	@echo "    MAKE options_check"
-	@./tools/make_check_options.py
+	@./bin/make_check_options
 	@cd preprocessor; $(MAKE) check_options.o
 	@echo "    MAKE register_diagnostics"
-	@./tools/make_register_diagnostics.py
+	@./bin/make_register_diagnostics
 	@cd preprocessor; $(MAKE) register_diagnostics.o
 	@echo "    BUILDING fluidity_library"
 	@$(AR) $(ARFLAGS) lib/libfluidity.a \
