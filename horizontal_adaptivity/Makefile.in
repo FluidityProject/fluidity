@@ -25,13 +25,15 @@
 #    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 #    USA
 
+VPATH = @srcdir@
+
 SHELL = @SHELL@
 
 PACKAGE_NAME = @PACKAGE_NAME@
 FLUIDITY = $(PACKAGE_NAME)
 
 FC      = @FC@
-FCFLAGS = -I../include @MOD_FLAG@../include @FCFLAGS@
+FCFLAGS = -I@srcdir@/../include -I../include @MOD_FLAG@../include @FCFLAGS@
 
 UTFC    = ../bin/unittest_f90
 
@@ -59,7 +61,7 @@ OBJS = Extrude.o Extrude_radially.o Advancing_front.o Metric_based_extrude.o Com
 	$(FC) $(FCFLAGS) $(GENFLAGS) -c $< 
 .cpp.o:
 	@echo "        CXX $<"
-	$(CXX) $(CXXFLAGS) -I../include -c $<
+	$(CXX) $(CXXFLAGS) -I@srcdir@/../include -I../include -c $<
 
 $(LIB): $(OBJS)
 	@mkdir -p ../lib
@@ -69,4 +71,4 @@ default: $(LIB)
 clean:
 	rm -f *.o *.mod
 
-include Makefile.dependencies
+include @srcdir@/Makefile.dependencies
