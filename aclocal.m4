@@ -425,10 +425,10 @@ if test "x$PETSC_DIR" == "x"; then
 fi
 AC_MSG_NOTICE([Using PETSC_DIR=$PETSC_DIR])
 
-PETSC_LINK_LIBS=`make -s -f petsc_makefile getlinklibs`
+PETSC_LINK_LIBS=`make -s -f $srcdir/petsc_makefile getlinklibs`
 LIBS="$PETSC_LINK_LIBS $LIBS"
 
-PETSC_INCLUDE_FLAGS=`make -s -f petsc_makefile getincludedirs`
+PETSC_INCLUDE_FLAGS=`make -s -f $srcdir/petsc_makefile getincludedirs`
 CPPFLAGS="$CPPFLAGS $PETSC_INCLUDE_FLAGS"
 FCFLAGS="$FCFLAGS $PETSC_INCLUDE_FLAGS"
 

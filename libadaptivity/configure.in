@@ -832,9 +832,10 @@ LINKER=$CXX
 AC_SUBST(ARFLAGS)
 
 # It appears this is not good practice but...go sue me
+mkdir -p include adapt3d/include load_balance/include
 cat confdefs.h | grep "^#[dua][enl][fdl][ieo][nfw]" | sed -e 's/^#allow//' > include/confdefs.h
 cp include/confdefs.h adapt3d/include/
-cp include/confdefs.h load_balance/include/
+cp include/confdefs.h load_balance/include
 
 AC_OUTPUT(Makefile
     load_balance/Makefile
