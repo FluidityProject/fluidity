@@ -4,18 +4,23 @@ import glob
 import re
 import sys
 import sha
+import os.path
 
 def Error(msg):
   sys.stderr.write("Diagnostics error: " + str(msg) + "\n")
   sys.stderr.flush()
   sys.exit(1)
 
-baseName = "Diagnostic_Fields_New"
+if len(sys.argv) != 2:
+  Error("Usage: make_diagnostic_fields @srcdir@/Diagnostic_Fields_New.F90.in")
+
+inputFilename = sys.argv[1]
+srcdir, filename = os.path.split(inputFilename)
+outputFilename, ext = os.path.splitext(filename)
+assert(ext=='.in')
+
 disabledDiags = ["Diagnostic_Source_Fields.F90", \
   "Diagnostic_Fields_Interfaces.F90"]
-
-inputFilename = baseName + ".F90.in"
-outputFilename = baseName + ".F90"
 
 # get sha1 digest of existing generated file.  Can't use 'rw' here
 # because it updates the modtime of the file, which we're trying to
@@ -57,7 +62,8 @@ multipleStateTensorDiagnosticsCode = ""
 moduleRe = re.compile(r"^\s*module\s+(\w+)\s*$", re.IGNORECASE | re.MULTILINE)
 subroutineRe = re.compile(r"^\s*subroutine\s+(\w+)\(?([\w,\s]*)\)?\s*$", re.IGNORECASE | re.MULTILINE)
 
-diagFiles = glob.glob("*.F90")
+diagFiles = glob.glob(os.path.join(srcdir,"*.F90"))
+disabledDiags = [os.path.join(srcdir,file) for file in disabledDiags]
 for file in [inputFilename, outputFilename] + disabledDiags:
   try:
     diagFiles.remove(file)
