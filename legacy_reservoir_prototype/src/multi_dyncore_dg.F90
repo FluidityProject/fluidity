@@ -2253,7 +2253,7 @@ contains
         ! This is for decifering WIC_U_BC & WIC_P_BC
         type( tensor_field ), pointer :: tensorfield
         character( len = option_path_len ) :: option_path
-        LOGICAL, PARAMETER :: VOL_ELE_INT_PRES = .TRUE., STRESS_FORM=.TRUE., STAB_VISC_WITH_ABS=.FALSE.
+        LOGICAL, PARAMETER :: VOL_ELE_INT_PRES = .TRUE., STRESS_FORM=.true., STAB_VISC_WITH_ABS=.FALSE.
 !        LOGICAL, PARAMETER :: POROUS_VEL = .false. ! For reduced variable porous media treatment.
         ! if STAB_VISC_WITH_ABS then stabilize (in the projection mehtod) the viscosity using absorption.
         !      REAL, PARAMETER :: WITH_NONLIN = 1.0, TOLER = 1.E-10, ZERO_OR_TWO_THIRDS=2.0/3.0
@@ -2434,6 +2434,7 @@ contains
         REAL :: FEN_TEN_YX, FEN_TEN_YY,FEN_TEN_YZ
         REAL :: FEN_TEN_ZX, FEN_TEN_ZY,FEN_TEN_ZZ
         REAL :: MASS_U(U_NLOC,U_NLOC),STORE_MASS_U(U_NLOC,U_NLOC),MASS_U_CV(U_NLOC,CV_NLOC)
+        REAL :: AVE_SNORMXN_ALL(NDIM)
         integer :: IPIV(U_NLOC)
 
         !Variables to improve PIVIT_MAT creation speed
@@ -4410,8 +4411,12 @@ contains
                     DO IDIM = 1, NDIM
                        C1 ( IDIM ) = SUM( XL_ALL( IDIM, : ) ) / REAL( X_NLOC )
                        C2 ( IDIM ) = SUM( XSL_ALL( IDIM, : ) ) / REAL( CV_SNLOC )
+                       AVE_SNORMXN_ALL(IDIM) = SUM( SNORMXN_ALL( IDIM, : )) / REAL(SBCVNGI)
                     END DO
-                    HDC = SQRT( SUM( ( C1 - C2 )**2 ) )
+! use 2* because the value of HD being used is measured between the centres of neighbouring elements. 
+!                    HDC = 2.*SQRT( SUM( ( C1 - C2 )**2 ) )
+! Take the mean normal component of the distance vector to the surface...
+                    HDC = 2.*SQRT( SUM( (( C1 - C2 )*AVE_SNORMXN_ALL)**2 ) )
 
                 END IF If_ele2_notzero
 
@@ -4562,6 +4567,23 @@ contains
                         END DO
                     END DO
 
+                    IF(SELE2.NE.0) THEN
+
+                       DO IPHASE=1, NPHASE
+                          IF(WIC_U_BC_ALL(1,IPHASE,SELE2 )==WIC_U_BC_DIRICHLET) THEN
+                             U_NODJ_SGI_IPHASE_ALL(:,IPHASE,:) = 0.0
+                             UOLD_NODJ_SGI_IPHASE_ALL(:,IPHASE,:) = 0.0
+                             DO U_SILOC = 1, U_SNLOC
+                                DO SGI=1,SBCVNGI
+                                   U_NODJ_SGI_IPHASE_ALL(:,IPHASE,SGI) = U_NODJ_SGI_IPHASE_ALL(:,IPHASE,SGI) + SBUFEN(U_SILOC,SGI) * SUF_U_BC_ALL( :,IPHASE,U_SILOC + U_SNLOC* ( SELE2 - 1 ) )
+                                   UOLD_NODJ_SGI_IPHASE_ALL(:,IPHASE,SGI) = UOLD_NODJ_SGI_IPHASE_ALL(:,IPHASE,SGI) + SBUFEN(U_SILOC,SGI) * SUF_U_BC_ALL( :,IPHASE,U_SILOC + U_SNLOC* ( SELE2 - 1 ) )
+                                END DO
+                             END DO
+                          ENDIF
+                       END DO
+
+                    ENDIF
+
 
 
 
@@ -4571,7 +4593,7 @@ contains
                         CALL DIFFUS_CAL_COEFF_STRESS_OR_TENSOR( DIFF_COEF_DIVDX, &
                         DIFF_COEFOLD_DIVDX, STRESS_FORM, ZERO_OR_TWO_THIRDS, &
                         U_SNLOC, U_NLOC, CV_SNLOC, CV_NLOC, MAT_NLOC, NPHASE, &
-                        SBCVFEN,SBCVNGI, NDIM_VEL, NDIM, SLOC_UDIFFUSION, SLOC2_UDIFFUSION, UDIFF_SUF_STAB, &
+                        SBUFEN,SBCVFEN,SBCVNGI, NDIM_VEL, NDIM, SLOC_UDIFFUSION, SLOC2_UDIFFUSION, UDIFF_SUF_STAB, &
                         HDC, &
                         U_NODJ_SGI_IPHASE_ALL,    U_NODI_SGI_IPHASE_ALL, &
                         UOLD_NODJ_SGI_IPHASE_ALL, UOLD_NODI_SGI_IPHASE_ALL, &
