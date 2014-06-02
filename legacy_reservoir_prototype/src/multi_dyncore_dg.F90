@@ -3098,8 +3098,10 @@ contains
                                     + ABS_SOLID_FLUID_COUP(IDIM, JDIM, IPHASE, CV_INOD)* UDIFFUSION_ALL( 1, 1, IPHASE, MAT_INOD ) 
                                END DO
 
-                               LOC_U_ABS_STAB_SOLID_RHS( I, I, MAT_ILOC ) = LOC_U_ABS_STAB_SOLID_RHS( I, I, MAT_ILOC )  & 
+                               LOC_U_SOURCE_CV( IDIM, IPHASE, MAT_ILOC ) = LOC_U_SOURCE_CV( IDIM, IPHASE, MAT_ILOC ) &
                                   + FOURCE_SOLID_FLUID_COUP(IDIM, IPHASE, CV_INOD)* UDIFFUSION_ALL( 1, 1, IPHASE, MAT_INOD )
+!                               LOC_U_ABS_STAB_SOLID_RHS( I, I, MAT_ILOC ) = LOC_U_ABS_STAB_SOLID_RHS( I, I, MAT_ILOC )  & 
+!                                  + FOURCE_SOLID_FLUID_COUP(IDIM, IPHASE, CV_INOD)* UDIFFUSION_ALL( 1, 1, IPHASE, MAT_INOD )
                             END DO
                          END DO
                       ENDIF
@@ -3437,7 +3439,11 @@ contains
                     !IF ( NLEV==1 .AND. LUMP_MASS ) GLOBI_CV = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + U_ILOC )
                     ! put CV source in...
                     Loop_CVNods2: DO CV_JLOC = 1, CV_NLOC
-                        NM = SUM( UFEN( U_ILOC, : ) * CVN( CV_JLOC,  : ) * DETWEI( : ) )
+                        IF(RETRIEVE_SOLID_CTY) THEN
+                           NM = SUM( UFEN( U_ILOC, : ) * CVFEN( CV_JLOC,  : ) * DETWEI( : ) )
+                        ELSE
+                           NM = SUM( UFEN( U_ILOC, : ) * CVN( CV_JLOC,  : ) * DETWEI( : ) )
+                        ENDIF
                         IF ( LUMP_MASS ) THEN
                             ! This is bugged...fix me!
                             STOP 6378
