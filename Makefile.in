@@ -277,8 +277,12 @@ endif
 
 python_clean:
 	@echo "    CLEAN python"
-	@cd python; rm -rf build
-	@cd python/fluidity; find . -type l -name '*.so' -exec rm -f {} \;
+	@rm -rf python/build/
+# does not necessarily exist for out-of-tree build:
+	@if [ -d python/fluidity ]; then \
+	  cd python/fluidity; \
+	  find . -type l -name '*.so' -exec rm -f {} \;; \
+	fi
 
 .PHONY: scripts
 
@@ -448,9 +452,15 @@ clean: clean-light clean-test python_clean clean-debian
 	@find ./ \( -name work.pc \) -exec rm {} \;
 	@find ./ \( -name work.pcl \) -exec rm {} \;
 
+# if we're building out-of-tree there is no debian dir, so we do nothing
+# (debian package building doesn't use out-of-tree). Shouldn't this cleaning
+# happen in debian/rules actually?
 clean-debian:
-	@echo "    CLEAN debian"
-	@cd debian; rm -rf files tmp fluidity python-fluidity *.substvars *.debhelper* 
+	@if [ -d debian ]; then \
+	  echo "    CLEAN debian"; \
+	  cd debian; \
+	  rm -rf files tmp fluidity python-fluidity *.substvars *.debhelper*; \
+	fi
 
 clean-test:      
 	@echo "    CLEAN tests"
