@@ -2482,6 +2482,10 @@ contains
 
         capillary_pressure_activated = have_option( '/material_phase[0]/multiphase_properties/capillary_pressure' )
 
+
+        !stress_form = have_option( '/material_phase[0]/Velocity/prognostic/spatial_discretisation/viscosity_scheme' )
+
+
         !If we do not have an index where we have stored C, then we need to calculate it
         got_c_matrix  = StorageIndexes(32)/=0
         if (got_c_matrix) then

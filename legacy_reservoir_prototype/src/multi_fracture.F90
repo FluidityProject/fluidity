@@ -73,11 +73,12 @@ module multiphase_fractures
   end interface
 
   interface
-     subroutine y2dfemdem( string, dt, p, uf_r, vf_r, uf_v, vf_v, du_s, dv_s, u_s, v_s )
+     subroutine y2dfemdem( string, dt, p, uf_r, vf_r, uf_v, vf_v, du_s, dv_s, u_s, v_s, &
+          &                 mu_f, f_x, f_y, a_xx, a_xy, a_yy )
        character( len = * ), intent( in ) :: string
        real, intent( in ) :: dt
-       real, dimension( * ), intent( in ) :: p, uf_r, vf_r, uf_v, vf_v
-       real, dimension( * ), intent( out ) :: du_s, dv_s, u_s, v_s
+       real, dimension( * ), intent( in ) :: p, uf_r, vf_r, uf_v, vf_v, mu_f
+       real, dimension( * ), intent( out ) :: du_s, dv_s, u_s, v_s, f_x, f_y, a_xx, a_xy, a_yy
      end subroutine y2dfemdem
   end interface
 #endif
@@ -102,7 +103,7 @@ contains
     integer, intent( in ) :: nphase
     type( state_type ), intent( in ) :: packed_state
 
-    real, dimension( : ), allocatable :: p_r
+    real, dimension( : ), allocatable :: p_r, muf_r
     real, dimension( :, : ), allocatable :: uf_r, uf_v, du_s, u_s
     integer :: r_nonods, v_nonods
     real :: dt
@@ -114,23 +115,25 @@ contains
 
     r_nonods = node_count( positions_r )
     v_nonods = node_count( positions_v )
-    allocate( p_r( r_nonods ), uf_r( ndim, r_nonods ), uf_v( ndim, v_nonods ) )
+    allocate( p_r( r_nonods ), uf_r( ndim, r_nonods ), muf_r( r_nonods ), uf_v( ndim, v_nonods ) )
     allocate( du_s( ndim, v_nonods ), u_s( ndim, v_nonods ) )
-    p_r=0. ; uf_r=0. ; uf_v=0. ; du_s=0. ; u_s=0.
+    p_r=0. ; uf_r=0. ; muf_r=0. ; uf_v=0. ; du_s=0. ; u_s=0.
 
-    call interpolate_fields_out_r( packed_state, nphase, p_r, uf_r )
+    call interpolate_fields_out_r( packed_state, nphase, p_r, uf_r, muf_r )
     call interpolate_fields_out_v( packed_state, nphase, uf_v )
     call get_option( "/timestepping/timestep", dt )
 
+
     call y2dfemdem( trim( femdem_mesh_name ) // char( 0 ), dt, p_r, uf_r( 1, : ), uf_r( 2, : ), &
                      uf_v( 1, : ), uf_v( 2, : ), du_s( 1, : ), du_s( 2, : ), u_s( 1, : ), u_s( 2, : ) )
+                     ! mu_f, f_x, f_y, a_xx, a_xy, a_yy
 
     call interpolate_fields_in( packed_state, du_s, u_s )
 
 
     ! deallocate
     call deallocate_femdem
-    deallocate( p_r, uf_r, uf_v, du_s, u_s )
+    deallocate( p_r, uf_r, muf_r, uf_v, du_s, u_s )
 
     return
   end subroutine blasting
@@ -589,19 +592,19 @@ contains
 
   !----------------------------------------------------------------------------------------------------------
 
-  subroutine interpolate_fields_out_r( packed_state, nphase, p_r, u_r )
+  subroutine interpolate_fields_out_r( packed_state, nphase, p_r, u_r, mu_r )
 
     implicit none
 
     type( state_type ), intent( in ) :: packed_state
     integer, intent( in ) :: nphase
-    real, dimension( : ), intent( inout ) :: p_r
+    real, dimension( : ), intent( inout ) :: p_r, mu_r
     real, dimension( :, : ), intent( inout ) :: u_r
 
     !Local variables
     type( mesh_type ), pointer :: fl_mesh, u_mesh
-    type( scalar_field ) :: field_fl_p, field_fl_u, field_fl_v, &
-         &                  field_ext_p, field_ext_u, field_ext_v, &
+    type( scalar_field ) :: field_fl_p, field_fl_u, field_fl_v, field_fl_mu, &
+         &                  field_ext_p, field_ext_u, field_ext_v, field_ext_mu, &
          &                  u_dg, v_dg
     type( scalar_field ), pointer :: pressure
     type( vector_field ), pointer :: fl_positions
@@ -613,7 +616,7 @@ contains
          &     stat
     character( len = OPTION_PATH_LEN ) :: path = "/tmp/galerkin_projection/continuous"
 
-    p_r = 0. ; u_r = 0.
+    p_r = 0. ; u_r = 0. ; mu_r = 0.
 
     cv_ndgln => get_ndglno( extract_mesh( packed_state, "PressureMesh" ) )
 
@@ -622,6 +625,9 @@ contains
 
     fl_mesh => extract_mesh( packed_state, "CoordinateMesh" )
     fl_positions => extract_vector_field( packed_state, "Coordinate" )
+
+    !viscosity => extract_tensor_field( packed_state, "Viscosity", stat )
+    !have_viscosity = ( stat == 0 )
 
     totele = ele_count( fl_mesh )
 
@@ -647,18 +653,28 @@ contains
     call allocate( field_fl_v, fl_mesh, "Velocity2" )
     call zero( field_fl_v )
 
+    !call allocate( field_fl_mu, fl_mesh, "Viscosity" )
+    !call zero( field_fl_mu )
+
+
     ! deal with pressure
-    if ( cv_nloc == 6  ) then
+    if ( cv_nloc == 6 ) then
        ! linearise pressure for p2
        do ele = 1, totele
           fl_ele_nodes => ele_nodes( fl_mesh, ele )
           field_fl_p % val( fl_ele_nodes( 1 ) ) = pressure % val( cv_ndgln( ( ele - 1 ) * cv_nloc + 1 ) )
           field_fl_p % val( fl_ele_nodes( 2 ) ) = pressure % val( cv_ndgln( ( ele - 1 ) * cv_nloc + 3 ) )
           field_fl_p % val( fl_ele_nodes( 3 ) ) = pressure % val( cv_ndgln( ( ele - 1 ) * cv_nloc + 6 ) )
+
+          ! this is only valid for continuous simulations, i.e. when \mu lives on the pressure mesh...
+          !field_fl_mu % val( fl_ele_nodes( 1 ) ) = viscosity % val( cv_ndgln( ( ele - 1 ) * cv_nloc + 1 ) )
+          !field_fl_mu % val( fl_ele_nodes( 2 ) ) = viscosity % val( cv_ndgln( ( ele - 1 ) * cv_nloc + 3 ) )
+          !field_fl_mu % val( fl_ele_nodes( 3 ) ) = viscosity % val( cv_ndgln( ( ele - 1 ) * cv_nloc + 6 ) )
        end do
     else
        ! just copy memory for p1
        field_fl_p % val = pressure % val
+       !field_fl_mu % val = viscosity % val( 1, 1, : )
     end if
 
     ! deal with velocity - this part needs optimisation...
@@ -688,6 +704,8 @@ contains
     call insert( alg_fl, field_fl_p, "Pressure" )
     call insert( alg_fl, field_fl_u, "Velocity1" )
     call insert( alg_fl, field_fl_v, "Velocity2" )
+    !call insert( alg_fl, field_fl_mu, "Viscosity" )
+
 
     ! ring state
     call insert( alg_ext, positions_r%mesh, "Mesh" )
@@ -708,6 +726,11 @@ contains
     field_ext_v % option_path = path
     call insert( alg_ext, field_ext_v, "Velocity2" )
 
+    !call allocate( field_ext_mu, positions_r%mesh, "Viscosity" )
+    !call zero( field_ext_mu )
+    !field_ext_mu % option_path = path
+    !call insert( alg_ext, field_ext_mu, "Viscosity" )
+
     ewrite(3,*) "...interpolating"
 
     ! interpolate
@@ -717,15 +740,20 @@ contains
     p_r = field_ext_p % val
     u_r( 1, : ) = field_ext_u % val
     u_r( 2, : ) = field_ext_v % val
+    !mu_r = field_ext_mu % val
 
     ! deallocate
     call deallocate( field_fl_p )
     call deallocate( field_fl_u )
     call deallocate( field_fl_v )
+    !call deallocate( field_fl_mu )
+
 
     call deallocate( field_ext_p )
     call deallocate( field_ext_u )
     call deallocate( field_ext_v )
+    !call deallocate( field_ext_mu )
+
 
     call deallocate( alg_fl )
     call deallocate( alg_ext )
