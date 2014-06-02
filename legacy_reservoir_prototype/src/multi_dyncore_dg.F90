@@ -2353,6 +2353,8 @@ contains
 ! LES_THETA =1 is backward Euler for the LES viscocity.
 ! COEFF_SOLID_FLUID is the coeffficient that determins the magnitude of the relaxation to the solid vel...
             REAL, PARAMETER :: COEFF_SOLID_FLUID = 1.0
+! SOLID_FLUID_VISC_BC switches on the solid-fluid coupling viscocity boundary conditions...
+            LOGICAL, PARAMETER :: SOLID_FLUID_VISC_BC = .FALSE.
 
         !
         ! Variables used to reduce indirect addressing...
@@ -2442,6 +2444,9 @@ contains
         REAL, DIMENSION ( :, :, :, :, : ), allocatable :: STRESS_IJ_ELE, DUX_ELE_ALL, DUOLDX_ELE_ALL
         REAL, DIMENSION ( :, :, : ), allocatable :: VLK_ELE
         REAL, DIMENSION ( :, :, :, : ), allocatable :: UDIFFUSION_ALL, LES_UDIFFUSION
+! solid fluid coupling visc. bc contribution...
+        REAL, DIMENSION ( :, :, :, : ), allocatable :: ABS_SOLID_FLUID_COUP
+        REAL, DIMENSION ( :, :, : ), allocatable :: FOURCE_SOLID_FLUID_COUP
 
 ! for the option where we divid by voln fraction...
         REAL, DIMENSION ( :, : ), allocatable :: VOL_FRA_GI
@@ -2657,6 +2662,10 @@ contains
         IF(RETRIEVE_SOLID_CTY) THEN
            ALLOCATE( SIGMAGI_STAB_SOLID_RHS( NDIM_VEL * NPHASE, NDIM_VEL * NPHASE, CV_NGI ))
            ALLOCATE(NN_SIGMAGI_STAB_SOLID_RHS_ELE( NDIM_VEL * NPHASE, U_NLOC, NDIM_VEL * NPHASE,U_NLOC ))
+           IF( GOT_DIFFUS .AND. SOLID_FLUID_VISC_BC ) THEN  ! SOLID_FLUID_VISC_BC taken from diamond
+              ALLOCATE(ABS_SOLID_FLUID_COUP(NDIM, NDIM, NPHASE, CV_NONODS))
+              ALLOCATE(FOURCE_SOLID_FLUID_COUP(NDIM, NPHASE, CV_NONODS))
+           ENDIF
         ENDIF
 
         ALLOCATE( NXUDN( SCVNGI ))
@@ -3077,6 +3086,24 @@ contains
                                   + COEFF_SOLID_FLUID * ( DEN_ALL( IPHASE, cv_inod ) / dt ) 
                          END DO
                       END DO
+! Add in the viscocity contribution...
+                      IF( GOT_DIFFUS .AND. SOLID_FLUID_VISC_BC ) THEN  ! SOLID_FLUID_VISC_BC taken from diamond
+! Assume visc. is isotropic (can be variable)...
+                         DO IDIM=1,NDIM
+                            DO IPHASE=1,NPHASE
+                               I=IDIM + (IPHASE-1)*NDIM
+                               DO JDIM=1,NDIM
+                                  J=JDIM + (IPHASE-1)*NDIM
+                                  LOC_U_ABSORB( I, J, MAT_ILOC ) = LOC_U_ABSORB( I, J, MAT_ILOC ) &
+                                    + ABS_SOLID_FLUID_COUP(IDIM, JDIM, IPHASE, CV_INOD)* UDIFFUSION_ALL( 1, 1, IPHASE, MAT_INOD ) 
+                               END DO
+
+                               LOC_U_ABS_STAB_SOLID_RHS( I, I, MAT_ILOC ) = LOC_U_ABS_STAB_SOLID_RHS( I, I, MAT_ILOC )  & 
+                                  + FOURCE_SOLID_FLUID_COUP(IDIM, IPHASE, CV_INOD)* UDIFFUSION_ALL( 1, 1, IPHASE, MAT_INOD )
+                            END DO
+                         END DO
+                      ENDIF
+! ENDOF IF(RETRIEVE_SOLID_CTY) THEN...
                    ENDIF
 
                 END IF
