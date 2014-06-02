@@ -3019,7 +3019,9 @@ contains
                             LOC_U( IDIM, IPHASE, U_ILOC ) = U_ALL( IDIM, IPHASE, U_INOD )
                             LOC_UOLD( IDIM, IPHASE, U_ILOC ) = UOLD_ALL( IDIM, IPHASE, U_INOD )
                             LOC_U_SOURCE( IDIM, IPHASE, U_ILOC ) = U_SOURCE( IDIM, IPHASE, U_INOD )
-     IF(RETRIEVE_SOLID_CTY) LOC_US( IDIM, IPHASE, U_ILOC ) = us_all%val( IDIM, U_INOD )
+                            IF(RETRIEVE_SOLID_CTY) THEN
+                               LOC_US( IDIM, IPHASE, U_ILOC ) = us_all%val( IDIM, U_INOD )
+                            ENDIF
                         END DO
                     END DO
                 END DO

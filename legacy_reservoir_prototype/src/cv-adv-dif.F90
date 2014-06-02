@@ -414,7 +414,8 @@ contains
                                                   VJ_LOC_OPT_VEL_UPWIND_COEFS, GJ_LOC_OPT_VEL_UPWIND_COEFS, &
                                                   INV_VI_LOC_OPT_VEL_UPWIND_COEFS, INV_VJ_LOC_OPT_VEL_UPWIND_COEFS
       REAL , DIMENSION( :, :, :, : ), ALLOCATABLE :: INV_V_OPT_VEL_UPWIND_COEFS
-      REAL :: BCZERO(NPHASE) 
+      REAL :: BCZERO(NPHASE),  T_ALL_J( NPHASE ), TOLD_ALL_J( NPHASE )
+      INTEGER :: LOC_WIC_T_BC_ALL(NPHASE)
 
 
       REAL, DIMENSION( :, :, : ), ALLOCATABLE :: ABSORBT_ALL!U_ALL, NU_ALL, NUOLD_ALL,
@@ -1647,15 +1648,15 @@ contains
 ! The b.c values: 
              DO CV_SKLOC=1,CV_SNLOC
                 IPT=1
-                CALL PACK_LOC( SLOC_SUF_F_BC( :, CV_SKLOC ), SUF_T_BC_ALL( :, :, CV_SKLOC + CV_SNLOC*( SELE- 1) ),    NPHASE, NFIELD, IPT, IGOT_T_PACK(:,1) )
-                CALL PACK_LOC( SLOC_SUF_F_BC( :, CV_SKLOC ), SUF_T_BC_ALL( :, :, CV_SKLOC+ CV_SNLOC*( SELE- 1 ) ),    NPHASE, NFIELD, IPT, IGOT_T_PACK(:,2) )
+                CALL PACK_LOC( SLOC_SUF_F_BC( :, CV_SKLOC ), SUF_T_BC_ALL( 1, :, CV_SKLOC + CV_SNLOC*( SELE- 1) ),    NPHASE, NFIELD, IPT, IGOT_T_PACK(:,1) )
+                CALL PACK_LOC( SLOC_SUF_F_BC( :, CV_SKLOC ), SUF_T_BC_ALL( 1, :, CV_SKLOC+ CV_SNLOC*( SELE- 1 ) ),    NPHASE, NFIELD, IPT, IGOT_T_PACK(:,2) )
 
-                CALL PACK_LOC( SLOC_SUF_F_BC( :, CV_SKLOC ), SUF_D_BC_ALL( :, :, CV_SKLOC+ CV_SNLOC*( SELE- 1) ),    NPHASE, NFIELD, IPT, IGOT_T_PACK(:,3) )
-                CALL PACK_LOC( SLOC_SUF_F_BC( :, CV_SKLOC ), SUF_D_BC_ALL( :, :, CV_SKLOC+ CV_SNLOC*( SELE- 1) ),    NPHASE, NFIELD, IPT, IGOT_T_PACK(:,4) )
+                CALL PACK_LOC( SLOC_SUF_F_BC( :, CV_SKLOC ), SUF_D_BC_ALL( 1, :, CV_SKLOC+ CV_SNLOC*( SELE- 1) ),    NPHASE, NFIELD, IPT, IGOT_T_PACK(:,3) )
+                CALL PACK_LOC( SLOC_SUF_F_BC( :, CV_SKLOC ), SUF_D_BC_ALL( 1, :, CV_SKLOC+ CV_SNLOC*( SELE- 1) ),    NPHASE, NFIELD, IPT, IGOT_T_PACK(:,4) )
 
                IF(IGOT_T2==1) THEN
-                   CALL PACK_LOC( SLOC_SUF_F_BC( :, CV_SKLOC ), SUF_T2_BC_ALL( :, :, CV_SKLOC + CV_SNLOC*( SELE- 1) ),    NPHASE, NFIELD, IPT, IGOT_T_PACK(:,5) )
-                   CALL PACK_LOC( SLOC_SUF_F_BC( :, CV_SKLOC ), SUF_T2_BC_ALL( :, :, CV_SKLOC + CV_SNLOC*( SELE- 1) ),    NPHASE, NFIELD, IPT, IGOT_T_PACK(:,6) )
+                   CALL PACK_LOC( SLOC_SUF_F_BC( :, CV_SKLOC ), SUF_T2_BC_ALL( 1, :, CV_SKLOC + CV_SNLOC*( SELE- 1) ),    NPHASE, NFIELD, IPT, IGOT_T_PACK(:,5) )
+                   CALL PACK_LOC( SLOC_SUF_F_BC( :, CV_SKLOC ), SUF_T2_BC_ALL( 1, :, CV_SKLOC + CV_SNLOC*( SELE- 1) ),    NPHASE, NFIELD, IPT, IGOT_T_PACK(:,6) )
                ENDIF
             END DO
 
@@ -1750,15 +1751,27 @@ contains
        If_GOT_DIFFUS2: IF ( GOT_DIFFUS ) THEN
           ! This sub caculates the effective diffusion
           ! coefficient DIFF_COEF_DIVDX, DIFF_COEFOLD_DIVDX
+          T_ALL_J( : )   =LOC_T_J( : )
+          TOLD_ALL_J( : )=LOC_TOLD_J( : )
+          LOC_WIC_T_BC_ALL(:)=0
+          IF(SELE.NE.0) THEN
+             DO IPHASE=1,NPHASE
+                LOC_WIC_T_BC_ALL(IPHASE)=WIC_T_BC_ALL(1, IPHASE, SELE)
+                IF(LOC_WIC_T_BC_ALL(IPHASE)==WIC_T_BC_DIRICHLET) THEN
+                   T_ALL_J( IPHASE ) = SUF_T_BC_ALL( 1, IPHASE, CV_SILOC + CV_SNLOC*( SELE- 1) )
+                   TOLD_ALL_J( IPHASE )=SUF_T_BC_ALL( 1, IPHASE, CV_SILOC + CV_SNLOC*( SELE- 1) )
+                ENDIF 
+             END DO
+          ENDIF
           CALL DIFFUS_CAL_COEFF( DIFF_COEF_DIVDX, DIFF_COEFOLD_DIVDX,  &
                CV_NLOC, MAT_NLOC, CV_NONODS, NPHASE, TOTELE, MAT_NONODS, MAT_NDGLN, &
                SCVFEN, SCVFEN, SCVNGI, GI, NDIM, TDIFFUSION, DUMMY_ZERO_NDIM_NDIM_NPHASE, &
                HDC, &
-               T_ALL( :, CV_NODJ ), T_ALL( :, CV_NODI ), &
-               TOLD_ALL( :, CV_NODJ ), TOLD_ALL( :, CV_NODI ), &
+               T_ALL_J( : ), LOC_T_I( : ), &
+               TOLD_ALL_J( : ), LOC_TOLD_I( : ), &
                ELE, ELE2, CVNORMX_ALL( :, GI ), &
                DTX_ELE_ALL(:,:,:,ELE), DTOLDX_ELE_ALL(:,:,:,ELE),  DTX_ELE_ALL(:,:,:,MAX(1,ELE2)), DTOLDX_ELE_ALL(:,:,:,MAX(ELE2,1)), &
-               SELE, STOTEL, WIC_T_BC_ALL(1, :,MAX(1,SELE)), CV_OTHER_LOC, MAT_OTHER_LOC )
+               SELE, STOTEL, LOC_WIC_T_BC_ALL, CV_OTHER_LOC, MAT_OTHER_LOC )
        ELSE
           DIFF_COEF_DIVDX = 0.0
           DIFF_COEFOLD_DIVDX = 0.0
