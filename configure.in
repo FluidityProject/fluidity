@@ -1596,4 +1596,5 @@ AC_OUTPUT(Makefile
           libwm/Makefile
           libvtkfortran/Makefile
           schemas/flml
-	  reduced_modelling/Makefile)
+	  reduced_modelling/Makefile
+          manual/Makefile)
