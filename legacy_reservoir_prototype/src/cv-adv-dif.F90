@@ -6605,6 +6605,8 @@ end if
 !    REAL, PARAMETER :: DIFF_MIN_FRAC = 0.25, DIFF_MAX_FRAC = 100.0 ! works well no oscillations
 !    REAL, PARAMETER :: DIFF_MIN_FRAC = 0.01, DIFF_MAX_FRAC = 100.0 ! works well no oscillations
     REAL, PARAMETER :: DIFF_MIN_FRAC = 0.2, DIFF_MAX_FRAC = 100.0 ! works well no oscillations
+!    REAL, PARAMETER :: DIFF_MIN_FRAC = 0.05, DIFF_MAX_FRAC = 200.0 ! works well no oscillations
+!    REAL, PARAMETER :: DIFF_MIN_FRAC = 0.1, DIFF_MAX_FRAC = 200.0 ! works well no oscillations
 !    REAL, PARAMETER :: DIFF_MIN_FRAC = 0.25, DIFF_MAX_FRAC = 10000000.0 ! works well no oscillations
 !    REAL, PARAMETER :: DIFF_MIN_FRAC = 0.25, DIFF_MAX_FRAC = 1000.0
 
@@ -6953,7 +6955,8 @@ end if
 ! This is for the minimum & max. diffusion...
                          DIFF_STAND_DIVDX_U(IDIM_VEL,IPHASE,SGI)   =  DIFF_STAND_DIVDX_U(IDIM_VEL,IPHASE,SGI) &
                                                            + (   SUM( SNORMXN_ALL(:,SGI)*DIFF_GI(IDIM_VEL,:,IPHASE,SGI)*SNORMXN_ALL(:,SGI) )  & 
-                                                               + SUM( SNORMXN_ALL(:,SGI)*DIFF_GI(IDIM_VEL,:,IPHASE,SGI)*SNORMXN_ALL(IDIM_VEL,SGI) )    )/HDC
+                                                               +  SNORMXN_ALL(IDIM_VEL,SGI)*DIFF_GI(IDIM_VEL,IDIM_VEL,IPHASE,SGI)*SNORMXN_ALL(IDIM_VEL,SGI)     )/HDC
+!                                                               + SUM( SNORMXN_ALL(:,SGI)*DIFF_GI(IDIM_VEL,:,IPHASE,SGI)*SNORMXN_ALL(IDIM_VEL,SGI) )    )/HDC
 
                    END DO
                 END DO
@@ -6990,8 +6993,8 @@ end if
           ENDIF
 ! just in case...
 ! the factor of 8 is there to take into account that HD is measured between centres of elements...
-!          DIFF_STAND_DIVDX_U=abs( 8.*DIFF_STAND_DIVDX_U )
-          DIFF_STAND_DIVDX_U=( 8.*DIFF_STAND_DIVDX_U )
+          DIFF_STAND_DIVDX_U=abs( 8.*DIFF_STAND_DIVDX_U )
+!          DIFF_STAND_DIVDX_U=( 8.*DIFF_STAND_DIVDX_U )
 
         RETURN
 
