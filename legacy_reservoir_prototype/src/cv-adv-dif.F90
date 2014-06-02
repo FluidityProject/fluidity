@@ -4388,25 +4388,28 @@ end if
                    DO ICOMP = 1, NCOMP
                       IF ( APPLYBC( ICOMP, IPHASE ) ) THEN
                   
-                         VTX_ELE(:, ICOMP, IPHASE, CV_ILOC, ELE ) = &
-                              VTX_ELE( :, ICOMP, IPHASE, CV_ILOC, ELE ) &
-                              - VLM_NORX(:) * 0.5 * ( FEMT( ICOMP, IPHASE, CV_NODJ ) - FEMT( ICOMP, IPHASE, CV_NODJ2 ) * NRBC )
-                         VTOLDX_ELE( :, ICOMP, IPHASE, CV_ILOC, ELE ) = &
-                              VTX_ELE( :, ICOMP, IPHASE, CV_ILOC, ELE ) &
-                              - VLM_NORX(:) * 0.5 * ( FEMTOLD( ICOMP, IPHASE, CV_NODJ ) - FEMTOLD( ICOMP, IPHASE, CV_NODJ2 ) * NRBC )
-
                          IF ( SELE2 /= 0 ) THEN
                             IF ( WIC_T_BC( ICOMP, IPHASE, SELE2 ) == WIC_T_BC_DIRICHLET ) THEN
 
                                RTBC = SUF_T_BC( ICOMP, IPHASE, CV_SJLOC2 + CV_SNLOC * ( SELE2 - 1 ) )
 
                                VTX_ELE( :, ICOMP, IPHASE, CV_ILOC, ELE ) = VTX_ELE( :, ICOMP, IPHASE, CV_ILOC, ELE ) &
-                                    + VLM_NORX(:) * 0.5 * RTBC
+                              - VLM_NORX(:) * 0.5 * ( FEMT( ICOMP, IPHASE, CV_NODJ ) - RTBC  )
+
                                VTOLDX_ELE( :, ICOMP, IPHASE, CV_ILOC, ELE ) = VTOLDX_ELE( :, ICOMP, IPHASE, CV_ILOC, ELE ) &
-                                    + VLM_NORX(:) * 0.5 * RTBC
+                              - VLM_NORX(:) * 0.5 * ( FEMTOLD( ICOMP, IPHASE, CV_NODJ ) - RTBC  )
 
                             END IF
+                         ELSE
+                            VTX_ELE(:, ICOMP, IPHASE, CV_ILOC, ELE ) = &
+                              VTX_ELE( :, ICOMP, IPHASE, CV_ILOC, ELE ) &
+                              - VLM_NORX(:) * 0.5 * ( FEMT( ICOMP, IPHASE, CV_NODJ ) - FEMT( ICOMP, IPHASE, CV_NODJ2 )  )
+                            VTOLDX_ELE( :, ICOMP, IPHASE, CV_ILOC, ELE ) = &
+                              VTX_ELE( :, ICOMP, IPHASE, CV_ILOC, ELE ) &
+                              - VLM_NORX(:) * 0.5 * ( FEMTOLD( ICOMP, IPHASE, CV_NODJ ) - FEMTOLD( ICOMP, IPHASE, CV_NODJ2 )  )
+
                          END IF
+
                       END IF
                    END DO
                 END DO
@@ -6557,7 +6560,7 @@ end if
   SUBROUTINE DIFFUS_CAL_COEFF_STRESS_OR_TENSOR( DIFF_COEF_DIVDX, &
        DIFF_COEFOLD_DIVDX, STRESS_FORM, ZERO_OR_TWO_THIRDS, &
        U_SNLOC, U_NLOC, CV_SNLOC, CV_NLOC, MAT_NLOC, NPHASE,  &
-       SBCVFEN,SBCVNGI, NDIM_VEL, NDIM, SLOC_UDIFFUSION, SLOC2_UDIFFUSION, DIFF_GI_ADDED, &
+       SBUFEN,SBCVFEN,SBCVNGI, NDIM_VEL, NDIM, SLOC_UDIFFUSION, SLOC2_UDIFFUSION, DIFF_GI_ADDED, &
        HDC, &
        U_CV_NODJ_IPHA_ALL, U_CV_NODI_IPHA_ALL, &
        UOLD_CV_NODJ_IPHA_ALL, UOLD_CV_NODI_IPHA_ALL, &
@@ -6581,8 +6584,9 @@ end if
     REAL, intent( in ) :: ZERO_OR_TWO_THIRDS
     REAL, DIMENSION( NDIM,NPHASE,SBCVNGI ), intent( inout ) :: DIFF_COEF_DIVDX, DIFF_COEFOLD_DIVDX
     INTEGER, DIMENSION( NPHASE,STOTEL ), intent( in ) ::WIC_U_BC
-    REAL, DIMENSION( U_SNLOC, SBCVNGI  ), intent( in ) :: SBCVFEN
-    REAL, DIMENSION( NDIM,NDIM,NPHASE,U_SNLOC ), intent( in ) :: SLOC_UDIFFUSION, SLOC2_UDIFFUSION
+    REAL, DIMENSION( CV_SNLOC, SBCVNGI  ), intent( in ) :: SBCVFEN
+    REAL, DIMENSION( U_SNLOC, SBCVNGI  ), intent( in ) :: SBUFEN
+    REAL, DIMENSION( NDIM,NDIM,NPHASE,CV_SNLOC ), intent( in ) :: SLOC_UDIFFUSION, SLOC2_UDIFFUSION
     ! DIFF_GI_ADDED( IDIM, :,:) is for dimension IDIM e.g IDIM=1 corresponds to U 
     ! the rest is for the diffusion tensor. 
     REAL, DIMENSION( NDIM_VEL, NDIM,NDIM, NPHASE, SBCVNGI), intent( in ) :: DIFF_GI_ADDED
@@ -6594,8 +6598,15 @@ end if
     ! DIFF_MIN_FRAC is the fraction of the standard diffusion coefficient to use 
     ! in the non-linear diffusion scheme. DIFF_MAX_FRAC is the maximum fraction. 
     ! If SIMPLE_DIFF_CALC then use a simple and fast diffusion calculation.
-    LOGICAL, PARAMETER :: SIMPLE_DIFF_CALC2 = .FALSE.
-    REAL, PARAMETER :: DIFF_MIN_FRAC = 0.005, DIFF_MAX_FRAC = 200.0
+    LOGICAL, PARAMETER :: SIMPLE_DIFF_CALC2 = .false.
+    !REAL, PARAMETER :: DIFF_MIN_FRAC = 0.005, DIFF_MAX_FRAC = 200.0
+!    REAL, PARAMETER :: DIFF_MIN_FRAC = 0.1, DIFF_MAX_FRAC = 1000.0 ! works well but oscillations
+!    REAL, PARAMETER :: DIFF_MIN_FRAC = 0.5, DIFF_MAX_FRAC = 1000000.0 ! works well no oscillations
+!    REAL, PARAMETER :: DIFF_MIN_FRAC = 0.25, DIFF_MAX_FRAC = 100.0 ! works well no oscillations
+!    REAL, PARAMETER :: DIFF_MIN_FRAC = 0.01, DIFF_MAX_FRAC = 100.0 ! works well no oscillations
+    REAL, PARAMETER :: DIFF_MIN_FRAC = 0.2, DIFF_MAX_FRAC = 100.0 ! works well no oscillations
+!    REAL, PARAMETER :: DIFF_MIN_FRAC = 0.25, DIFF_MAX_FRAC = 10000000.0 ! works well no oscillations
+!    REAL, PARAMETER :: DIFF_MIN_FRAC = 0.25, DIFF_MAX_FRAC = 1000.0
 
     REAL, DIMENSION( : , :, :, : ), allocatable :: DIFF_GI, DIFF_GI2
 
@@ -6677,7 +6688,7 @@ end if
           DO CV_SKLOC = 1, CV_SNLOC
              DO SGI=1,SBCVNGI
                 DO IPHASE=1, NPHASE
-                   DIFF_GI( 1:NDIM , 1:NDIM, IPHASE, SGI ) = DIFF_GI( 1:NDIM , 1:NDIM, IPHASE, SGI  ) &
+                   DIFF_GI( 1:NDIM , 1:NDIM, IPHASE, SGI ) = DIFF_GI( 1:NDIM , 1:NDIM, IPHASE, SGI ) &
                      + SBCVFEN(CV_SKLOC,SGI) * SLOC_UDIFFUSION( 1:NDIM , 1:NDIM , IPHASE, CV_SKLOC )
                 END DO
              END DO
@@ -6689,7 +6700,7 @@ end if
              DO CV_SKLOC = 1, CV_SNLOC
                 DO SGI=1,SBCVNGI
                    DO IPHASE=1, NPHASE
-                      DIFF_GI2( 1:NDIM, 1:NDIM, IPHASE, SGI )=DIFF_GI2( 1:NDIM, 1:NDIM, IPHASE, SGI ) +SBCVFEN(CV_SKLOC,SGI) &
+                      DIFF_GI2( 1:NDIM, 1:NDIM, IPHASE, SGI )= DIFF_GI2( 1:NDIM, 1:NDIM, IPHASE, SGI ) +SBCVFEN(CV_SKLOC,SGI) &
                         *SLOC2_UDIFFUSION(1:NDIM, 1:NDIM ,IPHASE, CV_SKLOC)
                    END DO
                 END DO
@@ -6731,7 +6742,8 @@ end if
 ! Calculate DIFF_COEF_DIVDX, N_DOT_DKDU, N_DOT_DKDUOLD
           CALL FOR_TENS_DERIVS_NDOTS(DIFF_STAND_DIVDX_U, N_DOT_DKDU, N_DOT_DKDUOLD,  &
                  DIFF_GI_ADDED, SLOC_DUX_ELE_ALL, SLOC_DUOLDX_ELE_ALL, SLOC_UDIFFUSION, &
-                 NDIM_VEL, NDIM, NPHASE, U_SNLOC, SBCVNGI, SBCVFEN, SNORMXN_ALL, HDC, ZERO_OR_TWO_THIRDS, STRESS_FORM )
+               !  NDIM_VEL, NDIM, NPHASE, U_SNLOC, SBCVNGI, SBCVFEN, SNORMXN_ALL, HDC, ZERO_OR_TWO_THIRDS, STRESS_FORM )
+                 NDIM_VEL, NDIM, NPHASE, U_SNLOC, CV_SNLOC, SBCVNGI, SBUFEN, SBCVFEN, SNORMXN_ALL, HDC, ZERO_OR_TWO_THIRDS, STRESS_FORM )
 
 
 
@@ -6742,7 +6754,7 @@ end if
 ! Calculate DIFF_COEF_DIVDX, N_DOT_DKDU, N_DOT_DKDUOLD
              CALL FOR_TENS_DERIVS_NDOTS(DIFF_STAND_DIVDX2_U, N_DOT_DKDU2, N_DOT_DKDUOLD2,  &  
                     DIFF_GI_ADDED, SLOC2_DUX_ELE_ALL, SLOC2_DUOLDX_ELE_ALL, SLOC2_UDIFFUSION, &
-                    NDIM_VEL, NDIM, NPHASE, U_SNLOC, SBCVNGI, SBCVFEN, SNORMXN_ALL, HDC, ZERO_OR_TWO_THIRDS, STRESS_FORM )
+                    NDIM_VEL, NDIM, NPHASE, U_SNLOC, CV_SNLOC, SBCVNGI, SBUFEN, SBCVFEN, SNORMXN_ALL, HDC, ZERO_OR_TWO_THIRDS, STRESS_FORM )
 
 
 
@@ -6804,7 +6816,7 @@ end if
 
         SUBROUTINE FOR_TENS_DERIVS_NDOTS( DIFF_STAND_DIVDX_U, N_DOT_DKDU, N_DOT_DKDUOLD,  &
                  DIFF_GI_ADDED, SLOC_DUX_ELE_ALL, SLOC_DUOLDX_ELE_ALL, SLOC_UDIFFUSION, &
-                 NDIM_VEL, NDIM, NPHASE, U_SNLOC, SBCVNGI, SBCVFEN, SNORMXN_ALL, HDC, ZERO_OR_TWO_THIRDS, STRESS_FORM )
+                 NDIM_VEL, NDIM, NPHASE, U_SNLOC, CV_SNLOC, SBCVNGI, SBUFEN, SBCVFEN, SNORMXN_ALL, HDC, ZERO_OR_TWO_THIRDS, STRESS_FORM )
 
 ! Calculate DIFF_STAND_DIVDX_U, N_DOT_DKDU, N_DOT_DKDUOLD
 ! This implements the stress and tensor form of diffusion and calculates a jump conidition. 
@@ -6812,7 +6824,7 @@ end if
 ! The coefficient are in N_DOT_DKDU, N_DOT_DKDUOLD. 
 ! look at the manual DG treatment of viscocity. 
     IMPLICIT NONE
-      INTEGER, intent( in )  :: NDIM_VEL, NDIM, NPHASE, U_SNLOC, SBCVNGI
+      INTEGER, intent( in )  :: NDIM_VEL, NDIM, NPHASE, U_SNLOC, CV_SNLOC, SBCVNGI
       REAL, intent( in )  :: HDC, ZERO_OR_TWO_THIRDS
       LOGICAL, intent( in )  :: STRESS_FORM
     REAL, DIMENSION( NDIM,NPHASE,SBCVNGI ), intent( inout ) :: DIFF_STAND_DIVDX_U
@@ -6821,8 +6833,9 @@ end if
     ! the rest is for the diffusion tensor. 
     REAL, DIMENSION( NDIM_VEL, NDIM,NDIM, NPHASE, SBCVNGI), intent( in ) :: DIFF_GI_ADDED
     REAL, DIMENSION( NDIM_VEL, NDIM , NPHASE, U_SNLOC ), intent( in ) :: SLOC_DUX_ELE_ALL, SLOC_DUOLDX_ELE_ALL 
-    REAL, DIMENSION( U_SNLOC, SBCVNGI  ), intent( in ) :: SBCVFEN
-    REAL, DIMENSION( NDIM,NDIM,NPHASE,U_SNLOC ), intent( in ) :: SLOC_UDIFFUSION
+    REAL, DIMENSION( U_SNLOC, SBCVNGI  ), intent( in ) :: SBUFEN
+    REAL, DIMENSION( CV_SNLOC, SBCVNGI  ), intent( in ) :: SBCVFEN
+    REAL, DIMENSION( NDIM,NDIM,NPHASE,CV_SNLOC ), intent( in ) :: SLOC_UDIFFUSION
     REAL, DIMENSION( NDIM, SBCVNGI ), intent( in ) :: SNORMXN_ALL
 
     ! local variables
@@ -6831,7 +6844,7 @@ end if
     REAL, DIMENSION( :, :, :, : ), allocatable :: DUDX_ALL_GI, DUOLDDX_ALL_GI
     REAL, DIMENSION( :, : ), allocatable :: IDENT
     REAL :: COEF, DIVU, DIVUOLD
-    INTEGER :: U_KLOC,U_KLOC2,MAT_KLOC,MAT_KLOC2,IDIM,JDIM,IDIM_VEL,U_SKLOC
+    INTEGER :: U_KLOC,U_KLOC2,MAT_KLOC,MAT_KLOC2,IDIM,JDIM,IDIM_VEL,U_SKLOC,CV_SKLOC
     INTEGER :: SGI,IPHASE
     LOGICAL :: ZER_DIFF,SIMPLE_DIFF_CALC
 
@@ -6859,17 +6872,17 @@ end if
           DO U_SKLOC = 1, U_SNLOC
              DO SGI=1,SBCVNGI
              ! U, V & W: 
-                   DUDX_ALL_GI(:,:,:,SGI)    = DUDX_ALL_GI(:,:,:,SGI)    + SBCVFEN(U_SKLOC,SGI) * SLOC_DUX_ELE_ALL(:,:,:,U_SKLOC)
-                   DUOLDDX_ALL_GI(:,:,:,SGI) = DUOLDDX_ALL_GI(:,:,:,SGI) + SBCVFEN(U_SKLOC,SGI) * SLOC_DUOLDX_ELE_ALL(:,:,:,U_SKLOC)
+                   DUDX_ALL_GI(:,:,:,SGI)    = DUDX_ALL_GI(:,:,:,SGI)    + SBUFEN(U_SKLOC,SGI) * SLOC_DUX_ELE_ALL(:,:,:,U_SKLOC)
+                   DUOLDDX_ALL_GI(:,:,:,SGI) = DUOLDDX_ALL_GI(:,:,:,SGI) + SBUFEN(U_SKLOC,SGI) * SLOC_DUOLDX_ELE_ALL(:,:,:,U_SKLOC)
              END DO
           END DO
 
           DIFF_GI = 0.0
-          DO U_SKLOC = 1, U_SNLOC
+          DO CV_SKLOC = 1, CV_SNLOC
              DO SGI=1,SBCVNGI
                 DO IPHASE=1, NPHASE
                    DIFF_GI( 1:NDIM , 1:NDIM, IPHASE,SGI ) = DIFF_GI( 1:NDIM , 1:NDIM, IPHASE,SGI ) &
-                  + SBCVFEN(U_SKLOC,SGI) * SLOC_UDIFFUSION( 1:NDIM , 1:NDIM , IPHASE, U_SKLOC )
+                  + SBCVFEN(CV_SKLOC,SGI) * SLOC_UDIFFUSION( 1:NDIM , 1:NDIM , IPHASE, CV_SKLOC )
                 END DO
              END DO
           END DO
@@ -6977,7 +6990,8 @@ end if
           ENDIF
 ! just in case...
 ! the factor of 8 is there to take into account that HD is measured between centres of elements...
-          DIFF_STAND_DIVDX_U=abs( 8.*DIFF_STAND_DIVDX_U )
+!          DIFF_STAND_DIVDX_U=abs( 8.*DIFF_STAND_DIVDX_U )
+          DIFF_STAND_DIVDX_U=( 8.*DIFF_STAND_DIVDX_U )
 
         RETURN
 

@@ -4270,6 +4270,384 @@ are diagonal matricies with entries equal to the control volume values of   ${\h
 and $\cal P$ is the number of phases. For a single phase system $\hat N = I$.
 
 
+
+
+
+
+\subsection{Implementation of solid-fluid velocity coupling boundary conditions through viscocity}
+
+
+The stress conditions discretized is: 
+
+\begin{eqnarray}
+\int N_i \nabla \cdot \underline{\underline{\tau}} dV = 
+-
+\int N_i \nabla \cdot \underline{\underline{\tau}} dV 
++ \int_{\Gamma_{solid}} N_i n\cdot \underline{\underline{\tau}}_{solid} d\Gamma
+=\int N_i \nabla \cdot \tau dV
++ \int_{\Gamma_{solid}} N_i n\cdot (\underline{\underline{\tau}}_{solid} - \underline{\underline{\tau}}) d\Gamma
+\end{eqnarray} 
+
+Consider for example the part of the $\underline{\underline{\tau}}$ term: 
+
+\begin{eqnarray}
+\int_\Gamma N_i n_x \mu ( \frac{\partial u}{\partial x}\vert_{solid} - \frac{\partial u}{\partial x} ) d\Gamma
+\end{eqnarray} 
+
+We can evaluate these over a thin shell $V_{shell}$ using: 
+
+\begin{eqnarray}
+\int_\Gamma  N_i n_x \mu \frac{\partial u}{\partial x} \vert_{solid} d\Gamma
+\approx 
+\int_{V_{shell}}  N_i n_x \frac{1}{\Delta r} \mu \frac{\partial u}{\partial x}  dV
+=
+\int_{V_{shell}}  N_i n_x \frac{1}{\Delta r}\mu \frac{\partial u}{\partial x}  dV
++
+\int_{\Gamma_{shell}}  N_i n_x n_x \frac{1}{\Delta r}\mu (u_{solid} -u)  d\Gamma
+\\
+\approx
+\int_{V_{shell}}  N_i n_x \frac{1}{\Delta r}\mu \frac{\partial u}{\partial x}  dV
++
+\int_{V_{shell}}  N_i n_x n_x \frac{1}{(\Delta r)^2}\mu (u_{solid} -u)  dV
+\end{eqnarray} 
+Thus
+
+\begin{eqnarray}
+\int_\Gamma N_i n_x \mu ( \frac{\partial u}{\partial x}\vert_{solid} - \frac{\partial u}{\partial x} ) d\Gamma
+\approx
+\int_{V_{shell}}  N_i n_x n_x \frac{1}{(\Delta r)^2}\mu (u_{solid} -u)  dV
+\end{eqnarray} 
+in which $\Delta r$ is the width of the thin shell surrounding the solid. 
+
+
+The viscous term expanded becomes:
+
+\begin{equation}
+\frac{\partial \mu_{xx}
+(
+\frac{\partial u}{\partial x}+\frac{\partial u}{\partial x}
+-\frac{2}{3}(\frac{\partial u}{\partial x}+\frac{\partial v}{\partial y}+\frac{\partial w}{\partial z})
+)}
+{\partial x}
++
+\frac{\partial \mu_{xy}
+(
+\frac{\partial v}{\partial x}+\frac{\partial u}{\partial y})
+)}
+{\partial y}
++
+\frac{\partial \mu_{xz}
+(
+\frac{\partial w}{\partial x}+\frac{\partial u}{\partial z})
+)}
+{\partial z}, 
+\label{visc-stress-u} 
+\end{equation}
+
+
+
+\begin{equation}
+\frac{\partial \mu_{yx}
+(
+\frac{\partial u}{\partial y}+\frac{\partial v}{\partial x}
+)}
+{\partial x}
++
+\frac{\partial \mu_{yy}
+(
+\frac{\partial v}{\partial y}+\frac{\partial v}{\partial y}
+-\frac{2}{3}(\frac{\partial u}{\partial x}+\frac{\partial v}{\partial y}+\frac{\partial w}{\partial z})
+)}
+{\partial y}
++
+\frac{\partial \mu_{yz}
+(
+\frac{\partial w}{\partial y}+\frac{\partial v}{\partial z})
+)}
+{\partial z}, 
+\label{visc-stress-v} 
+\end{equation}
+
+
+
+\begin{equation}
+\frac{\partial \mu_{zx}
+(
+\frac{\partial u}{\partial z}+\frac{\partial w}{\partial x})
+)}
+{\partial x}
++
+\frac{\partial \mu_{zy}
+(
+\frac{\partial v}{\partial z}+\frac{\partial w}{\partial y})
+)}
+{\partial y}
++
+\frac{\partial \mu_{zz}
+(
+\frac{\partial w}{\partial z}+\frac{\partial w}{\partial z}
+-\frac{2}{3}(\frac{\partial u}{\partial x}+\frac{\partial v}{\partial y}+\frac{\partial w}{\partial z})
+)}
+{\partial z}. 
+\label{visc-stress-w-2} 
+\end{equation}
+
+Thus the solid boundary conditions can be expressed  
+for u:
+% U: 
+\begin{equation}
+\int_{V_{shell}} 
+N_i \frac{1}{\Delta r^2} 
+({n_x} \mu_{xx}
+(
+2 n_x u_s 
+-\frac{2}{3} {\bf n}\cdot{\bf u}_s 
+)
++
+ {n_y} \mu_{xy}
+( n_x  v_s + n_y u_s) 
++
+{n_z} \mu_{xz}
+( n_x w_s + n_z u_s ) 
+ )d V
+\label{visc-stress-u-n-2-solid} 
+\end{equation}
+\begin{equation}
+- \int_{V_{shell}} 
+N_i\frac{1}{\Delta r^2} ({n_x}   \mu_{xx}
+(
+2 n_x u 
+-\frac{2}{3} {\bf n}\cdot{\bf u} 
+)
++
+ {n_y} \mu_{xy}
+( n_x  v + n_y u) 
++
+{n_z} \mu_{xz}
+( n_x w + n_z u ) 
+ )d V,
+\label{visc-stress-u-n-2-fluid} 
+\end{equation}
+
+
+for v:
+% V: 
+\begin{equation}
+\int_{V_{shell}} 
+N_i\frac{1}{\Delta r^2}
+({n_x} \mu_{yx}
+(n_y u_s + n_x v_s) 
++
+{n_y}\mu_{yy}
+(
+2n_y v_s 
+-\frac{2}{3} {\bf n} \cdot{\bf u}_s 
+)
++
+{n_z} \mu_{yz}
+(n_y w_s + n_z v_s )
+ )dV
+\label{visc-stress-v-n-2-solid} 
+\end{equation}
+\begin{equation}
+-  \int_{V_{shell}} 
+N_i \frac{1}{\Delta r^2}
+({n_x} \mu_{yx}
+(n_y u + n_x v) 
++
+{n_y}\mu_{yy}
+(
+2n_y v 
+-\frac{2}{3} {\bf n} \cdot{\bf u}
+)
++
+{n_z} \mu_{yz}
+(n_y w + n_z v )
+ )d V,
+\label{visc-stress-v-n-2-fluid} 
+\end{equation}
+
+
+for w:
+% W: 
+\begin{equation}
+\int_{V_{shell}} 
+N_i \frac{1}{\Delta r^2}
+({n_x} \mu_{zx}
+( n_z u_s + n_x w_s )
++
+{n_y} \mu_{zy}
+( n_z v_s + n_y w_s )
++
+{n_z} \mu_{zz}
+(
+2 n_z w_s 
+-\frac{2}{3} {\bf n} \cdot{\bf u}_s 
+) )d V 
+\label{visc-stress-w-n-2-solid} 
+\end{equation}
+\begin{equation}
+-\int_{V_{shell}} 
+N_i \frac{1}{\Delta r^2}
+({n_x} \mu_{zx}
+( n_z u + n_x w )
++
+{n_y} \mu_{zy}
+( n_z v + n_y w )
++
+{n_z} \mu_{zz}
+(
+2 n_z w 
+-\frac{2}{3} {\bf n} \cdot{\bf u}
+) )d V. 
+\label{visc-stress-w-n-2-fluid} 
+\end{equation}
+
+Now using the slip velocity ${\bf u}_{sl} = {\bf u}_{s} -{\bf u}$ and gathering the 
+contributions to each velocity component $u$, $v$ and $w$ then: 
+For the $u_{sl}$ equation:
+
+% U: 
+\begin{equation}
+\int_{V_{shell}} 
+N_i \frac{1}{\Delta r^2} 
+(
+({n_x} \mu_{xx}
+(2-\frac{2}{3}) n_x +n_y \mu_{xy} n_y + n_z\mu_{xz} n_z) u_{sl} 
++
+(-n_x \mu_{xx}\frac{2}{3} n_y + n_y \mu_{xy} n_x
+)v_{sl} 
++
+(-n_x \mu_{xx}\frac{2}{3} n_z + n_z \mu_{xz} n_x
+)w_{sl} 
+ )d V
+\label{visc-stress-u-n-2-sl} 
+\end{equation}
+
+For the $v_{sl}$ equation:
+% V: 
+\begin{equation}
+\int_{V_{shell}} 
+N_i \frac{1}{\Delta r^2} 
+(
+({n_x} \mu_{yx} n_y -n_x\mu_{yy}\frac{2}{3} n_x ) u_{sl} 
++
+(n_x \mu_{yx}n_x + n_y\mu_{yy} (2-\frac{2}{3}) n_y + n_z\mu_{yz} n_z) v_{sl} 
++
+( - n_y\mu_{yy} \frac{2}{3}) n_z + n_z\mu_{yz} n_y
+)w_{sl} 
+ )d V
+\label{visc-stress-v-n-2-sl} 
+\end{equation}
+
+
+
+For the $w_{sl}$ equation:
+% W: 
+\begin{equation}
+\int_{V_{shell}} 
+N_i \frac{\mu}{\Delta r^2} 
+(
+({n_x} \mu_{zx} n_z -n_z\mu_{zz}\frac{2}{3} n_x ) u_{sl} 
++
+(n_y \mu_{zy}n_z - n_z\mu_{zz} \frac{2}{3} n_y ) v_{sl} 
++
+(n_x \mu_{zx}n_x +n_y \mu_{zy}n_y+ n_z\mu_{zz} (2-\frac{2}{3}) n_z 
+)w_{sl} 
+ )d V. 
+\label{visc-stress-u-n-2-sl-mu} 
+\end{equation}
+Or assuming the viscocity is isotropic $\mu=\mu_{xx}=\mu_{xy}...$ then for the $u_{sl}$ equation:
+
+
+
+
+% U: 
+\begin{equation}
+\int_{V_{shell}} 
+N_i \frac{\mu}{\Delta r^2} 
+(
+({n_x} 
+(2-\frac{2}{3}) n_x +n_y n_y + n_z n_z) u_{sl} 
++
+(-n_x \frac{2}{3} n_y + n_y  n_x
+)v_{sl} 
++
+(-n_x \frac{2}{3} n_z + n_z  n_x
+)w_{sl} 
+ )d V
+\label{visc-stress-u-n-2-sl-mu} 
+\end{equation}
+
+For the $v_{sl}$ equation:
+% V: 
+\begin{equation}
+\int_{V_{shell}} 
+N_i \frac{\mu}{\Delta r^2} 
+(
+({n_x}  n_y -n_x \frac{2}{3} n_x ) u_{sl} 
++
+(n_x n_x + n_y (2-\frac{2}{3}) n_y + n_z n_z) v_{sl} 
++
+( - n_y \frac{2}{3}) n_z + n_z n_y
+)w_{sl} 
+ )d V
+\label{visc-stress-v-n-2-sl-mu} 
+\end{equation}
+
+
+For the $w_{sl}$ equation:
+% W: 
+\begin{equation}
+\int_{V_{shell}} 
+N_i \frac{\mu}{\Delta r^2} 
+(
+({n_x}  n_z -n_z\frac{2}{3} n_x ) u_{sl} 
++
+(n_y n_z - n_z \frac{2}{3} n_y ) v_{sl} 
++
+(n_x n_x +n_y n_y+ n_z (2-\frac{2}{3}) n_z 
+)w_{sl} 
+ )d V. 
+\label{visc-stress-u-n-2-sl-mu} 
+\end{equation}
+
+
+
+
+Or in more condensed form - also serving as a definition of $a_{xx}, a_{xy},...$ - 
+for $u$:
+
+\begin{equation}
+\int_{V_{shell}} 
+N_i ( a_{xx} u_{sl} + a_{xy} v_{sl} + a_{xz} w_{sl} ) dV
+\end{equation}
+for $v$: 
+\begin{equation}
+\int_{V_{shell}} 
+N_i ( a_{yx} u_{sl} + a_{yy} v_{sl} + a_{yz} w_{sl} ) dV
+\end{equation}
+for $w$:
+\begin{equation}
+\int_{V_{shell}} 
+N_i ( a_{zx} u_{sl} + a_{zy} v_{sl} + a_{zz} w_{sl} ) dV. 
+\end{equation}
+Defining, 
+\begin{equation}
+f_x=a_{xx} u_{s} + a_{xy} v_{s} + a_{xz} w_{s}, \;\;  
+f_y=a_{yx} u_{s} + a_{yy} v_{s} + a_{yz} w_{s}, \;\;  
+f_z=a_{zx} u_{s} + a_{zy} v_{s} + a_{zz} w_{s}, 
+\end{equation}
+then in order to evaluate the rhs source force contribution on the 
+fluid each of $f_x, f_y, f_z$ is mapped to the fluids velocity mesh 
+to form $f_x^f, f_y^f, f_z^f$. In addition, each of $a_{xx}$, $a_{xy}$, ... 
+are mapped to the fluids mesh in order to form the implicit treatment 
+of the fluid velocity. 
+
+
+
+ 
+
 \pagebreak
 
 
