@@ -637,6 +637,9 @@ LTLIBOBJS
 LIBOBJS
 RAND_IS_CONFIG_FALSE
 RAND_IS_CONFIG_TRUE
+MAINT
+MAINTAINER_MODE_FALSE
+MAINTAINER_MODE_TRUE
 AM_BACKSLASH
 AM_DEFAULT_VERBOSITY
 AM_DEFAULT_V
@@ -768,6 +771,7 @@ with_sysroot
 enable_libtool_lock
 enable_dependency_tracking
 enable_silent_rules
+enable_maintainer_mode
 enable_debug
 '
       ac_precious_vars='build_alias
@@ -1413,6 +1417,9 @@ Optional Features:
                           speeds up one-time build
   --enable-silent-rules   less verbose build output (undo: "make V=1")
   --disable-silent-rules  verbose build output (undo: "make V=0")
+  --disable-maintainer-mode
+                          disable make rules and dependencies not useful (and
+                          sometimes confusing) to the casual installer
   --enable-debug=no/yes turn on debugging default=$debug_default
 
 Optional Packages:
@@ -15307,6 +15314,30 @@ END
 fi
 
 
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether to enable maintainer-specific portions of Makefiles" >&5
+$as_echo_n "checking whether to enable maintainer-specific portions of Makefiles... " >&6; }
+    # Check whether --enable-maintainer-mode was given.
+if test "${enable_maintainer_mode+set}" = set; then :
+  enableval=$enable_maintainer_mode; USE_MAINTAINER_MODE=$enableval
+else
+  USE_MAINTAINER_MODE=yes
+fi
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $USE_MAINTAINER_MODE" >&5
+$as_echo "$USE_MAINTAINER_MODE" >&6; }
+   if test $USE_MAINTAINER_MODE = yes; then
+  MAINTAINER_MODE_TRUE=
+  MAINTAINER_MODE_FALSE='#'
+else
+  MAINTAINER_MODE_TRUE='#'
+  MAINTAINER_MODE_FALSE=
+fi
+
+  MAINT=$MAINTAINER_MODE_TRUE
+
+
+
 # Checks for header files.
 for ac_header in fcntl.h
 do :
@@ -15657,6 +15688,10 @@ else
   am__EXEEXT_FALSE=
 fi
 
+if test -z "${MAINTAINER_MODE_TRUE}" && test -z "${MAINTAINER_MODE_FALSE}"; then
+  as_fn_error $? "conditional \"MAINTAINER_MODE\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
 if test -z "${RAND_IS_CONFIG_TRUE}" && test -z "${RAND_IS_CONFIG_FALSE}"; then
   as_fn_error $? "conditional \"RAND_IS_CONFIG\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5

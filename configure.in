@@ -1324,7 +1324,7 @@ if test "$enable_profiling" = "yes" ; then
 fi
 CC="${CC}" CXX="${CXX}" CFLAGS="${env_cflags}" CXXFLAGS="${env_cxxflags}" CPPFLAGS="-D_GNU_SOURCE" \
     LIBS="${env_lib}" $configure_path/configure --prefix=${PWD}/../ --disable-shared --without-pic \
-    ${SPATIALINDEX_CONFIGURE_DEBUG_OPTION} ${SPATIALINDEX_CONFIGURE_PROF_OPTION}
+    ${SPATIALINDEX_CONFIGURE_DEBUG_OPTION} ${SPATIALINDEX_CONFIGURE_PROF_OPTION} --disable-maintainer-mode
 if test "$?" -ne "0"; then
   AC_MSG_ERROR([Configuration of spatialindex has failed.])
   exit -1
