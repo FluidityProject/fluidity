@@ -901,10 +901,10 @@ prognostic_velocity_field =
                   },
                   ## literature sybol: Cs
                   ##
-                  ## suggested value 0.1
+                  ## defaults to 0.1
                   element smagorinsky_coefficient {
                      real
-                  },
+                  }?,
                   (
                      ## Tensor form
                      element tensor_form {
@@ -914,7 +914,9 @@ prognostic_velocity_field =
                      element stress_form {
                         empty
                      }
-               )
+                  ),
+                  ## defaults to 1.0
+                  element les_theta { real }?
                }?,
                ## This applies a non-linear shock capturing scheme which 
                ## may be used to reduce oscillations in velocity or

@@ -1075,12 +1075,14 @@ twice.</a:documentation>
 =4 Take the max length scale h</a:documentation>
                 <ref name="integer"/>
               </element>
-              <element name="smagorinsky_coefficient">
-                <a:documentation>literature sybol: Cs
+              <optional>
+                <element name="smagorinsky_coefficient">
+                  <a:documentation>literature sybol: Cs
 
-suggested value 0.1</a:documentation>
-                <ref name="real"/>
-              </element>
+defaults to 0.1</a:documentation>
+                  <ref name="real"/>
+                </element>
+              </optional>
               <choice>
                 <element name="tensor_form">
                   <a:documentation>Tensor form</a:documentation>
@@ -1091,6 +1093,12 @@ suggested value 0.1</a:documentation>
                   <empty/>
                 </element>
               </choice>
+              <optional>
+                <element name="les_theta">
+                  <a:documentation>defaults to 1.0</a:documentation>
+                  <ref name="real"/>
+                </element>
+              </optional>
             </element>
           </optional>
           <optional>
