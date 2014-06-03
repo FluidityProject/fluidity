@@ -744,7 +744,7 @@ contains
         NCOLELE, FINELE, COLELE, & ! Element connectivity.
         XU_NLOC, XU_NDGLN, &
         RZERO, JUST_BL_DIAG_MAT,  &
-        TDIFFUSION, DEN_ALL, DENOLD_ALL, .FALSE., & ! TDiffusion need to be obtained down in the tree according to the option_path
+        TDIFFUSION, TDIFFUSION, DEN_ALL, DENOLD_ALL, .FALSE., & ! TDiffusion need to be obtained down in the tree according to the option_path
         IPLIKE_GRAD_SOU, RDUM2, RDUM2, &
         RDUM, NDIM_IN, &
         StorageIndexes )
@@ -1076,7 +1076,7 @@ contains
     V_SOURCE, V_ABSORB, VOLFRA_PORE, &
     NCOLM, FINDM, COLM, MIDM, & ! Sparsity for the CV-FEM
     XU_NLOC, XU_NDGLN, &
-    UDIFFUSION, &
+    UDIFFUSION, THERM_U_DIFFUSION, &
     OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
     IGOT_THETA_FLUX, SCVNGI_THETA, USE_THETA_FLUX, &
     THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J, &
@@ -1150,7 +1150,7 @@ contains
         INTEGER, DIMENSION(  :  ), intent( in ) :: FINDM
         INTEGER, DIMENSION(  :  ), intent( in ) :: COLM
         INTEGER, DIMENSION(  :  ), intent( in ) :: MIDM
-        REAL, DIMENSION(  : ,  : ,  : ,  :  ), intent( inout ) :: UDIFFUSION
+        REAL, DIMENSION(  : ,  : ,  : ,  :  ), intent( inout ) :: UDIFFUSION, THERM_U_DIFFUSION
         REAL, DIMENSION(  :  ), intent( in ) :: OPT_VEL_UPWIND_COEFS
         REAL, DIMENSION( : ,  :  ), intent( inout ) :: &
         THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J
@@ -1373,7 +1373,7 @@ contains
         XU_NLOC, XU_NDGLN, &
         U_RHS, MCY_RHS, C, CT, CT_RHS, DIAG_SCALE_PRES, GLOBAL_SOLVE, &
         NLENMCY, NCOLMCY, MCY, FINMCY, PIVIT_MAT, JUST_BL_DIAG_MAT, &
-        UDEN_ALL, UDENOLD_ALL, UDIFFUSION_ALL, &
+        UDEN_ALL, UDENOLD_ALL, UDIFFUSION_ALL, THERM_U_DIFFUSION, &
         OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
         IGOT_THETA_FLUX, SCVNGI_THETA, USE_THETA_FLUX, &
         THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J, &
@@ -1733,7 +1733,7 @@ contains
     XU_NLOC, XU_NDGLN, &
     U_RHS, MCY_RHS, C, CT, CT_RHS, DIAG_SCALE_PRES, GLOBAL_SOLVE, &
     NLENMCY, NCOLMCY, MCY, FINMCY, PIVIT_MAT, JUST_BL_DIAG_MAT, &
-    UDEN_ALL, UDENOLD_ALL, UDIFFUSION_ALL, &
+    UDEN_ALL, UDENOLD_ALL, UDIFFUSION_ALL, THERM_U_DIFFUSION, &
     OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
     IGOT_THETA_FLUX, SCVNGI_THETA, USE_THETA_FLUX, &
     THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J, &
@@ -1817,7 +1817,7 @@ contains
         REAL, DIMENSION( : ), intent( inout ) :: MCY
         REAL, DIMENSION( :, :,: ), intent( out ) :: PIVIT_MAT
         REAL, DIMENSION( :, : ), intent( in ) :: UDEN_ALL, UDENOLD_ALL
-        REAL, DIMENSION( :, :, :, : ), intent( in ) :: UDIFFUSION_ALL
+        REAL, DIMENSION( :, :, :, : ), intent( in ) :: UDIFFUSION_ALL, THERM_U_DIFFUSION
         LOGICAL, intent( inout ) :: JUST_BL_DIAG_MAT
         REAL, DIMENSION( : ), intent( in ) :: OPT_VEL_UPWIND_COEFS
         INTEGER, INTENT( IN ) :: NOIT_DIM
@@ -1836,7 +1836,6 @@ contains
         INTEGER, DIMENSION( : ), allocatable :: WIC_T2_BC
         REAL, DIMENSION( :, : ), allocatable :: THETA_GDIFF, DEN_OR_ONE, DENOLD_OR_ONE
         REAL, DIMENSION( : ), allocatable :: T2, T2OLD, MEAN_PORE_CV !, DEN_OR_ONE, DENOLD_OR_ONE
-        REAL, DIMENSION( :,:,:,: ), allocatable :: THERM_U_DIFFUSION
         LOGICAL :: GET_THETA_FLUX
         INTEGER :: IGOT_T2, I, P_SJLOC, SELE, U_SILOC, IGOT_THERM_VIS
 
@@ -1896,7 +1895,7 @@ contains
         NCOLELE, FINELE, COLELE, & ! Element connectivity.
         XU_NLOC, XU_NDGLN, &
         PIVIT_MAT, JUST_BL_DIAG_MAT, &
-        UDIFFUSION_ALL,  DEN_ALL, DENOLD_ALL, RETRIEVE_SOLID_CTY, &
+        UDIFFUSION_ALL, THERM_U_DIFFUSION, DEN_ALL, DENOLD_ALL, RETRIEVE_SOLID_CTY, &
         IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF_ALL, PLIKE_GRAD_SOU_GRAD_ALL, &
         P, NDIM, StorageIndexes=StorageIndexes )
         ! scale the momentum equations by the volume fraction / saturation for the matrix and rhs
@@ -1950,8 +1949,7 @@ contains
         ! unused at this stage
         second_theta = 0.0
 
-        IGOT_THERM_VIS=0
-        ALLOCATE( THERM_U_DIFFUSION(NDIM,NDIM,NPHASE,MAT_NONODS*IGOT_THERM_VIS ) )
+        IGOT_THERM_VIS=0 ! swtich needed here...
 
 
         tracer=>extract_tensor_field(packed_state,"PackedPhaseVolumeFraction") 
@@ -2191,7 +2189,7 @@ contains
     NCOLELE, FINELE, COLELE, & ! Element connectivity.
     XU_NLOC, XU_NDGLN, &
     PIVIT_MAT, JUST_BL_DIAG_MAT,  &
-    UDIFFUSION, DEN_ALL, DENOLD_ALL, RETRIEVE_SOLID_CTY, &
+    UDIFFUSION, THERM_U_DIFFUSION, DEN_ALL, DENOLD_ALL, RETRIEVE_SOLID_CTY, &
     IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD, &
          
     P, NDIM_VEL,&
@@ -2242,7 +2240,7 @@ contains
         INTEGER, DIMENSION(: ), intent( in ) :: FINELE
         INTEGER, DIMENSION( : ), intent( in ) :: COLELE
         REAL, DIMENSION( : , : , : ), intent( out ) :: PIVIT_MAT
-        REAL, DIMENSION( :, :, :, : ), intent( in ) :: UDIFFUSION
+        REAL, DIMENSION( :, :, :, : ), intent( in ) :: UDIFFUSION, THERM_U_DIFFUSION
         LOGICAL, intent( inout ) :: JUST_BL_DIAG_MAT
         REAL, DIMENSION( :, : ), intent( in ) :: PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD
         REAL, DIMENSION( : ), intent( in ) :: P

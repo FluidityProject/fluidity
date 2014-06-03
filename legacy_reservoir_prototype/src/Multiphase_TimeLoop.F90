@@ -817,7 +817,7 @@
                     NCOLM, FINDM, COLM, MIDM, & ! Sparsity for the CV-FEM
                     XU_NLOC, XU_NDGLN, &
 !!$
-                    Momentum_Diffusion, &
+                    Momentum_Diffusion, THERM_U_DIFFUSION, &
                     opt_vel_upwind_coefs, nopt_vel_upwind_coefs, &
                     igot_theta_flux, scvngi_theta, volfra_use_theta_flux, &
                     sum_theta_flux, sum_one_m_theta_flux, sum_theta_flux_j, sum_one_m_theta_flux_j, &
