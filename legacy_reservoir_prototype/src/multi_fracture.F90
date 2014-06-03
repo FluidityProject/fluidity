@@ -72,16 +72,28 @@ module multiphase_fractures
      end subroutine y2d_populate_femdem
   end interface
 
+!  interface
+!     subroutine y2dfemdem( string, dt, p, uf_r, vf_r, uf_v, vf_v, du_s, dv_s, u_s, v_s, &
+!          &                 mu_f, f_x, f_y, a_xx, a_xy, a_yy )
+!       character( len = * ), intent( in ) :: string
+!       real, intent( in ) :: dt
+!       real, dimension( * ), intent( in ) :: p, uf_r, vf_r, uf_v, vf_v, mu_f
+!       real, dimension( * ), intent( out ) :: du_s, dv_s, u_s, v_s, f_x, f_y, a_xx, a_xy, a_yy
+!     end subroutine y2dfemdem
+!  end interface
+!#endif
+
   interface
-     subroutine y2dfemdem( string, dt, p, uf_r, vf_r, uf_v, vf_v, du_s, dv_s, u_s, v_s, &
-          &                 mu_f, f_x, f_y, a_xx, a_xy, a_yy )
+     subroutine y2dfemdem( string, dt, p, uf_r, vf_r, uf_v, vf_v, du_s, dv_s, u_s, v_s )
        character( len = * ), intent( in ) :: string
        real, intent( in ) :: dt
-       real, dimension( * ), intent( in ) :: p, uf_r, vf_r, uf_v, vf_v, mu_f
-       real, dimension( * ), intent( out ) :: du_s, dv_s, u_s, v_s, f_x, f_y, a_xx, a_xy, a_yy
+       real, dimension( * ), intent( in ) :: p, uf_r, vf_r, uf_v, vf_v
+       real, dimension( * ), intent( out ) :: du_s, dv_s, u_s, v_s
      end subroutine y2dfemdem
   end interface
 #endif
+
+
 
   type( vector_field ), save :: positions_r, positions_v, positions_vc
   type( tensor_field ), save :: permeability_r
@@ -127,8 +139,8 @@ contains
     call get_option( "/timestepping/timestep", dt )
 
     call y2dfemdem( trim( femdem_mesh_name ) // char( 0 ), dt, p_r, uf_r( 1, : ), uf_r( 2, : ), &
-                     uf_v( 1, : ), uf_v( 2, : ), du_s( 1, : ), du_s( 2, : ), u_s( 1, : ), u_s( 2, : ), &
-                     muf_r, f( 1, : ), f( 2, : ), a( 1, 1, : ), a( 1, 2, : ), a( 2 ,2 , : ) )
+                     uf_v( 1, : ), uf_v( 2, : ), du_s( 1, : ), du_s( 2, : ), u_s( 1, : ), u_s( 2, : ) ) !, &
+                     !muf_r, f( 1, : ), f( 2, : ), a( 1, 1, : ), a( 1, 2, : ), a( 2 ,2 , : ) )
 
     call interpolate_fields_in_v( packed_state, du_s, u_s )
     !call interpolate_fields_in_r( packed_state, f, a )
