@@ -450,9 +450,9 @@ contains
            WIC_D_BC_ALL, WIC_T2_BC_ALL
       INTEGER, DIMENSION( ndim , nphase , surface_element_count(tracer) ) :: WIC_U_BC_ALL
       REAL, DIMENSION( :,:,: ), pointer :: SUF_T_BC_ALL,&
-           SUF_T_BC_ROB2_ALL
+           SUF_T_BC_ROB1_ALL, SUF_T_BC_ROB2_ALL
       REAL, DIMENSION(:,:,: ), pointer :: SUF_D_BC_ALL,&
-           SUF_T2_BC_ALL, SUF_T2_BC_ROB2_ALL   
+           SUF_T2_BC_ALL, SUF_T2_BC_ROB1_ALL, SUF_T2_BC_ROB2_ALL 
       REAL, DIMENSION(:,:,: ), pointer :: SUF_U_BC_ALL
 
 !! femdem
@@ -567,11 +567,13 @@ contains
       !! reassignments to old arrays, to be discussed
 
       SUF_T_BC_ALL=>tracer_BCs%val
+      SUF_T_BC_ROB1_ALL=>tracer_BCs%val ! re-using memory from dirichlet bc.s for Robin bc
       SUF_T_BC_ROB2_ALL=>tracer_BCs_robin2%val
       SUF_D_BC_ALL=>density_BCs%val
       SUF_U_BC_ALL=>velocity_BCs%val
       if(present(saturation)) then
          SUF_T2_BC_ALL=>saturation_BCs%val
+         SUF_T2_BC_ROB1_ALL=>saturation_BCs%val ! re-using memory from dirichlet bc.s for Robin bc
          SUF_T2_BC_ROB2_ALL=>saturation_BCs_robin2%val
       end if
 
@@ -2050,8 +2052,9 @@ contains
                      ROBIN2=0.0
                      IF ( SELE /= 0 ) THEN
                         IF ( WIC_T_BC_ALL(1,IPHASE,SELE) == WIC_T_BC_ROBIN ) THEN
-                           ROBIN1 = tracer_BCs%val(1,iphase, CV_SILOC+CV_SNLOC*(sele-1))
-                           ROBIN2 = tracer_BCs_robin2%val(1,iphase, CV_SILOC+CV_SNLOC*(sele-1))
+! this needs to be corrected (its correct but misleading)...
+                           ROBIN1 = SUF_T_BC_ROB1_ALL(1,iphase, CV_SILOC+CV_SNLOC*(sele-1))
+                           ROBIN2 = SUF_T_BC_ROB2_ALL (1,iphase, CV_SILOC+CV_SNLOC*(sele-1))
                         END IF
                      END IF
 
@@ -2099,12 +2102,12 @@ contains
                               IF(WIC_T_BC_ALL(1,iphase,sele) == WIC_T_BC_DIRICHLET) THEN
                                  CV_RHS( RHS_NODI_IPHA ) =  CV_RHS( RHS_NODI_IPHA ) &
                                       + FTHETA * SCVDETWEI( GI ) * DIFF_COEF_DIVDX(IPHASE) &
-                                      * tracer_BCs%val(1,iphase,cv_siloc+(sele-1)*CV_SNLOC)
+                                         * SUF_T_BC_ALL( 1, IPHASE, CV_SILOC + CV_SNLOC*( SELE- 1) )
 
                                  IF(GET_GTHETA) THEN
                                     THETA_GDIFF( IPHASE, CV_NODI ) =  THETA_GDIFF( IPHASE, CV_NODI ) &
                                          + FTHETA * SCVDETWEI( GI ) * DIFF_COEF_DIVDX(IPHASE) &
-                                         * tracer_BCs%val(1,iphase,cv_siloc+(sele-1)*CV_SNLOC)
+                                           * SUF_T_BC_ALL( 1, IPHASE, CV_SILOC + CV_SNLOC*( SELE- 1) )
                                  END IF
                               END IF
                            END IF
