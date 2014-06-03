@@ -748,6 +748,9 @@ start =
             ## Recommended value: [0.5,1.0]. Default =1.
             element theta_cty_solid {
                real
+            }?,
+            element include_viscous_drag_force {
+               empty
             }?
          }?
       }

@@ -983,6 +983,11 @@ Recommended value: [0.5,1.0]. Default =1.</a:documentation>
               <ref name="real"/>
             </element>
           </optional>
+          <optional>
+            <element name="include_viscous_drag_force">
+              <empty/>
+            </element>
+          </optional>
         </element>
       </optional>
     </element>
