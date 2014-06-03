@@ -104,7 +104,8 @@ contains
     type( state_type ), intent( in ) :: packed_state
 
     real, dimension( : ), allocatable :: p_r, muf_r
-    real, dimension( :, : ), allocatable :: uf_r, uf_v, du_s, u_s
+    real, dimension( :, : ), allocatable :: uf_r, uf_v, du_s, u_s, f
+    real, dimension( :, :, : ), allocatable :: a
     integer :: r_nonods, v_nonods
     real :: dt
 
@@ -115,25 +116,27 @@ contains
 
     r_nonods = node_count( positions_r )
     v_nonods = node_count( positions_v )
-    allocate( p_r( r_nonods ), uf_r( ndim, r_nonods ), muf_r( r_nonods ), uf_v( ndim, v_nonods ) )
-    allocate( du_s( ndim, v_nonods ), u_s( ndim, v_nonods ) )
-    p_r=0. ; uf_r=0. ; muf_r=0. ; uf_v=0. ; du_s=0. ; u_s=0.
+
+    allocate( p_r( r_nonods ), uf_r( ndim, r_nonods ), muf_r( r_nonods ), &
+               f( ndim, r_nonods ), a( ndim, ndim, r_nonods), &
+               uf_v( ndim, v_nonods ) , du_s( ndim, v_nonods ), u_s( ndim, v_nonods ) )
+    p_r=0. ; uf_r=0. ; muf_r=0. ; f=0. ; a=0. ; uf_v=0. ; du_s=0. ; u_s=0.
 
     call interpolate_fields_out_r( packed_state, nphase, p_r, uf_r, muf_r )
     call interpolate_fields_out_v( packed_state, nphase, uf_v )
     call get_option( "/timestepping/timestep", dt )
 
-
     call y2dfemdem( trim( femdem_mesh_name ) // char( 0 ), dt, p_r, uf_r( 1, : ), uf_r( 2, : ), &
-                     uf_v( 1, : ), uf_v( 2, : ), du_s( 1, : ), du_s( 2, : ), u_s( 1, : ), u_s( 2, : ) )
-                     ! mu_f, f_x, f_y, a_xx, a_xy, a_yy
+                     uf_v( 1, : ), uf_v( 2, : ), du_s( 1, : ), du_s( 2, : ), u_s( 1, : ), u_s( 2, : ), &
+                     muf_r, f( 1, : ), f( 2, : ), a( 1, 1, : ), a( 1, 2, : ), a( 2 ,2 , : ) )
 
-    call interpolate_fields_in( packed_state, du_s, u_s )
+    call interpolate_fields_in_v( packed_state, du_s, u_s )
+    !call interpolate_fields_in_r( packed_state, f, a )
 
 
     ! deallocate
     call deallocate_femdem
-    deallocate( p_r, uf_r, muf_r, uf_v, du_s, u_s )
+    deallocate( p_r, uf_r, muf_r, uf_v, du_s, u_s, f, a )
 
     return
   end subroutine blasting
@@ -881,7 +884,7 @@ contains
 
   !----------------------------------------------------------------------------------------------------------
 
-  subroutine interpolate_fields_in( packed_state, du_s, u_s )
+  subroutine interpolate_fields_in_v( packed_state, du_s, u_s )
 
     implicit none
 
@@ -1012,10 +1015,152 @@ contains
     call deallocate( f2 )
 
     return
-  end subroutine interpolate_fields_in
+  end subroutine interpolate_fields_in_v
 
   !----------------------------------------------------------------------------------------------------------
-  
+
+  subroutine interpolate_fields_in_r( packed_state, fin, ain )
+
+    implicit none
+
+    type( state_type ), intent( in ) :: packed_state
+    real, dimension( :, : ), intent( in ) :: fin
+    real, dimension( :, :, : ), intent( in ) :: ain
+
+    !Local variables
+    type( mesh_type ), pointer :: fl_mesh, u_mesh
+    type( scalar_field ), pointer :: f
+    type( scalar_field ) :: field_fl_f1, field_fl_f2, &
+         &                  field_fl_a11, field_fl_a12, field_fl_a22, &
+         &                  field_ext_f1, field_ext_f2, &
+         &                  field_ext_a11, field_ext_a12, field_ext_a22, f2, dummy
+    type( vector_field ), pointer :: fl_positions, f_x
+    type( tensor_field ), pointer :: a_xx
+    type( state_type ) :: alg_ext, alg_fl
+    integer :: stat, idim
+    character( len = OPTION_PATH_LEN ) :: path = "/tmp/galerkin_projection/continuous"
+
+    call set_solver_options( path, &
+         ksptype = "cg", &
+         pctype = "hypre", &
+         rtol = 1.e-10, &
+         atol = 0., &
+         max_its = 10000 )
+    call add_option( &
+         trim(path)//"/solver/preconditioner[0]/hypre_type[0]/name", stat)
+    call set_option( &
+         trim(path)//"/solver/preconditioner[0]/hypre_type[0]/name", "boomeramg")
+
+    path = "/tmp"
+
+    fl_mesh => extract_mesh( packed_state, "CoordinateMesh" )
+    fl_positions => extract_vector_field( packed_state, "Coordinate" )
+
+    ! fluidity state
+    call insert( alg_fl, fl_mesh, "Mesh" )
+    call insert( alg_fl, fl_positions, "Coordinate" )
+
+    call allocate( field_fl_f1, fl_positions%mesh, "f1" )
+    call zero( field_fl_f1 )
+    field_fl_f1 % option_path = path
+    call insert( alg_fl, field_fl_f1, "f1" )
+
+    call allocate( field_fl_f2, fl_positions%mesh, "f2" )
+    call zero( field_fl_f2 )
+    field_fl_f2 % option_path = path
+    call insert( alg_fl, field_fl_f2, "f2" )
+
+    call allocate( field_fl_a11, fl_positions%mesh, "a11" )
+    call zero( field_fl_a11 )
+    field_fl_a11 % option_path = path
+    call insert( alg_fl, field_fl_a11, "a11" )
+
+    call allocate( field_fl_a12, fl_positions%mesh, "a12" )
+    call zero( field_fl_a12 )
+    field_fl_a12 % option_path = path
+    call insert( alg_fl, field_fl_a12, "a12" )
+
+    call allocate( field_fl_a22, fl_positions%mesh, "a22" )
+    call zero( field_fl_a22 )
+    field_fl_a22 % option_path = path
+    call insert( alg_fl, field_fl_a22, "a22" )
+
+    ! solid volume state
+    call insert( alg_ext, positions_r%mesh, "Mesh" )
+    call insert( alg_ext, positions_r, "Coordinate" )
+
+    call allocate( field_ext_f1, positions_r%mesh, "f1" )
+    field_ext_f1 % val = fin( 1, : )
+    call insert( alg_ext, field_ext_f1, "f1" )
+
+    call allocate( field_ext_f2, positions_r%mesh, "f2" )
+    field_ext_f2 % val = fin( 2, : )
+    call insert( alg_ext, field_ext_f2, "f2" )
+
+    call allocate( field_ext_a11, positions_r%mesh, "a11" )
+    field_ext_a11 % val = ain( 1, 1, : )
+    call insert( alg_ext, field_ext_a11, "a11" )
+
+    call allocate( field_ext_a12, positions_r%mesh, "a12" )
+    field_ext_a12 % val = ain( 1, 2, : )
+    call insert( alg_ext, field_ext_a12, "a12" )
+
+    call allocate( field_ext_a22, positions_r%mesh, "a22" )
+    field_ext_a22 % val = ain( 2, 2, : )
+    call insert( alg_ext, field_ext_a22, "a22" )
+
+    call allocate( dummy, fl_positions%mesh, "dummy" )
+    call zero( dummy )
+
+    ! interpolate
+    call interpolation_galerkin_femdem( alg_ext, alg_fl, field = dummy )
+
+
+    u_mesh => extract_mesh( packed_state, "VelocityMesh" )
+    call allocate( f2, u_mesh, "dummy" )
+
+    f_x => extract_vector_field( packed_state, "f_x" )
+    do idim = 1, ndim
+       f => extract_scalar_field( alg_fl, "f" // int2str( idim ) )
+       call project_field( f, f2, fl_positions )
+       f_x % val( idim, : ) = f2 % val
+    end do
+
+    a_xx => extract_tensor_field( packed_state, "a_xx" )
+    do idim = 1, ndim
+       f => extract_scalar_field( alg_fl, "a1" // int2str( idim ) )
+       call project_field( f, f2, fl_positions )
+       a_xx % val( 1, idim, : ) = f2 % val
+    end do
+    f => extract_scalar_field( alg_fl, "a22" )
+    call project_field( f, f2, fl_positions )
+    a_xx % val( 2, 2, : ) = f2 % val
+
+
+    ! deallocate
+    call deallocate( field_fl_f1 )
+    call deallocate( field_fl_f2 )
+    call deallocate( field_fl_a11 )
+    call deallocate( field_fl_a12 )
+    call deallocate( field_fl_a22 )
+    
+    call deallocate( field_ext_f1 )
+    call deallocate( field_ext_f2 )
+    call deallocate( field_ext_a11 )
+    call deallocate( field_ext_a12 )
+    call deallocate( field_ext_a22 )
+
+    call deallocate( alg_fl )
+    call deallocate( alg_ext )
+
+    call deallocate( f2 )
+    call deallocate( dummy )
+
+    return
+  end subroutine interpolate_fields_in_r
+
+  !----------------------------------------------------------------------------------------------------------
+
   subroutine coarsen_mesh_2d( f, c )
 
     implicit none
