@@ -513,7 +513,17 @@ pure_cv_options =
             element diffusion_scheme {
               attribute name{"BassiRebay"}
             }
-         )
+         ),
+	 element q_scheme{
+           ## Include fluid viscosity in the internal energy equation?
+           element include_fluid_viscosity{ empty }?,
+           ## Include Petrov-Galerkin stabilisation viscosity in the internal energy equation?
+           element include_stabilisation_viscosity{ empty }?,
+           ## Include LES viscosity in the internal energy equation?
+           element include_les_viscosity{ empty }?,
+           ## This is a theta variable for the source term obtained from the stress terms including pressure.
+           element therm_ftheta{ real }?
+         }?
       }
    )
 

@@ -569,6 +569,34 @@ Physics, 1997, 131, 267-279</a:documentation>
           </attribute>
         </element>
       </choice>
+      <optional>
+        <element name="q_scheme">
+          <optional>
+            <element name="include_fluid_viscosity">
+              <a:documentation>Include fluid viscosity in the internal energy equation?</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="include_stabilisation_viscosity">
+              <a:documentation>Include Petrov-Galerkin stabilisation viscosity in the internal energy equation?</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="include_les_viscosity">
+              <a:documentation>Include LES viscosity in the internal energy equation?</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="therm_ftheta">
+              <a:documentation>This is a theta variable for the source term obtained from the stress terms including pressure.</a:documentation>
+              <ref name="real"/>
+            </element>
+          </optional>
+        </element>
+      </optional>
     </element>
   </define>
   <define name="coupled_cv_options">
