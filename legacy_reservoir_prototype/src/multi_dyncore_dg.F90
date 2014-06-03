@@ -629,6 +629,7 @@ contains
         REAL, DIMENSION ( : ), allocatable :: RDUM
         REAL, DIMENSION ( :, : ), allocatable :: RDUM2
         REAL, DIMENSION ( :, :, : ), allocatable :: RDUM3
+        REAL, DIMENSION ( :, :, :, : ), allocatable :: RDUM4
         INTEGER, DIMENSION ( : ), allocatable :: IDUM,IZERO
 
         INTEGER :: IPLIKE_GRAD_SOU, NDIM_IN, NPHASE_IN, X_ILOC, X_INOD, MAT_INOD, S, E
@@ -725,6 +726,7 @@ contains
 
         ALLOCATE( IZERO2( NPHASE_IN,STOTEL ) ) ; IZERO2 = 0
         ALLOCATE( RDUM3( NPHASE_IN,CV_SNLOC,STOTEL ) ) ; RDUM3 = 0.
+        ALLOCATE( RDUM4( 1,1,1,1 ) ) ; RDUM4 = 0.
 
         CALL ASSEMB_FORCE_CTY( state, packed_state, &
              velocity,pressure, &
@@ -744,7 +746,7 @@ contains
         NCOLELE, FINELE, COLELE, & ! Element connectivity.
         XU_NLOC, XU_NDGLN, &
         RZERO, JUST_BL_DIAG_MAT,  &
-        TDIFFUSION, TDIFFUSION, DEN_ALL, DENOLD_ALL, .FALSE., & ! TDiffusion need to be obtained down in the tree according to the option_path
+        TDIFFUSION, RDUM4, DEN_ALL, DENOLD_ALL, .FALSE., & ! TDiffusion need to be obtained down in the tree according to the option_path
         IPLIKE_GRAD_SOU, RDUM2, RDUM2, &
         RDUM, NDIM_IN, &
         StorageIndexes )
@@ -1817,7 +1819,8 @@ contains
         REAL, DIMENSION( : ), intent( inout ) :: MCY
         REAL, DIMENSION( :, :,: ), intent( out ) :: PIVIT_MAT
         REAL, DIMENSION( :, : ), intent( in ) :: UDEN_ALL, UDENOLD_ALL
-        REAL, DIMENSION( :, :, :, : ), intent( in ) :: UDIFFUSION_ALL, THERM_U_DIFFUSION
+        REAL, DIMENSION( :, :, :, : ), intent( in ) :: UDIFFUSION_ALL
+        REAL, DIMENSION( :, :, :, : ), intent( inout ) :: THERM_U_DIFFUSION
         LOGICAL, intent( inout ) :: JUST_BL_DIAG_MAT
         REAL, DIMENSION( : ), intent( in ) :: OPT_VEL_UPWIND_COEFS
         INTEGER, INTENT( IN ) :: NOIT_DIM
@@ -1836,7 +1839,7 @@ contains
         INTEGER, DIMENSION( : ), allocatable :: WIC_T2_BC
         REAL, DIMENSION( :, : ), allocatable :: THETA_GDIFF, DEN_OR_ONE, DENOLD_OR_ONE
         REAL, DIMENSION( : ), allocatable :: T2, T2OLD, MEAN_PORE_CV !, DEN_OR_ONE, DENOLD_OR_ONE
-        LOGICAL :: GET_THETA_FLUX
+        LOGICAL :: GET_THETA_FLUX, Q_SCHEME
         INTEGER :: IGOT_T2, I, P_SJLOC, SELE, U_SILOC, IGOT_THERM_VIS
 
         INTEGER :: U_NLOC2, ILEV, NLEV, ELE, U_ILOC, U_INOD, IPHASE, IDIM, X_ILOC, X_INOD, MAT_INOD, S, E
@@ -1949,7 +1952,10 @@ contains
         ! unused at this stage
         second_theta = 0.0
 
-        IGOT_THERM_VIS=0 ! swtich needed here...
+! Use Q-scheme ...
+        Q_SCHEME = have_option( '/material_phase[0]/Temperature/prognostic/spatial_discretisation/control_volumes/q_scheme' )
+        IGOT_THERM_VIS=0 
+        IF(Q_SCHEME) IGOT_THERM_VIS=1
 
 
         tracer=>extract_tensor_field(packed_state,"PackedPhaseVolumeFraction") 
@@ -2240,7 +2246,8 @@ contains
         INTEGER, DIMENSION(: ), intent( in ) :: FINELE
         INTEGER, DIMENSION( : ), intent( in ) :: COLELE
         REAL, DIMENSION( : , : , : ), intent( out ) :: PIVIT_MAT
-        REAL, DIMENSION( :, :, :, : ), intent( in ) :: UDIFFUSION, THERM_U_DIFFUSION
+        REAL, DIMENSION( :, :, :, : ), intent( in ) :: UDIFFUSION
+        REAL, DIMENSION( :, :, :, : ), intent( inout ) :: THERM_U_DIFFUSION
         LOGICAL, intent( inout ) :: JUST_BL_DIAG_MAT
         REAL, DIMENSION( :, : ), intent( in ) :: PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD
         REAL, DIMENSION( : ), intent( in ) :: P
@@ -2251,7 +2258,8 @@ contains
         ! This is for decifering WIC_U_BC & WIC_P_BC
         type( tensor_field ), pointer :: tensorfield
         character( len = option_path_len ) :: option_path
-        LOGICAL, PARAMETER :: VOL_ELE_INT_PRES = .TRUE., STRESS_FORM=.true., STAB_VISC_WITH_ABS=.FALSE.
+        LOGICAL, PARAMETER :: VOL_ELE_INT_PRES = .TRUE., STAB_VISC_WITH_ABS=.FALSE. 
+        LOGICAL :: STRESS_FORM, STRESS_FORM_STAB, THERMAL_STAB_VISC, THERMAL_LES_VISC, THERMAL_FLUID_VISC, Q_SCHEME
 !        LOGICAL, PARAMETER :: POROUS_VEL = .false. ! For reduced variable porous media treatment.
         ! if STAB_VISC_WITH_ABS then stabilize (in the projection mehtod) the viscosity using absorption.
         !      REAL, PARAMETER :: WITH_NONLIN = 1.0, TOLER = 1.E-10, ZERO_OR_TWO_THIRDS=2.0/3.0
@@ -2339,20 +2347,22 @@ contains
         real, pointer, dimension(:,:,:) :: CVFENX_ALL, UFENX_ALL
         real, pointer, dimension(:) :: RA, DETWEI
         real, pointer :: VOLUME
-
 ! Local variables...
-            INTEGER, PARAMETER :: LES_DISOPT=0
+!            INTEGER, PARAMETER :: LES_DISOPT=0
+            INTEGER :: LES_DISOPT
 ! LES_DISOPT is LES option e.g. =0 No LES
 !                               =1 Anisotropic element length scale
 !                               =2 Take the average length scale h
 !                               =3 Take the min length scale h
 !                               =4 Take the max length scale h
-            REAL, PARAMETER :: LES_THETA=1.0
+!            REAL, PARAMETER :: LES_THETA=1.0
+            REAL :: LES_THETA, LES_CS
 ! LES_THETA =1 is backward Euler for the LES viscocity.
 ! COEFF_SOLID_FLUID is the coeffficient that determins the magnitude of the relaxation to the solid vel...
             REAL, PARAMETER :: COEFF_SOLID_FLUID = 1.0
-! SOLID_FLUID_VISC_BC switches on the solid-fluid coupling viscocity boundary conditions...
-            LOGICAL, PARAMETER :: SOLID_FLUID_VISC_BC = .FALSE.
+! include_viscous_drag_force switches on the solid-fluid coupling viscocity boundary conditions...
+!            LOGICAL, PARAMETER :: include_viscous_drag_force = .FALSE.
+            LOGICAL :: include_viscous_drag_force 
 
         !
         ! Variables used to reduce indirect addressing...
@@ -2363,6 +2373,16 @@ contains
         REAL, DIMENSION ( :, :, : ), allocatable :: LOC_NU, LOC_NUOLD
         REAL, DIMENSION ( :, :, : ), allocatable :: LOC_U_ABSORB, LOC_U_ABS_STAB
         REAL, DIMENSION ( :, :, :, : ), allocatable :: LOC_UDIFFUSION, U_DX_ALL, UOLD_DX_ALL, DIFF_FOR_BETWEEN_U
+
+! For q-scheme etc...
+        REAL, DIMENSION ( :, : ), allocatable :: MAT_ELE_CV_LOC, INV_MAT_ELE_CV_LOC
+        REAL, DIMENSION ( :, :, : ), allocatable :: DIFF_FOR_BETWEEN_CV
+        REAL, DIMENSION ( :, :, : ), allocatable ::    DIFFCV
+        REAL, DIMENSION ( :, :, :, : ), allocatable :: DIFFCV_TEN
+        REAL, DIMENSION ( :, :, :, :, : ), allocatable :: DIFFCV_TEN_ELE
+        REAL, DIMENSION ( : ), allocatable :: RCOUNT_NODS
+
+
         !REAL, DIMENSION ( :, :, :, : ), allocatable :: SUF_U_BC_ALL, SUF_MOM_BC_ALL, SUF_NU_BC_ALL, SUF_ROB1_UBC_ALL, SUF_ROB2_UBC_ALL, TEN_XX
         REAL, DIMENSION ( :, :, :, : ), allocatable :: TEN_XX
 
@@ -2425,7 +2445,7 @@ contains
 
         character( len = option_path_len ) :: overlapping_path
         logical :: mom_conserv, lump_mass, GOT_OTHER_ELE, BETWEEN_ELE_STAB
-        real :: beta
+        real :: beta, therm_ftheta
 
         INTEGER :: FILT_DEN, J2, JU2_NOD_DIM_PHA
         LOGICAL :: GOTDEC
@@ -2480,8 +2500,39 @@ contains
 
         capillary_pressure_activated = have_option( '/material_phase[0]/multiphase_properties/capillary_pressure' )
 
+! Stress form for the fluid viscocity
+        STRESS_FORM      = have_option( '/material_phase[0]/vector_field::Velocity/prognostic/spatial_discretisation/discontinuous_galerkin/viscosity_scheme/stress_form' )
 
-        !stress_form = have_option( '/material_phase[0]/Velocity/prognostic/spatial_discretisation/viscosity_scheme' )
+! Stress form for the Petrov-Galerkin viscocity
+        STRESS_FORM_STAB = have_option( '/material_phase[0]/vector_field::Velocity/prognostic/spatial_discretisation/discontinuous_galerkin/stabilisation/stress_form' )
+
+! Use Q-scheme ...
+        Q_SCHEME = have_option( '/material_phase[0]/scalar_field::Temperature/prognostic/spatial_discretisation/control_volumes/q_scheme' )
+
+! Put the fluid viscocity in the thermal energy eqn...
+        THERMAL_FLUID_VISC = have_option( '/material_phase[0]/scalar_field::Temperature/prognostic/spatial_discretisation/control_volumes/q_scheme/include_fluid_viscosity' )
+
+! Put the Petrov-Galerkin viscocity in the thermal energy eqn...
+        THERMAL_STAB_VISC = have_option( '/material_phase[0]/scalar_field::Temperature/prognostic/spatial_discretisation/control_volumes/q_scheme/include_stabilisation_viscosity' )
+
+! therm_ftheta
+        call get_option( '/material_phase[0]/scalar_field::Temperature/prognostic/spatial_discretisation/control_volumes/q_scheme/therm_ftheta', therm_fTHETA, default=1.0 )
+
+! Put the LES viscocity in the thermal energy eqn...
+        THERMAL_LES_VISC = have_option( '/material_phase[0]/scalar_field::Temperature/prognostic/spatial_discretisation/control_volumes/q_scheme/include_les_viscosity' )
+! Put the LES theta value for time stepping (LES_THETA=1 is default)...
+        call get_option( '/material_phase[0]/vector_field::Velocity/prognostic/spatial_discretisation/discontinuous_galerkin/les_model/les_theta', LES_THETA, default=1.0 )
+
+! Put the LES viscocity in the thermal energy eqn...
+        call get_option( '/material_phase[0]/vector_field::Velocity/prognostic/spatial_discretisation/discontinuous_galerkin/les_model/model' , les_disopt, default=0 )
+        call get_option( '/material_phase[0]/vector_field::Velocity/prognostic/spatial_discretisation/discontinuous_galerkin/les_model/smagorinsky_coefficient', les_Cs , default=0.1 )
+!
+! bc for solid-fluid viscous drag coupling...
+        include_viscous_drag_force = have_option( '/blasting/include_viscous_drag_force' )
+
+!        PRINT *,'STRESS_FORM, STRESS_FORM_STAB, THERMAL_STAB_VISC, THERMAL_FLUID_VISC, Q_SCHEME,LES_DISOPT,LES_CS,therm_ftheta:', &
+!                 STRESS_FORM, STRESS_FORM_STAB, THERMAL_STAB_VISC, THERMAL_FLUID_VISC, Q_SCHEME,LES_DISOPT,LES_CS,therm_ftheta
+!        STOP 2811
 
 
         !If we do not have an index where we have stored C, then we need to calculate it
@@ -2664,7 +2715,7 @@ contains
         IF(RETRIEVE_SOLID_CTY) THEN
            ALLOCATE( SIGMAGI_STAB_SOLID_RHS( NDIM_VEL * NPHASE, NDIM_VEL * NPHASE, CV_NGI ))
            ALLOCATE(NN_SIGMAGI_STAB_SOLID_RHS_ELE( NDIM_VEL * NPHASE, U_NLOC, NDIM_VEL * NPHASE,U_NLOC ))
-           IF( GOT_DIFFUS .AND. SOLID_FLUID_VISC_BC ) THEN  ! SOLID_FLUID_VISC_BC taken from diamond
+           IF( GOT_DIFFUS .AND. include_viscous_drag_force ) THEN  ! include_viscous_drag_force taken from diamond
               ALLOCATE(ABS_SOLID_FLUID_COUP(NDIM, NDIM, NPHASE, CV_NONODS))
               ALLOCATE(FOURCE_SOLID_FLUID_COUP(NDIM, NPHASE, CV_NONODS))
            ENDIF
@@ -2881,6 +2932,20 @@ contains
             ALLOCATE( MAT_ELE( U_NLOC, U_NLOC, TOTELE ) ) ; MAT_ELE = 0.0
         END IF
 
+        IF(RESID_BASED_STAB_DIF.NE.0) THEN
+           IF( THERMAL_STAB_VISC ) THEN
+              ALLOCATE( MAT_ELE_CV_LOC( CV_NLOC, CV_NLOC ), INV_MAT_ELE_CV_LOC( CV_NLOC, CV_NLOC ), DIFF_FOR_BETWEEN_CV( NDIM, NPHASE, CV_NLOC ) )
+              ALLOCATE( DIFFCV(NDIM, NPHASE, MAT_NLOC), DIFFCV_TEN(NDIM,NDIM, NPHASE, MAT_NLOC) )
+              ALLOCATE( DIFFCV_TEN_ELE(NDIM, NDIM, NPHASE, MAT_NLOC, TOTELE) )
+           ENDIF
+        ENDIF
+        IF(Q_SCHEME) THEN
+           IF( THERMAL_STAB_VISC ) THEN 
+              ALLOCATE( RCOUNT_NODS(MAT_NONODS) )
+           ENDIF
+        ENDIF
+
+
         IF ( GOT_DIFFUS ) THEN
             ALLOCATE( DUX_ELE_ALL( NDIM_VEL, NDIM, NPHASE, U_NLOC, TOTELE ) )
             ALLOCATE( DUOLDX_ELE_ALL( NDIM_VEL, NDIM, NPHASE, U_NLOC, TOTELE ) )
@@ -2970,8 +3035,16 @@ contains
               ALLOCATE(LES_UDIFFUSION(NDIM,NDIM,NPHASE,MAT_NONODS))
               CALL VISCOCITY_TENSOR_LES_CALC(LES_UDIFFUSION, LES_THETA*DUX_ELE_ALL + (1.-LES_THETA)*DUOLDX_ELE_ALL, &
                                              NDIM,NPHASE, U_NLOC,X_NLOC,TOTELE, X_NONODS, &
-                                             X_ALL, X_NDGLN,  MAT_NONODS, MAT_NLOC, MAT_NDGLN, LES_DISOPT)
-              UDIFFUSION_ALL=UDIFFUSION + LES_UDIFFUSION
+                                             X_ALL, X_NDGLN,  MAT_NONODS, MAT_NLOC, MAT_NDGLN, LES_DISOPT, LES_CS)
+              IF ( STRESS_FORM ) THEN ! put into viscocity in stress form
+                 DO IDIM=1,NDIM
+                    DO JDIM=1,NDIM
+                       UDIFFUSION_ALL(IDIM,JDIM,:,:)=UDIFFUSION(IDIM,JDIM,:,:) + SQRT( LES_UDIFFUSION(IDIM,IDIM,:,:) * LES_UDIFFUSION(JDIM,JDIM,:,:) )
+                    END DO
+                 END DO
+              ELSE
+                 UDIFFUSION_ALL=UDIFFUSION + LES_UDIFFUSION
+              ENDIF
            ELSE
               UDIFFUSION_ALL=UDIFFUSION
            ENDIF
@@ -3091,7 +3164,7 @@ contains
                          END DO
                       END DO
 ! Add in the viscocity contribution...
-                      IF( GOT_DIFFUS .AND. SOLID_FLUID_VISC_BC ) THEN  ! SOLID_FLUID_VISC_BC taken from diamond
+                      IF( GOT_DIFFUS .AND. include_viscous_drag_force ) THEN  
 ! Assume visc. is isotropic (can be variable)...
                          DO IDIM=1,NDIM
                             DO IPHASE=1,NPHASE
@@ -3871,11 +3944,51 @@ contains
                     END DO
                 END DO
 
+                DIF_STAB_U = MAX(0.0, DIF_STAB_U)
 
-                ! Place the diffusion term into matrix...
-                DO U_ILOC = 1, U_NLOC
-                    DO U_JLOC = 1, U_NLOC
+
+
+
+                IF ( STRESS_FORM_STAB ) THEN! stress form of viscosity...
+                   DO IDIM=1,NDIM
+                      DO JDIM=1,NDIM
+                         TEN_XX( IDIM, JDIM, :, : ) = SQRT( DIF_STAB_U( IDIM, :, : )  *  DIF_STAB_U( JDIM, :, : ) )
+                      END DO
+                   END DO
+
+                   DO U_JLOC = 1, U_NLOC
+                        DO U_ILOC = 1, U_NLOC
+                            DO GI = 1, CV_NGI
+                                DO IPHASE = 1, NPHASE
+                                        IF(IDIVID_BY_VOL_FRAC==1) THEN
+                                           CALL CALC_STRESS_TEN( STRESS_IJ_ELE( :, :, IPHASE, U_ILOC, U_JLOC ), ZERO_OR_TWO_THIRDS, NDIM, &
+        ( -UFEN( U_ILOC, GI )*VOL_FRA_GI_DX_ALL(1:NDIM,IPHASE,GI) + UFENX_ALL( 1:NDIM, U_ILOC, GI )*VOL_FRA_GI(IPHASE,GI) ),  UFENX_ALL( 1:NDIM, U_JLOC, GI )* DETWEI( GI ), TEN_XX( :, :, IPHASE, GI ) )
+                                        ELSE
+                                           CALL CALC_STRESS_TEN( STRESS_IJ_ELE( :, :, IPHASE, U_ILOC, U_JLOC ), ZERO_OR_TWO_THIRDS, NDIM, &
+                                           UFENX_ALL( 1:NDIM, U_ILOC, GI ), UFENX_ALL( 1:NDIM, U_JLOC, GI )* DETWEI( GI ), TEN_XX( :, :, IPHASE, GI ) )
+                                        ENDIF
+                                END DO
+                            END DO
+                        END DO
+
                         DO IPHASE = 1, NPHASE
+                           JPHASE = IPHASE
+                           DO IDIM = 1, NDIM_VEL
+                              DO JDIM = 1, NDIM_VEL
+
+                                 DIAG_BIGM_CON( IDIM, JDIM, IPHASE, JPHASE, U_ILOC, U_JLOC, ELE )  &
+                                                = DIAG_BIGM_CON( IDIM, JDIM, IPHASE, JPHASE, U_ILOC, U_JLOC, ELE ) &
+                                                + STRESS_IJ_ELE( IDIM, JDIM, IPHASE, U_ILOC, U_JLOC )
+                              END DO
+                           END DO
+
+                        END DO
+                   END DO
+                ELSE ! endof IF ( STRESS_FORM_STAB ) THEN ELSE - stress form of viscosity...
+                ! Place the diffusion term into matrix...
+                   DO U_ILOC = 1, U_NLOC
+                      DO U_JLOC = 1, U_NLOC
+                         DO IPHASE = 1, NPHASE
                             JPHASE = IPHASE
 
                             VLK_UVW = 0.0
@@ -3900,6 +4013,11 @@ contains
                         END DO
                     END DO
                 END DO
+              ENDIF  ! endof IF ( STRESS_FORM_STAB ) THEN ELSE
+
+
+
+
 
                 ! Place the diffusion term into matrix for between element diffusion stabilization...
                 IF ( BETWEEN_ELE_STAB ) THEN
@@ -3925,6 +4043,47 @@ contains
                    ! End of IF(BETWEEN_ELE_STAB) THEN...
                 END IF
 
+                ! Place the diffusion term into matrix for between element diffusion stabilization...
+                IF ( THERMAL_STAB_VISC ) THEN
+                    ! we store these vectors in order to try and work out the between element
+                    ! diffusion/viscocity.
+                    MAT_ELE_CV_LOC=0.
+                    DO CV_ILOC = 1, CV_NLOC
+                        DO CV_JLOC = 1, CV_NLOC
+                            MAT_ELE_CV_LOC( CV_ILOC, CV_JLOC ) = MAT_ELE_CV_LOC( CV_ILOC, CV_JLOC ) + &
+                            SUM( CVFEN( CV_ILOC, : ) * CVFEN( CV_JLOC,  : ) * DETWEI( : ) )
+                        END DO
+                    END DO
+
+                    DO CV_ILOC = 1, CV_NLOC
+                        DO IPHASE = 1, NPHASE
+                            DO GI = 1, CV_NGI
+                                ! we store these vectors in order to try and work out the between element
+                                ! diffusion/viscocity.
+                                DIFF_FOR_BETWEEN_CV( :, IPHASE, CV_ILOC ) = DIFF_FOR_BETWEEN_CV( :, IPHASE, CV_ILOC  ) &
+                                + CVFEN( U_ILOC, GI ) * DETWEI( GI ) * DIF_STAB_U( :, IPHASE, GI )
+                            END DO
+                        END DO
+                    END DO
+
+                    INV_MAT_ELE_CV_LOC = INVERSE(MAT_ELE_CV_LOC)
+                    DO IPHASE = 1, NPHASE
+                       DO IDIM=1,NDIM
+                          DIFFCV(IDIM, IPHASE,:)=MATMUL(INV_MAT_ELE_CV_LOC(:,:), DIFF_FOR_BETWEEN_CV( IDIM, IPHASE, : ) )
+                       END DO
+                    END DO
+                    DIFFCV=MAX(0.0, DIFFCV) 
+
+                    DO IDIM=1,NDIM
+                       DO JDIM=1,NDIM
+                          DIFFCV_TEN(IDIM,JDIM, :,:)=  SQRT( DIFFCV(IDIM, :,:)  *  DIFFCV(JDIM, :,:) )
+                       END DO
+                    END DO
+
+                    DIFFCV_TEN_ELE(:,:, :,:,ELE)=DIFFCV_TEN(:,:, :,:)
+
+                   ! End of IF( THERMAL_STAB_VISC ) THEN...
+                END IF
                !! *************************INNER ELEMENT STABILIZATION****************************************
                !! *************************INNER ELEMENT STABILIZATION****************************************
                ! endof IF(RESID_BASED_STAB_DIF.NE.0) THEN
@@ -3943,6 +4102,36 @@ contains
             END DO
 
         END DO Loop_Elements
+
+        
+! Map to continuous or other basis
+           IF(Q_SCHEME) THEN
+
+               THERM_U_DIFFUSION=0.0
+
+               IF( THERMAL_FLUID_VISC .AND. THERMAL_LES_VISC) THEN
+                  THERM_U_DIFFUSION = UDIFFUSION_ALL
+               ELSE IF(THERMAL_FLUID_VISC) THEN
+                  THERM_U_DIFFUSION = UDIFFUSION
+               ENDIF
+
+               IF( THERMAL_STAB_VISC ) THEN ! Petrov-Galerkin visc...
+                  RCOUNT_NODS=0.0
+                  DO ELE=1,TOTELE
+                     DO MAT_ILOC=1,MAT_NLOC
+                        MAT_NOD=MAT_NDGLN( (ELE-1)*MAT_NLOC+MAT_ILOC ) 
+                        THERM_U_DIFFUSION(:,:,:,MAT_NOD) = THERM_U_DIFFUSION(:,:,:,MAT_NOD) + DIFFCV_TEN_ELE(:,:, :,MAT_ILOC,ELE)
+                        RCOUNT_NODS(MAT_NOD)=RCOUNT_NODS(MAT_NOD)+1.0
+                     END DO
+                  END DO
+! Put the fluid viscocity into the Q-scheme thermal viscocity
+                  DO MAT_NOD=1,MAT_NONODS
+                     THERM_U_DIFFUSION(:,:,:,MAT_NOD) = THERM_U_DIFFUSION(:,:,:,MAT_NOD)/RCOUNT_NODS(MAT_NOD) 
+                  END DO
+! Put the fluid viscocity (also includes LES viscocity) into the Q-scheme thermal viscocity
+                  IF(THERMAL_FLUID_VISC) THERM_U_DIFFUSION = THERM_U_DIFFUSION + UDIFFUSION_ALL
+              ENDIF
+           ENDIF
 
 
         !!XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX!!
@@ -5124,9 +5313,10 @@ contains
 
             SUBROUTINE VISCOCITY_TENSOR_LES_CALC(LES_UDIFFUSION, DUX_ELE_ALL, &
                                                  NDIM,NPHASE, U_NLOC,X_NLOC,TOTELE, X_NONODS, &
-                                                 X_ALL, X_NDGLN,  MAT_NONODS, MAT_NLOC, MAT_NDGLN, LES_DISOPT)
+                                                 X_ALL, X_NDGLN,  MAT_NONODS, MAT_NLOC, MAT_NDGLN, LES_DISOPT, LES_CS)
 ! This subroutine calculates a tensor of viscocity LES_UDIFFUSION. 
             IMPLICIT NONE
+            REAL, intent( in ) :: LES_CS
             INTEGER, intent( in ) :: NDIM, NPHASE, U_NLOC, X_NLOC, TOTELE, X_NONODS, MAT_NONODS, MAT_NLOC, LES_DISOPT
             INTEGER, DIMENSION( X_NLOC * TOTELE  ), intent( in ) :: X_NDGLN
             INTEGER, DIMENSION( MAT_NLOC * TOTELE  ), intent( in ) :: MAT_NDGLN
@@ -5148,7 +5338,7 @@ contains
             ALLOCATE(NOD_COUNT(MAT_NONODS))
 
             CALL VISCOCITY_TENSOR_LES_CALC_U(LES_U_UDIFFUSION, DUX_ELE_ALL, NDIM,NPHASE, U_NLOC,X_NLOC,TOTELE, X_NONODS, &
-                                                 X_ALL, X_NDGLN, LES_DISOPT)
+                                                 X_ALL, X_NDGLN, LES_DISOPT, LES_CS)
 
             IF(MAT_NLOC==U_NLOC) THEN
                LES_MAT_UDIFFUSION=LES_U_UDIFFUSION
@@ -5205,10 +5395,11 @@ contains
 
 
             SUBROUTINE VISCOCITY_TENSOR_LES_CALC_U(LES_U_UDIFFUSION, DUX_ELE_ALL, NDIM,NPHASE, U_NLOC,X_NLOC,TOTELE, X_NONODS, &
-                                                 X_ALL, X_NDGLN, LES_DISOPT)
+                                                 X_ALL, X_NDGLN, LES_DISOPT, CS)
 ! This subroutine calculates a tensor of viscocity LES_UDIFFUSION. 
             IMPLICIT NONE
             INTEGER, intent( in ) :: NDIM, NPHASE, U_NLOC, X_NLOC, TOTELE, X_NONODS, LES_DISOPT
+            REAL, intent( in ) :: CS
 ! LES_DISOPT is LES option e.g. =1 Anisotropic element length scale
             INTEGER, DIMENSION( X_NLOC * TOTELE  ), intent( in ) :: X_NDGLN
             REAL, DIMENSION( NDIM, X_NONODS  ), intent( in ) :: X_ALL
@@ -5217,7 +5408,7 @@ contains
 ! Local variables...
             LOGICAL, PARAMETER :: ONE_OVER_H2=.TRUE.
             !     SET to metric which has 1/h^2 in it
-            REAL, PARAMETER :: CS=0.1
+!            REAL, PARAMETER :: CS=0.1
             REAL :: LOC_X_ALL(NDIM, X_NLOC), TENSXX_ALL(NDIM, NDIM), RSUM, FOURCS, CS2, VIS 
             INTEGER :: ELE, X_ILOC, U_ILOC, IPHASE, X_NODI, IDIM, JDIM, KDIM
 

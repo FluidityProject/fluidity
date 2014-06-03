@@ -2247,7 +2247,7 @@ contains
                         endif
                                     END DO
                                     END DO
-                              ENDIF
+                              ENDIF ! IF(GOT_VIS) THEN
                         if(integrate_other_side_and_not_boundary) then
                               CV_RHS( RHS_NODJ_IPHA ) = CV_RHS( RHS_NODJ_IPHA ) &
                                    + CV_P( CV_NODJ ) * SCVDETWEI( GI ) * ( &
