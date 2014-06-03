@@ -686,6 +686,14 @@ prognostic_velocity_field =
                }?,
                element viscosity_scheme {
                   (
+                     ## Tensor form
+                     element tensor_form {
+                        empty
+                     }|
+                     ## Stress form
+                     element stress_form {
+                        empty
+                     }|
                      ## Compact discontinuous Galerkin scheme.
                      ## (Peraire and Persson SIAM J. Sci. Comput. 30, p1806)
                      element compact_discontinuous_galerkin {
@@ -760,6 +768,17 @@ prognostic_velocity_field =
                               empty
                            }?
                         }?
+                     }
+                  ),
+                  (   
+                     ## Non-linear scheme
+                     element nonlinear_scheme {
+                        element beta_viscosity_min{ real }?,
+                        element beta_viscosity_max{ real }?
+                     }|
+                     ## Linear scheme
+                     element linear_scheme {
+                        empty
                      }
                   )
                },
@@ -877,7 +896,17 @@ prognostic_velocity_field =
                   ## suggested value 0.1
                   element smagorinsky_coefficient {
                      real
-                  }
+                  },
+                  (
+                     ## Tensor form
+                     element tensor_form {
+                        empty
+                     }|
+                     ## Stress form
+                     element stress_form {
+                        empty
+                     }
+               )
                }?,
                ## This applies a non-linear shock capturing scheme which 
                ## may be used to reduce oscillations in velocity or
@@ -903,7 +932,17 @@ prognostic_velocity_field =
                   ## Defaults to 1.
                   element  include_pressure{
                      real
-                  }?
+                  }?,
+                  (
+                     ## Tensor form
+                     element tensor_form {
+                        empty
+                     }|
+                     ## Stress form
+                     element stress_form {
+                        empty
+                     }
+               )
                }?
             }
          ),

@@ -835,6 +835,14 @@ a discontinuous velocity field for this to work!</a:documentation>
           </optional>
           <element name="viscosity_scheme">
             <choice>
+              <element name="tensor_form">
+                <a:documentation>Tensor form</a:documentation>
+                <empty/>
+              </element>
+              <element name="stress_form">
+                <a:documentation>Stress form</a:documentation>
+                <empty/>
+              </element>
               <element name="compact_discontinuous_galerkin">
                 <a:documentation>Compact discontinuous Galerkin scheme.
 (Peraire and Persson SIAM J. Sci. Comput. 30, p1806)</a:documentation>
@@ -921,6 +929,25 @@ Int grad u.kappa.grad v dV</a:documentation>
                     </optional>
                   </element>
                 </optional>
+              </element>
+            </choice>
+            <choice>
+              <element name="nonlinear_scheme">
+                <a:documentation>Non-linear scheme</a:documentation>
+                <optional>
+                  <element name="beta_viscosity_min">
+                    <ref name="real"/>
+                  </element>
+                </optional>
+                <optional>
+                  <element name="beta_viscosity_max">
+                    <ref name="real"/>
+                  </element>
+                </optional>
+              </element>
+              <element name="linear_scheme">
+                <a:documentation>Linear scheme</a:documentation>
+                <empty/>
               </element>
             </choice>
           </element>
@@ -1046,6 +1073,16 @@ twice.</a:documentation>
 suggested value 0.1</a:documentation>
                 <ref name="real"/>
               </element>
+              <choice>
+                <element name="tensor_form">
+                  <a:documentation>Tensor form</a:documentation>
+                  <empty/>
+                </element>
+                <element name="stress_form">
+                  <a:documentation>Stress form</a:documentation>
+                  <empty/>
+                </element>
+              </choice>
             </element>
           </optional>
           <optional>
@@ -1078,6 +1115,16 @@ Defaults to 1.</a:documentation>
                   <ref name="real"/>
                 </element>
               </optional>
+              <choice>
+                <element name="tensor_form">
+                  <a:documentation>Tensor form</a:documentation>
+                  <empty/>
+                </element>
+                <element name="stress_form">
+                  <a:documentation>Stress form</a:documentation>
+                  <empty/>
+                </element>
+              </choice>
             </element>
           </optional>
         </element>
