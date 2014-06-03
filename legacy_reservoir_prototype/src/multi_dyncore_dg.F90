@@ -4063,13 +4063,14 @@ contains
                 IF ( THERMAL_STAB_VISC ) THEN
                     ! we store these vectors in order to try and work out the between element
                     ! diffusion/viscocity.
-                    MAT_ELE_CV_LOC=0.
                     DO CV_ILOC = 1, CV_NLOC
                         DO CV_JLOC = 1, CV_NLOC
-                            MAT_ELE_CV_LOC( CV_ILOC, CV_JLOC ) = MAT_ELE_CV_LOC( CV_ILOC, CV_JLOC ) + &
+                            MAT_ELE_CV_LOC( CV_ILOC, CV_JLOC ) = &
                             SUM( CVFEN( CV_ILOC, : ) * CVFEN( CV_JLOC,  : ) * DETWEI( : ) )
                         END DO
                     END DO
+
+                    DIFF_FOR_BETWEEN_CV = 0.0
 
                     DO CV_ILOC = 1, CV_NLOC
                         DO IPHASE = 1, NPHASE
