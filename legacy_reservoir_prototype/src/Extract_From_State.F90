@@ -122,8 +122,7 @@
 
       is_compact_overlapping = .false.
       if (trim(vel_element_type)=='lagrangian') &
-        is_compact_overlapping = have_option('/geometry/mesh::VelocityMesh/from_mesh/&
-            mesh_shape/Compact_overlapping' )
+        is_compact_overlapping = have_option('/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/Compact_overlapping')
 
 !      print *,'is_overlapping,is_compact_overlapping:',is_overlapping,is_compact_overlapping
 !      stop 81
@@ -1969,17 +1968,20 @@
 
       type(state_type), dimension(:,:), pointer :: multi_state
       
-      integer :: i,nphase,ncomp,ndim, stat, iphase, icomp, idim
+      integer :: i,nphase,ncomp,ndim, stat, iphase, icomp, idim, ele
       
       type(scalar_field), pointer :: pressure, p2,sfield
       type(vector_field), pointer :: velocity, position, vfield
-      
+      type(tensor_field), pointer :: tfield
+
       type(scalar_field) :: porosity
       type(vector_field) :: p_position, u_position, m_position
       type(tensor_field) :: permeability
       type(mesh_type) :: ovmesh,lmesh,nvmesh, element_mesh
       type(element_type) :: overlapping_shape, vel_shape, element_shape
       character( len = option_path_len ) :: vel_element_type
+
+      integer, dimension( : ), pointer :: element_nodes
 
       logical :: has_density, has_phase_volume_fraction
 
@@ -2274,8 +2276,24 @@
          call set(permeability,vfield)
          call insert(packed_state,permeability,"Permeability")
          call deallocate(permeability)
-      else if (has_vector_field(state(1),"Permeability")) then
-         call insert(packed_state,extract_tensor_field(state(1),"Permeability"),"Permeability")
+      else if (has_tensor_field(state(1),"Permeability")) then
+         call allocate(permeability,element_mesh,"Permeability",&
+              dim=[mesh_dim(position),mesh_dim(position)])
+         call zero(permeability)
+         tfield => extract_tensor_field( state(1), trim( permeability % name ) )
+        if( size(tfield%val,3) == 1 ) then!constant field
+            do ele = 1, element_count( tfield )
+               Permeability%val( :, :, ele ) = tfield % val( :, :, 1 )
+            end do
+        else!python
+            do ele = 1, element_count( tfield )
+              element_nodes => ele_nodes( tfield, ele )
+               Permeability%val( :, :, ele ) = &
+                    tfield % val( :, :, element_nodes( 1 ) )
+            end do
+        end if
+         call insert(packed_state,Permeability,"Permeability")
+         call deallocate(permeability)
       else
          call allocate(permeability,element_mesh,"Permeability")
          call zero(permeability)

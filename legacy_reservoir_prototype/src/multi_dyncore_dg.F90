@@ -4131,7 +4131,7 @@ contains
                     U_INOD = U_NDGLN( (ELE-1)*U_NLOC + U_ILOC )
                     IF ( ELE2 /= 0 ) THEN
                         U_ILOC2 = U_ILOC_OTHER_SIDE( U_SILOC )
-                        U_INOD2 = U_NDGLN( (ELE2-1)*U_NLOC + U_ILOC2 )
+                        U_INOD2 = U_NDGLN((ELE2-1)*U_NLOC + U_ILOC2 )
                     ELSE
                         U_ILOC2 = U_ILOC
                         U_INOD2 = U_INOD
@@ -4155,7 +4155,7 @@ contains
                 DO U_SILOC = 1, U_SNLOC
                     U_ILOC = U_SLOC2LOC( U_SILOC )
                     U_INOD = U_NDGLN( (ELE-1)*U_NLOC + U_ILOC )
-                    IF ( ELE2 /= 0 ) THEN
+                    IF ( ELE2 /= 0) THEN
                         U_ILOC2 = U_ILOC_OTHER_SIDE( U_SILOC )
                         U_INOD2 = U_NDGLN( (ELE2-1)*U_NLOC + U_ILOC2 )
                     ELSE
@@ -4491,7 +4491,6 @@ contains
                 ENDIF
 
                 If_diffusion_or_momentum3: IF(GOT_DIFFUS .OR. GOT_UDEN) THEN
-
                     IF(BETWEEN_ELE_STAB) THEN
                         ! Calculate stabilization diffusion coefficient...
 

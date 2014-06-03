@@ -12927,8 +12927,8 @@ CONTAINS
       IF(IS_DG) FRALINE=1.0
       XC_ALL = 0.
       XC_ALL(1:NDIM) = X1_ALL - FRALINE*(X2_ALL-X1_ALL)
+!print *, "XC_ALL before reflect", XC_ALL
 
-      
       IF(REFLECT) THEN
          IF(SUM(ABS(NORMX1_ALL)).NE.0.0) THEN
 !  if (XC,YC,ZC) is outside the domain
@@ -12942,7 +12942,7 @@ CONTAINS
 !     
             AUXNORMX1_ALL = 0.
             AUXNORMX1_ALL(1:NDIM) = NORMX1_ALL
-            CALL XPROD(T2X_ALL,AUXNORMX1_ALL, VX_ALL)
+            CALL XPROD(T2X_ALL, AUXNORMX1_ALL, VX_ALL)
 !     
             !DIST12=SQRT((X1-X2)**2+(Y1-Y2)**2+(Z1-Z2)**2)
             DIST12 = SQRT(DOT_PRODUCT(X1_ALL-X2_ALL,X1_ALL-X2_ALL))
@@ -12955,9 +12955,8 @@ CONTAINS
 !     T1=Nx (-T2)
                CALL XPROD(T1X_ALL, AUXNORMX1_ALL, -T2X_ALL)
 !     
-               REFX2_ALL(1) = SUM(NORMX1_ALL*VX_ALL(1:NDIM))
-               REFX2_ALL(2) = SUM(T1X_ALL(:)*VX_ALL)
-
+               REFX2_ALL(1) = SUM(NORMX1_ALL(1:NDIM)*VX_ALL(1:NDIM))
+               REFX2_ALL(2) = SUM(T1X_ALL(1:NDIM)*VX_ALL(1:NDIM))
 
 
 !     Reflect...
@@ -12978,6 +12977,7 @@ CONTAINS
 
                 XC_ALL(1:NDIM) = X_ALL(:,1) + REFX_ALL(1:NDIM)*FRALINE
             ENDIF
+
          ENDIF
       ENDIF
 !     
@@ -15079,7 +15079,7 @@ CONTAINS
     ! FORCE_UPWIND_VEL_DG_ELE forces upwind vel between elements
     LOGICAL, PARAMETER :: FORCE_UPWIND_VEL = .false.
     !      LOGICAL, PARAMETER :: FORCE_UPWIND_VEL = .true.
-    LOGICAL, PARAMETER :: FORCE_UPWIND_VEL_DG_ELE = .true.
+    LOGICAL, PARAMETER :: FORCE_UPWIND_VEL_DG_ELE = .false.
     LOGICAL, PARAMETER :: LIM_VOL_ADJUST2 = .true.
     ! If ROW_AVE then use a Roe averaged flux between the elements or CV's when ROE_AVE =.true. 
     LOGICAL, PARAMETER :: ROE_AVE = .false. !.false. !.true.
@@ -15397,9 +15397,21 @@ CONTAINS
 
              abs_tilde    = min(abs_max, max(abs_min,  abs_tilde ))
 
+           if(.false.) then ! new rel perm function
+!             NDOTQ_KEEP_IN(1)    =  0.5*( NDOTQ(1)*get_relperm_epsilon(LOC_T_I(1),1, 0.2, 0.3, 2., 1.) + NDOTQ2(1)*get_relperm_epsilon(LOC_T_J(1),1, 0.2, 0.3, 2., 1.) ) &
+!               / get_relperm_epsilon(LIMT3(1),1, 0.2, 0.3, 2., 1.)
+!             NDOTQ_KEEP_IN(2)    =  0.5*( NDOTQ(2)*get_relperm_epsilon(LOC_T_I(2),2, 0.3, 0.2, 2., 1.) + NDOTQ2(2)*get_relperm_epsilon(LOC_T_J(2),2, 0.3, 0.2, 2., 1.) ) &
+!               / get_relperm_epsilon(LIMT3(2),2, 0.3, 0.2, 2., 1.)
+                                                                        !VALUES FOR RELPERM ARE HARD CODED!!
+             NDOTQ_KEEP_IN(1)    =  0.5*( NDOTQ(1)*inv_get_relperm_epsilon(LOC_T_I(1),1, 0.2, 0.3, 2., 1.) + NDOTQ2(1)*inv_get_relperm_epsilon(LOC_T_J(1),1, 0.2, 0.3, 2., 1.) ) &
+               / inv_get_relperm_epsilon(LIMT3(1),1, 0.2, 0.3, 2., 1.)
+             NDOTQ_KEEP_IN(2)    =  0.5*( NDOTQ(2)*inv_get_relperm_epsilon(LOC_T_I(2),2, 0.3, 0.2, 2., 1.) + NDOTQ2(2)*inv_get_relperm_epsilon(LOC_T_J(2),2, 0.3, 0.2, 2., 1.) ) &
+               / inv_get_relperm_epsilon(LIMT3(2),2, 0.3, 0.2, 2., 1.)
+           else
+
              NDOTQ_KEEP_IN    =  0.5*( NDOTQ*ABS_CV_NODI_IPHA    + NDOTQ2*ABS_CV_NODJ_IPHA )    /abs_tilde
-             
-             
+           endif
+
 
              INCOME    = MIN(1.0, MAX(0.0,  (NDOTQ_KEEP_IN - NDOTQ)/VTOLFUN( NDOTQ2 - NDOTQ ) ))
              WHERE (abs(NDOTQ2 - NDOTQ).lt. 1.e-7) 

@@ -772,13 +772,10 @@
       ALLOCATE( INV_PERM(  NDIM, NDIM, TOTELE ))
       ALLOCATE( PERM( NDIM, NDIM , TOTELE))
 
-
       perm=perm2
       do ele = 1, totele
          inv_perm( :, :, ele)=inverse(perm( :, :, ele))
       end do
-
-
       U_ABSORB = 0.0
 !open(1,file = "Sigma_saturation_phase1", status="replace", action = "write")
 !open(2,file = "Sigma_saturation_phase2", status="replace", action = "write")
@@ -956,8 +953,8 @@
         end if
 
         !Make sure that the relperm is between bounds
-        KR = min(max(1d-20, KR),Krmax)!Lower value just to make sure we do not divide by zero.
-        ABSP = INV_PERM * (VISC * max(1d-10,SATURATION)) / KR !The value1d-10 is only used if the boundaries have values of saturation of zero.
+        KR = min(max(1d-15, KR),Krmax)!Lower value just to make sure we do not divide by zero.
+        ABSP = INV_PERM * (VISC * max(1d-5,SATURATION)) / KR !The value 1d-5 is only used if the boundaries have values of saturation of zero.
         !Otherwise, the saturation should never be zero, since immobile fraction is always bigger than zero.
 
       RETURN

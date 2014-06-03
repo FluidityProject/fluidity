@@ -841,7 +841,7 @@ Default value 2.0</a:documentation>
                   </optional>
                   <optional>
                     <element name="Use_epsilon_method">
-                      <a:documentation>This method implements the true Brooks-Corey model by adding an epsilon value (1e-20) to avoid divisions by zero. 
+                      <a:documentation>This method implements the true Brooks-Corey model by adding an epsilon value (1e-15) to avoid divisions by zero. 
 (Recommended)</a:documentation>
                       <ref name="comment"/>
                     </element>
