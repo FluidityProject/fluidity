@@ -103,6 +103,7 @@ module fluids_module
   use detector_parallel, only: sync_detector_coordinates, deallocate_detector_list_array
   use momentum_diagnostic_fields, only: calculate_densities
   use sediment_diagnostics, only: calculate_sediment_flux
+  use detectors
 
   implicit none
 
@@ -400,6 +401,9 @@ contains
     end if
 
     call initialise_diagnostics(filename, state)
+
+    ! Setup detectors from supplied options
+    call initialise_detectors_from_options(state)
 
     ! Initialise ice_meltrate, read constatns, allocate surface, and calculate melt rate
     if (have_option("/ocean_forcing/iceshelf_meltrate/Holland08")) then

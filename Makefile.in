@@ -296,6 +296,8 @@ lib/lib$(FLUIDITY).a: $(OBJS) python_build sub_system scripts
 	@cd bathymetry; $(MAKE)
 	@echo "    MAKE ocean_forcing"
 	@cd ocean_forcing; $(MAKE)
+	@echo "    MAKE detectors"
+	@cd detectors; $(MAKE)
 ifeq (@HYPERLIGHT@,yes)
 	@echo "    MAKE hyperlight"
 	@cd hyperlight; $(MAKE)
