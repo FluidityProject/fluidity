@@ -2360,9 +2360,9 @@ contains
 ! LES_THETA =1 is backward Euler for the LES viscocity.
 ! COEFF_SOLID_FLUID is the coeffficient that determins the magnitude of the relaxation to the solid vel...
             REAL, PARAMETER :: COEFF_SOLID_FLUID = 1.0
-! include_viscous_drag_force switches on the solid-fluid coupling viscocity boundary conditions...
-!            LOGICAL, PARAMETER :: include_viscous_drag_force = .FALSE.
-            LOGICAL :: include_viscous_drag_force 
+! include_viscous_solid_fluid_drag_force switches on the solid-fluid coupling viscocity boundary conditions...
+!            LOGICAL, PARAMETER :: include_viscous_solid_fluid_drag_force = .FALSE.
+            LOGICAL :: include_viscous_solid_fluid_drag_force 
 
         !
         ! Variables used to reduce indirect addressing...
@@ -2448,7 +2448,8 @@ contains
         real :: beta, therm_ftheta
 
         INTEGER :: FILT_DEN, J2, JU2_NOD_DIM_PHA
-        LOGICAL :: GOTDEC
+        LOGICAL :: GOTDEC, SIMPLE_DIFF_CALC
+        REAL :: DIFF_MIN_FRAC, DIFF_MAX_FRAC
         REAL :: NCVM, UFENX_JLOC, UFENY_JLOC, UFENZ_JLOC
         REAL :: FEN_TEN_XX, FEN_TEN_XY,FEN_TEN_XZ
         REAL :: FEN_TEN_YX, FEN_TEN_YY,FEN_TEN_YZ
@@ -2528,10 +2529,19 @@ contains
         call get_option( '/material_phase[0]/vector_field::Velocity/prognostic/spatial_discretisation/discontinuous_galerkin/les_model/smagorinsky_coefficient', les_Cs , default=0.1 )
 !
 ! bc for solid-fluid viscous drag coupling...
-        include_viscous_drag_force = have_option( '/blasting/include_viscous_drag_force' )
+        include_viscous_solid_fluid_drag_force = have_option( '/blasting/include_viscous_drag_force' )
+!
+! 
+! DIFF_MIN_FRAC is the fraction of the standard diffusion coefficient to use 
+! in the non-linear diffusion scheme. DIFF_MAX_FRAC is the maximum fraction. 
+! If SIMPLE_DIFF_CALC then use a simple and fast diffusion calculation.
+         DIFF_MIN_FRAC = 0.2
+         DIFF_MAX_FRAC = 100.0
+         SIMPLE_DIFF_CALC = .FALSE. ! Need switches for this
 
 !        PRINT *,'STRESS_FORM, STRESS_FORM_STAB, THERMAL_STAB_VISC, THERMAL_FLUID_VISC, Q_SCHEME,LES_DISOPT,LES_CS,therm_ftheta:', &
 !                 STRESS_FORM, STRESS_FORM_STAB, THERMAL_STAB_VISC, THERMAL_FLUID_VISC, Q_SCHEME,LES_DISOPT,LES_CS,therm_ftheta
+!        PRINT *,'DIFF_MIN_FRAC, DIFF_MAX_FRAC, SIMPLE_DIFF_CALC:', DIFF_MIN_FRAC, DIFF_MAX_FRAC, SIMPLE_DIFF_CALC
 !        STOP 2811
 
 
@@ -2715,7 +2725,7 @@ contains
         IF(RETRIEVE_SOLID_CTY) THEN
            ALLOCATE( SIGMAGI_STAB_SOLID_RHS( NDIM_VEL * NPHASE, NDIM_VEL * NPHASE, CV_NGI ))
            ALLOCATE(NN_SIGMAGI_STAB_SOLID_RHS_ELE( NDIM_VEL * NPHASE, U_NLOC, NDIM_VEL * NPHASE,U_NLOC ))
-           IF( GOT_DIFFUS .AND. include_viscous_drag_force ) THEN  ! include_viscous_drag_force taken from diamond
+           IF( GOT_DIFFUS .AND. include_viscous_solid_fluid_drag_force ) THEN  ! include_viscous_solid_fluid_drag_force taken from diamond
               ALLOCATE(ABS_SOLID_FLUID_COUP(NDIM, NDIM, NPHASE, CV_NONODS))
               ALLOCATE(FOURCE_SOLID_FLUID_COUP(NDIM, NPHASE, CV_NONODS))
            ENDIF
@@ -3164,7 +3174,7 @@ contains
                          END DO
                       END DO
 ! Add in the viscocity contribution...
-                      IF( GOT_DIFFUS .AND. include_viscous_drag_force ) THEN  
+                      IF( GOT_DIFFUS .AND. include_viscous_solid_fluid_drag_force ) THEN  
 ! Assume visc. is isotropic (can be variable)...
                          DO IDIM=1,NDIM
                             DO IPHASE=1,NPHASE
@@ -3950,6 +3960,7 @@ contains
 
 
                 IF ( STRESS_FORM_STAB ) THEN! stress form of viscosity...
+
                    DO IDIM=1,NDIM
                       DO JDIM=1,NDIM
                          TEN_XX( IDIM, JDIM, :, : ) = SQRT( DIF_STAB_U( IDIM, :, : )  *  DIF_STAB_U( JDIM, :, : ) )
@@ -3958,6 +3969,7 @@ contains
 
                    DO U_JLOC = 1, U_NLOC
                         DO U_ILOC = 1, U_NLOC
+
                             DO GI = 1, CV_NGI
                                 DO IPHASE = 1, NPHASE
                                         IF(IDIVID_BY_VOL_FRAC==1) THEN
@@ -3969,21 +3981,23 @@ contains
                                         ENDIF
                                 END DO
                             END DO
-                        END DO
 
-                        DO IPHASE = 1, NPHASE
-                           JPHASE = IPHASE
-                           DO IDIM = 1, NDIM_VEL
-                              DO JDIM = 1, NDIM_VEL
+                            DO IPHASE = 1, NPHASE
+                               JPHASE = IPHASE
+                               DO IDIM = 1, NDIM_VEL
+                                  DO JDIM = 1, NDIM_VEL
 
-                                 DIAG_BIGM_CON( IDIM, JDIM, IPHASE, JPHASE, U_ILOC, U_JLOC, ELE )  &
+                                     DIAG_BIGM_CON( IDIM, JDIM, IPHASE, JPHASE, U_ILOC, U_JLOC, ELE )  &
                                                 = DIAG_BIGM_CON( IDIM, JDIM, IPHASE, JPHASE, U_ILOC, U_JLOC, ELE ) &
                                                 + STRESS_IJ_ELE( IDIM, JDIM, IPHASE, U_ILOC, U_JLOC )
-                              END DO
-                           END DO
+                                  END DO
+                               END DO
+
+                            END DO
 
                         END DO
                    END DO
+
                 ELSE ! endof IF ( STRESS_FORM_STAB ) THEN ELSE - stress form of viscosity...
                 ! Place the diffusion term into matrix...
                    DO U_ILOC = 1, U_NLOC
@@ -4061,7 +4075,7 @@ contains
                                 ! we store these vectors in order to try and work out the between element
                                 ! diffusion/viscocity.
                                 DIFF_FOR_BETWEEN_CV( :, IPHASE, CV_ILOC ) = DIFF_FOR_BETWEEN_CV( :, IPHASE, CV_ILOC  ) &
-                                + CVFEN( U_ILOC, GI ) * DETWEI( GI ) * DIF_STAB_U( :, IPHASE, GI )
+                                + CVFEN( CV_ILOC, GI ) * DETWEI( GI ) * DIF_STAB_U( :, IPHASE, GI )
                             END DO
                         END DO
                     END DO
@@ -4109,28 +4123,27 @@ contains
 
                THERM_U_DIFFUSION=0.0
 
-               IF( THERMAL_FLUID_VISC .AND. THERMAL_LES_VISC) THEN
-                  THERM_U_DIFFUSION = UDIFFUSION_ALL
-               ELSE IF(THERMAL_FLUID_VISC) THEN
-                  THERM_U_DIFFUSION = UDIFFUSION
-               ENDIF
-
                IF( THERMAL_STAB_VISC ) THEN ! Petrov-Galerkin visc...
                   RCOUNT_NODS=0.0
                   DO ELE=1,TOTELE
                      DO MAT_ILOC=1,MAT_NLOC
-                        MAT_NOD=MAT_NDGLN( (ELE-1)*MAT_NLOC+MAT_ILOC ) 
-                        THERM_U_DIFFUSION(:,:,:,MAT_NOD) = THERM_U_DIFFUSION(:,:,:,MAT_NOD) + DIFFCV_TEN_ELE(:,:, :,MAT_ILOC,ELE)
-                        RCOUNT_NODS(MAT_NOD)=RCOUNT_NODS(MAT_NOD)+1.0
+                        MAT_NOD=MAT_NDGLN( (ELE-1)*MAT_NLOC + MAT_ILOC ) 
+                        THERM_U_DIFFUSION(:,:,:,MAT_NOD) = THERM_U_DIFFUSION(:,:,:,MAT_NOD) + DIFFCV_TEN_ELE(:,:, :,MAT_ILOC,ELE)*MASS_ELE( ELE )
+                        RCOUNT_NODS(MAT_NOD) = RCOUNT_NODS(MAT_NOD) + MASS_ELE( ELE )
                      END DO
                   END DO
 ! Put the fluid viscocity into the Q-scheme thermal viscocity
                   DO MAT_NOD=1,MAT_NONODS
                      THERM_U_DIFFUSION(:,:,:,MAT_NOD) = THERM_U_DIFFUSION(:,:,:,MAT_NOD)/RCOUNT_NODS(MAT_NOD) 
                   END DO
+               ENDIF
+
 ! Put the fluid viscocity (also includes LES viscocity) into the Q-scheme thermal viscocity
-                  IF(THERMAL_FLUID_VISC) THERM_U_DIFFUSION = THERM_U_DIFFUSION + UDIFFUSION_ALL
-              ENDIF
+               IF( THERMAL_FLUID_VISC .AND. THERMAL_LES_VISC) THEN
+                  THERM_U_DIFFUSION = THERM_U_DIFFUSION + UDIFFUSION_ALL
+               ELSE IF(THERMAL_FLUID_VISC) THEN
+                  THERM_U_DIFFUSION = THERM_U_DIFFUSION + UDIFFUSION
+               ENDIF
            ENDIF
 
 
@@ -4816,7 +4829,7 @@ contains
                     ! This sub should be used for stress and tensor viscocity replacing the rest...
                     If_GOT_DIFFUS2: IF(GOT_DIFFUS) THEN
                         CALL DIFFUS_CAL_COEFF_STRESS_OR_TENSOR( DIFF_COEF_DIVDX, &
-                        DIFF_COEFOLD_DIVDX, STRESS_FORM, ZERO_OR_TWO_THIRDS, &
+                        DIFF_COEFOLD_DIVDX, STRESS_FORM, STRESS_FORM_STAB, ZERO_OR_TWO_THIRDS, &
                         U_SNLOC, U_NLOC, CV_SNLOC, CV_NLOC, MAT_NLOC, NPHASE, &
                         SBUFEN,SBCVFEN,SBCVNGI, NDIM_VEL, NDIM, SLOC_UDIFFUSION, SLOC2_UDIFFUSION, UDIFF_SUF_STAB, &
                         HDC, &
@@ -4824,7 +4837,7 @@ contains
                         UOLD_NODJ_SGI_IPHASE_ALL, UOLD_NODI_SGI_IPHASE_ALL, &
                         ELE, ELE2, SNORMXN_ALL,  &
                         SLOC_DUX_ELE_ALL, SLOC2_DUX_ELE_ALL,   SLOC_DUOLDX_ELE_ALL, SLOC2_DUOLDX_ELE_ALL,  &
-                        SELE, STOTEL, WIC_U_BC_ALL(1,:,: ), WIC_U_BC_DIRICHLET  )
+                        SELE, STOTEL, WIC_U_BC_ALL(1,:,: ), WIC_U_BC_DIRICHLET, SIMPLE_DIFF_CALC, DIFF_MIN_FRAC, DIFF_MAX_FRAC  )
                     ELSE If_GOT_DIFFUS2
                         DIFF_COEF_DIVDX   =0.0
                         DIFF_COEFOLD_DIVDX=0.0
