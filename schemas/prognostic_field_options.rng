@@ -1067,6 +1067,14 @@ twice.</a:documentation>
           <optional>
             <element name="les_model">
               <a:documentation>DG large-eddy simulation</a:documentation>
+              <element name="model">
+                <a:documentation>=0 No LES, 
+=1 Anisotropic element length scale, 
+=2 Take the average length scale h, 
+=3 Take the min length scale h, 
+=4 Take the max length scale h</a:documentation>
+                <ref name="integer"/>
+              </element>
               <element name="smagorinsky_coefficient">
                 <a:documentation>literature sybol: Cs
 

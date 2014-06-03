@@ -891,6 +891,14 @@ prognostic_velocity_field =
                },
                ## DG large-eddy simulation
                element les_model {
+                  ## =0 No LES, 
+                  ## =1 Anisotropic element length scale, 
+                  ## =2 Take the average length scale h, 
+                  ## =3 Take the min length scale h, 
+                  ## =4 Take the max length scale h
+                  element model {
+                     integer
+                  },
                   ## literature sybol: Cs
                   ##
                   ## suggested value 0.1
