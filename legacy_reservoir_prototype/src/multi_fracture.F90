@@ -911,7 +911,6 @@ contains
          &                  field_ext_du, field_ext_dv, &
          &                  field_ext_us, field_ext_vs, f2
     type( vector_field ), pointer :: fl_positions, delta_u, solid_u
-    type( tensor_field ), pointer :: u_f
     type( state_type ) :: alg_ext, alg_fl
     integer :: stat, idim
     character( len = OPTION_PATH_LEN ) :: path = "/tmp/galerkin_projection/continuous"
