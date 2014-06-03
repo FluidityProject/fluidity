@@ -3967,6 +3967,8 @@ contains
                       END DO
                    END DO
 
+                   STRESS_IJ_ELE=0.0
+
                    DO U_JLOC = 1, U_NLOC
                         DO U_ILOC = 1, U_NLOC
 
