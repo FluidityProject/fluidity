@@ -1953,7 +1953,7 @@ contains
         second_theta = 0.0
 
 ! Use Q-scheme ...
-        Q_SCHEME = have_option( '/material_phase[0]/Temperature/prognostic/spatial_discretisation/control_volumes/q_scheme' )
+        Q_SCHEME = have_option( '/material_phase[0]/scalar_field::Temperature/prognostic/spatial_discretisation/control_volumes/q_scheme' )
         IGOT_THERM_VIS=0 
         IF(Q_SCHEME) IGOT_THERM_VIS=1
 
@@ -4139,8 +4139,8 @@ contains
                   RCOUNT_NODS=0.0
                   DO ELE=1,TOTELE
                      DO MAT_ILOC=1,MAT_NLOC
-                        MAT_NOD=MAT_NDGLN( (ELE-1)*MAT_NLOC + MAT_ILOC ) 
-                        THERM_U_DIFFUSION(:,:,:,MAT_NOD) = THERM_U_DIFFUSION(:,:,:,MAT_NOD) + DIFFCV_TEN_ELE(:,:, :,MAT_ILOC,ELE)*MASS_ELE( ELE )
+                        MAT_NOD = MAT_NDGLN( (ELE-1)*MAT_NLOC + MAT_ILOC ) 
+                        THERM_U_DIFFUSION(:,:,:,MAT_NOD) = THERM_U_DIFFUSION(:,:,:,MAT_NOD) + DIFFCV_TEN_ELE(:,:, :,MAT_ILOC,ELE) * MASS_ELE( ELE )
                         RCOUNT_NODS(MAT_NOD) = RCOUNT_NODS(MAT_NOD) + MASS_ELE( ELE )
                      END DO
                   END DO

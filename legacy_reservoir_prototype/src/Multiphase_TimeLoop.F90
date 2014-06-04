@@ -124,7 +124,7 @@
            comp_diffusion_opt, ncomp_diff_coef, in_ele_upwind, dg_ele_upwind, nopt_vel_upwind_coefs, &
            nits_flux_lim_t, nits_flux_lim_volfra, nits_flux_lim_comp,  IDIVID_BY_VOL_FRAC
       logical :: volfra_use_theta_flux, volfra_get_theta_flux, comp_use_theta_flux, comp_get_theta_flux, &
-           t_use_theta_flux, t_get_theta_flux, scale_momentum_by_volume_fraction
+           t_use_theta_flux, t_get_theta_flux, scale_momentum_by_volume_fraction, q_scheme
       real :: t_beta, v_beta, t_theta, v_theta, u_theta
       real, dimension( : ), allocatable :: opt_vel_upwind_coefs
 
@@ -334,7 +334,9 @@
 
     call temp_mem_hacks()
 
-    IGOT_THERM_VIS=0
+      Q_SCHEME = have_option( '/material_phase[0]/scalar_field::Temperature/prognostic/spatial_discretisation/control_volumes/q_scheme' )
+      IGOT_THERM_VIS = 0
+      IF ( Q_SCHEME ) IGOT_THERM_VIS = 1
 
 !!$ Allocating space for various arrays:
       allocate( &
