@@ -2215,61 +2215,66 @@ contains
                                 * ( TOLD_ALL( IPHASE, CV_NODI ) - TOLD_ALL( IPHASE, CV_NODJ ) ) 
                         endif
                         END IF
-!                   print *,'done here3'
 
                         ! this is for the internal energy equation source term..
-                        ! - p \div u
                         IF ( THERMAL ) THEN
+
                            THERM_FTHETA = 1.
 
-                           IF( IGOT_T2 /= 0 ) THEN
+                           IF ( IGOT_T2 /= 0 ) THEN
+
                               CV_RHS( RHS_NODI_IPHA ) = CV_RHS( RHS_NODI_IPHA ) &
                                    - CV_P( CV_NODI ) * SCVDETWEI( GI ) * ( &
-                                   THERM_FTHETA * NDOTQNEW(IPHASE) * LIMT2(IPHASE) &
-                                   + ( 1. - THERM_FTHETA ) * NDOTQOLD(IPHASE) * LIMT2OLD(IPHASE) )
-                              IF(GOT_VIS) THEN
-                                  ! stress form of viscosity...
-                                        TEN_XX_ONE(:,:,IPHASE)=1.0
-                                        NU_LEV_GI(:, IPHASE) =((1.-THERM_FTHETA)*NUOLDGI_ALL( :, IPHASE ) + THERM_FTHETA*NUGI_ALL( :, IPHASE ) )
+                                   THERM_FTHETA * NDOTQNEW( IPHASE ) * LIMT2( IPHASE ) &
+                                   + ( 1. - THERM_FTHETA ) * NDOTQOLD(IPHASE) * LIMT2OLD( IPHASE ) )
 
-                                        CALL CALC_STRESS_TEN( STRESS_IJ_THERM( :, :, IPHASE ), ZERO_OR_TWO_THIRDS, NDIM, &
-                 CVNORMX_ALL(:,GI), NU_LEV_GI(:, IPHASE) * SCVDETWEI(GI), TEN_XX_ONE(:,:,IPHASE) )
-!                                        UFENX_ALL( 1:NDIM, U_ILOC, GI ), UFENX_ALL( 1:NDIM, U_JLOC, GI )* DETWEI( GI ), TEN_XX_ONE )
+                              IF ( GOT_VIS ) THEN
+                                 ! stress form of viscosity...
+                                 TEN_XX_ONE(:,:,IPHASE) = 1.0
+                                 NU_LEV_GI(:, IPHASE) = ( (1.-THERM_FTHETA) * NUOLDGI_ALL(:,IPHASE) + THERM_FTHETA * NUGI_ALL(:,IPHASE) )
 
-                        if(integrate_other_side_and_not_boundary) then
-                                    STRESS_IJ_THERM_J( :, :, IPHASE )=STRESS_IJ_THERM( :, :, IPHASE )*THERM_U_DIFFUSION(:,:,IPHASE,CV_NODJ)
-                        endif
-                                    STRESS_IJ_THERM( :, :, IPHASE )=STRESS_IJ_THERM( :, :, IPHASE )*THERM_U_DIFFUSION(:,:,IPHASE,CV_NODI)
+                                 CALL CALC_STRESS_TEN( STRESS_IJ_THERM(:,:,IPHASE), ZERO_OR_TWO_THIRDS, NDIM, &
+                                      CVNORMX_ALL(:,GI), NU_LEV_GI(:,IPHASE) * SCVDETWEI(GI), TEN_XX_ONE(:,:,IPHASE) )
+                                     !UFENX_ALL(1:NDIM,U_ILOC,GI), UFENX_ALL(1:NDIM,U_JLOC,GI) * DETWEI(GI), TEN_XX_ONE )
+                                 
+                                 STRESS_IJ_THERM( :, :, IPHASE ) = STRESS_IJ_THERM( :, :, IPHASE ) * THERM_U_DIFFUSION(:,:,IPHASE,CV_NODI)
+                                 if ( integrate_other_side_and_not_boundary ) then
+                                    STRESS_IJ_THERM_J( :, :, IPHASE ) = STRESS_IJ_THERM( :, :, IPHASE ) * THERM_U_DIFFUSION(:,:,IPHASE,CV_NODJ)
+                                 end if
 
-                                    DO IDIM=1,NDIM
-                                    DO JDIM=1,NDIM
-                                        VECS_STRESS(IDIM,JDIM,IPHASE,CV_NODI) =VECS_STRESS(IDIM,JDIM,IPHASE,CV_NODI)+STRESS_IJ_THERM( IDIM, JDIM, IPHASE )
-                                        VECS_GRAD_U(IDIM,JDIM,IPHASE,CV_NODI) =VECS_GRAD_U(IDIM,JDIM,IPHASE,CV_NODI)+NU_LEV_GI(IDIM, IPHASE) *CVNORMX_ALL(JDIM,GI) * SCVDETWEI(GI)
-                        if(integrate_other_side_and_not_boundary) then
-                                        VECS_STRESS(IDIM,JDIM,IPHASE,CV_NODJ) =VECS_STRESS(IDIM,JDIM,IPHASE,CV_NODJ)-STRESS_IJ_THERM_J( IDIM, JDIM, IPHASE )
-                                        VECS_GRAD_U(IDIM,JDIM,IPHASE,CV_NODJ) =VECS_GRAD_U(IDIM,JDIM,IPHASE,CV_NODJ)-NU_LEV_GI(IDIM, IPHASE) *CVNORMX_ALL(JDIM,GI) * SCVDETWEI(GI)
-                        endif
+                                 DO IDIM = 1, NDIM
+                                    DO JDIM = 1, NDIM
+                                       VECS_STRESS(IDIM,JDIM,IPHASE,CV_NODI) = VECS_STRESS(IDIM,JDIM,IPHASE,CV_NODI) + STRESS_IJ_THERM(IDIM,JDIM,IPHASE)
+                                       VECS_GRAD_U(IDIM,JDIM,IPHASE,CV_NODI) = VECS_GRAD_U(IDIM,JDIM,IPHASE,CV_NODI) + NU_LEV_GI(IDIM,IPHASE) * CVNORMX_ALL(JDIM,GI) * SCVDETWEI(GI)
+                                       if ( integrate_other_side_and_not_boundary ) then
+                                          VECS_STRESS(IDIM,JDIM,IPHASE,CV_NODJ) = VECS_STRESS(IDIM,JDIM,IPHASE,CV_NODJ) - STRESS_IJ_THERM_J(IDIM,JDIM,IPHASE )
+                                          VECS_GRAD_U(IDIM,JDIM,IPHASE,CV_NODJ) = VECS_GRAD_U(IDIM,JDIM,IPHASE,CV_NODJ) - NU_LEV_GI(IDIM,IPHASE) * CVNORMX_ALL(JDIM,GI) * SCVDETWEI(GI)
+                                       end if
                                     END DO
-                                    END DO
-                              ENDIF ! IF(GOT_VIS) THEN
-                        if(integrate_other_side_and_not_boundary) then
-                              CV_RHS( RHS_NODJ_IPHA ) = CV_RHS( RHS_NODJ_IPHA ) &
-                                   + CV_P( CV_NODJ ) * SCVDETWEI( GI ) * ( &
-                                   THERM_FTHETA * NDOTQNEW(IPHASE) * LIMT2(IPHASE) &
-                                   + ( 1. - THERM_FTHETA ) * NDOTQOLD(IPHASE) * LIMT2OLD(IPHASE) )
-                        endif
+                                 END DO
+                              END IF ! GOT_VIS
+
+                              if ( integrate_other_side_and_not_boundary ) then
+                                 CV_RHS( RHS_NODJ_IPHA ) = CV_RHS( RHS_NODJ_IPHA ) &
+                                      + CV_P( CV_NODJ ) * SCVDETWEI( GI ) * ( &
+                                      THERM_FTHETA * NDOTQNEW(IPHASE) * LIMT2(IPHASE) &
+                                      + ( 1. - THERM_FTHETA ) * NDOTQOLD(IPHASE) * LIMT2OLD(IPHASE) )
+                              end if
+
                            ELSE
+
                               CV_RHS( RHS_NODI_IPHA ) = CV_RHS( RHS_NODI_IPHA ) &
                                    - CV_P( CV_NODI ) * SCVDETWEI( GI ) * ( &
-                                      THERM_FTHETA * NDOTQNEW(IPHASE) &
-                                      + ( 1. - THERM_FTHETA ) * NDOTQOLD(IPHASE) )
-                        if(integrate_other_side_and_not_boundary) then
-                              CV_RHS( RHS_NODJ_IPHA ) = CV_RHS( RHS_NODJ_IPHA ) &
-                                   + CV_P( CV_NODJ ) * SCVDETWEI( GI ) * ( &
-                                      THERM_FTHETA * NDOTQNEW(IPHASE) &
-                                      + ( 1. - THERM_FTHETA ) * NDOTQOLD(IPHASE) )
-                        endif
-                           END IF
+                                   THERM_FTHETA * NDOTQNEW( IPHASE ) &
+                                   + ( 1. - THERM_FTHETA ) * NDOTQOLD(IPHASE) )
+                              if ( integrate_other_side_and_not_boundary ) then
+                                 CV_RHS( RHS_NODJ_IPHA ) = CV_RHS( RHS_NODJ_IPHA ) &
+                                      + CV_P( CV_NODJ ) * SCVDETWEI( GI ) * ( &
+                                      THERM_FTHETA * NDOTQNEW( IPHASE ) &
+                                      + ( 1. - THERM_FTHETA ) * NDOTQOLD( IPHASE ) )
+                              end if
+                           
+                           END IF !IGOT_T2 
 
                         END IF
 
