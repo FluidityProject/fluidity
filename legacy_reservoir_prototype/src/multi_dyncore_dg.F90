@@ -2539,6 +2539,15 @@ contains
          DIFF_MAX_FRAC = 100.0
          SIMPLE_DIFF_CALC = .FALSE. ! Need switches for this
 
+
+         SIMPLE_DIFF_CALC = have_option( '/material_phase[0]/vector_field::Velocity/prognostic/spatial_discretisation/discontinuous_galerkin/viscosity_scheme/linear_scheme' )
+         if ( .not.SIMPLE_DIFF_CALC ) then
+    call get_option( '/material_phase[0]/vector_field::Velocity/prognostic/spatial_discretisation/discontinuous_galerkin/viscosity_scheme/nonlinear_scheme/beta_viscosity_min', DIFF_MIN_FRAC, default=0.2 )
+    call get_option( '/material_phase[0]/vector_field::Velocity/prognostic/spatial_discretisation/discontinuous_galerkin/viscosity_scheme/nonlinear_scheme/beta_viscosity_max', DIFF_MAX_FRAC, default=100. )
+         end if
+
+
+
 !        PRINT *,'STRESS_FORM, STRESS_FORM_STAB, THERMAL_STAB_VISC, THERMAL_FLUID_VISC, Q_SCHEME,LES_DISOPT,LES_CS,therm_ftheta:', &
 !                 STRESS_FORM, STRESS_FORM_STAB, THERMAL_STAB_VISC, THERMAL_FLUID_VISC, Q_SCHEME,LES_DISOPT,LES_CS,therm_ftheta
 !        PRINT *,'DIFF_MIN_FRAC, DIFF_MAX_FRAC, SIMPLE_DIFF_CALC:', DIFF_MIN_FRAC, DIFF_MAX_FRAC, SIMPLE_DIFF_CALC
