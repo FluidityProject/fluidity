@@ -406,6 +406,7 @@
       Momentum_Diffusion=0.
       ScalarAdvectionField_Diffusion=0.
       Component_Diffusion=0.
+      THERM_U_DIFFUSION=0.
 !!$
       plike_grad_sou_grad=0.
       plike_grad_sou_coef=0.
@@ -955,9 +956,9 @@
 !!$
                           MAT_NLOC, MAT_NDGLN, MAT_NONODS, Component_Diffusion, 0, THERM_U_DIFFUSION, &
                           v_disopt, v_dg_vel_int_opt, dt, v_theta, v_beta, &
-                         SUF_SIG_DIAGTEN_BC,&
-                         DRhoDPressure, &
-                         Component_Source, Component_Absorption, Porosity_field%val, &
+                          SUF_SIG_DIAGTEN_BC,&
+                          DRhoDPressure, &
+                          Component_Source, Component_Absorption, Porosity_field%val, &
 !!$
                           NDIM,  &
                           NCOLM, FINDM, COLM, MIDM, &

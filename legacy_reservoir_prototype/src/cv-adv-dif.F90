@@ -248,7 +248,9 @@ contains
       REAL, DIMENSION( :, : ), intent( inout ) :: THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J
       REAL, DIMENSION( :, :, :, : ), intent( in ) :: TDIFFUSION
       INTEGER, intent( in ) :: IGOT_THERM_VIS
-      REAL, DIMENSION(NDIM,NDIM,NPHASE,MAT_NONODS*IGOT_THERM_VIS), intent( in ) :: THERM_U_DIFFUSION
+      !REAL, DIMENSION(NDIM,NDIM,NPHASE,MAT_NONODS*IGOT_THERM_VIS), intent( in ) :: THERM_U_DIFFUSION
+      REAL, DIMENSION(:,:,:,:), intent( in ) :: THERM_U_DIFFUSION
+
       REAL, intent( in ) :: DT, CV_THETA, SECOND_THETA, CV_BETA
       REAL, DIMENSION( :, : ), intent( in ) :: SUF_SIG_DIAGTEN_BC
       REAL, DIMENSION( NPHASE, CV_NONODS ), intent( in ) :: DERIV

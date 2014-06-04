@@ -139,7 +139,7 @@ contains
         REAL, DIMENSION( :,: ), intent( inout ), optional :: THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J
         REAL, DIMENSION( :,:,:, : ), intent( in ) :: TDIFFUSION
         INTEGER, intent( in ) :: IGOT_THERM_VIS
-        REAL, DIMENSION(NDIM,NDIM,NPHASE,MAT_NONODS*IGOT_THERM_VIS), intent( in ) :: THERM_U_DIFFUSION
+        REAL, DIMENSION(:,:,:,:), intent( in ) :: THERM_U_DIFFUSION
         INTEGER, intent( in ) :: T_DISOPT, T_DG_VEL_INT_OPT
         REAL, intent( in ) :: DT, T_THETA
         REAL, intent( in ) :: T_BETA
@@ -1852,13 +1852,9 @@ contains
         GET_THETA_FLUX = .FALSE.
         IGOT_T2 = 0
 
-!        ALLOCATE( DEN_OR_ONE( NPHASE * CV_NONODS )) ; DEN_OR_ONE = 0.
-!        ALLOCATE( DENOLD_OR_ONE( NPHASE * CV_NONODS )) ; DENOLD_OR_ONE = 0.
- 
         ALLOCATE( DEN_OR_ONE( NPHASE, CV_NONODS )) ; DEN_OR_ONE = 0.
         ALLOCATE( DENOLD_OR_ONE( NPHASE, CV_NONODS )) ; DENOLD_OR_ONE = 0.
- 
- 
+
         ALLOCATE( T2( CV_NONODS * NPHASE * IGOT_T2 )) ; T2 = 0.
         ALLOCATE( T2OLD( CV_NONODS * NPHASE * IGOT_T2 )) ; T2OLD =0.
         ALLOCATE( THETA_GDIFF( NPHASE * IGOT_T2, CV_NONODS * IGOT_T2 )) ; THETA_GDIFF = 0.
@@ -1919,23 +1915,11 @@ contains
                 END DO
             END DO
 
-
-
-
             CALL PUT_MOM_C_IN_GLOB_MAT( NPHASE,NDIM, &
             NCOLDGM_PHA, DGM_PHA, FINDGM_PHA, &
             NLENMCY, NCOLMCY, MCY, FINMCY, &
             U_NONODS, NCOLC, C, FINDC )
         END IF
-
-!        IF ( USE_THETA_FLUX ) THEN ! We have already put density in theta...
-!            DEN_OR_ONE = 1.0
-!            DENOLD_OR_ONE = 1.0
-!        ELSE
-!            DEN_OR_ONE = DEN
-!            DENOLD_OR_ONE = DENOLD
-!        END IF
-
 
 
         IF ( USE_THETA_FLUX ) THEN ! We have already put density in theta...
@@ -1947,15 +1931,11 @@ contains
         END IF
 
 
-
-
         ! unused at this stage
         second_theta = 0.0
 
-! Use Q-scheme ...
-        Q_SCHEME = have_option( '/material_phase[0]/scalar_field::Temperature/prognostic/spatial_discretisation/control_volumes/q_scheme' )
-        IGOT_THERM_VIS=0 
-        IF(Q_SCHEME) IGOT_THERM_VIS=1
+        ! no q scheme
+        IGOT_THERM_VIS = 0
 
 
         tracer=>extract_tensor_field(packed_state,"PackedPhaseVolumeFraction") 
@@ -2260,10 +2240,9 @@ contains
         character( len = option_path_len ) :: option_path
         LOGICAL, PARAMETER :: VOL_ELE_INT_PRES = .TRUE., STAB_VISC_WITH_ABS=.FALSE. 
         LOGICAL :: STRESS_FORM, STRESS_FORM_STAB, THERMAL_STAB_VISC, THERMAL_LES_VISC, THERMAL_FLUID_VISC, Q_SCHEME
-!        LOGICAL, PARAMETER :: POROUS_VEL = .false. ! For reduced variable porous media treatment.
+        !LOGICAL, PARAMETER :: POROUS_VEL = .false. ! For reduced variable porous media treatment.
         ! if STAB_VISC_WITH_ABS then stabilize (in the projection mehtod) the viscosity using absorption.
-        !      REAL, PARAMETER :: WITH_NONLIN = 1.0, TOLER = 1.E-10, ZERO_OR_TWO_THIRDS=2.0/3.0
-        REAL, PARAMETER :: WITH_NONLIN = 1.0, TOLER = 1.E-10, ZERO_OR_TWO_THIRDS=0.0
+        REAL, PARAMETER :: WITH_NONLIN = 1.0, TOLER = 1.E-10
         !  perform Roe averaging
         LOGICAL, PARAMETER :: ROE_AVE = .false.
         ! NON_LIN_DGFLUX = .TRUE. non-linear DG flux for momentum - if we have an oscillation use upwinding else use central scheme.
@@ -2436,7 +2415,7 @@ contains
         INTEGER :: RESID_BASED_STAB_DIF
         REAL :: U_NONLIN_SHOCK_COEF,RNO_P_IN_A_DOT
         REAL :: JTT_INV
-        REAL :: VLKNN, U_N
+        REAL :: VLKNN, U_N, zero_or_two_thirds
 
         REAL :: CENT_RELAX,CENT_RELAX_OLD
         INTEGER :: P_INOD, U_INOD_IPHA, U_JNOD, U_KLOC2, U_NODK2, U_NODK2_PHA, GLOBJ_IPHA, IDIM_VEL
@@ -2501,8 +2480,12 @@ contains
 
         capillary_pressure_activated = have_option( '/material_phase[0]/multiphase_properties/capillary_pressure' )
 
+
+     call get_option( "/material_phase[0]/vector_field::Velocity/prognostic/spatial_discretisation/viscosity_scheme/zero_or_two_thirds", zero_or_two_thirds, default=0. )
+
+
 ! Stress form for the fluid viscocity
-        STRESS_FORM      = have_option( '/material_phase[0]/vector_field::Velocity/prognostic/spatial_discretisation/discontinuous_galerkin/viscosity_scheme/stress_form' )
+        STRESS_FORM = have_option( '/material_phase[0]/vector_field::Velocity/prognostic/spatial_discretisation/discontinuous_galerkin/viscosity_scheme/stress_form' )
 
 ! Stress form for the Petrov-Galerkin viscocity
         STRESS_FORM_STAB = have_option( '/material_phase[0]/vector_field::Velocity/prognostic/spatial_discretisation/discontinuous_galerkin/stabilisation/stress_form' )
@@ -2516,11 +2499,14 @@ contains
 ! Put the Petrov-Galerkin viscocity in the thermal energy eqn...
         THERMAL_STAB_VISC = have_option( '/material_phase[0]/scalar_field::Temperature/prognostic/spatial_discretisation/control_volumes/q_scheme/include_stabilisation_viscosity' )
 
+! Put the LES viscocity in the thermal energy eqn...
+        THERMAL_LES_VISC = have_option( '/material_phase[0]/scalar_field::Temperature/prognostic/spatial_discretisation/control_volumes/q_scheme/include_les_viscosity' )
+
+
 ! therm_ftheta
         call get_option( '/material_phase[0]/scalar_field::Temperature/prognostic/spatial_discretisation/control_volumes/q_scheme/therm_ftheta', therm_fTHETA, default=1.0 )
 
-! Put the LES viscocity in the thermal energy eqn...
-        THERMAL_LES_VISC = have_option( '/material_phase[0]/scalar_field::Temperature/prognostic/spatial_discretisation/control_volumes/q_scheme/include_les_viscosity' )
+
 ! Put the LES theta value for time stepping (LES_THETA=1 is default)...
         call get_option( '/material_phase[0]/vector_field::Velocity/prognostic/spatial_discretisation/discontinuous_galerkin/les_model/les_theta', LES_THETA, default=1.0 )
 
@@ -2956,15 +2942,10 @@ contains
               ALLOCATE( MAT_ELE_CV_LOC( CV_NLOC, CV_NLOC ), INV_MAT_ELE_CV_LOC( CV_NLOC, CV_NLOC ), DIFF_FOR_BETWEEN_CV( NDIM, NPHASE, CV_NLOC ) )
               ALLOCATE( DIFFCV(NDIM, NPHASE, MAT_NLOC), DIFFCV_TEN(NDIM,NDIM, NPHASE, MAT_NLOC) )
               ALLOCATE( DIFFCV_TEN_ELE(NDIM, NDIM, NPHASE, MAT_NLOC, TOTELE) )
-           ENDIF
-        ENDIF
-        IF(Q_SCHEME) THEN
-           IF( THERMAL_STAB_VISC ) THEN 
               ALLOCATE( RCOUNT_NODS(MAT_NONODS) )
-           ENDIF
-        ENDIF
-
-
+           END IF
+        END IF
+  
         IF ( GOT_DIFFUS ) THEN
             ALLOCATE( DUX_ELE_ALL( NDIM_VEL, NDIM, NPHASE, U_NLOC, TOTELE ) )
             ALLOCATE( DUOLDX_ELE_ALL( NDIM_VEL, NDIM, NPHASE, U_NLOC, TOTELE ) )
@@ -3050,11 +3031,11 @@ contains
 ! LES VISCOCITY CALC.
         IF ( GOT_DIFFUS ) THEN
            ALLOCATE(UDIFFUSION_ALL(NDIM,NDIM,NPHASE,MAT_NONODS)) ; UDIFFUSION_ALL=0.
-           IF(LES_DISOPT.NE.0) THEN
+           IF ( LES_DISOPT /= 0 ) THEN
               ALLOCATE(LES_UDIFFUSION(NDIM,NDIM,NPHASE,MAT_NONODS))
               CALL VISCOCITY_TENSOR_LES_CALC(LES_UDIFFUSION, LES_THETA*DUX_ELE_ALL + (1.-LES_THETA)*DUOLDX_ELE_ALL, &
-                                             NDIM,NPHASE, U_NLOC,X_NLOC,TOTELE, X_NONODS, &
-                                             X_ALL, X_NDGLN,  MAT_NONODS, MAT_NLOC, MAT_NDGLN, LES_DISOPT, LES_CS)
+                   NDIM,NPHASE, U_NLOC,X_NLOC,TOTELE, X_NONODS, &
+                   X_ALL, X_NDGLN,  MAT_NONODS, MAT_NLOC, MAT_NDGLN, LES_DISOPT, LES_CS)
               IF ( STRESS_FORM ) THEN ! put into viscocity in stress form
                  DO IDIM=1,NDIM
                     DO JDIM=1,NDIM
@@ -4044,76 +4025,80 @@ contains
 
 
 
-                ! Place the diffusion term into matrix for between element diffusion stabilization...
-                IF ( BETWEEN_ELE_STAB ) THEN
-                    ! we store these vectors in order to try and work out the between element
-                    ! diffusion/viscocity.
-                    DO U_ILOC = 1, U_NLOC
-                        DO U_JLOC = 1, U_NLOC
-                            MAT_ELE( U_ILOC, U_JLOC, ELE ) = MAT_ELE( U_ILOC, U_JLOC, ELE ) + &
+              ! Place the diffusion term into matrix for between element diffusion stabilization...
+              IF ( BETWEEN_ELE_STAB ) THEN
+                 ! we store these vectors in order to try and work out the between element
+                 ! diffusion/viscocity.
+                 DO U_ILOC = 1, U_NLOC
+                    DO U_JLOC = 1, U_NLOC
+                       MAT_ELE( U_ILOC, U_JLOC, ELE ) = MAT_ELE( U_ILOC, U_JLOC, ELE ) + &
                             SUM( UFEN( U_ILOC, : ) * UFEN( U_JLOC,  : ) * DETWEI( : ) )
-                        END DO
                     END DO
+                 END DO
 
-                    DO U_ILOC = 1, U_NLOC
-                        DO IPHASE = 1, NPHASE
-                            DO GI = 1, CV_NGI
-                                ! we store these vectors in order to try and work out the between element
-                                ! diffusion/viscocity.
-                                DIFF_FOR_BETWEEN_U( :, IPHASE, U_ILOC, ELE ) = DIFF_FOR_BETWEEN_U( :, IPHASE, U_ILOC, ELE ) &
-                                + UFEN( U_ILOC, GI ) * DETWEI( GI ) * DIF_STAB_U( :, IPHASE, GI )
-                            END DO
-                        END DO
-                    END DO
-                   ! End of IF(BETWEEN_ELE_STAB) THEN...
-                END IF
-
-                ! Place the diffusion term into matrix for between element diffusion stabilization...
-                IF ( THERMAL_STAB_VISC ) THEN
-                    ! we store these vectors in order to try and work out the between element
-                    ! diffusion/viscocity.
-                    DO CV_ILOC = 1, CV_NLOC
-                        DO CV_JLOC = 1, CV_NLOC
-                            MAT_ELE_CV_LOC( CV_ILOC, CV_JLOC ) = &
-                            SUM( CVFEN( CV_ILOC, : ) * CVFEN( CV_JLOC,  : ) * DETWEI( : ) )
-                        END DO
-                    END DO
-
-                    DIFF_FOR_BETWEEN_CV = 0.0
-
-                    DO CV_ILOC = 1, CV_NLOC
-                        DO IPHASE = 1, NPHASE
-                            DO GI = 1, CV_NGI
-                                ! we store these vectors in order to try and work out the between element
-                                ! diffusion/viscocity.
-                                DIFF_FOR_BETWEEN_CV( :, IPHASE, CV_ILOC ) = DIFF_FOR_BETWEEN_CV( :, IPHASE, CV_ILOC  ) &
-                                + CVFEN( CV_ILOC, GI ) * DETWEI( GI ) * DIF_STAB_U( :, IPHASE, GI )
-                            END DO
-                        END DO
-                    END DO
-
-                    INV_MAT_ELE_CV_LOC = INVERSE(MAT_ELE_CV_LOC)
+                 DO U_ILOC = 1, U_NLOC
                     DO IPHASE = 1, NPHASE
-                       DO IDIM=1,NDIM
-                          DIFFCV(IDIM, IPHASE,:)=MATMUL(INV_MAT_ELE_CV_LOC(:,:), DIFF_FOR_BETWEEN_CV( IDIM, IPHASE, : ) )
+                       DO GI = 1, CV_NGI
+                          ! we store these vectors in order to try and work out the between element
+                          ! diffusion/viscocity.
+                          DIFF_FOR_BETWEEN_U( :, IPHASE, U_ILOC, ELE ) = DIFF_FOR_BETWEEN_U( :, IPHASE, U_ILOC, ELE ) &
+                               + UFEN( U_ILOC, GI ) * DETWEI( GI ) * DIF_STAB_U( :, IPHASE, GI )
                        END DO
                     END DO
-                    DIFFCV=MAX(0.0, DIFFCV) 
+                 END DO
+                 ! End of IF(BETWEEN_ELE_STAB) THEN...
+              END IF
 
+              ! Place the diffusion term into matrix for between element diffusion stabilization...
+              IF ( THERMAL_STAB_VISC ) THEN
+
+                 ! we store these vectors in order to try and work out the between element
+                 ! diffusion/viscocity.
+                 DO CV_ILOC = 1, CV_NLOC
+                    DO CV_JLOC = 1, CV_NLOC
+                       MAT_ELE_CV_LOC( CV_ILOC, CV_JLOC ) = &
+                            SUM( CVFEN( CV_ILOC, : ) * CVFEN( CV_JLOC,  : ) * DETWEI( : ) )
+                    END DO
+                 END DO
+                 
+                 DIFF_FOR_BETWEEN_CV = 0.0
+
+                 DO CV_ILOC = 1, CV_NLOC
+                    DO IPHASE = 1, NPHASE
+                       DO GI = 1, CV_NGI
+                          ! we store these vectors in order to try and work out the between element
+                          ! diffusion/viscocity.
+                          DIFF_FOR_BETWEEN_CV( :, IPHASE, CV_ILOC ) = DIFF_FOR_BETWEEN_CV( :, IPHASE, CV_ILOC  ) &
+                               + CVFEN( CV_ILOC, GI ) * DETWEI( GI ) * DIF_STAB_U( :, IPHASE, GI )
+                       END DO
+                    END DO
+                 END DO
+
+                 INV_MAT_ELE_CV_LOC = INVERSE(MAT_ELE_CV_LOC)
+                 DO IPHASE = 1, NPHASE
                     DO IDIM=1,NDIM
-                       DO JDIM=1,NDIM
-                          DIFFCV_TEN(IDIM,JDIM, :,:)=  SQRT( DIFFCV(IDIM, :,:)  *  DIFFCV(JDIM, :,:) )
-                       END DO
+                       DIFFCV(IDIM, IPHASE,:) = MATMUL(INV_MAT_ELE_CV_LOC(:,:), DIFF_FOR_BETWEEN_CV( IDIM, IPHASE, : ) )
                     END DO
+                 END DO
+                 DIFFCV=MAX(0.0, DIFFCV) 
+                 
+                 DO IDIM=1,NDIM
+                    DO JDIM=1,NDIM
+                       DIFFCV_TEN(IDIM,JDIM, :,:) = SQRT( DIFFCV(IDIM, :,:) * DIFFCV(JDIM, :,:) )
+                    END DO
+                 END DO
 
-                    DIFFCV_TEN_ELE(:,:, :,:,ELE)=DIFFCV_TEN(:,:, :,:)
+                 DIFFCV_TEN_ELE(:,:, :,:,ELE) = DIFFCV_TEN
 
-                   ! End of IF( THERMAL_STAB_VISC ) THEN...
-                END IF
+                 ! End of IF( THERMAL_STAB_VISC ) THEN...
+              END IF
+     
+
+
                !! *************************INNER ELEMENT STABILIZATION****************************************
                !! *************************INNER ELEMENT STABILIZATION****************************************
                ! endof IF(RESID_BASED_STAB_DIF.NE.0) THEN
-            END IF
+             END IF
             ! **********REVIEWER 2-END**********************
 
             ! copy local memory
@@ -4130,32 +4115,32 @@ contains
         END DO Loop_Elements
 
 
-           IF ( Q_SCHEME ) THEN
+        IF ( Q_SCHEME ) THEN
 
-               THERM_U_DIFFUSION = 0.0
+           THERM_U_DIFFUSION = 0.0
 
-               IF ( THERMAL_STAB_VISC ) THEN ! Petrov-Galerkin visc...
-                  RCOUNT_NODS = 0.0
-                  DO ELE=1,TOTELE
-                     DO MAT_ILOC=1,MAT_NLOC
-                        MAT_NOD = MAT_NDGLN( (ELE-1)*MAT_NLOC + MAT_ILOC ) 
-                        THERM_U_DIFFUSION( :,:,:,MAT_NOD ) = THERM_U_DIFFUSION( :,:,:,MAT_NOD ) + DIFFCV_TEN_ELE( :,:,:,MAT_ILOC,ELE ) * MASS_ELE( ELE )
-                       RCOUNT_NODS( MAT_NOD ) = RCOUNT_NODS( MAT_NOD ) + MASS_ELE( ELE )
-                     END DO
-                  END DO
-                  DO MAT_NOD = 1, MAT_NONODS
-                     THERM_U_DIFFUSION( :,:,:,MAT_NOD ) = THERM_U_DIFFUSION( :,:,:,MAT_NOD ) / RCOUNT_NODS( MAT_NOD )
-                  END DO
-               END IF
-
-               ! Put the fluid viscocity (also includes LES viscocity) into the Q-scheme thermal viscocity
-               IF ( THERMAL_FLUID_VISC .AND. THERMAL_LES_VISC) THEN
-                  THERM_U_DIFFUSION = THERM_U_DIFFUSION + UDIFFUSION_ALL
-               ELSE IF ( THERMAL_FLUID_VISC ) THEN
-                  THERM_U_DIFFUSION = THERM_U_DIFFUSION + UDIFFUSION
-               END IF
-
+           IF ( THERMAL_STAB_VISC ) THEN ! Petrov-Galerkin visc...
+              RCOUNT_NODS = 0.0
+              DO ELE=1,TOTELE
+                 DO MAT_ILOC=1,MAT_NLOC
+                    MAT_NOD = MAT_NDGLN( (ELE-1)*MAT_NLOC + MAT_ILOC ) 
+                    THERM_U_DIFFUSION( :,:,:,MAT_NOD ) = THERM_U_DIFFUSION( :,:,:,MAT_NOD ) + DIFFCV_TEN_ELE( :,:,:,MAT_ILOC,ELE ) * MASS_ELE( ELE )
+                    RCOUNT_NODS( MAT_NOD ) = RCOUNT_NODS( MAT_NOD ) + MASS_ELE( ELE )
+                 END DO
+              END DO
+              DO MAT_NOD = 1, MAT_NONODS
+                 THERM_U_DIFFUSION( :,:,:,MAT_NOD ) = THERM_U_DIFFUSION( :,:,:,MAT_NOD ) / RCOUNT_NODS( MAT_NOD )
+              END DO
            END IF
+
+           ! Put the fluid viscocity (also includes LES viscocity) into the Q-scheme thermal viscocity
+           IF ( THERMAL_FLUID_VISC .AND. THERMAL_LES_VISC) THEN
+              THERM_U_DIFFUSION = THERM_U_DIFFUSION + UDIFFUSION_ALL
+           ELSE IF ( THERMAL_FLUID_VISC ) THEN
+              THERM_U_DIFFUSION = THERM_U_DIFFUSION + UDIFFUSION
+           END IF
+
+        END IF
 
         !!XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX!!
         !!XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX!!
