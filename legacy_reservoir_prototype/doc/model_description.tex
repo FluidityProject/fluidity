@@ -3831,6 +3831,21 @@ commutation error will not reduce the accuracy of these
 simulations.
 
 
+\subsection{Q-Scheme}
+For the resulting viscocity to be used within the 
+Q-Scheme it must be in stress form. In this way it 
+may act on the internal energy equation in much the same way 
+as fluid viscocity does. However, the LES viscocity in tensor 
+form must be diagonal and in this case the off diagonal 
+stress terms can be obtained from 
+\begin{eqnarray}
+\mu_{xy}=\sqrt{\mu_x}\sqrt{\mu_y}. 
+\end{eqnarray}
+In which $\mu_x$ is the diagonal tensor for the $u-$ momentum equation 
+and  $\mu_y$ the diagonal tensor for the $v-$ momentum equation. 
+This is also the approach taken when the viscocity is determined 
+from the non-linear Petrov-Galerkin method in the next section. 
+
 
 
 \section{Solution method for solid-fluid coupling} 
@@ -4286,12 +4301,14 @@ The stress conditions discretized is:
 + \int_{\Gamma_{solid}} N_i n\cdot \underline{\underline{\tau}}_{solid} d\Gamma
 =\int N_i \nabla \cdot \tau dV
 + \int_{\Gamma_{solid}} N_i n\cdot (\underline{\underline{\tau}}_{solid} - \underline{\underline{\tau}}) d\Gamma
+\label{visc-stress-original} 
 \end{eqnarray} 
 
 Consider for example the part of the $\underline{\underline{\tau}}$ term: 
 
 \begin{eqnarray}
 \int_\Gamma N_i n_x \mu ( \frac{\partial u}{\partial x}\vert_{solid} - \frac{\partial u}{\partial x} ) d\Gamma
+\label{visc-stress-original-solid-bc} 
 \end{eqnarray} 
 
 We can evaluate these over a thin shell $V_{shell}$ using: 
@@ -4309,6 +4326,7 @@ We can evaluate these over a thin shell $V_{shell}$ using:
 \int_{V_{shell}}  N_i n_x \frac{1}{\Delta r}\mu \frac{\partial u}{\partial x}  dV
 +
 \int_{V_{shell}}  N_i n_x n_x \frac{1}{(\Delta r)^2}\mu (u_{solid} -u)  dV
+\label{visc-stress-original-practical} 
 \end{eqnarray} 
 Thus
 
@@ -4645,8 +4663,36 @@ are mapped to the fluids mesh in order to form the implicit treatment
 of the fluid velocity. 
 
 
+\subsection{Solid stress boundary condition or force on the solid} 
 
+The discretized force on the solid is evaluated from:
+\begin{eqnarray}
++ \int_{\Gamma_{solid}} N_i n\cdot (\underline{\underline{\tau}}_{solid} + I p) d\Gamma
+\end{eqnarray} 
+in which $\underline{\underline{\tau}}_{solid}$ contains just the viscouse contributions 
+to the stress term. 
+
+As shown in equation \ref{visc-stress-original-practical}  the 
+individual gradients (that make up the viscous stress tensor  $\underline{\underline{\tau}}_{solid}$) can be calculated from:
+\begin{eqnarray}
+\int_{\Gamma_{solid}}  N_i n_x \mu \frac{\partial u}{\partial x} \vert_{solid} d\Gamma
+\approx 
+\int_{V_{shell}}  N_i n_x \frac{1}{\Delta r}\mu \frac{\partial u}{\partial x}  dV
++
+\int_{V_{shell}}  N_i n_x n_x \frac{1}{(\Delta r)^2}\mu (u_{solid} -u)  dV \\
+\approx 
+\int_{\Gamma_{solid}}  N_i n_x \mu \frac{\partial u}{\partial x}  d\Gamma
++
+\int_{\Gamma_{solid}}  N_i n_x n_x \frac{1}{\Delta r}\mu (u_{solid} -u)  d\Gamma. 
+\label{visc-stress-original-practical-solid-bc} 
+\end{eqnarray} 
+This integral is used as a discretized surface force in the solids equations. 
  
+
+
+
+
+
 
 \pagebreak
 

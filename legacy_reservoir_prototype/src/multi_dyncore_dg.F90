@@ -1852,8 +1852,8 @@ contains
         GET_THETA_FLUX = .FALSE.
         IGOT_T2 = 0
 
-        ALLOCATE( DEN_OR_ONE( NPHASE, CV_NONODS )) ; DEN_OR_ONE = 0.
-        ALLOCATE( DENOLD_OR_ONE( NPHASE, CV_NONODS )) ; DENOLD_OR_ONE = 0.
+        ALLOCATE( DEN_OR_ONE( NPHASE, CV_NONODS )) !  ; DEN_OR_ONE = 0.
+        ALLOCATE( DENOLD_OR_ONE( NPHASE, CV_NONODS ) !  ; DENOLD_OR_ONE = 0.
 
         ALLOCATE( T2( CV_NONODS * NPHASE * IGOT_T2 )) ; T2 = 0.
         ALLOCATE( T2OLD( CV_NONODS * NPHASE * IGOT_T2 )) ; T2OLD =0.
@@ -2521,9 +2521,9 @@ contains
 ! DIFF_MIN_FRAC is the fraction of the standard diffusion coefficient to use 
 ! in the non-linear diffusion scheme. DIFF_MAX_FRAC is the maximum fraction. 
 ! If SIMPLE_DIFF_CALC then use a simple and fast diffusion calculation.
-         DIFF_MIN_FRAC = 0.2
-         DIFF_MAX_FRAC = 100.0
-         SIMPLE_DIFF_CALC = .FALSE. ! Need switches for this
+!         DIFF_MIN_FRAC = 0.2
+!         DIFF_MAX_FRAC = 100.0
+!         SIMPLE_DIFF_CALC = .FALSE. ! Need switches for this
 
 
          SIMPLE_DIFF_CALC = have_option( '/material_phase[0]/vector_field::Velocity/prognostic/spatial_discretisation/discontinuous_galerkin/viscosity_scheme/linear_scheme' )
@@ -3030,7 +3030,7 @@ contains
 
 ! LES VISCOCITY CALC.
         IF ( GOT_DIFFUS ) THEN
-           ALLOCATE(UDIFFUSION_ALL(NDIM,NDIM,NPHASE,MAT_NONODS)) ; UDIFFUSION_ALL=0.
+           ALLOCATE(UDIFFUSION_ALL(NDIM,NDIM,NPHASE,MAT_NONODS)) ! ; UDIFFUSION_ALL=0.
            IF ( LES_DISOPT /= 0 ) THEN
               ALLOCATE(LES_UDIFFUSION(NDIM,NDIM,NPHASE,MAT_NONODS))
               CALL VISCOCITY_TENSOR_LES_CALC(LES_UDIFFUSION, LES_THETA*DUX_ELE_ALL + (1.-LES_THETA)*DUOLDX_ELE_ALL, &
