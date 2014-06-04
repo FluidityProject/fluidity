@@ -116,6 +116,7 @@ lib/libalgencan.a:
 
 lib/libadaptivity.a:
 	@echo '    MKDIR lib'; mkdir -p lib
+	@echo '    MKDIR libadaptivity/lib'; mkdir -p libadaptivity/lib
 	@BUILD_LIBADAPT@
 
 lib/libvtkfortran.a:
