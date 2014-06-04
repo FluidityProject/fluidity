@@ -950,6 +950,12 @@ Int grad u.kappa.grad v dV</a:documentation>
                 <empty/>
               </element>
             </choice>
+            <optional>
+              <element name="zero_or_two_thirds">
+                <a:documentation>defaults to 0.</a:documentation>
+                <ref name="real"/>
+              </element>
+            </optional>
           </element>
           <element name="advection_scheme">
             <choice>

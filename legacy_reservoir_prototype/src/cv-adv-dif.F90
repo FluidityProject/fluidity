@@ -276,7 +276,7 @@ contains
 
 
       ! Local variables
-      REAL, PARAMETER :: ZERO_OR_TWO_THIRDS = 0.0
+      REAL :: ZERO_OR_TWO_THIRDS
 ! if integrate_other_side then just integrate over a face when cv_nodj>cv_nodi
       logical, PARAMETER :: integrate_other_side= .true.
 ! if .not.correct_method_petrov_method then we can compare our results directly with previous code...
@@ -603,6 +603,10 @@ contains
       IF(IGOT_THERM_VIS==1) GOT_VIS = ( R2NORM( THERM_U_DIFFUSION, MAT_NONODS * NDIM * NDIM * NPHASE ) /= 0 )
 
       GOT_DIFFUS = ( R2NORM( TDIFFUSION, MAT_NONODS * NDIM * NDIM * NPHASE ) /= 0 )
+
+     call get_option( "/material_phase[0]/vector_field::Velocity/prognostic/spatial_discretisation/viscosity_scheme/zero_or_two_thirds", zero_or_two_thirds, default=0. )
+
+
 
 !      print *,'SECOND_THETA=',SECOND_THETA
 !         stop 2821

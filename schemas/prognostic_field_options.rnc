@@ -780,7 +780,11 @@ prognostic_velocity_field =
                      element linear_scheme {
                         empty
                      }
-                  )
+                  ),
+                  ## defaults to 0.
+                  element zero_or_two_thirds {
+                     real
+                  }?
                },
                element advection_scheme {
                   (
