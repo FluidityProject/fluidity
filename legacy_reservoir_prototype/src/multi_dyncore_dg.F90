@@ -3048,8 +3048,8 @@ contains
 
 
 ! LES VISCOCITY CALC.
-        IF(GOT_DIFFUS ) THEN
-           ALLOCATE(UDIFFUSION_ALL(NDIM,NDIM,NPHASE,MAT_NONODS))
+        IF ( GOT_DIFFUS ) THEN
+           ALLOCATE(UDIFFUSION_ALL(NDIM,NDIM,NPHASE,MAT_NONODS)) ; UDIFFUSION_ALL=0.
            IF(LES_DISOPT.NE.0) THEN
               ALLOCATE(LES_UDIFFUSION(NDIM,NDIM,NPHASE,MAT_NONODS))
               CALL VISCOCITY_TENSOR_LES_CALC(LES_UDIFFUSION, LES_THETA*DUX_ELE_ALL + (1.-LES_THETA)*DUOLDX_ELE_ALL, &
@@ -4129,35 +4129,33 @@ contains
 
         END DO Loop_Elements
 
-        
-! Map to continuous or other basis
-           IF(Q_SCHEME) THEN
 
-               THERM_U_DIFFUSION=0.0
+           IF ( Q_SCHEME ) THEN
 
-               IF( THERMAL_STAB_VISC ) THEN ! Petrov-Galerkin visc...
-                  RCOUNT_NODS=0.0
+               THERM_U_DIFFUSION = 0.0
+
+               IF ( THERMAL_STAB_VISC ) THEN ! Petrov-Galerkin visc...
+                  RCOUNT_NODS = 0.0
                   DO ELE=1,TOTELE
                      DO MAT_ILOC=1,MAT_NLOC
                         MAT_NOD = MAT_NDGLN( (ELE-1)*MAT_NLOC + MAT_ILOC ) 
-                        THERM_U_DIFFUSION(:,:,:,MAT_NOD) = THERM_U_DIFFUSION(:,:,:,MAT_NOD) + DIFFCV_TEN_ELE(:,:, :,MAT_ILOC,ELE) * MASS_ELE( ELE )
-                        RCOUNT_NODS(MAT_NOD) = RCOUNT_NODS(MAT_NOD) + MASS_ELE( ELE )
+                        THERM_U_DIFFUSION( :,:,:,MAT_NOD ) = THERM_U_DIFFUSION( :,:,:,MAT_NOD ) + DIFFCV_TEN_ELE( :,:,:,MAT_ILOC,ELE ) * MASS_ELE( ELE )
+                       RCOUNT_NODS( MAT_NOD ) = RCOUNT_NODS( MAT_NOD ) + MASS_ELE( ELE )
                      END DO
                   END DO
-! Put the fluid viscocity into the Q-scheme thermal viscocity
-                  DO MAT_NOD=1,MAT_NONODS
-                     THERM_U_DIFFUSION(:,:,:,MAT_NOD) = THERM_U_DIFFUSION(:,:,:,MAT_NOD)/RCOUNT_NODS(MAT_NOD) 
+                  DO MAT_NOD = 1, MAT_NONODS
+                     THERM_U_DIFFUSION( :,:,:,MAT_NOD ) = THERM_U_DIFFUSION( :,:,:,MAT_NOD ) / RCOUNT_NODS( MAT_NOD )
                   END DO
-               ENDIF
+               END IF
 
-! Put the fluid viscocity (also includes LES viscocity) into the Q-scheme thermal viscocity
-               IF( THERMAL_FLUID_VISC .AND. THERMAL_LES_VISC) THEN
+               ! Put the fluid viscocity (also includes LES viscocity) into the Q-scheme thermal viscocity
+               IF ( THERMAL_FLUID_VISC .AND. THERMAL_LES_VISC) THEN
                   THERM_U_DIFFUSION = THERM_U_DIFFUSION + UDIFFUSION_ALL
-               ELSE IF(THERMAL_FLUID_VISC) THEN
+               ELSE IF ( THERMAL_FLUID_VISC ) THEN
                   THERM_U_DIFFUSION = THERM_U_DIFFUSION + UDIFFUSION
-               ENDIF
-           ENDIF
+               END IF
 
+           END IF
 
         !!XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX!!
         !!XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX!!
