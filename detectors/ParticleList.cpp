@@ -50,6 +50,16 @@ void ParticleList::add_particle(Particle *p) {
   plist.push_back(p);
 }
 
+list<Particle*>::iterator ParticleList::begin()
+{
+  return plist.begin();
+}
+
+list<Particle*>::iterator ParticleList::end()
+{
+  return plist.end();
+}
+
 extern "C" {
   ParticleList *create_particle_list()
   {
@@ -61,7 +71,8 @@ extern "C" {
     plist->view();
   }
 
-  void particle_list_new_particle(ParticleList *plist, double coordinates[], int dim)
+  void particle_list_new_particle(ParticleList *plist, double coordinates[],
+                                  int dim, char *name)
   {
     /* Establish cell and local coordinates via callback */
     double *lcoords = new double[dim+1];
@@ -69,7 +80,7 @@ extern "C" {
     find_enclosing_cell(coordinates, dim, &cell, lcoords);
 
     if (cell > 0) {
-      Particle *p = new Particle(coordinates, dim, cell, lcoords);
+      Particle *p = new Particle(coordinates, dim, cell, lcoords, name);
       plist->add_particle(p);
     }
     delete [] lcoords;

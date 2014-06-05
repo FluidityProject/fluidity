@@ -25,31 +25,46 @@
    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
    USA
 */
-#include <iostream>
-#include <vector>
-#include <sstream>
-#include <string>
+#include "ParticleList.h"
+#include <fstream>
+#include "confdefs.h"
+#include <cstdlib>
+#include <map>
+#include <iomanip>
 
 using namespace std;
 
-#ifndef Particle_H
-#define Particle_H
-class Particle
+#ifndef ParticleWriterStat_H
+#define ParticleWriterStat_H
+class ParticleWriterStat
 {
  public:
-  Particle(double coordinates[], int dim, int cell, double local_coords[], char *name);
-  ~Particle();
-  virtual void view();
+  ParticleWriterStat(ParticleList *plist, char *filename, bool binary);
+  ~ParticleWriterStat();
 
-  string get_name();
-  vector<double> get_position();
-  void scalar_field_value(void *field_ptr, double *scalar_value);
-  void vector_field_value(void *field_ptr, double *vector_value);
+  void register_field(char *name, void *ptr, char *mphase, int components);
+  void write_header();
+  void write_particle_state(double time, double dt);
 
- protected:
-  string         name;
-  int            cell;
-  vector<double> position;
-  vector<double> local_coords;
+ private:
+  string filename;
+  ofstream file;
+  bool is_binary;
+
+  ParticleList *plist;
+  map<string, void*> field_ptrs;
+  map<string, int> field_comps;
+  map<string, string> field_mphase;
+  int column_cnt;
+
+  void write_header_constants();
+  void write_header_fields();
+  string constant_tag(string name, string type, string value);
+  string field_tag(string name, int column, string statistic,
+                   string material_phase, int components);
+
+  void write_scalar(double value);
+  void write_vector(vector<double> values);
+  void write_vector(double *values, size_t size);
 };
-#endif // Particle_H
+#endif // ParticleWriterStat_H

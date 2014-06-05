@@ -50,7 +50,7 @@ ARFLAGS = cr
 
 LIB = ../lib/lib$(FLUIDITY).a
 
-OBJS = Detectors.o Particle.o ParticleList.o
+OBJS = Detectors.o Particle.o ParticleList.o ParticleWriterStat.o
 
 .SUFFIXES: .c .o .cpp .F90 .a .so
 

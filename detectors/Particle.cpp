@@ -27,10 +27,20 @@
 */
 #include "Particle.h"
 
-Particle::Particle(double coordinates[], int dim, int cell, double local_coords[]) :
+extern "C" {
+  /* The following routines should eventually become dynamically set callbacks */
+  void evaluate_scalar_field(void *field_ptr, int dim, int element,
+                             double *lcoords, double *scalar_value);
+  void evaluate_vector_field(void *field_ptr, int dim, int element,
+                             double *lcoords, double *vector_value);
+}
+
+Particle::Particle(double coordinates[], int dim, int cell,
+                   double local_coords[], char *name) :
   position(dim), local_coords(dim+1)
 {
   this->cell = cell;
+  this->name = string(name);
 
   /* Deep copy position coordinates */
   for (int i=0; i<dim; i++) this->position[i] = coordinates[i];
@@ -38,6 +48,28 @@ Particle::Particle(double coordinates[], int dim, int cell, double local_coords[
 }
 
 Particle::~Particle() {}
+
+string Particle::get_name()
+{
+  return this->name;
+}
+
+vector<double> Particle::get_position()
+{
+  return this->position;
+}
+
+void Particle::scalar_field_value(void *field_ptr, double *scalar_value)
+{
+  evaluate_scalar_field(field_ptr, this->position.size(), this->cell,
+                        this->local_coords.data(), scalar_value);
+}
+
+void Particle::vector_field_value(void *field_ptr, double *vector_value)
+{
+  evaluate_vector_field(field_ptr, this->position.size(), this->cell,
+                        this->local_coords.data(), vector_value);
+}
 
 void Particle::view()
 {

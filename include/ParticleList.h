@@ -41,6 +41,8 @@ class ParticleList
   void view();
 
   void add_particle(Particle *p);
+  list<Particle*>::iterator begin();
+  list<Particle*>::iterator end();
 
  private:
   list<Particle*> plist;

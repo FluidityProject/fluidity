@@ -2162,9 +2162,6 @@ contains
        call move_lagrangian_detectors(state, default_stat%detector_list, dt, timestep)
     end if
 
-    ! Now output any detectors.    
-    call write_detectors(state, default_stat%detector_list, time, dt)
-
     call profiler_toc("I/O")
   
   contains
