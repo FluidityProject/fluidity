@@ -1,0 +1,13 @@
+quad=3
+2d
+CG
+p1
+unstructured grid cl=1/25
+adaptivity
+lumped mass
+time=0:0.005:20
+vel=0, transient external diffusion only
+only moment 3 compared to the analytical case
+analytical case derived using separation of variables
+N=2
+tests for L2error and max error at 5s and 20s
