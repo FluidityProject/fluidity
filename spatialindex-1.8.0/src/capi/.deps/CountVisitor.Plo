@@ -36,7 +36,8 @@ CountVisitor.lo: CountVisitor.cc \
  /usr/lib/gcc/x86_64-linux-gnu/4.6/include/stdarg.h \
  /usr/include/x86_64-linux-gnu/bits/wchar.h \
  /usr/lib/gcc/x86_64-linux-gnu/4.6/include/stddef.h \
- /usr/include/xlocale.h /usr/include/c++/4.6/bits/localefwd.h \
+ /usr/include/xlocale.h /usr/include/x86_64-linux-gnu/bits/wchar2.h \
+ /usr/include/c++/4.6/bits/localefwd.h \
  /usr/include/c++/4.6/x86_64-linux-gnu/./bits/c++locale.h \
  /usr/include/c++/4.6/clocale /usr/include/locale.h \
  /usr/include/x86_64-linux-gnu/bits/locale.h /usr/include/c++/4.6/iosfwd \
@@ -62,6 +63,7 @@ CountVisitor.lo: CountVisitor.cc \
  /usr/include/x86_64-linux-gnu/bits/posix_opt.h \
  /usr/include/x86_64-linux-gnu/bits/environments.h \
  /usr/include/x86_64-linux-gnu/bits/confname.h /usr/include/getopt.h \
+ /usr/include/x86_64-linux-gnu/bits/unistd.h \
  /usr/include/c++/4.6/x86_64-linux-gnu/./bits/atomic_word.h \
  /usr/include/c++/4.6/bits/basic_string.tcc /usr/include/c++/4.6/vector \
  /usr/include/c++/4.6/bits/stl_vector.h \
@@ -83,7 +85,8 @@ CountVisitor.lo: CountVisitor.cc \
  /usr/include/c++/4.6/bits/ostream.tcc \
  /usr/include/c++/4.6/bits/istream.tcc \
  /usr/include/c++/4.6/bits/sstream.tcc /usr/include/c++/4.6/cstring \
- /usr/include/string.h ../../include/spatialindex/capi/sidx_config.h \
+ /usr/include/string.h /usr/include/x86_64-linux-gnu/bits/string3.h \
+ ../../include/spatialindex/capi/sidx_config.h \
  /usr/lib/gcc/x86_64-linux-gnu/4.6/include/stdint.h /usr/include/stdint.h \
  ../../include/spatialindex/SpatialIndex.h \
  ../../include/spatialindex/tools/Tools.h /usr/include/assert.h \
@@ -94,6 +97,8 @@ CountVisitor.lo: CountVisitor.cc \
  /usr/include/libio.h /usr/include/_G_config.h \
  /usr/include/x86_64-linux-gnu/bits/stdio_lim.h \
  /usr/include/x86_64-linux-gnu/bits/sys_errlist.h \
+ /usr/include/x86_64-linux-gnu/bits/stdio.h \
+ /usr/include/x86_64-linux-gnu/bits/stdio2.h \
  /usr/include/c++/4.6/x86_64-linux-gnu/./bits/basic_file.h \
  /usr/include/c++/4.6/x86_64-linux-gnu/./bits/c++io.h \
  /usr/include/c++/4.6/bits/fstream.tcc /usr/include/c++/4.6/queue \
@@ -113,7 +118,9 @@ CountVisitor.lo: CountVisitor.cc \
  /usr/include/x86_64-linux-gnu/sys/select.h \
  /usr/include/x86_64-linux-gnu/bits/select.h \
  /usr/include/x86_64-linux-gnu/bits/sigset.h \
+ /usr/include/x86_64-linux-gnu/bits/select2.h \
  /usr/include/x86_64-linux-gnu/sys/sysmacros.h /usr/include/alloca.h \
+ /usr/include/x86_64-linux-gnu/bits/stdlib.h \
  /usr/include/c++/4.6/bits/algorithmfwd.h \
  /usr/include/c++/4.6/bits/stl_tempbuf.h \
  ../../include/spatialindex/tools/SmartPointer.h \
@@ -237,6 +244,8 @@ CountVisitor.lo: CountVisitor.cc \
 
 /usr/include/xlocale.h:
 
+/usr/include/x86_64-linux-gnu/bits/wchar2.h:
+
 /usr/include/c++/4.6/bits/localefwd.h:
 
 /usr/include/c++/4.6/x86_64-linux-gnu/./bits/c++locale.h:
@@ -305,6 +314,8 @@ CountVisitor.lo: CountVisitor.cc \
 
 /usr/include/getopt.h:
 
+/usr/include/x86_64-linux-gnu/bits/unistd.h:
+
 /usr/include/c++/4.6/x86_64-linux-gnu/./bits/atomic_word.h:
 
 /usr/include/c++/4.6/bits/basic_string.tcc:
@@ -365,6 +376,8 @@ CountVisitor.lo: CountVisitor.cc \
 
 /usr/include/string.h:
 
+/usr/include/x86_64-linux-gnu/bits/string3.h:
+
 ../../include/spatialindex/capi/sidx_config.h:
 
 /usr/lib/gcc/x86_64-linux-gnu/4.6/include/stdint.h:
@@ -398,6 +411,10 @@ CountVisitor.lo: CountVisitor.cc \
 /usr/include/x86_64-linux-gnu/bits/stdio_lim.h:
 
 /usr/include/x86_64-linux-gnu/bits/sys_errlist.h:
+
+/usr/include/x86_64-linux-gnu/bits/stdio.h:
+
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:
 
 /usr/include/c++/4.6/x86_64-linux-gnu/./bits/basic_file.h:
 
@@ -455,9 +472,13 @@ CountVisitor.lo: CountVisitor.cc \
 
 /usr/include/x86_64-linux-gnu/bits/sigset.h:
 
+/usr/include/x86_64-linux-gnu/bits/select2.h:
+
 /usr/include/x86_64-linux-gnu/sys/sysmacros.h:
 
 /usr/include/alloca.h:
+
+/usr/include/x86_64-linux-gnu/bits/stdlib.h:
 
 /usr/include/c++/4.6/bits/algorithmfwd.h:
 

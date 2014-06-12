@@ -162,12 +162,12 @@ distuninstallcheck_listfiles = find . -type f -print
 am__distuninstallcheck_listfiles = $(distuninstallcheck_listfiles) \
   | sed 's|^\./|$(prefix)/|' | grep -v '$(infodir)/dir$$'
 distcleancheck_listfiles = find . -type f -print
-ACLOCAL = ${SHELL} /home/pablo/temporary/MultiFluids_Dev/spatialindex-1.8.0/missing --run aclocal-1.11
+ACLOCAL = ${SHELL} /home/pablo/Documents/workspace/MultiFluids_Dev/spatialindex-1.8.0/missing --run aclocal-1.11
 AMTAR = $${TAR-tar}
 AR = ar
-AUTOCONF = ${SHELL} /home/pablo/temporary/MultiFluids_Dev/spatialindex-1.8.0/missing --run autoconf
-AUTOHEADER = ${SHELL} /home/pablo/temporary/MultiFluids_Dev/spatialindex-1.8.0/missing --run autoheader
-AUTOMAKE = ${SHELL} /home/pablo/temporary/MultiFluids_Dev/spatialindex-1.8.0/missing --run automake-1.11
+AUTOCONF = ${SHELL} /home/pablo/Documents/workspace/MultiFluids_Dev/spatialindex-1.8.0/missing --run autoconf
+AUTOHEADER = ${SHELL} /home/pablo/Documents/workspace/MultiFluids_Dev/spatialindex-1.8.0/missing --run autoheader
+AUTOMAKE = ${SHELL} /home/pablo/Documents/workspace/MultiFluids_Dev/spatialindex-1.8.0/missing --run automake-1.11
 AWK = gawk
 CC = mpicc
 CCDEPMODE = depmode=gcc3
@@ -177,7 +177,7 @@ CPPFLAGS = -D_GNU_SOURCE
 CXX = mpicxx
 CXXCPP = mpicxx -E
 CXXDEPMODE = depmode=gcc3
-CXXFLAGS = -Wall -Wno-long-long -pedantic -std=c++98  -g -DDEBUG
+CXXFLAGS = -Wall -Wno-long-long -pedantic -std=c++98  -O2 -DNDEBUG
 CYGPATH_W = echo
 DEFS = -DPACKAGE_NAME=\"spatialindex\" -DPACKAGE_TARNAME=\"spatialindex-src\" -DPACKAGE_VERSION=\"1.8.0\" -DPACKAGE_STRING=\"spatialindex\ 1.8.0\" -DPACKAGE_BUGREPORT=\"mhadji@gmail.com\" -DPACKAGE_URL=\"\" -DSTDC_HEADERS=1 -DHAVE_SYS_TYPES_H=1 -DHAVE_SYS_STAT_H=1 -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 -DHAVE_MEMORY_H=1 -DHAVE_STRINGS_H=1 -DHAVE_INTTYPES_H=1 -DHAVE_STDINT_H=1 -DHAVE_UNISTD_H=1 -DHAVE_DLFCN_H=1 -DLT_OBJDIR=\".libs/\" -DPACKAGE=\"spatialindex-src\" -DVERSION=\"1.8.0\" -DHAVE_FCNTL_H=1 -DHAVE_UNISTD_H=1 -DHAVE_SYS_TYPES_H=1 -DHAVE_SYS_STAT_H=1 -DHAVE_PTHREAD_H=1 -DHAVE_SYS_RESOURCE_H=1 -DHAVE_SYS_TIME_H=1 -DHAVE_STDINT_H=1 -DHAVE_FEATURES_H=1 -DHAVE_GETTIMEOFDAY=1 -DHAVE_MEMSET=1 -DHAVE_MEMCPY=1 -DHAVE_BCOPY=1 -DHAVE_SRAND48=1
 DEPDIR = .deps
@@ -204,7 +204,7 @@ LIBTOOL = $(SHELL) $(top_builddir)/libtool
 LIPO = 
 LN_S = ln -s
 LTLIBOBJS = 
-MAKEINFO = ${SHELL} /home/pablo/temporary/MultiFluids_Dev/spatialindex-1.8.0/missing --run makeinfo
+MAKEINFO = ${SHELL} /home/pablo/Documents/workspace/MultiFluids_Dev/spatialindex-1.8.0/missing --run makeinfo
 MANIFEST_TOOL = :
 MKDIR_P = /bin/mkdir -p
 NM = /usr/bin/nm -B
@@ -227,10 +227,10 @@ SET_MAKE =
 SHELL = /bin/bash
 STRIP = strip
 VERSION = 1.8.0
-abs_builddir = /home/pablo/temporary/MultiFluids_Dev/spatialindex-1.8.0
-abs_srcdir = /home/pablo/temporary/MultiFluids_Dev/spatialindex-1.8.0
-abs_top_builddir = /home/pablo/temporary/MultiFluids_Dev/spatialindex-1.8.0
-abs_top_srcdir = /home/pablo/temporary/MultiFluids_Dev/spatialindex-1.8.0
+abs_builddir = /home/pablo/Documents/workspace/MultiFluids_Dev/spatialindex-1.8.0
+abs_srcdir = /home/pablo/Documents/workspace/MultiFluids_Dev/spatialindex-1.8.0
+abs_top_builddir = /home/pablo/Documents/workspace/MultiFluids_Dev/spatialindex-1.8.0
+abs_top_srcdir = /home/pablo/Documents/workspace/MultiFluids_Dev/spatialindex-1.8.0
 ac_ct_AR = ar
 ac_ct_CC = mpicc
 ac_ct_CXX = 
@@ -260,7 +260,7 @@ host_vendor = unknown
 htmldir = ${docdir}
 includedir = ${prefix}/include
 infodir = ${datarootdir}/info
-install_sh = ${SHELL} /home/pablo/temporary/MultiFluids_Dev/spatialindex-1.8.0/install-sh
+install_sh = ${SHELL} /home/pablo/Documents/workspace/MultiFluids_Dev/spatialindex-1.8.0/install-sh
 libdir = ${exec_prefix}/lib
 libexecdir = ${exec_prefix}/libexec
 localedir = ${datarootdir}/locale
@@ -269,7 +269,7 @@ mandir = ${datarootdir}/man
 mkdir_p = /bin/mkdir -p
 oldincludedir = /usr/include
 pdfdir = ${docdir}
-prefix = /home/pablo/temporary/MultiFluids_Dev/spatialindex-1.8.0/..
+prefix = /home/pablo/Documents/workspace/MultiFluids_Dev/spatialindex-1.8.0/..
 program_transform_name = s,x,x,
 psdir = ${docdir}
 sbindir = ${exec_prefix}/sbin

@@ -3848,7 +3848,996 @@ from the non-linear Petrov-Galerkin method in the next section.
 
 
 
-\section{Solution method for solid-fluid coupling} 
+
+
+
+
+
+
+
+
+
+\vfill\eject
+
+
+
+\section{Non-linear Petrov Galerkin methods demonstrated using Compressibility} 
+
+
+
+
+
+
+
+
+
+
+\subsection{Summary}
+Here new methods of solving the compressible flow equations 
+which are being developed for multi-phase flow are 
+applied to simple benchmark test cases. Some of the 1D 
+test case results are compared against an explicit linear Discontinuous 
+Galerkin (DG) Riemann solver with Roe-averaging of 
+the fluxes between the elements. 
+This method  
+is believed to be among the best performing methods  
+currently in the literature for these class of problems. 
+The new method has comparable accuracy grid-point for grid-point 
+(although 
+increased flexibility) compared with the explicit DG methods. 
+
+
+
+\subsection{Introduction}
+
+The Navier Stokes or Force balance (Darcy equations) and continuity 
+equations are solved by using a pressure projection method. 
+The solution method is centered around a mixed finite element formulation 
+that uses the new triangle/tetrahedra element PNDG-PN+1 which has a discontinuous $N^{\rm th}$ order polynomial for velocity and a continuous $N+1$ order polynomial for pressure. The applications use P1DG-P2. 
+Saturation/volume fraction 
+and density are represented on a control volume mesh - with CVs centered on the pressure nodes. 
+Using a projection method we solve for the FEM representation of 
+pressure and establish a mapping between this FEM representation 
+and the CV representation of pressure using a mixed CV-FEM mass 
+matrix. The CV representation of pressure then allows 
+ the EoS's to be evaluated CV-wise. 
+The time stepping is based on the $\theta$- method with 
+$\theta$ chosen to be as close to $\frac{1}{2}$ as possible 
+while ensuring a Total Variational Diminishing (TVD) 
+condition in time is satisfied. 
+This helps ensures high order 
+accuracy in time while achieving physically realistic (bounded) 
+solutions. Flux limiting methods based on the Normalized Variable 
+Diagram (NVD) approach 
+are used to limit the fluxes of the solution 
+on the CV boundaries to also 
+help ensure physical realism of the solution. 
+The high order representation on the CV boundaries is 
+obtained using a consistent FEM mapping of the CV 
+solution to a FEM solution and using this FEM solution 
+to represent the solution (subject to NVD flux limited) on the CV boundaries.  
+
+
+
+\subsection{Discretised saturation equation and global mass balance} 
+
+This section outlines the discrete saturation equations and derives the global mass balance equations from the saturation equations. The resulting equation can then be solved simultaneously with the force balance or momentum equations. 
+										
+
+\subsubsection{Discretised saturation equation} 
+
+The saturation equation 
+
+\begin{equation}
+\phi\frac{\partial \rho_k S_k }{\partial t} 
++ \nabla \cdot {\mathbf u}_k \rho_k S_k = {s_{cty}}_k, 
+\end{equation}
+discretised by testing it with CV basis functions 
+ $M_i$ is and discretising in time using the 
+ $\theta-$method is:
+ 
+\begin{equation}
+\int_\Omega M_i (\frac{\phi{\rho_k}_i^n ({S_k}_i^{n+1}-{S_k}_i^n) }{\Delta t} 
++ \frac{\phi{S_k}_i^n( {\rho_k}_i^{n+1}-{\rho_k}_i^n)} {\Delta t} ) dV
++ \int_{\Gamma_{CV_i}} {\mathbf n} \cdot {\mathbf u}_k^{n+\theta} \rho_k^{n+\theta} S_k^{n+\theta} 
+d\Gamma 
+= \int_\Omega M_i {s_{cty}}_k^{n+\theta} dV.
+\label{detail-sat-eqn-k}
+\end{equation}
+ 
+ 
+\subsubsection{Discretised global mass balance equation} 
+ 
+Dividing equation \ref{detail-sat-eqn-k} by ${\rho_k}^n_i $ and summing 
+over all phases one obtains the global mass balance equation: 
+
+ 
+\begin{equation}
+ \sum_k \left(
+\int_\Omega M_i (\frac{ \phi({S_k}_i^{n+1}-{S_k}_i^n) }{\Delta t} 
++ \frac{\phi{S_k}_i^n( {\rho_k}_i^{n+1}-{\rho_k}_i^n)} {{\rho_k}_i^n\Delta t} ) dV
++ \frac{1}{{\rho_k}_i^n}\int_{{\Gamma_{CV}}_i} 
+{\mathbf n} \cdot {\mathbf u}_k^{n+\theta} \rho_k^{n+\theta}   S_k^{n+\theta} d\Gamma
+- \frac{1}{{\rho_k}_i^n} \int_\Omega M_i {s_{cty}}_k^{n+\theta} dV \right) =0,
+\label{detail-sat-eqn-k-sum}
+\end{equation}
+
+The saturations and densities are flux limited in space and 
+time. This uses a finite element 
+interpolation of the saturations and densities which are then limited. 
+			
+
+
+Using $\sum_{k=1}^{\cal K} {S_k}_i^n =1, \;\; \forall n$ and linear 
+$\rho_k^{n+1}$ about the CV pressure variation $P_{CV}^{n+1}$ then 
+
+\begin{equation}
+ \sum_k ( \int_{\Omega} M_i 
+( \frac{{S_k}_i^n \frac{\partial \tilde{\rho_k}_i^{n+1}}{\partial \tilde{ p_{CV}}_i^{n+1}}({p_{CV}}_i^{n+1}-\tilde{p_{CV}}_i^{n+1})
+} {{\rho_k}_i^n\Delta t} 
++ \frac{{S_k}_i^n( \tilde{\rho_k}_i^{n+1}-{\rho_k}_i^n)} 
+{{\rho_k}_i^n \Delta t} ) dV
+\end{equation}
+\begin{equation}
++ \frac{1}{{\rho_k}_i^n}\int_{{\Gamma_{CV}}_i} {\mathbf n} \cdot {\mathbf u}_k^{n+\theta} \rho_k^{n+\theta} S_k^{n+\theta} d\Gamma
+- \frac{1}{{\rho_k}_i^n} \int_\Omega M_i {s_{cty}}_k dV ) =0.
+\label{detail-global-cty}
+\end{equation}
+In matrix form this becomes:
+
+\begin{equation}
+{\mathbf M}_p \underline{\bf p}^{n+1} + {\mathbf B}^T \underline{\bf u}^{n+1} 
+= \underline{\bf s}_p. 
+\label{glob-cty-matrix}
+\end{equation}
+
+Notice that in equation \ref{detail-global-cty} the 
+control volume-wise variation of pressure ${p_{CV}}_i^n$ has been 
+used and in order to get to the equation  \ref{glob-cty-matrix} 
+above the finite element variation of pressure with basis 
+functions $N_i$ has been used. Thus to get to equation 
+\ref{glob-cty-matrix} the Galerkin projection
+
+\begin{equation}
+\int_{\Omega} M_i (p_{CV}^n-p^n) dV =0
+\end{equation}
+for $p^n$ is used. This results in solving the matrix 
+equation for ${\bf p}^n$: 
+
+\begin{equation}
+{\mathbf M}_{CV} \underline{\bf p}_{CV}^n = {\mathbf N}_{CVfem} \underline {\bf p}^n
+\end{equation}
+in which the matrix ${\mathbf M}_{CV}$ is diagonal and thus 
+this can easily help form the matrix ${\mathbf M}_p$ in equation 
+\ref{glob-cty-matrix}. 
+
+\subsubsection{Compressibility - CV and FEM pressure variations}
+
+Having both a CV and FEM variation of pressure allows us to 
+simultaneously have an exact representation of the force balance 
+equation as well as ensuring robustness of the the scheme 
+e.g. positive densities from potentially complex equations 
+of state. When using complex EoS's $\frac{\partial \tilde { \rho_k}_i^{n+1}}{\partial \tilde {p_{CV}}_i^{n+1}}$ is formed 
+using a pertabation approach, that is 
+perturbing the pressure $\tilde {p_{CV}}_i^{n+1}$ and looking how 
+it effects the densities $\tilde {\rho_k}_i^{n+1}$. This 
+avoids differentiating complex EoS's. 
+
+				
+
+
+
+\subsubsection{Pressure matrix equation} 
+
+The  
+global mass balance equation \ref{glob-cty-matrix} and 
+force balance equations  are solved here by eliminating  
+out velocity and solving a system of equations for 
+pressure. 
+The force balance (at time level $n+1$) 
+and global continuity equations are:
+
+\begin{equation}
+{\mathbf M}_\sigma  \underline{\bf u}^{n+1} = {\mathbf C} \underline{\bf p}^{n+1} + \underline{\bf s}_u^{n+1},
+\label{force-balance-matrix-form2}
+\end{equation}
+
+\begin{equation}
+{\mathbf M}_p \underline{\bf p}^{n+1} + {\mathbf B}^T \underline{\bf u}^{n+1} = \underline{\bf s}_p^{n+1}. 
+\label{glob-cty-matrix2}
+\end{equation}
+
+Using the discontinuous velocity within an element 
+formulation the matrix ${\mathbf M}_\sigma$ is block diagonal 
+and thus easily inverted - each block being local to an element.  
+Multiplying this equation by ${\mathbf B}^T {\mathbf M}_\sigma^{-1}$ 
+(see global continuity 
+equation \ref{glob-cty-matrix2}) and using the global continuity 
+equation to eliminate out $ \underline{\mathbf u}^{n+1} $ one obtains 
+the pressure equation:
+
+\begin{equation}
+({\mathbf B}^T {\mathbf M}_\sigma^{-1} {\mathbf C} + {\mathbf M}_p) \underline{\bf p}^{n+1} 
+=  \underline{\bf s}_p^{n+1}
+- {\mathbf B}^T {\mathbf M}_\sigma^{-1}\underline{\bf s}_u^{n+1}.
+\end{equation}
+this equation is solved for the pressure  $\underline{\bf p}^{n+1}$ and then 
+the  
+velocity is obtained by solving 
+equation \ref{force-balance-matrix-form2}. 
+
+
+		
+\subsection{Shock capturing}
+\label{shock} 		
+
+Suppose the differential equation to be solved is:  
+
+\begin{equation}
+{\bf A}_{xt} \cdot {\nabla_{xt}} \Psi 
++ {\bf H} \Psi ={\bf s} 
+\label{differential-eqn-def-matrix-compact} 
+\end{equation}
+in which ${\bf H}$ is a positive semi-definite and diagonal 
+scattering-removal matrix operator. 
+Thus for 1D ${\bf A}_{xt}=({\bf A}_t \;\; {\bf A}_x)^T$ and 3D 
+${\bf A}_{xt}=({\bf A}_t \;\; {\bf A}_x\;\; {\bf A}_y\;\; {\bf A}_z)^T$ and in 
+1D this equation becomes: 
+
+\begin{equation}
+ {\bf A}_t \frac{\partial \Psi}{\partial t} +
+{\bf A}_x \frac{\partial \Psi}{\partial x}  
++ {\bf H} \Psi ={\bf s}.
+\label{differential-eqn-def-matrix} 
+\end{equation}
+For coupled equations 
+the projection of ${\bf A}_{xt}$ onto ${\nabla_{xt}} \Psi$ may be written: 
+ 
+ 
+\begin{equation}
+ {\bf A}_{xt}^* = {{\bf V}({\bf A}_{xt}\cdot{\nabla_{xt}} \Psi)}
+ {\bf V}({\vert\vert{\nabla_{xt}} \Psi\vert\vert^2_2})^{-1} {\nabla_{xt}} \Psi. 
+\label{a*-def-matrix} 
+\end{equation}
+ Thus 
+ 
+\begin{equation}
+ {\bf A}_{xt}^* \cdot {\nabla_{xt}} \Psi = {\bf A}_{xt} \cdot {\nabla_{xt}} \Psi 
+\label{a*-equiv-matrix} 
+\end{equation}
+ or
+\begin{equation}
+ \left({{\bf V}({\bf A}_{xt}\cdot{\nabla_{xt}} \Psi)}
+ {\bf V}({\vert\vert{\nabla_{xt}} \Psi\vert\vert^2_2})^{-1} {\nabla_{xt}} \Psi
+    \right) \cdot {\nabla_{xt}} \Psi = {\bf A}_{xt} \cdot {\nabla_{xt}} \Psi . 
+\label{equiv-matrix} 
+\end{equation}
+in which ${\bf V}({\bf g})$ is a diagonal matrix 
+in which ${\bf V}({\bf g})_{\mu\mu}={\bf g}_\mu$ and the vector 
+$\vert\vert{\nabla_{xt}} \Psi\vert\vert^2_2$ is such that the $\mu^{\rm th}$ 
+entry is ${\vert\vert{\nabla_{xt}} \Psi\vert\vert^2_2}_\mu = (\nabla_{xt} \Psi_\mu)\cdot (\nabla_{xt} \Psi_\mu)$. 
+Since the matrix ${\bf A}_{xt}^*$ has a block diagonal structure 
+the transport equations 
+${\bf A}_{xt}^*\cdot{\nabla_{xt}} \Psi+{\bf H}\Psi -{\bf s}=0$ 
+are a set of ${\cal M}$ independent scalar equations 
+in which the $\mu^{\rm th}$ scalar equation is: 
+\begin{equation}
+{a^*_t}_\mu \frac{\partial \Psi_\mu}{\partial t} + 
+{a^*_x}_\mu \frac{\partial \Psi_\mu}{\partial x} + 
+{a^*_y}_\mu \frac{\partial \Psi_\mu}{\partial y} + 
+{a^*_z}_\mu \frac{\partial \Psi_\mu}{\partial z} + 
+\sigma_\mu \Psi_\mu
+={\bf s}_\mu
+\label{gov-scalar-equiv-matrix} 
+\end{equation}
+and 
+${a^*_t}_\mu={{\bf A}^*_t}_{\mu\mu}$, 
+${a^*_x}_\mu={{\bf A}^*_x}_{\mu\mu}$, 
+${a^*_y}_\mu={{\bf A}^*_y}_{\mu\mu}$, 
+${a^*_z}_\mu={{\bf A}^*_z}_{\mu\mu}$, 
+$\sigma_\mu={\bf H}_{\mu\mu}$ and $\Psi_\mu$ is the $\mu^{\rm th}$ scalar 
+in the vector $\Psi$. In equation \ref{gov-scalar-equiv-matrix} it is 
+assumed that ${\bf H}$ is a diagonal. If it is not then the system of 
+equations can be easily manipulated so as to diagonalise ${\bf H}$, see 
+section \ref{optimal-matrix-section}. Since the equations have been 
+uncoupled then the scalar equation methods described in the 
+previous section can now be applied. This is effectively done below. 
+    
+ The Petrov-Galerkin's modified form of the 
+ differential equation is: 
+ 
+\begin{equation}
+ ({\bf I}- ({\nabla_{xt}} \cdot{{\bf A}_{xt}^*})^T {\bf P}_{xt}^* )({\bf A}_{xt} \cdot {\nabla_{xt}} \Psi +{\bf H}  \Psi -{\bf s})={\bf 0}. 
+\label{disc-matrix} 
+\end{equation}
+ Testing equation \ref{disc-matrix} with a diagonal matrix of 
+ space-time basis function ${{\bf N}_{xt}}_i$ (this has the basis 
+ function ${N_{xt}}_i$ along
+its main diagonal),  
+ integrating over a single element $V_E$ and applying integration 
+ by parts results in: 
+\begin{equation}
+ \int_{V_E} 
+ {{\bf N}_{xt}}_i {\bf r} d V_{xt} - \int_{\Gamma_E} {{\bf N}_{xt}}_i 
+ ({\bf n}_{xt}\cdot{{\bf A}_{xt}} )^- (\Psi-\Psi_{bc}) d \Gamma_{xt} 
+\label{disc2-matrix-1} 
+\end{equation}
+\begin{equation}
+ +
+ \int_{V_E} (({\nabla_{xt}} {{\bf N}_{xt}}_i ) \cdot{{\bf A}_{xt}^*})^T {\bf P}_{xt}^*  {\bf r} d V_{xt} 
+ +\int_{\Gamma_E} {{\bf N}_{xt}}_i {\bf n}_{xt}\cdot{{\bf A}_{xt}^*}  {\bf P}_{xt}^* {\bf r}  d \Gamma_{xt} 
+ ={\bf 0}, 
+\label{disc2-matrix-2} 
+\end{equation}
+ with a finite element expansion $\Psi=\sum_{j=1}^{\cal N} {{\bf N}_{xt}}_j 
+ {\mathbf \Psi}_j$ (where ${\mathbf \Psi}_j$ is the order $\cal M$ vector of 
+ unknowns at node $j$) 
+ and ${\bf r}={\bf A}_{xt} \cdot {\nabla_{xt}} \Psi +{\bf H} \Psi -{\bf s}$. 
+ Using the eigen-decomposition 
+ ${\bf n}_{xt}\cdot{{\bf A}_{xt}}={\bf L}_{xt} {\mathbf \Lambda}_{xt} {\bf R}_{xt}$ then
+ $({\bf n}_{xt}\cdot{{\bf A}_{xt}})^-={\bf L}_{xt} {\mathbf \Lambda}_{xt}^- {\bf R}_{xt}$  
+ with ${{\mathbf \Lambda}_{xt}^-}_{kk} = min\{ 0, {{\mathbf \Lambda}_{xt}}_{kk} \}$. This eigen 
+ decomposition enables the boundary condition to be applied to incoming 
+ information only. 
+   We apply a zero boundary 
+ condition for the residual ${\bf r}={\bf 0}$ which results in: 
+ 
+\begin{equation}
+ \int_{V_E}
+ {{\bf N}_{xt}}_i {\bf r} d V_{xt} 
+ - \int_{\Gamma_E} {{\bf N}_{xt}}_i ({\bf n}_{xt}\cdot{{\bf A}_{xt}})^- (\Psi-\Psi_{bc}) 
+ d \Gamma_{xt} 
+ +
+  \int_{V_E} (({\nabla_{xt}} {{\bf N}_{xt}}_i ) \cdot{{\bf A}_{xt}^*})^T {\bf P}_{xt}^*  {\bf r} d V_{xt} 
+ ={\bf 0}.
+\label{disc3-matrix} 
+\end{equation}
+ ${\bf P}^*_{xt}$ is a function of ${\bf A}^*_{xt}$ and the size and shape of the 
+ elements, for example: 
+ 
+\begin{equation}
+ {\bf P}^*_{xt} = \frac{1}{4} (\vert {\bf A}_{xt}^* \cdot {\nabla_{xt}} {{\bf N}_{xt}}_i \vert )^{-1}, 
+\label{P*-matrix} 
+\end{equation} 
+or using the 2 matrix norm and the space-time Jacobian matrix ${\bf J}_{xt}$: 
+\begin{equation}
+ {\bf P}^*_{xt} = \frac{1}{4} (\vert\vert {\bf J}_{xt}^{-1} {\bf A}_{xt}^* \vert\vert_2 )^{-1} .  
+\label{p*-matrix-j} 
+\end{equation}       
+Since the matrices ${\bf A}^*_t$,  ${\bf A}^*_x$,    ${\bf A}^*_y$,    ${\bf A}^*_z$ 
+that go to make up ${\bf A}_{xt}^* = ({{\bf A}^*_t}^T,  {{\bf A}^*_x}^T,    {{\bf A}^*_y}^T,    {{\bf A}^*_z}^T )^T$  
+are diagonal the matrix ${\bf P}^*_{xt}$ is also diagonal. 
+In the traditional Petrov Galerkin method ${\bf A}_{xt}^*={\bf A}_{xt}$ in the 
+ above and ${\bf P}_{xt}$ replaces ${\bf P}_{xt}^*$. 
+ The finite element space-time Jacobian matrix for 3D time dependent problems 
+ is: 
+\begin{equation}
+ {\bf J}_{xt} =
+  \begin{pmatrix}
+ {\bf I} \frac{\partial t}{\partial t^\prime} &
+ {\bf I} \frac{\partial x}{\partial t^\prime} &
+ {\bf I} \frac{\partial y}{\partial t^\prime} &
+ {\bf I} \frac{\partial z}{\partial t^\prime} \\
+ {\bf I} \frac{\partial t}{\partial x^\prime} &
+ {\bf I} \frac{\partial x}{\partial x^\prime} &
+ {\bf I} \frac{\partial y}{\partial x^\prime} &
+ {\bf I} \frac{\partial z}{\partial x^\prime} \\
+ {\bf I} \frac{\partial t}{\partial y^\prime} &
+ {\bf I} \frac{\partial x}{\partial y^\prime} &
+ {\bf I} \frac{\partial y}{\partial y^\prime} &
+ {\bf I} \frac{\partial z}{\partial y^\prime} \\
+ {\bf I} \frac{\partial t}{\partial z^\prime} &
+ {\bf I} \frac{\partial x}{\partial z^\prime} &
+ {\bf I} \frac{\partial y}{\partial z^\prime} &
+ {\bf I} \frac{\partial z}{\partial z^\prime} 
+  \end{pmatrix},
+\label{J-matrix} 
+\end{equation}
+ where the variables with $\prime$ are the local variables and 
+ where ${\bf I}$ is the ${\cal M}\times {\cal M}$ identity matrix 
+ in which ${\cal M}$ is the number solution variables at each DG node. 
+ For uniform space-time resolution with a time step size of $\Delta t$ 
+ and an element size of 
+ $\Delta x$ (in the x-direction), 
+ $\Delta y$ (in the y-direction),
+ $\Delta z$ (in the z-direction), then: 
+\begin{equation}
+ {\bf J}_{xt} =
+  \begin{pmatrix}
+ {\bf I} \frac{1}{2}\Delta t &
+ {\bf 0}  &
+ {\bf 0}  &
+ {\bf 0}  \\
+ {\bf 0}  &
+ {\bf I} \frac{1}{2}\Delta x &
+ {\bf 0}  &
+ {\bf 0}  \\
+ {\bf 0}  &
+ {\bf 0}  &
+ {\bf I} \frac{1}{2}\Delta y &
+ {\bf 0} \\
+ {\bf 0}  &
+ {\bf 0}  &
+ {\bf 0}  &
+ {\bf I} \frac{1}{2}\Delta z 
+  \end{pmatrix}.
+\label{J-matrix-uniform} 
+\end{equation}
+ In a similar way to the scalar equation, the value of 
+${\bf P}_{xt}^*$ can be adjusted to ensure 
+that the resulting value of ${\bf P}_{xt}^* $
+is not so large that there is 
+more transport backwards than forwards in the resulting discrete
+system of equations by: 
+\begin{equation}
+ {\bf P}_{xt}^* = min\{ ({\bf H}+{\bf E})^{-1}, 
+ \frac{1}{4} (\vert\vert {\bf J}_{xt}^{-1} {\bf A}_{xt}^* \vert\vert_2 )^{-1} \}.  
+\label{p*-def-j-lim} 
+\end{equation}   
+in which the diagonal entries of the matrix ${\bf H}+{\bf E}$ are positive and ${\bf E}$ 
+contains small positive numbers to avoid dividing by zero or near zero 
+when one or more of the 
+diagonals of ${\bf H}$ is zero or very small e.g. $1\times 10^{-10}$. 
+ 
+In the above we can work with the stabilization in diffusion form with: 
+ 
+ 
+\begin{equation}
+ \int_{V_E}
+ {{\bf N}_{xt}}_i {\bf r} d V_{xt} 
+ - \int_{\Gamma_E} {{\bf N}_{xt}}_i ({\bf n}_{xt} \cdot {\bf A}_{xt})^-  (\Psi-\Psi_{bc}) 
+ d \Gamma_{xt} 
+ +
+  \int_{V_E} ({\nabla_{xt}} {{\bf N}_{xt}}_i )^T {\bf K}  {\nabla_{xt}} \Psi d V_{xt} 
+ ={\bf 0}
+\label{disc-xt-matrix} 
+\end{equation} 
+ in which the ${\cal M}\times {\cal M}$ diagonal matrix containing 
+ the diffusion coefficients is: 
+ 
+\begin{equation}
+ {\bf K} = {{\bf V}({\bf A}_{xt}\cdot {\nabla_{xt}} \Psi) {\bf P}_{xt}^* }{\bf V}({\vert\vert {\nabla_{xt}} \Psi \vert\vert^2_2})^{-1} {\bf V}({\bf r}).  
+\label{nu-matrix} 
+\end{equation} 
+The resulting diagonal matrix ${\bf K}$ can be modified to ensure 
+non-negative diffusion 
+by setting any of its negative entries to zero 
+or taking their absolute values. 
+Alternatively one can work with the residual only, by 
+ replacing ${\bf A}_{xt}\cdot {\nabla_{xt}} \Psi$ with the residual ${\bf r}$,  
+ which results in: 
+ 
+\begin{equation}
+ {\bf K} = {{\bf V}({\bf r})^T {\bf P}_{xt}^* 
+ {\bf V}({\vert\vert {\nabla_{xt}} \Psi \vert\vert^2_2})^{-1} {\bf V}({\bf r})}
+\label{nu-matrix-r2} 
+\end{equation} 
+ which is always positive because ${\bf P}_{xt}^*$ is positive semi-definite 
+ (as well as diagonal) 
+ and in which ${\bf V}({\bf r})$ is the diagonal matrix 
+ containing the residual of the governing equations on its diagonal. 
+ Equation \ref{nu-matrix-r2} for the diffusivity can be derived by 
+ re-defining ${\bf A}_{xt}^*$ in equation \ref{a*-def-matrix} to:
+\begin{equation}
+ {\bf A}_{xt}^* = {{\bf V}({\bf r})}
+ {\bf V}({\vert\vert{\nabla_{xt}} \Psi\vert\vert^2_2})^{-1} {\nabla_{xt}} \Psi. 
+\label{a*-def-matrix-r} 
+\end{equation}
+
+
+
+ 
+\subsubsection{Simplified coupled equations} 
+
+Assuming time is discretised 
+using the two level $\theta$-method: 
+ 
+\begin{equation}
+{\bf r} = {\bf A}_t \frac{\Psi^{n+1}-\Psi^{n}}{\Delta t} +
+{\bf A} \cdot {\nabla} \Psi^{n+\theta}  
++ {\bf H} \Psi^{n+\theta}  
+-{\bf s}^{n+\theta} , 
+\label{eqn-def-time-disc-mat} 
+\end{equation}
+with ${\bf A} = ({\bf A}_x \;\; {\bf A}_y\;\; {\bf A}_z)^T$ and 
+$\Psi^{n+\theta}=\Theta\Psi^{n+1} + ({\bf I}-\Theta)\Psi^n$ in 
+which $\Theta$ is a diagonal matrix containing the time 
+stepping parameters and 
+also defining 
+\begin{equation}
+{\nabla_{xt}} \Psi= (\frac{\Psi^{n+1}-\Psi^n}{\Delta t},\;( \nabla  \Psi^{n+\theta})^T)^T. 
+\label{nabla_xt_theta-mat} 
+\end{equation}  
+Using this definition (equation \ref{nabla_xt_theta-mat}) 
+enables the application of the 
+mechanics of space-time discretisation, developed here, 
+for example:   
+\begin{equation}
+{\bf A}_{xt}^*= ({{\bf A}_t^*}^T ,\; {{\bf A}^*}^T )^T=
+ {{\bf V}({\bf A}_{xt}\cdot{\nabla_{xt}} \Psi) }
+ { {\bf V}(\vert\vert {\nabla_{xt}} \Psi \vert\vert^2_2)^{-1}} {\nabla_{xt}} \Psi
+\label{a*-def-simp-mat} 
+\end{equation} 
+and
+ 
+\begin{equation}
+ {\bf P}_{xt}^* = min\{ ({\bf H}+{\bf E})^{-1}, 
+ \frac{1}{4} (\vert\vert {\bf J}^{-1} {\bf A}^* \vert\vert_2 )^{-1} \}. 
+\label{p*-def-simp-mat} 
+\end{equation} 
+ By applying diffusion only in Cartesian space 
+ the stabilized discrete equations in diffusion form can be written: 
+\begin{equation}
+ \int_{V_E} 
+ {\bf N}_i {\bf r} d V - \int_{\Gamma_E} {\bf N}_i ({\bf n}\cdot {\bf A})^- (\Psi^{n+\theta}-\Psi_{bc}^{n+\theta}) 
+ d \Gamma
+ +
+ \int_{{V_{E}}} ({\nabla} {\bf N}_i )^T {\bf K}  {\nabla} \Psi^{n+1} d V
+ ={\bf 0}. 
+\label{discrete-eqn-diff-nu-simple-cartesian-mat} 
+\end{equation}
+
+
+
+
+\subsubsection{Force balance equations}
+\label{NS} 
+The force balace equations plus continuity can be define 
+with
+\begin{equation}
+A_t=
+  \begin{pmatrix}
+\rho  &  0     & 0\\
+0     &  \rho  & 0 \\
+0     &  0     & \frac{\partial \rho}{\partial p} 
+  \end{pmatrix}, \;\;\;
+A_x=
+  \begin{pmatrix}
+\rho u &  0  &  1\\
+0     &  \rho u & 0 \\ 
+1     &  0  & 0 
+  \end{pmatrix}, \;\;\;
+A_y=
+  \begin{pmatrix}
+\rho v &  0  &  0  \\
+0     &  \rho v &  1 \\
+0     &  1      &  0 
+  \end{pmatrix}, 
+\label{A-matrix} 
+\end{equation}
+in which the solution vector is $\Psi=(u \;\; v \;\; p)^T$. 
+
+The above matrices are used with the above theory 
+which results in a diffusion matrix for each each variable. 
+However, we set the diffusion for pressure to zero so 
+as not to compromise conservation of mass and other advected variables. 
+Even when we solve the governing equations in conservative form 
+we form the above matrices in order to from the resulting diffusion. 
+
+ 
+ 
+
+
+
+\subsection{Applications}
+\label{Applications-comp} 
+
+In all the below the solution variables are 
+pressure, internal energy and velocity. 
+There is no flow going into or out of the domains.  
+
+\subsubsection{Sod-Shock tube problem} 
+Here the domain size is $1$ unity long and $0.1$ unit wide. 
+The domain is discretized in 2D with one triangle element in 
+the vertical and $2E$ is the horizontal in which 
+$E$ represents the number of elements in the horizontal 
+for comparison purposes with the DG explicit method.  
+For the DG explicit method a 1D discretization is used. 
+The line out for the 2D triangular element simulation is 
+taken through the middle of the domain. 
+
+The initial conditions are $\rho=1, p=1$ for $x\le 0.5$ 
+and $\rho=0.125, p=0.1$ for $x> 0.5$ and the fluid 
+is initially at rest. 
+
+The time step size is $1\times 10^{-3}$ and when the 
+small time step (CFL) is used then the 
+time step is $1\times 10^{-4}$. The explicit DG method 
+uses a time step of  $1\times 10^{-4}$. 
+One can overstep the CFL restriction due to the implicitness 
+of the schemes which is important when adaptive meshes 
+with very small elements 
+are used in future applications.  
+
+The use of conservative form of momentum is found to be important 
+for this case as seen in the convergence plots 
+in figure \ref{sod-converg-density}. 
+In the rest of the document conservative momentum options  
+are used. 
+
+Notice that the accuracy of the new method is comparable 
+and even slightly better than the DG solution, see figures 
+\ref{sod-40ele-density}, \ref{sod-dg-density}. This is 
+particularly remarkable considering the fact that the new 
+method is using triangular elements which tend to reduce 
+the solution accuracy. 
+
+\subsubsection{Modified Sod-Shock tube problem} 
+
+The time step size is $1\times 10^{-3}$ for all applications 
+here, but otherwise has the same set up as for the Sod-shock tube problem.
+The initial conditions are $\rho=1, p=1, u=1$ for $x\le 0.5$ 
+and $\rho=0.125, p=0.1, u=0$ for $x> 0.5$. 
+
+\subsubsection{123 problem} 
+
+Another test case called the 123 problem has initial 
+conditions $\rho=1, p=0.4$ and $u=-2$ for $x< 0.5$ and 
+$u=2$ otherwise in a domain 
+$x \in [0,1]$ 
+and 
+with boundary conditions of $u=-2$ (left) and $u=2$ right. 
+The results using 100 control volumes using state 
+of the art methods are shown in 
+figure \ref{Screenshot-123prob-res} along with the 
+exact results. Notice that the total energy is 
+not as accurate as the resulting total 
+energy from the methods developed here shown in figures 
+\ref{123-prob-pd},\ref{123-prob-ve}. In these figures we 
+compare 40 elements with 200 elements and with a time step of $1\times 10^{-5}$ 
+at $t=0.15$. 
+
+
+
+\subsubsection{Blast wave problem} 
+
+
+The initial conditions are $\rho=1, p=0.1$. 
+However, $p=1000$ for $x< 0.1$, $p=100$ for $x> 0.9$ and the fluid 
+is initially at rest. 
+The time step size is $7.5\times10^{-6}$ for all applications 
+here, but otherwise has the same set up as for the Sod-shock tube problem.
+The boundary conditions are no flow into or out of the domain - that is 
+walls are present. 
+
+The results from the current state of the art solvers are shown 
+in figure *** at $t=0.38$. Figures ***, *** show the results 
+from the new method at $t=0.038$ and $t=0.039$. 
+
+
+
+\subsubsection{2D problem}
+Here we show the results of a shock problem with 
+an ideal gas equation of state and initiated with 
+a small region in which a high pressure region is 
+in the $0.25\times0.25$ bottom corner of the 
+domain and the domain is $1\times 1$. The 
+mesh used has $40\times40$ $\times 2$ triangular elements 
+as shown in figure \ref{2d-pressure-mesh}. 
+The time step size if $1\times 10^{-3}$ which has a 
+Courant number based on the fastest wave speed of $0.5$. 
+Figures \ref{2d-pressure-mesh}, 
+show the pressure, the pressure and the fluid velocity, 
+the density, and internal energy at various time levels 
+into the simulation. It should be noted that much of the oscillations 
+in pressure and density and due to the fact that we are 
+looking at the FEM interpolation of the CV density and pressure. 
+
+
+
+\begin{figure}[H]
+\vbox{
+\hbox{
+\hspace{-1.cm}
+%\includegraphics[width=16.0cm]{./doc_figures/shock/sod-conv-eval}
+\includegraphics[width=16.0cm]{./doc_figures/shock/test-sod}
+}
+\vspace{-0.cm}
+\vspace{-0.cm}}
+\label{sod-converg-density}
+\caption{ Sod shock tube density again resolution at $t=0.08$ 
+for both DG Riemann method and new P1DG-P2 scheme. 
+The reference case is an explicit DG solution with 500 elements. 
+Notice that the two methods 
+have comparable accuracy with 40 elements. The 
+P1DG-P2 results show the FEM interpolation of the CV density solution.}
+\end{figure}
+
+
+
+\begin{figure}[H]
+\vbox{
+\hbox{
+\hspace{-1.cm}
+\includegraphics[width=16.0cm]{./doc_figures/shock/sod-dg-0-08}
+}
+\vspace{-0.cm}
+\vspace{-0.cm}}
+\label{sod-40ele-density}
+\caption{ Sod shock tube density at $t=0.08$ for the 
+reference case which is an explicit DG solution.  }
+\end{figure}
+
+
+
+\begin{figure}[H]
+\vbox{
+\hbox{
+\hspace{-1.cm}
+%\includegraphics[width=16.0cm]{./doc_figures/shock/sod-shock-mod-density}
+\includegraphics[width=16.0cm]{./doc_figures/shock/test_mod}
+}
+\vspace{-0.cm}
+\vspace{-0.cm}}
+\label{sod-dg-density}
+\caption{ Modified Sod shock tube density at $t=0.25$ for the 
+reference solution method which uses an explicit DG method. The 
+P1DG-P2 results show the FEM interpolation of the CV density solution.  }
+\end{figure}
+
+% ************123 problem *****************
+
+\begin{figure}[H]
+\vbox{
+\hbox{
+\hspace{-1.cm}
+%\includegraphics[width=16.0cm]{./doc_figures/shock/sod-shock-mod-density}
+\includegraphics[width=16.0cm]{./doc_figures/shock/Screenshot-123prob-res}
+}
+\vspace{-0.cm}
+\vspace{-0.cm}}
+\label{Screenshot-123prob-res}
+\caption{ Results at $t=0.15$ from state of the art models 
+with 100 CV's compared with the exact solution.   }
+\end{figure}
+
+
+\begin{figure}[H]
+\vbox{
+\hbox{
+\hspace{-1.cm}
+\includegraphics[width=10.0cm]{./doc_figures/shock/pressure-123prob}
+\hspace{-1.cm}
+\includegraphics[width=10.0cm]{./doc_figures/shock/density-123prob}
+}
+\vspace{-0.cm}
+\hbox{\hspace{4.cm}(a) \hspace{4.5cm}(b)}
+\vspace{-0.cm}}
+\label{123-prob-pd}
+\caption{ 123 problem pressure and density at $t=0.15$ for 
+40 and 200 elements. }
+\end{figure}
+
+
+\begin{figure}[H]
+\vbox{
+\hbox{
+\hspace{-1.cm}
+\includegraphics[width=10.0cm]{./doc_figures/shock/velocity-123prob}
+\hspace{-1.cm}
+\includegraphics[width=10.0cm]{./doc_figures/shock/int_energy-123prob}
+}
+\vspace{-0.cm}
+\hbox{\hspace{4.cm}(a) \hspace{4.5cm}(b)}
+\vspace{-0.cm}}
+\label{123-prob-ve}
+\caption{ 123 problem velocity and internal energy 
+at $t=0.15$ for 40 and 200 elements. }
+\end{figure}
+
+
+% ************blast wave problem *****************
+
+\begin{figure}[H]
+\vbox{
+\hbox{
+\hspace{-1.cm}
+%\includegraphics[width=16.0cm]{./doc_figures/shock/sod-shock-mod-density}
+\includegraphics[width=16.0cm]{./doc_figures/shock/Screenshot-blast-wave-prob-res}
+}
+\vspace{-0.cm}
+\vspace{-0.cm}}
+\label{Screenshot-blast-wave-prob-res}
+\caption{ Results at $t=0.038$ from state of the art models 
+with 100 CV's compared with the exact solution.   }
+\end{figure}
+
+
+\begin{figure}[H]
+\vbox{
+\hbox{
+\hspace{-1.cm}
+\includegraphics[width=10.0cm]{./doc_figures/shock/pressure-blast-wave-prob}
+\hspace{-1.cm}
+\includegraphics[width=10.0cm]{./doc_figures/shock/density-blast-wave-prob}
+}
+\vspace{-0.cm}
+\hbox{\hspace{4.cm}(a) \hspace{4.5cm}(b)}
+\vspace{-0.cm}}
+\label{blast-wave--prob-pd}
+\caption{ Blast wave problem pressure and density at $t=0.038$ for 
+40 and 200 elements. }
+\end{figure}
+
+
+\begin{figure}[H]
+\vbox{
+\hbox{
+\hspace{-1.cm}
+\includegraphics[width=10.0cm]{./doc_figures/shock/velocity-blast-wave-prob}
+\hspace{-1.cm}
+\includegraphics[width=10.0cm]{./doc_figures/shock/int_energy-blast-wave-prob}
+}
+\vspace{-0.cm}
+\hbox{\hspace{4.cm}(a) \hspace{4.5cm}(b)}
+\vspace{-0.cm}}
+\label{blast-wave--prob-ve}
+\caption{ Blast wave problem velocity and internal energy 
+at $t=0.038$ for 40 and 200 elements. }
+\end{figure}
+
+
+% ***t=0.039***
+
+\begin{figure}[H]
+\vbox{
+\hbox{
+\hspace{-1.cm}
+\includegraphics[width=10.0cm]{./doc_figures/shock/pressure-blast-wave-prob39}
+\hspace{-1.cm}
+\includegraphics[width=10.0cm]{./doc_figures/shock/density-blast-wave-prob39}
+}
+\vspace{-0.cm}
+\hbox{\hspace{4.cm}(a) \hspace{4.5cm}(b)}
+\vspace{-0.cm}}
+\label{blast-wave--prob-pd39}
+\caption{ Blast wave problem pressure and density at $t=0.039$ for 
+40 and 200 elements. }
+\end{figure}
+
+
+\begin{figure}[H]
+\vbox{
+\hbox{
+\hspace{-1.cm}
+\includegraphics[width=10.0cm]{./doc_figures/shock/velocity-blast-wave-prob39}
+\hspace{-1.cm}
+\includegraphics[width=10.0cm]{./doc_figures/shock/int_energy-blast-wave-prob39}
+}
+\vspace{-0.cm}
+\hbox{\hspace{4.cm}(a) \hspace{4.5cm}(b)}
+\vspace{-0.cm}}
+\label{blast-wave--prob-ve39}
+\caption{ Blast wave problem velocity and internal energy 
+at $t=0.039$ for 40 and 200 elements. }
+\end{figure}
+% ******************2D************************
+
+
+
+\begin{figure}[H]
+\vbox{
+\hbox{
+\hspace{-1.cm}
+%\includegraphics[width=6.0cm,height=6.cm]{./doc_figures/shock/2d-shock-p0}
+\includegraphics[width=7.0cm]{./doc_figures/shock/2d-shock-p0}
+\hspace{-1.cm}
+%\includegraphics[width=6.0cm,height=6.cm]{./doc_figures/shock/2d-shock-p60}
+\includegraphics[width=7.0cm]{./doc_figures/shock/2d-shock-p60}
+\hspace{-1.cm}
+%\includegraphics[width=6.0cm,height=6.cm]{./doc_figures/shock/2d-shock-p90}
+\includegraphics[width=7.0cm]{./doc_figures/shock/2d-shock-p90}
+}
+\vspace{-0.cm}
+\hbox{\hspace{4.cm}(a) \hspace{4.5cm}(b)\hspace{4.5cm}(c)}
+\vspace{-0.cm}}
+\label{2d-pressure-mesh}
+\caption{ 2D shock problem showing the pressure results a) 
+t=0 b) t=$6\times 10^{-2}$ c) t=$9\times 10^{-2}$ }
+\end{figure}
+
+\begin{figure}[H]
+\vbox{
+\hbox{
+\hspace{-1.cm}
+\includegraphics[width=7.0cm]{./doc_figures/shock/2d-shock-pv0}
+\hspace{-1.cm}
+\includegraphics[width=7.0cm]{./doc_figures/shock/2d-shock-pv60}
+\hspace{-1.cm}
+\includegraphics[width=7.0cm]{./doc_figures/shock/2d-shock-pv90}
+}
+\vspace{-0.cm}
+\hbox{\hspace{4.cm}(a) \hspace{4.5cm}(b)\hspace{4.5cm}(c)}
+\vspace{-0.cm}}
+\label{2d-pressure-vel}
+\caption{ 2D shock problem showing the pressure and velocity results a) 
+t=0 b) t=$6\times 10^{-2}$ c) t=$9\times 10^{-2}$ }
+\end{figure}
+
+
+\begin{figure}[H]
+\vbox{
+\hbox{
+\hspace{-1.cm}
+\includegraphics[width=7.0cm]{./doc_figures/shock/2d-shock-d0}
+\hspace{-1.cm}
+\includegraphics[width=7.0cm]{./doc_figures/shock/2d-shock-d60}
+\hspace{-1.cm}
+\includegraphics[width=7.0cm]{./doc_figures/shock/2d-shock-d90}
+}
+\vspace{-0.cm}
+\hbox{\hspace{4.cm}(a) \hspace{4.5cm}(b)\hspace{4.5cm}(c)}
+\vspace{-0.cm}}
+\label{2d-density-mesh}
+\caption{ 2D shock problem showing the density results a) 
+t=0 b) t=$6\times 10^{-2}$ c) t=$9\times 10^{-2}$ }
+\end{figure}
+
+
+\begin{figure}[H]
+\vbox{
+\hbox{
+\hspace{-1.cm}
+\includegraphics[width=7.0cm]{./doc_figures/shock/2d-shock-e0}
+\hspace{-1.cm}
+\includegraphics[width=7.0cm]{./doc_figures/shock/2d-shock-e60}
+\hspace{-1.cm}
+\includegraphics[width=7.0cm]{./doc_figures/shock/2d-shock-e90}
+}
+\vspace{-0.cm}
+\hbox{\hspace{4.cm}(a) \hspace{4.5cm}(b)\hspace{4.5cm}(c)}
+\vspace{-0.cm}}
+\label{2d-internal-energy-mesh}
+\caption{ 2D shock problem showing the internal energy results a) 
+t=0 b) t=$6\times 10^{-2}$ c) t=$9\times 10^{-2}$ }
+\end{figure}
+
+
+\begin{figure}[H]
+\vbox{
+\hbox{
+\hspace{-1.cm}
+\includegraphics[width=7.0cm]{./doc_figures/shock/2d-shock-g0}
+\hspace{-1.cm}
+\includegraphics[width=7.0cm]{./doc_figures/shock/2d-shock-g60}
+\hspace{-1.cm}
+\includegraphics[width=7.0cm]{./doc_figures/shock/2d-shock-g90}
+}
+\vspace{-0.cm}
+\hbox{\hspace{4.cm}(a) \hspace{4.5cm}(b)\hspace{4.5cm}(c)}
+\vspace{-0.cm}}
+\label{2d-graphs}
+\caption{ 2D shock problem showing all the results on a 
+graph plotted through the diagonal from bottom left to top right 
+corners of the domain at a) 
+t=0 b) t=$6\times 10^{-2}$ c) t=$9\times 10^{-2}$ }
+\end{figure}
+
+
+
+
+
+
+\subsection{Conclusions} 
+The new multi-phase flow numerical methods have been 
+tested for compressible applications using the 
+new P1DG-P2 element. Their performance 
+is comparable with the best methods currently available 
+for these class of problems. 
+
+
+
+
+
+
+
+
+
+\vfill\eject
+
+
+
+\section{Solid-fluid coupling using the immersed body method} 
 
 
 
