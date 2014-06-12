@@ -166,7 +166,7 @@ contains
         LOGICAL, PARAMETER :: GETCV_DISC = .TRUE., GETCT= .FALSE. 
         integer :: nits_flux_lim, its_flux_lim
         logical :: lump_eqns
-        REAL, DIMENSION( : ), allocatable :: ACV, CV_RHS, DIAG_SCALE_PRES, CT_RHS
+        REAL, DIMENSION( : ), allocatable :: CV_RHS, DIAG_SCALE_PRES, CT_RHS
         REAL, DIMENSION( : ), allocatable :: block_acv, mass_mn_pres
         REAL, DIMENSION( : , : , : ), allocatable :: dense_block_matrix, CT
         REAL, DIMENSION( : , : ), allocatable :: den_all, denold_all
@@ -193,7 +193,7 @@ contains
 
         call allocate(rhs_field,nphase,tracer%mesh,"RHS")
 
-        ALLOCATE( ACV( NCOLACV ) )
+!        ALLOCATE( ACV( NCOLACV ) )
         ALLOCATE( mass_mn_pres( size(small_COLACV ) ))
         allocate( block_acv(size(block_to_global_acv) ) )
         allocate( dense_block_matrix (nphase,nphase,cv_nonods) ); dense_block_matrix=0;
@@ -323,9 +323,9 @@ contains
 
              ELSE
 
-                call assemble_global_multiphase_csr(acv,&
-                     block_acv,dense_block_matrix,&
-                     block_to_global_acv,global_dense_block_acv)
+!                call assemble_global_multiphase_csr(acv,&
+!                     block_acv,dense_block_matrix,&
+!                     block_to_global_acv,global_dense_block_acv)
 
                 call assemble_global_multiphase_petsc_csr(petsc_acv,&
                      block_acv,dense_block_matrix,&
@@ -371,7 +371,7 @@ contains
 
         END DO Loop_NonLinearFlux
 
-        DEALLOCATE( ACV )
+        call deallocate(petsc_acv)
         deALLOCATE( mass_mn_pres )
         deallocate( block_acv, dense_block_matrix )
         DEALLOCATE( CV_RHS )
