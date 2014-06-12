@@ -1,13 +1,15 @@
 from batch_tools import Command, CommandList, verbose, HandlerLevel, \
-    CompositeHandler, LeafHandler
+    CompositeHandler, LeafHandler, default_fluidity_path
 import os
 import re
 import subprocess
 import numpy
 import sys
-from fluidity_tools import stat_parser
 from importlib import import_module
 from getpass import getuser
+
+default_fluidity_path()
+from fluidity_tools import stat_parser
 
 error_rates_filename = "error_rates.txt"
 error_norms_filename = "error_norms.txt"
@@ -208,9 +210,9 @@ assert(find_{0}("{1}") &{2}; {3:g})
 class RunSimulation(Command):
 
     def __init__(self):
-        self.binary_path = "../../bin/darcy_impes"
-        if not os.path.isfile(self.binary_path): 
-            raise IOError("Cannot find the binary.")
+        self.darcy_impes_path = os.environ["FLUIDITYPATH"] + "bin/darcy_impes"
+        if not os.path.isfile(self.darcy_impes_path): 
+            raise IOError("Cannot find the darcy_impes binary.")
         # can add more levels to this list
         self.stem = None
         self.saturation2_scale = None
@@ -243,7 +245,7 @@ class RunSimulation(Command):
                 self.mesh_type, mesh_suffix)) + '.diml'
 
             # start simulation (TODO: guard against absent mesh)
-            subprocess.call([self.binary_path, filename,
+            subprocess.call([self.darcy_impes_path, filename,
                              '-v3'], stdout=open(os.devnull, 'wb'))
 
 

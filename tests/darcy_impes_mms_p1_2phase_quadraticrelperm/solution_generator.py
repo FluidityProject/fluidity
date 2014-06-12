@@ -2,7 +2,7 @@ from sympy import Symbol, Function, diff, integrate, sin, cos, pi, exp
 from manufactured_solution_generation_tools import \
     ManufacturedSolution, SolutionHarness, generate_coords
 
-def generate(solution_name):
+def generate(solution_name, check_solution=False):
     
     D = (1.0, 1.2, 0.8)         # domain size [see note 1]
     T = 1.0                     # finish time
@@ -59,6 +59,9 @@ def generate(solution_name):
     # generate expressions for the manufactured solution
     sh.write_dict([ms1d, ms2d, ms3d])
 
+    # check that divergence + source term = 0
+    if check_solution:
+        return sh.reality_check([ms1d, ms2d, ms3d])
     
     # Notes:
     # 

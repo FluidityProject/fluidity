@@ -1,14 +1,26 @@
 #!/usr/bin/env python
 
-import sys
-sys.path.append('../../python')
-
-import os
-os.environ['PYTHONPATH'] = "../../python/"
 
 indent = '   '
 verbose_state = False
 
+import sys
+import os
+
+def default_fluidity_path():
+    """Ensures the location of the Fluidity tree is known via
+    FLUIDITYPATH, a system variable.  FLUIDITYPATH is either set by the
+    user beforehand or defaulted here based on the present path.
+    Updates the Python search paths accordingly."""
+    try:
+        flpath = os.environ['FLUIDITYPATH']
+    except KeyError:
+        flpath = "../../"
+        os.environ['FLUIDITYPATH'] = flpath
+    pypath = flpath + "/python/"
+    os.environ['PYTHONPATH'] = pypath
+    sys.path.append(pypath)
+    
 # setter/getter of verbose_state
 def verbose(new_verbose_state=None):
     global verbose_state
