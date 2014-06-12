@@ -1431,7 +1431,7 @@ The default value is 1.0e-06.</a:documentation>
       </attribute>
       <element name="diagnostic">
         <ref name="mesh_choice_pressure"/>
-        <ref name="darcy_impes_internal_algorithm"/>
+	<ref name="scalar_diagnostic_algorithms"/>
         <ref name="darcy_impes_eos"/>
         <ref name="darcy_impes_diagnostic_scalar_field"/>
       </element>
@@ -1447,7 +1447,7 @@ The default value is 1.0e-06.</a:documentation>
       </attribute>
       <element name="diagnostic">
         <ref name="mesh_choice_pressure"/>
-        <ref name="darcy_impes_internal_algorithm"/>
+	<ref name="scalar_diagnostic_algorithms"/>
         <ref name="darcy_impes_eos"/>
         <ref name="darcy_impes_density_field_face_value"/>
         <ref name="darcy_impes_diagnostic_scalar_field"/>

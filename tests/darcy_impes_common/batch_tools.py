@@ -19,15 +19,16 @@ def verbose(new_verbose_state=None):
 
     
 class Command:
-    """Class to encapsulate a family of commands corresponding to a tree of
-    Handlers (see below).  The commands are coded up for different
+    """Class to encapsulate a family of commands corresponding to a tree
+    of Handlers (see below).  The commands are coded up for different
     levels of the tree in the 'execute' method.
     """
     
     def execute(self, level_name, value, indent):
-        """The level_name argument tells the Command where it is in the Handler tree.
-        The Command can then choose what to do accordingly.  It may use
-        additional information supplied in the value argument.
+        """The level_name argument tells the Command where it is in the
+        Handler tree.  The Command can then choose what to do
+        accordingly.  It may use additional information supplied in the
+        value argument.
         """
         pass
         

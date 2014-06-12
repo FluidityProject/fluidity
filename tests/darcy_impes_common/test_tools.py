@@ -154,7 +154,7 @@ assert(find_{0}("{1}") &{2}; {3:g})
             solution_name = join_with_underscores((
                 self.stem, self.saturation2_scale, self.gravity_magnitude))
             solution_expressions = import_module(solution_name)
-            self.solution_dict = solution_expressions.solution_dict
+            self.solution_dict = solution_expressions.py_dict
             self.write_xml_begin()
 
         # continue to the lower levels

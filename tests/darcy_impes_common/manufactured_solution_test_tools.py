@@ -19,6 +19,8 @@ from test_tools import Command, CommandList, HandlerLevel, \
 from fluidity_tools import stat_parser
 from solution_generator import generate
 from importlib import import_module
+from vtktools import vtu
+from copy import deepcopy
 
 verbose(True)
 debug = False
@@ -135,8 +137,16 @@ class GenerateSymbols(MMSCommand):
       
          # write dictionary
          solution_name = join_with_underscores((self.stem))
-         generate(solution_name)
-
+         if verbose():
+            div_plus_src = generate(solution_name, check_solution=True)
+            sys.stdout.write('\n'+indent+'   Reality check')
+            for i in range(3):
+               dim = i + 1
+               sys.stdout.write(
+                  '\n'+indent+'   {0}D: divergence - source = {1}'.\
+                     format(dim, str(div_plus_src[i])))
+         else:
+            generate(solution_name)
       
 class ExpandOptionsTemplate(MMSCommand):
    
@@ -153,9 +163,8 @@ class ExpandOptionsTemplate(MMSCommand):
          # generated from GenerateSymbols (in this instance, once only)
          solution_name = join_with_underscores((self.stem))
          solution_expressions = import_module(solution_name)
-         self.solution_dict = solution_expressions.solution_dict
-         self.finish_time = solution_expressions.solution_dict\
-                               ['finish_time']
+         self.finish_time = solution_expressions.py_dict['finish_time']
+         self.text_dict = solution_expressions.text_dict
          
       if level_name == 'mesh_suffix':
          # this last level does most of the important stuff
@@ -186,7 +195,7 @@ class ExpandOptionsTemplate(MMSCommand):
          # repeat with the solution dict
          try:
             buf = string.Template(buf)
-            buf = buf.safe_substitute(self.solution_dict)
+            buf = buf.safe_substitute(self.text_dict)
          except AttributeError:
             pass
          with open(param.options_filename, 'w') as tgt:
@@ -219,8 +228,7 @@ class ProcessMesh(MMSCommand):
 
          # needed for e.g. creating 1D meshes, but do not rely on this
          # for true mesh dimensions otherwise
-         self.domain_extents = solution_expressions.solution_dict\
-                               ['domain_extents']
+         self.domain_extents = solution_expressions.py_dict['domain_extents']
 
       if level_name == 'mesh_suffix':
          # this last level does most of the important stuff
@@ -296,7 +304,146 @@ class CleanUp(MMSCommand):
             except OSError:
                pass
 
+
+class Diagnose(MMSCommand):
+   """This class was created to help figure out why the pressure field is
+   nonconvergent with mesh resolution.  Analysis is limited to 1D."""
+
+   def __init__(self):
+      MMSCommand.__init__(self)
+      self.use_analytic_vel_and_src = False
+      
+   def execute(self, level_name, value, indent):
+      # all levels record level details
+      self.store_level_details(level_name, value)
+
+      if level_name == 'stem':
+         # at this level it is appropriate to read in the expressions
+         # generated from GenerateSymbols (in this instance, once only)
+         solution_name = join_with_underscores((self.stem))
+         solution_expressions = import_module(solution_name)
+         py_dict = solution_expressions.py_dict
+         self.g = py_dict['gravity_magnitude']
+         self.mu = (py_dict['viscosity1'],
+                    py_dict['viscosity2'])
+         self.rho = (py_dict['density1'],
+                     py_dict['density2'])
+         self.K = (py_dict['permeability1'],
+                   py_dict['permeability2'])
+         self.u = (py_dict['darcy_velocity1_x_1D'],
+                   py_dict['darcy_velocity2_x_1D'])
+         self.q = (py_dict['source_saturation1_1D'],
+                   py_dict['source_saturation2_1D'])
          
+
+      if level_name == 'mesh_suffix':
+         # the last level does the important stuff
+
+         # 2D or 3D => do nothing
+         if self.dim > 1: return
+
+         # compute useful parameters
+         param = Parameterisation(self.stem, self.dim, self.mesh_type,
+                                  self.mesh_suffix)
+
+         data = vtu(param.options_name+'_1.vtu')
+
+         p = data.GetScalarField('Phase1::Pressure')
+         s = (data.GetScalarField('Phase1::Saturation'),
+              data.GetScalarField('Phase2::Saturation'))
+         x = data.GetLocations()[:,0]
+         t = data.GetScalarField('Phase1::Time')
+         if self.use_analytic_vel_and_src:
+            u = (self.u[0](x, t), self.u[1](x, t))
+            q = (self.q[0](x, t), self.q[1](x, t))
+         else:
+            u = (data.GetVectorField('Phase1::DarcyVelocity')[:, 0],
+                 data.GetVectorField('Phase2::DarcyVelocity')[:, 0])
+            q = (data.GetScalarField('Phase1::SaturationSource'),
+                 data.GetScalarField('Phase2::SaturationSource'))
+            
+         dx = numpy.diff(x[0:2])
+         n = len(x)
+
+         # what does the pressure equation evaluate to, with and without
+         # source term?  Evaluate using (i) the pressure and saturation
+         # fields and (ii) Darcy velocities.  N.B.  central differencing
+         # is introduced in (i), so the two methods may not match
+         # exactly.
+         grad_p = numpy.gradient(p, dx)
+         A, B, C, div_p, div_u, div_minus_src_p, div_minus_src_u, \
+             numsrc_minus_anasrc = \
+             [[deepcopy([]) for i in range(3)] for j in range(8)]
+         rms = lambda v: numpy.sqrt(sum(v**2)/float(len(v)))
+         for i in [0, 1]:
+            A[i] = self.K[i](s)/self.mu[i]
+            B[i] = self.rho[i]*self.K[i](s)/self.mu[i]
+            div_p[i] = -(numpy.gradient(A[i]*grad_p - B[i]*self.g, dx))
+            div_u[i] = numpy.gradient(u[i], dx)
+            div_minus_src_p[i] = div_p[i] - q[i]
+            div_minus_src_u[i] = div_u[i] - q[i]
+            numsrc_minus_anasrc[i] = \
+                data.GetScalarField('Phase{0}::SaturationSource'.\
+                                       format(i+1)) - self.q[i](x, t)
+
+         # add phases together.  Sum of div should match
+         # Phase1::DivergenceTotalDarcyVelocity.  Sum of div_minus_src
+         # should be (near) zero.
+         div_p[2] = div_p[0] + div_p[1]
+         div_u[2] = div_u[0] + div_u[1]
+         div_minus_src_p[2] = div_minus_src_p[0] + div_minus_src_p[1] 
+         div_minus_src_u[2] = div_minus_src_u[0] + div_minus_src_u[1] 
+         numsrc_minus_anasrc[2] = numsrc_minus_anasrc[0] + numsrc_minus_anasrc[1] 
+
+         val_cf = stat_parser(param.options_name+'.stat')\
+             ['Phase1']['DivergenceTotalDarcyVelocity']['l2norm'][-1]
+         sys.stdout.write('\n'+indent+'  divergence (c.f. stat file, {0:.4e})'.\
+                             format(val_cf))
+         sys.stdout.write('\n'+indent+' '*6+'p-based calc '+' '*10+'u-based calc')
+         for i in [0, 1, 2]:
+            sys.stdout.write('\n'+indent+'  ')
+            if i == 2:
+               i_str = 'both'
+            else:
+               i_str = 'ph.'+str(i+1)
+            sys.stdout.write('       {0}:  {1:.4e}'.\
+                                format(i_str, rms(div_p.pop())))
+            sys.stdout.write('       {0}:  {1:.4e}'.\
+                                format(i_str, rms(div_u.pop())))
+
+         val_cf = stat_parser(param.options_name+'.stat')\
+             ['Phase1']['DivergenceTotalDarcyVelocityCorrected']['l2norm'][-1]
+         sys.stdout.write(
+            '\n'+indent+
+            '  divergence minus source term (c.f. stat file, {0:.4e})'.\
+               format(val_cf))
+         for i in [0, 1, 2]:
+            sys.stdout.write('\n'+indent+'  ')
+            if i == 2:
+               i_str = 'both'
+            else:
+               i_str = 'ph.'+str(i+1)
+            sys.stdout.write('       {0}:  {1:.4e}'.\
+                                format(i_str, rms(div_minus_src_p.pop())))
+            sys.stdout.write('       {0}:  {1:.4e}'.\
+                                format(i_str, rms(div_minus_src_u.pop())))
+
+         # sys.stdout.write('\n'+indent+'  numerical source minus analytic source:')
+         # for i in [0, 1, 2]:
+         #    sys.stdout.write('\n'+indent+'  ')
+         #    if i == 2:
+         #       i_str = 'both'
+         #    else:
+         #       i_str = 'ph.'+str(i+1)
+         #    sys.stdout.write('       {0}:  {1:.4e}'.\
+         #                        format(i_str, rms(numsrc_minus_anasrc.pop())))
+
+         # sys.stdout.write('\n'+indent+'  source1 minus source2: {1:.4e}'.\
+         #                        format(i_str, rms(q[0] - q[1])))
+
+         sys.stdout.write('\n')
+
+               
 class ManufacturedSolutionTestSuite:
    def __init__(self, case_name, mesh_type_list,
                 mesh_suffix_list_per_dimension, field_name_list,
@@ -368,6 +515,10 @@ class ManufacturedSolutionTestSuite:
 
    def clean_up(self):
       self.main_handler.handle( CleanUp() )
+
+
+   def diagnose(self):
+      self.main_handler.handle( Diagnose() )
       
             
    def do(self, what):
@@ -391,3 +542,6 @@ class ManufacturedSolutionTestSuite:
       if what=='cle':
          if verbose(): print '\nCleaning up'
          self.clean_up()
+      if what=='dia':
+         if verbose(): print '\nStats (RMS)'
+         self.diagnose()
