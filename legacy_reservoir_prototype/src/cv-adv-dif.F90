@@ -4303,7 +4303,7 @@ end if
     REAL, pointer, DIMENSION( :, :, : ) :: X_NX_ALL
     REAL, pointer :: VOLUME
     REAL, DIMENSION( CV_NLOC, CV_NLOC )  :: MASS, INV_MASS
-    REAL, DIMENSION( NDIM, X_SNLOC ) :: XSL( 3, X_SNLOC ), SNORMXN( NDIM, SBCVNGI ), SDETWE( SBCVNGI )
+    REAL, DIMENSION( NDIM, X_SNLOC ) :: XSL( 3, X_SNLOC ), SNORMXN( 3, SBCVNGI ), SDETWE( SBCVNGI )
     INTEGER  :: SLOC2LOC( CV_SNLOC ), X_SLOC2LOC( X_SNLOC ), ILOC_OTHER_SIDE( CV_SNLOC )
     REAL :: NN, NNX( NDIM ), NORMX( 3 ), SAREA, NRBC, RNN, RTBC, VLM_NORX( NDIM )
     INTEGER :: ELE, CV_ILOC, CV_JLOC, CV_NODI, CV_NODJ, CV_GI, CV_ILOC2, &
@@ -4441,7 +4441,7 @@ end if
                 END IF
 
                 ! Have a surface integral on element boundary... 
-                VLM_NORX(:) = MATMUL( SNORMXN( :, : ), &
+                VLM_NORX(:) = MATMUL( SNORMXN( 1:NDIM, : ), &
                      SDETWE(:) * SBCVFEN( CV_SILOC, : ) * SBCVFEN( CV_SJLOC, : ) )
 
                 ! add diffusion term...
