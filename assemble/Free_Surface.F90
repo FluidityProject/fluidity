@@ -555,9 +555,10 @@ contains
         end if
 
         if(present(rhs)) then
+           assert(.not. variable_density)
            call addto(rhs, nodes, &
                 -(matmul(mass_ele, top_pressures) &
-                -matmul(mass_ele_old, old_top_pressures))*alpha)
+                -matmul(mass_ele_old, old_top_pressures))*alpha/rho0)
         end if
         if (have_wd .and. present(rhs)) then
            call addto(rhs, nodes, &
