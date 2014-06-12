@@ -460,7 +460,7 @@ contains
 !! femdem
       type( vector_field ), pointer :: delta_u_all, us_all
       type( scalar_field ), pointer :: solid_vol_fra
-      real :: theta_cty_solid
+      real :: theta_cty_solid, VOL_FRA_FLUID_I, VOL_FRA_FLUID_J
 
 
       !#################SET WORKING VARIABLES#################
@@ -607,8 +607,6 @@ contains
       GOT_DIFFUS = ( R2NORM( TDIFFUSION, MAT_NONODS * NDIM * NDIM * NPHASE ) /= 0 )
 
      call get_option( "/material_phase[0]/vector_field::Velocity/prognostic/spatial_discretisation/viscosity_scheme/zero_or_two_thirds", zero_or_two_thirds, default=2./3. )
-
-
 
 !      print *,'SECOND_THETA=',SECOND_THETA
 !         stop 2821
@@ -994,6 +992,25 @@ contains
                ENDIF
 
            ENDIF
+
+
+           IF( GETCV_DISC ) THEN ! Obtain the CV discretised advection/diffusion equations
+               IF(THERMAL) THEN
+                     IF( RETRIEVE_SOLID_CTY ) THEN
+                        ALLOCATE(VOL_FRA_FLUID(CV_NONODS))
+!                        ALLOCATE(U_HAT_ALL(NDIM,U_NONODS))
+
+!                        delta_u_all => extract_vector_field( packed_state, "delta_U" )
+!                        u_hat_all = delta_u_all%val + u_all( :, 1, :) ! ndim, u_nonods
+
+!                        us_all => extract_vector_field( packed_state, "solid_U" )
+
+                        Solid_vol_fra => extract_scalar_field( packed_state, "SolidConcentration" )
+                        VOL_FRA_FLUID = 1.0 - 1.0 * solid_vol_fra%val   ! cv_nonods
+                      endif
+               ENDIF
+           ENDIF
+
 
 
 ! F and LOC_U:
@@ -2223,17 +2240,26 @@ contains
 
                            THERM_FTHETA = 1.
 
+                           IF( RETRIEVE_SOLID_CTY ) THEN
+                              VOL_FRA_FLUID_I = VOL_FRA_FLUID(CV_NODI)
+                              VOL_FRA_FLUID_J = VOL_FRA_FLUID(CV_NODJ)
+                           ELSE
+                              VOL_FRA_FLUID_I = 1.0
+                              VOL_FRA_FLUID_J = 1.0
+                           ENDIF
+
+
                            IF ( IGOT_T2 /= 0 ) THEN
 
                               CV_RHS( RHS_NODI_IPHA ) = CV_RHS( RHS_NODI_IPHA ) &
                                    - CV_P( CV_NODI ) * SCVDETWEI( GI ) * ( &
                                    THERM_FTHETA * NDOTQNEW( IPHASE ) * LIMT2( IPHASE ) &
-                                   + ( 1. - THERM_FTHETA ) * NDOTQOLD(IPHASE) * LIMT2OLD( IPHASE ) )
+                                   + ( 1. - THERM_FTHETA ) * NDOTQOLD(IPHASE) * LIMT2OLD( IPHASE ) )*VOL_FRA_FLUID_I
                               if ( integrate_other_side_and_not_boundary ) then
                                  CV_RHS( RHS_NODJ_IPHA ) = CV_RHS( RHS_NODJ_IPHA ) &
                                       + CV_P( CV_NODJ ) * SCVDETWEI( GI ) * ( &
                                       THERM_FTHETA * NDOTQNEW(IPHASE) * LIMT2(IPHASE) &
-                                      + ( 1. - THERM_FTHETA ) * NDOTQOLD(IPHASE) * LIMT2OLD(IPHASE) )
+                                      + ( 1. - THERM_FTHETA ) * NDOTQOLD(IPHASE) * LIMT2OLD(IPHASE) )*VOL_FRA_FLUID_J
                               end if
 
                            ELSE
@@ -2241,30 +2267,31 @@ contains
                               CV_RHS( RHS_NODI_IPHA ) = CV_RHS( RHS_NODI_IPHA ) &
                                    - CV_P( CV_NODI ) * SCVDETWEI( GI ) * ( &
                                    THERM_FTHETA * NDOTQNEW( IPHASE ) &
-                                   + ( 1. - THERM_FTHETA ) * NDOTQOLD(IPHASE) )
+                                   + ( 1. - THERM_FTHETA ) * NDOTQOLD(IPHASE) )*VOL_FRA_FLUID_I
                               if ( integrate_other_side_and_not_boundary ) then
                                  CV_RHS( RHS_NODJ_IPHA ) = CV_RHS( RHS_NODJ_IPHA ) &
                                       + CV_P( CV_NODJ ) * SCVDETWEI( GI ) * ( &
                                       THERM_FTHETA * NDOTQNEW( IPHASE ) &
-                                      + ( 1. - THERM_FTHETA ) * NDOTQOLD( IPHASE ) )
+                                      + ( 1. - THERM_FTHETA ) * NDOTQOLD( IPHASE ) )*VOL_FRA_FLUID_J
                               end if
                            
                            END IF !IGOT_T2 
 
                            IF ( GOT_VIS ) THEN
                               ! stress form of viscosity...
-                              TEN_XX_ONE(:,:,IPHASE) = 1.0
                               NU_LEV_GI(:, IPHASE) = ( (1.-THERM_FTHETA) * NUOLDGI_ALL(:,IPHASE) + THERM_FTHETA * NUGI_ALL(:,IPHASE) )
 
-                              STRESS_IJ_THERM(:,:,IPHASE) = 0.0
+                              STRESS_IJ_THERM(:,:,IPHASE) = 0.0 
 
                               CALL CALC_STRESS_TEN( STRESS_IJ_THERM(:,:,IPHASE), ZERO_OR_TWO_THIRDS, NDIM, &
-                                   CVNORMX_ALL(:,GI), NU_LEV_GI(:,IPHASE) * SCVDETWEI(GI), TEN_XX_ONE(:,:,IPHASE) )
-                                   !UFENX_ALL(1:NDIM,U_ILOC,GI), UFENX_ALL(1:NDIM,U_JLOC,GI) * DETWEI(GI), TEN_XX_ONE )
+                                   CVNORMX_ALL(:,GI), NU_LEV_GI(:,IPHASE) * SCVDETWEI(GI), THERM_U_DIFFUSION(:,:,IPHASE,MAT_NODI) )
+                                   !UFENX_ALL(1:NDIM,U_ILOC,GI), UFENX_ALL(1:NDIM,U_JLOC,GI) * DETWEI(GI), THERM_U_DIFFUSION(:,:,IPHASE,CV_NODI) )
 
-                              STRESS_IJ_THERM( :, :, IPHASE ) = STRESS_IJ_THERM( :, :, IPHASE ) * THERM_U_DIFFUSION(:,:,IPHASE,CV_NODI)
                               if ( integrate_other_side_and_not_boundary ) then
-                                 STRESS_IJ_THERM_J( :, :, IPHASE ) = STRESS_IJ_THERM( :, :, IPHASE ) * THERM_U_DIFFUSION(:,:,IPHASE,CV_NODJ)
+                                 STRESS_IJ_THERM_J(:,:,IPHASE) = 0.0 
+                                 CALL CALC_STRESS_TEN( STRESS_IJ_THERM_J(:,:,IPHASE), ZERO_OR_TWO_THIRDS, NDIM, &
+                                   CVNORMX_ALL(:,GI), NU_LEV_GI(:,IPHASE) * SCVDETWEI(GI), THERM_U_DIFFUSION(:,:,IPHASE,MAT_NODJ) )
+                                   !UFENX_ALL(1:NDIM,U_ILOC,GI), UFENX_ALL(1:NDIM,U_JLOC,GI) * DETWEI(GI), THERM_U_DIFFUSION(:,:,IPHASE,CV_NODJ) )
                               end if
 
                               DO IDIM = 1, NDIM
@@ -2315,6 +2342,7 @@ contains
          !ewrite(3,*)'before adding extra bits*****MEAN_PORE_CV:',MEAN_PORE_CV
          !ewrite(3,*)'before adding extra bits*****SOURCT:',SOURCT
 
+
          Loop_CVNODI2: DO CV_NODI = 1, CV_NONODS ! Put onto the diagonal of the matrix
 
             Loop_IPHASE2: DO IPHASE = 1, NPHASE
@@ -2326,8 +2354,13 @@ contains
 
                IF(THERMAL) THEN
                   IF(GOT_VIS) THEN
-                     CV_RHS( RHS_NODI_IPHA ) = CV_RHS( RHS_NODI_IPHA ) &
-                       + SUM( VECS_STRESS(:,:,IPHASE,CV_NODI)*VECS_GRAD_U(:,:,IPHASE,CV_NODI)  )/MASS_CV(CV_NODI) 
+                     IF( RETRIEVE_SOLID_CTY ) THEN
+                       CV_RHS( RHS_NODI_IPHA ) = CV_RHS( RHS_NODI_IPHA ) &
+                         + VOL_FRA_FLUID(cv_nodi)*SUM( VECS_STRESS(:,:,IPHASE,CV_NODI)*VECS_GRAD_U(:,:,IPHASE,CV_NODI)  )/MASS_CV(CV_NODI) 
+                     else
+                       CV_RHS( RHS_NODI_IPHA ) = CV_RHS( RHS_NODI_IPHA ) &
+                         + SUM( VECS_STRESS(:,:,IPHASE,CV_NODI)*VECS_GRAD_U(:,:,IPHASE,CV_NODI)  )/MASS_CV(CV_NODI) 
+                     endif
                   ENDIF
                ENDIF
 
@@ -7089,7 +7122,8 @@ end if
 
          DO IDIM=1,NDIM
             DO JDIM=1,NDIM
-               STRESS_IJ( IDIM,JDIM ) = STRESS_IJ( IDIM,JDIM ) + FEN_TEN_XX(IDIM,JDIM) * UFENX_JLOC(JDIM) 
+!               STRESS_IJ( IDIM,JDIM ) = STRESS_IJ( IDIM,JDIM ) + FEN_TEN_XX(IDIM,JDIM) * UFENX_JLOC(JDIM) 
+               STRESS_IJ( IDIM,JDIM ) = STRESS_IJ( IDIM,JDIM ) + FEN_TEN_XX(IDIM,JDIM) * UFENX_JLOC(IDIM) 
             END DO
          END DO
 

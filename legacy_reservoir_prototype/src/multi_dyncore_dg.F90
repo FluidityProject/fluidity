@@ -163,7 +163,7 @@ contains
         
         integer, optional :: icomp
         ! Local variables
-        LOGICAL, PARAMETER :: GETCV_DISC = .TRUE., GETCT= .FALSE., RETRIEVE_SOLID_CTY=.FALSE.
+        LOGICAL, PARAMETER :: GETCV_DISC = .TRUE., GETCT= .FALSE. 
         integer :: nits_flux_lim, its_flux_lim
         logical :: lump_eqns
         REAL, DIMENSION( : ), allocatable :: ACV, CV_RHS, DIAG_SCALE_PRES, CT_RHS
@@ -175,6 +175,7 @@ contains
         INTEGER, DIMENSION( : ), allocatable :: COLACV_SUB, FINACV_SUB, MIDACV_SUB
         INTEGER :: NCOLACV_SUB, IPHASE, I, J
         REAL :: SECOND_THETA
+        LOGICAL :: RETRIEVE_SOLID_CTY
         INTEGER :: STAT
         character( len = option_path_len ) :: path
         type(vector_field) :: rhs_field
@@ -247,6 +248,13 @@ contains
         lump_eqns = have_option( '/material_phase[0]/scalar_field::PhaseVolumeFraction/prognostic/' // &
         'spatial_discretisation/continuous_galerkin/mass_terms/lump_mass_matrix' )
 
+!         if ( have_option( '/blasting' ) ) then
+!            RETRIEVE_SOLID_CTY = .true.
+!         else
+!            RETRIEVE_SOLID_CTY = .false.
+!         end if
+
+            RETRIEVE_SOLID_CTY = .false.
 
         Loop_NonLinearFlux: DO ITS_FLUX_LIM = 1, NITS_FLUX_LIM
 
@@ -461,7 +469,7 @@ contains
         REAL, DIMENSION( : ), intent( in ) :: T2, T2OLD
         REAL, DIMENSION( :, : ), intent( inout ) :: THETA_GDIFF
         REAL, DIMENSION(:, : ),  intent( inout ) :: THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J
-        REAL, DIMENSION( :, :, :, : ), intent( in ) :: TDIFFUSION
+        REAL, DIMENSION( :, :, :, : ), intent( inout ) :: TDIFFUSION
         INTEGER, intent( in ) :: T_DISOPT, T_DG_VEL_INT_OPT
         REAL, intent( in ) :: DT, T_THETA
         REAL, intent( in ) :: T_BETA
@@ -620,7 +628,7 @@ contains
         INTEGER, DIMENSION( : ), intent( in ) :: COLACV
         INTEGER, DIMENSION( : ), intent( in ) :: FINELE
         INTEGER, DIMENSION( : ), intent( in ) :: COLELE
-        REAL, DIMENSION( :, :, :, : ), intent( in ) :: TDIFFUSION
+        REAL, DIMENSION( :, :, :, : ), intent( inout ) :: TDIFFUSION
         REAL, DIMENSION( :, : ), intent( in ) :: FEM_VOL_FRAC
         character( len = * ), intent( in ), optional :: option_path
         integer, dimension(:), intent(inout) :: StorageIndexes
@@ -1280,8 +1288,7 @@ contains
 
 
         IF(RETRIEVE_SOLID_CTY) THEN
-!        IF(.TRUE.) THEN
-! if model B and solid-fluid coupling: 
+        ! if model B and solid-fluid coupling: 
            sf => EXTRACT_SCALAR_FIELD( PACKED_STATE, "SolidConcentration" )
            soldf => EXTRACT_SCALAR_FIELD( PACKED_STATE, "OldSolidConcentration" )
 
@@ -1330,6 +1337,7 @@ contains
             U_ABS_STAB_ALL( :, :, MAT_INOD ) = U_ABS_STAB( MAT_INOD, :, : )
             UDIFFUSION_ALL( :, :, :, MAT_INOD ) = UDIFFUSION( MAT_INOD, :, :, : )
         END DO
+
 
 
         ALLOCATE( PLIKE_GRAD_SOU_COEF_ALL( NPHASE, CV_NONODS ) )
@@ -1819,7 +1827,7 @@ contains
         REAL, DIMENSION( : ), intent( inout ) :: MCY
         REAL, DIMENSION( :, :,: ), intent( out ) :: PIVIT_MAT
         REAL, DIMENSION( :, : ), intent( in ) :: UDEN_ALL, UDENOLD_ALL
-        REAL, DIMENSION( :, :, :, : ), intent( in ) :: UDIFFUSION_ALL
+        REAL, DIMENSION( :, :, :, : ), intent( inout ) :: UDIFFUSION_ALL
         REAL, DIMENSION( :, :, :, : ), intent( inout ) :: THERM_U_DIFFUSION
         LOGICAL, intent( inout ) :: JUST_BL_DIAG_MAT
         REAL, DIMENSION( : ), intent( in ) :: OPT_VEL_UPWIND_COEFS
@@ -2197,8 +2205,8 @@ contains
         ! NDIM_VEL
         INTEGER, DIMENSION( : ), intent( in ) :: U_NDGLN
         INTEGER, DIMENSION( : ), intent( in )  :: P_NDGLN
-        INTEGER, DIMENSION(: ), intent( in )  :: CV_NDGLN
-        INTEGER, DIMENSION( :), intent( in )  :: X_NDGLN
+        INTEGER, DIMENSION( : ), intent( in )  :: CV_NDGLN
+        INTEGER, DIMENSION( : ), intent( in )  :: X_NDGLN
         INTEGER, DIMENSION( : ), intent( in ) :: XU_NDGLN
         INTEGER, DIMENSION( : ), intent( in ) :: MAT_NDGLN
         INTEGER, DIMENSION( : ), intent( in ) :: U_SNDGLN
@@ -2226,7 +2234,7 @@ contains
         INTEGER, DIMENSION(: ), intent( in ) :: FINELE
         INTEGER, DIMENSION( : ), intent( in ) :: COLELE
         REAL, DIMENSION( : , : , : ), intent( out ) :: PIVIT_MAT
-        REAL, DIMENSION( :, :, :, : ), intent( in ) :: UDIFFUSION
+        REAL, DIMENSION( :, :, :, : ), intent( inout ) :: UDIFFUSION
         REAL, DIMENSION( :, :, :, : ), intent( inout ) :: THERM_U_DIFFUSION
         LOGICAL, intent( inout ) :: JUST_BL_DIAG_MAT
         REAL, DIMENSION( :, : ), intent( in ) :: PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD
@@ -2334,6 +2342,7 @@ contains
 !                               =2 Take the average length scale h
 !                               =3 Take the min length scale h
 !                               =4 Take the max length scale h
+!                               =5 for stress form take length scale across gradient direction of the element.
 !            REAL, PARAMETER :: LES_THETA=1.0
             REAL :: LES_THETA, LES_CS
 ! LES_THETA =1 is backward Euler for the LES viscocity.
@@ -2447,7 +2456,7 @@ contains
         REAL, DIMENSION ( :, :, : ), allocatable :: FOURCE_SOLID_FLUID_COUP
 
 ! for the option where we divid by voln fraction...
-        REAL, DIMENSION ( :, : ), allocatable :: VOL_FRA_GI
+        REAL, DIMENSION ( :, : ), allocatable :: VOL_FRA_GI, CV_DENGI
         REAL, DIMENSION ( :, :, : ), allocatable :: VOL_FRA_GI_DX_ALL
         REAL, DIMENSION ( :, : ), allocatable :: SLOC_VOL_FRA, SLOC2_VOL_FRA,  SVOL_FRA, SVOL_FRA2, VOL_FRA_NMX_ALL
 
@@ -2460,8 +2469,9 @@ contains
 
 !! femdem
         type( vector_field ), pointer :: delta_u_all, us_all
-        type(scalar_field), pointer :: sf
+        type( scalar_field ), pointer :: sf
         integer :: cv_nodi
+        real, dimension( : ), allocatable :: vol_s_gi
 
         !! Boundary_conditions
 
@@ -2941,7 +2951,7 @@ contains
            IF( THERMAL_STAB_VISC ) THEN
               ALLOCATE( MAT_ELE_CV_LOC( CV_NLOC, CV_NLOC ), INV_MAT_ELE_CV_LOC( CV_NLOC, CV_NLOC ), DIFF_FOR_BETWEEN_CV( NDIM, NPHASE, CV_NLOC ) )
               ALLOCATE( DIFFCV(NDIM, NPHASE, MAT_NLOC), DIFFCV_TEN(NDIM,NDIM, NPHASE, MAT_NLOC) )
-              ALLOCATE( DIFFCV_TEN_ELE(NDIM, NDIM, NPHASE, MAT_NLOC, TOTELE) )
+              ALLOCATE( DIFFCV_TEN_ELE(NDIM, NDIM, NPHASE, MAT_NLOC, TOTELE) ) ; DIFFCV_TEN_ELE=0.0
               ALLOCATE( RCOUNT_NODS(MAT_NONODS) )
            END IF
         END IF
@@ -3030,16 +3040,16 @@ contains
 
 ! LES VISCOCITY CALC.
         IF ( GOT_DIFFUS ) THEN
-           ALLOCATE(UDIFFUSION_ALL(NDIM,NDIM,NPHASE,MAT_NONODS)) ! ; UDIFFUSION_ALL=0.
+           ALLOCATE(UDIFFUSION_ALL(NDIM,NDIM,NPHASE,MAT_NONODS)) ; UDIFFUSION_ALL=0.
            IF ( LES_DISOPT /= 0 ) THEN
-              ALLOCATE(LES_UDIFFUSION(NDIM,NDIM,NPHASE,MAT_NONODS))
-              CALL VISCOCITY_TENSOR_LES_CALC(LES_UDIFFUSION, LES_THETA*DUX_ELE_ALL + (1.-LES_THETA)*DUOLDX_ELE_ALL, &
+              ALLOCATE(LES_UDIFFUSION(NDIM,NDIM,NPHASE,MAT_NONODS)) ; LES_UDIFFUSION=0.
+              CALL VISCOCITY_TENSOR_LES_CALC( LES_UDIFFUSION, LES_THETA*DUX_ELE_ALL + (1.-LES_THETA)*DUOLDX_ELE_ALL, &
                    NDIM,NPHASE, U_NLOC,X_NLOC,TOTELE, X_NONODS, &
-                   X_ALL, X_NDGLN,  MAT_NONODS, MAT_NLOC, MAT_NDGLN, LES_DISOPT, LES_CS)
+                   X_ALL, X_NDGLN,  MAT_NONODS, MAT_NLOC, MAT_NDGLN, LES_DISOPT, LES_CS, UDEN, CV_NONODS, CV_NDGLN )
               IF ( STRESS_FORM ) THEN ! put into viscocity in stress form
                  DO IDIM=1,NDIM
                     DO JDIM=1,NDIM
-                       UDIFFUSION_ALL(IDIM,JDIM,:,:)=UDIFFUSION(IDIM,JDIM,:,:) + SQRT( LES_UDIFFUSION(IDIM,IDIM,:,:) * LES_UDIFFUSION(JDIM,JDIM,:,:) )
+                       UDIFFUSION_ALL(IDIM,JDIM,:,:) = UDIFFUSION(IDIM,JDIM,:,:) + SQRT( LES_UDIFFUSION(IDIM,IDIM,:,:) * LES_UDIFFUSION(JDIM,JDIM,:,:) )
                     END DO
                  END DO
               ELSE
@@ -3054,6 +3064,23 @@ contains
            sf=> extract_scalar_field( packed_state, "SolidConcentration" )
            delta_u_all => extract_vector_field( packed_state, "delta_U" ) ! this is delta_u
            us_all => extract_vector_field( packed_state, "solid_U" )
+
+           if ( .true. ) then ! Do not switch this to false.
+              DO ELE = 1, TOTELE
+                  DO CV_ILOC = 1, CV_NLOC
+                     MAT_NOD = MAT_NDGLN( (ELE-1)*CV_NLOC + CV_ILOC )
+                     CV_NOD = CV_NDGLN( (ELE-1)*CV_NLOC + CV_ILOC )
+                     DO IPHASE = 1, NPHASE
+                        UDIFFUSION_ALL( :, :, IPHASE, MAT_NOD ) = UDIFFUSION_ALL( :, :, IPHASE, MAT_NOD ) * ( 1. - sf%val( cv_nod ) )
+                        UDIFFUSION( :, :, IPHASE, MAT_NOD ) = UDIFFUSION( :, :, IPHASE, MAT_NOD ) * ( 1. - sf%val( cv_nod ) )
+                     END DO
+                  END DO
+              END DO
+           end if
+
+           allocate( vol_s_gi( cv_ngi_short ) )
+           allocate( cv_dengi( nphase, cv_ngi_short ) )
+
         endif
 
 
@@ -3153,16 +3180,18 @@ contains
 ! Switch on for solid fluid-coupling...
                    IF(RETRIEVE_SOLID_CTY) THEN
                       CV_INOD = CV_NDGLN( ( ELE - 1 ) * MAT_NLOC + MAT_ILOC )
-                      DO IDIM=1,NDIM
-                         DO IPHASE=1,NPHASE
-                            I=IDIM + (IPHASE-1)*NDIM
-                            LOC_U_ABSORB( I, I, MAT_ILOC ) = LOC_U_ABSORB( I, I, MAT_ILOC ) + &
-                                   COEFF_SOLID_FLUID * ( DEN_ALL( IPHASE, cv_inod ) / dt ) * sf%val( cv_inod )
-
-                            LOC_U_ABS_STAB_SOLID_RHS( I, I, MAT_ILOC ) = LOC_U_ABS_STAB_SOLID_RHS( I, I, MAT_ILOC )  &
-                                  + COEFF_SOLID_FLUID * ( DEN_ALL( IPHASE, cv_inod ) / dt ) 
-                         END DO
-                      END DO
+!                      DO IDIM=1,NDIM
+!                         DO IPHASE=1,NPHASE
+!                            I=IDIM + (IPHASE-1)*NDIM
+!                            LOC_U_ABSORB( I, I, MAT_ILOC ) = LOC_U_ABSORB( I, I, MAT_ILOC ) + &
+!                                 !COEFF_SOLID_FLUID * ( DEN_ALL( IPHASE, cv_inod ) / dt ) * sf%val( cv_inod )
+!                                 COEFF_SOLID_FLUID * ( max( 1.0, DEN_ALL( IPHASE, cv_inod )) / dt ) * sf%val( cv_inod )
+!
+!                            LOC_U_ABS_STAB_SOLID_RHS( I, I, MAT_ILOC ) = LOC_U_ABS_STAB_SOLID_RHS( I, I, MAT_ILOC ) &
+!                                 !+ COEFF_SOLID_FLUID * ( DEN_ALL( IPHASE, cv_inod ) / dt )
+!                                 + COEFF_SOLID_FLUID * ( max( 1.0, DEN_ALL( IPHASE, cv_inod ) ) / dt )
+!                         END DO
+!                      END DO
 ! Add in the viscocity contribution...
                       IF( GOT_DIFFUS .AND. include_viscous_solid_fluid_drag_force ) THEN  
 ! Assume visc. is isotropic (can be variable)...
@@ -3316,13 +3345,11 @@ contains
                     END DO
                 END DO
             END IF
-
             ! not good to have -ve density at quadature pt...
             DENGI = MAX( 0.0, DENGI )
             DENGIOLD = MAX( 0.0, DENGIOLD )
 
             SIGMAGI = 0.0 ; SIGMAGI_STAB = 0.0
-            IF(RETRIEVE_SOLID_CTY) SIGMAGI_STAB_SOLID_RHS=0.0
             TEN_XX  = 0.0
             if (is_compact_overlapping) then
                DO IPHA_IDIM = 1, NDIM_VEL * NPHASE
@@ -3334,38 +3361,53 @@ contains
                         DO IPHA_IDIM = 1, NDIM_VEL * NPHASE
                             DO JPHA_JDIM = 1, NDIM_VEL * NPHASE
 
-                   IF(RETRIEVE_SOLID_CTY) THEN
                                 SIGMAGI( IPHA_IDIM, JPHA_JDIM, GI ) = SIGMAGI( IPHA_IDIM, JPHA_JDIM, GI ) &
-                                      !+ CVFEN( MAT_ILOC, GI ) * LOC_U_ABSORB( IPHA_IDIM, JPHA_JDIM, MAT_ILOC )
-!                                + CVN( MAT_ILOC, GI ) * LOC_U_ABSORB( IPHA_IDIM, JPHA_JDIM, MAT_ILOC )
-                                + CVFEN( MAT_ILOC, GI ) * LOC_U_ABSORB( IPHA_IDIM, JPHA_JDIM, MAT_ILOC )
-
-                                SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM, GI ) = SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM, GI ) &
-                                      !+ CVFEN( MAT_ILOC, GI ) * LOC_U_ABS_STAB( IPHA_IDIM, JPHA_JDIM, MAT_ILOC )
-                                + CVFEN( MAT_ILOC, GI ) * LOC_U_ABS_STAB( IPHA_IDIM, JPHA_JDIM, MAT_ILOC )
-
-                                SIGMAGI_STAB_SOLID_RHS( IPHA_IDIM, JPHA_JDIM, GI ) = SIGMAGI_STAB_SOLID_RHS( IPHA_IDIM, JPHA_JDIM, GI ) &
-                           !     + CVN( MAT_ILOC, GI ) * LOC_U_ABS_STAB_SOLID_RHS( IPHA_IDIM, JPHA_JDIM, MAT_ILOC ) 
-                                + CVFEN( MAT_ILOC, GI ) * LOC_U_ABS_STAB_SOLID_RHS( IPHA_IDIM, JPHA_JDIM, MAT_ILOC ) 
-
-                                SIGMAGI( IPHA_IDIM, JPHA_JDIM, GI ) = max(0.0, SIGMAGI( IPHA_IDIM, JPHA_JDIM, GI ) ) 
-                                SIGMAGI_STAB_SOLID_RHS( IPHA_IDIM, JPHA_JDIM, GI ) = max(0.0, SIGMAGI_STAB_SOLID_RHS( IPHA_IDIM, JPHA_JDIM, GI ) )
-                   ELSE
-                                SIGMAGI( IPHA_IDIM, JPHA_JDIM, GI ) = SIGMAGI( IPHA_IDIM, JPHA_JDIM, GI ) &
-                                      !+ CVFEN( MAT_ILOC, GI ) * LOC_U_ABSORB( IPHA_IDIM, JPHA_JDIM, MAT_ILOC )
+                                !+ CVFEN( MAT_ILOC, GI ) * LOC_U_ABSORB( IPHA_IDIM, JPHA_JDIM, MAT_ILOC )
                                 + CVN( MAT_ILOC, GI ) * LOC_U_ABSORB( IPHA_IDIM, JPHA_JDIM, MAT_ILOC )
 
                                 SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM, GI ) = SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM, GI ) &
-                                      !+ CVFEN( MAT_ILOC, GI ) * LOC_U_ABS_STAB( IPHA_IDIM, JPHA_JDIM, MAT_ILOC )
+                                !+ CVFEN( MAT_ILOC, GI ) * LOC_U_ABS_STAB( IPHA_IDIM, JPHA_JDIM, MAT_ILOC )
                                 + CVN( MAT_ILOC, GI ) * LOC_U_ABS_STAB( IPHA_IDIM, JPHA_JDIM, MAT_ILOC )
-                   ENDIF
 
                             END DO
                         END DO
                         TEN_XX( :, :, :, GI ) = TEN_XX( :, :, :, GI ) + CVFEN( MAT_ILOC, GI ) * LOC_UDIFFUSION( :, :, :, MAT_ILOC )
                     END DO
                 END DO
+                
+                IF ( RETRIEVE_SOLID_CTY ) THEN
+                   VOL_S_GI = 0.0
+                   CV_DENGI = 0.0
+                   DO CV_ILOC = 1, CV_NLOC
+                      CV_INOD = CV_NDGLN( (ELE-1)*CV_NLOC + CV_ILOC ) 
+                      DO GI = 1, CV_NGI_SHORT
+                         !VOL_S_GI( GI ) = VOL_S_GI( GI ) + CVFEN_SHORT( CV_ILOC, GI ) * sf%val( cv_inod )
+                         VOL_S_GI( GI ) = VOL_S_GI( GI ) + CVN( CV_ILOC, GI ) * sf%val( cv_inod )
+                         CV_DENGI(:, GI ) = CV_DENGI(:, GI ) + CVN( CV_ILOC, GI ) * den_all( :, cv_inod )
+                      END DO
+                   END DO
+                   VOL_S_GI = MIN( MAX( VOL_S_GI, 0.0 ), 1.0 )
+                   SIGMAGI_STAB_SOLID_RHS=0.0
+                   do idim=1,ndim
+                      do iphase=1,nphase
+                         ipha_idim=idim + (iphase-1)*ndim
+!                         SIGMAGI( IPHA_IDIM, IPHA_IDIM, : ) = SIGMAGI( IPHA_IDIM, IPHA_IDIM, : ) + max( dengi( iphase, : ), 1.0 ) * vol_s_gi(:) / dt
+!                         SIGMAGI_STAB_SOLID_RHS( IPHA_IDIM, IPHA_IDIM, : ) = SIGMAGI_STAB_SOLID_RHS( IPHA_IDIM, IPHA_IDIM, : ) + max( dengi( iphase, : ), 1.0 ) / dt
+                         SIGMAGI( IPHA_IDIM, IPHA_IDIM, : ) = SIGMAGI( IPHA_IDIM, IPHA_IDIM, : ) + max( CV_dengi( iphase, : ), 1.0 ) * vol_s_gi(:) / dt
+                         SIGMAGI_STAB_SOLID_RHS( IPHA_IDIM, IPHA_IDIM, : ) = SIGMAGI_STAB_SOLID_RHS( IPHA_IDIM, IPHA_IDIM, : ) + max( CV_dengi( iphase, : ), 1.0 ) / dt
+                      end do
+                   end do
+                end if
+
+                !IF(RETRIEVE_SOLID_CTY) THEN
+                !   DO IPHA_IDIM = 1, NDIM_VEL * NPHASE
+                !      SIGMAGI( IPHA_IDIM, IPHA_IDIM, : ) = max( 10.0/dt, SIGMAGI( IPHA_IDIM, IPHA_IDIM, : ) ) 
+                !      SIGMAGI_STAB_SOLID_RHS( IPHA_IDIM, IPHA_IDIM, : ) = max( 10.0/dt, SIGMAGI_STAB_SOLID_RHS( IPHA_IDIM, IPHA_IDIM, : ) )
+                !   END DO
+                !END IF
+
             end if
+
             RHS_DIFF_U=0.0
 
             Loop_ilev_DGNods1: DO ILEV = 1, NLEV
@@ -4057,7 +4099,8 @@ contains
                  DO CV_ILOC = 1, CV_NLOC
                     DO CV_JLOC = 1, CV_NLOC
                        MAT_ELE_CV_LOC( CV_ILOC, CV_JLOC ) = &
-                            SUM( CVFEN( CV_ILOC, : ) * CVFEN( CV_JLOC,  : ) * DETWEI( : ) )
+                            !SUM( CVFEN( CV_ILOC, : ) * CVFEN( CV_JLOC,  : ) * DETWEI( : ) )
+                            SUM( CVN( CV_ILOC, : ) * CVFEN( CV_JLOC,  : ) * DETWEI( : ) )
                     END DO
                  END DO
                  
@@ -4068,20 +4111,21 @@ contains
                        DO GI = 1, CV_NGI
                           ! we store these vectors in order to try and work out the between element
                           ! diffusion/viscocity.
-                          DIFF_FOR_BETWEEN_CV( :, IPHASE, CV_ILOC ) = DIFF_FOR_BETWEEN_CV( :, IPHASE, CV_ILOC  ) &
-                               + CVFEN( CV_ILOC, GI ) * DETWEI( GI ) * DIF_STAB_U( :, IPHASE, GI )
+                          DIFF_FOR_BETWEEN_CV( :, IPHASE, CV_ILOC ) = DIFF_FOR_BETWEEN_CV( :, IPHASE, CV_ILOC ) &
+                               !+ CVFEN( CV_ILOC, GI ) * DETWEI( GI ) * DIF_STAB_U( :, IPHASE, GI )
+                               + CVN( CV_ILOC, GI ) * DETWEI( GI ) * DIF_STAB_U( :, IPHASE, GI )
                        END DO
                     END DO
                  END DO
 
-                 INV_MAT_ELE_CV_LOC = INVERSE(MAT_ELE_CV_LOC)
+                 INV_MAT_ELE_CV_LOC = INVERSE( MAT_ELE_CV_LOC )
                  DO IPHASE = 1, NPHASE
                     DO IDIM=1,NDIM
-                       DIFFCV(IDIM, IPHASE,:) = MATMUL(INV_MAT_ELE_CV_LOC(:,:), DIFF_FOR_BETWEEN_CV( IDIM, IPHASE, : ) )
+                       DIFFCV( IDIM,IPHASE,: ) = MATMUL( INV_MAT_ELE_CV_LOC(:,:), DIFF_FOR_BETWEEN_CV( IDIM,IPHASE,:) )
                     END DO
                  END DO
-                 DIFFCV=MAX(0.0, DIFFCV) 
-                 
+                 DIFFCV = MAX( 0.0, DIFFCV )
+
                  DO IDIM=1,NDIM
                     DO JDIM=1,NDIM
                        DIFFCV_TEN(IDIM,JDIM, :,:) = SQRT( DIFFCV(IDIM, :,:) * DIFFCV(JDIM, :,:) )
@@ -4093,13 +4137,8 @@ contains
                  ! End of IF( THERMAL_STAB_VISC ) THEN...
               END IF
      
-
-
-               !! *************************INNER ELEMENT STABILIZATION****************************************
-               !! *************************INNER ELEMENT STABILIZATION****************************************
                ! endof IF(RESID_BASED_STAB_DIF.NE.0) THEN
              END IF
-            ! **********REVIEWER 2-END**********************
 
             ! copy local memory
             DO U_ILOC = 1, U_NLOC
@@ -4121,9 +4160,9 @@ contains
 
            IF ( THERMAL_STAB_VISC ) THEN ! Petrov-Galerkin visc...
               RCOUNT_NODS = 0.0
-              DO ELE=1,TOTELE
+              DO ELE = 1, TOTELE
                  DO MAT_ILOC=1,MAT_NLOC
-                    MAT_NOD = MAT_NDGLN( (ELE-1)*MAT_NLOC + MAT_ILOC ) 
+                    MAT_NOD = MAT_NDGLN( (ELE-1)*MAT_NLOC + MAT_ILOC )
                     THERM_U_DIFFUSION( :,:,:,MAT_NOD ) = THERM_U_DIFFUSION( :,:,:,MAT_NOD ) + DIFFCV_TEN_ELE( :,:,:,MAT_ILOC,ELE ) * MASS_ELE( ELE )
                     RCOUNT_NODS( MAT_NOD ) = RCOUNT_NODS( MAT_NOD ) + MASS_ELE( ELE )
                  END DO
@@ -4288,12 +4327,15 @@ contains
                 DO CV_SILOC = 1, CV_SNLOC
                     CV_ILOC = CV_SLOC2LOC( CV_SILOC )
                     CV_INOD = CV_NDGLN( (ELE-1)*CV_NLOC + CV_ILOC )
+                    MAT_INOD = MAT_NDGLN( (ELE-1)*CV_NLOC + CV_ILOC )
                     IF ( ELE2 /= 0) THEN
                         CV_ILOC2 = MAT_OTHER_LOC( CV_ILOC )
                         CV_INOD2 = CV_NDGLN( (ELE2-1)*CV_NLOC + CV_ILOC2 )
+                        MAT_INOD2 = MAT_NDGLN( (ELE2-1)*CV_NLOC + CV_ILOC2 )
                     ELSE
                         CV_ILOC2 = CV_ILOC
                         CV_INOD2 = CV_INOD
+                        MAT_INOD2 = MAT_INOD
                     END IF
 
                     IF(IGOT_VOL_X_PRESSURE==1) THEN
@@ -4315,8 +4357,14 @@ contains
 
                     IF ( GOT_DIFFUS ) THEN
                         DO IPHASE = 1, NPHASE
-                           SLOC_UDIFFUSION( 1:NDIM, 1:NDIM, IPHASE, CV_SILOC ) = UDIFFUSION_ALL( 1:NDIM, 1:NDIM, IPHASE, CV_INOD )
-                           SLOC2_UDIFFUSION( 1:NDIM, 1:NDIM, IPHASE, CV_SILOC ) = UDIFFUSION_ALL( 1:NDIM, 1:NDIM, IPHASE, CV_INOD2 )
+                           IF ( ELE2 /= 0) THEN ! Only put LES visc. if not on the boundary of the domain...
+                              SLOC_UDIFFUSION( 1:NDIM, 1:NDIM, IPHASE, CV_SILOC ) = UDIFFUSION_ALL( 1:NDIM, 1:NDIM, IPHASE, MAT_INOD )
+                              SLOC2_UDIFFUSION( 1:NDIM, 1:NDIM, IPHASE, CV_SILOC ) = UDIFFUSION_ALL( 1:NDIM, 1:NDIM, IPHASE, MAT_INOD2 )
+                           ELSE
+                              ! set to 0.0 for free-slip
+                              SLOC_UDIFFUSION( 1:NDIM, 1:NDIM, IPHASE, CV_SILOC ) = UDIFFUSION( 1:NDIM, 1:NDIM, IPHASE, MAT_INOD )
+                              SLOC2_UDIFFUSION( 1:NDIM, 1:NDIM, IPHASE, CV_SILOC ) = UDIFFUSION( 1:NDIM, 1:NDIM, IPHASE, MAT_INOD2 )
+                           ENDIF
                         END DO
                     END IF
                 END DO
@@ -5321,23 +5369,24 @@ contains
 
             SUBROUTINE VISCOCITY_TENSOR_LES_CALC(LES_UDIFFUSION, DUX_ELE_ALL, &
                                                  NDIM,NPHASE, U_NLOC,X_NLOC,TOTELE, X_NONODS, &
-                                                 X_ALL, X_NDGLN,  MAT_NONODS, MAT_NLOC, MAT_NDGLN, LES_DISOPT, LES_CS)
+                                                 X_ALL, X_NDGLN,  MAT_NONODS, MAT_NLOC, MAT_NDGLN, LES_DISOPT, LES_CS, UDEN, CV_NONODS, CV_NDGLN)
 ! This subroutine calculates a tensor of viscocity LES_UDIFFUSION. 
             IMPLICIT NONE
             REAL, intent( in ) :: LES_CS
-            INTEGER, intent( in ) :: NDIM, NPHASE, U_NLOC, X_NLOC, TOTELE, X_NONODS, MAT_NONODS, MAT_NLOC, LES_DISOPT
+            INTEGER, intent( in ) :: NDIM, NPHASE, U_NLOC, X_NLOC, TOTELE, X_NONODS, MAT_NONODS, CV_NONODS, MAT_NLOC, LES_DISOPT
             INTEGER, DIMENSION( X_NLOC * TOTELE  ), intent( in ) :: X_NDGLN
-            INTEGER, DIMENSION( MAT_NLOC * TOTELE  ), intent( in ) :: MAT_NDGLN
+            INTEGER, DIMENSION( MAT_NLOC * TOTELE  ), intent( in ) :: MAT_NDGLN, CV_NDGLN
             REAL, DIMENSION( NDIM, X_NONODS  ), intent( in ) :: X_ALL
             REAL, DIMENSION( NDIM, NDIM, NPHASE, MAT_NONODS  ), intent( inout ) :: LES_UDIFFUSION
             REAL, DIMENSION( NDIM, NDIM, NPHASE, U_NLOC, TOTELE  ), intent( in ) :: DUX_ELE_ALL
+            REAL, DIMENSION( NPHASE, CV_NONODS ), intent( in ) :: UDEN
 ! Local variables...
 !            INTEGER, PARAMETER :: LES_DISOPT=1
 ! LES_DISOPT is LES option e.g. =1 Anisotropic element length scale
 !                               =2 Take the average length scale h
 !                               =3 Take the min length scale h
 !                               =4 Take the max length scale h
-            integer :: ele, MAT_iloc, MAT_INOD
+            integer :: ele, MAT_iloc, MAT_INOD, CV_INOD, iphase
             real, dimension( :, :, :, :, : ), allocatable :: LES_U_UDIFFUSION, LES_MAT_UDIFFUSION
             integer, dimension( : ), allocatable :: NOD_COUNT
 
@@ -5387,7 +5436,12 @@ contains
          do ele = 1, totele
             do MAT_iloc = 1, MAT_nloc
                MAT_Inod = MAT_ndgln( ( ele - 1 ) * MAT_nloc + MAT_iloc )
-               LES_UDIFFUSION(:,:,:,MAT_Inod) = LES_UDIFFUSION(:,:,:,MAT_Inod) + LES_MAT_UDIFFUSION(:,:,:,MAT_ILOC,ELE)
+               CV_Inod = CV_ndgln( ( ele - 1 ) * MAT_nloc + MAT_iloc )
+
+               do iphase = 1, nphase
+                  LES_UDIFFUSION(:,:,iphase,MAT_Inod) = LES_UDIFFUSION(:,:,iphase,MAT_Inod) + &
+                             LES_MAT_UDIFFUSION(:,:,iphase,MAT_ILOC,ELE) * UDEN( iphase, CV_Inod )
+               end do
                NOD_COUNT(MAT_INOD) = NOD_COUNT(MAT_INOD) + 1
             END DO
          END DO
@@ -5414,14 +5468,15 @@ contains
             REAL, DIMENSION( NDIM, NDIM, NPHASE, U_NLOC, TOTELE  ), intent( inout ) :: LES_U_UDIFFUSION
             REAL, DIMENSION( NDIM, NDIM, NPHASE, U_NLOC, TOTELE  ), intent( in ) :: DUX_ELE_ALL
 ! Local variables...
-            LOGICAL, PARAMETER :: ONE_OVER_H2=.TRUE.
+            LOGICAL, PARAMETER :: ONE_OVER_H2=.FALSE.
             !     SET to metric which has 1/h^2 in it
 !            REAL, PARAMETER :: CS=0.1
-            REAL :: LOC_X_ALL(NDIM, X_NLOC), TENSXX_ALL(NDIM, NDIM), RSUM, FOURCS, CS2, VIS 
+            REAL :: LOC_X_ALL(NDIM, X_NLOC), TENSXX_ALL(NDIM, NDIM, NPHASE), RSUM, FOURCS, CS2, VIS 
+            REAL :: MEAN_UDER_U(NDIM, NDIM, NPHASE)
             INTEGER :: ELE, X_ILOC, U_ILOC, IPHASE, X_NODI, IDIM, JDIM, KDIM
 
             CS2=CS**2
-            FOURCS=4.*CS2
+            FOURCS=CS2
 
             DO ELE=1,TOTELE
 
@@ -5430,7 +5485,19 @@ contains
                   LOC_X_ALL(:,X_ILOC) = X_ALL(:,X_NODI)
                END DO
 
-               CALL ONEELETENS_ALL( LOC_X_ALL, LES_DISOPT, ONE_OVER_H2, TENSXX_ALL, X_NLOC, NDIM )
+               IF(LES_DISOPT==5) THEN
+                  DO IDIM=1,NDIM
+                     DO JDIM=1,NDIM
+                        MEAN_UDER_U(IDIM, JDIM, :) =  SUM( DUX_ELE_ALL(IDIM,JDIM,:,1:U_NLOC,ELE) )/REAL(U_NLOC)  
+                     END DO
+! Normalise to be of size unity... 
+                     DO IPHASE=1,NPHASE
+                        MEAN_UDER_U(IDIM, :,IPHASE) = MEAN_UDER_U(IDIM, :,IPHASE) / MAX(SQRT(SUM( MEAN_UDER_U(IDIM, :,IPHASE)**2 )),  1.E-10)  
+                     END DO
+                  END DO
+               ENDIF
+
+               CALL ONEELETENS_ALL( LOC_X_ALL, LES_DISOPT, ONE_OVER_H2, TENSXX_ALL, X_NLOC, NDIM, MEAN_UDER_U, NPHASE )
 
                DO U_ILOC=1,U_NLOC
                   DO IPHASE=1,NPHASE 
@@ -5445,9 +5512,10 @@ contains
                      VIS=RSUM 
 
 ! THEN FIND TURBULENT 'VISCOSITIES'
+!tENSXX_ALL(:,:)=6./40.
 
                ! Put a bit in here which multiplies E by FOURCS*VIS 
-                     LES_U_UDIFFUSION(:,:,IPHASE,U_ILOC,ELE)= FOURCS*VIS*TENSXX_ALL(:,:)
+                     LES_U_UDIFFUSION(:,:,IPHASE,U_ILOC,ELE)= FOURCS*VIS*TENSXX_ALL(:,:,IPHASE)
 
                   END DO ! DO IPHASE=1,NPHASE
                END DO ! DO U_ILOC=1,U_NLOC
@@ -5460,16 +5528,17 @@ contains
 
 
 
-       SUBROUTINE ONEELETENS_ALL( LOC_X_ALL, LES_DISOPT, ONE_OVER_H2, TENSXX_ALL, X_NLOC, NDIM )
+       SUBROUTINE ONEELETENS_ALL( LOC_X_ALL, LES_DISOPT, ONE_OVER_H2, TENSXX_ALL, X_NLOC, NDIM, MEAN_UDER_U, NPHASE )
          !     This sub calculates the ELEMENT-WISE TENSOR TENS
          !     REPRESENTS THE SIZE AND SHAPE OF THE SURROUNDING ELEMENTS.
          !     LES_DISOPT=LES option.
          IMPLICIT NONE
-         INTEGER, intent( in ) ::  X_NLOC, NDIM
+         INTEGER, intent( in ) ::  X_NLOC, NDIM, NPHASE
          LOGICAL, intent( in ) ::  ONE_OVER_H2
          INTEGER, intent( in ) ::  LES_DISOPT
 
-         REAL, intent( inout ) ::  TENSXX_ALL(NDIM,NDIM) 
+         REAL, intent( inout ) ::  TENSXX_ALL(NDIM,NDIM, NPHASE) 
+         REAL, intent( in ) ::  MEAN_UDER_U(NDIM,NDIM, NPHASE) 
          REAL, intent( in ) ::  LOC_X_ALL(NDIM,X_NLOC)
 
          !     HX,HY-characteristic length scales in x,y directions.
@@ -5481,7 +5550,7 @@ contains
          REAL UDL_ALL(NDIM, X_NLOC*X_NLOC)
          REAL GAMMA(X_NLOC*X_NLOC)
 
-         INTEGER ELE,ILOC,L,L1,L2,IGLX1,IGLX2,IGLX,ID,NID,IDIM,JDIM,KDIM
+         INTEGER ELE,ILOC,L,L1,L2,IGLX1,IGLX2,IGLX,ID,NID,IDIM,JDIM,KDIM,I,IPHASE
 
          REAL HOVERQ
          REAL RWIND, D_SCALAR
@@ -5492,14 +5561,23 @@ contains
 
          TENSXX_ALL=0.0
 
+            id=0
+            do L1=1,X_NLOC
+               do L2=1,X_NLOC
+                     id=id+1
+                     UDL_ALL(:,ID)=LOC_X_ALL(:,L1)-LOC_X_ALL(:,L2)
+                     RN=SQRT( SUM(UDL_ALL(:,ID)**2) )
+                     GAMMA(ID)=RN
+               END DO
+            END DO
+
+         IF(LES_DISOPT==1) THEN ! Take the anisotropic length scales
          !     This subroutine forms a contabution to the Right Hand Side
          !     of Poissons pressure equation, as well as  F1 & F2.
 
 
             !     C The first is the old filter term, the second the new one MDP getting
             !     c different results and stabiltiy for tidal applications ????
-            RWIND =1./REAL(6)
-            NID=X_NLOC*X_NLOC
             !     **********calculate normalised velocitys across element...  
             ID=0
             do L1=1,X_NLOC
@@ -5523,61 +5601,81 @@ contains
             !     **********calculate normalised velocitys across element... 
 
 
-         do  ID=1,NID
+            do  ID=1,NID
 
                RFACT=GAMMA(ID)/REAL(X_NLOC) 
 
                DO IDIM=1,NDIM
                   DO JDIM=1,NDIM
-                     TENSXX_ALL(IDIM,JDIM)=TENSXX_ALL(IDIM,JDIM) + RFACT*UDL_ALL(IDIM,ID)*UDL_ALL(JDIM,ID)
+                     TENSXX_ALL(IDIM,JDIM,1)=TENSXX_ALL(IDIM,JDIM,1) + RFACT*UDL_ALL(IDIM,ID)*UDL_ALL(JDIM,ID)
                   END DO
                END DO
 
                !     USE THE COMPONENT OF DIFLIN THE X,Y & Z-DIRECTIONS 
                !     RESPECTIVELY FOR C1T,C2T,C3T.
-         end do
+            end do
 
          !     nb we want 1/L^2 - at the moment we have L on the diagonal.
          !     Make sure the eigen-values are positive...
-         AA=TENSXX_ALL
+               AA(:,:)=TENSXX_ALL(:,:,1) 
 
-         CALL JACDIA(AA,V,D,NDIM,A,.FALSE.)
+               CALL JACDIA(AA,V,D,NDIM,A,.FALSE.)
 
-         IF(LES_DISOPT==1) THEN ! Take the anisotropic length scales
-            D(:)=D(:)
+               D(:)=D(:)
+
+               IF(ONE_OVER_H2) THEN
+               !     SET to metric which has 1/h^2 in it...
+                  D(:)=1./MAX(1.E-16,D(:)**2)
+               ELSE 
+            !     set to inverse of metric which is a multiple of the tensor
+                  D(:)=MAX(1.E-16,D(:)**2)
+               ENDIF
+
+            TENSXX_ALL=0.0
+            DO IDIM=1,NDIM
+               DO JDIM=1,NDIM
+
+                  DO KDIM=1,NDIM
+! TENSOR=V^T D V
+                        TENSXX_ALL(IDIM,JDIM,:)=TENSXX_ALL(IDIM,JDIM,:) + V(KDIM,IDIM) * D(KDIM) * V(KDIM,JDIM)
+                  END DO
+ 
+               END DO
+            END DO
+
          ELSE IF(LES_DISOPT==2) THEN ! Take the average length scale h
-            D_SCALAR=SUM(D(:))/REAL(NDIM)
-            D(:)=D_SCALAR
+            D_SCALAR=SUM(GAMMA(:))/REAL(X_NLOC*(X_NLOC-1))
+            DO I=1,NDIM
+                TENSXX_ALL(I,I,:)=D_SCALAR**2
+            END DO
          ELSE IF(LES_DISOPT==3) THEN ! Take the min length scale h
-            D_SCALAR=MINVAL(D(:))
-            D(:)=D_SCALAR
+            D_SCALAR=MINVAL(GAMMA(:))
+            DO I=1,NDIM
+                TENSXX_ALL(I,I,:)=D_SCALAR**2
+            END DO
          ELSE IF(LES_DISOPT==4) THEN ! Take the max length scale h
-            D_SCALAR=MAXVAL(D(:))
-            D(:)=D_SCALAR
+            D_SCALAR=MAXVAL(GAMMA(:))
+            DO I=1,NDIM
+                TENSXX_ALL(I,I,:)=D_SCALAR**2
+            END DO
+         ELSE  IF(LES_DISOPT==5) THEN ! us option good for stress form
+            ! Take the directions that are a max across each element.
+            DO IPHASE=1,NPHASE
+               DO IDIM=1,NDIM
+                  RN=0.0
+                  do L1=1,X_NLOC
+                     do L2=1,X_NLOC
+                        RN = MAX(RN,   SUM( (LOC_X_ALL(:,L1)-LOC_X_ALL(:,L2))*MEAN_UDER_U(IDIM,:,IPHASE))**2 )   
+                     END DO
+                  END DO
+                  TENSXX_ALL(IDIM,IDIM,IPHASE)=SQRT( RN )
+               END DO
+            END DO
+            
          ELSE
             !            ERROR("NOT A VALID OPTION FOR LES ASSEMBLED EQNS")
             STOP 9331
          ENDIF
-
-         IF(ONE_OVER_H2) THEN
-            !     SET to metric which has 1/h^2 in it...
-            D(:)=1./MAX(1.E-16,D(:)**2)
-         ELSE 
-            !     set to inverse of metric which is a multiple of the tensor
-            D(:)=MAX(1.E-16,D(:)**2)
-         ENDIF
-
-         TENSXX_ALL=0.0
-         DO IDIM=1,NDIM
-            DO JDIM=1,NDIM
-
-               DO KDIM=1,NDIM
-! TENSOR=V^T D V
-                     TENSXX_ALL(IDIM,JDIM)=TENSXX_ALL(IDIM,JDIM) + V(KDIM,IDIM) * D(KDIM) * V(KDIM,JDIM)
-               END DO
-
-            END DO
-         END DO
 
        RETURN
        END SUBROUTINE ONEELETENS_ALL
