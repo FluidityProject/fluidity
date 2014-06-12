@@ -771,6 +771,10 @@ contains
 
           if(do_adapt_mesh(current_time, timestep)) then
 
+             if (have_option("/mesh_adaptivity/mesh_movement/free_surface")) then
+               call set_vector_field_in_state(state(1), "Coordinate", "OriginalCoordinate")
+             end if
+
              call pre_adapt_tasks(sub_state)
 
              call qmesh(state, metric_tensor)
@@ -933,6 +937,10 @@ contains
     ! Repopulate substate
     if(use_sub_state()) then
        call populate_sub_state(state,sub_state)
+    end if
+
+    if (have_option("/material_phase[0]/subgridscale_parameterisations/GLS/")) then
+      call move_mesh_free_surface(state, initialise=.true.)
     end if
 
     ! Discrete properties
