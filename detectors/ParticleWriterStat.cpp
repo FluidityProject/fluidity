@@ -89,7 +89,9 @@ void ParticleWriterStat::write_header_constants()
   file << constant_tag("HostName", "string", hostname) << endl;
 
   if (is_binary) {
-    // TODO: Binary data types...
+    file << constant_tag("format", "string", "binary") << endl;
+    file << constant_tag("real_size", "integer", sizeof(double)) << endl;
+    file << constant_tag("integer_size", "integer", sizeof(int)) << endl;
   } else {
     file << constant_tag("format", "string", "plain_text") << endl;
   }
@@ -127,6 +129,13 @@ void ParticleWriterStat::write_header_fields()
 
 string ParticleWriterStat::constant_tag(string name, string type, string value)
 {
+  stringstream tag;
+  tag << "<constant name=\"" << string(name) << "\" type=\"" << type;
+  tag << "\" value=\"" << value << "\" />";
+  return tag.str();
+}
+
+string ParticleWriterStat::constant_tag(string name, string type, int value) {
   stringstream tag;
   tag << "<constant name=\"" << string(name) << "\" type=\"" << type;
   tag << "\" value=\"" << value << "\" />";
@@ -182,7 +191,11 @@ void ParticleWriterStat::write_particle_state(double time, double dt)
 
 void ParticleWriterStat::write_scalar(double value)
 {
-  file << "  " << std::fixed << std::setprecision(6) << value;
+  if (is_binary) {
+    file.write(reinterpret_cast<char*>(&value), sizeof(double));
+  } else {
+    file << "  " << std::fixed << std::setprecision(6) << value;
+  }
 }
 
 void ParticleWriterStat::write_vector(vector<double> values)

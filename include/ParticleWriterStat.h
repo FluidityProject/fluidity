@@ -60,6 +60,7 @@ class ParticleWriterStat
   void write_header_constants();
   void write_header_fields();
   string constant_tag(string name, string type, string value);
+  string constant_tag(string name, string type, int value);
   string field_tag(string name, int column, string statistic,
                    string material_phase, int components);
 

@@ -27,7 +27,7 @@
 #include "fdebug.h"
 
 module detectors
-  use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN
+  use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN, PYTHON_FUNC_LEN
   use fields
   use field_options
   use state_module
@@ -36,6 +36,7 @@ module detectors
   use node_owner_finder, only: node_owner_finder_find
   use fldebug
   use iso_c_binding, only: c_ptr, C_NULL_PTR, C_NULL_CHAR, C_LOC
+  use detector_tools, only: set_detector_coords_from_python
 
   implicit none
   
@@ -163,15 +164,19 @@ contains
     type(state_type), dimension(:), intent(in) :: state
     type(scalar_field), pointer :: sfield
     type(vector_field), pointer :: vfield
-    integer :: i, ndet, phase, binary_format
+    integer :: i, n, ndet, ndet_array, phase, binary_format, file_unit=0
     integer, dimension(2) :: shape_option
     character(len=OPTION_PATH_LEN) :: filename, optpath
     character(len=FIELD_NAME_LEN) :: name, field_name, material_phase_name
+    character(len=PYTHON_FUNC_LEN) :: pyfunc
+    real :: current_time
     real, dimension(:), allocatable :: location
+    real, dimension(:,:), allocatable :: coordinates
 
     ! Store a safe reference to the coordinate field, because
     ! we need it to establish a particle's position in the mesh
     xfield => extract_vector_field(state(1), "Coordinate")
+    call get_option("/timestepping/current_time", current_time)
 
     ewrite(1,*) "Initialising detectors from options..."
     detector_list = create_particle_list()
@@ -191,11 +196,62 @@ contains
             location, xfield%dim, trim(name)//C_NULL_CHAR)
     end do
 
+    ! Initialise lagrangian detectors
+    ndet = option_count("/io/detectors/lagrangian_detector")
+    do i=1,ndet
+       write(optpath, "(a,i0,a)") "/io/detectors/lagrangian_detector[",i-1,"]"
+       shape_option=option_shape(trim(optpath)//"/location")
+       assert(xfield%dim==shape_option(1))
+       call get_option(trim(optpath)//"/location", location)
+       call get_option(trim(optpath)//"/name", name)
+
+       call particle_list_new_particle(detector_list, &
+            location, xfield%dim, trim(name)//C_NULL_CHAR)
+    end do
+
+    ! Initialise detector arrays
+    ndet_array = option_count("/io/detectors/detector_array")
+    do n=1,ndet_array
+       write(optpath, "(a,i0,a)") "/io/detectors/detector_array[",n-1,"]"
+       call get_option(trim(optpath)//"/name", name)
+       call get_option(trim(optpath)//"/number_of_detectors", ndet)
+       allocate(coordinates(xfield%dim, ndet))
+
+       if (.not.have_option(trim(optpath)//"/from_file")) then
+          ! Reading detector coordinates from a python function
+          call get_option(trim(optpath)//"/python", pyfunc)
+          call set_detector_coords_from_python(coordinates, ndet, pyfunc, current_time)
+       else
+          ! Reading detector coordinates from binary file
+#ifdef STREAM_IO
+          call get_option(trim(optpath)//"/from_file/file_name", filename)
+          file_unit = free_unit()
+          open(unit=file_unit, file = trim(filename), action="read", &
+               access="stream", form="unformatted")
+          do i=1,ndet
+             read(file_unit) coordinates(:,i)
+          end do
+#else
+          FLAbort("No stream I/O support")
+#endif
+       end if
+
+       do i=1,ndet
+          call particle_list_new_particle(detector_list, coordinates(:,i), &
+               xfield%dim, trim(name)//"_"//int2str(i)//C_NULL_CHAR)
+       end do
+       deallocate(coordinates)
+    end do
+
     call particle_list_view(detector_list)
 
     ! Create a detector writer object
     call get_option("/simulation_name", filename)
-    binary_format = 1  ! False
+    if (have_option("/io/detectors/binary_output")) then
+       binary_format = 0  ! True
+    else
+       binary_format = 1  ! False
+    end if
     detector_writer = create_particle_writer_stat(detector_list, &
          trim(filename)//".detectors"//C_NULL_CHAR, binary_format)
 
