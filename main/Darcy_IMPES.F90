@@ -760,6 +760,7 @@ contains
       call allocate(di%cv_mass_pressure_mesh_with_porosity, di%pressure_mesh)
       call allocate(di%cv_mass_pressure_mesh_with_old_porosity, di%pressure_mesh)
       call allocate(di%inverse_cv_sa_pressure_mesh, di%pressure_mesh)
+      call allocate(di%work_array_of_size_pressure_mesh, di%pressure_mesh)
       
       if (have_dual) then
          call allocate(di%cv_mass_pressure_mesh_with_lambda_dual, di%pressure_mesh)
@@ -1592,6 +1593,7 @@ contains
       call deallocate(di%cv_mass_pressure_mesh_with_porosity)
       call deallocate(di%cv_mass_pressure_mesh_with_old_porosity)
       call deallocate(di%inverse_cv_sa_pressure_mesh)
+      call deallocate(di%work_array_of_size_pressure_mesh)
       
       if (have_dual) then
          call deallocate(di%cv_mass_pressure_mesh_with_lambda_dual)

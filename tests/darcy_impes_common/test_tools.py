@@ -11,6 +11,8 @@ from getpass import getuser
 default_fluidity_path()
 from fluidity_tools import stat_parser
 
+binary_verbosity = 0
+
 error_rates_filename = "error_rates.txt"
 error_norms_filename = "error_norms.txt"
 cfl_max_filename = "cfl_max.txt"
@@ -238,15 +240,23 @@ class RunSimulation(Command):
         elif level_name == 'mesh_suffix':
             mesh_suffix = value
 
-            filename = join_with_underscores((
+            casename = join_with_underscores((
                 self.stem,
                 self.saturation2_scale, self.gravity_magnitude, 
                 self.model, str(self.dim)+'d',
-                self.mesh_type, mesh_suffix)) + '.diml'
+                self.mesh_type, mesh_suffix))
 
             # start simulation (TODO: guard against absent mesh)
-            subprocess.call([self.darcy_impes_path, filename,
-                             '-v3'], stdout=open(os.devnull, 'wb'))
+            if binary_verbosity > 0:
+                subprocess.call([self.darcy_impes_path,
+                                 '-v{0}'.format(binary_verbosity),
+                                 '-l {0}.log'.format(casename),
+                                 casename+'.diml'],
+                                stdout=open(os.devnull, 'wb'))
+            else:
+                subprocess.call([self.darcy_impes_path,
+                                 casename+'.diml'],
+                                stdout=open(os.devnull, 'wb'))
 
 
 class WriteToReport(Command):

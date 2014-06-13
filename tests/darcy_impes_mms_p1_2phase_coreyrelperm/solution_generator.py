@@ -15,14 +15,14 @@ def generate(solution_name, check_solution=False):
     rho = (1.284, 1000.)          # density
 
     # the following must match the perm relation in the template
-    sr = 0.0
+    sr = 0.0                    # TODO: make this > 0
     K = (lambda s: ka * ((s[0] - sr)/(1 - sr))**4,
          lambda s: ka * \
          (1 - (s[0] - sr)/(1 - sr))**2 * \
          (1 - ((s[0] - sr)/(1 - sr))**2))
 
     # arbitrary p and s2 scales [see note 2]
-    p = 1.
+    p = 1000.
     s2 = 0.1
 
     # initialise object containing solution parameters
@@ -77,7 +77,8 @@ def generate(solution_name, check_solution=False):
     # the domain probably needs to be sized 'nicely' in each dimension
     # if there is to be good convergence on these meshes.
     # 
-    # [2] high levels of saturation and rho*g_mag/mu have been found to
+    # [2] make pressure level high enough to have an influence (~100).
+    # High levels of saturation and rho*g_mag/mu have been found to
     # cause numerical instability well below the expected CFL limit.
     # This may be caused by having a highly nonlinear relative
     # permeability term and forcing an unnatural pressure field; it only

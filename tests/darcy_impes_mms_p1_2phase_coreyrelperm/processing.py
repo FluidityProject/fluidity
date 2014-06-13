@@ -6,7 +6,8 @@ mesh_suffix_list_per_dimension = [
     ["B", "C", "D", "E"],
     ["B", "C", "D"],
     ["B", "C"]]
-field_name_list = ["Phase2::Saturation"]     # [2]
+field_name_list = ["Phase1::Pressure", 
+                   "Phase2::Saturation"]         # [2]
 norm_list = [2]                                      
 mesh_A_number_of_timesteps = 10              # [2]
 

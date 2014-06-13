@@ -211,6 +211,9 @@
         <mesh name="PressureMesh"/>
         <algorithm name="Internal"/>
         <correlation name="Corey2Phase">
+          <residual_saturations>
+            <real_value shape="2" rank="1">0.0 0.0</real_value>
+          </residual_saturations>
         </correlation>
         <face_value name="FirstOrderUpwind"/>
         <stat>
