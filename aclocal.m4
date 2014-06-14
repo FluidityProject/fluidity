@@ -1031,15 +1031,17 @@ bakLIBS=$LIBS
 tmpLIBS=$LIBS
 tmpCPPFLAGS=$CPPFLAGS
 if test "$adjoint" != "no"; then
-  if test "$adjoint" != "yes"; then
+  if test -d "$adjoint" ; then
     adjoint_LIBS_PATH="$adjoint/lib"
     adjoint_INCLUDES_PATH="$adjoint/include"
     # Ensure the comiler finds the library...
     tmpLIBS="$tmpLIBS -L$adjoint/lib"
     tmpCPPFLAGS="$tmpCPPFLAGS  -I$adjoint/include -I$adjoint/include/libadjoint"
   fi
-  tmpLIBS="$tmpLIBS -L/usr/lib -L/usr/local/lib/ -ladjoint"
-  tmpCPPFLAGS="$tmpCPPFLAGS -I/usr/include/ -I/usr/local/include/ -I/usr/include/libadjoint -I/usr/local/include/libadjoint"
+  if [[ -f /usr/lib/libadjoint.a -o -f /usr/local/lib/libadjoint.a ]] ; then
+    tmpLIBS="$tmpLIBS -L/usr/lib -L/usr/local/lib/ -ladjoint"
+    tmpCPPFLAGS="$tmpCPPFLAGS -I/usr/include/ -I/usr/local/include/ -I/usr/include/libadjoint -I/usr/local/include/libadjoint"
+  fi
 fi
 LIBS=$tmpLIBS
 CPPFLAGS=$tmpCPPFLAGS
