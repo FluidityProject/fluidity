@@ -3065,7 +3065,7 @@ contains
            delta_u_all => extract_vector_field( packed_state, "delta_U" ) ! this is delta_u
            us_all => extract_vector_field( packed_state, "solid_U" )
 
-           if ( .true. ) then ! Do not switch this to false.
+           if ( .false. ) then ! Do not switch this to false.
               DO ELE = 1, TOTELE
                   DO CV_ILOC = 1, CV_NLOC
                      MAT_NOD = MAT_NDGLN( (ELE-1)*CV_NLOC + CV_ILOC )
