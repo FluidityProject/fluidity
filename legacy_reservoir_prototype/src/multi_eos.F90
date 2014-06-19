@@ -1192,7 +1192,7 @@
       INTEGER :: nstates, ncomps, nphases, IPHASE, JPHASE, i, j, k
       real c, a, S_OR, S_GC, auxO, auxW
       character(len=OPTION_PATH_LEN) option_path, phase_name
-      REAL, DIMENSION( NPHASE, CV_NONODS ) :: saturation
+      REAL, DIMENSION( NPHASE, CV_NONODS ) :: eff_satura
       !Corey options
       type(corey_options) :: options
       !Working pointers
@@ -1216,7 +1216,7 @@
       end do
       nphases=nstates-ncomps
 
-        saturation = SATURA
+        eff_satura = SATURA
 
       if (have_option("/material_phase[0]/multiphase_properties/capillary_pressure/type_Brookes_Corey") ) then
 
@@ -1248,7 +1248,7 @@
                     end if                                                                                                                                                !...value chosen since in the plots below 0.1, Brooks-Corey is not defined
                     forall (k = 1  : CV_NONODS )
                         !Effective saturation has to be between one and zero
-                        saturation(jphase,k) = max(min((saturation(jphase,k) - auxW)/(1.0 - auxW -  auxO), 1.0), max(0.5*auxW,0.01))!<--Inferior limit just to avoid NaN... in theory it should never be reached
+                        eff_satura(jphase,k) = max(min((eff_satura(jphase,k) - auxW)/(1.0 - auxW -  auxO), 1.0), max(0.5*auxW,0.01))!<--Inferior limit just to avoid NaN... in theory it should never be reached
                     end forall                                                                                                                                                  !...value chosen since in the plots below 0.1, Brooks-Corey is not defined
 
                   call get_option(trim(option_path)//"/phase["//int2str(j)//"]/c", c)
@@ -1259,7 +1259,7 @@
 
                   capillary_pressure( 1 + ( IPHASE - 1 ) * CV_NONODS : IPHASE * CV_NONODS ) = &
                        capillary_pressure( 1 + ( IPHASE - 1 ) * CV_NONODS : IPHASE * CV_NONODS ) + &
-                       c * saturation( jphase,: ) ** (-a)
+                       c * eff_satura( jphase,: ) ** (-a)
                endif
 
             END DO

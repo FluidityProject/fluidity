@@ -1507,6 +1507,12 @@
           call insert(state(1), Targ_DETWEI_RA, "D"//StorName)
           call insert(state(1), Targ_VOLUME, "V"//StorName)
 
+          call deallocate (Targ_NX_ALL)
+          call deallocate (targ_INV_JAC)
+          call deallocate (Targ_DETWEI_RA)
+          call deallocate (Targ_VOLUME)
+
+
           !Get from state, indx is an input
           NX_ALL(1:NDIM,1:NLOC,1:NGI) => &
           state(1)%scalar_fields(-indx)%ptr%val(1+NDIM*NLOC*NGI*(ELE-1):NDIM*NLOC*NGI*ELE)
