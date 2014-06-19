@@ -478,3 +478,202 @@ Making install in include
  /usr/bin/install -c -m 644  spatialindex/SpatialIndex.h spatialindex/RTree.h spatialindex/MVRTree.h spatialindex/TPRTree.h spatialindex/Point.h spatialindex/Region.h spatialindex/LineSegment.h spatialindex/TimePoint.h spatialindex/TimeRegion.h spatialindex/MovingPoint.h spatialindex/MovingRegion.h spatialindex/Version.h '/home/pablo/Documents/workspace/MultiFluids_Dev/spatialindex-1.8.0/../include/spatialindex'
 /bin/mkdir -p '/home/pablo/Documents/workspace/MultiFluids_Dev/spatialindex-1.8.0/../include/spatialindex/tools'
  /usr/bin/install -c -m 644  spatialindex/tools/PointerPool.h spatialindex/tools/PoolPointer.h spatialindex/tools/rand48.h spatialindex/tools/SmartPointer.h spatialindex/tools/Tools.h '/home/pablo/Documents/workspace/MultiFluids_Dev/spatialindex-1.8.0/../include/spatialindex/tools'
+ cd . && /bin/bash /home/chris01/multiphase-fluidity/fluidity-git/MultiFluids_Dev/spatialindex-1.8.0/missing --run automake-1.11 --gnu
+running CONFIG_SHELL=/bin/bash /bin/bash ./configure --prefix=/home/chris01/multiphase-fluidity/fluidity-git/MultiFluids_Dev/spatialindex-1.8.0/../ --disable-shared --without-pic --enable-debug=yes CXX=mpicxx CXXFLAGS= LIBS= CPPFLAGS=-D_GNU_SOURCE CC=mpicc CFLAGS= --no-create --no-recursion
+checking build system type... x86_64-unknown-linux-gnu
+checking whether the C++ compiler works... yes
+checking for C++ compiler default output file name... a.out
+checking for suffix of executables... 
+checking whether we are cross compiling... no
+checking for suffix of object files... o
+checking whether we are using the GNU C++ compiler... yes
+checking whether mpicxx accepts -g... yes
+checking how to run the C++ preprocessor... mpicxx -E
+checking for a BSD-compatible install... /usr/bin/install -c
+checking whether ln -s works... yes
+checking whether make sets $(MAKE)... yes
+checking host system type... x86_64-unknown-linux-gnu
+checking how to print strings... printf
+checking for gcc... mpicc
+checking whether we are using the GNU C compiler... yes
+checking whether mpicc accepts -g... yes
+checking for mpicc option to accept ISO C89... none needed
+checking for a sed that does not truncate output... /bin/sed
+checking for grep that handles long lines and -e... /bin/grep
+checking for egrep... /bin/grep -E
+checking for fgrep... /bin/grep -F
+checking for ld used by mpicc... /usr/bin/ld
+checking if the linker (/usr/bin/ld) is GNU ld... yes
+checking for BSD- or MS-compatible name lister (nm)... /usr/bin/nm -B
+checking the name lister (/usr/bin/nm -B) interface... BSD nm
+checking the maximum length of command line arguments... 3458764513820540925
+checking whether the shell understands some XSI constructs... yes
+checking whether the shell understands "+="... yes
+checking how to convert x86_64-unknown-linux-gnu file names to x86_64-unknown-linux-gnu format... func_convert_file_noop
+checking how to convert x86_64-unknown-linux-gnu file names to toolchain format... func_convert_file_noop
+checking for /usr/bin/ld option to reload object files... -r
+checking for objdump... objdump
+checking how to recognize dependent libraries... pass_all
+checking for dlltool... no
+checking how to associate runtime and link libraries... printf %s\n
+checking for ar... ar
+checking for archiver @FILE support... @
+checking for strip... strip
+checking for ranlib... ranlib
+checking for gawk... gawk
+checking command to parse /usr/bin/nm -B output from mpicc object... ok
+checking for sysroot... no
+checking for mt... mt
+checking if mt is a manifest tool... no
+checking how to run the C preprocessor... mpicc -E
+checking for ANSI C header files... yes
+checking for sys/types.h... yes
+checking for sys/stat.h... yes
+checking for stdlib.h... yes
+checking for string.h... yes
+checking for memory.h... yes
+checking for strings.h... yes
+checking for inttypes.h... yes
+checking for stdint.h... yes
+checking for unistd.h... yes
+checking for dlfcn.h... yes
+checking for objdir... .libs
+checking if mpicc supports -fno-rtti -fno-exceptions... no
+checking for mpicc option to produce PIC... -fPIC -DPIC
+checking if mpicc PIC flag -fPIC -DPIC works... yes
+checking if mpicc static flag -static works... no
+checking if mpicc supports -c -o file.o... yes
+checking if mpicc supports -c -o file.o... (cached) yes
+checking whether the mpicc linker (/usr/bin/ld -m elf_x86_64) supports shared libraries... yes
+checking dynamic linker characteristics... GNU/Linux ld.so
+checking how to hardcode library paths into programs... immediate
+checking whether stripping libraries is possible... yes
+checking if libtool supports shared libraries... yes
+checking whether to build shared libraries... no
+checking whether to build static libraries... yes
+checking how to run the C++ preprocessor... mpicxx -E
+checking for ld used by mpicxx... /usr/bin/ld -m elf_x86_64
+checking if the linker (/usr/bin/ld -m elf_x86_64) is GNU ld... yes
+checking whether the mpicxx linker (/usr/bin/ld -m elf_x86_64) supports shared libraries... yes
+checking for mpicxx option to produce PIC... -fPIC -DPIC
+checking if mpicxx PIC flag -fPIC -DPIC works... yes
+checking if mpicxx static flag -static works... no
+checking if mpicxx supports -c -o file.o... yes
+checking if mpicxx supports -c -o file.o... (cached) yes
+checking whether the mpicxx linker (/usr/bin/ld -m elf_x86_64) supports shared libraries... yes
+checking dynamic linker characteristics... (cached) GNU/Linux ld.so
+checking how to hardcode library paths into programs... immediate
+checking whether build environment is sane... yes
+checking for a thread-safe mkdir -p... /bin/mkdir -p
+checking for style of include used by make... GNU
+checking dependency style of mpicc... gcc3
+checking dependency style of mpicxx... gcc3
+checking fcntl.h usability... yes
+checking fcntl.h presence... yes
+checking for fcntl.h... yes
+checking for unistd.h... (cached) yes
+checking for sys/types.h... (cached) yes
+checking for sys/stat.h... (cached) yes
+checking pthread.h usability... yes
+checking pthread.h presence... yes
+checking for pthread.h... yes
+checking sys/resource.h usability... yes
+checking sys/resource.h presence... yes
+checking for sys/resource.h... yes
+checking sys/time.h usability... yes
+checking sys/time.h presence... yes
+checking for sys/time.h... yes
+checking for stdint.h... (cached) yes
+checking features.h usability... yes
+checking features.h presence... yes
+checking for features.h... yes
+checking wether debug information is enabled... yes
+checking for gettimeofday... yes
+checking for memset... yes
+checking for memcpy... yes
+checking for bcopy... yes
+checking for srand48... yes
+configure: creating ./config.status
+ /bin/bash ./config.status
+config.status: creating Makefile
+config.status: creating include/Makefile
+config.status: creating src/Makefile
+config.status: creating src/libspatialindex.pc
+config.status: creating src/capi/Makefile
+config.status: creating src/spatialindex/Makefile
+config.status: creating src/storagemanager/Makefile
+config.status: creating src/rtree/Makefile
+config.status: creating src/mvrtree/Makefile
+config.status: creating src/tprtree/Makefile
+config.status: creating src/tools/Makefile
+config.status: creating test/Makefile
+config.status: creating test/rtree/Makefile
+config.status: creating test/mvrtree/Makefile
+config.status: creating test/tprtree/Makefile
+config.status: executing libtool commands
+config.status: executing depfiles commands
+Making clean in include
+Making clean in src
+Making clean in capi
+rm -f "./so_locations"
+Making clean in tools
+rm -f "./so_locations"
+Making clean in tprtree
+rm -f "./so_locations"
+Making clean in mvrtree
+rm -f "./so_locations"
+Making clean in rtree
+rm -f "./so_locations"
+Making clean in spatialindex
+rm -f "./so_locations"
+Making clean in storagemanager
+rm -f "./so_locations"
+Making clean in .
+Making clean in .
+rm -f "./so_locations"
+rm -f "./so_locations"
+Making install in src
+Making install in storagemanager
+Making install in spatialindex
+Making install in rtree
+Making install in mvrtree
+Making install in tprtree
+Making install in tools
+Making install in capi
+ /usr/bin/install -c -m 644 libspatialindex.pc '/home/chris01/multiphase-fluidity/fluidity-git/MultiFluids_Dev/spatialindex-1.8.0/../lib/pkgconfig'
+Making install in .
+ /bin/bash ./libtool   --mode=install /usr/bin/install -c   libspatialindex.la libspatialindex_c.la '/home/chris01/multiphase-fluidity/fluidity-git/MultiFluids_Dev/spatialindex-1.8.0/../lib'
+libtool: install: /usr/bin/install -c .libs/libspatialindex.lai /home/chris01/multiphase-fluidity/fluidity-git/MultiFluids_Dev/spatialindex-1.8.0/../lib/libspatialindex.la
+libtool: install: /usr/bin/install -c .libs/libspatialindex_c.lai /home/chris01/multiphase-fluidity/fluidity-git/MultiFluids_Dev/spatialindex-1.8.0/../lib/libspatialindex_c.la
+libtool: install: /usr/bin/install -c .libs/libspatialindex.a /home/chris01/multiphase-fluidity/fluidity-git/MultiFluids_Dev/spatialindex-1.8.0/../lib/libspatialindex.a
+libtool: install: chmod 644 /home/chris01/multiphase-fluidity/fluidity-git/MultiFluids_Dev/spatialindex-1.8.0/../lib/libspatialindex.a
+libtool: install: ranlib /home/chris01/multiphase-fluidity/fluidity-git/MultiFluids_Dev/spatialindex-1.8.0/../lib/libspatialindex.a
+libtool: install: /usr/bin/install -c .libs/libspatialindex_c.a /home/chris01/multiphase-fluidity/fluidity-git/MultiFluids_Dev/spatialindex-1.8.0/../lib/libspatialindex_c.a
+libtool: install: chmod 644 /home/chris01/multiphase-fluidity/fluidity-git/MultiFluids_Dev/spatialindex-1.8.0/../lib/libspatialindex_c.a
+libtool: install: ranlib /home/chris01/multiphase-fluidity/fluidity-git/MultiFluids_Dev/spatialindex-1.8.0/../lib/libspatialindex_c.a
+libtool: finish: PATH="/home/chris01/bin/:/opt/packages/plotter/:/home/chris01/cfd/fetch/bin:/home/chris01/cfd/gem/bin:/home/chris01/cfd/ParaView-3.8.0-RC2-Linux-x86_64/bin:/home/chris01/bin:/usr/local/bin:/usr/bin:/bin:/usr/games:/sbin" ldconfig -n /home/chris01/multiphase-fluidity/fluidity-git/MultiFluids_Dev/spatialindex-1.8.0/../lib
+----------------------------------------------------------------------
+Libraries have been installed in:
+   /home/chris01/multiphase-fluidity/fluidity-git/MultiFluids_Dev/spatialindex-1.8.0/../lib
+
+If you ever happen to want to link against installed libraries
+in a given directory, LIBDIR, you must either use libtool, and
+specify the full pathname of the library, or use the `-LLIBDIR'
+flag during linking and do at least one of the following:
+   - add LIBDIR to the `LD_LIBRARY_PATH' environment variable
+     during execution
+   - add LIBDIR to the `LD_RUN_PATH' environment variable
+     during linking
+   - use the `-Wl,-rpath -Wl,LIBDIR' linker flag
+   - have your system administrator add LIBDIR to `/etc/ld.so.conf'
+
+See any operating system documentation about shared libraries for
+more information, such as the ld(1) and ld.so(8) manual pages.
+----------------------------------------------------------------------
+Making install in include
+/bin/mkdir -p '/home/chris01/multiphase-fluidity/fluidity-git/MultiFluids_Dev/spatialindex-1.8.0/../include/spatialindex/capi'
+ /usr/bin/install -c -m 644  spatialindex/capi/BoundsQuery.h spatialindex/capi/CountVisitor.h spatialindex/capi/CustomStorage.h spatialindex/capi/DataStream.h spatialindex/capi/Error.h spatialindex/capi/IdVisitor.h spatialindex/capi/Index.h spatialindex/capi/LeafQuery.h spatialindex/capi/ObjVisitor.h spatialindex/capi/sidx_api.h spatialindex/capi/sidx_config.h spatialindex/capi/sidx_impl.h spatialindex/capi/Utility.h '/home/chris01/multiphase-fluidity/fluidity-git/MultiFluids_Dev/spatialindex-1.8.0/../include/spatialindex/capi'
+/bin/mkdir -p '/home/chris01/multiphase-fluidity/fluidity-git/MultiFluids_Dev/spatialindex-1.8.0/../include/spatialindex'
+ /usr/bin/install -c -m 644  spatialindex/SpatialIndex.h spatialindex/RTree.h spatialindex/MVRTree.h spatialindex/TPRTree.h spatialindex/Point.h spatialindex/Region.h spatialindex/LineSegment.h spatialindex/TimePoint.h spatialindex/TimeRegion.h spatialindex/MovingPoint.h spatialindex/MovingRegion.h spatialindex/Version.h '/home/chris01/multiphase-fluidity/fluidity-git/MultiFluids_Dev/spatialindex-1.8.0/../include/spatialindex'
+/bin/mkdir -p '/home/chris01/multiphase-fluidity/fluidity-git/MultiFluids_Dev/spatialindex-1.8.0/../include/spatialindex/tools'
+ /usr/bin/install -c -m 644  spatialindex/tools/PointerPool.h spatialindex/tools/PoolPointer.h spatialindex/tools/rand48.h spatialindex/tools/SmartPointer.h spatialindex/tools/Tools.h '/home/chris01/multiphase-fluidity/fluidity-git/MultiFluids_Dev/spatialindex-1.8.0/../include/spatialindex/tools'

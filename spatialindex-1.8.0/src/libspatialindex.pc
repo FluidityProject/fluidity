@@ -1,4 +1,4 @@
-prefix=/home/pablo/Documents/workspace/MultiFluids_Dev/spatialindex-1.8.0/..
+prefix=/home/chris01/multiphase-fluidity/fluidity-git/MultiFluids_Dev/spatialindex-1.8.0/..
 exec_prefix=${prefix}
 libdir=${exec_prefix}/lib
 includedir=${prefix}/include

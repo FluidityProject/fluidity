@@ -5163,7 +5163,7 @@ derivative and using $\alpha_s^{n+1} u_s^{n+1}=\hat u_f^{n+1} - \sum_k\alpha_k^{
 {\cal{R}}_{cty} =\frac{1-\alpha_s^n}{\Delta t} + 
 \frac{1}{\Delta t} \sum_k\{ 
 \frac{  - \alpha_k^n\rho_k^{n}} {\rho_k^{n+1}} 
--  \frac{\partial \rho_k^{n+1}}{\partial p_{CV}^{n+1}} p_{CV}^{n+1} \alpha_k^{n+1} \}
+-  \frac{\partial \rho_k^{n+1}}{\partial p_{CV}^{n+1}} (p_{CV}^{n+1}-\tilde{p}_{CV}^{n+1}) \alpha_k^{n+1} \}
 \\
 + 
 \{ 
@@ -5176,7 +5176,7 @@ or in an alternative form using $\alpha_s^{n+1} u_s^{n+1}=\hat u_f^{n+1} - \sum_
 {\cal{R}}_{cty} =\frac{1-\alpha_s^n}{\Delta t} + 
 \frac{1}{\Delta t} \sum_k\{ 
 \frac{  - \alpha_k^n\rho_k^{n}} {\rho_k^{n+1}} 
--  \frac{\partial \rho_k^{n+1}}{\partial p_{CV}^{n+1}} p_{CV}^{n+1} \alpha_k^{n+1} \}
+-  \frac{\partial \rho_k^{n+1}}{\partial p_{CV}^{n+1}} (p_{CV}^{n+1}-\tilde{p}_{CV}^{n+1}) \alpha_k^{n+1} \}
 \\
 + 
 \{ 
@@ -5185,6 +5185,8 @@ or in an alternative form using $\alpha_s^{n+1} u_s^{n+1}=\hat u_f^{n+1} - \sum_
 =0. 
 \label{cty-solid-impl-fluid} 
 \end{eqnarray} 
+in which $\tilde{p}_{CV}^{n+1}$ is the best guess for ${p}_{CV}^{n+1}$, for example on the first iteration of a 
+time step  $\tilde{p}_{CV}^{n+1} ={p}_{CV}^{n}$. 
 The first term on the left and the last terms on the right are the new terms introduced into the solid-fluid coupling equations. 
 Alternatively, one may assume that the solid phase continuity equation \refl{solid-cty-excat}  has been enforced 
 by the solid mechanics model or a compromise defined by the variable $\theta_{solid-cty}$ in which 
@@ -5195,7 +5197,7 @@ enforces this new method where:
 {\cal{R}}_{cty} =\frac{1-\theta_{solid-cty}\alpha_s^n  -(1-\theta_{solid-cty})\alpha_s^{n+1} }{\Delta t} + 
 \frac{1}{\Delta t} \sum_k\{ 
 \frac{  - \alpha_k^n\rho_k^{n}} {\rho_k^{n+1}} 
--  \frac{\partial \rho_k^{n+1}}{\partial p_{CV}^{n+1}} p_{CV}^{n+1} \alpha_k^{n+1} \}
+-  \frac{\partial \rho_k^{n+1}}{\partial p_{CV}^{n+1}} (p_{CV}^{n+1}-\tilde{p}_{CV}^{n+1}) a_k^{n+1} \}
 \\
 + 
 \{ 
@@ -5204,8 +5206,28 @@ enforces this new method where:
 =0. 
 \label{cty-solid-half-impl-fluid} 
 \end{eqnarray} 
+in which $a_k^{n+1}=\alpha_k^{n+1}$. 
+However, in the limit as the volume fraction of a compressible 
+fluid approaches 0 and we get a pure solid and that is the sytem of equations for density/pressure 
+of the fluid can become ill posed. This can be seen if one considers the system of equations of an ideal gas 
+in which case the negative pressures that could form in the solid will result in negative densities. This is easily 
+avoided by setting: 
+\begin{eqnarray}
+a_k^{n+1}=\frac{\alpha_k^{n+1}}{\alpha_s^{n+1}}
+\label{a-1} 
+\end{eqnarray} 
+For single phase flow this becomes: 
+\begin{eqnarray}
+a_k^{n+1}=1. 
+\label{a-2} 
+\end{eqnarray} 
+Then the system of equation become well posed and there is no longer this issue. 
 
-In matrix form this equation becomes: 
+
+
+
+
+In matrix form equation \ref{cty-solid-half-impl-fluid} becomes: 
 \begin{eqnarray}
 {r}_{cty}^* =M_p \frac{p^{n+1}}{\Delta t} + \tilde B^T \hat u_f^{n+1} + B^T u^{n+1} + res_{cty} . 
 \end{eqnarray} 
