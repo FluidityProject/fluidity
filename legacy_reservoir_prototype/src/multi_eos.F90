@@ -1449,6 +1449,8 @@
 
             if ( ncomp > 1 ) then
 
+               linearise_viscosity = have_option( '/material_phase[0]/linearise_viscosity' )
+
                cv_nloc = ele_loc( t_field, ele )
 
                allocate( component_tmp( cv_nloc ) ) 
@@ -1464,8 +1466,6 @@
                         st_nodes => ele_nodes( t_field, ele )
 
                         component_tmp = node_val( component, st_nodes )
-
-                        linearise_viscosity = have_option( '/material_phase[0]/linearise_viscosity' )
 
                         if (linearise_viscosity) then
                            component_tmp( 2 ) = 0.5* ( component_tmp( 1 ) + component_tmp( 3 ) )
