@@ -421,7 +421,7 @@
            Velocity_U_Source, Velocity_Absorption, &
            Temperature, Temperature_Source, &
            Permeability )
-      FESAT_s = 0.; OldSAT_s = 0.
+      FESAT_s = 0; OldSAT_s = 0.
 !!$ Calculate diagnostic fields
       call calculate_diagnostic_variables( state, exclude_nonrecalculated = .true. )
       call calculate_diagnostic_variables_new( state, exclude_nonrecalculated = .true. )
@@ -759,14 +759,11 @@
                NU_s % val = U_s % val
                NUOLD_s % val = UOLD_s % val
 
-!!$ Diffusion-like term -- here used as part of the capillary pressure for porous media. It can also be 
+!!$ Diffusion-like term -- here used as part of the capillary pressure for porous media. It can also be
 !!$ extended to surface tension -like term.
                iplike_grad_sou = 0
                plike_grad_sou_grad = 0
-               if( have_option( '/material_phase[0]/multiphase_properties/capillary_pressure' ) )then
-                  iplike_grad_sou = 1
-                  call calculate_capillary_pressure( state, packed_state, cv_nonods, nphase, plike_grad_sou_grad)
-               end if
+
 
                CALL CALCULATE_SURFACE_TENSION( state, packed_state, nphase, ncomp, &
                     PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD, IPLIKE_GRAD_SOU, &
@@ -785,6 +782,10 @@
                     XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
                     StorageIndexes=StorageIndexes )
 
+               if( have_option( '/material_phase[0]/multiphase_properties/capillary_pressure' ) )then
+                  iplike_grad_sou = 1
+                  call calculate_capillary_pressure( state, packed_state, cv_nonods, nphase, plike_grad_sou_grad)
+               end if
 
 
                velocity_field=>extract_tensor_field(packed_state,"PackedVelocity")

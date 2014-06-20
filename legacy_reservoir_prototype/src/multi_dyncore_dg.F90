@@ -568,6 +568,7 @@ contains
             CV_RHS, &
             ACV, NCOLACV, FINACV, COLACV, & ! Force balance sparsity
             NCOLELE, FINELE, COLELE, & ! Element connectivity.
+            NCOLM, FINDM, COLM, MIDM, &
             XU_NLOC, XU_NDGLN, &
             option_path,&
             StorageIndexes=StorageIndexes )
@@ -594,6 +595,7 @@ contains
     CV_RHS, &
     ACV, NCOLACV, FINACV, COLACV, & ! Force balance sparsity
     NCOLELE, FINELE, COLELE, & ! Element connectivity.
+    NCOLM, FINDM, COLM, MIDM, &
     XU_NLOC, XU_NDGLN, &
     option_path,&
     StorageIndexes )
@@ -607,7 +609,7 @@ contains
         INTEGER, intent( in ) :: NDIM, NPHASE, U_NLOC, X_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
         U_ELE_TYPE, CV_ELE_TYPE, U_NONODS, CV_NONODS, X_NONODS, &
         MAT_NONODS, STOTEL, U_SNLOC, CV_SNLOC, &
-        NCOLACV, NCOLELE, XU_NLOC, IDIVID_BY_VOL_FRAC
+        NCOLACV, NCOLELE, XU_NLOC, IDIVID_BY_VOL_FRAC, NCOLM
         INTEGER, DIMENSION( : ), intent( in ) :: U_NDGLN
         INTEGER, DIMENSION( : ), intent( in )  :: CV_NDGLN
         INTEGER, DIMENSION( : ), intent( in )  :: X_NDGLN
@@ -628,6 +630,9 @@ contains
         INTEGER, DIMENSION( : ), intent( in ) :: COLACV
         INTEGER, DIMENSION( : ), intent( in ) :: FINELE
         INTEGER, DIMENSION( : ), intent( in ) :: COLELE
+        INTEGER, DIMENSION( : ), intent( in ) :: FINDM
+        INTEGER, DIMENSION( : ), intent( in ) :: COLM
+        INTEGER, DIMENSION( : ), intent( in ) :: MIDM
         REAL, DIMENSION( :, :, :, : ), intent( inout ) :: TDIFFUSION
         REAL, DIMENSION( :, : ), intent( in ) :: FEM_VOL_FRAC
         character( len = * ), intent( in ), optional :: option_path
@@ -752,6 +757,7 @@ contains
         RDUM3, 0, IDUM, IDUM, &
         ACV, NCOLACV, FINACV, COLACV, &! Force balance sparsity
         NCOLELE, FINELE, COLELE, & ! Element connectivity.
+        NCOLM, FINDM, COLM, MIDM,& !For the CV-FEM projection
         XU_NLOC, XU_NDGLN, &
         RZERO, JUST_BL_DIAG_MAT,  &
         TDIFFUSION, RDUM4, DEN_ALL, DENOLD_ALL, .FALSE., & ! TDiffusion need to be obtained down in the tree according to the option_path
@@ -1900,6 +1906,7 @@ contains
         C, NCOLC, FINDC, COLC, & ! C sparsity - global cty eqn
         DGM_PHA, NCOLDGM_PHA, FINDGM_PHA, COLDGM_PHA, &! Force balance sparsity
         NCOLELE, FINELE, COLELE, & ! Element connectivity.
+        NCOLM, FINDM, COLM, MIDM,& !for the CV-FEM projection
         XU_NLOC, XU_NDGLN, &
         PIVIT_MAT, JUST_BL_DIAG_MAT, &
         UDIFFUSION_ALL, THERM_U_DIFFUSION, DEN_ALL, DENOLD_ALL, RETRIEVE_SOLID_CTY, &
@@ -2181,6 +2188,7 @@ contains
     C, NCOLC, FINDC, COLC, & ! C sparsity - global cty eqn
     DGM_PHA, NCOLDGM_PHA, FINDGM_PHA, COLDGM_PHA, &! Force balance sparsity
     NCOLELE, FINELE, COLELE, & ! Element connectivity.
+    NCOLM, FINDM, COLM, MIDM,& !For the CV-FEM projection
     XU_NLOC, XU_NDGLN, &
     PIVIT_MAT, JUST_BL_DIAG_MAT,  &
     UDIFFUSION, THERM_U_DIFFUSION, DEN_ALL, DENOLD_ALL, RETRIEVE_SOLID_CTY, &
@@ -2200,7 +2208,7 @@ contains
         INTEGER, intent( in ) :: NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
         U_ELE_TYPE, P_ELE_TYPE, U_NONODS, CV_NONODS, X_NONODS, &
         MAT_NONODS, STOTEL, U_SNLOC, P_SNLOC, CV_SNLOC, &
-        NCOLC, NCOLDGM_PHA, NCOLELE, XU_NLOC, IPLIKE_GRAD_SOU, NDIM_VEL, IDIVID_BY_VOL_FRAC
+        NCOLC, NCOLDGM_PHA, NCOLELE, XU_NLOC, IPLIKE_GRAD_SOU, NDIM_VEL, IDIVID_BY_VOL_FRAC, NCOLM
 ! If IDIVID_BY_VOL_FRAC==1 then modify the stress term to take into account dividing through by volume fraction. 
         ! NDIM_VEL
         INTEGER, DIMENSION( : ), intent( in ) :: U_NDGLN
@@ -2233,11 +2241,14 @@ contains
         INTEGER, DIMENSION( :), intent( in ) :: COLDGM_PHA
         INTEGER, DIMENSION(: ), intent( in ) :: FINELE
         INTEGER, DIMENSION( : ), intent( in ) :: COLELE
+        INTEGER, DIMENSION( : ), intent( in ) :: FINDM
+        INTEGER, DIMENSION( : ), intent( in ) :: COLM
+        INTEGER, DIMENSION( : ), intent( in ) :: MIDM
         REAL, DIMENSION( : , : , : ), intent( out ) :: PIVIT_MAT
         REAL, DIMENSION( :, :, :, : ), intent( inout ) :: UDIFFUSION
         REAL, DIMENSION( :, :, :, : ), intent( inout ) :: THERM_U_DIFFUSION
         LOGICAL, intent( inout ) :: JUST_BL_DIAG_MAT
-        REAL, DIMENSION( :, : ), intent( in ) :: PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD
+        REAL, DIMENSION( :, : ), intent( in) :: PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD
         REAL, DIMENSION( : ), intent( in ) :: P
         REAL, DIMENSION(  :, :  ), intent( in ) :: DEN_ALL, DENOLD_ALL
         LOGICAL, intent( in ) :: RETRIEVE_SOLID_CTY
@@ -2473,6 +2484,16 @@ contains
         integer :: cv_nodi
         real, dimension( : ), allocatable :: vol_s_gi
 
+        !Local variables to project CV to FEM
+        REAL, DIMENSION( : ), allocatable :: PSI, FEMPSI, PSI_AVE, PSI_INT
+        INTEGER :: k, NLOC, NGI
+        REAL, allocatable, DIMENSION( : ):: WEIGHT
+        logical :: CAP_to_FEM
+        real, dimension( :, : ), allocatable :: N
+        real, dimension (:, :, :), allocatable :: NLX_ALL
+        real, dimension( : ), allocatable :: L1, L2, L3, L4
+        CHARACTER(100) :: PATH
+
         !! Boundary_conditions
 
         INTEGER, DIMENSION ( ndim , nphase , surface_element_count(velocity) )  :: WIC_U_BC_ALL, WIC_MOMU_BC_ALL, WIC_NU_BC_ALL
@@ -2488,7 +2509,9 @@ contains
         INTEGER, DIMENSION( 4 ), PARAMETER :: ELEMENT_CORNERS=(/1,3,6,10/)
 
 
-        capillary_pressure_activated = have_option( '/material_phase[0]/multiphase_properties/capillary_pressure' )
+
+        capillary_pressure_activated = have_option( '/material_phase[0]/multiphase_properties/capillary_pressure' ) .or.&
+            have_option( '/material_phase[1]/multiphase_properties/capillary_pressure' )
 
 
      call get_option( "/material_phase[0]/vector_field::Velocity/prognostic/spatial_discretisation/viscosity_scheme/zero_or_two_thirds", zero_or_two_thirds, default=2./3. )
@@ -3084,11 +3107,51 @@ contains
         endif
 
 
-        !This term is obtained from the surface tension and curvature
-        !For capillary pressure we are using the entry pressure method instead of
-        !calculating the entry pressure from the surface tension and curvature
-        IF ( capillary_pressure_activated ) GRAD_SOU_GI = 1.0
 
+        !Section to project the capillary pressure (CV) to FEM
+        !First check the user selection.
+        CAP_to_FEM = have_option("/material_phase[0]/multiphase_properties/capillary_pressure/Proj_capi_to_FEM").or.&
+                have_option("/material_phase[1]/multiphase_properties/capillary_pressure/Proj_capi_to_FEM")
+        if (CAP_to_FEM) then
+
+            allocate (PSI(size(PLIKE_GRAD_SOU_GRAD,1)*size(PLIKE_GRAD_SOU_GRAD,2)))
+            allocate (FEMPSI(size(PLIKE_GRAD_SOU_GRAD,1)*size(PLIKE_GRAD_SOU_GRAD,2)))
+            allocate (PSI_AVE(3*size(PLIKE_GRAD_SOU_GRAD,2)))
+            allocate (PSI_INT(size(PLIKE_GRAD_SOU_GRAD,2)))
+            !############TEMPORARY CONVERSION################
+             k = 1
+             DO IPHASE = 1, NPHASE
+                 DO CV_INOD = 1, CV_NONODS
+                     PSI( k ) = PLIKE_GRAD_SOU_GRAD( IPHASE, CV_INOD)
+                     k = k + 1
+                 END DO
+             END DO
+             !############TEMPORARY CONVERSION################
+
+             !Get shape functions
+             NGI = NDIM + 1
+             NLOC = NDIM + 1
+             IF(NDIM==1) NLOC=1
+             allocate (WEIGHT(NGI))
+             ALLOCATE( N(NLOC,NGI))
+             ALLOCATE( L1(NGI), L2(NGI), L3(NGI), L4(NGI) )
+             allocate(NLX_ALL(size(X_ALL,1), NLOC, NGI))
+             CALL TRIQUAold( L1, L2, L3, L4, WEIGHT, ndim==3, NGI )
+             call SHATRInew(L1, L2, L3, L4, WEIGHT,  NLOC,NGI,  N,NLX_ALL)
+
+            !Project to FEM
+             PATH = '/material_phase[0]/scalar_field::Pressure'
+            call PROJ_CV_TO_FEM( FEMPSI, PSI, NPHASE, NDIM, &
+               PSI_AVE, 3, PSI_INT, 1, MASS_ELE, &
+               CV_NONODS, TOTELE, CV_NDGLN, X_NLOC, X_NDGLN, &
+               CV_NGI, CV_NLOC, CVN, CVWEIGHT, N, NLX_ALL(1,:,:), NLX_ALL(2,:,:), NLX_ALL(3,:,:), &
+               X_NONODS, X_ALL(1,:), X_ALL(2,:), X_ALL(3,:), NCOLM, FINDM, COLM, MIDM, &
+               0, PSI_AVE, FINDM, COLM, NCOLM, PATH )
+
+            !Deallocate auxiliar variables
+            DEALLOCATE (PSI,PSI_AVE,PSI_INT)
+            deallocate (NLX_ALL,L1,L2,L3,L4,N, WEIGHT)
+        end if
         Loop_Elements: DO ELE = 1, TOTELE ! Volume integral
 
             ! Calculate DETWEI,RA,NX,NY,NZ for element ELE
@@ -3148,7 +3211,7 @@ contains
                 ENDIF
 
                 DO IPHASE = 1, NPHASE
-                    IF ( IPLIKE_GRAD_SOU /= 0 ) THEN
+                    IF ( IPLIKE_GRAD_SOU /= 0) THEN
                         LOC_PLIKE_GRAD_SOU_COEF( IPHASE, CV_ILOC ) = PLIKE_GRAD_SOU_COEF( IPHASE, CV_INOD )
                         LOC_PLIKE_GRAD_SOU_GRAD( IPHASE, CV_ILOC ) = PLIKE_GRAD_SOU_GRAD( IPHASE, CV_INOD )
                     END IF
@@ -3157,6 +3220,20 @@ contains
                     END DO
                 END DO
             END DO
+
+
+            !############TEMPORARY CONVERSION################
+            if (CAP_to_FEM) then
+             k = 1
+             DO CV_ILOC = 1, CV_NLOC
+                DO IPHASE = 1, NPHASE
+                    !CHECK WHETHER THIS IS CORRECT OR NOT!
+                    LOC_PLIKE_GRAD_SOU_GRAD( IPHASE, CV_ILOC ) = FEMPSI(CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_ILOC ))
+                     k = k + 1
+                 END DO
+             END DO
+            !############TEMPORARY CONVERSION################
+            end if
 
             DO P_ILOC = 1, P_NLOC
                 P_INOD = P_NDGLN( ( ELE - 1 ) * P_NLOC + P_ILOC )
@@ -3278,6 +3355,7 @@ contains
 
             DENGI = 0.0 ; DENGIOLD = 0.0
             GRAD_SOU_GI = 0.0
+
             DO CV_ILOC = 1, CV_NLOC
                 DO GI = 1, CV_NGI_SHORT
                     IF ( .FALSE. ) then ! FEM DEN...
@@ -3295,6 +3373,10 @@ contains
                     END IF
                 END DO
             END DO
+
+            !For capillary pressure there is no coefficient multiplying
+            !so we set it to 1
+            if ( capillary_pressure_activated ) GRAD_SOU_GI = 1.0
 
             ! Start filtering density
             !FILT_DEN = 1
@@ -3782,7 +3864,6 @@ contains
                             RNMX_ALL( : ) = RN * CVFENX_ALL( 1:NDIM, P_JLOC, GI )
 
                             NMX_ALL( : ) = NMX_ALL( : ) + RNMX_ALL( : )
-
                             IF ( IPLIKE_GRAD_SOU == 1 .OR. CAPILLARY_PRESSURE_ACTIVATED ) THEN
                                 DO IDIM = 1, NDIM_VEL
                                     GRAD_SOU_GI_NMX( IDIM, : ) = GRAD_SOU_GI_NMX( IDIM, : ) &
@@ -3823,7 +3904,6 @@ contains
                                     LOC_U_RHS( IDIM, IPHASE, U_ILOC ) = LOC_U_RHS( IDIM, IPHASE, U_ILOC ) &
                                     - GRAD_SOU_GI_NMX( IDIM, IPHASE ) * LOC_PLIKE_GRAD_SOU_GRAD( IPHASE, P_JLOC )
                                 END DO
-
                             END IF
                         END DO Loop_Phase1
 
@@ -5355,6 +5435,9 @@ contains
         call deallocate(velocity_BCs_robin2)
         call deallocate(momentum_BCs)
         call deallocate(pressure_BCs)
+
+        !Deallocate variable used to project the capillary pressure into FEM
+        if (CAP_to_FEM) deallocate(FEMPSI)
 
 
         ewrite(3,*)'Leaving assemb_force_cty'

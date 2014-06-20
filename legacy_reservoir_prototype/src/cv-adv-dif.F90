@@ -12966,7 +12966,7 @@ CONTAINS
       LOGICAL, intent(in) :: REFLECT
 ! IF REFLECT then use a reflection condition at boundary to 
 ! do limiting. 
-      PARAMETER(INFINY=1.E+20,FRALINE2=0.0001)
+      PARAMETER(INFINY=1.E+20,FRALINE2=0.001)
       LOGICAL, intent(in) :: BOUND
       INTEGER, intent(in) :: COUNT,NFIELD,NOD,XNOD,NONODS,X_NONODS,NLOC,TOTELE,NDIM
       REAL, dimension(:,:), intent(in) :: PSI_ALL
@@ -15361,10 +15361,6 @@ CONTAINS
                  ABS_CV_NODJ_IPHA(IPHASE) = dot_product(CVNORMX_ALL(:, GI),matmul(VJ_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE), CVNORMX_ALL(:, GI)))
                  GRAD_ABS_CV_NODJ_IPHA(IPHASE) = dot_product(CVNORMX_ALL(:, GI),matmul(GJ_LOC_OPT_VEL_UPWIND_COEFS(:,:,IPHASE), CVNORMX_ALL(:, GI)))
              END DO
-!        print *,'-iphase,cv_nodi,cv_nodj,ABS_CV_NODI_IPHA,ABS_CV_NODJ_IPHA:',iphase,cv_nodi,cv_nodj,ABS_CV_NODI_IPHA,ABS_CV_NODJ_IPHA
-
-
-
 
 
              ! Make sure we have some sort of velocity (only needed between elements)...
@@ -15510,7 +15506,6 @@ CONTAINS
                    END WHERE
                 END WHERE
              endif
-
           ELSE
 
              UPWIND_FRAC=0.5

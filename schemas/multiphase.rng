@@ -854,7 +854,7 @@ Default value 2.0</a:documentation>
                   <element name="type_Brookes_Corey">
                     <a:documentation>Brookes-Corey equation
 
-Pc = c * S_w ** a</a:documentation>
+Pc = c * ((S_w-Swir)/(1-Swirr-Sor)) ** -a</a:documentation>
                     <oneOrMore>
                       <element name="phase">
                         <attribute name="material_phase_name">
@@ -872,6 +872,12 @@ Pc = c * S_w ** a</a:documentation>
                       </element>
                     </oneOrMore>
                   </element>
+                  <optional>
+                    <element name="Proj_capi_to_FEM">
+                      <a:documentation>Project the capillary pressure (CV) to FEM.</a:documentation>
+                      <ref name="comment"/>
+                    </element>
+                  </optional>
                 </element>
               </optional>
               <optional>

@@ -1192,7 +1192,7 @@
       INTEGER :: nstates, ncomps, nphases, IPHASE, JPHASE, i, j, k
       real c, a, S_OR, S_GC, auxO, auxW
       character(len=OPTION_PATH_LEN) option_path, phase_name
-      REAL, DIMENSION( NPHASE, CV_NONODS ) :: eff_satura
+      REAL, DIMENSION( NPHASE, CV_NONODS ) :: adapted_satura
       !Corey options
       type(corey_options) :: options
       !Working pointers
@@ -1200,6 +1200,7 @@
 
       !Get from packed_state
       call get_var_from_packed_state(packed_state,PhaseVolumeFraction = Satura)
+!      call get_var_from_packed_state(packed_state,FEPhaseVolumeFraction = Satura)
       !Get corey options
       call get_corey_options(options)
       s_gc=options%s_gc
@@ -1216,7 +1217,7 @@
       end do
       nphases=nstates-ncomps
 
-        eff_satura = SATURA
+!        adapted_satura = SATURA
 
       if (have_option("/material_phase[0]/multiphase_properties/capillary_pressure/type_Brookes_Corey") ) then
 
@@ -1245,30 +1246,27 @@
                     else
                         auxW = S_OR
                         auxO = S_GC
-                    end if                                                                                                                                                !...value chosen since in the plots below 0.1, Brooks-Corey is not defined
+                    end if
                     forall (k = 1  : CV_NONODS )
                         !Effective saturation has to be between one and zero
-                        eff_satura(jphase,k) = max(min((eff_satura(jphase,k) - auxW)/(1.0 - auxW -  auxO), 1.0), max(0.5*auxW,0.01))!<--Inferior limit just to avoid NaN... in theory it should never be reached
-                    end forall                                                                                                                                                  !...value chosen since in the plots below 0.1, Brooks-Corey is not defined
+                        adapted_satura(jphase,k) = max(min((satura(jphase,k) - auxW)/(1.0 - auxW - auxO), 1.0), 1d-5)!<--Inferior limit just to avoid NaN... in theory it should never be reached
+                    end forall
 
                   call get_option(trim(option_path)//"/phase["//int2str(j)//"]/c", c)
                   call get_option(trim(option_path)//"/phase["//int2str(j)//"]/a", a)
-    !Later this is multiplied by a value obtained from the surface tension and the shape and weight functions...
-    !the "c" obtained from diamond is the entry pressure, and the value obtained from the surface tension
-    !is another way of calculating the entry pressure, so just one of both is necessary, at present the entry pressure is used!
-
+                  !Apply Brooks-Corey model
                   capillary_pressure( 1 + ( IPHASE - 1 ) * CV_NONODS : IPHASE * CV_NONODS ) = &
                        capillary_pressure( 1 + ( IPHASE - 1 ) * CV_NONODS : IPHASE * CV_NONODS ) + &
-                       c * eff_satura( jphase,: ) ** (-a)
+                       c * adapted_satura( jphase,: ) ** (-a)
                endif
 
             END DO
 
          END DO
-
       else
          FLAbort('Unknown capillary pressure type')
       endif
+
       RETURN
     END SUBROUTINE calculate_capillary_pressure
 

@@ -664,7 +664,7 @@ start =
                element capillary_pressure {
                   ## Brookes-Corey equation
                   ##
-                  ## Pc = c * S_w ** a
+                  ## Pc = c * ((S_w-Swir)/(1-Swirr-Sor)) ** -a
                   element type_Brookes_Corey {
                      element phase {
                         ## Specify the phase to which these values relate
@@ -674,7 +674,9 @@ start =
                         ## exponent a
                         element a {real}
                      }+
-                  }
+                  },
+                   ## Project the capillary pressure (CV) to FEM.
+                     element Proj_capi_to_FEM { comment }?
                }?,
                ## Immobile volume of fluid phase
                element immobile_fraction {real}?
