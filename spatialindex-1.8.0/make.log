@@ -783,3 +783,51 @@ Making install in include
  /usr/bin/install -c -m 644  spatialindex/SpatialIndex.h spatialindex/RTree.h spatialindex/MVRTree.h spatialindex/TPRTree.h spatialindex/Point.h spatialindex/Region.h spatialindex/LineSegment.h spatialindex/TimePoint.h spatialindex/TimeRegion.h spatialindex/MovingPoint.h spatialindex/MovingRegion.h spatialindex/Version.h '/home/pablo/Documents/workspace/MultiFluids_Dev/spatialindex-1.8.0/../include/spatialindex'
 /bin/mkdir -p '/home/pablo/Documents/workspace/MultiFluids_Dev/spatialindex-1.8.0/../include/spatialindex/tools'
  /usr/bin/install -c -m 644  spatialindex/tools/PointerPool.h spatialindex/tools/PoolPointer.h spatialindex/tools/rand48.h spatialindex/tools/SmartPointer.h spatialindex/tools/Tools.h '/home/pablo/Documents/workspace/MultiFluids_Dev/spatialindex-1.8.0/../include/spatialindex/tools'
+Making clean in include
+Making clean in src
+Making clean in capi
+Making install in src
+Making install in storagemanager
+Making install in spatialindex
+Making install in rtree
+Making install in mvrtree
+Making install in tprtree
+Making install in tools
+Making install in capi
+ /usr/bin/install -c -m 644 libspatialindex.pc '/home/pablo/Documents/workspace/MultiFluids_Dev/spatialindex-1.8.0/../lib/pkgconfig'
+Making install in .
+ /bin/bash ./libtool   --mode=install /usr/bin/install -c   libspatialindex.la libspatialindex_c.la '/home/pablo/Documents/workspace/MultiFluids_Dev/spatialindex-1.8.0/../lib'
+libtool: install: /usr/bin/install -c .libs/libspatialindex.lai /home/pablo/Documents/workspace/MultiFluids_Dev/spatialindex-1.8.0/../lib/libspatialindex.la
+libtool: install: /usr/bin/install -c .libs/libspatialindex_c.lai /home/pablo/Documents/workspace/MultiFluids_Dev/spatialindex-1.8.0/../lib/libspatialindex_c.la
+libtool: install: /usr/bin/install -c .libs/libspatialindex.a /home/pablo/Documents/workspace/MultiFluids_Dev/spatialindex-1.8.0/../lib/libspatialindex.a
+libtool: install: chmod 644 /home/pablo/Documents/workspace/MultiFluids_Dev/spatialindex-1.8.0/../lib/libspatialindex.a
+libtool: install: ranlib /home/pablo/Documents/workspace/MultiFluids_Dev/spatialindex-1.8.0/../lib/libspatialindex.a
+libtool: install: /usr/bin/install -c .libs/libspatialindex_c.a /home/pablo/Documents/workspace/MultiFluids_Dev/spatialindex-1.8.0/../lib/libspatialindex_c.a
+libtool: install: chmod 644 /home/pablo/Documents/workspace/MultiFluids_Dev/spatialindex-1.8.0/../lib/libspatialindex_c.a
+libtool: install: ranlib /home/pablo/Documents/workspace/MultiFluids_Dev/spatialindex-1.8.0/../lib/libspatialindex_c.a
+libtool: finish: PATH="/usr/lib/lightdm/lightdm:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/sbin" ldconfig -n /home/pablo/Documents/workspace/MultiFluids_Dev/spatialindex-1.8.0/../lib
+----------------------------------------------------------------------
+Libraries have been installed in:
+   /home/pablo/Documents/workspace/MultiFluids_Dev/spatialindex-1.8.0/../lib
+
+If you ever happen to want to link against installed libraries
+in a given directory, LIBDIR, you must either use libtool, and
+specify the full pathname of the library, or use the `-LLIBDIR'
+flag during linking and do at least one of the following:
+   - add LIBDIR to the `LD_LIBRARY_PATH' environment variable
+     during execution
+   - add LIBDIR to the `LD_RUN_PATH' environment variable
+     during linking
+   - use the `-Wl,-rpath -Wl,LIBDIR' linker flag
+   - have your system administrator add LIBDIR to `/etc/ld.so.conf'
+
+See any operating system documentation about shared libraries for
+more information, such as the ld(1) and ld.so(8) manual pages.
+----------------------------------------------------------------------
+Making install in include
+/bin/mkdir -p '/home/pablo/Documents/workspace/MultiFluids_Dev/spatialindex-1.8.0/../include/spatialindex/capi'
+ /usr/bin/install -c -m 644  spatialindex/capi/BoundsQuery.h spatialindex/capi/CountVisitor.h spatialindex/capi/CustomStorage.h spatialindex/capi/DataStream.h spatialindex/capi/Error.h spatialindex/capi/IdVisitor.h spatialindex/capi/Index.h spatialindex/capi/LeafQuery.h spatialindex/capi/ObjVisitor.h spatialindex/capi/sidx_api.h spatialindex/capi/sidx_config.h spatialindex/capi/sidx_impl.h spatialindex/capi/Utility.h '/home/pablo/Documents/workspace/MultiFluids_Dev/spatialindex-1.8.0/../include/spatialindex/capi'
+/bin/mkdir -p '/home/pablo/Documents/workspace/MultiFluids_Dev/spatialindex-1.8.0/../include/spatialindex'
+ /usr/bin/install -c -m 644  spatialindex/SpatialIndex.h spatialindex/RTree.h spatialindex/MVRTree.h spatialindex/TPRTree.h spatialindex/Point.h spatialindex/Region.h spatialindex/LineSegment.h spatialindex/TimePoint.h spatialindex/TimeRegion.h spatialindex/MovingPoint.h spatialindex/MovingRegion.h spatialindex/Version.h '/home/pablo/Documents/workspace/MultiFluids_Dev/spatialindex-1.8.0/../include/spatialindex'
+/bin/mkdir -p '/home/pablo/Documents/workspace/MultiFluids_Dev/spatialindex-1.8.0/../include/spatialindex/tools'
+ /usr/bin/install -c -m 644  spatialindex/tools/PointerPool.h spatialindex/tools/PoolPointer.h spatialindex/tools/rand48.h spatialindex/tools/SmartPointer.h spatialindex/tools/Tools.h '/home/pablo/Documents/workspace/MultiFluids_Dev/spatialindex-1.8.0/../include/spatialindex/tools'
