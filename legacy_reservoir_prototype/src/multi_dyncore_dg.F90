@@ -369,9 +369,10 @@ contains
 
              END IF Conditional_Lumping
 
+             call deallocate(petsc_acv)
+
         END DO Loop_NonLinearFlux
 
-        call deallocate(petsc_acv)
         deALLOCATE( mass_mn_pres )
         deallocate( block_acv, dense_block_matrix )
         DEALLOCATE( CV_RHS )

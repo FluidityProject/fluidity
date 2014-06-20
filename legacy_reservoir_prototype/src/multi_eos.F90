@@ -1429,6 +1429,8 @@
 
       type(scalar_field), pointer :: component, diffusivity
       integer, dimension(:), pointer :: st_nodes
+      logical :: linearise_viscosity
+      real, dimension( : ), allocatable :: component_tmp
 
       if ( have_option( '/physical_parameters/mobility' ) ) then
 
@@ -1445,7 +1447,11 @@
 
             if ( ncomp > 1 ) then
 
+               linearise_viscosity = have_option( '/material_phase[0]/linearise_viscosity' )
+
                cv_nloc = ele_loc( t_field, ele )
+
+               allocate( component_tmp( cv_nloc ) ) 
 
                do icomp = 1, ncomp
                   do iphase = 1, nphase
@@ -1457,16 +1463,33 @@
 
                         st_nodes => ele_nodes( t_field, ele )
 
+                        component_tmp = node_val( component, st_nodes )
+
+                        if (linearise_viscosity) then
+                           component_tmp( 2 ) = 0.5* ( component_tmp( 1 ) + component_tmp( 3 ) )
+                           component_tmp( 4 ) = 0.5* ( component_tmp( 1 ) + component_tmp( 6 ) )
+                           component_tmp( 5 ) = 0.5* ( component_tmp( 3 ) + component_tmp( 6 ) )
+
+                           if ( cv_nloc == 10 ) then
+                              component_tmp( 7 ) = 0.5* ( component_tmp( 1 ) + component_tmp( 10 ) )
+                              component_tmp( 8 ) = 0.5* ( component_tmp( 3 ) + component_tmp( 10 ) )
+                              component_tmp( 9 ) = 0.5* ( component_tmp( 6 ) + component_tmp( 10 ) )
+                           end if
+                        end if
+
                         do iloc = 1, cv_nloc
                            mat_nod = mat_ndgln( (ele-1)*cv_nloc + iloc )
 
                            momentum_diffusion( mat_nod, :, :, iphase ) =  momentum_diffusion( mat_nod, :, :, iphase ) + &
-                                node_val( t_field, st_nodes(iloc) ) * node_val( component, st_nodes(iloc) )
+                                node_val( t_field, st_nodes(iloc) ) * component_tmp( iloc )
+
                         end do
                      end do
 
                   end do
                end do
+               
+              deallocate( component_tmp ) 
 
             else
 
