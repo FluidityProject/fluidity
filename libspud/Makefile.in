@@ -60,7 +60,7 @@ libspud.la: $(OBJS)
 	(if test -f .libs/libspud.so; then cp .libs/libspud.so ./libspud.so.0; ln -s libspud.so.0 libspud.so; fi) || true
 
 build-diamond:
-	cd diamond; python setup.py build; cd ..
+	cd @srcdir@/diamond; python $(CURDIR)/diamond/setup.py build -t $(CURDIR)/diamond/ -b $(CURDIR)/diamond/
 
 test: unittest
 
@@ -92,20 +92,20 @@ install-spudtools:
 	@INSTALL@ -m644 schema/spud_base.rng $(DESTDIR)@prefix@/share/spud
 
 install-diamond:
-	cd diamond;	python setup.py install --prefix=$(DESTDIR)@prefix@; cd ..
+	cd @srcdir@/diamond; python $(CURDIR)/diamond/setup.py install --prefix=$(DESTDIR)@prefix@; cd ..
 
 install-pyspud:
 ifeq ($(origin BUILDING_DEBIAN),undefined)
-	cd python; python setup.py install --prefix=$(DESTDIR)@prefix@; cd ..
+	cd @srcdir@/python; python setup.py install --prefix=$(DESTDIR)@prefix@
 else
-	cd python; for python in $(shell pyversions -r); do $$python setup.py install --prefix=$(DESTDIR)@prefix@ --install-layout=deb; done; cd ..
+	cd @srcdir@/python; for python in $(shell pyversions -r); do $$python setup.py install --prefix=$(DESTDIR)@prefix@ --install-layout=deb; done
 endif
 
 install-dxdiff:
 ifeq ($(origin DESTDIR),undefined)
-	cd dxdiff; python setup.py install --prefix=$(DESTDIR)@prefix@; cd ..
+	cd @srcdir@/dxdiff; python setup.py install --prefix=$(DESTDIR)@prefix@
 else
-	cd dxdiff; for python in $(shell pyversions -r); do $$python setup.py install --prefix=$(DESTDIR)@prefix@ --install-layout=deb; done; cd ..
+	cd @srcdir@/dxdiff; for python in $(shell pyversions -r); do $$python setup.py install --prefix=$(DESTDIR)@prefix@ --install-layout=deb; done
 endif
 
 # for out-of-tree builds not all subdirs necessarily exist, so we have to fail graciously:

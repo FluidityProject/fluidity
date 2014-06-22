@@ -87,8 +87,9 @@ LIBMBA3D = lib/libmba3d.a
 endif
 
 # note that in an out-of-tree build @srcdir@ != $(CURDIR)
-SPUD_PYTHON_SRC_DIR = @srcdir@/libspud/python/
+SPUD_PYTHON_SRC_DIR = @srcdir@/libspud/python
 SPUD_PYTHON_BUILD_DIR = $(CURDIR)/libspud/python/build
+SPUD_LIB_DIR = $(CURDIR)/lib
 
 # Thread count for make test.
 THREADS=1
@@ -152,7 +153,8 @@ lib/libspud.a:
 	@echo '    MKDIR lib'; mkdir -p lib
 	@echo '    MAKE libspud'; $(MAKE) -C libspud && $(MAKE) -C libspud install-libspud
 ifneq (@SPUD_ONLY@,yes)
-	@echo '    MAKE libspud python'; mkdir -p $(SPUD_PYTHON_BUILD_DIR) && pushd $(SPUD_PYTHON_SRC_DIR) && python setup.py build -b $(SPUD_PYTHON_BUILD_DIR) && popd && cp $(SPUD_PYTHON_BUILD_DIR)/lib*/libspud.so python/
+	@echo '    MAKE libspud python'; mkdir -p $(SPUD_PYTHON_BUILD_DIR) && cd $(SPUD_PYTHON_SRC_DIR) && python setup.py build_ext -b $(SPUD_PYTHON_BUILD_DIR) -t $(SPUD_PYTHON_BUILD_DIR) -L$(SPUD_LIB_DIR)
+	@cp $(SPUD_PYTHON_BUILD_DIR)/libspud.so python/
 endif
 
 libfemtools: sub_system
@@ -520,8 +522,8 @@ serialtest: fltools bin/$(FLUIDITY) bin/shallow_water
 	@if [ ! -d tests ]; then ln -s @srcdir@/tests/; fi
 	@if [ ! @srcdir@ -ef bin ]; then \
 	  if [ -e @srcdir@/bin ]; then \
-	    rm @srcdir@i/bin; \
-	  fi && ln -s $(CURDIR)/bin @srcdir@/bin || { echo "*** ERROR ***: @srcdir@ already exists. \
+	    rm @srcdir@/bin; \
+	  fi && ln -s $(CURDIR)/bin @srcdir@/bin || { echo "*** ERROR ***: @srcdir@/bin already exists. \
 You need to remove this directory before running make test from the current build directory. \
 It will be replaced by a symlink to bin/ in the current directory."; false; } \
 	fi

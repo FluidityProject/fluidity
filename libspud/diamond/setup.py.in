@@ -42,24 +42,24 @@ for i, arg in enumerate(sys.argv):
 # on the command line in preference to the configure prefix.
 
 # First parse the plugin directories
-plugin_dirs = [dir for dir in os.listdir("@srcdir@/plugins") if os.path.isdir(os.path.join("@srcdir@/plugins", dir)) and dir[0] != '.']
+plugin_dirs = [dir for dir in os.listdir('plugins') if os.path.isdir(os.path.join('plugins', dir)) and dir[0] != '.']
 plugin_data_files = []
 for plugin in plugin_dirs:
   if prefix is None:
     plugin_data_files.append(("@prefix@/share/diamond/plugins/" + plugin,
-      glob.glob("@srcdir@/plugins"+ plugin + '/*.py')))
+      glob.glob('plugins/' + plugin + '/*.py')))
   else:
     plugin_data_files.append((prefix + "/share/diamond/plugins/" + plugin,
-      glob.glob("@srcdir@/plugins"+ plugin + '/*.py')))
+      glob.glob('plugins/' + plugin + '/*.py')))
 
 # Now parse the GUI directories
 gui_data_files = []
 if prefix is None:
   gui_data_files.append(("@prefix@/share/diamond/gui",
-    ["@srcdir@/gui/gui.glade", "@srcdir@/gui/diamond.svg"]))
+    ["gui/gui.glade", "gui/diamond.svg"]))
 else:
   gui_data_files.append((prefix + "/share/diamond/gui",
-    ["@srcdir@/gui/gui.glade", "@srcdir@/gui/diamond.svg"]))
+    ["gui/gui.glade", "gui/diamond.svg"]))
 
 # We now have all the information we need; run setup.
 setup(
