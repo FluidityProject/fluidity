@@ -2450,10 +2450,12 @@ contains
                     + (1.0-W_SUM_ONE1) * T_ALL( IPHASE, CV_NODI ) - (1.0-W_SUM_ONE2) * TOLD_ALL( IPHASE, CV_NODI ) &
                     + ( TOLD_ALL( IPHASE, CV_NODI ) * ( DEN_ALL( IPHASE, CV_NODI ) - DENOLD_ALL( IPHASE, CV_NODI ) ) &
                     - DERIV( IPHASE, CV_NODI ) * CV_P( CV_NODI ) * T_ALL( IPHASE, CV_NODI ) ) / DEN_ALL( IPHASE, CV_NODI ) )
+                    !- DERIV( IPHASE, CV_NODI ) * CV_P( CV_NODI ) * max( 1., T_ALL( IPHASE, CV_NODI ) ) ) / DEN_ALL( IPHASE, CV_NODI ) )
 
 
                DIAG_SCALE_PRES( CV_NODI ) = DIAG_SCALE_PRES( CV_NODI ) + &
-                    MEAN_PORE_CV( CV_NODI ) * T_ALL( IPHASE, CV_NODI ) * DERIV( IPHASE, CV_NODI )  &
+                    MEAN_PORE_CV( CV_NODI ) * T_ALL( IPHASE, CV_NODI ) * DERIV( IPHASE, CV_NODI ) &
+                    !MEAN_PORE_CV( CV_NODI ) * max( 1., T_ALL( IPHASE, CV_NODI ) ) * DERIV( IPHASE, CV_NODI ) &
                     / ( DT * DEN_ALL( IPHASE, CV_NODI ) )
 
                CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) + MASS_CV( CV_NODI ) * SOURCT_ALL( IPHASE, CV_NODI ) / DEN_ALL( IPHASE, CV_NODI )
@@ -12572,7 +12574,7 @@ CONTAINS
 
     LOGICAL :: D3,DCYL
     ! Allocate memory for the interpolated upwind values
-    LOGICAL, PARAMETER :: BOUND  = .TRUE., REFLECT = .true. ! limiting options
+    LOGICAL, PARAMETER :: BOUND  = .TRUE., REFLECT = .false. ! limiting options
     INTEGER, DIMENSION( : ), allocatable :: NOD_FINDELE,NOD_COLELE, NLIST, INLIST, DUMMYINT
     REAL, DIMENSION( : ), allocatable :: DUMMYREAL
     INTEGER MXNCOLEL,NCOLEL,adapt_time_steps
