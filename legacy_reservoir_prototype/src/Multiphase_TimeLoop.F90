@@ -1317,7 +1317,7 @@
 !!$ Variables used in the diffusion-like term: capilarity and surface tension:
                  plike_grad_sou_grad, plike_grad_sou_coef, &
 !!$ Working arrays
-                 Temperature, PhaseVolumeFraction, &
+                 Temperature, PhaseVolumeFraction, SAT_s, &
                  Component, &
                  Temperature_Old, &
                  PhaseVolumeFraction_Old, Component_Old, &
@@ -1410,7 +1410,7 @@
             allocate( &
 !!$
                  Temperature( nphase * cv_nonods ), &
-                 PhaseVolumeFraction( nphase * cv_nonods ), Component( nphase * cv_nonods * ncomp ), &
+                 PhaseVolumeFraction( nphase * cv_nonods ), SAT_s( nphase , cv_nonods ), Component( nphase * cv_nonods * ncomp ), &
                  DRhoDPressure( nphase, cv_nonods ), &
 !!$
                  Temperature_Old( nphase * cv_nonods ), &
