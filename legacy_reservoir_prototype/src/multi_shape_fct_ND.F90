@@ -7276,7 +7276,7 @@
       REAL, dimension(10,10) ::  RUB2
       LOGICAL :: DD3
 ! NB LXP(I) AND LYP(I) ARE THE LOCAL X AND Y COORDS OF NODAL POINT I
-       
+
       ewrite(3,*) 'HERE 1 MLOC,NLOC,NGI=',MLOC,NLOC,NGI
       ewrite(3,*) 'HERE 2'
 !
@@ -7401,7 +7401,7 @@
               endif
            endif
            CALL SHATRIold(L1, L2, L3, L4, SWEIGH, DD3,&
-                              SMLOC,NGI,&
+                              SMLOC,SNGI,&
                               SM,SMLX,SMLY,RUB2)
         ELSE
            ewrite(3,*)'for surfaces SNGI,SNLOC,smloc:',SNGI,SNLOC,smloc
