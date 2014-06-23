@@ -692,7 +692,7 @@
          Mobility = 0.
       end if
 
-      allocate( u_absorb2( mat_nonods, nphase * ndim, nphase * ndim ), satura2( nphase, cv_nonods ) )
+      allocate( u_absorb2( mat_nonods, nphase * ndim, nphase * ndim ), satura2( size(SATURA,1), size(SATURA,2) ) )
       u_absorb2 = 0. ; satura2 = 0.
 
       CALL calculate_absorption2( MAT_NONODS, CV_NONODS, NPHASE, NDIM, SATURA, TOTELE, CV_NLOC, MAT_NLOC, &

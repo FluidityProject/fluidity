@@ -1454,7 +1454,8 @@ contains
                 CALL SOLVER( DGM_PHA, UP_VEL, U_RHS_CDP, &
                 FINDGM_PHA, COLDGM_PHA, &
                 option_path = '/material_phase[0]/vector_field::Velocity', &
-                block_size = NDIM*NPHASE*U_NLOC )
+                block_size = 1 )!<-- disabled block-solver until update to petsc 3.4
+!                block_size = NDIM*NPHASE*U_NLOC )!<-- activates block solver
 
             END IF
 
