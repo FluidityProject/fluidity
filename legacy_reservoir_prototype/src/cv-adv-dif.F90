@@ -12565,7 +12565,7 @@ CONTAINS
 
     LOGICAL :: D3,DCYL
     ! Allocate memory for the interpolated upwind values
-    LOGICAL, PARAMETER :: BOUND  = .TRUE., REFLECT = .false. ! limiting options
+    LOGICAL, PARAMETER :: BOUND  = .TRUE., REFLECT = .true. ! limiting options
     INTEGER, DIMENSION( : ), allocatable :: NOD_FINDELE,NOD_COLELE, NLIST, INLIST, DUMMYINT
     REAL, DIMENSION( : ), allocatable :: DUMMYREAL
     INTEGER MXNCOLEL,NCOLEL,adapt_time_steps
@@ -12966,7 +12966,7 @@ CONTAINS
       LOGICAL, intent(in) :: REFLECT
 ! IF REFLECT then use a reflection condition at boundary to 
 ! do limiting. 
-      PARAMETER(INFINY=1.E+20,FRALINE2=0.001)
+      PARAMETER(INFINY=1.E+20,FRALINE2=0.0001)
       LOGICAL, intent(in) :: BOUND
       INTEGER, intent(in) :: COUNT,NFIELD,NOD,XNOD,NONODS,X_NONODS,NLOC,TOTELE,NDIM
       REAL, dimension(:,:), intent(in) :: PSI_ALL

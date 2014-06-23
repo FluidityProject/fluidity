@@ -685,6 +685,12 @@ to sum to 1 by adding constraint into compositional source term.</a:documentatio
             </element>
           </optional>
           <optional>
+            <element name="linearise_viscosity">
+              <a:documentation>linearise viscosity</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
             <element name="linearise_component">
               <a:documentation>linearise component for the bulk density calculation used in the momentum equation</a:documentation>
               <empty/>
