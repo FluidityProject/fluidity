@@ -171,6 +171,7 @@ module sparse_tools_petsc
      size, block_size, blocks, entries, &
      zero, addto, addto_diag, scale, &
      extract_diagonal, assemble, incref_petsc_csr_matrix, &
+     addref_petsc_csr_matrix, &
      ptap, mult, mult_T, dump_matrix, &
      csr2petsc_csr, dump_petsc_csr_matrix
 

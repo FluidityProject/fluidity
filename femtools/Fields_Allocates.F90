@@ -391,12 +391,13 @@ contains
 
   end subroutine allocate_vector_field
 
-  subroutine allocate_tensor_field(field, mesh, name, field_type, dim)
+  subroutine allocate_tensor_field(field, mesh, name, field_type, dim, contiguous)
     type(tensor_field), intent(inout) :: field
     type(mesh_type), intent(in), target :: mesh
     character(len=*), intent(in), optional :: name
     integer, intent(in), optional :: field_type
     integer, intent(in), dimension(2), optional :: dim
+    logical, intent(in), optional :: contiguous
     integer :: lfield_type
 
     if (present(field_type)) then
@@ -410,6 +411,13 @@ contains
     else
       field%dim=(/mesh_dim(mesh),mesh_dim(mesh)/)
     end if
+
+    if (present(contiguous)) then
+       field%contiguous=contiguous
+    else
+       field%contiguous=.false.
+    end if
+
     field%option_path=empty_path
 
     field%mesh=mesh
@@ -424,7 +432,13 @@ contains
     field%field_type = lfield_type
     select case(lfield_type)
     case(FIELD_TYPE_NORMAL)
-      allocate(field%val(field%dim(1), field%dim(2), node_count(mesh)))
+       if (field%contiguous) then
+          allocate(field%contiguous_val(field%dim(1), field%dim(2),&
+               node_count(mesh)))
+          field%val=>field%contiguous_val
+       else
+          allocate(field%val(field%dim(1), field%dim(2), node_count(mesh)))
+       end if
 
 #ifdef HAVE_MEMORY_STATS
       call register_allocation("tensor_field", "real", &

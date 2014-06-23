@@ -687,6 +687,7 @@
                ewrite(3,*)'Now advecting Temperature Field'
 
                NU_s % val = U_s % val
+               NUOLD_s % val = UOLD_s % val
 
                call calculate_diffusivity( state, ncomp, nphase, ndim, cv_nonods, mat_nonods, &
                                            mat_nloc, totele, mat_ndgln, ScalarAdvectionField_Diffusion )
@@ -892,8 +893,8 @@
             Conditional_Components:if( have_component_field ) then
                Loop_Components: do icomp = 1, ncomp
 
-                  tracer_field=>extract_tensor_field(multicomponent_state(icomp),"ComponentMassFraction")
-                  density_field=>extract_tensor_field(multicomponent_state(icomp),"ComponentDensity",stat)
+                  tracer_field=>extract_tensor_field(multicomponent_state(icomp),"PackedComponentMassFraction")
+                  density_field=>extract_tensor_field(multicomponent_state(icomp),"PackedComponentDensity",stat)
 
 !!$ Computing the absorption term for the multi-components equation
                   call Calculate_ComponentAbsorptionTerm( state, packed_state, &
@@ -939,7 +940,7 @@
                   Loop_NonLinearIteration_Components: do its2 = 1, NonLinearIteration_Components
                      comp_use_theta_flux = .false. ; comp_get_theta_flux = .true.
 
-                     call INTENERGE_ASSEM_SOLVE( state, packed_state, &
+                     call INTENERGE_ASSEM_SOLVE( state, multicomponent_state(icomp), &
                           tracer_field,velocity_field,density_field,&
                           NCOLACV, FINACV, COLACV, MIDACV, & ! CV sparsity pattern matrix
                           SMALL_FINACV, SMALL_COLACV, small_MIDACV,&
@@ -1594,6 +1595,10 @@
           use sparse_tools
           
           type(csr_sparsity) :: sparsity
+          type(scalar_field), pointer :: sfield
+
+          integer ic
+
           sparsity=wrap(finele,midele,colm=colele,name='ElementConnectivity')
           call insert(packed_state,sparsity,'ElementConnectivity')
 
@@ -1610,6 +1615,14 @@
           sparsity=wrap(findm,midm,colm=colm,name='CVFEMSparsity')
           call insert(packed_state,sparsity,'CVFEMSparsity')
           
+          sfield=>extract_scalar_field(packed_state,"Pressure")
+          sparsity=make_sparsity(sfield%mesh,sfield%mesh,&
+               "PressureMassMatrixSparsity")
+          call insert(packed_state,sparsity,"PressureMassMatrixSparsity")
+          do ic=1,size(multicomponent_state)
+             call insert(multicomponent_state(ic),sparsity,"PressureMassMatrixSparsity")
+          end do
+
 
         end subroutine temp_mem_hacks
 

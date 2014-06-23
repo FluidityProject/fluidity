@@ -77,7 +77,7 @@ module parallel_fields
   end interface surface_element_owned
 
   interface zero_non_owned
-     module procedure zero_non_owned_scalar, zero_non_owned_vector
+     module procedure zero_non_owned_scalar, zero_non_owned_vector, zero_non_owned_tensor
   end interface
   
   interface halo_communicator
@@ -505,6 +505,36 @@ contains
     end if
 
   end subroutine zero_non_owned_vector
+
+  subroutine zero_non_owned_tensor(field)
+    !!< Zero all of the entries of field which do not correspond to
+    !!< that are owned by this process.
+    !!<
+    !!< This is useful for where dirty halo data has poluted a vector field.
+    type(tensor_field), intent(inout) :: field
+
+    integer :: i
+    real, dimension(field%dim(1),field%dim(2)) :: zero
+
+    zero=0.0
+
+    if (.not.isparallel()) return
+
+    if (halo_ordering_scheme(field%mesh%halos(1))&
+         &==HALO_ORDER_TRAILING_RECEIVES) then
+       do i = halo_nowned_nodes(field%mesh%halos(1))+1,&
+            node_count(field)
+          call set(field, i, zero)
+       end do
+    else
+       do i = 1, node_count(field)
+          if (.not.node_owned(field, i)) then
+             call set(field, i, zero)
+          end if
+       end do
+    end if
+
+  end subroutine zero_non_owned_tensor
 
   function owner_map(model_owner, new_mesh) result (new_owner)
     !!< Given a P1 field whose values are the node owners, and a new Pn

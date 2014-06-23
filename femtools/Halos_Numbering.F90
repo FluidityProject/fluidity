@@ -542,7 +542,7 @@ contains
 
   end subroutine get_universal_numbering_order_trailing_receives
 
-  subroutine get_universal_numbering_multiple_components(halo, unns)
+  subroutine get_universal_numbering_multiple_components(halo, unns, fluidity_ordering)
     !!< For the supplied halo, retrieve the complete universal numbering
     !!< of the degrees of freedom in a multi-component field, 
     !!< in such a way that the universal ordering is:
@@ -557,12 +557,21 @@ contains
 
     type(halo_type), intent(in) :: halo
     integer, dimension(:,:), intent(out) :: unns
+    logical, optional, intent(in) :: fluidity_ordering
     
     select case(halo_ordering_scheme(halo))
       case(HALO_ORDER_GENERAL)
-        call get_unn_multiple_components_order_general(halo, unns) 
+         if (present_and_true(fluidity_ordering)) then
+            call get_unn_multiple_components_order_general_fl_order(halo, unns)
+         else
+            call get_unn_multiple_components_order_general(halo, unns)
+         end if
       case(HALO_ORDER_TRAILING_RECEIVES)
-        call get_unn_multiple_components_order_trailing_receives(halo, unns) 
+         if (present_and_true(fluidity_ordering)) then
+            call get_unn_multiple_components_order_trailing_receives_fl_order(halo, unns) 
+         else
+            call get_unn_multiple_components_order_trailing_receives(halo, unns) 
+         end if
       case default
         FLAbort("Unrecognised halo ordering scheme")
     end select
@@ -680,6 +689,118 @@ contains
     end do
       
   end subroutine get_unn_multiple_components_order_trailing_receives
+
+ subroutine get_unn_multiple_components_order_general_fl_order(halo, unns)
+    !!< For the supplied halo, retrieve the complete universal numbering
+    !!< of the degrees of freedom in a multi-component field
+
+    type(halo_type), intent(in) :: halo
+    integer, dimension(:,:), intent(out) :: unns
+    
+    integer, dimension(:), pointer :: receives
+    integer :: owned_nodes, ncomponents, out_unn, out_unn_base, remote_gnn
+    integer :: i, j, k, unn
+    
+    assert(has_global_to_universal_numbering(halo))
+    assert(size(unns,1)>=size(halo%gnn_to_unn))
+    
+    ncomponents = size(unns, 2)
+    
+    unns = -1
+    
+    ! first the receiving nodes
+    do i = 1, halo_proc_count(halo)
+      
+      receives => halo_receives(halo, i)
+      ! base for the created multi-component unns of owned nodes on proces i:
+      out_unn_base = halo%owned_nodes_unn_base(i)*ncomponents
+      ! nodes owned by process i:
+      owned_nodes = halo%owned_nodes_unn_base(i+1)-halo%owned_nodes_unn_base(i)
+      
+      do j = 1, size(receives)
+        
+        unn = halo%gnn_to_unn(receives(j))
+        ! global no as owned node on process i:
+        remote_gnn = unn-halo%owned_nodes_unn_base(i)
+        
+        ! start with unn for component 1
+        out_unn = out_unn_base+ncomponents*(remote_gnn-1) +1
+        do k = 1, ncomponents
+          unns(receives(j), k) = out_unn
+          out_unn = out_unn + 1
+        end do
+          
+      end do
+    end do
+      
+    ! the rest must be owned nodes
+    owned_nodes = halo_nowned_nodes(halo)
+    do i=1, size(halo%gnn_to_unn)
+      if (unns(i,1)==-1) then
+        ! the multi-component unn should be using base unn_base*ncomponents
+        ! so we add the missing bit:
+        out_unn = ncomponents*(halo%gnn_to_unn(i)-1) +1 +ncomponents*halo%my_owned_nodes_unn_base
+        do k=1, ncomponents
+          unns(i, k) = out_unn
+          out_unn = out_unn + 1
+        end do
+      end if
+    end do
+
+  end subroutine get_unn_multiple_components_order_general_fl_order
+    
+  subroutine get_unn_multiple_components_order_trailing_receives_fl_order(halo, unns)
+    !!< For the supplied halo, retrieve the complete universal numbering
+    !!< of the degrees of freedom in a multi-component field
+
+    type(halo_type), intent(in) :: halo
+    integer, dimension(:,:), intent(out) :: unns
+    
+    integer, dimension(:), pointer :: receives
+    integer :: owned_nodes, ncomponents, out_unn, out_unn_base, remote_gnn
+    integer :: i, j, k, unn, my_nowned_nodes
+    
+    assert(trailing_receives_consistent(halo))
+    assert(size(unns) >= halo_nowned_nodes(halo) + size(halo%receives_gnn_to_unn))
+    assert(has_global_to_universal_numbering(halo))
+    
+    ncomponents = size(unns, 2)
+    
+    ! first our owned nodes
+    my_nowned_nodes = halo_nowned_nodes(halo)
+    do i = 1, my_nowned_nodes
+      ! the multi-component unn uses a base of unn_base*ncomponents
+      out_unn = ncomponents* ( halo%my_owned_nodes_unn_base + ( i - 1 ) ) +1
+      do k = 1, ncomponents
+        unns(i, k) = out_unn
+        out_unn = out_unn + 1
+      end do
+    end do
+
+    ! then fill in the receiving nodes
+    do i = 1, halo_proc_count(halo)
+      receives => halo_receives(halo, i)
+      ! base for the created multi-component unns of owned nodes on proces i:
+      out_unn_base = halo%owned_nodes_unn_base(i)*ncomponents
+      ! nodes owned by process i:
+      owned_nodes = halo%owned_nodes_unn_base(i+1)-halo%owned_nodes_unn_base(i)
+      do j = 1, size(receives)
+        
+        unn = halo%receives_gnn_to_unn(receives(j)-my_nowned_nodes)
+        ! global no as owned node on process i:
+        remote_gnn = unn-halo%owned_nodes_unn_base(i)
+        
+        ! start with unn for component 1
+        out_unn = out_unn_base + ncomponents*( remote_gnn - 1 ) +1
+        do k = 1, ncomponents
+          unns(receives(j), k) = out_unn
+          out_unn = out_unn + 1
+        end do
+          
+      end do
+    end do
+      
+  end subroutine get_unn_multiple_components_order_trailing_receives_fl_order
   
   subroutine get_universal_numbering_inverse(halo, gnns)
     !!< For the supplied halo, retrieve the complete universal node numbering

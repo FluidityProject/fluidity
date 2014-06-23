@@ -215,8 +215,8 @@ contains
            p => extract_scalar_field( packed_state, "FEPressure" )
            den_all2 => extract_tensor_field( packed_state, "PackedComponentDensity" )
            denold_all2 => extract_tensor_field( packed_state, "PackedOldComponentDensity" )
-           den_all = den_all2 % val ( icomp, :, : )
-           denold_all = denold_all2 % val ( icomp, :, : )
+           den_all = den_all2 % val ( 1, :, : )
+           denold_all = denold_all2 % val ( 1,  :, : )
         else
            p => extract_scalar_field( packed_state, "Pressure" )
               den_all=1.0
@@ -331,19 +331,23 @@ contains
 
                 call assemble_global_multiphase_petsc_csr(petsc_acv,&
                      block_acv,dense_block_matrix,&
-                     finacv,colacv,p%mesh%halos)
-            
-                T([([(i+(j-1)*nphase,j=1,cv_nonods)],i=1,nphase)]) = T
+                     small_finacv,small_colacv,tracer%mesh)
 
                 IF ( IGOT_T2 == 1) THEN
                    vtracer=as_vector(tracer,dim=2)
                    
                    call zero (vtracer)
                    rhs_field%val(:,:)=reshape(cv_rhs,[nphase,cv_nonods])
+                   call zero_non_owned(rhs_field)
+
                    call petsc_solve(vtracer,petsc_acv,rhs_field,'/material_phase::Component1/scalar_field::ComponentMassFractionPhase1/prognostic')
+
+
 !                   CALL SOLVER( ACV, T, CV_RHS, &
 !                        FINACV, COLACV, &
-!                        trim('/material_phase::Component1/scalar_field::ComponentMassFractionPhase1/prognostic') )
+!                        trim('/material_phase::Component1/scalar_field::ComponentMassFractionPhase1/prognostic') )#
+
+
 
                    T([([(i+(j-1)*cv_nonods,j=1,nphase)],i=1,cv_nonods)]) = [vtracer%val]
 
@@ -351,6 +355,8 @@ contains
                    vtracer=as_vector(tracer,dim=2)
                    call zero (vtracer)
                    rhs_field%val(:,:)=reshape(cv_rhs,[nphase,cv_nonods])
+                   call zero_non_owned(rhs_field)
+
                    call petsc_solve(vtracer,petsc_acv,rhs_field,trim(option_path))
 !                   CALL SOLVER( ACV, T, CV_RHS, &
 !                        FINACV, COLACV, &
@@ -941,6 +947,10 @@ contains
         real, dimension(:,:), pointer :: satura,saturaold
         type(tensor_field), pointer :: tracer, velocity, density
 
+        type(petsc_csr_matrix) :: petsc_acv
+        type(vector_field)  :: vtracer
+        type(vector_field) :: rhs_field
+
         call get_var_from_packed_state(packed_state,FEPressure = P,&
         PhaseVolumeFraction = satura,OldPhaseVolumeFraction = saturaold)
         GET_THETA_FLUX = .FALSE.
@@ -995,6 +1005,8 @@ contains
         velocity=>extract_tensor_field(packed_state,"PackedVelocity")
         density=>extract_tensor_field(packed_state,"PackedDensity")
 
+        call allocate(rhs_field,nphase,tracer%mesh,"RHS")
+
         Loop_NonLinearFlux: DO ITS_FLUX_LIM = 1, 1 !nits_flux_lim
 
             call CV_ASSEMB( state, packed_state, &
@@ -1031,23 +1043,24 @@ contains
 
 !            satura=0.0 !saturaold([([(i+(j-1)*cv_nonods,j=1,nphase)],i=1,cv_nonods)])
 
-            X = 0.
-            call assemble_global_multiphase_csr(acv,&
-            block_acv,dense_block_matrix,&
-            block_to_global_acv,global_dense_block_acv)
+            call assemble_global_multiphase_petsc_csr(petsc_acv,&
+                 block_acv,dense_block_matrix,&
+                     small_finacv,small_colacv,tracer%mesh)
 
-            CALL SOLVER( ACV, X, CV_RHS, &
-            FINACV, COLACV, &
-            trim(option_path) )
 
-            !Copy to phaseVolumeFraction in packed_state
-            do j = 1, cv_nonods
-                satura(:,j) = x(1+(j-1)*NPHASE : j*NPHASE)
-            end do
+            vtracer=as_vector(tracer,dim=2)
+            call zero (vtracer)
+            rhs_field%val(:,:)=reshape(cv_rhs,[nphase,cv_nonods])
 
-!            satura([([(i+(j-1)*cv_nonods,j=1,nphase)],i=1,cv_nonods)])=satura
+            call zero_non_owned(rhs_field)
+
+            call petsc_solve(vtracer,petsc_acv,rhs_field,trim(option_path))
+            call deallocate(petsc_acv)
+
+			satura(:,:)=tracer%val(1,:,:)
+
         END DO Loop_NonLinearFlux
-        deallocate(X)
+
         !Set saturation to be between bounds
         satura = min(max(satura,0.0), 1.0)
 
@@ -1063,6 +1076,8 @@ contains
         DEALLOCATE( T2 )
         DEALLOCATE( T2OLD )
         DEALLOCATE( THETA_GDIFF )
+        call deallocate(rhs_field)
+
 
         ewrite(3,*) 'Leaving VOLFRA_ASSEM_SOLVE'
 
@@ -1108,8 +1123,8 @@ contains
         IMPLICIT NONE
         type( state_type ), dimension( : ), intent( inout ) :: state
         type( state_type ), intent( inout ) :: packed_state
-        type( tensor_field ), intent(in) :: velocity
-        type( scalar_field ), intent(in) :: pressure
+        type( tensor_field ), intent(inout) :: velocity
+        type( scalar_field ), intent(inout) :: pressure
         INTEGER, intent( in ) :: NDIM, NPHASE, NCOMP, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, &
         TOTELE, U_ELE_TYPE, P_ELE_TYPE, &
         U_NONODS, CV_NONODS, X_NONODS, MAT_NONODS, &
@@ -1208,6 +1223,13 @@ contains
         type( vector_field ), pointer :: x_all2
         type( scalar_field ), pointer :: p_all, cvp_all, Pressure_State, sf, soldf
 
+        type( vector_field ) :: packed_vel, rhs
+        type( scalar_field ) :: deltap, rhs_p
+        type( petsc_csr_matrix ) :: mat, mat2
+        type(tensor_field) :: cdp_tensor
+        type( csr_sparsity ) :: sparsity
+        type(halo_type), pointer :: halo
+
         real, dimension(:,:), pointer :: den_fem
 
         ALLOCATE( U_ALL( NDIM, NPHASE, U_NONODS ), UOLD_ALL( NDIM, NPHASE, U_NONODS ), &
@@ -1235,7 +1257,10 @@ contains
         ALLOCATE( U_RHS_CDP2( NDIM, NPHASE, U_NONODS )) ; U_RHS_CDP2=0.
 
         ALLOCATE( DP( CV_NONODS )) ; DP = 0.
-        ALLOCATE( CDP( NDIM, NPHASE, U_NONODS )) ; CDP = 0.
+        
+        call allocate(cdp_tensor,velocity%mesh,"CDP",dim=velocity%dim)
+        call zero(cdp_tensor)
+
         ALLOCATE( DU_VEL( NDIM,  NPHASE, U_NONODS )) ; DU_VEL = 0.
         ALLOCATE( UP_VEL( NDIM * NPHASE * U_NONODS )) ; UP_VEL = 0.
 
@@ -1438,26 +1463,57 @@ contains
         ELSE ! solve using a projection method
 
             ! Put pressure in rhs of force balance eqn: CDP = C * P
-            CALL C_MULT2( CDP, P_ALL%val , CV_NONODS, U_NONODS, NDIM, NPHASE, C, NCOLC, FINDC, COLC) 
+            CALL C_MULT2( CDP_TENSOR%VAL, P_ALL%val , CV_NONODS, U_NONODS, NDIM, NPHASE, C, NCOLC, FINDC, COLC) 
+
+!            call halo_update(cdp_tensor)
+
 
             IF ( JUST_BL_DIAG_MAT .OR. NO_MATRIX_STORE ) THEN
 
-                U_RHS_CDP2 = U_RHS + CDP
+                U_RHS_CDP2 = U_RHS + CDP_tensor%val
 
                 ! DU = BLOCK_MAT * CDP
                 CALL PHA_BLOCK_MAT_VEC_old( UP_VEL, PIVIT_MAT, U_RHS_CDP2, U_NONODS, NDIM, NPHASE, &
                 TOTELE, U_NLOC, U_NDGLN )
 
+                U_ALL2 % VAL = RESHAPE( UP_VEL, (/ NDIM, NPHASE, U_NONODS /) )
+
             ELSE
 
-                U_RHS_CDP = RESHAPE( U_RHS + CDP, (/ NDIM * NPHASE * U_NONODS /) )
+                U_RHS_CDP = RESHAPE( U_RHS + CDP_tensor%val, (/ NDIM * NPHASE * U_NONODS /) )
+                call allocate(rhs,product(velocity%dim),velocity%mesh,"RHS")
 
-                UP_VEL = 0.0
-                CALL SOLVER( DGM_PHA, UP_VEL, U_RHS_CDP, &
-                FINDGM_PHA, COLDGM_PHA, &
-                option_path = '/material_phase[0]/vector_field::Velocity', &
-                block_size = 1 )!<-- disabled block-solver until update to petsc 3.4
-!                block_size = NDIM*NPHASE*U_NLOC )!<-- activates block solver
+                rhs%val=RESHAPE( U_RHS + CDP_tensor%val, (/ NDIM * NPHASE , U_NONODS /) )
+              
+                call zero_non_owned(rhs)                      
+
+               mat=wrap_momentum_matrix(DGM_PHA,FINDGM_PHA,COLDGM_PHA,velocity)
+
+
+
+                call zero(velocity)
+                packed_vel=as_packed_vector(velocity)
+
+
+                call petsc_solve( packed_vel, mat, RHS )
+
+!                UP_VEL=0.0
+
+!!               CALL SOLVER( DGM_PHA, UP_VEL, U_RHS_CDP, &
+!                FINDGM_PHA, COLDGM_PHA, &
+!                option_path = '/material_phase[0]/vector_field::Velocity', &
+!                block_size = NDIM*NPHASE*U_NLOC )
+
+                U_ALL2 % VAL=velocity%val
+
+!                print*,  sum(abs(UP_VEL-[velocity%val]))
+
+                UP_VEL=[velocity%val]
+
+!                U_ALL2 % VAL = RESHAPE( UP_VEL, (/ NDIM, NPHASE, U_NONODS /) )
+
+                call deallocate(mat)
+                call deallocate(rhs)
 
             END IF
 
@@ -1506,15 +1562,16 @@ contains
             ! Print cmc
             if( .false. ) then
                 DO CV_NOD = 1, CV_NONODS
-                    ewrite(3,*) 'cv_nod=',cv_nod, &
-                    'findcmc=', FINDCMC( CV_NOD ), FINDCMC( CV_NOD + 1 ) - 1
+                    ewrite(2,*) 'cv_nod=',cv_nod, &
+                    'findcmc=', FINDCMC( CV_NOD ), FINDCMC( CV_NOD + 1 ) - 1, &
+                    node_owned(pressure,CV_NOD)
                     rsum = 0.0
                     DO COUNT = FINDCMC( CV_NOD ), FINDCMC( CV_NOD + 1 ) - 1
                         CV_JNOD = COLCMC( COUNT )
-                        ewrite(3,*) 'count,CV_JNOD,cmc(count):', count, CV_JNOD, cmc( count )
+                        ewrite(2,*) 'count,CV_JNOD,cmc(count):', count, CV_JNOD, cmc( count )
                         if ( cv_nod /= cv_jnod ) rsum = rsum + abs( cmc( count ) )
                     END DO
-                    ewrite(3,*) 'off_diag, diag=',rsum,cmc(midcmc(cv_nod))
+                    ewrite(2,*) 'off_diag, diag=',rsum,cmc(midcmc(cv_nod))
                 END DO
                !stop 1244
             end if
@@ -1531,43 +1588,95 @@ contains
                 totele, cv_nloc, x_nonods, cv_ndgln, x_ndgln, p_all%val )
             end if
 
-            if( cv_nonods == x_nonods .or. .true. ) then ! a continuous pressure
+!            if( cv_nonods == x_nonods .or. .true. ) then ! a continuous pressure
 
-               CALL SOLVER( CMC, DP, P_RHS, &
-                    FINDCMC, COLCMC, &
-                    option_path = '/material_phase[0]/scalar_field::Pressure' )
-            else ! a discontinuous pressure multi-grid solver
-               CALL PRES_DG_MULTIGRID(CMC, CMC_PRECON, IGOT_CMC_PRECON, DP, P_RHS, &
-                    NCOLCMC, cv_NONODS, FINDCMC, COLCMC, MIDCMC, &
-                    totele, cv_nloc, x_nonods, cv_ndgln, x_ndgln )
+            call allocate(deltaP,pressure%mesh,"DeltaP")
+            call allocate(rhs_p,pressure%mesh,"PressureCorrectionRHS")
+            
+            if (associated(pressure%mesh%halos)) then
+               sparsity=wrap(findcmc,colm=colcmc,name='CMCSparsity',&
+                    row_halo=pressure%mesh%halos(2),column_halo=pressure%mesh%halos(2))
+            else
+               sparsity=wrap(findcmc,colm=colcmc,name='CMCSparsity')
             end if
+            
+            mat2=csr2petsc_csr(wrap(sparsity,val=cmc,name="CMCMatrix"))
+
+            call zero(deltaP)
+            rhs_p%val(:)= P_RHS
+            call zero_non_owned(rhs_p)
+
+            call petsc_solve(deltap,mat2,rhs_p,trim(pressure%option_path))
 
             ewrite(3,*) 'after pressure solve DP:', DP
+            
+            P_all % val = P_all % val + deltap%val
 
-            P_all % val = P_all % val + DP
+            call halo_update(p_all)
+            
+            dp= deltap%val
+
+            call deallocate(deltaP)
+            call deallocate(rhs_p)
+
+            call deallocate(mat2)
+            call deallocate(sparsity)
+
+
+!               CALL SOLVER( CMC, DP, P_RHS, &
+!                    FINDCMC, COLCMC, &
+!                    option_path = '/material_phase[0]/scalar_field::Pressure' )
+!            else ! a discontinuous pressure multi-grid solver
+  
+
+             
+!!         ####This solver is not yet parallel safe! #### 
+!!                  CALL PRES_DG_MULTIGRID(CMC, CMC_PRECON, IGOT_CMC_PRECON, DP, P_RHS, &
+!!                       NCOLCMC, cv_NONODS, FINDCMC, COLCMC, MIDCMC, &
+!!                      totele, cv_nloc, x_nonods, cv_ndgln, x_ndgln )
+!!                  
+!!                  ewrite(3,*) 'after pressure solve DP:', DP
+!!               
+!!                  P_all % val = P_all % val + DP
+!!
+!!               end if
+!!
+!!         end if
+
 
             ! Use a projection method
             ! CDP = C * DP
-            CALL C_MULT2( CDP, DP, CV_NONODS, U_NONODS, NDIM, NPHASE, C, NCOLC, FINDC, COLC )
+            CALL C_MULT2( CDP_tensor%val, DP, CV_NONODS, U_NONODS, NDIM, NPHASE, C, NCOLC, FINDC, COLC )
+           
+            call halo_update(cdp_tensor)
+            
 
             ! Correct velocity...
             ! DU = BLOCK_MAT * CDP
-            CALL PHA_BLOCK_MAT_VEC2( DU_VEL, PIVIT_MAT, CDP, U_NONODS, NDIM, NPHASE, &
+            CALL PHA_BLOCK_MAT_VEC2( DU_VEL, PIVIT_MAT, CDP_tensor%val, U_NONODS, NDIM, NPHASE, &
             TOTELE, U_NLOC, U_NDGLN )
             U_ALL2 % VAL = U_ALL2 % VAL + DU_VEL
 
-        END IF
+            call halo_update(u_all2)
+
+        END if
 
         ! Calculate control volume averaged pressure CV_P from fem pressure P
         CVP_ALL %VAL = 0.0
         MASS_CV = 0.0
         DO CV_NOD = 1, CV_NONODS
-            DO COUNT = FINDCMC( CV_NOD ), FINDCMC( CV_NOD + 1 ) - 1
-                CVP_all%val( CV_NOD ) = CVP_all%val( CV_NOD ) + MASS_MN_PRES( COUNT ) * P_all%val( COLCMC( COUNT ) )
-                MASS_CV( CV_NOD ) = MASS_CV( CV_NOD ) + MASS_MN_PRES( COUNT )
-            END DO
+           if (node_owned(CVP_all,CV_NOD)) then
+              DO COUNT = FINDCMC( CV_NOD ), FINDCMC( CV_NOD + 1 ) - 1
+                 CVP_all%val( CV_NOD ) = CVP_all%val( CV_NOD ) + MASS_MN_PRES( COUNT ) * P_all%val( COLCMC( COUNT ) )
+                 MASS_CV( CV_NOD ) = MASS_CV( CV_NOD ) + MASS_MN_PRES( COUNT )
+              END DO
+           else
+              Mass_CV(CV_NOD)=1.0
+           end if
         END DO
         CVP_all%val = CVP_all%val / MASS_CV
+
+        call halo_update(CVP_all)
 
                Pressure_State => extract_scalar_field( state( 1 ), 'Pressure' )
                Pressure_State % val = CVP_all%val
@@ -1587,7 +1696,7 @@ contains
         DEALLOCATE( UP )
         DEALLOCATE( U_RHS_CDP )
         DEALLOCATE( DP )
-        DEALLOCATE( CDP )
+        call DEALLOCATE( CDP_tensor )
         DEALLOCATE( DU_VEL )
         DEALLOCATE( UP_VEL )
         DEALLOCATE( PIVIT_MAT )
@@ -1959,6 +2068,7 @@ contains
 
         tracer=>extract_tensor_field(packed_state,"PackedPhaseVolumeFraction") 
         density=>extract_tensor_field(packed_state,"PackedDensity")
+        call halo_update(density)
 
         call CV_ASSEMB( state, packed_state, &
              tracer, velocity, density, &
@@ -2512,7 +2622,13 @@ contains
 
         INTEGER, DIMENSION( 4 ), PARAMETER :: ELEMENT_CORNERS=(/1,3,6,10/)
 
+        type (vector_field), pointer :: position
 
+        integer, dimension(:), pointer :: neighbours
+        integer :: nb
+        logical :: skip
+
+        position=>extract_vector_field(packed_state,"PressureCoordinate")
 
         capillary_pressure_activated = have_option( '/material_phase[0]/multiphase_properties/capillary_pressure' ) .or.&
             have_option( '/material_phase[1]/multiphase_properties/capillary_pressure' )
@@ -3171,6 +3287,27 @@ contains
             VOLUME = VOLUME / REAL( NLEV )
             MASS_ELE( ELE ) = VOLUME
 
+            if (IsParallel()) then
+               if (.not. assemble_ele(pressure,ele)) then
+                  skip=.true.
+                  neighbours=>ele_neigh(pressure,ele)
+                  do nb=1,size(neighbours)
+                     if (neighbours(nb)<=0) cycle 
+                     if (assemble_ele(pressure,neighbours(nb))) then
+                        skip=.false.
+                        exit
+                     end if
+                  end do
+                  if (skip) then
+                     PIVIT_maT(:,:,ELE)=0.0
+                     do i=1,size(pivit_mat,1)
+                        pivit_mat(I,I,ELE)=1.0
+                     END DO
+                  end if
+               end if
+            end if
+
+            
 
             ! *********subroutine Determine local vectors...
 
@@ -4268,6 +4405,22 @@ contains
 
         Loop_Elements2: DO ELE = 1, TOTELE
 
+           if (IsParallel()) then
+            if (.not. assemble_ele(pressure,ele)) then
+               skip=.true.
+               neighbours=>ele_neigh(pressure,ele)
+               do nb=1,size(neighbours)
+                  if (neighbours(nb)<=0) cycle 
+                  if (assemble_ele(pressure,neighbours(nb))) then
+                     skip=.false.
+                     exit
+                  end if
+               end do
+               if (skip) cycle
+            end if
+         end if
+                
+
             ! for copy local memory copying...
             LOC_U_RHS = 0.0
 
@@ -5284,7 +5437,7 @@ contains
         IF(.NOT.NO_MATRIX_STORE) THEN
             CALL COMB_VEL_MATRIX_DIAG_DIST(DIAG_BIGM_CON, BIGM_CON, &
             DGM_PHA, NCOLDGM_PHA, FINDGM_PHA, COLDGM_PHA, & ! Force balance sparsity
-            NCOLELE, FINELE, COLELE,  NDIM_VEL, NPHASE, U_NLOC, U_NONODS, TOTELE )  ! Element connectivity.
+            NCOLELE, FINELE, COLELE,  NDIM_VEL, NPHASE, U_NLOC, U_NONODS, TOTELE , velocity, position,pressure)  ! Element connectivity.
             DEALLOCATE( DIAG_BIGM_CON )
             DEALLOCATE( BIGM_CON)
         ENDIF
@@ -5930,7 +6083,7 @@ contains
 
     SUBROUTINE COMB_VEL_MATRIX_DIAG_DIST(DIAG_BIGM_CON, BIGM_CON, &
     DGM_PHA, NCOLDGM_PHA, FINDGM_PHA, COLDGM_PHA, & ! Force balance sparsity
-    NCOLELE, FINELE, COLELE,  NDIM_VEL, NPHASE, U_NLOC, U_NONODS, TOTELE )  ! Element connectivity.
+    NCOLELE, FINELE, COLELE,  NDIM_VEL, NPHASE, U_NLOC, U_NONODS, TOTELE, velocity, position, pressure )  ! Element connectivity.
         ! This subroutine combines the distributed and block diagonal for an element
         ! into the matrix DGM_PHA.
         IMPLICIT NONE
@@ -5947,16 +6100,38 @@ contains
         ! else use the original ordering...
         LOGICAL, PARAMETER :: NEW_ORDERING = .false.
         LOGICAL, PARAMETER :: tempory_order=.true.
+        type( tensor_field) :: velocity
+        type(vector_field) :: position
+        type(scalar_field) ::pressure
 
         INTEGER :: ELE,ELE_ROW_START,ELE_ROW_START_NEXT,ELE_IN_ROW
         INTEGER :: U_ILOC,U_JLOC, IPHASE,JPHASE, IDIM,JDIM, I,J, GLOBI, GLOBJ, U_INOD_IDIM_IPHA, U_JNOD_JDIM_JPHA
         INTEGER :: COUNT,COUNT_ELE,JCOLELE
         real, dimension(:,:,:, :,:,:), allocatable :: LOC_DGM_PHA
 
+        integer, dimension(:), pointer :: neighbours
+        integer :: nb
+        logical :: skip
+
 
         ALLOCATE(LOC_DGM_PHA(NDIM_VEL,NDIM_VEL,NPHASE,NPHASE,U_NLOC,U_NLOC))
 
         Loop_Elements20: DO ELE = 1, TOTELE
+
+           if (IsParallel()) then
+            if (.not. assemble_ele(pressure,ele)) then
+               skip=.true.
+               neighbours=>ele_neigh(pressure,ele)
+               do nb=1,size(neighbours)
+                  if (neighbours(nb)<=0) cycle 
+                  if (assemble_ele(pressure,neighbours(nb))) then
+                     skip=.false.
+                     exit
+                  end if
+               end do
+               if (skip) cycle
+            end if
+         end if
 
             ELE_ROW_START=FINELE(ELE)
             ELE_ROW_START_NEXT=FINELE(ELE+1)

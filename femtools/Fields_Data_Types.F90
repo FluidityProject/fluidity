@@ -204,9 +204,12 @@ module fields_data_types
 
   type tensor_field
      !! ndim x ndim x nonods
+     real, dimension(:,:,:), pointer, contiguous :: contiguous_val
      real, dimension(:,:,:), pointer :: val
      !! Flag for whether val is allocated
      logical :: wrapped=.true.
+     !! Flag for whether val is contiguoua
+     logical :: contiguous=.false.
      !! The data source to be used
      integer :: field_type = FIELD_TYPE_NORMAL
      character(len=FIELD_NAME_LEN) :: name

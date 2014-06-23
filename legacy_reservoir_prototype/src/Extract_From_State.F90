@@ -48,8 +48,10 @@
     use boundary_conditions
     use futils, only: int2str
     use boundary_conditions_from_options
+    use parallel_tools, only : allmax, allmin, isparallel
  use memory_diagnostics
  use initialise_fields_module, only: initialise_field_over_regions
+ use halos
 
     !use printout
     !use quicksort
@@ -62,7 +64,7 @@
     public :: Get_Primary_Scalars, Compute_Node_Global_Numbers, Extracting_MeshDependentFields_From_State, &
          Extract_TensorFields_Outof_State, Extract_Position_Field, xp1_2_xp2, Get_Ele_Type, Get_Discretisation_Options, &
          print_from_state, update_boundary_conditions, pack_multistate, finalise_multistate, get_ndglno, Adaptive_NonLinear,&
-         get_var_from_packed_state, as_vector, PrintMatrix
+         get_var_from_packed_state, as_vector, as_packed_vector, is_constant, GetOldName, GetFEMName, PrintMatrix
 
     interface Get_Ndgln
        module procedure Get_Scalar_Ndgln, Get_Vector_Ndgln, Get_Mesh_Ndgln
@@ -784,6 +786,8 @@
       logical :: is_overlapping, is_isotropic, is_diagonal, is_symmetric, have_gravity
       real, dimension( :, : ), allocatable :: constant
       real, dimension( : ), allocatable :: x, y, z, dummy
+
+      integer, allocatable, dimension(:) :: unns 
 
 !!$ Extracting spatial resolution
       call Get_Primary_Scalars( state, &         
@@ -2034,6 +2038,9 @@
 
       p2=>extract_scalar_field(packed_state,"FEPressure")
       call set( p2, pressure )
+      do icomp=1,ncomp
+         call insert(multicomponent_state(icomp),p2,"FEPressure")
+      end do
 
       p2=>extract_scalar_field(packed_state,"CVPressure")
       call set( p2, pressure )
@@ -2058,14 +2065,14 @@
       call insert(packed_state,velocity%mesh,"VelocityMesh")
       ovmesh=make_mesh(position%mesh,&
            shape=velocity%mesh%shape,&
-           continuity=1,name="VelocityMesh_Continuous")
+           continuity=0,name="VelocityMesh_Continuous")
       call insert(packed_state,ovmesh,"VelocityMesh_Continuous")
       if ( .not. has_mesh(state(1),"VelocityMesh_Continuous") ) &
            call insert(state(1),ovmesh,"VelocityMesh_Continuous")
       call allocate(u_position,ndim,ovmesh,"VelocityCoordinate")
       ovmesh=make_mesh(position%mesh,&
            shape=pressure%mesh%shape,&
-           continuity=1,name="PressureMesh_Continuous")
+           continuity=0,name="PressureMesh_Continuous")
       call insert(packed_state,ovmesh,"PressureMesh_Continuous")
       if ( .not. has_mesh(state(1),"PressureMesh_Continuous") ) &
            call insert(state(1),ovmesh,"PressureMesh_Continuous")
@@ -2073,11 +2080,12 @@
       call allocate(p_position,ndim,ovmesh,"PressureCoordinate")
       ovmesh=make_mesh(position%mesh,&
            shape=pressure%mesh%shape,&
-           continuity=-11,name="PressureMesh_Discontinuous")
+           continuity=-1,name="PressureMesh_Discontinuous")
       call insert(packed_state,ovmesh,"PressureMesh_Discontinuous")
       if ( .not. has_mesh(state(1),"PressureMesh_Discontinuous") ) &
            call insert(state(1),ovmesh,"PressureMesh_Discontinuous")
-      call allocate(m_position,ndim,ovmesh,"MaterialCoordinate")    
+      call allocate(m_position,ndim,ovmesh,"MaterialCoordinate")  
+          call deallocate(ovmesh)
 
       call remap_field( position, u_position )
       call remap_field( position, p_position )
@@ -2115,10 +2123,11 @@
          call insert_vfield(packed_state,"NonlinearVelocity",ovmesh)
          call insert(state(1),ovmesh,"InternalVelocityMesh")
          call insert(packed_state,ovmesh,"InternalVelocityMesh")
+         call deallocate(ovmesh)
       else
          call insert(packed_state,velocity%mesh,"InternalVelocityMesh")
          call insert_vfield(packed_state,"Velocity",add_source=.true.)
-         call insert_vfield(packed_state,"NonlinearVelocity")
+         call insert_vfield(packed_state,"NonlinearVelocity",zerod=.true.)
          call insert(state(1),velocity%mesh,"InternalVelocityMesh")
       end if
 
@@ -2131,7 +2140,6 @@
          call insert_sfield(packed_state,"FEComponentDensity",ncomp,nphase)
          call insert_sfield(packed_state,"FEComponentMassFraction",ncomp,nphase)
 
-         call unpack_multicomponent(packed_state,multicomponent_state)  
       end if
 
       iphase=1
@@ -2178,11 +2186,15 @@
 
             if(have_option(trim(state(i)%option_path)&
                  //'/scalar_field::Temperature')) then
-               call unpack_sfield(state(i),packed_state,"Temperature",1,iphase)
-               call unpack_sfield(state(i),packed_state,"OldTemperature",1,iphase)
-               call unpack_sfield(state(i),packed_state,"IteratedTemperature",1,iphase)
+               call unpack_sfield(state(i),packed_state,"OldTemperature",1,iphase,&
+                    check_paired(extract_scalar_field(state(i),"Temperature"),&
+                    extract_scalar_field(state(i),"OldTemperature")))
+               call unpack_sfield(state(i),packed_state,"IteratedTemperature",1,iphase,&
+                    check_paired(extract_scalar_field(state(i),"Temperature"),&
+                    extract_scalar_field(state(i),"IteratedTemperature")))
                call unpack_sfield(state(i),packed_state,"TemperatureSource",1,iphase)
                call unpack_sfield(state(i),packed_state,"TemperatureAbsorption",1,iphase)
+               call unpack_sfield(state(i),packed_state,"Temperature",1,iphase)
                call insert(multi_state(1,iphase), extract_scalar_field(state(i),"Temperature"),"Temperature")
             end if
 
@@ -2217,9 +2229,12 @@
       call allocate_multiphase_scalar_bcs(packed_state,multi_state,"PhaseVolumeFraction")
       call allocate_multiphase_vector_bcs(packed_state,multi_state,"Velocity")
 
+      if (ncomp>0) then
 
-      call allocate_multicomponent_scalar_bcs(multicomponent_state,multi_state,"ComponentMassFraction")
-      call allocate_multicomponent_scalar_bcs(multicomponent_state,multi_state,"ComponentDensity")
+         call unpack_multicomponent(packed_state,multicomponent_state)  
+         call allocate_multicomponent_scalar_bcs(multicomponent_state,multi_state,"ComponentMassFraction")
+         call allocate_multicomponent_scalar_bcs(multicomponent_state,multi_state,"ComponentDensity")
+      end if
 
       !! // How to add density as a dependant of olddensity,  as an example
       !! // Suppose we have a previous declaration
@@ -2334,31 +2349,57 @@
 
           integer :: icomp
 
-          type(tensor_field), pointer :: component, density
+          type(tensor_field), pointer :: tfield
+          type(vector_field), pointer :: vecfield
           type(tensor_field) :: vfield
 
 
-          component=>extract_tensor_field(mstate,"PackedComponentMassFraction")
-          density=>extract_tensor_field(mstate,"PackedComponentDensity")
+          character (len=FIELD_NAME_LEN), dimension(4) ::names
+          character (len=FIELD_NAME_LEN), dimension(4) ::phase_names
+          character (len=FIELD_NAME_LEN), dimension(1) ::phase_vector_names
+          integer :: count
 
-          do icomp=1,ncomp
-             call allocate(vfield,component%mesh,"ComponentMassFraction",field_type=FIELD_TYPE_DEFERRED,dim=[1,nphase])
-             vfield%option_path=component%option_path
-             deallocate(vfield%val)
-             vfield%val=>component%val(icomp:icomp,:,:)
-             vfield%wrapped=.true.
-             call insert(mcstate(icomp),vfield,vfield%name)
-             call deallocate(vfield)
+          names(1)="PackedComponentMassFraction"
+          names(2)="PackedComponentDensity"
+          names(3)="PackedOldComponentMassFraction"
+          names(4)="PackedOldComponentDensity"
 
+          phase_names(1)="PackedPhaseVolumeFraction"
+          phase_names(2)="PackedOldPhaseVolumeFraction"
+          phase_names(3)="PackedNonlinearVelocity"
+          phase_names(4)="PackedOldNonlinearVelocity"
 
-             call allocate(vfield,component%mesh,"ComponentDensity",field_type=FiELD_TYPE_DEFERRED,dim=[1,nphase])
-             vfield%option_path=component%option_path
-             deallocate(vfield%val)
-             vfield%val=>component%val(icomp:icomp,:,:)
-             vfield%wrapped=.true.
-             call insert(mcstate(icomp),vfield,vfield%name)
-             call deallocate(vfield)
+          phase_vector_names(1)="PressureCoordinate"
+
+          do count=1,size(names)
+
+             tfield=>extract_tensor_field(mstate,names(count))
+
+             do icomp=1,ncomp
+                call allocate(vfield,tfield%mesh,names(count),field_type=FIELD_TYPE_DEFERRED,dim=[1,nphase])
+                vfield%option_path=tfield%option_path
+                deallocate(vfield%val)
+                vfield%val=>tfield%val(icomp:icomp,:,:)
+                vfield%wrapped=.true.
+                call insert(mcstate(icomp),vfield,vfield%name)
+                call deallocate(vfield)
+             END do
              
+          end do
+
+          do count=1,size(phase_names)
+             tfield=>extract_tensor_field(mstate,phase_names(count))
+             do icomp=1,ncomp
+                call insert(mcstate(icomp),tfield,tfield%name)
+             end do
+          end do
+
+          do count=1,size(phase_vector_names)
+             vecfield=>extract_vector_field(mstate,phase_vector_names(count))
+             do icomp=1,ncomp
+                call insert(mcstate(icomp),vecfield,vecfield%name)
+             end do
+
           end do
 
         end subroutine unpack_multicomponent
@@ -2469,22 +2510,28 @@
 
         end subroutine insert_sfield
 
-        subroutine insert_vfield(mstate,name,nmesh, add_source, add_absorption)
+        subroutine insert_vfield(mstate,name,nmesh,zerod, add_source, add_absorption)
           type(state_type), intent(inout) :: mstate
           character(len=*), intent(in) :: name
           type(mesh_type), optional, target :: nmesh
-          logical, optional, intent(in) :: add_source, add_absorption   
+          logical, optional, intent(in) :: zerod, add_source, add_absorption   
 
           type(vector_field), pointer :: nfield
           type(mesh_type), pointer :: lmesh
           type(tensor_field)  :: mfield
-          logical :: ladd_source, ladd_absorption
+          logical :: lzero, ladd_source, ladd_absorption
 
           nfield=>extract_vector_field(state(1),name)
           if (present(nmesh)) then
              lmesh=> nmesh
           else
              lmesh=>nfield%mesh
+          end if
+
+          if (present(zerod)) then
+             lzero=zerod
+          else
+             lzero=.false.
           end if
 
           if (present(add_source)) then
@@ -2500,13 +2547,22 @@
           end if
 
           
-          call allocate(mfield,lmesh,"Packed"//name,dim=[ndim,nphase])
+          call allocate(mfield,lmesh,"Packed"//name,dim=[ndim,nphase],contiguous=.true.)
+          if (lzero) then
+             call zero(mfield)
+          end if
           call insert(mstate,mfield,"Packed"//name)
           call deallocate(mfield)
           call allocate(mfield,lmesh,"PackedOld"//name,dim=[ndim,nphase])
+          if (lzero) then
+             call zero(mfield)
+          end if
           call insert(mstate,mfield,"PackedOld"//name)
           call deallocate(mfield)
           call allocate(mfield,lmesh,"PackedIterated"//name,dim=[ndim,nphase])
+          if (lzero) then
+             call zero(mfield)
+          end if
           call insert(mstate,mfield,"PackedIterated"//name)
           call deallocate(mfield)
 
@@ -2525,6 +2581,7 @@
              call insert(mstate,mfield,"Packed"//trim(name)//"Absorption")
              call deallocate(mfield)
           end if
+
 
         end subroutine insert_vfield
 
@@ -2549,11 +2606,15 @@
 
           nfield=>extract_scalar_field(nstate,name,stat)
           if (stat==0) then
-             mfield%val(icomp,iphase,:)=nfield%val(:)
+             if (size(nfield%val(:))>1) then
+                mfield%val(icomp,iphase,1:size(nfield%val))=nfield%val(:)
+             else
+                mfield%val(icomp,iphase,:)=nfield%val(1)
+             end if
              if (icomp==1 .and. iphase == 1) then
                 mfield%option_path=nfield%option_path
              end if
-             if(lfree) deallocate(nfield%val)
+             if(lfree .and. associated(nfield%val)) deallocate(nfield%val)
              nfield%val=>mfield%val(icomp,iphase,:)
              nfield%val_stride=ncomp*nphase
              nfield%wrapped=.true.
@@ -2630,7 +2691,7 @@
                
                 
                 mfield%val(ic,ip,:)=nfield%val(:)
-                if (ic==1) then
+                if (ic==1 .and. ip==1) then
                    mfield%option_path=nfield%option_path
                 end if
                 if (free) deallocate(nfield%val)
@@ -2774,7 +2835,7 @@ subroutine allocate_multicomponent_scalar_bcs(s,ms,name)
 
           do icomp=1,size(s)
              nbc=0
-             mfield=>extract_tensor_field(s(icomp),name)
+             mfield=>extract_tensor_field(s(icomp),'Packed'//name)
              allocate(mfield%bc)
           
              do iphase=1,mfield%dim(2)
@@ -2883,6 +2944,21 @@ subroutine allocate_multicomponent_scalar_bcs(s,ms,name)
 
       end function as_vector
 
+      function as_packed_vector(tfield) result(vfield)
+
+        type(tensor_field), intent(inout) :: tfield  
+        
+        type(vector_field) :: vfield 
+
+
+        vfield%name=tfield%name
+        vfield%mesh=tfield%mesh
+        vfield%option_path=tfield%option_path
+        vfield%dim=product(tfield%dim)
+
+        vfield%val(1:vfield%dim,1:node_count(vfield))=>tfield%contiguous_val
+
+      end function as_packed_vector
 
       subroutine finalise_multistate(packed_state,multiphase_state,&
            multicomponent_state)
@@ -3421,6 +3497,65 @@ subroutine allocate_multicomponent_scalar_bcs(s,ms,name)
 
         print *,"";
     end subroutine PrintMatrix
+
+
+    logical function is_constant(tfield)
+      type(tensor_field), intent(in) :: tfield
+
+      integer :: i, j
+      real, dimension(product(tfield%dim)) :: tmax, tmin
+      real, parameter :: tol=1.0e-8
+
+      if (isparallel()) then
+
+      tmax=[maxval(tfield%val,dim=3)]
+      tmin=[minval(tfield%val,dim=3)]
+
+      do i=1,size(tmax)
+         call allmax(tmax(i))
+         call allmin(tmin(i))
+      end do
+
+      is_constant=maxval(abs(tmax-tmin))<tol
+         
+      else
+         is_constant=.true.
+         do i=2,size(tfield%val,3)
+            if (any(abs(tfield%val(:,:,i)-tfield%val(:,:,1))>tol)) then
+               is_constant=.false.
+               exit
+            end if
+         end do
+      end if
+    end function is_constant
+            
+    function GetOldName(tfield) result(old_name)
+
+      type(tensor_field), intent(in) :: tfield
+      character (len=FIELD_NAME_LEN) :: old_name
+
+      if(tfield%name(1:6)=='Packed') then
+         old_name='PackedOld'//tfield%name(7:)
+      else
+         old_name='Old'//tfield%name
+      end if
+
+    end function GetOldName
+      
+    function GetFEMName(tfield) result(fem_name)
+
+      type(tensor_field), intent(in) :: tfield
+      character (len=FIELD_NAME_LEN) :: fem_name
+
+      if(tfield%name(1:6)=='Packed') then
+         fem_name='PackedFE'//tfield%name(7:)
+      else
+         fem_name='FEM'//tfield%name
+      end if
+
+    end function GetFEMName
+
+
 
   end module Copy_Outof_State
 

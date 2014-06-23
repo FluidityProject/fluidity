@@ -35,11 +35,17 @@
     use fldebug
     use spud
     use Fields_Allocates, only : allocate
-    use fields_data_types, only: mesh_type, scalar_field
+    use fields_data_types, only: mesh_type, scalar_field, tensor_field
+    use fields, only : node_count
     use state_module
     use sparse_tools
     use sparse_tools_petsc
-    use halo_data_types
+    use parallel_tools
+    use parallel_fields
+    use halos
+    use petsc_tools
+    use petsc
+
     implicit none
 
   contains
@@ -1745,13 +1751,13 @@
 
 
  subroutine assemble_global_multiphase_petsc_csr(global_petsc,&
-         block_csr,dense_block_matrix,finacv,colacv,halos)
+         block_csr,dense_block_matrix,finacv,colacv,mesh)
 
       type(petsc_csr_matrix)    ::  global_petsc
       real, dimension(:), intent(in)     :: block_csr
       real, dimension(:,:,:), intent(in) :: dense_block_matrix
       integer, dimension(:), intent(in)  :: finacv,colacv
-      type(halo_type), dimension(:), pointer :: halos
+      type(mesh_type), intent(inout) :: mesh
 
       integer :: node, iphase, jphase, count, node_count, nphase, j,my_pos
 
@@ -1764,8 +1770,8 @@
 
       ewrite(3,*), "In  assemble_global_multiphase_petsc_csr"
       
-      if (associated(halos)) then
-         sparsity=wrap(finacv,colm=colacv,name='ACVSparsity',row_halo=halos(1),column_halo=halos(1))
+      if (associated(mesh%halos)) then
+         sparsity=wrap(finacv,colm=colacv,name='ACVSparsity',row_halo=mesh%halos(1),column_halo=mesh%halos(1))
       else
          sparsity=wrap(finacv,colm=colacv,name='ACVSparsity')
       end if
@@ -1780,7 +1786,7 @@
          do j=1,size(row)
             do jphase=1,nphase
                my_pos=my_pos+1
-               call addto(global_petsc,jphase,jphase,node,row(j),block_csr(my_pos))
+               if (node_owned(mesh,node)) call addto(global_petsc,jphase,jphase,node,row(j),block_csr(my_pos))
             end do
          end do
 
@@ -1791,6 +1797,7 @@
      
 
       do node=1,node_count
+         if (.not. node_owned(mesh,node)) cycle
          do jphase=1,nphase
             do iphase=1,nphase
                call addto(global_petsc,iphase,jphase,node,node,dense_block_matrix(iphase,jphase,node))
@@ -1798,12 +1805,85 @@
          end do
       end do
 
-      call deallocate(sparsity)
-
       ewrite(3,*), "Leaving assemble_global_multiphase_petsc_csr"
 
 
     end subroutine assemble_global_multiphase_petsc_csr
+
+    function wrap_momentum_matrix(DGM_PHA,FINDGM_PHA,COLDGM_PHA,velocity) result(mat)
+      type(petsc_csr_matrix)    ::  mat
+      real, dimension(:), intent(in) :: dgm_pha
+      integer, dimension(:), intent(in) :: findgm_pha
+      integer, dimension(:), intent(in) :: coldgm_pha
+      type(tensor_field) :: velocity
+
+
+      integer :: n,nc, j,k, next, nfields, ierr
+      integer, dimension(:), pointer :: row
+      type(csr_sparsity) :: sparsity
+      type(halo_type), pointer:: halo
+
+
+      if (associated(velocity%mesh%halos)) then
+       halo => velocity%mesh%halos(2)
+    else
+       nullify(halo)
+    end if
+
+    if (associated(halo)) then
+       sparsity=wrap(findgm_pha,colm=coldgm_pha,&
+            name='MomentumSparsity',row_halo=halo,column_halo=halo)
+       mat%row_halo => halo
+       call incref(mat%row_halo)
+       mat%column_halo => halo
+       call incref(mat%column_halo)
+       nc=halo_nowned_nodes(halo)
+    else
+       sparsity=wrap(findgm_pha,colm=coldgm_pha,name='MomentumSparsity')
+       nc=node_count(velocity)
+    end if
+
+
+    mat%name="MomentumMatrix"
+
+    call allocate(mat%row_numbering,node_count(velocity),&
+         product(velocity%dim),halo,fluidity_ordering=.true.)
+    call allocate(mat%column_numbering,node_count(velocity),&
+         product(velocity%dim),halo,fluidity_ordering=.true.)
+
+    if (.not. IsParallel()) then
+       mat%M=csr2petsc_CreateSeqAIJ(sparsity, mat%row_numbering, &
+        mat%column_numbering, .false., use_inodes=.false.)
+    else
+       mat%M=full_CreateMPIAIJ(sparsity, mat%row_numbering, &
+            mat%column_numbering, .false., use_inodes=.false.)
+    end if
+
+    call MatSetOption(mat%M, MAT_IGNORE_ZERO_ENTRIES, PETSC_TRUE, ierr)
+    call MatSetOption(mat%M, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_TRUE, ierr)
+    call MatSetOption(mat%M, MAT_ROW_ORIENTED, PETSC_FALSE, ierr)
+    nullify(mat%refcount)
+    call addref_petsc_csr_matrix(mat)
+    call zero(mat)
+
+
+    next=1
+    nfields=product(velocity%dim)
+    do n=1,nc!node_count(velocity)
+       do k=1,nfields
+          row=>row_m_ptr(sparsity,k+nfields*(n-1))
+          do j=1,size(row)             
+             call addto(mat,k,mod(row(j)-1,nfields)+1,&
+                   n,(row(j)-1)/nfields+1,dgm_pha(next))
+             next=next+1
+             
+          end do
+       end do
+    end do    
+
+    call deallocate(sparsity)
+    
+  end function wrap_momentum_matrix
 
   end module matrix_operations
 

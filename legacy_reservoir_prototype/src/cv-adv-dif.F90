@@ -30,11 +30,15 @@ module cv_advection
 
   use fldebug
 
+  use fields
+  use solvers
+
   use solvers_module
   use spud
   use global_parameters, only: option_path_len, field_name_len, timestep, is_overlapping, is_compact_overlapping
   use futils, only: int2str
   use adapt_state_prescribed_module
+  use sparse_tools
   use sparsity_patterns
 
   use shape_functions
@@ -208,8 +212,9 @@ contains
       IMPLICIT NONE
       type( state_type ), dimension( : ), intent( inout ) :: state
       type( state_type ), intent( inout ) :: packed_state
-      type(tensor_field), intent(inout) :: tracer
-      type(tensor_field), intent(in) :: velocity, density
+      type(tensor_field), intent(inout), target :: tracer
+      type(tensor_field), intent(in), target :: density
+      type(tensor_field), intent(in) :: velocity
 
       INTEGER, intent( in ) :: NCOLACV, NCOLCT, CV_NONODS, U_NONODS, X_NONODS, MAT_NONODS, &
            TOTELE, &
@@ -273,7 +278,7 @@ contains
       integer, dimension(:), intent(in) :: SMALL_FINDRM, SMALL_COLM, SMALL_CENTRM
       integer, dimension(:), intent(inout) :: StorageIndexes
      integer, optional, intent(in) :: icomp
-     type(tensor_field), intent(in), optional :: saturation
+     type(tensor_field), intent(in), optional, target :: saturation
       !character( len = option_path_len ), intent( in ), optional :: option_path_spatial_discretisation
 
 
@@ -465,7 +470,25 @@ contains
       real :: theta_cty_solid, VOL_FRA_FLUID_I, VOL_FRA_FLUID_J
 
 
+      type( tensor_field_pointer ), dimension(4+2*IGOT_T2) :: psi,fempsi
+      type( vector_field_pointer ), dimension(1) :: PSI_AVE,PSI_INT
+      type(vector_field), pointer :: coord
+      type( tensor_field ), pointer :: old_tracer, old_density, old_saturation
+      integer :: FEM_IT
+
+      integer, dimension(:), pointer :: neighbours
+      integer :: nb
+      logical :: skip
+
       !#################SET WORKING VARIABLES#################
+
+      old_tracer=>extract_tensor_field(packed_state,GetOldName(tracer))
+      old_density=>extract_tensor_field(packed_state,GetOldName(density))
+      if (present(saturation)) then
+         old_saturation=>extract_tensor_field(packed_state,&
+              GetOldName(saturation))
+      end if
+
       call get_var_from_packed_state(packed_state,PressureCoordinate = X_ALL,&
       OldNonlinearVelocity = NUOLD_ALL, NonlinearVelocity = NU_ALL)
       !For every Field_selector value but 3 (saturation) we need U_ALL to be NU_ALL
@@ -1085,27 +1108,111 @@ contains
 
       ! END OF TEMP STUFF HERE
 
-
+      psi(1)%ptr=>tracer
+      psi(2)%ptr=>old_tracer
+      FEM_IT=2
+      if (.not. is_constant(density)) then
+         psi(FEM_IT+1)%ptr=>density
+         FEM_IT=FEM_IT+1
+      end if
+      if (.not. is_constant(old_density)) then
+         psi(FEM_IT+1)%ptr=>old_density
+         FEM_IT=FEM_IT+1
+      end if
+      if (present(saturation)) then
+         if (.not. is_constant(saturation)) then
+            psi(FEM_IT+1)%ptr=>saturation
+            FEM_IT=FEM_IT+1
+         end if
+         if (.not. is_constant(old_saturation)) then
+            psi(FEM_IT+1)%ptr=>old_saturation
+            FEM_IT=FEM_IT+1
+         end if
+      end if
       
-!!$      CALL PROJ_CV_TO_FEM_state( state, tracer,&
-!!$           FEMT_ALL, FEMTOLD_ALL, FEMDEN_ALL, FEMDENOLD_ALL, T_ALL, TOLD_ALL, DEN_ALL, DENOLD_ALL, &
-!!$           IGOT_T2, T2_ALL,T2OLD_ALL, FEMT2_ALL,FEMT2OLD_ALL, &
-!!$           XC_CV_ALL, MASS_CV, MASS_ELE, &
-!!$           NDIM, NPHASE, CV_NONODS, TOTELE, CV_NDGLN, X_NLOC, X_NDGLN, &
-!!$           CV_NGI_SHORT, CV_NLOC, CVN_SHORT, CVWEIGHT_SHORT, &
-!!$           CVFEN_SHORT, CVFENLX_SHORT_ALL(1,:,:), CVFENLX_SHORT_ALL(2,:,:), CVFENLX_SHORT_ALL(3,:,:), &
-!!$           X_NONODS, X_ALL, NCOLM, FINDM, COLM, MIDM, &
-!!$           IGETCT, MASS_MN_PRES, FINDCMC, COLCMC, NCOLCMC )
+      do i=1,FEM_IT
+         if (has_tensor_field(packed_state,&
+              GetFEMName(psi(i)%ptr))) then
+            fempsi(i)%ptr=>extract_tensor_field(packed_state,&
+                 GetFEMName(psi(i)%ptr))
+         else
+            allocate(fempsi(i)%ptr)
+            call allocate(fempsi(i)%ptr,psi(i)%ptr%mesh,"FEMPSI"//trim(psi(i)%ptr%name),&
+                 dim=psi(i)%ptr%dim)
+         end if
+      end do
 
-      CALL PROJ_CV_TO_FEM_4( state, &
-           FEMT_ALL, FEMTOLD_ALL, FEMDEN_ALL, FEMDENOLD_ALL, T_ALL, TOLD_ALL, DEN_ALL, DENOLD_ALL, &
-           IGOT_T2, T2_ALL,T2OLD_ALL, FEMT2_ALL,FEMT2OLD_ALL, &
-           XC_CV_ALL, MASS_CV, MASS_ELE, &
-           NDIM, NPHASE, CV_NONODS, TOTELE, CV_NDGLN, X_NLOC, X_NDGLN, &
-           CV_NGI_SHORT, CV_NLOC, CVN_SHORT, CVWEIGHT_SHORT, &
-           CVFEN_SHORT, CVFENLX_SHORT_ALL(1,:,:), CVFENLX_SHORT_ALL(2,:,:), CVFENLX_SHORT_ALL(3,:,:), &
-           X_NONODS, X_ALL, NCOLM, FINDM, COLM, MIDM, &
-           IGETCT, MASS_MN_PRES, FINDCMC, COLCMC, NCOLCMC )
+      allocate(psi_int(1)%ptr)
+      call allocate(psi_int(1)%ptr,1,tracer%mesh,"CV_mass")
+      call set(psi_int(1)%ptr,dim=1,val=1.0)
+
+      coord=>extract_vector_field(packed_state,"PressureCoordinate")
+      allocate(psi_ave(1)%ptr)
+      call allocate(psi_ave(1)%ptr,ndim,tracer%mesh,"Barycentre")
+      if (tracer%mesh%continuity<0) then
+         psi_ave(1)%ptr%val=x_all(:,x_ndgln)
+      else
+         call set_all(psi_ave(1)%ptr,X_ALL)
+      end if
+
+      call PROJ_CV_TO_FEM_state( packed_state,FEMPSI(1:FEM_IT),&
+           PSI(1:FEM_IT), NDIM, &
+       PSI_AVE, PSI_INT, MASS_ELE, &
+       CV_NONODS, TOTELE, CV_NDGLN, X_NLOC, X_NDGLN, &
+       CV_NGI_short, CV_NLOC, CVN_short, CVWEIGHT_short,&
+       CVFEN_SHORT, CVFENLX_SHORT_ALL(1,:,:), CVFENLX_SHORT_ALL(2,:,:),&
+       CVFENLX_SHORT_ALL(3,:,:), &
+       X_NONODS, X_ALL, NCOLM, FINDM, COLM, MIDM, &
+       IGETCT, MASS_MN_PRES, FINDCMC, COLCMC, NCOLCMC)
+
+      XC_CV_ALL=0.0
+      XC_CV_ALL(1:NDIM,:)=psi_ave(1)%ptr%val
+      MASS_CV=psi_int(1)%ptr%val(1,:)
+
+      FEMT_ALL(:,:)=FEMPSI(1)%ptr%val(1,:,:)
+      FEMTOLD_ALL(:,:)=FEMPSI(2)%ptr%val(1,:,:)
+      FEM_IT=3
+      if (.not. is_constant(density)) then
+         FEMDEN_ALL=psi(FEM_IT)%ptr%val(1,:,:)
+         FEM_IT=FEM_IT+1
+      else
+         FEMDEN_ALL=density%val(1,:,:)
+      end if
+      if (.not. is_constant(old_density)) then
+         FEMDENOLD_ALL=psi(FEM_IT)%ptr%val(1,:,:)
+         FEM_IT=FEM_IT+1
+      else
+         FEMDENOLD_ALL=old_density%val(1,:,:)
+      end if
+
+      IF ( present(saturation) ) then
+         if (.not. is_constant(saturation)) then
+            FEMT2_ALL=psi(FEM_IT)%ptr%val(1,:,:)
+            FEM_IT=FEM_IT+1
+         else
+            FEMT2_ALL=saturation%val(1,:,:)
+         end if
+         if (.not. is_constant(old_saturation)) then
+            FEMt2OLD_ALL=psi(FEM_IT)%ptr%val(1,:,:)
+            FEM_IT=FEM_IT+1
+         else
+            FEMt2OLD_ALL=old_saturation%val(1,:,:)
+         end if
+      end IF
+         
+
+      do i=1,FEM_IT-1
+         if (fempsi(i)%ptr%name(1:6)=='FEMPSI') then
+            call deallocate(fempsi(i)%ptr)
+            deallocate(fempsi(i)%ptr)
+         end if
+      end do
+
+      call deallocate(psi_int(1)%ptr)
+      deallocate(psi_int(1)%ptr)
+      call deallocate(psi_ave(1)%ptr)
+      deallocate(psi_ave(1)%ptr)
+
 
        !###FEM VALUES###
 ! ***********LOOK AT T_FEMT,DEN_FEMT WITH A VIEW TO DELETING EVENTUALLY
@@ -1291,6 +1398,21 @@ contains
 
       Loop_Elements: DO ELE = 1, TOTELE
 
+         if (IsParallel()) then
+            if (.not. assemble_ele(tracer,ele)) then
+               skip=.true.
+               neighbours=>ele_neigh(tracer,ele)
+               do nb=1,size(neighbours)
+                  if (neighbours(nb)<=0) cycle 
+                  if (assemble_ele(tracer,neighbours(nb))) then
+                     skip=.false.
+                     exit
+                  end if
+               end do
+               if (skip) cycle
+            end if
+         end if
+                  
 
          ! Calculate DETWEI, RA, NX, NY, NZ for element ELE
          CALL DETNLXR_INVJAC( ELE, X_ALL, X_NDGLN, TOTELE, X_NONODS, &
@@ -3724,6 +3846,233 @@ end if
 
   END SUBROUTINE PROJ_CV_TO_FEM
 
+
+  SUBROUTINE PROJ_CV_TO_FEM_state( packed_state,FEMPSI, PSI, NDIM, &
+       PSI_AVE, PSI_INT, MASS_ELE, &
+       CV_NONODS, TOTELE, CV_NDGLN, X_NLOC, X_NDGLN, &
+       CV_NGI, CV_NLOC, CVN, CVWEIGHT, N, NLX, NLY, NLZ, &
+       X_NONODS, X, NCOLM, FINDM, COLM, MIDM, &
+       IGETCT, MASS_MN_PRES, FINDCMC, COLCMC, NCOLCMC )
+
+    ! Determine FEMT (finite element wise) etc from T (control volume wise)
+    ! Also integrate PSI_INT over each CV and average PSI_AVE over each CV. 
+    use shape_functions 
+    use shape_functions_Linear_Quadratic
+    use solvers_module
+    use matrix_operations
+    IMPLICIT NONE
+
+    type(state_type) :: packed_state
+    type(tensor_field_pointer), dimension(:) :: fempsi,psi
+    type(vector_field_pointer), dimension(:) :: psi_int,  psi_ave
+
+    INTEGER, intent( in ) :: NDIM, CV_NONODS, TOTELE, &
+         X_NLOC, CV_NGI, CV_NLOC, X_NONODS, NCOLM, IGETCT, NCOLCMC
+    INTEGER, DIMENSION( : ), intent( in ) :: CV_NDGLN
+    INTEGER, DIMENSION( : ), intent( in ) ::  X_NDGLN
+    REAL, DIMENSION( :, : ), intent( in ) :: CVN
+    REAL, DIMENSION( : ), intent( inout ) :: CVWEIGHT
+    REAL, DIMENSION( :, : ), intent( in ) :: N, NLX, NLY, NLZ
+    REAL, DIMENSION( :,: ), intent( in ) :: X
+    REAL, DIMENSION( : ), intent( inout ) :: MASS_ELE
+    INTEGER, DIMENSION( : ), intent( in ) :: FINDM
+    INTEGER, DIMENSION( : ), intent( in ) :: COLM
+    INTEGER, DIMENSION( : ), intent( in ) :: MIDM
+
+    REAL, DIMENSION( : ), intent( inout ) :: MASS_MN_PRES
+    INTEGER, DIMENSION( : ), intent( in ) :: FINDCMC
+    INTEGER, DIMENSION( : ), intent( in ) :: COLCMC
+    ! Local variables
+    LOGICAL :: D1, D3, DCYL
+    REAL, DIMENSION( : ), allocatable :: DETWEI, RA
+    REAL, DIMENSION( :, : ), allocatable :: NX, NY, NZ
+    REAL :: VOLUME, NN, NM, MN, MM
+    INTEGER :: ELE, CV_ILOC, CV_JLOC, CV_NODI, CV_NODJ, CV_GI, COUNT, IT, idim,&
+         max_iterations
+
+    type(scalar_field) :: cv_mass
+    type(tensor_field), dimension(size(psi)) :: fempsi_rhs
+    type(vector_field), dimension(size(psi_ave)) :: psi_ave_temp
+    type(vector_field), dimension(size(psi_int)) :: psi_int_temp
+    type(tensor_field), pointer :: tfield
+    type(csr_matrix) :: mat
+    type(petsc_csr_matrix) :: pmat
+    type(csr_sparsity), pointer :: sparsity
+
+    ewrite(3,*) 'In PROJ_CV_TO_FEM_state'
+
+    tfield=>psi(1)%ptr
+    call allocate(cv_mass,psi(1)%ptr%mesh)
+    call zero(cv_mass)
+
+
+    ALLOCATE( DETWEI( CV_NGI )) 
+    ALLOCATE( RA( CV_NGI ))
+    ALLOCATE( NX( CV_NLOC, CV_NGI ))
+    ALLOCATE( NY( CV_NLOC, CV_NGI ))
+    ALLOCATE( NZ( CV_NLOC, CV_NGI ))
+
+    do it=1,size(fempsi)
+       call zero(fempsi(it)%ptr)
+       call allocate(fempsi_rhs(it),psi(it)%ptr%mesh,"RHS",&
+            dim=psi(it)%ptr%dim)
+       call zero(fempsi_rhs(it))
+       call halo_update(PSI(IT)%ptr)
+    end do
+
+    do it=1,size(psi_ave)
+       call allocate(psi_ave_temp(it),psi_ave(it)%ptr%dim,&
+            psi_ave(it)%ptr%mesh,&
+            "PsiAveTemp")
+       call set(psi_ave_temp(it),psi_ave(it)%ptr)
+       call zero(psi_ave(it)%ptr)
+    end do
+
+    do it=1,size(psi_int)
+       call allocate(psi_int_temp(it),psi_int(it)%ptr%dim,&
+            psi_int(it)%ptr%mesh,&
+            "PsiIntTemp")
+       call set(psi_int_temp(it),psi_int(it)%ptr)
+       call zero(psi_int(it)%ptr)
+    end do
+
+    sparsity=>extract_csr_sparsity(packed_state,"PressureMassMatrixSparsity")
+    call allocate(mat,sparsity,name="ProjectionMatrix")
+    call allocate(pmat,sparsity,[1,1],name="ProjectionMatrix")
+    call zero(mat)
+
+    
+    IF(IGETCT.NE.0) MASS_MN_PRES=0.0
+
+    D1 = ( NDIM == 1 )
+    D3 = ( NDIM == 3 )
+    DCYL = .FALSE. 
+
+    Loop_Elements: DO ELE = 1, TOTELE
+       if (isParallel()) then
+          if (.not. assemble_ele(psi_int(1)%ptr,ele)) cycle
+       end if
+
+       ! Calculate DETWEI,RA,NX,NY,NZ for element ELE
+       CALL DETNLXR( ELE, X(1,:), X(2,:), X(3,:), X_NDGLN, TOTELE, X_NONODS, CV_NLOC, CV_NGI, &
+            N, NLX, NLY, NLZ, CVWEIGHT, DETWEI, RA, VOLUME, D1, D3, DCYL, &
+            NX, NY, NZ ) 
+       MASS_ELE( ELE ) = VOLUME
+
+       Loop_CV_ILOC: DO CV_ILOC = 1, CV_NLOC
+
+
+          CV_NODI = CV_NDGLN(( ELE - 1 ) * CV_NLOC + CV_ILOC )
+          !ewrite(3,*)'ele,CV_NODI,CV_ILOC:',ele,CV_NODI,CV_ILOC, x(CV_NODI)
+
+          if (.not.  node_owned(PSI(IT)%ptr,cv_nodi)) cycle
+
+          Loop_CV_JLOC: DO CV_JLOC = 1, CV_NLOC
+
+             CV_NODJ = CV_NDGLN(( ELE - 1 ) * CV_NLOC + CV_JLOC )
+             NN = 0.0
+             NM = 0.0
+             MN = 0.0
+             MM = 0.0
+             DO CV_GI = 1, CV_NGI
+                NN = NN + N( CV_ILOC, CV_GI )   * N(   CV_JLOC, CV_GI ) * DETWEI( CV_GI )
+                NM = NM + N( CV_ILOC, CV_GI )   * CVN( CV_JLOC, CV_GI ) * DETWEI( CV_GI )
+                MN = MN + CVN( CV_ILOC, CV_GI ) * N( CV_JLOC, CV_GI )   * DETWEI( CV_GI )
+                MM = MM + CVN( CV_ILOC, CV_GI ) * CVN( CV_JLOC, CV_GI ) * DETWEI( CV_GI )
+             END DO
+
+             IF(IGETCT.NE.0) THEN
+                CALL POSINMAT( COUNT, CV_NODI, CV_NODJ, CV_NONODS, FINDCMC, COLCMC, NCOLCMC )
+
+                MASS_MN_PRES( COUNT ) = MASS_MN_PRES( COUNT ) + MN
+             ENDIF
+
+             call addto(mat,cv_nodi,cv_nodj,NN)
+
+             call addto(CV_MASS, CV_NODI,  MM )
+             
+
+
+             DO IT = 1, size(fempsi_rhs)
+                FEMPSI_RHS(it)%val(:,:,CV_NODI) = FEMPSI_RHS(it)%val(:,:,CV_NODI) &
+                     + NM * PSI(IT)%ptr%val(:,:,CV_NODJ)
+             END DO
+             DO IT = 1, size(psi_ave)
+                call addto( PSI_AVE(IT)%PTR, node_number=CV_NODI, val=MN * PSI_AVE_TEMP(IT)%val( : , CV_NODJ ) )
+             END DO
+             DO IT = 1, size(psi_int)
+                call addto( PSI_INT(IT)%PTR, node_number=CV_NODI, val=MN * PSI_INT_TEMP(IT)%val( : , CV_NODJ ) )
+             END DO
+
+          END DO Loop_CV_JLOC
+
+       END DO Loop_CV_ILOC
+
+    END DO Loop_Elements
+
+    call halo_update(cv_mass)
+    call invert(cv_mass)
+
+    ! Form average...
+    DO IT = 1, size(psi_ave)
+       call halo_update(PSI_AVE(it)%PTR)
+       call scale(PSI_AVE(it)%PTR,cv_mass)
+    END DO
+
+    DO IT= 1, size(psi_int)
+       call halo_update(PSI_int(it)%PTR)
+    end do
+    
+    ! Solve...
+
+    call get_option( trim(PSI(1)%ptr%option_path)//"/prognostic/solver/max_iterations", &
+         max_iterations,  default =  500 )
+    if (max_iterations ==0) THEN
+       DO IT = 1, size(fempsi)
+          call zero_non_owned(fempsi_rhs(it))
+          CALL petsc_solve(  FEMPSI(IT)%ptr,  &
+               MAT,  &
+               FEMPSI_RHS(IT),  &
+               option_path = "/material_phase[0]/scalar_field::Pressure/prognostic" )
+!          FEMPSI(IT)%ptr%val(:,:,:)=PSI(IT)%ptr%val(:,:,:)
+       END DO
+    ELSE
+       DO IT = 1, size(fempsi)
+          call zero_non_owned(fempsi_rhs(it))
+          CALL petsc_solve(  FEMPSI(IT)%ptr,  &
+               MAT,  &
+               FEMPSI_RHS(IT),  &
+               option_path = trim(PSI(1)%ptr%option_path)//"/prognostic" )
+
+!          FEMPSI(IT)%ptr%val(:,:,:)=PSI(IT)%ptr%val(:,:,:)
+       END DO
+     END IF
+
+    
+
+    call DEALLOCATE( cv_MASS )
+    DO IT = 1, size(fempsi_RHS)
+       CALL DEALLOCATE( FEMPSI_RHS(it) )
+    END DO
+    do it=1, size(psi_ave_temp)
+       call DEALLOCATE( PSI_AVE_temp(it) )
+    end do
+    do it=1, size(psi_int_temp)
+       call DEALLOCATE( PSI_INT_temp(it) )
+    end do
+    call DEALLOCATE( MAT )
+    call DEALLOCATE( PMAT )
+    DEALLOCATE( DETWEI )
+    DEALLOCATE( RA )
+    DEALLOCATE( NX )
+    DEALLOCATE( NY )
+    DEALLOCATE( NZ )
+
+    ewrite(3,*) 'Leaving PROJ_CV_TO_FEM_state'
+
+    RETURN
+
+  END SUBROUTINE PROJ_CV_TO_FEM_state
 
 
 
@@ -10598,13 +10947,13 @@ CONTAINS
              DO CV_SILOC=1,CV_SNLOC
                 CV_ILOC=CV_SLOCLIST(IFACE,CV_SILOC)
                 FOUND=.FALSE. 
-                IF(SELE2 == 0) THEN ! is a volume element
+                IF(SELE2 == 0 .and. ele2>0) THEN ! is a volume element
                    CV_INOD=X_NDGLN((ELE-1)*X_NLOC+CV_ILOC)
                    DO CV_ILOC2=1,CV_NLOC
                       CV_INOD2=X_NDGLN((ELE2-1)*X_NLOC+CV_ILOC2) 
                       IF(CV_INOD == CV_INOD2) FOUND=.TRUE.
                    END DO
-                ELSE ! is a surface element
+                ELSE if (sele2>0) then ! is a surface element
                    CV_INOD=CV_NDGLN((ELE-1)*CV_NLOC+CV_ILOC)
                    DO CV_SILOC2=1,CV_SNLOC
                       ! ewrite(3,*)'(SELE2-1)*CV_SNLOC+CV_SILOC2,SELE2,CV_SNLOC,CV_SILOC2:', &

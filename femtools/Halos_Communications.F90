@@ -475,6 +475,9 @@ contains
       case(FIELD_TYPE_NORMAL)              
         assert(associated(t_field%val))
         call halo_update(halo, t_field%val)
+     case(FIELD_TYPE_DEFERRED)              
+        assert(associated(t_field%val))
+        call halo_update(halo, t_field%val)
       case(FIELD_TYPE_CONSTANT)
       case default
         ewrite(-1, "(a,i0)") "For field type ", t_field%field_type
