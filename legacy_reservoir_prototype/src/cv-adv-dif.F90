@@ -232,9 +232,9 @@ contains
       INTEGER, DIMENSION( : ), intent( in ) :: FINACV
       INTEGER, DIMENSION( : ), intent( in ) :: COLACV
       INTEGER, DIMENSION( : ), intent( in ) :: MIDACV
-      REAL, DIMENSION( :, :, : ), intent( inout ) :: CT
+      REAL, DIMENSION( :, :, : ), intent( inout ), allocatable :: CT
       ! Diagonal scaling of (distributed) pressure matrix (used to treat pressure implicitly)
-      REAL, DIMENSION( : ), intent( inout ) :: DIAG_SCALE_PRES
+      REAL, DIMENSION( : ), intent( inout ), allocatable :: DIAG_SCALE_PRES
       REAL, DIMENSION( :  ), intent( inout ) :: CT_RHS
       INTEGER, DIMENSION( : ), intent( in ) :: FINDCT
       INTEGER, DIMENSION( : ), intent( in ) :: COLCT
@@ -245,7 +245,7 @@ contains
       REAL, DIMENSION( :, : ), intent( in ) :: DEN_ALL, DENOLD_ALL
       REAL, DIMENSION( : ), intent( in ) :: T2, T2OLD
       REAL, DIMENSION( :, : ), intent( inout ) :: THETA_GDIFF ! (NPHASE,CV_NONODS)
-      REAL, DIMENSION( :, : ), intent( inout ) :: THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J
+      REAL, DIMENSION( :, : ), intent( inout ), optional :: THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J
       REAL, DIMENSION( :, :, :, : ), intent( in ) :: TDIFFUSION
       INTEGER, intent( in ) :: IGOT_THERM_VIS
       !REAL, DIMENSION(NDIM,NDIM,NPHASE,MAT_NONODS*IGOT_THERM_VIS), intent( in ) :: THERM_U_DIFFUSION
@@ -449,7 +449,9 @@ contains
 
       INTEGER, DIMENSION( 1 , nphase , surface_element_count(tracer) ) :: WIC_T_BC_ALL
       INTEGER, DIMENSION( 1 , nphase , surface_element_count(tracer) ) ::&
-           WIC_D_BC_ALL, WIC_T2_BC_ALL
+           WIC_D_BC_ALL
+      INTEGER, DIMENSION( 1 , nphase , igot_t2*surface_element_count(tracer) ) ::&
+           WIC_T2_BC_ALL
       INTEGER, DIMENSION( ndim , nphase , surface_element_count(tracer) ) :: WIC_U_BC_ALL
       REAL, DIMENSION( :,:,: ), pointer :: SUF_T_BC_ALL,&
            SUF_T_BC_ROB1_ALL, SUF_T_BC_ROB2_ALL
@@ -990,6 +992,11 @@ contains
                   END DO
 ! endof IF( is_compact_overlapping ) THEN...
                ENDIF
+            else
+               ALLOCATE( VI_LOC_OPT_VEL_UPWIND_COEFS(0,0,0),  GI_LOC_OPT_VEL_UPWIND_COEFS(0,0,0),  &
+                    VJ_LOC_OPT_VEL_UPWIND_COEFS(0,0,0),  GJ_LOC_OPT_VEL_UPWIND_COEFS(0,0,0) )
+               ALLOCATE( INV_V_OPT_VEL_UPWIND_COEFS(0,0,0,0) )
+               ALLOCATE( INV_VI_LOC_OPT_VEL_UPWIND_COEFS(0,0,0), INV_VJ_LOC_OPT_VEL_UPWIND_COEFS(0,0,0) )
 
            ENDIF
 
@@ -10791,7 +10798,7 @@ CONTAINS
       INTEGER, DIMENSION( : ), intent( in ) :: SMALL_CENTRM, SMALL_FINDRM
       INTEGER, DIMENSION( : ), intent( in ) :: SMALL_COLM
       INTEGER, DIMENSION( : ), intent( in ) :: CV_SNDGLN
-      REAL, DIMENSION( :, :, : ), intent( in ) :: SUF_T_BC_ALL, SUF_T2_BC_ALL, SUF_D_BC_ALL
+      REAL, DIMENSION( :, :, : ), intent( in ), pointer :: SUF_T_BC_ALL, SUF_T2_BC_ALL, SUF_D_BC_ALL
       INTEGER, DIMENSION( :,:, : ), intent( in ) :: WIC_T_BC_ALL, WIC_T2_BC_ALL, WIC_D_BC_ALL
 
 ! Local variables...
@@ -10910,7 +10917,7 @@ CONTAINS
          IGOT_T2
     INTEGER, DIMENSION( : ), intent( in ) :: CV_SNDGLN
     REAL, DIMENSION( :, :, : ), intent( in ) :: SUF_T_BC_ALL, SUF_D_BC_ALL
-    REAL, DIMENSION( :, :, : ), intent( in ) :: SUF_T2_BC_ALL
+    REAL, DIMENSION( :, :, : ), intent( in ), pointer :: SUF_T2_BC_ALL
     INTEGER, DIMENSION( : , : , : ), intent( in ) :: WIC_T_BC_ALL, WIC_D_BC_ALL
     INTEGER, DIMENSION( : , : , : ), intent( in ) :: WIC_T2_BC_ALL
     INTEGER, DIMENSION( : ), intent( in ) :: FINACV

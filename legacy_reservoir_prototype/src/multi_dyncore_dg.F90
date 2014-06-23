@@ -202,6 +202,8 @@ contains
 
         allocate( den_all( nphase, cv_nonods ), denold_all( nphase, cv_nonods ) )
 
+        allocate(Ct(0,0,0),ct_rhs(0),DIAG_SCALE_PRES(0))
+
 
         if ( thermal ) then
            p => extract_scalar_field( packed_state, "CVPressure" )
@@ -458,9 +460,9 @@ contains
         REAL, DIMENSION( : ), allocatable, intent( inout ) :: ACV
         REAL, DIMENSION( :, :, : ), intent( inout ) :: DENSE_BLOCK_MATRIX
         REAL, DIMENSION( :, :, : ), intent( inout ) :: CV_RHS
-        REAL, DIMENSION( : ), intent( inout ) :: DIAG_SCALE_PRES
+        REAL, DIMENSION( : ), intent( inout ), allocatable :: DIAG_SCALE_PRES
         REAL, DIMENSION( : ), intent( inout ) :: CT_RHS
-        REAL, DIMENSION( :, :, : ), intent( inout ) :: CT
+        REAL, DIMENSION( :, :, : ), intent( inout ), allocatable :: CT
         REAL, DIMENSION( : ), intent( in ) :: X, Y, Z
         REAL, DIMENSION( : ), intent( in ) :: NU, NV, NW, NUOLD, NVOLD, NWOLD, UG, VG, WG
         REAL, DIMENSION( : ), intent( inout ) :: T, DEN_FEMT
@@ -1825,10 +1827,10 @@ contains
         REAL, DIMENSION( :, :, : ), intent( inout ) :: U_RHS
         REAL, DIMENSION( : ), intent( inout ) :: MCY_RHS
         REAL, DIMENSION( :, :, : ), intent( inout ) :: C
-        REAL, DIMENSION( :, :, : ), intent( inout ) :: CT
+        REAL, DIMENSION( :, :, : ), intent( inout ), allocatable :: CT
         REAL, DIMENSION( : ), intent( inout ) :: MASS_MN_PRES
         REAL, DIMENSION( : ), intent( inout ) :: CT_RHS
-        REAL, DIMENSION( : ), intent( inout ) :: DIAG_SCALE_PRES
+        REAL, DIMENSION( : ), intent( inout ), allocatable :: DIAG_SCALE_PRES
         LOGICAL, intent( in ) :: GLOBAL_SOLVE
         INTEGER, DIMENSION( : ), intent( in ) :: FINMCY
         REAL, DIMENSION( : ), intent( inout ) :: MCY
