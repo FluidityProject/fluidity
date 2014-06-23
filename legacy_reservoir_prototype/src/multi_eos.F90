@@ -1537,8 +1537,8 @@
       ! local variables
       type(tensor_field), pointer :: viscosity_ph1, viscosity_ph2
       integer :: iphase, ele, sele, cv_siloc, cv_snodi, cv_snodi_ipha, iface, s, e, &
-           ele2, sele2, cv_iloc, idim, jdim, i, mat_nod
-      real :: mobility, satura_bc, cv_nodi
+           ele2, sele2, cv_iloc, idim, jdim, i, mat_nod, cv_nodi
+      real :: mobility, satura_bc
       real, dimension( ndim, ndim ) :: inv_perm, sigma_out, sigma_in, mat, mat_inv
       integer, dimension( nface, totele) :: face_ele
       integer, dimension( mat_nonods*nphase ) :: idone
