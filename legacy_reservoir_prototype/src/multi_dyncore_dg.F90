@@ -3640,46 +3640,37 @@ contains
                     !GLOBI = U_NDGLN( ( ELE - 1 ) * U_NLOC + U_ILOC )
                     !IF ( NLEV==1 .AND. LUMP_MASS ) GLOBI_CV = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + U_ILOC )
                     ! put CV source in...
-                    Loop_CVNods2: DO CV_JLOC = 1, CV_NLOC
-                        IF(RETRIEVE_SOLID_CTY) THEN
-                           NM = SUM( UFEN( U_ILOC, : ) * CVFEN( CV_JLOC,  : ) * DETWEI( : ) )
-                        ELSE
-                           NM = SUM( UFEN( U_ILOC, : ) * CVN( CV_JLOC,  : ) * DETWEI( : ) )
-                        ENDIF
-                        IF ( LUMP_MASS ) THEN
-                            ! This is bugged...fix me!
-                            STOP 6378
-                            IF ( CV_NLOC==6 .OR. (CV_NLOC==10 .AND. NDIM==3) ) THEN
-                                IF ( CV_JLOC==1 .OR. CV_JLOC==3 .OR. CV_JLOC==6 .OR. CV_JLOC==10 ) THEN
-                                    CV_ILOC = ELEMENT_CORNERS( U_ILOC )
-                                    LOC_U_RHS( :, :, U_ILOC ) = LOC_U_RHS( :, :, U_ILOC ) + NM * LOC_U_SOURCE_CV( :, :, CV_ILOC )
-                                END IF
-                            ELSE
-                                CV_ILOC = U_ILOC
-                                LOC_U_RHS( :, :, U_ILOC ) = LOC_U_RHS( :, :, U_ILOC ) + NM * LOC_U_SOURCE_CV( :, :, CV_ILOC )
-                            END IF
-                        ELSE
-                            LOC_U_RHS( :, :, U_ILOC ) = LOC_U_RHS( :, :, U_ILOC ) + NM * LOC_U_SOURCE_CV( :, :, CV_JLOC )
-                        END IF
-                    END DO LOOP_CVNODS2
 
 
-            !        IF ( LUMP_MASS ) THEN
-            !           IF ( CV_NLOC==6 .OR. (CV_NLOC==10 .AND. NDIM==3) ) THEN
-            !              CV_ILOC = ELEMENT_CORNERS( U_ILOC )
-            !           ELSE
-            !              CV_ILOC = U_ILOC
-            !           END IF
-            !           DO CV_JLOC = 1, CV_NLOC
-            !              NM = SUM( UFEN( U_ILOC, : ) * CVN( CV_JLOC,  : ) * DETWEI( : ) )
-            !              LOC_U_RHS( :, :, U_ILOC ) = LOC_U_RHS( :, :, U_ILOC ) + NM * LOC_U_SOURCE_CV( :, :, CV_ILOC )
-            !           END DO
-            !        ELSE
-            !           DO CV_JLOC = 1, CV_NLOC
-            !              NM = SUM( UFEN( U_ILOC, : ) * CVN( CV_JLOC,  : ) * DETWEI( : ) )
-            !              LOC_U_RHS( :, :, U_ILOC ) = LOC_U_RHS( :, :, U_ILOC ) + NM * LOC_U_SOURCE_CV( :, :, CV_JLOC )
-            !           END DO
-            !        END IF
+
+
+                        IF ( LUMP_MASS .AND. ( CV_NLOC==6 .OR. (CV_NLOC==10 .AND. NDIM==3) ) ) THEN ! Quadratice
+                           IF(U_NLOC.GE.CV_NLOC) STOP 28211 ! Code not ready yet for this.
+                           Loop_CVNods21: DO U_JLOC = 1, U_NLOC
+                              CV_JLOC = ELEMENT_CORNERS( U_JLOC )
+! Miss out the mid side nodes...
+                              NM = SUM( UFEN( U_ILOC, : ) * UFEN( U_JLOC,  : ) * DETWEI( : ) )
+                              LOC_U_RHS( :, :, U_ILOC ) = LOC_U_RHS( :, :, U_ILOC ) + NM * LOC_U_SOURCE_CV( :, :, CV_JLOC )
+
+                           END DO LOOP_CVNODS21
+                        ELSE ! ENDOF IF ( LUMP_MASS .AND. ( CV_NLOC==6 .OR. (CV_NLOC==10 .AND. NDIM==3) ) ) THEN ! Quadratice
+
+                           Loop_CVNods2: DO CV_JLOC = 1, CV_NLOC
+                              IF(RETRIEVE_SOLID_CTY) THEN
+                                 NM = SUM( UFEN( U_ILOC, : ) * CVFEN( CV_JLOC,  : ) * DETWEI( : ) )
+                              ELSE
+                                 NM = SUM( UFEN( U_ILOC, : ) * CVN( CV_JLOC,  : ) * DETWEI( : ) )
+                              ENDIF
+                              IF ( LUMP_MASS ) THEN
+                                 CV_ILOC = U_ILOC
+                                 LOC_U_RHS( :, :, U_ILOC ) = LOC_U_RHS( :, :, U_ILOC ) + NM * LOC_U_SOURCE_CV( :, :, CV_ILOC )
+                              ELSE
+                                 LOC_U_RHS( :, :, U_ILOC ) = LOC_U_RHS( :, :, U_ILOC ) + NM * LOC_U_SOURCE_CV( :, :, CV_JLOC )
+                              END IF
+                           END DO LOOP_CVNODS2
+
+                        ENDIF ! ENDOF IF ( LUMP_MASS .AND. ( CV_NLOC==6 .OR. (CV_NLOC==10 .AND. NDIM==3) ) ) THEN ! Quadratice
+
 
 
                     Loop_DGNods2: DO U_JLOC = 1 + (ILEV-1)*U_NLOC2, ILEV*U_NLOC2
