@@ -2599,6 +2599,8 @@ contains
         real, dimension( : ), allocatable :: vol_s_gi
 
         !Local variables to project CV to FEM
+!        type(tensor_field_pointer), dimension(:) :: fempsi,psi
+!        type(vector_field_pointer), dimension(:) :: psi_int,  psi_ave
         REAL, DIMENSION( : ), allocatable :: PSI, FEMPSI, PSI_AVE, PSI_INT
         INTEGER :: k, NLOC, NGI
         REAL, allocatable, DIMENSION( : ):: WEIGHT
@@ -2677,7 +2679,6 @@ contains
 !         DIFF_MIN_FRAC = 0.2
 !         DIFF_MAX_FRAC = 100.0
 !         SIMPLE_DIFF_CALC = .FALSE. ! Need switches for this
-
 
          SIMPLE_DIFF_CALC = have_option( '/material_phase[0]/vector_field::Velocity/prognostic/spatial_discretisation/discontinuous_galerkin/viscosity_scheme/linear_scheme' )
          if ( .not.SIMPLE_DIFF_CALC ) then
@@ -3110,6 +3111,7 @@ contains
         D3   = ( NDIM == 3 )
 
         NO_MATRIX_STORE = NCOLDGM_PHA<=1
+
         IF( (.NOT.JUST_BL_DIAG_MAT) .AND. (.NOT.NO_MATRIX_STORE) ) DGM_PHA = 0.0
         if (.not.got_c_matrix) C = 0.0
         U_RHS = 0.0
@@ -3267,6 +3269,14 @@ contains
                CV_NGI, CV_NLOC, CVN, CVWEIGHT, N, NLX_ALL(1,:,:), NLX_ALL(2,:,:), NLX_ALL(3,:,:), &
                X_NONODS, X_ALL(1,:), X_ALL(2,:), X_ALL(3,:), NCOLM, FINDM, COLM, MIDM, &
                0, PSI_AVE, FINDM, COLM, NCOLM, PATH )
+!
+!          call PROJ_CV_TO_FEM_state( packed_state,FEMPSI, PSI, NDIM, &
+!               PSI_AVE, PSI_INT, MASS_ELE, &
+!               CV_NONODS, TOTELE, CV_NDGLN, X_NLOC, X_NDGLN, &
+!               CV_NGI, CV_NLOC, CVN, CVWEIGHT, N, NLX_ALL(1,:,:), NLX_ALL(2,:,:), NLX_ALL(3,:,:), &
+!               X_NONODS, X_ALL, NCOLM, FINDM, COLM, MIDM, &
+!               0, PSI_AVE, FINDM, COLM, NCOLM )! <=== Dummy variables, not used inside
+
 
             !Deallocate auxiliar variables
             DEALLOCATE (PSI,PSI_AVE,PSI_INT)
@@ -5304,15 +5314,16 @@ contains
 
                                         IF( WIC_U_BC_ALL( IDIM, IPHASE, SELE2 ) == WIC_U_BC_DIRICHLET ) THEN
 
-                                           DIAG_BIGM_CON(IDIM,JDIM,IPHASE,JPHASE,U_ILOC,U_JLOC,ELE)  &
-                                           =DIAG_BIGM_CON(IDIM,JDIM,IPHASE,JPHASE,U_ILOC,U_JLOC,ELE) + VLM_NEW
-
+                                           IF(NO_MATRIX_STORE) THEN
+                                              LOC_U_RHS( IDIM,IPHASE,U_ILOC ) &
+                                              =  LOC_U_RHS( IDIM,IPHASE,U_ILOC ) + VLM_NEW * SUF_U_BC_ALL( IDIM,IPHASE,U_SJLOC + U_SNLOC* ( SELE2 - 1 ) )
+                                           else
+                                              DIAG_BIGM_CON(IDIM,JDIM,IPHASE,JPHASE,U_ILOC,U_JLOC,ELE)  &
+                                              =DIAG_BIGM_CON(IDIM,JDIM,IPHASE,JPHASE,U_ILOC,U_JLOC,ELE) + VLM_NEW
+                                           end if
+                                           LOC_U_RHS( IDIM,IPHASE,U_ILOC ) =  LOC_U_RHS( IDIM,IPHASE,U_ILOC ) -VLM_OLD * SLOC_UOLD( IDIM,IPHASE,U_SJLOC )
                             !   DGM_PHA( COUNT )  =  DGM_PHA( COUNT )  + VLM_NEW
 
-                                           LOC_U_RHS( IDIM,IPHASE,U_ILOC ) =  LOC_U_RHS( IDIM,IPHASE,U_ILOC ) -VLM_OLD * SLOC_UOLD( IDIM,IPHASE,U_SJLOC )
-
-                                           LOC_U_RHS( IDIM,IPHASE,U_ILOC ) &
-                                           =  LOC_U_RHS( IDIM,IPHASE,U_ILOC ) + VLM_NEW * SUF_U_BC_ALL( IDIM,IPHASE,U_SJLOC + U_SNLOC* ( SELE2 - 1 ) )
 
                                         ELSE IF( (WIC_U_BC_ALL( IDIM, IPHASE, SELE2 ) == WIC_U_BC_ROBIN) .OR. &
                                         (WIC_U_BC_ALL( IDIM, IPHASE, SELE2 ) == WIC_U_BC_DIRI_ADV_AND_ROBIN )) THEN
@@ -5320,7 +5331,6 @@ contains
                                             IF(NO_MATRIX_STORE) THEN
                                                 LOC_U_RHS( IDIM,IPHASE,U_ILOC ) = LOC_U_RHS( IDIM,IPHASE,U_ILOC ) &
                                                 - VLM * SUF_U_BC_ALL( IDIM,IPHASE,U_SJLOC + U_SNLOC* ( SELE2 - 1 ) )*SLOC_U( IDIM,IPHASE,U_SJLOC )
-
                                             ELSE
                                                 DIAG_BIGM_CON(IDIM,JDIM,IPHASE,JPHASE,U_ILOC,U_JLOC,ELE) &
                                                 =DIAG_BIGM_CON(IDIM,JDIM,IPHASE,JPHASE,U_ILOC,U_JLOC,ELE)+ VLM * SUF_U_BC_ALL( IDIM,IPHASE,U_SJLOC + U_SNLOC * ( SELE2 - 1 ) )
