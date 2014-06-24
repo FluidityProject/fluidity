@@ -258,7 +258,7 @@
       !stop 78
 
       !  Access boundary conditions via a call like
-      !  call get_entire_boundary_condition(extract_tensor_field(packed_state,"Packed"//name),["dirichlet"],tfield,bc_type_list)
+      !  call get_entire_boundary_condition(extract_tensor_field(packed_state,"Packed"//name),["weakdirichlet"],tfield,bc_type_list)
       !  where tfield is type(tensor_field) and bc_type_list is integer, dimension(tfield%dim(1),tfield%dim(2),nonods)
       !  Then values are in tfield%val(1/ndim/ncomp,nphase,nonods) 
       !  Type ids are in bc_type_list(1/ndim/ncomp,nphase,stotel) 
@@ -693,7 +693,6 @@
                        state, x_nonods )
                end if
             end if
-
 !!$ Solve advection of the scalar 'Temperature':
             Conditional_ScalarAdvectionField: if( have_temperature_field .and. &
                  have_option( '/material_phase[0]/scalar_field::Temperature/prognostic' ) ) then
@@ -798,8 +797,7 @@
                     StorageIndexes=StorageIndexes )
 
                if( have_option( '/material_phase[0]/multiphase_properties/capillary_pressure' ) )then
-                  iplike_grad_sou = 1
-                  call calculate_capillary_pressure( state, packed_state, cv_nonods, nphase, plike_grad_sou_grad)
+                  call calculate_capillary_pressure( state, packed_state, cv_nonods, nphase)
                end if
 
 

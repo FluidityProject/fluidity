@@ -1057,7 +1057,7 @@ contains
             call petsc_solve(vtracer,petsc_acv,rhs_field,trim(option_path))
             call deallocate(petsc_acv)
 
-			satura(:,:)=tracer%val(1,:,:)
+            satura(:,:)=tracer%val(1,:,:)
 
         END DO Loop_NonLinearFlux
 
@@ -2585,30 +2585,22 @@ contains
         REAL, DIMENSION ( :, :, : ), allocatable :: VOL_FRA_GI_DX_ALL
         REAL, DIMENSION ( :, : ), allocatable :: SLOC_VOL_FRA, SLOC2_VOL_FRA,  SVOL_FRA, SVOL_FRA2, VOL_FRA_NMX_ALL
 
-        logical :: capillary_pressure_activated
         !Variables to store things in state
         type(mesh_type), pointer :: fl_mesh
         type(mesh_type) :: Auxmesh
         type(scalar_field), target :: Targ_C_Mat
         real, dimension(:,:,:), pointer :: Point_C_Mat
-
+        !Capillary pressure variables
+        logical :: capillary_pressure_activated
+        real, dimension(:,:), pointer :: CapPressure
+        type(tensor_field), target :: FEMCapPressure
+        integer :: k
+        logical :: CAP_to_FEM
 !! femdem
         type( vector_field ), pointer :: delta_u_all, us_all
         type( scalar_field ), pointer :: sf
         integer :: cv_nodi
         real, dimension( : ), allocatable :: vol_s_gi
-
-        !Local variables to project CV to FEM
-!        type(tensor_field_pointer), dimension(:) :: fempsi,psi
-!        type(vector_field_pointer), dimension(:) :: psi_int,  psi_ave
-        REAL, DIMENSION( : ), allocatable :: PSI, FEMPSI, PSI_AVE, PSI_INT
-        INTEGER :: k, NLOC, NGI
-        REAL, allocatable, DIMENSION( : ):: WEIGHT
-        logical :: CAP_to_FEM
-        real, dimension( :, : ), allocatable :: N
-        real, dimension (:, :, :), allocatable :: NLX_ALL
-        real, dimension( : ), allocatable :: L1, L2, L3, L4
-        CHARACTER(100) :: PATH
 
         !! Boundary_conditions
 
@@ -2732,10 +2724,10 @@ contains
         !! get boundary information
         
         call get_entire_boundary_condition(pressure,&
-           ['dirichlet'],&
+           ['weakdirichlet'],&
            pressure_BCs,WIC_P_BC_ALL)
         call get_entire_boundary_condition(velocity,&
-           ['dirichlet','robin    '],&
+           ['weakdirichlet','robin        '],&
            velocity_BCs,WIC_U_BC_ALL,boundary_second_value=velocity_BCs_robin2)
         call get_entire_boundary_condition(velocity,&
            ['momentum     ','momentuminout'],&
@@ -3234,53 +3226,12 @@ contains
         !First check the user selection.
         CAP_to_FEM = have_option("/material_phase[0]/multiphase_properties/capillary_pressure/Proj_capi_to_FEM").or.&
                 have_option("/material_phase[1]/multiphase_properties/capillary_pressure/Proj_capi_to_FEM")
-        if (CAP_to_FEM) then
-
-            allocate (PSI(size(PLIKE_GRAD_SOU_GRAD,1)*size(PLIKE_GRAD_SOU_GRAD,2)))
-            allocate (FEMPSI(size(PLIKE_GRAD_SOU_GRAD,1)*size(PLIKE_GRAD_SOU_GRAD,2)))
-            allocate (PSI_AVE(3*size(PLIKE_GRAD_SOU_GRAD,2)))
-            allocate (PSI_INT(size(PLIKE_GRAD_SOU_GRAD,2)))
-            !############TEMPORARY CONVERSION################
-             k = 1
-             DO IPHASE = 1, NPHASE
-                 DO CV_INOD = 1, CV_NONODS
-                     PSI( k ) = PLIKE_GRAD_SOU_GRAD( IPHASE, CV_INOD)
-                     k = k + 1
-                 END DO
-             END DO
-             !############TEMPORARY CONVERSION################
-
-             !Get shape functions
-             NGI = NDIM + 1
-             NLOC = NDIM + 1
-             IF(NDIM==1) NLOC=1
-             allocate (WEIGHT(NGI))
-             ALLOCATE( N(NLOC,NGI))
-             ALLOCATE( L1(NGI), L2(NGI), L3(NGI), L4(NGI) )
-             allocate(NLX_ALL(size(X_ALL,1), NLOC, NGI))
-             CALL TRIQUAold( L1, L2, L3, L4, WEIGHT, ndim==3, NGI )
-             call SHATRInew(L1, L2, L3, L4, WEIGHT,  NLOC,NGI,  N,NLX_ALL)
-
-            !Project to FEM
-             PATH = '/material_phase[0]/scalar_field::Pressure'
-            call PROJ_CV_TO_FEM( FEMPSI, PSI, NPHASE, NDIM, &
-               PSI_AVE, 3, PSI_INT, 1, MASS_ELE, &
-               CV_NONODS, TOTELE, CV_NDGLN, X_NLOC, X_NDGLN, &
-               CV_NGI, CV_NLOC, CVN, CVWEIGHT, N, NLX_ALL(1,:,:), NLX_ALL(2,:,:), NLX_ALL(3,:,:), &
-               X_NONODS, X_ALL(1,:), X_ALL(2,:), X_ALL(3,:), NCOLM, FINDM, COLM, MIDM, &
-               0, PSI_AVE, FINDM, COLM, NCOLM, PATH )
-!
-!          call PROJ_CV_TO_FEM_state( packed_state,FEMPSI, PSI, NDIM, &
-!               PSI_AVE, PSI_INT, MASS_ELE, &
-!               CV_NONODS, TOTELE, CV_NDGLN, X_NLOC, X_NDGLN, &
-!               CV_NGI, CV_NLOC, CVN, CVWEIGHT, N, NLX_ALL(1,:,:), NLX_ALL(2,:,:), NLX_ALL(3,:,:), &
-!               X_NONODS, X_ALL, NCOLM, FINDM, COLM, MIDM, &
-!               0, PSI_AVE, FINDM, COLM, NCOLM )! <=== Dummy variables, not used inside
-
-
-            !Deallocate auxiliar variables
-            DEALLOCATE (PSI,PSI_AVE,PSI_INT)
-            deallocate (NLX_ALL,L1,L2,L3,L4,N, WEIGHT)
+        if (capillary_pressure_activated) then
+            call get_var_from_packed_state(packed_state,CapPressure = CapPressure)
+            if (CAP_to_FEM) then
+                call proj_capillary_pressure2FEM(packed_state, FEMCapPressure, X_ALL, FINDM, COLM, MIDM,&
+                CVN, CVWEIGHT, mass_ele, cv_ndgln, cv_ngi, cv_nloc, cv_nonods, ncolm, nphase, totele, x_ndgln, x_nloc, x_nonods)
+            end if
         end if
         Loop_Elements: DO ELE = 1, TOTELE ! Volume integral
 
@@ -3372,18 +3323,19 @@ contains
                 END DO
             END DO
 
-
-            !############TEMPORARY CONVERSION################
-            if (CAP_to_FEM) then
-             k = 1
-             DO CV_ILOC = 1, CV_NLOC
-                DO IPHASE = 1, NPHASE
-                    !CHECK WHETHER THIS IS CORRECT OR NOT!
-                    LOC_PLIKE_GRAD_SOU_GRAD( IPHASE, CV_ILOC ) = FEMPSI(CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_ILOC ))
-                     k = k + 1
-                 END DO
-             END DO
-            !############TEMPORARY CONVERSION################
+            if (capillary_pressure_activated) then
+                !We can use either the projection to FEM or the CV values
+                if (CAP_to_FEM) then
+                    DO CV_ILOC = 1, CV_NLOC
+                        CV_INOD = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_ILOC )
+                        LOC_PLIKE_GRAD_SOU_GRAD( :, CV_ILOC ) = FEMCapPressure%val(1,:, CV_INOD)
+                    end do
+                else
+                    DO CV_ILOC = 1, CV_NLOC
+                        CV_INOD = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_ILOC )
+                        LOC_PLIKE_GRAD_SOU_GRAD( :, CV_ILOC ) = CapPressure(:, CV_INOD)
+                    end do
+                end if
             end if
 
             DO P_ILOC = 1, P_NLOC
@@ -4048,12 +4000,10 @@ contains
                                 END DO
                             END IF
                         END DO Loop_Phase1
-
                     END DO Loop_P_JLOC1
 
                 END DO Loop_U_ILOC1
             END DO Loop_ILEV1
-
             !ewrite(3,*)'just after Loop_U_ILOC1'
 
             ! **********REVIEWER 2-END**********************
@@ -4600,8 +4550,8 @@ contains
                               SLOC2_UDIFFUSION( 1:NDIM, 1:NDIM, IPHASE, CV_SILOC ) = UDIFFUSION_ALL( 1:NDIM, 1:NDIM, IPHASE, MAT_INOD2 )
                            ELSE
                               ! set to 0.0 for free-slip
-                              SLOC_UDIFFUSION( 1:NDIM, 1:NDIM, IPHASE, CV_SILOC ) = UDIFFUSION( 1:NDIM, 1:NDIM, IPHASE, MAT_INOD )
-                              SLOC2_UDIFFUSION( 1:NDIM, 1:NDIM, IPHASE, CV_SILOC ) = UDIFFUSION( 1:NDIM, 1:NDIM, IPHASE, MAT_INOD2 )
+                              SLOC_UDIFFUSION( 1:NDIM, 1:NDIM, IPHASE, CV_SILOC ) = UDIFFUSION( 1:NDIM, 1:NDIM, IPHASE, MAT_INOD ) !* 0.
+                              SLOC2_UDIFFUSION( 1:NDIM, 1:NDIM, IPHASE, CV_SILOC ) = UDIFFUSION( 1:NDIM, 1:NDIM, IPHASE, MAT_INOD2 ) !* 0.
                            ENDIF
                         END DO
                     END IF
@@ -4941,35 +4891,53 @@ contains
                 END IF If_ele2_notzero
 
 
-                IF(GOT_UDEN) THEN
-                    IF(MOM_CONSERV) THEN
-                        IF(SELE2 /= 0) THEN
-                            SUD2_ALL=0.0
-                            SUDOLD2_ALL=0.0
-                            DO IPHASE=1, NPHASE
-                                IF( WIC_U_BC_ALL( 1, IPHASE, SELE2 ) == WIC_U_BC_DIRICHLET) THEN
-                                    DO U_SILOC=1,U_SNLOC
-                                        DO SGI=1,SBCVNGI
-                                            SUD2_ALL(:,IPHASE,SGI)=SUD2_ALL(:,IPHASE,SGI) + SBUFEN(U_SILOC,SGI) * suf_nu_bc_all( :,iphase,u_siloc + u_SNLOC * ( sele2 - 1 ) )
-
-                                            SUDOLD2_ALL(:,IPHASE,SGI)=SUDOLD2_ALL(:,IPHASE,SGI) + SBUFEN(U_SILOC,SGI) * suf_nu_bc_all( :,iphase,u_siloc + u_SNLOC * ( sele2 - 1 ) )
-                                        END DO
-                                    END DO
-
-                                    DO SGI=1,SBCVNGI
-                                        IF( SUM(SUD_ALL(:,IPHASE,SGI)*SNORMXN_ALL(:,SGI)) < 0.0) THEN
-                                            SUD_ALL(:,IPHASE,SGI)=0.5*(SUD_ALL(:,IPHASE,SGI)+SUD2_ALL(:,IPHASE,SGI))
-                                        ENDIF
-                                        IF( SUM(SUDOLD_ALL(:,IPHASE,SGI)*SNORMXN_ALL(:,SGI)) < 0.0) THEN
-                                            SUDOLD_ALL(:,IPHASE,SGI)=0.5*(SUDOLD_ALL(:,IPHASE,SGI)+SUDOLD2_ALL(:,IPHASE,SGI))
-                                        ENDIF
-                                    END DO
-                                ENDIF
+                IF ( GOT_UDEN ) THEN
+                   IF ( MOM_CONSERV ) THEN
+                      IF ( SELE2 /= 0 ) THEN
+                         SUD2_ALL=0.0 ; SUDOLD2_ALL=0.0
+                         DO IPHASE = 1, NPHASE
+                            
+                            DO IDIM = 1, NDIM
+                               IF ( WIC_U_BC_ALL( IDIM, IPHASE, SELE2 ) == WIC_U_BC_DIRICHLET ) THEN
+                                  DO U_SILOC = 1, U_SNLOC
+                                     DO SGI = 1, SBCVNGI
+                                        SUD2_ALL(IDIM,IPHASE,SGI)=SUD2_ALL(IDIM,IPHASE,SGI) + &
+                                             SBUFEN(U_SILOC,SGI) * suf_nu_bc_all( idim,iphase,u_siloc + u_SNLOC * ( sele2 - 1 ) )
+                                        SUDOLD2_ALL(IDIM,IPHASE,SGI)=SUDOLD2_ALL(IDIM,IPHASE,SGI) + &
+                                             SBUFEN(U_SILOC,SGI) * suf_nu_bc_all( idim,iphase,u_siloc + u_SNLOC * ( sele2 - 1 ) )
+                                     END DO
+                                  END DO
+                               END IF
                             END DO
+                         
+                            DO SGI = 1, SBCVNGI
+                               SNDOTQ(IPHASE,SGI) = SUM( SUD_ALL(:,IPHASE,SGI) * SNORMXN_ALL(:,SGI) )
+                               SNDOTQOLD(IPHASE,SGI) = SUM( SUDOLD_ALL(:,IPHASE,SGI) * SNORMXN_ALL(:,SGI) )
+                            END DO
+   
+                         END DO
 
-                        ENDIF
-                    ENDIF
-                ENDIF
+                         
+                         DO IPHASE = 1, NPHASE
+
+                            DO IDIM = 1, NDIM
+                               IF ( WIC_U_BC_ALL( IDIM, IPHASE, SELE2 ) == WIC_U_BC_DIRICHLET ) THEN
+                                  DO SGI = 1, SBCVNGI
+                                     IF ( SNDOTQ(IPHASE,SGI)  < 0.0 ) THEN
+                                        SUD_ALL(IDIM,IPHASE,SGI) = 0.5 * (SUD_ALL(IDIM,IPHASE,SGI) + SUD2_ALL(IDIM,IPHASE,SGI) )
+                                     END IF
+                                     IF ( SNDOTQOLD(IPHASE,SGI) < 0.0 ) THEN
+                                        SUDOLD_ALL(IDIM,IPHASE,SGI) = 0.5 * (SUDOLD_ALL(IDIM,IPHASE,SGI) + SUDOLD2_ALL(IDIM,IPHASE,SGI) )
+                                     END IF
+                                  END DO
+                               END IF
+                            END DO
+                            
+                         END DO
+                         
+                      END IF
+                   END IF
+                END IF
 
                 If_diffusion_or_momentum3: IF(GOT_DIFFUS .OR. GOT_UDEN) THEN
                     IF(BETWEEN_ELE_STAB) THEN
@@ -5086,22 +5054,25 @@ contains
                         END DO
                     END DO
 
-                    IF(SELE2.NE.0) THEN
+                    IF ( SELE2 /= 0 ) THEN
 
-                       DO IPHASE=1, NPHASE
-                          IF(WIC_U_BC_ALL(1,IPHASE,SELE2 )==WIC_U_BC_DIRICHLET) THEN
-                             U_NODJ_SGI_IPHASE_ALL(:,IPHASE,:) = 0.0
-                             UOLD_NODJ_SGI_IPHASE_ALL(:,IPHASE,:) = 0.0
-                             DO U_SILOC = 1, U_SNLOC
-                                DO SGI=1,SBCVNGI
-                                   U_NODJ_SGI_IPHASE_ALL(:,IPHASE,SGI) = U_NODJ_SGI_IPHASE_ALL(:,IPHASE,SGI) + SBUFEN(U_SILOC,SGI) * SUF_U_BC_ALL( :,IPHASE,U_SILOC + U_SNLOC* ( SELE2 - 1 ) )
-                                   UOLD_NODJ_SGI_IPHASE_ALL(:,IPHASE,SGI) = UOLD_NODJ_SGI_IPHASE_ALL(:,IPHASE,SGI) + SBUFEN(U_SILOC,SGI) * SUF_U_BC_ALL( :,IPHASE,U_SILOC + U_SNLOC* ( SELE2 - 1 ) )
+                       DO IPHASE = 1, NPHASE
+                          DO IDIM = 1, NDIM
+                             IF ( WIC_U_BC_ALL(IDIM,IPHASE,SELE2 ) == WIC_U_BC_DIRICHLET ) THEN
+                                U_NODJ_SGI_IPHASE_ALL(IDIM,IPHASE,:) = 0.0
+                                UOLD_NODJ_SGI_IPHASE_ALL(IDIM,IPHASE,:) = 0.0
+                                DO U_SILOC = 1, U_SNLOC
+                                   DO SGI = 1, SBCVNGI
+                                      U_NODJ_SGI_IPHASE_ALL(IDIM,IPHASE,SGI) = U_NODJ_SGI_IPHASE_ALL(IDIM,IPHASE,SGI) + &
+                                           SBUFEN(U_SILOC,SGI) * SUF_U_BC_ALL( IDIM,IPHASE,U_SILOC + U_SNLOC*(SELE2-1) )
+                                      UOLD_NODJ_SGI_IPHASE_ALL(IDIM,IPHASE,SGI) = UOLD_NODJ_SGI_IPHASE_ALL(IDIM,IPHASE,SGI) + &
+                                           SBUFEN(U_SILOC,SGI) * SUF_U_BC_ALL( IDIM,IPHASE,U_SILOC + U_SNLOC*(SELE2-1) )
+                                   END DO
                                 END DO
-                             END DO
-                          ENDIF
+                             ENDIF
+                          END DO
                        END DO
-
-                    ENDIF
+                    END IF
 
 
 
@@ -5118,7 +5089,7 @@ contains
                         UOLD_NODJ_SGI_IPHASE_ALL, UOLD_NODI_SGI_IPHASE_ALL, &
                         ELE, ELE2, SNORMXN_ALL,  &
                         SLOC_DUX_ELE_ALL, SLOC2_DUX_ELE_ALL,   SLOC_DUOLDX_ELE_ALL, SLOC2_DUOLDX_ELE_ALL,  &
-                        SELE, STOTEL, WIC_U_BC_ALL(1,:,: ), WIC_U_BC_DIRICHLET, SIMPLE_DIFF_CALC, DIFF_MIN_FRAC, DIFF_MAX_FRAC  )
+                        SELE, STOTEL, WIC_U_BC_ALL, WIC_U_BC_DIRICHLET, SIMPLE_DIFF_CALC, DIFF_MIN_FRAC, DIFF_MAX_FRAC  )
                     ELSE If_GOT_DIFFUS2
                         DIFF_COEF_DIVDX   =0.0
                         DIFF_COEFOLD_DIVDX=0.0
@@ -5595,7 +5566,7 @@ contains
         call deallocate(pressure_BCs)
 
         !Deallocate variable used to project the capillary pressure into FEM
-        if (CAP_to_FEM) deallocate(FEMPSI)
+        if (CAP_to_FEM) call deallocate(FEMCapPressure)
 
 
         ewrite(3,*)'Leaving assemb_force_cty'
@@ -8199,5 +8170,70 @@ contains
         return
     end subroutine linearise_field
 
+
+    subroutine Proj_capillary_pressure2FEM(packed_state, FEMCAP, X_ALL, FINDM, COLM, MIDM,&
+    CVN, CVWEIGHT, mass_ele, cv_ndgln, cv_ngi, cv_nloc, cv_nonods, ncolm, nphase, totele, x_ndgln, x_nloc, x_nonods)
+        !This subroutine projects the CV representation of the capillary pressure to FEM
+        Implicit none
+        type( state_type ), intent( inout ) :: packed_state
+        REAL, DIMENSION( :, : ), intent( in ) :: X_ALL
+        INTEGER, DIMENSION( : ), intent( in ) :: FINDM
+        INTEGER, DIMENSION( : ), intent( in ) :: COLM
+        INTEGER, DIMENSION( : ), intent( in ) :: MIDM
+        REAL, DIMENSION( : , : ), intent(in) :: CVN
+        real, dimension(:), intent(inout) :: CVWEIGHT, mass_ele
+        integer, dimension(:), intent(in) :: cv_ndgln, x_ndgln
+        integer :: cv_ngi, cv_nloc, cv_nonods, ncolm, nphase, totele, x_nloc, x_nonods
+        type(tensor_field), intent(out), target :: FEMCAP
+        !Local variables
+        type(tensor_field_pointer), dimension(1) :: psi,fempsi
+        type(vector_field_pointer), dimension(1) :: psi_int,  psi_ave
+        INTEGER :: k, NLOC, NGI, NDIM
+        REAL, allocatable, DIMENSION( : ):: WEIGHT
+        logical :: CAP_to_FEM
+        real, dimension( :, : ), allocatable :: N
+        real, dimension (:, :, :), allocatable :: NLX_ALL
+        real, dimension( : ), allocatable :: L1, L2, L3, L4
+        integer :: IPHASE, CV_INOD
+        type(tensor_field), pointer :: tfield_pointer
+        type(scalar_field), pointer :: sfield_pointer
+        type(vector_field), target :: vfield
+
+         sfield_pointer=>extract_scalar_field(packed_state,"Pressure")
+         call allocate(FEMCAP, sfield_pointer%mesh, dim = [1,NPHASE])
+
+         tfield_pointer => extract_tensor_field( packed_state, "PackedCapPressure" )
+         psi(1)%ptr => tfield_pointer
+         fempsi(1)%ptr => FEMCAP
+         !Create dummys for psi_int and psi_ave since we are not interested in them
+         call allocate(vfield, NPHASE, sfield_pointer%mesh)
+         psi_int(1)%ptr => vfield
+         psi_ave(1)%ptr => vfield
+
+         NDIM = size(X_ALL,1)
+         !Get shape functions
+         NGI = NDIM + 1
+         NLOC = NDIM + 1
+         IF(NDIM==1) NLOC=1
+         allocate (WEIGHT(NGI))
+         ALLOCATE( N(NLOC,NGI))
+         ALLOCATE( L1(NGI), L2(NGI), L3(NGI), L4(NGI) )
+         allocate(NLX_ALL(size(X_ALL,1), NLOC, NGI))
+         CALL TRIQUAold( L1, L2, L3, L4, WEIGHT, ndim==3, NGI )
+         call SHATRInew(L1, L2, L3, L4, WEIGHT,  NLOC,NGI,  N,NLX_ALL)
+
+        !Project to FEM
+          call PROJ_CV_TO_FEM_state( packed_state, FEMPSI, PSI, NDIM, &
+               PSI_AVE, PSI_INT, MASS_ELE, &
+               CV_NONODS, TOTELE, CV_NDGLN, X_NLOC, X_NDGLN, &
+               CV_NGI, CV_NLOC, CVN, CVWEIGHT, N, NLX_ALL(1,:,:), NLX_ALL(2,:,:), NLX_ALL(3,:,:), &
+               X_NONODS, X_ALL, NCOLM, FINDM, COLM, MIDM, &
+               0, PSI_AVE(1)%ptr%val(1,:), FINDM, COLM, NCOLM )! <=== Dummy variables, not used inside
+
+        !Deallocate auxiliar variables
+        deallocate (NLX_ALL,L1,L2,L3,L4,N, WEIGHT)
+        call deallocate(vfield)
+
+    end subroutine Proj_capillary_pressure2FEM
 
 end module multiphase_1D_engine

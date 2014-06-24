@@ -1123,25 +1123,23 @@ requires a distinct name for the options dictionary.</a:documentation>
             <attribute name="name">
               <value>dirichlet</value>
             </attribute>
-            <optional>
-              <element name="apply_weakly">
-                <a:documentation>Apply the dirichlet bc weakly.  Available
+            <element name="apply_weakly">
+              <a:documentation>Apply the dirichlet bc weakly.  Available
 automatically with discontinuous_galerkin,
 and control_volume spatial_discretisations.
 If not selected boundary conditions are applied strongly.</a:documentation>
-                <optional>
-                  <element name="boundary_overwrites_initial_condition">
-                    <a:documentation>If the initial condition and boundary conditions
+              <optional>
+                <element name="boundary_overwrites_initial_condition">
+                  <a:documentation>If the initial condition and boundary conditions
 differ, setting this option will cause the initial
 condition on the boundary to be overwritten with
 the boundary condition. Since you are applying the
 boundary condition weakly, you probably do *not*
 want this.</a:documentation>
-                    <empty/>
-                  </element>
-                </optional>
-              </element>
-            </optional>
+                  <empty/>
+                </element>
+              </optional>
+            </element>
             <ref name="input_choice_real"/>
           </element>
         </group>
@@ -1508,9 +1506,8 @@ normals and tangenials 1/2</a:documentation>
         <attribute name="name">
           <value>dirichlet</value>
         </attribute>
-        <optional>
-          <element name="apply_weakly">
-            <a:documentation>Apply the dirichlet bc weakly.  Available automatically
+        <element name="apply_weakly">
+          <a:documentation>Apply the dirichlet bc weakly.  Available automatically
 with a discontinuous_galerkin Velocity
 spatial_discretisation.  Available if you
 integrate_continuity_by_parts with a
@@ -1520,19 +1517,81 @@ integrate_advection_by_parts under Velocity
 spatial_discretisation with continuous_galerkin.
 
 If not selected boundary conditions are applied strongly.</a:documentation>
-            <optional>
-              <element name="boundary_overwrites_initial_condition">
-                <a:documentation>If the initial condition and boundary conditions
+          <optional>
+            <element name="boundary_overwrites_initial_condition">
+              <a:documentation>If the initial condition and boundary conditions
 differ, setting this option will cause the initial
 condition on the boundary to be overwritten with
 the boundary condition. Since you are applying the
 boundary condition weakly, you probably do *not*
 want this.</a:documentation>
-                <empty/>
-              </element>
-            </optional>
-          </element>
-        </optional>
+              <empty/>
+            </element>
+          </optional>
+        </element>
+        <ref name="velocity_components_choice"/>
+      </element>
+      <element name="type">
+        <a:documentation>This applies a Dirichlet condition through the continuity equation
+and thus will only apply a normal component of this specified
+velocity as the boundary condition.</a:documentation>
+        <attribute name="name">
+          <value>dirichlet_continuity</value>
+        </attribute>
+        <element name="apply_weakly">
+          <a:documentation>Apply the dirichlet bc weakly.  Available automatically
+with a discontinuous_galerkin Velocity
+spatial_discretisation.  Available if you
+integrate_continuity_by_parts with a
+continuous_galerkin Pressure or use a control_volume
+Pressure spatial_discretisation and/or
+integrate_advection_by_parts under Velocity
+spatial_discretisation with continuous_galerkin.
+
+If not selected boundary conditions are applied strongly.</a:documentation>
+          <optional>
+            <element name="boundary_overwrites_initial_condition">
+              <a:documentation>If the initial condition and boundary conditions
+differ, setting this option will cause the initial
+condition on the boundary to be overwritten with
+the boundary condition. Since you are applying the
+boundary condition weakly, you probably do *not*
+want this.</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+        </element>
+        <ref name="velocity_components_choice"/>
+      </element>
+      <element name="type">
+        <a:documentation>This applies a Dirichlet condition through the viscous terms in the
+momentum equation. It will be applied to each of the components specified.</a:documentation>
+        <attribute name="name">
+          <value>dirichlet_viscosity</value>
+        </attribute>
+        <element name="apply_weakly">
+          <a:documentation>Apply the dirichlet bc weakly.  Available automatically
+with a discontinuous_galerkin Velocity
+spatial_discretisation.  Available if you
+integrate_continuity_by_parts with a
+continuous_galerkin Pressure or use a control_volume
+Pressure spatial_discretisation and/or
+integrate_advection_by_parts under Velocity
+spatial_discretisation with continuous_galerkin.
+
+If not selected boundary conditions are applied strongly.</a:documentation>
+          <optional>
+            <element name="boundary_overwrites_initial_condition">
+              <a:documentation>If the initial condition and boundary conditions
+differ, setting this option will cause the initial
+condition on the boundary to be overwritten with
+the boundary condition. Since you are applying the
+boundary condition weakly, you probably do *not*
+want this.</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+        </element>
         <ref name="velocity_components_choice"/>
       </element>
       <element name="type">
@@ -1730,19 +1789,19 @@ When activated wall treatment is not applied on the wall-outflow edge.</a:docume
       </element>
       <element name="type">
         <a:documentation>Momentun BC
-
-Should be used in combination with the near_wall_treatment condition.
-When activated wall treatment is not applied on the wall-outflow edge.</a:documentation>
+</a:documentation>
         <attribute name="name">
           <value>momentum</value>
         </attribute>
         <ref name="velocity_components_choice"/>
-        <element name="boundary">
-          <choice>
-            <value>incoming</value>
-            <value>open</value>
-          </choice>
-        </element>
+      </element>
+      <element name="type">
+        <a:documentation>Momentun BC
+</a:documentation>
+        <attribute name="name">
+          <value>momentuminout</value>
+        </attribute>
+        <ref name="velocity_components_choice"/>
       </element>
     </choice>
   </define>

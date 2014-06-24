@@ -1176,7 +1176,7 @@
 !      RETURN
 !    END SUBROUTINE calculate_capillary_pressure
 !
-   SUBROUTINE calculate_capillary_pressure( state, packed_state, CV_NONODS, NPHASE, capillary_pressure )
+   SUBROUTINE calculate_capillary_pressure( state, packed_state, CV_NONODS, NPHASE )
 
       ! CAPIL_PRES_OPT is the capillary pressure option for deciding what form it might take.
       ! CAPIL_PRES_COEF( NCAPIL_PRES_COEF, NPHASE, NPHASE ) are the coefficients
@@ -1187,7 +1187,6 @@
       type(state_type), dimension(:), intent(in) :: state
       type(state_type), intent(inout) :: packed_state
       INTEGER, intent( in ) :: CV_NONODS, NPHASE
-      REAL, DIMENSION( : ), intent( inout ) :: capillary_pressure
       ! Local Variables
       INTEGER :: nstates, ncomps, nphases, IPHASE, JPHASE, i, j, k
       real c, a, S_OR, S_GC, auxO, auxW
@@ -1196,11 +1195,12 @@
       !Corey options
       type(corey_options) :: options
       !Working pointers
-      real, dimension(:,:), pointer :: Satura
+      real, dimension(:,:), pointer :: Satura, CapPressure
 
       !Get from packed_state
       call get_var_from_packed_state(packed_state,PhaseVolumeFraction = Satura)
-!      call get_var_from_packed_state(packed_state,FEPhaseVolumeFraction = Satura)
+      call get_var_from_packed_state(packed_state,CapPressure = CapPressure)
+
       !Get corey options
       call get_corey_options(options)
       s_gc=options%s_gc
@@ -1217,11 +1217,9 @@
       end do
       nphases=nstates-ncomps
 
-!        adapted_satura = SATURA
 
       if (have_option("/material_phase[0]/multiphase_properties/capillary_pressure/type_Brookes_Corey") ) then
-
-         capillary_pressure = 0.0
+         CapPressure = 0.
 
          DO IPHASE = 1, NPHASE
 
@@ -1255,9 +1253,10 @@
                   call get_option(trim(option_path)//"/phase["//int2str(j)//"]/c", c)
                   call get_option(trim(option_path)//"/phase["//int2str(j)//"]/a", a)
                   !Apply Brooks-Corey model
-                  capillary_pressure( 1 + ( IPHASE - 1 ) * CV_NONODS : IPHASE * CV_NONODS ) = &
-                       capillary_pressure( 1 + ( IPHASE - 1 ) * CV_NONODS : IPHASE * CV_NONODS ) + &
-                       c * adapted_satura( jphase,: ) ** (-a)
+!                  capillary_pressure( 1 + ( IPHASE - 1 ) * CV_NONODS : IPHASE * CV_NONODS ) = &
+!                       capillary_pressure( 1 + ( IPHASE - 1 ) * CV_NONODS : IPHASE * CV_NONODS ) + &
+!                       c * adapted_satura( jphase,: ) ** (-a)
+                  CapPressure( iphase, : ) = CapPressure( iphase, : ) + c * adapted_satura( jphase,: ) ** (-a)
                endif
 
             END DO
@@ -1576,9 +1575,9 @@
          surface_element_count(volfrac)))
 
     call get_entire_boundary_condition(velocity,&
-           ['dirichlet'],velocity_BCs,WIC_U_BC)
+           ['weakdirichlet'],velocity_BCs,WIC_U_BC)
     call get_entire_boundary_condition(volfrac,&
-           ['dirichlet'],volfrac_BCs,WIC_vol_BC)
+           ['weakdirichlet'],volfrac_BCs,WIC_vol_BC)
       if( have_option( '/physical_parameters/mobility' ) )then
          call get_option( '/physical_parameters/mobility', mobility )
       elseif( have_option( '/material_phase[1]/vector_field::Velocity/prognostic/tensor_field::Viscosity' // &

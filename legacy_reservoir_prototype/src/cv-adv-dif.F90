@@ -447,6 +447,7 @@ contains
       real, dimension(:,:), allocatable, target :: T_ALL_TARGET, TOLD_ALL_TARGET, FEMT_ALL_TARGET, FEMTOLD_ALL_TARGET, T_TEMP, TOLD_TEMP
       real, dimension(:,:), pointer :: T_ALL, TOLD_ALL, X_ALL, FEMT_ALL, FEMTOLD_ALL
       real, dimension(:, :, :), pointer :: comp, comp_old, fecomp, fecomp_old, U_ALL, NU_ALL, NUOLD_ALL
+      real, dimension(:,:), allocatable :: T_ALL_KEEP
 
 !! boundary_condition fields
       type(tensor_field) :: velocity_BCs,tracer_BCs, density_BCs, saturation_BCs
@@ -480,7 +481,16 @@ contains
       integer :: nb
       logical :: skip
 
+
+
+
       !#################SET WORKING VARIABLES#################
+      call get_var_from_packed_state(packed_state,PressureCoordinate = X_ALL,&
+           OldNonlinearVelocity = NUOLD_ALL, NonlinearVelocity = NU_ALL)
+      !For every Field_selector value but 3 (saturation) we need U_ALL to be NU_ALL
+      U_ALL => NU_ALL
+      
+      allocate( t_all_keep( nphase, cv_nonods ) )
 
       old_tracer=>extract_tensor_field(packed_state,GetOldName(tracer))
       old_density=>extract_tensor_field(packed_state,GetOldName(density))
@@ -489,83 +499,98 @@ contains
               GetOldName(saturation))
       end if
 
-      call get_var_from_packed_state(packed_state,PressureCoordinate = X_ALL,&
-      OldNonlinearVelocity = NUOLD_ALL, NonlinearVelocity = NU_ALL)
-      !For every Field_selector value but 3 (saturation) we need U_ALL to be NU_ALL
-      U_ALL => NU_ALL
+
       if (.not.present(T_input)) then!<==TEMPORARY
-          select case (Field_selector)
-              case (1)!Temperature
-                  call get_var_from_packed_state(packed_state,Temperature = T_ALL,&
-                  OldTemperature = TOLD_ALL, FETemperature =FEMT_ALL,OldFETemperature = FEMTOLD_ALL)
-              case (2)!Component mass fraction
-                  if (present(icomp)) then
-                      call get_var_from_packed_state(packed_state,ComponentMassFraction = comp, &
-                      OldComponentMassFraction = comp_old, FEComponentMassFraction = fecomp, &
-                     OldFEComponentMassFraction = fecomp_old )
-                      T_ALL => comp(icomp,:,:)
-                      TOLD_ALL => comp_old(icomp,:,:)
-                      FEMT_ALL => fecomp(icomp,:,:)
-                      FEMTOLD_ALL => fecomp_old(icomp,:,:)
-                  else
-                      FLAbort('Component field require to introduce icomp')
-                  end if
-              case (3)!Saturation
-                  call get_var_from_packed_state(packed_state,PhaseVolumeFraction = T_ALL,&
-                        OldPhaseVolumeFraction = TOLD_ALL, Velocity = U_ALL,&
-                        FEPhaseVolumeFraction = FEMT_ALL, OldFEPhaseVolumeFraction = FEMTOLD_ALL)
-
-                  IF( GETCT ) THEN
-                     IF( RETRIEVE_SOLID_CTY ) THEN
-                        ALLOCATE(VOL_FRA_FLUID(CV_NONODS))
-                        ALLOCATE(U_HAT_ALL(NDIM,U_NONODS))
-
-                        delta_u_all => extract_vector_field( packed_state, "delta_U" )
-                        u_hat_all = delta_u_all%val + u_all( :, 1, :) ! ndim, u_nonods
-
-                        us_all => extract_vector_field( packed_state, "solid_U" )
-
-                        Solid_vol_fra => extract_scalar_field( packed_state, "SolidConcentration" )
-                        VOL_FRA_FLUID = 1.0 - 1.0 * solid_vol_fra%val   ! cv_nonods
-
-! Amend the saturations to produce the real voln fractions -only is we have just one phase.
-                        IF(NPHASE==1) THEN
-                           ALLOCATE(T_TEMP(NPHASE,CV_NONODS), TOLD_TEMP(NPHASE,CV_NONODS))
-                           DO CV_NODI=1,CV_NONODS
-                              T_TEMP(:,CV_NODI)   =VOL_FRA_FLUID(CV_NODI)  ! T is an allocatable target
-                              TOLD_TEMP(:,CV_NODI)=VOL_FRA_FLUID(CV_NODI)
-                           END DO
-! switch off caching of CV face values as this will be wrong. 
-                           T_ALL=>T_TEMP
-                           TOLD_ALL=>TOLD_TEMP
-                        ENDIF
-! CONV = A*B ! conV is an allocatable target
-! T_ALL=>CONV ! conV is an allocatable target
-
-                        call get_option( '/blasting/theta_cty_solid', theta_cty_solid, default=1.  )
-
-                     ENDIF
+         select case (Field_selector)
+         case (1)!Temperature
+            call get_var_from_packed_state(packed_state,Temperature = T_ALL,&
+                 OldTemperature = TOLD_ALL, FETemperature =FEMT_ALL,OldFETemperature = FEMTOLD_ALL)
+            T_ALL_KEEP = T_ALL
+         case (2)!Component mass fraction
+            if (present(icomp)) then
+               call get_var_from_packed_state(packed_state,ComponentMassFraction = comp, &
+                    OldComponentMassFraction = comp_old, FEComponentMassFraction = fecomp, &
+                    OldFEComponentMassFraction = fecomp_old )
+               T_ALL => comp(icomp,:,:)
+               TOLD_ALL => comp_old(icomp,:,:)
+               FEMT_ALL => fecomp(icomp,:,:)
+               FEMTOLD_ALL => fecomp_old(icomp,:,:)
+               T_ALL_KEEP = T_ALL
+            else
+               FLAbort('Component field require to introduce icomp')
+            end if
+         case (3)!Saturation
+            call get_var_from_packed_state(packed_state,PhaseVolumeFraction = T_ALL,&
+                 OldPhaseVolumeFraction = TOLD_ALL, Velocity = U_ALL,&
+                 FEPhaseVolumeFraction = FEMT_ALL, OldFEPhaseVolumeFraction = FEMTOLD_ALL)
+            
+            T_ALL_KEEP = T_ALL
+            
+            IF( GETCT ) THEN
+               IF( RETRIEVE_SOLID_CTY ) THEN
+                  ALLOCATE(VOL_FRA_FLUID(CV_NONODS))
+                  ALLOCATE(U_HAT_ALL(NDIM,U_NONODS))
+                  
+                  delta_u_all => extract_vector_field( packed_state, "delta_U" )
+                  u_hat_all = delta_u_all%val + u_all( :, 1, :) ! ndim, u_nonods
+                  
+                  us_all => extract_vector_field( packed_state, "solid_U" )
+                  
+                  Solid_vol_fra => extract_scalar_field( packed_state, "SolidConcentration" )
+                  VOL_FRA_FLUID = 1.0 - 1.0 * solid_vol_fra%val   ! cv_nonods
+                  
+                  
+                  ALLOCATE(T_TEMP(NPHASE,CV_NONODS), TOLD_TEMP(NPHASE,CV_NONODS))
+                  
+                  IF(NPHASE==1) THEN
+                     do cv_inod = 1, cv_nonods
+                        do iphase = 1, nphase
+                           ! Amend the saturations to produce the real voln fractions -only is we have just one phase.
+                           T_TEMP(iphase, cv_inod) = VOL_FRA_FLUID(cv_inod)
+                           TOLD_TEMP(iphase, cv_inod) = VOL_FRA_FLUID(cv_inod)
+                        end do
+                     end do
+                  ELSE
+                     T_TEMP= T_ALL
+                     TOLD_TEMP=TOLD_ALL
                   ENDIF
-              case default
-                  FLAbort('Invalid field_selector value')
-              end select
+
+                  ! switch off caching of CV face values as this will be wrong.
+                  T_ALL=>T_TEMP
+                  TOLD_ALL=>TOLD_TEMP
+                  ! CONV = A*B ! conV is an allocatable target
+                  ! T_ALL=>CONV ! conV is an allocatable target
+                  
+                  call get_option( '/blasting/theta_cty_solid', theta_cty_solid, default=1.  )
+                  
+               ENDIF
+            ENDIF
+         case default
+            FLAbort('Invalid field_selector value')
+         end select
 
       else
-          ALLOCATE( T_ALL_TARGET( NPHASE, CV_NONODS ), TOLD_ALL_TARGET( NPHASE, CV_NONODS ), FEMT_ALL_TARGET(NPHASE, CV_NONODS) )
-          do cv_inod = 1, cv_nonods
-              do iphase = 1, nphase
-                  T_ALL_TARGET(iphase, cv_inod) = T_input(cv_inod+(iphase-1)*cv_nonods)
-                  TOLD_ALL_TARGET(iphase, cv_inod) = TOLD_input(cv_inod+(iphase-1)*cv_nonods)
-                  FEMT_ALL_TARGET(iphase, cv_inod) = FEMT_input(cv_inod+(iphase-1)*cv_nonods)
-              end do
-          end do
-          T_ALL => T_ALL_TARGET
-          TOLD_ALL => TOLD_ALL_TARGET
-          FEMT_ALL => FEMT_ALL_TARGET
-          allocate (FEMTOLD_ALL_TARGET(NPHASE, CV_NONODS))
-          FEMTOLD_ALL_TARGET = 0.
-          FEMTOLD_ALL => FEMTOLD_ALL_TARGET
+         ALLOCATE( T_ALL_TARGET( NPHASE, CV_NONODS ), TOLD_ALL_TARGET( NPHASE, CV_NONODS ), FEMT_ALL_TARGET(NPHASE, CV_NONODS) )
+         do cv_inod = 1, cv_nonods
+            do iphase = 1, nphase
+               T_ALL_TARGET(iphase, cv_inod) = T_input(cv_inod+(iphase-1)*cv_nonods)
+               TOLD_ALL_TARGET(iphase, cv_inod) = TOLD_input(cv_inod+(iphase-1)*cv_nonods)
+               FEMT_ALL_TARGET(iphase, cv_inod) = FEMT_input(cv_inod+(iphase-1)*cv_nonods)
+            end do
+         end do
+         T_ALL => T_ALL_TARGET
+         TOLD_ALL => TOLD_ALL_TARGET
+         FEMT_ALL => FEMT_ALL_TARGET
+         allocate (FEMTOLD_ALL_TARGET(NPHASE, CV_NONODS))
+         FEMTOLD_ALL_TARGET = 0.
+         FEMTOLD_ALL => FEMTOLD_ALL_TARGET
+         
+         T_ALL_KEEP = T_ALL
       end if
+
+
+
+
       allocate (T (NPHASE* CV_NONODS), TOLD(NPHASE* CV_NONODS))!TEMPORARY
 
 
@@ -577,18 +602,18 @@ contains
       !! Get boundary conditions from field
 
       call get_entire_boundary_condition(tracer,&
-           ['dirichlet','robin    '],&
+           ['weakdirichlet','robin        '],&
            tracer_BCs,WIC_T_BC_ALL,boundary_second_value=tracer_BCs_robin2)
       call get_entire_boundary_condition(density,&
-           ['dirichlet'],&
+           ['weakdirichlet'],&
            density_BCs,WIC_D_BC_ALL)
       if (present(saturation))&
            call get_entire_boundary_condition(saturation,&
-           ['dirichlet','robin    '],&
+           ['weakdirichlet','robin        '],&
            saturation_BCs,WIC_T2_BC_ALL,&
            boundary_second_value=saturation_BCs_robin2)
       call get_entire_boundary_condition(velocity,&
-           ['dirichlet'],&
+           ['weakdirichlet'],&
            velocity_BCs,WIC_U_BC_ALL)
       
       !! reassignments to old arrays, to be discussed
@@ -2564,19 +2589,17 @@ contains
             ENDIF
 
             DO IPHASE = 1, NPHASE
-!               CV_NODI_IPHA = CV_NODI + ( IPHASE - 1 ) * CV_NONODS
-!               RHS_NODI_IPHA = IPHASE + (CV_NODI-1 ) * NPHASE
 
                CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) &
                     - R * ( &
                     + (1.0-W_SUM_ONE1) * T_ALL( IPHASE, CV_NODI ) - (1.0-W_SUM_ONE2) * TOLD_ALL( IPHASE, CV_NODI ) &
                     + ( TOLD_ALL( IPHASE, CV_NODI ) * ( DEN_ALL( IPHASE, CV_NODI ) - DENOLD_ALL( IPHASE, CV_NODI ) ) &
-                    - DERIV( IPHASE, CV_NODI ) * CV_P( CV_NODI ) * T_ALL( IPHASE, CV_NODI ) ) / DEN_ALL( IPHASE, CV_NODI ) )
+                    - DERIV( IPHASE, CV_NODI ) * CV_P( CV_NODI ) * T_ALL_KEEP( IPHASE, CV_NODI ) ) / DEN_ALL( IPHASE, CV_NODI ) )
                     !- DERIV( IPHASE, CV_NODI ) * CV_P( CV_NODI ) * max( 1., T_ALL( IPHASE, CV_NODI ) ) ) / DEN_ALL( IPHASE, CV_NODI ) )
 
 
                DIAG_SCALE_PRES( CV_NODI ) = DIAG_SCALE_PRES( CV_NODI ) + &
-                    MEAN_PORE_CV( CV_NODI ) * T_ALL( IPHASE, CV_NODI ) * DERIV( IPHASE, CV_NODI ) &
+                    MEAN_PORE_CV( CV_NODI ) * T_ALL_KEEP( IPHASE, CV_NODI ) * DERIV( IPHASE, CV_NODI ) &
                     !MEAN_PORE_CV( CV_NODI ) * max( 1., T_ALL( IPHASE, CV_NODI ) ) * DERIV( IPHASE, CV_NODI ) &
                     / ( DT * DEN_ALL( IPHASE, CV_NODI ) )
 
@@ -7002,7 +7025,7 @@ end if
                                                           UOLD_CV_NODJ_IPHA_ALL, UOLD_CV_NODI_IPHA_ALL
     REAL, intent( in ) :: ZERO_OR_TWO_THIRDS
     REAL, DIMENSION( NDIM,NPHASE,SBCVNGI ), intent( inout ) :: DIFF_COEF_DIVDX, DIFF_COEFOLD_DIVDX
-    INTEGER, DIMENSION( NPHASE,STOTEL ), intent( in ) ::WIC_U_BC
+    INTEGER, DIMENSION( NDIM,NPHASE,STOTEL ), intent( in ) ::WIC_U_BC
     REAL, DIMENSION( CV_SNLOC, SBCVNGI  ), intent( in ) :: SBCVFEN
     REAL, DIMENSION( U_SNLOC, SBCVNGI  ), intent( in ) :: SBUFEN
     REAL, DIMENSION( NDIM,NDIM,NPHASE,CV_SNLOC ), intent( in ) :: SLOC_UDIFFUSION, SLOC2_UDIFFUSION
@@ -7034,8 +7057,7 @@ end if
     REAL, DIMENSION( :, :, : ), allocatable :: N_DOT_DKDU, N_DOT_DKDUOLD, N_DOT_DKDU2, N_DOT_DKDUOLD2
     REAL, DIMENSION( :, :, : ), allocatable :: DIFF_STAND_DIVDX_U, DIFF_STAND_DIVDX2_U, &
              DIFF_COEF_DIVDX_U, DIFF_COEFOLD_DIVDX_U
-    REAL, DIMENSION( :, : ), allocatable :: IDENT
-    REAL, DIMENSION( : ), allocatable :: RZER_DIFF_ALL
+    REAL, DIMENSION( :, : ), allocatable :: IDENT, RZER_DIFF_ALL
     REAL :: COEF
     INTEGER :: CV_KLOC,CV_KLOC2,MAT_KLOC,MAT_KLOC2,MAT_NODK,MAT_NODK2,IDIM,JDIM,CV_SKLOC
     INTEGER :: SGI,IPHASE
@@ -7043,7 +7065,7 @@ end if
 
 !    SIMPLE_DIFF_CALC=SIMPLE_DIFF_CALC2
 
-    ALLOCATE( RZER_DIFF_ALL(NPHASE) )
+    ALLOCATE( RZER_DIFF_ALL(NDIM,NPHASE) )
 
 
     ZER_DIFF=.FALSE.
@@ -7052,10 +7074,12 @@ end if
        ZER_DIFF=.TRUE.
        RZER_DIFF_ALL=0.0
        DO IPHASE=1,NPHASE
-          IF(WIC_U_BC( IPHASE, SELE) == WIC_U_BC_DIRICHLET) THEN
+       DO IDIM = 1, NDIM
+          IF(WIC_U_BC( IDIM, IPHASE, SELE) == WIC_U_BC_DIRICHLET) THEN
              ZER_DIFF=.FALSE.
-             RZER_DIFF_ALL(IPHASE)=1.0
+             RZER_DIFF_ALL(IDIM,IPHASE)=1.0
           ENDIF
+       END DO
        END DO
     ENDIF
 
@@ -7241,10 +7265,12 @@ end if
 
 ! 
 ! Zero if we are on boundary and applying Dirichlet b.c's
-      DO IPHASE=1, NPHASE
-          DIFF_COEF_DIVDX(:,IPHASE,:)    =  RZER_DIFF_ALL(IPHASE)*DIFF_COEF_DIVDX(:,IPHASE,:)
-          DIFF_COEFOLD_DIVDX(:,IPHASE,:) =  RZER_DIFF_ALL(IPHASE)*DIFF_COEFOLD_DIVDX(:,IPHASE,:)
-      END DO
+     DO IPHASE=1, NPHASE
+        DO IDIM=1, NDIM
+           DIFF_COEF_DIVDX(IDIM,IPHASE,:)    =  RZER_DIFF_ALL(IDIM,IPHASE)*DIFF_COEF_DIVDX(IDIM,IPHASE,:)
+           DIFF_COEFOLD_DIVDX(IDIM,IPHASE,:) =  RZER_DIFF_ALL(IDIM,IPHASE)*DIFF_COEFOLD_DIVDX(IDIM,IPHASE,:)
+        END DO
+     END DO
 
 
     RETURN            
@@ -12611,7 +12637,6 @@ CONTAINS
     NFIELD=(4 + 2*IGOT_T2)*NPHASE
     ALLOCATE( FUPWIND_MAT_ALL(NFIELD,NSMALL_COLM) )
     ALLOCATE( F_ALL(NFIELD, CV_NONODS), FEMF_ALL(NFIELD, CV_NONODS)  )
-
     F_ALL(1:NPHASE,            :)=T_ALL(1:NPHASE, :)
     F_ALL(1+NPHASE:  2*NPHASE, :)=TOLD_ALL(1:NPHASE, :)
     F_ALL(1+2*NPHASE:3*NPHASE, :)=DEN_ALL(1:NPHASE, :)

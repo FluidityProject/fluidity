@@ -1980,7 +1980,7 @@
 
       type(scalar_field) :: porosity
       type(vector_field) :: p_position, u_position, m_position
-      type(tensor_field) :: permeability
+      type(tensor_field) :: permeability, ten_field
       type(mesh_type) :: ovmesh,lmesh,nvmesh, element_mesh
       type(element_type) :: overlapping_shape, vel_shape, element_shape
       character( len = option_path_len ) :: vel_element_type
@@ -2060,6 +2060,14 @@
       call insert_sfield(packed_state,"PhaseVolumeFraction",1,nphase,&
            add_source=.true.)
       call insert_sfield(packed_state,"FEPhaseVolumeFraction",1,nphase)
+
+      !If we have capillary pressure we create a field in packed_state
+      if( have_option( '/material_phase[0]/multiphase_properties/capillary_pressure' ) ) then
+          call allocate(ten_field,pressure%mesh,"PackedCapPressure",dim=[1,nphase])
+          call insert(packed_state,ten_field,"PackedCapPressure")
+          call deallocate(ten_field)
+      end if
+
 
       velocity=>extract_vector_field(state(1),"Velocity")
       call insert(packed_state,velocity%mesh,"VelocityMesh")
@@ -2546,11 +2554,11 @@
              ladd_absorption=.false.
           end if
 
-          
           call allocate(mfield,lmesh,"Packed"//name,dim=[ndim,nphase],contiguous=.true.)
           if (lzero) then
              call zero(mfield)
           end if
+
           call insert(mstate,mfield,"Packed"//name)
           call deallocate(mfield)
           call allocate(mfield,lmesh,"PackedOld"//name,dim=[ndim,nphase])
@@ -3247,7 +3255,7 @@ subroutine allocate_multicomponent_scalar_bcs(s,ms,name)
     IteratedComponentMassFraction, FEComponentDensity, OldFEComponentDensity, IteratedFEComponentDensity,&
     FEComponentMassFraction, OldFEComponentMassFraction, IteratedFEComponentMassFraction,&
     Pressure,FEPressure, OldFEPressure, CVPressure,OldCVPressure,&
-    Coordinate, VelocityCoordinate,PressureCoordinate,MaterialCoordinate  )
+    Coordinate, VelocityCoordinate,PressureCoordinate,MaterialCoordinate, CapPressure  )
         !This subroutine returns a pointer to the desired values of a variable stored in packed state
         !All the input variables (but packed_stated) are pointers following the structure of the *_ALL variables
         !and also all of them are optional, hence you can obtaine whichever you want
@@ -3271,7 +3279,7 @@ subroutine allocate_multicomponent_scalar_bcs(s,ms,name)
         OldDensity,IteratedDensity,PhaseVolumeFraction,OldPhaseVolumeFraction,IteratedPhaseVolumeFraction,&
         Temperature, OldTemperature, IteratedTemperature, FETemperature, OldFETemperature, IteratedFETemperature,&
         Coordinate, VelocityCoordinate,PressureCoordinate,MaterialCoordinate, &
-        FEPhaseVolumeFraction, OldFEPhaseVolumeFraction, IteratedFEPhaseVolumeFraction
+        FEPhaseVolumeFraction, OldFEPhaseVolumeFraction, IteratedFEPhaseVolumeFraction, CapPressure
         real, optional, dimension(:), pointer ::Pressure,FEPressure, OldFEPressure, CVPressure,OldCVPressure
         !Local variables
         type(scalar_field), pointer :: sfield
@@ -3366,6 +3374,10 @@ subroutine allocate_multicomponent_scalar_bcs(s,ms,name)
         if (present(IteratedFEPhaseVolumeFraction)) then
             tfield => extract_tensor_field( packed_state, "PackedIteratedFEPhaseVolumeFraction" )
             IteratedFEPhaseVolumeFraction =>  tfield%val(1,:,:)
+        end if
+        if (present(CapPressure)) then
+            tfield => extract_tensor_field( packed_state, "PackedCapPressure" )
+            CapPressure =>  tfield%val(1,:,:)
         end if
         if (present(Temperature)) then
             tfield => extract_tensor_field( packed_state, "PackedTemperature" )
