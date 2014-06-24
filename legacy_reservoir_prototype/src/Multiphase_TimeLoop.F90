@@ -70,6 +70,10 @@
 
     use multiphase_fractures
 
+
+#ifdef HAVE_ZOLTAN
+  use zoltan
+#endif
     !use mapping_for_ocvfem
     !use matrix_operations
     !use shape_functions
@@ -227,8 +231,18 @@
 
       !Dummy to print FEM saturation
       real, dimension(:,:), allocatable :: dummy_to_print_FEM
+
+#ifdef HAVE_ZOLTAN
+      real(zoltan_float) :: ver
+      integer(zoltan_int) :: ierr
+      
+      ierr = Zoltan_Initialize(ver)  
+      assert(ierr == ZOLTAN_OK)
+#endif
+
       !Initially we set to use Stored data and that we have a new mesh
       StorageIndexes = 0!Initialize them as zero !
+
 
       !Read info for adaptive timestep based on non_linear_iterations
 
