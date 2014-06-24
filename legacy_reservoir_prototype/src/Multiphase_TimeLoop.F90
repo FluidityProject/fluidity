@@ -679,7 +679,6 @@
                        state, x_nonods )
                end if
             end if
-
 !!$ Solve advection of the scalar 'Temperature':
             Conditional_ScalarAdvectionField: if( have_temperature_field .and. &
                  have_option( '/material_phase[0]/scalar_field::Temperature/prognostic' ) ) then
@@ -784,8 +783,7 @@
                     StorageIndexes=StorageIndexes )
 
                if( have_option( '/material_phase[0]/multiphase_properties/capillary_pressure' ) )then
-                  iplike_grad_sou = 1
-                  call calculate_capillary_pressure( state, packed_state, cv_nonods, nphase, plike_grad_sou_grad)
+                  call calculate_capillary_pressure( state, packed_state, cv_nonods, nphase)
                end if
 
 
