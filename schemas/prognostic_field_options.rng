@@ -16,26 +16,24 @@
           <attribute name="name">
             <value>dirichlet</value>
           </attribute>
-          <optional>
-            <element name="apply_weakly">
-              <a:documentation>Apply the dirichlet bc weakly.  Available
+          <element name="apply_weakly">
+            <a:documentation>Apply the dirichlet bc weakly.  Available
 automatically with discontinuous_galerkin and
 control_volume
 spatial_discretisations.
 If not selected boundary conditions are applied strongly.</a:documentation>
-              <optional>
-                <element name="boundary_overwrites_initial_condition">
-                  <a:documentation>If the initial condition and boundary conditions
+            <optional>
+              <element name="boundary_overwrites_initial_condition">
+                <a:documentation>If the initial condition and boundary conditions
 differ, setting this option will cause the initial
 condition on the boundary to be overwritten with
 the boundary condition. Since you are applying the
 boundary condition weakly, you probably do *not*
 want this.</a:documentation>
-                  <empty/>
-                </element>
-              </optional>
-            </element>
-          </optional>
+                <empty/>
+              </element>
+            </optional>
+          </element>
           <optional>
             <element name="component_density">
               <a:documentation>For multimaterial simulations.</a:documentation>
@@ -1811,25 +1809,23 @@ requires a distinct name for the options dictionary.</a:documentation>
           <attribute name="name">
             <value>dirichlet</value>
           </attribute>
-          <optional>
-            <element name="apply_weakly">
-              <a:documentation>Apply the dirichlet bc weakly.  Available
+          <element name="apply_weakly">
+            <a:documentation>Apply the dirichlet bc weakly.  Available
 automatically with discontinuous_galerkin and
 control_volume spatial_discretisations.
 If not selected boundary conditions are applied strongly.</a:documentation>
-              <optional>
-                <element name="boundary_overwrites_initial_condition">
-                  <a:documentation>If the initial condition and boundary conditions
+            <optional>
+              <element name="boundary_overwrites_initial_condition">
+                <a:documentation>If the initial condition and boundary conditions
 differ, setting this option will cause the initial
 condition on the boundary to be overwritten with
 the boundary condition. Since you are applying the
 boundary condition weakly, you probably do *not*
 want this.</a:documentation>
-                  <empty/>
-                </element>
-              </optional>
-            </element>
-          </optional>
+                <empty/>
+              </element>
+            </optional>
+          </element>
           <ref name="input_choice_real_plus_boundary_forcing"/>
         </element>
       </element>

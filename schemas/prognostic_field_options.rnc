@@ -26,7 +26,7 @@ scalar_boundary_conditions =
                   element boundary_overwrites_initial_condition {
                      empty
                   }?
-               }?,
+               },
                ## For multimaterial simulations.
                element component_density {
                   empty
@@ -1491,7 +1491,7 @@ prognostic_pressure_field =
               element boundary_overwrites_initial_condition {
                  empty
               }?
-            }?,
+            },
             input_choice_real_plus_boundary_forcing
          }
       }*,

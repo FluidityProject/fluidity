@@ -244,7 +244,7 @@
       !stop 78
 
       !  Access boundary conditions via a call like
-      !  call get_entire_boundary_condition(extract_tensor_field(packed_state,"Packed"//name),["dirichlet"],tfield,bc_type_list)
+      !  call get_entire_boundary_condition(extract_tensor_field(packed_state,"Packed"//name),["weakdirichlet"],tfield,bc_type_list)
       !  where tfield is type(tensor_field) and bc_type_list is integer, dimension(tfield%dim(1),tfield%dim(2),nonods)
       !  Then values are in tfield%val(1/ndim/ncomp,nphase,nonods) 
       !  Type ids are in bc_type_list(1/ndim/ncomp,nphase,stotel) 

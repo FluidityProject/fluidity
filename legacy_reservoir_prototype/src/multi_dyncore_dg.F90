@@ -1057,7 +1057,7 @@ contains
             call petsc_solve(vtracer,petsc_acv,rhs_field,trim(option_path))
             call deallocate(petsc_acv)
 
-			satura(:,:)=tracer%val(1,:,:)
+            satura(:,:)=tracer%val(1,:,:)
 
         END DO Loop_NonLinearFlux
 
@@ -2732,10 +2732,10 @@ contains
         !! get boundary information
         
         call get_entire_boundary_condition(pressure,&
-           ['dirichlet'],&
+           ['weakdirichlet'],&
            pressure_BCs,WIC_P_BC_ALL)
         call get_entire_boundary_condition(velocity,&
-           ['dirichlet','robin    '],&
+           ['weakdirichlet','robin        '],&
            velocity_BCs,WIC_U_BC_ALL,boundary_second_value=velocity_BCs_robin2)
         call get_entire_boundary_condition(velocity,&
            ['momentum     ','momentuminout'],&
@@ -4600,8 +4600,8 @@ contains
                               SLOC2_UDIFFUSION( 1:NDIM, 1:NDIM, IPHASE, CV_SILOC ) = UDIFFUSION_ALL( 1:NDIM, 1:NDIM, IPHASE, MAT_INOD2 )
                            ELSE
                               ! set to 0.0 for free-slip
-                              SLOC_UDIFFUSION( 1:NDIM, 1:NDIM, IPHASE, CV_SILOC ) = UDIFFUSION( 1:NDIM, 1:NDIM, IPHASE, MAT_INOD )
-                              SLOC2_UDIFFUSION( 1:NDIM, 1:NDIM, IPHASE, CV_SILOC ) = UDIFFUSION( 1:NDIM, 1:NDIM, IPHASE, MAT_INOD2 )
+                              SLOC_UDIFFUSION( 1:NDIM, 1:NDIM, IPHASE, CV_SILOC ) = UDIFFUSION( 1:NDIM, 1:NDIM, IPHASE, MAT_INOD ) !* 0.
+                              SLOC2_UDIFFUSION( 1:NDIM, 1:NDIM, IPHASE, CV_SILOC ) = UDIFFUSION( 1:NDIM, 1:NDIM, IPHASE, MAT_INOD2 ) !* 0.
                            ENDIF
                         END DO
                     END IF
@@ -4941,35 +4941,53 @@ contains
                 END IF If_ele2_notzero
 
 
-                IF(GOT_UDEN) THEN
-                    IF(MOM_CONSERV) THEN
-                        IF(SELE2 /= 0) THEN
-                            SUD2_ALL=0.0
-                            SUDOLD2_ALL=0.0
-                            DO IPHASE=1, NPHASE
-                                IF( WIC_U_BC_ALL( 1, IPHASE, SELE2 ) == WIC_U_BC_DIRICHLET) THEN
-                                    DO U_SILOC=1,U_SNLOC
-                                        DO SGI=1,SBCVNGI
-                                            SUD2_ALL(:,IPHASE,SGI)=SUD2_ALL(:,IPHASE,SGI) + SBUFEN(U_SILOC,SGI) * suf_nu_bc_all( :,iphase,u_siloc + u_SNLOC * ( sele2 - 1 ) )
-
-                                            SUDOLD2_ALL(:,IPHASE,SGI)=SUDOLD2_ALL(:,IPHASE,SGI) + SBUFEN(U_SILOC,SGI) * suf_nu_bc_all( :,iphase,u_siloc + u_SNLOC * ( sele2 - 1 ) )
-                                        END DO
-                                    END DO
-
-                                    DO SGI=1,SBCVNGI
-                                        IF( SUM(SUD_ALL(:,IPHASE,SGI)*SNORMXN_ALL(:,SGI)) < 0.0) THEN
-                                            SUD_ALL(:,IPHASE,SGI)=0.5*(SUD_ALL(:,IPHASE,SGI)+SUD2_ALL(:,IPHASE,SGI))
-                                        ENDIF
-                                        IF( SUM(SUDOLD_ALL(:,IPHASE,SGI)*SNORMXN_ALL(:,SGI)) < 0.0) THEN
-                                            SUDOLD_ALL(:,IPHASE,SGI)=0.5*(SUDOLD_ALL(:,IPHASE,SGI)+SUDOLD2_ALL(:,IPHASE,SGI))
-                                        ENDIF
-                                    END DO
-                                ENDIF
+                IF ( GOT_UDEN ) THEN
+                   IF ( MOM_CONSERV ) THEN
+                      IF ( SELE2 /= 0 ) THEN
+                         SUD2_ALL=0.0 ; SUDOLD2_ALL=0.0
+                         DO IPHASE = 1, NPHASE
+                            
+                            DO IDIM = 1, NDIM
+                               IF ( WIC_U_BC_ALL( IDIM, IPHASE, SELE2 ) == WIC_U_BC_DIRICHLET ) THEN
+                                  DO U_SILOC = 1, U_SNLOC
+                                     DO SGI = 1, SBCVNGI
+                                        SUD2_ALL(IDIM,IPHASE,SGI)=SUD2_ALL(IDIM,IPHASE,SGI) + &
+                                             SBUFEN(U_SILOC,SGI) * suf_nu_bc_all( idim,iphase,u_siloc + u_SNLOC * ( sele2 - 1 ) )
+                                        SUDOLD2_ALL(IDIM,IPHASE,SGI)=SUDOLD2_ALL(IDIM,IPHASE,SGI) + &
+                                             SBUFEN(U_SILOC,SGI) * suf_nu_bc_all( idim,iphase,u_siloc + u_SNLOC * ( sele2 - 1 ) )
+                                     END DO
+                                  END DO
+                               END IF
                             END DO
+                         
+                            DO SGI = 1, SBCVNGI
+                               SNDOTQ(IPHASE,SGI) = SUM( SUD_ALL(:,IPHASE,SGI) * SNORMXN_ALL(:,SGI) )
+                               SNDOTQOLD(IPHASE,SGI) = SUM( SUDOLD_ALL(:,IPHASE,SGI) * SNORMXN_ALL(:,SGI) )
+                            END DO
+   
+                         END DO
 
-                        ENDIF
-                    ENDIF
-                ENDIF
+                         
+                         DO IPHASE = 1, NPHASE
+
+                            DO IDIM = 1, NDIM
+                               IF ( WIC_U_BC_ALL( IDIM, IPHASE, SELE2 ) == WIC_U_BC_DIRICHLET ) THEN
+                                  DO SGI = 1, SBCVNGI
+                                     IF ( SNDOTQ(IPHASE,SGI)  < 0.0 ) THEN
+                                        SUD_ALL(IDIM,IPHASE,SGI) = 0.5 * (SUD_ALL(IDIM,IPHASE,SGI) + SUD2_ALL(IDIM,IPHASE,SGI) )
+                                     END IF
+                                     IF ( SNDOTQOLD(IPHASE,SGI) < 0.0 ) THEN
+                                        SUDOLD_ALL(IDIM,IPHASE,SGI) = 0.5 * (SUDOLD_ALL(IDIM,IPHASE,SGI) + SUDOLD2_ALL(IDIM,IPHASE,SGI) )
+                                     END IF
+                                  END DO
+                               END IF
+                            END DO
+                            
+                         END DO
+                         
+                      END IF
+                   END IF
+                END IF
 
                 If_diffusion_or_momentum3: IF(GOT_DIFFUS .OR. GOT_UDEN) THEN
                     IF(BETWEEN_ELE_STAB) THEN
@@ -5086,22 +5104,25 @@ contains
                         END DO
                     END DO
 
-                    IF(SELE2.NE.0) THEN
+                    IF ( SELE2 /= 0 ) THEN
 
-                       DO IPHASE=1, NPHASE
-                          IF(WIC_U_BC_ALL(1,IPHASE,SELE2 )==WIC_U_BC_DIRICHLET) THEN
-                             U_NODJ_SGI_IPHASE_ALL(:,IPHASE,:) = 0.0
-                             UOLD_NODJ_SGI_IPHASE_ALL(:,IPHASE,:) = 0.0
-                             DO U_SILOC = 1, U_SNLOC
-                                DO SGI=1,SBCVNGI
-                                   U_NODJ_SGI_IPHASE_ALL(:,IPHASE,SGI) = U_NODJ_SGI_IPHASE_ALL(:,IPHASE,SGI) + SBUFEN(U_SILOC,SGI) * SUF_U_BC_ALL( :,IPHASE,U_SILOC + U_SNLOC* ( SELE2 - 1 ) )
-                                   UOLD_NODJ_SGI_IPHASE_ALL(:,IPHASE,SGI) = UOLD_NODJ_SGI_IPHASE_ALL(:,IPHASE,SGI) + SBUFEN(U_SILOC,SGI) * SUF_U_BC_ALL( :,IPHASE,U_SILOC + U_SNLOC* ( SELE2 - 1 ) )
+                       DO IPHASE = 1, NPHASE
+                          DO IDIM = 1, NDIM
+                             IF ( WIC_U_BC_ALL(IDIM,IPHASE,SELE2 ) == WIC_U_BC_DIRICHLET ) THEN
+                                U_NODJ_SGI_IPHASE_ALL(IDIM,IPHASE,:) = 0.0
+                                UOLD_NODJ_SGI_IPHASE_ALL(IDIM,IPHASE,:) = 0.0
+                                DO U_SILOC = 1, U_SNLOC
+                                   DO SGI = 1, SBCVNGI
+                                      U_NODJ_SGI_IPHASE_ALL(IDIM,IPHASE,SGI) = U_NODJ_SGI_IPHASE_ALL(IDIM,IPHASE,SGI) + &
+                                           SBUFEN(U_SILOC,SGI) * SUF_U_BC_ALL( IDIM,IPHASE,U_SILOC + U_SNLOC*(SELE2-1) )
+                                      UOLD_NODJ_SGI_IPHASE_ALL(IDIM,IPHASE,SGI) = UOLD_NODJ_SGI_IPHASE_ALL(IDIM,IPHASE,SGI) + &
+                                           SBUFEN(U_SILOC,SGI) * SUF_U_BC_ALL( IDIM,IPHASE,U_SILOC + U_SNLOC*(SELE2-1) )
+                                   END DO
                                 END DO
-                             END DO
-                          ENDIF
+                             ENDIF
+                          END DO
                        END DO
-
-                    ENDIF
+                    END IF
 
 
 
@@ -5118,7 +5139,7 @@ contains
                         UOLD_NODJ_SGI_IPHASE_ALL, UOLD_NODI_SGI_IPHASE_ALL, &
                         ELE, ELE2, SNORMXN_ALL,  &
                         SLOC_DUX_ELE_ALL, SLOC2_DUX_ELE_ALL,   SLOC_DUOLDX_ELE_ALL, SLOC2_DUOLDX_ELE_ALL,  &
-                        SELE, STOTEL, WIC_U_BC_ALL(1,:,: ), WIC_U_BC_DIRICHLET, SIMPLE_DIFF_CALC, DIFF_MIN_FRAC, DIFF_MAX_FRAC  )
+                        SELE, STOTEL, WIC_U_BC_ALL, WIC_U_BC_DIRICHLET, SIMPLE_DIFF_CALC, DIFF_MIN_FRAC, DIFF_MAX_FRAC  )
                     ELSE If_GOT_DIFFUS2
                         DIFF_COEF_DIVDX   =0.0
                         DIFF_COEFOLD_DIVDX=0.0

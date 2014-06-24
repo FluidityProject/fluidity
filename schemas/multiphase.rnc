@@ -871,7 +871,7 @@ prognostic_density_field =
                   element boundary_overwrites_initial_condition {
                      empty
                   }?
-               }?,
+               },
                input_choice_real
             }
          )
@@ -1178,7 +1178,20 @@ velocity_boundary_conditions =
                element boundary_overwrites_initial_condition {
                   empty
                }?
-            }?,
+            },
+            (
+            ## This applies a Dirichlet condition through the continuity equation
+            ## and thus will only apply a normal component of this specified
+            ## velocity as the boundary condition.
+            element continuity {
+                  empty
+               }|
+            ## This applies a Dirichlet condition through the viscous terms in the
+            ## momentum equation. It will be applied to each of the components specified.
+            element viscosity {
+                  empty
+               }
+            ),
             velocity_components_choice
          }|
          element type {
@@ -1336,12 +1349,15 @@ velocity_boundary_conditions =
          }|
          ## Momentun BC
          ##
-         ## Should be used in combination with the near_wall_treatment condition.
-         ## When activated wall treatment is not applied on the wall-outflow edge.
          element type{
             attribute name { "momentum" },
-            velocity_components_choice,
-            element boundary { ( "incoming" | "open" ) }
+            velocity_components_choice
+         }|
+         ## Momentun BC
+         ##
+         element type{
+            attribute name { "momentuminout" },
+            velocity_components_choice
          }
       )
    )
