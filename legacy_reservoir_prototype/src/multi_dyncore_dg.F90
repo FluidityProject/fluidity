@@ -2604,14 +2604,15 @@ contains
 
         !! Boundary_conditions
 
-        INTEGER, DIMENSION ( ndim , nphase , surface_element_count(velocity) )  :: WIC_U_BC_ALL, WIC_MOMU_BC_ALL, WIC_NU_BC_ALL
+        INTEGER, DIMENSION ( ndim , nphase , surface_element_count(velocity) )  :: WIC_U_BC_ALL, WIC_U_BC_ALL_VISC, &
+                                                                                   WIC_U_BC_ALL_ADV, WIC_MOMU_BC_ALL, WIC_NU_BC_ALL
         INTEGER, DIMENSION ( surface_element_count(pressure) ) :: WIC_P_BC_ALL
-        REAL, DIMENSION ( :, :, : ), pointer  :: SUF_U_BC_ALL, SUF_MOMU_BC_ALL, SUF_NU_BC_ALL
+        REAL, DIMENSION ( :, :, : ), pointer  :: SUF_U_BC_ALL, SUF_U_BC_ALL_VISC, SUF_MOMU_BC_ALL, SUF_NU_BC_ALL
         REAL, DIMENSION ( :, :, : ), pointer :: SUF_U_ROB2_BC_ALL
         REAL, DIMENSION ( : ), pointer :: SUF_P_BC_ALL
 
         type(scalar_field) :: pressure_BCs
-        type(tensor_field) :: velocity_BCs, velocity_BCs_robin2
+        type(tensor_field) :: velocity_BCs, velocity_BCs_visc, velocity_BCs_adv, velocity_BCs_robin2
         type(tensor_field) :: momentum_BCs
 
         INTEGER, DIMENSION( 4 ), PARAMETER :: ELEMENT_CORNERS=(/1,3,6,10/)
@@ -2730,12 +2731,19 @@ contains
            ['weakdirichlet','robin        '],&
            velocity_BCs,WIC_U_BC_ALL,boundary_second_value=velocity_BCs_robin2)
         call get_entire_boundary_condition(velocity,&
+           ['weakdirichlet_viscosity'],&
+           velocity_BCs_VISC,WIC_U_BC_ALL_VISC)
+        call get_entire_boundary_condition(velocity,&
+           ['weakdirichlet_advection'],&
+           velocity_BCs_ADV,WIC_U_BC_ALL_ADV)
+        call get_entire_boundary_condition(velocity,&
            ['momentum     ','momentuminout'],&
            momentum_BCs,WIC_MOMU_BC_ALL)
 
         WIC_NU_BC_ALL=WIC_U_BC_ALL
         SUF_P_BC_ALL=>pressure_BCs%val
         SUF_U_BC_ALL=>velocity_BCs%val
+        SUF_U_BC_ALL_VISC=>velocity_BCs_VISC%val
         SUF_NU_BC_ALL=>velocity_BCs%val
         SUF_MOMU_BC_ALL=>momentum_BCs%val
         SUF_U_ROB2_BC_ALL=>velocity_BCs_robin2%val
@@ -3168,7 +3176,7 @@ contains
             UFEN, UFENLX_ALL(1,:,:), UFENLX_ALL(2,:,:), UFENLX_ALL(3,:,:), &
             CVFEN, CVFENLX_ALL(1,:,:), CVFENLX_ALL(2,:,:), CVFENLX_ALL(3,:,:), &
             X_NONODS, X, Y, Z, &
-            NFACE, FACE_ELE, U_SLOCLIST, CV_SLOCLIST, STOTEL, U_SNLOC, CV_SNLOC, WIC_U_BC_ALL, SUF_U_BC_ALL, &
+            NFACE, FACE_ELE, U_SLOCLIST, CV_SLOCLIST, STOTEL, U_SNLOC, CV_SNLOC, WIC_U_BC_ALL_VISC, SUF_U_BC_ALL_VISC, &
             SBCVNGI, SBUFEN, SBUFENSLX, SBUFENSLY, SBCVFEWEIGH, &
             SBCVFEN, SBCVFENSLX, SBCVFENSLY ,&
             state, "CTY", StorageIndexes(23))
@@ -4900,12 +4908,12 @@ contains
                          DO IPHASE = 1, NPHASE
                             
                             DO IDIM = 1, NDIM
-                               IF ( WIC_U_BC_ALL( IDIM, IPHASE, SELE2 ) == WIC_U_BC_DIRICHLET ) THEN
+                               IF ( WIC_U_BC_ALL_ADV( IDIM, IPHASE, SELE2 ) == WIC_U_BC_DIRICHLET ) THEN
                                   DO U_SILOC = 1, U_SNLOC
                                      DO SGI = 1, SBCVNGI
-                                        SUD2_ALL(IDIM,IPHASE,SGI)=SUD2_ALL(IDIM,IPHASE,SGI) + &
+                                        SUD2_ALL(IDIM,IPHASE,SGI) = SUD2_ALL(IDIM,IPHASE,SGI) + &
                                              SBUFEN(U_SILOC,SGI) * suf_nu_bc_all( idim,iphase,u_siloc + u_SNLOC * ( sele2 - 1 ) )
-                                        SUDOLD2_ALL(IDIM,IPHASE,SGI)=SUDOLD2_ALL(IDIM,IPHASE,SGI) + &
+                                        SUDOLD2_ALL(IDIM,IPHASE,SGI) = SUDOLD2_ALL(IDIM,IPHASE,SGI) + &
                                              SBUFEN(U_SILOC,SGI) * suf_nu_bc_all( idim,iphase,u_siloc + u_SNLOC * ( sele2 - 1 ) )
                                      END DO
                                   END DO
@@ -5061,15 +5069,15 @@ contains
 
                        DO IPHASE = 1, NPHASE
                           DO IDIM = 1, NDIM
-                             IF ( WIC_U_BC_ALL(IDIM,IPHASE,SELE2 ) == WIC_U_BC_DIRICHLET ) THEN
+                             IF ( WIC_U_BC_ALL_VISC(IDIM,IPHASE,SELE2 ) == WIC_U_BC_DIRICHLET ) THEN
                                 U_NODJ_SGI_IPHASE_ALL(IDIM,IPHASE,:) = 0.0
                                 UOLD_NODJ_SGI_IPHASE_ALL(IDIM,IPHASE,:) = 0.0
                                 DO U_SILOC = 1, U_SNLOC
                                    DO SGI = 1, SBCVNGI
                                       U_NODJ_SGI_IPHASE_ALL(IDIM,IPHASE,SGI) = U_NODJ_SGI_IPHASE_ALL(IDIM,IPHASE,SGI) + &
-                                           SBUFEN(U_SILOC,SGI) * SUF_U_BC_ALL( IDIM,IPHASE,U_SILOC + U_SNLOC*(SELE2-1) )
+                                           SBUFEN(U_SILOC,SGI) * SUF_U_BC_ALL_VISC( IDIM,IPHASE,U_SILOC + U_SNLOC*(SELE2-1) )
                                       UOLD_NODJ_SGI_IPHASE_ALL(IDIM,IPHASE,SGI) = UOLD_NODJ_SGI_IPHASE_ALL(IDIM,IPHASE,SGI) + &
-                                           SBUFEN(U_SILOC,SGI) * SUF_U_BC_ALL( IDIM,IPHASE,U_SILOC + U_SNLOC*(SELE2-1) )
+                                           SBUFEN(U_SILOC,SGI) * SUF_U_BC_ALL_VISC( IDIM,IPHASE,U_SILOC + U_SNLOC*(SELE2-1) )
                                    END DO
                                 END DO
                              ENDIF
@@ -5092,7 +5100,7 @@ contains
                         UOLD_NODJ_SGI_IPHASE_ALL, UOLD_NODI_SGI_IPHASE_ALL, &
                         ELE, ELE2, SNORMXN_ALL,  &
                         SLOC_DUX_ELE_ALL, SLOC2_DUX_ELE_ALL,   SLOC_DUOLDX_ELE_ALL, SLOC2_DUOLDX_ELE_ALL,  &
-                        SELE, STOTEL, WIC_U_BC_ALL, WIC_U_BC_DIRICHLET, SIMPLE_DIFF_CALC, DIFF_MIN_FRAC, DIFF_MAX_FRAC  )
+                        SELE, STOTEL, WIC_U_BC_ALL_VISC, WIC_U_BC_DIRICHLET, SIMPLE_DIFF_CALC, DIFF_MIN_FRAC, DIFF_MAX_FRAC  )
                     ELSE If_GOT_DIFFUS2
                         DIFF_COEF_DIVDX   =0.0
                         DIFF_COEFOLD_DIVDX=0.0
@@ -5286,11 +5294,11 @@ contains
                                     ELSE
 
 
-                                        IF( WIC_U_BC_ALL( IDIM, IPHASE, SELE2 ) == WIC_U_BC_DIRICHLET ) THEN
+                                        IF( WIC_U_BC_ALL_VISC( IDIM, IPHASE, SELE2 ) == WIC_U_BC_DIRICHLET ) THEN
 
                                            IF(NO_MATRIX_STORE) THEN
                                               LOC_U_RHS( IDIM,IPHASE,U_ILOC ) &
-                                              =  LOC_U_RHS( IDIM,IPHASE,U_ILOC ) - VLM_NEW * SLOC_U( IDIM,IPHASE,U_SJLOC )
+                                              =  LOC_U_RHS( IDIM,IPHASE,U_ILOC ) + VLM_NEW * SUF_U_BC_ALL_VISC( IDIM,IPHASE,U_SJLOC + U_SNLOC* ( SELE2 - 1 ) )
                                            else
                                               DIAG_BIGM_CON(IDIM,JDIM,IPHASE,JPHASE,U_ILOC,U_JLOC,ELE)  &
                                               =DIAG_BIGM_CON(IDIM,JDIM,IPHASE,JPHASE,U_ILOC,U_JLOC,ELE) + VLM_NEW
@@ -5299,8 +5307,7 @@ contains
                             !   DGM_PHA( COUNT )  =  DGM_PHA( COUNT )  + VLM_NEW
 
 
-                                        ELSE IF( (WIC_U_BC_ALL( IDIM, IPHASE, SELE2 ) == WIC_U_BC_ROBIN) .OR. &
-                                        (WIC_U_BC_ALL( IDIM, IPHASE, SELE2 ) == WIC_U_BC_DIRI_ADV_AND_ROBIN )) THEN
+                                        ELSE IF( WIC_U_BC_ALL( IDIM, IPHASE, SELE2 ) == WIC_U_BC_ROBIN ) THEN
 
                                             IF(NO_MATRIX_STORE) THEN
                                                 LOC_U_RHS( IDIM,IPHASE,U_ILOC ) = LOC_U_RHS( IDIM,IPHASE,U_ILOC ) &
