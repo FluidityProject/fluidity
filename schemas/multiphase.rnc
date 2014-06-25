@@ -1179,19 +1179,61 @@ velocity_boundary_conditions =
                   empty
                }?
             },
-            (
-            ## This applies a Dirichlet condition through the continuity equation
-            ## and thus will only apply a normal component of this specified
-            ## velocity as the boundary condition.
-            element continuity {
+            velocity_components_choice
+         }|
+         ## This applies a Dirichlet condition through the continuity equation
+         ## and thus will only apply a normal component of this specified
+         ## velocity as the boundary condition.
+         element type {
+            attribute name { "dirichlet_continuity" },
+            ## Apply the dirichlet bc weakly.  Available automatically
+            ## with a discontinuous_galerkin Velocity
+            ## spatial_discretisation.  Available if you
+            ## integrate_continuity_by_parts with a
+            ## continuous_galerkin Pressure or use a control_volume
+            ## Pressure spatial_discretisation and/or
+            ## integrate_advection_by_parts under Velocity
+            ## spatial_discretisation with continuous_galerkin.
+            ##
+            ## If not selected boundary conditions are applied strongly.
+            element apply_weakly {
+               ## If the initial condition and boundary conditions
+               ## differ, setting this option will cause the initial
+               ## condition on the boundary to be overwritten with
+               ## the boundary condition. Since you are applying the
+               ## boundary condition weakly, you probably do *not*
+               ## want this.
+               element boundary_overwrites_initial_condition {
                   empty
-               }|
-            ## This applies a Dirichlet condition through the viscous terms in the
-            ## momentum equation. It will be applied to each of the components specified.
-            element viscosity {
+               }?
+            },
+            velocity_components_choice
+         }|
+         ## This applies a Dirichlet condition through the viscous terms in the
+         ## momentum equation. It will be applied to each of the components specified.
+         element type {
+            attribute name { "dirichlet_viscosity" },
+            ## Apply the dirichlet bc weakly.  Available automatically
+            ## with a discontinuous_galerkin Velocity
+            ## spatial_discretisation.  Available if you
+            ## integrate_continuity_by_parts with a
+            ## continuous_galerkin Pressure or use a control_volume
+            ## Pressure spatial_discretisation and/or
+            ## integrate_advection_by_parts under Velocity
+            ## spatial_discretisation with continuous_galerkin.
+            ##
+            ## If not selected boundary conditions are applied strongly.
+            element apply_weakly {
+               ## If the initial condition and boundary conditions
+               ## differ, setting this option will cause the initial
+               ## condition on the boundary to be overwritten with
+               ## the boundary condition. Since you are applying the
+               ## boundary condition weakly, you probably do *not*
+               ## want this.
+               element boundary_overwrites_initial_condition {
                   empty
-               }
-            ),
+               }?
+            },
             velocity_components_choice
          }|
          element type {

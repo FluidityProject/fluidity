@@ -593,7 +593,8 @@ contains
               end if
             else if ((lstat/=0).and. &
                      (lstat/=REMAP_ERR_BUBBLE_LAGRANGE).and. &
-                     (lstat/=REMAP_ERR_HIGHER_LOWER_CONTINUOUS)) then
+                     (lstat/=REMAP_ERR_HIGHER_LOWER_CONTINUOUS).and.&
+                     (lstat/=REMAP_ERR_OVERLAPPING_LAGRANGIAN)) then
               if(present(stat)) then
                 stat = lstat
               else
