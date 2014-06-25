@@ -4667,7 +4667,7 @@
       real, dimension( : ), allocatable :: cvweigh_dummy
       real :: a,b
 
-      ewrite(3,*)'In shatri d3,nloc=',d3,nloc
+      !ewrite(3,*)'In shatri d3,nloc=',d3,nloc
 
       Conditional_Dimensionality: if( .not. d3 ) then ! Assume a triangle
 

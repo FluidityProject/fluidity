@@ -2608,7 +2608,7 @@ contains
                                                                                    WIC_U_BC_ALL_ADV, WIC_MOMU_BC_ALL, WIC_NU_BC_ALL
         INTEGER, DIMENSION ( surface_element_count(pressure) ) :: WIC_P_BC_ALL
         REAL, DIMENSION ( :, :, : ), pointer  :: SUF_U_BC_ALL, SUF_U_BC_ALL_VISC, SUF_MOMU_BC_ALL, SUF_NU_BC_ALL
-        REAL, DIMENSION ( :, :, : ), pointer :: SUF_U_ROB2_BC_ALL
+        REAL, DIMENSION ( :, :, : ), pointer :: SUF_U_ROB1_BC_ALL, SUF_U_ROB2_BC_ALL
         REAL, DIMENSION ( : ), pointer :: SUF_P_BC_ALL
 
         type(scalar_field) :: pressure_BCs
@@ -2746,6 +2746,7 @@ contains
         SUF_U_BC_ALL_VISC=>velocity_BCs_VISC%val
         SUF_NU_BC_ALL=>velocity_BCs%val
         SUF_MOMU_BC_ALL=>momentum_BCs%val
+	SUF_U_ROB1_BC_ALL=>velocity_BCs%val
         SUF_U_ROB2_BC_ALL=>velocity_BCs_robin2%val
         
 
