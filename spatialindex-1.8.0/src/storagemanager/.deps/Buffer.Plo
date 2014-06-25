@@ -8,7 +8,8 @@ Buffer.lo: Buffer.cc /usr/include/c++/4.6/cstring \
  /usr/include/x86_64-linux-gnu/gnu/stubs-64.h \
  /usr/include/c++/4.6/x86_64-linux-gnu/./bits/cpu_defines.h \
  /usr/include/string.h /usr/lib/gcc/x86_64-linux-gnu/4.6/include/stddef.h \
- /usr/include/xlocale.h ../../include/spatialindex/SpatialIndex.h \
+ /usr/include/xlocale.h /usr/include/x86_64-linux-gnu/bits/string3.h \
+ ../../include/spatialindex/SpatialIndex.h \
  ../../include/spatialindex/tools/Tools.h \
  /usr/lib/gcc/x86_64-linux-gnu/4.6/include/stdint.h /usr/include/stdint.h \
  /usr/include/x86_64-linux-gnu/bits/wchar.h /usr/include/assert.h \
@@ -18,6 +19,7 @@ Buffer.lo: Buffer.cc /usr/include/c++/4.6/cstring \
  /usr/include/c++/4.6/bits/postypes.h /usr/include/c++/4.6/cwchar \
  /usr/include/wchar.h /usr/include/stdio.h \
  /usr/lib/gcc/x86_64-linux-gnu/4.6/include/stdarg.h \
+ /usr/include/x86_64-linux-gnu/bits/wchar2.h \
  /usr/include/c++/4.6/exception /usr/include/c++/4.6/bits/char_traits.h \
  /usr/include/c++/4.6/bits/stl_algobase.h \
  /usr/include/c++/4.6/bits/functexcept.h \
@@ -51,6 +53,7 @@ Buffer.lo: Buffer.cc /usr/include/c++/4.6/cstring \
  /usr/include/x86_64-linux-gnu/bits/posix_opt.h \
  /usr/include/x86_64-linux-gnu/bits/environments.h \
  /usr/include/x86_64-linux-gnu/bits/confname.h /usr/include/getopt.h \
+ /usr/include/x86_64-linux-gnu/bits/unistd.h \
  /usr/include/c++/4.6/x86_64-linux-gnu/./bits/atomic_word.h \
  /usr/include/c++/4.6/bits/locale_classes.h /usr/include/c++/4.6/string \
  /usr/include/c++/4.6/bits/allocator.h \
@@ -83,6 +86,8 @@ Buffer.lo: Buffer.cc /usr/include/c++/4.6/cstring \
  /usr/include/libio.h /usr/include/_G_config.h \
  /usr/include/x86_64-linux-gnu/bits/stdio_lim.h \
  /usr/include/x86_64-linux-gnu/bits/sys_errlist.h \
+ /usr/include/x86_64-linux-gnu/bits/stdio.h \
+ /usr/include/x86_64-linux-gnu/bits/stdio2.h \
  /usr/include/c++/4.6/x86_64-linux-gnu/./bits/basic_file.h \
  /usr/include/c++/4.6/x86_64-linux-gnu/./bits/c++io.h \
  /usr/include/c++/4.6/bits/fstream.tcc /usr/include/c++/4.6/queue \
@@ -110,7 +115,9 @@ Buffer.lo: Buffer.cc /usr/include/c++/4.6/cstring \
  /usr/include/x86_64-linux-gnu/sys/select.h \
  /usr/include/x86_64-linux-gnu/bits/select.h \
  /usr/include/x86_64-linux-gnu/bits/sigset.h \
+ /usr/include/x86_64-linux-gnu/bits/select2.h \
  /usr/include/x86_64-linux-gnu/sys/sysmacros.h /usr/include/alloca.h \
+ /usr/include/x86_64-linux-gnu/bits/stdlib.h \
  /usr/include/c++/4.6/bits/algorithmfwd.h \
  /usr/include/c++/4.6/bits/stl_tempbuf.h \
  ../../include/spatialindex/tools/SmartPointer.h \
@@ -152,6 +159,8 @@ Buffer.lo: Buffer.cc /usr/include/c++/4.6/cstring \
 
 /usr/include/xlocale.h:
 
+/usr/include/x86_64-linux-gnu/bits/string3.h:
+
 ../../include/spatialindex/SpatialIndex.h:
 
 ../../include/spatialindex/tools/Tools.h:
@@ -183,6 +192,8 @@ Buffer.lo: Buffer.cc /usr/include/c++/4.6/cstring \
 /usr/include/stdio.h:
 
 /usr/lib/gcc/x86_64-linux-gnu/4.6/include/stdarg.h:
+
+/usr/include/x86_64-linux-gnu/bits/wchar2.h:
 
 /usr/include/c++/4.6/exception:
 
@@ -272,6 +283,8 @@ Buffer.lo: Buffer.cc /usr/include/c++/4.6/cstring \
 
 /usr/include/getopt.h:
 
+/usr/include/x86_64-linux-gnu/bits/unistd.h:
+
 /usr/include/c++/4.6/x86_64-linux-gnu/./bits/atomic_word.h:
 
 /usr/include/c++/4.6/bits/locale_classes.h:
@@ -356,6 +369,10 @@ Buffer.lo: Buffer.cc /usr/include/c++/4.6/cstring \
 
 /usr/include/x86_64-linux-gnu/bits/sys_errlist.h:
 
+/usr/include/x86_64-linux-gnu/bits/stdio.h:
+
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:
+
 /usr/include/c++/4.6/x86_64-linux-gnu/./bits/basic_file.h:
 
 /usr/include/c++/4.6/x86_64-linux-gnu/./bits/c++io.h:
@@ -434,9 +451,13 @@ Buffer.lo: Buffer.cc /usr/include/c++/4.6/cstring \
 
 /usr/include/x86_64-linux-gnu/bits/sigset.h:
 
+/usr/include/x86_64-linux-gnu/bits/select2.h:
+
 /usr/include/x86_64-linux-gnu/sys/sysmacros.h:
 
 /usr/include/alloca.h:
+
+/usr/include/x86_64-linux-gnu/bits/stdlib.h:
 
 /usr/include/c++/4.6/bits/algorithmfwd.h:
 
