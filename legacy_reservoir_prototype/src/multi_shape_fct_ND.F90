@@ -70,7 +70,7 @@
       real :: posi, rlx, rly
       logical :: getndp
 
-      ewrite(3,*)' In re2dn4 subrt. '
+      !ewrite(3,*)' In re2dn4 subrt. '
       ! Allocating memory
       allocate( lx( nl ) )
       allocate( ly( nl ) )
@@ -128,9 +128,9 @@
                Loop_Corn2: do corn = 1, 2
                   gpoi = p
                   sn( corn, gpoi ) = 0.5 * ( 1. + lxp( corn ) * lx( p ) )
-                  ewrite(3,*)'sn::::',corn, gpoi,sn( corn, gpoi )
+                  !ewrite(3,*)'sn::::',corn, gpoi,sn( corn, gpoi )
                   snlx( corn, gpoi ) = 0.5 * lxp( corn )
-                  ewrite(3,*)'snlx::::',corn, gpoi,snlx( corn, gpoi )
+                  !ewrite(3,*)'snlx::::',corn, gpoi,snlx( corn, gpoi )
                   sweigh( gpoi ) = 1.
                   if( sngi == 1 ) sweigh( gpoi ) = 2.
                end do Loop_Corn2
@@ -225,7 +225,7 @@
       integer :: p, q, ir, corn, gpoi, ngi1d, gi
       real :: posi, rdum, rlx, rly, rlz
 
-      ewrite(3,*)' In re3dn8 subrt. '
+      !ewrite(3,*)' In re3dn8 subrt. '
       ! Allocating memory
       allocate( lx( nl ) )
       allocate( ly( nl ) )
@@ -413,7 +413,7 @@
       integer :: nquad, p, q, corn, gpoi, ilx, ily, nj
       real :: posi, rlx, rly
 
-      ewrite(3,*) 'In re2dn9'
+      !ewrite(3,*) 'In re2dn9'
 
       ! Allocating memory
       allocate( lx( nl ) )
@@ -603,7 +603,7 @@
       integer :: nquad, p, q, ir, corn, gpoi, ilx, ily, ilz, nj
       real :: posi
 
-      ewrite(3,*)'In re3d27'
+      !ewrite(3,*)'In re3d27'
 
       ! Allocating memory
       allocate( lx( nl ) )
@@ -1145,10 +1145,10 @@
 
       weit = 0. ; quadpos = 0.
 
-      ewrite(3,*) 'In LAGROT'
-      ewrite(3,*) 'ndgi, getndp:', ndgi, getndp
-      ewrite(3,*) 'weit:', weit( 1 : ndgi )
-      ewrite(3,*) 'quadpos:', quadpos( 1 : ndgi )
+      !ewrite(3,*) 'In LAGROT'
+      !ewrite(3,*) 'ndgi, getndp:', ndgi, getndp
+      !ewrite(3,*) 'weit:', weit( 1 : ndgi )
+      !ewrite(3,*) 'quadpos:', quadpos( 1 : ndgi )
 
       Conditional_GETNDP: if( .not. getndp ) then
          weight = .true.
@@ -1172,7 +1172,7 @@
 
       end if Conditional_GETNDP
 
-      ewrite(3,*) 'Leaving LAGROT'
+      !ewrite(3,*) 'Leaving LAGROT'
 
       return
     end subroutine lagrot
@@ -1309,8 +1309,8 @@
             !
             do  L=1,NLOC! Was loop 79
                IGLX=XONDGL((ELE-1)*NLOC+L)
-               ewrite(3,*)'xndgln, x, nl:', &
-                    iglx, l, x(iglx), y(iglx), z(iglx), NLX(L,GI), NLY(L,GI), NLZ(L,GI)
+               !ewrite(3,*)'xndgln, x, nl:', &
+               !     iglx, l, x(iglx), y(iglx), z(iglx), NLX(L,GI), NLY(L,GI), NLZ(L,GI)
                ! NB R0 does not appear here although the z-coord might be Z+R0. 
                AGI=AGI+NLX(L,GI)*X(IGLX) 
                BGI=BGI+NLX(L,GI)*Y(IGLX) 
@@ -1331,7 +1331,7 @@
             DETWEI(GI)=ABS(DETJ)*WEIGHT(GI)
             RA(GI)=1.0
             VOLUME=VOLUME+DETWEI(GI)
-            ewrite(3,*)'gi, detj, weight(gi)', gi, detj, weight(gi)
+            !ewrite(3,*)'gi, detj, weight(gi)', gi, detj, weight(gi)
             rsum = rsum + detj
             rsumabs = rsumabs + abs( detj )
             ! For coefficient in the inverse mat of the jacobian. 
@@ -1618,8 +1618,8 @@
                   !
                   do  L=1,NLOC! Was loop 79
                       IGLX=XONDGL((ELE-1)*NLOC+L)
-                      ewrite(3,*)'xndgln, x, nl:', &
-                      iglx, l, x_ALL(:,iglx), NLX_ALL(1,L,GI), NLX_ALL(2,L,GI), NLX_ALL(3,L,GI)
+                      !ewrite(3,*)'xndgln, x, nl:', &
+                      !iglx, l, x_ALL(:,iglx), NLX_ALL(1,L,GI), NLX_ALL(2,L,GI), NLX_ALL(3,L,GI)
                       ! NB R0 does not appear here although the z-coord might be Z+R0.
                       AGI=AGI+NLX_ALL(1,L,GI)*X_ALL(1,IGLX)
                       BGI=BGI+NLX_ALL(1,L,GI)*X_ALL(2,IGLX)
@@ -1640,7 +1640,7 @@
                   DETWEI(GI)=ABS(DETJ)*WEIGHT(GI)
                   RA(GI)=1.0
                   VOLUME=VOLUME+DETWEI(GI)
-                  ewrite(3,*)'gi, detj, weight(gi)', gi, detj, weight(gi)
+                  !ewrite(3,*)'gi, detj, weight(gi)', gi, detj, weight(gi)
                   rsum = rsum + detj
                   rsumabs = rsumabs + abs( detj )
                   ! For coefficient in the inverse mat of the jacobian.
@@ -1746,7 +1746,7 @@
       INTEGER :: IG, ND
       LOGICAL :: WEIGHT
 
-      ewrite(3,*)'In RGPTWE', ig, nd, weight
+      !ewrite(3,*)'In RGPTWE', ig, nd, weight
 
       Loop_Weight: IF( WEIGHT ) THEN ! Gauss points weights
 
@@ -1821,7 +1821,7 @@
          END SELECT
 
       ELSE
-         ewrite(3,*)'in rgptwe, nd:', nd
+         !ewrite(3,*)'in rgptwe, nd:', nd
          SELECT CASE( ND ) ! Gauss points
 
          CASE( 1 ) ; RGPTWE = 0.0
@@ -1980,8 +1980,8 @@
       logical :: getndp, diff, ndiff
       real :: vol_cv, lx_tran, lxgp
 
-      ewrite( 3, * ) 'In QUAD_1D_SHAPE'
-      ewrite( 3, * ) 'cv_ngi, cv_nloc', cv_ngi, cv_nloc
+      !ewrite( 3, * ) 'In QUAD_1D_SHAPE'
+      !ewrite( 3, * ) 'cv_ngi, cv_nloc', cv_ngi, cv_nloc
 
       nquad = cv_ngi / cv_nloc
 
@@ -2062,11 +2062,11 @@
       !     Compute standard Gauss quadrature: weights and points
       call lagrot( wei, lx, nquad, getndp )
 
-      ewrite(3,*)'cv_nloc, u_nloc, nquad, cv_ngi: ', cv_nloc, u_nloc, nquad, cv_ngi
-      ewrite(3,*)'wei: ', wei
-      ewrite(3,*)'lx: ', lx
-      ewrite(3,*)'cv_nodpos: ', cv_nodpos
-      ewrite(3,*)'u_nodpos: ', u_nodpos
+      !ewrite(3,*)'cv_nloc, u_nloc, nquad, cv_ngi: ', cv_nloc, u_nloc, nquad, cv_ngi
+      !ewrite(3,*)'wei: ', wei
+      !ewrite(3,*)'lx: ', lx
+      !ewrite(3,*)'cv_nodpos: ', cv_nodpos
+      !ewrite(3,*)'u_nodpos: ', u_nodpos
 
       gpoi = 0
       cvn = 0.
@@ -2098,7 +2098,7 @@
       deallocate( cv_nodpos )
       deallocate( u_nodpos )
 
-      ewrite(3,*) 'Leaving QUAD_1D_SHAPE'
+      !ewrite(3,*) 'Leaving QUAD_1D_SHAPE'
 
       return
     end subroutine quad_1d_shape
@@ -2123,9 +2123,9 @@
       real, dimension( : ), allocatable :: cvweigh_dum, cvweigh_1d_dum, cvweigh_1d
       integer :: cv_ngi_1d, cv_nloc_1d, u_nloc_1d
 
-      ewrite(3,*) 'In MD_Shapes subrt: quad_nd_shape'
-      ewrite(3,*) 'cv_ngi, cv_nloc, u_nloc::', &
-           cv_ngi, cv_nloc, u_nloc
+      !ewrite(3,*) 'In MD_Shapes subrt: quad_nd_shape'
+      !ewrite(3,*) 'cv_ngi, cv_nloc, u_nloc::', &
+      !     cv_ngi, cv_nloc, u_nloc
 
       Conditional_Dimensionality: Select Case( ndim )
       case( 1 )
@@ -2303,7 +2303,7 @@
            cv_gj, cv_gk, cv_iloc, cv_gi, totele_sub
       real :: rsum
 
-      ewrite(3,*)'In vol_cv_tri_tet_shape'
+      !ewrite(3,*)'In vol_cv_tri_tet_shape'
 
       d1 = ( ndim == 1 )
       dcyl = .false.
@@ -2357,21 +2357,21 @@
       call Calc_CVN_TriTetQuadHex( cv_ele_type, totele, cv_nloc, cv_ngi, x_nonods, &
            quad_cv_nloc, x_ndgln, fem_nod, cvn )
 
-      ewrite(3,*)'cvweigh:',cvweigh
-      do cv_iloc=1,cv_nloc
-         rsum=0.0
-         do cv_gi=1,cv_ngi
-            rsum=rsum+cvn(cv_iloc,cv_gi)*cvweigh(cv_gi)
-         end do
-         ewrite(3,*)'cv_iloc,rsum:',cv_iloc,rsum
-      end do
+      !ewrite(3,*)'cvweigh:',cvweigh
+      !do cv_iloc=1,cv_nloc
+      !   rsum=0.0
+      !   do cv_gi=1,cv_ngi
+      !      rsum=rsum+cvn(cv_iloc,cv_gi)*cvweigh(cv_gi)
+      !   end do
+      !   ewrite(3,*)'cv_iloc,rsum:',cv_iloc,rsum
+      !end do
       !stop 2922
-      if(cv_nloc==10) then
-        ewrite(3,*)'cv_nloc=',cv_nloc
-         totele_sub=8
-         call test_quad_tet( cv_nloc, cv_ngi, cvn, n, nlx, nly, nlz, &
-              cvweigh, x_ideal, y_ideal, z_ideal, cv_nloc, x_ndgln_ideal, 1)
-      endif
+      !if(cv_nloc==10) then
+      !  !ewrite(3,*)'cv_nloc=',cv_nloc
+      !   totele_sub=8
+      !   call test_quad_tet( cv_nloc, cv_ngi, cvn, n, nlx, nly, nlz, &
+      !        cvweigh, x_ideal, y_ideal, z_ideal, cv_nloc, x_ndgln_ideal, 1)
+      !endif
 
       ! And for velocities:
       if(u_nloc==1) then ! constant basis function throughout element...
@@ -2443,30 +2443,30 @@
          CALL DETNLXR( ELE, X, Y, Z, X_NDGLN, TOTELE, X_NONODS, CV_NLOC, CV_NGI, &
               N, NLX, NLY, NLZ, CVWEIGHT, DETWEI, RA, VOLUME, D1, D3, DCYL, &
               NX, NY, NZ )
-         EWRITE(3,*)'ele, VOLUME=',ele, VOLUME
-         ewrite(3,*)'detwei:',detwei
-         EWRITE(3,*)'sum of detwei:',sum(detwei)
-         ewrite(3,*)'nx=',nx
-         ewrite(3,*)'nlx=',nlx
+         !EWRITE(3,*)'ele, VOLUME=',ele, VOLUME
+         !ewrite(3,*)'detwei:',detwei
+         !EWRITE(3,*)'sum of detwei:',sum(detwei)
+         !ewrite(3,*)'nx=',nx
+         !ewrite(3,*)'nlx=',nlx
          RSUM=RSUM+VOLUME
          
          do cv_iloc=1,cv_nloc
             rsum2=0.0
             do cv_gi=1,cv_ngi
                rsum2=rsum2+cvn(cv_iloc,cv_gi)*detwei(cv_gi)
-               ewrite(3,*)'cv_gi,cvn(cv_iloc,cv_gi),detwei(cv_gi),CVWEIGHT(cv_gi):', &
-                        cv_gi,cvn(cv_iloc,cv_gi),detwei(cv_gi),CVWEIGHT(cv_gi)
+               !ewrite(3,*)'cv_gi,cvn(cv_iloc,cv_gi),detwei(cv_gi),CVWEIGHT(cv_gi):', &
+               !         cv_gi,cvn(cv_iloc,cv_gi),detwei(cv_gi),CVWEIGHT(cv_gi)
             end do
-            ewrite(3,*)'cv_iloc,its vol:',cv_iloc,rsum2
+            !ewrite(3,*)'cv_iloc,its vol:',cv_iloc,rsum2
          end do
       END DO Loop_Elements
 
-         do cv_iloc=1,cv_nloc
-            ewrite(3,*)'cv_iloc,nod,X, Y, Z:',cv_iloc,X_NDGLN(cv_iloc), &
-                    X(X_NDGLN(cv_iloc)), Y(X_NDGLN(cv_iloc)), Z(X_NDGLN(cv_iloc))
-         end do
+         !do cv_iloc=1,cv_nloc
+         !   ewrite(3,*)'cv_iloc,nod,X, Y, Z:',cv_iloc,X_NDGLN(cv_iloc), &
+         !           X(X_NDGLN(cv_iloc)), Y(X_NDGLN(cv_iloc)), Z(X_NDGLN(cv_iloc))
+         !end do
 
-      EWRITE(3,*)'VOLUME OF THE DOMAIN(SHOULD BE 1):',RSUM
+      !EWRITE(3,*)'VOLUME OF THE DOMAIN(SHOULD BE 1):',RSUM
     
       !STOP 2992
 
@@ -2882,7 +2882,7 @@
       case default; FLExit( "Wrong integer for CV_ELE_TYPE" )
       end Select Conditional_ElementTypes
 
-      ewrite(3,*) ' Leaving Compute_XNDGLN_TriTetQuadHex'
+      !ewrite(3,*) ' Leaving Compute_XNDGLN_TriTetQuadHex'
 
       return
     end subroutine Compute_XNDGLN_TriTetQuadHex
@@ -2953,7 +2953,7 @@
       logical :: d1, dcyl, d3
       integer :: x_nonods, totele, ele, cv_iloc, quad_cv_ngi, quad_cv_nloc, inod
 
-      ewrite(3,*)' In vol_cv_tri_shape'
+      !ewrite(3,*)' In vol_cv_tri_shape'
 
       d1 = ( ndim == 1 )
       dcyl = .false.
@@ -3243,11 +3243,11 @@
 
       ! Now we need to compute QUAD_NLX/Y/Z - get the hex or quad
       ! shape functions quad_n etc.
-      ewrite(3,*) 'before shape_l_q_quad lowqua, quad_cv_ngi, mloc:', &
-           lowqua, quad_cv_ngi, mloc
-      ewrite(3,*) 'dummy_sngi, dummy_snloc, dummy_smloc, quad_cv_ngi:', &
-           dummy_sngi, dummy_snloc, dummy_smloc, quad_cv_ngi
-       ewrite(3,*)'scvngi,quad_cv_sngi=',scvngi,quad_cv_sngi
+      !ewrite(3,*) 'before shape_l_q_quad lowqua, quad_cv_ngi, mloc:', &
+      !     lowqua, quad_cv_ngi, mloc
+      !ewrite(3,*) 'dummy_sngi, dummy_snloc, dummy_smloc, quad_cv_ngi:', &
+      !     dummy_sngi, dummy_snloc, dummy_smloc, quad_cv_ngi
+      !ewrite(3,*)'scvngi,quad_cv_sngi=',scvngi,quad_cv_sngi
 
       ! Work out local coords of the nodes
       loc_coord_nod_l1 = 0. ; loc_coord_nod_l2 = 0. ; loc_coord_nod_l3 = 0. ; &
@@ -3971,7 +3971,7 @@
       logical, intent( inout ) :: lowqua
       integer, intent( inout ) :: npoly, npoly_ngi
 
-      ewrite(3,*)'In dummy_tri_tet'
+      !ewrite(3,*)'In dummy_tri_tet'
 
       quad_u_loc_dummy = 1
       mloc = 1
@@ -4177,13 +4177,13 @@
       allocate( rdummy( 10000 ) ) ;  rdummy = 0.
       allocate( rdummy2( 100, 100 ) ) ;  rdummy2 = 0.
 
-      ewrite(3,*)'Just b4 shape_l_q_quad from shape_tri_tet'
-      ewrite(3,*) 'totele, x_nonods, cv_nloc_cells, cv_nloc, cv_ngi:', &
-           totele, x_nonods, cv_nloc_cells, cv_nloc, cv_ngi
-      ewrite(3,*) 'quad_cv_nloc, quad_cv_ngi:', &
-           quad_cv_nloc, quad_cv_ngi
-      ewrite(3,*)'quad_cv_ngi, lowqua, mloc, nwicel:', &
-           quad_cv_ngi, lowqua, mloc, nwicel
+      !ewrite(3,*)'Just b4 shape_l_q_quad from shape_tri_tet'
+      !ewrite(3,*) 'totele, x_nonods, cv_nloc_cells, cv_nloc, cv_ngi:', &
+      !     totele, x_nonods, cv_nloc_cells, cv_nloc, cv_ngi
+      !ewrite(3,*) 'quad_cv_nloc, quad_cv_ngi:', &
+      !     quad_cv_nloc, quad_cv_ngi
+      !ewrite(3,*)'quad_cv_ngi, lowqua, mloc, nwicel:', &
+      !     quad_cv_ngi, lowqua, mloc, nwicel
 
       ! Now we need to compute QUAD_NLX/Y/Z - get the hex or quad
       ! shape functions quad_n etc.
@@ -4580,7 +4580,7 @@
       real, dimension( : ), allocatable :: rdum, sweigh
       real, dimension( :, : ), allocatable ::  m, sn, snlx, snly
 
-      ewrite(3,*)'In shatri_hex'
+      !ewrite(3,*)'In shatri_hex'
 
       Conditional_Dimension: if( tri_tet ) then ! traingles and tets
 
@@ -4772,7 +4772,7 @@
             u_nloc_dummy = nloc
             cv_ele_type_dummy = 2
             ndim = 3 
-            ewrite(3,*)'going into SHATRIold'
+            !ewrite(3,*)'going into SHATRIold'
             call SHATRIold(L1, L2, L3, L4, cvweigh_dummy, (ndim==3), &
      &               NLOC,NGI,  &
      &               N,NLX,NLY,NLZ)
@@ -4861,7 +4861,7 @@
       real, dimension( : ), allocatable :: cvweigh_dummy
       real :: a,b
 
-      ewrite(3,*)'In shatri d3,nloc=',d3,nloc
+      !ewrite(3,*)'In shatri d3,nloc=',d3,nloc
       if(nloc.ne.10) then ! wrong element type
           stop 28213
       endif
@@ -5072,7 +5072,7 @@
       ! Local variables
       integer :: ipoly, iqadra, iloc
       real, dimension( : ), allocatable :: rdum 
-      ewrite(3,*)' In shape_l_q_quad', nwicel, d3
+      !ewrite(3,*)' In shape_l_q_quad', nwicel, d3
 
       allocate( rdum( 1 ) )
 
@@ -5948,8 +5948,8 @@
       integer, dimension( : ), allocatable :: x_ndgln2, new2old, old2new
       real, dimension( : ), allocatable :: x2, y2, z2
 
-      ewrite(3,*) 'In Eliminating_Repetitive_Nodes_all'
-      ewrite(3,*) 'x_nonods, mx_x_nonods:', maxval(x_ndgln), mx_x_nonods
+      !ewrite(3,*) 'In Eliminating_Repetitive_Nodes_all'
+      !ewrite(3,*) 'x_nonods, mx_x_nonods:', maxval(x_ndgln), mx_x_nonods
 
       x_nonods = maxval( x_ndgln ) 
       allocate( new2old( x_nonods ) ) ; new2old = 0
@@ -6271,7 +6271,7 @@
       real, dimension( : ), allocatable :: Volume_P1
       real :: Volume_P2, Volume_P1_Tets
 
-      ewrite(3,*)' In Make_QTets'
+      !ewrite(3,*)' In Make_QTets'
 
 !!!
 !!! Setting up unity area quadratic tetrahedron
@@ -6293,9 +6293,9 @@
       ly( 4 ) = 0.5 * ( ly( 1 ) + ly( 3 ) )
       lz( 4 ) = sqrt( 2. / 3. ) * h_scale
 
-      ewrite(3,*)'lx:', lx( 1 : 4 )
-      ewrite(3,*)'ly:', ly( 1 : 4 )
-      ewrite(3,*)'lz:', lz( 1 : 4 )
+      !ewrite(3,*)'lx:', lx( 1 : 4 )
+      !ewrite(3,*)'ly:', ly( 1 : 4 )
+      !ewrite(3,*)'lz:', lz( 1 : 4 )
 
       ! Computing X / Y / Z and FEM_NOD for the tetrahedra
       xp2 = 0. ; yp2 = 0. ; zp2 = 0.
@@ -6346,17 +6346,17 @@
            xp2( 1 ), xp2( 3 ), xp2( 6 ), xp2( 10 ), &
            yp2( 1 ), yp2( 3 ), yp2( 6 ), yp2( 10 ), &
            zp2( 1 ), zp2( 3 ), zp2( 6 ), zp2( 10 ) )
-      ewrite(3,*)'Volume of P2 Tets:', Volume_P2
+      !ewrite(3,*)'Volume of P2 Tets:', Volume_P2
 
       ! Defining FEM_NODs
       do iloc = 1, 10
          fem_nod( iloc ) = iloc
       end do
 
-      ewrite(3,*)' X/Y/Z for the P2 Tetrahedron:'
-      do iloc = 1, 10
-         ewrite(3,*) iloc, xp2( iloc ), yp2( iloc ), zp2( iloc )
-      end do
+      !ewrite(3,*)' X/Y/Z for the P2 Tetrahedron:'
+      !do iloc = 1, 10
+      !   ewrite(3,*) iloc, xp2( iloc ), yp2( iloc ), zp2( iloc )
+      !end do
 
 !!!
 !!! Defining linear tetrahedra (8 within the quadratic tetrahedron)
@@ -6375,7 +6375,7 @@
            xp2( 7 ), xp2( 8 ), xp2( 9 ), xp2( 10 ), &
            yp2( 7 ), yp2( 8 ), yp2( 9 ), yp2( 10 ), &
            zp2( 7 ), zp2( 8 ), zp2( 9 ), zp2( 10 ) )
-      ewrite(3,*)'Tet, Volume of P1 Tets:', ele, Volume_P1( ele )
+      !ewrite(3,*)'Tet, Volume of P1 Tets:', ele, Volume_P1( ele )
 
       ele = 2
       x_ndgln_p2( ( ele - 1 ) * x_nloc + 1 ) = 1
@@ -6387,7 +6387,7 @@
            xp2( 1 ), xp2( 2 ), xp2( 4 ), xp2( 7 ), &
            yp2( 1 ), yp2( 2 ), yp2( 4 ), yp2( 7 ), &
            zp2( 1 ), zp2( 2 ), zp2( 4 ), zp2( 7 ) )
-      ewrite(3,*)'Tet, Volume of P1 Tets:', ele, Volume_P1( ele )
+      !ewrite(3,*)'Tet, Volume of P1 Tets:', ele, Volume_P1( ele )
 
       ele = 3
       x_ndgln_p2( ( ele - 1 ) * x_nloc + 1 ) = 2
@@ -6399,7 +6399,7 @@
            xp2( 2 ), xp2( 7 ), xp2( 8 ), xp2( 4 ), &
            yp2( 2 ), yp2( 7 ), yp2( 8 ), yp2( 4 ), &
            zp2( 2 ), zp2( 7 ), zp2( 8 ), zp2( 4 ) )
-      ewrite(3,*)'Tet, Volume of P1 Tets:', ele, Volume_P1( ele ) 
+      !ewrite(3,*)'Tet, Volume of P1 Tets:', ele, Volume_P1( ele ) 
 
 
       ele = 4
@@ -6412,7 +6412,7 @@
            xp2( 2 ), xp2( 3 ), xp2( 4 ), xp2( 8 ), &
            yp2( 2 ), yp2( 3 ), yp2( 4 ), yp2( 8 ), &
            zp2( 2 ), zp2( 3 ), zp2( 4 ), zp2( 8 ) )
-      ewrite(3,*)'Tet, Volume of P1 Tets:', ele, Volume_P1( ele )
+      !ewrite(3,*)'Tet, Volume of P1 Tets:', ele, Volume_P1( ele )
 
       ele = 5
       x_ndgln_p2( ( ele - 1 ) * x_nloc + 1 ) = 3
@@ -6424,7 +6424,7 @@
            xp2( 3 ), xp2( 5 ), xp2( 4 ), xp2( 8 ), &
            yp2( 3 ), yp2( 5 ), yp2( 4 ), yp2( 8 ), &
            zp2( 3 ), zp2( 5 ), zp2( 4 ), zp2( 8 ) )
-      ewrite(3,*)'Tet, Volume of P1 Tets:', ele, Volume_P1( ele )
+      !ewrite(3,*)'Tet, Volume of P1 Tets:', ele, Volume_P1( ele )
 
       ele = 6
       x_ndgln_p2( ( ele - 1 ) * x_nloc + 1 ) = 4
@@ -6436,7 +6436,7 @@
            xp2( 4 ), xp2( 5 ), xp2( 9 ), xp2( 8 ), &
            yp2( 4 ), yp2( 5 ), yp2( 9 ), yp2( 8 ), &
            zp2( 4 ), zp2( 5 ), zp2( 9 ), zp2( 8 ) )
-      ewrite(3,*)'Tet, Volume of P1 Tets:', ele, Volume_P1( ele )
+      !ewrite(3,*)'Tet, Volume of P1 Tets:', ele, Volume_P1( ele )
 
 
       ele = 7
@@ -6449,7 +6449,7 @@
            xp2( 5 ), xp2( 6 ), xp2( 4 ), xp2( 9 ), &
            yp2( 5 ), yp2( 6 ), yp2( 4 ), yp2( 9 ), &
            zp2( 5 ), zp2( 6 ), zp2( 4 ), zp2( 9 ) )
-      ewrite(3,*)'Tet, Volume of P1 Tets:', ele, Volume_P1( ele )
+      !ewrite(3,*)'Tet, Volume of P1 Tets:', ele, Volume_P1( ele )
 
       ele = 8
       x_ndgln_p2( ( ele - 1 ) * x_nloc + 1 ) = 7
@@ -6461,14 +6461,14 @@
            xp2( 7 ), xp2( 9 ), xp2( 8 ), xp2( 4 ), &
            yp2( 7 ), yp2( 9 ), yp2( 8 ), yp2( 4 ), &
            zp2( 7 ), zp2( 9 ), zp2( 8 ), zp2( 4 ) )
-      ewrite(3,*)'Tet, Volume of P1 Tets:', ele, Volume_P1( ele )
+      !ewrite(3,*)'Tet, Volume of P1 Tets:', ele, Volume_P1( ele )
 
       Volume_P1_Tets = 0.
       do ele = 1, totele
          Volume_P1_Tets = Volume_P1_Tets + Volume_P1( ele ) 
       end do
 
-      ewrite(3,*)' Total Volume of P1 Tets:', Volume_P1_Tets
+      !ewrite(3,*)' Total Volume of P1 Tets:', Volume_P1_Tets
 
       if( abs( Volume_P1_Tets - Volume_P2 ) >= 1.e-7 ) then
            FLAbort( "Volumes of P2 and the sum of 8 P1s dont match " )
@@ -6501,17 +6501,17 @@
          end do
       end do
       x_nonods = maxval( x_ndgln_real )
-      ewrite(3,*) 'just before leaving Make_QTets'
-      ewrite(3,*) 'x_nonods:', x_nonods
+      !ewrite(3,*) 'just before leaving Make_QTets'
+      !ewrite(3,*) 'x_nonods:', x_nonods
 
-      ele = 30+2
-      ewrite(3,*) x_ndgln_real( ( ele - 1 ) * quad_cv_nloc + 1 :  ( ele - 1 ) * quad_cv_nloc + 27 )
-      do iloc = 1, quad_cv_nloc
-         ewrite(3,*) x_ndgln_real( ( ele - 1 ) * quad_cv_nloc + iloc ), &
-              x(x_ndgln_real( ( ele - 1 ) * quad_cv_nloc + iloc )), &
-              y(x_ndgln_real( ( ele - 1 ) * quad_cv_nloc + iloc )), &
-              z(x_ndgln_real( ( ele - 1 ) * quad_cv_nloc + iloc ))
-      end do
+      !ele = 30+2
+      !ewrite(3,*) x_ndgln_real( ( ele - 1 ) * quad_cv_nloc + 1 :  ( ele - 1 ) * quad_cv_nloc + 27 )
+      !do iloc = 1, quad_cv_nloc
+      !   ewrite(3,*) x_ndgln_real( ( ele - 1 ) * quad_cv_nloc + iloc ), &
+      !        x(x_ndgln_real( ( ele - 1 ) * quad_cv_nloc + iloc )), &
+      !        y(x_ndgln_real( ( ele - 1 ) * quad_cv_nloc + iloc )), &
+      !        z(x_ndgln_real( ( ele - 1 ) * quad_cv_nloc + iloc ))
+      !end do
       !stop 999
 
       deallocate( x_ndgln )
@@ -6538,19 +6538,19 @@
       integer :: ele_hex, hex_numbering, jloc, iloc, kloc, piloc
       integer, dimension( : ), allocatable :: inod
 
-      ewrite(3,*)' In Make_Linear_Tetrahedron'
+      !ewrite(3,*)' In Make_Linear_Tetrahedron'
 
       do iloc = 1, x_nloc
          lx( iloc ) = xp2( x_ndgln_p2( ( ele - 1 ) * x_nloc + iloc ) )
          ly( iloc ) = yp2( x_ndgln_p2( ( ele - 1 ) * x_nloc + iloc ) )
          lz( iloc ) = zp2( x_ndgln_p2( ( ele - 1 ) * x_nloc + iloc ) )
 
-         ewrite(3,*) iloc, x_ndgln_p2( ( ele - 1 ) * x_nloc + iloc ) 
+         !ewrite(3,*) iloc, x_ndgln_p2( ( ele - 1 ) * x_nloc + iloc ) 
       end do
 
-      ewrite(3,*)'lx:', lx( 1 : 4 )
-      ewrite(3,*)'ly:', ly( 1 : 4 )
-      ewrite(3,*)'lz:', lz( 1 : 4 )
+      !ewrite(3,*)'lx:', lx( 1 : 4 )
+      !ewrite(3,*)'ly:', ly( 1 : 4 )
+      !ewrite(3,*)'lz:', lz( 1 : 4 )
 
       ! Creating the numbering for the P1 tets and hexs
       allocate( inod( 11 ) ) ; inod = 0
@@ -6558,11 +6558,11 @@
          inod( iloc ) = ( ele - 1 ) * quad_cv_nloc * number_of_hexs + 10 + iloc
       end do
 
-      do iloc = 1, 11
-         ewrite(3,*)'x_ndgln(), inod:',  &
-              ( ele - 1 ) * quad_cv_nloc * number_of_hexs +iloc, &
-              inod( iloc )
-      end do
+      !do iloc = 1, 11
+      !   ewrite(3,*)'x_ndgln(), inod:',  &
+      !        ( ele - 1 ) * quad_cv_nloc * number_of_hexs +iloc, &
+      !        inod( iloc )
+      !end do
 
 !!!
 !!! Remmaping
@@ -6703,18 +6703,18 @@
       z( x_ndgln( ( ele_hex - 1 ) * quad_cv_nloc + 1 )  ) = &
            zp2( x_ndgln_p2( ( ele - 1 ) * x_nloc + 4 )   )
 
-      ewrite(3,*)'Checking the initial numbering - X_NDGLN, for the hexs:'
-      ewrite(3,*) ' ele, ele_hex, xndgln()=, xndgln:'
-      do ele_hex = 1, 4
-         kloc = ( ele - 1 ) * number_of_hexs + ele_hex
-         do iloc = 1, 8
-            ewrite(3,*) ele, ele_hex, ( kloc - 1 ) * quad_cv_nloc + iloc, &
-                 x_ndgln( ( kloc - 1 ) * quad_cv_nloc + iloc ), &
-                 x( x_ndgln(( kloc - 1 ) * quad_cv_nloc + iloc) ), &
-                 y( x_ndgln(( kloc - 1 ) * quad_cv_nloc + iloc) ), &
-                 z( x_ndgln(( kloc - 1 ) * quad_cv_nloc + iloc) )
-         end do
-      end do
+      !ewrite(3,*)'Checking the initial numbering - X_NDGLN, for the hexs:'
+      !ewrite(3,*) ' ele, ele_hex, xndgln()=, xndgln:'
+      !do ele_hex = 1, 4
+      !   kloc = ( ele - 1 ) * number_of_hexs + ele_hex
+      !   do iloc = 1, 8
+      !      ewrite(3,*) ele, ele_hex, ( kloc - 1 ) * quad_cv_nloc + iloc, &
+      !           x_ndgln( ( kloc - 1 ) * quad_cv_nloc + iloc ), &
+      !           x( x_ndgln(( kloc - 1 ) * quad_cv_nloc + iloc) ), &
+      !           y( x_ndgln(( kloc - 1 ) * quad_cv_nloc + iloc) ), &
+      !           z( x_ndgln(( kloc - 1 ) * quad_cv_nloc + iloc) )
+      !   end do
+      !end do
 
       deallocate( inod )
 
@@ -6759,21 +6759,21 @@
     integer :: inod2, jnod, knod, iloc, ele_hex2, kloc
     integer, dimension( : ), allocatable :: inod
 
-    ewrite(3,*)' In Adding_Parametric_Nodes_Hex '
+    !ewrite(3,*)' In Adding_Parametric_Nodes_Hex '
 
     ele_hex2 = ( ele - 1 ) * number_of_hexs  + ele_hex
 
-    ewrite(3,*)' Hexahedron', ele_hex, 'is based on the following nodes:'
-    do iloc = 1, 8
-       ewrite(3,*) ( ele_hex2 - 1 ) * quad_cv_nloc + iloc , &
-            x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + iloc )
-    end do
+    !ewrite(3,*)' Hexahedron', ele_hex, 'is based on the following nodes:'
+    !do iloc = 1, 8
+    !   ewrite(3,*) ( ele_hex2 - 1 ) * quad_cv_nloc + iloc , &
+    !        x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + iloc )
+    !end do
 
-    ewrite(3,*)' Master node points for the Hex:'
-    do iloc = 1, 8
-       jnod = x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + iloc )
-       ewrite(3,*) jnod, x( jnod ), y( jnod ), z( jnod )
-    end do
+    !ewrite(3,*)' Master node points for the Hex:'
+    !do iloc = 1, 8
+    !   jnod = x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + iloc )
+    !   ewrite(3,*) jnod, x( jnod ), y( jnod ), z( jnod )
+    !end do
 
     inod2 = maxval( x_ndgln )
 
@@ -6781,12 +6781,12 @@
     do iloc = 1, 19 ! Extra parametric nodes 
        x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc2 + iloc ) = inod2 + iloc
        inod( iloc ) = x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc2 + iloc )
-       ewrite(3,*)'inod:', iloc, ( ele_hex2 - 1 ) * quad_cv_nloc + jloc2 + iloc, inod( iloc )
+       !ewrite(3,*)'inod:', iloc, ( ele_hex2 - 1 ) * quad_cv_nloc + jloc2 + iloc, inod( iloc )
     end do
 
-    ewrite(3,*)'Numbering / Address for the Hex with parametric nodes'
-    ewrite(3,*) x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc2 + 1 : &
-         ( ele_hex2 - 1 ) * quad_cv_nloc + jloc2 + 19 )
+    !ewrite(3,*)'Numbering / Address for the Hex with parametric nodes'
+    !ewrite(3,*) x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc2 + 1 : &
+    !     ( ele_hex2 - 1 ) * quad_cv_nloc + jloc2 + 19 )
 
 !!!
 !!! Level 1
@@ -6949,20 +6949,20 @@
     z( inod( 19 ) ) = 0.25 * ( sum( z ( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + 19 : &
          ( ele_hex2 - 1 ) * quad_cv_nloc + 22 ) ) ) )
 
-    ewrite(3,*)'X / Y / Z of parametric nodes:'
-    do iloc = 1, 19
-       ewrite(3,*) inod( iloc ), x( inod ( iloc ) ), y( inod ( iloc ) ), z( inod ( iloc ) )
-    end do
+    !ewrite(3,*)'X / Y / Z of parametric nodes:'
+    !do iloc = 1, 19
+    !   ewrite(3,*) inod( iloc ), x( inod ( iloc ) ), y( inod ( iloc ) ), z( inod ( iloc ) )
+    !end do
 
-    ewrite(3,*)'Checking the initial numbering - X_NDGLN22, for the hexs:'
-    ewrite(3,*) ' ele, ele_hex, xndgln()=, xndgln:'
-    do ele_hex2 = 1, ele_hex 
-       kloc = ( ele - 1 ) * number_of_hexs + ele_hex2
-       do iloc = 1, 27
-          ewrite(3,*) ele, ele_hex2, ( kloc - 1 ) * quad_cv_nloc + iloc, &
-               x_ndgln( ( kloc - 1 ) * quad_cv_nloc + iloc ) 
-       end do
-    end do
+    !ewrite(3,*)'Checking the initial numbering - X_NDGLN22, for the hexs:'
+    !ewrite(3,*) ' ele, ele_hex, xndgln()=, xndgln:'
+    !do ele_hex2 = 1, ele_hex 
+    !   kloc = ( ele - 1 ) * number_of_hexs + ele_hex2
+    !   do iloc = 1, 27
+    !      ewrite(3,*) ele, ele_hex2, ( kloc - 1 ) * quad_cv_nloc + iloc, &
+    !           x_ndgln( ( kloc - 1 ) * quad_cv_nloc + iloc ) 
+    !   end do
+    !end do
 
     deallocate( inod ) 
 
@@ -7122,32 +7122,32 @@
          sbufenslx=0.0
       ENDIF
 
-      ewrite(3,*)'ndim, cv_ele_type,cv_ngi, cv_nloc, u_nloc:', &
-               ndim, cv_ele_type,cv_ngi, cv_nloc, u_nloc
-      ewrite(3,*)'cvweight:',cvweight
-      ewrite(3,*)'cvfen:',cvfen
-      ewrite(3,*)'cvfenlx:',cvfenlx
-      ewrite(3,*)'cvfenly:',cvfenly
-      ewrite(3,*)'cvfenlz:',cvfenlz 
-      ewrite(3,*)'ufen:',ufen
-      ewrite(3,*)'ufenlx:',ufenlx
-      ewrite(3,*)'ufenly:',ufenly
-      ewrite(3,*)'ufenlz:',ufenlz
-      ewrite(3,*)'sbcvngi=',sbcvngi
-      ewrite(3,*)'sbcvfen:',sbcvfen
-      ewrite(3,*)'sbcvfenslx:',sbcvfenslx
-      ewrite(3,*)'sbcvfensly:',sbcvfensly
-      ewrite(3,*)'sbcvfeweigh:',sbcvfeweigh
+      !ewrite(3,*)'ndim, cv_ele_type,cv_ngi, cv_nloc, u_nloc:', &
+      !         ndim, cv_ele_type,cv_ngi, cv_nloc, u_nloc
+      !ewrite(3,*)'cvweight:',cvweight
+      !ewrite(3,*)'cvfen:',cvfen
+      !ewrite(3,*)'cvfenlx:',cvfenlx
+      !ewrite(3,*)'cvfenly:',cvfenly
+      !ewrite(3,*)'cvfenlz:',cvfenlz 
+      !ewrite(3,*)'ufen:',ufen
+      !ewrite(3,*)'ufenlx:',ufenlx
+      !ewrite(3,*)'ufenly:',ufenly
+      !ewrite(3,*)'ufenlz:',ufenlz
+      !ewrite(3,*)'sbcvngi=',sbcvngi
+      !ewrite(3,*)'sbcvfen:',sbcvfen
+      !ewrite(3,*)'sbcvfenslx:',sbcvfenslx
+      !ewrite(3,*)'sbcvfensly:',sbcvfensly
+      !ewrite(3,*)'sbcvfeweigh:',sbcvfeweigh
                  
-      ewrite(3,*)'sbufen:',sbufen
-      ewrite(3,*)'sbufenslx:',sbufenslx
-      ewrite(3,*)'sbufensly:',sbufensly
+      !ewrite(3,*)'sbufen:',sbufen
+      !ewrite(3,*)'sbufenslx:',sbufenslx
+      !ewrite(3,*)'sbufensly:',sbufensly
 
-      ewrite(3,*)'nface:',nface
-      ewrite(3,*)'cv_sloclist:', cv_sloclist
-      ewrite(3,*)'u_sloclist:',u_sloclist
-      ewrite(3,*)'cv_snloc, u_snloc:',cv_snloc, u_snloc
-!      stop 145
+      !ewrite(3,*)'nface:',nface
+      !ewrite(3,*)'cv_sloclist:', cv_sloclist
+      !ewrite(3,*)'u_sloclist:',u_sloclist
+      !ewrite(3,*)'cv_snloc, u_snloc:',cv_snloc, u_snloc
+      !stop 145
 
       END SUBROUTINE SHAPE_one_ele2
 
@@ -7171,9 +7171,9 @@
      
      INTEGER IPOLY,IQADRA,gi,gj,ggi,i,j,ii
      
-     ewrite(3,*)'inside shape LOWQUA,NGI,NLOC,MLOC, SNGI,SNLOC,SMLOC:', &
-                           LOWQUA,NGI,NLOC,MLOC, SNGI,SNLOC,SMLOC
-     ewrite(3,*)'NWICEL,d3:',NWICEL,d3
+     !ewrite(3,*)'inside shape LOWQUA,NGI,NLOC,MLOC, SNGI,SNLOC,SMLOC:', &
+     !                      LOWQUA,NGI,NLOC,MLOC, SNGI,SNLOC,SMLOC
+     !ewrite(3,*)'NWICEL,d3:',NWICEL,d3
      IF(NWICEL.EQ.1) THEN
         IF(.NOT.D3) THEN
            CALL RE2DN4(LOWQUA,NGI,0,NLOC,MLOC, &
@@ -7277,8 +7277,8 @@
       LOGICAL :: DD3
 ! NB LXP(I) AND LYP(I) ARE THE LOCAL X AND Y COORDS OF NODAL POINT I
 
-      ewrite(3,*) 'HERE 1 MLOC,NLOC,NGI=',MLOC,NLOC,NGI
-      ewrite(3,*) 'HERE 2'
+      !ewrite(3,*) 'HERE 1 MLOC,NLOC,NGI=',MLOC,NLOC,NGI
+      !ewrite(3,*) 'HERE 2'
 !
 ! Get the quadrature positions and weights for TRIANGLES...
      DD3=.FALSE.
@@ -7294,17 +7294,17 @@
 
 
       IF(SNGI.GT.0) THEN
-        ewrite(3,*)'for surfaces SNGI,SNLOC,smloc:',SNGI,SNLOC,smloc
+        !ewrite(3,*)'for surfaces SNGI,SNLOC,smloc:',SNGI,SNLOC,smloc
 ! IQADRA=1 corresponds to Gaussian quadrature.
          IQADRA=1
 ! IPOLY=1 is for Lagrange polynomials.
          IPOLY=1
 
-          ewrite(3,*)'for sn:'
+          !ewrite(3,*)'for sn:'
          CALL SPECTR(SNGI,SNLOC,0,&
      &   RUB2,SWEIGH,SN,SNLX,SNLX,SNLX,.FALSE.,.FALSE., IPOLY,IQADRA)
 
-          ewrite(3,*)'for sm:'
+          !ewrite(3,*)'for sm:'
          CALL SPECTR(SNGI,SMLOC,0,&
      &   RUB2,SWEIGH,SM,SMLX,SMLX,SMLX,.FALSE.,.FALSE., IPOLY,IQADRA)
       ENDIF
@@ -7334,8 +7334,8 @@
      integer :: IQADRA,IPOLY
      ! NB LXP(I) AND LYP(I) ARE THE LOCAL X AND Y COORDS OF NODAL POINT I
 
-     ewrite(3,*) 'HERE 1 MLOC,NLOC,NGI=',MLOC,NLOC,NGI
-     ewrite(3,*) 'HERE 2'
+     !ewrite(3,*) 'HERE 1 MLOC,NLOC,NGI=',MLOC,NLOC,NGI
+     !ewrite(3,*) 'HERE 2'
 
      ! Get the quadrature positions and weights for TRIANGLES or TETS...
      DD3=D3
@@ -7374,9 +7374,9 @@
            endif
         endif
      endif
-     ewrite(3,*)'n::',n
-     ewrite(3,*)'nlx::',nlx
-     ewrite(3,*)'nly::',nly
+     !ewrite(3,*)'n::',n
+     !ewrite(3,*)'nlx::',nlx
+     !ewrite(3,*)'nly::',nly
      CALL SHATRIold(L1, L2, L3, L4, WEIGHT, DD3,&
           MLOC,NGI,&
           M,MLX,MLY,MLZ) 
@@ -7404,20 +7404,20 @@
                               SMLOC,SNGI,&
                               SM,SMLX,SMLY,RUB2)
         ELSE
-           ewrite(3,*)'for surfaces SNGI,SNLOC,smloc:',SNGI,SNLOC,smloc
+           !ewrite(3,*)'for surfaces SNGI,SNLOC,smloc:',SNGI,SNLOC,smloc
            ! IQADRA=1 corresponds to Gaussian quadrature.
            IQADRA=1
            ! IPOLY=1 is for Lagrange polynomials.
            IPOLY=1
 
-           ewrite(3,*)'for sn IPOLY,IQADRA,SNGI,SNLOC:', &
-                IPOLY,IQADRA,SNGI,SNLOC
+           !ewrite(3,*)'for sn IPOLY,IQADRA,SNGI,SNLOC:', &
+           !     IPOLY,IQADRA,SNGI,SNLOC
            CALL SPECTR(SNGI,SNLOC,0,&
                    RUB2,SWEIGH,SN,SNLX,RUB2,RUB2,.FALSE.,.FALSE., IPOLY,IQADRA)
-           ewrite(3,*)'+++for sn SWEIGH:',SWEIGH
+           !ewrite(3,*)'+++for sn SWEIGH:',SWEIGH
 
            if(.false.) then
-              ewrite(3,*)'for sm:'
+              !ewrite(3,*)'for sm:'
               CALL SPECTR(SNGI,SMLOC,0,&
                       RUB2,SWEIGH,SM,SMLX,RUB2,RUB2,.FALSE.,.FALSE., IPOLY,IQADRA)
            endif
@@ -7455,8 +7455,8 @@
       INTEGER :: I
 ! NB LXP(I) AND LYP(I) ARE THE LOCAL X AND Y COORDS OF NODAL POINT I
        
-      ewrite(3,*) 'HERE 1 MLOC,NLOC,NGI=',MLOC,NLOC,NGI
-      ewrite(3,*) 'HERE 2'
+      !ewrite(3,*) 'HERE 1 MLOC,NLOC,NGI=',MLOC,NLOC,NGI
+      !ewrite(3,*) 'HERE 2'
 
       IF((NLOC.NE.3).OR.(NGI.NE.3)) THEN
           ewrite(3,*)'PROBLEM IN TR2D NLOC,NGI:',NLOC,NGI
@@ -7551,8 +7551,8 @@
       INTEGER :: I
 ! NB LXP(I) AND LYP(I) ARE THE LOCAL X AND Y COORDS OF NODAL POINT I
        
-      ewrite(3,*) 'HERE 1 MLOC,NLOC,NGI=',MLOC,NLOC,NGI
-      ewrite(3,*) 'HERE 2'
+      !ewrite(3,*) 'HERE 1 MLOC,NLOC,NGI=',MLOC,NLOC,NGI
+      !ewrite(3,*) 'HERE 2'
 
       IF((NLOC.NE.4).OR.(NGI.NE.4)) THEN
          ewrite(3,*) 'PROBLEM IN TR3D'
@@ -7723,7 +7723,7 @@
                  ! This is for 5 point quadrature. 
                  IF((NLOC.EQ.10).OR.(NLOC.EQ.11)) THEN
                     DO 40 GI=1,NGI
-                       !         ewrite(3,*)'gi,L1(GI),L2(GI),L3(GI),L4(GI):',gi,L1(GI),L2(GI),L3(GI),L4(GI)
+                       !ewrite(3,*)'gi,L1(GI),L2(GI),L3(GI),L4(GI):',gi,L1(GI),L2(GI),L3(GI),L4(GI)
                        N(1,GI)=(2.*L1(GI)-1.)*L1(GI)
                        N(3,GI)=(2.*L2(GI)-1.)*L2(GI)
                        N(5,GI)=(2.*L3(GI)-1.)*L3(GI)
@@ -8113,7 +8113,7 @@
 ! 7 8
 ! 5 6
        
-         ewrite(3,*)'inside SPECTR IPOLY,IQADRA', IPOLY,IQADRA
+         !ewrite(3,*)'inside SPECTR IPOLY,IQADRA', IPOLY,IQADRA
 !
          DIFF=.TRUE.
          NDIFF=.FALSE.
@@ -8124,9 +8124,9 @@
 !
 ! Find the roots of the quadrature points and nodes
 ! also get the weights. 
-       ewrite(3,*)'about to go into inside GTROOT IPOLY,IQADRA',IPOLY,IQADRA
+       !ewrite(3,*)'about to go into inside GTROOT IPOLY,IQADRA',IPOLY,IQADRA
         CALL GTROOT(IPOLY,IQADRA,WEIT,NODPOS,QUAPOS,NDGI,NDNOD)
-       ewrite(3,*)'outside GTROOT'
+       !ewrite(3,*)'outside GTROOT'
       do  IGR=1,NDGI! Was loop 101
       do  IGQ=1,NDGI! Was loop 101
       do  IGP=1,NDGI! Was loop 101
@@ -8178,9 +8178,9 @@
 !
 ! Find the roots of the quadrature points and nodes
 ! also get the weights. 
-       ewrite(3,*)'2about to go into inside GTROOT IPOLY,IQADRA',IPOLY,IQADRA
+       !ewrite(3,*)'2about to go into inside GTROOT IPOLY,IQADRA',IPOLY,IQADRA
         CALL GTROOT(IPOLY,IQADRA,WEIT,NODPOS,QUAPOS,NDGI,NMDNOD)
-       ewrite(3,*)'2out of GTROOT'
+       !ewrite(3,*)'2out of GTROOT'
       do  IGR=1,NDGI! Was loop 102
       do  IGQ=1,NDGI! Was loop 102
       do  IGP=1,NDGI! Was loop 102
@@ -8280,10 +8280,10 @@
 ! Find the roots of the quadrature points and nodes
 ! also get the weights. 
         CALL GTROOT(IPOLY,IQADRA,WEIT,NODPOS,QUAPOS,NDGI,NDNOD)
-        ewrite(3,*)'NDGI,NDNOD,NLOC:',NDGI,NDNOD,NLOC
-        ewrite(3,*)'WEIT(1:ndgi):',WEIT(1:ndgi)
-        ewrite(3,*)'NODPOS(1:ndnod):',NODPOS(1:ndnod)
-        ewrite(3,*)'QUAPOS(1:ndgi):',QUAPOS(1:ndgi)
+        !ewrite(3,*)'NDGI,NDNOD,NLOC:',NDGI,NDNOD,NLOC
+        !ewrite(3,*)'WEIT(1:ndgi):',WEIT(1:ndgi)
+        !ewrite(3,*)'NODPOS(1:ndnod):',NODPOS(1:ndnod)
+        !ewrite(3,*)'QUAPOS(1:ndgi):',QUAPOS(1:ndgi)
       do  IGP=1,NDGI! Was loop 1000
          GPOI=IGP 
 !
@@ -8301,16 +8301,16 @@
 !
              NLX(ILOC,GPOI)&
      &        =SPECFU(DIFF, LXGP,INOD,NDNOD,IPOLY,NODPOS)
-         ewrite(3,*)'ILOC,GPOI,N(ILOC,GPOI),NLX(ILOC,GPOI):', &
-                  ILOC,GPOI,N(ILOC,GPOI),NLX(ILOC,GPOI)
+         !ewrite(3,*)'ILOC,GPOI,N(ILOC,GPOI),NLX(ILOC,GPOI):', &
+         !         ILOC,GPOI,N(ILOC,GPOI),NLX(ILOC,GPOI)
 !
       end do ! Was loop 12000
       end do ! Was loop 1000
-         ewrite(3,*)'n WEIGHT:',WEIGHT
+         !ewrite(3,*)'n WEIGHT:',WEIGHT
 !
 ! Find the roots of the quadrature points and nodes
 ! also get the weights. 
-       ewrite(3,*)'this is for m which we dont care about:'
+       !ewrite(3,*)'this is for m which we dont care about:'
         CALL GTROOT(IPOLY,IQADRA,WEIT,NODPOS,QUAPOS,NDGI,NMDNOD)
       do  IGP=1,NDGI! Was loop 1100
          GPOI=IGP 
@@ -8324,7 +8324,7 @@
       end do ! Was loop 13000
 !
       end do ! Was loop 1100
-       ewrite(3,*)'...finished this is for m which we dont care about:'
+       !ewrite(3,*)'...finished this is for m which we dont care about:'
          ENDIF
          END SUBROUTINE SPECTR
 

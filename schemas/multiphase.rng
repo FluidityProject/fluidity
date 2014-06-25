@@ -1532,7 +1532,9 @@ want this.</a:documentation>
         <ref name="velocity_components_choice"/>
       </element>
       <element name="type">
-        <a:documentation>This applies a Dirichlet condition through the continuity equation
+        <a:documentation>NOT USED - choose "dirichlet" instead for the cty bcs
+
+This applies a Dirichlet condition through the continuity equation
 and thus will only apply a normal component of this specified
 velocity as the boundary condition.</a:documentation>
         <attribute name="name">
@@ -1568,6 +1570,37 @@ want this.</a:documentation>
 momentum equation. It will be applied to each of the components specified.</a:documentation>
         <attribute name="name">
           <value>dirichlet_viscosity</value>
+        </attribute>
+        <element name="apply_weakly">
+          <a:documentation>Apply the dirichlet bc weakly.  Available automatically
+with a discontinuous_galerkin Velocity
+spatial_discretisation.  Available if you
+integrate_continuity_by_parts with a
+continuous_galerkin Pressure or use a control_volume
+Pressure spatial_discretisation and/or
+integrate_advection_by_parts under Velocity
+spatial_discretisation with continuous_galerkin.
+
+If not selected boundary conditions are applied strongly.</a:documentation>
+          <optional>
+            <element name="boundary_overwrites_initial_condition">
+              <a:documentation>If the initial condition and boundary conditions
+differ, setting this option will cause the initial
+condition on the boundary to be overwritten with
+the boundary condition. Since you are applying the
+boundary condition weakly, you probably do *not*
+want this.</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+        </element>
+        <ref name="velocity_components_choice"/>
+      </element>
+      <element name="type">
+        <a:documentation>This applies a Dirichlet condition for the advection velocity
+of the momentum equation.</a:documentation>
+        <attribute name="name">
+          <value>dirichlet_advection</value>
         </attribute>
         <element name="apply_weakly">
           <a:documentation>Apply the dirichlet bc weakly.  Available automatically
