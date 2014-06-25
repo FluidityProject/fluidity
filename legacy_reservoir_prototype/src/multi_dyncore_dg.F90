@@ -4376,6 +4376,7 @@ contains
         END DO Loop_Elements
 
 
+
         IF ( Q_SCHEME ) THEN
 
            THERM_U_DIFFUSION = 0.0
@@ -4402,6 +4403,7 @@ contains
            END IF
 
         END IF
+
 
         !!XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX!!
         !!XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX!!
@@ -4967,18 +4969,19 @@ contains
    
                          END DO
 
+                         SINCOME = 0.5 + 0.5 * SIGN( 1.0, -SNDOTQ )
+                         SINCOMEOLD = 0.5 + 0.5 * SIGN( 1.0, -SNDOTQOLD )
+
                          
                          DO IPHASE = 1, NPHASE
 
                             DO IDIM = 1, NDIM
                                IF ( WIC_U_BC_ALL( IDIM, IPHASE, SELE2 ) == WIC_U_BC_DIRICHLET ) THEN
                                   DO SGI = 1, SBCVNGI
-                                     IF ( SNDOTQ(IPHASE,SGI)  < 0.0 ) THEN
-                                        SUD_ALL(IDIM,IPHASE,SGI) = 0.5 * (SUD_ALL(IDIM,IPHASE,SGI) + SUD2_ALL(IDIM,IPHASE,SGI) )
-                                     END IF
-                                     IF ( SNDOTQOLD(IPHASE,SGI) < 0.0 ) THEN
-                                        SUDOLD_ALL(IDIM,IPHASE,SGI) = 0.5 * (SUDOLD_ALL(IDIM,IPHASE,SGI) + SUDOLD2_ALL(IDIM,IPHASE,SGI) )
-                                     END IF
+                                     SUD_ALL(IDIM,IPHASE,SGI) = SINCOME(IPHASE,SGI) * 0.5 * (SUD_ALL(IDIM,IPHASE,SGI) + SUD2_ALL(IDIM,IPHASE,SGI) )  &
+                                                              + (1.-SINCOME(IPHASE,SGI)) * SUD_ALL(IDIM,IPHASE,SGI) 
+                                     SUDOLD_ALL(IDIM,IPHASE,SGI) = SINCOMEOLD(IPHASE,SGI) * 0.5 * (SUDOLD_ALL(IDIM,IPHASE,SGI) + SUDOLD2_ALL(IDIM,IPHASE,SGI) )  &
+                                                                 + (1.-SINCOMEOLD(IPHASE,SGI)) * SUDOLD_ALL(IDIM,IPHASE,SGI)
                                   END DO
                                END IF
                             END DO
@@ -5337,7 +5340,7 @@ contains
 
                                            IF(NO_MATRIX_STORE) THEN
                                               LOC_U_RHS( IDIM,IPHASE,U_ILOC ) &
-                                              =  LOC_U_RHS( IDIM,IPHASE,U_ILOC ) + VLM_NEW * SUF_U_BC_ALL( IDIM,IPHASE,U_SJLOC + U_SNLOC* ( SELE2 - 1 ) )
+                                              =  LOC_U_RHS( IDIM,IPHASE,U_ILOC ) - VLM_NEW * SLOC_U( IDIM,IPHASE,U_SJLOC )
                                            else
                                               DIAG_BIGM_CON(IDIM,JDIM,IPHASE,JPHASE,U_ILOC,U_JLOC,ELE)  &
                                               =DIAG_BIGM_CON(IDIM,JDIM,IPHASE,JPHASE,U_ILOC,U_JLOC,ELE) + VLM_NEW

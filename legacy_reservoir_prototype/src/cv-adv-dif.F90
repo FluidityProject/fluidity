@@ -543,6 +543,7 @@ contains
                   ALLOCATE(T_TEMP(NPHASE,CV_NONODS), TOLD_TEMP(NPHASE,CV_NONODS))
                   
                   IF(NPHASE==1) THEN
+                     T_ALL_KEEP = 1.0 
                      do cv_inod = 1, cv_nonods
                         do iphase = 1, nphase
                            ! Amend the saturations to produce the real voln fractions -only is we have just one phase.
