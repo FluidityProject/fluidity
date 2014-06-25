@@ -1545,7 +1545,7 @@
       case default; FLExit( "Wrong integer for CV_ELE_TYPE" )
       end Select
 
-      ewrite(3,*) 'Leaving SHAPE_CV_N'
+      !ewrite(3,*) 'Leaving SHAPE_CV_N'
 
     end subroutine shape_cv_n
 
@@ -2178,7 +2178,7 @@ ewrite(3,*)'lll:', option_path_len
          cvweight_short = cvweight       
 
       end if Conditional_OverlappingMethod1
-      ewrite(3,*) 'out of shape_cv_n - CVWEIGHT', CVWEIGHT
+      !ewrite(3,*) 'out of shape_cv_n - CVWEIGHT', CVWEIGHT
 
       !
       !(a) scvfen( cv_nloc, scvngi ): the shape function evaluated for each node 
@@ -2608,7 +2608,7 @@ ewrite(3,*)'lll:', option_path_len
       real, dimension( :, : ), allocatable :: m, mu, cvn_dummy
       real, dimension( : ), allocatable :: cvweigh_dummy
 
-      ewrite(3,*)' In ShapesV_Fem_Plus '
+      !ewrite(3,*)' In ShapesV_Fem_Plus '
 
       ! Allocating space
       allocate( m( cv_nloc, scvngi ) )
