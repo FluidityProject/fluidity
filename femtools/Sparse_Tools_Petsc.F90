@@ -29,7 +29,6 @@ module sparse_tools_petsc
   !!< This module is an extension to the sparse_tools module that 
   !!< implements a csr matrix type 'petsc_csr_matrix' that directly
   !!< stores the matrix in petsc format.
-#include "petscversion.h"
   use FLDebug
   use Sparse_Tools
   use Reference_Counting
@@ -43,18 +42,7 @@ module sparse_tools_petsc
   use petsc
 #endif
   implicit none
-#ifdef HAVE_PETSC_MODULES
-#include "finclude/petscdef.h"
-#else
-#include "finclude/petsc.h"
-#endif
-#if PETSC_VERSION_MINOR>=3
-#define MatCreateSeqAIJ myMatCreateSeqAIJ
-#define MatCreateMPIAIJ myMatCreateMPIAIJ
-#define MatCreateSeqBAIJ myMatCreateSeqBAIJ
-#define MatCreateMPIBAIJ myMatCreateMPIBAIJ
-#endif
-
+#include "petsc_legacy.h"
   private
   
   type petsc_csr_matrix
