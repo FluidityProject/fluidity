@@ -520,7 +520,7 @@ test: fltools bin/$(FLUIDITY) bin/shallow_water serialtest bin/burgers_equation
 
 serialtest: fltools bin/$(FLUIDITY) bin/shallow_water
 	@if [ ! -d tests ]; then ln -s @srcdir@/tests/; fi
-	@if [ ! @srcdir@ -ef bin ]; then \
+	@if [ ! @srcdir@/bin -ef bin ]; then \
 	  if [ -e @srcdir@/bin ]; then \
 	    rm @srcdir@/bin; \
 	  fi && ln -s $(CURDIR)/bin @srcdir@/bin || { echo "*** ERROR ***: @srcdir@/bin already exists. \
