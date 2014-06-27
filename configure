@@ -13634,10 +13634,12 @@ $as_echo "$as_me: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&6;}
       # and I don't want to break things
       mkdir -p libadaptivity
     fi
+
+    # $srcdir may be relative which breaks when go into <build-dir>/libadaptivity
+    # therefore we need to expand it to an absolute path first (using this pwd trick)
+    configure_path="$( cd "$srcdir/libadaptivity" ; pwd -P )"
+
     pushd libadaptivity
-    # we want to run configure in $srcdir/libadaptivity, but $srcdir
-    # might be relative to the build directory which is one up from where we are now:
-    configure_path=../$srcdir/libadaptivity
 
     # We don't really want to use the same FFLAGS and LIBS as fluidity has
     # worked out, because they contain all sorts of fluidity-specific junk,
@@ -13689,10 +13691,12 @@ $as_echo "$as_me: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&6;}
       # and I don't want to break things
       mkdir -p libjudy
     fi
+
+    # $srcdir may be relative which breaks when go into <build-dir>/libjudy
+    # therefore we need to expand it to an absolute path first (using this pwd trick)
+    configure_path="$( cd "$srcdir/libjudy" ; pwd -P )"
+
     pushd libjudy
-    # we want to run configure in $srcdir/libjudy, but $srcdir
-    # might be relative to the build directory which is one up from where we are now:
-    configure_path=../$srcdir/libjudy
 
     FC="${saved_FC}" F77="${saved_F77}" F90="${saved_F90}" LIBS="${env_libs}" FCFLAGS="${env_fcflags}" FFLAGS="${env_fflags} $PIC_FLAG $PROFILING_FLAG" CC="${saved_CC}" $configure_path/configure --prefix=${PWD}/..
     if test "$?" -ne "0"; then
@@ -13783,10 +13787,12 @@ $as_echo "$as_me: Building on ARCHER; disabling shared libraries" >&6;}
       # and I don't want to break things
       mkdir -p libspud
     fi
+
+    # $srcdir may be relative which breaks when go into <build-dir>/libspud
+    # therefore we need to expand it to an absolute path first (using this pwd trick)
+    configure_path="$( cd "$srcdir/libspud" ; pwd -P )"
+
     pushd libspud
-    # we want to run configure in $srcdir/libspud, but $srcdir
-    # might be relative to the build directory which is one up from where we are now:
-    configure_path=../$srcdir/libspud
 
     # We don't really want to use the same FFLAGS and LIBS as fluidity has
     # worked out, because they contain all sorts of fluidity-specific junk,
@@ -13845,10 +13851,12 @@ $as_echo "$as_me: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&6;}
 $as_echo "$as_me: Configuring spatialindex" >&6;}
 { $as_echo "$as_me:${as_lineno-$LINENO}: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&5
 $as_echo "$as_me: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&6;}
+
+# $srcdir may be relative which breaks when go into <build-dir>/$SPATIALINDEXDIR
+# therefore we need to expand it to an absolute path first (using this pwd trick)
+configure_path="$( cd "$srcdir/$SPATIALINDEXDIR" ; pwd -P )"
+
 pushd $SPATIALINDEXDIR
-# we want to run configure in $srcdir/$SPATIALINDEXDIR, but $srcdir
-# might be relative to the build directory which is one up from where we are now:
-configure_path=../$srcdir/$SPATIALINDEXDIR
 
 if test "$enable_debugging" = "yes" ; then
    SPATIALINDEX_CONFIGURE_DEBUG_OPTION=--enable-debug=yes
