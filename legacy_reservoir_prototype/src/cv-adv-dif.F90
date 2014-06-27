@@ -12949,7 +12949,7 @@ CONTAINS
 
     LOGICAL :: D3,DCYL
     ! Allocate memory for the interpolated upwind values
-    LOGICAL, PARAMETER :: BOUND  = .TRUE., REFLECT = .false. ! limiting options
+    LOGICAL, PARAMETER :: BOUND  = .TRUE., REFLECT = .true. ! limiting options
     INTEGER, DIMENSION( : ), allocatable :: NOD_FINDELE,NOD_COLELE, NLIST, INLIST, DUMMYINT
     REAL, DIMENSION( : ), allocatable :: DUMMYREAL
     INTEGER MXNCOLEL,NCOLEL,adapt_time_steps
