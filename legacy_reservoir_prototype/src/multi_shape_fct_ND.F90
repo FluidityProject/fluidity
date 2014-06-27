@@ -9085,5 +9085,80 @@
   end function Volume_TetHex
 
 
+    subroutine get_CVN_compact_overlapping( cv_ele_type, ndim, cv_ngi, cv_nloc, cvn, cvweigh)!, &
+    !Calculates the CVN and CVWEIGH shape functions
+    !This subroutine is specially created to be used with compact_overlapping
+      implicit none
+      integer, intent( in ) :: cv_ele_type, ndim, cv_ngi, cv_nloc
+      real, dimension( :, : ), intent( inout ) :: cvn
+      real, dimension( : ), intent( inout ) :: cvweigh
+      ! Local variables
+      integer, dimension( : ), allocatable :: x_ndgln, fem_nod, x_ndgln_ideal
+      real, dimension( : ), allocatable :: lx, ly, lz, x, y, z, cvweigh_dummy, &
+           x_ideal, y_ideal, z_ideal
+      integer, parameter :: max_totele = 10000, max_x_nonods = 10000
+      logical :: d1, dcyl, d3
+      integer :: ele, quad_cv_ngi, quad_cv_nloc, totele, x_nonods, &
+           cv_gj, cv_gk, cv_iloc, cv_gi, totele_sub
+      real :: rsum
+
+      d1 = ( ndim == 1 )
+      dcyl = .false.
+      d3 = ( ndim == 3 )
+
+      if( d3 ) then
+         Select Case( cv_nloc )
+         case( 4 ) ;  quad_cv_nloc = 8  ! Linear tetrahedron
+         case( 10 ) ; quad_cv_nloc = 27 ! Quadratic tetrahedron
+         case default; FLExit( "Wrong integer for CV_NLOC" )
+         end Select
+      else
+         Select Case( cv_nloc )
+         case( 3 ) ;  quad_cv_nloc = 4  ! Linear triangle
+         case( 6 ) ; quad_cv_nloc = 9 ! Quadratic triangle
+         case default; FLExit( "Wrong integer for CV_NLOC" )
+         end Select
+      endif
+
+      ! Allocating memory
+      allocate( lx( max_x_nonods ) )
+      allocate( ly( max_x_nonods ) )
+      allocate( lz( max_x_nonods ) )
+      allocate( x( max_x_nonods ))
+      allocate( y( max_x_nonods ))
+      allocate( z( max_x_nonods ))
+      allocate( fem_nod( max_x_nonods ) )
+      allocate( x_ndgln( max_totele * quad_cv_nloc ) )
+      allocate( cvweigh_dummy( cv_ngi )) ; cvweigh_dummy = 0.
+      allocate( x_ideal( max_x_nonods ) ) ; x_ideal = 0.
+      allocate( y_ideal( max_x_nonods ) ) ; y_ideal = 0.
+      allocate( z_ideal( max_x_nonods ) ) ; z_ideal = 0.
+      allocate( x_ndgln_ideal( max_x_nonods ) ) ; x_ndgln_ideal = 0
+
+      ! Get the x_ndgln for the nodes of the triangle or tet or hex/quad super-elements:
+      x = 0. ; y = 0. ; z = 0. ; lx = 0. ; ly = 0. ; lz = 0. ; fem_nod = 0 ; x_ndgln = 0
+      call Compute_XNDGLN_TriTetQuadHex( cv_ele_type, &
+           max_totele, max_x_nonods, quad_cv_nloc, &
+           totele, x_nonods, &
+           x_ndgln, lx, ly, lz, x, y, z, fem_nod, &
+           x_ideal, y_ideal, z_ideal, x_ndgln_ideal )
+
+      ! Compute cvn:
+      call Calc_CVN_TriTetQuadHex( cv_ele_type, totele, cv_nloc, cv_ngi, x_nonods, &
+           quad_cv_nloc, x_ndgln, fem_nod, cvn )
+
+      deallocate( lx )
+      deallocate( ly )
+      deallocate( lz )
+      deallocate( x )
+      deallocate( y )
+      deallocate( z )
+      deallocate( x_ndgln )
+      deallocate( fem_nod )
+      deallocate( cvweigh_dummy )
+
+      return
+    end subroutine get_CVN_compact_overlapping
+
   end module shape_functions_NDim
 
