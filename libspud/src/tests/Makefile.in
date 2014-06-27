@@ -60,7 +60,7 @@ unittest: test-binaries
 
 # Creates a TESTNAME_main.o from test_main.cpp which calls the subroutine
 # TESTNAME, that should be a subroutine in TESTNAME.f90
-%_main.o: test_main.cpp
+%_main.o: test_main.cpp unittest_tools.o
 	$(CXX) $(CXXFLAGS) -D TESTNAME=$(subst _main.o,,$@)_ -o $@ -c $<
 
 # Link this TESTNAME_main.o with TESTNAME.o from TESTNAME.F90
