@@ -3230,7 +3230,6 @@ contains
         endif
 
 
-
         !Section to project the capillary pressure (CV) to FEM
         !First check the user selection.
         CAP_to_FEM = have_option("/material_phase[0]/multiphase_properties/capillary_pressure/Proj_capi_to_FEM").or.&
@@ -3238,6 +3237,9 @@ contains
         if (capillary_pressure_activated) then
             call get_var_from_packed_state(packed_state,CapPressure = CapPressure)
             if (CAP_to_FEM) then
+                !First I need to obtain the CVN and CVWEIGHT shape functions
+                call get_CVN_compact_overlapping( P_ELE_TYPE, NDIM, CV_NGI, CV_NLOC, CVN, CVWEIGHT)
+                !Project capillary pressure
                 call proj_capillary_pressure2FEM(packed_state, FEMCapPressure, X_ALL, FINDM, COLM, MIDM,&
                 CVN, CVWEIGHT, mass_ele, cv_ndgln, cv_ngi, cv_nloc, cv_nonods, ncolm, nphase, totele, x_ndgln, x_nloc, x_nonods)
             end if
