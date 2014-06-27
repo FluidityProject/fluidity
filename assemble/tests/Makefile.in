@@ -24,20 +24,22 @@
 #    License along with this library; if not, write to the Free Software
 #    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 #    USA
+
+VPATH = @srcdir@
+
 SHELL = @SHELL@
 
 PACKAGE_NAME = @PACKAGE_NAME@
 FLUIDITY = $(PACKAGE_NAME)
 
 FC      = @FC@
-FCFLAGS = -I../../include @FCFLAGS@ \
-  @MODINC_FLAG@../
+FCFLAGS = -I../../include -I@srcdir@/../../include @FCFLAGS@ @CPPFLAGS@ @MODINC_FLAG@../
 
 CC  = @CC@
-CFLAGS  = @CFLAGS@ -I../../include
+CFLAGS  = @CFLAGS@ -I../../include -I@srcdir@/../../include
 
-CXX = @CXX@ -I../../include
-CXXFLAGS= @CPPFLAGS@ @CXXFLAGS@ -I../include -I../../include 
+CXX = @CXX@
+CXXFLAGS= @CPPFLAGS@ @CXXFLAGS@ -I../../include -I@srcdir@/../../include
 
 LDFLAGS  = @LDFLAGS@
 
@@ -50,18 +52,18 @@ DISABLED_TESTS=test_mba_supermesh test_legacy_cv_faces test_lagrangian_remap tes
                test_dg_interpolation_quads test_dg_diffusion
 
 # the test programs to be built:
-TEST_BINARIES=$(filter-out $(DISABLED_TESTS), $(basename $(wildcard *.F90)))
+TEST_BINARIES=$(filter-out $(DISABLED_TESTS), $(notdir $(basename $(wildcard @srcdir@/*.F90))))
 
-unittest: $(TEST_BINARIES) data
-	ln -sf $(addprefix ../../assemble/tests/,$(TEST_BINARIES)) ../../bin/tests/
+# these are data-files stored in the same directory as the binaries
+# they are created from input-files in ../../tests/data
+# we don't want to put these in ../../tests/data to avoid clobbering it
+DATA_FILES=cube_prismatic.msh cube_unstructured.msh
 
-data:
-	cd ../../tests/data; \
-	gmsh -3 cube_prismatic.geo; \
-	../../bin/gmsh2triangle cube_prismatic.msh; \
-	gmsh -3 cube_unstructured.geo; \
-	../../bin/gmsh2triangle cube_unstructured.msh; \
-	cd -
+unittest: $(TEST_BINARIES) $(DATA_FILES)
+	ln -sf $(addprefix ../../assemble/tests/,$^) ../../bin/tests/
+
+%.msh: ../../tests/data/%.geo
+	gmsh -3 $< -o $@
 
 
 .SUFFIXES: .f90 .F90 .c .cpp .o .a $(.SUFFIXES)
@@ -77,8 +79,8 @@ data:
 
 # creates a TESTNAME_main.o from test_main.cpp which calls the subroutine
 # TESTNAME, that should be a subroutine in TESTNAME.F90
-%_main.o:
-	$(CXX) $(CXXFLAGS) -D TESTNAME=$(subst _main.o,,$@)_ -o $@ -c test_main.cpp @PROFILING_FLAG@
+%_main.o: test_main.cpp
+	$(CXX) $(CXXFLAGS) -D TESTNAME=$*_ -o $@ -c $< @PROFILING_FLAG@
 
 # link this TESTNAME_main.o with TESTNAME.o from TESTNAME.F90
 %: %_main.o %.o lib/
@@ -89,6 +91,6 @@ lib/:
 	ln -s ../../lib
 
 clean:
-	rm -f $(TEST_BINARIES)
+	rm -f $(TEST_BINARIES) $(DATA_FILES)
 	rm -f *.o *.mod
 	rm -f lib

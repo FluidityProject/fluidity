@@ -552,7 +552,7 @@ setuputs:
 	@rm -rf bin/tests
 	@echo "    MKDIR bin/tests"
 	@mkdir -p bin/tests
-	@ln -sf ../../tests/data bin/tests/data
+	@datadir=$$(cd @srcdir@/tests/data/; pwd -P); ln -sf $$datadir bin/tests/data
 
 build_unittest: fluidity_library libfemtools setuputs
 	@echo "    UNITTEST libspud"

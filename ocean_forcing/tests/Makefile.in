@@ -24,30 +24,33 @@
 #    License along with this library; if not, write to the Free Software
 #    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 #    USA
+
+VPATH = @srcdir@
+
 SHELL = @SHELL@
 
 PACKAGE_NAME = @PACKAGE_NAME@
 FLUIDITY = $(PACKAGE_NAME)
 
 FC      = @FC@
-FCFLAGS = -I../../include @FCFLAGS@ @MODINC_FLAG@../
+FCFLAGS = -I../../include -I@srcdir@/../../include @FCFLAGS@ @CPPFLAGS@ @MODINC_FLAG@../
 
 CC  = @CC@
-CFLAGS  = @CFLAGS@ -I../../include
+CFLAGS  = @CFLAGS@ -I../../include -I@srcdir@/../../include
 
-CXX = @CXX@ -I../../include
+CXX = @CXX@
 # Add -DGRAPHIC to ouput CSV files for the fluxes tests
-CXXFLAGS= @CPPFLAGS@ @CXXFLAGS@ -I../../include
+CXXFLAGS= @CPPFLAGS@ @CXXFLAGS@ -I../../include -I@srcdir@/../../include
 
 LDFLAGS = @LDFLAGS@
 
 LIBS = ./lib/libvtkfortran.a @LIBS@ ./lib/libspud.a ./lib/libjudy.a ./lib/libspatialindex.a @LAPACK_LIBS@
 LIBFLUIDITY=../../lib/lib$(FLUIDITY).a
 
-FORTRANTESTS= $(basename $(wildcard *.F90))
+FORTRANTESTS= $(notdir $(basename $(wildcard @srcdir@/*.F90)))
 
 
-CTESTS= $(basename $(wildcard *.c)) $(basename $(wildcard *.cpp)) 
+CTESTS= $(notdir $(basename $(wildcard @srcdir/*.c))) $(notdir $(basename $(wildcard @srcdir/*.cpp))) 
 
 TESTS=$(CTESTS) $(FORTRANTESTS)
 
@@ -75,7 +78,7 @@ unittest: $(TEST_BINARIES)
 # creates a TESTNAME_main_f.o from test_main_f.cpp which calls the subroutine
 # TESTNAME, that should be a subroutine in TESTNAME.F90
 %_main.o: test_main.cpp
-	$(CXX) $(CXXFLAGS) -D TESTNAME=$(subst _main.o,,$@)_ -o $@ -c $^ 
+	$(CXX) $(CXXFLAGS) -D TESTNAME=$*_ -o $@ -c $< @PROFILING_FLAG@
 
 # link this TESTNAME_main.o with TESTNAME.o from TESTNAME.F90
 test_python_state:  python_state.o test_python_state_main.o test_python_state.o python_statec.o lib/
