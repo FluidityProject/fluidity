@@ -55,6 +55,7 @@
     use adapt_state_prescribed_module!, only: do_adapt_state_prescribed, adapt_state_prescribed
     use populate_sub_state_module
     use fluids_module!, only: pre_adapt_tasks, update_state_post_adapt
+    use parallel_tools
 
 !!$ Modules indigenous to the prototype Code
     use cv_advection, only : cv_count_faces
@@ -226,7 +227,7 @@
             !Working pointers
       real, dimension(:,:), pointer :: SAT_s, OldSAT_s, FESAT_s
 
-      type( tensor_field ), pointer :: tracer_field, velocity_field, density_field, saturation_field
+      type( tensor_field ), pointer :: tracer_field, velocity_field, density_field, saturation_field, old_saturation_field
       type(scalar_field), pointer :: pressure_field, porosity_field
 
       !Dummy to print FEM saturation
@@ -669,12 +670,13 @@
             call Calculate_All_Rhos( state, packed_state, ncomp, nphase, ndim, cv_nonods, cv_nloc, totele, &
                  cv_ndgln, DRhoDPressure )
 
+
             if( its == 1 ) then
                DOLD_s%val = D_s%val
                if( have_component_field ) then
                   DCOLD_s%val = DC_s%val
                   MFCOLD_s%val = MFC_s%val
-               end if 
+               end if
 
             end if
 
@@ -899,6 +901,7 @@
 
             velocity_field=>extract_tensor_field(packed_state,"PackedVelocity")
             saturation_field=>extract_tensor_field(packed_state,"PackedPhaseVolumeFraction")
+            old_saturation_field=>extract_tensor_field(packed_state,"PackedOldPhaseVolumeFraction")
                
 
 
@@ -1301,6 +1304,8 @@
 
             call nullify( packed_state )
             call deallocate(packed_state)
+            call nullify( multicomponent_state )
+            call deallocate(multicomponent_state)
             call pack_multistate(state,packed_state,&
                  multiphase_state,multicomponent_state)
 !        !If we are using adaptive time stepping, backup_state needs also to be redone
@@ -1330,7 +1335,7 @@
 !!$ Variables used in the diffusion-like term: capilarity and surface tension:
                  plike_grad_sou_grad, plike_grad_sou_coef, &
 !!$ Working arrays
-                 Temperature, PhaseVolumeFraction, SAT_s, &
+                 Temperature, PhaseVolumeFraction, SAT_s,oldsat_s, &
                  Component, &
                  Temperature_Old, &
                  PhaseVolumeFraction_Old, Component_Old, &
@@ -1424,6 +1429,7 @@
 !!$
                  Temperature( nphase * cv_nonods ), &
                  PhaseVolumeFraction( nphase * cv_nonods ), SAT_s( nphase , cv_nonods ), Component( nphase * cv_nonods * ncomp ), &
+                 oldSAT_s( nphase , cv_nonods ), &
                  DRhoDPressure( nphase, cv_nonods ), &
 !!$
                  Temperature_Old( nphase * cv_nonods ), &
@@ -1479,6 +1485,7 @@
             suf_sig_diagten_bc=0.
 !!$
 
+
 !!$ Extracting Mesh Dependent Fields
             initialised = .true.
             call Extracting_MeshDependentFields_From_State( state, packed_state, initialised, &
@@ -1488,9 +1495,23 @@
                  Temperature,  Temperature_Source, &
                  Permeability )
 
+            call get_var_from_packed_state(packed_state,PhaseVolumeFraction = SAT_s,&
+                 OldPhaseVolumeFraction=OldSAT_s,FEPhaseVolumeFraction = FESAT_s )
+
+if (have_component_field) then
+        !######TEMPORARY CONVERSION FROM OLD PhaseVolumeFraction TO PACKED######
+        do cv_inod = 1, size(SAT_s,2)
+            do iphase = 1, size(SAT_s,1)
+                phaseVolumeFraction(cv_inod +(iphase-1)*size(SAT_s,2)) = SAT_s(iphase,cv_inod)
+                PhaseVolumeFraction_Old(cv_inod +(iphase-1)*size(SAT_s,2)) = OldSAT_s(iphase,cv_inod)
+            end do
+        end do
+        !#############################################################
+    end if
+
+
 !!$ Dummy field used in the scalar advection option:
             Dummy_PhaseVolumeFraction_FEMT = 1.
-
 
             ncv_faces=CV_count_faces( packed_state, CV_ELE_TYPE, stotel, cv_sndgln, u_sndgln )
 
@@ -1553,6 +1574,7 @@
 
             call get_option( '/timestepping/timestep', dt )
             dt = max( min( min( dt * rc / c, ic * dt ), maxc ), minc )
+            call allmin(dt)
             call set_option( '/timestepping/timestep', dt )
          end if
 
