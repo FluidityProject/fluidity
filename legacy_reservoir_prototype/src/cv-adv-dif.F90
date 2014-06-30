@@ -3992,7 +3992,7 @@ end if
           CV_NODI = CV_NDGLN(( ELE - 1 ) * CV_NLOC + CV_ILOC )
           !ewrite(3,*)'ele,CV_NODI,CV_ILOC:',ele,CV_NODI,CV_ILOC, x(CV_NODI)
 
-          if (.not.  node_owned(PSI(IT)%ptr,cv_nodi)) cycle
+          if (.not.  node_owned(PSI(1)%ptr,cv_nodi)) cycle
 
           Loop_CV_JLOC: DO CV_JLOC = 1, CV_NLOC
 
