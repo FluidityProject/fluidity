@@ -167,6 +167,16 @@ contains
     neigh = ele_neigh(xfield, element, neigh_i+1)
   end function get_element_neighbour
 
+  function get_element_owner(element) result(owner) bind(c)
+    !! Callback routine to query whether the local process owns a given element
+    use iso_c_binding
+    implicit none
+    integer(c_int), intent(in), value :: element
+    integer(c_int) :: owner
+
+    owner = element_owner(xfield, element)
+  end function get_element_owner
+
   subroutine evaluate_scalar_field(field_ptr, dim, element, local_coords, \
     scalar_value) bind(c)
     !! Callback routine to sample a scalar field at a particle position

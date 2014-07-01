@@ -27,6 +27,7 @@
 */
 #include "Particle.h"
 #include <algorithm>
+#include <mpi.h>
 
 using namespace std;
 
@@ -38,15 +39,16 @@ class LagrangianParticle : public Particle
   LagrangianParticle(double coordinates[], int dim, int cell,
                      double local_coords[], char *name);
   ~LagrangianParticle();
-
   virtual void view();
 
   void rk4_advection(void *velocity_field, double dt);
 
   void update_parametic(vector<double> coordinates, double tolerance);
+  int get_next_cell();
 
  private:
   vector<double> update_vector;  // Temporary sampling position during RK stages
+  int next_cell;
 
   static int    rk4_stages;
   static double rk4_stage_matrix[4][4];

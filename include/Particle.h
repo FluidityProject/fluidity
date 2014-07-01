@@ -43,6 +43,8 @@ class Particle
 
   string get_name();
   vector<double> get_position();
+  int get_cell();
+
   void scalar_field_value(void *field_ptr, double *scalar_value);
   void vector_field_value(void *field_ptr, double *vector_value);
   void vector_field_value(void *field_ptr, double *local_coords, double *vector_value);

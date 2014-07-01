@@ -29,9 +29,15 @@
 
 extern "C" {
   void find_enclosing_cell(double *coordinates, int dim, int *cell, double *lcoords);
+
+  int get_element_owner(int element);
 }
 
-ParticleList::ParticleList() {}
+ParticleList::ParticleList()
+{
+  int nprocs = MPI::COMM_WORLD.Get_size();
+  send_lists = vector< list<Particle*> >(nprocs);
+}
 
 ParticleList::~ParticleList()
 {
@@ -61,12 +67,33 @@ list<Particle*>::iterator ParticleList::end()
 }
 
 void ParticleList::advect_lagrangian(void *velocity_field, double dt) {
+  int next_cell, new_owner;
+
+  int rank = MPI::COMM_WORLD.Get_rank();
+
   for (list<Particle*>::iterator p = plist.begin(); p != plist.end(); ++p) {
     LagrangianParticle *lagp = dynamic_cast<LagrangianParticle*>(*p);
     if (lagp != NULL) {
+      /* Perform advection and track enclosing cell */
       lagp->rk4_advection(velocity_field, dt);
+
+      /* Check if particle is still in the local sub-domain */
+      next_cell = lagp->get_next_cell();
+      if (next_cell < 0) {
+
+        new_owner = get_element_owner( lagp->get_cell() );
+        if (new_owner != rank) {
+          /* Particle left local sub-domain, so move it to the relevant
+             send list for it to be send to its new owner */
+          this->send_lists[rank].push_back(*p);
+          p = this->plist.erase(p);
+        }
+        /* TODO: Deal with particles leaving the global domain */
+      }
     }
   }
+
+  /* Now send the selected particles to their new owner */
 }
 
 extern "C" {

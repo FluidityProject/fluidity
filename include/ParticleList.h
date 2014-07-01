@@ -29,6 +29,7 @@
 #include "LagrangianParticle.h"
 #include <list>
 #include <iostream>
+#include <mpi.h>
 
 using namespace std;
 
@@ -49,5 +50,7 @@ class ParticleList
 
  private:
   list<Particle*> plist;
+
+  vector< list<Particle*> > send_lists;
 };
 #endif // ParticleList_H

@@ -42,6 +42,7 @@ LagrangianParticle::LagrangianParticle(double coordinates[], int dim, int cell,
   for (size_t i=0; i<this->position.size(); i++) {
     this->update_vector[i] = this->position[i];
   }
+  this->next_cell = this->get_cell();
 }
 
 LagrangianParticle::~LagrangianParticle() {}
@@ -53,6 +54,11 @@ void LagrangianParticle::view()
   cout << "  \tcell: " << cell << endl << "\tLocal coords: ";
   cout << local_coords[0] << ", " << local_coords[1] << ", " << local_coords[2];
   cout << endl;
+}
+
+int LagrangianParticle::get_next_cell()
+{
+  return this->next_cell;
 }
 
 int    LagrangianParticle::rk4_stages = 4;
@@ -114,7 +120,10 @@ void LagrangianParticle::update_parametic(vector<double> coordinates, double tol
     min_lcoord = min_element(lcoords, lcoords+dim);
 
     neigh_i = min_lcoord - lcoords;
-    this->cell = get_element_neighbour(this->cell, neigh_i);
+    this->next_cell = get_element_neighbour(this->cell, neigh_i);
+
+    /* The next cell is unknown locally, stop tracking loop */
+    if (this->next_cell < 0) {break;} else {this->cell = this->next_cell;}
   }
   delete [] lcoords;
 }

@@ -59,6 +59,11 @@ vector<double> Particle::get_position()
   return this->position;
 }
 
+int Particle::get_cell()
+{
+  return this->cell;
+}
+
 void Particle::scalar_field_value(void *field_ptr, double *scalar_value)
 {
   evaluate_scalar_field(field_ptr, this->position.size(), this->cell,
