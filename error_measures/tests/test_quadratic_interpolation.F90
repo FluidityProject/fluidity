@@ -41,8 +41,8 @@ subroutine test_quadratic_interpolation
 
   call quadratic_interpolation(old_fields, old_position, new_fields, new_position)
 
-  call vtk_write_fields("data/quadratic_interpolation", 0, old_position, old_mesh, sfields=old_fields, vfields=(/old_position/))
-  call vtk_write_fields("data/quadratic_interpolation", 1, new_position, new_mesh, sfields=new_fields, vfields=(/new_position/))
+  call vtk_write_fields("quadratic_interpolation", 0, old_position, old_mesh, sfields=old_fields, vfields=(/old_position/))
+  call vtk_write_fields("quadratic_interpolation", 1, new_position, new_mesh, sfields=new_fields, vfields=(/new_position/))
 
   fail = .false.
   do node=1,node_count(new_mesh)

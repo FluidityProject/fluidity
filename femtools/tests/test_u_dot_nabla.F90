@@ -37,7 +37,7 @@ subroutine test_u_dot_nabla
 
   call u_dot_nabla(vel_field, vel_field, positions, u_dot_nabla_field)
 
-  call vtk_write_fields("data/test_u_dot_nabla_out", 0, positions, mesh, &
+  call vtk_write_fields("test_u_dot_nabla_out", 0, positions, mesh, &
     & vfields = (/positions, u_dot_nabla_field, vel_field/))
 
   max_val = 0.0

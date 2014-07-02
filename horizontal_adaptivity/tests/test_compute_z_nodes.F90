@@ -21,6 +21,6 @@ subroutine test_compute_z_nodes
   fail = node_count(z_mesh) /= 11
   call report_test("[compute_z_mesh: node_count]", fail, .false., "Should be 11")
 
-  call vtk_write_fields("data/z_mesh", 0, z_mesh, z_mesh%mesh, vfields=(/z_mesh/))
+  call vtk_write_fields("z_mesh", 0, z_mesh, z_mesh%mesh, vfields=(/z_mesh/))
   
 end subroutine test_compute_z_nodes

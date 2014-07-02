@@ -50,7 +50,7 @@ LIBFLUIDITY=../../lib/lib$(FLUIDITY).a
 FORTRANTESTS= $(notdir $(basename $(wildcard @srcdir@/*.F90)))
 
 
-CTESTS= $(notdir $(basename $(wildcard @srcdir/*.c))) $(notdir $(basename $(wildcard @srcdir/*.cpp))) 
+CTESTS= $(notdir $(basename $(wildcard @srcdir@/*.c))) $(notdir $(basename $(wildcard @srcdir@/*.cpp))) 
 
 TESTS=$(CTESTS) $(FORTRANTESTS)
 

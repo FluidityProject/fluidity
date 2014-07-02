@@ -56,14 +56,14 @@ subroutine test_directional_gradation_annulus
   end do
 
   call get_edge_lengths(metric, edgelen)
-  call vtk_write_fields("data/directional_gradation_annulus", 0, positions, mesh, &
+  call vtk_write_fields("directional_gradation_annulus", 0, positions, mesh, &
                         sfields=(/edgelen/), &
                         tfields=(/metric/))
 
   call form_gradation_metric(positions, metric)
 
   call get_edge_lengths(metric, edgelen)
-  call vtk_write_fields("data/directional_gradation_annulus", 1, positions, mesh, &
+  call vtk_write_fields("directional_gradation_annulus", 1, positions, mesh, &
                         sfields=(/edgelen/), &
                         tfields=(/metric/))
 

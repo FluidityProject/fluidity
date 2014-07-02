@@ -47,7 +47,7 @@ subroutine test_anisotropic_adaptivity
   field%val = field%val + 4.0
 
   call grad(field, positions, gradient)
-  call vtk_write_fields("data/anisotropic_adapt", 9, positions, mesh, &
+  call vtk_write_fields("anisotropic_adapt", 9, positions, mesh, &
                         sfields=(/field/), vfields=(/gradient/))
 
   call insert(state, field, "Field")
@@ -81,7 +81,7 @@ subroutine test_anisotropic_adaptivity
   gradation_initialised = .true.
   call compute_hessian(field, positions, hessian)
   call assemble_metric((/state/), metric, opts)
-  call vtk_write_fields("data/anisotropic_adapt", 0, positions, mesh, &
+  call vtk_write_fields("anisotropic_adapt", 0, positions, mesh, &
                         sfields=(/field/), vfields=(/gradient/), tfields=(/hessian, metric/))
   call adapt_state(state, metric)
 
@@ -89,5 +89,5 @@ subroutine test_anisotropic_adaptivity
   positions => extract_vector_field(state, "Coordinate")
   ptr_field => extract_scalar_field(state, "Field")
 
-  call vtk_write_fields("data/anisotropic_adapt", 1, positions,  mesh, sfields=(/ptr_field/)) 
+  call vtk_write_fields("anisotropic_adapt", 1, positions,  mesh, sfields=(/ptr_field/)) 
 end subroutine test_anisotropic_adaptivity

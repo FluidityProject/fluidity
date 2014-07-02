@@ -49,8 +49,8 @@ subroutine test_interpolation_quadratic
 
   call linear_interpolation(old_state, new_state)
 
-  call vtk_write_state("data/quadratic_interpolation", 0, state=(/old_state/))
-  call vtk_write_state("data/quadratic_interpolation", 1, state=(/new_state/))
+  call vtk_write_state("quadratic_interpolation", 0, state=(/old_state/))
+  call vtk_write_state("quadratic_interpolation", 1, state=(/new_state/))
 
   new_integral = field_integral(p2_new_field, new_positions)
 

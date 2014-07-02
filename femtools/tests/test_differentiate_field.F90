@@ -36,7 +36,7 @@ subroutine test_differentiate_field
   end do
 
   call differentiate_field(pressure_field, position_field, derivatives, outfields)
-  call vtk_write_fields("data/differentiate_field", 0, position_field, mesh, sfields=(/pressure_field, &
+  call vtk_write_fields("differentiate_field", 0, position_field, mesh, sfields=(/pressure_field, &
                         outfields/))
 
   ! X derivative
@@ -72,7 +72,7 @@ subroutine test_differentiate_field
   end do
 
   call differentiate_field(pressure_field, position_field, derivatives, outfields)
-  call vtk_write_fields("data/differentiate_field", 1, position_field, mesh, sfields=(/pressure_field, &
+  call vtk_write_fields("differentiate_field", 1, position_field, mesh, sfields=(/pressure_field, &
                         outfields/))
 
   fail = .false.

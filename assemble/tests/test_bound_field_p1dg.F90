@@ -42,9 +42,9 @@ subroutine test_bound_field_p1dg
 
   x => extract_vector_field(states(1), "Coordinate")
 
-  call vtk_write_fields("data/bounding", 0, x, u%mesh, sfields=(/u/))
+  call vtk_write_fields("bounding", 0, x, u%mesh, sfields=(/u/))
   call bound_field_diffuse(u, max_bound, min_bound, mass, lumped_mass, inverse_lumped_mass)
-  call vtk_write_fields("data/bounding", 1, x, u%mesh, sfields=(/u/))
+  call vtk_write_fields("bounding", 1, x, u%mesh, sfields=(/u/))
 
   fail = .false.
   do node=1,node_count(u)

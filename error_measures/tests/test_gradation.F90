@@ -79,7 +79,7 @@ subroutine test_gradation
 
   use_gradation_metric = .true. ; gamma0 = 1.1; gradation_initialised = .true.
   call assemble_metric((/state/), metric, opts)
-  call vtk_write_fields("data/gradation_adapt", 0, positions, mesh, &
+  call vtk_write_fields("gradation_adapt", 0, positions, mesh, &
                         sfields=(/field/))
   call adapt_state(state, metric)
 
@@ -100,7 +100,7 @@ subroutine test_gradation
   mesh => extract_mesh(state, "Mesh")
   positions => extract_vector_field(state, "Coordinate")
   field_ptr => extract_scalar_field(state, "Field")
-  call vtk_write_fields("data/gradation_adapt", 1, positions,  mesh, sfields=(/field_ptr/))
+  call vtk_write_fields("gradation_adapt", 1, positions,  mesh, sfields=(/field_ptr/))
 
   call report_test("[gradation]", .false., .false., "Gradation runs. That's enough for now.")
 end subroutine test_gradation

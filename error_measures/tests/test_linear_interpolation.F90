@@ -72,8 +72,8 @@ subroutine test_linear_interpolation
 
   call linear_interpolation(state_3, state_5)
 
-  call vtk_write_fields("data/linear_interpolation", 0, old_position, old_mesh, sfields=old_fields, vfields=(/old_position/))
-  call vtk_write_fields("data/linear_interpolation", 1, new_position, new_mesh, sfields=new_fields, vfields=(/new_position/))
+  call vtk_write_fields("linear_interpolation", 0, old_position, old_mesh, sfields=old_fields, vfields=(/old_position/))
+  call vtk_write_fields("linear_interpolation", 1, new_position, new_mesh, sfields=new_fields, vfields=(/new_position/))
 
   fail = .false.
   do node=1,node_count(new_mesh)

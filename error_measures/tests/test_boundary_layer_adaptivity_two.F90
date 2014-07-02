@@ -73,7 +73,7 @@ subroutine test_boundary_layer_adaptivity_two
   use_gradation_metric = .false.
   gradation_initialised = .true.
   call assemble_metric((/state/), metric, opts)
-  call vtk_write_fields("data/boundary_layer_adapt_two", 0, positions, mesh, &
+  call vtk_write_fields("boundary_layer_adapt_two", 0, positions, mesh, &
                         sfields=(/field/), tfields=(/metric/))
   call adapt_state(state, metric)
 
@@ -81,5 +81,5 @@ subroutine test_boundary_layer_adaptivity_two
   positions => extract_vector_field(state, "Coordinate")
   ptr_field => extract_scalar_field(state, "Field")
 
-  call vtk_write_fields("data/boundary_layer_adapt_two", 1, positions,  mesh, sfields=(/ptr_field/)) 
+  call vtk_write_fields("boundary_layer_adapt_two", 1, positions,  mesh, sfields=(/ptr_field/)) 
 end subroutine test_boundary_layer_adaptivity_two

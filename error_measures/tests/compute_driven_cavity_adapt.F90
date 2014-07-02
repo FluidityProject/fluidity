@@ -55,9 +55,9 @@ subroutine compute_driven_cavity_adapt
   opts%anisotropic_edge_opts => edge_opts
 
   call assemble_metric(state, metric, opts)
-  call vtk_write_state("data/driven_cavity_adapt", 0, state=state)
+  call vtk_write_state("driven_cavity_adapt", 0, state=state)
   call adapt_state(state(1), metric)
-  call vtk_write_state("data/driven_cavity_adapt", 1, state=state)
+  call vtk_write_state("driven_cavity_adapt", 1, state=state)
 
   call deallocate(metric)
   call deallocate(state(1))

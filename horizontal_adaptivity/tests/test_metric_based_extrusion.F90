@@ -30,7 +30,7 @@ subroutine test_metric_based_extrusion
 
   call compute_z_nodes(z_mesh, 1.0, (/ 0.0 /), min_bottom_layer_frac=1e-3, sizing=1.0)
   call add_faces(z_mesh%mesh)
-  call vtk_write_fields("data/layered_mesh", 0, z_mesh, z_mesh%mesh, vfields=(/z_mesh/))
+  call vtk_write_fields("layered_mesh", 0, z_mesh, z_mesh%mesh, vfields=(/z_mesh/))
   call allocate(old_z_mesh, z_mesh%dim, z_mesh%mesh, "OldZMesh")
   call set(old_z_mesh, z_mesh)
 
@@ -43,7 +43,7 @@ subroutine test_metric_based_extrusion
 
   ! OK. Now let's adapt?
   call metric_based_extrude(z_mesh, old_z_mesh, adapted_mesh, metric, old_mesh)
-  call vtk_write_fields("data/metric_based_extrusion", 0, adapted_mesh, adapted_mesh%mesh)
+  call vtk_write_fields("metric_based_extrusion", 0, adapted_mesh, adapted_mesh%mesh)
 
   ! .. and check some statistics
   fail = (node_count(adapted_mesh) /= 5)

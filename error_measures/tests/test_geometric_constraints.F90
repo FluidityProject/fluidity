@@ -24,10 +24,10 @@ subroutine test_geometric_constraints
 
   use_geometric_constraints_metric = .true.
 
-  call vtk_write_fields("data/geometric_constraints", 0, X, mesh, tfields=(/metric/))
+  call vtk_write_fields("geometric_constraints", 0, X, mesh, tfields=(/metric/))
 
   call form_geometric_constraints_metric(X, metric)
 
-  call vtk_write_fields("data/geometric_constraints", 1, X, mesh, tfields=(/metric/))
+  call vtk_write_fields("geometric_constraints", 1, X, mesh, tfields=(/metric/))
 
 end subroutine test_geometric_constraints

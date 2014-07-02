@@ -60,13 +60,13 @@ subroutine test_backstep
   call dprintf(-1, "%p\n$", state%scalar_fields(2))
   call dprintf(-1, "%p\n$", state%scalar_fields(2)%val)
   call assemble_metric((/state/), metric, opts)
-  call vtk_write_fields("data/backstep", 0, positions, mesh, sfields=(/field/), tfields=(/metric/))
+  call vtk_write_fields("backstep", 0, positions, mesh, sfields=(/field/), tfields=(/metric/))
   call adapt_state(state, metric)
 
   mesh => extract_mesh(state, "Mesh")
   positions => extract_vector_field(state, "Coordinate")
   field => extract_scalar_field(state, "Temperature")
-  call vtk_write_fields("data/backstep", 1, positions, mesh, sfields=(/field/)) 
+  call vtk_write_fields("backstep", 1, positions, mesh, sfields=(/field/)) 
 
   call deallocate(metric)
   call deallocate(state)

@@ -75,12 +75,12 @@ subroutine test_anisotropic_adaptivity_two
 
   call assemble_metric((/state/), metric, opts)
   call compute_hessian(ptr_field, positions, hessian)
-  call vtk_write_fields("data/anisotropic_adapt", 2, positions, mesh, sfields=(/ptr_field/), tfields=(/hessian, metric/))
+  call vtk_write_fields("anisotropic_adapt", 2, positions, mesh, sfields=(/ptr_field/), tfields=(/hessian, metric/))
   call adapt_state(state, metric)
 
   mesh => extract_mesh(state, "Mesh")
   positions => extract_vector_field(state, "Coordinate")
   ptr_field => extract_scalar_field(state, "Field")
 
-  call vtk_write_fields("data/anisotropic_adapt", 3, positions,  mesh, sfields=(/ptr_field/)) 
+  call vtk_write_fields("anisotropic_adapt", 3, positions,  mesh, sfields=(/ptr_field/)) 
 end subroutine test_anisotropic_adaptivity_two

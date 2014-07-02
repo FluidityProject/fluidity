@@ -73,14 +73,14 @@ subroutine compute_enstrophy_goal
   write(0,*) "goal_enstrophy(state) == ", goal_enstrophy(state_array)
   call form_goal_metric(state_array, metric, goal_enstrophy, goal_enstrophy_grad, opts)
   call form_gradation_metric(positions, metric) 
-  call vtk_write_fields("data/goal_error_adapted", 0, positions, mesh, &
+  call vtk_write_fields("goal_error_adapted", 0, positions, mesh, &
                         vfields=(/velocity/), tfields=(/metric/))
   call adapt_state(state, metric)
   mesh => extract_mesh(state, "Mesh")
   positions => extract_vector_field(state, "Coordinate")
   velocity => extract_vector_field(state, "Velocity")
   temperature => extract_scalar_field(state, "Temperature")
-  call vtk_write_fields("data/goal_error_adapted", 1, positions, mesh, sfields=(/temperature/), &
+  call vtk_write_fields("goal_error_adapted", 1, positions, mesh, sfields=(/temperature/), &
                         vfields=(/velocity/))
 
   do i=1,0
@@ -93,7 +93,7 @@ subroutine compute_enstrophy_goal
     state_array(1) = state
     call form_goal_metric(state_array, metric, goal_enstrophy, goal_enstrophy_grad, opts)
     call form_gradation_metric(positions, metric) 
-    call vtk_write_fields("data/goal_error_adapted", i+1, positions, mesh, sfields=(/temperature/), &
+    call vtk_write_fields("goal_error_adapted", i+1, positions, mesh, sfields=(/temperature/), &
                           vfields=(/velocity/), tfields=(/metric/))
     call adapt_state(state, metric) 
   end do
@@ -103,7 +103,7 @@ subroutine compute_enstrophy_goal
   velocity => extract_vector_field(state, "Velocity")
   temperature => extract_scalar_field(state, "Temperature")
 
-  call vtk_write_fields("data/goal_error_adapted", i+2, positions,  mesh, sfields=(/temperature/), vfields=(/velocity/)) 
+  call vtk_write_fields("goal_error_adapted", i+2, positions,  mesh, sfields=(/temperature/), vfields=(/velocity/)) 
 
   state_array(1) = state
   write(0,*) "goal_enstrophy(state) == ", goal_enstrophy(state_array)

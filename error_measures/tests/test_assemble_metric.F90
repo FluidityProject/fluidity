@@ -61,5 +61,5 @@ subroutine test_assemble_metric
   end do
 
   call report_test("[eigenbounds]", fail, warn, "Eigenvalues should lie between the bounds set by the options.")
-  call vtk_write_fields("data/metric", 0, position_field, mesh, sfields=(/pressure_field/), tfields=(/metric/))
+  call vtk_write_fields("metric", 0, position_field, mesh, sfields=(/pressure_field/), tfields=(/metric/))
 end subroutine test_assemble_metric

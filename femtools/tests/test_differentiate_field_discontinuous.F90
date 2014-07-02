@@ -54,7 +54,7 @@ subroutine test_differentiate_field_discontinuous
 
   derivatives=.true. ! ask for all derivatives
   call differentiate_field(pressure_field, position_field, derivatives, outfields)
-  call vtk_write_fields("data/differentiate_field", 0, position_field, dgmesh, sfields=outfields)
+  call vtk_write_fields("differentiate_field", 0, position_field, dgmesh, sfields=outfields)
   failx=.false.
   faily=.false.
   failz=.false.

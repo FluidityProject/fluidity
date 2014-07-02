@@ -93,7 +93,7 @@ subroutine test_adapt_mesh
   call adapt_mesh(input_mesh_field, metric, output_mesh_field)
   call report_test("[adapt_mesh]", .false., .false., "adapt_mesh failure")
 
-  call vtk_write_fields("data/test_adapt_mesh_out", position = output_mesh_field, model = output_mesh_field%mesh) 
+  call vtk_write_fields("test_adapt_mesh_out", position = output_mesh_field, model = output_mesh_field%mesh) 
 
   call deallocate(output_mesh_field)
   call deallocate(metric)

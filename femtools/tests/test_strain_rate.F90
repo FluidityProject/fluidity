@@ -43,7 +43,7 @@ subroutine test_strain_rate
   call set(diff_field, strain_rate_field)
   call addto(diff_field, solution_field, scale=-1.0)
   
-  call vtk_write_fields("data/strain_rate_out", 0, positions, mesh, &
+  call vtk_write_fields("strain_rate_out", 0, positions, mesh, &
      vfields=(/ field/), tfields=(/ strain_rate_field, solution_field, diff_field /))
   
   fail = maxval( abs( diff_field%val ))> 1e-10
