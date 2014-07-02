@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<testproblem>
+  <name>lagrangian_detectors</name>
+  <owner userid="mlange"/>
+  <tags>flml detectors periodic</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>
+../../bin/fluidity -v2 -l lagrangian_detectors.flml
+    </command_line>
+  </problem_definition>
+  <variables>
+    <variable name="last_locations_error" language="python">
+from fluidity_tools import stat_parser
+import numpy as np
+
+expected = np.zeros((10, 2), dtype=float)
+expected[:,0] = (np.arange(.05, 1., 0.1) + 0.5) % 1.
+expected[:,1] = np.arange(.05, 1., 0.1) 
+
+s = stat_parser('lagrangian_detectors.detectors')
+last_locations_error = np.zeros((10, 2), dtype=float)
+for i in range(10):
+    name = 'LagrDiagonal_' + str(i+1).zfill(2)
+    last_locations_error[i, 0] = s[name]['position'][0][-1] - expected[i,0]
+    last_locations_error[i, 1] = s[name]['position'][1][-1] - expected[i,1]
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="CorrectLagrangianTrajectory" language="python">
+assert abs(last_locations_error).max() &lt; 1.0e-6
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>
