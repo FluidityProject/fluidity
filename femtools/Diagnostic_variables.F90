@@ -1426,9 +1426,15 @@ contains
     real, allocatable, dimension(:) :: detector_location
     real:: current_time
     character(len = OPTION_PATH_LEN) :: detectors_cp_filename, detector_file_filename
+    character(len = OPTION_PATH_LEN) :: optpath
 
     type(detector_type), pointer :: detector
     type(element_type), pointer :: shape
+
+    character(len=FIELD_NAME_LEN) :: periodic_mesh_name
+    type(mesh_type), pointer :: periodic_mesh
+    integer, dimension(:), allocatable :: boundary_ids
+    integer :: bc, bid, n_periodic_bcs, mapping_count
 
     ! Idempotency check
     if (default_stat%detectors_initialised) return
@@ -1471,6 +1477,51 @@ contains
     ! Enable detectors to drift with the mesh
     if (have_option("/io/detectors/move_with_mesh")) then
        default_stat%detector_list%move_with_mesh=.true.
+    end if
+
+    ! Enable detector tracking in periodic domains by storing
+    ! boundary_ids and corresponding Python mapping functions and
+    ! extracting the periodic mesh
+    if (have_option("/io/detectors/periodic_tracking")) then
+       default_stat%detector_list%periodic_tracking=.true.
+
+       call get_option("/io/detectors/periodic_tracking/mesh/name", periodic_mesh_name)
+       periodic_mesh => extract_mesh(state, trim(periodic_mesh_name))
+       default_stat%detector_list%periodic_tracking_mesh => periodic_mesh
+
+       mapping_count = 1
+       n_periodic_bcs = option_count(trim(periodic_mesh%option_path)//&
+            "/from_mesh/periodic_boundary_conditions")
+       allocate( default_stat%detector_list%boundary_mappings(n_periodic_bcs*2) )
+          do bc=0, n_periodic_bcs-1
+             optpath = trim(default_stat%detector_list%periodic_tracking_mesh%option_path)//&
+                  "/from_mesh/periodic_boundary_conditions["//int2str(bc)//"]"
+             ! Aliased BID uses coordinate_map
+             shape_option = option_shape(trim(optpath)//"/aliased_boundary_ids")
+             allocate( boundary_ids(shape_option(1)) )
+             call get_option(trim(optpath)//"/aliased_boundary_ids", boundary_ids)
+             do bid=1, size(boundary_ids)
+                call insert(default_stat%detector_list%bid_to_boundary_mapping, &
+                     boundary_ids(bid), mapping_count)
+             end do
+             deallocate(boundary_ids)
+             call get_option(trim(optpath)//"/coordinate_map", &
+                  default_stat%detector_list%boundary_mappings(mapping_count))
+             mapping_count = mapping_count + 1
+
+             ! Physical BIDs uses inverse_coordinate_map
+             shape_option = option_shape(trim(optpath)//"/physical_boundary_ids")
+             allocate( boundary_ids(shape_option(1)) )
+             call get_option(trim(optpath)//"/physical_boundary_ids",boundary_ids)
+             do bid=1, size(boundary_ids)
+                call insert(default_stat%detector_list%bid_to_boundary_mapping, &
+                     boundary_ids(bid), mapping_count)
+             end do
+             deallocate(boundary_ids)
+             call get_option(trim(optpath)//"/inverse_coordinate_map", &
+                  default_stat%detector_list%boundary_mappings(mapping_count))
+             mapping_count = mapping_count + 1
+          end do
     end if
 
     ! Set flag for NaN detector output

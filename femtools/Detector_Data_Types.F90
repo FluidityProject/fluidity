@@ -30,7 +30,9 @@
 module detector_data_types
 
   use fldebug
-  use global_parameters, only : FIELD_NAME_LEN
+  use fields
+  use global_parameters, only : FIELD_NAME_LEN, PYTHON_FUNC_LEN
+  use integer_hash_table_module
   
   implicit none
   
@@ -95,6 +97,15 @@ module detector_data_types
      !! Parameters for lagrangian movement (n_stages, stage_matrix, etc)
      type(rk_gs_parameters), pointer :: move_parameters => null()
      logical :: move_with_mesh = .false.
+
+     !! Tracking on periodic meshes
+     logical :: periodic_tracking = .false.
+     type(mesh_type), pointer :: periodic_tracking_mesh
+     ! Map of boundary ID to the Python mapping function
+     ! Note: This should not be here, but somewhere on the mesh_type...
+     type(integer_hash_table) :: bid_to_boundary_mapping
+     character(len=PYTHON_FUNC_LEN), dimension(:), allocatable :: boundary_mappings
+
 
      !! Optional array for detector names; names are held in read order
      character(len = FIELD_NAME_LEN), dimension(:), allocatable :: detector_names

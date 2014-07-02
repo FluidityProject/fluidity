@@ -364,6 +364,13 @@ The t argument is for future use only - currently detector locations are only se
               </element>
             </choice>
             <optional>
+              <element name="periodic_tracking">
+                <a:documentation>Allow Lagrangian detectors to honour periodicity.</a:documentation>
+                <ref name="mesh_choice"/>
+                <ref name="comment"/>
+              </element>
+            </optional>
+            <optional>
               <element name="binary_output">
                 <a:documentation>Enable to write detector output in binary format</a:documentation>
                 <ref name="comment"/>

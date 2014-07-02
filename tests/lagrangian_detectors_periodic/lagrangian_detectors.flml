@@ -91,6 +91,9 @@
         </python>
       </detector_array>
       <fail_outside_domain/>
+      <periodic_tracking>
+        <mesh name="PeriodicMesh"/>
+      </periodic_tracking>
       <lagrangian_timestepping>
         <subcycles>
           <integer_value rank="0">1</integer_value>

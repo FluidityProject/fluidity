@@ -299,6 +299,11 @@ start =
                      empty
                   }
                ),
+               ## Allow Lagrangian detectors to honour periodicity.
+               element periodic_tracking {
+                  mesh_choice,
+                  comment
+               }?,
                ## Enable to write detector output in binary format
                element binary_output {
                   comment
