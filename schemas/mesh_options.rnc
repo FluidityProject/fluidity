@@ -232,7 +232,12 @@ extrusion_options =
       ## top will be at z=0
       ## bottom will be at z=-bottom_depth
       element bottom_depth {
-          input_choice_real_plus_map
+          input_choice_real_plus_map|
+          ## Set the depth from a vtu file containing bathymetry data
+          element from_file {
+              attribute file_name { xsd:string },
+              vtu_input_format
+          }
       },
       ## Constant or function to specify the depth of the
       ## layers. The function is a function of all coordinates

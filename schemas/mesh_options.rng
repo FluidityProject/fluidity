@@ -286,7 +286,16 @@ Enter the base name without the .edge .ele, .face or
       <a:documentation>Depth over which to extrude
 top will be at z=0
 bottom will be at z=-bottom_depth</a:documentation>
-      <ref name="input_choice_real_plus_map"/>
+      <choice>
+        <ref name="input_choice_real_plus_map"/>
+        <element name="from_file">
+          <a:documentation>Set the depth from a vtu file containing bathymetry data</a:documentation>
+          <attribute name="file_name">
+            <data type="string"/>
+          </attribute>
+          <ref name="vtu_input_format"/>
+        </element>
+      </choice>
     </element>
     <element name="sizing_function">
       <a:documentation>Constant or function to specify the depth of the

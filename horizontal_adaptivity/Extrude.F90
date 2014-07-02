@@ -14,6 +14,7 @@ module hadapt_extrude
   use linked_lists
   use hadapt_combine_meshes
   use halos
+  use iso_c_binding, only: C_NULL_CHAR
   implicit none
 
   private
@@ -24,6 +25,18 @@ module hadapt_extrude
   interface compute_z_nodes
     module procedure compute_z_nodes_wrapper, compute_z_nodes_sizing
   end interface compute_z_nodes
+
+  interface
+
+     subroutine sample_vtu(filename, fieldname, x, y, cnt, values) bind(c)
+       use iso_c_binding
+       implicit none
+       character(kind=c_char) :: filename(*), fieldname(*)
+       integer(c_int), intent(in), value :: cnt
+       real(c_double), dimension(cnt) :: x, y, values
+     end subroutine sample_vtu
+
+  end interface
 
   contains
 
@@ -38,14 +51,14 @@ module hadapt_extrude
     !!< The full extruded 3D mesh.
     type(vector_field), intent(out) :: out_mesh
 
-    character(len=FIELD_NAME_LEN):: mesh_name, file_name  
+    character(len=FIELD_NAME_LEN):: mesh_name, file_name, field_name
     type(quadrature_type) :: quad
     type(element_type) :: full_shape
     type(vector_field) :: constant_z_mesh
     type(vector_field), dimension(:), allocatable :: z_meshes
     character(len=PYTHON_FUNC_LEN) :: sizing_function, depth_function
     real, dimension(:), allocatable :: sizing_vector
-    logical:: depth_from_python, depth_from_map, have_min_depth
+    logical:: depth_from_python, depth_from_map, depth_from_vtu, have_min_depth
     real, dimension(:), allocatable :: depth_vector
     real:: min_depth, surface_height
     logical:: sizing_is_constant, depth_is_constant, varies_only_in_z, list_sizing
@@ -94,10 +107,12 @@ module hadapt_extrude
       call get_extrusion_options(option_path, r, apply_region_ids, region_ids, &
                                  depth_is_constant, depth, depth_from_python, depth_function, depth_from_map, &
                                  file_name, have_min_depth, min_depth, surface_height, sizing_is_constant, constant_sizing, list_sizing, &
-                                 sizing_function, sizing_vector, min_bottom_layer_frac, varies_only_in_z, sigma_layers, number_sigma_layers)
+                                 sizing_function, sizing_vector, min_bottom_layer_frac, varies_only_in_z, sigma_layers, number_sigma_layers, depth_from_vtu, field_name)
 
       allocate(depth_vector(size(z_meshes)))
-      if (depth_from_map) call populate_depth_vector(h_mesh,file_name,depth_vector,surface_height)
+      if (depth_from_map .or. depth_from_vtu) then
+         call populate_depth_vector(h_mesh,file_name,depth_vector,surface_height,depth_from_vtu,field_name)
+      end if
       
       ! create a 1d vertical mesh under each surface node
       do column=1, size(z_meshes)
@@ -171,7 +186,7 @@ module hadapt_extrude
   subroutine get_extrusion_options(option_path, region_index, apply_region_ids, region_ids, &
                                    depth_is_constant, depth, depth_from_python, depth_function, depth_from_map, &
                                    file_name, have_min_depth, min_depth, surface_height, sizing_is_constant, constant_sizing, list_sizing, &
-                                   sizing_function, sizing_vector, min_bottom_layer_frac, varies_only_in_z, sigma_layers, number_sigma_layers)
+                                   sizing_function, sizing_vector, min_bottom_layer_frac, varies_only_in_z, sigma_layers, number_sigma_layers, depth_from_vtu, field_name)
 
     character(len=*), intent(in) :: option_path
     integer, intent(in) :: region_index
@@ -179,7 +194,7 @@ module hadapt_extrude
     
     integer, dimension(:), allocatable :: region_ids
     
-    logical, intent(out) :: depth_is_constant, depth_from_python, depth_from_map
+    logical, intent(out) :: depth_is_constant, depth_from_python, depth_from_map, depth_from_vtu
     real, intent(out) :: depth
     character(len=PYTHON_FUNC_LEN), intent(out) :: depth_function
     
@@ -188,7 +203,7 @@ module hadapt_extrude
     character(len=PYTHON_FUNC_LEN), intent(out) :: sizing_function
     real, dimension(:), allocatable, intent(out) :: sizing_vector
 
-    character(len=FIELD_NAME_LEN), intent(out) :: file_name
+    character(len=FIELD_NAME_LEN), intent(out) :: file_name, field_name
     logical, intent(out) :: have_min_depth
     real, intent(out) :: min_depth, surface_height
     
@@ -211,6 +226,7 @@ module hadapt_extrude
     ! get the extrusion options
     depth_from_python=.false.
     depth_from_map=.false.
+    depth_from_vtu=.false.
     have_min_depth=.false.
     call get_option(trim(option_path)//&
                     '/from_mesh/extrude/regions['//int2str(region_index)//&
@@ -230,6 +246,16 @@ module hadapt_extrude
                          ']/bottom_depth/from_map/file_name', &
                           file_name, stat=stat)
         if (stat==0) depth_from_map = .true.
+      end if
+      if (stat /= 0) then
+        call get_option(trim(option_path)//'/from_mesh/extrude/regions['//int2str(region_index)//&
+                         ']/bottom_depth/from_file/file_name', &
+                          file_name, stat=stat)
+        call get_option(trim(option_path)//'/from_mesh/extrude/regions['//int2str(region_index)//&
+                         ']/bottom_depth/from_file/format::vtu/field_name', &
+                          field_name, stat=stat)
+        if (stat==0) depth_from_map = .true.
+        if (stat==0) depth_from_vtu = .true.
       end if
       if (stat /= 0) then
         FLAbort("Unknown way of specifying bottom depth function in mesh extrusion")
@@ -297,13 +323,14 @@ module hadapt_extrude
   
   end subroutine get_extrusion_options
 
-  subroutine populate_depth_vector(h_mesh,file_name,depth_vector,surface_height)
+  subroutine populate_depth_vector(h_mesh,file_name,depth_vector,surface_height,from_vtu,field_name)
 
     type(vector_field), intent(in) :: h_mesh
-    character(len=FIELD_NAME_LEN), intent(in):: file_name
+    character(len=FIELD_NAME_LEN), intent(in):: file_name, field_name
     real, intent(in) :: surface_height
     real, dimension(:,:), allocatable :: tmp_pos_vector
     real, dimension(:), intent(inout) :: depth_vector
+    logical, intent(in) :: from_vtu
 
     integer :: column
 
@@ -313,7 +340,12 @@ module hadapt_extrude
       tmp_pos_vector(:,column) = node_val(h_mesh, column)
     end do
 
-    call set_from_map_beta(trim(file_name)//char(0), tmp_pos_vector(1,:), tmp_pos_vector(2,:), depth_vector, node_count(h_mesh), surface_height)
+    if (from_vtu) then
+        call sample_vtu(trim(file_name)//C_NULL_CHAR, trim(field_name)//C_NULL_CHAR, &
+             tmp_pos_vector(1,:), tmp_pos_vector(2,:), node_count(h_mesh), depth_vector)
+    else
+       call set_from_map_beta(trim(file_name)//char(0), tmp_pos_vector(1,:), tmp_pos_vector(2,:), depth_vector, node_count(h_mesh), surface_height)
+    end if
 
     if (associated(h_mesh%mesh%halos)) then
       call halo_update(h_mesh%mesh%halos(2), depth_vector)
