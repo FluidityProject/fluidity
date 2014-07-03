@@ -1235,14 +1235,16 @@
                      do icomp = 1, ncomp
                         do iphase = 1, nphase
 
-                           call Updating_Linearised_Components( totele, ndim, cv_nloc, cv_nonods, cv_ndgln, &
-                              component ( 1 + ( iphase - 1 ) * cv_nonods + ( icomp - 1 ) * &
-                              nphase * cv_nonods : iphase * cv_nonods + ( icomp - 1 ) * nphase * cv_nonods ) )
-
                            Component_State => extract_scalar_field( state( icomp + nphase ), & 
                                 'ComponentMassFractionPhase' // int2str( iphase ) )
+                           if (.not. have_option(trim(Component_State%option_path)//"/prognostic/consistent_interpolation")) then
+
+                              call Updating_Linearised_Components( totele, ndim, cv_nloc, cv_nonods, cv_ndgln,& 
+                           component ( 1 + ( iphase - 1 ) * cv_nonods + ( icomp - 1 ) * &
+                                nphase * cv_nonods : iphase * cv_nonods + ( icomp - 1 ) * nphase * cv_nonods ) )
                            Component_State % val = component( 1 + ( iphase - 1 ) * cv_nonods + ( icomp - 1 ) * &
                                 nphase * cv_nonods : iphase * cv_nonods + ( icomp - 1 ) * nphase * cv_nonods )
+                        end if
                         end do
                      end do
                   end if Conditional_Components_Linearisation2
