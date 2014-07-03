@@ -71,6 +71,12 @@ void Particle::vector_field_value(void *field_ptr, double *vector_value)
                         this->local_coords.data(), vector_value);
 }
 
+void Particle::vector_field_value(void *field_ptr, double *local_coords,
+                                  double *vector_value) {
+  evaluate_vector_field(field_ptr, this->position.size(), this->cell,
+                        local_coords, vector_value);
+}
+
 void Particle::view()
 {
   cout << "Static Particle :: " << endl;

@@ -26,28 +26,30 @@
    USA
 */
 #include "Particle.h"
-#include "LagrangianParticle.h"
-#include <list>
-#include <iostream>
+#include <algorithm>
 
 using namespace std;
 
-#ifndef ParticleList_H
-#define ParticleList_H
-class ParticleList
+#ifndef LagrangianParticle_H
+#define LagrangianParticle_H
+class LagrangianParticle : public Particle
 {
  public:
-  ParticleList();
-  ~ParticleList();
-  void view();
+  LagrangianParticle(double coordinates[], int dim, int cell,
+                     double local_coords[], char *name);
+  ~LagrangianParticle();
 
-  void add_particle(Particle *p);
-  list<Particle*>::iterator begin();
-  list<Particle*>::iterator end();
+  virtual void view();
 
-  void advect_lagrangian(void *velocity_field, double dt);
+  void rk4_advection(void *velocity_field, double dt);
+
+  void update_parametic(vector<double> coordinates, double tolerance);
 
  private:
-  list<Particle*> plist;
+  vector<double> update_vector;  // Temporary sampling position during RK stages
+
+  static int    rk4_stages;
+  static double rk4_stage_matrix[4][4];
+  static double rk4_timestep_weights[4];
 };
-#endif // ParticleList_H
+#endif // LagrangianParticle_H

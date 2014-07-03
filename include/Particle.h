@@ -45,6 +45,7 @@ class Particle
   vector<double> get_position();
   void scalar_field_value(void *field_ptr, double *scalar_value);
   void vector_field_value(void *field_ptr, double *vector_value);
+  void vector_field_value(void *field_ptr, double *local_coords, double *vector_value);
 
  protected:
   string         name;

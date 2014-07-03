@@ -42,7 +42,8 @@ module detectors
   
   private
 
-  public :: initialise_detectors_from_options, detectors_write_state
+  public :: initialise_detectors_from_options, detectors_write_state, &
+       detectors_advect_lagrangian
 
   ! We only need one global detector list (for now)
   type(c_ptr), save :: detector_list = C_NULL_PTR
@@ -75,6 +76,23 @@ module detectors
        integer(c_int), intent(in), value :: dim
        character(kind=c_char) :: name(*)
      end subroutine particle_list_new_particle
+
+     subroutine particle_list_new_lagrangian_particle(plist, coordinates, dim, name) &
+          bind (c)
+       use iso_c_binding
+       implicit none
+       type(c_ptr), value :: plist
+       real (c_double), dimension(dim), intent(in) :: coordinates
+       integer(c_int), intent(in), value :: dim
+       character(kind=c_char) :: name(*)
+     end subroutine particle_list_new_lagrangian_particle
+
+     subroutine particle_list_advect_lagrangian(plist, velocity_field, dt) bind(c)
+       use iso_c_binding
+       implicit none
+       type(c_ptr), value :: plist, velocity_field
+       real (c_double), value :: dt
+     end subroutine particle_list_advect_lagrangian
 
      function create_particle_writer_stat(plist, filename, binary_format) &
           result(writer) bind(c)
@@ -128,6 +146,27 @@ contains
     call picker_inquire(xfield, coordinates, element, local_coord=lcoords, global=.true.)
   end subroutine find_enclosing_cell
 
+  subroutine get_local_coordinates(dim, element, coordinates, lcoords) bind(c)
+    !! Callback routine to establish the local coordinates of position
+    use iso_c_binding
+    implicit none
+    integer(c_int), intent(in), value :: dim, element
+    real (c_double), dimension(dim), intent(inout) :: coordinates
+    real (c_double), dimension(dim+1), intent(out) :: lcoords
+
+    lcoords = local_coords(xfield, element, coordinates)
+  end subroutine get_local_coordinates
+
+  function get_element_neighbour(element, neigh_i) result(neigh) bind(c)
+    !! Callback routine to query neighbouring element
+    use iso_c_binding
+    implicit none
+    integer(c_int), intent(in), value :: element, neigh_i
+    integer(c_int) :: neigh
+
+    neigh = ele_neigh(xfield, element, neigh_i+1)
+  end function get_element_neighbour
+
   subroutine evaluate_scalar_field(field_ptr, dim, element, local_coords, \
     scalar_value) bind(c)
     !! Callback routine to sample a scalar field at a particle position
@@ -172,6 +211,7 @@ contains
     real :: current_time
     real, dimension(:), allocatable :: location
     real, dimension(:,:), allocatable :: coordinates
+    logical :: lagrangian
 
     ! Store a safe reference to the coordinate field, because
     ! we need it to establish a particle's position in the mesh
@@ -205,7 +245,7 @@ contains
        call get_option(trim(optpath)//"/location", location)
        call get_option(trim(optpath)//"/name", name)
 
-       call particle_list_new_particle(detector_list, &
+       call particle_list_new_lagrangian_particle(detector_list, &
             location, xfield%dim, trim(name)//C_NULL_CHAR)
     end do
 
@@ -236,9 +276,16 @@ contains
 #endif
        end if
 
+       lagrangian = have_option(trim(optpath)//"/lagrangian")
        do i=1,ndet
-          call particle_list_new_particle(detector_list, coordinates(:,i), &
-               xfield%dim, trim(name)//"_"//int2str(i)//C_NULL_CHAR)
+          if (lagrangian) then
+             call particle_list_new_lagrangian_particle(detector_list, &
+                  coordinates(:,i), &
+                  xfield%dim, trim(name)//"_"//int2str(i)//C_NULL_CHAR)
+          else
+             call particle_list_new_particle(detector_list, coordinates(:,i), &
+                  xfield%dim, trim(name)//"_"//int2str(i)//C_NULL_CHAR)
+          end if
        end do
        deallocate(coordinates)
     end do
@@ -294,6 +341,17 @@ contains
 
     call particle_writer_write_state(detector_writer, time, dt)
   end subroutine detectors_write_state
+
+  subroutine detectors_advect_lagrangian(state, dt)
+    type(state_type), intent(in) :: state
+    real, intent(in) :: dt
+
+    type(vector_field), pointer :: vfield
+
+    vfield => extract_vector_field(state, "Velocity")
+    call particle_list_advect_lagrangian(detector_list, C_LOC(vfield), dt)
+    call particle_list_view(detector_list)
+  end subroutine detectors_advect_lagrangian
 
   function detector_field_scalar(sfield)
     !!< Return whether the supplied field should be included in the .detector file

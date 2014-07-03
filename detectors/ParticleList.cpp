@@ -60,6 +60,15 @@ list<Particle*>::iterator ParticleList::end()
   return plist.end();
 }
 
+void ParticleList::advect_lagrangian(void *velocity_field, double dt) {
+  for (list<Particle*>::iterator p = plist.begin(); p != plist.end(); ++p) {
+    LagrangianParticle *lagp = dynamic_cast<LagrangianParticle*>(*p);
+    if (lagp != NULL) {
+      lagp->rk4_advection(velocity_field, dt);
+    }
+  }
+}
+
 extern "C" {
   ParticleList *create_particle_list()
   {
@@ -84,5 +93,26 @@ extern "C" {
       plist->add_particle(p);
     }
     delete [] lcoords;
+  }
+
+  void particle_list_new_lagrangian_particle(ParticleList *plist, double coordinates[],
+                                             int dim, char *name)
+  {
+    /* Establish cell and local coordinates via callback */
+    double *lcoords = new double[dim+1];
+    int cell = 0;
+    find_enclosing_cell(coordinates, dim, &cell, lcoords);
+
+    if (cell > 0) {
+      LagrangianParticle *p = new LagrangianParticle(coordinates, dim, cell,
+                                                     lcoords, name);
+      plist->add_particle(p);
+    }
+    delete [] lcoords;
+  }
+
+  void particle_list_advect_lagrangian(ParticleList *plist, void *velocity_field,
+                                       double dt) {
+    plist->advect_lagrangian(velocity_field, dt);
   }
 }
