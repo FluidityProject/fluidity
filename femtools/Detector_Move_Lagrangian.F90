@@ -223,6 +223,16 @@ contains
 
           end do detector_timestepping_loop
        end do RKstages_loop
+
+       ! After everything is done, we update detector%position
+       detector => detector_list%first
+       do while (associated(detector))
+          if (detector%type==LAGRANGIAN_DETECTOR) then
+             detector%position = detector%update_vector
+          end if
+          detector => detector%next
+       end do
+
     end do subcycling_loop
 
     deallocate(send_list_array)
@@ -354,7 +364,6 @@ contains
                 det0%update_vector = det0%update_vector + &
                      dt0*parameters%timestep_weights(j0)*det0%k(j0,:)
              end do
-             det0%position = det0%update_vector
           end if
        end if
        det0 => det0%next
@@ -384,6 +393,10 @@ contains
     integer, dimension(:), pointer :: neigh_list
     integer :: neigh, proc_local_number
     logical :: make_static
+
+    integer, dimension(:), pointer :: face_list
+    integer :: bid, map_index
+    real, dimension(xfield%dim,1):: old_position, new_position
 
     !Loop over all the detectors
     det0 => detector_list%first
@@ -415,6 +428,26 @@ contains
                 !check if this element is owned (to decide where
                 !to send particles leaving the processor domain)
                 if (element_owned(vfield,det0%element)) then
+                   ! Track particle across periodic boundary
+                   if (detector_list%periodic_tracking) then
+                      face_list => ele_faces(xfield,det0%element)
+                      bid = surface_element_id(xfield, face_list(neigh))
+                      map_index = fetch(detector_list%bid_to_boundary_mapping, bid)
+
+                      ! Map position across periodic boundary
+                      old_position(:,1) = det0%update_vector
+                      call set_from_python_function(new_position, &
+                           trim(detector_list%boundary_mappings(map_index)), &
+                           old_position, time=0.0)
+                      det0%update_vector = new_position(:,1)
+
+                      ! Now update the element
+                      det0%element = face_ele(xfield, face_neigh(&
+                           detector_list%periodic_tracking_mesh, face_list(neigh)))
+
+                      cycle search_loop
+                   end if
+
                    !this face goes outside of the computational domain
                    !try all of the faces with negative local coordinate
                    !just in case we went through a corner
