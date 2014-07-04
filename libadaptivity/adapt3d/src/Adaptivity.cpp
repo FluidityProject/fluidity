@@ -383,7 +383,6 @@ vtkUnstructuredGrid* Adaptivity::get_adapted_vtu(){
     points->SetPoint(i, newX[i], newY[i], newZ[i]);
   }
   aug->SetPoints(points);
-  aug->Update();
   points->Delete();
   
   // Set up elements.
@@ -409,7 +408,6 @@ vtkUnstructuredGrid* Adaptivity::get_adapted_vtu(){
                  newMetric[i*9+6], newMetric[i*9+7], newMetric[i*9+8]);
   }
   aug->GetPointData()->AddArray(m);
-  aug->Update();
   m->Delete();
 
   if(interpolate){
@@ -435,7 +433,6 @@ vtkUnstructuredGrid* Adaptivity::get_adapted_vtu(){
 	m->SetTuple(i, &(tuple[0]));
       }
       aug->GetPointData()->AddArray(m);
-      aug->Update();
       m->Delete();
     }
   }

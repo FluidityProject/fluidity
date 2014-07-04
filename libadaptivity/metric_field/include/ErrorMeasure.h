@@ -40,6 +40,7 @@
 #include <vector>
 
 #include "vtk.h"
+#include "vtkVersion.h"
 
 #include <errno.h>
 #include <limits.h>

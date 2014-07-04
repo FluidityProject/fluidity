@@ -185,6 +185,7 @@ extern "C" {
 #ifdef NEMODATALOAD_UNITTEST
 #include <vector>
 #include <vtk.h>
+#include <vtkVersion.h>
 
 void vtk_add_scalar(vector<double> &scalar, const char *scalar_name, vtkUnstructuredGrid *ug){
   int NNodes = ug->GetNumberOfPoints();
@@ -349,7 +350,11 @@ int main(int argc, char **argv){
   vtkXMLUnstructuredGridWriter *writer = vtkXMLUnstructuredGridWriter::New();
 //   writer->SetFileName("NEMOvalues_nwa.vtu");
   writer->SetFileName("NEMOvalues_med.vtu");
+#if VTK_MAJOR_VERSION >= 6
+  writer->SetInputData(ug);
+#else
   writer->SetInput(ug);
+#endif
   writer->Write();
 }
 #endif

@@ -29,6 +29,7 @@
 #include <confdefs.h>
 
 #include <vtk.h>
+#include <vtkVersion.h>
 
 #include <cmath>
 #include <iostream>
@@ -105,7 +106,6 @@ vtkUnstructuredGrid* LoadGrid(const string& filename){
   
   vtkUnstructuredGrid* grid = vtkUnstructuredGrid::New();
   grid->DeepCopy(reader->GetOutput());
-  grid->Update();
   
   reader->Delete();
   
@@ -232,7 +232,11 @@ void WriteGrid(vtkUnstructuredGrid* grid, const string& filename){
 
   vtkXMLUnstructuredGridWriter* writer= vtkXMLUnstructuredGridWriter::New();
   writer->SetFileName( filename.c_str() );
+#if VTK_MAJOR_VERSION >= 6
+  writer->SetInputData(grid);
+#else
   writer->SetInput(grid);
+#endif
   vtkZLibDataCompressor* compressor = vtkZLibDataCompressor::New();
   writer->SetCompressor(compressor);
   writer->Write();
@@ -262,7 +266,12 @@ void CalculateVorticityArray(vtkUnstructuredGrid* grid){
   
   vtkCellDerivatives* cellDerivatives = vtkCellDerivatives::New();
   cellDerivatives->SetVectorModeToComputeVorticity();
+#if VTK_MAJOR_VERSION >= 6
+  cellDerivatives->SetInputData(grid);
+#else
   cellDerivatives->SetInput(grid);
+#endif
+
   cellDerivatives->Update();
   
   grid->GetCellData()->AddArray(cellDerivatives->GetUnstructuredGridOutput()->GetCellData()->GetArray("Vorticity"));
@@ -271,7 +280,6 @@ void CalculateVorticityArray(vtkUnstructuredGrid* grid){
     grid->GetCellData()->AddArray(cellDerivatives->GetUnstructuredGridOutput()->GetCellData()->GetArray("Tensors"));  
   }
   
-  grid->Update();
   cellDerivatives->Delete();
 }
 
@@ -348,14 +356,18 @@ vtkUnstructuredGrid* clip(vtkUnstructuredGrid* grid, string scalar, double value
   grid->GetPointData()->SetActiveAttribute(scalar.c_str(), vtkDataSetAttributes::SCALARS);
          
   vtkClipDataSet *clipfilter = vtkClipDataSet::New();
+#if VTK_MAJOR_VERSION >= 6
+  clipfilter->SetInputData(grid);
+#else
   clipfilter->SetInput(grid);
+#endif
+
   clipfilter->SetValue(value);
   if(clip_above)
     clipfilter->InsideOutOn();
   else
     clipfilter->InsideOutOff();
   clipfilter->SetInputArrayToProcess(0, 0, 0, vtkDataObject::FIELD_ASSOCIATION_POINTS, scalar.c_str());
-  clipfilter->GetOutput()->Update();
   
   return clipfilter->GetOutput();
 }

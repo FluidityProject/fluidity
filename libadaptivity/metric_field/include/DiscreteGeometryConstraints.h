@@ -44,6 +44,7 @@
 #include <string.h>
 
 #include "vtk.h"
+#include "vtkVersion.h"
 
 #ifdef HAVE_MPI
 #include <mpi.h>

@@ -223,6 +223,7 @@ int projections_cartesian_spherical_fc(int *nPoints, double *x, double *y, doubl
 
 #ifdef PROJECTIONS_UNIT_TEST
 #include <vtk.h>
+#include <vtkVersion.h>
 
 int main(int argc, char **argv){
 
@@ -263,7 +264,11 @@ int main(int argc, char **argv){
 
     vtkXMLUnstructuredGridWriter* writer= vtkXMLUnstructuredGridWriter::New();
     writer->SetFileName(filename_out);
+#if VTK_MAJOR_VERSION >= 6
+    writer->SetInputData(grid);
+#else
     writer->SetInput(grid);
+#endif
     vtkZLibDataCompressor* compressor = vtkZLibDataCompressor::New();
     writer->SetCompressor(compressor);
     writer->Write();

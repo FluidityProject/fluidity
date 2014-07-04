@@ -589,7 +589,6 @@ int readVTKFile(const char * const filename,
     return -1;
   }
 
-  dataSet->Update();
   vtkIdType nnodes = dataSet->GetNumberOfPoints();
   if( nnodes==0 ) {
     cerr<<"ERROR: Something went wrong (got no nodes) - aborting\n";
@@ -1291,8 +1290,6 @@ int readVTKFile(const char * const filename,
     if(read1) read1->ReleaseDataFlagOn();
     if(read2) read2->ReleaseDataFlagOn();
     if(read3) read3->ReleaseDataFlagOn();
-    dataSet->ReleaseDataFlagOn();
-    dataSet->Update();
   }
 
   //dataSet->Delete();

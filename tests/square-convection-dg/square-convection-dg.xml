@@ -31,7 +31,7 @@ for i in range(len(vtuFiles)):
   reader = vtk.vtkXMLUnstructuredGridReader()
   reader.SetFileName(vtuFile)
   reader.Update()
-  vtu = reader.GetOutput()
+
   # Cutting references:
   #   ClipCow.py vtkCutter example of vtk documentation 5.0.4
   #   lock_exchange_tet.xml results variable
@@ -39,10 +39,12 @@ for i in range(len(vtuFiles)):
   plane = vtk.vtkPlane()
   plane.SetOrigin(0.5, 0.0, 0.0)
   plane.SetNormal(1.0, 0.0, 0.0)
+
   # The cutter
   cutter = vtk.vtkCutter()
   cutter.SetCutFunction(plane)
-  cutter.SetInput(vtu)
+  cutter.SetInputConnection(reader.GetOutputPort())
+
   # Cut
   cutter.Update()
   cutVtu = cutter.GetOutput()
@@ -65,7 +67,6 @@ for i in range(len(vtuFiles)):
   reader = vtk.vtkXMLUnstructuredGridReader()
   reader.SetFileName(vtuFile)
   reader.Update()
-  vtu = reader.GetOutput()
   # Cutting references:
   #   ClipCow.py vtkCutter example of vtk documentation 5.0.4
   #   lock_exchange_tet.xml results variable
@@ -76,7 +77,7 @@ for i in range(len(vtuFiles)):
   # The cutter
   cutter = vtk.vtkCutter()
   cutter.SetCutFunction(plane)
-  cutter.SetInput(vtu)
+  cutter.SetInputConnection(GetOutputPort())
   # Cut
   cutter.Update()
   cutVtu = cutter.GetOutput()

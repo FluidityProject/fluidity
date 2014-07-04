@@ -31,6 +31,7 @@
 #include <vector>
 
 #include "vtk.h"
+#include "vtkVersion.h"
 
 #include "ErrorMeasure.h"
 #include "Adaptivity.h"
@@ -91,7 +92,11 @@ int main(int argc, char **argv){
     
     vtkXMLUnstructuredGridWriter *metric_writer = vtkXMLUnstructuredGridWriter::New();
     metric_writer->SetFileName("metric.vtu");
+#if VTK_MAJOR_VERSION >= 6
+    metric_writer->SetInputData(ug);
+#else
     metric_writer->SetInput(ug);
+#endif
     metric_writer->Write();
     metric_writer->Delete();
     
@@ -118,7 +123,11 @@ int main(int argc, char **argv){
   
   vtkXMLUnstructuredGridWriter *ug_writer = vtkXMLUnstructuredGridWriter::New();
   ug_writer->SetFileName("adapted.vtu");
+#if VTK_MAJOR_VERSION >= 6
+  ug_writer->SetInputData(ug);
+#else
   ug_writer->SetInput(ug);
+#endif
   ug_writer->Write();
 
   ug_writer->Delete();

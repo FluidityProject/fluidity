@@ -49,7 +49,11 @@ def probe(pd, filename):
 
     probe = vtk.vtkProbeFilter()
     probe.SetSource(ugrid)
-    probe.SetInput(pd)
+    if vtk.VTK_MAJOR_VERSION <= 6:
+        probe.SetInputData(pd)
+    else:
+        probe.SetInput(pd)
+
     probe.Update()
 
     return probe.GetOutput()
@@ -137,7 +141,11 @@ def create_probe(filename):
 def write_sp(pd):
     writer = vtk.vtkXMLImageDataWriter()
     writer.SetFileName("mean_flow.vti")
-    writer.SetInput(pd)
+    if vtk.VTK_MAJOR_VERSION <= 6:
+        writer.SetInputData(pd)
+    else:
+        writer.SetInput(pd)
+
     writer.Write()
     return
 

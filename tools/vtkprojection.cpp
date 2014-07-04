@@ -29,6 +29,7 @@
 #include <confdefs.h>
 
 #include <vtk.h>
+#include <vtkVersion.h>
 
 #include <cmath>
 #include <iostream>
@@ -174,7 +175,6 @@ vtkUnstructuredGrid* ReadGrid(const string& filename){
   
   vtkUnstructuredGrid* grid = vtkUnstructuredGrid::New();
   grid->DeepCopy(reader->GetOutput());
-  grid->Update();
 
   reader->Delete();
   return grid;
@@ -185,7 +185,11 @@ void WriteGrid(vtkUnstructuredGrid* grid, const string& filename){
   DEBUG("void WriteGrid(vtkUnstructuredGrid* grid, const string& filename)");
   vtkXMLUnstructuredGridWriter* writer= vtkXMLUnstructuredGridWriter::New();
   writer->SetFileName( filename.c_str() );
+#if VTK_MAJOR_VERSION >= 6
+  writer->SetInputData(grid);
+#else
   writer->SetInput(grid);
+#endif
   vtkZLibDataCompressor* compressor = vtkZLibDataCompressor::New();
   writer->SetCompressor(compressor);
   writer->Write();

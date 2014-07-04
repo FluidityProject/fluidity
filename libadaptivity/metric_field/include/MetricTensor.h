@@ -32,6 +32,7 @@
 #include "confdefs.h"
 
 #include "vtk.h"
+#include "vtkVersion.h"
 
 #include <algorithm>
 #include <cassert>

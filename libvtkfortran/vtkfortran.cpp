@@ -36,6 +36,7 @@
 #ifdef HAVE_VTK
 
 #include <vtk.h>
+#include <vtkVersion.h>
 
 #include <vector>
 #include <string>
@@ -669,9 +670,12 @@ extern "C" {
     writer->SetDataModeToAppended();
     writer->EncodeAppendedDataOff();
 
-
+#if VTK_MAJOR_VERSION >= 6
+    writer->SetInputData(dataSet);
+#else
     writer->SetInput(dataSet);
-  
+#endif
+
     writer->SetCompressor(compressor);
     compressor->Delete();
   
@@ -717,7 +721,11 @@ extern "C" {
     writer->SetGhostLevel(1);
     writer->SetStartPiece(*rank);
     writer->SetEndPiece(*rank);
+#if VTK_MAJOR_VERSION >= 6
+    writer->SetInputData(dataSet);
+#else
     writer->SetInput(dataSet);
+#endif
     writer->SetCompressor(compressor);
     
     compressor->Delete();

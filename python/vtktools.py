@@ -158,7 +158,11 @@ class vtu:
       gridwriter=vtk.vtkXMLUnstructuredGridWriter()
 
     gridwriter.SetFileName(filename)
-    gridwriter.SetInput(self.ugrid)
+    if vtk.VTK_MAJOR_VERSION <= 6:
+      gridwriter.SetInputData(self.ugrid)
+    else:
+      gridwriter.SetInput(self.ugrid)
+
     gridwriter.Write()
 
   def AddScalarField(self, name, array):
@@ -315,7 +319,11 @@ class vtu:
   def Crop(self, min_x, max_x, min_y, max_y, min_z, max_z):
     """Trim off the edges defined by a bounding box."""
     trimmer = vtk.vtkExtractUnstructuredGrid()
-    trimmer.SetInput(self.ugrid)
+    if vtk.VTK_MAJOR_VERSION <= 6:
+      trimmer.SetInputData(self.ugrid)
+    else:
+      trimmer.SetInput(self.ugrid)
+
     trimmer.SetExtent(min_x, max_x, min_y, max_y, min_z, max_z)
     trimmer.Update()
     trimmed_ug = trimmer.GetOutput()
@@ -429,7 +437,11 @@ class vtu:
 
     sgrid.SetSpacing(spacing)
 
-    probe.SetInput (sgrid)
+    if vtk.VTK_MAJOR_VERSION <= 6:
+      probe.SetInputData(sgrid)
+    else:
+      probe.SetInput (sgrid)
+
     probe.Update ()
 
     return probe.GetOutput()
@@ -442,7 +454,11 @@ class vtu:
     The returned array gives a cell-wise derivative.
     """
     cd=vtk.vtkCellDerivatives()
-    cd.SetInput(self.ugrid)
+    if vtk.VTK_MAJOR_VERSION <= 6:
+      cd.SetInputData(self.ugrid)
+    else:
+      cd.SetInput(self.ugrid)
+
     pointdata=self.ugrid.GetPointData()
     nc=pointdata.GetArray(name).GetNumberOfComponents()
     if nc==1:
@@ -467,7 +483,11 @@ class vtu:
     The returned array gives a cell-wise derivative.
     """
     cd=vtk.vtkCellDerivatives()
-    cd.SetInput(self.ugrid)
+    if vtk.VTK_MAJOR_VERSION <= 6:
+      cd.SetInputData(self.ugrid)
+    else:
+      cd.SetInput(self.ugrid)
+
     pointdata=self.ugrid.GetPointData()
     cd.SetVectorModeToComputeVorticity()
     cd.SetTensorModeToPassTensors()
@@ -482,7 +502,11 @@ class vtu:
     All existing fields will remain.
     """
     cdtpd=vtk.vtkCellDataToPointData()
-    cdtpd.SetInput(self.ugrid)
+    if vtk.VTK_MAJOR_VERSION <= 6:
+      cdtpd.SetInputData(self.ugrid)
+    else:
+      cdtpd.SetInput(self.ugrid)
+
     cdtpd.PassCellDataOn()
     cdtpd.Update()
     self.ugrid=cdtpd.GetUnstructuredGridOutput()
@@ -507,7 +531,10 @@ class VTU_Probe(object):
     polydata = vtk.vtkPolyData()
     polydata.SetPoints(points)
     self.probe = vtk.vtkProbeFilter()
-    self.probe.SetInput(polydata)
+    if vtk.VTK_MAJOR_VERSION <= 6:
+      self.probe.SetInputData(polydata)
+    else:
+      self.probe.SetInput(polydata)
     self.probe.SetSource(ugrid)
     self.probe.Update()
 

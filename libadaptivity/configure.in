@@ -180,25 +180,38 @@ if test "x$enable_vtk" != "xno" ; then
         # Usually the location of the libraries is not a mystery. The
         # header files are another matter.
         AC_CHECK_LIB(dl, main)
-        AC_CHECK_LIB(vtkCommon, main, [], 
-            [if test "x$VTK_LIBS" != "x" ; then
-                LIBS="$LIBS -L$VTK_LIBS"
-                unset ac_cv_lib_vtkCommon_main
-                AC_CHECK_LIB(vtkCommon, main, [], 
-                   [
-                      AC_MSG_ERROR([Cannot find vtk installation.])
-                      exit -1
-                   ])
-             else
-                AC_MSG_ERROR([Cannot find vtk installation.])
-                exit -1
-             fi
-            ])
+        AC_CHECK_LIB(vtksys, main)
+        AC_CHECK_LIB(vtkCommon, main,
+            [LIBS="$LIBS -lvtkCommon"],
+            AC_CHECK_LIB(vtkCommonCore, main,
+                [LIBS="$LIBS -lvtkCommonCore"],
+                [if test "x$VTK_LIBS" != "x" ; then
+                    LIBS="$LIBS -L$VTK_LIBS"
+                    unset ac_cv_lib_vtkCommon_main
+                    unset ac_cv_lib_vtkCommonCore_main
+                    AC_CHECK_LIB(vtkCommon, main,
+                        [LIBS="$LIBS -lvtkCommon"],
+                        [AC_CHECK_LIB(vtkCommonCore, main,
+                            [LIBS="$LIBS -lvtkCommonCore"],
+                            [AC_MSG_ERROR([Cannot find vtk installation.])
+                             exit -1
+                            ])
+                        ])
+                 else
+                    AC_MSG_ERROR([Cannot find vtk installation.])
+                fi])
+            )
         AC_CHECK_LIB(vtkzlib, main)
         AC_CHECK_LIB(vtkexpat, main)
         AC_CHECK_LIB(vtkFiltering, main)
         AC_CHECK_LIB(vtkGraphics, main)
         AC_CHECK_LIB(vtkIO, main)
+        AC_CHECK_LIB(vtkIOLegacy, main)
+        AC_CHECK_LIB(vtkIOCore, main)
+        AC_CHECK_LIB(vtkIOXML, main)
+        AC_CHECK_LIB(vtkCommonDataModel, main)
+        AC_CHECK_LIB(vtkCommonExecutionModel, main)
+        AC_CHECK_LIB(vtkFiltersGeneral, main)
         
         # check at the usual places:
         for i in $(ls -d /usr/include/vtk*) $VTK_INCLUDE; do
