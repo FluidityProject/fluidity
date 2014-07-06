@@ -8407,8 +8407,9 @@ contains
          allocate(NLX_ALL(size(X_ALL,1), NLOC, NGI))
          CALL TRIQUAold( L1, L2, L3, L4, WEIGHT, ndim==3, NGI )
          call SHATRInew(L1, L2, L3, L4, WEIGHT,  NLOC,NGI,  N,NLX_ALL)
-
         !Project to FEM
+
+          PSI(1)%ptr%option_path = "/material_phase[0]/scalar_field::Pressure"
           call PROJ_CV_TO_FEM_state( packed_state, FEMPSI, PSI, NDIM, &
                PSI_AVE, PSI_INT, MASS_ELE, &
                CV_NONODS, TOTELE, CV_NDGLN, X_NLOC, X_NDGLN, &
