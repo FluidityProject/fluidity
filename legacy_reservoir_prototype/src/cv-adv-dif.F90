@@ -7460,7 +7460,7 @@ end if
                                                            + SUM( SNORMXN_ALL(:,SGI)*DIFF_GI_BOTH(IDIM_VEL,:,IPHASE,SGI)*DUDX_ALL_GI(:,IDIM_VEL,IPHASE,SGI) ) & 
 ! stress form addition...  
                                                            - ZERO_OR_TWO_THIRDS*SNORMXN_ALL(IDIM_VEL,SGI)*DIFF_GI_BOTH(IDIM_VEL,IDIM_VEL,IPHASE,SGI)*DIVU &
-                                                           - SNORMXN_ALL(IDIM_VEL,SGI)*DIFF_VOL_GI_BOTH(IPHASE,SGI)*DIVU
+                                                           + SNORMXN_ALL(IDIM_VEL,SGI)*DIFF_VOL_GI_BOTH(IPHASE,SGI)*DIVU
 
 ! Stress form...
                          N_DOT_DKDUOLD(IDIM_VEL,IPHASE,SGI)= N_DOT_DKDUOLD(IDIM_VEL,IPHASE,SGI) &
@@ -7468,7 +7468,7 @@ end if
                                                            + SUM( SNORMXN_ALL(:,SGI)*DIFF_GI_BOTH(IDIM_VEL,:,IPHASE,SGI)*DUOLDDX_ALL_GI(:,IDIM_VEL,IPHASE,SGI) ) & 
 ! stress form addition...  
                                                            - ZERO_OR_TWO_THIRDS*SNORMXN_ALL(IDIM_VEL,SGI)*DIFF_GI_BOTH(IDIM_VEL,IDIM_VEL,IPHASE,SGI)*DIVUOLD &
-                                                           - SNORMXN_ALL(IDIM_VEL,SGI)*DIFF_VOL_GI_BOTH(IPHASE,SGI)*DIVUOLD
+                                                           + SNORMXN_ALL(IDIM_VEL,SGI)*DIFF_VOL_GI_BOTH(IPHASE,SGI)*DIVUOLD
                                    
 ! This is for the minimum & max. diffusion...
                          DIFF_STAND_DIVDX_U(IDIM_VEL,IPHASE,SGI)   =  DIFF_STAND_DIVDX_U(IDIM_VEL,IPHASE,SGI) &
@@ -7560,7 +7560,7 @@ end if
             DO JDIM=1,NDIM
                STRESS_IJ( IDIM,JDIM ) = STRESS_IJ( IDIM,JDIM ) &
                       - ZERO_OR_TWO_THIRDS * FEN_TEN_XX(IDIM,IDIM) * UFENX_JLOC(JDIM) &
-                      - FEN_TEN_VOL(IDIM) * UFENX_JLOC(JDIM) 
+                      + FEN_TEN_VOL(IDIM) * UFENX_JLOC(JDIM) 
             END DO
          END DO
 
