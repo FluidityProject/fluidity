@@ -3840,6 +3840,19 @@ and  $\mu_y$ the diagonal tensor for the $v-$ momentum equation.
 This is also the approach taken when the viscocity is determined 
 from the non-linear Petrov-Galerkin method in the next section. 
 
+\subsubsection{Original Q-Scheme}
+The original Q-scheme used a volumetric viscocity of 
+\begin{eqnarray}
+\mu_{vol}=- c_q h^2 \rho \; min\{0, \nabla\cdot {\bf u}\},
+\label{original-q}
+\end{eqnarray}
+and is often modified to: 
+\begin{eqnarray}
+\mu_{vol}= c_q h^2 \rho \vert \nabla\cdot {\bf u}\vert, 
+\label{original-q2}
+\end{eqnarray}
+in which $c_q$ is an order one parameter e.g. $c_q=1$ is used here, 
+and $h$ is a length scale measured across each element. 
 
 
 
