@@ -921,29 +921,30 @@ with
 \begin{equation}
 \sigma_{i\, k}=\mu_{i\, k} \left( 
 \frac{\partial u_k}{\partial x_i} +  \frac{\partial u_i}{\partial x_k} 
--\delta_{i\, k} \frac{2}{3} \nabla\cdot {\bf u} \right). 
+-\delta_{i\, k} \frac{2}{3} \nabla\cdot {\bf u} \right)  +  \mu_{vol} \delta_{i\, k} \nabla\cdot {\bf u}. 
 \end{equation}
+in which $\mu_{vol} $ is the volumetric viscocity.  
 
 The viscous term expanded becomes:
 
 \begin{equation}
-\frac{\partial \mu_{xx}
+\frac{\partial ( \mu_{xx}
 (
-\frac{\partial u}{\partial x}+\frac{\partial u}{\partial x}
--\frac{2}{3}(\frac{\partial u}{\partial x}+\frac{\partial v}{\partial y}+\frac{\partial w}{\partial z})
+\frac{\partial u}{\partial x}+\frac{\partial u}{\partial x})
+-(\frac{2}{3}\mu_{xx}-\mu_{vol})(\frac{\partial u}{\partial x}+\frac{\partial v}{\partial y}+\frac{\partial w}{\partial z})
 )}
 {\partial x}
 +
 \frac{\partial \mu_{xy}
 (
 \frac{\partial v}{\partial x}+\frac{\partial u}{\partial y})
-)}
+}
 {\partial y}
 +
 \frac{\partial \mu_{xz}
 (
 \frac{\partial w}{\partial x}+\frac{\partial u}{\partial z})
-)}
+}
 {\partial z}, 
 \label{visc-stress-u} 
 \end{equation}
@@ -957,10 +958,10 @@ The viscous term expanded becomes:
 )}
 {\partial x}
 +
-\frac{\partial \mu_{yy}
+\frac{\partial (\mu_{yy}
 (
-\frac{\partial v}{\partial y}+\frac{\partial v}{\partial y}
--\frac{2}{3}(\frac{\partial u}{\partial x}+\frac{\partial v}{\partial y}+\frac{\partial w}{\partial z})
+\frac{\partial v}{\partial y}+\frac{\partial v}{\partial y})
+-(\frac{2}{3}\mu_{yy}-\mu_{vol})(\frac{\partial u}{\partial x}+\frac{\partial v}{\partial y}+\frac{\partial w}{\partial z})
 )}
 {\partial y}
 +
@@ -978,19 +979,19 @@ The viscous term expanded becomes:
 \frac{\partial \mu_{zx}
 (
 \frac{\partial u}{\partial z}+\frac{\partial w}{\partial x})
-)}
+}
 {\partial x}
 +
 \frac{\partial \mu_{zy}
 (
 \frac{\partial v}{\partial z}+\frac{\partial w}{\partial y})
-)}
+}
 {\partial y}
 +
-\frac{\partial \mu_{zz}
+\frac{\partial ( \mu_{zz}
 (
-\frac{\partial w}{\partial z}+\frac{\partial w}{\partial z}
--\frac{2}{3}(\frac{\partial u}{\partial x}+\frac{\partial v}{\partial y}+\frac{\partial w}{\partial z})
+\frac{\partial w}{\partial z}+\frac{\partial w}{\partial z})
+-(\frac{2}{3}\mu_{zz}-\mu_{vol})(\frac{\partial u}{\partial x}+\frac{\partial v}{\partial y}+\frac{\partial w}{\partial z})
 )}
 {\partial z}. 
 \label{visc-stress-w} 
@@ -1001,10 +1002,9 @@ for u:
 % U: 
 \begin{equation}
 \int_E 
-\frac{\partial N_i}{\partial x} \mu_{xx}
-(
-2\frac{\partial u}{\partial x}
--\frac{2}{3}\nabla\cdot{\bf u} 
+\frac{\partial N_i}{\partial x} (2\mu_{xx}
+\frac{\partial u}{\partial x}
+-(\frac{2}{3}\mu_{xx}-\mu_{vol})\nabla\cdot{\bf u} 
 )
 +
 \frac{\partial N_i}{\partial y} \mu_{xy}
@@ -1019,10 +1019,9 @@ for u:
 \end{equation}
 \begin{equation}
 \int_{\Gamma_E} 
-N_i ({n_x} \mu_{xx}
-(
-2\frac{\partial u}{\partial x}
--\frac{2}{3}\nabla\cdot{\bf u} 
+N_i (n_x (2\mu_{xx}
+\frac{\partial u}{\partial x}
+-(\frac{2}{3}\mu_{xx}-\mu_{vol})\nabla\cdot{\bf u} 
 )
 +
  {n_y} \mu_{xy}
@@ -1044,10 +1043,9 @@ for v:
 \frac{\partial u}{\partial y}+\frac{\partial v}{\partial x}
 )
 +
-\frac{\partial N_i} {\partial y}\mu_{yy}
-(
-2\frac{\partial v}{\partial y}
--\frac{2}{3}\nabla\cdot{\bf u} 
+\frac{\partial N_i} {\partial y}(2\mu_{yy}
+\frac{\partial v}{\partial y}
+-(\frac{2}{3}\mu_{yy}-\mu_{vol})\nabla\cdot{\bf u} 
 )
 +
 \frac{\partial N_i}{\partial z} \mu_{yz}
@@ -1063,10 +1061,9 @@ N_i({n_x} \mu_{yx}
 \frac{\partial u}{\partial y}+\frac{\partial v}{\partial x}
 )
 +
-{n_y}\mu_{yy}
-(
-2\frac{\partial v}{\partial y}
--\frac{2}{3}\nabla\cdot{\bf u} 
+{n_y}(2\mu_{yy}
+\frac{\partial v}{\partial y}
+-(\frac{2}{3}\mu_{yy}-\mu_{vol})\nabla\cdot{\bf u} 
 )
 +
 {n_z} \mu_{yz}
@@ -1087,10 +1084,9 @@ for w:
 (
 \frac{\partial v}{\partial z}+\frac{\partial w}{\partial y})
 +
-\frac{\partial N_i}{\partial z} \mu_{zz}
-(
+\frac{\partial N_i}{\partial z} (\mu_{zz}
 2\frac{\partial w}{\partial z}
--\frac{2}{3}\nabla\cdot{\bf u} 
+-(\frac{2}{3}\mu_{zz}-\mu_{vol})\nabla\cdot{\bf u} 
 ) dV  +
 \label{visc-stress-w-Ni} 
 \end{equation}
@@ -1104,11 +1100,10 @@ N_i ({n_x} \mu_{zx}
 (
 \frac{\partial v}{\partial z}+\frac{\partial w}{\partial y})
 +
-{n_z} \mu_{zz}
-(
+{n_z}  (\mu_{zz}
 2\frac{\partial w}{\partial z}
--\frac{2}{3}\nabla\cdot{\bf u} 
-) )d\Gamma. 
+-(\frac{2}{3}\mu_{zz}-\mu_{vol})\nabla\cdot{\bf u} 
+)  )d\Gamma. 
 \label{visc-stress-w-n} 
 \end{equation}
 For simplicity the surface integrals in the above are 
@@ -1158,13 +1153,14 @@ and is a positive scaler and with
 \mu_{norm-zz}=n_x \mu_{zx}  n_x + n_y \mu_{zy} n_y + 2n_z \mu_{zz}  n_z, 
 \end{equation}
 and
+
+
 \begin{equation}
 \left( \frac{\mu_{xx}}{\Delta x} \right)_{eff}=
 \frac{
-({n_x} \mu_{xx}
-(
-2\frac{\partial u}{\partial x}
--\frac{2}{3}\nabla\cdot{\bf u} 
+({n_x} (2\mu_{xx}
+\frac{\partial u}{\partial x}
+-(\frac{2}{3}\mu_{xx}-\mu_{vol})\nabla\cdot{\bf u} 
 )
 +
  {n_y} \mu_{xy}
@@ -1185,10 +1181,9 @@ and
 \frac{\partial u}{\partial y}+\frac{\partial v}{\partial x}
 )
 +
-{n_y}\mu_{yy}
-(
-2\frac{\partial v}{\partial y}
--\frac{2}{3}\nabla\cdot{\bf u} 
+{n_y}(2\mu_{yy}
+\frac{\partial v}{\partial y}
+-(\frac{2}{3}\mu_{yy}-\mu_{vol})\nabla\cdot{\bf u} 
 )
 +
 {n_z} \mu_{yz}
@@ -1208,10 +1203,9 @@ and
 (
 \frac{\partial v}{\partial z}+\frac{\partial w}{\partial y})
 +
-{n_z} \mu_{zz}
-(
-2\frac{\partial w}{\partial z}
--\frac{2}{3}\nabla\cdot{\bf u} 
+{n_z} (2 \mu_{zz}
+\frac{\partial w}{\partial z}
+-(\frac{2}{3}\mu_{zz}-\mu_{vol})\nabla\cdot{\bf u} 
 ) )
 }
 { w_{cur}-w_{nab}}. 
@@ -5352,25 +5346,25 @@ in which $\Delta r$ is the width of the thin shell surrounding the solid.
 The viscous term expanded becomes:
 
 \begin{equation}
-\frac{\partial \mu_{xx}
+\frac{\partial ( \mu_{xx}
 (
-\frac{\partial u}{\partial x}+\frac{\partial u}{\partial x}
--\frac{2}{3}(\frac{\partial u}{\partial x}+\frac{\partial v}{\partial y}+\frac{\partial w}{\partial z})
+\frac{\partial u}{\partial x}+\frac{\partial u}{\partial x})
+-(\frac{2}{3}\mu_{xx}-\mu_{vol})(\frac{\partial u}{\partial x}+\frac{\partial v}{\partial y}+\frac{\partial w}{\partial z})
 )}
 {\partial x}
 +
 \frac{\partial \mu_{xy}
 (
 \frac{\partial v}{\partial x}+\frac{\partial u}{\partial y})
-)}
+}
 {\partial y}
 +
 \frac{\partial \mu_{xz}
 (
 \frac{\partial w}{\partial x}+\frac{\partial u}{\partial z})
-)}
+}
 {\partial z}, 
-\label{visc-stress-u} 
+\label{visc-stress-u-2} 
 \end{equation}
 
 
@@ -5382,10 +5376,10 @@ The viscous term expanded becomes:
 )}
 {\partial x}
 +
-\frac{\partial \mu_{yy}
+\frac{\partial (\mu_{yy}
 (
-\frac{\partial v}{\partial y}+\frac{\partial v}{\partial y}
--\frac{2}{3}(\frac{\partial u}{\partial x}+\frac{\partial v}{\partial y}+\frac{\partial w}{\partial z})
+\frac{\partial v}{\partial y}+\frac{\partial v}{\partial y})
+-(\frac{2}{3}\mu_{yy}-\mu_{vol})(\frac{\partial u}{\partial x}+\frac{\partial v}{\partial y}+\frac{\partial w}{\partial z})
 )}
 {\partial y}
 +
@@ -5394,7 +5388,7 @@ The viscous term expanded becomes:
 \frac{\partial w}{\partial y}+\frac{\partial v}{\partial z})
 )}
 {\partial z}, 
-\label{visc-stress-v} 
+\label{visc-stress-v-2} 
 \end{equation}
 
 
@@ -5403,23 +5397,24 @@ The viscous term expanded becomes:
 \frac{\partial \mu_{zx}
 (
 \frac{\partial u}{\partial z}+\frac{\partial w}{\partial x})
-)}
+}
 {\partial x}
 +
 \frac{\partial \mu_{zy}
 (
 \frac{\partial v}{\partial z}+\frac{\partial w}{\partial y})
-)}
+}
 {\partial y}
 +
-\frac{\partial \mu_{zz}
+\frac{\partial ( \mu_{zz}
 (
-\frac{\partial w}{\partial z}+\frac{\partial w}{\partial z}
--\frac{2}{3}(\frac{\partial u}{\partial x}+\frac{\partial v}{\partial y}+\frac{\partial w}{\partial z})
+\frac{\partial w}{\partial z}+\frac{\partial w}{\partial z})
+-(\frac{2}{3}\mu_{zz}-\mu_{vol})(\frac{\partial u}{\partial x}+\frac{\partial v}{\partial y}+\frac{\partial w}{\partial z})
 )}
 {\partial z}. 
 \label{visc-stress-w-2} 
 \end{equation}
+
 
 Discretizing these equations (see also the DG discretized viscocity equations \ref{visc-stress-u-Ni},\ref{visc-stress-v-Ni},\ref{visc-stress-w-Ni}) the solid boundary conditions can be expressed  
 for fluid velocity component u:
@@ -5427,10 +5422,10 @@ for fluid velocity component u:
 \begin{equation}
 \int_{V_{shell}} 
 N_i \frac{1}{\Delta r^2} 
-({n_x} \mu_{xx}
+({n_x} 
 (
-2 n_x u_s 
--\frac{2}{3} {\bf n}\cdot{\bf u}_s 
+2 n_x \mu_{xx}u_s 
+-(\frac{2}{3} \mu_{xx}-\mu_{vol}){\bf n}\cdot{\bf u}_s 
 )
 +
  {n_y} \mu_{xy}
@@ -5443,10 +5438,9 @@ N_i \frac{1}{\Delta r^2}
 \end{equation}
 \begin{equation}
 - \int_{V_{shell}} 
-N_i\frac{1}{\Delta r^2} ({n_x}   \mu_{xx}
-(
-2 n_x u 
--\frac{2}{3} {\bf n}\cdot{\bf u} 
+N_i\frac{1}{\Delta r^2} ({n_x}   (2\mu_{xx}
+n_x u 
+-(\frac{2}{3}\mu_{xx}-\mu_{vol}) {\bf n}\cdot{\bf u} 
 )
 +
  {n_y} \mu_{xy}
@@ -5467,10 +5461,9 @@ N_i\frac{1}{\Delta r^2}
 ({n_x} \mu_{yx}
 (n_y u_s + n_x v_s) 
 +
-{n_y}\mu_{yy}
-(
-2n_y v_s 
--\frac{2}{3} {\bf n} \cdot{\bf u}_s 
+{n_y}(2\mu_{yy}
+n_y v_s 
+-(\frac{2}{3}\mu_{yy}-\mu_{vol}) {\bf n} \cdot{\bf u}_s 
 )
 +
 {n_z} \mu_{yz}
@@ -5484,10 +5477,9 @@ N_i \frac{1}{\Delta r^2}
 ({n_x} \mu_{yx}
 (n_y u + n_x v) 
 +
-{n_y}\mu_{yy}
-(
-2n_y v 
--\frac{2}{3} {\bf n} \cdot{\bf u}
+{n_y}(2\mu_{yy}
+n_y v 
+-(\frac{2}{3}\mu_{yy}-\mu_{vol}) {\bf n} \cdot{\bf u}
 )
 +
 {n_z} \mu_{yz}
@@ -5524,15 +5516,15 @@ N_i \frac{1}{\Delta r^2}
 {n_y} \mu_{zy}
 ( n_z v + n_y w )
 +
-{n_z} \mu_{zz}
-(
-2 n_z w 
--\frac{2}{3} {\bf n} \cdot{\bf u}
+{n_z} (2\mu_{zz}
+n_z w 
+-(\frac{2}{3}\mu_{zz}-\mu_{vol}) {\bf n} \cdot{\bf u}
 ) )d V. 
 \label{visc-stress-w-n-2-fluid} 
 \end{equation}
 
-Now using the slip velocity ${\bf u}_{sl} = {\bf u}_{s} -{\bf u}$ and gathering the 
+Now assuming the volumetric viscocity is zero, $\mu_{vol}=0$, 
+and using the slip velocity ${\bf u}_{sl} = {\bf u}_{s} -{\bf u}$ and gathering the 
 contributions to each velocity component $u$, $v$ and $w$ then: 
 For the $u_{sl}$ equation:
 
