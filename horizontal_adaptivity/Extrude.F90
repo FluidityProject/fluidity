@@ -332,7 +332,7 @@ module hadapt_extrude
     real, dimension(:), intent(inout) :: depth_vector
     logical, intent(in) :: from_vtu
 
-    integer :: column
+    integer :: column, i
 
     allocate(tmp_pos_vector(mesh_dim(h_mesh),node_count(h_mesh)))
 
@@ -343,6 +343,12 @@ module hadapt_extrude
     if (from_vtu) then
         call sample_vtu(trim(file_name)//C_NULL_CHAR, trim(field_name)//C_NULL_CHAR, &
              tmp_pos_vector(1,:), tmp_pos_vector(2,:), node_count(h_mesh), depth_vector)
+
+        ! HACK ALERT: Cut off any bathymetry dataabove sea level
+        do i=1, node_count(h_mesh)
+           depth_vector(i) = min(depth_vector(i), -1.e-6)
+           depth_vector(i) = depth_vector(i) * -1.0
+        end do
     else
        call set_from_map_beta(trim(file_name)//char(0), tmp_pos_vector(1,:), tmp_pos_vector(2,:), depth_vector, node_count(h_mesh), surface_height)
     end if
