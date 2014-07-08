@@ -2859,8 +2859,8 @@ end if
              !Local variables
              !Variables to store things in state
              type(mesh_type), pointer :: fl_mesh
-             type(mesh_type) :: Auxmesh
-             type(scalar_field), target :: targ_fieldToStore
+             type(mesh_type), pointer :: Auxmesh
+             type(scalar_field), pointer :: targ_fieldToStore
 ! local variables...
              INTEGER :: IPHASE
 
@@ -2891,18 +2891,23 @@ end if
                                  end if
                                   !Get mesh file just to be able to allocate the fields we want to store
                                  fl_mesh => extract_mesh( state(1), "CoordinateMesh" )
+                                 allocate(auxmesh)
                                  Auxmesh = fl_mesh
                                  !The number of nodes I want does not coincide
                                  !############################################################################
                                  !TOTAL_GLOBAL_FACE*NPHASE, SEEMS AN OVERSTIMATE, MAYBE TOTAL_GLOBAL_FACE*NFIELD IS ENOUGH???????
                                  !############################################################################
                                  Auxmesh%nodes = TOTAL_GLOBAL_FACE*NPHASE+1!(+1 to store the last input index)
+                                 allocate(targ_fieldToStore)
                                  call allocate (targ_fieldToStore, Auxmesh)
 
                                  !Now we insert them in state and store the indexes
                                  call insert(state(1), targ_fieldToStore, "Fld"//StorName)
                                  !Store index with a negative value, because if the index is
                                  !zero or negative then we have to calculate stuff
+                                 call deallocate(targ_fieldToStore)
+                                 deallocate(targ_fieldToStore)
+                                 deallocate(auxmesh)
                                  indx = -size(state(1)%scalar_fields)
 
                                   !Store in state
