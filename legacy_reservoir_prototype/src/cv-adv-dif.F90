@@ -464,6 +464,8 @@ contains
       REAL, DIMENSION(:,:,: ), pointer :: SUF_D_BC_ALL,&
            SUF_T2_BC_ALL, SUF_T2_BC_ROB1_ALL, SUF_T2_BC_ROB2_ALL 
       REAL, DIMENSION(:,:,: ), pointer :: SUF_U_BC_ALL
+      REAL, DIMENSION( :,:,: ), allocatable, target :: SUF_T_BC,&
+           SUF_T_BC_ROB1, SUF_T_BC_ROB2
 
 !! femdem
       type( vector_field ), pointer :: delta_u_all, us_all
@@ -481,6 +483,7 @@ contains
       integer :: nb
       logical :: skip
 
+      type( scalar_field ), pointer :: sfield
 
 
 
@@ -601,7 +604,6 @@ contains
 
 
       !! Get boundary conditions from field
-
       call get_entire_boundary_condition(tracer,&
            ['weakdirichlet','robin        '],&
            tracer_BCs,WIC_T_BC_ALL,boundary_second_value=tracer_BCs_robin2)
@@ -630,13 +632,16 @@ contains
          SUF_T2_BC_ROB2_ALL=>saturation_BCs_robin2%val
       end if
 
-!      x => extract_vector_field( packed_state, "PressureCoordinate" )
-!      allocate( x_all( ndim, x_nonods ) ) ; x_all=0.0
-!      x_all( 1, : ) = x % val( 1, : )
-!      if (ndim >=2 ) x_all( 2, : ) = x % val( 2, : )
-!      if (ndim >=3 ) x_all( 3, : ) = x % val( 3, : )
 
-
+      if ( Field_selector == 1 ) then ! Temperature
+         allocate( suf_t_bc( 1,nphase,cv_snloc*stotel ), suf_t_bc_rob1( 1,nphase,cv_snloc*stotel ), &
+                   suf_t_bc_rob2( 1,nphase,cv_snloc*stotel ) )
+         call update_boundary_conditions( state, stotel, cv_snloc, nphase, &
+                                          suf_t_bc, suf_t_bc_rob1, suf_t_bc_rob2 )
+         SUF_T_BC_ALL=>suf_t_bc
+         SUF_T_BC_ROB1_ALL=>suf_t_bc_rob1
+         SUF_T_BC_ROB2_ALL=>suf_t_bc_rob2
+      end if
 
 
      ! LOCAL VARIABLE FOR INDIRECT ADDRESSING----------------------------------------------
@@ -2746,6 +2751,11 @@ contains
 if (present(T_input)) then!<==TEMPORARY
       deallocate( T_ALL_TARGET, TOLD_ALL_TARGET, FEMT_ALL_TARGET, FEMTOLD_ALL_TARGET)
 end if
+
+
+      if ( Field_selector == 1 ) then ! Temperature
+         deallocate( suf_t_bc, suf_t_bc_rob1, suf_t_bc_rob2 )
+      end if
 
 
       ewrite(3,*) 'Leaving CV_ASSEMB'

@@ -711,8 +711,8 @@
                velocity_field=>extract_tensor_field(packed_state,"PackedVelocity")
                density_field=>extract_tensor_field(packed_state,"PackedDensity",stat)
 
-              call INTENERGE_ASSEM_SOLVE( state, packed_state, &
-                   tracer_field,velocity_field,density_field,&
+               call INTENERGE_ASSEM_SOLVE( state, packed_state, &
+                    tracer_field,velocity_field,density_field,&
                     NCOLACV, FINACV, COLACV, MIDACV, &
                     small_FINACV, small_COLACV, small_MIDACV, &
                     block_to_global_acv, global_dense_block_acv, &
@@ -751,6 +751,7 @@
                     mass_ele_transp = dummy_ele, &
                     thermal = have_option( '/material_phase[0]/scalar_field::Temperature/prognostic/equation::InternalEnergy'),&
                     StorageIndexes=StorageIndexes )
+
 
 !!$  Update state memory
 !!$               do iphase = 1, nphase
@@ -806,6 +807,8 @@
                velocity_field=>extract_tensor_field(packed_state,"PackedVelocity")
                pressure_field=>extract_scalar_field(state(1),"Pressure")
 
+
+
                CALL FORCE_BAL_CTY_ASSEM_SOLVE( state, packed_state, &
                     velocity_field, pressure_field, &
                     NDIM, NPHASE, NCOMP, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
@@ -847,6 +850,7 @@
                     iplike_grad_sou, plike_grad_sou_coef, plike_grad_sou_grad, &
                     scale_momentum_by_volume_fraction,&
                     StorageIndexes=StorageIndexes )
+
 
 
 !!$ Calculate Density_Component for compositional
@@ -904,8 +908,8 @@
             old_saturation_field=>extract_tensor_field(packed_state,"PackedOldPhaseVolumeFraction")
                
 
-
             Conditional_Components:if( have_component_field ) then
+
                Loop_Components: do icomp = 1, ncomp
 
                   tracer_field=>extract_tensor_field(multicomponent_state(icomp),"PackedComponentMassFraction")

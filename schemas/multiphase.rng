@@ -3470,6 +3470,24 @@ Sums up the divergence of each phase's bulk velocity, i.e. \sum{ div(vfrac*u) }<
           </element>
         </choice>
       </element>
+      <element name="scalar_field">
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>Dummy</value>
+        </attribute>
+        <choice>
+          <element name="diagnostic">
+            <ref name="internal_algorithm"/>
+            <ref name="velocity_mesh_choice"/>
+            <ref name="diagnostic_scalar_field"/>
+          </element>
+          <element name="aliased">
+            <ref name="generic_aliased_field"/>
+          </element>
+        </choice>
+      </element>
     </choice>
     <!--
       Insert new diagnostic scalar fields here using the template:
@@ -3983,6 +4001,21 @@ less accurate but faster and might give smoother result.                  </a:do
       <element name="___Diagnostic_Fields_Below___">
         <a:documentation>Diagnostic tensor fields below this</a:documentation>
         <empty/>
+      </element>
+      <element name="tensor_field">
+        <attribute name="name">
+          <value>Dummy</value>
+        </attribute>
+        <choice>
+          <element name="diagnostic">
+            <ref name="internal_algorithm"/>
+            <ref name="mesh_choice"/>
+            <ref name="diagnostic_tensor_field"/>
+          </element>
+          <element name="aliased">
+            <ref name="generic_aliased_field"/>
+          </element>
+        </choice>
       </element>
     </choice>
     <!--
@@ -4809,6 +4842,7 @@ DEN = A * P ^ B
           </choice>
         </element>
         <element name="python_state">
+          <a:documentation>The "Dummy" diagnotic field on the pressure mesh is required for this option</a:documentation>
           <ref name="scalar_python_diagnostic_algorithm"/>
         </element>
       </choice>

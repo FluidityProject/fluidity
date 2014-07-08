@@ -234,6 +234,7 @@ prognostic_scalar_field =
                   tensor_python_diagnostic_algorithm |
                   internal_algorithm
                ),
+               mesh_choice,
                diagnostic_tensor_field
             }
          )

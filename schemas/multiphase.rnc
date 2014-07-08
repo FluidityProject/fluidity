@@ -2783,8 +2783,21 @@ scalar_field_choice =
                    generic_aliased_field
                 }
              )
+         }|
+         element scalar_field {
+             attribute rank { "0" },
+             attribute name { "Dummy" },
+             (
+                element diagnostic {
+                   internal_algorithm,
+                   velocity_mesh_choice,
+                   diagnostic_scalar_field
+                }|
+                element aliased {
+                   generic_aliased_field
+                }
+             )
          }
-
 # Insert new diagnostic scalar fields here using the template:
 #        element scalar_field {
 #            attribute rank { "0" },
@@ -3202,8 +3215,20 @@ tensor_field_choice =
          ## Diagnostic tensor fields below this
          element ___Diagnostic_Fields_Below___ {
             empty
-         }
-
+         }|
+        element tensor_field {
+            attribute name { "Dummy" },
+            (
+               element diagnostic {
+                  internal_algorithm,
+                  mesh_choice,
+                  diagnostic_tensor_field
+               }|
+               element aliased {
+                  generic_aliased_field
+               }
+            )
+        }
 # Insert new diagnostic tensor field here using the template:
 #        element tensor_field {
 #            attribute name { "NewFieldName" },
@@ -3927,6 +3952,7 @@ element equation_of_state{
                            }
                         }
                      }|
+                     ## The "Dummy" diagnotic field on the pressure mesh is required for this option
                      element python_state{
                        scalar_python_diagnostic_algorithm
                      }

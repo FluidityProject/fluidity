@@ -180,7 +180,7 @@ contains
         character( len = option_path_len ) :: path
         type(vector_field) :: rhs_field
         type( tensor_field ), pointer :: den_all2, denold_all2
-        integer :: lcomp
+        integer :: lcomp, Field_selector
 
         type(petsc_csr_matrix) :: petsc_acv
         type(vector_field)  :: vtracer
@@ -219,8 +219,8 @@ contains
            denold_all = denold_all2 % val ( 1,  :, : )
         else
            p => extract_scalar_field( packed_state, "Pressure" )
-              den_all=1.0
-              denold_all=1.0
+           den_all=1.0
+           denold_all=1.0
         end if
 
 
@@ -235,6 +235,8 @@ contains
             '/control_volumes/second_theta'
             call get_option( path, second_theta, default=1. )
 
+            Field_selector = 1
+
         else
 
             call get_option( '/material_phase[' // int2str( nphase ) // ']/scalar_field::ComponentMassFractionPhase1/' // &
@@ -244,6 +246,8 @@ contains
             'prognostic/temporal_discretisation/control_volumes/second_theta'
 
             call get_option( path, second_theta, default=1. )
+
+            Field_selector = 2
 
         end if
 
@@ -291,7 +295,7 @@ contains
             MEAN_PORE_CV, &
             SMALL_FINACV, SMALL_COLACV, size(small_colacv), mass_Mn_pres, THERMAL, RETRIEVE_SOLID_CTY, &
             mass_ele_transp,&
-            StorageIndexes, -1, T_input = T, TOLD_input=TOLD, FEMT_input =  T_FEMT ,&
+            StorageIndexes, Field_selector, T_input = T, TOLD_input=TOLD, FEMT_input =  T_FEMT ,&
             saturation=saturation)
             t=0.
 
@@ -1310,7 +1314,7 @@ contains
               UDEN_ALL = DEN_ALL2%VAL( 1, :, : )
               UDENOLD_ALL = DENOLD_ALL2%VAL( 1, :, : )
            end if
-            call calculate_u_source_cv( state, cv_nonods, ndim, nphase, uden_all, U_Source_CV )
+           call calculate_u_source_cv( state, cv_nonods, ndim, nphase, uden_all, U_Source_CV )
         end if
 
 
@@ -1337,7 +1341,8 @@ contains
 
         ! calculate the viscosity for the momentum equation...
         !if ( its == 1 ) 
-        call calculate_viscosity( state, ncomp, nphase, ndim, mat_nonods, mat_ndgln, uDiffusion )
+        call calculate_viscosity( state, packed_state, ncomp, nphase, ndim, mat_nonods, mat_ndgln, uDiffusion )
+
 
         ! stabilisation for high aspect ratio problems - switched off
         call calculate_u_abs_stab( U_ABS_STAB, MAT_ABSORB, &
@@ -1480,6 +1485,25 @@ contains
 
             ELSE
 
+
+                if( .false. ) then
+                   DO CV_NOD = 1, U_NONODS
+                      ewrite(2,*) 'u_nod=',cv_nod, &
+                           'findgm_pha=', FINDGM_PHA( CV_NOD ), FINDGM_PHA( CV_NOD + 1 ) - 1
+                      rsum = 0.0
+                      DO COUNT = FINDGM_PHA( CV_NOD ), FINDGM_PHA( CV_NOD + 1 ) - 1
+                         CV_JNOD = COLDGM_PHA( COUNT )
+                         ewrite(2,*) 'count,CV_JNOD,DGM_PHA(count):', count, CV_JNOD, DGM_PHA( count )
+                         if ( cv_nod /= cv_jnod ) rsum = rsum + abs( DGM_PHA( count ) )
+                      END DO
+                      ewrite(2,*) 'off_diag=',rsum
+                   END DO
+                   !stop 1243
+                end if
+
+
+
+
                 U_RHS_CDP = RESHAPE( U_RHS + CDP_tensor%val, (/ NDIM * NPHASE * U_NONODS /) )
                 call allocate(rhs,product(velocity%dim),velocity%mesh,"RHS")
 
@@ -1487,11 +1511,10 @@ contains
               
                 call zero_non_owned(rhs)                      
 
-               mat=wrap_momentum_matrix(DGM_PHA,FINDGM_PHA,COLDGM_PHA,velocity)
+                mat=wrap_momentum_matrix(DGM_PHA,FINDGM_PHA,COLDGM_PHA,velocity) 
 
 
-
-                call zero(velocity)
+                !call zero(velocity)
                 packed_vel=as_packed_vector(velocity)
 
 
@@ -1607,14 +1630,14 @@ contains
             call zero_non_owned(rhs_p)
 
             call petsc_solve(deltap,mat2,rhs_p,trim(pressure%option_path))
-
-            ewrite(3,*) 'after pressure solve DP:', DP
             
             P_all % val = P_all % val + deltap%val
 
             call halo_update(p_all)
             
             dp= deltap%val
+
+            ewrite(3,*) 'after pressure solve DP:', DP
 
             call deallocate(deltaP)
             call deallocate(rhs_p)
@@ -2751,9 +2774,8 @@ contains
         SUF_U_BC_ALL_VISC=>velocity_BCs_VISC%val
         SUF_NU_BC_ALL=>velocity_BCs%val
         SUF_MOMU_BC_ALL=>momentum_BCs%val
-	SUF_U_ROB1_BC_ALL=>velocity_BCs%val
+        SUF_U_ROB1_BC_ALL=>velocity_BCs%val
         SUF_U_ROB2_BC_ALL=>velocity_BCs_robin2%val
-        
 
         !ewrite(3,*) 'Just double-checking sparsity patterns memory allocation:'
         !ewrite(3,*) 'FINDC with size,', size( FINDC ), ':', FINDC( 1 :  size( FINDC ) )

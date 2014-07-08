@@ -532,7 +532,7 @@
       comp_diffusion_opt = 0 ; ncomp_diff_coef = 0
       volfra_use_theta_flux = .false. ; volfra_get_theta_flux = .true.
       comp_use_theta_flux = .false. ; comp_get_theta_flux = .true.
-      t_use_theta_flux = .false. ; t_get_theta_flux = .true.
+      t_use_theta_flux = .false. ; t_get_theta_flux = .false.
 
 !!$ IN/DG_ELE_UPWIND are options for optimisation of upwinding across faces in the overlapping
 !!$ formulation. The data structure and options for this formulation need to be added later. 
@@ -1040,8 +1040,8 @@
          call deallocate( dummy )
 
          else
-            ewrite(-1,*) 'No initial condition for field::', trim( field_name )
-            FLAbort( 'Check initial conditions' )
+            !ewrite(-1,*) 'No initial condition for field::', trim( field_name )
+            !FLAbort( 'Check initial conditions' )
          end if
       end if Conditional_InitialisationFromFLML
 
@@ -1832,7 +1832,7 @@
       implicit none
       type( state_type ), dimension( : ), intent( in ) :: state
       integer, intent( in ) :: stotel, cv_snloc, nphase
-      real, dimension( stotel * cv_snloc * nphase ), intent( inout ) :: suf_t_bc, suf_t_bc_rob1, suf_t_bc_rob2
+      real, dimension( 1, nphase, stotel * cv_snloc ), intent( inout ) :: suf_t_bc, suf_t_bc_rob1, suf_t_bc_rob2
       !
       character( len = option_path_len ) :: option_path, option_path2, field_name, name
       integer :: shape_option(2), iphase, nobcs, kk, k, j , sele, stat
@@ -1880,7 +1880,7 @@
                      !wic_bc( j + ( iphase - 1 ) * stotel ) = BC_Type
                      face_nodes => ele_nodes( field_prot_bc, sele )
                      do kk = 1, cv_snloc
-                        suf_t_bc( ( iphase - 1 ) * stotel * cv_snloc + ( j - 1 ) * cv_snloc + kk ) = &
+                        suf_t_bc( 1, iphase, ( j - 1 ) * cv_snloc + kk ) = &
                              field_prot_bc % val( face_nodes( 1 ) )
                      end do
                      sele = sele + 1
@@ -1891,7 +1891,7 @@
 
                !BC_Type = 2
                if( have_option( trim( option_path ) // 'type::robin/order_zero_coefficient/from_field' ) ) then
-             
+
                   call get_boundary_condition( field, k, surface_mesh = surface_mesh, &
                        surface_element_list = surface_element_list )
 
@@ -1916,9 +1916,9 @@
                         !wic_bc( j + ( iphase - 1 ) * stotel ) = BC_Type
                         face_nodes => ele_nodes( field_prot_bc1f, sele )
                         do kk = 1, cv_snloc
-                           suf_t_bc_rob1( ( iphase - 1 ) * stotel * cv_snloc + ( j - 1 ) * cv_snloc + kk ) = &
+                           suf_t_bc_rob1( 1, iphase, ( j - 1 ) * cv_snloc + kk ) = &
                                 field_prot_bc1f % val( face_nodes( 1 ) )
-                           suf_t_bc_rob2( ( iphase - 1 ) * stotel * cv_snloc + ( j - 1 ) * cv_snloc + kk ) = &
+                           suf_t_bc_rob2( 1, iphase, ( j - 1 ) * cv_snloc + kk ) = &
                                 field_prot_bc2f % val( face_nodes( 1 ) )
                         end do
                         sele = sele + 1
@@ -1939,9 +1939,9 @@
                         !wic_bc( j + ( iphase - 1 ) * stotel ) = BC_Type
                         face_nodes => ele_nodes( field_prot_bc1, sele )
                         do kk = 1, cv_snloc
-                           suf_t_bc_rob1( ( iphase - 1 ) * stotel * cv_snloc + ( j - 1 ) * cv_snloc + kk ) = &
+                           suf_t_bc_rob1( 1, iphase, ( j - 1 ) * cv_snloc + kk ) = &
                                 field_prot_bc1 % val( face_nodes( 1 ) )
-                           suf_t_bc_rob2( ( iphase - 1 ) * stotel * cv_snloc + ( j - 1 ) * cv_snloc + kk ) = &
+                           suf_t_bc_rob2( 1, iphase, ( j - 1 ) * cv_snloc + kk ) = &
                                 field_prot_bc2 % val( face_nodes( 1 ) )
                         end do
                         sele = sele + 1
@@ -2010,6 +2010,14 @@
          call insert( packed_state, vfield, "solid_U" )
       end if
 #endif
+
+      ! Memory for python diagnostics...
+      sfield => extract_scalar_field( state(1), "Dummy", stat )
+      if ( stat == 0 ) call insert( packed_state, sfield, "Dummy" )
+
+      tfield => extract_tensor_field( state(1), "Dummy", stat )
+      if ( stat == 0 ) call insert( packed_state, tfield, "Dummy" )
+
 
       if (has_scalar_field(state(1),"Porosity")) then
          sfield=>extract_scalar_field(state(1),"Porosity")
