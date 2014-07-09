@@ -5725,9 +5725,9 @@ contains
 !                               =5 Use different length scales for u,v,w across an element and map visc to stress form
 !                               =6 same as 5 plus original q-scheme that is multiply by -min(0.0,divq) (5 can be switched off by using a zero coefficient for the LES)
 !                               =7 same as 5 plus original q-scheme but using abs(divu) (5 can be switched off by using a zero coefficient for the LES)
-            integer :: ele, MAT_iloc, MAT_INOD, CV_INOD, iphase
+            integer :: ele, MAT_iloc, MAT_INOD, CV_INOD, iphase, CV_NOD
             real, dimension( :, :, :, :, : ), allocatable :: LES_U_UDIFFUSION, LES_MAT_UDIFFUSION
-            real, dimension( :, :, : ), allocatable :: LES_U_UDIFFUSION_VOL, LES_MAT_UDIFFUSION_VOL
+            real, dimension( :, :, : ), allocatable :: LES_U_UDIFFUSION_VOL, LES_MAT_UDIFFUSION_VOL,  Q_SCHEME_ABS_CONT_VOL
             integer, dimension( : ), allocatable :: NOD_COUNT
 
             ALLOCATE(LES_U_UDIFFUSION(NDIM,NDIM,NPHASE,U_NLOC,TOTELE))
@@ -5736,9 +5736,23 @@ contains
             ALLOCATE(LES_U_UDIFFUSION_VOL(NPHASE,U_NLOC,TOTELE))
             ALLOCATE(LES_MAT_UDIFFUSION_VOL(NPHASE,MAT_NLOC,TOTELE))
 
+            ALLOCATE(Q_SCHEME_ABS_CONT_VOL(NPHASE,MAT_NLOC,TOTELE))
+
             ALLOCATE(NOD_COUNT(MAT_NONODS))
 
-            CALL VISCOCITY_TENSOR_LES_CALC_U( LES_U_UDIFFUSION, LES_U_UDIFFUSION_VOL, DUX_ELE_ALL, NDIM,NPHASE, U_NLOC,X_NLOC,TOTELE, X_NONODS, &
+            IF() THEN
+               DO ELE=1,TOTELE
+                  DO MAT_ILOC=1,MAT_NLOC
+                     CV_NOD=CV_NDGLNO((ELE-1)*MAT_NLOC + MAT_ILOC) 
+                     DO IPHASE=1,NPHASE
+                        SOUND_SPEED(:,MAT_ILOC,:) = 1.0/MAX( SQRT(DERIV(IPHASE,CV_NOD), 1.0E-10 )
+                     END DO
+                  END DO
+               END DO
+            END IF
+
+            CALL VISCOCITY_TENSOR_LES_CALC_U( LES_U_UDIFFUSION, LES_U_UDIFFUSION_VOL, Q_SCHEME_ABS_CONT_VOL, &
+                                              DUX_ELE_ALL, NDIM,NPHASE, U_NLOC,X_NLOC,TOTELE, X_NONODS, &
                                               X_ALL, X_NDGLN, LES_DISOPT, LES_CS,  U_NDGLN, U_NONODS, U_ALL )
 
             IF(MAT_NLOC==U_NLOC) THEN
@@ -5747,11 +5761,11 @@ contains
             ELSE IF( (U_NLOC==3.AND.MAT_NLOC==6) .OR. (U_NLOC==4.AND.MAT_NLOC==10) ) THEN
 ! 
                LES_MAT_UDIFFUSION(:,:,:,1,:) = LES_U_UDIFFUSION(:,:,:,1,:)
-               LES_MAT_UDIFFUSION_VOL(:,1,:) = LES_U_UDIFFUSION_VOL(:,1,:)
+               LES_MAT_UDIFFUSION_VOL(:,1,:) = LES_U_UDIFFUSION_VOL(:,1,:)  + SOUND_SPEED(:,1,:) * Q_SCHEME_ABS_CONT_VOL(:,1,:)
                LES_MAT_UDIFFUSION(:,:,:,3,:) = LES_U_UDIFFUSION(:,:,:,2,:)
-               LES_MAT_UDIFFUSION_VOL(:,3,:) = LES_U_UDIFFUSION_VOL(:,2,:)
+               LES_MAT_UDIFFUSION_VOL(:,3,:) = LES_U_UDIFFUSION_VOL(:,2,:)  + SOUND_SPEED(:,2,:) * Q_SCHEME_ABS_CONT_VOL(:,2,:)
                LES_MAT_UDIFFUSION(:,:,:,6,:) = LES_U_UDIFFUSION(:,:,:,3,:)
-               LES_MAT_UDIFFUSION_VOL(:,6,:) = LES_U_UDIFFUSION_VOL(:,3,:)
+               LES_MAT_UDIFFUSION_VOL(:,6,:) = LES_U_UDIFFUSION_VOL(:,3,:)  + SOUND_SPEED(:,3,:) * Q_SCHEME_ABS_CONT_VOL(:,3,:)
 
                LES_MAT_UDIFFUSION(:,:,:,2,:) = 0.5 * ( LES_U_UDIFFUSION(:,:,:,1,:) + LES_U_UDIFFUSION(:,:,:,2,:) )
                LES_MAT_UDIFFUSION_VOL(:,2,:) = 0.5 * ( LES_U_UDIFFUSION_VOL(:,1,:) + LES_U_UDIFFUSION_VOL(:,2,:) )
@@ -5819,7 +5833,8 @@ contains
 
 
 
-            SUBROUTINE VISCOCITY_TENSOR_LES_CALC_U( LES_U_UDIFFUSION, LES_U_UDIFFUSION_VOL, DUX_ELE_ALL, NDIM,NPHASE, U_NLOC,X_NLOC,TOTELE, X_NONODS, &
+            SUBROUTINE VISCOCITY_TENSOR_LES_CALC_U( LES_U_UDIFFUSION, LES_U_UDIFFUSION_VOL, Q_SCHEME_ABS_CONT_VOL, &
+                                                 DUX_ELE_ALL, NDIM,NPHASE, U_NLOC,X_NLOC,TOTELE, X_NONODS, &
                                                  X_ALL, X_NDGLN, LES_DISOPT, CS,  U_NDGLN, U_NONODS, U_ALL)
 ! This subroutine calculates a tensor of viscocity LES_UDIFFUSION, LES_U_UDIFFUSION_VOL
             IMPLICIT NONE
@@ -5831,21 +5846,27 @@ contains
             REAL, DIMENSION( NDIM, X_NONODS  ), intent( in ) :: X_ALL
             REAL, DIMENSION( NDIM, NDIM, NPHASE, U_NLOC, TOTELE  ), intent( inout ) :: LES_U_UDIFFUSION
             REAL, DIMENSION( NPHASE, U_NLOC, TOTELE  ), intent( inout ) :: LES_U_UDIFFUSION_VOL
+            REAL, DIMENSION( :, :, :  ), intent( inout ) :: Q_SCHEME_ABS_CONT_VOL
             REAL, DIMENSION( NDIM, NDIM, NPHASE, U_NLOC, TOTELE  ), intent( in ) :: DUX_ELE_ALL
             REAL, DIMENSION( NDIM, NPHASE, U_NONODS  ), intent( in ) :: U_ALL
 ! Local variables...
             LOGICAL, PARAMETER :: ONE_OVER_H2=.FALSE.
             !     SET to metric which has 1/h^2 in it
 ! CQ controls the amount of original q-scheme viscocity ( ~ 1.0 )
-            REAL, PARAMETER :: CQ=1.0
+! C_L The liquid constant for q-like scheme. 
+            REAL, PARAMETER :: CQ=1.0, C_L=1.0 
 !            REAL, PARAMETER :: CS=0.1
             REAL :: LOC_X_ALL(NDIM, X_NLOC), TENSXX_ALL(NDIM, NDIM, NPHASE), RSUM, FOURCS, CS2, VIS, DIVU, H2
             REAL :: MEAN_UDER_U(NDIM, NDIM, NPHASE)
             INTEGER :: ELE, X_ILOC, U_ILOC, IPHASE, X_NODI, IDIM, JDIM, KDIM, U_INOD
-            REAL :: RN,WEIGHT
+            REAL :: RN,WEIGHT,C
 
             CS2=CS**2
             FOURCS=CS2
+
+            IF(LES_DISOPT.ge.8) THEN
+               ALLOCATE(Q_SCHEME_ABS_CONT_VOL( NPHASE, U_NLOC, TOTELE  )) 
+            ENDIF
 
             DO ELE=1,TOTELE
 
@@ -5909,6 +5930,14 @@ contains
                         LES_U_UDIFFUSION_VOL(IPHASE,U_ILOC,ELE)= -CQ*H2*MIN(0.0, DIVU)
                      ELSE IF(LES_DISOPT==7) THEN
                         LES_U_UDIFFUSION_VOL(IPHASE,U_ILOC,ELE)=  CQ*H2*ABS(DIVU)
+                     ELSE
+                     IF(LES_DISOPT==8) THEN
+! C=Speed of sound.
+                        LES_U_UDIFFUSION_VOL(IPHASE,U_ILOC,ELE)= -CQ*H2*MIN(0.0, DIVU)  
+                        Q_SCHEME_ABS_CONT_VOL(IPHASE,U_ILOC,ELE)= C_L * SQRT(H2) *SIGN(DIVU)
+                     ELSE IF(LES_DISOPT==9) THEN
+                        LES_U_UDIFFUSION_VOL(IPHASE,U_ILOC,ELE)=  CQ*H2*ABS(DIVU)  
+                        Q_SCHEME_ABS_CONT_VOL(IPHASE,U_ILOC,ELE)=C_L * SQRT(H2) *SIGN(DIVU)
                      ELSE
                         LES_U_UDIFFUSION_VOL(IPHASE,U_ILOC,ELE)=  0.0
                      ENDIF
