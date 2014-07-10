@@ -5682,6 +5682,8 @@ contains
 
 
         call deallocate(velocity_BCs)
+        call deallocate(velocity_BCs_visc)
+        call deallocate(velocity_BCs_adv)
         call deallocate(velocity_BCs_robin2)
         call deallocate(momentum_BCs)
         call deallocate(pressure_BCs)
