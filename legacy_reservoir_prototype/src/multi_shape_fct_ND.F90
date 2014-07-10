@@ -1236,6 +1236,7 @@
               call allocate (targ_Store, Auxmesh)
               !Now we insert them in state and store the indexes
               call insert(state(1), targ_Store, StorName)
+              call deallocate (targ_Store)
               !Store index with a negative value, because if the index is
               !zero or negative then we have to calculate stuff
               indx = -size(state(1)%scalar_fields)

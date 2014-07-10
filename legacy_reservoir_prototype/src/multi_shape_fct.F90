@@ -1686,6 +1686,7 @@
           !Now we insert them in state and store the index
            call insert(state(1), targ_Storage%mesh, "StorageMesh")
           call insert(state(1), targ_Storage, StorName)
+          call deallocate (targ_Storage)
           indx = size(state(1)%scalar_fields)
       end if
 

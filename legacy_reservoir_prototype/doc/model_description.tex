@@ -3843,16 +3843,32 @@ from the non-linear Petrov-Galerkin method in the next section.
 \subsubsection{Original Q-Scheme}
 The original Q-scheme used a volumetric viscocity of 
 \begin{eqnarray}
-\mu_{vol}=- c_q h^2 \rho \; min\{0, \nabla\cdot {\bf u}\},
+\mu_{vol}=- c_q h^2 \rho \; min\{0, \nabla\cdot {\bf u}\} \;\; - \;\;c \;c_l  h \rho \; min\{0, \nabla\cdot {\bf u}\},
 \label{original-q}
+\end{eqnarray}
+or
+\begin{eqnarray}
+\mu_{vol}=- c_q h^2 \rho \; min\{0, \nabla\cdot {\bf u}\} \;\; + \;\;c \;c_l  h \rho,
+\label{original-q-b}
 \end{eqnarray}
 and is often modified to: 
 \begin{eqnarray}
-\mu_{vol}= c_q h^2 \rho \vert \nabla\cdot {\bf u}\vert, 
+\mu_{vol}= c_q h^2 \rho \vert \nabla\cdot {\bf u}\vert \;\;-\;\; c\; c_l  h \rho \; min\{0, \nabla\cdot {\bf u}\}, 
 \label{original-q2}
 \end{eqnarray}
-in which $c_q$ is an order one parameter e.g. $c_q=1$ is used here, 
+or
+\begin{eqnarray}
+\mu_{vol}= c_q h^2 \rho \vert \nabla\cdot {\bf u}\vert \;\;-\;\; c\; c_l  h \rho, 
+\label{original-q2-b}
+\end{eqnarray}
+in which $c_q, c_l$ are scalar and in $c_q=1, c_l=0.05$ are used here, 
 and $h$ is a length scale measured across each element. 
+Also the speed of sound $c$ is obtained from:
+
+\begin{eqnarray}
+\frac{1}{c^2} = \frac{\partial p}{\partial \rho}. 
+\label{c-def}
+\end{eqnarray}
 
 
 

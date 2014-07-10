@@ -1664,8 +1664,8 @@ if (have_component_field) then
           call insert(packed_state,sparsity,"PressureMassMatrixSparsity")
           do ic=1,size(multicomponent_state)
              call insert(multicomponent_state(ic),sparsity,"PressureMassMatrixSparsity")
-          end do
-
+          end do 
+          call deallocate(sparsity)
 
         end subroutine temp_mem_hacks
 
