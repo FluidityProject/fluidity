@@ -2738,6 +2738,7 @@ contains
             !Now we insert them in state and store the index
             call insert(state(1), Targ_C_Mat, "C_MAT")
             StorageIndexes(32) = size(state(1)%scalar_fields)
+            call deallocate (Targ_C_Mat)
 
             !Get from state
             Point_C_Mat(1:size(C,1),1:size(C,2),1:size(C,3)) =>&
