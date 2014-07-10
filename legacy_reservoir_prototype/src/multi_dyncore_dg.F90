@@ -5725,6 +5725,10 @@ contains
 !                               =5 Use different length scales for u,v,w across an element and map visc to stress form
 !                               =6 same as 5 plus original q-scheme that is multiply by -min(0.0,divq) (5 can be switched off by using a zero coefficient for the LES)
 !                               =7 same as 5 plus original q-scheme but using abs(divu) (5 can be switched off by using a zero coefficient for the LES)
+! =8  same as 6, but added  - \rho C* C_L * SQRT(H2) * MIN(0.0, SIGN(1.0, DIVU) ) into \mu_vol
+! =9  same as 7, but added  - \rho C* C_L * SQRT(H2) * MIN(0.0, SIGN(1.0, DIVU) ) into \mu_vol
+! =10 same as 6, but added  + \rho C* C_L * SQRT(H2)  into \mu_vol
+! =11 same as 7, but added  + \rho C* C_L * SQRT(H2)  into \mu_vol
             integer :: ele, MAT_iloc, MAT_INOD, CV_INOD, iphase
             real, dimension( :, :, :, :, : ), allocatable :: LES_U_UDIFFUSION, LES_MAT_UDIFFUSION
             real, dimension( :, :, : ), allocatable :: LES_U_UDIFFUSION_VOL, LES_MAT_UDIFFUSION_VOL,  Q_SCHEME_ABS_CONT_VOL, SOUND_SPEED
@@ -5947,6 +5951,12 @@ contains
                      ELSE IF(LES_DISOPT==9) THEN
                         LES_U_UDIFFUSION_VOL(IPHASE,U_ILOC,ELE)=  CQ*H2*ABS(DIVU)  
                         Q_SCHEME_ABS_CONT_VOL(IPHASE,U_ILOC,ELE)= -C_L * SQRT(H2) * MIN(0.0, SIGN(1.0, DIVU) )
+                     ELSE IF(LES_DISOPT==10) THEN
+                        LES_U_UDIFFUSION_VOL(IPHASE,U_ILOC,ELE)= -CQ*H2*MIN(0.0, DIVU)  
+                        Q_SCHEME_ABS_CONT_VOL(IPHASE,U_ILOC,ELE)= C_L * SQRT(H2) 
+                     ELSE IF(LES_DISOPT==11) THEN
+                        LES_U_UDIFFUSION_VOL(IPHASE,U_ILOC,ELE)=  CQ*H2*ABS(DIVU)  
+                        Q_SCHEME_ABS_CONT_VOL(IPHASE,U_ILOC,ELE)= C_L * SQRT(H2) 
                      ELSE
                         LES_U_UDIFFUSION_VOL(IPHASE,U_ILOC,ELE)=  0.0
                      ENDIF
