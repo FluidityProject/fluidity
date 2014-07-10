@@ -44,7 +44,21 @@
     use Fields_Allocates, only : allocate
     use fields_data_types, only: mesh_type, scalar_field
 
+    integer :: cache_level=7
+
   contains
+
+    subroutine set_caching_level()
+
+      cache_level=0
+      if (have_option('/caching/no_cache_shape_functions')) then
+         return
+      else
+         cache_level=iand(cache_level,cache_level)
+      end if
+
+    end subroutine set_caching_level
+
 
     subroutine re2dn4( lowqua, ngi, ngi_l, nloc, mloc, &
          m, weight, n, nlx, nly, &
@@ -1457,72 +1471,71 @@
       type(scalar_field), target :: targ_VOLUME
       !#########Storing area#################################
       !If new mesh or mesh moved indx will be zero (set in Multiphase_TimeLoop)
-      if (indx>0) then!Everything has been calculated already
-          !Get from state, indx is an input
-          NX_ALL(1:NDIM,1:NLOC,1:NGI) => &
-          state(1)%scalar_fields(indx)%ptr%val(1+NDIM*NLOC*NGI*(ELE-1):NDIM*NLOC*NGI*ELE)
-          INV_JAC(1:NDIM,1:NDIM,1:NGI)  => &
-          state(1)%scalar_fields(indx+1)%ptr%val(1+(ELE-1)*(NGI+NDIM*NDIM):ELE*(NGI*NDIM*NDIM))
-          DETWEI(1:NGI) => state(1)%scalar_fields(indx+2)%ptr%val(1+NGI*(ELE-1):NGI*ELE)
-          RA(1:NGI) => state(1)%scalar_fields(indx+2)%ptr%val(1+NGI*((ELE-1)+TOTELE):NGI*(ELE+TOTELE))
-          VOLUME => state(1)%scalar_fields(indx+3)%ptr%val(ELE)
-          return
-      else if (indx/=0) then!We need to calculate a new value
-          !Get from state, indx is an input
-          NX_ALL(1:NDIM,1:NLOC,1:NGI) => &
-          state(1)%scalar_fields(-indx)%ptr%val(1+NDIM*NLOC*NGI*(ELE-1):NDIM*NLOC*NGI*ELE)
-          INV_JAC(1:NDIM,1:NDIM,1:NGI)  => &
-          state(1)%scalar_fields(-indx+1)%ptr%val(1+(ELE-1)*(NGI+NDIM*NDIM):ELE*(NGI*NDIM*NDIM))
-          DETWEI(1:NGI) => state(1)%scalar_fields(-indx+2)%ptr%val(1+NGI*(ELE-1):NGI*ELE)
-          RA(1:NGI) => state(1)%scalar_fields(-indx+2)%ptr%val(1+NGI*((ELE-1)+TOTELE):NGI*(ELE+TOTELE))
-          VOLUME => state(1)%scalar_fields(-indx+3)%ptr%val(ELE)
-      else if (ELE==1) then !The first time we need to introduce the targets in state
-          if (has_scalar_field(state(1), "X"//StorName)) then
-              !If we are recalculating due to a mesh modification then
-              !we return to the original situation
-              call remove_scalar_field(state(1), "X"//StorName)
-              call remove_scalar_field(state(1), "UX"//StorName)
-              call remove_scalar_field(state(1), "D"//StorName)
-              call remove_scalar_field(state(1), "V"//StorName)
-          end if
-          !Get mesh file just to be able to allocate the fields we want to store
-          fl_mesh => extract_mesh( state(1), "CoordinateMesh" )
-          Auxmesh = fl_mesh
-          !The number of nodes I want does not coincide
-          Auxmesh%nodes = totele*NLOC*NGI*NDIM
-          call allocate (Targ_NX_ALL, Auxmesh)
-          Auxmesh%nodes = NDIM*NDIM*NGI*totele
-          call allocate (targ_INV_JAC, Auxmesh)
-          Auxmesh%nodes = totele*NGI*2
-          call allocate (Targ_DETWEI_RA, Auxmesh)
-          Auxmesh%nodes = totele
-          call allocate (Targ_VOLUME, Auxmesh)
+      if (indx==0 .and. ELE==1) then !The first time we need to introduce the targets in state
+         if (has_scalar_field(state(1), "X"//StorName)) then
+            !If we are recalculating due to a mesh modification then
+            !we return to the original situation
+            call remove_scalar_field(state(1), "X"//StorName)
+            call remove_scalar_field(state(1), "UX"//StorName)
+            call remove_scalar_field(state(1), "D"//StorName)
+            call remove_scalar_field(state(1), "V"//StorName)
+         end if
+         !Get mesh file just to be able to allocate the fields we want to store
+         fl_mesh => extract_mesh( state(1), "CoordinateMesh" )
+         Auxmesh = fl_mesh
+         !The number of nodes I want does not coincide
+         Auxmesh%nodes = merge(totele,1,btest(cache_level,0))*NLOC*NGI*NDIM
+         call allocate (Targ_NX_ALL, Auxmesh)
+         Auxmesh%nodes = merge(totele,1,btest(cache_level,1))*NDIM*NDIM*NGI
+         call allocate (targ_INV_JAC, Auxmesh)
+         Auxmesh%nodes = merge(totele,1,btest(cache_level,2))*NGI*2
+         call allocate (Targ_DETWEI_RA, Auxmesh)
+         Auxmesh%nodes = totele
+         call allocate (Targ_VOLUME, Auxmesh)
+         
+         !Now we insert them in state and store the indexes
+         call insert(state(1), Targ_NX_ALL, "X"//StorName)
+         !Store index with a negative value, because if the index is
+         !zero or negative then we have to calculate stuff
+         indx = -size(state(1)%scalar_fields)
+         call insert(state(1), targ_INV_JAC, "UX"//StorName)
+         call insert(state(1), Targ_DETWEI_RA, "D"//StorName)
+         call insert(state(1), Targ_VOLUME, "V"//StorName)
 
-          !Now we insert them in state and store the indexes
-          call insert(state(1), Targ_NX_ALL, "X"//StorName)
-          !Store index with a negative value, because if the index is
-          !zero or negative then we have to calculate stuff
-          indx = -size(state(1)%scalar_fields)
-          call insert(state(1), targ_INV_JAC, "UX"//StorName)
-          call insert(state(1), Targ_DETWEI_RA, "D"//StorName)
-          call insert(state(1), Targ_VOLUME, "V"//StorName)
-
-          call deallocate (Targ_NX_ALL)
-          call deallocate (targ_INV_JAC)
-          call deallocate (Targ_DETWEI_RA)
-          call deallocate (Targ_VOLUME)
-
-
-          !Get from state, indx is an input
-          NX_ALL(1:NDIM,1:NLOC,1:NGI) => &
-          state(1)%scalar_fields(-indx)%ptr%val(1+NDIM*NLOC*NGI*(ELE-1):NDIM*NLOC*NGI*ELE)
-          INV_JAC(1:NDIM,1:NDIM,1:NGI)  => &
-          state(1)%scalar_fields(-indx+1)%ptr%val(1+(ELE-1)*(NGI+NDIM*NDIM):ELE*(NGI*NDIM*NDIM))
-          DETWEI(1:NGI) => state(1)%scalar_fields(-indx+2)%ptr%val(1+NGI*(ELE-1):NGI*ELE)
-          RA(1:NGI) => state(1)%scalar_fields(-indx+2)%ptr%val(1+NGI*((ELE-1)+TOTELE):NGI*(ELE+TOTELE))
-          VOLUME => state(1)%scalar_fields(-indx+3)%ptr%val(ELE)
+         call deallocate (Targ_NX_ALL)
+         call deallocate (targ_INV_JAC)
+         call deallocate (Targ_DETWEI_RA)
+         call deallocate (Targ_VOLUME)
       end if
-      !When all the values are obtained, the index is set to a positive value
+       !Get from state, indx is an input
+      if (btest(cache_level,0)) then
+         NX_ALL(1:NDIM,1:NLOC,1:NGI) => &
+              state(1)%scalar_fields(indx)%ptr%val(1+NDIM*NLOC*NGI*(ELE-1):NDIM*NLOC*NGI*ELE)
+      else
+         NX_ALL(1:NDIM,1:NLOC,1:NGI) => &
+              state(1)%scalar_fields(indx)%ptr%val
+      end if
+      if (btest(cache_level,1)) then
+         INV_JAC(1:NDIM,1:NDIM,1:NGI)  => &
+              state(1)%scalar_fields(indx+1)%ptr%val(1+(ELE-1)*(NGI+NDIM*NDIM):ELE*(NGI*NDIM*NDIM))
+      else
+         INV_JAC(1:NDIM,1:NDIM,1:NGI)  => &
+              state(1)%scalar_fields(indx+1)%ptr%val
+      end if
+      if (btest(cache_level,2)) then
+         DETWEI(1:NGI) => state(1)%scalar_fields(indx+2)%ptr%val(1+NGI*(ELE-1):NGI*ELE)
+      else
+         DETWEI(1:NGI) => state(1)%scalar_fields(indx+2)%ptr%val
+      END if
+      if (btest(cache_level,2)) then
+         RA(1:NGI) => state(1)%scalar_fields(indx+2)%ptr%val(1+NGI*((ELE-1)+TOTELE):NGI*(ELE+TOTELE))
+      else
+         RA(1:NGI) => state(1)%scalar_fields(indx+2)%ptr%val(NGI+1:2*NGI)
+      end if
+         
+      VOLUME => state(1)%scalar_fields(indx+3)%ptr%val(ELE)
+      IF (indx>0 .and. not(cache_level)==0) return
+       !When all the values are obtained, the index is set to a positive value
       if (ELE == totele) indx = abs(indx)
       !#########Storing area finished########################
       !

@@ -313,7 +313,7 @@
            middgm_pha( u_nonods * nphase * ndim ), &
            findct( cv_nonods + 1 ), colct( mx_nct ), &
            findc( u_nonods + 1 ), colc( mx_nc ), &
-           findcmc( cv_nonods + 1 ), colcmc( mx_ncolcmc ), midcmc( cv_nonods ), &
+           findcmc( cv_nonods + 1 ), colcmc( 0 ), midcmc( cv_nonods ), &
            findm( cv_nonods + 1 ), colm( mx_ncolm ), midm( cv_nonods ) )
 
 
