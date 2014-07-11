@@ -541,6 +541,7 @@
           call allocate (targ_icolor, Auxmesh)
           !Now we insert them in state and store the index
           call insert(state(1), targ_icolor, "Col_fast")
+          call deallocate (targ_icolor)
           indx = size(state(1)%scalar_fields)
           !Get from state
           pointer_icolor =>  state(1)%scalar_fields(indx)%ptr%val
