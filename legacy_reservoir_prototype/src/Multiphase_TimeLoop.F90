@@ -177,6 +177,7 @@
            mass_ele, dummy_ele
 
       real, dimension( :, :, :, : ), allocatable :: THERM_U_DIFFUSION
+      real, dimension( :, : ), allocatable :: THERM_U_DIFFUSION_VOL
 
       real, dimension( :, : ), pointer :: THETA_GDIFF
 
@@ -188,6 +189,7 @@
            Component_Diffusion_Operator_Coefficient
       real, dimension( :, :, :, : ), allocatable :: Momentum_Diffusion, ScalarAdvectionField_Diffusion, &
            Component_Diffusion
+      real, dimension( :, : ), allocatable :: Momentum_Diffusion_Vol
            
       real, dimension( :, : ), allocatable ::theta_flux, one_m_theta_flux, theta_flux_j, one_m_theta_flux_j, &
                                sum_theta_flux, sum_one_m_theta_flux, sum_theta_flux_j, sum_one_m_theta_flux_j
@@ -382,12 +384,13 @@
            ScalarField_Absorption( cv_nonods, nphase, nphase ), Component_Absorption( cv_nonods, nphase, nphase ), &
            Temperature_Absorption( cv_nonods, nphase, nphase ), &
            Momentum_Diffusion( mat_nonods, ndim, ndim, nphase ), &
+           Momentum_Diffusion_Vol( mat_nonods, nphase ), &
            ScalarAdvectionField_Diffusion( mat_nonods, ndim, ndim, nphase ), &
            Component_Diffusion( mat_nonods, ndim, ndim, nphase ), &
 !!$ Variables used in the diffusion-like term: capilarity and surface tension:
            plike_grad_sou_grad( cv_nonods * nphase ), &
            plike_grad_sou_coef( cv_nonods * nphase ), &
-           THERM_U_DIFFUSION(NDIM,NDIM,NPHASE,MAT_NONODS*IGOT_THERM_VIS ) )
+           THERM_U_DIFFUSION(NDIM,NDIM,NPHASE,MAT_NONODS*IGOT_THERM_VIS ), THERM_U_DIFFUSION_VOL(NPHASE,MAT_NONODS*IGOT_THERM_VIS ) )
  
       ncv_faces=CV_count_faces( packed_state, CV_ELE_TYPE, stotel, cv_sndgln, u_sndgln)
 
@@ -419,9 +422,11 @@
       ScalarField_Absorption=0. ; Component_Absorption=0.
       Temperature_Absorption=0.
       Momentum_Diffusion=0.
+      Momentum_Diffusion_Vol=0.
       ScalarAdvectionField_Diffusion=0.
       Component_Diffusion=0.
       THERM_U_DIFFUSION=0.
+      THERM_U_DIFFUSION_VOL=0.
 !!$
       plike_grad_sou_grad=0.
       plike_grad_sou_coef=0.
@@ -707,6 +712,7 @@
                call calculate_diffusivity( state, ncomp, nphase, ndim, cv_nonods, mat_nonods, &
                                            mat_nloc, totele, mat_ndgln, ScalarAdvectionField_Diffusion )
 
+
                tracer_field=>extract_tensor_field(packed_state,"PackedTemperature")
                velocity_field=>extract_tensor_field(packed_state,"PackedVelocity")
                density_field=>extract_tensor_field(packed_state,"PackedDensity",stat)
@@ -726,7 +732,7 @@
 !!$
                     Temperature, Temperature_Old, &
 !!$
-                    MAT_NLOC, MAT_NDGLN, MAT_NONODS, ScalarAdvectionField_Diffusion, IGOT_THERM_VIS, THERM_U_DIFFUSION, &
+                    MAT_NLOC, MAT_NDGLN, MAT_NONODS, ScalarAdvectionField_Diffusion, IGOT_THERM_VIS, THERM_U_DIFFUSION, THERM_U_DIFFUSION_VOL, &
                     t_disopt, t_dg_vel_int_opt, dt, t_theta, t_beta, &
                     suf_sig_diagten_bc,&
                     DRhoDPressure, &
@@ -839,7 +845,7 @@
                     NCOLM, FINDM, COLM, MIDM, & ! Sparsity for the CV-FEM
                     XU_NLOC, XU_NDGLN, &
 !!$
-                    Momentum_Diffusion, THERM_U_DIFFUSION, &
+                    Momentum_Diffusion, Momentum_Diffusion_Vol, THERM_U_DIFFUSION, THERM_U_DIFFUSION_VOL, &
                     opt_vel_upwind_coefs, nopt_vel_upwind_coefs, &
                     igot_theta_flux, scvngi_theta, volfra_use_theta_flux, &
                     sum_theta_flux, sum_one_m_theta_flux, sum_theta_flux_j, sum_one_m_theta_flux_j, &
@@ -975,7 +981,7 @@
                           Component( ( icomp - 1 ) * nphase * cv_nonods + 1 : icomp * nphase * cv_nonods ), &
                           Component_Old( ( icomp - 1 ) * nphase * cv_nonods + 1 : icomp * nphase * cv_nonods ), &
 !!$
-                          MAT_NLOC, MAT_NDGLN, MAT_NONODS, Component_Diffusion, 0, THERM_U_DIFFUSION, &
+                          MAT_NLOC, MAT_NDGLN, MAT_NONODS, Component_Diffusion, 0, THERM_U_DIFFUSION, THERM_U_DIFFUSION_VOL,&
                           v_disopt, v_dg_vel_int_opt, dt, v_theta, v_beta, &
                           SUF_SIG_DIAGTEN_BC,&
                           DRhoDPressure, &
@@ -1239,14 +1245,16 @@
                      do icomp = 1, ncomp
                         do iphase = 1, nphase
 
-                           call Updating_Linearised_Components( totele, ndim, cv_nloc, cv_nonods, cv_ndgln, &
-                              component ( 1 + ( iphase - 1 ) * cv_nonods + ( icomp - 1 ) * &
-                              nphase * cv_nonods : iphase * cv_nonods + ( icomp - 1 ) * nphase * cv_nonods ) )
-
                            Component_State => extract_scalar_field( state( icomp + nphase ), & 
                                 'ComponentMassFractionPhase' // int2str( iphase ) )
+                           if (.not. have_option(trim(Component_State%option_path)//"/prognostic/consistent_interpolation")) then
+
+                              call Updating_Linearised_Components( totele, ndim, cv_nloc, cv_nonods, cv_ndgln,& 
+                           component ( 1 + ( iphase - 1 ) * cv_nonods + ( icomp - 1 ) * &
+                                nphase * cv_nonods : iphase * cv_nonods + ( icomp - 1 ) * nphase * cv_nonods ) )
                            Component_State % val = component( 1 + ( iphase - 1 ) * cv_nonods + ( icomp - 1 ) * &
                                 nphase * cv_nonods : iphase * cv_nonods + ( icomp - 1 ) * nphase * cv_nonods )
+                        end if
                         end do
                      end do
                   end if Conditional_Components_Linearisation2
@@ -1352,7 +1360,7 @@
                  Permeability, Material_Absorption, Material_Absorption_Stab, &
                  Velocity_Absorption, ScalarField_Absorption, Component_Absorption, Temperature_Absorption, &
                  Component_Diffusion_Operator_Coefficient, &
-                 Momentum_Diffusion, ScalarAdvectionField_Diffusion, &
+                 Momentum_Diffusion, Momentum_Diffusion_Vol, ScalarAdvectionField_Diffusion, &
                  Component_Diffusion, &
                  theta_flux, one_m_theta_flux, theta_flux_j, one_m_theta_flux_j, sum_theta_flux, &
                  sum_one_m_theta_flux, sum_theta_flux_j, sum_one_m_theta_flux_j )
@@ -1458,6 +1466,7 @@
                  ScalarField_Absorption( cv_nonods, nphase, nphase ), Component_Absorption( cv_nonods, nphase, nphase ), &
                  Temperature_Absorption( cv_nonods, nphase, nphase ), &
                  Momentum_Diffusion( mat_nonods, ndim, ndim, nphase ), &
+                 Momentum_Diffusion_Vol( mat_nonods, nphase ), &
                  ScalarAdvectionField_Diffusion( mat_nonods, ndim, ndim, nphase ), & 
                  Component_Diffusion( mat_nonods, ndim, ndim, nphase ), &
 !!$ Variables used in the diffusion-like term: capilarity and surface tension:
@@ -1466,6 +1475,7 @@
 !!$
             Velocity_U_Source = 0. ; Velocity_Absorption = 0. ; Velocity_U_Source_CV = 0. 
             Momentum_Diffusion=0.
+            Momentum_Diffusion_Vol=0.
 !!$
             Temperature=0. ; Temperature_Source=0. ; 
             Temperature_FEMT=0. ; Temperature_Absorption=0.
@@ -1616,7 +1626,7 @@ if (have_component_field) then
            Permeability, Material_Absorption, Material_Absorption_Stab, &
            Velocity_Absorption, ScalarField_Absorption, Component_Absorption, Temperature_Absorption, &
            Component_Diffusion_Operator_Coefficient, &
-           Momentum_Diffusion, ScalarAdvectionField_Diffusion, &
+           Momentum_Diffusion, Momentum_Diffusion_Vol, ScalarAdvectionField_Diffusion, &
            Component_Diffusion, &
            theta_flux, one_m_theta_flux, theta_flux_j, one_m_theta_flux_j, &
            sum_theta_flux, sum_one_m_theta_flux, sum_theta_flux_j, sum_one_m_theta_flux_j )

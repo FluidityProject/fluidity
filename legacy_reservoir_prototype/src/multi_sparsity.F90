@@ -36,6 +36,28 @@
 
   contains
 
+    subroutine resize(A,n,copy)
+      integer, dimension(:), pointer, intent(inout) :: A
+      integer n
+      logical, intent(in), optional  :: copy
+      integer, dimension(:), pointer :: temp
+      logical :: lcopy
+
+
+      if(present(copy)) then
+         lcopy=copy
+      else
+         lcopy=.true.
+      end if
+      
+
+
+      allocate(temp(n))
+      if (lcopy) temp=A(1:n)
+      deallocate(a)
+      a=>temp
+    end subroutine resize
+
     SUBROUTINE DEF_SPAR( SEMI_BAND_WID, NONODS, MX_NCOLC, NCOLC, &
          CENTC, FINDC, COLC)
       ! define sparsity...
@@ -533,7 +555,7 @@
       integer, dimension( : ), intent( in ) :: colc
       integer, intent( in ) :: nlenmcy
       integer, dimension( nlenmcy + 1 ), intent( inout ) :: finmcy
-      integer, dimension( mx_ncolmcy ), intent( inout ) :: colmcy
+      integer, dimension( : ), intent( inout ), pointer :: colmcy
       integer, dimension( nlenmcy ), intent( inout ) :: midmcy
       integer, intent( inout ) :: ncolmcy
       integer, intent( in ) :: nphase, ncolcmc
@@ -543,6 +565,12 @@
       integer :: count, count2, iphase, jphase, u_nod, u_pha_nod, cv_nod, icol, idim, jdim, i
 
       ewrite(3,*) 'In exten_sparse_mom_cty subrt.'
+
+      u_pha_nod = ndim*nphase*u_nonods+1
+      ncolmcy = ndim*nphase*( finmcy2( u_pha_nod ) -1 + findc(u_nonods+1) -1&
+           +findct(cv_nonods+1)-1 ) +findcmc(cv_nonods+1) -1
+
+      call resize(colmcy,ncolmcy,copy=.false.)
 
       count2 = 0 
       Loop_Phase1: do iphase = 1, nphase
@@ -1003,7 +1031,7 @@
       integer, dimension( nct ), intent( in ) :: colct
       integer, intent( inout ) :: ncmc
       integer, dimension( totele + 1 ), intent( inout ) :: fincmc
-      integer, dimension( nimem ), intent( inout ) :: colcmc
+      integer, dimension(:), pointer, intent( inout ) :: colcmc
       integer, dimension( totele ), intent( inout ) :: midcmc
       integer, dimension( nonods ), intent( inout ) ::  noinod
       logical, intent( inout ) :: presym
@@ -1161,6 +1189,23 @@
       deallocate( matrix )
 
       ptr = 1
+      do irow = 1, totele
+         current => matrix2( irow ) % row
+         do while ( associated( current ))
+            next => current % next
+            current => next
+            ptr = ptr + 1
+         end do
+      end do
+
+
+      ncmc =  ptr - 1
+      call resize(colcmc,ncmc,copy=.false.)
+
+      ptr = 1
+
+
+
       Loop_Row3: do irow = 1, totele ! From matrix write COLCMC, FINCMC and MIDCMC
          midcmc( irow ) = -1
          fincmc( irow ) = ptr
@@ -1168,8 +1213,8 @@
 
          Loop_While4: do while ( associated( current ))
 
-            if ( ptr > nimem ) then
-               ewrite( -1, * ) 'nimem, ptr: ',nimem, ptr
+            if ( ptr > ncmc ) then
+               ewrite( -1, * ) 'ncmc, nimem, ptr: ',ncmc, nimem, ptr
                ewrite( -1, * ) 'totele, irow: ',totele, irow
                FLAbort( "Integer memory too small" )
             end if
@@ -1187,7 +1232,6 @@
          end do Loop_While4
       end do Loop_Row3
 
-      ncmc =  ptr - 1
       fincmc( totele + 1 ) = ncmc + 1
 
       return
@@ -1519,7 +1563,12 @@
       !   mx_ncolm = 1
       else
          mx_ncoldgm_pha = ( mxnele + totele ) * ( u_nloc * ndim * nphase) **2    ! for overlapping method =1
-         mx_ncolmcy = mx_ncoldgm_pha + mx_nct + mx_nc + mx_ncolcmc               ! for overlapping method =1
+!         mx_ncolmcy = mx_ncoldgm_pha + mx_nct + mx_nc + mx_ncolcmc 
+!         set mx_ncolmcy to 0 until global_solve works.
+
+         mx_ncolmcy=0
+
+              ! for overlapping method =1
       endif
 !         mx_ncolmcy = mx_ncoldgm_pha + mx_nct + mx_nc + mx_ncolcmc               ! for overlapping method =1
 
@@ -1721,8 +1770,10 @@ integer, dimension(:), pointer ::  colcmc, colm, colmcy, colct, colc, coldgm_pha
               ncolcmc, findcmc, colcmc, midcmc, dummyvec, presym )
          deallocate( dummyvec )
       end if Conditional_Dimensional_3
-      call resize(colcmc,ncolcmc)
-      if( mx_ncolcmc < ncolcmc ) FLAbort("Incorrect number of dimension of CMC sparsity matrix")
+!      call resize(colcmc,ncolcmc)
+!      if( mx_ncolcmc < ncolcmc ) FLAbort("Incorrect number of dimension of CMC sparsity matrix")
+
+      if( ncolcmc<1 ) FLAbort("Incorrect number of dimension of CMC sparsity matrix")
 !!$      ewrite(3,*)'findcmc: ', size( findcmc ), '==>', findcmc( 1 : cv_nonods + 1 )
 !!$      ewrite(3,*)'colcmc: ', size( colcmc ), ncolcmc, '==>', colcmc( 1 : ncolcmc )
 !!$      ewrite(3,*)'midcmc: ', size( midcmc ), '==>',  midcmc( 1 : cv_nonods )
@@ -1730,7 +1781,7 @@ integer, dimension(:), pointer ::  colcmc, colm, colmcy, colct, colc, coldgm_pha
       !-
       !- Computing the sparsity for the force balance plus cty multi-phase eqns
       !- 
-    if(.not.(is_overlapping .or. is_compact_overlapping)) then
+    if(.not.(is_overlapping .or. is_compact_overlapping .or. mx_ncolmcy==0)) then
       finmcy = 0 ; colmcy = 0 ; midmcy = 0
       call exten_sparse_mom_cty( ndim, findgm_pha, coldgm_pha, nphase * u_nonods * ndim, ncoldgm_pha, ncolct, &
            cv_nonods, findct, colct, &
@@ -1825,19 +1876,6 @@ integer, dimension(:), pointer ::  colcmc, colm, colmcy, colct, colc, coldgm_pha
       deallocate( centct ) ;
 
       return
-
-      contains 
-        
-        subroutine resize(A,n)
-          integer, dimension(:), pointer, intent(inout) :: A
-          integer n
-          integer, dimension(:), pointer :: temp
-
-          allocate(temp(n))
-          temp=A(1:n)
-          deallocate(a)
-          a=>temp
-        end subroutine resize
           
 
     end subroutine Get_Sparsity_Patterns

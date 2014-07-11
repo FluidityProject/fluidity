@@ -169,7 +169,7 @@
                Density_Bulk( sp : ep ) = Rho
                DRhoDPressure( iphase, : ) = dRhodP
 
-               Cp_s => extract_scalar_field( state( iphase ), 'HeatCapacity', stat )
+               Cp_s => extract_scalar_field( state( iphase ), 'TemperatureHeatCapacity', stat )
                if( stat == 0 ) Cp = Cp_s % val
                DensityCp_Bulk( sp : ep ) = Rho * Cp
 
@@ -1456,12 +1456,11 @@
          t_field => extract_tensor_field( state( 1 ), 'Viscosity', stat )
          if ( stat == 0 ) then
 
+         cv_nloc = ele_loc( t_field, ele )
+
             if ( ncomp > 1 ) then
 
                linearise_viscosity = have_option( '/material_phase[0]/linearise_viscosity' )
-
-               cv_nloc = ele_loc( t_field, ele )
-
                allocate( component_tmp( cv_nloc ) ) 
 
                do icomp = 1, ncomp
@@ -1550,15 +1549,60 @@
 
                do iphase = 1, nphase
 
-                  t_field => extract_tensor_field( state( iphase ), 'Viscosity', stat )
 
-                  option_path = '/material_phase[' // int2str( iphase - 1 ) // &
-                       ']/vector_field::Velocity/prognostic/tensor_field::Viscosity'
-                  call Extract_TensorFields_Outof_State( state, iphase, &
-                       t_field, option_path, &
-                       momentum_diffusion( :, :, :, iphase ), &
-                       mat_ndgln )
-               end do
+                  python_diagnostic_field = &
+                     have_option( '/material_phase[' // int2str(iphase - 1 ) //  &
+                     ']/vector_field::Velocity/prognostic/tensor_field::Viscosity/diagnostic' )
+
+
+                     if ( python_diagnostic_field ) then
+
+#ifdef HAVE_NUMPY
+                        ewrite(3,*) "Have both NumPy and a python viscosity..."
+#else
+                        FLAbort("Python eos requires NumPy, which cannot be located.")
+#endif
+
+                        option_path_python = trim( '/material_phase[' // int2str( iphase - 1 ) // &
+                           ']/vector_field::Velocity' // &
+                           '/prognostic/tensor_field::Viscosity/diagnostic' )
+
+                        t_field => extract_tensor_field( packed_state, 'Dummy' )
+                        call zero( t_field )
+
+                        call python_reset()
+                        call python_add_state( packed_state )
+
+                        call python_run_string("field = state.tensor_fields['Dummy']")
+                        call get_option("/timestepping/current_time", current_time)
+                        write(buffer,*) current_time
+                        call python_run_string("time="//trim(buffer))
+                        call get_option("/timestepping/timestep", dt)
+                        write(buffer,*) dt
+                        call python_run_string("dt="//trim(buffer))
+
+                        ! Get the code
+                        call get_option( trim( option_path_python ) // '/algorithm', pycode )
+
+                        ! Run the code
+                        call python_run_string( trim( pycode ) )
+
+                     else
+
+                         t_field => extract_tensor_field( state( iphase ), 'Viscosity', stat )
+           
+                     end if
+	   
+
+                     do ele = 1, ele_count( t_field )
+                        st_nodes => ele_nodes( t_field, ele )
+                        do iloc = 1, cv_nloc
+                           mat_nod = mat_ndgln( (ele-1)*cv_nloc + iloc )
+                           momentum_diffusion( mat_nod, :, :, iphase ) = node_val( t_field, st_nodes( iloc ) )
+                        end do
+                     end do
+
+	       end do
 
             end if
 
