@@ -13,25 +13,25 @@ a Linux workstation.
 \subsection{Overview}
 \label{sec:obtaining_fluidity_overview}
 
-\fluidity\ is available both as precompiled binaries for Ubuntu Linux version
-12.04 (Precise) and newer, and as source code available via bzr (bazaar) or as
-gzipped tarballs. Which method you use to obtain \fluidity\ depends primarily on
-whether you use Ubuntu Linux and whether you wish to modify the \fluidity\
-source code. 
+\fluidity\ is available both as precompiled binaries for a number of major,
+recent Linux distributions and as source code available via git or as gzipped
+tarballs. Which method you use to obtain \fluidity\ depends primarily on
+whether you use a recent Linux distribution and whether you wish to modify the
+\fluidity\ source code.
 
-\fluidity\ generally attempts to support any given release of Ubuntu for 18
-months from the point of release.
-
-Users who run Ubuntu Linux and who have no need to change the source code will
-probably wish to use binary packaged \fluidity. Developers and users on
-non-Ubuntu platforms will probably wish to build \fluidity\ from source.
+\fluidity\ attempts to support as many major Linux platforms based on recent
+compilers as possible. This currently includes Ubuntu versions 12.04, 12.10,
+13.10, and 14.04, Red Hat Enterprise Linux version 6 and its derivatives
+(including CentOS and Scientific Linux), Fedora 19, and OpenSuSE 12.3. Fedora
+20 and OpenSuSE 13.1 are not yet supported, but are intended to be supported
+soon.
 
 \subsection{\fluidity\ binary packages for Ubuntu Linux}
 
-\fluidity\ is distributed via the \lstinline[language=Bash]+fluidity-core+
-launchpad package archive. If you run Ubuntu Linux version 12.04 (Precise) or
-newer and have administrative privileges on
-your computer, you can add the package archive to your system by typing:
+\fluidity\ is distributed for all centrally-supported Ubuntu desktop systems
+via the \lstinline[language=Bash]+fluidity-core+ launchpad package archive. If
+you have administrative privileges on your computer, you can add the package
+archive to your system by typing:
 
 \begin{lstlisting}[language=Bash]
 sudo apt-add-repository -y ppa:fluidity-core/ppa
@@ -54,6 +54,83 @@ expanded into a writeable directory with:
 tar -zxvf /usr/share/doc/fluidity/examples.tar.gz
 \end{lstlisting}
 
+\subsection{\fluidity\ binary packages for Red Hat Enterprise Linux}
+
+\fluidity\ is distributed for all systems based on Red Hat Enterprise 6 via a
+package repository which can be installed by users who have administrative
+privileges on their computer by typing the following, all on one line:
+
+\begin{lstlisting}[language=Bash]
+sudo yum-config-manager --add-repo
+                http://fluidityproject.github.com/yum/fluidity-rhel6.repo
+\end{lstlisting}
+
+Type your password if prompted. \fluidity\ can then be installed with:
+
+\begin{lstlisting}[language=Bash]
+sudo yum install fluidity
+\end{lstlisting}
+
+You now have \fluidity\ installed on your computer. Examples, as referred to in
+chapter \ref{chap:examples}, are available as a compressed tarball and can be
+expanded into a writeable directory with:
+
+\begin{lstlisting}[language=Bash]
+tar -zxvf /usr/share/doc/fluidity/examples.tar.gz
+\end{lstlisting}
+
+\subsection{\fluidity\ binary packages for Fedora}
+
+\fluidity\ is distributed for Fedora 19 (but not yet for Fedora 20 due to VTK6
+incompatibility) via a package repository which can be installed by all users
+who have administrative privileges on their computer by typing the following 
+all on one line:
+
+\begin{lstlisting}[language=Bash]
+sudo yum-config-manager --add-repo
+             http://fluidityproject.github.com/yum/fluidity-fedora19.repo
+\end{lstlisting}
+
+Type your password if prompted. \fluidity\ can then be installed with:
+
+\begin{lstlisting}[language=Bash]
+sudo yum install fluidity
+\end{lstlisting}
+
+You now have \fluidity\ installed on your computer. Examples, as referred to in
+chapter \ref{chap:examples}, are available as a compressed tarball and can be
+expanded into a writeable directory with:
+
+\begin{lstlisting}[language=Bash]
+tar -zxvf /usr/share/doc/fluidity/examples.tar.gz
+\end{lstlisting}
+
+\subsection{\fluidity\ binary packages for OpenSuSE}
+
+\fluidity\ is distributed for OpenSuSE 12.3 (but not yet for OpenSuSE 13.1 due to VTK6
+incompatibility) via a package repository which can be installed by all users
+who have administrative privileges on their computer by typing the following
+all on one line:i
+
+\begin{lstlisting}[language=Bash]
+sudo zypper ar -f
+   https://raw.githubusercontent.com/FluidityProject/yast-opensuse12.3/master/
+\end{lstlisting}
+
+Type your password if prompted. \fluidity\ can then be installed with:
+
+\begin{lstlisting}[language=Bash]
+sudo zypper install fluidity
+\end{lstlisting}
+
+You now have \fluidity\ installed on your computer. Examples, as referred to in
+chapter \ref{chap:examples}, are available as a compressed tarball and can be
+expanded into a writeable directory with:
+
+\begin{lstlisting}[language=Bash]
+tar -zxvf /usr/share/doc/fluidity/examples.tar.gz
+\end{lstlisting}
+
 \subsection{\fluidity\ source packages}
 
 \fluidity\ is released as compressed source archives which can be downloaded
@@ -63,219 +140,79 @@ from the \fluidity\ project page on Launchpad,
 You can download just the source, or you can additionally download a tests
 archive containing the \fluidity\ short and medium test suite.
 
-To uncompress the \fluidity\ 4.1.3 source from an archive file in Linux,
+To uncompress the \fluidity\ 4.1.11 source from an archive file in Linux,
 run:
 
 \begin{lstlisting}[language=Bash]
-tar -zxvf fluidity-4.1.3.tar.gz
+tar -zxvf fluidity-4.1.11.tar.gz
 \end{lstlisting}
 
-This should create a directory, \lstinline[language=Bash]+fluidity-4.1.3/+,
+This should create a directory, \lstinline[language=Bash]+fluidity-4.1.11/+,
 containing your copy of the source code. To add the standard tests (sufficient
-to run 'make mediumtest'), download the additional fluidity-tests-4.1.3
-archive into the \lstinline[language=Bash]+fluidity-4.1.3/+ directory, and in
+to run 'make mediumtest'), download the additional fluidity-tests-4.1.11
+archive into the \lstinline[language=Bash]+fluidity-4.1.11/+ directory, and in
 that directory run:
 
 \begin{lstlisting}[language=Bash]
-tar -zxvf fluidity-tests-4.1.3tar.gz
+tar -zxvf fluidity-tests-4.1.11.tar.gz
 \end{lstlisting}
 
 The files will appear in a \lstinline[language=Bash]+tests/+ directory.
 
-\subsection{Bazaar}
-\label{sec:bazaar}\index{bazaar|primary}\index{bzr|see{bazaar}}
+\subsection{git}
+\label{sec:bazaar}\index{git|primary}
 
-The \fluidity\ source code is hosted on launchpad. Experienced bzr users can
-obtain the latest development version of \fluidity\ from
-\lstinline[language=Bash]+lp:fluidity+. For inexperienced users, or those
-wanting a more stable version than the development trunk, please read on to
-learn how to obtain a copy of \fluidity.
+The \fluidity\ source code is hosted on GitHub, with its repository page at
+\lstinline[language=Bash]+https://github.com/FluidityProject/fluidity+. The
+'master' branch on GitHub represents a the most recent generally available
+state of the codebase, neither as stable nor reliably tested as release
+packages and tarballs but expected, in general, to be correct and useable,
+and suitable for most users capable of compiling from source.
 
-As a \fluidity\ user you need only be aware of two modes of operation in
-bazaar. The first is checking out a copy of the source code from the
-central repository, the second is updating your copy of the code to reflect
-changes that have been made to the central repository. Think of the repository
-as a central archive of source code held on the Launchpad platform.
-
-There are a few other bazaar features useful for users which will be mentioned
-in passing.
+As a \fluidity\ user you need only be aware of two modes of operation in git.
+The first is cloning the source code from the central repository, the second is
+updating your copy of the code to reflect changes that have been made to the
+central repository. Think of the repository as a central archive of source code
+held on GitHub.
 
 Details of how to commit changes to \fluidity\ back into the central repository
 are outside the scope of this user manual; if you are transitioning to become a
 developer who commits changes back into \fluidity\ please contact an existing
 \fluidity\ developer to find out how to get commit privileges.
 
-\subsubsection{Checking out a current copy of \fluidity}
-\index{subversion}
-\label{sec:subversion_checkout_current}
+\subsubsection{Checking out a copy of \fluidity}
+\index{git}
+\label{sec:git_checkout}
 
-\fluidity\ can be obtained in two forms: release and trunk.
-
-The first, release, is aimed at general users of \fluidity. Releases are static
-versions of the code, and an individual release with a specific version number
-will never change content. New versions will be produced whenever there is
-sufficient demand for new features to be included. Releaseѕ are very well
-tested and do not contain any code known to have bugs. As such, releases are
-infrequent so will generally not contain the latest changes. The manual and
-other resources are written to support releases.
-
-The second, trunk, is the day to day development version of \fluidity. It is
-primarily used by developers and is not recommended for everyday users. Updates
-appear many times each day, and the trunk will frequently have periods where
-not all tests are passing. Use at your own risk.
-
-To check out a copy of \fluidity\ you can use one of the following two commands
-for the release and trunk versions respectively, which are given here in
-entirety but will be broken down in the subsequent discussion so you can better
-understand them.
-
-Release:
-\begin{lstlisting}[language=Bash]
-bzr co lp:fluidity/4.1 fluidity/
-\end{lstlisting}
-
-Trunk:
-\begin{lstlisting}[language=Bash]
-bzr co lp:fluidity fluidity/
-\end{lstlisting}
-
-The first part of this command calls the bzr program:
+To clone a copy of \fluidity\ you can use the following command: which is given
 
 \begin{lstlisting}[language=Bash]
-bzr
+git clone https://github.com/FluidityProject/fluidity.git
 \end{lstlisting}
 
-bzr takes a first argument which describes the mode in which it will run. In
-this case, it is going to check out a copy of the code, which abbreviates to
-\lstinline[language=Bash]+co+ :
-
-\begin{lstlisting}[language=Bash]
-bzr co
-\end{lstlisting}
-
-The second argument to bzr describes the location used to check out \fluidity\
-from, in this case using the Launchpad site (abbreviated to
-\lstinline[language=Bash]+lp+) and the series required (ie,
-\lstinline[language=Bash]+fluidity/stable+) :
-
-\begin{lstlisting}[language=Bash]
-bzr co lp:fluidity/stable
-\end{lstlisting}
-
-This is now a valid command line, and if you ran it would check out a copy of
-the stable series of \fluidity\ into a directory
-\lstinline[language=Bash]+stable/+ in your current directory. If you
-prefer to have the code checked out into a directory called
-\lstinline[language=Bash]+fluidity/+, append that directory name to the end of
-the command line so bzr checks out the code where you want it to:
-
-\begin{lstlisting}[language=Bash]
-bzr co lp:fluidity/stable fluidity/
-\end{lstlisting}
-
-Bear in mind that the \fluidity\ check out is of the order of many hundreds of
-megabytes and should be checked out onto a file system which has corresponding
-amounts of free space. As it checks out, bzr should print progress information,
-and when it is complete should clear this information and return to a command
-prompt.
-
-If you are asked to check out a different series or branch of \fluidity\ you
-will simply need to change the name after \lstinline[language=Bash]+lp:+ and
-should be given the relevant information by whoever has requested the checkout.
+This will clone the GitHub repository into a local 'fluidity' directory on your
+system, and uses around 300MB space.
 
 \subsubsection{Updating your copy of \fluidity}
-\index{subversion}
-\label{sec:subversion_updating}
-
-This section does not apply to users having checked out a \fluidity\ release.
+\index{git}
+\label{sec:git_updating}
 
 If you are interested in keeping up to date with the latest developments in
 \fluidity\ you will probably want to update your local copy of the \fluidity\
 code to reflect changes made to the central source code repository. To do this,
 change directory so that you are in the directory which you checked out
 \fluidity\ to (in the above case, a directory called
-\lstinline[language=Bash]+fluidity/+) and then run bzr's update command, which
-is abbreviated to \lstinline[language=Bash]+up+ as per:
+\lstinline[language=Bash]+fluidity/+) and then run git's update command:
 
 \begin{lstlisting}[language=Bash]
-bzr up
-\end{lstlisting}
-
-You will probably see a number of lines with a leading
-\lstinline[language=Bash]+M+, denoting that a file in your local copy of
-\fluidity\ is being modified, such as:
-
-\begin{lstlisting}[language=Bash]
-M    preprocessor/Populate_State.F90
+git update
 \end{lstlisting}
 
 This manual assumes that you are not modifying any of the files in your copy of
 \fluidity. If you do so, and your changes clash with changes from the central
-repository, you may end up with bzr reporting conflicts when you update. This
+repository, you may end up with git reporting conflicts when you update. This
 is worth being aware of, but brings you into the realms of \fluidity\
 development, outside the scope of this manual.
-
-\subsubsection{Other useful Bazaar commands}
-\index{subversion}
-\label{sec:subversion_extras}
-
-If you can check out and update your copy of \fluidity\ then you are equipped to
-be an active \fluidity\ user. However, you may wish to know about a few more
-useful subversion commands, including getting information about your local
-version of the code using:
-
-\begin{lstlisting}[language=Bash]
-bzr info
-\end{lstlisting}
-
-You may well want to do this if someone asks you which branch of \fluidity\ you
-are using, at which point you're looking for a line such as:
-
-\begin{lstlisting}[language=Bash]
-checkout of branch: bzr+ssh://bazaar.launchpad.net/%2Bbranch/fluidity/
-\end{lstlisting}
-
-with the relevant information. If you are asked for the revision of
-\fluidity\ you're using, a shortcut command to give this is
-\lstinline[language=Bash]+bzr revision-info+.
-
-To get information on what files have been modified in your
-local copy use the the following:
-\begin{lstlisting}[language=Bash]
-bzr status
-\end{lstlisting}
-
-Note that if you have compiled \fluidity\ you will see a large number of files
-in the 'unknown' category, which have been generated by the compilation
-process. To suppress those supply the parameter \lstinline[language=Bash]+-V+:
-\begin{lstlisting}[language=Bash]
-bzr status -V
-\end{lstlisting}
-
-To get specific information on the difference between a local file and
-the central repository use the following:
-\begin{lstlisting}[language=Bash]
-bzr diff <filename>
-\end{lstlisting}
-
-You can get help on the bzr command \lstinline[language=Bash]+<command>+
-with:
-\begin{lstlisting}[language=Bash]
-bzr help <command>
-\end{lstlisting}
-and list available commands with:
-\begin{lstlisting}[language=Bash]
-bzr help commands
-\end{lstlisting}
-
-replacing \lstinline[language=Bash]+<filename>+ with the file you want
-differences reported for.
-
-If you wish to delve deeper into Bazaar operation, an excellent source of
-detail is
-\href{http://doc.bazaar.canonical.com/bzr.2.4/en/user-guide/index.html}
-{http://doc.bazaar.canonical.com/bzr.2.4/en/user-guide/index.html}
-which is the official Bazaar User Guide.
 
 \section{Building \fluidity}
 \label{sec:building_fluidity}
@@ -309,25 +246,19 @@ configuration and compilation commands.
 \subsection{Setting up the build environment}
 
 Depending on the computer you are building \fluidity\ on, you may need to set
-up the build environment before configuring \fluidity. On the standard
-\fluidity\ workstation built around Ubuntu Linux, you will need to initialise
-the PETSc package by running:
+up the build environment before configuring \fluidity. On Ubuntu Linux with the
+fluidity-dev package installed you do not need to perform any additional
+configuration, but on Red Hat based systems with fluidity-dev you will need to
+initialise the build environment by running:
 
 \begin{lstlisting}[language=Bash]
-module load petsc-gcc4
+module load fluidity-dev
 \end{lstlisting}
-
-This is very specific to the standard \fluidity\ workstation, and other systems
-may well have detailed requirements to be carried out before building
-\fluidity. If you are in any doubt, stop now, and consult with your local
-systems administrator who should be able to help you resolve any problems ahead
-of time. If you are not on a standard \fluidity\ workstation you may want to
-refer to (or refer your systems administrator to) appendix \ref{chap:external}
-of this manual before proceeding.
 
 The build environment is discussed in more detail in sections
 \ref{sec:configure_locate_supporting_libs} and
-\ref{sec:configure_environment_vars}.
+\ref{sec:configure_environment_vars} which may be useful references for those
+on systems not set up with the standard fluidity-dev package.
 
 \subsection{Configuring the build process}
 \label{sec:configuring_the_build_process}
@@ -436,12 +367,12 @@ allow you broad control of the overall the build process. This will also often
 be set or appended to by loading modules on modern UNIX systems.
 
 \lstinline[language=Bash]+PETSC_DIR+ defines the base directory into which your
-PETSc install has been placed. This will often be set by loading an environment
-module specific to your system, but if you have a local build of PETSc you may
-need to set this variable yourself. Note that for most \fluidity\ users, having
-PETSc to provide solver functionality is unavoidable so setting this variable
-by some means is necessary in almost all cases. The standard \fluidity\
-workstation allows you to do this by running
+PETSc install has been placed. This will often be autodetected by configure, or
+set by loading an environment module specific to your system, but if you have a
+local build of PETSc you may need to set this variable yourself. Note that for
+most \fluidity\ users, having PETSc to provide solver functionality is
+unavoidable so setting this variable by some means is necessary in almost all
+cases. The standard \fluidity\ workstation allows you to do this by running
 \lstinline[language=Bash]+module load petsc-gcc4+ .
 
 \lstinline[language=Bash]+VTK_INCLUDE+ and \lstinline[language=Bash]+VTK_LIBS+
@@ -491,11 +422,6 @@ correctness and can be run with:
 \begin{lstlisting}[language=Bash]
 make unittest
 \end{lstlisting}
-
-Please note that, due to compiler bugs which Intel have shown no inclination to
-fix, the 'make unittest' suite is known to fail with all releases of the Intel
-compiler. Thus, it is advised that you not run 'make unittest' if building
-\fluidity\ with any version of the Intel compiler.
 
 To run the suite of short test cases which more extensively test the
 functionality of your \fluidity\ build, run:
@@ -749,6 +675,3 @@ covered in detail in chapter \ref{chap:visualisation_and_diagnostics}.
 As well as visualisation, another important output resource is the stat file,
 described in detail in section \ref{sec:diagnostics_stat_file}, which contains
 data from the model collected at run time.
-
-See the \href{http://amcg-www.ese.ic.ac.uk/}{AMCG website}\ for more
-information.
