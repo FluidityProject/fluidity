@@ -97,7 +97,7 @@
             end do
          end do
       else
-         do iphase =1, nphase
+         do iphase = 1, nphase
             eos_option_path( iphase ) = trim( '/material_phase[' // int2str( iphase - 1 ) // ']/equation_of_state' )
             call Assign_Equation_of_State( eos_option_path( iphase ) )
          end do
@@ -1435,6 +1435,7 @@
       integer, dimension(:), pointer :: st_nodes, c_nodes
       logical :: linearise_viscosity, python_diagnostic_field
       real, dimension( : ), allocatable :: component_tmp
+      real, dimension( :, :, : ), allocatable :: mu_tmp
 
       character( len = python_func_len ) :: pycode
       real :: dt, current_time
@@ -1457,11 +1458,12 @@
          if ( stat == 0 ) then
 
          cv_nloc = ele_loc( t_field, ele )
+         linearise_viscosity = have_option( '/material_phase[0]/linearise_viscosity' )
+         allocate( component_tmp( cv_nloc ), mu_tmp( ndim, ndim, cv_nloc ) ) 
+
 
             if ( ncomp > 1 ) then
 
-               linearise_viscosity = have_option( '/material_phase[0]/linearise_viscosity' )
-               allocate( component_tmp( cv_nloc ) ) 
 
                do icomp = 1, ncomp
                   do iphase = 1, nphase
@@ -1513,37 +1515,30 @@
 
                      do ele = 1, ele_count( t_field )
 
-                        st_nodes => ele_nodes( t_field, ele )
-                        c_nodes => ele_nodes( component, ele )
-
-
-                        component_tmp = node_val( component, c_nodes )
+                        component_tmp = ele_val( component, ele )
+                        mu_tmp = ele_val( t_field, ele )
 
                         if ( linearise_viscosity ) then
-                           component_tmp( 2 ) = 0.5 * ( component_tmp( 1 ) + component_tmp( 3 ) )
-                           component_tmp( 4 ) = 0.5 * ( component_tmp( 1 ) + component_tmp( 6 ) )
-                           component_tmp( 5 ) = 0.5 * ( component_tmp( 3 ) + component_tmp( 6 ) )
+                           mu_tmp( :, :, 2 ) = 0.5 * ( mu_tmp( :, :, 1 ) * component_tmp( 1 ) + mu_tmp( :, :, 3 ) * component_tmp( 3 ) )
+                           mu_tmp( :, :, 4 ) = 0.5 * ( mu_tmp( :, :, 1 ) * component_tmp( 1 ) + mu_tmp( :, :, 6 ) * component_tmp( 6 ) )
+                           mu_tmp( :, :, 5 ) = 0.5 * ( mu_tmp( :, :, 3 ) * component_tmp( 3 ) + mu_tmp( :, :, 6 ) * component_tmp( 6 ) )
 
                            if ( cv_nloc == 10 ) then
-                              component_tmp( 7 ) = 0.5 * ( component_tmp( 1 ) + component_tmp( 10 ) )
-                              component_tmp( 8 ) = 0.5 * ( component_tmp( 3 ) + component_tmp( 10 ) )
-                              component_tmp( 9 ) = 0.5 * ( component_tmp( 6 ) + component_tmp( 10 ) )
+                              mu_tmp( :, :, 7 ) = 0.5 * ( mu_tmp( :, :, 1 ) * component_tmp( 1 ) + mu_tmp( :, :, 10 ) * component_tmp( 10 ) )
+                              mu_tmp( :, :, 8 ) = 0.5 * ( mu_tmp( :, :, 3 ) * component_tmp( 3 ) + mu_tmp( :, :, 10 ) * component_tmp( 10 ) )
+                              mu_tmp( :, :, 9 ) = 0.5 * ( mu_tmp( :, :, 6 ) * component_tmp( 6 ) + mu_tmp( :, :, 10 ) * component_tmp( 10 ) )
                            end if
                         end if
 
+
                         do iloc = 1, cv_nloc
                            mat_nod = mat_ndgln( (ele-1)*cv_nloc + iloc )
-
-                           momentum_diffusion( mat_nod, :, :, iphase ) =  momentum_diffusion( mat_nod, :, :, iphase ) + &
-                                node_val( t_field, st_nodes( iloc ) ) * component_tmp( iloc )
-
+                           momentum_diffusion( mat_nod, :, :, iphase ) = momentum_diffusion( mat_nod, :, :, iphase ) + mu_tmp( :, :, iloc )
                         end do
                      end do
 
                   end do
                end do
-               
-              deallocate( component_tmp ) 
 
             else
 
@@ -1595,10 +1590,24 @@
 	   
 
                      do ele = 1, ele_count( t_field )
-                        st_nodes => ele_nodes( t_field, ele )
+
+                        mu_tmp = ele_val( t_field, ele )
+
+                        if ( linearise_viscosity ) then
+                           mu_tmp( :, :, 2 ) = 0.5 * ( mu_tmp( :, :, 1 ) + mu_tmp( :, :, 3 ) )
+                           mu_tmp( :, :, 4 ) = 0.5 * ( mu_tmp( :, :, 1 ) + mu_tmp( :, :, 6 ) )
+                           mu_tmp( :, :, 5 ) = 0.5 * ( mu_tmp( :, :, 3 ) + mu_tmp( :, :, 6 ) )
+
+                           if ( cv_nloc == 10 ) then
+                              mu_tmp( :, :, 7 ) = 0.5 * ( mu_tmp( :, :, 1 ) + mu_tmp( :, :, 10 ) )
+                              mu_tmp( :, :, 8 ) = 0.5 * ( mu_tmp( :, :, 3 ) + mu_tmp( :, :, 10 ) )
+                              mu_tmp( :, :, 9 ) = 0.5 * ( mu_tmp( :, :, 6 ) + mu_tmp( :, :, 10 ) )
+                           end if
+                        end if
+
                         do iloc = 1, cv_nloc
                            mat_nod = mat_ndgln( (ele-1)*cv_nloc + iloc )
-                           momentum_diffusion( mat_nod, :, :, iphase ) = node_val( t_field, st_nodes( iloc ) )
+                           momentum_diffusion( mat_nod, :, :, iphase ) = mu_tmp( :, :, iloc )
                         end do
                      end do
 
@@ -1607,6 +1616,8 @@
             end if
 
          end if
+    
+	 deallocate( component_tmp, mu_tmp )
 
       end if
 
