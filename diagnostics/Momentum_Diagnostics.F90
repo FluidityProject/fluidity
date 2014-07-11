@@ -85,6 +85,7 @@ contains
 
     type(tensor_field) :: strain_rate_tensor
 
+    ewrite(1,*) 'In calculate_strain_rate_second_invariant'
     positions => extract_vector_field(state, "Coordinate")
     velocity  => extract_vector_field(state, "IteratedVelocity")
 
@@ -99,6 +100,9 @@ contains
 
     ! Clean-up:
     call deallocate(strain_rate_tensor)
+
+    ! Prin min and max:
+    ewrite_minmax(s_field) 
 
   end subroutine calculate_strain_rate_second_invariant
 
