@@ -143,7 +143,7 @@ contains
 
   subroutine calculate_viscous_dissipation(state, s_field)
     ! A routine to calculate the viscous dissipation. Currently
-    ! assumes a constant viscosity:
+    ! assumes a constant viscosity tensor:
     type(state_type), intent(inout) :: state
     type(scalar_field), intent(inout) :: s_field
 
