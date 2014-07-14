@@ -203,7 +203,7 @@ for statfile in ['lock_exchange_2d.stat', 'lock_exchange_2d_parallel.stat']:
   DTtot = scipy.integrate.cumtrapz(DT,time)
 
 # Kinetic energy lost through viscous dissipation
-  VD = stat["fluid"]["ViscousDiss"]["integral"]*nu*rho_0*-1.0
+  VD = stat["fluid"]["ViscousDiss"]["integral"]*rho_0*-1.0
   VDtot = scipy.integrate.cumtrapz(VD,time)
 
 # total energy change
