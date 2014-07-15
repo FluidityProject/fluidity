@@ -408,35 +408,6 @@
         <consistent_interpolation/>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="TracerRegression">
-      <prescribed>
-        <mesh name="PressureMesh"/>
-        <value name="WholeMesh">
-          <from_file file_name="reference_solution/darcy_impes_p1_pseudo1phase_velBCinlet_1d_1.vtu">
-            <format name="vtu">
-              <field_name>
-                <string_value lines="1">Phase1::Tracer</string_value>
-              </field_name>
-            </format>
-          </from_file>
-        </value>
-        <stat>
-          <include_cv_stats/>
-        </stat>
-      </prescribed>
-    </scalar_field>
-    <scalar_field name="TracerDifference">
-      <diagnostic>
-        <mesh name="PressureMesh"/>
-        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="Tracer" source_field_2_name="TracerRegression" material_phase_support="single" source_field_1_type="scalar">
-          <absolute_difference/>
-        </algorithm>
-        <stat>
-          <include_cv_stats/>
-        </stat>
-        <consistent_interpolation/>
-      </diagnostic>
-    </scalar_field>
   </material_phase>
   <material_phase name="Phase2">
     <scalar_field name="Pressure" rank="0">

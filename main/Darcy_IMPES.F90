@@ -1909,8 +1909,17 @@ contains
          call set_option("/timestepping/timestep", dt)
       end if
       
-      ! *** Constrain the timestep such that the current time will not overshoot the finish time ***     
-      if (dt + current_time > finish_time ) then
+      ! Constrain the timestep such that the current time will not overshoot the
+      ! finish time.  But spread this operation over two timesteps so as not to
+      ! end up with a very small time step.  Neglecting to do this may cause
+      ! subtle divide-by-huge-number bugs.
+      if ( (current_time + 2*dt > finish_time) .and. (current_time + dt < finish_time) ) then
+         ! penultimate time step
+         ewrite(1,*) 'Constrain timestep size such as to not overshoot the finish time nor end up too small'
+         dt = 0.5*(finish_time - current_time) + epsilon(0.0)
+         ewrite(1,*) 'Constrained timestep size: ',dt
+      else if ( current_time + dt > finish_time ) then
+         ! last time step
          ewrite(1,*) 'Constrain timestep size such as to not overshoot the finish time'
          dt = finish_time - current_time + epsilon(0.0)
          ewrite(1,*) 'Constrained timestep size: ',dt

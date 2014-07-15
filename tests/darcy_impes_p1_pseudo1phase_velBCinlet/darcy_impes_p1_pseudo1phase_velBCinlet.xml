@@ -64,12 +64,7 @@ from fluidity_tools import stat_parser
 s = stat_parser("darcy_impes_p1_pseudo1phase_velBCinlet_1d.stat")
 sum_sat_integral_1d = s["Phase1"]["SumSaturation"]["integral"][-1]
     </variable>
-    
-    <variable name="phase1_tracer_regression_difference_max_1d" language="python">
-from fluidity_tools import stat_parser as stat
-phase1_tracer_regression_difference_max_1d = stat("darcy_impes_p1_pseudo1phase_velBCinlet_1d.stat")["Phase1"]["TracerDifference"]["max"][-1]
-    </variable>
-    
+        
     <variable name="phase1_sat_max_2d" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("darcy_impes_p1_pseudo1phase_velBCinlet_2d.stat")
@@ -106,11 +101,6 @@ s = stat_parser("darcy_impes_p1_pseudo1phase_velBCinlet_2d.stat")
 sum_sat_integral_2d = s["Phase1"]["SumSaturation"]["integral"][-1]
     </variable>
     
-    <variable name="phase1_tracer_regression_difference_max_2d" language="python">
-from fluidity_tools import stat_parser as stat
-phase1_tracer_regression_difference_max_2d = stat("darcy_impes_p1_pseudo1phase_velBCinlet_2d.stat")["Phase1"]["TracerDifference"]["max"][-1]
-    </variable>
-    
     <variable name="phase1_sat_max_3d" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("darcy_impes_p1_pseudo1phase_velBCinlet_3d.stat")
@@ -145,11 +135,6 @@ sum_sat_min_3d = s["Phase1"]["SumSaturation"]["min"][-1]
 from fluidity_tools import stat_parser
 s = stat_parser("darcy_impes_p1_pseudo1phase_velBCinlet_3d.stat")
 sum_sat_integral_3d = s["Phase1"]["SumSaturation"]["integral"][-1]
-    </variable>
-    
-    <variable name="phase1_tracer_regression_difference_max_3d" language="python">
-from fluidity_tools import stat_parser as stat
-phase1_tracer_regression_difference_max_3d = stat("darcy_impes_p1_pseudo1phase_velBCinlet_3d.stat")["Phase1"]["TracerDifference"]["max"][-1]
     </variable>
     
     <variable name="phase1_v_mag_max_1d" language="python">
@@ -333,11 +318,6 @@ assert abs(sum_sat_min_1d - 1.0) &lt; 1.0e-08
 print 'difference: ',abs(sum_sat_integral_1d - 3.0e+02)/3.0e+02
 assert abs(sum_sat_integral_1d - 3.0e+02)/3.0e+02 &lt; 1.0e-08
     </test>
-
-    <!-- regression comparisons, 1st order, 1D -->
-    <test name="Assert phase1_tracer_regression_difference_max_1d is less than 1.0e-8" language="python">
-assert(abs(phase1_tracer_regression_difference_max_1d) &lt; 1.0e-8)
-    </test>
     
     <!-- basic comparisons, 1st order, 2D -->
     <test name="phase 1 for 2d has max(sat) equals 1.0 with tolerance 1.0e-08" language="python">
@@ -365,11 +345,6 @@ print 'difference: ',abs(sum_sat_integral_2d - 9.0e+04)/9.0e+04
 assert abs(sum_sat_integral_2d - 9.0e+04)/9.0e+04 &lt; 1.0e-08
     </test>
     
-    <!-- regression comparisons, 1st order, 2D -->
-    <test name="Assert phase1_tracer_regression_difference_max_2d is less than 1.0e-8" language="python">
-assert(abs(phase1_tracer_regression_difference_max_2d) &lt; 1.0e-8)
-    </test>
-    
     <!-- basic comparisons, 1st order, 3D -->
     <test name="phase 1 for 3d has max(sat) equals 1.0 with tolerance 1.0e-08" language="python">
 assert abs(phase1_sat_max_3d - 1.0) &lt; 1.0e-08
@@ -394,11 +369,6 @@ assert abs(sum_sat_min_3d - 1.0) &lt; 1.0e-08
     <test name="Check sum_sat_integral for 3d is 2.7e+07 with relative tolerance 1.0e-08" language="python">
 print 'difference: ',abs(sum_sat_integral_3d - 2.7e+07)/2.7e+07
 assert abs(sum_sat_integral_3d - 2.7e+07)/2.7e+07 &lt; 1.0e-08
-    </test>
-    
-    <!-- regression comparisons, 1st order, 3D -->
-    <test name="Assert phase1_tracer_regression_difference_max_3d is less than 1.0e-8" language="python">
-assert(abs(phase1_tracer_regression_difference_max_3d) &lt; 1.0e-8)
     </test>
     
     <!-- basic comparisons, 1st order, 1D (velocity) -->

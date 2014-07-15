@@ -12,42 +12,6 @@ python processing.py
     <!-- One/two/three dimensional problem for darcy flow using the IMPES solver with one region with 2 phases using Corey relative permeabilities with a TotalDarcyVelocity BC at the inlet, a strong pressure BC at outlet and the first phase saturation diagnostic. Different CV face value schemes are tested in 1,2 and 3d. The order of convergence is checked. -->
   </problem_definition>
   <variables>
-    <variable name="phase1_sat_relpermupwind_regression_error_max_1d_A" language="python">
-from fluidity_tools import stat_parser as stat
-phase1_sat_relpermupwind_regression_error_max_1d_A = stat("darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_relpermupwind_1d_A.stat")["Phase1"]["RegressionSaturationError"]["max"][-1]
-    </variable>
-    <variable name="phase1_sat_relpermupwind_regression_error_max_1d_B" language="python">
-from fluidity_tools import stat_parser as stat
-phase1_sat_relpermupwind_regression_error_max_1d_B = stat("darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_relpermupwind_1d_B.stat")["Phase1"]["RegressionSaturationError"]["max"][-1]
-    </variable>
-    <variable name="phase1_sat_relpermupwind_regression_error_max_1d_C" language="python">
-from fluidity_tools import stat_parser as stat
-phase1_sat_relpermupwind_regression_error_max_1d_C = stat("darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_relpermupwind_1d_C.stat")["Phase1"]["RegressionSaturationError"]["max"][-1]
-    </variable>
-    <variable name="phase1_sat_relpermupwind_regression_error_max_1d_D" language="python">
-from fluidity_tools import stat_parser as stat
-phase1_sat_relpermupwind_regression_error_max_1d_D = stat("darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_relpermupwind_1d_D.stat")["Phase1"]["RegressionSaturationError"]["max"][-1]
-    </variable>
-    <variable name="phase1_sat_relpermupwind_regression_error_max_2d_A" language="python">
-from fluidity_tools import stat_parser as stat
-phase1_sat_relpermupwind_regression_error_max_2d_A = stat("darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_relpermupwind_2d_A.stat")["Phase1"]["RegressionSaturationError"]["max"][-1]
-    </variable>
-    <variable name="phase1_sat_relpermupwind_regression_error_max_2d_B" language="python">
-from fluidity_tools import stat_parser as stat
-phase1_sat_relpermupwind_regression_error_max_2d_B = stat("darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_relpermupwind_2d_B.stat")["Phase1"]["RegressionSaturationError"]["max"][-1]
-    </variable>
-    <variable name="phase1_sat_relpermupwind_regression_error_max_2d_C" language="python">
-from fluidity_tools import stat_parser as stat
-phase1_sat_relpermupwind_regression_error_max_2d_C = stat("darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_relpermupwind_2d_C.stat")["Phase1"]["RegressionSaturationError"]["max"][-1]
-    </variable>
-    <variable name="phase1_sat_relpermupwind_regression_error_max_3d_A" language="python">
-from fluidity_tools import stat_parser as stat
-phase1_sat_relpermupwind_regression_error_max_3d_A = stat("darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_relpermupwind_3d_A.stat")["Phase1"]["RegressionSaturationError"]["max"][-1]
-    </variable>
-    <variable name="phase1_sat_relpermupwind_regression_error_max_3d_B" language="python">
-from fluidity_tools import stat_parser as stat
-phase1_sat_relpermupwind_regression_error_max_3d_B = stat("darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_relpermupwind_3d_B.stat")["Phase1"]["RegressionSaturationError"]["max"][-1]
-    </variable>
 
     <variable name="phase1_sat_relpermupwind_max_1d_A" language="python">
 from fluidity_tools import stat_parser
@@ -164,43 +128,6 @@ from fluidity_tools import stat_parser
 s = stat_parser("darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_relpermupwind_1d_A.stat")
 v_tot_mag_min_relpermupwind_1d_A = s["Phase1"]["TotalDarcyVelocity%magnitude"]["min"][-1]
     </variable>    
-
-    <variable name="phase1_sat_modrelpermupwind_satfesweby_regression_error_max_1d_A" language="python">
-from fluidity_tools import stat_parser as stat
-phase1_sat_modrelpermupwind_satfesweby_regression_error_max_1d_A = stat("darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_modrelpermupwind_satfesweby_1d_A.stat")["Phase1"]["RegressionSaturationError"]["max"][-1]
-    </variable>
-    <variable name="phase1_sat_modrelpermupwind_satfesweby_regression_error_max_1d_B" language="python">
-from fluidity_tools import stat_parser as stat
-phase1_sat_modrelpermupwind_satfesweby_regression_error_max_1d_B = stat("darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_modrelpermupwind_satfesweby_1d_B.stat")["Phase1"]["RegressionSaturationError"]["max"][-1]
-    </variable>
-    <variable name="phase1_sat_modrelpermupwind_satfesweby_regression_error_max_1d_C" language="python">
-from fluidity_tools import stat_parser as stat
-phase1_sat_modrelpermupwind_satfesweby_regression_error_max_1d_C = stat("darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_modrelpermupwind_satfesweby_1d_C.stat")["Phase1"]["RegressionSaturationError"]["max"][-1]
-    </variable>
-    <variable name="phase1_sat_modrelpermupwind_satfesweby_regression_error_max_1d_D" language="python">
-from fluidity_tools import stat_parser as stat
-phase1_sat_modrelpermupwind_satfesweby_regression_error_max_1d_D = stat("darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_modrelpermupwind_satfesweby_1d_D.stat")["Phase1"]["RegressionSaturationError"]["max"][-1]
-    </variable>
-    <variable name="phase1_sat_modrelpermupwind_satfesweby_regression_error_max_2d_A" language="python">
-from fluidity_tools import stat_parser as stat
-phase1_sat_modrelpermupwind_satfesweby_regression_error_max_2d_A = stat("darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_modrelpermupwind_satfesweby_2d_A.stat")["Phase1"]["RegressionSaturationError"]["max"][-1]
-    </variable>
-    <variable name="phase1_sat_modrelpermupwind_satfesweby_regression_error_max_2d_B" language="python">
-from fluidity_tools import stat_parser as stat
-phase1_sat_modrelpermupwind_satfesweby_regression_error_max_2d_B = stat("darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_modrelpermupwind_satfesweby_2d_B.stat")["Phase1"]["RegressionSaturationError"]["max"][-1]
-    </variable>
-    <variable name="phase1_sat_modrelpermupwind_satfesweby_regression_error_max_2d_C" language="python">
-from fluidity_tools import stat_parser as stat
-phase1_sat_modrelpermupwind_satfesweby_regression_error_max_2d_C = stat("darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_modrelpermupwind_satfesweby_2d_C.stat")["Phase1"]["RegressionSaturationError"]["max"][-1]
-    </variable>
-    <variable name="phase1_sat_modrelpermupwind_satfesweby_regression_error_max_3d_A" language="python">
-from fluidity_tools import stat_parser as stat
-phase1_sat_modrelpermupwind_satfesweby_regression_error_max_3d_A = stat("darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_modrelpermupwind_satfesweby_3d_A.stat")["Phase1"]["RegressionSaturationError"]["max"][-1]
-    </variable>
-    <variable name="phase1_sat_modrelpermupwind_satfesweby_regression_error_max_3d_B" language="python">
-from fluidity_tools import stat_parser as stat
-phase1_sat_modrelpermupwind_satfesweby_regression_error_max_3d_B = stat("darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_modrelpermupwind_satfesweby_3d_B.stat")["Phase1"]["RegressionSaturationError"]["max"][-1]
-    </variable>
 
     <variable name="phase1_sat_modrelpermupwind_satfesweby_max_1d_A" language="python">
 from fluidity_tools import stat_parser
@@ -344,39 +271,6 @@ from buckley_leverett_test_tools import find_rate
 assert( find_rate("relpermupwind_1d_saturation2_l1_CD") &gt; 0.45 )
     </test>
 
-    <!-- regression comparisons, 1st order, 1D -->
-    <test name="Assert max absolute regression error for saturation phase 1 using relpermupwind for 1d on mesh A is less than 1.0e-06" language="python">
-assert(abs(phase1_sat_relpermupwind_regression_error_max_1d_A) &lt; 1.0e-06)
-    </test>
-    <test name="Assert max absolute regression error for saturation phase 1 using relpermupwind for 1d on for mesh B is less than 1.0e-06" language="python">
-assert(abs(phase1_sat_relpermupwind_regression_error_max_1d_B) &lt; 1.0e-06)
-    </test>
-    <test name="Assert max absolute regression error for saturation phase 1 using relpermupwind for 1d on for mesh C is less than 1.0e-06" language="python">
-assert(abs(phase1_sat_relpermupwind_regression_error_max_1d_C) &lt; 1.0e-06)
-    </test>
-    <test name="Assert max absolute regression error for saturation phase 1 using relpermupwind for 1d on for mesh D is less than 1.0e-06" language="python">
-assert(abs(phase1_sat_relpermupwind_regression_error_max_1d_D) &lt; 1.0e-06)
-    </test>
-    
-    <!-- regression comparisons, 1st order, 2D -->
-    <test name="Assert max absolute regression error for saturation phase 1 using relpermupwind for 2d on mesh A is less than 1.0e-06" language="python">
-assert(abs(phase1_sat_relpermupwind_regression_error_max_2d_A) &lt; 1.0e-06)
-    </test>
-    <test name="Assert max absolute regression error for saturation phase 1 using relpermupwind for 2d on for mesh B is less than 1.0e-06" language="python">
-assert(abs(phase1_sat_relpermupwind_regression_error_max_2d_B) &lt; 1.0e-06)
-    </test>
-    <test name="Assert max absolute regression error for saturation phase 1 using relpermupwind for 2d on for mesh C is less than 1.0e-06" language="python">
-assert(abs(phase1_sat_relpermupwind_regression_error_max_2d_C) &lt; 1.0e-06)
-    </test>
-    
-    <!-- regression comparisons, 1st order, 3D -->
-    <test name="Assert max absolute regression error for saturation phase 1 using relpermupwind for 3d on mesh A is less than 1.0e-06" language="python">
-assert(abs(phase1_sat_relpermupwind_regression_error_max_3d_A) &lt; 1.0e-06)
-    </test>
-    <test name="Assert max absolute regression error for saturation phase 1 using relpermupwind for 3d on for mesh B is less than 1.0e-06" language="python">
-assert(abs(phase1_sat_relpermupwind_regression_error_max_3d_B) &lt; 1.0e-06)
-    </test>
-
     <!-- basic comparisons, 1st order, 1D -->
     <test name="phase 1 using relpermupwind for 1d for mesh A has max(sat) in [0.0, 1.0] with tolerance 1.0e-08" language="python">
 assert abs(phase1_sat_relpermupwind_max_1d_A - 0.5) &lt; (0.5 + 1.0e-08)
@@ -475,39 +369,6 @@ assert( find_rate("modrelpermupwind_satfesweby_1d_saturation2_l1_BC") &gt; 0.45 
     <test name="modrelpermupwind_satfesweby_1d_saturation2_l1_CD: order gt 0.45" language="python">
 from buckley_leverett_test_tools import find_rate
 assert( find_rate("modrelpermupwind_satfesweby_1d_saturation2_l1_CD") &gt; 0.45 )
-    </test>
-
-    <!-- regression comparisons, 2nd order w/Sweby, 1D -->
-    <test name="Assert max absolute regression error for saturation phase 1 using modrelpermupwind_satfesweby for 1d on mesh A is less than 1.0e-06" language="python">
-assert(abs(phase1_sat_modrelpermupwind_satfesweby_regression_error_max_1d_A) &lt; 1.0e-06)
-    </test>
-    <test name="Assert max absolute regression error for saturation phase 1 using modrelpermupwind_satfesweby for 1d on for mesh B is less than 1.0e-06" language="python">
-assert(abs(phase1_sat_modrelpermupwind_satfesweby_regression_error_max_1d_B) &lt; 1.0e-06)
-    </test>
-    <test name="Assert max absolute regression error for saturation phase 1 using modrelpermupwind_satfesweby for 1d on for mesh C is less than 1.0e-06" language="python">
-assert(abs(phase1_sat_modrelpermupwind_satfesweby_regression_error_max_1d_C) &lt; 1.0e-06)
-    </test>
-    <test name="Assert max absolute regression error for saturation phase 1 using modrelpermupwind_satfesweby for 1d on for mesh D is less than 1.0e-06" language="python">
-assert(abs(phase1_sat_modrelpermupwind_satfesweby_regression_error_max_1d_D) &lt; 1.0e-06)
-    </test>
-    
-    <!-- regression comparisons, 2nd order w/Sweby, 2D -->
-    <test name="Assert max absolute regression error for saturation phase 1 using modrelpermupwind_satfesweby for 2d on mesh A is less than 1.0e-06" language="python">
-assert(abs(phase1_sat_modrelpermupwind_satfesweby_regression_error_max_2d_A) &lt; 1.0e-06)
-    </test>
-    <test name="Assert max absolute regression error for saturation phase 1 using modrelpermupwind_satfesweby for 2d on for mesh B is less than 1.0e-06" language="python">
-assert(abs(phase1_sat_modrelpermupwind_satfesweby_regression_error_max_2d_B) &lt; 1.0e-06)
-    </test>
-    <test name="Assert max absolute regression error for saturation phase 1 using modrelpermupwind_satfesweby for 2d on for mesh C is less than 1.0e-06" language="python">
-assert(abs(phase1_sat_modrelpermupwind_satfesweby_regression_error_max_2d_C) &lt; 1.0e-06)
-    </test>
-    
-    <!-- regression comparisons, 2nd order w/Sweby, 3D -->
-    <test name="Assert max absolute regression error for saturation phase 1 using modrelpermupwind_satfesweby for 3d on mesh A is less than 1.0e-06" language="python">
-assert(abs(phase1_sat_modrelpermupwind_satfesweby_regression_error_max_3d_A) &lt; 1.0e-06)
-    </test>
-    <test name="Assert max absolute regression error for saturation phase 1 using modrelpermupwind_satfesweby for 3d on for mesh B is less than 1.0e-06" language="python">
-assert(abs(phase1_sat_modrelpermupwind_satfesweby_regression_error_max_3d_B) &lt; 1.0e-06)
     </test>
 
     <!-- basic comparisons, 2nd order w/Sweby, 1D -->
