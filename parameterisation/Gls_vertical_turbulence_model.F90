@@ -42,6 +42,7 @@ module gls
   use Coordinates
   use FLDebug
   use fefields
+  use vertical_extrapolation_module
 
   implicit none
 
@@ -354,10 +355,13 @@ subroutine gls_tke(state)
     type(tensor_field), pointer      :: tke_diff, background_diff
     type(scalar_field), pointer      :: tke
     real                             :: prod, buoyan, diss
-    integer                          :: i, stat
+    integer                          :: i, stat, ele
     character(len=FIELD_NAME_LEN)    :: bc_type
     type(scalar_field), pointer      :: scalar_surface
     type(vector_field), pointer      :: positions
+    type(scalar_field), pointer      :: lumped_mass
+    type(scalar_field)               :: inverse_lumped_mass
+
 
     ! Temporary tensor to hold  rotated values if on the sphere (note: must be a 3x3 mat)
     real, dimension(3,3) :: K_M_sphere_node
@@ -366,6 +370,10 @@ subroutine gls_tke(state)
 
     ! Get N^2 and M^2 -> NN2 and MM2
     call gls_buoyancy(state)
+
+    do i=1,NNodes_sur
+        call set(NN2,top_surface_nodes(i),0.0)
+    end do
 
     ! calculate stability function
     call gls_stability_function(state)
@@ -376,26 +384,35 @@ subroutine gls_tke(state)
     tke_diff => extract_tensor_field(state, "GLSTurbulentKineticEnergyDiffusivity")
     positions => extract_vector_field(state, "Coordinate")
 
-    ! swap state tke for our local one - the state tke has had the upper and
-    ! lower boundaries ammended with the Dirichlet condition as in Warner et al
-    ! 2005. The local TKE is the non-amended version. This ensures a
-    ! non-ill-posed problem.
+    ! Create a local_tke in which we can mess about with the surface values
+    ! for creating some of the diagnostic values later
     call set(tke,local_tke)
+    ! Assembly loop
+    call zero(P)
+    call zero(B)
+    call allocate(inverse_lumped_mass, P%mesh, "InverseLumpedMass")
+    lumped_mass => get_lumped_mass(state, P%mesh)
+    call invert(lumped_mass, inverse_lumped_mass)
+    ! create production terms, P, B
+    do ele=1, ele_count(P)
+        call assemble_tke_prodcution_terms(ele, P, B, mesh_dim(P))
+    end do
+    call scale(P,inverse_lumped_mass)
+    call scale(B,inverse_lumped_mass)
+    call deallocate(inverse_lumped_mass)
 
-    do i=1,nNodes
-        prod = node_val(K_M,i)*node_val(MM2,i) 
-        buoyan = -1.*node_val(K_H,i)*node_val(NN2,i)
-        diss = node_val(eps,i)
-        if (prod+buoyan.gt.0) then
-            call set(source,i, prod + buoyan)
-            call set(absorption,i, diss / node_val(tke,i))
-        else
-            call set(source,i, prod)
-            call set(absorption,i, (diss-buoyan)/node_val(tke,i))
-        end if
-        call set(P, i, prod)
-        call set(B, i, buoyan)
-    enddo
+    call zero(source)
+    call zero(absorption)
+    do ele = 1, ele_count(tke)
+        call assemble_kk_src_abs(ele,tke, mesh_dim(tke))
+    end do
+    call allocate(inverse_lumped_mass, tke%mesh, "InverseLumpedMass")
+    lumped_mass => get_lumped_mass(state, tke%mesh)
+    call invert(lumped_mass, inverse_lumped_mass)
+    ! source and absorption terms are set, apart from the / by lumped mass
+    call scale(source,inverse_lumped_mass)
+    call scale(absorption,inverse_lumped_mass)
+    call deallocate(inverse_lumped_mass)
 
     ! set diffusivity for tke
     call zero(tke_diff)
@@ -440,6 +457,66 @@ subroutine gls_tke(state)
        call set(scalarField,absorption)  
     end if
 
+    contains
+
+    subroutine assemble_tke_prodcution_terms(ele, P, B, dim)
+
+        integer, intent(in)               :: ele, dim
+        type(scalar_field), intent(inout) :: P, B
+
+        real, dimension(ele_loc(P,ele),ele_ngi(P,ele),dim)  :: dshape_P
+        real, dimension(ele_ngi(P,ele))                     :: detwei
+        real, dimension(ele_loc(P,ele))                     :: rhs_addto_vel, rhs_addto_buoy
+        type(element_type), pointer                         :: shape_p
+        integer, pointer, dimension(:)                      :: nodes_p
+    
+        nodes_p => ele_nodes(p, ele)
+        shape_p => ele_shape(p, ele)
+        call transform_to_physical( positions, ele, shape_p, dshape=dshape_p, detwei=detwei )
+
+        ! Shear production term:
+        rhs_addto_vel = shape_rhs(shape_p, detwei*ele_val_at_quad(K_M,ele)*ele_val_at_quad(MM2,ele))
+        ! Buoyancy production term:
+        rhs_addto_buoy = shape_rhs(shape_p, -detwei*ele_val_at_quad(K_H,ele)*ele_val_at_quad(NN2,ele))
+ 
+        call addto(P, nodes_p, rhs_addto_vel)
+        call addto(B, nodes_p, rhs_addto_buoy)
+    
+    end subroutine assemble_tke_prodcution_terms
+
+    subroutine assemble_kk_src_abs(ele, kk, dim)
+
+        integer, intent(in)            :: ele, dim
+        type(scalar_field), intent(in) :: kk
+
+        real, dimension(ele_loc(kk,ele),ele_ngi(kk,ele),dim) :: dshape_kk
+        real, dimension(ele_ngi(kk,ele))                     :: detwei
+        real, dimension(ele_loc(kk,ele))                     :: rhs_addto_disip, rhs_addto_src
+        type(element_type), pointer                          :: shape_kk
+        integer, pointer, dimension(:)                       :: nodes_kk
+    
+        nodes_kk => ele_nodes(kk, ele)
+        shape_kk => ele_shape(kk, ele)
+        call transform_to_physical( positions, ele, shape_kk, dshape=dshape_kk, detwei=detwei )
+
+        ! ROMS and GOTM hide the absorption term in the source if the
+        ! total is > 0. Kinda hard to do that over an element (*what* should
+        ! be > 0?). So we don't pull this trick. Doesn't seem to make a
+        ! difference to anything.
+        rhs_addto_src = shape_rhs(shape_kk, detwei * (&
+                                 (ele_val_at_quad(P,ele))) &
+                                 )
+        rhs_addto_disip = shape_rhs(shape_kk, detwei * ( &
+                                 (ele_val_at_quad(eps,ele) - &
+                                 ele_val_at_quad(B,ele)) / &
+                                 ele_val_at_quad(tke,ele)) &
+                                 )
+           
+        call addto(source, nodes_kk, rhs_addto_src)
+        call addto(absorption, nodes_kk, rhs_addto_disip)
+
+
+    end subroutine assemble_kk_src_abs
 
 end subroutine gls_tke
 
@@ -455,9 +532,19 @@ subroutine gls_psi(state)
     type(tensor_field), pointer      :: psi_diff, background_diff
     real                             :: prod, buoyan,diss,PsiOverTke
     character(len=FIELD_NAME_LEN)    :: bc_type
-    integer                          :: i, stat
+    integer                          :: i, stat, ele
     type(scalar_field), pointer      :: scalar_surface
     type(vector_field), pointer      :: positions
+    type(scalar_field), pointer      :: lumped_mass
+    type(scalar_field)               :: inverse_lumped_mass, vel_prod, buoy_prod
+    ! variables for the ocean parameterisation
+    type(csr_matrix)                   :: face_normal_gravity
+    integer, dimension(:), allocatable :: ordered_elements
+    logical, dimension(:), allocatable :: node_list
+    logical                            :: got_surface
+    real                               :: lengthscale, percentage, tke_surface
+    type(scalar_field), pointer        :: distanceToTop, distanceToBottom
+    type(vector_field), pointer        :: vertical_normal
 
     ! Temporary tensor to hold  rotated values (note: must be a 3x3 mat)
     real, dimension(3,3)             :: psi_sphere_node
@@ -471,26 +558,16 @@ subroutine gls_psi(state)
     psi => extract_scalar_field(state, "GLSGenericSecondQuantity")
     psi_diff => extract_tensor_field(state, "GLSGenericSecondQuantityDiffusivity")
     positions => extract_vector_field(state, "Coordinate")
-
+    vertical_normal => extract_vector_field(state, "GravityDirection")
+    call allocate(vel_prod, psi%mesh, "_vel_prod_psi")
+    call allocate(buoy_prod, psi%mesh, "_buoy_prod_psi")
     ewrite(2,*) "In gls_psi: setting up"
 
     ! store the tke in an internal field and then
     ! add the dirichlet conditions to the upper and lower surfaces. This
     ! helps stabilise the diffusivity (e.g. rapid heating cooling of the surface
-    ! can destabilise the run) but also is then done for output so we match
-    ! other models which also play this trick, c.f. Warner et al 2005.
+    ! can destabilise the run)
     call set(local_tke,tke)
-    ! Call the bc code, but specify we want dirichlet
-    call gls_tke_bc(state, 'dirichlet')
-    ! copy the values onto the mesh using the global node id
-    do i=1,NNodes_sur
-        call set(tke,top_surface_nodes(i),node_val(top_surface_values,i))
-        call set(tke_old,top_surface_nodes(i),node_val(top_surface_values,i))   
-    end do   
-    do i=1,NNodes_bot
-        call set(tke,bottom_surface_nodes(i),node_val(bottom_surface_values,i))
-        call set(tke_old,bottom_surface_nodes(i),node_val(bottom_surface_values,i))
-    end do   
 
     ! clip at k_min
     do i=1,nNodes
@@ -499,41 +576,76 @@ subroutine gls_psi(state)
         call set(local_tke,i, max(node_val(local_tke,i),k_min))
     end do
 
-    ! re-construct psi at "old" timestep
+    ! This is the extra term meant to add in internal wave breaking and the
+    ! like. Based on a similar term in NEMO
+    if (have_option("/material_phase[0]/subgridscale_parameterisations/GLS/ocean_parameterisation")) then
+
+        distanceToTop => extract_scalar_field(state, "DistanceToTop")
+        distanceToBottom => extract_scalar_field(state, "DistanceToBottom")
+
+        call get_option("/material_phase[0]/subgridscale_parameterisations/GLS/ocean_parameterisation/lengthscale",lengthscale)
+        call get_option("/material_phase[0]/subgridscale_parameterisations/GLS/ocean_parameterisation/percentage",percentage)
+        ewrite(2,*) "Computing extra ocean parameterisation"
+        allocate(node_list(NNodes))
+        node_list = .false.
+        ! create gravity face normal
+        call compute_face_normal_gravity(face_normal_gravity, positions, vertical_normal)
+        allocate(ordered_elements(size(face_normal_gravity,1)))
+
+        ! create an element ordering from the mesh that moves vertically downwards
+        call vertical_element_ordering(ordered_elements, face_normal_gravity)
+        ! I assume the above fails gracefully if the mesh isn't suitable, hence
+        ! no options checks are carried out
+
+        got_surface = .false.
+        do i=1, size(ordered_elements)
+            if (.not. got_surface) then
+                ! First time around grab, the surface TKE
+                ! for this column
+                tke_surface = maxval(ele_val(tke,i))
+                got_surface = .true.
+            end if
+            if (got_surface) then
+                call ocean_tke(i,tke,distanceToTop,lengthscale,percentage,tke_surface, node_list)
+            end if
+            if (minval(ele_val(distanceToBottom,i)) < 1e-6) then
+                got_surface = .false.
+            end if
+        end do
+
+        deallocate(ordered_elements)
+        call deallocate(face_normal_gravity)
+        deallocate(node_list)
+
+    end if
+
+    call allocate(inverse_lumped_mass, psi%mesh, "InverseLumpedMass")
+    lumped_mass => get_lumped_mass(state, psi%mesh)
+    call invert(lumped_mass, inverse_lumped_mass)
+    ! Set Psi from previous timestep
     do i=1,nNodes
         call set(psi,i, cm0**gls_p * node_val(tke_old,i)**gls_m * node_val(ll,i)**gls_n)
         call set(psi,i,max(node_val(psi,i),psi_min))
     end do
 
     ewrite(2,*) "In gls_psi: computing RHS"
-    ! compute RHS
-    do i=1,nNodes
-
-        ! compute production terms in psi-equation
-        if (node_val(B,i).gt.0) then ! note that we have already set B when setting up the RHS for TKE
-            cPsi3=cPsi3_plus  ! unstable strat
-        else
-            cPsi3=cPsi3_minus ! stable strat
-        end if
-
-        ! compute production terms in psi-equation
-        PsiOverTke  = node_val(psi,i)/node_val(tke_old,i)
-        prod        = cPsi1*PsiOverTke*node_val(P,i)
-        buoyan      = cPsi3*PsiOverTke*node_val(B,i)
-        diss        = cPsi2*PsiOverTke*node_val(eps,i)*node_val(Fwall,i)
-        if (prod+buoyan.gt.0) then
-            src = prod+buoyan
-            absn = diss/node_val(psi,i)
-            call set(source,i, src)
-            call set(absorption,i, absn)
-        else
-            src = prod
-            absn = (diss-buoyan)/node_val(psi,i)
-            call set(source,i, src)
-            call set(absorption,i, absn)
-        end if
+    call zero(vel_prod)
+    call zero(buoy_prod)
+    call zero(source)
+    call zero(absorption)    
+    do ele = 1, ele_count(psi)
+        call assemble_production_terms_psi(ele, vel_prod, buoy_prod, psi, mesh_dim(psi))
     end do
+    call scale(vel_prod,inverse_lumped_mass)
+    call scale(buoy_prod,inverse_lumped_mass)
 
+    do ele = 1, ele_count(psi)
+        call assemble_psi_src_abs(ele, psi, tke_old, mesh_dim(psi))
+    end do
+    call scale(source,inverse_lumped_mass)
+    call scale(absorption,inverse_lumped_mass)
+    call deallocate(inverse_lumped_mass)
+    
     ewrite(2,*) "In gls_psi: setting diffusivity"
     ! Set diffusivity for Psi
     call zero(psi_diff)
@@ -577,6 +689,150 @@ subroutine gls_psi(state)
        call set(scalarField,absorption)  
     end if
 
+    call deallocate(vel_prod)
+    call deallocate(buoy_prod)
+
+
+    contains 
+    
+    subroutine ocean_tke(ele, tke, distanceToTop, lengthscale, percentage, tke_surface, nodes_done)
+        type(scalar_field),pointer, intent(in)  :: distanceToTop
+        type(scalar_field),pointer, intent(out) :: tke
+        real, intent(in)                        :: lengthscale, percentage, tke_surface
+        integer, intent(in)                     :: ele
+        logical, dimension(:), intent(inout)    :: nodes_done
+
+        integer, dimension(:), pointer  :: element_nodes
+        integer                         :: i, node
+        real                            :: current_TKE, depth
+
+        element_nodes => ele_nodes(tke, ele)
+
+
+        ! smooth out TKE according to length scale
+        do i = 1, size(element_nodes)
+            node = element_nodes(i)
+            depth = node_val(distanceToTop,node)
+            current_TKE = node_val(tke,node)
+            if (nodes_done(node)) then
+                cycle
+            end if
+            current_TKE = current_TKE + &
+                           & percentage*TKE_surface * EXP( -depth / lengthscale )
+            call set(tke,node,current_TKE)  
+
+            nodes_done(node) = .true.
+        end do
+
+    end subroutine ocean_tke
+
+    subroutine reconstruct_psi(ele, psi, dim)
+
+        integer, intent(in)               :: ele, dim
+        type(scalar_field), intent(inout) :: psi
+
+        real, dimension(ele_loc(psi,ele),ele_ngi(psi,ele),dim) :: dshape_psi
+        real, dimension(ele_ngi(psi,ele))                      :: detwei
+        real, dimension(ele_loc(psi,ele))                      :: rhs_addto
+        type(element_type), pointer                            :: shape_psi
+        integer, pointer, dimension(:)                         :: nodes_psi
+    
+        nodes_psi => ele_nodes(psi, ele)
+        shape_psi => ele_shape(psi, ele)
+        call transform_to_physical( positions, ele, shape_psi, dshape=dshape_psi, detwei=detwei )
+
+        rhs_addto = shape_rhs(shape_psi, detwei* &
+                                         (cm0**gls_p) * &
+                                         ele_val_at_quad(tke_old,ele)**gls_m * &
+                                         ele_val_at_quad(ll,ele)**gls_n)
+
+        call addto(psi, nodes_psi, rhs_addto)
+
+    end subroutine reconstruct_psi
+
+    subroutine assemble_production_terms_psi(ele, vel_prod, buoy_prod, psi, dim)
+
+
+        integer, intent(in)               :: ele, dim
+        type(scalar_field), intent(inout) :: psi, vel_prod, buoy_prod
+
+        real, dimension(ele_loc(psi,ele),ele_ngi(psi,ele),dim) :: dshape_psi
+        real, dimension(ele_ngi(psi,ele))                      :: detwei
+        real, dimension(ele_loc(psi,ele))                      :: rhs_addto_vel, rhs_addto_buoy
+        real, dimension(ele_ngi(psi,ele))                      :: cPsi3
+        type(element_type), pointer                            :: shape_psi
+        integer, pointer, dimension(:)                         :: nodes_psi
+        
+        nodes_psi => ele_nodes(psi, ele)
+        shape_psi => ele_shape(psi, ele)
+        call transform_to_physical( positions, ele, shape_psi, dshape=dshape_psi, detwei=detwei )
+
+        ! Buoyancy production term:
+        ! First we need to work out if cPsi3 is for stable or unstable
+        ! stratification
+        where(ele_val_at_quad(B,ele) .gt. 0.0)
+            cPsi3 = cPsi3_plus  ! unstable strat
+        elsewhere
+            cPsi3 = cPsi3_minus ! stable strat
+        end where
+        rhs_addto_buoy = shape_rhs(shape_psi, detwei*(cPsi3*ele_val_at_quad(B,ele)*&
+                                   (ele_val_at_quad(psi, ele)/ele_val_at_quad(local_tke,ele))))
+
+        ! shear production term:
+        rhs_addto_vel = shape_rhs(shape_psi, detwei*(cPsi1*ele_val_at_quad(P,ele)*&
+                                    (ele_val_at_quad(psi, ele)/ele_val_at_quad(local_tke,ele))))
+ 
+        call addto(vel_prod, nodes_psi, rhs_addto_vel)
+        call addto(buoy_prod, nodes_psi, rhs_addto_buoy)
+
+
+    end subroutine assemble_production_terms_psi
+
+    subroutine assemble_psi_src_abs(ele, psi, tke, dim)
+
+        integer, intent(in)            :: ele, dim
+        type(scalar_field), intent(in) :: psi, tke
+
+        real, dimension(ele_loc(psi,ele),ele_ngi(psi,ele),dim) :: dshape_psi
+        real, dimension(ele_ngi(psi,ele))                      :: detwei
+        real, dimension(ele_loc(psi,ele))                      :: rhs_addto_src, rhs_addto_disip
+        type(element_type), pointer                            :: shape_psi
+        integer, pointer, dimension(:)                         :: nodes_psi
+    
+        nodes_psi => ele_nodes(psi, ele)
+        shape_psi => ele_shape(psi, ele)
+        call transform_to_physical( positions, ele, shape_psi, dshape=dshape_psi, detwei=detwei )
+
+        where (ele_val_at_quad(vel_prod,ele) + ele_val_at_quad(buoy_prod,ele) .gt. 0)
+            rhs_addto_src = shape_rhs(shape_psi, detwei* ( &
+                                (ele_val_at_quad(vel_prod,ele)) + &
+                                (ele_val_at_quad(buoy_prod,ele)) &
+                                 ) & !detwei
+                                 ) ! shape_rhs
+            rhs_addto_disip = shape_rhs(shape_psi, detwei* (&
+                                  (cPsi2*ele_val_at_quad(eps,ele) * &
+                                  (ele_val_at_quad(Fwall,ele)*ele_val_at_quad(psi, ele)/ele_val_at_quad(tke,ele))) / &
+                                  ele_val_at_quad(psi,ele) &
+                                  ) & ! detwei
+                                  ) !shape_rhs
+        elsewhere
+            rhs_addto_src = shape_rhs(shape_psi, detwei * ( &
+                                (ele_val_at_quad(vel_prod,ele)) &
+                                 ) & !detwei
+                                 ) !shape_rhs
+            rhs_addto_disip = shape_rhs(shape_psi, detwei * (&
+                                  ((cPsi2*ele_val_at_quad(eps,ele) * &
+                                  (ele_val_at_quad(Fwall,ele)*ele_val_at_quad(psi, ele)/ele_val_at_quad(tke,ele))) - &! disipation term
+                                  (ele_val_at_quad(buoy_prod,ele)))/ & ! buoyancy term
+                                  ele_val_at_quad(psi,ele)&
+                                  ) & !detwei 
+                                  ) !shape_rhs
+        end where
+        call addto(source, nodes_psi, rhs_addto_src)
+        call addto(absorption, nodes_psi, rhs_addto_disip)
+
+    end subroutine assemble_psi_src_abs
+
 end subroutine gls_psi
 
 
@@ -616,27 +872,15 @@ subroutine gls_diffusivity(state)
     velocity => extract_vector_field(state, "Velocity")
 
     call allocate(tke, tke_state%mesh, name="MyLocalTKE")
-    if (gls_n > 0) then
+    !if (gls_n > 0) then
         ! set the TKE to use below to the unaltered TKE
-        ! with no chnages tothe upper/lower surfaces
+        ! with no changes to the upper/lower surfaces
         ! Applies to k-kl model only
-        call set (tke, local_tke)
-    else
+    !    call set (tke, local_tke)
+    !else
         ! Use the altered TKE to get the surface diffusivity correct
         call set (tke, tke_state)
-    end if
-
-    ! call the bc code, but specify we want dirichlet
-    if (gls_n < 0) then
-        call gls_psi_bc(state, 'dirichlet')
-        ! copy the values onto the mesh using the global node id
-        do i=1,NNodes_sur
-            call set(psi,top_surface_nodes(i),node_val(top_surface_values,i))
-        end do
-        do i=1,NNodes_bot
-            call set(psi,bottom_surface_nodes(i),node_val(bottom_surface_values,i))
-        end do
-    end if
+    !end if
 
     exp1 = 3.0 + gls_p/gls_n
     exp2 = 1.5 + gls_m/gls_n
@@ -669,12 +913,12 @@ subroutine gls_diffusivity(state)
 
         ! compute dissipative scale
         call set(ll,i,cde*sqrt(tke_cur**3.)/node_val(eps,i))
-        if (gls_n > 0) then
-            if (node_val(NN2,i) > 0) then
-                limit = sqrt(0.56 * tke_cur / node_val(NN2,i))
-                call set(ll,i,min(limit,node_val(ll,i)))
-            end if
-        end if
+        !if (gls_n > 0) then
+        !    if (node_val(NN2,i) > 0) then
+        !        limit = sqrt(0.56 * tke_cur / node_val(NN2,i))
+        !        call set(ll,i,min(limit,node_val(ll,i)))
+        !    end if
+        !end if
 
     end do
 
@@ -1440,20 +1684,24 @@ subroutine gls_psi_bc(state, bc_type)
     case("neumann")
         do i=1,NNodes_sur
             ! GOTM Boundary
-            !value = -(gls_n*(cm0**(gls_p+1.))*(kappa**(gls_n+1.)))/sigma_psi     &
-            !         *node_val(top_surface_values,i)**(gls_m+0.5)*(z0s(i))**gls_n  
-            ! Warner 2005
-            value = -gls_n*(cm0**(gls_p))*(node_val(top_surface_tke_values,i)**gls_m)* &
-                     (kappa**gls_n)*(z0s(i)**(gls_n-1))*((node_val(top_surface_km_values,i)/sigma_psi))
+            value = -(gls_n*(cm0**(gls_p+1.))*(kappa**(gls_n+1.)))/sigma_psi     &
+                     *node_val(top_surface_tke_values,i)**(gls_m+0.5)*(z0s(i))**gls_n  
+            ! Warner 2005 - left here for posterity and debugging
+            !value = -gls_n*(cm0**(gls_p))*(node_val(top_surface_tke_values,i)**gls_m)* &
+            !         (kappa**gls_n)*(z0s(i)**(gls_n-1))*((node_val(top_surface_km_values,i)/sigma_psi))
             call set(top_surface_values,i,value)
         end do
         do i=1,NNodes_bot
-            ! GOTM Boundary
-            !value = - gls_n*cm0**(gls_p+1.)*(kappa**(gls_n+1.)/sigma_psi)      &
-            !           *node_val(bottom_surface_tke_values,i)**(gls_m+0.5)*(z0b(i))**gls_n
-            ! Warner 2005
-            value = gls_n*cm0**(gls_p)*node_val(bottom_surface_tke_values,i)**(gls_m)* &
-                     kappa**gls_n*(z0b(i)**(gls_n-1))*(node_val(bottom_surface_km_values,i)/sigma_psi)
+            if (u_taub_squared(i) < 1e-16) then
+                value = 0.0
+            else
+                ! GOTM Boundary
+                value = - gls_n*cm0**(gls_p+1.)*(kappa**(gls_n+1.)/sigma_psi)      &
+                           *node_val(bottom_surface_tke_values,i)**(gls_m+0.5)*(z0b(i))**gls_n
+                ! Warner 2005 - as above
+                !value = gls_n*cm0**(gls_p)*node_val(bottom_surface_tke_values,i)**(gls_m)* &
+                !         kappa**gls_n*(z0b(i)**(gls_n-1))*(node_val(bottom_surface_km_values,i)/sigma_psi)
+            end if
             call set(bottom_surface_values,i,value)
         end do
     case("dirichlet")
@@ -1493,7 +1741,7 @@ subroutine gls_friction(state,z0s,z0b,gravity_magnitude,u_taus_squared,u_taub_sq
     integer                              :: nobcs
     integer                              :: i,ii, MaxIter
     real                                 :: rr
-    real                                 :: charnock_val=1400.
+    real                                 :: charnock_val=18500.
     character(len=OPTION_PATH_LEN)       :: bctype
     type(vector_field), pointer          :: wind_surface_field, positions, velocity
     type(scalar_field), pointer          :: tke
@@ -1587,12 +1835,15 @@ subroutine gls_friction(state,z0s,z0b,gravity_magnitude,u_taus_squared,u_taub_sq
 
         do i=1,NNodes_bot
             temp_vector_3D = node_val(bottom_velocity,i)
-            u_taub = max(1e-12,sqrt(temp_vector_3D(1)**2+temp_vector_3D(2)**2+temp_vector_3D(3)**2))
+            u_taub = sqrt(temp_vector_3D(1)**2+temp_vector_3D(2)**2+temp_vector_3D(3)**2)
+            if (u_taub <= 1e-12) then
+                z0b(i) = z0s_min
+            else
 
 
             !  iterate bottom roughness length MaxIter times
             do ii=1,MaxIter
-                z0b(i)=1e-7/max(1e-6,u_taub)+0.03*0.1
+                    z0b(i)=(1e-7/max(1e-6,u_taub)+0.03*0.1)
 
                 ! compute the factor r
                 rr=kappa/log(z0b(i))
@@ -1601,6 +1852,7 @@ subroutine gls_friction(state,z0s,z0b,gravity_magnitude,u_taus_squared,u_taub_sq
                 u_taub = rr*sqrt(temp_vector_3D(1)**2+temp_vector_3D(2)**2+temp_vector_3D(3)**2)
 
             end do
+            end if
 
             u_taub_squared(i) = u_taub**2
         end do
@@ -1609,7 +1861,7 @@ subroutine gls_friction(state,z0s,z0b,gravity_magnitude,u_taus_squared,u_taub_sq
         if (surface_allocated) then
             do i=1,NNodes_sur
                 temp_vector_1D = node_val(surface_forcing,i)
-                u_taus_squared(i) = max(1e-12,temp_vector_1D(1))
+                u_taus_squared(i) = max(1e-12,abs(temp_vector_1D(1)))
                 !  use the Charnock formula to compute the surface roughness
                 z0s(i)=charnock_val*u_taus_squared(i)/gravity_magnitude
                 if (z0s(i).lt.z0s_min) z0s(i)=z0s_min
@@ -1622,11 +1874,11 @@ subroutine gls_friction(state,z0s,z0b,gravity_magnitude,u_taus_squared,u_taub_sq
 
         do i=1,NNodes_bot
             temp_vector_2D = node_val(bottom_velocity,i)
-            u_taub = max(1e-12,sqrt(temp_vector_2D(1)**2+temp_vector_2D(2)**2))
+            u_taub = sqrt(temp_vector_2D(1)**2+temp_vector_2D(2)**2)
 
             !  iterate bottom roughness length MaxIter times
             do ii=1,MaxIter
-                z0b(i)=1e-7/(max(1e-6,u_taub)+0.03*0.1)
+                z0b(i)=(1e-7/(max(1e-6,u_taub)+0.03*0.1))
                 rr=kappa/log(z0b(i))
 
                 ! compute the friction velocity at the bottom

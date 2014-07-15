@@ -12,41 +12,31 @@ the number of processes, i.e. if \fluidity\ is split into 256 parts, it is run o
 \section{Set up}
 
 The first step in running a \fluidity\ set-up in parallel is to create the software
-use to decompose the initial mesh into multiple parts, fldecomp. This can be made using:
+use to decompose the initial mesh into multiple parts, flredecomp. This can be made using:
 \begin{lstlisting}[language=bash]
 make fltools
 \end{lstlisting}
-inside your \fluidity\ folder.The fldecomp binary will then be created in the bin/ directory. 
+inside your \fluidity\ folder.The flredecomp binary will then be created in the bin/ directory. 
 You can then decompose the initial mesh into multiple regions, one per process using the following command
 \begin{lstlisting}[language=bash]
-fldecomp -n [PARTS] [BASENAME]
+mpiexec -n [PARTS] flredecomp -i 1 -o [PARTS] [FLMLBASE] [NEWFLMLBASE]
 \end{lstlisting}
-where BASENAME is the triangle mesh base name (excluding extensions). "-i triangle"
-instruct fldecomp to perform a triangle-to-triangle decomposition. 
-This will create PARTS partition triangle meshes together with PARTS .halo files. 
-
-\subsection{Decomposing a periodic mesh}
-
-To decompose a periodic mesh to be run on four processors simply type:
+where FLMLBASE is the \fluidity input flml file base name (excluding
+extensions), e.g. foo for foo.flml, and NEWFLMLBASE is the new flml
+file base name, e.g. foo\_flredecomp for foo\_flredecomp.flml.  For
+example, to decompose a mesh to be run on four processors
+simply type:
 
 \begin{lstlisting}[language=bash]
 mpiexec -n 4 ./myfluidity/bin/flredecomp \
-    -i 1 -o 4 foo_periodised foo_periodised_flredecomp
+    -i 1 -o 4 foo foo_flredecomp
 \end{lstlisting}
 
-Where:
-
-\begin{lstlisting}[language=bash]
-mpiexec -n [target number of processors] \
-   ./myfluidity/bin/flredecomp -i [input number of processors] \
-        -o [target number of processors] [input flml] [output flml]
-\end{lstlisting}
-
-The output of running flredecomp is a series of mesh and vtu files as well as the new flml; in this case foo\_periodised\_flredecomp.flml. It is this flml that you use to run a periodic parallel mesh. Therefore, as previously:
+The output of running flredecomp is a series of mesh and vtu files as well as the new flml; in this case foo\_flredecomp.flml. It is this flml that you use to run a periodic parallel mesh. Therefore, as previously:
 
 \begin{lstlisting}[language=bash]
 mpiexec -n [number of processors] \
-   ./myfluidity/bin/fluidity [options] foo_periodised_flredecomp.flml
+   ./myfluidity/bin/fluidity [options] foo_flredecomp.flml
 \end{lstlisting}
 
 \section{Running}

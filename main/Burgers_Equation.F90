@@ -152,7 +152,7 @@
     call register_functional_callbacks()
     if (.not. adjoint) then
       ! disable the adjointer
-      ierr = adj_set_option(adjointer, ADJ_ACTIVITY, ADJ_ACTIVITY_NOTHING)                                                                                                                                     
+      ierr = adj_deactivate_adjointer(adjointer) 
       call adj_chkierr(ierr)
     end if
 #endif
@@ -692,6 +692,8 @@
       call adj_chkierr(ierr)
       ierr = adj_equation_set_rhs_dependencies(equation, context=c_loc(matrices))
       call adj_chkierr(ierr)
+      ierr = adj_equation_set_rhs_callback(equation, c_funloc(burgers_equation_forward_source))
+      call adj_chkierr(ierr)
 
       ierr = adj_register_equation(adjointer, equation)
       call adj_chkierr(ierr)
@@ -806,6 +808,8 @@
                                             & targets=(/previous_u, u/), equation=equation)
         call adj_chkierr(ierr)
         ierr = adj_equation_set_rhs_dependencies(equation, context=c_loc(matrices))
+        call adj_chkierr(ierr)
+        ierr = adj_equation_set_rhs_callback(equation, c_funloc(burgers_equation_forward_source))
         call adj_chkierr(ierr)
 
         ierr = adj_register_equation(adjointer, equation)

@@ -45,8 +45,12 @@ module advection_diffusion_fv
   use spud
   use field_options
   use sparsity_patterns_meshes
-  use global_parameters, only : FIELD_NAME_LEN, OPTION_PATH_LEN
+  use global_parameters, only : FIELD_NAME_LEN, OPTION_PATH_LEN, COLOURING_DG1
   use profiler
+  use colouring
+#ifdef _OPENMP
+  use omp_lib
+#endif
   
   implicit none
 
@@ -140,7 +144,7 @@ contains
     type(scalar_field), intent(inout) :: t
     type(csr_matrix), intent(inout) :: matrix
     type(scalar_field), intent(inout) :: rhs
-    type(state_type), intent(in) :: state
+    type(state_type), intent(inout) :: state
     
     type(vector_field), pointer :: coordinate, &
                                    old_coordinate, new_coordinate, &
@@ -149,7 +153,14 @@ contains
     type(scalar_field), pointer :: source, absorption
     type(tensor_field), pointer :: diffusivity
     
-    integer :: i, j, ele, stat
+    integer :: i, j, stat
+
+    !! Coloring  data structures for OpenMP parallization
+    type(integer_set), dimension(:), pointer :: colours
+    integer :: clr, nnid, len, ele
+    integer :: thread_num
+    !! Did we successfully prepopulate the transform_to_physical_cache?
+    logical :: cache_valid
     
     ewrite(1,*) "In assemble_advection_diffusion_fv"
     
@@ -261,11 +272,41 @@ contains
     call zero(matrix)
     call zero(rhs)
     
-    do ele = 1, ele_count(t)
-      call assemble_advection_diffusion_element_fv(ele, t, matrix, rhs, &
+
+#ifdef _OPENMP
+    cache_valid = prepopulate_transform_cache(coordinate)
+    assert(cache_valid)
+#endif
+
+    call get_mesh_colouring(state, T%mesh, COLOURING_DG1, colours)
+
+    call profiler_tic(t, "advection_diffusion_fv_loop")
+
+    !$OMP PARALLEL DEFAULT(SHARED) &
+    !$OMP PRIVATE(clr, len, nnid, ele, thread_num)
+
+#ifdef _OPENMP    
+    thread_num = omp_get_thread_num()
+#else
+    thread_num=0
+#endif
+
+
+    colour_loop: do clr = 1, size(colours)
+      len = key_count(colours(clr))
+      !$OMP DO SCHEDULE(STATIC)
+      element_loop: do nnid = 1, len
+       ele = fetch(colours(clr), nnid)
+       call assemble_advection_diffusion_element_fv(ele, t, matrix, rhs, &
                                                    coordinate, t_coordinate, &
                                                    source, absorption, diffusivity)
-    end do
+      end do element_loop
+       !$OMP END DO
+
+    end do colour_loop
+    !$OMP END PARALLEL
+
+    call profiler_toc(t, "advection_diffusion_fv_loop")
 
     ! Add the source directly to the rhs if required 
     ! which must be included before dirichlet BC's.
@@ -557,7 +598,7 @@ contains
   
   subroutine advection_diffusion_fv_check_options
   
-    character(len = FIELD_NAME_LEN) :: field_name, state_name
+    character(len = FIELD_NAME_LEN) :: field_name, mesh_0, mesh_1, state_name
     character(len = OPTION_PATH_LEN) :: path
     integer :: i, j, stat
     real :: beta, l_theta
@@ -611,7 +652,20 @@ contains
               call field_warning(state_name, field_name, &
                 & "Implicitness factor (theta) should = 1.0 when excluding mass")
             end if
-  
+                 
+            if (have_option(trim(path) // "/scalar_field::SinkingVelocity")) then
+               call get_option(trim(complete_field_path(trim(path) // &
+                    "/scalar_field::SinkingVelocity"))//"/mesh[0]/name", &
+                    mesh_0, stat)
+               if(stat == SPUD_NO_ERROR) then
+                  call get_option(trim(complete_field_path("/material_phase[" // int2str(i) // &
+                       "]/vector_field::Velocity")) // "/mesh[0]/name", mesh_1)
+                  if(trim(mesh_0) /= trim(mesh_1)) then
+                     call field_warning(state_name, field_name, &
+                          & "SinkingVelocity is on a different mesh to the Velocity field this could cause problems")
+                  end if
+               end if
+            end if
             if(have_option(trim(path) // "/spatial_discretisation/finite_volume/advection_terms/exclude_advection_terms")) then
               if(have_option(trim(path) // "/scalar_field::SinkingVelocity")) then
                 call field_warning(state_name, field_name, &

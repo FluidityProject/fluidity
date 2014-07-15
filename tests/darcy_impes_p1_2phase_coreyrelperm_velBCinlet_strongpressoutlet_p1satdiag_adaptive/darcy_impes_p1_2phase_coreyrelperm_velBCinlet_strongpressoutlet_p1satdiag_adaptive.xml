@@ -65,6 +65,8 @@ solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
     <test name="Solvers converged" language="python">
 assert(solvers_converged)
     </test>
+
+    <!-- basic comparisons, 1st order, 2D -->
     <test name="phase 1 using relpermupwind for 2d for mesh A has max(sat) in [0.0, 1.0] with tolerance 1.0e-08" language="python">
 assert abs(phase1_sat_relpermupwind_max_2d_A - 0.5) &lt; (0.5 + 1.0e-08)
     </test>
@@ -89,8 +91,10 @@ assert abs(sum_sat_relpermupwind_min_2d_A - 1.0) &lt; 1.0e-08
 print 'difference: ',abs(sum_sat_relpermupwind_integral_2d_A - 1.0)
 assert abs(sum_sat_relpermupwind_integral_2d_A - 1.0) &lt; 1.0e-08
     </test>
-    <test name="Assert max absolute analytic error for saturation phase 2 using modrelpermupwind_satfesweby for 2d on mesh A is less than 5.3e-01" language="python">
-assert(abs(phase2_sat_relpermupwind_analytic_error_max_2d_A) &lt; 5.3e-01)
+    
+    <!-- analytical comparisons, 1st order, 2D -->
+    <test name="Assert max absolute analytic error for saturation phase 2 using modrelpermupwind_satfesweby for 2d on mesh A is less than 7.0e-01" language="python">
+assert(abs(phase2_sat_relpermupwind_analytic_error_max_2d_A) &lt; 7.0e-01)
     </test>
     <test name="Assert integral absolute analytic error for saturation phase 2 using modrelpermupwind_satfesweby for 2d on mesh A is less than 7.3e-03" language="python">
 assert(abs(phase2_sat_relpermupwind_analytic_error_integral_2d_A) &lt; 7.3e-03)

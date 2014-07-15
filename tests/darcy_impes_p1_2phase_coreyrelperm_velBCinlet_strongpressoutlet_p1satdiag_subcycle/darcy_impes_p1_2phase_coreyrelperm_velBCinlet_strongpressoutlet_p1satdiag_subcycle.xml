@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_subcycle</name>
+  <owner userid="btollit"/>
+  <tags>diml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>
+../../bin/darcy_impes darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_subcycle_relpermupwind_2d_A.diml 
+    </command_line>
+    <!-- Subcycle timestep problem for darcy flow using the IMPES solver with one region with 2 phases using Corey relative permeabilities with a TotalDarcyVelocity BC at the inlet, a strong pressure BC at outlet and the first phase saturation diagnostic. -->
+  </problem_definition>
+  <variables>
+    <variable name="phase1_sat_relpermupwind_max_2d_A" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_subcycle_relpermupwind_2d_A.stat")
+phase1_sat_relpermupwind_max_2d_A = s["Phase1"]["Saturation"]["max"][-1]
+    </variable>    
+    <variable name="phase1_sat_relpermupwind_min_2d_A" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_subcycle_relpermupwind_2d_A.stat")
+phase1_sat_relpermupwind_min_2d_A = s["Phase1"]["Saturation"]["min"][-1]
+    </variable>    
+    <variable name="phase2_sat_relpermupwind_max_2d_A" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_subcycle_relpermupwind_2d_A.stat")
+phase2_sat_relpermupwind_max_2d_A = s["Phase2"]["Saturation"]["max"][-1]
+    </variable>    
+    <variable name="phase2_sat_relpermupwind_min_2d_A" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_subcycle_relpermupwind_2d_A.stat")
+phase2_sat_relpermupwind_min_2d_A = s["Phase2"]["Saturation"]["min"][-1]
+    </variable>    
+    <variable name="sum_sat_relpermupwind_max_2d_A" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_subcycle_relpermupwind_2d_A.stat")
+sum_sat_relpermupwind_max_2d_A = s["Phase1"]["SumSaturation"]["max"][-1]
+    </variable>    
+    <variable name="sum_sat_relpermupwind_min_2d_A" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_subcycle_relpermupwind_2d_A.stat")
+sum_sat_relpermupwind_min_2d_A = s["Phase1"]["SumSaturation"]["min"][-1]
+    </variable>
+    <variable name="sum_sat_relpermupwind_integral_2d_A" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_subcycle_relpermupwind_2d_A.stat")
+sum_sat_relpermupwind_integral_2d_A = s["Phase1"]["SumSaturation"]["integral"][-1]
+    </variable>
+    <variable name="phase2_sat_relpermupwind_analytic_error_max_2d_A" language="python">
+from fluidity_tools import stat_parser as stat
+phase2_sat_relpermupwind_analytic_error_max_2d_A = stat("darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_subcycle_relpermupwind_2d_A.stat")["Phase2"]["AnalyticSaturationError"]["max"][-1]
+    </variable>
+    <variable name="phase2_sat_relpermupwind_analytic_error_integral_2d_A" language="python">
+from fluidity_tools import stat_parser as stat
+phase2_sat_relpermupwind_analytic_error_integral_2d_A = stat("darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_subcycle_relpermupwind_2d_A.stat")["Phase2"]["AnalyticSaturationError"]["integral"][-1]
+    </variable>
+    <variable name="phase1_sat_relpermupwind_regression_error_max_2d_A" language="python">
+from fluidity_tools import stat_parser as stat
+phase1_sat_relpermupwind_regression_error_max_2d_A = stat("darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_subcycle_relpermupwind_2d_A.stat")["Phase1"]["RegressionSaturationError"]["max"][-1]
+    </variable>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="Solvers converged" language="python">
+assert(solvers_converged)
+    </test>
+
+    <!-- basic comparisons, 1st order, 2D -->
+    <test name="phase 1 using relpermupwind for 2d for mesh A has max(sat) in [0.0, 1.0] with tolerance 1.0e-08" language="python">
+assert abs(phase1_sat_relpermupwind_max_2d_A - 0.5) &lt; (0.5 + 1.0e-08)
+    </test>
+    <test name="phase 1 using relpermupwind for 2d for mesh A has min(sat) in [0.0, 1.0] with tolerance 1.0e-08" language="python">
+assert abs(phase1_sat_relpermupwind_min_2d_A - 0.5) &lt; (0.5 + 1.0e-08)
+    </test>
+    <test name="phase 2 using relpermupwind for 2d for mesh A has max(sat) in [0.0, 1.0] with tolerance 1.0e-08" language="python">
+assert abs(phase2_sat_relpermupwind_max_2d_A - 0.5) &lt; (0.5 + 1.0e-08)
+    </test>
+    <test name="phase 2 using relpermupwind for 2d for mesh A has min(sat) in [0.0, 1.0] with tolerance 1.0e-08" language="python">
+assert abs(phase2_sat_relpermupwind_min_2d_A - 0.5) &lt; (0.5 + 1.0e-08)
+    </test>
+    <test name="Check sum_sat_max using relpermupwind for 2d for mesh A is 1.0 with tolerance 1.0e-08" language="python">
+print 'difference: ',abs(sum_sat_relpermupwind_max_2d_A - 1.0)
+assert abs(sum_sat_relpermupwind_max_2d_A - 1.0) &lt; 1.0e-08
+    </test>
+    <test name="Check sum_sat_min using relpermupwind for 2d for mesh A is 1.0 with tolerance 1.0e-08" language="python">
+print 'difference: ',abs(sum_sat_relpermupwind_min_2d_A - 1.0)
+assert abs(sum_sat_relpermupwind_min_2d_A - 1.0) &lt; 1.0e-08
+    </test>
+    <test name="Check sum_sat_integral using relpermupwind for 2d for mesh A is 1.0 with tolerance 1.0e-08" language="python">
+print 'difference: ',abs(sum_sat_relpermupwind_integral_2d_A - 1.0)
+assert abs(sum_sat_relpermupwind_integral_2d_A - 1.0) &lt; 1.0e-08
+    </test>
+    
+    <!-- analytical comparisons, 1st order, 2D -->
+    <test name="Assert max absolute analytic error for saturation phase 2 using modrelpermupwind_satfesweby for 2d on mesh A is less than 4.2e-01" language="python">
+assert(abs(phase2_sat_relpermupwind_analytic_error_max_2d_A) &lt; 4.2e-01)
+    </test>
+    <test name="Assert integral absolute analytic error for saturation phase 2 using modrelpermupwind_satfesweby for 2d on mesh A is less than 1.4e-02" language="python">
+assert(abs(phase2_sat_relpermupwind_analytic_error_integral_2d_A) &lt; 1.4e-02)
+    </test>
+    
+    <!-- regression comparisons, 1st order, 2D -->
+    <test name="Assert max absolute regression error for saturation phase 1 using relpermupwind for 2d on mesh A is less than 1.0e-06" language="python">
+assert(abs(phase1_sat_relpermupwind_regression_error_max_2d_A) &lt; 1.0e-06)
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

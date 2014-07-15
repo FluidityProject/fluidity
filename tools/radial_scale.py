@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from pylab import *
+from math import sqrt, acos, atan, sin, cos
 import argparse
 import vtktools
 
@@ -19,7 +19,7 @@ print "Scale by a factor of", scale_factor
 
 R_geoid = 6.37101e+06
 
-for vtu in range(size(args.input_vtu)):
+for vtu in range(len(args.input_vtu)):
     vtu_name=args.input_vtu[vtu]
     output_filename=args.output_prefix+vtu_name
     vtu_object= vtktools.vtu(vtu_name)
@@ -29,8 +29,8 @@ for vtu in range(size(args.input_vtu)):
     for i in range(npoints):
         (x,y,z) = vtu_object.ugrid.GetPoint(i)
         radius = sqrt( x**2 + y**2 + z**2 )
-        theta = arccos(z/radius)
-        phi = arctan(y/x)
+        theta = acos(z/radius)
+        phi = atan(y/x)
         new_radius= R_geoid - (R_geoid - radius)*scale_factor
         new_x=new_radius*sin(theta)*cos(phi)
         new_y=new_radius*sin(theta)*sin(phi)

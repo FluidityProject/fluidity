@@ -28,7 +28,7 @@
 using namespace std;
 
 NetCDFReader::NetCDFReader() : fileOpen(false) {
-#ifdef HAVE_NETCDF
+#ifdef HAVE_LIBNETCDF
   VerboseOff();
 
   // Make NetCDF errors verbose and fatal
@@ -37,7 +37,7 @@ NetCDFReader::NetCDFReader() : fileOpen(false) {
 }
 
 NetCDFReader::NetCDFReader(const char *filename){
-#ifdef HAVE_NETCDF
+#ifdef HAVE_LIBNETCDF
   VerboseOff();
 
   // Make NetCDF errors verbose and fatal
@@ -70,7 +70,7 @@ const NetCDFReader& NetCDFReader::operator=(const NetCDFReader &in){
 void NetCDFReader::Close(){
   if(verbose)
     cout<<"void NetCDFReader::Close()\n";
-#ifdef HAVE_NETCDF
+#ifdef HAVE_LIBNETCDF
   if(fileOpen){
     // Close the netCDF file.
     ncclose(ncid);  
@@ -82,7 +82,7 @@ void NetCDFReader::Close(){
 void NetCDFReader::SetFile(const char *filename){
   if(verbose)
     cout<<"void NetCDFReader::SetFile(const char *filename)\n";
-#ifdef HAVE_NETCDF
+#ifdef HAVE_LIBNETCDF
   // Check that the file exists.
   fstream ncfile;
   ncfile.open(filename, ios::in);
@@ -113,7 +113,7 @@ void NetCDFReader::SetFile(const char *filename){
 void NetCDFReader::GetGrid(){
   if(verbose)
     cout<<"NetCDFReader::GetGrid()\n";
-#ifdef HAVE_NETCDF
+#ifdef HAVE_LIBNETCDF
   // Get dimensions -- longitude
   int id = ncdimid(ncid, "longitude");
   if(ncerr!=NC_NOERR){
@@ -231,7 +231,7 @@ int NetCDFReader::GetYRange(double &ymin, double &ymax) const{
 int NetCDFReader::Read(string varname, vector<double> &var){
   if(verbose)
     cout<<"int NetCDFReader::Read("<<varname<<", vector<double> &) const\n";
-#ifdef HAVE_NETCDF
+#ifdef HAVE_LIBNETCDF
   nc_type xtypep;                 /* variable type */
   int ndims;                      /* number of dims */
   int dims[MAX_VAR_DIMS];         /* variable shape */

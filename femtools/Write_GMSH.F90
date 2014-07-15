@@ -258,12 +258,12 @@ contains
     integer :: e, f, elemID
     character, parameter :: newLineChar=char(10)
 
-    logical :: internal_boundaries
+    logical :: needs_element_owners
 
     ! Gather some info about the mesh
     numElements = ele_count(mesh)
-    numFaces = surface_element_count(mesh)
-    internal_boundaries = has_internal_boundaries(mesh)
+    numFaces = unique_surface_element_count(mesh)
+    needs_element_owners = has_discontinuous_internal_boundaries(mesh)
 
     ! In the GMSH format, faces are also elements.
     numGMSHElems = numElements + numFaces
@@ -320,7 +320,7 @@ contains
     ! Faces written out first
     
     ! Number of tags associated with elements
-    if(internal_boundaries) then
+    if(needs_element_owners) then
       ! write surface id and element owner
       numTags = 4
     else

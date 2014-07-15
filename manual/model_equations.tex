@@ -10,7 +10,7 @@ This chapter covers the fluid and associated field equations modelled by {\fluid
 problem & underlying equations & boundary conditions & other considerations\\
 \hline
 scalar advection & \ref{sec:MP-AdvdifEqn-eqns}, \ref{sec:MP-AdvdifEqn-adv} & \ref{sec:bc_scalar_dirichlet}, \ref{sec:bc_scalar_neumann} & × \\
-scalar advection-diffusion & \ref{sec:MP-AdvdifEqn-eqns}, \ref{sec:MP-AdvdifEqn-diff} & × & ×\\
+scalar advection-diffusion & \ref{sec:MP-AdvdifEqn-eqns}, \ref{sec:MP-AdvdifEqn-diff} & \ref{sec:bc_scalar_dirichlet}, \ref{sec:bc_scalar_neumann}, \ref{sec:bc_scalar_robin} × & ×\\
 momentum equation & \ref{sec:MP-MomEqn} & \ref{sec:bc_vector_dirichlet}, \ref{sec:bc_vector_stress}, \ref{sec:bc_vector_traction}, \ref{sec:FS} & \ref{sec:eqn_extensions} \\
 \hline
 \end{tabular}
@@ -119,6 +119,21 @@ The Neumann condition is specified by assigning a value to $(\kaptens\nabla c)\c
 and substituting in this surface integral to the discretised equation. Note that $q$ is often termed a flux.
 
 
+\subsubsection{Robin condition for a scalar field}\label{sec:bc_scalar_robin}
+\index{boundary conditions!Neumann}
+
+Taking the weak form (applying Green's theorem to the diffusion term) of the advection-diffusion equation \eqref{eq:general_scalar_eqn} leads to a surface integral of the form
+\begin{equation*}
+\int_{\partial\Omega} \phi (\kaptens\nabla c)\cdot\bmn \;d\Gamma,
+\end{equation*}
+where $\phi$ is a test function (see section \ref{chap:numerical_discretisation}).
+The Robin condition is specified by relating the surface diffusive flux $(\kaptens\nabla c)\cdot\bmn$ to an ambient field value $c_{a}$, with an associated surface transfer coefficient $h$. This is given by the relationship
+\begin{equation*}
+-(\kaptens\nabla c)\cdot\bmn = h (c - c_{a}),\quad \textrm{on}\quad \partial\Omega,
+\end{equation*}
+where in general $h$ and $c_{a}$ can vary spatially and temporally. This is substituted into the discretised equation to give a surface absorption term given by $hc$ and a surface source given by $-hc_{a}$.
+
+
 \section{Fluid equations}\label{sec:MP-MomEqn}
 
 \index{conservation!equation}
@@ -223,7 +238,7 @@ Note that, provided the fields (\eg density and pressure) vary smoothly, that is
 
 Closure of the conservation equations requires an additional equation describing how the stress tensor is related to density, temperature and any other state variables of relevance. In general, this relationship is dependent of the physical and chemical properties of the material in the domain; hence, this relationship is known as the material model (note that in multi-material simulations a different material model can and must be specified for each material).
 
-It is convenient to separate the full stress tensor $\sigtens$ into an isotropic (hydrostatic) part, the pressure $p$, and a deviatoric part $\tautens$.  With the convention that compressive stress is negative, the stress tensor is given by $\sigtens =-p \bmI + \tautens$, where $\bmI$ is the identity matrix. If the stress tensor is separated in this way, the material model comprises two parts: an equation of state\footnote{Equation of state settings in \fluidity\ are described in section~\ref{sec:ConfigEOS}} $f(p,\rho,T,\ldots)=0$ relating density to pressure, temperature, etc., and a constitutive relationship\footnote{constitutive relationship settings in \fluidity\ are described in section (to be written)} $g(\tautens,\bmu)=0$.
+It is convenient to separate the full stress tensor $\sigtens$ into an isotropic part, the pressure $p$, and a deviatoric part $\tautens$.  With the convention that compressive stress is negative, the stress tensor is given by $\sigtens =-p \bmI + \tautens$, where $\bmI$ is the identity matrix. If the stress tensor is separated in this way, the material model comprises two parts: an equation of state\footnote{Equation of state settings in \fluidity\ are described in section~\ref{sec:ConfigEOS}} $f(p,\rho,T,\ldots)=0$ relating density to pressure, temperature, etc., and a constitutive relationship\footnote{constitutive relationship settings in \fluidity\ are described in section (to be written)} $g(\tautens,\bmu)=0$.
 
 \subsubsection{Newtonian fluids}
 \index{stress}
@@ -318,6 +333,31 @@ Within \fluidity it is also possible to relate the density of sea water to the i
 
 % The Pade approx may not actually be coded for the in situ temp, this needs to be checked.
 
+\subsection{Forms of the viscous term in the momentum equation} \label{sec:ViscosityTerms}
+
+If the modelled fluid is incompressible, or has a homogeneous viscosity, it is possible to simplify the stress term in the momentum equation. The complete form of this term, termed the '\emph{stress form}', is:
+\begin{equation}
+\nabla\cdot\sigtens = \nabla\cdot\left(-p \bmI + \tautens\right) = - \nabla p + 
+\nabla\cdot\mu\left(\nabla\bmu + (\nabla\bmu)^T - \frac{2}{3}(\nabla\cdot\bmu)\bmI \right)
+\end{equation}
+
+If the flow is incompressible, $\nabla\cdot\bmu=0$. It is now possible to simplify the above equation into the '\emph{partial stress form}':
+\begin{equation}
+\nabla\cdot\sigtens = - \nabla p + 
+\nabla\cdot\mu\left(\nabla\bmu + (\nabla\bmu)^T\right)
+\end{equation}
+
+If the flow is incompressible, and the viscosity is homogeneous:
+\begin{equation}
+\nabla\cdot\mu\left(\nabla\bmu + (\nabla\bmu)^T\right) = \frac{\partial}{\partial x_j} \mu \left(\frac{\partial \bmu_i}{\partial x_j} + \frac{\partial \bmu_j}{\partial x_i}\right) = \mu \left(\frac{\partial}{\partial x_j}\frac{\partial \bmu_i}{\partial x_j} + \frac{\partial}{\partial x_j}\frac{\partial \bmu_j}{\partial x_i}\right) = \mu \left(\frac{\partial}{\partial x_j}\frac{\partial \bmu_i}{\partial x_j}\right) = \nabla\cdot\mu\nabla\bmu
+\end{equation}
+the stress tensor can then be further simplified to obtain the '\emph{tensor form}':
+\begin{equation}
+\nabla\cdot\sigtens = - \nabla p + \nabla\cdot\mu\nabla\bmu
+\end{equation}
+
+The appropriate form of the stress tensor must be selected in the options tree as described in \ref{sec:VelocityOptions}.
+
 \subsection{Momentum boundary conditions} \label{sec:BCs-mom}
 
 \index{boundary conditions!Momentum}
@@ -337,6 +377,7 @@ where all three components are zero and this is referred to as no-slip.
 \index{boundary conditions!prescribed stress}
 \index{traction force}
 \index{momentum equation}
+\index{free stress}
 
 As with the scalar equation (see section \ref{sec:bc_scalar_neumann}), applying Green's theorem to the stress term and the pressure
 gradient in \eqref{mtm} results in a surface integral of the form
@@ -351,14 +392,16 @@ component to zero (in the presence of a free surface) and impose the two tangent
 \index{boundary conditions!free stress}
 The free-stress condition is the case where we take $\bmT\equiv\vec{0}$.
 
-\subsubsection{Traction boundary condition for momentum --- free-stress as a special case}\label{sec:bc_vector_traction}
+\subsubsection{Traction boundary condition for momentum --- free-slip as a special case}\label{sec:bc_vector_traction}
 \index{boundary conditions!traction}
 \index{momentum equation}
+\index{free slip}
 In this case the normal component of velocity can be prescribed (\eg inflow or
 no-flow ($g=0$) through the boundary)
-\begin{equation*}
+\begin{equation}
 \bmu\cdot\bmn = g,\quad \textrm{on}\quad \partial\Omega.
-\end{equation*}
+\label{normal_flow_condition}
+\end{equation}
 The remaining two degrees of freedom are imposed by taking the
 tangential component of \eqref{StressBC} and specifying the tangential component
 of the force $\bmT_{\tau}$, \ie
@@ -368,25 +411,49 @@ of the force $\bmT_{\tau}$, \ie
 An example of this might be where a rigid lid is used (so normal component is zero)
 and the tangential components are a prescribed wind stress (in which case we take
 the two tangential directions to correspond to the available stress or wind velocity
-information, \ie east-west and north-south) or bottom drag. Also, what we often term free-slip
+information, \ie east-west and north-south) or bottom drag. The term
+\emph{free slip}, is often used for the case
 where the tangential components of stress are set to zero.
 
 \subsubsection{Free surface boundary condition}\label{sec:FS}
 \index{free surface}
-The free surface height $\eta\equiv\eta(x,y,t)$ measured from the initial state of the ocean
-may be modelled either via the integrated continuity equation,
-or for simplicity here by the kinematic boundary condition which simply states
-that particles on the free surface remain on it, \ie
-\begin{equation}\label{freesurf2}
-\frac{\partial \eta}{\partial t}=-\left.{\bmu}_H\right|_{z=\eta}\cdot\nabla_H \eta +\left.w\right|_{z=\eta} \quad \textrm{on}\quad \Omega_{FS},
+\index{kinematic boundary condition}
+In the case of a free surface, the normal component of the velocity is related
+to the movement of the free surface through the \emph{kinematic boundary
+condition}. The free surface height $\eta\equiv\eta(x,y,t)$ is measured from 
+the initial state of the fluid. The kinematic boundary condition is derived by
+stating that a fluid particle following the flow at the free surface, should
+remain at the free surface. In other words, its trajectory is described by
+$t\mapsto (x(t), y(t),\eta(x(t),y(t),t))$. Its vertical velocity, $w$, should
+therefore satisfy:
+\begin{equation} \label{eq:kinematicbc1}
+  \frac{D\eta}{Dt}=\bmu_H \cdot\nabla_H \eta +
+  \frac{\partial\eta}{\partial t} = w \quad \textrm{on}\quad \Omega
 \end{equation}
-where $\Omega_{FS}\subset \partial \Omega$ is the free surface boundary, $\nabla_H\equiv(\partial/\partial x,\partial/\partial y)^T$, and
-$\bmu_H$ is the horizontal component of $\bmu$. Using the fact that the normal vector $\vec n$ at the free surface is $\frac{(-\frac{\partial \eta}{\partial x},-\frac{\partial \eta}{\partial y}, 1)^T}{||(-\frac{\partial \eta}{\partial x},-\frac{\partial \eta}{\partial y}, 1)^T||}$, equation \eqref{freesurf2} can be reformulated to
+where $\nabla_H\equiv(\partial/\partial x,\partial/\partial y)^T$, and
+$\bmu_H$ is the horizontal component of $\bmu$.
+Using the fact that the normal vector $\vec n$ at the free surface is
+$(-\frac{\partial \eta}{\partial x},-\frac{\partial \eta}{\partial y}, 1)^T/
+\|(-\frac{\partial \eta}{\partial x},-\frac{\partial \eta}{\partial y}, 1)\|$,
+this can be reformulated to
 \begin{equation}\label{freesurf3}
 \frac{\partial \eta}{\partial t}=\frac{\bmu \cdot \vec n}{\vec n \cdot \vec k},
 \end{equation}
-where $\vec k=(0,0,1)$ is the vertical standard basis vector. Note that in spherical geometries $\vec k$ is replaced with
-$\vec r=(\sin\theta\cos\phi,\sin\theta\sin\phi,\cos\theta)$ where $\phi$ and $\theta$ are the azimuthal and co-latitudinal angles respectively. 
+where $\vec k=(0,0,1)$ is the vertical normal vector. Note that in spherical
+geometries $\vec k$ is the radial unit vector. Since this condition does not
+restrict the normal velocity, it simply
+prescribes what the free surface movement is, we still need a stress condition
+in all directions, similar to equation $\eqref{StressBC}$. The tangential
+components can be either free, $\bmT_\tau=0$, or given by a wind stress. For the
+normal component, we get:
+\begin{equation}
+  \bmn\cdot(\tautens\cdot\bmn - p\bmn) = \bmn\cdot\tautens\cdot\bmn - p =
+  -\patm \quad \textrm{on}\quad \partial\Omega.
+  \label{NormalStressBC}
+\end{equation}
+In ocean applications, the deviatoric part of the normal stress condition is
+usually neglected and a simple Dirichlet pressure boundary condition $p=\patm$
+is applied instead.
 
 \subsubsection{Wetting and drying}\label{sec:WD}
 \index{free surface!Wetting and drying}
@@ -397,7 +464,7 @@ If wetting and drying occurs, the free surface boundary condition \ref{freesurf3
 \end{equation}
 where $d_0$ is a threshold defining the minimum water depth.
 
-The details of the wetting and drying are described in \cite{Funke2011}.
+The details of the wetting and drying algorithm are described in \cite{Funke2011}.
 
 \section{Extensions, assumptions and derived equation sets}\label{sec:eqn_extensions}
 
@@ -523,50 +590,6 @@ Applying this law to a control volume\footnote{The concept of a control volume a
 \end{equation}
 where $V$ is the control volume, $S$ is the surface of the control volume and $\vec n$ is the unit normal to the surface of the control volume and $\vec F$ is a volume force per unit mass. Physically, \ref{LinMom} states that the sum of all forces applied on the control volume is equal to the sum of the rate of change of momentum inside the control volume and the net flux of momentum through the control surface. More details regarding the derivation and properties of this equation can be found in \citet{batchelor1967}.
 
-\subsection{Buoyancy and Hydrostacy}\label{sec:hydrostacy}
-\index{density}
-\index{buoyancy}
-\index{pressure!hydrostatic}
-
-For fluids upon which gravity is acting the buoyancy force should be considered
-when a free surface is present or when the fluid contains variations in density. The buoyancy force is given by $\vec{b}=-\rho\bmg$
-and, in the absence of viscosity, a simple form of the vertical momentum equation can be written as
-\begin{equation}\label{eq:vertmom}
-\DDt[t]{w} = -\ppx[z]{p} + b,
-\end{equation}
-where $b=\rho g$ is the magnitude of the buoyancy force.
-
-\index{density!reference}
-\index{pressure!perturbation}
-
-If the fluid is in a state of rest, the left hand side of \eqref{eq:vertmom} is zero giving
-\begin{equation}\label{eq:hydrostatic_balance}
-\ppx[z]{p} = b.
-\end{equation}
-This is known as hydrostatic balance. It states that the pressure at point
-is equal to the weight of water above that point, plus any pressure loading on the surface of the
-domain (\eg atmospheric pressure or ice load which is here termed $p_a$):
-\begin{equation*}
-p(\bmx) = p_a + \int_z b.
-\end{equation*}
-If vertical accelerations are negligible then \eqref{eq:hydrostatic_balance} is
-often a good approximation to \eqref{eq:vertmom}. Under this assumption it is natural
-to define pressure in terms of a background pressure that is
-only dependent on depth and a perturbation to this:
-\begin{equation*}
-p=p_0(z,t)+p'(\bmx,t),
-\end{equation*}
-where $p_0(z,t)$ balances the constant $\rho_0$ part of buoyancy and may be written
-\begin{equation*}
-p_0(z,t) = \int_z^\eta \rho_0 g = \rho_0 g(\eta - z),
-\end{equation*}
-where $\eta\equiv\eta(\vec x)$ is the free surface height. If a free surface is present an
-additional term of the form
-\begin{equation*}
--\rho_0g\nabla\eta,
-\end{equation*}
-must therefore be included in the horizontal momentum equations.
-
 \subsection{The Boussinesq approximation} \label{sec:boussinesq_approximation}
 \index{density!reference}
 \index{Boussinesq!approximation}
@@ -575,11 +598,89 @@ Under certain conditions, one is able to assume that density does not vary great
 \begin{equation}
 \rho(\bmx,t) = \rho_0 + \rho'(\bmx,t),
 \end{equation}
-where $\rho'\ll\rho_0$. Such an approximation, namely, the Boussinesq approximation, involves two steps. The first makes use of \eqref{eq:divfree} --- mass conservation thus becomes volume conservation and sound waves are filtered. The second part of the Boussinesq approximation follows by replacing $\rho$ by $\rho_0$ in all terms of \eqref{viscous_fluids_1}, except where density is multiplied by gravity (i.e. in the buoyancy term where full density must be retained --- these are the density variations that drive natural convection). This yields
+where $\rho'\ll\rho_0$. Such an approximation, namely, the Boussinesq
+approximation, involves two steps. The first makes use of \eqref{eq:divfree} ---
+mass conservation thus becomes volume conservation and sound waves are filtered.
+The second part of the Boussinesq approximation follows by replacing $\rho$ by
+$\rho_0$ in all terms of \eqref{viscous_fluids_1}, except where density is
+multiplied by gravity (\ie in the buoyancy term where full density must be retained --- these are the density variations that drive natural convection). This yields
 \begin{equation}
 \rho_0\DDt{\bmu} -\nabla\cdot\sigtens = \rho \bmg + \rho_0\bmF,
 \end{equation}
-where buoyancy has explicitly been removed from the forcing term $\bmF$ and $\bmg$ is the gravitational vector (e.g. $\bmg = -g\bmk$ in planar problems when gravity points in the negative $z$ direction and $\bmg = -g\vec r$ on the sphere).
+where the gravity term has been separated explicitly from the forcing term $\bmF$ and $\bmg$ is the gravitational vector (e.g. $\bmg = -g\bmk$ in planar problems when gravity points in the negative $z$ direction and $\bmg = -g\vec r$ on the sphere).
+
+\subsubsection{Buoyancy and hydrostacy}\label{sec:buoyancy_hydrostacy}
+\index{density!reference}
+\index{pressure!perturbation}
+In absence of viscosity the vertical momentum equation can be written as:
+\begin{equation}\label{eq:vertmom}
+\DDt[t]{w} = -\ppx[z]{p} + \rho g.
+\end{equation}
+If the fluid is in a state of rest, the left hand-side is zero, giving:
+\begin{equation}\label{eq:hydrostatic_balance}
+\ppx[z]{p} = -\rho g
+\end{equation}
+This is known as hydrostatic balance. If the pressure $p_{\text{top}}$ at the top of the domain
+is given, e.g., an atmospheric pressure or a given ice load, 
+the hydrostatic pressure can be computed as
+\begin{equation} \label{eq:hydrostatic_pressure}
+  p(x,y,z) = p_{\text{top}}(x,y) + \int_{z=z}^{\eta(x,y)} \rho g dz,
+\end{equation}
+where $z=\eta(x,y)$ denotes the location of the top of the domain, e.g. a free
+surface. Here, we assume a coordinate system with $x$ and $y$ in the horizontal
+and $z$ in the vertical direction. The integral represents the weight of the
+water above a point at a given height $z$. For a constant density this simplifies to:
+\begin{equation}
+  p(x,y,z) = p_{\text{top}}(x,y) + \rho g \left(\eta(x,y)-z\right).
+\end{equation}
+
+If we consider the general case, that is not in hydrostatic balance and where
+the density is not constant, but we have a small perturbation density 
+$\rho'$, we may still write:
+\begin{equation}
+  p(x,y,z) = p_0(z) + p'(x,y,z) = -\rho_0 g z + p'(x,y,z).
+\end{equation}
+Here, we have separated the pressure $p_0=-\rho_0 g z$, due to the weight of a fluid of reference density $\rho_0$ below a reference level at $z=0$ near the top, from a perturbation pressure $p'$. This
+perturbation pressure still contains the hydrostatic pressure due to the
+perturbation density, and non-hydrostatic parts of the pressure. In the 
+case of a free surface at $z=\eta$, the additional weight of $\rho g\eta$, that
+is not taken into account in $p_0$ is also included in $p'$.
+
+By construction, the pressure gradient of $p_0$ exactly balances $\rho_0\bmg$,
+the reference density part of the gravity term
+\begin{equation}
+  \rho\bmg=\rho_0\bmg+\rho'\bmg
+\end{equation}
+We can therefore simply replace $p$ by $p'$ in the pressure gradient term, if we
+subtract $\rho_0\bmg$ from the gravity term, to obtain a buoyancy term
+$\rho'\bmg$.
+
+\subsubsection{Combining pressure and free surface}
+\index{free surface}
+In many models with a free surface, the $\rho_0 g\eta$ part of pressure (known
+in ocean models as barotropic pressure), is subtracted from the pressure as
+well, 
+and treated separately. Since this part still depends on the horizontal
+coordinates, its 3D gradient does not simply balance with the buoyancy, and a
+horizontal gradient $\rho_0g\nabla_{\text{H}}\eta$ remains, which is added as
+an extra term in the momentum equation in such models. 
+In \fluidity{}
+however, we keep this part in the perturbation pressure and it is therefore
+solved for in conjunction with the non-hydrostatic parts of pressure. 
+
+In this approach, care has to be taken when applying boundary conditions. If a
+pressure boundary condition of $p=\patm$ is enforced at $z=\eta$, then the
+boundary condition for the perturbation changes to:
+\begin{equation}
+  p'=p+\rho_0 z=\patm+\rho_0 g\eta
+  \quad \textrm{on}\quad \partial\Omega.\label{freesurfacepressure}
+\end{equation}
+If a normal stress condition is applied, see \eqref{NormalStressBC}, we similarly get:
+\begin{equation}
+  -\bmn\cdot\tautens\cdot\bmn + p' = \patm + \rho_0 g\eta
+  \quad \textrm{on}\quad \partial\Omega.
+  \label{normalstressfreesurface}
+\end{equation}
 
 \subsubsection{The non-hydrostatic Boussinesq equations}\label{sec:typical_ICOM_equations}
 \index{Boussinesq!equations}
@@ -590,7 +691,7 @@ Applying the approximations outlined in section \ref{sec:boussinesq_approximatio
 
 \begin{subeqnarray}
 \frac{\pp\bmu}{\pp t} + \bmu\cdot\nabla \bmu + 2 \bmOmega \times \bmu
-&=& - \nabla p' - g\nabla\eta + \rho' \bmg + \nabla\cdot \tautens + \bmF,
+&=& - \nabla p' + \rho' \bmg + \nabla\cdot \tautens + \bmF,
 \slabel{mtm}\\
 \nabla\cdot {\bmu}&=&0,\slabel{conty}\\
 \frac{\pp T}{\pp t} + \bmu\cdot\nabla  T  &=&
@@ -601,9 +702,9 @@ f(p,\rho,T,\ldots)&=&0,\slabel{state}
 \label{boussinesq}
 \end{subeqnarray}
 
-where $p'$ is the perturbation pressure (see section \ref{sec:hydrostacy}),
+where $p'$ is the perturbation pressure (see section \ref{sec:buoyancy_hydrostacy}),
 $\rho=\rho_0+\rho'$ where $\rho'(=(\rho-\rho_0)/\rho_0)$ is the perturbation density,
-$T$ is the temperature, $S$ is salinity, $\eta$ is the free surface height and
+$T$ is the temperature, $S$ is salinity, and
 $\tautens,\kaptens_T,\kaptens_S$ are the viscosity, thermal diffusivity and saline
 diffusivity tensors respectively.
 The rotation vector is $\bmOmega$, and $\bmF$ contains additional source terms such as the astronomical tidal forcing. A discussion
@@ -671,7 +772,7 @@ where $\eta_{eq}$ is the equilibrium tidal potential (m), $\lambda$ is the east 
 $[(\pi/2)-{\text{latitude}}]$, $\chi$ is the astronomical argument (radians), $\sigma$
 is the frequency of the tidal constituent (s$^{\text{-1}}$), $t$ is universal standard
 time (s) and $A$ is the equilibrium amplitude of the tidal constituent (m). Subscript
-$i$ represents the semidiurnal constituents (e.g. M$_{\text{2}}$), subscript $j$
+$i$ represents the semi-diurnal constituents (e.g. M$_{\text{2}}$), subscript $j$
 the diurnal constituents (\eg K$_{\text{1}}$) and subscript $k$ the long period
 constituents (\eg M$_{\text{f}}$; \citealp{Wells2008}).   
 The overall forcing 
@@ -705,14 +806,72 @@ Earth's gravitational potential brought about by the re-distribution of the Eart
 is a correction for the physical distortion to the Earth's surface \citep{Pugh1987}.
 
 The exact values of $k$ and $h$ vary for different tidal constituents and the numbers shown are given
-for the semidiurnal M$_{\text{2}}$ constituent. Typical variations to $k$ and $h$ are less than 0.01 which
+for the semi-diurnal M$_{\text{2}}$ constituent. Typical variations to $k$ and $h$ are less than 0.01 which
 corresponds to a $<$1\% change to the equilibrium tidal potential.
 These errors are sufficiently small that the stated values are a suitable approximation to
 use in body tide corrections to the majority of tidal constituents.
 
+\subsection{Shallow water equations}
+\index{shallow water equations}
+In many oceanographic simulations, the horizontal lengths scales are much larger
+than the vertical. It can be shown that this leads to small vertical velocities,
+and in particular small vertical accelerations. Thus, in the vertical momentum
+equation \eqref{eq:vertmom} the left hand-side can be neglected entirely. This
+means we assume the total pressure is given by \eqref{eq:hydrostatic_pressure},
+the so-called hydrostatic or shallow water approximation.
+
+Although shallow water flows are nearly horizontal, they may still exhibit a
+three-dimensional structure, due to e.g. bottom friction. In many applications
+however, these 3D effects are not important and it is sufficient to only study
+the depth-averaged flow velocities and free surface elevations
+\citep{vreugdenhil1994}. The depth-integrated continuity equation can be derived
+by working out the horizontal divergence of the horizontal velocities
+integrated, vertically, from the bottom $z=b$ to the free surface $z=\eta$:
+\begin{equation}
+\begin{split}
+  \nabla_H \cdot \int_{z=b}^{z=\eta} \bmu_H &=
+  \bmu_H\big|_{z=\eta}\cdot\nabla_H \eta
+  -\bmu_H\big|_{z=b}\cdot\nabla_H b + \int_{z=b}^{z=\eta} \nabla_H\cdot\bmu_H \\
+  &=
+  \bmu_H\big|_{z=\eta}\cdot\nabla_H \eta
+  -\bmu_H\big|_{z=b}\cdot\nabla_H b 
+  + \int_{z=b}^{z=\eta} \nabla\cdot\bmu-\frac{\partial w}{\partial z} \\
+  &=
+  \left[\bmu_H\cdot\nabla_H \eta + w\right]_{z=\eta}
+  -\left[\bmu_H\cdot\nabla_H b + w\right]_{z=b} \\
+  &=-\frac{\partial\eta}{\partial t} + 0
+  \label{eq:swe1_derivation}
+\end{split}
+\end{equation}
+Here, we've made use of the divergence-freeness of the flow, and, in the last
+step, the kinematic boundary condition \eqref{eq:kinematicbc1} at the free
+surface and no-normal-flow condition at the bottom.
+
+After defining the total water depth $h=\eta-b$, and the depth-averaged
+velocity:
+\begin{equation}
+  \bar\bmu = \frac{\int_{z=b}^{z=\eta} \bmu_H}{h},
+\end{equation}
+the depth-averaged shallow water equations (in non-conservative form) are given
+by:
+\begin{subequations} \label{eq:swe}
+\begin{align}
+  \frac{\partial\eta}{\partial t} + \nabla\cdot\left(h\bar\bmu\right) &=0,
+  \label{eq:swe1} \\
+  \frac{\partial\bar\bmu}{\partial t} + \bar\bmu\cdot\nabla\bar\bmu
+  + g\nabla\eta + C_D \frac{\|\bar\bmu\|\bar\bmu}{h} &=0. \label{eq:swe2}
+\end{align}
+\end{subequations}
+Note that because this is now a purely two-dimensional equation, we may drop the
+subscript $H$ from the gradient operator $\nabla$. The continuity equation
+\eqref{eq:swe1} follows directly from \eqref{eq:swe1_derivation}.
+For the derivation of the depth-averaged momentum equation \eqref{eq:swe2} see
+e.g. \citet{vreugdenhil1994}. The last term in that equation is a quadratic drag term, with
+dimensionless coefficient $C_D$, that represents the bottom friction.
+
 \subsection{Multi-material simulations}
 \index{multi-material flow}
-The ability to differentiate between regions with distinct material properties is of fundamental importance in the modelling of many physical systems. Two different approaches exist for achieving this: the multi-material approach and the multi-phase approach. The multi-material approach is implemented within \fluidity, and the multi-phase approach (discussed in the next subsection) is currently under development.
+The ability to differentiate between regions with distinct material properties is of fundamental importance in the modelling of many physical systems. Two different approaches exist for achieving this: the multi-material approach and the multiphase approach. The multi-material approach is implemented within \fluidity, and the multiphase approach (discussed in the next subsection) is currently under development.
 In situations where the model can resolve physical mixing of immiscible materials, or where there is no mixing, only one velocity field (and hence one momentum equation) is required to describe the flow of all materials. The \emph{multi-material} approach, considers all materials to be immiscible materials separated by a sharp interface.
 
 In a multi-material approach, the various forms of the conservation equations can be solved for multiple material flows if the point-wise mass density $\rho$ in the equations is defined as the bulk density at each point.  If the flow comprises $n$ materials and the volume fraction of the $i^{th}$ material is denoted $\phi_i$ then the bulk density is given by:
@@ -734,14 +893,17 @@ The transport of the $i^{th}$ volume fraction is given by
 \end{equation}
 where the volume fraction field at time zero must be specified.
 
-\subsection{Multi-phase simulations}
+\subsection{Multiphase simulations}
 \label{sec:multiphase_equations}
-\index{multi-phase flow}
-Multi-phase flows are defined by \cite{prosperettiEtAl2007} to be flows in which two or more phases of matter (solid, liquid, gas, etc) are simultaneously present and are allowed to inter-penetrate. Simple examples include the flow of a fizzy drink which is composed of a liquid and a finite number of gas bubbles, the transportation of solid sediment particles in a river, and the flow of blood cells around the human body.
+\index{multiphase flow}
+Multiphase flows are defined by \cite{prosperettiEtAl2007} to be flows in which two or more phases of matter (solid, liquid, gas, etc) are simultaneously present and are allowed to inter-penetrate. Simple examples include the flow of a fizzy drink which is composed of a liquid and a finite number of gas bubbles, the transportation of solid sediment particles in a river, and the flow of blood cells around the human body.
 
 Further to the above definition, each phase is classed as either \textit{continuous} or \textit{dispersed}, where a continuous phase is a connected liquid or gas substance in which dispersed phases (comprising a finite number of solid particles, liquid droplets and/or gas bubbles) may be immersed \citep{croweEtAl1998}.
 
-To enable the mixing and inter-penetration of phases, a separate velocity field (and hence a separate momentum equation) is assigned to each one and solved for. Extra terms are then included to account for inter-phase interactions. Furthermore, the model currently assumes no mass transfer between phases, incompressible flow, and a common pressure field $p$ so that only one continuity equation is used. Thus, the continuity equation and momentum equation for phase $i$ (based on the derivation in \cite{ishii1975}, written in non-conservative form) are:
+To enable the mixing and inter-penetration of phases, a separate velocity field (and hence a separate momentum equation) is assigned to each one and solved for. Extra terms are then included to account for inter-phase interactions. Furthermore, the model currently assumes no mass transfer between phases, incompressible flow, and a common pressure field $p$ so that only one continuity equation is used. The form of the governing equations depends on whether we are dealing with incompressible or compressible flow.
+
+\subsubsection{Incompressible flow}
+For an incompressible multiphase flow, the continuity equation and momentum equation for phase $i$ (based on the derivation in \cite{ishii1975}, written in non-conservative form) are:
 \begin{equation}
 \sum_{i=1}^N\nabla\cdot\left(\alpha_i\mathbf{u}_i\right) = 0,
 \end{equation}
@@ -749,14 +911,27 @@ To enable the mixing and inter-penetration of phases, a separate velocity field 
 \alpha_i\rho_i\frac{\partial \mathbf{u}_i}{\partial t} +
 \alpha_i\rho_i\mathbf{u}_i\cdot\nabla\mathbf{u}_i =
 -\alpha_i\nabla p + \alpha_i\rho_i\mathbf{g} +
-\nabla\cdot\left(\alpha_i\mu_i\nabla\mathbf{u}_i\right) +
+\nabla\cdot\left(\alpha_i\tautens_i\right) +
 \mathbf{F}_i,
 \end{equation}
-where $\mathbf{u}_i$, $\rho_i$, $\mu_i$ and $\alpha_i$ are the velocity, density, isotropic viscosity and volume fraction of phase $i$ respectively, and $\mathbf{F}_i$ represents the forces imposed on phase $i$ by the other $N-1$ phases. Details of momentum transfer terms are given in Chapter \ref{chap:configuration}.
+where $\mathbf{u}_i$, $\rho_i$, $\tautens_i$ and $\alpha_i$ are the velocity, density, viscous stress tensor and volume fraction of phase $i$ respectively, and $\mathbf{F}_i$ represents the forces imposed on phase $i$ by the other $N-1$ phases. Details of momentum transfer terms are given in Chapter \ref{chap:configuration}. For more information about the incompressible multiphase flow model implemented in Fluidity, see the paper by \cite{Jacobs_etal_2013}.
+
+\subsubsection{Compressible flow}
+Fluidity currently only supports the case where the continuous phase is compressible. All other phases (the dispersed phases) are incompressible. The momentum equation is the same as the one given above, but the continuity equation becomes:
+\begin{equation}
+\alpha_1\frac{\partial\rho_1}{\partial t} + \nabla\cdot\left(\alpha_1\rho_1\mathbf{u}_1\right) + \rho_1\left(\sum_{i=2}^N\nabla\cdot\left(\alpha_i\mathbf{u}_i\right)\right) = 0,
+\end{equation}
+where the compressible phase has an index of $i=1$ here.
+
+An internal energy equation may also need to be solved depending on the equation of state used for the compressible phase. This is given by:
+\begin{equation}
+\alpha_i\rho_i\frac{\partial e_i}{\partial t} + \alpha_i\rho_i\mathbf{u}_i\cdot\nabla e_i = -\alpha_i p\nabla\cdot\mathbf{u}_i + \nabla\cdot\left(\alpha_i\frac{k_i}{C_{v,i}}\nabla e_i\right) + Q_i
+\end{equation}
+where $e_i$ is the internal energy, $k_i$ is the effective conductivity, $C_{v,i}$ is the specific heat (at constant volume), and $Q_i$ is an inter-phase energy transfer term described in Chapter \ref{chap:configuration}. Note that, in Fluidity, the pressure term is always neglected in the (incompressible) particle phase's internal energy equation.
 
 \subsection{Porous Media Darcy Flow}
 \label{sec:porous_media_darcy_flow_equations}
-\index{porous media darcy flow}
+\index{porous media Darcy flow}
 
 \subsubsection{Single Phase}
 

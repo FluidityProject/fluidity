@@ -96,9 +96,9 @@ assert abs(vfracintwater0-vfracintwater) &lt; max(maxdivergence, mindivergence)
 print 'conservation error = ', abs(vfracintdrop0-vfracintdrop)
 assert abs(vfracintdrop0-vfracintdrop) &lt; max(maxdivergence, mindivergence)
     </test>
-    <test name="check that reasonable tolerance (1.0e-08) is being used to test conservation" language="python">
+    <test name="check that reasonable tolerance (2.0e-08) is being used to test conservation" language="python">
 print 'divergence tolerance = ', max(maxdivergence, mindivergence)
-assert max(maxdivergence, mindivergence) &lt; 1.0e-08
+assert max(maxdivergence, mindivergence) &lt; 2.0e-08
     </test>
     <test name="check minimum water volume fraction is 0.0" language="python">
 assert abs(mnvfracwater) &lt; 1e-10

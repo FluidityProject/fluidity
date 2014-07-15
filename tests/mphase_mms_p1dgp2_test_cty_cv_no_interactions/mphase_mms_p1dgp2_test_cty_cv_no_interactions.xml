@@ -109,6 +109,12 @@ print c_error
 bc_ratio = b_error / c_error
 bc_convergence_p = log(bc_ratio, 2)
     </variable>
+    
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
   </variables>  
   <pass_tests>
     <test name="ab_convergence_vel_x for Fluid1: 1.8 .lt. L2 order .gt. 2.22" language="python">
@@ -141,6 +147,10 @@ assert(abs(bc_convergence_vel[1][1] - 2.01) &lt; 0.21)
     </test>    
     <test name="bc_convergence_p: 1.8 .lt. L2 order .gt. 2.22" language="python">
 assert(abs(bc_convergence_p - 2.01) &lt; 0.21)
+    </test>
+    
+    <test name="Solvers converged" language="python">
+assert(solvers_converged)
     </test>
   </pass_tests>  
   <warn_tests>

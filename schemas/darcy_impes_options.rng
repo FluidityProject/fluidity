@@ -727,19 +727,19 @@ at the first timestep or not.</a:documentation>
           <attribute name="name">
             <value>Phase2_dual</value>
           </attribute>
-          <ref name="darcy_impes_dual_Phase2"/>
+          <ref name="darcy_impes_dual_other_phase_options"/>
         </element>
         <element name="material_phase">
           <attribute name="name">
             <value>Phase3_dual</value>
           </attribute>
-          <ref name="darcy_impes_dual_Phase2"/>
+          <ref name="darcy_impes_dual_other_phase_options"/>
         </element>
         <element name="material_phase">
           <attribute name="name">
             <value>Phase4_dual</value>
           </attribute>
-          <ref name="darcy_impes_dual_Phase2"/>
+          <ref name="darcy_impes_dual_other_phase_options"/>
         </element>
       </choice>
     </zeroOrMore>
@@ -782,16 +782,40 @@ at the first timestep or not.</a:documentation>
           <zeroOrMore>
             <ref name="darcy_impes_first_phase_bc_pressure_field"/>
           </zeroOrMore>
-          <ref name="darcy_impes_include_cv_stat"/>
+          <ref name="field_output_options"/>
+          <ref name="darcy_impes_include_stat"/>
           <ref name="adaptivity_options_prognostic_scalar_field"/>
           <ref name="interpolation_algorithm_scalar"/>
         </element>
         <element name="prescribed">
           <ref name="mesh_choice_pressure"/>
           <ref name="prescribed_scalar_field"/>
-          <ref name="darcy_impes_include_cv_stat"/>
+          <ref name="field_output_options"/>
+          <ref name="darcy_impes_include_stat"/>
         </element>
       </choice>
+    </element>
+  </define>
+  <define name="darcy_impes_dual_first_phase_pressure_field">
+    <element name="scalar_field">
+      <attribute name="rank">
+        <value>0</value>
+      </attribute>
+      <attribute name="name">
+        <value>Pressure</value>
+      </attribute>
+      <element name="prognostic">
+        <ref name="mesh_choice_pressure"/>
+        <oneOrMore>
+          <ref name="initial_condition_scalar"/>
+        </oneOrMore>
+        <zeroOrMore>
+          <ref name="darcy_impes_first_phase_bc_pressure_field"/>
+        </zeroOrMore>
+        <ref name="darcy_impes_include_cv_stat"/>
+        <ref name="adaptivity_options_prognostic_scalar_field"/>
+        <ref name="interpolation_algorithm_scalar"/>
+      </element>
     </element>
   </define>
   <define name="darcy_impes_asym_solver_options">
@@ -810,9 +834,15 @@ at the first timestep or not.</a:documentation>
       </element>
       <element name="solver">
         <attribute name="name">
+          <value>DefaultSolverOptionsGMRESHYPRE</value>
+        </attribute>
+        <ref name="darcy_impes_pressure_linear_solver_options_asym_default_gmres_hypre"/>
+      </element>
+      <element name="solver">
+        <attribute name="name">
           <value>ChooseSolverOptions</value>
         </attribute>
-        <ref name="linear_solver_options_asym"/>
+        <ref name="linear_solver_options_asym_scalar"/>
       </element>
     </choice>
   </define>
@@ -824,6 +854,11 @@ at the first timestep or not.</a:documentation>
   <define name="darcy_impes_pressure_linear_solver_options_asym_default_gmres_mg">
     <ref name="darcy_impes_solver_default_gmres"/>
     <ref name="darcy_impes_solver_default_mg"/>
+    <ref name="darcy_impes_solver_tolerances"/>
+  </define>
+  <define name="darcy_impes_pressure_linear_solver_options_asym_default_gmres_hypre">
+    <ref name="darcy_impes_solver_default_gmres"/>
+    <ref name="darcy_impes_solver_default_hypre"/>
     <ref name="darcy_impes_solver_tolerances"/>
   </define>
   <define name="darcy_impes_solver_default_gmres">
@@ -862,6 +897,28 @@ Especially suited for ill-conditioned, large aspect ratio problems.</a:documenta
       <attribute name="name">
         <value>mg</value>
       </attribute>
+    </element>
+  </define>
+  <define name="darcy_impes_solver_default_hypre">
+    <element name="preconditioner">
+      <a:documentation>Hypre preconditioners (includes boomeramg)</a:documentation>
+      <attribute name="name">
+        <value>hypre</value>
+      </attribute>
+      <choice>
+        <element name="hypre_type">
+          <a:documentation>BoomerAMG multigrid method</a:documentation>
+          <attribute name="name">
+            <value>boomeramg</value>
+          </attribute>
+        </element>
+        <element name="hypre_type">
+          <a:documentation>Other Hypre preconditioners</a:documentation>
+          <attribute name="name">
+            <data type="string"/>
+          </attribute>
+        </element>
+      </choice>
     </element>
   </define>
   <define name="darcy_impes_solver_tolerances">
@@ -995,7 +1052,8 @@ for the latest output to be written.</a:documentation>
             <ref name="darcy_impes_saturation_source"/>
           </optional>
           <ref name="scalar_convergence_options"/>
-          <ref name="darcy_impes_include_cv_stat"/>
+          <ref name="field_output_options"/>
+          <ref name="darcy_impes_include_stat"/>
           <ref name="adaptivity_options_prognostic_scalar_field"/>
           <ref name="interpolation_algorithm_scalar"/>
         </element>
@@ -1022,7 +1080,8 @@ for the latest output to be written.</a:documentation>
           <ref name="darcy_impes_saturation_source"/>
         </optional>
         <ref name="scalar_convergence_options"/>
-        <ref name="darcy_impes_include_cv_stat"/>
+        <ref name="field_output_options"/>
+        <ref name="darcy_impes_include_stat"/>
         <ref name="adaptivity_options_prognostic_scalar_field"/>
         <ref name="interpolation_algorithm_scalar"/>
       </element>
@@ -1096,7 +1155,8 @@ Finite Element face value discretisation.</a:documentation>
       <element name="prescribed">
         <ref name="mesh_choice_element_wise"/>
         <ref name="prescribed_scalar_field_no_adapt"/>
-        <ref name="darcy_impes_include_cv_stat"/>
+        <ref name="field_output_options"/>
+        <ref name="darcy_impes_include_stat"/>
       </element>
       <element name="diagnostic">
         <ref name="mesh_choice_element_wise"/>
@@ -1110,7 +1170,8 @@ Finite Element face value discretisation.</a:documentation>
       <element name="prescribed">
         <ref name="mesh_choice_saturationsource"/>
         <ref name="prescribed_scalar_field_no_adapt"/>
-        <ref name="darcy_impes_include_cv_stat"/>
+        <ref name="field_output_options"/>
+        <ref name="darcy_impes_include_stat"/>
       </element>
       <element name="diagnostic">
         <ref name="mesh_choice_saturationsource"/>
@@ -1124,7 +1185,8 @@ Finite Element face value discretisation.</a:documentation>
       <element name="prescribed">
         <ref name="mesh_choice_transmissibility"/>
         <ref name="prescribed_scalar_field_no_adapt"/>
-        <ref name="darcy_impes_include_cv_stat"/>
+        <ref name="field_output_options"/>
+        <ref name="darcy_impes_include_stat"/>
       </element>
       <element name="diagnostic">
         <ref name="mesh_choice_transmissibility"/>
@@ -1565,8 +1627,21 @@ Finite element discretisation may become unbounded so limiting is often necessar
       </element>
     </element>
   </define>
+  <define name="darcy_impes_transmissibility_lambda">
+    <element name="scalar_field">
+      <a:documentation>Specify the exchange between Porous Media and Dual Porous Media for this phase.</a:documentation>
+      <attribute name="rank">
+        <value>0</value>
+      </attribute>
+      <attribute name="name">
+        <value>TransmissibilityLambdaDual</value>
+      </attribute>
+      <ref name="darcy_impes_scalar_field_prescribed_or_python_diagnostic_transmissibility_mesh"/>
+    </element>
+  </define>
   <define name="darcy_impes_dual_Phase1">
-    <ref name="darcy_impes_first_phase_pressure_field"/>
+    <ref name="darcy_impes_transmissibility_lambda"/>
+    <ref name="darcy_impes_dual_first_phase_pressure_field"/>
     <ref name="darcy_impes_saturation_field_phase_one"/>
     <ref name="darcy_impes_first_phase_relative_permeability_field"/>
     <ref name="darcy_impes_viscosity_field"/>
@@ -1585,7 +1660,8 @@ Finite element discretisation may become unbounded so limiting is often necessar
       <ref name="darcy_impes_generic_scalar_field"/>
     </zeroOrMore>
   </define>
-  <define name="darcy_impes_dual_Phase2">
+  <define name="darcy_impes_dual_other_phase_options">
+    <ref name="darcy_impes_transmissibility_lambda"/>
     <ref name="darcy_impes_non_first_phase_pressure_field"/>
     <optional>
       <ref name="darcy_impes_capilliary_pressure_field"/>
@@ -1611,7 +1687,8 @@ Finite element discretisation may become unbounded so limiting is often necessar
         <element name="prescribed">
           <ref name="darcy_mesh_choice"/>
           <ref name="prescribed_scalar_field"/>
-          <ref name="darcy_impes_include_cv_stat"/>
+          <ref name="field_output_options"/>
+          <ref name="darcy_impes_include_stat"/>
           <optional>
             <ref name="darcy_impes_recalculation_options"/>
           </optional>
@@ -1646,7 +1723,8 @@ Finite element discretisation may become unbounded so limiting is often necessar
           <optional>
             <ref name="darcy_MIM_generic_scalar_field_immobile_src"/>
           </optional>
-          <ref name="darcy_impes_include_cv_stat"/>
+          <ref name="field_output_options"/>
+          <ref name="darcy_impes_include_stat"/>
           <ref name="adaptivity_options_prognostic_scalar_field"/>
           <ref name="interpolation_algorithm_scalar"/>
         </element>
@@ -1850,7 +1928,7 @@ Which should be exactly the same with the name set in the MobileImmobileModel op
       <choice>
         <element name="type">
           <attribute name="name">
-            <value>normal_flow</value>
+            <value>prescribed_normal_flow</value>
           </attribute>
           <ref name="input_choice_real"/>
         </element>
@@ -1862,11 +1940,18 @@ Which should be exactly the same with the name set in the MobileImmobileModel op
       </choice>
     </element>
   </define>
-  <define name="darcy_impes_include_cv_stat">
+  <define name="darcy_impes_include_stat">
     <element name="stat">
-      <element name="include_cv_stats">
-        <ref name="comment"/>
-      </element>
+      <ref name="darcy_impes_field_stat_options_disabled_default"/>
+      <optional>
+        <ref name="cv_stats"/>
+      </optional>
+    </element>
+  </define>
+  <define name="cv_stats">
+    <element name="include_cv_stats">
+      <a:documentation>Include statistics evaluated on the control volume mesh.</a:documentation>
+      <empty/>
     </element>
   </define>
   <define name="darcy_impes_mesh_adaptivity_options">
@@ -1998,7 +2083,7 @@ higher order solution is pivotted.
       <choice>
         <element name="solver">
           <a:documentation>Solver</a:documentation>
-          <ref name="linear_solver_options_asym"/>
+          <ref name="linear_solver_options_asym_scalar"/>
         </element>
         <element name="explicit">
           <a:documentation>Assume this field is being solved explicitly and skip the solver.
@@ -2028,12 +2113,32 @@ and divides the rhs by this.</a:documentation>
     </element>
   </define>
   <define name="darcy_impes_metric_advection_velocity_name">
-    <element name="advecting_velocity_field_name">
-      <a:documentation>The name of the field used to advect the metric
+    <choice>
+      <element name="advecting_velocity_field">
+        <a:documentation>The name of the field used to advect the metric
 that must exist in the first material_phase.
 If not given then the NonlinearVelocity is used.</a:documentation>
-      <value>BulkDarcyVelocity</value>
-    </element>
+        <attribute name="name">
+          <value>BulkDarcyVelocity</value>
+        </attribute>
+      </element>
+      <element name="advecting_velocity_field">
+        <a:documentation>The name of the field used to advect the metric
+that must exist in the first material_phase.
+If not given then the NonlinearVelocity is used.</a:documentation>
+        <attribute name="name">
+          <value>TotalDarcyVelocity</value>
+        </attribute>
+      </element>
+      <element name="advecting_velocity_field">
+        <a:documentation>The name of the field used to advect the metric
+that must exist in the first material_phase.
+If not given then the NonlinearVelocity is used.</a:documentation>
+        <attribute name="name">
+          <data type="string"/>
+        </attribute>
+      </element>
+    </choice>
   </define>
   <define name="darcy_impes_metric_field_face_value">
     <choice>
@@ -2088,16 +2193,8 @@ the first material_phase state then aliased in all others.</a:documentation>
   </define>
   <define name="darcy_impes_dual_porous_media_model">
     <element name="porous_media_dual">
-      <a:documentation>Porous Media_dual:
-Porosity and Permeability for the dual permeability model</a:documentation>
-      <optional>
-        <element name="have_dual_pressure">
-          <a:documentation>Have a dual pressure such that a block matrix is solved for each phase 1. 
-Else the dual pressure phase 1 has the same values as the prime pressure
-phase 1. WARNING: THIS CAUSES PETSC ERRORS IN 2D.</a:documentation>
-          <empty/>
-        </element>
-      </optional>
+      <a:documentation>Enable the dual porous media model. If one enables the AbsolutePermeabilityDual
+then this becomes a dual permeability model.</a:documentation>
       <element name="scalar_field">
         <a:documentation>Specify scalar field PorosityDual which is inserted into 
 the first material_phase state then aliased in all others.</a:documentation>
@@ -2106,49 +2203,60 @@ the first material_phase state then aliased in all others.</a:documentation>
         </attribute>
         <ref name="darcy_impes_scalar_field_prescribed_or_python_diagnostic_element_wise_mesh"/>
       </element>
-      <element name="scalar_field">
-        <a:documentation>Specify field AbsolutePermeabilityDual which is inserted into 
-the first material_phase state then aliased in all others.</a:documentation>
-        <attribute name="name">
-          <value>AbsolutePermeabilityDual</value>
-        </attribute>
-        <ref name="darcy_impes_scalar_field_prescribed_or_python_diagnostic_element_wise_mesh"/>
-      </element>
-      <element name="scalar_field">
-        <a:documentation>Specify the exchange between Porous Media and Dual Porous Media which is inserted into 
-the first material_phase state then aliased in all others.</a:documentation>
-        <attribute name="name">
-          <value>TransmissibilityLambdaDual</value>
-        </attribute>
-        <ref name="darcy_impes_scalar_field_prescribed_or_python_diagnostic_transmissibility_mesh"/>
-      </element>
+      <optional>
+        <element name="scalar_field">
+          <a:documentation>Specify field AbsolutePermeabilityDual which is inserted into 
+the first material_phase state then aliased in all others.
+WARNING: THIS CAUSES PETSC ERRORS SOMETIMES IN 2D</a:documentation>
+          <attribute name="name">
+            <value>AbsolutePermeabilityDual</value>
+          </attribute>
+          <optional>
+            <element name="do_not_solve_for_dual_first_phase_pressure">
+              <a:documentation>Do not solve for the Dual media first phase pressure, instead 
+assign it the prime media first phase pressure. WARNING: THIS
+WILL IMPLY THE DUAL MEDIA SATURATIONS ARE ADVECTED WITH AN 
+EFFECTIVE VELOCITY THAT IS NOT DIVERGENCE FREE SO YOU SHOULD 
+NOT EXPECT THE RESULTS TO BE BOUNDED</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <ref name="darcy_impes_scalar_field_prescribed_or_python_diagnostic_element_wise_mesh"/>
+        </element>
+      </optional>
     </element>
   </define>
   <define name="darcy_impes_diagnostic_scalar_field">
-    <ref name="darcy_impes_include_cv_stat"/>
+    <ref name="field_output_options"/>
+    <ref name="darcy_impes_include_stat"/>
     <ref name="adaptivity_options_scalar_field"/>
     <ref name="interpolation_algorithm_scalar"/>
   </define>
   <define name="darcy_impes_diagnostic_scalar_field_no_adapt">
-    <ref name="darcy_impes_include_cv_stat"/>
+    <ref name="field_output_options"/>
+    <ref name="darcy_impes_include_stat"/>
     <ref name="interpolation_algorithm_scalar"/>
   </define>
   <define name="darcy_impes_diagnostic_vector_field">
-    <ref name="darcy_impes_include_cv_stat"/>
+    <ref name="field_output_options"/>
+    <ref name="darcy_impes_include_stat"/>
     <ref name="adaptivity_options_vector_field"/>
     <ref name="interpolation_algorithm_scalar"/>
   </define>
   <define name="darcy_impes_diagnostic_vector_field_no_adapt">
-    <ref name="darcy_impes_include_cv_stat"/>
+    <ref name="field_output_options"/>
+    <ref name="darcy_impes_include_stat"/>
     <ref name="interpolation_algorithm_scalar"/>
   </define>
   <define name="darcy_impes_diagnostic_tensor_field">
-    <ref name="darcy_impes_include_cv_stat"/>
+    <ref name="field_output_options"/>
+    <ref name="darcy_impes_include_stat"/>
     <ref name="adaptivity_options_tensor_field"/>
     <ref name="interpolation_algorithm_scalar"/>
   </define>
   <define name="darcy_impes_diagnostic_tensor_field_no_adapt">
-    <ref name="darcy_impes_include_cv_stat"/>
+    <ref name="field_output_options"/>
+    <ref name="darcy_impes_include_stat"/>
     <ref name="interpolation_algorithm_scalar"/>
   </define>
   <define name="darcy_impes_scalar_python_diagnostic_algorithm">
@@ -2452,7 +2560,8 @@ which are the dynamic saturation and the immobile saturation.</a:documentation>
             <a:documentation>Field type</a:documentation>
             <ref name="mesh_choice_pressure"/>
             <ref name="prescribed_scalar_field"/>
-            <ref name="darcy_impes_include_cv_stat"/>
+            <ref name="field_output_options"/>
+            <ref name="darcy_impes_include_stat"/>
             <optional>
               <ref name="darcy_impes_recalculation_options"/>
             </optional>
@@ -2497,7 +2606,8 @@ which are the dynamic saturation and the immobile saturation.</a:documentation>
               <a:documentation>Field type</a:documentation>
               <ref name="mesh_choice_pressure"/>
               <ref name="prescribed_scalar_field"/>
-              <ref name="darcy_impes_include_cv_stat"/>
+              <ref name="field_output_options"/>
+              <ref name="darcy_impes_include_stat"/>
               <optional>
                 <ref name="darcy_impes_recalculation_options"/>
               </optional>
@@ -2531,12 +2641,50 @@ i.e. if the name of this scaler field is set to be 'cd', then the name will be c
               <a:documentation>Please write down the name of the mobile source field which the immobile field is based on</a:documentation>
               <data type="string" datatypeLibrary=""/>
             </element>
-            <ref name="darcy_impes_include_cv_stat"/>
+            <ref name="field_output_options"/>
+            <ref name="darcy_impes_include_stat"/>
             <ref name="adaptivity_options_prognostic_scalar_field"/>
             <ref name="interpolation_algorithm_scalar"/>
           </element>
         </element>
       </zeroOrMore>
+    </element>
+  </define>
+  <define name="cv_stats">
+    <element name="include_cv_stats">
+      <a:documentation>Include statistics evaluated on the control volume mesh.</a:documentation>
+      <empty/>
+    </element>
+  </define>
+  <!-- Diagnostic statistics options for fields, with disabled by default -->
+  <define name="darcy_impes_field_stat_options_disabled_default">
+    <choice>
+      <ref name="exclude_field_from_stat"/>
+      <ref name="include_field_in_stat"/>
+    </choice>
+  </define>
+  <!-- Options for inclusion/exclusion of field statistics from the .stat file -->
+  <define name="include_field_in_stat">
+    <element name="include_in_stat">
+      <a:documentation>Include this field in the .stat file</a:documentation>
+      <ref name="comment"/>
+    </element>
+  </define>
+  <define name="exclude_field_from_stat">
+    <element name="exclude_from_stat">
+      <a:documentation>Exclude this field from the .stat file</a:documentation>
+      <ref name="comment"/>
+    </element>
+  </define>
+  <define name="field_output_options">
+    <element name="output">
+      <a:documentation>Specify what is written to dump files.</a:documentation>
+      <optional>
+        <element name="exclude_from_vtu">
+          <a:documentation>Exclude this field from dump files.</a:documentation>
+          <ref name="comment"/>
+        </element>
+      </optional>
     </element>
   </define>
 </grammar>

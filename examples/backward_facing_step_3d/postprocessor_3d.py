@@ -7,6 +7,7 @@ import vtktools
 import numpy
 import pylab
 import re
+import extract_data
 from math import log
 
 def get_filelist(sample, start):
@@ -15,7 +16,7 @@ def get_filelist(sample, start):
         return int(s.split('_')[-1].split('.')[0])
    
     list = glob.glob("*vtu")
-    list = [l for l in list if 'check' not in l]
+    list = [l for l in list if 'checkpoint' not in l]
     vtu_nos = [float(s.split('_')[-1].split('.')[0]) for s in list]
     vals = zip(vtu_nos, list)
     vals.sort()
@@ -93,23 +94,27 @@ def reatt_length(filelist, zarray):
     ##### Get time for plot:
     t = min(datafile.GetScalarField("Time"))
     print file, ', elapsed time = ', t
-
-    ##### points near bottom surface, 0 < x < 25
-    x2array=[]; pts=[]; no_pts = 52; offset = 0.01
-    x = 0.0
-    for i in range(1, no_pts):
-      x2array.append(x)
-      for j in range(len(zarray)):
-        pts.append((x, zarray[j], offset))
-      x += 0.5
+    if(t<0.):
+      continue
+    else:
+      print "extracting data..."
+      ##### points near bottom surface, 0 < x < 25
+      x2array=[]; pts=[]; no_pts = 52; offset = 0.01
+      x = 0.0
+      for i in range(1, no_pts):
+        x2array.append(x)
+        for j in range(len(zarray)):
+          pts.append((x, zarray[j], offset))
+        x += 0.5
 
     x2array = numpy.array(x2array)
     pts = numpy.array(pts)
 
     ##### Get x-velocity on bottom boundary
-    uvw = datafile.ProbeData(pts, "Velocity")
+    uvw = datafile.ProbeData(pts, "AverageVelocity")
     u = uvw[:,0]
     u = u.reshape([x2array.size,zarray.size])
+    pts=pts.reshape([x2array.size,zarray.size,3])
 
     ##### Find all potential reattachment points:
     points = []
@@ -121,18 +126,17 @@ def reatt_length(filelist, zarray):
           ##### interpolate between nodes
           p = x2array[i] + (x2array[i+1]-x2array[i]) * (0.0-u[i,j]) / (u[i+1,j]-u[i,j])
           ##### Ignore spurious corner points
-          if(p>0.1):
+          if(p>1.0):
             points.append(p)
-          ##### We have our first point on this plane so...
-          break
+            ##### We have our first point on this plane so...
+            break
 
     ##### This is the spanwise-averaged reattachment point:
     if (len(points)>0):
       avpt = sum(points) / len(points)
     else:
       avpt = 0.0
-    print "spanwise-averaged reattachment point: ", avpt
-
+    print 'spanwise averaged reattachment point: ', avpt
     ##### Get time for plot:
     t = min(datafile.GetScalarField("Time"))
     results.append([avpt,t])
@@ -144,7 +148,7 @@ def reatt_length(filelist, zarray):
 # Velocity profiles:
 def velo(filelist,xarray,zarray,yarray):
 
-  print "\nRunning velocity profile script on files at times...\n"
+  print "\nRunning mean velocity profile script on files at times...\n"
   ##### check for no files
   if (len(filelist) < 0):
     print "No files!"
@@ -169,7 +173,7 @@ def velo(filelist,xarray,zarray,yarray):
   print file, ', elapsed time = ', t
 
   ##### Get x-velocity
-  uvw = datafile.ProbeData(pts, "Velocity")
+  uvw = datafile.ProbeData(pts, "AverageVelocity")
   umax = 1.55
   u = uvw[:,0]/umax
   u = u.reshape([xarray.size,zarray.size,yarray.size])
@@ -189,19 +193,23 @@ def velo(filelist,xarray,zarray,yarray):
 
 #########################################################################
 
-def plot_length(reattachment_length):
-  ##### Plot time series of reattachment length using pylab(matplotlib)
+def plot_length(rl):
+  ##### Plot time series of reattachment length
 
-  Lemoinkim = numpy.zeros([len(reattachment_length[:,1])])
+  av_length = sum(rl[:,0]) / len(rl[:,0])
+  avg = numpy.zeros([len(rl[:,0])])
+  avg[:] = av_length
+  Lemoinkim = numpy.zeros([len(rl[:,0])])
   Lemoinkim[:]=6.28
 
   plot1 = pylab.figure()
   pylab.title("Time series of reattachment length")
   pylab.xlabel('Time (s)')
   pylab.ylabel('Reattachment Length (L/h)')
-  pylab.plot(reattachment_length[:,1], reattachment_length[:,0], marker = 'o', markerfacecolor='white', markersize=6, markeredgecolor='black', linestyle="solid")
-  pylab.plot(reattachment_length[:,1], Lemoinkim, linestyle="dashed")
-  pylab.legend(("length (step heights)","Le-Moin-Kim DNS"), loc="lower right")
+  pylab.plot(rl[:,1], rl[:,0], marker = 'o', markerfacecolor='white', markersize=6, markeredgecolor='black', linestyle="solid")
+  pylab.plot(rl[:,1], Lemoinkim, linestyle="dashed")
+  pylab.legend(("Fluidity","Le-Moin-Kim DNS"), loc="best")
+  pylab.axis([min(rl[:,1]),max(rl[:,1]),min(rl[:,0])-0.5,max(rl[:,0])+0.5])
   pylab.savefig("reatt_len_3d.pdf")
   return
 
@@ -210,85 +218,13 @@ def plot_length(reattachment_length):
 def plot_velo(vprofiles,xarray,yarray):
 
   # get profiles from ERCOFTAC data
-  datafile = open('Ercoftac-test31-BFS/BFS-SEM-ERCOFTAC360-table.dat', 'r')
-  print "reading in data from file: BFS-SEM-ERCOFTAC360-table.dat"
-  # ignore header line
-  for line in range(1):
-    datafile.readline()
-  
-  y4=[];U4=[]
-  for line in datafile:
-    y4.append(float(line.split()[0]))
-    U4.append(float(line.split()[1]))
-
-  datafile = open('Ercoftac-test31-BFS/BFS-SEM-ERCOFTAC411-table.dat', 'r')
-  print "reading in data from file: BFS-SEM-ERCOFTAC411-table.dat"
-  # ignore header line
-  for line in range(1):
-    datafile.readline()
-  
-  y6=[];U6=[]
-  for line in datafile:
-    y6.append(float(line.split()[0]))
-    U6.append(float(line.split()[1]))
-
-  datafile = open('Ercoftac-test31-BFS/BFS-SEM-ERCOFTAC513-table.dat', 'r')
-  print "reading in data from file: BFS-SEM-ERCOFTAC513-table.dat"
-  # ignore header line
-  for line in range(1):
-    datafile.readline()
-  
-  y10=[];U10=[]
-  for line in datafile:
-    y10.append(float(line.split()[0]))
-    U10.append(float(line.split()[1]))
-
-  datafile = open('Ercoftac-test31-BFS/BFS-SEM-ERCOFTAC744-table.dat', 'r')
-  print "reading in data from file: BFS-SEM-ERCOFTAC744-table.dat"
-  # ignore header line
-  for line in range(1):
-    datafile.readline()
-  
-  y19=[];U19=[]
-  for line in datafile:
-    y19.append(float(line.split()[0]))
-    U19.append(float(line.split()[1]))
-
-  # get profiles from Le&Moin U graph. x=4
-  Le = open('Le-profiles/Le-profile1-U-x4.dat', 'r').readlines()
-  Le_u4 = [float(line.split()[0]) for line in Le]
-  Le_y4 = [float(line.split()[1]) for line in Le]
-  jd = open('Le-profiles/JD-profile1-U-x4.dat', 'r').readlines()
-  jd_u4 = [float(line.split()[0]) for line in jd]
-  jd_y4 = [float(line.split()[1]) for line in jd]
-
-  # get profiles from Le&Moin U graph. x=6
-  Le = open('Le-profiles/Le-profile1-U-x6.dat', 'r').readlines()
-  Le_u6 = [float(line.split()[0]) for line in Le]
-  Le_y6 = [float(line.split()[1]) for line in Le]
-  jd = open('Le-profiles/JD-profile1-U-x6.dat', 'r').readlines()
-  jd_u6 = [float(line.split()[0]) for line in jd]
-  jd_y6 = [float(line.split()[1]) for line in jd]
-
-  # get profiles from Le&Moin U graph. x=10
-  Le = open('Le-profiles/Le-profile1-U-x10.dat', 'r').readlines()
-  Le_u10 = [float(line.split()[0]) for line in Le]
-  Le_y10 = [float(line.split()[1]) for line in Le]
-  jd = open('Le-profiles/JD-profile1-U-x10.dat', 'r').readlines()
-  jd_u10 = [float(line.split()[0]) for line in jd]
-  jd_y10 = [float(line.split()[1]) for line in jd]
-
-  # get profiles from Le&Moin U graph. x=19
-  Le = open('Le-profiles/Le-profile1-U-x19.dat', 'r').readlines()
-  Le_u19 = [float(line.split()[0]) for line in Le]
-  Le_y19 = [float(line.split()[1]) for line in Le]
-  jd = open('Le-profiles/JD-profile1-U-x19.dat', 'r').readlines()
-  jd_u19 = [float(line.split()[0]) for line in jd]
-  jd_y19 = [float(line.split()[1]) for line in jd]
+  y4,U4,y6,U6,y10,U10,y19,U19 = extract_data.ercoftacvelocityprofiles()
+  # get profiles from Le&Moin data
+  Le_y4,Le_u4,jd_y4,jd_u4,Le_y6,Le_u6,jd_y6,jd_u6,Le_y10,Le_u10,jd_y10,jd_u10,Le_y19,Le_u19,jd_y19,jd_u19 = extract_data.velocityprofileslemoin()
 
   ##### Plot velocity profiles at different points behind step using pylab(matplotlib)
   plot1 = pylab.figure(figsize = (16.5, 8.5))
-  pylab.suptitle("Evolution of U-velocity", fontsize=20)
+  pylab.suptitle("Evolution of mean U-velocity", fontsize=20)
 
   size = 15
 
@@ -298,6 +234,7 @@ def plot_velo(vprofiles,xarray,yarray):
   ax.plot(jd_u4,jd_y4, linestyle="none",marker='o',color='black')
   ax.set_title('(a) x/h='+str(xarray[0]), fontsize=16)
   pylab.legend(('Fluidity',"Le&Moin DNS","Jovic&Driver expt"),loc="upper left")
+  #ax.grid("True")
   for tick in ax.xaxis.get_major_ticks():
     tick.label1.set_fontsize(size)
   for tick in ax.yaxis.get_major_ticks():
@@ -308,6 +245,7 @@ def plot_velo(vprofiles,xarray,yarray):
   bx.plot(U6,y6, linestyle="dashed")
   bx.plot(jd_u6,jd_y6, linestyle="none",marker='o',color='black')
   bx.set_title('(a) x/h='+str(xarray[1]), fontsize=16)
+  #bx.grid("True")
   for tick in bx.xaxis.get_major_ticks():
     tick.label1.set_fontsize(size)
   pylab.setp(bx.get_yticklabels(), visible=False)
@@ -317,6 +255,7 @@ def plot_velo(vprofiles,xarray,yarray):
   cx.plot(U10,y10, linestyle="dashed")
   cx.plot(jd_u10,jd_y10, linestyle="none",marker='o',color='black')
   cx.set_title('(a) x/h='+str(xarray[2]), fontsize=16)
+  #bx.grid("True")
   for tick in cx.xaxis.get_major_ticks():
     tick.label1.set_fontsize(size)
   pylab.setp(cx.get_yticklabels(), visible=False)
@@ -326,6 +265,7 @@ def plot_velo(vprofiles,xarray,yarray):
   dx.plot(U19,y19, linestyle="dashed")
   dx.plot(jd_u19,jd_y19, linestyle="none",marker='o',color='black')
   dx.set_title('(a) x/h='+str(xarray[3]), fontsize=16)
+  #bx.grid("True")
   for tick in dx.xaxis.get_major_ticks():
     tick.label1.set_fontsize(size)
   pylab.setp(dx.get_yticklabels(), visible=False)
@@ -345,21 +285,20 @@ def main():
 
     ##### Points to generate profiles:
     xarray = numpy.array([4.0, 6.0, 10.0, 19.0])
-    zarray = numpy.array([0.1, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 3.9])
+    zarray = numpy.linspace(0.0,4.0,41)
     yarray = numpy.array([0.01,0.02,0.03,0.04,0.05,0.06,0.07,0.08,0.09,0.1,0.11,0.12,0.13,0.14,0.15,0.16,0.17,0.18,0.19,0.2,0.21,0.22,0.23,0.24,0.25, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3.0,3.1,3.2,3.3,3.4,3.5,3.6,3.7,3.8,3.9,4.0,4.1,4.2,4.3,4.4,4.5,4.6,4.7,4.8,4.9,5.0])
 
     ##### Call reattachment_length function
     reattachment_length = numpy.array(reatt_length(filelist, zarray))
-    numpy.save("numpy_data/reatt_length", reattachment_length)
+    numpy.save("reatt_length", reattachment_length)
     plot_length(reattachment_length)
 
     ##### Call velo function
     zarray = numpy.array([2.0])
     vprofiles = velo(filelist, xarray, zarray, yarray)
-    numpy.save("numpy_data/velo_profiles", vprofiles)
-    print "Showing plot of velocity profiles."
+    numpy.save("velo_profiles", vprofiles)
+    print "Generating plot of velocity profiles."
     plot_velo(vprofiles,xarray,yarray)
-    pylab.show()
 
     print "\nAll done.\n"
 

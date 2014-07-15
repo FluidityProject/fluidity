@@ -64,10 +64,12 @@ from fluidity_tools import stat_parser
 s = stat_parser("darcy_impes_p1_pseudo1phase_velBCinlet_1d.stat")
 sum_sat_integral_1d = s["Phase1"]["SumSaturation"]["integral"][-1]
     </variable>
+    
     <variable name="phase1_tracer_regression_difference_max_1d" language="python">
 from fluidity_tools import stat_parser as stat
 phase1_tracer_regression_difference_max_1d = stat("darcy_impes_p1_pseudo1phase_velBCinlet_1d.stat")["Phase1"]["TracerDifference"]["max"][-1]
     </variable>
+    
     <variable name="phase1_sat_max_2d" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("darcy_impes_p1_pseudo1phase_velBCinlet_2d.stat")
@@ -103,10 +105,12 @@ from fluidity_tools import stat_parser
 s = stat_parser("darcy_impes_p1_pseudo1phase_velBCinlet_2d.stat")
 sum_sat_integral_2d = s["Phase1"]["SumSaturation"]["integral"][-1]
     </variable>
+    
     <variable name="phase1_tracer_regression_difference_max_2d" language="python">
 from fluidity_tools import stat_parser as stat
 phase1_tracer_regression_difference_max_2d = stat("darcy_impes_p1_pseudo1phase_velBCinlet_2d.stat")["Phase1"]["TracerDifference"]["max"][-1]
     </variable>
+    
     <variable name="phase1_sat_max_3d" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("darcy_impes_p1_pseudo1phase_velBCinlet_3d.stat")
@@ -142,10 +146,12 @@ from fluidity_tools import stat_parser
 s = stat_parser("darcy_impes_p1_pseudo1phase_velBCinlet_3d.stat")
 sum_sat_integral_3d = s["Phase1"]["SumSaturation"]["integral"][-1]
     </variable>
+    
     <variable name="phase1_tracer_regression_difference_max_3d" language="python">
 from fluidity_tools import stat_parser as stat
 phase1_tracer_regression_difference_max_3d = stat("darcy_impes_p1_pseudo1phase_velBCinlet_3d.stat")["Phase1"]["TracerDifference"]["max"][-1]
     </variable>
+    
     <variable name="phase1_v_mag_max_1d" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("darcy_impes_p1_pseudo1phase_velBCinlet_1d.stat")
@@ -247,6 +253,7 @@ solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
 assert(solvers_converged)
     </test>
     
+    <!-- analytical comparisons, 1st order, 1D thru 3D (pressure) -->
     <test name="change_P for 1d should equal domain_length*visc*darcy_vel_BC/perm, check relative difference to be under tolerance 1.0e-09" language="python">
 change_P = abs(max(pressure_1d) - min(pressure_1d))
 visc = 1.0e-04
@@ -275,6 +282,7 @@ print 'Relative error of pressure difference: ',abs((change_P - domain_length*vi
 assert abs((change_P - domain_length*visc*darcy_vel_BC/perm)/(domain_length*visc*darcy_vel_BC/perm)) &lt; 1.0e-09
     </test>
 
+    <!-- basic comparisons, 1st order, 1D thru 3D (pressure) -->
     <test name="max_P for 1d should equal 1.5e+09, check relative difference to be under tolerance 1.0e-09" language="python">
 print 'Relative error of pressure max ',abs((max(pressure_1d) - 1.5e+09)/1.5e+09)
 assert abs((max(pressure_1d) - 1.5e+09)/1.5e+09) &lt; 1.0e-09
@@ -287,7 +295,6 @@ assert abs((max(pressure_2d) - 1.5e+09)/1.5e+09) &lt; 1.0e-09
 print 'Relative error of pressure max ',abs((max(pressure_3d) - 1.5e+09)/1.5e+09)
 assert abs((max(pressure_3d) - 1.5e+09)/1.5e+09) &lt; 1.0e-09
     </test>
-
     <test name="min_P for 1d should equal 0.0, check absolute difference to be under tolerance 1.0e-09" language="python">
 print 'Absolute error of pressure min ',abs(min(pressure_1d))
 assert abs(min(pressure_1d)) &lt; 1.0e-09
@@ -301,6 +308,7 @@ print 'Absolute error of pressure min ',abs(min(pressure_3d))
 assert abs(min(pressure_3d)) &lt; 1.0e-09
     </test>
 
+    <!-- basic comparisons, 1st order, 1D -->
     <test name="phase 1 for 1d has max(sat) equals 1.0 with tolerance 1.0e-08" language="python">
 assert abs(phase1_sat_max_1d - 1.0) &lt; 1.0e-08
     </test>
@@ -325,9 +333,13 @@ assert abs(sum_sat_min_1d - 1.0) &lt; 1.0e-08
 print 'difference: ',abs(sum_sat_integral_1d - 3.0e+02)/3.0e+02
 assert abs(sum_sat_integral_1d - 3.0e+02)/3.0e+02 &lt; 1.0e-08
     </test>
+
+    <!-- regression comparisons, 1st order, 1D -->
     <test name="Assert phase1_tracer_regression_difference_max_1d is less than 1.0e-8" language="python">
 assert(abs(phase1_tracer_regression_difference_max_1d) &lt; 1.0e-8)
     </test>
+    
+    <!-- basic comparisons, 1st order, 2D -->
     <test name="phase 1 for 2d has max(sat) equals 1.0 with tolerance 1.0e-08" language="python">
 assert abs(phase1_sat_max_2d - 1.0) &lt; 1.0e-08
     </test>
@@ -352,9 +364,13 @@ assert abs(sum_sat_min_2d - 1.0) &lt; 1.0e-08
 print 'difference: ',abs(sum_sat_integral_2d - 9.0e+04)/9.0e+04
 assert abs(sum_sat_integral_2d - 9.0e+04)/9.0e+04 &lt; 1.0e-08
     </test>
+    
+    <!-- regression comparisons, 1st order, 2D -->
     <test name="Assert phase1_tracer_regression_difference_max_2d is less than 1.0e-8" language="python">
 assert(abs(phase1_tracer_regression_difference_max_2d) &lt; 1.0e-8)
     </test>
+    
+    <!-- basic comparisons, 1st order, 3D -->
     <test name="phase 1 for 3d has max(sat) equals 1.0 with tolerance 1.0e-08" language="python">
 assert abs(phase1_sat_max_3d - 1.0) &lt; 1.0e-08
     </test>
@@ -379,9 +395,13 @@ assert abs(sum_sat_min_3d - 1.0) &lt; 1.0e-08
 print 'difference: ',abs(sum_sat_integral_3d - 2.7e+07)/2.7e+07
 assert abs(sum_sat_integral_3d - 2.7e+07)/2.7e+07 &lt; 1.0e-08
     </test>
+    
+    <!-- regression comparisons, 1st order, 3D -->
     <test name="Assert phase1_tracer_regression_difference_max_3d is less than 1.0e-8" language="python">
 assert(abs(phase1_tracer_regression_difference_max_3d) &lt; 1.0e-8)
     </test>
+    
+    <!-- basic comparisons, 1st order, 1D (velocity) -->
     <test name="Check phase1_v_mag_max_1d equals 5.0 with tolerance 1.0e-08" language="python">
 assert abs(phase1_v_mag_max_1d - 5.0) &lt; 1.0e-08
     </test>
@@ -391,6 +411,8 @@ assert abs(phase2_v_mag_max_1d - 5.0) &lt; 1.0e-08
     <test name="Check v_tot_mag_max_1d equals 10.0 with tolerance 1.0e-08" language="python">
 assert abs(v_tot_mag_max_1d - 10.0) &lt; 1.0e-08
     </test>
+    
+    <!-- basic comparisons, 1st order, 2D (velocity) -->
     <test name="Check phase1_v_mag_max_2d equals 5.0 with tolerance 1.0e-08" language="python">
 assert abs(phase1_v_mag_max_2d - 5.0) &lt; 1.0e-08
     </test>
@@ -400,6 +422,8 @@ assert abs(phase2_v_mag_max_2d - 5.0) &lt; 1.0e-08
     <test name="Check v_tot_mag_max_2d equals 10.0 with tolerance 1.0e-08" language="python">
 assert abs(v_tot_mag_max_2d - 10.0) &lt; 1.0e-08
     </test>
+    
+    <!-- basic comparisons, 1st order, 3D (velocity) -->
     <test name="Check phase1_v_mag_max_3d equals 5.0 with tolerance 1.0e-08" language="python">
 assert abs(phase1_v_mag_max_3d - 5.0) &lt; 1.0e-08
     </test>
@@ -410,6 +434,7 @@ assert abs(phase2_v_mag_max_3d - 5.0) &lt; 1.0e-08
 assert abs(v_tot_mag_max_3d - 10.0) &lt; 1.0e-08
     </test>
 
+    <!-- basic comparisons, 1st order, 1D (mobility) -->
     <test name="Check phase1_mob_max_1d equals 10000.0 with tolerance 1.0e-08" language="python">
 assert abs(phase1_mob_max_1d - 10000.0) &lt; 1.0e-08
     </test>
@@ -419,6 +444,8 @@ assert abs(phase2_mob_max_1d - 10000.0) &lt; 1.0e-08
     <test name="Check mob_tot_max_1d equals 20000.0 with tolerance 1.0e-08" language="python">
 assert abs(mob_tot_max_1d - 20000.0) &lt; 1.0e-08
     </test>
+    
+    <!-- basic comparisons, 1st order, 2D (mobility) -->
     <test name="Check phase1_mob_max_2d equals 10000.0 with tolerance 1.0e-08" language="python">
 assert abs(phase1_mob_max_2d - 10000.0) &lt; 1.0e-08
     </test>
@@ -428,6 +455,8 @@ assert abs(phase2_mob_max_2d - 10000.0) &lt; 1.0e-08
     <test name="Check mob_tot_max_2d equals 20000.0 with tolerance 1.0e-08" language="python">
 assert abs(mob_tot_max_2d - 20000.0) &lt; 1.0e-08
     </test>
+    
+    <!-- basic comparisons, 1st order, 3D (mobility) -->
     <test name="Check phase1_mob_max_3d equals 10000.0 with tolerance 1.0e-08" language="python">
 assert abs(phase1_mob_max_3d - 10000.0) &lt; 1.0e-08
     </test>

@@ -163,7 +163,7 @@
     call register_functional_callbacks()
     if (.not. adjoint) then
       ! disable the adjointer
-      ierr = adj_set_option(adjointer, ADJ_ACTIVITY, ADJ_ACTIVITY_NOTHING)
+      ierr = adj_deactivate_adjointer(adjointer) 
       call adj_chkierr(ierr)
     end if
 #endif
@@ -241,7 +241,7 @@
           call project_cartesian_to_local(state(1), v_field)
        end if 
 
-       call execute_timestep(state(1), dt)
+       call execute_timestep(state, 1, dt)
 
        call set_prescribed_field_values(state, exclude_interpolated=.true., &
             exclude_nonreprescribed=.true., time=current_time + dt)
@@ -528,9 +528,10 @@
 
     end subroutine insert_time_in_state
 
-    subroutine execute_timestep(state, dt)
+    subroutine execute_timestep(state, istate, dt)
       implicit none
-      type(state_type), intent(inout) :: state
+      type(state_type), dimension(:), intent(inout) :: state
+      integer, intent(in) :: istate
       real, intent(in) :: dt
 
       !! Layer thickness
@@ -548,20 +549,20 @@
       real :: energy
       logical :: have_source
 
-      !Pull the fields out of state
-      D=>extract_scalar_field(state, "LayerThickness")
-      U=>extract_vector_field(state, "LocalVelocity")
+      !Pull the fields out of state(istate)
+      D=>extract_scalar_field(state(istate), "LayerThickness")
+      U=>extract_vector_field(state(istate), "LocalVelocity")
       have_source = .false.
-      if (has_vector_field(state, "LocalVelocitySource")) then
+      if (has_vector_field(state(istate), "LocalVelocitySource")) then
         have_source = .true.
-        source => extract_vector_field(state, "LocalVelocitySource")
+        source => extract_vector_field(state(istate), "LocalVelocitySource")
       end if
       dim = U%dim
 
       call execute_timestep_setup(D,U,d_rhs,u_rhs,advecting_u, &
            old_u,old_d,delta_d,delta_u)
 
-      call insert(state,advecting_u,"NonlinearVelocity")
+      call insert(state(istate),advecting_u,"NonlinearVelocity")
 
       call set(advecting_u,u)
       call set(old_u,u)
@@ -577,20 +578,20 @@
             do d1 = 1, dim
                velocity_cpt = extract_scalar_field(u,d1)
                old_velocity_cpt = extract_scalar_field(old_u,d1)
-               call insert(state,velocity_cpt,"VelocityComponent")
-               call insert(state,old_velocity_cpt,"VelocityComponentOld")
-               call solve_advection_diffusion_dg("VelocityComponent", state)
+               call insert(state(istate),velocity_cpt,"VelocityComponent")
+               call insert(state(istate),old_velocity_cpt,"VelocityComponentOld")
+               call solve_advection_diffusion_dg("VelocityComponent", state(istate))
             end do
          end if
          !pressure advection
          if(.not.exclude_pressure_advection) then
-            call solve_field_equation_cg("LayerThickness", state, dt, &
+            call solve_field_equation_cg("LayerThickness", state, 1, dt, &
                  "NonlinearVelocity")
          end if
 
          if(hybridized) then
             call solve_hybridized_helmholtz(&
-                 &state,&
+                 &state(istate),&
                  &U_out=U_rhs,D_out=D_rhs,&
                  &compute_cartesian=.true.,&
                  &check_continuity=.true.,output_dense=.false.)
@@ -623,8 +624,8 @@
             !Construct explicit parts of h rhs in wave equation
             call get_d_rhs(d_rhs,u_rhs,D,U,div_mat,big_mat,D0,dt,theta)
 
-            if (has_scalar_field(state, "LayerThicknessSource")) then
-               d_src => extract_scalar_field(state, "LayerThicknessSource")
+            if (has_scalar_field(state(istate), "LayerThicknessSource")) then
+               d_src => extract_scalar_field(state(istate), "LayerThicknessSource")
                call allocate(md_src, d_src%mesh, "MassMatrixTimesLayerThicknessSource")
                call zero(md_src)
                call mult(md_src, h_mass_mat, d_src)
@@ -991,6 +992,8 @@
 
       ierr = adj_equation_set_rhs_dependencies(equation, context=c_loc(matrices))
       call adj_chkierr(ierr)
+      ierr = adj_equation_set_rhs_callback(equation, c_funloc(shallow_water_forward_source))
+      call adj_chkierr(ierr)
       ierr = adj_register_equation(adjointer, equation)
       call adj_chkierr(ierr)
 
@@ -1051,6 +1054,8 @@
 
         ierr = adj_equation_set_rhs_dependencies(equation, context=c_loc(matrices))
         call adj_chkierr(ierr)
+        ierr = adj_equation_set_rhs_callback(equation, c_funloc(shallow_water_forward_source))
+        call adj_chkierr(ierr)
         ierr = adj_register_equation(adjointer, equation)
         call adj_chkierr(ierr)
 
@@ -1075,6 +1080,8 @@
         call adj_chkierr(ierr)
 
         ierr = adj_equation_set_rhs_dependencies(equation, context=c_loc(matrices))
+        call adj_chkierr(ierr)
+        ierr = adj_equation_set_rhs_callback(equation, c_funloc(shallow_water_forward_source))
         call adj_chkierr(ierr)
         ierr = adj_register_equation(adjointer, equation)
         call adj_chkierr(ierr)
@@ -1105,6 +1112,8 @@
 
         ierr = adj_equation_set_rhs_dependencies(equation, context=c_loc(matrices))
         call adj_chkierr(ierr)
+        ierr = adj_equation_set_rhs_callback(equation, c_funloc(shallow_water_forward_source))
+        call adj_chkierr(ierr)
         ierr = adj_register_equation(adjointer, equation)
         call adj_chkierr(ierr)
 
@@ -1131,6 +1140,8 @@
         call adj_chkierr(ierr)
 
         ierr = adj_equation_set_rhs_dependencies(equation, context=c_loc(matrices))
+        call adj_chkierr(ierr)
+        ierr = adj_equation_set_rhs_callback(equation, c_funloc(shallow_water_forward_source))
         call adj_chkierr(ierr)
         ierr = adj_register_equation(adjointer, equation)
         call adj_chkierr(ierr)
@@ -1269,6 +1280,8 @@
       call adj_chkierr(ierr)
       ierr = adj_equation_set_rhs_dependencies(equation, context=c_loc(matrices))
       call adj_chkierr(ierr)
+      ierr = adj_equation_set_rhs_callback(equation, c_funloc(shallow_water_forward_source))
+      call adj_chkierr(ierr)
       ierr = adj_register_equation(adjointer, equation)
       call adj_chkierr(ierr)
       ierr = adj_destroy_equation(equation)
@@ -1278,6 +1291,8 @@
                                     & targets=(/previous_eta, delta_eta, eta/), equation=equation)
       call adj_chkierr(ierr)
       ierr = adj_equation_set_rhs_dependencies(equation, context=c_loc(matrices))
+      call adj_chkierr(ierr)
+      ierr = adj_equation_set_rhs_callback(equation, c_funloc(shallow_water_forward_source))
       call adj_chkierr(ierr)
       ierr = adj_register_equation(adjointer, equation)
       call adj_chkierr(ierr)
@@ -1289,6 +1304,8 @@
       call adj_chkierr(ierr)
       ierr = adj_equation_set_rhs_dependencies(equation, context=c_loc(matrices))
       call adj_chkierr(ierr)
+      ierr = adj_equation_set_rhs_callback(equation, c_funloc(shallow_water_forward_source))
+      call adj_chkierr(ierr)
       ierr = adj_register_equation(adjointer, equation)
       call adj_chkierr(ierr)
       ierr = adj_destroy_equation(equation)
@@ -1299,6 +1316,8 @@
       call adj_chkierr(ierr)
       ierr = adj_equation_set_rhs_dependencies(equation, context=c_loc(matrices))
       call adj_chkierr(ierr)
+      ierr = adj_equation_set_rhs_callback(equation, c_funloc(shallow_water_forward_source))
+      call adj_chkierr(ierr)
       ierr = adj_register_equation(adjointer, equation)
       call adj_chkierr(ierr)
       ierr = adj_destroy_equation(equation)
@@ -1308,6 +1327,8 @@
                                     & targets=(/u, cartesian_u/), equation=equation)
       call adj_chkierr(ierr)
       ierr = adj_equation_set_rhs_dependencies(equation, context=c_loc(matrices))
+      call adj_chkierr(ierr)
+      ierr = adj_equation_set_rhs_callback(equation, c_funloc(shallow_water_forward_source))
       call adj_chkierr(ierr)
       ierr = adj_register_equation(adjointer, equation)
       call adj_chkierr(ierr)

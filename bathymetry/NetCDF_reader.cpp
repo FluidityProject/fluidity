@@ -21,7 +21,7 @@
 using namespace std;
 
 NetCDF_reader::NetCDF_reader(const char *filename, bool _verbose){
-#ifdef HAVE_NETCDF
+#ifdef HAVE_LIBNETCDF
   verbose = _verbose;
  
   if(verbose)
@@ -455,7 +455,7 @@ NetCDF_reader::NetCDF_reader(const char *filename, bool _verbose){
 }
 
 NetCDF_reader::~NetCDF_reader(){
-#ifdef HAVE_NETCDF
+#ifdef HAVE_LIBNETCDF
   // Close the netCDF file.
   ncclose(ncid);
 #else
@@ -495,7 +495,7 @@ bool NetCDF_reader::IsColatitude() const{
 }
 
 int NetCDF_reader::Read(vector<double> &z) const{
-#ifdef HAVE_NETCDF
+#ifdef HAVE_LIBNETCDF
   if(verbose)
     cout<<"int NetCDF_reader::Read(vector<double> &z) const\n";
 
@@ -560,7 +560,7 @@ int NetCDF_reader::Read(vector<double> &z) const{
 }
 
 void NetCDF_reader::NetCDFErrorCheckingOff(){
-#ifdef HAVE_NETCDF
+#ifdef HAVE_LIBNETCDF
   ncopts = 0;
 #else
   cerr << "No NetCDF support" << endl;
@@ -569,7 +569,7 @@ void NetCDF_reader::NetCDFErrorCheckingOff(){
 }
 
 void NetCDF_reader::NetCDFErrorCheckingOn(){
-#ifdef HAVE_NETCDF
+#ifdef HAVE_LIBNETCDF
   // Make NetCDF errors verbose and fatal
   ncopts = NC_VERBOSE | NC_FATAL;
 #else

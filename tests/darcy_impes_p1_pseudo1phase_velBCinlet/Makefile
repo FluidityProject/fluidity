@@ -1,16 +1,14 @@
-SHELL = sh
+include ../darcy_impes_common/Depend.mk
 
 SIM = darcy_impes_p1_pseudo1phase_velBCinlet
 
-# options for 1d mesh interval script
-MESH_SIZE = 15.0
-LEFT_X    = 0.0
-RIGHT_X   = 300.0
-
 input: clean
-	interval --dx=$(MESH_SIZE) $(LEFT_X) $(RIGHT_X) $(SIM)_1d
-	gmsh -2 square.geo -o square.msh
-	gmsh -3 cube.geo -o cube.msh
+	$(call import_python_code,batch_tools.py)
+	$(call import_python_code,test_tools.py)
+	$(call import_python_code,buckley_leverett_test_tools.py)
+	cp mesh_data/$(SIM)*.* .
+	cp mesh_data/square*.msh .
+	cp mesh_data/cube*.msh .
 
 clean:
 	rm -f *.ele
@@ -31,3 +29,7 @@ clean:
 	rm -f matrixdump*
 	rm -f first_timestep_adapted_mesh*
 	rm -f *.convergence 
+	rm -f error_*.txt
+	rm -f buckley_leverett_test_tools.py
+	rm -f test_tools.py
+	rm -f batch_tools.py

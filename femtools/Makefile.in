@@ -50,11 +50,11 @@ ARFLAGS = @ARFLAGS@
 
 UNROLL_LOOPS = @UNROLL_LOOPS@
 
-LIB = ../lib/lib$(FLUIDITY).a
+LIB = ../lib/lib$(FLUIDITY).a 
 
 F90LIB = libfemtools.a
 
-LIBS    = -L../lib -l$(FLUIDITY) @LIBS@ @BLAS_LIBS@
+LIBS    = -L/usr/lib/ -lnetcdf -L../lib -l$(FLUIDITY) @LIBS@ @BLAS_LIBS@
 
 TESTLIBS = $(shell echo @LIBS@ | sed 's@./lib/lib\([a-z]*\)\.a@-l\1@g')
 
@@ -90,7 +90,7 @@ OBJS = Dgtools.o Coordinates.o EventCounter.o \
   Halos_Communications.o Halos_Debug.o Halos_Derivation.o Halos_IO.o \
   Halos_Numbering.o Halos_Ownership.o Halos_Registration.o Halos_Repair.o \
   qsortd.o Element_Intersection.o Intersection_finder.o tri_predicate.o \
-  tet_predicate.o Lagrangian_Remap.o Weak_BCs.o \
+  tet_predicate.o Lagrangian_Remap.o \
   Detector_Data_Types.o Detector_Tools.o \
   Detector_Parallel.o Detector_Move_Lagrangian.o \
   Picker_Data_Types.o Pickers.o Pickers_Allocates.o \
@@ -104,15 +104,14 @@ OBJS = Dgtools.o Coordinates.o EventCounter.o \
   CGAL_Tools_C.o CGAL_Tools.o \
   Rotated_Boundary_Conditions.o MPI_Interfaces.o Parallel_Tools.o \
   Fields_Halos.o Profiler.o Profiler_Fortran.o Streamfunction.o \
-  GMSH_Common.o Read_GMSH.o Write_GMSH.o Mesh_Files.o
+  GMSH_Common.o Read_GMSH.o Write_GMSH.o \
+  Exodusii_C_Interface.o Exodusii_F_Interface.o Exodusii_Common.o Read_Exodusii.o \
+  Mesh_Files.o Vertical_Extrapolation.o
 
 
 # objects to be included in libfemtools:
 F90LIB_OBJS := ../debug/*.o ../libwm/*.o  \
   $(OBJS)
-ifeq (@ALGENCAN@,yes)
-F90LIB_OBJS := $(F90LIB_OBJS) ../libalgencan/*.o
-endif
 
 .SUFFIXES: .F90 .cpp .c .o .a
 

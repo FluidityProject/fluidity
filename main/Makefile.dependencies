@@ -32,8 +32,9 @@ Darcy_IMPES.o : Darcy_IMPES.F90 ../include/adapt_state_module.mod \
    ../include/diagnostic_fields_new.mod ../include/diagnostic_variables.mod \
    ../include/elements.mod ../include/eventcounter.mod ../include/fdebug.h \
    ../include/fefields.mod ../include/field_options.mod ../include/fields.mod \
-   ../include/fldebug.mod ../include/global_parameters.mod \
-   ../include/halos.mod ../include/memory_diagnostics.mod \
+   ../include/fldebug.mod ../include/form_metric_field.mod \
+   ../include/global_parameters.mod ../include/halos.mod \
+   ../include/memory_diagnostics.mod ../include/merge_tensors.mod \
    ../include/meshdiagnostics.mod ../include/parallel_tools.mod \
    ../include/populate_state_module.mod ../include/qmesh_module.mod \
    ../include/reserve_state_module.mod ../include/shape_functions.mod \
@@ -43,8 +44,8 @@ Darcy_IMPES.o : Darcy_IMPES.F90 ../include/adapt_state_module.mod \
    ../include/state_module.mod ../include/synthetic_bc.mod \
    ../include/tictoc.mod ../include/timeloop_utilities.mod \
    ../include/timers.mod ../include/vertical_extrapolation_module.mod \
-   ../include/vtk_interfaces.mod ../include/write_state_module.mod \
-   ../include/write_triangle.mod
+   ../include/vtk_interfaces.mod ../include/write_gmsh.mod \
+   ../include/write_state_module.mod ../include/write_triangle.mod
 
 ../include/fluids_module.mod: Fluids.o
 	@true
@@ -72,19 +73,19 @@ Fluids.o ../include/fluids_module.mod: Fluids.F90 \
    ../include/iceshelf_meltrate_surf_normal.mod ../include/implicit_solids.mod \
    ../include/k_epsilon.mod ../include/memory_diagnostics.mod \
    ../include/meshdiagnostics.mod ../include/meshmovement.mod \
-   ../include/momentum_equation.mod ../include/multimaterial_module.mod \
-   ../include/multiphase_module.mod ../include/parallel_tools.mod \
-   ../include/populate_state_module.mod \
+   ../include/momentum_diagnostic_fields.mod ../include/momentum_equation.mod \
+   ../include/multimaterial_module.mod ../include/multiphase_module.mod \
+   ../include/parallel_tools.mod ../include/populate_state_module.mod \
    ../include/populate_sub_state_module.mod ../include/qmesh_module.mod \
    ../include/reduced_model_runtime.mod ../include/reserve_state_module.mod \
    ../include/saturation_distribution_search_hookejeeves.mod \
-   ../include/sediment.mod ../include/signal_vars.mod \
-   ../include/solidconfiguration.mod ../include/sparse_tools.mod \
-   ../include/spontaneous_potentials.mod ../include/spud.mod \
-   ../include/synthetic_bc.mod ../include/timeloop_utilities.mod \
-   ../include/timers.mod ../include/vertical_extrapolation_module.mod \
-   ../include/vtk_interfaces.mod ../include/write_state_module.mod \
-   ../include/write_triangle.mod
+   ../include/sediment.mod ../include/sediment_diagnostics.mod \
+   ../include/signal_vars.mod ../include/solidconfiguration.mod \
+   ../include/sparse_tools.mod ../include/spontaneous_potentials.mod \
+   ../include/spud.mod ../include/synthetic_bc.mod \
+   ../include/timeloop_utilities.mod ../include/timers.mod \
+   ../include/vertical_extrapolation_module.mod ../include/vtk_interfaces.mod \
+   ../include/write_state_module.mod ../include/write_triangle.mod
 
 Hybridized_Helmholtz_Solver.o : Hybridized_Helmholtz_Solver.F90 \
    ../include/fdebug.h ../include/fields.mod ../include/fldebug.mod \
