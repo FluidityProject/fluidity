@@ -1,0 +1,16 @@
+spacing = 5e3;
+Point(1) = {0, 0, 0, spacing};
+Point(2) = {1000000, 0, 0, spacing};
+Point(3) = {1000000, 660000, 0, spacing};
+Point(4) = {0, 660000, 0, spacing};
+Line(1) = {1, 2};
+Line(2) = {2, 3};
+Line(3) = {3, 4};
+Line(4) = {4, 1};
+Line Loop(6) = {4, 1, 2, 3};
+Plane Surface(6) = {6};
+Physical Line(7) = {1};
+Physical Line(8) = {2};
+Physical Line(9) = {3};
+Physical Line(10) = {4};
+Physical Surface(11) = {6};

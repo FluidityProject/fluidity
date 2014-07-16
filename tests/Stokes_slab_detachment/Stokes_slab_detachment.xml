@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<testproblem>
+  <name>Stokes-slab-detachment</name>
+  <owner userid="rhodrid"/>
+  <tags>flml parallel</tags>
+
+  <problem_definition length="medium" nprocs="3">
+    <command_line>mpiexec ../../bin/flredecomp -i 1 -o 3 -v -l Slab-detachment Parallel_NP3_Slab-detachment &amp;&amp; 
+mpiexec ../../bin/fluidity -v2 -l Parallel_NP3_Slab-detachment.flml </command_line>
+  </problem_definition>
+
+<variables>  
+
+<variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+</variable>
+
+<variable name="min_y_550" language="python">
+from probe_viscosities import *                                                                                                                                                                    
+min_y_550, x, y, z = probe_visc()
+</variable>
+
+<variable name="max_y_550" language="python">
+from probe_viscosities import *                                                                                                                                                                    
+x, max_y_550, y, z = probe_visc()
+</variable>
+
+<variable name="min_x_500" language="python">
+from probe_viscosities import *                                                                                                                                                                    
+x, y, min_x_500, z = probe_visc()
+</variable>
+
+<variable name="max_x_500" language="python">
+from probe_viscosities import *                                                                                                                                                                    
+x, y, z, max_x_500 = probe_visc()
+</variable>
+
+</variables>
+
+<pass_tests>
+
+<test name="Solvers converged" language="python">
+assert(solvers_converged)
+</test>
+
+<test name="min_y_550 == 1e21" language="python">
+assert(abs(min_y_550 - 1e21) &lt; 1e-30)
+</test>
+
+<test name="max_y_550 lt 2.5e23" language="python">
+assert(abs(max_y_550 - 2.3e23) &lt; 4e21)
+</test>
+
+<test name="min_x_500 == 1e21" language="python">
+assert(abs(min_x_500 - 1e21) &lt; 1e-30)
+</test>
+
+<test name="max_x_500 == 1e25" language="python">
+assert(abs(max_x_500 - 1e25) &lt; 1e-30)
+</test>
+
+</pass_tests>
+                                                                                                                                                                              
+<warn_tests>
+</warn_tests>
+
+</testproblem>
+
+
+
+
+
