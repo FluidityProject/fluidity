@@ -1350,23 +1350,21 @@ contains
 
         ! calculate the viscosity for the momentum equation...
         !if ( its == 1 ) 
-        uDiffusion_VOL=0.0
+        uDiffusion_VOL = 0.0
         call calculate_viscosity( state, packed_state, ncomp, nphase, ndim, mat_nonods, mat_ndgln, uDiffusion )
 
-print *, '+++++++++++++ uDiffusion +++++++++++++++++++++++++++++++++++++++++++++++++++++'
-print *, '+++',minval( uDiffusion(:,1,1,1) ), maxval( uDiffusion(:,1,1,1) )
-print *, '+++',minval( uDiffusion(:,1,2,1) ), maxval( uDiffusion(:,1,2,1) )
-print *, '+++',minval( uDiffusion(:,1,3,1) ), maxval( uDiffusion(:,1,3,1) )
+        !ewrite(3,*) 'uDiffusion'
+        !ewrite(3,*) '+++',minval( uDiffusion(:,1,1,1) ), maxval( uDiffusion(:,1,1,1) )
+        !ewrite(3,*) '+++',minval( uDiffusion(:,1,2,1) ), maxval( uDiffusion(:,1,2,1) )
+        !ewrite(3,*) '+++',minval( uDiffusion(:,1,3,1) ), maxval( uDiffusion(:,1,3,1) )
 
-print *, '+++',minval( uDiffusion(:,2,1,1) ), maxval( uDiffusion(:,2,1,1) )
-print *, '+++',minval( uDiffusion(:,2,2,1) ), maxval( uDiffusion(:,2,2,1) )
-print *, '+++',minval( uDiffusion(:,2,3,1) ), maxval( uDiffusion(:,2,3,1) )
+        !ewrite(3,*) '+++',minval( uDiffusion(:,2,1,1) ), maxval( uDiffusion(:,2,1,1) )
+        !ewrite(3,*) '+++',minval( uDiffusion(:,2,2,1) ), maxval( uDiffusion(:,2,2,1) )
+        !ewrite(3,*) '+++',minval( uDiffusion(:,2,3,1) ), maxval( uDiffusion(:,2,3,1) )
 
-print *, '+++',minval( uDiffusion(:,3,1,1) ), maxval( uDiffusion(:,3,1,1) )
-print *, '+++',minval( uDiffusion(:,3,2,1) ), maxval( uDiffusion(:,3,2,1) )
-print *, '+++',minval( uDiffusion(:,3,3,1) ), maxval( uDiffusion(:,3,3,1) )
-
-
+        !ewrite(3,*) '+++',minval( uDiffusion(:,3,1,1) ), maxval( uDiffusion(:,3,1,1) )
+        !ewrite(3,*) '+++',minval( uDiffusion(:,3,2,1) ), maxval( uDiffusion(:,3,2,1) )
+        !ewrite(3,*) '+++',minval( uDiffusion(:,3,3,1) ), maxval( uDiffusion(:,3,3,1) )
 
 
         ! stabilisation for high aspect ratio problems - switched off
@@ -2537,9 +2535,9 @@ print *, '+++',minval( uDiffusion(:,3,3,1) ), maxval( uDiffusion(:,3,3,1) )
 
 ! If PIVIT_ON_VISC then place the block diaongal viscocity into the pivit matrix used in the projection method...
 ! PIVIT_ON_VISC is the only thing that could make highly viscouse flows stabe when using projection methods...
-            LOGICAL, PARAMETER :: PIVIT_ON_VISC = .true. !.FALSE.
+            LOGICAL, PARAMETER :: PIVIT_ON_VISC = .FALSE.
             real :: w
-            real, parameter :: ww=1.0
+            real, parameter :: wv=1.0, ws=0.0 ! volume off-diagonal and surface weights, respectively
 
         !
         ! Variables used to reduce indirect addressing...
@@ -3976,8 +3974,8 @@ print *, '+++',minval( uDiffusion(:,3,3,1) ), maxval( uDiffusion(:,3,3,1) )
                                                 I = IDIM+(IPHASE-1)*NDIM_VEL+(U_ILOC-1)*NDIM_VEL*NPHASE
                                                 J = JDIM+(JPHASE-1)*NDIM_VEL+(U_JLOC-1)*NDIM_VEL*NPHASE
                                                 w=1.0
-                                                if (i/=j) w = ww
-                                                PIVIT_MAT( I,J, ELE )  &
+                                                if (i/=j) w = wv
+                                                PIVIT_MAT( I,J, ELE ) &
                                                 = PIVIT_MAT( I,J, ELE ) &
                                                 +  w * STRESS_IJ_ELE( IDIM, JDIM, IPHASE, U_ILOC, U_JLOC )
                                             END IF
@@ -4020,10 +4018,9 @@ print *, '+++',minval( uDiffusion(:,3,3,1) ), maxval( uDiffusion(:,3,3,1) )
                                             I = IDIM+(IPHASE-1)*NDIM_VEL+(U_ILOC-1)*NDIM_VEL*NPHASE
                                             J = JDIM+(JPHASE-1)*NDIM_VEL+(U_JLOC-1)*NDIM_VEL*NPHASE
                                             w=1.0
-                                            if (i/=j) w = ww
-
+                                            if (i/=j) w = wv
                                             PIVIT_MAT( I,J, ELE ) &
-                                            = PIVIT_MAT( I,J, ELE ) +  w * VLK_ELE( IPHASE, U_ILOC, U_JLOC )
+                                            = PIVIT_MAT( I,J, ELE ) + w * VLK_ELE( IPHASE, U_ILOC, U_JLOC )
                                         END IF
 
                                         RHS_DIFF_U( IDIM, IPHASE, U_ILOC ) = RHS_DIFF_U( IDIM, IPHASE, U_ILOC ) + &
@@ -4312,10 +4309,8 @@ print *, '+++',minval( uDiffusion(:,3,3,1) ), maxval( uDiffusion(:,3,3,1) )
                                      IF(PIVIT_ON_VISC) THEN
                                         I = IDIM+(IPHASE-1)*NDIM_VEL+(U_ILOC-1)*NDIM_VEL*NPHASE
                                         J = JDIM+(JPHASE-1)*NDIM_VEL+(U_JLOC-1)*NDIM_VEL*NPHASE
-
                                         w=1.0
-                                        if (i/=j) w = ww
-
+                                        if (i/=j) w = wv
                                         PIVIT_MAT( I,J, ELE )  &
                                         = PIVIT_MAT( I,J, ELE ) + w * STRESS_IJ_ELE( IDIM, JDIM, IPHASE, U_ILOC, U_JLOC )
                                      ENDIF
@@ -4353,10 +4348,8 @@ print *, '+++',minval( uDiffusion(:,3,3,1) ), maxval( uDiffusion(:,3,3,1) )
                                     IF(PIVIT_ON_VISC) THEN
                                         I = IDIM+(IPHASE-1)*NDIM_VEL+(U_ILOC-1)*NDIM_VEL*NPHASE
                                         J = JDIM+(JPHASE-1)*NDIM_VEL+(U_JLOC-1)*NDIM_VEL*NPHASE
-
                                         w=1.0
-                                        if (i/=j) w = ww
-
+                                        if (i/=j) w = wv
                                         PIVIT_MAT( I,J, ELE )  &
                                         = PIVIT_MAT( I,J, ELE ) + w * VLK_UVW( IDIM )
                                     ENDIF
@@ -5411,8 +5404,8 @@ print *, '+++',minval( uDiffusion(:,3,3,1) ), maxval( uDiffusion(:,3,3,1) )
                                         IF(PIVIT_ON_VISC) THEN
                                             I = IDIM+(IPHASE-1)*NDIM_VEL+(U_ILOC-1)*NDIM_VEL*NPHASE
                                             J = JDIM+(JPHASE-1)*NDIM_VEL+(U_JLOC-1)*NDIM_VEL*NPHASE
-                                            PIVIT_MAT(I,J,ELE)  &
-                                            =PIVIT_MAT(I,J,ELE)       + 0.0 * VLM_NEW 
+                                            PIVIT_MAT(I,J,ELE) &
+                                            =PIVIT_MAT(I,J,ELE) + ws * VLM_NEW 
                                         ENDIF
 
 
@@ -5448,7 +5441,7 @@ print *, '+++',minval( uDiffusion(:,3,3,1) ), maxval( uDiffusion(:,3,3,1) )
                                               I = IDIM+(IPHASE-1)*NDIM_VEL+(U_ILOC-1)*NDIM_VEL*NPHASE
                                               J = JDIM+(JPHASE-1)*NDIM_VEL+(U_JLOC-1)*NDIM_VEL*NPHASE
                                               PIVIT_MAT(I,J,ELE)=PIVIT_MAT(I,J,ELE) & 
-                                                       +  0.0 * VLM_NEW 
+                                                       + ws * VLM_NEW 
                                            ENDIF
 
                                            LOC_U_RHS( IDIM,IPHASE,U_ILOC ) =  LOC_U_RHS( IDIM,IPHASE,U_ILOC ) -VLM_OLD * SLOC_UOLD( IDIM,IPHASE,U_SJLOC )
@@ -5478,7 +5471,7 @@ print *, '+++',minval( uDiffusion(:,3,3,1) ), maxval( uDiffusion(:,3,3,1) )
                                                I = IDIM+(IPHASE-1)*NDIM_VEL+(U_ILOC-1)*NDIM_VEL*NPHASE
                                                J = JDIM+(JPHASE-1)*NDIM_VEL+(U_JLOC-1)*NDIM_VEL*NPHASE
                                                PIVIT_MAT(I,J,ELE)=PIVIT_MAT(I,J,ELE) & 
-                                                        + 0.0 * VLM * SUF_U_ROB1_BC_ALL( IDIM,IPHASE,U_SJLOC + U_SNLOC * ( SELE2 - 1 ) )
+                                                        + ws * VLM * SUF_U_ROB1_BC_ALL( IDIM,IPHASE,U_SJLOC + U_SNLOC * ( SELE2 - 1 ) )
                                             ENDIF
 
                                             LOC_U_RHS( IDIM,IPHASE,U_ILOC ) =  LOC_U_RHS( IDIM,IPHASE,U_ILOC ) - VLM * SUF_U_ROB2_BC_ALL( IDIM,IPHASE,U_SJLOC + U_SNLOC * ( SELE2 - 1 ) )
