@@ -1601,7 +1601,7 @@ print *, '+++',minval( uDiffusion(:,3,3,1) ), maxval( uDiffusion(:,3,3,1) )
 
             call get_option( '/material_phase[0]/scalar_field::Pressure/' // &
             'prognostic/reference_node', ndpset, default = 0 )
-            if ( ndpset /= 0 ) p_rhs( ndpset ) = 0.0
+            if ( ndpset /= 0 ) p_rhs( ndpset ) = 101325.0 !0.0
 
             !ewrite(3,*) 'P_RHS2::', p_rhs
             !ewrite(3,*) 'CT_RHS::', ct_rhs
@@ -1692,6 +1692,7 @@ print *, '+++',minval( uDiffusion(:,3,3,1) ), maxval( uDiffusion(:,3,3,1) )
 !!               end if
 !!
 !!         end if
+              !!dp=0.5*dp
 
 
             ! Use a projection method
@@ -2536,7 +2537,9 @@ print *, '+++',minval( uDiffusion(:,3,3,1) ), maxval( uDiffusion(:,3,3,1) )
 
 ! If PIVIT_ON_VISC then place the block diaongal viscocity into the pivit matrix used in the projection method...
 ! PIVIT_ON_VISC is the only thing that could make highly viscouse flows stabe when using projection methods...
-            LOGICAL, PARAMETER :: PIVIT_ON_VISC = .false. !.FALSE.
+            LOGICAL, PARAMETER :: PIVIT_ON_VISC = .true. !.FALSE.
+            real :: w
+            real, parameter :: ww=1.0
 
         !
         ! Variables used to reduce indirect addressing...
@@ -3972,9 +3975,11 @@ print *, '+++',minval( uDiffusion(:,3,3,1) ), maxval( uDiffusion(:,3,3,1) )
                                             IF(PIVIT_ON_VISC) THEN
                                                 I = IDIM+(IPHASE-1)*NDIM_VEL+(U_ILOC-1)*NDIM_VEL*NPHASE
                                                 J = JDIM+(JPHASE-1)*NDIM_VEL+(U_JLOC-1)*NDIM_VEL*NPHASE
+                                                w=1.0
+                                                if (i/=j) w = ww
                                                 PIVIT_MAT( I,J, ELE )  &
                                                 = PIVIT_MAT( I,J, ELE ) &
-                                                + STRESS_IJ_ELE( IDIM, JDIM, IPHASE, U_ILOC, U_JLOC )
+                                                +  w * STRESS_IJ_ELE( IDIM, JDIM, IPHASE, U_ILOC, U_JLOC )
                                             END IF
 
                                             RHS_DIFF_U( IDIM, IPHASE, U_ILOC ) = RHS_DIFF_U( IDIM, IPHASE, U_ILOC ) + &
@@ -4014,8 +4019,11 @@ print *, '+++',minval( uDiffusion(:,3,3,1) ), maxval( uDiffusion(:,3,3,1) )
                                         IF(PIVIT_ON_VISC) THEN
                                             I = IDIM+(IPHASE-1)*NDIM_VEL+(U_ILOC-1)*NDIM_VEL*NPHASE
                                             J = JDIM+(JPHASE-1)*NDIM_VEL+(U_JLOC-1)*NDIM_VEL*NPHASE
+                                            w=1.0
+                                            if (i/=j) w = ww
+
                                             PIVIT_MAT( I,J, ELE ) &
-                                            = PIVIT_MAT( I,J, ELE ) + VLK_ELE( IPHASE, U_ILOC, U_JLOC )
+                                            = PIVIT_MAT( I,J, ELE ) +  w * VLK_ELE( IPHASE, U_ILOC, U_JLOC )
                                         END IF
 
                                         RHS_DIFF_U( IDIM, IPHASE, U_ILOC ) = RHS_DIFF_U( IDIM, IPHASE, U_ILOC ) + &
@@ -4304,8 +4312,12 @@ print *, '+++',minval( uDiffusion(:,3,3,1) ), maxval( uDiffusion(:,3,3,1) )
                                      IF(PIVIT_ON_VISC) THEN
                                         I = IDIM+(IPHASE-1)*NDIM_VEL+(U_ILOC-1)*NDIM_VEL*NPHASE
                                         J = JDIM+(JPHASE-1)*NDIM_VEL+(U_JLOC-1)*NDIM_VEL*NPHASE
+
+                                        w=1.0
+                                        if (i/=j) w = ww
+
                                         PIVIT_MAT( I,J, ELE )  &
-                                        = PIVIT_MAT( I,J, ELE ) + STRESS_IJ_ELE( IDIM, JDIM, IPHASE, U_ILOC, U_JLOC )
+                                        = PIVIT_MAT( I,J, ELE ) + w * STRESS_IJ_ELE( IDIM, JDIM, IPHASE, U_ILOC, U_JLOC )
                                      ENDIF
                                   END DO
                                END DO
@@ -4341,8 +4353,12 @@ print *, '+++',minval( uDiffusion(:,3,3,1) ), maxval( uDiffusion(:,3,3,1) )
                                     IF(PIVIT_ON_VISC) THEN
                                         I = IDIM+(IPHASE-1)*NDIM_VEL+(U_ILOC-1)*NDIM_VEL*NPHASE
                                         J = JDIM+(JPHASE-1)*NDIM_VEL+(U_JLOC-1)*NDIM_VEL*NPHASE
+
+                                        w=1.0
+                                        if (i/=j) w = ww
+
                                         PIVIT_MAT( I,J, ELE )  &
-                                        = PIVIT_MAT( I,J, ELE ) + VLK_UVW( IDIM )
+                                        = PIVIT_MAT( I,J, ELE ) + w * VLK_UVW( IDIM )
                                     ENDIF
                                 END IF
                             END DO
@@ -5396,7 +5412,7 @@ print *, '+++',minval( uDiffusion(:,3,3,1) ), maxval( uDiffusion(:,3,3,1) )
                                             I = IDIM+(IPHASE-1)*NDIM_VEL+(U_ILOC-1)*NDIM_VEL*NPHASE
                                             J = JDIM+(JPHASE-1)*NDIM_VEL+(U_JLOC-1)*NDIM_VEL*NPHASE
                                             PIVIT_MAT(I,J,ELE)  &
-                                            =PIVIT_MAT(I,J,ELE)       + VLM_NEW
+                                            =PIVIT_MAT(I,J,ELE)       + 0.0 * VLM_NEW 
                                         ENDIF
 
 
@@ -5432,7 +5448,7 @@ print *, '+++',minval( uDiffusion(:,3,3,1) ), maxval( uDiffusion(:,3,3,1) )
                                               I = IDIM+(IPHASE-1)*NDIM_VEL+(U_ILOC-1)*NDIM_VEL*NPHASE
                                               J = JDIM+(JPHASE-1)*NDIM_VEL+(U_JLOC-1)*NDIM_VEL*NPHASE
                                               PIVIT_MAT(I,J,ELE)=PIVIT_MAT(I,J,ELE) & 
-                                                       + VLM_NEW
+                                                       +  0.0 * VLM_NEW 
                                            ENDIF
 
                                            LOC_U_RHS( IDIM,IPHASE,U_ILOC ) =  LOC_U_RHS( IDIM,IPHASE,U_ILOC ) -VLM_OLD * SLOC_UOLD( IDIM,IPHASE,U_SJLOC )
@@ -5462,7 +5478,7 @@ print *, '+++',minval( uDiffusion(:,3,3,1) ), maxval( uDiffusion(:,3,3,1) )
                                                I = IDIM+(IPHASE-1)*NDIM_VEL+(U_ILOC-1)*NDIM_VEL*NPHASE
                                                J = JDIM+(JPHASE-1)*NDIM_VEL+(U_JLOC-1)*NDIM_VEL*NPHASE
                                                PIVIT_MAT(I,J,ELE)=PIVIT_MAT(I,J,ELE) & 
-                                                        + VLM * SUF_U_ROB1_BC_ALL( IDIM,IPHASE,U_SJLOC + U_SNLOC * ( SELE2 - 1 ) )
+                                                        + 0.0 * VLM * SUF_U_ROB1_BC_ALL( IDIM,IPHASE,U_SJLOC + U_SNLOC * ( SELE2 - 1 ) )
                                             ENDIF
 
                                             LOC_U_RHS( IDIM,IPHASE,U_ILOC ) =  LOC_U_RHS( IDIM,IPHASE,U_ILOC ) - VLM * SUF_U_ROB2_BC_ALL( IDIM,IPHASE,U_SJLOC + U_SNLOC * ( SELE2 - 1 ) )
