@@ -4,7 +4,6 @@ from sympy.utilities.lambdify import lambdify
 import re
 import fileinput
 
-
 ## HELPERS
 
 spacetime = (Symbol('x'), Symbol('y'), Symbol('z'), Symbol('t'))
@@ -116,14 +115,21 @@ def generate_coords(extents, point_num):
     return coords.transpose()
     
     
-
 class ManufacturedSolution:
     def __init__(self, dim, g_dir, p, s2):
         self.dim = dim
         self.g_dir = array(g_dir)
-        self.p = p
+        self.p = [Symbol('0')]*2
+        self.grad_p = [[Symbol('0')]*dim]*2
+        for i in range(2):
+            try:
+                # p is given as multiple fields
+                self.p[i] = p[i]
+            except TypeError:
+                # p is given as one common field
+                self.p[i] = p
+            self.grad_p[i] = grad(self.p[i], dim)
         self.s = (1 - s2, s2)
-        self.grad_p = grad(p, dim)
         self.u = [[Symbol('0')]*dim]*2
         self.q = [Symbol('0')]*2
         
@@ -132,11 +138,14 @@ class ManufacturedSolution:
         g = g_mag*self.g_dir
         i = phase_num - 1
         try:
-            grad_p_eff = self.grad_p - rho*g
+            grad_p_eff = self.grad_p[i] - rho*g
         except TypeError:
-            grad_p_eff = self.grad_p - array(rho*g)
-        # n.b. for flexibility, K is a function of both sats
-        self.u[i] = -K(self.s)/mu*grad_p_eff
+            grad_p_eff = self.grad_p[i] - array(rho*g)
+        # explicitly looping over vector components here seems to be
+        # more stable than letting the objects handle it
+        for j, gpe in enumerate(grad_p_eff):
+            # n.b. for flexibility, K is a function of both sats
+            self.u[i][j] = -K(self.s)/mu*gpe
         self.q[i] = diff(phi*self.s[i], t) + div(self.u[i])
 
     def check_max_velocity(self, phase_num, coords_and_time):
@@ -160,15 +169,13 @@ class ManufacturedSolution:
         suf = '_' + str(self.dim) + 'D'
         write_expr(genfile, is_text, 'gravity_direction'+suf,
                          self.g_dir)
-        write_expr(genfile, is_text, 'pressure'+suf,
-                   self.p, spacetime[:self.dim] + spacetime[3:],
-                   separate_args=True)
-        write_expr(genfile, is_text, 'saturation1'+suf, 
-                   self.s[0], spacetime[:self.dim] + spacetime[3:],
-                   separate_args=True)
-        write_expr(genfile, is_text, 'saturation2'+suf, 
-                   self.s[1], spacetime[:self.dim] + spacetime[3:],
-                   separate_args=True)
+        for i in range(2):
+            write_expr(genfile, is_text, 'pressure'+str(i+1)+suf,
+                       self.p[i], spacetime[:self.dim] + spacetime[3:],
+                       separate_args=True)
+            write_expr(genfile, is_text, 'saturation'+str(i+1)+suf, 
+                       self.s[i], spacetime[:self.dim] + spacetime[3:],
+                       separate_args=True)
         
     def write_phase_expressions(self, genfile, is_text, phase_num):
         # append domain dimension to each variable name
@@ -241,8 +248,8 @@ class SolutionHarness:
 
             write_expr(f, is_text, 'domain_extents', self.D)
             write_expr(f, is_text, 'finish_time', self.T)
-            write_expr(f, is_text, 'pressure1_scale', self.p_scale)
-            write_expr(f, is_text, 'saturation2_scale', self.s2_scale)
+            write_expr(f, is_text, 'pressure_scale', self.p_scale)
+            write_expr(f, is_text, 'saturation_scale', self.s2_scale)
             write_expr(f, is_text, 'gravity_magnitude', self.g_mag)
             write_expr(f, is_text, 'viscosity1', self.mu[0])
             write_expr(f, is_text, 'viscosity2', self.mu[1])
@@ -258,6 +265,13 @@ class SolutionHarness:
             for ms in manufactured_solution_list:
                 ms.write_main_expressions(f, is_text)
                 for i, phase_num in enumerate((1, 2)):
+                    # TEMP
+                    # write_expr(f, is_text, 
+                    #               'grad_p_eff'+str(phase_num),
+                    #               ms.grad_p[i] -
+                    #               array(self.rho[i]*self.g_mag*ms.g_dir),
+                    #               spacetime[:ms.dim] + spacetime[3:],
+                    #               separate_args=True)
                     ms.compute_phase(phase_num, self.phi,
                                      self.K[i], self.mu[i],
                                      self.rho[i], self.g_mag)

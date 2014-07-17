@@ -7,9 +7,9 @@ py_dict = {
 
     "finish_time" : 1.0,
 
-    "pressure1_scale" : 1000.0,
+    "pressure_scale" : 1000.0,
 
-    "saturation2_scale" : 0.1,
+    "saturation_scale" : 0.1,
 
     "gravity_magnitude" : 1.0,
 
@@ -31,9 +31,11 @@ py_dict = {
 
     "gravity_direction_1D" : 1,
 
-    "pressure_1D" : lambda x, t: (250.0*cos(1.0*pi*t) + 750.0)*cos(1.0*pi*x),
+    "pressure1_1D" : lambda x, t: (250.0*cos(1.0*pi*t) + 750.0)*cos(1.0*pi*x),
 
     "saturation1_1D" : lambda x, t: 1. - 0.1*exp(-1.0*x)/(1.0*t + 1.),
+
+    "pressure2_1D" : lambda x, t: (250.0*cos(1.0*pi*t) + 750.0)*cos(1.0*pi*x),
 
     "saturation2_1D" : lambda x, t: 0.1*exp(-1.0*x)/(1.0*t + 1.),
 
@@ -47,9 +49,11 @@ py_dict = {
 
     "gravity_direction_2D" : (1, 0, ),
 
-    "pressure_2D" : lambda x, y, t: (250.0*cos(1.0*pi*t) + 750.0)*sin(0.833333333333333*pi*y)**2*cos(1.0*pi*x),
+    "pressure1_2D" : lambda x, y, t: (250.0*cos(1.0*pi*t) + 750.0)*sin(0.833333333333333*pi*y)**2*cos(1.0*pi*x),
 
     "saturation1_2D" : lambda x, y, t: -0.15625*y**2*(-2.5*y + 3.0)*exp(-1.0*x)/(1.0*t + 1.) + 1,
+
+    "pressure2_2D" : lambda x, y, t: (250.0*cos(1.0*pi*t) + 750.0)*sin(0.833333333333333*pi*y)**2*cos(1.0*pi*x),
 
     "saturation2_2D" : lambda x, y, t: 0.15625*y**2*(-2.5*y + 3.0)*exp(-1.0*x)/(1.0*t + 1.),
 
@@ -63,9 +67,11 @@ py_dict = {
 
     "gravity_direction_3D" : (1, 0, 0, ),
 
-    "pressure_3D" : lambda x, y, z, t: (250.0*cos(1.0*pi*t) + 750.0)*sin(0.833333333333333*pi*y)**2*sin(1.25*pi*z)**2*cos(1.0*pi*x),
+    "pressure1_3D" : lambda x, y, z, t: (250.0*cos(1.0*pi*t) + 750.0)*sin(0.833333333333333*pi*y)**2*sin(1.25*pi*z)**2*cos(1.0*pi*x),
 
     "saturation1_3D" : lambda x, y, z, t: -0.54931640625*y**2*z**2*(-2.5*y + 3.0)*(-3.75*z + 3.0)*exp(-1.0*x)/(1.0*t + 1.) + 1,
+
+    "pressure2_3D" : lambda x, y, z, t: (250.0*cos(1.0*pi*t) + 750.0)*sin(0.833333333333333*pi*y)**2*sin(1.25*pi*z)**2*cos(1.0*pi*x),
 
     "saturation2_3D" : lambda x, y, z, t: 0.54931640625*y**2*z**2*(-2.5*y + 3.0)*(-3.75*z + 3.0)*exp(-1.0*x)/(1.0*t + 1.),
 
@@ -84,9 +90,9 @@ text_dict = {
 
     "FINISH_TIME" : "1.0",
 
-    "PRESSURE1_SCALE" : "1000.0",
+    "PRESSURE_SCALE" : "1000.0",
 
-    "SATURATION2_SCALE" : "0.1",
+    "SATURATION_SCALE" : "0.1",
 
     "GRAVITY_MAGNITUDE" : "1.0",
 
@@ -108,9 +114,11 @@ text_dict = {
 
     "GRAVITY_DIRECTION_1D" : "1",
 
-    "PRESSURE_1D" : "(250.0*cos(1.0*pi*t) + 750.0)*cos(1.0*pi*X[0])",
+    "PRESSURE1_1D" : "(250.0*cos(1.0*pi*t) + 750.0)*cos(1.0*pi*X[0])",
 
     "SATURATION1_1D" : "1 - 0.1*exp(-1.0*X[0])/(1.0*t + 1.)",
+
+    "PRESSURE2_1D" : "(250.0*cos(1.0*pi*t) + 750.0)*cos(1.0*pi*X[0])",
 
     "SATURATION2_1D" : "0.1*exp(-1.0*X[0])/(1.0*t + 1.)",
 
@@ -124,9 +132,11 @@ text_dict = {
 
     "GRAVITY_DIRECTION_2D" : "1 0. ",
 
-    "PRESSURE_2D" : "(250.0*cos(1.0*pi*t) + 750.0)*sin(0.833333333333333*pi*X[1])**2*cos(1.0*pi*X[0])",
+    "PRESSURE1_2D" : "(250.0*cos(1.0*pi*t) + 750.0)*sin(0.833333333333333*pi*X[1])**2*cos(1.0*pi*X[0])",
 
     "SATURATION1_2D" : "-0.15625*X[1]**2*(-2.5*X[1] + 3.0)*exp(-1.0*X[0])/(1.0*t + 1.) + 1.",
+
+    "PRESSURE2_2D" : "(250.0*cos(1.0*pi*t) + 750.0)*sin(0.833333333333333*pi*X[1])**2*cos(1.0*pi*X[0])",
 
     "SATURATION2_2D" : "0.15625*X[1]**2*(-2.5*X[1] + 3.0)*exp(-1.0*X[0])/(1.0*t + 1.)",
 
@@ -140,9 +150,11 @@ text_dict = {
 
     "GRAVITY_DIRECTION_3D" : "1 0. 0. ",
 
-    "PRESSURE_3D" : "(250.0*cos(1.0*pi*t) + 750.0)*sin(0.833333333333333*pi*X[1])**2*sin(1.25*pi*X[2])**2*cos(1.0*pi*X[0])",
+    "PRESSURE1_3D" : "(250.0*cos(1.0*pi*t) + 750.0)*sin(0.833333333333333*pi*X[1])**2*sin(1.25*pi*X[2])**2*cos(1.0*pi*X[0])",
 
     "SATURATION1_3D" : "-0.54931640625*X[1]**2*X[2]**2*(-2.5*X[1] + 3.0)*(-3.75*X[2] + 3.0)*exp(-1.0*X[0])/(1.0*t + 1.) + 1.",
+
+    "PRESSURE2_3D" : "(250.0*cos(1.0*pi*t) + 750.0)*sin(0.833333333333333*pi*X[1])**2*sin(1.25*pi*X[2])**2*cos(1.0*pi*X[0])",
 
     "SATURATION2_3D" : "0.54931640625*X[1]**2*X[2]**2*(-2.5*X[1] + 3.0)*(-3.75*X[2] + 3.0)*exp(-1.0*X[0])/(1.0*t + 1.)",
 

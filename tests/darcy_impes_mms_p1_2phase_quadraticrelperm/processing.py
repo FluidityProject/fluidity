@@ -3,10 +3,15 @@
 case_name = "darcy_impes_mms_p1_2phase_quadraticrelperm"
 mesh_type_list = ["reg"]                         # [see note 1]
 mesh_suffix_list_per_dimension = [
-    ["B", "C", "D", "E"], 
+    # # ["B", "C", "D"],
+    # ["B", "C", "D", "E", "F"],
+    # # ["C", "D", "E", "F", "G"],
+    # [], []]
     ["B", "C", "D"],
-    ["B", "C"]]
+    ["B", "C"],
+    []]
 field_name_list = ["Phase1::Pressure", 
+                   "Phase2::Pressure",         
                    "Phase2::Saturation"]         # [2]
 norm_list = [2]
 mesh_A_number_of_timesteps = 10                  # [2]
@@ -17,18 +22,21 @@ mesh_A_number_of_timesteps = 10                  # [2]
 from sys import argv, exit, path
 path.append('../darcy_impes_common')
 
-if len(argv)==1:
-    print("""\nRun this script with one or more of the following arguments:
-    xml - make an xml file for the test harness
-    gen - generate source terms etc. using solution_generator.py
-    pre - preprocess (generate meshes and options files)
-    proc - process (run simulations)
-    post - postprocess (write convergence rates)
-    all - all of the above
-    clean - clean everything no longer needed by the test harness
-            (*.geo, *.msh, *.diml, *.vtu)""")
-    exit()
 
+if len(argv)==1:
+    # print("""\nRun this script with one or more of the following arguments:
+    # xml - make an xml file for the test harness
+    # gen - generate source terms etc. using solution_generator.py
+    # pre - preprocess (generate meshes and options files)
+    # proc - process (run simulations)
+    # post - postprocess (write convergence rates)
+    # all - all of the above
+    # clean - clean everything no longer needed by the test harness
+    #         (*.geo, *.msh, *.diml, *.vtu)""")
+    # exit()
+    
+    # *** TEMP ****
+    argv.append('all')
 
 # initialise helper object
 from manufactured_solution_test_tools import ManufacturedSolutionTestSuite

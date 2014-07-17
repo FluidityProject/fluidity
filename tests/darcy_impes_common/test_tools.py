@@ -175,7 +175,7 @@ assert(find_{0}("{1}") &{2}; {3:g})
             # read in field magnitudes for computing the norm properly
             if self.norm_threshold is not None:
                 self.rescaled_norm_threshold = self.norm_threshold* \
-                     self.solution_dict[self.field_short+'_scale']
+                     self.solution_dict[str.lower(self.var_name)+'_scale']
             
         elif level_name == 'norm':
             self.norm = value
