@@ -45,6 +45,7 @@
     use halos
     use petsc_tools
     use petsc
+    use multiphase_caching, only : cache_level
 
     implicit none
 
@@ -410,7 +411,6 @@
       type( state_type ), intent( inout ), dimension(:) :: state
       integer, intent(inout) :: indx
       ! Local variables
-      LOGICAL, PARAMETER :: FAST = .true.
       REAL, PARAMETER :: INFINY = 1.0E+10
       LOGICAL :: UNDONE, LCOL
       logical, DIMENSION( : ), allocatable :: NEED_COLOR
@@ -430,7 +430,7 @@
            'prognostic/reference_node', ndpset, default = 0 )
 
 
-      IF ( FAST ) THEN
+      IF ( btest(cache_level,6) ) THEN
          ! Fast but memory intensive...
          CALL COLOR_GET_CMC_PHA_FAST( CV_NONODS, U_NONODS, NDIM, NPHASE, &
               NCOLC, FINDC, COLC, &

@@ -507,6 +507,11 @@ start =
                }?
             }?
          },
+	 element caching {
+	    element no_cache_shape_functions {
+	    empty
+	    }?
+	 },
          physical_parameter_options?,
          ## The material or phase options
          element material_phase {
