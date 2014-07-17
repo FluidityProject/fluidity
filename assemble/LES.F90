@@ -213,7 +213,7 @@ contains
 
   end subroutine les_solve_diagnostic_fields
   
-  subroutine leonard_tensor(nu, positions, fnu, tnu, leonard, strainprod, alpha, gamma, path)
+  subroutine leonard_tensor(nu, positions, fnu, tnu, leonard, strainprod, alpha, gamma, length_scale_type, path)
 
     ! Unfiltered velocity
     type(vector_field), pointer                           :: nu
@@ -224,7 +224,7 @@ contains
     type(tensor_field), pointer                           :: leonard, strainprod
     ! Scale factors
     real, intent(in)                                      :: alpha, gamma
-    character(len=OPTION_PATH_LEN), intent(in)            :: path
+    character(len=OPTION_PATH_LEN), intent(in)            :: length_scale_type, path
     ! Local quantities
     type(tensor_field), pointer                           :: ui_uj, tui_tuj
     character(len=OPTION_PATH_LEN)                        :: lpath

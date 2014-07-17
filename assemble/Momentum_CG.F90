@@ -429,7 +429,11 @@
          &"/continuous_galerkin/les_model")
       if (have_les) then
          ! Set everything to false initially, then set to true if present
+         les_second_order=.false.; les_fourth_order=.false.; wale=.false.; dynamic_les=.false.
          have_eddy_visc=.false.; have_filter_width=.false.; have_coeff=.false.
+
+         ! Point to dummy fields, then point to actual fields if required
+         fnu => dummyvector; tnu => dummyvector; leonard => dummytensor; strainprod => dummytensor
 
          les_option_path=(trim(u%option_path)//"/prognostic/spatial_discretisation"//&
                  &"/continuous_galerkin/les_model")
@@ -461,57 +465,53 @@
                  smagorinsky_coefficient)
          end if
          if(dynamic_les) then
-           ! Scalar or tensor filter width
-           call get_option(trim(les_option_path)//"/dynamic_les/length_scale_type", length_scale_type)
-           ! Initialise optional diagnostic fields
-           have_eddy_visc = have_option(trim(les_option_path)//"/dynamic_les/tensor_field::EddyViscosity")
-           have_filter_width = have_option(trim(les_option_path)//"/dynamic_les/tensor_field::FilterWidth")
-           have_coeff = have_option(trim(les_option_path)//"/dynamic_les/scalar_field::SmagorinskyCoefficient")
-           call les_init_diagnostic_fields(state, have_eddy_visc, have_filter_width, have_coeff)
+            ! Initialise optional diagnostic fields
+            have_eddy_visc = have_option(trim(les_option_path)//"/dynamic_les/tensor_field::EddyViscosity")
+            have_filter_width = have_option(trim(les_option_path)//"/dynamic_les/tensor_field::FilterWidth")
+            have_coeff = have_option(trim(les_option_path)//"/dynamic_les/scalar_field::SmagorinskyCoefficient")
+            call les_init_diagnostic_fields(state, have_eddy_visc, have_filter_width, have_coeff)
 
-           ! Initialise necessary local fields.
-           ewrite(2,*) "Initialising compulsory dynamic LES fields"
-           if(have_option(trim(les_option_path)//"/dynamic_les/vector_field::FirstFilteredVelocity")) then
-             fnu => extract_vector_field(state, "FirstFilteredVelocity")
-           else
-             allocate(fnu)
-             call allocate(fnu, u%dim, u%mesh, "FirstFilteredVelocity")
-           end if
-           call zero(fnu)
-           if(have_option(trim(les_option_path)//"/dynamic_les/vector_field::TestFilteredVelocity")) then
-             tnu => extract_vector_field(state, "TestFilteredVelocity")
-           else
-             allocate(tnu)
-             call allocate(tnu, u%dim, u%mesh, "TestFilteredVelocity")
-           end if
-           call zero(tnu)
-           allocate(leonard)
-           call allocate(leonard, u%mesh, "LeonardTensor")
-           call zero(leonard)
-           allocate(strainprod)
-           call allocate(strainprod, u%mesh, "StrainProduct")
-           call zero(strainprod)
+            ! Initialise necessary local fields.
+            ewrite(2,*) "Initialising compulsory dynamic LES fields"
 
-           ! Get (first filter)/(mesh size) ratio alpha. Default value is 2.
-           call get_option(trim(les_option_path)//"/dynamic_les/alpha", alpha, default=2.0)
-           ! Get (test filter)/(first filter) size ratio alpha. Default value is 2.
-           call get_option(trim(les_option_path)//"/dynamic_les/gamma", gamma, default=2.0)
+            if(have_option(trim(les_option_path)//"/dynamic_les/vector_field::FirstFilteredVelocity")) then
+              fnu => extract_vector_field(state, "FirstFilteredVelocity")
+            else
+              allocate(fnu)
+              call allocate(fnu, u%dim, u%mesh, "FirstFilteredVelocity")
+            end if
 
-           ! Calculate test-filtered velocity field and Leonard tensor field.
-           ewrite(2,*) "Calculating test-filtered velocity and Leonard tensor"
-           call leonard_tensor(nu, x, fnu, tnu, leonard, strainprod, alpha, gamma, les_option_path)
+            if(have_option(trim(les_option_path)//"/dynamic_les/vector_field::TestFilteredVelocity")) then
+              tnu => extract_vector_field(state, "TestFilteredVelocity")
+            else
+              allocate(tnu)
+              call allocate(tnu, u%dim, u%mesh, "TestFilteredVelocity")
+            end if
 
-           ewrite_minmax(leonard)
-           ewrite_minmax(strainprod)
-         else
-            fnu => dummyvector
-            tnu => dummyvector
-            leonard => dummytensor
-            strainprod => dummytensor
+            allocate(leonard)
+            allocate(strainprod)
+            call allocate(leonard, u%mesh, "LeonardTensor")
+            call allocate(strainprod, u%mesh, "StrainProduct")
+
+            call zero(fnu)
+            call zero(tnu)
+            call zero(leonard)
+            call zero(strainprod)
+
+            ! Get (first filter)/(mesh size) ratio alpha. Default value is 2.
+            call get_option(trim(les_option_path)//"/dynamic_les/alpha", alpha, default=2.0)
+            ! Get (test filter)/(first filter) size ratio alpha. Default value is 2.
+            call get_option(trim(les_option_path)//"/dynamic_les/gamma", gamma, default=2.0)
+            ! Scalar or tensor filter width
+            call get_option(trim(les_option_path)//"/dynamic_les/length_scale_type", length_scale_type)
+
+            ! Calculate test-filtered velocity field and Leonard tensor field.
+            ewrite(2,*) "Calculating test-filtered velocity and Leonard tensor"
+            call leonard_tensor(nu, x, fnu, tnu, leonard, strainprod, alpha, gamma, length_scale_type, les_option_path)
+
+            ewrite_minmax(leonard)
+            ewrite_minmax(strainprod)
          end if
-      else
-         les_second_order=.false.; les_fourth_order=.false.; wale=.false.; dynamic_les=.false.
-         fnu => dummyvector; tnu => dummyvector; leonard => dummytensor; strainprod => dummytensor
       end if
       
 
@@ -2121,7 +2121,7 @@
       real, dimension(ele_ngi(u, ele)), intent(in)                                   :: detwei
       real, dimension(u%dim, u%dim, ele_loc(u, ele), ele_loc(u, ele)), intent(inout) :: big_m_tensor_addto
       real, dimension(u%dim, ele_loc(u, ele)), intent(inout)                         :: rhs_addto
-
+      real                                                                           :: denom
 
       if (have_viscosity .AND. .not.(have_temperature_dependent_viscosity)) then
          viscosity_gi = ele_val_at_quad(viscosity, ele)
@@ -2145,6 +2145,7 @@
 
       ! add in LES viscosity
       if (have_les) then
+         shape_nu = ele_shape(nu, ele)
          nu_ele = ele_val(nu, ele)
          les_tensor_gi = 0.0
          les_scalar_gi = 0.0
@@ -2215,7 +2216,6 @@
             end do
          ! Germano dynamic model
          else if (dynamic_les) then
-            shape_nu = ele_shape(nu, ele)
             nodes_nu => ele_nodes(nu, ele)
             les_tensor_gi=0.0
 
@@ -2245,10 +2245,17 @@
                   do gi=1, ele_ngi(nu, ele)
                     ! Tensor M_ij = (|S2|*S2)G2 - ((|S1|S1)^f2)G1
                     mij = t_strain_mod(gi)*t_strain_gi(:,:,gi)*t_scalar(gi) - strainprod_gi(:,:,gi)*f_scalar(gi)
+                    denom = sum(mij*mij)
                     ! Model coeff C_S = -(L_ij M_ij) / 2(M_ij M_ij)
-                    les_coef_gi(gi) = -0.5*sum(leonard_gi(:,:,gi)*mij) / sum(mij*mij)
+                    if (denom > 0) then
+                       les_coef_gi(gi) = -0.5*sum(leonard_gi(:,:,gi)*mij) / denom
+                    else
+                       les_coef_gi(gi) = 0.0
+                    endif
+
                     ! Constrain C_S to be between 0 and 0.04.
                     les_coef_gi(gi) = min(max(les_coef_gi(gi),0.0), 0.04)
+
                     ! Isotropic tensor dynamic eddy viscosity = -2C_S|S1|.alpha^2.G1
                     les_tensor_gi(:,:,gi) = 2*alpha**2*les_coef_gi(gi)*strain_mod(gi)*f_scalar(gi)
                   end do
@@ -2260,10 +2267,17 @@
                   do gi=1, ele_ngi(nu, ele)
                     ! Tensor M_ij = (|S2|*S2).G2 - ((|S1|S1)^f2).G1
                     mij = t_strain_mod(gi)*t_strain_gi(:,:,gi)*t_tensor(:,:,gi) - strainprod_gi(:,:,gi)*f_tensor(:,:,gi)
+                    denom = sum(mij*mij)
                     ! Model coeff C_S = -(L_ij M_ij) / 2(M_ij M_ij)
-                    les_coef_gi(gi) = -0.5*sum(leonard_gi(:,:,gi)*mij) / sum(mij*mij)
+                    if (denom > 0) then
+                       les_coef_gi(gi) = -0.5*sum(leonard_gi(:,:,gi)*mij) / denom
+                    else
+                       les_coef_gi(gi) = 0.0
+                    endif
+
                     ! Constrain C_S to be between 0 and 0.04.
                     les_coef_gi(gi) = min(max(les_coef_gi(gi),0.0), 0.04)
+
                     ! Anisotropic tensor dynamic eddy viscosity m_ij = -2C_S|S1|.alpha^2.G1
                     les_tensor_gi(:,:,gi) = 2*alpha**2*les_coef_gi(gi)*strain_mod(gi)*f_tensor(:,:,gi)
                   end do
