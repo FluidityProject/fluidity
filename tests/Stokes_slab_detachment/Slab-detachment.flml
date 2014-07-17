@@ -142,17 +142,13 @@
               <inner_matrix name="FullMomentumMatrix">
                 <solver>
                   <iterative_method name="cg"/>
-                  <preconditioner name="gamg"/>
+                  <preconditioner name="mg"/>
                   <relative_error>
                     <real_value rank="0">1.0e-4</real_value>
                   </relative_error>
                   <max_iterations>
                     <integer_value rank="0">1000</integer_value>
                   </max_iterations>
-                  <multigrid_near_null_space>
-                    <all_components/>
-                    <all_rotations/>
-                  </multigrid_near_null_space>
                   <never_ignore_solver_failures/>
                   <diagnostics>
                     <monitors/>
@@ -261,17 +257,13 @@
         </temporal_discretisation>
         <solver>
           <iterative_method name="cg"/>
-          <preconditioner name="gamg"/>
+          <preconditioner name="mg"/>
           <relative_error>
             <real_value rank="0">1.0e-4</real_value>
           </relative_error>
           <max_iterations>
             <integer_value rank="0">1000</integer_value>
           </max_iterations>
-          <multigrid_near_null_space>
-            <all_components/>
-            <all_rotations/>
-          </multigrid_near_null_space>
           <never_ignore_solver_failures/>
           <diagnostics>
             <monitors/>
@@ -489,23 +481,6 @@
           </continuous>
         </galerkin_projection>
       </prognostic>
-    </scalar_field>
-    <scalar_field name="ControlVolumeCFLNumber" rank="0">
-      <diagnostic>
-        <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="MaterialMesh"/>
-        <output/>
-        <stat/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-      </diagnostic>
     </scalar_field>
     <tensor_field name="MaterialViscosity" rank="2">
       <prescribed>
