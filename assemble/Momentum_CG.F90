@@ -495,7 +495,7 @@
            ! Get (first filter)/(mesh size) ratio alpha. Default value is 2.
            call get_option(trim(les_option_path)//"/dynamic_les/alpha", alpha, default=2.0)
            ! Get (test filter)/(first filter) size ratio alpha. Default value is 2.
-           call get_option(trim(les_option_path)//"/dynamic_les/gama", gamma, default=2.0)
+           call get_option(trim(les_option_path)//"/dynamic_les/gamma", gamma, default=2.0)
 
            ! Calculate test-filtered velocity field and Leonard tensor field.
            ewrite(2,*) "Calculating test-filtered velocity and Leonard tensor"
