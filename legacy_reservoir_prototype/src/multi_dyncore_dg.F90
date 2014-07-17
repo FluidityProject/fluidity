@@ -181,7 +181,7 @@ contains
         character( len = option_path_len ) :: path
         type(vector_field) :: rhs_field
         type( tensor_field ), pointer :: den_all2, denold_all2
-        integer :: lcomp
+        integer :: lcomp, Field_selector
 
         type(petsc_csr_matrix) :: petsc_acv
         type(vector_field)  :: vtracer
@@ -220,8 +220,8 @@ contains
            denold_all = denold_all2 % val ( 1,  :, : )
         else
            p => extract_scalar_field( packed_state, "Pressure" )
-              den_all=1.0
-              denold_all=1.0
+           den_all=1.0
+           denold_all=1.0
         end if
 
 
@@ -236,6 +236,8 @@ contains
             '/control_volumes/second_theta'
             call get_option( path, second_theta, default=1. )
 
+            Field_selector = 1
+
         else
 
             call get_option( '/material_phase[' // int2str( nphase ) // ']/scalar_field::ComponentMassFractionPhase1/' // &
@@ -245,6 +247,8 @@ contains
             'prognostic/temporal_discretisation/control_volumes/second_theta'
 
             call get_option( path, second_theta, default=1. )
+
+            Field_selector = 2
 
         end if
 
@@ -292,7 +296,7 @@ contains
             MEAN_PORE_CV, &
             SMALL_FINACV, SMALL_COLACV, size(small_colacv), mass_Mn_pres, THERMAL, RETRIEVE_SOLID_CTY, &
             mass_ele_transp,&
-            StorageIndexes, -1, T_input = T, TOLD_input=TOLD, FEMT_input =  T_FEMT ,&
+            StorageIndexes, Field_selector, T_input = T, TOLD_input=TOLD, FEMT_input =  T_FEMT ,&
             saturation=saturation)
             t=0.
 
@@ -1319,7 +1323,7 @@ contains
               UDEN_ALL = DEN_ALL2%VAL( 1, :, : )
               UDENOLD_ALL = DENOLD_ALL2%VAL( 1, :, : )
            end if
-            call calculate_u_source_cv( state, cv_nonods, ndim, nphase, uden_all, U_Source_CV )
+           call calculate_u_source_cv( state, cv_nonods, ndim, nphase, uden_all, U_Source_CV )
         end if
 
 
@@ -1346,8 +1350,22 @@ contains
 
         ! calculate the viscosity for the momentum equation...
         !if ( its == 1 ) 
-        uDiffusion_VOL=0.0
-        call calculate_viscosity( state, ncomp, nphase, ndim, mat_nonods, mat_ndgln, uDiffusion )
+        uDiffusion_VOL = 0.0
+        call calculate_viscosity( state, packed_state, ncomp, nphase, ndim, mat_nonods, mat_ndgln, uDiffusion )
+
+        !ewrite(3,*) 'uDiffusion'
+        !ewrite(3,*) '+++',minval( uDiffusion(:,1,1,1) ), maxval( uDiffusion(:,1,1,1) )
+        !ewrite(3,*) '+++',minval( uDiffusion(:,1,2,1) ), maxval( uDiffusion(:,1,2,1) )
+        !ewrite(3,*) '+++',minval( uDiffusion(:,1,3,1) ), maxval( uDiffusion(:,1,3,1) )
+
+        !ewrite(3,*) '+++',minval( uDiffusion(:,2,1,1) ), maxval( uDiffusion(:,2,1,1) )
+        !ewrite(3,*) '+++',minval( uDiffusion(:,2,2,1) ), maxval( uDiffusion(:,2,2,1) )
+        !ewrite(3,*) '+++',minval( uDiffusion(:,2,3,1) ), maxval( uDiffusion(:,2,3,1) )
+
+        !ewrite(3,*) '+++',minval( uDiffusion(:,3,1,1) ), maxval( uDiffusion(:,3,1,1) )
+        !ewrite(3,*) '+++',minval( uDiffusion(:,3,2,1) ), maxval( uDiffusion(:,3,2,1) )
+        !ewrite(3,*) '+++',minval( uDiffusion(:,3,3,1) ), maxval( uDiffusion(:,3,3,1) )
+
 
         ! stabilisation for high aspect ratio problems - switched off
         call calculate_u_abs_stab( U_ABS_STAB, MAT_ABSORB, &
@@ -1492,6 +1510,25 @@ contains
 
             ELSE
 
+
+                if( .false. ) then
+                   DO CV_NOD = 1, U_NONODS
+                      ewrite(2,*) 'u_nod=',cv_nod, &
+                           'findgm_pha=', FINDGM_PHA( CV_NOD ), FINDGM_PHA( CV_NOD + 1 ) - 1
+                      rsum = 0.0
+                      DO COUNT = FINDGM_PHA( CV_NOD ), FINDGM_PHA( CV_NOD + 1 ) - 1
+                         CV_JNOD = COLDGM_PHA( COUNT )
+                         ewrite(2,*) 'count,CV_JNOD,DGM_PHA(count):', count, CV_JNOD, DGM_PHA( count )
+                         if ( cv_nod /= cv_jnod ) rsum = rsum + abs( DGM_PHA( count ) )
+                      END DO
+                      ewrite(2,*) 'off_diag=',rsum
+                   END DO
+                   !stop 1243
+                end if
+
+
+
+
                 U_RHS_CDP = RESHAPE( U_RHS + CDP_tensor%val, (/ NDIM * NPHASE * U_NONODS /) )
                 call allocate(rhs,product(velocity%dim),velocity%mesh,"RHS")
 
@@ -1499,8 +1536,7 @@ contains
               
                 call zero_non_owned(rhs)                      
 
-               mat=wrap_momentum_matrix(DGM_PHA,FINDGM_PHA,COLDGM_PHA,velocity)
-
+                mat=wrap_momentum_matrix(DGM_PHA,FINDGM_PHA,COLDGM_PHA,velocity) 
 
 
                 call zero(velocity)
@@ -1619,14 +1655,14 @@ contains
             call zero_non_owned(rhs_p)
 
             call petsc_solve(deltap,mat2,rhs_p,trim(pressure%option_path))
-
-            ewrite(3,*) 'after pressure solve DP:', DP
             
             P_all % val = P_all % val + deltap%val
 
             call halo_update(p_all)
             
             dp= deltap%val
+
+            ewrite(3,*) 'after pressure solve DP:', DP
 
             call deallocate(deltaP)
             call deallocate(rhs_p)
@@ -1654,6 +1690,7 @@ contains
 !!               end if
 !!
 !!         end if
+              !!dp=0.5*dp
 
 
             ! Use a projection method
@@ -2499,6 +2536,8 @@ contains
 ! If PIVIT_ON_VISC then place the block diaongal viscocity into the pivit matrix used in the projection method...
 ! PIVIT_ON_VISC is the only thing that could make highly viscouse flows stabe when using projection methods...
             LOGICAL, PARAMETER :: PIVIT_ON_VISC = .FALSE.
+            real :: w
+            real, parameter :: wv=1.0, ws=0.0 ! volume off-diagonal and surface weights, respectively
 
         !
         ! Variables used to reduce indirect addressing...
@@ -2776,7 +2815,6 @@ contains
         SUF_MOMU_BC_ALL=>momentum_BCs%val
         SUF_U_ROB1_BC_ALL=>velocity_BCs%val
         SUF_U_ROB2_BC_ALL=>velocity_BCs_robin2%val
-        
 
         !ewrite(3,*) 'Just double-checking sparsity patterns memory allocation:'
         !ewrite(3,*) 'FINDC with size,', size( FINDC ), ':', FINDC( 1 :  size( FINDC ) )
@@ -3935,9 +3973,11 @@ contains
                                             IF(PIVIT_ON_VISC) THEN
                                                 I = IDIM+(IPHASE-1)*NDIM_VEL+(U_ILOC-1)*NDIM_VEL*NPHASE
                                                 J = JDIM+(JPHASE-1)*NDIM_VEL+(U_JLOC-1)*NDIM_VEL*NPHASE
-                                                PIVIT_MAT( I,J, ELE )  &
+                                                w=1.0
+                                                if (i/=j) w = wv
+                                                PIVIT_MAT( I,J, ELE ) &
                                                 = PIVIT_MAT( I,J, ELE ) &
-                                                + STRESS_IJ_ELE( IDIM, JDIM, IPHASE, U_ILOC, U_JLOC )
+                                                +  w * STRESS_IJ_ELE( IDIM, JDIM, IPHASE, U_ILOC, U_JLOC )
                                             END IF
 
                                             RHS_DIFF_U( IDIM, IPHASE, U_ILOC ) = RHS_DIFF_U( IDIM, IPHASE, U_ILOC ) + &
@@ -3977,8 +4017,10 @@ contains
                                         IF(PIVIT_ON_VISC) THEN
                                             I = IDIM+(IPHASE-1)*NDIM_VEL+(U_ILOC-1)*NDIM_VEL*NPHASE
                                             J = JDIM+(JPHASE-1)*NDIM_VEL+(U_JLOC-1)*NDIM_VEL*NPHASE
+                                            w=1.0
+                                            if (i/=j) w = wv
                                             PIVIT_MAT( I,J, ELE ) &
-                                            = PIVIT_MAT( I,J, ELE ) + VLK_ELE( IPHASE, U_ILOC, U_JLOC )
+                                            = PIVIT_MAT( I,J, ELE ) + w * VLK_ELE( IPHASE, U_ILOC, U_JLOC )
                                         END IF
 
                                         RHS_DIFF_U( IDIM, IPHASE, U_ILOC ) = RHS_DIFF_U( IDIM, IPHASE, U_ILOC ) + &
@@ -4232,8 +4274,8 @@ contains
 
                 IF ( STRESS_FORM_STAB ) THEN! stress form of viscosity...
 
-                   DO IDIM=1,NDIM
-                      DO JDIM=1,NDIM
+                   DO IDIM=1,NDIM_VEL
+                      DO JDIM=1,NDIM_VEL
                          TEN_XX( IDIM, JDIM, :, : ) = SQRT( DIF_STAB_U( IDIM, :, : )  *  DIF_STAB_U( JDIM, :, : ) )
                       END DO
                    END DO
@@ -4267,8 +4309,10 @@ contains
                                      IF(PIVIT_ON_VISC) THEN
                                         I = IDIM+(IPHASE-1)*NDIM_VEL+(U_ILOC-1)*NDIM_VEL*NPHASE
                                         J = JDIM+(JPHASE-1)*NDIM_VEL+(U_JLOC-1)*NDIM_VEL*NPHASE
+                                        w=1.0
+                                        if (i/=j) w = wv
                                         PIVIT_MAT( I,J, ELE )  &
-                                        = PIVIT_MAT( I,J, ELE ) + STRESS_IJ_ELE( IDIM, JDIM, IPHASE, U_ILOC, U_JLOC )
+                                        = PIVIT_MAT( I,J, ELE ) + w * STRESS_IJ_ELE( IDIM, JDIM, IPHASE, U_ILOC, U_JLOC )
                                      ENDIF
                                   END DO
                                END DO
@@ -4304,8 +4348,10 @@ contains
                                     IF(PIVIT_ON_VISC) THEN
                                         I = IDIM+(IPHASE-1)*NDIM_VEL+(U_ILOC-1)*NDIM_VEL*NPHASE
                                         J = JDIM+(JPHASE-1)*NDIM_VEL+(U_JLOC-1)*NDIM_VEL*NPHASE
+                                        w=1.0
+                                        if (i/=j) w = wv
                                         PIVIT_MAT( I,J, ELE )  &
-                                        = PIVIT_MAT( I,J, ELE ) + VLK_UVW( IDIM )
+                                        = PIVIT_MAT( I,J, ELE ) + w * VLK_UVW( IDIM )
                                     ENDIF
                                 END IF
                             END DO
@@ -5358,8 +5404,8 @@ contains
                                         IF(PIVIT_ON_VISC) THEN
                                             I = IDIM+(IPHASE-1)*NDIM_VEL+(U_ILOC-1)*NDIM_VEL*NPHASE
                                             J = JDIM+(JPHASE-1)*NDIM_VEL+(U_JLOC-1)*NDIM_VEL*NPHASE
-                                            PIVIT_MAT(I,J,ELE)  &
-                                            =PIVIT_MAT(I,J,ELE)       + VLM_NEW
+                                            PIVIT_MAT(I,J,ELE) &
+                                            =PIVIT_MAT(I,J,ELE) + ws * VLM_NEW 
                                         ENDIF
 
 
@@ -5395,7 +5441,7 @@ contains
                                               I = IDIM+(IPHASE-1)*NDIM_VEL+(U_ILOC-1)*NDIM_VEL*NPHASE
                                               J = JDIM+(JPHASE-1)*NDIM_VEL+(U_JLOC-1)*NDIM_VEL*NPHASE
                                               PIVIT_MAT(I,J,ELE)=PIVIT_MAT(I,J,ELE) & 
-                                                       + VLM_NEW
+                                                       + ws * VLM_NEW 
                                            ENDIF
 
                                            LOC_U_RHS( IDIM,IPHASE,U_ILOC ) =  LOC_U_RHS( IDIM,IPHASE,U_ILOC ) -VLM_OLD * SLOC_UOLD( IDIM,IPHASE,U_SJLOC )
@@ -5425,7 +5471,7 @@ contains
                                                I = IDIM+(IPHASE-1)*NDIM_VEL+(U_ILOC-1)*NDIM_VEL*NPHASE
                                                J = JDIM+(JPHASE-1)*NDIM_VEL+(U_JLOC-1)*NDIM_VEL*NPHASE
                                                PIVIT_MAT(I,J,ELE)=PIVIT_MAT(I,J,ELE) & 
-                                                        + VLM * SUF_U_ROB1_BC_ALL( IDIM,IPHASE,U_SJLOC + U_SNLOC * ( SELE2 - 1 ) )
+                                                        + ws * VLM * SUF_U_ROB1_BC_ALL( IDIM,IPHASE,U_SJLOC + U_SNLOC * ( SELE2 - 1 ) )
                                             ENDIF
 
                                             LOC_U_RHS( IDIM,IPHASE,U_ILOC ) =  LOC_U_RHS( IDIM,IPHASE,U_ILOC ) - VLM * SUF_U_ROB2_BC_ALL( IDIM,IPHASE,U_SJLOC + U_SNLOC * ( SELE2 - 1 ) )
@@ -5682,6 +5728,8 @@ contains
 
 
         call deallocate(velocity_BCs)
+        call deallocate(velocity_BCs_visc)
+        call deallocate(velocity_BCs_adv)
         call deallocate(velocity_BCs_robin2)
         call deallocate(momentum_BCs)
         call deallocate(pressure_BCs)

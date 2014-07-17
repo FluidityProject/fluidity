@@ -311,6 +311,7 @@ elements when buoyancy is a discontinuous field.</a:documentation>
               <ref name="tensor_python_diagnostic_algorithm"/>
               <ref name="internal_algorithm"/>
             </choice>
+            <ref name="mesh_choice"/>
             <ref name="diagnostic_tensor_field"/>
           </element>
         </choice>

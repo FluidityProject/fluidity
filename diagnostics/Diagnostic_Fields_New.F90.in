@@ -335,7 +335,9 @@ contains
         if(.not. recalculate_diagnostic_variable(t_field, exclude_nonrecalculated = exclude_nonrecalculated)) cycle
         ! and whether this field has already been calculated (as a dependency)
         if(has_tensor_field(calculated_states(i), trim(t_field%name))) cycle
-        
+        ! Skip viscosities for protoype...
+        if(have_option(trim(t_field%option_path) // "/diagnostic")) cycle
+
         ! Calculate dependencies
         call calculate_dependencies(states, i, t_field, &
           & dep_states_mask = calculated_states, exclude_nonrecalculated = exclude_nonrecalculated)
