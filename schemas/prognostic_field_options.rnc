@@ -636,32 +636,6 @@ prognostic_velocity_field =
                            }
                         )
                      }?,
-                     ## First filtered velocity (diagnostic). This is the Velocity field filtered
-                     ## with the first filter - see manual.
-                     element vector_field {
-                        attribute rank { "2" },
-                        attribute name { "FirstFilteredVelocity" },
-                        (
-                           element diagnostic {
-                              internal_algorithm,
-                              velocity_mesh_choice,
-                              diagnostic_tensor_field
-                           }
-                        )
-                     }?,
-                     ## Test filtered velocity (diagnostic). This is the first filtered velocity field filtered
-                     ## again with the test filter - see manual.
-                     element vector_field {
-                        attribute rank { "2" },
-                        attribute name { "TestFilteredVelocity" },
-                        (
-                           element diagnostic {
-                              internal_algorithm,
-                              velocity_mesh_choice,
-                              diagnostic_tensor_field
-                           }
-                        )
-                     }?,
                      ## First filter width tensor (diagnostic): G_f = meshsize^2*alpha^2.
                      element tensor_field {
                         attribute rank { "2" },
@@ -687,6 +661,58 @@ prognostic_velocity_field =
                      element tensor_field {
                         attribute rank { "2" },
                         attribute name { "EddyViscosity" },
+                        (
+                           element diagnostic {
+                              internal_algorithm,
+                              velocity_mesh_choice,
+                              diagnostic_tensor_field,
+                              element mass_matrix {  
+                              (
+                                    element use_lumped_mass_matrix { element use_submesh { empty }? }
+                                    |
+                                    element use_consistent_mass_matrix { empty }
+                                 )
+                              }
+                           }
+                        )
+                     }?
+                  }
+               |
+                  ## exact expression for subgrid stresses derived from inverse Helmholtz filter
+                  element exact_sgs {
+                     ## Filtering scale factor alpha: the ratio between the mesh size and first filter width G_f.
+                     ## First filtering is achieved by applying the inverse Helmholtz operator:
+                     ## u_f = (1-alpha^2/24*M*L)^-1 * u, where M is the mesh size squared (a tensor) and L is the Laplacian.
+                     ## Lower values will result in less information being filtered out of the velocity.
+                     ##
+                     ## default value: 2.0
+                     element alpha {
+                        real
+                     },
+                     ## The 'scalar' length scale is the cube root of the element's volume in 3D. In 2D, it is the square root of the element's area. Using this will result in an isotropic eddy viscosity tensor.
+                     ##
+                     ## The 'tensor' length scale uses the metric from the adaptivity process. Using this will result in an anisotropic eddy viscosity tensor.
+                     element length_scale_type { 'scalar'|'tensor' },
+                     ## Solver options are required for calculation of Helmholtz-smoothed velocity.
+                     element solver {
+                        linear_solver_options_sym
+                     },
+                     ## Explicitly filtered velocity.
+                     element vector_field {
+                        attribute name { "FilteredVelocity" },
+                        attribute rank { "1" },
+                        (
+                           element diagnostic {
+                              internal_algorithm,
+                              velocity_mesh_choice,
+                              diagnostic_vector_field
+                           }
+                        )
+                     }?,
+                     ## subgrid stress tensor
+                     element tensor_field {
+                        attribute rank { "2" },
+                        attribute name { "SGSTensor" },
                         (
                            element diagnostic {
                               internal_algorithm,

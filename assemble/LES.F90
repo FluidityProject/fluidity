@@ -43,21 +43,21 @@ module les_module
   private
 
   public les_viscosity_strength, wale_viscosity_strength
-  public les_init_diagnostic_fields, les_assemble_diagnostic_fields, les_solve_diagnostic_fields, &
-         leonard_tensor, les_strain_rate
+  public les_init_diagnostic_fields, les_assemble_diagnostic_fields, les_solve_diagnostic_fields
+  public leonard_tensor, les_strain_rate, exact_sgs_stress
 
 contains
 
-  subroutine les_init_diagnostic_fields(state, have_eddy_visc, have_filter_width, have_coeff)
+  subroutine les_init_diagnostic_fields(state, have_eddy_visc, have_filter_width, have_coeff, have_sgs_tensor)
 
     ! Arguments
     type(state_type), intent(inout)             :: state
-    logical, intent(in)                         :: have_eddy_visc, have_filter_width, have_coeff
+    logical, intent(in)                         :: have_eddy_visc, have_filter_width, have_coeff, have_sgs_tensor
     
     ! Local variables
-    logical, dimension(2)                       :: have_diagnostic_tfield
+    logical, dimension(3)                       :: have_diagnostic_tfield
     logical, dimension(1)                       :: have_diagnostic_sfield
-    character(len=FIELD_NAME_LEN), dimension(2) :: diagnostic_tfield_names
+    character(len=FIELD_NAME_LEN), dimension(3) :: diagnostic_tfield_names
     character(len=FIELD_NAME_LEN), dimension(1) :: diagnostic_sfield_names
     type(tensor_field), pointer                 :: tfield
     type(scalar_field), pointer                 :: sfield
@@ -65,9 +65,10 @@ contains
 
     ewrite(2,*) "Initialising optional LES diagnostic fields"
     
-    have_diagnostic_tfield = (/have_eddy_visc, have_filter_width/)
+    have_diagnostic_tfield = (/have_eddy_visc, have_filter_width, have_sgs_tensor/)
     diagnostic_tfield_names(1) = "EddyViscosity"
     diagnostic_tfield_names(2) = "FilterWidth"
+    diagnostic_tfield_names(3) = "SGSTensor"
     
     diagnostic_tfield_loop: do i = 1, size(diagnostic_tfield_names)
       if(have_diagnostic_tfield(i)) then
@@ -129,16 +130,16 @@ contains
 
   end subroutine les_assemble_diagnostic_fields
 
-  subroutine les_solve_diagnostic_fields(state, have_eddy_visc, have_filter_width, have_coeff)
+  subroutine les_solve_diagnostic_fields(state, have_eddy_visc, have_filter_width, have_coeff, have_sgs_tensor)
 
     ! Arguments
     type(state_type), intent(inout) :: state
-    logical, intent(in) :: have_eddy_visc, have_filter_width, have_coeff
+    logical, intent(in) :: have_eddy_visc, have_filter_width, have_coeff, have_sgs_tensor
     
     ! Local variables
-    logical, dimension(2)                       :: have_diagnostic_tfield
+    logical, dimension(3)                       :: have_diagnostic_tfield
     logical, dimension(1)                       :: have_diagnostic_sfield
-    character(len=FIELD_NAME_LEN), dimension(2) :: diagnostic_tfield_names
+    character(len=FIELD_NAME_LEN), dimension(3) :: diagnostic_tfield_names
     character(len=FIELD_NAME_LEN), dimension(1) :: diagnostic_sfield_names
     type(tensor_field), pointer                 :: tfield
     type(scalar_field), pointer                 :: sfield
@@ -154,10 +155,11 @@ contains
         
     u => extract_vector_field(state, "Velocity")
     
-    have_diagnostic_tfield = (/have_eddy_visc, have_filter_width/)
+    have_diagnostic_tfield = (/have_eddy_visc, have_filter_width, have_sgs_tensor/)
     diagnostic_tfield_names(1) = "EddyViscosity"
     diagnostic_tfield_names(2) = "FilterWidth"
-    
+    diagnostic_tfield_names(3) = "SGSTensor"
+
     diagnostic_tfield_loop: do i = 1, size(diagnostic_tfield_names)
       if(have_diagnostic_tfield(i)) then
          tfield => extract_tensor_field(state, diagnostic_tfield_names(i))
@@ -213,7 +215,7 @@ contains
 
   end subroutine les_solve_diagnostic_fields
   
-  subroutine leonard_tensor(nu, positions, fnu, tnu, leonard, strainprod, alpha, gamma, path)
+  subroutine leonard_tensor(nu, positions, fnu, tnu, leonard, strainprod, alpha, gamma, length_scale_type, path)
 
     ! Unfiltered velocity
     type(vector_field), pointer                           :: nu
@@ -224,6 +226,7 @@ contains
     type(tensor_field), pointer                           :: leonard, strainprod
     ! Scale factors
     real, intent(in)                                      :: alpha, gamma
+    character(len=OPTION_PATH_LEN), intent(in)            :: length_scale_type
     character(len=OPTION_PATH_LEN), intent(in)            :: path
     ! Local quantities
     type(tensor_field), pointer                           :: ui_uj, tui_tuj
@@ -240,11 +243,20 @@ contains
     lpath = (trim(path)//"/dynamic_les")
     ewrite(2,*) "filter factor alpha: ", alpha
     ewrite(2,*) "filter factor gamma: ", gamma
+    ewrite(2,*) "filter width type: ", trim(length_scale_type)
 
-    ! First filter operator returns u^f:
-    call anisotropic_smooth_vector(nu, positions, fnu, alpha, lpath)
-    ! Test filter operator needs the ratio of test filter to mesh size and returns u^ft:
-    call anisotropic_smooth_vector(fnu, positions, tnu, alpha*gamma, lpath)
+    if(length_scale_type=="scalar") then
+      ! First filter operator returns u^f:
+      call smooth_vector(nu, positions, fnu, alpha, lpath)
+      ! Test filter operator needs the ratio of test filter to mesh size and returns u^ft:
+      call smooth_vector(fnu, positions, tnu, alpha*gamma, lpath)
+    else if(length_scale_type=="tensor") then
+      ! First filter operator returns u^f:
+      call anisotropic_smooth_vector(nu, positions, fnu, alpha, lpath)
+      ! Test filter operator needs the ratio of test filter to mesh size and returns u^ft:
+      call anisotropic_smooth_vector(fnu, positions, tnu, alpha*gamma, lpath)
+    end if
+
     ewrite_minmax(nu)
     ewrite_minmax(fnu)
     ewrite_minmax(tnu)
@@ -271,7 +283,11 @@ contains
     end do
 
     ! Calculate test-filtered (velocity products): (ui^f*uj^f)^t
-    call anisotropic_smooth_tensor(ui_uj, positions, leonard, alpha*gamma, lpath)
+    if(length_scale_type=="scalar") then
+      call smooth_tensor(ui_uj, positions, leonard, alpha*gamma, lpath)
+    else if(length_scale_type=="tensor") then
+      call anisotropic_smooth_tensor(ui_uj, positions, leonard, alpha*gamma, lpath)
+    end if
 
     ! Leonard tensor field
     call addto( leonard, tui_tuj, -1.0 )
@@ -294,7 +310,11 @@ contains
     end do
 
     ! Filter strain product with test filter: (|S1^f|S1^f)^t
-    call anisotropic_smooth_tensor(ui_uj, positions, strainprod, alpha*gamma, lpath)
+    if(length_scale_type=="scalar") then
+      call smooth_tensor(ui_uj, positions, strainprod, alpha*gamma, lpath)
+    else if(length_scale_type=="tensor") then
+      call anisotropic_smooth_tensor(ui_uj, positions, strainprod, alpha*gamma, lpath)
+    end if
 
     ! Deallocates
     deallocate(u_loc, t_loc)
@@ -303,6 +323,108 @@ contains
     deallocate(ui_uj); deallocate(tui_tuj)
 
   end subroutine leonard_tensor
+
+  subroutine exact_sgs_stress(nu, positions, fnu, exactsgs, alpha, length_scale_type, path)
+
+    ! Unfiltered velocity
+    type(vector_field), pointer                           :: nu
+    type(vector_field), intent(in)                        :: positions
+    type(tensor_field), intent(inout)                     :: exactsgs
+    ! Filtered velocity
+    type(vector_field), pointer                           :: fnu, vfield
+    ! RHS tensor
+    type(tensor_field), pointer                           :: tensorrhs
+    ! Scale factor
+    real, intent(in)                                      :: alpha
+    character(len=OPTION_PATH_LEN), intent(in)            :: length_scale_type, path
+    ! Local quantities
+    character(len=OPTION_PATH_LEN)                        :: lpath
+    integer                                               :: i, j, ele, gi
+    real, dimension(ele_loc(nu,1), ele_ngi(nu,1), nu%dim) :: du_t
+    real, dimension(ele_ngi(nu,1))                        :: detwei
+    real, dimension(nu%dim, nu%dim, ele_ngi(nu,1))        :: mat_gi
+    real, dimension(nu%dim, nu%dim)                       :: mat
+    real, dimension(nu%dim, ele_ngi(nu,1))                :: grad_gi
+    real                                                  :: delta
+    type(element_type)                                    :: shape_nu
+
+    ! Path is to level above solver options
+    lpath = (trim(path)//"/exact_sgs")
+    ewrite(2,*) "filter factor alpha: ", alpha
+    ewrite(2,*) "filter width type: ", trim(length_scale_type)
+
+    ! Compute explicitly filtered velocity - stick with scalar filter width for simplicity
+    if(length_scale_type=="scalar") then
+      call smooth_vector(nu, positions, fnu, alpha, lpath)
+    else if(length_scale_type=="tensor") then
+      call smooth_vector(nu, positions, fnu, alpha, lpath)
+      !call anisotropic_smooth_vector(nu, positions, fnu, alpha, lpath)
+    end if
+
+    ewrite_minmax(nu)
+    ewrite_minmax(fnu)
+
+    allocate(vfield); allocate(tensorrhs)
+    call allocate(vfield, nu%dim, nu%mesh, "Laplacian")
+    call allocate(tensorrhs, nu%mesh, "TensorRHS")
+    call zero(vfield); call zero(tensorrhs)
+
+    do ele=1, element_count(nu)
+      shape_nu = ele_shape(nu, ele)
+      call transform_to_physical(positions, ele, shape_nu, dshape=du_t, detwei=detwei)
+
+      ! Filter width - stick with scalar filter width for simplicity
+      if(length_scale_type=="scalar") then
+        delta = alpha**2/24.*length_scale_scalar(positions, ele)
+      else if(length_scale_type=="tensor") then
+        delta = alpha**2/24.*length_scale_scalar(positions, ele)
+        !delta = alpha**2/24.*length_scale_tensor(du_t, shape_nu)
+      end if
+
+      do gi = 1, ele_ngi(nu, ele)
+        ! velocity gradient
+        mat = matmul(ele_val(fnu, ele), du_t(:,gi,:))
+        ! gradient product
+        mat_gi(:,:,gi) = 2.0*delta*matmul(mat, transpose(mat))
+      end do
+
+      ! add gradient product to tensor RHS field
+      call addto(tensorrhs, ele_nodes(nu, ele), shape_tensor_rhs(shape_nu, mat_gi, detwei))
+
+      ! store grad(filtered velocity) in vfield
+      do i = 1, nu%dim
+        do j = 1, nu%dim
+          grad_gi(j, :) = matmul(ele_val(nu, i, ele), du_t(:, :, j))
+        end do
+
+        call addto(vfield, i, ele_nodes(nu, ele), dshape_dot_vector_rhs(du_t, grad_gi, detwei))
+      end do
+
+      ! Laplacian product
+      grad_gi = ele_val_at_quad(vfield, ele) ! dim*gi or gi*dim?
+      do gi=1, ele_ngi(nu, ele)
+        mat_gi(:,:,gi) = delta**2*outer_product(grad_gi(:,gi), grad_gi(:,gi))
+      end do
+
+      ! add Laplacian product to tensor RHS field
+      call addto(tensorrhs, ele_nodes(nu, ele), shape_tensor_rhs(shape_nu, mat_gi, detwei))
+
+    end do
+
+    ! Filter tensor RHS field
+    if(length_scale_type=="scalar") then
+      call smooth_tensor(tensorrhs, positions, exactsgs, alpha, lpath)
+    else if(length_scale_type=="tensor") then
+      call smooth_tensor(tensorrhs, positions, exactsgs, alpha, lpath)
+      !call anisotropic_smooth_tensor(tensorrhs, positions, exactsgs, alpha, lpath)
+    end if
+
+    ! Deallocates
+    call deallocate(vfield)
+    call deallocate(tensorrhs)
+    deallocate(vfield); deallocate(tensorrhs)
+
+  end subroutine exact_sgs_stress
 
   function les_strain_rate(du_t, nu)
     !! Computes the strain rate
@@ -387,5 +509,29 @@ contains
     end do
 
   end function wale_viscosity_strength
+
+  function les_gradient_product(du_t, nu)
+    !! Computes the cross product of velocity gradients
+
+    !! derivative of velocity shape function (nloc x ngi x dim)
+    real, dimension(:,:,:), intent(in):: du_t
+    !! nonlinear velocity (dim x nloc)
+    real, dimension(:,:), intent(in):: nu
+    real, dimension( size(du_t,3),size(du_t,3),size(du_t,2) ):: les_gradient_product
+    real, dimension(size(du_t,3),size(du_t,3)):: s
+    integer dim, ngi, gi
+
+    ngi=size(du_t,2)
+    dim=size(du_t,3)
+
+    do gi=1, ngi
+
+       s=matmul( nu, du_t(:,gi,:) )
+       les_gradient_product(:,:,gi)=2.0*matmul(s, transpose(s))
+
+    end do
+
+  end function les_gradient_product
+
 
 end module les_module
