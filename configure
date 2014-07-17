@@ -13734,9 +13734,9 @@ $as_echo "$as_me: Configuring libspud" >&6;}
 $as_echo "$as_me: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&6;}
 
     # Check if we're on hector xe6
-    if echo $(hostname) | egrep -q '(hector|eslogin)'; then
-        { $as_echo "$as_me:${as_lineno-$LINENO}: Building on HECTOR/ARCHER; disabling shared libraries" >&5
-$as_echo "$as_me: Building on HECTOR/ARCHER; disabling shared libraries" >&6;}
+    if test "x$ARCHER" != "x" ; then
+        { $as_echo "$as_me:${as_lineno-$LINENO}: Building on ARCHER; disabling shared libraries" >&5
+$as_echo "$as_me: Building on ARCHER; disabling shared libraries" >&6;}
         CONFIG_FLAG=--disable-shared
         SPUD_ONLY="yes"
         FLLINKER=$CXX
@@ -13804,7 +13804,7 @@ if test "$enable_profiling" = "yes" ; then
 fi
 CC="${CC}" CXX="${CXX}" CFLAGS="${env_cflags}" CXXFLAGS="${env_cxxflags}" CPPFLAGS="-D_GNU_SOURCE" \
     LIBS="${env_lib}" ./configure --prefix=${PWD}/../ --disable-shared --without-pic \
-    ${SPATIALINDEX_CONFIGURE_DEBUG_OPTION} ${SPATIALINDEX_CONFIGURE_PROF_OPTION}
+    ${SPATIALINDEX_CONFIGURE_DEBUG_OPTION} ${SPATIALINDEX_CONFIGURE_PROF_OPTION} --disable-maintainer-mode
 if test "$?" -ne "0"; then
   as_fn_error $? "Configuration of spatialindex has failed." "$LINENO" 5
   exit -1
