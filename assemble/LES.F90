@@ -43,8 +43,8 @@ module les_module
   private
 
   public les_viscosity_strength, wale_viscosity_strength
-  public les_init_diagnostic_fields, les_assemble_diagnostic_fields, les_solve_diagnostic_fields, &
-         leonard_tensor, les_strain_rate
+  public les_init_diagnostic_fields, les_assemble_diagnostic_fields, les_solve_diagnostic_fields
+  public leonard_tensor, les_strain_rate
 
 contains
 
@@ -240,11 +240,20 @@ contains
     lpath = (trim(path)//"/dynamic_les")
     ewrite(2,*) "filter factor alpha: ", alpha
     ewrite(2,*) "filter factor gamma: ", gamma
+    ewrite(2,*) "filter width type: ", trim(length_scale_type)
 
-    ! First filter operator returns u^f:
-    call anisotropic_smooth_vector(nu, positions, fnu, alpha, lpath)
-    ! Test filter operator needs the ratio of test filter to mesh size and returns u^ft:
-    call anisotropic_smooth_vector(fnu, positions, tnu, alpha*gamma, lpath)
+    if(length_scale_type=="scalar") then
+      ! First filter operator returns u^f:
+      call smooth_vector(nu, positions, fnu, alpha, lpath)
+      ! Test filter operator needs the ratio of test filter to mesh size and returns u^ft:
+      call smooth_vector(fnu, positions, tnu, alpha*gamma, lpath)
+    else if(length_scale_type=="tensor") then
+      ! First filter operator returns u^f:
+      call anisotropic_smooth_vector(nu, positions, fnu, alpha, lpath)
+      ! Test filter operator needs the ratio of test filter to mesh size and returns u^ft:
+      call anisotropic_smooth_vector(fnu, positions, tnu, alpha*gamma, lpath)
+    end if
+
     ewrite_minmax(nu)
     ewrite_minmax(fnu)
     ewrite_minmax(tnu)
@@ -271,7 +280,11 @@ contains
     end do
 
     ! Calculate test-filtered (velocity products): (ui^f*uj^f)^t
-    call anisotropic_smooth_tensor(ui_uj, positions, leonard, alpha*gamma, lpath)
+    if(length_scale_type=="scalar") then
+      call smooth_tensor(ui_uj, positions, leonard, alpha*gamma, lpath)
+    else if(length_scale_type=="tensor") then
+      call anisotropic_smooth_tensor(ui_uj, positions, leonard, alpha*gamma, lpath)
+    end if
 
     ! Leonard tensor field
     call addto( leonard, tui_tuj, -1.0 )
@@ -294,7 +307,11 @@ contains
     end do
 
     ! Filter strain product with test filter: (|S1^f|S1^f)^t
-    call anisotropic_smooth_tensor(ui_uj, positions, strainprod, alpha*gamma, lpath)
+    if(length_scale_type=="scalar") then
+      call smooth_tensor(ui_uj, positions, strainprod, alpha*gamma, lpath)
+    else if(length_scale_type=="tensor") then
+      call anisotropic_smooth_tensor(ui_uj, positions, strainprod, alpha*gamma, lpath)
+    end if
 
     ! Deallocates
     deallocate(u_loc, t_loc)
