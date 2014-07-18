@@ -1674,7 +1674,8 @@ darcy_impes_generic_scalar_field =
                darcy_impes_generic_scalar_field_diff?,
                darcy_impes_generic_scalar_field_abs?,
                darcy_impes_generic_scalar_field_src?,
-	       darcy_MIM_generic_scalar_field_immobile_src?,
+               darcy_impes_prog_field_chemical_source_term?,
+	       darcy_MIM_generic_scalar_field_immobile_src?,                
                field_output_options,
                darcy_impes_include_stat, 
                adaptivity_options_prognostic_scalar_field,
@@ -2552,3 +2553,131 @@ field_output_options =
          }?
       }
    )
+   
+
+# Chemical reaction source terms of lheap leaching under prognostic field
+darcy_impes_prog_field_chemical_source_term = 
+   ( 
+	  ## The source term from the chemical reactions for heap leaching
+          element LeachingChemicalSourceTerm{
+		darcy_impes_leaching_solution_phase_prog_src?,
+                darcy_impes_leaching_mineral_dissolution_prog_src?
+          }
+   )
+
+
+darcy_impes_leaching_solution_phase_prog_src = 
+   ( 
+       ##This is the source term from solution phase chemical reactions of heap leaching
+       ##The algorithms currently available are for chalcopyrite leaching
+       ##please select the corresponding reactions
+       element SolutionPhaseSource{
+              ( 
+                ##The internal algorithms currently available are for chalcopyrite leaching
+                element scalar_field {
+                          attribute rank { "0" },
+                          attribute name {"Ferrous_Oxidation"},
+                          element diagnostic {
+                             mesh_choice_pressure,
+                             darcy_impes_internal_algorithm,
+                             darcy_impes_chemical_stoichiometric_factor,
+                             darcy_impes_diagnostic_scalar_field,
+                             darcy_impes_recalculation_options?
+                             }
+                        }|
+                element scalar_field {
+                          attribute rank { "0" },
+                          attribute name {"Jarosite_Precipitation"},
+                          element diagnostic {
+                             mesh_choice_pressure,
+                             darcy_impes_internal_algorithm,
+                             darcy_impes_chemical_stoichiometric_factor,
+                             darcy_impes_diagnostic_scalar_field,
+                             darcy_impes_recalculation_options?
+                             }    
+                        }|
+
+                element scalar_field {                      
+                          attribute rank { "0" },
+                          attribute name {"Oxygen_dissolution_liquid_phase"},
+                          element diagnostic {
+                             mesh_choice_pressure,
+                             darcy_impes_internal_algorithm,
+                             darcy_impes_chemical_stoichiometric_factor,
+                             darcy_impes_diagnostic_scalar_field,
+                             darcy_impes_recalculation_options?
+                             }
+                        }|
+
+                element scalar_field {
+                          attribute rank { "0" },
+                          attribute name {"Oxygen_dissolution_gas_phase"},
+                          element diagnostic {
+                             mesh_choice_pressure,
+                             darcy_impes_internal_algorithm,
+                             darcy_impes_chemical_stoichiometric_factor,
+                             darcy_impes_diagnostic_scalar_field,
+                             darcy_impes_recalculation_options?
+                             }
+                        }
+              )+
+           }
+     )
+
+darcy_impes_leaching_mineral_dissolution_prog_src =
+   (
+       ##This is the source term from mineral dissolution of heap leaching
+       ##The algorithms currently available are for chalcopyrite leaching
+       ##please select the corresponding reactions
+       element MineralDissolutionSource{
+              (
+                ##The internal algorithms currently available are for chalcopyrite leaching
+                element scalar_field {
+                          attribute rank { "0" },
+                          attribute name {"CuFeS2_oxidation_aqueous_ferric_sulfate"},
+                          element diagnostic {
+                             mesh_choice_pressure,
+                             darcy_impes_internal_algorithm,
+                             darcy_impes_chemical_stoichiometric_factor,
+                             darcy_impes_diagnostic_scalar_field,
+                             darcy_impes_recalculation_options?
+                             }
+                        }|
+                element scalar_field {
+                          attribute rank { "0" },
+                          attribute name {"FeS2_oxidation_aqueous_ferric_sulfate"},
+                          element diagnostic {
+                             mesh_choice_pressure,
+                             darcy_impes_internal_algorithm,
+                             darcy_impes_chemical_stoichiometric_factor,
+                             darcy_impes_diagnostic_scalar_field,
+                             darcy_impes_recalculation_options?
+                             }
+                        }|
+
+                element scalar_field {
+                          attribute rank { "0" },
+                          attribute name {"S0_dissolution"},
+                          element diagnostic {
+                             mesh_choice_pressure,
+                             darcy_impes_internal_algorithm,
+                             darcy_impes_chemical_stoichiometric_factor,
+                             darcy_impes_diagnostic_scalar_field,
+                             darcy_impes_recalculation_options?
+                             }
+                        }
+
+              )+
+           }
+
+     )
+
+
+darcy_impes_chemical_stoichiometric_factor =
+   (
+     ##The stoichiometric factor of this species according to the reaction equation
+     element stoichiometric_factor {
+             ##The stoichiometric factor of this species according to the reaction equation
+             real
+             }
+     )

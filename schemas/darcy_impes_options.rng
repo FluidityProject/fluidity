@@ -1721,6 +1721,9 @@ Finite element discretisation may become unbounded so limiting is often necessar
             <ref name="darcy_impes_generic_scalar_field_src"/>
           </optional>
           <optional>
+            <ref name="darcy_impes_prog_field_chemical_source_term"/>
+          </optional>
+          <optional>
             <ref name="darcy_MIM_generic_scalar_field_immobile_src"/>
           </optional>
           <ref name="field_output_options"/>
@@ -2685,6 +2688,169 @@ i.e. if the name of this scaler field is set to be 'cd', then the name will be c
           <ref name="comment"/>
         </element>
       </optional>
+    </element>
+  </define>
+  <!-- Chemical reaction source terms of lheap leaching under prognostic field -->
+  <define name="darcy_impes_prog_field_chemical_source_term">
+    <element name="LeachingChemicalSourceTerm">
+      <a:documentation>The source term from the chemical reactions for heap leaching</a:documentation>
+      <optional>
+        <ref name="darcy_impes_leaching_solution_phase_prog_src"/>
+      </optional>
+      <optional>
+        <ref name="darcy_impes_leaching_mineral_dissolution_prog_src"/>
+      </optional>
+    </element>
+  </define>
+  <define name="darcy_impes_leaching_solution_phase_prog_src">
+    <element name="SolutionPhaseSource">
+      <a:documentation>This is the source term from solution phase chemical reactions of heap leaching
+The algorithms currently available are for chalcopyrite leaching
+please select the corresponding reactions</a:documentation>
+      <oneOrMore>
+        <choice>
+          <element name="scalar_field">
+            <a:documentation>The internal algorithms currently available are for chalcopyrite leaching</a:documentation>
+            <attribute name="rank">
+              <value>0</value>
+            </attribute>
+            <attribute name="name">
+              <value>Ferrous_Oxidation</value>
+            </attribute>
+            <element name="diagnostic">
+              <ref name="mesh_choice_pressure"/>
+              <ref name="darcy_impes_internal_algorithm"/>
+              <ref name="darcy_impes_chemical_stoichiometric_factor"/>
+              <ref name="darcy_impes_diagnostic_scalar_field"/>
+              <optional>
+                <ref name="darcy_impes_recalculation_options"/>
+              </optional>
+            </element>
+          </element>
+          <element name="scalar_field">
+            <attribute name="rank">
+              <value>0</value>
+            </attribute>
+            <attribute name="name">
+              <value>Jarosite_Precipitation</value>
+            </attribute>
+            <element name="diagnostic">
+              <ref name="mesh_choice_pressure"/>
+              <ref name="darcy_impes_internal_algorithm"/>
+              <ref name="darcy_impes_chemical_stoichiometric_factor"/>
+              <ref name="darcy_impes_diagnostic_scalar_field"/>
+              <optional>
+                <ref name="darcy_impes_recalculation_options"/>
+              </optional>
+            </element>
+          </element>
+          <element name="scalar_field">
+            <attribute name="rank">
+              <value>0</value>
+            </attribute>
+            <attribute name="name">
+              <value>Oxygen_dissolution_liquid_phase</value>
+            </attribute>
+            <element name="diagnostic">
+              <ref name="mesh_choice_pressure"/>
+              <ref name="darcy_impes_internal_algorithm"/>
+              <ref name="darcy_impes_chemical_stoichiometric_factor"/>
+              <ref name="darcy_impes_diagnostic_scalar_field"/>
+              <optional>
+                <ref name="darcy_impes_recalculation_options"/>
+              </optional>
+            </element>
+          </element>
+          <element name="scalar_field">
+            <attribute name="rank">
+              <value>0</value>
+            </attribute>
+            <attribute name="name">
+              <value>Oxygen_dissolution_gas_phase</value>
+            </attribute>
+            <element name="diagnostic">
+              <ref name="mesh_choice_pressure"/>
+              <ref name="darcy_impes_internal_algorithm"/>
+              <ref name="darcy_impes_chemical_stoichiometric_factor"/>
+              <ref name="darcy_impes_diagnostic_scalar_field"/>
+              <optional>
+                <ref name="darcy_impes_recalculation_options"/>
+              </optional>
+            </element>
+          </element>
+        </choice>
+      </oneOrMore>
+    </element>
+  </define>
+  <define name="darcy_impes_leaching_mineral_dissolution_prog_src">
+    <element name="MineralDissolutionSource">
+      <a:documentation>This is the source term from mineral dissolution of heap leaching
+The algorithms currently available are for chalcopyrite leaching
+please select the corresponding reactions</a:documentation>
+      <oneOrMore>
+        <choice>
+          <element name="scalar_field">
+            <a:documentation>The internal algorithms currently available are for chalcopyrite leaching</a:documentation>
+            <attribute name="rank">
+              <value>0</value>
+            </attribute>
+            <attribute name="name">
+              <value>CuFeS2_oxidation_aqueous_ferric_sulfate</value>
+            </attribute>
+            <element name="diagnostic">
+              <ref name="mesh_choice_pressure"/>
+              <ref name="darcy_impes_internal_algorithm"/>
+              <ref name="darcy_impes_chemical_stoichiometric_factor"/>
+              <ref name="darcy_impes_diagnostic_scalar_field"/>
+              <optional>
+                <ref name="darcy_impes_recalculation_options"/>
+              </optional>
+            </element>
+          </element>
+          <element name="scalar_field">
+            <attribute name="rank">
+              <value>0</value>
+            </attribute>
+            <attribute name="name">
+              <value>FeS2_oxidation_aqueous_ferric_sulfate</value>
+            </attribute>
+            <element name="diagnostic">
+              <ref name="mesh_choice_pressure"/>
+              <ref name="darcy_impes_internal_algorithm"/>
+              <ref name="darcy_impes_chemical_stoichiometric_factor"/>
+              <ref name="darcy_impes_diagnostic_scalar_field"/>
+              <optional>
+                <ref name="darcy_impes_recalculation_options"/>
+              </optional>
+            </element>
+          </element>
+          <element name="scalar_field">
+            <attribute name="rank">
+              <value>0</value>
+            </attribute>
+            <attribute name="name">
+              <value>S0_dissolution</value>
+            </attribute>
+            <element name="diagnostic">
+              <ref name="mesh_choice_pressure"/>
+              <ref name="darcy_impes_internal_algorithm"/>
+              <ref name="darcy_impes_chemical_stoichiometric_factor"/>
+              <ref name="darcy_impes_diagnostic_scalar_field"/>
+              <optional>
+                <ref name="darcy_impes_recalculation_options"/>
+              </optional>
+            </element>
+          </element>
+        </choice>
+      </oneOrMore>
+    </element>
+  </define>
+  <define name="darcy_impes_chemical_stoichiometric_factor">
+    <element name="stoichiometric_factor">
+      <a:documentation>The stoichiometric factor of this species according to the reaction equation</a:documentation>
+      <ref name="real">
+        <a:documentation>The stoichiometric factor of this species according to the reaction equation</a:documentation>
+      </ref>
     </element>
   </define>
 </grammar>

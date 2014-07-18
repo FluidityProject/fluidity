@@ -1,0 +1,227 @@
+#    Copyright (C) 2006 Imperial College London and others.
+#
+#    Please see the AUTHORS file in the main source directory for a full list
+#    of copyright holders.
+#
+#    Prof. C Pain
+#    Applied Modelling and Computation Group
+#    Department of Earth Science and Engineering
+#    Imperial College London
+#
+#    amcgsoftware@imperial.ac.uk
+#
+#    This library is free software; you can redistribute it and/or
+#    modify it under the terms of the GNU Lesser General Public
+#    License as published by the Free Software Foundation,
+#    version 2.1 of the License.
+#
+#    This library is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#    Lesser General Public License for more details.
+#
+#    You should have received a copy of the GNU Lesser General Public
+#    License along with this library; if not, write to the Free Software
+#    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
+#    USA
+SHELL = /bin/bash
+
+PACKAGE_NAME = fluidity
+FLUIDITY = $(PACKAGE_NAME)
+
+FC      = mpif90
+FCFLAGS = -I../include -I/usr/include -I/usr/include/vtk-5.8 -I/usr/include/python2.7 -DHAVE_NUMPY -I/usr/lib/python2.7/dist-packages/numpy/core/include -I/usr/include/ -I/usr/local/include/ -I/usr/include/libadjoint -I/usr/local/include/libadjoint -I/usr/lib/petscdir/3.1/linux-gnu-c-opt/include -I/usr/lib/petscdir/3.1/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/lib -I/usr/include/spooles -I/usr/include/scotch -I/usr/lib -I/usr/include/suitesparse -DHAVE_PETSC -DHAVE_VTK=1 -ffast-math -frecord-marker=4 -DHAVE_NUMPY -I/usr/lib/python2.7/dist-packages/numpy/core/include -fno-realloc-lhs -ffree-line-length-none -ffixed-line-length-none -O3 -I/usr/lib/petscdir/3.1/linux-gnu-c-opt/include -I/usr/lib/petscdir/3.1/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/lib -I/usr/include/spooles -I/usr/include/scotch -I/usr/lib -I/usr/include/suitesparse -fdefault-real-8 -fdefault-double-8
+
+CC  = mpicc
+CFLAGS  =  -I/usr/include/python2.7 -DHAVE_NUMPY -I/usr/lib/python2.7/dist-packages/numpy/core/include -I../include
+
+CXX = mpicxx
+CXXFLAGS= -I/usr/include/vtk-5.8 -I/usr/include/python2.7 -DHAVE_NUMPY -I/usr/lib/python2.7/dist-packages/numpy/core/include -I/usr/include/ -I/usr/local/include/ -I/usr/include/libadjoint -I/usr/local/include/libadjoint -I/usr/lib/petscdir/3.1/linux-gnu-c-opt/include -I/usr/lib/petscdir/3.1/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/lib -I/usr/include/spooles -I/usr/include/scotch -I/usr/lib -I/usr/include/suitesparse -DHAVE_PETSC -DHAVE_VTK=1  -I/usr/include/python2.7 -DHAVE_NUMPY -I/usr/lib/python2.7/dist-packages/numpy/core/include -I../include
+
+LINKER = mpicxx   
+
+FLLINKER = mpif90    $(FCFLAGS)
+
+LIBS = -L../lib ./lib/libadaptivity.a ./lib/libspatialindex.a ./lib/libspud.a ./lib/libvtkfortran.a ./lib/libjudy.a -lmba2d -lvtkIO -lvtkGraphics -lvtkFiltering -lvtkCommon -lvtksys -ldl -L/usr/lib/petscdir/3.1/linux-gnu-c-opt/lib -L/usr/lib/petscdir/3.1/linux-gnu-c-opt/lib -L/usr/lib/petscdir/3.1/linux-gnu-c-opt/lib -lpetsc -lX11 -L/usr/lib -ldmumps -lzmumps -lsmumps -lcmumps -lmumps_common -lpord -lscalapack-openmpi -lblacsCinit-openmpi -lblacs-openmpi -lspooles -lHYPRE -lHYPRE_utilities -lHYPRE_multivector -lHYPRE_krylov -lHYPRE_struct_mv -lHYPRE_struct_ls -lHYPRE_sstruct_mv -lHYPRE_sstruct_ls -lHYPRE_seq_mv -lHYPRE_parcsr_mv -lHYPRE_parcsr_block_mv -lHYPRE_DistributedMatrix -lHYPRE_MatrixMatrix -lHYPRE_IJ_mv -lHYPRE_Euclid -lHYPRE_ParaSails -lHYPRE_DistributedMatrixPilutSolver -lHYPRE_parcsr_ls -lHYPRE_FEI_fgmres -lHYPRE_mli -lHYPRE_FEI -lscotch -lhdf5_fortran -lhdf5 -lz -lumfpack -lamd -llapack -lblas -L/usr/lib/openmpi/lib -L/usr/lib/gcc/x86_64-linux-gnu/4.6 -L/usr/lib/x86_64-linux-gnu -L/lib/x86_64-linux-gnu -ldl -lmpi -lopen-rte -lopen-pal -lnsl -lutil -lgcc_s -lpthread -lmpi_f90 -lmpi_f77 -lgfortran -lm -lgfortran -lm -lgfortran -lm -lm -lquadmath -lm -lmpi_cxx -lstdc++ -ldl -lmpi -lopen-rte -lopen-pal -lnsl -lutil -lgcc_s -lpthread -ldl -lzoltan -lparmetis -lmetis -lnetcdf -llapack -ludunits2 -lpthread -lm -lstdc++ -L/usr/lib -lpython2.7 -Xlinker -export-dynamic -Wl,-O1 -Wl,-Bsymbolic-functions -lssl -lcrypto -lssl -lcrypto -L/usr/lib -lz -lpthread -ldl -lutil -L/usr/lib/gcc/x86_64-linux-gnu/4.6 -L/usr/lib/gcc/x86_64-linux-gnu/4.6/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/4.6/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/4.6/../../.. -lgfortran -lm -lquadmath -L/usr/lib/gcc/x86_64-linux-gnu/4.6 -L/usr/lib/gcc/x86_64-linux-gnu/4.6/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/4.6/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/4.6/../../.. -lgfortran -lm -lquadmath -L/usr/lib -L/usr/local/lib/ -ladjoint -L./lib  -lblas  -L/usr/lib/gcc/x86_64-linux-gnu/4.6 -L/usr/lib/gcc/x86_64-linux-gnu/4.6/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/4.6/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/4.6/../../.. -lgfortran -lm -lquadmath 
+FLIBS = -L../lib  -L/usr/lib/gcc/x86_64-linux-gnu/4.6 -L/usr/lib/gcc/x86_64-linux-gnu/4.6/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/4.6/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/4.6/../../.. -lgfortran -lm -lquadmath
+
+# These objects are needed in each program as they provide the code related to
+# diagnostic output and FLabort:
+DEBUG_OBJECTS=../debug/Debug.o ../debug/Debug_Parameters.o
+
+VERTICAL_INTEGRATION = ../bin/vertical_integration
+VTKDIAGNOSTIC = ../bin/vtkdiagnostic
+FLDIAGNOSTICS = ../bin/fldiagnostics
+STREAMFUNCTION_2D = ../bin/streamfunction_2d
+FLREDECOMP = ../bin/flredecomp
+MESHCONV = ../bin/meshconv
+TEST_LAPLACIAN= ../bin/test_laplacian
+TEST_LAPLACIAN_VECTOR= ../bin/test_laplacian_vector
+VISUALISE_ELEMENTS= ../bin/visualise_elements
+TRIANGLE2VTU= ../bin/triangle2vtu
+VTU2TRIANGLE= ../bin/vtu2triangle
+PETSC_READNSOLVE = ../bin/petsc_readnsolve
+TEST_PRESSURE_SOLVE = ../bin/test_pressure_solve
+PROJECT_TO_CONTINUOUS = ../bin/project_to_continuous
+UNIFIEDMESH = ../bin/unifiedmesh
+LIBFLUIDITY=-l$(FLUIDITY)
+LIBFEMTOOLS=-lfemtools
+LIBADAPT=-ladaptivity
+CHECKMESH=../bin/checkmesh
+PROJECT_VTU=../bin/project_vtu
+PROBE_VTU=../bin/probe_vtu
+SUPERMESH_DIFFERENCE=../bin/supermesh_difference
+DIFFERENTIATE_VTU=../bin/differentiate_vtu
+VTU_BINS=../bin/vtu_bins
+FLADAPT=../bin/fladapt
+TIME_AVERAGE_PARALLEL=../bin/time_average_parallel
+VTKPROJECTION=../bin/vtk_projection
+PERIODISE=../bin/periodise
+TEST_TRACE_SPACE=../bin/test_trace_space
+
+BINARIES = $(DRAWTIMNEW) $(MAKTIMUNIFORM) $(VTKDIAGNOSTIC)		\
+  $(FLDIAGNOSTICS) $(FLREDECOMP) $(PETSC_READNSOLVE)			\
+  $(VERTICAL_INTEGRATION) $(EVMERGE) $(FLADAPT) $(CHECKMESH)		\
+  $(PROJECT_VTU) $(PROBE_VTU) $(SUPERMESH_DIFFERENCE)			\
+  $(DIFFERENTIATE_VTU) $(VTU_BINS) $(TRIANGLE2VTU)			\
+  $(PROJECT_TO_CONTINUOUS) $(MESHCONV)				\
+  $(TEST_PRESSURE_SOLVE) $(UNIFIEDMESH) $(VTKPROJECTION) $(PERIODISE)	\
+  $(TEST_TRACE_SPACE) $(STREAMFUNCTION_2D) $(TEST_TRACE_SPACE)		\
+  $(TEST_LAPLACIAN) 
+
+# Work around Intel compiler bug in visualise elements by simply not
+# building it.
+ifeq (yes,yes)
+BINARIES += $(VISUALISE_ELEMENTS)
+endif
+
+
+.SUFFIXES: .f90 .F90 .c .cpp .o .a 
+
+%.o:	%.f90
+	$(FC) $(FCFLAGS) -c $<
+%.o:	%.F90
+	$(FC) $(FCFLAGS) -c $<
+%.o:	%.c
+	$(CC) $(CFLAGS) -c $<
+%.o:	%.cpp
+	$(CXX) $(CXXFLAGS) -c $<
+
+default: $(BINARIES) scripts
+
+scripts:
+	mkdir -p ../bin
+	for i in *.py ; do cp $$i ../bin/`basename $$i .py` ; done
+	for i in *.sh ; do cp $$i ../bin/`basename $$i .sh` ; done
+
+install-version-info: version-info
+	@mkdir -p ../bin
+	@chmod +x $<
+	@cp $< ../bin/$<
+
+.PHONY: install-version-info
+
+.PHONY: install_python
+
+install_python:
+	python setup.py bdist --format=tar
+	tar -x -C /$(DESTDIR) -f dist/*.tar
+
+$(TRIANGLE2VTU): triangle2vtu.o triangle2vtu_main.o lib/
+	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
+
+$(VTU2TRIANGLE): vtu2triangle.o vtu2triangle_main.o lib/
+	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
+
+$(PROJECT_TO_CONTINUOUS): project_to_continuous.o project_to_continuous_main.o
+	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
+
+$(TRIANGLE_TEST_MESH): triangle_test_mesh.o
+	$(LINKER) -o $(TRIANGLE_TEST_MESH) $^ $(FLIBS) $(LIBFLUIDITY) $(LIBS)
+
+$(TEST_LAPLACIAN): test_laplacian.o
+	$(FLLINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
+
+$(TEST_LAPLACIAN_VECTOR): test_laplacian_vector.o
+	$(FLLINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
+
+$(VISUALISE_ELEMENTS): visualise_elements.o
+	$(FLLINKER) $(CXXFLAGS) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
+
+$(TIME_AVERAGE_PARALLEL): time_average_parallel.o
+	$(FLLINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
+
+$(VERTICAL_INTEGRATION): Vertical_Integration.o Vertical_Integration_main.o lib/
+	$(LINKER) $(CXXFLAGS) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
+
+$(PETSC_READNSOLVE): petsc_readnsolve_main.o petsc_readnsolve.o \
+  lib/
+	$(LINKER) $(CXXFLAGS) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
+
+$(TEST_PRESSURE_SOLVE): test_pressure_solve_main.o test_pressure_solve.o \
+  lib/
+	$(LINKER) $(CXXFLAGS) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
+
+# we need a symlink to ../lib, as $(LIBS) contains relative references to
+# libraries (i.e. ./lib/libadaptivity.a instead of -ladaptivity)
+lib/:
+	ln -sf ../lib
+
+Flint_volumeroutines.o:Flint_generalroutines.o
+Flint_integralroutines.o:Flint_generalroutines.o
+
+$(VTKDIAGNOSTIC): vtkdiagnostic.cpp lib/
+	$(LINKER) $(CXXFLAGS) -I../include -o $(VTKDIAGNOSTIC) vtkdiagnostic.cpp $(LIBS)
+
+$(VTKPROJECTION): vtkprojection.cpp lib/
+	$(LINKER) $(CXXFLAGS) -I../include -o $(VTKPROJECTION) vtkprojection.cpp -L../lib/ -l$(FLUIDITY) $(LIBS)
+
+$(PERIODISE): periodise.o lib/
+	$(FLLINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
+
+$(FLDIAGNOSTICS): fldiagnostics.o fldiagnostics_main.o lib/
+	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
+
+$(STREAMFUNCTION_2D): Streamfunction_2D.o Streamfunction_2D_main.o lib/
+	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
+
+$(FLREDECOMP): Flredecomp.o Flredecomp_main.o lib/
+	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
+
+$(MESHCONV): Meshconv.o Meshconv_main.o lib/
+	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
+
+$(CHECKMESH): Checkmesh.o Checkmesh_main.o lib/
+	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
+
+$(PROJECT_VTU): Project_Vtu.o Project_Vtu_main.o lib/
+	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
+
+$(PROBE_VTU): Probe_Vtu.o Probe_Vtu_main.o lib/
+	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
+
+$(SUPERMESH_DIFFERENCE): Supermesh_Difference.o Supermesh_Difference_main.o lib/
+	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
+
+$(DIFFERENTIATE_VTU): Differentiate_Vtu.o Differentiate_Vtu_main.o lib/
+	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
+
+$(VTU_BINS): Vtu_Bins.o Vtu_Bins_main.o lib/
+	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
+
+$(FLADAPT): Fladapt.o Fladapt_main.o lib/
+	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
+
+$(UNIFIEDMESH): unifiedmesh.o unifiedmesh_main.o lib/
+	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
+
+clean:
+	rm -f *.o *.mod
+	rm -rf build dist fluidity.egg-info 
+	rm -f lib
+
+distclean:
+	rm -f version-info
+
+$(TEST_TRACE_SPACE): Test_Trace_Space.o lib/
+	$(FLLINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)

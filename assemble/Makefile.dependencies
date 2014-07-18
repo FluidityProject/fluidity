@@ -176,16 +176,48 @@ Darcy_IMPES_Assemble.o ../include/darcy_impes_assemble_module.mod: \
    ../include/boundary_conditions.mod ../include/cv_face_values.mod \
    ../include/cv_faces.mod ../include/cv_fields.mod ../include/cv_options.mod \
    ../include/cv_shape_functions.mod ../include/cv_upwind_values.mod \
-   ../include/cvtools.mod ../include/elements.mod ../include/fdebug.h \
-   ../include/fefields.mod ../include/field_derivatives.mod \
+   ../include/cvtools.mod ../include/darcy_impes_assemble_type.mod \
+   ../include/darcy_impes_leaching_chemical_model.mod ../include/elements.mod \
+   ../include/fdebug.h ../include/fefields.mod \
+   ../include/field_derivatives.mod ../include/fields.mod \
+   ../include/fldebug.mod ../include/global_parameters.mod \
+   ../include/halos.mod ../include/parallel_tools.mod \
+   ../include/petsc_solve_state_module.mod ../include/porous_media.mod \
+   ../include/quadrature.mod ../include/signal_vars.mod \
+   ../include/sparse_matrices_fields.mod ../include/sparse_tools.mod \
+   ../include/sparse_tools_petsc.mod ../include/spud.mod \
+   ../include/state_module.mod ../include/transform_elements.mod
+
+../include/darcy_impes_assemble_type.mod: Darcy_IMPES_Assemble_type.o
+	@true
+
+Darcy_IMPES_Assemble_type.o ../include/darcy_impes_assemble_type.mod: \
+   Darcy_IMPES_Assemble_type.F90 ../include/cv_faces.mod \
+   ../include/darcy_impes_leaching_types.mod ../include/fdebug.h \
    ../include/fields.mod ../include/fldebug.mod \
-   ../include/global_parameters.mod ../include/halos.mod \
-   ../include/parallel_tools.mod ../include/petsc_solve_state_module.mod \
-   ../include/porous_media.mod ../include/quadrature.mod \
-   ../include/signal_vars.mod ../include/sparse_matrices_fields.mod \
-   ../include/sparse_tools.mod ../include/sparse_tools_petsc.mod \
-   ../include/spud.mod ../include/state_module.mod \
-   ../include/transform_elements.mod
+   ../include/global_parameters.mod ../include/sparse_tools_petsc.mod \
+   ../include/spud.mod ../include/state_module.mod
+
+../include/darcy_impes_leaching_chemical_model.mod: \
+   Darcy_IMPES_Leaching_Chemical_Model.o
+	@true
+
+Darcy_IMPES_Leaching_Chemical_Model.o \
+   ../include/darcy_impes_leaching_chemical_model.mod: \
+   Darcy_IMPES_Leaching_Chemical_Model.F90 \
+   ../include/darcy_impes_assemble_type.mod \
+   ../include/darcy_impes_leaching_types.mod ../include/fdebug.h \
+   ../include/fefields.mod ../include/fields.mod ../include/fldebug.mod \
+   ../include/global_parameters.mod ../include/spud.mod \
+   ../include/state_module.mod
+
+../include/darcy_impes_leaching_types.mod: Darcy_IMPES_Leaching_types.o
+	@true
+
+Darcy_IMPES_Leaching_types.o ../include/darcy_impes_leaching_types.mod: \
+   Darcy_IMPES_Leaching_types.F90 ../include/fdebug.h ../include/fields.mod \
+   ../include/fldebug.mod ../include/global_parameters.mod ../include/spud.mod \
+   ../include/state_module.mod
 
 ../include/diagnostic_children.mod: Diagnostic_Children.o
 	@true

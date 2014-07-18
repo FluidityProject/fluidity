@@ -1,0 +1,331 @@
+\relax 
+\ifx\hyper@anchor\@undefined
+\global \let \oldcontentsline\contentsline
+\gdef \contentsline#1#2#3#4{\oldcontentsline{#1}{#2}{#3}}
+\global \let \oldnewlabel\newlabel
+\gdef \newlabel#1#2{\newlabelxx{#1}#2}
+\gdef \newlabelxx#1#2#3#4#5#6{\oldnewlabel{#1}{{#2}{#3}}}
+\AtEndDocument{\let \contentsline\oldcontentsline
+\let \newlabel\oldnewlabel}
+\else
+\global \let \hyper@last\relax 
+\fi
+
+\@writefile{toc}{\contentsline {part}{I\hspace  {1em}The finite element method}{9}{part.1}}
+\@writefile{toc}{\contentsline {chapter}{\numberline {1}Finite approximations to functions}{11}{chapter.1}}
+\@writefile{lof}{\addvspace {10\p@ }}
+\@writefile{lot}{\addvspace {10\p@ }}
+\@writefile{toc}{\contentsline {section}{\numberline {1.1}Functions on the unit interval}{11}{section.1.1}}
+\newlabel{sec:1dfunc}{{1.1}{11}{Functions on the unit interval\relax }{section.1.1}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {1.2}One dimensional meshes}{11}{section.1.2}}
+\@writefile{lof}{\contentsline {figure}{\numberline {1.1}{\ignorespaces Basis functions for linear (left) and quadratic (right) functions on the interval $\xi _1=[0,1]$}}{12}{figure.1.1}}
+\newlabel{fig:1delements}{{1.1}{12}{Basis functions for linear (left) and quadratic (right) functions on the interval $\xi _1=[0,1]$\relax }{figure.1.1}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {1.2}{\ignorespaces A piecewise linear approximation on a one-dimensional interval. The original function is shown in red and its piecewise linear interpolant over the set of nodes $\ensuremath  {\mathbf  {x}}_\alpha $ is black.}}{12}{figure.1.2}}
+\newlabel{fig:1dlinear}{{1.2}{12}{A piecewise linear approximation on a one-dimensional interval. The original function is shown in red and its piecewise linear interpolant over the set of nodes $\x _\alpha $ is black}{figure.1.2}{}}
+\newlabel{eq:globalsum}{{1.9}{12}{One dimensional meshes\relax }{equation.1.2.9}{}}
+\newlabel{eq:globalbasis}{{1.10}{12}{One dimensional meshes\relax }{equation.1.2.10}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {1.3}{\ignorespaces Basis function for a one-dimensional continuous piecewise linear function.}}{13}{figure.1.3}}
+\newlabel{eq:xi}{{1.12}{13}{One dimensional meshes\relax }{equation.1.2.12}{}}
+\newlabel{gamma}{{1.2}{13}{One dimensional meshes\relax }{figure.1.4}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {1.4}{\ignorespaces Basis functions for a one-dimensional continuous piecewise quadratic function. On the left, the basis function corresponding to a node on an element boundary. On the right, that corresponding to a node in the centre of an element.}}{14}{figure.1.4}}
+\newlabel{eq:localsum}{{1.15}{14}{One dimensional meshes\relax }{equation.1.2.15}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {1.3}Function arithmetic}{14}{section.1.3}}
+\newlabel{eq:funcproduct}{{1.19}{15}{Function arithmetic\relax }{equation.1.3.19}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {1.4}Numerical integration}{15}{section.1.4}}
+\newlabel{sec:1dquadrature}{{1.4}{15}{Numerical integration\relax }{section.1.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.4.1}Integration over a single element}{15}{subsection.1.4.1}}
+\@writefile{lof}{\contentsline {figure}{\numberline {1.5}{\ignorespaces Numerical integration of a function on the interval $[0,1]$. From left to right, the midpoint rule, the trapezoidal rule and Simpson's rule. The points at which the function is evaluated are marked by black disks.}}{16}{figure.1.5}}
+\newlabel{eq:1dquad}{{1.25}{16}{Integration over a single element\relax }{equation.1.4.25}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.4.2}Integration over a one dimensional domain}{16}{subsection.1.4.2}}
+\newlabel{eq:1dintegral}{{1.26}{16}{Integration over a one dimensional domain\relax }{equation.1.4.26}{}}
+\newlabel{eq:dxidx}{{1.28}{16}{Integration over a one dimensional domain\relax }{equation.1.4.28}{}}
+\newlabel{eq:dxdxi}{{1.29}{17}{Integration over a one dimensional domain\relax }{equation.1.4.29}{}}
+\newlabel{eq:1dintegralxi1}{{1.30}{17}{Integration over a one dimensional domain\relax }{equation.1.4.30}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {1.5}Numerical differentiation}{17}{section.1.5}}
+\newlabel{eq:1dpointdfdx}{{1.34}{17}{Numerical differentiation\relax }{equation.1.5.34}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {1.6}{\ignorespaces A continuous piecewise linear function and its derivative. The derivative is piecewise constant and discontinuous at element boundaries.}}{18}{figure.1.6}}
+\newlabel{fig:1dpointdfdx}{{1.6}{18}{A continuous piecewise linear function and its derivative. The derivative is piecewise constant and discontinuous at element boundaries}{figure.1.6}{}}
+\newlabel{eq:1d_derivative}{{1.36}{18}{Numerical differentiation\relax }{equation.1.5.36}{}}
+\@writefile{toc}{\contentsline {chapter}{\numberline {2}Weak forms and the Galerkin projection}{19}{chapter.2}}
+\@writefile{lof}{\addvspace {10\p@ }}
+\@writefile{lot}{\addvspace {10\p@ }}
+\@writefile{toc}{\contentsline {section}{\numberline {2.1}Equality in the weak sense}{19}{section.2.1}}
+\newlabel{eq:l1}{{2.1}{19}{Equality in the weak sense\relax }{equation.2.1.1}{}}
+\newlabel{eq:l2}{{2.2}{19}{Equality in the weak sense\relax }{equation.2.1.2}{}}
+\newlabel{eq:weakequals}{{2.3}{19}{Equality in the weak sense\relax }{equation.2.1.3}{}}
+\newlabel{eq:mass}{{2.8}{20}{Equality in the weak sense\relax }{equation.2.1.8}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.1.1}Matrix assembly}{20}{subsection.2.1.1}}
+\newlabel{sec:matrixassembly}{{2.1.1}{20}{Matrix assembly\relax }{subsection.2.1.1}{}}
+\newlabel{eq:1dmassquad}{{2.12}{20}{Matrix assembly\relax }{equation.2.1.12}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.1.2}Right hand side assembly}{20}{subsection.2.1.2}}
+\newlabel{sec:rhsassembly}{{2.1.2}{20}{Right hand side assembly\relax }{subsection.2.1.2}{}}
+\newlabel{eq:1drhsquad}{{2.14}{21}{Right hand side assembly\relax }{equation.2.1.14}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {2.2}The weak form of numerical differentiation}{21}{section.2.2}}
+\newlabel{eq:1d_derivative_again}{{2.15}{21}{The weak form of numerical differentiation\relax }{equation.2.2.15}{}}
+\newlabel{eq:1ddfdxrhs}{{2.16}{21}{The weak form of numerical differentiation\relax }{equation.2.2.16}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.2.1}Numerical evaluation}{21}{subsection.2.2.1}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2.1}{\ignorespaces A continuous piecewise linear function and two diffent realisations of its derivative. The pointwise derivative (black) is piecewise constant and discontinuous at element boundaries. The green line shows a piecewise linear and continuous approximation to the derivative calculated using a Galerkin projection.}}{25}{figure.2.1}}
+\newlabel{fig:1dpointdfdxgalerkin}{{2.1}{25}{A continuous piecewise linear function and two diffent realisations of its derivative. The pointwise derivative (black) is piecewise constant and discontinuous at element boundaries. The green line shows a piecewise linear and continuous approximation to the derivative calculated using a Galerkin projection}{figure.2.1}{}}
+\@writefile{toc}{\contentsline {chapter}{\numberline {3}Extension to more dimensions}{27}{chapter.3}}
+\@writefile{lof}{\addvspace {10\p@ }}
+\@writefile{lot}{\addvspace {10\p@ }}
+\@writefile{toc}{\contentsline {section}{\numberline {3.1}Local coordinates on triangles and tets}{27}{section.3.1}}
+\@writefile{toc}{\contentsline {section}{\numberline {3.2}Integration over an element}{27}{section.3.2}}
+\newlabel{sec:quadrature}{{3.2}{27}{Integration over an element\relax }{section.3.2}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {3.1}{\ignorespaces Local coordinates of the triangle. Left, the value of the local coordinate $\xi _1$ over each point in the triangle. Right, the quantities required to calculate the local coordinates of the point $x$.}}{28}{figure.3.1}}
+\newlabel{fig:localtri}{{3.1}{28}{Local coordinates of the triangle. Left, the value of the local coordinate $\xi _1$ over each point in the triangle. Right, the quantities required to calculate the local coordinates of the point $x$}{figure.3.1}{}}
+\@writefile{toc}{\contentsline {part}{II\hspace  {1em}Key data structures}{29}{part.2}}
+\@writefile{toc}{\contentsline {chapter}{\numberline {4}Common data structure features}{31}{chapter.4}}
+\@writefile{lof}{\addvspace {10\p@ }}
+\@writefile{lot}{\addvspace {10\p@ }}
+\@writefile{toc}{\contentsline {section}{\numberline {4.1}The Femtools data structure heirarchy}{31}{section.4.1}}
+\@writefile{lof}{\contentsline {figure}{\numberline {4.1}{\ignorespaces The dependency heirarchy of the field data structures in Femtools. From the top, field data types associciate a mesh (function space) with the nodal values of the field. In turn, the mesh has a specimen element and a list of the global node numbers associated with each element. In turn, the element shape functions depend on a quadrature rule and a local node numbering convention.}}{31}{figure.4.1}}
+\newlabel{fig:type_heirarchy}{{4.1}{31}{The dependency heirarchy of the field data structures in Femtools. From the top, field data types associciate a mesh (function space) with the nodal values of the field. In turn, the mesh has a specimen element and a list of the global node numbers associated with each element. In turn, the element shape functions depend on a quadrature rule and a local node numbering convention}{figure.4.1}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {4.2}Object descriptors vs. data space}{31}{section.4.2}}
+\@writefile{toc}{\contentsline {section}{\numberline {4.3}Option paths: integrating Femtools and Spud}{32}{section.4.3}}
+\@writefile{toc}{\contentsline {chapter}{\numberline {5}Quadrature}{33}{chapter.5}}
+\@writefile{lof}{\addvspace {10\p@ }}
+\@writefile{lot}{\addvspace {10\p@ }}
+\newlabel{chap:quadrature}{{5}{33}{Quadrature\relax }{chapter.5}{}}
+\@writefile{toc}{\contentsline {chapter}{\numberline {6}Elements}{35}{chapter.6}}
+\@writefile{lof}{\addvspace {10\p@ }}
+\@writefile{lot}{\addvspace {10\p@ }}
+\@writefile{toc}{\contentsline {section}{\numberline {6.1}Shape functions at quadrature points}{35}{section.6.1}}
+\@writefile{toc}{\contentsline {section}{\numberline {6.2}Evaluating shape functions at arbitrary points}{35}{section.6.2}}
+\@writefile{toc}{\contentsline {section}{\numberline {6.3}Local node numbering}{35}{section.6.3}}
+\@writefile{toc}{\contentsline {section}{\numberline {6.4}Changing coordinates}{35}{section.6.4}}
+\@writefile{toc}{\contentsline {chapter}{\numberline {7}Meshes}{37}{chapter.7}}
+\@writefile{lof}{\addvspace {10\p@ }}
+\@writefile{lot}{\addvspace {10\p@ }}
+\newlabel{chap:meshes}{{7}{37}{Meshes\relax }{chapter.7}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {7.1}Node and element numbering}{37}{section.7.1}}
+\@writefile{toc}{\contentsline {section}{\numberline {7.2}mesh\_type}{37}{section.7.2}}
+\newlabel{type:mesh}{{7.2}{37}{mesh\_type\relax }{section.7.2}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {7.1}{\ignorespaces A continuous mesh composed of piecewise linear triangles. The node numbers are shown in upright blue figures while element numbers are shown in italic red figures.}}{38}{figure.7.1}}
+\newlabel{fig:meshnumbering}{{7.1}{38}{A continuous mesh composed of piecewise linear triangles. The node numbers are shown in upright blue figures while element numbers are shown in italic red figures}{figure.7.1}{}}
+\@writefile{toc}{\contentsline {chapter}{\numberline {8}Fields}{39}{chapter.8}}
+\@writefile{lof}{\addvspace {10\p@ }}
+\@writefile{lot}{\addvspace {10\p@ }}
+\newlabel{eq:scalarfield}{{8.2}{39}{Fields\relax }{equation.8.0.2}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {8.1}Vector and tensor fields}{39}{section.8.1}}
+\newlabel{sec:vectorfields}{{8.1}{39}{Vector and tensor fields\relax }{section.8.1}{}}
+\newlabel{eq:vectorfield}{{8.7}{39}{Vector and tensor fields\relax }{equation.8.1.7}{}}
+\newlabel{eq:tensorfield}{{8.10}{40}{Vector and tensor fields\relax }{equation.8.1.10}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {8.2}Field data types}{40}{section.8.2}}
+\@writefile{toc}{\contentsline {section}{\numberline {8.3}Constant fields}{41}{section.8.3}}
+\@writefile{toc}{\contentsline {section}{\numberline {8.4}The coordinate field}{41}{section.8.4}}
+\@writefile{toc}{\contentsline {section}{\numberline {8.5}Topological and data dimension}{41}{section.8.5}}
+\@writefile{toc}{\contentsline {section}{\numberline {8.6}Changing coordinates and bases}{41}{section.8.6}}
+\@writefile{lof}{\contentsline {figure}{\numberline {8.1}{\ignorespaces Polar coordinates. Left: Spherical-polar coordinates where $\phi $ is the azimuthal angle and $\theta $ is the polar angle. Right: Longitude-latitude coordinates where $\lambda $ denotes longitude and $\delta $ denotes latitude.}}{42}{figure.8.1}}
+\newlabel{fig:polarCoordinates}{{8.1}{42}{Polar coordinates. Left: Spherical-polar coordinates where $\phi $ is the azimuthal angle and $\theta $ is the polar angle. Right: Longitude-latitude coordinates where $\lambda $ denotes longitude and $\delta $ denotes latitude}{figure.8.1}{}}
+\@writefile{toc}{\contentsline {chapter}{\numberline {9}State dictionaries}{43}{chapter.9}}
+\@writefile{lof}{\addvspace {10\p@ }}
+\@writefile{lot}{\addvspace {10\p@ }}
+\newlabel{chap:state}{{9}{43}{State dictionaries\relax }{chapter.9}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {9.1}Inserting and extracting objects in states}{43}{section.9.1}}
+\@writefile{toc}{\contentsline {section}{\numberline {9.2}Aliased fields and listing the same field in multiple state dictionaries}{43}{section.9.2}}
+\newlabel{sec:alias}{{9.2}{43}{Aliased fields and listing the same field in multiple state dictionaries\relax }{section.9.2}{}}
+\@writefile{toc}{\contentsline {chapter}{\numberline {10}Reference counting}{45}{chapter.10}}
+\@writefile{lof}{\addvspace {10\p@ }}
+\@writefile{lot}{\addvspace {10\p@ }}
+\newlabel{chap:refcount}{{10}{45}{Reference counting\relax }{chapter.10}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {10.1}{\ignorespaces The reference count of a quadrature object as it is created and used to form elements. Finally, one of the references to quadrature is discarded by calling deallocate.}}{46}{figure.10.1}}
+\newlabel{fig:refcount}{{10.1}{46}{The reference count of a quadrature object as it is created and used to form elements. Finally, one of the references to quadrature is discarded by calling deallocate}{figure.10.1}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {10.1}Creating and destroying references}{46}{section.10.1}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {10.1.1}Allocate}{46}{subsection.10.1.1}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {10.1.2}Deallocate}{46}{subsection.10.1.2}}
+\newlabel{sec:deallocate}{{10.1.2}{46}{Deallocate\relax }{subsection.10.1.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {10.1.3}Inserting into state}{47}{subsection.10.1.3}}
+\newlabel{sec:refcount_state}{{10.1.3}{47}{Inserting into state\relax }{subsection.10.1.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {10.1.4}Extracting from states}{47}{subsection.10.1.4}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {10.1.5}Incref}{47}{subsection.10.1.5}}
+\@writefile{toc}{\contentsline {section}{\numberline {10.2}Creating new reference counted data types}{47}{section.10.2}}
+\@writefile{toc}{\contentsline {section}{\numberline {10.3}Memory accounting diagnostics}{47}{section.10.3}}
+\@writefile{lot}{\contentsline {table}{\numberline {10.1}{\ignorespaces Forms of data about which memory accounting information is stored. Note that since the \hyperlink {type:mesh}{mesh\_type}\ data structure contains some information which is stored as sparse matrices, some mesh data is recorded as sparse matrix data.}}{48}{table.10.1}}
+\newlabel{tab:memory}{{10.1}{48}{Forms of data about which memory accounting information is stored. Note that since the \meshtype \ data structure contains some information which is stored as sparse matrices, some mesh data is recorded as sparse matrix data}{table.10.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {10.3.1}Memory statistics in the .stat file}{48}{subsection.10.3.1}}
+\@writefile{toc}{\contentsline {part}{III\hspace  {1em}Procedure reference}{49}{part.3}}
+\@writefile{toc}{\contentsline {chapter}{\numberline {11}General principles for procedures}{51}{chapter.11}}
+\@writefile{lof}{\addvspace {10\p@ }}
+\@writefile{lot}{\addvspace {10\p@ }}
+\@writefile{toc}{\contentsline {section}{\numberline {11.1}Field, mesh and matrix interfaces}{51}{section.11.1}}
+\@writefile{toc}{\contentsline {section}{\numberline {11.2}Status arguments}{51}{section.11.2}}
+\@writefile{toc}{\contentsline {chapter}{\numberline {12}Field and mesh methods}{53}{chapter.12}}
+\@writefile{lof}{\addvspace {10\p@ }}
+\@writefile{lot}{\addvspace {10\p@ }}
+\newlabel{chap:fieldmeshmethods}{{12}{53}{Field and mesh methods\relax }{chapter.12}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {12.1}Global field and mesh enquiry routines}{53}{section.12.1}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {12.1.1}mesh\_dim}{53}{subsection.12.1.1}}
+\newlabel{proc:meshdim}{{12.1.1}{53}{mesh\_dim\relax }{subsection.12.1.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {12.1.2}mesh\_periodic}{53}{subsection.12.1.2}}
+\newlabel{proc:meshperiodic}{{12.1.2}{53}{mesh\_periodic\relax }{subsection.12.1.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {12.1.3}node\_count}{53}{subsection.12.1.3}}
+\newlabel{proc:nodecount}{{12.1.3}{53}{node\_count\relax }{subsection.12.1.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {12.1.4}element\_count}{54}{subsection.12.1.4}}
+\newlabel{proc:elementcount}{{12.1.4}{54}{element\_count\relax }{subsection.12.1.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {12.1.5}surface\_element\_count}{54}{subsection.12.1.5}}
+\newlabel{proc:surfaceelementcount}{{12.1.5}{54}{surface\_element\_count\relax }{subsection.12.1.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {12.1.6}face\_count}{54}{subsection.12.1.6}}
+\newlabel{proc:facecount}{{12.1.6}{54}{face\_count\relax }{subsection.12.1.6}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {12.1.7}aliased}{54}{subsection.12.1.7}}
+\newlabel{proc:aliased}{{12.1.7}{54}{aliased\relax }{subsection.12.1.7}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {12.2}Element enquiry routines}{54}{section.12.2}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {12.2.1}ele\_loc}{54}{subsection.12.2.1}}
+\newlabel{proc:eleloc}{{12.2.1}{54}{ele\_loc\relax }{subsection.12.2.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {12.2.2}ele\_and\_faces\_loc}{55}{subsection.12.2.2}}
+\newlabel{proc:elefacesloc}{{12.2.2}{55}{ele\_and\_faces\_loc\relax }{subsection.12.2.2}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {12.1}{\ignorespaces Illustration of the area included in the node count for ele\_and\_faces\_loc for a linear triangular element. In this case the element has 3 nodes and each of the three neighbouring faces has 2 nodes so the return value is 9.}}{55}{figure.12.1}}
+\newlabel{fig:elefacesloc}{{12.1}{55}{Illustration of the area included in the node count for ele\_and\_faces\_loc for a linear triangular element. In this case the element has 3 nodes and each of the three neighbouring faces has 2 nodes so the return value is 9}{figure.12.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {12.2.3}ele\_vertices}{55}{subsection.12.2.3}}
+\newlabel{proc:elevertices}{{12.2.3}{55}{ele\_vertices\relax }{subsection.12.2.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {12.2.4}ele\_ngi}{56}{subsection.12.2.4}}
+\newlabel{proc:elengi}{{12.2.4}{56}{ele\_ngi\relax }{subsection.12.2.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {12.2.5}ele\_nodes}{56}{subsection.12.2.5}}
+\newlabel{proc:ele_nodes}{{12.2.5}{56}{ele\_nodes\relax }{subsection.12.2.5}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {12.3}Face enquiry routines}{56}{section.12.3}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {12.3.1}face\_loc}{56}{subsection.12.3.1}}
+\newlabel{proc:faceloc}{{12.3.1}{56}{face\_loc\relax }{subsection.12.3.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {12.3.2}face\_vertices}{57}{subsection.12.3.2}}
+\newlabel{proc:facevertices}{{12.3.2}{57}{face\_vertices\relax }{subsection.12.3.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {12.3.3}face\_ngi}{57}{subsection.12.3.3}}
+\newlabel{proc:facengi}{{12.3.3}{57}{face\_ngi\relax }{subsection.12.3.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {12.3.4}face\_local\_nodes}{57}{subsection.12.3.4}}
+\newlabel{proc:facelocalnodes}{{12.3.4}{57}{face\_local\_nodes\relax }{subsection.12.3.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {12.3.5}face\_global\_nodes}{58}{subsection.12.3.5}}
+\newlabel{proc:faceglobalnodes}{{12.3.5}{58}{face\_global\_nodes\relax }{subsection.12.3.5}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {12.4}Data retrieval routines}{58}{section.12.4}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {12.4.1}ele\_val}{58}{subsection.12.4.1}}
+\newlabel{proc:eleval}{{12.4.1}{58}{ele\_val\relax }{subsection.12.4.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {12.4.2}ele\_val\_at\_quad}{59}{subsection.12.4.2}}
+\newlabel{proc:elevalatquad}{{12.4.2}{59}{ele\_val\_at\_quad\relax }{subsection.12.4.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {12.4.3}face\_val}{59}{subsection.12.4.3}}
+\newlabel{proc:faceval}{{12.4.3}{59}{face\_val\relax }{subsection.12.4.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {12.4.4}node\_val}{60}{subsection.12.4.4}}
+\newlabel{proc:nodeval}{{12.4.4}{60}{node\_val\relax }{subsection.12.4.4}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {12.5}Data setting routines}{61}{section.12.5}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {12.5.1}addto}{61}{subsection.12.5.1}}
+\newlabel{proc:fieldaddto}{{12.5.1}{61}{addto\relax }{subsection.12.5.1}{}}
+\@writefile{toc}{\contentsline {subsubsection}{Adding to node values}{61}{section*.2}}
+\@writefile{toc}{\contentsline {subsubsection}{Adding fields to each other}{62}{section*.3}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {12.5.2}scale}{62}{subsection.12.5.2}}
+\newlabel{proc:fieldscale}{{12.5.2}{62}{scale\relax }{subsection.12.5.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {12.5.3}set}{63}{subsection.12.5.3}}
+\newlabel{proc:fieldset}{{12.5.3}{63}{set\relax }{subsection.12.5.3}{}}
+\@writefile{toc}{\contentsline {subsubsection}{Setting node values}{63}{section*.4}}
+\@writefile{toc}{\contentsline {subsubsection}{Setting the whole field to a constant value}{63}{section*.5}}
+\@writefile{toc}{\contentsline {subsubsection}{Setting a field to the value of another field}{64}{section*.6}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {12.5.4}zero}{64}{subsection.12.5.4}}
+\newlabel{proc:fieldzero}{{12.5.4}{64}{zero\relax }{subsection.12.5.4}{}}
+\@writefile{toc}{\contentsline {chapter}{\numberline {13}State dictionary methods}{65}{chapter.13}}
+\@writefile{lof}{\addvspace {10\p@ }}
+\@writefile{lot}{\addvspace {10\p@ }}
+\@writefile{lot}{\contentsline {table}{\numberline {13.1}{\ignorespaces List of object argument names and corresponding object types supported by the \lstinline +state_type+ and its various access methods.}}{65}{table.13.1}}
+\newlabel{tab:stateobjects}{{13.1}{65}{List of object argument names and corresponding object types supported by the \lstinline +state_type+ and its various access methods}{table.13.1}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {13.1}Inserting objects in states}{65}{section.13.1}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {13.1.1}insert}{65}{subsection.13.1.1}}
+\newlabel{proc:stateinsert}{{13.1.1}{65}{insert\relax }{subsection.13.1.1}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {13.2}Extracting objects from states}{65}{section.13.2}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {13.2.1}Extracting objects by name}{66}{subsection.13.2.1}}
+\@writefile{toc}{\contentsline {subsubsection}{Reference counts of objects extracted from states}{66}{section*.7}}
+\@writefile{toc}{\contentsline {subsubsection}{Extracting scalar components of vector fields}{66}{section*.8}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {13.2.2}Extracting objects by index}{67}{subsection.13.2.2}}
+\@writefile{toc}{\contentsline {section}{\numberline {13.3}Auxiliary state routines}{67}{section.13.3}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {13.3.1}deallocate}{67}{subsection.13.3.1}}
+\newlabel{proc:deallocatestate}{{13.3.1}{67}{deallocate\relax }{subsection.13.3.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {13.3.2}remove object}{67}{subsection.13.3.2}}
+\newlabel{proc:removeobject}{{13.3.2}{67}{remove object\relax }{subsection.13.3.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {13.3.3}object counts}{67}{subsection.13.3.3}}
+\newlabel{proc:objectcounts}{{13.3.3}{67}{object counts\relax }{subsection.13.3.3}{}}
+\@writefile{toc}{\contentsline {chapter}{\numberline {14}Element methods}{69}{chapter.14}}
+\@writefile{lof}{\addvspace {10\p@ }}
+\@writefile{lot}{\addvspace {10\p@ }}
+\@writefile{toc}{\contentsline {section}{\numberline {14.1}Quadrature methods}{69}{section.14.1}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {14.1.1}make\_quadrature}{69}{subsection.14.1.1}}
+\newlabel{proc:makequadrature}{{14.1.1}{69}{make\_quadrature\relax }{subsection.14.1.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {14.1.2}deallocate}{70}{subsection.14.1.2}}
+\newlabel{proc:deallocatequadrature}{{14.1.2}{70}{deallocate\relax }{subsection.14.1.2}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {14.2}Shape function methods}{70}{section.14.2}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {14.2.1}make\_element\_shape}{70}{subsection.14.2.1}}
+\newlabel{proc:makeelementshape}{{14.2.1}{70}{make\_element\_shape\relax }{subsection.14.2.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {14.2.2}deallocate}{71}{subsection.14.2.2}}
+\newlabel{proc:deallocateelement}{{14.2.2}{71}{deallocate\relax }{subsection.14.2.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {14.2.3}local\_coords}{71}{subsection.14.2.3}}
+\newlabel{proc:elementlocalcoords}{{14.2.3}{71}{local\_coords\relax }{subsection.14.2.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {14.2.4}local\_coord\_count}{71}{subsection.14.2.4}}
+\newlabel{proc:elementlocalcoordcount}{{14.2.4}{71}{local\_coord\_count\relax }{subsection.14.2.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {14.2.5}eval\_shape}{72}{subsection.14.2.5}}
+\newlabel{proc:elementevalshape}{{14.2.5}{72}{eval\_shape\relax }{subsection.14.2.5}{}}
+\@writefile{toc}{\contentsline {chapter}{\numberline {15}Functions implementing integrals over elements}{73}{chapter.15}}
+\@writefile{lof}{\addvspace {10\p@ }}
+\@writefile{lot}{\addvspace {10\p@ }}
+\@writefile{toc}{\contentsline {section}{\numberline {15.1}Bilinear forms}{73}{section.15.1}}
+\@writefile{lot}{\contentsline {table}{\numberline {15.1}{\ignorespaces Common arguments used in linear and bilinear form routines.}}{73}{table.15.1}}
+\newlabel{tab:form_arguments}{{15.1}{73}{Common arguments used in linear and bilinear form routines}{table.15.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {15.1.1}shape\_shape}{74}{subsection.15.1.1}}
+\newlabel{proc:shapeshape}{{15.1.1}{74}{shape\_shape\relax }{subsection.15.1.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {15.1.2}shape\_shape\_vector}{74}{subsection.15.1.2}}
+\newlabel{proc:shapeshapevector}{{15.1.2}{74}{shape\_shape\_vector\relax }{subsection.15.1.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {15.1.3}shape\_shape\_tensor}{74}{subsection.15.1.3}}
+\newlabel{proc:shapeshapetensor}{{15.1.3}{74}{shape\_shape\_tensor\relax }{subsection.15.1.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {15.1.4}shape\_shape\_vector\_outer\_vector}{75}{subsection.15.1.4}}
+\newlabel{proc:shapeshapevectoroutervector}{{15.1.4}{75}{shape\_shape\_vector\_outer\_vector\relax }{subsection.15.1.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {15.1.5}shape\_dshape}{75}{subsection.15.1.5}}
+\newlabel{proc:shapedshape}{{15.1.5}{75}{shape\_dshape\relax }{subsection.15.1.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {15.1.6}dshape\_shape}{75}{subsection.15.1.6}}
+\newlabel{proc:dshapeshape}{{15.1.6}{75}{dshape\_shape\relax }{subsection.15.1.6}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {15.1.7}shape\_vector\_dot\_dshape}{76}{subsection.15.1.7}}
+\newlabel{proc:shapevectordotdshape}{{15.1.7}{76}{shape\_vector\_dot\_dshape\relax }{subsection.15.1.7}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {15.1.8}dshape\_dot\_vector\_shape}{76}{subsection.15.1.8}}
+\newlabel{proc:dshapedotvectorshape}{{15.1.8}{76}{dshape\_dot\_vector\_shape\relax }{subsection.15.1.8}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {15.1.9}dshape\_dot\_tensor\_shape}{77}{subsection.15.1.9}}
+\newlabel{proc:dshapedottensorshape}{{15.1.9}{77}{dshape\_dot\_tensor\_shape\relax }{subsection.15.1.9}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {15.1.10}shape\_vector\_outer\_dshape}{77}{subsection.15.1.10}}
+\newlabel{proc:shapevectorouterdshape}{{15.1.10}{77}{shape\_vector\_outer\_dshape\relax }{subsection.15.1.10}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {15.1.11}dshape\_outer\_vector\_shape}{77}{subsection.15.1.11}}
+\newlabel{proc:dshapeoutervectorshape}{{15.1.11}{77}{dshape\_outer\_vector\_shape\relax }{subsection.15.1.11}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {15.1.12}dshape\_dot\_dshape}{78}{subsection.15.1.12}}
+\newlabel{proc:dshapedotdshape}{{15.1.12}{78}{dshape\_dot\_dshape\relax }{subsection.15.1.12}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {15.1.13}dshape\_tensor\_dshape}{78}{subsection.15.1.13}}
+\newlabel{proc:dshapetensordshape}{{15.1.13}{78}{dshape\_tensor\_dshape\relax }{subsection.15.1.13}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {15.1.14}dshape\_outer\_dshape}{79}{subsection.15.1.14}}
+\newlabel{proc:dshapeouterdshape}{{15.1.14}{79}{dshape\_outer\_dshape\relax }{subsection.15.1.14}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {15.1.15}shape\_curl\_shape\_2d}{79}{subsection.15.1.15}}
+\newlabel{proc:shapecurlshape2d}{{15.1.15}{79}{shape\_curl\_shape\_2d\relax }{subsection.15.1.15}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {15.2}Linear Forms}{79}{section.15.2}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {15.2.1}shape\_rhs}{79}{subsection.15.2.1}}
+\newlabel{proc:shaperhs}{{15.2.1}{79}{shape\_rhs\relax }{subsection.15.2.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {15.2.2}shape\_vector\_rhs}{80}{subsection.15.2.2}}
+\newlabel{proc:shapevectorrhs}{{15.2.2}{80}{shape\_vector\_rhs\relax }{subsection.15.2.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {15.2.3}shape\_tensor\_rhs}{80}{subsection.15.2.3}}
+\newlabel{proc:shapetensorrhs}{{15.2.3}{80}{shape\_tensor\_rhs\relax }{subsection.15.2.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {15.2.4}shape\_tensor\_dot\_vector\_rhs}{80}{subsection.15.2.4}}
+\newlabel{proc:shapetensordotvectorrhs}{{15.2.4}{80}{shape\_tensor\_dot\_vector\_rhs\relax }{subsection.15.2.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {15.2.5}dshape\_rhs}{81}{subsection.15.2.5}}
+\newlabel{proc:dshaperhs}{{15.2.5}{81}{dshape\_rhs\relax }{subsection.15.2.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {15.2.6}dshape\_dot\_vector\_rhs}{81}{subsection.15.2.6}}
+\newlabel{proc:dshapedotvectorrhs}{{15.2.6}{81}{dshape\_dot\_vector\_rhs\relax }{subsection.15.2.6}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {15.2.7}dshape\_dot\_tensor\_rhs}{81}{subsection.15.2.7}}
+\newlabel{proc:dshapedottensorrhs}{{15.2.7}{81}{dshape\_dot\_tensor\_rhs\relax }{subsection.15.2.7}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {15.3}Auxiliary form functions}{82}{section.15.3}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {15.3.1}dshape\_loc}{82}{subsection.15.3.1}}
+\newlabel{proc:dshapeloc}{{15.3.1}{82}{dshape\_loc\relax }{subsection.15.3.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {15.3.2}dshape\_ngi}{82}{subsection.15.3.2}}
+\newlabel{proc:dshapengi}{{15.3.2}{82}{dshape\_ngi\relax }{subsection.15.3.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {15.3.3}dshape\_dim}{82}{subsection.15.3.3}}
+\newlabel{proc:dshapedim}{{15.3.3}{82}{dshape\_dim\relax }{subsection.15.3.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {15.3.4}vector\_dim}{83}{subsection.15.3.4}}
+\newlabel{proc:vectordim}{{15.3.4}{83}{vector\_dim\relax }{subsection.15.3.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {15.3.5}tensor\_dim}{83}{subsection.15.3.5}}
+\newlabel{proc:tensordim}{{15.3.5}{83}{tensor\_dim\relax }{subsection.15.3.5}{}}
+\@writefile{toc}{\contentsline {chapter}{\numberline {16}Diagnostic statistics}{85}{chapter.16}}
+\@writefile{lof}{\addvspace {10\p@ }}
+\@writefile{lot}{\addvspace {10\p@ }}
+\@writefile{toc}{\contentsline {section}{\numberline {16.1}Diagnostic I/O routines}{85}{section.16.1}}
+\@writefile{toc}{\contentsline {section}{\numberline {16.2}Memory statistics}{85}{section.16.2}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {16.2.1}print\_current\_memory\_stats}{85}{subsection.16.2.1}}
+\newlabel{proc:printcurrentmemorystats}{{16.2.1}{85}{print\_current\_memory\_stats\relax }{subsection.16.2.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {16.2.2}print\_memory\_stats}{85}{subsection.16.2.2}}
+\newlabel{proc:printmemorystats}{{16.2.2}{85}{print\_memory\_stats\relax }{subsection.16.2.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {16.2.3}reset\_memory\_logs}{85}{subsection.16.2.3}}
+\newlabel{proc:resetmemorylogs}{{16.2.3}{85}{reset\_memory\_logs\relax }{subsection.16.2.3}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {16.3}Register diagnostics in the .stat file}{86}{section.16.3}}

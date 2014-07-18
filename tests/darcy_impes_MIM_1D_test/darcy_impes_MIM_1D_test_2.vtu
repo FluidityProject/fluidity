@@ -1,0 +1,61 @@
+<VTKFile type="UnstructuredGrid" version="0.1" byte_order="LittleEndian" compressor="vtkZLibDataCompressor">
+  <UnstructuredGrid>
+    <Piece NumberOfPoints="31"                   NumberOfCells="30"                  >
+      <PointData Scalars="Phase1::Pressure" Vectors="Phase1::DarcyVelocity">
+        <DataArray type="Float64" Name="Phase1::Pressure" format="appended" RangeMin="100000"               RangeMax="100000"               offset="0"                   />
+        <DataArray type="Float64" Name="Phase1::Saturation" format="appended" RangeMin="0.96875"              RangeMax="0.96875"              offset="34"                  />
+        <DataArray type="Float64" Name="Phase1::RelativePermeability" format="appended" RangeMin="0.9384765625"         RangeMax="0.9384765625"         offset="68"                  />
+        <DataArray type="Float64" Name="Phase1::Density" format="appended" RangeMin="1.284"                RangeMax="1.284"                offset="104"                 />
+        <DataArray type="Float64" Name="Phase1::DarcyVelocityOverPorosityCFL" format="appended" RangeMin="0"                    RangeMax="1.0729773915"         offset="139"                 />
+        <DataArray type="Float64" Name="Phase1::DivergenceTotalDarcyVelocity" format="appended" RangeMin="-0.21459547829"       RangeMax="0.21459547829"        offset="200"                 />
+        <DataArray type="Float64" Name="Phase1::Mobility" format="appended" RangeMin="54404.438406"         RangeMax="54404.438406"         offset="252"                 />
+        <DataArray type="Float64" Name="Phase1::TotalMobility" format="appended" RangeMin="54405.414969"         RangeMax="54405.414969"         offset="287"                 />
+        <DataArray type="Float64" Name="Phase1::FractionalFlow" format="appended" RangeMin="0.99998205027"        RangeMax="0.99998205027"        offset="323"                 />
+        <DataArray type="Float64" Name="Phase1::SumSaturation" format="appended" RangeMin="1"                    RangeMax="1"                    offset="359"                 />
+        <DataArray type="Float64" Name="Phase1::AveragePressure" format="appended" RangeMin="100000.508"           RangeMax="100000.508"           offset="392"                 />
+        <DataArray type="Float64" Name="Phase1::Time" format="appended" RangeMin="398"                  RangeMax="398"                  offset="427"                 />
+        <DataArray type="Float64" Name="Phase2::Pressure" format="appended" RangeMin="100001.016"           RangeMax="100001.016"           offset="461"                 />
+        <DataArray type="Float64" Name="Phase2::CapilliaryPressure" format="appended" RangeMin="1.016001016"          RangeMax="1.016001016"          offset="496"                 />
+        <DataArray type="Float64" Name="Phase2::Saturation" format="appended" RangeMin="0.031249999998"       RangeMax="0.031249999998"       offset="532"                 />
+        <DataArray type="Float64" Name="Phase2::RelativePermeability" format="appended" RangeMin="0.00097656249986"     RangeMax="0.00097656249986"     offset="570"                 />
+        <DataArray type="Float64" Name="Phase2::Density" format="appended" RangeMin="1000"                 RangeMax="1000"                 offset="609"                 />
+        <DataArray type="Float64" Name="Phase2::DarcyVelocityOverPorosityCFL" format="appended" RangeMin="0.0075"               RangeMax="0.015"                offset="643"                 />
+        <DataArray type="Float64" Name="Phase2::Mobility" format="appended" RangeMin="0.97656249986"        RangeMax="0.97656249986"        offset="707"                 />
+        <DataArray type="Float64" Name="Phase2::FractionalFlow" format="appended" RangeMin="1.7949729828e-05"     RangeMax="1.7949729828e-05"     offset="748"                 />
+        <DataArray type="Float64" Name="Phase2::C_d" format="appended" RangeMin="0.18710622252"        RangeMax="13.49041439"          offset="789"                 />
+        <DataArray type="Float64" Name="Phase2::ImmobileSaturation" format="appended" RangeMin="0.0035"               RangeMax="0.0035"               offset="1064"                />
+        <DataArray type="Float64" Name="Phase2::MobileSaturation" format="appended" RangeMin="0.027749999998"       RangeMax="0.027749999998"       offset="1099"                />
+        <DataArray type="Float64" Name="Phase2::MassTransferCoefficient" format="appended" RangeMin="4.29e-06"             RangeMax="4.29e-06"             offset="1137"                />
+        <DataArray type="Float64" Name="Phase1::DarcyVelocity" NumberOfComponents="3" format="appended" RangeMin="0.0010729773915"      RangeMax="0.0010729773915"      offset="1172"                />
+        <DataArray type="Float64" Name="Phase1::TotalDarcyVelocity" NumberOfComponents="3" format="appended" RangeMin="0.0010879773915"      RangeMax="0.0010879773915"      offset="1215"                />
+        <DataArray type="Float64" Name="Phase1::BulkDarcyVelocity" NumberOfComponents="3" format="appended" RangeMin="0.001039915598"       RangeMax="0.001039915598"       offset="1258"                />
+        <DataArray type="Float64" Name="Phase2::DarcyVelocity" NumberOfComponents="3" format="appended" RangeMin="1.5e-05"              RangeMax="1.5e-05"              offset="1300"                />
+      </PointData>
+      <CellData Scalars="Phase2::C_s" Vectors="Phase1::GravityDirection" Tensors="Phase2::C_dDiffusivity">
+        <DataArray type="Float64" Name="Phase1::Viscosity" format="appended" RangeMin="1.725e-05"            RangeMax="1.725e-05"            offset="1348"                />
+        <DataArray type="Float64" Name="Phase1::Porosity" format="appended" RangeMin="0.4"                  RangeMax="0.4"                  offset="1383"                />
+        <DataArray type="Float64" Name="Phase1::AbsolutePermeability" format="appended" RangeMin="1.567346939e-09"      RangeMax="1.567346939e-09"      offset="1416"                />
+        <DataArray type="Float64" Name="Phase2::Viscosity" format="appended" RangeMin="0.001"                RangeMax="0.001"                offset="1452"                />
+        <DataArray type="Float64" Name="Phase2::theta_s" format="appended" RangeMin="0.0014"               RangeMax="0.0014"               offset="1488"                />
+        <DataArray type="Float64" Name="Phase2::C_d_elem" format="appended" RangeMin="0.22060687576"        RangeMax="13.378490453"         offset="1524"                />
+        <DataArray type="Float64" Name="Phase2::C_dSource" format="appended" RangeMin="8.1630987015e-05"     RangeMax="0.00010293620725"     offset="1791"                />
+        <DataArray type="Float64" Name="Phase2::C_s" format="appended" RangeMin="19.413261118"         RangeMax="32.612942973"         offset="2058"                />
+        <DataArray type="Float64" Name="Phase1::GravityDirection" NumberOfComponents="3" format="appended" RangeMin="1"                    RangeMax="1"                    offset="2325"                />
+        <DataArray type="Float64" Name="Phase2::C_dDiffusivity" NumberOfComponents="9" format="appended" RangeMin="3.14e-05"             RangeMax="3.14e-05"             offset="2364"                />
+      </CellData>
+      <Points>
+        <DataArray type="Float64" Name="Points" NumberOfComponents="3" format="appended" RangeMin="0"                    RangeMax="0.3"                  offset="2420"                />
+      </Points>
+      <Cells>
+        <DataArray type="Int64" Name="connectivity" format="appended" RangeMin=""                     RangeMax=""                     offset="2614"                />
+        <DataArray type="Int64" Name="offsets" format="appended" RangeMin=""                     RangeMax=""                     offset="2698"                />
+        <DataArray type="UInt8" Name="types" format="appended" RangeMin=""                     RangeMax=""                     offset="2784"                />
+      </Cells>
+    </Piece>
+  </UnstructuredGrid>
+  <AppendedData encoding="raw">
+   _    €  ø      xœc` ‚¬#Œ &Â2Ÿ    €  ø      xœÛçÇ ïí÷0 ™hE    €  ø      xœ›0ƒãý„F ªòID    €  ø      xœSekœêÜýÅ^u„Ñ Ñcdÿ    €  ø   -   xœ}þJë£½(˜~h/†F£‹‹ ÑDŠ¢‰KÐH–G£   SltG    €  ø   $   xœëÈ›q·ü´=P²áÑš6Ã4Aü» –µ
+‘    €  ø      xœ”Ïaï›ðÊAp„Ñ ¡MZv    €  ø      xœû'—ã¾vÂ+‡#Œ †Ô‚‹    €  ø      xœ»ñÊ?úÖÿ÷ö7F Dµ¨î    €  ø      xœc` ö#Œ v°$²    €  ø      xœcQ9ªÀ‘õÃe„Ñ © T*    €  ø      xœc` ‚#Œ ¡A1i    €  ø      xœc÷èrÈúáÀ>Âh é@Vµ    €  ø      xœ»q’Í£ËñƒýF  y8    €  ø      xœóÔøöÿÿÿùöÞPÚw„Ð `ô£u    €  ø      xœ›ðæÿÿÿþöÓ ô¬B 5†¦´    €  ø      xœc` ‡~†F ¥s Ò    €  ø   0   xœ;%×ú:pGŸý0]g	¾€Æ?‡F_#Rü$šø5‰£ÓÑè“Pÿ £$€•    €  ø      xœ[ìÍÿÿöïí7@é-PzÛ0§í´    €  ø      xœÛ4…+âÒ'»]Pz”Þ;Ìi ©Ô|Ò    €  ø     xœø ÿ	KÁóÇ?†­9LCÐ?›ÛæQ¶ÆÕ?„½¶‚¼ÑÛ?‡Võ&=á?ÐhLØÚìä?£ªŽ"qé?ÎÌ±´`ží?ò£¨ièbñ?J·ðUJô?8tªr[’÷?eK,úYIû?K¬=%ÿ?¢›zÌz"@O6ÓŸÖ@©¸å@›¢s®ÀY@R8”µ­<@Ý*2<ûË@›î÷9@ûÓpë@ u¤Ýá@€áÔ @ÃÙ6ëŸJ @áí/ZK!"@Í`‡ð¨$@¬ÜPrñ%@¬I$Ä'@œHÍR])@ž©h{ˆ*@uùJ˜û*@&r“    €  ø      xœ«|©fÈ±&Ç¾r„Ñ Ð_é    €  ø      xœ“ò¾ø³.kŽ½”–!4 ©zÅ    €  ø      xœ«[Ûjõï¢]Ý£ñí…’    €  è     xœÛâ6asÊ”@{4°eT|T|‰ îÝtÜ    €  è     xœ{ÿAëŠßå@{4ð~T|T|‰ P,3    €  è     xœ+?òãÞÎ@{4P>*>*>ŒÄhx‡ß    €  è      xœË’õ(}oÇ€²qˆçá/Äâ _WY3    €  ð      xœ“QqùÙ$öÉNf„Ð ó±b    €  ð      xœ›5nÚÏ!4 :’Œƒ    €  ð      xœÛ{üäQç·Rv{G guŠ    €  ð      xœû³òã%ß¤ û?#„ 1n‹u    €  ð      xœ;±kG/Û‡0û#„ Yÿ    €  ð   û   xœð ÿSšØ<Ì?1ÊEÓ?ÌNj9ÌØ?KµPhë%ß?¬ß ÿóã?º‰mý%úæ?¹; ëèRë?-Å bð?­Ì»žÖò?Á•M@Xîõ?Ï_k¶Úmù?5Kì›?dý?’`¨µñ @`uØO|@ü¥ô+^@Ù¥Db¼Ÿ	@xí27K@ƒ#~)µ@z˜f•ù@˜CKa´’@’@8<§f@ÄðF<ÿ~@„JCU°Ø@Óc³¢õ5!@W§[%ú#@½ž„ ý$@,|eº¾Ú&@%2‹;Œ(@ùm]Äò)@‰Ñ,€ÉÁ*@û!n³    €  ð   û   xœð ÿ'¯ç¶?êÅ({?!?¦Únè¢?h±¼"±?‡±,“Š?†Šë¹ø?@G6G`c?Ðy“SÊ?¸êÆ,?AÏÑ`Oˆ?Ž¯ÇÝ?¡µ¥Û"+?ˆèüTãn?Vlo§?=—>”Ó?ÛF”¡Òï?¤.,“îû?5qÁ`tõ?ë6·‹‘Ú?ç[nS¤©?Ÿ´èca?uiþ?þzÙˆ? 9Aáú?Û—¬ÞW?´Ü€ò§?¾ê˜›ló?3!H?:vY÷8º?;Ÿ£­)f?.Mde    €  ð   û   xœð ÿ£Ê{Ëi3@èœÛ3@/Y{ôØd4@nÅtç4@E ]*–h5@	6#µ›é5@Dôá?k6@_ å°±í6@‰D=Ÿq7@>%äŠõ7@Äú;jÕy8@®õf[ÿ8@?9Þ{„9@«öó‡Þ	:@-Ê”ïÞŽ:@ô»";@6W¿P?–;@g¨‹ŽÇ<@Å80Í@—<@ëJ{'=@ÊüÀí=@ËHìþ÷>@Fu`¯–u>@bÜdêþá>@“±e¢2H?@íAß¦?@ËIjýü?@“•Ôäˆ"@@¾‡·’>@@}TêtN@@öòj    €  Ð     xœc` öXÁ¨ø¨øÐ Â8#ƒ    €  p  (   xœ«ßþôD~ƒ=… ~ÔœQsFÍ5gÔœQsFÍ5  œcxÓ    €  è  ²   xœc`ÀªEÖ¹?¬j±Ç.>C|‡\ëëÀóp¨_‚!>k&¬ÄaÎ:ñ7 ™8Ìß‚!Îu}q-×vöîÄ×Œé?ôUc÷ìÃ_4ýúâ8ÜyCÜãpÿñÃ_5€.:ŠÃ_Ç1ÄƒÀ=Ã¿'1ÄV,>…#Î`ˆ‚¼[pGøœÃ‡€8ÂSÜì ‹8ÂSäÊ˜þK8Âù2†8 £ÎsQ    €  à  D   xœ]Åµƒ   0Ü­EZôÿ3`J–Á#äˆcN8åŒs.¸äŠkn¸åŽ{øÃ_yâ™þñŸWÞxçƒO¾ÞoBf…    €  ð   F   xœ-ÅA
+D   @I’$I’6I’$I’äÿïÚƒ™Ë„Á'rìÄ©3ç.\ºríÆ­îÜ{ðèÉ³¯Þ¼ûðéË·¿þ6ÿ£    €        xœcfÆ ‘ [
+  </AppendedData>
+</VTKFile>

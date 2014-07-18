@@ -1,0 +1,145 @@
+\BOOKMARK [-1][-]{part.1}{I The finite element method}{}
+\BOOKMARK [0][-]{chapter.1}{Finite approximations to functions}{part.1}
+\BOOKMARK [1][-]{section.1.1}{Functions on the unit interval}{chapter.1}
+\BOOKMARK [1][-]{section.1.2}{One dimensional meshes}{chapter.1}
+\BOOKMARK [1][-]{section.1.3}{Function arithmetic}{chapter.1}
+\BOOKMARK [1][-]{section.1.4}{Numerical integration}{chapter.1}
+\BOOKMARK [2][-]{subsection.1.4.1}{Integration over a single element}{section.1.4}
+\BOOKMARK [2][-]{subsection.1.4.2}{Integration over a one dimensional domain}{section.1.4}
+\BOOKMARK [1][-]{section.1.5}{Numerical differentiation}{chapter.1}
+\BOOKMARK [0][-]{chapter.2}{Weak forms and the Galerkin projection}{part.1}
+\BOOKMARK [1][-]{section.2.1}{Equality in the weak sense}{chapter.2}
+\BOOKMARK [2][-]{subsection.2.1.1}{Matrix assembly}{section.2.1}
+\BOOKMARK [2][-]{subsection.2.1.2}{Right hand side assembly}{section.2.1}
+\BOOKMARK [1][-]{section.2.2}{The weak form of numerical differentiation}{chapter.2}
+\BOOKMARK [2][-]{subsection.2.2.1}{Numerical evaluation}{section.2.2}
+\BOOKMARK [0][-]{chapter.3}{Extension to more dimensions}{part.1}
+\BOOKMARK [1][-]{section.3.1}{Local coordinates on triangles and tets}{chapter.3}
+\BOOKMARK [1][-]{section.3.2}{Integration over an element}{chapter.3}
+\BOOKMARK [-1][-]{part.2}{II Key data structures}{}
+\BOOKMARK [0][-]{chapter.4}{Common data structure features}{part.2}
+\BOOKMARK [1][-]{section.4.1}{The Femtools data structure heirarchy}{chapter.4}
+\BOOKMARK [1][-]{section.4.2}{Object descriptors vs. data space}{chapter.4}
+\BOOKMARK [1][-]{section.4.3}{Option paths: integrating Femtools and Spud}{chapter.4}
+\BOOKMARK [0][-]{chapter.5}{Quadrature}{part.2}
+\BOOKMARK [0][-]{chapter.6}{Elements}{part.2}
+\BOOKMARK [1][-]{section.6.1}{Shape functions at quadrature points}{chapter.6}
+\BOOKMARK [1][-]{section.6.2}{Evaluating shape functions at arbitrary points}{chapter.6}
+\BOOKMARK [1][-]{section.6.3}{Local node numbering}{chapter.6}
+\BOOKMARK [1][-]{section.6.4}{Changing coordinates}{chapter.6}
+\BOOKMARK [0][-]{chapter.7}{Meshes}{part.2}
+\BOOKMARK [1][-]{section.7.1}{Node and element numbering}{chapter.7}
+\BOOKMARK [1][-]{section.7.2}{mesh\137type}{chapter.7}
+\BOOKMARK [0][-]{chapter.8}{Fields}{part.2}
+\BOOKMARK [1][-]{section.8.1}{Vector and tensor fields}{chapter.8}
+\BOOKMARK [1][-]{section.8.2}{Field data types}{chapter.8}
+\BOOKMARK [1][-]{section.8.3}{Constant fields}{chapter.8}
+\BOOKMARK [1][-]{section.8.4}{The coordinate field}{chapter.8}
+\BOOKMARK [1][-]{section.8.5}{Topological and data dimension}{chapter.8}
+\BOOKMARK [1][-]{section.8.6}{Changing coordinates and bases}{chapter.8}
+\BOOKMARK [0][-]{chapter.9}{State dictionaries}{part.2}
+\BOOKMARK [1][-]{section.9.1}{Inserting and extracting objects in states}{chapter.9}
+\BOOKMARK [1][-]{section.9.2}{Aliased fields and listing the same field in multiple state dictionaries}{chapter.9}
+\BOOKMARK [0][-]{chapter.10}{Reference counting}{part.2}
+\BOOKMARK [1][-]{section.10.1}{Creating and destroying references}{chapter.10}
+\BOOKMARK [2][-]{subsection.10.1.1}{Allocate}{section.10.1}
+\BOOKMARK [2][-]{subsection.10.1.2}{Deallocate}{section.10.1}
+\BOOKMARK [2][-]{subsection.10.1.3}{Inserting into state}{section.10.1}
+\BOOKMARK [2][-]{subsection.10.1.4}{Extracting from states}{section.10.1}
+\BOOKMARK [2][-]{subsection.10.1.5}{Incref}{section.10.1}
+\BOOKMARK [1][-]{section.10.2}{Creating new reference counted data types}{chapter.10}
+\BOOKMARK [1][-]{section.10.3}{Memory accounting diagnostics}{chapter.10}
+\BOOKMARK [2][-]{subsection.10.3.1}{Memory statistics in the .stat file}{section.10.3}
+\BOOKMARK [-1][-]{part.3}{III Procedure reference}{}
+\BOOKMARK [0][-]{chapter.11}{General principles for procedures}{part.3}
+\BOOKMARK [1][-]{section.11.1}{Field, mesh and matrix interfaces}{chapter.11}
+\BOOKMARK [1][-]{section.11.2}{Status arguments}{chapter.11}
+\BOOKMARK [0][-]{chapter.12}{Field and mesh methods}{part.3}
+\BOOKMARK [1][-]{section.12.1}{Global field and mesh enquiry routines}{chapter.12}
+\BOOKMARK [2][-]{subsection.12.1.1}{mesh\137dim}{section.12.1}
+\BOOKMARK [2][-]{subsection.12.1.2}{mesh\137periodic}{section.12.1}
+\BOOKMARK [2][-]{subsection.12.1.3}{node\137count}{section.12.1}
+\BOOKMARK [2][-]{subsection.12.1.4}{element\137count}{section.12.1}
+\BOOKMARK [2][-]{subsection.12.1.5}{surface\137element\137count}{section.12.1}
+\BOOKMARK [2][-]{subsection.12.1.6}{face\137count}{section.12.1}
+\BOOKMARK [2][-]{subsection.12.1.7}{aliased}{section.12.1}
+\BOOKMARK [1][-]{section.12.2}{Element enquiry routines}{chapter.12}
+\BOOKMARK [2][-]{subsection.12.2.1}{ele\137loc}{section.12.2}
+\BOOKMARK [2][-]{subsection.12.2.2}{ele\137and\137faces\137loc}{section.12.2}
+\BOOKMARK [2][-]{subsection.12.2.3}{ele\137vertices}{section.12.2}
+\BOOKMARK [2][-]{subsection.12.2.4}{ele\137ngi}{section.12.2}
+\BOOKMARK [2][-]{subsection.12.2.5}{ele\137nodes}{section.12.2}
+\BOOKMARK [1][-]{section.12.3}{Face enquiry routines}{chapter.12}
+\BOOKMARK [2][-]{subsection.12.3.1}{face\137loc}{section.12.3}
+\BOOKMARK [2][-]{subsection.12.3.2}{face\137vertices}{section.12.3}
+\BOOKMARK [2][-]{subsection.12.3.3}{face\137ngi}{section.12.3}
+\BOOKMARK [2][-]{subsection.12.3.4}{face\137local\137nodes}{section.12.3}
+\BOOKMARK [2][-]{subsection.12.3.5}{face\137global\137nodes}{section.12.3}
+\BOOKMARK [1][-]{section.12.4}{Data retrieval routines}{chapter.12}
+\BOOKMARK [2][-]{subsection.12.4.1}{ele\137val}{section.12.4}
+\BOOKMARK [2][-]{subsection.12.4.2}{ele\137val\137at\137quad}{section.12.4}
+\BOOKMARK [2][-]{subsection.12.4.3}{face\137val}{section.12.4}
+\BOOKMARK [2][-]{subsection.12.4.4}{node\137val}{section.12.4}
+\BOOKMARK [1][-]{section.12.5}{Data setting routines}{chapter.12}
+\BOOKMARK [2][-]{subsection.12.5.1}{addto}{section.12.5}
+\BOOKMARK [2][-]{subsection.12.5.2}{scale}{section.12.5}
+\BOOKMARK [2][-]{subsection.12.5.3}{set}{section.12.5}
+\BOOKMARK [2][-]{subsection.12.5.4}{zero}{section.12.5}
+\BOOKMARK [0][-]{chapter.13}{State dictionary methods}{part.3}
+\BOOKMARK [1][-]{section.13.1}{Inserting objects in states}{chapter.13}
+\BOOKMARK [2][-]{subsection.13.1.1}{insert}{section.13.1}
+\BOOKMARK [1][-]{section.13.2}{Extracting objects from states}{chapter.13}
+\BOOKMARK [2][-]{subsection.13.2.1}{Extracting objects by name}{section.13.2}
+\BOOKMARK [2][-]{subsection.13.2.2}{Extracting objects by index}{section.13.2}
+\BOOKMARK [1][-]{section.13.3}{Auxiliary state routines}{chapter.13}
+\BOOKMARK [2][-]{subsection.13.3.1}{deallocate}{section.13.3}
+\BOOKMARK [2][-]{subsection.13.3.2}{remove object}{section.13.3}
+\BOOKMARK [2][-]{subsection.13.3.3}{object counts}{section.13.3}
+\BOOKMARK [0][-]{chapter.14}{Element methods}{part.3}
+\BOOKMARK [1][-]{section.14.1}{Quadrature methods}{chapter.14}
+\BOOKMARK [2][-]{subsection.14.1.1}{make\137quadrature}{section.14.1}
+\BOOKMARK [2][-]{subsection.14.1.2}{deallocate}{section.14.1}
+\BOOKMARK [1][-]{section.14.2}{Shape function methods}{chapter.14}
+\BOOKMARK [2][-]{subsection.14.2.1}{make\137element\137shape}{section.14.2}
+\BOOKMARK [2][-]{subsection.14.2.2}{deallocate}{section.14.2}
+\BOOKMARK [2][-]{subsection.14.2.3}{local\137coords}{section.14.2}
+\BOOKMARK [2][-]{subsection.14.2.4}{local\137coord\137count}{section.14.2}
+\BOOKMARK [2][-]{subsection.14.2.5}{eval\137shape}{section.14.2}
+\BOOKMARK [0][-]{chapter.15}{Functions implementing integrals over elements}{part.3}
+\BOOKMARK [1][-]{section.15.1}{Bilinear forms}{chapter.15}
+\BOOKMARK [2][-]{subsection.15.1.1}{shape\137shape}{section.15.1}
+\BOOKMARK [2][-]{subsection.15.1.2}{shape\137shape\137vector}{section.15.1}
+\BOOKMARK [2][-]{subsection.15.1.3}{shape\137shape\137tensor}{section.15.1}
+\BOOKMARK [2][-]{subsection.15.1.4}{shape\137shape\137vector\137outer\137vector}{section.15.1}
+\BOOKMARK [2][-]{subsection.15.1.5}{shape\137dshape}{section.15.1}
+\BOOKMARK [2][-]{subsection.15.1.6}{dshape\137shape}{section.15.1}
+\BOOKMARK [2][-]{subsection.15.1.7}{shape\137vector\137dot\137dshape}{section.15.1}
+\BOOKMARK [2][-]{subsection.15.1.8}{dshape\137dot\137vector\137shape}{section.15.1}
+\BOOKMARK [2][-]{subsection.15.1.9}{dshape\137dot\137tensor\137shape}{section.15.1}
+\BOOKMARK [2][-]{subsection.15.1.10}{shape\137vector\137outer\137dshape}{section.15.1}
+\BOOKMARK [2][-]{subsection.15.1.11}{dshape\137outer\137vector\137shape}{section.15.1}
+\BOOKMARK [2][-]{subsection.15.1.12}{dshape\137dot\137dshape}{section.15.1}
+\BOOKMARK [2][-]{subsection.15.1.13}{dshape\137tensor\137dshape}{section.15.1}
+\BOOKMARK [2][-]{subsection.15.1.14}{dshape\137outer\137dshape}{section.15.1}
+\BOOKMARK [2][-]{subsection.15.1.15}{shape\137curl\137shape\1372d}{section.15.1}
+\BOOKMARK [1][-]{section.15.2}{Linear Forms}{chapter.15}
+\BOOKMARK [2][-]{subsection.15.2.1}{shape\137rhs}{section.15.2}
+\BOOKMARK [2][-]{subsection.15.2.2}{shape\137vector\137rhs}{section.15.2}
+\BOOKMARK [2][-]{subsection.15.2.3}{shape\137tensor\137rhs}{section.15.2}
+\BOOKMARK [2][-]{subsection.15.2.4}{shape\137tensor\137dot\137vector\137rhs}{section.15.2}
+\BOOKMARK [2][-]{subsection.15.2.5}{dshape\137rhs}{section.15.2}
+\BOOKMARK [2][-]{subsection.15.2.6}{dshape\137dot\137vector\137rhs}{section.15.2}
+\BOOKMARK [2][-]{subsection.15.2.7}{dshape\137dot\137tensor\137rhs}{section.15.2}
+\BOOKMARK [1][-]{section.15.3}{Auxiliary form functions}{chapter.15}
+\BOOKMARK [2][-]{subsection.15.3.1}{dshape\137loc}{section.15.3}
+\BOOKMARK [2][-]{subsection.15.3.2}{dshape\137ngi}{section.15.3}
+\BOOKMARK [2][-]{subsection.15.3.3}{dshape\137dim}{section.15.3}
+\BOOKMARK [2][-]{subsection.15.3.4}{vector\137dim}{section.15.3}
+\BOOKMARK [2][-]{subsection.15.3.5}{tensor\137dim}{section.15.3}
+\BOOKMARK [0][-]{chapter.16}{Diagnostic statistics}{part.3}
+\BOOKMARK [1][-]{section.16.1}{Diagnostic I/O routines}{chapter.16}
+\BOOKMARK [1][-]{section.16.2}{Memory statistics}{chapter.16}
+\BOOKMARK [2][-]{subsection.16.2.1}{print\137current\137memory\137stats}{section.16.2}
+\BOOKMARK [2][-]{subsection.16.2.2}{print\137memory\137stats}{section.16.2}
+\BOOKMARK [2][-]{subsection.16.2.3}{reset\137memory\137logs}{section.16.2}
+\BOOKMARK [1][-]{section.16.3}{Register diagnostics in the .stat file}{chapter.16}

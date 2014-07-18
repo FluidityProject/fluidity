@@ -1,0 +1,27 @@
+\documentclass{article}
+\input tmp.inputs
+\pagestyle{empty}
+\begin{document}
+    \begin{psmatrix}[rowsep=1.0cm,colsep=0.5cm]
+    [name=scalar]\typebox{Scalar field}{scalar\_field}&
+    [name=vector]\typebox{Vector field}{vector\_field}&
+    [name=tensor]\typebox{Tensor field}{tensor\_field}\\
+    &[name=mesh]\typebox{Mesh}{mesh\_type}&
+    [name=val]\typebox{Nodal values}{field\%val}\\
+    &[name=element]\typebox{Shape functions}{element\_type} &
+    [name=ndglno]\typebox{Node element list}{mesh\%ndglno}\\
+    &[name=quadrature]\typebox{Quadrature information}{quadrature\_type}&
+    [name=numbering]\typebox{Local node numbering}{ele_numbering_type}
+    \ncline{scalar}{mesh}
+    \ncline{vector}{mesh}
+    \ncline{tensor}{mesh}
+    \ncline{scalar}{val}
+    \ncline{vector}{val}
+    \ncline{tensor}{val}
+    \ncline{mesh}{ndglno}
+    \ncline{mesh}{element}
+    \ncline{element}{quadrature}
+    \ncline{element}{numbering}
+  \end{psmatrix}
+  \onlypdf{
+\end{document}

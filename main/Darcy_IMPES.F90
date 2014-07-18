@@ -102,7 +102,12 @@ program Darcy_IMPES
      
    ! *** Use Darcy IMPES module ***
    use darcy_impes_assemble_module
-      
+   
+   !use Leaching chemical model***Lcai***04 July 2014****
+   use darcy_impes_leaching_chemical_model
+   use darcy_impes_assemble_type
+
+
    implicit none
 
 #ifdef HAVE_PETSC
@@ -570,6 +575,11 @@ program Darcy_IMPES
       end if
    end if
    
+   !****07 July 2014 Lcai****Deallocate Leaching Chemical model******!
+   if (di%lc%have_leach_chem_model) then
+     call finalize_leaching_chemical_model(di)
+   end if
+
    ! ***** Finalise dual permeability model *****
    if (have_dual) then
       call darcy_impes_finalise(di_dual, &
@@ -870,7 +880,7 @@ contains
             
            !*****************************LCai 24 July 2013******************!
           di%MIM_options%immobile_saturation(p)%ptr  => extract_scalar_field(di%state(p), "ImmobileSaturation", stat = stat)
-          if (stat == 0) then
+          if ((stat == 0) .and. (.not. this_is_dual)) then
                di%MIM_options%have_MIM(p) = .true.
                di%MIM_options%old_immobile_saturation(p)%ptr  => extract_scalar_field(di%state(p), "OldImmobileSaturation")
                di%MIM_options%mobile_saturation(p)%ptr        => extract_scalar_field(di%state(p), "MobileSaturation")
@@ -881,7 +891,7 @@ contains
                di%MIM_options%mobile_saturation(p)%ptr    => di%constant_zero_sfield_pmesh
                di%MIM_options%old_immobile_saturation(p)%ptr  => di%constant_zero_sfield_pmesh
                di%MIM_options%old_mobile_saturation(p)%ptr    => di%constant_zero_sfield_pmesh
-            end if
+          end if
            !**********Fisnish**************LCai ****************************!
  
          else
@@ -890,7 +900,7 @@ contains
             di%capilliary_pressure(p)%ptr     => di%constant_zero_sfield_pmesh
             
             !*******************LCai 24 July & 08 Aug 2013******************!
-             ! Cannot have MIM for phase 1
+             ! Cannot have MIM for phase 1 and dual phase
              di%MIM_options%have_MIM(p) = .false.
              di%MIM_options%immobile_saturation(p)%ptr  => di%constant_zero_sfield_pmesh
              di%MIM_options%mobile_saturation(p)%ptr    => di%constant_zero_sfield_pmesh
@@ -1100,7 +1110,6 @@ contains
                  call get_option('/material_phase['//int2str(p-1)//']/MobileImmobileModel/scalar_field['//int2str(f-1)//']/name', &
                                   tmp_char_option)
 
-                 !***NOT**USED**di%MIM_options%have_immobile_prog_sfield(p)= .true.
 
                  di%MIM_options%immobile_prog_sfield(im_count)%phase = p
                    
@@ -1626,6 +1635,11 @@ contains
       ! Initialise the arrays used to cache the face values
       call darcy_impes_initialise_cached_face_value(di)
       
+
+      !*******04 July 2014 Lcai*Leaching chemical model*************!
+      !Initialise the Leaching chemical model
+      call initialize_leaching_chemical_model(di)
+
       ! If the first phase saturation is diagnostic then calculate it
       if (di%phase_one_saturation_diagnostic) call darcy_impes_calculate_phase_one_saturation_diagnostic(di)
       
@@ -2540,3 +2554,6 @@ contains
 ! --------------------------------------------------------------------------------
 
 end program Darcy_IMPES
+!    Copyright (C) 2006 Imperial College London and others.
+!
+!    Please see the AUTHORS file in the main source directory for a full list

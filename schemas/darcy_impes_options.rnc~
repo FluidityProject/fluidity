@@ -687,10 +687,7 @@ darcy_impes_material_phases =
          element material_phase {
             attribute name { "Phase2" },
                   
-            darcy_impes_other_phase_options
-	    
-
-	
+            darcy_impes_other_phase_options	    	
          }|
          element material_phase {
             attribute name { "Phase3" },
@@ -712,20 +709,20 @@ darcy_impes_material_phases =
       }?,
       (
          element material_phase {
-         attribute name { "Phase2_dual" },
+            attribute name { "Phase2_dual" },
          
-         darcy_impes_dual_Phase2
+            darcy_impes_dual_other_phase_options
 	
          }|
          element material_phase {
             attribute name { "Phase3_dual" },
                   
-            darcy_impes_dual_Phase2
+            darcy_impes_dual_other_phase_options
          }|
          element material_phase {
             attribute name { "Phase4_dual" },
                   
-            darcy_impes_dual_Phase2
+            darcy_impes_dual_other_phase_options
          }
       )*
    )
@@ -770,6 +767,7 @@ darcy_impes_first_phase_pressure_field =
                darcy_impes_asym_solver_options,               
                initial_condition_scalar+,
                darcy_impes_first_phase_bc_pressure_field*,
+               field_output_options,
                darcy_impes_include_stat, 
                adaptivity_options_prognostic_scalar_field,
                interpolation_algorithm_scalar
@@ -777,9 +775,27 @@ darcy_impes_first_phase_pressure_field =
             element prescribed {
                mesh_choice_pressure,
                prescribed_scalar_field,
+               field_output_options,
                darcy_impes_include_stat
             }
          )
+      }
+   )
+
+
+darcy_impes_dual_first_phase_pressure_field =
+   (
+      element scalar_field {
+         attribute rank { "0" },
+         attribute name { "Pressure" },
+         element prognostic {
+            mesh_choice_pressure,
+            initial_condition_scalar+,
+            darcy_impes_first_phase_bc_pressure_field*,
+            darcy_impes_include_cv_stat, 
+            adaptivity_options_prognostic_scalar_field,
+            interpolation_algorithm_scalar
+         }
       }
    )
 
@@ -795,8 +811,12 @@ darcy_impes_asym_solver_options =
          darcy_impes_pressure_linear_solver_options_asym_default_gmres_mg
       }|
       element solver {
+         attribute name { "DefaultSolverOptionsGMRESHYPRE" },
+         darcy_impes_pressure_linear_solver_options_asym_default_gmres_hypre
+      }|
+      element solver {
          attribute name { "ChooseSolverOptions" },
-         linear_solver_options_asym
+         linear_solver_options_asym_scalar
       }   
    )
 
@@ -813,6 +833,14 @@ darcy_impes_pressure_linear_solver_options_asym_default_gmres_mg =
    (
       darcy_impes_solver_default_gmres,
       darcy_impes_solver_default_mg,
+      darcy_impes_solver_tolerances
+   )
+
+
+darcy_impes_pressure_linear_solver_options_asym_default_gmres_hypre = 
+   (
+      darcy_impes_solver_default_gmres,
+      darcy_impes_solver_default_hypre,
       darcy_impes_solver_tolerances
    )
 
@@ -852,6 +880,25 @@ darcy_impes_solver_default_mg =
       ## Especially suited for ill-conditioned, large aspect ratio problems.
       element preconditioner {
          attribute name { "mg" }
+      }   
+   )
+
+
+darcy_impes_solver_default_hypre = 
+   (
+      ## Hypre preconditioners (includes boomeramg)
+      element preconditioner {
+         attribute name { "hypre" },
+         ( 
+            ## BoomerAMG multigrid method
+            element hypre_type {
+               attribute name { "boomeramg" }
+            }|
+            ## Other Hypre preconditioners
+            element hypre_type {
+               attribute name { xsd:string }
+            }
+         )
       }   
    )
 
@@ -963,6 +1010,7 @@ darcy_impes_saturation_field_phase_one =
                darcy_impes_bc_saturation_field*,
                darcy_impes_saturation_source?,
                scalar_convergence_options,
+               field_output_options,
                darcy_impes_include_stat,
                adaptivity_options_prognostic_scalar_field,
                interpolation_algorithm_scalar         
@@ -983,6 +1031,7 @@ darcy_impes_saturation_field =
             darcy_impes_bc_saturation_field*,
             darcy_impes_saturation_source?,
             scalar_convergence_options,
+            field_output_options,
             darcy_impes_include_stat,
             adaptivity_options_prognostic_scalar_field,
             interpolation_algorithm_scalar
@@ -1060,6 +1109,7 @@ darcy_impes_scalar_field_prescribed_or_python_diagnostic_element_wise_mesh =
       element prescribed {
          mesh_choice_element_wise,
          prescribed_scalar_field_no_adapt,
+         field_output_options,
          darcy_impes_include_stat
       }|
       element diagnostic {
@@ -1075,6 +1125,7 @@ darcy_impes_scalar_field_prescribed_or_python_diagnostic_saturationsource_mesh =
       element prescribed {
          mesh_choice_saturationsource,
          prescribed_scalar_field_no_adapt,
+         field_output_options,
          darcy_impes_include_stat
       }|
       element diagnostic {
@@ -1090,6 +1141,7 @@ darcy_impes_scalar_field_prescribed_or_python_diagnostic_transmissibility_mesh =
       element prescribed {
          mesh_choice_transmissibility,
          prescribed_scalar_field_no_adapt,
+         field_output_options,
          darcy_impes_include_stat
       }|
       element diagnostic {
@@ -1518,9 +1570,22 @@ darcy_impes_sum_saturation =
    )
 
 
+darcy_impes_transmissibility_lambda =
+   (
+      ## Specify the exchange between Porous Media and Dual Porous Media for this phase.
+      element scalar_field {
+         attribute rank { "0" },
+         attribute name { "TransmissibilityLambdaDual" },
+         darcy_impes_scalar_field_prescribed_or_python_diagnostic_transmissibility_mesh
+      }
+   )
+
+
 darcy_impes_dual_Phase1 = 
    (
-         darcy_impes_first_phase_pressure_field,
+         darcy_impes_transmissibility_lambda, 
+         
+         darcy_impes_dual_first_phase_pressure_field,
          
          darcy_impes_saturation_field_phase_one,
          
@@ -1554,8 +1619,10 @@ darcy_impes_dual_Phase1 =
    )
 
 
-darcy_impes_dual_Phase2 = 
+darcy_impes_dual_other_phase_options = 
    (  
+      darcy_impes_transmissibility_lambda, 
+      
       darcy_impes_non_first_phase_pressure_field, 
       
       darcy_impes_capilliary_pressure_field?, 
@@ -1588,6 +1655,7 @@ darcy_impes_generic_scalar_field =
             element prescribed {
                darcy_mesh_choice,
                prescribed_scalar_field,
+               field_output_options,
                darcy_impes_include_stat, 
                darcy_impes_recalculation_options?
             }|
@@ -1606,7 +1674,9 @@ darcy_impes_generic_scalar_field =
                darcy_impes_generic_scalar_field_diff?,
                darcy_impes_generic_scalar_field_abs?,
                darcy_impes_generic_scalar_field_src?,
-	       darcy_MIM_generic_scalar_field_immobile_src?,
+               darcy_impes_prog_field_chemical_source_term?,
+	       darcy_MIM_generic_scalar_field_immobile_src?,                
+               field_output_options,
                darcy_impes_include_stat, 
                adaptivity_options_prognostic_scalar_field,
                interpolation_algorithm_scalar
@@ -1806,7 +1876,7 @@ darcy_impes_bc_velocity_field =
          },
          (
             element type {
-               attribute name { "normal_flow" },
+               attribute name { "prescribed_normal_flow" },
                input_choice_real
             }|
             element type {
@@ -1939,7 +2009,7 @@ darcy_impes_metric_advection =
          (
            ## Solver
            element solver {
-               linear_solver_options_asym
+               linear_solver_options_asym_scalar
            }|
            ## Assume this field is being solved explicitly and skip the solver.
            ##
@@ -1971,9 +2041,21 @@ darcy_impes_metric_advection_velocity_name =
       ## The name of the field used to advect the metric
       ## that must exist in the first material_phase.
       ## If not given then the NonlinearVelocity is used.
-      element advecting_velocity_field_name {
-         "BulkDarcyVelocity"
-      }
+      element advecting_velocity_field {
+         attribute name { "BulkDarcyVelocity" }
+      }|
+      ## The name of the field used to advect the metric
+      ## that must exist in the first material_phase.
+      ## If not given then the NonlinearVelocity is used.
+      element advecting_velocity_field {
+         attribute name { "TotalDarcyVelocity" }
+      }|
+      ## The name of the field used to advect the metric
+      ## that must exist in the first material_phase.
+      ## If not given then the NonlinearVelocity is used.
+      element advecting_velocity_field {
+         attribute name { xsd:string }
+      }      
    )
 
  
@@ -2029,15 +2111,9 @@ darcy_impes_porous_media_model =
 
 darcy_impes_dual_porous_media_model=
    (
-      ## Porous Media_dual:
-      ## Porosity and Permeability for the dual permeability model
+      ## Enable the dual porous media model. If one enables the AbsolutePermeabilityDual
+      ## then this becomes a dual permeability model.
       element porous_media_dual {
-         ## Have a dual pressure such that a block matrix is solved for each phase 1. 
-         ## Else the dual pressure phase 1 has the same values as the prime pressure
-         ## phase 1. WARNING: THIS CAUSES PETSC ERRORS IN 2D.
-         element have_dual_pressure {
-            empty
-         }?,
          ## Specify scalar field PorosityDual which is inserted into 
          ## the first material_phase state then aliased in all others.
          element scalar_field {
@@ -2046,22 +2122,26 @@ darcy_impes_dual_porous_media_model=
          },
          ## Specify field AbsolutePermeabilityDual which is inserted into 
          ## the first material_phase state then aliased in all others.
+         ## WARNING: THIS CAUSES PETSC ERRORS SOMETIMES IN 2D
          element scalar_field {
             attribute name { "AbsolutePermeabilityDual" },
+            ## Do not solve for the Dual media first phase pressure, instead 
+            ## assign it the prime media first phase pressure. WARNING: THIS
+            ## WILL IMPLY THE DUAL MEDIA SATURATIONS ARE ADVECTED WITH AN 
+            ## EFFECTIVE VELOCITY THAT IS NOT DIVERGENCE FREE SO YOU SHOULD 
+            ## NOT EXPECT THE RESULTS TO BE BOUNDED
+            element do_not_solve_for_dual_first_phase_pressure {
+               empty
+            }?,
             darcy_impes_scalar_field_prescribed_or_python_diagnostic_element_wise_mesh
-         },
-         ## Specify the exchange between Porous Media and Dual Porous Media which is inserted into 
-         ## the first material_phase state then aliased in all others.
-         element scalar_field {
-            attribute name { "TransmissibilityLambdaDual" },
-            darcy_impes_scalar_field_prescribed_or_python_diagnostic_transmissibility_mesh
-         }
+         }?
       }   
    )
 
 
 darcy_impes_diagnostic_scalar_field =
    (
+      field_output_options,
       darcy_impes_include_stat,
       adaptivity_options_scalar_field,
       interpolation_algorithm_scalar 
@@ -2070,6 +2150,7 @@ darcy_impes_diagnostic_scalar_field =
 
 darcy_impes_diagnostic_scalar_field_no_adapt =
    (
+      field_output_options,
       darcy_impes_include_stat,
       interpolation_algorithm_scalar 
    )
@@ -2077,6 +2158,7 @@ darcy_impes_diagnostic_scalar_field_no_adapt =
 
 darcy_impes_diagnostic_vector_field =
    (
+      field_output_options,
       darcy_impes_include_stat,
       adaptivity_options_vector_field,
       interpolation_algorithm_scalar 
@@ -2085,6 +2167,7 @@ darcy_impes_diagnostic_vector_field =
 
 darcy_impes_diagnostic_vector_field_no_adapt =
    (
+      field_output_options,
       darcy_impes_include_stat,
       interpolation_algorithm_scalar 
    )
@@ -2092,6 +2175,7 @@ darcy_impes_diagnostic_vector_field_no_adapt =
 
 darcy_impes_diagnostic_tensor_field =
    (
+      field_output_options,
       darcy_impes_include_stat,
       adaptivity_options_tensor_field,
       interpolation_algorithm_scalar 
@@ -2100,6 +2184,7 @@ darcy_impes_diagnostic_tensor_field =
 
 darcy_impes_diagnostic_tensor_field_no_adapt =
    (
+      field_output_options,
       darcy_impes_include_stat,
       interpolation_algorithm_scalar 
    )
@@ -2356,6 +2441,7 @@ scalar_convergence_options =
 		     element prescribed {             
 			mesh_choice_pressure,
 			prescribed_scalar_field,
+			field_output_options,
 			darcy_impes_include_stat,
 			darcy_impes_recalculation_options?
 			}|
@@ -2386,6 +2472,7 @@ scalar_convergence_options =
 		     element prescribed {                          
 			mesh_choice_pressure,
                         prescribed_scalar_field,
+                        field_output_options,
                         darcy_impes_include_stat,
                         darcy_impes_recalculation_options?
                           }|
@@ -2410,6 +2497,7 @@ scalar_convergence_options =
 			 initial_condition_scalar+,
                          ## Please write down the name of the mobile source field which the immobile field is based on
                          element source_field_name { string },
+                         field_output_options,
                          darcy_impes_include_stat,
 			 adaptivity_options_prognostic_scalar_field,
 			 interpolation_algorithm_scalar
@@ -2453,3 +2541,143 @@ exclude_field_from_stat =
          comment
       }
    )
+   
+   
+field_output_options =
+   (
+      ## Specify what is written to dump files.
+      element output {
+         ## Exclude this field from dump files.
+         element exclude_from_vtu {
+            comment
+         }?
+      }
+   )
+   
+
+# Chemical reaction source terms of lheap leaching under prognostic field
+darcy_impes_prog_field_chemical_source_term = 
+   ( 
+	  ## The source term from the chemical reactions for heap leaching
+          element LeachingChemicalSourceTerm{
+		darcy_impes_leaching_solution_phase_prog_src?,
+                darcy_impes_leaching_mineral_dissolution_prog_src?
+          }
+   )
+
+
+darcy_impes_leaching_solution_phase_prog_src = 
+   ( 
+       ##This is the source term from solution phase chemical reactions of heap leaching
+       ##The algorithms currently available are for chalcopyrite leaching
+       ##please select the corresponding reactions
+       element SolutionPhaseSource{
+              ( 
+                ##The internal algorithms currently available are for chalcopyrite leaching
+                element scalar_field {
+                          attribute rank { "0" },
+                          attribute name {"Ferrous_Oxidation"},
+                          element diagnostic {
+                             mesh_choice_pressure,
+                             darcy_impes_internal_algorithm,
+                             darcy_impes_chemical_stoichiometric_factor,
+                             darcy_impes_diagnostic_scalar_field,
+                             darcy_impes_recalculation_options?
+                             }
+                        }|
+                element scalar_field {
+                          attribute rank { "0" },
+                          attribute name {"Jarosite_Precipitation"},
+                          element diagnostic {
+                             mesh_choice_pressure,
+                             darcy_impes_internal_algorithm,
+                             darcy_impes_chemical_stoichiometric_factor,
+                             darcy_impes_diagnostic_scalar_field,
+                             darcy_impes_recalculation_options?
+                             }    
+                        }|
+
+                element scalar_field {                      
+                          attribute rank { "0" },
+                          attribute name {"Oxygen_dissolution_liquid_phase"},
+                          element diagnostic {
+                             mesh_choice_pressure,
+                             darcy_impes_internal_algorithm,
+                             darcy_impes_chemical_stoichiometric_factor,
+                             darcy_impes_diagnostic_scalar_field,
+                             darcy_impes_recalculation_options?
+                             }
+                        }|
+
+                element scalar_field {
+                          attribute rank { "0" },
+                          attribute name {"Oxygen_dissolution_gas_phase"},
+                          element diagnostic {
+                             mesh_choice_pressure,
+                             darcy_impes_internal_algorithm,
+                             darcy_impes_chemical_stoichiometric_factor,
+                             darcy_impes_diagnostic_scalar_field,
+                             darcy_impes_recalculation_options?
+                             }
+                        }
+              )+
+           }
+     )
+
+darcy_impes_leaching_mineral_dissolution_prog_src =
+   (
+       ##This is the source term from mineral dissolution of heap leaching
+       ##The algorithms currently available are for chalcopyrite leaching
+       ##please select the corresponding reactions
+       element MineralDissolutionSource{
+              (
+                ##The internal algorithms currently available are for chalcopyrite leaching
+                element scalar_field {
+                          attribute rank { "0" },
+                          attribute name {"CuFeS2_oxidation_aqueous_ferric_sulfate"},
+                          element diagnostic {
+                             mesh_choice_pressure
+                             darcy_impes_internal_algorithm,
+                             darcy_impes_chemical_stoichiometric_factor,
+                             darcy_impes_diagnostic_scalar_field,
+                             darcy_impes_recalculation_options?
+                             }
+                        }|
+                element scalar_field {
+                          attribute rank { "0" },
+                          attribute name {"FeS2_oxidation_aqueous_ferric_sulfate"},
+                          element diagnostic {
+                             mesh_choice_pressure,
+                             darcy_impes_internal_algorithm,
+                             darcy_impes_chemical_stoichiometric_factor,
+                             darcy_impes_diagnostic_scalar_field,
+                             darcy_impes_recalculation_options?
+                             }
+                        }|
+
+                element scalar_field {
+                          attribute rank { "0" },
+                          attribute name {"S0_dissolution"},
+                          element diagnostic {
+                             mesh_choice_pressure,
+                             darcy_impes_internal_algorithm,
+                             darcy_impes_chemical_stoichiometric_factor,
+                             darcy_impes_diagnostic_scalar_field,
+                             darcy_impes_recalculation_options?
+                             }
+                        }
+
+              )+
+           }
+
+     )
+
+
+darcy_impes_chemical_stoichiometric_factor =
+   (
+     ##The stoichiometric factor of this species according to the reaction equation
+     element stoichiometric_factor {
+             ##The stoichiometric factor of this species according to the reaction equation
+             real
+             }
+     )
