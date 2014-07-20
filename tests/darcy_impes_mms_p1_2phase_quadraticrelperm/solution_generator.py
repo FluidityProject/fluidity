@@ -21,12 +21,9 @@ def generate(solution_name, check_solution=False):
 
     # relperms - these do not have placeholders in the options template;
     # any changes made here also need to be made in the template
-    sr = (0.1, 0.2)                      # residual sats
-    K = (lambda s: ka * (s[0]-sr[0])**2, # relperm functions
+    sr = (0.2, 0.3)                      # residual sats
+    K = (lambda s: ka * (s[0]-sr[0])**2, # quadratic relperm relation
          lambda s: ka * (s[1]-sr[1])**2)
-
-    # likewise for capillary pressure
-    pc = lambda s2: p1_scale/10. * s2**(-0.5)
     
     # initialise object containing solution parameters
     sh = SolutionHarness(D, T, g_mag, ka, phi, mu, rho, K,
@@ -46,38 +43,27 @@ def generate(solution_name, check_solution=False):
     fs_lat = lambda xi: 3*(1. - xi)*(1.5*xi)**2
     fp_lon = lambda xi: cos(pi*xi)
     fp_lat = lambda xi: sin(pi*xi)**2
-
-    # this is a bit of a hack to recover (i) a pair of pressures, one
-    # for each phase, and (ii) a phase-2 saturation that does not go to
-    # zero (or to s2_threshold) and therefore does not cause an infinite
-    # capillary pressure
-    s2_min = 0.05
-    def wrap(p1, s2, s2_threshold=0.):
-        a = (s2_scale - s2_min)/(s2_scale - s2_threshold)
-        b = s2_scale*(1. - a)
-        s2 = a*s2 + b
-        return (p1, p1 - pc(s2)), s2
     
     # 1D
     x = Symbol('x')
     g_dir = (1)
     s2 = s2*fs_lon(x/D[0])
     p1 = p1*fp_lon(x/D[0])
-    ms1d = ManufacturedSolution(1, g_dir, *wrap(p1, s2))
+    ms1d = ManufacturedSolution(1, g_dir, p1, s2)
     
     # 2D
     y = Symbol('y')
     g_dir = (1, 0)
     s2 = s2*fs_lat(y/D[1])
     p1 = p1*fp_lat(y/D[1])
-    ms2d = ManufacturedSolution(2, g_dir, *wrap(p1, s2))
+    ms2d = ManufacturedSolution(2, g_dir, p1, s2)
     
     # 3D
     z = Symbol('z')
     g_dir = (1, 0, 0)
     s2 = s2*fs_lat(z/D[2])
     p1 = p1*fp_lat(z/D[2])
-    ms3d = ManufacturedSolution(3, g_dir, *wrap(p1, s2))
+    ms3d = ManufacturedSolution(3, g_dir, p1, s2)
 
     # generate expressions for the manufactured solution
     sh.write_dict([ms1d, ms2d, ms3d])

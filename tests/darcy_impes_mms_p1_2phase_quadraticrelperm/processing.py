@@ -1,16 +1,15 @@
 ## PARAMETERS 
 
 case_name = "darcy_impes_mms_p1_2phase_quadraticrelperm"
-mesh_type_list = ["reg"]                         # [see note 1]
+mesh_type_list = ["irreg"]
 mesh_suffix_list_per_dimension = [
     ["B", "C", "D", "E"],
     ["B", "C", "D"],
-    ["B", "C"]]
+    ["B"]]
 field_name_list = ["Phase1::Pressure", 
-                   "Phase2::Pressure",         
-                   "Phase2::Saturation"]         # [2]
+                   "Phase2::Saturation"]         # [1]
 norm_list = [2]
-mesh_A_number_of_timesteps = 10                  # [2]
+mesh_A_number_of_timesteps = 10                  # [1]
 
 
 ## SCRIPT
@@ -44,8 +43,6 @@ for arg in argv[1:]:
     
 # Notes:
 # 
-# [1] irreg meshes also possible, but their convergence rates are unruly
-# 
-# [2] the starting number of timesteps has been increased to 10 because
+# [1] the starting number of timesteps has been increased to 10 because
 #     with too few, the rates can look OK even for bad convergence
 #     (TODO: check impact on total test time).

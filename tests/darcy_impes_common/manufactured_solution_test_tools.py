@@ -357,7 +357,7 @@ class ManufacturedSolutionTestSuite:
 
 
    def write_xml(self):
-      self.deep_handler.handle( WriteXMLFile('stem', 0.05, 0.6) )
+      self.deep_handler.handle( WriteXMLFile('stem', 0.05, 0.8) )
 
 
    def preprocess(self):
