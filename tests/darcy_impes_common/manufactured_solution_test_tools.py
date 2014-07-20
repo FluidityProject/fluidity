@@ -139,11 +139,12 @@ class GenerateSymbols(MMSCommand):
          solution_name = join_with_underscores((self.stem))
          if verbose():
             div_plus_src = generate(solution_name, check_solution=True)
-            sys.stdout.write('\n'+indent+'   Reality check')
+            sys.stdout.write('\n'+indent+
+                             '   Expect sum(div(u) - src) = 0...')
             for i in range(3):
                dim = i + 1
                sys.stdout.write(
-                  '\n'+indent+'   {0}D: divergence - source = {1}'.\
+                  '\n'+indent+'   {0}D: {1}'.\
                      format(dim, str(div_plus_src[i])))
          else:
             generate(solution_name)

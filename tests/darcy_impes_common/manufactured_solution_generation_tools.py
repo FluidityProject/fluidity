@@ -119,8 +119,8 @@ class ManufacturedSolution:
     def __init__(self, dim, g_dir, p, s2):
         self.dim = dim
         self.g_dir = array(g_dir)
-        self.p = [Symbol('0')]*2
-        self.grad_p = [[Symbol('0')]*dim]*2
+        self.p = [Symbol('0') for i in range(2)]
+        self.grad_p = [[Symbol('0') for j in range(dim)] for i in range(2)]
         for i in range(2):
             try:
                 # p is given as multiple fields
@@ -130,8 +130,8 @@ class ManufacturedSolution:
                 self.p[i] = p
             self.grad_p[i] = grad(self.p[i], dim)
         self.s = (1 - s2, s2)
-        self.u = [[Symbol('0')]*dim]*2
-        self.q = [Symbol('0')]*2
+        self.u = [[Symbol('0') for j in range(dim)] for i in range(2)]
+        self.q = [Symbol('0') for i in range(2)]
         
     def compute_phase(self, phase_num, phi, K, mu, rho, g_mag):
         t = Symbol('t')
@@ -187,9 +187,8 @@ class ManufacturedSolution:
                 uij = self.u[i][j]
             except TypeError:
                 uij = self.u[i]
-                write_expr(
-                    genfile, is_text, 'darcy_velocity'+str(i+1)+'_'+str(xi)+suf,
-                    uij, spacetime[:self.dim] + spacetime[3:], separate_args=True)
+        write_expr(genfile, is_text, 'darcy_velocity'+str(i+1)+'_'+str(xi)+suf,
+                   uij, spacetime[:self.dim] + spacetime[3:], separate_args=True)
         write_expr(genfile, is_text,
                    'darcy_velocity'+str(i+1)+'_magnitude'+suf,
                    mag(self.u[i]), spacetime[:self.dim] + spacetime[3:],

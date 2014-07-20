@@ -51,7 +51,7 @@ def generate(solution_name, check_solution=False):
     # for each phase, and (ii) a phase-2 saturation that does not go to
     # zero (or to s2_threshold) and therefore does not cause an infinite
     # capillary pressure
-    s2_min = 0.01
+    s2_min = 0.05
     def wrap(p1, s2, s2_threshold=0.):
         a = (s2_scale - s2_min)/(s2_scale - s2_threshold)
         b = s2_scale*(1. - a)
