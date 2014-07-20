@@ -11,11 +11,7 @@ code:
 	$(call import_python_code,manufactured_solution_test_tools.py)
 
 geo:
-	cp ../darcy_impes_common/mesh_data/template_line.sh .
-	cp ../darcy_impes_common/mesh_data/template_rectangle_reg.geo .
-	cp ../darcy_impes_common/mesh_data/template_rectangle_irreg.geo .
-	cp ../darcy_impes_common/mesh_data/template_cuboid_reg.geo .
-	cp ../darcy_impes_common/mesh_data/template_cuboid_irreg.geo .
+	cp ../darcy_impes_common/mesh_data/template_* .
 
 gen:
 	python processing.py gen
