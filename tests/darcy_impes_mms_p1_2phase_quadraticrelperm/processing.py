@@ -1,8 +1,7 @@
 ## PARAMETERS 
 
 case_name = "darcy_impes_mms_p1_2phase_quadraticrelperm"
-# mesh_type_list = ["curved_irreg"]              # [2]
-mesh_type_list = ["irreg"]
+mesh_type_list = ["curved_irreg"]
 mesh_suffix_list_per_dimension = [
     ["B", "C", "D", "E"],
     ["B", "C", "D"],
@@ -47,5 +46,3 @@ for arg in argv[1:]:
 # [1] the starting number of timesteps has been increased to 10 because
 #     with too few, the rates can look OK even for bad convergence
 #     (TODO: check impact on total test time).
-#
-# [2] FIXME: Curved geometry is causing nonconvergence of the pressure field.

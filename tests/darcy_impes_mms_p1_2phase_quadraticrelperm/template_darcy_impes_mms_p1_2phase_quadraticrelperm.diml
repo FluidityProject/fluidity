@@ -144,6 +144,19 @@
   return $PRESSURE1_${DOMAIN_DIM}D</string_value>
           </python>
         </initial_condition>
+        <boundary_conditions name="inlet_pressure">
+          <surface_ids>
+            <integer_value shape="1" rank="1">$INLET_ID</integer_value>
+          </surface_ids>
+          <type name="dirichlet">
+            <apply_strongly/>
+	    <python>
+              <string_value lines="20" type="code" language="python">def val(X, t):
+  from numpy import sqrt, pi, cos, sin, exp
+  return $PRESSURE1_${DOMAIN_DIM}D</string_value>
+	    </python>
+          </type>
+        </boundary_conditions>
         <boundary_conditions name="outlet_pressure">
           <surface_ids>
             <integer_value shape="1" rank="1">$OUTLET_ID</integer_value>
@@ -421,6 +434,19 @@
         <boundary_conditions name="inlet_saturation">
           <surface_ids>
             <integer_value shape="1" rank="1">$INLET_ID</integer_value>
+          </surface_ids>
+          <type name="dirichlet">
+            <apply_strongly/>
+  	    <python>
+              <string_value lines="20" type="code" language="python">def val(X, t):
+  from numpy import sqrt, pi, cos, sin, exp
+  return $SATURATION2_${DOMAIN_DIM}D</string_value>
+  	    </python>
+          </type>
+        </boundary_conditions>
+        <boundary_conditions name="outlet_saturation">
+          <surface_ids>
+            <integer_value shape="1" rank="1">$OUTLET_ID</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <apply_strongly/>
