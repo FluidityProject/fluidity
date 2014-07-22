@@ -1518,15 +1518,19 @@
                         component_tmp = ele_val( component, ele )
                         mu_tmp = ele_val( t_field, ele )
 
+                        do iloc = 1, cv_nloc
+                           mu_tmp( :, :, iloc ) = mu_tmp( :, :, iloc ) * component_tmp( iloc )
+                        end do
+
                         if ( linearise_viscosity ) then
-                           mu_tmp( :, :, 2 ) = 0.5 * ( mu_tmp( :, :, 1 ) * component_tmp( 1 ) + mu_tmp( :, :, 3 ) * component_tmp( 3 ) )
-                           mu_tmp( :, :, 4 ) = 0.5 * ( mu_tmp( :, :, 1 ) * component_tmp( 1 ) + mu_tmp( :, :, 6 ) * component_tmp( 6 ) )
-                           mu_tmp( :, :, 5 ) = 0.5 * ( mu_tmp( :, :, 3 ) * component_tmp( 3 ) + mu_tmp( :, :, 6 ) * component_tmp( 6 ) )
+                           mu_tmp( :, :, 2 ) = 0.5 * ( mu_tmp( :, :, 1 ) + mu_tmp( :, :, 3 ) )
+                           mu_tmp( :, :, 4 ) = 0.5 * ( mu_tmp( :, :, 1 ) + mu_tmp( :, :, 6 ) )
+                           mu_tmp( :, :, 5 ) = 0.5 * ( mu_tmp( :, :, 3 ) + mu_tmp( :, :, 6 ) )
 
                            if ( cv_nloc == 10 ) then
-                              mu_tmp( :, :, 7 ) = 0.5 * ( mu_tmp( :, :, 1 ) * component_tmp( 1 ) + mu_tmp( :, :, 10 ) * component_tmp( 10 ) )
-                              mu_tmp( :, :, 8 ) = 0.5 * ( mu_tmp( :, :, 3 ) * component_tmp( 3 ) + mu_tmp( :, :, 10 ) * component_tmp( 10 ) )
-                              mu_tmp( :, :, 9 ) = 0.5 * ( mu_tmp( :, :, 6 ) * component_tmp( 6 ) + mu_tmp( :, :, 10 ) * component_tmp( 10 ) )
+                              mu_tmp( :, :, 7 ) = 0.5 * ( mu_tmp( :, :, 1 ) + mu_tmp( :, :, 10 ) )
+                              mu_tmp( :, :, 8 ) = 0.5 * ( mu_tmp( :, :, 3 ) + mu_tmp( :, :, 10 ) )
+                              mu_tmp( :, :, 9 ) = 0.5 * ( mu_tmp( :, :, 6 ) + mu_tmp( :, :, 10 ) )
                            end if
                         end if
 
