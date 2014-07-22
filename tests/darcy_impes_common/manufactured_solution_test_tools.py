@@ -1,405 +1,274 @@
 #!/usr/bin/env python
 
-"""manufactured_solution_test_tools.py
+"""Extension of test_tools.py for MMS-based tests associated with the
+Darcy IMPES code.
 
-Documentation to come."""
+More documentation to come."""
 
 import sys
-# sys.path.append('../../python')
+sys.path.append('../../python')
 
 import os
 import string
 import subprocess
 import re
 import numpy
-from test_tools import Command, CommandList, HandlerLevel, \
-   CompositeHandler, LeafHandler, WriteXMLFile, RunSimulation, \
-   WriteToReport, error_norms_filename, error_rates_filename, verbose, \
-   join_with_underscores, default_fluidity_path
 from fluidity_tools import stat_parser
 from solution_generator import generate
 from importlib import import_module
 from vtktools import vtu
 from copy import deepcopy
+from batch_tools import new_handler as nh
+from batch_tools import Command
+from test_tools import *
 
-verbose(True)
-debug = False
-
-# constants
-mesh_template_prefix = 'template'
-domain_shape_dict = {1:'line', 2:'rectangle', 3:'cuboid'}
-mesh_res_dict = {'A':5, 'B':10, 'C':20, 'D':40,
-                 'E':80, 'F':160, 'G':320, 'H':640}
+simulator_name = 'darcy_impes'
+options_filename_extension = '.diml'
 
 
-class Parameterisation:
-   """Parameters determined from a small, fixed set of
-   variables can be determined here.
-   """
+class ManufacturedSolutionParameteriser(DefaultParameteriser):
+   def __init__(self, options_filename_extension,
+                reference_mesh_res, reference_timestep_number):
+      DefaultParameteriser.__init__(self, options_filename_extension)
+      self.reference_mesh_res = reference_mesh_res
+      self.reference_timestep_number = reference_timestep_number
 
-   def __init__(self, case, dim, mesh_type, mesh_suffix):
-      
-      # basic parameterisations
-      self.dim = dim
-      self.domain_shape = domain_shape_dict[dim]
-      self.mesh_res = mesh_res_dict[mesh_suffix]
-
-      # filenames
-      if dim==1:
-         m_t = None
-         g_e = '.sh'
-         m_e_l = ['.bound', '.ele', '.node']
-      else:
-         m_t = mesh_type
-         g_e = '.geo'
-         m_e_l = ['.msh']
-      self.mesh_name = join_with_underscores((self.domain_shape, 
-                                              m_t, mesh_suffix))
-      self.options_template_filename = "template_"+case+".diml"
-      self.options_name = join_with_underscores((case, 
-         str(dim)+'d', m_t, mesh_suffix))
-      self.options_filename = self.options_name+'.diml'
-      self.geo_template_filename = join_with_underscores((
-         mesh_template_prefix, self.domain_shape, m_t))+g_e
-      self.geo_filename = self.mesh_name+'.geo'
-      self.mesh_filenames = []
-      for m_e in m_e_l:
-         self.mesh_filenames.append(self.mesh_name+m_e)
-
-      
-   def compute_more_options(self):
-      """Options template expansion typically requires more stuff.
-      It is placed here so as not to burden other clients.
-      """
-      
-      # dictionary entries
-      if self.dim==1:
-         self.mesh_format = 'triangle'
-         # for collapsing inappropriate wall BCs
-         self.begin_rm_if_1D = '<!--'
-         self.end_rm_if_1D = '-->'
-      else:
-         self.mesh_format = 'gmsh'
-         self.begin_rm_if_1D = ''
-         self.end_rm_if_1D = ''
-         
-      # more dictionary entries
-      if self.dim==1:
-         self.outlet_ID = '2'
-         self.inlet_ID = '1'
-         self.wall_IDs = ''
-         self.wall_num = '0'
-      elif self.dim==2:
-         self.outlet_ID = '12'
-         self.inlet_ID = '14'
-         self.wall_IDs = '11 13'
-         self.wall_num = '2'
-      elif self.dim==3:
-         self.outlet_ID = '32'
-         self.inlet_ID = '30'
-         self.wall_IDs = '28 29 31 33'
-         self.wall_num = '4'
-
-
-class MMSCommand(Command):
-   """This abstract class, to be extended by concrete Commands, has a
-method for doing the boring job of storing level details, i.e. recording
-where the Command is in the Handler tree.
-   """
+   def element_number(self, domain_length):
+      """Helper method.  Calculate element number along domain edge,
+      keeping dx, dy and dz approximately the same but scaling
+      consistently to higher mesh resolutions."""
+      L0 = self.lookup('solution', 'domain_extents')[0]
+      # reference number along edge in this dimension
+      nref = numpy.round(self.reference_mesh_res*domain_length/L0)
+      # number scaled up for this mesh resolution
+      return int(nref * int(self.get('mesh_res')) \
+                 / self.reference_mesh_res)
    
-   def __init__(self):
-      self.stem = None
-      self.dim = None
-      self.mesh_type = None
-      self.mesh_suffix = None
-      
-   def store_level_details(self, level_name, value):
-      if level_name == 'stem':
-         self.stem = value
-      if level_name == 'dim':
-         self.dim = value
-      if level_name == 'mesh_type':
-         self.mesh_type = value
-      if level_name == 'mesh_suffix':
-         self.mesh_suffix = value
+   def time_step(self):
+      """Helper method.  Calculate an appropriate time step, maintaining
+      a constant Courant number for all mesh resolutions."""
+      finish_time = self.lookup('solution', 'finish_time')
+      scale_factor = float(self.reference_mesh_res) \
+          / float(self.get('mesh_res'))
+      return scale_factor * finish_time / self.reference_timestep_number
 
-         
-class GenerateSymbols(MMSCommand):
+   def geometry_dict(self):
+      # initialise result
+      result = { 'MESH_NAME': self.mesh_name() }
+      # make entries for each dimension
+      for i, dim_str in enumerate(('X', 'Y', 'Z')):
+         L = self.lookup('solution', 'domain_extents')[i]
+         n = self.element_number(L)
+         result.update({
+               'DOMAIN_LENGTH_{0}'.format(dim_str) : str(L),
+               'EL_NUM_{0}'.format(dim_str) : str(n),
+               'EL_SIZE_{0}'.format(dim_str) : str(L/n) })
+      return result
+
+   def options_dict(self):
+      dim = self.get('dim')
+      # some dictionary entries depend on whether 1D or multi-D
+      if dim=="1":
+         mesh_format = 'triangle'
+         # these markers are for collapsing inappropriate wall BCs
+         begin_rm_if_1D = '<!--'
+         end_rm_if_1D = '-->'
+      else:
+         mesh_format = 'gmsh'
+         begin_rm_if_1D = ''
+         end_rm_if_1D = ''
+      # other dictionary entries depend on whether 1D, 2D or 3D
+      if dim=='1':
+         outlet_ID = '2'
+         inlet_ID = '1'
+         wall_IDs = ''
+         wall_num = '0'
+      elif dim=='2':
+         outlet_ID = '12'
+         inlet_ID = '14'
+         wall_IDs = '11 13'
+         wall_num = '2'
+      elif dim=='3':
+         outlet_ID = '32'
+         inlet_ID = '30'
+         wall_IDs = '28 29 31 33'
+         wall_num = '4'
+      # now compile the dictionary 
+      return {
+         'MESH_NAME': self.mesh_name(),
+         'MESH_FORMAT': mesh_format,
+         'DOMAIN_DIM': dim,
+         'TIME_STEP': str(self.time_step()),
+         'FINISH_TIME': self.lookup('solution', 'finish_time'),
+         'INLET_ID': inlet_ID,
+         'OUTLET_ID': outlet_ID,
+         'WALL_IDS': wall_IDs,
+         'WALL_NUM': wall_num,
+         'BEGIN_RM_IF_1D': begin_rm_if_1D,
+         'END_RM_IF_1D': end_rm_if_1D }
+
    
-   def __init__(self):
-      MMSCommand.__init__(self)
-      
-   def execute(self, level_name, value, indent):
-      # upper levels just record level details; the last level does all
-      # the important stuff
-      self.store_level_details(level_name, value)
-      if level_name == 'stem':
-      
-         # write dictionary
-         solution_name = join_with_underscores((self.stem))
-         if verbose():
+class GenerateSymbols(TestCommand):
+    def __init__(self, handler, parameteriser):
+        TestCommand.__init__(self, ['case'], handler,
+                            "Generating symbols", parameteriser)
+        
+    def execute(self):
+        # the last level does everything.  Exit if we are not there yet
+        if not self.at('leaf'):
+            return
+            
+        # write dictionary
+        solution_name = self.make_key()
+        if self.verbosity > 0:
             div_plus_src = generate(solution_name, check_solution=True)
-            sys.stdout.write('\n'+indent+
-                             '   Expect sum(div(u) - src) = 0...')
+            sys.stdout.write('\n'+self.indent+
+                             '   Sanity check; expect sum(div(u) - src) = 0...')
             for i in range(3):
-               dim = i + 1
-               sys.stdout.write(
-                  '\n'+indent+'   {0}D: {1}'.\
-                     format(dim, str(div_plus_src[i])))
-         else:
+                dim = i + 1
+                sys.stdout.write(
+                    '\n'+self.indent+'      {0}D: {1}'.\
+                        format(dim, str(div_plus_src[i])))
+        else:
             generate(solution_name)
-      
-class ExpandOptionsTemplate(MMSCommand):
-   
-   def __init__(self, mesh_A_number_of_timesteps=1):
-      MMSCommand.__init__(self)
-      self.mesh_A_number_of_timesteps = mesh_A_number_of_timesteps
-      
-   def execute(self, level_name, value, indent):
-      # all levels record level details
-      self.store_level_details(level_name, value)
-      
-      if level_name == 'stem':
-         # at this level it is appropriate to read in the expressions
-         # generated from GenerateSymbols (in this instance, once only)
-         solution_name = join_with_underscores((self.stem))
-         solution_expressions = import_module(solution_name)
-         self.finish_time = solution_expressions.py_dict['finish_time']
-         self.text_dict = solution_expressions.text_dict
-         
-      if level_name == 'mesh_suffix':
-         # this last level does most of the important stuff
-            
-         # compute useful stuff
-         param = Parameterisation(self.stem, self.dim,
-                                  self.mesh_type, self.mesh_suffix)
-         param.compute_more_options()
-         
-         # compose the dictionary
-         options_dict = {
-            'MESH_FILE': param.mesh_name,
-            'MESH_FORMAT': param.mesh_format,
-            'DOMAIN_DIM': str(self.dim),
-            'TIME_STEP': str(self.compute_time_step()),
-            'FINISH_TIME': self.finish_time,
-            'INLET_ID': param.inlet_ID,
-            'OUTLET_ID': param.outlet_ID,
-            'WALL_IDS': param.wall_IDs,
-            'WALL_NUM': param.wall_num,
-            'BEGIN_RM_IF_1D': param.begin_rm_if_1D,
-            'END_RM_IF_1D': param.end_rm_if_1D }
-         
-         # and use Python's string.Template to do the expansion
-         with open(param.options_template_filename) as src:
-            buf = string.Template(src.read())
-            buf = buf.safe_substitute(options_dict)
-         # repeat with the solution dict
-         try:
-            buf = string.Template(buf)
-            buf = buf.safe_substitute(self.text_dict)
-         except AttributeError:
-            pass
-         with open(param.options_filename, 'w') as tgt:
-            tgt.write(buf)
 
-   def compute_time_step(self):
-      """Extracted so as to be overrideable"""
-      
-      # maintain a constant Courant number for all meshes
-      scale_factor = float(mesh_res_dict['A'])/ \
-                     float(mesh_res_dict[self.mesh_suffix])
-      return scale_factor * self.finish_time / self.mesh_A_number_of_timesteps
-      
-            
-class ProcessMesh(MMSCommand):
 
-   def __init__(self):
-      MMSCommand.__init__(self)
-      default_fluidity_path()
-      self.interval_path = os.environ["FLUIDITYPATH"] + "bin/interval"
-      if not os.path.isfile(self.interval_path): 
-         raise IOError("Cannot find " + self.interval_path)
-      
-   def execute(self, level_name, value, indent):
-      # all levels record level details
-      self.store_level_details(level_name, value)
-      
-      if level_name == 'stem':
-         # at this level it is appropriate to read in the expressions
-         # generated from GenerateSymbols (in this instance, once only)
-         solution_name = join_with_underscores((self.stem))
-         solution_expressions = import_module(solution_name)
+class TestCommandDecorator(Command):
+    def __init__(self, wrapped_test_command, solution_level_names):
+        self.wrapped_test_command = wrapped_test_command
+        self.solution_level_names = solution_level_names
+        
+    def inform(self, level_name, node_name, at_leaf, indent, verbose):
+       """Delegation."""
+       self.wrapped_test_command.inform(level_name, node_name,
+                                        at_leaf, indent, verbose)
 
-         # needed for e.g. creating 1D meshes, but do not rely on this
-         # for true mesh dimensions otherwise
-         self.domain_extents = solution_expressions.py_dict['domain_extents']
+    def execute(self):
+        """Imports generated expressions, if appropriate, before delegating
+        to wrapped TestCommand"""
+        # when this is the last of the solution levels, import generated
+        # expressions
+        if self.wrapped_test_command.get('level') == \
+               self.solution_level_names[-1]:
+           solution_name = self.wrapped_test_command.make_key(
+              self.solution_level_names)
+           self.solution_expressions = import_module(solution_name)
+        
+        # when this is the very last level, update the solution- and
+        # level_dependent dictionaries
+        if self.wrapped_test_command.at('leaf'):
+           self.wrapped_test_command.update_dict(
+              'solution', self.solution_expressions.py_dict)
+           self.wrapped_test_command.update_dict(
+              'options', self.solution_expressions.text_dict)
+        
+        # continue to wrapped execute()
+        self.wrapped_test_command.execute()
 
-      if level_name == 'mesh_suffix':
-         # this last level does most of the important stuff
 
-         # compute useful parameters
-         param = Parameterisation(self.stem, self.dim, self.mesh_type,
-                                  self.mesh_suffix)
-         
-         # compose the dictionary
-         geo_dict = {'MESH_NAME': str(param.mesh_name)}
-         for i, dim_str in enumerate(('X', 'Y', 'Z')):
-            # calculate element number along domain edge, keeping dx, dy
-            # and dz approximately the same but scaling consistently to
-            # higher mesh resolutions
-            D = self.domain_extents[i]
-             # reference number along x-edge
-            nx_A = mesh_res_dict['A']
-            # reference number along edge in this dimension
-            n_A = numpy.round(nx_A * D / self.domain_extents[0])
-            # number scaled up for this mesh resolution
-            n = int(n_A * param.mesh_res / nx_A)
-            geo_dict.update({
-               'DOMAIN_LENGTH_'+dim_str : str(D),
-               'EL_NUM_'+dim_str : str(n),
-               'EL_SIZE_'+dim_str : str(D/n) })
-            
-         # expand mesh template
-         with open(param.geo_template_filename) as src:
-            buf = string.Template( src.read() )
-         buf = buf.safe_substitute(geo_dict)
-         with open(param.geo_filename, 'w') as tgt:
-            tgt.write(buf)
+    def handle(self, other=None, message=None):
+        """Exploits the handler of the wrapped class."""
+        self.wrapped_test_command.handle(self)
 
-         # call interval or gmsh
-         # TODO tell user to 'make geo' if needed
-         if self.dim==1:
-            lx=self.domain_extents[0]
-            dx=lx/float(param.mesh_res)
-            subprocess.call([self.interval_path, '0.0',
-                             str(lx), '--dx='+str(dx),
-                             param.mesh_name])
-         else:
-            subprocess.call(['gmsh', '-'+str(self.dim),
-                             param.geo_filename],
-                            stdout=open(os.devnull, 'wb'))
-
-            
-class CleanUp(MMSCommand):
-   """Removes generated geometry, mesh, and options files, but leaves
-    results intact.  This ensures templates do not get deleted
-    (compared with rm -f *.geo, etc)
-   """
-
-   def __init__(self):
-      MMSCommand.__init__(self)
-      
-   def execute(self, level_name, value, indent):
-      # all levels record level details
-      self.store_level_details(level_name, value)
-      if level_name == 'mesh_suffix':
-         # the last level does the important stuff
-
-         # compute useful parameters
-         param = Parameterisation(self.stem, self.dim, self.mesh_type,
-                                  self.mesh_suffix)
-
-         # try removing input files, mesh files, results files
-         for f in [param.options_filename, param.geo_filename] + \
-             param.mesh_filenames:
-            try:
-               os.remove(f)
-               if verbose(): sys.stdout.write('\n'+indent+'   removed '+f)
-            except OSError:
-               pass
-
+        
                
-class ManufacturedSolutionTestSuite:
-   def __init__(self, case_name, mesh_type_list,
-                mesh_suffix_list_per_dimension, field_name_list,
-                norm_list, mesh_A_number_of_timesteps=1):
+class ManufacturedSolutionTestSuite(TestSuite):
+    """A front end for running various MMS-tailored
+    TestCommands."""
+   
+    def __init__(self, case_name, mesh_type_list, mesh_res_lists,
+                 field_list, norm_list, 
+                 reference_mesh_res=5, reference_timestep_number=1,
+                 command_line_in_xml=None,
+                 norm_threshold=0.05, rate_threshold=0.8,
+                 simulator_verbosity=0,
+                 python_layer_verbosity=0, **kwargs):
+        """In contrast to the inherited TestSuite, the present class builds its
+        own handlers from lists supplied by the client.  The keyword
+        args at the end can be used to make extra handlers at the
+        solution level.  For example one might want to iterate over
+        different values of pressure and saturation for a given test
+        case.  Then one might specify: 'pressure', ['1000', '2000',
+        '3000'], 'saturation', ['0.1', '0.2', '0.3'].
 
-      self.case_name = case_name
-      
-      # build handlers
-      mesh_type_handler_level = HandlerLevel('mesh_type', mesh_type_list)
-      field_handler_level = HandlerLevel('field', field_name_list)
-      norm_handler_level = HandlerLevel('norm', norm_list)
+        """
 
-      # maintain a (trivial) tree for generating symbols
-      self.shallow_handler = LeafHandler(
-         'stem', case_name)
+        # make a handler for iteration over parameterised solutions
+        self.solution_handler = nh('case', case_name)
+        for level_name, node_names in kwargs.iteritems():
+           solution_handler = solution_handler * nh(level_name, node_names)
 
-      # maintain one tree for running simulations etc. and a deeper one
-      # for configuring and computing norms and convergence rates
-      for hdlr_type in ('main', 'deep'):
-         dim_handlers = []
-         
-         for dim in (1, 2, 3):
-            # start with mesh suffix list
-            children = HandlerLevel(
-               'mesh_suffix', mesh_suffix_list_per_dimension[dim-1])
-            # if postprocessing, first need to treat fields and norms
-            if hdlr_type[0:4]=='deep':
-               children = field_handler_level.add_sub(
-                  norm_handler_level.add_sub(children))
-            # if dim > 1, also treat irreg and reg meshes 
-            if dim > 1:
-               children = mesh_type_handler_level.add_sub(children)
-            dim_handlers.append(CompositeHandler('dim', dim, children))
+        # extract a corresponding list of level names.  Continuing the
+        # example given in the class description, one might end up with
+        # ['case', 'pressure', 'saturation'].
+        self.solution_level_names = self.solution_handler.get_level_names()
 
-         hdlr = CompositeHandler('stem', case_name, dim_handlers)
-         if hdlr_type=='deep':
-            self.deep_handler = hdlr
-         else:
-            self.main_handler = hdlr
+        # make another handler for meshing, simulations etc
+        simulation_handler = deepcopy(self.solution_handler) * \
+            nh('dim',
+               [nh('1') * \
+                    nh('mesh_res', mesh_res_lists[0]),
+                nh('2') * \
+                    nh('mesh_type', mesh_type_list) * \
+                    nh('mesh_res', mesh_res_lists[1]),
+                nh('3') * \
+                    nh('mesh_type', mesh_type_list) * \
+                    nh('mesh_res', mesh_res_lists[2])])
+        
+        # and a handler for configuring and computing norms and rates.
+        # Note that mesh resolution always comes last.
+        results_handler = deepcopy(self.solution_handler) * \
+            nh('dim', [nh('1') * \
+                           nh('field', field_list) * \
+                           nh('norm', norm_list) * \
+                           nh('mesh_res', mesh_res_lists[0]),
+                       nh('2') * \
+                           nh('mesh_type', mesh_type_list) * \
+                           nh('field', field_list) * \
+                           nh('norm', norm_list) * \
+                           nh('mesh_res', mesh_res_lists[1]),
+                       nh('3') * \
+                           nh('mesh_type', mesh_type_list) * \
+                           nh('field', field_list) * \
+                           nh('norm', norm_list) * \
+                           nh('mesh_res', mesh_res_lists[2])])
 
-      self.mesh_A_number_of_timesteps = mesh_A_number_of_timesteps
+        # create an object for MMS-tailored parameterisations
+        self.parameteriser = ManufacturedSolutionParameteriser(
+           options_filename_extension, reference_mesh_res, 
+           reference_timestep_number)
 
+        # helper objects
+        tc = DefaultThresholdCalculator(norm_threshold,
+                                        rate_threshold)
+                       
+        # using the above objects, initialise the superclass
+        TestSuite.__init__(
+           self, simulation_handler, results_handler,
+           parameteriser = self.parameteriser,
+           command_line_in_xml = command_line_in_xml,
+           threshold_calculator = tc,
+           simulator_name = simulator_name,
+           options_filename_extension = options_filename_extension,
+           simulator_verbosity = simulator_verbosity,
+           python_layer_verbosity = python_layer_verbosity)
+        
+    def create_generate_symbols_command(self):
+       """New implementation."""
+       return GenerateSymbols(self.solution_handler, self.parameteriser)
 
-   def generate_symbols(self):
-      self.shallow_handler.handle( GenerateSymbols() )
+    def create_write_xml_file_command(self):
+       """Method override.  Decorates the object created by the original
+       TestSuite.
+       """
+       return TestCommandDecorator(
+          TestSuite.create_write_xml_file_command(self),
+          self.solution_level_names)
 
-
-   def write_xml(self):
-      self.deep_handler.handle( WriteXMLFile('stem', 0.05, 0.8) )
-
-
-   def preprocess(self):
-      cmds = CommandList([
-         ExpandOptionsTemplate(self.mesh_A_number_of_timesteps),
-         ProcessMesh()])
-      self.main_handler.handle( cmds )
-
-
-   def process(self):
-      self.main_handler.handle( RunSimulation() )
-
-
-   def postprocess(self):
-      with open(error_norms_filename, 'w') as f_norms:
-         with open(error_rates_filename, 'w') as f_rates:
-            self.deep_handler.handle(
-               WriteToReport(f_norms, f_rates))
-
-
-   def clean_up(self):
-      self.main_handler.handle( CleanUp() )
-      
-            
-   def do(self, what):
-      """Front end for various methods"""
-      what = str.lower(what[0:3])
-      if what=='gen' or what=='all':
-         if verbose(): print '\nGenerating symbols'
-         self.generate_symbols()
-      if what=='xml' or what=='all':
-         if verbose(): print '\nGenerating XML file'
-         self.write_xml()
-      if what=='pre' or what=='all':
-         if verbose(): print '\nPreprocessing'
-         self.preprocess()
-      if what=='pro' or what=='all':
-         if verbose(): print '\nRunning simulations'
-         self.process()
-      if what=='pos' or what=='all':
-         if verbose(): print '\nAnalysing'
-         self.postprocess()
-      if what=='cle':
-         if verbose(): print '\nCleaning up'
-         self.clean_up()
+    def create_preprocess_command(self):
+       """Method override.  Decorates the object created by the original
+       TestSuite.
+       """
+       return TestCommandDecorator(
+          TestSuite.create_preprocess_command(self),
+          self.solution_level_names)

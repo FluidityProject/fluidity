@@ -1,6 +1,5 @@
 lx = $DOMAIN_LENGTH_X;
 ly = $DOMAIN_LENGTH_Y;
-lz = $DOMAIN_LENGTH_Z;
 el_sz = $EL_SIZE_X;
 sqrt2 = 1.4142135623730951;
 

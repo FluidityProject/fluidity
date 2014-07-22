@@ -30,12 +30,15 @@ import numpy
 import re
 import subprocess
 import os
-from test_tools import Command, CommandList, HandlerLevel, CompositeHandler, WriteToReport, RunSimulation, error_norms_filename, error_rates_filename, find, find_rate, verbose
+from batch_tools import new_handler as nh
+from test_tools import *
 
 error_norms_1D_filename = "error_norms_1d.txt"
 
-verbose(True)
+# set test_tools verbosity
+verbosity(1)
 debug = False
+
 
 ## HELPER FUNCTIONS/CLASSES
     
@@ -68,45 +71,45 @@ def read_numerical_solution(filename, field_name):
     return x, v
 
         
-class Preprocess(Command):
-    def __init__(self, clean=False):
-        # alternative role
+class Preprocess(TestCommand):
+    def __init__(self, handler, clean=False):
+        # alternative role: clean up files
         self.clean = clean
+        if clean:
+            msg = "Cleaning up"
+        else:
+            msg = "Preprocessing"
+        TestCommand.__init__(self, ['mesh_res'], handler, msg )
 
     def execute(self, level_name, value, indent):
-        # most levels just record level names
-        if level_name == 'stem':
-            self.stem = value
-        elif level_name == 'model':
-            self.model = value
-        elif level_name == 'dim':
-            self.dim = value
-        elif level_name == 'mesh_suffix':
-            # last level
-            mesh_suffix = value
-            
-            case = self.stem+'_'+self.model+'_'+str(self.dim)+'d'
-            filename_new = case+'_'+mesh_suffix+'.diml'
-            if mesh_suffix!='A':
-                if not self.clean:
-                    # for the most coarse mesh, an options file should
-                    # exist.  For the other meshes, adapt it
-                    filename_A = case+'_A.diml'
-                    with open(filename_A, 'r') as f_A:
-                        f = open(filename_new, 'w')
-                        for line in f_A:
-                            f.write(line.replace('_A', '_'+mesh_suffix))
+        if not self.tracker.at('leaf'):
+            # if we are at the last level, proceed; otherwise, exit
+            return
+
+        key_stem = self.tracker.make_key(exclude=['mesh_res'])
+        mesh_res = self.tracker.get('mesh_res')
+        filename_new = key_stem + '_'+mesh_res+'.diml'
+
+        if self.tracker.get('mesh_res') != 'A':
+            if not self.clean:
+                # for the most coarse mesh, an options file should
+                # exist.  For the other meshes, adapt it
+                filename_A = key_stem + '_A.diml'
+                with open(filename_A, 'r') as f_A:
+                    f = open(filename_new, 'w')
+                    for line in f_A:
+                        f.write(line.replace('_A', '_'+mesh_res))
                         f.close()
-                else:
-                    # undo the above
-                    os.remove(filename_new)
+            else:
+                # undo the above
+                os.remove(filename_new)
 
                 
-class WriteErrorNorm1D(Command):
+class WriteErrorNorm1D(TestCommand):
     """Compares a 1D numerical solution with the appropriate analytical
     solution, writing the error norm to a report.  The output report
     has two columns: the first has identifiers in the format
-    model_name_1d_mesh_suffix_field_ID_normtype; the second has the values
+    model_name_1d_mesh_res_field_ID_normtype; the second has the values
     of the error norms.
     """
 
@@ -114,25 +117,21 @@ class WriteErrorNorm1D(Command):
         self.analytic_stem = analytic_stem
         self.norms_file = norms_file
 
-    def execute(self, level_name, value, indent):
-        if level_name == 'stem':
-            self.stem = value
-        elif level_name == 'model':
-            self.model = value
-        elif level_name == 'mesh_suffix':
-            self.mesh_suffix = value
-        elif level_name == 'field':
-            # translate the field_name to shorthand form
-            field = value
-            self.field_short = str.lower(re.sub('Phase(.)::(.*)', '\\2\\1',
-                                                field))
-            # store the errors and dx for this field
-            num_suf = self.model+'_1d_'+self.mesh_suffix
+    def execute(self):
+        if self.tracker.at('field'):
+            # store the errors and dx for this field.
+            # # Temporarily change the dim register to 1 to signify the 1D
+            # # solution
+            # dim = self.tracker.get('dim')
+            # self.tracker.update('dim', '1')
+            # num_suf = self.tracker.make_key(exclude=['case', 'field'])
+            # self.tracker.update('dim', dim)
+            num_suf = self.tracker.make_key(exclude=['case', 'dim', 'field'])
             [self.errs, self.dx] = self.compute_abs_errors(
-                num_suf, self.field_short, field)
+                num_suf, self.tracker.get('field'), self.field_dict['full'])
+        
+        if self.tracker.at('leaf'):
             
-        elif level_name == 'norm':
-            self.norm = value
             
             # print the ID and value.  N.B. key is different to 
             # num_suf passed to compute_abs_errors.
@@ -179,11 +178,12 @@ class BLWriteToReport(WriteToReport):
     in order to allow customised computation of 1D errors.
     """
 
-    def __init__(self, norms_file, rates_file):
-        WriteToReport.__init__(self, norms_file, rates_file)
+    def __init__(self, handler):
+        WriteToReport.__init__(self, handler)
 
     def get_norm(self):
-        if self.dim==1:
+        if self.tracker.get('dim')==1:
+            
             key = '{0}_1d_{1}_l{2:g}_{3}'.format(
                 self.model, self.field_short, self.norm,
                 self.mesh_suffix)
@@ -224,43 +224,53 @@ class BuckleyLeverettTestSuite:
     shorthand is saturation2.
 
     """
-    def __init__(self, numerical_filename_stem, model_name_list,
-                 mesh_suffix_list_per_dimension, analytic_filename_stem,
-                 field_name_list):
+    def __init__(self, numerical_filename_stem, model_list, mesh_res_lists,
+                 analytic_filename_stem, field_list, **kwargs):
         
         self.numerical_filename_stem = numerical_filename_stem
         self.analytic_filename_stem = analytic_filename_stem
 
-        # convert lists
-        self.mesh_suffix_handler_levels = []
-        for mesh_suffix_list in mesh_suffix_list_per_dimension:
-            self.mesh_suffix_handler_levels.append(
-                HandlerLevel('mesh_suffix', mesh_suffix_list))
-        self.dim_handler_level = HandlerLevel('dim', (1, 2, 3))
-        self.model_handler_level = HandlerLevel('model', model_name_list)
-        self.field_handler_level = HandlerLevel('field', field_name_list)
-        self.norm_handler_level = HandlerLevel('norm', (1, 2))
+        shallow_handler = \
+            nh('case', numerical_filename_stem) * \
+            nh('model', model_list)
         
-            
-    def new_handler(self, handler_level):
-        """Short wrapper for CompositeHandler."""
-        return CompositeHandler('stem', self.numerical_filename_stem,
-                                handler_level )
- 
+        # make a handler for meshing, simulations etc
+        dim_handlers = []
+        for i, dim in ('1', '2', '3'):
+            dim_handlers.append(
+                nh(dim) * nh('mesh_res', mesh_res_lists[i]))
+        sim_handler = deepcopy(shallow_handler) * dim_handlers
+        
+        # and a handler for configuring and computing norms and rates.
+        # Note that mesh resolution comes last.
+        norm_list = ['1', '2']
+        dim_handlers = []
+        for i, dim in ('1', '2', '3'):
+            dim_handlers.append(
+                nh(dim) * \
+                    nh('field', field_list) * \
+                    nh('norm', norm_list) * \
+                    nh('mesh_res', mesh_res_lists[i]))
+        results_handler = deepcopy(shallow_handler) * dim_handlers
+                
+        # the computation of 1D error norms is a special case where mesh
+        # resolution is handled before fields and norms.
+        results_1D_handler = \
+            deepcopy(shallow_handler) * \
+            nh('mesh_res', mesh_res_lists[0]) * \
+            nh('field', field_list) * \
+            nh('norm', norm_list)
+    
+        self.preproc_cmd = 
+        self.sim_handler.handle(CommandList((Preprocess(sim_handler),
+                                             RunSimulation(sim_handler),
+                                             Preprocess(sim_handler, clean=True))))
  
     def process_folder(self):
         if verbose(): print '\nProcessing folder '
-        # build handler structure
-        handler = self.new_handler(
-            self.model_handler_level.add_sub(
-                self.dim_handler_level.splice(
-                    # n.b. splice lists here
-                    self.mesh_suffix_handler_levels)))
-        # pass it a command 
-        handler.handle(CommandList((Preprocess(),
-                                    RunSimulation(),
-                                    Preprocess(clean=True))))
-
+        cmd = TestCommandList((Preprocess(),
+                               RunSimulation(),
+                               Preprocess(clean=True))
         
     def generate_error_report_1D(self):
         if verbose(): print '\nComputing 1D error norms'

@@ -1,3 +1,10 @@
+#!/usr/bin/env python
+
+"""Expression generation via sympy for MMS-based tests associated with
+the Darcy IMPES code.
+
+More documentation to come."""
+
 from numpy import array, ndarray, linspace, meshgrid, shape, vstack, min, max, zeros
 from sympy import Symbol, Function, diff, integrate, sin, cos, pi, exp, sqrt
 from sympy.utilities.lambdify import lambdify
@@ -200,7 +207,7 @@ class ManufacturedSolution:
         
 
 class SolutionHarness:
-    def __init__(self, D, T, g_mag, ka, phi, mu, rho, K, p_scale, s2_scale,
+    def __init__(self, D, T, g_mag, ka, phi, mu, rho, K, p_scale, s_scale,
                  solution_name='solution_expressions'):
         # parameters
         self.genfilename = solution_name+'.py'
@@ -213,9 +220,24 @@ class SolutionHarness:
         self.mu = mu            # viscosity
         self.rho = rho;         # density
         self.K = K              # relperm (functions of s)
-        # field magnitudes, for scaling error norms appropriately
-        self.p_scale = p_scale 
-        self.s2_scale = s2_scale 
+        # pressure field magnitudes, for scaling error norms appropriately
+        self.p_scale = [Symbol('0') for i in range(2)]
+        for i in range(2):
+            try:
+                # p_scale is given as multiple fields
+                self.p_scale[i] = p_scale[i]
+            except TypeError:
+                # p_scale is given as one common field
+                self.p_scale[i] = p_scale
+        # repeat for saturation
+        self.s_scale = [Symbol('0') for i in range(2)]
+        for i in range(2):
+            try:
+                # s_scale is given as multiple fields
+                self.s_scale[i] = s_scale[i]
+            except TypeError:
+                # s_scale is given as one common field
+                self.s_scale[i] = s_scale
 
     # def compute_reference_p_grad( 
     #         self, phase_num, reference_saturation,
@@ -247,8 +269,11 @@ class SolutionHarness:
 
             write_expr(f, is_text, 'domain_extents', self.D)
             write_expr(f, is_text, 'finish_time', self.T)
-            write_expr(f, is_text, 'pressure_scale', self.p_scale)
-            write_expr(f, is_text, 'saturation_scale', self.s2_scale)
+            for i, phase_num in enumerate((1, 2)):
+                write_expr(f, is_text, 'pressure{0}_scale'.format(phase_num),
+                           self.p_scale[i])
+                write_expr(f, is_text, 'saturation{0}_scale'.format(phase_num),
+                           self.s_scale[i])
             write_expr(f, is_text, 'gravity_magnitude', self.g_mag)
             write_expr(f, is_text, 'viscosity1', self.mu[0])
             write_expr(f, is_text, 'viscosity2', self.mu[1])

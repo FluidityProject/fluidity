@@ -415,7 +415,7 @@
         <mesh name="PressureMesh"/>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
           <string_value type="code" lines="20" language="python">#!/usr/bin/python
-A = $PRESSURE_SCALE/10.
+A = $PRESSURE2_SCALE/10.
 sfield = state.scalar_fields["Saturation"]
 sr = 0.1
 for n in range(field.node_count):

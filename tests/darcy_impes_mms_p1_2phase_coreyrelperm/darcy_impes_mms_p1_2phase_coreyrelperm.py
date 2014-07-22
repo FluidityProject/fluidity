@@ -7,9 +7,13 @@ py_dict = {
 
     "finish_time" : 1.0,
 
-    "pressure_scale" : 1000.0,
+    "pressure1_scale" : 1000.0,
 
-    "saturation_scale" : 0.5,
+    "saturation1_scale" : 0.5,
+
+    "pressure2_scale" : 1000.0,
+
+    "saturation2_scale" : 0.5,
 
     "gravity_magnitude" : 1.0,
 
@@ -102,9 +106,13 @@ text_dict = {
 
     "FINISH_TIME" : "1.0",
 
-    "PRESSURE_SCALE" : "1000.0",
+    "PRESSURE1_SCALE" : "1000.0",
 
-    "SATURATION_SCALE" : "0.5",
+    "SATURATION1_SCALE" : "0.5",
+
+    "PRESSURE2_SCALE" : "1000.0",
+
+    "SATURATION2_SCALE" : "0.5",
 
     "GRAVITY_MAGNITUDE" : "1.0",
 
