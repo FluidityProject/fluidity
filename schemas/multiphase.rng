@@ -604,6 +604,13 @@ at the first timestep or not.</a:documentation>
           </element>
         </optional>
       </element>
+      <element name="caching">
+        <optional>
+          <element name="no_cache_shape_functions">
+            <empty/>
+          </element>
+        </optional>
+      </element>
       <optional>
         <ref name="physical_parameter_options"/>
       </optional>

@@ -62,6 +62,7 @@
     use multiphase_1D_engine
     use spact
     use multiphase_EOS
+    use multiphase_caching, only: set_caching_level, cache_level
     use shape_functions_Linear_Quadratic
     use Compositional_Terms
     use Copy_Outof_State
@@ -253,6 +254,8 @@
       call pack_multistate(state,packed_state,multiphase_state,&
            multicomponent_state)
 
+      call set_caching_level()
+
     !Get from packed_state
     call get_var_from_packed_state(packed_state,PhaseVolumeFraction = SAT_s,&
     OldPhaseVolumeFraction=OldSAT_s,FEPhaseVolumeFraction = FESAT_s )
@@ -313,7 +316,7 @@
            middgm_pha( u_nonods * nphase * ndim ), &
            findct( cv_nonods + 1 ), colct( mx_nct ), &
            findc( u_nonods + 1 ), colc( mx_nc ), &
-           findcmc( cv_nonods + 1 ), colcmc( mx_ncolcmc ), midcmc( cv_nonods ), &
+           findcmc( cv_nonods + 1 ), colcmc( 0 ), midcmc( cv_nonods ), &
            findm( cv_nonods + 1 ), colm( mx_ncolm ), midm( cv_nonods ) )
 
 
