@@ -391,7 +391,7 @@ contains
         DEALLOCATE( CV_RHS )
         call deallocate(RHS_FIELD)
 
-        ewrite(3,*)'t:', t
+        !ewrite(3,*)'t:', t
         !ewrite(3,*)'told:', told
 
         ewrite(3,*) 'Leaving INTENERGE_ASSEM_SOLVE'
@@ -1662,7 +1662,7 @@ contains
             
             dp= deltap%val
 
-            ewrite(3,*) 'after pressure solve DP:', DP
+            ewrite(3,*) 'after pressure solve DP:', minval(DP), maxval(DP)
 
             call deallocate(deltaP)
             call deallocate(rhs_p)
@@ -2535,7 +2535,7 @@ contains
 
 ! If PIVIT_ON_VISC then place the block diaongal viscocity into the pivit matrix used in the projection method...
 ! PIVIT_ON_VISC is the only thing that could make highly viscouse flows stabe when using projection methods...
-            LOGICAL, PARAMETER :: PIVIT_ON_VISC = .FALSE.
+            LOGICAL, PARAMETER :: PIVIT_ON_VISC = .false. !.FALSE.
             real :: w
             real, parameter :: wv=1.0, ws=0.0 ! volume off-diagonal and surface weights, respectively
 

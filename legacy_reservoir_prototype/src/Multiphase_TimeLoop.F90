@@ -230,7 +230,7 @@
       real, dimension(:,:), pointer :: SAT_s, OldSAT_s, FESAT_s
 
       type( tensor_field ), pointer :: tracer_field, velocity_field, density_field, saturation_field, old_saturation_field
-      type(scalar_field), pointer :: pressure_field, porosity_field
+      type(scalar_field), pointer :: pressure_field, porosity_field, tracer_field2
 
       !Dummy to print FEM saturation
       real, dimension(:,:), allocatable :: dummy_to_print_FEM
@@ -431,6 +431,17 @@
       plike_grad_sou_grad=0.
       plike_grad_sou_coef=0.
       iplike_grad_sou=0 
+
+
+
+
+               tracer_field=>extract_tensor_field(packed_state,"PackedTemperature")
+               do iphase = 1, nphase
+                  tracer_field2=>extract_scalar_field(state(iphase),"DummyT")
+                  tracer_field2%val = tracer_field%val(1,iphase,:)
+               end do
+
+
 
 
 !!$ Extracting Mesh Dependent Fields
@@ -764,6 +775,11 @@
 !!$                  Temperature_State => extract_scalar_field( state( iphase ), 'Temperature' )
 !!$                  Temperature_State % val = Temperature( 1 + ( iphase - 1 ) * cv_nonods : iphase * cv_nonods )
 !!$               end do
+
+               do iphase = 1, nphase
+                  tracer_field2=>extract_scalar_field(state(iphase),"DummyT")
+                  tracer_field2%val = tracer_field%val(1,iphase,:)
+               end do
 
                call Calculate_All_Rhos( state, packed_state, ncomp, nphase, ndim, cv_nonods, cv_nloc, totele, &
                     cv_ndgln, DRhoDPressure )
@@ -1176,7 +1192,6 @@
 !         call copy_into_state( state, & ! Copying main fields into state
 !              PhaseVolumeFraction, Temperature, &
 !              Component, ncomp, nphase, cv_ndgln )
-
 
 !!$ Calculate diagnostic fields
          call calculate_diagnostic_variables( state, exclude_nonrecalculated = .true. )
