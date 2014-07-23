@@ -71,6 +71,7 @@
     use boundary_conditions
 
     use multiphase_fractures
+    use boundary_conditions_from_options
 
 
 #ifdef HAVE_ZOLTAN
@@ -1595,6 +1596,8 @@ if (have_component_field) then
             call set_option( '/timestepping/timestep', dt )
          end if
 
+         call set_boundary_conditions_values(state, shift_time=.true.)
+
       end do Loop_Time
 
 !!$ Now deallocating arrays:
@@ -1766,5 +1769,7 @@ if (have_component_field) then
      sfield%val=nsfield%val
 
    end subroutine copy_packed_new_to_old
+
+
 
   end module multiphase_time_loop
