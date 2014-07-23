@@ -90,6 +90,7 @@ multi_shape_fct_ND.o: multi_caching.o Multi_MakeCVTetrahedra.o
 Multiphase_TimeLoop.o: multi_caching.o multi_dyncore_dg.o multi_eos.o multi_IO.o Copy_Into_State.o Extract_From_State.o \
 multi_sparsity.o Mapping_OCVFEM_DG.o multi_compositional.o multi_shape_fct_ND.o multi_fracture.o 
 Multiphase_Prototype_Wrapper.o: Multiphase_TimeLoop.o
+multi_matrix_operations.o: multi_caching.o
 
 
 #Multiphase_Mom_Press_Volf.o: multi_dyncore_dg.o multi_eos.o multi_IO.o Copy_Outof_Into_State.o Mapping_OCVFEM_DG.o
