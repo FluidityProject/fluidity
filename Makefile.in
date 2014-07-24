@@ -533,7 +533,7 @@ mediumtest: fltools bin/$(FLUIDITY) manual bin/burgers_equation bin/shallow_wate
 	@if [ ! -d tests ]; then ln -s @srcdir@/tests/; fi
 	@if [ ! @srcdir@ -ef bin ]; then \
 	  if [ -e @srcdir@/bin ]; then \
-	    rm @srcdir@i/bin; \
+	    rm @srcdir@/bin; \
 	  fi && ln -s $(CURDIR)/bin @srcdir@/bin || { echo "*** ERROR ***: @srcdir@ already exists. \
 You need to remove this directory before running make test from the current build directory. \
 It will be replaced by a symlink to bin/ in the current directory."; false; } \
