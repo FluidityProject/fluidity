@@ -276,7 +276,7 @@ contains
 
   subroutine allocate_petsc_csr_matrix_from_nnz(matrix, rows, columns, &
       dnnz, onnz, blocks, name, halo, row_halo, column_halo, &
-      element_size, use_inodes)
+      element_size, use_inodes, group_size)
     !!< Allocates a petsc_csr_matrix, i.e. a csr_matrix variant
     !!< that directly stores in petsc format. For this version the number
     !!< of nonzeros in each row needs to be provided explicitly. This allows
@@ -314,8 +314,15 @@ contains
     !! petsc's inodes don't work with certain preconditioners ("mg" and "eisenstat")
     !! that's why we default to not use them
     logical, intent(in), optional:: use_inodes
+    !! in the numbering of petsc dofs, split the blocks in 'g' groups of size 'group_size', where
+    !! g=blocks/group_size and the petsc numbers within each group are contiguous. Thus the petsc
+    !! numbering, going from major to minor, is given by g x nodes x group_size
+    !! Default is group_size=(1,1), i.e. no grouping is taking place and all dofs are numbered such that
+    !! all dofs of the first block are numbered continously first, followed by those of the second block, etc.
+    integer, dimension(2), intent(in), optional:: group_size
 
     type(halo_type), pointer:: lrow_halo, lcolumn_halo
+    integer, dimension(2):: lgroup_size
     PetscErrorCode:: ierr
     integer:: nprows, npcols, urows, ucols
     integer:: index_rows, index_columns
@@ -346,13 +353,21 @@ contains
       use_element_blocks=.false.
     end if
     
+    if (present(group_size)) then
+      lgroup_size=group_size
+    else
+      lgroup_size=(/ 1,1 /)
+    end if
+
     call allocate( matrix%row_numbering, &
       nnodes=index_rows, &
       nfields=blocks(1), &
-      halo=lrow_halo )
+      halo=lrow_halo, &
+      group_size=lgroup_size(1) )
       
     if (rows==columns .and. blocks(1)==blocks(2) .and. &
-      associated(lrow_halo, lcolumn_halo)) then
+      associated(lrow_halo, lcolumn_halo) .and. &
+      lgroup_size(1)==lgroup_size(2)) then
         
       ! row and column numbering are the same
       matrix%column_numbering=matrix%row_numbering
@@ -364,7 +379,8 @@ contains
       call allocate( matrix%column_numbering, &
         nnodes=index_columns, &
         nfields=blocks(2), &
-        halo=lcolumn_halo )
+        halo=lcolumn_halo, &
+        group_size=lgroup_size(2) )
     end if
       
     urows=matrix%row_numbering%universal_length
