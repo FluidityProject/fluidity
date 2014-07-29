@@ -747,7 +747,7 @@
                end if
             end if
 
-            call apply_dirichlet_conditions(big_m(istate), mom_rhs(istate), u, dt)
+            !call apply_dirichlet_conditions(big_m(istate), mom_rhs(istate), u, dt)
             call profiler_toc(u, "assembly")
 
             if (associated(ct_m(istate)%ptr)) then
@@ -819,6 +819,12 @@
                      end if
                      call rotate_ct_m_sphere(state(istate), ctp_m(istate)%ptr, u)
                   end if
+               end if
+
+               if (associated(ctp_m(istate)%ptr, ct_m(istate)%ptr)) then
+                 !call lift_div_grad_boundary_conditions(ctp_m(istate)%ptr, ct_rhs(istate), u)
+               else
+                 !call lift_div_grad_boundary_conditions(ctp_m(istate)%ptr, ct_rhs(istate), u, transposed_gradient=ct_m(istate)%ptr)
                end if
 
                ! Add mass source-absorption for implicit solids.
@@ -1479,11 +1485,11 @@
          if(full_schur) then
             if(assemble_schur_auxiliary_matrix) then
                call petsc_solve_full_projection(p_theta, ctp_m(prognostic_p_istate)%ptr, inner_m(prognostic_p_istate)%ptr, ct_m(prognostic_p_istate)%ptr, poisson_rhs, &
-                  full_projection_preconditioner, state(prognostic_p_istate), u%mesh, &
+                  full_projection_preconditioner, u, state(prognostic_p_istate), u%mesh, &
                   auxiliary_matrix=schur_auxiliary_matrix)
             else
                call petsc_solve_full_projection(p_theta, ctp_m(prognostic_p_istate)%ptr, inner_m(prognostic_p_istate)%ptr, ct_m(prognostic_p_istate)%ptr, poisson_rhs, &
-                  full_projection_preconditioner, state(prognostic_p_istate), u%mesh)
+                  full_projection_preconditioner, u, state(prognostic_p_istate), u%mesh)
             end if
          else
             !! Go ahead and solve for the pressure guess p^{*}
@@ -1608,6 +1614,7 @@
          ! Impose any reference nodes on velocity
          positions => extract_vector_field(state(istate), "Coordinate")
          call impose_reference_velocity_node(big_m(istate), mom_rhs(istate), trim(u%option_path), positions)
+         call apply_dirichlet_conditions(big_m(istate), mom_rhs(istate), u, dt)
 
          call profiler_toc(u, "assembly")
 
@@ -1823,11 +1830,11 @@
          if(full_schur) then
             if(assemble_schur_auxiliary_matrix) then
                call petsc_solve_full_projection(delta_p, ctp_m(prognostic_p_istate)%ptr, inner_m(prognostic_p_istate)%ptr, ct_m(prognostic_p_istate)%ptr, projec_rhs, &
-               full_projection_preconditioner, state(prognostic_p_istate), u%mesh, &
-               auxiliary_matrix=schur_auxiliary_matrix)
+                 full_projection_preconditioner, u, state(prognostic_p_istate), u%mesh, &
+                 auxiliary_matrix=schur_auxiliary_matrix)
             else
                call petsc_solve_full_projection(delta_p, ctp_m(prognostic_p_istate)%ptr, inner_m(prognostic_p_istate)%ptr, ct_m(prognostic_p_istate)%ptr, projec_rhs, &
-               full_projection_preconditioner, state(prognostic_p_istate), u%mesh)
+                 full_projection_preconditioner, u, state(prognostic_p_istate), u%mesh)
             end if
          else
             call petsc_solve(delta_p, cmc_m, projec_rhs, state(prognostic_p_istate))
