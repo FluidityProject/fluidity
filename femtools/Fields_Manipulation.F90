@@ -3551,6 +3551,7 @@ implicit none
     type(mesh_type) :: output_mesh
     integer :: ele, node, halo_num, lnode_halo_ordering_scheme, proc
     type(halo_type), pointer :: input_halo, output_halo
+    integer, dimension(:), allocatable :: sndgln
 
     ewrite(1, *) "In renumber_positions"
 
@@ -3583,36 +3584,25 @@ implicit none
     end if
 
     ! Now here comes the damnable face information
-
+    
     if (associated(input_positions%mesh%faces)) then
-      allocate(output_mesh%faces)
-      allocate(output_mesh%faces%shape)
-      output_mesh%faces%shape = input_positions%mesh%faces%shape
-      call incref(output_mesh%faces%shape)
-      call incref(output_mesh%faces%shape%quadrature)
-      output_mesh%faces%face_list = input_positions%mesh%faces%face_list
-      call incref(output_mesh%faces%face_list)
-      allocate(output_mesh%faces%face_lno(size(input_positions%mesh%faces%face_lno)))
-      output_mesh%faces%face_lno = input_positions%mesh%faces%face_lno
-      output_mesh%faces%surface_mesh = input_positions%mesh%faces%surface_mesh
-      call incref(output_mesh%faces%surface_mesh)
-      allocate(output_mesh%faces%surface_node_list(size(input_positions%mesh%faces%surface_node_list)))
-      output_mesh%faces%surface_node_list = permutation(input_positions%mesh%faces%surface_node_list)
-      allocate(output_mesh%faces%face_element_list(size(input_positions%mesh%faces%face_element_list)))
-      output_mesh%faces%face_element_list = input_positions%mesh%faces%face_element_list
-      allocate(output_mesh%faces%boundary_ids(size(input_positions%mesh%faces%boundary_ids)))
+      allocate(sndgln(surface_element_count(input_positions) * face_loc(input_positions, 1)))
+      call getsndgln(input_positions%mesh, sndgln)
+      call add_faces(output_mesh, sndgln=sndgln, element_owner=permutation(input_positions%mesh%faces%face_element_list(1:surface_element_count(input_positions))))
+      deallocate(sndgln)
       output_mesh%faces%boundary_ids = input_positions%mesh%faces%boundary_ids
-      if(associated(input_positions%mesh%faces%coplanar_ids)) then
+      if (associated(input_positions%mesh%faces%coplanar_ids)) then
         allocate(output_mesh%faces%coplanar_ids(size(input_positions%mesh%faces%coplanar_ids)))
         output_mesh%faces%coplanar_ids = input_positions%mesh%faces%coplanar_ids
       end if
-      if (associated(input_positions%mesh%faces%dg_surface_mesh)) then
-        allocate(output_mesh%faces%dg_surface_mesh)
-        output_mesh%faces%dg_surface_mesh = input_positions%mesh%faces%dg_surface_mesh
-        call incref(output_mesh%faces%dg_surface_mesh)
-      end if
+      ! Nothing done about dg_surface_mesh, is this important?
+!      if (associated(input_positions%mesh%faces%dg_surface_mesh)) then
+!        allocate(output_mesh%faces%dg_surface_mesh)
+!        output_mesh%faces%dg_surface_mesh = input_positions%mesh%faces%dg_surface_mesh
+!        call incref(output_mesh%faces%dg_surface_mesh)
+!      end if
     end if
-
+    
     output_mesh%option_path = input_positions%mesh%option_path
     output_mesh%continuity = input_positions%mesh%continuity
 
