@@ -307,6 +307,13 @@ contains
           allocate(model_mesh%region_ids(ele_count(model_mesh)))
           model_mesh%region_ids = model%region_ids
         end if
+        ! Copy element_halos to ensure vtkGhostLevels are output 
+        if (associated(model%element_halos)) then
+          allocate(model_mesh%element_halos(size(model%element_halos)))
+          do i = 1, size(model_mesh%element_halos)
+            call allocate(model_mesh%element_halos(i), model%element_halos(i))
+          end do
+        end if
       else
         
         NNod=node_count(model)
