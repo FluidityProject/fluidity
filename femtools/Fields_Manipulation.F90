@@ -3584,7 +3584,7 @@ implicit none
     end if
 
     ! Now here comes the damnable face information
-    
+
     if (associated(input_positions%mesh%faces)) then
       allocate(output_mesh%faces)
       allocate(output_mesh%faces%shape)
@@ -3631,7 +3631,7 @@ implicit none
         call incref(output_mesh%faces%dg_surface_mesh)
       end if
     end if
-    
+
     output_mesh%option_path = input_positions%mesh%option_path
     output_mesh%continuity = input_positions%mesh%continuity
 
