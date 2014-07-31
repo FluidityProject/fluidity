@@ -50,9 +50,9 @@ subroutine test_laplacian
      end function loaddata
   end interface
   ! Arguments for handling the command line
-  character(len=256) :: filename, buf
+  character(len=256) :: filename, filename_out, buf
 
-  filename = "laplacian_grid"
+  filename = "data/laplacian_grid"
   filename_out = "laplacian_grid"
   degree = 1
   quad_degree=2*degree
