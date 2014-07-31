@@ -43,6 +43,7 @@ use halos_repair
 use quicksort
 use parallel_tools
 use vector_tools
+use memory_diagnostics
 implicit none
 
   private
@@ -3594,14 +3595,32 @@ implicit none
       call incref(output_mesh%faces%face_list)
       allocate(output_mesh%faces%face_lno(size(input_positions%mesh%faces%face_lno)))
       output_mesh%faces%face_lno = input_positions%mesh%faces%face_lno
+#ifdef HAVE_MEMORY_STATS
+      call register_allocation("mesh_type", "integer", &
+                                size(output_mesh%faces%face_lno), name=output_mesh%name)
+#endif
       output_mesh%faces%surface_mesh = input_positions%mesh%faces%surface_mesh
       call incref(output_mesh%faces%surface_mesh)
       allocate(output_mesh%faces%surface_node_list(size(input_positions%mesh%faces%surface_node_list)))
       output_mesh%faces%surface_node_list = permutation(input_positions%mesh%faces%surface_node_list)
+#ifdef HAVE_MEMORY_STATS
+      call register_allocation("mesh_type", "integer", &
+                               size(output_mesh%faces%surface_node_list), name='Surface'//trim(output_mesh%name))
+#endif
       allocate(output_mesh%faces%face_element_list(size(input_positions%mesh%faces%face_element_list)))
       output_mesh%faces%face_element_list = input_positions%mesh%faces%face_element_list
+#ifdef HAVE_MEMORY_STATS
+      call register_allocation("mesh_type", "integer", &
+                               size(output_mesh%faces%face_element_list), &
+                               trim(output_mesh%name)//" face_element_list.")
+#endif
       allocate(output_mesh%faces%boundary_ids(size(input_positions%mesh%faces%boundary_ids)))
       output_mesh%faces%boundary_ids = input_positions%mesh%faces%boundary_ids
+#ifdef HAVE_MEMORY_STATS
+      call register_allocation("mesh_type", "integer", &
+                               size(output_mesh%faces%boundary_ids), &
+                               trim(output_mesh%name)//" boundary_ids")
+#endif
       if(associated(input_positions%mesh%faces%coplanar_ids)) then
         allocate(output_mesh%faces%coplanar_ids(size(input_positions%mesh%faces%coplanar_ids)))
         output_mesh%faces%coplanar_ids = input_positions%mesh%faces%coplanar_ids
