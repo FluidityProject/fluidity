@@ -1467,7 +1467,7 @@ contains
             TOTELE, U_NLOC, U_NDGLN, &
             NCOLCT, FINDCT, COLCT, DIAG_SCALE_PRES, &
             CMC, CMC_PRECON, IGOT_CMC_PRECON, NCOLCMC, FINDCMC, COLCMC, MASS_MN_PRES, &
-            C, CT, state, StorageIndexes(31) )
+            C, CT, state, StorageIndexes(11) )
 
         END IF
 
@@ -2754,11 +2754,11 @@ contains
 
 
         !If we do not have an index where we have stored C, then we need to calculate it
-        got_c_matrix  = StorageIndexes(32)/=0
+        got_c_matrix  = StorageIndexes(12)/=0
         if (got_c_matrix) then
             !Get from state
             Point_C_Mat(1:size(C,1),1:size(C,2),1:size(C,3)) =>&
-            state(1)%scalar_fields(StorageIndexes(32))%ptr%val
+            state(1)%scalar_fields(StorageIndexes(12))%ptr%val
             C = Point_C_Mat
         else
             !Prepare stuff to store C in state
@@ -2776,12 +2776,12 @@ contains
 
             !Now we insert them in state and store the index
             call insert(state(1), Targ_C_Mat, "C_MAT")
-            StorageIndexes(32) = size(state(1)%scalar_fields)
+            StorageIndexes(12) = size(state(1)%scalar_fields)
             call deallocate (Targ_C_Mat)
 
             !Get from state
             Point_C_Mat(1:size(C,1),1:size(C,2),1:size(C,3)) =>&
-            state(1)%scalar_fields(StorageIndexes(32))%ptr%val
+            state(1)%scalar_fields(StorageIndexes(12))%ptr%val
             Point_C_Mat = 0.
         end if
 
@@ -3222,7 +3222,7 @@ contains
                              ! Define the gauss points that lie on the surface of the CV...
            FINDGPTS, COLGPTS, NCOLGPTS, &
            SELE_OVERLAP_SCALE, QUAD_OVER_WHOLE_ELE,&
-           state, 'ASEMCTY', StorageIndexes(41))
+           state, 'Vel_mesh', StorageIndexes(13))
 
         ! Memory for rapid retreval...
         ! Storage for pointers to the other side of the element.
@@ -3238,7 +3238,6 @@ contains
         CALL CALC_FACE_ELE( FACE_ELE, TOTELE, STOTEL, NFACE, &
         NCOLELE, FINELE, COLELE, CV_NLOC, CV_SNLOC, CV_NONODS, CV_NDGLN, CV_SNDGLN, &
         CV_SLOCLIST, X_NLOC, X_NDGLN )
-
         IF( GOT_DIFFUS ) THEN
             CALL DG_DERIVS_ALL( U_ALL, UOLD_ALL, &
             DUX_ELE_ALL, DUOLDX_ELE_ALL, &
@@ -3251,7 +3250,9 @@ contains
             NFACE, FACE_ELE, U_SLOCLIST, CV_SLOCLIST, STOTEL, U_SNLOC, CV_SNLOC, WIC_U_BC_ALL_VISC, SUF_U_BC_ALL_VISC, &
             SBCVNGI, SBUFEN, SBUFENSLX, SBUFENSLY, SBCVFEWEIGH, &
             SBCVFEN, SBCVFENSLX, SBCVFENSLY ,&
-            state, "CTY", StorageIndexes(23))
+!            state, "CTY", StorageIndexes(23))
+            state ,"C_1", StorageIndexes(14))!<== We use the same index that we use in the DETNLXR_PLUS_U_WITH_STORAGE
+            !below since inside this subroutine the only thing we store is DETNLXR_PLUS_U_WITH_STORAGE
         ENDIF
 
 
@@ -3325,12 +3326,12 @@ contains
         Loop_Elements: DO ELE = 1, TOTELE ! Volume integral
 
             ! Calculate DETWEI,RA,NX,NY,NZ for element ELE
-            CALL DETNLXR_PLUS_U( ELE, X, Y, Z, X_NDGLN, TOTELE, X_NONODS, &
+            CALL DETNLXR_PLUS_U_WITH_STORAGE( ELE, X, Y, Z, X_NDGLN, TOTELE, X_NONODS, &
             X_NLOC, CV_NLOC, CV_NGI, &
             CVFEN, CVFENLX_ALL(1,:,:), CVFENLX_ALL(2,:,:), CVFENLX_ALL(3,:,:), CVWEIGHT, DETWEI, RA, VOLUME, D1, D3, DCYL, &
             CVFENX_ALL, &
             U_NLOC, UFENLX_ALL(1,:,:), UFENLX_ALL(2,:,:), UFENLX_ALL(3,:,:), UFENX_ALL , &
-            state ,"C_1", StorageIndexes(25))
+            state ,"C_1", StorageIndexes(14))
 
 
             ! Adjust the volume according to the number of levels.
@@ -7367,10 +7368,10 @@ contains
         real, allocatable, dimension(:,:,:) :: T_ABSORB
         real, allocatable, dimension(:,:,:,:) :: tdiffusion
         real, dimension(0,0) :: ALIMTOLD,ALIMT2OLD,ALIMDOLD,ALIMDTOLD,ALIMDTT2OLD,ANDOTQOLD
-        !Pointer
-        real, pointer, dimension(:,:,:) :: CVFENX_ALL, UFENX_ALL
-        real, pointer, dimension(:) :: DETWEI, RA
-        real, pointer :: VOLUME
+
+        real, allocatable, dimension(:,:,:) :: CVFENX_ALL, UFENX_ALL
+        real, allocatable, dimension(:) :: DETWEI, RA
+        real :: VOLUME
 
         REAL, DIMENSION(1,1) :: DUMMY_THETA_GDIFF
         type(tensor_field) :: tfield
@@ -7415,6 +7416,12 @@ contains
         ! Allocate memory for the control volume surface shape functions, etc.
         ALLOCATE( JCOUNT_KLOC(  U_NLOC )) ; jcount_kloc = 0
         ALLOCATE( JCOUNT_KLOC2(  U_NLOC )) ; jcount_kloc2 = 0
+
+        ALLOCATE( CVFENX_ALL( NDIM,CV_NLOC,CV_NGI ))
+        ALLOCATE( UFENX_ALL( NDIM,U_NLOC,CV_NGI ))
+        ALLOCATE( DETWEI( CV_NGI ))
+        ALLOCATE( RA( CV_NGI ))
+
 
         ALLOCATE( CVNORMX( SCVNGI ))
         ALLOCATE( CVNORMY( SCVNGI ))
@@ -7640,7 +7647,7 @@ contains
         RZERO, &
         1, SBCVNGI, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, &
         SBCVFEN, SBCVFENSLX, SBCVFENSLY, &
-        state, "wrap1", StorageIndexes(19) )
+        state, "wrap1", StorageIndexes(15) )
 
 
         CALL DG_DERIVS( SHARP_FEMT, FEMTOLD, &
@@ -7655,7 +7662,7 @@ contains
         RZERO, &
         1, SBCVNGI, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, &
         SBCVFEN, SBCVFENSLX, SBCVFENSLY, &
-        state, "Surf_ten_wrap2", StorageIndexes(20))
+        state, "Surf_ten_wrap2", StorageIndexes(16))
 
         ! determine the curvature by solving a simple eqn...
 
@@ -7849,7 +7856,9 @@ contains
                 RZERO,RZERO,RZERO, &
                 1, SBCVNGI, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, &
                 SBCVFEN, SBCVFENSLX, SBCVFENSLY, &
-                state, "wrapp1", StorageIndexes(4:6))
+                state, "wrapp1", StorageIndexes(17:19))
+
+
 
                 U_FORCE_X_SUF_TEN = pack(DX_TAU_XX(:,1,:) + DY_TAU_XY(:,1,:) + DZ_TAU_XZ(:,1,:),.true.)
                 !!$            femtold=0.0
@@ -7883,7 +7892,7 @@ contains
                     RZERO,RZERO,RZERO, &
                     1, SBCVNGI, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, & 
                     SBCVFEN, SBCVFENSLX, SBCVFENSLY, &
-                    state, "wrapp2", StorageIndexes(7:9))
+                    state, "wrapp2", StorageIndexes(20:22))
 
                     U_FORCE_Y_SUF_TEN = pack(DX_TAU_YX(:,1,:)+ DY_TAU_YY(:,1,:) + DZ_TAU_YZ(:,1,:),.true.)
 
@@ -7923,7 +7932,7 @@ contains
                     RZERO,RZERO,RZERO, &
                     1, SBCVNGI, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, & 
                     SBCVFEN, SBCVFENSLX, SBCVFENSLY, &
-                    state, "wrapp3", StorageIndexes(10:12))
+                    state, "wrapp3", StorageIndexes(23:25))
 
                     U_FORCE_Z_SUF_TEN = pack(DX_TAU_ZX(:,1,:) + DY_TAU_ZY(:,1,:) + DZ_TAU_ZZ(:,1,:),.true.)
 
@@ -7982,7 +7991,7 @@ contains
                     RZERO,RZERO,RZERO, &
                     1, SBCVNGI, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, & 
                     SBCVFEN, SBCVFENSLX, SBCVFENSLY, &
-                    state, "wrapp4", StorageIndexes(13:15))
+                    state, "wrapp4", StorageIndexes(26:28))
 
                 else
 
@@ -8007,7 +8016,7 @@ contains
                     RZERO, &
                     1, SBCVNGI, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, &
                     SBCVFEN, SBCVFENSLX, SBCVFENSLY, &
-                    state, "wrap4", StorageIndexes(21))
+                    state, "wrap4", StorageIndexes(29))
 
                     DO ELE=1,TOTELE
                         DO CV_ILOC=1,CV_NLOC
@@ -8038,7 +8047,7 @@ contains
                     RZERO, &
                     1, SBCVNGI, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, &
                     SBCVFEN, SBCVFENSLX, SBCVFENSLY, &
-                    state, "wrap5", StorageIndexes(22))
+                    state, "wrap5", StorageIndexes(30))
 
                     DO ELE=1,TOTELE
                         DO CV_ILOC=1,CV_NLOC
@@ -8293,8 +8302,7 @@ contains
                     X_NLOC, CV_NLOC, CV_NGI, &
                     CVFEN, CVFENLX, CVFENLY, CVFENLZ, CVWEIGHT, DETWEI, RA, VOLUME, D1, D3, DCYL, &
                     CVFENX_ALL, &
-                    U_NLOC, UFENLX, UFENLY, UFENLZ, UFENX_ALL ,&
-                    state, "wrapper", StorageIndexes(26))
+                    U_NLOC, UFENLX, UFENLY, UFENLZ, UFENX_ALL)
 
                     MASS=0.0
                     DO U_ILOC=1,U_NLOC
@@ -8355,6 +8363,10 @@ contains
 
         END IF IF_USE_PRESSURE_FORCE
 
+        DEALLOCATE(UFENX_ALL)
+        DEALLOCATE(CVFENX_ALL)
+        DEALLOCATE(DETWEI)
+        DEALLOCATE(RA)
 
         DEALLOCATE( TDIFFUSION, MASS_NORMALISE, FACE_ELE )
         DEALLOCATE( FEMT, FEMTOLD, MASS_CV, MASS_ELE, &
@@ -8497,7 +8509,7 @@ contains
         ndim = size(X_ALL,1)
         !We calculate (store/retrieve) the shape functions as it is done in cv-adv-diff (same Storage Index)
         QUAD_OVER_WHOLE_ELE = .false. ! Do NOT divide element into CV's to form quadrature.
-        !if (StorageIndexes(40) == 0) &
+        !if (StorageIndexes(1) == 0) &
         call retrieve_ngi( ndim, P_ELE_TYPE, cv_nloc, u_nloc, &
            cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface, .false. )
         ALLOCATE( CV_ON_FACE( CV_NLOC, SCVNGI ), CVFEM_ON_FACE( CV_NLOC, SCVNGI ))
@@ -8524,7 +8536,7 @@ contains
                                 ! Define the gauss points that lie on the surface of the CV...
            FINDGPTS, COLGPTS, NCOLGPTS, &
            SELE_OVERLAP_SCALE, QUAD_OVER_WHOLE_ELE,&
-           state, 'cv-adv1' , StorageIndexes(40) )
+           state, 'Press_mesh' , StorageIndexes(1) )
          !#####Area to obtain shape functions#####
 
          sfield_pointer=>extract_scalar_field(packed_state,"Pressure")

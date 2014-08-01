@@ -7997,9 +7997,7 @@ ewrite(3,*)'lll:', option_path_len
 
     END SUBROUTINE DETNLXMAI
 
-
-
-    SUBROUTINE DETNLXR_PLUS_U( ELE, X, Y, Z, XONDGL, TOTELE, NONODS, &
+    SUBROUTINE DETNLXR_PLUS_U_WITH_STORAGE( ELE, X, Y, Z, XONDGL, TOTELE, NONODS, &
          X_NLOC, CV_NLOC, NGI, &
          N, NLX, NLY, NLZ, WEIGHT, DETWEI, RA, VOLUME, D1, D3, DCYL, &
          NX_ALL, &
@@ -8008,7 +8006,7 @@ ewrite(3,*)'lll:', option_path_len
       INTEGER, intent( in ) :: ELE, TOTELE, NONODS, X_NLOC, NGI, CV_NLOC, U_NLOC
       INTEGER, DIMENSION( TOTELE * X_NLOC ), intent( in ) :: XONDGL
       REAL, DIMENSION( NONODS ), intent( in ) :: X, Y, Z
-      REAL, DIMENSION( CV_NLOC, NGI ), intent( in ) :: N, NLX, NLY, NLZ 
+      REAL, DIMENSION( CV_NLOC, NGI ), intent( in ) :: N, NLX, NLY, NLZ
       REAL, DIMENSION( NGI ), intent( in ) :: WEIGHT
       LOGICAL, intent( in ) :: D1, D3, DCYL
       REAL, DIMENSION( U_NLOC, NGI ), intent( in ) :: UNLX, UNLY, UNLZ
@@ -8072,12 +8070,12 @@ ewrite(3,*)'lll:', option_path_len
          call deallocate (Targ_UNX_ALL)
          call deallocate (Targ_DETWEI_RA)
          call deallocate (Targ_VOLUME)
-         
+
       end if
 
 
       !If new mesh or mesh moved indx will be zero (set in Multiphase_TimeLoop)
-  
+
       if (btest(cache_level,0)) then
          NX_ALL(1:NDIM,1:X_NLOC,1:NGI) => &
               state(1)%scalar_fields(abs(indx))%ptr%val(1+NDIM*X_NLOC*NGI*(ELE-1):NDIM*X_NLOC*NGI*ELE)
@@ -8102,17 +8100,52 @@ ewrite(3,*)'lll:', option_path_len
       else
          RA(1:NGI) => state(1)%scalar_fields(abs(indx)+2)%ptr%val(NGI+1:2*NGI)
       end if
-         
-      VOLUME => state(1)%scalar_fields(abs(indx)+3)%ptr%val(ELE)   
+
+      VOLUME => state(1)%scalar_fields(abs(indx)+3)%ptr%val(ELE)
 
       IF (indx>0 .and. not(cache_level)==0) return
 
       !When all the values are obtained, the index is set to a positive value
       if (ELE == totele) indx = abs(indx)
       !#########Storing area finished########################
+
+      call DETNLXR_PLUS_U( ELE, X, Y, Z, XONDGL, TOTELE, NONODS, &
+         X_NLOC, CV_NLOC, NGI, &
+         N, NLX, NLY, NLZ, WEIGHT, DETWEI, RA, VOLUME, D1, D3, DCYL, &
+         NX_ALL, &
+         U_NLOC, UNLX, UNLY, UNLZ, UNX_ALL)
+
+      RETURN
+    END SUBROUTINE DETNLXR_PLUS_U_WITH_STORAGE
+
+    SUBROUTINE DETNLXR_PLUS_U( ELE, X, Y, Z, XONDGL, TOTELE, NONODS, &
+         X_NLOC, CV_NLOC, NGI, &
+         N, NLX, NLY, NLZ, WEIGHT, DETWEI, RA, VOLUME, D1, D3, DCYL, &
+         NX_ALL, &
+         U_NLOC, UNLX, UNLY, UNLZ, UNX_ALL)
+      implicit none
+      INTEGER, intent( in ) :: ELE, TOTELE, NONODS, X_NLOC, NGI, CV_NLOC, U_NLOC
+      INTEGER, DIMENSION( TOTELE * X_NLOC ), intent( in ) :: XONDGL
+      REAL, DIMENSION( NONODS ), intent( in ) :: X, Y, Z
+      REAL, DIMENSION( CV_NLOC, NGI ), intent( in ) :: N, NLX, NLY, NLZ 
+      REAL, DIMENSION( NGI ), intent( in ) :: WEIGHT
+      LOGICAL, intent( in ) :: D1, D3, DCYL
+      REAL, DIMENSION( U_NLOC, NGI ), intent( in ) :: UNLX, UNLY, UNLZ
+      real, dimension(:,:,:), intent(inout) ::NX_ALL, UNX_ALL
+      real, dimension(:), intent(inout) :: DETWEI, RA
+      real, intent(inout) :: VOLUME
+      ! Local variables
+      REAL, PARAMETER :: PIE = 3.141592654
+      REAL :: AGI, BGI, CGI, DGI, EGI, FGI, GGI, HGI, KGI, A11, A12, A13, A21, &
+           A22, A23, A31, A32, A33, DETJ, TWOPIE, RGI, rsum
+      INTEGER :: GI, L, IGLX, NDIM
+
       !ewrite(3,*)' In Detnlxr_Plus_U'
 
       VOLUME = 0.
+      NDIM = 2
+      if (D1) ndim =1
+      if (D3) ndim = 3
 
       select case (ndim)
           case (1)

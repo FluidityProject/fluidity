@@ -353,13 +353,19 @@
            U_NODJ, IPHASE, U_NODJ_IP, IDIM, JDIM, MAT_NOD_ID_IP, CV_GI_SHORT, NCOLGPTS 
       REAL :: NN, NFEMU, MASELE
       LOGICAL :: D1, D3, DCYL, QUAD_OVER_WHOLE_ELE
-      real, pointer, dimension(:,:,:) :: UFENX_ALL, CVFENX_ALL
-      real, pointer, dimension(:) :: DETWEI,RA
-      real, pointer :: VOLUME
+      real, allocatable, dimension(:,:,:) :: UFENX_ALL, CVFENX_ALL
+      real, allocatable, dimension(:) :: DETWEI,RA
+      real :: VOLUME
+
       QUAD_OVER_WHOLE_ELE=.FALSE. 
       ! If QUAD_OVER_WHOLE_ELE=.true. then dont divide element into CV's to form quadrature.
       call  retrieve_ngi( ndim, u_ele_type, cv_nloc, u_nloc, &
            cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface, QUAD_OVER_WHOLE_ELE )
+
+      ALLOCATE(UFENX_ALL(NDIM,U_NLOC,CV_NGI))
+      ALLOCATE(CVFENX_ALL(NDIM,CV_NLOC,CV_NGI))
+      ALLOCATE(DETWEI(CV_NGI))
+      ALLOCATE(RA(CV_NGI))
 
       ALLOCATE( CVWEIGHT( CV_NGI ))
       ALLOCATE( CVN( CV_NLOC, CV_NGI ))
@@ -427,7 +433,6 @@
       ALLOCATE( UFEM_ON_FACE( U_NLOC, SCVNGI ))
 
       ALLOCATE( SELE_OVERLAP_SCALE( CV_NLOC ))
-
       CALL CV_FEM_SHAPE_FUNS( &
                                 ! Volume shape functions...
            NDIM, P_ELE_TYPE,  & 
@@ -448,8 +453,7 @@
            CV_SLOCLIST, U_SLOCLIST, CV_SNLOC, U_SNLOC, &
                                 ! Define the gauss points that lie on the surface of the CV...
            FINDGPTS, COLGPTS, NCOLGPTS, &
-           SELE_OVERLAP_SCALE, QUAD_OVER_WHOLE_ELE ) 
-
+           SELE_OVERLAP_SCALE, QUAD_OVER_WHOLE_ELE)
 
       ALLOCATE( MASS( MAT_NLOC, MAT_NLOC ))
       ALLOCATE( INV_MASS( MAT_NLOC, MAT_NLOC ))
@@ -466,9 +470,7 @@
          CALL DETNLXR_PLUS_U( ELE, X, Y, Z, X_NDGLN, TOTELE, X_NONODS, X_NLOC, CV_NLOC, CV_NGI, &
               CVFEN, CVFENLX, CVFENLY, CVFENLZ, CVWEIGHT, DETWEI, RA, VOLUME, D1, D3, DCYL, &
               CVFENX_ALL, &
-              U_NLOC, UFENLX, UFENLY, UFENLZ, UFENX_ALL&
-              , state, "comp", StorageIndexes(24) )
-
+              U_NLOC, UFENLX, UFENLY, UFENLZ, UFENX_ALL)
          MASELE = 0.0
          Loop_MAT_ILOC: DO MAT_ILOC = 1, MAT_NLOC
 
@@ -630,6 +632,11 @@
       DEALLOCATE( INV_MASS )
       DEALLOCATE( MASS2U )
       DEALLOCATE( INV_MASS_NM )
+
+      DEALLOCATE(UFENX_ALL)
+      DEALLOCATE(CVFENX_ALL)
+      DEALLOCATE(DETWEI)
+      DEALLOCATE(RA)
 
       RETURN
     end subroutine PROJ_U2MAT

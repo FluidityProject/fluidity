@@ -695,8 +695,8 @@ contains
 
 !      QUAD_OVER_WHOLE_ELE=.FALSE.
       ! If QUAD_OVER_WHOLE_ELE=.true. then dont divide element into CV's to form quadrature.
-      call retrieve_ngi( ndim, cv_ele_type, cv_nloc, u_nloc, &
-           cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface, QUAD_OVER_WHOLE_ELE )
+!      call retrieve_ngi( ndim, cv_ele_type, cv_nloc, u_nloc, &
+!           cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface, QUAD_OVER_WHOLE_ELE )
 
   
 !    DISTCONTINUOUS_METHOD=.false.  
@@ -790,7 +790,7 @@ contains
                                 ! Define the gauss points that lie on the surface of the CV...
            FINDGPTS, COLGPTS, NCOLGPTS, &
            SELE_OVERLAP_SCALE, QUAD_OVER_WHOLE_ELE,&
-           state, "cv-adv1" , StorageIndexes(40) )
+           state, "Press_mesh" , StorageIndexes(1) )
 
 
       !ewrite(3,*)'back in cv-adv-dif'
@@ -1319,7 +1319,6 @@ contains
 !              DENUPWIND_MAT( NSMALL_COLM*NPHASE ), DENOLDUPWIND_MAT( NSMALL_COLM*NPHASE ) )
 !         ALLOCATE( T2UPWIND_MAT( NSMALL_COLM*NPHASE*IGOT_T2 ), T2OLDUPWIND_MAT( NSMALL_COLM*NPHASE*IGOT_T2 ) )
 
-
       IF ( IANISOLIM == 0 ) THEN
 
 ! Isotropic limiting - calculate far field upwind maticies...
@@ -1347,7 +1346,7 @@ contains
               SMALL_FINDRM,SMALL_CENTRM,SMALL_COLM,NSMALL_COLM, &
               X_NDGLN,X_NONODS,NDIM, &
               X_ALL, XC_CV_ALL, IGOT_T_PACK, IGOT_T_CONST, IGOT_T_CONST_VALUE,&
-              state, "anisotrop", storageindexes(42))
+              state, "anisotrop", storageindexes(2))
 
          
       END IF ! endof IF ( IANISOLIM == 0 ) THEN ELSE
@@ -1383,7 +1382,7 @@ contains
               NFACE, FACE_ELE, CV_SLOCLIST, CV_SLOCLIST, STOTEL, CV_SNLOC, CV_SNLOC, WIC_T_BC_ALL, SUF_T_BC_ALL, &
               SBCVNGI, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, &
               SBCVFEN, SBCVFENSLX, SBCVFENSLY, &
-              state, "CVN", StorageIndexes( 33 ) )
+              state, "DGDEVAL2", StorageIndexes( 3 ) )
 
       END IF
 
@@ -1454,7 +1453,7 @@ contains
               CV_NLOC, SCVNGI, &
               SCVFEN, SCVFENLX_ALL, SCVFEWEIGH, SCVDETWEI, SCVRA, VOLUME, DCYL, &
               SCVFENX_ALL, &
-              NDIM, INV_JAC, state, "CVI", StorageIndexes(29) )
+              NDIM, INV_JAC, state, "INVJAC", StorageIndexes(4) )
 
 
 ! Generate some local F variables ***************
@@ -2119,17 +2118,17 @@ contains
              !###############################################################
              IPT=1
              CALL UNPACK_LOC( LIMF(:), LIMT( : ),    NPHASE, NFIELD, IPT, STORE, IGOT_T_PACK(:,1), GLOBAL_FACE, IGOT_T_CONST(:,1), IGOT_T_CONST_VALUE(:,1),&
-                SCVNGI*TOTELE,state, 'limf1', StorageIndexes(34) )
+                SCVNGI*TOTELE,state, 'limf1', StorageIndexes(5) )
              CALL UNPACK_LOC( LIMF(:), LIMTOLD( : ), NPHASE, NFIELD, IPT, STORE, IGOT_T_PACK(:,2), GLOBAL_FACE, IGOT_T_CONST(:,2), IGOT_T_CONST_VALUE(:,2),&
-                SCVNGI*TOTELE,state, 'limf2', StorageIndexes(35) )
+                SCVNGI*TOTELE,state, 'limf2', StorageIndexes(6) )
              CALL UNPACK_LOC( LIMF(:), LIMD( : ),    NPHASE, NFIELD, IPT, STORE, IGOT_T_PACK(:,3), GLOBAL_FACE, IGOT_T_CONST(:,3), IGOT_T_CONST_VALUE(:,3),&
-                SCVNGI*TOTELE,state, 'limf3', StorageIndexes(36) )
+                SCVNGI*TOTELE,state, 'limf3', StorageIndexes(7) )
              CALL UNPACK_LOC( LIMF(:), LIMDOLD( : ), NPHASE, NFIELD, IPT, STORE, IGOT_T_PACK(:,4), GLOBAL_FACE, IGOT_T_CONST(:,4), IGOT_T_CONST_VALUE(:,4),&
-                SCVNGI*TOTELE,state, 'limf4', StorageIndexes(37) )
+                SCVNGI*TOTELE,state, 'limf4', StorageIndexes(8) )
              CALL UNPACK_LOC( LIMF(:), LIMT2( : ),    NPHASE, NFIELD, IPT, STORE, IGOT_T_PACK(:,5), GLOBAL_FACE, IGOT_T_CONST(:,5), IGOT_T_CONST_VALUE(:,5),&
-                SCVNGI*TOTELE,state, 'limf5', StorageIndexes(38) )
+                SCVNGI*TOTELE,state, 'limf5', StorageIndexes(9) )
              CALL UNPACK_LOC( LIMF(:), LIMT2OLD( : ), NPHASE, NFIELD, IPT, STORE, IGOT_T_PACK(:,6), GLOBAL_FACE, IGOT_T_CONST(:,6), IGOT_T_CONST_VALUE(:,6),&
-                SCVNGI*TOTELE,state, 'limf6', StorageIndexes(39) )
+                SCVNGI*TOTELE,state, 'limf6', StorageIndexes(10) )
 
 
                 IF(GETCT.AND.RETRIEVE_SOLID_CTY) THEN
@@ -4180,7 +4179,6 @@ end if
          WIC_U_BC_DIRICHLET, SBCVNGI, SBUFEN, SBUFENSLX, SBUFENSLY, SBWEIGH, & 
          SBCVFEN, SBCVFENSLX, SBCVFENSLY,&
          state, StorName//"U", Indexes(1))
-
     IF(NDIM_VEL.GE.2) THEN
        CALL DG_DERIVS( V, VOLD, &
             DVX_ELE, DVY_ELE, DVZ_ELE, DVOLDX_ELE, DVOLDY_ELE, DVOLDZ_ELE, &
@@ -4333,7 +4331,7 @@ end if
        !     CVWEIGHT, DETWEI, RA, VOLUME, D1, D3, DCYL, &
        !     NX, NY, NZ ) 
        ! Calculate DETWEI,RA,NX,NY,NZ for element ELE
-       CALL DETNLXR_PLUS_U( ELE, X, Y, Z, X_NDGLN, TOTELE, X_NONODS, &
+       CALL DETNLXR_PLUS_U_WITH_STORAGE( ELE, X, Y, Z, X_NDGLN, TOTELE, X_NONODS, &
             X_NLOC, X_NLOC, CV_NGI, &
             X_N, X_NLX, X_NLY, X_NLZ, CVWEIGHT, DETWEI, RA, VOLUME, D1, D3, DCYL, &
             X_NX_ALL, &
@@ -4733,7 +4731,7 @@ end if
     Loop_Elements1: DO ELE = 1, TOTELE
 
        ! Calculate DETWEI,RA,NX,NY,NZ for element ELE
-       CALL DETNLXR_PLUS_U( ELE, X, Y, Z, X_NDGLN, TOTELE, X_NONODS, &
+       CALL DETNLXR_PLUS_U_WITH_STORAGE( ELE, X, Y, Z, X_NDGLN, TOTELE, X_NONODS, &
             X_NLOC, X_NLOC, CV_NGI, &
             X_N, X_NLX, X_NLY, X_NLZ, CVWEIGHT, DETWEI, RA, VOLUME, D1, D3, DCYL, &
             X_NX_ALL, &
@@ -4987,7 +4985,7 @@ end if
     Loop_Elements1: DO ELE = 1, TOTELE
 
        ! Calculate DETWEI,RA,NX,NY,NZ for element ELE
-       CALL DETNLXR_PLUS_U( ELE, X, Y, Z, X_NDGLN, TOTELE, X_NONODS, &
+       CALL DETNLXR_PLUS_U_WITH_STORAGE( ELE, X, Y, Z, X_NDGLN, TOTELE, X_NONODS, &
             X_NLOC, X_NLOC, CV_NGI, &
             X_N, X_NLX, X_NLY, X_NLZ, CVWEIGHT, DETWEI, RA, VOLUME, D1, D3, DCYL, &
             X_NX_ALL, &

@@ -226,9 +226,20 @@
       integer :: checkpoint_number
 
       !Variable to store where we store things. Do not oversize this array, the size has to be the last index in use
-      integer, dimension (42) :: StorageIndexes
+      integer, dimension (30) :: StorageIndexes
+      !Distribution of the indexes of StorageIndexes:
+      !cv_fem_shape_funs_plus_storage: 1 (ASSEMB_FORCE_CTY), 13 (CV_ASSEMB)
+      !CALC_ANISOTROP_LIM            : 2
+      !DG_DERIVS_ALL2                : 3
+      !DETNLXR_INVJAC                : 4
+      !UNPACK_LOC                    : 5,6,7,8,9,10
+      !COLOR_GET_CMC_PHA             : 11
+      !Matrix C                      : 12
+      !DG_DERIVS_ALL                 : 14
+      !DETNLXR_PLUS_U_WITH_STORAGE   : 14
+      !Indexes used in SURFACE_TENSION_WRAPPER (deprecated and will be removed):[15,30]
 
-            !Working pointers
+      !Working pointers
       real, dimension(:,:), pointer :: SAT_s, OldSAT_s, FESAT_s
 
       type( tensor_field ), pointer :: tracer_field, velocity_field, density_field, saturation_field, old_saturation_field
