@@ -37,6 +37,11 @@ from probe_viscosities import *
 x, y, z, max_x_500 = probe_visc()
 </variable>
 
+<variable name="viscous_dissipation" language="python">
+from fluidity_tools import stat_parser as stat 
+viscous_dissipation = stat("Benchmark_Case_1a.stat")["Mantle"]["ViscousDissipation"]["integral"][-1]
+</variable>
+
 </variables>
 
 <pass_tests>
@@ -59,6 +64,10 @@ assert(abs(min_x_500 - 1e21) &lt; 1e-30)
 
 <test name="max_x_500 == 1e25" language="python">
 assert(abs(max_x_500 - 1e25) &lt; 1e-30)
+</test>
+
+<test name="Viscous Dissipation: 270 .lt. VD .lt. 290" language="python">
+assert(abs(viscous_dissipation-280.0) &lt; 10.0)
 </test>
 
 </pass_tests>
