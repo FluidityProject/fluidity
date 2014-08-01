@@ -3200,6 +3200,7 @@ contains
         ! functions CVN as well as FEM basis functions CVFEN (and its derivatives CVFENLX, CVFENLY, CVFENLZ)
 
         !======= DEFINE THE SUB-CONTROL VOLUME & FEM SHAPE FUNCTIONS ========
+
         CALL cv_fem_shape_funs_plus_storage( &
                              ! Volume shape functions...
            NDIM, P_ELE_TYPE,  &
@@ -3219,10 +3220,9 @@ contains
            SBUFEN, SBUFENSLX, SBUFENSLY, SBUFENLX_ALL, &
            CV_SLOCLIST, U_SLOCLIST, CV_SNLOC, U_SNLOC, &
                              ! Define the gauss points that lie on the surface of the CV...
-        FINDGPTS, COLGPTS, NCOLGPTS, &
-        SELE_OVERLAP_SCALE, QUAD_OVER_WHOLE_ELE,&
-        state, 'ASEMCTY', StorageIndexes(41))
-
+           FINDGPTS, COLGPTS, NCOLGPTS, &
+           SELE_OVERLAP_SCALE, QUAD_OVER_WHOLE_ELE,&
+           state, 'ASEMCTY', StorageIndexes(41))
 
         ! Memory for rapid retreval...
         ! Storage for pointers to the other side of the element.
@@ -3315,11 +3315,11 @@ contains
         if (capillary_pressure_activated) then
             call get_var_from_packed_state(packed_state,CapPressure = CapPressure)
             if (CAP_to_FEM) then
-                !First I need to obtain the CVN and CVWEIGHT shape functions
-                call get_CVN_compact_overlapping( P_ELE_TYPE, NDIM, CV_NGI, CV_NLOC, CVN, CVWEIGHT)
                 !Project capillary pressure
-                call proj_capillary_pressure2FEM(packed_state, FEMCapPressure, X_ALL, FINDM, COLM, MIDM,&
-                CVN, CVWEIGHT, mass_ele, cv_ndgln, cv_ngi, cv_nloc, cv_nonods, ncolm, nphase, totele, x_ndgln, x_nloc, x_nonods)
+                call proj_capillary_pressure2FEM(state, packed_state,FEMCapPressure, X_ALL, FINDM, COLM, MIDM,&
+                mass_ele, cv_ndgln, cv_nloc, cv_snloc, u_snloc, cv_nonods, ncolm, &
+                nphase, totele, x_ndgln, x_nloc, x_nonods, P_ELE_TYPE, u_nloc, StorageIndexes)
+
             end if
         end if
         Loop_Elements: DO ELE = 1, TOTELE ! Volume integral
@@ -5734,7 +5734,7 @@ contains
         call deallocate(momentum_BCs)
         call deallocate(pressure_BCs)
 
-        !Deallocate variable used to project the capillary pressure into FEM
+!        !Deallocate variable used to project the capillary pressure into FEM
         if (CAP_to_FEM) call deallocate(FEMCapPressure)
 
 
@@ -8454,33 +8454,78 @@ contains
     end subroutine linearise_field
 
 
-    subroutine Proj_capillary_pressure2FEM(packed_state, FEMCAP, X_ALL, FINDM, COLM, MIDM,&
-    CVN, CVWEIGHT, mass_ele, cv_ndgln, cv_ngi, cv_nloc, cv_nonods, ncolm, nphase, totele, x_ndgln, x_nloc, x_nonods)
+    subroutine Proj_capillary_pressure2FEM(state, packed_state, FEMCAP, X_ALL, FINDM, COLM, MIDM,&
+    mass_ele, cv_ndgln, cv_nloc, cv_snloc, u_snloc, cv_nonods, ncolm,&
+    nphase, totele, x_ndgln, x_nloc, x_nonods, P_ELE_TYPE, u_nloc, StorageIndexes)
         !This subroutine projects the CV representation of the capillary pressure to FEM
         Implicit none
+        type( state_type ), dimension( : ), intent( inout ) :: state
         type( state_type ), intent( inout ) :: packed_state
         REAL, DIMENSION( :, : ), intent( in ) :: X_ALL
         INTEGER, DIMENSION( : ), intent( in ) :: FINDM
         INTEGER, DIMENSION( : ), intent( in ) :: COLM
         INTEGER, DIMENSION( : ), intent( in ) :: MIDM
-        REAL, DIMENSION( : , : ), intent(in) :: CVN
-        real, dimension(:), intent(inout) :: CVWEIGHT, mass_ele
+        real, dimension(:), intent(inout) :: mass_ele
         integer, dimension(:), intent(in) :: cv_ndgln, x_ndgln
-        integer :: cv_ngi, cv_nloc, cv_nonods, ncolm, nphase, totele, x_nloc, x_nonods
+        integer, intent(in) :: cv_nloc, cv_nonods, ncolm, nphase, totele, x_nloc, x_nonods,&
+        P_ELE_TYPE, u_nloc, cv_snloc, u_snloc
         type(tensor_field), intent(out), target :: FEMCAP
         !Local variables
+        integer :: ndim, cv_ngi, cv_ngi_short,scvngi, nface, sbcvngi
         type(tensor_field_pointer), dimension(1) :: psi,fempsi
         type(vector_field_pointer), dimension(1) :: psi_int,  psi_ave
-        INTEGER :: k, NLOC, NGI, NDIM
-        REAL, allocatable, DIMENSION( : ):: WEIGHT
-        logical :: CAP_to_FEM
-        real, dimension( :, : ), allocatable :: N
-        real, dimension (:, :, :), allocatable :: NLX_ALL
-        real, dimension( : ), allocatable :: L1, L2, L3, L4
-        integer :: IPHASE, CV_INOD
+        logical :: QUAD_OVER_WHOLE_ELE
         type(tensor_field), pointer :: tfield_pointer
         type(scalar_field), pointer :: sfield_pointer
         type(vector_field), target :: vfield
+        integer, dimension(:) :: StorageIndexes
+        logical, dimension(  : , : ), allocatable :: cv_on_face, cvfem_on_face, u_on_face, ufem_on_face
+        !Pointers for cv_fem_shape_funs_plus_storage
+        integer, pointer :: ncolgpts
+        integer, dimension(:), pointer ::findgpts,colgpts
+        integer, dimension(:,:), pointer :: cv_neiloc, cv_sloclist, u_sloclist
+        real, dimension( : ), pointer :: cvweight,cvweight_short, scvfeweigh,sbcvfeweigh,&
+        SELE_OVERLAP_SCALE
+        real, dimension( : , : ), pointer:: cvn,cvn_short, cvfen, cvfen_short,ufen,&
+        scvfen, scvfenslx, scvfensly, sufen, sufenslx, sufensly,&
+        sbcvn,sbcvfen, sbcvfenslx, sbcvfensly, sbufen, sbufenslx, sbufensly
+        real, dimension(  : , : , :), pointer ::  cvfenlx_all, cvfenlx_short_all, ufenlx_all,&
+        scvfenlx_all, sufenlx_all, sbcvfenlx_all, sbufenlx_all
+
+
+        !#####Area to obtain shape functions#####
+        ndim = size(X_ALL,1)
+        !We calculate (store/retrieve) the shape functions as it is done in cv-adv-diff (same Storage Index)
+        QUAD_OVER_WHOLE_ELE = .false. ! Do NOT divide element into CV's to form quadrature.
+        !if (StorageIndexes(40) == 0) &
+        call retrieve_ngi( ndim, P_ELE_TYPE, cv_nloc, u_nloc, &
+           cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface, .false. )
+        ALLOCATE( CV_ON_FACE( CV_NLOC, SCVNGI ), CVFEM_ON_FACE( CV_NLOC, SCVNGI ))
+        ALLOCATE( U_ON_FACE( U_NLOC, SCVNGI ), UFEM_ON_FACE( U_NLOC, SCVNGI ))
+
+        CALL cv_fem_shape_funs_plus_storage( &
+                                ! Volume shape functions...
+           NDIM, P_ELE_TYPE,  &
+           CV_NGI, CV_NGI_SHORT, CV_NLOC, U_NLOC, CVN, CVN_SHORT, &
+           CVWEIGHT, CVFEN, CVFENLX_ALL, &
+           CVWEIGHT_SHORT, CVFEN_SHORT, CVFENLX_SHORT_ALL, &
+           UFEN, UFENLX_ALL, &
+                                ! Surface of each CV shape functions...
+           SCVNGI, CV_NEILOC, CV_ON_FACE, CVFEM_ON_FACE, &
+           SCVFEN, SCVFENSLX, SCVFENSLY, SCVFEWEIGH, &
+           SCVFENLX_ALL,  &
+           SUFEN, SUFENSLX, SUFENSLY,  &
+           SUFENLX_ALL,  &
+                                ! Surface element shape funcs...
+           U_ON_FACE, UFEM_ON_FACE, NFACE, &
+           SBCVNGI, SBCVN, SBCVFEN,SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, SBCVFENLX_ALL, &
+           SBUFEN, SBUFENSLX, SBUFENSLY, SBUFENLX_ALL, &
+           CV_SLOCLIST, U_SLOCLIST, CV_SNLOC, U_SNLOC, &
+                                ! Define the gauss points that lie on the surface of the CV...
+           FINDGPTS, COLGPTS, NCOLGPTS, &
+           SELE_OVERLAP_SCALE, QUAD_OVER_WHOLE_ELE,&
+           state, 'cv-adv1' , StorageIndexes(40) )
+         !#####Area to obtain shape functions#####
 
          sfield_pointer=>extract_scalar_field(packed_state,"Pressure")
          call allocate(FEMCAP, sfield_pointer%mesh, dim = [1,NPHASE])
@@ -8493,31 +8538,20 @@ contains
          psi_int(1)%ptr => vfield
          psi_ave(1)%ptr => vfield
 
-         NDIM = size(X_ALL,1)
-         !Get shape functions
-         NGI = NDIM + 1
-         NLOC = NDIM + 1
-         IF(NDIM==1) NLOC=1
-         allocate (WEIGHT(NGI))
-         ALLOCATE( N(NLOC,NGI))
-         ALLOCATE( L1(NGI), L2(NGI), L3(NGI), L4(NGI) )
-         allocate(NLX_ALL(size(X_ALL,1), NLOC, NGI))
-         CALL TRIQUAold( L1, L2, L3, L4, WEIGHT, ndim==3, NGI )
-         call SHATRInew(L1, L2, L3, L4, WEIGHT,  NLOC,NGI,  N,NLX_ALL)
         !Project to FEM
-
           PSI(1)%ptr%option_path = "/material_phase[0]/scalar_field::Pressure"
-          call PROJ_CV_TO_FEM_state( packed_state, FEMPSI, PSI, NDIM, &
+          call PROJ_CV_TO_FEM_state( packed_state, FEMPSI, PSI, size(X_ALL,1), &
                PSI_AVE, PSI_INT, MASS_ELE, &
                CV_NONODS, TOTELE, CV_NDGLN, X_NLOC, X_NDGLN, &
-               CV_NGI, CV_NLOC, CVN, CVWEIGHT, N, NLX_ALL(1,:,:), NLX_ALL(2,:,:), NLX_ALL(3,:,:), &
-               X_NONODS, X_ALL, NCOLM, FINDM, COLM, MIDM, &
+               CV_NGI, CV_NLOC, CVN, CVWEIGHT, CVFEN, CVFENLX_ALL(1,:,:),&
+               CVFENLX_ALL(2,:,:), CVFENLX_ALL(3,:,:), X_NONODS, X_ALL, NCOLM, FINDM, COLM, MIDM, &
                0, PSI_AVE(1)%ptr%val(1,:), FINDM, COLM, NCOLM )! <=== Dummy variables, not used inside
 
-        !Deallocate auxiliar variables
-        deallocate (NLX_ALL,L1,L2,L3,L4,N, WEIGHT)
-        call deallocate(vfield)
 
+
+        !Deallocate auxiliar variables
+        call deallocate(vfield)
+        deallocate(cv_on_face, cvfem_on_face, u_on_face, ufem_on_face)
     end subroutine Proj_capillary_pressure2FEM
 
 end module multiphase_1D_engine

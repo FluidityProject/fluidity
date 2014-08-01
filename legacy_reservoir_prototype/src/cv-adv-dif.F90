@@ -693,7 +693,7 @@ contains
       ENDIF
 
 
-      QUAD_OVER_WHOLE_ELE=.FALSE.
+!      QUAD_OVER_WHOLE_ELE=.FALSE.
       ! If QUAD_OVER_WHOLE_ELE=.true. then dont divide element into CV's to form quadrature.
       call retrieve_ngi( ndim, cv_ele_type, cv_nloc, u_nloc, &
            cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface, QUAD_OVER_WHOLE_ELE )
@@ -769,7 +769,6 @@ contains
 
 
       !     ======= DEFINE THE SUB-CONTROL VOLUME & FEM SHAPE FUNCTIONS ========
-
       CALL cv_fem_shape_funs_plus_storage( &
                                 ! Volume shape functions...
            NDIM, CV_ELE_TYPE,  &
@@ -792,8 +791,6 @@ contains
            FINDGPTS, COLGPTS, NCOLGPTS, &
            SELE_OVERLAP_SCALE, QUAD_OVER_WHOLE_ELE,&
            state, "cv-adv1" , StorageIndexes(40) )
-
-
 
 
       !ewrite(3,*)'back in cv-adv-dif'
@@ -1191,6 +1188,7 @@ contains
       else
          call set_all(psi_ave(1)%ptr,X_ALL)
       end if
+
 
       call PROJ_CV_TO_FEM_state( packed_state,FEMPSI(1:FEM_IT),&
            PSI(1:FEM_IT), NDIM, &
@@ -4010,7 +4008,7 @@ end if
           CV_NODI = CV_NDGLN(( ELE - 1 ) * CV_NLOC + CV_ILOC )
           !ewrite(3,*)'ele,CV_NODI,CV_ILOC:',ele,CV_NODI,CV_ILOC, x(CV_NODI)
 
-          if (.not.  node_owned(PSI(1)%ptr,cv_nodi)) cycle
+          if (.not. node_owned(PSI(1)%ptr,cv_nodi)) cycle
 
           Loop_CV_JLOC: DO CV_JLOC = 1, CV_NLOC
 

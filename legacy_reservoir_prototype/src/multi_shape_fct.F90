@@ -38,7 +38,7 @@
     use fldebug
     use state_module
     use spud
-    use global_parameters, only: option_path_len
+    use global_parameters, only: option_path_len, is_compact_overlapping
     use shape_functions_Linear_Quadratic
     use shape_functions_NDim
     use Fields_Allocates, only : allocate
@@ -1574,6 +1574,8 @@
       implicit none
       !This subroutine calls cv_fem_shape_funs only if the shape functions have not been calculated already
       !If they are in storage, the values are returned without calculations
+      !IMPORTANT: for compact_overlapping this subroutine DOES CALCULATES the CVN functions
+      !but cv_fem_shape_funs DOES NOT!!!!!!!
       integer, intent( in ) :: ndim, cv_ele_type, cv_ngi, cv_ngi_short, cv_nloc, u_nloc
       real, dimension( : , : ), pointer,  intent( inout ) :: cvn ! dimension( cv_nloc, cv_ngi )
       real, dimension(  : , : ),pointer, intent( inout ) :: cvn_short!dimension( cv_nloc, cv_ngi_short )
@@ -1654,9 +1656,8 @@
       integer, dimension(  : , : ),pointer :: ptr_u_on_face, ptr_ufem_on_face!dimension( u_nloc, scvngi )
       integer, dimension(  : , : ),pointer:: ptr_cv_on_face, ptr_cvfem_on_face!dimension( cv_nloc, scvngi )
       ewrite(3,*) 'in  cv_fem_shape_funs subrt'
-
       !#########Storing area#################################
-      !If new mesh or mesh moved indx will be zero (set in Multiphase_TimeLoop)
+      !If new mesh or mesh moved, indx will be zero (set in Multiphase_TimeLoop)
       recovering_values = .false.
       if (indx>0) recovering_values = .true.!Everything has been calculated already
 
@@ -1676,7 +1677,6 @@
           Auxmesh%nodes = CV_NLOC*CV_NGI*(2+ndim) + CV_NLOC*CV_NGI_SHORT*(2+ndim) + CV_NGI + CV_NGI_SHORT +&
            SCVNGI + SBCVNGI + U_NLOC*CV_NGI * (1+ndim) + CV_NLOC * SCVNGI * (3+ndim)+ U_NLOC*SCVNGI * (3+ndim) + &
            CV_SNLOC * SBCVNGI * (4+ndim) + U_SNLOC * SBCVNGI * (3+ndim) + CV_NLOC
-
           call allocate (targ_Storage, Auxmesh,name="StorageMesh")
           !Prepare room to store integers and logicals
           Auxmesh%nodes = nface*cv_snloc + nface * u_snloc + u_nloc*scvngi*2 + cv_nloc*scvngi*2+&
@@ -1684,12 +1684,11 @@
           Auxmesh%shape%loc =1!nodes times %loc is the size of the array I want to store
           call allocate (targ_Storage%mesh, Auxmesh%nodes, Auxmesh%nodes,Auxmesh%shape, name="StorageMesh" )
           !Now we insert them in state and store the index
-           call insert(state(1), targ_Storage%mesh, "StorageMesh")
+          call insert(state(1), targ_Storage%mesh, "StorageMesh")
           call insert(state(1), targ_Storage, StorName)
           call deallocate (targ_Storage)
           indx = size(state(1)%scalar_fields)
       end if
-
           !Set the pointers to state, indx is an input
           !###cv_nloc*cv_ngi section###
           siz1 = cv_nloc;  siz2 = cv_ngi
@@ -1870,6 +1869,9 @@
                                      ! Define the gauss points that lie on the surface of the CV
               findgpts2, colgpts2, ncolgpts2, &
               sele_overlap_scale2, QUAD_OVER_WHOLE_ELE)
+
+              !Calculate the CVN shape functions manually as for compact_overlapping is not calculated by the previous subroutine
+              if (is_compact_overlapping)  call get_CVN_compact_overlapping( CV_ELE_TYPE, NDIM, CV_NGI, CV_NLOC, CVN, CVWEIGHT)
 
               !Store data into state
               cvn = cvn2; cvn_short = cvn_short2; cvweight = cvweight2; cvfen = cvfen2;
