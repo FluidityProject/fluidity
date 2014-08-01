@@ -30,6 +30,13 @@ SHELL = @SHELL@
 
 PACKAGE_NAME = @PACKAGE_NAME@
 
+# This is passed on to the tools/git-version-info script to override the version
+# given by git. This can be either set during configure using the environment variable
+# FLUIDITY_VERSION (FLUIDIT_VERSION=foo ./configure ...) or using the env. variable
+# PACKAGE_VERSION when calling make (make PACKAGE_VERSION=foo). When neither is done
+# the version string is produced by running git in the src directory.
+PACKAGE_VERSION = @FLUIDITY_VERSION@
+
 FLUIDITY = $(PACKAGE_NAME)
 
 PROGRAM	 = ./bin/$(FLUIDITY)
@@ -174,13 +181,10 @@ include/spud.h: lib/libspud.a
 
 main.o: include/version.h include/spud.h
 
-include/version.h: version-info
-	@bin/version-info $@
+include/version.h: git-version-info
+	@@srcdir@/tools/git-version-info $@
 
-version-info:
-	@$(MAKE) -C tools install-version-info
-
-.PHONY: version-info
+.PHONY: git-version-info
 
 bin/$(FLUIDITY): main.o lib/lib$(FLUIDITY).a
 	@echo "BUILD fluidity"

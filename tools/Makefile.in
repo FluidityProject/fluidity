@@ -116,13 +116,6 @@ scripts:
 	for i in @srcdir@/*.py ; do cp $$i ../bin/`basename $$i .py` ; done
 	for i in @srcdir@/*.sh ; do cp $$i ../bin/`basename $$i .sh` ; done
 
-install-version-info: version-info
-	@mkdir -p ../bin
-	@chmod +x $<
-	@cp $< ../bin/$<
-
-.PHONY: install-version-info
-
 .PHONY: install_python
 
 install_python:
@@ -214,9 +207,6 @@ clean:
 	rm -f *.o *.mod
 	rm -rf build dist fluidity.egg-info 
 	rm -f lib
-
-distclean:
-	rm -f version-info
 
 $(TEST_TRACE_SPACE): Test_Trace_Space.o
 	$(FLLINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
