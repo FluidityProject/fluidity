@@ -4122,33 +4122,6 @@ scalar_field_choice =
                }
             )
          }|
-         ## Viscous dissipation
-         ##   For Boussinesq fluid with isotropic viscosity (see below)
-         ##
-         ## Only coded for 2D
-         ##
-         ##   (grad u):(grad u) = sum_ij(du_i/dx_j)(du_i/dx_j)
-         ##
-         ##   The actual viscous dissipation for a Newtonian, Boussinesq fluid with
-         ##   constant, isotropic viscosity is nu*rho_0*(grad u):(grad u)
-         ##   where rho_0 is the reference density in the equation of state
-         ##   and nu is the viscosity so need to multiply by these when post-processing
-         ##
-         ## c.f. Winters 1995, Journal of Fluid Mechanics
-         element scalar_field {
-            attribute rank { "0" },
-            attribute name { "ViscousDissipation" },
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  velocity_mesh_choice,
-                  diagnostic_scalar_field
-               }|
-               element aliased {
-                  generic_aliased_field
-               }
-            )
-         }|
          ## Richardson Number:
          ##
          ##  Ri = \frac{N^2}{(\frac{\partial u}{\partial z})^2 + (\frac{\partial u}{\partial z})^2}
