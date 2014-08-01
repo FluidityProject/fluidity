@@ -66,7 +66,8 @@ adaptivity meshes mesh_formats configuring_fluidity external_libraries trouble_s
 parallel mathematical_notation about visualisation_and_diagnostics examples \
 embedded_models paraviewman python dimensionless useful_numbers
 
-VERSION = $(shell ../bin/version-info | tr -d [:punct:])
+export PACKAGE_VERSION=@FLUIDITY_VERSION@
+VERSION = $(shell @srcdir@/../tools/git-version-info)
 
 TEXINPUTS = @srcdir@:
 export TEXINPUTS
@@ -77,8 +78,8 @@ fluidity_manual.pdf: fluidity_manual.tex notation.tex\
 	$(addsuffix .pdftex_t, $(XFIG_IMAGES)) \
 	$(addsuffix .pdf, $(IMAGES))  \
 	$(addsuffix .eps, $(EPS_IMAGES))  \
-	bibliography.bib ../bin/version-info
-	echo $(VERSION) >version.tex
+	bibliography.bib
+	echo "\\\\verb|$(VERSION)|" >version.tex
 	if [ ! -e bibliography.bib ]; then cp @srcdir@/bibliography.bib .; touch bibliography_copied; fi
 	pdflatex -shell-escape $<
 	makeindex -s @srcdir@/index.ist $(notdir $(basename $<))
@@ -105,13 +106,6 @@ ifndef NOBIBTEX
 	$(MAKE) NOBIBTEX=true --assume-new $< $@;fi
 endif
 	if [ -e bibliography_copied ]; then rm bibliography.bib bibliography_copied; fi
-
-../bin/version-info: version-info
-
-version-info:
-	@$(MAKE) -C ../tools install-version-info
-
-.PHONY: version-info
 
 #linear_1d_mesh.png: linear_1d_mesh.fig
 
