@@ -51,23 +51,23 @@ assert(solvers_converged)
 </test>
 
 <test name="min_y_550 == 1e21" language="python">
-assert(abs(min_y_550 - 1e21) &lt; 1e-30)
+assert(abs(min_y_550 - 1e21) &lt; 1e11)
 </test>
 
 <test name="max_y_550 lt 2.5e23" language="python">
-assert(abs(max_y_550 - 2.3e23) &lt; 4e21)
+assert(abs(max_y_550 - 2.5e23) &lt; 2.5e22)
 </test>
 
 <test name="min_x_500 == 1e21" language="python">
-assert(abs(min_x_500 - 1e21) &lt; 1e-30)
+assert(abs(min_x_500 - 1e21) &lt; 1e11)
 </test>
 
 <test name="max_x_500 == 1e25" language="python">
-assert(abs(max_x_500 - 1e25) &lt; 1e-30)
+assert(abs(max_x_500 - 1e25) &lt; 1e11)
 </test>
 
-<test name="Viscous Dissipation: 270 .lt. VD .lt. 290" language="python">
-assert(abs(viscous_dissipation-280.0) &lt; 10.0)
+<test name="Viscous Dissipation: 270 .lt. VD .lt. 300" language="python">
+assert(abs(viscous_dissipation-285.0) &lt; 15.0)
 </test>
 
 </pass_tests>
