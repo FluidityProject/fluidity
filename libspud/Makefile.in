@@ -87,9 +87,9 @@ install-spudtools:
 	@INSTALL@ -d $(DESTDIR)@prefix@/share/spud
 	@INSTALL@ -d $(DESTDIR)@prefix@/bin
 	@INSTALL@ -m755 bin/spud-preprocess $(DESTDIR)@prefix@/bin
-	@INSTALL@ -m755 bin/spud-set $(DESTDIR)@prefix@/bin
-	@INSTALL@ -m644 schema/spud_base.rnc $(DESTDIR)@prefix@/share/spud
-	@INSTALL@ -m644 schema/spud_base.rng $(DESTDIR)@prefix@/share/spud
+	@INSTALL@ -m755 @srcdir@/bin/spud-set $(DESTDIR)@prefix@/bin
+	@INSTALL@ -m644 @srcdir@/schema/spud_base.rnc $(DESTDIR)@prefix@/share/spud
+	@INSTALL@ -m644 @srcdir@/schema/spud_base.rng $(DESTDIR)@prefix@/share/spud
 
 install-diamond:
 	cd @srcdir@/diamond; python $(CURDIR)/diamond/setup.py install --prefix=$(DESTDIR)@prefix@; cd ..
