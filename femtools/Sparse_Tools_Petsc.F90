@@ -436,6 +436,9 @@ contains
          PETSC_NULL_INTEGER, dnnz, PETSC_NULL_INTEGER, onnz, matrix%M, ierr)
       
     endif
+
+    call MatSetBlockSizes(matrix%M, lgroup_size(1), lgroup_size(2), ierr)
+    call MatSetup(matrix%M, ierr)
     
     if (.not. use_element_blocks) then
       ! this is very important for assembly routines (e.g. DG IP viscosity)
@@ -963,7 +966,7 @@ contains
     else
       nullify(c%column_halo)
     end if
-    
+
     ! I think it is assembled now?
     c%is_assembled=.true.
     

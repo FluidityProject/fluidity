@@ -1206,6 +1206,8 @@ contains
       call MatSetOption(M, MAT_USE_INODES, PETSC_FALSE, ierr)
     end if
 
+    call MatSetup(M, ierr)
+
     deallocate(nnz)
       
   end function csr2petsc_CreateSeqAIJ
