@@ -54,17 +54,8 @@ DISABLED_TESTS=test_mba_supermesh test_legacy_cv_faces test_lagrangian_remap tes
 # the test programs to be built:
 TEST_BINARIES=$(filter-out $(DISABLED_TESTS), $(notdir $(basename $(wildcard @srcdir@/*.F90))))
 
-# these are data-files stored in the same directory as the binaries
-# they are created from input-files in ../../tests/data
-# we don't want to put these in ../../tests/data to avoid clobbering it
-DATA_FILES=cube_prismatic.msh cube_unstructured.msh
-
-unittest: $(TEST_BINARIES) $(DATA_FILES)
+unittest: $(TEST_BINARIES)
 	ln -sf $(addprefix ../../assemble/tests/,$^) ../../bin/tests/
-
-%.msh: ../../tests/data/%.geo
-	gmsh -3 $< -o $@
-
 
 .SUFFIXES: .f90 .F90 .c .cpp .o .a $(.SUFFIXES)
 
