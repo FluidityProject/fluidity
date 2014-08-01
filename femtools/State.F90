@@ -96,11 +96,13 @@ module state_module
 
   interface extract_scalar_field
      module procedure extract_from_one_scalar_field, extract_from_any_scalar_field, &
+          extract_from_named_scalar_field,&
            & extract_scalar_field_by_index
   end interface
 
   interface extract_vector_field
      module procedure extract_from_one_vector_field, extract_from_any_vector_field, &
+          extract_from_named_vector_field,&
        extract_vector_field_by_index
   end interface
 
@@ -1627,6 +1629,61 @@ contains
     end if
 
   end function extract_from_one_scalar_field
+
+  function extract_from_named_vector_field(state, name, state_name,stat) result (field)
+    type(vector_field), pointer :: field
+    type(state_type), dimension(:), intent(in) :: state
+    character(len=*), intent(in) :: name
+    character(len=*), intent(in) :: state_name
+    integer, intent(out), optional :: stat
+
+    integer :: i
+
+    do i=1,size(state)
+       if (trim(state(i)%name)==state_name) then
+          field=>extract_vector_field(state(i),name,stat)
+          if (present(stat)) stat=1
+          return
+       end if
+    end do
+       
+    if (present(stat)) then
+       field=>fake_vector_field
+       return
+    else
+       FLExit("Couldn't find state named "//state_name)
+    end if
+
+
+  end function extract_from_named_vector_field
+
+  function extract_from_named_scalar_field(state, name, state_name,stat, allocated) result (field)
+    type(scalar_field), pointer :: field
+    type(state_type), dimension(:), intent(in) :: state
+    character(len=*), intent(in) :: name
+    character(len=*), intent(in) :: state_name
+    integer, intent(out), optional :: stat
+    logical, intent(out), optional :: allocated
+
+    integer :: i
+
+    do i=1,size(state)
+       if (trim(state(i)%name)==state_name) then
+          field=>extract_scalar_field(state(i),name,stat,allocated)
+          if (present(stat)) stat=1
+          return
+       end if
+    end do
+       
+    if (present(stat)) then
+       field=>fake_scalar_field
+       return
+    else
+       FLExit("Couldn't find state named "//state_name)
+    end if
+
+
+  end function extract_from_named_scalar_field
 
   function extract_from_any_scalar_field(state, name, stat, allocated) result (field)
     !!< Return a pointer to the scalar field with the correct name.

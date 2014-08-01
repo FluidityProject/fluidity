@@ -666,8 +666,101 @@ start =
                      ## (Recommended)
                      element Use_epsilon_method { comment }?
                   }
-                },
-               ## Option for capillary pressure
+                }?,
+		## Mark phase as being the continuous phase in dispersed fluid-fluid flow
+		element continuous_phase {
+		     comment
+		}?,
+		(
+		   element drag {
+		        ## Options controlling form of drag terms for dispersed fluid-particle interactions
+			 attribute name { "Linear" },
+			 element diameter {real},
+			 element coefficient{real},
+			 comment
+		   }|
+		    element drag {
+		        ## Options controlling form of drag terms for dispersed fluid-particle interactions
+			 attribute name { "Bilinear" },
+			 element diameter {real},
+			 element coefficient{real},
+			 comment
+		   }|
+		   element drag {
+		        ## Options controlling form of drag terms for dispersed fluid-particle interactions
+			 attribute name { "Quadratic" },
+			 element diameter {real},
+			 element coefficient{real},
+			 comment
+		   }|element drag {
+		        ## Options controlling form of drag terms for dispersed fluid-particle interactions
+			 attribute name { "Wen&Yu" },
+			 element diameter {real},
+			 element specified_continuum_viscosity{
+			 ## Specify a value for the continuum_phase_viscosity to be used in calculating the drag term. If this is not set, the code defaaults to using the actual viscosity field specfied in the description continuum phase
+			 real
+			 }?,
+			 comment
+		   }|element drag {
+		        ## Options controlling form of drag terms for dispersed fluid-particle interactions
+			 attribute name { "Gidaspow" },
+			 element diameter {real},
+			 element coefficient{real},
+			 comment
+			  }|element drag {
+		        ## Options controlling form of drag terms for dispersed fluid-particle interactions
+			 attribute name { "SmoothedGidaspow" },
+			 element diameter {real},
+			 element specified_continuum_viscosity{
+			 ## Specify a value for the continuum_phase_viscosity to be used in calculating the drag term. If this is not set, the code defaaults to using the actual viscosity field specfied in the description continuum phase
+			 real
+			 }?,
+			 comment
+		   }|element drag {
+		        ## Options controlling form of drag terms for dispersed fluid-particle interactions
+			 attribute name { "python_function" },
+			 element function {
+	 		 	  python_code
+		         },	  			  
+			element argument {
+			    attribute name { xsd:string },
+	    		(
+	    		element type {
+	      	   	    attribute name { "scalar_field"}
+	    		}|
+	    		element type {
+	      	   	    attribute name { "vector_field"}
+            		}|
+            		element type {	
+                   	    attribute name { "tensor_field"}
+	    		}),
+	    		element material_phase {
+		   	   attribute name {xsd:string}
+			}?
+	    		}+,
+			comment
+			}
+	       )?,
+	       ## apply fluidic drag to polydispersed phase interactions
+	       element polydispersive_drag {
+	       	  element lubrication_distace {real} ,
+		  comment
+	       }?,
+	       ## Apply additional solid-solid interactions in polydispersed solid-fluid flow
+	       element solid_solid_interactions {
+	            ## Turns on Syamlal (1987) closure 	 	  			 
+	            element closure {
+		        attribute name {"Syamlal"},
+		        element coefficient_of_friction {real},
+			element radial_distribution_function {
+			     attribute name {"Lebowitz"},
+			     comment
+			},	
+		    	comment}?,
+		    comment
+	       }?,
+	       element coarse_graining {integer}?,	      
+               ## Option for capillary pressure				 
                element capillary_pressure {
                   ## Brookes-Corey equation
                   ##
