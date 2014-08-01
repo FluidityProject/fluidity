@@ -7,7 +7,7 @@ subroutine test_matrixmarket_read_write
   type(dynamic_csr_matrix):: A, B
   logical fail
   
-  call mmread('matrix.mm', A)
+  call mmread('data/matrix.mm', A)
   
   call allocate(B, 5, 6)
   
@@ -30,7 +30,7 @@ subroutine test_matrixmarket_read_write
   A=random_sparse_matrix(99, 100, 1001)
     
   call mmwrite('matrix2.mm', A)
-  call mmread('data/matrix2.mm', B)
+  call mmread('matrix2.mm', B)
   
   fail= .not. fequals(A, B, 1e-8)
   
