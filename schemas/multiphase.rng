@@ -824,46 +824,223 @@ via a compressible equation of state.</a:documentation>
           <optional>
             <element name="multiphase_properties">
               <a:documentation>Parameters required to model multiphase flow</a:documentation>
-              <element name="relperm_type">
-                <a:documentation>Option for relperm type in prototype code</a:documentation>
-                <element name="Corey">
-                  <a:documentation>Corey relperm:
+              <optional>
+                <element name="relperm_type">
+                  <a:documentation>Option for relperm type in prototype code</a:documentation>
+                  <element name="Corey">
+                    <a:documentation>Corey relperm:
 
 relperm = relperm_max * saturation**-relperm_exponent</a:documentation>
-                  <optional>
-                    <element name="relperm_max">
-                      <a:documentation>Relative permeability end point
+                    <optional>
+                      <element name="relperm_max">
+                        <a:documentation>Relative permeability end point
 
 Value between 0 and 1. Default value 1.0</a:documentation>
-                      <ref name="real"/>
-                    </element>
-                  </optional>
-                  <optional>
-                    <element name="relperm_exponent">
-                      <a:documentation>Relative permeability exponent
+                        <ref name="real"/>
+                      </element>
+                    </optional>
+                    <optional>
+                      <element name="relperm_exponent">
+                        <a:documentation>Relative permeability exponent
 
 Default value 2.0</a:documentation>
+                        <ref name="real"/>
+                      </element>
+                    </optional>
+                    <optional>
+                      <element name="boost_at_zero_saturation">
+                        <a:documentation>Option to boost the absorption at zero saturation</a:documentation>
+                        <ref name="comment"/>
+                      </element>
+                    </optional>
+                    <optional>
+                      <element name="Use_epsilon_method">
+                        <a:documentation>This method implements the true Brooks-Corey model by adding an epsilon value (1e-15) to avoid divisions by zero. 
+(Recommended)</a:documentation>
+                        <ref name="comment"/>
+                      </element>
+                    </optional>
+                  </element>
+                </element>
+              </optional>
+              <optional>
+                <element name="continuous_phase">
+                  <a:documentation>Mark phase as being the continuous phase in dispersed fluid-fluid flow</a:documentation>
+                  <ref name="comment"/>
+                </element>
+              </optional>
+              <optional>
+                <choice>
+                  <element name="drag">
+                    <attribute name="name">
+                      <a:documentation>Options controlling form of drag terms for dispersed fluid-particle interactions</a:documentation>
+                      <value>Linear</value>
+                    </attribute>
+                    <element name="diameter">
                       <ref name="real"/>
                     </element>
-                  </optional>
-                  <optional>
-                    <element name="boost_at_zero_saturation">
-                      <a:documentation>Option to boost the absorption at zero saturation</a:documentation>
-                      <ref name="comment"/>
+                    <element name="coefficient">
+                      <ref name="real"/>
                     </element>
-                  </optional>
-                  <optional>
-                    <element name="Use_epsilon_method">
-                      <a:documentation>This method implements the true Brooks-Corey model by adding an epsilon value (1e-15) to avoid divisions by zero. 
-(Recommended)</a:documentation>
-                      <ref name="comment"/>
+                    <ref name="comment"/>
+                  </element>
+                  <element name="drag">
+                    <attribute name="name">
+                      <a:documentation>Options controlling form of drag terms for dispersed fluid-particle interactions</a:documentation>
+                      <value>Bilinear</value>
+                    </attribute>
+                    <element name="diameter">
+                      <ref name="real"/>
                     </element>
-                  </optional>
+                    <element name="coefficient">
+                      <ref name="real"/>
+                    </element>
+                    <ref name="comment"/>
+                  </element>
+                  <element name="drag">
+                    <attribute name="name">
+                      <a:documentation>Options controlling form of drag terms for dispersed fluid-particle interactions</a:documentation>
+                      <value>Quadratic</value>
+                    </attribute>
+                    <element name="diameter">
+                      <ref name="real"/>
+                    </element>
+                    <element name="coefficient">
+                      <ref name="real"/>
+                    </element>
+                    <ref name="comment"/>
+                  </element>
+                  <element name="drag">
+                    <attribute name="name">
+                      <a:documentation>Options controlling form of drag terms for dispersed fluid-particle interactions</a:documentation>
+                      <value>Wen&amp;Yu</value>
+                    </attribute>
+                    <element name="diameter">
+                      <ref name="real"/>
+                    </element>
+                    <optional>
+                      <element name="specified_continuum_viscosity">
+                        <ref name="real">
+                          <a:documentation>Specify a value for the continuum_phase_viscosity to be used in calculating the drag term. If this is not set, the code defaaults to using the actual viscosity field specfied in the description continuum phase</a:documentation>
+                        </ref>
+                      </element>
+                    </optional>
+                    <ref name="comment"/>
+                  </element>
+                  <element name="drag">
+                    <attribute name="name">
+                      <a:documentation>Options controlling form of drag terms for dispersed fluid-particle interactions</a:documentation>
+                      <value>Gidaspow</value>
+                    </attribute>
+                    <element name="diameter">
+                      <ref name="real"/>
+                    </element>
+                    <element name="coefficient">
+                      <ref name="real"/>
+                    </element>
+                    <ref name="comment"/>
+                  </element>
+                  <element name="drag">
+                    <attribute name="name">
+                      <a:documentation>Options controlling form of drag terms for dispersed fluid-particle interactions</a:documentation>
+                      <value>SmoothedGidaspow</value>
+                    </attribute>
+                    <element name="diameter">
+                      <ref name="real"/>
+                    </element>
+                    <optional>
+                      <element name="specified_continuum_viscosity">
+                        <ref name="real">
+                          <a:documentation>Specify a value for the continuum_phase_viscosity to be used in calculating the drag term. If this is not set, the code defaaults to using the actual viscosity field specfied in the description continuum phase</a:documentation>
+                        </ref>
+                      </element>
+                    </optional>
+                    <ref name="comment"/>
+                  </element>
+                  <element name="drag">
+                    <attribute name="name">
+                      <a:documentation>Options controlling form of drag terms for dispersed fluid-particle interactions</a:documentation>
+                      <value>python_function</value>
+                    </attribute>
+                    <element name="function">
+                      <ref name="python_code"/>
+                    </element>
+                    <oneOrMore>
+                      <element name="argument">
+                        <attribute name="name">
+                          <data type="string"/>
+                        </attribute>
+                        <choice>
+                          <element name="type">
+                            <attribute name="name">
+                              <value>scalar_field</value>
+                            </attribute>
+                          </element>
+                          <element name="type">
+                            <attribute name="name">
+                              <value>vector_field</value>
+                            </attribute>
+                          </element>
+                          <element name="type">
+                            <attribute name="name">
+                              <value>tensor_field</value>
+                            </attribute>
+                          </element>
+                        </choice>
+                        <optional>
+                          <element name="material_phase">
+                            <attribute name="name">
+                              <data type="string"/>
+                            </attribute>
+                          </element>
+                        </optional>
+                      </element>
+                    </oneOrMore>
+                    <ref name="comment"/>
+                  </element>
+                </choice>
+              </optional>
+              <optional>
+                <element name="polydispersive_drag">
+                  <a:documentation>apply fluidic drag to polydispersed phase interactions</a:documentation>
+                  <element name="lubrication_distace">
+                    <ref name="real"/>
+                  </element>
+                  <ref name="comment"/>
                 </element>
-              </element>
+              </optional>
+              <optional>
+                <element name="solid_solid_interactions">
+                  <a:documentation>Apply additional solid-solid interactions in polydispersed solid-fluid flow</a:documentation>
+                  <optional>
+                    <element name="closure">
+                      <a:documentation>Turns on Syamlal (1987) closure 	 	  			 </a:documentation>
+                      <attribute name="name">
+                        <value>Syamlal</value>
+                      </attribute>
+                      <element name="coefficient_of_friction">
+                        <ref name="real"/>
+                      </element>
+                      <element name="radial_distribution_function">
+                        <attribute name="name">
+                          <value>Lebowitz</value>
+                        </attribute>
+                        <ref name="comment"/>
+                      </element>
+                      <ref name="comment"/>
+                    </element>
+                  </optional>
+                  <ref name="comment"/>
+                </element>
+              </optional>
+              <optional>
+                <element name="coarse_graining">
+                  <ref name="integer"/>
+                </element>
+              </optional>
               <optional>
                 <element name="capillary_pressure">
-                  <a:documentation>Option for capillary pressure</a:documentation>
+                  <a:documentation>Option for capillary pressure				 </a:documentation>
                   <element name="type_Brookes_Corey">
                     <a:documentation>Brookes-Corey equation
 
