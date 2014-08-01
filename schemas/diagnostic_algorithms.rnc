@@ -1356,6 +1356,15 @@ universal_column_id_algorithm =
       }
    )
 
+viscous_dissipation_algorithm =
+   (
+      ## algorithm for calculating the viscous dissipation.
+       element algorithm {
+         attribute name { "viscous_dissipation" },
+         attribute material_phase_support { "single "}
+      }
+   )
+
 # Mass matrix
    
 finite_element_lumped_mass_matrix =
@@ -1467,6 +1476,7 @@ vector_scalar_time_averaged_algorithm =
    )
 
 scalar_diagnostic_algorithms = universal_numbering_diagnostic_algorithm
+scalar_diagnostic_algorithms |= viscous_dissipation_algorithm
 scalar_diagnostic_algorithms |= universal_column_id_algorithm
 scalar_diagnostic_algorithms |= tidal_harmonic_algorithm
 scalar_diagnostic_algorithms |= tensor_second_invariant_algorithm

@@ -1829,6 +1829,17 @@ The mesh must be directly extruded.</a:documentation>
       </attribute>
     </element>
   </define>
+  <define name="viscous_dissipation_algorithm">
+    <element name="algorithm">
+      <a:documentation>algorithm for calculating the viscous dissipation.</a:documentation>
+      <attribute name="name">
+        <value>viscous_dissipation</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single </value>
+      </attribute>
+    </element>
+  </define>
   <!-- Mass matrix -->
   <define name="finite_element_lumped_mass_matrix">
     <element name="algorithm">
@@ -1964,6 +1975,9 @@ This field needs to be interpolated between adapts.</a:documentation>
   </define>
   <define name="scalar_diagnostic_algorithms">
     <ref name="universal_numbering_diagnostic_algorithm"/>
+  </define>
+  <define name="scalar_diagnostic_algorithms" combine="choice">
+    <ref name="viscous_dissipation_algorithm"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="universal_column_id_algorithm"/>
