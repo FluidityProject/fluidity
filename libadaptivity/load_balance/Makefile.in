@@ -48,7 +48,7 @@ INSTALL = @INSTALL@
 
 # ../include (which is different than @srcdir@/../include in a out-of-tree build)
 # contains the configure created include files
-CPPFLAGS = @CPPFLAGS@ -I@srcdir@/include -I@srcdir@/../include -I../include
+CPPFLAGS = -I@srcdir@/include -I@srcdir@/../include -I../include @CPPFLAGS@ 
 
 CFLAGS	= $(CPPFLAGS) @CFLAGS@
 CXXFLAGS= $(CPPFLAGS) @CXXFLAGS@
