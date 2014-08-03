@@ -472,7 +472,6 @@ clean-test:
 	@echo "    CLEAN tests"
 	@if [ ! -d tests ]; then ln -s @srcdir@/tests/; fi
 	@cd tests; PYTHONPATH=../python ../tools/testharness.py --clean >/dev/null
-	@cd tests/data; $(MAKE) clean
 
 clean-all-tests: clean-test     
 	@echo "    CLEAN parallel/special/long tests"
@@ -492,7 +491,6 @@ distclean: clean
 	@cd libvtkfortran ; make distclean > /dev/null
 	@cd libspud ; make distclean > /dev/null ; rm -rf		\
 	 libspud.so.0 libtool diamond/build python/build > /dev/null
-	@cd tools ; make distclean > /dev/null
 	@rm -fr `find ./ -name config.status` `find ./ -name		\
 	 config.log` share include/Judy.h include/Wm4Command.h		\
 	 include/Wm4FoundationLIB.h include/Wm4FoundationPCH.h		\
