@@ -468,18 +468,18 @@ clean-debian:
 	  rm -rf files tmp fluidity python-fluidity *.substvars *.debhelper*; \
 	fi
 
-clean-test:      
+clean-test: scripts
 	@echo "    CLEAN tests"
 	@if [ ! -d tests ]; then ln -s @srcdir@/tests/; fi
 	bin/testharness --clean >/dev/null
 
-clean-all-tests: clean-test     
+clean-all-tests: clean-test scripts
 	@echo "    CLEAN parallel/special/long tests"
-	bin/testharness --parallelism=parallel --clean >/dev/null
-	bin/testharness --length=special --clean >/dev/null
-	bin/testharness --length=special --parallelism=parallel --clean >/dev/null
-	bin/testharness --length=long --clean >/dev/null
-	bin/testharness --length=long --parallelism=parallel --clean >/dev/null
+	@bin/testharness --parallelism=parallel --clean >/dev/null
+	@bin/testharness --length=special --clean >/dev/null
+	@bin/testharness --length=special --parallelism=parallel --clean >/dev/null
+	@bin/testharness --length=long --clean >/dev/null
+	@bin/testharness --length=long --parallelism=parallel --clean >/dev/null
 
 distclean: clean
 	@echo "    DISTCLEAN"
@@ -520,13 +520,13 @@ distclean: clean
 
 test: fltools bin/$(FLUIDITY) bin/shallow_water serialtest bin/burgers_equation
 
-serialtest: fltools bin/$(FLUIDITY) bin/shallow_water
+serialtest: fltools bin/$(FLUIDITY) bin/shallow_water scripts
 	@if [ ! -d tests ]; then ln -s @srcdir@/tests/; fi
-	bin/testharness -l short $(EXCLUDE_TAGS) -n $(THREADS)
+	@bin/testharness -l short $(EXCLUDE_TAGS) -n $(THREADS) --give-version=fluidity
 
-mediumtest: fltools bin/$(FLUIDITY) manual bin/burgers_equation bin/shallow_water spudtools
+mediumtest: fltools bin/$(FLUIDITY) manual bin/burgers_equation bin/shallow_water spudtools scripts
 	@if [ ! -d tests ]; then ln -s @srcdir@/tests/; fi
-	bin/testharness -l medium $(EXCLUDE_TAGS) -n $(THREADS)
+	@bin/testharness -l medium $(EXCLUDE_TAGS) -n $(THREADS) --give-version=fluidity
 
 .PHONY: spudtools
 

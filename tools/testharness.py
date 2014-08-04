@@ -330,7 +330,7 @@ if __name__ == "__main__":
     parser.add_option("--just-test", action="store_true", dest="justtest")
     parser.add_option("--just-list", action="store_true", dest="justlist")
     parser.add_option("--genpbs", action="store_true", dest="genpbs")
-    parser.add_option("--give-version", dest="executable", help="gives the output of running `EXECUTABLE --version` in the test environment")
+    parser.add_option("--give-version", dest="executable", help="gives the output of running `EXECUTABLE --version` in the test environment", default=None)
     (options, args) = parser.parse_args()
 
     if len(args) > 0: parser.error("Too many arguments.")
@@ -376,9 +376,9 @@ if __name__ == "__main__":
     elif options.clean:
       testharness.clean()
     else:
-      if options.executable:
+      if options.executable is not None:
         print "-" * 80
-        which = os.popen("which %s"i % options.executable).read()
+        which = os.popen("which %s" % options.executable).read()
         if len(which) > 0:
           print "which %s: %s" % (options.executable, which),
         versio = os.popen("%s --version" % options.executable).read()
