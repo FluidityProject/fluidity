@@ -5,9 +5,9 @@
   <tags> parallel 2dadapt </tags>
   <problem_definition length="medium" nprocs="3">
     <command_line>
-    ../../bin/fluidity -v3 -l lock_exchange_2d.flml &amp;&amp;
-    mpiexec ../../bin/flredecomp -i 1 -o 3 -v -l lock_exchange_2d_parallel lock_exchange_2d_parallel_flredecomp &amp;&amp;
-    mpiexec ../../bin/fluidity -v3 -l lock_exchange_2d_parallel_flredecomp.flml
+    fluidity -v3 -l lock_exchange_2d.flml &amp;&amp;
+    mpiexec flredecomp -i 1 -o 3 -v -l lock_exchange_2d_parallel lock_exchange_2d_parallel_flredecomp &amp;&amp;
+    mpiexec fluidity -v3 -l lock_exchange_2d_parallel_flredecomp.flml
     </command_line> 
   </problem_definition>
   <variables>

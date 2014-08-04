@@ -6,8 +6,8 @@
   <tags>flml detectors checkpoint</tags>
   <problem_definition length="short" nprocs="4">
     <command_line>
-../../bin/fluidity -v2 -l lagrangian_detectors.flml;
-../../bin/fluidity -v2 -l lagrangian_detectors_1_checkpoint.flml
+fluidity -v2 -l lagrangian_detectors.flml;
+fluidity -v2 -l lagrangian_detectors_1_checkpoint.flml
     </command_line>
   </problem_definition>
   <variables>

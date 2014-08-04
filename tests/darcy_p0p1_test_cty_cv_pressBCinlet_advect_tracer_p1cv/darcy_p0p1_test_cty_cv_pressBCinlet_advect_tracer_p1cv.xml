@@ -7,19 +7,19 @@
   <tags>flml darcy</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>
-../../bin/fluidity darcy_p0p1_test_cty_cv_pressBCinlet_2d.flml
-../../bin/fluidity advect_tracer_cons_exp_weakbc_upwind_p1cv_2d.flml 
-../../bin/fluidity advect_tracer_cons_imp_weakbc_upwind_p1cv_2d.flml 
-../../bin/fluidity advect_tracer_cons_exp_weakbc_hyperc_p1cv_2d.flml 
-../../bin/fluidity advect_tracer_cons_imp_weakbc_fesweby_p1cv_2d.flml 
-../../bin/fluidity advect_tracer_cons_exp_weakbc_feultimate_p1cv_2d.flml 
+fluidity darcy_p0p1_test_cty_cv_pressBCinlet_2d.flml
+fluidity advect_tracer_cons_exp_weakbc_upwind_p1cv_2d.flml
+fluidity advect_tracer_cons_imp_weakbc_upwind_p1cv_2d.flml
+fluidity advect_tracer_cons_exp_weakbc_hyperc_p1cv_2d.flml
+fluidity advect_tracer_cons_imp_weakbc_fesweby_p1cv_2d.flml
+fluidity advect_tracer_cons_exp_weakbc_feultimate_p1cv_2d.flml
 
-../../bin/fluidity darcy_p0p1_test_cty_cv_pressBCinlet_3d.flml
-../../bin/fluidity advect_tracer_cons_exp_weakbc_upwind_p1cv_3d.flml 
-../../bin/fluidity advect_tracer_cons_imp_weakbc_upwind_p1cv_3d.flml 
-../../bin/fluidity advect_tracer_cons_exp_weakbc_hyperc_p1cv_3d.flml 
-../../bin/fluidity advect_tracer_cons_imp_weakbc_fesweby_p1cv_3d.flml
-../../bin/fluidity advect_tracer_cons_exp_weakbc_feultimate_p1cv_3d.flml 
+fluidity darcy_p0p1_test_cty_cv_pressBCinlet_3d.flml
+fluidity advect_tracer_cons_exp_weakbc_upwind_p1cv_3d.flml
+fluidity advect_tracer_cons_imp_weakbc_upwind_p1cv_3d.flml
+fluidity advect_tracer_cons_exp_weakbc_hyperc_p1cv_3d.flml
+fluidity advect_tracer_cons_imp_weakbc_fesweby_p1cv_3d.flml
+fluidity advect_tracer_cons_exp_weakbc_feultimate_p1cv_3d.flml
     </command_line>
     <!-- Two/Three dimensional (actual physics is 1d) case for darcy flow with one region and one material using p0p1_test_cty_cv element type testing the pressure gradient against analytic and the darcy velocity. First vel-press is solved then a second run advects a tracer using the checkpointed velocity. -->
   </problem_definition>

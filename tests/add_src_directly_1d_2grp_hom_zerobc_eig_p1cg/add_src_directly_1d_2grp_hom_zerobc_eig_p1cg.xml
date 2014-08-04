@@ -7,26 +7,26 @@
   <tags>flml</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>
-../../bin/fluidity add_src_directly_1d_2grp_hom_zerobc_eig_p1cg_A.flml 
+fluidity add_src_directly_1d_2grp_hom_zerobc_eig_p1cg_A.flml
 
 cp add_src_directly_1d_2grp_hom_zerobc_eig_p1cg_A.flml add_src_directly_1d_2grp_hom_zerobc_eig_p1cg_B.flml
 sed -i 's/_A/_B/' add_src_directly_1d_2grp_hom_zerobc_eig_p1cg_B.flml
 
-../../bin/fluidity add_src_directly_1d_2grp_hom_zerobc_eig_p1cg_B.flml 
+fluidity add_src_directly_1d_2grp_hom_zerobc_eig_p1cg_B.flml
 
 rm -f add_src_directly_1d_2grp_hom_zerobc_eig_p1cg_B.flml
 
 cp add_src_directly_1d_2grp_hom_zerobc_eig_p1cg_A.flml add_src_directly_1d_2grp_hom_zerobc_eig_p1cg_C.flml
 sed -i 's/_A/_C/' add_src_directly_1d_2grp_hom_zerobc_eig_p1cg_C.flml
 
-../../bin/fluidity add_src_directly_1d_2grp_hom_zerobc_eig_p1cg_C.flml 
+fluidity add_src_directly_1d_2grp_hom_zerobc_eig_p1cg_C.flml
 
 rm -f add_src_directly_1d_2grp_hom_zerobc_eig_p1cg_C.flml
 
 cp add_src_directly_1d_2grp_hom_zerobc_eig_p1cg_A.flml add_src_directly_1d_2grp_hom_zerobc_eig_p1cg_D.flml
 sed -i 's/_A/_D/' add_src_directly_1d_2grp_hom_zerobc_eig_p1cg_D.flml
 
-../../bin/fluidity add_src_directly_1d_2grp_hom_zerobc_eig_p1cg_D.flml 
+fluidity add_src_directly_1d_2grp_hom_zerobc_eig_p1cg_D.flml
 
 rm -f add_src_directly_1d_2grp_hom_zerobc_eig_p1cg_D.flml       
     </command_line>

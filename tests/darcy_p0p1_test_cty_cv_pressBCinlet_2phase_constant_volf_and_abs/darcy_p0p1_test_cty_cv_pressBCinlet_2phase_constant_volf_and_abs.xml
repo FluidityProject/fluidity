@@ -7,8 +7,8 @@
   <tags>flml darcy</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>
-../../bin/fluidity  darcy_p0p1_test_cty_cv_pressBCinlet_2phase_constant_volf_and_abs_2d.flml
-../../bin/fluidity  darcy_p0p1_test_cty_cv_pressBCinlet_2phase_constant_volf_and_abs_3d.flml
+fluidity  darcy_p0p1_test_cty_cv_pressBCinlet_2phase_constant_volf_and_abs_2d.flml
+fluidity  darcy_p0p1_test_cty_cv_pressBCinlet_2phase_constant_volf_and_abs_3d.flml
     </command_line>
     <!-- Two/three dimensional problem for darcy flow with one region and one material using p0p1 element type testing the pressure gradient against analytic and the velocity. This has two phases with constant saturations and each with a constant momentum absorption. -->
   </problem_definition>

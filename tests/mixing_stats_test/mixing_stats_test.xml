@@ -9,9 +9,9 @@
   <tags>flml parallel</tags>
   
     <problem_definition length="medium" nprocs="3">
-      <command_line>mpiexec ../../bin/flredecomp -i 1 -o 3 -v -l mixing_stats_test_parallel mixing_stats_test_parallel_flredecomp &amp;&amp;
+      <command_line>mpiexec flredecomp -i 1 -o 3 -v -l mixing_stats_test_parallel mixing_stats_test_parallel_flredecomp &amp;&amp;
         fluidity -v3 -l mixing_stats_test_serial.flml;
-                  mpiexec ../../bin/fluidity -v3 -l mixing_stats_test_parallel_flredecomp.flml;
+                  mpiexec fluidity -v3 -l mixing_stats_test_parallel_flredecomp.flml;
      </command_line>
   </problem_definition> 
    
@@ -46,7 +46,7 @@ filename_ids = ['1','4','7']
 # 7 is after adapt
 for i in range(len(filenames)):
   print 'pvtu2vtu'
-  os.system('../../bin/pvtu2vtu '+filename_base+' '+filename_ids[i])
+  os.system('pvtu2vtu '+filename_base+' '+filename_ids[i])
   # take pvtus -> vtus as otherwise will count multiple nodes in halo regions more than once and make the sum used below incorrect
   matvolume_parallel[0].append(sum(vtktools.vtu(filenames[i]).GetScalarField("Material1::MaterialVolume"))) 
   matvolume_parallel[1].append(sum(vtktools.vtu(filenames[i]).GetScalarField("Material2::MaterialVolume")))  

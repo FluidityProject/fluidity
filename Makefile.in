@@ -471,15 +471,15 @@ clean-debian:
 clean-test:      
 	@echo "    CLEAN tests"
 	@if [ ! -d tests ]; then ln -s @srcdir@/tests/; fi
-	@cd tests; PYTHONPATH=../python ../tools/testharness.py --clean >/dev/null
+	bin/testharness --clean >/dev/null
 
 clean-all-tests: clean-test     
 	@echo "    CLEAN parallel/special/long tests"
-	@PYTHONPATH=python tools/testharness.py --parallelism=parallel --clean >/dev/null
-	@PYTHONPATH=python tools/testharness.py --length=special --clean >/dev/null
-	@PYTHONPATH=python tools/testharness.py --length=special --parallelism=parallel --clean >/dev/null
-	@PYTHONPATH=python tools/testharness.py --length=long --clean >/dev/null
-	@PYTHONPATH=python tools/testharness.py --length=long --parallelism=parallel --clean >/dev/null
+	bin/testharness --parallelism=parallel --clean >/dev/null
+	bin/testharness --length=special --clean >/dev/null
+	bin/testharness --length=special --parallelism=parallel --clean >/dev/null
+	bin/testharness --length=long --clean >/dev/null
+	bin/testharness --length=long --parallelism=parallel --clean >/dev/null
 
 distclean: clean
 	@echo "    DISTCLEAN"
@@ -522,25 +522,11 @@ test: fltools bin/$(FLUIDITY) bin/shallow_water serialtest bin/burgers_equation
 
 serialtest: fltools bin/$(FLUIDITY) bin/shallow_water
 	@if [ ! -d tests ]; then ln -s @srcdir@/tests/; fi
-	@if [ ! @srcdir@/bin -ef bin ]; then \
-	  if [ -e @srcdir@/bin ]; then \
-	    rm @srcdir@/bin; \
-	  fi && ln -s $(CURDIR)/bin @srcdir@/bin || { echo "*** ERROR ***: @srcdir@/bin already exists. \
-You need to remove this directory before running make test from the current build directory. \
-It will be replaced by a symlink to bin/ in the current directory."; false; } \
-	fi
-	@cd tests; ../bin/testharness -l short $(EXCLUDE_TAGS) -n $(THREADS)
+	bin/testharness -l short $(EXCLUDE_TAGS) -n $(THREADS)
 
 mediumtest: fltools bin/$(FLUIDITY) manual bin/burgers_equation bin/shallow_water spudtools
 	@if [ ! -d tests ]; then ln -s @srcdir@/tests/; fi
-	@if [ ! @srcdir@ -ef bin ]; then \
-	  if [ -e @srcdir@/bin ]; then \
-	    rm @srcdir@/bin; \
-	  fi && ln -s $(CURDIR)/bin @srcdir@/bin || { echo "*** ERROR ***: @srcdir@ already exists. \
-You need to remove this directory before running make test from the current build directory. \
-It will be replaced by a symlink to bin/ in the current directory."; false; } \
-	fi
-	@cd tests; ../bin/testharness -l medium $(EXCLUDE_TAGS) -n $(THREADS)
+	bin/testharness -l medium $(EXCLUDE_TAGS) -n $(THREADS)
 
 .PHONY: spudtools
 

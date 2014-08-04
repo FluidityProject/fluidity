@@ -4,7 +4,7 @@
   <owner userid="pfarrell"/>
   <tags>flml</tags>
   <problem_definition length="short" nprocs="1">
-    <command_line>../../bin/periodise periodic_2plus1_adaptivity.flml; fluidity -v2 -l periodic_2plus1_adaptivity_periodised.flml</command_line>
+    <command_line>periodise periodic_2plus1_adaptivity.flml; fluidity -v2 -l periodic_2plus1_adaptivity_periodised.flml</command_line>
   </problem_definition>
   <variables>
     <variable name="solvers_converged" language="python">

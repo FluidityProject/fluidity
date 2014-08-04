@@ -4,7 +4,7 @@
   <owner userid="jrper"/>
   <tags>flml</tags>
   <problem_definition length="short" nprocs="1">
-    <command_line>../../bin/periodise periodic_adaptivity_at_first_timestep.flml; fluidity -v2 -l periodic_adaptivity_at_first_timestep_periodised.flml</command_line>
+    <command_line>periodise periodic_adaptivity_at_first_timestep.flml; fluidity -v2 -l periodic_adaptivity_at_first_timestep_periodised.flml</command_line>
   </problem_definition>
   <variables>
     <variable name="consistent_max" language="python">

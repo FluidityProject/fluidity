@@ -7,7 +7,7 @@
   <tags>flml</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>
-../../bin/fluidity pydiag_material_phase_support_multiple_velocity_children.flml
+fluidity pydiag_material_phase_support_multiple_velocity_children.flml
     </command_line>
     <!-- A dummy fluids test case to check that for velocity children fields set with python diagnostics with material_phase_support set to multiple there is access to all states. -->
   </problem_definition>

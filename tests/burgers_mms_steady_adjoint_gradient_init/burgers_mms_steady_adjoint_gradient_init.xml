@@ -4,7 +4,7 @@
   <owner userid="pef"/>
   <tags>burgers adjoint</tags>
   <problem_definition length="medium" nprocs="1">
-    <command_line>../../bin/optimality op_A.oml; ../../bin/optimality op_B.oml; ../../bin/optimality op_C.oml</command_line>
+    <command_line>optimality op_A.oml; ../../bin/optimality op_B.oml; ../../bin/optimality op_C.oml</command_line>
   </problem_definition>
   <variables>
     <variable name="gradient_conv" language="python">

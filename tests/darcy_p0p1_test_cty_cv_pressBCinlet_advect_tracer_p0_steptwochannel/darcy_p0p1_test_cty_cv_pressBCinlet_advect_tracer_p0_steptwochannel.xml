@@ -7,8 +7,8 @@
   <tags>flml darcy</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>
-../../bin/fluidity darcy_p0p1_test_cty_cv_pressBCinlet_2d.flml
-../../bin/fluidity advect_tracer_cons_exp_weakbc_upwind_p0_2d.flml 
+fluidity darcy_p0p1_test_cty_cv_pressBCinlet_2d.flml
+fluidity advect_tracer_cons_exp_weakbc_upwind_p0_2d.flml
     </command_line>
     <!-- Two dimensional two parallel channel 3 material case for darcy flow with one region and one material using p0p1_test_cty_cv element type testing the pressure gradient against analytic and the darcy velocity. First vel-press is solved then a second run advects a tracer using the checkpointed velocity. -->
   </problem_definition>

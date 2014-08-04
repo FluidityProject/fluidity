@@ -3,7 +3,7 @@
   <name>PrescribedLandslide</name>
   <owner userid="jhill1"/>
   <problem_definition length="medium" nprocs="1">
-    <command_line>../../bin/fluidity Storegga_2d_presc.flml; ../../bin/fluidity Storegga_2d.flml</command_line>
+    <command_line>fluidity Storegga_2d_presc.flml; ../../bin/fluidity Storegga_2d.flml</command_line>
   </problem_definition>
   <variables>
     <variable name="solvers_converged" language="python">

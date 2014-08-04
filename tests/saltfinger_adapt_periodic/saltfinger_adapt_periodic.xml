@@ -4,7 +4,7 @@
   <owner userid="fmactavish"/>
   <tags>flml 2dadapt</tags>
   <problem_definition length="medium" nprocs="1">
-    <command_line>../../bin/periodise saltfinger_adapt_periodic.flml ;fluidity  saltfinger_adapt_periodic_periodised.flml </command_line>
+    <command_line>periodise saltfinger_adapt_periodic.flml ;fluidity  saltfinger_adapt_periodic_periodised.flml </command_line>
   </problem_definition>
   <variables>
     <variable name="solvers_converged" language="python">
