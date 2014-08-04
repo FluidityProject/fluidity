@@ -50,20 +50,21 @@ viscous_dissipation = stat("Benchmark_Case_1a.stat")["Mantle"]["ViscousDissipati
 assert(solvers_converged)
 </test>
 
-<test name="min_y_550 == 1e21" language="python">
-assert(abs(min_y_550 - 1e21) &lt; 1e11)
+<test name="min_y_550 is within 1% of 1e21" language="python">
+assert( (abs(1e21 - min_y_550)/1e21)*100. &lt; 1.)
 </test>
 
-<test name="max_y_550 is within 10% of 2.2e23" language="python">
-assert( (abs(2.2e23 - max_y_550)/2.2e23)*100. &lt; 10)
+<test name="max_y_550 is within 5% of 2.2e23" language="python">
+assert( (abs(2.2e23 - max_y_550)/2.2e23)*100. &lt; 5.)
 </test>
 
-<test name="min_x_500 == 1e21" language="python">
-assert(abs(min_x_500 - 1e21) &lt; 1e11)
+<test name="min_x_500 is within 1% of 1e21" language="python">
+assert( (abs(1e21 - min_x_500)/1e21)*100. &lt; 1.)
 </test>
 
-<test name="max_x_500 == 1e25" language="python">
-assert(abs(max_x_500 - 1e25) &lt; 1e11)
+<test name="max_x_500 is within 1% of 1e25" language="python">
+print (abs(1e25 - max_x_500)/1e25)*100.
+assert( (abs(1e25 - max_x_500)/1e25)*100. &lt; 1.)
 </test>
 
 <test name="Viscous Dissipation: 130 .lt. VD .lt. 150" language="python">
