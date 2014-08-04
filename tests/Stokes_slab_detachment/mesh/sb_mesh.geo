@@ -1,7 +1,7 @@
 spacing = 5e3;
 Point(1) = {0, 0, 0, spacing};
-Point(2) = {1000000, 0, 0, spacing};
-Point(3) = {1000000, 660000, 0, spacing};
+Point(2) = {500000, 0, 0, spacing};
+Point(3) = {500000, 660000, 0, spacing};
 Point(4) = {0, 660000, 0, spacing};
 Line(1) = {1, 2};
 Line(2) = {2, 3};

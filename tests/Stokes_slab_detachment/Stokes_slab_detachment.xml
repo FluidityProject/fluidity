@@ -66,8 +66,8 @@ assert(abs(min_x_500 - 1e21) &lt; 1e11)
 assert(abs(max_x_500 - 1e25) &lt; 1e11)
 </test>
 
-<test name="Viscous Dissipation: 270 .lt. VD .lt. 300" language="python">
-assert(abs(viscous_dissipation-285.0) &lt; 15.0)
+<test name="Viscous Dissipation: 130 .lt. VD .lt. 150" language="python">
+assert(abs(viscous_dissipation-140.0) &lt; 10.0)
 </test>
 
 </pass_tests>
