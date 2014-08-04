@@ -1,11 +1,11 @@
 preprocess:
 	@echo **********Creating 2D mesh
 	gmsh -2 -o mphase_tephra_settling.msh src/mphase_tephra_settling.geo
-	../../bin/gmsh2triangle --2d mphase_tephra_settling.msh
+	gmsh2triangle --2d mphase_tephra_settling.msh
 
 run:
 	@echo **********Running simulation
-	../../bin/fluidity mphase_tephra_settling.flml
+	fluidity mphase_tephra_settling.flml
 
 input: clean preprocess
 

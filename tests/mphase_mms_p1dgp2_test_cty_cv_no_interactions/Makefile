@@ -1,14 +1,14 @@
 preprocess:
 	@echo **********Creating 2D meshes
-	../../bin/gmsh2triangle --2d src/MMS_A.msh
-	../../bin/gmsh2triangle --2d src/MMS_B.msh
-	../../bin/gmsh2triangle --2d src/MMS_C.msh
+	gmsh2triangle --2d src/MMS_A.msh
+	gmsh2triangle --2d src/MMS_B.msh
+	gmsh2triangle --2d src/MMS_C.msh
 
 run:
 	@echo **********Running simulations
-	../../bin/fluidity -v3 -l MMS_A.flml
-	../../bin/fluidity -v3 -l MMS_B.flml
-	../../bin/fluidity -v3 -l MMS_C.flml
+	fluidity -v3 -l MMS_A.flml
+	fluidity -v3 -l MMS_B.flml
+	fluidity -v3 -l MMS_C.flml
 
 input: clean preprocess
 

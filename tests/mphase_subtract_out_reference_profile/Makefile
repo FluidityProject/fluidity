@@ -1,10 +1,10 @@
 preprocess:
 	@echo **********Creating 1D mesh
-	../../bin/interval --dx=100.0 -- 0.0 10000.0 line
+	interval --dx=100.0 -- 0.0 10000.0 line
 
 run:
 	@echo **********Running simulation
-	../../bin/fluidity -v2 -l mphase_subtract_out_reference_profile_1d.flml
+	fluidity -v2 -l mphase_subtract_out_reference_profile_1d.flml
 
 input: clean preprocess
 

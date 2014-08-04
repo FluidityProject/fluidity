@@ -1,10 +1,10 @@
 preprocess:
 	@echo **********Creating 1D mesh
-	../../bin/interval --dx=100.0 -- 0.0 10000.0 line
+	interval --dx=100.0 -- 0.0 10000.0 line
 
 run:
 	@echo **********Running simulation
-	../../bin/fluidity -v2 -l inlet_velocity_bc_incompressible.flml
+	fluidity -v2 -l inlet_velocity_bc_incompressible.flml
 
 input: clean preprocess
 

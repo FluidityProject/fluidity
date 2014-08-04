@@ -1,6 +1,6 @@
 FLFLAGS = -v2 -l
 FLMLMODEL = cube
-FLUIDITY = ../../bin/dfluidity
+FLUIDITY = dfluidity
 MESHARCH = cube
 MESH = $(notdir $(MESHARCH))
 MODEL = cube
@@ -35,14 +35,14 @@ clean-run-debug: clean-run
 	
 run: clean-run input
 ifdef NP
-	mpiexec -n $(NP) ../../bin/flredecomp -i 1 -o $(NP) -v -l $(FLMLMODEL) $(FLMLMODEL)_flredecomp
+	mpiexec -n $(NP) flredecomp -i 1 -o $(NP) -v -l $(FLMLMODEL) $(FLMLMODEL)_flredecomp
 	mpiexec -np $(NP) $(FLUIDITY) $(FLFLAGS) $(MODEL)_flredecomp.flml
 else
 	$(FLUIDITY) $(FLFLAGS) $(MODEL).flml
 endif
 run-debug: clean-run-debug input
 ifdef NP
-	mpiexec -n $(NP) ../../bin/flredecomp -i 1 -o $(NP) -v -l $(FLMLMODEL) $(FLMLMODEL)_flredecomp
+	mpiexec -n $(NP) flredecomp -i 1 -o $(NP) -v -l $(FLMLMODEL) $(FLMLMODEL)_flredecomp
 	mpiexec -np $(NP) $(FLUIDITY)-debug $(FLFLAGS) $(MODEL)_flredecomp.flml
 else
 	$(FLUIDITY)-debug $(FLFLAGS) $(MODEL).flml
