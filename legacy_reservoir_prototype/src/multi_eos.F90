@@ -853,11 +853,11 @@
                      if (is_corey) then
                           if (options%is_Corey_epsilon_method) then
                              CALL relperm_corey_epsilon( U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ), MOBILITY, &
-                                 INV_PERM( IDIM, JDIM, ELE ), min(1.0,max(0.0,SATURA(1,CV_NOD))), IPHASE,&
+                                 INV_PERM( IDIM, JDIM, ELE ), min(1.0,max(0.0,SATURATION)), IPHASE,&
                                  options)!Second phase is considered inside the subroutine
                           else
                                 CALL relperm_corey( U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ), MOBILITY, &
-                                     INV_PERM( IDIM, JDIM, ELE ), min(1.0,max(0.0,SATURA(1,CV_NOD))), IPHASE,&
+                                     INV_PERM( IDIM, JDIM, ELE ), min(1.0,max(0.0,SATURATION)), IPHASE,&
                                      options)
                              end if
 
@@ -867,7 +867,7 @@
 
                      else if (is_land) then
                         CALL relperm_land( U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ), MOBILITY, &
-                             INV_PERM( IDIM, JDIM, ELE ), min(1.0,max(0.0,SATURA(1,CV_NOD))), IPHASE,&
+                             INV_PERM( IDIM, JDIM, ELE ), min(1.0,max(0.0,SATURATION)), IPHASE,&
                              options)
                      else
                         U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ) = 0.0
@@ -2388,8 +2388,6 @@
       logical, parameter :: mat_perm_bc_dg = .true.
       logical :: is_land, is_corey
       type(corey_options) :: options
-      !Working pointers
-      real, dimension(:,:), pointer :: Sat
 
       type(tensor_field), pointer :: velocity, volfrac, perm
       type(tensor_field) :: velocity_BCs, volfrac_BCs
@@ -2400,7 +2398,6 @@
       volfrac=>extract_tensor_field(packed_state,"PackedPhaseVolumeFraction")
       velocity=>extract_tensor_field(packed_state,"PackedVelocity")
       perm=>extract_tensor_field(packed_state,"Permeability")
-    call get_var_from_packed_state(packed_state,PhaseVolumeFraction = Sat)
 
     allocate(wic_u_bc(velocity%dim(1),velocity%dim(2),&
          surface_element_count(velocity)))
@@ -2411,6 +2408,7 @@
            ['weakdirichlet'],velocity_BCs,WIC_U_BC)
     call get_entire_boundary_condition(volfrac,&
            ['weakdirichlet'],volfrac_BCs,WIC_vol_BC)
+
       if( have_option( '/physical_parameters/mobility' ) )then
          call get_option( '/physical_parameters/mobility', mobility )
       elseif( have_option( '/material_phase[1]/vector_field::Velocity/prognostic/tensor_field::Viscosity' // &
@@ -2461,13 +2459,11 @@
                ele2  = face_ele( iface, ele )
                sele2 = max( 0, -ele2 )
                sele  = sele2
-
                if ( sele > 0 ) then
                   if ( wic_u_bc(1,iphase,sele) /= WIC_BC_DIRICHLET .and. &
                      wic_vol_bc(1,iphase,sele) == WIC_BC_DIRICHLET ) then
 
                      cv_sloc2loc( : ) = cv_sloclist( iface, : )
-
                      do cv_siloc = 1, cv_snloc
 
                         cv_iloc = cv_sloc2loc( cv_siloc )
@@ -2477,8 +2473,7 @@
                         mat_nod = mat_ndgln( (ele-1)*cv_nloc + cv_iloc  )
                         ! this is the boundary condition
                         ! of the first phase
-!                        satura_bc = sat( cv_snodi )
-                        satura_bc = sat(1,cv_nodi )!We consider only the first phase, the second is calculated inside the subroutine if necessary
+                        satura_bc = volfrac_BCs%val(1,1,cv_snodi)
 
                         !If the initial state have a sat == to the irresidual saturation
                         !the absorption term would be extremely high, hence it is better to switch to the corey method.
@@ -2488,7 +2483,6 @@
                             case default
                                 Avoid_epsilon = satura_bc - options%s_or < 1d-8
                         end select
-
 !                        sigma_out = 0.
                         do idim = 1, ndim
                            do jdim = 1, ndim
@@ -2542,7 +2536,6 @@
          end do
 
       end do
-
 
       return
     end subroutine calculate_SUF_SIG_DIAGTEN_BC
