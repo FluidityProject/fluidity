@@ -341,7 +341,7 @@ endif
 	@./bin/make_check_options
 	@cd preprocessor; $(MAKE) check_options.o
 	@echo "    MAKE register_diagnostics"
-	@./bin/make_register_diagnostics
+	@./bin/make_register_diagnostics @srcdir@
 	@cd preprocessor; $(MAKE) register_diagnostics.o
 	@echo "    BUILDING fluidity_library"
 	@$(AR) $(ARFLAGS) lib/libfluidity.a \
