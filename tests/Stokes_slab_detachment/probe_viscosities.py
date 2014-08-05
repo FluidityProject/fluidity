@@ -4,7 +4,7 @@ import vtktools, numpy
 
 def probe_visc():
     # Files and probing resolution:
-    vtufile = "Benchmark_Case_1a_1.pvtu"
+    vtufile = "Benchmark_Case_1a_1.vtu"
     npoints = 500
 
     # First probe viscosity at y = 550e3
