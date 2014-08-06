@@ -277,7 +277,7 @@ manual:
 .PHONY: scripts
 
 scripts:
-	@echo "INSTALL local scripts"
+	@echo "    INSTALL local scripts"
 	@cd tools ; $(MAKE) scripts
 
 .PHONY: copy_python
@@ -286,8 +286,8 @@ ifeq ($(CURDIR),@srcdir@)
 copy_python: # do nothing
 else
 copy_python:
-	@echo "COPY python scripts to <build-dir>/python/"
-	cp -an @srcdir@/python/* $(CURDIR)/python # -n to not clobber existing files (like python/setup.py)
+	@echo "    COPY python scripts to <build-dir>/python/"
+	@cp -an @srcdir@/python/* $(CURDIR)/python # -n to not clobber existing files (like python/setup.py)
 endif
 
 .PHONY: local_install
