@@ -4327,6 +4327,20 @@ scalar_field_choice =
                }
             )
          }|
+         ## Second invariant of the strain_rate tensor field. Selecting this field ensures
+         ## that it is updated as part of the momeuntum diagnostics (i.e. 
+         ## at the start of each momentum solve - within non-linear iterations.)
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "StrainRateSecondInvariant" },
+            (
+               element diagnostic {
+                  strain_rate_second_invariant_algorithm,
+                  velocity_mesh_choice,
+                  diagnostic_scalar_field
+               }
+            )
+         }|
          ## Discontinuity detector
          ##
          ## takes value 1 where detector is triggered

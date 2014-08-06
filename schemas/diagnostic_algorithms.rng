@@ -942,6 +942,19 @@ boundaries.</a:documentation>
       <ref name="tensor_source_field"/>
     </element>
   </define>
+  <define name="strain_rate_second_invariant_algorithm">
+    <element name="algorithm">
+      <a:documentation>Algorithm for the second invariant of the strain_rate tensor field.
+Note that the strain rate tensor is calculated automatically as a part
+of this algorithm and, hence, a separate tensor field is not required.</a:documentation>
+      <attribute name="name">
+        <value>strain_rate_second_invariant</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single </value>
+      </attribute>
+    </element>
+  </define>
   <define name="hessian_algorithm">
     <element name="algorithm">
       <a:documentation>algorithm for the Hessian (2nd derivative) of a scalar field</a:documentation>
@@ -1974,6 +1987,9 @@ This field needs to be interpolated between adapts.</a:documentation>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="tensor_second_invariant_algorithm"/>
+  </define>
+  <define name="scalar_diagnostic_algorithms" combine="choice">
+    <ref name="strain_rate_second_invariant_algorithm"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="temporalmin_algorithm"/>
