@@ -274,22 +274,6 @@ fltools: fluidity_library
 manual:
 	@cd manual; $(MAKE)
 
-python_build:
-ifeq (@HAVE_PYTHON@,yes)
-	@echo "    MAKE python"
-	@cd python; python setup.py build > build.log 2>&1
-	@cd python/fluidity; find ../build/lib* -name '*.so' -exec ln -sf {} . \;
-endif
-
-python_clean:
-	@echo "    CLEAN python"
-	@rm -rf python/build/
-# does not necessarily exist for out-of-tree build:
-	@if [ -d python/fluidity ]; then \
-	  cd python/fluidity; \
-	  find . -type l -name '*.so' -exec rm -f {} \;; \
-	fi
-
 .PHONY: scripts
 
 scripts:
@@ -297,7 +281,7 @@ scripts:
 	@cd tools ; $(MAKE) scripts
 
 fluidity_library: lib/lib$(FLUIDITY).a
-lib/lib$(FLUIDITY).a: $(OBJS) python_build sub_system scripts
+lib/lib$(FLUIDITY).a: $(OBJS) sub_system scripts
 	@echo "BUILD libfluidity"
 	@echo "    MKDIR lib"
 	@mkdir -p lib
@@ -436,7 +420,7 @@ endif
 	@cd main; $(MAKE) clean
 	@rm -fr bin lib
 
-clean: clean-light clean-test python_clean clean-debian
+clean: clean-light clean-test clean-debian
 	@echo "    CLEAN libvtkfortran"
 	@cd libvtkfortran; $(MAKE) clean
 	@echo "    CLEAN libjudy"
@@ -490,7 +474,7 @@ distclean: clean
 	@cd libjudy ; make distclean > /dev/null
 	@cd libvtkfortran ; make distclean > /dev/null
 	@cd libspud ; make distclean > /dev/null ; rm -rf		\
-	 libspud.so.0 libtool diamond/build python/build > /dev/null
+	 libspud.so.0 libtool diamond/build  > /dev/null
 	@rm -fr `find ./ -name config.status` `find ./ -name		\
 	 config.log` share include/Judy.h include/Wm4Command.h		\
 	 include/Wm4FoundationLIB.h include/Wm4FoundationPCH.h		\
