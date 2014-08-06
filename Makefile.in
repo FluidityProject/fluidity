@@ -280,6 +280,22 @@ scripts:
 	@echo "INSTALL local scripts"
 	@cd tools ; $(MAKE) scripts
 
+.PHONY: copy_python
+
+ifeq ($(CURDIR),@srcdir@)
+copy_python: # do nothing
+else
+copy_python:
+	@echo "COPY python scripts to <build-dir>/python/"
+	cp -an @srcdir@/python/* $(CURDIR)/python # -n to not clobber existing files (like python/setup.py)
+endif
+
+.PHONY: local_install
+
+# Copies all necessary python into <build-dir>/python and installs scripts in bin/
+# This is the minimum requirement for bin/testharness to run
+local_install: copy_python scripts
+
 fluidity_library: lib/lib$(FLUIDITY).a
 lib/lib$(FLUIDITY).a: $(OBJS) sub_system scripts
 	@echo "BUILD libfluidity"
@@ -452,12 +468,12 @@ clean-debian:
 	  rm -rf files tmp fluidity python-fluidity *.substvars *.debhelper*; \
 	fi
 
-clean-test: scripts
+clean-test: local_install
 	@echo "    CLEAN tests"
 	@if [ ! -d tests ]; then ln -s @srcdir@/tests/; fi
 	bin/testharness --clean >/dev/null
 
-clean-all-tests: clean-test scripts
+clean-all-tests: clean-test local_install
 	@echo "    CLEAN parallel/special/long tests"
 	@bin/testharness --parallelism=parallel --clean >/dev/null
 	@bin/testharness --length=special --clean >/dev/null
@@ -504,11 +520,11 @@ distclean: clean
 
 test: fltools bin/$(FLUIDITY) bin/shallow_water serialtest bin/burgers_equation
 
-serialtest: fltools bin/$(FLUIDITY) bin/shallow_water scripts
+serialtest: fltools bin/$(FLUIDITY) bin/shallow_water local_install
 	@if [ ! -d tests ]; then ln -s @srcdir@/tests/; fi
 	@bin/testharness -l short $(EXCLUDE_TAGS) -n $(THREADS) --give-version=fluidity
 
-mediumtest: fltools bin/$(FLUIDITY) manual bin/burgers_equation bin/shallow_water spudtools scripts
+mediumtest: fltools bin/$(FLUIDITY) manual bin/burgers_equation bin/shallow_water spudtools local_install
 	@if [ ! -d tests ]; then ln -s @srcdir@/tests/; fi
 	@bin/testharness -l medium $(EXCLUDE_TAGS) -n $(THREADS) --give-version=fluidity
 
@@ -559,7 +575,7 @@ schema: bin/spud-preprocess
 
 .PHONY: makefiles
 
-makefiles: sub_system scripts
+makefiles: sub_system local_install
 ifneq (@GFORTRAN_4_5_OR_NEWER@,yes)
 	@echo "makefile dependency generation requires gfortran (>=4.5)"
 	@false
