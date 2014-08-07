@@ -3,7 +3,7 @@
   <name>
     <string_value lines="1">optimiser</string_value>
   </name>
-  <model command_line="../../bin/shallow_water" option_file="dummy.swml"/>
+  <model command_line="shallow_water" option_file="dummy.swml"/>
   <functional name="functional1"/>
   <optimisation_options>
     <optimisation_algorithm name="NCG">
