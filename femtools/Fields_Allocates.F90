@@ -47,7 +47,7 @@ use parallel_tools
 implicit none
 
   private
-  
+
   public :: allocate, deallocate, incref, decref, has_references, add_faces, &
     & deallocate_faces, zero
   public :: make_element_shape, make_mesh, make_mesh_periodic, make_submesh, &
@@ -2660,10 +2660,8 @@ contains
     assert(associated(mesh%adj_lists))
     if(.not. associated(mesh%adj_lists%nnlist)) then    
       ewrite(2, *) "Adding node-node list to mesh " // trim(mesh%name)
-      allocate(mesh%adj_lists%nnlist)
-      ! Use this pointer to work around compilers that insist on having mesh
-      ! intent(inout) - it really only needs to be intent(in)
-      nnlist => mesh%adj_lists%nnlist
+      allocate(nnlist)
+      mesh%adj_lists%nnlist => nnlist
       call makelists(mesh, nnlist = nnlist)
 #ifdef DDEBUG
     else
@@ -2760,10 +2758,8 @@ contains
     assert(associated(mesh%adj_lists))
     if(.not. associated(mesh%adj_lists%nelist)) then
       ewrite(2, *) "Adding node-element list to mesh " // trim(mesh%name)
-      allocate(mesh%adj_lists%nelist)
-      ! Use this pointer to work around compilers that insist on having mesh
-      ! intent(inout) - it really only needs to be intent(in)
-      nelist => mesh%adj_lists%nelist
+      allocate(nelist)
+      mesh%adj_lists%nelist => nelist
       call makelists(mesh, nelist = nelist)
 #ifdef DDEBUG
     else
@@ -2860,10 +2856,8 @@ contains
     assert(associated(mesh%adj_lists))
     if(.not. associated(mesh%adj_lists%eelist)) then    
       ewrite(2, *) "Adding element-element list to mesh " // trim(mesh%name)
-      allocate(mesh%adj_lists%eelist)
-      ! Use this pointer to work around compilers that insist on having mesh
-      ! intent(inout) - it really only needs to be intent(in)
-      eelist => mesh%adj_lists%eelist
+      allocate(eelist)
+      mesh%adj_lists%eelist => eelist
       ! We need the nelist to generate the eelist, so extract it from the cache
       ! (generating if necessary)
       nelist => extract_nelist(mesh)
@@ -3167,7 +3161,6 @@ contains
     
   end subroutine zero_tensor_field_nodes
 
-    
 #include "Reference_count_mesh_type.F90"
 #include "Reference_count_scalar_field.F90"
 #include "Reference_count_vector_field.F90"
