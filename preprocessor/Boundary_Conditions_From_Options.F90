@@ -31,6 +31,7 @@ use fldebug
 use quadrature
 use elements
 use fields
+use fefields
 use field_options
 use state_module
 use sparse_tools_petsc
@@ -48,12 +49,9 @@ use pickers_inquire
 use bulk_parameterisations
 use k_epsilon
 use integer_set_module !for iceshelf
-use fields_base !for iceshelf
-use fields ! for iceshelf
 use sediment, only: set_sediment_reentrainment
 use halos_numbering
 use halos_base
-use fefields
 
 implicit none
 
