@@ -108,14 +108,6 @@ contains
     ! Read in header information, and validate
     call read_header( fd, lfilename, gmshFormat )
 
-#ifdef __INTEL_COMPILER
-    if (gmshFormat .eq. asciiFormat) then
-        ewrite(-1,*) "There are issues with the Intel compiler and GMSH ASCII files"
-        ewrite(-1,*) "Please use binary GMSH or convert your mesh to triangle"
-        FLExit("Exiting")
-    end if
-#endif
-
     ! Read in the nodes
     call read_nodes_coords( fd, lfilename, gmshFormat, nodes )
 
@@ -320,15 +312,12 @@ contains
        FLExit("Error: GMSH data size does not equal "//trim(adjustl(charBuf)))
     end if
 
-
-
     ! GMSH binary format continues the integer 1, in binary.
-    if( gmshFileType .eq. binaryFormat ) then
+    if( gmshFileType == 1 ) then
        call binary_formatting(fd, lfilename, "read")
        read(fd) one, newlineChar
        call ascii_formatting(fd, lfilename, "read")
     end if
-
 
     read(fd, *) charBuf
     if( trim(charBuf) .ne. "$EndMeshFormat" ) then
@@ -339,7 +328,6 @@ contains
     gmshFormat = gmshFileType
 
   end subroutine read_header
-
 
 
   ! -----------------------------------------------------------------
@@ -354,45 +342,41 @@ contains
     integer :: i, numNodes
     type(GMSHnode), pointer :: nodes(:)
 
+#ifdef __INTEL_COMPILER
+!   Intel bug - doesn't jump to new line following a read if file passed to a subroutine.   
+    if(gmshFormat == 1) read(fd, *) charBuf
+#endif
 
     read(fd, *) charBuf
     if( trim(charBuf) .ne. "$Nodes" ) then
        FLExit("Error: cannot find '$Nodes' in GMSH mesh file")
     end if
 
-
     read(fd, *) numNodes
 
-    if(numNodes .lt. 2) then
+    if(numNodes < 2) then
        FLExit("Error: GMSH number of nodes field < 2")
     end if
 
     allocate( nodes(numNodes) )
 
-    select case(gmshFormat)
-    case(asciiFormat)
-       call ascii_formatting(fd, filename, "read")
-    case(binaryFormat)
-       call binary_formatting(fd, filename, "read")
-    end select
-
     ! read in node data
     do i=1, numNodes
-       if( gmshFormat .eq. asciiFormat ) then
+       if( gmshFormat == 0 ) then
           read(fd, * ) nodes(i)%nodeID, nodes(i)%x
        else
+          call binary_formatting(fd, filename, "read")
           read(fd) nodes(i)%nodeID, nodes(i)%x
        end if
        ! Set column ID to -1: this will be changed later if $NodeData exists
        nodes(i)%columnID = -1
-
     end do
 
     ! Skip newline character when in binary mode
-    if( gmshFormat .eq. binaryFormat ) read(fd), newlineChar
-
-
-    call ascii_formatting(fd, filename, "read")
+    if( gmshFormat == 1 ) then
+       read(fd), newlineChar
+       call ascii_formatting(fd, filename, "read")
+    end if
 
     ! Read in end node section
     read(fd, *) charBuf
@@ -401,7 +385,6 @@ contains
     end if
 
   end subroutine read_nodes_coords
-
 
 
   ! -----------------------------------------------------------------
@@ -490,7 +473,6 @@ contains
   end subroutine read_node_column_IDs
 
 
-
   ! -----------------------------------------------------------------
   ! Read in element header data and establish topological dimension
 
@@ -512,6 +494,10 @@ contains
     integer :: e, i, numLocNodes, tmp1, tmp2, tmp3
     integer :: groupType, groupElems, groupTags
 
+#ifdef __INTEL_COMPILER
+!   Intel bug - doesn't jump to new line following a read if file passed to a subroutine.   
+    if(gmshFormat == 1) read(fd, *) charBuf
+#endif
 
     read(fd,*) charBuf
     if( trim(charBuf)/="$Elements" ) then
