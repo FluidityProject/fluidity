@@ -563,6 +563,8 @@ start =
             element linearise_viscosity{ empty }?,
             ## linearise component for the bulk density calculation used in the momentum equation
             element linearise_component{ empty }?,
+            ## (Debug) Impose low order discretisation for everything
+            element Impose_first_order { comment }?,
             ## The equation of state
             equation_of_state?,
             ## Pressure
@@ -776,7 +778,9 @@ start =
                      }+
                   },
                    ## Project the capillary pressure (CV) to FEM.
-                     element Proj_capi_to_FEM { comment }?
+                     element Proj_capi_to_FEM { comment }?,
+                   ## Integration by parts of the capillary pressure term.
+                     element Int_by_parts { comment }?
                }?,
                ## Immobile volume of fluid phase
                element immobile_fraction {real}?

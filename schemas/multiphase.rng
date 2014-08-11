@@ -704,6 +704,12 @@ to sum to 1 by adding constraint into compositional source term.</a:documentatio
             </element>
           </optional>
           <optional>
+            <element name="Impose_first_order">
+              <a:documentation>(Debug) Impose low order discretisation for everything</a:documentation>
+              <ref name="comment"/>
+            </element>
+          </optional>
+          <optional>
             <ref name="equation_of_state">
               <a:documentation>The equation of state</a:documentation>
             </ref>
@@ -1065,6 +1071,12 @@ Pc = c * ((S_w-Swir)/(1-Swirr-Sor)) ** -a</a:documentation>
                   <optional>
                     <element name="Proj_capi_to_FEM">
                       <a:documentation>Project the capillary pressure (CV) to FEM.</a:documentation>
+                      <ref name="comment"/>
+                    </element>
+                  </optional>
+                  <optional>
+                    <element name="Int_by_parts">
+                      <a:documentation>Integration by parts of the capillary pressure term.</a:documentation>
                       <ref name="comment"/>
                     </element>
                   </optional>

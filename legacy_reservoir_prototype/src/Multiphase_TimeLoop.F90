@@ -785,7 +785,6 @@
                     thermal = have_option( '/material_phase[0]/scalar_field::Temperature/prognostic/equation::InternalEnergy'),&
                     StorageIndexes=StorageIndexes )
 
-
 !!$  Update state memory
 !!$               do iphase = 1, nphase
 !!$                  Temperature_State => extract_scalar_field( state( iphase ), 'Temperature' )
@@ -888,8 +887,6 @@
                     iplike_grad_sou, plike_grad_sou_coef, plike_grad_sou_grad, &
                     scale_momentum_by_volume_fraction,&
                     StorageIndexes=StorageIndexes )
-
-
 
 !!$ Calculate Density_Component for compositional
                if( have_component_field ) &

@@ -183,7 +183,7 @@
           integer, dimension(:), pointer  ::  ndglno
 
           ndglno=> mesh%ndglno
-        end function get_ndglno
+    end function get_ndglno
 
 
     subroutine Compute_Node_Global_Numbers( state, &
@@ -452,7 +452,7 @@
 !!$ Local variables:
       integer :: nphase, nstate, ncomp, totele, ndim, stotel, iphase
       character( len = option_path_len ) :: option_path, option_path2, option_path3
-
+      logical :: Impose_first_order
 !!$ DISOPT Options:
 !!$ =0      1st order in space          Theta=specified    UNIVERSAL
 !!$ =1      1st order in space          Theta=non-linear   UNIVERSAL
@@ -539,10 +539,18 @@
       in_ele_upwind = 3 ; dg_ele_upwind = 3
 
       ! simplify things...
-      !in_ele_upwind = 1 ; dg_ele_upwind = 1
-      !u_dg_vel_int_opt = 1
-      !v_dg_vel_int_opt = 1
-      !v_disopt = 0 ; t_disopt = 0
+        Impose_first_order = .false.
+        do iphase =1, nphase
+            Impose_first_order = Impose_first_order .or. have_option("/material_phase["// int2str( iphase - 1 ) //&
+                "]/Impose_first_order")
+        end do
+      !We impose the lowest discretisation technique for everything.
+      if (Impose_first_order) then
+          in_ele_upwind = 1 ; dg_ele_upwind = 1
+          u_dg_vel_int_opt = 1
+          v_dg_vel_int_opt = 1
+          v_disopt = 0 ; t_disopt = 0
+      end if
 
       return
     end subroutine Get_Discretisation_Options
@@ -3489,8 +3497,8 @@ subroutine allocate_multicomponent_scalar_bcs(s,ms,name)
     end subroutine get_var_from_packed_state
 
 
-    !Subroutine to print Arrays by (rows,columns)
-    !Matrix = Square 2D Array
+    !Subroutine to print Arrays by (columns,rows)
+    !Matrix = 2D Array
     subroutine printMatrix(Matrix)
         implicit none
 
@@ -3498,13 +3506,17 @@ subroutine allocate_multicomponent_scalar_bcs(s,ms,name)
         character (len=1000000) :: cadena
         character (len=100) :: aux
         real, intent(in), dimension(:,:):: Matrix
+        !Local
+        real, dimension(size(matrix,2),size(matrix,1)) :: auxMatrix
 
-        length = size(Matrix,2);
-        do i = 1,size(Matrix,1)
+        auxMatrix = transpose(Matrix)
+
+        length = size(auxMatrix,2);
+        do i = 1,size(auxMatrix,1)
             print *,""
             cadena = ""
             do j = 1 , length
-                write(aux,*), Matrix(i,j)
+                write(aux,*), auxMatrix(i,j)
                 k = index(trim(aux),"E",.true.)
                 if (k/=0) then
                     aux = aux(1:k-6)//trim(aux(k:))

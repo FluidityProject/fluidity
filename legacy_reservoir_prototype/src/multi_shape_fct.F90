@@ -8085,7 +8085,7 @@ ewrite(3,*)'lll:', option_path_len
       end if
       if (btest(cache_level,3)) then
          UNX_ALL(1:NDIM,1:U_NLOC,1:NGI)  => &
-              state(1)%scalar_fields(abs(indx)+1)%ptr%val(1+(ELE-1)*(NGI+U_NLOC*NDIM):ELE*(NGI*U_NLOC*NDIM))
+              state(1)%scalar_fields(abs(indx)+1)%ptr%val(1+(ELE-1)*(NGI*U_NLOC*NDIM):ELE*(NGI*U_NLOC*NDIM))
       else
          UNX_ALL(1:NDIM,1:U_NLOC,1:NGI)  => &
               state(1)%scalar_fields(abs(indx)+1)%ptr%val

@@ -41,7 +41,6 @@ contains
   subroutine set_caching_level()
 
     integer :: i
-
     cache_level=0
     if (have_option('/caching/no_cache_shape_functions')) then
        return
