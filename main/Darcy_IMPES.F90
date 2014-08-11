@@ -45,7 +45,7 @@ program Darcy_IMPES
    use state_module
   
 
-   use sparse_tools_petsc	
+   use sparse_tools_petsc
    use AuxilaryOptions
    use MeshDiagnostics
    use signal_vars
@@ -1638,7 +1638,17 @@ contains
 
       !*******04 July 2014 Lcai*Leaching chemical model*************!
       !Initialise the Leaching chemical model
-      call initialize_leaching_chemical_model(di)
+      if (have_option('/Leaching_Chemical_Model')) then
+
+        di%lc%have_leach_chem_model= .true.
+        call initialize_leaching_chemical_model(di)
+
+      else
+
+        di%lc%have_leach_chem_model= .false.
+
+      end if
+      !********finish*******leaching chemistry model**************!
 
       ! If the first phase saturation is diagnostic then calculate it
       if (di%phase_one_saturation_diagnostic) call darcy_impes_calculate_phase_one_saturation_diagnostic(di)
@@ -2326,6 +2336,12 @@ contains
          call darcy_impes_calculate_relperm_den_first_face_values(di)
          if (have_dual) call darcy_impes_calculate_relperm_den_first_face_values(di_dual)
          
+         !*********11 Aug 2014 *****Lcai ******leaching chemical model************!
+         !calculate the chemical reactions explicitly based on concentrations of the previous time step
+         !before calculating the prognostic scalar fields
+         call calculate_leaching_chemical_model(di)
+         !*********finish****Lcai********Leaching chemical model
+
          ! *** Solve the Darcy equations using IMPES in three parts ***
          call darcy_impes_assemble_and_solve_part_one(di, have_dual)
          if (have_dual) call darcy_impes_assemble_and_solve_part_one(di_dual, have_dual)

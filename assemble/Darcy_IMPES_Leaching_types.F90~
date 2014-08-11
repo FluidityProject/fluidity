@@ -13,22 +13,20 @@ module darcy_impes_leaching_types
   private
 
   public :: leach_chemical_type, &
-            leach_chemical_prog_sfield_src, &
-            leaching_semi_empirical_model_type
+            leach_chemical_prog_sfield_src
 
   !!----Leaching chemical options-----------------------------------------------------------------------
     !options for the bulk fluid dependency of the rate constant
   type bulk_fluid_type
      character(len=FIELD_NAME_LEN) :: lc_name
      real :: order
-     integer:: phase
   end type bulk_fluid_type
   
   !options for the rate constant, arrhenius type
   type arrhenius_rate_constant_type
      real :: ae !activation energy
      real :: gc !gas constant
-     type(bulk_fluid_type), dimension(:), allocatable :: bulk
+     type(bulk_fluid_type), dimension(:), pointer :: bulk => null()
   end type arrhenius_rate_constant_type
   
   type leaching_internal_algorithm_type
@@ -37,7 +35,7 @@ module darcy_impes_leaching_types
   
   type leaching_arrhenius_reaction_type
      type(scalar_field), pointer :: dcdt => null() !the change rate of concentration per volume of heap
-     type(arrhenius_rate_constant_type):: ak
+     type(arrhenius_rate_constant_type), dimension(1) :: ak
   end type leaching_arrhenius_reaction_type
   
   type leaching_semi_empirical_model_type
@@ -45,10 +43,7 @@ module darcy_impes_leaching_types
      type(scalar_field), pointer :: ex_r => null() !the extraction rate
      type(scalar_field), pointer :: ex => null() !the extraction
      type(scalar_field), pointer :: mc => null() !the molar concentration of the mineral species per volume of heap
-     type(arrhenius_rate_constant_type):: ak
-     real, dimension(:,:), pointer :: spline_coe !the cubic spline coefficient
-     integer :: ndata !the number of the experiment data points used to do spline interpolation
-     real, dimension(:), allocatable :: exp_ex, exp_exrk !experiment data
+     type(arrhenius_rate_constant_type), dimension(1) :: ak
   end type leaching_semi_empirical_model_type
   
   !options for leaching solution phase reaction
@@ -84,15 +79,6 @@ module darcy_impes_leaching_types
     type(leach_chem_src_type), dimension(:), pointer :: sfield_dis_src =>null()
   end type leach_chemical_prog_sfield_src
   
-  type leach_heat_transfer_model
-     logical:: heat_transfer_single = .false.
-     logical:: heat_transfer_two = .false.
-     logical:: heat_transfer_three = .false.
-     type(scalar_field), pointer :: liquid_temperature
-     type(scalar_field), pointer :: air_temperature
-     type(scalar_field), pointer :: rock_temperature
-  end type leach_heat_transfer_model
-
   !options for leaching chemical model under darcy_impes_type                                                       
   type leach_chemical_type                                                                
     logical:: have_leach_chem_model = .false.  !if have leaching chemical model of this material phase
@@ -100,8 +86,24 @@ module darcy_impes_leaching_types
     logical:: have_sol = .false. !if have leaching solution phase reactions
     type(leaching_mineral_dissolution_type):: dis 
     type(leaching_solution_phase_type) :: sol 
-    type(leach_heat_transfer_model)::ht
+    type(scalar_field) :: liquid_temperature
+    type(scalar_field) :: air_temperature
+    type(scalar_field) :: rock_temperature
    end type leach_chemical_type
+  
+  
+  
+  
+
+  
+
+  
+  
+
+  
+
+  
+
   
   
 end module

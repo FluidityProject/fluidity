@@ -316,7 +316,7 @@ module darcy_impes_assemble_type
       ! *** Pointer to main state array, for convenience ***
       type(state_type), dimension(:), pointer :: state
       !*******03 July 2014 Lcai*****Leaching chemical model*************!
-      type(leach_chemical_di) :: lc 
+      type(leach_chemical_type) :: lc
       !********03 July 2014 Lcai*****Finish****************************!
 
    end type darcy_impes_type

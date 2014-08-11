@@ -32,6 +32,9 @@ If not activated then the filename is used for the simulation name.</a:documenta
       <ref name="darcy_impes_physical_parameters"/>
       <ref name="darcy_impes_material_phases"/>
       <optional>
+        <ref name="darcy_impes_Leaching_chemical_model_options"/>
+      </optional>
+      <optional>
         <ref name="darcy_impes_mesh_adaptivity_options"/>
       </optional>
       <ref name="darcy_impes_porous_media_model"/>
@@ -687,6 +690,9 @@ at the first timestep or not.</a:documentation>
       <ref name="darcy_impes_sum_saturation"/>
       <ref name="darcy_impes_average_pressure"/>
       <ref name="darcy_impes_bulk_darcy_velocity"/>
+      <optional>
+        <ref name="darcy_impes_first_phase_temperature_field"/>
+      </optional>
       <zeroOrMore>
         <ref name="darcy_impes_generic_scalar_field"/>
       </zeroOrMore>
@@ -757,6 +763,9 @@ at the first timestep or not.</a:documentation>
     <ref name="darcy_impes_darcy_velocity_over_porosity_CFL_field"/>
     <ref name="darcy_impes_mobility_field"/>
     <ref name="darcy_impes_fractional_flow_field"/>
+    <optional>
+      <ref name="darcy_impes_non_first_phase_temperature_field"/>
+    </optional>
     <zeroOrMore>
       <ref name="darcy_impes_generic_scalar_field"/>
     </zeroOrMore>
@@ -2662,8 +2671,8 @@ i.e. if the name of this scaler field is set to be 'cd', then the name will be c
   <!-- Diagnostic statistics options for fields, with disabled by default -->
   <define name="darcy_impes_field_stat_options_disabled_default">
     <choice>
-      <ref name="exclude_field_from_stat"/>
       <ref name="include_field_in_stat"/>
+      <ref name="exclude_field_from_stat"/>
     </choice>
   </define>
   <!-- Options for inclusion/exclusion of field statistics from the .stat file -->
@@ -2752,7 +2761,10 @@ please select the corresponding reactions</a:documentation>
               <value>Oxygen_dissolution_liquid_phase</value>
             </attribute>
             <element name="diagnostic">
-              <ref name="mesh_choice_pressure"/>
+              <ref name="mesh_choice_pressure">
+                <a:documentation>the stoichiometric factor should be 
+realtive to the gas phase O2</a:documentation>
+              </ref>
               <ref name="darcy_impes_internal_algorithm"/>
               <ref name="darcy_impes_chemical_stoichiometric_factor"/>
               <ref name="darcy_impes_diagnostic_scalar_field"/>
@@ -2769,7 +2781,10 @@ please select the corresponding reactions</a:documentation>
               <value>Oxygen_dissolution_gas_phase</value>
             </attribute>
             <element name="diagnostic">
-              <ref name="mesh_choice_pressure"/>
+              <ref name="mesh_choice_pressure">
+                <a:documentation>the stoichiometric factor should be
+realtive to the gas phase O2</a:documentation>
+              </ref>
               <ref name="darcy_impes_internal_algorithm"/>
               <ref name="darcy_impes_chemical_stoichiometric_factor"/>
               <ref name="darcy_impes_diagnostic_scalar_field"/>
@@ -2851,6 +2866,403 @@ please select the corresponding reactions</a:documentation>
       <ref name="real">
         <a:documentation>The stoichiometric factor of this species according to the reaction equation</a:documentation>
       </ref>
+    </element>
+  </define>
+  <define name="darcy_impes_Leaching_chemical_model_options">
+    <optional>
+      <element name="Leaching_chemical_model">
+        <a:documentation>this is the leaching chemical model options</a:documentation>
+        <ref name="leaching_mineral_dissolution_options"/>
+        <ref name="leaching_solution_phase_options"/>
+        <ref name="leaching_heat_transfer_model"/>
+      </element>
+    </optional>
+  </define>
+  <define name="leaching_mineral_dissolution_options">
+    <optional>
+      <element name="MineralDissolution">
+        <a:documentation>this is the mineral dissolution option for the leaching chemical model
+this contains the semi-empirical model based on the experiment result
+for pytite and chalcopyrite dissolution
+and the elemental sulper dissolution</a:documentation>
+        <zeroOrMore>
+          <choice>
+            <element name="reaction">
+              <a:documentation>The internal algorithms currently available are for chalcopyrite leaching</a:documentation>
+              <attribute name="name">
+                <value>CuFeS2_oxidation_aqueous_ferric_sulfate</value>
+              </attribute>
+              <element name="scalar_field">
+                <a:documentation>This is the semi-empirical model for chalcopyrite dissolution 
+by ferric sulfate</a:documentation>
+                <attribute name="rank">
+                  <a:documentation>This is the concentraction change rate of CuFeS2
+mole/s per m^3 of heap</a:documentation>
+                  <value>0</value>
+                </attribute>
+                <attribute name="name">
+                  <value>dCuFeS2_dt</value>
+                </attribute>
+                <element name="diagnostic">
+                  <ref name="mesh_choice_pressure"/>
+                  <ref name="darcy_impes_internal_algorithm"/>
+                  <ref name="darcy_impes_diagnostic_scalar_field"/>
+                  <optional>
+                    <ref name="darcy_impes_recalculation_options"/>
+                  </optional>
+                </element>
+              </element>
+              <ref name="leaching_semi_empirical_model_extraction"/>
+              <ref name="rate_constant"/>
+            </element>
+            <element name="reaction">
+              <attribute name="name">
+                <value>FeS2_oxidation_aqueous_ferric_sulfate</value>
+              </attribute>
+              <element name="scalar_field">
+                <a:documentation>This is the semi-empirical model for pyrite dissolution 
+by ferric sulfate</a:documentation>
+                <attribute name="rank">
+                  <a:documentation>This is the concentraction change rate of FeS2
+mole/s per m^3 of heap</a:documentation>
+                  <value>0</value>
+                </attribute>
+                <attribute name="name">
+                  <value>dFeS2_dt</value>
+                </attribute>
+                <element name="diagnostic">
+                  <ref name="mesh_choice_pressure"/>
+                  <ref name="darcy_impes_internal_algorithm"/>
+                  <ref name="darcy_impes_diagnostic_scalar_field"/>
+                  <optional>
+                    <ref name="darcy_impes_recalculation_options"/>
+                  </optional>
+                </element>
+              </element>
+              <ref name="leaching_semi_empirical_model_extraction"/>
+              <ref name="rate_constant"/>
+            </element>
+            <element name="reaction">
+              <attribute name="name">
+                <value>S0_dissolution</value>
+              </attribute>
+              <element name="scalar_field">
+                <attribute name="rank">
+                  <a:documentation>This is the concentraction change rate of S0
+mole/s per m^3 of heap</a:documentation>
+                  <value>0</value>
+                </attribute>
+                <attribute name="name">
+                  <value>dS0_dt</value>
+                </attribute>
+                <element name="diagnostic">
+                  <ref name="mesh_choice_pressure"/>
+                  <ref name="darcy_impes_internal_algorithm"/>
+                  <ref name="darcy_impes_diagnostic_scalar_field"/>
+                  <optional>
+                    <ref name="darcy_impes_recalculation_options"/>
+                  </optional>
+                </element>
+              </element>
+            </element>
+          </choice>
+        </zeroOrMore>
+      </element>
+    </optional>
+  </define>
+  <define name="leaching_semi_empirical_model_extraction">
+    <element name="scalar_field">
+      <a:documentation>This is the extaction rate of chalcopyrite
+positive along</a:documentation>
+      <attribute name="rank">
+        <value>0</value>
+      </attribute>
+      <attribute name="name">
+        <value>extraction_rate</value>
+      </attribute>
+      <element name="diagnostic">
+        <ref name="mesh_choice_pressure"/>
+        <ref name="darcy_impes_internal_algorithm"/>
+        <ref name="darcy_impes_diagnostic_scalar_field"/>
+        <optional>
+          <ref name="darcy_impes_recalculation_options"/>
+        </optional>
+      </element>
+    </element>
+    <element name="scalar_field">
+      <a:documentation>This is the current extaction of chalcopyrite
+positive along</a:documentation>
+      <attribute name="rank">
+        <value>0</value>
+      </attribute>
+      <attribute name="name">
+        <value>current_extraction</value>
+      </attribute>
+      <element name="diagnostic">
+        <ref name="mesh_choice_pressure"/>
+        <ref name="darcy_impes_internal_algorithm"/>
+        <ref name="darcy_impes_diagnostic_scalar_field"/>
+        <optional>
+          <ref name="darcy_impes_recalculation_options"/>
+        </optional>
+      </element>
+    </element>
+    <element name="scaler_field">
+      <a:documentation>This is the molar amount of the current mineral species per volume of heap
+i.e. mole per m^3  of heap</a:documentation>
+      <attribute name="rank">
+        <value>0</value>
+      </attribute>
+      <attribute name="name">
+        <value> molar_concentration</value>
+      </attribute>
+      <ref name="leaching_scalar_field_prescribed_or_python_diagnostic_pressure_mesh"/>
+    </element>
+    <ref name="darcy_impes_leaching_mineral_experiment_field"/>
+  </define>
+  <define name="rate_constant">
+    <group>
+      <a:documentation>This is the option for the bulk chemical condition constant
+which is calculated from bulk concentrations, PH, temperatures, etc </a:documentation>
+      <element name="rate_constant_Arrhenius">
+        <element name="activation_energy">
+          <a:documentation>The reaction rate constant k is calculated by Arrhenius equation
+while in our semi-empirical model, the pre-factor of Arrhenius equation
+is neglectable</a:documentation>
+          <ref name="real">
+            <a:documentation>this is the activation_energy in Arrhenius equation, J/mol</a:documentation>
+          </ref>
+        </element>
+        <element name="gas_constant">
+          <ref name="real">
+            <a:documentation>this is the gas constant in Arrhenius equation, J/(K mol)</a:documentation>
+          </ref>
+        </element>
+      </element>
+    </group>
+    <element name="bulk_fluid_conditions">
+      <oneOrMore>
+        <element name="bulk_concentration">
+          <a:documentation>This is the option for the bulk chemical condition constant
+which is calculated from bulk concentrations, PH, temperatures, etc</a:documentation>
+          <attribute name="name">
+            <data type="string"/>
+          </attribute>
+          <element name="phase">
+            <a:documentation>the phase number of the bulk concentration,
+e.g if the bulk concentration is under Phase1 then enter 1</a:documentation>
+            <ref name="integer"/>
+          </element>
+          <element name="order">
+            <a:documentation>the order of the surface reaction with respect to this chemical species</a:documentation>
+            <ref name="real"/>
+          </element>
+        </element>
+      </oneOrMore>
+    </element>
+  </define>
+  <define name="leaching_scalar_field_prescribed_or_python_diagnostic_pressure_mesh">
+    <choice>
+      <element name="prescribed">
+        <ref name="mesh_choice_pressure"/>
+        <ref name="prescribed_scalar_field_no_adapt"/>
+        <ref name="field_output_options"/>
+        <ref name="darcy_impes_include_stat"/>
+      </element>
+      <element name="diagnostic">
+        <ref name="mesh_choice_pressure"/>
+        <ref name="darcy_impes_scalar_python_diagnostic_algorithm"/>
+        <ref name="darcy_impes_diagnostic_scalar_field_no_adapt"/>
+      </element>
+    </choice>
+  </define>
+  <define name="leaching_solution_phase_options">
+    <optional>
+      <element name="SolutionPhaseReactions">
+        <a:documentation>This is the option for solution phase reaction</a:documentation>
+        <zeroOrMore>
+          <choice>
+            <element name="reaction">
+              <attribute name="name">
+                <value>Ferrous_Oxidation</value>
+              </attribute>
+              <element name="scalar_field">
+                <a:documentation>Ferrous oxidation by H+</a:documentation>
+                <attribute name="rank">
+                  <a:documentation>This is the concentraction change rate of Fe2
+mole/s per m^3 of heap</a:documentation>
+                  <value>0</value>
+                </attribute>
+                <attribute name="name">
+                  <value>dFe2_dt</value>
+                </attribute>
+                <element name="diagnostic">
+                  <ref name="mesh_choice_pressure"/>
+                  <ref name="darcy_impes_internal_algorithm"/>
+                  <ref name="darcy_impes_diagnostic_scalar_field"/>
+                  <optional>
+                    <ref name="darcy_impes_recalculation_options"/>
+                  </optional>
+                </element>
+              </element>
+              <ref name="rate_constant"/>
+            </element>
+            <element name="reaction">
+              <attribute name="name">
+                <value>Jarosite_Precipitation</value>
+              </attribute>
+              <element name="scalar_field">
+                <attribute name="rank">
+                  <a:documentation>This is precipitation rate of jarosite M+
+mole/s per m^3 of heap of jarosite</a:documentation>
+                  <value>0</value>
+                </attribute>
+                <attribute name="name">
+                  <value>dM_dt</value>
+                </attribute>
+                <element name="diagnostic">
+                  <ref name="mesh_choice_pressure"/>
+                  <ref name="darcy_impes_internal_algorithm"/>
+                  <ref name="darcy_impes_diagnostic_scalar_field"/>
+                  <optional>
+                    <ref name="darcy_impes_recalculation_options"/>
+                  </optional>
+                </element>
+              </element>
+            </element>
+            <element name="reaction">
+              <attribute name="name">
+                <value>Oxygen_dissolution</value>
+              </attribute>
+              <element name="scalar_field">
+                <attribute name="rank">
+                  <a:documentation>This is the concentraction change rate of oxygen dissolution
+change of the O2 in mol/m^3_heap/s of gas phase</a:documentation>
+                  <value>0</value>
+                </attribute>
+                <attribute name="name">
+                  <value>dOg_dt</value>
+                </attribute>
+                <element name="diagnostic">
+                  <ref name="mesh_choice_pressure"/>
+                  <ref name="darcy_impes_internal_algorithm"/>
+                  <ref name="darcy_impes_diagnostic_scalar_field"/>
+                  <optional>
+                    <ref name="darcy_impes_recalculation_options"/>
+                  </optional>
+                </element>
+              </element>
+            </element>
+          </choice>
+        </zeroOrMore>
+      </element>
+    </optional>
+  </define>
+  <define name="leaching_heat_transfer_model">
+    <optional>
+      <element name="heat_transfer_model">
+        <a:documentation>please select the heat transfer mode, which may be 
+3 phases heat transfer (air, liquid,rock),2 phases heat
+transfer (air,liquid) or single phase (liquid)</a:documentation>
+        <choice>
+          <element name="single_phase_heat_trasfer">
+            <a:documentation>single phase heat transfer (liquid)</a:documentation>
+            <ref name="darcy_impes_internal_algorithm"/>
+          </element>
+          <element name="two_phases_heat_trasfer">
+            <a:documentation>2 phases heat transfer (air, liquid)</a:documentation>
+            <ref name="darcy_impes_internal_algorithm"/>
+          </element>
+          <element name="three_phases_heat_trasfer">
+            <a:documentation>3 phases heat transfer (air, liquid,rock)</a:documentation>
+            <ref name="darcy_impes_internal_algorithm"/>
+          </element>
+        </choice>
+      </element>
+    </optional>
+  </define>
+  <define name="darcy_impes_first_phase_temperature_field">
+    <element name="scalar_field">
+      <attribute name="rank">
+        <value>0</value>
+      </attribute>
+      <attribute name="name">
+        <value>Temperature</value>
+      </attribute>
+      <choice>
+        <element name="prognostic">
+          <ref name="mesh_choice_pressure"/>
+          <ref name="darcy_impes_asym_solver_options"/>
+          <oneOrMore>
+            <ref name="initial_condition_scalar"/>
+          </oneOrMore>
+          <zeroOrMore>
+            <ref name="darcy_impes_first_phase_bc_pressure_field"/>
+          </zeroOrMore>
+          <ref name="field_output_options"/>
+          <ref name="darcy_impes_include_stat"/>
+          <ref name="adaptivity_options_prognostic_scalar_field"/>
+          <ref name="interpolation_algorithm_scalar"/>
+        </element>
+        <element name="prescribed">
+          <ref name="mesh_choice_pressure"/>
+          <ref name="prescribed_scalar_field"/>
+          <ref name="field_output_options"/>
+          <ref name="darcy_impes_include_stat"/>
+        </element>
+      </choice>
+    </element>
+  </define>
+  <define name="darcy_impes_non_first_phase_temperature_field">
+    <element name="scalar_field">
+      <attribute name="rank">
+        <value>0</value>
+      </attribute>
+      <attribute name="name">
+        <value>Temperature</value>
+      </attribute>
+      <choice>
+        <element name="prognostic">
+          <ref name="mesh_choice_pressure"/>
+          <ref name="darcy_impes_asym_solver_options"/>
+          <oneOrMore>
+            <ref name="initial_condition_scalar"/>
+          </oneOrMore>
+          <zeroOrMore>
+            <ref name="darcy_impes_first_phase_bc_pressure_field"/>
+          </zeroOrMore>
+          <ref name="field_output_options"/>
+          <ref name="darcy_impes_include_stat"/>
+          <ref name="adaptivity_options_prognostic_scalar_field"/>
+          <ref name="interpolation_algorithm_scalar"/>
+        </element>
+        <element name="prescribed">
+          <ref name="mesh_choice_pressure"/>
+          <ref name="prescribed_scalar_field"/>
+          <ref name="field_output_options"/>
+          <ref name="darcy_impes_include_stat"/>
+        </element>
+      </choice>
+    </element>
+  </define>
+  <define name="darcy_impes_leaching_mineral_experiment_field">
+    <element name="experiment_data">
+      <a:documentation>The expriment data used to do cubic spline interpolation
+for thr semi-emperical model</a:documentation>
+      <element name="number_of_data_points">
+        <a:documentation>the number of the data points used to do the cubic spline interpolation</a:documentation>
+        <ref name="integer"/>
+      </element>
+      <element name="extraction">
+        <a:documentation>list the extraction of the experiment data point in in order,
+each point is seperated by space</a:documentation>
+        <ref name="real_vector"/>
+      </element>
+      <element name="empirical_extraction_rate_over_k">
+        <a:documentation>list the extraction rate of the experiment data point in in order,
+each point is seperated by space</a:documentation>
+        <ref name="real_vector"/>
+      </element>
     </element>
   </define>
 </grammar>

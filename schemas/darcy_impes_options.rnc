@@ -38,6 +38,8 @@ start =
 
          darcy_impes_material_phases,
          
+         darcy_impes_Leaching_chemical_model_options?,
+ 
          darcy_impes_mesh_adaptivity_options?,
          
          darcy_impes_porous_media_model, 
@@ -678,7 +680,9 @@ darcy_impes_material_phases =
          
          darcy_impes_average_pressure, 
 
-         darcy_impes_bulk_darcy_velocity, 
+         darcy_impes_bulk_darcy_velocity,
+
+         darcy_impes_first_phase_temperature_field?, 
          
          darcy_impes_generic_scalar_field*
 	 
@@ -748,7 +752,9 @@ darcy_impes_other_phase_options =
       
       darcy_impes_mobility_field,
       
-      darcy_impes_fractional_flow_field, 
+      darcy_impes_fractional_flow_field,
+
+      darcy_impes_non_first_phase_temperature_field?, 
       
       darcy_impes_generic_scalar_field*,
      
@@ -2519,9 +2525,9 @@ cv_stats =
    
 # Diagnostic statistics options for fields, with disabled by default
 darcy_impes_field_stat_options_disabled_default = 
-   (
-      exclude_field_from_stat|
-      include_field_in_stat
+   (  
+      include_field_in_stat|
+      exclude_field_from_stat
    )
  
 
@@ -2601,6 +2607,8 @@ darcy_impes_leaching_solution_phase_prog_src =
                           attribute rank { "0" },
                           attribute name {"Oxygen_dissolution_liquid_phase"},
                           element diagnostic {
+                             ##the stoichiometric factor should be 
+                             ##realtive to the gas phase O2
                              mesh_choice_pressure,
                              darcy_impes_internal_algorithm,
                              darcy_impes_chemical_stoichiometric_factor,
@@ -2613,6 +2621,8 @@ darcy_impes_leaching_solution_phase_prog_src =
                           attribute rank { "0" },
                           attribute name {"Oxygen_dissolution_gas_phase"},
                           element diagnostic {
+                             ##the stoichiometric factor should be
+                             ##realtive to the gas phase O2
                              mesh_choice_pressure,
                              darcy_impes_internal_algorithm,
                              darcy_impes_chemical_stoichiometric_factor,
@@ -2681,3 +2691,354 @@ darcy_impes_chemical_stoichiometric_factor =
              real
              }
      )
+
+
+
+darcy_impes_Leaching_chemical_model_options =
+    (
+      ##this is the leaching chemical model options
+      element Leaching_chemical_model{
+           leaching_mineral_dissolution_options,
+           leaching_solution_phase_options,
+           leaching_heat_transfer_model
+     }?
+    )
+
+
+leaching_mineral_dissolution_options =
+    (
+     ##this is the mineral dissolution option for the leaching chemical model
+     ##this contains the semi-empirical model based on the experiment result
+     ##for pytite and chalcopyrite dissolution
+     ##and the elemental sulper dissolution
+     element MineralDissolution{
+             (
+              ##The internal algorithms currently available are for chalcopyrite leaching
+              element reaction{
+                 attribute name {"CuFeS2_oxidation_aqueous_ferric_sulfate"},
+                 ##This is the semi-empirical model for chalcopyrite dissolution 
+                 ##by ferric sulfate
+                 element scalar_field {
+                               ##This is the concentraction change rate of CuFeS2
+                               ##mole/s per m^3 of heap
+                               attribute rank { "0" },
+                               attribute name {"dCuFeS2_dt"},
+                               element diagnostic {
+                                          mesh_choice_pressure,
+                                          darcy_impes_internal_algorithm,
+                                          darcy_impes_diagnostic_scalar_field,
+                                          darcy_impes_recalculation_options?
+                                      }
+                              },
+                 leaching_semi_empirical_model_extraction,
+                 rate_constant                
+                 }|
+              
+              element reaction{
+                 attribute name {"FeS2_oxidation_aqueous_ferric_sulfate"},
+                 ##This is the semi-empirical model for pyrite dissolution 
+                 ##by ferric sulfate
+                 element scalar_field {
+                               ##This is the concentraction change rate of FeS2
+                               ##mole/s per m^3 of heap
+                               attribute rank { "0" },
+                               attribute name {"dFeS2_dt"},
+                               element diagnostic {
+                                          mesh_choice_pressure,
+                                          darcy_impes_internal_algorithm,
+                                          darcy_impes_diagnostic_scalar_field,
+                                          darcy_impes_recalculation_options?
+                                      }
+                              },
+                 leaching_semi_empirical_model_extraction,
+                 rate_constant
+                 }|
+              
+              element reaction{
+                 attribute name {"S0_dissolution"},
+                 element scalar_field {
+                               ##This is the concentraction change rate of S0
+                               ##mole/s per m^3 of heap
+                           attribute rank { "0" },
+                           attribute name {"dS0_dt"},
+                           element diagnostic {
+                                     mesh_choice_pressure,
+                                     darcy_impes_internal_algorithm,
+                                     darcy_impes_diagnostic_scalar_field,
+                                     darcy_impes_recalculation_options?
+                             } 
+                          }
+                       }
+             )*
+
+         }?
+
+    )
+
+leaching_semi_empirical_model_extraction = 
+   (
+    (
+     ##This is the extaction rate of chalcopyrite
+     ##positive along
+    element scalar_field { 
+                          attribute rank { "0" },
+                          attribute name {"extraction_rate"},
+                          element diagnostic {
+                             mesh_choice_pressure,
+                             darcy_impes_internal_algorithm,
+                             darcy_impes_diagnostic_scalar_field,
+                             darcy_impes_recalculation_options?
+                             }
+                         }
+               ),
+    (
+     ##This is the current extaction of chalcopyrite
+     ##positive along
+    element scalar_field {
+                          attribute rank { "0" },
+                          attribute name {"current_extraction"},
+                          element diagnostic {
+                             mesh_choice_pressure,
+                             darcy_impes_internal_algorithm,
+                             darcy_impes_diagnostic_scalar_field,
+                             darcy_impes_recalculation_options?
+                             }
+                         }
+                 ), 
+    ( 
+     ##This is the molar amount of the current mineral species per volume of heap
+     ##i.e. mole per m^3  of heap
+    element scaler_field {
+                          attribute rank { "0" },
+                          attribute name {" molar_concentration"},
+                          leaching_scalar_field_prescribed_or_python_diagnostic_pressure_mesh
+                           }
+                     ),
+    darcy_impes_leaching_mineral_experiment_field
+                )
+
+
+rate_constant =
+   (
+    ##This is the option for the bulk chemical condition constant
+    ##which is calculated from bulk concentrations, PH, temperatures, etc 
+       (    
+           element rate_constant_Arrhenius {
+                        ##The reaction rate constant k is calculated by Arrhenius equation
+                        ##while in our semi-empirical model, the pre-factor of Arrhenius equation
+                        ##is neglectable
+                     element activation_energy {
+                             ##this is the activation_energy in Arrhenius equation, J/mol
+                             real },
+                     element gas_constant {
+                             ##this is the gas constant in Arrhenius equation, J/(K mol)
+                             real }
+                         }
+                   ),
+           element bulk_fluid_conditions {
+                    ##This is the option for the bulk chemical condition constant
+                    ##which is calculated from bulk concentrations, PH, temperatures, etc
+                    element bulk_concentration {
+                           attribute name { xsd:string },
+                           (
+                           ##the phase number of the bulk concentration,
+                           ##e.g if the bulk concentration is under Phase1 then enter 1
+                           element  phase {
+                                             integer
+                                                          }
+                                                          ),
+                           (
+                           ##the order of the surface reaction with respect to this chemical species
+                           element order {
+                                   real
+                                   }      
+                                   )
+                          }+
+             }      
+    )
+
+
+leaching_scalar_field_prescribed_or_python_diagnostic_pressure_mesh = 
+   (
+      element prescribed {
+         mesh_choice_pressure,
+         prescribed_scalar_field_no_adapt,
+         field_output_options,
+         darcy_impes_include_stat
+      }|
+      element diagnostic {
+         mesh_choice_pressure,
+         darcy_impes_scalar_python_diagnostic_algorithm,
+         darcy_impes_diagnostic_scalar_field_no_adapt
+      }   
+   ) 
+
+
+leaching_solution_phase_options = 
+    (
+     ##This is the option for solution phase reaction
+     element SolutionPhaseReactions {
+             (
+                 element reaction{
+                 attribute name {"Ferrous_Oxidation"},
+                 ##Ferrous oxidation by H+
+                 element scalar_field {
+                               ##This is the concentraction change rate of Fe2
+                               ##mole/s per m^3 of heap
+                               attribute rank { "0" },
+                               attribute name {"dFe2_dt"},
+                               element diagnostic {
+                                          mesh_choice_pressure,
+                                          darcy_impes_internal_algorithm,
+                                          darcy_impes_diagnostic_scalar_field,
+                                          darcy_impes_recalculation_options?
+                                      }    
+                              },   
+                 rate_constant     
+                 }|
+
+                 element reaction{
+                      attribute name {"Jarosite_Precipitation"},
+                      element scalar_field {
+                               ##This is precipitation rate of jarosite M+
+                               ##mole/s per m^3 of heap of jarosite
+                               attribute rank { "0" },
+                               attribute name {"dM_dt"},
+                               element diagnostic {
+                                          mesh_choice_pressure,
+                                          darcy_impes_internal_algorithm,
+                                          darcy_impes_diagnostic_scalar_field,
+                                          darcy_impes_recalculation_options?
+                                      }
+                              }
+                   }|
+                 
+                 element reaction{
+                      attribute name {"Oxygen_dissolution"},
+                      element scalar_field {
+                               ##This is the concentraction change rate of oxygen dissolution
+                               ##change of the O2 in mol/m^3_heap/s of gas phase
+                               attribute rank { "0" },
+                               attribute name {"dOg_dt"},
+                               element diagnostic {
+                                          mesh_choice_pressure,
+                                          darcy_impes_internal_algorithm,
+                                          darcy_impes_diagnostic_scalar_field,
+                                          darcy_impes_recalculation_options?
+                                      }
+                              }
+                   } 
+               )* 
+            }?
+ )
+
+leaching_heat_transfer_model =
+  (
+    ##please select the heat transfer mode, which may be 
+    ##3 phases heat transfer (air, liquid,rock),2 phases heat
+    ##transfer (air,liquid) or single phase (liquid)
+    element heat_transfer_model {
+      (    
+       ##single phase heat transfer (liquid)
+       element single_phase_heat_trasfer {
+             darcy_impes_internal_algorithm
+                          }    
+              )|
+      (    
+       ##2 phases heat transfer (air, liquid)
+       element two_phases_heat_trasfer {
+             darcy_impes_internal_algorithm
+                          }    
+              )|
+       (    
+       ##3 phases heat transfer (air, liquid,rock)
+       element three_phases_heat_trasfer {
+             darcy_impes_internal_algorithm
+                          }    
+              )
+         }
+   )?
+
+darcy_impes_first_phase_temperature_field =
+   (
+      element scalar_field {
+         attribute rank { "0" },
+         attribute name { "Temperature" },
+         (
+            element prognostic {
+               mesh_choice_pressure,
+               darcy_impes_asym_solver_options,               
+               initial_condition_scalar+,
+               darcy_impes_first_phase_bc_pressure_field*,
+               field_output_options,
+               darcy_impes_include_stat, 
+               adaptivity_options_prognostic_scalar_field,
+               interpolation_algorithm_scalar
+            }|
+            element prescribed {
+               mesh_choice_pressure,
+               prescribed_scalar_field,
+               field_output_options,
+               darcy_impes_include_stat
+            }
+         )
+      }
+   ) 
+
+
+darcy_impes_non_first_phase_temperature_field =
+   (
+      element scalar_field {
+         attribute rank { "0" },
+         attribute name { "Temperature" },
+         (    
+            element prognostic {
+               mesh_choice_pressure,
+               darcy_impes_asym_solver_options,     
+               initial_condition_scalar+,
+               darcy_impes_first_phase_bc_pressure_field*,
+               field_output_options,
+               darcy_impes_include_stat, 
+               adaptivity_options_prognostic_scalar_field,
+               interpolation_algorithm_scalar
+            }|   
+            element prescribed {
+               mesh_choice_pressure,
+               prescribed_scalar_field,
+               field_output_options,
+               darcy_impes_include_stat
+            }    
+         )    
+      }    
+   )
+
+ darcy_impes_leaching_mineral_experiment_field =
+ (
+  ##The expriment data used to do cubic spline interpolation
+  ##for thr semi-emperical model
+  element experiment_data {
+    (
+     ##the number of the data points used to do the cubic spline interpolation
+       element number_of_data_points {
+                            integer
+                                         }
+
+    ),
+ 
+    (
+     ##list the extraction of the experiment data point in in order,
+     ##each point is seperated by space
+      element extraction { 
+                           real_vector 
+                }
+    ),
+
+    (
+     ##list the extraction rate of the experiment data point in in order,
+     ##each point is seperated by space
+     element empirical_extraction_rate_over_k {
+                             real_vector
+                                          }
+    )
+   }
+ )
