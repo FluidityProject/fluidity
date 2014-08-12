@@ -19,8 +19,8 @@ from importlib import import_module
 from vtktools import vtu
 from copy import deepcopy
 from batch_tools import new_handler as nh
-from batch_tools import Command
-from test_tools import *
+from test_tools import Parameteriser, TestCommand, TestSuite, \
+    AssertThresholdCalculator, verbosity
 
 simulator_name = 'darcy_impes'
 simulation_options_filename_extension = '.diml'
@@ -29,31 +29,19 @@ simulation_options_filename_extension = '.diml'
 class ManufacturedSolutionParameteriser(Parameteriser):
    def __init__(self, simulation_options_filename_extension,
                 reference_mesh_res, reference_time_step_number):
-      # don't bother initialising the superclass with all its space and
-      # time parameters; we will override its methods and get domain
-      # size and finish time from generated solution expressions.
-      Parameteriser.__init__(self, simulation_options_filename_extension)
-      self.__reference_mesh_res = reference_mesh_res
-      self.__reference_time_step_number = reference_time_step_number
+      # don't bother initialising the superclass with domain size and
+      # finish time; we will override its getters via generated
+      # solution expressions.
+      Parameteriser.__init__(
+         self, simulation_options_filename_extension,
+         reference_mesh_res=reference_mesh_res,
+         reference_time_step_number=reference_time_step_number)
 
-   def element_number(self, domain_length):
-      """Helper method.  Calculate element number along domain edge,
-      keeping dx, dy and dz approximately the same but scaling
-      consistently to higher mesh resolutions."""
-      L0 = self.lookup('solution', 'domain_extents')[0]
-      # reference number along edge in this dimension
-      nref = numpy.round(self.__reference_mesh_res*domain_length/L0)
-      # number scaled up for this mesh resolution
-      return int(nref * int(self.get('mesh_res')) \
-                 / self.__reference_mesh_res)
+   def domain_extents(self):
+      return self.lookup('solution', 'domain_extents')
    
-   def time_step(self):
-      """Helper method.  Calculate an appropriate time step, maintaining
-      a constant Courant number for all mesh resolutions."""
-      finish_time = self.lookup('solution', 'finish_time')
-      scale_factor = float(self.__reference_mesh_res) \
-          / float(self.get('mesh_res'))
-      return scale_factor * finish_time / self.__reference_time_step_number
+   def finish_time(self):
+      return self.lookup('solution', 'finish_time')
 
    def geometry_dict(self):
       # initialise result
@@ -103,15 +91,15 @@ class ManufacturedSolutionParameteriser(Parameteriser):
          'MESH_FORMAT': mesh_format,
          'DOMAIN_DIM': dim,
          'TIME_STEP': str(self.time_step()),
-         'FINISH_TIME': self.lookup('solution', 'finish_time'),
+         'FINISH_TIME': str(self.finish_time()),
          'INLET_ID': inlet_ID,
          'OUTLET_ID': outlet_ID,
          'WALL_IDS': wall_IDs,
          'WALL_NUM': wall_num,
          'BEGIN_RM_IF_1D': begin_rm_if_1D,
          'END_RM_IF_1D': end_rm_if_1D }
-
    
+      
 class GenerateSymbols(TestCommand):
     def __init__(self, handler, parameteriser):
         TestCommand.__init__(self, ['case'], handler,
@@ -138,7 +126,8 @@ class GenerateSymbols(TestCommand):
             generate(solution_name)
 
 
-class TestCommandDecorator(Command):
+class TestCommandDecorator:
+    """Wraps a TestCommand, giving it access to the generated solution"""
     def __init__(self, wrapped_test_command, solution_level_names):
         self.__wrapped_test_command = wrapped_test_command
         self.__solution_level_names = solution_level_names

@@ -13,9 +13,10 @@ from re import sub
 from collections import OrderedDict
 from importlib import import_module
 from getpass import getuser
-from batch_tools import default_fluidity_path, Tracker, \
-    SelfHandlingCommand, DoNothing
+from batch_tools import SelfHandlingCommand, DoNothing, Tracker, \
+    make_string, default_fluidity_path
 from copy import deepcopy
+from glob import glob
 from warnings import warn
 
 default_fluidity_path()
@@ -114,11 +115,11 @@ class Parameteriser:
    to date, via the update() method, before methods are called."""
 
    def __init__(self, simulation_options_filename_extension,
-                domain_length_1D=1., finish_time=1.,
+                domain_extents=(1., 1., 1.), finish_time=1.,
                 reference_mesh_res=10, reference_time_step_number=10):
        self.__simulation_options_filename_extension = \
            simulation_options_filename_extension
-       self.__domain_length_1D = domain_length_1D
+       self.__domain_extents = domain_extents
        self.__finish_time = finish_time
        self.__reference_mesh_res = reference_mesh_res
        self.__reference_time_step_number = reference_time_step_number
@@ -224,9 +225,11 @@ class Parameteriser:
       geometries and meshes."""
       return {
           # assume just one case name
-          'simulation_options_template': 'template_'+self.get('root'),
+          'simulation_options_template':
+              make_string(['template', self.get('root')]),
           'simulation_options': self.make_key(),
-          'geometry_template': 'template_'+self.make_key(['dim', 'mesh_type']),
+          'geometry_template':
+              make_string(['template', self.make_key(['dim', 'mesh_type'])]),
           'geometry': self.make_key(['dim', 'mesh_type', 'mesh_res']),
           'mesh': self.make_key(['dim', 'mesh_type', 'mesh_res']) }
 
@@ -240,8 +243,10 @@ class Parameteriser:
           geo_ext = '.geo'
           mesh_ext_list = ['.msh']
       return {
-          'simulation_options_template': self.__simulation_options_filename_extension,
-          'simulation_options': self.__simulation_options_filename_extension,
+          'simulation_options_template':
+              self.__simulation_options_filename_extension,
+          'simulation_options':
+              self.__simulation_options_filename_extension,
           'geometry': geo_ext,
           'geometry_template': geo_ext,
           'mesh': mesh_ext_list }
@@ -262,15 +267,22 @@ class Parameteriser:
    
    def geometry_dict(self):
       """Built-in dictionary for expanding a geometry template.
-      Currently minimal, with meshing support for a 1D domain only.  The
-      client may want to override this method to define new entries"""
-      L = float(self.domain_length_1D)
-      n = int(self.get('mesh_res'))
-      return {
-          'MESH_NAME': S['mesh'],
-          'DOMAIN_LENGTH_X': str(L),
-          'EL_NUM_X': str(n),
-          'EL_SIZE_X': str(L/n) }
+      Currently minimal, with meshing support for a rectilinear domain
+      only.  The client may want to override this method to define new
+      entries"""
+      # initialise result
+      result = {'MESH_NAME': self.lookup('filename_stems', 'mesh')}
+      for i, dim_str in enumerate(('X', 'Y', 'Z')):
+          try:
+              L = self.domain_extents()[i]
+          except:
+              continue
+          n = int(self.element_number(L))
+          result.update({
+                  'DOMAIN_LENGTH_{0}'.format(dim_str) : str(L),
+                  'EL_NUM_{0}'.format(dim_str) : str(n),
+                  'EL_SIZE_{0}'.format(dim_str) : str(L/n) })
+      return result
    
    def simulation_options_dict(self):
       """Built-in dictionary for expanding a simulation options template.
@@ -278,19 +290,41 @@ class Parameteriser:
       define new entries.
       """
       dim = self.get('dim')
+      mesh_name = self.lookup('filename_stems', 'mesh')
       if dim=="1":
          mesh_format = 'triangle'
       else:
          mesh_format = 'gmsh'
-      S = self.filename_stems_dict()
-      ref_dt = self.__finish_time/self.__reference_time_step_number
-      dt = ref_dt * self.__reference_mesh_res/self.get('mesh_res')
       return {
-          'MESH_NAME': S['mesh'],
+          'MESH_NAME': mesh_name,
           'MESH_FORMAT': mesh_format,
           'DOMAIN_DIM': dim,
-          'TIME_STEP': str(dt),
-          'FINISH_TIME': str(self.__finish_time) }
+          'TIME_STEP': str(self.time_step()),
+          'FINISH_TIME': str(self.finish_time()) }
+
+   def element_number(self, domain_length):
+      """Helper method.  Calculate element number along domain edge,
+      keeping dx, dy and dz approximately the same but scaling
+      consistently to higher mesh resolutions."""
+      ref_n = numpy.round(self.__reference_mesh_res * domain_length / \
+                              self.domain_extents()[0])
+      return int(ref_n * int(self.get('mesh_res')) \
+                 / self.__reference_mesh_res)
+   
+   def time_step(self):
+      """Helper method.  Calculate an appropriate time step, maintaining
+      a constant Courant number for all mesh resolutions."""
+      ref_dt = self.finish_time()/self.__reference_time_step_number
+      return ref_dt * self.__reference_mesh_res/int(self.get('mesh_res'))
+
+   def domain_extents(self):
+       """Clients may want to override this."""
+       return self.__domain_extents
+
+   def finish_time(self):
+       """Clients may want to override this."""
+       return self.__finish_time
+       
    
       
 class TestCommand(SelfHandlingCommand):
@@ -302,9 +336,10 @@ class TestCommand(SelfHandlingCommand):
                  handler, message, parameteriser):
         SelfHandlingCommand.__init__(self, requisite_level_names,
                                      handler, message, verbosity())
-        self.__tracker = Tracker({'dim': '{0}d',
-                                'norm': 'l{0}',
-                                'mesh_res': 'm{0}'})
+        key_formatting_dict = {'dim': '{0}d',
+                               'norm': 'l{0}',
+                               'mesh_res': 'm{0}'}
+        self.__tracker = Tracker(key_formatting_dict)
         self.__parameteriser = parameteriser
             
     def inform(self, level_name, node_name, at_leaf, indent, verbose):
@@ -526,9 +561,17 @@ class ExpandOptionsTemplate(TestCommand):
       
             
 class ProcessMesh(TestCommand):
-    def __init__(self, handler, parameteriser):
-        TestCommand.__init__(self, ['mesh_res'], handler, "Meshing",
-                             parameteriser)
+    def __init__(self, handler, parameteriser,
+                 global_num_dimensions=None):
+        if global_num_dimensions is None:
+            requisite_level_names = ['dim', 'mesh_res']
+            self.__get_dim = lambda: self.get('dim')
+        else:
+            requisite_level_names = ['mesh_res']
+            self.__get_dim = lambda: str(global_num_dimensions)
+            # self.__global_num_dimensions = global_num_dimensions
+        TestCommand.__init__(self, requisite_level_names, handler,
+                             "Meshing", parameteriser)
         # locate the 1D meshing binary
         default_fluidity_path()
         self.interval_path = os.environ["FLUIDITYPATH"] + "bin/interval"
@@ -553,18 +596,18 @@ class ProcessMesh(TestCommand):
 
         # call interval or gmsh
         # TODO: tell user to 'make geo' if needed
-        if self.get('dim') == '1':
+        if self.__get_dim() == '1':
             lx_str = self.lookup('geometry', 'DOMAIN_LENGTH_X')
             dx_str = self.lookup('geometry', 'EL_SIZE_X')
             call([self.interval_path, '0.0',
                   lx_str, '--dx='+dx_str,
                   self.lookup('filename_stems', 'geometry')])
         else:
-            call(['gmsh', '-'+self.get('dim'),
+            call(['gmsh', '-'+self.__get_dim(),
                   self.lookup('filenames', 'geometry')],
                  stdout=open(os.devnull, 'wb'))
         self.write_message('done')
-
+            
         
 class RunSimulation(TestCommand):
     """Runs the simulator."""
@@ -708,20 +751,31 @@ class CleanUp(TestCommand):
         if not self.at('leaf'):
             return
 
-        # try removing input files, mesh files, results files
+        # try removing input files, geometry files, mesh files
         trash = [self.lookup('filenames', 'simulation_options'),
                  self.lookup('filenames', 'geometry'),
                  self.lookup('filenames', 'mesh')]
-        self.remove_recursively(trash)
+        self.remove_recursively(trash, True)
+
+        # try removing results files
+        results_pattern = \
+            self.lookup('filename_stems', 'simulation_options')+'_*.vtu'
+        trash = glob(results_pattern)
+        if trash:
+            self.remove_recursively(trash, False)
+            self.write_message('   removed {0}'.format(results_pattern),
+                               with_newline=True)
+
                 
-    def remove_recursively(self, filename_or_list):
+    def remove_recursively(self, filename_or_list, verbose):
         for f in filename_or_list:
             try:
                 os.remove(f)
-                self.write_message('   removed {0}'.format(f),
-                                   with_newline=True)
+                if verbose:
+                    self.write_message('   removed {0}'.format(f),
+                                       with_newline=True)
             except TypeError:
-                self.remove_recursively(f)
+                self.remove_recursively(f, verbose)
             except OSError:
                 pass
 
@@ -768,6 +822,7 @@ class TestSuite:
                  parameteriser=None, 
                  command_line_in_xml=None,
                  assert_threshold_calculator=None,
+                 global_num_dimensions=None,
                  simulator_name='fluidity',
                  simulation_options_filename_extension='.flml',
                  simulator_verbosity=0,
@@ -791,6 +846,7 @@ class TestSuite:
         # set other stuff
         self.command_line_in_xml = command_line_in_xml
         self.assert_threshold_calculator = assert_threshold_calculator
+        self.global_num_dimensions = global_num_dimensions
         self.simulator_name = simulator_name
         self.simulator_verbosity = simulator_verbosity
         self.norm_calculator = norm_calculator
@@ -833,18 +889,20 @@ class TestSuite:
         
     def create_write_xml_file_command(self):
         if self.command_line_in_xml is None:
-            raise RuntimeError("""Tried to execute write_xml_file, but 
-TestSuite was initialised without command_line_in_xml 
-(a string that tells the test harness what to do). """)
-        return WriteXMLFile(self.results_handler,
-                            self.parameteriser,
-                            self.command_line_in_xml,
-                            self.assert_threshold_calculator)
+            return DoNothing(
+                "No XML file to be generated" +
+                "\n(TestSuite was initialised without command_line_in_xml)")
+        else:
+            return WriteXMLFile(self.results_handler,
+                                self.parameteriser,
+                                self.command_line_in_xml,
+                                self.assert_threshold_calculator)
         
     def create_preprocess_command(self):
         cmd1 = ExpandOptionsTemplate(
              self.simulation_handler, self.parameteriser)
-        cmd2 = ProcessMesh(self.simulation_handler, self.parameteriser)
+        cmd2 = ProcessMesh(self.simulation_handler, self.parameteriser,
+                           self.global_num_dimensions)
         return TestCommandList(self.simulation_handler, 'Preprocessing',
                                self.parameteriser, [cmd1, cmd2])
         

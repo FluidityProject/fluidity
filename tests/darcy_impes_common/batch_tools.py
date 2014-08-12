@@ -17,59 +17,70 @@ _default_verbosity = 1
 _indent_str = '   '
 
 
-class Handler:
+# # [see note 1]
+# 
+# class Handler:
+#     """A composite to enable recursion over arbitrary combinations of
+#     simulation options (e.g. domain dimensions, grid resolutions).  It
+#     varies from the conventional Composite pattern in that the
+#     parent-child functionality is shared between 'Level' and 'Node'
+#     components, and these components refer to instances of one another
+#     rather than the abstract class.
+#     """
+#     def set_verbose(self, verbose):
+#         """Sets verbosity."""
+#         pass
+#     def set_level_name(self, level_name):
+#         """Assigns a level name."""
+#         pass
+#     def set_level_index(self, level_index):
+#         """Recurses through the tree assigning level numbers."""
+#         pass
+#     def handle(self, command):
+#         """Recurses through the tree, executing command at each node
+#         (whether branch or leaf)."""
+#         pass
+#     def make_level(self):
+#         """Helper for add_sub.  Returns a new (Level)Handler and
+#         deep-copies any components for safety."""
+#         pass
+#     def add_sub(self, other):
+#         """Adds a further level of nodes to each leaf node in the present tree.
+#         """
+#         pass
+#     def __mul__(self, other):
+#         """Like add_sub, but provides a new Handler instead of modifying
+#         the current object.  This means the function can be inlined neatly.
+#         """
+#         result = deepcopy(self)
+#         result.add_sub(other)
+#         return result
+#     def get_level_names(self, level_names=None):
+#         """Recurses down the data structure recording level names as
+#         they appear in the hierarchy.  Returns an ordered list.
+#         Does not check consistency of ordering."""
+#         pass
+
+    
+class _Handler:
     """A composite to enable recursion over arbitrary combinations of
     simulation options (e.g. domain dimensions, grid resolutions).  It
     varies from the conventional Composite pattern in that the
     parent-child functionality is shared between 'Level' and 'Node'
     components, and these components refer to instances of one another
     rather than the abstract class.
-
     """
-
-    def set_verbose(self, verbose):
-        """Sets verbosity."""
-        pass
-
-    def set_level_name(self, level_name):
-        """Assigns a level name."""
-        pass
-
-    def set_level_index(self, level_index):
-        """Recurses through the tree assigning level numbers."""
-        pass
-        
-    def handle(self, command):
-        """Recurses through the tree, executing command at each node
-        (whether branch or leaf)."""
-        pass
-
-    def make_level(self):
-        """Helper for add_sub.  Returns a new (Level)Handler and
-        deep-copies any components for safety."""
-        pass
-
-    def add_sub(self, other):
-        """Adds a further level of nodes to each leaf node in the present tree.
-        """
-        pass
-
     def __mul__(self, other):
-        """Like add_sub, but provides a new Handler instead of modifying
-        the current object.  This means the function can be inlined neatly.
+        """Like add_sub in the subclasses that follow, but provides a
+        new Handler instead of modifying the current object.  This means
+        the function can be inlined neatly.
         """
         result = deepcopy(self)
         result.add_sub(other)
         return result
 
-    def get_level_names(self, level_names=None):
-        """Recurses down the data structure recording level names as
-        they appear in the hierarchy.  Returns an ordered list.
-        Does not check consistency of ordering."""
-        pass
-
     
-class LevelHandler(Handler):
+class _LevelHandler(_Handler):
     """A lightweight class containing a list of nodes at a certain
     level.  Most of the methods are just delegations to the nodes."""
 
@@ -78,8 +89,8 @@ class LevelHandler(Handler):
         # the supplied nodes may be strings, in which case they must be
         # converted into NodeHandlers first.
         for i, node in enumerate(node_list):
-            if not isinstance(node, NodeHandler):
-                node_list[i] = NodeHandler(node)
+            if not isinstance(node, _NodeHandler):
+                node_list[i] = _NodeHandler(node)
 
         self.set_level_name(level_name)
         # default to level 0.  This will change if the present handler
@@ -124,7 +135,7 @@ class LevelHandler(Handler):
         return level_names
         
         
-class NodeHandler(Handler):
+class _NodeHandler(_Handler):
     """Has zero or one LevelHandler children.  If zero, acts as a leaf
     component.  If one, has a sub-level that will be recursed over."""
     
@@ -165,7 +176,7 @@ class NodeHandler(Handler):
             pass
 
     def handle(self, command):
-        at_leaf = not isinstance(self.__sublevel, Handler)
+        at_leaf = not isinstance(self.__sublevel, _Handler)
         if self.verbose and self.__node_name:
             if self.__level_name:
                 lev = self.__level_name + ': '
@@ -189,7 +200,7 @@ class NodeHandler(Handler):
         
     def make_level(self):
         # return a LevelHandler containing a copy of this one node
-        return LevelHandler(self.__level_name, [deepcopy(self)])
+        return _LevelHandler(self.__level_name, [deepcopy(self)])
 
     def add_sub(self, other):
         # assign a new sublevel - or, if one already exists, recurse
@@ -212,8 +223,6 @@ class NodeHandler(Handler):
             level_names = self.__sublevel.get_level_names(level_names)
         return level_names
     
-
-## FOR PUBLIC USE 
     
 def default_fluidity_path():
     """Ensures the location of the Fluidity tree is known via
@@ -232,7 +241,7 @@ def default_fluidity_path():
 
 def make_string(string_list):
     """Formats and joins a bunch of strings """
-    result = None
+    result = ''
     for s in string_list:
         # any nil values are ignored
         if s is None:
@@ -241,10 +250,11 @@ def make_string(string_list):
         if s is not str:
             s = str(s)
         # chain the values together with underscores
-        if result is None:
-            result = s
+        if result=='' or s=='':
+            link = ''
         else:
-            result = result + '_' + s
+            link = '_'
+        result = link.join([result, s])
         # for safety (because keys will form filenames), replace
         # any points with 'p'
         result = sub('\.', 'p', result)
@@ -276,51 +286,50 @@ def new_handler(arg1, arg2=None, arg3=None, verbose=(_default_verbosity>0)):
         # the supplied nodes may be represented as strings, in which
         # case they must be converted into NodeHandlers first.
         for i, node in enumerate(arg2):
-            if not isinstance(node, NodeHandler):
-                arg2[i] = NodeHandler(node)
-        new_handler = LevelHandler(arg1, arg2)
+            if not isinstance(node, _NodeHandler):
+                arg2[i] = _NodeHandler(node)
+        new_handler = _LevelHandler(arg1, arg2)
     else:
         # we are creating a node
         if isinstance(arg2, str):
             # arg1 is the level name, arg2 is the node name and there
             # may be a sublevel in arg3
-            new_handler = NodeHandler(arg2, arg3)
+            new_handler = _NodeHandler(arg2, arg3)
             new_handler.set_level_name(arg1)
         else:
             # arg1 is the node name and there may be a sublevel in arg2
-            new_handler = NodeHandler(arg1, arg2)
+            new_handler = _NodeHandler(arg1, arg2)
             
     new_handler.set_verbose(verbose)
     return new_handler
 
-        
-class Command:
-    """Class for encapsulating a command corresponding to a tree of
-    Handlers.  The body of the command is coded up for different levels
-    of the tree in the 'execute' method.
-    """
-    
-    def inform(self, level_name, node_name, at_leaf, indent, verbose):
-        """Passes information to the Command about where it is in the
-        handler tree.  The Command can then choose what to do upon
-        execution. """
-        pass
 
-    def execute(self):
-        """Triggers the command."""
-        pass
-
-    def handle(self, other=None, message=None):
-        """Enables handling of other commands or handling of self (see
-        below)."""
-        pass
+# # [see note 1]
+# 
+# class Command:
+#     """Class for encapsulating a command corresponding to a tree of
+#     Handlers.  The body of the command is coded up for different levels
+#     of the tree in the 'execute' method.
+#     """
+#     def inform(self, level_name, node_name, at_leaf, indent, verbose):
+#         """Passes information to the Command about where it is in the
+#         handler tree.  The Command can then choose what to do upon
+#         execution. """
+#         pass
+#     def execute(self):
+#         """Triggers the command."""
+#         pass
+#     def handle(self, other=None, message=None):
+#         """Enables handling of other commands or handling of self (see
+#         below)."""
+#         pass
 
 
 class Tracker:
-    """Helper class for Command implementations.  Clients may want to
-    store an instance of this class in each concrete Command.  It
-    manages information as to where the command is in the handler tree.
-    It also has a method for making a unique ID.
+    """Helper class for command implementations.  Clients may want to
+    store an instance of this class in each command.  It manages
+    information as to where the command is in the handler tree.  It also
+    has a method for making a unique ID.
     """
     
     def __init__(self, key_formatting_dict={}):
@@ -417,12 +426,12 @@ class Tracker:
         return make_string(node_names)
 
             
-class Validate(Command):
+class _Validate:
     """A supporting Command that ensures compatibility with a handler."""
     
     def __init__(self, client_name, requisite_level_names):
-        """client_name refers to the TestCommand object that is sending
-        the Validate object to a handler in order to test compatibility.
+        """client_name refers to the object that is sending the Validate
+        object to a handler in order to test compatibility.
         requisite_level_names is a list of level names that must be
         encountered, and in the given order."""
         self.tracker = Tracker()
@@ -488,14 +497,14 @@ class Validate(Command):
             n += 1
 
 
-class SelfHandlingCommand(Command):
-    """This abstract class is associated with a Handler.  The
-    Handler is validated so that the client doesn't have to worry so
-    much about Handler-Command compatibility.  The client can
-    initiate the handle-execute process by calling handle()."""
+class SelfHandlingCommand:
+    """This command is associated with a handler.  The handler is
+    validated so that the client doesn't have to worry so much about
+    Handler-Command compatibility.  The client can initiate the
+    handle-execute process by calling handle()."""
 
-    def __init__(self, requisite_level_names, handler, message,
-                 verbosity=_default_verbosity):
+    def __init__(self, requisite_level_names=[], handler=new_handler(''),
+                 message='', verbosity=_default_verbosity):
         # self.__verbosity controls the amount of output; self.__verbose
         # turns it on or off during runtime
         self.__verbosity = verbosity
@@ -530,7 +539,7 @@ class SelfHandlingCommand(Command):
         handler.set_verbose(self.__verbosity > 1)
         if self.__verbosity > 1:
             self.write_message("\nValidating " + self_name + " handler\n")
-        handler.handle( Validate(self_name, self.__requisite_level_names) )
+        handler.handle( _Validate(self_name, self.__requisite_level_names) )
         # if we have got here, validation was successful
         self.handler = handler
         self.handler.set_verbose(self.__verbosity > 0)
@@ -551,3 +560,10 @@ class DoNothing(SelfHandlingCommand):
     """A blank for use in method stubs etc."""
     def __init__(self, message=''):
         SelfHandlingCommand.__init__(self, [], new_handler(''), message)
+
+    def execute(self):
+        pass
+        
+# [1] Python's duck typing renders abstract classes and methods
+#     redundant.  They will be phased out completely once I have
+#     strengthened the documentation.
