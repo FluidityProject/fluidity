@@ -384,8 +384,7 @@ module field_derivatives
 
       end do
       
-      ! Computing the final strain rate tensor
-      
+      ! Computing the final strain rate tensor      
       do node=1,node_count(t_field)
            t=node_val(t_field, node)
            call set(t_field, node, (t+transpose(t))/2) 

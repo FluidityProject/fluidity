@@ -98,7 +98,7 @@ contains
   end function do_checkpoint_simulation
 
   subroutine checkpoint_simulation(state, prefix, postfix, cp_no, protect_simulation_name, &
-    keep_initial_data, ignore_detectors)
+    keep_initial_data, ignore_detectors, number_of_partitions)
     !!< Checkpoint the whole simulation
     
     type(state_type), dimension(:), intent(in) :: state
@@ -119,6 +119,8 @@ contains
     !! not in a set of per-process files.  So flredecomp does not want to
     !! checkpoint detectors.
     logical, optional, intent(in) :: ignore_detectors
+    !! If present, only write for processes 1:number_of_partitions (assumes the other partitions are empty)
+    integer, optional, intent(in):: number_of_partitions
 
     character(len = PREFIX_LEN) :: lpostfix, lprefix
 
@@ -140,7 +142,7 @@ contains
     end if
 
     call checkpoint_state(state, lprefix, postfix = lpostfix, cp_no = cp_no, &
-      keep_initial_data = keep_initial_data)
+      keep_initial_data = keep_initial_data, number_of_partitions=number_of_partitions)
     if(have_option("/io/detectors") &
          .and. .not.present_and_true(ignore_detectors)) then
       call checkpoint_detectors(state, lprefix, postfix = lpostfix, cp_no = cp_no)
@@ -407,7 +409,7 @@ contains
 
   end subroutine update_detectors_options
 
-  subroutine checkpoint_state(state, prefix, postfix, cp_no, keep_initial_data)
+  subroutine checkpoint_state(state, prefix, postfix, cp_no, keep_initial_data, number_of_partitions)
     !!< Checkpoint state.
 
     type(state_type), dimension(:), intent(in) :: state
@@ -418,13 +420,15 @@ contains
     !! checkpoint extruded meshes if the extrusion can be repeated using the initial sizing_function, 
     !! i.e. if this run has not been started with a checkpointed extruded mesh (extrude/checkpoint_from_file)
     logical, optional, intent(in) :: keep_initial_data
+    !! If present, only write for processes 1:number_of_partitions (assumes the other partitions are empty)
+    integer, optional, intent(in):: number_of_partitions
 
-    call checkpoint_meshes(state, prefix, postfix, cp_no, keep_initial_data=keep_initial_data)
-    call checkpoint_fields(state, prefix, postfix, cp_no, keep_initial_data=keep_initial_data)
+    call checkpoint_meshes(state, prefix, postfix, cp_no, keep_initial_data=keep_initial_data, number_of_partitions=number_of_partitions)
+    call checkpoint_fields(state, prefix, postfix, cp_no, keep_initial_data=keep_initial_data, number_of_partitions=number_of_partitions)
 
   end subroutine checkpoint_state
 
-  subroutine checkpoint_meshes(state, prefix, postfix, cp_no, keep_initial_data)
+  subroutine checkpoint_meshes(state, prefix, postfix, cp_no, keep_initial_data, number_of_partitions)
     !!< Checkpoint the meshes in state. Outputs to mesh files with names:
     !!<   [prefix]_[mesh_name][_cp_no][_postfix][_process].[extention]
     !!< where cp_no is optional and the process number is added in parallel.
@@ -436,15 +440,23 @@ contains
     integer, optional, intent(in) :: cp_no
     ! if present and true: do not checkpoint extruded meshes that can be re-extruded
     logical, optional, intent(in) :: keep_initial_data
+    !! If present, only write for processes 1:number_of_partitions (assumes the other partitions are empty)
+    integer, optional, intent(in):: number_of_partitions
 
     type(vector_field), pointer:: position
     character(len = FIELD_NAME_LEN) :: mesh_name, mesh_format
     character(len = OPTION_PATH_LEN) :: mesh_path, mesh_filename
-    integer :: i, n_meshes, stat1, stat2
+    integer :: i, n_meshes, stat1, stat2, nparts
     type(mesh_type), pointer :: mesh, external_mesh
     logical :: from_file, extruded
     
     assert(len_trim(prefix) > 0)
+
+    if (present(number_of_partitions)) then
+      nparts = number_of_partitions
+    else
+      nparts = getnprocs()
+    end if
 
     n_meshes = option_count("/geometry/mesh")
     do i = 0, n_meshes - 1
@@ -503,14 +515,14 @@ contains
           position => extract_vector_field(state(1), trim(mesh%name)//"Coordinate")
         end if
 
-        if(get_active_nparts(ele_count(mesh)) > 1) then
-          call write_mesh_files(parallel_filename(mesh_filename), mesh_format, position)
+        if(nparts > 1) then
+          call write_mesh_files(parallel_filename(mesh_filename), mesh_format, position, number_of_partitions=number_of_partitions)
           ! Write out the halos
           ewrite(2, *) "Checkpointing halos"
-          call write_halos(mesh_filename, mesh)
+          call write_halos(mesh_filename, mesh, number_of_partitions=number_of_partitions)
         else
           ! Write out the mesh
-          call write_mesh_files(mesh_filename, mesh_format, position)
+          call write_mesh_files(mesh_filename, mesh_format, position, number_of_partitions=number_of_partitions)
         end if
 
       end if
@@ -519,7 +531,7 @@ contains
 
   end subroutine checkpoint_meshes
 
-  subroutine checkpoint_fields(state, prefix, postfix, cp_no, keep_initial_data)
+  subroutine checkpoint_fields(state, prefix, postfix, cp_no, keep_initial_data, number_of_partitions)
     !!< Checkpoint the fields in state. Outputs to vtu files with names:
     !!<   [prefix]_[_state name]_[mesh_name][_cp_no][_postfix][_process].vtu
     !!< where the state name is added if multiple states are passed, cp_no is
@@ -531,6 +543,8 @@ contains
     integer, optional, intent(in) :: cp_no
     ! if present and true: do not checkpoint fields that can be reinitialised
     logical, optional, intent(in) :: keep_initial_data
+    !! If present, only write for processes 1:number_of_partitions (assumes the other partitions are empty)
+    integer, optional, intent(in):: number_of_partitions
 
     character(len = OPTION_PATH_LEN) :: vtu_filename
     integer :: i, j, k, nparts, n_ps_fields_on_mesh, n_pv_fields_on_mesh, n_pt_fields_on_mesh
@@ -545,6 +559,12 @@ contains
     integer :: stat
 
     assert(len_trim(prefix) > 0)
+
+    if (present(number_of_partitions)) then
+      nparts = number_of_partitions
+    else
+      nparts = getnprocs()
+    end if
 
     do i = 1, size(state)
       if (have_option("/mesh_adaptivity/mesh_movement/free_surface")) then
@@ -567,7 +587,6 @@ contains
       end if
       do j = 1, size(state(i)%meshes)
         mesh => state(i)%meshes(j)%ptr
-        nparts = get_active_nparts(ele_count(mesh))
 
         ! Construct a new field checkpoint filename
         vtu_filename = trim(prefix)
@@ -699,7 +718,7 @@ contains
         if(n_ps_fields_on_mesh + n_pv_fields_on_mesh + n_pt_fields_on_mesh > 0) then
           call vtk_write_fields(vtu_filename, position = positions, model = mesh, &
             & sfields = ps_fields_on_mesh(:n_ps_fields_on_mesh), vfields = pv_fields_on_mesh(:n_pv_fields_on_mesh), &
-            & tfields = pt_fields_on_mesh(:n_pt_fields_on_mesh), stat=stat)
+            & tfields = pt_fields_on_mesh(:n_pt_fields_on_mesh), number_of_partitions=number_of_partitions, stat=stat)
         end if
 
         deallocate(ps_fields_on_mesh)
