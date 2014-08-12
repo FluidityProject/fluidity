@@ -450,10 +450,10 @@ Interpolation_manager.o ../include/interpolation_manager.mod: \
 ../include/les_module.mod: LES.o
 	@true
 
-LES.o ../include/les_module.mod: LES.F90 ../include/fdebug.h \
-   ../include/fetools.mod ../include/field_options.mod ../include/fields.mod \
-   ../include/global_parameters.mod ../include/smoothing_module.mod \
-   ../include/solvers.mod ../include/spud.mod \
+LES.o ../include/les_module.mod: LES.F90 ../include/boundary_conditions.mod \
+   ../include/fdebug.h ../include/fetools.mod ../include/field_options.mod \
+   ../include/fields.mod ../include/global_parameters.mod \
+   ../include/smoothing_module.mod ../include/solvers.mod ../include/spud.mod \
    ../include/state_fields_module.mod ../include/state_module.mod \
    ../include/vector_tools.mod
 
