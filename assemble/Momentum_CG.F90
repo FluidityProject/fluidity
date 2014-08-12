@@ -435,6 +435,9 @@
          ! Point to dummy fields, then point to actual fields if required
          fnu => dummyvector; tnu => dummyvector; leonard => dummytensor; strainprod => dummytensor; exactsgs => dummytensor
 
+         ! Point to dummy fields, then point to actual fields if required
+         fnu => dummyvector; tnu => dummyvector; leonard => dummytensor; strainprod => dummytensor
+
          les_option_path=(trim(u%option_path)//"/prognostic/spatial_discretisation"//&
                  &"/continuous_galerkin/les_model")
          les_second_order=have_option(trim(les_option_path)//"/second_order")
