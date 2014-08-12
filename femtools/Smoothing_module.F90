@@ -114,7 +114,7 @@ contains
       !end do
     !end do
 
-    ewrite(2,*) "Applying strong Dirichlet boundary conditions to filtered vector field"    
+    ewrite(2,*) "Applying strong Dirichlet boundary conditions to filtered vector field"
     do i=1, field_in%dim
       call apply_dirichlet_conditions(matrix=M, rhs=rhsfield, field=field_out, dim=i)
     end do
@@ -167,7 +167,7 @@ contains
        call assemble_smooth_tensor(M, rhsfield, positions, field_in, alpha, ele)
     end do
 
-    ewrite(2,*) "Applying strong Dirichlet boundary conditions to filtered tensor field"    
+    ewrite(2,*) "Applying strong Dirichlet boundary conditions to filtered tensor field"
     do i=1, field_in%dim(1)
       do j=1, field_in%dim(2)
         call apply_dirichlet_conditions(matrix=M, rhs=rhsfield, field=field_out, dim1=i, dim2=j)
