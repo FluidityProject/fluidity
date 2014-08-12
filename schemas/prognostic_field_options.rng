@@ -842,6 +842,13 @@ Lower values will result in less information being filtered out of the velocity.
 default value: 2.0</a:documentation>
                     <ref name="real"/>
                   </element>
+                  <optional>
+                    <element name="calculate_boundaries">
+                      <a:documentation>If turned on, apply zero Dirichlet BC to exact SGS field.
+Otherwise no BCs are set.</a:documentation>
+                      <empty/>
+                    </element>
+                  </optional>
                   <element name="length_scale_type">
                     <a:documentation>The 'scalar' length scale is the cube root of the element's volume in 3D. In 2D, it is the square root of the element's area. Using this will result in an isotropic eddy viscosity tensor.
 

@@ -428,15 +428,8 @@
       have_les = have_option(trim(u%option_path)//"/prognostic/spatial_discretisation"//&
          &"/continuous_galerkin/les_model")
       if (have_les) then
-         ! Set everything to false initially, then set to true if present
-         les_second_order=.false.; les_fourth_order=.false.; wale=.false.; dynamic_les=.false.; exact_sgs=.false.
+         ! Set LES flags to false initially, then set to true if present
          have_eddy_visc=.false.; have_filter_width=.false.; have_coeff=.false.; have_sgs_tensor=.false.
-
-         ! Point to dummy fields, then point to actual fields if required
-         fnu => dummyvector; tnu => dummyvector; leonard => dummytensor; strainprod => dummytensor; exactsgs => dummytensor
-
-         ! Point to dummy fields, then point to actual fields if required
-         fnu => dummyvector; tnu => dummyvector; leonard => dummytensor; strainprod => dummytensor
 
          les_option_path=(trim(u%option_path)//"/prognostic/spatial_discretisation"//&
                  &"/continuous_galerkin/les_model")
@@ -477,12 +470,15 @@
 
             ! Initialise necessary local fields.
             ewrite(2,*) "Initialising compulsory dynamic LES fields"
-            allocate(leonard)
+
+            allocate(fnu); allocate(tnu); allocate(leonard); allocate(strainprod)
+
+            call allocate(fnu, u%dim, u%mesh, "FirstFilteredVelocity")
+            call allocate(tnu, u%dim, u%mesh, "TestFilteredVelocity")
             call allocate(leonard, u%mesh, "LeonardTensor")
-            call zero(leonard)
-            allocate(strainprod)
             call allocate(strainprod, u%mesh, "StrainProduct")
-            call zero(strainprod)
+
+            call zero(fnu); call zero(tnu); call zero(leonard); call zero(strainprod)
 
             ! Get (first filter)/(mesh size) ratio alpha. Default value is 2.
             call get_option(trim(les_option_path)//"/dynamic_les/alpha", alpha, default=2.0)
@@ -495,13 +491,12 @@
             ewrite(2,*) "Calculating test-filtered velocity and Leonard tensor"
             call leonard_tensor(nu, x, fnu, tnu, leonard, strainprod, alpha, gamma, length_scale_type, les_option_path)
 
+            ewrite_minmax(fnu)
+            ewrite_minmax(tnu)
             ewrite_minmax(leonard)
             ewrite_minmax(strainprod)
          end if
          if (exact_sgs) then
-           ! Get (first filter)/(mesh size) ratio alpha. Default value is 2.
-           call get_option(trim(les_option_path)//"/exact_sgs/alpha", &
-                alpha, default=2.0)
            ! Scalar or tensor filter width
            call get_option(trim(les_option_path)//"/exact_sgs/length_scale_type", length_scale_type)
 
@@ -517,17 +512,18 @@
              fnu => extract_vector_field(state, "FilteredVelocity", stat)
            end if
 
-           call zero(fnu)
-
-           if(.not. have_sgs_tensor) then
-             ewrite(2,*) "Initialising SGSTensor field"
-             allocate(exactsgs)
-             call allocate(exactsgs, u%mesh, "SGSTensor")
-           else
+           !if(.not. have_sgs_tensor) then
+             !ewrite(2,*) "Initialising SGSTensor field"
+             !allocate(exactsgs)
+             !call allocate(exactsgs, u%mesh, "SGSTensor")
+           !else
              exactsgs => extract_tensor_field(state, "SGSTensor", stat)
-           end if
+           !end if
 
-           call zero(exactsgs)
+           call zero(fnu); call zero(exactsgs)
+
+           ! Get (first filter)/(mesh size) ratio alpha. Default value is 2.
+           call get_option(trim(les_option_path)//"/exact_sgs/alpha", alpha, default=2.0)
 
            ! Calculate explicitly filtered velocity and exact SGS stress.
            ewrite(2,*) "Calculating exact SGS stress"
@@ -535,6 +531,9 @@
 
            ewrite_minmax(exactsgs)
          end if
+      else
+         les_second_order=.false.; les_fourth_order=.false.; wale=.false.; dynamic_les=.false.; exact_sgs=.false.
+         fnu => dummyvector; tnu => dummyvector; leonard => dummytensor; strainprod => dummytensor; exactsgs => dummytensor
       end if
       
 
@@ -913,11 +912,16 @@
       end if
 
       if (dynamic_les) then
+        call deallocate(fnu); deallocate(fnu)
+        call deallocate(tnu); deallocate(tnu)
         call deallocate(leonard); deallocate(leonard)
         call deallocate(strainprod); deallocate(strainprod)
       end if
 
       if (exact_sgs) then
+        if(.not. have_option(trim(les_option_path)//"/exact_sgs/vector_field::FilteredVelocity")) then
+          call deallocate(fnu); deallocate(fnu)
+        end if
         if(.not. have_sgs_tensor) then
           call deallocate(exactsgs); deallocate(exactsgs)
         end if

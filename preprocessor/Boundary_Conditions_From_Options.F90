@@ -133,6 +133,7 @@ contains
     ! - ocean boundaries
     ! - ocean forcing
     ! - GLS stable boundaries
+    ! - exact SGS model
     if (have_option('/geometry/ocean_boundaries')) then
        ! NOTE: has to be a pointer, as bcs should be added to original field
        sfield => extract_scalar_field(states(1), "DistanceToTop")
@@ -170,6 +171,12 @@ contains
         call populate_iceshelf_boundary_conditions(states(1))
     end if
     
+    if (have_option("/material_phase[0]/vector_field::Velocity"//&
+            &"/prognostic/spatial_discretisation/continuous_galerkin"//&
+            &"/les_model/exact_sgs/calculate_boundaries")) then
+        call populate_exactsgs_boundary_conditions(states(1))
+    end if
+
   end subroutine populate_boundary_conditions
 
   subroutine populate_scalar_boundary_conditions(field, bc_path, position, suppress_warnings)
@@ -2309,6 +2316,94 @@ contains
        !call deallocate(scalar_surface_field)
     end subroutine insert_flux_turbine_boundary_condition
   end subroutine populate_flux_turbine_boundary_conditions
+
+  subroutine populate_exactsgs_boundary_conditions(state)
+
+    ! Add Dirichlet BCs to exactsgs field where Velocity has Dirichlet BCs
+    type(state_type), intent(in)       :: state
+    type(vector_field), pointer        :: velocity
+    type(tensor_field), pointer        :: exactsgs
+
+    character(len=OPTION_PATH_LEN)     :: les_option_path, bc_path, bc_path_i
+    character(len=FIELD_NAME_LEN)      :: bc_name, bc_type
+    integer, dimension(:), allocatable :: surface_ids
+    integer                            :: shape_option(2)
+    type(mesh_type), pointer           :: bc_surface_mesh
+    type(tensor_field)                 :: bc_field
+    type(vector_field)                 :: bc_positions
+    type(scalar_field)                 :: bc_comp
+    integer, dimension(:), pointer     :: bc_surface_elements
+    integer                            :: i, j, k, nbcs, stat
+
+    ewrite(2,*) "Adding Dirichlet boundary conditions to Exact SGS tensor field"
+
+    velocity => extract_vector_field(state, "Velocity")
+
+    les_option_path=(trim(velocity%option_path)//"/prognostic/spatial_discretisation"//&
+                 &"/continuous_galerkin/les_model")
+
+    if(.not. have_option(trim(les_option_path)//"/exact_sgs/tensor_field::SGSTensor")) then
+       ewrite(2,*) "Initialising SGSTensor field"
+       allocate(exactsgs)
+       call allocate(exactsgs, velocity%mesh, "SGSTensor")
+    else
+       exactsgs => extract_tensor_field(state, "SGSTensor", stat)
+    end if
+
+    ! Get number of boundary conditions
+    bc_path = trim(velocity%option_path)//'/prognostic/boundary_conditions'
+    nbcs=option_count(trim(bc_path))
+
+    ! Loop over boundary conditions
+    boundary_conditions: do i=0, nbcs-1
+
+       bc_path_i=trim(bc_path)//"["//int2str(i)//"]"
+
+       ! Get vector of surface ids
+       shape_option=option_shape(trim(bc_path_i)//"/surface_ids")
+       allocate(surface_ids(1:shape_option(1)))
+       call get_option(trim(bc_path_i)//"/surface_ids", surface_ids)
+
+       ! Get name of boundary
+       call get_option(trim(bc_path_i)//"/name", bc_name)
+
+       ! Get type of boundary condition
+       call get_option(trim(bc_path_i)//"/type[0]/name", bc_type)
+
+       select case(trim(bc_type))
+
+       case("dirichlet")
+          ! Add boundary condition
+          call add_boundary_condition(exactsgs, trim(bc_name), trim(bc_type), surface_ids)
+
+          ewrite(2,*) "calling get_tensor_boundary_condition, ", trim(bc_name)
+          ! ask for a mesh of this part of the surface only
+          call get_boundary_condition(exactsgs, name=trim(bc_name), surface_mesh=bc_surface_mesh)
+
+          ! allocate a field on it to set b.c. values on
+          call allocate(bc_field, bc_surface_mesh, name='value', field_type=exactsgs%field_type, dim=exactsgs%dim)
+
+          ! set it to some constant
+          !do j = 1, bc_field%dim(1)
+          !   do k = 1, bc_field%dim(2)
+          !      bc_comp = extract_scalar_field(bc_field, j, k)
+          !      call set(bc_comp, 0.0)
+          !   end do
+          !end do
+
+          ! insert it to the boundary condition:
+          call insert_surface_field(exactsgs, trim(bc_name), bc_field)
+    
+          ! deallocate our reference
+          call deallocate(bc_field)
+
+       end select
+
+       deallocate(surface_ids)
+
+    end do boundary_conditions
+
+  end subroutine populate_exactsgs_boundary_conditions
 
   subroutine impose_reference_pressure_node(cmc_m, rhs, positions, option_path)
     !!< If there are only Neumann boundaries on P, it is necessary to pin

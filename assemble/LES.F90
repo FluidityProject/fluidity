@@ -34,6 +34,7 @@ module les_module
   use spud
   use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN
   use smoothing_module
+  use boundary_conditions
   use vector_tools
   use fetools
   use state_fields_module
@@ -326,12 +327,11 @@ contains
 
   subroutine exact_sgs_stress(nu, positions, fnu, exactsgs, alpha, length_scale_type, path)
 
-    ! Unfiltered velocity
-    type(vector_field), pointer                           :: nu
     type(vector_field), intent(in)                        :: positions
     type(tensor_field), intent(inout)                     :: exactsgs
-    ! Filtered velocity
-    type(vector_field), pointer                           :: fnu, vfield
+    ! Unfiltered velocity and nonlinear velocity
+    type(vector_field), pointer                           :: nu, fnu
+    type(vector_field), pointer                           :: vfield
     ! RHS tensor
     type(tensor_field), pointer                           :: tensorrhs
     ! Scale factor
@@ -339,12 +339,13 @@ contains
     character(len=OPTION_PATH_LEN), intent(in)            :: length_scale_type, path
     ! Local quantities
     character(len=OPTION_PATH_LEN)                        :: lpath
-    integer                                               :: i, j, ele, gi
+    integer                                               :: ele, gi, loc
     real, dimension(ele_loc(nu,1), ele_ngi(nu,1), nu%dim) :: du_t
     real, dimension(ele_ngi(nu,1))                        :: detwei
     real, dimension(nu%dim, nu%dim, ele_ngi(nu,1))        :: mat_gi
     real, dimension(nu%dim, nu%dim)                       :: mat
-    real, dimension(nu%dim, ele_ngi(nu,1))                :: grad_gi
+    real, dimension(nu%dim, ele_ngi(nu,1))                :: laplacian_gi
+    real, dimension(ele_loc(nu,1))                        :: laplacian
     real                                                  :: delta
     type(element_type)                                    :: shape_nu
 
@@ -384,29 +385,24 @@ contains
       do gi = 1, ele_ngi(nu, ele)
         ! velocity gradient
         mat = matmul(ele_val(fnu, ele), du_t(:,gi,:))
-        ! gradient product
+        ! gradient product: 2 (du_i/dx_k) (du_j/dx_k)
         mat_gi(:,:,gi) = 2.0*delta*matmul(mat, transpose(mat))
-      end do
 
-      ! add gradient product to tensor RHS field
-      call addto(tensorrhs, ele_nodes(nu, ele), shape_tensor_rhs(shape_nu, mat_gi, detwei))
-
-      ! store grad(filtered velocity) in vfield
-      do i = 1, nu%dim
-        do j = 1, nu%dim
-          grad_gi(j, :) = matmul(ele_val(nu, i, ele), du_t(:, :, j))
+        ! Laplacian operator: dim.dim = dim
+        do loc = 1, ele_loc(fnu, ele)
+          laplacian(loc) = dot_product(du_t(loc,gi,:), du_t(loc,gi,:))
         end do
 
-        call addto(vfield, i, ele_nodes(nu, ele), dshape_dot_vector_rhs(du_t, grad_gi, detwei))
+        ! Laplacian of filtered velocity: (dim*loc)*loc = dim
+        laplacian_gi(:,gi) = matmul(ele_val(fnu, ele), laplacian)
+
+        ! Laplacian product
+        mat_gi(:,:,gi) = mat_gi(:,:,gi) + delta**4*outer_product(laplacian_gi(:,gi), laplacian_gi(:,gi))
       end do
 
-      ! Laplacian product
-      grad_gi = ele_val_at_quad(vfield, ele) ! dim*gi or gi*dim?
-      do gi=1, ele_ngi(nu, ele)
-        mat_gi(:,:,gi) = delta**2*outer_product(grad_gi(:,gi), grad_gi(:,gi))
-      end do
+      !ewrite(1,*) 'mat, lap: ', sum(mat_gi(:,:,1)), sum(test_gi(:,:,1))
 
-      ! add Laplacian product to tensor RHS field
+      ! add to tensor RHS field
       call addto(tensorrhs, ele_nodes(nu, ele), shape_tensor_rhs(shape_nu, mat_gi, detwei))
 
     end do

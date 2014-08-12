@@ -7,7 +7,7 @@ module smoothing_module
   use sparsity_patterns
   use solvers
   use metric_tools
-  use boundary_conditions, only: apply_dirichlet_conditions
+  use boundary_conditions
   use global_parameters, only : OPTION_PATH_LEN
   implicit none
 
@@ -34,8 +34,9 @@ contains
     !local variables
     type(csr_matrix) :: M
     type(csr_sparsity) :: M_sparsity
-    type(scalar_field) :: RHSFIELD
-    integer :: ele
+    type(scalar_field) :: rhsfield
+    type(scalar_field), pointer :: field_in_surf
+    integer :: ele, sele
 
     !allocate smoothing matrix
     M_sparsity=make_sparsity(field_in%mesh, &
@@ -44,7 +45,7 @@ contains
     call deallocate(M_sparsity) 
     call zero(M)
     
-    !allocate RHSFIELD
+    !allocate rhsfield
     call allocate(rhsfield, field_in%mesh, "HelmholtzScalarSmoothingRHS")
     call zero(rhsfield)
 
@@ -53,8 +54,12 @@ contains
        call assemble_smooth_scalar(M, rhsfield, positions, field_in, alpha, ele)
     end do
 
+    !do sele = 1, surface_element_count(field_in)
+      !call assemble_smooth_scalar_face(sele, rhsfield, positions, field_in)
+    !end do
+
     ! Boundary conditions
-    ewrite(2,*) "Applying strong Dirichlet boundary conditions to filtered field"
+    ewrite(2,*) "Applying strong Dirichlet boundary conditions to filtered scalar field"
     call apply_dirichlet_conditions(M, rhsfield, field_in)
 
     call zero(field_out)
@@ -77,11 +82,12 @@ contains
     type(vector_field), intent(inout) :: field_out
     character(len=*), intent(in) :: path
     
-    !local variables
+    !local quantities
     type(csr_matrix) :: M
     type(csr_sparsity) :: M_sparsity
-    type(vector_field) :: RHSFIELD
-    integer :: ele, dim
+    type(vector_field) :: rhsfield
+    type(scalar_field) :: field_in_comp, rhsfield_comp
+    integer :: ele, sele, i
 
     !allocate smoothing matrix
     M_sparsity=make_sparsity(field_in%mesh, &
@@ -90,7 +96,7 @@ contains
     call deallocate(M_sparsity) 
     call zero(M)
     
-    !allocate RHSFIELD
+    !allocate rhsfield
     call allocate(rhsfield, field_in%dim, field_in%mesh, "HelmholtzVectorSmoothingRHS")
     call zero(rhsfield)
 
@@ -98,10 +104,19 @@ contains
     do ele=1, element_count(field_in)
        call assemble_smooth_vector(M, rhsfield, positions, field_in, alpha, ele)
     end do
+    !ewrite(2,*) "applying Dirichlet BCs"
+    !do i = 1, field_in%dim
+      !rhsfield_comp = extract_scalar_field(rhsfield, i)
+      !field_in_comp = extract_scalar_field(field_in, i)
+      !call apply_dirichlet_conditions(matrix=M, rhs=rhsfield_comp, field=field_in_comp)
+      !do sele = 1, surface_element_count(field_in)
+        !call assemble_smooth_scalar_face(sele, rhsfield_comp, positions, field_in_comp)
+      !end do
+    !end do
 
-    ewrite(2,*) "Applying strong Dirichlet boundary conditions to filtered field"    
-    do dim=1, field_in%dim
-      call apply_dirichlet_conditions(matrix=M, rhs=rhsfield, field=field_in, dim=dim)
+    ewrite(2,*) "Applying strong Dirichlet boundary conditions to filtered vector field"    
+    do i=1, field_in%dim
+      call apply_dirichlet_conditions(matrix=M, rhs=rhsfield, field=field_out, dim=i)
     end do
 
     call zero(field_out)
@@ -128,7 +143,13 @@ contains
     type(csr_matrix) :: M
     type(csr_sparsity) :: M_sparsity
     type(tensor_field) :: rhsfield
-    integer :: ele
+    integer :: ele, i, j, k
+
+    type(tensor_field), pointer:: surface_field
+    type(scalar_field):: bc_comp
+    character(len=FIELD_NAME_LEN):: bcname, bctype
+
+    call zero(field_out)
 
     !allocate smoothing matrix
     M_sparsity=make_sparsity(field_in%mesh, &
@@ -137,7 +158,7 @@ contains
     call deallocate(M_sparsity) 
     call zero(M)
     
-    !allocate RHSFIELD
+    !allocate rhsfield
     call allocate(rhsfield, field_in%mesh, "HelmholtzTensorSmoothingRHS")
     call zero(rhsfield)
 
@@ -146,7 +167,30 @@ contains
        call assemble_smooth_tensor(M, rhsfield, positions, field_in, alpha, ele)
     end do
 
-    call zero(field_out)
+    ewrite(2,*) "Applying strong Dirichlet boundary conditions to filtered tensor field"    
+    do i=1, field_in%dim(1)
+      do j=1, field_in%dim(2)
+        call apply_dirichlet_conditions(matrix=M, rhs=rhsfield, field=field_out, dim1=i, dim2=j)
+      end do
+    end do
+
+    ! Loop over boundary conditions
+    !do i=1, get_boundary_condition_count(field_out)
+
+      ! ask for a mesh of this part of the surface only
+      !call get_boundary_condition(field_out, i, bcname, bctype)
+
+      !surface_field => extract_surface_field(field_out, i, "value")
+
+      ! set it to some constant
+      !do j = 1, field_out%dim(1)
+        !do k = 1, field_out%dim(2)
+          !bc_comp = extract_scalar_field(surface_field, j, k)
+          !call set(bc_comp, 0.0)
+        !end do
+      !end do    
+    !end do
+
     call petsc_solve(field_out, M, rhsfield, option_path=trim(path))
 
     call deallocate(rhsfield)
@@ -258,7 +302,7 @@ contains
     call deallocate(M_sparsity) 
     call zero(M)
     
-    !allocate RHSFIELD
+    !allocate rhsfield
     call allocate(rhsfield, field_in%mesh, "HelmholtzTensorSmoothingRHS")
     call zero(rhsfield)
 
@@ -275,9 +319,28 @@ contains
 
   end subroutine anisotropic_smooth_tensor
 
+  subroutine assemble_smooth_scalar_face(face, s_field, positions, source_field)
+    integer, intent(in) :: face
+    type(scalar_field), intent(inout) :: s_field
+    type(vector_field), intent(in) :: positions
+    type(scalar_field), intent(in) :: source_field
+    
+    real, dimension(face_ngi(s_field, face)) :: detwei, source_field_gi  
+    type(element_type), pointer :: fshape
+      
+    fshape => face_shape(s_field, face)
+    source_field_gi = face_val_at_quad(source_field, face)
+
+    call transform_facet_to_physical(positions, face, detwei_f = detwei)
+
+    ! effectively set filtered field to unfiltered field by neglecting 2nd derivative term (delta = 0)
+    call addto(s_field, face_global_nodes(s_field, face), shape_rhs(fshape, detwei*source_field_gi))
+  
+  end subroutine assemble_smooth_scalar_face
+
   subroutine assemble_smooth_scalar(M, rhsfield, positions, field_in, alpha, ele)
     type(csr_matrix), intent(inout) :: M
-    type(scalar_field), intent(inout) :: RHSFIELD
+    type(scalar_field), intent(inout) :: rhsfield
     type(vector_field), intent(in) :: positions
     type(scalar_field), intent(in) :: field_in
     real, intent(in) :: alpha
@@ -338,7 +401,7 @@ contains
   subroutine assemble_smooth_vector(M, rhsfield, positions, field_in, alpha, ele)
 
     type(csr_matrix), intent(inout) :: M
-    type(vector_field), intent(inout) :: RHSFIELD
+    type(vector_field), intent(inout) :: rhsfield
     type(vector_field), intent(in) :: positions
     type(vector_field), intent(in) :: field_in
     real, intent(in) :: alpha
@@ -399,7 +462,7 @@ contains
   subroutine assemble_smooth_tensor(M, rhsfield, positions, field_in, alpha, ele)
 
     type(csr_matrix), intent(inout) :: M
-    type(tensor_field), intent(inout) :: RHSFIELD
+    type(tensor_field), intent(inout) :: rhsfield
     type(vector_field), intent(in) :: positions
     type(tensor_field), intent(in) :: field_in
     real, intent(in) :: alpha
@@ -507,7 +570,6 @@ contains
     type(vector_field), intent(in) :: field_in
     real, intent(in) :: alpha
     integer, intent(in) :: ele
-    integer :: dim
     real, dimension(positions%dim,ele_ngi(positions,ele))                        :: field_in_quad
     real,dimension(positions%dim,positions%dim,ele_ngi(positions,ele))           :: mesh_tensor_quad
     real, dimension(ele_loc(field_in,ele), ele_ngi(field_in,ele), positions%dim) :: dshape_field_in
