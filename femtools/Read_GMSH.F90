@@ -327,6 +327,12 @@ contains
     ! Done with error checking... set format (ie. ascii or binary)
     gmshFormat = gmshFileType
 
+#ifdef __INTEL_COMPILER
+!   for intel the call to ascii_formatting causes the first read after it to have advance='no'
+!   therefore forcing it to jump to a newline here
+    if(gmshFormat == binaryFormat) read(fd, *) charBuf
+#endif
+
   end subroutine read_header
 
 
@@ -342,10 +348,6 @@ contains
     integer :: i, numNodes
     type(GMSHnode), pointer :: nodes(:)
 
-#ifdef __INTEL_COMPILER
-!   Intel bug - doesn't jump to new line following a read if file passed to a subroutine.   
-    if(gmshFormat == 1) read(fd, *) charBuf
-#endif
 
     read(fd, *) charBuf
     if( trim(charBuf) .ne. "$Nodes" ) then
@@ -358,14 +360,17 @@ contains
        FLExit("Error: GMSH number of nodes field < 2")
     end if
 
+    if (gmshFormat==binaryFormat) then
+      call binary_formatting(fd, filename, "read")
+    end if
+
     allocate( nodes(numNodes) )
 
     ! read in node data
     do i=1, numNodes
-       if( gmshFormat == 0 ) then
+       if( gmshFormat == asciiFormat ) then
           read(fd, * ) nodes(i)%nodeID, nodes(i)%x
        else
-          call binary_formatting(fd, filename, "read")
           read(fd) nodes(i)%nodeID, nodes(i)%x
        end if
        ! Set column ID to -1: this will be changed later if $NodeData exists
@@ -373,7 +378,7 @@ contains
     end do
 
     ! Skip newline character when in binary mode
-    if( gmshFormat == 1 ) then
+    if( gmshFormat == binaryFormat ) then
        read(fd), newlineChar
        call ascii_formatting(fd, filename, "read")
     end if
@@ -383,6 +388,11 @@ contains
     if( trim(charBuf) .ne. "$EndNodes" ) then
        FLExit("Error: can't find '$EndNodes' in GMSH file '"//trim(filename)//"'")
     end if
+#ifdef __INTEL_COMPILER
+!   for intel the call to ascii_formatting causes the first read after it to have advance='no'
+!   therefore forcing it to jump to a newline here
+    if(gmshFormat == binaryFormat) read(fd, *) charBuf
+#endif
 
   end subroutine read_nodes_coords
 
@@ -402,8 +412,6 @@ contains
     integer :: timeStep, numComponents, numNodes
     integer :: i, nodeIx, fileState
     real :: rval
-
-    call ascii_formatting( fd, filename, "read" )
 
     ! If there's no $NodeData section, don't try to read in column IDs: return
     read(fd, iostat=fileState, fmt=*) charBuf
@@ -460,15 +468,22 @@ contains
     end do
 
     ! Skip newline character when in binary mode
-    if( gmshFormat == binaryFormat ) read(fd), newlineChar
-
-    call ascii_formatting(fd, filename, "read")
+    if( gmshFormat == binaryFormat ) then
+      read(fd), newlineChar
+      call ascii_formatting(fd, filename, "read")
+    end if
 
     ! Read in end node section
     read(fd, *) charBuf
     if( trim(charBuf) .ne. "$EndNodeData" ) then
        FLExit("Error: cannot find '$EndNodeData' in GMSH mesh file")
     end if
+
+#ifdef __INTEL_COMPILER
+!   for intel the call to ascii_formatting causes the first read after it to have advance='no'
+!   therefore forcing it to jump to a newline here
+    if(gmshFormat == binaryFormat) read(fd, *) charBuf
+#endif
 
   end subroutine read_node_column_IDs
 
@@ -493,11 +508,6 @@ contains
     integer :: numFaces, faceType, numElements, elementType
     integer :: e, i, numLocNodes, tmp1, tmp2, tmp3
     integer :: groupType, groupElems, groupTags
-
-#ifdef __INTEL_COMPILER
-!   Intel bug - doesn't jump to new line following a read if file passed to a subroutine.   
-    if(gmshFormat == 1) read(fd, *) charBuf
-#endif
 
     read(fd,*) charBuf
     if( trim(charBuf)/="$Elements" ) then
@@ -573,8 +583,22 @@ contains
     end select
 
     ! Skip final newline
-    if(gmshFormat==binaryFormat) read(fd) newlineChar
+    if(gmshFormat==binaryFormat) then
+      read(fd) newlineChar
+      call ascii_formatting( fd, filename, "read" )
+    end if
 
+    ! Check for $EndElements tag
+    read(fd,*) charBuf
+    if( trim(charBuf) .ne. "$EndElements" ) then
+       FLExit("Error: cannot find '$EndElements' in GMSH mesh file")
+    end if
+
+#ifdef __INTEL_COMPILER
+!   for intel the call to ascii_formatting causes the first read after it to have advance='no'
+!   therefore forcing it to jump to a newline here
+    if(gmshFormat == binaryFormat) read(fd, *) charBuf
+#endif
 
     ! Run through final list of elements, reorder nodes etc.
     numEdges = 0
@@ -609,13 +633,6 @@ contains
        end select
 
     end do
-
-    ! Check for $EndElements tag
-    call ascii_formatting( fd, filename, "read" )
-    read(fd,*) charBuf
-    if( trim(charBuf) .ne. "$EndElements" ) then
-       FLExit("Error: cannot find '$EndElements' in GMSH mesh file")
-    end if
 
     ! This decides which element types are faces, and which are
     ! regular elements, as per gmsh2triangle logic. Implicit in that logic
