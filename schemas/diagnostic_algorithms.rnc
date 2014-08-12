@@ -699,6 +699,16 @@ tensor_second_invariant_algorithm =
          tensor_source_field
       }
    )
+strain_rate_second_invariant_algorithm =
+   (
+      ## Algorithm for the second invariant of the strain_rate tensor field.
+      ## Note that the strain rate tensor is calculated automatically as a part
+      ## of this algorithm and, hence, a separate tensor field is not required.
+       element algorithm {
+         attribute name { "strain_rate_second_invariant" },
+         attribute material_phase_support { "single "}
+      }
+   )
 hessian_algorithm =
    (
       ## algorithm for the Hessian (2nd derivative) of a scalar field
@@ -1346,6 +1356,15 @@ universal_column_id_algorithm =
       }
    )
 
+viscous_dissipation_algorithm =
+   (
+      ## algorithm for calculating the viscous dissipation.
+       element algorithm {
+         attribute name { "viscous_dissipation" },
+         attribute material_phase_support { "single "}
+      }
+   )
+
 # Mass matrix
    
 finite_element_lumped_mass_matrix =
@@ -1457,9 +1476,11 @@ vector_scalar_time_averaged_algorithm =
    )
 
 scalar_diagnostic_algorithms = universal_numbering_diagnostic_algorithm
+scalar_diagnostic_algorithms |= viscous_dissipation_algorithm
 scalar_diagnostic_algorithms |= universal_column_id_algorithm
 scalar_diagnostic_algorithms |= tidal_harmonic_algorithm
 scalar_diagnostic_algorithms |= tensor_second_invariant_algorithm
+scalar_diagnostic_algorithms |= strain_rate_second_invariant_algorithm
 scalar_diagnostic_algorithms |= temporalmin_algorithm
 scalar_diagnostic_algorithms |= scalar_temporalmax_algorithm
 scalar_diagnostic_algorithms |= scalar_time_averaged_algorithm

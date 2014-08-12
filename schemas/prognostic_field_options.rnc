@@ -1323,7 +1323,8 @@ prognostic_pressure_field =
                }?,
                ## Test the continuity equation with the control volume dual mesh of the finite element pressure mesh.
                ## Only works for incompressible flow. This will make the pressure matrix non symmetric which must be 
-               ## considered when selecting the pressure solver options. This will not work with the free surface and 
+               ## considered when selecting the pressure solver options. This cannot be used with the standard p=0 
+               ## free surface model (but can be used with the zero normal stress free surface). It will not work with 
                ## wetting and drying models. Also the mesh assoicated with the pressure field must use the lagrangian 
                ## element type (the default). This will not work with the implicit solids model using two way coupling. 
                element test_continuity_with_cv_dual {
