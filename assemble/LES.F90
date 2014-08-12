@@ -348,6 +348,10 @@ contains
     real, dimension(ele_loc(nu,1))                        :: laplacian
     real                                                  :: delta
     type(element_type)                                    :: shape_nu
+    logical                                               :: lans
+
+    ! Choose Germano's exact SGS closure or the LANS-alpha model
+    lans = have_option(trim(path)//"/exact_sgs/lans")
 
     ! Path is to level above solver options
     lpath = (trim(path)//"/exact_sgs")
@@ -382,25 +386,36 @@ contains
         !delta = alpha**2/24.*length_scale_tensor(du_t, shape_nu)
       end if
 
-      do gi = 1, ele_ngi(nu, ele)
-        ! velocity gradient
-        mat = matmul(ele_val(fnu, ele), du_t(:,gi,:))
-        ! gradient product: 2 (du_i/dx_k) (du_j/dx_k)
-        mat_gi(:,:,gi) = 2.0*delta*matmul(mat, transpose(mat))
+      ! LANS-alpha closure
+      if(lans) then
+        do gi = 1, ele_ngi(nu, ele)
+          ! velocity gradient
+          mat = matmul(ele_val(fnu, ele), du_t(:,gi,:))
+          ! 3 gradient product terms: (du_i/dx_k) (du_j/dx_k) - (du_k/dx_i) (du_k/dx_j) + (du_i/dx_k) (du_k/dx_j)
+          mat_gi(:,:,gi) = matmul(mat, transpose(mat)) - matmul(transpose(mat), mat) + matmul(mat, mat)
 
-        ! Laplacian operator: dim.dim = dim
-        do loc = 1, ele_loc(fnu, ele)
-          laplacian(loc) = dot_product(du_t(loc,gi,:), du_t(loc,gi,:))
+          mat_gi(:,:,gi) = delta*mat_gi(:,:,gi)
         end do
+      ! Germano's closure
+      else
+        do gi = 1, ele_ngi(nu, ele)
+          ! velocity gradient
+          mat = matmul(ele_val(fnu, ele), du_t(:,gi,:))
+          ! gradient product: 2 (du_i/dx_k) (du_j/dx_k)
+          mat_gi(:,:,gi) = 2.0*delta*matmul(mat, transpose(mat))
 
-        ! Laplacian of filtered velocity: (dim*loc)*loc = dim
-        laplacian_gi(:,gi) = matmul(ele_val(fnu, ele), laplacian)
+          ! Laplacian operator: dim.dim = dim
+          do loc = 1, ele_loc(fnu, ele)
+            laplacian(loc) = dot_product(du_t(loc,gi,:), du_t(loc,gi,:))
+          end do
 
-        ! Laplacian product
-        mat_gi(:,:,gi) = mat_gi(:,:,gi) + delta**4*outer_product(laplacian_gi(:,gi), laplacian_gi(:,gi))
-      end do
+          ! Laplacian of filtered velocity: (dim*loc)*loc = dim
+          laplacian_gi(:,gi) = matmul(ele_val(fnu, ele), laplacian)
 
-      !ewrite(1,*) 'mat, lap: ', sum(mat_gi(:,:,1)), sum(test_gi(:,:,1))
+          ! Laplacian product
+          mat_gi(:,:,gi) = mat_gi(:,:,gi) + delta**4*outer_product(laplacian_gi(:,gi), laplacian_gi(:,gi))
+        end do
+      end if
 
       ! add to tensor RHS field
       call addto(tensorrhs, ele_nodes(nu, ele), shape_tensor_rhs(shape_nu, mat_gi, detwei))
