@@ -5,7 +5,7 @@
       <integer_value rank="0">$DOMAIN_DIM</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
-      <from_file file_name="$MESH_FILE">
+      <from_file file_name="$MESH_NAME">
         <format name="$MESH_FORMAT"/>
         <stat>
           <include_in_stat/>

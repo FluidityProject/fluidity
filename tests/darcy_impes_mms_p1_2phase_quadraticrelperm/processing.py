@@ -33,7 +33,7 @@ if len(argv)==1:
     clean - clean everything no longer needed by the test harness
             (*.geo, *.msh, *.diml, *.vtu)""")
     exit()
-    
+   
 # initialise helper object
 from manufactured_solution_test_tools import ManufacturedSolutionTestSuite
 test_helper = ManufacturedSolutionTestSuite(

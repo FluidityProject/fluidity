@@ -12,12 +12,10 @@ from copy import deepcopy
 from collections import OrderedDict
 from re import sub
 
-
-## HELPERS
-
 # in this module, 'verbosity' is an integer; 'verbose' is True/False.
-default_verbosity = 1
-indent = '   '
+_default_verbosity = 1
+_indent_str = '   '
+
 
 class Handler:
     """A composite to enable recursion over arbitrary combinations of
@@ -76,7 +74,7 @@ class LevelHandler(Handler):
     level.  Most of the methods are just delegations to the nodes."""
 
     def __init__(self, level_name, node_list):
-        self.node_list = node_list
+        self.__node_list = node_list
         # the supplied nodes may be strings, in which case they must be
         # converted into NodeHandlers first.
         for i, node in enumerate(node_list):
@@ -90,24 +88,24 @@ class LevelHandler(Handler):
 
     def set_verbose(self, verbose):
         # iterate and delegate
-        for node in self.node_list:
+        for node in self.__node_list:
             node.set_verbose(verbose)
         
     def set_level_name(self, level_name):
-        self.level_name = level_name
+        self.__level_name = level_name
         # it is convenient to have the nodes store level_name
-        for node in self.node_list:
+        for node in self.__node_list:
             node.set_level_name(level_name)
                 
     def set_level_index(self, level_index):
         self.level_index = level_index
         # iterate and delegate
-        for node in self.node_list:
+        for node in self.__node_list:
             node.set_level_index(level_index)
     
     def handle(self, command):
         # iterate and delegate
-        for node in self.node_list:
+        for node in self.__node_list:
             node.handle(command)
 
     def make_level(self):
@@ -116,12 +114,12 @@ class LevelHandler(Handler):
     
     def add_sub(self, other):
         # iterate and delegate
-        for node in self.node_list:
+        for node in self.__node_list:
             node.add_sub(other)
 
     def get_level_names(self, level_names=None):
         # iterate and delegate
-        for node in self.node_list:
+        for node in self.__node_list:
             level_names = node.get_level_names(level_names)
         return level_names
         
@@ -131,12 +129,12 @@ class NodeHandler(Handler):
     component.  If one, has a sub-level that will be recursed over."""
     
     def __init__(self, node_name, sublevel=None, 
-                 verbose=(default_verbosity>0)):
-        self.level_name = None
-        self.node_name = node_name
+                 verbose=(_default_verbosity>0)):
+        self.__level_name = None
+        self.__node_name = node_name
         # default to level 0.  This will change if the present handler
         # gets assigned a parent.
-        self.sublevel = sublevel
+        self.__sublevel = sublevel
         self.set_level_index(0)
         self.set_verbose(verbose)
 
@@ -144,74 +142,74 @@ class NodeHandler(Handler):
         self.verbose = verbose
         # go to next level if it exists
         try:
-            self.sublevel.set_verbose(verbose)
+            self.__sublevel.set_verbose(verbose)
         except:
             pass
     
     def set_level_name(self, level_name):
-        self.level_name = level_name
+        self.__level_name = level_name
     
     def set_level_index(self, level_index):
         self.level_index = level_index
         # set characters to help print diagnostics nicely
         if level_index == 0:
-            self.beg_char = ''
-            self.end_char = '\n'
+            self.__beg_char = ''
+            self.__end_char = '\n'
         else:
-            self.beg_char = '\n'
-            self.end_char = ''
+            self.__beg_char = '\n'
+            self.__end_char = ''
         # go to next level if it exists
         try:
-            self.sublevel.set_level_index(level_index + 1)
+            self.__sublevel.set_level_index(level_index + 1)
         except:
             pass
 
     def handle(self, command):
-        at_leaf = not isinstance(self.sublevel, Handler)
-        if self.verbose and self.node_name:
-            if self.level_name:
-                lev = self.level_name + ': '
+        at_leaf = not isinstance(self.__sublevel, Handler)
+        if self.verbose and self.__node_name:
+            if self.__level_name:
+                lev = self.__level_name + ': '
             else:
                 lev = ''
             # start printing diagnostics
-            sys.stdout.write(self.beg_char+self.level_index*indent + \
-                                 lev + str(self.node_name))
+            sys.stdout.write(self.__beg_char+self.level_index*_indent_str + \
+                                 lev + str(self.__node_name))
             sys.stdout.flush()
         # prep the command and try executing it at this level
-        command.inform(self.level_name, self.node_name, at_leaf, \
-                       self.level_index*indent, self.verbose)
+        command.inform(self.__level_name, self.__node_name, at_leaf, \
+                       self.level_index*_indent_str, self.verbose)
         command.execute()
         # go to next level if it exists
         if not at_leaf:
-            self.sublevel.handle(command)
-        if self.verbose and self.node_name:
+            self.__sublevel.handle(command)
+        if self.verbose and self.__node_name:
             # finish printing diagnostics
-            sys.stdout.write(self.end_char)
+            sys.stdout.write(self.__end_char)
         sys.stdout.flush()
         
     def make_level(self):
         # return a LevelHandler containing a copy of this one node
-        return LevelHandler(self.level_name, [deepcopy(self)])
+        return LevelHandler(self.__level_name, [deepcopy(self)])
 
     def add_sub(self, other):
         # assign a new sublevel - or, if one already exists, recurse
         # downwards
-        if self.sublevel is None:
-            self.sublevel = other.make_level()
+        if self.__sublevel is None:
+            self.__sublevel = other.make_level()
             # reset the subtree's level indices
-            self.sublevel.set_level_index(self.level_index + 1)
+            self.__sublevel.set_level_index(self.level_index + 1)
         else:
-            self.sublevel.add_sub(other)
+            self.__sublevel.add_sub(other)
 
     def get_level_names(self, level_names=None):
         if level_names==None:
             level_names = []
-        if self.level_name not in level_names:
+        if self.__level_name not in level_names:
             # needs to be in the list, so insert here
-            level_names.insert(self.level_index, self.level_name)
+            level_names.insert(self.level_index, self.__level_name)
         # recurse downwards
-        if self.sublevel is not None:
-            level_names = self.sublevel.get_level_names(level_names)
+        if self.__sublevel is not None:
+            level_names = self.__sublevel.get_level_names(level_names)
         return level_names
     
 
@@ -253,7 +251,7 @@ def make_string(string_list):
     return result
 
     
-def new_handler(arg1, arg2=None, arg3=None, verbose=(default_verbosity>0)):
+def new_handler(arg1, arg2=None, arg3=None, verbose=(_default_verbosity>0)):
     """Creates a Handler based on a flexible set of arguments.  Either a
     LevelHandler or NodeHandler will be returned.  The possibilities
     are:
@@ -297,9 +295,9 @@ def new_handler(arg1, arg2=None, arg3=None, verbose=(default_verbosity>0)):
 
         
 class Command:
-    """Purely abstract base class for encapsulating a command
-    corresponding to a tree of Handlers.  The body of the command is
-    coded up for different levels of the tree in the 'execute' method.
+    """Class for encapsulating a command corresponding to a tree of
+    Handlers.  The body of the command is coded up for different levels
+    of the tree in the 'execute' method.
     """
     
     def inform(self, level_name, node_name, at_leaf, indent, verbose):
@@ -326,40 +324,43 @@ class Tracker:
     """
     
     def __init__(self, key_formatting_dict={}):
-        self.level_name = ''
-        self.level_dict = OrderedDict()
-        self.at_root = None
-        self.at_leaf = None
-        self.key_formatting_dict = key_formatting_dict
+        self.__level_name = ''
+        self.__level_dict = OrderedDict()
+        self.__at_root = None
+        self.__at_leaf = None
+        self.__key_formatting_dict = key_formatting_dict
 
     def inform(self, level_name, node_name, at_leaf, indent):
         """Commands should delegate inform(...) to this method."""
         # record the level-node pair and reset all below it
-        self.level_name = level_name
-        self.level_dict[level_name] = node_name
-        while self.level_dict.keys()[-1] != level_name:
-            self.level_dict.popitem()
-        self.at_leaf = at_leaf
-        self.at_root = (indent=='') 
+        self.__level_name = level_name
+        self.__level_dict[level_name] = node_name
+        while self.__level_dict.keys()[-1] != level_name:
+            self.__level_dict.popitem()
+        self.__at_root = (level_name == self.__level_dict.keys()[0])
+        self.__at_leaf = at_leaf
 
     def update(self, level_name, node_name):
         """Modifies a key-value entry in the embedded dictionary"""
-        self.level_dict[level_name] = node_name
+        self.__level_dict[level_name] = node_name
 
     def get(self, what):
-        """If what=='level', returns current level name.  If what=='node',
-        returns current node name.  Otherwise assumes the argument is a
-        level name from which a node name is to be returned.  Return
-        value defaults to None.
-
+        """Based on the value of the argument, returns the following:
+        'root'  - first level
+        'level' - current level
+        'node'  - current node
+        anything else - assumes the argument is a level name from which
+        a node name is to be returned.  Return value defaults to None.
         """
+        if what is 'root':
+            return self.__level_dict.values()[0]
         if what is 'level':
-            return self.level_name
+            return self.__level_name
         elif what is 'node':
-            return self.level_dict[self.level_name]
+            return self.__level_dict[self.__level_name]
         else:
             try:
-                return self.level_dict[what]
+                return self.__level_dict[what]
             except KeyError:
                 return None
 
@@ -369,9 +370,9 @@ class Tracker:
         branch, or if where is the current level_name.
         """
         return \
-            (where=='root' and self.at_root) or \
-            (where=='leaf' and self.at_leaf) or \
-            (where==self.level_name)
+            (where=='root' and self.__at_root) or \
+            (where=='leaf' and self.__at_leaf) or \
+            (where==self.__level_name)
     
     def make_key(self, level_names=None, exclude=[], substitute={}):
         """Forms a string made up of node names corresponding to the
@@ -381,21 +382,37 @@ class Tracker:
         'substitute' specifies levels to be overridden with alternative
         node values.
         """
+        # default level names
         if level_names is None:
-            level_names = self.level_dict.keys()
+            level_names = self.__level_dict.keys()
         node_names = []
+        
+        # the string list args can contain the special word 'root',
+        # which is synonymous with the first level name.
+        def correct(string_list):
+            try:
+                i = string_list.index('root')
+                string_list[i] = self.__level_dict.keys()[0]
+            except:
+                pass
+            return string_list
+        level_names = correct(level_names)
+        exclude_names = correct(level_names)
+
+        # make a list of node names
         for ln in level_names:
             # any nonpresent or excluded values are ignored
-            if ln not in self.level_dict or ln in exclude:
+            if ln not in self.__level_dict or ln in exclude:
                 continue
             if ln in substitute.keys():
                 nn = substitute[ln]
             else:
-                nn = self.level_dict[ln]
+                nn = self.__level_dict[ln]
             # annotate with extra formatting if specified
-            if ln in self.key_formatting_dict.keys():
-                nn = self.key_formatting_dict[ln].format(nn)
+            if ln in self.__key_formatting_dict.keys():
+                nn = self.__key_formatting_dict[ln].format(nn)
             node_names.append(nn)
+
         # pass node_names to the make_string free function
         return make_string(node_names)
 
@@ -478,19 +495,26 @@ class SelfHandlingCommand(Command):
     initiate the handle-execute process by calling handle()."""
 
     def __init__(self, requisite_level_names, handler, message,
-                 verbosity=default_verbosity):
-        self.verbosity = verbosity
-        self.requisite_level_names = requisite_level_names
+                 verbosity=_default_verbosity):
+        # self.__verbosity controls the amount of output; self.__verbose
+        # turns it on or off during runtime
+        self.__verbosity = verbosity
+        self.__verbose = verbosity > 0
+        self.__indent = ''
+        self.__requisite_level_names = requisite_level_names
         self.associate(handler)
-        self.level_names = handler.get_level_names([])
-        self.message = message
-        self.indent = ''
+        self.__level_names = handler.get_level_names([])
+        self.__message = message
+
+    def inform(self, level_name, node_name, at_leaf, indent, verbose):
+        self.__indent = indent
+        self.__verbose = verbose
 
     def handle(self, other=None, message=None):
         """Sends itself (or some other command) to its associated
         handler."""
         if message is None:
-            message = self.message
+            message = self.__message
         if message:
             self.write_message('\n'+message+'\n')
         if other is None:
@@ -503,20 +527,20 @@ class SelfHandlingCommand(Command):
         # validate
         self_name = self.__class__.__name__
         # if verbosity is high, print info about the validation
-        handler.set_verbose(self.verbosity > 1)
-        if self.verbosity > 1:
+        handler.set_verbose(self.__verbosity > 1)
+        if self.__verbosity > 1:
             self.write_message("\nValidating " + self_name + " handler\n")
-        handler.handle( Validate(self_name, self.requisite_level_names) )
+        handler.handle( Validate(self_name, self.__requisite_level_names) )
         # if we have got here, validation was successful
         self.handler = handler
-        self.handler.set_verbose(self.verbosity > 0)
+        self.handler.set_verbose(self.__verbosity > 0)
 
     def write_message(self, message, target=sys.stdout, with_newline=False):
         """Called by the subclasses for verbose printing purposes."""
-        if self.verbosity > 0:
+        if self.__verbose and self.__verbosity > 0:
             if with_newline:
                 target.write('\n')
-                target.write(self.indent)
+                target.write(self.__indent)
             else:
                 target.write(' ')
             target.write(message)
