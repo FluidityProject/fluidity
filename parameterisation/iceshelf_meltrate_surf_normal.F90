@@ -32,21 +32,15 @@ module iceshelf_meltrate_surf_normal
   use elements
   use field_derivatives
   use fields
-  use field_options
-  use fields_allocates
   use state_module
   use spud
   use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN
   use state_fields_module
   use boundary_conditions
-  use fields_manipulation
-  use surface_integrals
-  use fetools
   use vector_tools
   use FLDebug
   use integer_set_module
   use pickers_inquire
-  use transform_elements
   use state_fields_module
 implicit none
 
