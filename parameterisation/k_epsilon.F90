@@ -37,7 +37,6 @@ module k_epsilon
   use spud
   use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN, timestep, current_time
   use state_fields_module
-  use smoothing_module
   use fetools
   use vector_tools
   use sparsity_patterns_meshes
@@ -686,7 +685,7 @@ subroutine keps_eddyvisc(state, advdif)
         allocate(rhs_addto(size(nodes_ev)))
         do i=1, size(nodes_ev)
           patch = get_patch_ele(scalar_eddy_visc%mesh, nodes_ev(i))
-          rhs_addto(i) = sqrt(length_scale_scalar(X, ele))/patch%count
+          rhs_addto(i) = 0.0!sqrt(length_scale_scalar(X, ele))/patch%count
           deallocate(patch%elements)
         end do
         call addto(delta, nodes_ev, rhs_addto)
