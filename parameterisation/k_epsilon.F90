@@ -32,14 +32,11 @@ module k_epsilon
   use elements
   use field_derivatives
   use fields
-  use field_options
   use state_module
   use spud
   use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN, timestep, current_time
   use state_fields_module
-  use fetools
   use vector_tools
-  use sparsity_patterns_meshes
   use FLDebug
   use vtk_interfaces
   use solvers
