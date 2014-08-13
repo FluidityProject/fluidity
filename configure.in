@@ -545,8 +545,8 @@ cat >> confdefs.h << EOF
 EOF
 
   if test "$fcompiler" = "ifort" ; then
-    FFLAGS="-C -traceback -check nooutput_conversion -check noarg_temp_created ${FFLAGS}"
-    FCFLAGS="-C -traceback -check nooutput_conversion -check noarg_temp_created  ${FCFLAGS}"
+    FFLAGS="-C -traceback -check all ${FFLAGS}"
+    FCFLAGS="-C -traceback -check all  ${FCFLAGS}"
     CFLAGS="-fno-omit-frame-pointer ${CFLAGS}"
     CXXFLAGS="-fno-omit-frame-pointer ${CXXFLAGS}"
   elif test "$USING_GFORTRAN" = "yes" ; then
