@@ -37,7 +37,6 @@ module k_epsilon
   use spud
   use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN, timestep, current_time
   use state_fields_module
-  use fields_manipulation
   use smoothing_module
   use fetools
   use vector_tools
@@ -896,16 +895,13 @@ subroutine keps_bcs(state)
   type(state_type), intent(in)               :: state
   type(scalar_field), pointer                :: field1, field2    ! k or epsilon
   type(scalar_field), pointer                :: f_1, f_2, f_mu
-  type(scalar_field), pointer                :: surface_field, scalar_eddy_visc
+  type(scalar_field), pointer                :: scalar_eddy_visc
   type(scalar_field), pointer                :: density, dummydensity
   type(vector_field), pointer                :: X, u
   type(tensor_field), pointer                :: bg_visc
-  type(scalar_field)                         :: rhs_field, surface_values, masslump
-  type(mesh_type), pointer                   :: surface_mesh
-  integer                                    :: i, j, sele, index, nbcs, stat
-  integer, dimension(:), pointer             :: surface_elements, surface_node_list
+  integer                                    :: i, index, nbcs, stat
   character(len=FIELD_NAME_LEN)              :: bc_type, bc_name, wall_fns
-  character(len=OPTION_PATH_LEN)             :: bc_path, bc_path_i, option_path 
+  character(len=OPTION_PATH_LEN)             :: bc_path, bc_path_i, option_path
   real                                       :: c_mu
   character(len=FIELD_NAME_LEN)              :: equation_type
 

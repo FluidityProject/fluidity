@@ -2330,9 +2330,6 @@ contains
     integer                            :: shape_option(2)
     type(mesh_type), pointer           :: bc_surface_mesh
     type(tensor_field)                 :: bc_field
-    type(vector_field)                 :: bc_positions
-    type(scalar_field)                 :: bc_comp
-    integer, dimension(:), pointer     :: bc_surface_elements
     integer                            :: i, j, k, nbcs, stat
 
     ewrite(2,*) "Adding Dirichlet boundary conditions to Exact SGS tensor field"
