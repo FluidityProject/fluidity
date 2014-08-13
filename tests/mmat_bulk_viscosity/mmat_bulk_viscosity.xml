@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<testproblem>
+  <name>Bulk viscosity algorithm test.</name>
+  <owner userid="cwilson"/>
+  <tags>flml</tags>
+    <problem_definition length="short" nprocs="1">
+    <command_line>fluidity -v3 -l  mmat_bulk_viscosity_arithmetic.flml &amp;&amp; fluidity -v3 -l mmat_bulk_viscosity_harmonic.flml &amp;&amp; fluidity -v3 -l  mmat_bulk_viscosity_geometric.flml</command_line>
+  </problem_definition>  
+  <variables>  
+    <variable name="harmonic_density_min" language="python">
+import fluidity_tools
+harmonic_density_min = fluidity_tools.stat_parser("harmonic.stat")['Material1']['Density']['min'][-1]
+    </variable>    
+    <variable name="harmonic_density_max" language="python">
+import fluidity_tools
+harmonic_density_max = fluidity_tools.stat_parser("harmonic.stat")['Material1']['Density']['max'][-1]
+    </variable>    
+    <variable name="harmonic_viscosity_min" language="python">
+import fluidity_tools
+harmonic_viscosity_min = fluidity_tools.stat_parser("harmonic.stat")['Material1']['Viscosity%11']['min'][-1]
+    </variable>    
+    <variable name="harmonic_viscosity_max" language="python">
+import fluidity_tools
+harmonic_viscosity_max = fluidity_tools.stat_parser("harmonic.stat")['Material1']['Viscosity%11']['max'][-1]
+    </variable>    
+    <variable name="geometric_density_min" language="python">
+import fluidity_tools
+geometric_density_min = fluidity_tools.stat_parser("geometric.stat")['Material1']['Density']['min'][-1]
+    </variable>    
+    <variable name="geometric_density_max" language="python">
+import fluidity_tools
+geometric_density_max = fluidity_tools.stat_parser("geometric.stat")['Material1']['Density']['max'][-1]
+    </variable>    
+    <variable name="geometric_viscosity_min" language="python">
+import fluidity_tools
+geometric_viscosity_min = fluidity_tools.stat_parser("geometric.stat")['Material1']['Viscosity%11']['min'][-1]
+    </variable>    
+    <variable name="geometric_viscosity_max" language="python">
+import fluidity_tools
+geometric_viscosity_max = fluidity_tools.stat_parser("geometric.stat")['Material1']['Viscosity%11']['max'][-1]
+    </variable>    
+    <variable name="arithmetic_density_min" language="python">
+import fluidity_tools
+arithmetic_density_min = fluidity_tools.stat_parser("arithmetic.stat")['Material1']['Density']['min'][-1]
+    </variable>    
+    <variable name="arithmetic_density_max" language="python">
+import fluidity_tools
+arithmetic_density_max = fluidity_tools.stat_parser("arithmetic.stat")['Material1']['Density']['max'][-1]
+    </variable>    
+    <variable name="arithmetic_viscosity_min" language="python">
+import fluidity_tools
+arithmetic_viscosity_min = fluidity_tools.stat_parser("arithmetic.stat")['Material1']['Viscosity%11']['min'][-1]
+    </variable>    
+    <variable name="arithmetic_viscosity_max" language="python">
+import fluidity_tools
+arithmetic_viscosity_max = fluidity_tools.stat_parser("arithmetic.stat")['Material1']['Viscosity%11']['max'][-1]
+    </variable>    
+   </variables>
+    <pass_tests>  
+    <test name="check harmonic density min" language="python">
+   assert abs(harmonic_density_min-2.0) &lt; 1e-10
+    </test>
+    <test name="check harmonic density max" language="python">
+   assert abs(harmonic_density_max-2.0) &lt; 1e-10
+    </test>
+    <test name="check harmonic viscosity min" language="python">
+   assert abs(harmonic_viscosity_min-1.6363636363636362) &lt; 1e-10
+    </test>
+    <test name="check harmonic viscosity max" language="python">
+   assert abs(harmonic_viscosity_max-1.6363636363636362) &lt; 1e-10
+    </test>
+    <test name="check geometric density min" language="python">
+   assert abs(geometric_density_min-2.0) &lt; 1e-10
+    </test>
+    <test name="check geometric density max" language="python">
+   assert abs(geometric_density_max-2.0) &lt; 1e-10
+    </test>
+    <test name="check geometric viscosity min" language="python">
+   assert abs(geometric_viscosity_min-1.8171205928321397) &lt; 1e-10
+    </test>
+    <test name="check geometric viscosity max" language="python">
+   assert abs(geometric_viscosity_max-1.8171205928321397) &lt; 1e-10
+    </test>
+    <test name="check arithmetic density min" language="python">
+   assert abs(arithmetic_density_min-2.0) &lt; 1e-10
+    </test>
+    <test name="check arithmetic density max" language="python">
+   assert abs(arithmetic_density_max-2.0) &lt; 1e-10
+    </test>
+    <test name="check arithmetic viscosity min" language="python">
+   assert abs(arithmetic_viscosity_min-2.0) &lt; 1e-10
+    </test>
+    <test name="check arithmetic viscosity max" language="python">
+   assert abs(arithmetic_viscosity_max-2.0) &lt; 1e-10
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

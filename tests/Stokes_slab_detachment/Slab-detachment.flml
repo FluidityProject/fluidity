@@ -340,7 +340,9 @@
         <tensor_field name="Viscosity" rank="2">
           <diagnostic>
             <mesh name="MaterialMesh"/>
-            <algorithm depends="MaterialViscosity" name="bulk_viscosity" material_phase_support="multiple"/>
+            <algorithm depends="MaterialViscosity" name="bulk_viscosity" material_phase_support="multiple">
+              <mean name="arithmetic"/>
+            </algorithm>
             <output/>
             <stat>
               <include_in_stat/>
