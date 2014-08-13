@@ -37,9 +37,7 @@ module k_epsilon
   use spud
   use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN, timestep, current_time
   use state_fields_module
-  use boundary_conditions
   use fields_manipulation
-  use surface_integrals
   use smoothing_module
   use fetools
   use vector_tools
@@ -52,9 +50,9 @@ implicit none
 
   private
 
-  ! locally allocatad fields
+  ! locally allocated fields
   real, save     :: fields_min = 1.0e-11
-  logical, save  :: low_Re = .false.                     
+  logical, save  :: low_Re = .false.
 
   public :: keps_advdif_diagnostics, keps_momentum_diagnostics, keps_bcs, &
        & k_epsilon_check_options, tensor_inner_product
