@@ -2631,11 +2631,11 @@ implicit none
     select case (sfield%field_type)
     case (FIELD_TYPE_NORMAL)
        do i=1,field%dim
-          field%val(i,:) = field%val(i,:) * sfield%val
+          field%val(i,:) = field%val(i,:) ** sfield%val
        end do
     case (FIELD_TYPE_CONSTANT)
        do i=1,field%dim
-          field%val(i,:) = field%val(i,:) * sfield%val(1)
+          field%val(i,:) = field%val(i,:) ** sfield%val(1)
        end do
     case default
        ! someone could implement in_field type python
