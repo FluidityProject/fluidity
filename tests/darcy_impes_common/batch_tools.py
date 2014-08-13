@@ -1,14 +1,26 @@
 #!/usr/bin/env python
 
-import sys
-sys.path.append('../../python')
-
-import os
-os.environ['PYTHONPATH'] = "../../python/"
 
 indent = '   '
 verbose_state = False
 
+import sys
+import os
+
+def default_fluidity_path():
+    """Ensures the location of the Fluidity tree is known via
+    FLUIDITYPATH, a system variable.  FLUIDITYPATH is either set by the
+    user beforehand or defaulted here based on the present path.
+    Updates the Python search paths accordingly."""
+    try:
+        flpath = os.environ['FLUIDITYPATH']
+    except KeyError:
+        flpath = "../../"
+        os.environ['FLUIDITYPATH'] = flpath
+    pypath = flpath + "/python/"
+    os.environ['PYTHONPATH'] = pypath
+    sys.path.append(pypath)
+    
 # setter/getter of verbose_state
 def verbose(new_verbose_state=None):
     global verbose_state
@@ -19,15 +31,16 @@ def verbose(new_verbose_state=None):
 
     
 class Command:
-    """Class to encapsulate a family of commands corresponding to a tree of
-    Handlers (see below).  The commands are coded up for different
+    """Class to encapsulate a family of commands corresponding to a tree
+    of Handlers (see below).  The commands are coded up for different
     levels of the tree in the 'execute' method.
     """
     
     def execute(self, level_name, value, indent):
-        """The level_name argument tells the Command where it is in the Handler tree.
-        The Command can then choose what to do accordingly.  It may use
-        additional information supplied in the value argument.
+        """The level_name argument tells the Command where it is in the
+        Handler tree.  The Command can then choose what to do
+        accordingly.  It may use additional information supplied in the
+        value argument.
         """
         pass
         

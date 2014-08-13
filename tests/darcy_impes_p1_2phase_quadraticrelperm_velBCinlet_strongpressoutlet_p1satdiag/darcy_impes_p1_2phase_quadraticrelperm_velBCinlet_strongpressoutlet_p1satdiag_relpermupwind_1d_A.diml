@@ -289,66 +289,6 @@
         <consistent_interpolation/>
       </diagnostic>
     </vector_field>
-    <scalar_field name="RegressionSaturation">
-      <prescribed>
-        <mesh name="PressureMesh"/>
-        <value name="WholeMesh">
-          <from_file file_name="reference_solution/darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_relpermupwind_1d_A_1.vtu">
-            <format name="vtu">
-              <field_name>
-                <string_value lines="1">Phase1::Saturation</string_value>
-              </field_name>
-            </format>
-          </from_file>
-        </value>
-        <stat>
-          <include_cv_stats/>
-        </stat>
-        <do_not_recalculate/>
-      </prescribed>
-    </scalar_field>
-    <scalar_field name="RegressionSaturationError">
-      <diagnostic>
-        <mesh name="PressureMesh"/>
-        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="Saturation" source_field_2_name="RegressionSaturation" material_phase_support="single" source_field_1_type="scalar">
-          <absolute_difference/>
-        </algorithm>
-        <stat>
-          <include_cv_stats/>
-        </stat>
-        <consistent_interpolation/>
-      </diagnostic>
-    </scalar_field>
-    <scalar_field name="RegressionPressure">
-      <prescribed>
-        <mesh name="PressureMesh"/>
-        <value name="WholeMesh">
-          <from_file file_name="reference_solution/darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_relpermupwind_1d_A_1.vtu">
-            <format name="vtu">
-              <field_name>
-                <string_value lines="1">Phase1::Pressure</string_value>
-              </field_name>
-            </format>
-          </from_file>
-        </value>
-        <stat>
-          <include_cv_stats/>
-        </stat>
-        <do_not_recalculate/>
-      </prescribed>
-    </scalar_field>
-    <scalar_field name="RegressionPressureError">
-      <diagnostic>
-        <mesh name="PressureMesh"/>
-        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="Pressure" source_field_2_name="RegressionPressure" material_phase_support="single" source_field_1_type="scalar">
-          <absolute_difference/>
-        </algorithm>
-        <stat>
-          <include_cv_stats/>
-        </stat>
-        <consistent_interpolation/>
-      </diagnostic>
-    </scalar_field>
   </material_phase>
   <material_phase name="Phase2">
     <scalar_field name="Pressure" rank="0">

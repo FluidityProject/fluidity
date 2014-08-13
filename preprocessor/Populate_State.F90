@@ -1588,7 +1588,6 @@ contains
 
     !********Finish****lcai***Leaching********************************!
 
-    
 
     subroutine allocate_and_insert_irradiance(state)
       ! Allocate irradiance fields for 36 wavebands in PAR

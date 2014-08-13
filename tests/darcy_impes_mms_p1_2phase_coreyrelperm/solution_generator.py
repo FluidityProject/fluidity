@@ -2,36 +2,44 @@ from sympy import Symbol, Function, diff, integrate, sin, cos, pi, exp
 from manufactured_solution_generation_tools import \
     ManufacturedSolution, SolutionHarness, generate_coords
 
-def generate(solution_name):
+def generate(solution_name, check_solution=False):
     
     D = (1.0, 1.2, 0.8)         # domain size [see note 1]
     T = 1.0                     # finish time
     g_mag = 1.                 # gravity magnitude [see note 2]
     ka = 1.567346939e-9         # absolute permeability
     phi = .4                    # porosity
+
+    # arbitrary p and s2 scales [see note 2]
+    p1_scale = 1000.
+    s2_scale = 0.5
     
     # regard first phase as air; second as water
     mu = (1.725e-5, 1.e-3)        # viscosity
     rho = (1.284, 1000.)          # density
 
-    # the following must match the perm relation in the template
-    sr = 0.15
-    K = (lambda s: ka * ((s[0] - sr)/(1 - sr))**4,
+    # relperms - these do not have placeholders in the options template;
+    # any changes made here also need to be made in the template
+    sr = (0.05, 0.1)                       # residual sats
+    K = (lambda s: ka * (s[0] - sr[0])**4, # Brooks-Corey relation
          lambda s: ka * \
-         (1 - (s[0] - sr)/(1 - sr))**2 * \
-         (1 - ((s[0] - sr)/(1 - sr))**2))
+         (1. - (s[0] - sr[0])**2) * \
+         (1. - (s[0] - sr[0]))**2)
 
-    # arbitrary p and s2 scales [see note 2]
-    p = 1.
-    s2 = 0.1
+    # likewise for capillary pressure
+    pc = lambda s2: p1_scale/10. * ((s2 - sr[1])/(1. - sr[1]))**(-0.5)
 
     # initialise object containing solution parameters
     sh = SolutionHarness(D, T, g_mag, ka, phi, mu, rho, K,
-                         p, s2, solution_name)
+                         p1_scale, s2_scale, solution_name)
+
+    # initialise our prognostic variables
+    p1 = p1_scale
+    s2 = s2_scale
  
     # introduce time dependence
     t = Symbol('t')
-    p = p * (3 + cos(pi*t/T))/4
+    p1 = p1  * (3 + cos(pi*t/T))/4
     s2 = s2 * 1/(1 + t/T)
 
     # helper functions for space dependence
@@ -39,31 +47,45 @@ def generate(solution_name):
     fs_lat = lambda xi: 3*(1. - xi)*(1.5*xi)**2
     fp_lon = lambda xi: cos(pi*xi)
     fp_lat = lambda xi: sin(pi*xi)**2
+
+    # this is a bit of a hack to recover (i) a pair of pressures, one
+    # for each phase, and (ii) a phase-2 saturation that does not go to
+    # zero (or to s2_threshold) and therefore does not cause an infinite
+    # capillary pressure
+    s2_min = 0.2
+    def wrap(p1, s2, s2_threshold=0.):
+        a = (s2_scale - s2_min)/(s2_scale - s2_threshold)
+        b = s2_scale*(1. - a)
+        s2 = a*s2 + b
+        return (p1, p1 - pc(s2)), s2
     
     # 1D
     x = Symbol('x')
     g_dir = (1)
     s2 = s2*fs_lon(x/D[0])
-    p = p*fp_lon(x/D[0])
-    ms1d = ManufacturedSolution(1, g_dir, p, s2)
+    p1 = p1*fp_lon(x/D[0])
+    ms1d = ManufacturedSolution(1, g_dir, *wrap(p1, s2))
     
     # 2D
     y = Symbol('y')
     g_dir = (1, 0)
     s2 = s2*fs_lat(y/D[1])
-    p = p*fp_lat(y/D[1])
-    ms2d = ManufacturedSolution(2, g_dir, p, s2)
+    p1 = p1*fp_lat(y/D[1])
+    ms2d = ManufacturedSolution(2, g_dir, *wrap(p1, s2))
     
     # 3D
     z = Symbol('z')
     g_dir = (1, 0, 0)
     s2 = s2*fs_lat(z/D[2])
-    p = p*fp_lat(z/D[2])
-    ms3d = ManufacturedSolution(3, g_dir, p, s2)
+    p1 = p1*fp_lat(z/D[2])
+    ms3d = ManufacturedSolution(3, g_dir, *wrap(p1, s2))
     
     # generate expressions for the manufactured solution
     sh.write_dict([ms1d, ms2d, ms3d])
 
+    # check that divergence + source term = 0
+    if check_solution:
+        return sh.reality_check([ms1d, ms2d, ms3d])
     
     # Notes:
     # 
@@ -74,7 +96,8 @@ def generate(solution_name):
     # the domain probably needs to be sized 'nicely' in each dimension
     # if there is to be good convergence on these meshes.
     # 
-    # [2] high levels of saturation and rho*g_mag/mu have been found to
+    # [2] make pressure level high enough to have an influence (~100).
+    # High levels of saturation and rho*g_mag/mu have been found to
     # cause numerical instability well below the expected CFL limit.
     # This may be caused by having a highly nonlinear relative
     # permeability term and forcing an unnatural pressure field; it only

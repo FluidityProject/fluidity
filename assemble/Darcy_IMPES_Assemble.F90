@@ -416,11 +416,20 @@ module darcy_impes_assemble_module
       src_phase_loop: do p = 1, di%number_phase
          
          ! Should this take account of subcycling?!?!
-         call compute_cv_mass(di%positions, di%cv_mass_pressure_mesh_with_source, di%saturation_source(p)%ptr)
+         call compute_cv_mass(di%positions, di%cv_mass_pressure_mesh_with_source, &
+              di%saturation_source(p)%ptr)
          
          ! Should this include porosity ?!?!
          call addto(di%pressure_rhs, di%cv_mass_pressure_mesh_with_source)
-      
+         
+         ewrite(2,*) '   Phase = ', p
+         ewrite(2,*) '      Added saturation source, norm2 = ', &
+              norm2(di%saturation_source(p)%ptr, di%positions)
+         ewrite(2,*) '      Resulting cv_mass_pressure_mesh_with_source, norm2 = ', &
+              norm2(di%cv_mass_pressure_mesh_with_source, di%positions)
+         ewrite(2,*) '      Resulting pressure_rhs, norm2 = ', &
+              norm2(di%pressure_rhs, di%positions)
+         
       end do src_phase_loop
       
       if (have_dual .and. solve_dual_pressure) then
@@ -432,6 +441,14 @@ module darcy_impes_assemble_module
 
             ! Should this include porosity ?!?!
             call addto(di_dual%pressure_rhs, di_dual%cv_mass_pressure_mesh_with_source)
+         
+         ewrite(2,*) '   Dual p-field.  Phase = ', p
+         ewrite(2,*) '      Added saturation source, norm2 = ', &
+              norm2(di%saturation_source(p)%ptr, di%positions)
+         ewrite(2,*) '      Resulting cv_mass_pressure_mesh_with_source, norm2 = ', &
+              norm2(di%cv_mass_pressure_mesh_with_source, di%positions)
+         ewrite(2,*) '      Resulting pressure_rhs, norm2 = ', &
+              norm2(di%pressure_rhs, di%positions)
 
          end do dual_src_phase_loop
       
@@ -466,17 +483,33 @@ module darcy_impes_assemble_module
                   
       ewrite(1,*) 'Add rate of change of porosity to global continuity equation'
       
-      ! Add rate of change of porosity to rhs    
-      call addto(di%pressure_rhs, di%cv_mass_pressure_mesh_with_old_porosity, scale = 1.0/di%dt)
-                  
-      call addto(di%pressure_rhs, di%cv_mass_pressure_mesh_with_porosity, scale = -1.0/di%dt)
+      ! Add rate of change of porosity to rhs.  First, -dpor = por{n} - por{n+1}
+      call set(di%work_array_of_size_pressure_mesh, &
+           di%cv_mass_pressure_mesh_with_old_porosity)
+      call addto(di%work_array_of_size_pressure_mesh, &
+           di%cv_mass_pressure_mesh_with_porosity, scale = -1.0)
+      ! then rhs += -dpor/dt
+      call addto(di%pressure_rhs, &
+           di%work_array_of_size_pressure_mesh, scale = 1.0/di%dt)
+      ewrite(2,*) '      -dpor, norm2 = ', &
+           norm2(di%work_array_of_size_pressure_mesh, di%positions)
+      ewrite(2,*) '      1/dt = ', 1.0/di%dt
+      ewrite(2,*) '      Resulting pressure_rhs, norm2 = ', &
+           norm2(di%pressure_rhs, di%positions)
       
       if (have_dual .and. solve_dual_pressure) then
-      
-         call addto(di_dual%pressure_rhs, di_dual%cv_mass_pressure_mesh_with_old_porosity, scale = 1.0/di%dt)
-                  
-         call addto(di_dual%pressure_rhs, di_dual%cv_mass_pressure_mesh_with_porosity, scale = -1.0/di%dt)
-      
+         ! repeat 
+         call set(di_dual%work_array_of_size_pressure_mesh, &
+              di_dual%cv_mass_pressure_mesh_with_old_porosity)
+         call addto(di_dual%work_array_of_size_pressure_mesh, &
+              di_dual%cv_mass_pressure_mesh_with_porosity, scale = -1.0)
+         call addto(di_dual%pressure_rhs, di_dual%&
+              work_array_of_size_pressure_mesh, scale = 1.0/di%dt)
+         ewrite(2,*) '      Dual p-field.  -dpor, norm2 = ', &
+              norm2(di_dual%work_array_of_size_pressure_mesh, di_dual%positions)
+         ewrite(2,*) '      1/dt = ', 1.0/di%dt
+         ewrite(2,*) '      Resulting pressure_rhs, norm2 = ', &
+              norm2(di_dual%pressure_rhs, di_dual%positions)
       end if
       
       ! Assemble a contribution from each phase to form a global continuity equation to solve for first phase pressure
@@ -2366,9 +2399,6 @@ dot_product((grad_pressure_face_quad(:,ggi) - di%cached_face_value%den(ggi,vele,
       call scale(di%rhs, di%old_sat_ADE) ! *****27 July 2013 LCai***change the old saturation into pointed one
       call scale(di%rhs, di%generic_prog_sfield(f)%old_sfield)
       
-      
-      
-      
       ! Add source to rhs   
       if (di%generic_prog_sfield(f)%have_src) then
          
@@ -2669,8 +2699,6 @@ dot_product((grad_pressure_face_quad(:,ggi) - di%cached_face_value%den(ggi,vele,
 
          ! Initialise the local matrix to assemble for this element
          matrix_local = 0.0
-         
-         
          ! loop over local nodes within this element
          nodal_loop_i: do iloc = 1, di%pressure_mesh%shape%loc
 

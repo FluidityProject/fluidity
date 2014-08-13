@@ -796,6 +796,7 @@ contains
       call allocate(di%cv_mass_pressure_mesh_with_porosity, di%pressure_mesh)
       call allocate(di%cv_mass_pressure_mesh_with_old_porosity, di%pressure_mesh)
       call allocate(di%inverse_cv_sa_pressure_mesh, di%pressure_mesh)
+      call allocate(di%work_array_of_size_pressure_mesh, di%pressure_mesh)
       
       if (have_dual) then
          call allocate(di%cv_mass_pressure_mesh_with_lambda_dual, di%pressure_mesh)
@@ -864,7 +865,6 @@ contains
       if (have_dual) then
          allocate(di%transmissibility_lambda_dual(di%number_phase))
       end if
-
       do p = 1,di%number_phase
 
          di%pressure(p)%ptr                   => extract_scalar_field(di%state(p), "Pressure")
@@ -1896,6 +1896,7 @@ contains
       call deallocate(di%cv_mass_pressure_mesh_with_porosity)
       call deallocate(di%cv_mass_pressure_mesh_with_old_porosity)
       call deallocate(di%inverse_cv_sa_pressure_mesh)
+      call deallocate(di%work_array_of_size_pressure_mesh)
       
       if (have_dual) then
          call deallocate(di%cv_mass_pressure_mesh_with_lambda_dual)
@@ -2253,8 +2254,17 @@ contains
          call set_option("/timestepping/timestep", dt)
       end if
       
-      ! *** Constrain the timestep such that the current time will not overshoot the finish time ***     
-      if (dt + current_time > finish_time ) then
+      ! Constrain the timestep such that the current time will not overshoot the
+      ! finish time.  But spread this operation over two timesteps so as not to
+      ! end up with a very small time step.  Neglecting to do this may cause
+      ! subtle divide-by-huge-number bugs.
+      if ( (current_time + 2*dt > finish_time) .and. (current_time + dt < finish_time) ) then
+         ! penultimate time step
+         ewrite(1,*) 'Constrain timestep size such as to not overshoot the finish time nor end up too small'
+         dt = 0.5*(finish_time - current_time) + epsilon(0.0)
+         ewrite(1,*) 'Constrained timestep size: ',dt
+      else if ( current_time + dt > finish_time ) then
+         ! last time step
          ewrite(1,*) 'Constrain timestep size such as to not overshoot the finish time'
          dt = finish_time - current_time + epsilon(0.0)
          ewrite(1,*) 'Constrained timestep size: ',dt

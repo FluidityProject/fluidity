@@ -1,13 +1,17 @@
 from batch_tools import Command, CommandList, verbose, HandlerLevel, \
-    CompositeHandler, LeafHandler
+    CompositeHandler, LeafHandler, default_fluidity_path
 import os
 import re
 import subprocess
 import numpy
 import sys
-from fluidity_tools import stat_parser
 from importlib import import_module
 from getpass import getuser
+
+default_fluidity_path()
+from fluidity_tools import stat_parser
+
+binary_verbosity = 0
 
 error_rates_filename = "error_rates.txt"
 error_norms_filename = "error_norms.txt"
@@ -154,7 +158,7 @@ assert(find_{0}("{1}") &{2}; {3:g})
             solution_name = join_with_underscores((
                 self.stem, self.saturation2_scale, self.gravity_magnitude))
             solution_expressions = import_module(solution_name)
-            self.solution_dict = solution_expressions.solution_dict
+            self.solution_dict = solution_expressions.py_dict
             self.write_xml_begin()
 
         # continue to the lower levels
@@ -171,7 +175,7 @@ assert(find_{0}("{1}") &{2}; {3:g})
             # read in field magnitudes for computing the norm properly
             if self.norm_threshold is not None:
                 self.rescaled_norm_threshold = self.norm_threshold* \
-                     self.solution_dict[self.field_short+'_scale']
+                     self.solution_dict[str.lower(self.var_name)+'_scale']
             
         elif level_name == 'norm':
             self.norm = value
@@ -208,9 +212,9 @@ assert(find_{0}("{1}") &{2}; {3:g})
 class RunSimulation(Command):
 
     def __init__(self):
-        self.binary_path = "../../bin/darcy_impes"
-        if not os.path.isfile(self.binary_path): 
-            raise IOError("Cannot find the binary.")
+        self.darcy_impes_path = os.environ["FLUIDITYPATH"] + "bin/darcy_impes"
+        if not os.path.isfile(self.darcy_impes_path): 
+            raise IOError("Cannot find the darcy_impes binary.")
         # can add more levels to this list
         self.stem = None
         self.saturation2_scale = None
@@ -236,15 +240,23 @@ class RunSimulation(Command):
         elif level_name == 'mesh_suffix':
             mesh_suffix = value
 
-            filename = join_with_underscores((
+            casename = join_with_underscores((
                 self.stem,
                 self.saturation2_scale, self.gravity_magnitude, 
                 self.model, str(self.dim)+'d',
-                self.mesh_type, mesh_suffix)) + '.diml'
+                self.mesh_type, mesh_suffix))
 
             # start simulation (TODO: guard against absent mesh)
-            subprocess.call([self.binary_path, filename,
-                             '-v3'], stdout=open(os.devnull, 'wb'))
+            if binary_verbosity > 0:
+                subprocess.call([self.darcy_impes_path,
+                                 '-v{0}'.format(binary_verbosity),
+                                 '-l {0}.log'.format(casename),
+                                 casename+'.diml'],
+                                stdout=open(os.devnull, 'wb'))
+            else:
+                subprocess.call([self.darcy_impes_path,
+                                 casename+'.diml'],
+                                stdout=open(os.devnull, 'wb'))
 
 
 class WriteToReport(Command):

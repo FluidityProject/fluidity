@@ -141,7 +141,7 @@
           <python>
             <string_value lines="20" type="code" language="python">def val(X, t):
   from numpy import sqrt, pi, cos, sin, exp
-  return $PRESSURE_${DOMAIN_DIM}D</string_value>
+  return $PRESSURE1_${DOMAIN_DIM}D</string_value>
           </python>
         </initial_condition>
         <boundary_conditions name="outlet_pressure">
@@ -150,10 +150,10 @@
           </surface_ids>
           <type name="dirichlet">
             <apply_strongly/>
-  	    <python>
+	    <python>
               <string_value lines="20" type="code" language="python">def val(X, t):
   from numpy import sqrt, pi, cos, sin, exp
-  return $PRESSURE_${DOMAIN_DIM}D</string_value>
+  return $PRESSURE1_${DOMAIN_DIM}D</string_value>
   	    </python>
           </type>
         </boundary_conditions>
@@ -167,7 +167,7 @@
   	    <python>
               <string_value lines="20" type="code" language="python">def val(X, t):
   from numpy import sqrt, pi, cos, sin, exp
-  return $PRESSURE_${DOMAIN_DIM}D</string_value>
+  return $PRESSURE1_${DOMAIN_DIM}D</string_value>
   	    </python>
           </type>
         </boundary_conditions>
@@ -182,6 +182,11 @@
       <diagnostic>
         <mesh name="PressureMesh"/>
         <algorithm name="Internal"/>
+        <face_value name="FiniteElement">
+          <limit_face_value>
+            <limiter name="Sweby"/>
+          </limit_face_value>
+        </face_value>
         <scalar_field name="Source" rank="0">
           <prescribed>
             <mesh name="SaturationSourceMesh"/>
@@ -211,8 +216,11 @@
         <mesh name="PressureMesh"/>
         <algorithm name="Internal"/>
         <correlation name="Corey2Phase">
+          <residual_saturations>
+            <real_value shape="2" rank="1">0.05 0.1</real_value>
+          </residual_saturations>
         </correlation>
-        <face_value name="FirstOrderUpwind"/>
+        <face_value name="RelPermOverSatUpwind"/>
         <stat>
           <include_cv_stats/>
         </stat>
@@ -355,7 +363,7 @@
           <python>
             <string_value lines="20" type="code" language="python">def val(X, t):
   from numpy import sqrt, pi, cos, sin, exp
-  return $PRESSURE_${DOMAIN_DIM}D</string_value>
+  return $PRESSURE1_${DOMAIN_DIM}D</string_value>
           </python>
         </value>
         <stat>
@@ -396,6 +404,28 @@
       <diagnostic>
         <mesh name="PressureMesh"/>
         <algorithm name="Internal"/>
+        <stat>
+          <include_cv_stats/>
+        </stat>
+        <consistent_interpolation/>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="CapilliaryPressure" rank="0">
+      <diagnostic>
+        <mesh name="PressureMesh"/>
+        <algorithm name="scalar_python_diagnostic" material_phase_support="single">
+          <string_value type="code" lines="20" language="python">#!/usr/bin/python
+A = $PRESSURE_SCALE/10.
+sfield = state.scalar_fields["Saturation"]
+sr = 0.1
+for n in range(field.node_count):
+   s = sfield.node_val(n)
+   # a minus sign on A is needed, which means pressure2 is computed
+   # in the source code as pressure1 + capillary_pressure.  
+   # TODO: check this
+   pc = -A*((s - sr)/(1. - sr))**-0.5
+   field.set(n, pc)</string_value>
+        </algorithm>
         <stat>
           <include_cv_stats/>
         </stat>

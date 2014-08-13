@@ -5,7 +5,7 @@
 Documentation to come."""
 
 import sys
-sys.path.append('../../python')
+# sys.path.append('../../python')
 
 import os
 import string
@@ -15,10 +15,12 @@ import numpy
 from test_tools import Command, CommandList, HandlerLevel, \
    CompositeHandler, LeafHandler, WriteXMLFile, RunSimulation, \
    WriteToReport, error_norms_filename, error_rates_filename, verbose, \
-   join_with_underscores
+   join_with_underscores, default_fluidity_path
 from fluidity_tools import stat_parser
 from solution_generator import generate
 from importlib import import_module
+from vtktools import vtu
+from copy import deepcopy
 
 verbose(True)
 debug = False
@@ -135,8 +137,17 @@ class GenerateSymbols(MMSCommand):
       
          # write dictionary
          solution_name = join_with_underscores((self.stem))
-         generate(solution_name)
-
+         if verbose():
+            div_plus_src = generate(solution_name, check_solution=True)
+            sys.stdout.write('\n'+indent+
+                             '   Expect sum(div(u) - src) = 0...')
+            for i in range(3):
+               dim = i + 1
+               sys.stdout.write(
+                  '\n'+indent+'   {0}D: {1}'.\
+                     format(dim, str(div_plus_src[i])))
+         else:
+            generate(solution_name)
       
 class ExpandOptionsTemplate(MMSCommand):
    
@@ -153,9 +164,8 @@ class ExpandOptionsTemplate(MMSCommand):
          # generated from GenerateSymbols (in this instance, once only)
          solution_name = join_with_underscores((self.stem))
          solution_expressions = import_module(solution_name)
-         self.solution_dict = solution_expressions.solution_dict
-         self.finish_time = solution_expressions.solution_dict\
-                               ['finish_time']
+         self.finish_time = solution_expressions.py_dict['finish_time']
+         self.text_dict = solution_expressions.text_dict
          
       if level_name == 'mesh_suffix':
          # this last level does most of the important stuff
@@ -186,7 +196,7 @@ class ExpandOptionsTemplate(MMSCommand):
          # repeat with the solution dict
          try:
             buf = string.Template(buf)
-            buf = buf.safe_substitute(self.solution_dict)
+            buf = buf.safe_substitute(self.text_dict)
          except AttributeError:
             pass
          with open(param.options_filename, 'w') as tgt:
@@ -205,7 +215,10 @@ class ProcessMesh(MMSCommand):
 
    def __init__(self):
       MMSCommand.__init__(self)
-      self.binary_path = "../../bin/darcy_impes"
+      default_fluidity_path()
+      self.interval_path = os.environ["FLUIDITYPATH"] + "bin/interval"
+      if not os.path.isfile(self.interval_path): 
+         raise IOError("Cannot find " + self.interval_path)
       
    def execute(self, level_name, value, indent):
       # all levels record level details
@@ -219,8 +232,7 @@ class ProcessMesh(MMSCommand):
 
          # needed for e.g. creating 1D meshes, but do not rely on this
          # for true mesh dimensions otherwise
-         self.domain_extents = solution_expressions.solution_dict\
-                               ['domain_extents']
+         self.domain_extents = solution_expressions.py_dict['domain_extents']
 
       if level_name == 'mesh_suffix':
          # this last level does most of the important stuff
@@ -259,7 +271,7 @@ class ProcessMesh(MMSCommand):
          if self.dim==1:
             lx=self.domain_extents[0]
             dx=lx/float(param.mesh_res)
-            subprocess.call(['../../bin/interval', '0.0',
+            subprocess.call([self.interval_path, '0.0',
                              str(lx), '--dx='+str(dx),
                              param.mesh_name])
          else:
@@ -296,7 +308,7 @@ class CleanUp(MMSCommand):
             except OSError:
                pass
 
-         
+               
 class ManufacturedSolutionTestSuite:
    def __init__(self, case_name, mesh_type_list,
                 mesh_suffix_list_per_dimension, field_name_list,
@@ -345,7 +357,7 @@ class ManufacturedSolutionTestSuite:
 
 
    def write_xml(self):
-      self.deep_handler.handle( WriteXMLFile('stem', 0.05, 0.6) )
+      self.deep_handler.handle( WriteXMLFile('stem', 0.05, 0.8) )
 
 
    def preprocess(self):

@@ -1,16 +1,17 @@
 ## PARAMETERS 
 
 case_name = "darcy_impes_mms_p1_2phase_coreyrelperm" 
-mesh_type_list = ["reg"]                     # [see note 1]
+mesh_type_list = ["reg"]
 mesh_suffix_list_per_dimension = [
-    ["B", "C", "D", "E"],
+    ["B", "C", "D", "E"], 
     ["B", "C", "D"],
     ["B", "C"]]
-field_name_list = ["Phase2::Saturation"]     # [2]
+field_name_list = ["Phase1::Pressure", 
+                   "Phase2::Saturation"]         # [1]
 norm_list = [2]                                      
-mesh_A_number_of_timesteps = 10              # [2]
+mesh_A_number_of_timesteps = 10              # [1]
 
-# [see also note 3]
+# [see also note 2]
 
 
 ## SCRIPT
@@ -44,17 +45,10 @@ for arg in argv[1:]:
 
 # Notes:
 # 
-# [1] irreg meshes also possible, but their convergence rates are unruly
-# 
-# [2] the starting number of timesteps has been increased to 10 because
+# [1] the starting number of timesteps has been increased to 10 because
 #     with too few, the rates can look OK even for bad convergence
-#     (TODO: check impact on total test time).  However, it has also
-#     been discovered that, at certain levels of timestep and mesh
-#     refinement, the pressure fields may reconfigure themselves to be
-#     completely different to the forced solution.  This destroys the
-#     pressure field convergence rates.  Saturation fields seem fine, so
-#     only their convergence will be measured.  (TODO: investigate)
+#     (TODO: check impact on total test time).
 # 
-# [3] velocity boundary conditions were supposed to be tested in this
+# [2] velocity boundary conditions were supposed to be tested in this
 #     folder, but there are convergence problems when the BCs are
-#     non-zero.  Could be related to [2].
+#     non-zero.

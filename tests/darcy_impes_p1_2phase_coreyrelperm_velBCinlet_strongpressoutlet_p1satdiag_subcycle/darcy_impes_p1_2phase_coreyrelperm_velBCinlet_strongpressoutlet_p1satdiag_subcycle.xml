@@ -55,10 +55,6 @@ phase2_sat_relpermupwind_analytic_error_max_2d_A = stat("darcy_impes_p1_2phase_c
 from fluidity_tools import stat_parser as stat
 phase2_sat_relpermupwind_analytic_error_integral_2d_A = stat("darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_subcycle_relpermupwind_2d_A.stat")["Phase2"]["AnalyticSaturationError"]["integral"][-1]
     </variable>
-    <variable name="phase1_sat_relpermupwind_regression_error_max_2d_A" language="python">
-from fluidity_tools import stat_parser as stat
-phase1_sat_relpermupwind_regression_error_max_2d_A = stat("darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_subcycle_relpermupwind_2d_A.stat")["Phase1"]["RegressionSaturationError"]["max"][-1]
-    </variable>
     <variable name="solvers_converged" language="python">
 import os
 files = os.listdir("./")
@@ -104,10 +100,6 @@ assert(abs(phase2_sat_relpermupwind_analytic_error_max_2d_A) &lt; 4.2e-01)
 assert(abs(phase2_sat_relpermupwind_analytic_error_integral_2d_A) &lt; 1.4e-02)
     </test>
     
-    <!-- regression comparisons, 1st order, 2D -->
-    <test name="Assert max absolute regression error for saturation phase 1 using relpermupwind for 2d on mesh A is less than 1.0e-06" language="python">
-assert(abs(phase1_sat_relpermupwind_regression_error_max_2d_A) &lt; 1.0e-06)
-    </test>
   </pass_tests>
   <warn_tests>
   </warn_tests>

@@ -225,6 +225,7 @@ module darcy_impes_assemble_type
       type(scalar_field)     :: cv_mass_pressure_mesh_with_porosity   
       type(scalar_field)     :: cv_mass_pressure_mesh_with_old_porosity 
       type(scalar_field)     :: inverse_cv_sa_pressure_mesh
+      type(scalar_field)     :: work_array_of_size_pressure_mesh
       type(scalar_field)     :: modified_relative_permeability
       type(scalar_field), pointer :: constant_zero_sfield_pmesh
       type(scalar_field), pointer :: constant_zero_sfield_elementwisemesh
