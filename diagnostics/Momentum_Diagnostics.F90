@@ -251,9 +251,14 @@ contains
   subroutine calculate_bulk_viscosity(states, t_field)
     type(state_type), dimension(:), intent(inout) :: states
     type(tensor_field), intent(inout) :: t_field
+
+    character(len = OPTION_PATH_LEN) :: mean_type
     
+    call get_option(trim(complete_field_path(trim(t_field%option_path))) // &
+                    "/algorithm[0]/mean/name", mean_type, default="arithmetic")
+
     call calculate_bulk_property(states, t_field, "MaterialViscosity", &
-      & momentum_diagnostic = .true.)
+      & mean_type = mean_type, momentum_diagnostic = .true.)
   
   end subroutine calculate_bulk_viscosity
   
