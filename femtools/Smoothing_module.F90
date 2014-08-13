@@ -7,7 +7,7 @@ module smoothing_module
   use sparsity_patterns
   use solvers
   use metric_tools
-  use boundary_conditions
+  use boundary_conditions, only: apply_dirichlet_conditions
   use global_parameters, only : OPTION_PATH_LEN
   implicit none
 
