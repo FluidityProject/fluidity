@@ -8711,6 +8711,8 @@
       INTEGER :: IFACE, quad_cv_siloc, quad_cv_iloc, NPOLY, IP, JP, KP
       LOGICAL :: FOUND
 
+      logical, parameter :: AlternativeOrdering = .true.
+
       CONDITIONAL_DIMENSION: IF(NDIM==1) THEN
          ! 1d: 
          IF(NFACE.NE.2) THEN
@@ -8727,14 +8729,26 @@
                EWRITE(3,*) 'NFACE not correct NFACE=',NFACE
                STOP 4333
             END IF
-            CV_SLOCLIST(1,1)=2
-            CV_SLOCLIST(1,2)=1
+            if (AlternativeOrdering) then
+                CV_SLOCLIST(1,1)=1
+                CV_SLOCLIST(1,2)=2
 
-            CV_SLOCLIST(2,1)=1
-            CV_SLOCLIST(2,2)=3
+                CV_SLOCLIST(2,1)=3
+                CV_SLOCLIST(2,2)=1
 
-            CV_SLOCLIST(3,1)=3
-            CV_SLOCLIST(3,2)=2
+                CV_SLOCLIST(3,1)=2
+                CV_SLOCLIST(3,2)=3
+            else
+                CV_SLOCLIST(1,1)=2
+                CV_SLOCLIST(1,2)=1
+
+                CV_SLOCLIST(2,1)=1
+                CV_SLOCLIST(2,2)=3
+
+                CV_SLOCLIST(3,1)=3
+                CV_SLOCLIST(3,2)=2
+            end if
+
             ! linear quad: 
          ELSE IF(CV_NLOC==4) THEN
             IF(NFACE/=4) THEN
@@ -8755,17 +8769,31 @@
                EWRITE(3,*) 'NFACE not correct NFACE=',NFACE
                STOP 4335
             END IF
-            CV_SLOCLIST(1,1)=3
-            CV_SLOCLIST(1,2)=2
-            CV_SLOCLIST(1,3)=1
+           if (AlternativeOrdering) then
+               CV_SLOCLIST(1,1)=1
+               CV_SLOCLIST(1,2)=2
+               CV_SLOCLIST(1,3)=3
 
-            CV_SLOCLIST(2,1)=1
-            CV_SLOCLIST(2,2)=4
-            CV_SLOCLIST(2,3)=6
+               CV_SLOCLIST(2,1)=6
+               CV_SLOCLIST(2,2)=4
+               CV_SLOCLIST(2,3)=1
 
-            CV_SLOCLIST(3,1)=6
-            CV_SLOCLIST(3,2)=5
-            CV_SLOCLIST(3,3)=3
+               CV_SLOCLIST(3,1)=3
+               CV_SLOCLIST(3,2)=5
+               CV_SLOCLIST(3,3)=6
+           else
+               CV_SLOCLIST(1,1)=3
+               CV_SLOCLIST(1,2)=2
+               CV_SLOCLIST(1,3)=1
+
+               CV_SLOCLIST(2,1)=1
+               CV_SLOCLIST(2,2)=4
+               CV_SLOCLIST(2,3)=6
+
+               CV_SLOCLIST(3,1)=6
+               CV_SLOCLIST(3,2)=5
+               CV_SLOCLIST(3,3)=3
+            end if
             ! quadratic quad: 
          ELSE IF(CV_NLOC==9) THEN
             IF(NFACE/=4) THEN
@@ -8791,20 +8819,37 @@
                EWRITE(3,*) 'NFACE not correct NFACE=',NFACE
                STOP 4337
             ENDIF
-            CV_SLOCLIST(1,1)=1
-            CV_SLOCLIST(1,2)=2
-            CV_SLOCLIST(1,3)=3
-            CV_SLOCLIST(1,4)=4
+            if (AlternativeOrdering) then
+                CV_SLOCLIST(1,1)=1
+                CV_SLOCLIST(1,2)=2
+                CV_SLOCLIST(1,3)=3
+                CV_SLOCLIST(1,4)=4
 
-            CV_SLOCLIST(2,1)=1
-            CV_SLOCLIST(2,2)=5
-            CV_SLOCLIST(2,3)=8
-            CV_SLOCLIST(2,4)=10
+                CV_SLOCLIST(2,1)=10
+                CV_SLOCLIST(2,2)=8
+                CV_SLOCLIST(2,3)=5
+                CV_SLOCLIST(2,4)=1
 
-            CV_SLOCLIST(3,1)=4
-            CV_SLOCLIST(3,2)=7
-            CV_SLOCLIST(3,3)=9
-            CV_SLOCLIST(3,4)=10
+                CV_SLOCLIST(3,1)=4
+                CV_SLOCLIST(3,2)=7
+                CV_SLOCLIST(3,3)=9
+                CV_SLOCLIST(3,4)=10
+            else
+                CV_SLOCLIST(1,1)=1
+                CV_SLOCLIST(1,2)=2
+                CV_SLOCLIST(1,3)=3
+                CV_SLOCLIST(1,4)=4
+
+                CV_SLOCLIST(2,1)=1
+                CV_SLOCLIST(2,2)=5
+                CV_SLOCLIST(2,3)=8
+                CV_SLOCLIST(2,4)=10
+
+                CV_SLOCLIST(3,1)=4
+                CV_SLOCLIST(3,2)=7
+                CV_SLOCLIST(3,3)=9
+                CV_SLOCLIST(3,4)=10
+            end if
          ELSE ! option not available
              stop 39211
 
@@ -8818,58 +8863,107 @@
                EWRITE(3,*) 'NFACE not correct NFACE=',NFACE
                STOP 4337
             END IF
-            CV_SLOCLIST(1,1)=1
-            CV_SLOCLIST(1,2)=2
-            CV_SLOCLIST(1,3)=3
 
-            CV_SLOCLIST(2,1)=1
-            CV_SLOCLIST(2,2)=4
-            CV_SLOCLIST(2,3)=2
+            if (AlternativeOrdering) then
 
-            CV_SLOCLIST(3,1)=1
-            CV_SLOCLIST(3,2)=3
-            CV_SLOCLIST(3,3)=4
+                CV_SLOCLIST(1,1)=2
+                CV_SLOCLIST(1,2)=1
+                CV_SLOCLIST(1,3)=3
 
-!            CV_SLOCLIST(4,1)=2
-!            CV_SLOCLIST(4,2)=3
-!            CV_SLOCLIST(4,3)=4
+                CV_SLOCLIST(2,1)=1
+                CV_SLOCLIST(2,2)=2
+                CV_SLOCLIST(2,3)=4
 
-            CV_SLOCLIST(4,1)=3
-            CV_SLOCLIST(4,2)=2
-            CV_SLOCLIST(4,3)=4
+                CV_SLOCLIST(3,1)=3
+                CV_SLOCLIST(3,2)=1
+                CV_SLOCLIST(3,3)=4
+
+                CV_SLOCLIST(4,1)=2
+                CV_SLOCLIST(4,2)=3
+                CV_SLOCLIST(4,3)=4
+
+            else
+
+                CV_SLOCLIST(1,1)=1
+                CV_SLOCLIST(1,2)=2
+                CV_SLOCLIST(1,3)=3
+
+                CV_SLOCLIST(2,1)=1
+                CV_SLOCLIST(2,2)=4
+                CV_SLOCLIST(2,3)=2
+
+                CV_SLOCLIST(3,1)=1
+                CV_SLOCLIST(3,2)=3
+                CV_SLOCLIST(3,3)=4
+
+                CV_SLOCLIST(4,1)=3
+                CV_SLOCLIST(4,2)=2
+                CV_SLOCLIST(4,3)=4
+            end if
             ! quadratic triangle: 
          ELSE IF(CV_NLOC==10) THEN ! quadratic...
             IF(NFACE/=4) THEN
                EWRITE(3,*) 'NFACE not correct NFACE=',NFACE
                STOP 4338
             END IF
-            CV_SLOCLIST(1,1)=1
-            CV_SLOCLIST(1,2)=2
-            CV_SLOCLIST(1,3)=3
-            CV_SLOCLIST(1,4)=4
-            CV_SLOCLIST(1,5)=5
-            CV_SLOCLIST(1,6)=6
 
-            CV_SLOCLIST(2,1)=3 
-            CV_SLOCLIST(2,2)=2
-            CV_SLOCLIST(2,3)=1
-            CV_SLOCLIST(2,4)=8
-            CV_SLOCLIST(2,5)=7
-            CV_SLOCLIST(2,6)=10
+            if (AlternativeOrdering) then
+                CV_SLOCLIST(1,1)=3
+                CV_SLOCLIST(1,2)=2
+                CV_SLOCLIST(1,3)=1
+                CV_SLOCLIST(1,4)=5
+                CV_SLOCLIST(1,5)=4
+                CV_SLOCLIST(1,6)=6
 
-            CV_SLOCLIST(3,1)=1 
-            CV_SLOCLIST(3,2)=4
-            CV_SLOCLIST(3,3)=6
-            CV_SLOCLIST(3,4)=7
-            CV_SLOCLIST(3,5)=9
-            CV_SLOCLIST(3,6)=10
+                CV_SLOCLIST(2,1)=1
+                CV_SLOCLIST(2,2)=2
+                CV_SLOCLIST(2,3)=3
+                CV_SLOCLIST(2,4)=7
+                CV_SLOCLIST(2,5)=8
+                CV_SLOCLIST(2,6)=10
 
-            CV_SLOCLIST(4,1)=6 
-            CV_SLOCLIST(4,2)=5
-            CV_SLOCLIST(4,3)=3
-            CV_SLOCLIST(4,4)=9
-            CV_SLOCLIST(4,5)=8
-            CV_SLOCLIST(4,6)=10
+                CV_SLOCLIST(3,1)=6
+                CV_SLOCLIST(3,2)=4
+                CV_SLOCLIST(3,3)=1
+                CV_SLOCLIST(3,4)=9
+                CV_SLOCLIST(3,5)=7
+                CV_SLOCLIST(3,6)=10
+
+                CV_SLOCLIST(4,1)=3
+                CV_SLOCLIST(4,2)=5
+                CV_SLOCLIST(4,3)=6
+                CV_SLOCLIST(4,4)=8
+                CV_SLOCLIST(4,5)=9
+                CV_SLOCLIST(4,6)=10
+            else
+                CV_SLOCLIST(1,1)=1
+                CV_SLOCLIST(1,2)=2
+                CV_SLOCLIST(1,3)=3
+                CV_SLOCLIST(1,4)=4
+                CV_SLOCLIST(1,5)=5
+                CV_SLOCLIST(1,6)=6
+
+                CV_SLOCLIST(2,1)=3
+                CV_SLOCLIST(2,2)=2
+                CV_SLOCLIST(2,3)=1
+                CV_SLOCLIST(2,4)=8
+                CV_SLOCLIST(2,5)=7
+                CV_SLOCLIST(2,6)=10
+
+                CV_SLOCLIST(3,1)=1
+                CV_SLOCLIST(3,2)=4
+                CV_SLOCLIST(3,3)=6
+                CV_SLOCLIST(3,4)=7
+                CV_SLOCLIST(3,5)=9
+                CV_SLOCLIST(3,6)=10
+
+                CV_SLOCLIST(4,1)=6
+                CV_SLOCLIST(4,2)=5
+                CV_SLOCLIST(4,3)=3
+                CV_SLOCLIST(4,4)=9
+                CV_SLOCLIST(4,5)=8
+                CV_SLOCLIST(4,6)=10
+            end if
             ! general hex: 
          ELSE 
             IF(NFACE/=6) THEN
