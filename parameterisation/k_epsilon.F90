@@ -62,7 +62,7 @@ contains
 subroutine keps_advdif_diagnostics(state)
 
   type(state_type), intent(inout) :: state
-  
+  write(*,*) 'testing k_epsilon'
   call keps_damping_functions(state, advdif=.true.)
   call keps_eddyvisc(state, advdif=.true.)
   call keps_diffusion(state)
@@ -194,7 +194,7 @@ subroutine keps_calculate_rhs(state)
   type(state_type), intent(inout) :: state
 
   type(scalar_field), dimension(3) :: src_abs_terms
-  type(scalar_field), dimension(2) :: fields
+  type(scalar_field), dimension(2) :: fields_keps
   type(scalar_field), pointer :: src, abs, f_1, f_2, debug
   type(scalar_field) :: src_to_abs
   type(vector_field), pointer :: x, u, g
@@ -272,26 +272,26 @@ subroutine keps_calculate_rhs(state)
      src => extract_scalar_field(state, trim(field_names(i))//"Source")
      abs => extract_scalar_field(state, trim(field_names(i))//"Absorption")
 
-     call time_averaged_value(state, fields(1), trim(field_names(i)), .true., option_path)
-     call time_averaged_value(state, fields(2), trim(field_names(3-i)), .true., option_path)
+     call time_averaged_value(state, fields_keps(1), trim(field_names(i)), .true., option_path)
+     call time_averaged_value(state, fields_keps(2), trim(field_names(3-i)), .true., option_path)
 
-     call allocate(src_abs_terms(1), fields(1)%mesh, name="production_term")
-     call allocate(src_abs_terms(2), fields(1)%mesh, name="destruction_term")
-     call allocate(src_abs_terms(3), fields(1)%mesh, name="buoyancy_term")
+     call allocate(src_abs_terms(1), fields_keps(1)%mesh, name="production_term")
+     call allocate(src_abs_terms(2), fields_keps(1)%mesh, name="destruction_term")
+     call allocate(src_abs_terms(3), fields_keps(1)%mesh, name="buoyancy_term")
      call zero(src_abs_terms(1)); call zero(src_abs_terms(2)); call zero(src_abs_terms(3))
      call zero(src); call zero(abs)
 
      !-----------------------------------------------------------------------------------
 
      ! Assembly loop
-     do ele = 1, ele_count(fields(1))
-        call assemble_rhs_ele(src_abs_terms, fields(i), fields(3-i), scalar_eddy_visc, u, &
+     do ele = 1, ele_count(fields_keps(1))
+        call assemble_rhs_ele(src_abs_terms, fields_keps(i), fields_keps(3-i), scalar_eddy_visc, u, &
              density, buoyancy_density, have_buoyancy_turbulence, g, g_magnitude, x, &
              c_eps_1, c_eps_2, sigma_p, f_1, f_2, ele, i)
      end do
 
      ! For non-DG we apply inverse mass globally
-     if(continuity(fields(1))>=0) then
+     if(continuity(fields_keps(1))>=0) then
         lump_mass = have_option(trim(option_path)//'mass_terms/lump_mass')
         do term = 1, 3
            call solve_cg_inv_mass(state, src_abs_terms(term), lump_mass, option_path)           
@@ -327,8 +327,8 @@ subroutine keps_calculate_rhs(state)
         case("source")
            call addto(src, src_abs_terms(term))
         case("absorbtion")
-           call allocate(src_to_abs, fields(1)%mesh, name='SourceToAbsorbtion')
-           call set(src_to_abs, fields(1))
+           call allocate(src_to_abs, fields_keps(1)%mesh, name='SourceToAbsorbtion')
+           call set(src_to_abs, fields_keps(1))
            where (src_to_abs%val >= fields_min)
               src_to_abs%val=1./src_to_abs%val
            elsewhere
@@ -357,8 +357,8 @@ subroutine keps_calculate_rhs(state)
      do term = 1, 3
         call deallocate(src_abs_terms(term))
      end do
-     call deallocate(fields(1))
-     call deallocate(fields(2))
+     call deallocate(fields_keps(1))
+     call deallocate(fields_keps(2))
 
   end do field_loop
   
