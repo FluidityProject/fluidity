@@ -404,7 +404,7 @@ contains
 
 
 
-
+    !This sub is currently unused
     SUBROUTINE CV_ASSEMB_CV_DG( state, packed_state, &
          tracer, velocity, density, pressure, &
     CV_RHS, &
@@ -2659,7 +2659,6 @@ contains
         real, dimension(:,:), pointer :: CapPressure
         real, dimension(NPHASE) :: auxVariable
         type(tensor_field), target :: FEMCapPressure
-        integer :: k
         logical :: CAP_to_FEM
 !! femdem
         type( vector_field ), pointer :: delta_u_all, us_all
@@ -3198,9 +3197,7 @@ contains
 
         ! Shape functions associated with volume integration using both CV basis
         ! functions CVN as well as FEM basis functions CVFEN (and its derivatives CVFENLX, CVFENLY, CVFENLZ)
-
         !======= DEFINE THE SUB-CONTROL VOLUME & FEM SHAPE FUNCTIONS ========
-
         CALL cv_fem_shape_funs_plus_storage( &
                              ! Volume shape functions...
            NDIM, P_ELE_TYPE,  &
@@ -3223,7 +3220,6 @@ contains
            FINDGPTS, COLGPTS, NCOLGPTS, &
            SELE_OVERLAP_SCALE, QUAD_OVER_WHOLE_ELE,&
            state, 'Vel_mesh', StorageIndexes(13))
-
         ! Memory for rapid retreval...
         ! Storage for pointers to the other side of the element.
         ALLOCATE( STORED_U_ILOC_OTHER_SIDE( U_SNLOC, NFACE, TOTELE*ISTORED_OTHER_SIDE ) )
@@ -3250,7 +3246,6 @@ contains
             NFACE, FACE_ELE, U_SLOCLIST, CV_SLOCLIST, STOTEL, U_SNLOC, CV_SNLOC, WIC_U_BC_ALL_VISC, SUF_U_BC_ALL_VISC, &
             SBCVNGI, SBUFEN, SBUFENSLX, SBUFENSLY, SBCVFEWEIGH, &
             SBCVFEN, SBCVFENSLX, SBCVFENSLY ,&
-!            state, "CTY", StorageIndexes(23))
             state ,"C_1", StorageIndexes(14))!<== We use the same index that we use in the DETNLXR_PLUS_U_WITH_STORAGE
             !below since inside this subroutine the only thing we store is DETNLXR_PLUS_U_WITH_STORAGE
         ENDIF
@@ -3312,7 +3307,7 @@ contains
         !###Section to check options regarding capillary pressure.###
         CAP_to_FEM = .false.
         Int_by_part_CapPress = .false.
-        do iphase =1, nphase
+        do iphase = 1, nphase
             CAP_to_FEM = CAP_to_FEM .or. have_option("/material_phase["// int2str( iphase - 1 ) //&
                 "]/multiphase_properties/capillary_pressure/Proj_capi_to_FEM")
 
@@ -4517,15 +4512,6 @@ contains
             end if
          end if
                 
-            !Create local copy of capillary pressure values
-            if (Int_by_part_CapPress) then
-                DO CV_ILOC = 1, CV_NLOC
-                    CV_INOD = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_ILOC )
-                    LOC_PLIKE_GRAD_SOU_GRAD( :, CV_ILOC ) = CapPressure(:, CV_INOD)
-                end do
-            end if
-
-
             ! for copy local memory copying...
             LOC_U_RHS = 0.0
 
@@ -4567,6 +4553,74 @@ contains
                 SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, SDETWE, SAREA, &
                 SNORMXN_ALL, &
                 NORMX_ALL )
+
+
+                !Calculate all the necessary stuff to introduce the CapPressure in the RHS when
+                !integration by parts is used.
+                !Surface integral along an element
+                if (Int_by_part_CapPress) then
+                    !Get the neighbouring CV nodes
+                    if (ELE2 > 0) then
+                        DO P_SJLOC = 1, P_SNLOC
+                            U_ILOC = CV_SLOC2LOC( P_SJLOC )
+                            CV_INOD = X_NDGLN( ( ELE - 1 ) * X_NLOC + U_ILOC )
+                            DO CV_ILOC2 = 1, CV_NLOC
+                                CV_INOD2 = X_NDGLN(( ELE2 - 1 ) * X_NLOC + CV_ILOC2 )
+                                IF (CV_INOD2 == CV_INOD) CV_ILOC_OTHER_SIDE( P_SJLOC ) = CV_ILOC2
+                            END DO
+                        END DO
+                    end if
+
+                    DO U_SILOC = 1, U_SNLOC
+                        U_ILOC = U_SLOC2LOC( U_SILOC )
+                        DO P_SJLOC = 1, P_SNLOC
+                            P_JLOC = CV_SLOC2LOC( P_SJLOC )
+                            CV_INOD = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + P_JLOC )
+                            NMX_ALL = matmul(SNORMXN_ALL( :, : ), SBUFEN( U_SILOC, : ) * SBCVFEN( P_SJLOC, : ) * SDETWE( : ))
+                            if (ELE2 > 0) then!If neighbour then we get its value to calculate the average
+                                CV_INOD2 = CV_NDGLN( ( ELE2 - 1 ) * CV_NLOC + CV_ILOC_OTHER_SIDE(P_SJLOC) )
+                                auxVariable = CapPressure(:, CV_INOD2)
+                            else!If no neighbour then we use the same value.
+                                auxVariable = CapPressure(:, CV_INOD)
+                            end if
+                            do iphase = 1, nphase
+                                LOC_U_RHS( :, IPHASE, U_ILOC) =  LOC_U_RHS( :, IPHASE, U_ILOC ) &
+                                - NMX_ALL(:) * 0.5* (CapPressure(iphase, CV_INOD) + auxVariable(iphase))
+                            end do
+                        end do
+                    end do
+                end if
+
+                if (CAP_to_FEM .or. capillary_pressure_activated) then
+                 !Get the neighbouring CV nodes
+                    if (ELE2 > 0) then
+                        DO P_SJLOC = 1, P_SNLOC
+                            U_ILOC = CV_SLOC2LOC( P_SJLOC )
+                            CV_INOD = X_NDGLN( ( ELE - 1 ) * X_NLOC + U_ILOC )
+                            DO CV_ILOC2 = 1, CV_NLOC
+                                CV_INOD2 = X_NDGLN(( ELE2 - 1 ) * X_NLOC + CV_ILOC2 )
+                                IF (CV_INOD2 == CV_INOD) CV_ILOC_OTHER_SIDE( P_SJLOC ) = CV_ILOC2
+                            END DO
+                        END DO
+                    end if
+
+                    DO U_SILOC = 1, U_SNLOC
+                        U_ILOC = U_SLOC2LOC( U_SILOC )
+                        DO P_SJLOC = 1, P_SNLOC
+                            P_JLOC = CV_SLOC2LOC( P_SJLOC )
+                            CV_INOD = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + P_JLOC )
+                            NMX_ALL = matmul(SNORMXN_ALL( :, : ), SBUFEN( U_SILOC, : ) * SBCVFEN( P_SJLOC, : ) * SDETWE( : ))
+                            if (ELE2 > 0) then!If neighbour then we get its value to calculate the average
+                                CV_INOD2 = CV_NDGLN( ( ELE2 - 1 ) * CV_NLOC + CV_ILOC_OTHER_SIDE(P_SJLOC) )
+                                do iphase = 1, nphase
+                                    LOC_U_RHS( :, IPHASE, U_ILOC) =  LOC_U_RHS( :, IPHASE, U_ILOC ) &
+                                    + NMX_ALL(:) * 0.5* (CapPressure(iphase, CV_INOD) - CapPressure(iphase, CV_INOD2))
+                                end do
+                            end if
+                        end do
+                    end do
+                end if
+
 
                 If_ele2_notzero_1: IF(ELE2 /= 0) THEN
                     ! ***********SUBROUTINE DETERMINE_OTHER_SIDE_FACE - START************
@@ -4652,44 +4706,6 @@ contains
 
                    ! ***********SUBROUTINE DETERMINE_OTHER_SIDE_FACE - END************
                 END IF If_ele2_notzero_1
-
-                !Calculate all the necessary stuff to introduce the CapPressure in the RHS when
-                !integration by parts is used.
-                !Surface integral along an element
-                if (Int_by_part_CapPress) then
-                    !Get the neighbouring CV nodes
-                    if (ELE2 > 0) then
-                        DO P_SJLOC = 1, P_SNLOC
-                            U_ILOC = CV_SLOC2LOC( P_SJLOC )
-                            CV_INOD = X_NDGLN( ( ELE - 1 ) * CV_NLOC + U_ILOC )
-                            DO CV_ILOC2 = 1, CV_NLOC
-                                CV_INOD2 = X_NDGLN(( ELE2 - 1 ) * CV_NLOC + CV_ILOC2 )
-                                IF ( CV_INOD2 == CV_INOD ) THEN
-                                    CV_ILOC_OTHER_SIDE( P_SJLOC ) = CV_ILOC2
-                                END IF
-                            END DO
-                        END DO
-                    end if
-
-                    DO U_SILOC = 1, U_SNLOC
-                        U_ILOC = U_SLOC2LOC( U_SILOC )
-                        DO P_SJLOC = 1, P_SNLOC
-                            P_JLOC = CV_SLOC2LOC( P_SJLOC )
-                            CV_INOD = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + P_JLOC )
-                            NMX_ALL = matmul(SNORMXN_ALL( :, : ), SBUFEN( U_SILOC, : ) * SBCVFEN( P_SJLOC, : ) * SDETWE( : ))
-                            if (ELE2 > 0) then!If neighbour then we get its value to calculate the average
-                                CV_INOD2 = CV_NDGLN( ( ELE2 - 1 ) * CV_NLOC + CV_ILOC_OTHER_SIDE(P_SJLOC) )
-                                auxVariable = CapPressure(:, CV_INOD2)
-                            else!If no neighbour then we use the same value.
-                                auxVariable = LOC_PLIKE_GRAD_SOU_GRAD( :, P_JLOC )
-                            end if
-                            do iphase = 1, nphase
-                                LOC_U_RHS( :, IPHASE, U_ILOC) =  LOC_U_RHS( :, IPHASE, U_ILOC ) &
-                                - NMX_ALL(:) * 0.5* (LOC_PLIKE_GRAD_SOU_GRAD( iphase, P_JLOC ) + auxVariable(iphase))
-                            end do
-                        end do
-                    end do
-                end if
 
                 ! ********Mapping to local variables****************
                 ! CV variables...
@@ -4879,10 +4895,10 @@ contains
 
 
                 If_on_boundary_domain: IF(SELE /= 0) THEN
+
                     ! ***********SUBROUTINE DETERMINE_SUF_PRES - START************
                     ! Put the surface integrals in for pressure b.c.'s
                     ! that is add into C matrix and U_RHS. (DG velocities)
-
                     U_NLOC2 = MAX( 1, U_NLOC/CV_NLOC )
                     Loop_ILOC2: DO U_SILOC = 1, U_SNLOC
                         U_ILOC = U_SLOC2LOC( U_SILOC )
@@ -4913,18 +4929,10 @@ contains
                                     U_NONODS, FINDC, COLC, NCOLC, &
                                     IDO_STORE_AC_SPAR_PT, STORED_AC_SPAR_PT, POSINMAT_C_STORE, ELE, U_ILOC, P_JLOC, &
                                     TOTELE, U_NLOC, P_NLOC )
-!                                    !#####TEMPORARY FIX##### CHECK THAT IT WORKS, IT HAS TO BE EXTENDED TO ALL THE PLACES
-!                                    !WHERE LOC_U_RHS IS USED
-!                                    CALL USE_POSINMAT_C_STORE( COUNT, U_NDGLN( ( ELE - 1 ) * U_NLOC + U_ILOC ),  &
-!                                    P_NDGLN((ELE-1) * P_NLOC + P_JLOC), U_NONODS, FINDC, COLC, NCOLC, &
-!                                    IDO_STORE_AC_SPAR_PT, STORED_AC_SPAR_PT, POSINMAT_C_STORE, ELE, U_ILOC, P_JLOC, &
-!                                    TOTELE, U_NLOC, P_NLOC )
-!                                    !#####TEMPORARY FIX#####
                                 END IF
 
                                 Loop_Phase2: DO IPHASE = 1, NPHASE
                                     IF( WIC_P_BC_ALL( SELE ) == WIC_P_BC_DIRICHLET ) THEN
-
                                         DO IDIM = 1, NDIM_VEL
                                             IF(IGOT_VOL_X_PRESSURE==1) THEN
                                                IF ( .NOT.GOT_C_MATRIX ) THEN
@@ -4942,16 +4950,10 @@ contains
                                                - NMX_ALL( IDIM ) * SUF_P_BC_ALL( P_SJLOC + P_SNLOC* ( SELE - 1 ) ) * SELE_OVERLAP_SCALE( P_JLOC )
                                             ENDIF
                                         END DO
-
                                     END IF
-
                                 END DO Loop_Phase2
                             ENDIF
-
-
-
                         END DO Loop_JLOC2
-
                     END DO Loop_ILOC2
                    ! ***********SUBROUTINE DETERMINE_SUF_PRES - END************
                 ENDIF If_on_boundary_domain
@@ -5477,7 +5479,6 @@ contains
 
 
                                         IF( WIC_U_BC_ALL_VISC( IDIM, IPHASE, SELE2 ) == WIC_U_BC_DIRICHLET ) THEN
-
                                            IF(NO_MATRIX_STORE) THEN
                                               LOC_U_RHS( IDIM,IPHASE,U_ILOC ) &
                                               =  LOC_U_RHS( IDIM,IPHASE,U_ILOC ) - VLM_NEW * SLOC_U( IDIM,IPHASE,U_SJLOC ) 
@@ -5532,7 +5533,6 @@ contains
                                         ENDIF
                                         ! BC for incoming momentum...
                                         IF( WIC_MOMU_BC_ALL( IDIM, IPHASE, SELE2 ) == WIC_U_BC_DIRICHLET ) THEN
-
                                             IF(MOM_CONSERV) THEN
 
                                                 IF(.NOT.NO_MATRIX_STORE) THEN
@@ -5686,6 +5686,10 @@ contains
 
         DEALLOCATE( U_ILOC_OTHER_SIDE )
         DEALLOCATE( CV_ILOC_OTHER_SIDE )
+
+        DEALLOCATE(STORED_U_ILOC_OTHER_SIDE)
+        DEALLOCATE(STORED_U_OTHER_LOC)
+        DEALLOCATE(STORED_MAT_OTHER_LOC)
 
         DEALLOCATE( CV_ON_FACE )
         DEALLOCATE( U_ON_FACE )
@@ -7668,7 +7672,6 @@ contains
                 FEMTOLD=0.0
             END DO
         endif
-
 
         ALLOCATE( FACE_ELE( NFACE, TOTELE ) ) ; FACE_ELE = 0
         ! Calculate FACE_ELE
