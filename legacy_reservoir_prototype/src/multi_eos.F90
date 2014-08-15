@@ -853,11 +853,11 @@
                      if (is_corey) then
                           if (options%is_Corey_epsilon_method) then
                              CALL relperm_corey_epsilon( U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ), MOBILITY, &
-                                 INV_PERM( IDIM, JDIM, ELE ), min(1.0,max(0.0,SATURATION)), IPHASE,&
+                                 INV_PERM( IDIM, JDIM, ELE ), min(1.0,max(0.0,SATURA(1,CV_NOD))), IPHASE,&
                                  options)!Second phase is considered inside the subroutine
                           else
                                 CALL relperm_corey( U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ), MOBILITY, &
-                                     INV_PERM( IDIM, JDIM, ELE ), min(1.0,max(0.0,SATURATION)), IPHASE,&
+                                     INV_PERM( IDIM, JDIM, ELE ), min(1.0,max(0.0,SATURA(1,CV_NOD))), IPHASE,&
                                      options)
                              end if
 
@@ -867,7 +867,7 @@
 
                      else if (is_land) then
                         CALL relperm_land( U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ), MOBILITY, &
-                             INV_PERM( IDIM, JDIM, ELE ), min(1.0,max(0.0,SATURATION)), IPHASE,&
+                             INV_PERM( IDIM, JDIM, ELE ), min(1.0,max(0.0,SATURA(1,CV_NOD))), IPHASE,&
                              options)
                      else
                         U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ) = 0.0
@@ -2370,7 +2370,7 @@
       type(tensor_field), pointer :: viscosity_ph1, viscosity_ph2
       integer :: iphase, ele, sele, cv_siloc, cv_snodi, cv_snodi_ipha, iface, s, e, &
            ele2, sele2, cv_iloc, idim, jdim, i, mat_nod, cv_nodi
-      real :: mobility, satura_bc
+      real :: mobility, satura_bc, auxR
       real, dimension( ndim, ndim ) :: inv_perm, sigma_out, sigma_in, mat, mat_inv
       integer, dimension( nface, totele) :: face_ele
       integer, dimension( mat_nonods*nphase ) :: idone
@@ -2391,8 +2391,6 @@
 
       type(tensor_field), pointer :: velocity, volfrac, perm
       type(tensor_field) :: velocity_BCs, volfrac_BCs
-
-      logical :: Avoid_epsilon
 
     !Get from packed_state
       volfrac=>extract_tensor_field(packed_state,"PackedPhaseVolumeFraction")
@@ -2475,19 +2473,11 @@
                         ! of the first phase
                         satura_bc = volfrac_BCs%val(1,1,cv_snodi)
 
-                        !If the initial state have a sat == to the irresidual saturation
-                        !the absorption term would be extremely high, hence it is better to switch to the corey method.
-                        select case (iphase)
-                            case (1)
-                                Avoid_epsilon = satura_bc - options%s_gc < 1d-8
-                            case default
-                                Avoid_epsilon = satura_bc - options%s_or < 1d-8
-                        end select
 !                        sigma_out = 0.
                         do idim = 1, ndim
                            do jdim = 1, ndim
                               if (is_corey) then
-                                if (options%is_Corey_epsilon_method.and..not.Avoid_epsilon) then
+                                if (options%is_Corey_epsilon_method) then
                                      call relperm_corey_epsilon( sigma_out( idim, jdim ), mobility, &
                                           inv_perm( idim, jdim ), satura_bc, iphase,options)
                                  else
