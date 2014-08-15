@@ -39,16 +39,15 @@
 #ifndef PC_COMPOSITE_SYMMETRIC_MULTIPLICATIVE
 #define PC_COMPOSITE_SYMMETRIC_MULTIPLICATIVE PC_COMPOSITE_SYM_MULTIPLICATIVE
 #endif
-! Changes in petsc-dev (master)
-! should be changed to use PETSC_DEFAULT_REAL in code when petsc 3.5 is released
-! (can't use #ifndef cause PETSC_DEFAULT_REAL is a module variable in petsc-dev)
-#if PETSC_VERSION_MINOR>=4 && PETSC_VERSION_RELEASE==0
-#define PETSC_DEFAULT_DOUBLE_PRECISION PETSC_DEFAULT_REAL
+! Changes in petsc 3.5 PETSC_DEFAULT_DOUBLE_PRECISION -> PETSC_DEFAULT_REAL
+! (can't use #ifndef cause PETSC_DEFAULT_REAL is a module variable)
+#if PETSC_VERSION_MINOR<5
+#define PETSC_DEFAULT_REAL PETSC_DEFAULT_DOUBLE_PRECISION PETSC_DEFAULT_REAL
 #endif
-! flag argument to KSP/PCSetOperators() has been dropped:
+! MatStructure argument to KSP/PCSetOperators() has been dropped:
 ! we use this macro hack which means that the call cannot be split over multiple lines
 ! also note the (ab)use of fortran's case insensivity to avoid recursion
-#if PETSC_VERSION_MINOR>=4 && PETSC_VERSION_RELEASE==0
-#define KSPSetOperators(ksp, amat, pmat, flag, ierr) kspsetoperators(ksp, amat, pmat, ierr)
-#define PCSetOperators(pc, amat, pmat, flag, ierr) pcsetoperators(pc, amat, pmat, ierr)
+#if PETSC_VERSION_MINOR<5
+#define KSPSetOperators(ksp, amat, pmat, ierr) kspsetoperators(ksp, amat, pmat, DIFFERENT_NONZERO_PATTERN, ierr)
+#define PCSetOperators(pc, amat, pmat, ierr) pcsetoperators(pc, amat, pmat, DIFFERENT_NONZERO_PATTERN, ierr)
 #endif
