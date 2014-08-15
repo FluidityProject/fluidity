@@ -106,7 +106,17 @@ subroutine project_vtu(input_filename_, input_filename_len, donor_basename_, don
     output_p0mesh = piecewise_constant_mesh(target_positions%mesh, "P0Mesh")
   end if
   
-  donor_positions = read_mesh_files(trim(donor_basename), quad_degree = quad_degree, format="gmsh")
+  if (donor_basename_len>0) then
+    donor_positions = read_mesh_files(trim(donor_basename), quad_degree = quad_degree, format="gmsh")
+  else
+    ! no donor mesh specified:
+    ! use the one we got from vtk_read_state
+    ! this only works in serial and with a P1CG vtu
+    if (continuity(donor_positions)<0 .or. shape%degree/=1) then
+      FLExit("No donor mesh specified. This only works for a serial, continuous, linear input vtu")
+    end if
+    call incref(donor_positions)
+  end if
   
   allocate(map_BA(ele_count(target_positions)))
   map_BA = rtree_intersection_finder(target_positions, donor_positions)
