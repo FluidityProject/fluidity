@@ -207,8 +207,8 @@ contains
     call PetscOptionsGetString('', "-pc_type", pc_method, flag, ierr)
     call KSPCreate(MPI_COMM_FEMTOOLS, krylov, ierr)
     call KSPSetType(krylov, krylov_method, ierr)
-    call KSPSetOperators(krylov, matrix, matrix, DIFFERENT_NONZERO_PATTERN, ierr)
-    call KSPSetTolerances(krylov, 1.0d-100, 1d-12, PETSC_DEFAULT_DOUBLE_PRECISION, &
+    call KSPSetOperators(krylov, matrix, matrix, ierr)
+    call KSPSetTolerances(krylov, 1.0d-100, 1d-12, PETSC_DEFAULT_REAL, &
       3000, ierr)
     if (zero_init_guess) then
       call KSPSetInitialGuessNonzero(krylov, PETSC_FALSE, ierr)
