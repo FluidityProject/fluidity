@@ -42,12 +42,13 @@
 ! Changes in petsc 3.5 PETSC_DEFAULT_DOUBLE_PRECISION -> PETSC_DEFAULT_REAL
 ! (can't use #ifndef cause PETSC_DEFAULT_REAL is a module variable)
 #if PETSC_VERSION_MINOR<5
-#define PETSC_DEFAULT_REAL PETSC_DEFAULT_DOUBLE_PRECISION PETSC_DEFAULT_REAL
+#define PETSC_DEFAULT_REAL PETSC_DEFAULT_DOUBLE_PRECISION
 #endif
-! MatStructure argument to KSP/PCSetOperators() has been dropped:
+! MatStructure argument to KSP/PCSetOperators has been dropped:
 ! we use this macro hack which means that the call cannot be split over multiple lines
 ! also note the (ab)use of fortran's case insensivity to avoid recursion
+! for PCSetOperators we use small caps because otherwise the preprocessor trips up on an occurence of PCSetoperators directly followed by () in a fortran comment in one of the petsc headers
 #if PETSC_VERSION_MINOR<5
 #define KSPSetOperators(ksp, amat, pmat, ierr) kspsetoperators(ksp, amat, pmat, DIFFERENT_NONZERO_PATTERN, ierr)
-#define PCSetOperators(pc, amat, pmat, ierr) pcsetoperators(pc, amat, pmat, DIFFERENT_NONZERO_PATTERN, ierr)
+#define pcsetoperators(pc, amat, pmat, ierr) PCSetOperators(pc, amat, pmat, DIFFERENT_NONZERO_PATTERN, ierr)
 #endif

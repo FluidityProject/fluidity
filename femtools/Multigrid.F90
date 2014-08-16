@@ -151,7 +151,8 @@ subroutine SetUpInternalSmoother(surface_node_list_in,matrix,pc, &
   call SetupSmoothedAggregation(internal_smoother_pc, &
        Internal_Smoother_Mat, ierr, no_top_smoothing=lno_top_smoothing)
 
-  call PCSetOperators(internal_smoother_pc,Internal_Smoother_Mat, Internal_Smoother_Mat, ierr)
+  ! PCSetOperators needs to be in small caps due to macro hack in include/petsc_legacy.h
+  call pcsetoperators(internal_smoother_pc,Internal_Smoother_Mat, Internal_Smoother_Mat, ierr)
 
   !set up pc to output
   myPETSC_NULL_OBJECT=PETSC_NULL_OBJECT
