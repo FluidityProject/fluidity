@@ -13,8 +13,8 @@ from re import sub
 from collections import OrderedDict
 from importlib import import_module
 from getpass import getuser
-from batch_tools import SelfHandlingCommand, DoNothing, Tracker, \
-    make_string, default_fluidity_path
+from batch_tools import SelfHandlingCommand, Validate, DoNothing, Tracker, \
+    make_string, default_fluidity_path, set_global_verbosity
 from copy import deepcopy
 from glob import glob
 from warnings import warn
@@ -22,13 +22,12 @@ from warnings import warn
 default_fluidity_path()
 from fluidity_tools import stat_parser
 
-
-# since it is likely that the client will want to give all the classes
-# in this module the same verbosity, verbosity may as well be a module
-# variable.  The verbosity() function below can be used to set/get
-# the variable.  It is an integer to allow different levels of verbosity.
-# TODO: consider replacing with a singleton
-_verbosity_level = 0
+# domain dimensions may be invariant as far as the client is concerned.
+# So make it (optionally) a global variable.
+_global_test_dimensions = None
+_global_key_formatting_dict = {'dim': '{0}d',
+                               'norm': 'l{0}',
+                               'mesh_res': 'm{0}'}
 
 # a list of dictionaries to be maintained by parameterisers.  Names not
 # appearing here must be explicitly registered by the client.
@@ -73,15 +72,12 @@ from test_tools import find_{0}
 assert(find_{0}("{1}") &{2}; {3:g})
     </test>"""
 
+def get_global_num_dimensions():
+    return _global_num_dimensions
 
-def verbosity(new_verbosity_level=None):
-    """Setter/getter of global verbosity_level."""
-    global _verbosity_level
-    if new_verbosity_level is not None:
-        _verbosity_level = new_verbosity_level
-    else:
-        return _verbosity_level
-   
+def get_global_python_verbosity():
+    return _global_python_verbosity
+
 def find_in_open(report, key):
     """Searches a report and returns the value associated with key. """
     report.seek(0)
@@ -106,7 +102,7 @@ def find_norm(key):
 
 def find_rate(key):
     return find(_error_rates_filename, key)
-    
+
     
 class Parameteriser:
    """A class for determining filenames and making dictionaries for
@@ -130,8 +126,8 @@ class Parameteriser:
            self.register_dict(d)
        self.__num_expansions = {}
 
-   def update(self, tracker):
-       self.__tracker = tracker
+   def update(self, test_command):
+       self.__test_command = test_command
 
    def get(self, what):
         """If what=='level', returns current level name.  If what=='node',
@@ -139,7 +135,7 @@ class Parameteriser:
         level name from which a node name is to be returned.  Return
         value defaults to None."""
         # delegate
-        return self.__tracker.get(what)
+        return self.__test_command.get(what)
 
    def at(self, what):
         """Returns True if where=='root' and we are at the base of the
@@ -147,14 +143,14 @@ class Parameteriser:
         branch, or if where is the current level_name.
         """
         # delegate
-        return self.__tracker.at(where)
+        return self.__test_command.at(where)
 
    def make_key(self, level_names=None, exclude=[], substitute={}):
         """Forms a string made up of node names corresponding to the
         supplied list of level names.
         """ 
         # delegate
-        return self.__tracker.make_key(level_names, exclude, substitute)
+        return self.__test_command.make_key(level_names, exclude, substitute)
 
    def register_dict(self, dict_name, user_defined_dict={}):
        """Registers a custom named dictionary for use by lookup() and
@@ -209,7 +205,7 @@ class Parameteriser:
        self.update_dict(dict_name)
        D = self.__master_dict[dict_name]
        if len(D) == 0:
-           warn("No entries found in {0} dictionary.".format(dict_name))
+           warn("\nNo entries found in {0} dictionary.".format(dict_name))
        # substitute until there are no more placeholders
        n = 0
        while '$' in buffer and n < max_num_loops:
@@ -217,7 +213,7 @@ class Parameteriser:
            buffer = buffer.safe_substitute(D)
            n += 1
        if n == max_num_loops:
-           warn("Maximum number of substitutions ({0}) reached".format(n))
+           warn("\nMaximum number of substitutions ({0}) reached".format(n))
        return buffer
 
    def filename_stems_dict(self):
@@ -236,12 +232,14 @@ class Parameteriser:
    def filename_extensions_dict(self):
       """Built-in dictionary for looking up filename extensions for
       options, geometries and meshes."""
-      if self.get('dim')=="1":
-          geo_ext = '.sh'
-          mesh_ext_list = ['.bound', '.ele', '.node']
-      else:
-          geo_ext = '.geo'
-          mesh_ext_list = ['.msh']
+      geo_ext = '.geo'
+      mesh_ext_list = ['.msh']
+      try:
+          if self.dim()=="1":
+              geo_ext = '.sh'
+              mesh_ext_list = ['.bound', '.ele', '.node']
+      except KeyError:
+          pass
       return {
           'simulation_options_template':
               self.__simulation_options_filename_extension,
@@ -289,16 +287,15 @@ class Parameteriser:
       Currently minimal.  The client may want to override this method to
       define new entries.
       """
-      dim = self.get('dim')
       mesh_name = self.lookup('filename_stems', 'mesh')
-      if dim=="1":
+      if self.dim()=="1":
          mesh_format = 'triangle'
       else:
          mesh_format = 'gmsh'
       return {
           'MESH_NAME': mesh_name,
           'MESH_FORMAT': mesh_format,
-          'DOMAIN_DIM': dim,
+          'DOMAIN_DIM': self.dim(),
           'TIME_STEP': str(self.time_step()),
           'FINISH_TIME': str(self.finish_time()) }
 
@@ -308,14 +305,21 @@ class Parameteriser:
       consistently to higher mesh resolutions."""
       ref_n = numpy.round(self.__reference_mesh_res * domain_length / \
                               self.domain_extents()[0])
-      return int(ref_n * int(self.get('mesh_res')) \
-                 / self.__reference_mesh_res)
-   
+      return int(ref_n * int(self.mesh_res()) / self.__reference_mesh_res)
+
    def time_step(self):
       """Helper method.  Calculate an appropriate time step, maintaining
       a constant Courant number for all mesh resolutions."""
       ref_dt = self.finish_time()/self.__reference_time_step_number
-      return ref_dt * self.__reference_mesh_res/int(self.get('mesh_res'))
+      return ref_dt * self.__reference_mesh_res/int(self.mesh_res())
+
+   def dim(self):
+       """Clients may want to override this."""
+       return self.get('dim')
+
+   def mesh_res(self):
+       """Clients may want to override this."""
+       return self.get('mesh_res')
 
    def domain_extents(self):
        """Clients may want to override this."""
@@ -325,41 +329,41 @@ class Parameteriser:
        """Clients may want to override this."""
        return self.__finish_time
        
-   
       
 class TestCommand(SelfHandlingCommand):
     """This abstract class, to be extended by concrete Commands, has
     some test-related implementation and also takes on the role of
     storing level details from which to make labels and filenames."""
 
-    def __init__(self, requisite_level_names,
-                 handler, message, parameteriser):
-        SelfHandlingCommand.__init__(self, requisite_level_names,
-                                     handler, message, verbosity())
-        key_formatting_dict = {'dim': '{0}d',
-                               'norm': 'l{0}',
-                               'mesh_res': 'm{0}'}
-        self.__tracker = Tracker(key_formatting_dict)
+    def __init__(self, requisite_level_names, handler, message, 
+                 parameteriser):
+        SelfHandlingCommand.__init__(self, requisite_level_names, 
+                                     handler, message)
+        self.__tracker = Tracker(_global_key_formatting_dict)
         self.__parameteriser = parameteriser
-            
+        # check for dimension setting clash
+        if 'dim' in requisite_level_names and \
+                _global_test_dimensions() is not None:
+            warn("""
+global_test_dimensions was set, but here 'dim' is included as a requisite
+level, suggesting that several domain dimensions may be encountered.""")
+
     def inform(self, level_name, node_name, at_leaf, indent, verbose):
         """Records level details, including subtle testing-related details."""
 
         if level_name == 'mesh_res':
             # mesh_res is a special level; we need to update mesh_res_prev
-            res = self.__tracker.get('mesh_res')
-            if res is not None:
+            try:
+                res = self.__tracker.get('mesh_res')
                 self.__tracker.update('mesh_res_prev', res)
+            except:
+                pass
 
         # in any case record level-node details in both the tracker
         # object and the superclass
         self.__tracker.inform(level_name, node_name, at_leaf, indent)
         SelfHandlingCommand.inform(self, level_name, node_name, at_leaf,
                                    indent, verbose)
-
-        # if this is the top level, infer a name for the test case
-        if self.at('root'):
-            self.case_name = self.__tracker.get(level_name)
 
         # field is also special; it needs to be reformatted/split into
         # useful bits
@@ -370,7 +374,7 @@ class TestCommand(SelfHandlingCommand):
             # reformat the field name
             self.__tracker.update('field', str.lower(var) + ph)
             # have a separate dictionary so as not to pollute the main one
-            self.field_dict = {'full':  node_name,
+            self.field_dict = {'field_long':  node_name,
                                'phase': 'Phase' + ph,
                                'var':   var}
            
@@ -379,8 +383,11 @@ class TestCommand(SelfHandlingCommand):
         returns current node name.  Otherwise assumes the argument is a
         level name from which a node name is to be returned.  Return
         value defaults to None."""
+        # dimension is a special case
+        if what=='dim' and _global_test_dimensions:
+            return str(_global_test_dimensions)
         try:
-            # try the special field_dict first
+            # try consulting the special field_dict
             return self.field_dict[what]
         except:
             # delegate to the tracker
@@ -405,7 +412,7 @@ class TestCommand(SelfHandlingCommand):
         """Registers a custom named dictionary for use by lookup() and
         expand_template()."""
         # delegate
-        self.__parameteriser.update(self.__tracker)
+        self.__parameteriser.update(self)
         self.__parameteriser.register_dict(dict_name, dict_value)
 
     def update_dict(self, dict_name, dict_value):
@@ -416,13 +423,13 @@ class TestCommand(SelfHandlingCommand):
         case any built-in dict will get updated according to the current
         position in the handler."""
         # delegate
-        self.__parameteriser.update(self.__tracker)
+        self.__parameteriser.update(self)
         self.__parameteriser.update_dict(dict_name, dict_value)
 
     def lookup(self, dict_name, key):
         """Looks up a key in the dictionary stored under dict_name."""
         # delegate
-        self.__parameteriser.update(self.__tracker)
+        self.__parameteriser.update(self)
         return self.__parameteriser.lookup(dict_name, key)
 
     def expand_template(self, buffer, dict_name):
@@ -430,7 +437,7 @@ class TestCommand(SelfHandlingCommand):
         '$' with the corresponding values in the dictionary corresponding
         to dict_name."""
         # delegate
-        self.__parameteriser.update(self.__tracker)
+        self.__parameteriser.update(self)
         return self.__parameteriser.expand_template(buffer, dict_name)
 
    
@@ -487,11 +494,12 @@ class WriteXMLFile(TestCommand):
             self.mesh_res_prev = mesh_res
 
     def write_xml_begin(self):
-        self.xml_file = open(self.case_name+'.xml', 'w')
+        case_name = self.get('root')
+        self.xml_file = open(case_name+'.xml', 'w')
         simulation_options_extension = self.lookup('filename_extensions',
                                                    'simulation_options')
         self.xml_file.write(_xml_skeleton_begin.format(
-                self.case_name, getuser(),
+                case_name, getuser(),
                 simulation_options_extension,
                 self.command_line))
         
@@ -561,16 +569,8 @@ class ExpandOptionsTemplate(TestCommand):
       
             
 class ProcessMesh(TestCommand):
-    def __init__(self, handler, parameteriser,
-                 global_num_dimensions=None):
-        if global_num_dimensions is None:
-            requisite_level_names = ['dim', 'mesh_res']
-            self.__get_dim = lambda: self.get('dim')
-        else:
-            requisite_level_names = ['mesh_res']
-            self.__get_dim = lambda: str(global_num_dimensions)
-            # self.__global_num_dimensions = global_num_dimensions
-        TestCommand.__init__(self, requisite_level_names, handler,
+    def __init__(self, handler, parameteriser):
+        TestCommand.__init__(self, ['mesh_res'], handler,
                              "Meshing", parameteriser)
         # locate the 1D meshing binary
         default_fluidity_path()
@@ -596,14 +596,14 @@ class ProcessMesh(TestCommand):
 
         # call interval or gmsh
         # TODO: tell user to 'make geo' if needed
-        if self.__get_dim() == '1':
+        if self.get('dim') == '1':
             lx_str = self.lookup('geometry', 'DOMAIN_LENGTH_X')
             dx_str = self.lookup('geometry', 'EL_SIZE_X')
             call([self.interval_path, '0.0',
                   lx_str, '--dx='+dx_str,
                   self.lookup('filename_stems', 'geometry')])
         else:
-            call(['gmsh', '-'+self.__get_dim(),
+            call(['gmsh', '-'+self.get('dim'),
                   self.lookup('filenames', 'geometry')],
                  stdout=open(os.devnull, 'wb'))
         self.write_message('done')
@@ -642,19 +642,21 @@ class RunSimulation(TestCommand):
             call([self.simulator_path, options_filename],
                  stdout=open(os.devnull, 'wb'))
         self.write_message('done')
-        
-                
 
+        
 class WriteToReport(TestCommand):
     """Writes error norms and/or convergence rates to files."""
 
     def __init__(self, handler, parameteriser, norm_calculator=None):
-        TestCommand.__init__(self, ['field', 'norm', 'mesh_res'], handler, 
-                             "Writing report(s)", parameteriser)
         if norm_calculator is None:
             self.norm_calculator = NormCalculator()
         else:
             self.norm_calculator = norm_calculator
+        # ordered merge
+        rl = list(OrderedDict.fromkeys(
+                self.norm_calculator.get_requisite_levels() + ['mesh_res']))
+        TestCommand.__init__(self, rl, handler, 
+                             "Writing report(s)", parameteriser)
 
     def __del__(self):
         """Finalises any outstanding open files before expiring."""
@@ -687,6 +689,8 @@ class WriteToReport(TestCommand):
             # for the resolution level, write out keys and values for
             # the norms/rates
             err = self.norm_calculator.calculate_norm(self)
+            if err is None:
+                return
             key = self.make_key(exclude=['root'])
             # write to file
             self.write_message('{0}{1:12.3e}'.format(key, err),
@@ -715,11 +719,16 @@ class WriteToReport(TestCommand):
                 
             self.mesh_res_prev = mesh_res
             self.err_prev = err
-            
+
+        
+    
 
 class NormCalculator:
     """Can be overridden by clients so that they can define norms their
     own way."""
+    def get_requisite_levels(self):
+        return ['field', 'norm', 'mesh_res']
+    
     def calculate_norm(self, test_command):
         """if the client intends to examine errors of variable X, he or
         she needs to represent the errors in a diagnostic field called
@@ -729,11 +738,16 @@ class NormCalculator:
             calc_type = "integral"
         elif test_command.get('norm')=='2':
             calc_type = "l2norm"
-        return stat_parser(filename)\
-            [test_command.get('phase')]\
-            [test_command.get('var')+'AbsError']\
-            [calc_type][-1]
-    
+        phase = test_command.get('phase')
+        var = test_command.get('var')+'AbsError'
+        try:
+            return stat_parser(filename)[ph][var][calc_type][-1]
+        except Exception as e:
+            e.args += (
+                "NormCalculator expected to find {0}::{1} in the stat file;".\
+                    format(phase, var) + \
+                    " has this been defined in the options file?",)
+            raise
         
             
 class CleanUp(TestCommand):
@@ -780,9 +794,9 @@ class CleanUp(TestCommand):
                 pass
 
 
-class TestCommandList(TestCommand):
+class LumpedTestCommand(TestCommand):
     """Chains multiple Commands together as a single TestCommand.  The
-    TestCommandList's handler overrides any handlers associated with the
+    LumpedTestCommand's handler overrides any handlers associated with the
     contained Commands."""
     
     def __init__(self, handler, message, parameteriser, commands):
@@ -818,21 +832,27 @@ class TestCommandList(TestCommand):
     
 class TestSuite:
     """A front end for running various TestCommands."""
-    def __init__(self, simulation_handler, results_handler, 
-                 parameteriser=None, 
+    def __init__(self, mesh_handler, simulation_handler, 
+                 results_handler, parameteriser=None, 
                  command_line_in_xml=None,
                  assert_threshold_calculator=None,
-                 global_num_dimensions=None,
                  simulator_name='fluidity',
                  simulation_options_filename_extension='.flml',
                  simulator_verbosity=0,
                  norm_calculator=None,
-                 python_layer_verbosity=_verbosity_level):
+                 global_test_dimensions=_global_test_dimensions,
+                 global_key_formatting_dict=_global_key_formatting_dict,
+                 python_verbosity=None):
 
-        # set this module's verbosity
-        verbosity(python_layer_verbosity)
+        # set module variables
+        global _global_test_dimensions, _global_key_formatting_dict
+        _global_test_dimensions = global_test_dimensions
+        _global_key_formatting_dict = global_key_formatting_dict
+        if python_verbosity is not None:
+            set_global_verbosity(python_verbosity)
 
         # set handlers 
+        self.mesh_handler = mesh_handler
         self.simulation_handler = simulation_handler
         self.results_handler = results_handler
 
@@ -846,11 +866,9 @@ class TestSuite:
         # set other stuff
         self.command_line_in_xml = command_line_in_xml
         self.assert_threshold_calculator = assert_threshold_calculator
-        self.global_num_dimensions = global_num_dimensions
         self.simulator_name = simulator_name
         self.simulator_verbosity = simulator_verbosity
         self.norm_calculator = norm_calculator
-        self.python_layer_verbosity = python_layer_verbosity
             
 
     def do(self, what):
@@ -861,27 +879,29 @@ class TestSuite:
             cmd_list = [
                 self.create_generate_symbols_command(),
                 self.create_write_xml_file_command(),
-                self.create_preprocess_command(),
-                self.create_process_command(),
-                self.create_postprocess_command()]
+                self.create_expand_options_command(),
+                self.create_mesh_command(),
+                self.create_simulate_command(),
+                self.create_write_report_command()]
         elif cmd_str == 'xml':
             cmd_list = [self.create_write_xml_file_command()]
         elif cmd_str == 'gen':
-            cmd_list = [self.generate_symbols()]
+            cmd_list = [self.create_generate_symbols_command()]
         elif cmd_str == 'pre':
-            cmd_list = [self.create_preprocess_command()]
+            cmd_list = [self.create_expand_options_command(),
+                        self.create_mesh_command()]
         elif cmd_str == 'pro':
-            cmd_list = [self.create_process_command()]
+            cmd_list = [self.create_simulate_command()]
         elif cmd_str == 'pos':
-            cmd_list = [self.create_postprocess_command()]
+            cmd_list = [self.create_write_report_command()]
         elif cmd_str == 'cle':
             cmd_list = [self.create_clean_command()]
         else:
-            cmd_list = []
+            raise ValueError(
+                what + ' is not recognised as an argument to TestSuite.do')
         # execute in turn
         for cmd in cmd_list:
             cmd.handle()
-
             
     def create_generate_symbols_command(self):
         # blank method.  Expect this to be overridden
@@ -889,30 +909,28 @@ class TestSuite:
         
     def create_write_xml_file_command(self):
         if self.command_line_in_xml is None:
-            return DoNothing(
-                "No XML file to be generated" +
-                "\n(TestSuite was initialised without command_line_in_xml)")
+            return DoNothing("""No XML file to be generated
+(TestSuite was initialised without command_line_in_xml)""")
         else:
             return WriteXMLFile(self.results_handler,
                                 self.parameteriser,
                                 self.command_line_in_xml,
                                 self.assert_threshold_calculator)
+
+    def create_mesh_command(self):
+        return ProcessMesh(self.mesh_handler, self.parameteriser)
         
-    def create_preprocess_command(self):
-        cmd1 = ExpandOptionsTemplate(
-             self.simulation_handler, self.parameteriser)
-        cmd2 = ProcessMesh(self.simulation_handler, self.parameteriser,
-                           self.global_num_dimensions)
-        return TestCommandList(self.simulation_handler, 'Preprocessing',
-                               self.parameteriser, [cmd1, cmd2])
+    def create_expand_options_command(self):
+        return ExpandOptionsTemplate(
+            self.simulation_handler, self.parameteriser)
         
-    def create_process_command(self):
+    def create_simulate_command(self):
         return RunSimulation(self.simulation_handler,
                              self.parameteriser,
                              self.simulator_name,
                              self.simulator_verbosity)
         
-    def create_postprocess_command(self):
+    def create_write_report_command(self):
         return WriteToReport(self.results_handler,
                              self.parameteriser,
                              self.norm_calculator)

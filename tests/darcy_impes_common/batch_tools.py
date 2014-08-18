@@ -12,9 +12,16 @@ from copy import deepcopy
 from collections import OrderedDict
 from re import sub
 
-# in this module, 'verbosity' is an integer; 'verbose' is True/False.
-_default_verbosity = 1
+## since it is likely that the client will want to give all the classes
+# in this module the same verbosity, verbosity may as well be a module
+# variable.  The TestSuite class below can be used to set/get the
+# variable.  It is an integer to allow different levels of verbosity.
+_global_verbosity = 1
 _indent_str = '   '
+
+def set_global_verbosity(verbosity_level):
+    global _global_verbosity
+    _global_verbosity = verbosity_level
 
 
 # # [see note 1]
@@ -85,23 +92,19 @@ class _LevelHandler(_Handler):
     level.  Most of the methods are just delegations to the nodes."""
 
     def __init__(self, level_name, node_list):
-        self.__node_list = node_list
+        # copy node_list to prevent side effects
+        self.__node_list = deepcopy(node_list)
         # the supplied nodes may be strings, in which case they must be
         # converted into NodeHandlers first.
-        for i, node in enumerate(node_list):
+        for i, node in enumerate(self.__node_list):
             if not isinstance(node, _NodeHandler):
-                node_list[i] = _NodeHandler(node)
+                self.__node_list[i] = _NodeHandler(node)
 
         self.set_level_name(level_name)
         # default to level 0.  This will change if the present handler
         # gets assigned a parent.
         self.set_level_index(0)
 
-    def set_verbose(self, verbose):
-        # iterate and delegate
-        for node in self.__node_list:
-            node.set_verbose(verbose)
-        
     def set_level_name(self, level_name):
         self.__level_name = level_name
         # it is convenient to have the nodes store level_name
@@ -114,10 +117,10 @@ class _LevelHandler(_Handler):
         for node in self.__node_list:
             node.set_level_index(level_index)
     
-    def handle(self, command):
+    def handle(self, command, verbose=(_global_verbosity>0)):
         # iterate and delegate
         for node in self.__node_list:
-            node.handle(command)
+            node.handle(command, verbose)
 
     def make_level(self):
         # already a level, so just clone self and return
@@ -139,23 +142,13 @@ class _NodeHandler(_Handler):
     """Has zero or one LevelHandler children.  If zero, acts as a leaf
     component.  If one, has a sub-level that will be recursed over."""
     
-    def __init__(self, node_name, sublevel=None, 
-                 verbose=(_default_verbosity>0)):
+    def __init__(self, node_name, sublevel=None):
         self.__level_name = None
         self.__node_name = node_name
         # default to level 0.  This will change if the present handler
         # gets assigned a parent.
         self.__sublevel = sublevel
         self.set_level_index(0)
-        self.set_verbose(verbose)
-
-    def set_verbose(self, verbose):
-        self.verbose = verbose
-        # go to next level if it exists
-        try:
-            self.__sublevel.set_verbose(verbose)
-        except:
-            pass
     
     def set_level_name(self, level_name):
         self.__level_name = level_name
@@ -175,9 +168,9 @@ class _NodeHandler(_Handler):
         except:
             pass
 
-    def handle(self, command):
+    def handle(self, command, verbose=(_global_verbosity>0)):
         at_leaf = not isinstance(self.__sublevel, _Handler)
-        if self.verbose and self.__node_name:
+        if verbose and self.__node_name:
             if self.__level_name:
                 lev = self.__level_name + ': '
             else:
@@ -188,12 +181,12 @@ class _NodeHandler(_Handler):
             sys.stdout.flush()
         # prep the command and try executing it at this level
         command.inform(self.__level_name, self.__node_name, at_leaf, \
-                       self.level_index*_indent_str, self.verbose)
+                       self.level_index*_indent_str, verbose)
         command.execute()
         # go to next level if it exists
         if not at_leaf:
-            self.__sublevel.handle(command)
-        if self.verbose and self.__node_name:
+            self.__sublevel.handle(command, verbose)
+        if verbose and self.__node_name:
             # finish printing diagnostics
             sys.stdout.write(self.__end_char)
         sys.stdout.flush()
@@ -261,7 +254,7 @@ def make_string(string_list):
     return result
 
     
-def new_handler(arg1, arg2=None, arg3=None, verbose=(_default_verbosity>0)):
+def new_handler(arg1, arg2=None, arg3=None):
     """Creates a Handler based on a flexible set of arguments.  Either a
     LevelHandler or NodeHandler will be returned.  The possibilities
     are:
@@ -284,7 +277,9 @@ def new_handler(arg1, arg2=None, arg3=None, verbose=(_default_verbosity>0)):
 
     if is_level:
         # the supplied nodes may be represented as strings, in which
-        # case they must be converted into NodeHandlers first.
+        # case they must be converted into NodeHandlers first.  Copy
+        # arg2 to prevent side effects.
+        arg2 = deepcopy(arg2)
         for i, node in enumerate(arg2):
             if not isinstance(node, _NodeHandler):
                 arg2[i] = _NodeHandler(node)
@@ -300,7 +295,6 @@ def new_handler(arg1, arg2=None, arg3=None, verbose=(_default_verbosity>0)):
             # arg1 is the node name and there may be a sublevel in arg2
             new_handler = _NodeHandler(arg1, arg2)
             
-    new_handler.set_verbose(verbose)
     return new_handler
 
 
@@ -323,7 +317,7 @@ def new_handler(arg1, arg2=None, arg3=None, verbose=(_default_verbosity>0)):
 #         """Enables handling of other commands or handling of self (see
 #         below)."""
 #         pass
-
+    
 
 class Tracker:
     """Helper class for command implementations.  Clients may want to
@@ -370,9 +364,15 @@ class Tracker:
         else:
             try:
                 return self.__level_dict[what]
-            except KeyError:
-                return None
-
+            except KeyError as e:
+                e.args += (
+                    "The handler may not have reached level \'{0}\' yet.  ".\
+                        format(what) + \
+                        "So far, the levels are {0}.  ".\
+                        format(self.__level_dict.keys()) + \
+                        "Go up the stack and modify the level query.",)
+                raise
+            
     def at(self, where):
         """Returns True if where=='root' and we are at the base of the
         handler tree, if where=='leaf' and we are at the end of a
@@ -425,99 +425,139 @@ class Tracker:
         # pass node_names to the make_string free function
         return make_string(node_names)
 
-            
-class _Validate:
-    """A supporting Command that ensures compatibility with a handler."""
     
-    def __init__(self, client_name, requisite_level_names):
+class Command:
+    """Class for encapsulating a command corresponding to a tree of
+    Handlers.  The body of the command is coded up for different levels
+    of the tree in the 'execute' method.
+    """
+    def __init__(self, verbosity_threshold=1):
+        self.__verbosity_threshold = verbosity_threshold
+        self.__verbose = _global_verbosity >= verbosity_threshold
+        self.__indent = ''
+
+    def inform(self, level_name, node_name, at_leaf, indent, verbose):
+        """Passes information to the Command about where it is in the
+        handler tree.  The Command can then choose what to do upon
+        execution. """
+        self.__verbose = verbose
+        self.__indent = indent
+
+    def is_verbose(self):
+        return self.__verbose and \
+            _global_verbosity >= self.__verbosity_threshold
+
+    def write_message(self, message, target=sys.stdout, with_newline=False):
+        """For verbose printing purposes."""
+        if self.is_verbose():
+            if with_newline:
+                target.write('\n')
+                target.write(self.__indent)
+            else:
+                target.write(' ')
+            target.write(message)
+            target.flush()
+
+            
+class Validate(Command):
+    """A supporting command that ensures compatibility with a handler."""
+    
+    def __init__(self, requisite_level_names, client_name):
         """client_name refers to the object that is sending the Validate
         object to a handler in order to test compatibility.
         requisite_level_names is a list of level names that must be
-        encountered, and in the given order."""
-        self.tracker = Tracker()
-        self.client_name = client_name
-        self.requisite_level_names = requisite_level_names
-        self.checklist = [False for i in range(len(requisite_level_names))]
-        self.root_node_count = 0
-
+        encountered, and in the given order.  If 'root' appears at the
+        beginning of this list, it signifies that there should only be
+        one node at the top level."""
+        Command.__init__(self, verbosity_threshold=2)
+        self.__client_name = client_name
+        self.__tracker = Tracker()
+        self.__requisite_level_names = requisite_level_names
+        self.__checklist = [False for i in range(len(requisite_level_names))]
+        self.__root_node_countdown = -1
+        try:
+            if self.__requisite_level_names[0]=='root':
+                self.__requisite_level_names.pop(0)
+                self.__root_node_countdown = 1
+        except:
+            pass
+        
     def inform(self, level_name, node_name, at_leaf, indent, verbose):
-        # delegate
-        self.tracker.inform(level_name, node_name, at_leaf, indent)
-        self.verbose = verbose
+        # delegate to superclass and tracker component
+        Command.inform(self, level_name, node_name, at_leaf, indent, verbose)
+        self.__tracker.inform(level_name, node_name, at_leaf, indent)
 
     def execute(self):
-        # there should only be one node at the root corresponding to
-        # level 'case' or whatever is topmost.  This will be used by
-        # TestCommand objects to form filenames.
-        if self.tracker.at('root'):
-            self.root_node_count += 1
-        if self.root_node_count > 1:
+        # do single root node check 
+        if self.__root_node_countdown == 0:
             raise RuntimeError(
                 "There should only be one top-level node in the handler for {0}".\
-                    format(self.client_name))
-        
+                    format(self.__client_name))
+        if self.__tracker.at('root'):
+            self.__root_node_countdown -= 1
+            
         # check off this level if it appears in the list
-        l = self.tracker.get('level')
-        if l in self.requisite_level_names:
-            n = self.requisite_level_names.index(l)
-            self.checklist[n] = True
+        l = self.__tracker.get('level')
+        if l in self.__requisite_level_names:
+            n = self.__requisite_level_names.index(l)
+            self.__checklist[n] = True
         else:
             n = -1
 
-        if self.tracker.at('leaf'):
+        if self.__tracker.at('leaf'):
             # we have reached the end of a branch.  Are all the
             # requisite levels present?
-            for i, c in enumerate(self.checklist):
+            for i, c in enumerate(self.__checklist):
                 if not c:
-                    l = self.requisite_level_names[i]
+                    l = self.__requisite_level_names[i]
                     raise RuntimeError(
                         "'{0}' is required in the handler for {1}".format(
-                            l, self.client_name))
+                            l, self.__client_name))
 
         else:
             # we are at a branch node.  If the current level appeared in
             # the list, does it appear in the correct order?  Check the
             # section of requisite_level_names traversed so far
             if n >= 0:
-                for i, c in enumerate(self.checklist[0:n+1]):
+                for i, c in enumerate(self.__checklist[0:n+1]):
                     if not c:
                         raise RuntimeError(
                             ("'{0}' is required to appear before '{1}' "+\
                                  "in the handler for {2}").format(
-                                    self.requisite_level_names[i],
-                                    self.tracker.get('level'),
-                                    self.client_name))
+                                    self.__requisite_level_names[i],
+                                    self.__tracker.get('level'),
+                                    self.__client_name))
 
-        if n > -1 and self.verbose:
-            sys.stdout.write("   ---OK")
+        if n > -1 and self.is_verbose():
+            sys.stdout.write(" ... OK")
 
         # when done, clear all below this level from the list
-        while n > -1 and n+1 < len(self.checklist):
-            self.checklist[n+1] = False
+        while n > -1 and n+1 < len(self.__checklist):
+            self.__checklist[n+1] = False
             n += 1
 
 
-class SelfHandlingCommand:
-    """This command is associated with a handler.  The handler is
-    validated so that the client doesn't have to worry so much about
-    Handler-Command compatibility.  The client can initiate the
-    handle-execute process by calling handle()."""
+class SelfHandlingCommand(Command):
+    """This command is associated with a handler.  The client can
+    initiate the handle-execute process by calling handle()."""
 
-    def __init__(self, requisite_level_names=[], handler=new_handler(''),
-                 message='', verbosity=_default_verbosity):
-        # self.__verbosity controls the amount of output; self.__verbose
-        # turns it on or off during runtime
-        self.__verbosity = verbosity
-        self.__verbose = verbosity > 0
-        self.__indent = ''
-        self.__requisite_level_names = requisite_level_names
-        self.associate(handler)
-        self.__level_names = handler.get_level_names([])
+    def __init__(self, requisite_level_names, handler,
+                 message='', verbosity_threshold=1 ):
+        Command.__init__(self, verbosity_threshold)
         self.__message = message
+        self.__handler = handler
+        self.validate(requisite_level_names)
+            
+    def validate(self, requisite_level_names):
+        val = Validate(requisite_level_names, self.__class__.__name__)
+        if val.is_verbose():
+            msg = 'Validating {0}'.format(self.__class__.__name__)
+        else:
+            msg = ''
+        self.handle(val, msg)
 
     def inform(self, level_name, node_name, at_leaf, indent, verbose):
-        self.__indent = indent
-        self.__verbose = verbose
+        Command.inform(self, level_name, node_name, at_leaf, indent, verbose)
 
     def handle(self, other=None, message=None):
         """Sends itself (or some other command) to its associated
@@ -527,43 +567,54 @@ class SelfHandlingCommand:
         if message:
             self.write_message('\n'+message+'\n')
         if other is None:
-            self.handler.handle(self)
+            self.__handler.handle(self, self.is_verbose())
         else:
-            self.handler.handle(other)
-            
-    def associate(self, handler):
-        """Associates a handler with the current command."""
-        # validate
-        self_name = self.__class__.__name__
-        # if verbosity is high, print info about the validation
-        handler.set_verbose(self.__verbosity > 1)
-        if self.__verbosity > 1:
-            self.write_message("\nValidating " + self_name + " handler\n")
-        handler.handle( _Validate(self_name, self.__requisite_level_names) )
-        # if we have got here, validation was successful
-        self.handler = handler
-        self.handler.set_verbose(self.__verbosity > 0)
+            self.__handler.handle(other, other.is_verbose())
 
-    def write_message(self, message, target=sys.stdout, with_newline=False):
-        """Called by the subclasses for verbose printing purposes."""
-        if self.__verbose and self.__verbosity > 0:
-            if with_newline:
-                target.write('\n')
-                target.write(self.__indent)
-            else:
-                target.write(' ')
-            target.write(message)
-            target.flush()
+    
+# class SelfHandlingCommandList:
+#     """Chains multiple (self-handling) commands together.  Simply
+#     iterates and delegates for each method."""
+
+#     def __init__(self, commands):
+#         self.commands = commands
+
+#     def inform(self, level_name, node_name, at_leaf, indent, verbose):
+#         for cmd in self.commands:
+#             cmd.inform(level_name, node_name, at_leaf, indent, verbose)
+
+#     def execute(self):
+#         for cmd in self.commands:
+#             cmd.execute()
+
+#     def handle(self, other=None, message=None):
+#         for cmd in self.commands:
+#             cmd.handle()
+
+#     def write_message(self, message, target=sys.stdout, with_newline=False):
+#         for cmd in self.commands:
+#             cmd.write_message(message, target, with_newline)
     
 
-class DoNothing(SelfHandlingCommand):
-    """A blank for use in method stubs etc."""
-    def __init__(self, message=''):
-        SelfHandlingCommand.__init__(self, [], new_handler(''), message)
-
-    def execute(self):
+class DoNothing(Command):
+    """A blank SelfHandlingCommand for use in stubs etc."""
+    def __init__(self, message='', verbosity_threshold=1):
+        Command.__init__(self, verbosity_threshold)
+        self.__message = message
+            
+    def validate(self, requisite_level_names):
         pass
-        
+    
+    def inform(self, level_name, node_name, at_leaf, indent, verbose):
+        pass
+    
+    def handle(self, other=None, message=None):
+        if message is None:
+            message = self.__message
+        if message:
+            self.write_message('\n'+message+'\n')
+
+    
 # [1] Python's duck typing renders abstract classes and methods
 #     redundant.  They will be phased out completely once I have
 #     strengthened the documentation.

@@ -13,14 +13,12 @@ import string
 import subprocess
 import re
 import numpy
-from fluidity_tools import stat_parser
 from solution_generator import generate
 from importlib import import_module
-from vtktools import vtu
 from copy import deepcopy
-from batch_tools import new_handler as nh
+from batch_tools import Command, Validate, new_handler as nh
 from test_tools import Parameteriser, TestCommand, TestSuite, \
-    AssertThresholdCalculator, verbosity
+    AssertThresholdCalculator
 
 simulator_name = 'darcy_impes'
 simulation_options_filename_extension = '.diml'
@@ -48,7 +46,7 @@ class ManufacturedSolutionParameteriser(Parameteriser):
       result = { 'MESH_NAME': self.lookup('filename_stems', 'mesh') }
       # make entries for each dimension
       for i, dim_str in enumerate(('X', 'Y', 'Z')):
-         L = self.lookup('solution', 'domain_extents')[i]
+         L = self.domain_extents()[i]
          n = self.element_number(L)
          result.update({
                'DOMAIN_LENGTH_{0}'.format(dim_str) : str(L),
@@ -112,7 +110,7 @@ class GenerateSymbols(TestCommand):
             
         # write dictionary
         solution_name = self.make_key()
-        if verbosity() > 0:
+        if self.is_verbose():
             div_plus_src = generate(solution_name, check_solution=True)
             self.write_message(
                '   Sanity check; expect sum(div(u) - src) = 0...',
@@ -126,17 +124,27 @@ class GenerateSymbols(TestCommand):
             generate(solution_name)
 
 
-class TestCommandDecorator:
+class TestCommandDecorator(Command):
     """Wraps a TestCommand, giving it access to the generated solution"""
     def __init__(self, wrapped_test_command, solution_level_names):
-        self.__wrapped_test_command = wrapped_test_command
-        self.__solution_level_names = solution_level_names
-        
+       Command.__init__(self, verbosity_threshold=1)
+       # make sure the solution level names exist in the wrapped
+       # object's handler
+       cmd_name = 'TestCommandDecorator\'s wrapped_test_command'
+       val = Validate(solution_level_names, cmd_name)
+       if val.is_verbose():
+            msg = 'Validating '+cmd_name
+       else:
+            msg = ''
+       wrapped_test_command.handle(val, msg)
+       self.__wrapped_test_command = wrapped_test_command
+       self.__solution_level_names = solution_level_names
+       
     def inform(self, level_name, node_name, at_leaf, indent, verbose):
        """Delegation."""
        self.__wrapped_test_command.inform(level_name, node_name,
                                         at_leaf, indent, verbose)
-
+       
     def execute(self):
         """Imports generated expressions, if appropriate, before delegating
         to wrapped TestCommand"""
@@ -161,8 +169,8 @@ class TestCommandDecorator:
 
 
     def handle(self, other=None, message=None):
-        """Exploits the handler of the wrapped class."""
-        self.__wrapped_test_command.handle(self)
+       """Exploits the handler of the wrapped class."""
+       self.__wrapped_test_command.handle(self)
 
         
                
@@ -171,12 +179,12 @@ class ManufacturedSolutionTestSuite(TestSuite):
     TestCommands."""
    
     def __init__(self, case_name, mesh_type_list, mesh_res_lists,
-                 field_list, norm_list, 
+                 field_list, norm_list, extra_levels=None, 
                  reference_mesh_res=5, reference_time_step_number=1,
                  command_line_in_xml=None,
                  norm_threshold=0.05, rate_threshold=0.8,
                  simulator_verbosity=0,
-                 python_layer_verbosity=0, **kwargs):
+                 python_verbosity=1):
         """In contrast to the inherited TestSuite, the present class builds its
         own handlers from lists supplied by the client.  The keyword
         args at the end can be used to make extra handlers at the
@@ -189,15 +197,19 @@ class ManufacturedSolutionTestSuite(TestSuite):
 
         # make a handler for iteration over parameterised solutions
         self.__solution_handler = nh('case', case_name)
-        for level_name, node_names in kwargs.iteritems():
-           solution_handler = solution_handler * nh(level_name, node_names)
+        try:
+           for level_name, node_names in extra_levels:
+              self.__solution_handler = self.__solution_handler * \
+                  nh(level_name, node_names)
+        except:
+           pass
 
         # extract a corresponding list of level names.  Continuing the
         # example given in the class description, one might end up with
         # ['case', 'pressure', 'saturation'].
         self.__solution_level_names = self.__solution_handler.get_level_names()
 
-        # make another handler for meshing, simulations etc
+        # make another handler for running simulations etc.
         simulation_handler = deepcopy(self.__solution_handler) * \
             nh('dim',
                [nh('1') * \
@@ -208,7 +220,13 @@ class ManufacturedSolutionTestSuite(TestSuite):
                 nh('3') * \
                     nh('mesh_type', mesh_type_list) * \
                     nh('mesh_res', mesh_res_lists[2])])
-        
+
+        # ideally the mesh handler wouldn't be dependent on the solution
+        # handler, but in this module the solution dictionary contains
+        # variables which are linked to the geometry dictionary.  So the
+        # mesh handler will have to be as big as the simulation handler.
+        mesh_handler = simulation_handler
+                
         # and a handler for configuring and computing norms and rates.
         # Note that mesh resolution always comes last.
         results_handler = deepcopy(self.__solution_handler) * \
@@ -234,7 +252,7 @@ class ManufacturedSolutionTestSuite(TestSuite):
                        
         # using the above objects, initialise the superclass
         TestSuite.__init__(
-           self, simulation_handler, results_handler,
+           self, mesh_handler, simulation_handler, results_handler,
            parameteriser = self.__parameteriser,
            command_line_in_xml = command_line_in_xml,
            assert_threshold_calculator = AssertThresholdCalculator(
@@ -243,7 +261,8 @@ class ManufacturedSolutionTestSuite(TestSuite):
            simulation_options_filename_extension = \
               simulation_options_filename_extension,
            simulator_verbosity = simulator_verbosity,
-           python_layer_verbosity = python_layer_verbosity)
+           python_verbosity = python_verbosity)
+        
         
     def create_generate_symbols_command(self):
        """New implementation."""
@@ -257,10 +276,18 @@ class ManufacturedSolutionTestSuite(TestSuite):
           TestSuite.create_write_xml_file_command(self),
           self.__solution_level_names)
 
-    def create_preprocess_command(self):
+    def create_mesh_command(self):
        """Method override.  Decorates the object created by the original
        TestSuite.
        """
        return TestCommandDecorator(
-          TestSuite.create_preprocess_command(self),
+          TestSuite.create_mesh_command(self),
+          self.__solution_level_names)
+
+    def create_expand_options_command(self):
+       """Method override.  Decorates the object created by the original
+       TestSuite.
+       """
+       return TestCommandDecorator(
+          TestSuite.create_expand_options_command(self),
           self.__solution_level_names)
