@@ -310,8 +310,6 @@
            cv_snloc, p_snloc, u_snloc, &
            cv_ndgln, u_ndgln, p_ndgln, x_ndgln, x_ndgln_p1, xu_ndgln, mat_ndgln, &
            cv_sndgln, p_sndgln, u_sndgln )
-!             print *,' x_ndgln:',x_ndgln
-!             stop 1811
 
 !!$
 !!$ Computing Sparsity Patterns Matrices
@@ -730,7 +728,6 @@
 !!$ Solve advection of the scalar 'Temperature':
             Conditional_ScalarAdvectionField: if( have_temperature_field .and. &
                  have_option( '/material_phase[0]/scalar_field::Temperature/prognostic' ) ) then
-
                ewrite(3,*)'Now advecting Temperature Field'
 
                NU_s % val = U_s % val
@@ -887,15 +884,14 @@
                     iplike_grad_sou, plike_grad_sou_coef, plike_grad_sou_grad, &
                     scale_momentum_by_volume_fraction,&
                     StorageIndexes=StorageIndexes )
-
 !!$ Calculate Density_Component for compositional
                if( have_component_field ) &
                     call Calculate_Component_Rho( state, packed_state, &
                     ncomp, nphase, cv_nonods )
 
             end if Conditional_ForceBalanceEquation
-            Conditional_PhaseVolumeFraction: if ( solve_PhaseVolumeFraction ) then
 
+            Conditional_PhaseVolumeFraction: if ( solve_PhaseVolumeFraction ) then
                call VolumeFraction_Assemble_Solve( state, packed_state, &
                     NCOLACV, FINACV, COLACV, MIDACV, &
                     small_FINACV, small_COLACV, small_MIDACV, &

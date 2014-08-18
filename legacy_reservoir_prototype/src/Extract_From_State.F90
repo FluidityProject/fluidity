@@ -215,25 +215,25 @@
 
 !!$ Linear mesh coordinate
       positions => extract_vector_field( state( 1 ), 'Coordinate' )
-!!$      call Get_Ndgln( x_ndgln_p1, positions )
+!      call Get_Ndgln( x_ndgln_p1, positions )
 !!$
 !!$ Positions/Coordinates
       pressure_cg_mesh => extract_mesh( state( 1 ), 'PressureMesh_Continuous' )
-!!$      call Get_Ndgln( x_ndgln, pressure_cg_mesh )
+!      call Get_Ndgln( x_ndgln, pressure_cg_mesh )
 !!$
 !!$ Pressure, control volume and material
       pressure => extract_scalar_field( state( 1 ), 'Pressure' )
-!!$      call Get_Ndgln( cv_ndgln, pressure )
-!!$      p_ndgln = cv_ndgln
-!!$      mat_ndgln = (/ (i, i = 1, totele * cv_nloc ) /)
+!      call Get_Ndgln( cv_ndgln, pressure )
+!      p_ndgln = cv_ndgln
+!      mat_ndgln = (/ (i, i = 1, totele * cv_nloc ) /)
 !!$
 !!$ Velocities
       velocity => extract_vector_field( state( 1 ), 'Velocity' )
-!!$      call Get_Ndgln( u_ndgln, velocity, cv_nloc )
-!!$
+!      call Get_Ndgln( u_ndgln, velocity, cv_nloc )
+!$
 !!$ Velocity in the continuous space
       velocity_cg_mesh => extract_mesh( state( 1 ), 'VelocityMesh_Continuous' )
-!!$      call Get_Ndgln( xu_ndgln, velocity_cg_mesh )
+!      call Get_Ndgln( xu_ndgln, velocity_cg_mesh )
 
 !!$ Surface-based global node numbers for control volumes and pressure
       call Get_SNdgln( cv_sndgln, pressure )
@@ -550,6 +550,7 @@
           u_dg_vel_int_opt = 1
           v_dg_vel_int_opt = 1
           v_disopt = 0 ; t_disopt = 0
+          t_theta = 1.0; v_theta = 1.0
       end if
 
       return
@@ -1678,8 +1679,8 @@
       if ( trim( field % name ) == 'Velocity' ) then
          if ( is_overlapping .and. ( ndim > 1 ) ) cv_nloc2 = cv_nloc
       end if
-
       count = 0
+
       do ele = 1, ele_count( field )
          nloc => ele_nodes( field, ele )
          do iloc = 1, ele_loc( field, 1 ) * cv_nloc2
@@ -1736,8 +1737,6 @@
          snloc = face_global_nodes( field, sele )
          do iloc = 1, face_loc( field, sele )
             sndgln( ( sele - 1 ) * face_loc( field, sele ) + iloc ) =  snloc( iloc )
-!!$            ewrite(3,*)'sele, iloc, sndgln:', sele, iloc, &
-!!$                 sndgln( ( sele - 1 ) * face_loc( field, sele ) + iloc )
          end do
       end do
 
@@ -1760,8 +1759,6 @@
          snloc = face_global_nodes( field, sele )
          do iloc = 1, face_loc( field, sele )
             sndgln( ( sele - 1 ) * face_loc( field, sele ) + iloc ) =  snloc( iloc )
-!!$            ewrite(3,*)'sele, iloc, sndgln:', sele, iloc, &
-!!$                 sndgln( ( sele - 1 ) * face_loc( field, sele ) + iloc )
          end do
       end do
 
