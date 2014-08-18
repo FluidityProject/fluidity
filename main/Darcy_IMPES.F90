@@ -1638,7 +1638,7 @@ contains
 
       !*******04 July 2014 Lcai*Leaching chemical model*************!
       !Initialise the Leaching chemical model
-      if (have_option('/Leaching_Chemical_Model')) then
+      if (have_option('/Leaching_chemical_model')) then
 
         di%lc%have_leach_chem_model= .true.
         call initialize_leaching_chemical_model(di)

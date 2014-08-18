@@ -1174,6 +1174,21 @@ Finite Element face value discretisation.</a:documentation>
       </element>
     </choice>
   </define>
+  <define name="darcy_impes_scalar_field_prescribed_or_python_diagnostic_multiple_mesh">
+    <choice>
+      <element name="prescribed">
+        <ref name="darcy_mesh_choice"/>
+        <ref name="prescribed_scalar_field_no_adapt"/>
+        <ref name="field_output_options"/>
+        <ref name="darcy_impes_include_stat"/>
+      </element>
+      <element name="diagnostic">
+        <ref name="darcy_mesh_choice"/>
+        <ref name="darcy_impes_scalar_python_diagnostic_algorithm"/>
+        <ref name="darcy_impes_diagnostic_scalar_field_no_adapt"/>
+      </element>
+    </choice>
+  </define>
   <define name="darcy_impes_scalar_field_prescribed_or_python_diagnostic_saturationsource_mesh">
     <choice>
       <element name="prescribed">
@@ -1837,7 +1852,7 @@ Default value is 1.</a:documentation>
       <attribute name="name">
         <value>Source</value>
       </attribute>
-      <ref name="darcy_impes_scalar_field_prescribed_or_python_diagnostic_element_wise_mesh"/>
+      <ref name="darcy_impes_scalar_field_prescribed_or_python_diagnostic_multiple_mesh"/>
     </element>
   </define>
   <define name="darcy_MIM_generic_scalar_field_immobile_src">
@@ -2639,7 +2654,7 @@ which are the dynamic saturation and the immobile saturation.</a:documentation>
         <element name="scalar_field">
           <a:documentation>Please set the immobile field name as the same name of the mobile source field name,
 the prefix of 'Immobile' will be added to be the field name,
-i.e. if the name of this scaler field is set to be 'cd', then the name will be changed to be
+i.e. if the name of this scalar field is set to be 'cd', then the name will be changed to be
 'Immobilecd'  </a:documentation>
           <attribute name="name">
             <data type="string"/>
@@ -3007,14 +3022,14 @@ positive along</a:documentation>
         </optional>
       </element>
     </element>
-    <element name="scaler_field">
+    <element name="scalar_field">
       <a:documentation>This is the molar amount of the current mineral species per volume of heap
 i.e. mole per m^3  of heap</a:documentation>
       <attribute name="rank">
         <value>0</value>
       </attribute>
       <attribute name="name">
-        <value> molar_concentration</value>
+        <value>molar_concentration</value>
       </attribute>
       <ref name="leaching_scalar_field_prescribed_or_python_diagnostic_pressure_mesh"/>
     </element>

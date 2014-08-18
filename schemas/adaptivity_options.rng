@@ -517,6 +517,11 @@ Source: Fluidity/ICOM manual draft version 1.2</a:documentation>
       <element name="period">
         <a:documentation>Time interval (in simulation time) when mesh adaptivity performed.
 
+DO NOT SET THIS EQUAL TO OR LESS THAN ONE TIME-STEP SMALLER
+THAN YOUR DUMP PERIOD BECAUSE ALL YOUR DIAGNOSTIC FIELDS WILL
+APPEAR AS ZERO OR JUNK
+DIAGNOSTIC FIELDS GET ZEROED AFTER AN ADAPT
+
 Usually set to 10-20 times the timestep.</a:documentation>
         <ref name="real"/>
       </element>
@@ -708,18 +713,18 @@ higher order solution is pivotted.
                      best choice if not intentionally modifying
                      scheme to be explicit)
  - pivot_theta = 0 - explicit pivot</a:documentation>
-                  <ref name="real"/>
-                </element>
-              </optional>
+              <ref name="real"/>
             </element>
-          </element>
-          <choice>
-            <element name="solver">
-              <a:documentation>Solver</a:documentation>
-              <ref name="linear_solver_options_asym_scalar"/>
-            </element>
-            <element name="explicit">
-              <a:documentation>Assume this field is being solved explicitly and skip the solver.
+          </optional>
+        </element>
+      </element>
+      <choice>
+        <element name="solver">
+          <a:documentation>Solver</a:documentation>
+          <ref name="linear_solver_options_asym"/>
+        </element>
+        <element name="explicit">
+          <a:documentation>Assume this field is being solved explicitly and skip the solver.
 
 Assumes lhs matrix only has diagonal lumped mass
 and divides the rhs by this.</a:documentation>
@@ -1203,32 +1208,12 @@ iterations to a value greater than zero we allow Zoltan to do adapt_iterations p
 additional_adapt_iterations calls to adaptivity. Additional calls over adapt iterations
 are only allowed if Zoltan returns a minimum element quality below the element quality
 cut off. Default is 0. </a:documentation>
-              <ref name="integer"/>
-            </element>
-          </optional>
-          <optional>
-            <element name="field_weighted_partitions">
-              <element name="scalar_field">
-                <a:documentation>Field weighted partitions: turning on this option allows one to 
-weight mesh partitions, based upon a prescribed scalar field. 
-Note that the field should have a minimum value of 0 and a maximum
-value of 1 (no normalisation is done within the code).</a:documentation>
-                <attribute name="rank">
-                  <value>0</value>
-                </attribute>
-                <attribute name="name">
-                  <value>FieldWeightedPartitionValues</value>
-                </attribute>
-                <element name="prescribed">
-                  <ref name="coordinate_mesh_choice"/>
-                  <ref name="prescribed_scalar_field"/>
-                </element>
-              </element>
-            </element>
-          </optional>
-          <optional>
-            <element name="zoltan_debug">
-              <a:documentation>Zoltan Debugging
+          <ref name="integer"/>
+        </element>
+      </optional>
+      <optional>
+        <element name="zoltan_debug">
+          <a:documentation>Zoltan Debugging
 
 Turn on more verbose output for use when debugging Zoltan.</a:documentation>
           <optional>
@@ -2020,50 +2005,51 @@ potential and pressure, while still being balance preserving.</a:documentation>
 If the field you are interpolating is continuous, then
 a linear solver is required to invert the mass matrix.</a:documentation>
       <optional>
-        <element name="bounded">
-          <a:documentation>Use a bounded Galerkin projection. Conservative, bounded in the
+        <choice>
+          <element name="bounded">
+            <a:documentation>Use a bounded Galerkin projection. Conservative, bounded in the
 limit, and minimally dissipative. This algorithm starts with the
 Galerkin projection and dissipates it until it achieves
 boundedness.
 If it does not converge, it may not be exactly bounded.
 Note well: this only works for linear fields.</a:documentation>
-          <attribute name="name">
-            <value>Diffuse</value>
-          </attribute>
-          <element name="boundedness_iterations">
-            <a:documentation>The number of dissipation iterations attempted to bound the
+            <attribute name="name">
+              <value>Diffuse</value>
+            </attribute>
+            <element name="boundedness_iterations">
+              <a:documentation>The number of dissipation iterations attempted to bound the
 Galerkin projection.</a:documentation>
-            <ref name="integer"/>
-            <optional>
-              <element name="tolerance">
-                <a:documentation>Specify the tolerance to which boundedness is to be tested during the iterations.
+              <ref name="integer"/>
+              <optional>
+                <element name="tolerance">
+                  <a:documentation>Specify the tolerance to which boundedness is to be tested during the iterations.
 Defaults to computer precision if unspecified.</a:documentation>
-                <ref name="real"/>
-              </element>
-            </optional>
-          </element>
-          <optional>
-            <element name="bounds">
-              <a:documentation>If the bounds on this field are known then they can be set here.
+                  <ref name="real"/>
+                </element>
+              </optional>
+            </element>
+            <optional>
+              <element name="bounds">
+                <a:documentation>If the bounds on this field are known then they can be set here.
 These can either further constrain the limits worked out by the
 lumped version of the projection (i.e. to make sure that errors 
 don't accumulate with succesive interpolations) or if apply_globally
 is set they are just made to be bounded within the bounds globally
 (i.e. anything between those bounds is not smoothed).</a:documentation>
-              <optional>
-                <element name="upper_bound">
-                  <ref name="real"/>
-                  <optional>
-                    <element name="apply_globally">
-                      <a:documentation>If this is set the upper_bound is used everywhere.
+                <optional>
+                  <element name="upper_bound">
+                    <ref name="real"/>
+                    <optional>
+                      <element name="apply_globally">
+                        <a:documentation>If this is set the upper_bound is used everywhere.
 If left unset the upper_bound is only used to constrain
 the smoothed bounds calculated by the code</a:documentation>
-                      <empty/>
-                    </element>
-                  </optional>
-                  <optional>
-                    <element name="coupled">
-                      <a:documentation>This field is to be considered as being coupled to another field
+                        <empty/>
+                      </element>
+                    </optional>
+                    <optional>
+                      <element name="coupled">
+                        <a:documentation>This field is to be considered as being coupled to another field
 such that the sum of the two fields is constrained to be less than
 the upper_bound specified above.
 
@@ -2071,41 +2057,143 @@ The relationships between fields are worked out according to their
 priority ordering.
 
 This method is akin to the coupled_cv advection method.</a:documentation>
-                      <empty/>
-                    </element>
-                  </optional>
-                </element>
-              </optional>
-              <optional>
-                <element name="lower_bound">
-                  <ref name="real"/>
-                  <optional>
-                    <element name="apply_globally">
-                      <a:documentation>If this is set the upper_bound is used everywhere.
+                        <empty/>
+                      </element>
+                    </optional>
+                  </element>
+                </optional>
+                <optional>
+                  <element name="lower_bound">
+                    <ref name="real"/>
+                    <optional>
+                      <element name="apply_globally">
+                        <a:documentation>If this is set the upper_bound is used everywhere.
 If left unset the upper_bound is only used to constrain
 the smoothed bounds calculated by the code</a:documentation>
-                      <empty/>
-                    </element>
-                  </optional>
-                </element>
-              </optional>
-            </element>
-          </optional>
-          <optional>
-            <element name="repair_deviations">
-              <a:documentation>If, after performing all the boundedness_iterations, the field
+                        <empty/>
+                      </element>
+                    </optional>
+                  </element>
+                </optional>
+              </element>
+            </optional>
+            <optional>
+              <element name="repair_deviations">
+                <a:documentation>If, after performing all the boundedness_iterations, the field
 is still not bounded then perform surgery to redistribute the
 deviations to nodes that have less than their bounds.</a:documentation>
-              <optional>
-                <element name="tolerance">
-                  <a:documentation>Specify the tolerance to which boundedness is to be tested during the repair.
+                <optional>
+                  <element name="tolerance">
+                    <a:documentation>Specify the tolerance to which boundedness is to be tested during the repair.
 Defaults to computer precision if unspecified.</a:documentation>
-                  <ref name="real"/>
-                </element>
-              </optional>
-            </element>
-          </optional>
-        </element>
+                    <ref name="real"/>
+                  </element>
+                </optional>
+              </element>
+            </optional>
+          </element>
+          <element name="bounded">
+            <a:documentation>Use a bounded Galerkin projection. Conservative, bounded in the
+limit, and hopefully minimally dissipative. This algorithm starts with the
+Galerkin projection and uses the optimisation library Algencan to bound
+it by minimising a functional within constraints on boundedness and conservation.
+Note well: this only works for linear fields.</a:documentation>
+            <attribute name="name">
+              <value>Algencan</value>
+            </attribute>
+            <choice>
+              <element name="functional">
+                <attribute name="name">
+                  <value>L2</value>
+                </attribute>
+                <optional>
+                  <element name="weight">
+                    <ref name="real"/>
+                  </element>
+                </optional>
+              </element>
+              <element name="functional">
+                <attribute name="name">
+                  <value>LumpedMassL2</value>
+                </attribute>
+                <optional>
+                  <element name="weight">
+                    <ref name="real"/>
+                  </element>
+                </optional>
+              </element>
+              <element name="functional">
+                <attribute name="name">
+                  <value>IntegralL2</value>
+                </attribute>
+                <optional>
+                  <element name="weight">
+                    <ref name="real"/>
+                  </element>
+                </optional>
+              </element>
+              <element name="functional">
+                <attribute name="name">
+                  <data type="string" datatypeLibrary=""/>
+                </attribute>
+                <optional>
+                  <element name="weight">
+                    <ref name="real"/>
+                  </element>
+                </optional>
+              </element>
+            </choice>
+            <optional>
+              <element name="bounds">
+                <a:documentation>If the bounds on this field are known then they can be set here.
+These can either further constrain the limits worked out by the
+lumped version of the projection (i.e. to make sure that errors 
+don't accumulate with succesive interpolations) or if apply_globally
+is set they are just made to be bounded within the bounds globally
+(i.e. anything between those bounds is not smoothed).</a:documentation>
+                <optional>
+                  <element name="upper_bound">
+                    <ref name="real"/>
+                    <optional>
+                      <element name="apply_globally">
+                        <a:documentation>If this is set the upper_bound is used everywhere.
+If left unset the upper_bound is only used to constrain
+the smoothed bounds calculated by the code</a:documentation>
+                        <empty/>
+                      </element>
+                    </optional>
+                    <optional>
+                      <element name="coupled">
+                        <a:documentation>This field is to be considered as being coupled to another field
+such that the sum of the two fields is constrained to be less than
+the upper_bound specified above.
+
+The relationships between fields are worked out according to their
+priority ordering.
+
+This method is akin to the coupled_cv advection method.</a:documentation>
+                        <empty/>
+                      </element>
+                    </optional>
+                  </element>
+                </optional>
+                <optional>
+                  <element name="lower_bound">
+                    <ref name="real"/>
+                    <optional>
+                      <element name="apply_globally">
+                        <a:documentation>If this is set the upper_bound is used everywhere.
+If left unset the upper_bound is only used to constrain
+the smoothed bounds calculated by the code</a:documentation>
+                        <empty/>
+                      </element>
+                    </optional>
+                  </element>
+                </optional>
+              </element>
+            </optional>
+          </element>
+        </choice>
       </optional>
       <choice>
         <element name="solver">

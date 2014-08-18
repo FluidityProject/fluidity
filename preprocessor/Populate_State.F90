@@ -1322,7 +1322,7 @@ contains
 
     call allocate_metric_limits(states(1))
     !***********22 July******lcai********Leaching_chemical_model**********
-    if (have_option('/Leaching_Chemical_Model')) then
+    if (have_option('/Leaching_chemical_model')) then
     call allocate_and_insert_leaching_model(states(1))
     end if
     !********Finish******lcai************Leaching************************ 
@@ -1364,7 +1364,7 @@ contains
          
          !*******22 July 2014 lcai*Leaching_chemical_model************************
          !-------------allocate and insert the leaching source field of the prog sfield-----!
-         if (have_option(trim(path)//'prognostic/LeachingChemicalSourceTerm')) then
+         if (have_option(trim(path)//'/prognostic/LeachingChemicalSourceTerm')) then
          
          call allocate_and_insert_leaching_src_prog_sfield(path,field_name, state)
 
@@ -1517,8 +1517,8 @@ contains
          character(len=OPTION_PATH_LEN) :: state_path_lc,reaction_path, reaction_name, prefix
          integer :: nfields, nreaction, jr, j
          !--------For solution phase reaction
-         if (have_option('/Leaching_Chemical_Model/SolutionPhaseReactions')) then
-           state_path_lc='/Leaching_Chemical_Model/SolutionPhaseReactions'
+         if (have_option('/Leaching_chemical_model/SolutionPhaseReactions')) then
+           state_path_lc='/Leaching_chemical_model/SolutionPhaseReactions'
            nreaction=option_count(trim(state_path_lc)//"/reaction")
     
            do jr=0, nreaction-1
@@ -1552,15 +1552,16 @@ contains
          end if
 
          !--------For mineral dissolution
-         if (have_option('/Leaching_Chemical_Model/MineralDissolution')) then
-           state_path_lc='/Leaching_Chemical_Model/MineralDissolution'
+         
+         if (have_option('/Leaching_chemical_model/MineralDissolution')) then
+           state_path_lc='/Leaching_chemical_model/MineralDissolution'
            nreaction=option_count(trim(state_path_lc)//"/reaction")
-    
+           
            do jr=0, nreaction-1
               path=trim(state_path_lc)//"/reaction["//int2str(jr)//"]"
               call get_option(trim(path)//"/name", reaction_name)
               reaction_path=trim(state_path_lc)//"/reaction::"//trim(reaction_name)
-    
+              
               select case(trim(reaction_name))
                  case("CuFeS2_oxidation_aqueous_ferric_sulfate")
                     prefix="chal_"
@@ -1571,8 +1572,9 @@ contains
                  case default
                     FLAbort("Mineral dissolution reaction" // trim(reaction_name) // " not found")
               end select
-    
+              
               nfields=option_count(trim(reaction_path)//"/scalar_field")
+              
               do j=0, nfields-1
                 path=trim(reaction_path)//"/scalar_field["//int2str(j)//"]"
                 call get_option(trim(path)//"/name", field_name)

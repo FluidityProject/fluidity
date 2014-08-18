@@ -1125,6 +1125,20 @@ darcy_impes_scalar_field_prescribed_or_python_diagnostic_element_wise_mesh =
       }   
    )   
 
+darcy_impes_scalar_field_prescribed_or_python_diagnostic_multiple_mesh = 
+   (
+      element prescribed {
+         darcy_mesh_choice,
+         prescribed_scalar_field_no_adapt,
+         field_output_options,
+         darcy_impes_include_stat
+      }|
+      element diagnostic {
+         darcy_mesh_choice,
+         darcy_impes_scalar_python_diagnostic_algorithm,
+         darcy_impes_diagnostic_scalar_field_no_adapt
+      }   
+   )   
 
 darcy_impes_scalar_field_prescribed_or_python_diagnostic_saturationsource_mesh = 
    (
@@ -1777,7 +1791,7 @@ darcy_impes_generic_scalar_field_src =
       element scalar_field {
          attribute rank { "0" },
          attribute name { "Source" },
-         darcy_impes_scalar_field_prescribed_or_python_diagnostic_element_wise_mesh
+         darcy_impes_scalar_field_prescribed_or_python_diagnostic_multiple_mesh
       }   
    )
       
@@ -2493,7 +2507,7 @@ scalar_convergence_options =
                
                ## Please set the immobile field name as the same name of the mobile source field name,
                ## the prefix of 'Immobile' will be added to be the field name,
-               ## i.e. if the name of this scaler field is set to be 'cd', then the name will be changed to be
+               ## i.e. if the name of this scalar field is set to be 'cd', then the name will be changed to be
                ## 'Immobilecd'  
 	       element scalar_field {
 	             attribute name { xsd:string },
@@ -2808,9 +2822,9 @@ leaching_semi_empirical_model_extraction =
     ( 
      ##This is the molar amount of the current mineral species per volume of heap
      ##i.e. mole per m^3  of heap
-    element scaler_field {
+    element scalar_field {
                           attribute rank { "0" },
-                          attribute name {" molar_concentration"},
+                          attribute name {"molar_concentration"},
                           leaching_scalar_field_prescribed_or_python_diagnostic_pressure_mesh
                            }
                      ),

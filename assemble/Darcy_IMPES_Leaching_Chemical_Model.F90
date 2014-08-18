@@ -46,11 +46,11 @@ module darcy_impes_leaching_chemical_model
      character(len=OPTION_PATH_LEN) :: option_path, reaction_name, path_l
         !---------------------allocate the fields in the chemical model-------------
         !for the solution phase reactions
-        if (have_option('/Leaching_Chemical_Model/SolutionPhaseReactions')) then
+        if (have_option('/Leaching_chemical_model/SolutionPhaseReactions')) then
            di%lc%have_sol=.true.
            !allocate the solution phase reaction
-           ns= option_count('/Leaching_Chemical_Model/SolutionPhaseReactions/reaction')
-           option_path=('/Leaching_Chemical_Model/SolutionPhaseReactions/reaction')
+           ns= option_count('/Leaching_chemical_model/SolutionPhaseReactions/reaction')
+           option_path=('/Leaching_chemical_model/SolutionPhaseReactions/reaction')
            do f= 1, ns
            
               call get_option(trim(option_path)//'['//int2str(f-1)//']/name', reaction_name)
@@ -108,20 +108,20 @@ module darcy_impes_leaching_chemical_model
         end if
         
         !for mineral dissolution
-        if (have_option('/Leaching_Chemical_Model/MineralDissolution')) then
+        if (have_option('/Leaching_chemical_model/MineralDissolution')) then
            di%lc%have_dis=.true.
            !allocate the mineral dissolution
-           nd=option_count('/Leaching_Chemical_Model/MineralDissolution/reaction')
-           option_path=('/Leaching_Chemical_Model/MineralDissolution/reaction')
+           nd=option_count('/Leaching_chemical_model/MineralDissolution/reaction')
+           option_path=('/Leaching_chemical_model/MineralDissolution/reaction')
            do f=1, nd
              
               call get_option(trim(option_path)//'['//int2str(f-1)//']/name', reaction_name)
               select case(trim(reaction_name))
               
                 case('CuFeS2_oxidation_aqueous_ferric_sulfate')
-                  di%lc%dis%chal%dcdt => extract_scalar_field(di%state(1), 'chal_dCuFe2_dt', stat=stat)
+                  di%lc%dis%chal%dcdt => extract_scalar_field(di%state(1), 'chal_dCuFeS2_dt', stat=stat)
                   if (.not. stat==0) then
-                    FLAbort('failed to extract the leaching reaction named chal_dCuFe2_dt')
+                    FLAbort('failed to extract the leaching reaction named chal_dCuFeS2_dt')
                   end if
                   !get extraction rate
                   di%lc%dis%chal%ex_r => extract_scalar_field(di%state(1), 'chal_extraction_rate', stat=stat)
@@ -186,9 +186,9 @@ module darcy_impes_leaching_chemical_model
                 
                 
                 case('FeS2_oxidation_aqueous_ferric_sulfate')
-                  di%lc%dis%pyri%dcdt => extract_scalar_field(di%state(1), 'pyri_dFe2_dt', stat=stat)
+                  di%lc%dis%pyri%dcdt => extract_scalar_field(di%state(1), 'pyri_dFeS2_dt', stat=stat)
                   if (.not. stat==0) then
-                    FLAbort('failed to extract the leaching reaction named pyri_dFe2_dt')
+                    FLAbort('failed to extract the leaching reaction named pyri_dFeS2_dt')
                   end if
                   !get extraction rate
                   di%lc%dis%pyri%ex_r => extract_scalar_field(di%state(1), 'pyri_extraction_rate', stat=stat)
@@ -390,8 +390,8 @@ module darcy_impes_leaching_chemical_model
      if (di%lc%have_sol) then
        
        di%lc%have_sol=.false.
-       ns= option_count('/Leaching_Chemical_Model/SolutionPhaseReactions/reaction')
-       option_path=('/Leaching_Chemical_Model/SolutionPhaseReactions/reaction')
+       ns= option_count('/Leaching_chemical_model/SolutionPhaseReactions/reaction')
+       option_path=('/Leaching_chemical_model/SolutionPhaseReactions/reaction')
        do f= 1, ns
 
          call get_option(trim(option_path)//'['//int2str(f-1)//']/name', reaction_name)
@@ -416,8 +416,8 @@ module darcy_impes_leaching_chemical_model
      if (di%lc%have_dis) then
        
        di%lc%have_dis=.false.
-       nd=option_count('/Leaching_Chemical_Model/MineralDissolution/reaction')
-       option_path=('/Leaching_Chemical_Model/MineralDissolution/reaction')
+       nd=option_count('/Leaching_chemical_model/MineralDissolution/reaction')
+       option_path=('/Leaching_chemical_model/MineralDissolution/reaction')
        do f= 1, nd
 
          call get_option(trim(option_path)//'['//int2str(f-1)//']/name', reaction_name)
@@ -497,7 +497,7 @@ module darcy_impes_leaching_chemical_model
       integer, intent(in) :: f
       
       !local variables
-      type(scalar_field) :: leach_src
+      type(scalar_field) :: leach_src, single_src
       integer :: n
       real :: s_factor !the stoichemistry factor
       character(len=FIELD_NAME_LEN) :: lc_name
@@ -505,6 +505,8 @@ module darcy_impes_leaching_chemical_model
       
       call allocate(leach_src,di%pressure_mesh)
       call zero(leach_src)
+      
+      call allocate(single_src,di%pressure_mesh)
 
       !for the solution phase reactions
       if (di%generic_prog_sfield(f)%lc_src%have_sol_src) then
@@ -512,40 +514,47 @@ module darcy_impes_leaching_chemical_model
         do n=1, size(di%generic_prog_sfield(f)%lc_src%sfield_sol_src) 
           lc_name = di%generic_prog_sfield(f)%lc_src%sfield_sol_src(n)%lc_name
           s_factor = di%generic_prog_sfield(f)%lc_src%sfield_sol_src(n)%sto_factor
-
+          call zero(single_src)
+          
           select case(trim(lc_name))
              case("Ferrous_Oxidation")
                if (.not. associated(di%lc%sol%feox%dcdt)) &
                FLAbort('Ferrous_Oxidation is turned off in the leaching chemical model, &
                while its source term is turned on under the prognostic scaler field') 
                src => di%lc%sol%feox%dcdt
-               call addto(leach_src, src, s_factor) !addto the chemical source term with scale of the stoichemistry factor 
+               call addto(single_src,src,s_factor)
+               call addto(leach_src, single_src) !addto the chemical source term with scale of the stoichemistry factor
              
              case('Jarosite_Precipitation')
                if (.not. associated(di%lc%sol%jaro%dcdt)) &
                FLAbort('Jarosite_Precipitation is turned off in the leaching chemical model, &
                while its source term is turned on under the prognostic scaler field')  
                src => di%lc%sol%jaro%dcdt
-               call addto(leach_src, src, s_factor) !addto the chemical source term with scale of the stoichemistry factor
+               call addto(single_src,src,s_factor)
+               call addto(leach_src, single_src) !addto the chemical source term with scale of the stoichemistry factor
             
              case('Oxygen_dissolution_liquid_phase') 
                if (.not. associated(di%lc%sol%oxdi%dcdt)) &
                FLAbort('Oxygen_dissolution is turned off in the leaching chemical model, &
                while its source term is turned on under the prognostic scaler field')
                src => di%lc%sol%oxdi%dcdt
-               call addto(leach_src, src, s_factor) !addto the chemical source term with scale of the stoichemistry factor
+               call addto(single_src,src,s_factor)
+               call addto(leach_src, single_src) !addto the chemical source term with scale of the stoichemistry factor
             
              case('Oxygen_dissolution_gas_phase')
                if (.not. associated(di%lc%sol%oxdi%dcdt)) &
                FLAbort('Oxygen_dissolution is turned off in the leaching chemical model, &
                while its source term is turned on under the prognostic scaler field')
                src => di%lc%sol%oxdi%dcdt
-               call addto(leach_src, src, s_factor) !addto the chemical source term with scale of the stoichemistry factor              
+               call addto(single_src,src,s_factor)
+               call addto(leach_src, single_src) !addto the chemical source term with scale of the stoichemistry factor
             
              case default
                FLAbort("Leaching chemical algorithm " // trim(lc_name) // " not found")
           end select
-
+          
+          call set(di%generic_prog_sfield(f)%lc_src%sfield_sol_src(n)%sfield, single_src)
+          
         end do
 
       end if
@@ -556,6 +565,7 @@ module darcy_impes_leaching_chemical_model
         do n=1, size(di%generic_prog_sfield(f)%lc_src%sfield_dis_src)
           lc_name = di%generic_prog_sfield(f)%lc_src%sfield_dis_src(n)%lc_name
           s_factor = di%generic_prog_sfield(f)%lc_src%sfield_dis_src(n)%sto_factor
+          call zero(single_src)
           
           select case(trim(lc_name))
              case("CuFeS2_oxidation_aqueous_ferric_sulfate")
@@ -563,7 +573,8 @@ module darcy_impes_leaching_chemical_model
                FLAbort('CuFeS2_oxidation_aqueous_ferric_sulfate is turned off in the leaching chemical model, &
                while its source term is turned on under the prognostic scaler field')
                src => di%lc%dis%chal%dcdt
-               call addto(leach_src, src, s_factor) !addto the chemical source term with scale of the stoichemistry factor
+               call addto(single_src,src,s_factor)
+               call addto(leach_src, single_src) !addto the chemical source term with scale of the stoichemistry factor
  
 
              case('FeS2_oxidation_aqueous_ferric_sulfate')
@@ -571,22 +582,25 @@ module darcy_impes_leaching_chemical_model
                FLAbort('FeS2_oxidation_aqueous_ferric_sulfate is turned off in the leaching chemical model, &
                while its source term is turned on under the prognostic scaler field')
                src => di%lc%dis%pyri%dcdt 
-               call addto(leach_src, src, s_factor) !addto the chemical source term with scale of the stoichemistry factor
+               call addto(single_src,src,s_factor)
+               call addto(leach_src, single_src) !addto the chemical source term with scale of the stoichemistry factor
 
              case('S0_dissolution')
                if (.not. associated(di%lc%dis%sulf%dcdt)) &
                FLAbort('S0_dissolution is turned off in the leaching chemical model, &
                while its source term is turned on under the prognostic scaler field')
                src => di%lc%dis%sulf%dcdt
-               call addto(leach_src, src, s_factor) !addto the chemical source term with scale of the stoichemistry factor
+               call addto(single_src,src,s_factor)
+               call addto(leach_src, single_src) !addto the chemical source term with scale of the stoichemistry factor
 
              case default
                FLAbort("Leaching chemical algorithm " // trim(lc_name) // " not found")
           end select
-
-
+          
+          call set(di%generic_prog_sfield(f)%lc_src%sfield_dis_src(n)%sfield, single_src)
+          
         end do
-
+        
       end if
       
       !Add leaching chemical source term to rhs
@@ -594,6 +608,7 @@ module darcy_impes_leaching_chemical_model
       call addto(di%rhs, di%cv_mass_pressure_mesh_with_source)
 
       call deallocate(leach_src)
+      call deallocate(single_src)
 
       nullify(src)
    end subroutine add_leach_chemical_prog_src_to_rhs
@@ -647,7 +662,6 @@ module darcy_impes_leaching_chemical_model
                 p(isp) = mineral%ak%bulk(isp)%phase
                 cb(isp)%ptr => extract_scalar_field(states(p(isp)), trim(cb_name(isp)), stat)
                 if (.not. stat==0) then
-                  print cb_name(isp)
                   FLAbort('failed to extract the reacting species')
                 end if
               end do
@@ -687,7 +701,9 @@ module darcy_impes_leaching_chemical_model
                                             !this might not be true, but zero product concentration 
                                             !normally only happen at beginning of reaction, so might only 
                                             !result in inaccuracy of the initial reaction 
-                        end if                      
+                                                                                      
+                        end if
+                       
                       end if
                       k_rate = k_rate*(cb_n(isp)**m(isp))
                    end do
@@ -802,7 +818,7 @@ module darcy_impes_leaching_chemical_model
       spline_coefficient(1,n)=dedt_k(n)
       spline_coefficient(2,n)=(dedt_k(n)-dedt_k(n-1))/(e(n)-e(n-1))
       spline_coefficient(3:4,n)=0.0D0
-           
+        
    end subroutine cubic_spline_coefficient
 
    subroutine solve_tridiagonal_matrix(n2,dh,dy,c)
