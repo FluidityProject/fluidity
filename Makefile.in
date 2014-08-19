@@ -318,6 +318,7 @@ python_clean:
 
 scripts:
 	@echo "INSTALL local scripts"
+	@mkdir -p bin
 	@cd tools ; $(MAKE) scripts
 
 fluidity_library: lib/lib$(FLUIDITY).a
