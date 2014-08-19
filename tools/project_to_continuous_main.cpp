@@ -37,9 +37,9 @@ extern "C" {
   void project_to_continuous(const char *, size_t, const char *, size_t);
 }
 
-#ifdef _AIX
 #include <unistd.h>
-#else
+
+#ifndef _AIX
 #include <getopt.h>
 #endif
 
