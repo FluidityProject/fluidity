@@ -44,7 +44,7 @@ clean:
 	$(MAKE) -C metric_field clean
 	$(MAKE) -C tests clean
 
-	rm -rf lib/libadaptivity.a 
+	rm -rf lib
 
 distclean: clean
 	rm -f adapt3d/include/confdefs.h include/confdefs.h include/config.h include/vtk.h load_balance/include/confdefs.h
