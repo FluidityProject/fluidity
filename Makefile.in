@@ -285,9 +285,9 @@ scripts:
 ifeq ($(CURDIR),@srcdir@)
 copy_python: # do nothing
 else
+# even if these are not literaly the same, they might still refer to the same directory - hence the additional 'test'
 copy_python:
-	@echo "    COPY python scripts to <build-dir>/python/"
-	@cp -an @srcdir@/python/* $(CURDIR)/python # -n to not clobber existing files (like python/setup.py)
+	@test $(CURDIR) -ef @srcdir@ || cp -an @srcdir@/python/* $(CURDIR)/python # -n to not clobber existing files (like python/setup.py)
 endif
 
 .PHONY: local_install
