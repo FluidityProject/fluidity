@@ -773,7 +773,8 @@ module darcy_impes_assemble_module
                                                                di_dual%bc_surface_mesh, &
                                                                di_dual%pressure_bc_value, &
                                                                di_dual%pressure_bc_flag)      
-      end if 
+      end if
+      
       
       phase_loop_bc: do p = 1, di%number_phase
 
@@ -830,6 +831,13 @@ module darcy_impes_assemble_module
          call apply_dirichlet_conditions(di%dual_block_pressure_matrix, all_rhs, all_pressure)
       else
          call apply_dirichlet_conditions(di%pressure_matrix, all_rhs(1)%ptr, all_pressure(1)%ptr)      
+      end if
+
+      ! no pressure BCs?  Rescue the linear system with a reference node
+      if (all(di%pressure_bc_flag == 0)) then
+         ewrite(1,*) 'No pressure boundary conditions; setting a reference node.'
+         call set_reference_node(di%pressure_matrix, 1, all_rhs(1)%ptr)
+         ! TODO - repeat for dual pressure
       end if
       
       ! Solve the pressure(s)
