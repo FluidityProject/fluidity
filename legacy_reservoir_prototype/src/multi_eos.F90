@@ -1909,10 +1909,9 @@
       type(state_type), intent(inout) :: packed_state
       INTEGER, intent( in ) :: CV_NONODS, NPHASE
       ! Local Variables
-      INTEGER :: nstates, ncomps, nphases, IPHASE, JPHASE, i, j, k
+      INTEGER :: nstates, ncomps, nphases, IPHASE, JPHASE, i, j
       real c, a, S_OR, S_GC, auxO, auxW
       character(len=OPTION_PATH_LEN) option_path, phase_name
-      REAL, DIMENSION( NPHASE, CV_NONODS ) :: adapted_satura
       !Corey options
       type(corey_options) :: options
       !Working pointers
@@ -1966,18 +1965,14 @@
                         auxW = S_OR
                         auxO = S_GC
                     end if
-                    forall (k = 1  : CV_NONODS )
-                        !Effective saturation has to be between one and zero
-                        adapted_satura(jphase,k) = max(min((satura(jphase,k) - auxW)/(1.0 - auxW - auxO), 1.0), 1d-5)!<--Inferior limit just to avoid NaN... in theory it should never be reached
-                    end forall
 
                   call get_option(trim(option_path)//"/phase["//int2str(j)//"]/c", c)
                   call get_option(trim(option_path)//"/phase["//int2str(j)//"]/a", a)
                   !Apply Brooks-Corey model
-!                  capillary_pressure( 1 + ( IPHASE - 1 ) * CV_NONODS : IPHASE * CV_NONODS ) = &
-!                       capillary_pressure( 1 + ( IPHASE - 1 ) * CV_NONODS : IPHASE * CV_NONODS ) + &
-!                       c * adapted_satura( jphase,: ) ** (-a)
-                  CapPressure( iphase, : ) = CapPressure( iphase, : ) + c * adapted_satura( jphase,: ) ** (-a)
+                  CapPressure( iphase, : ) = CapPressure( iphase, : ) + c *&
+!                  max(min(satura(jphase,:), 1.0), 1d-5)&!<= to use just the saturation
+                   max(min((satura(jphase,:) - auxW)/(1.0 - auxW - auxO), 1.0), 1d-4)&!<=Effective saturation bounded
+                    ** (-a)
                endif
 
             END DO

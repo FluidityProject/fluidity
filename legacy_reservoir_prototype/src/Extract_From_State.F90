@@ -74,6 +74,7 @@
        module procedure Get_Scalar_SNdgln, Get_Vector_SNdgln
     end interface Get_SNdgln
 
+
   contains
 
 
@@ -834,8 +835,8 @@
       x_all => extract_vector_field( packed_state, "PressureCoordinate" )
       do idim = 1, ndim
           if( idim ==1 ) x_all % val( idim, : ) = x
-          if( idim ==2 )   x_all % val( idim, : ) = y
-          if( idim ==3 )   x_all % val( idim, : ) = z
+          if( idim ==2 ) x_all % val( idim, : ) = y
+          if( idim ==3 ) x_all % val( idim, : ) = z
       end do
 
 !!$
@@ -3583,7 +3584,6 @@ subroutine allocate_multicomponent_scalar_bcs(s,ms,name)
       end if
 
     end function GetFEMName
-
 
 
   end module Copy_Outof_State

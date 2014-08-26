@@ -38,7 +38,7 @@
     use fldebug
     use state_module
     use spud
-    use global_parameters, only: option_path_len, is_compact_overlapping
+    use global_parameters, only: option_path_len, is_compact_overlapping, is_overlapping
     use shape_functions_Linear_Quadratic
     use shape_functions_NDim
     use Fields_Allocates, only : allocate
@@ -1871,8 +1871,10 @@
               sele_overlap_scale2, QUAD_OVER_WHOLE_ELE)
 
               !Calculate the CVN shape functions manually as for compact_overlapping is not calculated by the previous subroutine
-              if (is_compact_overlapping)  call get_CVN_compact_overlapping( CV_ELE_TYPE, NDIM, CV_NGI, CV_NLOC, CVN, CVWEIGHT)
-
+              if (is_compact_overlapping)  then
+                call get_CVN_compact_overlapping( CV_ELE_TYPE, NDIM, CV_NGI, CV_NLOC, cvn2, cvweight2)
+                cvn_short2 = cvn2
+              end if
               !Store data into state
               cvn = cvn2; cvn_short = cvn_short2; cvweight = cvweight2; cvfen = cvfen2;
               cvweight_short = cvweight_short2; cvfen_short = cvfen_short2; ufen = ufen2;
@@ -1956,39 +1958,39 @@
       ! CVFENLX, CVFENLY, CVFENLZ)
       implicit none
       integer, intent( in ) :: ndim, cv_ele_type, cv_ngi, cv_ngi_short, cv_nloc, u_nloc
-      real, dimension( cv_nloc, cv_ngi ), intent( inout ) :: cvn
-      real, dimension( cv_nloc, cv_ngi_short ), intent( inout ) :: cvn_short
-      real, dimension( cv_ngi ), intent( inout ) :: cvweight
-      real, dimension( cv_nloc, cv_ngi ), intent( inout ) :: cvfen, cvfenlx, cvfenly, cvfenlz
-      real, dimension( cv_ngi_short ), intent( inout ) :: cvweight_short
-      real, dimension( cv_nloc, cv_ngi_short ), intent( inout ) :: cvfen_short, cvfenlx_short, &
+      real, dimension( :, : ), intent( inout ) :: cvn
+      real, dimension( :, : ), intent( inout ) :: cvn_short
+      real, dimension( : ), intent( inout ) :: cvweight
+      real, dimension( :, : ), intent( inout ) :: cvfen, cvfenlx, cvfenly, cvfenlz
+      real, dimension( : ), intent( inout ) :: cvweight_short
+      real, dimension( :, : ), intent( inout ) :: cvfen_short, cvfenlx_short, &
            cvfenly_short, cvfenlz_short
-      real, dimension( u_nloc, cv_ngi ), intent( inout ) :: ufen, ufenlx, ufenly, ufenlz
+      real, dimension( :, : ), intent( inout ) :: ufen, ufenlx, ufenly, ufenlz
       integer, intent( in ) :: scvngi
-      integer, dimension( cv_nloc, scvngi ), intent( inout ) :: cv_neiloc
-      logical, dimension( cv_nloc, scvngi ), intent( inout ) :: cv_on_face, cvfem_on_face
-      real, dimension( cv_nloc, scvngi ), intent( inout ) :: scvfen, scvfenslx, scvfensly
-      real, dimension( scvngi ), intent( inout ) :: scvfeweigh
-      real, dimension( cv_nloc, scvngi ), intent( inout ) :: scvfenlx, scvfenly, scvfenlz
-      real, dimension( u_nloc, scvngi ), intent( inout ) :: sufen, sufenslx, sufensly, sufenlx, &
+      integer, dimension( :, : ), intent( inout ) :: cv_neiloc
+      logical, dimension( :, : ), intent( inout ) :: cv_on_face, cvfem_on_face
+      real, dimension( :, : ), intent( inout ) :: scvfen, scvfenslx, scvfensly
+      real, dimension( : ), intent( inout ) :: scvfeweigh
+      real, dimension( :, : ), intent( inout ) :: scvfenlx, scvfenly, scvfenlz
+      real, dimension( :, : ), intent( inout ) :: sufen, sufenslx, sufensly, sufenlx, &
            sufenly, sufenlz
-      logical, dimension( u_nloc, scvngi ), intent( inout ) :: u_on_face, ufem_on_face
+      logical, dimension( :, : ), intent( inout ) :: u_on_face, ufem_on_face
       integer, intent( in ) :: nface, sbcvngi
       logical, intent( in ) :: QUAD_OVER_WHOLE_ELE
       ! if QUAD_OVER_WHOLE_ELE then dont divide element into CV's to form quadrature.
-      real, dimension( cv_snloc, sbcvngi ), intent( inout ) :: sbcvn
-      real, dimension( cv_snloc, sbcvngi ), intent( inout ) :: sbcvfen, sbcvfenslx, sbcvfensly
-      real, dimension( sbcvngi ), intent( inout ) :: sbcvfeweigh
-      real, dimension( cv_snloc, sbcvngi ), intent( inout ) :: sbcvfenlx, sbcvfenly, sbcvfenlz
+      real, dimension( :, : ), intent( inout ) :: sbcvn
+      real, dimension( :, : ), intent( inout ) :: sbcvfen, sbcvfenslx, sbcvfensly
+      real, dimension( : ), intent( inout ) :: sbcvfeweigh
+      real, dimension( :, : ), intent( inout ) :: sbcvfenlx, sbcvfenly, sbcvfenlz
       integer, intent( in ) :: cv_snloc, u_snloc
-      real, dimension( u_snloc, sbcvngi ), intent( inout ) :: sbufen, sbufenslx, sbufensly, &
+      real, dimension( :, : ), intent( inout ) :: sbufen, sbufenslx, sbufensly, &
            sbufenlx, sbufenly, sbufenlz
-      integer, dimension( nface, cv_snloc ), intent( inout ) :: cv_sloclist
-      integer, dimension( nface, u_snloc ), intent( inout ) :: u_sloclist
-      integer, dimension( cv_nloc + 1 ), intent( inout ) :: findgpts
-      integer, dimension( cv_nloc * scvngi ), intent( inout ) :: colgpts
+      integer, dimension( :, : ), intent( inout ) :: cv_sloclist
+      integer, dimension( :, : ), intent( inout ) :: u_sloclist
+      integer, dimension( : ), intent( inout ) :: findgpts
+      integer, dimension( : ), intent( inout ) :: colgpts
       integer, intent( inout ) :: ncolgpts
-      real, dimension( cv_nloc ), intent( inout ) :: sele_overlap_scale
+      real, dimension( : ), intent( inout ) :: sele_overlap_scale
       ! Local variables
       logical, dimension( :, : ), allocatable :: u_on_face2, ufem_on_face2
       integer, dimension( :, : ), allocatable :: u_sloclist2
@@ -1997,7 +1999,6 @@
            sbufen2, sbufenslx2, sbufensly2, sbufenlx2, sbufenly2, sbufenlz2
       real, dimension( :, : ), allocatable :: M,MLX,MLY,MLZ, sm,SMLX,SMLY
       character( len = option_path_len ) :: overlapping_path, dummy_path, dummypath2
-      logical :: is_overlapping
       integer :: u_nloc2, ilev, ilev2, u_snloc2, u_ele_type2, gi, MLOC, SMLOC
       integer :: sgi, cv_siloc, cv_skloc
       real :: rmax
@@ -2017,12 +2018,6 @@
 ewrite(3,*)'lll:', option_path_len
 
 
-      dummy_path = '/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/element_type'
-      is_overlapping = .false.
-      !call get_option( trim( dummy_path ), overlapping_path )
-      call get_option( trim( dummy_path ), dummypath2 )
-      if( trim( dummypath2 ) == 'overlapping' ) is_overlapping = .true.
-     ! if( trim( overlapping_path ) == 'overlapping' ) is_overlapping = .true.
 
       if( is_overlapping ) then
          ! Define basis functions (overlapping) for porous media flow
@@ -8004,12 +7999,12 @@ ewrite(3,*)'lll:', option_path_len
          U_NLOC, UNLX, UNLY, UNLZ, UNX_ALL, state, StorName , indx )
       implicit none
       INTEGER, intent( in ) :: ELE, TOTELE, NONODS, X_NLOC, NGI, CV_NLOC, U_NLOC
-      INTEGER, DIMENSION( TOTELE * X_NLOC ), intent( in ) :: XONDGL
-      REAL, DIMENSION( NONODS ), intent( in ) :: X, Y, Z
-      REAL, DIMENSION( CV_NLOC, NGI ), intent( in ) :: N, NLX, NLY, NLZ
-      REAL, DIMENSION( NGI ), intent( in ) :: WEIGHT
+      INTEGER, DIMENSION( : ), intent( in ) :: XONDGL
+      REAL, DIMENSION( : ), intent( in ) :: X, Y, Z
+      REAL, DIMENSION( :, : ), intent( in ) :: N, NLX, NLY, NLZ
+      REAL, DIMENSION( : ), intent( in ) :: WEIGHT
       LOGICAL, intent( in ) :: D1, D3, DCYL
-      REAL, DIMENSION( U_NLOC, NGI ), intent( in ) :: UNLX, UNLY, UNLZ
+      REAL, DIMENSION( :, : ), intent( in ) :: UNLX, UNLY, UNLZ
       real, pointer, dimension(:,:,:), intent(inout) ::NX_ALL, UNX_ALL
       real, pointer, dimension(:), intent(inout) :: DETWEI, RA
       real, pointer, intent(inout) :: VOLUME
@@ -8017,10 +8012,7 @@ ewrite(3,*)'lll:', option_path_len
       character(len=*), intent(in) :: StorName
       integer, intent(inout) :: indx
       ! Local variables
-      REAL, PARAMETER :: PIE = 3.141592654
-      REAL :: AGI, BGI, CGI, DGI, EGI, FGI, GGI, HGI, KGI, A11, A12, A13, A21, &
-           A22, A23, A31, A32, A33, DETJ, TWOPIE, RGI, rsum
-      INTEGER :: GI, L, IGLX, NDIM
+      INTEGER :: NDIM
       !Variables to store things in state
       type(mesh_type), pointer :: fl_mesh
       type(mesh_type) :: Auxmesh
@@ -8125,12 +8117,12 @@ ewrite(3,*)'lll:', option_path_len
          U_NLOC, UNLX, UNLY, UNLZ, UNX_ALL)
       implicit none
       INTEGER, intent( in ) :: ELE, TOTELE, NONODS, X_NLOC, NGI, CV_NLOC, U_NLOC
-      INTEGER, DIMENSION( TOTELE * X_NLOC ), intent( in ) :: XONDGL
-      REAL, DIMENSION( NONODS ), intent( in ) :: X, Y, Z
-      REAL, DIMENSION( CV_NLOC, NGI ), intent( in ) :: N, NLX, NLY, NLZ 
-      REAL, DIMENSION( NGI ), intent( in ) :: WEIGHT
+      INTEGER, DIMENSION( : ), intent( in ) :: XONDGL
+      REAL, DIMENSION( : ), intent( in ) :: X, Y, Z
+      REAL, DIMENSION( :, : ), intent( in ) :: N, NLX, NLY, NLZ
+      REAL, DIMENSION( : ), intent( in ) :: WEIGHT
       LOGICAL, intent( in ) :: D1, D3, DCYL
-      REAL, DIMENSION( U_NLOC, NGI ), intent( in ) :: UNLX, UNLY, UNLZ
+      REAL, DIMENSION( :, : ), intent( in ) :: UNLX, UNLY, UNLZ
       real, dimension(:,:,:), intent(inout) ::NX_ALL, UNX_ALL
       real, dimension(:), intent(inout) :: DETWEI, RA
       real, intent(inout) :: VOLUME
@@ -8163,17 +8155,9 @@ ewrite(3,*)'lll:', option_path_len
                   DETWEI( GI ) = ABS(DETJ) * WEIGHT( GI )
                   VOLUME = VOLUME + DETWEI( GI )
 
-                  Loop_L16: DO L = 1, X_NLOC
-                      NX_ALL(1, L, GI ) = NLX( L, GI ) / DETJ
-!                      NX_ALL(2, L, GI ) = 0.0
-!                      NX_ALL(3, L, GI ) = 0.0
-                  END DO Loop_L16
+                  NX_ALL(1, :, GI ) = NLX( :, GI ) / DETJ
 
-                  Loop_L17: DO L = 1, U_NLOC
-                      UNX_ALL(1, L, GI ) = UNLX( L, GI ) / DETJ
-!                      UNX_ALL(2, L, GI ) = 0.0
-!                      UNX_ALL(3, L, GI ) = 0.0
-                  END DO Loop_L17
+                  UNX_ALL(1, :, GI ) = UNLX( :, GI ) / DETJ
 
               END DO Loop_GI14
           case (2)
@@ -8188,7 +8172,7 @@ ewrite(3,*)'lll:', option_path_len
                   BGI = 0.
                   CGI = 0.
                   DGI = 0.
-
+                  !Get Jacobian of the conversion
                   Loop_L4: DO L = 1, X_NLOC
                       IGLX = XONDGL(( ELE - 1 ) * X_NLOC + L )
                       AGI = AGI + NLX( L, GI ) * X( IGLX )
@@ -8196,9 +8180,6 @@ ewrite(3,*)'lll:', option_path_len
                       CGI = CGI + NLY( L, GI ) * X( IGLX )
                       DGI = DGI + NLY( L, GI ) * Y( IGLX )
                       RGI = RGI + N( L, GI ) * Y( IGLX )
-                     !  print *,'l,gi,IGLX,X( IGLX ),Y( IGLX ):',l,gi,IGLX,X( IGLX ),Y( IGLX )
-                     !  print *,'agi,bgi,cgi,dgi,rgi:',agi,bgi,cgi,dgi,rgi
-                     !  print *,'NLX( L, GI ),NLY( L, GI ):',NLX( L, GI ),NLY( L, GI )
                   END DO Loop_L4
 
                   IF( .NOT. DCYL ) RGI = 1.0
@@ -8207,23 +8188,17 @@ ewrite(3,*)'lll:', option_path_len
                   RA( GI ) = RGI
                   DETWEI( GI ) = TWOPIE * RGI * ABS(DETJ) * WEIGHT( GI )
                   VOLUME = VOLUME + DETWEI( GI )
+                  !Jacobian^-1 to apply conversion for the CV shape functions
+                  NX_ALL(1, :, GI ) = (  DGI * NLX( :, GI ) - BGI * NLY( :, GI )) / DETJ
+                  NX_ALL(2, :, GI ) = ( -CGI * NLX( :, GI ) + AGI * NLY( :, GI )) / DETJ
 
-                  Loop_L5: DO L = 1, X_NLOC
-                      NX_ALL(1, L, GI ) = (  DGI * NLX( L, GI ) - BGI * NLY( L, GI )) / DETJ
-                      NX_ALL(2, L, GI ) = ( -CGI * NLX( L, GI ) + AGI * NLY( L, GI )) / DETJ
-!                      NX_ALL(3,L, GI ) = 0.0
-                  END DO Loop_L5
+                  !Jacobian^-1 to apply conversion for the velocity shape functions
+                  UNX_ALL(1, :, GI ) = (  DGI * UNLX( :, GI ) - BGI * UNLY( :, GI )) / DETJ
+                  UNX_ALL(2,:, GI ) = ( -CGI * UNLX( :, GI ) + AGI * UNLY( :, GI )) / DETJ
 
-
-                  Loop_L6: DO L = 1, U_NLOC
-                      UNX_ALL(1, L, GI ) = (  DGI * UNLX( L, GI ) - BGI * UNLY( L, GI )) / DETJ
-                      UNX_ALL(2,L, GI ) = ( -CGI * UNLX( L, GI ) + AGI * UNLY( L, GI )) / DETJ
-!                      UNX_ALL(3, L, GI ) = 0.0
-                  END DO Loop_L6
 
               END DO Loop_GI2
 
-          !ewrite(3,*)'ngi,sum(weight),rsum:',ngi,sum(weight),rsum
           case default
               Loop_GI1: DO GI = 1, NGI
 
@@ -8268,18 +8243,14 @@ ewrite(3,*)'lll:', option_path_len
                   A13=   ( BGI * FGI - CGI * EGI ) / DETJ
                   A23= - ( AGI * FGI - CGI * DGI ) / DETJ
                   A33=   ( AGI * EGI - BGI * DGI ) / DETJ
-
-                  Loop_L2: DO L = 1, X_NLOC
-                      NX_ALL(1, L, GI ) = A11 * NLX( L, GI) + A12 * NLY( L, GI ) + A13 * NLZ( L, GI )
-                      NX_ALL(2, L, GI ) = A21 * NLX( L, GI) + A22 * NLY( L, GI ) + A23 * NLZ( L, GI )
-                      NX_ALL(3, L, GI ) = A31 * NLX( L, GI) + A32 * NLY( L, GI ) + A33 * NLZ( L, GI )
-                  END DO Loop_L2
-
-                  Loop_L3: DO L = 1, U_NLOC
-                      UNX_ALL(1, L, GI ) = A11 * UNLX( L, GI) + A12 * UNLY( L, GI ) + A13 * UNLZ( L, GI )
-                      UNX_ALL(2, L, GI ) = A21 * UNLX( L, GI) + A22 * UNLY( L, GI ) + A23 * UNLZ( L, GI )
-                      UNX_ALL(3, L, GI ) = A31 * UNLX( L, GI) + A32 * UNLY( L, GI ) + A33 * UNLZ( L, GI )
-                  END DO Loop_L3
+                  !Jacobian^-1 to apply conversion for the CV shape functions
+                  NX_ALL(1, :, GI ) = A11 * NLX( :, GI) + A12 * NLY( :, GI ) + A13 * NLZ( :, GI )
+                  NX_ALL(2, :, GI ) = A21 * NLX( :, GI) + A22 * NLY( :, GI ) + A23 * NLZ( :, GI )
+                  NX_ALL(3, :, GI ) = A31 * NLX( :, GI) + A32 * NLY( :, GI ) + A33 * NLZ( :, GI )
+                  !Jacobian^-1 to apply conversion for the velocity shape functions
+                  UNX_ALL(1, :, GI ) = A11 * UNLX( :, GI) + A12 * UNLY( :, GI ) + A13 * UNLZ( :, GI )
+                  UNX_ALL(2, :, GI ) = A21 * UNLX( :, GI) + A22 * UNLY( :, GI ) + A23 * UNLZ( :, GI )
+                  UNX_ALL(3, :, GI ) = A31 * UNLX( :, GI) + A32 * UNLY( :, GI ) + A33 * UNLZ( :, GI )
 
               END DO Loop_GI1
       end select

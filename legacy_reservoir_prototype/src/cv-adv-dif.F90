@@ -16729,10 +16729,7 @@ CONTAINS
 
   end function vtolfun
 
-!
-! 
-! 
-! 
+
     real function get_relperm_epsilon(sat,iphase, Sr1, Sr2, kr_exp, krmax)
         Implicit none
         real, intent( in ) :: Sat, Sr1, Sr2, kr_exp, krmax
@@ -16743,8 +16740,8 @@ CONTAINS
             !Lower value just to make sure we do not divide by zero.
 
     end function get_relperm_epsilon
-! 
-! 
+
+
     real function inv_get_relperm_epsilon(sat,iphase, Sr1, Sr2, kr_exp, krmax)
         Implicit none
         real, intent( in ) :: Sat, Sr1, Sr2, kr_exp, krmax

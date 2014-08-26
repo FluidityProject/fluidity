@@ -776,11 +776,7 @@ start =
                         ## exponent a
                         element a {real}
                      }+
-                  },
-                   ## Project the capillary pressure (CV) to FEM.
-                     element Proj_capi_to_FEM { comment }?,
-                   ## Integration by parts of the capillary pressure term.
-                     element Int_by_parts { comment }?
+                  }
                }?,
                ## Immobile volume of fluid phase
                element immobile_fraction {real}?
