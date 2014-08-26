@@ -2748,13 +2748,16 @@
                 sfield=>extract_scalar_field( ms(icomp,iphase),trim(name),stat)
                 if (stat/= 0 ) cycle
 
-                allocate(tbc%applies(mfield%dim(1),mfield%dim(2)))
-                tbc%applies= .false.
-                tbc%applies(icomp,iphase)=.true.
                
                 do n=1,get_boundary_condition_count(sfield)
 
                   bc=>sfield%bc%boundary_condition(n)
+
+                  nullify(tbc%applies)
+                  allocate(tbc%applies(mfield%dim(1),mfield%dim(2)))
+                  tbc%applies= .false.
+                  tbc%applies(icomp,iphase)=.true.
+
                   
                   tbc%name=bc%name
                   tbc%type=bc%type
@@ -2805,10 +2808,6 @@
           do iphase=1,mfield%dim(2)
              vfield=>extract_vector_field( ms(1,iphase),trim(name),stat)
              if (stat/= 0 ) cycle
-
-             allocate(tbc%applies(mfield%dim(1),mfield%dim(2)))
-             tbc%applies= .false.
-             tbc%applies(:,iphase)=.true.
                
              do n=1,get_boundary_condition_count(vfield)
 
@@ -2822,6 +2821,12 @@
                 call incref(tbc%surface_mesh)
                 tbc%vector_surface_fields=>bc%surface_fields
                   
+
+                nullify(tbc%applies)
+                allocate(tbc%applies(mfield%dim(1),mfield%dim(2)))
+                tbc%applies=.false.
+                tbc%applies(:,iphase)=bc%applies(1:mfield%dim(1))
+
                 nbc=nbc+1
                 if (nbc>1) then
                    temp=>mfield%bc%boundary_condition
