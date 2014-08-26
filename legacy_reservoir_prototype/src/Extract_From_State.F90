@@ -216,25 +216,25 @@
 
 !!$ Linear mesh coordinate
       positions => extract_vector_field( state( 1 ), 'Coordinate' )
-!      call Get_Ndgln( x_ndgln_p1, positions )
+!!$      call Get_Ndgln( x_ndgln_p1, positions )
 !!$
 !!$ Positions/Coordinates
       pressure_cg_mesh => extract_mesh( state( 1 ), 'PressureMesh_Continuous' )
-!      call Get_Ndgln( x_ndgln, pressure_cg_mesh )
+!!$      call Get_Ndgln( x_ndgln, pressure_cg_mesh )
 !!$
 !!$ Pressure, control volume and material
       pressure => extract_scalar_field( state( 1 ), 'Pressure' )
-!      call Get_Ndgln( cv_ndgln, pressure )
-!      p_ndgln = cv_ndgln
-!      mat_ndgln = (/ (i, i = 1, totele * cv_nloc ) /)
+!!$      call Get_Ndgln( cv_ndgln, pressure )
+!!$      p_ndgln = cv_ndgln
+!!$      mat_ndgln = (/ (i, i = 1, totele * cv_nloc ) /)
 !!$
 !!$ Velocities
       velocity => extract_vector_field( state( 1 ), 'Velocity' )
-!      call Get_Ndgln( u_ndgln, velocity, cv_nloc )
-!$
+!!$      call Get_Ndgln( u_ndgln, velocity, cv_nloc )
+!!$
 !!$ Velocity in the continuous space
       velocity_cg_mesh => extract_mesh( state( 1 ), 'VelocityMesh_Continuous' )
-!      call Get_Ndgln( xu_ndgln, velocity_cg_mesh )
+!!$      call Get_Ndgln( xu_ndgln, velocity_cg_mesh )
 
 !!$ Surface-based global node numbers for control volumes and pressure
       call Get_SNdgln( cv_sndgln, pressure )
@@ -551,7 +551,6 @@
           u_dg_vel_int_opt = 1
           v_dg_vel_int_opt = 1
           v_disopt = 0 ; t_disopt = 0
-          t_theta = 1.0; v_theta = 1.0
       end if
 
       return
@@ -1680,8 +1679,8 @@
       if ( trim( field % name ) == 'Velocity' ) then
          if ( is_overlapping .and. ( ndim > 1 ) ) cv_nloc2 = cv_nloc
       end if
-      count = 0
 
+      count = 0
       do ele = 1, ele_count( field )
          nloc => ele_nodes( field, ele )
          do iloc = 1, ele_loc( field, 1 ) * cv_nloc2
@@ -1738,6 +1737,8 @@
          snloc = face_global_nodes( field, sele )
          do iloc = 1, face_loc( field, sele )
             sndgln( ( sele - 1 ) * face_loc( field, sele ) + iloc ) =  snloc( iloc )
+!!$            ewrite(3,*)'sele, iloc, sndgln:', sele, iloc, &
+!!$                 sndgln( ( sele - 1 ) * face_loc( field, sele ) + iloc )
          end do
       end do
 
@@ -1760,6 +1761,8 @@
          snloc = face_global_nodes( field, sele )
          do iloc = 1, face_loc( field, sele )
             sndgln( ( sele - 1 ) * face_loc( field, sele ) + iloc ) =  snloc( iloc )
+!!$            ewrite(3,*)'sele, iloc, sndgln:', sele, iloc, &
+!!$                 sndgln( ( sele - 1 ) * face_loc( field, sele ) + iloc )
          end do
       end do
 
@@ -2045,19 +2048,44 @@
       call insert(packed_state,pressure,"Pressure")
       call insert(packed_state,pressure%mesh,"PressureMesh")
 
-      call add_new_memory(packed_state,pressure,"FEPressure")
-      call add_new_memory(packed_state,pressure,"OldFEPressure")
-      call add_new_memory(packed_state,pressure,"CVPressure")
-      call add_new_memory(packed_state,pressure,"OldCVPressure")
+      if (has_scalar_field(state(1),"FEPressure")) then
+         sfield =>extract_scalar_field(state(1),"FEPressure")
+         call insert(packed_state,sfield,"FEPressure")
+         do icomp=1,ncomp
+            call insert(multicomponent_state(icomp),sfield,"FEPressure")
+         end do
+         sfield =>extract_scalar_field(state(1),"CVPressure")
+         call insert(packed_state,sfield,"CVPressure")
+         sfield =>extract_scalar_field(state(1),"OldFEPressure")
+         call insert(packed_state,sfield,"OldFEPressure")
+         sfield =>extract_scalar_field(state(1),"OldCVPressure")
+         call insert(packed_state,sfield,"OldCVPressure")
+      else
+         call add_new_memory(packed_state,pressure,"FEPressure")
+         call add_new_memory(packed_state,pressure,"CVPressure")
+         call add_new_memory(packed_state,pressure,"OldFEPressure")
+         call add_new_memory(packed_state,pressure,"OldCVPressure")
+         
+         if (have_option('/io/checkpointing')) then
+            sfield =>extract_scalar_field(packed_state,"FEPressure")
+            sfield%option_path=trim(state(1)%option_path)//'/scalar_field::FEPressure'
+            call copy_option(pressure%option_path,sfield%option_path)
+            call insert(state(1),sfield,"FEPressure")
+            sfield =>extract_scalar_field(packed_state,"CVPressure")
+            sfield%option_path=trim(state(1)%option_path)//'/scalar_field::CVPressure'
+            call copy_option(pressure%option_path,sfield%option_path)
+            call insert(state(1),sfield,"CVPressure")
+         end if
 
-      p2=>extract_scalar_field(packed_state,"FEPressure")
-      call set( p2, pressure )
-      do icomp=1,ncomp
-         call insert(multicomponent_state(icomp),p2,"FEPressure")
-      end do
-
-      p2=>extract_scalar_field(packed_state,"CVPressure")
-      call set( p2, pressure )
+         p2=>extract_scalar_field(packed_state,"FEPressure")
+         call set( p2, pressure )
+         do icomp=1,ncomp
+            call insert(multicomponent_state(icomp),p2,"FEPressure")
+         end do
+         
+         p2=>extract_scalar_field(packed_state,"CVPressure")
+         call set( p2, pressure )
+      end if
 
 
       call insert_sfield(packed_state,"FEDensity",1,nphase)
@@ -2756,6 +2784,12 @@
                 do n=1,get_boundary_condition_count(sfield)
 
                   bc=>sfield%bc%boundary_condition(n)
+
+                  nullify(tbc%applies)
+                  allocate(tbc%applies(mfield%dim(1),mfield%dim(2)))
+                  tbc%applies= .false.
+                  tbc%applies(icomp,iphase)=.true.
+
                   
                   tbc%name=bc%name
                   tbc%type=bc%type
@@ -2807,9 +2841,6 @@
              vfield=>extract_vector_field( ms(1,iphase),trim(name),stat)
              if (stat/= 0 ) cycle
 
-             allocate(tbc%applies(mfield%dim(1),mfield%dim(2)))
-             tbc%applies= .false.
-             tbc%applies(:,iphase)=.true.
                
              do n=1,get_boundary_condition_count(vfield)
 
@@ -2823,6 +2854,12 @@
                 call incref(tbc%surface_mesh)
                 tbc%vector_surface_fields=>bc%surface_fields
                   
+
+                nullify(tbc%applies)
+                allocate(tbc%applies(mfield%dim(1),mfield%dim(2)))
+
+                tbc%applies(:,iphase)=bc%applies
+
                 nbc=nbc+1
                 if (nbc>1) then
                    temp=>mfield%bc%boundary_condition
