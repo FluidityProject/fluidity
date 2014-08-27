@@ -929,7 +929,11 @@ contains
       end if
     case(FIELD_EQUATION_KEPSILON)      
       density_at_quad = ele_val_at_quad(density, ele)
-      mass_matrix = shape_shape(test_function, ele_shape(t, ele), detwei*density_at_quad)
+      if(multiphase) then
+         mass_matrix = shape_shape(test_function, ele_shape(t, ele), detwei*density_at_quad*ele_val_at_quad(nvfrac, ele))
+      else
+         mass_matrix = shape_shape(test_function, ele_shape(t, ele), detwei*density_at_quad)
+      end if
     case default
     
       if(move_mesh) then
@@ -1018,6 +1022,10 @@ contains
       velocity_at_quad = velocity_at_quad - ele_val_at_quad(grid_velocity, ele)
     end if
     
+    if(multiphase) then
+       nvfrac_at_quad = ele_val_at_quad(nvfrac, ele)
+    end if
+      
     select case(equation_type)
     case(FIELD_EQUATION_INTERNALENERGY)
       assert(ele_ngi(density, ele)==ele_ngi(olddensity, ele))
@@ -1027,10 +1035,6 @@ contains
       densitygrad_at_quad = density_theta*ele_grad_at_quad(density, ele, drho_t) &
                            +(1.-density_theta)*ele_grad_at_quad(olddensity, ele, drho_t)
       udotgradrho_at_quad = sum(densitygrad_at_quad*velocity_at_quad, 1)
-      
-      if(multiphase) then
-         nvfrac_at_quad = ele_val_at_quad(nvfrac, ele)
-      end if
 
     case(FIELD_EQUATION_KEPSILON)
       density_at_quad = ele_val_at_quad(density, ele)
@@ -1067,7 +1071,11 @@ contains
           end if
         end if
       case(FIELD_EQUATION_KEPSILON)
-        advection_mat = -dshape_dot_vector_shape(dt_t, velocity_at_quad, t_shape, detwei*density_at_quad)
+        if(multiphase) then
+           advection_mat = -dshape_dot_vector_shape(dt_t, velocity_at_quad, t_shape, detwei*density_at_quad*nvfrac_at_quad)
+        else
+           advection_mat = -dshape_dot_vector_shape(dt_t, velocity_at_quad, t_shape, detwei*density_at_quad)
+        end if
         if(abs(1.0 - beta) > epsilon(0.0)) then
           velocity_div_at_quad = ele_div_at_quad(velocity, ele, du_t)
           advection_mat = advection_mat &
@@ -1116,7 +1124,11 @@ contains
           end if
         end if
       case(FIELD_EQUATION_KEPSILON)
-        advection_mat = shape_vector_dot_dshape(test_function, velocity_at_quad, dt_t, detwei*density_at_quad)
+        if(multiphase) then
+           advection_mat = shape_vector_dot_dshape(test_function, velocity_at_quad, dt_t, detwei*density_at_quad*nvfrac_at_quad)
+        else
+           advection_mat = shape_vector_dot_dshape(test_function, velocity_at_quad, dt_t, detwei*density_at_quad)
+        end if
         if(abs(beta) > epsilon(0.0)) then
           velocity_div_at_quad = ele_div_at_quad(velocity, ele, du_t)
           advection_mat = advection_mat &
