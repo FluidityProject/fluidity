@@ -2325,12 +2325,27 @@ contains
     type(tensor_field), pointer        :: exactsgs
 
     character(len=OPTION_PATH_LEN)     :: les_option_path, bc_path, bc_path_i
+    character(len=OPTION_PATH_LEN)     :: bc_component_path, bc_type_path
     character(len=FIELD_NAME_LEN)      :: bc_name, bc_type
+    character(len=20), dimension(3)    :: aligned_components
+    ! possible vector components for vector b.c.s
+    ! either carteisan aligned or aligned with the surface
+    character(len=20), parameter, dimension(3) :: &
+         cartesian_aligned_components=(/ &
+           "x_component", &
+           "y_component", &
+           "z_component" /), &
+         surface_aligned_components=(/ &
+           "normal_component   ", & 
+           "tangent_component_1", &
+           "tangent_component_2" /)
+    logical, dimension(:), allocatable :: applies
     integer, dimension(:), allocatable :: surface_ids
     integer                            :: shape_option(2)
     type(mesh_type), pointer           :: bc_surface_mesh
     type(tensor_field)                 :: bc_field
     integer                            :: i, j, k, nbcs, stat
+    real                               :: val
 
     ewrite(2,*) "Adding Dirichlet boundary conditions to Exact SGS tensor field"
 
@@ -2346,6 +2361,9 @@ contains
     else
        exactsgs => extract_tensor_field(state, "SGSTensor", stat)
     end if
+
+    ! allocate local arrays
+    allocate(applies(velocity%dim))
 
     ! Get number of boundary conditions
     bc_path = trim(velocity%option_path)//'/prognostic/boundary_conditions'
@@ -2370,35 +2388,62 @@ contains
        select case(trim(bc_type))
 
        case("dirichlet")
-          ! Add boundary condition
-          call add_boundary_condition(exactsgs, trim(bc_name), trim(bc_type), surface_ids)
 
-          ewrite(2,*) "calling get_tensor_boundary_condition, ", trim(bc_name)
-          ! ask for a mesh of this part of the surface only
-          call get_boundary_condition(exactsgs, name=trim(bc_name), surface_mesh=bc_surface_mesh)
+          if(have_option(trim(bc_path_i)//"/type[0]/align_bc_with_cartesian")) then
+             aligned_components=cartesian_aligned_components
+             bc_type_path=trim(bc_path_i)//"/type[0]/align_bc_with_cartesian"
+          else
+             aligned_components=surface_aligned_components             
+             bc_type_path=trim(bc_path_i)//"/type[0]/align_bc_with_surface"
+          end if
 
-          ! allocate a field on it to set b.c. values on
-          call allocate(bc_field, bc_surface_mesh, name='value', field_type=exactsgs%field_type, dim=exactsgs%dim)
+          ! get only non-slip BCs
+          do j=1,velocity%dim
+             bc_component_path = trim(bc_type_path)//"/"//aligned_components(j)
+             applies(j) = have_option(trim(bc_component_path)//"/constant")
+             if(applies(j)) then
+               call get_option(trim(bc_component_path)//"/constant", val)
+               if(val /= 0.0) then
+                 applies(j) = 0
+               end if
+             end if
+          end do
 
-          ! set it to some constant
-          !do j = 1, bc_field%dim(1)
-          !   do k = 1, bc_field%dim(2)
-          !      bc_comp = extract_scalar_field(bc_field, j, k)
-          !      call set(bc_comp, 0.0)
-          !   end do
-          !end do
+          ! if all Dirichlet components are zero
+          if(all(applies)) then
 
-          ! insert it to the boundary condition:
-          call insert_surface_field(exactsgs, trim(bc_name), bc_field)
+             ! Add boundary condition
+             call add_boundary_condition(exactsgs, trim(bc_name), trim(bc_type), surface_ids)
+
+             ewrite(2,*) "calling get_tensor_boundary_condition, ", trim(bc_name)
+             ! ask for a mesh of this part of the surface only
+             call get_boundary_condition(exactsgs, name=trim(bc_name), surface_mesh=bc_surface_mesh)
+
+             ! allocate a field on it to set b.c. values on
+             call allocate(bc_field, bc_surface_mesh, name='value', field_type=exactsgs%field_type, dim=exactsgs%dim)
+
+             ! set it to some constant
+             !do j = 1, bc_field%dim(1)
+             !   do k = 1, bc_field%dim(2)
+             !      bc_comp = extract_scalar_field(bc_field, j, k)
+             !      call set(bc_comp, 0.0)
+             !   end do
+             !end do
+
+             ! insert it to the boundary condition:
+             call insert_surface_field(exactsgs, trim(bc_name), bc_field)
     
-          ! deallocate our reference
-          call deallocate(bc_field)
+             ! deallocate our reference
+             call deallocate(bc_field)
 
+          end if
        end select
 
        deallocate(surface_ids)
 
     end do boundary_conditions
+
+  deallocate(applies)
 
   end subroutine populate_exactsgs_boundary_conditions
 
