@@ -199,6 +199,16 @@ requires a distinct name for the options dictionary.</a:documentation>
       </choice>
     </oneOrMore>
     <zeroOrMore>
+      <element name="prescribed_region">
+        <a:documentation>Prescribed different regions of the field</a:documentation>
+        <attribute name="name">
+          <data type="string" datatypeLibrary=""/>
+        </attribute>
+        <ref name="region_ids"/>
+        <ref name="input_choice_initial_condition_vector"/>
+      </element>
+    </zeroOrMore>
+    <zeroOrMore>
       <ref name="scalar_boundary_conditions"/>
     </zeroOrMore>
     <optional>

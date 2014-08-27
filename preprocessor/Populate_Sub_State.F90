@@ -133,7 +133,8 @@ contains
 
     integer :: number_of_prescribed_regions
 
-    number_of_prescribed_regions = option_count("/material_phase/vector_field::Velocity/prognostic/prescribed_region")
+    number_of_prescribed_regions = option_count("/material_phase/vector_field::Velocity/prognostic/prescribed_region") + &
+         option_count("/material_phase/scalar_field::Temperature/prognostic/prescribed_region")
 
     use_sub_state = (number_of_prescribed_regions > 0)
 

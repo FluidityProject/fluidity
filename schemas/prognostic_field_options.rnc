@@ -158,6 +158,14 @@ prognostic_scalar_field =
             input_choice_initial_condition_real
          }
       )+,
+      (
+         ## Prescribed different regions of the field
+            element prescribed_region {
+            attribute name { string },
+            region_ids,
+            input_choice_initial_condition_vector
+         }
+      )*,
       scalar_boundary_conditions*,
       ## Choice of subgridscale model to apply to this field. 
       ## Note that the selected parameterisation must be switched 
