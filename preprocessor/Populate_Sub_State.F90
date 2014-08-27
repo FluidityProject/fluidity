@@ -176,6 +176,7 @@ contains
     type(vector_field) :: position
 
     type(vector_field), pointer :: velocity
+    type(scalar_field), pointer :: temperature
 
     integer, allocatable, dimension(:) :: sndglno, boundary_ids, element_owner
 
@@ -188,17 +189,19 @@ contains
     mesh_name = external_mesh%name
 
     velocity => extract_vector_field(states(1),"Velocity")
+    temperature => extract_scalar_field(states(1),"Temperature")
 
     number_of_prescribed_regions = &
-         option_count(trim(velocity%option_path)// "/prognostic/prescribed_region")
+         option_count(trim(velocity%option_path)// "/prognostic/prescribed_region") + &
+         option_count(trim(temperature%option_path)// "/prognostic/prescribed_region") 
     ewrite(2,*) 'Number of prescribed_regions',number_of_prescribed_regions
     
     call allocate(prescribed_region_id_set)
     do i = 1, number_of_prescribed_regions
-      prescribed_regions_shape = option_shape(trim(velocity%option_path)// &
+      prescribed_regions_shape = option_shape(trim(temperature%option_path)// &
                                                "/prognostic/prescribed_region["//int2str(i-1)//"]/region_ids")
       allocate(prescribed_region_ids(prescribed_regions_shape(1)))
-      call get_option(trim(velocity%option_path)// &
+      call get_option(trim(temperature%option_path)// &
                      "/prognostic/prescribed_region["//int2str(i-1)//"]/region_ids", prescribed_region_ids)
 
       call insert(prescribed_region_id_set, prescribed_region_ids)
@@ -476,6 +479,7 @@ contains
 
        ! Loop over fields (scalar, vector, tensor) in order.
        ! Start with scalar fields:
+
        nsfields = scalar_field_count(sub_states(istate))
        do ifield = 1, nsfields
           ! Extract subdomain field from sub_state:
@@ -532,12 +536,13 @@ contains
 
     type(state_type), dimension(:), intent(in):: states
 
+    type(scalar_field), pointer :: sfield
     type(vector_field), pointer :: vfield
     type(vector_field), pointer :: position
     !! current time if not using that in the options tree
     real, intent(in), optional :: time
 
-    integer :: istate, ifield, nstates, nvfields
+    integer :: istate, ifield, nstates, nvfields, nsfields
 
     ewrite(1,*) 'Setting full domain prescribed fields'
 
@@ -547,6 +552,26 @@ contains
     ! Loop over states:
     do istate = 1, nstates
        
+       ! Deal with scalar fields:
+       nsfields = scalar_field_count(states(istate))
+
+       do ifield = 1, nsfields
+
+          sfield => extract_scalar_field(states(istate), ifield)
+
+          ! At present this only works for velocity:
+          if (have_option(trim(sfield%option_path)// "/prognostic/prescribed_region") .and. &
+               .not. aliased(sfield) ) then
+
+             position => get_external_coordinate_field(states(istate), sfield%mesh)
+
+             call initialise_field_over_regions(sfield, &
+                trim(sfield%option_path)// "/prognostic/prescribed_region", &
+                position,time=time)
+
+          end if
+       end do
+
        ! Deal with vector fields:
        nvfields = vector_field_count(states(istate))
 
