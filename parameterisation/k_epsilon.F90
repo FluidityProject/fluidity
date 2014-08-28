@@ -948,7 +948,7 @@ end subroutine keps_tracer_diffusion
 
 subroutine keps_bcs(state)
 
-  type(state_type), intent(inout)            :: state
+  type(state_type), intent(in)            :: state
   type(scalar_field), pointer                :: field1, field2    ! k or epsilon
   type(scalar_field), pointer                :: f_1, f_2, f_mu
   type(scalar_field), pointer                :: surface_field, scalar_eddy_visc
