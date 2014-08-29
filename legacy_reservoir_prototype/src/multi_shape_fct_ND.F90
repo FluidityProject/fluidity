@@ -1251,13 +1251,7 @@
       if (ELE == totele) indx = abs(indx)
       !#########Storing area finished########################
 
-         D1 = .false.;D3 = .false.
-         select case (ndim)
-             case (1)
-                 D1 = .true.
-             case (3)
-                 D3 = .true.
-         end select
+         D1 = (NDIM == 1); D3 = (NDIM == 3)
          call DETNLXR( ELE, X_ALL(1,:),X_ALL(2,:),X_ALL(3,:), XONDGL, TOTELE, NONODS, NLOC, NGI, &
          N, NLX_ALL(1,:,:), NLX_ALL(2,:,:), NLX_ALL(3,:,:), WEIGHT, DETWEI, RA, VOLUME, D1, D3, DCYL, &
          NX_ALL(1, :,:),NX_ALL(2, :,:),NX_ALL(3, :,:) )
