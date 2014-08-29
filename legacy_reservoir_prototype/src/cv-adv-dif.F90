@@ -7317,6 +7317,151 @@ end if
 
 
 
+
+  SUBROUTINE LINEAR_HIGH_DIFFUS_CAL_COEFF_STRESS_OR_TENSOR( STRESS_IJ_ELE_EXT,  S_INV_NNX_MAT12,  &
+       STRESS_FORM, STRESS_FORM_STAB, ZERO_OR_TWO_THIRDS, &
+       U_SNLOC, U_NLOC, CV_SNLOC, CV_NLOC, MAT_NLOC, NPHASE,  &
+       SBUFEN,SBCVFEN, SDETWEI, SBCVNGI, NDIM, SLOC_UDIFFUSION, SLOC_UDIFFUSION_VOL, SLOC2_UDIFFUSION, SLOC2_UDIFFUSION_VOL, DIFF_GI_ADDED, &
+       ELE, ELE2, SNORMXN_ALL  )
+    ! This sub calculates the effective diffusion coefficientd STRESS_IJ_ELE_EXT
+    ! it only works for between element contributions. 
+    ! based on a high order scheme. 
+! The matrix  S_INV_NNX_MAT12 is used to calculate the rows of the matrix with STRESS_IJ_ELE_EXT. 
+! This implements the stress and tensor form of diffusion and calculates a jump conidition. 
+! which is in DIFF_COEF_DIVDX, DIFF_COEFOLD_DIVDX
+! The coefficient are in N_DOT_DKDU, N_DOT_DKDUOLD. 
+! look at the manual DG treatment of viscocity. 
+    IMPLICIT NONE
+    LOGICAL, intent( in ) :: STRESS_FORM, STRESS_FORM_STAB
+    INTEGER, intent( in ) :: U_SNLOC, U_NLOC, CV_SNLOC,CV_NLOC, MAT_NLOC, NPHASE,  &
+         &                   SBCVNGI, NDIM, ELE, ELE2
+    REAL, intent( in ) :: ZERO_OR_TWO_THIRDS
+    REAL, DIMENSION( NDIM, NDIM, NPHASE, U_SNLOC, 2*U_NLOC ), intent( inout ) :: STRESS_IJ_ELE_EXT
+    REAL, DIMENSION( NDIM, U_SNLOC, 2*U_NLOC ), intent( inout ) :: S_INV_NNX_MAT12
+    REAL, DIMENSION( CV_SNLOC, SBCVNGI  ), intent( in ) :: SBCVFEN
+    REAL, DIMENSION( U_SNLOC, SBCVNGI  ), intent( in ) :: SBUFEN
+    REAL, DIMENSION( SBCVNGI ), intent( in ) :: SDETWEI
+    REAL, DIMENSION( NDIM,NDIM,NPHASE,CV_SNLOC ), intent( in ) :: SLOC_UDIFFUSION, SLOC2_UDIFFUSION
+    REAL, DIMENSION( NPHASE,CV_SNLOC ), intent( in ) :: SLOC_UDIFFUSION_VOL, SLOC2_UDIFFUSION_VOL
+    ! DIFF_GI_ADDED( IDIM, :,:) is for dimension IDIM e.g IDIM=1 corresponds to U 
+    ! the rest is for the diffusion tensor. 
+    REAL, DIMENSION( NDIM, NDIM,NDIM, NPHASE, SBCVNGI), intent( in ) :: DIFF_GI_ADDED
+    REAL, DIMENSION( NDIM, SBCVNGI ), intent( in ) :: SNORMXN_ALL
+! local variables...
+    REAL, DIMENSION( : , :, :, : ), allocatable :: DIFF_GI, DIFF_GI2
+    REAL, DIMENSION( : , : ), allocatable :: DIFF_VOL_GI, DIFF_VOL_GI2
+
+    INTEGER :: CV_KLOC,CV_KLOC2,MAT_KLOC,MAT_KLOC2,MAT_NODK,MAT_NODK2,IDIM,JDIM,CV_SKLOC
+    INTEGER :: SGI,IPHASE,U_ILOC_EXT,U_JLOC_EXT,I,J, U_SILOC, U_SJLOC
+
+
+          ALLOCATE( DIFF_GI(NDIM,NDIM,NPHASE,SBCVNGI) )
+          ALLOCATE( DIFF_GI2(NDIM,NDIM,NPHASE,SBCVNGI) )
+
+          ALLOCATE( DIFF_VOL_GI(NPHASE,SBCVNGI) )
+          ALLOCATE( DIFF_VOL_GI2(NPHASE,SBCVNGI) )
+
+          DIFF_GI = 0.0
+          DIFF_VOL_GI = 0.0
+          DO CV_SKLOC = 1, CV_SNLOC
+             DO SGI=1,SBCVNGI
+                DO IPHASE=1, NPHASE
+                   DIFF_GI( 1:NDIM , 1:NDIM, IPHASE, SGI ) = DIFF_GI( 1:NDIM , 1:NDIM, IPHASE, SGI ) &
+                     + SBCVFEN(CV_SKLOC,SGI) * SLOC_UDIFFUSION( 1:NDIM , 1:NDIM , IPHASE, CV_SKLOC )
+
+                   DIFF_VOL_GI( IPHASE, SGI ) = DIFF_VOL_GI( IPHASE, SGI ) &
+                     + SBCVFEN(CV_SKLOC,SGI) * SLOC_UDIFFUSION_VOL( IPHASE, CV_SKLOC )
+                END DO
+             END DO
+          END DO
+          DIFF_GI=MAX(0.0, DIFF_GI) 
+          DIFF_VOL_GI=MAX(0.0, DIFF_VOL_GI) 
+
+! neighbouring element...
+             DIFF_GI2 = 0.0
+             DIFF_VOL_GI2 = 0.0
+             DO CV_SKLOC = 1, CV_SNLOC
+                DO SGI=1,SBCVNGI
+                   DO IPHASE=1, NPHASE
+                      DIFF_GI2( 1:NDIM, 1:NDIM, IPHASE, SGI )= DIFF_GI2( 1:NDIM, 1:NDIM, IPHASE, SGI ) +SBCVFEN(CV_SKLOC,SGI) &
+                        *SLOC2_UDIFFUSION(1:NDIM, 1:NDIM ,IPHASE, CV_SKLOC)
+
+                      DIFF_VOL_GI2( IPHASE, SGI )= DIFF_VOL_GI2( IPHASE, SGI ) +SBCVFEN(CV_SKLOC,SGI) &
+                        *SLOC2_UDIFFUSION_VOL(IPHASE, CV_SKLOC)
+                   END DO
+                END DO
+             END DO
+             DIFF_GI2=MAX(0.0, DIFF_GI2) 
+             DIFF_VOL_GI2=MAX(0.0, DIFF_VOL_GI2) 
+
+             DIFF_GI=0.5*(DIFF_GI+DIFF_GI2)
+             DIFF_VOL_GI=0.5*(DIFF_VOL_GI+DIFF_VOL_GI2)
+
+             
+          IF(STRESS_FORM_STAB) THEN
+
+                DO IDIM=1,NDIM
+                   DO JDIM=1,NDIM
+                      DIFF_GI(IDIM, JDIM, :, :) = DIFF_GI(IDIM, JDIM, :, :) &
+                       + SQRT( DIFF_GI_ADDED(IDIM, 1,1, :, :) * DIFF_GI_ADDED(JDIM, 1,1, :, :) )
+
+                   END DO
+                END DO
+                
+          ELSE 
+                DO IDIM=1,NDIM
+                      DIFF_GI(IDIM, IDIM, :, :) = DIFF_GI(IDIM, IDIM, :, :) &
+                       +  DIFF_GI_ADDED(IDIM, 1,1, :, :) 
+                END DO
+          ENDIF
+
+
+       STRESS_IJ_ELE_EXT=0.0
+
+       IF(STRESS_FORM) THEN
+          DO U_SILOC=1,U_SNLOC
+             DO U_JLOC_EXT=1,U_NLOC*2
+
+                DO I=1,U_SNLOC
+                    DO SGI=1,SBCVNGI
+          CALL CALC_STRESS_TEN( STRESS_IJ_ELE_EXT( :, :, IPHASE, U_SILOC, U_JLOC_EXT ), ZERO_OR_TWO_THIRDS, NDIM, &
+               SNORMXN_ALL(:,SGI)*SBUFEN(U_SILOC,SGI)* SBUFEN(I,SGI)*SDETWEI( SGI ), S_INV_NNX_MAT12( 1:NDIM, I, U_JLOC_EXT ), DIFF_GI( :, :, IPHASE, SGI ), DIFF_VOL_GI( IPHASE, SGI) ) 
+                    END DO
+                END DO
+                
+             END DO
+          END DO
+       ELSE ! tensor form of viscocity...
+          DO U_SILOC=1,U_SNLOC
+             DO U_SJLOC=1,U_SNLOC
+
+                DO I=1,U_SNLOC
+                    DO SGI=1,SBCVNGI
+                       DO IDIM=1,NDIM 
+                          STRESS_IJ_ELE_EXT( IDIM, IDIM, IPHASE, U_SILOC, U_SJLOC ) = STRESS_IJ_ELE_EXT( IDIM, IDIM, IPHASE, U_SILOC, U_SJLOC ) &
+                            + SNORMXN_ALL(IDIM,SGI)*SBUFEN(U_SILOC,SGI)* SBUFEN(I,SGI)*SDETWEI( SGI )  &
+                                 * SUM( DIFF_GI( IDIM, :, IPHASE, SGI ) *  S_INV_NNX_MAT12( :, I, U_JLOC_EXT ) )
+                       END DO
+                    END DO
+                END DO
+                
+             END DO
+          END DO
+       ENDIF
+
+
+!          CALL CALC_STRESS_TEN( STRESS_IJ_ELE( :, :, IPHASE, U_SILOC, U_JLOC_EXT ), ZERO_OR_TWO_THIRDS, NDIM, &
+!               UFENX_ALL( 1:NDIM, U_ILOC, GI ), UFENX_ALL( 1:NDIM, U_JLOC, GI )* DETWEI( GI ), TEN_XX( :, :, IPHASE, GI ), TEN_VOL( IPHASE, GI) ) 
+
+
+    RETURN            
+
+  END SUBROUTINE LINEAR_HIGH_DIFFUS_CAL_COEFF_STRESS_OR_TENSOR
+
+
+
+
+
         SUBROUTINE FOR_TENS_DERIVS_NDOTS( DIFF_STAND_DIVDX_U, N_DOT_DKDU, N_DOT_DKDUOLD,  &
                  DIFF_GI_ADDED, SLOC_DUX_ELE_ALL, SLOC_DUOLDX_ELE_ALL, SLOC_UDIFFUSION, SLOC_UDIFFUSION_VOL, &
                  NDIM_VEL, NDIM, NPHASE, U_SNLOC, CV_SNLOC, SBCVNGI, SBUFEN, SBCVFEN, SNORMXN_ALL, HDC, ZERO_OR_TWO_THIRDS, &
