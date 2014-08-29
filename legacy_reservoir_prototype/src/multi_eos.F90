@@ -853,11 +853,11 @@
                      if (is_corey) then
                           if (options%is_Corey_epsilon_method) then
                              CALL relperm_corey_epsilon( U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ), MOBILITY, &
-                                 INV_PERM( IDIM, JDIM, ELE ), min(1.0,max(0.0,SATURATION)), IPHASE,&
+                                 INV_PERM( IDIM, JDIM, ELE ), min(1.0,max(0.0,SATURA(1,CV_NOD))), IPHASE,&
                                  options)!Second phase is considered inside the subroutine
                           else
                                 CALL relperm_corey( U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ), MOBILITY, &
-                                     INV_PERM( IDIM, JDIM, ELE ), min(1.0,max(0.0,SATURATION)), IPHASE,&
+                                     INV_PERM( IDIM, JDIM, ELE ), min(1.0,max(0.0,SATURA(1,CV_NOD))), IPHASE,&
                                      options)
                              end if
 
@@ -867,7 +867,7 @@
 
                      else if (is_land) then
                         CALL relperm_land( U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ), MOBILITY, &
-                             INV_PERM( IDIM, JDIM, ELE ), min(1.0,max(0.0,SATURATION)), IPHASE,&
+                             INV_PERM( IDIM, JDIM, ELE ), min(1.0,max(0.0,SATURA(1,CV_NOD))), IPHASE,&
                              options)
                      else
                         U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ) = 0.0
@@ -1909,10 +1909,9 @@
       type(state_type), intent(inout) :: packed_state
       INTEGER, intent( in ) :: CV_NONODS, NPHASE
       ! Local Variables
-      INTEGER :: nstates, ncomps, nphases, IPHASE, JPHASE, i, j, k
+      INTEGER :: nstates, ncomps, nphases, IPHASE, JPHASE, i, j
       real c, a, S_OR, S_GC, auxO, auxW
       character(len=OPTION_PATH_LEN) option_path, phase_name
-      REAL, DIMENSION( NPHASE, CV_NONODS ) :: adapted_satura
       !Corey options
       type(corey_options) :: options
       !Working pointers
@@ -1966,18 +1965,14 @@
                         auxW = S_OR
                         auxO = S_GC
                     end if
-                    forall (k = 1  : CV_NONODS )
-                        !Effective saturation has to be between one and zero
-                        adapted_satura(jphase,k) = max(min((satura(jphase,k) - auxW)/(1.0 - auxW - auxO), 1.0), 1d-5)!<--Inferior limit just to avoid NaN... in theory it should never be reached
-                    end forall
 
                   call get_option(trim(option_path)//"/phase["//int2str(j)//"]/c", c)
                   call get_option(trim(option_path)//"/phase["//int2str(j)//"]/a", a)
                   !Apply Brooks-Corey model
-!                  capillary_pressure( 1 + ( IPHASE - 1 ) * CV_NONODS : IPHASE * CV_NONODS ) = &
-!                       capillary_pressure( 1 + ( IPHASE - 1 ) * CV_NONODS : IPHASE * CV_NONODS ) + &
-!                       c * adapted_satura( jphase,: ) ** (-a)
-                  CapPressure( iphase, : ) = CapPressure( iphase, : ) + c * adapted_satura( jphase,: ) ** (-a)
+                  CapPressure( iphase, : ) = CapPressure( iphase, : ) + c *&
+!                  max(min(satura(jphase,:), 1.0), 1d-5)&!<= to use just the saturation
+                   max(min((satura(jphase,:) - auxW)/(1.0 - auxW - auxO), 1.0), 1d-4)&!<=Effective saturation bounded
+                    ** (-a)
                endif
 
             END DO
@@ -2392,8 +2387,6 @@
       type(tensor_field), pointer :: velocity, volfrac, perm
       type(tensor_field) :: velocity_BCs, volfrac_BCs
 
-      logical :: Avoid_epsilon
-
     !Get from packed_state
       volfrac=>extract_tensor_field(packed_state,"PackedPhaseVolumeFraction")
       velocity=>extract_tensor_field(packed_state,"PackedVelocity")
@@ -2475,19 +2468,11 @@
                         ! of the first phase
                         satura_bc = volfrac_BCs%val(1,1,cv_snodi)
 
-                        !If the initial state have a sat == to the irresidual saturation
-                        !the absorption term would be extremely high, hence it is better to switch to the corey method.
-                        select case (iphase)
-                            case (1)
-                                Avoid_epsilon = satura_bc - options%s_gc < 1d-8
-                            case default
-                                Avoid_epsilon = satura_bc - options%s_or < 1d-8
-                        end select
 !                        sigma_out = 0.
                         do idim = 1, ndim
                            do jdim = 1, ndim
                               if (is_corey) then
-                                if (options%is_Corey_epsilon_method.and..not.Avoid_epsilon) then
+                                if (options%is_Corey_epsilon_method) then
                                      call relperm_corey_epsilon( sigma_out( idim, jdim ), mobility, &
                                           inv_perm( idim, jdim ), satura_bc, iphase,options)
                                  else

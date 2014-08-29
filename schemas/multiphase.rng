@@ -1068,18 +1068,6 @@ Pc = c * ((S_w-Swir)/(1-Swirr-Sor)) ** -a</a:documentation>
                       </element>
                     </oneOrMore>
                   </element>
-                  <optional>
-                    <element name="Proj_capi_to_FEM">
-                      <a:documentation>Project the capillary pressure (CV) to FEM.</a:documentation>
-                      <ref name="comment"/>
-                    </element>
-                  </optional>
-                  <optional>
-                    <element name="Int_by_parts">
-                      <a:documentation>Integration by parts of the capillary pressure term.</a:documentation>
-                      <ref name="comment"/>
-                    </element>
-                  </optional>
                 </element>
               </optional>
               <optional>

@@ -74,6 +74,7 @@
        module procedure Get_Scalar_SNdgln, Get_Vector_SNdgln
     end interface Get_SNdgln
 
+
   contains
 
 
@@ -230,7 +231,7 @@
 !!$ Velocities
       velocity => extract_vector_field( state( 1 ), 'Velocity' )
 !!$      call Get_Ndgln( u_ndgln, velocity, cv_nloc )
-!!$
+!$
 !!$ Velocity in the continuous space
       velocity_cg_mesh => extract_mesh( state( 1 ), 'VelocityMesh_Continuous' )
 !!$      call Get_Ndgln( xu_ndgln, velocity_cg_mesh )
@@ -833,8 +834,8 @@
       x_all => extract_vector_field( packed_state, "PressureCoordinate" )
       do idim = 1, ndim
           if( idim ==1 ) x_all % val( idim, : ) = x
-          if( idim ==2 )   x_all % val( idim, : ) = y
-          if( idim ==3 )   x_all % val( idim, : ) = z
+          if( idim ==2 ) x_all % val( idim, : ) = y
+          if( idim ==3 ) x_all % val( idim, : ) = z
       end do
 
 !!$
@@ -1736,8 +1737,6 @@
          snloc = face_global_nodes( field, sele )
          do iloc = 1, face_loc( field, sele )
             sndgln( ( sele - 1 ) * face_loc( field, sele ) + iloc ) =  snloc( iloc )
-!!$            ewrite(3,*)'sele, iloc, sndgln:', sele, iloc, &
-!!$                 sndgln( ( sele - 1 ) * face_loc( field, sele ) + iloc )
          end do
       end do
 
@@ -1760,8 +1759,6 @@
          snloc = face_global_nodes( field, sele )
          do iloc = 1, face_loc( field, sele )
             sndgln( ( sele - 1 ) * face_loc( field, sele ) + iloc ) =  snloc( iloc )
-!!$            ewrite(3,*)'sele, iloc, sndgln:', sele, iloc, &
-!!$                 sndgln( ( sele - 1 ) * face_loc( field, sele ) + iloc )
          end do
       end do
 
@@ -2751,13 +2748,16 @@
                 sfield=>extract_scalar_field( ms(icomp,iphase),trim(name),stat)
                 if (stat/= 0 ) cycle
 
-                allocate(tbc%applies(mfield%dim(1),mfield%dim(2)))
-                tbc%applies= .false.
-                tbc%applies(icomp,iphase)=.true.
                
                 do n=1,get_boundary_condition_count(sfield)
 
                   bc=>sfield%bc%boundary_condition(n)
+
+                  nullify(tbc%applies)
+                  allocate(tbc%applies(mfield%dim(1),mfield%dim(2)))
+                  tbc%applies= .false.
+                  tbc%applies(icomp,iphase)=.true.
+
                   
                   tbc%name=bc%name
                   tbc%type=bc%type
@@ -2808,10 +2808,6 @@
           do iphase=1,mfield%dim(2)
              vfield=>extract_vector_field( ms(1,iphase),trim(name),stat)
              if (stat/= 0 ) cycle
-
-             allocate(tbc%applies(mfield%dim(1),mfield%dim(2)))
-             tbc%applies= .false.
-             tbc%applies(:,iphase)=.true.
                
              do n=1,get_boundary_condition_count(vfield)
 
@@ -2825,6 +2821,12 @@
                 call incref(tbc%surface_mesh)
                 tbc%vector_surface_fields=>bc%surface_fields
                   
+
+                nullify(tbc%applies)
+                allocate(tbc%applies(mfield%dim(1),mfield%dim(2)))
+                tbc%applies=.false.
+                tbc%applies(:,iphase)=bc%applies(1:mfield%dim(1))
+
                 nbc=nbc+1
                 if (nbc>1) then
                    temp=>mfield%bc%boundary_condition
@@ -3586,7 +3588,6 @@ subroutine allocate_multicomponent_scalar_bcs(s,ms,name)
       end if
 
     end function GetFEMName
-
 
 
   end module Copy_Outof_State

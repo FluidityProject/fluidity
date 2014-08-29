@@ -404,7 +404,7 @@ contains
 
 
 
-
+    !This sub is currently unused
     SUBROUTINE CV_ASSEMB_CV_DG( state, packed_state, &
          tracer, velocity, density, pressure, &
     CV_RHS, &
@@ -2663,12 +2663,7 @@ contains
         type(scalar_field), target :: Targ_C_Mat
         real, dimension(:,:,:), pointer :: Point_C_Mat
         !Capillary pressure variables
-        logical :: capillary_pressure_activated, Int_by_part_CapPress
-        real, dimension(:,:), pointer :: CapPressure
-        real, dimension(NPHASE) :: auxVariable
-        type(tensor_field), target :: FEMCapPressure
-        integer :: k
-        logical :: CAP_to_FEM
+        logical :: capillary_pressure_activated
 !! femdem
         type( vector_field ), pointer :: delta_u_all, us_all
         type( scalar_field ), pointer :: sf
@@ -2884,9 +2879,20 @@ contains
         ewrite(3,*) 'RESID_BASED_STAB_DIF, U_NONLIN_SHOCK_COEF, RNO_P_IN_A_DOT:', &
         RESID_BASED_STAB_DIF, U_NONLIN_SHOCK_COEF, RNO_P_IN_A_DOT
 
-        QUAD_OVER_WHOLE_ELE = is_overlapping.OR.is_compact_overlapping ! Do NOT divide element into CV's to form quadrature.
+
+        !For Porous media to make QUAD_OVER_WHOLE_ELE = .false. to work, the element pair
+        !has to be of the type PnDGPnDG
+        ! Do NOT divide element into CV's to form quadrature.
+        QUAD_OVER_WHOLE_ELE = is_overlapping.OR.is_compact_overlapping
+        !Don't use QUAD_OVER_WHOLE_ELE if it is not necessary
+        if (QUAD_OVER_WHOLE_ELE) then
+            !if PnDGPnDG are in use we can disable the quadrature over the whole element
+            QUAD_OVER_WHOLE_ELE = (U_NLOC/=CV_NLOC)
+        end if
+
         call retrieve_ngi( ndim, u_ele_type, cv_nloc, u_nloc, &
-        cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface, QUAD_OVER_WHOLE_ELE )
+        cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface, QUAD_OVER_WHOLE_ELE)
+
         if ( is_overlapping ) then
             nlev = cv_nloc
             U_NLOC2 = max( 1, U_NLOC/CV_NLOC )
@@ -3212,12 +3218,9 @@ contains
         END IF
 
         !======= DEFINE THE SUB-CONTROL VOLUME SHAPE FUNCTIONS, ETC ========
-
         ! Shape functions associated with volume integration using both CV basis
         ! functions CVN as well as FEM basis functions CVFEN (and its derivatives CVFENLX, CVFENLY, CVFENLZ)
-
         !======= DEFINE THE SUB-CONTROL VOLUME & FEM SHAPE FUNCTIONS ========
-
         CALL cv_fem_shape_funs_plus_storage( &
                              ! Volume shape functions...
            NDIM, P_ELE_TYPE,  &
@@ -3267,7 +3270,6 @@ contains
             NFACE, FACE_ELE, U_SLOCLIST, CV_SLOCLIST, STOTEL, U_SNLOC, CV_SNLOC, WIC_U_BC_ALL_VISC, SUF_U_BC_ALL_VISC, &
             SBCVNGI, SBUFEN, SBUFENSLX, SBUFENSLY, SBCVFEWEIGH, &
             SBCVFEN, SBCVFENSLX, SBCVFENSLY ,&
-!            state, "CTY", StorageIndexes(23))
             state ,"C_1", StorageIndexes(14))!<== We use the same index that we use in the DETNLXR_PLUS_U_WITH_STORAGE
             !below since inside this subroutine the only thing we store is DETNLXR_PLUS_U_WITH_STORAGE
         ENDIF
@@ -3326,37 +3328,10 @@ contains
         endif
 
 
-        !###Section to check options regarding capillary pressure.###
-        CAP_to_FEM = .false.
-        Int_by_part_CapPress = .false.
-        do iphase =1, nphase
-            CAP_to_FEM = CAP_to_FEM .or. have_option("/material_phase["// int2str( iphase - 1 ) //&
-                "]/multiphase_properties/capillary_pressure/Proj_capi_to_FEM")
-
-            Int_by_part_CapPress =  Int_by_part_CapPress .or. have_option("/material_phase["// int2str( iphase - 1 ) //&
-                "]/multiphase_properties/capillary_pressure/Int_by_parts")
-        end do
-        !Force Int_by_part_CapPress to be true only if capillary pressure has been activated
-        Int_by_part_CapPress = capillary_pressure_activated .and. Int_by_part_CapPress
-
-        if (capillary_pressure_activated) then
-            if (CAP_to_FEM) then
-                !Project capillary pressure to Finite Elements
-                call proj_capillary_pressure2FEM(state, packed_state,FEMCapPressure, X_ALL, FINDM, COLM, MIDM,&
-                mass_ele, cv_ndgln, cv_nloc, cv_snloc, u_snloc, cv_nonods, ncolm, &
-                nphase, totele, x_ndgln, x_nloc, x_nonods, P_ELE_TYPE, u_nloc, StorageIndexes)
-                !Set the capillary pressure to be the FEM one
-                CapPressure => FEMCapPressure%val(1,:,:)
-            else
-                call get_var_from_packed_state(packed_state, CapPressure = CapPressure)
-            end if
-        end if
-        !###End capillary pressure option section###
-
         Loop_Elements: DO ELE = 1, TOTELE ! Volume integral
 
             ! Calculate DETWEI,RA,NX,NY,NZ for element ELE
-            CALL DETNLXR_PLUS_U_WITH_STORAGE( ELE, X, Y, Z, X_NDGLN, TOTELE, X_NONODS, &
+            CALL DETNLXR_PLUS_U_WITH_STORAGE( ELE, X_ALL(1,:), X_ALL(2,:), X_ALL(3,:), X_NDGLN, TOTELE, X_NONODS, &
             X_NLOC, CV_NLOC, CV_NGI, &
             CVFEN, CVFENLX_ALL(1,:,:), CVFENLX_ALL(2,:,:), CVFENLX_ALL(3,:,:), CVWEIGHT, DETWEI, RA, VOLUME, D1, D3, DCYL, &
             CVFENX_ALL, &
@@ -3443,13 +3418,13 @@ contains
                 END DO
             END DO
 
-            !Make a local copy of the Capillary pressure values.
-            if (capillary_pressure_activated) then
-                DO CV_ILOC = 1, CV_NLOC
-                    CV_INOD = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_ILOC )
-                    LOC_PLIKE_GRAD_SOU_GRAD( :, CV_ILOC ) = CapPressure(:, CV_INOD)
-                end do
-            end if
+!            !Make a local copy of the Capillary pressure values.
+!            if (capillary_pressure_activated) then
+!                DO CV_ILOC = 1, CV_NLOC
+!                    CV_INOD = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_ILOC )
+!                    LOC_PLIKE_GRAD_SOU_GRAD( :, CV_ILOC ) = CapPressure(:, CV_INOD)
+!                end do
+!            end if
 
             DO P_ILOC = 1, P_NLOC
                 P_INOD = P_NDGLN( ( ELE - 1 ) * P_NLOC + P_ILOC )
@@ -4072,9 +4047,9 @@ contains
             !CALL DG_DIFFUSION( ELE, U_NLOC, U_NONODS, TOTELE, LMMAT1, LMMAT, LNXNMAT1, LNNXMAT, LINVMMAT1, &
             !LINVMNXNMAT1, AMAT )
 
-            !For capillary pressure there is no coefficient multiplying
-            !so we set it to 1
-            if ( capillary_pressure_activated ) GRAD_SOU_GI = 1.0
+!            !For capillary pressure there is no coefficient multiplying
+!            !so we set it to 1
+!            if ( capillary_pressure_activated ) GRAD_SOU_GI = 1.0
 
             ! Add in C matrix contribution: (DG velocities)
             Loop_ILEV1: DO ILEV = 1, NLEV
@@ -4083,21 +4058,14 @@ contains
 
                     Loop_P_JLOC1: DO P_JLOC = 1, P_NLOC
                         if(.not.got_c_matrix) JCV_NOD = P_NDGLN( ( ELE - 1 ) * P_NLOC + P_JLOC )
-
                         !In this section we multiply the shape functions over the GI points. I.E: We perform the integration
                         !over the element of the pressure like source term.
-                        if ( CAPILLARY_PRESSURE_ACTIVATED .OR. IPLIKE_GRAD_SOU == 1) then
+                        if ( IPLIKE_GRAD_SOU == 1) then
                             !In this section of the assembly we add the volumetric part.
-                            if (Int_by_part_CapPress) then
-                                ! -Integral(CVFEN CapPressure ᐁUFEN dV)
-                                GRAD_SOU_GI_NMX( :, : ) = -SPREAD(matmul(UFENX_ALL(:,U_ILOC,:),&
-                                    DETWEI( : ) *CVFEN( P_JLOC, : )), DIM=2, NCOPIES=NPHASE)
-                            else !Volumetric integral
-                                ! Coeff * Integral(N ᐁCVFEN PLIKE_GRAD_SOU dV)
-                                GRAD_SOU_GI_NMX( :, :) = matmul(CVFENX_ALL(:,P_JLOC,:),&
-                                SPREAD(DETWEI( : ) *UFEN( U_ILOC, : ), DIM=2, NCOPIES=NPHASE)*&
-                                transpose(GRAD_SOU_GI(:, :)))
-                            end if
+                            ! Coeff * Integral(N ᐁCVFEN PLIKE_GRAD_SOU dV)
+                            GRAD_SOU_GI_NMX( :, :) = matmul(CVFENX_ALL(:,P_JLOC,:),&
+                            SPREAD(DETWEI( : ) *UFEN( U_ILOC, : ), DIM=2, NCOPIES=NPHASE)*&
+                            transpose(GRAD_SOU_GI(:, :)))
                         end if
                         ! Coeff * Integral(N ᐁCVFEN VOL_FRA dV)
                         IF(IGOT_VOL_X_PRESSURE==1) THEN
@@ -4130,7 +4098,7 @@ contains
                                     ENDIF
                                 END DO
                             END IF
-                            IF ( IPLIKE_GRAD_SOU == 1 .OR. CAPILLARY_PRESSURE_ACTIVATED ) THEN ! Capillary pressure for example terms...
+                            IF ( IPLIKE_GRAD_SOU == 1) THEN ! Pressure like term
                                 DO IDIM = 1, NDIM_VEL
                                     LOC_U_RHS( IDIM, IPHASE, U_ILOC ) = LOC_U_RHS( IDIM, IPHASE, U_ILOC ) &
                                     - GRAD_SOU_GI_NMX( IDIM, IPHASE ) * LOC_PLIKE_GRAD_SOU_GRAD( IPHASE, P_JLOC )
@@ -4142,7 +4110,6 @@ contains
                 END DO Loop_U_ILOC1
             END DO Loop_ILEV1
             !ewrite(3,*)'just after Loop_U_ILOC1'
-
             ! **********REVIEWER 2-END**********************
 
 
@@ -4225,7 +4192,7 @@ contains
 
                         P_DX( :, GI ) = P_DX( :, GI ) + CVFENX_ALL(1:NDIM, P_ILOC, GI ) * LOC_P( P_ILOC )
 
-                        IF ( IPLIKE_GRAD_SOU == 1 .OR. CAPILLARY_PRESSURE_ACTIVATED ) THEN ! Capillary pressure for example terms...
+                        IF ( IPLIKE_GRAD_SOU == 1 ) THEN ! Pressure like terms...
                             DO IPHASE = 1, NPHASE
                                 R = GRAD_SOU_GI( IPHASE, GI ) * LOC_PLIKE_GRAD_SOU_GRAD( IPHASE, P_ILOC )
                                 DO IDIM = 1, NDIM_VEL
@@ -4548,15 +4515,6 @@ contains
             end if
          end if
                 
-            !Create local copy of capillary pressure values
-            if (Int_by_part_CapPress) then
-                DO CV_ILOC = 1, CV_NLOC
-                    CV_INOD = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_ILOC )
-                    LOC_PLIKE_GRAD_SOU_GRAD( :, CV_ILOC ) = CapPressure(:, CV_INOD)
-                end do
-            end if
-
-
             ! for copy local memory copying...
             LOC_U_RHS = 0.0
 
@@ -4599,6 +4557,8 @@ contains
                 SNORMXN_ALL, &
                 NORMX_ALL )
 
+
+                !Surface integral along an element
                 If_ele2_notzero_1: IF(ELE2 /= 0) THEN
                     ! ***********SUBROUTINE DETERMINE_OTHER_SIDE_FACE - START************
 
@@ -4652,6 +4612,7 @@ contains
                                         IF ( U_INOD2 == U_INOD ) THEN
                                             U_ILOC_OTHER_SIDE( U_SILOC ) = U_ILOC2
                                             U_OTHER_LOC( U_ILOC )=U_ILOC2
+                                            exit
                                         END IF
                                     END DO
                                 END DO
@@ -4666,6 +4627,7 @@ contains
                                 MAT_INOD2 = X_NDGLN(( ELE2 - 1 ) * MAT_NLOC + MAT_ILOC2 )
                                 IF ( MAT_INOD2 == MAT_INOD ) THEN
                                     MAT_OTHER_LOC( MAT_ILOC )=MAT_ILOC2
+                                    exit
                                 END IF
                             END DO
                         END DO
@@ -4696,45 +4658,13 @@ contains
                     ENDIF
                 END IF If_ele2_notzero_1
 
+                !Calculate all the necessary stuff and introduce the CapPressure in the RHS
+                if (capillary_pressure_activated) call Introduce_Cap_press_term(state, packed_state,&
+                X_ALL, LOC_U_RHS, ele, x_nloc,FACE_ELE,cv_ndgln, cv_nloc, cv_snloc, u_snloc, totele,&
+                x_nonods, x_ndgln, P_ELE_TYPE, StorageIndexes, QUAD_OVER_WHOLE_ELE, ncolm, findm,&
+                colm, midm, mass_ele, ele2, iface, sdetwe, SNORMXN_ALL, U_SLOC2LOC, CV_SLOC2LOC, MAT_OTHER_LOC)
 
 
-                !Calculate all the necessary stuff to introduce the CapPressure in the RHS when
-                !integration by parts is used.
-                !Surface integral along an element
-                if (Int_by_part_CapPress) then
-                    !Get the neighbouring CV nodes
-                    if (ELE2 > 0) then
-                        DO P_SJLOC = 1, P_SNLOC
-                            U_ILOC = CV_SLOC2LOC( P_SJLOC )
-                            CV_INOD = X_NDGLN( ( ELE - 1 ) * CV_NLOC + U_ILOC )
-                            DO CV_ILOC2 = 1, CV_NLOC
-                                CV_INOD2 = X_NDGLN(( ELE2 - 1 ) * CV_NLOC + CV_ILOC2 )
-                                IF ( CV_INOD2 == CV_INOD ) THEN
-                                    CV_ILOC_OTHER_SIDE( P_SJLOC ) = CV_ILOC2
-                                END IF
-                            END DO
-                        END DO
-                    end if
-
-                    DO U_SILOC = 1, U_SNLOC
-                        U_ILOC = U_SLOC2LOC( U_SILOC )
-                        DO P_SJLOC = 1, P_SNLOC
-                            P_JLOC = CV_SLOC2LOC( P_SJLOC )
-                            CV_INOD = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + P_JLOC )
-                            NMX_ALL = matmul(SNORMXN_ALL( :, : ), SBUFEN( U_SILOC, : ) * SBCVFEN( P_SJLOC, : ) * SDETWE( : ))
-                            if (ELE2 > 0) then!If neighbour then we get its value to calculate the average
-                                CV_INOD2 = CV_NDGLN( ( ELE2 - 1 ) * CV_NLOC + CV_ILOC_OTHER_SIDE(P_SJLOC) )
-                                auxVariable = CapPressure(:, CV_INOD2)
-                            else!If no neighbour then we use the same value.
-                                auxVariable = LOC_PLIKE_GRAD_SOU_GRAD( :, P_JLOC )
-                            end if
-                            do iphase = 1, nphase
-                                LOC_U_RHS( :, IPHASE, U_ILOC) =  LOC_U_RHS( :, IPHASE, U_ILOC ) &
-                                - NMX_ALL(:) * 0.5* (LOC_PLIKE_GRAD_SOU_GRAD( iphase, P_JLOC ) + auxVariable(iphase))
-                            end do
-                        end do
-                    end do
-                end if
 
                 ! ********Mapping to local variables****************
                 ! CV variables...
@@ -4924,10 +4854,10 @@ contains
 
 
                 If_on_boundary_domain: IF(SELE /= 0) THEN
+
                     ! ***********SUBROUTINE DETERMINE_SUF_PRES - START************
                     ! Put the surface integrals in for pressure b.c.'s
                     ! that is add into C matrix and U_RHS. (DG velocities)
-
                     U_NLOC2 = MAX( 1, U_NLOC/CV_NLOC )
                     Loop_ILOC2: DO U_SILOC = 1, U_SNLOC
                         U_ILOC = U_SLOC2LOC( U_SILOC )
@@ -4958,18 +4888,10 @@ contains
                                     U_NONODS, FINDC, COLC, NCOLC, &
                                     IDO_STORE_AC_SPAR_PT, STORED_AC_SPAR_PT, POSINMAT_C_STORE, ELE, U_ILOC, P_JLOC, &
                                     TOTELE, U_NLOC, P_NLOC )
-!                                    !#####TEMPORARY FIX##### CHECK THAT IT WORKS, IT HAS TO BE EXTENDED TO ALL THE PLACES
-!                                    !WHERE LOC_U_RHS IS USED
-!                                    CALL USE_POSINMAT_C_STORE( COUNT, U_NDGLN( ( ELE - 1 ) * U_NLOC + U_ILOC ),  &
-!                                    P_NDGLN((ELE-1) * P_NLOC + P_JLOC), U_NONODS, FINDC, COLC, NCOLC, &
-!                                    IDO_STORE_AC_SPAR_PT, STORED_AC_SPAR_PT, POSINMAT_C_STORE, ELE, U_ILOC, P_JLOC, &
-!                                    TOTELE, U_NLOC, P_NLOC )
-!                                    !#####TEMPORARY FIX#####
                                 END IF
 
                                 Loop_Phase2: DO IPHASE = 1, NPHASE
                                     IF( WIC_P_BC_ALL( SELE ) == WIC_P_BC_DIRICHLET ) THEN
-
                                         DO IDIM = 1, NDIM_VEL
                                             IF(IGOT_VOL_X_PRESSURE==1) THEN
                                                IF ( .NOT.GOT_C_MATRIX ) THEN
@@ -4987,22 +4909,13 @@ contains
                                                - NMX_ALL( IDIM ) * SUF_P_BC_ALL( P_SJLOC + P_SNLOC* ( SELE - 1 ) ) * SELE_OVERLAP_SCALE( P_JLOC )
                                             ENDIF
                                         END DO
-
                                     END IF
-
                                 END DO Loop_Phase2
                             ENDIF
-
-
-
                         END DO Loop_JLOC2
-
                     END DO Loop_ILOC2
                    ! ***********SUBROUTINE DETERMINE_SUF_PRES - END************
                 ENDIF If_on_boundary_domain
-
-
-
 
 
                 If_ele2_notzero: IF(ELE2 /= 0) THEN
@@ -5587,7 +5500,6 @@ contains
 
 
                                         IF( WIC_U_BC_ALL_VISC( IDIM, IPHASE, SELE2 ) == WIC_U_BC_DIRICHLET ) THEN
-
                                            IF(NO_MATRIX_STORE) THEN
                                               LOC_U_RHS( IDIM,IPHASE,U_ILOC ) &
                                               =  LOC_U_RHS( IDIM,IPHASE,U_ILOC ) - VLM_NEW * SLOC_U( IDIM,IPHASE,U_SJLOC ) 
@@ -5642,7 +5554,6 @@ contains
                                         ENDIF
                                         ! BC for incoming momentum...
                                         IF( WIC_MOMU_BC_ALL( IDIM, IPHASE, SELE2 ) == WIC_U_BC_DIRICHLET ) THEN
-
                                             IF(MOM_CONSERV) THEN
 
                                                 IF(.NOT.NO_MATRIX_STORE) THEN
@@ -5797,6 +5708,10 @@ contains
         DEALLOCATE( U_ILOC_OTHER_SIDE )
         DEALLOCATE( CV_ILOC_OTHER_SIDE )
 
+        DEALLOCATE(STORED_U_ILOC_OTHER_SIDE)
+        DEALLOCATE(STORED_U_OTHER_LOC)
+        DEALLOCATE(STORED_MAT_OTHER_LOC)
+
         DEALLOCATE( CV_ON_FACE )
         DEALLOCATE( U_ON_FACE )
         DEALLOCATE(CVFEM_ON_FACE)
@@ -5885,10 +5800,6 @@ contains
         call deallocate(velocity_BCs_robin2)
         call deallocate(momentum_BCs)
         call deallocate(pressure_BCs)
-
-!        !Deallocate variable used to project the capillary pressure into FEM
-        if (CAP_to_FEM) call deallocate(FEMCapPressure)
-
 
         ewrite(3,*)'Leaving assemb_force_cty'
 
@@ -7921,7 +7832,6 @@ contains
             END DO
         endif
 
-
         ALLOCATE( FACE_ELE( NFACE, TOTELE ) ) ; FACE_ELE = 0
         ! Calculate FACE_ELE
         CALL CALC_FACE_ELE( FACE_ELE, TOTELE, STOTEL, NFACE, &
@@ -8763,6 +8673,7 @@ contains
     mass_ele, cv_ndgln, cv_nloc, cv_snloc, u_snloc, cv_nonods, ncolm,&
     nphase, totele, x_ndgln, x_nloc, x_nonods, P_ELE_TYPE, u_nloc, StorageIndexes)
         !This subroutine projects the CV representation of the capillary pressure to FEM
+        !Everything is internal
         Implicit none
         type( state_type ), dimension( : ), intent( inout ) :: state
         type( state_type ), intent( inout ) :: packed_state
@@ -8804,7 +8715,7 @@ contains
         QUAD_OVER_WHOLE_ELE = .false. ! Do NOT divide element into CV's to form quadrature.
         !if (StorageIndexes(1) == 0) &
         call retrieve_ngi( ndim, P_ELE_TYPE, cv_nloc, u_nloc, &
-           cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface, .false. )
+           cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface, QUAD_OVER_WHOLE_ELE )
         ALLOCATE( CV_ON_FACE( CV_NLOC, SCVNGI ), CVFEM_ON_FACE( CV_NLOC, SCVNGI ))
         ALLOCATE( U_ON_FACE( U_NLOC, SCVNGI ), UFEM_ON_FACE( U_NLOC, SCVNGI ))
 
@@ -8829,6 +8740,7 @@ contains
                                 ! Define the gauss points that lie on the surface of the CV...
            FINDGPTS, COLGPTS, NCOLGPTS, &
            SELE_OVERLAP_SCALE, QUAD_OVER_WHOLE_ELE,&
+!           state, 'Vel_mesh', StorageIndexes(13))
            state, 'Press_mesh' , StorageIndexes(1) )
          !#####Area to obtain shape functions#####
 
@@ -8853,10 +8765,224 @@ contains
                0, PSI_AVE(1)%ptr%val(1,:), FINDM, COLM, NCOLM )! <=== Dummy variables, not used inside
 
 
-
         !Deallocate auxiliar variables
         call deallocate(vfield)
         deallocate(cv_on_face, cvfem_on_face, u_on_face, ufem_on_face)
     end subroutine Proj_capillary_pressure2FEM
+
+
+    subroutine Introduce_Cap_press_term(state, packed_state, X_ALL, LOC_U_RHS, ele, x_nloc,FACE_ELE,&
+        cv_ndgln, cv_nloc, cv_snloc, u_snloc, totele, x_nonods, x_ndgln, P_ELE_TYPE, StorageIndexes,&
+         QUAD_OVER_WHOLE_ELE, ncolm, findm, colm, midm, mass_ele, ele2, iface, sdetwe, SNORMXN_ALL, &
+         U_SLOC2LOC, CV_SLOC2LOC, MAT_OTHER_LOC)
+            !This subroutine introduces the capillary pressure term in the RHS
+            Implicit none
+            type( state_type ), dimension( : ), intent( inout ) :: state
+            type( state_type ), intent( inout ) :: packed_state
+            integer, intent(in) :: ele, x_nloc, cv_nloc, x_nonods, P_ELE_TYPE, &
+            cv_snloc, totele, u_snloc, ncolm, iface, ele2
+            INTEGER, DIMENSION( : ), intent( in ) :: FINDM
+            INTEGER, DIMENSION( : ), intent( in ) :: COLM
+            INTEGER, DIMENSION( : ), intent( in ) :: MIDM
+            real, dimension(:), intent(inout) :: mass_ele
+            integer, dimension(:), intent(in) :: cv_ndgln, x_ndgln
+            integer, dimension(:,:), intent(in) :: FACE_ELE
+            integer, dimension(:), intent(inout) :: StorageIndexes
+            REAL, DIMENSION ( :, :, : ), intent(inout) :: LOC_U_RHS
+            real, dimension(:,:) :: X_ALL
+            logical, intent(in) :: QUAD_OVER_WHOLE_ELE
+            real, dimension(:,:), intent(in) :: SNORMXN_ALL
+            integer, dimension(:), intent(in) :: U_SLOC2LOC, CV_SLOC2LOC, MAT_OTHER_LOC
+            real, dimension(:), intent(in) :: sdetwe
+            !Local parameters
+            !!Use a finite element projection of the CapPressure, it can only be false for PnDGPn(DG) elements
+            logical, parameter :: Cap_to_FEM = .true.
+            !Use integration by parts to introduce the CapPressure, otherwise it uses the integration by parts twice approach
+            logical, parameter :: Int_by_part_CapPress = .false.
+            !Local variables
+            integer :: ndim, cv_ngi, cv_ngi_short,scvngi, nface, sbcvngi, nphase, u_nloc,&
+            cv_nonods, iphase, cv_inod, u_siloc, cv_jloc,&
+            CV_SJLOC, u_iloc, cv_Xnod
+            logical :: d1, d3
+            logical, dimension(  : , : ), allocatable :: cv_on_face, cvfem_on_face, u_on_face, ufem_on_face
+            real, dimension(:,:), pointer :: CapPressure, CV_Bound_Shape_Func, CV_Shape_Func
+            real, dimension(:), allocatable :: NMX_ALL
+            !Variables for FEM projection
+            type(tensor_field_pointer), dimension(1) :: psi,fempsi
+            type(scalar_field), pointer :: sfield_pointer
+            type(tensor_field), target :: tfield
+            type(tensor_field), pointer :: tfield_pointer
+            !Pointers for detwei
+            real, pointer, dimension(:) :: DETWEI, RA
+            real, pointer:: volume
+            REAL, pointer, DIMENSION(:,:,:):: CVFENX_ALL, UFENX_ALL
+            !Pointers for cv_fem_shape_funs_plus_storage
+            integer, pointer :: ncolgpts
+            integer, dimension(:), pointer ::findgpts,colgpts
+            integer, dimension(:,:), pointer :: cv_neiloc, cv_sloclist, u_sloclist
+            real, dimension( : ), pointer :: cvweight,cvweight_short, scvfeweigh,sbcvfeweigh,&
+            SELE_OVERLAP_SCALE
+            real, dimension( : , : ), pointer:: cvn,cvn_short, cvfen, cvfen_short,ufen,&
+            scvfen, scvfenslx, scvfensly, sufen, sufenslx, sufensly,&
+            sbcvn,sbcvfen, sbcvfenslx, sbcvfensly, sbufen, sbufenslx, sbufensly
+            real, dimension(  : , : , :), pointer ::  cvfenlx_all, cvfenlx_short_all, ufenlx_all,&
+            scvfenlx_all, sufenlx_all, sbcvfenlx_all, sbufenlx_all
+
+            !Prepare local variables
+            ndim = size(LOC_U_RHS,1); nphase = size(LOC_U_RHS,2)
+            nface = size(FACE_ELE,1)
+            call get_var_from_packed_state(packed_state, CapPressure = CapPressure)
+            cv_nonods = size(CapPressure,2)
+            u_nloc = size(LOC_U_RHS,3)
+            d1 = (ndim ==1); d3 = (ndim ==3)
+
+            !#####Area to retrieve the shape functions#####
+            !Only if we need to calculate the shape functions we retrieve the ngi data
+            call retrieve_ngi( ndim, P_ELE_TYPE, cv_nloc, u_nloc, &
+            cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface, QUAD_OVER_WHOLE_ELE )
+
+            ALLOCATE( CV_ON_FACE( CV_NLOC, SCVNGI ), CVFEM_ON_FACE( CV_NLOC, SCVNGI ))
+            ALLOCATE( U_ON_FACE( U_NLOC, SCVNGI ), UFEM_ON_FACE( U_NLOC, SCVNGI ))
+            allocate(NMX_ALL(ndim))
+            CALL cv_fem_shape_funs_plus_storage( &
+                                 ! Volume shape functions...
+            NDIM, P_ELE_TYPE,  &
+            CV_NGI, CV_NGI_SHORT, CV_NLOC, U_NLOC, CVN, CVN_SHORT, &
+            CVWEIGHT, CVFEN, CVFENLX_ALL, &
+            CVWEIGHT_SHORT, CVFEN_SHORT, CVFENLX_SHORT_ALL, &
+            UFEN, UFENLX_ALL, &
+                                 ! Surface of each CV shape functions...
+            SCVNGI, CV_NEILOC, CV_ON_FACE, CVFEM_ON_FACE, &
+            SCVFEN, SCVFENSLX, SCVFENSLY, SCVFEWEIGH, &
+            SCVFENLX_ALL,  &
+            SUFEN, SUFENSLX, SUFENSLY,  &
+            SUFENLX_ALL,  &
+                                 ! Surface element shape funcs...
+            U_ON_FACE, UFEM_ON_FACE, NFACE, &
+            SBCVNGI, SBCVN, SBCVFEN,SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, SBCVFENLX_ALL, &
+            SBUFEN, SBUFENSLX, SBUFENSLY, SBUFENLX_ALL, &
+            CV_SLOCLIST, U_SLOCLIST, CV_SNLOC, U_SNLOC, &
+                                 ! Define the gauss points that lie on the surface of the CV...
+            FINDGPTS, COLGPTS, NCOLGPTS, &
+            SELE_OVERLAP_SCALE, QUAD_OVER_WHOLE_ELE,&
+            state, 'Vel_mesh', StorageIndexes(13))
+
+             !Retrieve detwei and ufenx_all
+            CALL DETNLXR_PLUS_U_WITH_STORAGE( ELE, X_ALL(1,:), X_ALL(2,:), X_ALL(3,:), X_NDGLN, TOTELE, X_NONODS, &
+            X_NLOC, CV_NLOC, CV_NGI, &
+            CVFEN, CVFENLX_ALL(1,:,:), CVFENLX_ALL(2,:,:), CVFENLX_ALL(3,:,:), CVWEIGHT, DETWEI, RA, VOLUME, D1, D3, .false., &
+            CVFENX_ALL, &
+            U_NLOC, UFENLX_ALL(1,:,:), UFENLX_ALL(2,:,:), UFENLX_ALL(3,:,:), UFENX_ALL,&
+            state ,"C_1", StorageIndexes(14))
+
+            !##### End of area to obtain shape functions#####
+
+            !Project to FEM
+            if (CAP_to_FEM) then
+                if (ELE == 1 ) then
+                !The FEM projection has to be done only once (since it projects all the nodes at once)
+                    if (iface == 1) then
+                        sfield_pointer=>extract_scalar_field(packed_state,"Pressure")
+                        call allocate(tfield, sfield_pointer%mesh, dim = [1,NPHASE])
+                        tfield_pointer => extract_tensor_field( packed_state, "PackedCapPressure" )
+                        psi(1)%ptr => tfield_pointer
+                        fempsi(1)%ptr => tfield
+                        !Use a different integration set for the FEM projection
+                        call Proj_capillary_pressure2FEM(state, packed_state, tfield, X_ALL, FINDM, COLM, MIDM,&
+                        mass_ele, cv_ndgln, cv_nloc, cv_snloc, u_snloc, cv_nonods, ncolm,&
+                        nphase, totele, x_ndgln, x_nloc, x_nonods, P_ELE_TYPE, u_nloc, StorageIndexes)
+                        !Store the FEM projection in packed state to have automatic access for all the nodes
+                        CapPressure = fempsi(1)%ptr%val(1,:,:)
+                        !Deallocate auxiliar variables For FEM projection
+                        call deallocate(tfield)
+                    end if
+                end if
+                !Point my pointers to the FEM shape functions
+                CV_Bound_Shape_Func => SBCVFEN
+                CV_Shape_Func => CVFEN
+            else
+                !Point my shape functions to the Control volume ones
+                CV_Bound_Shape_Func => SBCVN
+                CV_Shape_Func => CVN
+            end if
+
+            !This option by default
+            if (Int_by_part_CapPress .or. .not. CAP_to_FEM) then
+                if (iface == 1) then!The volumetric term is added just one time
+                    !Firstly we add the volumetric integral
+                    DO U_ILOC = 1, U_NLOC
+                        DO CV_JLOC = 1, CV_NLOC
+                            ! -Integral(CVN CapPressure ᐁUFEN dV)
+                            CV_INOD = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_JLOC )
+                            DO IPHASE = 1, NPHASE
+                                LOC_U_RHS( :, IPHASE, U_ILOC ) = LOC_U_RHS( :, IPHASE, U_ILOC ) &
+                                !(CVN ᐁUFEN)
+                                + matmul(UFENX_ALL(:,U_ILOC,:),CV_Shape_Func( CV_JLOC, : ) *DETWEI( : ))&
+                                !CapPressure
+                                * CapPressure(IPHASE, CV_INOD)
+                            END DO
+                        end do
+                    end do
+                end if
+                !Performing the surface integral, -Integral(CVN CapPressure ᐁUFEN dV)
+                DO U_SILOC = 1, U_SNLOC
+                    U_ILOC = U_SLOC2LOC( U_SILOC )
+                    DO CV_SJLOC = 1, CV_SNLOC
+                        CV_JLOC = CV_SLOC2LOC( CV_SJLOC )
+                        CV_INOD = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_JLOC )
+                        NMX_ALL = matmul(SNORMXN_ALL( :, : ), SBUFEN( U_SILOC, : ) &
+                        * CV_Bound_Shape_Func( CV_SJLOC, : ) * SDETWE( : ))
+                        if (ELE2 > 0) then!If neighbour then we get its value to calculate the average
+                            cv_Xnod = CV_NDGLN( ( ELE2 - 1 ) * CV_NLOC + MAT_OTHER_LOC(CV_JLOC) )
+                        else!If no neighbour then we use the same value.
+                            cv_Xnod = CV_INOD
+                        end if
+                        do iphase = 1, nphase
+                            LOC_U_RHS( :, IPHASE, U_ILOC) =  LOC_U_RHS( :, IPHASE, U_ILOC ) &
+                            - NMX_ALL(:) * 0.5*(CapPressure(iphase, CV_INOD)+CapPressure(iphase, cv_Xnod))
+                        end do
+                    end do
+                end do
+            else!Volumetric integration only (requires the CapPressure to be in FEM)
+                if (iface ==1) then!The volumetric term is added just one time
+                    DO U_ILOC = 1, U_NLOC
+                        DO CV_JLOC = 1, CV_NLOC
+                            ! Integral(ᐁCVN CapPressure UFEN dV)
+                            CV_INOD = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_JLOC )
+                            DO IPHASE = 1, NPHASE
+                                LOC_U_RHS( :, IPHASE, U_ILOC ) = LOC_U_RHS( :, IPHASE, U_ILOC ) &
+                                !(ᐁCVN UFEN)
+                                - matmul(CVFENX_ALL(:,CV_JLOC,:),UFEN( U_ILOC, : ) *DETWEI( : ))&
+                                !CapPressure
+                                * CapPressure(IPHASE, CV_INOD)
+                            END DO
+                        end do
+                    end do
+                end if
+                !Get neighbouring nodes
+                !Performing the surface integral, Integral(CVN (Average CapPressure) ᐁUFEN dV)
+!                DO U_SILOC = 1, U_SNLOC
+!                    U_ILOC = U_SLOC2LOC( U_SILOC )
+!                    DO CV_SJLOC = 1, CV_SNLOC
+!                        CV_JLOC = CV_SLOC2LOC( CV_SJLOC )
+!                        CV_INOD = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_JLOC )
+!                        NMX_ALL = matmul(SNORMXN_ALL( :, : ), SBUFEN( U_SILOC, : ) * SBCVFEN( CV_SJLOC, : ) * SDETWE( : ))
+!                        if (ELE2 > 0) then!If neighbour then we get its value to calculate the average
+!                            cv_Xnod = CV_NDGLN( ( ELE2 - 1 ) * CV_NLOC + MAT_OTHER_LOC(CV_JLOC) )
+!                        else!If no neighbour then we use the same value.
+!                            cv_Xnod = CV_INOD
+!                        end if
+!                        do iphase = 1, nphase
+!                            LOC_U_RHS( :, IPHASE, U_ILOC) =  LOC_U_RHS( :, IPHASE, U_ILOC ) &
+!                            + NMX_ALL(:) * 0.5* (CapPressure(iphase, CV_INOD) - CapPressure(iphase, cv_Xnod))
+!                        end do
+!                    end do
+!                end do
+            end if
+
+            !Deallocate auxiliar variables
+            deallocate(cv_on_face, cvfem_on_face, u_on_face, ufem_on_face, NMX_ALL)
+    end subroutine Introduce_Cap_press_term
+
 
 end module multiphase_1D_engine

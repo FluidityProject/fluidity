@@ -40,7 +40,7 @@
     use fldebug
     use state_module
     use spud
-    use global_parameters, only: option_path_len
+    use global_parameters, only: option_path_len, is_overlapping
     use Fields_Allocates, only : allocate
     use fields_data_types, only: mesh_type, scalar_field
     use multiphase_caching, only: cache_level
@@ -814,7 +814,7 @@
 
 
     subroutine retrieve_ngi( ndim, cv_ele_type, cv_nloc, u_nloc, &
-         cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface, QUAD_OVER_WHOLE_ELE )
+         cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface, QUAD_OVER_WHOLE_ELE)
       implicit none
       integer, intent( in ) :: ndim, cv_ele_type, cv_nloc, u_nloc
       ! If QUAD_OVER_WHOLE_ELE=.true. then dont divide element into CV's to form quadrature.
@@ -839,15 +839,9 @@
       !      integer, PARAMETER :: whole_ele_surface_order=2
 
       integer :: U_NLOC2
-      logical :: is_overlapping
       character( len = option_path_len ) :: overlapping_path
 
     !  print *,'1=cv_ele_type, cv_ngi, :',cv_ele_type, cv_ngi
-
-      is_overlapping = .false.
-      call get_option( '/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/element_type', &
-           overlapping_path )
-      if( trim( overlapping_path ) == 'overlapping' ) is_overlapping = .true.
 
       if(is_overlapping) then
          U_NLOC2=max(1,U_NLOC/CV_NLOC)
@@ -901,12 +895,11 @@
                if (whole_ele_surface_order==2) scvngi = 2
             else
                if (volume_order==1) cv_ngi = 3
-               if (volume_order==2) cv_ngi = 3*4
-
-               if (surface_order==1) scvngi = 3
                if (surface_order==1) sbcvngi = 2
-               if (surface_order==2) scvngi = 3*2
+               if (surface_order==1) scvngi = 3
+               if (volume_order==2) cv_ngi = 3*4
                if (surface_order==2) sbcvngi = 2*2
+               if (surface_order==2) scvngi = 3*2
             endif
      ! print *,'2=cv_ngi, :',cv_ngi
          case( 6 ) ! Quadratic Triangle
@@ -936,6 +929,7 @@
                if (surface_order==1) sbcvngi = 4 
                if (surface_order==2) scvngi = 12*2
                if (surface_order==2) sbcvngi = 4*2
+
             endif
          case default; FLExit(" Invalid integer for cv_nloc ")
          end Select Conditional_CV_NLOC2D_Tri
@@ -947,7 +941,7 @@
             if(QUAD_OVER_WHOLE_ELE) then
                cv_ngi = 4
                scvngi = 2
-               sbcvngi = 2 
+               sbcvngi = 2
                if (whole_ele_volume_order==1) cv_ngi = 1
                if (whole_ele_surface_order==1) sbcvngi = 1
                if (whole_ele_surface_order==1) scvngi = 1
@@ -964,7 +958,7 @@
                if (surface_order==1) scvngi = 4
                if (surface_order==2) scvngi = 4*2
                if (surface_order==1) sbcvngi = 2
-               if (surface_order==2) sbcvngi = 4 
+               if (surface_order==2) sbcvngi = 4
             endif
          case( 9 ) ! Bi-quad Quad
             if(QUAD_OVER_WHOLE_ELE) then
@@ -1025,6 +1019,7 @@
                if (surface_order==1) sbcvngi = 3
                if (surface_order==2) scvngi = 6*4
                if (surface_order==2) sbcvngi = 3*4
+
             endif
          case( 10 ) ! Quadratic
             if(QUAD_OVER_WHOLE_ELE) then
@@ -7176,7 +7171,6 @@
      LOGICAL, INTENT(IN)::D3
      
      INTEGER IPOLY,IQADRA,gi,gj,ggi,i,j,ii
-     
      !ewrite(3,*)'inside shape LOWQUA,NGI,NLOC,MLOC, SNGI,SNLOC,SMLOC:', &
      !                      LOWQUA,NGI,NLOC,MLOC, SNGI,SNLOC,SMLOC
      !ewrite(3,*)'NWICEL,d3:',NWICEL,d3
