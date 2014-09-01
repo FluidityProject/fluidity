@@ -164,7 +164,7 @@ contains
     ! Others:
     integer :: ele, ele_2, ni, edge_count, i, node, loc, sloc, face, surf_ele_count
     integer, dimension(2) :: prescribed_regions_shape
-    integer :: number_of_prescribed_regions
+    integer :: number_of_prescribed_regions, number_of_prescribed_vregions, number_of_prescribed_tregions,
     integer, dimension(:), pointer :: neigh, faces
     type(integer_set) :: prescribed_region_id_set
     integer, dimension(:), allocatable :: prescribed_region_ids
@@ -191,9 +191,11 @@ contains
     velocity => extract_vector_field(states(1),"Velocity")
     temperature => extract_scalar_field(states(1),"Temperature")
 
-    number_of_prescribed_regions = &
-         option_count(trim(velocity%option_path)// "/prognostic/prescribed_region") + &
+    number_of_prescribed_vregions = &
+         option_count(trim(velocity%option_path)// "/prognostic/prescribed_region")
+    number_of_prescribed_tregions = &
          option_count(trim(temperature%option_path)// "/prognostic/prescribed_region") 
+    number_of_prescribed_regions = number_of_prescribed_vregions + number_of_prescribed_tregions 
     ewrite(2,*) 'Number of prescribed_regions',number_of_prescribed_regions
     
     call allocate(prescribed_region_id_set)
@@ -209,7 +211,7 @@ contains
       deallocate(prescribed_region_ids)
     end do
 
-    ! failing this may be caused by not preserving region ids in adaptivity - see options check below
+    ! Failing this may be caused by not preserving region ids in adaptivity - see options check below
     assert(associated(external_mesh%region_ids))
 
     ! Derive subdomain_mesh_element list (an integer set):
@@ -324,7 +326,7 @@ contains
 
     ! Add faces to subdomain_mesh:
     call add_faces(subdomain_mesh,sndgln=sndglno(1:edge_count*sloc), &
-    &               boundary_ids=boundary_ids(1:edge_count))
+         boundary_ids=boundary_ids(1:edge_count))
 
     deallocate(sndglno)
     deallocate(boundary_ids)
