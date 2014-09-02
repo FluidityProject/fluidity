@@ -604,6 +604,7 @@
          timestep = itime
          call get_option( '/timestepping/timestep', dt )
 
+
          acctim = acctim + dt
          call set_option( '/timestepping/current_time', acctim )
          new_lim = .true.
@@ -681,6 +682,10 @@
          Loop_NonLinearIteration: do  its = 1, NonLinearIteration
 
 !print *, '  NEW ITS', its
+
+        !To force the recalculation of all the variables, uncomment the following line:
+!        call Clean_Storage(state, StorageIndexes)
+
 
          if( have_temperature_field .and. &
               have_option( '/material_phase[0]/scalar_field::Temperature/prognostic' ) ) then
@@ -1307,7 +1312,7 @@
 
                   call run_diagnostics( state )
                    !Mesh has changed!
-                    StorageIndexes = 0
+                    call Clean_Storage(state, StorageIndexes)
                end if Conditional_Adapt_by_TimeStep
 
             elseif( have_option( '/mesh_adaptivity/prescribed_adaptivity' ) ) then !!$ Conditional_Adaptivity:
@@ -1331,7 +1336,7 @@
 
                   call run_diagnostics( state )
                    !Mesh has changed!
-                    StorageIndexes = 0
+                    call Clean_Storage(state, StorageIndexes)
                end if Conditional_Adapt_by_Time
 
                not_to_move_det_yet = .false.

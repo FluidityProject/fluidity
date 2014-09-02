@@ -64,7 +64,7 @@
     public :: Get_Primary_Scalars, Compute_Node_Global_Numbers, Extracting_MeshDependentFields_From_State, &
          Extract_TensorFields_Outof_State, Extract_Position_Field, xp1_2_xp2, Get_Ele_Type, Get_Discretisation_Options, &
          print_from_state, update_boundary_conditions, pack_multistate, finalise_multistate, get_ndglno, Adaptive_NonLinear,&
-         get_var_from_packed_state, as_vector, as_packed_vector, is_constant, GetOldName, GetFEMName, PrintMatrix
+         get_var_from_packed_state, as_vector, as_packed_vector, is_constant, GetOldName, GetFEMName, PrintMatrix, Clean_Storage
 
     interface Get_Ndgln
        module procedure Get_Scalar_Ndgln, Get_Vector_Ndgln, Get_Mesh_Ndgln
@@ -3589,6 +3589,25 @@ subroutine allocate_multicomponent_scalar_bcs(s,ms,name)
 
     end function GetFEMName
 
+
+    subroutine Clean_Storage(state, StorageIndexes)
+        !This subroutine removes all the storage controlled by StorageIndexes
+        Implicit none
+        type(state_type), dimension(:), intent(inout) :: state
+        integer, dimension(:), intent(inout) :: StorageIndexes
+        !Local variables
+        character (len = 100) :: StorName
+        integer :: maxpos
+
+        do while (maxval(abs(StorageIndexes)) > 0)
+            maxpos = maxloc(StorageIndexes, dim =1)
+            StorName = trim(state(1)%scalar_names(StorageIndexes(maxpos)))
+            call remove_scalar_field(state(1), trim(StorName))
+            StorageIndexes(maxpos) = 0
+        end do
+        !Just in case
+        StorageIndexes = 0
+    end subroutine Clean_Storage
 
   end module Copy_Outof_State
 

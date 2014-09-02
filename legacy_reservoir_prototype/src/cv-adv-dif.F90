@@ -1321,7 +1321,7 @@ contains
                   
 
          ! Calculate DETWEI, RA, NX, NY, NZ for element ELE
-         CALL DETNLXR_INVJAC( ELE, X_ALL, X_NDGLN, TOTELE, X_NONODS, &
+         CALL DETNLXR_INVJAC_PLUS_STORAGE( ELE, X_ALL, X_NDGLN, TOTELE, X_NONODS, &
               CV_NLOC, SCVNGI, &
               SCVFEN, SCVFENLX_ALL, SCVFEWEIGH, SCVDETWEI, SCVRA, VOLUME, DCYL, &
               SCVFENX_ALL, &
