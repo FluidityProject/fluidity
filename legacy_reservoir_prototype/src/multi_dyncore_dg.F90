@@ -2885,10 +2885,10 @@ contains
         ! Do NOT divide element into CV's to form quadrature.
         QUAD_OVER_WHOLE_ELE = is_overlapping.OR.is_compact_overlapping
         !Don't use QUAD_OVER_WHOLE_ELE if it is not necessary
-        if (QUAD_OVER_WHOLE_ELE) then
-            !if PnDGPnDG are in use we can disable the quadrature over the whole element
-            QUAD_OVER_WHOLE_ELE = (U_NLOC/=CV_NLOC)
-        end if
+!        if (QUAD_OVER_WHOLE_ELE) then
+!            !if PnDGPnDG are in use we can disable the quadrature over the whole element - Pablo not sure this is true...
+!            QUAD_OVER_WHOLE_ELE = (U_NLOC/=CV_NLOC)
+!        end if
 
         call retrieve_ngi( ndim, u_ele_type, cv_nloc, u_nloc, &
         cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface, QUAD_OVER_WHOLE_ELE)
@@ -4028,6 +4028,22 @@ contains
             ! **********REVIEWER 1-END**********************
 
 
+        IF(GOT_DIFFUS.AND.LINEAR_HIGHORDER_DIFFUSION) THEN
+                 NN_MAT_ELE( :, :, ELE ) = 0.0
+                 NNX_MAT_ELE( :, :, :, ELE ) = 0.0
+                 DO U_ILOC = 1, U_NLOC
+                    DO U_JLOC = 1, U_NLOC
+                       NN_MAT_ELE( U_ILOC, U_JLOC, ELE ) = NN_MAT_ELE( U_ILOC, U_JLOC, ELE ) + &
+                            SUM( UFEN( U_ILOC, : ) * UFEN( U_JLOC,  : ) * DETWEI( : ) )
+                       DO IDIM=1,NDIM
+                          NNX_MAT_ELE( IDIM, U_ILOC, U_JLOC, ELE ) = NNX_MAT_ELE( IDIM, U_ILOC, U_JLOC, ELE ) + &
+                            SUM( UFEN( U_ILOC, : ) * UFENX_ALL( IDIM, U_JLOC,  : ) * DETWEI( : ) )
+                       END DO
+                    END DO
+                 END DO
+        ENDIF
+
+
             ! **********REVIEWER 2-START**********************
             !ewrite(3,*)'just after Loop_DGNods1'
 
@@ -4347,22 +4363,6 @@ contains
 
 
 
-        IF(GOT_DIFFUS.AND.LINEAR_HIGHORDER_DIFFUSION) THEN
-                 NN_MAT_ELE( :, :, ELE ) = 0.0
-                 NNX_MAT_ELE( :, :, :, ELE ) = 0.0
-                 DO U_ILOC = 1, U_NLOC
-                    DO U_JLOC = 1, U_NLOC
-                       NN_MAT_ELE( U_ILOC, U_JLOC, ELE ) = NN_MAT_ELE( U_ILOC, U_JLOC, ELE ) + &
-                            SUM( UFEN( U_ILOC, : ) * UFEN( U_JLOC,  : ) * DETWEI( : ) )
-                       DO IDIM=1,NDIM
-                          NNX_MAT_ELE( IDIM, U_ILOC, U_JLOC, ELE ) = NNX_MAT_ELE( IDIM, U_ILOC, U_JLOC, ELE ) + &
-                            SUM( UFEN( U_ILOC, : ) * UFENX_ALL( IDIM, U_JLOC,  : ) * DETWEI( : ) )
-                       END DO
-                    END DO
-                 END DO
-        ENDIF
-
-
               ! Place the diffusion term into matrix for between element diffusion stabilization...
               IF ( BETWEEN_ELE_STAB ) THEN
                  ! we store these vectors in order to try and work out the between element
@@ -4633,19 +4633,22 @@ contains
                     END IF If_stored
 
                    ! ***********SUBROUTINE DETERMINE_OTHER_SIDE_FACE - END************
+                END IF If_ele2_notzero_1
+
+
 ! insert calculation method for matrix ready for determining high order linear method for viscocity...
-                    IF(GOT_DIFFUS .AND. LINEAR_HIGHORDER_DIFFUSION) THEN
-                       IF(ELE2.GT.0) THEN
-                          CALL DG_VISC_LIN( S_INV_NNX_MAT12, NNX_MAT_ELE(:,:,:,ELE), NNX_MAT_ELE(:,:,:,ELE2), NN_MAT_ELE(:,:,ELE), NN_MAT_ELE(:,:,ELE2),  & 
+                 IF(GOT_DIFFUS .AND. LINEAR_HIGHORDER_DIFFUSION) THEN
+                    IF(ELE2.GT.0) THEN
+                       CALL DG_VISC_LIN( S_INV_NNX_MAT12, NNX_MAT_ELE(:,:,:,ELE), NNX_MAT_ELE(:,:,:,ELE2), NN_MAT_ELE(:,:,ELE), NN_MAT_ELE(:,:,ELE2),  & 
                                U_SNLOC, U_NLOC, SBUFEN, SDETWE, SBCVNGI, SNORMXN_ALL, NDIM, &
                                U_SLOC2LOC, U_OTHER_LOC, 2*U_NLOC - U_SNLOC, .FALSE. )
-                       ELSE
-                          CALL DG_VISC_LIN( S_INV_NNX_MAT12, NNX_MAT_ELE(:,:,:,ELE), NNX_MAT_ELE(:,:,:,ELE), NN_MAT_ELE(:,:,ELE), NN_MAT_ELE(:,:,ELE),  & 
+                    ELSE
+                       CALL DG_VISC_LIN( S_INV_NNX_MAT12, NNX_MAT_ELE(:,:,:,ELE), NNX_MAT_ELE(:,:,:,ELE), NN_MAT_ELE(:,:,ELE), NN_MAT_ELE(:,:,ELE),  & 
                                U_SNLOC, U_NLOC, SBUFEN, SDETWE, SBCVNGI, SNORMXN_ALL, NDIM, &
                                U_SLOC2LOC, U_OTHER_LOC, 2*U_NLOC - U_SNLOC, .TRUE.)
-                       ENDIF
                     ENDIF
-                END IF If_ele2_notzero_1
+                 ENDIF
+
 
                 !Calculate all the necessary stuff and introduce the CapPressure in the RHS
                 if (capillary_pressure_activated) call Introduce_Cap_press_term(state, packed_state,&
@@ -5210,11 +5213,11 @@ contains
 
 
 
-                    IF(GOT_DIFFUS.AND.LINEAR_HIGHORDER_DIFFUSION) STRESS_IJ_ELE_EXT=0.0
-
                     ! This sub should be used for stress and tensor viscocity replacing the rest...
-                    If_GOT_DIFFUS2: IF(GOT_DIFFUS.and.LINEAR_HIGHORDER_DIFFUSION.and.(ele2.ne.0)) THEN
+                    If_GOT_DIFFUS2: IF(GOT_DIFFUS.and.LINEAR_HIGHORDER_DIFFUSION) THEN
+!                    If_GOT_DIFFUS2: IF(GOT_DIFFUS.and.LINEAR_HIGHORDER_DIFFUSION.and.(ele2.ne.0)) THEN
 ! only used between elements of the domain so no modification of b.c's nec. 
+                        STRESS_IJ_ELE_EXT=0.0
                         CALL LINEAR_HIGH_DIFFUS_CAL_COEFF_STRESS_OR_TENSOR( STRESS_IJ_ELE_EXT, S_INV_NNX_MAT12,  &
                         STRESS_FORM, STRESS_FORM_STAB, ZERO_OR_TWO_THIRDS, &
                         U_SNLOC, U_NLOC, CV_SNLOC, CV_NLOC, MAT_NLOC, NPHASE, &
@@ -5339,15 +5342,17 @@ contains
 ! ADD DIRICHLET BC'S FOR VISCOCITY...
                                        DO IDIM=1,NDIM
                                           IF( WIC_U_BC_ALL_VISC( IDIM, IPHASE, SELE2 ) == WIC_U_BC_DIRICHLET ) THEN
-                                              LOC_U_RHS( IDIM,IPHASE,U_ILOC ) = LOC_U_RHS( IDIM,IPHASE,U_ILOC ) &
-                                                - STRESS_IJ_ELE_EXT( IDIM, IDIM, IPHASE, U_SILOC, U_JLOC + U_NLOC ) * SUF_U_BC_ALL_VISC( IDIM,IPHASE,U_SJLOC + U_SNLOC*(SELE2-1) )
+                                             DO JDIM=1,NDIM
+                                                 LOC_U_RHS( IDIM,IPHASE,U_ILOC ) = LOC_U_RHS( IDIM,IPHASE,U_ILOC ) &
+                                                 - STRESS_IJ_ELE_EXT( IDIM, JDIM, IPHASE, U_SILOC, U_JLOC + U_NLOC ) * SUF_U_BC_ALL_VISC( JDIM,IPHASE,U_SJLOC + U_SNLOC*(SELE2-1) )
+                                             END DO
                                           ENDIF
                                        END DO
                                END DO 
                            END DO 
                        END DO 
                     ENDIF
-
+! END OF IF(GOT_DIFFUS .AND. LINEAR_HIGHORDER_DIFFUSION) THEN...
                  ENDIF
 
 
@@ -5832,30 +5837,40 @@ contains
           INTEGER :: ELE2_LOC_GL_NODS(U_NLOC) 
           INTEGER IDIM, U_SILOC, U_ILOC, U_SJLOC, U_JLOC, U_IILOC5, U_JJLOC5, U_NLOC5, U_ILOC2, U_JLOC2, I 
 ! 
+!            print *,'just inside DG_VISC_LIN ON_BOUNDARY:',ON_BOUNDARY
+
+
             NNX_MAT12  = 0.0
             NN_MAT12   = 0.0
+
+            NNX_MAT12(1:NDIM,  1:U_NLOC, 1:U_NLOC)  = NNX_MAT(1:NDIM, 1:U_NLOC, 1:U_NLOC)
+            NN_MAT12(1:U_NLOC, 1:U_NLOC)            = NN_MAT(1:U_NLOC, 1:U_NLOC) 
 
             NNX_MAT_SUF =NNX_MAT
 
 ! Calculate ELE2_LOC_GL_NODS:
             IF(.NOT.ON_BOUNDARY) THEN
+
                NNX_MAT2_SUF=NNX_MAT2
 
                ELE2_LOC_GL_NODS=0
-               U_NLOC5=U_NLOC
                DO U_SILOC=1,U_SNLOC
-                  U_NLOC5=U_NLOC5+1
                   U_ILOC=U_SLOC2LOC(U_SILOC)
                   U_ILOC2=U_OTHER_LOC(U_ILOC)
-                  ELE2_LOC_GL_NODS(U_ILOC2)=U_NLOC5
+                  ELE2_LOC_GL_NODS(U_ILOC2)=U_ILOC
                END DO
+!               print *,'before loop'
+!               print *,'ELE2_LOC_GL_NODS:',ELE2_LOC_GL_NODS
 
+               U_NLOC5=U_NLOC
                DO U_ILOC2=1,U_NLOC
                   IF(ELE2_LOC_GL_NODS(U_ILOC2).EQ.0) THEN
                      U_NLOC5=U_NLOC5+1
                      ELE2_LOC_GL_NODS(U_ILOC2)=U_NLOC5
                   END IF
                END DO
+!               print *,'ELE2_LOC_GL_NODS:',ELE2_LOC_GL_NODS
+!               stop 2821
 ! put surface contributions into NNX_MAT,NNX_MAT2 and call the result NNX_MAT_SUF,NNX_MAT2_SUF ...
 ! 
                DO U_SILOC=1,U_SNLOC
@@ -5865,27 +5880,27 @@ contains
                      U_JLOC2=U_OTHER_LOC(U_JLOC)
                      DO IDIM=1,NDIM 
                         R_SUF_SUM=SUM( SNORMXN_ALL(IDIM,:)*SBUFEN(U_SILOC,:)*SBUFEN(U_SJLOC,:)*SDETWE(:) )
-                        NNX_MAT_SUF(IDIM,U_ILOC,U_JLOC)    = NNX_MAT_SUF(IDIM,U_ILOC,U_JLOC)     +  R_SUF_SUM
-                        NNX_MAT2_SUF(IDIM,U_ILOC,U_JLOC2)  = NNX_MAT2_SUF(IDIM,U_ILOC,U_JLOC2)   -  R_SUF_SUM
+                        NNX_MAT_SUF(IDIM,U_ILOC,U_JLOC)    = NNX_MAT_SUF(IDIM,U_ILOC,U_JLOC)     -  R_SUF_SUM ! we have*2 the contribution
+                        NNX_MAT2_SUF(IDIM,U_ILOC,U_JLOC2)  = NNX_MAT2_SUF(IDIM,U_ILOC,U_JLOC2)   +  R_SUF_SUM ! to take into account both sides of shared ele face
                      END DO
                   END DO
                END DO
+!       print *,'here1'
 
                ! Put contributions from ELE2 into MATDIFX5
-               NNX_MAT12(1:NDIM,  1:U_NLOC, 1:U_NLOC)  = NNX_MAT(1:NDIM, 1:U_NLOC, 1:U_NLOC)
-               NN_MAT12(1:U_NLOC, 1:U_NLOC)            = NN_MAT(1:U_NLOC, 1:U_NLOC) 
 
                   DO U_ILOC=1,U_NLOC
                      U_IILOC5=ELE2_LOC_GL_NODS(U_ILOC)
                      DO U_JLOC=1,U_NLOC
                         U_JJLOC5=ELE2_LOC_GL_NODS(U_JLOC)! Here U_JLOC is the local node of element ELE2
+!                     print *,'U_IILOC5,U_NLOC_EXT:', U_IILOC5,U_NLOC_EXT
                         NNX_MAT12(:,U_IILOC5,U_JLOC)         = NNX_MAT12(:,U_IILOC5,U_JLOC)         + NNX_MAT_SUF(:,U_ILOC,U_JLOC)
                         NNX_MAT12(:,U_IILOC5,U_JLOC+U_NLOC)  = NNX_MAT12(:,U_IILOC5,U_JLOC+U_NLOC)  + NNX_MAT2_SUF(:,U_ILOC,U_JLOC)
 
-                        NN_MAT12(U_ILOC,U_JLOC)     = NN_MAT12(U_ILOC,U_JLOC)      + NN_MAT(U_ILOC,U_JLOC)
                         NN_MAT12(U_IILOC5,U_JJLOC5) = NN_MAT12(U_IILOC5,U_JJLOC5)  + NN_MAT2(U_ILOC,U_JLOC)
                      END DO
                   END DO
+!       print *,'here2'
             ELSE ! IF(.NOT.ON_BOUNDARY) THEN
                NNX_MAT2_SUF=0.0
 ! put surface contributions into NNX_MAT,NNX_MAT2 and call the result NNX_MAT_SUF,NNX_MAT2_SUF ...
@@ -5896,15 +5911,13 @@ contains
                      U_JLOC=U_SLOC2LOC(U_SJLOC) 
                      DO IDIM=1,NDIM 
                         R_SUF_SUM=SUM( SNORMXN_ALL(IDIM,:)*SBUFEN(U_SILOC,:)*SBUFEN(U_SJLOC,:)*SDETWE(:) )
-                        NNX_MAT_SUF(IDIM,U_ILOC,U_JLOC)    = NNX_MAT_SUF(IDIM,U_ILOC,U_JLOC)     +  R_SUF_SUM
-                        NNX_MAT2_SUF(IDIM,U_ILOC,U_JLOC)   = NNX_MAT2_SUF(IDIM,U_ILOC,U_JLOC)    -  R_SUF_SUM
+                        NNX_MAT_SUF(IDIM,U_ILOC,U_JLOC)    = NNX_MAT_SUF(IDIM,U_ILOC,U_JLOC)     -  0.5 * R_SUF_SUM
+                        NNX_MAT2_SUF(IDIM,U_ILOC,U_JLOC)   = NNX_MAT2_SUF(IDIM,U_ILOC,U_JLOC)    +  0.5 * R_SUF_SUM
                      END DO
                   END DO
                END DO
 
                ! Put contributions from ELE2 into MATDIFX5
-               NNX_MAT12(1:NDIM,  1:U_NLOC, 1:U_NLOC)  = NNX_MAT(1:NDIM, 1:U_NLOC, 1:U_NLOC)
-               NN_MAT12(1:U_NLOC, 1:U_NLOC)            = NN_MAT(1:U_NLOC, 1:U_NLOC) 
 
                DO U_ILOC=1,U_NLOC
                   DO U_JLOC=1,U_NLOC
@@ -5913,18 +5926,38 @@ contains
                   END DO
                END DO
 
-               DO I=1+U_NLOC,2*U_NLOC
+               DO I=1+U_NLOC,U_NLOC_EXT
                   NN_MAT12(I,I)=1.0
                END DO
 
             ENDIF ! IF(.NOT.ON_BOUNDARY) THEN ELSE
 
 
+!        if(.false.) then
+!       print *,'here2.1'
+!               NN_MAT12=0.0
+!       print *,'here2.11'
+!               DO I=1,U_NLOC_EXT
+!                  NN_MAT12(I,I)=1.0
+!               END DO
+!       print *,'here2.2'
+!         endif
+
+!               DO I=1,U_NLOC_EXT
+!                  print *,'i,NN_MAT12(I,:):',i,NN_MAT12(I,:)
+!               END DO
+!          print *,'NN_MAT:',NN_MAT
+!          print *,'NN_MAT2:',NN_MAT2
+
+
             NN_MAT12_INV = NN_MAT12
+!       print *,'here2.3'
             CALL INVERT(NN_MAT12_INV)
+!       print *,'here3'
             DO IDIM=1,NDIM
                INV_NNX_MAT12(IDIM,:,:) = MATMUL( NN_MAT12_INV, NNX_MAT12(IDIM,:,:) )
             END DO
+!       print *,'here4'
 
 ! pick out the surface nodes of current element ELE: 
             DO U_SILOC=1,U_SNLOC
@@ -5932,6 +5965,8 @@ contains
                S_INV_NNX_MAT12( 1:NDIM, U_SILOC, : )   =INV_NNX_MAT12( 1:NDIM, U_ILOC, : )
             END DO
 
+!             print *,'finished DG_VISC_LIN'
+!             stop 281
 
            RETURN
            END SUBROUTINE DG_VISC_LIN

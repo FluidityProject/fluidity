@@ -7231,7 +7231,7 @@ end if
     REAL, DIMENSION( : , : ), allocatable :: DIFF_VOL_GI, DIFF_VOL_GI2
 
     INTEGER :: CV_KLOC,CV_KLOC2,MAT_KLOC,MAT_KLOC2,MAT_NODK,MAT_NODK2,IDIM,JDIM,CV_SKLOC
-    INTEGER :: SGI,IPHASE,U_ILOC_EXT,U_JLOC_EXT,I,J, U_SILOC, U_SJLOC
+    INTEGER :: SGI,IPHASE,U_ILOC_EXT,U_JLOC12,I,J, U_SILOC, U_SJLOC
 
 
           ALLOCATE( DIFF_GI(NDIM,NDIM,NPHASE,SBCVNGI) )
@@ -7276,6 +7276,11 @@ end if
              DIFF_GI=0.5*(DIFF_GI+DIFF_GI2)
              DIFF_VOL_GI=0.5*(DIFF_VOL_GI+DIFF_VOL_GI2)
 
+!              print *,'DIFF_GI( 1:NDIM, 1:NDIM, :, : ):',DIFF_GI( 1:NDIM, 1:NDIM, :, : )
+!              print *,'DIFF_GI2( 1:NDIM, 1:NDIM, :, : ):',DIFF_GI2( 1:NDIM, 1:NDIM, :, : )
+!              print *,'DIFF_VOL_GI:',DIFF_VOL_GI
+!              print *,'DIFF_VOL_GI2:',DIFF_VOL_GI2
+
              
           IF(STRESS_FORM_STAB) THEN
 
@@ -7294,32 +7299,45 @@ end if
                 END DO
           ENDIF
 
+!              print *,'STRESS_FORM_STAB:',STRESS_FORM_STAB
+
+!              print *,'DIFF_GI_ADDED:',DIFF_GI_ADDED
+!              print *,'DIFF_GI( 1:NDIM, 1:NDIM, :, : ):',DIFF_GI( 1:NDIM, 1:NDIM, :, : )
+!              print *,'DIFF_GI2( 1:NDIM, 1:NDIM, :, : ):',DIFF_GI2( 1:NDIM, 1:NDIM, :, : )
+!              print *,'DIFF_VOL_GI:',DIFF_VOL_GI
+!              print *,'DIFF_VOL_GI2:',DIFF_VOL_GI2
+
 
        STRESS_IJ_ELE_EXT=0.0
 
        IF(STRESS_FORM) THEN
+!          print *,'SBCVNGI:',SBCVNGI
           DO U_SILOC=1,U_SNLOC
-             DO U_JLOC_EXT=1,U_NLOC*2
+             DO U_JLOC12=1,U_NLOC*2
 
                 DO I=1,U_SNLOC
                     DO SGI=1,SBCVNGI
-          CALL CALC_STRESS_TEN( STRESS_IJ_ELE_EXT( :, :, IPHASE, U_SILOC, U_JLOC_EXT ), ZERO_OR_TWO_THIRDS, NDIM, &
-               SNORMXN_ALL(:,SGI)*SBUFEN(U_SILOC,SGI)* SBUFEN(I,SGI)*SDETWEI( SGI ), S_INV_NNX_MAT12( 1:NDIM, I, U_JLOC_EXT ), DIFF_GI( :, :, IPHASE, SGI ), DIFF_VOL_GI( IPHASE, SGI) ) 
+                       DO IPHASE=1,NPHASE
+! take -ve as its a surface integral...
+          CALL CALC_STRESS_TEN( STRESS_IJ_ELE_EXT( :, :, IPHASE, U_SILOC, U_JLOC12 ), ZERO_OR_TWO_THIRDS, NDIM, &
+             - SNORMXN_ALL(:,SGI)*SBUFEN(U_SILOC,SGI)* SBUFEN(I,SGI)*SDETWEI( SGI ), S_INV_NNX_MAT12( 1:NDIM, I, U_JLOC12 ), DIFF_GI( :, :, IPHASE, SGI ), DIFF_VOL_GI( IPHASE, SGI) ) 
+                       END DO
                     END DO
                 END DO
                 
              END DO
           END DO
+
        ELSE ! tensor form of viscocity...
           DO U_SILOC=1,U_SNLOC
-             DO U_SJLOC=1,U_SNLOC
+             DO U_JLOC12=1,U_NLOC*2
 
                 DO I=1,U_SNLOC
                     DO SGI=1,SBCVNGI
                        DO IDIM=1,NDIM 
-                          STRESS_IJ_ELE_EXT( IDIM, IDIM, IPHASE, U_SILOC, U_SJLOC ) = STRESS_IJ_ELE_EXT( IDIM, IDIM, IPHASE, U_SILOC, U_SJLOC ) &
-                            + SNORMXN_ALL(IDIM,SGI)*SBUFEN(U_SILOC,SGI)* SBUFEN(I,SGI)*SDETWEI( SGI )  &
-                                 * SUM( DIFF_GI( IDIM, :, IPHASE, SGI ) *  S_INV_NNX_MAT12( :, I, U_JLOC_EXT ) )
+                          STRESS_IJ_ELE_EXT( IDIM, IDIM, IPHASE, U_SILOC, U_JLOC12 ) = STRESS_IJ_ELE_EXT( IDIM, IDIM, IPHASE, U_SILOC, U_JLOC12 ) &
+                            - SNORMXN_ALL(IDIM,SGI)*SBUFEN(U_SILOC,SGI)* SBUFEN(I,SGI)*SDETWEI( SGI )  &
+                                 * SUM( DIFF_GI( IDIM, :, IPHASE, SGI ) *  S_INV_NNX_MAT12( :, I, U_JLOC12 ) )
                        END DO
                     END DO
                 END DO
