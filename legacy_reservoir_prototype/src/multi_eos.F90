@@ -1897,7 +1897,7 @@
 !      RETURN
 !    END SUBROUTINE calculate_capillary_pressure
 !
-   SUBROUTINE calculate_capillary_pressure( state, packed_state, CV_NONODS, NPHASE )
+   SUBROUTINE calculate_capillary_pressure( state, packed_state, Sat_in_FEM )
 
       ! CAPIL_PRES_OPT is the capillary pressure option for deciding what form it might take.
       ! CAPIL_PRES_COEF( NCAPIL_PRES_COEF, NPHASE, NPHASE ) are the coefficients
@@ -1907,9 +1907,9 @@
       IMPLICIT NONE
       type(state_type), dimension(:), intent(in) :: state
       type(state_type), intent(inout) :: packed_state
-      INTEGER, intent( in ) :: CV_NONODS, NPHASE
+      logical, intent(in) :: Sat_in_FEM
       ! Local Variables
-      INTEGER :: nstates, ncomps, nphases, IPHASE, JPHASE, i, j
+      INTEGER :: nstates, ncomps, nphases, IPHASE, JPHASE, i, j, k, nphase
       real c, a, S_OR, S_GC, auxO, auxW
       character(len=OPTION_PATH_LEN) option_path, phase_name
       !Corey options
@@ -1918,13 +1918,18 @@
       real, dimension(:,:), pointer :: Satura, CapPressure
 
       !Get from packed_state
-      call get_var_from_packed_state(packed_state,PhaseVolumeFraction = Satura)
+      if (Sat_in_FEM) then
+          call get_var_from_packed_state(packed_state,FEPhaseVolumeFraction = Satura)
+      else
+          call get_var_from_packed_state(packed_state,PhaseVolumeFraction = Satura)
+      end if
       call get_var_from_packed_state(packed_state,CapPressure = CapPressure)
-
       !Get corey options
       call get_corey_options(options)
       s_gc=options%s_gc
       s_or=options%s_or
+
+      nphase =size(Satura,1)
 
       ewrite(3,*) 'In calc_capil_pres'
 
@@ -1969,10 +1974,10 @@
                   call get_option(trim(option_path)//"/phase["//int2str(j)//"]/c", c)
                   call get_option(trim(option_path)//"/phase["//int2str(j)//"]/a", a)
                   !Apply Brooks-Corey model
-                  CapPressure( iphase, : ) = CapPressure( iphase, : ) + c *&
-!                  max(min(satura(jphase,:), 1.0), 1d-5)&!<= to use just the saturation
-                   max(min((satura(jphase,:) - auxW)/(1.0 - auxW - auxO), 1.0), 1d-4)&!<=Effective saturation bounded
-                    ** (-a)
+                  forall (k = 1:size(CapPressure,2))
+                      CapPressure( iphase, k ) = CapPressure( iphase, k ) + &
+                        Get_capPressure(satura(jphase,k), c, a, auxW, auxO)
+                  end forall
                endif
 
             END DO
@@ -1984,6 +1989,20 @@
 
       RETURN
     END SUBROUTINE calculate_capillary_pressure
+
+
+
+    pure real function Get_capPressure(sat, Pe, a, Own_irr, Other_irr)
+        !This functions returns the capillary pressure for a certain input saturation
+        Implicit none
+        real, intent(in) :: sat, Pe, a, Own_irr, Other_irr
+        !Local
+        real, parameter :: tol = 1d-4
+
+        Get_capPressure = &
+        Pe * max(min((sat - Own_irr) / (1.0 - Own_irr - Other_irr), 1.0), tol) ** (-a)
+
+    end function Get_capPressure
 
 
     subroutine calculate_u_source(state, Density_FEMT, u_source)

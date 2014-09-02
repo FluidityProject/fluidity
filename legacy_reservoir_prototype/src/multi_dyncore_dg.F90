@@ -8728,7 +8728,7 @@ contains
         logical :: QUAD_OVER_WHOLE_ELE
         type(tensor_field), pointer :: tfield_pointer
         type(scalar_field), pointer :: sfield_pointer
-        type(vector_field), target :: vfield
+        type(vector_field), target :: vfield, vfield2
         integer, dimension(:) :: StorageIndexes
         logical, dimension(  : , : ), allocatable :: cv_on_face, cvfem_on_face, u_on_face, ufem_on_face
         !Pointers for cv_fem_shape_funs_plus_storage
@@ -8788,20 +8788,20 @@ contains
          !Create dummys for psi_int and psi_ave since we are not interested in them
          call allocate(vfield, NPHASE, sfield_pointer%mesh)
          psi_int(1)%ptr => vfield
-         psi_ave(1)%ptr => vfield
+         call allocate(vfield2, NPHASE, sfield_pointer%mesh)
+         psi_ave(1)%ptr => vfield2
 
         !Project to FEM
           PSI(1)%ptr%option_path = "/material_phase[0]/scalar_field::Pressure"
           call PROJ_CV_TO_FEM_state( packed_state, FEMPSI, PSI, size(X_ALL,1), &
                PSI_AVE, PSI_INT, MASS_ELE, &
                CV_NONODS, TOTELE, CV_NDGLN, X_NLOC, X_NDGLN, &
-               CV_NGI, CV_NLOC, CVN, CVWEIGHT, CVFEN, CVFENLX_ALL(1,:,:),&
-               CVFENLX_ALL(2,:,:), CVFENLX_ALL(3,:,:), X_NONODS, X_ALL, NCOLM, FINDM, COLM, MIDM, &
+               CV_NGI_short, CV_NLOC, CVN_short, CVWEIGHT_short, &
+               CVFEN_short, CVFENLX_short_ALL,X_NONODS, X_ALL, NCOLM, FINDM, COLM, MIDM, &
                0, PSI_AVE(1)%ptr%val(1,:), FINDM, COLM, NCOLM )! <=== Dummy variables, not used inside
 
-
         !Deallocate auxiliar variables
-        call deallocate(vfield)
+        call deallocate(vfield); call deallocate(vfield2)
         deallocate(cv_on_face, cvfem_on_face, u_on_face, ufem_on_face)
     end subroutine Proj_capillary_pressure2FEM
 
@@ -8842,11 +8842,6 @@ contains
             logical, dimension(  : , : ), allocatable :: cv_on_face, cvfem_on_face, u_on_face, ufem_on_face
             real, dimension(:,:), pointer :: CapPressure, CV_Bound_Shape_Func, CV_Shape_Func
             real, dimension(:), allocatable :: NMX_ALL
-            !Variables for FEM projection
-            type(tensor_field_pointer), dimension(1) :: psi,fempsi
-            type(scalar_field), pointer :: sfield_pointer
-            type(tensor_field), target :: tfield
-            type(tensor_field), pointer :: tfield_pointer
             !Pointers for detwei
             real, pointer, dimension(:) :: DETWEI, RA
             real, pointer:: volume
@@ -8879,6 +8874,7 @@ contains
             ALLOCATE( CV_ON_FACE( CV_NLOC, SCVNGI ), CVFEM_ON_FACE( CV_NLOC, SCVNGI ))
             ALLOCATE( U_ON_FACE( U_NLOC, SCVNGI ), UFEM_ON_FACE( U_NLOC, SCVNGI ))
             allocate(NMX_ALL(ndim))
+
             CALL cv_fem_shape_funs_plus_storage( &
                                  ! Volume shape functions...
             NDIM, P_ELE_TYPE,  &
@@ -8914,24 +8910,6 @@ contains
 
             !Project to FEM
             if (CAP_to_FEM) then
-                if (ELE == 1 ) then
-                !The FEM projection has to be done only once (since it projects all the nodes at once)
-                    if (iface == 1) then
-                        sfield_pointer=>extract_scalar_field(packed_state,"Pressure")
-                        call allocate(tfield, sfield_pointer%mesh, dim = [1,NPHASE])
-                        tfield_pointer => extract_tensor_field( packed_state, "PackedCapPressure" )
-                        psi(1)%ptr => tfield_pointer
-                        fempsi(1)%ptr => tfield
-                        !Use a different integration set for the FEM projection
-                        call Proj_capillary_pressure2FEM(state, packed_state, tfield, X_ALL, FINDM, COLM, MIDM,&
-                        mass_ele, cv_ndgln, cv_nloc, cv_snloc, u_snloc, cv_nonods, ncolm,&
-                        nphase, totele, x_ndgln, x_nloc, x_nonods, P_ELE_TYPE, u_nloc, StorageIndexes)
-                        !Store the FEM projection in packed state to have automatic access for all the nodes
-                        CapPressure = fempsi(1)%ptr%val(1,:,:)
-                        !Deallocate auxiliar variables For FEM projection
-                        call deallocate(tfield)
-                    end if
-                end if
                 !Point my pointers to the FEM shape functions
                 CV_Bound_Shape_Func => SBCVFEN
                 CV_Shape_Func => CVFEN
@@ -8941,7 +8919,7 @@ contains
                 CV_Shape_Func => CVN
             end if
 
-            !This option by default
+            !Integration by parts
             if (Int_by_part_CapPress .or. .not. CAP_to_FEM) then
                 if (iface == 1) then!The volumetric term is added just one time
                     !Firstly we add the volumetric integral
@@ -8996,23 +8974,23 @@ contains
                 end if
                 !Get neighbouring nodes
                 !Performing the surface integral, Integral(CVN (Average CapPressure) ᐁUFEN dV)
-!                DO U_SILOC = 1, U_SNLOC
-!                    U_ILOC = U_SLOC2LOC( U_SILOC )
-!                    DO CV_SJLOC = 1, CV_SNLOC
-!                        CV_JLOC = CV_SLOC2LOC( CV_SJLOC )
-!                        CV_INOD = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_JLOC )
-!                        NMX_ALL = matmul(SNORMXN_ALL( :, : ), SBUFEN( U_SILOC, : ) * SBCVFEN( CV_SJLOC, : ) * SDETWE( : ))
-!                        if (ELE2 > 0) then!If neighbour then we get its value to calculate the average
-!                            cv_Xnod = CV_NDGLN( ( ELE2 - 1 ) * CV_NLOC + MAT_OTHER_LOC(CV_JLOC) )
-!                        else!If no neighbour then we use the same value.
-!                            cv_Xnod = CV_INOD
-!                        end if
-!                        do iphase = 1, nphase
-!                            LOC_U_RHS( :, IPHASE, U_ILOC) =  LOC_U_RHS( :, IPHASE, U_ILOC ) &
-!                            + NMX_ALL(:) * 0.5* (CapPressure(iphase, CV_INOD) - CapPressure(iphase, cv_Xnod))
-!                        end do
-!                    end do
-!                end do
+                DO U_SILOC = 1, U_SNLOC
+                    U_ILOC = U_SLOC2LOC( U_SILOC )
+                    DO CV_SJLOC = 1, CV_SNLOC
+                        CV_JLOC = CV_SLOC2LOC( CV_SJLOC )
+                        CV_INOD = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_JLOC )
+                        NMX_ALL = matmul(SNORMXN_ALL( :, : ), SBUFEN( U_SILOC, : ) * SBCVFEN( CV_SJLOC, : ) * SDETWE( : ))
+                        if (ELE2 > 0) then!If neighbour then we get its value to calculate the average
+                            cv_Xnod = CV_NDGLN( ( ELE2 - 1 ) * CV_NLOC + MAT_OTHER_LOC(CV_JLOC) )
+                        else!If no neighbour then we use the same value.
+                            cv_Xnod = CV_INOD
+                        end if
+                        do iphase = 1, nphase
+                            LOC_U_RHS( :, IPHASE, U_ILOC) =  LOC_U_RHS( :, IPHASE, U_ILOC ) &
+                            + NMX_ALL(:) * 0.5* (CapPressure(iphase, CV_INOD) - CapPressure(iphase, cv_Xnod))
+                        end do
+                    end do
+                end do
             end if
 
             !Deallocate auxiliar variables

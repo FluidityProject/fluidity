@@ -1118,8 +1118,7 @@ contains
        PSI_AVE, PSI_INT, MASS_ELE, &
        CV_NONODS, TOTELE, CV_NDGLN, X_NLOC, X_NDGLN, &
        CV_NGI_short, CV_NLOC, CVN_short, CVWEIGHT_short,&
-       CVFEN_SHORT, CVFENLX_SHORT_ALL(1,:,:), CVFENLX_SHORT_ALL(2,:,:),&
-       CVFENLX_SHORT_ALL(3,:,:), &
+       CVFEN_SHORT, CVFENLX_SHORT_ALL, &
        X_NONODS, X_ALL, NCOLM, FINDM, COLM, MIDM, &
        IGETCT, MASS_MN_PRES, FINDCMC, COLCMC, NCOLCMC)
 
@@ -3757,9 +3756,10 @@ end if
   SUBROUTINE PROJ_CV_TO_FEM_state( packed_state,FEMPSI, PSI, NDIM, &
        PSI_AVE, PSI_INT, MASS_ELE, &
        CV_NONODS, TOTELE, CV_NDGLN, X_NLOC, X_NDGLN, &
-       CV_NGI, CV_NLOC, CVN, CVWEIGHT, N, NLX, NLY, NLZ, &
+       CV_NGI, CV_NLOC, CVN, CVWEIGHT, N, NLX_ALL, &
        X_NONODS, X, NCOLM, FINDM, COLM, MIDM, &
-       IGETCT, MASS_MN_PRES, FINDCMC, COLCMC, NCOLCMC )
+       IGETCT, MASS_MN_PRES, FINDCMC, COLCMC, NCOLCMC,&
+       state, StorageIndexes )
 
     ! Determine FEMT (finite element wise) etc from T (control volume wise)
     ! Also integrate PSI_INT over each CV and average PSI_AVE over each CV. 
@@ -3779,7 +3779,8 @@ end if
     INTEGER, DIMENSION( : ), intent( in ) ::  X_NDGLN
     REAL, DIMENSION( :, : ), intent( in ) :: CVN
     REAL, DIMENSION( : ), intent( inout ) :: CVWEIGHT
-    REAL, DIMENSION( :, : ), intent( in ) :: N, NLX, NLY, NLZ
+    REAL, DIMENSION( :, : ), intent( in ) :: N
+    REAL, DIMENSION(:, :, :), intent(in) :: NLX_ALL
     REAL, DIMENSION( :,: ), intent( in ) :: X
     REAL, DIMENSION( : ), intent( inout ) :: MASS_ELE
     INTEGER, DIMENSION( : ), intent( in ) :: FINDM
@@ -3789,13 +3790,20 @@ end if
     REAL, DIMENSION( : ), intent( inout ) :: MASS_MN_PRES
     INTEGER, DIMENSION( : ), intent( in ) :: FINDCMC
     INTEGER, DIMENSION( : ), intent( in ) :: COLCMC
+    type(state_type), optional, dimension(:), intent(inout) :: state
+    INTEGER, DIMENSION( : ), optional, intent( inout ) :: StorageIndexes
     ! Local variables
     LOGICAL :: D1, D3, DCYL
-    REAL, DIMENSION( : ), allocatable :: DETWEI, RA
-    REAL, DIMENSION( :, : ), allocatable :: NX, NY, NZ
-    REAL :: VOLUME, NN, NM, MN, MM
+    REAL, DIMENSION( : ), allocatable, target :: DETWEI2, RA2
+    REAL, DIMENSION( :, : , :), allocatable, target :: NX_ALL2
+    real, target :: VOLUME2
+    REAL :: NN, NM, MN, MM
     INTEGER :: ELE, CV_ILOC, CV_JLOC, CV_NODI, CV_NODJ, CV_GI, COUNT, IT, idim,&
          max_iterations
+    !Pointers to use if storage is used.
+    REAL, DIMENSION( : ), pointer :: DETWEI, RA
+    REAL, DIMENSION( :, :, :), pointer :: NX_ALL
+    real, pointer :: volume
 
     type(scalar_field) :: cv_mass
     type(tensor_field), dimension(size(psi)) :: fempsi_rhs
@@ -3812,12 +3820,14 @@ end if
     call allocate(cv_mass,psi(1)%ptr%mesh)
     call zero(cv_mass)
 
-
-    ALLOCATE( DETWEI( CV_NGI )) 
-    ALLOCATE( RA( CV_NGI ))
-    ALLOCATE( NX( CV_NLOC, CV_NGI ))
-    ALLOCATE( NY( CV_NLOC, CV_NGI ))
-    ALLOCATE( NZ( CV_NLOC, CV_NGI ))
+    if (.not.present(state) .or. .not.present(StorageIndexes)) then
+        ALLOCATE( DETWEI2( CV_NGI ))
+        ALLOCATE( RA2( CV_NGI ))
+        ALLOCATE( NX_ALL2( NDIM, CV_NLOC, CV_NGI ))
+        !Set the pointers
+        volume =>  VOLUME2; DETWEI => DETWEI2; RA => RA2
+        NX_ALL =>NX_ALL2
+    end if
 
     do it=1,size(fempsi)
        call zero(fempsi(it)%ptr)
@@ -3860,12 +3870,17 @@ end if
           if (.not. assemble_ele(psi_int(1)%ptr,ele)) cycle
        end if
 
-       ! Calculate DETWEI,RA,NX,NY,NZ for element ELE
-       CALL DETNLXR( ELE, X(1,:), X(2,:), X(3,:), X_NDGLN, TOTELE, X_NONODS, CV_NLOC, CV_NGI, &
-            N, NLX, NLY, NLZ, CVWEIGHT, DETWEI, RA, VOLUME, D1, D3, DCYL, &
-            NX, NY, NZ ) 
+       if (present(state) .and. present(StorageIndexes)) then!This part does not work yet
+            call DETNLXR_plus_storage( ELE, X, X_NDGLN, TOTELE, X_NONODS, CV_NLOC, CV_NGI, &
+                N, NLX_ALL, CVWEIGHT, DETWEI, RA, VOLUME, DCYL, &
+                NX_ALL, state, "ProjFE", StorageIndexes(31))
+       else
+           ! Calculate DETWEI,RA,NX,NY,NZ for element ELE
+           CALL DETNLXR( ELE, X(1,:), X(2,:), X(3,:), X_NDGLN, TOTELE, X_NONODS, CV_NLOC, CV_NGI, &
+                N, NLX_ALL(1,:,:), NLX_ALL(2,:,:), NLX_ALL(3,:,:), CVWEIGHT, DETWEI2, RA2, VOLUME2, D1, D3, DCYL, &
+                NX_ALL2(1,:,:), NX_ALL2(2,:,:), NX_ALL2(3,:,:) )
+       end if
        MASS_ELE( ELE ) = VOLUME
-
        Loop_CV_ILOC: DO CV_ILOC = 1, CV_NLOC
 
 
@@ -3969,12 +3984,11 @@ end if
     end do
     call DEALLOCATE( MAT )
     call DEALLOCATE( PMAT )
-    DEALLOCATE( DETWEI )
-    DEALLOCATE( RA )
-    DEALLOCATE( NX )
-    DEALLOCATE( NY )
-    DEALLOCATE( NZ )
-
+    if (.not.present(state) .or. .not.present(StorageIndexes)) then
+        DEALLOCATE( DETWEI2 )
+        DEALLOCATE( RA2 )
+        DEALLOCATE( NX_ALL2 )
+    end if
     ewrite(3,*) 'Leaving PROJ_CV_TO_FEM_state'
 
     RETURN

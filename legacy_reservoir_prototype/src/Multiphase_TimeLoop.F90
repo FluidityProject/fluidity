@@ -226,7 +226,7 @@
       integer :: checkpoint_number
 
       !Variable to store where we store things. Do not oversize this array, the size has to be the last index in use
-      integer, dimension (30) :: StorageIndexes
+      integer, dimension (31) :: StorageIndexes
       !Distribution of the indexes of StorageIndexes:
       !cv_fem_shape_funs_plus_storage: 1 (ASSEMB_FORCE_CTY), 13 (CV_ASSEMB)
       !CALC_ANISOTROP_LIM            : 2
@@ -238,6 +238,7 @@
       !DG_DERIVS_ALL                 : 14
       !DETNLXR_PLUS_U_WITH_STORAGE   : 14
       !Indexes used in SURFACE_TENSION_WRAPPER (deprecated and will be removed):[15,30]
+      !PROJ_CV_TO_FEM_state          : 31
 
       !Working pointers
       real, dimension(:,:), pointer :: SAT_s, OldSAT_s, FESAT_s
@@ -605,7 +606,6 @@
 
          acctim = acctim + dt
          call set_option( '/timestepping/current_time', acctim )
-
          new_lim = .true.
 
          if ( acctim > finish_time ) then 
@@ -834,7 +834,7 @@
                     StorageIndexes=StorageIndexes )
 
                if( have_option( '/material_phase[0]/multiphase_properties/capillary_pressure' ) )then
-                  call calculate_capillary_pressure( state, packed_state, cv_nonods, nphase)
+                  call calculate_capillary_pressure( state, packed_state, .true.)
                end if
 
 
