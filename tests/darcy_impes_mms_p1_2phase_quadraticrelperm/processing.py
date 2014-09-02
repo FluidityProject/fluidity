@@ -11,7 +11,7 @@ field_list = ['Phase1::Pressure',
 norm_list = ['2']
 
 reference_mesh_res = 5
-reference_timestep_number = 10                  # [1]
+reference_time_step_number = 10                  # [1]
 
 command_line_in_xml = 'python processing.py pre proc post clean'
 
@@ -39,8 +39,10 @@ from manufactured_solution_test_tools import ManufacturedSolutionTestSuite
 test_helper = ManufacturedSolutionTestSuite(
     case_name, mesh_type_list, [mesh_res_list_1D, mesh_res_list_2D,
     mesh_res_list_3D], field_list, norm_list, 
-    reference_mesh_res, reference_timestep_number,
-    command_line_in_xml, rate_threshold=0.7, python_layer_verbosity=1)
+    reference_mesh_res=reference_mesh_res,
+    reference_time_step_number=reference_time_step_number,
+    command_line_in_xml=command_line_in_xml, rate_threshold=0.7,
+    python_verbosity=1)
 
 # pass client commands
 for arg in argv[1:]:

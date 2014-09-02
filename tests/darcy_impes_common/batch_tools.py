@@ -22,6 +22,21 @@ _indent_str = '   '
 def set_global_verbosity(verbosity_level):
     global _global_verbosity
     _global_verbosity = verbosity_level
+    
+    
+def default_fluidity_path():
+    """Ensures the location of the Fluidity tree is known via
+    FLUIDITYPATH, a system variable.  FLUIDITYPATH is either set by the
+    user beforehand or defaulted here based on the present path.
+    Updates the Python search paths accordingly."""
+    try:
+        flpath = os.environ['FLUIDITYPATH']
+    except KeyError:
+        flpath = "../../"
+        os.environ['FLUIDITYPATH'] = flpath
+    pypath = flpath + "/python/"
+    os.environ['PYTHONPATH'] = pypath
+    sys.path.append(pypath)
 
 
 # # [see note 1]
@@ -215,22 +230,6 @@ class _NodeHandler(_Handler):
         if self.__sublevel is not None:
             level_names = self.__sublevel.get_level_names(level_names)
         return level_names
-    
-    
-def default_fluidity_path():
-    """Ensures the location of the Fluidity tree is known via
-    FLUIDITYPATH, a system variable.  FLUIDITYPATH is either set by the
-    user beforehand or defaulted here based on the present path.
-    Updates the Python search paths accordingly."""
-    try:
-        flpath = os.environ['FLUIDITYPATH']
-    except KeyError:
-        flpath = "../../"
-        os.environ['FLUIDITYPATH'] = flpath
-    pypath = flpath + "/python/"
-    os.environ['PYTHONPATH'] = pypath
-    sys.path.append(pypath)
-
 
 def make_string(string_list):
     """Formats and joins a bunch of strings """

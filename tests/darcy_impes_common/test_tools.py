@@ -740,9 +740,10 @@ class NormCalculator:
             calc_type = "l2norm"
         phase = test_command.get('phase')
         var = test_command.get('var')+'AbsError'
+        return stat_parser(filename)[phase][var][calc_type][-1]
         try:
             return stat_parser(filename)[ph][var][calc_type][-1]
-        except Exception as e:
+        except KeyError as e:
             e.args += (
                 "NormCalculator expected to find {0}::{1} in the stat file;".\
                     format(phase, var) + \
