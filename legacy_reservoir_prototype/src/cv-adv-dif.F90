@@ -11558,6 +11558,7 @@ CONTAINS
     INTEGER, DIMENSION( CV_SNLOC ) :: LOG_ON_BOUND
 
     !ewrite(3,*)'In Calc_Sele'
+    log_on_bound=-66666
     I = 1
     DO CV_JLOC = 1, CV_NLOC  
        CV_JNOD = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_JLOC )
