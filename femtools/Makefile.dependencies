@@ -469,8 +469,8 @@ Fields_Manipulation.o ../include/fields_manipulation.mod: \
    ../include/halos_allocates.mod ../include/halos_base.mod \
    ../include/halos_debug.mod ../include/halos_numbering.mod \
    ../include/halos_ownership.mod ../include/halos_repair.mod \
-   ../include/parallel_tools.mod ../include/quicksort.mod \
-   ../include/vector_tools.mod
+   ../include/memory_diagnostics.mod ../include/parallel_tools.mod \
+   ../include/quicksort.mod ../include/vector_tools.mod
 
 ../include/futils.mod: Futils.o
 	@true

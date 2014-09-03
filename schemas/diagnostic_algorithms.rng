@@ -1167,12 +1167,7 @@ take the value g.</a:documentation>
     <element name="algorithm">
       <a:documentation>The average (or bulk) viscosity formed from the MaterialViscosity for
 each material_phase, weighted according to the MaterialVolumeFraction
-fields from each material_phase:
-
-  \bar\nu = \alpha^i\nu^i
- 
-where \bar\nu is the bulk viscosity, \alpha^i is the volume fraction
-for material i and \nu^i is the viscosity of material i</a:documentation>
+from each material_phase.</a:documentation>
       <attribute name="name">
         <value>bulk_viscosity</value>
       </attribute>
@@ -1182,6 +1177,44 @@ for material i and \nu^i is the viscosity of material i</a:documentation>
       <attribute name="depends">
         <value>MaterialViscosity</value>
       </attribute>
+      <choice>
+        <element name="mean">
+          <a:documentation>Use an arithmetic mean (default):
+
+  \bar\nu = \alpha^i\nu^i
+ 
+where \bar\nu is the bulk viscosity, \alpha^i is the volume fraction
+for material i and \nu^i is the viscosity of material i.</a:documentation>
+          <attribute name="name">
+            <value>arithmetic</value>
+          </attribute>
+          <empty/>
+        </element>
+        <element name="mean">
+          <a:documentation>Use a harmonic mean:
+
+  1./\bar\nu = \alpha^i/\nu^i
+ 
+where \bar\nu is the bulk viscosity, \alpha^i is the volume fraction
+for material i and \nu^i is the viscosity of material i.</a:documentation>
+          <attribute name="name">
+            <value>harmonic</value>
+          </attribute>
+          <empty/>
+        </element>
+        <element name="mean">
+          <a:documentation>Use a geometric mean:
+
+  \bar\nu = (\nu^i)^(\alpha^i)
+ 
+where \bar\nu is the bulk viscosity, \alpha^i is the volume fraction
+for material i and \nu^i is the viscosity of material i.</a:documentation>
+          <attribute name="name">
+            <value>geometric</value>
+          </attribute>
+          <empty/>
+        </element>
+      </choice>
     </element>
   </define>
   <define name="sediment_concentration_dependent_viscosity_algorithm">

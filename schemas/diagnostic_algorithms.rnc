@@ -870,16 +870,43 @@ bulk_viscosity_algorithm =
    (
        ## The average (or bulk) viscosity formed from the MaterialViscosity for
        ## each material_phase, weighted according to the MaterialVolumeFraction
-       ## fields from each material_phase:
-       ##
-       ##   \bar\nu = \alpha^i\nu^i
-       ##  
-       ## where \bar\nu is the bulk viscosity, \alpha^i is the volume fraction
-       ## for material i and \nu^i is the viscosity of material i
+       ## from each material_phase.
        element algorithm {
           attribute name { "bulk_viscosity" },
           attribute material_phase_support { "multiple" },
-          attribute depends { "MaterialViscosity" }
+          attribute depends { "MaterialViscosity" },
+          (
+            ## Use an arithmetic mean (default):
+            ##
+            ##   \bar\nu = \alpha^i\nu^i
+            ##  
+            ## where \bar\nu is the bulk viscosity, \alpha^i is the volume fraction
+            ## for material i and \nu^i is the viscosity of material i.
+            element mean {
+              attribute name { "arithmetic" },
+              empty
+            }|
+            ## Use a harmonic mean:
+            ##
+            ##   1./\bar\nu = \alpha^i/\nu^i
+            ##  
+            ## where \bar\nu is the bulk viscosity, \alpha^i is the volume fraction
+            ## for material i and \nu^i is the viscosity of material i.
+            element mean {
+              attribute name { "harmonic" },
+              empty
+            }|
+            ## Use a geometric mean:
+            ##
+            ##   \bar\nu = (\nu^i)^(\alpha^i)
+            ##  
+            ## where \bar\nu is the bulk viscosity, \alpha^i is the volume fraction
+            ## for material i and \nu^i is the viscosity of material i.
+            element mean {
+              attribute name { "geometric" },
+              empty
+            }
+          )
        }
    )
 sediment_concentration_dependent_viscosity_algorithm =
