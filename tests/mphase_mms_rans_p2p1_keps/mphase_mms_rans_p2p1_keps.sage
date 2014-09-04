@@ -33,6 +33,8 @@ rho1 = 10.0*temperature1 + 10.0
 nu_T1 = rho1*(ke1^2)/eps1
 nu1 = 0.7
 vfrac1 = 0.7
+g_x = 0.707106781
+g_y = 0.707106781
 
 tau_xx1 = 2*nu1*diff(u1,x)            
 tau_xy1 = nu1*(diff(u1,y) + diff(v1,x))
@@ -43,16 +45,17 @@ tau_xy_R1 = nu_T1*(diff(u1,y) + diff(v1,x))
 tau_yy_R1 = 2*nu_T1*diff(v1,y)
 tau_yx_R1 = nu_T1*(diff(u1,y) + diff(v1,x))
 
-Su1 = vfrac1*rho1*u1*diff(u1,x) + vfrac1*rho1*v1*diff(u1,y) - diff(vfrac1*tau_xx1, x) - diff(vfrac1*tau_xy1, y) - diff(vfrac1*tau_xx_R1, x) - diff(vfrac1*tau_xy_R1, y) - vfrac1*rho1 + vfrac1*diff(p,x)  
-Sv1 = vfrac1*rho1*u1*diff(v1,x) + vfrac1*rho1*v1*diff(v1,y) - diff(vfrac1*tau_yx1, x) - diff(vfrac1*tau_yy1, y) - diff(vfrac1*tau_yx_R1, x) - diff(vfrac1*tau_yy_R1, y) - vfrac1*rho1 + vfrac1*diff(p,y)  
+Su1 = vfrac1*rho1*u1*diff(u1,x) + vfrac1*rho1*v1*diff(u1,y) - diff(vfrac1*tau_xx1, x) - diff(vfrac1*tau_xy1, y) - diff(vfrac1*tau_xx_R1, x) - diff(vfrac1*tau_xy_R1, y) - vfrac1*rho1*g_x + vfrac1*diff(p,x)  
+Sv1 = vfrac1*rho1*u1*diff(v1,x) + vfrac1*rho1*v1*diff(v1,y) - diff(vfrac1*tau_yx1, x) - diff(vfrac1*tau_yy1, y) - diff(vfrac1*tau_yx_R1, x) - diff(vfrac1*tau_yy_R1, y) - vfrac1*rho1*g_y + vfrac1*diff(p,y)  
 
 Stemperature1 = u1*diff(temperature1,x) + v1*diff(temperature1,y) - (1.0 + nu_T1)*(diff(temperature1, x, x) + diff(temperature1, y, y)) - diff(nu_T1, x)*diff(temperature1, x) -  diff(nu_T1, y)*diff(temperature1, y)
 
 P1 = nu_T1*(2*(diff(u1,x)^2 + diff(v1,y)^2 + diff(u1,y)*diff(v1,x)) + diff(u1,y)^2 + diff(v1,x)^2) - (2./3.)*ke1*rho1*(diff(u1,x) + diff(v1,y))
 
-C3 = 1.0
-g_x = 1.0
-g_y = 1.0
+u_z = g_x*u1 + g_y*v1
+u_xy = ((u1**2.0 + v1**2.0) - u_z**2.0)**0.5
+C3 = tanh(u_z/u_xy)
+
 B1 = -nu_T1*(g_x*diff(rho1,x) + g_y*diff(rho1,y))/rho1
 
 pr = 1
@@ -92,16 +95,17 @@ tau_xy_R2 = nu_T2*(diff(u2,y) + diff(v2,x))
 tau_yy_R2 = 2*nu_T2*diff(v2,y)
 tau_yx_R2 = nu_T2*(diff(u2,y) + diff(v2,x))
 
-Su2 = vfrac2*rho2*u2*diff(u2,x) + vfrac2*rho2*v2*diff(u2,y) - diff(vfrac2*tau_xx2, x) - diff(vfrac2*tau_xy2, y) - diff(vfrac2*tau_xx_R2, x) - diff(vfrac2*tau_xy_R2, y) - vfrac2*rho2 + vfrac2*diff(p,x)  
-Sv2 = vfrac2*rho2*u2*diff(v2,x) + vfrac2*rho2*v2*diff(v2,y) - diff(vfrac2*tau_yx2, x) - diff(vfrac2*tau_yy2, y) - diff(vfrac2*tau_yx_R2, x) - diff(vfrac2*tau_yy_R2, y) - vfrac2*rho2 + vfrac2*diff(p,y)  
+Su2 = vfrac2*rho2*u2*diff(u2,x) + vfrac2*rho2*v2*diff(u2,y) - diff(vfrac2*tau_xx2, x) - diff(vfrac2*tau_xy2, y) - diff(vfrac2*tau_xx_R2, x) - diff(vfrac2*tau_xy_R2, y) - vfrac2*rho2*g_x + vfrac2*diff(p,x)  
+Sv2 = vfrac2*rho2*u2*diff(v2,x) + vfrac2*rho2*v2*diff(v2,y) - diff(vfrac2*tau_yx2, x) - diff(vfrac2*tau_yy2, y) - diff(vfrac2*tau_yx_R2, x) - diff(vfrac2*tau_yy_R2, y) - vfrac2*rho2*g_y + vfrac2*diff(p,y)  
 
 Stemperature2 = u2*diff(temperature2,x) + v2*diff(temperature2,y) - (1.0 + nu_T2)*(diff(temperature2, x, x) + diff(temperature2, y, y)) - diff(nu_T2, x)*diff(temperature2, x) -  diff(nu_T2, y)*diff(temperature2, y)
 
 P2 = nu_T2*(2*(diff(u2,x)^2 + diff(v2,y)^2 + diff(u2,y)*diff(v2,x)) + diff(u2,y)^2 + diff(v2,x)^2) - (2./3.)*ke2*rho2*(diff(u2,x) + diff(v2,y))
 
-C3 = 1.0
-g_x = 1.0
-g_y = 1.0
+u_z = g_x*u1 + g_y*v1
+u_xy = ((u1**2.0 + v1**2.0) - u_z**2.0)**0.5
+C3 = tanh(u_z/u_xy)
+
 B2 = -nu_T2*(g_x*diff(rho2,x) + g_y*diff(rho2,y))/rho2
 
 pr = 1
@@ -183,34 +187,34 @@ print 'def forcing_eps2(X):'
 print '    return', str(Seps2).replace('e^', 'exp').replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
 print ''
 print 'def P1(X):'
-print '    return', str(P1).replace('e^', 'exp').replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
+print '    return', str(P1*vfrac1).replace('e^', 'exp').replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
 print ''
 print 'def P2(X):'
-print '    return', str(P2).replace('e^', 'exp').replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
+print '    return', str(P2*vfrac2).replace('e^', 'exp').replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
 print ''
 print 'def P_eps1(X):'
-print '    return', str((eps1/ke1)*P1).replace('e^', 'exp').replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
+print '    return', str((eps1/ke1)*P1*vfrac1).replace('e^', 'exp').replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
 print ''
 print 'def P_eps2(X):'
-print '    return', str((eps2/ke2)*P2).replace('e^', 'exp').replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
+print '    return', str((eps2/ke2)*P2*vfrac2).replace('e^', 'exp').replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
 print ''
 print 'def A1(X):'
-print '    return', str(rho1*eps1/ke1).replace('e^', 'exp').replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
+print '    return', str(-vfrac1*rho1*eps1/ke1).replace('e^', 'exp').replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
 print ''
 print 'def A2(X):'
-print '    return', str(rho2*eps2/ke2).replace('e^', 'exp').replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
+print '    return', str(-vfrac2*rho2*eps2/ke2).replace('e^', 'exp').replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
 print ''
 print 'def B1(X):'
-print '    return', str(B1).replace('e^', 'exp').replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
+print '    return', str(vfrac1*B1).replace('e^', 'exp').replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
 print ''
 print 'def B2(X):'
-print '    return', str(B2).replace('e^', 'exp').replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
+print '    return', str(vfrac2*B2).replace('e^', 'exp').replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
 print ''
 print 'def B_eps1(X):'
-print '    return', str(C3*(eps1/ke1)*B1).replace('e^', 'exp').replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
+print '    return', str(vfrac1*C3*(eps1/ke1)*B1).replace('e^', 'exp').replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
 print ''
 print 'def B_eps2(X):'
-print '    return', str(C3*(eps2/ke2)*B2).replace('e^', 'exp').replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
+print '    return', str(vfrac2*C3*(eps2/ke2)*B2).replace('e^', 'exp').replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
 print ''
 print 'def EV1(X):'
 print '    return', str(nu_T1).replace('e^', 'exp').replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')

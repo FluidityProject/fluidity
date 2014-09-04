@@ -1138,7 +1138,7 @@ subroutine k_epsilon_check_options
   character(len=FIELD_NAME_LEN)  :: kmsh, emsh, vmsh
   integer                        :: dimension, stat, n_phases, istate
 
-  ewrite(1,*) "In keps_check_options"
+  ewrite(2,*) "Checking k-epsilon options"
 
   n_phases = option_count("/material_phase")
 
@@ -1282,6 +1282,8 @@ subroutine k_epsilon_check_options
      end if
 
   end do
+
+  ewrite(2, *) "Finished checking k-epsilon options"
 
 end subroutine k_epsilon_check_options
 
