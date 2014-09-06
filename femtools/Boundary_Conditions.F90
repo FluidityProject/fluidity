@@ -1506,7 +1506,7 @@ contains
                 if (size(field%bc%boundary_condition(i)%surface_fields) > 1) then
                    surface_field_second_value => field%bc%boundary_condition(i)%surface_fields(2)
                 else
-                   FLAbort('Boundary condition surface_fields not off sufficient size for assigning robin second boundary value')
+                   FLAbort('Boundary condition surface_fields not of sufficient size for assigning robin second boundary value')
                 end if
              else
                 FLAbort('Robin boundary condition cannot be assigned without the optional argument boundary_second_value')  
@@ -1576,7 +1576,7 @@ contains
   end subroutine get_entire_scalar_boundary_condition
     
   subroutine get_entire_vector_boundary_condition(field, &
-     types, boundary_value, bc_type_list, bc_number_list)
+     types, boundary_value, bc_type_list, bc_number_list, boundary_second_value)
     !!< Gets the boundary conditions on the entire surface mesh for all
     !!< bc types requested
     
@@ -1602,8 +1602,11 @@ contains
     !! which can be used to extract further information
     !! BC can be set for each component separately, so ndim x surface_element_count()
     integer, dimension(:,:), intent(out), optional:: bc_number_list
+    !! This field is for Robin BCs and should be deallocated after use.
+    type(vector_field), intent(out), optional:: boundary_second_value
     
     type(vector_field), pointer:: surface_field
+    type(vector_field), pointer:: surface_field_second_value
     type(mesh_type), pointer:: surface_mesh, volume_mesh
     character(len=FIELD_NAME_LEN) bctype
     integer, dimension(:), pointer:: surface_element_list
@@ -1621,6 +1624,11 @@ contains
     call zero(boundary_value)
     bc_type_list=0
     
+    if (present(boundary_second_value)) then
+       call allocate(boundary_second_value, field%dim, surface_mesh, name=trim(field%name)//"EntireBCSecondValue")
+       call zero(boundary_second_value)    
+    end if
+
     bcloop: do i=1, get_boundary_condition_count(field)
        call get_boundary_condition(field, i, type=bctype, applies=applies, &
           surface_element_list=surface_element_list)
@@ -1634,8 +1642,22 @@ contains
        if (associated(field%bc%boundary_condition(i)%surface_fields)) then
           ! extract 1st surface field
           surface_field => field%bc%boundary_condition(i)%surface_fields(1)
+          if (trim(bctype) == 'robin' .or. trim(bctype) == 'dynamic_slip') then
+             if (present(boundary_second_value)) then
+                if (size(field%bc%boundary_condition(i)%surface_fields) > 1) then
+                   surface_field_second_value => field%bc%boundary_condition(i)%surface_fields(2)
+                else
+                   FLAbort('Boundary condition surface_fields not of sufficient size for assigning robin second boundary value')
+                end if
+             else
+                FLAbort('Robin boundary condition cannot be assigned without the optional argument boundary_second_value')  
+             end if
+          else
+             nullify(surface_field_second_value)
+          end if
        else
           nullify(surface_field)
+          nullify(surface_field_second_value)
        end if       
        
        faceloop: do k=1, size(surface_element_list)
@@ -1662,7 +1684,13 @@ contains
                    call set(boundary_value, n, ele_nodes(surface_mesh, sele), &
                       ele_val(surface_field, n, k))
                 end if
+
+                if (associated(surface_field_second_value)) then
+                   call set(boundary_second_value, n, ele_nodes(surface_mesh, sele), &
+                      ele_val(surface_field_second_value, n, k))
+                end if
              end if
+
           end do
           
        end do faceloop

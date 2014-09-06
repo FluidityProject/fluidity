@@ -4,6 +4,15 @@
   <define name="input_choice_real">
     <ref name="input_choice_real_contents"/>
   </define>
+  <define name="input_choice_real_plus_internal">
+    <choice>
+      <ref name="input_choice_real_contents"/>
+      <element name="internally_calculated">
+        <a:documentation>Initialise the field internally.</a:documentation>
+        <empty/>
+      </element>
+    </choice>
+  </define>
   <define name="input_choice_real_plus_boundary_forcing">
     <choice>
       <ref name="input_choice_real_plus_field"/>

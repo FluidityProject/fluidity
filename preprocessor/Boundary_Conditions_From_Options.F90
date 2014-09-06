@@ -339,10 +339,10 @@ contains
     character(len=20), dimension(3) :: aligned_components
 
     type(mesh_type), pointer:: mesh, surface_mesh
-    type(vector_field) surface_field, surface_field2, bc_position
+    type(vector_field) surface_field, bc_position
     type(vector_field):: normal, tangent_1, tangent_2
-    type(scalar_field) :: scalar_surface_field, scalar_surface_field2
-    character(len=OPTION_PATH_LEN) bc_path_i, bc_type_path, bc_component_path
+    type(scalar_field) :: scalar_surface_field
+    character(len=OPTION_PATH_LEN) bc_path_i, bc_type_path, bc_component_path, les_option_path
     character(len=FIELD_NAME_LEN) bc_name, bc_type
     logical applies(3), have_sem_bc, debugging_mode, prescribed(3)
     integer, dimension(:), allocatable:: surface_ids
@@ -410,6 +410,20 @@ contains
           end if
 
        case("robin")
+          ewrite(1,*) "Allocating Robin BC fields"
+
+          les_option_path = trim(field%option_path)//'/prognostic/spatial_discretisation/continuous_galerkin/les_model'
+
+          ! options checking
+          if(have_option(trim(bc_path_i)//"/type[0]/dynamic_slip")) then
+
+             ewrite(2,*) "Changing robin BC type to dynamic_slip"
+             bc_type = "dynamic_slip"
+
+             if(.not. (have_option(trim(les_option_path)//'/dynamic_les') .or. have_option(trim(les_option_path)//'/exact_sgs'))) then
+                FLAbort("You need an inverse Helmholtz-filtered Velocity field via the dynamic LES or exact SGS subgrid models for the dynamic-slip type Robin boundary condition to work.")
+             end if
+          end if
 
           if(have_option(trim(bc_path_i)//"/type[0]/align_bc_with_cartesian")) then
              aligned_components=cartesian_aligned_components
@@ -422,6 +436,14 @@ contains
           do j=1,3
              bc_component_path=trim(bc_type_path)//"/"//aligned_components(j)
              applies(j)=have_option(trim(bc_component_path))
+
+             ! options checking
+             if(have_option(trim(bc_path_i)//"/type[0]/dynamic_slip") .and. applies(j)) then
+                if(.not. (have_option(trim(bc_component_path)//"/order_zero_coefficient/internally_calculated") &
+                          .and. have_option(trim(bc_component_path)//"/order_one_coefficient/internally_calculated"))) then
+                   FLAbort("You must set the order_zero_coefficient and order_zero_coefficient to internally_calculated when using dynamic slip boundary condition.")
+                end if
+             end if
           end do
 
           call add_boundary_condition(field, trim(bc_name), trim(bc_type),&
@@ -430,11 +452,15 @@ contains
 
           call get_boundary_condition(field, i+1, surface_mesh=surface_mesh)
 
+          ! Robin boundary conditions require two inputs. These inputs can
+          ! be constant or set from a generic or python function.
+
           call allocate(surface_field, field%dim, surface_mesh, name="order_zero_coefficient")
-          call allocate(surface_field2, field%dim, surface_mesh, name="order_one_coefficient")
           call insert_surface_field(field, i+1, surface_field)
-          call insert_surface_field(field, i+1, surface_field2)
           call deallocate(surface_field)
+
+          call allocate(surface_field, field%dim, surface_mesh, name="order_one_coefficient")
+          call insert_surface_field(field, i+1, surface_field)
           call deallocate(surface_field)
 
        case("drag")
@@ -525,8 +551,8 @@ contains
 
        ! now check for user-specified normal/tangent vectors (rotation matrix)
        select case (bc_type)
-       case ("dirichlet", "neumann", "robin", "weakdirichlet", "flux")
-          ! this is the same for all 3 b.c. types
+       case ("dirichlet", "neumann", "robin", "dynamic_slip", "weakdirichlet", "flux")
+          ! this is the same for all these b.c. types
 
           bc_type_path=trim(bc_path_i)//"/type[0]/align_bc_with_surface"
 
@@ -752,9 +778,8 @@ contains
          bc_position = get_coordinates_remapped_to_surface(position, surface_mesh, surface_element_list) 
        end if
 
-       ! Dirichlet and Neumann boundary conditions require one input
-       ! while a Robin boundary condition requires two. This input can
-       ! be constant or set from a generic or python function.
+       ! Dirichlet and Neumann boundary conditions require one input.
+       ! This input can be constant or set from a generic or python function.
        select case(trim(bc_type))
 
        case("dirichlet", "neumann", "weakdirichlet", "flux")
@@ -795,10 +820,11 @@ contains
             call remap_field_to_surface(parent_field, surface_field, surface_element_list, stat)
 
           else
-            call initialise_field(surface_field, bc_type_path, bc_position, &
-              time=time)
+            call initialise_field(surface_field, bc_type_path, bc_position, time=time)
           end if
 
+       ! A Robin boundary condition requires two inputs which can be
+       ! constant or set from a generic python function.
        case("robin")
 
           bc_type_path=trim(bc_path_i)//"/type[0]/order_zero_coefficient"
@@ -965,24 +991,21 @@ contains
             do k=1,3
                surface_field_component=extract_scalar_field(surface_field11, k)
                bc_component_path=trim(bc_type_path)//"/"//trim(aligned_components(k))//"/synthetic_eddy_method/mean_profile"
-               call initialise_field(surface_field_component, trim(bc_component_path), bc_position, &
-                  time=time)
+               call initialise_field(surface_field_component, trim(bc_component_path), bc_position, time=time)
             enddo
             
             surface_field22 => extract_surface_field(field, bc_name, name="TurbulenceLengthscale")
             do k=1,3
                surface_field_component=extract_scalar_field(surface_field22, k)
                bc_component_path=trim(bc_type_path)//"/"//trim(aligned_components(k))//"/synthetic_eddy_method/turbulence_lengthscale"
-               call initialise_field(surface_field_component, trim(bc_component_path), bc_position, &
-                  time=time)
+               call initialise_field(surface_field_component, trim(bc_component_path), bc_position, time=time)
             enddo
             
             surface_field21 => extract_surface_field(field, bc_name, name="ReStressesProfile")
             do k=1,3
                surface_field_component=extract_scalar_field(surface_field21, k)
                bc_component_path=trim(bc_type_path)//"/"//trim(aligned_components(k))//"/synthetic_eddy_method/Re_stresses_profile"
-               call initialise_field(surface_field_component, trim(bc_component_path), bc_position, &
-                 time=time)
+               call initialise_field(surface_field_component, trim(bc_component_path), bc_position, time=time)
             enddo
            
             bc_component_path=trim(bc_type_path)//"/"//trim(aligned_components(1))//"/synthetic_eddy_method/number_of_eddies"
@@ -1037,8 +1060,7 @@ contains
                      end if                    
 
                   else
-                     call initialise_field(surface_field_component, bc_component_path, bc_position, &
-                              time=time)
+                     call initialise_field(surface_field_component, bc_component_path, bc_position, time=time)
                   end if
                end if
             end do
@@ -1046,7 +1068,10 @@ contains
 
          call deallocate(bc_position)
          
-      case("robin")
+       ! A Robin boundary condition requires two inputs which can be
+       ! constant, set from a python function or calculated internally.
+       case("robin", "dynamic_slip")
+          ewrite(1,*) "Setting Robin BC on vector field"
 
           if(have_option(trim(bc_path_i)//"/align_bc_with_cartesian")) then
              aligned_components=cartesian_aligned_components
@@ -1066,22 +1091,25 @@ contains
           ! map the coordinate field onto this mesh
           bc_position = get_coordinates_remapped_to_surface(position, surface_mesh, surface_element_list) 
 
-          surface_field => extract_surface_field(field, bc_name, name="order_zero_coeffcient")
-          surface_field2 => extract_surface_field(field, bc_name, name="order_one_coeffcient")
-          do j=1,3
-             if (j>surface_field%dim) then
-                FLAbort("Too many dimensions in boundary condition")
-             end if
-             bc_component_path=trim(bc_type_path)//"/"//aligned_components(j)//"/order_zero_coefficient"
-             surface_field_component=extract_scalar_field(surface_field, j)
-             call initialise_field(surface_field_component, bc_component_path, bc_position, &
-               time=time)
+          surface_field => extract_surface_field(field, bc_name, name="order_zero_coefficient")
+          surface_field2 => extract_surface_field(field, bc_name, name="order_one_coefficient")
 
-             bc_component_path=trim(bc_type_path)//"/"//aligned_components(j)//"/order_one_coefficient"
-             surface_field_component=extract_scalar_field(surface_field2, j)
-             call initialise_field(surface_field_component, bc_component_path, bc_position, &
-               time=time)
+          do j=1,3
+             if (applies(j)) then
+                if (j>surface_field%dim) then
+                   FLAbort("Too many dimensions in boundary condition")
+                end if
+
+                bc_component_path=trim(bc_type_path)//"/"//trim(aligned_components(j))//"/order_zero_coefficient"
+                surface_field_component=extract_scalar_field(surface_field, j)
+                call initialise_field(surface_field_component, bc_component_path, bc_position, time=time)
+
+                bc_component_path=trim(bc_type_path)//"/"//trim(aligned_components(j))//"/order_one_coefficient"
+                surface_field_component=extract_scalar_field(surface_field2, j)
+                call initialise_field(surface_field_component, bc_component_path, bc_position, time=time)
+             end if
           end do
+
           call deallocate(bc_position)
 
        case("drag")
@@ -1092,8 +1120,7 @@ contains
           ! map the coordinate field onto this mesh
           bc_position = get_coordinates_remapped_to_surface(position, surface_mesh, surface_element_list) 
 
-          call initialise_field(scalar_surface_field, bc_path_i, bc_position, &
-            time=time)
+          call initialise_field(scalar_surface_field, bc_path_i, bc_position, time=time)
           call deallocate(bc_position)
 
        case("prescribed_normal_flow")
@@ -1128,8 +1155,7 @@ contains
              end if                    
 
           else
-             call initialise_field(surface_field_component, bc_path_i, bc_position, &
-                      time=time)
+             call initialise_field(surface_field_component, bc_path_i, bc_position, time=time)
           end if
           call deallocate(bc_position)
 
@@ -1143,19 +1169,16 @@ contains
 
           if (have_option(trim(bc_path_i)//"/wind_stress")) then
              bc_type_path=trim(bc_path_i)//"/wind_stress"
-             call initialise_field(surface_field, bc_type_path, bc_position, &
-               time=time)
+             call initialise_field(surface_field, bc_type_path, bc_position, time=time)
           else if (have_option(trim(bc_path_i)//"/wind_velocity")) then
              bc_type_path=trim(bc_path_i)//"/wind_velocity"
 
              scalar_surface_field => extract_scalar_surface_field(field, bc_name, name="WindDragCoefficient")
              call initialise_field(scalar_surface_field, &
-                  trim(bc_type_path)//"/wind_drag_coefficient", bc_position, &
-                  time=time)
+                  trim(bc_type_path)//"/wind_drag_coefficient", bc_position, time=time)
 
              call initialise_field(surface_field, &
-                  trim(bc_type_path)//"/wind_velocity", bc_position, &
-                  time=time)
+                  trim(bc_type_path)//"/wind_velocity", bc_position, time=time)
           end if
           call deallocate(bc_position)
 
