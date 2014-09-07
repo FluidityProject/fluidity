@@ -1321,7 +1321,7 @@ contains
                   
 
          ! Calculate DETWEI, RA, NX, NY, NZ for element ELE
-         CALL DETNLXR_INVJAC( ELE, X_ALL, X_NDGLN, TOTELE, X_NONODS, &
+         CALL DETNLXR_INVJAC_PLUS_STORAGE( ELE, X_ALL, X_NDGLN, TOTELE, X_NONODS, &
               CV_NLOC, SCVNGI, &
               SCVFEN, SCVFENLX_ALL, SCVFEWEIGH, SCVDETWEI, SCVRA, VOLUME, DCYL, &
               SCVFENX_ALL, &
@@ -11558,6 +11558,7 @@ CONTAINS
     INTEGER, DIMENSION( CV_SNLOC ) :: LOG_ON_BOUND
 
     !ewrite(3,*)'In Calc_Sele'
+    log_on_bound=-66666
     I = 1
     DO CV_JLOC = 1, CV_NLOC  
        CV_JNOD = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_JLOC )

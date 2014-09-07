@@ -1657,7 +1657,7 @@ contains
             P_all % val = P_all % val + deltap%val
 
             call halo_update(p_all)
-            
+            !lets take a look at dp
             dp= deltap%val
 
             ewrite(3,*) 'after pressure solve DP:', minval(DP), maxval(DP)
@@ -3419,14 +3419,6 @@ contains
                 END DO
             END DO
 
-!            !Make a local copy of the Capillary pressure values.
-!            if (capillary_pressure_activated) then
-!                DO CV_ILOC = 1, CV_NLOC
-!                    CV_INOD = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_ILOC )
-!                    LOC_PLIKE_GRAD_SOU_GRAD( :, CV_ILOC ) = CapPressure(:, CV_INOD)
-!                end do
-!            end if
-
             DO P_ILOC = 1, P_NLOC
                 P_INOD = P_NDGLN( ( ELE - 1 ) * P_NLOC + P_ILOC )
                 LOC_P( P_ILOC ) = P( P_INOD )
@@ -3863,8 +3855,6 @@ contains
 
                         ENDIF ! ENDOF IF ( LUMP_MASS .AND. ( CV_NLOC==6 .OR. (CV_NLOC==10 .AND. NDIM==3) ) ) THEN ! Quadratice
 
-
-
                     Loop_DGNods2: DO U_JLOC = 1 + (ILEV-1)*U_NLOC2, ILEV*U_NLOC2
 
                         NN = 0.0
@@ -4079,12 +4069,12 @@ contains
                         !over the element of the pressure like source term.
                         if ( IPLIKE_GRAD_SOU == 1) then
                             !In this section of the assembly we add the volumetric part.
-                            ! Coeff * Integral(N ᐁCVFEN PLIKE_GRAD_SOU dV)
+                            ! Coeff * Integral(N grad CVFEN PLIKE_GRAD_SOU dV)
                             GRAD_SOU_GI_NMX( :, :) = matmul(CVFENX_ALL(:,P_JLOC,:),&
                             SPREAD(DETWEI( : ) *UFEN( U_ILOC, : ), DIM=2, NCOPIES=NPHASE)*&
                             transpose(GRAD_SOU_GI(:, :)))
                         end if
-                        ! Coeff * Integral(N ᐁCVFEN VOL_FRA dV)
+                        ! Coeff * Integral(N grad CVFEN VOL_FRA dV)
                         IF(IGOT_VOL_X_PRESSURE==1) THEN
                               VOL_FRA_NMX_ALL( :, : ) = matmul(CVFENX_ALL(:,P_JLOC,:),&
                                 SPREAD(DETWEI( : ) *UFEN( U_ILOC, : ), DIM=2, NCOPIES=NPHASE)*&
@@ -4536,13 +4526,13 @@ contains
                 U_SLOC2LOC( : ) = U_SLOCLIST( IFACE, : )
                 CV_SLOC2LOC( : ) = CV_SLOCLIST( IFACE, : )
 
-                ! Recalculate the normal...
+                ! Create local copy of X_ALL
                 DO CV_ILOC = 1, CV_NLOC
                     X_INOD = X_NDGLN( (ELE-1)*X_NLOC + CV_ILOC )
                     XL_ALL(:,CV_ILOC) = X_ALL( :, X_INOD )
                 END DO
 
-                ! Recalculate the normal...
+                ! Create local copy of X_ALL for surface nodes
                 DO CV_SILOC = 1, CV_SNLOC
                     CV_ILOC = CV_SLOC2LOC( CV_SILOC )
                     X_INOD = X_NDGLN( (ELE-1)*X_NLOC + CV_ILOC )
@@ -4557,7 +4547,6 @@ contains
                 SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, SDETWE, SAREA, &
                 SNORMXN_ALL, &
                 NORMX_ALL )
-
 
                 !Surface integral along an element
                 If_ele2_notzero_1: IF(ELE2 /= 0) THEN

@@ -1574,8 +1574,8 @@
       implicit none
       !This subroutine calls cv_fem_shape_funs only if the shape functions have not been calculated already
       !If they are in storage, the values are returned without calculations
-      !IMPORTANT: for compact_overlapping this subroutine DOES CALCULATES the CVN functions
-      !but cv_fem_shape_funs DOES NOT!!!!!!!
+      !IMPORTANT: CVN CANNOT BE CALCULATED FOR PnDGPn+1 AND IT WILL JUST RETURN ZEROS!!!!
+      !for Pn+1DGPnDG ONLY THIS SUBROUTINE RETURN VALUES FOR CVN
       integer, intent( in ) :: ndim, cv_ele_type, cv_ngi, cv_ngi_short, cv_nloc, u_nloc
       real, dimension( : , : ), pointer,  intent( inout ) :: cvn ! dimension( cv_nloc, cv_ngi )
       real, dimension(  : , : ),pointer, intent( inout ) :: cvn_short!dimension( cv_nloc, cv_ngi_short )
@@ -1664,10 +1664,11 @@
       !If values not stored then create space in state
       if (indx <=0) then
           if (has_scalar_field(state(1),StorName)) then
-               !We have to deallocate also the mesh type we are using inside the scalar field
-               pntr_Storage => extract_scalar_field(state(1), StorName)
-               !deallocate mesh
-               call deallocate(pntr_Storage%mesh)
+!               !We have to deallocate also the mesh type we are using inside the scalar field?
+!               pntr_Storage => extract_scalar_field(state(1), StorName)
+!               !deallocate mesh
+!               call deallocate(pntr_Storage%mesh)!Can I remove this without incurring in memory leaking?
+
               call remove_scalar_field(state(1), StorName)
           end if
           !Get mesh file just to be able to allocate the fields we want to store
@@ -1688,6 +1689,7 @@
           call insert(state(1), targ_Storage, StorName)
           call deallocate (targ_Storage)
           indx = size(state(1)%scalar_fields)
+
       end if
           !Set the pointers to state, indx is an input
           !###cv_nloc*cv_ngi section###
@@ -1706,7 +1708,6 @@
           cvfen_short(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
           counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2*ndim
           cvfenlx_short_all(1:ndim,1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
-
           !###u_nloc*cv_ngi section###
           siz1 = u_nloc;  siz2 = cv_ngi
           counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
@@ -8012,88 +8013,76 @@ ewrite(3,*)'lll:', option_path_len
       character(len=*), intent(in) :: StorName
       integer, intent(inout) :: indx
       ! Local variables
-      INTEGER :: NDIM
+      INTEGER :: NDIM, jump, from, to
       !Variables to store things in state
       type(mesh_type), pointer :: fl_mesh
       type(mesh_type) :: Auxmesh
       type(scalar_field), target :: targ_NX_ALL
-      type(scalar_field), target :: targ_UNX_ALL
-      type(scalar_field), target :: targ_DETWEI_RA
-      type(scalar_field), target :: targ_VOLUME
       !#########Storing area#################################
       NDIM = 2
       if (D1) ndim =1
       if (D3) ndim = 3
 
       if (indx==0 .and. ELE==1) then !The first time we need to introduce the targets in state
-         if (has_scalar_field(state(1), "X"//StorName)) then
+         if (has_scalar_field(state(1), StorName)) then
             !If we are recalculating due to a mesh modification then
             !we return to the original situation
-            call remove_scalar_field(state(1), "X"//StorName)
-            call remove_scalar_field(state(1), "UX"//StorName)
-            call remove_scalar_field(state(1), "D"//StorName)
-            call remove_scalar_field(state(1), "V"//StorName)
+            call remove_scalar_field(state(1), StorName)
          end if
           !Get mesh file just to be able to allocate the fields we want to store
          fl_mesh => extract_mesh( state(1), "CoordinateMesh" )
          Auxmesh = fl_mesh
 
          !The number of nodes I want does not coincide
-         Auxmesh%nodes = merge(totele,1,btest(cache_level,0))*X_NLOC*NGI*NDIM
+         Auxmesh%nodes = merge(totele,1,btest(cache_level,0))*X_NLOC*NGI*NDIM&
+         +merge(totele,1,btest(cache_level,1))*U_NLOC*NDIM*NGI&
+         +merge(totele,1,btest(cache_level,2))*NGI*2 + totele
          call allocate (Targ_NX_ALL, Auxmesh)
-         Auxmesh%nodes = merge(totele,1,btest(cache_level,1))*U_NLOC*NDIM*NGI
-         call allocate (targ_UNX_ALL, Auxmesh)
-         Auxmesh%nodes = merge(totele,1,btest(cache_level,2))*NGI*2
-         call allocate (Targ_DETWEI_RA, Auxmesh)
-         Auxmesh%nodes = totele
-         call allocate (Targ_VOLUME, Auxmesh)
 
          !Now we insert them in state and store the indexes
-         call insert(state(1), Targ_NX_ALL, "X"//StorName)
+         call insert(state(1), Targ_NX_ALL, StorName)
          !Store index with a negative value, because if the index is
          !zero or negative then we have to calculate stuff
          indx = -size(state(1)%scalar_fields)
-         call insert(state(1), Targ_UNX_ALL, "UX"//StorName)
-         call insert(state(1), Targ_DETWEI_RA, "D"//StorName)
-         call insert(state(1), Targ_VOLUME, "V"//StorName)
-
-
          call deallocate (Targ_NX_ALL)
-         call deallocate (Targ_UNX_ALL)
-         call deallocate (Targ_DETWEI_RA)
-         call deallocate (Targ_VOLUME)
 
       end if
-
 
       !If new mesh or mesh moved indx will be zero (set in Multiphase_TimeLoop)
 
       if (btest(cache_level,0)) then
+         from = 1+NDIM*X_NLOC*NGI*(ELE-1); to = NDIM*X_NLOC*NGI*ELE
          NX_ALL(1:NDIM,1:X_NLOC,1:NGI) => &
-              state(1)%scalar_fields(abs(indx))%ptr%val(1+NDIM*X_NLOC*NGI*(ELE-1):NDIM*X_NLOC*NGI*ELE)
+              state(1)%scalar_fields(abs(indx))%ptr%val(from:to)
+         jump = NDIM*X_NLOC*NGI*totele
+         from = jump + 1+NDIM*U_NLOC*NGI*(ELE-1); to = jump + NDIM*U_NLOC*NGI*ELE
+         UNX_ALL(1:NDIM,1:U_NLOC,1:NGI)  => &
+              state(1)%scalar_fields(abs(indx))%ptr%val(from:to)
+         jump = jump + NDIM*U_NLOC*NGI*totele
+         from = jump + 1+NGI*(ELE-1); to = jump + NGI*ELE
+         DETWEI(1:NGI) => state(1)%scalar_fields(abs(indx))%ptr%val(from:to)
+         jump = jump + NGI*totele
+         from = jump + 1+NGI*(ELE-1); to = jump + NGI*ELE
+         RA(1:NGI) => state(1)%scalar_fields(abs(indx))%ptr%val(from:to)
+         jump = jump + NGI*totele
+         VOLUME => state(1)%scalar_fields(abs(indx))%ptr%val(jump + ELE)
       else
+         from = 1; to = NDIM*X_NLOC*NGI
          NX_ALL(1:NDIM,1:X_NLOC,1:NGI) => &
-              state(1)%scalar_fields(abs(indx))%ptr%val
-      end if
-      if (btest(cache_level,3)) then
+              state(1)%scalar_fields(abs(indx))%ptr%val(from:to)
+         jump = NDIM*X_NLOC*NGI
+         from = jump + 1; to = jump + NDIM*U_NLOC*NGI
          UNX_ALL(1:NDIM,1:U_NLOC,1:NGI)  => &
-              state(1)%scalar_fields(abs(indx)+1)%ptr%val(1+(ELE-1)*(NGI*U_NLOC*NDIM):ELE*(NGI*U_NLOC*NDIM))
-      else
-         UNX_ALL(1:NDIM,1:U_NLOC,1:NGI)  => &
-              state(1)%scalar_fields(abs(indx)+1)%ptr%val
+              state(1)%scalar_fields(abs(indx))%ptr%val(from:to)
+         jump = jump + NDIM*U_NLOC*NGI
+         from = jump + 1; to = jump + NGI
+         DETWEI(1:NGI) => state(1)%scalar_fields(abs(indx))%ptr%val(from:to)
+         jump = jump + NGI
+         from = jump + 1; to = jump + NGI
+         RA(1:NGI) => state(1)%scalar_fields(abs(indx))%ptr%val(from:to)
+         jump = jump + NGI
+         VOLUME => state(1)%scalar_fields(abs(indx))%ptr%val(jump + ELE)
       end if
-      if (btest(cache_level,2)) then
-         DETWEI(1:NGI) => state(1)%scalar_fields(abs(indx)+2)%ptr%val(1+NGI*(ELE-1):NGI*ELE)
-      else
-         DETWEI(1:NGI) => state(1)%scalar_fields(abs(indx)+2)%ptr%val
-      END if
-      if (btest(cache_level,2)) then
-         RA(1:NGI) => state(1)%scalar_fields(abs(indx)+2)%ptr%val(1+NGI*((ELE-1)+TOTELE):NGI*(ELE+TOTELE))
-      else
-         RA(1:NGI) => state(1)%scalar_fields(abs(indx)+2)%ptr%val(NGI+1:2*NGI)
-      end if
-
-      VOLUME => state(1)%scalar_fields(abs(indx)+3)%ptr%val(ELE)
 
       IF (indx>0 .and. not(cache_level)==0) return
 

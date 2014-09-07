@@ -1416,7 +1416,7 @@
     END SUBROUTINE DETNLXR
 
 
-    SUBROUTINE DETNLXR_INVJAC( ELE, X_ALL, XONDGL, TOTELE, NONODS, NLOC, NGI, &
+    SUBROUTINE DETNLXR_INVJAC_PLUS_STORAGE( ELE, X_ALL, XONDGL, TOTELE, NONODS, NLOC, NGI, &
          N, NLX_ALL, WEIGHT, DETWEI, RA, VOLUME, DCYL, &
          NX_ALL,&
          NDIM, INV_JAC, state, StorName, indx )
@@ -1436,239 +1436,267 @@
       character(len=*), intent(in) :: StorName
       integer, intent(inout) :: indx
       ! Local variables
+      integer :: from, to, jump
+      !Variables to store things in state
+      type(mesh_type), pointer :: fl_mesh
+      type(mesh_type) :: Auxmesh
+      type(scalar_field), target :: targ_NX_ALL
+!      type(scalar_field), target :: targ_INV_JAC
+!      type(scalar_field), target :: targ_DETWEI_RA
+!      type(scalar_field), target :: targ_VOLUME
+      !#########Storing area#################################
+      !If new mesh or mesh moved indx will be zero (set in Multiphase_TimeLoop)
+
+
+      if (indx==0 .and. ELE==1) then !The first time we need to introduce the targets in state
+         if (has_scalar_field(state(1), StorName)) then
+            !If we are recalculating due to a mesh modification then
+            !we return to the original situation
+            call remove_scalar_field(state(1), StorName)
+         end if
+         !Get mesh file just to be able to allocate the fields we want to store
+         fl_mesh => extract_mesh( state(1), "CoordinateMesh" )
+         Auxmesh = fl_mesh
+         !The number of nodes I want does not coincide
+         Auxmesh%nodes = merge(totele,1,btest(cache_level,0))*NLOC*NGI*NDIM &
+         +merge(totele,1,btest(cache_level,1))*NDIM*NDIM*NGI &
+         +merge(totele,1,btest(cache_level,2))*NGI*2 + totele
+
+         call allocate (Targ_NX_ALL, Auxmesh)
+         
+         !Now we insert them in state and store the indexes
+         call insert(state(1), Targ_NX_ALL, StorName)
+         !Store index with a negative value, because if the index is
+         !zero or negative then we have to calculate stuff
+         indx = -size(state(1)%scalar_fields)
+
+         call deallocate (Targ_NX_ALL)
+      end if
+       !Get from state, indx is an input
+       if (btest(cache_level,0)) then
+         from = 1+NDIM*NLOC*NGI*(ELE-1); to = NDIM*NLOC*NGI*ELE
+         NX_ALL(1:NDIM,1:NLOC,1:NGI) => &
+              state(1)%scalar_fields(abs(indx))%ptr%val(from:to)
+         jump = NDIM*NLOC*NGI*totele
+         from = jump + 1+(ELE-1)*(NGI+NDIM*NDIM); to = jump + ELE*(NGI*NDIM*NDIM)
+         INV_JAC(1:NDIM,1:NDIM,1:NGI)  => &
+              state(1)%scalar_fields(abs(indx))%ptr%val(from:to)
+         jump = jump + totele*(NGI*NDIM*NDIM)
+         from = jump + 1+NGI*(ELE-1); to = jump + NGI*ELE
+         DETWEI(1:NGI) => state(1)%scalar_fields(abs(indx))%ptr%val(from:to)
+         jump = jump + NGI*totele
+         from = jump + 1+NGI*(ELE-1); to = jump + NGI*ELE
+         RA(1:NGI) => state(1)%scalar_fields(abs(indx))%ptr%val(from:to)
+         jump = jump + NGI*totele
+         VOLUME => state(1)%scalar_fields(abs(indx))%ptr%val(jump + ELE)
+      else
+         from = 1; to = NDIM*NLOC*NGI
+         NX_ALL(1:NDIM,1:NLOC,1:NGI) => &
+              state(1)%scalar_fields(abs(indx))%ptr%val(from:to)
+         jump = NDIM*NLOC*NGI
+         from = jump + 1; to = jump + NGI*NDIM*NDIM
+         INV_JAC(1:NDIM,1:NDIM,1:NGI)  => &
+              state(1)%scalar_fields(abs(indx))%ptr%val
+         jump = jump + NGI*NDIM*NDIM
+         from = jump + 1; to = jump + NGI
+         DETWEI(1:NGI) => state(1)%scalar_fields(abs(indx))%ptr%val(from:to)
+         jump = jump + NGI
+         from = jump + 1; to = jump + NGI
+         RA(1:NGI) => state(1)%scalar_fields(abs(indx))%ptr%val(from:to)
+         jump = jump + NGI
+         VOLUME => state(1)%scalar_fields(abs(indx))%ptr%val(jump + ELE)
+      end if
+
+      IF (indx>0 .and. not(cache_level)==0) return
+       !When all the values are obtained, the index is set to a positive value
+      if (ELE == totele) indx = abs(indx)
+      !#########Storing area finished########################
+      !
+
+        call DETNLXR_INVJAC( ELE, X_ALL(1,:), X_ALL(2,:),X_ALL(3,:) , XONDGL, TOTELE, NONODS, NLOC, NGI, &
+         N, NLX_ALL(1,:,:),NLX_ALL(2,:,:),NLX_ALL(3,:,:), WEIGHT, DETWEI, RA, VOLUME, NDIM ==1, NDIM ==3, DCYL, &
+         NX_ALL(1,:,:),NX_ALL(2,:,:),NX_ALL(3,:,:),&
+         NDIM, INV_JAC)
+
+
+    END SUBROUTINE DETNLXR_INVJAC_PLUS_STORAGE
+
+
+
+    SUBROUTINE DETNLXR_INVJAC( ELE, X,Y,Z, XONDGL, TOTELE, NONODS, NLOC, NGI, &
+         N, NLX, NLY, NLZ, WEIGHT, DETWEI, RA, VOLUME, D1, D3, DCYL, &
+         NX, NY, NZ,&
+         NDIM, INV_JAC  )
+      IMPLICIT NONE
+      INTEGER, intent( in ) :: ELE, TOTELE, NONODS, NLOC, NGI, NDIM
+      INTEGER, DIMENSION( : ) :: XONDGL
+      REAL, DIMENSION( : ), intent( in ) :: X, Y, Z
+      REAL, DIMENSION( :, : ), intent( in ) :: N, NLX, NLY, NLZ
+      REAL, DIMENSION( : ), intent( in ) :: WEIGHT
+      REAL, DIMENSION( : ), intent( inout ) :: DETWEI, RA
+      REAL, intent( inout ) :: VOLUME
+      LOGICAL, intent( in ) :: D1, D3, DCYL
+      REAL, DIMENSION( :, : ), intent( inout ) :: NX, NY, NZ
+      REAL, DIMENSION( :,:, : ), intent( inout ):: INV_JAC
+      ! Local variables
       REAL, PARAMETER :: PIE = 3.141592654
       REAL :: AGI, BGI, CGI, DGI, EGI, FGI, GGI, HGI, KGI, A11, A12, A13, A21, &
            A22, A23, A31, A32, A33, DETJ, TWOPIE, RGI
       INTEGER :: GI, L, IGLX, ii
       logical, save :: first = .true.
       real, save :: rsum, rsumabs
-      !Variables to store things in state
-      type(mesh_type), pointer :: fl_mesh
-      type(mesh_type) :: Auxmesh
-      type(scalar_field), target :: targ_NX_ALL
-      type(scalar_field), target :: targ_INV_JAC
-      type(scalar_field), target :: targ_DETWEI_RA
-      type(scalar_field), target :: targ_VOLUME
-      !#########Storing area#################################
-      !If new mesh or mesh moved indx will be zero (set in Multiphase_TimeLoop)
-
-
-      if (indx==0 .and. ELE==1) then !The first time we need to introduce the targets in state
-         if (has_scalar_field(state(1), "X"//StorName)) then
-            !If we are recalculating due to a mesh modification then
-            !we return to the original situation
-            call remove_scalar_field(state(1), "X"//StorName)
-            call remove_scalar_field(state(1), "UX"//StorName)
-            call remove_scalar_field(state(1), "D"//StorName)
-            call remove_scalar_field(state(1), "V"//StorName)
-         end if
-         !Get mesh file just to be able to allocate the fields we want to store
-         fl_mesh => extract_mesh( state(1), "CoordinateMesh" )
-         Auxmesh = fl_mesh
-         !The number of nodes I want does not coincide
-         Auxmesh%nodes = merge(totele,1,btest(cache_level,0))*NLOC*NGI*NDIM
-         call allocate (Targ_NX_ALL, Auxmesh)
-         Auxmesh%nodes = merge(totele,1,btest(cache_level,1))*NDIM*NDIM*NGI
-         call allocate (targ_INV_JAC, Auxmesh)
-         Auxmesh%nodes = merge(totele,1,btest(cache_level,2))*NGI*2
-         call allocate (Targ_DETWEI_RA, Auxmesh)
-         Auxmesh%nodes = totele
-         call allocate (Targ_VOLUME, Auxmesh)
-         
-         !Now we insert them in state and store the indexes
-         call insert(state(1), Targ_NX_ALL, "X"//StorName)
-         !Store index with a negative value, because if the index is
-         !zero or negative then we have to calculate stuff
-         indx = -size(state(1)%scalar_fields)
-         call insert(state(1), targ_INV_JAC, "UX"//StorName)
-         call insert(state(1), Targ_DETWEI_RA, "D"//StorName)
-         call insert(state(1), Targ_VOLUME, "V"//StorName)
-
-         call deallocate (Targ_NX_ALL)
-         call deallocate (targ_INV_JAC)
-         call deallocate (Targ_DETWEI_RA)
-         call deallocate (Targ_VOLUME)
-      end if
-       !Get from state, indx is an input
-      if (btest(cache_level,0)) then
-         NX_ALL(1:NDIM,1:NLOC,1:NGI) => &
-              state(1)%scalar_fields(abs(indx))%ptr%val(1+NDIM*NLOC*NGI*(ELE-1):NDIM*NLOC*NGI*ELE)
-      else
-         NX_ALL(1:NDIM,1:NLOC,1:NGI) => &
-              state(1)%scalar_fields(abs(indx))%ptr%val
-      end if
-      if (btest(cache_level,1)) then
-         INV_JAC(1:NDIM,1:NDIM,1:NGI)  => &
-              state(1)%scalar_fields(abs(indx)+1)%ptr%val(1+(ELE-1)*(NGI+NDIM*NDIM):ELE*(NGI*NDIM*NDIM))
-      else
-         INV_JAC(1:NDIM,1:NDIM,1:NGI)  => &
-              state(1)%scalar_fields(abs(indx)+1)%ptr%val
-      end if
-      if (btest(cache_level,2)) then
-         DETWEI(1:NGI) => state(1)%scalar_fields(abs(indx)+2)%ptr%val(1+NGI*(ELE-1):NGI*ELE)
-      else
-         DETWEI(1:NGI) => state(1)%scalar_fields(abs(indx)+2)%ptr%val
-      END if
-      if (btest(cache_level,2)) then
-         RA(1:NGI) => state(1)%scalar_fields(abs(indx)+2)%ptr%val(1+NGI*((ELE-1)+TOTELE):NGI*(ELE+TOTELE))
-      else
-         RA(1:NGI) => state(1)%scalar_fields(abs(indx)+2)%ptr%val(NGI+1:2*NGI)
-      end if
-         
-      VOLUME => state(1)%scalar_fields(abs(indx)+3)%ptr%val(ELE)
-      IF (indx>0 .and. not(cache_level)==0) return
-       !When all the values are obtained, the index is set to a positive value
-      if (ELE == totele) indx = abs(indx)
-      !#########Storing area finished########################
       !
       VOLUME = 0.0
       INV_JAC = 0.0
       !
-      select case (NDIM)
-          case (1)
-              ! For 1D...
-              do  GI = 1, NGI
-                  !
-                  AGI = 0.
-                  !
-                  do  L = 1, NLOC
-                      IGLX = XONDGL(( ELE - 1 ) * NLOC + L )
-                      AGI = AGI + NLX_ALL(1, L, GI ) * X_ALL(1, IGLX )
-                  end do
-                  !
-                  DETJ = AGI
-                  DETWEI( GI ) = ABS(DETJ) * WEIGHT( GI )
-                  VOLUME = VOLUME + DETWEI( GI )
-                  !
-                  do L = 1, NLOC
-                      NX_ALL(1, L, GI ) = NLX_ALL(1, L, GI ) / DETJ
-                  !               NX_ALL(2, L, GI ) = 0.0
-                  !               NX_ALL(3, L, GI ) = 0.0
-                  END DO
-                  INV_JAC( 1,1, GI )= 1.0 /DETJ
-                 !
-              end do
-          ! ENDOF IF(D3) THEN ELSE...
-          case (2)
-              TWOPIE=1.0
-              IF(DCYL) TWOPIE=2.*PIE
-              do  GI=1,NGI! Was loop 1331
-                  !
-                  RGI=0.
-                  !
-                  AGI=0.
-                  BGI=0.
-                  CGI=0.
-                  DGI=0.
-                  !
-                  do  L=1,NLOC! Was loop 179
-                      IGLX=XONDGL((ELE-1)*NLOC+L)
+      IF(D3) THEN
+         if( first ) then
+            rsum = 0. ; rsumabs = 0.
+            first = .false.
+         end if
+         do  GI=1,NGI! Was loop 331
+            !
+            AGI=0.
+            BGI=0.
+            CGI=0.
+            !
+            DGI=0.
+            EGI=0.
+            FGI=0.
+            !
+            GGI=0.
+            HGI=0.
+            KGI=0.
+            !
+            do  L=1,NLOC! Was loop 79
+               IGLX=XONDGL((ELE-1)*NLOC+L)
+               ewrite(3,*)'xndgln, x, nl:', &
+                    iglx, l, x(iglx), y(iglx), z(iglx), NLX(L,GI), NLY(L,GI), NLZ(L,GI)
+               ! NB R0 does not appear here although the z-coord might be Z+R0.
+               AGI=AGI+NLX(L,GI)*X(IGLX)
+               BGI=BGI+NLX(L,GI)*Y(IGLX)
+               CGI=CGI+NLX(L,GI)*Z(IGLX)
+               !
+               DGI=DGI+NLY(L,GI)*X(IGLX)
+               EGI=EGI+NLY(L,GI)*Y(IGLX)
+               FGI=FGI+NLY(L,GI)*Z(IGLX)
+               !
+               GGI=GGI+NLZ(L,GI)*X(IGLX)
+               HGI=HGI+NLZ(L,GI)*Y(IGLX)
+               KGI=KGI+NLZ(L,GI)*Z(IGLX)
+            end do ! Was loop 79
+            !
+            DETJ=AGI*(EGI*KGI-FGI*HGI)&
+                 -BGI*(DGI*KGI-FGI*GGI)&
+                 +CGI*(DGI*HGI-EGI*GGI)
+            DETWEI(GI)=ABS(DETJ)*WEIGHT(GI)
+            RA(GI)=1.0
+            VOLUME=VOLUME+DETWEI(GI)
+            ewrite(3,*)'gi, detj, weight(gi)', gi, detj, weight(gi)
+            rsum = rsum + detj
+            rsumabs = rsumabs + abs( detj )
+            ! For coefficient in the inverse mat of the jacobian.
+            A11= (EGI*KGI-FGI*HGI) /DETJ
+            A21=-(DGI*KGI-FGI*GGI) /DETJ
+            A31= (DGI*HGI-EGI*GGI) /DETJ
+            !
+            A12=-(BGI*KGI-CGI*HGI) /DETJ
+            A22= (AGI*KGI-CGI*GGI) /DETJ
+            A32=-(AGI*HGI-BGI*GGI) /DETJ
+            !
+            A13= (BGI*FGI-CGI*EGI) /DETJ
+            A23=-(AGI*FGI-CGI*DGI) /DETJ
+            A33= (AGI*EGI-BGI*DGI) /DETJ
+            do  L=1,NLOC! Was loop 373
+               NX(L,GI)= A11*NLX(L,GI)+A12*NLY(L,GI)+A13*NLZ(L,GI)
+               NY(L,GI)= A21*NLX(L,GI)+A22*NLY(L,GI)+A23*NLZ(L,GI)
+               NZ(L,GI)= A31*NLX(L,GI)+A32*NLY(L,GI)+A33*NLZ(L,GI)
+            end do ! Was loop 373
+            INV_JAC( 1,1, GI )= A11
+            INV_JAC( 2,1, GI )= A21
+            INV_JAC( 3,1, GI )= A31
+            !
+            INV_JAC( 1,2, GI )= A12
+            INV_JAC( 2,2, GI )= A22
+            INV_JAC( 3,2, GI )= A32
+            !
+            INV_JAC( 1,3, GI )= A13
+            INV_JAC( 2,3, GI )= A23
+            INV_JAC( 3,3, GI )= A33
+            !
+         end do ! Was loop 331
+         !ewrite(3,*)'ele, sum(detj), sum(abs(detj)):', ele, rsum, rsumabs
+         ! IF(D3) THEN...
+      ELSE IF(.NOT.D1) THEN
+         TWOPIE=1.0
+         IF(DCYL) TWOPIE=2.*PIE
+         do  GI=1,NGI! Was loop 1331
+            !
+            RGI=0.
+            !
+            AGI=0.
+            BGI=0.
+            CGI=0.
+            DGI=0.
+            !
+            do  L=1,NLOC! Was loop 179
+               IGLX=XONDGL((ELE-1)*NLOC+L)
 
-                      AGI=AGI + NLX_ALL(1,L,GI)*X_ALL(1,IGLX)
-                      BGI=BGI + NLX_ALL(1,L,GI)*X_ALL(2,IGLX)
-                      CGI=CGI + NLX_ALL(2,L,GI)*X_ALL(1,IGLX)
-                      DGI=DGI + NLX_ALL(2,L,GI)*X_ALL(2,IGLX)
-                      !
-                      RGI=RGI+N(L,GI)*X_ALL(2,IGLX)
-                  end do ! Was loop 179
-                  !
-                  IF(.NOT.DCYL) RGI=1.0
-                  !
-                  DETJ= AGI*DGI-BGI*CGI
-                  RA(GI)=RGI
-                  DETWEI(GI)=TWOPIE*RGI*ABS(DETJ)*WEIGHT(GI)
-                  VOLUME=VOLUME+DETWEI(GI)
-                  !
-                  do L=1,NLOC
-                      NX_ALL(1,L,GI)=(DGI*NLX_ALL(1,L,GI)-BGI*NLX_ALL(2,L,GI))/DETJ
-                      NX_ALL(2,L,GI)=(-CGI*NLX_ALL(1,L,GI)+AGI*NLX_ALL(2,L,GI))/DETJ
-                  !               NX_ALL(3,L,GI)=0.0
-                  END DO
+               AGI=AGI + NLX(L,GI)*X(IGLX)
+               BGI=BGI + NLX(L,GI)*Y(IGLX)
+               CGI=CGI + NLY(L,GI)*X(IGLX)
+               DGI=DGI + NLY(L,GI)*Y(IGLX)
+               !
+               RGI=RGI+N(L,GI)*Y(IGLX)
+            end do ! Was loop 179
+            !
+            IF(.NOT.DCYL) RGI=1.0
+            !
+            DETJ= AGI*DGI-BGI*CGI
+            RA(GI)=RGI
+            DETWEI(GI)=TWOPIE*RGI*ABS(DETJ)*WEIGHT(GI)
+            VOLUME=VOLUME+DETWEI(GI)
+            !
+            do L=1,NLOC
+               NX(L,GI)=(DGI*NLX(L,GI)-BGI*NLY(L,GI))/DETJ
+               NY(L,GI)=(-CGI*NLX(L,GI)+AGI*NLY(L,GI))/DETJ
+               NZ(L,GI)=0.0
+            END DO
 
-                  INV_JAC( 1,1, GI )= DGI /DETJ
-                  INV_JAC( 1,2, GI )= -BGI /DETJ
+            INV_JAC( 1,1, GI )= DGI /DETJ
+            INV_JAC( 1,2, GI )= -BGI /DETJ
 
-                  INV_JAC( 2,1, GI )= -CGI /DETJ
-                  INV_JAC( 2,2, GI )= AGI /DETJ
-                 !
-              end do ! Was loop 1331
-          case default
-              if( first ) then
-                  rsum = 0. ; rsumabs = 0.
-                  first = .false.
-              end if
-              do  GI=1,NGI! Was loop 331
-                  !
-                  AGI=0.
-                  BGI=0.
-                  CGI=0.
-                  !
-                  DGI=0.
-                  EGI=0.
-                  FGI=0.
-                  !
-                  GGI=0.
-                  HGI=0.
-                  KGI=0.
-                  !
-                  do  L=1,NLOC! Was loop 79
-                      IGLX=XONDGL((ELE-1)*NLOC+L)
-                      !ewrite(3,*)'xndgln, x, nl:', &
-                      !iglx, l, x_ALL(:,iglx), NLX_ALL(1,L,GI), NLX_ALL(2,L,GI), NLX_ALL(3,L,GI)
-                      ! NB R0 does not appear here although the z-coord might be Z+R0.
-                      AGI=AGI+NLX_ALL(1,L,GI)*X_ALL(1,IGLX)
-                      BGI=BGI+NLX_ALL(1,L,GI)*X_ALL(2,IGLX)
-                      CGI=CGI+NLX_ALL(1,L,GI)*X_ALL(3,IGLX)
-                      !
-                      DGI=DGI+NLX_ALL(2,L,GI)*X_ALL(1,IGLX)
-                      EGI=EGI+NLX_ALL(2,L,GI)*X_ALL(2,IGLX)
-                      FGI=FGI+NLX_ALL(2,L,GI)*X_ALL(3,IGLX)
-                      !
-                      GGI=GGI+NLX_ALL(3,L,GI)*X_ALL(1,IGLX)
-                      HGI=HGI+NLX_ALL(3,L,GI)*X_ALL(2,IGLX)
-                      KGI=KGI+NLX_ALL(3,L,GI)*X_ALL(3,IGLX)
-                  end do ! Was loop 79
-                  !
-                  DETJ=AGI*(EGI*KGI-FGI*HGI)&
-                  -BGI*(DGI*KGI-FGI*GGI)&
-                  +CGI*(DGI*HGI-EGI*GGI)
-                  DETWEI(GI)=ABS(DETJ)*WEIGHT(GI)
-                  RA(GI)=1.0
-                  VOLUME=VOLUME+DETWEI(GI)
-                  !ewrite(3,*)'gi, detj, weight(gi)', gi, detj, weight(gi)
-                  rsum = rsum + detj
-                  rsumabs = rsumabs + abs( detj )
-                  ! For coefficient in the inverse mat of the jacobian.
-                  A11= (EGI*KGI-FGI*HGI) /DETJ
-                  A21=-(DGI*KGI-FGI*GGI) /DETJ
-                  A31= (DGI*HGI-EGI*GGI) /DETJ
-                  !
-                  A12=-(BGI*KGI-CGI*HGI) /DETJ
-                  A22= (AGI*KGI-CGI*GGI) /DETJ
-                  A32=-(AGI*HGI-BGI*GGI) /DETJ
-                  !
-                  A13= (BGI*FGI-CGI*EGI) /DETJ
-                  A23=-(AGI*FGI-CGI*DGI) /DETJ
-                  A33= (AGI*EGI-BGI*DGI) /DETJ
-                  do  L=1,NLOC! Was loop 373
-                      NX_ALL(1,L,GI)= A11*NLX_ALL(1,L,GI)+A12*NLX_ALL(2,L,GI)+A13*NLX_ALL(3,L,GI)
-                      NX_ALL(2,L,GI)= A21*NLX_ALL(1,L,GI)+A22*NLX_ALL(2,L,GI)+A23*NLX_ALL(3,L,GI)
-                      NX_ALL(3,L,GI)= A31*NLX_ALL(1,L,GI)+A32*NLX_ALL(2,L,GI)+A33*NLX_ALL(3,L,GI)
-                  end do ! Was loop 373
-                  INV_JAC( 1,1, GI )= A11
-                  INV_JAC( 2,1, GI )= A21
-                  INV_JAC( 3,1, GI )= A31
-                  !
-                  INV_JAC( 1,2, GI )= A12
-                  INV_JAC( 2,2, GI )= A22
-                  INV_JAC( 3,2, GI )= A32
-                  !
-                  INV_JAC( 1,3, GI )= A13
-                  INV_JAC( 2,3, GI )= A23
-                  INV_JAC( 3,3, GI )= A33
-                 !
-              end do ! Was loop 331
-      end select
+            INV_JAC( 2,1, GI )= -CGI /DETJ
+            INV_JAC( 2,2, GI )= AGI /DETJ
+            !
+         end do ! Was loop 1331
+         ! ENDOF IF(D3) THEN ELSE...
+      ELSE
+         ! For 1D...
+         do  GI = 1, NGI
+            !
+            AGI = 0.
+            !
+            do  L = 1, NLOC
+               IGLX = XONDGL(( ELE - 1 ) * NLOC + L )
+               AGI = AGI + NLX( L, GI ) * X( IGLX )
+            end do
+            !
+            DETJ = AGI
+            DETWEI( GI ) = ABS(DETJ) * WEIGHT( GI )
+            VOLUME = VOLUME + DETWEI( GI )
+            !
+            do L = 1, NLOC
+               NX( L, GI ) = NLX( L, GI ) / DETJ
+               NY( L, GI ) = 0.0
+               NZ( L, GI ) = 0.0
+            END DO
+            INV_JAC( 1,1, GI )= 1.0 /DETJ
+            !
+         end do
+         ! ENDOF IF(D3) THEN ELSE...
+      ENDIF
+      !
       RETURN
     END SUBROUTINE DETNLXR_INVJAC
 
