@@ -1256,6 +1256,7 @@ For example:
 =
 - \int_E \frac{\partial N_i}{\partial x} \mu \frac{\partial u}{\partial x} dV
 + \int_{\Gamma_E} N_i n_x \mu \frac{\partial u}{\partial x} d\Gamma, 
+\label{visc-deriv} 
 \end{equation} 
 in order to evaluate the derivative $\frac{\partial u}{\partial x}$ 
 on the boundary of the element ${\Gamma_E}$ we integrate over the volume 
@@ -1278,6 +1279,11 @@ Also
 u_x =\sum_j N_j {u_x}_j  \approx 
  \frac{\partial u}{\partial x} . 
 \end{equation} 
+Then the derivative used within equation \ref{visc-deriv} is:
+\begin{equation}
+\frac{1}{2} (\frac{\partial u}{\partial x}+\frac{\partial u}{\partial x}\vert_{bc} ).
+\end{equation} 
+
 
 
 \subsection{Stress form DG discretization when dividing though by volume fraction} 
