@@ -1236,6 +1236,50 @@ resulting system of equations is symmetric positive semi-definite.
 
 
 
+
+\subsection{High order linear DG viscosity scheme} 
+Here we describe the high order linear scheme. This forms the first order derivatives 
+on the boundaries of the elements and as such has advantages over the, linear at least, 
+interior penalty function method. Although its disadvantages are that it does not have 
+a maximum principle like the interior penalty function method for linear elements and also 
+results in non-symmetric matrices. It does however result in a compact stencil with 
+an element coupling only to its surrounding elements. Its performance has been very impressive 
+in terms of accuracy and has a null space that is not easily excited. 
+The method has the same volume treatment as the interior penalty function method 
+and differers only in the surface integral around each element in which the first order derivatives 
+are evaluated. 
+For example:
+
+\begin{equation}
+\int_E N_i \frac{\partial \mu    \frac{\partial u}{\partial x}
+}{\partial x} dV 
+=
+- \int_E \frac{\partial N_i}{\partial x} \mu \frac{\partial u}{\partial x} dV
++ \int_{\Gamma_E} N_i n_x \mu \frac{\partial u}{\partial x} d\Gamma, 
+\end{equation} 
+in order to evaluate the derivative $\frac{\partial u}{\partial x}$ 
+on the boundary of the element ${\Gamma_E}$ we integrate over the volume 
+of two neighboring elements in order to calculate the derivative on the element 
+face between the two elements using: 
+
+
+\begin{equation}
+\int_{2E} N_i  u_x  dV 
+=
+\int_{2E} N_i  \frac{\partial u}{\partial x} dV 
+- \frac{1}{2} \int_{\Gamma_{E1}} N_i n_x (u-u_{bc}) d\Gamma
+- \frac{1}{2} \int_{\Gamma_{E2}} N_i n_x (u-u_{bc}) d\Gamma, 
+\end{equation} 
+in which ${\Gamma_{E1}}$ is the the shared face but within element $1$ and 
+similarly ${\Gamma_{E2}}$ is the the shared face but within element $2$ 
+and $u_{bc}$ is the value of $u$ in the neighbouring element along the face. 
+Also
+\begin{equation}
+u_x =\sum_j N_j {u_x}_j  \approx 
+ \frac{\partial u}{\partial x} . 
+\end{equation} 
+
+
 \subsection{Stress form DG discretization when dividing though by volume fraction} 
 When dividing the governing equations through by volume fraction - one of 
 the options for treating zero void fraction along with adjustment of drag terms - 
