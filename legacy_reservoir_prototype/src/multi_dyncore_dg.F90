@@ -2635,6 +2635,7 @@ contains
         REAL :: FEN_TEN_ZX, FEN_TEN_ZY,FEN_TEN_ZZ
         REAL :: MASS_U(U_NLOC,U_NLOC),STORE_MASS_U(U_NLOC,U_NLOC),MASS_U_CV(U_NLOC,CV_NLOC)
         REAL :: AVE_SNORMXN_ALL(NDIM)
+        real :: x_min,x_max,y_min,y_max
         integer :: IPIV(U_NLOC)
 
         !Variables to improve PIVIT_MAT creation speed
@@ -4648,15 +4649,18 @@ contains
 
 
 ! insert calculation method for matrix ready for determining high order linear method for viscocity...
+                    
+
                  IF(GOT_DIFFUS .AND. LINEAR_HIGHORDER_DIFFUSION) THEN
                     IF(ELE2.GT.0) THEN
                        CALL DG_VISC_LIN( S_INV_NNX_MAT12, NNX_MAT_ELE(:,:,:,ELE), NNX_MAT_ELE(:,:,:,ELE2), NN_MAT_ELE(:,:,ELE), NN_MAT_ELE(:,:,ELE2),  & 
                                U_SNLOC, U_NLOC, SBUFEN, SDETWE, SBCVNGI, SNORMXN_ALL, NDIM, &
-                               U_SLOC2LOC, U_OTHER_LOC, 2*U_NLOC - U_SNLOC, .FALSE. )
+                               U_SLOC2LOC, U_OTHER_LOC, 2*U_NLOC , .FALSE. )
                     ELSE
+ 
                        CALL DG_VISC_LIN( S_INV_NNX_MAT12, NNX_MAT_ELE(:,:,:,ELE), NNX_MAT_ELE(:,:,:,ELE), NN_MAT_ELE(:,:,ELE), NN_MAT_ELE(:,:,ELE),  & 
                                U_SNLOC, U_NLOC, SBUFEN, SDETWE, SBCVNGI, SNORMXN_ALL, NDIM, &
-                               U_SLOC2LOC, U_OTHER_LOC, 2*U_NLOC - U_SNLOC, .TRUE.)
+                               U_SLOC2LOC, U_OTHER_LOC, 2*U_NLOC , .TRUE.)
                     ENDIF
                  ENDIF
 
@@ -5183,7 +5187,7 @@ contains
                             END DO
 
                         END DO
-                    END IF
+                    END IF  ! endof IF( NON_LIN_DGFLUX ) THEN
 
                     ! Have a surface integral on element boundary...
                     ! Calculate the velocities either side of the element...
@@ -5222,18 +5226,19 @@ contains
                     END IF
 
 
-
-
                     ! This sub should be used for stress and tensor viscocity replacing the rest...
                     If_GOT_DIFFUS2: IF(GOT_DIFFUS.and.LINEAR_HIGHORDER_DIFFUSION) THEN
 !                    If_GOT_DIFFUS2: IF(GOT_DIFFUS.and.LINEAR_HIGHORDER_DIFFUSION.and.(ele2.ne.0)) THEN
 ! only used between elements of the domain so no modification of b.c's nec. 
-                        STRESS_IJ_ELE_EXT=0.0
+!                        STRESS_IJ_ELE_EXT=0.0
                         CALL LINEAR_HIGH_DIFFUS_CAL_COEFF_STRESS_OR_TENSOR( STRESS_IJ_ELE_EXT, S_INV_NNX_MAT12,  &
                         STRESS_FORM, STRESS_FORM_STAB, ZERO_OR_TWO_THIRDS, &
                         U_SNLOC, U_NLOC, CV_SNLOC, CV_NLOC, MAT_NLOC, NPHASE, &
                         SBUFEN,SBCVFEN,SDETWE, SBCVNGI, NDIM, SLOC_UDIFFUSION, SLOC_UDIFFUSION_VOL, SLOC2_UDIFFUSION, SLOC2_UDIFFUSION_VOL, UDIFF_SUF_STAB, &
-                        ELE, ELE2, SNORMXN_ALL  )
+                        (ELE2.LE.0), SNORMXN_ALL  )
+
+!                        STRESS_IJ_ELE_EXT=0.0
+
                         DIFF_COEF_DIVDX   =0.0
                         DIFF_COEFOLD_DIVDX=0.0
                    
@@ -5343,6 +5348,7 @@ contains
                     END DO 
 ! bc contribution...
                     IF(ELE2.LE.0) THEN
+!                    IF(.false.) THEN
                        DO U_SILOC=1,U_SNLOC
                            U_ILOC   =U_SLOC2LOC(U_SILOC)
                            DO U_SJLOC=1,U_SNLOC
@@ -5396,12 +5402,12 @@ contains
                               J2=JDIM + (JPHASE-1)*NDIM_VEL + (U_JLOC2-1)*NDIM_VEL*NPHASE
                               JU2_NOD_DIM_PHA = J2 + (ELE2-1)*NDIM_VEL*NPHASE*U_NLOC
 
-                              IF(.NOT.NO_MATRIX_STORE) THEN
-                                 CALL POSINMAT( COUNT, IU_NOD_DIM_PHA, JU_NOD_DIM_PHA, &
-                                   U_NONODS * NPHASE * NDIM_VEL, FINDGM_PHA, COLDGM_PHA, NCOLDGM_PHA )
-                                 CALL POSINMAT( COUNT2, IU_NOD_DIM_PHA, JU2_NOD_DIM_PHA, &
-                                   U_NONODS * NPHASE * NDIM_VEL, FINDGM_PHA, COLDGM_PHA, NCOLDGM_PHA )
-                              ENDIF
+!                              IF(.NOT.NO_MATRIX_STORE) THEN
+!                                 CALL POSINMAT( COUNT, IU_NOD_DIM_PHA, JU_NOD_DIM_PHA, &
+!                                   U_NONODS * NPHASE * NDIM_VEL, FINDGM_PHA, COLDGM_PHA, NCOLDGM_PHA )
+!                                 CALL POSINMAT( COUNT2, IU_NOD_DIM_PHA, JU2_NOD_DIM_PHA, &
+!                                   U_NONODS * NPHASE * NDIM_VEL, FINDGM_PHA, COLDGM_PHA, NCOLDGM_PHA )
+!                              ENDIF
 
 
 
@@ -5841,11 +5847,12 @@ contains
           INTEGER, DIMENSION( U_NLOC ), intent( in ) :: U_OTHER_LOC
 !
 ! local variables...
-          REAL :: NNX_MAT_SUF(NDIM, U_NLOC, U_NLOC), NNX_MAT2_SUF(NDIM, U_NLOC, U_NLOC), NN_MAT12_INV(U_NLOC_EXT, U_NLOC_EXT)
+!          REAL :: NNX_MAT_SUF(NDIM, U_NLOC, U_NLOC), NNX_MAT2_SUF(NDIM, U_NLOC, U_NLOC)
+          REAL :: NN_MAT12_INV(U_NLOC_EXT, U_NLOC_EXT)
           REAL :: NN_MAT12(U_NLOC_EXT, U_NLOC_EXT), NNX_MAT12(NDIM, U_NLOC_EXT, 2*U_NLOC)
           REAL :: INV_NNX_MAT12(NDIM, U_NLOC_EXT, 2*U_NLOC)
           REAL :: R_SUF_SUM
-          INTEGER :: ELE2_LOC_GL_NODS(U_NLOC) 
+!          INTEGER :: ELE2_LOC_GL_NODS(U_NLOC) 
           INTEGER IDIM, U_SILOC, U_ILOC, U_SJLOC, U_JLOC, U_IILOC5, U_JJLOC5, U_NLOC5, U_ILOC2, U_JLOC2, I 
 ! 
 !            print *,'just inside DG_VISC_LIN ON_BOUNDARY:',ON_BOUNDARY
@@ -5854,86 +5861,45 @@ contains
             NNX_MAT12  = 0.0
             NN_MAT12   = 0.0
 
-            NNX_MAT12(1:NDIM,  1:U_NLOC, 1:U_NLOC)  = NNX_MAT(1:NDIM, 1:U_NLOC, 1:U_NLOC)
+            NNX_MAT12(1:NDIM,  1:U_NLOC, 1:U_NLOC)  = NNX_MAT(1:NDIM, 1:U_NLOC, 1:U_NLOC) 
             NN_MAT12(1:U_NLOC, 1:U_NLOC)            = NN_MAT(1:U_NLOC, 1:U_NLOC) 
-
-            NNX_MAT_SUF =NNX_MAT
 
 ! Calculate ELE2_LOC_GL_NODS:
             IF(.NOT.ON_BOUNDARY) THEN
 
-               NNX_MAT2_SUF=NNX_MAT2
+               NNX_MAT12(1:NDIM,  1+U_NLOC:2*U_NLOC, 1+U_NLOC:2*U_NLOC)  = NNX_MAT2(1:NDIM, 1:U_NLOC, 1:U_NLOC) 
+               NN_MAT12(1+U_NLOC:2*U_NLOC, 1+U_NLOC:2*U_NLOC)  = NN_MAT2(1:U_NLOC, 1:U_NLOC) 
 
-               ELE2_LOC_GL_NODS=0
-               DO U_SILOC=1,U_SNLOC
-                  U_ILOC=U_SLOC2LOC(U_SILOC)
-                  U_ILOC2=U_OTHER_LOC(U_ILOC)
-                  ELE2_LOC_GL_NODS(U_ILOC2)=U_ILOC
-               END DO
-!               print *,'before loop'
-!               print *,'ELE2_LOC_GL_NODS:',ELE2_LOC_GL_NODS
-
-               U_NLOC5=U_NLOC
-               DO U_ILOC2=1,U_NLOC
-                  IF(ELE2_LOC_GL_NODS(U_ILOC2).EQ.0) THEN
-                     U_NLOC5=U_NLOC5+1
-                     ELE2_LOC_GL_NODS(U_ILOC2)=U_NLOC5
-                  END IF
-               END DO
-!               print *,'ELE2_LOC_GL_NODS:',ELE2_LOC_GL_NODS
-!               stop 2821
 ! put surface contributions into NNX_MAT,NNX_MAT2 and call the result NNX_MAT_SUF,NNX_MAT2_SUF ...
 ! 
                DO U_SILOC=1,U_SNLOC
                   U_ILOC=U_SLOC2LOC(U_SILOC) 
+                  U_ILOC2=U_OTHER_LOC(U_ILOC)
                   DO U_SJLOC=1,U_SNLOC
                      U_JLOC=U_SLOC2LOC(U_SJLOC) 
                      U_JLOC2=U_OTHER_LOC(U_JLOC)
                      DO IDIM=1,NDIM 
-                        R_SUF_SUM=SUM( SNORMXN_ALL(IDIM,:)*SBUFEN(U_SILOC,:)*SBUFEN(U_SJLOC,:)*SDETWE(:) )
-                        NNX_MAT_SUF(IDIM,U_ILOC,U_JLOC)    = NNX_MAT_SUF(IDIM,U_ILOC,U_JLOC)     -  R_SUF_SUM ! we have*2 the contribution
-                        NNX_MAT2_SUF(IDIM,U_ILOC,U_JLOC2)  = NNX_MAT2_SUF(IDIM,U_ILOC,U_JLOC2)   +  R_SUF_SUM ! to take into account both sides of shared ele face
+                        R_SUF_SUM=SUM( SNORMXN_ALL(IDIM,:)*SBUFEN(U_SILOC,:)*SBUFEN(U_SJLOC,:)*SDETWE(:) )  
+! ELEside of the element face...
+                        NNX_MAT12(IDIM,U_ILOC,U_JLOC)         = NNX_MAT12(IDIM,U_ILOC,U_JLOC)          -  0.5* R_SUF_SUM ! we have*2 the contribution
+                        NNX_MAT12(IDIM,U_ILOC,U_JLOC2+U_NLOC) = NNX_MAT12(IDIM,U_ILOC,U_JLOC2+U_NLOC)  +  0.5* R_SUF_SUM ! to take into account both sides of shared ele face
+
+                        NNX_MAT12(IDIM,U_ILOC2+U_NLOC,U_JLOC2+U_NLOC) = NNX_MAT12(IDIM,U_ILOC2+U_NLOC,U_JLOC2+U_NLOC)  +  0.5* R_SUF_SUM ! we have*2 the contribution
+                        NNX_MAT12(IDIM,U_ILOC2+U_NLOC,U_JLOC)         = NNX_MAT12(IDIM,U_ILOC2+U_NLOC,U_JLOC)          -  0.5* R_SUF_SUM ! to take into account both sides of shared ele face
                      END DO
                   END DO
                END DO
-!       print *,'here1'
 
-               ! Put contributions from ELE2 into MATDIFX5
-
-                  DO U_ILOC=1,U_NLOC
-                     U_IILOC5=ELE2_LOC_GL_NODS(U_ILOC)
-                     DO U_JLOC=1,U_NLOC
-                        U_JJLOC5=ELE2_LOC_GL_NODS(U_JLOC)! Here U_JLOC is the local node of element ELE2
-!                     print *,'U_IILOC5,U_NLOC_EXT:', U_IILOC5,U_NLOC_EXT
-                        NNX_MAT12(:,U_IILOC5,U_JLOC)         = NNX_MAT12(:,U_IILOC5,U_JLOC)         + NNX_MAT_SUF(:,U_ILOC,U_JLOC)
-                        NNX_MAT12(:,U_IILOC5,U_JLOC+U_NLOC)  = NNX_MAT12(:,U_IILOC5,U_JLOC+U_NLOC)  + NNX_MAT2_SUF(:,U_ILOC,U_JLOC)
-
-                        NN_MAT12(U_IILOC5,U_JJLOC5) = NN_MAT12(U_IILOC5,U_JJLOC5)  + NN_MAT2(U_ILOC,U_JLOC)
-                     END DO
-                  END DO
-!       print *,'here2'
             ELSE ! IF(.NOT.ON_BOUNDARY) THEN
-               NNX_MAT2_SUF=0.0
-! put surface contributions into NNX_MAT,NNX_MAT2 and call the result NNX_MAT_SUF,NNX_MAT2_SUF ...
-! 
                DO U_SILOC=1,U_SNLOC
                   U_ILOC=U_SLOC2LOC(U_SILOC) 
                   DO U_SJLOC=1,U_SNLOC
                      U_JLOC=U_SLOC2LOC(U_SJLOC) 
                      DO IDIM=1,NDIM 
-                        R_SUF_SUM=SUM( SNORMXN_ALL(IDIM,:)*SBUFEN(U_SILOC,:)*SBUFEN(U_SJLOC,:)*SDETWE(:) )
-                        NNX_MAT_SUF(IDIM,U_ILOC,U_JLOC)    = NNX_MAT_SUF(IDIM,U_ILOC,U_JLOC)     -  0.5 * R_SUF_SUM
-                        NNX_MAT2_SUF(IDIM,U_ILOC,U_JLOC)   = NNX_MAT2_SUF(IDIM,U_ILOC,U_JLOC)    +  0.5 * R_SUF_SUM
+                        R_SUF_SUM=SUM( SNORMXN_ALL(IDIM,:)*SBUFEN(U_SILOC,:)*SBUFEN(U_SJLOC,:)*SDETWE(:) )  
+                        NNX_MAT12(IDIM,U_ILOC,U_JLOC)          = NNX_MAT12(IDIM,U_ILOC,U_JLOC)           -  0.5 * R_SUF_SUM
+                        NNX_MAT12(IDIM,U_ILOC,U_JLOC+U_NLOC)   = NNX_MAT12(IDIM,U_ILOC,U_JLOC+U_NLOC)    +  0.5 * R_SUF_SUM
                      END DO
-                  END DO
-               END DO
-
-               ! Put contributions from ELE2 into MATDIFX5
-
-               DO U_ILOC=1,U_NLOC
-                  DO U_JLOC=1,U_NLOC
-                     NNX_MAT12(:,U_ILOC,U_JLOC)         = NNX_MAT12(:,U_ILOC,U_JLOC)         + NNX_MAT_SUF(:,U_ILOC,U_JLOC)
-                     NNX_MAT12(:,U_ILOC,U_JLOC+U_NLOC)  = NNX_MAT12(:,U_ILOC,U_JLOC+U_NLOC)  + NNX_MAT2_SUF(:,U_ILOC,U_JLOC)
                   END DO
                END DO
 
@@ -5944,40 +5910,28 @@ contains
             ENDIF ! IF(.NOT.ON_BOUNDARY) THEN ELSE
 
 
-!        if(.false.) then
-!       print *,'here2.1'
-!               NN_MAT12=0.0
-!       print *,'here2.11'
-!               DO I=1,U_NLOC_EXT
-!                  NN_MAT12(I,I)=1.0
-!               END DO
-!       print *,'here2.2'
-!         endif
-
-!               DO I=1,U_NLOC_EXT
-!                  print *,'i,NN_MAT12(I,:):',i,NN_MAT12(I,:)
-!               END DO
-!          print *,'NN_MAT:',NN_MAT
-!          print *,'NN_MAT2:',NN_MAT2
-
 
             NN_MAT12_INV = NN_MAT12
-!       print *,'here2.3'
             CALL INVERT(NN_MAT12_INV)
-!       print *,'here3'
             DO IDIM=1,NDIM
                INV_NNX_MAT12(IDIM,:,:) = MATMUL( NN_MAT12_INV, NNX_MAT12(IDIM,:,:) )
             END DO
-!       print *,'here4'
+     
+        S_INV_NNX_MAT12=0.0
 
-! pick out the surface nodes of current element ELE: 
+        IF(.NOT.ON_BOUNDARY) THEN
+            DO U_SILOC=1,U_SNLOC
+               U_ILOC=U_SLOC2LOC(U_SILOC) 
+               U_ILOC2=U_OTHER_LOC(U_ILOC)
+               S_INV_NNX_MAT12( 1:NDIM, U_SILOC, : )   = 0.5*( INV_NNX_MAT12( 1:NDIM, U_ILOC, : ) + INV_NNX_MAT12( 1:NDIM, U_ILOC2+U_NLOC, : ) )
+            END DO
+        ELSE
             DO U_SILOC=1,U_SNLOC
                U_ILOC=U_SLOC2LOC(U_SILOC) 
                S_INV_NNX_MAT12( 1:NDIM, U_SILOC, : )   =INV_NNX_MAT12( 1:NDIM, U_ILOC, : )
             END DO
+        ENDIF
 
-!             print *,'finished DG_VISC_LIN'
-!             stop 281
 
            RETURN
            END SUBROUTINE DG_VISC_LIN

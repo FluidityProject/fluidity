@@ -7201,7 +7201,7 @@ end if
        STRESS_FORM, STRESS_FORM_STAB, ZERO_OR_TWO_THIRDS, &
        U_SNLOC, U_NLOC, CV_SNLOC, CV_NLOC, MAT_NLOC, NPHASE,  &
        SBUFEN,SBCVFEN, SDETWEI, SBCVNGI, NDIM, SLOC_UDIFFUSION, SLOC_UDIFFUSION_VOL, SLOC2_UDIFFUSION, SLOC2_UDIFFUSION_VOL, DIFF_GI_ADDED, &
-       ELE, ELE2, SNORMXN_ALL  )
+       ON_BOUNDARY, SNORMXN_ALL  )
     ! This sub calculates the effective diffusion coefficientd STRESS_IJ_ELE_EXT
     ! it only works for between element contributions. 
     ! based on a high order scheme. 
@@ -7211,9 +7211,9 @@ end if
 ! The coefficient are in N_DOT_DKDU, N_DOT_DKDUOLD. 
 ! look at the manual DG treatment of viscocity. 
     IMPLICIT NONE
-    LOGICAL, intent( in ) :: STRESS_FORM, STRESS_FORM_STAB
+    LOGICAL, intent( in ) :: STRESS_FORM, STRESS_FORM_STAB, ON_BOUNDARY
     INTEGER, intent( in ) :: U_SNLOC, U_NLOC, CV_SNLOC,CV_NLOC, MAT_NLOC, NPHASE,  &
-         &                   SBCVNGI, NDIM, ELE, ELE2
+         &                   SBCVNGI, NDIM
     REAL, intent( in ) :: ZERO_OR_TWO_THIRDS
     REAL, DIMENSION( NDIM, NDIM, NPHASE, U_SNLOC, 2*U_NLOC ), intent( inout ) :: STRESS_IJ_ELE_EXT
     REAL, DIMENSION( NDIM, U_SNLOC, 2*U_NLOC ), intent( inout ) :: S_INV_NNX_MAT12
@@ -7256,6 +7256,7 @@ end if
           DIFF_GI=MAX(0.0, DIFF_GI) 
           DIFF_VOL_GI=MAX(0.0, DIFF_VOL_GI) 
 
+          IF(.NOT.ON_BOUNDARY) THEN
 ! neighbouring element...
              DIFF_GI2 = 0.0
              DIFF_VOL_GI2 = 0.0
@@ -7275,11 +7276,7 @@ end if
 
              DIFF_GI=0.5*(DIFF_GI+DIFF_GI2)
              DIFF_VOL_GI=0.5*(DIFF_VOL_GI+DIFF_VOL_GI2)
-
-!              print *,'DIFF_GI( 1:NDIM, 1:NDIM, :, : ):',DIFF_GI( 1:NDIM, 1:NDIM, :, : )
-!              print *,'DIFF_GI2( 1:NDIM, 1:NDIM, :, : ):',DIFF_GI2( 1:NDIM, 1:NDIM, :, : )
-!              print *,'DIFF_VOL_GI:',DIFF_VOL_GI
-!              print *,'DIFF_VOL_GI2:',DIFF_VOL_GI2
+          ENDIF
 
              
           IF(STRESS_FORM_STAB) THEN
@@ -7299,19 +7296,12 @@ end if
                 END DO
           ENDIF
 
-!              print *,'STRESS_FORM_STAB:',STRESS_FORM_STAB
-
-!              print *,'DIFF_GI_ADDED:',DIFF_GI_ADDED
-!              print *,'DIFF_GI( 1:NDIM, 1:NDIM, :, : ):',DIFF_GI( 1:NDIM, 1:NDIM, :, : )
-!              print *,'DIFF_GI2( 1:NDIM, 1:NDIM, :, : ):',DIFF_GI2( 1:NDIM, 1:NDIM, :, : )
-!              print *,'DIFF_VOL_GI:',DIFF_VOL_GI
-!              print *,'DIFF_VOL_GI2:',DIFF_VOL_GI2
 
 
        STRESS_IJ_ELE_EXT=0.0
 
+
        IF(STRESS_FORM) THEN
-!          print *,'SBCVNGI:',SBCVNGI
           DO U_SILOC=1,U_SNLOC
              DO U_JLOC12=1,U_NLOC*2
 
@@ -7329,23 +7319,33 @@ end if
           END DO
 
        ELSE ! tensor form of viscocity...
+
           DO U_SILOC=1,U_SNLOC
              DO U_JLOC12=1,U_NLOC*2
 
                 DO I=1,U_SNLOC
                     DO SGI=1,SBCVNGI
                        DO IDIM=1,NDIM 
-                          STRESS_IJ_ELE_EXT( IDIM, IDIM, IPHASE, U_SILOC, U_JLOC12 ) = STRESS_IJ_ELE_EXT( IDIM, IDIM, IPHASE, U_SILOC, U_JLOC12 ) &
+                       DO IPHASE=1,NPHASE
+!                            print *,'IDIM, IPHASE, U_SILOC, U_JLOC12:',IDIM, IPHASE, U_SILOC, U_JLOC12
+!                          STRESS_IJ_ELE_EXT( IDIM, IDIM, IPHASE, U_SILOC, U_JLOC12 ) = STRESS_IJ_ELE_EXT( IDIM, IDIM, IPHASE, U_SILOC, U_JLOC12 ) &
+                          STRESS_IJ_ELE_EXT( 1,1, IPHASE, U_SILOC, U_JLOC12 ) = STRESS_IJ_ELE_EXT( 1,1, IPHASE, U_SILOC, U_JLOC12 ) &
                             - SNORMXN_ALL(IDIM,SGI)*SBUFEN(U_SILOC,SGI)* SBUFEN(I,SGI)*SDETWEI( SGI )  &
                                  * SUM( DIFF_GI( IDIM, :, IPHASE, SGI ) *  S_INV_NNX_MAT12( :, I, U_JLOC12 ) )
+!                                 * DIFF_GI( IDIM, idim, IPHASE, SGI ) *  S_INV_NNX_MAT12( idim, I, U_JLOC12 ) 
+                       END DO
                        END DO
                     END DO
                 END DO
                 
              END DO
           END DO
+! all other components are the same...
+          DO IDIM=2,NDIM 
+             STRESS_IJ_ELE_EXT( IDIM,IDIM, :,:,: ) = STRESS_IJ_ELE_EXT( 1,1, :,:,: ) 
+          END DO
+          
        ENDIF
-
 
 !          CALL CALC_STRESS_TEN( STRESS_IJ_ELE( :, :, IPHASE, U_SILOC, U_JLOC_EXT ), ZERO_OR_TWO_THIRDS, NDIM, &
 !               UFENX_ALL( 1:NDIM, U_ILOC, GI ), UFENX_ALL( 1:NDIM, U_JLOC, GI )* DETWEI( GI ), TEN_XX( :, :, IPHASE, GI ), TEN_VOL( IPHASE, GI) ) 
