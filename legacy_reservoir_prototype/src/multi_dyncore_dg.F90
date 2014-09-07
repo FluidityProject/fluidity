@@ -2537,8 +2537,8 @@ contains
             real :: w
             real, parameter :: wv=1.0, ws=0.0 ! volume off-diagonal and surface weights, respectively
 ! LINEAR_HIGHORDER_DIFFUSION is the switch for the high-order linear scheme...
-            LOGICAL, PARAMETER ::  LINEAR_HIGHORDER_DIFFUSION = .TRUE. 
-!            LOGICAL, PARAMETER ::  LINEAR_HIGHORDER_DIFFUSION = .FALSE. 
+!            LOGICAL, PARAMETER ::  LINEAR_HIGHORDER_DIFFUSION = .TRUE. 
+            LOGICAL, PARAMETER ::  LINEAR_HIGHORDER_DIFFUSION = .FALSE. 
 
         !
         ! Variables used to reduce indirect addressing...
