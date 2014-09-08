@@ -249,6 +249,8 @@
       !Dummy to print FEM saturation
       real, dimension(:,:), allocatable :: dummy_to_print_FEM
 
+      logical :: write_all_stats=.true.
+
 #ifdef HAVE_ZOLTAN
       real(zoltan_float) :: ver
       integer(zoltan_int) :: ierr
@@ -1211,6 +1213,9 @@
          call calculate_diagnostic_variables( state, exclude_nonrecalculated = .true. )
          call calculate_diagnostic_variables_new( state, exclude_nonrecalculated = .true. )
 
+
+         if (write_all_stats) call write_diagnostics( state, current_time, dt, itime )  ! Write stat file
+
          Conditional_TimeDump: if( ( mod( itime, dump_period_in_timesteps ) == 0 ) ) then
 
             dtime=dtime+1
@@ -1231,10 +1236,10 @@
 
             call get_option( '/timestepping/current_time', current_time ) ! Find the current time 
 
-            call write_diagnostics( state, current_time, dt, itime/dump_period_in_timesteps )  ! Write stat file
+            if (.not. write_all_stats)call write_diagnostics( state, current_time, dt, itime/dump_period_in_timesteps )  ! Write stat file
             not_to_move_det_yet = .false. ; dump_no = itime/dump_period_in_timesteps ! Sync dump_no with itime
             call write_state( dump_no, state ) ! Now writing into the vtu files
-
+           
             if ( have_option( "/io/output_scalars_fem" ) ) then
                  SAT_s = dummy_to_print_FEM!<= retrieve backup
                  deallocate(dummy_to_print_FEM)
