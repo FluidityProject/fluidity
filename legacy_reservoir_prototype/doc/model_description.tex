@@ -2117,6 +2117,50 @@ N_i \theta \hat\rho_k^{n+\theta_\rho} n\cdot \tilde u_k^{n+1} (u_k^{n+1} - (u_k^
 \end{equation}
 
 										
+\subsection{Discretisation of capillary pressure} 
+
+This subsection explains how to deal with the capillary pressure. We treat the capillary pressure to introduce it as a right hand side term in the momentum equation. We will consider only two phases.
+
+We define the capillary pressure as:
+\begin{equation}
+P_c = P_{non-wetting} - P_{wetting},
+\end{equation}
+where $P_c $ is the capillary pressure.
+ 
+For simplicity we are going to calculate $P_c $ by using the Brooks-Corey model, which can be written as follows:
+\begin{equation}
+P_c = P_e (S_w)^{-a},
+\end{equation}
+here $P_e$ is the entry pressure, $S_w $ is the normalised water saturation, and $a $ is the inverse of the pore size distribution. Note that the saturation is dividing, therefore we have to limit the minimum normalised water saturation to avoid dividing by zero.
+
+Using finite elements, the capillary pressure term is as follows:
+\begin{equation}
+\int_V N_i \nabla P_c dV.
+\label{Cap_pressure_initial}
+\end{equation}
+This previous formula is enough if using continuous pressure. However, when considering discontinuous pressure we need to proceed similarly to the discretisation of the Pressure in the momentum equation. In that case we needed to add a continuity term in the pressure discretisation to account from the pressure jump between elements. For that purpose, there are two possibilities. The first one is integrating by parts, in which we consider an average of the capillary pressures at both sides of the element in the surface term:
+\begin{equation}
+-\int_V P_c \nabla N_i dV + \int_S 0.5 (P_{ci} + P_{cj})  N_i \mathbf{n} dS,
+\label{cappressure_intbyparts1}
+\end{equation}
+in this formula $ 0.5 (P_{ci} + P_{cj})$ is the term that accounts for the average capillary pressure between elements, $i$ is the present element node and $j$ is the neighbouring element node. The second option is by integrating by parts twice, which also takes into account the discontinuous pressure in the surface term:
+\begin{equation}
+\int_V N_i \nabla P_c dV - \int_S 0.5 (P_{ci} - P_{cj})  N_i \mathbf{n} dS,
+\label{cappressure_intbyparts2}
+\end{equation}
+
+Depending on the element pair we may consider different approaches to obtain the capillary pressure. For element pairs $P_nDGP_n(DG) $ the $P_c$ can be calculated by using the control volume wise saturation. This calculation yields a control volume capillary pressure. For this reason equation \ref{cappressure_intbyparts1} is recommended as we do not need the derivatives of control volume shape functions. 
+On the other hand, when the element order of the velocity and pressure does not match, the calculation of the capillary pressure at the velocity nodes is difficult by using a control volume wise saturation, for example, some velocity nodes might fall between two control volumes making difficult deciding which saturation should be used to calculate the capillary pressure. For this reason, the capillary pressure have to be calculated by using a finite element projection of the saturation. In this way, we obtain a finite element capillary pressure that can be easily evaluated across the element. When using a finite element capillary pressure both formulas can be applied, however, to be consistent with the discretisation of the pressure, equation \ref{cappressure_intbyparts2} is recommended.
+
+\subsubsection*{Capillary pressure as a source term}
+
+The capillary pressure can be introduced into the advection equation as a diffusion coefficient. This option has not been included in the code and its description has to be considered as a draft.
+
+In this approach the velocity to be considered in the advection equation is modified to contain the effects of the capillary pressure:
+\begin{equation}
+V_w = f_w + \frac{\lambda_w\lambda_o}{\lambda_w+\lambda_o} \frac{1}{V} \frac{\partial P_c}{\partial x} = f_w + \left(  f_w \lambda_o \frac{1}{V} \frac{\partial P_c}{\partial S_w} \right) \frac{d S_w}{d x}.
+\end{equation}
+The variables within the parenthesis conform the ''diffusion coefficient'' and the derivative of the saturation is the diffusion term because in the advection equation we have to calculate the divergence of the velocity, making the last term of the equation a second order derivative.
 
 \section{Discretised saturation equation and global mass balance} 
 
