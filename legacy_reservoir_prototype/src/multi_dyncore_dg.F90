@@ -2690,7 +2690,7 @@ contains
 
         integer, dimension(:), pointer :: neighbours
         integer :: nb
-        logical :: skip
+        logical :: skip, apply_vis
 
         position=>extract_vector_field(packed_state,"PressureCoordinate")
 
@@ -5311,57 +5311,89 @@ contains
 
                     
                  IF(GOT_DIFFUS .AND. LINEAR_HIGHORDER_DIFFUSION) THEN
+
+                 IF(ELE2.GT.0) THEN ! Internal to domain
                     DO U_SILOC=1,U_SNLOC
                         U_ILOC   =U_SLOC2LOC(U_SILOC)
                         DO U_JLOC=1,U_NLOC
                             U_JLOC2 = U_JLOC 
                             DO IPHASE = 1, NPHASE
                                 JPHASE = IPHASE
-
-                                DIAG_BIGM_CON(:,:,IPHASE,JPHASE,U_ILOC,U_JLOC,ELE)  &
-                                =DIAG_BIGM_CON(:,:,IPHASE,JPHASE,U_ILOC,U_JLOC,ELE)       + STRESS_IJ_ELE_EXT( :, :, IPHASE, U_SILOC, U_JLOC )
-                                IF(PIVIT_ON_VISC) THEN
                                     DO IDIM=1,NDIM
                                     DO JDIM=1,NDIM
-                                         I = IDIM+(IPHASE-1)*NDIM_VEL+(U_ILOC-1)*NDIM_VEL*NPHASE
-                                         J = JDIM+(JPHASE-1)*NDIM_VEL+(U_JLOC-1)*NDIM_VEL*NPHASE
-                                         PIVIT_MAT(I,J,ELE) &
-                                         =PIVIT_MAT(I,J,ELE) + ws * STRESS_IJ_ELE_EXT( IDIM, JDIM, IPHASE, U_SILOC, U_JLOC )
-                                    END DO
-                                    END DO
-                                ENDIF
+
+
+                                   DIAG_BIGM_CON(IDIM,JDIM,IPHASE,JPHASE,U_ILOC,U_JLOC,ELE)  &
+                                   =DIAG_BIGM_CON(IDIM,JDIM,IPHASE,JPHASE,U_ILOC,U_JLOC,ELE)       + STRESS_IJ_ELE_EXT( IDIM,JDIM, IPHASE, U_SILOC, U_JLOC )
+                                   IF(PIVIT_ON_VISC) THEN
+                                            I = IDIM+(IPHASE-1)*NDIM_VEL+(U_ILOC-1)*NDIM_VEL*NPHASE
+                                            J = JDIM+(JPHASE-1)*NDIM_VEL+(U_JLOC-1)*NDIM_VEL*NPHASE
+                                            PIVIT_MAT(I,J,ELE) &
+                                            =PIVIT_MAT(I,J,ELE) + ws * STRESS_IJ_ELE_EXT( IDIM, JDIM, IPHASE, U_SILOC, U_JLOC )
+                                   ENDIF
 ! Contributions from the other element...
-                                IF(ELE2.GT.0) THEN
-                                   BIGM_CON(:,:,IPHASE,JPHASE,U_ILOC,U_JLOC2,COUNT_ELE)  &
-                                   =BIGM_CON(:,:,IPHASE,JPHASE,U_ILOC,U_JLOC2,COUNT_ELE)     + STRESS_IJ_ELE_EXT( :, :, IPHASE, U_SILOC, U_JLOC + U_NLOC )
+                                   BIGM_CON(IDIM,JDIM,IPHASE,JPHASE,U_ILOC,U_JLOC2,COUNT_ELE)  &
+                                   =BIGM_CON(IDIM,JDIM,IPHASE,JPHASE,U_ILOC,U_JLOC2,COUNT_ELE)     + STRESS_IJ_ELE_EXT( IDIM,JDIM, IPHASE, U_SILOC, U_JLOC + U_NLOC )
+
+                                    END DO
+                                    END DO
+                            END DO 
+                        END DO 
+                    END DO 
+                 ELSE ! on boundary of domain
+! bc contribution...
+! ADD DIRICHLET BC'S FOR VISCOCITY...
+                    DO U_SILOC=1,U_SNLOC
+                        U_ILOC   =U_SLOC2LOC(U_SILOC)
+                        DO U_JLOC=1,U_NLOC
+                            U_JLOC2 = U_JLOC 
+                            DO IPHASE = 1, NPHASE
+                                JPHASE = IPHASE
+                                    DO IDIM=1,NDIM
+                                    DO JDIM=1,NDIM
+
+                                IF( WIC_U_BC_ALL_VISC( JDIM, IPHASE, SELE2 ) == WIC_U_BC_DIRICHLET   ) THEN
+
+                                   DIAG_BIGM_CON(IDIM,JDIM,IPHASE,JPHASE,U_ILOC,U_JLOC,ELE)  &
+                                   =DIAG_BIGM_CON(IDIM,JDIM,IPHASE,JPHASE,U_ILOC,U_JLOC,ELE)       + STRESS_IJ_ELE_EXT( IDIM,JDIM, IPHASE, U_SILOC, U_JLOC )
+                                   IF(PIVIT_ON_VISC) THEN
+                                            I = IDIM+(IPHASE-1)*NDIM_VEL+(U_ILOC-1)*NDIM_VEL*NPHASE
+                                            J = JDIM+(JPHASE-1)*NDIM_VEL+(U_JLOC-1)*NDIM_VEL*NPHASE
+                                            PIVIT_MAT(I,J,ELE) &
+                                            =PIVIT_MAT(I,J,ELE) + ws * STRESS_IJ_ELE_EXT( IDIM, JDIM, IPHASE, U_SILOC, U_JLOC )
+                                   ENDIF
+
                                 ENDIF
 
+                                    END DO
+                                    END DO
                             END DO 
                         END DO 
                     END DO 
 ! bc contribution...
-                    IF(ELE2.LE.0) THEN
-!                    IF(.false.) THEN
-                       DO U_SILOC=1,U_SNLOC
-                           U_ILOC   =U_SLOC2LOC(U_SILOC)
-                           DO U_SJLOC=1,U_SNLOC
-                               U_JLOC   =U_SLOC2LOC(U_SJLOC)
-                               U_JLOC2 = U_JLOC 
-                               DO IPHASE = 1, NPHASE
-                                   JPHASE = IPHASE
+                    DO U_SILOC=1,U_SNLOC
+                        U_ILOC   =U_SLOC2LOC(U_SILOC)
+                        DO U_SJLOC=1,U_SNLOC
+                            U_JLOC   =U_SLOC2LOC(U_SJLOC)
+                            U_JLOC2 = U_JLOC 
+                            DO IPHASE = 1, NPHASE
+                                JPHASE = IPHASE
+                                    DO IDIM=1,NDIM
+                                    DO JDIM=1,NDIM
 ! ADD DIRICHLET BC'S FOR VISCOCITY...
-                                       DO IDIM=1,NDIM
-                                          DO JDIM=1,NDIM
                                               IF( WIC_U_BC_ALL_VISC( JDIM, IPHASE, SELE2 ) == WIC_U_BC_DIRICHLET ) THEN
                                                  LOC_U_RHS( IDIM,IPHASE,U_ILOC ) = LOC_U_RHS( IDIM,IPHASE,U_ILOC ) &
                                                  - STRESS_IJ_ELE_EXT( IDIM, JDIM, IPHASE, U_SILOC, U_JLOC + U_NLOC ) * SUF_U_BC_ALL_VISC( JDIM,IPHASE,U_SJLOC + U_SNLOC*(SELE2-1) )
                                               ENDIF
-                                          END DO
-                                       END DO
-                               END DO 
-                           END DO 
-                       END DO 
-                    ENDIF
+
+                                    END DO
+                                    END DO
+                            END DO 
+                        END DO 
+                    END DO 
+
+
+                 ENDIF ! endof IF(ELE2.GT.0) THEN ELSE
 ! END OF IF(GOT_DIFFUS .AND. LINEAR_HIGHORDER_DIFFUSION) THEN...
                  ENDIF
 
@@ -5892,6 +5924,8 @@ contains
                         R_SUF_SUM=SUM( SNORMXN_ALL(IDIM,:)*SBUFEN(U_SILOC,:)*SBUFEN(U_SJLOC,:)*SDETWE(:) )  
                         NNX_MAT12(IDIM,U_ILOC,U_JLOC)          = NNX_MAT12(IDIM,U_ILOC,U_JLOC)           -  0.5 * R_SUF_SUM
                         NNX_MAT12(IDIM,U_ILOC,U_JLOC+U_NLOC)   = NNX_MAT12(IDIM,U_ILOC,U_JLOC+U_NLOC)    +  0.5 * R_SUF_SUM
+!                        NNX_MAT12(IDIM,U_ILOC,U_JLOC)          = NNX_MAT12(IDIM,U_ILOC,U_JLOC)           -  1.0 * R_SUF_SUM
+!                        NNX_MAT12(IDIM,U_ILOC,U_JLOC+U_NLOC)   = NNX_MAT12(IDIM,U_ILOC,U_JLOC+U_NLOC)    +  1.0 * R_SUF_SUM
                      END DO
                   END DO
                END DO
