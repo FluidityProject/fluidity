@@ -5214,11 +5214,11 @@ contains
                        END DO
                     END IF
 
-                    IF(GOT_DIFFUS.and.LINEAR_HIGHORDER_DIFFUSION) STRESS_IJ_ELE_EXT=0.0
+!                    IF(GOT_DIFFUS.and.LINEAR_HIGHORDER_DIFFUSION) STRESS_IJ_ELE_EXT=0.0
 
                     ! This sub should be used for stress and tensor viscocity replacing the rest...
-!                    If_GOT_DIFFUS2: IF(GOT_DIFFUS.and.LINEAR_HIGHORDER_DIFFUSION) THEN
-                    If_GOT_DIFFUS2: IF(GOT_DIFFUS.and.LINEAR_HIGHORDER_DIFFUSION.and.(ele2.ne.0)) THEN
+                    If_GOT_DIFFUS2: IF(GOT_DIFFUS.and.LINEAR_HIGHORDER_DIFFUSION) THEN
+!                    If_GOT_DIFFUS2: IF(GOT_DIFFUS.and.LINEAR_HIGHORDER_DIFFUSION.and.(ele2.ne.0)) THEN
 ! only used between elements of the domain so no modification of b.c's nec. 
 !                        STRESS_IJ_ELE_EXT=0.0
                         CALL LINEAR_HIGH_DIFFUS_CAL_COEFF_STRESS_OR_TENSOR( STRESS_IJ_ELE_EXT, S_INV_NNX_MAT12,  &
@@ -5348,12 +5348,12 @@ contains
                                    JPHASE = IPHASE
 ! ADD DIRICHLET BC'S FOR VISCOCITY...
                                        DO IDIM=1,NDIM
-                                          IF( WIC_U_BC_ALL_VISC( IDIM, IPHASE, SELE2 ) == WIC_U_BC_DIRICHLET ) THEN
-                                             DO JDIM=1,NDIM
+                                          DO JDIM=1,NDIM
+                                              IF( WIC_U_BC_ALL_VISC( JDIM, IPHASE, SELE2 ) == WIC_U_BC_DIRICHLET ) THEN
                                                  LOC_U_RHS( IDIM,IPHASE,U_ILOC ) = LOC_U_RHS( IDIM,IPHASE,U_ILOC ) &
                                                  - STRESS_IJ_ELE_EXT( IDIM, JDIM, IPHASE, U_SILOC, U_JLOC + U_NLOC ) * SUF_U_BC_ALL_VISC( JDIM,IPHASE,U_SJLOC + U_SNLOC*(SELE2-1) )
-                                             END DO
-                                          ENDIF
+                                              ENDIF
+                                          END DO
                                        END DO
                                END DO 
                            END DO 
