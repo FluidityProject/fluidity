@@ -31,7 +31,8 @@ import re
 import subprocess
 import os
 from batch_tools import new_handler as nh
-from test_tools import *
+from test_tools import Parameteriser, TestCommand, TestSuite, \
+    AssertThresholdCalculator
 
 error_norms_1D_filename = "error_norms_1d.txt"
 
@@ -70,46 +71,32 @@ def read_numerical_solution(filename, field_name):
         sys.exit()
     return x, v
 
-        
-class Preprocess(TestCommand):
-    def __init__(self, handler, clean=False):
-        # alternative role: clean up files
-        self.clean = clean
-        if clean:
-            msg = "Cleaning up"
-        else:
-            msg = "Preprocessing"
-        TestCommand.__init__(self, ['mesh_res'], handler, msg )
 
-    def execute(self, level_name, value, indent):
-        if not self.tracker.at('leaf'):
-            # if we are at the last level, proceed; otherwise, exit
-            return
+class BLWriteToReport(WriteToReport):
 
-        key_stem = self.tracker.make_key(exclude=['mesh_res'])
-        mesh_res = self.tracker.get('mesh_res')
-        filename_new = key_stem + '_'+mesh_res+'.diml'
+    def __init__(self, handler, parameteriser):
+        WriteToReport.__init__(handler, parameteriser,
+                               norm_calculator=BLNormCalculator())
 
-        if self.tracker.get('mesh_res') != 'A':
-            if not self.clean:
-                # for the most coarse mesh, an options file should
-                # exist.  For the other meshes, adapt it
-                filename_A = key_stem + '_A.diml'
-                with open(filename_A, 'r') as f_A:
-                    f = open(filename_new, 'w')
-                    for line in f_A:
-                        f.write(line.replace('_A', '_'+mesh_res))
-                        f.close()
-            else:
-                # undo the above
-                os.remove(filename_new)
+    def __del__(self):
+        WriteToReport.__del__(self)
+        try:
+            self.norms_file_1D.close()
+        except AttributeError:
+            pass
+
+    def execute(self):
+        if self.at('root'):
+            # if this is the very first level, create the file objects
+            self.norms_file = open(_error_norms_filename, 'w')
+            self.rates_file = open(_error_rates_filename, 'w')
 
                 
 class WriteErrorNorm1D(TestCommand):
     """Compares a 1D numerical solution with the appropriate analytical
     solution, writing the error norm to a report.  The output report
     has two columns: the first has identifiers in the format
-    model_name_1d_mesh_res_field_ID_normtype; the second has the values
+    1d_mesh_res_field_ID_normtype; the second has the values
     of the error norms.
     """
 
@@ -118,23 +105,17 @@ class WriteErrorNorm1D(TestCommand):
         self.norms_file = norms_file
 
     def execute(self):
-        if self.tracker.at('field'):
-            # store the errors and dx for this field.
-            # # Temporarily change the dim register to 1 to signify the 1D
-            # # solution
-            # dim = self.tracker.get('dim')
-            # self.tracker.update('dim', '1')
-            # num_suf = self.tracker.make_key(exclude=['case', 'field'])
-            # self.tracker.update('dim', dim)
-            num_suf = self.tracker.make_key(exclude=['case', 'dim', 'field'])
+        if self.at('field'):
+            # store the errors and dx for this field.  In the ID, change
+            # the dimension to 1 to signify the 1D solution
+            num_suf = self.make_key(exclude=['case', 'field'],
+                                    substitute={'dim': '1'})
             [self.errs, self.dx] = self.compute_abs_errors(
-                num_suf, self.tracker.get('field'), self.field_dict['full'])
+                num_suf, self.get('field'), self.get['field_long'])
         
-        if self.tracker.at('leaf'):
-            
-            
-            # print the ID and value.  N.B. key is different to 
-            # num_suf passed to compute_abs_errors.
+        if self.at('leaf'):
+            # print the ID and value.  N.B. key is different to num_suf
+            # passed to compute_abs_errors.
             key = '{0}_1d_{1}_l{2:g}_{3}'.format(
                 self.model, self.field_short, self.norm,
                 self.mesh_suffix)
@@ -173,38 +154,50 @@ class WriteErrorNorm1D(TestCommand):
         return I**(1/float(self.norm))
    
 
-class BLWriteToReport(WriteToReport):
-    """Overrides WriteToReport and its get_norm method
-    in order to allow customised computation of 1D errors.
-    """
+# class BLWriteToReport(WriteToReport):
+#     """Overrides WriteToReport and its get_norm method
+#     in order to allow customised computation of 1D errors.
+#     """
 
-    def __init__(self, handler):
-        WriteToReport.__init__(self, handler)
+#     def __init__(self, handler):
+#         WriteToReport.__init__(self, handler)
 
-    def get_norm(self):
-        if self.tracker.get('dim')==1:
+#     def get_norm(self):
+#         if self.tracker.get('dim')==1:
             
-            key = '{0}_1d_{1}_l{2:g}_{3}'.format(
-                self.model, self.field_short, self.norm,
-                self.mesh_suffix)
-            v = find(error_norms_1D_filename, key)
+#             key = '{0}_1d_{1}_l{2:g}_{3}'.format(
+#                 self.model, self.field_short, self.norm,
+#                 self.mesh_suffix)
+#             v = find(error_norms_1D_filename, key)
+#         else:
+#             filename = self.stem+'_'+self.model+'_'+\
+#                        str(self.dim)+'d_'+self.mesh_suffix+'.stat'
+#             if self.norm==1:
+#                 self.calc_type = "integral"
+#             elif self.norm==2:
+#                 self.calc_type = "l2norm"
+#             v = fluidity_tools.stat_parser(filename)\
+#                 ['Phase'+self.phase_index]\
+#                 ['Analytic'+self.var_name+'Error']\
+#                 [self.calc_type][-1]
+#         return v
+
+    
+class BLNormCalculator(NormCalculator):
+    def get_requisite_levels(self):
+        return ['field', 'mesh_res']
+    
+    def calculate_norm(self, test_command):
+        """There are two ways of computing the norm; see module
+        docstring."""
+        if test_command.get('dim')==1:
+            key = test_command.make_key()
+            return find(error_norms_1D_filename, key)
         else:
-            filename = self.stem+'_'+self.model+'_'+\
-                       str(self.dim)+'d_'+self.mesh_suffix+'.stat'
-            if self.norm==1:
-                self.calc_type = "integral"
-            elif self.norm==2:
-                self.calc_type = "l2norm"
-            v = fluidity_tools.stat_parser(filename)\
-                ['Phase'+self.phase_index]\
-                ['Analytic'+self.var_name+'Error']\
-                [self.calc_type][-1]
-        return v
+            return NormCalculator.calculate_norm(self, test_command)
                 
             
-
 ## FOR PUBLIC USE 
-    
 
 def interp_using_analytic(x, analytic_filename):
     """Interpolates at point x using the profile given by
@@ -214,25 +207,69 @@ def interp_using_analytic(x, analytic_filename):
 
        
 class BuckleyLeverettTestSuite:
-    """Class to help run and postprocess tests.  numerical_filename_stem is
-    a string to be appended with the elements in model_name_list and
-    mesh_suffix_list, where the latter is one of three elements in the
-    list mesh_suffix_list_per_dimension.  analytic_filename_stem is a
-    string to be appended with shorthand names for the fields in
-    question, which in turn are translated from the elements in
-    field_name_list.  If a field_name is 'Phase2::Saturation', then the
-    shorthand is saturation2.
-
-    """
-    def __init__(self, numerical_filename_stem, model_list, mesh_res_lists,
-                 analytic_filename_stem, field_list, **kwargs):
+    def __init__(self, case_name, mesh_type_list, mesh_res_lists,
+                 field_list, analytic_filename_stem, extra_levels=None, 
+                 reference_mesh_res=5, reference_time_step_number=1,
+                 command_line_in_xml=None, norm_threshold=0.05,
+                 rate_threshold=0.8, simulator_verbosity=0,
+                 python_verbosity=1):
+        """analytic_filename_stem is a string to be appended with
+        shorthand names for the fields in question, which in turn are
+        translated from the elements in field_name_list.  If a
+        field_name is 'Phase2::Saturation', then the shorthand is
+        saturation2."""
         
-        self.numerical_filename_stem = numerical_filename_stem
         self.analytic_filename_stem = analytic_filename_stem
 
-        shallow_handler = \
-            nh('case', numerical_filename_stem) * \
-            nh('model', model_list)
+        # make a handler for iteration over parameterised solutions
+        self.__solution_handler = nh('case', case_name)
+        try:
+           for level_name, node_names in extra_levels:
+              self.__solution_handler = self.__solution_handler * \
+                  nh(level_name, node_names)
+        except:
+           pass
+
+        # extract a corresponding list of level names.  Continuing the
+        # example given in the class description, one might end up with
+        # ['case', 'pressure', 'saturation'].
+        self.__solution_level_names = self.__solution_handler.get_level_names()
+
+        # make another handler for running simulations etc.
+        simulation_handler = deepcopy(self.__solution_handler) * \
+            nh('dim',
+               [nh('1') * \
+                    nh('mesh_res', mesh_res_lists[0]),
+                nh('2') * \
+                    nh('mesh_type', mesh_type_list) * \
+                    nh('mesh_res', mesh_res_lists[1]),
+                nh('3') * \
+                    nh('mesh_type', mesh_type_list) * \
+                    nh('mesh_res', mesh_res_lists[2])])
+
+        # ideally the mesh handler wouldn't be dependent on the solution
+        # handler, but in this module the solution dictionary contains
+        # variables which are linked to the geometry dictionary.  So the
+        # mesh handler will have to be as big as the simulation handler.
+        mesh_handler = simulation_handler
+                
+        # and a handler for configuring and computing norms and rates.
+        # Note that mesh resolution always comes last.
+        results_handler = deepcopy(self.__solution_handler) * \
+            nh('dim', [nh('1') * \
+                           nh('field', field_list) * \
+                           nh('norm', norm_list) * \
+                           nh('mesh_res', mesh_res_lists[0]),
+                       nh('2') * \
+                           nh('mesh_type', mesh_type_list) * \
+                           nh('field', field_list) * \
+                           nh('norm', norm_list) * \
+                           nh('mesh_res', mesh_res_lists[1]),
+                       nh('3') * \
+                           nh('mesh_type', mesh_type_list) * \
+                           nh('field', field_list) * \
+                           nh('norm', norm_list) * \
+                           nh('mesh_res', mesh_res_lists[2])])
         
         # make a handler for meshing, simulations etc
         dim_handlers = []
@@ -260,17 +297,30 @@ class BuckleyLeverettTestSuite:
             nh('mesh_res', mesh_res_lists[0]) * \
             nh('field', field_list) * \
             nh('norm', norm_list)
-    
+
+        # create an object for BL-tailored parameterisations
+        self.__parameteriser = BuckleyLeverettParameteriser(
+           simulation_options_filename_extension, reference_mesh_res, 
+           reference_time_step_number)
+                       
+        # using the above objects, initialise the superclass
+        TestSuite.__init__(
+           self, mesh_handler, simulation_handler, results_handler,
+           parameteriser = self.__parameteriser,
+           command_line_in_xml = command_line_in_xml,
+           assert_threshold_calculator = AssertThresholdCalculator(
+              norm_threshold, rate_threshold),
+           simulator_name = simulator_name,
+           simulation_options_filename_extension = \
+              simulation_options_filename_extension,
+           simulator_verbosity = simulator_verbosity,
+           python_verbosity = python_verbosity)
+
         self.preproc_cmd = 
         self.sim_handler.handle(CommandList((Preprocess(sim_handler),
                                              RunSimulation(sim_handler),
                                              Preprocess(sim_handler, clean=True))))
  
-    def process_folder(self):
-        if verbose(): print '\nProcessing folder '
-        cmd = TestCommandList((Preprocess(),
-                               RunSimulation(),
-                               Preprocess(clean=True))
         
     def generate_error_report_1D(self):
         if verbose(): print '\nComputing 1D error norms'
@@ -315,8 +365,14 @@ class BuckleyLeverettTestSuite:
                     BLWriteToReport(f_norms, f_rates))
             finally:
                 if debug: f_norms.close()
-        
     
     def generate_reports(self):
         self.generate_error_report_1D()
         self.generate_convergence_report()
+
+    def create_write_report_command(self):
+        return WriteToReport(self.results_handler,
+                             self.parameteriser,
+                             self.norm_calculator)
+
+                              

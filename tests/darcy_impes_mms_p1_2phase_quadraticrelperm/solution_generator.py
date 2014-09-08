@@ -1,7 +1,6 @@
 from sympy import Symbol, Function, diff, integrate, sin, cos, pi, exp
-import math
 from manufactured_solution_generation_tools import \
-    ManufacturedSolution, SolutionHarness, generate_coords
+    ManufacturedSolution, GenericScalar, SolutionHarness, generate_coords
 
 def generate(solution_name, check_solution=False):
     
@@ -11,9 +10,11 @@ def generate(solution_name, check_solution=False):
     ka = 1.567346939e-9         # absolute permeability
     phi = .4                    # porosity
 
-    # arbitrary p and s2 scales [see note 2]
+    # arbitrary p and s2 scales [see note 2], also introduce passive
+    # tracer c
     p1_scale = 1000.
     s2_scale = 0.5
+    c_scale = 1.
 
     # regard first phase as air; second as water
     mu = (1.725e-5, 1.e-3)            # viscosity
@@ -32,38 +33,51 @@ def generate(solution_name, check_solution=False):
     # initialise our prognostic variables
     p1 = p1_scale
     s2 = s2_scale
+    c = c_scale
     
     # introduce time dependence
     t = Symbol('t')
     p1 = p1 * (3 + cos(pi*t/T))/4
     s2 = s2 * 1/(1 + t/T)
+    c = c * exp(-t/T)
 
     # helper functions for space dependence
     fs_lon = lambda xi: exp(-xi)
     fs_lat = lambda xi: 3*(1. - xi)*(1.5*xi)**2
     fp_lon = lambda xi: cos(pi*xi)
     fp_lat = lambda xi: sin(pi*xi)**2
+    fc_lon = fp_lon
+    fc_lat = fp_lon
+
+    # introduce a simple nonlinearity
+    c_sym = Symbol('tracer')
+    c_src = 0.1*c_sym
+    def scalars(c):
+        return [GenericScalar(c_sym, 2, c, external_source=c_src)]
     
     # 1D
     x = Symbol('x')
     g_dir = (1)
     s2 = s2*fs_lon(x/D[0])
     p1 = p1*fp_lon(x/D[0])
-    ms1d = ManufacturedSolution(1, g_dir, p1, s2)
+    c = c*fc_lon(x/D[0])
+    ms1d = ManufacturedSolution(1, g_dir, p1, s2, scalars(c))
     
     # 2D
     y = Symbol('y')
     g_dir = (1, 0)
     s2 = s2*fs_lat(y/D[1])
     p1 = p1*fp_lat(y/D[1])
-    ms2d = ManufacturedSolution(2, g_dir, p1, s2)
+    c = c*fc_lat(y/D[1])
+    ms2d = ManufacturedSolution(2, g_dir, p1, s2, scalars(c))
     
     # 3D
     z = Symbol('z')
     g_dir = (1, 0, 0)
     s2 = s2*fs_lat(z/D[2])
     p1 = p1*fp_lat(z/D[2])
-    ms3d = ManufacturedSolution(3, g_dir, p1, s2)
+    c = c*fc_lat(z/D[2])
+    ms3d = ManufacturedSolution(3, g_dir, p1, s2, scalars(c))
 
     # generate expressions for the manufactured solution
     sh.write_dict([ms1d, ms2d, ms3d])

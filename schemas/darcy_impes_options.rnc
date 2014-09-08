@@ -1,5 +1,6 @@
-include "spud_base.rnc"
+namespace a = "http://relaxng.org/ns/compatibility/annotations/1.0"
 
+include "spud_base.rnc"
 include "adaptivity_options.rnc"
 include "diagnostic_algorithms.rnc"
 include "input_output.rnc"
@@ -12,2375 +13,1760 @@ include "spatial_discretisation.rnc"
 include "temporal_discretisation.rnc"
 include "porous_media.rnc"
 include "physical_parameters.rnc"
-
-
 start =
-   (
-      ## The root node of the options dictionary.
-      element darcy_impes_options {
-         comment,
-         
-         ## Model output files are named according to the simulation
-         ## name, e.g. [simulation_name]_0.vtu. Non-standard
-         ## characters in the simulation name should be avoided.
-         ## If not activated then the filename is used for the simulation name.
-         element simulation_name {
-            anystring
-         }?,
-         
-         darcy_impes_geometry,
-         
-         darcy_impes_io,
-         
-         darcy_impes_timestepping,
-         
-         darcy_impes_physical_parameters,
-
-         darcy_impes_material_phases,
-         
-         darcy_impes_mesh_adaptivity_options?,
-         
-         darcy_impes_porous_media_model, 
-         
-         darcy_impes_weak_pressure_bc_coeff?,
-                  
-         darcy_impes_cache_detwei_normal?,
-         
-         darcy_impes_cache_p_dshape?
-      }
-   )      
-
-
+  
+  ## The root node of the options dictionary.
+  element darcy_impes_options {
+    comment,
+    
+    ## Model output files are named according to the simulation
+    ## name, e.g. [simulation_name]_0.vtu. Non-standard
+    ## characters in the simulation name should be avoided.
+    ## If not activated then the filename is used for the simulation name.
+    element simulation_name { anystring }?,
+    darcy_impes_geometry,
+    darcy_impes_io,
+    darcy_impes_timestepping,
+    darcy_impes_physical_parameters,
+    darcy_impes_material_phases,
+    darcy_impes_mesh_adaptivity_options?,
+    darcy_impes_porous_media_model,
+    darcy_impes_weak_pressure_bc_coeff?,
+    darcy_impes_cache_detwei_normal?,
+    darcy_impes_cache_p_dshape?
+  }
 darcy_impes_weak_pressure_bc_coeff =
-   (
-      ## A scaling coefficient to apply to weak pressure
-      ## boundary condition surface integrals. The default 
-      ## value if not given is 1.0
-      element weak_pressure_bc_coefficient {
-         comment,
-         
-         real
-      }
-   )
-
-
+  
+  ## A scaling coefficient to apply to weak pressure
+  ## boundary condition surface integrals. The default 
+  ## value if not given is 1.0
+  element weak_pressure_bc_coefficient { comment, real }
 darcy_impes_cache_detwei_normal =
-   (
-      ## Cache the determinant jacobian with integration weight (detwei)
-      ## and the normal unit vector for each quadrature point, 
-      ## for each element, for the pressure mesh, associated with the CV faces.
-      element cache_detwei_normal {
-         empty
-      }
-   )
-
-
+  
+  ## Cache the determinant jacobian with integration weight (detwei)
+  ## and the normal unit vector for each quadrature point, 
+  ## for each element, for the pressure mesh, associated with the CV faces.
+  element cache_detwei_normal { empty }
 darcy_impes_cache_p_dshape =
-   (
-      ## Cache the transformed derivative of the pressure basis functions
-      ## for each quadrature point, for each element, for the pressure mesh, 
-      ## associated with the CV faces.
-      element cache_p_dshape {
-         empty
+  
+  ## Cache the transformed derivative of the pressure basis functions
+  ## for each quadrature point, for each element, for the pressure mesh, 
+  ## associated with the CV faces.
+  element cache_p_dshape { empty }
+darcy_impes_geometry =
+  
+  ## Options dealing with the specification of geometry
+  element geometry {
+    
+    ## Dimension of the problem.
+    ## <b>This can only be set once</b>
+    element dimension {
+      element integer_value {
+        attribute rank { "0" },
+        ("3" | "2" | "1")
       }
-   )
-
-
-darcy_impes_geometry = 
-   (
-      ## Options dealing with the specification of geometry
-      element geometry {
-         ## Dimension of the problem.
-         ## <b>This can only be set once</b>
-         element dimension {
-            element integer_value {
-               attribute rank {"0"},
-               ("3"|"2"|"1")
-            }
-         },
-         ## The position mesh
-         element mesh {
-            attribute name { "CoordinateMesh" },
-            darcy_impes_position_mesh_info
-         },
-         ## The pressure mesh.
-         element mesh {
-            attribute name { "PressureMesh" },
-            darcy_impes_pressure_mesh_info
-         },
-         ## The element wise mesh.
-         element mesh {
-            attribute name { "ElementWiseMesh" },
-            darcy_impes_element_wise_mesh_info
-         },
-         ## The transmissibility mesh.
-         element mesh {
-            attribute name { "TransmissibilityMesh" },
-            darcy_impes_transmissibility_mesh_info
-         }?,
-         ## The SaturationSource mesh.
-         element mesh {
-            attribute name { "SaturationSourceMesh" },
-            darcy_impes_saturationsource_mesh_info
-         }?,
-         ## Quadrature
-         element quadrature {
-            ## Quadrature degree
-            ## 
-            ## note: this specifies the degree of quadrature,
-            ## not the number of gauss points.
-            element degree {
-               integer
-            },
-            ## Control volume surface quadrature degree
-            ## 
-            ## note: this specifies the degree of quadrature,
-            ## not the number of gauss points
-            element controlvolume_surface_degree {
-               integer
-            }
-         },
-         ## Disable the Jacobian geometric data cache. 
-         ## Use '/cache_detwei_normal' and 
-         ## '/cache_p_dshape' instead.
-         element disable_geometric_data_cache {
-            empty
-         }
-      }
-   )
-
-
+    },
+    
+    ## The position mesh
+    element mesh {
+      attribute name { "CoordinateMesh" },
+      darcy_impes_position_mesh_info
+    },
+    
+    ## The pressure mesh.
+    element mesh {
+      attribute name { "PressureMesh" },
+      darcy_impes_pressure_mesh_info
+    },
+    
+    ## The element wise mesh.
+    element mesh {
+      attribute name { "ElementWiseMesh" },
+      darcy_impes_element_wise_mesh_info
+    },
+    
+    ## The transmissibility mesh.
+    element mesh {
+      attribute name { "TransmissibilityMesh" },
+      darcy_impes_transmissibility_mesh_info
+    }?,
+    
+    ## The SaturationSource mesh.
+    element mesh {
+      attribute name { "SaturationSourceMesh" },
+      darcy_impes_saturationsource_mesh_info
+    }?,
+    
+    ## Quadrature
+    element quadrature {
+      
+      ## Quadrature degree
+      ## 
+      ## note: this specifies the degree of quadrature,
+      ## not the number of gauss points.
+      element degree { integer },
+      
+      ## Control volume surface quadrature degree
+      ## 
+      ## note: this specifies the degree of quadrature,
+      ## not the number of gauss points
+      element controlvolume_surface_degree { integer }
+    },
+    
+    ## Disable the Jacobian geometric data cache. 
+    ## Use '/cache_detwei_normal' and 
+    ## '/cache_p_dshape' instead.
+    element disable_geometric_data_cache { empty }
+  }
 darcy_impes_position_mesh_info =
-   (
-      ## Read mesh from file.
-      element from_file {
-         (
-            ## Triangle mesh format.
-            ##
-            ## Enter the base name without the .edge .ele, .face or
-            ## .node extensions, and without process numbers.
-            element format {
-              attribute name { "triangle" },
-              comment
-            }|
-            ## Read the mesh from a vtu. Note that the mesh will have no 
-            ## surface or region IDs.
-            element format {
-              attribute name { "vtu" },
-              comment
-            }|
-            ## GMSH mesh format
-            element format {
-               attribute name { "gmsh" },
-               comment
-            }
-         ),
-         attribute file_name { xsd:string },
-         from_file_mesh_stat_options,
-         comment
-      }
-   )
-   
-   
-darcy_impes_pressure_mesh_info =
-   (
-      ## Make mesh from existing mesh. 
-      element from_mesh {
-         comment,
-         
-         mesh_choice_coordinate,
-         
-         element mesh_shape {
-            
-            element polynomial_degree {
-               integer
-            },
-            
-            element element_type {
-              element string_value{
-                 "lagrangian"
-              }
-            }
-         },
-         
-         derived_mesh_stat_options
-      }   
-   )
-   
-   
-darcy_impes_transmissibility_mesh_info =
-   (
-      ## Make mesh from existing mesh. 
-      element from_mesh {
-         comment,
-         
-         mesh_choice_coordinate,
-         
-         element mesh_shape {
-            
-            element polynomial_degree {
-               integer
-            },
-            
-            element element_type {
-              element string_value{
-                 "lagrangian"
-              }
-            }
-         },
-
-         element mesh_continuity {
-            element string_value{
-               "discontinuous"
-            }
-         },
-         
-         derived_mesh_stat_options
-      }   
-   )
-   
-   
-darcy_impes_saturationsource_mesh_info =
-   (
-      ## Make mesh from existing mesh. 
-      element from_mesh {
-         comment,
-         
-         mesh_choice_coordinate,
-         
-         element mesh_shape {
-            
-            element polynomial_degree {
-               integer
-            },
-            
-            element element_type {
-              element string_value{
-                 "lagrangian"
-              }
-            }
-         },
-
-         element mesh_continuity {
-            element string_value{
-               ("discontinuous"|"continuous")
-            }
-         },            
-         
-         derived_mesh_stat_options
-      }   
-   )
-   
-   
-darcy_impes_element_wise_mesh_info =
-   (
-      ## Make mesh from existing mesh. 
-      element from_mesh {
-         comment,
-         
-         mesh_choice_coordinate,
-         
-         element mesh_shape {
-            
-            element polynomial_degree {
-               element integer_value {
-                  attribute rank { "0" },
-                  ("0")
-               }
-            },
-            
-            element element_type {
-              element string_value{
-                 "lagrangian"
-              }
-            }
-         },
-
-         element mesh_continuity {
-            element string_value{
-               "discontinuous"
-            }
-         },
-         
-         derived_mesh_stat_options
-      }      
-   )
-
-
-mesh_choice_coordinate = 
-   (
-      element mesh {
-         attribute name { "CoordinateMesh" }
-      }
-   )
-
-
-mesh_choice_pressure = 
-   (
-      element mesh {
-         attribute name { "PressureMesh" }
-      }
-   )
-
-
-mesh_choice_transmissibility = 
-   (
-      element mesh {
-         attribute name { "TransmissibilityMesh" }
-      }
-   )
-
-
-mesh_choice_saturationsource = 
-   (
-      element mesh {
-         attribute name { "SaturationSourceMesh" }
-      }
-   )
-
-
-mesh_choice_element_wise = 
-   (
-      element mesh {
-         attribute name { "ElementWiseMesh" }
-      }
-   )
-
-
-darcy_mesh_choice = 
-   (
-      element mesh {
-         attribute name { "PressureMesh" }
-      }|
-      element mesh {
-         attribute name { "ElementWiseMesh" }
-      }|
-      element mesh {
-         attribute name { "CoordinateMesh" }
-      }
-   )
-
-   
-darcy_impes_io =
-   (
-      ## Input/output options
-      element io {
-         ## Format for dump files. Only vtk for now.
-         element dump_format {
-            element string_value{
-               "vtk"
-            }
-         },
-         (
-            ## Period between dumps in time units.
-            ##
-            ## Specifies the period between each dump of the solution to disk.
-            ## A value of 0.0 indicates that there would be a dump at every timestep.
-            element dump_period {
-             (
-                  element constant {
-                  real
-                }|
-                ## Python function prescribing real input. Functions should be of the form:
-                ##
-                ##  def val(t):
-                ##     # Function code
-                ##     return # Return value
-                ##
-                ## 
-                element python {
-                  python_code
-                }
-             )  
-            }|                 
-            ## Dump period, in timesteps.
-            ## 
-            ## Specifies the number of timesteps between each dump of the solution to disk.
-            ## A value of 0 indicates a dump at every timestep.
-            element dump_period_in_timesteps {
-              (
-                  element constant {
-                  integer
-                }|
-                ## Python function prescribing integer input. Functions should be of the form:
-                ##
-                ##  def val(t):
-                ##     # Function code
-                ##     return # Return value
-                ##
-                ## 
-                element python {
-                  python_code
-                }
-             )   
-            }
-         ),
-         ## The mesh on to which all the fields will be
-         ## interpolated for VTK output.
-         element output_mesh {
-            attribute name { "PressureMesh" }
-         },
-         ## Options for convergence analysis.
-         element convergence {
-            ## Whether to enable the creation of a convergence
-            ## file, giving details of the convergence of each
-            ## field over the global nonlinear iteration loop.
-            ## The .convergence file is in the same format as the .stat file.
-            element convergence_file {
-               comment
-            }?,
-            ## Write state to a vtu on every iteration.
-            ## 
-            ## This is a useful debugging tool if things are not converging.
-            ## To prevent an excessive number of files being accumulated previous
-            ## timestep files will be overwritten hence it is best to use
-            ## in conjunction with /timestepping/nonlinear_iterations/terminate_if_not_converged
-            element convergence_vtus {
-               comment
-            }?
-         }?,
-         ## Whether to enable dumping of checkpointing output.
-         ##
-         ## See http://amcg.ese.ic.ac.uk/index.php?title=Local:Checkpointing_from_new_options
-         element checkpointing {
-            ## Checkpointing period, in dumps. Non-negative value
-            ## required. A value of zero indicates that checkpoints
-            ## should be created at every dump. If
-            ## /io/max_dumpfile_count is exceeded then earlier
-            ## checkpoints may be overwritten.
-            element checkpoint_period_in_dumps {
-               integer
-            },
-            ## Enable to checkpoint at simulation start.
-            element checkpoint_at_start {
-               comment
-            }?,
-            ## Enable to force a checkpoint at simulation end.
-            element checkpoint_at_end {
-               comment
-            }?,
-            comment
-         }?,
-         ## Diagnostic output (.stat file) options
-         element stat {
-            ## Enable to write diagnostic output at simulation start
-            element output_at_start {
-               comment
-            },
-            ## Enable to write diagnostic output immediately before mesh adapts
-            element output_before_adapts {
-               comment
-            }?,
-            ## Enable to write diagnostic output immediately after mesh adapts
-            element output_after_adapts {
-               comment
-            }?,
-            comment
-         }
-      }   
-   )
-
-
-darcy_impes_timestepping =
-   (
-      ## Options dealing with time discretisation
-      element timestepping {
-         ## Current simulation time. At the start of the simulation this
-         ## is the start time.
-         element current_time {
-            real,
-            ## The following excerpt from the Udunits
-            ## documentation explains the time unit encoding by
-            ## example:
-            ##
-            ## The specification:
-            ##
-            ## seconds since 1992-10-8 15:15:42.5 -6:00
-            ##
-            ## indicates seconds since October 8th, 1992 at 3
-            ## hours, 15 minutes and 42.5 seconds in the afternoon
-            ## in the time zone which is six hours to the west of
-            ## Coordinated Universal Time (i.e.  Mountain Daylight
-            ## Time). The time zone specification can also be
-            ## written without a colon using one or two-digits
-            ## (indicating hours) or three or four digits
-            ## (indicating hours and minutes).
-            ##
-            ## Time units are particularly required in situations
-            ## where the problem (time-varying) boundary conditions
-            ## and/ initial conditions are a function of time as
-            ## defined by a calendar.  Examples include atmospheric
-            ## forcing and climatology. The current time, specified
-            ## above, is zero at the reference data/time.
-            element time_units{attribute date { xsd:string }}?
-         },
-         ## The time step size. If adaptive time stepping is used
-         ## then this is the initial time step size.
-         element timestep {
-            real
-         },
-         ## Simulation time at which the simulation should end.
-         element finish_time {
-            real
-         },
-         ## Timestep after which the simulation should end.
-         element final_timestep {
-            integer
-         }?,
-         ## Maximum number of non-linear iterations.
-         element nonlinear_iterations {
-            integer,
-            
-            ## Tolerance for non-linear iteration.
-            element tolerance {
-               real,
-               (
-                   ## Select the norm with which you want the tolerance to be tested.
-                   ##
-                   ## The infinity norm.
-                   element infinity_norm {
-                     empty
-                   }|
-                   ## Select the norm with which you want the tolerance to be tested.
-                   ##
-                   ## The l2 norm.
-                   element l2_norm {
-                     empty
-                   }|
-                   ## Select the norm with which you want the tolerance to be tested.
-                   ##
-                   ## The l2 norm evaluated on a control volume mesh.
-                   element cv_l2_norm {
-                     empty
-                   }
-               )
-            }?,
-            ## Terminate the simulation if the number of
-            ## nonlinear_iterations is reached
-            ## and the tolerance criterion is not met.
-            ## This is mostly useful as a debugging option if you
-            ## suspect the solution is not converging.
-            element terminate_if_not_converged {
-               empty
-            }?,
-            ## Number of non-linear iterations for the first time step after adapting the mesh.
-            ## This option will work only if the mesh_adaptivity is switched on.
-            element nonlinear_iterations_at_adapt {
-               integer
-            }?,
-            ## Number of non-linear iterations for the first time step.
-            element nonlinear_iterations_at_first_timestep {
-               integer
-            }?
-         }?,
-         ## Vary the timestep according to the courant number.
-         element adaptive_timestep {
-            ## The timestep will be adjusted (within the tolerance
-            ## and bounds specified) to target this courant
-            ## number. Timestep adapts occur at the end of each
-            ## timestep and after a mesh adapt. The default 
-            ## value if not given is 0.5.
-            element requested_cfl {
-               real
-            }?,
-            ## Minimum time step size.
-            ## Manual suggests 0.0
-            element minimum_timestep {
-               ## If enabled, signals model termination if a timestep less
-               ## than or equal to the minimum_timestep is requested. The
-               ## model will stop at the end of the timestep in order to
-               ## allow for the latest output to be written. 
-               element terminate_if_reached {
-                  comment
-               }?,
-               real
-            }?,
-            ## Maximum time step size.
-            ## Manual suggests 1.E+10
-            element maximum_timestep {
-               real
-            }?,
-            ## The maximum ratio by which the timestep is allowed
-            ## to increase in a timestep adapt. e.g., a value of
-            ## 1.1 indicates that the timestep may be increased by
-            ## at most 10%. Default value is 1.1.
-            element increase_tolerance {
-               real
-            }?,
-            ## Specify whether you want to calculate a new timestep
-            ## at the first timestep or not.
-            element at_first_timestep {
-               empty
-            }?
-         }?
-      }
-   )
-
-
-darcy_impes_physical_parameters =
-   (
-      element physical_parameters {
-         darcy_impes_gravity_options?
-      }   
-   )
-
-
-darcy_impes_gravity_options =
-   ## Set a gravity to be included in the buoyancy term.
-   element gravity {
-      ## Acceleration due to gravity. 9.8 m/s^2 on earth.
-      element magnitude {
-         real
-      },
-      ## The direction of the gravity vector.
-      element vector_field {
-         attribute name { "GravityDirection" },
-         attribute rank { "1" },
-         element prescribed {
-            mesh_choice_element_wise,
-            prescribed_vector_field_no_adapt
-         }
-      }
-   }
-
-
-darcy_impes_material_phases =
-   (
-      ## The phase options
-      element material_phase {
-         attribute name { "Phase1" },
-         
-         darcy_impes_first_phase_pressure_field,
-         
-         darcy_impes_saturation_field_phase_one,
-         
-         darcy_impes_first_phase_relative_permeability_field,
-         
-         darcy_impes_viscosity_field,
-         
-         darcy_impes_first_phase_density_field,
-                  
-         darcy_impes_darcy_velocity_field,
-         
-         darcy_impes_darcy_velocity_over_porosity_CFL_field, 
-                  
-         darcy_impes_total_darcy_velocity_field,         
-                  
-         darcy_impes_divergence_total_darcy_velocity_field,
-
-         darcy_impes_mobility_field,
-         
-         darcy_impes_total_mobility_field,
-
-         darcy_impes_fractional_flow_field,
-         
-         darcy_impes_sum_saturation, 
-         
-         darcy_impes_average_pressure, 
-
-         darcy_impes_bulk_darcy_velocity, 
-         
-         darcy_impes_generic_scalar_field*
-	 
-      },            
-      (
-         element material_phase {
-            attribute name { "Phase2" },
-                  
-            darcy_impes_other_phase_options	    	
-         }|
-         element material_phase {
-            attribute name { "Phase3" },
-                  
-            darcy_impes_other_phase_options
-         }|
-         element material_phase {
-            attribute name { "Phase4" },
-                  
-            darcy_impes_other_phase_options
-         }
-
-      )+,  
-      
-      element material_phase {
-         attribute name { "Phase1_dual" },
-         
-         darcy_impes_dual_Phase1
-      }?,
-      (
-         element material_phase {
-            attribute name { "Phase2_dual" },
-         
-            darcy_impes_dual_other_phase_options
-	
-         }|
-         element material_phase {
-            attribute name { "Phase3_dual" },
-                  
-            darcy_impes_dual_other_phase_options
-         }|
-         element material_phase {
-            attribute name { "Phase4_dual" },
-                  
-            darcy_impes_dual_other_phase_options
-         }
-      )*
-   )
-
-
-darcy_impes_other_phase_options = 
-   (         
-      darcy_impes_non_first_phase_pressure_field, 
-      
-      darcy_impes_capilliary_pressure_field?, 
-      
-      darcy_impes_saturation_field,
-
-      darcy_impes_non_first_phase_relative_permeability_field,
-
-      darcy_impes_viscosity_field,
-      
-      darcy_impes_non_first_phase_density_field,
-
-      darcy_impes_darcy_velocity_field,
-
-      darcy_impes_darcy_velocity_over_porosity_CFL_field,
-      
-      darcy_impes_mobility_field,
-      
-      darcy_impes_fractional_flow_field, 
-      
-      darcy_impes_generic_scalar_field*      
-   )
-
-
-darcy_impes_first_phase_pressure_field =
-   (
-      element scalar_field {
-         attribute rank { "0" },
-         attribute name { "Pressure" },
-         (
-            element prognostic {
-               mesh_choice_pressure,
-               darcy_impes_asym_solver_options,               
-               initial_condition_scalar+,
-               darcy_impes_first_phase_bc_pressure_field*,
-               darcy_impes_include_cv_stat, 
-               adaptivity_options_prognostic_scalar_field,
-               interpolation_algorithm_scalar
-            }|
-            element prescribed {
-               mesh_choice_pressure,
-               prescribed_scalar_field,
-               darcy_impes_include_cv_stat
-            }
-         )
-      }
-   )
-
-
-darcy_impes_dual_first_phase_pressure_field =
-   (
-      element scalar_field {
-         attribute rank { "0" },
-         attribute name { "Pressure" },
-         element prognostic {
-            mesh_choice_pressure,
-            initial_condition_scalar+,
-            darcy_impes_first_phase_bc_pressure_field*,
-            darcy_impes_include_cv_stat, 
-            adaptivity_options_prognostic_scalar_field,
-            interpolation_algorithm_scalar
-         }
-      }
-   )
-
-
-darcy_impes_asym_solver_options =
-   (
-      element solver {
-         attribute name { "DefaultSolverOptionsGMRESSOR" },
-         darcy_impes_pressure_linear_solver_options_asym_default_gmres_sor
-      }|
-      element solver {
-         attribute name { "DefaultSolverOptionsGMRESMG" },
-         darcy_impes_pressure_linear_solver_options_asym_default_gmres_mg
-      }|
-      element solver {
-         attribute name { "DefaultSolverOptionsGMRESHYPRE" },
-         darcy_impes_pressure_linear_solver_options_asym_default_gmres_hypre
-      }|
-      element solver {
-         attribute name { "ChooseSolverOptions" },
-         linear_solver_options_asym_scalar
-      }   
-   )
-
-
-darcy_impes_pressure_linear_solver_options_asym_default_gmres_sor = 
-   (
-      darcy_impes_solver_default_gmres,
-      darcy_impes_solver_default_sor,
-      darcy_impes_solver_tolerances
-   )
-
-
-darcy_impes_pressure_linear_solver_options_asym_default_gmres_mg = 
-   (
-      darcy_impes_solver_default_gmres,
-      darcy_impes_solver_default_mg,
-      darcy_impes_solver_tolerances
-   )
-
-
-darcy_impes_pressure_linear_solver_options_asym_default_gmres_hypre = 
-   (
-      darcy_impes_solver_default_gmres,
-      darcy_impes_solver_default_hypre,
-      darcy_impes_solver_tolerances
-   )
-
-
-darcy_impes_solver_default_gmres =
-   (
-      ## GMRES
-      ##
-      ## Your safest bet for non-symmetric systems.
-      element iterative_method {
-         attribute name { "gmres" },
-         ## Restart value for gmres iteration
-         element restart {
-            element integer_value { 
-               attribute rank { "0" },
-               ("30")
-            }           
-         }
-      }   
-   )
-
-
-darcy_impes_solver_default_sor = 
-   (
-      ## Succesive Over-Relaxation
-      ##
-      ## This includes SSOR (symmetric sor)
-      element preconditioner {
-         attribute name { "sor" }
-      }   
-   )
-
-
-darcy_impes_solver_default_mg = 
-   (
-      ## Fluidity's own multigrid method.
-      ## Especially suited for ill-conditioned, large aspect ratio problems.
-      element preconditioner {
-         attribute name { "mg" }
-      }   
-   )
-
-
-darcy_impes_solver_default_hypre = 
-   (
-      ## Hypre preconditioners (includes boomeramg)
-      element preconditioner {
-         attribute name { "hypre" },
-         ( 
-            ## BoomerAMG multigrid method
-            element hypre_type {
-               attribute name { "boomeramg" }
-            }|
-            ## Other Hypre preconditioners
-            element hypre_type {
-               attribute name { xsd:string }
-            }
-         )
-      }   
-   )
-
-
-darcy_impes_solver_tolerances = 
-   (
-      ## Relative error
-      ##
-      ## The solver finishes if the preconditioned error becomes smaller 
-      ## than the original preconditioned error times this value.
-      element relative_error {
-         element real_value { 
-            attribute rank { "0" },
-            ("1.0e-10")
-         }           
-      },
-      ## Maximum number of iterations allowed in the linear solver before giving up.
-      element max_iterations {
-         element integer_value { 
-            attribute rank { "0" },
-            ("1000")
-         }           
-      },
-      ## Solver failures are always treated as fatal errors. The
-      ## model stops at the end of the time step in order to allow
-      ## for the latest output to be written.
-      element never_ignore_solver_failures {
-         empty
-      }   
-   )
-
-
-darcy_impes_non_first_phase_pressure_field =
-   (
-      element scalar_field {
-         attribute rank { "0" },
-         attribute name { "Pressure" },
-         element diagnostic {
-            mesh_choice_pressure,
-            darcy_impes_internal_algorithm,
-            darcy_impes_diagnostic_scalar_field
-         }
-      }
-   )
-   
-
-darcy_impes_capilliary_pressure_field =
-   (
-      element scalar_field {
-         attribute rank { "0" },
-         attribute name { "CapilliaryPressure" },
-         element diagnostic {
-            mesh_choice_pressure,
-            darcy_impes_scalar_python_diagnostic_algorithm,
-            darcy_impes_diagnostic_scalar_field
-         }
-      }
-   )
-
-
-darcy_impes_average_pressure =
-   (
-      element scalar_field {
-         attribute rank { "0" },
-         attribute name { "AveragePressure" },
-         element diagnostic {
-            mesh_choice_pressure,
-            darcy_impes_internal_algorithm,
-            darcy_impes_diagnostic_scalar_field
-         }
-      }
-   )
-
-
-darcy_impes_bulk_darcy_velocity =
-   (
-      element vector_field {
-         attribute rank { "1" },
-         attribute name { "BulkDarcyVelocity" },
-         element diagnostic {
-            mesh_choice_pressure,
-            darcy_impes_internal_algorithm,
-            darcy_impes_diagnostic_vector_field
-         }
-      }
-   )
-
-
-darcy_impes_saturation_field_phase_one =
-   (
-      element scalar_field {
-         attribute rank { "0" },
-         attribute name { "Saturation" },
-         (
-            element diagnostic {
-               mesh_choice_pressure,
-               darcy_impes_internal_algorithm,
-               darcy_impes_saturation_field_subcycling?,
-               darcy_impes_saturation_field_face_value?,
-               darcy_impes_saturation_source?,
-               scalar_convergence_options,
-               darcy_impes_diagnostic_scalar_field
-            }|
-            element prognostic {
-               mesh_choice_pressure,
-               darcy_impes_saturation_field_subcycling?,
-               darcy_impes_saturation_field_face_value?,
-               initial_condition_scalar+,
-               darcy_impes_bc_saturation_field*,
-               darcy_impes_saturation_source?,
-               scalar_convergence_options,
-               darcy_impes_include_cv_stat,
-               adaptivity_options_prognostic_scalar_field,
-               interpolation_algorithm_scalar         
-            }
-         )
-      }                  
-   )
-
-
-darcy_impes_saturation_field =
-   (
-      element scalar_field {
-         attribute rank { "0" },
-         attribute name { "Saturation" },
-         element prognostic {
-            mesh_choice_pressure,
-            initial_condition_scalar+,
-            darcy_impes_bc_saturation_field*,
-            darcy_impes_saturation_source?,
-            scalar_convergence_options,
-            darcy_impes_include_cv_stat,
-            adaptivity_options_prognostic_scalar_field,
-            interpolation_algorithm_scalar
-         }
-      }                  
-   )
-   
-
-darcy_impes_saturation_field_subcycling =
-   (
-      ## Use timestep subcycling to solve the field advection.
-      ## Specify the number of advection subcycls. 
-      element number_advection_subcycle {
-         integer,
-         
-         ## Make the global continuity consistent with the
-         ## phase volume fraction subcycles
-         element consistent_global_continuity {
-            empty
-         }?
-      }
-   )
-
-
-darcy_impes_saturation_field_face_value = 
-   (
-      ## Saturation face values are only required if the 
-      ## RelativePermeability face value scheme is  
-      ## RelPermOverSatUpwind, RelPermOverSatFiniteElement 
-      ## or RelPermOverSatCorrelation.
-      ## First Order Upwind face value discretisation.
-      element face_value {
-        attribute name { "FirstOrderUpwind" },
-        empty
-      }|
-      ## Saturation face values are only required if the 
-      ## RelativePermeability face value scheme is  
-      ## RelPermOverSatUpwind, RelPermOverSatFiniteElement 
-      ## or RelPermOverSatCorrelation.
-      ## Finite Element face value discretisation.
-      element face_value {
-        attribute name { "FiniteElement" },
-        darcy_impes_limiter_options
-      }
-   )   
-      
-
-darcy_impes_limiter_options =
-  (
-      (
-        ## Limit the face value to satisfy a boundedness criterion.
-        element limit_face_value{
-          sweby_limiter
-        }|
-        ## Do not limit the face value
-        element do_not_limit_face_value{
-          empty
-        }
-      )
-  )
-
-
-darcy_impes_saturation_source =
-   (
-      element scalar_field {
-         attribute rank { "0" },
-         attribute name { "Source" },
-         darcy_impes_scalar_field_prescribed_or_python_diagnostic_saturationsource_mesh
-      }
-   )
-
-
-darcy_impes_scalar_field_prescribed_or_python_diagnostic_element_wise_mesh = 
-   (
-      element prescribed {
-         mesh_choice_element_wise,
-         prescribed_scalar_field_no_adapt,
-         darcy_impes_include_cv_stat
-      }|
-      element diagnostic {
-         mesh_choice_element_wise,
-         darcy_impes_scalar_python_diagnostic_algorithm,
-         darcy_impes_diagnostic_scalar_field_no_adapt
-      }   
-   )   
-
-
-darcy_impes_scalar_field_prescribed_or_python_diagnostic_saturationsource_mesh = 
-   (
-      element prescribed {
-         mesh_choice_saturationsource,
-         prescribed_scalar_field_no_adapt,
-         darcy_impes_include_cv_stat
-      }|
-      element diagnostic {
-         mesh_choice_saturationsource,
-         darcy_impes_scalar_python_diagnostic_algorithm,
-         darcy_impes_diagnostic_scalar_field_no_adapt
-      }   
-   )   
-
-
-darcy_impes_scalar_field_prescribed_or_python_diagnostic_transmissibility_mesh = 
-   (
-      element prescribed {
-         mesh_choice_transmissibility,
-         prescribed_scalar_field_no_adapt,
-         darcy_impes_include_cv_stat
-      }|
-      element diagnostic {
-         mesh_choice_transmissibility,
-         darcy_impes_scalar_python_diagnostic_algorithm,
-         darcy_impes_diagnostic_scalar_field_no_adapt
-      }   
-   )   
-   
-
-darcy_impes_non_first_phase_relative_permeability_field =
-   (
-      element scalar_field {
-         attribute rank { "0" },
-         attribute name { "RelativePermeability" },
-         element diagnostic {
-            mesh_choice_pressure,
-            darcy_impes_internal_algorithm,
-            darcy_impes_diagnostic_scalar_field
-         }
-      }
-   )
-   
-
-darcy_impes_first_phase_relative_permeability_field =
-   (
-      element scalar_field {
-         attribute rank { "0" },
-         attribute name { "RelativePermeability" },
-         element diagnostic {
-            mesh_choice_pressure,
-            darcy_impes_internal_algorithm,
-            darcy_impes_relperm_correlation,
-            darcy_impes_relperm_field_face_value,
-            darcy_impes_diagnostic_scalar_field
-         }
-      }
-   )
-
-
-darcy_impes_relperm_correlation = 
-   (
-      ## Use a power law correlation such that for each phase:
-      ## relperm = sat**exponent
-      element correlation {
-         comment,
-         
-         attribute name { "PowerLaw" },
-         
-         darcy_impes_relperm_exponents,
-         
-         darcy_impes_residual_saturations?
-      }|
-      ## Use a Corey 2 phase correlation such that:
-      ## relperm_1 = sat_1**4,
-      ## relperm_2 = (1 - sat_1**2) * (1 - sat_1)**2
-      element correlation {
-         comment,
-         
-         attribute name { "Corey2Phase" },
-         
-         darcy_impes_residual_saturations?
-      }|
-      ## Use the opposite to Corey 2 phase correlation such that:
-      ## relperm_1 = (1 - sat_2**2) * (1 - sat_2)**2,
-      ## relperm_2 = sat_2**4
-      element correlation {
-         comment,
-         
-         attribute name { "Corey2PhaseOpposite" },
-         
-         darcy_impes_residual_saturations?
-      }|
-      ## Use the Mineral correlation given by:
-      ## ((max(cutoff_sat, sat) - residual_sat(p)) **exponents(p)) /((1.0 -residual_sat(p)) ** exponents(p))
-      element correlation {
-         comment, 
-         
-         attribute name { "Mineral" }, 
-         
-         darcy_impes_relperm_exponents,
-        
-         darcy_impes_cutoff_saturations?,
-         
-         darcy_impes_residual_saturations?
-        
-    
-      }|
-      ## Use the 2 phase VanGenuchten correlation given by:
-      ## sat_effective = (sat_phases(2) - residual_sat(2) ) / ( 1.0 - residual_sats(1) - residual_sat(2))
-      ## relperm1= ( 1.0 - sat_effective )**(1.0/3.0) * (1.0 - sat_effective ** ( 1.0/ exponents(1)) ) ** (2*exponents(1))
-      ## relperm_val =  sat_effective ** (1.0/2.0) * ( 1.0 - ( 1.0 - sat_effective ** ( 1.0 / exponents(2))) ** exponents(2))**2.0
-      element correlation {
-         comment, 
-         
-         attribute name { "VanGenuchten" }, 
-         
-         darcy_impes_relperm_exponents,
-         
-         darcy_impes_residual_saturations?
-        
-    
-      }|
-      ## Use a Jackson 2 phase correlation such that:
-      ## relperm_1 = m_1*(1.0-sat_norm_2)**n_1,
-      ## relperm_2 = m_2*sat_norm_2**n_2
-      element correlation {
-         comment,
-         
-         attribute name { "Jackson2Phase" },
-
-         darcy_impes_relperm_exponents,
-         
-         darcy_impes_relperm_scaling_coefficients,
-         
-         darcy_impes_residual_saturations
-      }|
-      ## Use the opposite to Jackson 2 phase correlation such that:
-      ## relperm_1 = m_1*sat_norm_1**n_1,
-      ## relperm_2 = m_2*(1.0-sat_norm_1)**n_2
-      element correlation {
-         comment,
-         
-         attribute name { "Jackson2PhaseOpposite" },
-
-         darcy_impes_relperm_exponents,
-         
-         darcy_impes_relperm_scaling_coefficients,
-         
-         darcy_impes_residual_saturations
-      }
-   )
-
-
-darcy_impes_relperm_exponents =
-   (
-      ## Specify the exponent for each phase in the order they 
-      ## are given as a real input list.
-      element exponents {
-         real_vector
-      }   
-   )
-
-
-darcy_impes_relperm_scaling_coefficients =
-   (
-      ## Specify the scaling coefficient for each phase in the order they 
-      ## are given as a real input list.
-      element scaling_coefficients {
-         real_vector
-      }   
-   )
-   
-
-darcy_impes_cutoff_saturations =
-  (
-      ## Specify the cut off saturation for each phase in the order they 
-      ## are given as a real input list. The default 
-      ## values is residual saturations for all phases.
-      element cutoff_saturations {
-         real_vector
-      }?       
-  )
-
-
-darcy_impes_residual_saturations = 
-   (
-     ## Specify the residual saturation for each phase in the 
-     ## order they are given as a real input list. The default 
-     ## values is 0.0 for all phases.
-     element residual_saturations {
-        real_vector
+  
+  ## Read mesh from file.
+  element from_file {
+    (
+     ## Triangle mesh format.
+     ## 
+     ## Enter the base name without the .edge .ele, .face or
+     ## .node extensions, and without process numbers.
+     element format {
+       attribute name { "triangle" },
+       comment
      }
-   )   
-
-   
-darcy_impes_relperm_field_face_value =
-   (
-      ## First Order Upwind face value discretisation
-      ##  face_value = donor_value, 
-      ## where
-      ##  donor_value = income*val_1 + (1.-income)*val_2, 
-      ## where val_i is the value on the ith node neighbouring the face and
-      ## income = [0, 1] depending on whether the flow is coming from node 1 or 2
-      ## First order upwinding is monotonic so no limiting is ever required
-      element face_value {
-        attribute name { "FirstOrderUpwind" },
-        empty
-      }|
-      ## Use a modified Relative Permeability via dividing it
-      ## by the phase Saturation, which is then upwinded. Another
-      ## Saturation is then included which requires a face value 
-      ## defined under the Saturation field face_value options.
-      element face_value {
-         attribute name { "RelPermOverSatUpwind" },
-         darcy_impes_min_sat_in_modrelperm?
-      }|
-      ## Use a modified Relative Permeability via dividing it
-      ## by the phase Saturation, which then takes a finite 
-      ## element interpolation for the face value which can then be
-      ## limited. Another Saturation is then included which 
-      ## requires a face value defined under the Saturation field 
-      ## face_value options.
-      element face_value {
-         attribute name { "RelPermOverSatFiniteElement" },
-         darcy_impes_min_sat_in_modrelperm?,
-         darcy_impes_limiter_options
-      }|
-      ## Use a modified Relative Permeability via dividing it
-      ## by the phase Saturation, which then takes the finite 
-      ## element interpolation of saturation to calculate the 
-      ## the face value using the chosen correlation which can then be
-      ## limited. Another Saturation is then included which 
-      ## requires a face value defined under the Saturation field 
-      ## face_value options.
-      element face_value {
-         attribute name { "RelPermOverSatCorrelation" },
-         darcy_impes_min_sat_in_modrelperm?,
-         darcy_impes_limiter_options
+     | 
+       ## Read the mesh from a vtu. Note that the mesh will have no 
+       ## surface or region IDs.
+       element format {
+         attribute name { "vtu" },
+         comment
+       }
+     | 
+       ## GMSH mesh format
+       element format {
+         attribute name { "gmsh" },
+         comment
+       }),
+    attribute file_name { xsd:string },
+    from_file_mesh_stat_options,
+    comment
+  }
+darcy_impes_pressure_mesh_info =
+  
+  ## Make mesh from existing mesh. 
+  element from_mesh {
+    comment,
+    mesh_choice_coordinate,
+    element mesh_shape {
+      element polynomial_degree { integer },
+      element element_type {
+        element string_value { "lagrangian" }
       }
-   )
-
-
-darcy_impes_min_sat_in_modrelperm =
-   (
-      ## The minimum saturation value to use for the denominator
-      ## of the modified relative permeability face value.
-      ## The default value is 1.0e-06.
-      element minimum_denominator_saturation_value {
-         real
+    },
+    derived_mesh_stat_options
+  }
+darcy_impes_transmissibility_mesh_info =
+  
+  ## Make mesh from existing mesh. 
+  element from_mesh {
+    comment,
+    mesh_choice_coordinate,
+    element mesh_shape {
+      element polynomial_degree { integer },
+      element element_type {
+        element string_value { "lagrangian" }
       }
-   )
-
-
-darcy_impes_viscosity_field =
-   (
-      element scalar_field {
-         attribute rank { "0" },
-         attribute name { "Viscosity" },
-         darcy_impes_scalar_field_prescribed_or_python_diagnostic_element_wise_mesh
+    },
+    element mesh_continuity {
+      element string_value { "discontinuous" }
+    },
+    derived_mesh_stat_options
+  }
+darcy_impes_saturationsource_mesh_info =
+  
+  ## Make mesh from existing mesh. 
+  element from_mesh {
+    comment,
+    mesh_choice_coordinate,
+    element mesh_shape {
+      element polynomial_degree { integer },
+      element element_type {
+        element string_value { "lagrangian" }
       }
-   )
-
-
-darcy_impes_non_first_phase_density_field =
-   (
-      element scalar_field {
-         attribute rank { "0" },
-         attribute name { "Density" },
-         element diagnostic {
-            mesh_choice_pressure,
-            darcy_impes_internal_algorithm,
-            darcy_impes_eos,
-            darcy_impes_diagnostic_scalar_field
-         }
-      }   
-   )
-
-
-darcy_impes_first_phase_density_field =
-   (
-      element scalar_field {
-         attribute rank { "0" },
-         attribute name { "Density" },
-         element diagnostic {
-            mesh_choice_pressure,
-            darcy_impes_internal_algorithm,
-            darcy_impes_eos,
-            darcy_impes_density_field_face_value,
-            darcy_impes_diagnostic_scalar_field
-         }
-      }   
-   )
-   
-   
-darcy_impes_density_field_face_value =
-   (
-      ## First Order Upwind face value discretisation
-      ##  face_value = donor_value, 
-      ## where
-      ##  donor_value = income*val_1 + (1.-income)*val_2, 
-      ## where val_i is the value on the ith node neighbouring the face and
-      ## income = [0, 1] depending on whether the flow is coming from node 1 or 2
-      ## First order upwinding is monotonic so no limiting is ever required
-      element face_value {
-        attribute name { "FirstOrderUpwind" },
-        empty
-      }|
-      ## Finite Element face value discretisation
-      ##  face_value = finite element interpolation from surrounding nodes
-      ##
-      ## Finite element discretisation may become unbounded so limiting is often necessary.
-      element face_value {
-        attribute name { "FiniteElement" },
-        darcy_impes_limiter_options
-      }            
-   )
-
-
-darcy_impes_eos =
-   (
-      ## Equations of state for simple fluid applications
-      element equation_of_state {
-         comment,         
-         
-         attribute name { "IncompressibleLinear" },
-         
-         ## The reference density
-         element reference_density {
-            real
-         }
+    },
+    element mesh_continuity {
+      element string_value { "discontinuous" | "continuous" }
+    },
+    derived_mesh_stat_options
+  }
+darcy_impes_element_wise_mesh_info =
+  
+  ## Make mesh from existing mesh. 
+  element from_mesh {
+    comment,
+    mesh_choice_coordinate,
+    element mesh_shape {
+      element polynomial_degree {
+        element integer_value {
+          attribute rank { "0" },
+          "0"
+        }
+      },
+      element element_type {
+        element string_value { "lagrangian" }
       }
-   )
-
-
-darcy_impes_darcy_velocity_field =
-   (
-      element vector_field {
-         attribute rank { "0" },
-         attribute name { "DarcyVelocity" },
-         element diagnostic {
-            mesh_choice_pressure,
-            darcy_impes_internal_algorithm,
-            darcy_impes_bc_velocity_field*, 
-            darcy_impes_diagnostic_vector_field
-         }
-      }
-   )
-
-
-darcy_impes_darcy_velocity_over_porosity_CFL_field =
-   (
-      element scalar_field {
-         attribute rank { "0" },
-         attribute name { "DarcyVelocityOverPorosityCFL" },
-         element diagnostic {
-            mesh_choice_pressure,
-            darcy_impes_internal_algorithm,
-            darcy_impes_diagnostic_scalar_field
-         }
-      }
-   )
-
-
-darcy_impes_total_darcy_velocity_field =
-   (
-      element vector_field {
-         attribute rank { "0" },
-         attribute name { "TotalDarcyVelocity" },
-         element diagnostic {
-            mesh_choice_pressure,
-            darcy_impes_internal_algorithm,
-            darcy_impes_diagnostic_vector_field
-         }
-      }
-   )
-
-
-darcy_impes_divergence_total_darcy_velocity_field =
-   (
-      element scalar_field {
-         attribute rank { "0" },
-         attribute name { "DivergenceTotalDarcyVelocity" },
-         element diagnostic {
-            mesh_choice_pressure,
-            darcy_impes_internal_algorithm,
-            darcy_impes_diagnostic_scalar_field
-         }
-      }
-   )
-
-
-darcy_impes_mobility_field =
-   (
-      element scalar_field {
-         attribute rank { "0" },
-         attribute name { "Mobility" },
-         element diagnostic {
-            mesh_choice_pressure,
-            darcy_impes_internal_algorithm,
-            darcy_impes_diagnostic_scalar_field
-         }
-      }
-   )
-
-
-darcy_impes_total_mobility_field =
-   (
-      element scalar_field {
-         attribute rank { "0" },
-         attribute name { "TotalMobility" },
-         element diagnostic {
-            mesh_choice_pressure,
-            darcy_impes_internal_algorithm,
-            darcy_impes_diagnostic_scalar_field
-         }
-      }
-   )
-
-
-darcy_impes_fractional_flow_field =
-   (
-      element scalar_field {
-         attribute rank { "0" },
-         attribute name { "FractionalFlow" },
-         element diagnostic {
-            mesh_choice_pressure,
-            darcy_impes_internal_algorithm,
-            darcy_impes_diagnostic_scalar_field
-         }
-      }
-   )
-
-
-darcy_impes_sum_saturation =
-   (
-      element scalar_field {
-         attribute rank { "0" },
-         attribute name { "SumSaturation" },
-         element diagnostic {
-            mesh_choice_pressure,
-            darcy_impes_internal_algorithm,
-            darcy_impes_diagnostic_scalar_field
-         }
-      }
-   )
-
-
-darcy_impes_transmissibility_lambda =
-   (
-      ## Specify the exchange between Porous Media and Dual Porous Media for this phase.
-      element scalar_field {
-         attribute rank { "0" },
-         attribute name { "TransmissibilityLambdaDual" },
-         darcy_impes_scalar_field_prescribed_or_python_diagnostic_transmissibility_mesh
-      }
-   )
-
-
-darcy_impes_dual_Phase1 = 
-   (
-         darcy_impes_transmissibility_lambda, 
-         
-         darcy_impes_dual_first_phase_pressure_field,
-         
-         darcy_impes_saturation_field_phase_one,
-         
-         darcy_impes_first_phase_relative_permeability_field,
-         
-         darcy_impes_viscosity_field,
-         
-         darcy_impes_first_phase_density_field,
-                  
-         darcy_impes_darcy_velocity_field,
-         
-         darcy_impes_darcy_velocity_over_porosity_CFL_field, 
-                  
-         darcy_impes_total_darcy_velocity_field,         
-                  
-         darcy_impes_divergence_total_darcy_velocity_field,
-
-         darcy_impes_mobility_field,
-         
-         darcy_impes_total_mobility_field,
-
-         darcy_impes_fractional_flow_field,
-         
-         darcy_impes_sum_saturation, 
-         
-         darcy_impes_average_pressure, 
-
-         darcy_impes_bulk_darcy_velocity, 
-         
-         darcy_impes_generic_scalar_field*
-   )
-
-
-darcy_impes_dual_other_phase_options = 
-   (  
-      darcy_impes_transmissibility_lambda, 
+    },
+    element mesh_continuity {
+      element string_value { "discontinuous" }
+    },
+    derived_mesh_stat_options
+  }
+mesh_choice_coordinate =
+  element mesh {
+    attribute name { "CoordinateMesh" }
+  }
+mesh_choice_pressure =
+  element mesh {
+    attribute name { "PressureMesh" }
+  }
+mesh_choice_transmissibility =
+  element mesh {
+    attribute name { "TransmissibilityMesh" }
+  }
+mesh_choice_saturationsource =
+  element mesh {
+    attribute name { "SaturationSourceMesh" }
+  }
+mesh_choice_element_wise =
+  element mesh {
+    attribute name { "ElementWiseMesh" }
+  }
+darcy_mesh_choice =
+  element mesh {
+    attribute name { "PressureMesh" }
+  }
+  | element mesh {
+      attribute name { "ElementWiseMesh" }
+    }
+  | element mesh {
+      attribute name { "CoordinateMesh" }
+    }
+darcy_impes_io =
+  
+  ## Input/output options
+  element io {
+    
+    ## Format for dump files. Only vtk for now.
+    element dump_format {
+      element string_value { "vtk" }
+    },
+    (
+     ## Period between dumps in time units.
+     ## 
+     ## Specifies the period between each dump of the solution to disk.
+     ## A value of 0.0 indicates that there would be a dump at every timestep.
+     element dump_period {
+       element constant { real }
+       | 
+         ## Python function prescribing real input. Functions should be of the form:
+         ## 
+         ##  def val(t):
+         ##     # Function code
+         ##     return # Return value
+         ## 
+         ##
+         element python { python_code }
+     }
+     | 
+       ## Dump period, in timesteps.
+       ## 
+       ## Specifies the number of timesteps between each dump of the solution to disk.
+       ## A value of 0 indicates a dump at every timestep.
+       element dump_period_in_timesteps {
+         element constant { integer }
+         | 
+           ## Python function prescribing integer input. Functions should be of the form:
+           ## 
+           ##  def val(t):
+           ##     # Function code
+           ##     return # Return value
+           ## 
+           ##
+           element python { python_code }
+       }),
+    
+    ## The mesh on to which all the fields will be
+    ## interpolated for VTK output.
+    element output_mesh {
+      attribute name { "PressureMesh" }
+    },
+    
+    ## Options for convergence analysis.
+    element convergence {
       
-      darcy_impes_non_first_phase_pressure_field, 
+      ## Whether to enable the creation of a convergence
+      ## file, giving details of the convergence of each
+      ## field over the global nonlinear iteration loop.
+      ## The .convergence file is in the same format as the .stat file.
+      element convergence_file { comment }?,
       
-      darcy_impes_capilliary_pressure_field?, 
+      ## Write state to a vtu on every iteration.
+      ## 
+      ## This is a useful debugging tool if things are not converging.
+      ## To prevent an excessive number of files being accumulated previous
+      ## timestep files will be overwritten hence it is best to use
+      ## in conjunction with /timestepping/nonlinear_iterations/terminate_if_not_converged
+      element convergence_vtus { comment }?
+    }?,
+    
+    ## Whether to enable dumping of checkpointing output.
+    ## 
+    ## See http://amcg.ese.ic.ac.uk/index.php?title=Local:Checkpointing_from_new_options
+    element checkpointing {
       
-      darcy_impes_saturation_field,
-
-      darcy_impes_non_first_phase_relative_permeability_field,
-
-      darcy_impes_viscosity_field,
+      ## Checkpointing period, in dumps. Non-negative value
+      ## required. A value of zero indicates that checkpoints
+      ## should be created at every dump. If
+      ## /io/max_dumpfile_count is exceeded then earlier
+      ## checkpoints may be overwritten.
+      element checkpoint_period_in_dumps { integer },
       
-      darcy_impes_non_first_phase_density_field,
-
-      darcy_impes_darcy_velocity_field,
-
-      darcy_impes_darcy_velocity_over_porosity_CFL_field,
+      ## Enable to checkpoint at simulation start.
+      element checkpoint_at_start { comment }?,
       
-      darcy_impes_mobility_field,
+      ## Enable to force a checkpoint at simulation end.
+      element checkpoint_at_end { comment }?,
+      comment
+    }?,
+    
+    ## Diagnostic output (.stat file) options
+    element stat {
       
-      darcy_impes_fractional_flow_field, 
+      ## Enable to write diagnostic output at simulation start
+      element output_at_start { comment },
       
-      darcy_impes_generic_scalar_field*   
-   )
-
-   
-darcy_impes_generic_scalar_field = 
-   (
-      element scalar_field {
-         attribute name { xsd:string },
-         (
-            element prescribed {
-               darcy_mesh_choice,
-               prescribed_scalar_field,
-               darcy_impes_include_cv_stat, 
-               darcy_impes_recalculation_options?
-            }|
-            element diagnostic {
-               darcy_mesh_choice,                     
-               scalar_diagnostic_algorithms,                     
-               darcy_impes_diagnostic_scalar_field, 
-               darcy_impes_recalculation_options?
-            }|
-            element prognostic {
-               mesh_choice_pressure,
-               darcy_impes_asym_solver_options,
-               darcy_impes_generic_scalar_field_face_value,
-               initial_condition_scalar+,
-               darcy_impes_generic_scalar_field_bc*,
-               darcy_impes_generic_scalar_field_diff?,
-               darcy_impes_generic_scalar_field_abs?,
-               darcy_impes_generic_scalar_field_src?,               
-               darcy_impes_include_cv_stat, 
-               adaptivity_options_prognostic_scalar_field,
-               interpolation_algorithm_scalar
-            
-            }
-         )
+      ## Enable to write diagnostic output immediately before mesh adapts
+      element output_before_adapts { comment }?,
+      
+      ## Enable to write diagnostic output immediately after mesh adapts
+      element output_after_adapts { comment }?,
+      comment
+    }
+  }
+darcy_impes_timestepping =
+  
+  ## Options dealing with time discretisation
+  element timestepping {
+    
+    ## Current simulation time. At the start of the simulation this
+    ## is the start time.
+    element current_time {
+      real,
+      
+      ## The following excerpt from the Udunits
+      ## documentation explains the time unit encoding by
+      ## example:
+      ## 
+      ## The specification:
+      ## 
+      ## seconds since 1992-10-8 15:15:42.5 -6:00
+      ## 
+      ## indicates seconds since October 8th, 1992 at 3
+      ## hours, 15 minutes and 42.5 seconds in the afternoon
+      ## in the time zone which is six hours to the west of
+      ## Coordinated Universal Time (i.e.  Mountain Daylight
+      ## Time). The time zone specification can also be
+      ## written without a colon using one or two-digits
+      ## (indicating hours) or three or four digits
+      ## (indicating hours and minutes).
+      ## 
+      ## Time units are particularly required in situations
+      ## where the problem (time-varying) boundary conditions
+      ## and/ initial conditions are a function of time as
+      ## defined by a calendar.  Examples include atmospheric
+      ## forcing and climatology. The current time, specified
+      ## above, is zero at the reference data/time.
+      element time_units {
+        attribute date { xsd:string }
+      }?
+    },
+    
+    ## The time step size. If adaptive time stepping is used
+    ## then this is the initial time step size.
+    element timestep { real },
+    
+    ## Simulation time at which the simulation should end.
+    element finish_time { real },
+    
+    ## Timestep after which the simulation should end.
+    element final_timestep { integer }?,
+    
+    ## Maximum number of non-linear iterations.
+    element nonlinear_iterations {
+      integer,
+      
+      ## Tolerance for non-linear iteration.
+      element tolerance {
+        real,
+        (
+         ## Select the norm with which you want the tolerance to be tested.
+         ## 
+         ## The infinity norm.
+         element infinity_norm { empty }
+         | 
+           ## Select the norm with which you want the tolerance to be tested.
+           ## 
+           ## The l2 norm.
+           element l2_norm { empty }
+         | 
+           ## Select the norm with which you want the tolerance to be tested.
+           ## 
+           ## The l2 norm evaluated on a control volume mesh.
+           element cv_l2_norm { empty })
+      }?,
+      
+      ## Terminate the simulation if the number of
+      ## nonlinear_iterations is reached
+      ## and the tolerance criterion is not met.
+      ## This is mostly useful as a debugging option if you
+      ## suspect the solution is not converging.
+      element terminate_if_not_converged { empty }?,
+      
+      ## Number of non-linear iterations for the first time step after adapting the mesh.
+      ## This option will work only if the mesh_adaptivity is switched on.
+      element nonlinear_iterations_at_adapt { integer }?,
+      
+      ## Number of non-linear iterations for the first time step.
+      element nonlinear_iterations_at_first_timestep { integer }?
+    }?,
+    
+    ## Vary the timestep according to the courant number.
+    element adaptive_timestep {
+      
+      ## The timestep will be adjusted (within the tolerance
+      ## and bounds specified) to target this courant
+      ## number. Timestep adapts occur at the end of each
+      ## timestep and after a mesh adapt. The default 
+      ## value if not given is 0.5.
+      element requested_cfl { real }?,
+      
+      ## Minimum time step size.
+      ## Manual suggests 0.0
+      element minimum_timestep {
+        
+        ## If enabled, signals model termination if a timestep less
+        ## than or equal to the minimum_timestep is requested. The
+        ## model will stop at the end of the timestep in order to
+        ## allow for the latest output to be written. 
+        element terminate_if_reached { comment }?,
+        real
+      }?,
+      
+      ## Maximum time step size.
+      ## Manual suggests 1.E+10
+      element maximum_timestep { real }?,
+      
+      ## The maximum ratio by which the timestep is allowed
+      ## to increase in a timestep adapt. e.g., a value of
+      ## 1.1 indicates that the timestep may be increased by
+      ## at most 10%. Default value is 1.1.
+      element increase_tolerance { real }?,
+      
+      ## Specify whether you want to calculate a new timestep
+      ## at the first timestep or not.
+      element at_first_timestep { empty }?
+    }?
+  }
+darcy_impes_physical_parameters =
+  element physical_parameters { darcy_impes_gravity_options? }
+darcy_impes_gravity_options =
+  
+  ## Set a gravity to be included in the buoyancy term.
+  element gravity {
+    
+    ## Acceleration due to gravity. 9.8 m/s^2 on earth.
+    element magnitude { real },
+    
+    ## The direction of the gravity vector.
+    element vector_field {
+      attribute name { "GravityDirection" },
+      attribute rank { "1" },
+      element prescribed {
+        mesh_choice_element_wise, prescribed_vector_field_no_adapt
       }
-   )
-
-
-darcy_impes_generic_scalar_field_face_value =
-   (
-      ## First Order Upwind face value discretisation.
-      element face_value {
-        attribute name { "FirstOrderUpwind" },
-        empty
-      }|
-      ## Finite Element face value discretisation
-      ##  face_value = finite element interpolation from surrounding nodes
-      ##
-      ## Finite element discretisation may become unbounded so limiting is often necessary.
-      element face_value {
-        attribute name { "FiniteElement" },
-        darcy_impes_limiter_options,
-        darcy_impes_number_face_value_iteration? 
-      }|
-      ## No face value, hence no advection.
-      element face_value {
-        attribute name { "None" },
-        empty
-      }
-   )
-
-
-darcy_impes_number_face_value_iteration =
-   (
-      ## The number of face value iterations to do.
-      ## Only useful for implicit formulations. 
-      ## Default value is 1.
-      element number_face_value_iteration {
-         integer
-      }
-   )
-
-
-darcy_impes_generic_scalar_field_bc =
-   (
-      ## Boundary conditions
-      element boundary_conditions {
-         attribute name { string },
-         ## Surface id
-         element surface_ids {
-            integer_vector
-         },
-         darcy_impes_dirichlet_bc            
-      }   
-   )
-
-
-darcy_impes_generic_scalar_field_diff =
-   (
-      element tensor_field {
-         attribute rank { "2" },
-         attribute name { "Diffusivity" },
-         (
-            element prescribed {
-                mesh_choice_element_wise,
-                prescribed_tensor_field_no_adapt
-            }|
-            element diagnostic {
-               mesh_choice_element_wise?,
-               tensor_python_diagnostic_algorithm,
-               darcy_impes_diagnostic_tensor_field_no_adapt
-            }
-         )
-      }   
-   )
-
-
-darcy_impes_generic_scalar_field_abs =
-   (
-      element scalar_field {
-         attribute rank { "0" },
-         attribute name { "Absorption" },
-         darcy_impes_scalar_field_prescribed_or_python_diagnostic_element_wise_mesh
-      }   
-   )
-
-
-darcy_impes_generic_scalar_field_src =
-   (
-      element scalar_field {
-         attribute rank { "0" },
-         attribute name { "Source" },
-         darcy_impes_scalar_field_prescribed_or_python_diagnostic_element_wise_mesh
-      }   
-   )
-      
-
-
-darcy_impes_first_phase_bc_pressure_field =
-   (
-      ## Boundary conditions
-      element boundary_conditions {
-         attribute name { string },
-         ## Surface id
-         element surface_ids {
-            integer_vector
-         },
-         darcy_impes_strong_dirichlet_bc            
-      }   
-   )
-
-
-darcy_impes_bc_saturation_field =
-   (
-      ## Boundary conditions
-      element boundary_conditions {
-         attribute name { string },
-         ## Surface id
-         element surface_ids {
-            integer_vector
-         },
-         darcy_impes_strong_dirichlet_bc
-      }   
-   )
-
-
-darcy_impes_dirichlet_bc = 
-   (
-      element type {
-         attribute name { "dirichlet" },
-         (
-            ## Apply the dirichlet BC strongly
-            element apply_strongly {
-               empty
-            }|
-            ## Apply the dirichlet BC weakly
-            element apply_weakly {
-               empty
-            }
-         ),
-         input_choice_real
-      }   
-   )
-
-
-darcy_impes_strong_dirichlet_bc = 
-   (
-      element type {
-         attribute name { "dirichlet" },
-         ## Apply the dirichlet BC strongly
-            element apply_strongly {
-               empty
-         },
-         input_choice_real
-      }   
-   )
-
-
-darcy_impes_weak_dirichlet_bc = 
-   (
-      element type {
-         attribute name { "dirichlet" },
-         ## Apply the dirichlet BC weakly
-         element apply_weakly {
-            empty
-         },
-         input_choice_real
-      }   
-   )
-
-
-darcy_impes_bc_velocity_field =
-   (
-      ## Boundary conditions
-      element boundary_conditions {
-         attribute name { string },
-         ## Surface id
-         element surface_ids {
-            integer_vector
-         },
-         (
-            element type {
-               attribute name { "prescribed_normal_flow" },
-               input_choice_real
-            }|
-            element type {
-               attribute name { "no_normal_flow" }
-            }
-         )                        
-      }   
-   
-   )
-
-
-darcy_impes_include_cv_stat =
-   (
-      element stat {
-         element include_cv_stats {
-            comment
-         }
-      }
-   )
-   
-
-darcy_impes_mesh_adaptivity_options =
-   element mesh_adaptivity {
-      darcy_impes_hr_adaptivity
+    }
+  }
+darcy_impes_material_phases =
+  
+  ## The phase options
+  element material_phase {
+    attribute name { "Phase1" },
+    darcy_impes_first_phase_pressure_field,
+    darcy_impes_saturation_field_phase_one,
+    darcy_impes_first_phase_relative_permeability_field,
+    darcy_impes_viscosity_field,
+    darcy_impes_first_phase_density_field,
+    darcy_impes_darcy_velocity_field,
+    darcy_impes_darcy_velocity_over_porosity_CFL_field,
+    darcy_impes_total_darcy_velocity_field,
+    darcy_impes_divergence_total_darcy_velocity_field,
+    darcy_impes_mobility_field,
+    darcy_impes_total_mobility_field,
+    darcy_impes_fractional_flow_field,
+    darcy_impes_sum_saturation,
+    darcy_impes_average_pressure,
+    darcy_impes_bulk_darcy_velocity,
+    darcy_impes_generic_scalar_field*
+  },
+  (element material_phase {
+     attribute name { "Phase2" },
+     darcy_impes_other_phase_options
    }
-
-
-darcy_impes_hr_adaptivity = 
-   (
-      ## Anisotropic mesh hr-adaptivity
-      element hr_adaptivity {
-         hr_adaptivity_period,
-         minimum_number_of_nodes?,
-         max_nodes_and_max_node_increase,
-         node_locking?,
-         functional_tolerance?,
-         gradation_options_full,
-         darcy_impes_metric_advection?,
-         geometric_constraints?,
-         bounding_box_factor?,
-         min_and_max_edge_and_reference_mesh_bound_and_aspect_ratio_bound,
-         adapt_at_first_timestep?,
-         preserve_mesh_regions?,
-         vertically_structured_adaptivity?,
-         zoltan_options?,
-         adaptivity_library?,
-         adapt_iterations?,
-         hr_adaptivity_debug?
-      }   
-   )
-
-
-darcy_impes_metric_advection = 
-   (
-      ## Metric advection algorithm.
-      ## By advecting the metric with the flow velocity,
-      ## we can push mesh resolution ahead of the flow dynamics,
-      ## rather than always lagging behind.
-      element metric_advection {
-         ## Spatial discretisation options
-         element spatial_discretisation {
-           (
-               element control_volumes {
-                 darcy_impes_metric_field_face_value
-               }
-           ),
-           ## Conservative discretisation of field advection equation
-           ##  TBETA=1. -- conservative (divergence form)
-           ##  TBETA=0. -- non-conservative
-           ##  0. < TBETA < 1.
-           element conservative_advection {
-               real
-           }
-         },
-         element temporal_discretisation {
-           ## Implicit/explicit control (TTHETA)
-           ##  =0.  -- explicit
-           ##  =0.5 -- Crank-Nicolson
-           ##  =1.  -- implicit
-           element theta {
-             real
-           },
-           (
-               ## Use subcycling to advect the metric.
-               ## 
-               ## Specify the number of subcycles.
-               element number_advection_subcycles {
-                 integer
-               }
-           ),
-           ## Scale the time period over which the metric is
-           ## advected by this factor.
-           ##
-           ## Default is 1.1
-           element scale_advection_time {
-               real
-           }?,
-           ## Temporal discretisation options for the control volume discretisation
-           element control_volumes {
-             ## Number of iterations within an advection solve.
-             ## This increases the accuracy of the face values and ensures that
-             ## the pivoted solution is cancelled out.
-             ## Defaults to 1 if unselected.
-             element number_advection_iterations {
-                 integer
-             }?,
-             ## If not active then the theta specified above will be used.
-             ## Otherwise use variable limited theta on individual faces.
-             element limit_theta {
-                 empty
-             }?,
-             ## Time discretisation of upwind discretisation off which the
-             ## higher order solution is pivotted.
-             ##  - pivot_theta = 1 - implicit pivot (default if not set and 
-             ##                      best choice if not intentionally modifying
-             ##                      scheme to be explicit)
-             ##  - pivot_theta = 0 - explicit pivot
-             element pivot_theta {
-                 real
-             }?
-           }
-         },
-         (
-           ## Solver
-           element solver {
-               linear_solver_options_asym_scalar
-           }|
-           ## Assume this field is being solved explicitly and skip the solver.
-           ##
-           ## Assumes lhs matrix only has diagonal lumped mass
-           ## and divides the rhs by this.
-           element explicit {
-               empty
-           }
-         ),
-         darcy_impes_metric_advection_velocity_name,
-         porosity_include,
-         ## Debugging output options
-         element output {
-           ## Output vtus of the advected metric and edge lengths at every subcycle
-           element output_subcycle_vtus {
-             empty
-           }?,
-           ## Output vtus of the final metric merged over all the subcycles
-           element output_final_vtus {
-             empty
-           }?
-         }
-      }   
-   )   
-
-
-darcy_impes_metric_advection_velocity_name = 
-   (
-      ## The name of the field used to advect the metric
-      ## that must exist in the first material_phase.
-      ## If not given then the NonlinearVelocity is used.
-      element advecting_velocity_field {
-         attribute name { "BulkDarcyVelocity" }
-      }|
-      ## The name of the field used to advect the metric
-      ## that must exist in the first material_phase.
-      ## If not given then the NonlinearVelocity is used.
-      element advecting_velocity_field {
-         attribute name { "TotalDarcyVelocity" }
-      }|
-      ## The name of the field used to advect the metric
-      ## that must exist in the first material_phase.
-      ## If not given then the NonlinearVelocity is used.
-      element advecting_velocity_field {
+   | element material_phase {
+       attribute name { "Phase3" },
+       darcy_impes_other_phase_options
+     }
+   | element material_phase {
+       attribute name { "Phase4" },
+       darcy_impes_other_phase_options
+     })+,
+  element material_phase {
+    attribute name { "Phase1_dual" },
+    darcy_impes_dual_Phase1
+  }?,
+  (element material_phase {
+     attribute name { "Phase2_dual" },
+     darcy_impes_dual_other_phase_options
+   }
+   | element material_phase {
+       attribute name { "Phase3_dual" },
+       darcy_impes_dual_other_phase_options
+     }
+   | element material_phase {
+       attribute name { "Phase4_dual" },
+       darcy_impes_dual_other_phase_options
+     })*
+darcy_impes_other_phase_options =
+  darcy_impes_non_first_phase_pressure_field,
+  darcy_impes_capilliary_pressure_field?,
+  darcy_impes_saturation_field,
+  darcy_impes_non_first_phase_relative_permeability_field,
+  darcy_impes_viscosity_field,
+  darcy_impes_non_first_phase_density_field,
+  darcy_impes_darcy_velocity_field,
+  darcy_impes_darcy_velocity_over_porosity_CFL_field,
+  darcy_impes_mobility_field,
+  darcy_impes_fractional_flow_field,
+  darcy_impes_generic_scalar_field*
+darcy_impes_first_phase_pressure_field =
+  element scalar_field {
+    attribute rank { "0" },
+    attribute name { "Pressure" },
+    (element prognostic {
+       mesh_choice_pressure,
+       darcy_impes_asym_solver_options,
+       initial_condition_scalar+,
+       darcy_impes_first_phase_bc_pressure_field*,
+       darcy_impes_include_cv_stat,
+       adaptivity_options_prognostic_scalar_field,
+       interpolation_algorithm_scalar
+     }
+     | element prescribed {
+         mesh_choice_pressure,
+         prescribed_scalar_field,
+         darcy_impes_include_cv_stat
+       })
+  }
+darcy_impes_dual_first_phase_pressure_field =
+  element scalar_field {
+    attribute rank { "0" },
+    attribute name { "Pressure" },
+    element prognostic {
+      mesh_choice_pressure,
+      initial_condition_scalar+,
+      darcy_impes_first_phase_bc_pressure_field*,
+      darcy_impes_include_cv_stat,
+      adaptivity_options_prognostic_scalar_field,
+      interpolation_algorithm_scalar
+    }
+  }
+darcy_impes_asym_solver_options =
+  element solver {
+    attribute name { "DefaultSolverOptionsGMRESSOR" },
+    darcy_impes_pressure_linear_solver_options_asym_default_gmres_sor
+  }
+  | element solver {
+      attribute name { "DefaultSolverOptionsGMRESMG" },
+      darcy_impes_pressure_linear_solver_options_asym_default_gmres_mg
+    }
+  | element solver {
+      attribute name { "DefaultSolverOptionsGMRESHYPRE" },
+      darcy_impes_pressure_linear_solver_options_asym_default_gmres_hypre
+    }
+  | element solver {
+      attribute name { "ChooseSolverOptions" },
+      linear_solver_options_asym_scalar
+    }
+darcy_impes_pressure_linear_solver_options_asym_default_gmres_sor =
+  darcy_impes_solver_default_gmres,
+  darcy_impes_solver_default_sor,
+  darcy_impes_solver_tolerances
+darcy_impes_pressure_linear_solver_options_asym_default_gmres_mg =
+  darcy_impes_solver_default_gmres,
+  darcy_impes_solver_default_mg,
+  darcy_impes_solver_tolerances
+darcy_impes_pressure_linear_solver_options_asym_default_gmres_hypre =
+  darcy_impes_solver_default_gmres,
+  darcy_impes_solver_default_hypre,
+  darcy_impes_solver_tolerances
+darcy_impes_solver_default_gmres =
+  
+  ## GMRES
+  ## 
+  ## Your safest bet for non-symmetric systems.
+  element iterative_method {
+    attribute name { "gmres" },
+    
+    ## Restart value for gmres iteration
+    element restart {
+      element integer_value {
+        attribute rank { "0" },
+        "30"
+      }
+    }
+  }
+darcy_impes_solver_default_sor =
+  
+  ## Succesive Over-Relaxation
+  ## 
+  ## This includes SSOR (symmetric sor)
+  element preconditioner {
+    attribute name { "sor" }
+  }
+darcy_impes_solver_default_mg =
+  
+  ## Fluidity's own multigrid method.
+  ## Especially suited for ill-conditioned, large aspect ratio problems.
+  element preconditioner {
+    attribute name { "mg" }
+  }
+darcy_impes_solver_default_hypre =
+  
+  ## Hypre preconditioners (includes boomeramg)
+  element preconditioner {
+    attribute name { "hypre" },
+    (
+     ## BoomerAMG multigrid method
+     element hypre_type {
+       attribute name { "boomeramg" }
+     }
+     | 
+       ## Other Hypre preconditioners
+       element hypre_type {
          attribute name { xsd:string }
-      }      
-   )
-
- 
-   
+       })
+  }
+darcy_impes_solver_tolerances =
+  
+  ## Relative error
+  ## 
+  ## The solver finishes if the preconditioned error becomes smaller 
+  ## than the original preconditioned error times this value.
+  element relative_error {
+    element real_value {
+      attribute rank { "0" },
+      "1.0e-10"
+    }
+  },
+  
+  ## Maximum number of iterations allowed in the linear solver before giving up.
+  element max_iterations {
+    element integer_value {
+      attribute rank { "0" },
+      "1000"
+    }
+  },
+  
+  ## Solver failures are always treated as fatal errors. The
+  ## model stops at the end of the time step in order to allow
+  ## for the latest output to be written.
+  element never_ignore_solver_failures { empty }
+darcy_impes_non_first_phase_pressure_field =
+  element scalar_field {
+    attribute rank { "0" },
+    attribute name { "Pressure" },
+    element diagnostic {
+      mesh_choice_pressure,
+      darcy_impes_internal_algorithm,
+      darcy_impes_diagnostic_scalar_field
+    }
+  }
+darcy_impes_capilliary_pressure_field =
+  element scalar_field {
+    attribute rank { "0" },
+    attribute name { "CapilliaryPressure" },
+    element diagnostic {
+      mesh_choice_pressure,
+      darcy_impes_scalar_python_diagnostic_algorithm,
+      darcy_impes_diagnostic_scalar_field
+    }
+  }
+darcy_impes_average_pressure =
+  element scalar_field {
+    attribute rank { "0" },
+    attribute name { "AveragePressure" },
+    element diagnostic {
+      mesh_choice_pressure,
+      darcy_impes_internal_algorithm,
+      darcy_impes_diagnostic_scalar_field
+    }
+  }
+darcy_impes_bulk_darcy_velocity =
+  element vector_field {
+    attribute rank { "1" },
+    attribute name { "BulkDarcyVelocity" },
+    element diagnostic {
+      mesh_choice_pressure,
+      darcy_impes_internal_algorithm,
+      darcy_impes_diagnostic_vector_field
+    }
+  }
+darcy_impes_saturation_field_phase_one =
+  element scalar_field {
+    attribute rank { "0" },
+    attribute name { "Saturation" },
+    (element diagnostic {
+       mesh_choice_pressure,
+       darcy_impes_internal_algorithm,
+       darcy_impes_saturation_field_subcycling?,
+       darcy_impes_saturation_field_face_value?,
+       darcy_impes_saturation_source?,
+       scalar_convergence_options,
+       darcy_impes_diagnostic_scalar_field
+     }
+     | element prognostic {
+         mesh_choice_pressure,
+         darcy_impes_saturation_field_subcycling?,
+         darcy_impes_saturation_field_face_value?,
+         initial_condition_scalar+,
+         darcy_impes_bc_saturation_field*,
+         darcy_impes_saturation_source?,
+         scalar_convergence_options,
+         darcy_impes_include_cv_stat,
+         adaptivity_options_prognostic_scalar_field,
+         interpolation_algorithm_scalar
+       })
+  }
+darcy_impes_saturation_field =
+  element scalar_field {
+    attribute rank { "0" },
+    attribute name { "Saturation" },
+    element prognostic {
+      mesh_choice_pressure,
+      initial_condition_scalar+,
+      darcy_impes_bc_saturation_field*,
+      darcy_impes_saturation_source?,
+      scalar_convergence_options,
+      darcy_impes_include_cv_stat,
+      adaptivity_options_prognostic_scalar_field,
+      interpolation_algorithm_scalar
+    }
+  }
+darcy_impes_saturation_field_subcycling =
+  
+  ## Use timestep subcycling to solve the field advection.
+  ## Specify the number of advection subcycls. 
+  element number_advection_subcycle {
+    integer,
+    
+    ## Make the global continuity consistent with the
+    ## phase volume fraction subcycles
+    element consistent_global_continuity { empty }?
+  }
+darcy_impes_saturation_field_face_value =
+  
+  ## Saturation face values are only required if the 
+  ## RelativePermeability face value scheme is  
+  ## RelPermOverSatUpwind, RelPermOverSatFiniteElement 
+  ## or RelPermOverSatCorrelation.
+  ## First Order Upwind face value discretisation.
+  element face_value {
+    attribute name { "FirstOrderUpwind" },
+    empty
+  }
+  | 
+    ## Saturation face values are only required if the 
+    ## RelativePermeability face value scheme is  
+    ## RelPermOverSatUpwind, RelPermOverSatFiniteElement 
+    ## or RelPermOverSatCorrelation.
+    ## Finite Element face value discretisation.
+    element face_value {
+      attribute name { "FiniteElement" },
+      darcy_impes_limiter_options
+    }
+darcy_impes_limiter_options =
+  
+  ## Limit the face value to satisfy a boundedness criterion.
+  element limit_face_value { sweby_limiter }
+  | 
+    ## Do not limit the face value
+    element do_not_limit_face_value { empty }
+darcy_impes_saturation_source =
+  element scalar_field {
+    attribute rank { "0" },
+    attribute name { "Source" },
+    darcy_impes_scalar_field_prescribed_or_python_diagnostic_saturationsource_mesh
+  }
+darcy_impes_scalar_field_prescribed_or_python_diagnostic_element_wise_mesh =
+  element prescribed {
+    mesh_choice_element_wise,
+    prescribed_scalar_field_no_adapt,
+    darcy_impes_include_cv_stat
+  }
+  | element diagnostic {
+      mesh_choice_element_wise,
+      darcy_impes_scalar_python_diagnostic_algorithm,
+      darcy_impes_diagnostic_scalar_field_no_adapt
+    }
+darcy_impes_scalar_field_prescribed_or_python_diagnostic_saturationsource_mesh =
+  element prescribed {
+    mesh_choice_saturationsource,
+    prescribed_scalar_field_no_adapt,
+    darcy_impes_include_cv_stat
+  }
+  | element diagnostic {
+      mesh_choice_saturationsource,
+      darcy_impes_scalar_python_diagnostic_algorithm,
+      darcy_impes_diagnostic_scalar_field_no_adapt
+    }
+darcy_impes_scalar_field_prescribed_or_python_diagnostic_transmissibility_mesh =
+  element prescribed {
+    mesh_choice_transmissibility,
+    prescribed_scalar_field_no_adapt,
+    darcy_impes_include_cv_stat
+  }
+  | element diagnostic {
+      mesh_choice_transmissibility,
+      darcy_impes_scalar_python_diagnostic_algorithm,
+      darcy_impes_diagnostic_scalar_field_no_adapt
+    }
+darcy_impes_non_first_phase_relative_permeability_field =
+  element scalar_field {
+    attribute rank { "0" },
+    attribute name { "RelativePermeability" },
+    element diagnostic {
+      mesh_choice_pressure,
+      darcy_impes_internal_algorithm,
+      darcy_impes_diagnostic_scalar_field
+    }
+  }
+darcy_impes_first_phase_relative_permeability_field =
+  element scalar_field {
+    attribute rank { "0" },
+    attribute name { "RelativePermeability" },
+    element diagnostic {
+      mesh_choice_pressure,
+      darcy_impes_internal_algorithm,
+      darcy_impes_relperm_correlation,
+      darcy_impes_relperm_field_face_value,
+      darcy_impes_diagnostic_scalar_field
+    }
+  }
+darcy_impes_relperm_correlation =
+  
+  ## Use a power law correlation such that for each phase:
+  ## relperm = sat**exponent
+  element correlation {
+    comment,
+    attribute name { "PowerLaw" },
+    darcy_impes_relperm_exponents,
+    darcy_impes_residual_saturations?
+  }
+  | 
+    ## Use a Corey 2 phase correlation such that:
+    ## relperm_1 = sat_1**4,
+    ## relperm_2 = (1 - sat_1**2) * (1 - sat_1)**2
+    element correlation {
+      comment,
+      attribute name { "Corey2Phase" },
+      darcy_impes_residual_saturations?
+    }
+  | 
+    ## Use the opposite to Corey 2 phase correlation such that:
+    ## relperm_1 = (1 - sat_2**2) * (1 - sat_2)**2,
+    ## relperm_2 = sat_2**4
+    element correlation {
+      comment,
+      attribute name { "Corey2PhaseOpposite" },
+      darcy_impes_residual_saturations?
+    }
+  | 
+    ## Use the Mineral correlation given by:
+    ## ((max(cutoff_sat, sat) - residual_sat(p)) **exponents(p)) /((1.0 -residual_sat(p)) ** exponents(p))
+    element correlation {
+      comment,
+      attribute name { "Mineral" },
+      darcy_impes_relperm_exponents,
+      darcy_impes_cutoff_saturations?,
+      darcy_impes_residual_saturations?
+    }
+  | 
+    ## Use the 2 phase VanGenuchten correlation given by:
+    ## sat_effective = (sat_phases(2) - residual_sat(2) ) / ( 1.0 - residual_sats(1) - residual_sat(2))
+    ## relperm1= ( 1.0 - sat_effective )**(1.0/3.0) * (1.0 - sat_effective ** ( 1.0/ exponents(1)) ) ** (2*exponents(1))
+    ## relperm_val =  sat_effective ** (1.0/2.0) * ( 1.0 - ( 1.0 - sat_effective ** ( 1.0 / exponents(2))) ** exponents(2))**2.0
+    element correlation {
+      comment,
+      attribute name { "VanGenuchten" },
+      darcy_impes_relperm_exponents,
+      darcy_impes_residual_saturations?
+    }
+  | 
+    ## Use a Jackson 2 phase correlation such that:
+    ## relperm_1 = m_1*(1.0-sat_norm_2)**n_1,
+    ## relperm_2 = m_2*sat_norm_2**n_2
+    element correlation {
+      comment,
+      attribute name { "Jackson2Phase" },
+      darcy_impes_relperm_exponents,
+      darcy_impes_relperm_scaling_coefficients,
+      darcy_impes_residual_saturations
+    }
+  | 
+    ## Use the opposite to Jackson 2 phase correlation such that:
+    ## relperm_1 = m_1*sat_norm_1**n_1,
+    ## relperm_2 = m_2*(1.0-sat_norm_1)**n_2
+    element correlation {
+      comment,
+      attribute name { "Jackson2PhaseOpposite" },
+      darcy_impes_relperm_exponents,
+      darcy_impes_relperm_scaling_coefficients,
+      darcy_impes_residual_saturations
+    }
+darcy_impes_relperm_exponents =
+  
+  ## Specify the exponent for each phase in the order they 
+  ## are given as a real input list.
+  element exponents { real_vector }
+darcy_impes_relperm_scaling_coefficients =
+  
+  ## Specify the scaling coefficient for each phase in the order they 
+  ## are given as a real input list.
+  element scaling_coefficients { real_vector }
+darcy_impes_cutoff_saturations =
+  
+  ## Specify the cut off saturation for each phase in the order they 
+  ## are given as a real input list. The default 
+  ## values is residual saturations for all phases.
+  element cutoff_saturations { real_vector }?
+darcy_impes_residual_saturations =
+  
+  ## Specify the residual saturation for each phase in the 
+  ## order they are given as a real input list. The default 
+  ## values is 0.0 for all phases.
+  element residual_saturations { real_vector }
+darcy_impes_relperm_field_face_value =
+  
+  ## First Order Upwind face value discretisation
+  ##  face_value = donor_value, 
+  ## where
+  ##  donor_value = income*val_1 + (1.-income)*val_2, 
+  ## where val_i is the value on the ith node neighbouring the face and
+  ## income = [0, 1] depending on whether the flow is coming from node 1 or 2
+  ## First order upwinding is monotonic so no limiting is ever required
+  element face_value {
+    attribute name { "FirstOrderUpwind" },
+    empty
+  }
+  | 
+    ## Use a modified Relative Permeability via dividing it
+    ## by the phase Saturation, which is then upwinded. Another
+    ## Saturation is then included which requires a face value 
+    ## defined under the Saturation field face_value options.
+    element face_value {
+      attribute name { "RelPermOverSatUpwind" },
+      darcy_impes_min_sat_in_modrelperm?
+    }
+  | 
+    ## Use a modified Relative Permeability via dividing it
+    ## by the phase Saturation, which then takes a finite 
+    ## element interpolation for the face value which can then be
+    ## limited. Another Saturation is then included which 
+    ## requires a face value defined under the Saturation field 
+    ## face_value options.
+    element face_value {
+      attribute name { "RelPermOverSatFiniteElement" },
+      darcy_impes_min_sat_in_modrelperm?,
+      darcy_impes_limiter_options
+    }
+  | 
+    ## Use a modified Relative Permeability via dividing it
+    ## by the phase Saturation, which then takes the finite 
+    ## element interpolation of saturation to calculate the 
+    ## the face value using the chosen correlation which can then be
+    ## limited. Another Saturation is then included which 
+    ## requires a face value defined under the Saturation field 
+    ## face_value options.
+    element face_value {
+      attribute name { "RelPermOverSatCorrelation" },
+      darcy_impes_min_sat_in_modrelperm?,
+      darcy_impes_limiter_options
+    }
+darcy_impes_min_sat_in_modrelperm =
+  
+  ## The minimum saturation value to use for the denominator
+  ## of the modified relative permeability face value.
+  ## The default value is 1.0e-06.
+  element minimum_denominator_saturation_value { real }
+darcy_impes_viscosity_field =
+  element scalar_field {
+    attribute rank { "0" },
+    attribute name { "Viscosity" },
+    darcy_impes_scalar_field_prescribed_or_python_diagnostic_element_wise_mesh
+  }
+darcy_impes_non_first_phase_density_field =
+  element scalar_field {
+    attribute rank { "0" },
+    attribute name { "Density" },
+    element diagnostic {
+      mesh_choice_pressure,
+      darcy_impes_internal_algorithm,
+      darcy_impes_eos,
+      darcy_impes_diagnostic_scalar_field
+    }
+  }
+darcy_impes_first_phase_density_field =
+  element scalar_field {
+    attribute rank { "0" },
+    attribute name { "Density" },
+    element diagnostic {
+      mesh_choice_pressure,
+      darcy_impes_internal_algorithm,
+      darcy_impes_eos,
+      darcy_impes_density_field_face_value,
+      darcy_impes_diagnostic_scalar_field
+    }
+  }
+darcy_impes_density_field_face_value =
+  
+  ## First Order Upwind face value discretisation
+  ##  face_value = donor_value, 
+  ## where
+  ##  donor_value = income*val_1 + (1.-income)*val_2, 
+  ## where val_i is the value on the ith node neighbouring the face and
+  ## income = [0, 1] depending on whether the flow is coming from node 1 or 2
+  ## First order upwinding is monotonic so no limiting is ever required
+  element face_value {
+    attribute name { "FirstOrderUpwind" },
+    empty
+  }
+  | 
+    ## Finite Element face value discretisation
+    ##  face_value = finite element interpolation from surrounding nodes
+    ## 
+    ## Finite element discretisation may become unbounded so limiting is often necessary.
+    element face_value {
+      attribute name { "FiniteElement" },
+      darcy_impes_limiter_options
+    }
+darcy_impes_eos =
+  
+  ## Equations of state for simple fluid applications
+  element equation_of_state {
+    comment,
+    attribute name { "IncompressibleLinear" },
+    
+    ## The reference density
+    element reference_density { real }
+  }
+darcy_impes_darcy_velocity_field =
+  element vector_field {
+    attribute rank { "0" },
+    attribute name { "DarcyVelocity" },
+    element diagnostic {
+      mesh_choice_pressure,
+      darcy_impes_internal_algorithm,
+      darcy_impes_bc_velocity_field*,
+      darcy_impes_diagnostic_vector_field
+    }
+  }
+darcy_impes_darcy_velocity_over_porosity_CFL_field =
+  element scalar_field {
+    attribute rank { "0" },
+    attribute name { "DarcyVelocityOverPorosityCFL" },
+    element diagnostic {
+      mesh_choice_pressure,
+      darcy_impes_internal_algorithm,
+      darcy_impes_diagnostic_scalar_field
+    }
+  }
+darcy_impes_total_darcy_velocity_field =
+  element vector_field {
+    attribute rank { "0" },
+    attribute name { "TotalDarcyVelocity" },
+    element diagnostic {
+      mesh_choice_pressure,
+      darcy_impes_internal_algorithm,
+      darcy_impes_diagnostic_vector_field
+    }
+  }
+darcy_impes_divergence_total_darcy_velocity_field =
+  element scalar_field {
+    attribute rank { "0" },
+    attribute name { "DivergenceTotalDarcyVelocity" },
+    element diagnostic {
+      mesh_choice_pressure,
+      darcy_impes_internal_algorithm,
+      darcy_impes_diagnostic_scalar_field
+    }
+  }
+darcy_impes_mobility_field =
+  element scalar_field {
+    attribute rank { "0" },
+    attribute name { "Mobility" },
+    element diagnostic {
+      mesh_choice_pressure,
+      darcy_impes_internal_algorithm,
+      darcy_impes_diagnostic_scalar_field
+    }
+  }
+darcy_impes_total_mobility_field =
+  element scalar_field {
+    attribute rank { "0" },
+    attribute name { "TotalMobility" },
+    element diagnostic {
+      mesh_choice_pressure,
+      darcy_impes_internal_algorithm,
+      darcy_impes_diagnostic_scalar_field
+    }
+  }
+darcy_impes_fractional_flow_field =
+  element scalar_field {
+    attribute rank { "0" },
+    attribute name { "FractionalFlow" },
+    element diagnostic {
+      mesh_choice_pressure,
+      darcy_impes_internal_algorithm,
+      darcy_impes_diagnostic_scalar_field
+    }
+  }
+darcy_impes_sum_saturation =
+  element scalar_field {
+    attribute rank { "0" },
+    attribute name { "SumSaturation" },
+    element diagnostic {
+      mesh_choice_pressure,
+      darcy_impes_internal_algorithm,
+      darcy_impes_diagnostic_scalar_field
+    }
+  }
+darcy_impes_transmissibility_lambda =
+  
+  ## Specify the exchange between Porous Media and Dual Porous Media for this phase.
+  element scalar_field {
+    attribute rank { "0" },
+    attribute name { "TransmissibilityLambdaDual" },
+    darcy_impes_scalar_field_prescribed_or_python_diagnostic_transmissibility_mesh
+  }
+darcy_impes_dual_Phase1 =
+  darcy_impes_transmissibility_lambda,
+  darcy_impes_dual_first_phase_pressure_field,
+  darcy_impes_saturation_field_phase_one,
+  darcy_impes_first_phase_relative_permeability_field,
+  darcy_impes_viscosity_field,
+  darcy_impes_first_phase_density_field,
+  darcy_impes_darcy_velocity_field,
+  darcy_impes_darcy_velocity_over_porosity_CFL_field,
+  darcy_impes_total_darcy_velocity_field,
+  darcy_impes_divergence_total_darcy_velocity_field,
+  darcy_impes_mobility_field,
+  darcy_impes_total_mobility_field,
+  darcy_impes_fractional_flow_field,
+  darcy_impes_sum_saturation,
+  darcy_impes_average_pressure,
+  darcy_impes_bulk_darcy_velocity,
+  darcy_impes_generic_scalar_field*
+darcy_impes_dual_other_phase_options =
+  darcy_impes_transmissibility_lambda,
+  darcy_impes_non_first_phase_pressure_field,
+  darcy_impes_capilliary_pressure_field?,
+  darcy_impes_saturation_field,
+  darcy_impes_non_first_phase_relative_permeability_field,
+  darcy_impes_viscosity_field,
+  darcy_impes_non_first_phase_density_field,
+  darcy_impes_darcy_velocity_field,
+  darcy_impes_darcy_velocity_over_porosity_CFL_field,
+  darcy_impes_mobility_field,
+  darcy_impes_fractional_flow_field,
+  darcy_impes_generic_scalar_field*
+darcy_impes_generic_scalar_field =
+  element scalar_field {
+    attribute name { xsd:string },
+    (element prescribed {
+       darcy_mesh_choice,
+       prescribed_scalar_field,
+       darcy_impes_include_cv_stat,
+       darcy_impes_recalculation_options?
+     }
+     | element diagnostic {
+         darcy_mesh_choice,
+         scalar_diagnostic_algorithms,
+         darcy_impes_diagnostic_scalar_field,
+         darcy_impes_recalculation_options?
+       }
+     | element prognostic {
+         mesh_choice_pressure,
+         darcy_impes_asym_solver_options,
+         darcy_impes_generic_scalar_field_face_value,
+         initial_condition_scalar+,
+         darcy_impes_generic_scalar_field_bc*,
+         darcy_impes_generic_scalar_field_diff?,
+         darcy_impes_generic_scalar_field_abs?,
+         darcy_impes_generic_scalar_field_src?,
+         darcy_impes_generic_scalar_field_src_grad?,
+         darcy_impes_include_cv_stat,
+         adaptivity_options_prognostic_scalar_field,
+         interpolation_algorithm_scalar
+       })
+  }
+darcy_impes_generic_scalar_field_face_value =
+  
+  ## First Order Upwind face value discretisation.
+  element face_value {
+    attribute name { "FirstOrderUpwind" },
+    empty
+  }
+  | 
+    ## Finite Element face value discretisation
+    ##  face_value = finite element interpolation from surrounding nodes
+    ## 
+    ## Finite element discretisation may become unbounded so limiting is often necessary.
+    element face_value {
+      attribute name { "FiniteElement" },
+      darcy_impes_limiter_options,
+      darcy_impes_number_face_value_iteration?
+    }
+  | 
+    ## No face value, hence no advection.
+    element face_value {
+      attribute name { "None" },
+      empty
+    }
+darcy_impes_number_face_value_iteration =
+  
+  ## The number of face value iterations to do.
+  ## Only useful for implicit formulations. 
+  ## Default value is 1.
+  element number_face_value_iteration { integer }
+darcy_impes_generic_scalar_field_bc =
+  
+  ## Boundary conditions
+  element boundary_conditions {
+    attribute name { string },
+    
+    ## Surface id
+    element surface_ids { integer_vector },
+    darcy_impes_dirichlet_bc
+  }
+darcy_impes_generic_scalar_field_diff =
+  element tensor_field {
+    attribute rank { "2" },
+    attribute name { "Diffusivity" },
+    (element prescribed {
+       mesh_choice_element_wise, prescribed_tensor_field_no_adapt
+     }
+     | element diagnostic {
+         mesh_choice_element_wise?,
+         tensor_python_diagnostic_algorithm,
+         darcy_impes_diagnostic_tensor_field_no_adapt
+       })
+  }
+darcy_impes_generic_scalar_field_abs =
+  element scalar_field {
+    attribute rank { "0" },
+    attribute name { "Absorption" },
+    darcy_impes_scalar_field_prescribed_or_python_diagnostic_element_wise_mesh
+  }
+darcy_impes_generic_scalar_field_src =
+  element scalar_field {
+    attribute rank { "0" },
+    attribute name { "Source" },
+    darcy_impes_scalar_field_prescribed_or_python_diagnostic_element_wise_mesh
+  }
+darcy_impes_generic_scalar_field_src_grad =
+  element scalar_field {
+    attribute rank { "0" },
+    attribute name { "SourceGradient" },
+    darcy_impes_scalar_field_prescribed_or_python_diagnostic_element_wise_mesh
+  }
+darcy_impes_first_phase_bc_pressure_field =
+  
+  ## Boundary conditions
+  element boundary_conditions {
+    attribute name { string },
+    
+    ## Surface id
+    element surface_ids { integer_vector },
+    darcy_impes_strong_dirichlet_bc
+  }
+darcy_impes_bc_saturation_field =
+  
+  ## Boundary conditions
+  element boundary_conditions {
+    attribute name { string },
+    
+    ## Surface id
+    element surface_ids { integer_vector },
+    darcy_impes_strong_dirichlet_bc
+  }
+darcy_impes_dirichlet_bc =
+  element type {
+    attribute name { "dirichlet" },
+    (
+     ## Apply the dirichlet BC strongly
+     element apply_strongly { empty }
+     | 
+       ## Apply the dirichlet BC weakly
+       element apply_weakly { empty }),
+    input_choice_real
+  }
+darcy_impes_strong_dirichlet_bc =
+  element type {
+    attribute name { "dirichlet" },
+    
+    ## Apply the dirichlet BC strongly
+    element apply_strongly { empty },
+    input_choice_real
+  }
+darcy_impes_weak_dirichlet_bc =
+  element type {
+    attribute name { "dirichlet" },
+    
+    ## Apply the dirichlet BC weakly
+    element apply_weakly { empty },
+    input_choice_real
+  }
+darcy_impes_bc_velocity_field =
+  
+  ## Boundary conditions
+  element boundary_conditions {
+    attribute name { string },
+    
+    ## Surface id
+    element surface_ids { integer_vector },
+    (element type {
+       attribute name { "prescribed_normal_flow" },
+       input_choice_real
+     }
+     | element type {
+         attribute name { "no_normal_flow" }
+       })
+  }
+darcy_impes_include_cv_stat =
+  element stat {
+    element include_cv_stats { comment }
+  }
+darcy_impes_mesh_adaptivity_options =
+  element mesh_adaptivity { darcy_impes_hr_adaptivity }
+darcy_impes_hr_adaptivity =
+  
+  ## Anisotropic mesh hr-adaptivity
+  element hr_adaptivity {
+    hr_adaptivity_period,
+    minimum_number_of_nodes?,
+    max_nodes_and_max_node_increase,
+    node_locking?,
+    functional_tolerance?,
+    gradation_options_full,
+    darcy_impes_metric_advection?,
+    geometric_constraints?,
+    bounding_box_factor?,
+    min_and_max_edge_and_reference_mesh_bound_and_aspect_ratio_bound,
+    adapt_at_first_timestep?,
+    preserve_mesh_regions?,
+    vertically_structured_adaptivity?,
+    zoltan_options?,
+    adaptivity_library?,
+    adapt_iterations?,
+    hr_adaptivity_debug?
+  }
+darcy_impes_metric_advection =
+  
+  ## Metric advection algorithm.
+  ## By advecting the metric with the flow velocity,
+  ## we can push mesh resolution ahead of the flow dynamics,
+  ## rather than always lagging behind.
+  element metric_advection {
+    
+    ## Spatial discretisation options
+    element spatial_discretisation {
+      element control_volumes { darcy_impes_metric_field_face_value },
+      
+      ## Conservative discretisation of field advection equation
+      ##  TBETA=1. -- conservative (divergence form)
+      ##  TBETA=0. -- non-conservative
+      ##  0. < TBETA < 1.
+      element conservative_advection { real }
+    },
+    element temporal_discretisation {
+      
+      ## Implicit/explicit control (TTHETA)
+      ##  =0.  -- explicit
+      ##  =0.5 -- Crank-Nicolson
+      ##  =1.  -- implicit
+      element theta { real },
+      
+      ## Use subcycling to advect the metric.
+      ## 
+      ## Specify the number of subcycles.
+      element number_advection_subcycles { integer },
+      
+      ## Scale the time period over which the metric is
+      ## advected by this factor.
+      ## 
+      ## Default is 1.1
+      element scale_advection_time { real }?,
+      
+      ## Temporal discretisation options for the control volume discretisation
+      element control_volumes {
+        
+        ## Number of iterations within an advection solve.
+        ## This increases the accuracy of the face values and ensures that
+        ## the pivoted solution is cancelled out.
+        ## Defaults to 1 if unselected.
+        element number_advection_iterations { integer }?,
+        
+        ## If not active then the theta specified above will be used.
+        ## Otherwise use variable limited theta on individual faces.
+        element limit_theta { empty }?,
+        
+        ## Time discretisation of upwind discretisation off which the
+        ## higher order solution is pivotted.
+        ##  - pivot_theta = 1 - implicit pivot (default if not set and 
+        ##                      best choice if not intentionally modifying
+        ##                      scheme to be explicit)
+        ##  - pivot_theta = 0 - explicit pivot
+        element pivot_theta { real }?
+      }
+    },
+    (
+     ## Solver
+     element solver { linear_solver_options_asym_scalar }
+     | 
+       ## Assume this field is being solved explicitly and skip the solver.
+       ## 
+       ## Assumes lhs matrix only has diagonal lumped mass
+       ## and divides the rhs by this.
+       element explicit { empty }),
+    darcy_impes_metric_advection_velocity_name,
+    porosity_include,
+    
+    ## Debugging output options
+    element output {
+      
+      ## Output vtus of the advected metric and edge lengths at every subcycle
+      element output_subcycle_vtus { empty }?,
+      
+      ## Output vtus of the final metric merged over all the subcycles
+      element output_final_vtus { empty }?
+    }
+  }
+darcy_impes_metric_advection_velocity_name =
+  
+  ## The name of the field used to advect the metric
+  ## that must exist in the first material_phase.
+  ## If not given then the NonlinearVelocity is used.
+  element advecting_velocity_field {
+    attribute name { "BulkDarcyVelocity" }
+  }
+  | 
+    ## The name of the field used to advect the metric
+    ## that must exist in the first material_phase.
+    ## If not given then the NonlinearVelocity is used.
+    element advecting_velocity_field {
+      attribute name { "TotalDarcyVelocity" }
+    }
+  | 
+    ## The name of the field used to advect the metric
+    ## that must exist in the first material_phase.
+    ## If not given then the NonlinearVelocity is used.
+    element advecting_velocity_field {
+      attribute name { xsd:string }
+    }
 darcy_impes_metric_field_face_value =
-   (
-      ## First Order Upwind face value discretisation
-      ##  face_value = donor_value, 
-      ## where
-      ##  donor_value = income*val_1 + (1.-income)*val_2, 
-      ## where val_i is the value on the ith node neighbouring the face and
-      ## income = [0, 1] depending on whether the flow is coming from node 1 or 2
-      ## First order upwinding is monotonic so no limiting is ever required
-      element face_value {
-        attribute name { "FirstOrderUpwind" },
-        empty
-      }|
-      ## Finite Element face value discretisation
-      ##  face_value = finite element interpolation from surrounding nodes
-      ##
-      ## Finite element discretisation may become unbounded so limiting is often necessary.
-      element face_value {
-        attribute name { "FiniteElement" },
-        darcy_impes_limiter_options
-      }            
-   )
-
-
+  
+  ## First Order Upwind face value discretisation
+  ##  face_value = donor_value, 
+  ## where
+  ##  donor_value = income*val_1 + (1.-income)*val_2, 
+  ## where val_i is the value on the ith node neighbouring the face and
+  ## income = [0, 1] depending on whether the flow is coming from node 1 or 2
+  ## First order upwinding is monotonic so no limiting is ever required
+  element face_value {
+    attribute name { "FirstOrderUpwind" },
+    empty
+  }
+  | 
+    ## Finite Element face value discretisation
+    ##  face_value = finite element interpolation from surrounding nodes
+    ## 
+    ## Finite element discretisation may become unbounded so limiting is often necessary.
+    element face_value {
+      attribute name { "FiniteElement" },
+      darcy_impes_limiter_options
+    }
 darcy_impes_porous_media_model =
-   (
-      ## Porous Media
-      element porous_media {
-         ## Specify scalar field Porosity which is inserted into 
-         ## the first material_phase state then aliased in all others.
-         element scalar_field {
-            attribute name { "Porosity" },
-            darcy_impes_scalar_field_prescribed_or_python_diagnostic_element_wise_mesh
-         },
-         (
-            ## Specify field AbsolutePermeability which is inserted into 
-            ## the first material_phase state then aliased in all others.
-            element scalar_field {
-               attribute name { "AbsolutePermeability" },
-               darcy_impes_scalar_field_prescribed_or_python_diagnostic_element_wise_mesh
-            }
-         )
-      },   
-      darcy_impes_dual_porous_media_model?   
-
-
-   )
-
-
-darcy_impes_dual_porous_media_model=
-   (
-      ## Enable the dual porous media model. If one enables the AbsolutePermeabilityDual
-      ## then this becomes a dual permeability model.
-      element porous_media_dual {
-         ## Specify scalar field PorosityDual which is inserted into 
-         ## the first material_phase state then aliased in all others.
-         element scalar_field {
-            attribute name { "PorosityDual" },
-            darcy_impes_scalar_field_prescribed_or_python_diagnostic_element_wise_mesh
-         },
-         ## Specify field AbsolutePermeabilityDual which is inserted into 
-         ## the first material_phase state then aliased in all others.
-         ## WARNING: THIS CAUSES PETSC ERRORS SOMETIMES IN 2D
-         element scalar_field {
-            attribute name { "AbsolutePermeabilityDual" },
-            ## Do not solve for the Dual media first phase pressure, instead 
-            ## assign it the prime media first phase pressure. WARNING: THIS
-            ## WILL IMPLY THE DUAL MEDIA SATURATIONS ARE ADVECTED WITH AN 
-            ## EFFECTIVE VELOCITY THAT IS NOT DIVERGENCE FREE SO YOU SHOULD 
-            ## NOT EXPECT THE RESULTS TO BE BOUNDED
-            element do_not_solve_for_dual_first_phase_pressure {
-               empty
-            }?,
-            darcy_impes_scalar_field_prescribed_or_python_diagnostic_element_wise_mesh
-         }?
-      }   
-   )
-
-
+  
+  ## Porous Media
+  element porous_media {
+    
+    ## Specify scalar field Porosity which is inserted into 
+    ## the first material_phase state then aliased in all others.
+    element scalar_field {
+      attribute name { "Porosity" },
+      darcy_impes_scalar_field_prescribed_or_python_diagnostic_element_wise_mesh
+    },
+    
+    ## Specify field AbsolutePermeability which is inserted into 
+    ## the first material_phase state then aliased in all others.
+    element scalar_field {
+      attribute name { "AbsolutePermeability" },
+      darcy_impes_scalar_field_prescribed_or_python_diagnostic_element_wise_mesh
+    }
+  },
+  darcy_impes_dual_porous_media_model?
+darcy_impes_dual_porous_media_model =
+  
+  ## Enable the dual porous media model. If one enables the AbsolutePermeabilityDual
+  ## then this becomes a dual permeability model.
+  element porous_media_dual {
+    
+    ## Specify scalar field PorosityDual which is inserted into 
+    ## the first material_phase state then aliased in all others.
+    element scalar_field {
+      attribute name { "PorosityDual" },
+      darcy_impes_scalar_field_prescribed_or_python_diagnostic_element_wise_mesh
+    },
+    
+    ## Specify field AbsolutePermeabilityDual which is inserted into 
+    ## the first material_phase state then aliased in all others.
+    ## WARNING: THIS CAUSES PETSC ERRORS SOMETIMES IN 2D
+    element scalar_field {
+      attribute name { "AbsolutePermeabilityDual" },
+      
+      ## Do not solve for the Dual media first phase pressure, instead 
+      ## assign it the prime media first phase pressure. WARNING: THIS
+      ## WILL IMPLY THE DUAL MEDIA SATURATIONS ARE ADVECTED WITH AN 
+      ## EFFECTIVE VELOCITY THAT IS NOT DIVERGENCE FREE SO YOU SHOULD 
+      ## NOT EXPECT THE RESULTS TO BE BOUNDED
+      element do_not_solve_for_dual_first_phase_pressure { empty }?,
+      darcy_impes_scalar_field_prescribed_or_python_diagnostic_element_wise_mesh
+    }?
+  }
 darcy_impes_diagnostic_scalar_field =
-   (
-      darcy_impes_include_cv_stat,
-      adaptivity_options_scalar_field,
-      interpolation_algorithm_scalar 
-   )
-
-
+  darcy_impes_include_cv_stat,
+  adaptivity_options_scalar_field,
+  interpolation_algorithm_scalar
 darcy_impes_diagnostic_scalar_field_no_adapt =
-   (
-      darcy_impes_include_cv_stat,
-      interpolation_algorithm_scalar 
-   )
-
-
+  darcy_impes_include_cv_stat, interpolation_algorithm_scalar
 darcy_impes_diagnostic_vector_field =
-   (
-      darcy_impes_include_cv_stat,
-      adaptivity_options_vector_field,
-      interpolation_algorithm_scalar 
-   )
-
-
+  darcy_impes_include_cv_stat,
+  adaptivity_options_vector_field,
+  interpolation_algorithm_scalar
 darcy_impes_diagnostic_vector_field_no_adapt =
-   (
-      darcy_impes_include_cv_stat,
-      interpolation_algorithm_scalar 
-   )
-
-
+  darcy_impes_include_cv_stat, interpolation_algorithm_scalar
 darcy_impes_diagnostic_tensor_field =
-   (
-      darcy_impes_include_cv_stat,
-      adaptivity_options_tensor_field,
-      interpolation_algorithm_scalar 
-   )
-
-
+  darcy_impes_include_cv_stat,
+  adaptivity_options_tensor_field,
+  interpolation_algorithm_scalar
 darcy_impes_diagnostic_tensor_field_no_adapt =
-   (
-      darcy_impes_include_cv_stat,
-      interpolation_algorithm_scalar 
-   )
-
-
+  darcy_impes_include_cv_stat, interpolation_algorithm_scalar
 darcy_impes_scalar_python_diagnostic_algorithm =
-   (
-      ## Algorithm for the diagnostic value coded in Python. 
-      ## The object 'state' has the attributes 'scalar_fields', 'vector_fields'
-      ## and 'tensor_fields';
-      ## 'field' is the diagnostic field to be set.
-      ## 'time' and 'dt' are the current time and timestep.
-      element algorithm {
-         attribute name { "scalar_python_diagnostic" },
-         attribute material_phase_support { "single"|"multiple" },
-         python_code
-      }
-   )
-
-
+  
+  ## Algorithm for the diagnostic value coded in Python. 
+  ## The object 'state' has the attributes 'scalar_fields', 'vector_fields'
+  ## and 'tensor_fields';
+  ## 'field' is the diagnostic field to be set.
+  ## 'time' and 'dt' are the current time and timestep.
+  element algorithm {
+    attribute name { "scalar_python_diagnostic" },
+    attribute material_phase_support { "single" | "multiple" },
+    python_code
+  }
 darcy_impes_internal_algorithm =
-   (
-      element algorithm {
-         attribute name { "Internal" }
-      }
-   )
-
-
+  element algorithm {
+    attribute name { "Internal" }
+  }
 darcy_impes_recalculation_options =
-   (
-      ## Prevent this field from being recalculated at every timestep.
-      element do_not_recalculate {
-        empty
-      }
-   )
-
+  
+  ## Prevent this field from being recalculated at every timestep.
+  element do_not_recalculate { empty }
 # Nasty options copy
-
-sweby_limiter = 
+sweby_limiter =
+  
   ## See "High-Resolution Schemes Using Flux Limiters for
   ## Hyperbolic Conservation-Laws", P. K. Sweby, 1984, Siam
   ## Journal on Numerical Analysis, 21, 995-1011
   element limiter {
-    attribute name {"Sweby"},
+    attribute name { "Sweby" },
     slope_options?,
     upwind_value_options?
   }
-
 slope_options =
-   (
-      ## Control the upper and lower slopes of the NVD limiter
-      element slopes {
-         ## Defaults to Sweby, 1984 limiter (= 1.0) if unselected
-         element lower {
-            real
-         }?,
-         ## Defaults to Sweby, 1984 limiter (= 2.0) if unselected
-         element upper {
-            real
-         }?
-      }
-   )
-
+  
+  ## Control the upper and lower slopes of the NVD limiter
+  element slopes {
+    
+    ## Defaults to Sweby, 1984 limiter (= 1.0) if unselected
+    element lower { real }?,
+    
+    ## Defaults to Sweby, 1984 limiter (= 2.0) if unselected
+    element upper { real }?
+  }
 upwind_value_options =
-   (
+  
+  ## Select the method to be used for calculating the upwind value.
+  ## If not selected will default to project_upwind_value_from_point for
+  ## simplex element meshes and to a locally_bound_upwind_value for cube
+  ## element meshes.
+  ## 
+  ## This method projects the upwind value from a point in the element just
+  ## upwind of the node pair straddling the face.  It is otherwise known as 
+  ## anisotropic limiting.
+  ## This is only available on simplex meshes as it involes a search around
+  ## the donor node to find the upwind element.
+  element project_upwind_value_from_point {
+    
+    ## When the donor node is on a domain boundary reflect the projection
+    ## back into the mesh.
+    element reflect_off_domain_boundaries { empty }?,
+    
+    ## Constrain the projected value to be between the min and max of the
+    ## element values which it was found from.
+    element bound_projected_value_locally { empty }?,
+    
+    ## Store the locations of the elements where the upwind values
+    ## are projected from for each node pair.
+    ## This inserts an integer csr matrix into state so is memory expensive but
+    ## saves a significant amount of time (searching around the neighbouring elements).
+    ## This is unsafe for moving meshes but should be ok for adaptive meshes.
+    element store_upwind_elements {
+      
+      ## Store the quadrature locations within the elements
+      ## where the upwind values
+      ## are projected from for each node pair.
+      ## This inserts a real block csr matrix into state so is even more memory
+      ## expensive than just storing the upwind elements and
+      ## only saves a comparitively
+      ## marginal amount of time (as actually searching the
+      ## neighbouring elements is the
+      ## slowest bit, finding the quadrature is relatively easy).
+      element store_upwind_quadrature { empty }?
+    }?
+  }
+  | 
+    ## Select the method to be used for calculating the upwind value.
+    ## If not selected will default to project_upwind_value_from_point for
+    ## simplex element meshes and to a locally_bound_upwind_value for cube
+    ## element meshes.
+    ## 
+    ## Projects the value of the advected variable from the downwind or donor node
+    ## using the interpolated gradient at the donor node in the
+    ## direction of the vector
+    ## connecting the node pair straddling the face.
+    ## This is available on all meshes (except if bounding the values).
+    element project_upwind_value_from_gradient {
       (
-         ## Select the method to be used for calculating the upwind value.
-         ## If not selected will default to project_upwind_value_from_point for
-         ## simplex element meshes and to a locally_bound_upwind_value for cube
-         ## element meshes.
-         ##
-         ## This method projects the upwind value from a point in the element just
-         ## upwind of the node pair straddling the face.  It is otherwise known as 
-         ## anisotropic limiting.
-         ## This is only available on simplex meshes as it involes a search around
-         ## the donor node to find the upwind element.
-         element project_upwind_value_from_point {
-            ## When the donor node is on a domain boundary reflect the projection
-            ## back into the mesh.
-            element reflect_off_domain_boundaries {
-               empty
-            }?,
-            ## Constrain the projected value to be between the min and max of the
-            ## element values which it was found from.
-            element bound_projected_value_locally {
-               empty
-            }?,
-            ## Store the locations of the elements where the upwind values
-            ## are projected from for each node pair.
-            ## This inserts an integer csr matrix into state so is memory expensive but
-            ## saves a significant amount of time (searching around the neighbouring elements).
-            ## This is unsafe for moving meshes but should be ok for adaptive meshes.
-            element store_upwind_elements {
-               ## Store the quadrature locations within the elements
-               ## where the upwind values
-               ## are projected from for each node pair.
-               ## This inserts a real block csr matrix into state so is even more memory
-               ## expensive than just storing the upwind elements and
-               ## only saves a comparitively
-               ## marginal amount of time (as actually searching the
-               ## neighbouring elements is the
-               ## slowest bit, finding the quadrature is relatively easy).
-               element store_upwind_quadrature {
-                  empty
-               }?
-            }?
-         }|
-         ## Select the method to be used for calculating the upwind value.
-         ## If not selected will default to project_upwind_value_from_point for
-         ## simplex element meshes and to a locally_bound_upwind_value for cube
-         ## element meshes.
-         ##
-         ## Projects the value of the advected variable from the downwind or donor node
-         ## using the interpolated gradient at the donor node in the
-         ## direction of the vector
-         ## connecting the node pair straddling the face.
-         ## This is available on all meshes (except if bounding the values).
-         element project_upwind_value_from_gradient {
-            (
-               ## Select which node to project from:
-               ## Project from the downwind node (Jasak et al., 1999) so that:
-               ## upwind_value = downwind_value - 2*gradient.vector
-               element project_from_downwind_value {
-                  comment
-               }|
-               ## Select which node to project from:
-               ## Project from the donor node so that:
-               ## upwind_value = donor_value - gradient.vector
-               element project_from_donor_value {
-                  comment
-               }
-            ),
-            ## When the donor node is on a domain boundary reflect the projection
-            ## back into the mesh.
-            element reflect_off_domain_boundaries {
-               empty
-            }?,
-            ## Constrain the projected value to be between the min and max of the
-            ## element values which surround it.
-            ## This is only available on simplex meshes as it involes a search around
-            ## the donor node to find the upwind element.
-            element bound_projected_value_locally {
-               ## Store the locations of the elements closest to the project value.
-               ## This inserts an integer csr matrix into state so is
-               ## memory expensive but
-               ## saves a significant amount of time (searching around
-               ## the neighbouring elements).
-               ## This is unsafe for moving meshes but should be ok for adaptive meshes.
-               element store_upwind_elements {
-                  comment
-               }?
-            }?
-         }|
-         ## Select the method to be used for calculating the upwind value.
-         ## If not selected will default to project_upwind_value_from_point for
-         ## simplex element meshes and to a locally_bound_upwind_value for cube
-         ## element meshes.
-         ##
-         ## Chooses an upwind value by selecting the maximum or minimum of the neighbouring
-         ## nodes depending on the local slope of the donor and downwind values.
-         ## Otherwise known as isotropic limiting.
-         ## This is available on all meshes except periodic domains.
-         element locally_bound_upwind_value {
-            empty
-         }|
-         ## Select the method to be used for calculating the upwind value.
-         ## If not selected will default to project_upwind_value_from_point for
-         ## simplex element meshes and to a locally_bound_upwind_value for cube
-         ## element meshes.
-         ##
-         ## Chooses an upwind value by selecting the value at the node most directy
-         ## upwind from the vector connecting the donor and downwind nodes.
-         ## This is available on all meshes.
-         element pseudo_structured_upwind_value {
-            empty
-         }
-      )
-   )
-
+       ## Select which node to project from:
+       ## Project from the downwind node (Jasak et al., 1999) so that:
+       ## upwind_value = downwind_value - 2*gradient.vector
+       element project_from_downwind_value { comment }
+       | 
+         ## Select which node to project from:
+         ## Project from the donor node so that:
+         ## upwind_value = donor_value - gradient.vector
+         element project_from_donor_value { comment }),
+      
+      ## When the donor node is on a domain boundary reflect the projection
+      ## back into the mesh.
+      element reflect_off_domain_boundaries { empty }?,
+      
+      ## Constrain the projected value to be between the min and max of the
+      ## element values which surround it.
+      ## This is only available on simplex meshes as it involes a search around
+      ## the donor node to find the upwind element.
+      element bound_projected_value_locally {
+        
+        ## Store the locations of the elements closest to the project value.
+        ## This inserts an integer csr matrix into state so is
+        ## memory expensive but
+        ## saves a significant amount of time (searching around
+        ## the neighbouring elements).
+        ## This is unsafe for moving meshes but should be ok for adaptive meshes.
+        element store_upwind_elements { comment }?
+      }?
+    }
+  | 
+    ## Select the method to be used for calculating the upwind value.
+    ## If not selected will default to project_upwind_value_from_point for
+    ## simplex element meshes and to a locally_bound_upwind_value for cube
+    ## element meshes.
+    ## 
+    ## Chooses an upwind value by selecting the maximum or minimum of the neighbouring
+    ## nodes depending on the local slope of the donor and downwind values.
+    ## Otherwise known as isotropic limiting.
+    ## This is available on all meshes except periodic domains.
+    element locally_bound_upwind_value { empty }
+  | 
+    ## Select the method to be used for calculating the upwind value.
+    ## If not selected will default to project_upwind_value_from_point for
+    ## simplex element meshes and to a locally_bound_upwind_value for cube
+    ## element meshes.
+    ## 
+    ## Chooses an upwind value by selecting the value at the node most directy
+    ## upwind from the vector connecting the donor and downwind nodes.
+    ## This is available on all meshes.
+    element pseudo_structured_upwind_value { empty }
 prescribed_output_options = empty
 prescribed_scalar_stat_options = empty
 prescribed_detector_options = empty
 diagnostic_output_options = empty
 diagnostic_scalar_stat_options = empty
 prescribed_vector_stat_options = empty
-
 # Detector output defaults on for prognostic and diagnostic fields, 
 # off for prescribed.
 prognostic_detector_options = empty
 diagnostic_detector_options = empty
 prescribed_detector_options = empty
-   
 # Field output options for all other fields
 field_output_options = empty
-
 # Diagnostic statistics for all other scalar fields
 prognostic_scalar_stat_no_old_or_nonlinear_options = empty
-
 # Options for whether a field is to be included in detector output.
-detector_options_disabled_default =  empty
-
+detector_options_disabled_default = empty
 discrete_properties_algorithm_scalar = empty
-
 # Steady state options for prognostic scalar fields
 scalar_steady_state_options = empty
-
 prognostic_scalar_stat_no_old_or_nonlinear_options.stat = empty
-
 recalculation_options = empty
-
 diagnostic_vector_stat_options = empty
 vector_steady_state_options = empty
 vector_convergence_options = empty
-
 # Convergence options for prognostic scalar fields
 scalar_convergence_options =
-   (
-      ## Decide whether this field is tested for convergence
-      ## during nonlinear iterations
-      ## (if /timestepping/nonlinear_iterations and
-      ## /timestepping/nonlinear_iterations/tolerance are
-      ## enabled).
-      ## Also specifies whether the field is added to the 
-      ## convergence file (if /io/convergence_file is enabled).
-      element convergence {
-         (
-            ## Include this field in convergence testing
-            ## (if /timestepping/nonlinear_iterations and
-            ## /timestepping/nonlinear_iterations/tolerance are
-            ## enabled) and file (if /io/convergence_file is enabled)
-            element include_in_convergence {
-               comment
-            }|
-            ## Exclude this field from convergence testing and file 
-            element exclude_from_convergence {
-               comment
-            }
-         )
-      }
-   )
+  
+  ## Decide whether this field is tested for convergence
+  ## during nonlinear iterations
+  ## (if /timestepping/nonlinear_iterations and
+  ## /timestepping/nonlinear_iterations/tolerance are
+  ## enabled).
+  ## Also specifies whether the field is added to the 
+  ## convergence file (if /io/convergence_file is enabled).
+  element convergence {
+    
+    ## Include this field in convergence testing
+    ## (if /timestepping/nonlinear_iterations and
+    ## /timestepping/nonlinear_iterations/tolerance are
+    ## enabled) and file (if /io/convergence_file is enabled)
+    element include_in_convergence { comment }
+    | 
+      ## Exclude this field from convergence testing and file 
+      element exclude_from_convergence { comment }
+  }

@@ -5,7 +5,8 @@ the Darcy IMPES code.
 
 More documentation to come."""
 
-from numpy import array, ndarray, linspace, meshgrid, shape, vstack, min, max, zeros
+from numpy import array, ndarray, linspace, meshgrid, shape, vstack, \
+    min, max, zeros
 from sympy import Symbol, Function, diff, integrate, sin, cos, pi, exp, sqrt
 from sympy.utilities.lambdify import lambdify
 import re
@@ -16,35 +17,94 @@ import fileinput
 spacetime = (Symbol('x'), Symbol('y'), Symbol('z'), Symbol('t'))
 saturations = (Symbol('s1'), Symbol('s2'))
 
+class Vector:
+    def __init__(self, components_or_dim):
+        if isinstance(components_or_dim, int):
+            self.components = array([Symbol('0')]*components_or_dim)
+        else:
+            self.components = array(components_or_dim)
+            # protect against failure of array to wrap symbols properly
+            try:
+                len(self.components)
+            except:
+                self.components = array((components_or_dim,))
+    def clone(self):
+        return Vector(self.components)
+    def __setitem__(self, index, value):
+        self.components[index] = value
+    def __getitem__(self, index):
+        return self.components[index]
+    def __neg__(self):
+        return Vector(-self.components)
+    # addition and subtraction can be done elementwise; allow other
+    # collection types to be encountered
+    def __add__(self, other):
+        try:
+            return Vector(self.components + other.components)
+        except:
+            return Vector(self.components + array(other))
+    def __radd__(self, other):
+        try:
+            return Vector(other.components + self.components)
+        except:
+            return Vector(array(other) + self.components)
+    def __sub__(self, other):
+        try:
+            return Vector(self.components - other.components)
+        except:
+            return Vector(self.components - array(other))
+    def __rsub__(self, other):
+        try:
+            return Vector(other.components - self.components)
+        except:
+            return Vector(array(other) - self.components)
+    # expect multiplication and division with scalars only.  Note that
+    # explicitly looping over vector components seems to be more stable
+    # than letting the sub-objects handle it
+    def __mul__(self, other):
+        result = self.clone()
+        for i in range(result.dim()):
+            result[i] *= other
+        return result
+    def __div__(self, other):
+        result = self.clone()
+        for i in range(result.dim()):
+            result[i] /= other
+        return result
+    def __rmul__(self, other):
+        return self * other
+    def __str__(self):
+        return 'Vector({0})'.format(self.components)
+    def __abs__(self):
+        result = 0.
+        for u in self.components:
+            result += u**2
+        return sqrt(result)
+    def dim(self):
+        return len(self.components)
+    def divergence(self):
+        result = 0.
+        for i, u in enumerate(self.components):
+            result += diff(u, spacetime[i])
+        return result
+
 def grad(scalar, dim):
-    vector = array([Symbol('0')]*dim)
+    result = Vector(dim)
     for i in range(dim):
-        vector[i] = diff(scalar, spacetime[i])
-    return vector
+        result[i] = diff(scalar, spacetime[i])
+    return result
 
 def div(vector):
     try:
-        scalar = 0.
-        for i in range(len(vector)):
-            scalar = scalar + diff(vector[i], spacetime[i])
-        return scalar
+        return vector.divergence()
     except TypeError:
         return diff(vector, spacetime[0])
-
-def mag(vector):
-    try:
-        scalar = 0.
-        for i in range(len(vector)):
-            scalar = scalar + vector[i]**2
-        return sqrt(scalar)
-    except TypeError:
-        return abs(vector)
 
 def spacetime_lambdify(expression, dim):
     Xt = spacetime[:dim] + spacetime[3:]
     return lambdify(Xt, expression)
 
-def write_expr(genfile, is_text, key, value, args=None, separate_args=False):
+def write_expr(genfile, is_text, key, value, args=None, collect_args=False):
     if is_text:
         # capitalise if in text mode
         key = str.upper(key)
@@ -76,7 +136,7 @@ def write_expr(genfile, is_text, key, value, args=None, separate_args=False):
                 genfile.write('{0}'.format(value))
         else:
             # write a lambda
-            if separate_args:
+            if not collect_args:
                 genfile.write('lambda')
                 for i, a in enumerate(args):
                     if i > 0:
@@ -120,40 +180,89 @@ def generate_coords(extents, point_num):
         else:
             coords = vstack((coords, x))
     return coords.transpose()
+
+
+class GenericScalar:
+    def __init__(self, symbol, phase_num, expression, diffusivity=Symbol('0'),
+                 external_source=Symbol('0'), scale=1.):
+        self.symbol = symbol
+        self.expression = expression
+        self.phase_num = phase_num
+        self.diffusivity = diffusivity
+        self.external_source = external_source
+        self.scale = scale
+        
+    def compute(self, phase_num, phi, sat, darcy_vel):
+        if self.phase_num != phase_num:
+            return
+        t = Symbol('t')
+        dim = darcy_vel.dim()
+        self.manuf_source = diff(phi*sat*self.expression, t) \
+            + div(darcy_vel*self.expression) \
+            - div(phi*sat*self.diffusivity*grad(self.expression, dim)) \
+            - self.external_source.subs(self.symbol, self.expression)
+        self.external_source_grad = diff(self.external_source, self.symbol)
     
-    
+    def write_expressions(self, genfile, is_text, phase_num, dim):
+        if self.phase_num != phase_num:
+            return
+        # append domain dimension to each variable name
+        suf = '_' + str(dim) + 'D'
+        if dim == 1:
+            write_expr(genfile, is_text,
+                       str(self.symbol)+str(self.phase_num)+'_scale',
+                       self.scale, spacetime[:dim] + spacetime[3:])
+        write_expr(genfile, is_text, str(self.symbol)+str(self.phase_num)+suf,
+                   self.expression, spacetime[:dim] + spacetime[3:])
+        if self.diffusivity != Symbol('0'):
+            write_expr(genfile, is_text,
+                       'diffusivity_'+str(self.symbol)+str(self.phase_num)+suf,
+                       self.diffusivity, spacetime[:dim] + spacetime[3:])
+        write_expr(genfile, is_text,
+                       'external_source_'+str(self.symbol)+str(self.phase_num)+suf,
+                       self.external_source, spacetime[:dim] + spacetime[3:])
+        write_expr(genfile, is_text,
+                       'external_source_gradient_'+str(self.symbol)+str(self.phase_num)+suf,
+                       self.external_source_grad, spacetime[:dim] + spacetime[3:])
+        write_expr(genfile, is_text,
+                   'manufactured_source_'+str(self.symbol)+str(self.phase_num)+suf,
+                   self.manuf_source, spacetime[:dim] + spacetime[3:])
+
+        
+
 class ManufacturedSolution:
-    def __init__(self, dim, g_dir, p, s2):
+    def __init__(self, dim, g_dir, p, s2, generic_scalars=[]):
         self.dim = dim
         self.g_dir = array(g_dir)
-        self.p = [Symbol('0') for i in range(2)]
-        self.grad_p = [[Symbol('0') for j in range(dim)] for i in range(2)]
+        self.p = []
+        self.grad_p = []
         for i in range(2):
             try:
                 # p is given as multiple fields
-                self.p[i] = p[i]
+                self.p.append(p[i])
             except TypeError:
                 # p is given as one common field
-                self.p[i] = p
-            self.grad_p[i] = grad(self.p[i], dim)
+                self.p.append(p)
+            self.grad_p.append(grad(self.p[i], dim))
         self.s = (1 - s2, s2)
-        self.u = [[Symbol('0') for j in range(dim)] for i in range(2)]
+        self.u = [Vector(dim) for i in range(2)]
         self.q = [Symbol('0') for i in range(2)]
+        self.generic_scalars = generic_scalars
         
     def compute_phase(self, phase_num, phi, K, mu, rho, g_mag):
         t = Symbol('t')
         g = g_mag*self.g_dir
         i = phase_num - 1
+        grad_p_eff = self.grad_p[i] - rho*g
         try:
             grad_p_eff = self.grad_p[i] - rho*g
         except TypeError:
             grad_p_eff = self.grad_p[i] - array(rho*g)
-        # explicitly looping over vector components here seems to be
-        # more stable than letting the objects handle it
-        for j, gpe in enumerate(grad_p_eff):
-            # n.b. for flexibility, K is a function of both sats
-            self.u[i][j] = -K(self.s)/mu*gpe
+        self.u[i] = -K(self.s)/mu*grad_p_eff
         self.q[i] = diff(phi*self.s[i], t) + div(self.u[i])
+        for c in self.generic_scalars:
+            c.compute(phase_num, phi, self.s[i], self.u[i])
+
 
     def check_max_velocity(self, phase_num, coords_and_time):
         i = phase_num-1
@@ -178,11 +287,9 @@ class ManufacturedSolution:
                          self.g_dir)
         for i in range(2):
             write_expr(genfile, is_text, 'pressure'+str(i+1)+suf,
-                       self.p[i], spacetime[:self.dim] + spacetime[3:],
-                       separate_args=True)
+                       self.p[i], spacetime[:self.dim] + spacetime[3:])
             write_expr(genfile, is_text, 'saturation'+str(i+1)+suf, 
-                       self.s[i], spacetime[:self.dim] + spacetime[3:],
-                       separate_args=True)
+                       self.s[i], spacetime[:self.dim] + spacetime[3:])
         
     def write_phase_expressions(self, genfile, is_text, phase_num):
         # append domain dimension to each variable name
@@ -194,16 +301,18 @@ class ManufacturedSolution:
                 uij = self.u[i][j]
             except TypeError:
                 uij = self.u[i]
-        write_expr(genfile, is_text, 'darcy_velocity'+str(i+1)+'_'+str(xi)+suf,
-                   uij, spacetime[:self.dim] + spacetime[3:], separate_args=True)
+            write_expr(
+                genfile, is_text, 'darcy_velocity'+str(i+1)+'_'+str(xi)+suf,
+                uij, spacetime[:self.dim] + spacetime[3:])
         write_expr(genfile, is_text,
                    'darcy_velocity'+str(i+1)+'_magnitude'+suf,
-                   mag(self.u[i]), spacetime[:self.dim] + spacetime[3:],
-                   separate_args=True)
+                   abs(self.u[i]), spacetime[:self.dim] + spacetime[3:])
         write_expr(genfile, is_text,
                    'source_saturation'+str(i+1)+suf,
-                   self.q[i], spacetime[:self.dim] + spacetime[3:],
-                   separate_args=True)
+                   self.q[i], spacetime[:self.dim] + spacetime[3:])
+        for c in self.generic_scalars:
+            c.write_expressions(genfile, is_text, phase_num, self.dim)
+
         
 
 class SolutionHarness:
@@ -280,22 +389,15 @@ class SolutionHarness:
             write_expr(f, is_text, 'density1', self.rho[0])
             write_expr(f, is_text, 'density2', self.rho[1])
             write_expr(f, is_text, 'permeability1',
-                       self.K[0](saturations), saturations)
+                       self.K[0](saturations), saturations, collect_args=True)
             write_expr(f, is_text, 'permeability2', 
-                       self.K[1](saturations), saturations)
+                       self.K[1](saturations), saturations, collect_args=True)
             write_expr(f, is_text, 'porosity', self.phi)
             write_expr(f, is_text, 'absolute_permeability', self.ka)
             # solutions (one per domain dimension)
             for ms in manufactured_solution_list:
                 ms.write_main_expressions(f, is_text)
                 for i, phase_num in enumerate((1, 2)):
-                    # TEMP
-                    # write_expr(f, is_text, 
-                    #               'grad_p_eff'+str(phase_num),
-                    #               ms.grad_p[i] -
-                    #               array(self.rho[i]*self.g_mag*ms.g_dir),
-                    #               spacetime[:ms.dim] + spacetime[3:],
-                    #               separate_args=True)
                     ms.compute_phase(phase_num, self.phi,
                                      self.K[i], self.mu[i],
                                      self.rho[i], self.g_mag)

@@ -643,6 +643,167 @@
         </stat>
       </prescribed>
     </scalar_field>
+    <scalar_field name="TracerManufacturedSource">
+      <prescribed>
+        <mesh name="ElementWiseMesh"/>
+        <value name="WholeMesh">
+	  <python>
+            <string_value lines="20" type="code" language="python">def val(X, t):
+  from numpy import sqrt, pi, cos, sin, exp
+  return $MANUFACTURED_SOURCE_TRACER2_${DOMAIN_DIM}D</string_value>
+          </python>
+        </value>
+        <stat>
+          <include_cv_stats/>
+        </stat>
+      </prescribed>
+    </scalar_field>
+    <scalar_field name="Tracer">
+      <prognostic>
+        <mesh name="PressureMesh"/>
+        <solver name="DefaultSolverOptionsGMRESSOR">
+          <iterative_method name="gmres">
+            <restart>
+              <integer_value rank="0">30</integer_value>
+            </restart>
+          </iterative_method>
+          <preconditioner name="sor"/>
+          <relative_error>
+            <real_value rank="0">1.0e-10</real_value>
+          </relative_error>
+          <max_iterations>
+            <integer_value rank="0">1000</integer_value>
+          </max_iterations>
+          <never_ignore_solver_failures/>
+        </solver>
+        <face_value name="FirstOrderUpwind"/>
+        <initial_condition name="WholeMesh">
+          <python>
+            <string_value type="code" lines="20" language="python">def val(X, t):
+  from numpy import sqrt, pi, cos, sin, exp
+  return $TRACER2_${DOMAIN_DIM}D</string_value>
+          </python>
+        </initial_condition>
+        <boundary_conditions name="inlet_tracer">
+          <surface_ids>
+            <integer_value shape="1" rank="1">$INLET_ID</integer_value>
+          </surface_ids>
+          <type name="dirichlet">
+            <apply_strongly/>
+  	    <python>
+              <string_value lines="20" type="code" language="python">def val(X, t):
+  from numpy import sqrt, pi, cos, sin, exp
+  return $TRACER2_${DOMAIN_DIM}D</string_value>
+  	    </python>
+          </type>
+        </boundary_conditions>
+        <boundary_conditions name="outlet_tracer">
+          <surface_ids>
+            <integer_value shape="1" rank="1">$OUTLET_ID</integer_value>
+          </surface_ids>
+          <type name="dirichlet">
+            <apply_strongly/>
+  	    <python>
+              <string_value lines="20" type="code" language="python">def val(X, t):
+  from numpy import sqrt, pi, cos, sin, exp
+  return $TRACER2_${DOMAIN_DIM}D</string_value>
+  	    </python>
+          </type>
+        </boundary_conditions>
+	$BEGIN_RM_IF_1D
+        <boundary_conditions name="wall_tracer">
+          <surface_ids>
+            <integer_value shape="$WALL_NUM" rank="1">$WALL_IDS</integer_value>
+          </surface_ids>
+          <type name="dirichlet">
+            <apply_strongly/>
+  	    <python>
+              <string_value lines="20" type="code" language="python">def val(X, t):
+  from numpy import sqrt, pi, cos, sin, exp
+  return $TRACER2_${DOMAIN_DIM}D</string_value>
+  	    </python>
+          </type>
+        </boundary_conditions>
+	$END_RM_IF_1D
+        <scalar_field name="Source" rank="0">
+          <diagnostic>
+            <mesh name="ElementWiseMesh"/>
+            <algorithm name="scalar_python_diagnostic" material_phase_support="single">
+              <string_value lines="20" type="code" language="python">from numpy import sqrt, pi, cos, sin, exp
+tracer_field = state.scalar_fields["TracerProjected"]
+tracer_manuf_source_field = state.scalar_fields["TracerManufacturedSource"]
+for n in range(field.node_count):
+   tracer = tracer_field.node_val(n)
+   tracer_manuf_source = tracer_manuf_source_field.node_val(n)
+   field.set(n, tracer_manuf_source + $EXTERNAL_SOURCE_TRACER2_${DOMAIN_DIM}D)</string_value>
+              <comment/>
+            </algorithm>
+            <stat>
+              <include_cv_stats/>
+            </stat>
+            <consistent_interpolation/>
+          </diagnostic>
+        </scalar_field>
+	<scalar_field name="SourceGradient" rank="0">
+	  <diagnostic>
+	    <mesh name="ElementWiseMesh"/>
+	    <algorithm name="scalar_python_diagnostic" material_phase_support="single">
+	      <string_value lines="20" type="code" language="python">import math
+tracer_field = state.scalar_fields["TracerProjected"]
+for n in range(field.node_count):
+   tracer = tracer_field.node_val(n)
+   field.set(n, $EXTERNAL_SOURCE_GRADIENT_TRACER2_${DOMAIN_DIM}D)</string_value>
+   <comment/>
+	    </algorithm>
+	    <stat>
+	      <include_cv_stats/>
+	    </stat>
+	    <consistent_interpolation/>
+	  </diagnostic>
+	</scalar_field>
+        <stat>
+          <include_cv_stats/>
+        </stat>
+        <consistent_interpolation/>
+      </prognostic>
+    </scalar_field>
+    <scalar_field name="TracerProjected">
+      <diagnostic>
+        <mesh name="ElementWiseMesh"/>
+        <algorithm material_phase_support="single" source_field_type="scalar" source_field_name="Tracer" name="scalar_galerkin_projection"/>
+        <stat>
+          <include_cv_stats/>
+        </stat>
+        <consistent_interpolation/>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="AnalyticTracer">
+      <prescribed>
+        <mesh name="CoordinateMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value lines="20" type="code" language="python">def val(X, t):
+  from numpy import sqrt, pi, cos, sin, exp
+  return $TRACER2_${DOMAIN_DIM}D</string_value>
+          </python>
+        </value>
+        <stat>
+          <include_cv_stats/>
+        </stat>
+      </prescribed>
+    </scalar_field>
+    <scalar_field name="TracerAbsError">
+      <diagnostic>
+        <mesh name="CoordinateMesh"/>
+        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="Tracer" source_field_2_name="AnalyticTracer" material_phase_support="single" source_field_1_type="scalar">
+          <absolute_difference/>
+        </algorithm>
+        <stat>
+          <include_cv_stats/>
+        </stat>
+        <consistent_interpolation/>
+      </diagnostic>
+    </scalar_field>
   </material_phase>
   <porous_media>
     <scalar_field name="Porosity">

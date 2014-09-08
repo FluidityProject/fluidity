@@ -1709,6 +1709,9 @@ Finite element discretisation may become unbounded so limiting is often necessar
           <optional>
             <ref name="darcy_impes_generic_scalar_field_src"/>
           </optional>
+          <optional>
+            <ref name="darcy_impes_generic_scalar_field_src_grad"/>
+          </optional>
           <ref name="darcy_impes_include_cv_stat"/>
           <ref name="adaptivity_options_prognostic_scalar_field"/>
           <ref name="interpolation_algorithm_scalar"/>
@@ -1809,6 +1812,17 @@ Default value is 1.</a:documentation>
       </attribute>
       <attribute name="name">
         <value>Source</value>
+      </attribute>
+      <ref name="darcy_impes_scalar_field_prescribed_or_python_diagnostic_element_wise_mesh"/>
+    </element>
+  </define>
+  <define name="darcy_impes_generic_scalar_field_src_grad">
+    <element name="scalar_field">
+      <attribute name="rank">
+        <value>0</value>
+      </attribute>
+      <attribute name="name">
+        <value>SourceGradient</value>
       </attribute>
       <ref name="darcy_impes_scalar_field_prescribed_or_python_diagnostic_element_wise_mesh"/>
     </element>

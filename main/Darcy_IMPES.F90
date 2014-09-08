@@ -580,7 +580,7 @@ program Darcy_IMPES
 
    ewrite(1, *) "Printing references after final deallocation"
    call print_references(0)
-
+ 
 #ifdef HAVE_MEMORY_STATS
     call print_current_memory_stats(0)
 #endif
@@ -760,7 +760,7 @@ contains
       call allocate(di%cv_mass_pressure_mesh_with_porosity, di%pressure_mesh)
       call allocate(di%cv_mass_pressure_mesh_with_old_porosity, di%pressure_mesh)
       call allocate(di%inverse_cv_sa_pressure_mesh, di%pressure_mesh)
-      call allocate(di%work_array_of_size_pressure_mesh, di%pressure_mesh)
+      call allocate(di%work_field, di%pressure_mesh)
       
       if (have_dual) then
          call allocate(di%cv_mass_pressure_mesh_with_lambda_dual, di%pressure_mesh)
@@ -921,93 +921,85 @@ contains
       allocate(di%generic_prog_sfield(f_count))
       
       if (size(di%generic_prog_sfield) > 0) then
-      
          f_count = 0
 
          do p = 1, di%number_phase
-
             do f = 1, option_count('/material_phase['//int2str(p-1)//']/scalar_field')
-
-               if (have_option('/material_phase['//int2str(p-1)//']/scalar_field['//int2str(f-1)//']/prognostic')) then
-
-                  call get_option('/material_phase['//int2str(p-1)//']/scalar_field['//int2str(f-1)//']/name', &
-                                  tmp_char_option)
-
+               
+               if (have_option('/material_phase['//int2str(p-1)//']/&
+                    &scalar_field['//int2str(f-1)//']/prognostic')) then
+                  call get_option('/material_phase['//int2str(p-1)//']/&
+                       &scalar_field['//int2str(f-1)//']/name', &
+                       tmp_char_option)
+                  
                   if ((trim(tmp_char_option) /= 'Pressure') .and. &
                       (trim(tmp_char_option) /= 'Saturation')) then
-
                      f_count = f_count + 1
-
-                     di%generic_prog_sfield(f_count)%phase = p
-
-                     di%generic_prog_sfield(f_count)%sfield => extract_scalar_field(di%state(p), &
-                                                                                    trim(tmp_char_option))
-
-                     di%generic_prog_sfield(f_count)%old_sfield => extract_scalar_field(di%state(p), &
-                                                                                        'Old'//trim(tmp_char_option))
-
-                     di%generic_prog_sfield(f_count)%sfield_diff => extract_tensor_field(di%state(p), &
-                                                                                         trim(tmp_char_option)//'Diffusivity', &
-                                                                                         stat = stat)
-                     if (stat == 0) then
-
-                        di%generic_prog_sfield(f_count)%have_diff = .true.
-
-                     else
-
-                        nullify(di%generic_prog_sfield(f_count)%sfield_diff)
-
-                        di%generic_prog_sfield(f_count)%have_diff = .false.
-
-                     end if
-
-                     di%generic_prog_sfield(f_count)%sfield_abs => extract_scalar_field(di%state(p), &
-                                                                                        trim(tmp_char_option)//'Absorption', &
-                                                                                        stat = stat)
-                     if (stat == 0) then
-
-                        di%generic_prog_sfield(f_count)%have_abs = .true.
-
-                     else
-
-                        nullify(di%generic_prog_sfield(f_count)%sfield_abs)
-
-                        di%generic_prog_sfield(f_count)%have_abs = .false.
-
-                     end if
-
-                     di%generic_prog_sfield(f_count)%sfield_src => extract_scalar_field(di%state(p), &
-                                                                                        trim(tmp_char_option)//'Source', &
-                                                                                        stat = stat)
-                     if (stat == 0) then
-
-                        di%generic_prog_sfield(f_count)%have_src = .true.
-
-                     else
-
-                        nullify(di%generic_prog_sfield(f_count)%sfield_src)
-
-                        di%generic_prog_sfield(f_count)%have_src = .false.
-
-                     end if
-
-                     di%generic_prog_sfield(f_count)%sfield_cv_options = &
-                     darcy_impes_get_cv_options(di%generic_prog_sfield(f_count)%sfield%option_path, &
-                                                di%generic_prog_sfield(f_count)%sfield%mesh%shape%numbering%family, &
-                                                mesh_dim(di%generic_prog_sfield(f_count)%sfield))
                      
-                     if (di%generic_prog_sfield(f_count)%sfield_cv_options%facevalue == DARCY_IMPES_CV_FACEVALUE_NONE) then
+                     di%generic_prog_sfield(f_count)%phase = p
+                     di%generic_prog_sfield(f_count)%sfield => &
+                          extract_scalar_field(di%state(p), &
+                          trim(tmp_char_option))
+                     di%generic_prog_sfield(f_count)%old_sfield => &
+                          extract_scalar_field(di%state(p), 'Old'//&
+                          trim(tmp_char_option))
+                     di%generic_prog_sfield(f_count)%sfield_diff => &
+                          extract_tensor_field(di%state(p), &
+                          trim(tmp_char_option)//'Diffusivity', stat = stat)
+                     if (stat == 0) then
+                        di%generic_prog_sfield(f_count)%have_diff = .true.
+                     else
+                        nullify(di%generic_prog_sfield(f_count)%sfield_diff)
+                        di%generic_prog_sfield(f_count)%have_diff = .false.
+                     end if
+
+                     di%generic_prog_sfield(f_count)%sfield_abs => &
+                          extract_scalar_field(di%state(p), &
+                          trim(tmp_char_option)//'Absorption', stat = stat)
+                     if (stat == 0) then
+                        di%generic_prog_sfield(f_count)%have_abs = .true.
+                     else
+                        nullify(di%generic_prog_sfield(f_count)%sfield_abs)
+                        di%generic_prog_sfield(f_count)%have_abs = .false.
+                     end if
+                     
+                     di%generic_prog_sfield(f_count)%sfield_src => &
+                          extract_scalar_field(di%state(p), trim(&
+                          tmp_char_option)//'Source', stat = stat)
+                     if (stat == 0) then
+                        di%generic_prog_sfield(f_count)%have_src = .true.
+                     else
+                        nullify(di%generic_prog_sfield(f_count)%sfield_src)
+                        di%generic_prog_sfield(f_count)%have_src = .false.
+                     end if
+
+                     ! TODO nest this in the previous field somehow
+                     di%generic_prog_sfield(f_count)%sfield_src_grad => &
+                          extract_scalar_field(di%state(p), trim(&
+                          tmp_char_option)//'SourceGradient', stat = stat)
+                     if (stat == 0) then
+                        di%generic_prog_sfield(f_count)%have_src_grad = .true.
+                     else
+                        nullify(di%generic_prog_sfield(f_count)%sfield_src_grad)
+                        di%generic_prog_sfield(f_count)%have_src_grad = .false.
+                     end if
+                     
+                     di%generic_prog_sfield(f_count)%sfield_cv_options = &
+                          darcy_impes_get_cv_options(&
+                          di%generic_prog_sfield(f_count)%sfield%option_path, &
+                          di%generic_prog_sfield(f_count)%sfield%mesh%shape%&
+                          numbering%family, &
+                          mesh_dim(di%generic_prog_sfield(f_count)%sfield))
+                     if (di%generic_prog_sfield(f_count)%sfield_cv_options%&
+                          facevalue == DARCY_IMPES_CV_FACEVALUE_NONE) then
                         di%generic_prog_sfield(f_count)%have_adv = .false.
                      else
                         di%generic_prog_sfield(f_count)%have_adv = .true.
                      end if
                      
                   end if 
-
                end if 
-
             end do 
-
          end do
 
          call allocate(di%sfield_bc_value, &
@@ -1593,7 +1585,7 @@ contains
       call deallocate(di%cv_mass_pressure_mesh_with_porosity)
       call deallocate(di%cv_mass_pressure_mesh_with_old_porosity)
       call deallocate(di%inverse_cv_sa_pressure_mesh)
-      call deallocate(di%work_array_of_size_pressure_mesh)
+      call deallocate(di%work_field)
       
       if (have_dual) then
          call deallocate(di%cv_mass_pressure_mesh_with_lambda_dual)
@@ -1649,6 +1641,7 @@ contains
             nullify(di%generic_prog_sfield(f)%sfield_diff)
             nullify(di%generic_prog_sfield(f)%sfield_abs)
             nullify(di%generic_prog_sfield(f)%sfield_src)
+            nullify(di%generic_prog_sfield(f)%sfield_src_grad)
             
             di%generic_prog_sfield(f)%have_diff = .false.
             di%generic_prog_sfield(f)%have_abs  = .false.
@@ -2180,6 +2173,7 @@ contains
         
       ! Load the SPUD options
       call load_options(argument)
+      call print_options()
       
       ! If there is no simulation name in the options then add one
       ! using the filename which is currently what argument is.

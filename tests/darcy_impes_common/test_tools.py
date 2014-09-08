@@ -635,7 +635,7 @@ class RunSimulation(TestCommand):
         simulation_name = self.lookup('filename_stems', 'simulation_options')
         if self.simulator_verbosity > 0:
             call([self.simulator_path,
-                  '-v{0}'.format(simulator_verbosity),
+                  '-v{0}'.format(self.simulator_verbosity),
                   '-l {0}.log'.format(simulation_name), options_filename],
                  stdout=open(os.devnull, 'wb'))
         else:
@@ -734,20 +734,24 @@ class NormCalculator:
         she needs to represent the errors in a diagnostic field called
         XAbsError."""
         filename = test_command.make_key(exclude=['field','norm']) + '.stat'
-        if test_command.get('norm')=='1':
+        if str(test_command.get('norm'))=='1':
             calc_type = "integral"
-        elif test_command.get('norm')=='2':
+        elif str(test_command.get('norm'))=='2':
             calc_type = "l2norm"
         phase = test_command.get('phase')
         var = test_command.get('var')+'AbsError'
-        return stat_parser(filename)[phase][var][calc_type][-1]
         try:
-            return stat_parser(filename)[ph][var][calc_type][-1]
+            return stat_parser(filename)[phase][var][calc_type][-1]
         except KeyError as e:
             e.args += (
                 "NormCalculator expected to find {0}::{1} in the stat file;".\
                     format(phase, var) + \
                     " has this been defined in the options file?",)
+            raise
+        except UnboundLocalError as e:
+            e.args += ("Could not interpret norm specifier.  " +
+                       "Received \"{0}\"".\
+                           format(test_command.get('norm')),)
             raise
         
             

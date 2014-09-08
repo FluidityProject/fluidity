@@ -186,10 +186,12 @@ module darcy_impes_assemble_module
       type(scalar_field), pointer :: old_sfield
       type(scalar_field), pointer :: sfield_abs
       type(scalar_field), pointer :: sfield_src
+      type(scalar_field), pointer :: sfield_src_grad
       type(tensor_field), pointer :: sfield_diff
       logical :: have_diff
       logical :: have_abs
       logical :: have_src
+      logical :: have_src_grad
       logical :: have_adv
       type(darcy_impes_cv_options_type) :: sfield_cv_options
    end type darcy_impes_generic_prog_sfield_type
@@ -254,7 +256,7 @@ module darcy_impes_assemble_module
       type(scalar_field)     :: cv_mass_pressure_mesh_with_porosity   
       type(scalar_field)     :: cv_mass_pressure_mesh_with_old_porosity   
       type(scalar_field)     :: inverse_cv_sa_pressure_mesh
-      type(scalar_field)     :: work_array_of_size_pressure_mesh
+      type(scalar_field)     :: work_field
       type(scalar_field)     :: modified_relative_permeability
       type(scalar_field), pointer :: constant_zero_sfield_pmesh
       type(scalar_field), pointer :: constant_zero_sfield_elementwisemesh
@@ -380,7 +382,7 @@ module darcy_impes_assemble_module
       logical :: form_new_subcycle_relperm_face_values
       
       ewrite(1,*) 'Start Darcy IMPES assemble and solve part one'
-                  
+
       ! Calculate the latest CV mass on the pressure mesh with porosity included
       call compute_cv_mass(di%positions, di%cv_mass_pressure_mesh_with_porosity, di%porosity)      
       
@@ -692,29 +694,29 @@ module darcy_impes_assemble_module
       ewrite(1,*) 'Add rate of change of porosity to global continuity equation'
       
       ! Add rate of change of porosity to rhs.  First, -dpor = por{n} - por{n+1}
-      call set(di%work_array_of_size_pressure_mesh, &
+      call set(di%work_field, &
            di%cv_mass_pressure_mesh_with_old_porosity)
-      call addto(di%work_array_of_size_pressure_mesh, &
+      call addto(di%work_field, &
            di%cv_mass_pressure_mesh_with_porosity, scale = -1.0)
       ! then rhs += -dpor/dt
       call addto(di%pressure_rhs, &
-           di%work_array_of_size_pressure_mesh, scale = 1.0/di%dt)
+           di%work_field, scale = 1.0/di%dt)
       ewrite(2,*) '      -dpor, norm2 = ', &
-           norm2(di%work_array_of_size_pressure_mesh, di%positions)
+           norm2(di%work_field, di%positions)
       ewrite(2,*) '      1/dt = ', 1.0/di%dt
       ewrite(2,*) '      Resulting pressure_rhs, norm2 = ', &
            norm2(di%pressure_rhs, di%positions)
       
       if (have_dual .and. solve_dual_pressure) then
          ! repeat 
-         call set(di_dual%work_array_of_size_pressure_mesh, &
+         call set(di_dual%work_field, &
               di_dual%cv_mass_pressure_mesh_with_old_porosity)
-         call addto(di_dual%work_array_of_size_pressure_mesh, &
+         call addto(di_dual%work_field, &
               di_dual%cv_mass_pressure_mesh_with_porosity, scale = -1.0)
          call addto(di_dual%pressure_rhs, di_dual%&
-              work_array_of_size_pressure_mesh, scale = 1.0/di%dt)
+              work_field, scale = 1.0/di%dt)
          ewrite(2,*) '      Dual p-field.  -dpor, norm2 = ', &
-              norm2(di_dual%work_array_of_size_pressure_mesh, di_dual%positions)
+              norm2(di_dual%work_field, di_dual%positions)
          ewrite(2,*) '      1/dt = ', 1.0/di%dt
          ewrite(2,*) '      Resulting pressure_rhs, norm2 = ', &
               norm2(di_dual%pressure_rhs, di_dual%positions)
@@ -2571,7 +2573,8 @@ dot_product((grad_pressure_face_quad(:,ggi) - di%cached_face_value%den(ggi,vele,
          call addto(di%lhs, di%generic_prog_sfield(f)%sfield_abs)         
          
       end if
-      
+
+      ! TODO: work around the divide-by-dt
       call addto(di%lhs, 1.0/di%dt)            
       call scale(di%lhs, di%cv_mass_pressure_mesh_with_porosity)
       call scale(di%lhs, di%saturation(p)%ptr)
@@ -2581,22 +2584,54 @@ dot_product((grad_pressure_face_quad(:,ggi) - di%cached_face_value%den(ggi,vele,
       call scale(di%rhs, di%cv_mass_pressure_mesh_with_old_porosity)
       call scale(di%rhs, di%old_saturation(p)%ptr)
       call scale(di%rhs, di%generic_prog_sfield(f)%old_sfield)
-      
-      ! Add source to rhs   
+
+      ! Add source to rhs. 
       if (di%generic_prog_sfield(f)%have_src) then
+         ewrite(2,*) 'Adding '//trim(di%generic_prog_sfield(f)%sfield%name)//&
+              '_old source to RHS'
          
-         call compute_cv_mass(di%positions, di%cv_mass_pressure_mesh_with_source, di%generic_prog_sfield(f)%sfield_src)
-         
+         call compute_cv_mass(di%positions, &
+              di%cv_mass_pressure_mesh_with_source, &
+              di%generic_prog_sfield(f)%sfield_src)
          call addto(di%rhs, di%cv_mass_pressure_mesh_with_source)
          
+         if (di%generic_prog_sfield(f)%have_src_grad) then
+            ! if source gradient (dsrc/dscalar) is present, apply the
+            ! linearisation: src_new = src_old + (dsrc/dscalar)*(scalar_new -
+            ! scalar_old).  (dsrc/dscalar)*scalar_new gets subtracted from the
+            ! LHS; everything else, i.e. src_old - (dsrc/dscalar)*scalar_old,
+            ! gets added to the RHS.  We have already added src_old at this
+            ! point.
+            ewrite(2,*) 'Subtracting (dsrc/d'//&
+                 trim(di%generic_prog_sfield(f)%sfield%name)//')*'//&
+                 trim(di%generic_prog_sfield(f)%sfield%name)//'_old from RHS'
+            call zero(di%work_field)
+            call addto(di%work_field, di%generic_prog_sfield(f)%old_sfield)
+            call scale(di%work_field, di%generic_prog_sfield(f)%sfield_src_grad)
+            call compute_cv_mass(di%positions, &
+                 di%cv_mass_pressure_mesh_with_source, di%work_field)
+            call addto(di%rhs, di%cv_mass_pressure_mesh_with_source, scale=-1.)
+         end if
       end if
-            
+      
       ! Add diagonal lhs to matrix
       call addto_diag(di%matrix, di%lhs)
+
+      if (di%generic_prog_sfield(f)%have_src .and. &
+           di%generic_prog_sfield(f)%have_src_grad) then
+         ewrite(2,*) 'Subtracting (dsrc/d'//&
+              trim(di%generic_prog_sfield(f)%sfield%name)//')*'//&
+              trim(di%generic_prog_sfield(f)%sfield%name)//'_new from LHS'
+         call compute_cv_mass(di%positions, &
+              di%cv_mass_pressure_mesh_with_source, &
+              di%generic_prog_sfield(f)%sfield_src_grad)
+         call addto_diag(di%matrix, &
+              di%cv_mass_pressure_mesh_with_source, scale=-1.)
+      end if
       
       ! Add implicit low order advection and diffusion terms to matrix and rhs
       if (di%generic_prog_sfield(f)%have_adv .or. di%generic_prog_sfield(f)%have_diff) then
-         
+
          call darcy_impes_assemble_generic_prog_sfield_adv_diff(di, f, p)
       
       end if

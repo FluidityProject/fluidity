@@ -2,12 +2,15 @@
 ## PARAMETERS 
 
 case_name = 'darcy_impes_mms_p1_2phase_quadraticrelperm'
-mesh_type_list = ['curved_irreg']
+mesh_type_list = ['irreg']
 mesh_res_list_1D = ['10', '20', '40', '80']
 mesh_res_list_2D = ['10', '20', '40']
-mesh_res_list_3D = ['10', '20']
+# mesh_res_list_3D = ['10', '20']
+# mesh_res_list_2D = []
+mesh_res_list_3D = []
 field_list = ['Phase1::Pressure', 
-              'Phase2::Saturation']         # [1]
+              'Phase2::Saturation',         # [1]
+              'Phase2::Tracer']
 norm_list = ['2']
 
 reference_mesh_res = 5
@@ -42,7 +45,7 @@ test_helper = ManufacturedSolutionTestSuite(
     reference_mesh_res=reference_mesh_res,
     reference_time_step_number=reference_time_step_number,
     command_line_in_xml=command_line_in_xml, rate_threshold=0.7,
-    python_verbosity=1)
+    python_verbosity=1, simulator_verbosity=2)
 
 # pass client commands
 for arg in argv[1:]:
