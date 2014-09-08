@@ -2538,7 +2538,7 @@ contains
             real, parameter :: wv=1.0, ws=0.0 ! volume off-diagonal and surface weights, respectively
 ! LINEAR_HIGHORDER_DIFFUSION is the switch for the high-order linear scheme...
 !            LOGICAL, PARAMETER ::  LINEAR_HIGHORDER_DIFFUSION = .TRUE. 
-            LOGICAL, PARAMETER ::  LINEAR_HIGHORDER_DIFFUSION = .FALSE. 
+            LOGICAL ::  LINEAR_HIGHORDER_DIFFUSION  
 
         !
         ! Variables used to reduce indirect addressing...
@@ -2743,7 +2743,10 @@ contains
 !         SIMPLE_DIFF_CALC = .FALSE. ! Need switches for this
 
          SIMPLE_DIFF_CALC = have_option( '/material_phase[0]/vector_field::Velocity/prognostic/spatial_discretisation/discontinuous_galerkin/viscosity_scheme/linear_scheme' )
-         if ( .not.SIMPLE_DIFF_CALC ) then
+         LINEAR_HIGHORDER_DIFFUSION=have_option( '/material_phase[0]/vector_field::Velocity/prognostic/spatial_discretisation/discontinuous_galerkin/viscosity_scheme/linear_scheme/high_order' )
+
+         if (LINEAR_HIGHORDER_DIFFUSION) SIMPLE_DIFF_CALC=.false.
+         if ( .not. SIMPLE_DIFF_CALC ) then
     call get_option( '/material_phase[0]/vector_field::Velocity/prognostic/spatial_discretisation/discontinuous_galerkin/viscosity_scheme/nonlinear_scheme/beta_viscosity_min', DIFF_MIN_FRAC, default=0.2 )
     call get_option( '/material_phase[0]/vector_field::Velocity/prognostic/spatial_discretisation/discontinuous_galerkin/viscosity_scheme/nonlinear_scheme/beta_viscosity_max', DIFF_MAX_FRAC, default=100. )
          end if
