@@ -1674,7 +1674,7 @@
         end if
 
         !Make sure that the relperm is between bounds
-        KR = min(max(1d-15, KR),Krmax)!Lower value just to make sure we do not divide by zero.
+        KR = min(max(1d-8, KR),Krmax)!Lower value just to make sure we do not divide by zero.
         ABSP = INV_PERM * (VISC * max(1d-5,SATURATION)) / KR !The value 1d-5 is only used if the boundaries have values of saturation of zero.
         !Otherwise, the saturation should never be zero, since immobile fraction is always bigger than zero.
 
@@ -1997,7 +1997,7 @@
         Implicit none
         real, intent(in) :: sat, Pe, a, Own_irr, Other_irr
         !Local
-        real, parameter :: tol = 1d-4
+        real, parameter :: tol = 1d-3
 
         Get_capPressure = &
         Pe * max(min((sat - Own_irr) / (1.0 - Own_irr - Other_irr), 1.0), tol) ** (-a)
@@ -2540,6 +2540,10 @@
          end do
 
       end do
+
+      call deallocate(velocity_BCs)
+      call deallocate(volfrac_BCs)
+      deallocate(wic_u_bc, wic_vol_bc)
 
       return
     end subroutine calculate_SUF_SIG_DIAGTEN_BC
