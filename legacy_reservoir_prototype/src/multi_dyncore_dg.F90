@@ -5909,6 +5909,19 @@ contains
                   END DO
                END DO
 
+               NN_MAT12_INV = NN_MAT12
+               CALL INVERT(NN_MAT12_INV)
+               DO IDIM=1,NDIM
+                  INV_NNX_MAT12(IDIM,:,:) = MATMUL( NN_MAT12_INV(:,:), NNX_MAT12(IDIM,:,:) )
+               END DO
+               S_INV_NNX_MAT12=0.0
+
+               DO U_SILOC=1,U_SNLOC
+                  U_ILOC=U_SLOC2LOC(U_SILOC) 
+                  U_ILOC2=U_OTHER_LOC(U_ILOC)
+                  S_INV_NNX_MAT12( 1:NDIM, U_SILOC, : )   = 0.5*( INV_NNX_MAT12( 1:NDIM, U_ILOC, : ) + INV_NNX_MAT12( 1:NDIM, U_ILOC2+U_NLOC, : ) )
+               END DO
+
             ELSE ! IF(.NOT.ON_BOUNDARY) THEN
                DO U_SILOC=1,U_SNLOC
                   U_ILOC=U_SLOC2LOC(U_SILOC) 
@@ -5928,30 +5941,19 @@ contains
                   NN_MAT12(I,I)=1.0
                END DO
 
+               NN_MAT12_INV = NN_MAT12
+               CALL INVERT(NN_MAT12_INV)
+               DO IDIM=1,NDIM
+                  INV_NNX_MAT12(IDIM,:,:) = MATMUL( NN_MAT12_INV(:,:), NNX_MAT12(IDIM,:,:) )
+               END DO
+               S_INV_NNX_MAT12=0.0
+
+               DO U_SILOC=1,U_SNLOC
+                  U_ILOC=U_SLOC2LOC(U_SILOC) 
+                  S_INV_NNX_MAT12( 1:NDIM, U_SILOC, : )   =INV_NNX_MAT12( 1:NDIM, U_ILOC, : )
+               END DO
+
             ENDIF ! IF(.NOT.ON_BOUNDARY) THEN ELSE
-
-
-
-            NN_MAT12_INV = NN_MAT12
-            CALL INVERT(NN_MAT12_INV)
-            DO IDIM=1,NDIM
-               INV_NNX_MAT12(IDIM,:,:) = MATMUL( NN_MAT12_INV, NNX_MAT12(IDIM,:,:) )
-            END DO
-     
-        S_INV_NNX_MAT12=0.0
-
-        IF(.NOT.ON_BOUNDARY) THEN
-            DO U_SILOC=1,U_SNLOC
-               U_ILOC=U_SLOC2LOC(U_SILOC) 
-               U_ILOC2=U_OTHER_LOC(U_ILOC)
-               S_INV_NNX_MAT12( 1:NDIM, U_SILOC, : )   = 0.5*( INV_NNX_MAT12( 1:NDIM, U_ILOC, : ) + INV_NNX_MAT12( 1:NDIM, U_ILOC2+U_NLOC, : ) )
-            END DO
-        ELSE
-            DO U_SILOC=1,U_SNLOC
-               U_ILOC=U_SLOC2LOC(U_SILOC) 
-               S_INV_NNX_MAT12( 1:NDIM, U_SILOC, : )   =INV_NNX_MAT12( 1:NDIM, U_ILOC, : )
-            END DO
-        ENDIF
 
 
            RETURN
