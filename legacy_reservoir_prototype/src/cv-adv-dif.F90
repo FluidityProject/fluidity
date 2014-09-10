@@ -7325,8 +7325,8 @@ end if
 
                 DO I=1,U_SNLOC
                     DO SGI=1,SBCVNGI
-                       DO IDIM=1,NDIM 
                        DO IPHASE=1,NPHASE
+                       DO IDIM=1,NDIM 
 !                            print *,'IDIM, IPHASE, U_SILOC, U_JLOC12:',IDIM, IPHASE, U_SILOC, U_JLOC12
 !                          STRESS_IJ_ELE_EXT( IDIM, IDIM, IPHASE, U_SILOC, U_JLOC12 ) = STRESS_IJ_ELE_EXT( IDIM, IDIM, IPHASE, U_SILOC, U_JLOC12 ) &
                           STRESS_IJ_ELE_EXT( 1,1, IPHASE, U_SILOC, U_JLOC12 ) = STRESS_IJ_ELE_EXT( 1,1, IPHASE, U_SILOC, U_JLOC12 ) &
