@@ -7227,23 +7227,23 @@ end if
     REAL, DIMENSION( NDIM, NDIM,NDIM, NPHASE, SBCVNGI), intent( in ) :: DIFF_GI_ADDED
     REAL, DIMENSION( NDIM, SBCVNGI ), intent( in ) :: SNORMXN_ALL
 ! local variables...
-    REAL, DIMENSION( : , :, :, : ), allocatable :: DIFF_GI, DIFF_GI2
-    REAL, DIMENSION( : , : ), allocatable :: DIFF_VOL_GI, DIFF_VOL_GI2
+    REAL, DIMENSION(NDIM,NDIM,NPHASE,SBCVNGI) :: DIFF_GI, DIFF_GI2
+    REAL, DIMENSION(NPHASE,SBCVNGI) :: DIFF_VOL_GI, DIFF_VOL_GI2
 
     INTEGER :: CV_KLOC,CV_KLOC2,MAT_KLOC,MAT_KLOC2,MAT_NODK,MAT_NODK2,IDIM,JDIM,CV_SKLOC
     INTEGER :: SGI,IPHASE,U_ILOC_EXT,U_JLOC12,I,J, U_SILOC, U_SJLOC
 
 
-          ALLOCATE( DIFF_GI(NDIM,NDIM,NPHASE,SBCVNGI) )
-          ALLOCATE( DIFF_GI2(NDIM,NDIM,NPHASE,SBCVNGI) )
+!          ALLOCATE( DIFF_GI(NDIM,NDIM,NPHASE,SBCVNGI) )
+!          ALLOCATE( DIFF_GI2(NDIM,NDIM,NPHASE,SBCVNGI) )
 
-          ALLOCATE( DIFF_VOL_GI(NPHASE,SBCVNGI) )
-          ALLOCATE( DIFF_VOL_GI2(NPHASE,SBCVNGI) )
+!          ALLOCATE( DIFF_VOL_GI(NPHASE,SBCVNGI) )
+!          ALLOCATE( DIFF_VOL_GI2(NPHASE,SBCVNGI) )
 
           DIFF_GI = 0.0
           DIFF_VOL_GI = 0.0
-          DO CV_SKLOC = 1, CV_SNLOC
-             DO SGI=1,SBCVNGI
+          DO SGI=1,SBCVNGI
+             DO CV_SKLOC = 1, CV_SNLOC
                 DO IPHASE=1, NPHASE
                    DIFF_GI( 1:NDIM , 1:NDIM, IPHASE, SGI ) = DIFF_GI( 1:NDIM , 1:NDIM, IPHASE, SGI ) &
                      + SBCVFEN(CV_SKLOC,SGI) * SLOC_UDIFFUSION( 1:NDIM , 1:NDIM , IPHASE, CV_SKLOC )
@@ -7260,8 +7260,8 @@ end if
 ! neighbouring element...
              DIFF_GI2 = 0.0
              DIFF_VOL_GI2 = 0.0
-             DO CV_SKLOC = 1, CV_SNLOC
-                DO SGI=1,SBCVNGI
+             DO SGI=1,SBCVNGI
+                DO CV_SKLOC = 1, CV_SNLOC
                    DO IPHASE=1, NPHASE
                       DIFF_GI2( 1:NDIM, 1:NDIM, IPHASE, SGI )= DIFF_GI2( 1:NDIM, 1:NDIM, IPHASE, SGI ) +SBCVFEN(CV_SKLOC,SGI) &
                         *SLOC2_UDIFFUSION(1:NDIM, 1:NDIM ,IPHASE, CV_SKLOC)
@@ -7302,11 +7302,11 @@ end if
 
 
        IF(STRESS_FORM) THEN
-          DO U_SILOC=1,U_SNLOC
-             DO U_JLOC12=1,U_NLOC*2
+          DO SGI=1,SBCVNGI
+             DO U_SILOC=1,U_SNLOC
+                DO U_JLOC12=1,U_NLOC*2
 
-                DO I=1,U_SNLOC
-                    DO SGI=1,SBCVNGI
+                    DO I=1,U_SNLOC
                        DO IPHASE=1,NPHASE
 ! take -ve as its a surface integral...
           CALL CALC_STRESS_TEN( STRESS_IJ_ELE_EXT( :, :, IPHASE, U_SILOC, U_JLOC12 ), ZERO_OR_TWO_THIRDS, NDIM, &
@@ -7320,11 +7320,11 @@ end if
 
        ELSE ! tensor form of viscocity...
 
-          DO U_SILOC=1,U_SNLOC
-             DO U_JLOC12=1,U_NLOC*2
+          DO SGI=1,SBCVNGI
+             DO U_SILOC=1,U_SNLOC
+                DO U_JLOC12=1,U_NLOC*2
 
-                DO I=1,U_SNLOC
-                    DO SGI=1,SBCVNGI
+                   DO I=1,U_SNLOC
                        DO IPHASE=1,NPHASE
                        DO IDIM=1,NDIM 
 !                            print *,'IDIM, IPHASE, U_SILOC, U_JLOC12:',IDIM, IPHASE, U_SILOC, U_JLOC12
