@@ -229,16 +229,16 @@
       integer, dimension (31) :: StorageIndexes
       !Distribution of the indexes of StorageIndexes:
       !cv_fem_shape_funs_plus_storage: 1 (ASSEMB_FORCE_CTY), 13 (CV_ASSEMB)
-      !CALC_ANISOTROP_LIM            : 2
-      !DG_DERIVS_ALL2                : 3
+      !CALC_ANISOTROP_LIM            : 2 (DETNLXR_PLUS_U_WITH_STORAGE in the inside, maybe 14 as well?)
+      !DG_DERIVS_ALL2                : 3 (DETNLXR_PLUS_U_WITH_STORAGE in the inside, maybe 14 as well?)
       !DETNLXR_INVJAC                : 4
-      !UNPACK_LOC                    : 5,6,7,8,9,10
-      !COLOR_GET_CMC_PHA             : 11
+      !UNPACK_LOC                    : 5,6,7,8,9,10 (disabled)
+      !COLOR_GET_CMC_PHA             : 11 (can be optimised, now it is not using only pointers)
       !Matrix C                      : 12
-      !DG_DERIVS_ALL                 : 14
+      !DG_DERIVS_ALL                 : 14 (DETNLXR_PLUS_U_WITH_STORAGE in the inside)
       !DETNLXR_PLUS_U_WITH_STORAGE   : 14
       !Indexes used in SURFACE_TENSION_WRAPPER (deprecated and will be removed):[15,30]
-      !PROJ_CV_TO_FEM_state          : 31
+      !PROJ_CV_TO_FEM_state          : 31 (disabled)
 
       !Working pointers
       real, dimension(:,:), pointer :: SAT_s, OldSAT_s, FESAT_s
@@ -685,7 +685,7 @@
 
 !print *, '  NEW ITS', its
 
-        !To force the recalculation of all the variables, uncomment the following line:
+        !To force the recalculation of all the stored variables uncomment the following line:
 !        call Clean_Storage(state, StorageIndexes)
 
 
@@ -1316,8 +1316,6 @@
 !!$                       timestep, not_to_move_det_yet = .true. )
 
                   call run_diagnostics( state )
-                   !Mesh has changed!
-                    call Clean_Storage(state, StorageIndexes)
                end if Conditional_Adapt_by_TimeStep
 
             elseif( have_option( '/mesh_adaptivity/prescribed_adaptivity' ) ) then !!$ Conditional_Adaptivity:
@@ -1340,8 +1338,7 @@
                        timestep, not_to_move_det_yet = .true. )
 
                   call run_diagnostics( state )
-                   !Mesh has changed!
-                    call Clean_Storage(state, StorageIndexes)
+
                end if Conditional_Adapt_by_Time
 
                not_to_move_det_yet = .false.
@@ -1354,12 +1351,16 @@
             call deallocate(multicomponent_state)
             call pack_multistate(state,packed_state,&
                  multiphase_state,multicomponent_state)
+
 !        !If we are using adaptive time stepping, backup_state needs also to be redone
 !        if (nonLinearAdaptTs) then
 !            call deallocate(backup_state)
 !            call pack_multistate(state,backup_state,&
 !                 multiphase_state,multicomponent_state)
 !        end if
+
+            !The storaged variables must be recalculated
+            call Clean_Storage(state, StorageIndexes)
 
 !!$ Deallocating array variables:
             deallocate( &

@@ -32,10 +32,17 @@ module multiphase_caching
 
   use spud
 
+
   implicit none
 
   integer :: cache_level=0
 
+  interface reshape_vector2pointer
+      module procedure reshape_vector2pointer_A
+      module procedure reshape_vector2pointer_B
+      module procedure reshape_vector2pointer_C
+      module procedure reshape_vector2pointer_D
+  end interface reshape_vector2pointer
 contains
 
   subroutine set_caching_level()
@@ -51,6 +58,81 @@ contains
     end if
 
   end subroutine set_caching_level
+
+
+#ifdef USING_GFORTRAN
+    !These subroutines are used to avoid problems with the reshaping under intel compilers.
+    subroutine reshape_vector2pointer_A(vector, pointr, dim1,dim2)
+    implicit none
+    real, dimension(:,:), pointer, intent(inout) :: pointr
+    real, dimension(:), intent(in), target :: vector
+    integer, intent(in) :: dim1, dim2
+        pointr(1:dim1,1:dim2) => vector
+    end subroutine reshape_vector2pointer_A
+
+    subroutine reshape_vector2pointer_B(vector, pointr,dim1,dim2,dim3)
+    implicit none
+    real, dimension(:,:,:), pointer, intent(inout) :: pointr
+    real, dimension(:), intent(in), target :: vector
+    integer, intent(in) :: dim1, dim2, dim3
+        pointr(1:dim1,1:dim2,1:dim3) => vector
+    end subroutine reshape_vector2pointer_B
+
+    subroutine reshape_vector2pointer_C(vector, pointr, dim1,dim2)
+    implicit none
+    integer, dimension(:,:), pointer, intent(inout) :: pointr
+    integer, dimension(:), intent(in), target :: vector
+    integer, intent(in) :: dim1, dim2
+        pointr(1:dim1,1:dim2) => vector
+    end subroutine reshape_vector2pointer_C
+
+    subroutine reshape_vector2pointer_D(vector, pointr,dim1,dim2,dim3)
+    implicit none
+    integer, dimension(:,:,:), pointer, intent(inout) :: pointr
+    integer, dimension(:), intent(in), target :: vector
+    integer, intent(in) :: dim1, dim2, dim3
+        pointr(1:dim1,1:dim2,1:dim3) => vector
+    end subroutine reshape_vector2pointer_D
+
+#else
+    subroutine reshape_vector2pointer_A(vector, pointr, dim1,dim2)
+    implicit none
+    real, dimension(:,:), pointer, intent(inout) :: pointr
+    real, dimension(:), intent(in) :: vector
+    integer, intent(in) :: dim1, dim2
+        if (.not. associated(pointr)) allocate(pointr(dim1,dim2))
+        pointr(1:dim1,1:dim2) = reshape(vector,[dim1,dim2])
+    end subroutine reshape_vector2pointer_A
+
+    subroutine reshape_vector2pointer_B(vector, pointr, dim1,dim2,dim3)
+    implicit none
+    real, dimension(:,:,:), pointer, intent(inout) :: pointr
+    real, dimension(:), intent(in) :: vector
+    integer, intent(in) :: dim1, dim2, dim3
+        if (.not. associated(pointr)) allocate(pointr(dim1,dim2,dim3))
+        pointr(1:dim1,1:dim2,1:dim3) = reshape(vector,[dim1,dim2,dim3])
+    end subroutine reshape_vector2pointer_B
+
+    subroutine reshape_vector2pointer_C(vector, pointr, dim1,dim2)
+    implicit none
+    integer, dimension(:,:), pointer, intent(inout) :: pointr
+    integer, dimension(:), intent(in) :: vector
+    integer, intent(in) :: dim1, dim2
+        if (.not. associated(pointr)) allocate(pointr(dim1,dim2))
+        pointr(1:dim1,1:dim2) = reshape(vector,[dim1,dim2])
+    end subroutine reshape_vector2pointer_C
+
+    subroutine reshape_vector2pointer_D(vector, pointr, dim1,dim2,dim3)
+    implicit none
+    integer, dimension(:,:,:), pointer, intent(inout) :: pointr
+    integer, dimension(:), intent(in) :: vector
+    integer, intent(in) :: dim1, dim2, dim3
+        if (.not. associated(pointr)) allocate(pointr(dim1,dim2,dim3))
+        pointr(1:dim1,1:dim2,1:dim3) = reshape(vector,[dim1,dim2,dim3])
+    end subroutine reshape_vector2pointer_D
+
+#endif
+
 
 
 end module multiphase_caching

@@ -43,9 +43,9 @@
     use global_parameters, only: option_path_len, is_overlapping
     use Fields_Allocates, only : allocate
     use fields_data_types, only: mesh_type, scalar_field
-    use multiphase_caching, only: cache_level
+    use multiphase_caching, only: cache_level, reshape_vector2pointer
 
-  contains
+ contains
 
 
     subroutine re2dn4( lowqua, ngi, ngi_l, nloc, mloc, &
@@ -1220,6 +1220,7 @@
               !Now we insert them in state and store the indexes
               call insert(state(1), targ_Store, StorName)
               call deallocate (targ_Store)
+!              call deallocate (Auxmesh)
               !Store index with a negative value, because if the index is
               !zero or negative then we have to calculate stuff
               indx = -size(state(1)%scalar_fields)
@@ -1416,7 +1417,7 @@
     END SUBROUTINE DETNLXR
 
 
-    SUBROUTINE DETNLXR_INVJAC_PLUS_STORAGE( ELE, X_ALL, XONDGL, TOTELE, NONODS, NLOC, NGI, &
+    SUBROUTINE DETNLXR_INVJAC_plus_storage( ELE, X_ALL, XONDGL, TOTELE, NONODS, NLOC, NGI, &
          N, NLX_ALL, WEIGHT, DETWEI, RA, VOLUME, DCYL, &
          NX_ALL,&
          NDIM, INV_JAC, state, StorName, indx )
@@ -1441,9 +1442,6 @@
       type(mesh_type), pointer :: fl_mesh
       type(mesh_type) :: Auxmesh
       type(scalar_field), target :: targ_NX_ALL
-!      type(scalar_field), target :: targ_INV_JAC
-!      type(scalar_field), target :: targ_DETWEI_RA
-!      type(scalar_field), target :: targ_VOLUME
       !#########Storing area#################################
       !If new mesh or mesh moved indx will be zero (set in Multiphase_TimeLoop)
 
@@ -1466,6 +1464,7 @@
          
          !Now we insert them in state and store the indexes
          call insert(state(1), Targ_NX_ALL, StorName)
+!         call deallocate (Auxmesh)
          !Store index with a negative value, because if the index is
          !zero or negative then we have to calculate stuff
          indx = -size(state(1)%scalar_fields)
@@ -1475,8 +1474,10 @@
        !Get from state, indx is an input
        if (btest(cache_level,0)) then
          from = 1+NDIM*NLOC*NGI*(ELE-1); to = NDIM*NLOC*NGI*ELE
-         NX_ALL(1:NDIM,1:NLOC,1:NGI) => &
-              state(1)%scalar_fields(abs(indx))%ptr%val(from:to)
+         call reshape_vector2pointer(state(1)%scalar_fields(abs(indx))%ptr%val(from:to),&
+         NX_ALL, NDIM, NLOC, NGI)
+!         NX_ALL(1:NDIM,1:NLOC,1:NGI) => &
+!              state(1)%scalar_fields(abs(indx))%ptr%val(from:to)
          jump = NDIM*NLOC*NGI*totele
          from = jump + 1+(ELE-1)*(NGI+NDIM*NDIM); to = jump + ELE*(NGI*NDIM*NDIM)
          INV_JAC(1:NDIM,1:NDIM,1:NGI)  => &
@@ -1519,7 +1520,7 @@
          NDIM, INV_JAC)
 
 
-    END SUBROUTINE DETNLXR_INVJAC_PLUS_STORAGE
+    END SUBROUTINE DETNLXR_INVJAC_plus_storage
 
 
 

@@ -489,11 +489,10 @@
          INTEGER, PARAMETER :: MX_NCOLOR = 1000
          REAL, PARAMETER :: INFINY = 1.0E+10
          LOGICAL :: LCOL
-         LOGICAL, DIMENSION( : ), allocatable :: COLOR_LOGICAL
-         INTEGER, DIMENSION( : ), allocatable :: ICOLOR
+         LOGICAL, DIMENSION( CV_NONODS ) :: COLOR_LOGICAL
+         INTEGER, DIMENSION( CV_NONODS ) :: ICOLOR
          INTEGER, DIMENSION( : ), allocatable :: COLOR_IN_ROW, COLOR_IN_ROW2
-         REAL, DIMENSION( :, : ), allocatable :: COLOR_VEC_MANY, CMC_COLOR_VECC_MANY, CMC_COLOR_VEC2C_MANY
-         REAL, DIMENSION( :, : ), allocatable :: CDPC_MANY
+         REAL, DIMENSION( :, : ), allocatable :: COLOR_VEC_MANY
          REAL, DIMENSION( :, :, :, : ), allocatable :: CDP_MANY, DU_LONG_MANY
          REAL, DIMENSION( :, : ), allocatable :: CMC_COLOR_VEC_MANY, CMC_COLOR_VEC2_MANY
          INTEGER :: CV_NOD, CV_JNOD, COUNT, COUNT2, COUNT3, IDIM, IPHASE, CV_COLJ, U_JNOD, CV_JNOD2
@@ -506,8 +505,6 @@
          type(scalar_field), target :: targ_icolor
          real, pointer, dimension(:) :: pointer_icolor
 
-         ALLOCATE( ICOLOR( CV_NONODS ) ) 
-
          CMC = 0.0
          IF ( IGOT_CMC_PRECON /= 0 ) CMC_PRECON = 0.0
 
@@ -518,94 +515,93 @@
 
          ALLOCATE( COLOR_IN_ROW( MAX_COLOR_IN_ROW**2 ) ) 
          ALLOCATE( COLOR_IN_ROW2( MAX_COLOR_IN_ROW**2 ) ) 
-
          IF ( indx /= 0 ) THEN!coloring stored
 
              pointer_icolor =>  state(1)%scalar_fields(indx)%ptr%val
-            !Recover the calculated coloring
-            ICOLOR = pointer_icolor(1:CV_NONODS)
-            NCOLOR = pointer_icolor(CV_NONODS+1)
+             !Recover the calculated coloring
+             !THIS IS NOT EFFICIENT, IF WE FINALLY DECIDE TO USE ONLY THE FAST VERSION
+             !WE SHOULD CONVERT ICOLOR AND NCOLOR INTO POINTERS!
+             ICOLOR = pointer_icolor(1:CV_NONODS)
+             NCOLOR = pointer_icolor(CV_NONODS+1)
          ELSE
 
-            !Prepare the variable inside state
-         if (has_scalar_field(state(1), "Col_fast")) then
-              !If we are recalculating due to a mesh modification then
-              !we return to the original situation
-              call remove_scalar_field(state(1), "Col_fast")
-          end if
-          !Get mesh file just to be able to allocate the fields we want to store
-          fl_mesh => extract_mesh( state(1), "CoordinateMesh" )
-          Auxmesh = fl_mesh
-          !The number of nodes I want does not coincide
-          Auxmesh%nodes = CV_NONODS+1!in the +1 we store NCOLOR
-          call allocate (targ_icolor, Auxmesh)
-          !Now we insert them in state and store the index
-          call insert(state(1), targ_icolor, "Col_fast")
-          call deallocate (targ_icolor)
-          indx = size(state(1)%scalar_fields)
-          !Get from state
-          pointer_icolor =>  state(1)%scalar_fields(indx)%ptr%val
+                !Prepare the variable inside state
+             if (has_scalar_field(state(1), "Col_fast")) then
+                 !If we are recalculating due to a mesh modification then
+                 !we return to the original situation
+                 call remove_scalar_field(state(1), "Col_fast")
+             end if
+             !Get mesh file just to be able to allocate the fields we want to store
+             fl_mesh => extract_mesh( state(1), "CoordinateMesh" )
+             Auxmesh = fl_mesh
+             !The number of nodes I want does not coincide
+             Auxmesh%nodes = CV_NONODS+1!in the +1 we store NCOLOR
+             call allocate (targ_icolor, Auxmesh)
+             !Now we insert them in state and store the index
+             call insert(state(1), targ_icolor, "Col_fast")
+             call deallocate (targ_icolor)
+             !          call deallocate(Auxmesh)
+             indx = size(state(1)%scalar_fields)
+             !Get from state
+             pointer_icolor =>  state(1)%scalar_fields(indx)%ptr%val
 
 
 
 
 
+             COLOR_LOGICAL = .FALSE.
 
-         ALLOCATE( COLOR_LOGICAL( CV_NONODS ) )
-         COLOR_LOGICAL = .FALSE.
+             NCOLOR=0
+             ICOLOR = 0
+             Loop_CVNOD7: DO CV_NOD = 1, CV_NONODS
+                 ! Color this node CV_NOD
 
-         NCOLOR=0
-         ICOLOR = 0
-         Loop_CVNOD7: DO CV_NOD = 1, CV_NONODS
-! Color this node CV_NOD
+                 MX_COLOR=0
+                 ! use a distance-2 colouring...
+                 Loop_Row7: DO COUNT = FINDCMC( CV_NOD ), FINDCMC( CV_NOD + 1 ) - 1
+                     CV_JNOD = COLCMC( COUNT )
+                     Loop_Row2: DO COUNT2 = FINDCMC( CV_JNOD ), FINDCMC( CV_JNOD + 1 ) - 1
+                         CV_JNOD2 = COLCMC( COUNT2 )
+                         IF(CV_NOD.NE.CV_JNOD2) THEN
+                             NOD_COLOR=ICOLOR(CV_JNOD2)
+                             IF(NOD_COLOR.NE.0) THEN
+                                 COLOR_LOGICAL( NOD_COLOR ) = .TRUE.
+                                 MX_COLOR=MAX(MX_COLOR, NOD_COLOR )
+                             ENDIF
+                         ENDIF
+                     END DO Loop_Row2
+                 END DO Loop_Row7
 
-               MX_COLOR=0
-               ! use a distance-2 colouring...
-               Loop_Row7: DO COUNT = FINDCMC( CV_NOD ), FINDCMC( CV_NOD + 1 ) - 1
-                  CV_JNOD = COLCMC( COUNT )
-                  Loop_Row2: DO COUNT2 = FINDCMC( CV_JNOD ), FINDCMC( CV_JNOD + 1 ) - 1
-                     CV_JNOD2 = COLCMC( COUNT2 )
-                     IF(CV_NOD.NE.CV_JNOD2) THEN
-                        NOD_COLOR=ICOLOR(CV_JNOD2)
-                        IF(NOD_COLOR.NE.0) THEN
-                           COLOR_LOGICAL( NOD_COLOR ) = .TRUE.
-                           MX_COLOR=MAX(MX_COLOR, NOD_COLOR )
-                        ENDIF
+                 ! Find the node colour to use...
+                 ICAN_COLOR = 0
+                 DO I=1,MX_COLOR
+                     IF(.NOT.COLOR_LOGICAL(I)) THEN ! This is a colour we can use...
+                         ICAN_COLOR = I
+                         EXIT
                      ENDIF
-                  END DO Loop_Row2
-               END DO Loop_Row7
-
-! Find the node colour to use...
-               ICAN_COLOR = 0
-               DO I=1,MX_COLOR
-                  IF(.NOT.COLOR_LOGICAL(I)) THEN ! This is a colour we can use...
-                     ICAN_COLOR = I
-                     EXIT
-                  ENDIF
-               END DO
-               IF(ICAN_COLOR == 0) THEN
-                  ICAN_COLOR =MX_COLOR + 1
-               ENDIF
-               ICOLOR(CV_NOD)=ICAN_COLOR
-               NCOLOR=MAX(NCOLOR,ICAN_COLOR)
-! Reset the colors for the next node...
-               COLOR_LOGICAL(1:max(1,MX_COLOR))=.FALSE.
-
-         END DO Loop_CVNOD7
+                 END DO
+                 IF(ICAN_COLOR == 0) THEN
+                     ICAN_COLOR =MX_COLOR + 1
+                 ENDIF
+                 ICOLOR(CV_NOD)=ICAN_COLOR
+                 NCOLOR=MAX(NCOLOR,ICAN_COLOR)
+                 ! Reset the colors for the next node...
+                 COLOR_LOGICAL(1:max(1,MX_COLOR))=.FALSE.
+             END DO Loop_CVNOD7
 
 
 
 
 
 
-            IF ( NCOLOR > MX_NCOLOR ) THEN
-               EWRITE(-1, *) 'NOT ENOUGH COLOURS STOPPING - NEED TO MAKE MX_COLOR BIGGER'
-               STOP 281
-            END IF
+             IF ( NCOLOR > MX_NCOLOR ) THEN
+                 EWRITE(-1, *) 'NOT ENOUGH COLOURS STOPPING - NEED TO MAKE MX_COLOR BIGGER'
+                 STOP 281
+             END IF
 
-            !##Store the calculated coloring##
-            pointer_icolor(1:CV_NONODS) = ICOLOR
-            pointer_icolor(CV_NONODS+1) = NCOLOR
+             !##Store the calculated coloring##
+             pointer_icolor(1:CV_NONODS) = ICOLOR
+             pointer_icolor(CV_NONODS+1) = NCOLOR
 
          END IF ! SAVED_CMC_COLOR
 
@@ -647,7 +643,7 @@
                  C, NCOLC, FINDC, COLC )
          END IF
 
-         DEALLOCATE( DU_LONG_MANY )
+
 
          ! Matrix vector involving the mass diagonal term
          DO CV_NOD = 1, CV_NONODS
@@ -697,6 +693,12 @@
                END IF
             END DO
          END IF
+
+
+        IF ( IGOT_CMC_PRECON /= 0 ) deallocate(CMC_COLOR_VEC2_MANY)
+
+        deallocate(COLOR_IN_ROW, COLOR_IN_ROW2 )
+        deallocate(COLOR_VEC_MANY,CMC_COLOR_VEC_MANY, CDP_MANY, DU_LONG_MANY)
 
          RETURN
        END SUBROUTINE COLOR_GET_CMC_PHA_FAST

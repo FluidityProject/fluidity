@@ -3590,24 +3590,43 @@ subroutine allocate_multicomponent_scalar_bcs(s,ms,name)
     end function GetFEMName
 
 
-    subroutine Clean_Storage(state, StorageIndexes)
+    subroutine Clean_Storage(state, StorageIndexes, ignore_var)
         !This subroutine removes all the storage controlled by StorageIndexes
         Implicit none
         type(state_type), dimension(:), intent(inout) :: state
         integer, dimension(:), intent(inout) :: StorageIndexes
+        character (len=*), intent(in), optional :: ignore_var
         !Local variables
         character (len = 100) :: StorName
-        integer :: maxpos
+        integer :: maxpos, ignored_var_pos, i
 
-        do while (maxval(abs(StorageIndexes)) > 0)
-            maxpos = maxloc(StorageIndexes, dim =1)
-            StorName = trim(state(1)%scalar_names(StorageIndexes(maxpos)))
-            call remove_scalar_field(state(1), trim(StorName))
-            StorageIndexes(maxpos) = 0
-        end do
-        !Just in case
-        StorageIndexes = 0
+        if (.not.present(ignore_var)) then
+            !This loop is the most robust, so by default we still use this one
+            do while (maxval(abs(StorageIndexes)) > 0)
+                maxpos = maxloc(StorageIndexes, dim =1)
+                StorName = trim(state(1)%scalar_names(StorageIndexes(maxpos)))!This lines is
+                call remove_scalar_field(state(1), trim(StorName))           !failing for Xie when using adaptive meshing
+                StorageIndexes(maxpos) = 0
+            end do
+            !Just in case
+            StorageIndexes = 0
+        else
+            !Backward loop, otherwise the indexes in
+            !StorageIndexes and State may become unconsistent
+            do i = size(StorageIndexes,1), 1,-1
+                StorName = trim(state(1)%scalar_names(StorageIndexes(i)))
+                if (trim(StorName)==trim(ignore_var)) then
+                    ignored_var_pos = i!Get StorageIndex of the field we want to save
+                else
+                    call remove_scalar_field(state(1), trim(StorName))
+                    StorageIndexes(i) = 0
+                end if
+            end do
+            !Store new position of that field
+            StorageIndexes(ignored_var_pos) = get_state_index(state, trim(ignore_var))
+        end if
     end subroutine Clean_Storage
+
 
   end module Copy_Outof_State
 

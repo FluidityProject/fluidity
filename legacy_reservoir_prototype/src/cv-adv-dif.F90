@@ -2778,7 +2778,7 @@ end if
                                  !zero or negative then we have to calculate stuff
                                  call deallocate(targ_fieldToStore)
                                  deallocate(targ_fieldToStore)
-                                 deallocate(auxmesh)
+!                                 deallocate(auxmesh)
                                  indx = -size(state(1)%scalar_fields)
 
                                   !Store in state

@@ -1685,9 +1685,10 @@
           Auxmesh%shape%loc =1!nodes times %loc is the size of the array I want to store
           call allocate (targ_Storage%mesh, Auxmesh%nodes, Auxmesh%nodes,Auxmesh%shape, name="StorageMesh" )
           !Now we insert them in state and store the index
-          call insert(state(1), targ_Storage%mesh, "StorageMesh")
+!          call insert(state(1), targ_Storage%mesh, "StorageMesh")
           call insert(state(1), targ_Storage, StorName)
           call deallocate (targ_Storage)
+!          call deallocate (Auxmesh)
           indx = size(state(1)%scalar_fields)
 
       end if
@@ -1848,7 +1849,7 @@
               colgpts2( cv_nloc * scvngi ), sele_overlap_scale2( cv_nloc ))
           
               findgpts2 = 0; colgpts2= 0; ncolgpts2 = 0
-          
+
               call cv_fem_shape_funs( &
               ndim, cv_ele_type, &
               cv_ngi, cv_ngi_short, cv_nloc, u_nloc, cvn2, cvn_short2, &
@@ -1993,7 +1994,7 @@
       integer, intent( inout ) :: ncolgpts
       real, dimension( : ), intent( inout ) :: sele_overlap_scale
       ! Local variables
-      logical, dimension( :, : ), allocatable :: u_on_face2, ufem_on_face2
+      logical, dimension( :, : ), allocatable :: ufem_on_face2
       integer, dimension( :, : ), allocatable :: u_sloclist2
       real, dimension( :, : ), allocatable :: ufen2, ufenlx2, ufenly2, ufenlz2, &
            sufen2, sufenslx2, sufensly2, sufenlx2, sufenly2, sufenlz2, &
@@ -8045,6 +8046,7 @@ ewrite(3,*)'lll:', option_path_len
          !zero or negative then we have to calculate stuff
          indx = -size(state(1)%scalar_fields)
          call deallocate (Targ_NX_ALL)
+!         call deallocate(Auxmesh)
 
       end if
 
