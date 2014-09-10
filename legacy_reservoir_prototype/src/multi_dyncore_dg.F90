@@ -49,6 +49,7 @@ module multiphase_1D_engine
     use Copy_Outof_State, only: as_vector
     use fldebug
     use solvers
+    use multiphase_caching, only: reshape_vector2pointer
 
     implicit none
 
@@ -565,7 +566,7 @@ contains
 
         ELSE ! this is for DG...
 
-            !TEMPORAL
+            !TEMPORARY
             allocate(ACV(NCOLACV))
 
 
@@ -657,7 +658,7 @@ contains
         REAL, DIMENSION ( :, :, : ), allocatable :: RZERO, T_IN, TOLD_IN
         REAL, DIMENSION ( : ), allocatable :: RDUM
         REAL, DIMENSION ( :, : ), allocatable :: RDUM2
-        REAL, DIMENSION ( :, :, : ), allocatable :: RDUM3
+        REAL, DIMENSION ( :, :, : ), pointer :: RDUM3
         REAL, DIMENSION ( :, :, :, : ), allocatable :: RDUM4
         INTEGER, DIMENSION ( : ), allocatable :: IDUM,IZERO
 
@@ -755,10 +756,12 @@ contains
         allocate( told_in( ndim_in, nphase_in, u_nonods ) ) ; told_in(1,1,:) = t
 
         ALLOCATE( IZERO2( NPHASE_IN,STOTEL ) ) ; IZERO2 = 0
-        ALLOCATE( RDUM3( NPHASE_IN,CV_SNLOC,STOTEL ) ) ; RDUM3 = 0.
+!        ALLOCATE( RDUM3( NPHASE_IN,CV_SNLOC,STOTEL ) ) ; RDUM3 = 0.
         ALLOCATE( RDUM4( 1,1,1,1 ) ) ; RDUM4 = 0.
         ALLOCATE( TDIFFUSION_VOL( NPHASE, MAT_NONODS ) ) ; TDIFFUSION_VOL = 0.
 
+        !Currently RDUM3 has been set to be a pointer, this means considering how the storage method is
+        !that it will point to the C matrix. However, this should not affect
         CALL ASSEMB_FORCE_CTY( state, packed_state, &
              velocity,pressure, &
         NDIM, NPHASE_IN, U_NLOC, X_NLOC, CV_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
@@ -1215,7 +1218,8 @@ contains
         MCY_RHS, MCY, &
         CMC, CMC_PRECON, MASS_MN_PRES, MASS_CV, P_RHS, UP, U_RHS_CDP, DP, &
         UP_VEL, DGM_PHA, DIAG_P_SQRT, ACV
-        REAL, DIMENSION( :, :, : ), allocatable :: PIVIT_MAT, C, CDP, CT, U_RHS, DU_VEL, U_RHS_CDP2
+        REAL, DIMENSION( :, :, : ), allocatable :: PIVIT_MAT, CDP, CT, U_RHS, DU_VEL, U_RHS_CDP2
+        real, dimension( : , :, :), pointer :: C
         INTEGER :: CV_NOD, COUNT, CV_JNOD, IPHASE, ele, x_nod1, x_nod2, x_nod3, cv_iloc, &
         cv_nod1, cv_nod2, cv_nod3, mat_nod1, u_iloc, u_nod, u_nod_pha, ndpset
         REAL :: der1, der2, der3, uabs, rsum, xc, yc
@@ -1256,7 +1260,7 @@ contains
         ALLOCATE( DIAG_SCALE_PRES( CV_NONODS )) ; DIAG_SCALE_PRES=0.
         ALLOCATE( U_RHS( NDIM, NPHASE, U_NONODS )) ; U_RHS=0.
         ALLOCATE( MCY_RHS( NDIM * NPHASE * U_NONODS + CV_NONODS )) ; MCY_RHS=0.
-        ALLOCATE( C( NDIM, NPHASE, NCOLC )) ; C=0.
+!        ALLOCATE( C( NDIM, NPHASE, NCOLC )) ; C=0.
         ALLOCATE( MCY( NCOLMCY )) ; MCY=0.
         ALLOCATE( CMC( NCOLCMC )) ; CMC=0.
         ALLOCATE( CMC_PRECON( NCOLCMC*IGOT_CMC_PRECON)) ; IF(IGOT_CMC_PRECON.NE.0) CMC_PRECON=0.
@@ -1735,7 +1739,7 @@ contains
         DEALLOCATE( DIAG_SCALE_PRES )
         DEALLOCATE( U_RHS )
         DEALLOCATE( MCY_RHS )
-        DEALLOCATE( C )
+!        DEALLOCATE( C )
         DEALLOCATE( MCY )
         DEALLOCATE( CMC )
         DEALLOCATE( MASS_MN_PRES )
@@ -1983,7 +1987,7 @@ contains
         INTEGER, DIMENSION( : ), intent( in ) :: MIDM
         REAL, DIMENSION( :, :, : ), intent( inout ) :: U_RHS
         REAL, DIMENSION( : ), intent( inout ) :: MCY_RHS
-        REAL, DIMENSION( :, :, : ), intent( inout ) :: C
+        REAL, DIMENSION( :, :, : ), pointer, intent( inout ) :: C
         REAL, DIMENSION( :, :, : ), intent( inout ), allocatable :: CT
         REAL, DIMENSION( : ), intent( inout ) :: MASS_MN_PRES
         REAL, DIMENSION( : ), intent( inout ) :: CT_RHS
@@ -2396,7 +2400,7 @@ contains
         REAL, DIMENSION( NPHASE, CV_NONODS*max(1,IDIVID_BY_VOL_FRAC+IGOT_VOL_X_PRESSURE) ), intent( in ) :: FEM_VOL_FRAC
         REAL, intent( in ) :: DT
         REAL, DIMENSION( :, :, : ), intent( inout ) :: U_RHS
-        REAL, DIMENSION( :, :, : ), intent( inout ) :: C
+        REAL, DIMENSION( :, :, : ), pointer, intent( inout ) :: C
         INTEGER, DIMENSION( : ), intent( in ) :: FINDC
         INTEGER, DIMENSION( : ), intent( in ) :: COLC
         REAL, DIMENSION( : ), intent( inout ) :: DGM_PHA
@@ -2662,7 +2666,6 @@ contains
         type(mesh_type), pointer :: fl_mesh
         type(mesh_type) :: Auxmesh
         type(scalar_field), target :: Targ_C_Mat
-        real, dimension(:,:,:), pointer :: Point_C_Mat
         !Capillary pressure variables
         logical :: capillary_pressure_activated
 !! femdem
@@ -2761,12 +2764,7 @@ contains
 
         !If we do not have an index where we have stored C, then we need to calculate it
         got_c_matrix  = StorageIndexes(12)/=0
-        if (got_c_matrix) then
-            !Get from state
-            Point_C_Mat(1:size(C,1),1:size(C,2),1:size(C,3)) =>&
-            state(1)%scalar_fields(StorageIndexes(12))%ptr%val
-            C = Point_C_Mat
-        else
+        if (.not.got_c_matrix) then
             !Prepare stuff to store C in state
             if (has_scalar_field(state(1), "C_MAT")) then
                 !If we are recalculating due to a mesh modification then
@@ -2777,21 +2775,21 @@ contains
             fl_mesh => extract_mesh( state(1), "CoordinateMesh" )
             Auxmesh = fl_mesh
             !The number of nodes I want does not coincide
-            Auxmesh%nodes = size(C,1) * size(C,2) * size(C,3)
+            Auxmesh%nodes = NDIM * NPHASE * NCOLC
             call allocate (Targ_C_Mat, Auxmesh)
 
             !Now we insert them in state and store the index
             call insert(state(1), Targ_C_Mat, "C_MAT")
             StorageIndexes(12) = size(state(1)%scalar_fields)
             call deallocate (Targ_C_Mat)
-
-            !Get from state
-            Point_C_Mat(1:size(C,1),1:size(C,2),1:size(C,3)) =>&
-            state(1)%scalar_fields(StorageIndexes(12))%ptr%val
-            Point_C_Mat = 0.
+!            call deallocate(Auxmesh)
+            !Initilize it to zero
+            state(1)%scalar_fields(StorageIndexes(12))%ptr%val = 0.
         end if
 
-
+        !Get from state
+        call reshape_vector2pointer(state(1)%scalar_fields(&
+        StorageIndexes(12))%ptr%val, C, NDIM, NPHASE, NCOLC)
 
         ewrite(3,*) 'In ASSEMB_FORCE_CTY'
 
@@ -4095,7 +4093,6 @@ contains
                         !Prepare aid variable NMX_ALL to improve the speed of the calculations
                         NMX_ALL( : ) = matmul(CVFENX_ALL(:,P_JLOC,:),&
                            DETWEI( : ) *UFEN( U_ILOC, : ))
-
                         Loop_Phase1: DO IPHASE = 1, NPHASE
 
                             ! Put into matrix
@@ -5687,11 +5684,6 @@ contains
             DEALLOCATE( DIAG_BIGM_CON )
             DEALLOCATE( BIGM_CON)
         ENDIF
-
-        !If C was not stored in state, after its calculation we store it.
-        if (.not.got_c_matrix) then
-            Point_C_Mat = C
-        end if
 
 
         !ewrite(3,*)'p=',p
@@ -8683,108 +8675,6 @@ contains
 
         return
     end subroutine linearise_field
-
-
-    subroutine Proj_capillary_pressure2FEM(state, packed_state, FEMCAP, X_ALL, FINDM, COLM, MIDM,&
-    mass_ele, cv_ndgln, cv_nloc, cv_snloc, u_snloc, cv_nonods, ncolm,&
-    nphase, totele, x_ndgln, x_nloc, x_nonods, P_ELE_TYPE, u_nloc, StorageIndexes)
-        !This subroutine projects the CV representation of the capillary pressure to FEM
-        !Everything is internal
-        Implicit none
-        type( state_type ), dimension( : ), intent( inout ) :: state
-        type( state_type ), intent( inout ) :: packed_state
-        REAL, DIMENSION( :, : ), intent( in ) :: X_ALL
-        INTEGER, DIMENSION( : ), intent( in ) :: FINDM
-        INTEGER, DIMENSION( : ), intent( in ) :: COLM
-        INTEGER, DIMENSION( : ), intent( in ) :: MIDM
-        real, dimension(:), intent(inout) :: mass_ele
-        integer, dimension(:), intent(in) :: cv_ndgln, x_ndgln
-        integer, intent(in) :: cv_nloc, cv_nonods, ncolm, nphase, totele, x_nloc, x_nonods,&
-        P_ELE_TYPE, u_nloc, cv_snloc, u_snloc
-        type(tensor_field), intent(out), target :: FEMCAP
-        !Local variables
-        integer :: ndim, cv_ngi, cv_ngi_short,scvngi, nface, sbcvngi
-        type(tensor_field_pointer), dimension(1) :: psi,fempsi
-        type(vector_field_pointer), dimension(1) :: psi_int,  psi_ave
-        logical :: QUAD_OVER_WHOLE_ELE
-        type(tensor_field), pointer :: tfield_pointer
-        type(scalar_field), pointer :: sfield_pointer
-        type(vector_field), target :: vfield, vfield2
-        integer, dimension(:) :: StorageIndexes
-        logical, dimension(  : , : ), allocatable :: cv_on_face, cvfem_on_face, u_on_face, ufem_on_face
-        !Pointers for cv_fem_shape_funs_plus_storage
-        integer, pointer :: ncolgpts
-        integer, dimension(:), pointer ::findgpts,colgpts
-        integer, dimension(:,:), pointer :: cv_neiloc, cv_sloclist, u_sloclist
-        real, dimension( : ), pointer :: cvweight,cvweight_short, scvfeweigh,sbcvfeweigh,&
-        SELE_OVERLAP_SCALE
-        real, dimension( : , : ), pointer:: cvn,cvn_short, cvfen, cvfen_short,ufen,&
-        scvfen, scvfenslx, scvfensly, sufen, sufenslx, sufensly,&
-        sbcvn,sbcvfen, sbcvfenslx, sbcvfensly, sbufen, sbufenslx, sbufensly
-        real, dimension(  : , : , :), pointer ::  cvfenlx_all, cvfenlx_short_all, ufenlx_all,&
-        scvfenlx_all, sufenlx_all, sbcvfenlx_all, sbufenlx_all
-
-
-        !#####Area to obtain shape functions#####
-        ndim = size(X_ALL,1)
-        !We calculate (store/retrieve) the shape functions as it is done in cv-adv-diff (same Storage Index)
-        QUAD_OVER_WHOLE_ELE = .false. ! Do NOT divide element into CV's to form quadrature.
-        !if (StorageIndexes(1) == 0) &
-        call retrieve_ngi( ndim, P_ELE_TYPE, cv_nloc, u_nloc, &
-           cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface, QUAD_OVER_WHOLE_ELE )
-        ALLOCATE( CV_ON_FACE( CV_NLOC, SCVNGI ), CVFEM_ON_FACE( CV_NLOC, SCVNGI ))
-        ALLOCATE( U_ON_FACE( U_NLOC, SCVNGI ), UFEM_ON_FACE( U_NLOC, SCVNGI ))
-
-        CALL cv_fem_shape_funs_plus_storage( &
-                                ! Volume shape functions...
-           NDIM, P_ELE_TYPE,  &
-           CV_NGI, CV_NGI_SHORT, CV_NLOC, U_NLOC, CVN, CVN_SHORT, &
-           CVWEIGHT, CVFEN, CVFENLX_ALL, &
-           CVWEIGHT_SHORT, CVFEN_SHORT, CVFENLX_SHORT_ALL, &
-           UFEN, UFENLX_ALL, &
-                                ! Surface of each CV shape functions...
-           SCVNGI, CV_NEILOC, CV_ON_FACE, CVFEM_ON_FACE, &
-           SCVFEN, SCVFENSLX, SCVFENSLY, SCVFEWEIGH, &
-           SCVFENLX_ALL,  &
-           SUFEN, SUFENSLX, SUFENSLY,  &
-           SUFENLX_ALL,  &
-                                ! Surface element shape funcs...
-           U_ON_FACE, UFEM_ON_FACE, NFACE, &
-           SBCVNGI, SBCVN, SBCVFEN,SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, SBCVFENLX_ALL, &
-           SBUFEN, SBUFENSLX, SBUFENSLY, SBUFENLX_ALL, &
-           CV_SLOCLIST, U_SLOCLIST, CV_SNLOC, U_SNLOC, &
-                                ! Define the gauss points that lie on the surface of the CV...
-           FINDGPTS, COLGPTS, NCOLGPTS, &
-           SELE_OVERLAP_SCALE, QUAD_OVER_WHOLE_ELE,&
-!           state, 'Vel_mesh', StorageIndexes(13))
-           state, 'Press_mesh' , StorageIndexes(1) )
-         !#####Area to obtain shape functions#####
-
-         sfield_pointer=>extract_scalar_field(packed_state,"Pressure")
-         call allocate(FEMCAP, sfield_pointer%mesh, dim = [1,NPHASE])
-
-         tfield_pointer => extract_tensor_field( packed_state, "PackedCapPressure" )
-         psi(1)%ptr => tfield_pointer
-         fempsi(1)%ptr => FEMCAP
-         !Create dummys for psi_int and psi_ave since we are not interested in them
-         call allocate(vfield, NPHASE, sfield_pointer%mesh)
-         psi_int(1)%ptr => vfield
-         call allocate(vfield2, NPHASE, sfield_pointer%mesh)
-         psi_ave(1)%ptr => vfield2
-
-        !Project to FEM
-          PSI(1)%ptr%option_path = "/material_phase[0]/scalar_field::Pressure"
-          call PROJ_CV_TO_FEM_state( packed_state, FEMPSI, PSI, size(X_ALL,1), &
-               PSI_AVE, PSI_INT, MASS_ELE, &
-               CV_NONODS, TOTELE, CV_NDGLN, X_NLOC, X_NDGLN, &
-               CV_NGI_short, CV_NLOC, CVN_short, CVWEIGHT_short, &
-               CVFEN_short, CVFENLX_short_ALL,X_NONODS, X_ALL, NCOLM, FINDM, COLM, MIDM, &
-               0, PSI_AVE(1)%ptr%val(1,:), FINDM, COLM, NCOLM )! <=== Dummy variables, not used inside
-
-        !Deallocate auxiliar variables
-        call deallocate(vfield); call deallocate(vfield2)
-        deallocate(cv_on_face, cvfem_on_face, u_on_face, ufem_on_face)
-    end subroutine Proj_capillary_pressure2FEM
 
 
     subroutine Introduce_Cap_press_term(state, packed_state, X_ALL, LOC_U_RHS, ele, x_nloc,FACE_ELE,&
