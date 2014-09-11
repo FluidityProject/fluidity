@@ -1656,7 +1656,7 @@
         type(corey_options), intent(in) :: opt
         ! Local variables...
         REAL :: KR, VISC, SATURATION, Krmax
-
+        real, parameter :: epsilon = 1d-5
         !Kr_max should only multiply the wetting phase,
         !however as we do not know if it is phase 1 or 2, we let the decision to the user
         !and we multiply both phases by kr_max. By default kr_max= 1
@@ -1674,7 +1674,7 @@
         end if
 
         !Make sure that the relperm is between bounds
-        KR = min(max(1d-8, KR),Krmax)!Lower value just to make sure we do not divide by zero.
+        KR = min(max(epsilon, KR),Krmax)!Lower value just to make sure we do not divide by zero.
         ABSP = INV_PERM * (VISC * max(1d-5,SATURATION)) / KR !The value 1d-5 is only used if the boundaries have values of saturation of zero.
         !Otherwise, the saturation should never be zero, since immobile fraction is always bigger than zero.
 
@@ -1997,7 +1997,7 @@
         Implicit none
         real, intent(in) :: sat, Pe, a, Own_irr, Other_irr
         !Local
-        real, parameter :: tol = 1d-3
+        real, parameter :: tol = 1d-2
 
         Get_capPressure = &
         Pe * max(min((sat - Own_irr) / (1.0 - Own_irr - Other_irr), 1.0), tol) ** (-a)

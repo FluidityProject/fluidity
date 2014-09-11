@@ -1268,7 +1268,8 @@
          new_mesh = do_reallocate_fields
 
          Conditional_ReallocatingFields: if( do_reallocate_fields ) then
-
+            !The storaged variables must be recalculated
+            call Clean_Storage(state, StorageIndexes)
             Conditional_Adaptivity: if( have_option( '/mesh_adaptivity/hr_adaptivity ') ) then
 
                Conditional_Adapt_by_TimeStep: if( mod( itime, adapt_time_steps ) == 0 ) then
@@ -1359,8 +1360,7 @@
 !                 multiphase_state,multicomponent_state)
 !        end if
 
-            !The storaged variables must be recalculated
-            call Clean_Storage(state, StorageIndexes)
+
 
 !!$ Deallocating array variables:
             deallocate( &
