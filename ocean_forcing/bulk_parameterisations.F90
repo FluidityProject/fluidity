@@ -565,12 +565,12 @@ real, intent (inout) :: zu, zt, zq, jwave
 
 
 real :: hwave
-real :: x(19), y(30), hnet(30), hl_webb(30)
+real :: x(19), y(30)
 real :: u, tsnk, ta, qa, rs, rl, org, lat, msp
 real :: jcool
 real :: a, b, cd, cdn_10, ce, cen_10, ch, chn_10
-real :: dqer, dter, hlb, hsb
-integer :: ibg, l, le
+real :: dqer, dter, hlb, hsb, L, Le
+integer :: ibg
 real :: p, q, qs, qsr, rain, rf,rgas
 real :: rhoa, rnl, rns, t, taub, tdk, intime, tkt, ts, tsea
 real :: tsr, twave, us, usr, visa, wbar, wg, zi, zo, zoq, zot
@@ -624,8 +624,6 @@ do ibg = 1, points
     t=ta !air temp
     qs=qsee(tsea, P) !bulk sea surface humidity
     q=qa !air humidity
-    Rs=rs !downward solar flux
-    Rl=rl !doward IR flux
     rain=org !rain rate
 
 !*********   set condition dependent stuff ******
@@ -673,10 +671,6 @@ do ibg = 1, points
     Wg=y(22) 
 
 
-    !**********  new values from this code
-    hnet(ibg)=Rns-Rnl-hsb-hlb-RF !total heat input to ocean
-    hl_webb=rhoa*Le*wbar*qa/1000 
-
     ! OUR OUTPUT HERE - DO WE WANT ANY MORE OUTUPUT, IS Cdn, Chn and Cen stuff correct at 10
     hf_array(ibg) = y(1)
     ef_array(ibg) = y(2)
@@ -701,12 +695,10 @@ subroutine cor30a(x,y)
 implicit none
 
 real x(19), y(22)
-real u,us,ts,t,Qs,Q,Rs,Rl,rain,zi,P,zu,zt,zq,lat,jcool,twave,hwave
-real Beta,von,fdg,tdk,grav,Rgas,Le,cpa,cpv,rhoa,visa,Al,be,cpw,rhow,visw,tcw,bigc,wetc
-real lwave,cwave,Rns,Rnl,du,dt,dq,qout,dels,qcol,alq,xlamx,alfac,bf,cc,cd10,ch10,charn,ct,ct10,dtmp,dwat,hl_webb
+real Beta,von,fdg,tdk,grav,cpa,cpv,visa,Al,be,cpw,rhow,visw,tcw,bigc,wetc
+real lwave,cwave,du,dt,dq,qout,dels,qcol,alq,xlamx,alfac,bf,cc,cd10,ch10,charn,ct,ct10,dtmp,dwat,hl_webb
 real jwave, l10,pi,ribcu,ribu,rr,ta,u10,ut,zet,zetu,zo10,zot10
-real hsb, hlb, tau, zo, zot, zoq, L, usr, tsr, qsr, dter, dqer, tkt, RF, wbar, Cd, Ch, Ce, Cdn_10, Chn_10, Cen_10, ug 
-real p30
+real tau, ug
 integer i,nits
 
 u=x(1) !wind speed (m/s)  at height zu (m)

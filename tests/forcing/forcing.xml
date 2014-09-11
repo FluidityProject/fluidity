@@ -107,9 +107,11 @@ FinalSalinityMinp1dg = fluidity_tools.stat_parser("forcing-ncar.stat")['Fluid'][
 assert FinalTimeCoare ==1440 
     </test>
     <test name="Coare: Final temperature integral has decreased" language="python">
-        assert((FinalTemperatureIntegralCoare - FirstTemperatureIntegralCoare) &gt; 10)
+print FinalTemperatureIntegralCoare
+assert((FinalTemperatureIntegralCoare - FirstTemperatureIntegralCoare) &gt; 10)
     </test>
     <test name="Coare: Final velocity%magnitude max has increased" language="python">
+print FinalVelocityMagnitudeMaxCoare
 assert(FinalVelocityMagnitudeMaxCoare &gt; 0.0)
     </test>
     <test name="Coare: Final Salinity min less than 35" language="python">
@@ -120,9 +122,11 @@ assert FinalSalinityMinCoare &lt; 35
 assert FinalTimeNcar ==1440 
     </test>
     <test name="Ncar: Final temperature integral has decreased" language="python">
-        assert((FinalTemperatureIntegralNcar - FirstTemperatureIntegralNcar) &gt; 10)
+print FinalTemperatureIntegralNcar
+assert((FinalTemperatureIntegralNcar - FirstTemperatureIntegralNcar) &gt; 10)
     </test>
     <test name="Ncar: Final velocity%magnitude max has increased" language="python">
+print FinalVelocityMagnitudeMaxNcar
 assert(FinalVelocityMagnitudeMaxNcar &gt; 0.0)
     </test>
     <test name="Ncar: Final Salinity min less than 35" language="python">
@@ -133,9 +137,11 @@ assert FinalSalinityMinNcar &lt; 35
 assert FinalTimeKara ==1440 
     </test>
     <test name="Kara: Final temperature integral has decreased" language="python">
-        assert((FinalTemperatureIntegralKara - FirstTemperatureIntegralKara) &gt; 10)
+print FinalTemperatureIntegralKara
+assert((FinalTemperatureIntegralKara - FirstTemperatureIntegralKara) &gt; 10)
     </test>
     <test name="Kara: Final velocity%magnitude max has increased" language="python">
+print FinalVelocityMagnitudeMaxKara
 assert(FinalVelocityMagnitudeMaxKara &gt; 0.0)
     </test>
     <test name="Kara: Final Salinity min less than 35" language="python">
