@@ -20,10 +20,6 @@ import threading
 import xml.parsers.expat
 import string
 
-# make sure we use the correct version of regressiontest
-sys.path.insert(0, os.path.join(os.getcwd(), os.path.dirname(sys.argv[0]), os.pardir, "python"))
-import fluidity.regressiontest as regressiontest
-
 try:
   import xml.etree.ElementTree as etree
 except ImportError:
@@ -46,8 +42,6 @@ class TestHarness:
         self.justtest = justtest
         self.valgrind = valgrind
         self.genpbs = genpbs
-
-        fluidity_command = self.decide_fluidity_command()
 
         if file == "":
           print "Test criteria:"
@@ -191,55 +185,8 @@ class TestHarness:
         if self.length == "medium" and filelength == "short": return True
         return False
 
-    def decide_fluidity_command(self):
-        bindir = os.environ["PATH"].split(':')[0]
-        
-        for binaryBase in ["dfluidity", "fluidity"]:
-          binary = binaryBase
-          debugBinary = binaryBase + "-debug"
-          try:
-              fluidity_mtime = os.stat(os.path.join(bindir, binary))[-2]
-              have_fluidity = True
-          except OSError:
-              fluidity_mtime = 1e30
-              have_fluidity = False
-
-          try:
-              debug_mtime = os.stat(os.path.join(bindir, debugBinary))[-2]
-              have_debug = True
-          except OSError:
-              debug_mtime = 1e30
-              have_debug = False
-
-          if have_fluidity is True or have_debug is True:
-            if have_fluidity is False and have_debug is True:
-                flucmd = debugBinary
-
-            elif have_fluidity is True and have_debug is False:
-                flucmd = binary
-
-            elif fluidity_mtime > debug_mtime:
-                flucmd = binary
-            else:
-                flucmd = debugBinary
-
-            # no longer valid since debugging doesn't change the name - any suitable alternative tests?
-            # if self.valgrind is True:
-            #  if flucmd != debugBinary:
-            #     print "Error: you really should compile with debugging for use with valgrind!"
-            #     sys.exit(1)
-                
-            return flucmd
-              
-        return None
-
     def modify_command_line(self, nprocs):
-      flucmd = self.decide_fluidity_command()
-      print flucmd
       def f(s):
-        if not flucmd in [None, "fluidity"]:
-          s = s.replace('fluidity ', flucmd + ' ')
-
         if self.valgrind:
           s = "valgrind --tool=memcheck --leak-check=full -v" + \
               " --show-reachable=yes --num-callers=8 --error-limit=no " + \
@@ -383,6 +330,7 @@ if __name__ == "__main__":
     parser.add_option("--just-test", action="store_true", dest="justtest")
     parser.add_option("--just-list", action="store_true", dest="justlist")
     parser.add_option("--genpbs", action="store_true", dest="genpbs")
+    parser.add_option("--give-version", dest="executable", help="gives the output of running `EXECUTABLE --version` in the test environment", default=None)
     (options, args) = parser.parse_args()
 
     if len(args) > 0: parser.error("Too many arguments.")
@@ -428,14 +376,15 @@ if __name__ == "__main__":
     elif options.clean:
       testharness.clean()
     else:
-      print "-" * 80
-      which = os.popen("which %s" % testharness.decide_fluidity_command()).read()
-      if len(which) > 0:
-        print "which %s: %s" % ("fluidity", which),
-      versio = os.popen("%s -V" % testharness.decide_fluidity_command()).read()
-      if len(versio) > 0:
-        print versio
-      print "-" * 80
+      if options.executable is not None:
+        print "-" * 80
+        which = os.popen("which %s" % options.executable).read()
+        if len(which) > 0:
+          print "which %s: %s" % (options.executable, which),
+        versio = os.popen("%s --version" % options.executable).read()
+        if len(versio) > 0:
+          print versio
+        print "-" * 80
 
       if options.valgrind is True:
         print "-" * 80

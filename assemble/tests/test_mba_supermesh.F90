@@ -55,13 +55,13 @@ subroutine test_mba_supermesh
   call set_from_function(metric, nid, x_B)
   call adapt_state(states_B, metric)
 
-  call vtk_write_state("data/mba_supermesh", 0, state=states_A)
-  call vtk_write_state("data/mba_supermesh", 1, state=states_B)
+  call vtk_write_state("mba_supermesh", 0, state=states_A)
+  call vtk_write_state("mba_supermesh", 1, state=states_B)
 
   x_A => extract_vector_field(states_A(1), "Coordinate")
   x_B => extract_vector_field(states_B(1), "Coordinate")
   sup = construct_supermesh(x_A, x_B)
-  call vtk_write_fields("data/mba_supermesh", 2, sup%positions, sup%positions%mesh)
+  call vtk_write_fields("mba_supermesh", 2, sup%positions, sup%positions%mesh)
 
   call deallocate(states_A(1))
   call deallocate(states_B(1))

@@ -43,7 +43,7 @@ subroutine test_cg_interpolation
   call insert(interpolation_state_new(1), intp_new%mesh, "Mesh")
   call insert(interpolation_state_new(1), x_new, "Coordinate")
 
-  call vtk_write_state("data/cg_interpolation", 0, state=states_old)
+  call vtk_write_state("cg_interpolation", 0, state=states_old)
 
   old_integral = field_integral(intp_old, x_old)
 
@@ -51,7 +51,7 @@ subroutine test_cg_interpolation
   call deallocate(interpolation_state_old(1))
   call deallocate(interpolation_state_new(1))
   new_integral = field_integral(intp_new, x_new)
-  call vtk_write_state("data/cg_interpolation", 1, state=states_new)
+  call vtk_write_state("cg_interpolation", 1, state=states_new)
 
   fail = abs(old_integral - new_integral) > epsilon(0.0_4)
   call report_test("[cg interpolation: conservative]", fail, .false., "Should be conservative!")

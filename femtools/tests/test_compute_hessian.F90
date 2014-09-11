@@ -71,7 +71,7 @@ subroutine test_compute_hessian
 
   call report_test("[cube x, y component]", fail, warn, "X, Y component should be 0.0")
 
-  call vtk_write_fields("data/compute_hessian", 0, position_field, mesh, sfields=(/pressure_field/), &
+  call vtk_write_fields("compute_hessian", 0, position_field, mesh, sfields=(/pressure_field/), &
                         tfields=(/hessian/))
 
   call deallocate(pressure_field)

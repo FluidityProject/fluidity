@@ -26,7 +26,7 @@ void test_FluxesReader_fc() {
   char errorMessage[256];
 
   // lets first test the global file
-  data.RegisterDataFile("../../tests/data/global_fluxes.nc");
+  data.RegisterDataFile("data/global_fluxes.nc");
   data.AddFieldOfInterest(string("_2t"));
   data.SetSimulationTimeUnits("seconds since 1960-01-01 06:00:0.0");
   data.SetTimeSeconds(0);
@@ -317,12 +317,12 @@ void test_FluxesReader_fc() {
    *  or close enough
    ****************************************/
   // This tests switching files too
-  //err = data.RegisterDataFile("../../tests/data/subset_fluxes.nc"); // should fail
+  //err = data.RegisterDataFile("data/subset_fluxes.nc"); // should fail
   if (err == -1) fail = false; 
   //report_test("[test_FluxesReader: switch files]",fail,warn,"Failed to error when switching files");
   fail = true;
 
-  err = data2.RegisterDataFile("../../tests/data/subset_fluxes.nc");
+  err = data2.RegisterDataFile("data/subset_fluxes.nc");
   data2.AddFieldOfInterest(string("_2t"));
   data2.SetSimulationTimeUnits("seconds since 1960-01-01 06:00:0.0");
   data2.SetTimeSeconds(0);

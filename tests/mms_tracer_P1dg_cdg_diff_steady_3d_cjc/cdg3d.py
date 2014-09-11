@@ -24,7 +24,7 @@ def generate_meshfile(name,layers):
     file(name+".geo",'w').write(geo)
 
     os.system("gmsh -3 "+name+".geo")
-    os.system("../../bin/gmsh2triangle "+name+".msh")
+    os.system("gmsh2triangle "+name+".msh")
 
 
 def run_test(layers, binary):

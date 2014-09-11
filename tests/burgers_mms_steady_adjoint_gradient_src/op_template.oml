@@ -3,7 +3,7 @@
   <name>
     <string_value lines="1">op_template</string_value>
   </name>
-  <model command_line="../../bin/burgers_equation" option_file="mms_template.bml"/>
+  <model command_line="burgers_equation" option_file="mms_template.bml"/>
   <functional name="time_integral_ad"/>
   <optimisation_options>
     <optimisation_algorithm name="NULL"/>

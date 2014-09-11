@@ -7,9 +7,9 @@
   <tags>flml cv</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>
-../../bin/fluidity cv_mass_matrix_check_p2_1d.flml 
-../../bin/fluidity cv_mass_matrix_check_p2_2d.flml 
-../../bin/fluidity cv_mass_matrix_check_p2_3d.flml 
+fluidity cv_mass_matrix_check_p2_1d.flml
+fluidity cv_mass_matrix_check_p2_2d.flml
+fluidity cv_mass_matrix_check_p2_3d.flml
     </command_line>
     <!-- One/two/three dimensional problem for using p2 elements to soley check that the CV mass matrix is correct for one element.-->
   </problem_definition>

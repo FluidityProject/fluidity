@@ -35,7 +35,7 @@ subroutine test_curl
   call grad(field, positions, grad_field)
   call curl(grad_field, positions, curl_norm=curl_norm, curl_field=curl_field)
 
-  call vtk_write_fields("data/curl_out", 0, positions, mesh, sfields=(/field, curl_norm/), &
+  call vtk_write_fields("curl_out", 0, positions, mesh, sfields=(/field, curl_norm/), &
                                                            & vfields=(/curl_field/))
 
   

@@ -4,7 +4,7 @@
   <owner userid="ffm10"/>
   <tags>flml</tags>
   <problem_definition length="short" nprocs="1">
-    <command_line>fluidity genpvd_test.flml; ../../bin/genpvd genpvd_test_rectangle
+    <command_line>fluidity genpvd_test.flml; genpvd genpvd_test_rectangle
     </command_line>
   </problem_definition>
   <variables>

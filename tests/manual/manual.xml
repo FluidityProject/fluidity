@@ -6,7 +6,16 @@
     <command_line>true<comment>Do nothing. The test is all in the regexp searches below.</comment></command_line>
   </problem_definition>
   <variables>
-    <variable name="logfile" language="python">logfile=file("../../manual/fluidity_manual.log","r").read()</variable>
+    <variable name="logfile" language="python">import os
+import os.path
+which_fluidity = os.popen("which fluidity").read()
+manual_dir = os.path.join(os.path.dirname(which_fluidity), os.pardir, 'manual')
+if not os.path.isdir(manual_dir):
+  raise Exception("The fluidity in your PATH should be of the form &lt;build-dir&gt;/bin/fluidity, where &lt;build-dir&gt;/manual is the directory where the manual is build.")
+log_file_path = os.path.join(manual_dir, "fluidity_manual.log")
+if not os.path.isfile(log_file_path):
+  raise Exception("Cannot find fluidity_manual.log in directory %s." % manual_dir)
+logfile=file(log_file_path, "r").read()</variable>
   </variables>
   <pass_tests/>
   <warn_tests>

@@ -9,6 +9,3 @@ clean:
 	rm -rf balzano1_2plus1_? balzano1_2plus1_?? balzano1_2plus1_???
 	rm -rf *flredecomp*
 	cd mesh; rm -f  *.ele *.edge *.node *.poly *.vtu *.s *.d.1 *.stat *.detectors matrixdump* *.halo 
-config:
-	diamond -s ../../tools/fluidity_options.rng  balzano1_2plus1.flml 
-

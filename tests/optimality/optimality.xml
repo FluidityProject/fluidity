@@ -4,7 +4,7 @@
   <owner userid="pef"/>
   <tags>swml adjoint optimisation</tags>
   <problem_definition length="medium" nprocs="1">
-    <command_line> time ../../bin/optimality optimiser.oml</command_line>
+    <command_line> time optimality optimiser.oml</command_line>
   </problem_definition>
   <variables>
     <variable name="control_h_error" language="python">

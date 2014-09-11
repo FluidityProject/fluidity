@@ -24,10 +24,13 @@
 #    License along with this library; if not, write to the Free Software
 #    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 #    USA
+
+VPATH = @srcdir@
+
 SHELL = @SHELL@
 
 CPPFLAGS = @CPPFLAGS@ -I../load_balance/include \
-	-I../adapt3d/include -I../metric_field/include -I../include
+	-I../adapt3d/include -I../metric_field/include -I../include -I@srcdir@/../include
 
 F77     = @F77@
 FFLAGS  = $(CPPFLAGS) @FFLAGS@

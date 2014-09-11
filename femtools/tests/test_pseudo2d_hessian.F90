@@ -33,7 +33,7 @@ subroutine test_pseudo2d_hessian
   end do
 
   call compute_hessian(pressure_field, position_field, hessian)
-  call vtk_write_fields("data/pseudo2d_hessian", 0, position_field, mesh, sfields=(/pressure_field/), tfields=(/hessian/))
+  call vtk_write_fields("pseudo2d_hessian", 0, position_field, mesh, sfields=(/pressure_field/), tfields=(/hessian/))
 
   answer = 0.0; answer(1, 1) = 2.0
 

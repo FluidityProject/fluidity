@@ -29,8 +29,8 @@ subroutine test_matrixmarket_read_write
   
   A=random_sparse_matrix(99, 100, 1001)
     
-  call mmwrite('data/matrix2.mm', A)
-  call mmread('data/matrix2.mm', B)
+  call mmwrite('matrix2.mm', A)
+  call mmread('matrix2.mm', B)
   
   fail= .not. fequals(A, B, 1e-8)
   

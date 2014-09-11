@@ -79,14 +79,14 @@ subroutine test_halo_io
   call allocate(halo_2, nsends = (/0/), nreceives = (/1/), nprocs = 1)
   call set_halo_nowned_nodes(halo_2, 0)
   call set_halo_receives(halo_2, 1, (/1/))
-  call write_halos("data/test_halo_io_out", positions_2%mesh)
+  call write_halos("test_halo_io_out", positions_2%mesh)
   call deallocate(halo_2)  
   deallocate(positions_2%mesh%halos)
   nullify(positions_2%mesh%halos)
   
   ! Check that test output was overwritten
   call report_test("[No halos]", halo_count(positions_2) /= 0, .false., "Coordinate field has halos")
-  call read_halos("data/test_halo_io_out", positions_2)
+  call read_halos("test_halo_io_out", positions_2)
   call report_test("[Halos]", halo_count(positions_2) == 0, .false., "Coordinate field has no halos")
   call report_test("[2 halos]", halo_count(positions_2) /= 2, .false., "Coordinate field has incorrect number of halos")
   do i = 1, 2
@@ -111,11 +111,11 @@ subroutine test_halo_io
   nullify(positions_2%mesh%element_halos)
   
   ! Now write test output
-  call write_halos("data/test_halo_io_out", positions%mesh)
+  call write_halos("test_halo_io_out", positions%mesh)
   
   ! Check the test output
   call report_test("[No halos]", halo_count(positions_2) /= 0, .false., "Coordinate field has halos")
-  call read_halos("data/test_halo_io_out", positions_2)
+  call read_halos("test_halo_io_out", positions_2)
   call report_test("[Halos]", halo_count(positions_2) == 0, .false., "Coordinate field has no halos")
   call report_test("[2 halos]", halo_count(positions_2) /= 2, .false., "Coordinate field has incorrect number of halos")
   do i = 1, 2

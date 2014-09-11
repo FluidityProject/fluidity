@@ -52,7 +52,7 @@ subroutine test_vtk_precision
   type(vector_field) :: mesh_field, written_v_field
   type(vector_field), pointer :: read_v_field
   
-  filename = "data/test_vtk_precision_out.vtu"
+  filename = "test_vtk_precision_out.vtu"
   
   ! Allocate a mesh
   quad = make_quadrature(vertices = 3, dim  = 2, degree = 1)

@@ -84,8 +84,8 @@ subroutine test_solenoidal_interpolation
 
      ewrite(1,*) "After linear interpolation max value of velocity divergence",maxval(div_new)
 
-     call vtk_write_state("data/"//trim(file_B), 0, state=states_old)
-     call vtk_write_state("data/"//trim(file_B), 1, state=states_new)
+     call vtk_write_state(trim(file_B), 0, state=states_old)
+     call vtk_write_state(trim(file_B), 1, state=states_new)
     
      call solenoidal_interpolation(u_new, x_new, p_new%mesh, p_new)
   
@@ -93,7 +93,7 @@ subroutine test_solenoidal_interpolation
 
      ewrite(1,*) "After solenoidal interpolation max value of velocity divergence",maxval(div_new)
 
-     call vtk_write_state("data/"//trim(file_B), 2, state=states_new)
+     call vtk_write_state(trim(file_B), 2, state=states_new)
 
      fail = maxval(div_new) > epsilon(0.0_4)
      call report_test("[solenoidal interpolation: divergence free]", fail, .false., "Should be divergence-free!")

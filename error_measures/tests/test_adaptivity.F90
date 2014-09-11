@@ -75,7 +75,7 @@ subroutine test_adaptivity
   
   call allocate(edgelen, mesh, "Edge lengths")
   call get_edge_lengths(metric, edgelen)
-  call vtk_write_fields("data/adapt", 0, positions, mesh, sfields=(/edgelen/), vfields=(/velocity/), tfields=(/metric/))
+  call vtk_write_fields("adapt", 0, positions, mesh, sfields=(/edgelen/), vfields=(/velocity/), tfields=(/metric/))
   call deallocate(edgelen)
   
   call adapt_state(state, metric)
@@ -86,7 +86,7 @@ subroutine test_adaptivity
   mesh => extract_mesh(state, "Mesh")
   positions => extract_vector_field(state, "Coordinate")
   velocity_pointer => extract_vector_field(state, "Velocity")
-  call vtk_write_fields("data/adapt", 1, positions,  mesh, vfields=(/velocity_pointer/)) 
+  call vtk_write_fields("adapt", 1, positions,  mesh, vfields=(/velocity_pointer/)) 
 
   call report_test("[adaptivity output]", .false., .false., "Congratulations! &
                    & The output from adaptivity might even be OK if you get this far.")

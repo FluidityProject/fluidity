@@ -78,7 +78,7 @@ subroutine test_anisotropic_zz_3d
     u = extract_scalar_field(state, "U")
     positions = extract_vector_field(state, "Coordinate")
     call set_from_function(u, solution, positions)
-    call vtk_write_state("data/anisotropic_zz_3d", loop, state=(/state/))
+    call vtk_write_state("anisotropic_zz_3d", loop, state=(/state/))
   end do
 
   fail = (ele_count(positions) > 300)

@@ -43,7 +43,7 @@ subroutine test_dg_interpolation_quads
   call insert(interpolation_state_new(1), intp_new%mesh, "Mesh")
   call insert(interpolation_state_new(1), x_new, "Coordinate")
 
-  call vtk_write_state("data/dg_interpolation_quads", 0, state=states_old)
+  call vtk_write_state("dg_interpolation_quads", 0, state=states_old)
 
   old_integral = field_integral(intp_old, x_old)
 
@@ -51,7 +51,7 @@ subroutine test_dg_interpolation_quads
   call deallocate(interpolation_state_old(1))
   call deallocate(interpolation_state_new(1))
   new_integral = field_integral(intp_new, x_new)
-  call vtk_write_state("data/dg_interpolation_quads", 1, state=states_new)
+  call vtk_write_state("dg_interpolation_quads", 1, state=states_new)
 
   write(0,*) "old_integral: ", old_integral
   write(0,*) "new_integral: ", new_integral

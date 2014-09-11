@@ -62,7 +62,7 @@ subroutine compute_mesh_conformity
   call insert_mesh_conformity(state_array, metric)
   call remove_scalar_field(state_array(1), "Pressure")
   call remove_scalar_field(state_array(1), "PressureInterpolationErrorBound")
-  call vtk_write_state("data/mesh_conformity", 0, state=state_array)
+  call vtk_write_state("mesh_conformity", 0, state=state_array)
 
 
   call deallocate(metric)

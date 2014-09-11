@@ -71,14 +71,14 @@ subroutine compute_les_temp_goal
   write(0,*) "goal_les_temp(state) == ", goal_les_temp(state_array)
   call form_goal_metric(state_array, metric, goal_les_temp, goal_les_temp_grad, opts)
   call form_gradation_metric(positions, metric) 
-  call vtk_write_fields("data/goal_error_adapted", 0, positions, mesh, &
+  call vtk_write_fields("goal_error_adapted", 0, positions, mesh, &
                         vfields=(/velocity/), tfields=(/metric/))
   call adapt_state(state, metric)
   mesh => extract_mesh(state, "Mesh")
   positions => extract_vector_field(state, "Coordinate")
   velocity => extract_vector_field(state, "Velocity")
   les => extract_scalar_field(state, "Temperature")
-  call vtk_write_fields("data/goal_error_adapted", 1, positions, mesh, sfields=(/les/), &
+  call vtk_write_fields("goal_error_adapted", 1, positions, mesh, sfields=(/les/), &
                         vfields=(/velocity/))
 
   do i=1,0
@@ -91,7 +91,7 @@ subroutine compute_les_temp_goal
     state_array(1) = state
     call form_goal_metric(state_array, metric, goal_les_temp, goal_les_temp_grad, opts)
     call form_gradation_metric(positions, metric) 
-    call vtk_write_fields("data/goal_error_adapted", i+1, positions, mesh, sfields=(/les/), &
+    call vtk_write_fields("goal_error_adapted", i+1, positions, mesh, sfields=(/les/), &
                           vfields=(/velocity/), tfields=(/metric/))
     call adapt_state(state, metric) 
   end do
@@ -101,7 +101,7 @@ subroutine compute_les_temp_goal
   velocity => extract_vector_field(state, "Velocity")
   les => extract_scalar_field(state, "Temperature")
 
-  call vtk_write_fields("data/goal_error_adapted", i+2, positions,  mesh, sfields=(/les/), vfields=(/velocity/)) 
+  call vtk_write_fields("goal_error_adapted", i+2, positions,  mesh, sfields=(/les/), vfields=(/velocity/)) 
 
   state_array(1) = state
   write(0,*) "goal_les_temp(state) == ", goal_les_temp(state_array)

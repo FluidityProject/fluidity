@@ -7,6 +7,17 @@ import glob
 # removed yet, so just use that for now.
 import sha
 import StringIO
+import sys
+import os.path
+
+if len(sys.argv)!=2:
+  sys.stderr.write("""Usage: make_register_diagnostics <srcdir>
+
+    to scan <scrdir>/*/*.F90 for subroutines with the name XXX_register_diagnostics. Calls to these
+    will be created and collected in a register_diagnostics() subroutine written to a file preprocessor/register_diagnostics.F90
+""")
+
+srcdir = sys.argv[1]
 
 
 # File header
@@ -37,7 +48,7 @@ output=StringIO.StringIO()
 output.write(header)
 
 # List of fortran source files.
-fortran_files=glob.glob("*/*.F")+glob.glob("*/*.F90")
+fortran_files=glob.glob(os.path.join(srcdir, "*/*.F"))+glob.glob(os.path.join(srcdir,"*/*.F90"))
 
 module_re=re.compile(r"^\s*module\s+(\w+)\s*$",re.IGNORECASE|re.MULTILINE)
 

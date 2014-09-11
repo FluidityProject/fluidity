@@ -23,7 +23,7 @@ subroutine test_pseudo_supermesh
   call compute_pseudo_supermesh(strings, &
                               & X_init, X_supermesh)
 
-  call vtk_write_fields("data/pseudo_supermesh", 2, X_supermesh, X_supermesh%mesh)
+  call vtk_write_fields("pseudo_supermesh", 2, X_supermesh, X_supermesh%mesh)
 
   fail = (X_supermesh%refcount%count /= 1)
   call report_test("[supermesh refcount]", fail, .false., "")

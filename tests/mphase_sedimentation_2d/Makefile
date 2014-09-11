@@ -1,11 +1,11 @@
 preprocess:
 	@echo **********Creating 2D mesh
 	gmsh -2 -o mphase_sedimentation_2d.msh src/mphase_sedimentation_2d.geo
-	../../bin/gmsh2triangle --2d mphase_sedimentation_2d.msh
+	gmsh2triangle --2d mphase_sedimentation_2d.msh
 
 run:
 	@echo **********Running simulation
-	../../bin/fluidity -v2 -l mphase_sedimentation_2d.flml
+	fluidity -v2 -l mphase_sedimentation_2d.flml
 
 input: clean preprocess
 

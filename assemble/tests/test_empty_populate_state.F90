@@ -23,5 +23,5 @@ subroutine test_empty_populate_state
   fail = (vector_field_count(states(1)) == 0)
   call report_test("[empty populate state]", fail, .false., "Should have vector fields")
 
-  call vtk_write_state("data/empty_populate_state", state=states)
+  call vtk_write_state("empty_populate_state", state=states)
 end subroutine test_empty_populate_state

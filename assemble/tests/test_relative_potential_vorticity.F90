@@ -74,7 +74,7 @@ subroutine test_relative_potential_vorticity
   call allocate(rel_pv, mesh, "RelativePotentialVorticity")
   call calculate_relative_potential_vorticity(state, rel_pv)
 
-  call vtk_write_fields("data/test_relative_potential_vorticity_out", &
+  call vtk_write_fields("test_relative_potential_vorticity_out", &
     & position = positions, model = mesh, &
     & sfields = (/perturbation_density, rel_pv/), &
     & vfields = (/velocity/))

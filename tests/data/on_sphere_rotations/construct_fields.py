@@ -1,5 +1,4 @@
 import sys
-sys.path.append('../../../python/')
 import os
 import vtktools
 import scipy as sp
@@ -8,8 +7,8 @@ import GFD_basisChange_tools as GFDtools
 #Generate mesh from Gmsh .geo file, convert into triangle fromat and then
 # into vtu format.
 os.system('gmsh -3 spherical_shell.geo')
-os.system('../../../tools/gmsh2triangle.py spherical_shell.msh')
-os.system('../../../bin/triangle2vtu spherical_shell')
+os.system('gmsh2triangle.py spherical_shell.msh')
+os.system('triangle2vtu spherical_shell')
 #Open file containing mesh and extract vertex coordinates
 file = vtktools.vtu('spherical_shell.vtu')
 vertices = file.GetLocations()

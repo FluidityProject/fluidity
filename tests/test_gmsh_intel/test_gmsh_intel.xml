@@ -5,7 +5,7 @@
   <owner userid="jhill1"/>
   <tags>flml intel</tags>
   <problem_definition length="short" nprocs="1">
-      <command_line>ldd ../../bin/fluidity > ldd_output; fluidity -v1 -l boring.flml</command_line>
+      <command_line>ldd fluidity > ldd_output; fluidity -v1 -l boring.flml</command_line>
     <!-- Trigger error messgae on intel compiler. should produce output on other systems. -->
   </problem_definition>
   <variables>

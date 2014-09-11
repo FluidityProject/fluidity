@@ -50,9 +50,10 @@ subroutine test_laplacian
      end function loaddata
   end interface
   ! Arguments for handling the command line
-  character(len=256) :: filename, buf
+  character(len=256) :: filename, filename_out, buf
 
   filename = "data/laplacian_grid"
+  filename_out = "laplacian_grid"
   degree = 1
   quad_degree=2*degree
   ! meshes is the number of meshes to compare computed residuals on.
@@ -119,7 +120,7 @@ subroutine test_laplacian
   if (degree<=2.0) then
      ! Output to a vtk file.
      do mesh=solution_mesh,meshes
-       call vtk_write_state(trim(filename), index=mesh, state=(/state(mesh)/))
+       call vtk_write_state(trim(filename_out), index=mesh, state=(/state(mesh)/))
      end do
   end if
 

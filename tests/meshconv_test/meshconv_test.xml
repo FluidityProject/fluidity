@@ -4,12 +4,12 @@
   <owner userid="ffm10"/>
   <tags>exodusii</tags>
   <problem_definition length="short" nprocs="2">
-    <command_line>../../bin/meshconv -i exodusii -o gmsh rectangle; fluidity meshconv_exo2gmsh.flml;
-    ../../bin/meshconv -i exodusii -o triangle rectangle; fluidity meshconv_exo2triangle.flml; rm rectangle.node rectangle.ele rectangle.edge;
-    ../../bin/meshconv -i gmsh -o triangle rectangle; fluidity meshconv_gmsh2triangle.flml; rm rectangle.msh;
-    ../../bin/meshconv -i triangle -o gmsh rectangle; fluidity meshconv_triangle2gmsh.flml; rm rectangle.*
-    mpiexec ../../bin/meshconv -i gmsh -o triangle prectangle; mpiexec fluidity meshconv_parallel_gmsh2triangle.flml; rm prectangle_?.msh;
-    mpiexec ../../bin/meshconv -i triangle -o gmsh prectangle; mpiexec fluidity meshconv_parallel_triangle2gmsh.flml; rm prectangle*;
+    <command_line>meshconv -i exodusii -o gmsh rectangle; fluidity meshconv_exo2gmsh.flml;
+    meshconv -i exodusii -o triangle rectangle; fluidity meshconv_exo2triangle.flml; rm rectangle.node rectangle.ele rectangle.edge;
+    meshconv -i gmsh -o triangle rectangle; fluidity meshconv_gmsh2triangle.flml; rm rectangle.msh;
+    meshconv -i triangle -o gmsh rectangle; fluidity meshconv_triangle2gmsh.flml; rm rectangle.*
+    mpiexec meshconv -i gmsh -o triangle prectangle; mpiexec fluidity meshconv_parallel_gmsh2triangle.flml; rm prectangle_?.msh;
+    mpiexec meshconv -i triangle -o gmsh prectangle; mpiexec fluidity meshconv_parallel_triangle2gmsh.flml; rm prectangle*;
     </command_line>
   </problem_definition>
   <variables>

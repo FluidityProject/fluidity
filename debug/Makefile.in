@@ -25,21 +25,23 @@
 #    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 #    USA
 
+VPATH = @srcdir@
+
 SHELL = @SHELL@
 
 PACKAGE_NAME = @PACKAGE_NAME@
 FLUIDITY = $(PACKAGE_NAME)
 
 FC      = @FC@
-FCFLAGS = -I../include @MOD_FLAG@../include @CPPFLAGS@ @FCFLAGS@ -I/usr/local/include -I./
+FCFLAGS = -I../include -I@srcdir@/../include @MOD_FLAG@../include @CPPFLAGS@ @FCFLAGS@ -I/usr/local/include -I./
 
 MPIF90  = @MPIF90@
 
 CC      = @CC@
-CFLAGS  = @CPPFLAGS@ @CFLAGS@ -I../include -I/usr/local/include
+CFLAGS  = @CPPFLAGS@ @CFLAGS@ -I../include -I@srcdir@/../include -I/usr/local/include
 
 CXX     = @CXX@
-CXXFLAGS= @CPPFLAGS@ @CXXFLAGS@ -I../include -I/usr/local/include
+CXXFLAGS= @CPPFLAGS@ @CXXFLAGS@ -I../include -I@srcdir@/../include -I/usr/local/include
 
 MAKE    = @MAKE@
 
@@ -79,4 +81,4 @@ $(F90LIB): $(F90LIB_OBJS)
 clean:
 	rm -f *.o *.mod
 
-include Makefile.dependencies
+include @srcdir@/Makefile.dependencies

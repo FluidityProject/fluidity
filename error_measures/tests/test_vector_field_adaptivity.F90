@@ -70,7 +70,7 @@ subroutine test_vector_field_adaptivity
 
   call assemble_metric(state, metric)
   call get_edge_lengths(metric, edgelen)
-  call vtk_write_fields("data/vfield_adapt", 0, positions, mesh, sfields=(/edgelen/), vfields=(/vfield, vfield_weight/), tfields=(/metric/))
+  call vtk_write_fields("vfield_adapt", 0, positions, mesh, sfields=(/edgelen/), vfields=(/vfield, vfield_weight/), tfields=(/metric/))
   call adapt_state(state(1), metric)
 
   call report_test("[adaptivity runs]", .false., .false., "Congratulations! &
@@ -79,7 +79,7 @@ subroutine test_vector_field_adaptivity
   mesh => extract_mesh(state(1), "Mesh")
   positions => extract_vector_field(state(1), "Coordinate")
   vfield_pointer => extract_vector_field(state(1), "VField")
-  call vtk_write_fields("data/vfield_adapt", 1, positions,  mesh, vfields=(/vfield_pointer/)) 
+  call vtk_write_fields("vfield_adapt", 1, positions,  mesh, vfields=(/vfield_pointer/)) 
 
   call report_test("[adaptivity output]", .false., .false., "Congratulations! &
                    & The output from adaptivity might even be OK if you get this far.")

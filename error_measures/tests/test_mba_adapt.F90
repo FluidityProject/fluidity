@@ -60,7 +60,7 @@ subroutine test_mba_adapt
   metric%val = 0.0
   metric%val(1, 1, :) = 1.0; metric%val(2, 2, :) = 1.0
   call get_edge_lengths(metric, edgelen)
-  call vtk_write_state("data/2d_adapt", 0, state=(/state/))
+  call vtk_write_state("2d_adapt", 0, state=(/state/))
   call mba_adapt(state, metric)
 
   call report_test("[adaptivity runs]", .false., .false., "Congratulations! &
@@ -69,7 +69,7 @@ subroutine test_mba_adapt
   mesh => extract_mesh(state, "Mesh")
   positions => extract_vector_field(state, "Coordinate")
   velocity_pointer => extract_vector_field(state, "Velocity")
-  call vtk_write_state("data/2d_adapt", 1, state=(/state/))
+  call vtk_write_state("2d_adapt", 1, state=(/state/))
 #endif
 
   call report_test("[adaptivity output]", .false., .false., "Congratulations! &

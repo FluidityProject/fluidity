@@ -97,7 +97,7 @@ subroutine test_adapt_state_unittest
   state = state_array(1)
 
   mesh_field => extract_vector_field(state, "Coordinate")
-  call vtk_write_fields("data/test_adapt_state_unittest_out", 0, mesh_field, mesh_field%mesh) 
+  call vtk_write_fields("test_adapt_state_unittest_out", 0, mesh_field, mesh_field%mesh) 
 
   call deallocate(state)
   call deallocate(metric)

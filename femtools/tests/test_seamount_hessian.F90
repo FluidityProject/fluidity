@@ -20,7 +20,7 @@ subroutine test_seamount_hessian
   call allocate(hessian, mesh, "Hessian")
 
   call compute_hessian(temp, position_field, hessian)
-  call vtk_write_fields("data/seamount_hessian", 0, position_field, mesh, sfields=(/temp/), tfields=(/hessian/))
+  call vtk_write_fields("seamount_hessian", 0, position_field, mesh, sfields=(/temp/), tfields=(/hessian/))
 
   fail = .false.
   call report_test("[seamount hessian]", fail, .false., "The hessian of x^2 is not what it should be!")

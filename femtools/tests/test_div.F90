@@ -31,7 +31,7 @@ subroutine test_div
   call set_from_function(field, solution, positions)
   call div(field, positions, divergence)
 
-  call vtk_write_fields("data/div_out", 0, positions, mesh, sfields=(/divergence/), &
+  call vtk_write_fields("div_out", 0, positions, mesh, sfields=(/divergence/), &
                                                            & vfields=(/field/))
 
   

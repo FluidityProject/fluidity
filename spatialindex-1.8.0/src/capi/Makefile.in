@@ -280,7 +280,7 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 noinst_LTLIBRARIES = libsidxc.la
-AM_CPPFLAGS = -I../../include -I../../include/capi
+AM_CPPFLAGS = -I@srcdir@/../../include -I@srcdir@/../../include/capi
 libsidxc_la_SOURCES = BoundsQuery.cc \
 						CountVisitor.cc \
 						CustomStorage.cc \

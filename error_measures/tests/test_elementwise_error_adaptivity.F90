@@ -86,7 +86,7 @@ subroutine test_elementwise_error_adaptivity
   gradation_initialised = .true.
   call compute_hessian(field, positions, hessian)
   call assemble_metric((/state/), metric, opts)
-  call vtk_write_fields("data/elementwise_error", 0, positions, mesh, &
+  call vtk_write_fields("elementwise_error", 0, positions, mesh, &
                         sfields=(/field/), &
                         vfields=(/analytical_grad, postprocessed_grad, difference_grad/), &
                         tfields=(/hessian, metric/))
@@ -96,5 +96,5 @@ subroutine test_elementwise_error_adaptivity
   positions => extract_vector_field(state, "Coordinate")
   ptr_field => extract_scalar_field(state, "Field")
 
-  call vtk_write_fields("data/elementwise_error", 1, positions,  mesh, sfields=(/ptr_field/)) 
+  call vtk_write_fields("elementwise_error", 1, positions,  mesh, sfields=(/ptr_field/)) 
 end subroutine test_elementwise_error_adaptivity

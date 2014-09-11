@@ -144,5 +144,5 @@ subroutine test_constant_fields
   end if
   call report_test("[constant tensor fields]", fail, .false., "Constant fields shouldn't allocate more than they need to.")
 
-  !call vtk_write_fields("data/const_field", 0, positions, mesh, sfields=(/sfield/))
+  !call vtk_write_fields("const_field", 0, positions, mesh, sfields=(/sfield/))
 end subroutine test_constant_fields

@@ -1,6 +1,7 @@
 # -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
+
 AC_PREREQ(2.59)
 
 m4_define([sidx_version_major], [1])
@@ -25,6 +26,8 @@ AC_PROG_LN_S
 AC_PROG_MAKE_SET
 AC_PROG_LIBTOOL
 AM_INIT_AUTOMAKE([dist-bzip2 subdir-objects])
+AM_MAINTAINER_MODE([enable])
+
 AM_MAINTAINER_MODE([enable])
 
 # Checks for header files.

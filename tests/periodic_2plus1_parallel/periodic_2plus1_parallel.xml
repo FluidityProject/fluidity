@@ -5,9 +5,9 @@
   <tags>flml zoltan parallel</tags>
   <problem_definition length="short" nprocs="2">
     <command_line>
-    ../../bin/periodise periodic_2plus1_parallel.flml &amp;&amp;
-    mpiexec ../../bin/flredecomp -v -l -i 1 -o 2 periodic_2plus1_parallel_periodised periodic_2plus1_parallel_periodised_flredecomp &amp;&amp;
-    mpiexec ../../bin/fluidity -v3 -l periodic_2plus1_parallel_periodised_flredecomp.flml 
+    periodise periodic_2plus1_parallel.flml &amp;&amp;
+    mpiexec flredecomp -v -l -i 1 -o 2 periodic_2plus1_parallel_periodised periodic_2plus1_parallel_periodised_flredecomp &amp;&amp;
+    mpiexec fluidity -v3 -l periodic_2plus1_parallel_periodised_flredecomp.flml
     </command_line>
   </problem_definition>
   <variables>

@@ -42,7 +42,7 @@ subroutine test_stream_io
   
   unit = free_unit()
   
-  open(unit = unit, file = "data/test_stream_io_out", status = "replace", access = "stream", form = "unformatted", action = "write", iostat = stat)
+  open(unit = unit, file = "test_stream_io_out", status = "replace", access = "stream", form = "unformatted", action = "write", iostat = stat)
   call report_test("[stream open]", stat /= 0, .false., "open failure")
   
   test_var = 42.0
@@ -52,7 +52,7 @@ subroutine test_stream_io
   close(unit, iostat = stat)
   call report_test("[stream close]", stat /= 0, .false., "close failure")
   
-  open(unit = unit, file = "data/test_stream_io_out", access = "stream", form = "unformatted", action = "read", iostat = stat)
+  open(unit = unit, file = "test_stream_io_out", access = "stream", form = "unformatted", action = "read", iostat = stat)
   call report_test("[stream open]", stat /= 0, .false., "open failure")
   
   test_var = 0.0
@@ -64,7 +64,7 @@ subroutine test_stream_io
   
   call report_test("[stream read value]", test_var .fne. 42.0, .false., "Read incorrect value")
   
-  open(unit = unit, file = "data/test_stream_io_out", status = "replace", access = "stream", form = "unformatted", action = "write", iostat = stat)
+  open(unit = unit, file = "test_stream_io_out", status = "replace", access = "stream", form = "unformatted", action = "write", iostat = stat)
   call report_test("[stream open]", stat /= 0, .false., "open failure")
   
   test_var = 43.0
@@ -74,7 +74,7 @@ subroutine test_stream_io
   close(unit, iostat = stat)
   call report_test("[stream close]", stat /= 0, .false., "close failure")
   
-  open(unit = unit, file = "data/test_stream_io_out", access = "stream", form = "unformatted", action = "read", iostat = stat)
+  open(unit = unit, file = "test_stream_io_out", access = "stream", form = "unformatted", action = "read", iostat = stat)
   call report_test("[stream open]", stat /= 0, .false., "open failure")
   
   test_var = 0.0

@@ -48,7 +48,7 @@ subroutine test_triangle_precision
   type(quadrature_type) :: quad  
   type(vector_field) :: read_mesh_field, written_mesh_field
   
-  filename = "data/test_triangle_precision_out"
+  filename = "test_triangle_precision_out"
   
   ! Allocate a mesh
   quad = make_quadrature(vertices = 3, dim  = 2, degree = 1)

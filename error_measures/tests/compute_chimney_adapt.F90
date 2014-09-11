@@ -108,7 +108,7 @@ subroutine compute_chimney_adapt
   call get_edge_lengths(metric, edgelen)
   call insert(state, edgelen, "Edge lengths")
   call deallocate(edgelen)
-  call vtk_write_state("data/chimney_adapt", 0, state=(/state/))
+  call vtk_write_state("chimney_adapt", 0, state=(/state/))
   call adapt_state(state, metric)
 
   do i=1,NADAPT-1
@@ -124,7 +124,7 @@ subroutine compute_chimney_adapt
     dummy(1) = state
     call assemble_metric(dummy, metric, opts)
     state = dummy(1)
-    call vtk_write_state("/tmp/reservoir_adapt", i, state=(/state/))
+    call vtk_write_state("reservoir_adapt", i, state=(/state/))
     call adapt_state(state, metric) 
   end do
 
@@ -134,5 +134,5 @@ subroutine compute_chimney_adapt
   porosity => extract_scalar_field(state, "porosity")
   permeability => extract_scalar_field(state, "permeability")
 
-  call vtk_write_state("/tmp/reservoir_adapt", NADAPT, state=(/state/))
+  call vtk_write_state("reservoir_adapt", NADAPT, state=(/state/))
 end subroutine compute_chimney_adapt

@@ -1,10 +1,10 @@
 preprocess: 
 	@echo **********Generating a 1D mesh for the [0,1] interval:
-	../../bin/interval --dx=0.025 --reverse 0 1 line
+	interval --dx=0.025 --reverse 0 1 line
 
 run:
 	@echo **********Running simulation using 1D mesh
-	../../bin/fluidity -v2 -l mphase_sedimentation_1d.flml
+	fluidity -v2 -l mphase_sedimentation_1d.flml
 
 input: clean preprocess
 

@@ -35,12 +35,12 @@ subroutine test_sam_integration
   call insert(states(1), test_field_v, "TestVector")
   call deallocate(test_field_v)
 
-  call vtk_write_state("data/sam_integration", 0, state=states)
+  call vtk_write_state("sam_integration", 0, state=states)
 
   options = (/0, 4, 1, 1, 1, 1, 0, 0, 0, 0/)
   call sam_drive(states, options)
 
-  call vtk_write_state("data/sam_integration", 1, state=states)
+  call vtk_write_state("sam_integration", 1, state=states)
 
   ptr_field_s => extract_scalar_field(states(1), "TestScalar")
   fail = (node_val(ptr_field_s, 1) /= 1.0)

@@ -34,7 +34,7 @@ subroutine test_adapt_mesh_mba3d
   use limit_metric_module
   use mba3d_integration
   use metric_assemble
-  use read_triangle
+  use read_gmsh
   use spud
   use state_module
   use unittest_tools
@@ -52,7 +52,7 @@ subroutine test_adapt_mesh_mba3d
 
   integer :: expected_eles, i, stat
 
-  input_mesh_field = read_triangle_files("data/cube_unstructured", quad_degree = 1)
+  input_mesh_field = read_gmsh_file("data/cube_unstructured", quad_degree = 1)
   
   mesh => input_mesh_field%mesh
   mesh%name = "CoordinateMesh"
@@ -93,7 +93,7 @@ subroutine test_adapt_mesh_mba3d
   expected_eles = expected_elements(input_mesh_field, metric)
   call report_test("[expected_elements]", abs(float(ele_count(output_mesh_field) - expected_eles) / float(expected_eles)) > 0.25, .false., "Incorrect output mesh element count")
 
-  call vtk_write_fields("data/test_adapt_mesh_mb3d_out", 0, output_mesh_field, output_mesh_field%mesh) 
+  call vtk_write_fields("test_adapt_mesh_mb3d_out", 0, output_mesh_field, output_mesh_field%mesh) 
 
   call deallocate(input_mesh_field)
   call deallocate(output_mesh_field)

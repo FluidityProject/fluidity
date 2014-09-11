@@ -24,7 +24,7 @@ subroutine test_generate_layered_mesh_2d
   call set_option("/geometry/mesh::ExtrudedMesh/from_mesh/extrude/regions[0]/sizing_function/constant", 0.5, stat=stat)
 
   call compute_z_nodes(z_mesh, 1.0, (/ 0.0 /), min_bottom_layer_frac=1e-3, sizing=0.5)
-  call vtk_write_fields("data/layered_mesh", 0, z_mesh, z_mesh%mesh, vfields=(/z_mesh/))
+  call vtk_write_fields("layered_mesh", 0, z_mesh, z_mesh%mesh, vfields=(/z_mesh/))
 
   fail = node_count(z_mesh) /= 3
   call report_test("[z_mesh: node_count]", fail, .false., "Should be 3")
@@ -38,7 +38,7 @@ subroutine test_generate_layered_mesh_2d
   end do
   call add_nelist(h_mesh%mesh)
 
-  call vtk_write_fields("data/layered_mesh", 1, h_mesh, h_mesh%mesh, vfields=(/h_mesh/))
+  call vtk_write_fields("layered_mesh", 1, h_mesh, h_mesh%mesh, vfields=(/h_mesh/))
 
   ! Now the tiresome business of making a shape function.
   quad = make_quadrature(vertices = 3, dim =2, degree=4)
@@ -56,6 +56,6 @@ subroutine test_generate_layered_mesh_2d
 
   call generate_layered_mesh(out_mesh, h_mesh)
 
-  call vtk_write_fields("data/layered_mesh", 2, out_mesh, out_mesh%mesh, vfields=(/out_mesh/))
+  call vtk_write_fields("layered_mesh", 2, out_mesh, out_mesh%mesh, vfields=(/out_mesh/))
   
 end subroutine test_generate_layered_mesh_2d

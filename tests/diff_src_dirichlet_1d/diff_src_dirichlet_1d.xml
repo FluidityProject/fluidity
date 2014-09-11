@@ -6,7 +6,7 @@
   <tags>flml</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>
-../../bin/fluidity diff_src_dirichlet_1d_cg_p1_A.flml 
+fluidity diff_src_dirichlet_1d_cg_p1_A.flml
     </command_line>
     <!-- One dimensional problem for diffusion, source with right dirichlet bc and left neumann zero compared to analytic-->
   </problem_definition>

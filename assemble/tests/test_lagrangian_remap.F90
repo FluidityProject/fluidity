@@ -35,7 +35,7 @@ subroutine test_lagrangian_remap
 
   do i = 0, 3000
 !     if(mod(i,10)==0) then
-      call vtk_write_fields(filename="data/lagrangian_remap", index=i, position=coordinate, model=coordinate%mesh, &
+      call vtk_write_fields(filename="lagrangian_remap", index=i, position=coordinate, model=coordinate%mesh, &
                             sfields=(/old_fields(1), new_fields(1)/), vfields=(/velocity/))
 !     end if
 

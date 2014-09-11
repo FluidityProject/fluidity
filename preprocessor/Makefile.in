@@ -24,21 +24,23 @@
 #    License along with this library; if not, write to the Free Software
 #    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 #    USA
+VPATH = @srcdir@
+
 SHELL = @SHELL@
 
 PACKAGE_NAME = @PACKAGE_NAME@
 FLUIDITY = $(PACKAGE_NAME)
 
 FC      = @FC@
-FCFLAGS = -I../include @MOD_FLAG@../include @CPPFLAGS@ @FCFLAGS@ -I/usr/local/include -I./
+FCFLAGS = -I@srcdir@/../include -I../include @MOD_FLAG@../include @CPPFLAGS@ @FCFLAGS@ -I/usr/local/include -I./
 
 MPIF90  = @MPIF90@
 
 CC      = @CC@
-CFLAGS  = @CPPFLAGS@ @CFLAGS@ -I../include -I/usr/local/include 
+CFLAGS  = @CPPFLAGS@ @CFLAGS@ -I@srcdir@/../include -I../include -I/usr/local/include
 
 CXX     = @CXX@
-CXXFLAGS= @CPPFLAGS@ @CXXFLAGS@ -I../include -I/usr/local/include
+CXXFLAGS= @CPPFLAGS@ @CXXFLAGS@ -I@srcdir@/../include -I../include -I/usr/local/include
 
 MAKE    = @MAKE@
 
@@ -94,4 +96,4 @@ register_diagnostics.o: register_diagnostics.F90
 clean:
 	rm -f *.o *.d *.mod
 
-include Makefile.dependencies
+include @srcdir@/Makefile.dependencies

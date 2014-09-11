@@ -418,7 +418,7 @@ if test "$enable_vtk" != "no" ; then
           ])
     fi
 fi
-cat > include/vtk.h <<EOF
+cat > $srcdir/include/vtk.h <<EOF
 #ifndef VTK_H
 #define VTK_H
 
@@ -475,6 +475,7 @@ AC_SUBST(MODINC_FLAG)
 
 # It appears this is not good practice but...go sue me
 #cat confdefs.h | grep -v std > include/confdefs.h    <-- see below...
+mkdir -p include
 cat confdefs.h | grep DOUBLEP > include/confdefs.h
 cat confdefs.h | grep F77_FUNC >> include/confdefs.h
 cat confdefs.h | grep VTK >> include/confdefs.h

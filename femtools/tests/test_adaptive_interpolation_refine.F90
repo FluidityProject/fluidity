@@ -42,7 +42,7 @@ subroutine test_adaptive_interpolation_refine
 
   call adaptive_interpolation(in_field, positionsA, out_field, positionsB, error_tolerance, achieved_error, no_refinements)
 
-  call vtk_write_fields("data/adaptive_interpolation_p", position=positionsB, model=out_field%mesh, write_region_ids=.true.)
+  call vtk_write_fields("adaptive_interpolation_p", position=positionsB, model=out_field%mesh, write_region_ids=.true.)
 
   write(0,*) "achieved_error: ", achieved_error
   write(0,*) "error_tolerance: ", error_tolerance

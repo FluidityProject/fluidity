@@ -40,7 +40,7 @@ subroutine test_pseudo2d_gradation
   call get_node_field(mesh, node_field)
 
   call compute_hessian(pressure_field, positions, hessian)
-  call vtk_write_fields("data/pseudo2d_gradation", 0, positions, mesh, sfields=(/pressure_field, node_field/), tfields=(/hessian/))
+  call vtk_write_fields("pseudo2d_gradation", 0, positions, mesh, sfields=(/pressure_field, node_field/), tfields=(/hessian/))
 
   ! At this point the tensors are slightly misaligned due to numerical errors
   ! in computing the hessian. We want out gradation algorithm to fix that.
@@ -53,12 +53,12 @@ subroutine test_pseudo2d_gradation
     call eigenrecomposition(hessian%val(:, :, i), evecs, evals)
   end do
 
-  call vtk_write_fields("data/pseudo2d_gradation", 1, positions, mesh, sfields=(/pressure_field, node_field/), tfields=(/hessian/))
+  call vtk_write_fields("pseudo2d_gradation", 1, positions, mesh, sfields=(/pressure_field, node_field/), tfields=(/hessian/))
 
   gamma0 = huge(0.0) ! don't change eigenvalues, only eigenvectors
   call form_gradation_metric(positions, hessian)
 
-  call vtk_write_fields("data/pseudo2d_gradation", 2, positions, mesh, sfields=(/pressure_field, node_field/), tfields=(/hessian/))
+  call vtk_write_fields("pseudo2d_gradation", 2, positions, mesh, sfields=(/pressure_field, node_field/), tfields=(/hessian/))
 
   fail = .false.
   do i=1,mesh%nodes

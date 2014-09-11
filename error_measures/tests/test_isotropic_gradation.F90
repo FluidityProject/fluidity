@@ -51,10 +51,10 @@ subroutine test_isotropic_gradation
 
 
   call get_edge_lengths(metric, edgelen)
-  call vtk_write_fields("data/gradation_isotropic", 0, positions, mesh, sfields=(/edgelen/), tfields=(/metric/))
+  call vtk_write_fields("gradation_isotropic", 0, positions, mesh, sfields=(/edgelen/), tfields=(/metric/))
   call form_gradation_metric(positions, metric)
   call get_edge_lengths(metric, edgelen)
-  call vtk_write_fields("data/gradation_isotropic", 1, positions, mesh, sfields=(/edgelen/), tfields=(/metric/))
+  call vtk_write_fields("gradation_isotropic", 1, positions, mesh, sfields=(/edgelen/), tfields=(/metric/))
 
   fail = .false.
   do i=1,mesh%nodes
@@ -77,7 +77,7 @@ subroutine test_isotropic_gradation
   gamma0 = 1.1
   call form_gradation_metric(positions, metric)
   call get_edge_lengths(metric, edgelen)
-  call vtk_write_fields("data/gradation_isotropic", 2, positions, mesh, sfields=(/edgelen/), tfields=(/metric/))
+  call vtk_write_fields("gradation_isotropic", 2, positions, mesh, sfields=(/edgelen/), tfields=(/metric/))
 
   fail = .false.
   do i=1,mesh%nodes

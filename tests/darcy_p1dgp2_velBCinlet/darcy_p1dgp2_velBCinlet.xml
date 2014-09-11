@@ -7,9 +7,9 @@
   <tags>flml darcy</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>
-../../bin/fluidity darcy_p1dgp2_velBCinlet_1d.flml 
-../../bin/fluidity darcy_p1dgp2_velBCinlet_2d.flml 
-../../bin/fluidity darcy_p1dgp2_velBCinlet_3d.flml 
+fluidity darcy_p1dgp2_velBCinlet_1d.flml
+fluidity darcy_p1dgp2_velBCinlet_2d.flml
+fluidity darcy_p1dgp2_velBCinlet_3d.flml
     </command_line>
     <!-- One/two/three dimensional problem for darcy flow with one region and one material using p1dgp2 element type testing the pressure gradient against analytic and the interstitial velocity. This tests using a diagnostic velocity absorption field associated with a mesh and momentum dg for darcy flow-->
   </problem_definition>

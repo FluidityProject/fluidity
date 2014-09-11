@@ -297,7 +297,7 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 noinst_LTLIBRARIES = libstoragemanager.la
-AM_CPPFLAGS = -I../../include 
+AM_CPPFLAGS = -I@srcdir@/../../include
 libstoragemanager_la_SOURCES = Buffer.h Buffer.cc DiskStorageManager.cc MemoryStorageManager.cc RandomEvictionsBuffer.cc DiskStorageManager.h MemoryStorageManager.h RandomEvictionsBuffer.h
 all: all-am
 

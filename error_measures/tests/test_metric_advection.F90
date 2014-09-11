@@ -91,7 +91,7 @@ subroutine test_metric_advection
     call adapt_state(state, metric) 
   end do
 
-  call vtk_write_state("data/metric_advection", 0, state=(/state/))
+  call vtk_write_state("metric_advection", 0, state=(/state/))
   call set_option("/mesh_adaptivity/hr_adaptivity/metric_advection/iterations", 5)
 
   mesh => extract_mesh(state, "Mesh")
@@ -108,7 +108,7 @@ subroutine test_metric_advection
   call assemble_metric(dummy, metric)
   state = dummy(1)
   call adapt_state(state, metric) 
-  call vtk_write_state("data/metric_advection", 1, state=(/state/))
+  call vtk_write_state("metric_advection", 1, state=(/state/))
 
 end subroutine test_metric_advection
 

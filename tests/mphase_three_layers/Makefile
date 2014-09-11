@@ -1,11 +1,11 @@
 preprocess:
 	@echo **********Creating 2D mesh
 	gmsh -2 -o mphase_three_layers.msh src/mphase_three_layers.geo
-	../../bin/gmsh2triangle --2d mphase_three_layers.msh
+	gmsh2triangle --2d mphase_three_layers.msh
 
 run:
 	@echo **********Running simulation
-	../../bin/fluidity -v2 -l mphase_three_layers.flml
+	fluidity -v2 -l mphase_three_layers.flml
 
 input: clean preprocess
 

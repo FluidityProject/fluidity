@@ -1,6 +1,6 @@
 ## Makefile.am -- Process this file with automake to produce Makefile.in
 noinst_PROGRAMS = Generator Exhaustive RTreeLoad RTreeQuery RTreeBulkLoad
-AM_CPPFLAGS = -I../../include 
+AM_CPPFLAGS = -I@srcdir@/../../include
 Generator_SOURCES = Generator.cc 
 Generator_LDADD = ../../libspatialindex.la
 Exhaustive_SOURCES = Exhaustive.cc 

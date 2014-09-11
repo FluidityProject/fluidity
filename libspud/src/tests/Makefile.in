@@ -24,6 +24,8 @@
 #    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 #    USA
 
+VPATH   = @srcdir@
+
 FC      = @FC@
 FCFLAGS = -I../.. @FCFLAGS@
 
@@ -36,7 +38,7 @@ LIBS = @LIBS@ ../../libspud.a
 DISABLED_TESTS = unittest_tools
 
 # The test programs to be built
-TEST_BINARIES = $(addprefix bin/, $(filter-out $(DISABLED_TESTS), $(basename $(wildcard *.f90))))
+TEST_BINARIES = $(addprefix bin/, $(filter-out $(DISABLED_TESTS), $(notdir $(basename $(wildcard @srcdir@/*.f90)))))
 
 default: test
 
@@ -58,13 +60,13 @@ unittest: test-binaries
 
 # Creates a TESTNAME_main.o from test_main.cpp which calls the subroutine
 # TESTNAME, that should be a subroutine in TESTNAME.f90
-%_main.o: unittest_tools.o
-	$(CXX) $(CXXFLAGS) -D TESTNAME=$(subst _main.o,,$@)_ -o $@ -c test_main.cpp
+%_main.o: test_main.cpp unittest_tools.o
+	$(CXX) $(CXXFLAGS) -D TESTNAME=$(subst _main.o,,$@)_ -o $@ -c $<
 
 # Link this TESTNAME_main.o with TESTNAME.o from TESTNAME.F90
-bin/%: %_main.o %.o
+bin/%: %_main.o %.o unittest_tools.o
 	mkdir -p bin
-	$(CXX) -o $@ $(filter %.o,$^) unittest_tools.o $(LIBS)
+	$(CXX) -o $@ $(filter %.o,$^) $(LIBS)
 
 clean:
 	rm -f $(TEST_BINARIES)

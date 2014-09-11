@@ -60,7 +60,7 @@ subroutine test_directional_gradation
 
   call get_edge_lengths(metric, edgelen)
   edgelen_val = edgelen%val(1) ! constant
-  call vtk_write_fields("data/directional_gradation", 0, positions, mesh, &
+  call vtk_write_fields("directional_gradation", 0, positions, mesh, &
                         sfields=(/edgelen/), &
                         vfields=(/positions/), &
                         tfields=(/metric/))
@@ -68,7 +68,7 @@ subroutine test_directional_gradation
   call form_gradation_metric(positions, metric)
 
   call get_edge_lengths(metric, edgelen)
-  call vtk_write_fields("data/directional_gradation", 1, positions, mesh, &
+  call vtk_write_fields("directional_gradation", 1, positions, mesh, &
                         sfields=(/edgelen/), &
                         vfields=(/positions/), &
                         tfields=(/metric/))

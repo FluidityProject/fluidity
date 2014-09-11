@@ -43,7 +43,7 @@ subroutine test_tensor_second_invariant
   call set(diff_field, tensor_second_invariant_field)
   call addto(diff_field, solution_field, scale=-1.0)
 
-  call vtk_write_fields("data/tensor_second_invariant_out", 0, positions, mesh, &
+  call vtk_write_fields("tensor_second_invariant_out", 0, positions, mesh, &
      sfields=(/ tensor_second_invariant_field, solution_field, diff_field /), &
      tfields=(/ field  /))
 

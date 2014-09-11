@@ -63,6 +63,6 @@ subroutine test_cylinder_hessian
   end do
 
   call report_test("[every value correct]", fail, warn, "The Hessian of a linear field is identically zero.")
-  call vtk_write_fields("data/cylinder_hessian", 0, position_field, mesh, sfields=(/pressure_field/), tfields=(/hessian/))
+  call vtk_write_fields("cylinder_hessian", 0, position_field, mesh, sfields=(/pressure_field/), tfields=(/hessian/))
 
 end subroutine test_cylinder_hessian
