@@ -181,12 +181,12 @@
       ! MAT, MAT2, X and B are working vectors. 
       IMPLICIT NONE
       INTEGER, intent( in ) :: N, NMAX
-      REAL, DIMENSION( NMAX, NMAX ), intent( inout ) ::  A
-      REAL, DIMENSION( N, N ), intent( inout ) :: MAT, MAT2
-      REAL, DIMENSION( N ), intent( inout ) :: X, B
+      REAL, DIMENSION( :, : ), intent( inout ) ::  A
+      REAL, DIMENSION( :, : ), intent( inout ) :: MAT, MAT2
+      REAL, DIMENSION( : ), intent( inout ) :: X, B
       ! Local variables
       INTEGER :: ICOL, IM, JM
-      INTEGER , DIMENSION(N,N) :: IPIV
+      INTEGER , DIMENSION(N) :: IPIV
 
       ! Solve MAT XL=BX (NB BDIAG is overwritten)
       ICOL = 1
@@ -323,12 +323,30 @@
       ! Local     
       REAL :: R
       INTEGER :: K, I, J
-      INTEGER , DIMENSION(NMX,NMX), intent(inout) :: IPIV
+      INTEGER , DIMENSION(:), intent(inout) :: IPIV
       INTEGER :: INFO
 
       real, DIMENSION( NMX,1 ) :: Bloc
 
-      external dgetrf, dgetrs
+      interface 
+         subroutine dgetrf(M,N,A, LDA, IPIV, INFO)
+           implicit none
+           integer :: info,lda, m,n
+           integer , dimension(min(m,n)) :: IPIV
+           real, dimension(LDA,N) :: A
+         end subroutine dgetrf
+      end interface
+
+      interface 
+         subroutine dgetrs(TRANS,N,NRHS,A, LDA, IPIV, B,LDB, INFO)
+           implicit none
+           character(len=1) :: TRANS
+           integer :: info,lda,ldb,n,nrhs
+           integer , dimension(n) :: IPIV
+           real, dimension(LDA,N) :: A
+           real, dimension(LDA,NRHS) :: B
+         end subroutine dgetrs
+      end interface
 
       ! IF GOTDEC then assume we have already got the LU decomposition in A
       ! Form X = A^{-1} B ;  Useful subroutine for inverse

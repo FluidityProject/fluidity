@@ -2668,9 +2668,9 @@ end if
              INTEGER, intent( in ) :: NPHASE, NFIELD
 ! GLOBAL_FACE is the quadrature point which helps point into the storage memory
              INTEGER, intent( inout ) :: IPT
-             LOGICAL, DIMENSION(NPHASE), intent( in ) :: IGOT_T_PACK
-             REAL, DIMENSION(NPHASE), intent( in ) :: T_ALL
-             REAL, DIMENSION(NFIELD), intent( inout ) :: LOC_F
+             LOGICAL, DIMENSION(:), intent( in ) :: IGOT_T_PACK
+             REAL, DIMENSION(:), intent( in ) :: T_ALL
+             REAL, DIMENSION(:), intent( inout ) :: LOC_F
 ! local variables...
              INTEGER :: IPHASE
 
@@ -6591,7 +6591,7 @@ end if
     INTEGER, DIMENSION( 2*U_NLOC ) :: GLOB_NO
     REAL, DIMENSION( U_SNLOC ) :: DIFF_SUF
     INTEGER :: U_SILOC,U_ILOC,U_ILOC2,U_JLOC2,IGL,JGL,SGI,IPHASE,NLEN,IDIM
-    INTEGER, DIMENSION(:,:), ALLOCATABLE :: IPIV
+    INTEGER, DIMENSION(:), ALLOCATABLE :: IPIV
     LOGICAL :: GOTDEC
 
 
@@ -6685,7 +6685,7 @@ end if
 
        ALLOCATE(DIFF(NLEN))
        ALLOCATE(MAT(NLEN,NLEN))
-       ALLOCATE(IPIV(NLEN,NLEN))
+       ALLOCATE(IPIV(NLEN))
        MAT=MAT_LOC_2ELES ! MAT is overwritten
 
        GOTDEC =.FALSE.
