@@ -1492,7 +1492,7 @@ integer function get_tensor_boundary_condition_count(field)
                               ele_val(vector_surface_field ,n,k))
                       else
                          call set(boundary_value, n,m, ele_nodes(surface_mesh, sele), &
-                              ele_val(vector_surface_field ,m,k))
+                              ele_val(vector_surface_field ,n,k))
                       end if
                    end if
                    if (associated(scalar_surface_field)) then
