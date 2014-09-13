@@ -7198,7 +7198,7 @@ end if
 
 
   SUBROUTINE LINEAR_HIGH_DIFFUS_CAL_COEFF_STRESS_OR_TENSOR( STRESS_IJ_ELE_EXT,  S_INV_NNX_MAT12,  &
-       STRESS_FORM, STRESS_FORM_STAB, ZERO_OR_TWO_THIRDS, &
+       STRESS_FORM, STRESS_FORM_STAB, ZERO_OR_TWO_THIRDS, & 
        U_SNLOC, U_NLOC, CV_SNLOC, CV_NLOC, MAT_NLOC, NPHASE,  &
        SBUFEN,SBCVFEN, SDETWEI, SBCVNGI, NDIM, SLOC_UDIFFUSION, SLOC_UDIFFUSION_VOL, SLOC2_UDIFFUSION, SLOC2_UDIFFUSION_VOL, DIFF_GI_ADDED, &
        ON_BOUNDARY, SNORMXN_ALL  )
@@ -7226,12 +7226,22 @@ end if
     ! the rest is for the diffusion tensor. 
     REAL, DIMENSION( NDIM, NDIM,NDIM, NPHASE, SBCVNGI), intent( in ) :: DIFF_GI_ADDED
     REAL, DIMENSION( NDIM, SBCVNGI ), intent( in ) :: SNORMXN_ALL
-! local variables...
+! local variables...      
+! If FAST then use the fast version that is less well tested..
+    LOGICAL, PARAMETER :: FAST = .false.
+
     REAL, DIMENSION(NDIM,NDIM,NPHASE,SBCVNGI) :: DIFF_GI, DIFF_GI2
     REAL, DIMENSION(NPHASE,SBCVNGI) :: DIFF_VOL_GI, DIFF_VOL_GI2
+! for rapid version of code...
+    REAL, DIMENSION(NDIM,NDIM,NPHASE,U_SNLOC,U_SNLOC) :: MAT_SUFXX
+    REAL, DIMENSION(NDIM,NPHASE,U_SNLOC,U_SNLOC) :: MAT_SUFVOL
+
+!    REAL, DIMENSION(NDIM,Ndim) :: two_dim
+!    REAL, DIMENSION(NDIM) :: one_dim
 
     INTEGER :: CV_KLOC,CV_KLOC2,MAT_KLOC,MAT_KLOC2,MAT_NODK,MAT_NODK2,IDIM,JDIM,CV_SKLOC
     INTEGER :: SGI,IPHASE,U_ILOC_EXT,U_JLOC12,I,J, U_SILOC, U_SJLOC
+    REAL :: RDUM
 
 
 !          ALLOCATE( DIFF_GI(NDIM,NDIM,NPHASE,SBCVNGI) )
@@ -7302,44 +7312,121 @@ end if
 
 
        IF(STRESS_FORM) THEN
-          DO SGI=1,SBCVNGI
+          IF(FAST) THEN ! The rapid version
+             MAT_SUFXX=0.0
+             MAT_SUFVOL=0.0
+
+             DO SGI=1,SBCVNGI
+             DO U_SILOC=1,U_SNLOC
+                DO U_SJLOC=1,U_SNLOC
+                   DO jDIM=1,NDIM 
+                      RDUM = SNORMXN_ALL(jDIM,SGI)*SBUFEN(U_SILOC,SGI)*SBUFEN(U_SJLOC,SGI)*SDETWEI( SGI ) 
+                      DO IPHASE=1,NPHASE
+                         DO iDIM=1,NDIM 
+! take -ve as its a surface integral...
+       MAT_SUFXX(IDIM,JDIM,IPHASE,U_SILOC,U_SJLOC) = MAT_SUFXX(IDIM,JDIM,IPHASE,U_SILOC,U_SJLOC) &
+                       -  RDUM*DIFF_GI( IDIM, JDIM, IPHASE, SGI )
+                         END DO
+       MAT_SUFVOL(jDIM,IPHASE,U_SILOC,U_SJLOC) = MAT_SUFVOL(jDIM,IPHASE,U_SILOC,U_SJLOC) &
+                       -  RDUM*DIFF_VOL_GI( IPHASE, SGI )
+                      END DO
+                   END DO
+                END DO
+             END DO
+             END DO
+
              DO U_SILOC=1,U_SNLOC
                 DO U_JLOC12=1,U_NLOC*2
 
                     DO I=1,U_SNLOC
                        DO IPHASE=1,NPHASE
-! take -ve as its a surface integral...
-          CALL CALC_STRESS_TEN( STRESS_IJ_ELE_EXT( :, :, IPHASE, U_SILOC, U_JLOC12 ), ZERO_OR_TWO_THIRDS, NDIM, &
-             - SNORMXN_ALL(:,SGI)*SBUFEN(U_SILOC,SGI)* SBUFEN(I,SGI)*SDETWEI( SGI ), S_INV_NNX_MAT12( 1:NDIM, I, U_JLOC12 ), DIFF_GI( :, :, IPHASE, SGI ), DIFF_VOL_GI( IPHASE, SGI) ) 
+                          CALL CALC_STRESS_TEN_REDUCE(STRESS_IJ_ELE_EXT( :, :, IPHASE, U_SILOC, U_JLOC12 ), ZERO_OR_TWO_THIRDS, NDIM,    &
+                 MAT_SUFXX(:,:,IPHASE,U_SILOC,I), MAT_SUFVOL(:,IPHASE,U_SILOC,I),  S_INV_NNX_MAT12( :, I, U_JLOC12 )  )
+
                        END DO
                     END DO
+
                 END DO
                 
              END DO
-          END DO
+          ELSE ! less rapid version...
+             DO SGI=1,SBCVNGI
+                DO U_SILOC=1,U_SNLOC
+                   DO U_JLOC12=1,U_NLOC*2
+
+                       DO I=1,U_SNLOC
+                          DO IPHASE=1,NPHASE
+! take -ve as its a surface integral...
+          CALL CALC_STRESS_TEN( STRESS_IJ_ELE_EXT( :, :, IPHASE, U_SILOC, U_JLOC12 ), ZERO_OR_TWO_THIRDS, NDIM, &
+             - SNORMXN_ALL(:,SGI)*SBUFEN(U_SILOC,SGI)* SBUFEN(I,SGI)*SDETWEI( SGI ), S_INV_NNX_MAT12( 1:NDIM, I, U_JLOC12 ), DIFF_GI( :, :, IPHASE, SGI ), DIFF_VOL_GI( IPHASE, SGI) ) 
+                          END DO
+                       END DO
+                   END DO
+                
+                END DO
+             END DO
+          ENDIF
 
        ELSE ! tensor form of viscocity...
+          IF(FAST) THEN ! The rapid version
 
-          DO SGI=1,SBCVNGI
+             MAT_SUFXX=0.0
+
+             DO SGI=1,SBCVNGI
+             DO U_SILOC=1,U_SNLOC
+                DO U_SJLOC=1,U_SNLOC
+                   DO IDIM=1,NDIM 
+                      RDUM = SNORMXN_ALL(IDIM,SGI)*SBUFEN(U_SILOC,SGI)*SBUFEN(U_SJLOC,SGI)*SDETWEI( SGI ) 
+                      DO IPHASE=1,NPHASE
+                         DO JDIM=1,NDIM 
+! take -ve as its a surface integral...
+       MAT_SUFXX(IDIM,JDIM,IPHASE,U_SILOC,U_SJLOC) = MAT_SUFXX(IDIM,JDIM,IPHASE,U_SILOC,U_SJLOC) &
+                         -  RDUM*DIFF_GI( IDIM, JDIM, IPHASE, SGI )
+                         END DO
+                      END DO
+                   END DO
+                END DO
+             END DO
+             END DO
+! STRESS_IJ_ELE_EXT = MAT_SUFX*S_INV_NNX_MAT12
              DO U_SILOC=1,U_SNLOC
                 DO U_JLOC12=1,U_NLOC*2
 
                    DO I=1,U_SNLOC
                        DO IPHASE=1,NPHASE
                        DO IDIM=1,NDIM 
-!                            print *,'IDIM, IPHASE, U_SILOC, U_JLOC12:',IDIM, IPHASE, U_SILOC, U_JLOC12
-!                          STRESS_IJ_ELE_EXT( IDIM, IDIM, IPHASE, U_SILOC, U_JLOC12 ) = STRESS_IJ_ELE_EXT( IDIM, IDIM, IPHASE, U_SILOC, U_JLOC12 ) &
                           STRESS_IJ_ELE_EXT( 1,1, IPHASE, U_SILOC, U_JLOC12 ) = STRESS_IJ_ELE_EXT( 1,1, IPHASE, U_SILOC, U_JLOC12 ) &
-                            - SNORMXN_ALL(IDIM,SGI)*SBUFEN(U_SILOC,SGI)* SBUFEN(I,SGI)*SDETWEI( SGI )  &
-                                 * SUM( DIFF_GI( IDIM, :, IPHASE, SGI ) *  S_INV_NNX_MAT12( :, I, U_JLOC12 ) )
-!                                 * DIFF_GI( IDIM, idim, IPHASE, SGI ) *  S_INV_NNX_MAT12( idim, I, U_JLOC12 ) 
+                            + SUM(  MAT_SUFXX(IDIM,:,IPHASE, U_SILOC, I) *  S_INV_NNX_MAT12( :, I, U_JLOC12 )  )
                        END DO
                        END DO
                     END DO
+
                 END DO
-                
              END DO
-          END DO
+
+          ELSE  ! The rapid version
+
+             DO SGI=1,SBCVNGI
+                DO U_SILOC=1,U_SNLOC
+                   DO U_JLOC12=1,U_NLOC*2
+
+                      DO I=1,U_SNLOC
+                          DO IPHASE=1,NPHASE
+                          DO IDIM=1,NDIM 
+!                            print *,'IDIM, IPHASE, U_SILOC, U_JLOC12:',IDIM, IPHASE, U_SILOC, U_JLOC12
+!                          STRESS_IJ_ELE_EXT( IDIM, IDIM, IPHASE, U_SILOC, U_JLOC12 ) = STRESS_IJ_ELE_EXT( IDIM, IDIM, IPHASE, U_SILOC, U_JLOC12 ) &
+                             STRESS_IJ_ELE_EXT( 1,1, IPHASE, U_SILOC, U_JLOC12 ) = STRESS_IJ_ELE_EXT( 1,1, IPHASE, U_SILOC, U_JLOC12 ) &
+                               - SNORMXN_ALL(IDIM,SGI)*SBUFEN(U_SILOC,SGI)* SBUFEN(I,SGI)*SDETWEI( SGI )  &
+                                    * SUM( DIFF_GI( IDIM, :, IPHASE, SGI ) *  S_INV_NNX_MAT12( :, I, U_JLOC12 ) )
+!                                 * DIFF_GI( IDIM, idim, IPHASE, SGI ) *  S_INV_NNX_MAT12( idim, I, U_JLOC12 ) 
+                          END DO
+                          END DO
+                       END DO
+                   END DO
+                
+                END DO
+             END DO
+          ENDIF ! endof if THEN ELSE OF The rapid version
 ! all other components are the same...
           DO IDIM=2,NDIM 
              STRESS_IJ_ELE_EXT( IDIM,IDIM, :,:,: ) = STRESS_IJ_ELE_EXT( 1,1, :,:,: ) 
@@ -7619,6 +7706,46 @@ end if
       RETURN            
 
     END SUBROUTINE CALC_STRESS_TEN
+
+
+
+
+    SUBROUTINE CALC_STRESS_TEN_REDUCE(STRESS_IJ, ZERO_OR_TWO_THIRDS, NDIM,    &
+                 FEN_TEN_XX, FEN_TEN_VOL,  UFENX_JLOC  )
+! determine stress form of viscocity...
+      IMPLICIT NONE
+      INTEGER, intent( in )  :: NDIM
+      REAL, DIMENSION( NDIM, NDIM  ), intent( inOUT ) :: STRESS_IJ
+      REAL, DIMENSION( NDIM, NDIM ), intent( in ) :: FEN_TEN_XX
+      REAL, DIMENSION( NDIM ), intent( in ) :: FEN_TEN_VOL
+! TEN_VOL is volumetric viscocity - mostly set to zero other than q-scheme or use with kinetic theory
+      REAL, DIMENSION( NDIM ), intent( in ) :: UFENX_JLOC
+      REAL, intent( in ) :: ZERO_OR_TWO_THIRDS
+! Local variables...
+      INTEGER :: IDIM,JDIM
+
+         DO IDIM=1,NDIM
+               STRESS_IJ( IDIM,IDIM ) = STRESS_IJ( IDIM,IDIM ) + SUM( FEN_TEN_XX(IDIM,:) * UFENX_JLOC(:) ) 
+         END DO
+
+         DO IDIM=1,NDIM
+            DO JDIM=1,NDIM
+!               STRESS_IJ( IDIM,JDIM ) = STRESS_IJ( IDIM,JDIM ) + FEN_TEN_XX(IDIM,JDIM) * UFENX_JLOC(JDIM) 
+               STRESS_IJ( IDIM,JDIM ) = STRESS_IJ( IDIM,JDIM ) + FEN_TEN_XX(IDIM,JDIM) * UFENX_JLOC(IDIM) 
+            END DO
+         END DO
+
+         DO IDIM=1,NDIM
+            DO JDIM=1,NDIM
+               STRESS_IJ( IDIM,JDIM ) = STRESS_IJ( IDIM,JDIM ) &
+                      - ZERO_OR_TWO_THIRDS * FEN_TEN_XX(IDIM,IDIM) * UFENX_JLOC(JDIM) &
+                      + FEN_TEN_VOL(IDIM) * UFENX_JLOC(JDIM) 
+            END DO
+         END DO
+
+      RETURN            
+
+    END SUBROUTINE CALC_STRESS_TEN_REDUCE
 
 
 
