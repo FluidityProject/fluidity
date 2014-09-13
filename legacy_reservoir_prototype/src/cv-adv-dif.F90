@@ -7228,7 +7228,7 @@ end if
     REAL, DIMENSION( NDIM, SBCVNGI ), intent( in ) :: SNORMXN_ALL
 ! local variables...      
 ! If FAST then use the fast version that is less well tested..
-    LOGICAL, PARAMETER :: FAST = .false.
+    LOGICAL, PARAMETER :: FAST = .true.
 
     REAL, DIMENSION(NDIM,NDIM,NPHASE,SBCVNGI) :: DIFF_GI, DIFF_GI2
     REAL, DIMENSION(NPHASE,SBCVNGI) :: DIFF_VOL_GI, DIFF_VOL_GI2
