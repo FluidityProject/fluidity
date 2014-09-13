@@ -2539,7 +2539,7 @@ contains
 ! PIVIT_ON_VISC is the only thing that could make highly viscouse flows stabe when using projection methods...
             LOGICAL, PARAMETER :: PIVIT_ON_VISC = .false. !.FALSE.
             real :: w
-            real, parameter :: wv=1.0, ws=0.0 ! volume off-diagonal and surface weights, respectively
+            real, parameter :: wv=1.0, ws=1.0 ! volume off-diagonal and surface weights, respectively
 ! LINEAR_HIGHORDER_DIFFUSION is the switch for the high-order linear scheme...
 !            LOGICAL, PARAMETER ::  LINEAR_HIGHORDER_DIFFUSION = .TRUE. 
             LOGICAL ::  LINEAR_HIGHORDER_DIFFUSION  
@@ -3963,7 +3963,7 @@ contains
                                                 I = IDIM+(IPHASE-1)*NDIM_VEL+(U_ILOC-1)*NDIM_VEL*NPHASE
                                                 J = JDIM+(JPHASE-1)*NDIM_VEL+(U_JLOC-1)*NDIM_VEL*NPHASE
                                                 w=1.0
-                                                if (i/=j) w = wv
+!                                                if (i/=j) w = wv
                                                 PIVIT_MAT( I,J, ELE ) &
                                                 = PIVIT_MAT( I,J, ELE ) &
                                                 +  w * STRESS_IJ_ELE( IDIM, JDIM, IPHASE, U_ILOC, U_JLOC )
@@ -4007,7 +4007,7 @@ contains
                                             I = IDIM+(IPHASE-1)*NDIM_VEL+(U_ILOC-1)*NDIM_VEL*NPHASE
                                             J = JDIM+(JPHASE-1)*NDIM_VEL+(U_JLOC-1)*NDIM_VEL*NPHASE
                                             w=1.0
-                                            if (i/=j) w = wv
+!                                            if (i/=j) w = wv
                                             PIVIT_MAT( I,J, ELE ) &
                                             = PIVIT_MAT( I,J, ELE ) + w * VLK_ELE( IPHASE, U_ILOC, U_JLOC )
                                         END IF
@@ -4310,10 +4310,12 @@ contains
                                      IF(PIVIT_ON_VISC) THEN
                                         I = IDIM+(IPHASE-1)*NDIM_VEL+(U_ILOC-1)*NDIM_VEL*NPHASE
                                         J = JDIM+(JPHASE-1)*NDIM_VEL+(U_JLOC-1)*NDIM_VEL*NPHASE
-                                        w=1.0
-                                        if (i/=j) w = wv
+!                                        w=1.0
+!                                        if (i/=j) w = wv
+!                                        PIVIT_MAT( I,J, ELE )  &
+!                                        = PIVIT_MAT( I,J, ELE ) + w * STRESS_IJ_ELE( IDIM, JDIM, IPHASE, U_ILOC, U_JLOC )
                                         PIVIT_MAT( I,J, ELE )  &
-                                        = PIVIT_MAT( I,J, ELE ) + w * STRESS_IJ_ELE( IDIM, JDIM, IPHASE, U_ILOC, U_JLOC )
+                                        = PIVIT_MAT( I,J, ELE ) + STRESS_IJ_ELE( IDIM, JDIM, IPHASE, U_ILOC, U_JLOC )
                                      ENDIF
                                   END DO
                                END DO
@@ -4349,10 +4351,12 @@ contains
                                     IF(PIVIT_ON_VISC) THEN
                                         I = IDIM+(IPHASE-1)*NDIM_VEL+(U_ILOC-1)*NDIM_VEL*NPHASE
                                         J = JDIM+(JPHASE-1)*NDIM_VEL+(U_JLOC-1)*NDIM_VEL*NPHASE
-                                        w=1.0
-                                        if (i/=j) w = wv
+!                                        w=1.0
+!                                        if (i/=j) w = wv
+!                                        PIVIT_MAT( I,J, ELE )  &
+!                                        = PIVIT_MAT( I,J, ELE ) + w * VLK_UVW( IDIM )
                                         PIVIT_MAT( I,J, ELE )  &
-                                        = PIVIT_MAT( I,J, ELE ) + w * VLK_UVW( IDIM )
+                                        = PIVIT_MAT( I,J, ELE ) + VLK_UVW( IDIM )
                                     ENDIF
                                 END IF
                             END DO
