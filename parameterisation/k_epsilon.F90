@@ -213,6 +213,8 @@ subroutine keps_calculate_rhs(state)
   character(len=FIELD_NAME_LEN), dimension(2) :: field_names
   character(len=FIELD_NAME_LEN) :: equation_type, implementation
 
+!type(scalar_field), pointer :: time
+
   option_path = trim(state%option_path)//'/subgridscale_parameterisations/k-epsilon/'
 
   if (.not. have_option(trim(option_path))) then 
@@ -314,6 +316,12 @@ subroutine keps_calculate_rhs(state)
      end if
      !-----------------------------------------------------------------------------------
 
+!time => extract_scalar_field(state, "Time")
+!if (node_val(time,1)<1) then
+!call zero(src_abs_terms(1))
+!end if
+
+
      ! Source disabling for debugging purposes
      do term = 1, 3
         if(have_option(trim(option_path)//'debugging_options/disable_'//&
@@ -405,9 +413,10 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, scalar_eddy_visc, u, density,
   real, dimension(3, ele_loc(k, ele)) :: rhs_addto
   integer, dimension(ele_loc(k, ele)) :: nodes
   real, dimension(ele_loc(k, ele), ele_loc(k, ele)) :: invmass
-  real, dimension(u%dim, u%dim, ele_ngi(k, ele)) :: reynolds_stress, grad_u
-  type(element_type), pointer :: shape
+  real, dimension(u%dim, u%dim, ele_ngi(u, ele)) :: reynolds_stress, grad_u
+  type(element_type), pointer :: shape, shape_u
   integer :: term, ngi, dim, gi, i
+  real, dimension(:, :, :), allocatable :: dshape_u
   
   ! For buoyancy turbulence stuff
   real, dimension(u%dim, ele_ngi(u, ele))  :: vector, u_quad, g_quad
@@ -432,7 +441,14 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, scalar_eddy_visc, u, density,
   end do
 
   ! Compute Reynolds stress
-  grad_u = ele_grad_at_quad(u, ele, dshape)
+  allocate(dshape_u(ele_loc(u, ele), ele_ngi(u, ele), X%dim))
+  if(.not.(u%mesh == k%mesh)) then
+     shape_u => ele_shape(u, ele)
+     call transform_to_physical( X, ele, shape_u, dshape=dshape_u )
+  else
+     dshape_u = dshape
+  end if
+  grad_u = ele_grad_at_quad(u, ele, dshape_u)
   scalar_eddy_visc_ele = ele_val_at_quad(scalar_eddy_visc, ele)
   dim = u%dim
   do gi = 1, ngi
@@ -441,6 +457,7 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, scalar_eddy_visc, u, density,
   do i = 1, dim
      reynolds_stress(i,i,:) = reynolds_stress(i,i,:) - (2./3.)*k_ele*ele_val_at_quad(density, ele)
   end do
+  deallocate(dshape_u)  
 
   ! Compute P
   rhs = tensor_inner_product(reynolds_stress, grad_u)
@@ -559,6 +576,7 @@ subroutine keps_eddyvisc(state, advdif)
   type(state_type), intent(inout)  :: state
   logical, intent(in) :: advdif
 
+  type(tensor_field)               :: visc_dg
   type(tensor_field), pointer      :: eddy_visc, viscosity, bg_visc
   type(vector_field), pointer      :: x, u
   type(scalar_field)               :: kk, eps
@@ -586,6 +604,10 @@ subroutine keps_eddyvisc(state, advdif)
   ! Get field data
   call time_averaged_value(state, kk, "TurbulentKineticEnergy", advdif, option_path)
   call time_averaged_value(state, eps, "TurbulentDissipation", advdif, option_path)
+  if (continuity(kk)<0 .or. continuity(eps)<0) then
+     FLExit('Currently k-epsilon only works for continuous meshes')          
+  end if
+
   x  => extract_vector_field(state, "Coordinate")
   u          => extract_vector_field(state, "NonlinearVelocity")
   eddy_visc  => extract_tensor_field(state, "EddyViscosity")
@@ -627,7 +649,23 @@ subroutine keps_eddyvisc(state, advdif)
 
   ! Initialise viscosity to background value
   if (have_visc) then
-     call set(viscosity, bg_visc)
+     ewrite(2,*) "Entering initialise viscosity to bg visc"   
+     ! Check if viscosity is on discontinuous mesh and bg_viscosity is on continuous mesh
+     ! We need t remap before setting the field as the set subroutine does not remap automatically.
+     if (continuity(viscosity)<0 .and. continuity(bg_visc)>=0) then     
+        ewrite(2,*) "Entering background viscosity remap conditional"
+        call allocate(visc_dg, viscosity%mesh, "RemappedBackgroundViscosityDG")
+        call remap_field(bg_visc,visc_dg,stat)
+        if (stat/=0) then
+           FLExit('There was some problem remapping the continuous backgroud viscosity to discontinuous mesh')
+        end if
+        call set(viscosity, visc_dg)
+        call deallocate(visc_dg)
+     else if (continuity(viscosity) == continuity(bg_visc)) then
+        ewrite(2,*) "Continuity of viscosity is the same as the continuity of bg_visc"
+        call set(viscosity, bg_visc)
+     end if
+     ewrite(2,*) "Exiting initialise viscosity to bg visc"
   end if
   
   ! Compute the length scale diagnostic field here.
@@ -681,6 +719,8 @@ subroutine keps_eddyvisc(state, advdif)
 
   ! Add turbulence model contribution to viscosity field
   if (have_visc) then
+     ! Tensor addto subroutine will remap the second tensor to the mesh of tensor1 if they are on different meshes.
+     ! So we don't need to manually remap in this case.
      call addto(viscosity, eddy_visc)
   end if
 
@@ -1259,8 +1299,8 @@ subroutine k_epsilon_check_options
            FLExit("You must use a prognostic or prescribed Velocity field")
         end if
      end if
-     if(.not. kmsh==emsh .or. .not. kmsh==vmsh .or. .not. emsh==vmsh) then
-        FLExit("You must use the Velocity mesh for TurbulentKineticEnergy and TurbulentDissipation fields")
+     if(.not. kmsh==emsh) then
+        FLExit("You must use same mesh for TurbulentKineticEnergy and TurbulentDissipation fields")
      end if
 
      ! Velocity field options
