@@ -1314,19 +1314,20 @@
           beta_gi(gi) = sum((leonard_gi(:,:,gi) - tautest_gi(:,:,gi) + tau_gi(:,:,gi)) * mij) / denom
 
           if (beta_gi(gi) > 0) then
-            beta_gi(gi) = sqrt(beta_gi(gi))
-          else
+            beta_gi(gi) = 1.0/sqrt(beta_gi(gi))
+          else ! what is a sensible alternative?
             beta_gi(gi) = 0.0
           endif
         end do
 
-        ewrite(2,*) "beta: ", beta_gi
+        !ewrite(2,*) "beta: ", beta_gi
 
-        ! NEED TO DO THIS IN A SEPARATE LOOP BEFORE ASSEMBLING FACE INTEGRALS BELOW
-        ! Also need to addto only components tangent to surface
+        ! TODO: need to addto only components tangent to surface
         do dim = 1, u%dim
           slipvector_gi(dim,:) = beta_gi
-          call addto(velocity_bc_2, dim, u_nodes_bdy, shape_rhs(u_shape, beta_gi*detwei_bdy))
+          ! TODO: PUT THIS IN A SEPARATE LOOP BEFORE ASSEMBLING FACE INTEGRALS BELOW?
+          ! also can't addto u_nodes_bdy - need surface field nodes
+          !call addto(velocity_bc_2, dim, u_nodes_bdy, shape_rhs(u_shape, beta_gi*detwei_bdy))
         end do
       end if
 
@@ -1338,7 +1339,7 @@
         !robin_diff_mat_bdy = shape_shape_vector(u_shape, u_shape, detwei_bdy, ele_val_at_quad(velocity_bc_2, sele))
         robin_diff_mat_bdy = shape_shape_vector(u_shape, u_shape, detwei_bdy, slipvector_gi)
         !ewrite(2,*) "betavec: ", slipvector_gi
-        ewrite(2,*) "Robin mat: ", robin_diff_mat_bdy
+        !ewrite(2,*) "Robin mat: ", robin_diff_mat_bdy
 
         ! Add lumped or vector absorption, following the method for other absorption terms
         if(lump_absorption) then
