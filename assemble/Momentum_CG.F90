@@ -1329,16 +1329,10 @@
           ! also can't addto u_nodes_bdy - need surface field nodes
           !call addto(velocity_bc_2, dim, u_nodes_bdy, shape_rhs(u_shape, beta_gi*detwei_bdy))
         end do
-      end if
 
-      ! Add Robin and dynamic_slip absorption term to LHS matrix
+        ! Add dynamic_slip absorption term to LHS matrix
 
-      if (any(velocity_bc_type(:,sele)==BC_TYPE_ROBIN) &
-          & .or. any(velocity_bc_type(:,sele)==BC_TYPE_DYNAMIC_SLIP)) then
-
-        !robin_diff_mat_bdy = shape_shape_vector(u_shape, u_shape, detwei_bdy, ele_val_at_quad(velocity_bc_2, sele))
         robin_diff_mat_bdy = shape_shape_vector(u_shape, u_shape, detwei_bdy, slipvector_gi)
-        !ewrite(2,*) "betavec: ", slipvector_gi
         !ewrite(2,*) "Robin mat: ", robin_diff_mat_bdy
 
         ! Add lumped or vector absorption, following the method for other absorption terms
@@ -1355,11 +1349,9 @@
           end do
           lumped_robin_diff_mat_bdy = 0.0
         end if
-      end if
 
-      ! Add dynamic slip boundary terms to RHS
+        ! Add dynamic slip boundary terms to RHS
 
-      if (any(velocity_bc_type(:,sele)==BC_TYPE_DYNAMIC_SLIP)) then
         do dim = 1, u%dim
           ! hard-coded to no-slip on unfiltered velocity
           do gi=1, face_ngi(u, sele)
@@ -1367,6 +1359,28 @@
           end do
           call addto(rhs, dim, u_nodes_bdy, shape_rhs(u_shape, slip_gi*detwei_bdy))
         end do
+      end if
+
+      ! Add Robin absorption term to LHS matrix
+
+      if (any(velocity_bc_type(:,sele)==BC_TYPE_ROBIN)) then
+        robin_diff_mat_bdy = shape_shape_vector(u_shape, u_shape, detwei_bdy, ele_val_at_quad(velocity_bc_2, sele))
+        !ewrite(2,*) "Robin mat: ", robin_diff_mat_bdy
+
+        ! Add lumped or vector absorption, following the method for other absorption terms
+        if(lump_absorption) then
+          if(.not.abs_lump_on_submesh) then
+            lumped_robin_diff_mat_bdy = sum(robin_diff_mat_bdy, 3)
+            do dim = 1, u%dim
+              call addto_diag(big_m, dim, dim, u_nodes_bdy, dt*theta*lumped_robin_diff_mat_bdy(dim,:))
+            end do
+          end if
+        else
+          do dim = 1, u%dim
+            call addto(big_m, dim, dim, u_nodes_bdy, u_nodes_bdy, dt*theta*robin_diff_mat_bdy(dim,:,:))
+          end do
+          lumped_robin_diff_mat_bdy = 0.0
+        end if
       end if
 
       ! Add Flux and Robin boundary terms to RHS
