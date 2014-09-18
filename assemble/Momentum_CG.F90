@@ -29,6 +29,7 @@
 
   module momentum_cg
 
+    use quadrature
     use fields
     use state_module
     use spud
