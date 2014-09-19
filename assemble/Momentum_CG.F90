@@ -430,9 +430,12 @@
       have_coriolis = have_option("/physical_parameters/coriolis")
       have_les = have_option(trim(u%option_path)//"/prognostic/spatial_discretisation"//&
          &"/continuous_galerkin/les_model")
+
+       ! Set LES flags to false initially, then set to true if present
+       les_second_order=.false.; les_fourth_order=.false.; wale=.false.; dynamic_les=.false.; exact_sgs=.false.
+       have_eddy_visc=.false.; have_filter_width=.false.; have_coeff=.false.; have_sgs_tensor=.false.
+
       if (have_les) then
-         ! Set LES flags to false initially, then set to true if present
-         have_eddy_visc=.false.; have_filter_width=.false.; have_coeff=.false.; have_sgs_tensor=.false.
 
          les_option_path=(trim(u%option_path)//"/prognostic/spatial_discretisation"//&
                  &"/continuous_galerkin/les_model")
@@ -441,6 +444,7 @@
          wale=have_option(trim(les_option_path)//"/wale")
          dynamic_les=have_option(trim(les_option_path)//"/dynamic_les")
          exact_sgs=have_option(trim(les_option_path)//"/exact_sgs")
+
          if (les_second_order) then
             call get_option(trim(les_option_path)//"/second_order/smagorinsky_coefficient", &
                  smagorinsky_coefficient)
@@ -454,16 +458,19 @@
                call les_init_diagnostic_fields(state, have_eddy_visc, .false., .false., .false.)
             end if
          end if
+
          if (les_fourth_order) then
             call get_option(trim(les_option_path)//"/fourth_order/smagorinsky_coefficient", &
                  smagorinsky_coefficient)
             call allocate( grad_u, u%mesh, "VelocityGradient")
             call differentiate_field_lumped( nu, x, grad_u)
          end if
+
          if (wale) then
             call get_option(trim(les_option_path)//"/wale/smagorinsky_coefficient", &
                  smagorinsky_coefficient)
          end if
+
          if(dynamic_les) then
             ! Initialise optional diagnostic fields
             have_eddy_visc = have_option(trim(les_option_path)//"/dynamic_les/tensor_field::EddyViscosity")
@@ -498,16 +505,20 @@
             ewrite_minmax(tnu)
             ewrite_minmax(leonard)
             ewrite_minmax(strainprod)
-         end if
-         if (exact_sgs) then
-           ! Scalar or tensor filter width
-           call get_option(trim(les_option_path)//"/exact_sgs/length_scale_type", length_scale_type)
 
-           ! Initialise optional diagnostic field
-           have_sgs_tensor = have_option(trim(les_option_path)//"/exact_sgs/tensor_field::SGSTensor")
+            ! initialise unwanted pointers
+            exactsgs => dummytensor
+         end if
+
+         if (exact_sgs) then
+           ! Initialise diagnostic field SGSTensor
+           ! (have_sgs_tensor is true because it's been initialised in Boundary_Conditions_From_Options.F90)
+           have_sgs_tensor = .true.
            call les_init_diagnostic_fields(state, .false., .false., .false., have_sgs_tensor)
 
-           ! Initialise necessary local fields.
+           exactsgs => extract_tensor_field(state, "SGSTensor", stat)
+
+           ! Initialise local field.
            if(.not. have_option(trim(les_option_path)//"/exact_sgs/vector_field::FilteredVelocity")) then
              allocate(fnu)
              call allocate(fnu, u%dim, u%mesh, "FilteredVelocity")
@@ -515,15 +526,10 @@
              fnu => extract_vector_field(state, "FilteredVelocity", stat)
            end if
 
-           !if(.not. have_sgs_tensor) then
-             !ewrite(2,*) "Initialising SGSTensor field"
-             !allocate(exactsgs)
-             !call allocate(exactsgs, u%mesh, "SGSTensor")
-           !else
-             exactsgs => extract_tensor_field(state, "SGSTensor", stat)
-           !end if
-
            call zero(fnu); call zero(exactsgs)
+
+           ! Scalar or tensor filter width
+           call get_option(trim(les_option_path)//"/exact_sgs/length_scale_type", length_scale_type)
 
            ! Get (first filter)/(mesh size) ratio alpha. Default value is 2.
            call get_option(trim(les_option_path)//"/exact_sgs/alpha", alpha, default=2.0)
@@ -533,12 +539,14 @@
            call exact_sgs_stress(nu, x, fnu, exactsgs, alpha, length_scale_type, les_option_path)
 
            ewrite_minmax(exactsgs)
+
+           ! initialise unwanted pointers
+           tnu => dummyvector; leonard => dummytensor; strainprod => dummytensor
          end if
       else
-         les_second_order=.false.; les_fourth_order=.false.; wale=.false.; dynamic_les=.false.; exact_sgs=.false.
+         ! initialise unwanted pointers
          fnu => dummyvector; tnu => dummyvector; leonard => dummytensor; strainprod => dummytensor; exactsgs => dummytensor
       end if
-      
 
       have_temperature_dependent_viscosity = have_option(trim(u%option_path)//"/prognostic"//&
          &"/spatial_discretisation/continuous_galerkin/temperature_dependent_viscosity")
@@ -928,9 +936,6 @@
       if (exact_sgs) then
         if(.not. have_option(trim(les_option_path)//"/exact_sgs/vector_field::FilteredVelocity")) then
           call deallocate(fnu); deallocate(fnu)
-        end if
-        if(.not. have_sgs_tensor) then
-          call deallocate(exactsgs); deallocate(exactsgs)
         end if
       end if
 
