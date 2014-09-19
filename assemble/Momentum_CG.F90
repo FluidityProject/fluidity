@@ -1128,7 +1128,7 @@
                   call addto(big_m, dim, dim, u_nodes_bdy, u_nodes_bdy, &
                        dt*theta*adv_mat_bdy)
 
-                  call addto(rhs, dim, u_nodes_bdy, -matmul(adv_mat_bdy, face_val(oldu, dim, sele)))
+                  call addto(rhs, dim, u_nodes_bdy, -matmul(adv_mat_bdy, oldu_val(dim,:)))
 
                end if
 
@@ -1343,7 +1343,7 @@
 
         ! Add lumped or vector absorption, following the method for other absorption terms
         if(lump_absorption) then
-          if(.not.abs_lump_on_submesh) then
+          if(.not. abs_lump_on_submesh) then
             lumped_robin_diff_mat_bdy = sum(robin_diff_mat_bdy, 3)
             do dim = 1, u%dim
               call addto_diag(big_m, dim, dim, u_nodes_bdy, dt*theta*lumped_robin_diff_mat_bdy(dim,:))
@@ -1353,7 +1353,6 @@
           do dim = 1, u%dim
             call addto(big_m, dim, dim, u_nodes_bdy, u_nodes_bdy, dt*theta*robin_diff_mat_bdy(dim,:,:))
           end do
-          lumped_robin_diff_mat_bdy = 0.0
         end if
 
         ! Add dynamic slip boundary terms to RHS
@@ -1364,6 +1363,7 @@
             slip_gi(gi) = 0.0
           end do
           call addto(rhs, dim, u_nodes_bdy, shape_rhs(u_shape, slip_gi*detwei_bdy))
+          call addto(rhs, dim, u_nodes_bdy, -matmul(robin_diff_mat_bdy(dim,:,:), oldu_val(dim,:)))
         end do
       end if
 
@@ -1371,7 +1371,6 @@
 
       if (any(velocity_bc_type(:,sele)==BC_TYPE_ROBIN)) then
         robin_diff_mat_bdy = shape_shape_vector(u_shape, u_shape, detwei_bdy, ele_val_at_quad(velocity_bc_2, sele))
-        !ewrite(2,*) "Robin mat: ", robin_diff_mat_bdy
 
         ! Add lumped or vector absorption, following the method for other absorption terms
         if(lump_absorption) then
@@ -1393,8 +1392,15 @@
 
       if (any(velocity_bc_type(:,sele)==BC_TYPE_FLUX) &
           & .or. any(velocity_bc_type(:,sele)==BC_TYPE_ROBIN)) then
+
         do dim = 1, u%dim
+          !ewrite(2,*) "dim: ", dim
+          !ewrite(2,*) "NS Robin oldu: ", oldu_val(dim,:)
+          !ewrite(2,*) "NS Robin rhs:", shape_rhs(u_shape, ele_val_at_quad(velocity_bc, sele, dim)*detwei_bdy)-matmul(robin_diff_mat_bdy(dim,:,:), oldu_val(dim,:))
+          !ewrite(2,*) "NS Robin mat: ", robin_diff_mat_bdy(dim,:,:)
+
           call addto(rhs, dim, u_nodes_bdy, shape_rhs(u_shape, ele_val_at_quad(velocity_bc, sele, dim)*detwei_bdy))
+          call addto(rhs, dim, u_nodes_bdy, -matmul(robin_diff_mat_bdy(dim,:,:), oldu_val(dim,:)))
         end do
       end if
 
