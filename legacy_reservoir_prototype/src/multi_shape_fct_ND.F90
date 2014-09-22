@@ -1571,8 +1571,8 @@
             !
             do  L=1,NLOC! Was loop 79
                IGLX=XONDGL((ELE-1)*NLOC+L)
-               ewrite(3,*)'xndgln, x, nl:', &
-                    iglx, l, x(iglx), y(iglx), z(iglx), NLX(L,GI), NLY(L,GI), NLZ(L,GI)
+               !ewrite(3,*)'xndgln, x, nl:', &
+               !     iglx, l, x(iglx), y(iglx), z(iglx), NLX(L,GI), NLY(L,GI), NLZ(L,GI)
                ! NB R0 does not appear here although the z-coord might be Z+R0.
                AGI=AGI+NLX(L,GI)*X(IGLX)
                BGI=BGI+NLX(L,GI)*Y(IGLX)
@@ -1593,7 +1593,7 @@
             DETWEI(GI)=ABS(DETJ)*WEIGHT(GI)
             RA(GI)=1.0
             VOLUME=VOLUME+DETWEI(GI)
-            ewrite(3,*)'gi, detj, weight(gi)', gi, detj, weight(gi)
+            !ewrite(3,*)'gi, detj, weight(gi)', gi, detj, weight(gi)
             rsum = rsum + detj
             rsumabs = rsumabs + abs( detj )
             ! For coefficient in the inverse mat of the jacobian.
