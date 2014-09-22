@@ -51,19 +51,20 @@ Physics_From_Options.o ../include/physics_from_options.mod: \
 Populate_State.o ../include/populate_state_module.mod: Populate_State.F90 \
    ../include/boundary_conditions_from_options.mod ../include/climatology.mod \
    ../include/coordinates.mod ../include/data_structures.mod \
-   ../include/diagnostic_variables.mod ../include/elements.mod \
-   ../include/fdebug.h ../include/field_options.mod \
+   ../include/diagnostic_variables.mod ../include/dmplex_reader.mod \
+   ../include/elements.mod ../include/fdebug.h ../include/field_options.mod \
    ../include/fields_halos.mod ../include/fields_manipulation.mod \
    ../include/fldebug.mod ../include/global_parameters.mod \
    ../include/hadapt_extrude.mod ../include/hadapt_extrude_radially.mod \
    ../include/halos.mod ../include/initialise_fields_module.mod \
    ../include/initialise_ocean_forcing_module.mod ../include/mesh_files.mod \
    ../include/metric_tools.mod ../include/nemo_states_module.mod \
-   ../include/parallel_tools.mod ../include/profiler.mod \
-   ../include/read_triangle.mod ../include/reserve_state_module.mod \
-   ../include/spud.mod ../include/state_module.mod \
-   ../include/surfacelabels.mod ../include/tictoc.mod \
-   ../include/transform_elements.mod ../include/vtk_cache_module.mod
+   ../include/parallel_tools.mod ../include/petsc_legacy.h \
+   ../include/profiler.mod ../include/read_triangle.mod \
+   ../include/reserve_state_module.mod ../include/spud.mod \
+   ../include/state_module.mod ../include/surfacelabels.mod \
+   ../include/tictoc.mod ../include/transform_elements.mod \
+   ../include/vtk_cache_module.mod
 
 ../include/populate_sub_state_module.mod: Populate_Sub_State.o
 	@true

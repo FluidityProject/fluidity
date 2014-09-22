@@ -58,8 +58,14 @@ module populate_state_module
   use fields_halos
   use read_triangle
   use initialise_ocean_forcing_module
+  use dmplex_reader
+#ifdef HAVE_PETSC_MODULES
+  use petsc
+#endif
 
   implicit none
+
+#include "petsc_legacy.h"
 
   private
 
@@ -198,6 +204,7 @@ contains
     logical :: from_file, extruded
     integer :: dim, mdim, loc, column_ids
     integer :: quad_family
+    type(DM) :: plex
     
     call tic(TICTOC_ID_IO_READ)
 
@@ -243,6 +250,9 @@ contains
           if (is_active_process) then
             select case (mesh_file_format)
             case("exodusii")
+               call dmplex_read_exodusii_file(trim(mesh_file_name)//".exo", plex)
+               mesh=position%mesh
+
               ! After successfully reading in an ExodusII mesh, change the option
               ! mesh file format to "gmsh", as the write routines for ExodusII are currently
               ! not implemented. Thus, checkpoints etc are dumped as gmsh mesh files
@@ -253,8 +263,6 @@ contains
                   FLAbort("Failed to set the mesh format to gmsh (required for checkpointing). &&
                        Spud error code is: "//int2str(stat))
                end if
-
-               FLExit("DMPlex-ExodusII reader not yet implemented")
             case ("triangle", "gmsh")
               ! Get mesh dimension if present
               call get_option(trim(mesh_path)//"/from_file/dimension", mdim, stat)
@@ -449,6 +457,10 @@ contains
           call insert(states, position, "AdaptedExtrudedPositions")
           call deallocate(position)
           
+        end if
+
+        if (mesh_file_format /= "vtu") then
+           call DMDestroy(plex, stat)
         end if
 
     end do external_mesh_loop
