@@ -242,7 +242,20 @@ contains
 
           if (is_active_process) then
             select case (mesh_file_format)
-            case ("triangle", "gmsh", "exodusii")
+            case("exodusii")
+              ! After successfully reading in an ExodusII mesh, change the option
+              ! mesh file format to "gmsh", as the write routines for ExodusII are currently
+              ! not implemented. Thus, checkpoints etc are dumped as gmsh mesh files
+               mesh_file_format = "gmsh"
+               call set_option_attribute(trim(from_file_path)//"/format/name", &
+                    trim(mesh_file_format), stat=stat)
+               if (stat /= SPUD_NO_ERROR) then
+                  FLAbort("Failed to set the mesh format to gmsh (required for checkpointing). &&
+                       Spud error code is: "//int2str(stat))
+               end if
+
+               FLExit("DMPlex-ExodusII reader not yet implemented")
+            case ("triangle", "gmsh")
               ! Get mesh dimension if present
               call get_option(trim(mesh_path)//"/from_file/dimension", mdim, stat)
               ! Read mesh
@@ -256,16 +269,6 @@ contains
                       quad_degree=quad_degree, &
                       quad_family=quad_family, &
                       format=mesh_file_format)
-              end if
-              ! After successfully reading in an ExodusII mesh, change the option
-              ! mesh file format to "gmsh", as the write routines for ExodusII are currently
-              ! not implemented. Thus, checkpoints etc are dumped as gmsh mesh files
-              if (trim(mesh_file_format)=="exodusii") then
-                mesh_file_format = "gmsh"
-                call set_option_attribute(trim(from_file_path)//"/format/name", trim(mesh_file_format), stat=stat)
-                if (stat /= SPUD_NO_ERROR) then
-                  FLAbort("Failed to set the mesh format to gmsh (required for checkpointing). Spud error code is: "//int2str(stat))
-                end if
               end if
               mesh=position%mesh
             case ("vtu")

@@ -1,0 +1,49 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>DMPlex mesh reader</name>
+  <owner userid="ml805"/>
+  <tags>dmplex exodusii</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>fluidity dmplex_exodus_square.flml;
+    fluidity dmplex_exodus_cube.flml;
+    </command_line>
+  </problem_definition>
+  <variables>
+    <variable name = "solvers_converged" language = "python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files 
+    </variable>
+    <variable name="exodus_square_nnodes" language="python">from fluidity_tools import stat_parser
+s = stat_parser("dmplex_exodus_square.stat")
+exodus_square_nnodes = s["CoordinateMesh"]["nodes"]
+    </variable>
+    <variable name="exodus_square_nelements" language="python">from fluidity_tools import stat_parser
+s = stat_parser("dmplex_exodus_square.stat")
+exodus_square_nelements = s["CoordinateMesh"]["elements"]
+    </variable>
+    <variable name="exodus_cube_nnodes" language="python">from fluidity_tools import stat_parser
+s = stat_parser("dmplex_exodus_cube.stat")
+exodus_cube_nnodes = s["CoordinateMesh"]["nodes"]
+    </variable>
+    <variable name="exodus_cube_nelements" language="python">from fluidity_tools import stat_parser
+s = stat_parser("dmplex_exodus_cube.stat")
+exodus_cube_nelements = s["CoordinateMesh"]["elements"]
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name = "Solvers converged" language = "python">
+assert(solvers_converged)
+    </test>
+    <test name = "DMPlex-Exodus Square: Nodes, elements" language = "python">
+import fluidity_tools
+fluidity_tools.compare_variable(exodus_square_nnodes[-1], 92, 1.0e-6)
+fluidity_tools.compare_variable(exodus_square_nelements[-1], 150, 1.0e-6)
+    </test>
+    <test name = "DMPlex-Exodus Cube: Nodes, elements" language = "python">
+import fluidity_tools
+fluidity_tools.compare_variable(exodus_cube_nnodes[-1], 146, 1.0e-6)
+fluidity_tools.compare_variable(exodus_cube_nelements[-1], 510, 1.0e-6)
+    </test>
+  </pass_tests>
+</testproblem>
