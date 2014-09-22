@@ -1363,6 +1363,7 @@
             slip_gi(gi) = 0.0
           end do
           call addto(rhs, dim, u_nodes_bdy, shape_rhs(u_shape, slip_gi*detwei_bdy))
+          ! explicit term added to rhs
           call addto(rhs, dim, u_nodes_bdy, -matmul(robin_diff_mat_bdy(dim,:,:), oldu_val(dim,:)))
         end do
       end if
@@ -1395,11 +1396,11 @@
 
         do dim = 1, u%dim
           !ewrite(2,*) "dim: ", dim
-          !ewrite(2,*) "NS Robin oldu: ", oldu_val(dim,:)
-          !ewrite(2,*) "NS Robin rhs:", shape_rhs(u_shape, ele_val_at_quad(velocity_bc, sele, dim)*detwei_bdy)-matmul(robin_diff_mat_bdy(dim,:,:), oldu_val(dim,:))
+          !ewrite(2,*) "NS Robin rhs:", shape_rhs(u_shape, ele_val_at_quad(velocity_bc, sele, dim)*detwei_bdy)
           !ewrite(2,*) "NS Robin mat: ", robin_diff_mat_bdy(dim,:,:)
 
           call addto(rhs, dim, u_nodes_bdy, shape_rhs(u_shape, ele_val_at_quad(velocity_bc, sele, dim)*detwei_bdy))
+          ! explicit term added to rhs
           call addto(rhs, dim, u_nodes_bdy, -matmul(robin_diff_mat_bdy(dim,:,:), oldu_val(dim,:)))
         end do
       end if
