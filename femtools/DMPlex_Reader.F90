@@ -42,7 +42,7 @@ module dmplex_reader
 
   private
 
-  public :: dmplex_read_mesh_file
+  public :: dmplex_read_mesh_file, dmplex_create_coordinate_field
 
 contains
 
@@ -73,10 +73,62 @@ contains
        end if
     end if
 
-    call DMDestroy(plex, ierr)
-
     ewrite(1,*) "Finished dmplex_read_mesh_file"
     FLExit("DMPlex-ExodusII reader not yet implemented")
   end subroutine dmplex_read_mesh_file
+
+  subroutine dmplex_create_coordinate_field(plex, quad_degree, quad_ngi, quad_family, field)
+    type(DM), intent(in) :: plex
+    integer, intent(in), optional, target :: quad_degree
+    integer, intent(in), optional, target :: quad_ngi
+    integer, intent(in), optional :: quad_family
+    type(vector_field), intent(out) :: field
+
+    type(mesh_type) :: mesh
+    type(quadrature_type) :: quad
+    type(element_type) :: shape
+
+    PetscInt :: dim, loc, cStart, cEnd, vStart, vEnd, nnodes, nelements
+    PetscInt, dimension(:), pointer :: closure
+    PetscScalar, dimension(:), pointer :: coordinates => null()
+    Vec :: plex_coordinates
+    PetscErrorCode :: ierr
+
+    ewrite(1,*) "In dmplex_create_coordinate_field"
+
+    call DMGetDimension(plex, dim, ierr)
+    call DMPlexGetDepthStratum(plex, 0, vStart, vEnd, ierr)
+    nnodes = vEnd - vStart
+    call DMPlexGetHeightStratum(plex, 0, cStart, cEnd, ierr)
+    nelements = cEnd - cStart
+    ! Assumes no. faces == no. vertices in each element
+    call DMPlexGetConeSize(plex, cStart, loc, ierr)
+
+    ! Build mesh shape and quadrature
+    if (present(quad_degree)) then
+       quad = make_quadrature(loc, dim, degree=quad_degree, family=quad_family)
+    else if (present(quad_ngi)) then
+       quad = make_quadrature(loc, dim, ngi=quad_ngi, family=quad_family)
+    else
+       FLAbort("Need to specify either quadrature degree or ngi")
+    end if
+    shape=make_element_shape(loc, dim, 1, quad)
+
+    ! Allocate Coordinate field and the CoordinateMesh
+    call allocate(mesh, nnodes, nelements, shape, name="CoordinateMesh")
+    call allocate(field, dim, mesh, name="Coordinate")
+
+    ! Copy DMPlex coordinates to the coordinate field
+    call DMGetCoordinates(plex, plex_coordinates, ierr)
+    call VecGetArrayF90(plex_coordinates, coordinates, ierr)
+    field%val = reshape(coordinates, (/dim, nnodes/))
+    call VecRestoreArrayF90(plex_coordinates, coordinates, ierr)
+
+    ! Clean up
+    call deallocate_element(shape)
+    call deallocate(quad)
+
+    ewrite(1,*) "Finished dmplex_create_coordinate_field"
+  end subroutine dmplex_create_coordinate_field
 
 end module dmplex_reader

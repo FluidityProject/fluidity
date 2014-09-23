@@ -251,6 +251,9 @@ contains
             select case (mesh_file_format)
             case("exodusii")
                call dmplex_read_exodusii_file(trim(mesh_file_name)//".exo", plex)
+               call dmplex_create_coordinate_field(plex, &
+                    quad_degree=quad_degree, quad_family=quad_family, &
+                    field=position)
                mesh=position%mesh
 
               ! After successfully reading in an ExodusII mesh, change the option
