@@ -636,7 +636,6 @@ DEFINE_MPI
 USE_CPP
 FLLINKER
 LINKER
-OPTIMIZATION_FFLAGS
 FORTRAN_REAL_8
 PROFILING_FLAG
 HAVE_PETSC33
@@ -10312,7 +10311,11 @@ $as_echo "$as_me: Setting optimisation flags for $F77" >&6;}
     cat >> confdefs.h << EOF
 #define NDEBUG 1
 EOF
-    OPTIMIZATION_FFLAGS="$OPTIMIZATION_FFLAGS -O3"
+    OPTIMISATION_FLAGS="$OPTIMISATION_FLAGS -O3"
+    if test "$fcompiler" = "ifort" ; then
+      # add inlining and cpu-specific optimisations for intel
+      OPTIMISATION_FLAGS="$OPTIMISATION_FLAGS -ip -Xhost"
+    fi
 
     { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ltcmalloc" >&5
 $as_echo_n "checking for malloc in -ltcmalloc... " >&6; }
@@ -10380,13 +10383,10 @@ fi
 
 fi
 
-FFLAGS="$FFLAGS $OPTIMIZATION_FFLAGS"
-FCFLAGS="$FCFLAGS $OPTIMIZATION_FFLAGS"
-
-if test "$FC" = "ifc" ; then
-  FFLAGS="-implicitnone -132 -w95 $FFLAGS"
-  FCFLAGS="-implicitnone -w95 $FCFLAGS"
-fi
+FFLAGS="$FFLAGS $OPTIMISATION_FLAGS"
+FCFLAGS="$FCFLAGS $OPTIMISATION_FLAGS"
+CFLAGS="$CFLAGS $OPTIMISATION_FLAGS"
+CXXFLAGS="$CXXFLAGS $OPTIMISATION_FLAGS"
 
 ##########################################
 # Are we using FEMDEM
@@ -13366,7 +13366,6 @@ fi
 # These tests were just giving too much trouble. Need to investigate further.
 #AC_C_CONST
 #AC_C_INLINE
-
 
 
 
