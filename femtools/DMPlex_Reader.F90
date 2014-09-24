@@ -35,6 +35,7 @@ module dmplex_reader
 #ifdef HAVE_PETSC_MODULES
   use petsc
 #endif
+  use iso_c_binding
 
   implicit none
 
@@ -43,6 +44,30 @@ module dmplex_reader
   private
 
   public :: dmplex_read_mesh_file, dmplex_create_coordinate_field
+
+  interface
+
+     function dmplex_get_mesh_connectivity(plex, nnodes, loc, ndglno) &
+          bind(c) result(ierr)
+       use iso_c_binding
+       implicit none
+       integer(c_int) :: ierr
+       integer(c_long), value :: plex
+       integer(c_int), value :: nnodes, loc
+       integer(c_int), dimension(nnodes*loc) :: ndglno
+     end function dmplex_get_mesh_connectivity
+
+     function dmplex_get_face_connectivity(plex, nfaces, sloc, sndglno) &
+          bind(c) result(ierr)
+       use iso_c_binding
+       implicit none
+       integer(c_int) :: ierr
+       integer(c_long), value :: plex
+       integer(c_int), value :: nfaces, sloc
+       integer(c_int), dimension(nfaces*sloc) :: sndglno
+     end function dmplex_get_face_connectivity
+
+  end interface
 
 contains
 
@@ -74,7 +99,6 @@ contains
     end if
 
     ewrite(1,*) "Finished dmplex_read_mesh_file"
-    FLExit("DMPlex-ExodusII reader not yet implemented")
   end subroutine dmplex_read_mesh_file
 
   subroutine dmplex_create_coordinate_field(plex, quad_degree, quad_ngi, quad_family, field)
@@ -88,8 +112,9 @@ contains
     type(quadrature_type) :: quad
     type(element_type) :: shape
 
-    PetscInt :: dim, loc, cStart, cEnd, vStart, vEnd, nnodes, nelements
-    PetscInt, dimension(:), pointer :: closure
+    PetscInt :: dim, cStart, cEnd, vStart, vEnd, fStart, fEnd
+    PetscInt :: loc, sloc, nnodes, nelements, nfaces
+    PetscInt, dimension(:), allocatable :: sndglno
     PetscScalar, dimension(:), pointer :: coordinates => null()
     Vec :: plex_coordinates
     PetscErrorCode :: ierr
@@ -101,8 +126,11 @@ contains
     nnodes = vEnd - vStart
     call DMPlexGetHeightStratum(plex, 0, cStart, cEnd, ierr)
     nelements = cEnd - cStart
+    call DMPlexGetHeightStratum(plex, 1, fStart, fEnd, ierr)
+    nfaces = fEnd - fStart
     ! Assumes no. faces == no. vertices in each element
     call DMPlexGetConeSize(plex, cStart, loc, ierr)
+    call DMPlexGetConeSize(plex, fStart, sloc, ierr)
 
     ! Build mesh shape and quadrature
     if (present(quad_degree)) then
@@ -124,9 +152,18 @@ contains
     field%val = reshape(coordinates, (/dim, nnodes/))
     call VecRestoreArrayF90(plex_coordinates, coordinates, ierr)
 
+    ! Build mesh connectivity from cell closures
+    ierr = dmplex_get_mesh_connectivity(plex, nnodes, loc, mesh%ndglno)
+
+    ! Build and add face connectivity
+    allocate(sndglno(nfaces*sloc))
+    ierr = dmplex_get_face_connectivity(plex, nfaces, sloc, sndglno)
+    call add_faces(field%mesh, sndgln = sndglno(1:nfaces*sloc))
+
     ! Clean up
     call deallocate_element(shape)
     call deallocate(quad)
+    deallocate(sndglno)
 
     ewrite(1,*) "Finished dmplex_create_coordinate_field"
   end subroutine dmplex_create_coordinate_field
