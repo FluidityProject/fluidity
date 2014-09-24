@@ -2855,6 +2855,7 @@ contains
     
     assert(associated(mesh%adj_lists))
     if(.not. associated(mesh%adj_lists%eelist)) then    
+      ewrite(2, *) "Adding element-element list to mesh " // trim(mesh%name)
       allocate(eelist)
       mesh%adj_lists%eelist => eelist
       ! We need the nelist to generate the eelist, so extract it from the cache
