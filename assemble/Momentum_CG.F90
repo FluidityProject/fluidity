@@ -824,8 +824,11 @@
             hb_pressure => dummyscalar
          end if
 
+         ! Calculate dynamic_slip surface fields            
+         call calculate_dynamic_slip_coefficient(x, u, fnu, tnu, leonard, strainprod, exactsgs, alpha, gamma)
+
          surface_element_loop: do sele=1, surface_element_count(u)
-            
+
             ! if no_normal flow and no other condition in the tangential directions, or if periodic
             ! but not if there's a pressure bc
             if(((velocity_bc_type(1,sele)==BC_TYPE_NO_NORMAL_FLOW &
@@ -1173,7 +1176,6 @@
              end if
           end do
         end if
-        
       end if
 
       ! Add free surface stabilisation.
@@ -1250,98 +1252,14 @@
 
       end if
 
-      ! Calculate dynamic slip coefficient
+      ! dynamic_slip terms
 
       if (any(velocity_bc_type(:,sele)==BC_TYPE_DYNAMIC_SLIP)) then
 
-        x_shape => ele_shape(x, ele)
-        fshape => face_shape(u, sele)
-        source_shape => ele_shape(u, ele)
-        lface = local_face_number(u, sele)
+        robin_diff_mat_bdy = shape_shape_vector(u_shape, u_shape, detwei_bdy, ele_val_at_quad(velocity_bc_2, sele))
 
-        if(associated(source_shape%dn_s)) then
-          augmented_shape = source_shape
-          call incref(augmented_shape)
-        else
-          augmented_shape = make_element_shape(x_shape%loc, source_shape%dim, &
-            & source_shape%degree, source_shape%quadrature, &
-            & quad_s = fshape%quadrature)
-        end if    
-
-        call compute_inverse_jacobian(ele_val(x, ele), x_shape, invj = invj)
-
-        assert(x_shape%degree == 1)
-        assert(ele_numbering_family(x_shape) == FAMILY_SIMPLEX)
-        invj_face = spread(invj(:, :, 1), 3, size(invj_face, 3))
-
-        dshape_face = eval_volume_dshape_at_face_quad(augmented_shape, lface, invj_face)
-        call deallocate(augmented_shape)
-
-        ! Get strain S1 for first-filtered velocity
-        strain_gi = les_strain_rate(dshape_face, ele_val(fnu, ele))
-        ! Get strain S2 for test-filtered velocity
-        t_strain_gi = les_strain_rate(dshape_face, ele_val(tnu, ele))
-        ! Leonard tensor and strain product at Gauss points
-        leonard_gi = face_val_at_quad(leonard, sele)
-        strainprod_gi = face_val_at_quad(strainprod, sele)
-
-        do gi=1, face_ngi(u, sele)
-          ! Get strain modulus |S1| for first-filtered velocity
-          strain_mod(gi) = sqrt( 2*sum(strain_gi(:,:,gi)*strain_gi(:,:,gi) ) )
-          ! Get strain modulus |S2| for test-filtered velocity
-          t_strain_mod(gi) = sqrt( 2*sum(t_strain_gi(:,:,gi)*t_strain_gi(:,:,gi) ) )
-        end do
-
-        ! Scalar first filter width G1 = alpha^2*meshsize (units length^2)
-        f_scalar = alpha**2*length_scale_scalar(x, ele)
-        ! Combined width G2 = (1+gamma^2)*G1
-        t_scalar = (1.0+gamma**2)*f_scalar
-
-        do gi=1, face_ngi(nu, sele)
-          ! Tensor M_ij = (|S2|*S2)G2 - ((|S1|S1)^f2)G1
-          mij = t_strain_mod(gi)*t_strain_gi(:,:,gi)*t_scalar(gi) - strainprod_gi(:,:,gi)*f_scalar(gi)
-          denom = sum(mij*mij)
-
-          ! Model coeff C_S = -(L_ij M_ij) / 2(M_ij M_ij)
-          if (denom > 0) then
-            les_coef_gi(gi) = -0.5*sum(leonard_gi(:,:,gi)*mij) / denom
-          else
-            les_coef_gi(gi) = 0.0
-          endif
-
-          ! Constrain C_S to be between 0 and 0.04.
-          les_coef_gi(gi) = min(max(les_coef_gi(gi),0.0), 0.04)
-
-          ! Model terms: T_ij = -2C_S|S2|.alpha^2.G2, tau_ij = -2C_S|S1|.alpha^2.G1
-          tau_gi(:,:,gi) = 2*alpha**2*les_coef_gi(gi)*strain_mod(gi)*f_scalar(gi)
-          tautest_gi(:,:,gi) = 2*alpha**2*les_coef_gi(gi)*t_strain_mod(gi)*t_scalar(gi)
-
-          ! Slip coeff beta = sqrt((L_ij-T_ij+tau_ij) M_ij) / 2(M_ij M_ij)
-          beta_gi(gi) = sum((leonard_gi(:,:,gi) - tautest_gi(:,:,gi) + tau_gi(:,:,gi)) * mij) / denom
-
-          if (beta_gi(gi) > 0) then
-            beta_gi(gi) = 1.0/sqrt(beta_gi(gi))
-          else ! what is a sensible alternative?
-            beta_gi(gi) = 0.0
-          endif
-        end do
-
-        !ewrite(2,*) "beta: ", beta_gi
-
-        ! TODO: need to addto only components tangent to surface
-        do dim = 1, u%dim
-          slipvector_gi(dim,:) = beta_gi
-          ! TODO: PUT THIS IN A SEPARATE LOOP BEFORE ASSEMBLING FACE INTEGRALS BELOW?
-          ! also can't addto u_nodes_bdy - need surface field nodes
-          !call addto(velocity_bc_2, dim, u_nodes_bdy, shape_rhs(u_shape, beta_gi*detwei_bdy))
-        end do
-
-        ! Add dynamic_slip absorption term to LHS matrix
-
-        robin_diff_mat_bdy = shape_shape_vector(u_shape, u_shape, detwei_bdy, slipvector_gi)
-        !ewrite(2,*) "Robin mat: ", robin_diff_mat_bdy
-
-        ! Add lumped or vector absorption, following the method for other absorption terms
+        ! Add lumped or vector absorption to LHS matrix,
+        ! following the method for other absorption terms
         if(lump_absorption) then
           if(.not. abs_lump_on_submesh) then
             lumped_robin_diff_mat_bdy = sum(robin_diff_mat_bdy, 3)
@@ -1358,22 +1276,27 @@
         ! Add dynamic slip boundary terms to RHS
 
         do dim = 1, u%dim
+          !ewrite(2,*) "dim: ", dim
+          !ewrite(2,*) "NS dynamic_slip mat: ", robin_diff_mat_bdy(dim,:,:)
+
           ! hard-coded to no-slip on unfiltered velocity
           do gi=1, face_ngi(u, sele)
             slip_gi(gi) = 0.0
           end do
           call addto(rhs, dim, u_nodes_bdy, shape_rhs(u_shape, slip_gi*detwei_bdy))
-          ! explicit term added to rhs
-          call addto(rhs, dim, u_nodes_bdy, -matmul(robin_diff_mat_bdy(dim,:,:), oldu_val(dim,:)))
+          ! explicit term added to rhs - but not if no_normal_flow?
+          if(dim/=2) then
+            call addto(rhs, dim, u_nodes_bdy, -matmul(robin_diff_mat_bdy(dim,:,:), oldu_val(dim,:)))
+          end if
         end do
       end if
 
-      ! Add Robin absorption term to LHS matrix
+      ! Add Robin terms to LHS matrix and RHS
 
       if (any(velocity_bc_type(:,sele)==BC_TYPE_ROBIN)) then
         robin_diff_mat_bdy = shape_shape_vector(u_shape, u_shape, detwei_bdy, ele_val_at_quad(velocity_bc_2, sele))
 
-        ! Add lumped or vector absorption, following the method for other absorption terms
+        ! Add lumped or vector absorption to LHS matrix, following the method for other absorption terms
         if(lump_absorption) then
           if(.not.abs_lump_on_submesh) then
             lumped_robin_diff_mat_bdy = sum(robin_diff_mat_bdy, 3)
@@ -1387,13 +1310,8 @@
           end do
           lumped_robin_diff_mat_bdy = 0.0
         end if
-      end if
 
-      ! Add Flux and Robin boundary terms to RHS
-
-      if (any(velocity_bc_type(:,sele)==BC_TYPE_FLUX) &
-          & .or. any(velocity_bc_type(:,sele)==BC_TYPE_ROBIN)) then
-
+        ! RHS terms
         do dim = 1, u%dim
           !ewrite(2,*) "dim: ", dim
           !ewrite(2,*) "NS Robin rhs:", shape_rhs(u_shape, ele_val_at_quad(velocity_bc, sele, dim)*detwei_bdy)
@@ -1403,8 +1321,16 @@
           ! explicit term added to rhs
           call addto(rhs, dim, u_nodes_bdy, -matmul(robin_diff_mat_bdy(dim,:,:), oldu_val(dim,:)))
         end do
+
       end if
 
+      ! Add Flux boundary term to RHS
+
+      if (any(velocity_bc_type(:,sele)==BC_TYPE_FLUX)) then
+        do dim = 1, u%dim
+          call addto(rhs, dim, u_nodes_bdy, shape_rhs(u_shape, ele_val_at_quad(velocity_bc, sele, dim)*detwei_bdy))
+        end do
+      end if
 
     end subroutine construct_momentum_surface_element_cg
 

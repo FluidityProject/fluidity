@@ -409,20 +409,17 @@ contains
              call deallocate(surface_field)
           end if
 
-       case("robin")
-          ewrite(1,*) "Allocating Robin BC fields"
+       case("dynamic_slip")
+          ewrite(1,*) "Allocating dynamic_slip BC fields"
 
-          les_option_path = trim(field%option_path)//'/prognostic/spatial_discretisation/continuous_galerkin/les_model'
+          ! options file should have dynamic_slip in the tangential directions only,
+          ! and a no_normal_flow condition in the 1st (normal) direction only.
+          ! use align_bc_with_surface.
 
           ! options checking
-          if(have_option(trim(bc_path_i)//"/type[0]/dynamic_slip")) then
-
-             ewrite(2,*) "Changing robin BC type to dynamic_slip"
-             bc_type = "dynamic_slip"
-
-             if(.not. (have_option(trim(les_option_path)//'/dynamic_les') .or. have_option(trim(les_option_path)//'/exact_sgs'))) then
-                FLAbort("You need an inverse Helmholtz-filtered Velocity field via the dynamic LES or exact SGS subgrid models for the dynamic-slip type Robin boundary condition to work.")
-             end if
+          les_option_path = trim(field%option_path)//'/prognostic/spatial_discretisation/continuous_galerkin/les_model'
+          if(.not. (have_option(trim(les_option_path)//'/dynamic_les') .or. have_option(trim(les_option_path)//'/exact_sgs'))) then
+             FLAbort("You need an inverse Helmholtz-filtered Velocity field via the dynamic LES or exact SGS subgrid models for the dynamic-slip type Robin boundary condition to work.")
           end if
 
           if(have_option(trim(bc_path_i)//"/type[0]/align_bc_with_cartesian")) then
@@ -436,14 +433,40 @@ contains
           do j=1,3
              bc_component_path=trim(bc_type_path)//"/"//aligned_components(j)
              applies(j)=have_option(trim(bc_component_path))
+          end do
 
-             ! options checking
-             if(have_option(trim(bc_path_i)//"/type[0]/dynamic_slip") .and. applies(j)) then
-                if(.not. (have_option(trim(bc_component_path)//"/order_zero_coefficient/internally_calculated") &
-                          .and. have_option(trim(bc_component_path)//"/order_one_coefficient/internally_calculated"))) then
-                   FLAbort("You must set the order_zero_coefficient and order_zero_coefficient to internally_calculated when using dynamic slip boundary condition.")
-                end if
-             end if
+          call add_boundary_condition(field, trim(bc_name), trim(bc_type),&
+               & surface_ids, applies=applies, option_path=bc_path_i, suppress_warnings=suppress_warnings)
+
+          call get_boundary_condition(field, i+1, surface_mesh=surface_mesh)
+
+          ! Robin boundary conditions require two inputs. These inputs can
+          ! be constant or set from a generic or python function.
+
+          call allocate(surface_field, field%dim, surface_mesh, name="order_zero_coefficient")
+          call insert_surface_field(field, i+1, surface_field)
+          call deallocate(surface_field)
+
+          call allocate(surface_field, field%dim, surface_mesh, name="order_one_coefficient")
+          call insert_surface_field(field, i+1, surface_field)
+          call deallocate(surface_field)
+
+          deallocate(surface_ids)
+
+       case("robin")
+          ewrite(1,*) "Allocating robin BC fields"
+
+          if(have_option(trim(bc_path_i)//"/type[0]/align_bc_with_cartesian")) then
+             aligned_components=cartesian_aligned_components
+             bc_type_path=trim(bc_path_i)//"/type[0]/align_bc_with_cartesian"
+          else
+             aligned_components=surface_aligned_components             
+             bc_type_path=trim(bc_path_i)//"/type[0]/align_bc_with_surface"
+          end if
+
+          do j=1,3
+             bc_component_path=trim(bc_type_path)//"/"//aligned_components(j)
+             applies(j)=have_option(trim(bc_component_path))
           end do
 
           call add_boundary_condition(field, trim(bc_name), trim(bc_type),&
@@ -922,7 +945,7 @@ contains
 
        bc_path_i=trim(bc_path_i)//'/type[0]'
        call get_option(trim(bc_path_i)//"/name", bc_type)
-
+       ewrite(2,*) "vector bctype: ", trim(bc_type)
        if (trim(bc_type) .eq. "bulk_formulae") then
           ! skip bulk_formulae types; they are dealt with seperately
           ! See set_ocean_forcing_boundary_conditions

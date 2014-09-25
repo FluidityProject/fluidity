@@ -3560,30 +3560,30 @@ normals and tangenials 1/2</a:documentation>
         <optional>
           <element name="normal_component">
             <element name="order_zero_coefficient">
-              <ref name="input_choice_real_plus_internal"/>
+              <ref name="input_choice_real"/>
             </element>
             <element name="order_one_coefficient">
-              <ref name="input_choice_real_plus_internal"/>
+              <ref name="input_choice_real"/>
             </element>
           </element>
         </optional>
         <optional>
           <element name="tangent_component_1">
             <element name="order_zero_coefficient">
-              <ref name="input_choice_real_plus_internal"/>
+              <ref name="input_choice_real"/>
             </element>
             <element name="order_one_coefficient">
-              <ref name="input_choice_real_plus_internal"/>
+              <ref name="input_choice_real"/>
             </element>
           </element>
         </optional>
         <optional>
           <element name="tangent_component_2">
             <element name="order_zero_coefficient">
-              <ref name="input_choice_real_plus_internal"/>
+              <ref name="input_choice_real"/>
             </element>
             <element name="order_one_coefficient">
-              <ref name="input_choice_real_plus_internal"/>
+              <ref name="input_choice_real"/>
             </element>
           </element>
         </optional>
@@ -3593,30 +3593,99 @@ normals and tangenials 1/2</a:documentation>
         <optional>
           <element name="x_component">
             <element name="order_zero_coefficient">
-              <ref name="input_choice_real_plus_internal"/>
+              <ref name="input_choice_real"/>
             </element>
             <element name="order_one_coefficient">
-              <ref name="input_choice_real_plus_internal"/>
+              <ref name="input_choice_real"/>
             </element>
           </element>
         </optional>
         <optional>
           <element name="y_component">
             <element name="order_zero_coefficient">
-              <ref name="input_choice_real_plus_internal"/>
+              <ref name="input_choice_real"/>
             </element>
             <element name="order_one_coefficient">
-              <ref name="input_choice_real_plus_internal"/>
+              <ref name="input_choice_real"/>
             </element>
           </element>
         </optional>
         <optional>
           <element name="z_component">
             <element name="order_zero_coefficient">
-              <ref name="input_choice_real_plus_internal"/>
+              <ref name="input_choice_real"/>
             </element>
             <element name="order_one_coefficient">
-              <ref name="input_choice_real_plus_internal"/>
+              <ref name="input_choice_real"/>
+            </element>
+          </element>
+        </optional>
+      </element>
+    </choice>
+  </define>
+  <define name="dynamic_slip_velocity_components_choice">
+    <choice>
+      <element name="align_bc_with_surface">
+        <optional>
+          <element name="normal_component">
+            <element name="order_zero_coefficient">
+              <ref name="input_choice_internal"/>
+            </element>
+            <element name="order_one_coefficient">
+              <ref name="input_choice_internal"/>
+            </element>
+          </element>
+        </optional>
+        <optional>
+          <element name="tangent_component_1">
+            <element name="order_zero_coefficient">
+              <ref name="input_choice_internal"/>
+            </element>
+            <element name="order_one_coefficient">
+              <ref name="input_choice_internal"/>
+            </element>
+          </element>
+        </optional>
+        <optional>
+          <element name="tangent_component_2">
+            <element name="order_zero_coefficient">
+              <ref name="input_choice_internal"/>
+            </element>
+            <element name="order_one_coefficient">
+              <ref name="input_choice_internal"/>
+            </element>
+          </element>
+        </optional>
+        <ref name="rotation_matrix_components"/>
+      </element>
+      <element name="align_bc_with_cartesian">
+        <optional>
+          <element name="x_component">
+            <element name="order_zero_coefficient">
+              <ref name="input_choice_internal"/>
+            </element>
+            <element name="order_one_coefficient">
+              <ref name="input_choice_internal"/>
+            </element>
+          </element>
+        </optional>
+        <optional>
+          <element name="y_component">
+            <element name="order_zero_coefficient">
+              <ref name="input_choice_internal"/>
+            </element>
+            <element name="order_one_coefficient">
+              <ref name="input_choice_internal"/>
+            </element>
+          </element>
+        </optional>
+        <optional>
+          <element name="z_component">
+            <element name="order_zero_coefficient">
+              <ref name="input_choice_internal"/>
+            </element>
+            <element name="order_one_coefficient">
+              <ref name="input_choice_internal"/>
             </element>
           </element>
         </optional>
@@ -3679,14 +3748,13 @@ want this.</a:documentation>
         <attribute name="name">
           <value>robin</value>
         </attribute>
-        <optional>
-          <element name="dynamic_slip">
-            <a:documentation>This is used for dynamic-slip type Robin boundary conditions.
-If selected, the order_zero and order_one coefficients must be set to internally_calculated.</a:documentation>
-            <empty/>
-          </element>
-        </optional>
         <ref name="robin_velocity_components_choice"/>
+      </element>
+      <element name="type">
+        <attribute name="name">
+          <value>dynamic_slip</value>
+        </attribute>
+        <ref name="dynamic_slip_velocity_components_choice"/>
       </element>
       <element name="type">
         <a:documentation>Add a bulk formulae boundary condition. Only makes sense

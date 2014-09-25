@@ -4,9 +4,8 @@ input_choice_real =
       input_choice_real_contents
    )
 
-input_choice_real_plus_internal =
+input_choice_internal =
    (
-      input_choice_real_contents|
       ## Initialise the field internally.
       element internally_calculated {
          empty

@@ -33,6 +33,8 @@ use sparse_tools_petsc
 use state_module
 use spud
 use global_parameters, only: OPTION_PATH_LEN
+use les_module
+    use smoothing_module
 implicit none
     
   interface add_boundary_condition
@@ -142,7 +144,7 @@ implicit none
     set_reference_node, &
     get_periodic_boundary_condition, remove_boundary_condition, &
     set_dirichlet_consistent, apply_dirichlet_conditions, &
-    derive_collapsed_bcs
+    derive_collapsed_bcs, calculate_dynamic_slip_coefficient
 
 contains
 
@@ -1672,7 +1674,7 @@ contains
                    ewrite(0,*) 'to each surface element.'
                    ewrite(0,*) 'Surface element nr.:', sele
                    ewrite(0,*) 'Component nr:', n
-                   ewrite(0,*) 'has types', types(bc_type_list(j, sele)), bctype
+                   ewrite(0,*) 'has types', bc_type_list(j, sele), bctype
                    FLAbort("Can't have that.")
                 end if
                 bc_type_list(n, sele)=j
@@ -2436,8 +2438,15 @@ contains
        call get_boundary_condition(field, i, type=bctype, &
           surface_node_list=surface_node_list, applies=applies)
 
+       ! or if not dynamic_slip
        if (bctype/="dirichlet") cycle bcloop
-       
+       ! If dynamic_slip: enforce zero-penetration
+       !surface_field => extract_surface_field(field, i, "value")
+       ! loop over nodes, then dims
+       ! if dim corresponds to no-penetration direction (apply_slip not set),
+       ! then call addto(matrix, k, k, surface_node_list(j), surface_node_list(j), INFINITY)
+
+       ! if Dirichlet:
        surface_field => extract_surface_field(field, i, "value")
        
        do j=1,size(surface_node_list)
@@ -2684,12 +2693,10 @@ contains
     integer, dimension(:), pointer:: surface_node_list
     integer :: i,j
 
-    ewrite(2,*) 'tensor bc count: ', get_boundary_condition_count(field)
     bcloop: do i=1, get_boundary_condition_count(field)
        call get_boundary_condition(field, i, type=bctype, &
           surface_node_list=surface_node_list, applies=applies)
 
-       ewrite(2,*) 'tensor BC type: ', trim(bctype)
        if (bctype/="dirichlet") cycle bcloop
 
        surface_field => extract_surface_field(field, i, "value")
@@ -2814,5 +2821,211 @@ contains
     ewrite(1, *) "Exiting derive_collapsed_bcs"
   
   end subroutine derive_collapsed_bcs
-  
+
+  subroutine calculate_dynamic_slip_coefficient(x, u, fnu, tnu, leonard, strainprod, exactsgs, alpha, gamma)
+
+    type(vector_field), intent(in) :: x, u
+
+    ! Fields/vars for Germano Dynamic LES Model on surface
+    type(vector_field), intent(in)    :: fnu, tnu
+    type(tensor_field), intent(in)    :: leonard, strainprod
+    real, intent(in)                  :: alpha, gamma
+
+    ! Field for exact SGS model on surface
+    type(tensor_field), intent(in)    :: exactsgs
+
+    ! local
+    type(vector_field), pointer:: surface_field, surface_field_2
+    character(len=OPTION_PATH_LEN) bc_path_i, bc_type_path, bc_component_path
+    character(len=FIELD_NAME_LEN) bc_name, bc_type
+    integer, dimension(:), pointer:: surface_element_list, surface_node_list
+    integer i, j, k, nbcs
+    integer :: sele, dim_set
+    logical :: applies(3)
+    character(len=20), dimension(3) :: aligned_components
+    ! possible vector components for vector b.c.s
+    ! either cartesian aligned or aligned with the surface
+    character(len=20), parameter, dimension(3) :: &
+         cartesian_aligned_components=(/ &
+           "x_component", &
+           "y_component", &
+           "z_component" /), &
+         surface_aligned_components=(/ &
+           "normal_component   ", & 
+           "tangent_component_1", &
+           "tangent_component_2" /)
+
+    real, dimension(face_ngi(u, 1)) :: detwei_bdy
+    real, dimension(u%dim, face_ngi(u, 1)) :: normal_bdy
+
+    ! quantities related to shape functions on face
+    integer :: lface, gi, ele
+    real, dimension(x%dim, x%dim, ele_ngi(u, face_ele(u, 1))) :: invj
+    real, dimension(x%dim, x%dim, face_ngi(u, 1)) :: invj_face
+    real, dimension(ele_loc(u, face_ele(u, 1)), face_ngi(u, 1), x%dim) :: dshape_face
+    type(element_type) :: augmented_shape
+    type(element_type), pointer :: u_shape, fshape, x_shape, source_shape
+
+    ! Local quantities specific to Germano Dynamic LES Model
+    real, dimension(x%dim, x%dim, face_ngi(u, 1))  :: strain_gi, t_strain_gi, strainprod_gi
+    real, dimension(x%dim, x%dim, face_ngi(u, 1))  :: leonard_gi
+    real, dimension(x%dim, x%dim)                  :: mij
+    real, dimension(face_ngi(u, 1))                :: strain_mod, t_strain_mod
+    real, dimension(face_ngi(u, 1))                :: f_scalar, t_scalar
+    real, dimension(x%dim, x%dim, face_ngi(u, 1))  :: tau_gi, tautest_gi
+    real, dimension(face_ngi(u, 1))                :: les_coef_gi, beta_gi
+    real                                           :: denom, zero_coeff
+
+    ! Get number of boundary conditions
+    nbcs=option_count(trim(u%option_path)//'/prognostic/boundary_conditions')
+
+    ! Loop over boundary conditions
+    do i=1, nbcs
+
+      call get_boundary_condition(u, i, type=bc_type, name=bc_name, surface_element_list=surface_element_list, &
+              surface_node_list=surface_node_list, applies=applies, option_path=bc_path_i)
+
+      ! Consider only dynamic slip BCs
+      if(trim(bc_type)=='dynamic_slip') then
+
+        if(have_option(trim(bc_path_i)//"/type[0]/align_bc_with_cartesian")) then
+           aligned_components=cartesian_aligned_components
+           bc_type_path=trim(bc_path_i)//"/type[0]/align_bc_with_cartesian"
+        else
+           aligned_components=surface_aligned_components             
+           bc_type_path=trim(bc_path_i)//"/type[0]/align_bc_with_surface"
+        end if
+
+        surface_field => extract_surface_field(u, bc_name, name="order_zero_coefficient")
+        surface_field_2 => extract_surface_field(u, bc_name, name="order_one_coefficient")
+        call zero(surface_field)
+        call zero(surface_field_2)
+
+        dim_set = 0
+
+        do j=1,3
+
+          bc_component_path=trim(bc_type_path)//"/"//aligned_components(j)
+          applies(j)=have_option(trim(bc_component_path))
+
+          if (applies(j)) then
+
+              ! Set coeff at ele nodes
+              zero_coeff = 0.0
+
+              do k=1, size(surface_node_list)
+                call set(surface_field, j, k, zero_coeff)
+              end do
+
+              ! Calculate dynamic slip coefficient
+              ! But only if we haven't done it already
+              if(dim_set==0) then
+
+                do k=1, size(surface_element_list)
+
+                  sele=surface_element_list(k)
+                  ele = face_ele(x, sele)
+                  u_shape=> face_shape(u, sele)
+                  x_shape => ele_shape(x, ele)
+                  fshape => face_shape(u, sele)
+                  source_shape => ele_shape(u, ele)
+                  lface = local_face_number(u, sele)
+
+                  call transform_facet_to_physical(X, sele, detwei_f=detwei_bdy, normal=normal_bdy)
+
+                  ! Get shape fn and its gradient on surface element
+                  if(associated(source_shape%dn_s)) then
+                    augmented_shape = source_shape
+                    call incref(augmented_shape)
+                  else
+                    augmented_shape = make_element_shape(x_shape%loc, source_shape%dim, &
+                      & source_shape%degree, source_shape%quadrature, quad_s = fshape%quadrature)
+                  end if
+
+                  call compute_inverse_jacobian(ele_val(x, ele), x_shape, invj = invj)
+
+                  assert(x_shape%degree == 1)
+                  assert(ele_numbering_family(x_shape) == FAMILY_SIMPLEX)
+                  invj_face = spread(invj(:, :, 1), 3, size(invj_face, 3))
+
+                  dshape_face = eval_volume_dshape_at_face_quad(augmented_shape, lface, invj_face)
+                  call deallocate(augmented_shape)
+
+                  ! Get strains S1, S2
+                  strain_gi = les_strain_rate(dshape_face, ele_val(fnu, ele))
+                  t_strain_gi = les_strain_rate(dshape_face, ele_val(tnu, ele))
+
+                  ! Leonard tensor and strain product at Gauss points
+                  leonard_gi = face_val_at_quad(leonard, sele)
+                  strainprod_gi = face_val_at_quad(strainprod, sele)
+
+                  ! Get strain moduli |S1|, |S2|
+                  do gi=1, face_ngi(u, sele)
+                    strain_mod(gi) = sqrt( 2*sum(strain_gi(:,:,gi)*strain_gi(:,:,gi) ) )
+                    t_strain_mod(gi) = sqrt( 2*sum(t_strain_gi(:,:,gi)*t_strain_gi(:,:,gi) ) )
+                  end do
+
+                  ! Scalar first filter width G1 = alpha^2*meshsize (units length^2)
+                  f_scalar = alpha**2*length_scale_scalar(x, ele)
+                  ! Combined width G2 = (1+gamma^2)*G1
+                  t_scalar = (1.0+gamma**2)*f_scalar
+
+                  do gi=1, face_ngi(u, sele)
+                    ! Tensor M_ij = (|S2|*S2)G2 - ((|S1|S1)^f2)G1
+                    mij = t_strain_mod(gi)*t_strain_gi(:,:,gi)*t_scalar(gi) - strainprod_gi(:,:,gi)*f_scalar(gi)
+                    denom = sum(mij*mij)
+
+                    ! Model coeff C_S = -(L_ij M_ij) / 2(M_ij M_ij)
+                    if (denom > 0) then
+                      les_coef_gi(gi) = -0.5*sum(leonard_gi(:,:,gi)*mij) / denom
+                    else
+                      les_coef_gi(gi) = 0.0
+                    endif
+
+                    ! Constrain C_S to be between 0 and 0.04.
+                    les_coef_gi(gi) = min(max(les_coef_gi(gi),0.0), 0.04)
+
+                    ! Model terms: T_ij = -2C_S|S2|.alpha^2.G2, tau_ij = -2C_S|S1|.alpha^2.G1
+                    tau_gi(:,:,gi) = 2*alpha**2*les_coef_gi(gi)*strain_mod(gi)*f_scalar(gi)
+                    tautest_gi(:,:,gi) = 2*alpha**2*les_coef_gi(gi)*t_strain_mod(gi)*t_scalar(gi)
+
+                    ! Slip coeff beta = sqrt((L_ij-T_ij+tau_ij) M_ij) / 2(M_ij M_ij)
+                    beta_gi(gi) = sum((leonard_gi(:,:,gi) - tautest_gi(:,:,gi) + tau_gi(:,:,gi)) * mij) / denom
+
+                    if (beta_gi(gi) > 0) then
+                      beta_gi(gi) = 1.0/sqrt(beta_gi(gi))
+                    else ! what is a sensible alternative?
+                      beta_gi(gi) = 0.0
+                    endif
+                  end do
+
+                  !ewrite(2,*) "beta: ", beta_gi
+
+                  call addto(surface_field_2, j, ele_nodes(surface_field_2, k), shape_rhs(u_shape, beta_gi*detwei_bdy))
+                end do
+
+                ! flag this dimension so we can get the value of beta without recalculating it
+                dim_set = j
+              else
+                do k=1, size(surface_node_list)
+                  call set(surface_field_2, j, k, node_val(surface_field_2, dim_set, k))
+                end do
+              end if
+            !else
+              ! Set coeffs to zero if not allow_slip
+              !do k=1, size(surface_node_list)
+                !call set(u, j, surface_node_list(k), zero_coeff)
+                !call set(surface_field, j, k, 0.0)
+                !call set(surface_field_2, j, k, 0.0)
+              !end do
+            !end if allow_slip
+          end if
+        end do
+        ewrite_minmax(surface_field)
+        ewrite_minmax(surface_field_2)
+      end if
+    end do
+
+  end subroutine calculate_dynamic_slip_coefficient
+
 end module boundary_conditions
