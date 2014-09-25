@@ -1847,6 +1847,7 @@ Default value is 1.</a:documentation>
         <value>Source</value>
       </attribute>
       <ref name="darcy_impes_scalar_field_prescribed_or_python_diagnostic_arbitrary_mesh"/>
+<<<<<<< HEAD
     </element>
   </define>
   <define name="darcy_impes_generic_scalar_field_src_grad">
@@ -1858,6 +1859,8 @@ Default value is 1.</a:documentation>
         <value>SourceGradient</value>
       </attribute>
       <ref name="darcy_impes_scalar_field_prescribed_or_python_diagnostic_arbitrary_mesh"/>
+=======
+>>>>>>> ecfe5ee... Changed darcy_impes_options schema to allow PressureMesh to be chosen for generic scalar source terms (and gradients).
     </element>
   </define>
   <define name="darcy_impes_generic_scalar_field_src_grad">
@@ -1868,7 +1871,7 @@ Default value is 1.</a:documentation>
       <attribute name="name">
         <value>SourceGradient</value>
       </attribute>
-      <ref name="darcy_impes_scalar_field_prescribed_or_python_diagnostic_element_wise_mesh"/>
+      <ref name="darcy_impes_scalar_field_prescribed_or_python_diagnostic_arbitrary_mesh"/>
     </element>
   </define>
   <define name="darcy_impes_first_phase_bc_pressure_field">
