@@ -371,6 +371,149 @@ EOF
 fi
 AC_LANG_POP([C])
 
+AC_LANG_PUSH(Fortran 77)
+AC_MSG_CHECKING([how do we get fortran 77 to allow long lines])
+old_FLAGS="$FFLAGS"
+extended_source_flag=none
+AC_COMPILE_IFELSE(
+    [AC_LANG_PROGRAM(,[[
+      PRINT*, "hello world                                                                                 "
+                    ]])],
+    [
+        AC_MSG_RESULT(no extra flags required)
+        extended_source_flag=happy
+    ])
+
+if test "$extended_source_flag" != happy ; then
+    if test "$extended_source_flag" = none ; then
+        FFLAGS="-extend_source"
+        AC_COMPILE_IFELSE(
+            [AC_LANG_PROGRAM(,[[
+      PRINT*, "hello world                                                                                 "
+                            ]])],
+            [
+                extended_source_flag=$FFLAGS
+                AC_MSG_RESULT([$FFLAGS])
+                FFLAGS="$old_FLAGS $FFLAGS"
+            ])
+    fi
+    if test "$extended_source_flag" = none ; then
+        FFLAGS="-extend-source"
+        AC_COMPILE_IFELSE(
+            [AC_LANG_PROGRAM(,[[
+      PRINT*, "hello world                                                                                 "
+                            ]])],
+            [
+                extended_source_flag=$FFLAGS
+                AC_MSG_RESULT([$FFLAGS])
+                FFLAGS="$old_FLAGS $FFLAGS"
+            ])
+    fi
+    if test "$extended_source_flag" = none ; then
+        FFLAGS="-132"
+        AC_COMPILE_IFELSE(
+            [AC_LANG_PROGRAM(,[[
+      PRINT*, "hello world                                                                                 "
+                            ]])],
+            [
+                extended_source_flag=$FFLAGS
+                AC_MSG_RESULT([$FFLAGS])
+                FFLAGS="$old_FLAGS $FFLAGS"
+            ])
+    fi
+    if test "$extended_source_flag" = none ; then
+        FFLAGS="-ffree-line-length-none -ffixed-line-length-none"
+        AC_COMPILE_IFELSE(
+            [AC_LANG_PROGRAM(,[[
+      PRINT*, "hello world                                                                                 "
+                            ]])],
+            [
+                extended_source_flag=$FFLAGS
+                AC_MSG_RESULT([$FFLAGS])
+                FFLAGS="$old_FLAGS $FFLAGS"
+            ])
+    fi
+    if test "$extended_source_flag" = none ; then
+        FFLAGS="-ffixed-line-length-huge -ffree-line-length-huge"
+        AC_COMPILE_IFELSE(
+            [AC_LANG_PROGRAM(,[[
+      PRINT*, "hello world                                                                                 "
+                            ]])],
+            [
+                extended_source_flag=$FFLAGS
+                AC_MSG_RESULT([$FFLAGS])
+                FFLAGS="$old_FLAGS $FFLAGS"
+            ])
+    fi
+    if test "$extended_source_flag" = none ; then
+        FFLAGS="-ffixed-line-length-132 -ffree-line-length-huge"
+        AC_COMPILE_IFELSE(
+            [AC_LANG_PROGRAM(,[[   
+      PRINT*, "hello world                                                                                 "
+                            ]])],
+            [
+                extended_source_flag=$FFLAGS
+                AC_MSG_RESULT([$FFLAGS])
+                FFLAGS="$old_FLAGS $FFLAGS"
+            ])
+    fi
+    if test "$extended_source_flag" = none ; then
+        FFLAGS="-ffixed-line-length-132"
+        AC_COMPILE_IFELSE(
+            [AC_LANG_PROGRAM(,[[
+      PRINT*, "hello world                                                                                 "
+                            ]])],
+            [
+                extended_source_flag=$FFLAGS
+                AC_MSG_RESULT([$FFLAGS])
+                FFLAGS="$old_FLAGS $FFLAGS"
+            ])
+    fi
+    if test "$extended_source_flag" = none ; then
+        FFLAGS="-Mextend"
+        AC_COMPILE_IFELSE(
+            [AC_LANG_PROGRAM(,[[
+      PRINT*, "hello world                                                                                 "
+                            ]])],
+            [
+                extended_source_flag=$FFLAGS
+                AC_MSG_RESULT([$FFLAGS])
+                FFLAGS="$old_FLAGS $FFLAGS"
+            ])
+    fi
+    if test "$extended_source_flag" = none ; then
+        FFLAGS="-qfixed=256"
+        AC_COMPILE_IFELSE(
+            [AC_LANG_PROGRAM(,[[
+      PRINT*, "hello world                                                                                 "
+                            ]])],
+            [
+                extended_source_flag=$FFLAGS
+                AC_MSG_RESULT([$FFLAGS])
+                FFLAGS="$old_FLAGS $FFLAGS"
+            ])
+    fi
+    if test "$extended_source_flag" = none ; then
+        FFLAGS="-e"
+        AC_COMPILE_IFELSE(
+            [AC_LANG_PROGRAM(,[[
+      PRINT*, "hello world                                                                                 "
+                            ]])],
+            [
+                extended_source_flag=$FFLAGS
+                AC_MSG_RESULT([$FFLAGS])
+                FFLAGS="$old_FLAGS $FFLAGS"
+            ])
+    fi
+    if test "$extended_source_flag" = none ; then
+        AC_MSG_RESULT([we cannot])
+    else
+        FCFLAGS="$FCFLAGS $extended_source_flag"
+    fi
+fi
+
+AC_LANG_POP([Fortran 77])
+
 AC_PROG_INSTALL
 AC_CHECK_PROG(MAKE, gmake, gmake, make, $PATH)
 
@@ -447,18 +590,19 @@ else
     cat >> confdefs.h << EOF
 #define NDEBUG 1
 EOF
-    OPTIMIZATION_FFLAGS="$OPTIMIZATION_FFLAGS -O3"
+    OPTIMISATION_FLAGS="$OPTIMISATION_FLAGS -O3"
+    if test "$fcompiler" = "ifort" ; then
+      # add inlining and cpu-specific optimisations for intel
+      OPTIMISATION_FLAGS="$OPTIMISATION_FLAGS -ip -Xhost"
+    fi
 
     AC_CHECK_LIB(tcmalloc,malloc,,AC_MSG_WARN([No tcmalloc support available.]))
 fi
 
-FFLAGS="$FFLAGS $OPTIMIZATION_FFLAGS"
-FCFLAGS="$FCFLAGS $OPTIMIZATION_FFLAGS"
-
-if test "$FC" = "ifc" ; then
-  FFLAGS="-implicitnone -132 -w95 $FFLAGS"
-  FCFLAGS="-implicitnone -w95 $FCFLAGS"
-fi
+FFLAGS="$FFLAGS $OPTIMISATION_FLAGS"
+FCFLAGS="$FCFLAGS $OPTIMISATION_FLAGS"
+CFLAGS="$CFLAGS $OPTIMISATION_FLAGS"
+CXXFLAGS="$CXXFLAGS $OPTIMISATION_FLAGS"
 
 ##########################################
 # Are we using FEMDEM
@@ -966,7 +1110,6 @@ dnl Checks for typedefs, structures, and compiler characteristics.
 #AC_C_INLINE
 
 AC_SUBST(FORTRAN_REAL_8)
-AC_SUBST(OPTIMIZATION_FFLAGS)
 AC_SUBST(LINKER)
 AC_SUBST(FLLINKER)
 
