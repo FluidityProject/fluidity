@@ -2173,7 +2173,6 @@ contains
         
       ! Load the SPUD options
       call load_options(argument)
-      call print_options()
       
       ! If there is no simulation name in the options then add one
       ! using the filename which is currently what argument is.
