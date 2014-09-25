@@ -840,7 +840,6 @@
             
             call construct_momentum_surface_element_cg(sele, big_m, rhs, ct_m, ct_rhs, &
                  inverse_masslump, x, u, nu, ug, density, gravity, &
-                 fnu, tnu, leonard, strainprod, exactsgs, alpha, gamma, &
                  velocity_bc, velocity_bc_type, velocity_bc_2, &
                  pressure_bc, pressure_bc_type, hb_pressure, &
                  assemble_ct_matrix_here, include_pressure_and_continuity_bcs, oldu, nvfrac)
@@ -998,7 +997,6 @@
 
     subroutine construct_momentum_surface_element_cg(sele, big_m, rhs, ct_m, ct_rhs, &
                                                      masslump, x, u, nu, ug, density, gravity, &
-                                                     fnu, tnu, leonard, strainprod, exactsgs, alpha, gamma, &
                                                      velocity_bc, velocity_bc_type, velocity_bc_2, &
                                                      pressure_bc, pressure_bc_type, hb_pressure, &
                                                      assemble_ct_matrix_here, include_pressure_and_continuity_bcs,&
@@ -1020,8 +1018,7 @@
       type(scalar_field), intent(in) :: density
       type(vector_field), pointer, intent(in) :: gravity 
 
-      type(vector_field), intent(in) :: velocity_bc
-      type(vector_field), intent(inout) :: velocity_bc_2
+      type(vector_field), intent(in) :: velocity_bc,velocity_bc_2
       integer, dimension(:,:), intent(in) :: velocity_bc_type
 
       type(scalar_field), intent(in) :: pressure_bc
@@ -1032,14 +1029,6 @@
 
       ! Volume fraction field
       type(scalar_field), intent(in) :: nvfrac
-
-      ! Fields for Germano Dynamic LES Model on surface
-      type(vector_field), intent(in)    :: fnu, tnu
-      type(tensor_field), intent(in)    :: leonard, strainprod
-      real, intent(in)                  :: alpha, gamma
-
-      ! Field for exact SGS model on surface
-      type(tensor_field), intent(in)    :: exactsgs
 
       ! local
       integer :: dim, dim2, i
@@ -1065,26 +1054,6 @@
       real, dimension(u%dim, face_loc(u, sele)) :: oldu_val
       real, dimension(u%dim, face_ngi(u, sele)) :: ndotk_k
 
-      ! quantities related to shape functions on face
-      integer :: lface, gi, ele
-      real, dimension(x%dim, x%dim, ele_ngi(u, face_ele(u, sele))) :: invj
-      real, dimension(x%dim, x%dim, face_ngi(u, sele)) :: invj_face
-      real, dimension(ele_loc(u, face_ele(u, sele)), face_ngi(u, sele), x%dim) :: dshape_face
-      type(element_type) :: augmented_shape
-      type(element_type), pointer :: fshape, x_shape, source_shape
-
-      ! Local quantities specific to Germano Dynamic LES Model
-      real, dimension(x%dim, x%dim, face_ngi(u, sele))  :: strain_gi, t_strain_gi, strainprod_gi
-      real, dimension(x%dim, x%dim, face_ngi(u, sele))  :: leonard_gi
-      real, dimension(x%dim, x%dim)                     :: mij
-      real, dimension(face_ngi(u, sele))                :: strain_mod, t_strain_mod
-      real, dimension(face_ngi(u, sele))                :: f_scalar, t_scalar
-      real, dimension(x%dim, x%dim, face_ngi(u, sele))  :: tau_gi, tautest_gi
-      real, dimension(x%dim, face_ngi(u, sele))         :: slipvector_gi
-      real, dimension(face_ngi(u, sele))                :: les_coef_gi, beta_gi, slip_gi
-      real                                              :: denom
-
-      ele = face_ele(x, sele)
       u_shape=> face_shape(u, sele)
       p_shape=> face_shape(ct_rhs, sele)
 
@@ -1252,9 +1221,10 @@
 
       end if
 
-      ! dynamic_slip terms
+      ! Robin and dynamic_slip terms
 
-      if (any(velocity_bc_type(:,sele)==BC_TYPE_DYNAMIC_SLIP)) then
+      if (any(velocity_bc_type(:,sele)==BC_TYPE_ROBIN) &
+          & .or. any(velocity_bc_type(:,sele)==BC_TYPE_DYNAMIC_SLIP)) then
 
         robin_diff_mat_bdy = shape_shape_vector(u_shape, u_shape, detwei_bdy, ele_val_at_quad(velocity_bc_2, sele))
 
@@ -1273,52 +1243,14 @@
           end do
         end if
 
-        ! Add dynamic slip boundary terms to RHS
-
+        ! Add terms to RHS
         do dim = 1, u%dim
-          !ewrite(2,*) "dim: ", dim
-          !ewrite(2,*) "NS dynamic_slip mat: ", robin_diff_mat_bdy(dim,:,:)
-
-          ! hard-coded to no-slip on unfiltered velocity
-          do gi=1, face_ngi(u, sele)
-            slip_gi(gi) = 0.0
-          end do
-          call addto(rhs, dim, u_nodes_bdy, shape_rhs(u_shape, slip_gi*detwei_bdy))
-          ! explicit term added to rhs - but not if no_normal_flow?
-          if(dim/=2) then
-            call addto(rhs, dim, u_nodes_bdy, -matmul(robin_diff_mat_bdy(dim,:,:), oldu_val(dim,:)))
-          end if
-        end do
-      end if
-
-      ! Add Robin terms to LHS matrix and RHS
-
-      if (any(velocity_bc_type(:,sele)==BC_TYPE_ROBIN)) then
-        robin_diff_mat_bdy = shape_shape_vector(u_shape, u_shape, detwei_bdy, ele_val_at_quad(velocity_bc_2, sele))
-
-        ! Add lumped or vector absorption to LHS matrix, following the method for other absorption terms
-        if(lump_absorption) then
-          if(.not.abs_lump_on_submesh) then
-            lumped_robin_diff_mat_bdy = sum(robin_diff_mat_bdy, 3)
-            do dim = 1, u%dim
-              call addto_diag(big_m, dim, dim, u_nodes_bdy, dt*theta*lumped_robin_diff_mat_bdy(dim,:))
-            end do
-          end if
-        else
-          do dim = 1, u%dim
-            call addto(big_m, dim, dim, u_nodes_bdy, u_nodes_bdy, dt*theta*robin_diff_mat_bdy(dim,:,:))
-          end do
-          lumped_robin_diff_mat_bdy = 0.0
-        end if
-
-        ! RHS terms
-        do dim = 1, u%dim
-          !ewrite(2,*) "dim: ", dim
-          !ewrite(2,*) "NS Robin rhs:", shape_rhs(u_shape, ele_val_at_quad(velocity_bc, sele, dim)*detwei_bdy)
-          !ewrite(2,*) "NS Robin mat: ", robin_diff_mat_bdy(dim,:,:)
-
+          ewrite(2,*) "dim: ", dim
+          ewrite(2,*) "Robin mat: ", robin_diff_mat_bdy(dim,:,:)
+          ewrite(2,*) "Robin rhs:", shape_rhs(u_shape, ele_val_at_quad(velocity_bc, sele, dim)*detwei_bdy)
+          ewrite(2,*) "Robin rhs2:", -matmul(robin_diff_mat_bdy(dim,:,:), oldu_val(dim,:))
           call addto(rhs, dim, u_nodes_bdy, shape_rhs(u_shape, ele_val_at_quad(velocity_bc, sele, dim)*detwei_bdy))
-          ! explicit term added to rhs
+          ! explicit term added to rhs - but not if no_normal_flow?
           call addto(rhs, dim, u_nodes_bdy, -matmul(robin_diff_mat_bdy(dim,:,:), oldu_val(dim,:)))
         end do
 
