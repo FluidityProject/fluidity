@@ -45,8 +45,7 @@ module les_module
 
   public les_viscosity_strength, wale_viscosity_strength
   public les_init_diagnostic_fields, les_assemble_diagnostic_fields, les_solve_diagnostic_fields
-  public leonard_tensor, les_strain_rate, exact_sgs_stress
-
+  public leonard_tensor, les_strain_rate, exact_sgs_stress, calculate_periodic_channel_forcing
 contains
 
   subroutine les_init_diagnostic_fields(state, have_eddy_visc, have_filter_width, have_coeff, have_sgs_tensor)
@@ -437,6 +436,53 @@ contains
 
   end subroutine exact_sgs_stress
 
+  subroutine calculate_periodic_channel_forcing(state, oldu, nu, positions, density, source_field)
+
+    type(state_type), intent(inout) :: state
+    type(vector_field), intent(inout) :: source_field
+    type(vector_field), intent(in) :: oldu, nu, positions
+    type(scalar_field), intent(in) :: density
+    
+    character(len = OPTION_PATH_LEN) :: path
+    integer :: stat
+    type(scalar_field), pointer :: masslump
+    integer :: i
+
+    ewrite(2,*) "Calculating periodic channel forcing term"
+    masslump => get_lumped_mass(state, source_field%mesh)
+
+    call zero(source_field)
+    do i = 1, ele_count(source_field)
+      call assemble_periodic_channel_forcing_ele(i, positions, oldu, nu, density, source_field)
+    end do
+    
+    do i = 1, source_field%dim
+      source_field%val(i,:) = source_field%val(i,:) / masslump%val
+    end do
+
+  end subroutine calculate_periodic_channel_forcing
+
+  subroutine assemble_periodic_channel_forcing_ele(ele, positions, oldu, nu, density, source_field)
+
+    integer, intent(in) :: ele
+    type(vector_field), intent(inout) :: source_field
+    type(vector_field), intent(in) :: positions, oldu, nu
+    type(scalar_field), intent(in) :: density
+
+    real, dimension(ele_ngi(source_field, ele)) :: detwei
+    real, dimension(source_field%dim, ele_loc(source_field, ele)) :: src
+
+    !call transform_to_physical(positions, ele, detwei=detwei)
+
+    ! Assume incompressible flow for simplicity
+    !vol = element_volume(positions, ele)
+    !src = 0.0
+
+    !call addto(source_field, ele_nodes(source_field, ele), &
+    !  & shape_vector_rhs(ele_shape(source_field, ele), src, detwei))
+
+  end subroutine assemble_periodic_channel_forcing_ele
+
   function les_strain_rate(du_t, nu)
     !! Computes the strain rate
     !! derivative of velocity shape function (nloc x ngi x dim)
@@ -445,7 +491,8 @@ contains
     real, dimension(:,:), intent(in):: nu
     real, dimension( size(du_t,3),size(du_t,3),size(du_t,2) ):: les_strain_rate
     real, dimension(size(du_t,3),size(du_t,3)):: s
-    integer dim, ngi, gi
+    integer :: dim, ngi, gi, i
+    real :: trace
 
     ngi=size(du_t,2)
     dim=size(du_t,3)
@@ -454,6 +501,16 @@ contains
 
        s=0.5*matmul( nu, du_t(:,gi,:) )
        les_strain_rate(:,:,gi)=s+transpose(s)
+
+       ! Subtract trace
+       trace = 0.0
+       do i=1, dim
+         trace = trace + les_strain_rate(i,i,gi)
+       end do
+       trace = trace/3.0
+       do i=1, dim
+         les_strain_rate(i,i,gi) = les_strain_rate(i,i,gi) - trace
+       end do
 
     end do
 

@@ -431,9 +431,9 @@
       have_les = have_option(trim(u%option_path)//"/prognostic/spatial_discretisation"//&
          &"/continuous_galerkin/les_model")
 
-       ! Set LES flags to false initially, then set to true if present
-       les_second_order=.false.; les_fourth_order=.false.; wale=.false.; dynamic_les=.false.; exact_sgs=.false.
-       have_eddy_visc=.false.; have_filter_width=.false.; have_coeff=.false.; have_sgs_tensor=.false.
+      ! Set LES flags to false initially, then set to true if present
+      les_second_order=.false.; les_fourth_order=.false.; wale=.false.; dynamic_les=.false.; exact_sgs=.false.
+      have_eddy_visc=.false.; have_filter_width=.false.; have_coeff=.false.; have_sgs_tensor=.false.
 
       if (have_les) then
 
@@ -738,6 +738,12 @@
         wettingdrying_alpha => extract_scalar_field(state, "WettingDryingAlpha")
         call allocate(alpha_u_field, u%mesh, "alpha_u")
         call remap_field(wettingdrying_alpha, alpha_u_field)
+      end if
+
+      if (have_option(trim(u%option_path)//&
+          &"/prognostic/vector_field::Source/diagnostic/algorithm::Internal")) then
+        call calculate_periodic_channel_forcing(state, oldu, nu, x, density, source)
+        ewrite_minmax(source)
       end if
 
       call get_mesh_colouring(state, u%mesh, COLOURING_CG1, colours)
@@ -1245,10 +1251,10 @@
 
         ! Add terms to RHS
         do dim = 1, u%dim
-          ewrite(2,*) "dim: ", dim
-          ewrite(2,*) "Robin mat: ", robin_diff_mat_bdy(dim,:,:)
-          ewrite(2,*) "Robin rhs:", shape_rhs(u_shape, ele_val_at_quad(velocity_bc, sele, dim)*detwei_bdy)
-          ewrite(2,*) "Robin rhs2:", -matmul(robin_diff_mat_bdy(dim,:,:), oldu_val(dim,:))
+          !ewrite(2,*) "dim: ", dim
+          !ewrite(2,*) "Robin mat: ", robin_diff_mat_bdy(dim,:,:)
+          !ewrite(2,*) "Robin rhs:", shape_rhs(u_shape, ele_val_at_quad(velocity_bc, sele, dim)*detwei_bdy)
+          !ewrite(2,*) "Robin rhs2:", -matmul(robin_diff_mat_bdy(dim,:,:), oldu_val(dim,:))
           call addto(rhs, dim, u_nodes_bdy, shape_rhs(u_shape, ele_val_at_quad(velocity_bc, sele, dim)*detwei_bdy))
           ! explicit term added to rhs - but not if no_normal_flow?
           call addto(rhs, dim, u_nodes_bdy, -matmul(robin_diff_mat_bdy(dim,:,:), oldu_val(dim,:)))

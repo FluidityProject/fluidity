@@ -2819,55 +2819,23 @@ contains
 
     type(vector_field), intent(in) :: x, u
 
-    ! Fields/vars for Germano Dynamic LES Model on surface
+    ! Fields/vars for dynamic slip model
     type(vector_field), intent(in)    :: fnu, tnu
-    type(tensor_field), intent(in)    :: leonard, strainprod
+    type(tensor_field), intent(in)    :: leonard, strainprod, exactsgs
     real, intent(in)                  :: alpha, gamma
 
-    ! Field for exact SGS model on surface
-    type(tensor_field), intent(in)    :: exactsgs
-
-    ! local
-    type(vector_field), pointer:: surface_field, surface_field_2
-    character(len=OPTION_PATH_LEN) bc_path_i, bc_type_path, bc_component_path
-    character(len=FIELD_NAME_LEN) bc_name, bc_type
-    integer, dimension(:), pointer:: surface_element_list, surface_node_list
-    integer i, j, k, nbcs
-    integer :: sele, dim_set
-    logical :: applies(3)
+    ! local vars
+    type(vector_field), pointer     :: surface_field, surface_field_2
+    real, dimension(face_loc(u, 1)) :: surface_field_addto
+    character(len=OPTION_PATH_LEN)  :: bc_path_i, bc_type_path, bc_component_path
+    character(len=FIELD_NAME_LEN)   :: bc_name, bc_type
+    integer, dimension(:), pointer  :: surface_element_list, surface_node_list
+    integer                         :: i, j, k, sele, nbcs, dim_set
+    logical                         :: applies(3)
     character(len=20), dimension(3) :: aligned_components
-    ! possible vector components for vector b.c.s
-    ! either cartesian aligned or aligned with the surface
     character(len=20), parameter, dimension(3) :: &
-         cartesian_aligned_components=(/ &
-           "x_component", &
-           "y_component", &
-           "z_component" /), &
-         surface_aligned_components=(/ &
-           "normal_component   ", & 
-           "tangent_component_1", &
-           "tangent_component_2" /)
-
-    real, dimension(face_ngi(u, 1)) :: detwei_bdy
-    real, dimension(u%dim, face_ngi(u, 1)) :: normal_bdy
-
-    ! quantities related to shape functions on face
-    integer :: lface, gi, ele
-    real, dimension(x%dim, x%dim, ele_ngi(u, face_ele(u, 1))) :: invj
-    real, dimension(x%dim, x%dim, face_ngi(u, 1)) :: invj_face
-    real, dimension(ele_loc(u, face_ele(u, 1)), face_ngi(u, 1), x%dim) :: dshape_face
-    type(element_type) :: augmented_shape
-    type(element_type), pointer :: u_shape, fshape, x_shape, source_shape
-
-    ! Local quantities specific to Germano Dynamic LES Model
-    real, dimension(x%dim, x%dim, face_ngi(u, 1))  :: strain_gi, t_strain_gi, strainprod_gi
-    real, dimension(x%dim, x%dim, face_ngi(u, 1))  :: leonard_gi
-    real, dimension(x%dim, x%dim)                  :: mij
-    real, dimension(face_ngi(u, 1))                :: strain_mod, t_strain_mod
-    real, dimension(face_ngi(u, 1))                :: f_scalar, t_scalar
-    real, dimension(x%dim, x%dim, face_ngi(u, 1))  :: tau_gi, tautest_gi
-    real, dimension(face_ngi(u, 1))                :: les_coef_gi, beta_gi
-    real                                           :: denom, zero_coeff
+      cartesian_aligned_components=(/"x_component","y_component","z_component"/), &
+      surface_aligned_components=(/"normal_component   ","tangent_component_1","tangent_component_2"/)
 
     ewrite(2,*) "Calculating dynamic_slip coefficient"
 
@@ -2905,11 +2873,9 @@ contains
 
           if (applies(j)) then
 
-            ! Set coeff at ele nodes
-            zero_coeff = 0.0
-
+            ! Set zero order coeff at ele nodes
             do k=1, size(surface_node_list)
-              call set(surface_field, j, k, zero_coeff)
+              call set(surface_field, j, k, 0.0)
             end do
 
             ! Calculate dynamic slip coefficient
@@ -2917,89 +2883,14 @@ contains
             if(dim_set==0) then
 
               do k=1, size(surface_element_list)
+                sele = surface_element_list(k)
+                call calculate_dynamic_slip_coefficient_face(x, u, fnu, tnu, leonard, strainprod, exactsgs, alpha, gamma, surface_field_addto, sele)
 
-                sele=surface_element_list(k)
-                ele = face_ele(x, sele)
-                u_shape=> face_shape(u, sele)
-                x_shape => ele_shape(x, ele)
-                fshape => face_shape(u, sele)
-                source_shape => ele_shape(u, ele)
-                lface = local_face_number(u, sele)
-
-                call transform_facet_to_physical(X, sele, detwei_f=detwei_bdy, normal=normal_bdy)
-
-                ! Get shape fn and its gradient on surface element
-                if(associated(source_shape%dn_s)) then
-                  augmented_shape = source_shape
-                  call incref(augmented_shape)
-                else
-                  augmented_shape = make_element_shape(x_shape%loc, source_shape%dim, &
-                    & source_shape%degree, source_shape%quadrature, quad_s = fshape%quadrature)
-                end if
-
-                call compute_inverse_jacobian(ele_val(x, ele), x_shape, invj = invj)
-
-                assert(x_shape%degree == 1)
-                assert(ele_numbering_family(x_shape) == FAMILY_SIMPLEX)
-                invj_face = spread(invj(:, :, 1), 3, size(invj_face, 3))
-
-                dshape_face = eval_volume_dshape_at_face_quad(augmented_shape, lface, invj_face)
-                call deallocate(augmented_shape)
-
-                ! Get strains S1, S2
-                strain_gi = les_strain_rate(dshape_face, ele_val(fnu, ele))
-                t_strain_gi = les_strain_rate(dshape_face, ele_val(tnu, ele))
-
-                ! Leonard tensor and strain product at Gauss points
-                leonard_gi = face_val_at_quad(leonard, sele)
-                strainprod_gi = face_val_at_quad(strainprod, sele)
-
-                ! Get strain moduli |S1|, |S2|
-                do gi=1, face_ngi(u, sele)
-                  strain_mod(gi) = sqrt( 2*sum(strain_gi(:,:,gi)*strain_gi(:,:,gi) ) )
-                  t_strain_mod(gi) = sqrt( 2*sum(t_strain_gi(:,:,gi)*t_strain_gi(:,:,gi) ) )
-                end do
-
-                ! Scalar first filter width G1 = alpha^2*meshsize (units length^2)
-                f_scalar = alpha**2*length_scale_scalar(x, ele)
-                ! Combined width G2 = (1+gamma^2)*G1
-                t_scalar = (1.0+gamma**2)*f_scalar
-
-                do gi=1, face_ngi(u, sele)
-                  ! Tensor M_ij = (|S2|*S2)G2 - ((|S1|S1)^f2)G1
-                  mij = t_strain_mod(gi)*t_strain_gi(:,:,gi)*t_scalar(gi) - strainprod_gi(:,:,gi)*f_scalar(gi)
-                  denom = sum(mij*mij)
-
-                  ! Model coeff C_S = -(L_ij M_ij) / 2(M_ij M_ij)
-                  if (denom > 0) then
-                    les_coef_gi(gi) = -0.5*sum(leonard_gi(:,:,gi)*mij) / denom
-                  else
-                    les_coef_gi(gi) = 0.0
-                  endif
-
-                  ! Constrain C_S to be between 0 and 0.04.
-                  les_coef_gi(gi) = min(max(les_coef_gi(gi),0.0), 0.04)
-
-                  ! Model terms: T_ij = -2C_S|S2|.alpha^2.G2, tau_ij = -2C_S|S1|.alpha^2.G1
-                  tau_gi(:,:,gi) = 2*alpha**2*les_coef_gi(gi)*strain_mod(gi)*f_scalar(gi)
-                  tautest_gi(:,:,gi) = 2*alpha**2*les_coef_gi(gi)*t_strain_mod(gi)*t_scalar(gi)
-
-                  ! Slip coeff beta = sqrt((L_ij-T_ij+tau_ij) M_ij) / 2(M_ij M_ij)
-                  beta_gi(gi) = sum((leonard_gi(:,:,gi) - tautest_gi(:,:,gi) + tau_gi(:,:,gi)) * mij) / denom
-
-                  if (beta_gi(gi) > 0) then
-                    beta_gi(gi) = 1.0/sqrt(beta_gi(gi))
-                  else ! what is a sensible alternative?
-                    beta_gi(gi) = 0.0
-                  endif
-                end do
-
-                !ewrite(2,*) "beta: ", beta_gi
-
-                call addto(surface_field_2, j, ele_nodes(surface_field_2, k), shape_rhs(u_shape, beta_gi*detwei_bdy))
+                ! add contribution to surface field
+                call addto(surface_field_2, j, ele_nodes(surface_field_2, k), surface_field_addto)
               end do
 
-              ! flag this dimension so we can get the value of beta without recalculating it
+              ! flag this dimension so we don't have to recalculate the coeff
               dim_set = j
             else
               do k=1, size(surface_node_list)
@@ -3014,5 +2905,175 @@ contains
     end do
 
   end subroutine calculate_dynamic_slip_coefficient
+
+  subroutine calculate_dynamic_slip_coefficient_face(x, u, fnu, tnu, leonard, strainprod, exactsgs, alpha, gamma, surface_field_addto, sele)
+
+    type(vector_field), intent(in)    :: x, u, fnu, tnu
+    type(tensor_field), intent(in)    :: leonard, strainprod, exactsgs
+    real, intent(in)                  :: alpha, gamma
+    integer, intent(in)               :: sele
+    real, dimension(face_loc(u, sele)), intent(out) :: surface_field_addto
+
+    ! local vars
+    integer :: i, j, gi, ngi, lface, ele
+
+    real, dimension(face_ngi(u, sele))                                       :: detwei_bdy
+    real, dimension(u%dim, face_ngi(u, sele))                                :: normal_bdy
+    real, dimension(u%dim, u%dim, ele_ngi(u, face_ele(u, sele)))             :: invj
+    real, dimension(u%dim, u%dim, face_ngi(u, sele))                         :: invj_face
+    real, dimension(ele_loc(u, face_ele(u, sele)), face_ngi(u, sele), u%dim) :: dshape_face
+
+    type(element_type)          :: augmented_shape
+    type(element_type), pointer :: u_shape, fshape, x_shape, source_shape
+
+    ! Local quantities specific to dynamic slip wall model
+    real, dimension(u%dim, u%dim, face_ngi(u, sele))  :: leonard_gi, strain_gi, t_strain_gi, strainprod_gi
+    real, dimension(u%dim, u%dim, face_ngi(u, sele))  :: tau_gi, tautest_gi
+    real, dimension(u%dim, u%dim)                     :: mij, grad_fnu_gi, grad_tnu_gi
+    real, dimension(u%dim, face_ngi(u, sele))         :: fnu_gi, tnu_gi
+    real, dimension(u%dim, ele_loc(u, sele))          :: fnu_ele, tnu_ele
+    real, dimension(u%dim)                            :: grad_fnu_dot_n_gi, grad_tnu_dot_n_gi
+    real, dimension(face_ngi(u, sele))                :: f_scalar, t_scalar, les_coef_gi, beta_gi
+    real                                              :: strain_mod, t_strain_mod, denom
+
+    ele = face_ele(x, sele)
+    u_shape => face_shape(u, sele)
+    x_shape => ele_shape(x, ele)
+    fshape => face_shape(u, sele)
+    source_shape => ele_shape(u, ele)
+    lface = local_face_number(u, sele)
+    ngi = face_ngi(u, sele)
+
+    call transform_facet_to_physical(X, sele, detwei_f=detwei_bdy, normal=normal_bdy)
+
+    ! Get shape fn and its gradient on surface element
+    if(associated(source_shape%dn_s)) then
+      augmented_shape = source_shape
+      call incref(augmented_shape)
+    else
+      augmented_shape = make_element_shape(x_shape%loc, source_shape%dim, &
+        & source_shape%degree, source_shape%quadrature, quad_s = fshape%quadrature)
+    end if
+
+    call compute_inverse_jacobian(ele_val(x, ele), x_shape, invj = invj)
+
+    assert(x_shape%degree == 1)
+    assert(ele_numbering_family(x_shape) == FAMILY_SIMPLEX)
+    invj_face = spread(invj(:, :, 1), 3, size(invj_face, 3))
+
+    dshape_face = eval_volume_dshape_at_face_quad(augmented_shape, lface, invj_face)
+    call deallocate(augmented_shape)
+
+    ! first- and test-filtered velocities at nodes and gauss pts
+    fnu_ele = ele_val(fnu, ele)
+    tnu_ele = ele_val(tnu, ele)
+    fnu_gi = face_val_at_quad(fnu, sele)
+    tnu_gi = face_val_at_quad(tnu, sele)
+
+    ! Get strain terms S1, S2
+    strain_gi = les_strain_rate(dshape_face, fnu_ele)
+    t_strain_gi = les_strain_rate(dshape_face, tnu_ele)
+
+    ! Leonard tensor and strain product at Gauss points
+    leonard_gi = face_val_at_quad(leonard, sele)
+    strainprod_gi = face_val_at_quad(strainprod, sele)
+
+    ! Scalar first filter width G1 = alpha^2*meshsize (units length^2)
+    f_scalar = alpha**2*length_scale_scalar(x, ele)
+    ! Combined width G2 = (1+gamma^2)*G1
+    t_scalar = (1.0+gamma**2)*f_scalar
+
+    do gi=1, ngi
+      !ewrite(2,*) "gi: ", gi
+
+      ! Recompute dynamic LES model terms
+
+      ! Strain moduli |S1|, |S2|
+      strain_mod = sqrt(2*sum(strain_gi(:,:,gi)*strain_gi(:,:,gi)))
+      t_strain_mod = sqrt(2*sum(t_strain_gi(:,:,gi)*t_strain_gi(:,:,gi)))
+
+      ! Tensor M_ij = (|S2|*S2)G2 - ((|S1|S1)^f2)G1
+      mij = t_strain_mod*t_strain_gi(:,:,gi)*t_scalar(gi) - strainprod_gi(:,:,gi)*f_scalar(gi)
+      denom = sum(mij*mij)
+
+      ! Dynamic LES Model coeff C_S = -(L_ij M_ij) / 2(M_ij M_ij)
+      if (denom > 0) then
+        les_coef_gi(gi) = -0.5*sum(leonard_gi(:,:,gi)*mij) / denom
+      else
+        les_coef_gi(gi) = 0.0
+      endif
+      !ewrite(2,*) "Cs: ", les_coef_gi(gi)
+
+      ! Constrain C_S to be between 0 and 0.04.
+      les_coef_gi(gi) = min(max(les_coef_gi(gi),0.0), 0.04)
+
+      ! Dynamic LES Model terms: T_ij = -2C_S|S2|.alpha^2.G2.S2, tau_ij = -2C_S|S1|.alpha^2.G1.S1
+      tau_gi(:,:,gi) = -2.0*alpha**2*les_coef_gi(gi)*strain_mod*f_scalar(gi)*strain_gi(:,:,gi)
+      tautest_gi(:,:,gi) = -2.0*alpha**2*les_coef_gi(gi)*t_strain_mod*t_scalar(gi)*t_strain_gi(:,:,gi)
+
+      ! Compute dynamic slip model terms
+
+      ! Calculate grad fnu, tnu at the surface element quadrature points
+      forall(i = 1:u%dim, j = 1:u%dim)
+        grad_fnu_gi(i,j) = dot_product(fnu_ele(i,:), dshape_face(:,gi,j))
+        grad_tnu_gi(i,j) = dot_product(tnu_ele(i,:), dshape_face(:,gi,j))
+      end forall
+
+      ! Calculate grad fnu dot dn at the surface element quadrature points
+      do i=1, u%dim
+        grad_fnu_dot_n_gi(i) = dot_product(grad_fnu_gi(i,:), normal_bdy(:,gi))
+        grad_tnu_dot_n_gi(i) = dot_product(grad_tnu_gi(i,:), normal_bdy(:,gi))
+      end do
+
+      ! Recalculate M_ij
+      forall(i = 1:u%dim, j = 1:u%dim)
+        mij(i,j) = gamma**2*grad_tnu_dot_n_gi(i)*grad_tnu_dot_n_gi(j) &
+                 & - grad_fnu_dot_n_gi(i)*grad_fnu_dot_n_gi(j)
+      end forall
+
+      denom = sum(mij*mij)
+
+      ! Slip coeff beta = sqrt((L_ij-T_ij+tau_ij) M_ij / M_ij M_ij)
+      beta_gi(gi) = sum(mij(:,:)*(leonard_gi(:,:,gi) - tautest_gi(:,:,gi) + tau_gi(:,:,gi))) / denom
+
+      !ewrite(2,*) "Cs: ", les_coef_gi(gi)
+      !ewrite(2,*) "Lij: ", leonard_gi(:,:,gi)
+      !ewrite(2,*) "tau: ", tau_gi(:,:,gi)
+      !ewrite(2,*) "tautest: ", tautest_gi(:,:,gi)
+      !ewrite(2,*) "d/dxj(fnu): ", grad_fnu_gi
+      !ewrite(2,*) "d/dxj(tnu): ", grad_tnu_gi
+      !ewrite(2,*) "d/dn(fnu): ", grad_fnu_dot_n_gi
+      !ewrite(2,*) "d/dn(tnu): ", grad_tnu_dot_n_gi
+      !ewrite(2,*) "Mij: ", mij
+      !ewrite(2,*) "MijMij: ", denom
+      !ewrite(2,*) "beta: ", beta_gi(gi)
+
+      ! Alternative form:
+      !forall(i = 1:u%dim, j = 1:u%dim)
+      !  mij(i,j) = gamma*(tnu_gi(i,gi)*grad_tnu_dot_n_gi(j) + tnu_gi(j,gi)*grad_tnu_dot_n_gi(i)) &
+      !           & - fnu_gi(i,gi)*grad_fnu_dot_n_gi(j) - fnu_gi(j,gi)*grad_fnu_dot_n_gi(i)
+      !end forall
+      !denom = sum(mij*mij)
+
+      if (beta_gi(gi) > 0) then
+        beta_gi(gi) = 1.0/sqrt(beta_gi(gi))
+      else ! what is a sensible alternative?
+        beta_gi(gi) = 0.0
+      endif
+      !ewrite(2,*) "beta: ", beta_gi(gi)
+
+      ! If using alternative form, don't take sqrt of beta.
+      !beta_gi(gi) = 1.0/(sum(mij(:,:)*(leonard_gi(:,:,gi) - tautest_gi(:,:,gi) + tau_gi(:,:,gi))) / denom)
+
+      !ewrite(2,*) "Mij2: ", mij
+      !ewrite(2,*) "beta2: ", beta_gi(gi)
+      !ewrite(2,*) "       "
+
+    end do
+
+    ! add contribution to surface field
+    surface_field_addto = shape_rhs(u_shape, beta_gi*detwei_bdy)
+
+  end subroutine calculate_dynamic_slip_coefficient_face
 
 end module boundary_conditions
