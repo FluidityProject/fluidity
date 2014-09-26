@@ -57,15 +57,27 @@ module dmplex_reader
        integer(c_int), dimension(nnodes*loc) :: ndglno
      end function dmplex_get_mesh_connectivity
 
-     function dmplex_get_face_connectivity(plex, nfaces, sloc, sndglno) &
+     function dmplex_get_num_surface_facets(plex, labelname, nfaces) &
           bind(c) result(ierr)
        use iso_c_binding
        implicit none
        integer(c_int) :: ierr
        integer(c_long), value :: plex
-       integer(c_int), value :: nfaces, sloc
-       integer(c_int), dimension(nfaces*sloc) :: sndglno
-     end function dmplex_get_face_connectivity
+       character(c_char) :: labelname(*)
+       integer(c_int), intent(out) :: nfaces
+     end function dmplex_get_num_surface_facets
+
+     function dmplex_get_surface_connectivity(plex, labelname, nfacets, sloc, sndglno, boundary_ids) &
+          bind(c) result(ierr)
+       use iso_c_binding
+       implicit none
+       integer(c_int) :: ierr
+       integer(c_long), value :: plex
+       character(c_char) :: labelname(*)
+       integer(c_int), value :: nfacets, sloc
+       integer(c_int), dimension(nfacets*sloc) :: sndglno
+       integer(c_int), dimension(nfacets) :: boundary_ids
+     end function dmplex_get_surface_connectivity
 
   end interface
 
@@ -101,11 +113,12 @@ contains
     ewrite(1,*) "Finished dmplex_read_mesh_file"
   end subroutine dmplex_read_mesh_file
 
-  subroutine dmplex_create_coordinate_field(plex, quad_degree, quad_ngi, quad_family, field)
+  subroutine dmplex_create_coordinate_field(plex, quad_degree, quad_ngi, quad_family, boundary_label, field)
     type(DM), intent(in) :: plex
     integer, intent(in), optional, target :: quad_degree
     integer, intent(in), optional, target :: quad_ngi
     integer, intent(in), optional :: quad_family
+    character(len=*), intent(in) :: boundary_label
     type(vector_field), intent(out) :: field
 
     type(mesh_type) :: mesh
@@ -114,7 +127,7 @@ contains
 
     PetscInt :: dim, cStart, cEnd, vStart, vEnd, fStart, fEnd
     PetscInt :: loc, sloc, nnodes, nelements, nfaces
-    PetscInt, dimension(:), allocatable :: sndglno
+    PetscInt, dimension(:), allocatable :: sndglno, boundary_ids
     PetscScalar, dimension(:), pointer :: coordinates => null()
     Vec :: plex_coordinates
     PetscErrorCode :: ierr
@@ -155,15 +168,20 @@ contains
     ! Build mesh connectivity from cell closures
     ierr = dmplex_get_mesh_connectivity(plex, nnodes, loc, mesh%ndglno)
 
-    ! Build and add face connectivity
+    ! Build and add surface connectivity and boundary IDs
+    ierr = dmplex_get_num_surface_facets(plex, boundary_label//C_NULL_CHAR, nfaces);
     allocate(sndglno(nfaces*sloc))
-    ierr = dmplex_get_face_connectivity(plex, nfaces, sloc, sndglno)
-    call add_faces(field%mesh, sndgln = sndglno(1:nfaces*sloc))
+    allocate(boundary_ids(nfaces))
+    boundary_ids = 0
+    ierr = dmplex_get_surface_connectivity(plex, boundary_label//C_NULL_CHAR, nfaces, sloc, &
+         sndglno, boundary_ids)
+    call add_faces(field%mesh, sndgln = sndglno(1:nfaces*sloc), boundary_ids=boundary_ids)
 
     ! Clean up
     call deallocate_element(shape)
     call deallocate(quad)
     deallocate(sndglno)
+    deallocate(boundary_ids)
 
     ewrite(1,*) "Finished dmplex_create_coordinate_field"
   end subroutine dmplex_create_coordinate_field
