@@ -151,7 +151,7 @@ int vtk_get_sizes_fc(char *fortname, int *namelen,
   while( fieldlst != NULL ) {
     Field_Info *newfld = fieldlst;
     fieldlst = newfld->next;
-    char *thisname=&(newfld->name);
+    char *thisname=newfld->name;
     int l = strlen(thisname);
     if( l > *maxlen )  *maxlen = l;
     if (ncomponents<*nfield_components) {
@@ -242,7 +242,7 @@ int vtk_read_file_fc(char *fortname, int *namelen,
   while( ncomponents<*nfield_components ) {
     Field_Info *newfld = fieldlst;
     fieldlst = newfld->next;
-    char *thisname=&(newfld->name);
+    char *thisname=newfld->name;
     int l = strlen(thisname);
     if( l>*maxlen )
       l = *maxlen;
@@ -265,7 +265,7 @@ int vtk_read_file_fc(char *fortname, int *namelen,
   while( fieldlst != NULL ) {
     Field_Info *newfld = fieldlst;
     fieldlst = newfld->next;
-    char *thisname=&(newfld->name);
+    char *thisname=newfld->name;
     int l = strlen(thisname);
     if( l>*maxlen )
       l = *maxlen;
