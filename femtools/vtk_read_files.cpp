@@ -61,7 +61,7 @@ int vtk_get_sizes_fc(char *fortname, int *namelen,
   // dimension of the vtu mesh and maximum length of 
                   int *NDIM, int *maxlen );
   
-  int vtk_read_file_fc(char *fortname, int *namelen,
+int vtk_read_file_fc(char *fortname, int *namelen,
   // number of nodes, elements and entries in the returned enlist:
                   int *NNOD, int *NELM, int *SZENLS,
   // total number of components over pointwise and cell-wise fields
@@ -160,6 +160,7 @@ int vtk_get_sizes_fc(char *fortname, int *namelen,
       (*nprops)++;
     }
     ncomponents += newfld->ncomponents;
+    free(newfld->name);
     free(newfld);
   }
 
@@ -254,6 +255,7 @@ int vtk_read_file_fc(char *fortname, int *namelen,
     ipos += *maxlen;
     ncomponents += newfld->ncomponents;
     field_components[*nfields] = newfld->ncomponents;
+    free(newfld->name);
     free(newfld);
     (*nfields)++;
   }
@@ -277,6 +279,7 @@ int vtk_read_file_fc(char *fortname, int *namelen,
     ipos += *maxlen;
     prop_components[*nprops] = newfld->ncomponents;
     (*nprops)++;
+    free(newfld->name);
     free(newfld);
   }
   

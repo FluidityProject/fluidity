@@ -666,7 +666,8 @@ int readVTKFile(const char * const filename,
           } else {
             Field_Info *newfld=(Field_Info *)malloc(sizeof(Field_Info));
             assert(newfld!=NULL);
-            newfld->name = T->GetName();
+            newfld->name = (char*)malloc(l+1);
+            strcpy(newfld->name, T->GetName());
             newfld->interperr = 1.0;
             newfld->ncomponents = k;
             newfld->next = NULL;
@@ -737,7 +738,8 @@ int readVTKFile(const char * const filename,
           } else {
             Field_Info *newfld=(Field_Info *)malloc(sizeof(Field_Info));
             assert(newfld!=NULL);
-            newfld->name = P->GetName();
+            newfld->name = (char*)malloc(l+1);
+            strcpy(newfld->name, T->GetName());
             newfld->interperr = 1.0;
             newfld->ncomponents = k;
             newfld->next = NULL;
@@ -1357,6 +1359,7 @@ int fgetvtksizes(char *fortname, int *namelen,
     else if( newfld->ncomponents > 1 )
       l++;
     if( l > *maxlen )  *maxlen = l;
+    free(newfld->name);
     free(newfld);
   }
 
@@ -1439,6 +1442,7 @@ int freadvtkfile(char *fortname, int *namelen,
         NAMES[ipos+i] = 32;
       ipos += *maxlen;
     }
+    free(newfld->name);
     free(newfld);
   }
 
