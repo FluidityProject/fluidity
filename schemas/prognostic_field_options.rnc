@@ -675,6 +675,25 @@ prognostic_velocity_field =
                               }
                            }
                         )
+                     }?,
+                     ## SGS stress tensor.
+                     element tensor_field {
+                        attribute rank { "2" },
+                        attribute name { "SGSTensor" },
+                        (
+                           element diagnostic {
+                              internal_algorithm,
+                              velocity_mesh_choice,
+                              diagnostic_tensor_field,
+                              element mass_matrix {  
+                              (
+                                    element use_lumped_mass_matrix { element use_submesh { empty }? }
+                                    |
+                                    element use_consistent_mass_matrix { empty }
+                                 )
+                              }
+                           }
+                        )
                      }?
                   }
                |

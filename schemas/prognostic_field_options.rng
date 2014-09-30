@@ -830,6 +830,36 @@ carries the influence of turbulence onto the velocity field.</a:documentation>
                       </element>
                     </element>
                   </optional>
+                  <optional>
+                    <element name="tensor_field">
+                      <a:documentation>SGS stress tensor.</a:documentation>
+                      <attribute name="rank">
+                        <value>2</value>
+                      </attribute>
+                      <attribute name="name">
+                        <value>SGSTensor</value>
+                      </attribute>
+                      <element name="diagnostic">
+                        <ref name="internal_algorithm"/>
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="diagnostic_tensor_field"/>
+                        <element name="mass_matrix">
+                          <choice>
+                            <element name="use_lumped_mass_matrix">
+                              <optional>
+                                <element name="use_submesh">
+                                  <empty/>
+                                </element>
+                              </optional>
+                            </element>
+                            <element name="use_consistent_mass_matrix">
+                              <empty/>
+                            </element>
+                          </choice>
+                        </element>
+                      </element>
+                    </element>
+                  </optional>
                 </element>
                 <element name="exact_sgs">
                   <a:documentation>exact expression for subgrid stresses derived from inverse Helmholtz filter</a:documentation>

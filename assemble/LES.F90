@@ -90,16 +90,16 @@ contains
   end subroutine les_init_diagnostic_fields
 
   subroutine les_assemble_diagnostic_fields(state, nu, ele, detwei, &
-                 mesh_size_gi,les_tensor_gi, les_coef_gi, &
-                 have_eddy_visc, have_filter_width, have_coeff)
+                 mesh_size_gi, les_tensor_gi, sgs_tensor_gi, les_coef_gi, &
+                 have_eddy_visc, have_filter_width, have_coeff, have_sgs_tensor)
 
     ! Arguments
     type(state_type), intent(inout)                             :: state
     type(vector_field), intent(in)                              :: nu
     integer, intent(in)                                         :: ele
     real, dimension(ele_ngi(nu,ele)), intent(in)                :: les_coef_gi, detwei
-    real, dimension(nu%dim,nu%dim,ele_ngi(nu,ele)),intent(in)   :: mesh_size_gi, les_tensor_gi
-    logical, intent(in) :: have_eddy_visc, have_filter_width, have_coeff
+    real, dimension(nu%dim,nu%dim,ele_ngi(nu,ele)),intent(in)   :: mesh_size_gi, les_tensor_gi, sgs_tensor_gi
+    logical, intent(in) :: have_eddy_visc, have_filter_width, have_coeff, have_sgs_tensor
     
     ! Local variables
     type(tensor_field), pointer                                 :: tfield
@@ -115,9 +115,9 @@ contains
     end if
 
     ! Filter width
-    if(have_filter_width) then
-      tfield => extract_tensor_field(state, "FilterWidth")
-      tensor_loc=shape_tensor_rhs(ele_shape(nu, ele), mesh_size_gi, detwei)
+    if(have_sgs_tensor) then
+      tfield => extract_tensor_field(state, "SGSTensor")
+      tensor_loc=shape_tensor_rhs(ele_shape(nu, ele), sgs_tensor_gi, detwei)
       call addto(tfield, ele_nodes(nu, ele), tensor_loc)
     end if
 
@@ -126,6 +126,13 @@ contains
       sfield => extract_scalar_field(state, "SmagorinskyCoefficient")
       scalar_loc=shape_rhs(ele_shape(nu, ele), les_coef_gi*detwei)
       call addto(sfield, ele_nodes(nu, ele), scalar_loc)
+    end if
+
+    ! Filter width
+    if(have_filter_width) then
+      tfield => extract_tensor_field(state, "FilterWidth")
+      tensor_loc=shape_tensor_rhs(ele_shape(nu, ele), mesh_size_gi, detwei)
+      call addto(tfield, ele_nodes(nu, ele), tensor_loc)
     end if
 
   end subroutine les_assemble_diagnostic_fields
@@ -215,7 +222,7 @@ contains
 
   end subroutine les_solve_diagnostic_fields
   
-  subroutine leonard_tensor(nu, positions, fnu, tnu, leonard, strainprod, alpha, gamma, length_scale_type, path)
+  subroutine leonard_tensor(nu, positions, fnu, tnu, leonard, strainprod, exactsgs, alpha, gamma, length_scale_type, path)
 
     ! Unfiltered velocity
     type(vector_field), pointer                           :: nu
@@ -223,7 +230,7 @@ contains
     ! Filtered velocities
     type(vector_field), pointer                           :: fnu, tnu
     ! Leonard tensor and strain product
-    type(tensor_field), pointer                           :: leonard, strainprod
+    type(tensor_field), pointer                           :: leonard, strainprod, exactsgs
     ! Scale factors
     real, intent(in)                                      :: alpha, gamma
     character(len=OPTION_PATH_LEN), intent(in)            :: length_scale_type
@@ -286,11 +293,12 @@ contains
     if(length_scale_type=="scalar") then
       call smooth_tensor(ui_uj, positions, leonard, alpha*gamma, lpath)
     else if(length_scale_type=="tensor") then
-      call anisotropic_smooth_tensor(ui_uj, positions, leonard, alpha*gamma, lpath)
+      !call anisotropic_smooth_tensor(ui_uj, positions, leonard, alpha*gamma, lpath)
+      call smooth_tensor(ui_uj, positions, leonard, alpha*gamma, lpath)
     end if
 
     ! Leonard tensor field
-    call addto( leonard, tui_tuj, -1.0 )
+    !call addto( leonard, tui_tuj, -1.0 )
 
     ! Zero tensor field for reuse in strain product assembly
     call zero(ui_uj)
@@ -313,8 +321,21 @@ contains
     if(length_scale_type=="scalar") then
       call smooth_tensor(ui_uj, positions, strainprod, alpha*gamma, lpath)
     else if(length_scale_type=="tensor") then
-      call anisotropic_smooth_tensor(ui_uj, positions, strainprod, alpha*gamma, lpath)
+      !call anisotropic_smooth_tensor(ui_uj, positions, strainprod, alpha*gamma, lpath)
+      call smooth_tensor(ui_uj, positions, strainprod, alpha*gamma, lpath)
     end if
+
+    ! Filter SGS tensor field
+    call zero(ui_uj)
+
+    if(length_scale_type=="scalar") then
+      call smooth_tensor(exactsgs, positions, ui_uj, alpha, lpath)
+    else if(length_scale_type=="tensor") then
+      call smooth_tensor(exactsgs, positions, ui_uj, alpha, lpath)
+      !call anisotropic_smooth_tensor(tensorrhs, positions, exactsgs, alpha, lpath)
+    end if
+
+    call set(exactsgs, ui_uj)
 
     ! Deallocates
     deallocate(u_loc, t_loc)

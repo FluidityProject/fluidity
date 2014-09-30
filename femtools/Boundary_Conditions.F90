@@ -2815,18 +2815,20 @@ contains
   
   end subroutine derive_collapsed_bcs
 
-  subroutine calculate_dynamic_slip_coefficient(x, u, fnu, tnu, leonard, strainprod, exactsgs, alpha, gamma)
+  subroutine calculate_dynamic_slip_coefficient(x, u, fnu, tnu, leonard, strainprod, sgstensor, dyn_coeff, alpha, gamma)
 
     type(vector_field), intent(in) :: x, u
 
     ! Fields/vars for dynamic slip model
+    type(scalar_field), intent(in)    :: dyn_coeff
     type(vector_field), intent(in)    :: fnu, tnu
-    type(tensor_field), intent(in)    :: leonard, strainprod, exactsgs
+    type(tensor_field), intent(in)    :: leonard, strainprod, sgstensor
     real, intent(in)                  :: alpha, gamma
 
     ! local vars
     type(vector_field), pointer     :: surface_field, surface_field_2
     real, dimension(face_loc(u, 1)) :: surface_field_addto
+    real, dimension(u%dim)          :: slipsum
     character(len=OPTION_PATH_LEN)  :: bc_path_i, bc_type_path, bc_component_path
     character(len=FIELD_NAME_LEN)   :: bc_name, bc_type
     integer, dimension(:), pointer  :: surface_element_list, surface_node_list
@@ -2838,6 +2840,8 @@ contains
       surface_aligned_components=(/"normal_component   ","tangent_component_1","tangent_component_2"/)
 
     ewrite(2,*) "Calculating dynamic_slip coefficient"
+    ewrite_minmax(sgstensor)
+    ewrite_minmax(dyn_coeff)
 
     ! Get number of boundary conditions
     nbcs=option_count(trim(u%option_path)//'/prognostic/boundary_conditions')
@@ -2865,6 +2869,7 @@ contains
         call zero(surface_field_2)
 
         dim_set = 0
+        slipsum = 0
 
         do j=1,3
 
@@ -2884,10 +2889,14 @@ contains
 
               do k=1, size(surface_element_list)
                 sele = surface_element_list(k)
-                call calculate_dynamic_slip_coefficient_face(x, u, fnu, tnu, leonard, strainprod, exactsgs, alpha, gamma, surface_field_addto, sele)
+                call calculate_dynamic_slip_coefficient_face(x, u, fnu, tnu, leonard, strainprod, sgstensor, dyn_coeff, alpha, gamma, surface_field_addto, sele)
 
                 ! add contribution to surface field
                 call addto(surface_field_2, j, ele_nodes(surface_field_2, k), surface_field_addto)
+              end do
+
+              do k=1, size(surface_node_list)
+                slipsum(j) = slipsum(j) + node_val(surface_field_2, j, k)
               end do
 
               ! flag this dimension so we don't have to recalculate the coeff
@@ -2901,15 +2910,17 @@ contains
         end do
         ewrite_minmax(surface_field)
         ewrite_minmax(surface_field_2)
+        ewrite(2,*) "sum(slip coeff): ", slipsum
       end if
     end do
 
   end subroutine calculate_dynamic_slip_coefficient
 
-  subroutine calculate_dynamic_slip_coefficient_face(x, u, fnu, tnu, leonard, strainprod, exactsgs, alpha, gamma, surface_field_addto, sele)
+  subroutine calculate_dynamic_slip_coefficient_face(x, u, fnu, tnu, leonard, strainprod, sgstensor, dyn_coeff, alpha, gamma, surface_field_addto, sele)
 
+    type(scalar_field), intent(in)    :: dyn_coeff
     type(vector_field), intent(in)    :: x, u, fnu, tnu
-    type(tensor_field), intent(in)    :: leonard, strainprod, exactsgs
+    type(tensor_field), intent(in)    :: leonard, strainprod, sgstensor
     real, intent(in)                  :: alpha, gamma
     integer, intent(in)               :: sele
     real, dimension(face_loc(u, sele)), intent(out) :: surface_field_addto
@@ -2977,6 +2988,10 @@ contains
     ! Leonard tensor and strain product at Gauss points
     leonard_gi = face_val_at_quad(leonard, sele)
     strainprod_gi = face_val_at_quad(strainprod, sele)
+    les_coef_gi = face_val_at_quad(dyn_coeff, sele)
+
+    ! Filtered SGS stress tensor (from dynamic LES computation)
+    tau_gi = face_val_at_quad(sgstensor, sele)
 
     ! Scalar first filter width G1 = alpha^2*meshsize (units length^2)
     f_scalar = alpha**2*length_scale_scalar(x, ele)
@@ -2997,8 +3012,9 @@ contains
       denom = sum(mij*mij)
 
       ! Dynamic LES Model coeff C_S = -(L_ij M_ij) / 2(M_ij M_ij)
-      if (denom > 0) then
-        les_coef_gi(gi) = -0.5*sum(leonard_gi(:,:,gi)*mij) / denom
+      ! Subtract tnu_i tnu_j from Leonard tensor
+      if (denom > epsilon(0.0)) then
+        les_coef_gi(gi) = -0.5*sum((leonard_gi(:,:,gi)-outer_product(tnu_gi(:,gi), tnu_gi(:,gi)))*mij) / denom
       else
         les_coef_gi(gi) = 0.0
       endif
@@ -3009,7 +3025,7 @@ contains
 
       ! Dynamic LES Model terms: T_ij = -2C_S|S2|.alpha^2.G2.S2, tau_ij = -2C_S|S1|.alpha^2.G1.S1
       tau_gi(:,:,gi) = -2.0*alpha**2*les_coef_gi(gi)*strain_mod*f_scalar(gi)*strain_gi(:,:,gi)
-      tautest_gi(:,:,gi) = -2.0*alpha**2*les_coef_gi(gi)*t_strain_mod*t_scalar(gi)*t_strain_gi(:,:,gi)
+      tautest_gi(:,:,gi) = 2.0*alpha**2*les_coef_gi(gi)*t_strain_mod*t_scalar(gi)*t_strain_gi(:,:,gi)
 
       ! Compute dynamic slip model terms
 
@@ -3033,8 +3049,17 @@ contains
 
       denom = sum(mij*mij)
 
+      ! Subtract fnu_i fnu_j from Leonard tensor
+      leonard_gi(:,:,gi) = leonard_gi(:,:,gi) - outer_product(fnu_gi(:,gi), fnu_gi(:,gi))
+
       ! Slip coeff beta = sqrt((L_ij-T_ij+tau_ij) M_ij / M_ij M_ij)
       beta_gi(gi) = sum(mij(:,:)*(leonard_gi(:,:,gi) - tautest_gi(:,:,gi) + tau_gi(:,:,gi))) / denom
+
+      if (beta_gi(gi) > 0) then
+        beta_gi(gi) = 1.0/sqrt(beta_gi(gi))
+      else ! what is a sensible alternative? Face-averaged value?
+        beta_gi(gi) = 0.0
+      endif
 
       !ewrite(2,*) "Cs: ", les_coef_gi(gi)
       !ewrite(2,*) "Lij: ", leonard_gi(:,:,gi)
@@ -3048,19 +3073,12 @@ contains
       !ewrite(2,*) "MijMij: ", denom
       !ewrite(2,*) "beta: ", beta_gi(gi)
 
-      ! Alternative form:
+      ! Alternative form. UNSTABLE - GIVES BETA < 0
       !forall(i = 1:u%dim, j = 1:u%dim)
       !  mij(i,j) = gamma*(tnu_gi(i,gi)*grad_tnu_dot_n_gi(j) + tnu_gi(j,gi)*grad_tnu_dot_n_gi(i)) &
       !           & - fnu_gi(i,gi)*grad_fnu_dot_n_gi(j) - fnu_gi(j,gi)*grad_fnu_dot_n_gi(i)
       !end forall
       !denom = sum(mij*mij)
-
-      if (beta_gi(gi) > 0) then
-        beta_gi(gi) = 1.0/sqrt(beta_gi(gi))
-      else ! what is a sensible alternative?
-        beta_gi(gi) = 0.0
-      endif
-      !ewrite(2,*) "beta: ", beta_gi(gi)
 
       ! If using alternative form, don't take sqrt of beta.
       !beta_gi(gi) = 1.0/(sum(mij(:,:)*(leonard_gi(:,:,gi) - tautest_gi(:,:,gi) + tau_gi(:,:,gi))) / denom)
@@ -3070,6 +3088,8 @@ contains
       !ewrite(2,*) "       "
 
     end do
+
+    ewrite(2,*) "beta: ", beta_gi
 
     ! add contribution to surface field
     surface_field_addto = shape_rhs(u_shape, beta_gi*detwei_bdy)
