@@ -739,7 +739,7 @@ int readVTKFile(const char * const filename,
             Field_Info *newfld=(Field_Info *)malloc(sizeof(Field_Info));
             assert(newfld!=NULL);
             newfld->name = (char*)malloc(l+1);
-            strcpy(newfld->name, T->GetName());
+            strcpy(newfld->name, P->GetName());
             newfld->interperr = 1.0;
             newfld->ncomponents = k;
             newfld->next = NULL;
