@@ -4986,6 +4986,8 @@ For Gidaspow's model B the momentum equations written in conservative form are:
 +\nabla (p+\tau)  -s_c -\rho_f g k=0. 
 \label{mom-for-div-by-apha-modelB}
 \end{eqnarray}
+This is the system of equations used for momentum. 
+
 For $\alpha_f^{n+1}=1-\alpha_s^{n+1}$ we may use the expression, suitable for incompressible solids: 
 \begin{eqnarray}
 \alpha_s^{n+1}= \alpha_s^{n} - \Delta t \nabla \cdot \alpha_s u_s
@@ -4993,7 +4995,7 @@ For $\alpha_f^{n+1}=1-\alpha_s^{n+1}$ we may use the expression, suitable for in
 to obtain: 
 \begin{eqnarray}
 (\frac{\alpha_f^{n} \rho_f^{n+1} u_f^{n+1}-\alpha_f^{n} \rho_f^{n} u_f^n}{\Delta t})
--\rho_f^{n+1} u_f^{n+1} (\nabla \cdot \alpha_s u_s) 
++\rho_f^{n+1} u_f^{n+1} (\nabla \cdot \alpha_s u_s) 
 + \nabla \alpha_f \rho_f u_f\cdot u_f 
 +\nabla (p+\tau)  -s_c -\rho_f g k=0, 
 \label{mom-for-div-by-apha-modelB-with-grad}
@@ -5001,7 +5003,7 @@ to obtain:
 or: 
 \begin{eqnarray}
 (\frac{\alpha_f^{n} \rho_f^{n+1} u_f^{n+1}-\alpha_f^{n} \rho_f^{n} u_f^n}{\Delta t})
--\rho_f^{n+1} u_f^{n+1} (\nabla \cdot (\hat u - \alpha_f u_f)) 
++\rho_f^{n+1} u_f^{n+1} (\nabla \cdot (\hat u - \alpha_f u_f)) 
 + \nabla \alpha_f \rho_f u_f\cdot u_f 
 +\nabla (p+\tau)  -s_c -\rho_f g k=0. 
 \label{mom-for-div-by-apha-modelB-with-grad-or}
