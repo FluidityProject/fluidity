@@ -205,7 +205,7 @@ contains
     integer :: increment
 
     ewrite(1, *) "In write_state"
-    call profiler_tic("I/O")
+    call profiler_tic("I/O:vtkoutput")
 
     call get_option("/simulation_name", dump_filename)
     call get_option("/io/max_dump_file_count", max_dump_no, stat, default = huge(0))
@@ -230,7 +230,7 @@ contains
     dump_no = modulo(dump_no + increment, max_dump_no)
     call update_dump_times
 
-    call profiler_toc("I/O")
+    call profiler_toc("I/O:vtkoutput")
     ewrite(1, *) "Exiting write_state"
 
   end subroutine write_state

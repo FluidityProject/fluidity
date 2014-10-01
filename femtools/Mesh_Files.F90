@@ -58,6 +58,7 @@ module mesh_files
   use write_triangle
 
   use spud
+  use Profiler
 
   implicit none
 
@@ -101,25 +102,38 @@ contains
 
     type(vector_field) :: field
 
+
     select case( trim(format) )
     case("triangle")
-       field = read_triangle_files(filename, quad_degree=quad_degree, quad_ngi=quad_ngi, &
+      call profiler_tic("I/O:readtriangle")
+
+      field = read_triangle_files(filename, quad_degree=quad_degree, quad_ngi=quad_ngi, &
             quad_family=quad_family, mdim=mdim)
 
+      call profiler_toc("I/O:readtriangle")
+
     case("gmsh")
+
+      call profiler_tic("I/O:readgmsh")
        if (present(mdim)) then
          FLExit("Cannot specify dimension for gmsh format")
        end if
        field = read_gmsh_file(filename, quad_degree=quad_degree, quad_ngi=quad_ngi, &
             quad_family=quad_family)
 
+      call profiler_toc("I/O:readgmsh")
+
     case("exodusii")
+
+       call profiler_tic("I/O:readexodus")
+
 #ifdef HAVE_LIBEXOIIV2C
        field = read_exodusii_file(filename, quad_degree=quad_degree, quad_ngi=quad_ngi, &
             quad_family=quad_family)
 #else
   FLExit("Fluidity was not configured with exodusII, reconfigure with '--with-exodusII'!")
 #endif
+       call profiler_toc("I/O:readexodus")
 
 
        ! Additional mesh format subroutines go here
@@ -149,10 +163,14 @@ contains
 
     select case(format)
     case("triangle")
+      call profiler_tic("I/O:writetriangle")
        call write_triangle_files(filename, state, mesh, number_of_partitions=number_of_partitions)
+      call profiler_toc("I/O:writetriangle")
 
     case("gmsh")
+      call profiler_tic("I/O:writegmsh")
        call write_gmsh_file(filename, state, mesh, number_of_partitions=number_of_partitions)
+      call profiler_toc("I/O:writegmsh")
 
     ! ExodusII write routines are not implemented at this point. 
     ! Mesh is dumped as gmsh format for now.
@@ -180,11 +198,15 @@ contains
 
     select case( trim(format) )
     case("triangle")
+      call profiler_tic("I/O:writetriangle")
        call write_triangle_files( trim(filename), positions, number_of_partitions=number_of_partitions)
+      call profiler_toc("I/O:writetriangle")
 
     case("gmsh")
-       call write_gmsh_file( trim(filename), positions, number_of_partitions=number_of_partitions)
+      call profiler_tic("I/O:writegmsh")
+      call write_gmsh_file( trim(filename), positions, number_of_partitions=number_of_partitions)
 
+      call profiler_toc("I/O:writegmsh")
     ! ExodusII write routines are not implemented at this point. 
     ! Mesh is dumped as gmsh format for now.
     ! check subroutine 'insert_external_mesh' in Populate_State.F90,

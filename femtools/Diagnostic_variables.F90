@@ -1913,7 +1913,7 @@ contains
     logical :: l_move_detectors
 
     ewrite(1,*) 'In write_diagnostics'
-    call profiler_tic("I/O")
+    call profiler_tic("I/O:diagwrite")
 
     if(present_and_true(not_to_move_det_yet)) then
        l_move_detectors=.false.
@@ -2165,7 +2165,7 @@ contains
     ! Now output any detectors.    
     call write_detectors(state, default_stat%detector_list, time, dt)
 
-    call profiler_toc("I/O")
+    call profiler_toc("I/O:diagwrite")
   
   contains
   
