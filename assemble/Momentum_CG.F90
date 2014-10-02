@@ -515,7 +515,7 @@
 
             ! Calculate test-filtered velocity field and Leonard tensor field.
             ewrite(2,*) "Calculating test-filtered velocity and Leonard tensor"
-            call leonard_tensor(nu, x, fnu, tnu, leonard, strainprod, sgstensor, alpha, gamma, length_scale_type, les_option_path)
+            call compute_les_local_fields(nu, x, fnu, tnu, leonard, strainprod, sgstensor, alpha, gamma, length_scale_type, les_option_path, dynamic_les, exact_sgs)
 
             ewrite_minmax(fnu)
             ewrite_minmax(tnu)
@@ -531,7 +531,14 @@
 
            sgstensor => extract_tensor_field(state, "SGSTensor", stat)
 
-           ! Initialise local field.
+           ! Initialise local fields.
+           allocate(tnu); allocate(leonard)
+
+           call allocate(tnu, u%dim, u%mesh, "TestFilteredVelocity")
+           call allocate(leonard, u%mesh, "LeonardTensor")
+
+           call zero(tnu); call zero(leonard)
+
            if(.not. have_option(trim(les_option_path)//"/exact_sgs/vector_field::FilteredVelocity")) then
              allocate(fnu)
              call allocate(fnu, u%dim, u%mesh, "FilteredVelocity")
@@ -549,12 +556,12 @@
 
            ! Calculate explicitly filtered velocity and exact SGS stress.
            ewrite(2,*) "Calculating exact SGS stress"
-           call exact_sgs_stress(nu, x, fnu, sgstensor, alpha, length_scale_type, les_option_path)
+           call compute_les_local_fields(nu, x, fnu, tnu, leonard, strainprod, sgstensor, alpha, gamma, length_scale_type, les_option_path, dynamic_les, exact_sgs)
 
            ewrite_minmax(sgstensor)
 
            ! initialise unwanted pointers
-           dyn_coeff => dummyscalar; tnu => dummyvector; leonard => dummytensor; strainprod => dummytensor
+           dyn_coeff => dummyscalar; strainprod => dummytensor
          end if
       else
          ! initialise unwanted pointers
@@ -845,7 +852,8 @@
          end if
 
          ! Calculate dynamic_slip surface fields            
-         call calculate_dynamic_slip_coefficient(x, u, fnu, tnu, leonard, strainprod, sgstensor, dyn_coeff, alpha, gamma)
+         call calculate_dynamic_slip_coefficient(x, u, fnu, tnu, leonard, strainprod, &
+                          sgstensor, dyn_coeff, alpha, gamma, dynamic_les, exact_sgs)
 
          surface_element_loop: do sele=1, surface_element_count(u)
 
@@ -930,11 +938,13 @@
         ! now invert it:
         call invert(inverse_masslump)
         ! apply boundary conditions (zeroing out strong dirichl. rows)
+        ewrite(2,*) "calling apply_dirichlet_conditions_inverse_mass"
         call apply_dirichlet_conditions_inverse_mass(inverse_masslump, u)
         ewrite_minmax(inverse_masslump)
       end if
       
       if (assemble_mass_matrix) then
+        ewrite(2,*) "calling apply_dirichlet_conditions_vector"
         call apply_dirichlet_conditions(matrix=mass, field=u)
       end if
             

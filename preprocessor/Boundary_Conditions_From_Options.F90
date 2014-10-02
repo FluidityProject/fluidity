@@ -1133,6 +1133,13 @@ contains
              end if
           end do
 
+          ! Ramp up value over time
+          if(trim(bc_type)=="robin") then
+            ewrite(1,*) "current time: ", time
+            call scale(surface_field2, min(time,1.0)**4)
+            ewrite_minmax(surface_field2)
+          end if
+
           call deallocate(bc_position)
 
        case("drag")
@@ -1346,6 +1353,13 @@ contains
     bcloop: do i=1, get_boundary_condition_count(field)
        call get_boundary_condition(field, i, type=bctype, &
           surface_node_list=surface_node_list, applies=applies)
+
+       ! Set dirichlet BC to Robin coeff value...
+       !if(bctype=="robin") then
+         !surface_field_vector => extract_surface_field(u, "Robin", name="order_one_coefficient")
+         !surface_field = extract_scalar_field(surface_field_vector, 2)
+         !ewrite_minmax(surface_field_vector)
+       !end if
 
        if (bctype/="dirichlet") cycle bcloop
        
