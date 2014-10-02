@@ -983,6 +983,11 @@ contains
                         nullify(di%generic_prog_sfield(f_count)%sfield_src_grad)
                         di%generic_prog_sfield(f_count)%have_src_grad = .false.
                      end if
+
+                     di%generic_prog_sfield(f_count)%dilute = .not. &
+                          have_option('/material_phase['//int2str(p-1)//']/&
+                          &scalar_field['//int2str(f-1)//']/prognostic/&
+                          &do_not_dilute')
                      
                      di%generic_prog_sfield(f_count)%sfield_cv_options = &
                           darcy_impes_get_cv_options(&

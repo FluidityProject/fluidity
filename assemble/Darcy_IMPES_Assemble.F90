@@ -193,6 +193,7 @@ module darcy_impes_assemble_module
       logical :: have_src
       logical :: have_src_grad
       logical :: have_adv
+      logical :: dilute
       type(darcy_impes_cv_options_type) :: sfield_cv_options
    end type darcy_impes_generic_prog_sfield_type
    
@@ -333,8 +334,34 @@ module darcy_impes_assemble_module
       ! *** Pointer to main state array, for convenience ***
       type(state_type), dimension(:), pointer :: state
    end type darcy_impes_type
+
+   logical, parameter :: DEBUG = .false.
+   interface inspect
+      module procedure inspect_scalar_field
+      module procedure inspect_array
+   end interface inspect
    
    contains
+     
+     subroutine inspect_scalar_field(name, field)
+       ! workaround for GDB's annoying tendency to not print array pointers
+       ! properly
+       character(*), intent(in) :: name
+       type(scalar_field), intent(in) :: field
+       if (.not. DEBUG) return
+       call inspect(name, field%val)
+     end subroutine inspect_scalar_field
+     
+     subroutine inspect_array(name, array)
+       ! workaround for GDB's annoying tendency to not print array pointers
+       ! properly
+       character(*), intent(in) :: name
+       real, dimension(:), intent(in) :: array
+       if (.not. DEBUG) return
+       print *, trim(name)//" = "
+       print ("(6es13.4e2)"), array
+       print *, ""
+     end subroutine inspect_array
 
 ! ----------------------------------------------------------------------------
   
@@ -2575,15 +2602,26 @@ dot_product((grad_pressure_face_quad(:,ggi) - di%cached_face_value%den(ggi,vele,
       end if
 
       ! TODO: work around the divide-by-dt
-      call addto(di%lhs, 1.0/di%dt)            
-      call scale(di%lhs, di%cv_mass_pressure_mesh_with_porosity)
-      call scale(di%lhs, di%saturation(p)%ptr)
+      call addto(di%lhs, 1.0/di%dt)
+      call inspect('1: lhs', di%lhs)
+      if (di%generic_prog_sfield(f)%dilute) then
+         call scale(di%lhs, di%cv_mass_pressure_mesh_with_porosity)
+         call inspect('2: lhs', di%lhs)
+         call scale(di%lhs, di%saturation(p)%ptr)
+         call inspect('3: lhs', di%lhs)
+      end if
             
       ! Add old_porosity*old_saturation*old_sfield/dt to rhs      
       call addto(di%rhs, 1.0/di%dt)
-      call scale(di%rhs, di%cv_mass_pressure_mesh_with_old_porosity)
-      call scale(di%rhs, di%old_saturation(p)%ptr)
+      call inspect('1: rhs', di%rhs)
+      if (di%generic_prog_sfield(f)%dilute) then
+         call scale(di%rhs, di%cv_mass_pressure_mesh_with_old_porosity)
+         call inspect('2: rhs', di%rhs)
+         call scale(di%rhs, di%old_saturation(p)%ptr)
+         call inspect('3: rhs', di%rhs)
+      end if
       call scale(di%rhs, di%generic_prog_sfield(f)%old_sfield)
+      call inspect('4: rhs', di%rhs)
 
       ! Add source to rhs. 
       if (di%generic_prog_sfield(f)%have_src) then
@@ -2635,6 +2673,8 @@ dot_product((grad_pressure_face_quad(:,ggi) - di%cached_face_value%den(ggi,vele,
          call darcy_impes_assemble_generic_prog_sfield_adv_diff(di, f, p)
       
       end if
+
+      call inspect('rhs/lhs', di%rhs%val/di%lhs%val)
       
       ! Solve for each face value iteration (default is 1)
       do i = 1, di%generic_prog_sfield(f)%sfield_cv_options%number_face_value_iteration
@@ -2665,6 +2705,7 @@ dot_product((grad_pressure_face_quad(:,ggi) - di%cached_face_value%den(ggi,vele,
       end do
       
       ewrite(1,*) 'Finished assemble and solve sfield ',trim(di%generic_prog_sfield(f)%sfield%name),' of phase ',p
+      call inspect('result', di%generic_prog_sfield(f)%sfield%val)
 
    end subroutine darcy_impes_assemble_and_solve_generic_prog_sfield
 

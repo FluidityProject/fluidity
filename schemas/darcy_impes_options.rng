@@ -1726,6 +1726,12 @@ Finite element discretisation may become unbounded so limiting is often necessar
           <optional>
             <ref name="darcy_impes_generic_scalar_field_src_grad"/>
           </optional>
+	  <optional>
+	    <element name="do_not_dilute">
+	      <a:documentation>If this option is checked, the partial time differential on the LHS will be solved simply as d(scalar)/dt.  Otherwise, it will be solved as d(porosity*saturation*scalar)/dt.</a:documentation>
+	      <empty/>
+	    </element>
+	  </optional>
           <ref name="darcy_impes_include_cv_stat"/>
           <ref name="adaptivity_options_prognostic_scalar_field"/>
           <ref name="interpolation_algorithm_scalar"/>
