@@ -209,7 +209,7 @@ bin/burgers_equation: fluidity_library main/Burgers_Equation.F90
 	@echo "    MKDIR bin"
 	@mkdir -p bin
 	@echo "    LD burgers_equation"
-	@$(EVAL) $(FC) -o bin/burgers_equation main/Burgers_Equation.o $(FCFLAGS) $(LIBS)
+	@$(EVAL) $(FLLINKER) -o bin/burgers_equation main/Burgers_Equation.o $(FCFLAGS) $(LIBS)
 
 ifeq (@ENABLE_PSMILE@,yes)
 LIBPSMILE=@FLPSMILE_PATH@/lib/libpsmile_oa4.MPI1.a @FLPSMILE_PATH@/lib/libcommon_oa4.a @FLPSMILE_PATH@/lib/libmpp_io.a -lxml2
