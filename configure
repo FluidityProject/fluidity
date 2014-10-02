@@ -13669,6 +13669,9 @@ $as_echo "$as_me: Configuring libjudy" >&6;}
 $as_echo "$as_me: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&6;}
 
     cd libjudy
+    # NOTE: the output of libjudy's configure is actually overwritten by us at
+    # the end of the current configure. Do we actually need this or
+    # do we keep it as a check that libjudy is happy with the environment?
     FC="${saved_FC}" F77="${saved_F77}" F90="${saved_F90}" LIBS="${env_libs}" FCFLAGS="${env_fcflags}" FFLAGS="${env_fflags} $PIC_FLAG $PROFILING_FLAG" CC="${saved_CC}" ./configure --prefix=${PWD}/..
     if test "$?" -ne "0"; then
       as_fn_error $? "Configuration of libjudy has failed." "$LINENO" 5
@@ -13712,6 +13715,10 @@ _ACEOF
         JUDY_CFLAGS="-DJU_64BIT"
     else
         JUDY_CFLAGS="-UJU_64BIT"
+    fi
+    # this is a workaround for https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=755099
+    if echo "$CFLAGS" | grep -q -- "-O[2-3]"; then
+        JUDY_CFLAGS="$JUDY_CFLAGS -fno-aggressive-loop-optimizations"
     fi
 
 
