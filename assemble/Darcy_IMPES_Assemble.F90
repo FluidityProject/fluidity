@@ -4200,44 +4200,34 @@ visc_ele_bdy(1)
            
       case (RELPERM_CORRELATION_POWER)
 
-         relperm_val = (sat_val_all_phases(p) - relperm_corr_residual_sats(p)) ** relperm_corr_exponents(p)
+         sat_minus_res_sat = max(0., &
+              sat_val_all_phases(p) - relperm_corr_residual_sats(p))
+         relperm_val = sat_minus_res_sat ** relperm_corr_exponents(p)
 
       case (RELPERM_CORRELATION_COREY2PHASE)
          
-         sat_minus_res_sat = sat_val_all_phases(1) - relperm_corr_residual_sats(1)
-         
+         sat_minus_res_sat = max(0., &
+              sat_val_all_phases(1) - relperm_corr_residual_sats(1))
          if (p == 1) then
-
             relperm_val = sat_minus_res_sat ** 4
-
          else if (p == 2) then
-
             relperm_val = (1.0 - sat_minus_res_sat ** 2) * (1.0 - sat_minus_res_sat) ** 2
-
          else 
-
             ! This has already been option checked so should not happen
             FLAbort('Trying to use Corey2Phase relative permeabiltiy correlation for simulation with more than 2 phases')
-
          end if
 
       case (RELPERM_CORRELATION_COREY2PHASEOPPOSITE)
 
-         sat_minus_res_sat = sat_val_all_phases(2) - relperm_corr_residual_sats(2)
-
+         sat_minus_res_sat = max(0., &
+              sat_val_all_phases(2) - relperm_corr_residual_sats(2))
          if (p == 1) then
-
             relperm_val = (1.0 - sat_minus_res_sat ** 2) * (1.0 - sat_minus_res_sat) ** 2
-
          else if (p == 2) then
-
             relperm_val = sat_minus_res_sat ** 4
-
          else 
-
             ! This has already been option checked so should not happen
             FLAbort('Trying to use Corey2PhaseOpposite relative permeabiltiy correlation for simulation with more than 2 phases')
-
          end if
 
       case (RELPERM_CORRELATION_MINERAL)        
@@ -4247,22 +4237,17 @@ visc_ele_bdy(1)
 
       case (RELPERM_CORRELATION_VANGENUCHTEN)     
 
-         sat_effective = (sat_val_all_phases(2) - relperm_corr_residual_sats(2) ) / ( 1.0 - relperm_corr_residual_sats(1) - &
-                         &relperm_corr_residual_sats(2))
-         
+         sat_minus_res_sat = max(0., &
+              sat_val_all_phases(2) - relperm_corr_residual_sats(2))
+         sat_effective = sat_minus_res_sat / ( 1.0 - relperm_corr_residual_sats(1) - &
+              &relperm_corr_residual_sats(2))
          if (p == 1) then
-
             relperm_val = ( 1.0 - sat_effective )**(1.0/3.0) * (1.0 - sat_effective ** ( 1.0/ relperm_corr_exponents(p)) ) ** (2* relperm_corr_exponents(p))
-
          else if (p == 2) then
-
             relperm_val =  sat_effective ** (1.0/2.0) * ( 1.0 - ( 1.0 - sat_effective ** ( 1.0 / relperm_corr_exponents(p))) ** relperm_corr_exponents(p))**2.0
-
          else 
-
             ! This has already been option checked so should not happen
             FLAbort('Trying to use VanGenuchten relative permeabiltiy correlation for simulation with more than 2 phases')
-
          end if         
 
       case (RELPERM_CORRELATION_JACKSON2PHASE)
@@ -4278,18 +4263,12 @@ visc_ele_bdy(1)
 	 end if 
 
          if (p == 1) then
-
             relperm_val = relperm_corr_scaling_coefficients(1) * (1.0 - sat_effective) ** relperm_corr_exponents(1)
-
          else if (p == 2) then
-
             relperm_val = relperm_corr_scaling_coefficients(2) * sat_effective ** relperm_corr_exponents(2)
-
          else 
-
             ! This has already been option checked so should not happen
             FLAbort('Trying to use Jackson2Phase relative permeabiltiy correlation for simulation with more than 2 phases')
-
          end if
 
       case (RELPERM_CORRELATION_JACKSON2PHASEOPPOSITE)
@@ -4298,18 +4277,12 @@ visc_ele_bdy(1)
                          (1.0 - relperm_corr_residual_sats(1) - relperm_corr_residual_sats(2))
          
          if (p == 1) then
-
             relperm_val = relperm_corr_scaling_coefficients(1) * sat_effective ** relperm_corr_exponents(1)
-
          else if (p == 2) then
-
             relperm_val = relperm_corr_scaling_coefficients(2) * (1.0 - sat_effective) ** relperm_corr_exponents(2)
-
          else 
-
             ! This has already been option checked so should not happen
             FLAbort('Trying to use Jackson2PhaseOpposite relative permeabiltiy correlation for simulation with more than 2 phases')
-
          end if
      
      end select
