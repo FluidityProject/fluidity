@@ -45,7 +45,7 @@ struct _Field_Info
                          // =0 means use absolute Hessian
                          // <0 means use rel. Hessian, with rel. cut-off
     Field_Info   *next;
-    char         *name; // this will be a pointer to the actual name stored inside vtk - so please don't mangle
+    char         *name; // a pointer to a seperately allocated string buffer
 };
 
 int readVTKFile(const char * const filename,
