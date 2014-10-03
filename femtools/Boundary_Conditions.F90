@@ -3104,16 +3104,16 @@ contains
     do gi=1, ngi
 
       ! Recalculate M_ij
-      !forall(i = 1:u%dim, j = 1:u%dim)
-      !  mij(i,j) = gamma**2*grad_tnu_dot_n_gi(i)*grad_tnu_dot_n_gi(j) &
-      !           & - grad_fnu_dot_n_gi(i)*grad_fnu_dot_n_gi(j)
-      !end forall
+      forall(i = 1:u%dim, j = 1:u%dim)
+        mij(i,j) = gamma**2*grad_tnu_dot_n_gi(i)*grad_tnu_dot_n_gi(j) &
+                 & - grad_fnu_dot_n_gi(i)*grad_fnu_dot_n_gi(j)
+      end forall
 
       ! Alternative form. UNSTABLE - GIVES BETA < 0
-      forall(i = 1:u%dim, j = 1:u%dim)
-        mij(i,j) = gamma*(tnu_gi(i,gi)*grad_tnu_dot_n_gi(j) + tnu_gi(j,gi)*grad_tnu_dot_n_gi(i)) &
-                 & - fnu_gi(i,gi)*grad_fnu_dot_n_gi(j) - fnu_gi(j,gi)*grad_fnu_dot_n_gi(i)
-      end forall
+      !forall(i = 1:u%dim, j = 1:u%dim)
+      !  mij(i,j) = gamma*(tnu_gi(i,gi)*grad_tnu_dot_n_gi(j) + tnu_gi(j,gi)*grad_tnu_dot_n_gi(i)) &
+      !           & - fnu_gi(i,gi)*grad_fnu_dot_n_gi(j) - fnu_gi(j,gi)*grad_fnu_dot_n_gi(i)
+      !end forall
 
       denom = sum(mij*mij)
 
@@ -3125,15 +3125,12 @@ contains
       !beta_gi(gi) = sum(mij(:,:)*leonard_gi(:,:,gi)) / denom
 
       if (beta_gi(gi) > epsilon(0.0)) then
-        !beta_gi(gi) = 1.0/sqrt(beta_gi(gi))
+        beta_gi(gi) = 1.0/sqrt(beta_gi(gi))
         ! If using alternative form, don't take sqrt of beta.
-        beta_gi(gi) = 1.0/beta_gi(gi)
+        !beta_gi(gi) = 1.0/beta_gi(gi)
       else ! what is a sensible alternative? Face-averaged value?
         beta_gi(gi) = 0.0
       endif
-
-      ! test if magnitude of coeff affects slip
-      !beta_gi(gi) = beta_gi(gi)*4.0
 
       !ewrite(2,*) "Cs: ", les_coef_gi(gi)
       !ewrite(2,*) "Lij: ", leonard_gi(:,:,gi)

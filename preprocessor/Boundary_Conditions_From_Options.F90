@@ -1133,13 +1133,6 @@ contains
              end if
           end do
 
-          ! Ramp up value over time
-          if(trim(bc_type)=="robin") then
-            ewrite(1,*) "current time: ", time
-            call scale(surface_field2, min(time,1.0)**4)
-            ewrite_minmax(surface_field2)
-          end if
-
           call deallocate(bc_position)
 
        case("drag")
