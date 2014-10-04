@@ -1817,7 +1817,8 @@ contains
 !------------------
        If_GOT_CAPDIFFUS: IF ( GOT_CAPDIFFUS ) THEN
           IF(SELE.EQ.0) THEN
-             CAP_DIFF_COEF_DIVDX( : ) = 0.5*(CAP_DIFFUSION( :, MAT_NODI )+CAP_DIFFUSION( :, MAT_NODJ )) * SUM( CVNORMX_ALL(:, GI)**2 ) /HDC
+!             CAP_DIFF_COEF_DIVDX( : ) = 0.5*(CAP_DIFFUSION( :, MAT_NODI )+CAP_DIFFUSION( :, MAT_NODJ )) * SUM( CVNORMX_ALL(:, GI)**2 ) /HDC
+             CAP_DIFF_COEF_DIVDX( : ) = 0.5*(CAP_DIFFUSION( :, MAT_NODI )+CAP_DIFFUSION( :, MAT_NODJ )) /HDC
           ELSE
              CAP_DIFF_COEF_DIVDX( : ) = 0.0
           ENDIF
