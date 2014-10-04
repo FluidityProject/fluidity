@@ -290,6 +290,8 @@ contains
       logical, PARAMETER :: integrate_other_side= .true.
 ! if .not.correct_method_petrov_method then we can compare our results directly with previous code...
       logical, PARAMETER :: correct_method_petrov_method= .true.
+! IF GOT_CAPDIFFUS then add a diffusion term to treat capailary pressure term implicitly
+      logical, PARAMETER :: GOT_CAPDIFFUS = .FALSE.
       LOGICAL, DIMENSION( : ), allocatable :: X_SHARE
       LOGICAL, DIMENSION( :, : ), allocatable :: CV_ON_FACE, U_ON_FACE, &
            CVFEM_ON_FACE, UFEM_ON_FACE
@@ -307,6 +309,7 @@ contains
 !      REAL, DIMENSION( :, : ), allocatable :: UGI_COEF_ELE, VGI_COEF_ELE, WGI_COEF_ELE, &
 !           UGI_COEF_ELE2, VGI_COEF_ELE2, WGI_COEF_ELE2
       REAL, DIMENSION( :, :, : ), allocatable :: UGI_COEF_ELE_ALL, UGI_COEF_ELE2_ALL
+      REAL, DIMENSION( :, : ), allocatable :: CAP_DIFFUSION
 
 
     !***Pointers for Shape function calculation***
@@ -353,7 +356,7 @@ contains
       REAL, DIMENSION ( : ), allocatable :: LOC_T2_I, LOC_T2_J, LOC_T2OLD_I, LOC_T2OLD_J
 
 ! NPHASE Variables: 
-      REAL, DIMENSION( : ), allocatable :: DIFF_COEF_DIVDX, DIFF_COEFOLD_DIVDX, &
+      REAL, DIMENSION( : ), allocatable :: CAP_DIFF_COEF_DIVDX, DIFF_COEF_DIVDX, DIFF_COEFOLD_DIVDX, &
                NDOTQNEW,  NDOTQOLD, INCOMEOLD,  INCOME_J, INCOMEOLD_J, LIMT2OLD, LIMDTOLD, &
                NDOTQ, INCOME, LIMT2, LIMTOLD, LIMT, LIMT_HAT, &
                FVTOLD, FVT2OLD, FVDOLD, &
@@ -1046,7 +1049,7 @@ contains
       ENDIF
 
 ! NFIELD Variables: 
-      ALLOCATE(DIFF_COEF_DIVDX(NPHASE), DIFF_COEFOLD_DIVDX(NPHASE), &
+      ALLOCATE(CAP_DIFF_COEF_DIVDX(NPHASE), DIFF_COEF_DIVDX(NPHASE), DIFF_COEFOLD_DIVDX(NPHASE), &
                NDOTQNEW(NPHASE),  NDOTQOLD(NPHASE), INCOMEOLD(NPHASE), LIMT2OLD(NPHASE), LIMDTOLD(NPHASE), &
                NDOTQ(NPHASE), INCOME(NPHASE), LIMT2(NPHASE), LIMTOLD(NPHASE), LIMT(NPHASE), LIMT_HAT(NPHASE), &
                FVTOLD(NPHASE), FVT2OLD(NPHASE), FVDOLD(NPHASE), &
@@ -1055,6 +1058,11 @@ contains
                LIMDT(NPHASE), LIMDTT2(NPHASE), SUM_LIMT(NPHASE), SUM_LIMTOLD(NPHASE)  )
       LIMT_HAT=0.0
       ALLOCATE(INCOME_J(NPHASE),INCOMEold_J(NPHASE)) 
+
+
+      IF ( GOT_CAPDIFFUS ) THEN
+         ALLOCATE( CAP_DIFFUSION( NPHASE, MAT_NONODS ) )
+      ENDIF
 
       ndotq = 0. ; ndotqold = 0.
 
@@ -1807,6 +1815,17 @@ contains
           LOC_T2OLD_J( : ) = T2OLD_ALL(:, CV_NODJ)
        END IF
 !------------------
+       If_GOT_CAPDIFFUS: IF ( GOT_CAPDIFFUS ) THEN
+          IF(SELE.EQ.0) THEN
+             CAP_DIFF_COEF_DIVDX( : ) = 0.5*(CAP_DIFFUSION( :, MAT_NODI )+CAP_DIFFUSION( :, MAT_NODJ )) * SUM( CVNORMX_ALL(:, GI)**2 ) /HDC
+          ELSE
+             CAP_DIFF_COEF_DIVDX( : ) = 0.0
+          ENDIF
+       ELSE
+          CAP_DIFF_COEF_DIVDX( : ) = 0.0
+       END IF If_GOT_CAPDIFFUS
+      
+
 
        If_GOT_DIFFUS2: IF ( GOT_DIFFUS ) THEN
           ! This sub caculates the effective diffusion
@@ -2137,12 +2156,14 @@ contains
                             IF ( ( CV_NODI /= CV_NODJ ) .AND. ( CV_NODJ /= 0 ) ) THEN
                                 CSR_ACV( IPHASE+(JCOUNT_IPHA-1)*NPHASE ) =  CSR_ACV( IPHASE+(JCOUNT_IPHA-1)*NPHASE ) &
                                 + SECOND_THETA * FTHETA_T2 * SCVDETWEI( GI ) * NDOTQNEW(IPHASE) * INCOME(IPHASE) * LIMD(IPHASE) & ! Advection
-                                - FTHETA * SCVDETWEI( GI ) * DIFF_COEF_DIVDX(IPHASE) ! Diffusion contribution
+                                - FTHETA * SCVDETWEI( GI ) * DIFF_COEF_DIVDX(IPHASE) & ! Diffusion contribution
+                                - SCVDETWEI( GI ) * CAP_DIFF_COEF_DIVDX(IPHASE) ! Stabilization of capilary diffusion contribution
                                 ! integrate the other CV side contribution (the sign is changed)...
                                 if(integrate_other_side_and_not_boundary) then
                                     CSR_ACV( IPHASE+(ICOUNT_IPHA-1)*NPHASE ) =  CSR_ACV( IPHASE+(ICOUNT_IPHA-1)*NPHASE ) &
                                     - SECOND_THETA * FTHETA_T2_J * SCVDETWEI( GI ) * NDOTQNEW(IPHASE) * INCOME_J(IPHASE) * LIMD(IPHASE) & ! Advection
-                                    - FTHETA * SCVDETWEI( GI ) * DIFF_COEF_DIVDX(IPHASE) ! Diffusion contribution
+                                    - FTHETA * SCVDETWEI( GI ) * DIFF_COEF_DIVDX(IPHASE) & ! Diffusion contribution
+                                    - SCVDETWEI( GI ) * CAP_DIFF_COEF_DIVDX(IPHASE) ! Stabilization of capilary diffusion contribution
                                 endif
 
                                 IF ( GET_GTHETA ) THEN
@@ -2174,11 +2195,13 @@ contains
                             CSR_ACV( IMID_IPHA ) =  CSR_ACV( IMID_IPHA ) &
                             +  SECOND_THETA * FTHETA_T2 * SCVDETWEI( GI ) * NDOTQNEW(IPHASE) * ( 1. - INCOME(IPHASE) ) * LIMD(IPHASE) & ! Advection
                             +  FTHETA * SCVDETWEI( GI ) * DIFF_COEF_DIVDX(IPHASE)  &  ! Diffusion contribution
+                            +  SCVDETWEI( GI ) * CAP_DIFF_COEF_DIVDX(IPHASE)  &  ! Stabilization of capilary diffusion
                             +  SCVDETWEI( GI ) * ROBIN1  ! Robin bc
                             if(integrate_other_side_and_not_boundary) then
                                 CSR_ACV( JMID_IPHA ) =  CSR_ACV( JMID_IPHA ) &
                                 -  SECOND_THETA * FTHETA_T2_J * SCVDETWEI( GI ) * NDOTQNEW(IPHASE) * ( 1. - INCOME_J(IPHASE) ) * LIMD(IPHASE) & ! Advection
-                                +  FTHETA * SCVDETWEI( GI ) * DIFF_COEF_DIVDX(IPHASE)    ! Diffusion contribution
+                                +  FTHETA * SCVDETWEI( GI ) * DIFF_COEF_DIVDX(IPHASE)  &  ! Diffusion contribution
+                                +  SCVDETWEI( GI ) * CAP_DIFF_COEF_DIVDX(IPHASE)    ! Stabilization of capilary diffusion
                             endif
 
                             IF ( GET_GTHETA ) THEN
@@ -2247,12 +2270,16 @@ contains
                         CV_RHS( RHS_NODI_IPHA ) =  CV_RHS( RHS_NODI_IPHA ) &
                              + (1.-FTHETA) * SCVDETWEI(GI) * DIFF_COEFOLD_DIVDX(IPHASE) &
                              * ( TOLD_ALL( IPHASE, CV_NODJ ) - TOLD_ALL( IPHASE, CV_NODI ) ) &
+                             - SCVDETWEI(GI) * CAP_DIFF_COEF_DIVDX(IPHASE) &  ! capilary pressure stabilization term..
+                             * ( T_ALL( IPHASE, CV_NODJ ) - T_ALL( IPHASE, CV_NODI ) ) &
                                 ! Robin bc
                              + SCVDETWEI( GI ) * ROBIN2
                         if(integrate_other_side_and_not_boundary) then
                         CV_RHS( RHS_NODJ_IPHA ) =  CV_RHS( RHS_NODJ_IPHA ) &
                              + (1.-FTHETA) * SCVDETWEI(GI) * DIFF_COEFOLD_DIVDX(IPHASE) &
-                             * ( TOLD_ALL( IPHASE, CV_NODI ) - TOLD_ALL( IPHASE, CV_NODJ ) ) 
+                             * ( TOLD_ALL( IPHASE, CV_NODI ) - TOLD_ALL( IPHASE, CV_NODJ ) ) &
+                             - SCVDETWEI(GI) * CAP_DIFF_COEF_DIVDX(IPHASE) & ! capilary pressure stabilization term..
+                             * ( T_ALL( IPHASE, CV_NODI ) - T_ALL( IPHASE, CV_NODJ ) ) 
                         endif
                         IF ( GET_GTHETA ) THEN
                            THETA_GDIFF( IPHASE, CV_NODI ) =  THETA_GDIFF( IPHASE, CV_NODI ) &
