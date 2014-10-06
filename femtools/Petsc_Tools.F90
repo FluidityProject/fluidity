@@ -26,7 +26,6 @@
 !    USA
 #include "fdebug.h"
 module Petsc_Tools
-#include "petscversion.h"
   use FLDebug
   use Sparse_Tools
   use parallel_tools
@@ -42,12 +41,8 @@ module Petsc_Tools
   use petsc 
 #endif
   implicit none
-#include "petscversion.h"
-#ifdef HAVE_PETSC_MODULES
-#include "finclude/petscdef.h"
-#else
-#include "finclude/petsc.h"
-#endif
+
+#include "petsc_legacy.h"
 
   PetscReal, parameter, private :: dummy_petsc_real = 0.0
   integer, parameter, public :: PetscReal_kind = kind(dummy_petsc_real)
@@ -122,10 +117,6 @@ module Petsc_Tools
   logical, public, save :: petsc_test_error_handler_called = .false.
   public petsc_test_error_handler
 #if PETSC_VERSION_MINOR>=3
-#define MatCreateSeqAIJ myMatCreateSeqAIJ
-#define MatCreateMPIAIJ myMatCreateMPIAIJ
-#define MatCreateSeqBAIJ myMatCreateSeqBAIJ
-#define MatCreateMPIBAIJ myMatCreateMPIBAIJ
   public MatCreateSeqAIJ, MatCreateMPIAIJ, MatCreateSeqBAIJ, MatCreateMPIBAIJ
 #endif
 contains

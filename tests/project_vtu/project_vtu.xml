@@ -1,0 +1,60 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>project_vtu
+</name>
+  <owner userid="skramer"/>
+  <problem_definition length="short" nprocs="1">
+    <command_line>sed "s/INPUT/MMS_E/" prescribe.flml &gt; output.flml;
+fluidity -l output.flml;
+mv output_CoordinateMesh_1_checkpoint.vtu reference.vtu;
+mv output_1.vtu reference_dg.vtu;
+rm -rf output*;
+for i in A B C D; do
+  sed "s/INPUT/MMS_${i}/" prescribe.flml &gt; output.flml;
+  fluidity -l output.flml;
+  project_vtu output_CoordinateMesh_1_checkpoint.vtu output_CoordinateMesh_1_checkpoint.msh MMS_E.msh fine.vtu;
+  project_vtu output_1.vtu output_CoordinateMesh_1_checkpoint.msh MMS_E.msh fine_dg.vtu;
+  vtudiff fine.vtu reference.vtu diff${i}.vtu;
+  vtudiff fine_dg.vtu reference_dg.vtu diff${i}_dg.vtu;
+  rm -rf output* fine*;
+done
+</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="convergence" language="python">import vtktools
+import numpy
+import math
+
+# currently vtktools doesn't support integrating cell-based fields, so we do it by hand:
+def CellFieldIntegral(vtu, array):
+  return sum([x*vtu.GetCellVolume(i) for i,x in enumerate(array)])
+
+scalar_err = []; vector_err = []; tensor_err = []
+for letter in ('A','B','C','D'):
+  vtu = vtktools.vtu('diff{0}.vtu'.format(letter))
+  scalar = vtu.GetField('Scalar')
+  vtu.AddField('ScalarSquared', scalar**2)
+  scalar_err.append(math.sqrt(vtu.GetFieldIntegral('ScalarSquared')[0]))
+  
+  vtu = vtktools.vtu('diff{0}_dg.vtu'.format(letter))
+  u = vtu.GetField('Velocity')
+  vtu.AddField('VelocitySquared', (u**2).sum(axis=1))
+  vector_err.append(math.sqrt(vtu.GetFieldIntegral('VelocitySquared')[0]))
+
+  tensor = vtu.GetField('Tensor')
+  tensor_err.append(math.sqrt(CellFieldIntegral(vtu, (tensor**2).sum(axis=2).sum(axis=1))))
+  
+scalar_err = numpy.array(scalar_err)
+scalar_convergence = numpy.log(scalar_err[:-1]/scalar_err[1:])/numpy.log(2)
+vector_err = numpy.array(vector_err)
+vector_convergence = numpy.log(vector_err[:-1]/vector_err[1:])/numpy.log(2)
+tensor_err = numpy.array(tensor_err)
+tensor_convergence = numpy.log(tensor_err[:-1]/tensor_err[1:])/numpy.log(2)
+convergence = {'scalar': scalar_convergence, 'vector': vector_convergence, 'tensor': tensor_convergence}</variable>
+  </variables>
+  <pass_tests>
+    <test name="ScalarConvergenceSecondOrder" language="python">assert(all(convergence['scalar']&gt;1.8))</test>
+    <test name="VectorConvergenceSecondOrder" language="python">assert(all(convergence['vector']&gt;1.8))</test>
+    <test name="TensorConvergenceFirstOrder" language="python">assert(all(convergence['vector']&gt;0.95))</test>
+  </pass_tests>
+</testproblem>

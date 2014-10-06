@@ -25,7 +25,6 @@
 !    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 !    USA
 #include "fdebug.h"
-#include "petscversion.h"
 module sparse_tools
   !!< This module implements abstract data types for sparse matrices and
   !!< operations on them.
@@ -44,11 +43,7 @@ module sparse_tools
   
   implicit none
   
-#ifdef HAVE_PETSC_MODULES
-#include "finclude/petsckspdef.h"
-#else
-#include "finclude/petsc.h"
-#endif
+#include "petsc_legacy.h"
 
   private
   

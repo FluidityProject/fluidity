@@ -1096,11 +1096,15 @@ where \lstinline[language = Bash]+vtufile+ is the name of the discontinuous vtu 
 project\_vtu performs a Galerkin projection on a given vtu file from a specified donor mesh to a target mesh. It is run from the command line:
 
 \begin{lstlisting}[language = Bash]
-project_vtu [OPTIONS] input donor_basename target_basename output
+project_vtu [OPTIONS] input donor_mesh target_mesh output
 \end{lstlisting}
 
-where \lstinline[language = Bash]+input+ is the name of the vtu file to be projected and \lstinline[language = Bash]+donor_basename+ is the base name of the triangle files defining the mesh that corresponds to the input vtu file. 
-\lstinline[language = Bash]+target_basename+ is the base name of the triangle files defining the output mesh and \lstinline[language = Bash]+output+ is the name of the output vtu file.
+where \lstinline[language = Bash]+input+ is the name of the vtu file to be
+projected and \lstinline[language = Bash]+donor_mesh+ is the name of the gmsh
+file (if ending in .msh) or the base name of the triangle files
+(.node+.ele+.edge/.face), defining the mesh that corresponds to the input vtu file. 
+\lstinline[language = Bash]+target_mesh+ is the name of the gmsh file (if ending
+in .msh), or the base name of the triangle files, defining the output mesh and \lstinline[language = Bash]+output+ is the name of the output vtu file.
 The flag \lstinline[language = Bash]+-h+ prints out the help message and the flag \lstinline[language = Bash]+-v+ enables verbose output.
 
 
