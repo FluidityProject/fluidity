@@ -348,14 +348,14 @@ contains
         call smooth_tensor(tfield, positions, strainprod, alpha*gamma, lpath)
       end if
 
-      ! Filter SGS tensor field
+      ! Filter SGS tensor field - TODO: REMOVE (NOT NEEDED FOR SLIP BC).
       call zero(tfield)
 
-      if(length_scale_type=="scalar") then
-        call smooth_tensor(sgstensor, positions, tfield, alpha, lpath)
-      else if(length_scale_type=="tensor") then
-        call smooth_tensor(sgstensor, positions, tfield, alpha, lpath)
-      end if
+      !if(length_scale_type=="scalar") then
+      !  call smooth_tensor(sgstensor, positions, tfield, alpha, lpath)
+      !else if(length_scale_type=="tensor") then
+      !  call smooth_tensor(sgstensor, positions, tfield, alpha, lpath)
+      !end if
 
       call set(sgstensor, tfield)
 

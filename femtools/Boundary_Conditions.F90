@@ -2851,6 +2851,9 @@ contains
       call get_boundary_condition(u, i, type=bc_type, name=bc_name, surface_element_list=surface_element_list, &
               surface_node_list=surface_node_list, applies=applies, option_path=bc_path_i)
 
+      ! Skip partitions with no surface elements with this BC
+      if(size(surface_element_list)==0) cycle
+
       ! Consider only dynamic slip BCs
       if(trim(bc_type)=='dynamic_slip') then
 
@@ -2862,13 +2865,14 @@ contains
            bc_type_path=trim(bc_path_i)//"/type[0]/align_bc_with_surface"
         end if
 
-        surface_field => extract_surface_field(u, bc_name, name="order_zero_coefficient")
+        surface_field   => extract_surface_field(u, bc_name, name="order_zero_coefficient")
         surface_field_2 => extract_surface_field(u, bc_name, name="order_one_coefficient")
         call zero(surface_field)
         call zero(surface_field_2)
 
         dim_set = 0
         slipsum = 0
+        surface_field_addto = 0.0
 
         do j=1,3
 
@@ -2888,7 +2892,10 @@ contains
 
               do k=1, size(surface_element_list)
                 sele = surface_element_list(k)
-                call calculate_dynamic_slip_coefficient_face(x, u, fnu, tnu, leonard, strainprod, sgstensor, dyn_coeff, alpha, gamma, dynamic_les, exact_sgs, surface_field_addto, sele)
+
+                call calculate_dynamic_slip_coefficient_face(x, u, fnu, tnu, &
+                     leonard, strainprod, sgstensor, dyn_coeff, alpha, gamma, &
+                     dynamic_les, exact_sgs, surface_field_addto, sele)
 
                 ! add contribution to surface field
                 call addto(surface_field_2, j, ele_nodes(surface_field_2, k), surface_field_addto)
@@ -2925,9 +2932,8 @@ contains
     integer, intent(in)               :: sele
     real, dimension(face_loc(u, sele)), intent(out) :: surface_field_addto
 
-    ! local vars
+    ! FE quantities
     integer :: i, j, gi, ngi, lface, ele
-
     real, dimension(face_ngi(u, sele))                                       :: detwei_bdy
     real, dimension(u%dim, face_ngi(u, sele))                                :: normal_bdy
     real, dimension(u%dim, u%dim, ele_ngi(u, face_ele(u, sele)))             :: invj
@@ -2936,16 +2942,16 @@ contains
 
     type(element_type)          :: augmented_shape
     type(element_type), pointer :: u_shape, fshape, x_shape, source_shape
-    logical :: lans
 
     ! Local quantities specific to dynamic slip wall model
     real, dimension(u%dim, u%dim, face_ngi(u, sele))  :: leonard_gi, strain_gi, t_strain_gi, strainprod_gi
     real, dimension(u%dim, u%dim, face_ngi(u, sele))  :: tau_gi, tautest_gi
-    real, dimension(u%dim, u%dim)                     :: mij, grad_fnu_gi, grad_tnu_gi
-    real, dimension(u%dim, face_ngi(u, sele))         :: fnu_gi, tnu_gi
+    real, dimension(u%dim, u%dim)                     :: mij, grad_fnu, grad_tnu
+    real, dimension(u%dim, face_ngi(u, sele))         :: fnu_gi, tnu_gi, laplacian_gi
     real, dimension(u%dim, ele_loc(u, sele))          :: fnu_ele, tnu_ele
-    real, dimension(u%dim)                            :: grad_fnu_dot_n_gi, grad_tnu_dot_n_gi
-    real, dimension(face_ngi(u, sele))                :: f_scalar, t_scalar, les_coef_gi, beta_gi
+    real, dimension(u%dim)                            :: grad_fnu_dot_n, grad_tnu_dot_n
+    real, dimension(face_ngi(u, sele))                :: f_scalar_gi, t_scalar_gi, les_coef_gi, beta_gi
+    real, dimension(ele_loc(u, sele))                 :: laplacian
     real                                              :: strain_mod, t_strain_mod, denom
 
     ele = face_ele(x, sele)
@@ -2976,30 +2982,6 @@ contains
     dshape_face = eval_volume_dshape_at_face_quad(augmented_shape, lface, invj_face)
     call deallocate(augmented_shape)
 
-    ! Calculate velocity gradients w.r.t. surface normal
-    do gi = 1, ngi
-
-      ! Calculate grad fnu, tnu at the surface element quadrature points
-      forall(i = 1:u%dim, j = 1:u%dim)
-        grad_fnu_gi(i,j) = dot_product(fnu_ele(i,:), dshape_face(:,gi,j))
-        grad_tnu_gi(i,j) = dot_product(tnu_ele(i,:), dshape_face(:,gi,j))
-      end forall
-
-      ! Calculate grad fnu dot dn at the surface element quadrature points
-      do i=1, u%dim
-        grad_fnu_dot_n_gi(i) = dot_product(grad_fnu_gi(i,:), normal_bdy(:,gi))
-        grad_tnu_dot_n_gi(i) = dot_product(grad_tnu_gi(i,:), normal_bdy(:,gi))
-      end do
-
-    end do
-
-    ! SGS model quantities common to both models
-
-    ! Filtered SGS stress tensor (from dynamic LES computation)
-    tau_gi = face_val_at_quad(sgstensor, sele)
-    ! Leonard tensor at Gauss points
-    leonard_gi = face_val_at_quad(leonard, sele)
-
     ! first-filtered velocity at nodes and gauss pts
     fnu_ele = ele_val(fnu, ele)
     fnu_gi = face_val_at_quad(fnu, sele)
@@ -3008,10 +2990,36 @@ contains
     tnu_ele = ele_val(tnu, ele)
     tnu_gi = face_val_at_quad(tnu, sele)
 
-    ! Scalar first filter width G1 = alpha^2*meshsize (units length^2)
-    f_scalar = alpha**2/24*length_scale_scalar(x, ele)
+    ! Calculate velocity gradients w.r.t. surface normal
+    do gi = 1, ngi
+
+      ! Calculate grad fnu, tnu at the surface element quadrature points
+      !grad_fnu = matmul(fnu_ele, dshape_face(:,gi,:))
+      !grad_tnu = matmul(tnu_ele, dshape_face(:,gi,:))
+      forall(i = 1:u%dim, j = 1:u%dim)
+        grad_fnu(i,j) = dot_product(fnu_ele(i,:), dshape_face(:,gi,j))
+        grad_tnu(i,j) = dot_product(tnu_ele(i,:), dshape_face(:,gi,j))
+      end forall
+
+      ! Calculate grad fnu dot dn at the surface element quadrature points
+      do i=1, u%dim
+        grad_fnu_dot_n(i) = dot_product(grad_fnu(i,:), normal_bdy(:,gi))
+        grad_tnu_dot_n(i) = dot_product(grad_tnu(i,:), normal_bdy(:,gi))
+      end do
+
+    end do
+
+    ! SGS model quantities common to both models
+
+    ! Filtered SGS stress tensor (from dynamic LES computation)
+    !tau_gi = face_val_at_quad(sgstensor, sele)
+    ! Leonard tensor at Gauss points
+    leonard_gi = face_val_at_quad(leonard, sele)
+
+    ! scalar_gi first filter width G1 = alpha^2*meshsize (units length^2)
+    f_scalar_gi = alpha**2/24*length_scale_scalar(x, ele)
     ! Combined width G2 = (1+gamma^2)*G1
-    t_scalar = (1.0+gamma**2)*f_scalar
+    t_scalar_gi = (1.0+gamma**2)*f_scalar_gi
 
     ! Choose SGS model
     if(dynamic_les) then
@@ -3036,7 +3044,7 @@ contains
         t_strain_mod = sqrt(2*sum(t_strain_gi(:,:,gi)*t_strain_gi(:,:,gi)))
 
         ! Tensor M_ij = (|S2|*S2)G2 - ((|S1|S1)^f2)G1
-        mij = t_strain_mod*t_strain_gi(:,:,gi)*t_scalar(gi) - strainprod_gi(:,:,gi)*f_scalar(gi)
+        mij = t_strain_mod*t_strain_gi(:,:,gi)*t_scalar_gi(gi) - strainprod_gi(:,:,gi)*f_scalar_gi(gi)
         denom = sum(mij*mij)
 
         ! Dynamic LES Model coeff C_S = -(L_ij M_ij) / 2(M_ij M_ij)
@@ -3052,52 +3060,67 @@ contains
         les_coef_gi(gi) = min(max(les_coef_gi(gi),0.0), 0.04)
 
         ! Dynamic LES Model terms: T_ij = -2C_S|S2|.alpha^2.G2.S2, tau_ij = -2C_S|S1|.alpha^2.G1.S1
-        tau_gi(:,:,gi) = -2.0*alpha**2*les_coef_gi(gi)*strain_mod*f_scalar(gi)*strain_gi(:,:,gi)
-        tautest_gi(:,:,gi) = 2.0*alpha**2*les_coef_gi(gi)*t_strain_mod*t_scalar(gi)*t_strain_gi(:,:,gi)
+        tau_gi(:,:,gi)     = 2.0*les_coef_gi(gi)*strain_mod*f_scalar_gi(gi)*strain_gi(:,:,gi)
+        tautest_gi(:,:,gi) = 2.0*les_coef_gi(gi)*t_strain_mod*t_scalar_gi(gi)*t_strain_gi(:,:,gi)
 
       end do
 
+    ! Germano's exact SGS closure or the LANS-alpha model
     else if(exact_sgs) then
 
-      ! Compute SGS tensor at test level
-
-      ! Choose Germano's exact SGS closure or the LANS-alpha model
-      !lans = have_option(trim(u%path)//"/exact_sgs/lans")
-
-      ! LANS-alpha closure
-      if(lans) then
+      ! If setting SGS tensor = 0 on boundaries, do not calculate tau_gi, tautest_gi here.
+      if(have_option(trim(u%option_path)//"/exact_sgs/calculate_boundaries")) then
         do gi = 1, ngi
-          ! velocity gradient
-          !mat = grad_fnu_gi
-          ! 3 gradient product terms: (du_i/dx_k) (du_j/dx_k) - (du_k/dx_i) (du_k/dx_j) + (du_i/dx_k) (du_k/dx_j)
-          !mat_gi(:,:,gi) = matmul(mat, transpose(mat)) - matmul(transpose(mat), mat) + matmul(mat, mat)
-
-          !mat_gi(:,:,gi) = delta*mat_gi(:,:,gi)
+          tau_gi(:,:,gi) = 0.0
+          tautest_gi(:,:,gi) = 0.0
         end do
-      ! Germano's closure
       else
-        do gi = 1, ngi
-          ! velocity gradient
-          !mat = matmul(ele_val(fnu, ele), du_t(:,gi,:))
-          ! gradient product: 2 (du_i/dx_k) (du_j/dx_k)
-          !mat_gi(:,:,gi) = 2.0*delta*matmul(mat, transpose(mat))
 
-          ! Laplacian operator: dim.dim = dim
-          !do loc = 1, ele_loc(fnu, ele)
-          !  laplacian(loc) = dot_product(du_t(loc,gi,:), du_t(loc,gi,:))
-          !end do
+        ! Compute SGS tensors at both filter levels
 
-          ! Laplacian of filtered velocity: (dim*loc)*loc = dim
-          !laplacian_gi(:,gi) = matmul(ele_val(fnu, ele), laplacian)
+        ! LANS-alpha closure
+        if(have_option(trim(u%option_path)//"/exact_sgs/lans")) then
+          do gi = 1, ngi
+            ! SGS tensors at both filter levels composed of 3 gradient product terms:
+            ! (du_i/dx_k) (du_j/dx_k) - (du_k/dx_i) (du_k/dx_j) + (du_i/dx_k) (du_k/dx_j)
+            tau_gi(:,:,gi)     = f_scalar_gi(gi)*(matmul(grad_fnu, transpose(grad_fnu)) &
+                                                - matmul(transpose(grad_fnu), grad_fnu) &
+                                                + matmul(grad_fnu, grad_fnu))
 
-          ! Laplacian product
-          !mat_gi(:,:,gi) = mat_gi(:,:,gi) + delta**4*outer_product(laplacian_gi(:,gi), laplacian_gi(:,gi))
-        end do
+            tautest_gi(:,:,gi) = t_scalar_gi(gi)*(matmul(grad_tnu, transpose(grad_tnu)) &
+                                                - matmul(transpose(grad_tnu), grad_tnu) &
+                                                + matmul(grad_tnu, grad_tnu))
+          end do
+
+        ! Germano's exact closure
+        else
+          do gi = 1, ngi
+            ! SGS tensors at both filter levels composed of 1 gradient product term:
+            ! 2 (du_i/dx_k) (du_j/dx_k)
+            tau_gi(:,:,gi) = 2.0*f_scalar_gi(gi)*matmul(grad_fnu, transpose(grad_fnu))
+            tautest_gi(:,:,gi) = 2.0*t_scalar_gi(gi)*matmul(grad_tnu, transpose(grad_tnu))
+
+            ! Laplacian operator: dim.dim = dim
+            do i = 1, ele_loc(fnu, ele)
+              laplacian(i) = dot_product(dshape_face(i,gi,:), dshape_face(i,gi,:))
+            end do
+
+            ! Laplacian of filtered velocity: (dim*loc)*loc = dim
+            laplacian_gi(:,gi) = matmul(fnu_ele, laplacian)
+
+            ! Add 4th-order Laplacian product term to SGS tensor
+            tau_gi(:,:,gi)     = tau_gi(:,:,gi) &
+                                 + f_scalar_gi(gi)**4*outer_product(laplacian_gi(:,gi), laplacian_gi(:,gi))
+
+            ! Laplacian of test-filtered velocity
+            laplacian_gi(:,gi) = matmul(tnu_ele, laplacian)
+
+            ! SGS tensor at test filter level
+            tautest_gi(:,:,gi) = tautest_gi(:,:,gi) &
+                                 + t_scalar_gi(gi)**4*outer_product(laplacian_gi(:,gi), laplacian_gi(:,gi))
+          end do
+        end if
       end if
-
-      ! add to tensor RHS field
-      !call addto(tfield, ele_nodes(nu, ele), shape_tensor_rhs(shape_nu, mat_gi, detwei))
-
     end if
 
     ! Now compute dynamic slip wall model terms
@@ -3105,14 +3128,13 @@ contains
 
       ! Recalculate M_ij
       forall(i = 1:u%dim, j = 1:u%dim)
-        mij(i,j) = gamma**2*grad_tnu_dot_n_gi(i)*grad_tnu_dot_n_gi(j) &
-                 & - grad_fnu_dot_n_gi(i)*grad_fnu_dot_n_gi(j)
+        mij(i,j) = gamma**2*grad_tnu_dot_n(i)*grad_tnu_dot_n(j) - grad_fnu_dot_n(i)*grad_fnu_dot_n(j)
       end forall
 
       ! Alternative form. UNSTABLE - GIVES BETA < 0
       !forall(i = 1:u%dim, j = 1:u%dim)
-      !  mij(i,j) = gamma*(tnu_gi(i,gi)*grad_tnu_dot_n_gi(j) + tnu_gi(j,gi)*grad_tnu_dot_n_gi(i)) &
-      !           & - fnu_gi(i,gi)*grad_fnu_dot_n_gi(j) - fnu_gi(j,gi)*grad_fnu_dot_n_gi(i)
+      !  mij(i,j) = gamma*(tnu_gi(i,gi)*grad_tnu_dot_n(j) + tnu_gi(j,gi)*grad_tnu_dot_n(i)) &
+      !           & - fnu_gi(i,gi)*grad_fnu_dot_n(j) - fnu_gi(j,gi)*grad_fnu_dot_n(i)
       !end forall
 
       denom = sum(mij*mij)
@@ -3126,21 +3148,22 @@ contains
 
       if (beta_gi(gi) > epsilon(0.0)) then
         beta_gi(gi) = 1.0/sqrt(beta_gi(gi))
-        ! If using alternative form, don't take sqrt of beta.
-        !beta_gi(gi) = 1.0/beta_gi(gi)
+      ! If using alternative form, don't take sqrt of beta.
+      !if (abs(beta_gi(gi)) > epsilon(0.0)) then
+      !  beta_gi(gi) = 1.0/beta_gi(gi)
       else ! what is a sensible alternative? Face-averaged value?
         beta_gi(gi) = 0.0
       endif
 
       !ewrite(2,*) "Cs: ", les_coef_gi(gi)
-      !ewrite(2,*) "Lij: ", leonard_gi(:,:,gi)
-      !ewrite(2,*) "tau: ", tau_gi(:,:,gi)
-      !ewrite(2,*) "tautest: ", tautest_gi(:,:,gi)
-      !ewrite(2,*) "d/dxj(fnu): ", grad_fnu_gi
-      !ewrite(2,*) "d/dxj(tnu): ", grad_tnu_gi
-      !ewrite(2,*) "d/dn(fnu): ", grad_fnu_dot_n_gi
-      !ewrite(2,*) "d/dn(tnu): ", grad_tnu_dot_n_gi
-      !ewrite(2,*) "Mij: ", mij
+      ewrite(2,*) "Lij: ", leonard_gi(:,:,gi)
+      ewrite(2,*) "tau: ", tau_gi(:,:,gi)
+      ewrite(2,*) "tautest: ", tautest_gi(:,:,gi)
+      !ewrite(2,*) "d/dxj(fnu): ", grad_fnu
+      !ewrite(2,*) "d/dxj(tnu): ", grad_tnu
+      !ewrite(2,*) "d/dn(fnu): ", grad_fnu_dot_n
+      !ewrite(2,*) "d/dn(tnu): ", grad_tnu_dot_n
+      ewrite(2,*) "Mij: ", mij
       !ewrite(2,*) "MijMij: ", denom
 
     end do

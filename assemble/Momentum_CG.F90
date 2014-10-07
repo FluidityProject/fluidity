@@ -1280,7 +1280,7 @@
           !ewrite(2,*) "Robin rhs:", shape_rhs(u_shape, ele_val_at_quad(velocity_bc, sele, dim)*detwei_bdy)
           !ewrite(2,*) "Robin rhs2:", -matmul(robin_diff_mat_bdy(dim,:,:), oldu_val(dim,:))
           call addto(rhs, dim, u_nodes_bdy, shape_rhs(u_shape, ele_val_at_quad(velocity_bc, sele, dim)*detwei_bdy))
-          ! explicit term added to rhs - but not if no_normal_flow?
+          ! explicit term added to rhs
           call addto(rhs, dim, u_nodes_bdy, -matmul(robin_diff_mat_bdy(dim,:,:), oldu_val(dim,:)))
         end do
 
