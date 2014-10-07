@@ -2953,6 +2953,7 @@ contains
     real, dimension(face_ngi(u, sele))                :: f_scalar_gi, t_scalar_gi, les_coef_gi, beta_gi
     real, dimension(ele_loc(u, sele))                 :: laplacian
     real                                              :: strain_mod, t_strain_mod, denom
+    character(len=OPTION_PATH_LEN)                    :: les_option_path
 
     ele = face_ele(x, sele)
     u_shape => face_shape(u, sele)
@@ -3021,6 +3022,8 @@ contains
     ! Combined width G2 = (1+gamma^2)*G1
     t_scalar_gi = (1.0+gamma**2)*f_scalar_gi
 
+    les_option_path = trim(u%option_path)//"/prognostic/spatial_discretisation/continuous_galerkin/les_model"
+
     ! Choose SGS model
     if(dynamic_les) then
 
@@ -3068,18 +3071,21 @@ contains
     ! Germano's exact SGS closure or the LANS-alpha model
     else if(exact_sgs) then
 
+      ewrite(2,*) "calculate_boundaries: ", trim(u%option_path)//"/exact_sgs/calculate_boundaries"
+
       ! If setting SGS tensor = 0 on boundaries, do not calculate tau_gi, tautest_gi here.
-      if(have_option(trim(u%option_path)//"/exact_sgs/calculate_boundaries")) then
+      if(have_option(trim(les_option_path)//"/exact_sgs/calculate_boundaries")) then
+
         do gi = 1, ngi
           tau_gi(:,:,gi) = 0.0
           tautest_gi(:,:,gi) = 0.0
         end do
+
+      ! Compute SGS tensors at both filter levels
       else
 
-        ! Compute SGS tensors at both filter levels
-
         ! LANS-alpha closure
-        if(have_option(trim(u%option_path)//"/exact_sgs/lans")) then
+        if(have_option(trim(les_option_path)//"/exact_sgs/lans")) then
           do gi = 1, ngi
             ! SGS tensors at both filter levels composed of 3 gradient product terms:
             ! (du_i/dx_k) (du_j/dx_k) - (du_k/dx_i) (du_k/dx_j) + (du_i/dx_k) (du_k/dx_j)
