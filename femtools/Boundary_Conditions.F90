@@ -2953,7 +2953,7 @@ contains
     real, dimension(face_ngi(u, sele))                :: f_scalar_gi, t_scalar_gi, les_coef_gi, beta_gi
     real, dimension(ele_loc(u, sele))                 :: laplacian
     real                                              :: strain_mod, t_strain_mod, denom
-    character(len=OPTION_PATH_LEN)                    :: les_option_path
+    character(len=OPTION_PATH_LEN)                    :: les_option_path, HOT
 
     ele = face_ele(x, sele)
     u_shape => face_shape(u, sele)
@@ -3084,22 +3084,19 @@ contains
       ! Compute SGS tensors at both filter levels
       else
 
-        ! LANS-alpha closure
-        if(have_option(trim(les_option_path)//"/exact_sgs/lans")) then
-          do gi = 1, ngi
-            ! SGS tensors at both filter levels composed of 3 gradient product terms:
-            ! (du_i/dx_k) (du_j/dx_k) - (du_k/dx_i) (du_k/dx_j) + (du_i/dx_k) (du_k/dx_j)
-            tau_gi(:,:,gi)     = f_scalar_gi(gi)*(matmul(grad_fnu, transpose(grad_fnu)) &
-                                                - matmul(transpose(grad_fnu), grad_fnu) &
-                                                + matmul(grad_fnu, grad_fnu))
+        select case(HOT)
 
-            tautest_gi(:,:,gi) = t_scalar_gi(gi)*(matmul(grad_tnu, transpose(grad_tnu)) &
-                                                - matmul(transpose(grad_tnu), grad_tnu) &
-                                                + matmul(grad_tnu, grad_tnu))
+        ! Clark or Gradient model
+        case("none")
+          do gi = 1, ngi
+            ! SGS tensors at both filter levels composed of 1 gradient product term:
+            ! (du_i/dx_k) (du_j/dx_k)
+            tau_gi(:,:,gi)     = f_scalar_gi(gi)*(matmul(grad_fnu, transpose(grad_fnu)))
+            tautest_gi(:,:,gi) = t_scalar_gi(gi)*(matmul(grad_tnu, transpose(grad_tnu)))
           end do
 
         ! Germano's exact closure
-        else
+        case("exact")
           do gi = 1, ngi
             ! SGS tensors at both filter levels composed of 1 gradient product term:
             ! 2 (du_i/dx_k) (du_j/dx_k)
@@ -3125,7 +3122,22 @@ contains
             tautest_gi(:,:,gi) = tautest_gi(:,:,gi) &
                                  + t_scalar_gi(gi)**4*outer_product(laplacian_gi(:,gi), laplacian_gi(:,gi))
           end do
-        end if
+
+        ! LANS-alpha closure
+        case("lans")
+          do gi = 1, ngi
+            ! SGS tensors at both filter levels composed of 3 gradient product terms:
+            ! (du_i/dx_k) (du_j/dx_k) - (du_k/dx_i) (du_k/dx_j) + (du_i/dx_k) (du_k/dx_j)
+            tau_gi(:,:,gi)     = f_scalar_gi(gi)*(matmul(grad_fnu, transpose(grad_fnu)) &
+                                                - matmul(transpose(grad_fnu), grad_fnu) &
+                                                + matmul(grad_fnu, grad_fnu))
+
+            tautest_gi(:,:,gi) = t_scalar_gi(gi)*(matmul(grad_tnu, transpose(grad_tnu)) &
+                                                - matmul(transpose(grad_tnu), grad_tnu) &
+                                                + matmul(grad_tnu, grad_tnu))
+          end do
+
+        end select
       end if
     end if
 

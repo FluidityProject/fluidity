@@ -45,7 +45,7 @@ module les_module
 
   public les_viscosity_strength, wale_viscosity_strength
   public les_init_diagnostic_fields, les_assemble_diagnostic_fields, les_solve_diagnostic_fields
-  public compute_les_local_fields, les_strain_rate, exact_sgs_stress, calculate_periodic_channel_forcing
+  public compute_les_local_fields, les_strain_rate, calculate_periodic_channel_forcing
 contains
 
   subroutine les_init_diagnostic_fields(state, have_eddy_visc, have_filter_width, have_coeff, have_sgs_tensor)
@@ -229,14 +229,14 @@ contains
     ! Leonard tensor, strain product, SGS tensor
     type(tensor_field), intent(inout)                     :: leonard, strainprod, sgstensor
     ! Filter scale factors
-    real                                      :: alpha, gamma
-    character(len=OPTION_PATH_LEN)            :: length_scale_type
+    real, intent(inout)                                   :: alpha, gamma
+    character(len=OPTION_PATH_LEN), intent(inout)         :: length_scale_type
     character(len=OPTION_PATH_LEN), intent(in)            :: path
     logical, intent(in)                                   :: dynamic_les, exact_sgs
 
     ! Local quantities
     type(tensor_field), pointer                           :: tfield
-    character(len=OPTION_PATH_LEN)                        :: lpath
+    character(len=OPTION_PATH_LEN)                        :: lpath, HOT
     integer                                               :: i, ele, gi, loc
     real, dimension(:), allocatable                       :: u_loc
     real, dimension(:,:), allocatable                     :: t_loc
@@ -248,7 +248,6 @@ contains
     real, dimension(nu%dim, ele_ngi(nu,1))                :: laplacian_gi
     real, dimension(ele_loc(nu,1))                        :: laplacian
     real                                                  :: delta
-    logical                                               :: lans
     type(element_type)                                    :: shape_nu
 
     if(dynamic_les) then
@@ -259,17 +258,21 @@ contains
     else if(exact_sgs) then
 
       lpath = (trim(path)//"/exact_sgs")
-      ! Choose Germano's exact SGS closure or the LANS-alpha model
-      lans = have_option(trim(lpath)//"/lans")
       ! have to initialise these values here as they're not used in the exact SGS tensor
       gamma = 2.0
       length_scale_type = "scalar"
+
+      ! Check if 4th order term is to be included:
+      ! Germano's exact SGS closure or the LANS-alpha model.
+      ! Otherwise just 2nd-order term (Clark or Gradient Model).
+      call get_option(trim(lpath)//"/HOT", HOT)
 
     end if
 
     ewrite(2,*) "filter factor alpha: ", alpha
     ewrite(2,*) "filter factor gamma: ", gamma
     ewrite(2,*) "filter width type: ", trim(length_scale_type)
+    ewrite(2,*) "HOT: ", trim(HOT)
 
     if(length_scale_type=="scalar") then
       ! First filter operator returns u^f:
@@ -375,18 +378,19 @@ contains
           !delta = alpha**2/24.*length_scale_tensor(du_t, shape_nu)
         end if
 
-        ! LANS-alpha closure
-        if(lans) then
+        select case(HOT)
+
+        ! Clark or Gradient model
+        case("none")
           do gi = 1, ele_ngi(nu, ele)
             ! velocity gradient
             mat = matmul(ele_val(fnu, ele), du_t(:,gi,:))
-            ! 3 gradient product terms: (du_i/dx_k) (du_j/dx_k) - (du_k/dx_i) (du_k/dx_j) + (du_i/dx_k) (du_k/dx_j)
-            mat_gi(:,:,gi) = matmul(mat, transpose(mat)) - matmul(transpose(mat), mat) + matmul(mat, mat)
-
-            mat_gi(:,:,gi) = delta*mat_gi(:,:,gi)
+            ! 1 gradient product term: (du_i/dx_k) (du_j/dx_k)
+            mat_gi(:,:,gi) = 2.0*delta*(matmul(mat, transpose(mat)))
           end do
+
         ! Germano's closure
-        else
+        case("exact")
           do gi = 1, ele_ngi(nu, ele)
             ! velocity gradient
             mat = matmul(ele_val(fnu, ele), du_t(:,gi,:))
@@ -404,7 +408,16 @@ contains
             ! Laplacian product
             mat_gi(:,:,gi) = mat_gi(:,:,gi) + delta**4*outer_product(laplacian_gi(:,gi), laplacian_gi(:,gi))
           end do
-        end if
+
+        ! LANS-alpha closure
+        case ("lans")
+          do gi = 1, ele_ngi(nu, ele)
+            ! velocity gradient
+            mat = matmul(ele_val(fnu, ele), du_t(:,gi,:))
+            ! 3 gradient product terms: (du_i/dx_k) (du_j/dx_k) - (du_k/dx_i) (du_k/dx_j) + (du_i/dx_k) (du_k/dx_j)
+            mat_gi(:,:,gi) = delta*(matmul(mat, transpose(mat)) - matmul(transpose(mat), mat) + matmul(mat, mat))
+          end do
+        end select
 
         ! add to tensor RHS field
         call addto(tfield, ele_nodes(nu, ele), shape_tensor_rhs(shape_nu, mat_gi, detwei))
@@ -428,118 +441,6 @@ contains
     !deallocate(tui_tuj)
 
   end subroutine compute_les_local_fields
-
-  subroutine exact_sgs_stress(nu, positions, fnu, tnu, leonard, exactsgs, alpha, length_scale_type, path)
-
-    type(vector_field), intent(in)                        :: positions
-    type(tensor_field), pointer                           :: exactsgs, leonard
-    ! Unfiltered velocity and nonlinear velocity
-    type(vector_field), pointer                           :: nu, fnu, tnu
-    type(vector_field), pointer                           :: vfield
-    ! RHS tensor
-    type(tensor_field), pointer                           :: tensorrhs
-    ! Scale factor
-    real, intent(in)                                      :: alpha
-    character(len=OPTION_PATH_LEN), intent(in)            :: length_scale_type, path
-    ! Local quantities
-    character(len=OPTION_PATH_LEN)                        :: lpath
-    integer                                               :: ele, gi, loc
-    real, dimension(ele_loc(nu,1), ele_ngi(nu,1), nu%dim) :: du_t
-    real, dimension(ele_ngi(nu,1))                        :: detwei
-    real, dimension(nu%dim, nu%dim, ele_ngi(nu,1))        :: mat_gi
-    real, dimension(nu%dim, nu%dim)                       :: mat
-    real, dimension(nu%dim, ele_ngi(nu,1))                :: laplacian_gi
-    real, dimension(ele_loc(nu,1))                        :: laplacian
-    real                                                  :: delta
-    type(element_type)                                    :: shape_nu
-    logical                                               :: lans
-
-    ! Choose Germano's exact SGS closure or the LANS-alpha model
-    lans = have_option(trim(path)//"/exact_sgs/lans")
-
-    ! Path is to level above solver options
-    lpath = (trim(path)//"/exact_sgs")
-    ewrite(2,*) "filter factor alpha: ", alpha
-    ewrite(2,*) "filter width type: ", trim(length_scale_type)
-
-    ! Compute explicitly filtered velocity - stick with scalar filter width for simplicity
-    if(length_scale_type=="scalar") then
-      call smooth_vector(nu, positions, fnu, alpha, lpath)
-    else if(length_scale_type=="tensor") then
-      call smooth_vector(nu, positions, fnu, alpha, lpath)
-      !call anisotropic_smooth_vector(nu, positions, fnu, alpha, lpath)
-    end if
-
-    ewrite_minmax(nu)
-    ewrite_minmax(fnu)
-
-    allocate(vfield); allocate(tensorrhs)
-    call allocate(vfield, nu%dim, nu%mesh, "Laplacian")
-    call allocate(tensorrhs, nu%mesh, "TensorRHS")
-    call zero(vfield); call zero(tensorrhs)
-
-    do ele=1, element_count(nu)
-      shape_nu = ele_shape(nu, ele)
-      call transform_to_physical(positions, ele, shape_nu, dshape=du_t, detwei=detwei)
-
-      ! Filter width - stick with scalar filter width for simplicity
-      if(length_scale_type=="scalar") then
-        delta = alpha**2/24.*length_scale_scalar(positions, ele)
-      else if(length_scale_type=="tensor") then
-        delta = alpha**2/24.*length_scale_scalar(positions, ele)
-        !delta = alpha**2/24.*length_scale_tensor(du_t, shape_nu)
-      end if
-
-      ! LANS-alpha closure
-      if(lans) then
-        do gi = 1, ele_ngi(nu, ele)
-          ! velocity gradient
-          mat = matmul(ele_val(fnu, ele), du_t(:,gi,:))
-          ! 3 gradient product terms: (du_i/dx_k) (du_j/dx_k) - (du_k/dx_i) (du_k/dx_j) + (du_i/dx_k) (du_k/dx_j)
-          mat_gi(:,:,gi) = matmul(mat, transpose(mat)) - matmul(transpose(mat), mat) + matmul(mat, mat)
-
-          mat_gi(:,:,gi) = delta*mat_gi(:,:,gi)
-        end do
-      ! Germano's closure
-      else
-        do gi = 1, ele_ngi(nu, ele)
-          ! velocity gradient
-          mat = matmul(ele_val(fnu, ele), du_t(:,gi,:))
-          ! gradient product: 2 (du_i/dx_k) (du_j/dx_k)
-          mat_gi(:,:,gi) = 2.0*delta*matmul(mat, transpose(mat))
-
-          ! Laplacian operator: dim.dim = dim
-          do loc = 1, ele_loc(fnu, ele)
-            laplacian(loc) = dot_product(du_t(loc,gi,:), du_t(loc,gi,:))
-          end do
-
-          ! Laplacian of filtered velocity: (dim*loc)*loc = dim
-          laplacian_gi(:,gi) = matmul(ele_val(fnu, ele), laplacian)
-
-          ! Laplacian product
-          mat_gi(:,:,gi) = mat_gi(:,:,gi) + delta**4*outer_product(laplacian_gi(:,gi), laplacian_gi(:,gi))
-        end do
-      end if
-
-      ! add to tensor RHS field
-      call addto(tensorrhs, ele_nodes(nu, ele), shape_tensor_rhs(shape_nu, mat_gi, detwei))
-
-    end do
-
-    ! Filter tensor RHS field
-    if(length_scale_type=="scalar") then
-      call smooth_tensor(tensorrhs, positions, exactsgs, alpha, lpath)
-    else if(length_scale_type=="tensor") then
-      call smooth_tensor(tensorrhs, positions, exactsgs, alpha, lpath)
-      !call anisotropic_smooth_tensor(tensorrhs, positions, exactsgs, alpha, lpath)
-    end if
-
-    ! Deallocates
-    call deallocate(vfield)
-    call deallocate(tensorrhs)
-    deallocate(vfield); deallocate(tensorrhs)
-
-  end subroutine exact_sgs_stress
 
   subroutine calculate_periodic_channel_forcing(state, oldu, nu, positions, density, source_field)
 

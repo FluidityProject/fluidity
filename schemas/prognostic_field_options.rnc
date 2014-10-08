@@ -713,11 +713,10 @@ prognostic_velocity_field =
                      element calculate_boundaries {
                         empty
                      }?,
-                     ## If turned on, use LANS-alpha formulation.
-                     ## Otherwise, use Germano's exact SGS formulation.
-                     element lans {
-                        empty
-                     }?,
+                     ## Choose whether a 4th order term is included in the model.
+                     ## Choices are none (i.e. 2nd order term (Clark or Gradient model) only),
+                     ## the LANS-alpha or the exact SGS formulation.
+                     element HOT { 'none'|'exact'|'lans' },
                      ## The 'scalar' length scale is the cube root of the element's volume in 3D. In 2D, it is the square root of the element's area. Using this will result in an isotropic eddy viscosity tensor.
                      ##
                      ## The 'tensor' length scale uses the metric from the adaptivity process. Using this will result in an anisotropic eddy viscosity tensor.
