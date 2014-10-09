@@ -28,8 +28,11 @@
 
 
 #include "fldecomp.h"
+#include "Profiler.h"
 
+using namespace std;
 
+map<string, string> fl_command_line_options;
 
 void usage(char *binary){
   cerr<<"Usage: "<<binary<<" [OPTIONS] -n nparts file\n"
@@ -42,6 +45,7 @@ void usage(char *binary){
       <<"multilevel k-way partitioning algorithm (METIS PartGraphKway). This "
       <<"is the default if the number of partitions is greater than 8.\n"
       <<"\t-n,--nparts <number of partitions>\n\t\tNumber of parts\n"
+      <<" -p, --profile\n"
       <<"\t-r,--recursive\n\t\tPartition a graph into k equal-size parts using multilevel recursive "
       <<"bisection (METIS PartGraphRecursive). This is the default if num partitions "
       <<"is less or equal to 8.\n"
@@ -70,6 +74,7 @@ int main(int argc, char **argv){
     {"help", 0, 0, 'h'},
     {"kway", 0, 0, 'k'},
     {"nparts", 0, 0, 'n'},
+    {"profile", 0, 0, 'p'},
     {"recursive", 0, 0, 'r'},
     {"terreno", optional_argument, 0, 't'},
     {"shell", 0, 0, 's'},
@@ -101,6 +106,7 @@ int main(int argc, char **argv){
       <<"\tflredecomp cannot process.\n"
       <<"\n";
 
+  flprofiler.tic("/flredecomp");
   int optionIndex = 0;
   
   optarg = NULL;  
@@ -206,6 +212,10 @@ int main(int argc, char **argv){
       cerr<<"ERROR: file format not supported\n";
       exitVal=1;
     }
+  flprofiler.toc("/flredecomp");
+  if ( fl_command_line_options.count("profile") ) {
+    flprofiler.print();
+  }
 
   exit(0);
 }

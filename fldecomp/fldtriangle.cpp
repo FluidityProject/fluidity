@@ -28,6 +28,7 @@
 
 
 #include "fldecomp.h"
+#include "Profiler.h"
 
 
 
@@ -62,6 +63,7 @@ void write_partitions_triangle(bool verbose,
   if(verbose)
     cout<<"void write_partitions_triangle( ... )";
 
+  flprofiler.tic("halobuild");
   int nelms = ENList.size()/nloc;
 
   vector< vector< set<int> > > halo1(nparts);
@@ -186,9 +188,12 @@ void write_partitions_triangle(bool verbose,
       elements->push_back(*it);
     delete halo2_elements;
 
+    flprofiler.toc("halobuild");
+
     if(verbose)
       cout<<"Partition: "<<part<<", Private nodes: "<<npnodes[part]<<", Total nodes: "<<nodes->size()<<"\n";
     
+    flprofiler.tic("datacontainer");
     // Write out data for each partition
     if(verbose)
       cout<<"Write mesh data for partition "<<part<<"\n";
@@ -272,8 +277,10 @@ void write_partitions_triangle(bool verbose,
       }
     }
     delete partNodesToEid;
+    flprofiler.toc("datacontainer");
 
     // Write out the partition mesh
+    flprofiler.tic("I/O:writetriangle");
     ostringstream basename;
     basename<<filename<<"_"<<part;
     if(verbose)
@@ -336,7 +343,9 @@ void write_partitions_triangle(bool verbose,
     basename.str("");
   }
   }
+  flprofiler.toc("I/O:writetriangle");
 
+  flprofiler.tic("I/O:writehalo");
   const int halo1_level = 1, halo2_level = 2;
   for(int i=0;i<nparts;i++){
     // Extract halo data
@@ -381,6 +390,8 @@ void write_partitions_triangle(bool verbose,
     }
     buffer.str("");
   }
+
+  flprofiler.toc("I/O:writehalo");
   
   return;
 }
@@ -413,6 +424,7 @@ int decomp_triangle( map<char, string> flArgs, bool verbose,
   if(verbose)
     cout<<"Reading "<<filename_node<<endl;
 
+  flprofiler.tic("I/O:readtriangle");
   fstream node_file;
   node_file.open(filename_node.c_str(), ios::in);
   if(!node_file.is_open()){
@@ -588,6 +600,10 @@ int decomp_triangle( map<char, string> flArgs, bool verbose,
   columnSENList.clear();
   face_file.close();
   
+  flprofiler.toc("I/O:readtriangle");
+
+  flprofiler.tic("partition");
+
   vector<int> decomp;
   int partition_method = -1;
   
@@ -644,6 +660,8 @@ int decomp_triangle( map<char, string> flArgs, bool verbose,
   if(flArgs.count('d')){
     cout<<"Edge-cut: "<<edgecut<<endl;
   }
+
+  flprofiler.toc("partition");
   
   // Process the partitioning
   if(verbose)
