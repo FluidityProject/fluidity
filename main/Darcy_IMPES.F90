@@ -211,6 +211,8 @@ program Darcy_IMPES
 
    call initialise_signals()
 
+   if (DEBUG) call print_options
+   
    call get_option("/simulation_name",filename)
 
    call set_simulation_start_times()
@@ -631,7 +633,7 @@ contains
       logical ,                                     intent(in)    :: this_is_dual
       
       ! Local variables
-      integer                                     :: p, stat, f_count, f
+      integer                                     :: p, stat, f_count, f, ip
       real,                          dimension(2) :: tmp_option_shape
       character(len=OPTION_PATH_LEN)              :: tmp_char_option
       
@@ -895,27 +897,35 @@ contains
       ! Get the data associated with generic prognostic scalar fields
       
       f_count = 0
+
+      if (DEBUG) print *, 'this_is_dual = ', this_is_dual
       
       do p = 1, di%number_phase
+         ip = p - 1
+         ! care needed with global phase numbering
+         if (this_is_dual) ip = ip + di%number_phase
+         if (DEBUG) print *, '   global phase '//int2str(ip)
       
-         do f = 1, option_count('/material_phase['//int2str(p-1)//']/scalar_field')
-         
-            if (have_option('/material_phase['//int2str(p-1)//']/scalar_field['//int2str(f-1)//']/prognostic')) then
+         do f = 1, option_count(&
+              '/material_phase['//int2str(ip)//']/scalar_field')
             
-               call get_option('/material_phase['//int2str(p-1)//']/scalar_field['//int2str(f-1)//']/name', &
+            if (DEBUG) then
+               call get_option('/material_phase['//int2str(ip)//']/&
+                    &scalar_field['//int2str(f-1)//']/name', tmp_char_option)
+               print *, '      ', trim(tmp_char_option)
+            end if
+            
+            if (have_option('/material_phase['//int2str(ip)//']/scalar_field['//int2str(f-1)//']/prognostic')) then
+            
+               call get_option('/material_phase['//int2str(ip)//']/scalar_field['//int2str(f-1)//']/name', &
                                tmp_char_option)
                
                if ((trim(tmp_char_option) /= 'Pressure') .and. &
                    (trim(tmp_char_option) /= 'Saturation')) then
-               
                   f_count = f_count + 1
-                  
                end if 
-               
             end if 
-            
          end do 
-       
       end do
       
       allocate(di%generic_prog_sfield(f_count))
@@ -924,11 +934,15 @@ contains
          f_count = 0
 
          do p = 1, di%number_phase
-            do f = 1, option_count('/material_phase['//int2str(p-1)//']/scalar_field')
+            ip = p - 1
+            if (this_is_dual) ip = ip + di%number_phase
+            
+            do f = 1, option_count(&
+                 '/material_phase['//int2str(ip)//']/scalar_field')
                
-               if (have_option('/material_phase['//int2str(p-1)//']/&
+               if (have_option('/material_phase['//int2str(ip)//']/&
                     &scalar_field['//int2str(f-1)//']/prognostic')) then
-                  call get_option('/material_phase['//int2str(p-1)//']/&
+                  call get_option('/material_phase['//int2str(ip)//']/&
                        &scalar_field['//int2str(f-1)//']/name', &
                        tmp_char_option)
                   
@@ -985,7 +999,7 @@ contains
                      end if
 
                      di%generic_prog_sfield(f_count)%dilute = .not. &
-                          have_option('/material_phase['//int2str(p-1)//']/&
+                          have_option('/material_phase['//int2str(ip)//']/&
                           &scalar_field['//int2str(f-1)//']/prognostic/&
                           &do_not_dilute')
                      
