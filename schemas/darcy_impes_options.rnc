@@ -888,7 +888,8 @@ darcy_impes_relperm_correlation =
     comment,
     attribute name { "PowerLaw" },
     darcy_impes_relperm_exponents,
-    darcy_impes_residual_saturations?
+    (darcy_impes_residual_saturations,
+     darcy_impes_ensure_positive_effective_saturations)?
   }
   | 
     ## Use a Corey 2 phase correlation such that:
@@ -897,7 +898,8 @@ darcy_impes_relperm_correlation =
     element correlation {
       comment,
       attribute name { "Corey2Phase" },
-      darcy_impes_residual_saturations?
+      (darcy_impes_residual_saturations,
+       darcy_impes_ensure_positive_effective_saturations)?
     }
   | 
     ## Use the opposite to Corey 2 phase correlation such that:
@@ -906,7 +908,8 @@ darcy_impes_relperm_correlation =
     element correlation {
       comment,
       attribute name { "Corey2PhaseOpposite" },
-      darcy_impes_residual_saturations?
+      (darcy_impes_residual_saturations,
+       darcy_impes_ensure_positive_effective_saturations)?
     }
   | 
     ## Use the Mineral correlation given by:
@@ -927,7 +930,8 @@ darcy_impes_relperm_correlation =
       comment,
       attribute name { "VanGenuchten" },
       darcy_impes_relperm_exponents,
-      darcy_impes_residual_saturations?
+      (darcy_impes_residual_saturations,
+       darcy_impes_ensure_positive_effective_saturations)?
     }
   | 
     ## Use a Jackson 2 phase correlation such that:
@@ -973,6 +977,10 @@ darcy_impes_residual_saturations =
   ## order they are given as a real input list. The default 
   ## values is 0.0 for all phases.
   element residual_saturations { real_vector }
+darcy_impes_ensure_positive_effective_saturations =
+  
+  ## If this option is checked, any effective saturation calculated as negative will be made zero instead.
+  element ensure_positive_effective_saturations { empty }
 darcy_impes_relperm_field_face_value =
   
   ## First Order Upwind face value discretisation

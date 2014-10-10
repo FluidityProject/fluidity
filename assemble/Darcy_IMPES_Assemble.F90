@@ -118,7 +118,10 @@ module darcy_impes_assemble_module
       ! The cut off value for saturation when calculating relperm
       real, dimension(:), pointer :: cutoff_saturations
       ! The scaling_coefficients when calculating relperm
-      real, dimension(:), pointer :: scaling_coefficients      
+      real, dimension(:), pointer :: scaling_coefficients
+      ! prevent negative effective sats being calculated (depends on the
+      ! correlation)
+      logical :: ensure_positive_effective_saturations
    end type darcy_impes_relperm_corr_options_type
    
    ! Options associated with the CV discretisation for the darcy impes solver
@@ -338,26 +341,6 @@ module darcy_impes_assemble_module
    logical, parameter, public :: DEBUG = .false.
    
  contains
-     
-     subroutine inspect_scalar_field(name, field)
-       ! workaround for GDB's annoying tendency to not print array pointers
-       ! properly
-       character(*), intent(in) :: name
-       type(scalar_field), intent(in) :: field
-       if (.not. DEBUG) return
-       call inspect(name, field%val)
-     end subroutine inspect_scalar_field
-     
-     subroutine inspect_array(name, array)
-       ! workaround for GDB's annoying tendency to not print array pointers
-       ! properly
-       character(*), intent(in) :: name
-       real, dimension(:), intent(in) :: array
-       if (.not. DEBUG) return
-       print *, trim(name)//" = "
-       print ("(6es13.4e2)"), array
-       print *, ""
-     end subroutine inspect_array
 
 ! ----------------------------------------------------------------------------
   
@@ -4175,13 +4158,12 @@ visc_ele_bdy(1)
          do p = 1, di%number_phase
             
             call darcy_impes_calculate_relperm_value(relperm_node_val, &
-                                                     sat_node_val_all_phases, &
-                                                     p, &
-                                                     di%relperm_corr_options%type, &
-                                                     di%relperm_corr_options%exponents, &
-                                                     di%relperm_corr_options%residual_saturations, &
-                                                     di%relperm_corr_options%cutoff_saturations, &
-                                                     di%relperm_corr_options%scaling_coefficients)
+                 sat_node_val_all_phases, p, di%relperm_corr_options%type, &
+                 di%relperm_corr_options%exponents, &
+                 di%relperm_corr_options%residual_saturations, &
+                 di%relperm_corr_options%cutoff_saturations, &
+                 di%relperm_corr_options%scaling_coefficients, &
+                 di%relperm_corr_options%ensure_positive_effective_saturations )
             
             call set(di%relative_permeability(p)%ptr, &
                      node, &
@@ -4200,14 +4182,11 @@ visc_ele_bdy(1)
 ! ----------------------------------------------------------------------------
 
    subroutine darcy_impes_calculate_relperm_value(relperm_val, &
-                                                  sat_val_all_phases, &
-                                                  p, &
-                                                  relperm_corr_type, &
-                                                  relperm_corr_exponents, &
-                                                  relperm_corr_residual_sats, &
-                                                  relperm_corr_cutoff_sats, &
-                                                  relperm_corr_scaling_coefficients)
-      
+        sat_val_all_phases, p, relperm_corr_type, relperm_corr_exponents, &
+        relperm_corr_residual_sats, relperm_corr_cutoff_sats, &
+        relperm_corr_scaling_coefficients, &
+        relperm_ensure_positive_effective_saturations)
+     
       !!< Calculate the latest relperm value for phase p for the 
       !!< given saturation values of all phases using the given options.
       
@@ -4219,23 +4198,30 @@ visc_ele_bdy(1)
       real,    dimension(:), intent(in)  :: relperm_corr_residual_sats
       real,    dimension(:), intent(in)  :: relperm_corr_cutoff_sats
       real,    dimension(:), intent(in)  :: relperm_corr_scaling_coefficients
-    
+      logical, intent(in) :: relperm_ensure_positive_effective_saturations
+      
       ! local variables
       real :: sat_minus_res_sat
       real :: sat_effective
          
       select case (relperm_corr_type)
-           
+
       case (RELPERM_CORRELATION_POWER)
 
-         sat_minus_res_sat = max(0., &
-              sat_val_all_phases(p) - relperm_corr_residual_sats(p))
+         sat_minus_res_sat = sat_val_all_phases(p) - &
+              relperm_corr_residual_sats(p)
+         if (relperm_ensure_positive_effective_saturations) &
+              sat_minus_res_sat = max(0., sat_minus_res_sat)
+
          relperm_val = sat_minus_res_sat ** relperm_corr_exponents(p)
 
       case (RELPERM_CORRELATION_COREY2PHASE)
          
-         sat_minus_res_sat = max(0., &
-              sat_val_all_phases(1) - relperm_corr_residual_sats(1))
+         sat_minus_res_sat = sat_val_all_phases(1) - &
+              relperm_corr_residual_sats(1)
+         if (relperm_ensure_positive_effective_saturations) &
+              sat_minus_res_sat = max(0., sat_minus_res_sat)
+         
          if (p == 1) then
             relperm_val = sat_minus_res_sat ** 4
          else if (p == 2) then
@@ -4247,8 +4233,11 @@ visc_ele_bdy(1)
 
       case (RELPERM_CORRELATION_COREY2PHASEOPPOSITE)
 
-         sat_minus_res_sat = max(0., &
-              sat_val_all_phases(2) - relperm_corr_residual_sats(2))
+         sat_minus_res_sat = sat_val_all_phases(2) - &
+              relperm_corr_residual_sats(2)
+         if (relperm_ensure_positive_effective_saturations) &
+              sat_minus_res_sat = max(0., sat_minus_res_sat)
+         
          if (p == 1) then
             relperm_val = (1.0 - sat_minus_res_sat ** 2) * (1.0 - sat_minus_res_sat) ** 2
          else if (p == 2) then
@@ -4265,10 +4254,13 @@ visc_ele_bdy(1)
 
       case (RELPERM_CORRELATION_VANGENUCHTEN)     
 
-         sat_minus_res_sat = max(0., &
-              sat_val_all_phases(2) - relperm_corr_residual_sats(2))
-         sat_effective = sat_minus_res_sat / ( 1.0 - relperm_corr_residual_sats(1) - &
-              &relperm_corr_residual_sats(2))
+         sat_minus_res_sat = sat_val_all_phases(2) - &
+              relperm_corr_residual_sats(2)
+         if (relperm_ensure_positive_effective_saturations) &
+              sat_minus_res_sat = max(0., sat_minus_res_sat)
+         
+         sat_effective = sat_minus_res_sat / ( 1.0 - &
+              relperm_corr_residual_sats(1) - relperm_corr_residual_sats(2))
          if (p == 1) then
             relperm_val = ( 1.0 - sat_effective )**(1.0/3.0) * (1.0 - sat_effective ** ( 1.0/ relperm_corr_exponents(p)) ) ** (2* relperm_corr_exponents(p))
          else if (p == 2) then
@@ -5868,13 +5860,12 @@ visc_ele_bdy(1)
          end do
          
          call darcy_impes_calculate_relperm_value(relperm_face_val, &
-                                                  sat_face_val_all_phases, &
-                                                  p, &
-                                                  relperm_corr_options%type, &
-                                                  relperm_corr_options%exponents, &
-                                                  relperm_corr_options%residual_saturations, &
-                                                  relperm_corr_options%cutoff_saturations, &
-                                                  relperm_corr_options%scaling_coefficients)
+              sat_face_val_all_phases, p, relperm_corr_options%type, &
+              relperm_corr_options%exponents, &
+              relperm_corr_options%residual_saturations, &
+              relperm_corr_options%cutoff_saturations, &
+              relperm_corr_options%scaling_coefficients, &
+              relperm_corr_options%ensure_positive_effective_saturations )
          
          relperm_face_val = relperm_face_val / max(sat_face_val_all_phases(p),min_denom_sat)
          

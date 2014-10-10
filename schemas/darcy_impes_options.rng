@@ -1243,6 +1243,7 @@ relperm = sat**exponent</a:documentation>
         <ref name="darcy_impes_relperm_exponents"/>
         <optional>
           <ref name="darcy_impes_residual_saturations"/>
+          <ref name="darcy_impes_ensure_positive_effective_saturations"/>
         </optional>
       </element>
       <element name="correlation">
@@ -1255,6 +1256,7 @@ relperm_2 = (1 - sat_1**2) * (1 - sat_1)**2</a:documentation>
         </attribute>
         <optional>
           <ref name="darcy_impes_residual_saturations"/>
+          <ref name="darcy_impes_ensure_positive_effective_saturations"/>
         </optional>
       </element>
       <element name="correlation">
@@ -1267,6 +1269,7 @@ relperm_2 = sat_2**4</a:documentation>
         </attribute>
         <optional>
           <ref name="darcy_impes_residual_saturations"/>
+          <ref name="darcy_impes_ensure_positive_effective_saturations"/>
         </optional>
       </element>
       <element name="correlation">
@@ -1296,6 +1299,7 @@ relperm_val =  sat_effective ** (1.0/2.0) * ( 1.0 - ( 1.0 - sat_effective ** ( 1
         <ref name="darcy_impes_relperm_exponents"/>
         <optional>
           <ref name="darcy_impes_residual_saturations"/>
+          <ref name="darcy_impes_ensure_positive_effective_saturations"/>
         </optional>
       </element>
       <element name="correlation">
@@ -1354,6 +1358,12 @@ values is residual saturations for all phases.</a:documentation>
 order they are given as a real input list. The default 
 values is 0.0 for all phases.</a:documentation>
       <ref name="real_vector"/>
+    </element>
+  </define>
+  <define name="darcy_impes_ensure_positive_effective_saturations">
+    <element name="ensure_positive_effective_saturations">
+      <a:documentation>If this option is checked, any effective saturation calculated as negative will be made zero instead.</a:documentation>
+      <empty/>
     </element>
   </define>
   <define name="darcy_impes_relperm_field_face_value">

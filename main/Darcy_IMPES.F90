@@ -1096,6 +1096,10 @@ contains
       
       end if
 
+      di%relperm_corr_options%ensure_positive_effective_saturations = &
+           have_option(trim(di%relative_permeability(1)%ptr%option_path)//&
+           '/diagnostic/correlation/ensure_positive_effective_saturations')
+      
       if (have_option(trim(di%relative_permeability(1)%ptr%option_path)//&
                      &'/diagnostic/correlation/cutoff_saturations')) then
 

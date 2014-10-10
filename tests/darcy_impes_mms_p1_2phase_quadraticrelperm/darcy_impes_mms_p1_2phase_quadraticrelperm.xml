@@ -45,6 +45,14 @@ assert(find_norm("darcy_impes_mms_p1_2phase_quadraticrelperm_1d_pressure1_l2_m80
 from test_tools import find_rate
 assert(find_rate("darcy_impes_mms_p1_2phase_quadraticrelperm_1d_pressure1_l2_m40_80") &gt; 0.7)
     </test>
+    <test name="darcy_impes_mms_p1_2phase_quadraticrelperm_1d_pressure1_l2_m160: expect norm lt 50" language="python">
+from test_tools import find_norm
+assert(find_norm("darcy_impes_mms_p1_2phase_quadraticrelperm_1d_pressure1_l2_m160") &lt; 50)
+    </test>
+    <test name="darcy_impes_mms_p1_2phase_quadraticrelperm_1d_pressure1_l2_m80_160: expect rate gt 0.7" language="python">
+from test_tools import find_rate
+assert(find_rate("darcy_impes_mms_p1_2phase_quadraticrelperm_1d_pressure1_l2_m80_160") &gt; 0.7)
+    </test>
     <test name="darcy_impes_mms_p1_2phase_quadraticrelperm_1d_saturation2_l2_m10: expect norm lt 0.025" language="python">
 from test_tools import find_norm
 assert(find_norm("darcy_impes_mms_p1_2phase_quadraticrelperm_1d_saturation2_l2_m10") &lt; 0.025)
@@ -73,69 +81,29 @@ assert(find_norm("darcy_impes_mms_p1_2phase_quadraticrelperm_1d_saturation2_l2_m
 from test_tools import find_rate
 assert(find_rate("darcy_impes_mms_p1_2phase_quadraticrelperm_1d_saturation2_l2_m40_80") &gt; 0.7)
     </test>
-    <test name="darcy_impes_mms_p1_2phase_quadraticrelperm_2d_curved_irreg_pressure1_l2_m10: expect norm lt 50" language="python">
+    <test name="darcy_impes_mms_p1_2phase_quadraticrelperm_1d_saturation2_l2_m160: expect norm lt 0.025" language="python">
 from test_tools import find_norm
-assert(find_norm("darcy_impes_mms_p1_2phase_quadraticrelperm_2d_curved_irreg_pressure1_l2_m10") &lt; 50)
+assert(find_norm("darcy_impes_mms_p1_2phase_quadraticrelperm_1d_saturation2_l2_m160") &lt; 0.025)
     </test>
-    <test name="darcy_impes_mms_p1_2phase_quadraticrelperm_2d_curved_irreg_pressure1_l2_m20: expect norm lt 50" language="python">
-from test_tools import find_norm
-assert(find_norm("darcy_impes_mms_p1_2phase_quadraticrelperm_2d_curved_irreg_pressure1_l2_m20") &lt; 50)
-    </test>
-    <test name="darcy_impes_mms_p1_2phase_quadraticrelperm_2d_curved_irreg_pressure1_l2_m10_20: expect rate gt 0.7" language="python">
+    <test name="darcy_impes_mms_p1_2phase_quadraticrelperm_1d_saturation2_l2_m80_160: expect rate gt 0.7" language="python">
 from test_tools import find_rate
-assert(find_rate("darcy_impes_mms_p1_2phase_quadraticrelperm_2d_curved_irreg_pressure1_l2_m10_20") &gt; 0.7)
+assert(find_rate("darcy_impes_mms_p1_2phase_quadraticrelperm_1d_saturation2_l2_m80_160") &gt; 0.7)
     </test>
-    <test name="darcy_impes_mms_p1_2phase_quadraticrelperm_2d_curved_irreg_pressure1_l2_m40: expect norm lt 50" language="python">
-from test_tools import find_norm
-assert(find_norm("darcy_impes_mms_p1_2phase_quadraticrelperm_2d_curved_irreg_pressure1_l2_m40") &lt; 50)
-    </test>
-    <test name="darcy_impes_mms_p1_2phase_quadraticrelperm_2d_curved_irreg_pressure1_l2_m20_40: expect rate gt 0.7" language="python">
+    <test name="darcy_impes_mms_p1_2phase_quadraticrelperm_1d_tracer2_l2_m10_20: expect rate gt 0.7" language="python">
 from test_tools import find_rate
-assert(find_rate("darcy_impes_mms_p1_2phase_quadraticrelperm_2d_curved_irreg_pressure1_l2_m20_40") &gt; 0.7)
+assert(find_rate("darcy_impes_mms_p1_2phase_quadraticrelperm_1d_tracer2_l2_m10_20") &gt; 0.7)
     </test>
-    <test name="darcy_impes_mms_p1_2phase_quadraticrelperm_2d_curved_irreg_saturation2_l2_m10: expect norm lt 0.025" language="python">
-from test_tools import find_norm
-assert(find_norm("darcy_impes_mms_p1_2phase_quadraticrelperm_2d_curved_irreg_saturation2_l2_m10") &lt; 0.025)
-    </test>
-    <test name="darcy_impes_mms_p1_2phase_quadraticrelperm_2d_curved_irreg_saturation2_l2_m20: expect norm lt 0.025" language="python">
-from test_tools import find_norm
-assert(find_norm("darcy_impes_mms_p1_2phase_quadraticrelperm_2d_curved_irreg_saturation2_l2_m20") &lt; 0.025)
-    </test>
-    <test name="darcy_impes_mms_p1_2phase_quadraticrelperm_2d_curved_irreg_saturation2_l2_m10_20: expect rate gt 0.7" language="python">
+    <test name="darcy_impes_mms_p1_2phase_quadraticrelperm_1d_tracer2_l2_m20_40: expect rate gt 0.7" language="python">
 from test_tools import find_rate
-assert(find_rate("darcy_impes_mms_p1_2phase_quadraticrelperm_2d_curved_irreg_saturation2_l2_m10_20") &gt; 0.7)
+assert(find_rate("darcy_impes_mms_p1_2phase_quadraticrelperm_1d_tracer2_l2_m20_40") &gt; 0.7)
     </test>
-    <test name="darcy_impes_mms_p1_2phase_quadraticrelperm_2d_curved_irreg_saturation2_l2_m40: expect norm lt 0.025" language="python">
-from test_tools import find_norm
-assert(find_norm("darcy_impes_mms_p1_2phase_quadraticrelperm_2d_curved_irreg_saturation2_l2_m40") &lt; 0.025)
-    </test>
-    <test name="darcy_impes_mms_p1_2phase_quadraticrelperm_2d_curved_irreg_saturation2_l2_m20_40: expect rate gt 0.7" language="python">
+    <test name="darcy_impes_mms_p1_2phase_quadraticrelperm_1d_tracer2_l2_m40_80: expect rate gt 0.7" language="python">
 from test_tools import find_rate
-assert(find_rate("darcy_impes_mms_p1_2phase_quadraticrelperm_2d_curved_irreg_saturation2_l2_m20_40") &gt; 0.7)
+assert(find_rate("darcy_impes_mms_p1_2phase_quadraticrelperm_1d_tracer2_l2_m40_80") &gt; 0.7)
     </test>
-    <test name="darcy_impes_mms_p1_2phase_quadraticrelperm_3d_curved_irreg_pressure1_l2_m10: expect norm lt 50" language="python">
-from test_tools import find_norm
-assert(find_norm("darcy_impes_mms_p1_2phase_quadraticrelperm_3d_curved_irreg_pressure1_l2_m10") &lt; 50)
-    </test>
-    <test name="darcy_impes_mms_p1_2phase_quadraticrelperm_3d_curved_irreg_pressure1_l2_m20: expect norm lt 50" language="python">
-from test_tools import find_norm
-assert(find_norm("darcy_impes_mms_p1_2phase_quadraticrelperm_3d_curved_irreg_pressure1_l2_m20") &lt; 50)
-    </test>
-    <test name="darcy_impes_mms_p1_2phase_quadraticrelperm_3d_curved_irreg_pressure1_l2_m10_20: expect rate gt 0.7" language="python">
+    <test name="darcy_impes_mms_p1_2phase_quadraticrelperm_1d_tracer2_l2_m80_160: expect rate gt 0.7" language="python">
 from test_tools import find_rate
-assert(find_rate("darcy_impes_mms_p1_2phase_quadraticrelperm_3d_curved_irreg_pressure1_l2_m10_20") &gt; 0.7)
-    </test>
-    <test name="darcy_impes_mms_p1_2phase_quadraticrelperm_3d_curved_irreg_saturation2_l2_m10: expect norm lt 0.025" language="python">
-from test_tools import find_norm
-assert(find_norm("darcy_impes_mms_p1_2phase_quadraticrelperm_3d_curved_irreg_saturation2_l2_m10") &lt; 0.025)
-    </test>
-    <test name="darcy_impes_mms_p1_2phase_quadraticrelperm_3d_curved_irreg_saturation2_l2_m20: expect norm lt 0.025" language="python">
-from test_tools import find_norm
-assert(find_norm("darcy_impes_mms_p1_2phase_quadraticrelperm_3d_curved_irreg_saturation2_l2_m20") &lt; 0.025)
-    </test>
-    <test name="darcy_impes_mms_p1_2phase_quadraticrelperm_3d_curved_irreg_saturation2_l2_m10_20: expect rate gt 0.7" language="python">
-from test_tools import find_rate
-assert(find_rate("darcy_impes_mms_p1_2phase_quadraticrelperm_3d_curved_irreg_saturation2_l2_m10_20") &gt; 0.7)
+assert(find_rate("darcy_impes_mms_p1_2phase_quadraticrelperm_1d_tracer2_l2_m80_160") &gt; 0.7)
     </test>
   </pass_tests>
   <warn_tests>

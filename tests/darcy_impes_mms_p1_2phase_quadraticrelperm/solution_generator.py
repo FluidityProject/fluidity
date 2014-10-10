@@ -23,8 +23,8 @@ def generate(solution_name, check_solution=False):
     # relperms - these do not have placeholders in the options template;
     # any changes made here also need to be made in the template
     sr = (0.2, 0.3)                      # residual sats
-    K = (lambda s: ka * (s[0]-sr[0])**2, # quadratic relperm relation
-         lambda s: ka * (s[1]-sr[1])**2)
+    K = (lambda s: ka * max(0, s[0]-sr[0])**2, # quadratic relperm relation
+         lambda s: ka * max(0, s[1]-sr[1])**2)
     
     # initialise object containing solution parameters
     sh = SolutionHarness(D, T, g_mag, ka, phi, mu, rho, K,
@@ -51,7 +51,7 @@ def generate(solution_name, check_solution=False):
 
     # introduce a simple nonlinearity
     c_sym = Symbol('tracer')
-    c_src = 0.1*c_sym
+    c_src = -10*c_sym
     def scalars(c):
         return [GenericScalar(c_sym, 2, c, external_source=c_src)]
     
