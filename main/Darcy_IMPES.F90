@@ -934,6 +934,7 @@ contains
          f_count = 0
 
          do p = 1, di%number_phase
+<<<<<<< Updated upstream
             ip = p - 1
             if (this_is_dual) ip = ip + di%number_phase
             
@@ -943,6 +944,13 @@ contains
                if (have_option('/material_phase['//int2str(ip)//']/&
                     &scalar_field['//int2str(f-1)//']/prognostic')) then
                   call get_option('/material_phase['//int2str(ip)//']/&
+=======
+            do f = 1, option_count('/material_phase['//int2str(p-1)//']/scalar_field')
+               
+               if (have_option('/material_phase['//int2str(p-1)//']/&
+                    &scalar_field['//int2str(f-1)//']/prognostic')) then
+                  call get_option('/material_phase['//int2str(p-1)//']/&
+>>>>>>> Stashed changes
                        &scalar_field['//int2str(f-1)//']/name', &
                        tmp_char_option)
                   
@@ -985,6 +993,7 @@ contains
                      else
                         nullify(di%generic_prog_sfield(f_count)%sfield_src)
                         di%generic_prog_sfield(f_count)%have_src = .false.
+<<<<<<< Updated upstream
                      end if
 
                      ! TODO nest this in the previous field somehow
@@ -1002,6 +1011,20 @@ contains
                           have_option('/material_phase['//int2str(ip)//']/&
                           &scalar_field['//int2str(f-1)//']/prognostic/&
                           &do_not_dilute')
+=======
+                     end if
+
+                     ! TODO nest this in the previous field somehow
+                     di%generic_prog_sfield(f_count)%sfield_src_grad => &
+                          extract_scalar_field(di%state(p), trim(&
+                          tmp_char_option)//'SourceGradient', stat = stat)
+                     if (stat == 0) then
+                        di%generic_prog_sfield(f_count)%have_src_grad = .true.
+                     else
+                        nullify(di%generic_prog_sfield(f_count)%sfield_src_grad)
+                        di%generic_prog_sfield(f_count)%have_src_grad = .false.
+                     end if
+>>>>>>> Stashed changes
                      
                      di%generic_prog_sfield(f_count)%sfield_cv_options = &
                           darcy_impes_get_cv_options(&

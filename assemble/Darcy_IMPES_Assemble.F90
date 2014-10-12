@@ -2581,11 +2581,17 @@ dot_product((grad_pressure_face_quad(:,ggi) - di%cached_face_value%den(ggi,vele,
       end if
 
       ! TODO: work around the divide-by-dt
+<<<<<<< Updated upstream
       call addto(di%lhs, 1.0/di%dt)
       if (di%generic_prog_sfield(f)%dilute) then
          call scale(di%lhs, di%cv_mass_pressure_mesh_with_porosity)
          call scale(di%lhs, di%saturation(p)%ptr)
       end if
+=======
+      call addto(di%lhs, 1.0/di%dt)            
+      call scale(di%lhs, di%cv_mass_pressure_mesh_with_porosity)
+      call scale(di%lhs, di%saturation(p)%ptr)
+>>>>>>> Stashed changes
             
       ! Add old_porosity*old_saturation*old_sfield/dt to rhs      
       call addto(di%rhs, 1.0/di%dt)
