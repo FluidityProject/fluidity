@@ -351,17 +351,6 @@ contains
         call smooth_tensor(tfield, positions, strainprod, alpha*gamma, lpath)
       end if
 
-      ! Filter SGS tensor field - TODO: REMOVE (NOT NEEDED FOR SLIP BC).
-      call zero(tfield)
-
-      !if(length_scale_type=="scalar") then
-      !  call smooth_tensor(sgstensor, positions, tfield, alpha, lpath)
-      !else if(length_scale_type=="tensor") then
-      !  call smooth_tensor(sgstensor, positions, tfield, alpha, lpath)
-      !end if
-
-      call set(sgstensor, tfield)
-
     else if(exact_sgs) then
 
       call zero(tfield)
@@ -424,11 +413,21 @@ contains
 
       end do
 
-      ! Filter tensor RHS field
-      if(length_scale_type=="scalar") then
-        call smooth_tensor(tfield, positions, sgstensor, alpha, lpath)
-      else if(length_scale_type=="tensor") then
-        call smooth_tensor(tfield, positions, sgstensor, alpha, lpath)
+      ! Filter tensor RHS field.
+      ! If calculate_boundaries we need to set sgstensor = 0 where there are zero Dirichlet BCs on Velocity
+      if(have_option(trim(lpath)//"/calculate_boundaries")) then
+        if(length_scale_type=="scalar") then
+          call smooth_tensor(tfield, positions, sgstensor, alpha, lpath, nu)
+        else if(length_scale_type=="tensor") then
+          call smooth_tensor(tfield, positions, sgstensor, alpha, lpath, nu)
+        end if
+      ! otherwise, there are no BCs to apply to sgstensor
+      else
+        if(length_scale_type=="scalar") then
+          call smooth_tensor(tfield, positions, sgstensor, alpha, lpath)
+        else if(length_scale_type=="tensor") then
+          call smooth_tensor(tfield, positions, sgstensor, alpha, lpath)
+        end if
       end if
 
     end if

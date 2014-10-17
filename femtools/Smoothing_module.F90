@@ -98,7 +98,7 @@ contains
 
   end subroutine smooth_vector
 
-  subroutine smooth_tensor(field_in,positions,field_out,alpha, path)
+  subroutine smooth_tensor(field_in,positions,field_out,alpha,path,vector_field_bc)
 
     !smoothing length
     real, intent(in) :: alpha
@@ -109,7 +109,9 @@ contains
     !output field, should have same mesh as input field
     type(tensor_field), intent(inout) :: field_out
     character(len=*), intent(in) :: path
-    
+    ! optional vector field to 'borrow' Dirichlet BCs from
+    type(vector_field), intent(in), optional :: vector_field_bc
+
     !local variables
     type(csr_matrix) :: M
     type(csr_sparsity) :: M_sparsity
@@ -128,11 +130,20 @@ contains
     end do
 
     ewrite(2,*) "Applying strong Dirichlet boundary conditions to filtered tensor field"
-    do i=1, field_in%dim(1)
-      do j=1, field_in%dim(2)
-        call apply_dirichlet_conditions(matrix=M, rhs=rhsfield, field=field_out, dim1=i, dim2=j)
+    if(present(vector_field_bc)) then
+      ewrite(2,*) "Getting Dirichlet BCs from vector field: ", trim(vector_field_bc%name)
+      do i=1, field_in%dim(1)
+        do j=1, field_in%dim(2)
+          call apply_dirichlet_conditions(matrix=M, rhs=rhsfield, field=vector_field_bc, dim1=i, dim2=j)
+        end do
       end do
-    end do
+    else
+      do i=1, field_in%dim(1)
+        do j=1, field_in%dim(2)
+          call apply_dirichlet_conditions(matrix=M, rhs=rhsfield, field=field_out, dim1=i, dim2=j)
+        end do
+      end do
+    end if
 
     call petsc_solve(field_out, M, rhsfield, option_path=trim(path))
 

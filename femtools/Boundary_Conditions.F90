@@ -131,7 +131,8 @@ implicit none
                       apply_dirichlet_conditions_vector_component, &
                       apply_dirichlet_conditions_vector_lumped, &
                       apply_dirichlet_conditions_vector_component_lumped, &
-                      apply_dirichlet_conditions_tensor_component
+                      apply_dirichlet_conditions_tensor_component, &
+                      apply_dirichlet_conditions_tensor_vector
   end interface apply_dirichlet_conditions    
 
   private
@@ -2725,6 +2726,65 @@ contains
 
   end subroutine apply_dirichlet_conditions_tensor_component
 
+  subroutine apply_dirichlet_conditions_tensor_vector(matrix, rhs, field, dt, dim1, dim2)
+    !!< Apply dirichlet boundary conditions from vector field to the problem
+    !!< defined by matrix and rhs.
+    !!<
+    !!< This assumes that boundary conditions are applied in rate of change
+    !!< form and that the matrix has dim x dim blocks.
+    type(csr_matrix), intent(inout) :: matrix
+    type(tensor_field), intent(inout), optional :: rhs
+    type(vector_field), intent(in) :: field
+    real, intent(in), optional :: dt
+    integer, intent(in) :: dim1, dim2
+
+    type(scalar_field) :: rhscomponent, bccomponent
+
+    logical, dimension(dim1):: applies
+    character(len=FIELD_NAME_LEN):: bctype
+    type(vector_field), pointer:: surface_field
+    integer, dimension(:), pointer:: surface_node_list
+    integer :: i,j
+
+    bcloop: do i=1, get_boundary_condition_count(field)
+       call get_boundary_condition(field, i, type=bctype, &
+          surface_node_list=surface_node_list, applies=applies)
+
+       if (bctype/="dirichlet") cycle bcloop
+
+       surface_field => extract_surface_field(field, i, "value")
+       
+       do j=1,size(surface_node_list)
+         
+          if(applies(dim1)) then
+            
+            call set_diag(matrix, surface_node_list(j), INFINITY)
+
+            if(present(rhs)) then
+              rhscomponent = extract_scalar_field_from_tensor_field(rhs, dim1, dim2)
+              bccomponent = extract_scalar_field_from_vector_field(surface_field, dim1)
+
+              if(present(dt)) then
+                call set(rhscomponent, &
+                            surface_node_list(j), &
+                            ((node_val(bccomponent, j) &
+                              -node_val(field,dim1,surface_node_list(j)) &
+                            ) /dt)*INFINITY)
+              else
+                call set(rhscomponent, &
+                            surface_node_list(j), &
+                            node_val(bccomponent, j)*INFINITY)
+              end if
+
+            end if
+
+          end if
+       end do
+
+    end do bcloop
+
+  end subroutine apply_dirichlet_conditions_tensor_vector
+
   subroutine derive_collapsed_bcs(input_states, collapsed_states, bctype)
     !!< For the collapsed state collapsed_states, containing the collapsed
     !!< components of fields in input_states, copy across the component
@@ -3071,7 +3131,7 @@ contains
     ! Germano's exact SGS closure or the LANS-alpha model
     else if(exact_sgs) then
 
-      ewrite(2,*) "calculate_boundaries: ", trim(u%option_path)//"/exact_sgs/calculate_boundaries"
+      ewrite(2,*) "calculate_boundaries: ", trim(les_option_path)//"/exact_sgs/calculate_boundaries"
 
       ! If setting SGS tensor = 0 on boundaries, do not calculate tau_gi, tautest_gi here.
       if(have_option(trim(les_option_path)//"/exact_sgs/calculate_boundaries")) then
