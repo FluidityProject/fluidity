@@ -3637,6 +3637,9 @@ if $FC -v 2>&1 | grep 'gcc version'; then
     GFORTRAN_4_5_OR_NEWER="yes"
 
   fi
+  if test "$(python -c "print \"$GFORTRAN_VERSION\" >= \"4.8\"")" = "True"; then
+    GFORTRAN_4_8_OR_NEWER="yes"
+  fi
 else
   USING_GFORTRAN="no"
 fi
@@ -13718,7 +13721,9 @@ _ACEOF
     fi
     # this is a workaround for https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=755099
     if echo "$CFLAGS" | grep -q -- "-O[2-3]"; then
+      if test "x$USING_GFORTRAN" = "xyes" -a "x$GFORTRAN_4_8_OR_NEWER" = "xyes"; then
         JUDY_CFLAGS="$JUDY_CFLAGS -fno-aggressive-loop-optimizations"
+      fi
     fi
 
 
