@@ -52,3 +52,7 @@
 #define KSPSetOperators(ksp, amat, pmat, ierr) kspsetoperators(ksp, amat, pmat, DIFFERENT_NONZERO_PATTERN, ierr)
 #define pcsetoperators(pc, amat, pmat, ierr) PCSetOperators(pc, amat, pmat, DIFFERENT_NONZERO_PATTERN, ierr)
 #endif
+! renamed in petsc master
+#if PETSC_VERSION_RELEASE==0
+#define MatGetVecs MatCreateVecs
+#endif
