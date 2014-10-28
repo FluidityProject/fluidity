@@ -515,7 +515,7 @@
 
             ! Calculate test-filtered velocity field and Leonard tensor field.
             ewrite(2,*) "Calculating test-filtered velocity and Leonard tensor"
-            call compute_les_local_fields(nu, x, fnu, tnu, leonard, strainprod, sgstensor, alpha, gamma, length_scale_type, les_option_path, dynamic_les, exact_sgs)
+            call compute_les_local_fields(u, nu, x, fnu, tnu, leonard, strainprod, sgstensor, alpha, gamma, length_scale_type, les_option_path, dynamic_les, exact_sgs)
 
             ewrite_minmax(fnu)
             ewrite_minmax(tnu)
@@ -556,7 +556,7 @@
 
            ! Calculate explicitly filtered velocity and exact SGS stress.
            ewrite(2,*) "Calculating exact SGS stress"
-           call compute_les_local_fields(nu, x, fnu, tnu, leonard, strainprod, sgstensor, alpha, gamma, length_scale_type, les_option_path, dynamic_les, exact_sgs)
+           call compute_les_local_fields(u, nu, x, fnu, tnu, leonard, strainprod, sgstensor, alpha, gamma, length_scale_type, les_option_path, dynamic_les, exact_sgs)
 
            ewrite_minmax(sgstensor)
 

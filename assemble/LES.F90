@@ -222,10 +222,10 @@ contains
 
   end subroutine les_solve_diagnostic_fields
   
-  subroutine compute_les_local_fields(nu, positions, fnu, tnu, leonard, strainprod, sgstensor, alpha, gamma, length_scale_type, path, dynamic_les, exact_sgs)
+  subroutine compute_les_local_fields(u, nu, positions, fnu, tnu, leonard, strainprod, sgstensor, alpha, gamma, length_scale_type, path, dynamic_les, exact_sgs)
 
     type(vector_field), intent(in)                        :: positions
-    type(vector_field), intent(inout)                     :: nu, fnu, tnu
+    type(vector_field), intent(inout)                     :: u, nu, fnu, tnu
     ! Leonard tensor, strain product, SGS tensor
     type(tensor_field), intent(inout)                     :: leonard, strainprod, sgstensor
     ! Filter scale factors
@@ -417,9 +417,9 @@ contains
       ! If calculate_boundaries we need to set sgstensor = 0 where there are zero Dirichlet BCs on Velocity
       if(have_option(trim(lpath)//"/calculate_boundaries")) then
         if(length_scale_type=="scalar") then
-          call smooth_tensor(tfield, positions, sgstensor, alpha, lpath, nu)
+          call smooth_tensor(tfield, positions, sgstensor, alpha, lpath, u)
         else if(length_scale_type=="tensor") then
-          call smooth_tensor(tfield, positions, sgstensor, alpha, lpath, nu)
+          call smooth_tensor(tfield, positions, sgstensor, alpha, lpath, u)
         end if
       ! otherwise, there are no BCs to apply to sgstensor
       else
