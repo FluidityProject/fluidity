@@ -13,44 +13,44 @@ module integer_set_module
   end type integer_set_vector
 
   interface
-    subroutine integer_set_create_c(i)
+    subroutine integer_set_create_c(i) bind(c)
       use iso_c_binding, only: c_ptr
       type(c_ptr), intent(out) :: i
     end subroutine integer_set_create_c
 
-    subroutine integer_set_delete_c(i)
+    subroutine integer_set_delete_c(i) bind(c)
       use iso_c_binding, only: c_ptr
       type(c_ptr), intent(inout) :: i
     end subroutine integer_set_delete_c
 
-    subroutine integer_set_insert_c(i, v, c)
+    subroutine integer_set_insert_c(i, v, c) bind(c)
       use iso_c_binding, only: c_ptr
       type(c_ptr), intent(inout) :: i
       integer, intent(in) :: v
       integer, intent(out) :: c
     end subroutine integer_set_insert_c
 
-    pure subroutine integer_set_length_c(i, l)
+    pure subroutine integer_set_length_c(i, l) bind(c)
       use iso_c_binding, only: c_ptr
       type(c_ptr), intent(in) :: i
       integer, intent(out) :: l
     end subroutine integer_set_length_c
 
-    subroutine integer_set_fetch_c(i, idx, val)
+    subroutine integer_set_fetch_c(i, idx, val) bind(c)
       use iso_c_binding, only: c_ptr
       type(c_ptr), intent(in) :: i
       integer, intent(in) :: idx
       integer, intent(out) :: val
     end subroutine integer_set_fetch_c
 
-    subroutine integer_set_remove_c(i, idx, stat)
+    subroutine integer_set_remove_c(i, idx, stat) bind(c)
       use iso_c_binding, only: c_ptr
       type(c_ptr), intent(in) :: i
       integer, intent(in) :: idx
       integer, intent(out) :: stat
     end subroutine integer_set_remove_c
 
-    subroutine integer_set_has_value_c(i, val, bool)
+    subroutine integer_set_has_value_c(i, val, bool) bind(c)
       use iso_c_binding, only: c_ptr
       type(c_ptr), intent(in) :: i
       integer, intent(in) :: val
