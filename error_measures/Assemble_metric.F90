@@ -349,7 +349,7 @@ module metric_assemble
         ! eigenbounds are the wrong size (and they weren't in state)... so do it now!
         ! (min and max refer to edge lengths, not eigenvalues)
         call allocate(oned_min_bound, oned_positions%mesh, "1DMaxMetricEigenbound", field_type=min_bound%field_type)
-        call allocate(oned_max_bound, oned_positions%mesh, "1DMinMetricEigenbound", field_type=min_bound%field_type)
+        call allocate(oned_max_bound, oned_positions%mesh, "1DMinMetricEigenbound", field_type=max_bound%field_type)
         call get_1d_tensor(column, min_bound, oned_min_bound, back_columns)
         call get_1d_tensor(column, max_bound, oned_max_bound, back_columns)
 
