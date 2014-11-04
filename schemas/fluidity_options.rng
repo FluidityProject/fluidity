@@ -2555,6 +2555,11 @@ while a factor of 1 represents a connected domain.</a:documentation>
       <optional>
         <ref name="multiphase_interaction"/>
       </optional>
+      <optional>
+        <element name="population_balance_continuous_phase_name">
+          <data type="string" datatypeLibrary=""/>
+        </element>
+      </optional>
     </element>
   </start>
   <define name="population_balance">
@@ -3065,8 +3070,12 @@ breakage, aggegation and internal dispersion</a:documentation>
                   <empty/>
                 </element>
                 <element name="sum_aggregation">
-                  <a:documentation>aggregation frequency is given by \beta_{alpha gamma} = \beta_o (\xi_{alpha} + \xi_{gamma})</a:documentation>
+                  <a:documentation>aggregation frequency is given by \beta_{alpha gamma} = \beta_o (\xi_{alpha} + \xi_{gamma}). Enter the value of constant \beta_o below</a:documentation>
                   <ref name="real"/>
+                </element>
+                <element name="laakkonen_2007_aggregation">
+                  <a:documentation/>
+                  <empty/>
                 </element>
               </choice>
             </element>
@@ -3093,6 +3102,9 @@ breakage, aggegation and internal dispersion</a:documentation>
                     <ref name="real"/>
                   </element>
                 </element>
+                <element name="laakkonen_breakage">
+                  <empty/>
+                </element>
               </choice>
             </element>
             <element name="distribution_function">
@@ -3104,6 +3116,9 @@ breakage, aggegation and internal dispersion</a:documentation>
                 <element name="mcCoy_madras_2003">
                   <a:documentation>McCoy and Madras (2003) used P(v|v') = 2/v' for v&lt;v' and 0 otherwise, where v stands for volume. 
 When written in terms of particle diameter, this converts to P(x|x')=(6x^2)/x'^3 for x&lt;x' and 0 otherwise.</a:documentation>
+                  <empty/>
+                </element>
+                <element name="laakkonen_2007">
                   <empty/>
                 </element>
               </choice>
@@ -3190,6 +3205,11 @@ Must be given as a python function in the form:
       </optional>
       <optional>
         <element name="output_sources">
+          <empty/>
+        </element>
+      </optional>
+      <optional>
+        <element name="apply_source_as_absorption">
           <empty/>
         </element>
       </optional>
