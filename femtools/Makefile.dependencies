@@ -205,7 +205,8 @@ DG_interpolation.o ../include/dg_interpolation_module.mod: \
 
 DMPlex_Reader.o ../include/dmplex_reader.mod: DMPlex_Reader.F90 \
    ../include/fdebug.h ../include/fields.mod ../include/global_parameters.mod \
-   ../include/parallel_tools.mod ../include/petsc_legacy.h
+   ../include/halos.mod ../include/parallel_tools.mod \
+   ../include/petsc_legacy.h
 
 ../include/data_structures.mod: Data_structures.o
 	@true
