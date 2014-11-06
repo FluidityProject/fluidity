@@ -6,6 +6,7 @@
   <include href="input_output.rng"/>
   <include href="solvers.rng"/>
   <include href="stabilisation.rng"/>
+  <include href="reduced_model.rng"/>
   <include href="mesh_options.rng"/>
   <include href="physical_parameters.rng"/>
   <include href="prognostic_field_options.rng"/>
@@ -715,6 +716,11 @@ to sum to 1 by adding constraint into compositional source term.</a:documentatio
             </ref>
           </optional>
           <optional>
+            <ref name="rheology">
+              <a:documentation>The material rheological model</a:documentation>
+            </ref>
+          </optional>
+          <optional>
             <element name="scalar_field">
               <a:documentation>Pressure</a:documentation>
               <attribute name="rank">
@@ -1047,26 +1053,41 @@ Default value 2.0</a:documentation>
               <optional>
                 <element name="capillary_pressure">
                   <a:documentation>Option for capillary pressure				 </a:documentation>
-                  <element name="type_Brookes_Corey">
-                    <a:documentation>Brookes-Corey equation
+                  <element name="type_Brooks_Corey">
+                    <a:documentation>Brooks-Corey equation
 
-Pc = c * ((S_w-Swir)/(1-Swirr-Sor)) ** -a</a:documentation>
-                    <oneOrMore>
-                      <element name="phase">
-                        <attribute name="material_phase_name">
-                          <a:documentation>Specify the phase to which these values relate</a:documentation>
-                          <data type="string"/>
-                        </attribute>
-                        <element name="c">
-                          <a:documentation>multiplier c</a:documentation>
-                          <ref name="real"/>
+Pc = c * ((S_w-Swir)/(1-Swirr-Sor)) ** -a
+You should specify this ONLY for the wetting phase</a:documentation>
+                    <element name="scalar_field">
+                      <a:documentation>Entry pressure of the formula</a:documentation>
+                      <attribute name="name">
+                        <value>C</value>
+                      </attribute>
+                      <choice>
+                        <element name="prescribed">
+                          <ref name="velocity_mesh_choice"/>
+                          <ref name="prescribed_scalar_field"/>
                         </element>
-                        <element name="a">
-                          <a:documentation>exponent a</a:documentation>
-                          <ref name="real"/>
+                        <element name="aliased">
+                          <ref name="generic_aliased_field"/>
                         </element>
-                      </element>
-                    </oneOrMore>
+                      </choice>
+                    </element>
+                    <element name="scalar_field">
+                      <a:documentation>exponent -a</a:documentation>
+                      <attribute name="name">
+                        <value>a</value>
+                      </attribute>
+                      <choice>
+                        <element name="prescribed">
+                          <ref name="velocity_mesh_choice"/>
+                          <ref name="prescribed_scalar_field"/>
+                        </element>
+                        <element name="aliased">
+                          <ref name="generic_aliased_field"/>
+                        </element>
+                      </choice>
+                    </element>
                   </element>
                 </element>
               </optional>
@@ -1076,12 +1097,24 @@ Pc = c * ((S_w-Swir)/(1-Swirr-Sor)) ** -a</a:documentation>
                   <ref name="real"/>
                 </element>
               </optional>
+              <optional>
+                <element name="Pe_stab">
+                  <a:documentation>Introduce artificial diffusion in the transport equation. 
+It is treated as a Capillary pressure term. The input value is the entry pressure.
+Recommended value: Two orders of magnitude smaller that the Pressure of the system.
+You should specify this ONLY for the wetting phase</a:documentation>
+                  <ref name="real"/>
+                </element>
+              </optional>
             </element>
           </optional>
         </element>
       </oneOrMore>
       <optional>
         <ref name="mesh_adaptivity_options"/>
+      </optional>
+      <optional>
+        <ref name="reduced_model"/>
       </optional>
       <optional>
         <element name="porous_media">
@@ -5046,6 +5079,67 @@ DEN = A * P ^ B
         <element name="python_state">
           <a:documentation>The "Dummy" diagnotic field on the pressure mesh is required for this option</a:documentation>
           <ref name="scalar_python_diagnostic_algorithm"/>
+        </element>
+      </choice>
+    </element>
+  </define>
+  <define name="rheology">
+    <element name="rheology">
+      <a:documentation>Specify rheologival model for this materal</a:documentation>
+      <choice>
+        <element name="newtonian">
+          <a:documentation>Newtonian material with single coefficient of viscosity</a:documentation>
+          <element name="tensor_field">
+            <attribute name="name">
+              <value>Viscosity</value>
+            </attribute>
+            <element name="prescribed">
+              <ref name="velocity_mesh_choice"/>
+              <ref name="prescribed_values_tensor_field"/>
+              <ref name="prescribed_output_options"/>
+            </element>
+          </element>
+        </element>
+        <element name="non_newtonian">
+          <a:documentation>Models including power law and Herschel-Bulkley	</a:documentation>
+          <attribute name="name">
+            <value>ShearDependent</value>
+          </attribute>
+          <optional>
+            <element name="yield_stress">
+              <ref name="real"/>
+            </element>
+          </optional>
+          <element name="exponent">
+            <ref name="real"/>
+          </element>
+          <element name="consistency_index">
+            <ref name="real"/>
+          </element>
+          <optional>
+            <element name="tolerance">
+              <ref name="real"/>
+            </element>
+          </optional>
+          <optional>
+            <element name="lower_bound">
+              <ref name="real"/>
+            </element>
+          </optional>
+          <optional>
+            <element name="upper_bound">
+              <ref name="real"/>
+            </element>
+          </optional>
+          <element name="tensor_field">
+            <attribute name="name">
+              <value>Viscosity</value>
+            </attribute>
+            <element name="diagnostic">
+              <ref name="velocity_mesh_choice"/>
+              <ref name="prescribed_output_options"/>
+            </element>
+          </element>
         </element>
       </choice>
     </element>

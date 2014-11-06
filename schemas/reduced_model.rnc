@@ -5,8 +5,43 @@ reduced_model =
       ## should be run in reduced mode. 
       ##
       ##  DO NOT MANUALLY ENABLE THIS OPTION!!!
-      element execute_reduced_model {
-         empty
+        element execute_reduced_model {
+        
+         ## Petrov-Galerkin
+         element petrov_galerkin {
+            empty
+         }?   
+      }?,
+      element Non_intrusive{
+           empty 
+      }?,
+      element Smolyak{
+           empty 
+      }?,
+      element smolyak_order {
+            integer
+         },
+       element Produce_Smolyak_Data{
+           empty 
+      }?,
+      ## lagrange interpolation at each dimension, then combine dimensions together using tensor product.
+      ##
+      ## Please note: only completing ANN_ROM
+       element Lag_nd_interpolation{
+           empty 
+      }?,
+      ## Radial Basis Function interpolation method.
+      ##
+      ## Please note: only completing ANN_ROM
+      element RBF_interpolation{
+           empty 
+      }?,
+       ## Number of Nonintrusive POD basis to be calculated
+         element nonintrusive_pod_basis_count {
+            integer
+         },
+         element training{
+           empty
       }?,
       element pod_basis_formation {
          ## How frequently should the dumps be sampled to form the POD basis? 
@@ -22,7 +57,15 @@ reduced_model =
          ## pod_basis perturbation coefficient
          element pod_basis_perturbation_coefficient {
             real
-         }
-      }
+         } 
+      },
+      element adjoint {
+        empty
+     }?,
+           ## DEIM(Discrete Empirical Interpolation Method)
+          
+       element discrete_empirical_interpolation_method {
+            empty
+         }?
    }
       

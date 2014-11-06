@@ -220,6 +220,13 @@ bin/form_pod_basis: fluidity_library reduced_modelling/Form_Pod_Basis_Main.F90
 	@echo "    LD Form_Pod_Basis"
 	@$(EVAL) $(LINKER) -o bin/form_pod_basis reduced_modelling/Form_Pod_Basis_Main.o $(LIBS)
 
+bin/adjoint_rom: fluidity_library adjoint_reduced_modelling/Adjoint_main.F90
+	@cd adjoint_reduced_modelling; $(MAKE) Adjoint_main.o
+	@echo "BUILD Adjoint_main"
+	@echo "    MKDIR bin"
+	@mkdir -p bin
+	@echo "    LD adjoint_rom"
+	@$(EVAL) $(LINKER) -o bin/adjoint_rom adjoint_reduced_modelling/Adjoint_main.o $(LIBS)
 
 static: fluidity_library
 
@@ -303,6 +310,8 @@ endif
 	@cd radiation; $(MAKE)
 	@echo "    MAKE reduced_modelling"
 	@cd reduced_modelling;   	$(MAKE)
+	@echo "    MAKE adjoint_reduced_modelling"
+	@cd adjoint_reduced_modelling;  $(MAKE)
 	@echo "    MAKE adjoint"
 	@cd adjoint; $(MAKE)
 	@echo "    MAKE main"
@@ -389,6 +398,8 @@ endif
 	@cd reduced_modelling; $(MAKE) clean
 	@echo "    CLEAN adjoint"
 	@cd adjoint; $(MAKE) clean
+	@echo "    CLEAN adjoint_reduced_modelling"
+	@cd adjoint_reduced_modelling; $(MAKE) clean	 
 	@echo "    CLEAN main"
 	@cd legacy_reservoir_prototype; $(MAKE) clean
 	@echo "    CLEAN legacy_reservoir_prototype"

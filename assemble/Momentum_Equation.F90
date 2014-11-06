@@ -74,7 +74,15 @@
       use slope_limiters_dg
       use implicit_solids
       use multiphase_module
-
+      !use pressure_dirichlet_bcs_cv
+      use sparse_tools_petsc 
+      use global_parameters, only:theta
+      use reduced_model_runtime
+      use reduced_projection
+      use momentum_equation_reduced
+      use rbf_interp
+      use lag_nd_interp
+      use smolyak
       implicit none
 
       private
@@ -82,7 +90,7 @@
 
       ! The timestep
       real :: dt
-
+      type(csr_matrix) :: fs_m, fs_m_temp
       ! Are we going to form the Diagonal Schur complement preconditioner?
       logical :: get_diag_schur
       ! Do we need the scaled pressure mass matrix?
@@ -132,9 +140,14 @@
       ! Are we running a multi-phase simulation?
       logical :: multiphase
 
+     !! True if the momentum equation should be solved with the reduced model.
+      !logical :: reduced_model
+      real :: ann_finish, ann_start
+      integer :: st,erro!,total_nd
    contains
 
-      subroutine solve_momentum(state, at_first_timestep, timestep, POD_state)
+      subroutine solve_momentum(state, at_first_timestep, timestep, POD_state, POD_state_deim, snapmean, eps, its, total_timestep,if_optimal)
+       
          !!< Construct and solve the momentum and continuity equations
          !!< using Chorin's projection method (Chorin, 1968)
 
@@ -143,7 +156,8 @@
          type(state_type), dimension(:), intent(inout) :: state
          logical, intent(in) :: at_first_timestep
          integer, intent(in) :: timestep
-         type(state_type), dimension(:), intent(inout) :: POD_state
+         type(state_type), dimension(:,:,:), intent(inout) :: POD_state
+         type(state_type), dimension(:), intent(inout) :: POD_state_deim
 
          ! Counter iterating over each state
          integer :: istate 
@@ -168,6 +182,7 @@
          ! Momentum LHS
          type(petsc_csr_matrix), dimension(:), allocatable, target :: big_m
          ! Matrix for split explicit advection
+         type(petsc_csr_matrix), dimension(:), allocatable, target  :: big_m_tmp
          type(block_csr_matrix), dimension(:), allocatable :: subcycle_m
          ! Pointer to matrix for full projection solve:
          type(petsc_csr_matrix_pointer), dimension(:), allocatable :: inner_m
@@ -189,7 +204,8 @@
          type(block_csr_matrix), dimension(1:size(state)):: inverse_mass
 
          ! Momentum RHS
-         type(vector_field), dimension(1:size(state)):: mom_rhs
+         type(vector_field), dimension(1:size(state)):: mom_rhs, rhs_deim, rhs_advec,rhs_deim_res
+         
          ! Projection RHS
          type(scalar_field) :: projec_rhs
          type(scalar_field), dimension(1:size(state)):: ct_rhs
@@ -229,6 +245,7 @@
          character(len=FIELD_NAME_LEN) :: equation_type, poisson_scheme, schur_scheme, pressure_pmat
 
          integer :: stat
+         real ::  theta_pp
 
          ! The list of stiff nodes
          ! This is saved because the list is only formed when cmc is assembled, which
@@ -241,7 +258,8 @@
          type(vector_field), pointer :: snapmean_velocity
          type(scalar_field), pointer :: snapmean_pressure
          integer :: d
-
+         logical, intent(in) :: snapmean
+         real, intent(in) :: eps
          !! Variables for multi-phase flow model
          integer :: prognostic_count
          ! Do we have a prognostic pressure field to solve for?
@@ -254,10 +272,106 @@
          type(state_type), dimension(:), pointer :: submaterials
          ! The index of the current phase (i.e. state(istate)) in the submaterials array
          integer :: submaterials_istate 
+         integer, intent(in) :: its
+         integer, intent(in),optional ::total_timestep
+         logical, optional,intent(in):: if_optimal
+       
 
-         ewrite(1,*) 'Entering solve_momentum'
+
+      !!for reduced model
+      !type(vector_field), pointer :: snapmean_velocity
+      !type(scalar_field), pointer :: snapmean_pressure
+      type(vector_field), pointer :: POD_velocity, POD_velocity_deim, velocity_deim!,velocity_deim_snapmean
+      type(scalar_field), pointer :: POD_pressure
+
+      type(pod_matrix_type) :: pod_matrix, pod_matrix_mass, pod_matrix_adv 
+      type(pod_rhs_type) :: pod_rhs
+      real, dimension(:), allocatable :: pod_coef,pod_coef_dt
+      real, dimension(:,:), allocatable :: pod_sol_velocity, pod_ct_m
+      real, dimension(:), allocatable :: pod_sol_pressure
+      integer ::  i, j, k,dim,jd
+      !real, intent(in) :: eps
+      !logical, intent(in) :: snapmean
+      logical :: timestep_check
+      type(scalar_field) :: u_cpt
+
+     ! real, dimension(:,:), allocatable :: A_deim ,mom_rhs_deim  !() name change
+     ! real, dimension(:), allocatable :: b_deim,Ny
+      real, dimension(:,:), allocatable :: P_mn,Temp_pu,Temp_vu,Temp_vupu,mom_rhs_deim !A_deim,
+      real, dimension(:,:,:), allocatable :: V_kn,U_nm, U_mn
+      real, dimension(:), allocatable :: Ny ,b_deim
+       real, dimension(:,:), allocatable :: A_deim    !() name change
+      integer :: unodes,d1, AI,AJ,AM,AN,d2   
+
+      !petro
+      type(scalar_field), pointer :: POD_u_scalar  !petro
+      type(pod_rhs_type)::pod_rhs_old
+      type(vector_field), pointer :: POD_u
+      real, dimension(:), allocatable :: theta_pet,smean_gi,KB_pod,b_pod,PSI_GI,PSI_OLD_GI,psi_old,GRADX,GRADT,DIFFGI_pod,PSI
+      real, dimension(:,:), allocatable ::leftsvd,leftsvd_gi,leftsvd_x_gi, AMAT_pod, KMAT_pod
+    
+      !real, dimension(:,:), allocatable :: snapmean_velocity
+      type(element_type), pointer :: x_shape,xf_shape
+      real, dimension(:,:),allocatable ::X_val !for getting the result of detwei
+      real, dimension(:), allocatable :: detwei(:),res(:)
+      real ,dimension(:,:),allocatable :: JJ   !(X%dim, mesh_dim(X)),
+      real :: det ! for getting the result of detwei
+      real, dimension(:,:,:), allocatable ::  dshape
+
+      ! real, dimension(POD_u%dim,ele_loc(POD_u,ele)) :: X_val !for getting the result of detwei
+      ! new added for petro-galerkin
+      integer :: TOTELE,NLOC,NGI,nsvd !,stat
+      integer ::  POD_num
+      type(mesh_type), pointer :: pod_umesh
+      REAL PSI_THETA
+      INTEGER ELE,globi,globj,isvd,jsvd,jloc,GI 
+      REAL A_STAR_COEF,AX_STAR,P_STAR_POD
+      REAL DT1
+      real noloc,nogas
+      logical :: petrov
+      real, dimension(:,:), allocatable :: pod_matrix_snapmean,  pod_matrix_adv_mean
+      real, dimension(:), allocatable :: pod_rhs_snapmean
+      real, dimension(:,:), allocatable :: pod_matrix_perturbed,pod_matrix_adv_perturbed
+      real, dimension(:), allocatable :: pod_rhs_perturbed,pod_ct_rhs,pod_rhs_adv_perturbed
+      
+      !nonlinear_iteration_loop
+      integer :: nonlinear_iterations
+      !integer, intent(in) :: its
+      !integer, intent(in),optional ::total_timestep
+
+      !free surface matrix
+     !type(csr_matrix) :: fs_m
+
+      logical :: on_sphere, have_absorption, have_vertical_stabilization
+      type(vector_field), pointer :: dummy_absorption
+      logical :: lump_mass_form
+      real :: ann_start,ann_end
+      ! Adjoint model
+      logical :: adjoint_reduced
+      type(pod_rhs_type) :: pod_rhs_adjoint
+      real, dimension(:,:), allocatable :: pod_coef_all_obv
+      real :: finish_time,current_time
+      !logical, optional,intent(in):: if_optimal
+      logical :: interpolated
+      real, dimension(:,:), allocatable :: xd
+      real :: nd, m
+      ewrite(1,*) 'Entering solve_momentum'
+      st=0
+      call get_option('/timestepping/nonlinear_iterations', nonlinear_iterations, default=1)
+           if(timestep==1.and.its/=nonlinear_iterations) then
+              reduced_model = .false.
+           else
+              reduced_model= have_option("/reduced_model/execute_reduced_model")
+           endif
 
 
+           if(timestep==1)then 
+              timestep_check=.true.
+           else
+              timestep_check= .false.
+           endif
+         u => extract_vector_field(state(1), "Velocity", stat)
+         DT1=0.1
          !! Get diagnostics (equations of state, etc) and assemble matrices
 
          ! Get some options that are independent of the states
@@ -312,14 +426,15 @@
 
          !! Get some pressure options
          call get_pressure_options(p)
-
+         if(.not.reduced_model .or. (reduced_model .and. timestep_check))then
          ! Allocate arrays for the N states/phases
          allocate(big_m(size(state)))
+         allocate(big_m_tmp(size(state)))
          allocate(ct_m(size(state)))
          allocate(ctp_m(size(state)))
          allocate(subcycle_m(size(state)))
          allocate(inner_m(size(state)))
-
+               
          nullify(cmc_global)
 
          ! Allocate arrays for phase-dependent options
@@ -348,7 +463,8 @@
             call get_phase_submaterials(state, istate, submaterials, submaterials_istate)
             call calculate_momentum_diagnostics(state, istate, submaterials, submaterials_istate)
             deallocate(submaterials)
-
+          
+                        
             call profiler_toc("momentum_diagnostics")
 
             ! Print out some statistics for the velocity
@@ -373,9 +489,11 @@
                ! Get the pressure gradient matrix (i.e. the divergence matrix)
                ct_m(istate)%ptr => get_velocity_divergence_matrix(state(istate), get_ct=reassemble_ct_m) ! Sets reassemble_ct_m to true if it does not already exist in state(i) 
                reassemble_ct_m = reassemble_ct_m .or. reassemble_all_ct_m
-
-               ! Get the pressure poisson matrix (i.e. the CMC/projection matrix)
+               
+              ! Get the pressure poisson matrix (i.e. the CMC/projection matrix)
                cmc_m => get_pressure_poisson_matrix(state(istate), get_cmc=reassemble_cmc_m) ! ...and similarly for reassemble_cmc_m
+               call allocate(fs_m_temp,cmc_m%sparsity)
+               call zero(fs_m_temp)
                reassemble_cmc_m = reassemble_cmc_m .or. reassemble_all_cmc_m
                call profiler_toc(p, "assembly")
             end if
@@ -443,6 +561,7 @@
                      inner_m(istate)%ptr => mass(istate)
                   case("FullMomentumMatrix")
                      inner_m(istate)%ptr => big_m(istate)
+                     
                   case default
                      ! Developer error... out of sync options input and code
                      FLAbort("Unknown Matrix Type for Full_Projection")
@@ -508,17 +627,35 @@
                ! and then allocate
                call allocate(big_m(istate), u_sparsity, (/u%dim, u%dim/), &
                                        diagonal=diagonal_big_m, name="BIG_m")
-            end if
+               call allocate(big_m_tmp(istate), u_sparsity, (/u%dim, u%dim/), &
+                                       diagonal=diagonal_big_m, name="BIG_m")
+                        ! print * , 'beforepod_rhspod_rhspod_rhspod_rhs',pod_rhs%val
+               !  allocate(A_deim(size(POD_state)*(u%dim),deim_number*(u%dim)))
+                ! allocate(b_deim(deim_number*(u%dim)))
+                ! allocate(Ny(size(POD_state,1)*(u%dim+1)))
+                        !  allocate(pod_coef_deim((u%dim+1)*size(POD_state)))
+               end if
+             !
 
             ! Initialise the big_m and ct_m matrices
             call zero(big_m(istate))
+            call zero(big_m_tmp(istate))
             if(reassemble_ct_m) then
-               call zero(ct_m(istate)%ptr)
+               call zero(ct_m(istate)%ptr)               
+               
             end if
 
             ! Allocate the momentum RHS
             call allocate(mom_rhs(istate), u%dim, u%mesh, "MomentumRHS")
+           
+          !  print*,'sizeof mom_rhs', size(mom_rhs(istate)%val,1),  size(mom_rhs(istate)%val,2)
+            call allocate(rhs_deim(istate),u%dim, u%mesh, "Velocity") 
+           ! call allocate(rhs_deim_res(istate),u%dim, u%mesh, "Velocity")
+          !  call zero(rhs_deim_res(istate)) 
+                
+            call zero(rhs_deim(istate))
             call zero(mom_rhs(istate))
+            
             ! Allocate the ct RHS
             call allocate(ct_rhs(istate), p_mesh, "DivergenceRHS")
             call zero(ct_rhs(istate))
@@ -566,6 +703,21 @@
                      assemble_ct_matrix=reassemble_ct_m, &
                      cg_pressure=cg_pressure)
             end if
+            
+            ! If CV pressure then add in any dirichlet pressure BC integrals to the mom_rhs.
+            ! if (cv_pressure) then
+            !if (cv_pressure.and.(.not.reduced_model)) then
+              ! call add_pressure_dirichlet_bcs_cv(mom_rhs(istate), u, p, state(istate))
+            !end if
+            
+            ! Add in multiphase interactions (e.g. fluid-particle drag) if necessary
+            ! Note: this is done outside of construct_momentum_cg/dg to keep things
+            ! neater in Momentum_CG/DG.F90, since we would need to pass around multiple phases 
+            ! and their fields otherwise.
+           ! if(multiphase .and. have_fp_drag) then
+              ! call add_fluid_particle_drag(state, istate, u, x, big_m(istate), mom_rhs(istate))
+           ! end if
+            
             call profiler_toc(u, "assembly")
 
             if(has_scalar_field(state(istate), hp_name)) then
@@ -633,8 +785,9 @@
                   call rotate_ct_m_sphere(state(istate), ct_m(istate)%ptr, u)
                end if
             end if
-
-            call apply_dirichlet_conditions(big_m(istate), mom_rhs(istate), u, dt)
+             if(.not.reduced_model) then
+             call apply_dirichlet_conditions(big_m(istate), mom_rhs(istate), u, dt)
+             endif
             call profiler_toc(u, "assembly")
 
             if (associated(ct_m(istate)%ptr)) then
@@ -842,7 +995,8 @@
             call zero(projec_rhs)
 
          end if ! end of prognostic pressure
-         call profiler_toc(p, "assembly")
+
+  endif  !end of if (.not.reduced_model or (reduced_model and timestep_check))
 
 
          if (.not.reduced_model) then
@@ -1006,65 +1160,99 @@
 
             end if ! prognostic pressure
 
-         else !! Reduced model version
+           if (have_option("/reduced_model/Non_intrusive")) then
+               call get_option("/timestepping/current_time", current_time)
+       	       call get_option("/timestepping/finish_time", finish_time)
+               call get_option("/timestepping/timestep", dt) 
+               !total_timestep=int((finish_time-current_time)/dt)      
+               
+              allocate(pod_coef_all_obv(total_timestep+1,((u%dim+1)*size(POD_state,1))))
+               if(its==nonlinear_iterations) then
+                   do i=1,size(POD_state,1)
+                           POD_velocity=>extract_vector_field(POD_state(i,1,1), "Velocity")
+                             snapmean_velocity=>extract_vector_field(POD_state(i,1,1),"SnapmeanVelocity")
+                             snapmean_pressure=>extract_Scalar_field(POD_state(i,2,1),"SnapmeanPressure") 
+                             do j=1,u%dim
+                            !  print *, 'POD_velocity%val(j,:), u%val(j,:)',POD_velocity%val(j,:), u%val(j,:),snapmean_velocity%val(j,:)
+                             pod_coef_all_obv(timestep,i+size(POD_state,1)*(j-1))=&
+                                        dot_product(POD_velocity%val(j,:),(u%val(j,:)-snapmean_velocity%val(j,:)))
+                             enddo
+                             POD_pressure=>extract_scalar_field(POD_state(i,2,1), "Pressure")
+                             pod_coef_all_obv(timestep,i+size(POD_state,1)*u%dim)= &
+                                        dot_product(POD_pressure%val(:),(p%val(:)-snapmean_pressure%val(:)))
+                         enddo 
+          
 
-            call profiler_tic("reduced_model_loop")
-            reduced_model_loop: do istate = 1, size(state)
-
-               ! Get the velocity
-               u => extract_vector_field(state(istate), "Velocity", stat)
-
-               ! If there's no velocity then cycle
-               if(stat/=0) cycle
-               ! If this is an aliased velocity then cycle
-               if(aliased(u)) cycle
-               ! If the velocity isn't prognostic then cycle
-               if(.not.have_option(trim(u%option_path)//"/prognostic")) cycle
-
-               if(have_option(trim(u%option_path)//"/prognostic/spatial_discretisation&
-                                       &/continuous_galerkin").or.&
-                  have_option(trim(u%option_path)//"/prognostic/spatial_discretisation&
-                                       &/discontinuous_galerkin")) then
-
-                  ! Allocate the change in pressure field
-                  call allocate(delta_p, p%mesh, "DeltaP")
-                  delta_p%option_path = trim(p%option_path)
-                  call zero(delta_p)
-
-                  call allocate(delta_u, u%dim, u%mesh, "DeltaU")
-                  delta_u%option_path = trim(u%option_path)
-                  call zero(delta_u)
-
-                  call solve_momentum_reduced(delta_u, delta_p, big_m(istate), mom_rhs(istate), ct_m(istate)%ptr, ct_rhs(istate), timestep, POD_state)
-
-                  snapmean_velocity => extract_vector_field(POD_state(1), "SnapmeanVelocity")
-                  snapmean_pressure => extract_scalar_field(POD_state(1), "SnapmeanPressure")
-
-                  if(timestep == 1) then
-                     do d = 1, snapmean_velocity%dim
-                        u%val(d,:)=snapmean_velocity%val(d,:)
-                     enddo
-                     p%val = snapmean_pressure%val
-
-                     call addto(u, delta_u, dt)
-                     call addto(p, delta_p, dt)
-                  else
-                     call addto(u, delta_u, dt)
-                     call addto(p, delta_p, dt)
+               !write(40,*)(pod_coef(i),i=1,(u%dim+1)*size(POD_state,1))
+                  if(timestep .eq. 1) then 
+                   open(11,file='coef_pod_all_obv')
+                   write(11,*)(pod_coef_all_obv(timestep,:))
+                   close(11)
+                  else 
+                   open(11,file='coef_pod_all_obv', position='append',ACTION='WRITE')
+                    print *, 'total_timesteptimestep', total_timestep, timestep
+                   write(11,*)(pod_coef_all_obv(timestep,:))
+                   close(11)
                   endif
+               endif
 
                   call deallocate(delta_p)
                   call deallocate(delta_u)
-
-               end if ! prognostic velocity
-
-            end do reduced_model_loop
-            call profiler_toc("reduced_model_loop")
-
-         end if ! end of 'if .not.reduced_model'
-
-
-
+                 deallocate(pod_coef_all_obv)
+           endif ! if(non_intrusive)
+         else !! Reduced model version            
+      
+             ! stop 212
+          if (has_boundary_condition(u, "free_surface")) then
+             !print *, 'fs_m1243',   size(fs_m_temp%val) 
+             open(unit=22,file='fs_m.dat')      
+             ! read(22,*) fs_m_size!(f(fs_m%val(i),i=1, 3826)
+             ! allocate(fs_m_temp(fs_m_size))
+             read(22,*)   fs_m_temp%val(:)!,i=1, fs_m_size)
+             close(22)
+            ! fs_m_temp%val(:)=0
+            ! print *, 'fs_m1217',   size(fs_m_temp%val)  
+            ! call mult(ct_rhs(istate),fs_m_temp,p)
+            ! ct_rhs(istate)%val=dot_product(fs_m_temp, p)
+            call solve_momentum_reduced(state, u,p,big_m, ct_m, mom_rhs, ct_rhs, inverse_masslump, &
+                 at_first_timestep, timestep, POD_state, POD_state_deim,snapmean, eps, its, total_timestep, if_optimal=if_optimal,fs_m=fs_m_temp) 
+       
+          else if (have_option("/reduced_model/Non_intrusive")) then
+                ! if (have_option("/reduced_model/RBF_interpolation") .or. have_option("/reduced_model/Lag_nd_interpolation")) then  
+                  
+                        if (have_option("/reduced_model/Lag_nd_interpolation"))  then
+                  ! if (have_option("/reduced_model/Smolyak"))  then
+                         ! if(timestep .eq. 1)then 
+                          !  do i=1, (u%dim+1)*size(POD_state,1) 
+                            ! call lag_nd_interp_main((u%dim+1)*size(POD_state,1),i,total_timestep )
+                         !   enddo 
+                        !  endif
+                      !real one, delete it just for test the rbf
+                    ! call solve_lag_interpolation(state, u,p,big_m, ct_m, mom_rhs, ct_rhs, inverse_masslump,at_first_timestep, timestep, POD_state, POD_state_deim,snapmean, eps, its, total_timestep) 
+                         st=st+1
+                         print *, 'timesssssstep' , timestep,st , at_first_timestep 
+                         call solve_rbf(state, u,p,big_m, ct_m, mom_rhs, ct_rhs, inverse_masslump, &
+                          at_first_timestep, timestep, POD_state, POD_state_deim,snapmean, eps, its, total_timestep)
+                        call solve_smolyak(state, u,p,big_m, ct_m, mom_rhs, ct_rhs, inverse_masslump, &
+                               at_first_timestep, timestep, POD_state, POD_state_deim, snapmean, eps, its,total_timestep)
+                   else 
+                    call cpu_time(ann_start)
+                    call solve_ann_reduced(state, u,p,big_m, ct_m, mom_rhs, ct_rhs, inverse_masslump, &
+                         at_first_timestep, timestep, POD_state, POD_state_deim,snapmean, eps, its, total_timestep)
+                    call cpu_time(ann_finish)
+                    print *, 'ann_finish-ann_start', ann_finish-ann_start
+                  !  print *, 'timessssss' , timestep,i , at_first_timestep 
+                   endif !(have_option("/reduced_model/Ann_interpolation"))
+               else 
+               call solve_momentum_reduced(state, u,p,big_m, ct_m, mom_rhs, ct_rhs, inverse_masslump, &
+                 at_first_timestep, timestep, POD_state, POD_state_deim,snapmean, eps, its, total_timestep, if_optimal=if_optimal) 
+             endif ! have_option("/reduced_model/Non_intrusive")
+                   
+         end if ! end of 'if .not.reduced_model' free surface debug place
+          
+    
+           !  print *, 'fs_m1239'
+   	if(.not.reduced_model .or. (reduced_model .and. timestep_check))then
          !! Finalisation and memory deallocation
          call profiler_tic("finalisation_loop")
          finalisation_loop: do istate = 1, size(state)
@@ -1091,12 +1279,13 @@
 
          end do finalisation_loop
          call profiler_toc("finalisation_loop")
+	endif ! if(reduced_model.and.timestep_check) 
 
          if(use_theta_pg) then
             call deallocate(p_theta)
             deallocate(p_theta)
          end if
-
+    	 if(.not.reduced_model .or. (reduced_model .and. timestep_check))then
          ! Deallocate arrays of matricies/fields/pointers
          deallocate(big_m)
          deallocate(ct_m)
@@ -1114,9 +1303,11 @@
          deallocate(subcycle)
          deallocate(lump_mass)
          deallocate(sphere_absorption)
-
-      end subroutine solve_momentum
-
+	endif
+      
+      end subroutine solve_momentum 
+                
+    
 
       subroutine get_velocity_options(state, istate, u)
          !!< Gets some velocity options from the options tree
@@ -1978,4 +2169,44 @@
 
       end subroutine momentum_equation_check_options
 
-   end module momentum_equation
+SUBROUTINE SMLINN(A,X,B,NMX,N)
+        IMPLICIT NONE
+        INTEGER NMX,N
+        REAL A(NMX,NMX),X(NMX),B(NMX)
+        REAL R
+        INTEGER K,I,J
+!     Form X = A^{-1} B
+!     Useful subroutine for inverse
+!     This sub overwrites the matrix A. 
+        DO K=1,N-1
+           DO I=K+1,N
+              A(I,K)=A(I,K)/A(K,K)
+           END DO
+           DO J=K+1,N
+              DO I=K+1,N
+                 A(I,J)=A(I,J) - A(I,K)*A(K,J)
+              END DO
+           END DO
+        END DO
+!     
+!     Solve L_1 x=b
+        DO I=1,N
+           R=0.
+           DO J=1,I-1
+              R=R+A(I,J)*X(J)
+           END DO
+           X(I)=B(I)-R
+        END DO
+!     
+!     Solve U x=y
+        DO I=N,1,-1
+           R=0.
+           DO J=I+1,N
+              R=R+A(I,J)*X(J)
+           END DO
+           X(I)=(X(I)-R)/A(I,I)
+        END DO
+        RETURN
+        END SUBROUTINE SMLINN
+
+    end module momentum_equation

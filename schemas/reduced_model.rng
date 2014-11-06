@@ -8,6 +8,54 @@
 should be run in reduced mode. 
 
  DO NOT MANUALLY ENABLE THIS OPTION!!!</a:documentation>
+          <optional>
+            <element name="petrov_galerkin">
+              <a:documentation>Petrov-Galerkin</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+        </element>
+      </optional>
+      <optional>
+        <element name="Non_intrusive">
+          <empty/>
+        </element>
+      </optional>
+      <optional>
+        <element name="Smolyak">
+          <empty/>
+        </element>
+      </optional>
+      <element name="smolyak_order">
+        <ref name="integer"/>
+      </element>
+      <optional>
+        <element name="Produce_Smolyak_Data">
+          <empty/>
+        </element>
+      </optional>
+      <optional>
+        <element name="Lag_nd_interpolation">
+          <a:documentation>lagrange interpolation at each dimension, then combine dimensions together using tensor product.
+
+Please note: only completing ANN_ROM</a:documentation>
+          <empty/>
+        </element>
+      </optional>
+      <optional>
+        <element name="RBF_interpolation">
+          <a:documentation>Radial Basis Function interpolation method.
+
+Please note: only completing ANN_ROM</a:documentation>
+          <empty/>
+        </element>
+      </optional>
+      <element name="nonintrusive_pod_basis_count">
+        <a:documentation>Number of Nonintrusive POD basis to be calculated</a:documentation>
+        <ref name="integer"/>
+      </element>
+      <optional>
+        <element name="training">
           <empty/>
         </element>
       </optional>
@@ -27,6 +75,17 @@ E.g. 1 for every dump, 10 for every tenth dump. </a:documentation>
           <ref name="real"/>
         </element>
       </element>
+      <optional>
+        <element name="adjoint">
+          <empty/>
+        </element>
+      </optional>
+      <optional>
+        <element name="discrete_empirical_interpolation_method">
+          <a:documentation>DEIM(Discrete Empirical Interpolation Method)</a:documentation>
+          <empty/>
+        </element>
+      </optional>
     </element>
   </define>
 </grammar>

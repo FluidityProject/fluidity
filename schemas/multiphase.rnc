@@ -5,6 +5,7 @@ include "diagnostic_algorithms.rnc"
 include "input_output.rnc"
 include "solvers.rnc"
 include "stabilisation.rnc"
+include "reduced_model.rnc"
 include "mesh_options.rnc"
 include "physical_parameters.rnc"
 include "prognostic_field_options.rnc"
@@ -567,6 +568,8 @@ start =
             element Impose_first_order { comment }?,
             ## The equation of state
             equation_of_state?,
+	    ## The material rheological model
+	    rheology?,
             ## Pressure
             element scalar_field {
                attribute rank { "0" },
@@ -764,25 +767,49 @@ start =
 	       element coarse_graining {integer}?,	      
                ## Option for capillary pressure				 
                element capillary_pressure {
-                  ## Brookes-Corey equation
+                  ## Brooks-Corey equation
                   ##
                   ## Pc = c * ((S_w-Swir)/(1-Swirr-Sor)) ** -a
-                  element type_Brookes_Corey {
-                     element phase {
-                        ## Specify the phase to which these values relate
-                        attribute material_phase_name { xsd:string },
-                        ## multiplier c
-                        element c {real},
-                        ## exponent a
-                        element a {real}
-                     }+
-                  }
+                  ## You should specify this ONLY for the wetting phase
+                  element type_Brooks_Corey {
+                    ## Entry pressure of the formula
+                    element scalar_field {
+                       attribute name { "C" },
+                       (
+                          element prescribed {
+                             velocity_mesh_choice,
+                             prescribed_scalar_field
+                          }|
+                          element aliased {
+                             generic_aliased_field
+                          }
+                       )
+                    },
+                    ## exponent -a
+                    element scalar_field {
+                       attribute name { "a" },
+                       (
+                          element prescribed {
+                             velocity_mesh_choice,
+                             prescribed_scalar_field
+                          }|
+                          element aliased {
+                             generic_aliased_field
+                          }
+                       )
+                    }}
                }?,
                ## Immobile volume of fluid phase
-               element immobile_fraction {real}?
+               element immobile_fraction {real}?,
+               ## Introduce artificial diffusion in the transport equation. 
+               ## It is treated as a Capillary pressure term. The input value is the entry pressure.
+               ## Recommended value: Two orders of magnitude smaller that the Pressure of the system.
+               ## You should specify this ONLY for the wetting phase
+               element Pe_stab {real}?
             }?
          }+,
          mesh_adaptivity_options?,
+         reduced_model?,
          ## Porous Media
          element porous_media {
             ## Specify scalar field Porosity
@@ -4071,3 +4098,47 @@ element equation_of_state{
 }
                   )
                )
+
+rheology =
+   (
+      (
+         ## Specify rheologival model for this materal
+         element rheology{
+	    (
+	       ## Newtonian material with single coefficient of viscosity
+               element newtonian {
+		  element tensor_field {
+		     attribute name { "Viscosity" },
+		      element prescribed {
+		        velocity_mesh_choice,
+			prescribed_values_tensor_field,
+		        prescribed_output_options
+                     }
+                  }
+	       }  |
+	       	  ## Models including power law and Herschel-Bulkley	
+               element non_newtonian {
+    	          attribute name { "ShearDependent"},
+		  element yield_stress { real }?,
+		  element exponent { real },
+		  element consistency_index { real },
+		  element tolerance { real }?,
+		  element lower_bound { real }?,
+		  element upper_bound { real }?,
+		  element tensor_field {
+		     attribute name { "Viscosity" },
+		     element diagnostic {
+		        velocity_mesh_choice,
+		        prescribed_output_options
+                     }
+                  }
+               } 
+             )
+         }
+)
+)
+
+		  
+
+	         
+	 

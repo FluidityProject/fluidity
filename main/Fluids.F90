@@ -97,6 +97,7 @@ module fluids_module
                                topology_mesh_name
   use eventcounter
   use reduced_model_runtime
+  use reducedmodel_momentum_equation_wrapper
   use implicit_solids
   use sediment
   use radiation
@@ -119,7 +120,7 @@ module fluids_module
 
 contains
 
-  SUBROUTINE FLUIDS()
+  SUBROUTINE FLUIDS(valfun,if_optimal)
     character(len = OPTION_PATH_LEN) :: filename
 
     INTEGER :: &
@@ -132,12 +133,13 @@ contains
          & steady_state_tolerance
 
     real:: nonlinear_iteration_tolerance
-
+    logical, optional :: if_optimal
+    real, optional :: valfun
     !     System state wrapper.
     type(state_type), dimension(:), pointer :: state => null()
     type(state_type), dimension(:), pointer :: sub_state => null()
-    type(state_type), dimension(:), allocatable :: POD_state
-
+    type(state_type), dimension(:,:,:), allocatable :: POD_state
+    type(state_type), dimension(:), allocatable :: POD_state_deim
     type(tensor_field) :: metric_tensor
     !     Dump index
     integer :: dump_no = 0
@@ -146,7 +148,7 @@ contains
     character(len=OPTION_PATH_LEN):: option_path
     REAL :: CHANGE,CHAOLD
 
-    integer :: i, it, its
+    integer :: i, j,k,it, its,m
 
     logical :: not_to_move_det_yet = .false.
 
@@ -168,12 +170,21 @@ contains
     type(scalar_field) :: foam_velocity_potential
     type(vector_field), pointer :: foamvel
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-
+    !Non-intrusive
+    real, dimension(:), allocatable :: pod_coef,pod_coef_dt,pod_coef0
+    type(scalar_field) :: delta_p
+    ! Change in velocity
+    type(vector_field) :: delta_u
+    real, dimension(:,:), allocatable :: pod_sol_velocity
+    real, dimension(:), allocatable :: pod_sol_pressure
     !     backward compatibility with new option structure - crgw 21/12/07
     logical::use_advdif=.true.  ! decide whether we enter advdif or not
 
     INTEGER :: adapt_count
-
+    logical :: snapmean
+    real :: eps
+    
+    integer :: total_timestep
     ! the particle type for the radiation model 
     type(particle_type), dimension(:), allocatable :: particles
 
@@ -228,12 +239,35 @@ contains
     call populate_state(state)
 
     ewrite(3,*)'before have_option test'
-
-    if (have_option("/reduced_model/execute_reduced_model")) then
+ if (have_option("/reduced_model/execute_reduced_model").or.have_option("/reduced_model/Smolyak").or.have_option("/reduced_model/Non_intrusive")) then
+	    !do m = 1,size(state)
+!              if (deim) then
+!                    call read_input_states_deimres(deim_state_resl)
+!                    call read_pod_basis_deimres(POD_state_deim, deim_state_Resl) 
+!            endif
+       
+       call get_option("/timestepping/current_time", current_time)
+       call get_option("/timestepping/finish_time", finish_time)       
+       call get_option("/timestepping/timestep", dt)
+       total_timestep=int((finish_time-current_time)/dt)
+       dump_no = 0 
+       !call read_pod_basis_differntmesh(POD_state, state) 
        call read_pod_basis(POD_state, state)
+         print *, 'sssssssssssssssssssssssss'
+       !enddo    
     else
-       ! need something to pass into solve_momentum
-       allocate(POD_state(1:0))
+       if(have_option("/reduced_model/adjoint"))then
+          call get_option("/timestepping/current_time", current_time)
+          call get_option("/timestepping/finish_time", finish_time)       
+          call get_option("/timestepping/timestep", dt)
+          total_timestep=int((finish_time-current_time)/dt)
+          !call read_pod_basis_differntmesh(POD_state, state)
+          call read_pod_basis(POD_state, state)
+       else
+          ! need something to pass into solve_momentum
+          allocate(POD_state(1:0,1:0,1:0))
+       endif
+      
     end if
 
     ! Check the diagnostic field dependencies for circular dependencies
@@ -788,14 +822,52 @@ contains
           ! a loop over state (hence over phases) is incorporated into this subroutine call
           ! hence this lives outside the phase_loop
 
-          if(use_sub_state()) then
+          !if(use_sub_state()) then
+           !  call update_subdomain_fields(state,sub_state)
+           !  call solve_momentum(sub_state,at_first_timestep=((timestep==1).and.(its==1)),timestep=timestep, POD_state=POD_state)
+          !   call sub_state_remap_to_full_mesh(state, sub_state)
+         ! else
+          !   call solve_momentum(state,at_first_timestep=((timestep==1).and.(its==1)),timestep=timestep, POD_state=POD_state)
+        !  end if
+           if(use_sub_state()) then
              call update_subdomain_fields(state,sub_state)
-             call solve_momentum(sub_state,at_first_timestep=((timestep==1).and.(its==1)),timestep=timestep, POD_state=POD_state)
+             if(.not.have_option("/reduced_model/execute_reduced_model"))then
+                if(have_option("/reduced_model/adjoint")) then
+                   call momentum_loop(sub_state, at_first_timestep=((timestep==1).and.(its==1)), timestep=timestep, &
+                        POD_state=POD_state,POD_state_deim=POD_state_deim, its=its, total_timestep=total_timestep)
+                else
+                   call solve_momentum(sub_state,at_first_timestep=((timestep==1).and.(its==1)),timestep=timestep, &
+                        POD_state=POD_state, POD_state_deim=POD_state_deim,snapmean=snapmean, eps=eps, its=its)
+                endif
+             else
+                if(present(if_optimal)) then
+                   call momentum_loop(sub_state, at_first_timestep=((timestep==1).and.(its==1)), timestep=timestep, &
+                     POD_state=POD_state,POD_state_deim=POD_state_deim, its=its, total_timestep=total_timestep,if_optimal=if_optimal)
+                else
+                   call momentum_loop(sub_state, at_first_timestep=((timestep==1).and.(its==1)), timestep=timestep, &
+                     POD_state=POD_state,POD_state_deim=POD_state_deim, its=its, total_timestep=total_timestep)
+                endif
+             endif
              call sub_state_remap_to_full_mesh(state, sub_state)
           else
-             call solve_momentum(state,at_first_timestep=((timestep==1).and.(its==1)),timestep=timestep, POD_state=POD_state)
+             if(.not.have_option("/reduced_model/execute_reduced_model"))then
+                if(have_option("/reduced_model/adjoint")) then
+                   call momentum_loop(state,at_first_timestep=((timestep==1).and.(its==1)), timestep=timestep, &
+                        POD_state=POD_state, POD_state_deim=POD_state_deim,its=its, total_timestep=total_timestep)
+                else
+                   call solve_momentum(state,at_first_timestep=((timestep==1).and.(its==1)),timestep=timestep, &
+                        POD_state=POD_state, POD_state_deim=POD_state_deim,snapmean=snapmean, eps=eps, its=its, total_timestep=total_timestep)               
+                endif
+             else
+                if(present(if_optimal)) then
+                call momentum_loop(state,at_first_timestep=((timestep==1).and.(its==1)), timestep=timestep, &
+                     POD_state=POD_state, POD_state_deim=POD_state_deim,its=its, total_timestep=total_timestep,if_optimal=if_optimal)
+                else
+                   call momentum_loop(state,at_first_timestep=((timestep==1).and.(its==1)), timestep=timestep, &
+                        POD_state=POD_state, POD_state_deim=POD_state_deim,its=its, total_timestep=total_timestep)
+                endif
+             endif
           end if
-
           if(nonlinear_iterations > 1) then
              ! Check for convergence between non linear iteration loops
              call test_and_write_convergence(state, current_time + dt, dt, its, change)
@@ -1003,12 +1075,20 @@ contains
        end do
     end if
 
-    if (allocated(pod_state)) then
-       do i=1, size(pod_state)
-          call deallocate(pod_state(i))
+     if (allocated(pod_state)) then
+       do i=1, size(pod_state,1)
+          do j=1,size(pod_state,2)
+             do k=1,size(pod_state,3)
+                call deallocate(pod_state(i,j,k))
+             enddo
+          enddo
        end do
     end if
-
+    if(have_option("/reduced_model/Smolyak")) then
+       deallocate(pod_coef)
+       call deallocate(delta_u)
+       call deallocate(delta_p)
+    endif
     ! deallocate the pointer to the array of states and sub-state:
     deallocate(state)
     if(use_sub_state()) deallocate(sub_state)

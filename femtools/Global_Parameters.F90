@@ -164,5 +164,6 @@ module global_parameters
 
   !! Overlapping method
   logical :: is_compact_overlapping = .false.
-
+  real theta 
+  integer ::nd_total
 end module global_parameters
