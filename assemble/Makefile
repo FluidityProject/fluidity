@@ -24,25 +24,25 @@
 #    License along with this library; if not, write to the Free Software
 #    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 #    USA
-SHELL = @SHELL@
+SHELL = /bin/bash
 
-FC      = @FC@
-FCFLAGS = -I../include @MOD_FLAG@../include @CPPFLAGS@ @FCFLAGS@ -I/usr/local/include -I./
+FC      = mpif90
+FCFLAGS = -I../include -J../include -I/usr/include/vtk-5.8  -I/usr/include/python2.7 -DHAVE_NUMPY -I/usr/lib/python2.7/dist-packages/numpy/core/include -I/usr/include/ -I/usr/local/include/  -I/include -I/include/libadjoint -I/usr/include/ -I/usr/local/include/ -I/usr/include/libadjoint -I/usr/local/include/libadjoint -I/usr/lib/petscdir/3.1/linux-gnu-c-opt/include -I/usr/lib/petscdir/3.1/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/lib -I/usr/include/spooles -I/usr/include/scotch -I/usr/lib -I/usr/include/suitesparse -DHAVE_PETSC -DHAVE_VTK=1 -fbounds-check -Wall -Wimplicit-interface -Wno-surprising -g -O0 -frecord-marker=4 -DHAVE_NUMPY -I/usr/lib/python2.7/dist-packages/numpy/core/include -ffree-line-length-none -ffixed-line-length-none -finit-integer=-66666 -finit-real=nan  -I/usr/lib/petscdir/3.1/linux-gnu-c-opt/include -I/usr/lib/petscdir/3.1/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/lib -I/usr/include/spooles -I/usr/include/scotch -I/usr/lib -I/usr/include/suitesparse -fdefault-real-8 -fdefault-double-8 -I/usr/local/include -I./
 
-MPIF90  = @MPIF90@
+MPIF90  = mpif90
 
-CC      = @CC@
-CFLAGS  = @CPPFLAGS@ @CFLAGS@ -I../include -I/usr/local/include -g
+CC      = mpicc
+CFLAGS  = -I/usr/include/vtk-5.8  -I/usr/include/python2.7 -DHAVE_NUMPY -I/usr/lib/python2.7/dist-packages/numpy/core/include -I/usr/include/ -I/usr/local/include/  -I/include -I/include/libadjoint -I/usr/include/ -I/usr/local/include/ -I/usr/include/libadjoint -I/usr/local/include/libadjoint -I/usr/lib/petscdir/3.1/linux-gnu-c-opt/include -I/usr/lib/petscdir/3.1/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/lib -I/usr/include/spooles -I/usr/include/scotch -I/usr/lib -I/usr/include/suitesparse -DHAVE_PETSC -DHAVE_VTK=1 -fbounds-check -Wall -g -O0 -I/usr/include/python2.7 -DHAVE_NUMPY -I/usr/lib/python2.7/dist-packages/numpy/core/include -I../include -I/usr/local/include -g
 
-CXX     = @CXX@
-CXXFLAGS= @CPPFLAGS@ @CXXFLAGS@ -I../include -I/usr/local/include
+CXX     = mpicxx
+CXXFLAGS= -I/usr/include/vtk-5.8  -I/usr/include/python2.7 -DHAVE_NUMPY -I/usr/lib/python2.7/dist-packages/numpy/core/include -I/usr/include/ -I/usr/local/include/  -I/include -I/include/libadjoint -I/usr/include/ -I/usr/local/include/ -I/usr/include/libadjoint -I/usr/local/include/libadjoint -I/usr/lib/petscdir/3.1/linux-gnu-c-opt/include -I/usr/lib/petscdir/3.1/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/lib -I/usr/include/spooles -I/usr/include/scotch -I/usr/lib -I/usr/include/suitesparse -DHAVE_PETSC -DHAVE_VTK=1 -fbounds-check -Wall -g -O0 -I/usr/include/python2.7 -DHAVE_NUMPY -I/usr/lib/python2.7/dist-packages/numpy/core/include -I../include -I/usr/local/include
 
-MAKE    = @MAKE@
-AR  = @AR@
-ARFLAGS = @ARFLAGS@
+MAKE    = make
+AR  = ar
+ARFLAGS = cr
 
-LIB = ../lib/lib@FLUIDITY@.a
-OBJS    = Momentum_Diagnostic_Fields.o Bp_Ann.o Rbf.o smolyak.o lagrange_nd_interp.o ReducedModel_Momentum_Equation.o\	
+LIB = ../lib/libfluidity.a
+OBJS    = Momentum_Diagnostic_Fields.o Bp_Ann.o Rbf.o smolyak.o lagrange_nd_interp.o ReducedModel_Momentum_Equation.o \
 	qmesh.o \
 	OceanSurfaceForcing.o \
 	Momentum_DG.o Advection_Diffusion_CG.o Advection_Diffusion_DG.o Advection_Diffusion_FV.o \
@@ -72,12 +72,13 @@ OBJS    = Momentum_Diagnostic_Fields.o Bp_Ann.o Rbf.o smolyak.o lagrange_nd_inte
         Petsc_Solve_State.o Adaptivity_1D.o \
 	Linear_Shallow_Water.o Linear_Shallow_Water_Legacy.o \
 	Zoltan_global_variables.o Zoltan_integration.o Zoltan_callbacks.o Zoltan_detectors.o \
-        Diagnostic_Children.o Reduced_Model_Runtime.o Turbine.o Implicit_Solids.o \
+	Diagnostic_Children.o Reduced_Model_Runtime.o Turbine.o Implicit_Solids.o \
         ReducedModel_Momentum_Equation_wrapper.o  \
-	Reduced_Projection.o Reduced_Model_Runtime.o Bp_Ann.o Rbf.o smolyak.o lagrange_nd_interp.o \
+	Reduced_Projection.o Reduced_Model_Runtime.o \
 	ReducedModel_Momentum_Equation.o \
-        ReducedModel_Adjoint_Momentum_Equation.o \
-	Momentum_CG.o \
+        Momentum_Equation.o \
+	ReducedModel_Adjoint_Momentum_Equation.o \
+        Momentum_CG.o \
 				Manifold_Projections.o Burgers_Assembly.o
 
 .SUFFIXES: .F90 .c .cpp .o .a
@@ -106,11 +107,11 @@ clean:
 	rm -f *.o *.d *.mod
 
 # Special case mba dependencies
-ifeq (@MBA2D@,yes)
+ifeq (yes,yes)
 Mba2d_Integration.o ../include/mba2d_integration.mod: \
 ../include/mba2d_module.mod
 endif
-ifeq (@MBA3D@,yes)
+ifeq (,yes)
 Mba3d_Integration.o ../include/mba3d_integration.mod: \
 ../include/mba3d_mba_nodal.mod
 endif
