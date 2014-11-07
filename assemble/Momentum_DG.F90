@@ -279,7 +279,11 @@ contains
     ewrite(1, *) "In construct_momentum_dg"
 
     call profiler_tic("construct_momentum_dg")
-    assert(continuity(u)<0)
+    if (continuity(u)=>0) then
+      ewrite(-1,*) "You have selected discontinuous_galerkin for the spatial discretisation of Velocity, " // &
+          "but the Velocity is not on a discontinuous mesh."
+      FLExit("Velocity should be on discontinuous mesh.")
+    end if
 
     acceleration= .not. present_and_false(acceleration_form)
     ewrite(2, *) "Acceleration form? ", acceleration
@@ -3464,6 +3468,15 @@ contains
                 &"/vector_field::Velocity"
              ewrite(0,*) "which is probably an asymmetric matrix"
           end if
+
+          pressure_prognostic_cg_path = trim(phase_path)// &
+              "/scalar_field::Pressure/prognostic/spatial_discretisation/continuous_galerkin"
+          if (have_option(trim(pressure_prognostic_cg_path)) .and. &
+              .not. have_option(trim(pressure_prognostic_cg_path)//"/integrate_continuity_by_parts")) then
+            ewrite(-1,*) "With a DG velocity field you need the option integrate_continuity_by_parts under " // &
+              "scalar_field::Pressure/prognostic/spatial_discretisation/continuous_galerkin"
+            FLExit("Missing option")
+          end if
        end if
 
        if (((have_option(trim(velocity_path)//"vertical_stabilization/vertical_velocity_relaxation") .or. &
@@ -3477,7 +3490,7 @@ contains
 
        if (have_option(trim(dg_path)//"/viscosity_scheme/partial_stress_form") .and. .not. &
             have_option(trim(dg_path)//"/viscosity_scheme/bassi_rebay")) then
-         FLAbort("partial stress form is only implemented for the bassi-rebay viscosity scheme in DG")
+         FLExit("partial stress form is only implemented for the bassi-rebay viscosity scheme in DG")
        end if
 
     end do state_loop
