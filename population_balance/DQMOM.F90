@@ -91,7 +91,6 @@ contains
        end if
     end if
     item => extract_scalar_field(state, trim(name), stat)
-
   end subroutine get_pop_field
 
   subroutine get_pop_option_path(state, i_pop, option_path)
@@ -293,8 +292,8 @@ contains
     character(len=FIELD_NAME_LEN) :: cont_state_name
 
     ! find the continuous state number
-    if (have_option("/material_phase/population_balance_continuous_phase_name")) then
-       call get_option("/material_phase/population_balance_continuous_phase_name", cont_state_name)
+    if (have_option("/population_balance_continuous_phase_name")) then
+       call get_option("/population_balance_continuous_phase_name", cont_state_name)
        do i_state = 1, option_count("/material_phase")
           if (states(i_state)%name == cont_state_name) then
              cont_state = i_state
@@ -322,8 +321,8 @@ contains
     integer, intent(in) :: cont_state
 
     type(scalar_field_pointer), dimension(:), allocatable :: abscissa,&
-         weight, it_abscissa, it_weight, s_weighted_abscissa, s_weight, a_weighted_abscissa, a_weight
-    type(scalar_field), pointer :: lumped_mass, turbulent_dissipation
+         weight, it_abscissa, it_weight, weighted_abscissa, s_weighted_abscissa, s_weight, a_weighted_abscissa, a_weight
+    type(scalar_field), pointer :: lumped_mass, turbulent_dissipation, sponge_field
     type(csr_matrix), pointer :: mass_matrix
     type(scalar_field), dimension(:), allocatable :: r_abscissa, r_weight
     type(tensor_field), pointer :: D
@@ -342,7 +341,7 @@ contains
     call get_pop_option_path(state, i_pop, option_path)
     N = option_count(trim(option_path)//'/abscissa/scalar_field')
     allocate(abscissa(N), weight(N), it_abscissa(N), it_weight(N), &
-         r_abscissa(N), r_weight(N), s_weighted_abscissa(N), s_weight(N), a_weighted_abscissa(N), a_weight(N))
+         r_abscissa(N), r_weight(N), weighted_abscissa(N), s_weighted_abscissa(N), s_weight(N), a_weighted_abscissa(N), a_weight(N))
 
     do i = 1, N
        ! collect abscissa and weight fields
@@ -352,6 +351,8 @@ contains
        type = 'abscissa'
        call get_pop_field(state, i_pop, i, type, abscissa(i)%ptr)
        call get_pop_field(state, i_pop, i, type, it_abscissa(i)%ptr, iterated=.true.)
+       type = 'weighted_abscissa'
+       call get_pop_field(state, i_pop, i, type, weighted_abscissa(i)%ptr)
 
        ! get source fields (note this is the weighted abscissa source not the abscissa source)
        s_weight(i)%ptr => extract_scalar_field(state, trim(weight(i)%ptr%name)//'Source')
@@ -420,13 +421,13 @@ contains
           call get_option(trim(option_path)//'/population_balance_source_terms/aggregation/aggregation_frequency/sum_aggregation', aggregation_freq_const)
        else if (have_option(trim(option_path)//'/population_balance_source_terms/aggregation/aggregation_frequency/laakkonen_2007_aggregation')) then
           aggregation_freq_type = 'laakkonen_2007_aggregation'
-          if (.not. have_option("/material_phase/population_balance_continuous_phase_name")) then
-             FLAbort("Enable the option population_balance_continuous_phase_name and provide a name for the continuous phase &
+          if (.not. have_option("/population_balance_continuous_phase_name")) then
+             FLAbort("Enable the option population_balance_continuous_phase_name and provide a name for the continuous phase
                       as it is needed for extracting the turbulence dissipation needed in laakkonen_2007_aggregation kernel")
           end if
           turbulent_dissipation => extract_scalar_field(states(cont_state), "TurbulentDissipation", stat=stat)
           if (stat/=0) then
-             FLAbort("I can't find the Turbulent Dissipation field of continuous phase for population balance breakage term calculations.")
+             FLAbort("I can't find the Turbulent Dissipation field of continuous phase for population balance aggregation term calculations.")
           end if
 
        end if
@@ -447,7 +448,7 @@ contains
        else if (have_option(trim(option_path)//'/population_balance_source_terms/breakage/breakage_frequency/laakkonen_breakage')) then
           breakage_freq_type = 'laakkonen_frequency'
           if (aggregation_freq_type /= 'laakkonen_2007_aggregation') then
-             if (.not. have_option("/material_phase/population_balance_continuous_phase_name")) then
+             if (.not. have_option("/population_balance_continuous_phase_name")) then
                 FLAbort("Enable the option population_balance_continuous_phase_name and provide a name for the continuous phase &
                          as it is needed for extracting the turbulence dissipation needed in laakkonen_frequency kernel")
              end if
@@ -517,6 +518,21 @@ contains
        end if
     end if
 
+
+do i=1, N
+print*, "here_weight_minmax"
+ewrite_minmax(weight(i)%ptr)
+
+print*, "here_s_weight_minmax"
+ewrite_minmax(s_weight(i)%ptr)
+
+print*, "here_weightedabscissa_minmax"
+ewrite_minmax(weighted_abscissa(i)%ptr)
+
+print*, "here_s_weightedabscissa_minmax"
+ewrite_minmax(s_weighted_abscissa(i)%ptr)
+end do
+
     ! Checking if the source terms need to be implemented as absorption
     if(have_option(trim(option_path)//'/apply_source_as_absorption')) then
        do i =1, N
@@ -524,8 +540,8 @@ contains
           if (stat/=0) then
              FLAbort("Absorption scalar field could not be extracted for population balance weights. How can I apply the source as absorption now!")
           end if
-          where (r_weight(i)%val >= fields_min)
-              a_weight(i)%ptr%val=-1./r_weight(i)%val
+          where (weight(i)%ptr%val >= fields_min)
+              a_weight(i)%ptr%val=-1./weight(i)%ptr%val
           elsewhere
               a_weight(i)%ptr%val=-1./fields_min
           end where
@@ -537,9 +553,9 @@ contains
           if (stat/=0) then
              FLAbort("Absorption scalar field could not be extracted for population balance weighted_abscissa. How can I apply the source as absorption now!")
           end if
-          ! set dummy_scalar = relaxed weight * relaxed abscissa
-          call set(dummy_scalar, r_abscissa(i))
-          call scale(dummy_scalar, r_weight(i))
+          ! set dummy_scalar = weight * abscissa
+          call set(dummy_scalar, abscissa(i)%ptr)
+          call scale(dummy_scalar, weight(i)%ptr)
           where (dummy_scalar%val >= fields_min)
               a_weighted_abscissa(i)%ptr%val=-1./dummy_scalar%val
           elsewhere
@@ -550,6 +566,27 @@ contains
           call zero(s_weight(i)%ptr)
           call zero(s_weighted_abscissa(i)%ptr)
        end do
+       if(have_option(trim(option_path)//'/apply_source_as_absorption/include_sponge_region')) then
+          ! extract name of the sponge field
+          call get_option(trim(option_path)//'/apply_source_as_absorption/include_sponge_region/sponge_scalar_field_name', field_name)
+          sponge_field => extract_scalar_field(state, field_name, stat)
+          if (stat/=0) then
+             FLAbort("Scalar sponge field could not be located in the state.")
+          end if
+          ! define temp_field - use dummy_scalar
+          call zero(dummy_scalar)
+          where (sponge_field%val<0.001)
+              dummy_scalar%val = 1.0
+          end where
+          ! abs_new = abs_old*temp_field + sponge_field... make sure the sponge field stays the same
+          do i=1, N
+             call scale(a_weight(i)%ptr, dummy_scalar)
+             call addto(a_weight(i)%ptr, sponge_field)
+             call scale(a_weighted_abscissa(i)%ptr, dummy_scalar)
+             call addto(a_weighted_abscissa(i)%ptr, sponge_field)
+          end do
+       end if
+
     end if
 
     call deallocate(dummy_scalar)
@@ -558,7 +595,7 @@ contains
        call deallocate(r_weight(i))
     end do
     deallocate(abscissa, weight, it_abscissa, it_weight, &
-         r_abscissa, r_weight, s_weight, s_weighted_abscissa, a_weight, a_weighted_abscissa)
+         r_abscissa, r_weight, weighted_abscissa, s_weight, s_weighted_abscissa, a_weight, a_weighted_abscissa)
 
   end subroutine dqmom_calculate_source_term_pop
 
