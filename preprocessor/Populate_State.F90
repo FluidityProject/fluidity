@@ -250,7 +250,7 @@ contains
           if (is_active_process) then
             select case (mesh_file_format)
             case("exodusii")
-               call dmplex_read_exodusii_file(trim(mesh_file_name)//".exo", plex)
+               call dmplex_read_mesh_file(trim(mesh_file_name)//".exo", mesh_file_format, plex)
                call dmplex_create_coordinate_field(plex, &
                     quad_degree=quad_degree, quad_family=quad_family, &
                     boundary_label="Face Sets", field=position)
@@ -266,22 +266,18 @@ contains
                   FLAbort("Failed to set the mesh format to gmsh (required for checkpointing). &&
                        Spud error code is: "//int2str(stat))
                end if
-            case ("triangle", "gmsh")
-              ! Get mesh dimension if present
-              call get_option(trim(mesh_path)//"/from_file/dimension", mdim, stat)
-              ! Read mesh
-              if(stat==0) then
-                 position=read_mesh_files(trim(mesh_file_name), &
-                      quad_degree=quad_degree, &
-                      quad_family=quad_family, mdim=mdim, &
-                      format=mesh_file_format)
-              else
-                 position=read_mesh_files(trim(mesh_file_name), &
-                      quad_degree=quad_degree, &
-                      quad_family=quad_family, &
-                      format=mesh_file_format)
-              end if
-              mesh=position%mesh
+            case("gmsh")
+               call dmplex_read_mesh_file(trim(mesh_file_name)//".msh", mesh_file_format, plex)
+               call dmplex_create_coordinate_field(plex, &
+                    quad_degree=quad_degree, quad_family=quad_family, &
+                    boundary_label="Face Sets", field=position)
+               mesh=position%mesh
+            case ("triangle")
+               call dmplex_read_mesh_file(trim(mesh_file_name), mesh_file_format, plex)
+               call dmplex_create_coordinate_field(plex, &
+                    quad_degree=quad_degree, quad_family=quad_family, &
+                    boundary_label="Boundary Marker", field=position)
+               mesh=position%mesh
             case ("vtu")
               position_ptr => vtk_cache_read_positions_field(mesh_file_name)
               ! No hybrid mesh support here

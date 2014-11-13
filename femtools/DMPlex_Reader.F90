@@ -83,8 +83,8 @@ module dmplex_reader
 
 contains
 
-  subroutine dmplex_read_mesh_file(filename, plex)
-    character(len=*), intent(in) :: filename
+  subroutine dmplex_read_mesh_file(filename, fileformat, plex)
+    character(len=*), intent(in) :: filename, fileformat
     type(DM), intent(out) :: plex
 
     DM :: plex_parallel
@@ -92,8 +92,22 @@ contains
 
     ewrite(1,*) "In dmplex_read_mesh_file"
 
-    ! Create a DMPlex object for the ExodusII mesh
-    call DMPlexCreateExodusFromFile(MPI_COMM_FEMTOOLS, filename, PETSC_TRUE, plex, ierr)
+    ! Create a DMPlex object from the given mesh
+    select case (fileformat)
+    case ("gmsh")
+       call DMPlexCreateGmshFromFile(MPI_COMM_FEMTOOLS, filename, PETSC_TRUE, plex, ierr)
+    case("exodusii")
+       call DMPlexCreateExodusFromFile(MPI_COMM_FEMTOOLS, filename, PETSC_TRUE, plex, ierr)
+    case default
+       ewrite(-1,*) trim(fileformat), " is not a valid format for a mesh file"
+       FLAbort("Invalid format for mesh file")
+    end select
+
+    if (ierr /= 0) then
+       ewrite(-1,*) "Unable to generate DMPlex object from mesh: "//filename
+       FLAbort("Invalid mesh file")
+    end if
+
     if (debug_level() == 2) then
        ewrite(2,*) "Sequential DMPlex derived from ExodusII mesh:"
        call DMView(plex, PETSC_VIEWER_STDOUT_WORLD, ierr)
