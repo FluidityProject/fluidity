@@ -4,9 +4,9 @@ publishing =
       ##
       ## * 'service' selects the online repository service (e.g. Figshare) that will host the published software/data.
       ##
-      ## * 'software' will be populated with the article_id and DOI once the software has been published.
+      ## * 'software' will be populated with the article_id and DOI once the software has been published. If the same version of the software has been published already, then the existing article_id and DOI will be entered here automatically by the fluidity-publish tool.
       ##
-      ## * 'input_data/output_data' contain which input/output data files the user wishes to publish, and will be populated with the article_id and DOI once the input/output data is published.
+      ## * 'input_data/output_data' contain which input/output data files the user wishes to publish, and will be populated with the article_id and DOI once the input/output data is published. Alternatively, the user can enter an existing article_id to update the associated publication.
       element publish
       {
          ## The online publishing service that you would like to use.
