@@ -48,5 +48,26 @@ subroutine test_ele_local_num
 
   pass = all( edge_local_num( (/2,4/), ele_num, interior = .false.) == (/ 3,4 /))
   call report_test("[edge_local_num on linear quad vertices 4 and 2]", .not. pass, .false., "wrong output")
+  
+  ! Faces of linear hex
+  ele_num => find_element_numbering(8, 3, 1)
+  
+  pass = all( face_local_num( (/7,3,5,1/), ele_num, interior = .false.) == (/4,3,2,1/))
+  call report_test("[face_local_num on linear hex vertices 7,3,5,1]", .not. pass, .false., "wrong output")
+  
+  pass = all( face_local_num( (/2,4,6,8/), ele_num, interior = .false.) == (/5,7,6,8/))
+  call report_test("[face_local_num on linear hex vertices 2,4,6,7]", .not. pass, .false., "wrong output")
+  
+  pass = all( face_local_num( (/1,5,2,6/), ele_num, interior = .false.) == (/1,2,5,6/))
+  call report_test("[face_local_num on linear hex vertices 1,5,2,6]", .not. pass, .false., "wrong output")
+  
+  pass = all( face_local_num( (/3,4,7,8/), ele_num, interior = .false.) == (/3,7,4,8/))
+  call report_test("[face_local_num on linear hex vertices 3,4,7,8]", .not. pass, .false., "wrong output")
+  
+  pass = all( face_local_num( (/1,3,2,4/), ele_num, interior = .false.) == (/1,3,5,7/))
+  call report_test("[face_local_num on linear hex vertices 1,3,2,4]", .not. pass, .false., "wrong output")
+  
+  pass = all( face_local_num( (/5,6,7,8/), ele_num, interior = .false.) == (/2,6,4,8/))
+  call report_test("[face_local_num on linear hex vertices 5,6,7,8]", .not. pass, .false., "wrong output")
 
 end subroutine test_ele_local_num

@@ -5308,37 +5308,6 @@ c.f. Winters 1995, Journal of Fluid Mechanics</a:documentation>
         </choice>
       </element>
       <element name="scalar_field">
-        <a:documentation>Viscous dissipation
-  For Boussinesq fluid with isotropic viscosity (see below)
-
-Only coded for 2D
-
-  (grad u):(grad u) = sum_ij(du_i/dx_j)(du_i/dx_j)
-
-  The actual viscous dissipation for a Newtonian, Boussinesq fluid with
-  constant, isotropic viscosity is nu*rho_0*(grad u):(grad u)
-  where rho_0 is the reference density in the equation of state
-  and nu is the viscosity so need to multiply by these when post-processing
-
-c.f. Winters 1995, Journal of Fluid Mechanics</a:documentation>
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <attribute name="name">
-          <value>ViscousDissipation</value>
-        </attribute>
-        <choice>
-          <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <ref name="velocity_mesh_choice"/>
-            <ref name="diagnostic_scalar_field"/>
-          </element>
-          <element name="aliased">
-            <ref name="generic_aliased_field"/>
-          </element>
-        </choice>
-      </element>
-      <element name="scalar_field">
         <a:documentation>Richardson Number:
 
  Ri = \frac{N^2}{(\frac{\partial u}{\partial z})^2 + (\frac{\partial u}{\partial z})^2}
@@ -5584,6 +5553,22 @@ Currently a test field</a:documentation>
             <ref name="generic_aliased_field"/>
           </element>
         </choice>
+      </element>
+      <element name="scalar_field">
+        <a:documentation>Second invariant of the strain_rate tensor field. Selecting this field ensures
+that it is updated as part of the momeuntum diagnostics (i.e. 
+at the start of each momentum solve - within non-linear iterations.)</a:documentation>
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>StrainRateSecondInvariant</value>
+        </attribute>
+        <element name="diagnostic">
+          <ref name="strain_rate_second_invariant_algorithm"/>
+          <ref name="velocity_mesh_choice"/>
+          <ref name="diagnostic_scalar_field"/>
+        </element>
       </element>
       <element name="scalar_field">
         <a:documentation>Discontinuity detector
