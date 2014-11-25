@@ -2,6 +2,13 @@
 <grammar xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns="http://relaxng.org/ns/structure/1.0">
   <define name="publishing">
     <element name="publish">
+      <a:documentation>Enabling this option will allow the Fluidity source code and any data files associated with this simulation to be published using the PyRDM-based 'fluidity-publish' tool. The sub-options are as follows:
+
+* 'service' selects the online repository service (e.g. Figshare) that will host the published software/data.
+
+* 'software' will be populated with the article_id and DOI once the software has been published.
+
+* 'input_data/output_data' contain which input/output data files the user wishes to publish, and will be populated with the article_id and DOI once the input/output data is published.</a:documentation>
       <element name="service">
         <a:documentation>The online publishing service that you would like to use.</a:documentation>
         <choice>
