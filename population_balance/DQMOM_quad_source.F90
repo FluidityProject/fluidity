@@ -483,15 +483,55 @@ contains
     end if
 
     X => extract_vector_field(state, 'Coordinate')
-
     ! assembly loop
-    do i = 1, node_count(r_abscissa(1))
-       call dqmom_calculate_source_term_node(r_abscissa, r_weight, s_weighted_abscissa, s_weight, &
+    do i = 1, ele_count(r_abscissa(1))
+       call dqmom_calculate_source_term_ele(r_abscissa, r_weight, s_weighted_abscissa, s_weight, &
                 &D, have_D, have_growth, growth_type, growth_r, have_internal_dispersion, internal_dispersion_coeff, &
                 &have_aggregation, aggregation_freq_type, aggregation_freq_const, &
                 &have_breakage, breakage_freq_type, breakage_freq_const, breakage_freq_degree, breakage_dist_type, turbulent_dissipation, X, singular_option, perturb_val, cond, i)       
     end do
     
+    ! for non-DG we apply inverse mass globally
+    if(continuity(r_abscissa(1))>=0) then
+       if(have_option(trim(option_path)//'/adv_diff_source_term_interpolation/use_full_mass_matrix')) then
+          mass_matrix => get_mass_matrix(state, r_abscissa(1)%mesh)
+          do j = 1, N
+             call zero(dummy_scalar)
+             call petsc_solve(dummy_scalar, mass_matrix, s_weight(j)%ptr, trim(option_path)//'/adv_diff_source_term_interpolation/use_full_mass_matrix')
+             call set(s_weight(j)%ptr, dummy_scalar)
+             call zero(dummy_scalar)
+             call petsc_solve(dummy_scalar, mass_matrix, s_weighted_abscissa(j)%ptr, trim(option_path)//'/adv_diff_source_term_interpolation/use_full_mass_matrix')
+             call set(s_weighted_abscissa(j)%ptr, dummy_scalar)
+          end do
+       else if(have_option(trim(option_path)//'/adv_diff_source_term_interpolation/use_mass_lumping')) then
+          lumped_mass => get_lumped_mass(state, r_abscissa(1)%mesh)
+          do j = 1, N
+             do i = 1, node_count(r_abscissa(1))
+                call set(s_weighted_abscissa(j)%ptr, i, node_val(s_weighted_abscissa(j)%ptr,i)&
+                     &/node_val(lumped_mass,i))
+                call set(s_weight(j)%ptr, i, node_val(s_weight(j)%ptr,i)&
+                     &/node_val(lumped_mass,i))
+             end do
+          end do
+       else 
+          FLAbort("Check the .flml file. You must specify an option under 'population_balance/adv_diff_source_term_interpolation'")
+       end if
+    end if
+
+
+!do i=1, N
+!print*, "here_weight_minmax"
+!ewrite_minmax(weight(i)%ptr)
+
+!print*, "here_s_weight_minmax"
+!ewrite_minmax(s_weight(i)%ptr)
+
+!print*, "here_weightedabscissa_minmax"
+!ewrite_minmax(weighted_abscissa(i)%ptr)
+
+!print*, "here_s_weightedabscissa_minmax"
+!ewrite_minmax(s_weighted_abscissa(i)%ptr)
+!end do
 
     ! Checking if the source terms need to be implemented as absorption
     if(have_option(trim(option_path)//'/apply_source_as_absorption')) then
@@ -559,79 +599,156 @@ contains
 
   end subroutine dqmom_calculate_source_term_pop
 
-  subroutine dqmom_calculate_source_term_node(abscissa, weight, s_weighted_abscissa, s_weight, &
+  subroutine dqmom_calculate_source_term_ele(abscissa, weight, s_weighted_abscissa, s_weight, &
                  &D, have_D, have_growth, growth_type, growth_r, have_internal_dispersion, internal_dispersion_coeff, &
                  &have_aggregation, aggregation_freq_type, aggregation_freq_const, &
                  &have_breakage, breakage_freq_type, breakage_freq_const, breakage_freq_degree, breakage_dist_type, &
                  &turbulent_dissipation, &
-                 &X, singular_option, perturb_val, cond, node)
+                 &X, singular_option, perturb_val, cond, ele)
 
     type(scalar_field), dimension(:), intent(in) :: abscissa, weight
     type(scalar_field), intent(in) :: turbulent_dissipation
     type(scalar_field_pointer), dimension(:), intent(inout) :: s_weighted_abscissa, s_weight
     type(tensor_field), pointer, intent(in) :: D
     type(vector_field), pointer, intent(in) :: X
-    integer, intent(in) :: node
+    integer, intent(in) :: ele
     real, intent(in) :: cond, growth_r, internal_dispersion_coeff, aggregation_freq_const, breakage_freq_const, breakage_freq_degree, perturb_val
     logical, intent(in) :: have_D, have_growth, have_internal_dispersion, have_aggregation, have_breakage
     character(len=FIELD_NAME_LEN), intent(in) :: growth_type, aggregation_freq_type, breakage_freq_type, breakage_dist_type, singular_option
 
-    real, dimension(1, size(abscissa)) :: abscissa_val
-    real, dimension(1, size(abscissa)*2, size(abscissa)*2) :: A
-    real, dimension(1, size(abscissa)*2) :: S_rhs  ! source term (includes growth, breakage and coalescence term): gb 15-11-2012
-    real, dimension(1, size(abscissa)*2, size(abscissa)) :: moment_daughter_dist_func
-    real, dimension(1, size(abscissa)) :: break_freq
-    real, dimension(1, size(abscissa), size(abscissa)) :: aggregation_freq   ! at present it is not dependent on space coordinate, but can be dependent and will have to be a scalar fields
+    real, dimension(ele_ngi(abscissa(1), ele), size(abscissa)) :: abscissa_val_at_quad
+    real, dimension(ele_ngi(abscissa(1), ele), size(abscissa)*2, size(abscissa)*2) :: A
+    real, dimension(ele_ngi(abscissa(1), ele), size(abscissa)*2, size(abscissa)) :: A_3
+    real, dimension(ele_ngi(abscissa(1), ele), size(abscissa)) :: C
+    real, dimension(ele_ngi(abscissa(1), ele), size(abscissa)*2) :: S_rhs  ! source term (includes growth, breakage and coalescence term): gb 15-11-2012
+    real, dimension(ele_ngi(abscissa(1), ele), size(abscissa)*2, size(abscissa)) :: moment_daughter_dist_func
+    real, dimension(ele_ngi(abscissa(1), ele), size(abscissa)) :: break_freq
+    real, dimension(ele_ngi(abscissa(1), ele), size(abscissa), size(abscissa)) :: aggregation_freq   ! at present it is not dependent on space coordinate, but can be dependent and will have to be a scalar fields
     real, dimension(size(abscissa)*2, 1) :: b
-    real, dimension(1, size(abscissa)) :: abscissa_S
-    real, dimension(1, size(weight)) :: weight_S
-    real :: eps_node
+    real, dimension(ele_ngi(abscissa(1), ele), size(abscissa)) :: abscissa_S_at_quad
+    real, dimension(ele_ngi(abscissa(1), ele), size(weight)) :: weight_S_at_quad
+    real, dimension(ele_loc(abscissa(1), ele)) :: abscissa_S_at_nodes
+    real, dimension(ele_loc(abscissa(1), ele)) :: weight_S_at_nodes
+    real, dimension(ele_loc(abscissa(1), ele), ele_loc(abscissa(1), ele)) :: invmass
+    real, dimension(ele_ngi(abscissa(1), ele)) :: detwei, eps_ngi
+    real, dimension(X%dim, ele_ngi(abscissa(1), ele)) :: grad_D
+    real, dimension(X%dim, X%dim, ele_ngi(abscissa(1), ele)) :: D_at_quad
+    type(element_type), pointer :: shape
+    integer, dimension(:), pointer :: nodes
+    real, dimension(ele_loc(abscissa(1), ele), ele_ngi(abscissa(1), ele), X%dim) :: dshape
+    real, dimension(size(abscissa)*2, size(abscissa)*2) :: svd_tmp1, svd_tmp2
+    real, dimension(size(abscissa)*2) :: SV
     integer :: stat, N, i, j, k
+    real :: curr_time
+    real, dimension(size(abscissa)) :: perturb
+    integer :: p_num
+    real, dimension(size(abscissa)) :: absc_init
 
     real :: sigma, density_continuous, density_dispersed, viscosity_continuous
 
     N = size(abscissa)
     
+    nodes => ele_nodes(abscissa(1), ele)
+    shape => ele_shape(abscissa(1), ele)
+
+    call transform_to_physical(X, ele, shape, dshape=dshape, detwei=detwei)
+
     ! construct A matrices (lhs knowns)
     do i = 1, N
-       abscissa_val(1,i) = node_val(abscissa(i), node)       
+       abscissa_val_at_quad(:,i) = ele_val_at_quad(abscissa(i), ele)       
+!!       print*, "abscissa = ", abscissa_val_at_quad(1,i)
     end do
-    A = A_matrix(abscissa_val)
+    A = A_matrix(abscissa_val_at_quad)
+
+    ! construct A_3 matrix (rhs pt.1)
+    do i = 1, 2*N
+       do j = 1, N
+          A_3(:,i,j) = (i-1)*(i-2)*ele_val_at_quad(abscissa(j), ele)**(i-3)
+       end do
+    end do
+
+    ! construct C matrix (rhs pt.2)
+    if (have_D) then
+       do i = 1, N
+          D_at_quad = ele_val_at_quad(D, ele)
+          do j = 1, X%dim
+             grad_D(j,:) = D_at_quad(j,j,:)
+          end do
+          grad_D = ((ele_grad_at_quad(abscissa(i), ele, dshape))**2)*grad_D
+          C(:,i) = ele_val_at_quad(weight(i), ele)*sum(grad_D,1)
+       end do
+    else
+       C = 0.0
+    end if
+
 
     !! gb nov-2012---
     ! initialize dqmom source term to zero 
     S_rhs = 0.0
 
     ! construct S vector (rhs pt.3) for GROWTH term
+    if (have_growth) then
+       if (growth_type=='power_law_growth') then
+          do i = 1, 2*N
+             do j = 1, N
+                S_rhs(:,i) = S_rhs(:,i) + (i-1)*ele_val_at_quad(weight(j), ele)*(ele_val_at_quad(abscissa(j), ele)**(i-2))*(ele_val_at_quad(abscissa(j), ele)**growth_r)
+             end do 
+          end do 
+       end if
+    end if
+    
+    if (have_internal_dispersion) then
+       do i = 1, 2*N
+          do j = 1, N
+             ! S_rhs(:,i) = S_rhs(:,i) + (i-1)*(i-2)*ele_val_at_quad(weight(j), ele)*(ele_val_at_quad(abscissa(j), ele)**(i-3))*Diffusion_internal(j)
+             ! abscissa_val_at_quad() takes care of the perturbed abscissas
+             S_rhs(:,i) = S_rhs(:,i) + (i-1)*(i-2)*ele_val_at_quad(weight(j), ele)*(abscissa_val_at_quad(:,j)**(i-3))*internal_dispersion_coeff
+          end do
+       end do
+    end if
 
     !!! construct S vector for BREAKAGE
+!    do i = 1, N
+!       break_freq(:,i) = 0.02*abscissa_val_at_quad(:,i)**3
+!    end do
     
     if (have_breakage) then
-       if (breakage_freq_type=='power_law_breakage') then
+       if (breakage_freq_type=='constant_breakage') then
+          break_freq = breakage_freq_const
+       else if (breakage_freq_type=='power_law_breakage') then
           do i = 1, N
-             break_freq(1,i) = breakage_freq_const*abscissa_val(1,i)**breakage_freq_degree
+             break_freq(:,i) = breakage_freq_const*abscissa_val_at_quad(:,i)**breakage_freq_degree
           end do
        else if (breakage_freq_type=='laakkonen_frequency') then
           density_continuous = 1000
           density_dispersed = 1
           viscosity_continuous = 0.001
           sigma = 0.072
-          eps_node = node_val(turbulent_dissipation,node)
+          eps_ngi = ele_val_at_quad(turbulent_dissipation,ele)
           do i = 1, N
-             break_freq(1,i) = 6.0*eps_node**(1./3) * erfc(sqrt( 0.04*(sigma/density_continuous)*(1./(eps_node**(2./3) * abscissa_val(1,i)**(5./3))) + 0.01*(viscosity_continuous/sqrt(density_continuous*density_dispersed))*(1./(eps_node**(1./3)*abscissa_val(1,i)**(4./3)))))
+             break_freq(:,i) = 6.0*eps_ngi**(1./3) * erfc(sqrt( 0.04*(sigma/density_continuous)*(1./(eps_ngi**(2./3) * abscissa_val_at_quad(:,i)**(5./3))) + 0.01*(viscosity_continuous/sqrt(density_continuous*density_dispersed))*(1./(eps_ngi**(1./3)*abscissa_val_at_quad(:,i)**(4./3)))))
           end do
        end if
 
-       if (breakage_dist_type=='mcCoy_madras_2003') then
+       if (breakage_dist_type=='symmetric_fragmentation') then
           do i = 1, 2*N
              do j = 1, N
-                moment_daughter_dist_func(1,i,j) = (6.0/((i-1)+3.0))*(abscissa_val(1,j)**(i-1))
+                moment_daughter_dist_func(:,i,j) = (2.0**(((3-(i-1))/3.0)))*(abscissa_val_at_quad(:,j)**(i-1))   
+!                moment_daughter_dist_func(:,i,j) = (2.0**(((3-(i-1))/3.0)))*(ele_val_at_quad(abscissa(j), ele)**(i-1))
+             end do
+          end do
+       else if (breakage_dist_type=='mcCoy_madras_2003') then
+          do i = 1, 2*N
+             do j = 1, N
+                moment_daughter_dist_func(:,i,j) = (6.0/((i-1)+3.0))*(abscissa_val_at_quad(:,j)**(i-1))
+!                moment_daughter_dist_func(:,i,j) = (6.0/((i-1)+3.0))*(ele_val_at_quad(abscissa(j), ele)**(i-1))
              end do
           end do
        else if (breakage_dist_type=='laakkonen_2007') then
           do i = 1, 2*N
              do j = 1, N
-                moment_daughter_dist_func(1,i,j) = 180.0*(abscissa_val(1,j)**(i-1))*(1./((i-1)+15) - 2./((i-1)+12) + 1./((i-1)+9))
+                moment_daughter_dist_func(:,i,j) = 180.0*(abscissa_val_at_quad(:,j)**(i-1))*(1./((i-1)+15) - 2./((i-1)+12) + 1./((i-1)+9))
+!                moment_daughter_dist_func(:,i,j) = 180.0*(ele_val_at_quad(abscissa(j), ele)**(i-1))*(1./((i-1)+15) - 2./((i-1)+12) + 1./((i-1)+9))
              end do
           end do
        end if
@@ -639,9 +756,10 @@ contains
        do i = 1, 2*N 
           do j = 1, N
              ! birth term due to breakage
-             S_rhs(1,i) = S_rhs(1,i) + break_freq(1,j)*node_val(weight(j), node)*moment_daughter_dist_func(1,i,j)   ! daughter distribution function already includes the factor for number of particles formed after breakage
+             S_rhs(:,i) = S_rhs(:,i) + break_freq(:,j)*ele_val_at_quad(weight(j), ele)*moment_daughter_dist_func(:,i,j)   ! daughter distribution function already includes the factor for number of particles formed after breakage
              ! death term due to breakage
-             S_rhs(1,i) = S_rhs(1,i) - break_freq(1,j)*node_val(weight(j), node)*(abscissa_val(1,j)**(i-1))
+             S_rhs(:,i) = S_rhs(:,i) - break_freq(:,j)*ele_val_at_quad(weight(j), ele)*(abscissa_val_at_quad(:,j)**(i-1))
+!             S_rhs(:,i) = S_rhs(:,i) - break_freq(:,j)*ele_val_at_quad(weight(j), ele)*(ele_val_at_quad(abscissa(j), ele)**(i-1))
           end do
        end do
     endif
@@ -651,15 +769,26 @@ contains
     if (have_aggregation) then
        if (aggregation_freq_type=='constant_aggregation') then
           aggregation_freq = aggregation_freq_const
-
+       else if (aggregation_freq_type=='hydrodynamic_aggregation') then
+          do i = 1, N
+             do j = 1, N
+                aggregation_freq(:,i,j) = abscissa_val_at_quad(:,i)**3 + abscissa_val_at_quad(:,j)**3
+             end do
+          end do
+       else if (aggregation_freq_type=='sum_aggregation') then
+          do i = 1, N
+             do j = 1, N
+                aggregation_freq(:,i,j) = (abscissa_val_at_quad(:,i) + abscissa_val_at_quad(:,j))*aggregation_freq_const
+             end do
+          end do
        else if (aggregation_freq_type=='laakkonen_2007_aggregation') then
           density_continuous = 1000
           viscosity_continuous = 0.001
           sigma = 0.072
-          eps_node = node_val(turbulent_dissipation, node)
+          eps_ngi = ele_val_at_quad(turbulent_dissipation,ele)
           do i = 1, N
              do j = 1, N
-                aggregation_freq(1,i,j) = 0.88 * eps_node**(1./3) * (abscissa_val(1,i) + abscissa_val(1,j))**2 * (abscissa_val(1,i)**(2./3) + abscissa_val(1,j)**(2./3))**(1./2) * exp(-6.0E9*((viscosity_continuous*density_continuous)/sigma**2)*eps_node*((abscissa_val(1,i)*abscissa_val(1,j))/(abscissa_val(1,i)+abscissa_val(1,j)))**4)
+                aggregation_freq(:,i,j) = 0.88 * eps_ngi**(1./3) * (abscissa_val_at_quad(:,i) + abscissa_val_at_quad(:,j))**2 * (abscissa_val_at_quad(:,i)**(2./3) + abscissa_val_at_quad(:,j)**(2./3))**(1./2) * exp(-6.0E9*((viscosity_continuous*density_continuous)/sigma**2)*eps_ngi*((abscissa_val_at_quad(:,i)*abscissa_val_at_quad(:,j))/(abscissa_val_at_quad(:,i)+abscissa_val_at_quad(:,j)))**4)
              end do
           end do
 
@@ -669,30 +798,136 @@ contains
           do j = 1, N
              do k = 1, N
                 ! birth term due to aggregation
-                S_rhs(1,i) = S_rhs(1,i) + 0.5 * aggregation_freq(1,j,k) * node_val(weight(j), node) * node_val(weight(k), node) * &
-                                           ((abs(abscissa_val(1,j)**3 + abscissa_val(1,k)**3)**(1.0/3.0)) * &
-                                           sign(1.0,(abscissa_val(1,j)**3 + abscissa_val(1,k)**3)))**(i-1)
+                S_rhs(:,i) = S_rhs(:,i) + 0.5 * aggregation_freq(:,j,k) * ele_val_at_quad(weight(j), ele) * ele_val_at_quad(weight(k), ele) * &
+                                           ((abs(abscissa_val_at_quad(:,j)**3 + abscissa_val_at_quad(:,k)**3)**(1.0/3.0)) * &
+                                           sign(1.0,(abscissa_val_at_quad(:,j)**3 + abscissa_val_at_quad(:,k)**3)))**(i-1)
+!                S_rhs(:,i) = S_rhs(:,i) + 0.5 * aggregation_freq(:,j,k) * ele_val_at_quad(weight(j), ele) * ele_val_at_quad(weight(k), ele) * &
+!                                           &(ele_val_at_quad(abscissa(j), ele)**3 + ele_val_at_quad(abscissa(k), ele)**3)**((i-1)/3.0)
                 ! death term due to aggregation
-                S_rhs(1,i) = S_rhs(1,i) - aggregation_freq(1,j,k) * node_val(weight(j), node) * node_val(weight(k), node) * abscissa_val(1,j)**(i-1)
+                S_rhs(:,i) = S_rhs(:,i) - aggregation_freq(:,j,k) * ele_val_at_quad(weight(j), ele) * ele_val_at_quad(weight(k), ele) * abscissa_val_at_quad(:,j)**(i-1)
+!                S_rhs(:,i) = S_rhs(:,i) - aggregation_freq(:,j,k) * ele_val_at_quad(weight(j), ele)*ele_val_at_quad(weight(k), ele)*ele_val_at_quad(abscissa(j), ele)**(i-1)
              end do
           end do
        end do
     endif
 
+!print*, ele_val(X,ele), S_rhs(:,1)
+
+    !! ----------------
+
+!    perturb(1) = 0.00
+!    perturb(2) = 0.01
+!    perturb(3) = -0.01
+    ! check for ill-conditioned matrices
+    if (singular_option=='perturbate') then
+       do i = 1, ele_ngi(abscissa(1), ele)
+          call svd(A(i,:,:), svd_tmp1, SV, svd_tmp2)
+          p_num=1
+          do while (SV(size(SV))/SV(1) < cond)
+          !if (SV(size(SV))/SV(1) < cond) then
+             print*, "SINGULAR MATRIX"
+             print*, "condition number=", (SV(size(SV))/SV(1))
+             do j = 1, N
+                !! perturbation coefficient should be taken from diamond options with a check for default value
+                call random_number(perturb(1))
+                perturb(1)=-1.0+2.0*perturb(1)
+                print*, "perturb(1)=", N, perturb(1)
+                abscissa_val_at_quad(i,j) = abscissa_val_at_quad(i,j)*(1.0+perturb(1)*perturb_val)
+                print*, "abscissa", j, " = ", abscissa_val_at_quad(i,j)
+             end do
+             A = A_matrix(abscissa_val_at_quad)
+             call svd(A(i,:,:), svd_tmp1, SV, svd_tmp2)
+             print*, "perturbed condition number=", (SV(size(SV))/SV(1))
+             p_num=p_num+1
+             print*, "p_num=", p_num
+!             if (SV(size(SV))/SV(1) < cond) then
+!                print*, "perturbing does not help"
+!             end if
+!          end if
+          end do
+       end do
+    else if (singular_option=='set_source_to_zero') then
+       do i = 1, ele_ngi(abscissa(1), ele)
+          call svd(A(i,:,:), svd_tmp1, SV, svd_tmp2)
+          if (SV(size(SV))/SV(1) < cond) then
+             ewrite(2,*) 'ill-conditioned matrix found', SV(size(SV))/SV(1)
+             A(i,:,:) = 0.0
+             A_3(i,:,:) = 0.0
+             C(i,:) = 0.0
+             do j = 1, 2*N
+                A(i,j,j) = 1.0
+             end do
+          end if
+       end do
+    end if
+!!       p_num = 1
+
+
+!!       do j = 1, N
+!!          absc_init(j) = abscissa_val_at_quad(i,j)
+!!       end do
+
+!!       do while (SV(size(SV))/SV(1) < cond)
+!          call get_option("/timestepping/current_time", curr_time)   ! get the current simulation time
+          !! a better check for the first timestep instead of small value of the current time
+ !         if (curr_time < 1e-7) then   ! this block perturbates the abscissas in A matrix if current time is 0
+!!             print*, "perturbing %g \n", p_num
+!!             do j = 1, N
+                !! perturbation coefficient should be taken from diamond options with a check for default value
+!!                call random_number(perturb(1))
+!!                abscissa_val_at_quad(i,j) = absc_init(j) + perturb(1)
+!                abscissa_val_at_quad(:,j) = abscissa_val_at_quad(:,j) + (2-j)*(0.1) 
+!!                print*, "abscissa", j, " = ", abscissa_val_at_quad(i,j)
+!!             end do
+!!             A = A_matrix(abscissa_val_at_quad)
+!!             call svd(A(i,:,:), svd_tmp1, SV, svd_tmp2)
+!!             print*, "condition number=", (SV(size(SV))/SV(1))
+!!             p_num = p_num+1
+!             print*, "perturbed condition number=", (SV(size(SV))/SV(1))
+!             if (SV(size(SV))/SV(1) < cond) then
+!                print*, "perturbing does not help"
+!             end if
+
+!          else          
+!             ewrite(2,*) 'ill-conditioned matrix found'
+!             A(i,:,:) = 0.0
+!             A_3(i,:,:) = 0.0
+!             C(i,:) = 0.0
+!             do j = 1, 2*N
+!                A(i,j,j) = 1.0
+!             end do
+!          end if
+!       end if
+!!       end do
+!    end do
+           
+
+
 
     ! solve linear system to find source values
-    b(:,1) = S_rhs(1,:)   !! gb 15-11-2012! added S_rhs term
-    call dqmom_solve(A(1,:,:), b, stat)
-    weight_S(1,:) = b(:N,1)
-    abscissa_S(1,:) = b(N+1:,1)
+    do i = 1, ele_ngi(abscissa(1), ele)
+       b(:,1) = matmul(A_3(i,:,:), C(i,:)) + S_rhs(i,:)   !! gb 15-11-2012! added S_rhs term
+       call dqmom_solve(A(i,:,:), b, stat)
+       weight_S_at_quad(i,:) = b(:N,1)
+       abscissa_S_at_quad(i,:) = b(N+1:,1)
+    end do    
+
+    ! In the DG case we apply the inverse mass locally.
+    invmass = inverse(shape_shape(shape, shape, detwei))
 
     ! integrate and add to source fields
     do i = 1, N
-       call addto(s_weight(i)%ptr, node, weight_S(1,i))
-       call addto(s_weighted_abscissa(i)%ptr, node, abscissa_S(1,i))
+       weight_S_at_nodes = shape_rhs(shape, detwei* weight_S_at_quad(:,i))
+       abscissa_S_at_nodes = shape_rhs(shape, detwei* abscissa_S_at_quad(:,i))
+       if(continuity(abscissa(1))<0) then
+          weight_S_at_nodes = matmul(weight_S_at_nodes, invmass)
+          abscissa_S_at_nodes = matmul(abscissa_S_at_nodes, invmass)
+       end if
+       call addto(s_weight(i)%ptr, nodes, weight_S_at_nodes)
+       call addto(s_weighted_abscissa(i)%ptr, nodes, abscissa_S_at_nodes)
     end do
 
-  end subroutine dqmom_calculate_source_term_node
+  end subroutine dqmom_calculate_source_term_ele
 
   function A_matrix(abscissa)
 
