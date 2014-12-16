@@ -64,6 +64,57 @@ PetscErrorCode dmplex_mark_halo_regions(DM *plex)
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode dmplex_get_point_renumbering(DM *plex, PetscInt depth, IS *renumbering)
+{
+  MPI_Comm        comm;
+  PetscInt        v, p, pStart, pEnd, npoints, idx, *permutation;
+  DMLabel         lblHalo;
+  IS              haloL1, haloL2;
+  const PetscInt *points;
+  PetscBool       hasPoint;
+  PetscErrorCode  ierr;
+
+  PetscFunctionBegin;
+  ierr = PetscObjectGetComm((PetscObject) *plex, &comm);CHKERRQ(ierr);
+  ierr = DMPlexGetLabel(*plex, "HaloRegions", &lblHalo);CHKERRQ(ierr);
+  ierr = DMPlexGetDepthStratum(*plex, depth, &pStart, &pEnd);CHKERRQ(ierr);
+
+  /* Add owned points first */
+  ierr = PetscMalloc1(pEnd - pStart, &permutation);CHKERRQ(ierr);
+  for (idx = 0, v = pStart; v < pEnd; v++) {
+    ierr = DMLabelHasPoint(lblHalo, v, &hasPoint);CHKERRQ(ierr);
+    if (!hasPoint) permutation[idx++] = v - pStart;
+  }
+
+  /* Add entities in L1 halo region */
+  ierr = DMLabelGetStratumIS(lblHalo, 1, &haloL1);CHKERRQ(ierr);
+  ierr = DMLabelGetStratumSize(lblHalo, 1, &npoints);CHKERRQ(ierr);
+  ierr = ISGetIndices(haloL1, &points);CHKERRQ(ierr);
+  for (p = 0; p < npoints; p++) {
+    if (pStart <= points[p] && points[p] < pEnd) permutation[idx++] = points[p] - pStart;
+  }
+  ierr = ISRestoreIndices(haloL1, &points);CHKERRQ(ierr);
+  ierr = ISDestroy(&haloL1);CHKERRQ(ierr);
+
+  /* Add entities in L2 halo region, but not already in L1 */
+  ierr = DMLabelGetStratumIS(lblHalo, 2, &haloL2);CHKERRQ(ierr);
+  ierr = DMLabelGetStratumSize(lblHalo, 2, &npoints);CHKERRQ(ierr);
+  if (npoints > 0) {
+    ierr = ISGetIndices(haloL2, &points);CHKERRQ(ierr);
+    for (p = 0; p < npoints; p++) {
+      ierr = DMLabelStratumHasPoint(lblHalo, 1, points[p], &hasPoint);CHKERRQ(ierr);
+      if (hasPoint) continue;
+      if (pStart <= points[p] && points[p] < pEnd) permutation[idx++] = points[p] - pStart;
+    }
+    ierr = ISRestoreIndices(haloL2, &points);CHKERRQ(ierr);
+  }
+  ierr = ISDestroy(&haloL2);CHKERRQ(ierr);
+
+  ierr = ISCreateGeneral(comm, pEnd-pStart, permutation, PETSC_OWN_POINTER, renumbering);CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
 PetscErrorCode dmplex_get_mesh_connectivity(DM plex, PetscInt nnodes, PetscInt loc, PetscInt *ndglno)
 {
   PetscInt c, cStart, cEnd, vStart, vEnd, idx, ci, nclosure, point;

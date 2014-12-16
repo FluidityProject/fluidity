@@ -87,6 +87,15 @@ module dmplex_reader
        PetscFortranAddr :: plex
      end function dmplex_mark_halo_regions
 
+     function dmplex_get_point_renumbering(plex, depth, renumbering) &
+          bind(c) result(ierr)
+       use iso_c_binding
+       implicit none
+       integer(c_int) :: ierr
+       integer(c_int), value :: depth
+       PetscFortranAddr :: plex, renumbering
+     end function dmplex_get_point_renumbering
+
   end interface
 
 contains
