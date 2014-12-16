@@ -455,10 +455,6 @@ class WriteXMLFile(TestCommand):
         else:
             self.assert_threshold_calculator = assert_threshold_calculator
             
-    def __del__(self):
-        """Finalises any outstanding open file before expiring."""
-        self.write_xml_end()
-            
     def execute(self):
         # initialise file if it hasn't been already
         if self.at('root'):
@@ -492,6 +488,11 @@ class WriteXMLFile(TestCommand):
             self.write_xml_assert('rate', key, 'gt', rate_threshold)
             self.write_message('  rate > {0}'.format(rate_threshold))
             self.mesh_res_prev = mesh_res
+            
+    def finalise(self):
+        """Finalises any outstanding open file."""
+        if self.at('root'):
+            self.write_xml_end()
 
     def write_xml_begin(self):
         case_name = self.get('root')

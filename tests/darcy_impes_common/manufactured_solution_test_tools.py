@@ -167,7 +167,12 @@ class TestCommandDecorator(Command):
         # continue to wrapped execute()
         self.__wrapped_test_command.execute()
 
+        
+    def finalise(self):
+        """Delegates to wrapped TestCommand"""
+        self.__wrapped_test_command.finalise()
 
+        
     def handle(self, other=None, message=None):
        """Exploits the handler of the wrapped class."""
        self.__wrapped_test_command.handle(self)

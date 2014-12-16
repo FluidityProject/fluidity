@@ -204,7 +204,11 @@ class _NodeHandler(_Handler):
         if verbose and self.__node_name:
             # finish printing diagnostics
             sys.stdout.write(self.__end_char)
-        sys.stdout.flush()
+            sys.stdout.flush()
+        # prep the command and execute its post-recursion method
+        command.inform(self.__level_name, self.__node_name, at_leaf, \
+                           self.level_index*_indent_str, verbose)
+        command.finalise()
         
     def make_level(self):
         # return a LevelHandler containing a copy of this one node
@@ -457,6 +461,13 @@ class Command:
             target.write(message)
             target.flush()
 
+    def finalise(self):
+        """A stub that clients may want to override.  Like execute(), it
+        is called at each node in the handler tree.  It differs from
+        execute() in that it is called *after* recursing down through
+        subhandlers, not before."""
+        pass
+            
             
 class Validate(Command):
     """A supporting command that ensures compatibility with a handler."""
