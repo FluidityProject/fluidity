@@ -1,5 +1,69 @@
 #include "DMPlex_Reader_C.h"
 
+PetscErrorCode dmplex_mark_halo_regions(DM *plex)
+{
+  DMLabel         lblDepth, lblHalo;
+  PetscInt        p, pStart, pEnd, cStart, cEnd, nleaves, nroots, npoints;
+  PetscInt        a, adjSize, *adj = NULL, cl, clSize, *closure = NULL;
+  const PetscInt *ilocal, *points;
+  PetscSF         pointSF;
+  IS              haloPoints;
+  PetscBool       hasValue, useCone;
+  PetscErrorCode  ierr;
+
+  PetscFunctionBegin;
+  ierr = DMPlexGetChart(*plex, &pStart, &pEnd);CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(*plex, 0,  &cStart, &cEnd);CHKERRQ(ierr);
+  /* Use star(closure(p)) adjacency to get neighbouring cells */
+  ierr = DMPlexGetAdjacencyUseCone(*plex, &useCone);CHKERRQ(ierr);
+  ierr = DMPlexSetAdjacencyUseCone(*plex, PETSC_TRUE);CHKERRQ(ierr);
+
+  /* Create labels for L1 and L2 halos */
+  ierr = DMPlexGetLabel(*plex, "depth", &lblDepth);CHKERRQ(ierr);
+  ierr = DMPlexCreateLabel(*plex, "HaloRegions");CHKERRQ(ierr);
+  ierr = DMPlexGetLabel(*plex, "HaloRegions", &lblHalo);CHKERRQ(ierr);
+  ierr = DMLabelCreateIndex(lblHalo, pStart, pEnd);CHKERRQ(ierr);
+
+  /* Loop over point SF and mark the entire halo region L2 */
+  ierr = DMGetPointSF(*plex, &pointSF);CHKERRQ(ierr);
+  ierr = PetscSFGetGraph(pointSF, &nroots, &nleaves, &ilocal, NULL);CHKERRQ(ierr);
+  for (p = 0; p < nleaves; p++) {ierr = DMLabelSetValue(lblHalo, ilocal[p], 2);CHKERRQ(ierr);}
+
+  /* Loop over halo cells and test for non-halo neighbouring cells */
+  ierr = DMLabelGetStratumIS(lblHalo, 2, &haloPoints);CHKERRQ(ierr);
+  ierr = DMLabelGetStratumSize(lblHalo, 2, &npoints);CHKERRQ(ierr);
+  ierr = ISGetIndices(haloPoints, &points);CHKERRQ(ierr);
+  for (p = 0; p < npoints; p++) {
+    const PetscInt cell = points[p];
+    if (cStart <= cell && cell < cEnd) {
+      adjSize = PETSC_DETERMINE;
+      ierr = DMPlexGetAdjacency(*plex, cell, &adjSize, &adj);CHKERRQ(ierr);
+      for (a = 0; a < adjSize; ++a) {
+        const PetscInt neigh = adj[a];
+        if (neigh != cell && cStart <= neigh && neigh < cEnd) {
+          /* If the neighbouring cell is not in L2; mark this cell as L1 */
+          ierr = DMLabelStratumHasPoint(lblHalo, 2, neigh, &hasValue);CHKERRQ(ierr);
+          if (!hasValue) {
+            ierr = DMPlexGetTransitiveClosure(*plex, cell, PETSC_TRUE, &clSize, &closure);CHKERRQ(ierr);
+            for (cl = 0; cl < 2*clSize; cl+=2) {
+              /* L1 is a subset of L2 */
+              ierr = DMLabelStratumHasPoint(lblHalo, 2, closure[cl], &hasValue);CHKERRQ(ierr);
+              if (hasValue) {ierr = DMLabelSetValue(lblHalo, closure[cl], 1);CHKERRQ(ierr);}
+            }
+          }
+        }
+      }
+    }
+  }
+  ierr = ISRestoreIndices(haloPoints, &points);CHKERRQ(ierr);
+  ierr = ISDestroy(&haloPoints);CHKERRQ(ierr);
+  if (adj) {ierr = PetscFree(adj);CHKERRQ(ierr);}
+  if (closure) {ierr = DMPlexRestoreTransitiveClosure(*plex, 0, PETSC_TRUE, &clSize, &closure);CHKERRQ(ierr);}
+
+  ierr = DMPlexSetAdjacencyUseCone(*plex, useCone);CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
 PetscErrorCode dmplex_get_mesh_connectivity(DM plex, PetscInt nnodes, PetscInt loc, PetscInt *ndglno)
 {
   PetscInt c, cStart, cEnd, vStart, vEnd, idx, ci, nclosure, point;

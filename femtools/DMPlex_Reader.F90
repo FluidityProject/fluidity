@@ -79,6 +79,14 @@ module dmplex_reader
        integer(c_int), dimension(nfacets) :: boundary_ids
      end function dmplex_get_surface_connectivity
 
+     function dmplex_mark_halo_regions(plex) &
+          bind(c) result(ierr)
+       use iso_c_binding
+       implicit none
+       integer(c_int) :: ierr
+       PetscFortranAddr :: plex
+     end function dmplex_mark_halo_regions
+
   end interface
 
 contains
@@ -118,6 +126,7 @@ contains
        call DMPlexDistribute(plex, 2, %val(0), plex_parallel, ierr)
        call DMDestroy(plex, ierr)
        plex = plex_parallel
+       ierr = dmplex_mark_halo_regions(plex)
        if (debug_level() >= 2) then
           ewrite(2,*) "Distributed DMPlex derived from ExodusII mesh:"
           call DMView(plex, PETSC_VIEWER_STDOUT_WORLD, ierr)
