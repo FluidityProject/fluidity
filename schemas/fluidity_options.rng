@@ -2027,6 +2027,26 @@ Recommended value (default): 0.5.</a:documentation>
 Recommended value (default): 0.5.</a:documentation>
                     <ref name="real"/>
                   </element>
+                  <element name="C_T">
+                    <a:documentation>C_T.
+Used for ADM Correction Term, if not ADM set to zero (default): 0.0.</a:documentation>
+                    <ref name="real"/>
+                  </element>
+                  <element name="C_Omega">
+                    <a:documentation>C_Omega.
+Used for ADM Correction Term, if not ADM set to zero (default): 4.0 [Rados et al (2009)].</a:documentation>
+                    <ref name="real"/>
+                  </element>
+                  <element name="DiscRegionID">
+                    <a:documentation>DiscRegionID.
+Specify disc region id where ADM Correction Term wil be applied.</a:documentation>
+                    <ref name="integer"/>
+                  </element>
+                  <element name="NearDiscRegionID">
+                    <a:documentation>NearDiscRegionID.
+Specify near disc region id where only the omega production ADM Correction Term wil be applied.</a:documentation>
+                    <ref name="integer"/>
+                  </element>
                   <element name="time_discretisation">
                     <a:documentation>Time discretisation of the source terms in the k and epsilon equations and also
 of the eddy viscosity</a:documentation>

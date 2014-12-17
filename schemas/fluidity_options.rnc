@@ -1538,6 +1538,18 @@ start =
                   ## Sigma_Star.
                   ## Recommended value (default): 0.5.
                   element Sigma_Star {real},
+                  ## C_T.
+                  ## Used for ADM Correction Term, if not ADM set to zero (default): 0.0.
+                  element C_T {real},
+                  ## C_Omega.
+                  ## Used for ADM Correction Term, if not ADM set to zero (default): 4.0 [Rados et al (2009)].
+                  element C_Omega {real},
+                  ## DiscRegionID.
+                  ## Specify disc region id where ADM Correction Term wil be applied.
+                  element DiscRegionID {integer},
+                  ## NearDiscRegionID.
+                  ## Specify near disc region id where only the omega production ADM Correction Term wil be applied.
+                  element NearDiscRegionID {integer},
                   ## Time discretisation of the source terms in the k and epsilon equations and also
                   ## of the eddy viscosity
                   element time_discretisation {  

@@ -97,7 +97,8 @@ subroutine komega_calculate_rhs(state)
   type(scalar_field), pointer :: dummydensity, density, scalar_eddy_visc !!! , buoyancy_density
   integer :: i, ele, term, stat
   real :: g_magnitude !!! , c_eps_1, c_eps_2, sigma_p !! change
-  real :: alpha, beta, beta_star !!
+  real :: alpha, beta, beta_star, C_T, C_omega !!
+  integer :: region_id_disc, region_id_near_disc !!
   logical :: lump_mass !!! have_buoyancy_turbulence = .true. removed
   character(len=OPTION_PATH_LEN) :: option_path 
   character(len=FIELD_NAME_LEN), dimension(2) :: field_names
@@ -115,9 +116,15 @@ subroutine komega_calculate_rhs(state)
   !!! call get_option(trim(option_path)//'/C_eps_1', c_eps_1, default = 1.44)
   !!! call get_option(trim(option_path)//'/C_eps_2', c_eps_2, default = 1.92)
   !!! call get_option(trim(option_path)//'/sigma_p', sigma_p, default = 1.0)
-  call get_option(trim(option_path)//'/Alpha', alpha, default = 5.0/9.0) !! change, will 5/9 work?
-  call get_option(trim(option_path)//'/Beta', beta, default = 0.075) !! change
-  call get_option(trim(option_path)//'/Beta_Star', beta_star, default = 0.09) !! change
+  call get_option(trim(option_path)//'/Alpha', alpha, default = 5.0/9.0) !! will 5/9 work?
+  call get_option(trim(option_path)//'/Beta', beta, default = 0.075) !!
+  call get_option(trim(option_path)//'/Beta_Star', beta_star, default = 0.09) !!
+
+  ! get ADM correction term constants !Amin!
+  call get_option(trim(option_path)//'/C_T', C_T, default = 0.0)
+  call get_option(trim(option_path)//'/C_Omega', C_omega, default = 4.0) !! Rados et al (2009)
+  call get_option(trim(option_path)//'/DiscRegionID', region_id_disc, default = 901)
+  call get_option(trim(option_path)//'/NearDiscRegionID', region_id_near_disc, default = 902)
 
   ! get field data
   x => extract_vector_field(state, "Coordinate")
@@ -192,7 +199,7 @@ subroutine komega_calculate_rhs(state)
      do ele = 1, ele_count(fields(1))
         call assemble_rhs_ele(src_abs_terms, fields(i), fields(3-i), scalar_eddy_visc, u, & !! main function call
              density, g, g_magnitude, x, &
-             ele, i, alpha, beta, beta_star) !!! f_1, f_2, c_eps_1, c_eps_2, sigma_p, buoyancy_density, have_buoyancy_turbulence removed
+             ele, i, alpha, beta, beta_star, C_T, C_omega, region_id_disc, region_id_near_disc) !!! f_1, f_2, c_eps_1, c_eps_2, sigma_p, buoyancy_density, have_buoyancy_turbulence removed
      end do
 
      ! For non-DG we apply inverse mass globally
@@ -276,17 +283,17 @@ end subroutine komega_calculate_rhs
 
 subroutine assemble_rhs_ele(src_abs_terms, k, omega, scalar_eddy_visc, u, density, & !!
      g, g_magnitude, &
-     X, ele, field_id, alpha, beta, beta_star) !! change coeffs ? !!! f_1, f_2, c_eps_1, c_eps_2, sigma_p, have_buoyancy_turbulence, buoyancy_density removed
+     X, ele, field_id, alpha, beta, beta_star, C_T, C_omega, region_id_disc, region_id_near_disc) !! change coeffs ? !!! f_1, f_2, c_eps_1, c_eps_2, sigma_p, have_buoyancy_turbulence, buoyancy_density removed
 
   type(scalar_field), dimension(2), intent(inout) :: src_abs_terms !!! 3 to 2
   type(scalar_field), intent(in) :: k, omega, scalar_eddy_visc !! f_1, f_2
   type(vector_field), intent(in) :: X, u, g
   type(scalar_field), intent(in) :: density !!! , buoyancy_density
   real, intent(in) :: g_magnitude !!! , c_eps_1, c_eps_2, sigma_p !! change coeffs ?
-  real, intent(in) :: alpha, beta, beta_star !!
+  real, intent(in) :: alpha, beta, beta_star, C_T, C_omega !!
 !!!  logical, intent(in) :: have_buoyancy_turbulence
   integer, intent(in) :: ele, field_id
-
+  integer, intent(in) :: region_id_disc, region_id_near_disc !!
   real, dimension(ele_loc(k, ele), ele_ngi(k, ele), x%dim) :: dshape
   real, dimension(ele_ngi(k, ele)) :: detwei, rhs, scalar_eddy_visc_ele, k_ele, omega_ele !!
   real, dimension(2, ele_loc(k, ele)) :: rhs_addto !!! 3 to 2
@@ -297,7 +304,7 @@ subroutine assemble_rhs_ele(src_abs_terms, k, omega, scalar_eddy_visc, u, densit
   integer :: term, ngi, dim, gi, i, iloc, inode !A!
 !A!  real, dimension(u%dim) :: coords !A!
   real :: u_x, u_y, u_z, u_est, u_ele !A!
-  real :: beta_p, beta_d, C_T, a_fac, C_x !A! Rethore et al
+  real :: beta_p, beta_d, a_fac, C_x !A! Rethore et al
   real :: C_P, C_D, Cpw, C_1, C_2, deltaX !A! Roc et al
   
   ! For buoyancy turbulence stuff !! leave out of k-omega initially
@@ -335,7 +342,7 @@ subroutine assemble_rhs_ele(src_abs_terms, k, omega, scalar_eddy_visc, u, densit
   end do
 
   !A! get u_ele for elements within the disc
-  if (X%mesh%region_ids(ele)==901) then
+  if (X%mesh%region_ids(ele)==region_id_disc) then
      !print*, X%mesh%region_ids(ele)
      ! Loop through the nodes 
      u_ele = 0.0
@@ -358,10 +365,10 @@ subroutine assemble_rhs_ele(src_abs_terms, k, omega, scalar_eddy_visc, u, densit
 
   ! Compute P !! Production ?
   if (field_id==1) then !! id=1 => k
-     if (X%mesh%region_ids(ele)==901) then ! Disc production term
+     if (X%mesh%region_ids(ele)==region_id_disc) then ! Disc production term
         beta_p = 0.05
         beta_d = 1.50
-        C_T = 0.90
+!        C_T = 0.90 !user input!
         a_fac = 0.5*(1.0-sqrt(1.0-C_T))
         C_x = (4.0*a_fac)/(1.0 - a_fac)
         C_1 = 0.05
@@ -380,11 +387,11 @@ subroutine assemble_rhs_ele(src_abs_terms, k, omega, scalar_eddy_visc, u, densit
 
   if (field_id==2) then !! id=2 , hence applies to omega field and not k
      rhs = tensor_inner_product(reynolds_stress, grad_u)
-     if (X%mesh%region_ids(ele)==901) then ! Disc production term 
-        rhs = rhs*alpha*(omega_ele/k_ele) + (4.0*rhs*rhs)/(k_ele*k_ele) ! C_si = 4.0 (Rados et al)
+     if (X%mesh%region_ids(ele)==region_id_disc) then ! Disc production term 
+        rhs = rhs*alpha*(omega_ele/k_ele) + (C_omega*rhs*rhs)/(k_ele*k_ele) ! C_omega = 4.0 (Rados et al)
 !        rhs = rhs + ele_val_at_quad(density, ele)*beta*omega_ele*omega_ele ! ElKasmi et al.
-     elseif (X%mesh%region_ids(ele)==902) then
-        rhs = rhs*alpha*(omega_ele/k_ele) + (4.0*rhs*rhs)/(k_ele*k_ele) ! C_si = 4.0 (Rados et al)
+     elseif (X%mesh%region_ids(ele)==region_id_near_disc) then
+        rhs = rhs*alpha*(omega_ele/k_ele) + (C_omega*rhs*rhs)/(k_ele*k_ele) ! C_omega = 4.0 (Rados et al)
      else
         rhs = rhs*alpha*(omega_ele/k_ele) !! f1 is damping function *ele_val_at_quad(f_1,ele) removed
      end if
