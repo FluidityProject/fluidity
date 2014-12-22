@@ -1,0 +1,17 @@
+*.dvi
+*.log
+*.aux
+*.bbl
+*.blg
+*.ps
+*.bak
+*.synctex.gz
+*.fdb_latexmk
+*.fls
+*.spl
+
+*.o
+*.mod
+*.lo
+*.la
+
