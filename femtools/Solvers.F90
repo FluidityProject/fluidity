@@ -1653,7 +1653,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     else
        call KSPCreate(MPI_COMM_SELF, ksp, ierr)
     end if
-    call KSPSetOperators(ksp, mat, pmat, DIFFERENT_NONZERO_PATTERN, ierr)
+    call KSPSetOperators(ksp, mat, pmat, ierr)
     
     call setup_ksp_from_options(ksp, mat, pmat, solver_option_path, &
       petsc_numbering=petsc_numbering, &
@@ -1762,7 +1762,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     ! needs checking
 
     ! this may end up in the schema:
-    dtol=PETSC_DEFAULT_DOUBLE_PRECISION
+    dtol=PETSC_DEFAULT_REAL
     ! maximum n/o iterations is required, so no default:
     call get_option(trim(solver_option_path)//'/max_iterations', max_its)
     
@@ -1926,7 +1926,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
        call PCKSPGetKSP(pc, subksp, ierr)
        ewrite(1,*) "Going into setup_ksp_from_options again to set the options "//&
           &"for the complete ksp solve of the preconditioner"
-       call KSPSetOperators(subksp, pmat, pmat, DIFFERENT_NONZERO_PATTERN, ierr)
+       call KSPSetOperators(subksp, pmat, pmat, ierr)
        call setup_ksp_from_options(subksp, pmat, pmat, &
          trim(option_path)//'/solver', petsc_numbering=petsc_numbering)
        ewrite(1,*) "Returned from setup_ksp_from_options for the preconditioner solve, "//&

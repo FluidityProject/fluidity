@@ -60,7 +60,7 @@ CFLAGS	= @CPPFLAGS@ @CFLAGS@
 CXX	= @CXX@
 CXXFLAGS= @CPPFLAGS@ @CXXFLAGS@ -I./include
 
-LINKER  = @LINKER@ @LDFLAGS@
+LINKER  = @LINKER@ @LDFLAGS@ $(CXXFLAGS)
 
 FLLINKER = @FLLINKER@ @LDFLAGS@ $(FCFLAGS)
 
@@ -210,7 +210,7 @@ bin/burgers_equation: fluidity_library main/Burgers_Equation.F90
 	@echo "    MKDIR bin"
 	@mkdir -p bin
 	@echo "    LD burgers_equation"
-	@$(EVAL) $(FC) -o bin/burgers_equation main/Burgers_Equation.o $(FCFLAGS) $(LIBS)
+	@$(EVAL) $(FLLINKER) -o bin/burgers_equation main/Burgers_Equation.o $(FCFLAGS) $(LIBS)
 
 bin/darcy_impes: fluidity_library main/Darcy_IMPES.F90
 	@cd main; $(MAKE) Darcy_IMPES.o

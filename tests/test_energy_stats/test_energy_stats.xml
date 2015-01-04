@@ -203,7 +203,7 @@ for statfile in ['lock_exchange_2d.stat', 'lock_exchange_2d_parallel.stat']:
   DTtot = scipy.integrate.cumtrapz(DT,time)
 
 # Kinetic energy lost through viscous dissipation
-  VD = stat["fluid"]["ViscousDissipation"]["integral"]*nu*rho_0*-1.0
+  VD = stat["fluid"]["ViscousDiss"]["integral"]*rho_0*-1.0
   VDtot = scipy.integrate.cumtrapz(VD,time)
 
 # total energy change
@@ -276,7 +276,7 @@ PE_error_1.append([abs(PE-energy_stats[1][0][0]), abs(BPE-energy_stats[0][-2][0]
 # (first output value) and final time
 # for all fields except BPE
 
-names = ['PotentialEnergyDensity', 'PotentialEnergyDensitySurfaceFlux', 'DiffusiveDissipation', 'KineticEnergy', 'KineticEnergySurfaceFlux', 'ViscousDissipation', 'dE/dt', 'total Energy', 'BPE from mixing stats']
+names = ['PotentialEnergyDensity', 'PotentialEnergyDensitySurfaceFlux', 'DiffusiveDissipation', 'KineticEnergy', 'KineticEnergySurfaceFlux', 'ViscousDiss', 'dE/dt', 'total Energy', 'BPE from mixing stats']
 serial_parallel_error = [[abs(energy_stats[0][i][0] - energy_stats[1][i][0]) for i in range(len(energy_stats[0])-1)]]
 serial_parallel_error.append([abs(energy_stats[0][i][-1] - energy_stats[1][i][-1]) for i in range(len(energy_stats[0])-1)])
 for i in range(len(energy_stats[0])-1): 

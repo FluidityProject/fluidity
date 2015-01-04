@@ -216,7 +216,7 @@ contains
   end subroutine vtk_write_state
 
   subroutine vtk_write_fields(filename, index, position, model, sfields,&
-       & vfields, tfields, write_region_ids, write_columns, write_inactive_parts, stat)
+       & vfields, tfields, write_region_ids, write_columns, number_of_partitions, stat)
     !!< Write the state variables out to a vtu file. Two different elements
     !!< are supported along with fields corresponding to each of them.
     !!<
@@ -235,10 +235,8 @@ contains
     type(tensor_field), dimension(:), intent(in), optional :: tfields
     logical, intent(in), optional :: write_region_ids
     logical, intent(in), optional :: write_columns
-    !! If not provided and true, only the local vtu for processes with at least one element are written
-    !! The zero element processes are supposed to be trailing in rank. If provided and true all
-    !! vtus are written:
-    logical, intent(in), optional :: write_inactive_parts
+    !!< If present, only write for processes 1:number_of_partitions (assumes the other partitions are empty)
+    integer, optional, intent(in):: number_of_partitions
     integer, intent(out), optional :: stat
     
     integer :: NNod, sz_enlist, i, dim, j, k, nparts
@@ -275,10 +273,10 @@ contains
       end do
     end if
     
-    if (present_and_true(write_inactive_parts)) then
-      nparts = getnprocs()
+    if (present(number_of_partitions)) then
+      nparts = number_of_partitions
     else
-      nparts = get_active_nparts(ele_count(model))
+      nparts = getnprocs()
     end if
 
     if(model%shape%degree /= 0) then
@@ -308,6 +306,13 @@ contains
         if (associated(model%region_ids)) then
           allocate(model_mesh%region_ids(ele_count(model_mesh)))
           model_mesh%region_ids = model%region_ids
+        end if
+        ! Copy element_halos to ensure vtkGhostLevels are output 
+        if (associated(model%element_halos)) then
+          allocate(model_mesh%element_halos(size(model%element_halos)))
+          do i = 1, size(model_mesh%element_halos)
+            call allocate(model_mesh%element_halos(i), model%element_halos(i))
+          end do
         end if
       else
         
@@ -1232,9 +1237,8 @@ contains
     end do
     call remap_field_to_surface(position, surface_position, surface_element_list)
         
-    ! some domains may have no surface elements, so we need write_inactive_parts=.true.
     call vtk_write_fields(filename, index=index, position=surface_position, &
-      model=mesh%faces%surface_mesh, sfields=sfields, write_inactive_parts=.true.)
+      model=mesh%faces%surface_mesh, sfields=sfields)
       
     call deallocate(sfields(1))
     if (associated(mesh%faces%coplanar_ids)) then
