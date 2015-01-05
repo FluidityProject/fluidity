@@ -69,10 +69,10 @@ analytic_int = 67500
 print 'Solution relative error: ',abs((integral_tracer_cons_exp_weakbc_upwind_2d - analytic_int)/analytic_int)
 assert abs((integral_tracer_cons_exp_weakbc_upwind_2d - analytic_int)/analytic_int) &lt; 9.0e-03
     </test>
-    <test name="Max of tracer_cons_exp_weakbc_upwind for 2d should be 1.0, check with tolerance 1.1e-08" language="python">
+    <test name="Max of tracer_cons_exp_weakbc_upwind for 2d should be 1.0, check with tolerance 2e-08" language="python">
 analytic_int = 1.0
 print 'Solution relative error: ',abs((max_tracer_cons_exp_weakbc_upwind_2d - analytic_int)/analytic_int)
-assert abs((max_tracer_cons_exp_weakbc_upwind_2d - analytic_int)/analytic_int) &lt; 1.1e-08
+assert abs((max_tracer_cons_exp_weakbc_upwind_2d - analytic_int)/analytic_int) &lt; 2e-08
     </test>
     <test name="Min of tracer_cons_exp_weakbc_upwind for 2d should be 0.0, check with tolerance 6.0e-04" language="python">
 analytic_int = 0.0

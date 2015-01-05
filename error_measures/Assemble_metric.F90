@@ -91,7 +91,10 @@ module metric_assemble
     call initialise_richardson_number_metric
 
     if (use_goal_metric) then
-      call form_goal_metric(state, error_metric)
+!     ***** Note that the following interface causes issues with the Intel compiler. Changed for now as a workaround ******
+!      call form_goal_metric(state, error_metric)
+      call form_goal_metric_generic(state, error_metric)
+!     ***** End of Intel compiler workaround *****
       call halo_update(error_metric)
     else if (use_interpolation_metric) then
       call form_interpolation_metric(state, error_metric)
@@ -346,7 +349,7 @@ module metric_assemble
         ! eigenbounds are the wrong size (and they weren't in state)... so do it now!
         ! (min and max refer to edge lengths, not eigenvalues)
         call allocate(oned_min_bound, oned_positions%mesh, "1DMaxMetricEigenbound", field_type=min_bound%field_type)
-        call allocate(oned_max_bound, oned_positions%mesh, "1DMinMetricEigenbound", field_type=min_bound%field_type)
+        call allocate(oned_max_bound, oned_positions%mesh, "1DMinMetricEigenbound", field_type=max_bound%field_type)
         call get_1d_tensor(column, min_bound, oned_min_bound, back_columns)
         call get_1d_tensor(column, max_bound, oned_max_bound, back_columns)
 
