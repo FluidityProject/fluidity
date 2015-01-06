@@ -218,7 +218,6 @@ subroutine keps_calculate_rhs(state)
   logical :: dg_velocity
 
   option_path = trim(state%option_path)//'/subgridscale_parameterisations/k-epsilon/'
-  dg_velocity = continuity(u)<0
 
   if (.not. have_option(trim(option_path))) then 
      return
@@ -247,6 +246,7 @@ subroutine keps_calculate_rhs(state)
   call allocate(dummydensity, X%mesh, "DummyDensity", field_type=FIELD_TYPE_CONSTANT)
   call set(dummydensity, 1.0)
   dummydensity%option_path = ""
+  dg_velocity = continuity(u)<0
 
   !! required for dg gradient calculation of u
   if(dg_velocity) then
