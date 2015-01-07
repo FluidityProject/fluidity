@@ -608,9 +608,12 @@ contains
 #ifdef DOUBLEP
     do b=1, nfields
       
-      call VecGetValues(vec, nnodp, &
-        petsc_numbering%gnn2unn( 1:nnodp, b ), &
-        array( start+1:start+nnodp ), ierr)
+      ! this check should be unnecessary but is a work around for a bug in petsc, fixed in 18ae1927 (pops up with intel 15)
+      if (nnodp>0) then
+        call VecGetValues(vec, nnodp, &
+          petsc_numbering%gnn2unn( 1:nnodp, b ), &
+          array( start+1:start+nnodp ), ierr)
+      end if
         
       ! go to next field:
       start=start+nnodes
@@ -626,10 +629,12 @@ contains
     allocate(vals(nnodp))
     do b=1, nfields
       
-      call VecGetValues(vec, nnodp, &
-        petsc_numbering%gnn2unn( 1:nnodp, b ), &
-        vals, ierr)
-      array( start+1:start+nnodp ) = vals
+      if (nnodp>0) then
+        call VecGetValues(vec, nnodp, &
+          petsc_numbering%gnn2unn( 1:nnodp, b ), &
+          vals, ierr)
+        array( start+1:start+nnodp ) = vals
+      end if
         
       ! go to next field:
       start=start+nnodes
