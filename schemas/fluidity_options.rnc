@@ -1544,6 +1544,12 @@ start =
                   ## C_Omega.
                   ## Used for ADM Correction Term, if not ADM set to zero (default): 4.0 [Rados et al (2009)].
                   element C_Omega {real},
+                  ## Beta_p.
+                  ## Used for ADM Correction Term, if not ADM set to zero (default): 0.05 [Rethore et al (2009)].
+                  element Beta_p {real},
+                  ## Beta_d.
+                  ## Used for ADM Correction Term, if not ADM set to zero (default): 1.50 [Rethore et al (2009)].
+                  element Beta_d {real},
                   ## DiscRegionID.
                   ## Specify disc region id where ADM Correction Term wil be applied.
                   element DiscRegionID {integer},

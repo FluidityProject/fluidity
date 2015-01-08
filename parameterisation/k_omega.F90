@@ -94,10 +94,10 @@ subroutine komega_calculate_rhs(state)
   type(scalar_field), pointer :: src, abs, debug !! f_1, f_2, 
   type(scalar_field) :: src_to_abs
   type(vector_field), pointer :: x, u, g
-  type(scalar_field), pointer :: dummydensity, density, scalar_eddy_visc !!! , buoyancy_density
+  type(scalar_field), pointer :: dummydensity, density, scalar_eddy_visc, NodeOnTurbine !!! , buoyancy_density
   integer :: i, ele, term, stat
   real :: g_magnitude !!! , c_eps_1, c_eps_2, sigma_p !! change
-  real :: alpha, beta, beta_star, C_T, C_omega !!
+  real :: alpha, beta, beta_star, C_T, C_omega, beta_p, beta_d !!
   integer :: region_id_disc, region_id_near_disc !!
   logical :: lump_mass !!! have_buoyancy_turbulence = .true. removed
   character(len=OPTION_PATH_LEN) :: option_path 
@@ -123,6 +123,8 @@ subroutine komega_calculate_rhs(state)
   ! get ADM correction term constants !Amin!
   call get_option(trim(option_path)//'/C_T', C_T, default = 0.0)
   call get_option(trim(option_path)//'/C_Omega', C_omega, default = 4.0) !! Rados et al (2009)
+  call get_option(trim(option_path)//'/Beta_p', beta_p, default = 0.05) !! Rethore et al (2009)
+  call get_option(trim(option_path)//'/Beta_d', beta_d, default = 1.50) !! Rethore et al (2009)
   call get_option(trim(option_path)//'/DiscRegionID', region_id_disc, default = 901)
   call get_option(trim(option_path)//'/NearDiscRegionID', region_id_near_disc, default = 902)
 
@@ -130,6 +132,7 @@ subroutine komega_calculate_rhs(state)
   x => extract_vector_field(state, "Coordinate")
   u => extract_vector_field(state, "NonlinearVelocity")
   scalar_eddy_visc => extract_scalar_field(state, "ScalarEddyViscosity")
+  NodeOnTurbine => extract_scalar_field(state, "NodeOnTurbine") !A!
 !!  f_1 => extract_scalar_field(state, "f_1")
 !!  f_2 => extract_scalar_field(state, "f_2")
   g => extract_vector_field(state, "GravityDirection", stat)
@@ -199,7 +202,7 @@ subroutine komega_calculate_rhs(state)
      do ele = 1, ele_count(fields(1))
         call assemble_rhs_ele(src_abs_terms, fields(i), fields(3-i), scalar_eddy_visc, u, & !! main function call
              density, g, g_magnitude, x, &
-             ele, i, alpha, beta, beta_star, C_T, C_omega, region_id_disc, region_id_near_disc) !!! f_1, f_2, c_eps_1, c_eps_2, sigma_p, buoyancy_density, have_buoyancy_turbulence removed
+             ele, i, alpha, beta, beta_star, C_T, C_omega, beta_p, beta_d, region_id_disc, region_id_near_disc, NodeOnTurbine) !!! f_1, f_2, c_eps_1, c_eps_2, sigma_p, buoyancy_density, have_buoyancy_turbulence removed
      end do
 
      ! For non-DG we apply inverse mass globally
@@ -283,14 +286,14 @@ end subroutine komega_calculate_rhs
 
 subroutine assemble_rhs_ele(src_abs_terms, k, omega, scalar_eddy_visc, u, density, & !!
      g, g_magnitude, &
-     X, ele, field_id, alpha, beta, beta_star, C_T, C_omega, region_id_disc, region_id_near_disc) !! change coeffs ? !!! f_1, f_2, c_eps_1, c_eps_2, sigma_p, have_buoyancy_turbulence, buoyancy_density removed
+     X, ele, field_id, alpha, beta, beta_star, C_T, C_omega, beta_p, beta_d, region_id_disc, region_id_near_disc, NodeOnTurbine) !! change coeffs ? !!! f_1, f_2, c_eps_1, c_eps_2, sigma_p, have_buoyancy_turbulence, buoyancy_density removed
 
   type(scalar_field), dimension(2), intent(inout) :: src_abs_terms !!! 3 to 2
-  type(scalar_field), intent(in) :: k, omega, scalar_eddy_visc !! f_1, f_2
+  type(scalar_field), intent(in) :: k, omega, scalar_eddy_visc, NodeOnTurbine !! f_1, f_2
   type(vector_field), intent(in) :: X, u, g
   type(scalar_field), intent(in) :: density !!! , buoyancy_density
   real, intent(in) :: g_magnitude !!! , c_eps_1, c_eps_2, sigma_p !! change coeffs ?
-  real, intent(in) :: alpha, beta, beta_star, C_T, C_omega !!
+  real, intent(in) :: alpha, beta, beta_star, C_T, C_omega, beta_p, beta_d !!
 !!!  logical, intent(in) :: have_buoyancy_turbulence
   integer, intent(in) :: ele, field_id
   integer, intent(in) :: region_id_disc, region_id_near_disc !!
@@ -304,9 +307,11 @@ subroutine assemble_rhs_ele(src_abs_terms, k, omega, scalar_eddy_visc, u, densit
   integer :: term, ngi, dim, gi, i, iloc, inode !A!
 !A!  real, dimension(u%dim) :: coords !A!
   real :: u_x, u_y, u_z, u_est, u_ele !A!
-  real :: beta_p, beta_d, a_fac, C_x !A! Rethore et al
+  real :: a_fac, C_x !A! Rethore et al
   real :: C_P, C_D, Cpw, C_1, C_2, deltaX !A! Roc et al
-  
+  real :: volume !A!
+  real, dimension(u%dim) :: vel_integral !A!
+
   ! For buoyancy turbulence stuff !! leave out of k-omega initially
 !!!  real, dimension(u%dim, ele_ngi(u, ele))  :: vector, u_quad, g_quad !!! these were used in Calculate buoyancy turbulence term
 !!!  real :: u_z, u_xy !! necessary!? these were used in Calculate buoyancy turbulence term
@@ -343,31 +348,34 @@ subroutine assemble_rhs_ele(src_abs_terms, k, omega, scalar_eddy_visc, u, densit
 
   !A! get u_ele for elements within the disc
   if (X%mesh%region_ids(ele)==region_id_disc) then
-     !print*, X%mesh%region_ids(ele)
-     ! Loop through the nodes 
-     u_ele = 0.0
-     do iloc=1, size(nodes)
-          !get the global number
-          inode=nodes(iloc)
-          !u_est=node_val(u, inode)
-          u_x = u%val(1,inode)
-          u_y = u%val(2,inode)
-          u_z = u%val(3,inode)
-          u_est = sqrt(u_x*u_x + u_y*u_y + u_z*u_z)
-          u_ele = u_ele + u_est
 
-          !print*, 'u_est'
-          !print*, ele, inode, u_x, u_y, u_z, u_est, u_ele
-     end do
-     u_ele = u_ele/4.0
-     !print*, ele, inode, u_x, u_y, u_z, u_est, u_ele
+    ! Loop through the nodes 
+    !u_ele = 0.0
+    !do iloc=1, size(nodes)
+         !get the global number
+         !inode=nodes(iloc)
+         !u_x = u%val(1,inode)
+         !u_y = u%val(2,inode)
+         !u_z = u%val(3,inode)
+         !u_est = sqrt(u_x*u_x + u_y*u_y + u_z*u_z)
+         !u_ele = u_ele + u_est
+    !end do
+    !u_ele = u_ele/4.0
+    !print*, 'AminCheck', ele, u_ele
+
+    !A!volume = integral_element_scalar(NodeOnTurbine, X, ele) ! Need NodeOnTurbine field!!!
+    volume=dot_product(ele_val_at_quad(NodeOnTurbine, ele), detwei)
+    !A!vel_integral = integral_element_vector(u, X, ele)
+    vel_integral=matmul(matmul(ele_val(u, ele), u%mesh%shape%n), detwei)
+    u_ele = vel_integral(1)/volume
+    !print*, 'AminCheck', ele, u_ele, volume, vel_integral(1)
   end if
 
   ! Compute P !! Production ?
   if (field_id==1) then !! id=1 => k
      if (X%mesh%region_ids(ele)==region_id_disc) then ! Disc production term
-        beta_p = 0.05
-        beta_d = 1.50
+!        beta_p = 0.05 !user input!
+!        beta_d = 1.50 !user input!
 !        C_T = 0.90 !user input!
         a_fac = 0.5*(1.0-sqrt(1.0-C_T))
         C_x = (4.0*a_fac)/(1.0 - a_fac)

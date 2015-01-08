@@ -2037,6 +2037,16 @@ Used for ADM Correction Term, if not ADM set to zero (default): 0.0.</a:document
 Used for ADM Correction Term, if not ADM set to zero (default): 4.0 [Rados et al (2009)].</a:documentation>
                     <ref name="real"/>
                   </element>
+                  <element name="Beta_p">
+                    <a:documentation>Beta_p.
+Used for ADM Correction Term, if not ADM set to zero (default): 0.05 [Rethore et al (2009)].</a:documentation>
+                    <ref name="real"/>
+                  </element>
+                  <element name="Beta_d">
+                    <a:documentation>Beta_d.
+Used for ADM Correction Term, if not ADM set to zero (default): 1.50 [Rethore et al (2009)].</a:documentation>
+                    <ref name="real"/>
+                  </element>
                   <element name="DiscRegionID">
                     <a:documentation>DiscRegionID.
 Specify disc region id where ADM Correction Term wil be applied.</a:documentation>

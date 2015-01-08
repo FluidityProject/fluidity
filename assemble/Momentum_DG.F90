@@ -276,6 +276,14 @@ contains
     ! Partial stress - sp911
     logical :: partial_stress 
 
+    !AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA!
+    real, dimension(U%dim) :: U_intgrl
+    real :: u_disc, u_ref, new_source, intgrl_sum
+    real :: rho_fluid, a_fact, C_T, thickness
+    type(scalar_field) :: Turbine
+    integer :: ii, region_id_disc
+    !AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA!
+
     ewrite(1, *) "In construct_momentum_dg"
 
     call profiler_tic("construct_momentum_dg")
@@ -351,6 +359,12 @@ contains
        call incref(Source)
        ewrite_minmax(source)
     end if
+
+    !AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA!
+    Turbine = extract_scalar_field(state, "NodeOnTurbine")
+    call get_option("/material_phase::fluid/subgridscale_parameterisations/k-omega/C_T", C_T, default = 0.0)
+    call get_option("/material_phase::fluid/subgridscale_parameterisations/k-omega/DiscRegionID", region_id_disc, default = 901)
+    !AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA!
 
     Abs=extract_vector_field(state, "VelocityAbsorption", stat)   
     have_absorption = (stat==0)
@@ -710,6 +724,47 @@ contains
     colour_loop: do clr = 1, size(colours) 
       len = key_count(colours(clr))
 
+      !AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA!
+      u_disc = 0.0
+      u_ref = 0.0
+      new_source = 0.0
+      intgrl_sum = 0.0 !volume of the disc
+      U_intgrl = 0.0 !disc volume integral
+
+      elementD_loop: do nnid = 1, len
+        ele = fetch(colours(clr), nnid)
+        if (X%mesh%region_ids(ele)==region_id_disc) then
+          call calc_disc_velocity_integral(ele, X, U, U_intgrl)
+        end if
+      end do elementD_loop
+
+      do ii=1, U%dim
+        call allsum(U_intgrl(ii))
+      end do
+
+      intgrl_sum = integral_scalar(Turbine, X)
+      u_disc = U_intgrl(1)/intgrl_sum
+
+      thickness = 0.0125
+      rho_fluid = 1.0
+      a_fact = 0.5*(1.0 - sqrt(1.0-C_T))
+      u_ref = u_disc/(1.0 - a_fact)
+
+      new_source = -(0.5*rho_fluid*C_T*u_ref*u_ref)/thickness
+
+      elementS_loop: do nnid = 1, len
+        ele = fetch(colours(clr), nnid)
+        if (X%mesh%region_ids(ele)==region_id_disc) then
+          call calc_disc_source(ele, X, Source, new_source)
+        end if
+      end do elementS_loop
+
+      print*, 'AminCheck----------------------------------------------'
+      print*, 'Disc Volume:', intgrl_sum, 'Disc Velocity:', u_disc, 'Probe Velocity:', u_ref
+      print*, 'C_T:', C_T, 'Thickness', thickness, 'ADM Source:', new_source
+      print*, '-------------------------------------------------------'
+      !AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA!
+
       !$OMP DO SCHEDULE(STATIC)
       element_loop: do nnid = 1, len
        ele = fetch(colours(clr), nnid)
@@ -773,6 +828,44 @@ contains
     call profiler_toc("construct_momentum_dg")
     
   end subroutine construct_momentum_dg
+
+  !AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA!
+  subroutine calc_disc_velocity_integral(ele, X, U, U_intgrl)
+
+    !! Index of current element
+    integer :: ele ! global element number
+    type(vector_field), intent(in) :: X, U
+    real, dimension(U%dim), intent(inout) :: U_intgrl
+
+    if(element_owned(U, ele)) then
+      U_intgrl = U_intgrl + integral_element(U, X, ele)
+    end if
+
+  end subroutine calc_disc_velocity_integral
+  !AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA!
+
+  !AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA!
+  subroutine calc_disc_source(ele, X, Source, new_source)
+
+    !! Index of current element
+    integer :: ele, iloc, inode
+    real, intent(inout) :: new_source
+    type(vector_field), intent(in) :: X
+    type(vector_field), intent(inout) :: Source
+    integer, dimension(:), pointer:: S_ele
+
+    ! Establish local node lists for Velocity
+    S_ele=>ele_nodes(Source,ele)
+
+    ! Loop the nodes
+    do iloc=1, size(S_ele)
+      !get the global number
+      inode=S_ele(iloc)
+      Source%val(1,inode) = new_source
+    end do
+
+  end subroutine calc_disc_source
+  !AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA!
 
   subroutine construct_momentum_element_dg(ele, big_m, rhs, &
        &X, U, U_nl, U_mesh, X_old, X_new, Source, Buoyancy, hb_density, hb_pressure, gravity, Abs, &
@@ -1295,6 +1388,7 @@ contains
     end if
 
     if(have_source.and.acceleration.and.assemble_element) then
+
       ! Momentum source matrix.
       Source_mat = shape_shape(U_shape, ele_shape(Source,ele), detwei*Rho_q)
       if(lump_source) then
