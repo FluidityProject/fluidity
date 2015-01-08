@@ -8,10 +8,8 @@
   <tags>flml zoltan parallel 2dadapt</tags>
   <problem_definition length="medium" nprocs="3">
       <command_line>fluidity circle-2d-drag-serial.flml;
-mpiexec ../../bin/flredecomp -i 1 -o 3 -v -l circle-2d-drag-parallel circle-2d-drag-parallel_flredecomp &amp;&amp;
-mpiexec ../../bin/fluidity circle-2d-drag-parallel_flredecomp.flml;
-mpiexec ../../bin/flredecomp -i 1 -o 3 -v -l circle-2d-drag-parallel-adaptive circle-2d-drag-parallel-adaptive_flredecomp &amp;&amp;
-mpiexec ../../bin/fluidity circle-2d-drag-parallel-adaptive_flredecomp.flml
+mpiexec ../../bin/fluidity circle-2d-drag-parallel.flml;
+mpiexec ../../bin/fluidity circle-2d-drag-parallel-adaptive.flml
       </command_line>
   </problem_definition>
   <variables>

@@ -5,8 +5,7 @@
   <owner userid="cwilson"/>
   <tags>flml solidity parallel</tags>
     <problem_definition length="medium" nprocs="2">
-      <command_line>mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l 5material-droplet 5material-droplet_flredecomp &amp;&amp;
-mpiexec ../../bin/fluidity -v2 -l 5material-droplet_flredecomp.flml</command_line>
+      <command_line>mpiexec ../../bin/fluidity -v2 -l 5material-droplet.flml</command_line>
   </problem_definition>  
   <variables>  
     <variable name="solvers_converged" language="python">

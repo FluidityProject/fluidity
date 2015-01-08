@@ -9,9 +9,8 @@
   <tags>flml parallel</tags>
   
     <problem_definition length="medium" nprocs="3">
-      <command_line>mpiexec ../../bin/flredecomp -i 1 -o 3 -v -l mixing_stats_test_parallel mixing_stats_test_parallel_flredecomp &amp;&amp;
-        fluidity -v3 -l mixing_stats_test_serial.flml;
-                  mpiexec ../../bin/fluidity -v3 -l mixing_stats_test_parallel_flredecomp.flml;
+      <command_line>        fluidity -v3 -l mixing_stats_test_serial.flml;
+                  mpiexec ../../bin/fluidity -v3 -l mixing_stats_test_parallel.flml;
      </command_line>
   </problem_definition> 
    

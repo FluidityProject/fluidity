@@ -5,25 +5,22 @@
   <owner userid="cwilson"/>
   <tags>flml parallel</tags>
     <problem_definition length="medium" nprocs="2">
-      <command_line>mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l mmat-balancepressure-p0p1cv-gpp2 mmat-balancepressure-p0p1cv-gpp2_flredecomp &amp;&amp;
-	mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l mmat-balancepressure-p0p1cv-hpp2dg mmat-balancepressure-p0p1cv-hpp2dg_flredecomp &amp;&amp;
-	mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l mmat-balancepressure-p0p1-rhop0-vfracp0 mmat-balancepressure-p0p1-rhop0-vfracp0_flredecomp &amp;&amp;
-	mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l mmat-balancepressure-p1dgp2-rhop1dg-vfracp1cv mmat-balancepressure-p1dgp2-rhop1dg-vfracp1cv_flredecomp &amp;&amp;
-        mpiexec ../../bin/fluidity -v2 -l mmat-balancepressure-p0p1cv-gpp2_flredecomp.flml &amp;&amp; mv fluidity.log-0 mmat-balancepressure-p0p1cv-gpp2.log-0 &amp;&amp;
+      <command_line>mpiexec ../../bin/fluidity -v2 -l mmat-balancepressure-p0p1cv-gpp2.flml &amp;&amp;
+        mv fluidity.log-0 mmat-balancepressure-p0p1cv-gpp2.log-0 &amp;&amp;
         mv fluidity.log-1 mmat-balancepressure-p0p1cv-gpp2.log-1 &amp;&amp;
         mv fluidity.err-0 mmat-balancepressure-p0p1cv-gpp2.err-0 &amp;&amp;
         mv fluidity.err-1 mmat-balancepressure-p0p1cv-gpp2.err-1 &amp;&amp;
-        mpiexec ../../bin/fluidity -v2 -l mmat-balancepressure-p0p1cv-hpp2dg_flredecomp.flml &amp;&amp;
+        mpiexec ../../bin/fluidity -v2 -l mmat-balancepressure-p0p1cv-hpp2dg.flml &amp;&amp;
         mv fluidity.log-0 mmat-balancepressure-p0p1cv-hpp2dg.log-0  &amp;&amp;
         mv fluidity.log-1 mmat-balancepressure-p0p1cv-hpp2dg.log-1  &amp;&amp; 
         mv fluidity.err-0 mmat-balancepressure-p0p1cv-hpp2dg.err-0 &amp;&amp; 
         mv fluidity.err-1 mmat-balancepressure-p0p1cv-hpp2dg.err-1 &amp;&amp; 
-        mpiexec ../../bin/fluidity -v2 -l mmat-balancepressure-p0p1-rhop0-vfracp0_flredecomp.flml &amp;&amp; 
+        mpiexec ../../bin/fluidity -v2 -l mmat-balancepressure-p0p1-rhop0-vfracp0.flml &amp;&amp; 
         mv fluidity.log-0 mmat-balancepressure-p0p1-rhop0-vfracp0.log-0 &amp;&amp; 
         mv fluidity.log-1 mmat-balancepressure-p0p1-rhop0-vfracp0.log-1 &amp;&amp; 
         mv fluidity.err-0 mmat-balancepressure-p0p1-rhop0-vfracp0.err-0 &amp;&amp; 
         mv fluidity.err-1 mmat-balancepressure-p0p1-rhop0-vfracp0.err-1 &amp;&amp; 
-        mpiexec ../../bin/fluidity -v2 -l mmat-balancepressure-p1dgp2-rhop1dg-vfracp1cv_flredecomp.flml &amp;&amp; 
+        mpiexec ../../bin/fluidity -v2 -l mmat-balancepressure-p1dgp2-rhop1dg-vfracp1cv.flml &amp;&amp; 
         mv fluidity.log-0 mmat-balancepressure-p1dgp2-rhop1dg-vfracp1cv.log-0 &amp;&amp; 
         mv fluidity.log-1 mmat-balancepressure-p1dgp2-rhop1dg-vfracp1cv.log-1 &amp;&amp; 
         mv fluidity.err-0 mmat-balancepressure-p1dgp2-rhop1dg-vfracp1cv.err-0 &amp;&amp; 

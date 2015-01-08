@@ -5,8 +5,7 @@
   <owner userid="jhill1"/>
   <tags>flml biology parallel</tags>
   <problem_definition length="short" nprocs="2">
-    <command_line>mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l biology_conservation_parallel biology_conservation_parallel_flredecomp &amp;&amp;
-mpiexec ../../bin/fluidity biology_conservation_parallel_flredecomp.flml; fluidity biology_conservation.flml</command_line>
+    <command_line>mpiexec ../../bin/fluidity biology_conservation_parallel.flml; fluidity biology_conservation.flml</command_line>
     <!-- PZNDAC model running in a water column not solving for any physics. No sinking of detritus, so everything conserved -->
   </problem_definition>
   <variables>

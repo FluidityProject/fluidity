@@ -6,8 +6,7 @@
   <tags>flml parallel</tags>
 
   <problem_definition length="medium" nprocs="2">
-    <command_line>mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l Stokes-square-convection-1e4-p2p1-parallel Stokes-square-convection-1e4-p2p1-parallel_flredecomp &amp;&amp;
-mpiexec ../../bin/fluidity -v2 -l Stokes-square-convection-1e4-p2p1-parallel_flredecomp.flml</command_line>
+    <command_line>mpiexec ../../bin/fluidity -v2 -l Stokes-square-convection-1e4-p2p1-parallel.flml</command_line>
   </problem_definition>
 
 <variables>  

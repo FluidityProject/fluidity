@@ -3,8 +3,7 @@
   <name>spherical patch<comment>Tests gmsh reading and writing on the sphere with 2d horizontal spherical input mesh, checkpointing and flredecomp.</comment></name>
   <owner userid="skramer"/>
   <problem_definition length="short" nprocs="3">
-    <command_line>mpiexec ../../bin/flredecomp -i 1 -o 3 -v -l spherical_segment spherical_segment_flredecomp &amp;&amp;
-mpiexec fluidity -v2 -l spherical_segment_flredecomp.flml &amp;&amp;
+    <command_line>mpiexec fluidity -v2 -l spherical_segment.flml &amp;&amp;
 mpiexec ../../bin/flredecomp -v -l -i 3 -o 1 spherical_segment_2_checkpoint serial &amp;&amp;
 fluidity -v2 -l serial.flml</command_line>
   </problem_definition>

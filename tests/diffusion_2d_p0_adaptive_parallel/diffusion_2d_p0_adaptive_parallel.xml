@@ -5,8 +5,7 @@
   <owner userid="cwilson"/>
   <tags>flml zoltan parallel 2dadapt</tags>
   <problem_definition length="medium" nprocs="3">
-    <command_line>mpiexec ../../bin/flredecomp -i 1 -o 3 -v -l heat heat_flredecomp &amp;&amp;
-      mpiexec fluidity -v2 -l heat_flredecomp.flml </command_line>
+    <command_line>mpiexec fluidity -v2 -l heat.flml </command_line>
     <!-- Two dimensional diffusion only problem. -->
   </problem_definition>
   <variables>

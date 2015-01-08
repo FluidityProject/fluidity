@@ -5,8 +5,7 @@
   <tags>flml parallel petsc33</tags>
 
   <problem_definition length="medium" nprocs="3">
-    <command_line>mpiexec ../../bin/flredecomp -i 1 -o 3 -v -l Slab-detachment Parallel_NP3_Slab-detachment &amp;&amp; 
-mpiexec ../../bin/fluidity -v2 -l Parallel_NP3_Slab-detachment.flml </command_line>
+    <command_line>mpiexec ../../bin/fluidity -v2 -l Slab-detachment.flml </command_line>
   </problem_definition>
 
 <variables>  

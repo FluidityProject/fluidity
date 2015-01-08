@@ -4,7 +4,7 @@
   <owner userid="cwilson"/>
   <tags>flml zoltan parallel</tags>
   <problem_definition length="short" nprocs="3">
-    <command_line>make clean-run; mpiexec ../../bin/flredecomp -i 1 -o 3 -v -l parallel_p0_consistent_interpolation parallel_p0_consistent_interpolation_flredecomp; mpiexec ../../bin/fluidity -v2 -l parallel_p0_consistent_interpolation_flredecomp.flml</command_line>
+    <command_line>make clean-run; mpiexec ../../bin/fluidity -v2 -l parallel_p0_consistent_interpolation.flml</command_line>
   </problem_definition>
   <variables>
     <variable name="solvers_converged" language="python">

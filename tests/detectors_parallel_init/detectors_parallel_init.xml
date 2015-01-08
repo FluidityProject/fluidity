@@ -5,8 +5,7 @@
   <owner userid="mlange"/>
   <tags>flml</tags>
   <problem_definition length="short" nprocs="2">
-    <command_line>mpiexec ../../bin/flredecomp -i 1 -o 2 detectors detectors_flredecomp &amp;&amp;
-      mpiexec ../../bin/fluidity detectors_flredecomp.flml </command_line>
+    <command_line>mpiexec ../../bin/fluidity detectors.flml </command_line>
     <!-- Test that detectors are initialised correctly in parallel. -->
   </problem_definition>
   <variables>

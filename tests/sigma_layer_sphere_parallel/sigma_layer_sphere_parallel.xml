@@ -7,8 +7,7 @@
   <owner userid="jhill1"/>
   <tags>flml</tags>
   <problem_definition length="short" nprocs="2">
-      <command_line>mpiexec flredecomp -i 1 -o 2  sphere_sigma  sphere_sigma_flredecomp;
-                    mpiexec fluidity sphere_sigma_flredecomp.flml</command_line>
+      <command_line>mpiexec fluidity sphere_sigma.flml</command_line>
   </problem_definition>
   <variables>
     <variable name="solvers_converged" language="python">

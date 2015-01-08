@@ -6,7 +6,7 @@
   <owner userid="jhill1"/>
   <tags>flml zoltan parallel 2dadapt</tags>
   <problem_definition length="medium" nprocs="2">
-    <command_line>mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l backward_facing_step_2d backward_facing_step_2d_flredecomp ;  mpiexec ../../bin/fluidity backward_facing_step_2d_flredecomp.flml </command_line>
+    <command_line>mpiexec ../../bin/fluidity backward_facing_step_2d.flml </command_line>
   </problem_definition>
   <variables>
     <variable name="solvers_converged" language="python">
