@@ -363,6 +363,7 @@ contains
     !AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA!
     Turbine = extract_scalar_field(state, "NodeOnTurbine")
     call get_option("/material_phase::fluid/subgridscale_parameterisations/k-omega/C_T", C_T, default = 0.0)
+    call get_option("/material_phase::fluid/subgridscale_parameterisations/k-omega/thickness", thickness, default = 0.0125)
     call get_option("/material_phase::fluid/subgridscale_parameterisations/k-omega/DiscRegionID", region_id_disc, default = 901)
     !AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA!
 
@@ -745,7 +746,6 @@ contains
       intgrl_sum = integral_scalar(Turbine, X)
       u_disc = U_intgrl(1)/intgrl_sum
 
-      thickness = 0.0125
       rho_fluid = 1.0
       a_fact = 0.5*(1.0 - sqrt(1.0-C_T))
       u_ref = u_disc/(1.0 - a_fact)

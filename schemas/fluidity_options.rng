@@ -2032,6 +2032,11 @@ Recommended value (default): 0.5.</a:documentation>
 Used for ADM Correction Term, if not ADM set to zero (default): 0.0.</a:documentation>
                     <ref name="real"/>
                   </element>
+                  <element name="thickness">
+                    <a:documentation>thickness.
+Used for ADM Correction Term, if not ADM set to 0.0125 (default): 0.0125.</a:documentation>
+                    <ref name="real"/>
+                  </element>
                   <element name="C_Omega">
                     <a:documentation>C_Omega.
 Used for ADM Correction Term, if not ADM set to zero (default): 4.0 [Rados et al (2009)].</a:documentation>

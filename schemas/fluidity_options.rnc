@@ -1541,6 +1541,9 @@ start =
                   ## C_T.
                   ## Used for ADM Correction Term, if not ADM set to zero (default): 0.0.
                   element C_T {real},
+                  ## thickness.
+                  ## Used for ADM Correction Term, if not ADM set to 0.0125 (default): 0.0125.
+                  element thickness {real},
                   ## C_Omega.
                   ## Used for ADM Correction Term, if not ADM set to zero (default): 4.0 [Rados et al (2009)].
                   element C_Omega {real},
