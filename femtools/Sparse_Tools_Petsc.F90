@@ -37,6 +37,7 @@ module sparse_tools_petsc
   use halo_data_types
   use halos_allocates
   use fields_base
+  use fields_allocates
   use fields_manipulation
   use petsc_tools
 #ifdef HAVE_PETSC_MODULES
@@ -1101,23 +1102,23 @@ contains
   end subroutine petsc_csr_mult_T_scalar_to_vector
 
   subroutine lift_boundary_conditions(A, boundary_nodes, rhs)
-    use fields_allocates
     type(petsc_csr_matrix), intent(inout):: A
     type(integer_set), dimension(:):: boundary_nodes
     type(vector_field), intent(inout), optional:: rhs
 
-    Vec:: bvec, xvec
+    Vec:: bvec, xvec, diag
     type(integer_set):: row_set
     PetscInt, dimension(:), allocatable:: node_list
-    PetscScalar:: diag
+    PetscScalar, dimension(:), allocatable:: old_diagonal_values, unscaled_rhs_values
+    PetscScalar, parameter:: pivot = 1.0
     PetscErrorCode:: ierr
     integer:: i, j, row
+
+    logical, parameter:: fix_scaling = .true.
 
     assert( blocks(A,1)==size(boundary_nodes) )
 
     call assemble(A)
-
-    diag = 1.0
 
     ! MatZeroRowsColumns seems to not ignore negative row indices
     ! so first, create a set of petsc rows with negatives removed:
@@ -1134,6 +1135,9 @@ contains
 
     allocate(node_list(1:key_count(row_set)))
     node_list = set2vector(row_set)
+    call deallocate(row_set)
+
+
 
     if (present(rhs)) then
 
@@ -1149,17 +1153,63 @@ contains
       ! before being used as boundary value
       call VecDuplicate(bvec, xvec, ierr)
       call VecCopy(bvec, xvec, ierr)
+      if (fix_scaling) then
+        call VecDuplicate(bvec, diag, ierr)
+      end if
 
     else
 
       xvec = PETSC_NULL_OBJECT
       bvec = PETSC_NULL_OBJECT
+      if (fix_scaling) then
+        diag = PetscNumberingCreateVec(A%row_numbering)
+      end if
 
     end if
 
-    call MatZeroRowsColumns(A%M, size(node_list), node_list, &
-      diag, xvec, bvec, ierr)
+    if (fix_scaling) then
+      ! save current diagonal to fix scaling afterwards
+      call MatGetDiagonal(A%M, diag, ierr)
+    end if
 
+    call MatZeroRowsColumns(A%M, size(node_list), node_list, &
+      pivot, xvec, bvec, ierr)
+
+    if (fix_scaling) then
+      ! fix_scaling is an option to rescale the pivots used on the diagonal for the lifted bc rows
+      ! this is to work around an issue with GAMG on a matrix where the blocksize is set - where
+      ! the pivot value may change the strong connection criterion for the entire block - thus a strong
+      ! free slip node may become decoupled from the rest of the problem in the aggregation procedure
+      allocate(old_diagonal_values(1:size(node_list)))
+      if (size(node_list)>0) then ! work around bug in vecgetvalues for 0-lenght arrays
+        call VecGetValues(diag, size(node_list), node_list, old_diagonal_values, ierr)
+      end if
+       
+      if (present(rhs)) then
+        allocate(unscaled_rhs_values(1:size(node_list)))
+        if (size(node_list)>0) then ! work around bug in vecgetvalues for 0-lenght arrays
+          call VecGetValues(bvec, size(node_list), node_list, unscaled_rhs_values, ierr)
+        end if
+      end if
+      do i=1, size(node_list)
+        j=node_list(i)
+        call MatSetValue(A%M, j, j, old_diagonal_values(i), INSERT_VALUES, ierr)
+        if (present(rhs)) then
+          call VecSetValue(bvec, j, old_diagonal_values(i)*unscaled_rhs_values(i), INSERT_VALUES, ierr)
+        end if
+      end do
+      call MatAssemblyBegin(A%M, MAT_FINAL_ASSEMBLY, ierr)
+      call MatAssemblyEnd(A%M, MAT_FINAL_ASSEMBLY, ierr)
+      deallocate(old_diagonal_values)
+      call VecDestroy(diag, ierr)
+      if (present(rhs)) then
+        call VecAssemblyBegin(bvec, ierr)
+        call VecAssemblyEnd(bvec, ierr)
+        deallocate(unscaled_rhs_values)
+      end if
+    end if
+
+    deallocate(node_list)
     if (present(rhs)) then
       call petsc2field(bvec, A%row_numbering, rhs)
       call VecDestroy(xvec, ierr)
