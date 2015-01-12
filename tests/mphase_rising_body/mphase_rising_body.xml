@@ -63,7 +63,7 @@ assert abs(f1_vfrac_min) &lt; 1e-2
 assert abs(f2_vfrac_max - 1.0) &lt; 1e-2
     </test>
     <test name="SumVelocityDivergence is zero" language="python">
-assert abs(divergence) &lt; 1e-6
+assert abs(divergence) &lt; 3e-6
     </test>
     <test name="Solvers converged" language="python">
 assert(solvers_converged)

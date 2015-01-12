@@ -4,7 +4,7 @@
   <name>lagrangian_detectors_checkpoint</name>
   <owner userid="mlange"/>
   <tags>flml detectors checkpoint</tags>
-  <problem_definition length="short" nprocs="4">
+  <problem_definition length="short" nprocs="1">
     <command_line>
 ../../bin/fluidity -v2 -l lagrangian_detectors.flml;
 ../../bin/fluidity -v2 -l lagrangian_detectors_1_checkpoint.flml
