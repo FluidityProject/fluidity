@@ -278,6 +278,22 @@ contains
                     quad_degree=quad_degree, quad_family=quad_family, &
                     boundary_label="Boundary Marker", field=position)
                mesh=position%mesh
+            case ("fluent")
+               call dmplex_read_mesh_file(trim(mesh_file_name)//".cas", mesh_file_format, plex)
+               call dmplex_create_coordinate_field(plex, &
+                    quad_degree=quad_degree, quad_family=quad_family, &
+                    boundary_label="Face Sets", field=position)
+               mesh=position%mesh
+
+              ! Change mesh file format to "gmsh", as the write routines for Fluent meshes are currently
+              ! not implemented. Thus, checkpoints etc are dumped as gmsh mesh files
+               mesh_file_format = "gmsh"
+               call set_option_attribute(trim(from_file_path)//"/format/name", &
+                    trim(mesh_file_format), stat=stat)
+               if (stat /= SPUD_NO_ERROR) then
+                  FLAbort("Failed to set the mesh format to gmsh (required for checkpointing). &&
+                       Spud error code is: "//int2str(stat))
+               end if
             case ("vtu")
               position_ptr => vtk_cache_read_positions_field(mesh_file_name)
               ! No hybrid mesh support here

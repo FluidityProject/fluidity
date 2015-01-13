@@ -30,6 +30,15 @@ Checkpoints are dumped in the GMSH file format.&lt;/b&gt;</a:documentation>
             </attribute>
             <ref name="comment"/>
           </element>
+          <element name="format">
+            <a:documentation>Fluent mesh format (CASE files).
+
+Enter the base name without the .cas ending</a:documentation>
+            <attribute name="name">
+              <value>fluent</value>
+            </attribute>
+            <ref name="comment"/>
+          </element>
         </choice>
         <attribute name="file_name">
           <data type="string"/>

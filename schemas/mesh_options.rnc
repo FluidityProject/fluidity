@@ -21,6 +21,13 @@ mesh_info =
             element format {
                attribute name { "exodusii" },
                comment
+            }|
+            ## Fluent mesh format (CASE files).
+            ##
+            ## Enter the base name without the .cas ending
+            element format {
+               attribute name { "fluent" },
+               comment
             }
          ),
          attribute file_name { xsd:string },

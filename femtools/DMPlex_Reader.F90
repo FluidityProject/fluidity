@@ -140,6 +140,8 @@ contains
        call DMPlexCreateGmshFromFile(MPI_COMM_FEMTOOLS, filename, PETSC_TRUE, plex, ierr)
     case("exodusii")
        call DMPlexCreateExodusFromFile(MPI_COMM_FEMTOOLS, filename, PETSC_TRUE, plex, ierr)
+    case("fluent")
+       call DMPlexCreateFluentFromFile(MPI_COMM_FEMTOOLS, filename, PETSC_TRUE, plex, ierr)
     case default
        ewrite(-1,*) trim(fileformat), " is not a valid format for a mesh file"
        FLAbort("Invalid format for mesh file")
