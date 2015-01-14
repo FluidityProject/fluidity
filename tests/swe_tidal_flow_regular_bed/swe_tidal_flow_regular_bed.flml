@@ -62,7 +62,7 @@
         <real_value rank="0">9117.5</real_value>
       </constant>
     </dump_period>
-    <output_mesh name="VelocityMesh"/>
+    <output_mesh name="PressureMesh"/>
     <stat/>
   </io>
   <timestepping>
@@ -254,6 +254,7 @@
             <integer_value shape="1" rank="1">4</integer_value>
           </surface_ids>
           <type name="dirichlet">
+            <apply_weakly/>
             <align_bc_with_cartesian>
               <x_component>
                 <constant>
