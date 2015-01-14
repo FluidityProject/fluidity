@@ -45,7 +45,7 @@ module tictoc
   integer, parameter, public :: TICTOC_ID_SIMULATION = 1, &
     & TICTOC_ID_SERIAL_ADAPT = 2, TICTOC_ID_DATA_MIGRATION = 3, &
     & TICTOC_ID_ADAPT = 4, TICTOC_ID_IO_READ = 5, TICTOC_ID_DATA_REMAP = 6, &
-    & TICTOC_ID_INTERPOLATION = 7, TICTOC_ID_ASSEMBLE_METRIC = 8
+    & TICTOC_ID_INTERPOLATION = 7, TICTOC_ID_ASSEMBLE_METRIC = 8, TICTOC_ID_TIMESTEP = 9
 
   real :: starttime(MAX_TIC_ID) = 0.0, totaltime(MAX_TIC_ID) = 0.0
 #ifdef DDEBUG
@@ -200,6 +200,8 @@ contains
            ewrite(debug_level, *) "For TICTOC_ID_INTERPOLATION"
          case(TICTOC_ID_ASSEMBLE_METRIC)
            ewrite(debug_level, *) "For TICTOC_ID_ASSEMBLE_METRIC"
+         case(TICTOC_ID_TIMESTEP)
+           ewrite(debug_level, *) "For TICTOC_ID_TIMESTEP (excluding time in mesh adaptivity, if applicable)"
          case default
            ewrite(debug_level, "(a,i0)") "For tictoc ID: ", id
        end select
