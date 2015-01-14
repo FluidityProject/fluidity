@@ -50,8 +50,9 @@
 ! for PCSetOperators we use small caps because otherwise the preprocessor trips up on an occurence of PCSetoperators directly followed by () in a fortran comment in one of the petsc headers
 #if PETSC_VERSION_MINOR<5
 #define KSPSetOperators(ksp, amat, pmat, ierr) kspsetoperators(ksp, amat, pmat, DIFFERENT_NONZERO_PATTERN, ierr)
-#define KSPGetOperators(ksp, amat, pmat, ierr) kspgetoperators(ksp, amat, pmat, DIFFERENT_NONZERO_PATTERN, ierr)
 #define pcsetoperators(pc, amat, pmat, ierr) PCSetOperators(pc, amat, pmat, DIFFERENT_NONZERO_PATTERN, ierr)
+! mykspgetoperators is a wrapper function defined in Petsc_Tools.F90:
+#define KSPGetOperators(ksp, amat, pmat, ierr) mykspgetoperators(ksp, amat, pmat, ierr)
 #endif
 ! renamed in petsc master
 #if PETSC_VERSION_RELEASE==0
