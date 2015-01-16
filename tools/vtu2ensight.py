@@ -94,6 +94,8 @@ def main(args):
     # get list of vtu/pvtu files:
     vtus = getvtulist(basename)
     if (not vtus): raise IOError
+    # prevent reading errors, if only one vtu file was found, set static to True:
+    if (len(vtus) == 1): static = True
     # writer:
     writer = getensightwriter(basename, static)
     # write data for each vtu-file:
