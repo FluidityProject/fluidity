@@ -87,14 +87,13 @@ def writecase(writer, ntimesteps):
     # write header information (case file)
     writer.WriteCaseFile(ntimesteps)
 
-def main(argv):
-    # get arguments:
-    args = parse_args(argv)
+def main(args):
     verbose = args.verbose
     static = args.static
     basename = args.basename
     # get list of vtu/pvtu files:
     vtus = getvtulist(basename)
+    if (not vtus): raise IOError
     # writer:
     writer = getensightwriter(basename, static)
     # write data for each vtu-file:
@@ -111,9 +110,13 @@ def main(argv):
     writecase(writer, len(vtus))
 
 if __name__ == "__main__":
+    # get arguments:
+    args = parse_args(sys.argv)
     try:
-        main(sys.argv)
+        main(args)
         print "EnSight output files have been written successfully."
+    except IOError:
+        print "Error: Could not find any output files with a basename \""+args.basename+"\"."
     except:
         raise Exception("Something went wrong. Aborting operation.")
 
