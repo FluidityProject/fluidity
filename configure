@@ -12995,9 +12995,9 @@ program test_petsc
 #endif
 implicit none
 #ifdef HAVE_PETSC_MODULES
-#include "finclude/petscdef.h"
+#include "petsc-finclude/petscdef.h"
 #else
-#include "finclude/petsc.h"
+#include "petsc-finclude/petsc.h"
 #endif
       double precision  norm
       PetscInt  i,j,II,JJ,m,n,its
