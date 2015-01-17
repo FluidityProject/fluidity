@@ -287,7 +287,7 @@ Field_Equations_CV.o ../include/field_equations_cv.mod: Field_Equations_CV.F90 \
    ../include/sparse_matrices_fields.mod \
    ../include/sparsity_patterns_meshes.mod ../include/spud.mod \
    ../include/state_fields_module.mod ../include/state_module.mod \
-   ../include/transform_elements.mod
+   ../include/transform_elements.mod ../include/multiphase_module.mod
 
 ../include/foam_drainage.mod: Foam_Drainage.o
 	@true
@@ -623,7 +623,8 @@ Multiphase.o ../include/multiphase_module.mod: Multiphase.F90 \
    ../include/field_priority_lists.mod ../include/fields.mod \
    ../include/fldebug.mod ../include/global_parameters.mod \
    ../include/profiler.mod ../include/sparse_tools_petsc.mod \
-   ../include/spud.mod ../include/state_module.mod
+   ../include/spud.mod ../include/state_module.mod ../include/solvers.mod \
+   ../include/sparse_tools.mod ../include/sparsity_patterns_meshes.mod
 
 ../include/node_locking.mod: Node_Locking.o
 	@true

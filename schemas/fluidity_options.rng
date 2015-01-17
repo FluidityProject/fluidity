@@ -15,6 +15,7 @@
   <include href="temporal_discretisation.rng"/>
   <include href="embedded_models.rng"/>
   <include href="flredecomp.rng"/>
+  <include href="multiphase_interaction.rng"/>
   <include href="porous_media.rng"/>
   <include href="multiphase_interaction.rng"/>
   <include href="equation_of_state.rng"/>
@@ -2192,6 +2193,14 @@ probably equal to the location of the borehole</a:documentation>
               <optional>
                 <element name="particle_diameter">
                   <ref name="real"/>
+                </element>
+              </optional>
+              <optional>
+                <element name="max_packing_volume_fraction">
+                  <ref name="real">
+                    <a:documentation>The PhaseVolumeFraction at maximum packing in a 
+simulation with only this particle phase.</a:documentation>
+                  </ref>
                 </element>
               </optional>
               <optional>

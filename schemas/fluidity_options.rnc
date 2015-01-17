@@ -14,6 +14,7 @@ include "spatial_discretisation.rnc"
 include "temporal_discretisation.rnc"
 include "embedded_models.rnc"
 include "flredecomp.rnc"
+include "multiphase_interaction.rnc"
 include "porous_media.rnc"
 include "multiphase_interaction.rnc"
 include "equation_of_state.rnc"
@@ -1615,6 +1616,11 @@ start =
                comment,
                element particle_diameter { 
                      real 
+               }?,
+               element max_packing_volume_fraction {
+                     ## The PhaseVolumeFraction at maximum packing in a 
+                     ## simulation with only this particle phase.
+                     real
                }?,
                ## If this is the fluid phase, 
                ## the effective conductivity is required 

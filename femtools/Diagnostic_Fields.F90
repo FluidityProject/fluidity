@@ -699,20 +699,36 @@ contains
     !!< Calculate the kinetic energy density field
     !!< Beware what your "Density" is!
 
-    type(state_type), intent(in) :: state
+    type(state_type), intent(inout) :: state
     type(scalar_field), intent(inout) :: ke_density_field
     integer, intent(out), optional :: stat
 
+    integer :: ele, gi, dim
+    ! Transformed quadrature weights.
+    real, dimension(ele_ngi(ke_density_field, 1)) :: detwei
+    ! Field values at each quadrature point.
+    real, dimension(mesh_dim(ke_density_field), ele_ngi(ke_density_field, 1)) :: velocity_field_q
+    real, dimension(ele_ngi(ke_density_field, 1)) :: ke_density_field_q, rho_field_q, vfrac_field_q
+    ! local grn matrix on the current element.
+    real, dimension(ele_loc(ke_density_field, 1),ele_loc(ke_density_field, 1)) :: ke_density_field_mat
+    ! Current KineticEnergyDensity element shape.
+    type(element_type), pointer :: ke_density_field_shape
+    ! Current element global node numbers.
+    integer, dimension(:), pointer :: ke_density_field_nodes
+    
     integer :: i
-    type(scalar_field), pointer :: rho_field
-    type(vector_field), pointer :: vel_field
+    logical :: multiphase
+    type(scalar_field), pointer :: rho_field, vfrac_field
+    type(vector_field), pointer :: x, velocity_field
 
-    do i = 1, 2
+    do i = 1, 3
       select case(i)
         case(1)
           rho_field => extract_scalar_field(state, "Density", stat)
         case(2)
-          vel_field => extract_vector_field(state, "Velocity", stat)
+          velocity_field => extract_vector_field(state, "Velocity", stat)
+        case(3)
+          x => extract_vector_field(state, "Coordinate", stat)
         case default
           FLAbort("Invalid loop index")
       end select
@@ -720,20 +736,44 @@ contains
         return
       end if
     end do
-
-    if(present(stat) .and. (.not. rho_field%mesh == ke_density_field%mesh &
-      & .or. .not. vel_field%mesh == ke_density_field%mesh)) then
-      stat = 1
-      return
+    
+    if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1) then
+       multiphase = .true.
+       vfrac_field => extract_scalar_field(state, "PhaseVolumeFraction")
     else
-      assert(rho_field%mesh == ke_density_field%mesh)
-      assert(vel_field%mesh == ke_density_field%mesh)
+       multiphase = .false.
+       nullify(vfrac_field)
     end if
 
     call zero(ke_density_field)
-    do i = 1, node_count(ke_density_field)
-      call set(ke_density_field, i, &
-        & 0.5 * node_val(rho_field, i) * norm2(node_val(vel_field, i))**2)
+    do ele = 1, element_count(ke_density_field)
+       ke_density_field_nodes => ele_nodes(ke_density_field, ele)
+       ke_density_field_shape => ele_shape(ke_density_field, ele)
+           
+       call transform_to_physical(x, ele, detwei = detwei)
+
+       ! Calculate the kinetic energy at each quadrature point.
+       velocity_field_q = ele_val_at_quad(velocity_field, ele)
+       rho_field_q = ele_val_at_quad(rho_field, ele)
+       if(multiphase) then
+          vfrac_field_q = ele_val_at_quad(vfrac_field, ele)
+       end if
+       
+       do gi = 1, ele_ngi(ke_density_field, ele)
+          ke_density_field_q(gi) = 0.5*rho_field_q(gi)*(norm2(velocity_field_q(:,gi))**2)
+          
+          if(multiphase) then
+             ke_density_field_q(gi) = ke_density_field_q(gi)*vfrac_field_q(gi)
+          end if
+       end do
+
+       ! Project onto the basis functions to recover the kinetic energy at each node.
+       ke_density_field_mat=matmul(inverse(shape_shape(ke_density_field_shape, ke_density_field_shape, detwei)), &
+            shape_shape(ke_density_field_shape, ke_density_field_shape, detwei*maxval(abs(ke_density_field_q),1)))
+
+       ! In the case where a continuous mesh is provided for the kinetic energy, 
+       ! the following takes the safest option of taking the maximum value at a node.
+       ke_density_field%val(ke_density_field_nodes)=max(ke_density_field%val(ke_density_field_nodes), sum(ke_density_field_mat,2))
     end do
 
   end subroutine calculate_ke_density

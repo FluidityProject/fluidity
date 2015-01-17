@@ -269,7 +269,7 @@
          ! The index of the current phase (i.e. state(istate)) in the submaterials array
          integer :: submaterials_istate
          ! Do we have fluid-particle drag between phases?
-         logical :: have_fp_drag
+         logical :: have_fp_drag, have_pp_drag
 
          ewrite(1,*) 'Entering solve_momentum'
 
@@ -289,8 +289,10 @@
          else
             multiphase = .false.
          end if
-         ! Do we have fluid-particle drag (for multi-phase simulations)?
+
+         ! Do we have fluid-particle or particle-particle drag (for multi-phase simulations)?
          have_fp_drag = have_option("/multiphase_interaction/fluid_particle_drag")
+         have_pp_drag = have_option("/multiphase_interaction/particle_particle_drag")
 
          ! Get the pressure p^{n}, and get the assembly options for the divergence and CMC matrices
          ! find the first non-aliased pressure
@@ -660,6 +662,10 @@
             ! and their fields otherwise.
             if(multiphase .and. have_fp_drag) then
                call add_fluid_particle_drag(state, istate, u, x, big_m(istate), mom_rhs(istate))
+            end if
+
+            if(multiphase .and. have_pp_drag) then
+               call add_particle_particle_drag(state, istate, u, x, big_m(istate), mom_rhs(istate))
             end if
             
             call profiler_toc(u, "assembly")

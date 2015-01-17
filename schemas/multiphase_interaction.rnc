@@ -6,6 +6,7 @@ multiphase_interaction =
       element multiphase_interaction {
          comment,
          fluid_particle_drag?,
+         particle_particle_drag?,
          heat_transfer?
       }
    ) 
@@ -54,5 +55,46 @@ heat_transfer_coefficient =
       element heat_transfer_coefficient {
          attribute name { "gunn" },
          comment
+      }
+   )
+
+particle_particle_drag =
+   (
+      ## Particle-particle drag term.
+      comment,
+      (
+         pp_syamlal
+      )
+   )
+   
+pp_syamlal =
+   (
+      ## Particle-particle drag term by Syamlal (1985)
+      ##
+      ## Note: Each material_phase must have a max_packing_volume_fraction specified.
+      element particle_particle_drag {
+         attribute name { "syamlal" },
+         comment,
+            
+         element restitution_coefficient {
+            real
+         },
+
+         element non_headon_collision_coefficient {
+            real
+         },
+         
+         element particle_particle_pair {
+            ## Specify the pair of particle phases which interact with each other
+            attribute name { xsd:string },
+            
+            element particle_phase_i_name { 
+               xsd:string 
+            },
+            element particle_phase_j_name { 
+               xsd:string 
+            }      
+         }+
+         
       }
    )

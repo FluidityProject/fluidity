@@ -55,6 +55,7 @@ module field_equations_cv
   use halos
   use field_options
   use state_fields_module
+  use multiphase_module
   use porous_media
   use multiphase_module
 
@@ -367,7 +368,17 @@ contains
         ! find relative velocity
         allocate(advu)
         call allocate(advu, nu%dim, nu%mesh, "AdvectionVelocity")
-        call set(advu, nu)
+
+        ! If we have a multimaterial-multiphase simulation, then advect the
+        ! MaterialVolumeFraction fields around with the bulk velocity
+        ! (i.e. sum_i{vfrac_i*nu_i}) to ensure divergence free-ness.
+        if(trim(tfield%name) == "MaterialVolumeFraction" .and. &
+           & option_count("/material_phase/vector_field::Velocity/prognostic") > 1) then
+          call calculate_bulk_velocity(state, advu)
+        else
+          call set(advu, nu)
+        end if
+
         if (have_option(trim(tfield%option_path)// & 
          "/prognostic/spatial_discretisation/control_volumes/"// &
          "face_value::FiniteElement/only_sinking_velocity")) then

@@ -39,14 +39,18 @@
       use field_options
       use fetools
       use sparse_tools_petsc
+      use solvers
+      use sparsity_patterns
+      use sparsity_patterns_meshes
       use profiler
 
       implicit none
 
       private
       public :: get_phase_submaterials, get_nonlinear_volume_fraction, &
-                calculate_diagnostic_phase_volume_fraction, &
-                add_fluid_particle_drag, add_heat_transfer
+                calculate_diagnostic_phase_volume_fraction, calculate_bulk_velocity, &
+                add_fluid_particle_drag, add_heat_transfer, &
+                add_particle_particle_drag
 
    contains
 
@@ -251,6 +255,122 @@
          ewrite(1,*) 'Exiting calculate_diagnostic_phase_volume_fraction'
 
       end subroutine calculate_diagnostic_phase_volume_fraction
+      
+      
+      subroutine calculate_bulk_velocity(states, v_field)
+         !!< Calculates the bulk velocity \sum_{i=1}^N {vfrac_i*u_i}
+
+         type(state_type), dimension(:), intent(inout) :: states
+         type(vector_field), intent(inout) :: v_field ! Bulk velocity field
+
+         ! Velocities of the continuous and particle phases
+         type(vector_field), pointer :: u, x
+         type(scalar_field), pointer :: vfrac
+
+         integer :: i, dim, stat
+         ! Counters over the elements and Gauss points
+         integer :: ele, gi
+         ! Transformed quadrature weights.
+         real, dimension(ele_ngi(v_field, 1)) :: detwei
+
+         ! Field values at each quadrature point.
+         real, dimension(mesh_dim(v_field), ele_ngi(v_field, 1)) :: bulk_velocity_gi
+         real, dimension(mesh_dim(v_field), ele_ngi(v_field, 1)) :: u_gi
+         real, dimension(ele_ngi(v_field, 1)) :: vfrac_gi
+
+         ! Current element global node numbers.
+         integer, dimension(:), pointer :: bulk_velocity_nodes
+         ! Current bulk_velocity element shape
+         type(element_type), pointer :: bulk_velocity_shape
+
+         ! Local bulk_velocity matrix and rhs for the current element.
+         real, dimension(ele_loc(v_field, 1), ele_loc(v_field, 1)) :: mass_mat_addto
+         real, dimension(mesh_dim(v_field), ele_loc(v_field, 1)) :: rhs_addto
+         
+         type(csr_sparsity), pointer :: sparsity
+         type(csr_matrix) :: mass_mat
+         type(vector_field) :: rhs
+
+         character(len=OPTION_PATH_LEN) :: option_path
+
+
+         ewrite(1,*) 'Entering calculate_bulk_velocity'
+
+         ! Allocate / extract from state
+         sparsity => get_csr_sparsity_firstorder(states, v_field%mesh, v_field%mesh)
+         call allocate(mass_mat, sparsity, name = trim(v_field%name) // "MassMatrix")
+         call allocate(rhs, v_field%dim, v_field%mesh, trim(v_field%name) // "Rhs")
+
+         ! Zero bulk velocity field
+         call zero(v_field)
+         call zero(rhs)
+         call zero(mass_mat)
+
+         ! Loop through and integrate over each element
+         do ele = 1, element_count(v_field)
+
+            bulk_velocity_nodes => ele_nodes(v_field, ele)
+            bulk_velocity_shape => ele_shape(v_field, ele)
+
+            ! Get the base Coordinate field, and compute detwei
+            x => extract_vector_field(states(1), "Coordinate")
+            call transform_to_physical(x, ele, detwei = detwei)
+
+            ! Zero arrays
+            bulk_velocity_gi = 0.0
+            rhs_addto = 0.0
+            mass_mat_addto = 0.0
+            
+            do i = 1, size(states)
+               u => extract_vector_field(states(i), "Velocity", stat)
+
+               ! If there's no velocity then cycle
+               if(stat/=0) cycle
+               ! If this is an aliased velocity then cycle
+               if(aliased(u)) cycle
+               ! If the velocity isn't prognostic then cycle
+               if(.not.have_option(trim(u%option_path)//"/prognostic")) cycle
+
+               ! In case the v_field (the MaterialVolumeFraction field for now) is solved for explicitly,
+               ! pass a Velocity field's solver options to PETSc instead.
+               option_path=trim(u%option_path)
+
+               u => extract_vector_field(states(i), "NonlinearVelocity")
+               vfrac => extract_scalar_field(states(i), "PhaseVolumeFraction")
+
+               ! Calculate the bulk_velocity at each quadrature point.
+               u_gi = ele_val_at_quad(u, ele)
+               vfrac_gi = ele_val_at_quad(vfrac, ele)
+
+               ! Compute the bulk velocity
+               ! (Assumes velocities are on the same mesh)
+               do dim = 1, mesh_dim(v_field)
+                  bulk_velocity_gi(dim,:) = bulk_velocity_gi(dim,:) + vfrac_gi*u_gi(dim,:)
+               end do
+     
+            end do
+            
+            ! Compute the local mass matrix and rhs
+            mass_mat_addto = shape_shape(bulk_velocity_shape, bulk_velocity_shape, detwei)
+            rhs_addto = shape_vector_rhs(bulk_velocity_shape, bulk_velocity_gi, detwei)
+            
+            ! Add it to the global mass matrix and rhs
+            call addto(mass_mat, bulk_velocity_nodes, bulk_velocity_nodes, mass_mat_addto)
+            call addto(rhs, bulk_velocity_nodes, rhs_addto)
+
+         end do
+
+         ! Perform PETSc solve on the system of equations to get the bulk velocity field
+         call petsc_solve(v_field, mass_mat, rhs, option_path=option_path)
+
+         ewrite_minmax(v_field)
+
+         call deallocate(mass_mat)
+         call deallocate(rhs)
+
+         ewrite(1,*) 'Exiting calculate_bulk_velocity'
+
+      end subroutine calculate_bulk_velocity
       
 
       !! Multiphase interaction terms, F_i
@@ -893,5 +1013,318 @@
             end subroutine add_heat_transfer_element
 
       end subroutine add_heat_transfer
+      
+      subroutine add_particle_particle_drag(state, istate, u, x, big_m, mom_rhs)
+         !!< This computes the particle-particle drag force term, using
+         !!< an extension of the expression by Syamlal (1985). 
+         !!< See Neri et al. (2003) for the extended expression.
+         
+         type(state_type), dimension(:), intent(inout) :: state     
+         integer, intent(in) :: istate
+         type(vector_field), intent(in) :: u, x
+         type(petsc_csr_matrix), intent(inout) :: big_m
+         type(vector_field), intent(inout) :: mom_rhs
+         
+         ! Local variables              
+         integer :: ele
+         type(element_type) :: test_function
+         type(element_type), pointer :: u_shape
+         integer, dimension(:), pointer :: u_ele
+         logical :: dg
+         
+         real :: dt, theta
+         logical, dimension(u%dim, u%dim) :: block_mask ! Control whether the off diagonal entries are used
+                 
+         integer :: i, dim, ipair
+         
+         integer :: istate_particle_i, istate_particle_j
+         character(len=OPTION_PATH_LEN) :: particle_i_name, particle_j_name
+         
+         real :: e ! The restitution coefficient (e)
+         real :: alpha
+         
+         logical :: current_phase_is_particle_i
+         
+         ewrite(1, *) "Entering add_particle_particle_drag"
+               
+         ! Get the timestepping options
+         call get_option("/timestepping/timestep", dt)
+         call get_option(trim(u%option_path)//"/prognostic/temporal_discretisation/theta", &
+                        theta)
+                                          
+         ! For the big_m matrix. Controls whether the off diagonal entries are used    
+         block_mask = .false.
+         do dim = 1, u%dim
+            block_mask(dim, dim) = .true.
+         end do
+
+         ! Are we using a discontinuous Galerkin discretisation?
+         dg = continuity(u) < 0
+         
+         ! Get the restitution coefficient (e) which is independent of the phases.
+         call get_option("/multiphase_interaction/particle_particle_drag/restitution_coefficient", e)
+         call get_option("/multiphase_interaction/particle_particle_drag/non_headon_collision_coefficient", alpha)
+
+         ! Loop over all of the particle-particle phase pairs
+         pair_loop: do ipair = 1, option_count("/multiphase_interaction/particle_particle_drag/particle_particle_pair")
+
+            call get_option("/multiphase_interaction/particle_particle_drag/particle_particle_pair["//int2str(ipair-1)//"]/particle_phase_i_name", particle_i_name)
+            call get_option("/multiphase_interaction/particle_particle_drag/particle_particle_pair["//int2str(ipair-1)//"]/particle_phase_j_name", particle_j_name)
+                                 
+            ! If the current phase is one of the phases in the pair, then we need to compute the drag term
+            if((particle_i_name == trim(state(istate)%name)) .or. (particle_j_name == trim(state(istate)%name))) then
+
+               ! Determine the indices of particle phases i and j
+               do i=1,size(state)
+                  if(trim(state(i)%name) == particle_i_name) then
+                     istate_particle_i = i
+                  end if
+
+                  if(trim(state(i)%name) == particle_j_name) then
+                     istate_particle_j = i
+                  end if
+               end do
+
+               ! Is the current phase particle i? If not, we might have to swap some variables 
+               ! around in the assembly to compute D_ij and not D_ji
+               current_phase_is_particle_i = (trim(state(istate)%name) == particle_i_name)
+               
+               if(istate_particle_i == istate_particle_j) then
+                  cycle ! No point assembling when the particle phases are the same
+               else
+                  call assemble_particle_particle_drag(istate_particle_i, istate_particle_j)
+               end if
+            
+            end if
+
+         end do pair_loop
+
+         ewrite(1, *) "Exiting add_particle_particle_drag"
+
+         contains
+
+            subroutine assemble_particle_particle_drag(istate_particle_i, istate_particle_j)
+
+               integer, intent(in) :: istate_particle_i, istate_particle_j
+
+               type(scalar_field), pointer :: vfrac_i, vfrac_j
+               type(scalar_field), pointer :: density_i, density_j
+               type(vector_field), pointer :: velocity_i, velocity_j
+               type(vector_field), pointer :: oldu_i, oldu_j
+               type(vector_field), pointer :: nu_i, nu_j ! Non-linear approximation to the Velocities
+               type(scalar_field) :: nvfrac_i, nvfrac_j
+               real :: d_i, d_j ! Particle diameter
+               real :: phi_i, phi_j ! Maximum packing volume fractions for the particle phases
+
+               ewrite(1, *) "Entering assemble_particle_particle_drag"
+
+               ! Get the necessary fields to calculate the drag force
+               velocity_i => extract_vector_field(state(istate_particle_i), "Velocity")
+               velocity_j => extract_vector_field(state(istate_particle_j), "Velocity")
+               if(.not.(aliased(velocity_i) .or. aliased(velocity_j))) then ! Don't count the aliased material_phases
+                  
+                  vfrac_i => extract_scalar_field(state(istate_particle_i), "PhaseVolumeFraction")
+                  vfrac_j => extract_scalar_field(state(istate_particle_j), "PhaseVolumeFraction")
+                  density_i => extract_scalar_field(state(istate_particle_i), "Density")
+                  density_j => extract_scalar_field(state(istate_particle_j), "Density")
+         
+                  call get_option("/material_phase["//int2str(istate_particle_i-1)//&
+                           &"]/multiphase_properties/particle_diameter", d_i)
+                  call get_option("/material_phase["//int2str(istate_particle_j-1)//&
+                           &"]/multiphase_properties/particle_diameter", d_j)
+                           
+                  call get_option("/material_phase["//int2str(istate_particle_i-1)//&
+                           &"]/multiphase_properties/max_packing_volume_fraction", phi_i)
+                  call get_option("/material_phase["//int2str(istate_particle_j-1)//&
+                           &"]/multiphase_properties/max_packing_volume_fraction", phi_j)
+
+                  ! Calculate the non-linear approximation to the PhaseVolumeFractions
+                  call allocate(nvfrac_i, vfrac_i%mesh, "NonlinearPhaseVolumeFraction")
+                  call allocate(nvfrac_j, vfrac_j%mesh, "NonlinearPhaseVolumeFraction")
+                  call zero(nvfrac_i)
+                  call zero(nvfrac_j)
+                  call get_nonlinear_volume_fraction(state(istate_particle_i), nvfrac_i)
+                  call get_nonlinear_volume_fraction(state(istate_particle_j), nvfrac_j)
+                  
+                  ! Get the non-linear approximation to the Velocities
+                  nu_i => extract_vector_field(state(istate_particle_i), "NonlinearVelocity")
+                  nu_j => extract_vector_field(state(istate_particle_j), "NonlinearVelocity")
+                  oldu_i => extract_vector_field(state(istate_particle_i), "OldVelocity")
+                  oldu_j => extract_vector_field(state(istate_particle_j), "OldVelocity")
+
+                  ! ----- Volume integrals over elements -------------           
+                  call profiler_tic(u, "element_loop")
+                  element_loop: do ele = 1, element_count(u)
+
+                     if(.not.dg .or. (dg .and. element_owned(u,ele))) then
+                        u_ele=>ele_nodes(u, ele)
+                        u_shape => ele_shape(u, ele)
+                        test_function = u_shape                         
+
+                        call add_particle_particle_drag_element(ele, test_function, u_shape, &
+                                                               x, u, big_m, mom_rhs, &
+                                                               nvfrac_i, nvfrac_j, &
+                                                               density_i, density_j, &
+                                                               nu_i, nu_j, &
+                                                               oldu_i, oldu_j, &
+                                                               d_i, d_j, &
+                                                               phi_i, phi_j, &
+                                                               e)
+                     end if
+
+                  end do element_loop
+                  call profiler_toc(u, "element_loop")
+
+                  call deallocate(nvfrac_i)
+                  call deallocate(nvfrac_j)
+
+               end if
+
+               ewrite(1, *) "Exiting assemble_particle_particle_drag"
+
+            end subroutine assemble_particle_particle_drag
+            
+            subroutine add_particle_particle_drag_element(ele, test_function, u_shape, &
+                                                      x, u, big_m, mom_rhs, &
+                                                      vfrac_i, vfrac_j, &
+                                                      density_i, density_j, &
+                                                      nu_i, nu_j, &
+                                                      oldu_i, oldu_j, &
+                                                      d_i, d_j, &
+                                                      phi_i, phi_j, &
+                                                      e)
+                                                         
+               integer, intent(in) :: ele
+               type(element_type), intent(in) :: test_function
+               type(element_type), intent(in) :: u_shape
+               type(vector_field), intent(in) :: u, x
+               type(petsc_csr_matrix), intent(inout) :: big_m
+               type(vector_field), intent(inout) :: mom_rhs
+                    
+               type(scalar_field), intent(in) :: vfrac_i, vfrac_j
+               type(scalar_field), intent(in) :: density_i, density_j
+               type(vector_field), intent(in) :: nu_i, nu_j
+               type(vector_field), intent(in) :: oldu_i, oldu_j
+               
+               real, intent(in) :: d_i, d_j
+               real, intent(in) :: phi_i, phi_j
+               real, intent(in) :: e
+               
+               ! Local variables
+               real, dimension(ele_ngi(u,ele)) :: vfrac_i_gi, vfrac_j_gi
+               real, dimension(ele_ngi(u,ele)) :: density_i_gi, density_j_gi
+               real, dimension(u%dim, ele_ngi(u,ele)) :: nu_i_gi, nu_j_gi
+               
+               real, dimension(u%dim, ele_loc(u, ele)) :: oldu_val
+               
+               real, dimension(ele_loc(u, ele), ele_ngi(u, ele), x%dim) :: du_t
+               real, dimension(ele_ngi(u, ele)) :: detwei
+               real, dimension(u%dim, ele_loc(u,ele)) :: interaction_rhs_mat
+               real, dimension(ele_loc(u, ele), ele_loc(u, ele)) :: interaction_big_m_mat
+               real, dimension(u%dim, ele_loc(u,ele)) :: rhs_addto
+               real, dimension(u%dim, u%dim, ele_loc(u,ele), ele_loc(u,ele)) :: big_m_tensor_addto
+               
+               real, dimension(ele_ngi(u,ele)) :: magnitude ! |u_i - u_j|
+               real, dimension(ele_ngi(u,ele)) :: C
+               real :: a, temp_phi_i, temp_phi_j
+               real, dimension(ele_ngi(u,ele)) :: vfrac_ij, F
+               real, dimension(ele_ngi(u,ele)) :: K ! drag force = K*(u_j - u_i)
+               
+               real, dimension(ele_ngi(u,ele)) :: drag_force_big_m
+               real, dimension(u%dim, ele_ngi(u,ele)) :: drag_force_rhs ! drag_force = K*(u_j - u_i)
+                             
+               integer :: dim, gi
+               
+               ! Compute detwei
+               call transform_to_physical(x, ele, u_shape, dshape=du_t, detwei=detwei)
+               
+               ! Get the values of the necessary fields at the Gauss points
+               vfrac_i_gi = ele_val_at_quad(vfrac_i, ele)
+               vfrac_j_gi = ele_val_at_quad(vfrac_j, ele)
+               density_i_gi = ele_val_at_quad(density_i, ele)
+               density_j_gi = ele_val_at_quad(density_j, ele)
+               nu_i_gi = ele_val_at_quad(nu_i, ele)
+               nu_j_gi = ele_val_at_quad(nu_j, ele)             
+         
+               ! Compute the magnitude of the relative (non-linear) velocity |nu_i - nu_j|
+               do gi = 1, ele_ngi(u,ele)
+                  magnitude(gi) = norm2(nu_i_gi(:,gi) - nu_j_gi(:,gi))
+               end do
+
+               ! We need to use the indices i and j in the correct way so that d_i >= d_j
+               if(d_i < d_j) then
+                  ! Swap the variables phi_i and phi_j, and compute variable 'a' such that d_i >= d_j
+                  ! Note that temporary variables are used here instead of doing: temp=phi_j; phi_j=phi_i; phi_i=temp
+                  ! because we don't want to have to reset phi_i and phi_j each time in the calling function.
+                  temp_phi_i = phi_j
+                  temp_phi_j = phi_i
+
+                  a = sqrt(d_i/d_j)
+                  C = vfrac_j_gi / (vfrac_j_gi + vfrac_i_gi)
+               else
+                  ! d_i >= d_j already, so use the variables as they are
+                  temp_phi_i = phi_i
+                  temp_phi_j = phi_j
+
+                  a = sqrt(d_j/d_i)
+                  C = vfrac_i_gi / (vfrac_i_gi + vfrac_j_gi)
+               end if
+
+               ! vfrac_ij is the "maximum solids volume fraction of a random closely packed structure" (Syamlal, 1985)
+               do gi = 1, ele_ngi(u, ele)
+                  if(C(gi) <= temp_phi_i/(temp_phi_i + (1.0 - temp_phi_i)*temp_phi_j)) then
+                     vfrac_ij(gi) = ((temp_phi_i - temp_phi_j) + (1.0-a)*(1.0-temp_phi_i)*temp_phi_j)*&
+                                    &((temp_phi_i + (1.0-temp_phi_j)*temp_phi_i)/temp_phi_i)*C(gi) + temp_phi_j
+                  else
+                     vfrac_ij(gi) = (1.0-a)*(temp_phi_i + (1.0-temp_phi_i)*temp_phi_j)*(1.0 - C(gi)) + temp_phi_i
+                  end if
+               end do
+               
+               ! F is a function involving the volume fraction of both phases and vfrac_ij defined above
+               F = (3.0*vfrac_ij**(1.0/3.0) + (vfrac_i_gi + vfrac_j_gi)**(1.0/3.0)) / & 
+                   & (2.0*(vfrac_ij**(1.0/3.0) - (vfrac_i_gi + vfrac_j_gi)**(1.0/3.0)))
+               
+               ! Drag force = K*(u_i - u_j)
+               K = F*alpha*(1.0+e)*density_i_gi*vfrac_i_gi*density_j_gi*vfrac_j_gi*&
+                   &( ((d_i + d_j)**2) / (density_i_gi*d_i**3 + density_j_gi*d_j**3) )*magnitude
+
+               drag_force_big_m = -K
+               
+               if(current_phase_is_particle_i) then
+                  do dim = 1, u%dim
+                     drag_force_rhs(dim,:) = K*(nu_j_gi(dim,:))
+                  end do
+               else
+                  do dim = 1, u%dim
+                     drag_force_rhs(dim,:) = K*(nu_i_gi(dim,:))
+                  end do
+               end if
+               
+               ! Form the element interaction/drag matrix
+               interaction_big_m_mat = shape_shape(test_function, u_shape, detwei*drag_force_big_m)
+               interaction_rhs_mat = shape_vector_rhs(test_function, drag_force_rhs, detwei)
+              
+               ! Add contribution  
+               big_m_tensor_addto = 0.0            
+               rhs_addto = 0.0
+               if(current_phase_is_particle_i) then
+                  oldu_val = ele_val(oldu_i, ele)
+               else
+                  oldu_val = ele_val(oldu_j, ele)
+               end if
+
+               do dim = 1, u%dim
+                  big_m_tensor_addto(dim, dim, :, :) = big_m_tensor_addto(dim, dim, :, :) - dt*theta*interaction_big_m_mat
+                  rhs_addto(dim,:) = rhs_addto(dim,:) + matmul(interaction_big_m_mat, oldu_val(dim,:)) + interaction_rhs_mat(dim,:)
+               end do
+               
+               ! Add the contribution to mom_rhs
+               call addto(mom_rhs, u_ele, rhs_addto) 
+               ! Add to the big_m matrix
+               call addto(big_m, u_ele, u_ele, big_m_tensor_addto, block_mask=block_mask)
+               
+            end subroutine add_particle_particle_drag_element
+
+      end subroutine add_particle_particle_drag
       
    end module multiphase_module
