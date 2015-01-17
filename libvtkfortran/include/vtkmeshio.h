@@ -33,8 +33,7 @@
 
 typedef struct _Field_Info Field_Info;
 
-// allocate a Field_Info record using length of name string + size:
-// afield = (Field_Info *)malloc(strlen(name)+sizeof(Field_Info))
+// struct that contains all info about vtk fields
 struct _Field_Info
 {
     int          ncomponents;
@@ -46,7 +45,7 @@ struct _Field_Info
                          // =0 means use absolute Hessian
                          // <0 means use rel. Hessian, with rel. cut-off
     Field_Info   *next;
-    char         name; // rest of record can be arbitrary length
+    char         *name; // a pointer to a seperately allocated string buffer
 };
 
 int readVTKFile(const char * const filename,

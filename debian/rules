@@ -8,8 +8,6 @@
 
 # Uncomment this to turn on verbose mode.
 export DH_VERBOSE=1
-export PETSC_DIR=/usr/lib/petscdir/3.1
-export PETSC_ARCH=linux-gnu-c-opt
 export prefix=/usr
 export DEB_BUILD_OPTIONS=nostrip
 export PYTHONPATH=

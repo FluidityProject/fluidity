@@ -25,7 +25,6 @@
 !    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 !    USA
 #include "fdebug.h"
-#include "petscversion.h"
 module solvers
   use FLDebug
   use elements
@@ -49,12 +48,7 @@ module solvers
   implicit none
   ! Module to provide explicit interfaces to matrix solvers.
 
-#include "petscversion.h"
-#ifdef HAVE_PETSC_MODULES
-#include "finclude/petscdef.h"
-#else
-#include "finclude/petsc.h"
-#endif
+#include "petsc_legacy.h"
 
   ! stuff used in the PETSc monitor (see petsc_solve_callback_setup() below)
   integer :: petsc_monitor_iteration = 0
@@ -359,7 +353,7 @@ subroutine petsc_solve_vector_components(x, matrix, rhs, option_path)
 
   type(scalar_field) x_component, rhs_component
   type(petsc_numbering_type) petsc_numbering
-  character(len=OPTION_PATH_LEN) solver_option_path, name, option_path_in
+  character(len=OPTION_PATH_LEN) solver_option_path, option_path_in
   integer literations, i
   logical lstartfromzero
   
@@ -461,7 +455,7 @@ subroutine petsc_solve_scalar_petsc_csr(x, matrix, rhs, option_path, &
 end subroutine petsc_solve_scalar_petsc_csr
 
 subroutine petsc_solve_vector_petsc_csr(x, matrix, rhs, option_path, &
-  prolongators, positions)
+  prolongators, positions, rotation_matrix)
   !!< Solve a linear system the nice way. Options for this
   !!< come via the options mechanism. 
   type(vector_field), intent(inout) :: x
@@ -472,6 +466,8 @@ subroutine petsc_solve_vector_petsc_csr(x, matrix, rhs, option_path, &
   type(petsc_csr_matrix), dimension(:), optional, intent(in) :: prolongators
   !! positions field is only used with remove_null_space/ or multigrid_near_null_space/ with rotational components
   type(vector_field), intent(in), optional :: positions
+  !! with rotated bcs: matrix to transform from x,y,z aligned vectors to boundary aligned
+  Mat, intent(in), optional:: rotation_matrix
 
 
   KSP ksp
@@ -492,7 +488,8 @@ subroutine petsc_solve_vector_petsc_csr(x, matrix, rhs, option_path, &
   call petsc_solve_setup_petsc_csr(y, b, ksp, &
         solver_option_path, lstartfromzero, &
         matrix, vfield=x, option_path=option_path, &
-        prolongators=prolongators, positions=positions)
+        prolongators=prolongators, &
+        positions=positions, rotation_matrix=rotation_matrix)
         
   ! copy array into PETSc vecs
   call petsc_solve_copy_vectors_from_vector_fields(y, b, x, rhs, &
@@ -529,7 +526,7 @@ subroutine petsc_solve_tensor_components(x, matrix, rhs, &
 
   type(scalar_field) x_component, rhs_component
   type(petsc_numbering_type) petsc_numbering
-  character(len=OPTION_PATH_LEN) solver_option_path, name, option_path_in
+  character(len=OPTION_PATH_LEN) solver_option_path, option_path_in
   integer literations, i, j, startj
   logical lstartfromzero
   
@@ -680,7 +677,6 @@ type(vector_field), intent(in), optional :: positions
   logical, dimension(:), pointer:: inactive_mask
   integer, dimension(:), allocatable:: ghost_nodes
   Mat:: pmat
-  MatStructure:: matrix_structure
   ! one of the PETSc supplied orderings see
   ! http://www-unix.mcs.anl.gov/petsc/petsc-as/snapshots/petsc-current/docs/manualpages/MatOrderings/MatGetOrdering.html
   MatOrderingType:: ordering_type
@@ -689,7 +685,6 @@ type(vector_field), intent(in), optional :: positions
   integer ierr
   logical:: parallel, timing, have_cache
   type(halo_type), pointer ::  halo
-  type(mesh_type), pointer:: mesh
   integer i, j
   KSP, pointer:: ksp_pointer
 
@@ -749,7 +744,7 @@ type(vector_field), intent(in), optional :: positions
   
   if (ksp/=PETSC_NULL_OBJECT) then
     ! oh goody, we've been left something useful!
-    call KSPGetOperators(ksp, A, Pmat, matrix_structure, ierr)
+    call KSPGetOperators(ksp, A, Pmat, ierr)
     have_cache=.true.
     
     if (have_option(trim(solver_option_path)// &
@@ -935,7 +930,8 @@ subroutine petsc_solve_setup_petsc_csr(y, b, ksp, &
   solver_option_path, startfromzero, &
   matrix, sfield, vfield, tfield, &
   option_path, startfromzero_in, &
-  prolongators,surface_node_list, positions)
+  prolongators,surface_node_list, &
+  positions, rotation_matrix)
 !!< sets up things needed to call petsc_solve_core
 !! Stuff that comes out:
 !!
@@ -971,9 +967,9 @@ type(petsc_csr_matrix), dimension(:), optional, intent(in) :: prolongators
 integer, dimension(:), optional, intent(in) :: surface_node_list
 !! positions field is only used with remove_null_space/ or multigrid_near_null_space/ with rotational components
 type(vector_field), intent(in), optional :: positions
+!! with rotated bcs: matrix to transform from x,y,z aligned vectors to boundary aligned
+Mat, intent(in), optional:: rotation_matrix
 
-
-  type(mesh_type), pointer:: mesh
   real time1, time2
   integer ierr
   logical parallel, timing
@@ -1025,7 +1021,7 @@ type(vector_field), intent(in), optional :: positions
       matrix%column_numbering, &
       startfromzero_in=startfromzero_in, &
       prolongators=prolongators, surface_node_list=surface_node_list, &
-      positions=positions)
+      positions=positions, rotation_matrix=rotation_matrix)
   
   b=PetscNumberingCreateVec(matrix%column_numbering)
   call VecDuplicate(b, y, ierr)
@@ -1516,7 +1512,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
        petsc_numbering, &
        startfromzero_in, &
        prolongators, surface_node_list, matrix_csr, &
-       internal_smoothing_option, positions)
+       internal_smoothing_option, positions, rotation_matrix)
   !!< Creates the KSP solver context and calls
   !!< setup_ksp_from_options
     KSP, intent(out) :: ksp
@@ -1537,6 +1533,8 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     integer, optional, intent(in) :: internal_smoothing_option
     ! positions field is only used with remove_null_space/ or multigrid_near_null_space/ with rotational components
     type(vector_field), intent(in), optional :: positions
+    ! with rotated bcs: matrix to transform from x,y,z aligned vectors to boundary aligned
+    Mat, intent(in), optional:: rotation_matrix
     
     PetscErrorCode ierr
     
@@ -1545,7 +1543,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     else
        call KSPCreate(MPI_COMM_SELF, ksp, ierr)
     end if
-    call KSPSetOperators(ksp, mat, pmat, DIFFERENT_NONZERO_PATTERN, ierr)
+    call KSPSetOperators(ksp, mat, pmat, ierr)
     
     call setup_ksp_from_options(ksp, mat, pmat, solver_option_path, &
       petsc_numbering=petsc_numbering, &
@@ -1554,13 +1552,14 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
       surface_node_list=surface_node_list, &
       matrix_csr=matrix_csr, &
       internal_smoothing_option=internal_smoothing_option, &
-      positions=positions)
+      positions=positions, &
+      rotation_matrix=rotation_matrix)
       
   end subroutine SetupKSP
     
   recursive subroutine setup_ksp_from_options(ksp, mat, pmat, solver_option_path, &
       petsc_numbering, startfromzero_in, prolongators, surface_node_list, matrix_csr, &
-      internal_smoothing_option, positions)
+      internal_smoothing_option, positions, rotation_matrix)
   !!< Sets options for the given ksp according to the options
   !!< in the options tree.
     KSP, intent(out) :: ksp
@@ -1580,6 +1579,8 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     integer, optional, intent(in) :: internal_smoothing_option
     ! positions field is only used with remove_null_space/ or multigrid_near_null_space/ with rotational components
     type(vector_field), intent(in), optional :: positions
+    ! with rotated bcs: matrix to transform from x,y,z aligned vectors to boundary aligned
+    Mat, intent(in), optional:: rotation_matrix
     
     ! hack to satisfy interface for MatNullSpaceCreate
     ! only works as the array won't actually be used
@@ -1604,13 +1605,13 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
        end if
 
 #if PETSC_VERSION_MINOR<3
-       FLExit("multigrid_near_null_space only available in petsc 3.3")
+       FLExit("multigrid_near_null_space only available in petsc version>=3.3")
 #else
        if (.not. present(petsc_numbering)) then
          FLAbort("Need petsc_numbering for multigrid near null space")
        end if
-       null_space = create_null_space_from_options(trim(solver_option_path)//"/multigrid_near_null_space", &
-            petsc_numbering, positions=positions)
+       null_space = create_null_space_from_options(mat, trim(solver_option_path)//"/multigrid_near_null_space", &
+            petsc_numbering, positions=positions, rotation_matrix=rotation_matrix)
        call MatSetNearNullSpace(mat, null_space, ierr)
        call MatNullSpaceDestroy(null_space, ierr)
 #endif
@@ -1651,7 +1652,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     ! needs checking
 
     ! this may end up in the schema:
-    dtol=PETSC_DEFAULT_DOUBLE_PRECISION
+    dtol=PETSC_DEFAULT_REAL
     ! maximum n/o iterations is required, so no default:
     call get_option(trim(solver_option_path)//'/max_iterations', max_its)
     
@@ -1677,8 +1678,8 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
          ewrite(2,*) 'Adding null-space removal options to KSP'
          call MatNullSpaceCreate(MPI_COMM_FEMTOOLS, PETSC_TRUE, 0, PETSC_NULL_OBJECT_ARRAY, null_space, ierr)
        else
-         null_space = create_null_space_from_options(trim(solver_option_path)//"/remove_null_space", &
-            petsc_numbering, positions=positions)
+         null_space = create_null_space_from_options(mat, trim(solver_option_path)//"/remove_null_space", &
+            petsc_numbering, positions=positions, rotation_matrix=rotation_matrix)
        end if
        call KSPSetNullSpace(ksp, null_space, ierr)
        call MatNullSpaceDestroy(null_space, ierr)
@@ -1815,7 +1816,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
        call PCKSPGetKSP(pc, subksp, ierr)
        ewrite(1,*) "Going into setup_ksp_from_options again to set the options "//&
           &"for the complete ksp solve of the preconditioner"
-       call KSPSetOperators(subksp, pmat, pmat, DIFFERENT_NONZERO_PATTERN, ierr)
+       call KSPSetOperators(subksp, pmat, pmat, ierr)
        call setup_ksp_from_options(subksp, pmat, pmat, &
          trim(option_path)//'/solver', petsc_numbering=petsc_numbering)
        ewrite(1,*) "Returned from setup_ksp_from_options for the preconditioner solve, "//&
@@ -1930,10 +1931,6 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     case ("additive")
       call pcfieldsplitsettype(pc, PC_COMPOSITE_ADDITIVE, ierr)
     case ("symmetric_multiplicative")
-! workaround silly bug in petsc 3.1
-#ifndef PC_COMPOSITE_SYMMETRIC_MULTIPLICATIVE
-#define PC_COMPOSITE_SYMMETRIC_MULTIPLICATIVE PC_COMPOSITE_SYM_MULTIPLICATIVE
-#endif
       call pcfieldsplitsettype(pc, PC_COMPOSITE_SYMMETRIC_MULTIPLICATIVE, ierr)
     case default
       FLAbort("Unknown fieldsplit_type")
@@ -1956,11 +1953,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     PCType:: pctype
     PetscReal:: rtol, atol, dtol
     PetscInt:: maxits
-#if PETSC_VERSION_MINOR>=2
     PetscBool:: flag
-#else
-    PetscTruth:: flag
-#endif
     PetscErrorCode:: ierr
     
     ewrite(2, *) 'Using solver options from cache:'
@@ -2137,8 +2130,7 @@ subroutine petsc_monitor_setup(petsc_numbering, max_its)
   integer, intent(in) :: max_its
   
   type(mesh_type), pointer:: mesh
-  integer :: ierr, i, ncomponents
-  integer, allocatable, dimension(:) :: numbering
+  integer :: ierr, ncomponents
 
   petsc_monitor_x=PetscNumberingCreateVec(petsc_numbering)
   petsc_monitor_numbering=petsc_numbering
@@ -2274,7 +2266,6 @@ subroutine MyKSPMonitor(ksp,n,rnorm,dummy,ierr)
   
   PetscScalar :: rnorm
   PetscLogDouble :: flops
-  MatStructure:: flag
   Mat:: Amat, Pmat
   PC:: pc
   Vec:: dummy_vec, r, rhs
@@ -2303,7 +2294,7 @@ subroutine MyKSPMonitor(ksp,n,rnorm,dummy,ierr)
       call petsc2field(petsc_monitor_x, petsc_monitor_numbering, petsc_monitor_vfields(1))
     end if
     call KSPGetRhs(ksp, rhs, ierr)
-    call KSPGetOperators(ksp, Amat, Pmat, flag, ierr)
+    call KSPGetOperators(ksp, Amat, Pmat, ierr)
     call VecDuplicate(petsc_monitor_x, r, ierr)
     call MatMult(Amat, petsc_monitor_x, r, ierr)
     call VecAXPY(r, real(-1.0, kind = PetscScalar_kind), rhs, ierr)
@@ -2336,17 +2327,22 @@ subroutine MyKSPMonitor(ksp,n,rnorm,dummy,ierr)
   
 end subroutine MyKSPMonitor
 
-function create_null_space_from_options(null_space_option_path, petsc_numbering, positions) result (null_space)
+function create_null_space_from_options(mat, null_space_option_path, &
+      petsc_numbering, positions, rotation_matrix) result (null_space)
+   Mat, intent(in):: mat
    !! the option path to remove_null_space or multigrid_near_space
    character(len=*), intent(in):: null_space_option_path
    type(petsc_numbering_type), intent(in):: petsc_numbering 
    ! positions field is only used with remove_null_space/ with rotational components
    type(vector_field), intent(in), optional :: positions
+   ! with rotated bcs: matrix to transform from x,y,z aligned vectors to boundary aligned
+   Mat, intent(in), optional:: rotation_matrix
    MatNullSpace :: null_space
 
-   Vec, allocatable, dimension(:) :: null_space_array
+   Vec, allocatable, dimension(:) :: null_space_array, rot_null_space_array
    PetscReal :: norm
    PetscErrorCode :: ierr
+   PetscBool :: isnull
 
    integer :: i, nnulls, nnodes, comp, dim, universal_nodes
    logical, dimension(3) :: rot_mask
@@ -2480,17 +2476,44 @@ function create_null_space_from_options(null_space_option_path, petsc_numbering,
      call deallocate(null_vector_field)
 
    end if
-   
+
    assert(i==nnulls)
 
-   call MatNullSpaceCreate(MPI_COMM_FEMTOOLS, PETSC_FALSE, nnulls, &
-     null_space_array, null_space, ierr)
+   if (present(rotation_matrix)) then
+     allocate(rot_null_space_array(1:nnulls))
+     do i=1, nnulls
+       call VecDuplicate(null_space_array(i), rot_null_space_array(i), ierr)
+       call MatMultTranspose(rotation_matrix, null_space_array(i), rot_null_space_array(i), ierr)
+     end do
+     call MatNullSpaceCreate(MPI_COMM_FEMTOOLS, PETSC_FALSE, nnulls, &
+       rot_null_space_array, null_space, ierr)
+   else
+     call MatNullSpaceCreate(MPI_COMM_FEMTOOLS, PETSC_FALSE, nnulls, &
+       null_space_array, null_space, ierr)
+   end if
+
+   if(have_option(trim(null_space_option_path)//'/test_null_space')) then
+     call MatNullSpaceTest(null_space, mat, isnull, ierr)
+     ewrite(1,*) "For nullspace "//trim(null_space_option_path)//":"
+     if (isnull) then
+       ewrite(1,*) "PETSc's MatNullSpaceTest agrees that this is a null space"
+     else
+       ewrite(1,*) "PETSc's MatNullSpaceTest does not think this is a null space"
+     end if
+   end if
 
    ! get rid of our Vec references
    do i=1, nnulls
      call VecDestroy(null_space_array(i), ierr)
    end do
    deallocate(null_space_array)
+
+   if (present(rotation_matrix)) then
+     do i=1, nnulls
+       call VecDestroy(rot_null_space_array(i), ierr)
+     end do
+     deallocate(rot_null_space_array)
+   end if
 
 end function create_null_space_from_options
 

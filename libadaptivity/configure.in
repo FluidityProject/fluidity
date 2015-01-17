@@ -537,19 +537,17 @@ else
     cat >> confdefs.h << EOF
 #define NDEBUG 1
 EOF
-    OPTIMIZATION_FFLAGS="$OPTIMIZATION_FFLAGS -O3"
-    OPTIMIZATION_CFLAGS="$OPTIMIZATION_CFLAGS -O3"
+    OPTIMISATION_FLAGS="$OPTIMISATION_FLAGS -O3"
+    if test "$fcompiler" = "ifort" ; then
+      # add inlining and cpu-specific optimisations for intel
+      OPTIMISATION_FLAGS="$OPTIMISATION_FLAGS -ip -xHost"
+    fi
 fi
 
-FFLAGS="$FFLAGS $OPTIMIZATION_FFLAGS"
-FCFLAGS="$FCFLAGS $OPTIMIZATION_FFLAGS"
-CFLAGS="$CFLAGS $OPTIMIZATION_CFLAGS"
-CXXFLAGS="$CXXFLAGS $OPTIMIZATION_CFLAGS"
-
-if test "$FC" = "ifc" ; then
-  FFLAGS="-implicitnone -132 -w95 $FFLAGS"
-  FCFLAGS="-implicitnone -w95 $FCFLAGS"
-fi
+FFLAGS="$FFLAGS $OPTIMISATION_FLAGS"
+FCFLAGS="$FCFLAGS $OPTIMISATION_FLAGS"
+CFLAGS="$CFLAGS $OPTIMISATION_FLAGS"
+CXXFLAGS="$CXXFLAGS $OPTIMISATION_FLAGS"
 
 ##########################################
 # MPI
@@ -809,7 +807,6 @@ dnl Checks for typedefs, structures, and compiler characteristics.
 #AC_C_INLINE
 
 AC_SUBST(FORTRAN_REAL_8)
-AC_SUBST(OPTIMIZATION_FFLAGS)
 AC_SUBST(LINKER)
 
 dnl Specific f90 options

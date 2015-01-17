@@ -183,8 +183,9 @@
       ! state, and inner_mesh are used to setup mg preconditioner of inner solve
       type(state_type), intent(in):: state
       type(mesh_type), intent(in):: inner_mesh
-      ! Positions:
+
       type(vector_field), pointer :: positions, mesh_positions
+      type(petsc_csr_matrix), pointer:: rotation_matrix
 
       ! Additional arrays used internally:
       ! Additional numbering types:
@@ -207,7 +208,7 @@
       
       character(len=OPTION_PATH_LEN) :: inner_option_path, inner_solver_option_path
       
-      integer reference_node, stat, i
+      integer reference_node, stat, i, rotation_stat
       logical parallel, have_auxiliary_matrix, have_preconditioner_matrix
 
       logical :: apply_reference_node, apply_reference_node_from_coordinates, reference_node_owned
@@ -339,7 +340,12 @@
       call petsc_solve_state_setup(inner_solver_option_path, prolongators, surface_nodes, &
         state, inner_mesh, blocks(div_matrix_comp,2), inner_option_path, matrix_has_solver_cache=.false., &
         mesh_positions=mesh_positions)
+      rotation_matrix => extract_petsc_csr_matrix(state, "RotationMatrix", stat=rotation_stat)
       if (associated(prolongators)) then
+        if (rotation_stat==0) then
+          FLExit("Rotated boundary conditions do not work with mg prolongators")
+        end if
+
         if (associated(surface_nodes)) then
           FLExit("Internal smoothing not available for inner solve")
         end if
@@ -356,10 +362,18 @@
           call deallocate(prolongators(i))
         end do
         deallocate(prolongators)
+      else if (associated(mesh_positions) .and. rotation_stat==0) then
+        call setup_ksp_from_options(ksp_schur, inner_M%M, inner_M%M, &
+          inner_solver_option_path, petsc_numbering=petsc_numbering_u, startfromzero_in=.true., &
+          positions=mesh_positions, rotation_matrix=rotation_matrix%M)
       else if (associated(mesh_positions)) then
         call setup_ksp_from_options(ksp_schur, inner_M%M, inner_M%M, &
           inner_solver_option_path, petsc_numbering=petsc_numbering_u, startfromzero_in=.true., &
           positions=mesh_positions)
+      else if (rotation_stat==0) then
+        call setup_ksp_from_options(ksp_schur, inner_M%M, inner_M%M, &
+          inner_solver_option_path, petsc_numbering=petsc_numbering_u, startfromzero_in=.true., &
+          rotation_matrix=rotation_matrix%M)
       else
         call setup_ksp_from_options(ksp_schur, inner_M%M, inner_M%M, &
           inner_solver_option_path, petsc_numbering=petsc_numbering_u, startfromzero_in=.true.)
