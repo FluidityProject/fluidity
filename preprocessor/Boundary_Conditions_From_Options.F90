@@ -31,6 +31,7 @@ use fldebug
 use quadrature
 use elements
 use fields
+use fefields
 use field_options
 use state_module
 use sparse_tools_petsc
@@ -48,12 +49,9 @@ use pickers_inquire
 use bulk_parameterisations
 use k_epsilon
 use integer_set_module !for iceshelf
-use fields_base !for iceshelf
-use fields ! for iceshelf
 use sediment, only: set_sediment_reentrainment
 use halos_numbering
 use halos_base
-use fefields
 
 implicit none
 
@@ -2496,7 +2494,11 @@ contains
     else
        ewrite(1,*) 'Imposing_reference_velocity_node on all components'
     end if
-    call set_reference_node(big_m, reference_node, rhs, mask)
+    if(IsParallel()) then
+      call set_reference_node(big_m, reference_node, rhs, mask, reference_node_owned=reference_node_owned)
+    else
+      call set_reference_node(big_m, reference_node, rhs, mask)
+    end if
 
   end subroutine impose_reference_velocity_node
   

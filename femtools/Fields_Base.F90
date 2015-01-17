@@ -2982,6 +2982,7 @@ contains
     sfield%mesh = tfield%mesh
     sfield%val  => tfield%val(dim1, dim2, :)
     sfield%val_stride = tfield%dim(1) * tfield%dim(2)
+    sfield%option_path = tfield%option_path
     sfield%field_type = tfield%field_type
     write(sfield%name, '(a, 2i0)') trim(tfield%name) // "%", (dim1-1) * tfield%dim + dim2
 

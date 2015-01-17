@@ -29,7 +29,6 @@ module sparse_tools_petsc
   !!< This module is an extension to the sparse_tools module that 
   !!< implements a csr matrix type 'petsc_csr_matrix' that directly
   !!< stores the matrix in petsc format.
-#include "petscversion.h"
   use FLDebug
   use Sparse_Tools
   use Reference_Counting
@@ -43,18 +42,7 @@ module sparse_tools_petsc
   use petsc
 #endif
   implicit none
-#ifdef HAVE_PETSC_MODULES
-#include "finclude/petscdef.h"
-#else
-#include "finclude/petsc.h"
-#endif
-#if PETSC_VERSION_MINOR>=3
-#define MatCreateSeqAIJ myMatCreateSeqAIJ
-#define MatCreateMPIAIJ myMatCreateMPIAIJ
-#define MatCreateSeqBAIJ myMatCreateSeqBAIJ
-#define MatCreateMPIBAIJ myMatCreateMPIBAIJ
-#endif
-
+#include "petsc_legacy.h"
   private
   
   type petsc_csr_matrix
@@ -241,14 +229,16 @@ contains
     if (associated(sparsity%row_halo)) then
       ! these are also pointed to in the row_numbering
       ! but only refcounted here
-      matrix%row_halo => sparsity%row_halo
+      allocate(matrix%row_halo)
+      matrix%row_halo = sparsity%row_halo
       call incref(matrix%row_halo)
     end if
     
     if (associated(sparsity%column_halo)) then
       ! these are also pointed to in the column_numbering
       ! but only refcounted here
-      matrix%column_halo => sparsity%column_halo
+      allocate(matrix%column_halo)
+      matrix%column_halo = sparsity%column_halo
       call incref(matrix%column_halo)
     end if
     
@@ -429,14 +419,16 @@ contains
     if (associated(lrow_halo)) then
       ! these are also pointed to in the row_numbering
       ! but only refcounted here
-      matrix%row_halo => lrow_halo
+      allocate(matrix%row_halo)
+      matrix%row_halo = lrow_halo
       call incref(matrix%row_halo)
     end if
     
     if (associated(lcolumn_halo)) then
       ! these are also pointed to in the column_numbering
       ! but only refcounted here
-      matrix%column_halo => lcolumn_halo
+      allocate(matrix%column_halo)
+      matrix%column_halo = lcolumn_halo
       call incref(matrix%column_halo)
     end if
     
@@ -478,12 +470,14 @@ contains
     call incref(matrix%column_numbering)
     
     if (associated(row_numbering%halo)) then
-      matrix%row_halo => row_numbering%halo
+      allocate(matrix%row_halo)
+      matrix%row_halo = row_numbering%halo
       call incref(row_numbering%halo)
     end if
     
     if (associated(column_numbering%halo)) then
-      matrix%column_halo => column_numbering%halo
+      allocate(matrix%column_halo)
+      matrix%column_halo = column_numbering%halo
       call incref(column_numbering%halo)
     end if
     
@@ -540,10 +534,12 @@ contains
     
     if (associated(matrix%row_halo)) then
        call deallocate(matrix%row_halo)
+       deallocate(matrix%row_halo)
     end if
     
     if (associated(matrix%column_halo)) then
        call deallocate(matrix%column_halo)
+       deallocate(matrix%column_halo)
     end if
     
 42  if (present(stat)) then
@@ -911,13 +907,15 @@ contains
     call incref(c%column_numbering)
     
     if (associated(a%row_halo)) then
-      c%row_halo => a%row_halo
+      allocate(c%row_halo)
+      c%row_halo = a%row_halo
       call incref(c%row_halo)
     else
       nullify(c%row_halo)
     end if
     if (associated(a%column_halo)) then
-      c%column_halo => a%column_halo
+      allocate(c%column_halo)
+      c%column_halo = a%column_halo
       call incref(c%column_halo)
     else
       nullify(c%column_halo)

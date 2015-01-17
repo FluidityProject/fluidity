@@ -3908,11 +3908,11 @@ if (.not.have_option("/material_phase[0]/vector_field::Velocity/prognostic/vecto
     if (have_option(trim(pressure_path))) then
 
        ! Check that compressible projection method is used:
-       compressible_projection = have_option(trim(pressure_path)//&
-            "/scheme/use_compressible_projection_method")
+       compressible_projection = have_option("/material_phase[0]"//&
+            "/equation_of_state/compressible")
 
        if(.not.(compressible_projection)) then
-          FLExit("For foam problems you need to use the compressible projection method.")
+          FLExit("For foam problems you need to use a compressible eos.")
        end if
     end if
 

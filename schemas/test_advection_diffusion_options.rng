@@ -1725,118 +1725,75 @@ Manual suggests -1</a:documentation>
         </element>
         <ref name="comment"/>
       </element>
-      <choice>
-        <element name="use_projection_method">
-          <a:documentation>Use the incompressible projection method to determine
+      <element name="use_projection_method">
+        <a:documentation>Use the incompressible projection method to determine
 the pressure and satisfy continuity</a:documentation>
-          <optional>
-            <element name="full_schur_complement">
-              <a:documentation>Assemble and use the full schur complement.
+        <optional>
+          <element name="full_schur_complement">
+            <a:documentation>Assemble and use the full schur complement.
 This allows you to not lump the mass matrix if you're using
 cg and to use the full momentum matrix in the projection if
 you so desire.</a:documentation>
-              <choice>
-                <element name="inner_matrix">
-                  <a:documentation>Specify the inner matrix (IM) to form the projection schur complement (C^T*IM^{-1}*C). 
+            <choice>
+              <element name="inner_matrix">
+                <a:documentation>Specify the inner matrix (IM) to form the projection schur complement (C^T*IM^{-1}*C). 
 Use the full mass matrix.
 
 Make sure you've not lumped your mass in the velocity spatial_discretisation if you want to be consistent!</a:documentation>
-                  <attribute name="name">
-                    <value>FullMassMatrix</value>
-                  </attribute>
-                  <element name="solver">
-                    <ref name="linear_solver_options_sym"/>
-                  </element>
+                <attribute name="name">
+                  <value>FullMassMatrix</value>
+                </attribute>
+                <element name="solver">
+                  <ref name="linear_solver_options_sym"/>
                 </element>
-                <element name="inner_matrix">
-                  <a:documentation>Specify the inner matrix (IM) to form the projection schur complement (C^T*IM^{-1}*C). 
+              </element>
+              <element name="inner_matrix">
+                <a:documentation>Specify the inner matrix (IM) to form the projection schur complement (C^T*IM^{-1}*C). 
 Use the full momentum matrix.
 
 Doesn't really matter if you've lumped your mass or not but why would you if you're doing a full inner solve anyway?</a:documentation>
-                  <attribute name="name">
-                    <value>FullMomentumMatrix</value>
-                  </attribute>
-                  <element name="solver">
-                    <ref name="linear_solver_options_asym"/>
-                  </element>
+                <attribute name="name">
+                  <value>FullMomentumMatrix</value>
+                </attribute>
+                <element name="solver">
+                  <ref name="linear_solver_options_asym"/>
                 </element>
-              </choice>
-              <choice>
-                <element name="preconditioner_matrix">
-                  <a:documentation>Specify the preconditioner matrix to use on the schur complement.
+              </element>
+            </choice>
+            <choice>
+              <element name="preconditioner_matrix">
+                <a:documentation>Specify the preconditioner matrix to use on the schur complement.
 
 For DG, the LumpedSchurComplement is our best approximation to CMC.</a:documentation>
-                  <attribute name="name">
-                    <value>LumpedSchurComplement</value>
-                  </attribute>
-                  <optional>
-                    <element name="lump_on_submesh">
-                      <empty/>
-                    </element>
-                  </optional>
-                </element>
-                <element name="preconditioner_matrix">
-                  <a:documentation>Specify the preconditioner matrix to use on the schur complement.
+                <attribute name="name">
+                  <value>LumpedSchurComplement</value>
+                </attribute>
+                <optional>
+                  <element name="lump_on_submesh">
+                    <empty/>
+                  </element>
+                </optional>
+              </element>
+              <element name="preconditioner_matrix">
+                <a:documentation>Specify the preconditioner matrix to use on the schur complement.
 
 DiagonalSchurComplement = C_P^T * [(Big_m)_diagonal]^-1 * C</a:documentation>
-                  <attribute name="name">
-                    <value>DiagonalSchurComplement</value>
-                  </attribute>
-                  <empty/>
-                </element>
-                <element name="preconditioner_matrix">
-                  <a:documentation>Specify the preconditioner matrix to use on the schur complement.</a:documentation>
-                  <attribute name="name">
-                    <value>NoPreconditionerMatrix</value>
-                  </attribute>
-                  <empty/>
-                </element>
-              </choice>
-            </element>
-          </optional>
-        </element>
-        <element name="use_compressible_projection_method">
-          <a:documentation>Use the compressible projection method to determine the
-pressure and satisfy continuity and the eos.
-This is only currently compatible with control volume
-pressure spatial discretisations and requires a
-multimaterial eos.</a:documentation>
-          <optional>
-            <choice>
-              <element name="normalisation">
-                <a:documentation>Variable (normally a density) used to normalise
-each materials contribution
-to the C_P^T matrix.  Leave unselected for no normalisation.
-Selects the MaterialDensity field.</a:documentation>
                 <attribute name="name">
-                  <value>MaterialDensity</value>
+                  <value>DiagonalSchurComplement</value>
                 </attribute>
                 <empty/>
               </element>
-              <element name="normalisation">
-                <a:documentation>Variable (normally a density) used to normalise
-each materials contribution
-to the C_P^T matrix.  Leave unselected for no normalisation.
-Selects the bulk Density field.</a:documentation>
+              <element name="preconditioner_matrix">
+                <a:documentation>Specify the preconditioner matrix to use on the schur complement.</a:documentation>
                 <attribute name="name">
-                  <value>Density</value>
-                </attribute>
-                <empty/>
-              </element>
-              <element name="normalisation">
-                <a:documentation>Variable (normally a density) used to normalise
-each materials contribution
-to the C_P^T matrix.  Leave unselected for no normalisation.
-Allows the selection of an arbitrary field.</a:documentation>
-                <attribute name="name">
-                  <data type="string" datatypeLibrary=""/>
+                  <value>NoPreconditionerMatrix</value>
                 </attribute>
                 <empty/>
               </element>
             </choice>
-          </optional>
-        </element>
-      </choice>
+          </element>
+        </optional>
+      </element>
       <optional>
         <element name="update_discretised_equation">
           <a:documentation>rediscretise the equations at every timestep and iteration
@@ -4229,25 +4186,6 @@ the finite element C^T matrix.</a:documentation>
         </attribute>
         <attribute name="name">
           <value>DiffusiveDissipation</value>
-        </attribute>
-        <choice>
-          <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <ref name="velocity_mesh_choice"/>
-            <ref name="diagnostic_scalar_field"/>
-          </element>
-          <element name="aliased">
-            <ref name="generic_aliased_field"/>
-          </element>
-        </choice>
-      </element>
-      <element name="scalar_field">
-        <a:documentation>Viscous dissipation</a:documentation>
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <attribute name="name">
-          <value>ViscousDissipation</value>
         </attribute>
         <choice>
           <element name="diagnostic">

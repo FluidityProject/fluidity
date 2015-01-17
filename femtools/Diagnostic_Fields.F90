@@ -223,9 +223,6 @@ contains
       case("DiffusiveDissipation")
         call calculate_diffusive_dissipation(state, d_field, stat)
       
-      case("ViscousDissipation")
-        call calculate_viscous_dissipation(state, d_field, stat)
-      
       case("RichardsonNumber")
         call calculate_richardson_number_new(state, d_field)
 
@@ -1254,59 +1251,6 @@ contains
 
   end subroutine calculate_diffusive_dissipation
 
-  subroutine calculate_viscous_dissipation(state, viscous_dissipation_field, stat)
-    !!< Calculate (grad u):(grad u) or sum_ij(du_i/dx_j)(du_i/dx_j)
-    !!< this can be used to calculate viscous dissipation
-    !!< 2D at the moment
-    !!< it probably should be generalised 
-    !!< currently assumes a constant viscosity
-    
-    type(state_type), intent(in) :: state
-    type(scalar_field), intent(inout) :: viscous_dissipation_field
-    integer, intent(out), optional :: stat
-    
-    integer :: i
-    type(vector_field), pointer :: vel_field
-    type(vector_field), pointer :: positions
-    type(scalar_field), dimension(1) :: du_dx
-    type(scalar_field), dimension(1) :: dv_dx
-    type(scalar_field), dimension(1) :: du_dy
-    type(scalar_field), dimension(1) :: dv_dy
-
-    vel_field => extract_vector_field(state, "Velocity", stat)
-    positions => extract_vector_field(state, "Coordinate", stat)
-      
-    if(present_and_nonzero(stat)) then
-      return
-    end if
-        
-    call allocate(du_dx(1), vel_field%mesh, "DuDx")
-    call allocate(dv_dx(1), vel_field%mesh, "DvDx")
-    call allocate(du_dy(1), vel_field%mesh, "DuDy")
-    call allocate(dv_dy(1), vel_field%mesh, "DvDy")
-
-    call differentiate_field(extract_scalar_field(vel_field, 1), &
-     & positions, (/.true., .false./), du_dx)
-    call differentiate_field(extract_scalar_field(vel_field, 2), &
-     & positions, (/.true., .false./), dv_dx)
-    call differentiate_field(extract_scalar_field(vel_field, 1), &
-     & positions, (/.false., .true./), du_dy)
-    call differentiate_field(extract_scalar_field(vel_field, 2), &
-     & positions, (/.false., .true./), dv_dy)
-    
-    call zero(viscous_dissipation_field)
-    do i = 1, node_count(viscous_dissipation_field)
-      call set(viscous_dissipation_field, i, node_val(du_dx(1),i)**2   &
-       & + node_val(dv_dx(1),i)**2 + node_val(du_dy(1),i)**2 + node_val(dv_dy(1),i)**2)
-    end do  
-    
-    call deallocate(du_dx(1))
-    call deallocate(dv_dx(1))
-    call deallocate(du_dy(1))
-    call deallocate(dv_dy(1))
-
-  end subroutine calculate_viscous_dissipation
- 
   subroutine calculate_richardson_number_old(state, richardson_number_field)
     !!< Calculate the Richardson number field
     !!< Defined in Turner, Buoyancy Effects in Fluids, p.12 as

@@ -282,14 +282,6 @@ contains
          end if
        end if
        
-       s_field => extract_scalar_field(state(i), "ViscousDissipation", stat)
-       if(stat == 0) then
-         if(recalculate(trim(s_field%option_path))) then
-           call calculate_diagnostic_variable(state(i), "ViscousDissipation", &
-             & s_field)
-         end if
-       end if
-
        s_field => extract_scalar_field(state(i), "RichardsonNumber", stat)
        if(stat == 0) then
          if(recalculate(trim(s_field%option_path))) then

@@ -290,8 +290,10 @@
       type(integer_set), dimension(:), pointer :: colours
       integer :: clr, nnid, len, i
       integer :: num_threads, thread_num
+#ifdef _OPENMP
       !! Did we successfully prepopulate the transform_to_physical_cache?
       logical :: cache_valid
+#endif
 
 
       type(element_type), dimension(:), allocatable :: supg_element
@@ -379,9 +381,10 @@
       if (have_option(trim(u%option_path)//'/prognostic/equation::ShallowWater')) then
         ! for the swe there's no buoyancy term
         have_gravity = .false.
-      end if
-
-      if(have_gravity) then
+        buoyancy=>dummyscalar
+        gravity=>dummyvector
+        ! but we do need gravity_magnitude to convert pressure to free surface elevation
+      else if(have_gravity) then
         buoyancy=>extract_scalar_field(state, "VelocityBuoyancyDensity")
         gravity=>extract_vector_field(state, "GravityDirection", stat)
       else
