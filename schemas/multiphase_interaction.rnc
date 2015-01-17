@@ -35,6 +35,12 @@ drag_correlation =
       element drag_correlation {
          attribute name { "ergun" },
          comment
+      }|
+      ## Simplified fluid-particle drag term by Harlow and Amsden (1975).
+      ## Presented in the paper by Valentine and Wohletz (1989).
+      element drag_correlation {
+         attribute name { "simplified_harlow_amsden" },
+         comment
       }
    )
    

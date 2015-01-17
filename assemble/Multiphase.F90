@@ -283,7 +283,8 @@
          integer :: istate_fluid, istate_particle
    
          ! Types of drag correlation
-         integer, parameter :: DRAG_CORRELATION_TYPE_STOKES = 1, DRAG_CORRELATION_TYPE_WEN_YU = 2, DRAG_CORRELATION_TYPE_ERGUN = 3
+         integer, parameter :: DRAG_CORRELATION_TYPE_STOKES = 1, DRAG_CORRELATION_TYPE_WEN_YU = 2, DRAG_CORRELATION_TYPE_ERGUN = 3, &
+                               & DRAG_CORRELATION_SIMPLIFIED_HARLOW_AMSDEN = 4
          
          ewrite(1, *) "Entering add_fluid_particle_drag"
          
@@ -401,6 +402,8 @@
                         drag_correlation = DRAG_CORRELATION_TYPE_WEN_YU
                      case("ergun")
                         drag_correlation = DRAG_CORRELATION_TYPE_ERGUN
+                     case("simplified_harlow_amsden")
+                        drag_correlation = DRAG_CORRELATION_SIMPLIFIED_HARLOW_AMSDEN
                      case("default")
                         FLAbort("Unknown correlation for fluid-particle drag")
                   end select
@@ -524,7 +527,9 @@
                      end do
                      
                   case(DRAG_CORRELATION_TYPE_ERGUN)
-                     ! No drag coefficient is needed here.                  
+                     ! No drag coefficient is needed here.   
+                  case(DRAG_CORRELATION_SIMPLIFIED_HARLOW_AMSDEN)
+                     ! Drag coefficient is set to 1.0.
                end select
                       
                ! Don't let the drag_coefficient_gi be NaN
@@ -542,6 +547,8 @@
                      K = vfrac_particle_gi*(3.0/4.0)*drag_coefficient_gi*(vfrac_fluid_gi*density_fluid_gi*magnitude_gi)/(d*vfrac_fluid_gi**2.7)
                   case(DRAG_CORRELATION_TYPE_ERGUN)
                      K = 150.0*((vfrac_particle_gi**2)*viscosity_fluid_gi(1,1,:))/(vfrac_fluid_gi*(d**2)) + 1.75*(vfrac_particle_gi*density_fluid_gi*magnitude_gi/d)
+                  case(DRAG_CORRELATION_SIMPLIFIED_HARLOW_AMSDEN)
+                     K = ((3.0/16.0)*vfrac_particle_gi*density_fluid_gi*magnitude_gi)/(d/2.0)
                end select               
                
                if(is_particle_phase) then

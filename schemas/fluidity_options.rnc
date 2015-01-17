@@ -2175,7 +2175,11 @@ prognostic_density_field =
       ##  - default if not set is 0
       element priority {
          integer
-      }?
+      }?,
+      ## Bounds the field by a particular value when computing
+      ## Density from the (compressible) equation of state.
+      ## Only works with the stiffened_gas EoS.
+      cap_option?
    )
 
 geometry = 

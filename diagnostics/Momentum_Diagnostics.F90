@@ -54,7 +54,7 @@ module momentum_diagnostics
             calculate_buoyancy, calculate_coriolis, calculate_tensor_second_invariant, &
             calculate_imposed_material_velocity_source, calculate_imposed_material_velocity_absorption, &
             calculate_scalar_potential, calculate_projection_scalar_potential, &
-            calculate_geostrophic_velocity
+            calculate_geostrophic_velocity, calculate_speed_of_sound
            
   
 contains
@@ -481,4 +481,73 @@ contains
   
   end subroutine calculate_geostrophic_velocity
 
+  subroutine calculate_speed_of_sound(state, s_field)
+     !!< Calculates the speed of sound in a compressible material_phase.
+     type(state_type), intent(inout) :: state
+     type(scalar_field), intent(inout) :: s_field
+
+     !! Local variables
+     integer :: stat, ele
+     type(scalar_field), pointer :: density, pressure
+     type(vector_field), pointer :: x
+     type(scalar_field) :: temp_pressure, temp_density
+     real :: gamma
+     
+     ! Current element global node numbers.
+     integer, dimension(:), pointer :: speed_of_sound_nodes
+     ! Current speed of sound element shape
+     type(element_type), pointer :: speed_of_sound_shape
+     ! Local speed of sound matrix for the current element.
+     real, dimension(ele_loc(s_field, 1),ele_loc(s_field, 1)) :: speed_of_sound_mat
+     real, dimension(ele_ngi(s_field, 1)) :: density_gi, pressure_gi
+     ! Transformed quadrature weights.
+     real, dimension(ele_ngi(s_field, 1)) :: detwei
+
+     ewrite(1,*) 'Entering calculate_speed_of_sound'
+     
+     if(.not.have_option(trim(state%option_path)//'/equation_of_state/compressible/stiffened_gas')) then
+       FLExit("You can only compute the speed of sound of a compressible material_phase.")
+     end if
+     
+     x => extract_vector_field(state, "Coordinate")
+     density => extract_scalar_field(state, "Density")
+     pressure => extract_scalar_field(state, "Pressure")
+     call get_option(trim(state%option_path)//'/equation_of_state/compressible/stiffened_gas/ratio_specific_heats', gamma, stat)
+     if(stat /= 0) then
+        FLExit("You must specify a ratio_specific_heats value to calculate the speed of sound")
+     end if
+
+     call allocate(temp_density, s_field%mesh, "TempDensity")
+     call allocate(temp_pressure, s_field%mesh, "TempPressure")
+
+     ! Remap the original fields to the mesh provided by the speed of sound field
+     call remap_field(density, temp_density)
+     call remap_field(pressure, temp_pressure)
+
+     ! Loop through and integrate over each element
+     do ele = 1, element_count(s_field)
+
+       speed_of_sound_nodes => ele_nodes(s_field, ele)
+       speed_of_sound_shape => ele_shape(s_field, ele)
+
+       call transform_to_physical(x, ele, detwei = detwei)
+
+       ! Calculate the speed of sound at each quadrature point.
+       density_gi = ele_val_at_quad(temp_density, ele)
+       pressure_gi = ele_val_at_quad(temp_pressure, ele)
+
+       ! Invert the mass matrix to get the speed of sound value at each node
+       speed_of_sound_mat = matmul(inverse(shape_shape(speed_of_sound_shape, speed_of_sound_shape, detwei)), &
+                             shape_shape(speed_of_sound_shape, speed_of_sound_shape, detwei*sqrt((gamma*pressure_gi)/density_gi)))
+
+       s_field%val(speed_of_sound_nodes) = max(s_field%val(speed_of_sound_nodes), sum(speed_of_sound_mat,2))
+     end do
+
+     call deallocate(temp_pressure)
+     call deallocate(temp_density)
+
+     ewrite(1,*) 'Exiting calculate_speed_of_sound'
+
+  end subroutine calculate_speed_of_sound
+      
 end module momentum_diagnostics

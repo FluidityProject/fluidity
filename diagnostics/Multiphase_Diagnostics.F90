@@ -42,7 +42,7 @@ module multiphase_diagnostics
    
    private
 
-   public :: calculate_particle_reynolds_number, calculate_apparent_density
+   public :: calculate_particle_reynolds_number, calculate_apparent_density, calculate_bulk_density
   
    contains
 
@@ -198,6 +198,52 @@ module multiphase_diagnostics
          ewrite(1,*) 'Exiting calculate_apparent_density'
 
       end subroutine calculate_apparent_density
+
+      subroutine calculate_bulk_density(states, state_index, s_field)
+         !!< Calculates the bulk density ( = sum(density_i * vfrac_i) ).
+
+         type(state_type), dimension(:), intent(inout) :: states
+         integer, intent(in) :: state_index
+         type(scalar_field), intent(inout) :: s_field ! Bulk density field
+
+         !! Local variables
+         integer :: stat, i
+
+         ! Velocities of the continuous and particle phases
+         type(scalar_field), pointer :: density, vfrac
+
+         type(scalar_field) :: temp_vfrac, temp_density
+
+         ewrite(1,*) 'Entering calculate_bulk_density'
+
+         call zero(s_field)
+
+         call allocate(temp_vfrac, s_field%mesh, "TempPhaseVolumeFraction")
+         call allocate(temp_density, s_field%mesh, "TempDensity")
+
+         do i = 1, size(states)
+            density => extract_scalar_field(states(state_index), "Density")
+            vfrac => extract_scalar_field(states(state_index), "PhaseVolumeFraction", stat)
+            if(stat /= 0) then
+               ! PhaseVolumeFraction field not present, so exit with an error.
+               FLExit("A PhaseVolumeFraction field is required to compute the bulk density.")
+            end if
+
+            ! Remap the original fields to the mesh provided by the apparent density field
+            call remap_field(vfrac, temp_vfrac)
+            call remap_field(density, temp_density)
+
+            ! Multiply the remapped PhaseVolumeFraction and Density fields together node-wise
+            call scale(temp_density, temp_vfrac)
+            call addto(s_field, temp_density)
+         end do
+
+         call deallocate(temp_vfrac)
+         call deallocate(temp_density)
+
+         ewrite(1,*) 'Exiting calculate_bulk_density'
+
+      end subroutine calculate_bulk_density
 
 end module multiphase_diagnostics
 

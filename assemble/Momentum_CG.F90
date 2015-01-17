@@ -60,6 +60,7 @@
     use fefields
     use rotated_boundary_conditions
     use Coordinates
+    use diagnostic_fields, only: calculate_galerkin_projection
     use multiphase_module
     use edge_length_module
     use physics_from_options
@@ -1758,7 +1759,7 @@
       
       real, dimension(ele_ngi(u, ele)) :: nvfrac_gi
       real, dimension(ele_ngi(u, ele)) :: coefficient_detwei
-      
+
       if (subtract_out_reference_profile) then
         coefficient_detwei = gravity_magnitude*(ele_val_at_quad(buoyancy, ele)-ele_val_at_quad(hb_density, ele))*detwei
       else

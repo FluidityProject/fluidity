@@ -68,7 +68,7 @@
       use state_fields_module
       use Tidal_module
       use Coordinates
-      use diagnostic_fields, only: calculate_diagnostic_variable
+      use diagnostic_fields, only: calculate_diagnostic_variable, calculate_galerkin_projection
       use dgtools, only: dg_apply_mass
       use slope_limiters_dg
       use implicit_solids

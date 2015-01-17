@@ -522,8 +522,10 @@ contains
       ewrite_minmax(density)
       olddensity=>extract_scalar_field(state, "Old"//trim(density_name))
       ewrite_minmax(olddensity)
+
+      if(have_option(trim(state%option_path)//'/equation_of_state/compressible') .and. &
+         & .not.have_option(trim(t%option_path)//'/prognostic/equation[0]/exclude_pressure_term')) then   
       
-      if(have_option(trim(state%option_path)//'/equation_of_state/compressible')) then         
          call get_option(trim(density%option_path)//"/prognostic/temporal_discretisation/theta", density_theta)
          compressible = .true.
          
@@ -878,10 +880,9 @@ contains
     if(equation_type==FIELD_EQUATION_INTERNALENERGY .and. compressible) then
        call add_pressurediv_element_cg(ele, test_function, t, velocity, pressure, nvfrac, du_t, detwei, rhs_addto)
     end if
-                                                                                  
-    
+
     ! Step 4: Insertion
-            
+
     element_nodes => ele_nodes(t, ele)
     call addto(matrix, element_nodes, element_nodes, matrix_addto)
     call addto(rhs, element_nodes, rhs_addto)
@@ -929,7 +930,11 @@ contains
       end if
     case(FIELD_EQUATION_KEPSILON)      
       density_at_quad = ele_val_at_quad(density, ele)
-      mass_matrix = shape_shape(test_function, ele_shape(t, ele), detwei*density_at_quad)
+      if(multiphase) then
+         mass_matrix = shape_shape(test_function, ele_shape(t, ele), detwei*density_at_quad*ele_val_at_quad(nvfrac, ele))
+      else
+         mass_matrix = shape_shape(test_function, ele_shape(t, ele), detwei*density_at_quad)
+      end if
     case default
     
       if(move_mesh) then
@@ -1018,6 +1023,10 @@ contains
       velocity_at_quad = velocity_at_quad - ele_val_at_quad(grid_velocity, ele)
     end if
     
+    if(multiphase) then
+       nvfrac_at_quad = ele_val_at_quad(nvfrac, ele)
+    end if
+      
     select case(equation_type)
     case(FIELD_EQUATION_INTERNALENERGY)
       assert(ele_ngi(density, ele)==ele_ngi(olddensity, ele))
@@ -1027,10 +1036,6 @@ contains
       densitygrad_at_quad = density_theta*ele_grad_at_quad(density, ele, drho_t) &
                            +(1.-density_theta)*ele_grad_at_quad(olddensity, ele, drho_t)
       udotgradrho_at_quad = sum(densitygrad_at_quad*velocity_at_quad, 1)
-      
-      if(multiphase) then
-         nvfrac_at_quad = ele_val_at_quad(nvfrac, ele)
-      end if
 
     case(FIELD_EQUATION_KEPSILON)
       density_at_quad = ele_val_at_quad(density, ele)
@@ -1067,7 +1072,11 @@ contains
           end if
         end if
       case(FIELD_EQUATION_KEPSILON)
-        advection_mat = -dshape_dot_vector_shape(dt_t, velocity_at_quad, t_shape, detwei*density_at_quad)
+        if(multiphase) then
+           advection_mat = -dshape_dot_vector_shape(dt_t, velocity_at_quad, t_shape, detwei*density_at_quad*nvfrac_at_quad)
+        else
+           advection_mat = -dshape_dot_vector_shape(dt_t, velocity_at_quad, t_shape, detwei*density_at_quad)
+        end if
         if(abs(1.0 - beta) > epsilon(0.0)) then
           velocity_div_at_quad = ele_div_at_quad(velocity, ele, du_t)
           advection_mat = advection_mat &
@@ -1116,7 +1125,11 @@ contains
           end if
         end if
       case(FIELD_EQUATION_KEPSILON)
-        advection_mat = shape_vector_dot_dshape(test_function, velocity_at_quad, dt_t, detwei*density_at_quad)
+        if(multiphase) then
+           advection_mat = shape_vector_dot_dshape(test_function, velocity_at_quad, dt_t, detwei*density_at_quad*nvfrac_at_quad)
+        else
+           advection_mat = shape_vector_dot_dshape(test_function, velocity_at_quad, dt_t, detwei*density_at_quad)
+        end if
         if(abs(beta) > epsilon(0.0)) then
           velocity_div_at_quad = ele_div_at_quad(velocity, ele, du_t)
           advection_mat = advection_mat &
@@ -1258,6 +1271,38 @@ contains
     end if
     
   end subroutine add_pressurediv_element_cg
+  
+  subroutine add_heat_flux_element_cg(ele, test_function, t, dt_t, nvfrac, K, C_v, detwei, matrix_addto, rhs_addto)
+  
+    integer, intent(in) :: ele
+    type(element_type), intent(in) :: test_function
+    type(scalar_field), intent(in) :: t
+    real, dimension(ele_loc(t, ele), ele_ngi(t, ele), mesh_dim(t)), intent(in) :: dt_t
+    type(scalar_field), intent(in) :: nvfrac
+    real, intent(in) :: K, C_v
+    real, dimension(ele_ngi(t, ele)), intent(in) :: detwei
+    real, dimension(ele_loc(t, ele), ele_loc(t, ele)), intent(inout) :: matrix_addto
+    real, dimension(ele_loc(t, ele)), intent(inout) :: rhs_addto
+        
+    real, dimension(ele_loc(t, ele), ele_loc(t, ele)) :: heat_flux_mat
+    
+    assert(equation_type==FIELD_EQUATION_INTERNALENERGY)
+    
+    if(multiphase) then
+       ! -div(vfrac * q) = -div(vfrac * K * grad(ie)/C_v)
+       ! where K is the effective conductivity
+       ! ie is the internal energy
+       ! C_v is the specific heat at constant volume, needed to convert the temperature to internal energy
+       heat_flux_mat = dshape_dot_dshape(dt_t, dt_t, detwei * K * ele_val_at_quad(nvfrac, ele) / C_v )
+    else
+       heat_flux_mat = dshape_dot_dshape(dt_t, dt_t, detwei * K / C_v )
+    end if
+    
+    if(abs(dt_theta) > epsilon(0.0)) matrix_addto = matrix_addto - dt_theta * heat_flux_mat
+    
+    rhs_addto = rhs_addto + matmul(heat_flux_mat, ele_val(t, ele))
+    
+  end subroutine add_heat_flux_element_cg
   
   subroutine assemble_advection_diffusion_face_cg(face, bc_type, t, t_bc, t_bc_2, matrix, rhs, positions, velocity, grid_velocity, density, olddensity, nvfrac)
     integer, intent(in) :: face
