@@ -8,8 +8,7 @@ Boundary_Conditions_From_Options.o \
    Boundary_Conditions_From_Options.F90 ../include/boundary_conditions.mod \
    ../include/bulk_parameterisations.mod ../include/coordinates.mod \
    ../include/elements.mod ../include/fdebug.h ../include/fefields.mod \
-   ../include/field_options.mod ../include/fields.mod \
-   ../include/fields_base.mod ../include/fldebug.mod \
+   ../include/field_options.mod ../include/fields.mod ../include/fldebug.mod \
    ../include/global_parameters.mod ../include/halos_base.mod \
    ../include/halos_numbering.mod ../include/initialise_fields_module.mod \
    ../include/integer_set_module.mod ../include/k_epsilon.mod \

@@ -1,6 +1,5 @@
 #include "confdefs.h"
 #include "fdebug.h"
-#include "petscversion.h"
 !! Little program that reads in a matrix equation from a file called 
 !! 'matrixdump' in the current directory containing a matrix, rhs vector and 
 !! initial guess, written in PETSc binary format. It then subsequently solves 
@@ -41,20 +40,7 @@ use parallel_tools
   use petsc 
 #endif
 implicit none
-#ifdef HAVE_PETSC_MODULES
-#include "finclude/petscvecdef.h"
-#include "finclude/petscmatdef.h"
-#include "finclude/petsckspdef.h"
-#include "finclude/petscpcdef.h"
-#include "finclude/petscviewerdef.h"
-#include "finclude/petscisdef.h"
-#else
-#include "finclude/petsc.h"
-#endif
-! hack around PetscTruth->PetscBool change in petsc 3.2
-#if PETSC_VERSION_MINOR>=2
-#define PetscTruth PetscBool
-#endif
+#include "petsc_legacy.h"
   ! options read from command-line (-prns_... options)
   character(len=4096) filename, flml
   character(len=FIELD_NAME_LEN):: field
@@ -154,7 +140,7 @@ contains
     PC  prec
     Vec y
     PetscViewer viewer
-    PetscTruth flag
+    PetscBool flag
     PetscErrorCode ierr
     KSPConvergedReason reason
     type(petsc_numbering_type) petsc_numbering
@@ -221,8 +207,8 @@ contains
     call PetscOptionsGetString('', "-pc_type", pc_method, flag, ierr)
     call KSPCreate(MPI_COMM_FEMTOOLS, krylov, ierr)
     call KSPSetType(krylov, krylov_method, ierr)
-    call KSPSetOperators(krylov, matrix, matrix, DIFFERENT_NONZERO_PATTERN, ierr)
-    call KSPSetTolerances(krylov, 1.0d-100, 1d-12, PETSC_DEFAULT_DOUBLE_PRECISION, &
+    call KSPSetOperators(krylov, matrix, matrix, ierr)
+    call KSPSetTolerances(krylov, 1.0d-100, 1d-12, PETSC_DEFAULT_REAL, &
       3000, ierr)
     if (zero_init_guess) then
       call KSPSetInitialGuessNonzero(krylov, PETSC_FALSE, ierr)
@@ -795,7 +781,7 @@ contains
   character(len=*), intent(out):: filename, flml, field
   logical, intent(out):: zero_init_guess, scipy, random_rhs
 
-    PetscTruth flag
+    PetscBool flag
     PetscErrorCode ierr
     
     call PetscOptionsGetString('prns_', '-filename', filename, flag, ierr)

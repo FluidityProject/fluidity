@@ -108,14 +108,6 @@ contains
     ! Read in header information, and validate
     call read_header( fd, lfilename, gmshFormat )
 
-#ifdef __INTEL_COMPILER
-    if (gmshFormat .eq. asciiFormat) then
-        ewrite(-1,*) "There are issues with the Intel compiler and GMSH ASCII files"
-        ewrite(-1,*) "Please use binary GMSH or convert your mesh to triangle"
-        FLExit("Exiting")
-    end if
-#endif
-
     ! Read in the nodes
     call read_nodes_coords( fd, lfilename, gmshFormat, nodes )
 
@@ -320,15 +312,12 @@ contains
        FLExit("Error: GMSH data size does not equal "//trim(adjustl(charBuf)))
     end if
 
-
-
     ! GMSH binary format continues the integer 1, in binary.
-    if( gmshFileType .eq. binaryFormat ) then
+    if( gmshFileType == 1 ) then
        call binary_formatting(fd, lfilename, "read")
        read(fd) one, newlineChar
        call ascii_formatting(fd, lfilename, "read")
     end if
-
 
     read(fd, *) charBuf
     if( trim(charBuf) .ne. "$EndMeshFormat" ) then
@@ -338,8 +327,13 @@ contains
     ! Done with error checking... set format (ie. ascii or binary)
     gmshFormat = gmshFileType
 
-  end subroutine read_header
+#ifdef __INTEL_COMPILER
+!   for intel the call to ascii_formatting causes the first read after it to have advance='no'
+!   therefore forcing it to jump to a newline here
+    if(gmshFormat == binaryFormat) read(fd, *) charBuf
+#endif
 
+  end subroutine read_header
 
 
   ! -----------------------------------------------------------------
@@ -360,48 +354,47 @@ contains
        FLExit("Error: cannot find '$Nodes' in GMSH mesh file")
     end if
 
-
     read(fd, *) numNodes
 
-    if(numNodes .lt. 2) then
+    if(numNodes < 2) then
        FLExit("Error: GMSH number of nodes field < 2")
+    end if
+
+    if (gmshFormat==binaryFormat) then
+      call binary_formatting(fd, filename, "read")
     end if
 
     allocate( nodes(numNodes) )
 
-    select case(gmshFormat)
-    case(asciiFormat)
-       call ascii_formatting(fd, filename, "read")
-    case(binaryFormat)
-       call binary_formatting(fd, filename, "read")
-    end select
-
     ! read in node data
     do i=1, numNodes
-       if( gmshFormat .eq. asciiFormat ) then
+       if( gmshFormat == asciiFormat ) then
           read(fd, * ) nodes(i)%nodeID, nodes(i)%x
        else
           read(fd) nodes(i)%nodeID, nodes(i)%x
        end if
        ! Set column ID to -1: this will be changed later if $NodeData exists
        nodes(i)%columnID = -1
-
     end do
 
     ! Skip newline character when in binary mode
-    if( gmshFormat .eq. binaryFormat ) read(fd), newlineChar
-
-
-    call ascii_formatting(fd, filename, "read")
+    if( gmshFormat == binaryFormat ) then
+       read(fd), newlineChar
+       call ascii_formatting(fd, filename, "read")
+    end if
 
     ! Read in end node section
     read(fd, *) charBuf
     if( trim(charBuf) .ne. "$EndNodes" ) then
        FLExit("Error: can't find '$EndNodes' in GMSH file '"//trim(filename)//"'")
     end if
+#ifdef __INTEL_COMPILER
+!   for intel the call to ascii_formatting causes the first read after it to have advance='no'
+!   therefore forcing it to jump to a newline here
+    if(gmshFormat == binaryFormat) read(fd, *) charBuf
+#endif
 
   end subroutine read_nodes_coords
-
 
 
   ! -----------------------------------------------------------------
@@ -419,8 +412,6 @@ contains
     integer :: timeStep, numComponents, numNodes
     integer :: i, nodeIx, fileState
     real :: rval
-
-    call ascii_formatting( fd, filename, "read" )
 
     ! If there's no $NodeData section, don't try to read in column IDs: return
     read(fd, iostat=fileState, fmt=*) charBuf
@@ -477,9 +468,10 @@ contains
     end do
 
     ! Skip newline character when in binary mode
-    if( gmshFormat == binaryFormat ) read(fd), newlineChar
-
-    call ascii_formatting(fd, filename, "read")
+    if( gmshFormat == binaryFormat ) then
+      read(fd), newlineChar
+      call ascii_formatting(fd, filename, "read")
+    end if
 
     ! Read in end node section
     read(fd, *) charBuf
@@ -487,8 +479,13 @@ contains
        FLExit("Error: cannot find '$EndNodeData' in GMSH mesh file")
     end if
 
-  end subroutine read_node_column_IDs
+#ifdef __INTEL_COMPILER
+!   for intel the call to ascii_formatting causes the first read after it to have advance='no'
+!   therefore forcing it to jump to a newline here
+    if(gmshFormat == binaryFormat) read(fd, *) charBuf
+#endif
 
+  end subroutine read_node_column_IDs
 
 
   ! -----------------------------------------------------------------
@@ -511,7 +508,6 @@ contains
     integer :: numFaces, faceType, numElements, elementType
     integer :: e, i, numLocNodes, tmp1, tmp2, tmp3
     integer :: groupType, groupElems, groupTags
-
 
     read(fd,*) charBuf
     if( trim(charBuf)/="$Elements" ) then
@@ -587,8 +583,22 @@ contains
     end select
 
     ! Skip final newline
-    if(gmshFormat==binaryFormat) read(fd) newlineChar
+    if(gmshFormat==binaryFormat) then
+      read(fd) newlineChar
+      call ascii_formatting( fd, filename, "read" )
+    end if
 
+    ! Check for $EndElements tag
+    read(fd,*) charBuf
+    if( trim(charBuf) .ne. "$EndElements" ) then
+       FLExit("Error: cannot find '$EndElements' in GMSH mesh file")
+    end if
+
+#ifdef __INTEL_COMPILER
+!   for intel the call to ascii_formatting causes the first read after it to have advance='no'
+!   therefore forcing it to jump to a newline here
+    if(gmshFormat == binaryFormat) read(fd, *) charBuf
+#endif
 
     ! Run through final list of elements, reorder nodes etc.
     numEdges = 0
@@ -623,13 +633,6 @@ contains
        end select
 
     end do
-
-    ! Check for $EndElements tag
-    call ascii_formatting( fd, filename, "read" )
-    read(fd,*) charBuf
-    if( trim(charBuf) .ne. "$EndElements" ) then
-       FLExit("Error: cannot find '$EndElements' in GMSH mesh file")
-    end if
 
     ! This decides which element types are faces, and which are
     ! regular elements, as per gmsh2triangle logic. Implicit in that logic

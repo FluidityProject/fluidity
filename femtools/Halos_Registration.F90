@@ -299,9 +299,11 @@ contains
 
   end subroutine generate_substate_halos
 
-  subroutine write_halos(filename, mesh)
+  subroutine write_halos(filename, mesh, number_of_partitions)
     character(len = *), intent(in) :: filename
     type(mesh_type), intent(in) :: mesh
+    !!< If present, only write for processes 1:number_of_partitions (assumes the other partitions are empty)
+    integer, optional, intent(in):: number_of_partitions
     
     integer :: communicator, error_count, i, nhalos, procno, nparts, nprocs
     integer, dimension(:), allocatable :: nreceives, nsends, receives, sends
@@ -313,7 +315,12 @@ contains
     
     communicator = halo_communicator(mesh%halos(nhalos))
     procno = getprocno(communicator = communicator)
-    nparts = get_active_nparts(ele_count(mesh), communicator = communicator)
+
+    if (present(number_of_partitions)) then
+      nparts = number_of_partitions
+    else
+      nparts = getnprocs()
+    end if
     
     if(procno <= nparts) then
       nprocs = getnprocs(communicator = communicator)
