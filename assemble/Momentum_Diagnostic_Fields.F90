@@ -173,7 +173,7 @@ contains
     sfield => extract_scalar_field(submaterials(submaterials_istate), 'Pressure', stat)
     if(stat==0) then
       diagnostic = have_option(trim(sfield%option_path)//'/diagnostic')
-      if(diagnostic) then
+      if(diagnostic .and. .not.aliased(sfield)) then
         call calculate_diagnostic_pressure(submaterials(submaterials_istate), sfield)
       end if
     end if

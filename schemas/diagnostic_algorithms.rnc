@@ -904,6 +904,16 @@ imposed_material_velocity_absorption_algorithm =
           }?
        }
    )
+speed_of_sound_algorithm = 
+   (
+      ## Diagnostic algorithm used in compressible flow simulations.
+      ## Calculates the speed of sound in the compressible material_phase, given by sqrt((gamma*pressure)/density).
+      element algorithm {
+         attribute name { "speed_of_sound" },
+         attribute material_phase_support { "multiple" },
+         attribute depends { "Pressure", "Density" }
+      }
+   )
 
 # Parallel diagnostics
 node_halo_diagnostic_algorithm =
@@ -1309,6 +1319,17 @@ apparent_density_algorithm =
       }
    )
 
+bulk_density_algorithm = 
+   (
+      ## Diagnostic algorithm used in multiphase flow simulations.
+      ## Calculates the bulk density of the material_phase,
+      ## i.e. sum(density_i*vfrac_i).
+      element algorithm {
+         attribute name { "bulk_density" },
+         attribute material_phase_support { "multiple" }
+      }
+   )
+
 # Misc
 
 # l2norm diagnostic algorithm
@@ -1476,6 +1497,7 @@ scalar_diagnostic_algorithms |= scalar_edge_lengths_algorithm
 scalar_diagnostic_algorithms |= projection_scalar_potential_algorithm
 scalar_diagnostic_algorithms |= particle_reynolds_number_algorithm
 scalar_diagnostic_algorithms |= apparent_density_algorithm
+scalar_diagnostic_algorithms |= bulk_density_algorithm
 scalar_diagnostic_algorithms |= node_halo_diagnostic_algorithm
 scalar_diagnostic_algorithms |= lumped_mass_smoothed_scalar_algorithm
 scalar_diagnostic_algorithms |= l2norm_algorithm
@@ -1492,6 +1514,7 @@ scalar_diagnostic_algorithms |= curl_2d_algorithm
 scalar_diagnostic_algorithms |= column_id_algorithm
 scalar_diagnostic_algorithms |= finite_element_lumped_mass_matrix
 scalar_diagnostic_algorithms |= control_volume_mass_matrix
+scalar_diagnostic_algorithms |= speed_of_sound_algorithm
 scalar_diagnostic_algorithms |= scalar_python_diagnostic_algorithm
 scalar_diagnostic_algorithms |= internal_algorithm
 

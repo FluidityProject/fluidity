@@ -3007,6 +3007,13 @@ This determines the order in which scalar_fields are solved for:
         <ref name="integer"/>
       </element>
     </optional>
+    <optional>
+      <ref name="cap_option">
+        <a:documentation>Bounds the field by a particular value when computing
+Density from the (compressible) equation of state.
+Only works with the stiffened_gas EoS.</a:documentation>
+      </ref>
+    </optional>
   </define>
   <define name="geometry">
     <element name="geometry">

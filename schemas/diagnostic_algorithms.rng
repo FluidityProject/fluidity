@@ -1216,6 +1216,24 @@ of the sediment fields and the zero concentration viscosity
       </optional>
     </element>
   </define>
+  <define name="speed_of_sound_algorithm">
+    <element name="algorithm">
+      <a:documentation>Diagnostic algorithm used in compressible flow simulations.
+Calculates the speed of sound in the compressible material_phase, given by sqrt((gamma*pressure)/density).</a:documentation>
+      <attribute name="name">
+        <value>speed_of_sound</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>multiple</value>
+      </attribute>
+      <attribute name="depends">
+        <group>
+          <value>Pressure</value>
+          <value>Density</value>
+        </group>
+      </attribute>
+    </element>
+  </define>
   <!-- Parallel diagnostics -->
   <define name="node_halo_diagnostic_algorithm">
     <element name="algorithm">
@@ -1775,6 +1793,19 @@ i.e. Density multiplied by the PhaseVolumeFraction field.</a:documentation>
       </attribute>
     </element>
   </define>
+  <define name="bulk_density_algorithm">
+    <element name="algorithm">
+      <a:documentation>Diagnostic algorithm used in multiphase flow simulations.
+Calculates the bulk density of the material_phase,
+i.e. sum(density_i*vfrac_i).</a:documentation>
+      <attribute name="name">
+        <value>bulk_density</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>multiple</value>
+      </attribute>
+    </element>
+  </define>
   <!-- Misc -->
   <!-- l2norm diagnostic algorithm -->
   <define name="l2norm_algorithm">
@@ -2010,6 +2041,9 @@ This field needs to be interpolated between adapts.</a:documentation>
     <ref name="apparent_density_algorithm"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
+    <ref name="bulk_density_algorithm"/>
+  </define>
+  <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="node_halo_diagnostic_algorithm"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
@@ -2056,6 +2090,9 @@ This field needs to be interpolated between adapts.</a:documentation>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="control_volume_mass_matrix"/>
+  </define>
+  <define name="scalar_diagnostic_algorithms" combine="choice">
+    <ref name="speed_of_sound_algorithm"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="scalar_python_diagnostic_algorithm"/>

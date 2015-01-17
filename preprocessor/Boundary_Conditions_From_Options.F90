@@ -585,7 +585,7 @@ contains
   subroutine set_boundary_conditions_values(states, shift_time)
     !!< Set the values of the boundary conditions of all fields
     !!< This is called each time step.
-    type(state_type), dimension(:), intent(in):: states
+    type(state_type), dimension(:), intent(inout):: states
     !! if present and true the time level at which the bcs are evaluated
     !! is shifted according to:
     !! "dirichlet": current_time+dt

@@ -60,6 +60,7 @@
     use fefields
     use rotated_boundary_conditions
     use Coordinates
+    use diagnostic_fields, only: calculate_galerkin_projection
     use multiphase_module
     use edge_length_module
     use physics_from_options
@@ -1097,6 +1098,7 @@
                    call addto(rhs, dim, u_nodes_bdy, -matmul( ele_val(pressure_bc, sele), &
                                                             ct_mat_bdy(dim,:,:) ))
                 end if
+
              end if
           end do
         end if

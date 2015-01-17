@@ -68,7 +68,7 @@
       use state_fields_module
       use Tidal_module
       use Coordinates
-      use diagnostic_fields, only: calculate_diagnostic_variable
+      use diagnostic_fields, only: calculate_diagnostic_variable, calculate_galerkin_projection
       use dgtools, only: dg_apply_mass
       use slope_limiters_dg
       use implicit_solids
@@ -1547,6 +1547,7 @@
          ! Fields for the subtract_out_reference_profile option under the Velocity field
          type(scalar_field), pointer :: hb_pressure
          type(scalar_field) :: combined_p
+
          integer :: stat
 
          ewrite(1,*) 'Entering advance_velocity'

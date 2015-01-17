@@ -56,6 +56,7 @@ module advection_diffusion_DG
   use global_parameters, only: OPTION_PATH_LEN, FIELD_NAME_LEN, COLOURING_DG2, &
        COLOURING_DG0
   use porous_media
+  use multiphase_module
   use colouring
   use Profiler
 #ifdef _OPENMP
@@ -111,6 +112,12 @@ module advection_diffusion_DG
   ! are we moving the mesh?
   logical :: move_mesh
 
+ ! equation type
+  integer :: equation_type
+
+  logical :: multiphase, compressible
+  logical :: include_pressure_div_term ! For InternalEnergy equation
+
   ! Include porosity?
   logical :: include_porosity
 
@@ -149,14 +156,15 @@ module advection_diffusion_DG
 
 contains
 
-  subroutine solve_advection_diffusion_dg(field_name, state, velocity_name)
+  subroutine solve_advection_diffusion_dg(field_name, states, istate, velocity_name)
     !!< Construct and solve the advection-diffusion equation for the given
     !!< field using discontinuous elements.
 
     !! Name of the field to be solved for.
     character(len=*), intent(in) :: field_name
     !! Collection of fields defining system state.
-    type(state_type), intent(inout) :: state
+    type(state_type), dimension(:), intent(inout) :: states
+    integer, intent(in) :: istate
     character(len=*), optional, intent(in) :: velocity_name
 
     !! Tracer to be solved for.
@@ -174,8 +182,23 @@ contains
 
     ewrite(1,*) "In solve_advection_diffusion_dg"
     ewrite(1,*) "Solving advection-diffusion equation for field " // &
-         trim(field_name) // " in state " // trim(state%name)
-    T=>extract_scalar_field(state, field_name)
+         trim(field_name) // " in state " // trim(states(istate)%name)
+    T=>extract_scalar_field(states(istate), field_name)
+
+    equation_type=equation_type_index(trim(T%option_path))
+    select case(equation_type)
+    case(FIELD_EQUATION_ADVECTIONDIFFUSION)
+      ewrite(1,*) "Solving advection-diffusion equation for field " // &
+           trim(field_name) // " in state " // trim(states(istate)%name)
+    case(FIELD_EQUATION_INTERNALENERGY)
+      ewrite(1,*) "Solving internal energy equation for field " // &
+           trim(field_name) // " in state " // trim(states(istate)%name)
+    case(FIELD_EQUATION_COMPRESSIBLECONTINUITY)
+      ewrite(1,*) "Solving compressible continuity equation for field " // &
+           trim(field_name) // " in state " // trim(states(istate)%name)
+    case default
+      FLExit("Unknown field equation type for dg advection diffusion.")
+    end select
 
     ! Set local velocity name:
     if(present(velocity_name)) then
@@ -188,7 +211,7 @@ contains
          &"/discontinuous_galerkin/advection_scheme"//&
          &"/project_velocity_to_continuous")) then
 
-       if(.not.has_scalar_field(state, "Projected"//trim(lvelocity_name))) &
+       if(.not.has_scalar_field(states(istate), "Projected"//trim(lvelocity_name))) &
             &then
           
           call get_option(trim(T%option_path)&
@@ -196,22 +219,22 @@ contains
                &"/discontinuous_galerkin/advection_scheme"//&
                &"/project_velocity_to_continuous/mesh/name",pmesh_name) 
 
-          U_nl=>extract_vector_field(state, lvelocity_name)
-          pmesh=>extract_mesh(state, pmesh_name)
-          X=>extract_vector_field(state, "Coordinate")
+          U_nl=>extract_vector_field(states(istate), lvelocity_name)
+          pmesh=>extract_mesh(states(istate), pmesh_name)
+          X=>extract_vector_field(states(istate), "Coordinate")
           
           lvelocity_name="Projected"//trim(lvelocity_name)
           call allocate(pvelocity, U_nl%dim, pmesh, lvelocity_name)
           
           call project_field(U_nl, pvelocity, X)
           
-          call insert(state, pvelocity, lvelocity_name)
+          call insert(states(istate), pvelocity, lvelocity_name)
 
           ! Discard the additional reference.
           call deallocate(pvelocity)
        else
           lvelocity_name="Projected"//trim(lvelocity_name)
-          pvelocity=extract_vector_field(state,lvelocity_name)
+          pvelocity=extract_vector_field(states(istate),lvelocity_name)
        end if
 
     end if
@@ -370,18 +393,18 @@ contains
     if (have_option(trim(T%option_path)//&
          &"/prognostic/temporal_discretisation/discontinuous_galerkin"//&
          &"/number_advection_subcycles")) then
-       call solve_advection_diffusion_dg_subcycle(field_name, state, lvelocity_name)
+       call solve_advection_diffusion_dg_subcycle(field_name, states(istate), lvelocity_name, states=states, istate=istate)
     else if (have_option(trim(T%option_path)//&
          &"/prognostic/temporal_discretisation/discontinuous_galerkin"//&
          &"/maximum_courant_number_per_subcycle")) then
-       call solve_advection_diffusion_dg_subcycle(field_name, state, lvelocity_name)
+       call solve_advection_diffusion_dg_subcycle(field_name, states(istate), lvelocity_name, states=states, istate=istate)
     else
-       call solve_advection_diffusion_dg_theta(field_name, state, lvelocity_name)
+       call solve_advection_diffusion_dg_theta(field_name, states(istate), lvelocity_name, states=states, istate=istate)
     end if
 
   end subroutine solve_advection_diffusion_dg
 
-  subroutine solve_advection_diffusion_dg_theta(field_name, state, velocity_name)
+  subroutine solve_advection_diffusion_dg_theta(field_name, state, velocity_name, states, istate)
     !!< Construct and solve the advection-diffusion equation for the given
     !!< field unsing discontinuous elements.
     
@@ -391,6 +414,8 @@ contains
     type(state_type), intent(inout) :: state
     !! Name of advecting velocity field
     character(len=*), intent(in) :: velocity_name
+    type(state_type), dimension(:), optional, intent(inout) :: states
+    integer, optional, intent(in) :: istate
 
     !! Tracer to be solved for.
     type(scalar_field), pointer :: T, T_old
@@ -433,8 +458,14 @@ contains
     call allocate(rhs, T%mesh, trim(field_name)//"RHS")
     
     call construct_advection_diffusion_dg(matrix, rhs, field_name, state,&
-         velocity_name=velocity_name) 
+         velocity_name=velocity_name, states=states, istate=istate) 
 
+    ! Note: the assembly of the heat transfer term is done here to avoid 
+    ! passing in the whole state array to assemble_advection_diffusion_cg.
+    if(have_option("/multiphase_interaction/heat_transfer") .and. &
+       equation_type_index(trim(T%option_path)) == FIELD_EQUATION_INTERNALENERGY) then
+      call add_heat_transfer(states, istate, t, matrix, rhs)
+    end if
     
     ! Apply strong dirichlet boundary conditions.
     ! This is for big spring boundary conditions.
@@ -453,7 +484,7 @@ contains
 
   end subroutine solve_advection_diffusion_dg_theta
 
-  subroutine solve_advection_diffusion_dg_subcycle(field_name, state, velocity_name)
+  subroutine solve_advection_diffusion_dg_subcycle(field_name, state, velocity_name, states, istate)
     !!< Construct and solve the advection-diffusion equation for the given
     !!< field using discontinuous elements.
     
@@ -463,6 +494,8 @@ contains
     type(state_type), intent(inout) :: state
     !! Optional velocity name
     character(len = *), intent(in) :: velocity_name
+    type(state_type), dimension(:), optional, intent(inout) :: states
+    integer, optional, intent(in) :: istate
 
     !! Tracer to be solved for.
     type(scalar_field), pointer :: T, T_old, s_field
@@ -538,7 +571,7 @@ contains
    
     call construct_advection_diffusion_dg(matrix, rhs, field_name, state, &
          mass=mass, diffusion_m=matrix_diff, diffusion_rhs=rhs_diff, semidiscrete=.true., &
-         velocity_name=velocity_name)
+         velocity_name=velocity_name, states=states, istate=istate)
 
     ! mass has only been assembled only for owned elements, so we can only compute
     ! its inverse for owned elements
@@ -656,7 +689,7 @@ contains
   end subroutine solve_advection_diffusion_dg_subcycle  
 
   subroutine construct_advection_diffusion_dg(big_m, rhs, field_name,&
-       & state, mass, diffusion_m, diffusion_rhs, semidiscrete, velocity_name) 
+       & state, mass, diffusion_m, diffusion_rhs, semidiscrete, velocity_name, states, istate) 
     !!< Construct the advection_diffusion equation for discontinuous elements in
     !!< acceleration form.
     !!< 
@@ -690,6 +723,10 @@ contains
     type(scalar_field), intent(inout), optional :: diffusion_rhs
     !! Optional velocity name
     character(len = *), intent(in), optional :: velocity_name
+
+    ! Unfortunately these are needed for the CompressibleContinuity equation type
+    type(state_type), dimension(:), optional, intent(inout) :: states
+    integer, optional, intent(in) :: istate
 
     !! Flag for whether to construct semidiscrete form of the equation.
     logical, intent(in), optional :: semidiscrete
@@ -756,6 +793,26 @@ contains
 
     !! Diffusivity to add due to the buoyancy adjustment by vertical mixing scheme
     type(scalar_field) :: buoyancy_adjustment_diffusivity
+
+
+    ! For the CompressibleContinuity equation type      
+    integer :: dim
+    logical :: not_found ! Error flag. Have we found the fluid phase?
+    integer :: istate_fluid, istate_particle
+    type(vector_field), pointer :: velocity_fluid, velocity_particle
+    type(scalar_field) :: vfrac_fluid, vfrac_particle
+
+    type(scalar_field), target :: dummydensity
+    type(scalar_field), pointer :: density, olddensity
+    character(len = FIELD_NAME_LEN) :: density_name
+    type(scalar_field), pointer :: pressure
+
+    type(scalar_field), pointer :: vfrac
+    type(scalar_field) :: nvfrac
+
+    real :: density_theta
+    integer :: i
+
 
     ewrite(1,*) "Writing advection-diffusion equation for "&
          &//trim(field_name)
@@ -919,6 +976,120 @@ contains
     else
       ewrite(2,*) 'Not moving mesh'
     end if
+
+
+    ! PhaseVolumeFraction for multiphase flow simulations
+    if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1) then
+       multiphase = .true.
+       vfrac => extract_scalar_field(state, "PhaseVolumeFraction")
+       call allocate(nvfrac, vfrac%mesh, "NonlinearPhaseVolumeFraction")
+       call zero(nvfrac)
+       call get_nonlinear_volume_fraction(state, nvfrac)
+      
+       ewrite_minmax(nvfrac)
+    else
+       multiphase = .false.
+       call allocate(nvfrac, t%mesh, "DummyNonlinearPhaseVolumeFraction", field_type=FIELD_TYPE_CONSTANT)
+       call set(nvfrac, 1.0)
+    end if
+
+    call allocate(dummydensity, t%mesh, "DummyDensity", field_type=FIELD_TYPE_CONSTANT)
+    call set(dummydensity, 1.0)
+
+
+    select case(equation_type)
+    case(FIELD_EQUATION_ADVECTIONDIFFUSION)
+      ewrite(2,*) "Solving advection-diffusion equation"
+      ! density not needed so use a constant field for assembly
+      density => dummydensity
+      olddensity => dummydensity
+      density_theta = 1.0
+      pressure => dummydensity
+
+    case(FIELD_EQUATION_INTERNALENERGY)
+      ewrite(2,*) "Solving internal energy equation"
+      if(move_mesh) then
+        FLExit("Haven't implemented a moving mesh energy equation yet.")
+      end if
+      
+      ! Get old and current densities
+      call get_option(trim(t%option_path)//'/prognostic/equation[0]/density[0]/name', density_name)
+      density=>extract_scalar_field(state, trim(density_name))
+      ewrite_minmax(density)
+      olddensity=>extract_scalar_field(state, "Old"//trim(density_name))
+      ewrite_minmax(olddensity)
+
+      if(have_option(trim(state%option_path)//'/equation_of_state/compressible')) then   
+      
+         call get_option(trim(density%option_path)//"/prognostic/temporal_discretisation/theta", density_theta)
+         compressible = .true.
+
+         if(.not.have_option(trim(t%option_path)//'/prognostic/equation[0]/exclude_pressure_term')) then
+            ! We always include the p*div(u) term if this is the compressible phase.
+            include_pressure_div_term = .true.
+            pressure=>extract_scalar_field(state, "Pressure")
+            ewrite_minmax(pressure)
+         else
+            include_pressure_div_term = .false.
+         end if
+      else
+         ! Since the particle phase is always incompressible then its Density
+         ! will not be prognostic. Just use a fixed theta value of 1.0.
+         density_theta = 1.0
+         compressible = .false.
+         include_pressure_div_term = .false.
+         
+         ! Don't include the p*div(u) term if this is the incompressible particle phase.
+         pressure => dummydensity
+      end if
+
+    case(FIELD_EQUATION_COMPRESSIBLECONTINUITY)
+      ewrite(2,*) "Solving compressible continuity equation"
+      if(move_mesh) then
+        FLExit("Haven't implemented a moving mesh energy equation yet.")
+      end if
+
+      if(.not.multiphase .or. .not.have_option(trim(state%option_path)//'/equation_of_state/compressible')) then
+        FLExit("The CompressibleContinuity equation type should only be used with compressible multiphase flow simulations.")
+      end if
+      
+      istate_fluid = istate
+      ! Retrieve the index of the particle phase in the state array.
+      not_found = .true.
+      do i = 1, size(states)
+         if(have_option(trim(states(i)%option_path)//"/multiphase_properties/particle_diameter")) then
+            istate_particle = i
+            not_found = .false.
+         end if
+      end do
+
+      if(not_found) then
+         FLExit("No particle phase found.")
+      end if
+
+      velocity_fluid => extract_vector_field(states(istate_fluid), "NonlinearVelocity")
+      velocity_particle => extract_vector_field(states(istate_particle), "NonlinearVelocity")
+      vfrac => extract_scalar_field(states(istate_fluid), "PhaseVolumeFraction")
+      call allocate(vfrac_fluid, vfrac%mesh, "NonlinearPhaseVolumeFraction")
+      call zero(vfrac_fluid)
+      call get_nonlinear_volume_fraction(states(istate_fluid), vfrac_fluid)
+
+      vfrac => extract_scalar_field(states(istate_particle), "PhaseVolumeFraction")
+      call allocate(vfrac_particle, vfrac%mesh, "NonlinearPhaseVolumeFraction")
+      call zero(vfrac_particle)
+      call get_nonlinear_volume_fraction(states(istate_particle), vfrac_particle)
+
+      ! Density not needed so use a constant field for assembly
+      density => dummydensity
+      olddensity => dummydensity
+      density_theta = 1.0
+      pressure => dummydensity
+
+    case default
+      FLExit("Unknown field equation type for cg advection diffusion.")
+    end select
+
+
     
     ! Switch on upwind stabilisation if requested.
     if (have_option(trim(T%option_path)//"/prognostic/spatial_discretisation"&
@@ -1033,7 +1204,8 @@ contains
             & Absorption, Diffusivity, bc_value, bc_type, q_mesh, mass, &
             & buoyancy, gravity, gravity_magnitude, mixing_diffusion_amplitude, &
             & buoyancy_adjustment_diffusivity, &
-            & add_src_directly_to_rhs, porosity_theta) 
+            & add_src_directly_to_rhs, porosity_theta, nvfrac, density, olddensity, pressure, &
+            & velocity_fluid, velocity_particle, vfrac_fluid, vfrac_particle) 
        
       end do element_loop
       !$OMP END DO
@@ -1055,6 +1227,13 @@ contains
     call deallocate(U_nl_backup)
     call deallocate(bc_value)
     call deallocate(porosity_theta)
+
+    call deallocate(dummydensity)
+    call deallocate(nvfrac)
+    if(equation_type==FIELD_EQUATION_COMPRESSIBLECONTINUITY) then
+       call deallocate(vfrac_fluid)
+       call deallocate(vfrac_particle)
+    end if
     
   end subroutine construct_advection_diffusion_dg
 
@@ -1150,7 +1329,8 @@ contains
        & bc_value, bc_type, &
        & q_mesh, mass, buoyancy, gravity, gravity_magnitude, mixing_diffusion_amplitude, &
        & buoyancy_adjustment_diffusivity, &
-       & add_src_directly_to_rhs, porosity_theta)
+       & add_src_directly_to_rhs, porosity_theta, nvfrac, density, olddensity, pressure, &
+       & velocity_fluid, velocity_particle, vfrac_fluid, vfrac_particle)
     !!< Construct the advection_diffusion equation for discontinuous elements in
     !!< acceleration form.
     implicit none
@@ -1187,6 +1367,14 @@ contains
     
     !! Porosity theta averaged field
     type(scalar_field), intent(in) :: porosity_theta
+
+    type(scalar_field), intent(in) :: nvfrac
+    type(scalar_field), intent(in) :: density, olddensity
+    type(scalar_field), intent(in) :: pressure
+
+    type(vector_field), intent(in) :: velocity_fluid, velocity_particle
+    type(scalar_field), intent(in) :: vfrac_fluid, vfrac_particle
+
 
     !! Flag for a periodic boundary
     logical :: Periodic_neigh 
@@ -1244,16 +1432,21 @@ contains
     ! Transformed gradient function for tracer.
     real, dimension(ele_loc(T, ele), ele_ngi(T, ele), mesh_dim(T)) :: dt_t
     ! Transformed gradient function for velocity.
-    real, dimension(ele_loc(U_nl, ele), ele_ngi(U_nl, ele), mesh_dim(T)) ::&
-         & du_t 
+    real, dimension(ele_loc(U_nl, ele), ele_ngi(U_nl, ele), mesh_dim(T)) :: du_t
     ! Transformed gradient function for grid velocity.
-    real, dimension(ele_loc(X, ele), ele_ngi(U_nl, ele), mesh_dim(T)) ::&
-         & dug_t 
+    real, dimension(ele_loc(X, ele), ele_ngi(U_nl, ele), mesh_dim(T)) :: dug_t 
     ! Transformed gradient function for auxiliary variable.
     real, dimension(ele_loc(q_mesh,ele), ele_ngi(q_mesh,ele), mesh_dim(T)) :: dq_t
     ! Different velocities at quad points.
     real, dimension(U_nl%dim, ele_ngi(U_nl, ele)) :: u_nl_q
     real, dimension(ele_ngi(U_nl, ele)) :: u_nl_div_q
+
+    real, dimension(ele_loc(U_nl, ele), ele_ngi(U_nl, ele), mesh_dim(T)) :: du_fluid_t, du_particle_t
+    real, dimension(ele_loc(nvfrac, ele), ele_ngi(nvfrac, ele), mesh_dim(nvfrac)) :: dvfrac_fluid_t, dvfrac_particle_t
+    real, dimension(ele_loc(nvfrac, ele), ele_ngi(nvfrac, ele), mesh_dim(nvfrac)) :: dnvfrac_t
+    real, dimension(ele_loc(T, ele), ele_ngi(T, ele), mesh_dim(T)) :: drho_t
+
+    real, dimension(ele_ngi(T, ele)) :: udotgradnvfrac_at_quad, udotgradrho_at_quad
 
     ! Node and shape pointers.
     integer, dimension(:), pointer :: t_ele
@@ -1389,6 +1582,30 @@ contains
        call transform_to_physical(X,ele,&
             & q_shape , dshape=dq_t)
     end if
+
+    if(equation_type==FIELD_EQUATION_COMPRESSIBLECONTINUITY) then
+      call transform_to_physical(X, ele, ele_shape(velocity_fluid, ele), dshape = du_fluid_t)
+      call transform_to_physical(X, ele, ele_shape(velocity_particle, ele), dshape = du_particle_t)
+      call transform_to_physical(X, ele, ele_shape(vfrac_fluid, ele), dshape=dvfrac_fluid_t)
+      call transform_to_physical(X, ele, ele_shape(vfrac_particle, ele), dshape=dvfrac_particle_t)
+    end if
+
+    if(equation_type==FIELD_EQUATION_INTERNALENERGY) then
+      
+      if(multiphase) then
+         if(ele_shape(nvfrac, ele) == t_shape) then
+            dnvfrac_t = dt_t
+         else
+            call transform_to_physical(X, ele, ele_shape(nvfrac, ele), dshape=dnvfrac_t)
+         end if
+      end if
+
+      if(ele_shape(density, ele) == t_shape) then
+         drho_t = dt_t
+      else
+         call transform_to_physical(X, ele, ele_shape(density, ele), dshape=drho_t)
+      end if
+    end if
     
     if(move_mesh) then
       call transform_to_physical(X_old, ele, detwei=detwei_old)
@@ -1486,15 +1703,27 @@ contains
     !  /
     !  | T T  dV
     !  / 
-    if(move_mesh) then
-      mass_mat = shape_shape(T_shape, T_shape, detwei_new)
+    if(equation_type==FIELD_EQUATION_COMPRESSIBLECONTINUITY) then
+       mass_mat = shape_shape(T_shape, T_shape, detwei*ele_val_at_quad(vfrac_fluid, ele))
+
+    else if(equation_type==FIELD_EQUATION_INTERNALENERGY) then
+       if(multiphase) then
+         mass_mat = shape_shape(T_shape, T_shape, detwei*ele_val_at_quad(density, ele)*ele_val_at_quad(nvfrac, ele))
+       else
+         mass_mat = shape_shape(T_shape, T_shape, detwei*ele_val_at_quad(density, ele))
+       end if
+
     else
-      if (include_porosity) then
-        assert(ele_ngi(T, ele)==ele_ngi(porosity_theta, ele))
-        mass_mat = shape_shape(T_shape, T_shape, detwei*ele_val_at_quad(porosity_theta, ele))      
-      else
-        mass_mat = shape_shape(T_shape, T_shape, detwei)
-      end if
+       if(move_mesh) then
+         mass_mat = shape_shape(T_shape, T_shape, detwei_new)
+       else
+         if (include_porosity) then
+           assert(ele_ngi(T, ele)==ele_ngi(porosity_theta, ele))
+           mass_mat = shape_shape(T_shape, T_shape, detwei*ele_val_at_quad(porosity_theta, ele))      
+         else
+           mass_mat = shape_shape(T_shape, T_shape, detwei)
+         end if
+       end if
     end if
 
     if (include_advection) then
@@ -1502,64 +1731,124 @@ contains
       ! Advecting velocity at quadrature points.
       U_nl_q=ele_val_at_quad(U_nl,ele)
 
-      if(integrate_conservation_term_by_parts) then
-          ! Element advection matrix
-          !         /                                          /
-          !  - beta | (grad T dot U_nl) T Rho dV + (1. - beta) | T (U_nl dot grad T) Rho dV
-          !         /                                          /
-          
-          ! Introduce grid velocities in non-linear terms. 
-          Advection_mat = -beta* dshape_dot_vector_shape(dt_t, U_nl_q, t_shape, detwei)  &
-               + (1.-beta) * shape_vector_dot_dshape(t_shape, U_nl_q, dt_t, detwei)
-          if(move_mesh) then
+      if(equation_type==FIELD_EQUATION_COMPRESSIBLECONTINUITY) then
+         if(integrate_by_parts_once) then
+            ! 'Incompressible' ctp_m
+            ! Note that we don't actually integrate this by parts at all. Only the compressible ctp_m is integrated by parts.
+            U_nl_q=ele_val_at_quad(velocity_particle,ele)
+            udotgradnvfrac_at_quad = sum(ele_grad_at_quad(vfrac_particle, ele, dvfrac_particle_t)*U_nl_q, 1)
+            Advection_mat = shape_shape(t_shape, t_shape, detwei*ele_val_at_quad(vfrac_particle, ele)*ele_div_at_quad(velocity_particle, ele, du_particle_t)) + shape_shape(t_shape, t_shape, detwei*udotgradnvfrac_at_quad)
+            ! Compressible ctp_m
+            U_nl_q=ele_val_at_quad(velocity_fluid,ele)
+            Advection_mat = Advection_mat - shape_vector_dot_dshape(t_shape, U_nl_q, dt_t, detwei*ele_val_at_quad(vfrac_fluid, ele))
+
+         else
+            ! 'Incompressible' ctp_m
+            U_nl_q=ele_val_at_quad(velocity_particle,ele)
+            udotgradnvfrac_at_quad = sum(ele_grad_at_quad(vfrac_particle, ele, dvfrac_particle_t)*U_nl_q, 1)
+            Advection_mat = shape_shape(t_shape, t_shape, detwei*ele_val_at_quad(vfrac_particle, ele)*ele_div_at_quad(velocity_particle, ele, du_particle_t)) + shape_shape(t_shape, t_shape, detwei*udotgradnvfrac_at_quad)
+            ! Compressible ctp_m
+            U_nl_q=ele_val_at_quad(velocity_fluid,ele)
+            udotgradnvfrac_at_quad = sum(ele_grad_at_quad(vfrac_fluid, ele, dvfrac_fluid_t)*U_nl_q, 1)
+            Advection_mat = Advection_mat + shape_shape(t_shape, t_shape, detwei*ele_val_at_quad(vfrac_fluid, ele)*ele_div_at_quad(velocity_fluid, ele, du_fluid_t)) + shape_shape(t_shape, t_shape, detwei*udotgradnvfrac_at_quad) + shape_vector_dot_dshape(t_shape, U_nl_q, dt_t, detwei*ele_val_at_quad(vfrac_fluid, ele))
+         end if
+
+          ! Add stabilisation to the advection term if requested by the user.
+          if (stabilisation_scheme==UPWIND) then
+             ! NOTE: U_nl_q may (or may not) have been modified by the grid velocity
+             ! with a moving mesh.  Don't know what's appropriate so changes may be
+             ! required above!  Hence, this should FLAbort above.
+             Advection_mat = Advection_mat + &
+                  element_upwind_stabilisation(t_shape, dt_t, U_nl_q, J_mat, detwei)
+          end if
+
+      else if(equation_type==FIELD_EQUATION_INTERNALENERGY) then
+         if(multiphase) then    
+            
             if(integrate_by_parts_once) then
-              Advection_mat = Advection_mat &
-                              + dshape_dot_vector_shape(dt_t, ele_val_at_quad(U_mesh,ele), t_shape, detwei)
+               udotgradnvfrac_at_quad = sum(ele_grad_at_quad(nvfrac, ele, dnvfrac_t)*U_nl_q, 1)
+               udotgradrho_at_quad = sum(ele_grad_at_quad(density, ele, drho_t)*U_nl_q, 1)
+               Advection_mat = -shape_vector_dot_dshape(t_shape, U_nl_q, dt_t, detwei*ele_val_at_quad(density, ele)*ele_val_at_quad(nvfrac, ele)) - shape_shape(t_shape, t_shape, detwei*ele_div_at_quad(U_nl, ele, du_t)*ele_val_at_quad(density, ele)*ele_val_at_quad(nvfrac, ele)) - shape_shape(t_shape, t_shape, detwei*udotgradrho_at_quad*ele_val_at_quad(nvfrac, ele)) - shape_shape(t_shape, t_shape, detwei*udotgradnvfrac_at_quad*ele_val_at_quad(density, ele))
             else
-              Advection_mat = Advection_mat &
-                              - shape_vector_dot_dshape(t_shape, ele_val_at_quad(U_mesh,ele), dt_t, detwei) &
-                              - shape_shape(t_shape, t_shape, ele_div_at_quad(U_mesh, ele, dug_t) * detwei)
+               Advection_mat = shape_vector_dot_dshape(t_shape, U_nl_q, dt_t, detwei*ele_val_at_quad(density, ele)*ele_val_at_quad(nvfrac, ele))
             end if
+         else
+            if(integrate_by_parts_once) then
+               udotgradrho_at_quad = sum(ele_grad_at_quad(density, ele, drho_t)*U_nl_q, 1)
+               Advection_mat = -shape_vector_dot_dshape(t_shape, U_nl_q, dt_t, detwei*ele_val_at_quad(density, ele)) &
+                               - shape_shape(t_shape, t_shape, detwei*ele_div_at_quad(U_nl, ele, du_t)*ele_val_at_quad(density, ele)) - shape_shape(t_shape, t_shape, detwei*udotgradrho_at_quad)
+            else
+               Advection_mat = shape_vector_dot_dshape(t_shape, U_nl_q, dt_t, detwei*ele_val_at_quad(density, ele))
+            end if
+         end if
+
+          ! Add stabilisation to the advection term if requested by the user.
+          if (stabilisation_scheme==UPWIND) then
+             ! NOTE: U_nl_q may (or may not) have been modified by the grid velocity
+             ! with a moving mesh.  Don't know what's appropriate so changes may be
+             ! required above!  Hence, this should FLAbort above.
+             Advection_mat = Advection_mat + &
+                  element_upwind_stabilisation(t_shape, dt_t, U_nl_q, J_mat, detwei)
           end if
-       else
-          ! Introduce grid velocities in non-linear terms. 
-          if(move_mesh) then
-            ! NOTE: modifying the velocities at the gauss points in this case!
-            U_nl_q = U_nl_q - ele_val_at_quad(U_mesh, ele)
-          end if
-          U_nl_div_q=ele_div_at_quad(U_nl, ele, du_t)
-          
-          if(integrate_by_parts_once) then
+      else
+         if(integrate_conservation_term_by_parts) then
              ! Element advection matrix
-             !    /                                          /
-             !  - | (grad T dot U_nl) T Rho dV - (1. - beta) | T ( div U_nl ) T Rho dV
-             !    /                                          /
-             Advection_mat = - dshape_dot_vector_shape(dt_t, U_nl_q, t_shape, detwei)  &
-                  - (1.-beta) * shape_shape(t_shape, t_shape, U_nl_div_q * detwei)
-          else
-             ! Element advection matrix
-             !  /                                   /
-             !  | T (U_nl dot grad T) Rho dV + beta | T ( div U_nl ) T Rho dV
-             !  /                                   /
-             Advection_mat = shape_vector_dot_dshape(t_shape, U_nl_q, dt_t, detwei)  &
-                  + beta * shape_shape(t_shape, t_shape, U_nl_div_q * detwei)
+             !         /                                          /
+             !  - beta | (grad T dot U_nl) T Rho dV + (1. - beta) | T (U_nl dot grad T) Rho dV
+             !         /                                          /
+             
+             ! Introduce grid velocities in non-linear terms. 
+             Advection_mat = -beta* dshape_dot_vector_shape(dt_t, U_nl_q, t_shape, detwei)  &
+                  + (1.-beta) * shape_vector_dot_dshape(t_shape, U_nl_q, dt_t, detwei)
              if(move_mesh) then
-                Advection_mat = Advection_mat &
-                      - shape_shape(t_shape, t_shape, ele_div_at_quad(U_mesh, ele, dug_t) * detwei)
+               if(integrate_by_parts_once) then
+                 Advection_mat = Advection_mat &
+                                 + dshape_dot_vector_shape(dt_t, ele_val_at_quad(U_mesh,ele), t_shape, detwei)
+               else
+                 Advection_mat = Advection_mat &
+                                 - shape_vector_dot_dshape(t_shape, ele_val_at_quad(U_mesh,ele), dt_t, detwei) &
+                                 - shape_shape(t_shape, t_shape, ele_div_at_quad(U_mesh, ele, dug_t) * detwei)
+               end if
+             end if
+          else
+             ! Introduce grid velocities in non-linear terms. 
+             if(move_mesh) then
+               ! NOTE: modifying the velocities at the gauss points in this case!
+               U_nl_q = U_nl_q - ele_val_at_quad(U_mesh, ele)
+             end if
+             U_nl_div_q=ele_div_at_quad(U_nl, ele, du_t)
+             
+             if(integrate_by_parts_once) then
+                ! Element advection matrix
+                !    /                                          /
+                !  - | (grad T dot U_nl) T Rho dV - (1. - beta) | T ( div U_nl ) T Rho dV
+                !    /                                          /
+                Advection_mat = - dshape_dot_vector_shape(dt_t, U_nl_q, t_shape, detwei)  &
+                     - (1.-beta) * shape_shape(t_shape, t_shape, U_nl_div_q * detwei)
+             else
+                ! Element advection matrix
+                !  /                                   /
+                !  | T (U_nl dot grad T) Rho dV + beta | T ( div U_nl ) T Rho dV
+                !  /                                   /
+                Advection_mat = shape_vector_dot_dshape(t_shape, U_nl_q, dt_t, detwei)  &
+                     + beta * shape_shape(t_shape, t_shape, U_nl_div_q * detwei)
+                if(move_mesh) then
+                   Advection_mat = Advection_mat &
+                         - shape_shape(t_shape, t_shape, ele_div_at_quad(U_mesh, ele, dug_t) * detwei)
+                end if
              end if
           end if
-       end if
-       
-       ! Add stabilisation to the advection term if requested by the user.
-       if (stabilisation_scheme==UPWIND) then
-          ! NOTE: U_nl_q may (or may not) have been modified by the grid velocity
-          ! with a moving mesh.  Don't know what's appropriate so changes may be
-          ! required above!  Hence, this should FLAbort above.
-          Advection_mat = Advection_mat + &
-               element_upwind_stabilisation(t_shape, dt_t, U_nl_q, J_mat,&
-               & detwei)
-       end if
+          
+          ! Add stabilisation to the advection term if requested by the user.
+          if (stabilisation_scheme==UPWIND) then
+             ! NOTE: U_nl_q may (or may not) have been modified by the grid velocity
+             ! with a moving mesh.  Don't know what's appropriate so changes may be
+             ! required above!  Hence, this should FLAbort above.
+             Advection_mat = Advection_mat + &
+                  element_upwind_stabilisation(t_shape, dt_t, U_nl_q, J_mat, detwei)
+          end if
 
+      end if 
     else
        Advection_mat=0.0
     end if
@@ -1658,6 +1947,16 @@ contains
     if (.not. add_src_directly_to_rhs) then
        l_T_rhs=l_T_rhs &
               + shape_rhs(T_shape, detwei*ele_val_at_quad(Source, ele))
+    end if
+
+    if(equation_type==FIELD_EQUATION_INTERNALENERGY) then
+      if(include_pressure_div_term) then
+         if(multiphase) then
+            l_T_rhs=l_T_rhs - shape_rhs(T_shape, detwei*ele_val_at_quad(pressure, ele)*ele_div_at_quad(U_nl, ele, du_t)*ele_val_at_quad(nvfrac, ele))
+         else
+            l_T_rhs=l_T_rhs - shape_rhs(T_shape, detwei*ele_val_at_quad(pressure, ele)*ele_div_at_quad(U_nl, ele, du_t))
+         end if
+      end if
     end if
         
     if(move_mesh) then
@@ -1773,7 +2072,7 @@ contains
                & centre_vec,& 
                & big_m, rhs, rhs_diff, Grad_T_mat, Div_T_mat, X, T, U_nl,&
                & bc_value, bc_type, &
-               & U_mesh, q_mesh, cdg_switch_in, &
+               & U_mesh, q_mesh, nvfrac, density, velocity_fluid, velocity_particle, vfrac_fluid, vfrac_particle, cdg_switch_in, &
                & primal_fluxes_mat, ele2grad_mat,diffusivity, &
                & penalty_fluxes_mat, normal_mat, kappa_normal_mat)
 
@@ -1792,7 +2091,7 @@ contains
                & centre_vec,&
                & big_m, rhs, rhs_diff, Grad_T_mat, Div_T_mat, X, T, U_nl,&
                & bc_value, bc_type, &
-               & U_mesh, q_mesh)
+               & U_mesh, q_mesh, nvfrac, density, velocity_fluid, velocity_particle, vfrac_fluid, vfrac_particle)
        end if
 
        if (dg) then
@@ -1800,7 +2099,7 @@ contains
        end if
 
     end do neighbourloop
-    
+
     !----------------------------------------------------------------------
     ! Construct local diffusivity operator for DG.
     !----------------------------------------------------------------------
@@ -2358,7 +2657,7 @@ contains
        ni, centre_vec,big_m, rhs, rhs_diff, Grad_T_mat, Div_T_mat, &
        & X, T, U_nl,&
        & bc_value, bc_type, &
-       & U_mesh, q_mesh, CDG_switch_in, &
+       & U_mesh, q_mesh, nvfrac, density, velocity_fluid, velocity_particle, vfrac_fluid, vfrac_particle, CDG_switch_in, &
        & primal_fluxes_mat, ele2grad_mat,diffusivity, &
        & penalty_fluxes_mat, normal_mat, kappa_normal_mat)
 
@@ -2376,6 +2675,10 @@ contains
     type(scalar_field), intent(in) :: T
     !! Mesh of the auxiliary variable in the second order operator.
     type(mesh_type), intent(in) :: q_mesh
+
+    type(vector_field), intent(in) :: velocity_fluid, velocity_particle
+    type(scalar_field), intent(in) :: vfrac_fluid, vfrac_particle, nvfrac, density
+
     !! switch for CDG fluxes
     logical, intent(inout), optional :: CDG_switch_in
    !! Field over the entire surface mesh containing bc values:
@@ -2410,6 +2713,11 @@ contains
     ! Variable transform times quadrature weights.
     real, dimension(face_ngi(T,face)) :: detwei
     real, dimension(face_ngi(T,face)) :: inner_advection_integral, outer_advection_integral
+
+    real, dimension(face_ngi(T, face)) :: vfrac_fluid_nl_q, vfrac_fluid_f_q, vfrac_fluid_f2_q
+    real, dimension(face_ngi(T, face)) :: vfrac_particle_nl_q, vfrac_particle_f_q, vfrac_particle_f2_q
+    real, dimension(face_ngi(T, face)) :: vfrac_nl_q, vfrac_f_q, vfrac_f2_q
+    real, dimension(face_ngi(T, face)) :: density_nl_q, density_f_q, density_f2_q
 
     ! Bilinear forms
     real, dimension(face_loc(T,face),face_loc(T,face)) :: nnAdvection_out
@@ -2488,74 +2796,202 @@ contains
 
     if (include_advection.and.(flux_scheme==UPWIND_FLUX)) then
        
-       ! Advecting velocity at quadrature points.
-       u_f_q = face_val_at_quad(U_nl, face)
-       u_f2_q = face_val_at_quad(U_nl, face_2)
-       U_nl_q=0.5*(u_f_q+u_f2_q)
+       if(equation_type == FIELD_EQUATION_COMPRESSIBLECONTINUITY) then
 
-       if(p0_vel) then
-         ! A surface integral around the inside of a constant
-         ! velocity field will always produce zero so it's
-         ! not possible to evaluate the conservation term
-         ! with p0 that way.  Hence take the average across
-         ! a face.
-         div_u_f_q = U_nl_q
-       else
-         div_u_f_q = u_f_q
-       end if
+          ! Advecting velocity at quadrature points.
+          u_f_q = face_val_at_quad(velocity_fluid, face)
+          u_f2_q = face_val_at_quad(velocity_fluid, face_2)
+          U_nl_q=0.5*(u_f_q+u_f2_q)
 
-       ! Introduce grid velocities in non-linear terms. 
-       if(move_mesh) then
-         ! here we assume that U_mesh at face is the same as U_mesh at face_2
-         ! if it isn't then you're in trouble because your mesh will tear
-         ! itself apart
-         U_nl_q=U_nl_q - face_val_at_quad(U_mesh, face)
-         ! the velocity on the internal face isn't used again so we can
-         ! modify it directly here...
-         u_f_q = u_f_q - face_val_at_quad(U_mesh, face)
-       end if
-       
-       u_nl_q_dotn = sum(U_nl_q*normal,1)
-              
-       ! Inflow is true if the flow at this gauss point is directed
-       ! into this element.
-       inflow = u_nl_q_dotn<0.0
-       income = merge(1.0,0.0,inflow)
-       
-       !----------------------------------------------------------------------
-       ! Construct bilinear forms.
-       !----------------------------------------------------------------------
-       
-       ! Calculate outflow boundary integral.
-       ! can anyone think of a way of optimising this more to avoid
-       ! superfluous operations (i.e. multiplying things by 0 or 1)?
+          vfrac_fluid_f_q = face_val_at_quad(vfrac_fluid, face)
+          vfrac_fluid_f2_q = face_val_at_quad(vfrac_fluid, face_2)
+          vfrac_fluid_nl_q = 0.5*(vfrac_fluid_f_q+vfrac_fluid_f2_q)
 
-       ! first the integral around the inside of the element
-       ! (this is the flux *out* of the element)
-       inner_advection_integral = (1.-income)*u_nl_q_dotn
-       if(.not.integrate_by_parts_once) then
-          ! i.e. if we're integrating by parts twice
-          inner_advection_integral = inner_advection_integral &
-                                     - sum(u_f_q*normal,1)
-       end if
-       if(integrate_conservation_term_by_parts) then
-          if(integrate_by_parts_once) then
-            inner_advection_integral = inner_advection_integral &
-                                       - (1.-beta)*sum(div_u_f_q*normal,1)
+          if(p0_vel) then
+            ! A surface integral around the inside of a constant
+            ! velocity field will always produce zero so it's
+            ! not possible to evaluate the conservation term
+            ! with p0 that way.  Hence take the average across
+            ! a face.
+            div_u_f_q = U_nl_q
           else
-            ! i.e. integrating by parts twice
-            inner_advection_integral = inner_advection_integral &
-                                       + beta*sum(div_u_f_q*normal,1)
+            div_u_f_q = u_f_q
           end if
+          
+          u_nl_q_dotn = sum(U_nl_q*normal,1)
+                 
+          ! Inflow is true if the flow at this gauss point is directed
+          ! into this element.
+          inflow = u_nl_q_dotn<0.0
+          income = merge(1.0,0.0,inflow)
+          
+          !----------------------------------------------------------------------
+          ! Construct bilinear forms.
+          !----------------------------------------------------------------------
+          
+          ! Calculate outflow boundary integral.
+          ! can anyone think of a way of optimising this more to avoid
+          ! superfluous operations (i.e. multiplying things by 0 or 1)?
+
+          ! first the integral around the inside of the element
+          ! (this is the flux *out* of the element)
+          inner_advection_integral = (1.-income)*u_nl_q_dotn       
+          if(.not.integrate_by_parts_once) then
+             ! i.e. if we're integrating by parts twice
+             inner_advection_integral = inner_advection_integral &
+                                        - sum(u_f_q*normal,1)
+          end if   
+          nnAdvection_out=shape_shape(T_shape, T_shape,  &
+               &                     inner_advection_integral * detwei * vfrac_fluid_nl_q) 
+          
+          ! now the integral around the outside of the element
+          ! (this is the flux *in* to the element)
+          outer_advection_integral = income * u_nl_q_dotn
+          nnAdvection_in=shape_shape(T_shape, T_shape_2, &
+               &                     outer_advection_integral * detwei * vfrac_fluid_nl_q)
+
+       else if(equation_type==FIELD_EQUATION_INTERNALENERGY) then
+
+          ! Advecting velocity at quadrature points.
+          u_f_q = face_val_at_quad(U_nl, face)
+          u_f2_q = face_val_at_quad(U_nl, face_2)
+          U_nl_q=0.5*(u_f_q+u_f2_q)
+
+          if(multiphase) then 
+             vfrac_f_q = face_val_at_quad(nvfrac, face)
+             vfrac_f2_q = face_val_at_quad(nvfrac, face_2)
+             vfrac_nl_q = 0.5*(vfrac_f_q+vfrac_f2_q)
+          end if
+
+          density_f_q = face_val_at_quad(density, face)
+          density_f2_q = face_val_at_quad(density, face_2)
+          density_nl_q = 0.5*(density_f_q+density_f2_q)
+
+          if(p0_vel) then
+            ! A surface integral around the inside of a constant
+            ! velocity field will always produce zero so it's
+            ! not possible to evaluate the conservation term
+            ! with p0 that way.  Hence take the average across
+            ! a face.
+            div_u_f_q = U_nl_q
+          else
+            div_u_f_q = u_f_q
+          end if
+          
+          u_nl_q_dotn = sum(U_nl_q*normal,1)
+                 
+          ! Inflow is true if the flow at this gauss point is directed
+          ! into this element.
+          inflow = u_nl_q_dotn<0.0
+          income = merge(1.0,0.0,inflow)
+          
+          !----------------------------------------------------------------------
+          ! Construct bilinear forms.
+          !----------------------------------------------------------------------
+          
+          ! Calculate outflow boundary integral.
+          ! can anyone think of a way of optimising this more to avoid
+          ! superfluous operations (i.e. multiplying things by 0 or 1)?
+
+          ! first the integral around the inside of the element
+          ! (this is the flux *out* of the element)
+          inner_advection_integral = (1.-income)*u_nl_q_dotn
+          if(.not.integrate_by_parts_once) then
+             ! i.e. if we're integrating by parts twice
+             inner_advection_integral = inner_advection_integral &
+                                        - sum(u_f_q*normal,1)
+          end if
+          if(multiphase) then        
+            nnAdvection_out=shape_shape(T_shape, T_shape,  &
+               &                     inner_advection_integral * detwei * vfrac_nl_q * density_nl_q)
+          else
+            nnAdvection_out=shape_shape(T_shape, T_shape,  &
+               &                     inner_advection_integral * detwei * density_nl_q) 
+          end if
+          
+          ! now the integral around the outside of the element
+          ! (this is the flux *in* to the element)
+          outer_advection_integral = income * u_nl_q_dotn
+          if(multiphase) then
+            nnAdvection_in=shape_shape(T_shape, T_shape_2, &
+               &                     outer_advection_integral * detwei * vfrac_nl_q * density_nl_q)
+          else
+            nnAdvection_in=shape_shape(T_shape, T_shape_2, &
+               &                     outer_advection_integral * detwei * density_nl_q)
+          end if
+
+
+       else
+
+          ! Advecting velocity at quadrature points.
+          u_f_q = face_val_at_quad(U_nl, face)
+          u_f2_q = face_val_at_quad(U_nl, face_2)
+          U_nl_q=0.5*(u_f_q+u_f2_q)
+
+          if(p0_vel) then
+            ! A surface integral around the inside of a constant
+            ! velocity field will always produce zero so it's
+            ! not possible to evaluate the conservation term
+            ! with p0 that way.  Hence take the average across
+            ! a face.
+            div_u_f_q = U_nl_q
+          else
+            div_u_f_q = u_f_q
+          end if
+
+          ! Introduce grid velocities in non-linear terms. 
+          if(move_mesh) then
+            ! here we assume that U_mesh at face is the same as U_mesh at face_2
+            ! if it isn't then you're in trouble because your mesh will tear
+            ! itself apart
+            U_nl_q=U_nl_q - face_val_at_quad(U_mesh, face)
+            ! the velocity on the internal face isn't used again so we can
+            ! modify it directly here...
+            u_f_q = u_f_q - face_val_at_quad(U_mesh, face)
+          end if
+          
+          u_nl_q_dotn = sum(U_nl_q*normal,1)
+                 
+          ! Inflow is true if the flow at this gauss point is directed
+          ! into this element.
+          inflow = u_nl_q_dotn<0.0
+          income = merge(1.0,0.0,inflow)
+          
+          !----------------------------------------------------------------------
+          ! Construct bilinear forms.
+          !----------------------------------------------------------------------
+          
+          ! Calculate outflow boundary integral.
+          ! can anyone think of a way of optimising this more to avoid
+          ! superfluous operations (i.e. multiplying things by 0 or 1)?
+
+          ! first the integral around the inside of the element
+          ! (this is the flux *out* of the element)
+          inner_advection_integral = (1.-income)*u_nl_q_dotn
+          if(.not.integrate_by_parts_once) then
+             ! i.e. if we're integrating by parts twice
+             inner_advection_integral = inner_advection_integral &
+                                        - sum(u_f_q*normal,1)
+          end if
+          if(integrate_conservation_term_by_parts) then
+             if(integrate_by_parts_once) then
+               inner_advection_integral = inner_advection_integral &
+                                          - (1.-beta)*sum(div_u_f_q*normal,1)
+             else
+               ! i.e. integrating by parts twice
+               inner_advection_integral = inner_advection_integral &
+                                          + beta*sum(div_u_f_q*normal,1)
+             end if
+          end if
+          nnAdvection_out=shape_shape(T_shape, T_shape,  &
+               &                     inner_advection_integral * detwei) 
+          
+          ! now the integral around the outside of the element
+          ! (this is the flux *in* to the element)
+          outer_advection_integral = income * u_nl_q_dotn
+          nnAdvection_in=shape_shape(T_shape, T_shape_2, &
+               &                       outer_advection_integral * detwei) 
        end if
-       nnAdvection_out=shape_shape(T_shape, T_shape,  &
-            &                     inner_advection_integral * detwei) 
-       
-       ! now the integral around the outside of the element
-       ! (this is the flux *in* to the element)
-       outer_advection_integral = income * u_nl_q_dotn
-       nnAdvection_in=shape_shape(T_shape, T_shape_2, &
-            &                       outer_advection_integral * detwei) 
        
     else if (include_advection.and.(flux_scheme==LAX_FRIEDRICHS_FLUX)) then
 

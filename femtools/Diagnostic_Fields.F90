@@ -83,7 +83,8 @@ module diagnostic_fields
 
   interface calculate_galerkin_projection
     module procedure calculate_galerkin_projection_scalar, calculate_galerkin_projection_vector, &
-                     calculate_galerkin_projection_tensor
+                     calculate_galerkin_projection_tensor, &
+                     calculate_galerkin_projection_scalar_from_scalar
   end interface
   
 
@@ -699,20 +700,36 @@ contains
     !!< Calculate the kinetic energy density field
     !!< Beware what your "Density" is!
 
-    type(state_type), intent(in) :: state
+    type(state_type), intent(inout) :: state
     type(scalar_field), intent(inout) :: ke_density_field
     integer, intent(out), optional :: stat
 
+    integer :: ele, gi, dim
+    ! Transformed quadrature weights.
+    real, dimension(ele_ngi(ke_density_field, 1)) :: detwei
+    ! Field values at each quadrature point.
+    real, dimension(mesh_dim(ke_density_field), ele_ngi(ke_density_field, 1)) :: velocity_field_q
+    real, dimension(ele_ngi(ke_density_field, 1)) :: ke_density_field_q, rho_field_q, vfrac_field_q
+    ! local grn matrix on the current element.
+    real, dimension(ele_loc(ke_density_field, 1),ele_loc(ke_density_field, 1)) :: ke_density_field_mat
+    ! Current KineticEnergyDensity element shape.
+    type(element_type), pointer :: ke_density_field_shape
+    ! Current element global node numbers.
+    integer, dimension(:), pointer :: ke_density_field_nodes
+    
     integer :: i
-    type(scalar_field), pointer :: rho_field
-    type(vector_field), pointer :: vel_field
+    logical :: multiphase
+    type(scalar_field), pointer :: rho_field, vfrac_field
+    type(vector_field), pointer :: x, velocity_field
 
-    do i = 1, 2
+    do i = 1, 3
       select case(i)
         case(1)
           rho_field => extract_scalar_field(state, "Density", stat)
         case(2)
-          vel_field => extract_vector_field(state, "Velocity", stat)
+          velocity_field => extract_vector_field(state, "Velocity", stat)
+        case(3)
+          x => extract_vector_field(state, "Coordinate", stat)
         case default
           FLAbort("Invalid loop index")
       end select
@@ -720,20 +737,44 @@ contains
         return
       end if
     end do
-
-    if(present(stat) .and. (.not. rho_field%mesh == ke_density_field%mesh &
-      & .or. .not. vel_field%mesh == ke_density_field%mesh)) then
-      stat = 1
-      return
+    
+    if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1) then
+       multiphase = .true.
+       vfrac_field => extract_scalar_field(state, "PhaseVolumeFraction")
     else
-      assert(rho_field%mesh == ke_density_field%mesh)
-      assert(vel_field%mesh == ke_density_field%mesh)
+       multiphase = .false.
+       nullify(vfrac_field)
     end if
 
     call zero(ke_density_field)
-    do i = 1, node_count(ke_density_field)
-      call set(ke_density_field, i, &
-        & 0.5 * node_val(rho_field, i) * norm2(node_val(vel_field, i))**2)
+    do ele = 1, element_count(ke_density_field)
+       ke_density_field_nodes => ele_nodes(ke_density_field, ele)
+       ke_density_field_shape => ele_shape(ke_density_field, ele)
+           
+       call transform_to_physical(x, ele, detwei = detwei)
+
+       ! Calculate the kinetic energy at each quadrature point.
+       velocity_field_q = ele_val_at_quad(velocity_field, ele)
+       rho_field_q = ele_val_at_quad(rho_field, ele)
+       if(multiphase) then
+          vfrac_field_q = ele_val_at_quad(vfrac_field, ele)
+       end if
+       
+       do gi = 1, ele_ngi(ke_density_field, ele)
+          ke_density_field_q(gi) = 0.5*rho_field_q(gi)*(norm2(velocity_field_q(:,gi))**2)
+          
+          if(multiphase) then
+             ke_density_field_q(gi) = ke_density_field_q(gi)*vfrac_field_q(gi)
+          end if
+       end do
+
+       ! Project onto the basis functions to recover the kinetic energy at each node.
+       ke_density_field_mat=matmul(inverse(shape_shape(ke_density_field_shape, ke_density_field_shape, detwei)), &
+            shape_shape(ke_density_field_shape, ke_density_field_shape, detwei*maxval(abs(ke_density_field_q),1)))
+
+       ! In the case where a continuous mesh is provided for the kinetic energy, 
+       ! the following takes the safest option of taking the maximum value at a node.
+       ke_density_field%val(ke_density_field_nodes)=max(ke_density_field%val(ke_density_field_nodes), sum(ke_density_field_mat,2))
     end do
 
   end subroutine calculate_ke_density
@@ -3459,7 +3500,160 @@ contains
         call zero(max_bed_shear_stress)
       end if
 
+      call deallocate(magnitude_max_bss)
+      call deallocate(magnitude_bss)
+
    end subroutine calculate_max_bed_shear_stress
+
+   subroutine calculate_galerkin_projection_scalar_from_scalar(state, projected_field, field,lump_mass,alpha)
+     type(state_type), intent(inout) :: state
+     type(scalar_field), intent(in) ::projected_field
+     type(scalar_field), intent(inout) :: field
+     logical, optional :: lump_mass
+     real, optional :: alpha
+
+     character(len=len_trim(field%option_path)) :: path
+     character(len=FIELD_NAME_LEN) :: field_name
+     type(vector_field), pointer :: positions
+     type(csr_sparsity) :: mass_sparsity
+     type(csr_matrix) :: mass
+     type(scalar_field) :: rhs, mass_lumped, inverse_mass_lumped
+     logical :: dg
+     logical :: check_integrals
+     logical :: apply_bcs
+     logical :: local_lump_mass
+
+     integer :: ele
+     real :: lalpha
+
+     if (present(lump_mass)) then
+        local_lump_mass=lump_mass
+     else
+        local_lump_mass=.false.
+     end if
+     if (present(alpha)) then
+        lalpha=alpha
+     else
+        lalpha=0.0
+     end if
+
+     ewrite(2,*), ("projecting "//trim(projected_field%name)//" to "//trim(field%name))
+
+     dg = (continuity(field) < 0)
+
+     check_integrals = .false.
+     apply_bcs = .true.
+
+     path = projected_field%option_path
+     positions => extract_vector_field(state, "Coordinate")
+
+     ! Assuming they're on the same quadrature
+     assert(ele_ngi(field, 1) == ele_ngi(projected_field, 1))
+
+     if ((.not. dg) .and. (.not. local_lump_mass)) then
+
+       mass_sparsity = make_sparsity(field%mesh, field%mesh, name="MassMatrixSparsity")
+       call allocate(mass, mass_sparsity, name="MassMatrix")
+       call zero(mass)
+     else if (local_lump_mass) then
+       call allocate(mass_lumped, field%mesh, name="GalerkinProjectionMassLumped")
+       call zero(mass_lumped)
+     end if
+     
+     if (local_lump_mass .or. .not. dg) then
+       call allocate(rhs, field%mesh, name="GalerkinProjectionRHS")
+       call zero(rhs)
+     end if
+
+     do ele=1,ele_count(field)
+       call assemble_galerkin_projection(field, projected_field, positions, &
+                                      &  mass, rhs, ele, dg,lalpha)
+     end do
+
+     if (local_lump_mass) then
+       call allocate(inverse_mass_lumped, field%mesh, &
+          name="GalerkinProjectionInverseMassLumped")
+       call invert(mass_lumped, inverse_mass_lumped)
+       call set(field, rhs)
+       call scale(field, inverse_mass_lumped)
+       call deallocate(mass_lumped)
+       call deallocate(inverse_mass_lumped)
+       call deallocate(rhs)
+     else if (.not. dg) then
+       call set_solver_options(field)
+       call petsc_solve(field, mass, rhs)
+       call deallocate(mass)
+       call deallocate(mass_sparsity)
+       call deallocate(rhs)
+     end if
+
+     contains
+     
+       subroutine assemble_galerkin_projection(field, projected_field, positions, mass, rhs, ele, dg,lalpha)
+         type(scalar_field), intent(inout) :: field
+         type(scalar_field), intent(in) :: projected_field
+         type(vector_field), intent(in) :: positions
+         type(csr_matrix), intent(inout) :: mass
+         type(scalar_field), intent(inout) :: rhs
+         integer, intent(in) :: ele
+         logical, intent(in) :: dg
+         real, intent(in) :: lalpha
+
+         type(element_type), pointer :: field_shape, proj_field_shape
+         real, dimension(ele_loc(field, ele), ele_ngi(field, ele),&
+              mesh_dim(field)) :: field_dshape
+         real, dimension(ele_loc(projected_field, ele),&
+              ele_ngi(projected_field, ele),&
+              mesh_dim(projected_field)) :: proj_field_dshape
+         
+
+         real, dimension(ele_loc(field, ele)) :: little_rhs
+         real, dimension(ele_loc(field, ele), ele_loc(field, ele)) :: little_mass
+         real, dimension(ele_loc(field, ele), ele_loc(projected_field, ele)) :: little_mba
+         real, dimension(ele_loc(field, ele), ele_loc(projected_field, ele)) :: little_mba_int
+         real, dimension(ele_ngi(field, ele)) :: detwei
+         real, dimension(ele_loc(projected_field, ele)) :: proj_field_val
+
+         integer :: i, j, k
+
+         field_shape => ele_shape(field, ele)
+         proj_field_shape => ele_shape(projected_field, ele)
+
+         call transform_to_physical(positions, ele, field_shape,&
+              dshape=field_dshape,detwei=detwei)
+         call transform_to_physical(positions, ele, proj_field_shape,&
+              dshape=proj_field_dshape,detwei=detwei)
+
+         little_mass = shape_shape(field_shape, field_shape, detwei)&
+              +dshape_dot_dshape(field_dshape, field_dshape, lalpha**2*detwei)
+
+         ! And compute the product of the basis functions
+         little_mba = 0
+         do i=1,ele_ngi(field, ele)
+           forall(j=1:ele_loc(field, ele), k=1:ele_loc(projected_field, ele))
+             little_mba_int(j, k) = field_shape%n(j, i) * proj_field_shape%n(k, i)+lalpha**2*sum(field_dshape(j,i,:)*proj_field_dshape(k,i,:))
+           end forall
+           little_mba = little_mba + little_mba_int * detwei(i)
+         end do
+
+         proj_field_val = ele_val(projected_field, ele)
+         little_rhs = matmul(little_mba, proj_field_val)
+
+         if (present(lump_mass)) then
+           call addto(mass_lumped, ele_nodes(field, ele), &
+             sum(little_mass,2))
+           call addto(rhs, ele_nodes(field, ele), little_rhs)
+         else if (dg) then
+           call solve(little_mass, little_rhs)
+           call set(field, ele_nodes(field, ele), little_rhs)
+         else
+           call addto(mass, ele_nodes(field, ele), ele_nodes(field, ele), little_mass)
+           call addto(rhs, ele_nodes(field, ele), little_rhs)
+         end if
+         
+       end subroutine assemble_galerkin_projection
+
+   end subroutine calculate_galerkin_projection_scalar_from_scalar
 
    subroutine calculate_galerkin_projection_scalar(state, field)
      type(state_type), intent(in) :: state

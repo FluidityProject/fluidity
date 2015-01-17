@@ -102,6 +102,7 @@ module fluids_module
   use multiphase_module
   use detector_parallel, only: sync_detector_coordinates, deallocate_detector_list_array
   use momentum_diagnostic_fields, only: calculate_densities
+  use tictoc
   use sediment_diagnostics, only: calculate_sediment_flux
 
   implicit none
@@ -480,6 +481,8 @@ contains
 
        ewrite(2,*)'steady_state_tolerance,nonlinear_iterations:',steady_state_tolerance,nonlinear_iterations
 
+       call tic(TICTOC_ID_TIMESTEP)
+
        call copy_to_stored_values(state,"Old")
        if (have_option('/mesh_adaptivity/mesh_movement') .and. .not. have_option('/mesh_adaptivity/mesh_movement/free_surface')) then
           ! Coordinate isn't handled by the standard timeloop utility calls.
@@ -661,7 +664,7 @@ contains
                   '/prognostic/equation[0]/name', &
                   option_buffer, default="UnknownEquationType")
              select case(trim(option_buffer))
-             case ( "AdvectionDiffusion", "ConservationOfMass", "ReducedConservationOfMass", "InternalEnergy", "HeatTransfer", "KEpsilon" )
+             case ( "AdvectionDiffusion", "ConservationOfMass", "ReducedConservationOfMass", "InternalEnergy", "HeatTransfer", "KEpsilon", "CompressibleContinuity" )
                 use_advdif=.true.
              case default
                 use_advdif=.false.
@@ -684,7 +687,7 @@ contains
 
                    ! Solve the DG form of the equations.
                    call solve_advection_diffusion_dg(field_name=field_name_list(it), &
-                        & state=state(field_state_list(it)))
+                        & states=state, istate=field_state_list(it))
 
                 ELSEIF(have_option(trim(field_optionpath_list(it))//&
                      & "/prognostic/spatial_discretisation/finite_volume")) then
@@ -864,6 +867,10 @@ contains
           end if
 
        end if
+
+       call toc(TICTOC_ID_TIMESTEP)
+       call tictoc_report(2, TICTOC_ID_TIMESTEP)
+       call tictoc_clear(TICTOC_ID_TIMESTEP)
 
        if(simulation_completed(current_time)) exit timestep_loop
 

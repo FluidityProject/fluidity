@@ -96,14 +96,15 @@ Advection_Diffusion_DG.o ../include/advection_diffusion_dg.mod: \
    ../include/diagnostic_fields.mod ../include/elements.mod \
    ../include/fdebug.h ../include/fefields.mod ../include/fetools.mod \
    ../include/field_options.mod ../include/fields.mod ../include/fldebug.mod \
-   ../include/global_parameters.mod ../include/petsc_solve_state_module.mod \
-   ../include/porous_media.mod ../include/profiler.mod \
-   ../include/shape_functions.mod ../include/slope_limiters_dg.mod \
-   ../include/sparse_matrices_fields.mod ../include/sparse_tools.mod \
-   ../include/sparsity_patterns.mod ../include/sparsity_patterns_meshes.mod \
-   ../include/spud.mod ../include/state_module.mod \
-   ../include/transform_elements.mod ../include/upwind_stabilisation.mod \
-   ../include/vector_tools.mod ../include/vtk_interfaces.mod
+   ../include/global_parameters.mod ../include/multiphase_module.mod \
+   ../include/petsc_solve_state_module.mod ../include/porous_media.mod \
+   ../include/profiler.mod ../include/shape_functions.mod \
+   ../include/slope_limiters_dg.mod ../include/sparse_matrices_fields.mod \
+   ../include/sparse_tools.mod ../include/sparsity_patterns.mod \
+   ../include/sparsity_patterns_meshes.mod ../include/spud.mod \
+   ../include/state_module.mod ../include/transform_elements.mod \
+   ../include/upwind_stabilisation.mod ../include/vector_tools.mod \
+   ../include/vtk_interfaces.mod
 
 ../include/advection_diffusion_fv.mod: Advection_Diffusion_FV.o
 	@true
@@ -524,10 +525,10 @@ Momentum_CG.o ../include/momentum_cg.mod: Momentum_CG.F90 \
    ../include/boundary_conditions.mod \
    ../include/boundary_conditions_from_options.mod ../include/colouring.mod \
    ../include/coordinates.mod ../include/coriolis_module.mod \
-   ../include/edge_length_module.mod ../include/elements.mod \
-   ../include/fdebug.h ../include/fefields.mod ../include/fetools.mod \
-   ../include/field_derivatives.mod ../include/field_options.mod \
-   ../include/fields.mod ../include/fldebug.mod \
+   ../include/diagnostic_fields.mod ../include/edge_length_module.mod \
+   ../include/elements.mod ../include/fdebug.h ../include/fefields.mod \
+   ../include/fetools.mod ../include/field_derivatives.mod \
+   ../include/field_options.mod ../include/fields.mod ../include/fldebug.mod \
    ../include/global_parameters.mod ../include/halos.mod \
    ../include/les_module.mod ../include/metric_tools.mod \
    ../include/multiphase_module.mod ../include/petsc_solve_state_module.mod \

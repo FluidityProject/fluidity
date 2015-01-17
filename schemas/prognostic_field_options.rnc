@@ -1209,7 +1209,6 @@ prognostic_velocity_field =
             }?
          }?
       }?,
-
       ## SurfaceTension
       element tensor_field {
          attribute name { "SurfaceTension" },
@@ -1930,7 +1929,8 @@ scalar_equation_choice =
          ## Uses a non-conservative time discretisation.
          element equation {
             attribute name { "InternalEnergy" },
-            equation_coefficients
+            equation_coefficients,
+            extra_internal_energy_options?
          }|
          ## Option to solve for electrical potential from
          ## electrokinetic, electrochemical or electrothermal sources 
@@ -1947,6 +1947,12 @@ scalar_equation_choice =
          ## Note: Only works for P1 discretisations.
          element equation {
             attribute name { "SedimentBedload" }
+         }|
+         ## Equation type for the multiphase compressible flow model's continuity equation:
+         ##
+         ## d(rho_f)/dt + rho_f*\sum(div(vfrac_p*u_p)) + div(rho_f*vfrac_f*u_f).
+         element equation {
+            attribute name { "CompressibleContinuity" }
          }
       )
    )
@@ -1976,7 +1982,16 @@ equation_coefficients =
         coefficient_discretisation_options?
       }
    )
-   
+
+extra_internal_energy_options =
+   (   
+      ## Removes the pressure term: -p*div(u)
+      ## ( or, for multiphase simulations, -vfrac*p*div(u) ).
+      element exclude_pressure_term {
+         empty
+      }?
+   )
+
 coefficient_discretisation_options =
   (
     ## Provide discretisation options for the coefficient density field.

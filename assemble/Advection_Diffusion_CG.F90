@@ -149,7 +149,7 @@ contains
     call initialise_advection_diffusion_cg(field_name, t, delta_t, matrix, rhs, state(istate))
     
     call profiler_tic(t, "assembly")
-    call assemble_advection_diffusion_cg(t, matrix, rhs, state(istate), dt, velocity_name = velocity_name)    
+    call assemble_advection_diffusion_cg(t, matrix, rhs, state(istate), dt, velocity_name = velocity_name, states=state, istate=istate)    
     
     ! Note: the assembly of the heat transfer term is done here to avoid 
     ! passing in the whole state array to assemble_advection_diffusion_cg.
@@ -226,13 +226,17 @@ contains
     
   end subroutine set_advection_diffusion_cg_initial_guess
   
-  subroutine assemble_advection_diffusion_cg(t, matrix, rhs, state, dt, velocity_name)
+  subroutine assemble_advection_diffusion_cg(t, matrix, rhs, state, dt, velocity_name, states, istate)
     type(scalar_field), intent(inout) :: t
     type(csr_matrix), intent(inout) :: matrix
     type(scalar_field), intent(inout) :: rhs
     type(state_type), intent(inout) :: state
     real, intent(in) :: dt
     character(len = *), optional, intent(in) :: velocity_name
+
+    ! Unfortunately these are needed for the CompressibleContinuity equation type
+    type(state_type), dimension(:), optional, intent(inout) :: states
+    integer, optional, intent(in) :: istate
 
     character(len = FIELD_NAME_LEN) :: lvelocity_name, velocity_equation_type
     integer :: i, j, stat
@@ -263,6 +267,14 @@ contains
     logical :: cache_valid
 
     type(element_type), dimension(:), allocatable :: supg_element
+
+    ! For the CompressibleContinuity equation type      
+    integer :: dim
+    logical :: not_found ! Error flag. Have we found the fluid phase?
+    integer :: istate_fluid, istate_particle
+    type(vector_field), pointer :: velocity_fluid, velocity_particle
+    type(scalar_field), pointer :: vfrac_fluid, vfrac_particle
+
   
     ewrite(1, *) "In assemble_advection_diffusion_cg"
     
@@ -522,8 +534,10 @@ contains
       ewrite_minmax(density)
       olddensity=>extract_scalar_field(state, "Old"//trim(density_name))
       ewrite_minmax(olddensity)
+
+      if(have_option(trim(state%option_path)//'/equation_of_state/compressible') .and. &
+         & .not.have_option(trim(t%option_path)//'/prognostic/equation[0]/exclude_pressure_term')) then   
       
-      if(have_option(trim(state%option_path)//'/equation_of_state/compressible')) then         
          call get_option(trim(density%option_path)//"/prognostic/temporal_discretisation/theta", density_theta)
          compressible = .true.
          
@@ -568,6 +582,41 @@ contains
       end select
       ewrite_minmax(density)
 
+    case(FIELD_EQUATION_COMPRESSIBLECONTINUITY)
+      ewrite(2,*) "Solving compressible continuity equation"
+      if(move_mesh) then
+        FLExit("Haven't implemented a moving mesh energy equation yet.")
+      end if
+
+      if(.not.multiphase .or. .not.have_option(trim(state%option_path)//'/equation_of_state/compressible')) then
+        FLExit("The CompressibleContinuity equation type should only be used with compressible multiphase flow simulations.")
+      end if
+      
+      istate_fluid = istate
+      ! Retrieve the index of the particle phase in the state array.
+      not_found = .true.
+      do i = 1, size(states)
+         if(have_option(trim(states(i)%option_path)//"/multiphase_properties/particle_diameter")) then
+            istate_particle = i
+            not_found = .false.
+         end if
+      end do
+
+      if(not_found) then
+         FLExit("No particle phase found.")
+      end if
+
+      velocity_fluid => extract_vector_field(states(istate_fluid), "Velocity")
+      velocity_particle => extract_vector_field(states(istate_particle), "Velocity")
+      vfrac_fluid => extract_scalar_field(states(istate_fluid), "PhaseVolumeFraction")
+      vfrac_particle => extract_scalar_field(states(istate_particle), "PhaseVolumeFraction")
+
+      ! Density not needed so use a constant field for assembly
+      density => dummydensity
+      olddensity => dummydensity
+      density_theta = 1.0
+      pressure => dummydensity
+
     case default
       FLExit("Unknown field equation type for cg advection diffusion.")
     end select
@@ -608,7 +657,8 @@ contains
               velocity, grid_velocity, &
               source, absorption, diffusivity, &
               density, olddensity, pressure, porosity_theta, nvfrac, &
-              supg_element(thread_num+1))
+              supg_element(thread_num+1), &
+              velocity_fluid, velocity_particle, vfrac_fluid, vfrac_particle)
       end do element_loop
       !$OMP END DO
 
@@ -723,7 +773,8 @@ contains
                                       positions, old_positions, new_positions, &
                                       velocity, grid_velocity, &
                                       source, absorption, diffusivity, &
-                                      density, olddensity, pressure, porosity_theta, nvfrac, supg_shape)
+                                      density, olddensity, pressure, porosity_theta, nvfrac, supg_shape, &
+                                      velocity_fluid, velocity_particle, vfrac_fluid, vfrac_particle)
     integer, intent(in) :: ele
     type(scalar_field), intent(in) :: t
     type(csr_matrix), intent(inout) :: matrix
@@ -741,15 +792,17 @@ contains
     type(scalar_field), intent(in) :: porosity_theta
     type(scalar_field), intent(in) :: nvfrac
     type(element_type), intent(inout) :: supg_shape
+    type(vector_field), intent(in) :: velocity_fluid, velocity_particle
+    type(scalar_field), intent(in) :: vfrac_fluid, vfrac_particle
 
     integer, dimension(:), pointer :: element_nodes
     real, dimension(ele_ngi(t, ele)) :: detwei, detwei_old, detwei_new
     real, dimension(ele_loc(t, ele), ele_ngi(t, ele), mesh_dim(t)) :: dt_t
     real, dimension(ele_loc(density, ele), ele_ngi(density, ele), mesh_dim(density)) :: drho_t
-    real, dimension(ele_loc(velocity, ele), ele_ngi(velocity, ele), mesh_dim(t)) :: du_t 
+    real, dimension(ele_loc(velocity, ele), ele_ngi(velocity, ele), mesh_dim(t)) :: du_t, du_fluid_t, du_particle_t
     real, dimension(ele_loc(positions, ele), ele_ngi(velocity, ele), mesh_dim(t)) :: dug_t 
     ! Derivative of shape function for nvfrac field
-    real, dimension(ele_loc(nvfrac, ele), ele_ngi(nvfrac, ele), mesh_dim(nvfrac)) :: dnvfrac_t
+    real, dimension(ele_loc(nvfrac, ele), ele_ngi(nvfrac, ele), mesh_dim(nvfrac)) :: dnvfrac_t, dvfrac_fluid_t, dvfrac_particle_t
     
     real, dimension(mesh_dim(t), mesh_dim(t), ele_ngi(t, ele)) :: j_mat 
     type(element_type) :: test_function
@@ -759,7 +812,7 @@ contains
     ! go, so that we only do the calculations we really need
     real, dimension(ele_loc(t, ele)) :: rhs_addto
     real, dimension(ele_loc(t, ele), ele_loc(t, ele)) :: matrix_addto
-    
+
 #ifdef DDEBUG
     assert(ele_ngi(positions, ele) == ele_ngi(t, ele))
     assert(ele_ngi(velocity, ele) == ele_ngi(t, ele))
@@ -798,10 +851,27 @@ contains
       call transform_to_physical(positions, ele, t_shape, &
         & dshape = dt_t, detwei = detwei)
     end if
-    
+
     if(have_advection.or.(equation_type==FIELD_EQUATION_INTERNALENERGY).or.equation_type==FIELD_EQUATION_KEPSILON) then
       call transform_to_physical(positions, ele, &
            & ele_shape(velocity, ele), dshape = du_t)
+    end if
+
+    if(equation_type==FIELD_EQUATION_COMPRESSIBLECONTINUITY) then
+      call transform_to_physical(positions, ele, ele_shape(velocity_fluid, ele), dshape = du_fluid_t)
+      call transform_to_physical(positions, ele, ele_shape(velocity_particle, ele), dshape = du_particle_t)
+
+      if(ele_shape(vfrac_fluid, ele) == t_shape) then
+         dvfrac_fluid_t = dt_t
+      else
+         call transform_to_physical(positions, ele, ele_shape(vfrac_fluid, ele), dshape=dvfrac_fluid_t)
+      end if
+
+      if(ele_shape(vfrac_particle, ele) == t_shape) then
+         dvfrac_particle_t = dt_t
+      else
+         call transform_to_physical(positions, ele, ele_shape(vfrac_particle, ele), dshape=dvfrac_particle_t)
+      end if
     end if
     
     if(have_advection.and.move_mesh.and..not.integrate_advection_by_parts) then
@@ -855,14 +925,30 @@ contains
     ! Step 3: Assemble contributions
     
     ! Mass
-    if(have_mass) call add_mass_element_cg(ele, test_function, t, density, olddensity, porosity_theta, nvfrac, detwei, detwei_old, detwei_new, matrix_addto, rhs_addto)
+    if(have_mass) then
+       if(equation_type==FIELD_EQUATION_COMPRESSIBLECONTINUITY) then
+          call add_mass_element_compressiblecontinuity_cg(ele, test_function, t, detwei, matrix_addto, rhs_addto, vfrac_fluid)
+       else
+          call add_mass_element_cg(ele, test_function, t, density, olddensity, porosity_theta, nvfrac, detwei, detwei_old, detwei_new, matrix_addto, rhs_addto)
+       end if 
+    end if
     
     ! Advection
-    if(have_advection) call add_advection_element_cg(ele, test_function, t, &
+    if(have_advection) then
+       if(equation_type==FIELD_EQUATION_COMPRESSIBLECONTINUITY) then
+          call add_advection_element_compressiblecontinuity_cg(ele, test_function, t, &
+                                                               velocity, nvfrac, &
+                                                               dt_t, du_t, dnvfrac_t, detwei, j_mat, matrix_addto, rhs_addto, &
+                                                               velocity_fluid, velocity_particle, vfrac_fluid, vfrac_particle, &
+                                                               du_fluid_t, du_particle_t, dvfrac_fluid_t, dvfrac_particle_t)
+       else
+          call add_advection_element_cg(ele, test_function, t, &
                                         velocity, grid_velocity, diffusivity, &
                                         density, olddensity, nvfrac, &
                                         dt_t, du_t, dug_t, drho_t, dnvfrac_t, detwei, j_mat, matrix_addto, rhs_addto)
-        
+       end if
+    end if    
+  
     ! Absorption
     if(have_absorption) call add_absorption_element_cg(ele, test_function, t, absorption, detwei, matrix_addto, rhs_addto)
     
@@ -878,10 +964,9 @@ contains
     if(equation_type==FIELD_EQUATION_INTERNALENERGY .and. compressible) then
        call add_pressurediv_element_cg(ele, test_function, t, velocity, pressure, nvfrac, du_t, detwei, rhs_addto)
     end if
-                                                                                  
-    
+
     ! Step 4: Insertion
-            
+
     element_nodes => ele_nodes(t, ele)
     call addto(matrix, element_nodes, element_nodes, matrix_addto)
     call addto(rhs, element_nodes, rhs_addto)
@@ -929,7 +1014,11 @@ contains
       end if
     case(FIELD_EQUATION_KEPSILON)      
       density_at_quad = ele_val_at_quad(density, ele)
-      mass_matrix = shape_shape(test_function, ele_shape(t, ele), detwei*density_at_quad)
+      if(multiphase) then
+         mass_matrix = shape_shape(test_function, ele_shape(t, ele), detwei*density_at_quad*ele_val_at_quad(nvfrac, ele))
+      else
+         mass_matrix = shape_shape(test_function, ele_shape(t, ele), detwei*density_at_quad)
+      end if
     case default
     
       if(move_mesh) then
@@ -973,6 +1062,34 @@ contains
     end if
 
   end subroutine add_mass_element_cg
+
+  subroutine add_mass_element_compressiblecontinuity_cg(ele, test_function, t, detwei, matrix_addto, rhs_addto, vfrac_fluid)
+    integer, intent(in) :: ele
+    type(element_type), intent(in) :: test_function
+    type(scalar_field), intent(in) :: t
+    real, dimension(ele_ngi(t, ele)), intent(in) :: detwei
+    real, dimension(ele_loc(t, ele), ele_loc(t, ele)), intent(inout) :: matrix_addto
+    real, dimension(ele_loc(t, ele)), intent(inout) :: rhs_addto
+    type(scalar_field), intent(in) :: vfrac_fluid
+    
+    integer :: i
+    real, dimension(ele_loc(t, ele), ele_loc(t, ele)) :: mass_matrix
+    
+    assert(have_mass)
+    assert(multiphase)
+    assert(equation_type==FIELD_EQUATION_COMPRESSIBLECONTINUITY)
+    
+    mass_matrix = shape_shape(test_function, ele_shape(t, ele), detwei*ele_val_at_quad(vfrac_fluid, ele))
+    
+    if(lump_mass) then
+      do i = 1, size(matrix_addto, 1)
+        matrix_addto(i, i) = matrix_addto(i, i) + sum(mass_matrix(i, :))
+      end do
+    else
+      matrix_addto = matrix_addto + mass_matrix
+    end if
+
+  end subroutine add_mass_element_compressiblecontinuity_cg
   
   subroutine add_advection_element_cg(ele, test_function, t, &
                                 velocity, grid_velocity, diffusivity, &
@@ -1018,6 +1135,10 @@ contains
       velocity_at_quad = velocity_at_quad - ele_val_at_quad(grid_velocity, ele)
     end if
     
+    if(multiphase) then
+       nvfrac_at_quad = ele_val_at_quad(nvfrac, ele)
+    end if
+      
     select case(equation_type)
     case(FIELD_EQUATION_INTERNALENERGY)
       assert(ele_ngi(density, ele)==ele_ngi(olddensity, ele))
@@ -1027,10 +1148,6 @@ contains
       densitygrad_at_quad = density_theta*ele_grad_at_quad(density, ele, drho_t) &
                            +(1.-density_theta)*ele_grad_at_quad(olddensity, ele, drho_t)
       udotgradrho_at_quad = sum(densitygrad_at_quad*velocity_at_quad, 1)
-      
-      if(multiphase) then
-         nvfrac_at_quad = ele_val_at_quad(nvfrac, ele)
-      end if
 
     case(FIELD_EQUATION_KEPSILON)
       density_at_quad = ele_val_at_quad(density, ele)
@@ -1067,7 +1184,11 @@ contains
           end if
         end if
       case(FIELD_EQUATION_KEPSILON)
-        advection_mat = -dshape_dot_vector_shape(dt_t, velocity_at_quad, t_shape, detwei*density_at_quad)
+        if(multiphase) then
+           advection_mat = -dshape_dot_vector_shape(dt_t, velocity_at_quad, t_shape, detwei*density_at_quad*nvfrac_at_quad)
+        else
+           advection_mat = -dshape_dot_vector_shape(dt_t, velocity_at_quad, t_shape, detwei*density_at_quad)
+        end if
         if(abs(1.0 - beta) > epsilon(0.0)) then
           velocity_div_at_quad = ele_div_at_quad(velocity, ele, du_t)
           advection_mat = advection_mat &
@@ -1116,7 +1237,11 @@ contains
           end if
         end if
       case(FIELD_EQUATION_KEPSILON)
-        advection_mat = shape_vector_dot_dshape(test_function, velocity_at_quad, dt_t, detwei*density_at_quad)
+        if(multiphase) then
+           advection_mat = shape_vector_dot_dshape(test_function, velocity_at_quad, dt_t, detwei*density_at_quad*nvfrac_at_quad)
+        else
+           advection_mat = shape_vector_dot_dshape(test_function, velocity_at_quad, dt_t, detwei*density_at_quad)
+        end if
         if(abs(beta) > epsilon(0.0)) then
           velocity_div_at_quad = ele_div_at_quad(velocity, ele, du_t)
           advection_mat = advection_mat &
@@ -1159,6 +1284,79 @@ contains
     rhs_addto = rhs_addto - matmul(advection_mat, ele_val(t, ele))
     
   end subroutine add_advection_element_cg
+
+
+
+  subroutine add_advection_element_compressiblecontinuity_cg(ele, test_function, t, &
+                                velocity, nvfrac, &
+                                dt_t, du_t, dnvfrac_t, detwei, j_mat, matrix_addto, rhs_addto, &
+                                velocity_fluid, velocity_particle, vfrac_fluid, vfrac_particle, &
+                                du_fluid_t, du_particle_t, dvfrac_fluid_t, dvfrac_particle_t)
+    integer, intent(in) :: ele
+    type(element_type), intent(in) :: test_function
+    type(scalar_field), intent(in) :: t
+    type(vector_field), intent(in) :: velocity
+    type(scalar_field), intent(in) :: nvfrac
+    real, dimension(ele_loc(t, ele), ele_ngi(t, ele), mesh_dim(t)), intent(in) :: dt_t
+    real, dimension(ele_loc(velocity, ele), ele_ngi(velocity, ele), mesh_dim(t)) :: du_t, du_fluid_t, du_particle_t
+    real, dimension(:, :, :), intent(in) :: dnvfrac_t, dvfrac_fluid_t, dvfrac_particle_t
+    real, dimension(ele_ngi(t, ele)), intent(in) :: detwei
+    real, dimension(mesh_dim(t), mesh_dim(t), ele_ngi(t, ele)), intent(in) :: j_mat 
+    real, dimension(ele_loc(t, ele), ele_loc(t, ele)), intent(inout) :: matrix_addto
+    real, dimension(ele_loc(t, ele)), intent(inout) :: rhs_addto
+    
+    type(vector_field), intent(in) :: velocity_fluid, velocity_particle
+    type(scalar_field), intent(in) :: vfrac_fluid, vfrac_particle
+
+    real, dimension(ele_loc(t, ele), ele_loc(t,ele)) :: advection_mat
+    type(element_type), pointer :: t_shape
+
+    real, dimension(velocity%dim, ele_ngi(velocity, ele)) :: velocity_at_quad
+    real, dimension(ele_ngi(velocity, ele)) :: velocity_div_at_quad
+
+    real, dimension(ele_ngi(t, ele)) :: vfrac_at_quad
+    real, dimension(velocity%dim, ele_ngi(t, ele)) :: vfracgrad_at_quad
+    real, dimension(ele_ngi(t, ele)) :: udotgradvfrac_at_quad
+    
+    assert(have_advection)
+    
+    t_shape => ele_shape(t, ele)
+                
+    ! element advection matrix
+    !  /                                 /
+    !  | N_A (nu dot grad N_B) dV + beta | N_A ( div nu ) N_B dV
+    !  /                                 /
+    vfrac_at_quad = ele_val_at_quad(vfrac_particle, ele)
+    vfracgrad_at_quad = ele_grad_at_quad(vfrac_particle, ele, dvfrac_particle_t)
+    velocity_at_quad = ele_val_at_quad(velocity_particle, ele)
+    udotgradvfrac_at_quad = sum(vfracgrad_at_quad*velocity_at_quad, 1)
+    velocity_div_at_quad = ele_div_at_quad(velocity_particle, ele, du_particle_t)
+
+    ! 'Incompressible' ctp_m
+    advection_mat = shape_shape(test_function, t_shape, detwei*vfrac_at_quad*velocity_div_at_quad) + shape_shape(test_function, t_shape, detwei*udotgradvfrac_at_quad)
+
+    vfrac_at_quad = ele_val_at_quad(vfrac_fluid, ele)
+    vfracgrad_at_quad = ele_grad_at_quad(vfrac_fluid, ele, dvfrac_fluid_t)
+    velocity_at_quad = ele_val_at_quad(velocity_fluid, ele)
+    udotgradvfrac_at_quad = sum(vfracgrad_at_quad*velocity_at_quad, 1)
+    velocity_div_at_quad = ele_div_at_quad(velocity_particle, ele, du_fluid_t)
+
+    advection_mat = advection_mat + shape_shape(test_function, t_shape, detwei*vfrac_at_quad*velocity_div_at_quad) + shape_shape(test_function, t_shape, detwei*udotgradvfrac_at_quad) + shape_vector_dot_dshape(test_function, velocity_at_quad, dt_t, detwei*vfrac_at_quad)
+      
+    if(abs(dt_theta) > epsilon(0.0)) then
+      matrix_addto = matrix_addto + dt_theta * advection_mat
+    end if
+    
+    rhs_addto = rhs_addto - matmul(advection_mat, ele_val(t, ele))
+    
+  end subroutine add_advection_element_compressiblecontinuity_cg
+
+
+
+
+
+
+
   
   subroutine add_source_element_cg(ele, test_function, t, source, detwei, rhs_addto)
     integer, intent(in) :: ele
@@ -1258,6 +1456,38 @@ contains
     end if
     
   end subroutine add_pressurediv_element_cg
+  
+  subroutine add_heat_flux_element_cg(ele, test_function, t, dt_t, nvfrac, K, C_v, detwei, matrix_addto, rhs_addto)
+  
+    integer, intent(in) :: ele
+    type(element_type), intent(in) :: test_function
+    type(scalar_field), intent(in) :: t
+    real, dimension(ele_loc(t, ele), ele_ngi(t, ele), mesh_dim(t)), intent(in) :: dt_t
+    type(scalar_field), intent(in) :: nvfrac
+    real, intent(in) :: K, C_v
+    real, dimension(ele_ngi(t, ele)), intent(in) :: detwei
+    real, dimension(ele_loc(t, ele), ele_loc(t, ele)), intent(inout) :: matrix_addto
+    real, dimension(ele_loc(t, ele)), intent(inout) :: rhs_addto
+        
+    real, dimension(ele_loc(t, ele), ele_loc(t, ele)) :: heat_flux_mat
+    
+    assert(equation_type==FIELD_EQUATION_INTERNALENERGY)
+    
+    if(multiphase) then
+       ! -div(vfrac * q) = -div(vfrac * K * grad(ie)/C_v)
+       ! where K is the effective conductivity
+       ! ie is the internal energy
+       ! C_v is the specific heat at constant volume, needed to convert the temperature to internal energy
+       heat_flux_mat = dshape_dot_dshape(dt_t, dt_t, detwei * K * ele_val_at_quad(nvfrac, ele) / C_v )
+    else
+       heat_flux_mat = dshape_dot_dshape(dt_t, dt_t, detwei * K / C_v )
+    end if
+    
+    if(abs(dt_theta) > epsilon(0.0)) matrix_addto = matrix_addto - dt_theta * heat_flux_mat
+    
+    rhs_addto = rhs_addto + matmul(heat_flux_mat, ele_val(t, ele))
+    
+  end subroutine add_heat_flux_element_cg
   
   subroutine assemble_advection_diffusion_face_cg(face, bc_type, t, t_bc, t_bc_2, matrix, rhs, positions, velocity, grid_velocity, density, olddensity, nvfrac)
     integer, intent(in) :: face

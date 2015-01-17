@@ -580,7 +580,7 @@
                old_velocity_cpt = extract_scalar_field(old_u,d1)
                call insert(state(istate),velocity_cpt,"VelocityComponent")
                call insert(state(istate),old_velocity_cpt,"VelocityComponentOld")
-               call solve_advection_diffusion_dg("VelocityComponent", state(istate))
+               call solve_advection_diffusion_dg("VelocityComponent", state, istate)
             end do
          end if
          !pressure advection
