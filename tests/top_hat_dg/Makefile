@@ -3,6 +3,7 @@ FLMLMODEL = top_hat_dg
 default: input
 
 input:
+	gmsh -1 line.geo
 
 clean: clean-run-debug
 clean-run:
