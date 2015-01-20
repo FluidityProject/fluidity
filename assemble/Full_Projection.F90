@@ -43,20 +43,13 @@
     use state_module
     use petsc_solve_state_module
     use boundary_conditions_from_options
-
-#include "petscversion.h"
 #ifdef HAVE_PETSC_MODULES
     use petsc
 #endif
 
     implicit none
-    ! Module to provide solvers, preconditioners etc... for full_projection Solver.
-    ! Not this is currently tested for Full CMC solves and Stokes flow:
-#ifdef HAVE_PETSC_MODULES
-#include "petsc-finclude/petscdef.h"
-#else
-#include "petsc-finclude/petsc.h"
-#endif
+
+#include "petsc_legacy.h"
     
     private
     
