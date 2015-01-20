@@ -1,5 +1,18 @@
 #include "DMPlex_Reader_C.h"
 
+PetscErrorCode dmplex_derive_loc(DM *plex, PetscInt *point, PetscInt *loc)
+{
+  PetscInt vStart, vEnd, cl, clSize, *closure = NULL;
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+  ierr = DMPlexGetDepthStratum(*plex, 0, &vStart, &vEnd);CHKERRQ(ierr);
+  ierr = DMPlexGetTransitiveClosure(*plex, *point, PETSC_TRUE, &clSize, &closure);CHKERRQ(ierr);
+  for (*loc = 0, cl = 0; cl < 2*clSize; cl+=2) {if (vStart <= closure[cl] && closure[cl] < vEnd) (*loc)++;}
+  ierr = DMPlexRestoreTransitiveClosure(*plex, *point, PETSC_TRUE, &clSize, &closure);CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
 PetscErrorCode dmplex_mark_halo_regions(DM *plex)
 {
   DMLabel         lblDepth, lblHalo;

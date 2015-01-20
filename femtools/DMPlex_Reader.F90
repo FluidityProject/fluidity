@@ -48,6 +48,14 @@ module dmplex_reader
 
   interface
 
+     function dmplex_derive_loc(plex, point, loc) &
+          bind(c) result(ierr)
+       use iso_c_binding
+       implicit none
+       integer(c_int) :: ierr, point, loc
+       PetscFortranAddr :: plex
+     end function dmplex_derive_loc
+
      function dmplex_get_mesh_connectivity(plex, nnodes, loc, rnbr_cells, rnbr_vertices, ndglno) &
           bind(c) result(ierr)
        use iso_c_binding
@@ -204,8 +212,8 @@ contains
     call DMPlexGetHeightStratum(plex, 1, fStart, fEnd, ierr)
     nfaces = fEnd - fStart
     ! Assumes no. faces == no. vertices in each element
-    call DMPlexGetConeSize(plex, cStart, loc, ierr)
-    call DMPlexGetConeSize(plex, fStart, sloc, ierr)
+    ierr = dmplex_derive_loc(plex, cStart, loc)
+    ierr = dmplex_derive_loc(plex, fStart, sloc)
 
     ! Build mesh shape and quadrature
     if (present(quad_degree)) then
