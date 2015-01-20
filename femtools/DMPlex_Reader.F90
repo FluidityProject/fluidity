@@ -47,13 +47,14 @@ module dmplex_reader
 
   interface
 
-     function dmplex_get_mesh_connectivity(plex, nnodes, loc, ndglno) &
+     function dmplex_get_mesh_connectivity(plex, nnodes, loc, rnbr_cells, rnbr_vertices, ndglno) &
           bind(c) result(ierr)
        use iso_c_binding
        implicit none
        integer(c_int) :: ierr
        integer(c_long), value :: plex
        integer(c_int), value :: nnodes, loc
+       PetscFortranAddr :: rnbr_cells, rnbr_vertices
        integer(c_int), dimension(nnodes*loc) :: ndglno
      end function dmplex_get_mesh_connectivity
 
@@ -67,12 +68,13 @@ module dmplex_reader
        integer(c_int), intent(out) :: nfaces
      end function dmplex_get_num_surface_facets
 
-     function dmplex_get_surface_connectivity(plex, labelname, nfacets, sloc, sndglno, boundary_ids) &
+     function dmplex_get_surface_connectivity(plex, labelname, nfacets, sloc, rnbr_vertices, sndglno, boundary_ids) &
           bind(c) result(ierr)
        use iso_c_binding
        implicit none
        integer(c_int) :: ierr
        integer(c_long), value :: plex
+       PetscFortranAddr :: rnbr_vertices
        character(c_char) :: labelname(*)
        integer(c_int), value :: nfacets, sloc
        integer(c_int), dimension(nfacets*sloc) :: sndglno
@@ -156,6 +158,9 @@ contains
     type(mesh_type) :: mesh
     type(quadrature_type) :: quad
     type(element_type) :: shape
+    IS :: v_renumbering, c_renumbering
+    integer, dimension(:), pointer :: rnbr_v
+    integer :: n, idx
 
     PetscInt :: dim, cStart, cEnd, vStart, vEnd, fStart, fEnd
     PetscInt :: loc, sloc, nnodes, nelements, nfaces
@@ -187,18 +192,28 @@ contains
     end if
     shape=make_element_shape(loc, dim, 1, quad)
 
+    ! Get vertex reordering to enforce the expected node order
+    ierr = dmplex_get_point_renumbering(plex, 0, v_renumbering)
+    ierr = dmplex_get_point_renumbering(plex, dim, c_renumbering)
+
     ! Allocate Coordinate field and the CoordinateMesh
     call allocate(mesh, nnodes, nelements, shape, name="CoordinateMesh")
     call allocate(field, dim, mesh, name="Coordinate")
 
     ! Copy DMPlex coordinates to the coordinate field
-    call DMGetCoordinates(plex, plex_coordinates, ierr)
+    call DMGetCoordinatesLocal(plex, plex_coordinates, ierr)
     call VecGetArrayF90(plex_coordinates, coordinates, ierr)
-    field%val = reshape(coordinates, (/dim, nnodes/))
+    ! Re-map coordinates according to vertex renumbering
+    call ISGetIndicesF90(v_renumbering, rnbr_v, ierr)
+    do n = 1, nnodes
+       idx = rnbr_v(n) + 1
+       field%val(:,idx) = coordinates((n-1)*dim+1 : n*dim)
+    end do
+    call ISRestoreIndicesF90(v_renumbering, rnbr_v, ierr)
     call VecRestoreArrayF90(plex_coordinates, coordinates, ierr)
 
     ! Build mesh connectivity from cell closures
-    ierr = dmplex_get_mesh_connectivity(plex, nnodes, loc, mesh%ndglno)
+    ierr = dmplex_get_mesh_connectivity(plex, nnodes, loc, c_renumbering, v_renumbering, mesh%ndglno)
 
     ! Build and add surface connectivity and boundary IDs
     ierr = dmplex_get_num_surface_facets(plex, boundary_label//C_NULL_CHAR, nfaces);
@@ -206,10 +221,12 @@ contains
     allocate(boundary_ids(nfaces))
     boundary_ids = 0
     ierr = dmplex_get_surface_connectivity(plex, boundary_label//C_NULL_CHAR, nfaces, sloc, &
-         sndglno, boundary_ids)
+         v_renumbering, sndglno, boundary_ids)
     call add_faces(field%mesh, sndgln = sndglno(1:nfaces*sloc), boundary_ids=boundary_ids)
 
     ! Clean up
+    call ISDestroy(v_renumbering, ierr)
+    call ISDestroy(c_renumbering, ierr)
     call deallocate_element(shape)
     call deallocate(quad)
     deallocate(sndglno)

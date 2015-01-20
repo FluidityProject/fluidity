@@ -79,11 +79,16 @@ PetscErrorCode dmplex_get_point_renumbering(DM *plex, PetscInt depth, IS *renumb
   ierr = DMPlexGetLabel(*plex, "HaloRegions", &lblHalo);CHKERRQ(ierr);
   ierr = DMPlexGetDepthStratum(*plex, depth, &pStart, &pEnd);CHKERRQ(ierr);
 
+  if (!lblHalo) {
+    ierr = ISCreateStride(comm, pEnd-pStart, 0, 1, renumbering);CHKERRQ(ierr);
+    PetscFunctionReturn(0);
+  }
+
   /* Add owned points first */
   ierr = PetscMalloc1(pEnd - pStart, &permutation);CHKERRQ(ierr);
   for (idx = 0, v = pStart; v < pEnd; v++) {
     ierr = DMLabelHasPoint(lblHalo, v, &hasPoint);CHKERRQ(ierr);
-    if (!hasPoint) permutation[idx++] = v - pStart;
+    if (!hasPoint) permutation[v - pStart] = idx++;
   }
 
   /* Add entities in L1 halo region */
@@ -91,7 +96,7 @@ PetscErrorCode dmplex_get_point_renumbering(DM *plex, PetscInt depth, IS *renumb
   ierr = DMLabelGetStratumSize(lblHalo, 1, &npoints);CHKERRQ(ierr);
   ierr = ISGetIndices(haloL1, &points);CHKERRQ(ierr);
   for (p = 0; p < npoints; p++) {
-    if (pStart <= points[p] && points[p] < pEnd) permutation[idx++] = points[p] - pStart;
+    if (pStart <= points[p] && points[p] < pEnd) permutation[points[p] - pStart] = idx++;
   }
   ierr = ISRestoreIndices(haloL1, &points);CHKERRQ(ierr);
   ierr = ISDestroy(&haloL1);CHKERRQ(ierr);
@@ -104,7 +109,7 @@ PetscErrorCode dmplex_get_point_renumbering(DM *plex, PetscInt depth, IS *renumb
     for (p = 0; p < npoints; p++) {
       ierr = DMLabelStratumHasPoint(lblHalo, 1, points[p], &hasPoint);CHKERRQ(ierr);
       if (hasPoint) continue;
-      if (pStart <= points[p] && points[p] < pEnd) permutation[idx++] = points[p] - pStart;
+      if (pStart <= points[p] && points[p] < pEnd) permutation[points[p] - pStart] = idx++;
     }
     ierr = ISRestoreIndices(haloL2, &points);CHKERRQ(ierr);
   }
@@ -115,25 +120,31 @@ PetscErrorCode dmplex_get_point_renumbering(DM *plex, PetscInt depth, IS *renumb
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode dmplex_get_mesh_connectivity(DM plex, PetscInt nnodes, PetscInt loc, PetscInt *ndglno)
+PetscErrorCode dmplex_get_mesh_connectivity(DM plex, PetscInt nnodes, PetscInt loc,
+                                            IS *rnbrCells, IS *rnbrVertices, PetscInt *ndglno)
 {
   PetscInt c, cStart, cEnd, vStart, vEnd, idx, ci, nclosure, point;
   PetscInt *closure=NULL;
+  const PetscInt *cells, *vertices;
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
   ierr = DMPlexGetHeightStratum(plex, 0, &cStart, &cEnd);CHKERRQ(ierr);
   ierr = DMPlexGetDepthStratum(plex, 0, &vStart, &vEnd);CHKERRQ(ierr);
-  for (idx=0, c=cStart; c<cEnd; c++) {
+  ierr = ISGetIndices(*rnbrCells, &cells);CHKERRQ(ierr);
+  ierr = ISGetIndices(*rnbrVertices, &vertices);CHKERRQ(ierr);
+  for (c=cStart; c<cEnd; c++) {
     ierr = DMPlexGetTransitiveClosure(plex, c, PETSC_TRUE, &nclosure, &closure);CHKERRQ(ierr);
-    for (ci=0; ci<nclosure; ci++) {
+    for (idx=0, ci=0; ci<nclosure; ci++) {
       point = closure[2*ci];
-      if (vStart <= point && point < vEnd) ndglno[idx++] = point - vStart + 1;
+      if (vStart <= point && point < vEnd) ndglno[loc*cells[c] + idx++] = vertices[point - vStart] + 1;
     }
   }
   if (closure) {
     ierr = DMPlexRestoreTransitiveClosure(plex, c, PETSC_TRUE, &nclosure, &closure);CHKERRQ(ierr);
   }
+  ierr = ISRestoreIndices(*rnbrCells, &cells);CHKERRQ(ierr);
+  ierr = ISRestoreIndices(*rnbrVertices, &vertices);CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -159,10 +170,10 @@ PetscErrorCode dmplex_get_num_surface_facets(DM plex, const char label_name[], P
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode dmplex_get_surface_connectivity(DM plex, const char label_name[], PetscInt nfacets, PetscInt sloc, PetscInt *sndglno, PetscInt *boundary_ids)
+PetscErrorCode dmplex_get_surface_connectivity(DM plex, const char label_name[], PetscInt nfacets, PetscInt sloc, IS *rnbrVertices, PetscInt *sndglno, PetscInt *boundary_ids)
 {
   PetscInt        v, vStart, vEnd, nvalues, p, npoints, idx, ci, nclosure, vertex, nvertices;
-  const PetscInt *values, *points;
+  const PetscInt *values, *points, *vertices;
   DMLabel         label;
   IS              valueIS, pointIS;
   PetscInt       *closure = NULL;
@@ -174,6 +185,7 @@ PetscErrorCode dmplex_get_surface_connectivity(DM plex, const char label_name[],
   ierr = DMLabelGetNumValues(label, &nvalues);CHKERRQ(ierr);
   ierr = DMLabelGetValueIS(label, &valueIS);CHKERRQ(ierr);
   ierr = ISGetIndices(valueIS, &values);CHKERRQ(ierr);
+  ierr = ISGetIndices(*rnbrVertices, &vertices);CHKERRQ(ierr);
   /* Loop over all marker values in the supplied label */
   for (idx = 0 , v = 0; v < nvalues; v++) {
     ierr = DMLabelGetStratumSize(label, values[v], &npoints);CHKERRQ(ierr);
@@ -185,7 +197,7 @@ PetscErrorCode dmplex_get_surface_connectivity(DM plex, const char label_name[],
       for (nvertices = 0, ci = 0; ci < nclosure; ci++) {
         vertex = closure[2*ci];
         if (vStart <= vertex && vertex < vEnd) {
-          sndglno[idx*sloc+nvertices++] = vertex - vStart + 1;
+          sndglno[idx*sloc+nvertices++] = vertices[vertex - vStart] + 1;
         }
       }
       /* Store associated boundary ID */
@@ -200,5 +212,6 @@ PetscErrorCode dmplex_get_surface_connectivity(DM plex, const char label_name[],
   if (closure) {
     ierr = DMPlexRestoreTransitiveClosure(plex, points[p], PETSC_TRUE, &nclosure, &closure);CHKERRQ(ierr);
   }
+  ierr = ISRestoreIndices(*rnbrVertices, &vertices);CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
