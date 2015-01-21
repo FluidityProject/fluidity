@@ -91,7 +91,10 @@ module metric_assemble
     call initialise_richardson_number_metric
 
     if (use_goal_metric) then
-      call form_goal_metric(state, error_metric)
+!     ***** Note that the following interface causes issues with the Intel compiler. Changed for now as a workaround ******
+!      call form_goal_metric(state, error_metric)
+      call form_goal_metric_generic(state, error_metric)
+!     ***** End of Intel compiler workaround *****
       call halo_update(error_metric)
     else if (use_interpolation_metric) then
       call form_interpolation_metric(state, error_metric)

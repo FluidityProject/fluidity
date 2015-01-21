@@ -61,21 +61,22 @@ contains
   ! -----------------------------------------------------------------
 
 
-  subroutine write_mesh_to_gmsh( filename, state, mesh )
+  subroutine write_mesh_to_gmsh(filename, state, mesh, number_of_partitions)
 
     character(len = *), intent(in) :: filename
     type(state_type), intent(in) :: state
     type(mesh_type), intent(in) :: mesh
+    !!< If present, only write for processes 1:number_of_partitions (assumes the other partitions are empty)
+    integer, optional, intent(in):: number_of_partitions
+
     type(vector_field) :: positions
 
     positions = get_nodal_coordinate_field( state, mesh )
 
-    call write_gmsh_file( filename, positions )
+    call write_gmsh_file( filename, positions, number_of_partitions=number_of_partitions)
 
     ! Deallocate node and element memory structures
     call deallocate(positions)
-
-    return
 
   end subroutine write_mesh_to_gmsh
 
@@ -86,17 +87,22 @@ contains
 
 
 
-  subroutine write_positions_to_gmsh(filename, positions)
+  subroutine write_positions_to_gmsh(filename, positions, number_of_partitions)
     !!< Write out the mesh given by the position field in GMSH file:
     !!< In parallel, empty trailing processes are not written.
     character(len=*), intent(in):: filename
     type(vector_field), intent(in):: positions
+    !!< If present, only write for processes 1:number_of_partitions (assumes the other partitions are empty)
+    integer, optional, intent(in):: number_of_partitions
     
     character(len=longStringLen) :: meshFile
     integer :: numParts, fileDesc
 
-    ! How many processes contain data?
-    numParts = get_active_nparts(ele_count(positions))
+    if (present(number_of_partitions)) then
+      numParts = number_of_partitions
+    else
+      numParts = getnprocs()
+    end if
     
     ! Write out data only for those processes that contain data - SPMD requires
     ! that there be no early return    

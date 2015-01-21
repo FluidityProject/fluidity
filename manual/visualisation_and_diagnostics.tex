@@ -497,6 +497,7 @@ the \fluidity\ trunk. The programs generated can then be found in the
 	vtudecomp				& \ref{sec:vtudecomp}			\\
 	vtudiff					& \ref{sec:vtudiff}			\\
 	vtu\_bins           			& \ref{sec:vtu_bins}			\\
+  vtu2ensight & \ref{sec:vtu2ensight} \\
     \hline
   \end{tabular}
 \end{center}
@@ -1096,11 +1097,15 @@ where \lstinline[language = Bash]+vtufile+ is the name of the discontinuous vtu 
 project\_vtu performs a Galerkin projection on a given vtu file from a specified donor mesh to a target mesh. It is run from the command line:
 
 \begin{lstlisting}[language = Bash]
-project_vtu [OPTIONS] input donor_basename target_basename output
+project_vtu [OPTIONS] input donor_mesh target_mesh output
 \end{lstlisting}
 
-where \lstinline[language = Bash]+input+ is the name of the vtu file to be projected and \lstinline[language = Bash]+donor_basename+ is the base name of the triangle files defining the mesh that corresponds to the input vtu file. 
-\lstinline[language = Bash]+target_basename+ is the base name of the triangle files defining the output mesh and \lstinline[language = Bash]+output+ is the name of the output vtu file.
+where \lstinline[language = Bash]+input+ is the name of the vtu file to be
+projected and \lstinline[language = Bash]+donor_mesh+ is the name of the gmsh
+file (if ending in .msh) or the base name of the triangle files
+(.node+.ele+.edge/.face), defining the mesh that corresponds to the input vtu file. 
+\lstinline[language = Bash]+target_mesh+ is the name of the gmsh file (if ending
+in .msh), or the base name of the triangle files, defining the output mesh and \lstinline[language = Bash]+output+ is the name of the output vtu file.
 The flag \lstinline[language = Bash]+-h+ prints out the help message and the flag \lstinline[language = Bash]+-v+ enables verbose output.
 
 
@@ -1577,6 +1582,31 @@ $ vtu_bins annulus_1564.vtu Temperature 0.0 1.0
 \caption{Using vtu\_bins to compute the volume of under- and over-shoot errors in
          a DG annulus simulation.}
 \end{example}
+
+%%%%%%%%%%%%%%%%%%%%%%%%% VTU2ENSIGHT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection{vtu2ensight}
+\label{sec:vtu2ensight}
+
+vtu2ensight converts (p)vtu files into EnSight Gold files. vtu2ensight is built as part of the fltools 
+build target (see section \ref{sec:fltools}), and is used via:
+
+\begin{lstlisting}[language = Bash]
+vtu2ensight [-v] [-s] basename
+\end{lstlisting}
+
+where \lstinline[language = Bash]+basename+ is the basename of the (p)vtu output files. The optional arguments are:
+\begin{lstlisting}[language = Bash]
+ -h, --help     displays help
+ -s, --static   use this flag only when a fixed mesh was used,
+                by default a dynamically varying (adaptive) spatial mesh
+                is assumed.
+ -v, --verbose  verbose output
+\end{lstlisting}
+
+The output is sent to standard output.
+
+All files that match the pattern \lstinline[language = Bash]+basename_[0-9]*vtu+ are converted to EnSight Gold files, except for checkpoints, e.g.~vtu files that contain the word \textsl{checkpoint} are excluded from the conversion. If you want to convert \textsl{checkpointed} vtu files, use \lstinline[language = Bash]+rename_checkpoint+ (see section \ref{sec:rename_checkpoint}) first and ensure that the word \textsl{checkpoint} is removed from the basename of the solution files.
 
 
 \section{The stat file}
