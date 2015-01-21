@@ -65,8 +65,16 @@ using namespace std;
 #define sam_export_halo_fc F77_FUNC(sam_export_halo_c, SAM_EXPORT_HALO_C)
 #define sam_export_phalo_fc F77_FUNC(sam_export_phalo_c, SAM_EXPORT_PHALO_C)
 #define sam_cleanup_fc F77_FUNC(sam_cleanup_c, SAM_CLEANUP_C)
-#define sam_add_field_fc F77_FUNC(sam_add_field_c, SAM_ADD_FIELD_C)
-#define sam_pop_field_fc F77_FUNC(sam_pop_field_c, SAM_POP_FIELD_C)
+
+#define sam_push_node_field_fc F77_FUNC(sam_push_node_field_c, SAM_PUSH_NODE_FIELD_C)
+#define sam_pop_node_field_fc F77_FUNC(sam_pop_node_field_c, SAM_POP_NODE_FIELD_C)
+
+#define sam_push_element_field_fc F77_FUNC(sam_push_element_field_c, SAM_PUSH_ELEMENT_FIELD_C)
+#define sam_pop_element_field_fc F77_FUNC(sam_pop_element_field_c, SAM_POP_ELEMENT_FIELD_C)
+
+#define sam_push_region_id_fc F77_FUNC(sam_push_region_id_c, SAM_PUSH_REGION_ID_C)
+#define sam_pop_region_id_fc F77_FUNC(sam_pop_region_id_c, SAM_POP_REGION_ID_C)
+
 #define sam_export_node_ownership_fc F77_FUNC(sam_export_node_ownership_c, SAM_EXPORT_NODE_OWNERSHIP_C)
 #define sam_migrate_halo2_fc F77_FUNC(sam_migrate_halo2_c, SAM_MIGRATE_HALO2_C)
 
@@ -343,7 +351,7 @@ extern "C"{
     return;
   }
 
-  void sam_add_field_fc(samfloat_t* field_data, int *nnodes){
+  void sam_push_node_field_fc(const samfloat_t* field_data, int *nnodes){
 #ifdef HAVE_MPI
     assert(mesh != NULL);
 
@@ -355,13 +363,61 @@ extern "C"{
     return;
   }
   
-  void sam_pop_field_fc(samfloat_t* field_data, int *nnodes){
+  void sam_pop_node_field_fc(samfloat_t* field_data, int *nnodes){
 #ifdef HAVE_MPI
     assert(mesh != NULL);
     
     assert(mesh->node_list.size() == (size_t)*nnodes);
     for (size_t i=0;i<mesh->node_list.size();i++){
       field_data[i] = mesh->node_list[i].pop_field();
+    }
+#endif
+    return;
+  }  
+
+  void sam_push_element_field_fc(const samfloat_t* field_data, int *num_elements){
+#ifdef HAVE_MPI
+    assert(mesh != NULL);
+
+    assert(mesh->element_list.size() == (size_t)*num_elements);
+    for(size_t i=0;i<mesh->element_list.size();i++){
+      mesh->element_list[i].append_field(field_data + i, 1);
+    }
+#endif
+    return;
+  }
+  
+  void sam_pop_element_field_fc(samfloat_t* field_data, int *num_elements){
+#ifdef HAVE_MPI
+    assert(mesh != NULL);
+    
+    assert(mesh->element_list.size() == (size_t)*num_elements);
+    for (size_t i=0;i<mesh->element_list.size();i++){
+      field_data[i] = mesh->element_list[i].pop_field();
+    }
+#endif
+    return;
+  }  
+
+  void sam_push_region_id_fc(const int *region_id, int *num_elements){
+#ifdef HAVE_MPI
+    assert(mesh != NULL);
+
+    assert(mesh->element_list.size() == (size_t)*num_elements);
+    for(size_t i=0;i<mesh->element_list.size();i++){
+      mesh->element_list[i].append_field(region_id + i, 1);
+    }
+#endif
+    return;
+  }
+  
+  void sam_pop_region_id_fc(int *region_id, int *num_elements){
+#ifdef HAVE_MPI
+    assert(mesh != NULL);
+    
+    assert(mesh->element_list.size() == (size_t)*num_elements);
+    for (size_t i=0;i<mesh->element_list.size();i++){
+      region_id[i] = mesh->element_list[i].pop_ifield();
     }
 #endif
     return;

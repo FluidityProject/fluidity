@@ -127,8 +127,12 @@ module sam_integration
      end subroutine sam_migrate_c
    end interface sam_migrate
 
-   interface sam_add_field
-     module procedure sam_add_field_scalar, sam_add_field_vector, sam_add_field_tensor
+   interface sam_push_node_field
+     module procedure sam_push_node_field_scalar, sam_push_node_field_vector, sam_push_node_field_tensor
+   end interface
+
+   interface sam_push_element_field
+     module procedure sam_push_element_field_scalar, sam_push_element_field_vector, sam_push_element_field_tensor
    end interface
 
    interface sam_query
@@ -190,21 +194,53 @@ module sam_integration
      end subroutine sam_export_phalo_c
    end interface sam_export_phalo
    
-   interface sam_add_field
-     subroutine sam_add_field_c(field_data, nnodes)
+   interface sam_push_node_field
+     subroutine sam_push_node_field_c(field_data, nnodes)
        implicit none
        integer, intent(in) :: nnodes
        real, dimension(nnodes), intent(in) :: field_data
-     end subroutine sam_add_field_c
-   end interface sam_add_field
+     end subroutine sam_push_node_field_c
+   end interface sam_push_node_field
 
-   interface sam_pop_field
-     subroutine sam_pop_field_c(field_data, nnodes)
+   interface sam_pop_node_field
+     subroutine sam_pop_node_field_c(field_data, nnodes)
        implicit none
        integer, intent(in) :: nnodes
        real, dimension(nnodes), intent(out) :: field_data
-     end subroutine sam_pop_field_c
-   end interface sam_pop_field
+     end subroutine sam_pop_node_field_c
+   end interface sam_pop_node_field
+
+   interface sam_push_element_field
+     subroutine sam_push_element_field_c(field_data, nelements)
+       implicit none
+       integer, intent(in) :: nelements
+       real, dimension(nelements), intent(in) :: field_data
+     end subroutine sam_push_element_field_c
+   end interface sam_push_element_field
+
+   interface sam_pop_element_field
+     subroutine sam_pop_element_field_c(field_data, nelements)
+       implicit none
+       integer, intent(in) :: nelements
+       real, dimension(nelements), intent(out) :: field_data
+     end subroutine sam_pop_element_field_c
+   end interface sam_pop_element_field
+
+   interface sam_push_region_id
+     subroutine sam_push_region_id_c(region_id, nelements)
+       implicit none
+       integer, intent(in) :: nelements
+       real, dimension(nelements), intent(in) :: region_id
+     end subroutine sam_push_region_id_c
+   end interface sam_push_region_id
+
+   interface sam_pop_region_id
+     subroutine sam_pop_region_id_c(region_id, nelements)
+       implicit none
+       integer, intent(in) :: nelements
+       real, dimension(nelements), intent(out) :: region_id
+     end subroutine sam_pop_region_id_c
+   end interface sam_pop_region_id
    
    interface sam_export_node_ownership
      subroutine sam_export_node_ownership_c(node_ownership, nnodes)
@@ -888,7 +924,7 @@ module sam_integration
          do field=1,scount(state)
            field_s => extract_scalar_field(interpolate_states(state), trim(namelist_s(state, field)))
            call remap_field(field_s, linear_s)
-           call sam_add_field(linear_s)
+           call sam_push_node_field(linear_s)
            call remove_scalar_field(states(state), trim(namelist_s(state, field)))
            call remove_scalar_field(interpolate_states(state), trim(namelist_s(state, field)))
          end do
@@ -896,7 +932,7 @@ module sam_integration
          do field=1,vcount(state)
            field_v => extract_vector_field(interpolate_states(state), trim(namelist_v(state, field)))
            call remap_field(field_v, linear_v)
-           call sam_add_field(linear_v)
+           call sam_push_node_field(linear_v)
            call remove_vector_field(states(state), trim(namelist_v(state, field)))
            call remove_vector_field(interpolate_states(state), trim(namelist_v(state, field)))
          end do
@@ -904,7 +940,7 @@ module sam_integration
          do field=1,tcount(state)
            field_t => extract_tensor_field(interpolate_states(state), trim(namelist_t(state, field)))
            call remap_field(field_t, linear_t)
-           call sam_add_field(linear_t)
+           call sam_push_node_field(linear_t)
            call remove_tensor_field(states(state), trim(namelist_t(state, field)))
            call remove_tensor_field(interpolate_states(state), trim(namelist_t(state, field)))
          end do
@@ -913,7 +949,7 @@ module sam_integration
        if(present(metric)) then
          ! Add the metric
          call remap_field(metric, linear_t)
-         call sam_add_field(linear_t)
+         call sam_push_node_field(linear_t)
        end if
 
        call deallocate(linear_s)
@@ -1075,7 +1111,7 @@ module sam_integration
        if(present(metric)) then
          do component_i=dim,1,-1
            do component_j=dim,1,-1
-             call sam_pop_field(linear_t%val(component_i, component_j, :), node_count(linear_mesh))
+             call sam_pop_node_field(linear_t%val(component_i, component_j, :), node_count(linear_mesh))
            end do
          end do
          call allocate(metric, linear_mesh, name = metric_name)
@@ -1091,7 +1127,7 @@ module sam_integration
          do field=tcount(state),1,-1
            do component_i=dim,1,-1
              do component_j=dim,1,-1
-               call sam_pop_field(linear_t%val(component_i, component_j, :), node_count(linear_mesh))
+               call sam_pop_node_field(linear_t%val(component_i, component_j, :), node_count(linear_mesh))
              end do
            end do
 
@@ -1108,7 +1144,7 @@ module sam_integration
 
          do field=vcount(state),1,-1
            do component=dim,1,-1
-             call sam_pop_field(value, node_count(linear_mesh))
+             call sam_pop_node_field(value, node_count(linear_mesh))
              call set_all(linear_v, component, value)
            end do
 
@@ -1124,7 +1160,7 @@ module sam_integration
          end do
 
          do field=scount(state),1,-1
-           call sam_pop_field(linear_s%val, node_count(linear_mesh))
+           call sam_pop_node_field(linear_s%val, node_count(linear_mesh))
 
            field_s => extract_scalar_field(states(state), trim(namelist_s(state, field)))
            deallocate(field_s%val)
@@ -1354,14 +1390,14 @@ module sam_integration
 
      end subroutine sam_init
 
-     subroutine sam_add_field_scalar(field)
+     subroutine sam_push_node_field_scalar(field)
        type(scalar_field), intent(in) :: field
        
-       call sam_add_field(field%val, node_count(field))
+       call sam_push_node_field(field%val, node_count(field))
        
-     end subroutine sam_add_field_scalar
+     end subroutine sam_push_node_field_scalar
 
-     subroutine sam_add_field_vector(field)
+     subroutine sam_push_node_field_vector(field)
        type(vector_field), intent(in) :: field
        
        real, dimension(:), allocatable:: value
@@ -1370,23 +1406,57 @@ module sam_integration
        allocate( value(1:node_count(field)) )
        do i=1,field%dim
          value=field%val(i,:)
-         call sam_add_field(value, node_count(field))
+         call sam_push_node_field(value, node_count(field))
        end do
        
-     end subroutine sam_add_field_vector
+     end subroutine sam_push_node_field_vector
 
-     subroutine sam_add_field_tensor(field)
+     subroutine sam_push_node_field_tensor(field)
        type(tensor_field), intent(in) :: field
        
        integer :: i, j
        
        do i=1,mesh_dim(field%mesh)
          do j=1,mesh_dim(field%mesh)
-           call sam_add_field(field%val(i, j, :), node_count(field))
+           call sam_push_node_field(field%val(i, j, :), node_count(field))
          end do
        end do
        
-     end subroutine sam_add_field_tensor
+     end subroutine sam_push_node_field_tensor
+
+     subroutine sam_push_element_field_scalar(field)
+       type(scalar_field), intent(in) :: field
+       
+       call sam_push_element_field(field%val, node_count(field))
+       
+     end subroutine sam_push_element_field_scalar
+
+     subroutine sam_push_element_field_vector(field)
+       type(vector_field), intent(in) :: field
+       
+       real, dimension(:), allocatable:: value
+       integer :: i
+       
+       allocate( value(1:node_count(field)) )
+       do i=1,field%dim
+         value=field%val(i,:)
+         call sam_push_element_field(value, node_count(field))
+       end do
+       
+     end subroutine sam_push_element_field_vector
+
+     subroutine sam_push_element_field_tensor(field)
+       type(tensor_field), intent(in) :: field
+       
+       integer :: i, j
+       
+       do i=1,mesh_dim(field%mesh)
+         do j=1,mesh_dim(field%mesh)
+           call sam_push_element_field(field%val(i, j, :), node_count(field))
+         end do
+       end do
+       
+     end subroutine sam_push_element_field_tensor
      
   subroutine sam_transfer_detectors(old_mesh, new_positions)
     type(mesh_type), intent(in) :: old_mesh
