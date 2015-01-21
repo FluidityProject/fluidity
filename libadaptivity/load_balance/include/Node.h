@@ -74,63 +74,53 @@ class Node{
   void append_field(const int*, const size_t);
   void append_field(const samfloat_t*, const size_t);
 
-  void set_unn(const unn_t&);
-  unn_t get_unn() const;
-  
-  void set_gnn(const gnn_t&);
-  gnn_t get_gnn() const;
-  
-  void set_flags(const unsigned char);
-  unsigned char get_flags() const;
-  
-  void set_current_owner(const unsigned short);
-  unsigned short get_current_owner() const;
-  
-  void set_owner(const unsigned short);
-  unsigned short get_owner() const;
-   
-  void set_future_owner(const unsigned short);
-  unsigned short get_future_owner() const;
-  
-  void set_CE(const std::vector<eid_t>&);
   const std::vector<eid_t>& get_CE() const;
   const eid_t* get_cptr_CE() const;
-  unsigned get_size_CE() const;
-
-  void set_fields(const std::vector<samfloat_t>&);
-  void set_fields(const samfloat_t* f, const unsigned flen);
-
-  const std::vector<int>& get_ifields() const;
-  const std::vector<samfloat_t>& get_fields() const;
-  
-  int pop_ifield(void);
-  samfloat_t pop_field(void);
-
-  const int* get_cptr_ifields() const;
-  const samfloat_t* get_cptr_fields() const;
-
-  size_t get_size_ifields() const;
-  size_t get_size_fields() const;
-
-  void set_coord(const std::vector<samfloat_t>&);
-  void set_coord(const samfloat_t, const samfloat_t);
-  void set_coord(const samfloat_t, const samfloat_t, const samfloat_t);
-  const std::vector<samfloat_t>& get_coord() const;
   const samfloat_t* get_cptr_coord() const;
+  const samfloat_t* get_cptr_fields() const;
+  const int* get_cptr_ifields() const;
+  const samfloat_t* get_cptr_metric() const;
+  unsigned short get_current_owner() const;
+  const std::vector<samfloat_t>& get_fields() const;
+  unsigned char get_flags() const;
+  unsigned short get_future_owner() const;
+  gnn_t get_gnn() const;
+  const std::vector<int>& get_ifields() const;
+  const std::vector<samfloat_t>& get_metric() const;
+  unsigned short get_owner() const;
+  unsigned get_size_CE() const;
+  size_t get_size_fields() const;
+  size_t get_size_ifields() const;
+  unsigned get_size_metric() const;
+  size_t get_size_x() const;
+  unn_t get_unn() const;
   samfloat_t get_x() const;
   samfloat_t get_y() const;
   samfloat_t get_z() const;
-  size_t get_size_x() const;
 
+  void pack(char *buffer,   int& bsize, int& offset) const;
+  unsigned pack_size() const;
+
+  samfloat_t pop_field(void);
+  int pop_ifield(void);
+
+  void set_CE(const std::vector<eid_t>&);
+  const std::vector<samfloat_t>& get_coord() const;
+  void set_coord(const std::vector<samfloat_t>&);
+  void set_coord(const samfloat_t, const samfloat_t);
+  void set_coord(const samfloat_t, const samfloat_t, const samfloat_t);
+  void set_current_owner(const unsigned short);
+  void set_fields(const std::vector<samfloat_t>&);
+  void set_fields(const samfloat_t* f, const unsigned flen);
+  void set_flags(const unsigned char);
+  void set_future_owner(const unsigned short);
+  void set_gnn(const gnn_t&);
   void set_metric(const std::vector<samfloat_t>&);
   void set_metric(const samfloat_t* m, const unsigned mlen);
-  const std::vector<samfloat_t>& get_metric() const;
-  const samfloat_t* get_cptr_metric() const;
-  unsigned get_size_metric() const;
-  
-  void pack(char *buffer,   int& bsize, int& offset) const;
+  void set_owner(const unsigned short);
+  void set_unn(const unn_t&);
+
   void unpack(char *buffer, int& bsize, int& offset);
-  unsigned pack_size() const;
   
  private:
   unn_t unn;                   // Universal Node Number.        
