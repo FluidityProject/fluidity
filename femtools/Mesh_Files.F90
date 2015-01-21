@@ -103,8 +103,12 @@ contains
 
     select case( trim(format) )
     case("triangle")
-       field = read_triangle_files(filename, quad_degree=quad_degree, quad_ngi=quad_ngi, &
-            quad_family=quad_family, mdim=mdim)
+       ewrite(-1,*) "The Triangle mesh format reader is deprecated."
+       ewrite(-1,*) "Please convert your mesh to the Gmsh format."
+       FLAbort("Triangle mesh format is no longer supported")
+
+       ! field = read_triangle_files(filename, quad_degree=quad_degree, quad_ngi=quad_ngi, &
+       !      quad_family=quad_family, mdim=mdim)
 
     case("gmsh")
        field = read_gmsh_file(filename, quad_degree=quad_degree, quad_ngi=quad_ngi, &
