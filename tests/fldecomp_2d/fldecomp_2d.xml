@@ -6,10 +6,10 @@
     <command_line>rm -f fldecomp.log; make clean-run; fldecomp -n 4 -k -v square &gt; fldecomp.log</command_line>
   </problem_definition>
   <variables>
-    <variable name="partitions" language="python">import fluidity.diagnostics.triangletools as triangletools
+    <variable name="partitions" language="python">import fluidity.diagnostics.gmshtools as gmshtools
 partitions = []
 for i in range(4):
-  partitions.append(triangletools.ReadTriangle("square_" + str(i)))</variable>
+  partitions.append(gmshtools.ReadMsh("square_" + str(i) + ".msh"))</variable>
   </variables>
   <pass_tests>
     <test name = "Equal sized partitions (owned nodes)" language = "python">

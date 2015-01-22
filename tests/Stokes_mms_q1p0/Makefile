@@ -5,7 +5,7 @@ input:	clean
 	gmsh -2 -o MMS_D.msh src/MMS_D.geo
 
 clean:
-	rm -f *.vtu *.stat *.s *.log *.node *.ele *.edge *checkpoint*
+	rm -f *.vtu *.stat *.s *.log *.node *.ele *.edge *.msh *checkpoint*
 	rm -f *.msh
 	rm -f *.err-? *.log-? \
 	matrixdump matrixdump.info

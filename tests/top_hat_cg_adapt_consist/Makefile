@@ -3,6 +3,7 @@ FLMLMODEL = top_hat_cg
 default: input
 
 input:
+	../../bin/interval --reverse --dx=0.025 -- -1 2 line
 
 clean: clean-run-debug
 clean-run:

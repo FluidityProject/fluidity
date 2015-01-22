@@ -6,4 +6,4 @@ input:	clean
 	cp src/MMS_E.msh .
 
 clean:
-	rm -f *.vtu *.stat *.log* *.err* *.node *.ele *.edge *checkpoint* *.convergence matrixdump*
+	rm -f *.vtu *.stat *.log* *.err* *.node *.ele *.edge *.msh *checkpoint* *.convergence matrixdump*

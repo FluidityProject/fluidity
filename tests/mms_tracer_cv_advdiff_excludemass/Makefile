@@ -7,5 +7,5 @@ input:	clean
 	#cp src/MMS_F.msh .
 
 clean:
-	rm -f *.vtu *.stat *.log *.node *.ele *.edge *checkpoint* *.convergence \
+	rm -f *.vtu *.stat *.log *.node *.ele *.edge *.msh *checkpoint* *.convergence \
 	matrixdump matrixdump.info
