@@ -1,5 +1,4 @@
 input:
-	gmsh -2 -o unstructured.msh src/unstructured.geo && ../../bin/gmsh2triangle --2d unstructured.msh
 	cp -r sam_output/* .
 
 clean:

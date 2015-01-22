@@ -13,7 +13,7 @@
     </dimension>
     <mesh name="CoordinateMesh">
       <from_file file_name="box">
-        <format name="triangle"/>
+        <format name="gmsh"/>
         <stat>
           <include_in_stat/>
         </stat>

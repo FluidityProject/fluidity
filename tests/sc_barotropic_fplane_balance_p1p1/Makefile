@@ -7,7 +7,7 @@ default: input
 
 input:
 	gmsh -2 src/$(MESH).geo
-	../../bin/gmsh2triangle --2d src/$(MESH).msh
+	cp src/$(MESH).msh .
 
 clean: clean-mesh clean-run-debug
 clean-mesh:

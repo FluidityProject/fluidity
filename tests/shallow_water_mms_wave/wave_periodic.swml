@@ -9,7 +9,7 @@
     </dimension>
     <mesh name="CoordinateMesh">
       <from_file file_name="src/mesh">
-        <format name="triangle"/>
+        <format name="gmsh"/>
         <dimension>
           <integer_value rank="0">1</integer_value>
         </dimension>

@@ -20,7 +20,7 @@
     </mesh>
     <mesh name="2dmesh">
       <from_file file_name="spherical_patch">
-        <format name="triangle"/>
+        <format name="gmsh"/>
         <stat>
           <include_in_stat/>
         </stat>

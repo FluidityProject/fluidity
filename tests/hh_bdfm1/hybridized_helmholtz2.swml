@@ -9,7 +9,7 @@
     </dimension>
     <mesh name="CoordinateMesh">
       <from_file file_name="basin2">
-        <format name="triangle"/>
+        <format name="gmsh"/>
         <dimension>
           <integer_value rank="0">2</integer_value>
         </dimension>

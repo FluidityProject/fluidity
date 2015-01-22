@@ -44,7 +44,7 @@
     </mesh>
     <mesh name="InputMesh">
       <from_file file_name="storegga_2d">
-        <format name="triangle"/>
+        <format name="gmsh"/>
         <stat>
           <include_in_stat/>
         </stat>
