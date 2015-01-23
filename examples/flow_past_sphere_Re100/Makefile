@@ -5,7 +5,6 @@ NPROCS=1
 
 preprocess: envcheck
 	@echo **********Converting the gmsh mesh to triangle format:
-	${BINPREFIX}gmsh2triangle unit_sphere.msh
 
 run: envcheck
 ifneq ($(NPROCS),8)
