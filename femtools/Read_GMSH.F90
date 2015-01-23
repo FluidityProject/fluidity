@@ -57,7 +57,7 @@ contains
   ! The main function for reading GMSH files
 
   function read_gmsh_simple( filename, quad_degree, &
-       quad_ngi, quad_family ) &
+       quad_ngi, quad_family, mdim ) &
        result (field)
     !!< Read a GMSH file into a coordinate field.
     !!< In parallel the filename must *not* include the process number.
@@ -69,6 +69,8 @@ contains
     integer, intent(in), optional, target :: quad_ngi
     !! What quadrature family to use
     integer, intent(in), optional :: quad_family
+    !! Dimension of mesh
+    integer, intent(in), optional :: mdim
     !! result: a coordinate field
     type(vector_field) :: field
 
@@ -173,6 +175,8 @@ contains
       ! on the sphere the input mesh may be 2d (extrusion), or 3d but
       ! Coordinate is always 3-dimensional
       coordinate_dim  = 3
+    elseif (present(mdim)) then
+       coordinate_dim = mdim
     else
       coordinate_dim  = dim
     end if

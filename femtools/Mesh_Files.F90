@@ -107,11 +107,8 @@ contains
             quad_family=quad_family, mdim=mdim)
 
     case("gmsh")
-       if (present(mdim)) then
-         FLExit("Cannot specify dimension for gmsh format")
-       end if
        field = read_gmsh_file(filename, quad_degree=quad_degree, quad_ngi=quad_ngi, &
-            quad_family=quad_family)
+            quad_family=quad_family, mdim=mdim)
 
     case("exodusii")
 #ifdef HAVE_LIBEXOIIV2C
