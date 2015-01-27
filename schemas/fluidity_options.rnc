@@ -1556,6 +1556,12 @@ start =
                   ## DiscRegionID.
                   ## Specify disc region id where ADM Correction Term wil be applied.
                   element DiscRegionID {integer},
+                  ## LeftDiscRegionID.
+                  ## Specify other disc region id where ADM Correction Term wil be applied.
+                  element LeftDiscRegionID {integer},
+                  ## RightDiscRegionID.
+                  ## Specify disc region id where ADM Correction Term wil be applied.
+                  element RightDiscRegionID {integer},
                   ## NearDiscRegionID.
                   ## Specify near disc region id where only the omega production ADM Correction Term wil be applied.
                   element NearDiscRegionID {integer},

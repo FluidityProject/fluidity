@@ -2057,6 +2057,16 @@ Used for ADM Correction Term, if not ADM set to zero (default): 1.50 [Rethore et
 Specify disc region id where ADM Correction Term wil be applied.</a:documentation>
                     <ref name="integer"/>
                   </element>
+                  <element name="LeftDiscRegionID">
+                    <a:documentation>LeftDiscRegionID.
+Specify other disc region id where ADM Correction Term wil be applied.</a:documentation>
+                    <ref name="integer"/>
+                  </element>
+                  <element name="RightDiscRegionID">
+                    <a:documentation>RightDiscRegionID.
+Specify disc region id where ADM Correction Term wil be applied.</a:documentation>
+                    <ref name="integer"/>
+                  </element>
                   <element name="NearDiscRegionID">
                     <a:documentation>NearDiscRegionID.
 Specify near disc region id where only the omega production ADM Correction Term wil be applied.</a:documentation>

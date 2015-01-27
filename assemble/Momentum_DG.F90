@@ -277,11 +277,11 @@ contains
     logical :: partial_stress 
 
     !AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA!
-    real, dimension(U%dim) :: U_intgrl
-    real :: u_disc, u_ref, new_source, intgrl_sum
+    real, dimension(U%dim,3) :: U_intgrl !A! 3 discs hence 3
+    real, dimension(3) :: u_disc, u_ref, new_source, intgrl_sum !A! 3 upto discs
     real :: rho_fluid, a_fact, C_T, thickness
-    type(scalar_field) :: Turbine
-    integer :: ii, region_id_disc
+    type(scalar_field) :: Turbine, Turbine_L, Turbine_R
+    integer :: ii, region_id_disc, region_id_disc_L, region_id_disc_R
     !AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA!
 
     ewrite(1, *) "In construct_momentum_dg"
@@ -362,9 +362,13 @@ contains
 
     !AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA!
     Turbine = extract_scalar_field(state, "NodeOnTurbine")
+    Turbine_L = extract_scalar_field(state, "NodeOnTurbineL") !A! change
+    Turbine_R = extract_scalar_field(state, "NodeOnTurbineR") !A! update
     call get_option("/material_phase::fluid/subgridscale_parameterisations/k-omega/C_T", C_T, default = 0.0)
     call get_option("/material_phase::fluid/subgridscale_parameterisations/k-omega/thickness", thickness, default = 0.0125)
     call get_option("/material_phase::fluid/subgridscale_parameterisations/k-omega/DiscRegionID", region_id_disc, default = 901)
+    call get_option("/material_phase::fluid/subgridscale_parameterisations/k-omega/LeftDiscRegionID", region_id_disc_L, default = 903)
+    call get_option("/material_phase::fluid/subgridscale_parameterisations/k-omega/RightDiscRegionID", region_id_disc_R, default = 904)
     !AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA!
 
     Abs=extract_vector_field(state, "VelocityAbsorption", stat)   
@@ -726,42 +730,74 @@ contains
       len = key_count(colours(clr))
 
       !AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA!
-      u_disc = 0.0
-      u_ref = 0.0
-      new_source = 0.0
-      intgrl_sum = 0.0 !volume of the disc
-      U_intgrl = 0.0 !disc volume integral
+      rho_fluid = 1.0
+      a_fact = 0.5*(1.0 - sqrt(1.0-C_T))
+
+      intgrl_sum = (/0.0,0.0,0.0/)
+      u_disc = (/0.0,0.0,0.0/)
+      u_ref = (/0.0,0.0,0.0/)
+      new_source = (/0.0,0.0,0.0/)
+      U_intgrl(:,1) = (/0.0,0.0,0.0/)
+      U_intgrl(:,2) = (/0.0,0.0,0.0/)
+      U_intgrl(:,3) = (/0.0,0.0,0.0/)
 
       elementD_loop: do nnid = 1, len
         ele = fetch(colours(clr), nnid)
-        if (X%mesh%region_ids(ele)==region_id_disc) then
-          call calc_disc_velocity_integral(ele, X, U, U_intgrl)
+        if (X%mesh%region_ids(ele)==region_id_disc) then !A! center disc
+!      print*, 'U_intgrl 1',U_intgrl(1,1), U_intgrl(2,1), U_intgrl(3,1)
+          call calc_disc_velocity_integral(ele, X, U, U_intgrl(:,1))
+!      print*, 'U_intgrl 1',U_intgrl(1,1), U_intgrl(2,1), U_intgrl(3,1)
+        elseif (X%mesh%region_ids(ele)==region_id_disc_L) then !A! disc to the left
+!      print*, 'U_intgrl 2',U_intgrl(1,2), U_intgrl(2,2), U_intgrl(3,2)
+          call calc_disc_velocity_integral(ele, X, U, U_intgrl(:,2))
+!      print*, 'U_intgrl 2',U_intgrl(1,2), U_intgrl(2,2), U_intgrl(3,2)
+        elseif (X%mesh%region_ids(ele)==region_id_disc_R) then !A! disc to the right
+!      print*, 'U_intgrl 3',U_intgrl(1,3), U_intgrl(2,3), U_intgrl(3,3)
+          call calc_disc_velocity_integral(ele, X, U, U_intgrl(:,3))
+!      print*, 'U_intgrl 3',U_intgrl(1,3), U_intgrl(2,3), U_intgrl(3,3)
         end if
       end do elementD_loop
 
       do ii=1, U%dim
-        call allsum(U_intgrl(ii))
+        call allsum(U_intgrl(ii,1))
+        call allsum(U_intgrl(ii,2))
+        call allsum(U_intgrl(ii,3))
       end do
 
-      intgrl_sum = integral_scalar(Turbine, X)
-      u_disc = U_intgrl(1)/intgrl_sum
+      intgrl_sum(1) = integral_scalar(Turbine, X)
+      intgrl_sum(2) = integral_scalar(Turbine_L, X)
+      intgrl_sum(3) = integral_scalar(Turbine_R, X)
 
-      rho_fluid = 1.0
-      a_fact = 0.5*(1.0 - sqrt(1.0-C_T))
-      u_ref = u_disc/(1.0 - a_fact)
-
-      new_source = -(0.5*rho_fluid*C_T*u_ref*u_ref)/thickness
+      do ii=1, 3
+        u_disc(ii) = U_intgrl(1,ii)/intgrl_sum(ii)
+        u_ref(ii) = u_disc(ii)/(1.0 - a_fact)
+        new_source(ii) = -(0.5*rho_fluid*C_T*u_ref(ii)*u_ref(ii))/thickness
+     end do
 
       elementS_loop: do nnid = 1, len
         ele = fetch(colours(clr), nnid)
         if (X%mesh%region_ids(ele)==region_id_disc) then
-          call calc_disc_source(ele, X, Source, new_source)
+          call calc_disc_source(ele, X, Source, new_source(1))
+        elseif (X%mesh%region_ids(ele)==region_id_disc_L) then
+          call calc_disc_source(ele, X, Source, new_source(2))
+        elseif (X%mesh%region_ids(ele)==region_id_disc_R) then
+          call calc_disc_source(ele, X, Source, new_source(3))
         end if
       end do elementS_loop
 
       print*, 'AminCheck----------------------------------------------'
-      print*, 'Disc Volume:', intgrl_sum, 'Disc Velocity:', u_disc, 'Probe Velocity:', u_ref
-      print*, 'C_T:', C_T, 'Thickness', thickness, 'ADM Source:', new_source
+      print*, 'Disc Volume:', intgrl_sum(1), 'Disc Velocity:', u_disc(1), 'Probe Velocity:', u_ref(1)
+      print*, 'C_T:', C_T, 'Thickness', thickness, 'ADM Source:', new_source(1)
+      print*, '-------------------------------------------------------'
+
+      print*, 'AminCheck-LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL'
+      print*, 'Disc Volume:', intgrl_sum(2), 'Disc Velocity:', u_disc(2), 'Probe Velocity:', u_ref(2)
+      print*, 'C_T:', C_T, 'Thickness', thickness, 'ADM Source:', new_source(2)
+      print*, '-------------------------------------------------------'
+
+      print*, 'AminCheck-RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR'
+      print*, 'Disc Volume:', intgrl_sum(3), 'Disc Velocity:', u_disc(3), 'Probe Velocity:', u_ref(3)
+      print*, 'C_T:', C_T, 'Thickness', thickness, 'ADM Source:', new_source(3)
       print*, '-------------------------------------------------------'
       !AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA!
 
