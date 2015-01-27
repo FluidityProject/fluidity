@@ -1,0 +1,18 @@
+preprocess:
+	@echo **********Creating 1D mesh
+	../../bin/interval --dx=0.00271 -- -0.271 0.271 line
+
+run:
+	@echo **********Running simulation
+	../../bin/fluidity mphase_dusty_gas_shock_tube.flml
+	../../bin/fluidity single_phase_frozen_flow_test.flml
+
+input: clean preprocess
+
+clean:
+	rm -f *.stat *.steady_state*
+	rm -f *.d.* *.vtu
+	rm -f *.msh
+	rm -f *.ele *.edge *.node *.poly *.bound
+	rm -f matrixdump* *.log* *.err*
+
