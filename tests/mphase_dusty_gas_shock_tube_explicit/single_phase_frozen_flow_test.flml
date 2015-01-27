@@ -100,7 +100,7 @@ u_ref = sqrt(p/rho_g)</comment>
     <nonlinear_iterations>
       <integer_value rank="0">50</integer_value>
       <tolerance>
-        <real_value rank="0">1.0e-4</real_value>
+        <real_value rank="0">1.0e-7</real_value>
         <infinity_norm/>
       </tolerance>
     </nonlinear_iterations>
@@ -306,21 +306,7 @@ u_ref = sqrt(p/rho_g)</comment>
       <prognostic>
         <mesh name="PressureMesh"/>
         <equation name="InternalEnergy">
-          <density name="Density">
-            <discretisation_options>
-              <spatial_discretisation>
-                <control_volumes>
-                  <face_value name="FirstOrderUpwind"/>
-                </control_volumes>
-              </spatial_discretisation>
-              <temporal_discretisation>
-                <theta>
-                  <real_value rank="0">1.0</real_value>
-                </theta>
-                <control_volumes/>
-              </temporal_discretisation>
-            </discretisation_options>
-          </density>
+          <density name="Density"/>
         </equation>
         <spatial_discretisation>
           <discontinuous_galerkin>

@@ -100,7 +100,7 @@ u_ref = sqrt(p/rho_g)</comment>
     <nonlinear_iterations>
       <integer_value rank="0">50</integer_value>
       <tolerance>
-        <real_value rank="0">1.0e-4</real_value>
+        <real_value rank="0">1.0e-7</real_value>
         <infinity_norm/>
       </tolerance>
     </nonlinear_iterations>
@@ -317,21 +317,7 @@ u_ref = sqrt(p/rho_g)</comment>
       <prognostic>
         <mesh name="PressureMesh"/>
         <equation name="InternalEnergy">
-          <density name="Density">
-            <discretisation_options>
-              <spatial_discretisation>
-                <control_volumes>
-                  <face_value name="FirstOrderUpwind"/>
-                </control_volumes>
-              </spatial_discretisation>
-              <temporal_discretisation>
-                <theta>
-                  <real_value rank="0">1.0</real_value>
-                </theta>
-                <control_volumes/>
-              </temporal_discretisation>
-            </discretisation_options>
-          </density>
+          <density name="Density"/>
         </equation>
         <spatial_discretisation>
           <discontinuous_galerkin>
@@ -411,7 +397,7 @@ InternalEnergy needed for a Pressure of 1.013e5 = 205894.308943</comment>
     </scalar_field>
     <scalar_field name="PressureProjected" rank="0">
       <diagnostic>
-        <algorithm material_phase_support="single" source_field_type="scalar" source_field_name="Pressure" name="scalar_galerkin_projection">
+        <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_galerkin_projection" source_field_name="Pressure">
           <solver>
             <iterative_method name="gmres">
               <restart>
@@ -620,6 +606,18 @@ InternalEnergy needed for a Pressure of 1.013e5 = 205894.308943</comment>
             </align_bc_with_cartesian>
           </type>
         </boundary_conditions>
+        <tensor_field name="Viscosity" rank="2">
+          <prescribed>
+            <value name="WholeMesh">
+              <isotropic>
+                <constant>
+                  <real_value rank="0">0.5</real_value>
+                </constant>
+              </isotropic>
+            </value>
+            <output/>
+          </prescribed>
+        </tensor_field>
         <output/>
         <stat>
           <include_in_stat/>
@@ -648,11 +646,7 @@ InternalEnergy needed for a Pressure of 1.013e5 = 205894.308943</comment>
         <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
           <control_volumes>
-            <face_value name="FiniteElement">
-              <limit_face_value>
-                <limiter name="Sweby"/>
-              </limit_face_value>
-            </face_value>
+            <face_value name="FirstOrderUpwind"/>
             <diffusion_scheme name="BassiRebay"/>
           </control_volumes>
           <conservative_advection>
@@ -734,21 +728,7 @@ The normalised mass concentration is 1.0 in the dusty gas region, so we divide 1
       <prognostic>
         <mesh name="PressureMesh"/>
         <equation name="InternalEnergy">
-          <density name="Density">
-            <discretisation_options>
-              <spatial_discretisation>
-                <control_volumes>
-                  <face_value name="FirstOrderUpwind"/>
-                </control_volumes>
-              </spatial_discretisation>
-              <temporal_discretisation>
-                <theta>
-                  <real_value rank="0">1.0</real_value>
-                </theta>
-                <control_volumes/>
-              </temporal_discretisation>
-            </discretisation_options>
-          </density>
+          <density name="Density"/>
         </equation>
         <spatial_discretisation>
           <discontinuous_galerkin>
