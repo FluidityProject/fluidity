@@ -234,10 +234,12 @@ u_ref = sqrt(p/rho_g)</comment>
           </relaxation>
         </temporal_discretisation>
         <solver>
-          <iterative_method name="preonly"/>
-          <preconditioner name="lu">
-            <factorization_package name="petsc"/>
-          </preconditioner>
+          <iterative_method name="gmres">
+            <restart>
+              <integer_value rank="0">30</integer_value>
+            </restart>
+          </iterative_method>
+          <preconditioner name="sor"/>
           <relative_error>
             <real_value rank="0">1e-7</real_value>
           </relative_error>
@@ -342,10 +344,12 @@ u_ref = sqrt(p/rho_g)</comment>
           </theta>
         </temporal_discretisation>
         <solver>
-          <iterative_method name="preonly"/>
-          <preconditioner name="lu">
-            <factorization_package name="petsc"/>
-          </preconditioner>
+          <iterative_method name="gmres">
+            <restart>
+              <integer_value rank="0">30</integer_value>
+            </restart>
+          </iterative_method>
+          <preconditioner name="sor"/>
           <relative_error>
             <real_value rank="0">1.0e-7</real_value>
           </relative_error>
@@ -572,10 +576,12 @@ InternalEnergy needed for a Pressure of 1.013e5 = 205894.308943</comment>
           </relaxation>
         </temporal_discretisation>
         <solver>
-          <iterative_method name="preonly"/>
-          <preconditioner name="lu">
-            <factorization_package name="petsc"/>
-          </preconditioner>
+          <iterative_method name="gmres">
+            <restart>
+              <integer_value rank="0">30</integer_value>
+            </restart>
+          </iterative_method>
+          <preconditioner name="sor"/>
           <relative_error>
             <real_value rank="0">1e-7</real_value>
           </relative_error>
@@ -659,10 +665,12 @@ InternalEnergy needed for a Pressure of 1.013e5 = 205894.308943</comment>
           </theta>
         </temporal_discretisation>
         <solver>
-          <iterative_method name="preonly"/>
-          <preconditioner name="lu">
-            <factorization_package name="petsc"/>
-          </preconditioner>
+          <iterative_method name="gmres">
+            <restart>
+              <integer_value rank="0">30</integer_value>
+            </restart>
+          </iterative_method>
+          <preconditioner name="sor"/>
           <relative_error>
             <real_value rank="0">1.0e-7</real_value>
           </relative_error>
@@ -753,10 +761,12 @@ The normalised mass concentration is 1.0 in the dusty gas region, so we divide 1
           </theta>
         </temporal_discretisation>
         <solver>
-          <iterative_method name="preonly"/>
-          <preconditioner name="lu">
-            <factorization_package name="petsc"/>
-          </preconditioner>
+          <iterative_method name="gmres">
+            <restart>
+              <integer_value rank="0">30</integer_value>
+            </restart>
+          </iterative_method>
+          <preconditioner name="sor"/>
           <relative_error>
             <real_value rank="0">1.0e-7</real_value>
           </relative_error>
