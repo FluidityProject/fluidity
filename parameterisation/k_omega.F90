@@ -121,12 +121,12 @@ subroutine komega_calculate_rhs(state)
   call get_option(trim(option_path)//'/Beta_Star', beta_star, default = 0.09) !!
 
   ! get ADM correction term constants !Amin!
-  call get_option(trim(option_path)//'/C_T', C_T, default = 0.0)
-  call get_option(trim(option_path)//'/C_Omega', C_omega, default = 4.0) !! Rados et al (2009)
-  call get_option(trim(option_path)//'/Beta_p', beta_p, default = 0.05) !! Rethore et al (2009)
-  call get_option(trim(option_path)//'/Beta_d', beta_d, default = 1.50) !! Rethore et al (2009)
-  call get_option(trim(option_path)//'/DiscRegionID', region_id_disc, default = 901)
-  call get_option(trim(option_path)//'/NearDiscRegionID', region_id_near_disc, default = 902)
+  call get_option('/ADM/C_T', C_T, default = 0.0)
+  call get_option('/ADM/C_Omega', C_omega, default = 4.0) !! Rados et al (2008)
+  call get_option('/ADM/Beta_p', beta_p, default = 0.05) !! Rethore et al (2009)
+  call get_option('/ADM/Beta_d', beta_d, default = 1.50) !! Rethore et al (2009)
+  call get_option('/ADM/DiscRegionID', region_id_disc, default = 901)
+  call get_option('/ADM/NearDiscRegionID', region_id_near_disc, default = 902)
 
   ! get field data
   x => extract_vector_field(state, "Coordinate")

@@ -213,6 +213,11 @@ subroutine keps_calculate_rhs(state)
   character(len=FIELD_NAME_LEN), dimension(2) :: field_names
   character(len=FIELD_NAME_LEN) :: equation_type, implementation
 
+  !A! ADM  correction terms
+  real :: C_T, C_eps_4, beta_p, beta_d
+  integer :: region_id_disc, region_id_near_disc
+  type(scalar_field), pointer :: NodeOnTurbine
+
   option_path = trim(state%option_path)//'/subgridscale_parameterisations/k-epsilon/'
 
   if (.not. have_option(trim(option_path))) then 
@@ -225,11 +230,20 @@ subroutine keps_calculate_rhs(state)
   call get_option(trim(option_path)//'/C_eps_1', c_eps_1, default = 1.44)
   call get_option(trim(option_path)//'/C_eps_2', c_eps_2, default = 1.92)
   call get_option(trim(option_path)//'/sigma_p', sigma_p, default = 1.0)
+
+  !A! get ADM correction term constants !Amin!
+  call get_option('/ADM/C_T', C_T, default = 0.0)
+  call get_option('/ADM/C_eps_4', C_eps_4, default = 0.37) !! ElKasmi et al (2008)
+  call get_option('/ADM/Beta_p', beta_p, default = 0.05) !! Rethore et al (2009)
+  call get_option('/ADM/Beta_d', beta_d, default = 1.50) !! Rethore et al (2009)
+  call get_option('/ADM/DiscRegionID', region_id_disc, default = 901)
+  call get_option('/ADM/NearDiscRegionID', region_id_near_disc, default = 902)
   
   ! get field data
   x => extract_vector_field(state, "Coordinate")
   u => extract_vector_field(state, "NonlinearVelocity")
   scalar_eddy_visc => extract_scalar_field(state, "ScalarEddyViscosity")
+  NodeOnTurbine => extract_scalar_field(state, "NodeOnTurbine") !A!
   f_1 => extract_scalar_field(state, "f_1")
   f_2 => extract_scalar_field(state, "f_2")
   g => extract_vector_field(state, "GravityDirection", stat)
@@ -294,7 +308,8 @@ subroutine keps_calculate_rhs(state)
      do ele = 1, ele_count(fields(1))
         call assemble_rhs_ele(src_abs_terms, fields(i), fields(3-i), scalar_eddy_visc, u, &
              density, buoyancy_density, have_buoyancy_turbulence, g, g_magnitude, x, &
-             c_eps_1, c_eps_2, sigma_p, f_1, f_2, ele, i)
+             c_eps_1, c_eps_2, sigma_p, f_1, f_2, ele, i, &
+             C_T, C_eps_4, beta_p, beta_d, region_id_disc, region_id_near_disc, NodeOnTurbine) !A!
      end do
 
      ! For non-DG we apply inverse mass globally
@@ -378,7 +393,8 @@ end subroutine keps_calculate_rhs
 
 subroutine assemble_rhs_ele(src_abs_terms, k, eps, scalar_eddy_visc, u, density, &
      buoyancy_density, have_buoyancy_turbulence, g, g_magnitude, &
-     X, c_eps_1, c_eps_2, sigma_p, f_1, f_2, ele, field_id)
+     X, c_eps_1, c_eps_2, sigma_p, f_1, f_2, ele, field_id, &
+     C_T, C_eps_4, beta_p, beta_d, region_id_disc, region_id_near_disc, NodeOnTurbine) !A!
 
   type(scalar_field), dimension(3), intent(inout) :: src_abs_terms
   type(scalar_field), intent(in) :: k, eps, scalar_eddy_visc, f_1, f_2
@@ -403,6 +419,13 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, scalar_eddy_visc, u, density,
   real, dimension(ele_ngi(u, ele)) :: scalar, c_eps_3
   type(element_type), pointer :: shape_density
   real, dimension(:, :, :), allocatable :: dshape_density
+
+  !Amin! For ADM correction terms
+  type(scalar_field), intent(in) :: NodeOnTurbine
+  real, intent(in) :: C_T, C_eps_4, beta_p, beta_d
+  integer, intent(in) :: region_id_disc, region_id_near_disc
+  real :: a_fac, C_x, u_ele, volume
+  real, dimension(u%dim) :: vel_integral
 
   shape => ele_shape(k, ele)
   nodes = ele_nodes(k, ele)
@@ -430,10 +453,29 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, scalar_eddy_visc, u, density,
      reynolds_stress(i,i,:) = reynolds_stress(i,i,:) - (2./3.)*k_ele*ele_val_at_quad(density, ele)
   end do
 
-  ! Compute P
-  rhs = tensor_inner_product(reynolds_stress, grad_u)
-  if (field_id==2) then
-     rhs = rhs*c_eps_1*ele_val_at_quad(f_1,ele)*eps_ele/k_ele
+  !A! get u_ele for elements within the disc
+  if (X%mesh%region_ids(ele)==region_id_disc) then
+    volume=dot_product(ele_val_at_quad(NodeOnTurbine, ele), detwei)
+    vel_integral=matmul(matmul(ele_val(u, ele), u%mesh%shape%n), detwei)
+    u_ele = vel_integral(1)/volume ! is this different from ele_val(u, ele)
+    !print*, 'AminCheck', ele, X%mesh%region_ids(ele), u_ele, volume, vel_integral(1)
+    !print*, 'AminCheck', ele_val_at_quad(u, ele)
+  end if
+
+  ! Compute P !A! Production terms where ADM correction is applied
+  if (field_id==1) then
+    rhs = tensor_inner_product(reynolds_stress, grad_u)
+    if (X%mesh%region_ids(ele)==region_id_disc) then !A! ADM S_k (disc production term)
+      a_fac = 0.5*(1.0-sqrt(1.0-C_T))
+      C_x = (4.0*a_fac)/(1.0 - a_fac)
+      rhs = rhs + 0.5*C_x*( beta_p*u_ele**3.0 - beta_d*u_ele*k_ele) ! Rethore et al 2009
+    end if
+  elseif (field_id==2) then
+    rhs = tensor_inner_product(reynolds_stress, grad_u)
+    rhs = rhs*c_eps_1*ele_val_at_quad(f_1,ele)*eps_ele/k_ele
+    if ((X%mesh%region_ids(ele)==region_id_disc) .or. (X%mesh%region_ids(ele)==region_id_near_disc)) then !A! ADM S_eps (disc production term)
+      rhs = rhs + (C_eps_4*rhs*rhs)/(k_ele) ! ElKasmi et al 2008
+    end if
   end if
   rhs_addto(1,:) = shape_rhs(shape, detwei*rhs)
 
@@ -1210,9 +1252,9 @@ subroutine k_epsilon_check_options
            FLExit("You must use a prognostic or prescribed Velocity field")
         end if
      end if
-     if(.not. kmsh==emsh .or. .not. kmsh==vmsh .or. .not. emsh==vmsh) then
-        FLExit("You must use the Velocity mesh for TurbulentKineticEnergy and TurbulentDissipation fields")
-     end if
+!A!     if(.not. kmsh==emsh .or. .not. kmsh==vmsh .or. .not. emsh==vmsh) then
+!A!        FLExit("You must use the Velocity mesh for TurbulentKineticEnergy and TurbulentDissipation fields")
+!A!     end if
 
      ! Velocity field options
      if (.not.have_option("/material_phase["//int2str(istate)//"]/vector_field::Velocity/prognostic"//&
