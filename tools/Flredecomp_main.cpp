@@ -43,6 +43,8 @@
 
 using namespace std;
 
+#include "Profiler.h"
+
 extern "C"{
   void flredecomp(const char* input_basename, size_t input_basename_len, const char* output_basename, size_t output_basename_len,
                   int input_nprocs, int target_nprocs);
@@ -60,7 +62,8 @@ void Usage(){
        << "-i\t\tInput number of processors\n"
        << "-l\t\tWrite output to log files\n"
        << "-o\t\tTarget number of processors\n"
-       << "-v\t\tVerbose mode" << endl;
+       << "-v\t\tVerbose mode\n"
+       << "-p\t\tEnable performance profiling" << endl;
 }
 
 int main(int argc, char** argv){
@@ -76,7 +79,7 @@ int main(int argc, char** argv){
   optarg = NULL;  
   char c;
   map<char, string> args;
-  while((c = getopt(argc, argv, "i:o:hlv")) != -1){
+  while((c = getopt(argc, argv, "i:o:hlvp")) != -1){
     if (c != '?'){
       if(optarg == NULL){
         args[c] = "true";
@@ -159,8 +162,14 @@ int main(int argc, char** argv){
     
   size_t input_basename_len = input_basename.size();
   size_t output_basename_len = output_basename.size();
+  flprofiler.tic("/flredecomp");
   flredecomp(input_basename.c_str(), input_basename_len, output_basename.c_str(), output_basename_len,
              input_nprocs, target_nprocs);
+  flprofiler.toc("/flredecomp");
+
+  if (args.count('p') > 0) {
+    flprofiler.print();
+  }
 
 #ifdef HAVE_MPI
   MPI::Finalize();
