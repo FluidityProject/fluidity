@@ -38,6 +38,7 @@ module read_gmsh
   use spud
   use gmsh_common
   use global_parameters, only : OPTION_PATH_LEN
+  use Profiler
 
   implicit none
 
@@ -90,6 +91,7 @@ contains
     type(GMSHnode), pointer :: nodes(:)
     type(GMSHelement), pointer :: elements(:), faces(:)
 
+    call profiler_tic("I/O :: Gmsh")
 
     ! If running in parallel, add the process number
     if(isparallel()) then
@@ -101,6 +103,7 @@ contains
     fd = free_unit()
 
     ! Open node file
+    call profiler_tic("I/O :: Gmsh :: File read")
     ewrite(2, *) "Opening "//trim(lfilename)//" for reading."
     open( unit=fd, file=trim(lfilename), err=43, action="read", &
          access="stream", form="formatted" )
@@ -120,7 +123,7 @@ contains
     ! According to fluidity/bin/gmsh2triangle, Fluidity doesn't need
     ! anything past $EndElements, so we close the file.
     close( fd )
-
+    call profiler_toc("I/O :: Gmsh :: File read")
 
     numNodes = size(nodes)
     numFaces = size(faces)
@@ -271,6 +274,8 @@ contains
     deallocate(nodes)
     deallocate(faces)
     deallocate(elements)
+
+    call profiler_toc("I/O :: Gmsh")
 
     return
 

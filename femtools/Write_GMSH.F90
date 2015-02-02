@@ -37,6 +37,7 @@ module write_gmsh
   use field_options
   use global_parameters, only : OPTION_PATH_LEN
   use gmsh_common
+  use Profiler
 
   implicit none
 
@@ -71,12 +72,16 @@ contains
 
     type(vector_field) :: positions
 
+    call profiler_tic("I/O :: Gmsh :: File write")
+
     positions = get_nodal_coordinate_field( state, mesh )
 
     call write_gmsh_file( filename, positions, number_of_partitions=number_of_partitions)
 
     ! Deallocate node and element memory structures
     call deallocate(positions)
+
+    call profiler_toc("I/O :: Gmsh :: File write")
 
   end subroutine write_mesh_to_gmsh
 

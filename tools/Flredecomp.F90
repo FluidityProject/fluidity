@@ -48,6 +48,7 @@ subroutine flredecomp(input_basename, input_basename_len, output_basename, outpu
   use state_module
   use initialise_ocean_forcing_module
   use iso_c_binding
+  use Profiler
 
   implicit none
 
@@ -144,6 +145,8 @@ subroutine flredecomp(input_basename, input_basename_len, output_basename, outpu
   no_active_processes = input_nprocs
   
   ! ! Below is a (partial) copy of the first bit of populate_state
+
+  call profiler_tic("/flredecomp :: Populate State")
   
   ! Find out how many states there are
   nstates=option_count("/material_phase")
@@ -166,6 +169,8 @@ subroutine flredecomp(input_basename, input_basename_len, output_basename, outpu
     initial_mesh=.true.)
 
   call set_prescribed_field_values(state, initial_mesh=.true.)
+
+  call profiler_toc("/flredecomp :: Populate State")
   
   ! !  End populate_state calls
     
@@ -173,17 +178,23 @@ subroutine flredecomp(input_basename, input_basename_len, output_basename, outpu
   no_active_processes = target_nprocs
   
 #ifdef HAVE_ZOLTAN
+  call profiler_tic("/flredecomp :: zoltan_drive")
   call zoltan_drive(state, .true., initialise_fields=.true., ignore_extrusion=skip_initial_extrusion, &
      & flredecomping=.true., input_procs = input_nprocs, target_procs = target_nprocs)
+  call profiler_toc("/flredecomp :: zoltan_drive")
 #else
+  call profiler_tic("/flredecomp :: sam_drive")
   call strip_level_2_halo(state, initialise_fields=.true.)
   call sam_drive(state, sam_options(target_nprocs))
+  call profiler_toc("/flredecomp :: sam_drive")
 #endif
   
   ! Output
   assert(associated(state))
+  call profiler_tic("/flredecomp :: checkpoint_simulation")
   call checkpoint_simulation(state, prefix = output_base, postfix = "", protect_simulation_name = .false., &
     keep_initial_data=.true., ignore_detectors=.true., number_of_partitions=target_nprocs)
+  call profiler_toc("/flredecomp :: checkpoint_simulation")
 
   do i = 1, size(state)
     call deallocate(state(i))

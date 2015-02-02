@@ -58,6 +58,7 @@ module populate_state_module
   use fields_halos
   use read_triangle
   use initialise_ocean_forcing_module
+  use Profiler
 
   implicit none
 
@@ -133,6 +134,7 @@ contains
 
     ewrite(1,*) "In populate_state"
     call profiler_tic("I/O")
+    call profiler_tic("I/O :: Populate_State")
     call tictoc_clear(TICTOC_ID_IO_READ)
 
     ! Find out how many states there are
@@ -172,6 +174,7 @@ contains
     call create_reserve_state(states)
 
     call tictoc_report(2, TICTOC_ID_IO_READ)
+    call profiler_toc("I/O :: Populate_State")
     call profiler_toc("I/O")
     ewrite(1, *) "Exiting populate_state"
   end subroutine populate_state
@@ -301,6 +304,13 @@ contains
               ewrite(-1,*) trim(mesh_file_format), " is not a valid format for a mesh file"
               FLAbort("Invalid format for mesh file")
             end select
+         else
+            ! Do the same sequence of profiler calls, so that all ranks know the same tags.
+            ! This avoids hanging in flredecomp, since the report stage is collective.
+            call profiler_tic("I/O :: Gmsh")
+            call profiler_toc("I/O :: Gmsh")
+            call profiler_tic("I/O :: Gmsh :: File read")
+            call profiler_toc("I/O :: Gmsh :: File read")
          end if
 
           if (no_active_processes /= getnprocs()) then
