@@ -62,6 +62,7 @@ module populate_state_module
 #ifdef HAVE_PETSC_MODULES
   use petsc
 #endif
+  use Profiler
 
   implicit none
 
@@ -139,6 +140,7 @@ contains
 
     ewrite(1,*) "In populate_state"
     call profiler_tic("I/O")
+    call profiler_tic("I/O :: Populate_State")
     call tictoc_clear(TICTOC_ID_IO_READ)
 
     ! Find out how many states there are
@@ -178,6 +180,7 @@ contains
     call create_reserve_state(states)
 
     call tictoc_report(2, TICTOC_ID_IO_READ)
+    call profiler_toc("I/O :: Populate_State")
     call profiler_toc("I/O")
     ewrite(1, *) "Exiting populate_state"
   end subroutine populate_state
@@ -247,6 +250,7 @@ contains
           ! to make sure that the dimension is set even if MPI is not being used
           call get_option('/geometry/dimension', dim)
 
+          call profiler_tic("I/O :: DMPlex")
           if (is_active_process) then
             select case (mesh_file_format)
             case("exodusii")
@@ -328,6 +332,7 @@ contains
               FLAbort("Invalid format for mesh file")
             end select
          end if
+         call profiler_toc("I/O :: DMPlex")
 
           if (no_active_processes /= getnprocs()) then
             ! not all processes are active, they need to be told the mesh dimensions

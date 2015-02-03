@@ -37,6 +37,7 @@ module dmplex_reader
 #endif
   use iso_c_binding
   use halos
+  use Profiler
 
   implicit none
 
@@ -143,6 +144,7 @@ contains
     ewrite(1,*) "In dmplex_read_mesh_file"
 
     ! Create a DMPlex object from the given mesh
+    call profiler_tic("I/O :: DMPlex :: Create")
     select case (fileformat)
     case ("gmsh")
        call DMPlexCreateGmshFromFile(MPI_COMM_FEMTOOLS, filename, PETSC_TRUE, plex, ierr)
@@ -154,6 +156,7 @@ contains
        ewrite(-1,*) trim(fileformat), " is not a valid format for a mesh file"
        FLAbort("Invalid format for mesh file")
     end select
+    call profiler_toc("I/O :: DMPlex :: Create")
 
     if (ierr /= 0) then
        ewrite(-1,*) "Unable to generate DMPlex object from mesh: "//filename
@@ -166,6 +169,7 @@ contains
     end if
 
     ! Distribute the DMPlex to all ranks in parallel
+    call profiler_tic("I/O :: DMPlex :: Distribute")
     if (isparallel()) then
        call DMPlexDistribute(plex, 2, %val(0), plex_parallel, ierr)
        call DMDestroy(plex, ierr)
@@ -176,6 +180,7 @@ contains
           call DMView(plex, PETSC_VIEWER_STDOUT_WORLD, ierr)
        end if
     end if
+    call profiler_toc("I/O :: DMPlex :: Distribute")
 
     ewrite(1,*) "Finished dmplex_read_mesh_file"
   end subroutine dmplex_read_mesh_file
