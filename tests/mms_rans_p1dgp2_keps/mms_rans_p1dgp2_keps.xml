@@ -90,37 +90,37 @@ d_finish_time = stat("MMS_D.stat")["ElapsedTime"]["value"][-1]
     </variable>
   </variables>
   <pass_tests>
-    <test name="velocity convergence order > 2.8" language="python">
+    <test name="velocity convergence order > 1.9" language="python">
 assert(convergence[0] &gt; 1.9)
     </test>
-    <test name="k production term convergence order > 1.9" language="python">
+    <test name="k production term convergence order > 0.9" language="python">
 assert(convergence[1] &gt; 0.9)
     </test>
-    <test name="k destruction convergence order > 2.8" language="python">
+    <test name="k destruction convergence order > 1.9" language="python">
 assert(convergence[2] &gt; 1.9)
     </test>
-    <test name="k buoyancy term convergence order > 1.9" language="python">
+    <test name="k buoyancy term convergence order > 0.9" language="python">
 assert(convergence[3] &gt; 0.9)
     </test>
-    <test name="k convergence order > 2.8" language="python">
+    <test name="k convergence order > 1.9" language="python">
 assert(convergence[4] &gt; 1.9)
     </test>
-    <test name="epsilon production term convergence order > 1.9" language="python">
+    <test name="epsilon production term convergence order > 0.9" language="python">
 assert(convergence[5] &gt; 0.9)
     </test>
-    <test name="epsilon destruction convergence order > 2.8" language="python">
+    <test name="epsilon destruction convergence order > 1.9" language="python">
 assert(convergence[6] &gt; 1.9)
     </test>
-    <test name="epsilon buoyancy term convergence order > 1.9" language="python">
+    <test name="epsilon buoyancy term convergence order > 0.9" language="python">
 assert(convergence[7] &gt; 0.9)
     </test>
-    <test name="epsilon convergence order > 2.8" language="python">
+    <test name="epsilon convergence order > 1.9" language="python">
 assert(convergence[8] &gt; 1.9)
     </test>
-    <test name="scalar eddy viscosity convergence order > 2.8" language="python">
+    <test name="scalar eddy viscosity convergence order > 1.9" language="python">
 assert(convergence[9] &gt; 1.9)
     </test>
-    <test name="buoyant scalar field convergence order > 2.8" language="python">
+    <test name="buoyant scalar field convergence order > 1.9" language="python">
 assert(convergence[10] &gt; 1.9)
     </test>
     <test name="checking A finished in less than 100 seconds" language="python">

@@ -12,4 +12,4 @@ run:  input
 	../../bin/fluidity -v2 MMS_D.flml > MMS_D.log &
 
 clean:
-	rm -f *.vtu *.stat *.s *_A* *_B* *_C* *_D* src/*A.* src/*B.* src/*C.* src/*D.* *.log matrix* *~ mms_rans_p1dgp2_keps.py *.pyc fluidity.* nohup.out *.node *.ele *.edge
+	rm -f *.vtu *.stat *.s *_A* *_B* *_C* *_D* src/*A.* src/*B.* src/*C.* src/*D.* *.log matrix* *~ mms_rans_p1dgp2_keps.py *.pyc fluidity.*
