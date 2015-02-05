@@ -4,7 +4,7 @@
   <owner userid="ffm10"/>
   <tags>tool</tags>
   <problem_definition length="short" nprocs="1">
-    <command_line>../../bin/vtu2ensight 16ele</command_line>
+    <command_line>../../bin/vtu2ensight -i 0 16ele</command_line>
   </problem_definition>
   <variables>
     <variable name = "ensight_written" language = "python">
