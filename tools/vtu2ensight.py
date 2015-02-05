@@ -94,6 +94,13 @@ def addblockid(ug):
     ug.GetCellData().AddArray(blockIDs)
     return ug
 
+def removeghostlevel(reader, ug):
+    for i in range(reader.gridreader.GetNumberOfCellArrays()):
+        if (reader.gridreader.GetCellArrayName(i) == "vtkGhostLevels"):
+            ug.GetCellData().RemoveArray(i)
+            break
+    return ug
+
 def writedata(writer, ug, i):
     #writer.SetGhostLevel(0)
     #writer.SetBlockIDs(1)
@@ -128,6 +135,8 @@ def main(args):
         reader = getvtk(vtus[i])
         # add block id (required by the ensight format):
         ug = addblockid(reader.ugrid)
+        # check/remove ghostlevel array:
+        ug = removeghostlevel(reader, ug)
         # write data:
         writedata(writer, ug, i)
     # write case file:
