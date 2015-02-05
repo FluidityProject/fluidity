@@ -112,7 +112,7 @@ module Petsc_Tools
   public csr2petsc, petsc2csr, block_csr2petsc, petsc2array, array2petsc
   public field2petsc, petsc2field, petsc_numbering_create_is
   public petsc_numbering_type, PetscNumberingCreateVec, allocate, deallocate
-  public csr2petsc_CreateSeqAIJ, csr2petsc_CreateMPIAIJ, csr2petsc_CreateSeqBAIJ 
+  public csr2petsc_CreateSeqAIJ, csr2petsc_CreateMPIAIJ
   public addup_global_assembly
   ! for petsc_numbering:
   public incref, decref, addref
@@ -1224,54 +1224,6 @@ contains
       
   end function csr2petsc_CreateSeqAIJ
 
-  function csr2petsc_CreateSeqBAIJ(sparsity, row_numbering, col_numbering, group_size) result(M)
-  !!< Creates a sequential PETSc BAIJ Mat of size corresponding with
-  !!< row_numbering and col_numbering, with local blocks of specified group_size
-  type(csr_sparsity), intent(in):: sparsity
-  type(petsc_numbering_type), intent(in):: row_numbering, col_numbering
-  integer, intent(in):: group_size
-  Mat M
-
-    integer, dimension(:), allocatable:: nnz
-    integer nrows, ncols, nbrows, nbcols, nblocksv, nblocksh
-    integer row, len, ierr
-    integer gv, i
-
-    ! in the below we refer to local petsc blocks as groups, as blocks is the total n/o components we
-    ! use in our own global numbering and each these can be divided into one or more 'groups'
-
-    ! total number of rows and cols:
-    nrows=row_numbering%universal_length
-    ncols=col_numbering%universal_length
-    ! rows and cols per block:
-    nbrows=size(row_numbering%gnn2unn, 1)
-    nbcols=size(col_numbering%gnn2unn, 1)
-    ! number of vertical and horizontal blocks:
-    nblocksv=size(row_numbering%gnn2unn, 2)
-    nblocksh=size(col_numbering%gnn2unn, 2)
-
-    allocate(nnz(0:nrows/group_size-1))
-    ! loop over complete horizontal rows within a block of rows
-    nnz=1 ! ghost rows are skipped below and only have a diagonal
-    do i=1, nbrows
-      len=row_length(sparsity,i)*nblocksh/group_size
-      ! loop over the row groups
-      do gv=1, nblocksv/group_size
-        ! row in petsc numbering:
-        row=row_numbering%gnn2unn(i,(gv-1)*group_size+1)/group_size
-        if (row/=-1) then
-          nnz(row)=len
-        end if
-      end do
-    end do
-      
-    call MatCreateSeqBAIJ(MPI_COMM_SELF, group_size, nrows, ncols, PETSC_NULL_INTEGER, &
-      nnz, M, ierr)
-
-    deallocate(nnz)
-      
-  end function csr2petsc_CreateSeqBAIJ
-  
   function csr2petsc_CreateMPIAIJ(sparsity, row_numbering, col_numbering, only_diagonal_blocks, use_inodes) result(M)
   !!< Creates a parallel PETSc Mat of size corresponding with
   !!< row_numbering and col_numbering.
