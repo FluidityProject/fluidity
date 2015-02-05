@@ -23,7 +23,7 @@ MaxControlVolumeDivergence_p1dgp2_3d = max(abs(stat("divergence_free_velocity_pr
   </variables>
   <pass_tests>
     <test name="MaxControlVolumeDivergence_p0p1_3d lower than tolerance 1.0e-10" language="python">
-assert(MaxControlVolumeDivergence_p0p1_3d &lt; 1.0e-10)
+assert(MaxControlVolumeDivergence_p0p1_3d &lt; 2.0e-10)
    </test>
     <test name="MaxControlVolumeDivergence_p1dgp2_3d lower than tolerance 2.0e-9" language="python">
 assert(MaxControlVolumeDivergence_p1dgp2_3d &lt; 2.0e-8)

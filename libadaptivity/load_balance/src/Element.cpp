@@ -164,9 +164,30 @@ void Element::append_field(const std::vector<samfloat_t>& _field){
   
 }
 
+void Element::append_field(const int* _ifield, const size_t block_size){
+  for(size_t i=0;i<block_size;i++)
+    ifields.push_back(_ifield[i]);
+}
+
 void Element::append_field(const samfloat_t* _field, const size_t block_size){
   for(size_t i=0;i<block_size;i++)
     fields.push_back(_field[i]);
+}
+
+int Element::pop_ifield(void)
+{
+  int i;
+  i = *(ifields.rbegin());
+  ifields.pop_back();
+  return i;
+}
+
+samfloat_t Element::pop_field(void)
+{
+  samfloat_t r;
+  r = *(fields.rbegin());
+  fields.pop_back();
+  return r;
 }
 
 void Element::set_eid(const eid_t _eid){ 
@@ -214,9 +235,11 @@ unsigned Element::get_size_MFenlist() const{
 void Element::set_ifields(const vector<int>& in){ 
   ifields = in; 
 }
+
 const vector<int>& Element::get_ifields() const{ 
   return ifields; 
 }
+
 size_t Element::get_size_ifields() const{ 
   return ifields.size(); 
 }

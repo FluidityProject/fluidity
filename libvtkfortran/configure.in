@@ -331,7 +331,6 @@ else
   enable_mpi="no"
 fi
 
-AC_SUBST(OPTIMIZATION_FFLAGS)
 AC_SUBST(LINKER)
 
 dnl Specific -D options
