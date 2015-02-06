@@ -421,6 +421,7 @@ contains
       ! Create serial matrix:
       call MatCreateSeqAIJ(MPI_COMM_SELF, urows, ucols, PETSC_NULL_INTEGER, &
          dnnz, matrix%M, ierr)
+      call MatSetBlockSizes(matrix%M, lgroup_size(1), lgroup_size(2), ierr)
       
     else
       
@@ -430,10 +431,10 @@ contains
       call MatCreateMPIAIJ(MPI_COMM_FEMTOOLS, nprows*blocks(1), npcols*blocks(2), &
          urows, ucols, &
          PETSC_NULL_INTEGER, dnnz, PETSC_NULL_INTEGER, onnz, matrix%M, ierr)
+      call MatSetBlockSizes(matrix%M, lgroup_size(1), lgroup_size(2), ierr)
       
     endif
 
-    call MatSetBlockSizes(matrix%M, lgroup_size(1), lgroup_size(2), ierr)
     call MatSetup(matrix%M, ierr)
     
     if (.not. use_element_blocks) then

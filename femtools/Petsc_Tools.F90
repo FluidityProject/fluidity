@@ -239,7 +239,7 @@ contains
          petsc_numbering%gnn2unn(:,1:nfields:fpg) = petsc_numbering%gnn2unn(:,1:ngroups)*fpg
          ! as always the subsequent nodes in a group are number consequently:
          do f=2, fpg
-           petsc_numbering%gnn2unn(:,f:nfields:fpg) = petsc_numbering%gnn2unn(:,f:nfields:fpg)+(f-1)
+           petsc_numbering%gnn2unn(:,f:nfields:fpg) = petsc_numbering%gnn2unn(:,1:nfields:fpg)+(f-1)
          end do
        end if
          
