@@ -112,7 +112,7 @@ module Petsc_Tools
   public csr2petsc, petsc2csr, block_csr2petsc, petsc2array, array2petsc
   public field2petsc, petsc2field, petsc_numbering_create_is
   public petsc_numbering_type, PetscNumberingCreateVec, allocate, deallocate
-  public csr2petsc_CreateSeqAIJ, csr2petsc_CreateMPIAIJ, csr2petsc_CreateSeqBAIJ 
+  public csr2petsc_CreateSeqAIJ, csr2petsc_CreateMPIAIJ
   public addup_global_assembly
   ! for petsc_numbering:
   public incref, decref, addref
@@ -121,6 +121,9 @@ module Petsc_Tools
   public petsc_test_error_handler
 #if PETSC_VERSION_MINOR>=3
   public MatCreateSeqAIJ, MatCreateMPIAIJ, MatCreateSeqBAIJ, MatCreateMPIBAIJ
+#endif
+#if PETSC_VERSION_MINOR<5
+  public mykspgetoperators
 #endif
 contains
 
@@ -208,7 +211,7 @@ contains
           call mpi_scan(nnodes, offset, 1, MPI_INTEGER, &
                MPI_SUM, MPI_COMM_FEMTOOLS, ierr)
           offset=offset-nnodes
-          petsc_numbering%gnn2unn=petsc_numbering%gnn2unn+offset
+          petsc_numbering%gnn2unn=petsc_numbering%gnn2unn+offset*nfields
 
        end if
        
@@ -223,10 +226,22 @@ contains
 
        ! *** Parallel case with halo:
 
-       ! get 'universal' numbering
-       call get_universal_numbering(halo, petsc_numbering%gnn2unn)
+       ! the hard work is done inside get_universal_numbering() for the case fpg=1
+       ! for fpg>1 we just ask for a numbering for the groups and pad it out afterwards
+       call get_universal_numbering(halo, petsc_numbering%gnn2unn(:,1:ngroups))
        ! petsc uses base 0
-       petsc_numbering%gnn2unn = petsc_numbering%gnn2unn-1
+       petsc_numbering%gnn2unn(:,1:ngroups) = petsc_numbering%gnn2unn(:,1:ngroups)-1
+
+       if (fpg>1) then
+         ! the universal node number of the first node in each group is
+         ! simply the universal groups times fpg - as we know other processes
+         ! do the same we need no negotiation for the halo nodes
+         petsc_numbering%gnn2unn(:,1:nfields:fpg) = petsc_numbering%gnn2unn(:,1:ngroups)*fpg
+         ! as always the subsequent nodes in a group are number consequently:
+         do f=2, fpg
+           petsc_numbering%gnn2unn(:,f:nfields:fpg) = petsc_numbering%gnn2unn(:,f:nfields:fpg)+(f-1)
+         end do
+       end if
          
        petsc_numbering%nprivatenodes=halo_nowned_nodes(halo)
 
@@ -1199,54 +1214,6 @@ contains
       
   end function csr2petsc_CreateSeqAIJ
 
-  function csr2petsc_CreateSeqBAIJ(sparsity, row_numbering, col_numbering, group_size) result(M)
-  !!< Creates a sequential PETSc BAIJ Mat of size corresponding with
-  !!< row_numbering and col_numbering, with local blocks of specified group_size
-  type(csr_sparsity), intent(in):: sparsity
-  type(petsc_numbering_type), intent(in):: row_numbering, col_numbering
-  integer, intent(in):: group_size
-  Mat M
-
-    integer, dimension(:), allocatable:: nnz
-    integer nrows, ncols, nbrows, nbcols, nblocksv, nblocksh
-    integer row, len, ierr
-    integer gv, i
-
-    ! in the below we refer to local petsc blocks as groups, as blocks is the total n/o components we
-    ! use in our own global numbering and each these can be divided into one or more 'groups'
-
-    ! total number of rows and cols:
-    nrows=row_numbering%universal_length
-    ncols=col_numbering%universal_length
-    ! rows and cols per block:
-    nbrows=size(row_numbering%gnn2unn, 1)
-    nbcols=size(col_numbering%gnn2unn, 1)
-    ! number of vertical and horizontal blocks:
-    nblocksv=size(row_numbering%gnn2unn, 2)
-    nblocksh=size(col_numbering%gnn2unn, 2)
-
-    allocate(nnz(0:nrows/group_size-1))
-    ! loop over complete horizontal rows within a block of rows
-    nnz=1 ! ghost rows are skipped below and only have a diagonal
-    do i=1, nbrows
-      len=row_length(sparsity,i)*nblocksh/group_size
-      ! loop over the row groups
-      do gv=1, nblocksv/group_size
-        ! row in petsc numbering:
-        row=row_numbering%gnn2unn(i,(gv-1)*group_size+1)/group_size
-        if (row/=-1) then
-          nnz(row)=len
-        end if
-      end do
-    end do
-      
-    call MatCreateSeqBAIJ(MPI_COMM_SELF, group_size, nrows, ncols, PETSC_NULL_INTEGER, &
-      nnz, M, ierr)
-
-    deallocate(nnz)
-      
-  end function csr2petsc_CreateSeqBAIJ
-  
   function csr2petsc_CreateMPIAIJ(sparsity, row_numbering, col_numbering, only_diagonal_blocks, use_inodes) result(M)
   !!< Creates a parallel PETSc Mat of size corresponding with
   !!< row_numbering and col_numbering.
@@ -1626,6 +1593,24 @@ end subroutine petsc_test_error_handler
   end subroutine MatCreateMPIBAIJ
 #endif
 
+! this is a wrapper around KSPGetOperators, that in petsc <3.5
+! has an extra mat_structure flag. We need to wrap this because
+! we need a local variable.
+! in include/petsc_legacy.h we #define KSPGetOperators -> mykspgetoperators
+#if PETSC_VERSION_MINOR<5
+subroutine mykspgetoperators(ksp, amat, pmat, ierr)
+  KSP, intent(in):: ksp
+  Mat, intent(in):: amat, pmat
+  PetscErrorCode, intent(out):: ierr
+
+  MatStructure:: mat_structure
+  
+  ! need small caps, to avoid #define from include/petsc_legacy.h
+  call  kspgetoperators(ksp, amat, pmat, mat_structure, ierr)
+
+end subroutine mykspgetoperators
+#endif
+
 #include "Reference_count_petsc_numbering_type.F90"
 end module Petsc_Tools
 
@@ -1643,3 +1628,4 @@ PetscErrorCode, intent(out):: ierr
   call MatGetInfo(A, flag, info, ierr)
   
 end subroutine myMatGetInfo
+
