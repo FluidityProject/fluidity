@@ -21,11 +21,13 @@ program test_laplacian
   use state_module
   use adapt_state_module 
   use boundary_conditions
+#ifdef HAVE_PETSC_MODULES
+  use petsc
+#endif
 
   implicit none
-#ifdef HAVE_PETSC
-#include "finclude/petsc.h"
-#endif
+
+#include "petsc_legacy.h"
   
   character, parameter:: NEWLINE_CHAR=achar(10)
   character(len=*), parameter:: BC_PYTHON_FUNCTION= &

@@ -42,33 +42,36 @@
     use memory_diagnostics
     use iso_c_binding
     use mangle_options_tree
-    implicit none
-#ifdef HAVE_PETSC
-#include "finclude/petsc.h"
+#ifdef HAVE_PETSC_MODULES
+  use petsc
 #endif
 
-    ! Interface blocks for the initialisation routines we need to call
-    interface
-      subroutine set_global_debug_level(n)
-        integer, intent(in) :: n
-      end subroutine set_global_debug_level
+    implicit none
 
-      subroutine mpi_init(ierr)
-        integer, intent(out) :: ierr
-      end subroutine mpi_init
+#include "petsc_legacy.h"
 
-      subroutine mpi_finalize(ierr)
-        integer, intent(out) :: ierr
-      end subroutine mpi_finalize
+!     ! Interface blocks for the initialisation routines we need to call
+!     interface
+!       subroutine set_global_debug_level(n)
+!         integer, intent(in) :: n
+!       end subroutine set_global_debug_level
 
-      subroutine python_init
-      end subroutine python_init
+!       subroutine mpi_init(ierr)
+!         integer, intent(out) :: ierr
+!       end subroutine mpi_init
 
-      subroutine petscinitialize(s, i)
-        character(len=*), intent(in) :: s
-        integer, intent(out) :: i
-      end subroutine petscinitialize
-    end interface
+!       subroutine mpi_finalize(ierr)
+!         integer, intent(out) :: ierr
+!       end subroutine mpi_finalize
+
+!       subroutine python_init
+!       end subroutine python_init
+
+!       subroutine petscinitialize(s, i)
+!         character(len=*), intent(in) :: s
+!         integer, intent(out) :: i
+!       end subroutine petscinitialize
+!     end interface
 
     type(state_type), dimension(:), pointer :: state
 

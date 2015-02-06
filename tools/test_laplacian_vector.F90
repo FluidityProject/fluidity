@@ -25,7 +25,7 @@ program test_laplacian_vector
 
   implicit none
 #ifdef HAVE_PETSC
-#include "finclude/petsc.h"
+#include "petsc_legacy.h"
 #endif
   
   character, parameter:: NEWLINE_CHAR=achar(10)

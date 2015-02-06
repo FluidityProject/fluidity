@@ -19,8 +19,8 @@
     use FLDebug
     implicit none
 
-#include "petscversion.h"
-#include "finclude/petsc.h"
+#include "petsc_legacy.h"
+
     type(state_type) :: state
     type(vector_field), target:: positions, vertical_normal
     type(scalar_field) :: psi, DistanceToTop, exact
@@ -298,12 +298,16 @@
        & exact_sol_filename, vl_as, vl_as_wsor, vl, no_vl, sor)
     use Fldebug
     use petsc_tools
+#ifdef HAVE_PETSC_MODULES
+  use petsc
+#endif
+
     implicit none
     character(len=*), intent(out):: filename, exact_sol_filename
     logical, intent(out) :: vl_as, vl, no_vl, sor, vl_as_wsor
     real, intent(out) :: eps0
 
-#include "finclude/petsc.h"
+#include "petsc_legacy.h"
 
 #if PETSC_VERSION_MINOR>=2
     PetscBool:: flag
