@@ -1812,7 +1812,8 @@ start =
          porous_media_model?,
          embedded_models?,
          flredecomp?,
-         multiphase_interaction?
+         multiphase_interaction?,
+         element population_balance_continuous_phase_name{ string }?
       }
    )      
 
@@ -2172,7 +2173,9 @@ population_balance =
                   ## aggregation frequency is given by \beta_{alpha gamma} = \xi_{alpha}^3 + \xi_{gamma}^3
                   element hydrodynamic_aggregation{ empty }|
                   ## aggregation frequency is given by \beta_{alpha gamma} = \beta_o (\xi_{alpha} + \xi_{gamma}). Enter the value of constant \beta_o below
-                  element sum_aggregation{ real }
+                  element sum_aggregation{ real }|
+                  ##
+                  element laakkonen_2007_aggregation{ empty }
                }
             }?,
             ##
@@ -2187,14 +2190,16 @@ population_balance =
                      element coefficient{ real },
                      ## degree r in breakage frequency a_{alpha} = p * \xi_{alpha}^r
                      element degree{ real }
-                  }
+                  }|
+                  element laakkonen_breakage{ empty }
                },
                element distribution_function{
                   ##
                   element symmetric_fragmentation{ empty }|
                   ## McCoy and Madras (2003) used P(v|v') = 2/v' for v<v' and 0 otherwise, where v stands for volume. 
                   ## When written in terms of particle diameter, this converts to P(x|x')=(6x^2)/x'^3 for x<x' and 0 otherwise.
-                  element mcCoy_madras_2003{ empty }
+                  element mcCoy_madras_2003{ empty } |
+                  element laakkonen_2007{ empty }
                }
             }?
          },
@@ -2256,7 +2261,8 @@ population_balance =
             python_code
          }?,
          element output_abscissa_and_weights{ empty }?,
-         element output_sources{ empty }?
+         element output_sources{ empty }?,
+         element apply_source_as_absorption{ empty }?
       }
    )
 
