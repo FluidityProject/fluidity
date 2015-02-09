@@ -2262,7 +2262,19 @@ population_balance =
          }?,
          element output_abscissa_and_weights{ empty }?,
          element output_sources{ empty }?,
-         element apply_source_as_absorption{ empty }?
+         ## This will apply all source terms for the weights and weighted_abscissa scalar 
+         ## fields as absorption terms.
+         element apply_source_as_absorption{ 
+            ## For including a sponge region for weights and weighted_abscissas (which are 
+            ## applied as absorption terms) a sponge field is defined which will be analogous to 
+            ## an absorption term. This field is zero everywhere except where a large absorption
+            ## is present. 
+            element include_sponge_region{
+               ## Name of the scalar field which is the sponge scalar field. Note: This sponge field must
+               ## be defined the the same material phase.
+               element sponge_scalar_field_name{ string }
+            }?         
+         }?
       }
    )
 

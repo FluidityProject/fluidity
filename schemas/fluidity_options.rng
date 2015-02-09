@@ -3210,7 +3210,21 @@ Must be given as a python function in the form:
       </optional>
       <optional>
         <element name="apply_source_as_absorption">
-          <empty/>
+          <a:documentation>This will apply all source terms for the weights and weighted_abscissa scalar 
+fields as absorption terms.</a:documentation>
+          <optional>
+            <element name="include_sponge_region">
+              <a:documentation>For including a sponge region for weights and weighted_abscissas (which are 
+applied as absorption terms) a sponge field is defined which will be analogous to 
+an absorption term. This field is zero everywhere except where a large absorption
+is present. </a:documentation>
+              <element name="sponge_scalar_field_name">
+                <a:documentation>Name of the scalar field which is the sponge scalar field. Note: This sponge field must
+be defined the the same material phase.</a:documentation>
+                <data type="string" datatypeLibrary=""/>
+              </element>
+            </element>
+          </optional>
         </element>
       </optional>
     </element>
