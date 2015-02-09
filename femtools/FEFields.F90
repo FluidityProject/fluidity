@@ -755,6 +755,7 @@ contains
     shape => mesh%shape
     call allocate(submesh, nodes=size(node_list), elements=size(element_list),&
          & shape=shape, name=trim(name))
+    submesh%option_path = mesh%option_path
 
     ! Determine ndglno (connectivity matrix) on subdomain_mesh:
     loc = shape%loc

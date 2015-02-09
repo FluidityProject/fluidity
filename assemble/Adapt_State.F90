@@ -48,6 +48,7 @@ module adapt_state_module
   use hadapt_extrude
   use hadapt_metric_based_extrude
   use halos
+  use fefields
   use interpolation_manager
   use interpolation_module
   use mba_adapt_module
@@ -96,7 +97,9 @@ contains
   subroutine adapt_mesh_simple(old_positions, metric, new_positions, node_ownership, force_preserve_regions, &
       lock_faces, allow_boundary_elements)
     type(vector_field), intent(in) :: old_positions
-    type(tensor_field), intent(inout) :: metric
+    type(tensor_field), intent(in) :: metric
+    type(vector_field) :: stripped_positions
+    type(tensor_field) :: stripped_metric
     type(vector_field), intent(out) :: new_positions
     integer, dimension(:), pointer, optional :: node_ownership
     logical, intent(in), optional :: force_preserve_regions
@@ -105,27 +108,82 @@ contains
 
     assert(.not. mesh_periodic(old_positions))
 
-    select case(old_positions%dim)
+    if(isparallel()) then
+      ! generate stripped versions of the position and metric fields
+      call strip_l2_halo(old_positions, metric, stripped_positions, stripped_metric)
+    else
+      stripped_positions = old_positions
+      stripped_metric = metric
+      call incref(stripped_positions)
+      call incref(stripped_metric)
+    end if
+
+    select case(stripped_positions%dim)
       case(1)
-        call adapt_mesh_1d(old_positions, metric, new_positions, &
+        call adapt_mesh_1d(stripped_positions, stripped_metric, new_positions, &
           & node_ownership = node_ownership, force_preserve_regions = force_preserve_regions)
       case(2)
-        call adapt_mesh_mba2d(old_positions, metric, new_positions, &
+        call adapt_mesh_mba2d(stripped_positions, stripped_metric, new_positions, &
           & force_preserve_regions=force_preserve_regions, lock_faces=lock_faces, &
           & allow_boundary_elements=allow_boundary_elements)
       case(3)
         if(have_option("/mesh_adaptivity/hr_adaptivity/adaptivity_library/libmba3d")) then
           assert(.not. present(lock_faces))
-          call adapt_mesh_mba3d(old_positions, metric, new_positions, &
+          call adapt_mesh_mba3d(stripped_positions, stripped_metric, new_positions, &
                              force_preserve_regions=force_preserve_regions)
         else
-          call adapt_mesh_3d(old_positions, metric, new_positions, node_ownership = node_ownership, &
+          call adapt_mesh_3d(stripped_positions, stripped_metric, new_positions, &
                              force_preserve_regions=force_preserve_regions, lock_faces=lock_faces)
         end if
       case default
         FLAbort("Mesh adaptivity requires a 1D, 2D or 3D mesh")
     end select
+
+    ! deallocate stripped metric and positions - we don't need these anymore
+    call deallocate(stripped_metric)
+    call deallocate(stripped_positions)
+
   end subroutine adapt_mesh_simple
+
+  subroutine strip_l2_halo(positions, metric, stripped_positions, stripped_metric)
+    ! strip level 2 halo from mesh before going into adapt so we don't unnecessarily lock
+    ! the halo 2 region (in addition to halo 1) - halo 2 regions will be regrown automatically
+    ! after repartioning in zoltan
+    type(vector_field), intent(in) :: positions
+    type(tensor_field), intent(in):: metric
+    type(vector_field), intent(out) :: stripped_positions
+    type(tensor_field), intent(out):: stripped_metric
+
+    type(mesh_type):: stripped_mesh
+    integer, dimension(:), pointer :: node_list, nodes
+    integer, dimension(:), allocatable :: non_halo2_elements
+    integer :: ele, j, non_halo2_count
+
+    allocate(non_halo2_elements(1:element_count(positions)))
+    non_halo2_count = 0
+    ele_loop: do ele=1, element_count(positions)
+      nodes => ele_nodes(positions, ele)
+      do j=1, size(nodes)
+        if (node_owned(positions, nodes(j))) then
+          non_halo2_count = non_halo2_count + 1
+          non_halo2_elements(non_halo2_count) = ele
+          cycle ele_loop
+        end if
+      end do
+    end do ele_loop
+
+    call create_subdomain_mesh(positions%mesh, non_halo2_elements(1:non_halo2_count), positions%mesh%name, &
+      stripped_mesh, node_list)
+
+    call allocate(stripped_positions, positions%dim, stripped_mesh, name=positions%name)
+    call allocate(stripped_metric, stripped_mesh, name=metric%name)
+    call set_all(stripped_positions, node_val(positions, node_list))
+    call set_all(stripped_metric, node_val(metric, node_list))
+
+    call deallocate(stripped_mesh)
+    deallocate(node_list)
+
+  end subroutine strip_l2_halo
 
   subroutine adapt_mesh_periodic(old_positions, metric, new_positions, force_preserve_regions)
     type(vector_field), intent(in) :: old_positions
