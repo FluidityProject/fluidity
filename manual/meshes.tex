@@ -26,10 +26,13 @@ and finally an overview of meshing tools provided with \fluidity (section
 \item Gmsh .msh files. Gmsh is a mesh generator freely available on the
 web at \url{http://geuz.org/gmsh/}, and is included in Linux distributions 
 such as Ubuntu. This is the recommended file format.
-\item Triangle format. This is stored as a set of 3 files: a .node file,
-a .ele file and a .face (3D) or .edge (2D) or .bound (1D) file. This file format
-is mainly supported for special purposes, like 1D meshes, and some offline 
-tools.
+\item {\bf DEPRECATED:} Triangle format. Support for the Triangle mesh
+  format in Fluidity has ceased in order to increase Fluidity's
+  interoperability with other codes. Instead the Gmsh format is now
+  utilised for all features previously provided by the Triangle mesh
+  reader. Moreover, a conversion tool \lstinline+triangle2gmsh+
+  (section~\ref{sec:triangle2gmsh}) is provided to convert all legacy
+  meshes.
 \item ExodusII: ExodusII is a model developed by Sandia National Laboratories 
 which can be used for pre- and postprocessing of finite element analyses. 
 In Fluidity we currently only read in the mesh from an ExodusII file which 
@@ -202,7 +205,7 @@ The \lstinline[language = bash]+create_aligned_mesh+ tool (section~\ref{sec:crea
 \subsection{Mesh conversion}
 \index{mesh!meshing tools!mesh conversion}
 
-The \lstinline[language = Bash]+gmsh2triangle+ tool (section~\ref{sec:gmsh2triangle}) converts ASCII Gmsh mesh files into triangle format.
+The \lstinline[language = Bash]+triangle2gmsh+ tool (section~\ref{sec:triangle2gmsh}) converts legacy Triangle format mesh files to the Gmsh format.
 
 The \lstinline[language = Bash]+triangle2vtu+ tool (section~\ref{sec:triangle2vtu}) can be used to convert triangle format files into vtu format. 
 

@@ -465,6 +465,7 @@ the \fluidity\ trunk. The programs generated can then be found in the
 	genpvd					& \ref{sec:genpvd} \\
 	genpvtu					& \ref{sec:genpvtu}			\\
 	gen\_square\_meshes			& \ref{sec:gen_square_meshes} 		\\
+	triangle2gmsh				& \ref{sec:triangle2gmsh}		\\
 	gmsh2triangle				& \ref{sec:gmsh2triangle}		\\
 	gmsh\_mesh\_transform			& \ref{sec:gmsh_mesh_transform}	\\
 	interval				& \ref{sec:interval} 			\\
@@ -823,10 +824,24 @@ gen_square_meshes [OPTIONS] NODES MESHES
 \end{lstlisting} 
 NODES is the number of nodes in the mesh and MESHES is the number of meshes to be created. [OPTIONS] are -h for help and -v for Verbose mode.
 
+%%%%%%%%%%%%%%%%%%%%%%%%%% TRIANGLE2GMSH %%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection{triangle2gmsh}
+\label{sec:triangle2gmsh}
+triangle2gmsh converts Triangle format mesh files to the Gmsh format. 
+It is run from the command line:
+\begin{lstlisting}[language = Bash]
+triangle2gmsh [-a | --ascii] input
+\end{lstlisting}
+where \lstinline[language = Bash]+input+ is the basename of the Triangle mesh files.
+The \lstinline[language = Bash]+--ascii+ flag forces an ASCII Gmsh file to be created. Otherwise binary Gmsh files are created.
+
 %%%%%%%%%%%%%%%%%%%%%%%%%% GMSH2TRIANGLE %%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection{gmsh2triangle}
 \label{sec:gmsh2triangle}
+Please note that use of the Triangle mesh format is now {\bf DEPRECATED!}
+
 gmsh2triangle converts ASCII Gmsh mesh files into triangle format. Whilst Fluidity
 can read in Gmsh files directly as noted in section \ref{sec:supported_mesh_formats}, 
 this tool should be used in cases where native Gmsh support does not work.
