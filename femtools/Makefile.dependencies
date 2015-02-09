@@ -356,7 +356,8 @@ Exodusii_F_Interface.o ../include/exodusii_f_interface.mod: \
 FEFields.o ../include/fefields.mod: FEFields.F90 \
    ../include/element_numbering.mod ../include/elements.mod \
    ../include/fdebug.h ../include/fetools.mod ../include/field_options.mod \
-   ../include/fields.mod ../include/sparse_matrices_fields.mod \
+   ../include/fields.mod ../include/halos_derivation.mod \
+   ../include/integer_set_module.mod ../include/sparse_matrices_fields.mod \
    ../include/sparse_tools.mod ../include/state_module.mod \
    ../include/transform_elements.mod
 
@@ -467,10 +468,11 @@ Fields_Manipulation.o ../include/fields_manipulation.mod: \
    ../include/fields_allocates.mod ../include/fields_base.mod \
    ../include/fields_data_types.mod ../include/halo_data_types.mod \
    ../include/halos_allocates.mod ../include/halos_base.mod \
-   ../include/halos_debug.mod ../include/halos_numbering.mod \
-   ../include/halos_ownership.mod ../include/halos_repair.mod \
-   ../include/memory_diagnostics.mod ../include/parallel_tools.mod \
-   ../include/quicksort.mod ../include/vector_tools.mod
+   ../include/halos_debug.mod ../include/halos_derivation.mod \
+   ../include/halos_numbering.mod ../include/halos_ownership.mod \
+   ../include/halos_repair.mod ../include/memory_diagnostics.mod \
+   ../include/parallel_tools.mod ../include/quicksort.mod \
+   ../include/vector_tools.mod
 
 ../include/futils.mod: Futils.o
 	@true
@@ -659,9 +661,9 @@ Interpolation.o ../include/interpolation_module.mod: Interpolation.F90 \
    ../include/fdebug.h ../include/field_derivatives.mod \
    ../include/field_options.mod ../include/fields.mod ../include/futils.mod \
    ../include/meshdiagnostics.mod ../include/node_ownership.mod \
-   ../include/sparse_tools.mod ../include/state_module.mod \
-   ../include/superconvergence.mod ../include/supermesh_construction.mod \
-   ../include/transform_elements.mod
+   ../include/parallel_fields.mod ../include/sparse_tools.mod \
+   ../include/state_module.mod ../include/superconvergence.mod \
+   ../include/supermesh_construction.mod ../include/transform_elements.mod
 
 ../include/intersection_finder_module.mod: Intersection_finder.o
 	@true
