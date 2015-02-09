@@ -2,19 +2,25 @@
 <testproblem>
   <name>gmsh2vtu<comment>Checks gmsh2vtu script functionality.</comment></name>
   <owner userid="dham"/>
-  <problem_definition length="medium" nprocs="1">
-    <command_line>true<comment>Do nothing. The test is all below.</comment></command_line>
+  <problem_definition length="short" nprocs="1">
+    <command_line>../../bin/gmsh2vtu Subduction_Mesh<comment></comment></command_line>
   </problem_definition>
   <variables>
-    <variable name="logfile" language="python">logfile=file("../../manual/fluidity_manual.log","r").read()</variable>
+    <variable name="num_gmsh_nodes" language="python">
+from check_nodes import *
+num_gmsh_nodes = get_num_gmsh_nodes()
+      <comment>Gets number of nodes in gmsh .msh</comment>
+    </variable>
+    <variable name="num_vtu_nodes" language="python">
+from check_nodes import *
+num_vtu_nodes = get_num_vtu_nodes()
+      <comment>Gets number of nodes in vtu file</comment>
+    </variable>
   </variables>
   <pass_tests/>
   <warn_tests>
-    <test name="UnresolvedCitations" language="python">import re
-assert(not(re.search("There were undefined citations.",logfile,re.M)))</test>
-    <test name="UndefinedReferences" language="python">import re
-assert(not(re.search("There were undefined references.",logfile,re.M)))</test>
-    <test name="MultipleReferences" language="python">import re
-assert(not(re.search("There were multiply-defined labels.",logfile,re.M)))</test>
+    <test name="Equal nodes" language="python">
+      assert(num_gmsh_nodes == num_vtu_nodes)
+    </test>
   </warn_tests>
 </testproblem>
