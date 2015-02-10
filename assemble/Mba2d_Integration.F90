@@ -80,6 +80,8 @@ module mba2d_integration
     ! Element locking
     integer :: nfe
     integer, dimension(:), allocatable :: ife
+    integer, dimension(:), pointer:: nodes
+    integer :: ele
     integer :: nfv
     logical, dimension(:), allocatable :: is_locked_ele
     integer, dimension(:), pointer :: node_eles
@@ -111,6 +113,9 @@ module mba2d_integration
     type(scalar_field) :: sends_sfield, receives_sfield
     integer :: proc
 #endif
+    type(mesh_type):: p0mesh
+    type(scalar_field):: locked_field
+    integer, save:: ix=0
 
     ewrite(1, *) "In adapt_mesh_mba2d"
 
@@ -243,35 +248,29 @@ module mba2d_integration
     nhalos = halo_count(xmesh)
     assert(any(nhalos == (/0, 1, 2/)))
     if(nhalos > 0) then
+      p0mesh = piecewise_constant_mesh(xmesh, "P0Mesh")
+      call allocate(locked_field, p0mesh, "Locked")
       nelist => extract_nelist(xmesh)
     
       old_halo => xmesh%halos(nhalos)
 
       allocate(ife(totele))
       nfe = 0
-      allocate(is_locked_ele(totele))
-      is_locked_ele = .false.
-      do i = 1, halo_proc_count(old_halo)
-        do j = 1, halo_send_count(old_halo, i)
-          node_eles => row_m_ptr(nelist, halo_send(old_halo, i, j))
-          do k = 1, size(node_eles)
-            if(is_locked_ele(node_eles(k))) cycle
-            nfe = nfe + 1
-            ife(nfe) = node_eles(k)
-            is_locked_ele(node_eles(k)) = .true.
-          end do
+      ele_loop: do ele=1, element_count(xmesh)
+        nodes => ele_nodes(xmesh, ele)
+        do j=1, size(nodes)
+          if (.not. node_owned(old_halo, nodes(j))) then
+            nfe = nfe +1
+            ife(nfe) = ele
+            call set(locked_field, ele, 1.0)
+            cycle ele_loop
+          end if
         end do
-        do j = 1, halo_receive_count(old_halo, i)
-          node_eles => row_m_ptr(nelist, halo_receive(old_halo, i, j))
-          do k = 1, size(node_eles)
-            if(is_locked_ele(node_eles(k))) cycle
-            nfe = nfe + 1
-            ife(nfe) = node_eles(k)
-            is_locked_ele(node_eles(k)) = .true.
-          end do
-        end do
-      end do
-      deallocate(is_locked_ele)
+      end do ele_loop
+      call vtk_write_fields("locked", index=ix, position=input_positions, model=xmesh, sfields=(/ locked_field /))
+      ix = ix+1
+      call deallocate(locked_field)
+      call deallocate(p0mesh)
     else
       nfe = 0
       allocate(ife(nfe))
