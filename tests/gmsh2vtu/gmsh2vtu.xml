@@ -1,26 +1,34 @@
 <?xml version='1.0' encoding='utf-8'?>
 <testproblem>
-  <name>gmsh2vtu<comment>Checks gmsh2vtu script functionality.</comment></name>
-  <owner userid="dham"/>
-  <problem_definition length="short" nprocs="1">
-    <command_line>../../bin/gmsh2vtu Subduction_Mesh<comment></comment></command_line>
+  <name>gmsh2vtu_test</name>
+  <owner userid="rhodrid"/>
+  <tags></tags>
+
+  <problem_definition length="medium" nprocs="1">
+    <command_line>../../bin/gmsh2vtu Subduction_Mesh</command_line>
   </problem_definition>
-  <variables>
-    <variable name="num_gmsh_nodes" language="python">
+  
+<variables>
+<variable name="num_gmsh_nodes" language="python">
 from check_nodes import *
 num_gmsh_nodes = get_num_gmsh_nodes()
-      <comment>Gets number of nodes in gmsh .msh</comment>
-    </variable>
-    <variable name="num_vtu_nodes" language="python">
+</variable>
+
+<variable name="num_vtu_nodes" language="python">
 from check_nodes import *
 num_vtu_nodes = get_num_vtu_nodes()
-      <comment>Gets number of nodes in vtu file</comment>
-    </variable>
-  </variables>
-  <pass_tests/>
-  <warn_tests>
-    <test name="Equal nodes" language="python">
-      assert(num_gmsh_nodes == num_vtu_nodes)
-    </test>
-  </warn_tests>
+</variable>
+</variables>
+
+<pass_tests>
+
+<test name="Equal nodes" language="python">
+assert(num_gmsh_nodes == num_vtu_nodes)
+</test>
+
+</pass_tests>                                                                                                                
+
+<warn_tests>
+</warn_tests>
+
 </testproblem>
