@@ -24,7 +24,7 @@ Adapt_State.o ../include/adapt_state_module.mod: Adapt_State.F90 \
    ../include/diagnostic_variables.mod \
    ../include/discrete_properties_module.mod ../include/edge_length_module.mod \
    ../include/elements.mod ../include/eventcounter.mod ../include/fdebug.h \
-   ../include/field_options.mod ../include/fields.mod \
+   ../include/fefields.mod ../include/field_options.mod ../include/fields.mod \
    ../include/fields_halos.mod ../include/global_parameters.mod \
    ../include/hadapt_extrude.mod ../include/hadapt_metric_based_extrude.mod \
    ../include/halos.mod ../include/interpolation_manager.mod \
