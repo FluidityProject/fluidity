@@ -54,7 +54,6 @@ module halos_derivation
   public :: derive_l1_from_l2_halo, derive_element_halo_from_node_halo, &
     & derive_maximal_surface_element_halo, derive_nonperiodic_halos_from_periodic_halos, derive_sub_halo
   public :: invert_comms_sizes, ele_owner, combine_halos, create_combined_numbering_trailing_receives
-  public :: generate_substate_halos
   
   interface derive_l1_from_l2_halo
     module procedure derive_l1_from_l2_halo_mesh
@@ -1447,60 +1446,5 @@ contains
     end do
 
   end function create_combined_numbering_trailing_receives
-
-  subroutine generate_substate_halos(external_mesh,subdomain_mesh,node_list,inverse_node_list)
-
-    type(mesh_type), intent(in) :: external_mesh
-    type(mesh_type), intent(inout) :: subdomain_mesh
-    integer, dimension(:) :: node_list, inverse_node_list 
-
-    integer :: nhalos, communicator, nprocs, procno, ihalo, inode, iproc, nowned_nodes
-
-    ewrite(1, *) "In generate_substate_halos"
-
-    assert(continuity(subdomain_mesh) == 0)
-    assert(.not. associated(subdomain_mesh%halos))
-    assert(.not. associated(subdomain_mesh%element_halos))
-
-    ! Initialise key MPI information:
-
-    nhalos = halo_count(external_mesh)
-    ewrite(2,*) "Number of subdomain_mesh halos = ",nhalos
-
-    if(nhalos == 0) return
-
-    communicator = halo_communicator(external_mesh%halos(nhalos))
-    nprocs = getnprocs(communicator = communicator)
-    ewrite(2,*) 'Number of processes = ', nprocs
-    procno = getprocno(communicator = communicator)
-    ewrite(2,*) 'Processor ID/number = ', procno
-
-    ! Allocate subdomain mesh halos:
-    allocate(subdomain_mesh%halos(nhalos))
-
-    ! Derive subdomain_mesh halos:
-    do ihalo = 1, nhalos
-
-       subdomain_mesh%halos(ihalo) = derive_sub_halo(external_mesh%halos(ihalo),node_list)
-       
-       assert(trailing_receives_consistent(subdomain_mesh%halos(ihalo)))
-      
-       if(.not. serial_storage_halo(external_mesh%halos(ihalo))) then
-          assert(halo_valid_for_communication(subdomain_mesh%halos(ihalo)))
-          call create_global_to_universal_numbering(subdomain_mesh%halos(ihalo))
-          call create_ownership(subdomain_mesh%halos(ihalo))
-       end if
-       
-    end do ! ihalo 
-    
-    if(all(serial_storage_halo(subdomain_mesh%halos))) then
-      allocate(subdomain_mesh%element_halos(0))
-    else
-      allocate(subdomain_mesh%element_halos(nhalos))
-      call derive_element_halo_from_node_halo(subdomain_mesh, &
-        & ordering_scheme = HALO_ORDER_TRAILING_RECEIVES, create_caches = .true.)
-    end if
-
-  end subroutine generate_substate_halos
 
 end module halos_derivation

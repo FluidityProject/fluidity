@@ -356,7 +356,7 @@ Exodusii_F_Interface.o ../include/exodusii_f_interface.mod: \
 FEFields.o ../include/fefields.mod: FEFields.F90 \
    ../include/element_numbering.mod ../include/elements.mod \
    ../include/fdebug.h ../include/fetools.mod ../include/field_options.mod \
-   ../include/fields.mod ../include/halos_derivation.mod \
+   ../include/fields.mod ../include/halos.mod \
    ../include/integer_set_module.mod ../include/sparse_matrices_fields.mod \
    ../include/sparse_tools.mod ../include/state_module.mod \
    ../include/transform_elements.mod
