@@ -40,7 +40,6 @@ use halos_debug
 use halos_numbering
 use halos_ownership
 use halos_repair
-use halos_derivation
 use quicksort
 use parallel_tools
 use vector_tools
