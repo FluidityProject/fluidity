@@ -315,6 +315,8 @@ module mba2d_integration
       tmp_metric(3, i) = node_val(metric, 1, 2, i)
     end do
 
+    call relax_metric_locked_regions(tmp_metric, ife(1:nfe), input_positions)
+
     maxWr = (4 * maxp + 10 * nonods + mxface + maxele)  * 1.5
     maxWi = (6 * maxp + 10 * nonods + 19 * mxface + 11 * maxele + 12 * totele) * 1.5
     allocate(rW(maxWr))
@@ -556,6 +558,46 @@ module mba2d_integration
     FLExit("You called mba_adapt without the mba2d library. Reconfigure with --enable-2d-adaptivity")
 #endif
   end subroutine adapt_mesh_mba2d
+
+  subroutine relax_metric_locked_regions(metric, locked_elements, positions)
+    ! in the locked regions (halo regions in parallel) and the region immediately
+    ! adjacent to it, mba can't satisfy what we ask for in the metric
+    ! This tends to upset mba and sometimes leads it to give up altogether (leaving other regions 
+    ! unadapted). Therefore we adjust the metric in the nodes of the locked regions to adhere to
+    ! the locked elements (i.e. tell mba that the mesh is perfect there already). Directly adjacent to
+    ! the locked region it will interpolate linearly between the overwritten metric and the metric we want,
+    ! so that it still adapts to our desired quality everywhere it is allowed to.
+    real, dimension(:,:), intent(inout):: metric
+    integer, dimension(:), intent(in):: locked_elements
+    type(vector_field), intent(in):: positions
+
+    real, dimension(2,2) :: ele_metric
+    real, dimension(3) :: ele_metric_vector
+    integer, dimension(:), allocatable:: adjacent_locked_element_count
+    integer, dimension(:), pointer:: nodes
+    integer :: i, j, ele, n
+
+    ! keep track of how many element metrics we've added into each node already
+    allocate(adjacent_locked_element_count(1:node_count(positions)))
+    adjacent_locked_element_count = 0
+
+    do i=1, size(locked_elements)
+      ele = locked_elements(i)
+      ele_metric = simplex_tensor(positions, ele)
+      ele_metric_vector(1) = ele_metric(1,1)
+      ele_metric_vector(2) = ele_metric(2,2)
+      ele_metric_vector(3) = ele_metric(1,2)
+      nodes => ele_nodes(positions, ele)
+      do j=1, size(nodes)
+        n = adjacent_locked_element_count(nodes(j))
+        ! take running average of all 'element metric's for the elements adjacent to the nodes
+        ! note that in the first contribution, n=0, we throw out the metric values that were there originally
+        metric(:,nodes(j)) = (n*metric(:,nodes(j))+ele_metric_vector)/(n+1)
+        adjacent_locked_element_count(nodes(j)) = n+1
+      end do
+    end do
+
+  end subroutine relax_metric_locked_regions
   
   subroutine mba2d_integration_check_options
     character(len = *), parameter :: base_path = "/mesh_adaptivity/hr_adaptivity"  
