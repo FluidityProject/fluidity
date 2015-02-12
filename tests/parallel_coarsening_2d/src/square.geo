@@ -1,4 +1,4 @@
-N=100;
+N=200;
 Point (1) = {0, 0, 0};
 Extrude {1,0,0} {
   Point{1}; Layers{N};
