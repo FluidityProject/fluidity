@@ -231,6 +231,7 @@ contains
        if(.not. all(serial_storage_halo(positions%mesh%element_halos))) then
           pwc_mesh = piecewise_constant_mesh(positions%mesh, "PiecewiseConstantMesh")
           call allocate(positions_ele, positions%dim, pwc_mesh, positions%name)
+          positions_ele%multivalued_halo = positions%multivalued_halo
           call deallocate(pwc_mesh)
           call remap_field(positions, positions_ele)
           do i = 1, nhalos

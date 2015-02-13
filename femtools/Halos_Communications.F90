@@ -448,6 +448,11 @@ contains
     
     integer :: i
     
+    if(v_field%multivalued_halo) then
+      ewrite(2, *) "Not updating halo " // trim(halo%name) // " for field " // trim(v_field%name)
+      return
+    end if  
+
     ewrite(2, *) "Updating halo " // trim(halo%name) // " for field " // trim(v_field%name)
 
     select case(v_field%field_type)
@@ -838,6 +843,12 @@ contains
     
     type(scalar_field) :: sfield
     
+    if(vfield%multivalued_halo) then
+      ewrite(2, *) "Not verifying halo " // trim(halo%name) // " for field " // trim(vfield%name)
+      verifies = .true.
+      return
+    end if  
+    
     sfield = extract_scalar_field(vfield, dim)
     verifies = halo_verifies(halo, sfield)
     
@@ -852,6 +863,12 @@ contains
     logical :: verifies
     
     integer :: i
+
+    if(vfield%multivalued_halo) then
+      ewrite(2, *) "Not verifying halo " // trim(halo%name) // " for field " // trim(vfield%name)
+      verifies = .true.
+      return
+    end if  
     
     verifies = .true.
     do i = 1, vfield%dim

@@ -116,6 +116,7 @@ contains
     do j=1, model%dim
        new_positions%val(j,1:node_count(model))=model%val(j,:)
     end do
+    new_positions%multivalued_halo = model%multivalued_halo
     
     ! copy aliased positions into an array
     do i=1, mapped_node_count

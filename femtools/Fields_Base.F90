@@ -3706,7 +3706,7 @@ contains
     !!< specified in the string func at those points. 
     real, dimension(:), intent(inout) :: values
     !! Func may contain any python at all but the following function must
-    !! be defiled:
+    !! be defined:
     !!  def val(X, t)
     !! where X is a tuple containing the position of a point and t is the
     !! time. The result must be a float. 
@@ -3749,7 +3749,7 @@ contains
     !!< specified in the string func at those points. 
     real, dimension(:), intent(inout) :: values
     !! Func may contain any python at all but the following function must
-    !! be defiled:
+    !! be defined:
     !!  def val(X, t)
     !! where X is a tuple containing the position of a point and t is the
     !! time. The result must be a float. 
@@ -3792,7 +3792,7 @@ contains
     !!< specified in the string func at those points. 
     real, dimension(:,:), target, intent(inout) :: values
     !! Func may contain any python at all but the following function must
-    !! be defiled:
+    !! be defined:
     !!  def val(X, t)
     !! where X is a tuple containing the position of a point and t is the
     !! time. The result must be a float. 
@@ -3846,7 +3846,7 @@ contains
     !!< specified in the string func at those points. 
     real, dimension(:,:), intent(inout) :: values
     !! Func may contain any python at all but the following function must
-    !! be defiled:
+    !! be defined:
     !!  def val(X, t)
     !! where X is a tuple containing the position of a point and t is the
     !! time. The result must be a float. 
@@ -3873,7 +3873,7 @@ contains
     !!< specified in the string func at those points. 
     real, dimension(:,:), intent(inout) :: values
     !! Func may contain any python at all but the following function must
-    !! be defiled:
+    !! be defined:
     !!  def val(X, t)
     !! where X is a tuple containing the position of a point and t is the
     !! time. The result must be a float. 

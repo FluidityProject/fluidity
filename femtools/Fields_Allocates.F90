@@ -358,6 +358,7 @@ contains
 
     field%wrapped = .false.
     field%aliased = .false.
+    field%multivalued_halo = .false.
     allocate(field%bc)
     nullify(field%refcount) ! Hack for gfortran component initialisation
     !                         bug.    

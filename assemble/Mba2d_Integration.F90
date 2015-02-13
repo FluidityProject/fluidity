@@ -365,6 +365,7 @@ module mba2d_integration
     new_mesh%shape%quadrature%refcount%tagged = .false.
     new_mesh%ndglno = reshape(IPE(:, 1:totele), (/size(new_mesh%ndglno)/))
     new_mesh%option_path = xmesh%option_path
+    new_mesh%periodic = xmesh%periodic
     
     if (.not. isparallel()) then
       allocate(new_sndgln(1:2,1:stotel), mba_boundary_ids(1:stotel))
@@ -426,6 +427,7 @@ module mba2d_integration
 
     call allocate(output_positions, 2, new_mesh, trim(input_positions%name))
     output_positions%option_path = input_positions%option_path
+    output_positions%multivalued_halo = input_positions%multivalued_halo
     call deallocate(new_mesh)
     call set_all(output_positions, pos(:, 1:nonods))
     

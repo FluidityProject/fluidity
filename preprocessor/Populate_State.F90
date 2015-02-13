@@ -35,7 +35,8 @@ module populate_state_module
   use vtk_cache_module
   use global_parameters, only: OPTION_PATH_LEN, is_active_process, pi, &
     no_active_processes, topology_mesh_name, adaptivity_mesh_name, &
-    periodic_boundary_option_path, domain_bbox, domain_volume, surface_radius
+    periodic_boundary_option_path, domain_bbox, domain_volume, &
+    surface_radius, global_domain_centroid
   use field_options
   use reserve_state_module
   use fields_manipulation
@@ -58,6 +59,7 @@ module populate_state_module
   use fields_halos
   use read_triangle
   use initialise_ocean_forcing_module
+  use MeshDiagnostics, only: mesh_stats
 
   implicit none
 
@@ -390,6 +392,12 @@ contains
                        
           ! If running in parallel, additionally read in halo information and register the elements halo
           if(isparallel()) then
+            if(mesh_periodic(position).and.&
+               have_option("/mesh_adaptivity/hr_adaptivity")) then
+              ! set the flag that says the positions field will be multivalued in the halos
+              ! so don't update or verify based on these positions!
+              position%multivalued_halo = .true.
+            end if
             if (no_active_processes == 1) then
               call create_empty_halo(position)
             else
@@ -696,6 +704,8 @@ contains
             else
               call extrude(modelposition, mesh_path, extrudedposition)
             end if
+
+            extrudedposition%multivalued_halo=extrudedposition%multivalued_halo
                 
          end if
                
@@ -708,6 +718,11 @@ contains
          else
             extrudedposition%name = trim(mesh_name)//"Coordinate"
          end if
+         ! Ensure the name and option path are set on the original
+         ! mesh descriptor.
+         extrudedposition%mesh%name = mesh_name
+         extrudedposition%mesh%option_path = trim(mesh_path)
+
          call insert(states, extrudedposition, extrudedposition%name)
          call deallocate(extrudedposition)
                
@@ -732,6 +747,11 @@ contains
            else
               nonperiodic_position%name = trim(mesh_name)//"Coordinate"
            end if
+           ! Ensure the name and option path are set on the original
+           ! mesh descriptor.
+           nonperiodic_position%mesh%name = mesh_name
+           nonperiodic_position%mesh%option_path = trim(mesh_path)
+
            call insert(states, nonperiodic_position, nonperiodic_position%name)
            call deallocate(nonperiodic_position)
                  
@@ -3128,6 +3148,8 @@ contains
     real :: vol
     type(scalar_field) :: temp_s_field
 
+    integer :: node, nodes
+
     positions => extract_vector_field(states(1), "Coordinate")
     if (allocated(domain_bbox)) then
       deallocate(domain_bbox)
@@ -3140,6 +3162,19 @@ contains
       domain_bbox(dim, 2) = maxval(positions%val(dim,:))
       ewrite(2,*) "domain_bbox - dim, range =", dim, domain_bbox(dim,:)
     end do
+
+    if(.not.allocated(global_domain_centroid)) then
+      allocate(global_domain_centroid(positions%dim))
+      global_domain_centroid = 0.0
+      call mesh_stats(positions, nodes)
+      do node = 1, node_count(positions)
+        if(node_owned(positions, node)) then
+          global_domain_centroid = global_domain_centroid + node_val(positions, node)
+        end if
+      end do
+      call allsum(global_domain_centroid)
+      global_domain_centroid = global_domain_centroid/nodes
+    end if
 
     vol = 0.0
     do ele=1,ele_count(positions)

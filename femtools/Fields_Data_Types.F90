@@ -207,6 +207,9 @@ module fields_data_types
      !! Picker used for spatial indexing (pointer to a pointer to ensure
      !! correct handling on assignment)
      type(picker_ptr), pointer :: picker => null()
+     !! Indicate whether this field should be halo updated/verified
+     !! (mostly used for parallel periodic adaptive)
+     logical :: multivalued_halo=.false.
   end type vector_field
 
   type tensor_field

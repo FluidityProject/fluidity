@@ -563,6 +563,7 @@ contains
     
     output_mesh%ndglno = intarr(nwenls:nwenls + nwszen - 1)
     output_mesh%option_path = input_positions%mesh%option_path    
+    output_mesh%periodic = input_positions%mesh%periodic
 
     ! Construct the new positions
     call allocate(output_positions, dim, output_mesh, name = input_positions%name)
@@ -574,6 +575,7 @@ contains
     call set_all(output_positions, 2, rlarr(nwnody:nwnody + nwnnod - 1))
     call set_all(output_positions, 3, rlarr(nwnodz:nwnodz + nwnnod - 1))
     output_positions%option_path = input_positions%option_path
+    output_positions%multivalued_halo = input_positions%multivalued_halo
 
     ! put the region id info in now so we can reorder it if we're parallel
     if(have_option(base_path // "/preserve_mesh_regions")&

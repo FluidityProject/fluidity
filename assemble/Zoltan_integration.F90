@@ -19,7 +19,7 @@ module zoltan_integration
   use vtk_interfaces
   use zoltan
   use linked_lists
-  use global_parameters, only: real_size, OPTION_PATH_LEN, topology_mesh_name
+  use global_parameters, only: real_size, OPTION_PATH_LEN, topology_mesh_name, global_domain_centroid
   use data_structures
   use populate_state_module
   use reserve_state_module
@@ -288,12 +288,12 @@ module zoltan_integration
     ! And now transfer the field data around.
     call transfer_fields(zz)
 
+    call finalise_transfer(states, metric, full_metric, new_metric)
+
     call deallocate(zoltan_global_new_positions)
     if(zoltan_global_migrate_extruded_mesh) then
       call deallocate(zoltan_global_new_positions_m1d)
     end if
-
-    call finalise_transfer(states, metric, full_metric, new_metric)
 
     call cleanup_basic_module_variables(zz)
     call cleanup_quality_module_variables
@@ -1712,7 +1712,23 @@ module zoltan_integration
     type(mesh_type), pointer :: mesh
     integer :: no_meshes
     
+    ! Stuff for parallel, periodic and adaptive (parallel assumed as we're in here!)
+    type(vector_field) :: coordinate, dg_zoltan_coordinate
+    type(mesh_type) :: dg_zoltan_coordinate_mesh
+    character(len=FIELD_NAME_LEN) :: dg_periodic_coord_mesh_name
+    logical :: adaptive, found_dg_periodic_coord_mesh
+
+#ifdef DDEBUG
+    logical :: is_dg_periodic_mesh
+#endif
+
     ewrite(1,*) 'in initialise_transfer'
+
+    adaptive = have_option("/mesh_adaptivity/hr_adaptivity")
+    if(mesh_periodic(zoltan_global_zz_mesh).and.adaptive) then
+      coordinate = extract_vector_field(states(1), "Coordinate")
+      call incref(coordinate)
+    end if
     
     ! Set up zoltan_global_source_states
     do i=1,size(states)
@@ -1731,14 +1747,49 @@ module zoltan_integration
        call deallocate(metric)
     end if
     
-    allocate( mesh_names(1:mesh_count(interpolate_states(1))) )
+    if(mesh_periodic(zoltan_global_zz_mesh).and.adaptive) then
+      allocate( mesh_names(1:mesh_count(interpolate_states(1))+1) )
+    else
+      allocate( mesh_names(1:mesh_count(interpolate_states(1))) )
+    end if
     no_meshes = 0
+    dg_periodic_coord_mesh_name = ""
+    found_dg_periodic_coord_mesh = .false.
     do i=1, mesh_count(interpolate_states(1))
        mesh => extract_mesh(interpolate_states(1), i)
        if (zoltan_global_migrate_extruded_mesh .and. mesh_dim(mesh)/=mesh_dim(zoltan_global_new_positions)) cycle
        no_meshes = no_meshes + 1
        mesh_names(no_meshes) = mesh%name
+       if(mesh_periodic(zoltan_global_zz_mesh).and.adaptive) then
+         if((continuity(mesh)==-1) &
+            .and.(element_degree(zoltan_global_zz_mesh,1)==element_degree(mesh,1)) &
+            .and.(mesh_periodic(mesh))) then
+           dg_periodic_coord_mesh_name = trim(mesh%name)
+           found_dg_periodic_coord_mesh = .true.
+         end if
+       end if
     end do
+
+    if(mesh_periodic(zoltan_global_zz_mesh).and.adaptive) then
+      if(.not.found_dg_periodic_coord_mesh) then
+        ! we didn't find a suitable mesh to put the dg coordinates on so let's make one
+        dg_zoltan_coordinate_mesh = make_mesh(zoltan_global_zz_mesh, continuity=-1, name="_DGZoltanCoordMesh")
+        call insert(interpolate_states(1), dg_zoltan_coordinate_mesh, name=trim(dg_zoltan_coordinate_mesh%name))
+        call allocate(dg_zoltan_coordinate, coordinate%dim, dg_zoltan_coordinate_mesh, "_DGZoltanCoord")
+        call deallocate(dg_zoltan_coordinate_mesh)
+        no_meshes=no_meshes + 1
+        mesh_names(no_meshes) = dg_zoltan_coordinate_mesh%name
+      else
+        ! woo, a suitable dg mesh already exists
+        mesh => extract_mesh(interpolate_states(1), dg_periodic_coord_mesh_name)
+        call allocate(dg_zoltan_coordinate, coordinate%dim, mesh, "_DGZoltanCoord")
+      end if
+      ! remap the continuous unperiodic coordinates to a periodic discontinuous field
+      call remap_field(coordinate, dg_zoltan_coordinate)
+      call insert(interpolate_states(1), dg_zoltan_coordinate, name=trim(dg_zoltan_coordinate%name))
+      call deallocate(dg_zoltan_coordinate)
+      call deallocate(coordinate)
+    end if
     
     allocate(zoltan_global_source_states(no_meshes))
     call halo_update(interpolate_states, level=1)
@@ -1753,7 +1804,8 @@ module zoltan_integration
     if (mesh_periodic(zoltan_global_zz_mesh)) then
        zoltan_global_new_positions%mesh%periodic = .true.
     end if
-    
+    zoltan_global_new_positions%multivalued_halo = zoltan_global_zz_positions%multivalued_halo
+
     ! Start setting up states so that it can be populated with migrated fields data
     
     ! Put the new positions mesh into states
@@ -1797,6 +1849,31 @@ module zoltan_integration
        call insert(interpolate_states(1), new_metric, "ErrorMetric")
     end if
     
+    if(mesh_periodic(zoltan_global_new_positions).and.adaptive) then
+      coordinate = extract_vector_field(states(1), "Coordinate")
+      if(.not.found_dg_periodic_coord_mesh) then
+        ! we didn't find a suitable mesh to put the dg coordinates on so let's make one
+        dg_zoltan_coordinate_mesh = make_mesh(zoltan_global_new_positions%mesh, continuity=-1, name="_DGZoltanCoordMesh")
+        call insert(interpolate_states(1), dg_zoltan_coordinate_mesh, name=trim(dg_zoltan_coordinate_mesh%name))
+        call allocate(dg_zoltan_coordinate, coordinate%dim, dg_zoltan_coordinate_mesh, "_DGZoltanCoord")
+        call deallocate(dg_zoltan_coordinate_mesh)
+      else
+        ! woo, a suitable dg mesh already exists
+        mesh => extract_mesh(interpolate_states(1), dg_periodic_coord_mesh_name)
+#ifdef DDEBUG
+        ! make sure that this really is the mesh we want still
+        is_dg_periodic_mesh = ((continuity(mesh)==-1) &
+           .and.(element_degree(zoltan_global_new_positions%mesh,1)==element_degree(mesh,1)) &
+           .and.(mesh_periodic(mesh)))
+        assert(is_dg_periodic_mesh)
+#endif
+        call allocate(dg_zoltan_coordinate, coordinate%dim, mesh, "_DGZoltanCoord")
+      end if
+      call zero(dg_zoltan_coordinate)
+      call insert(interpolate_states(1), dg_zoltan_coordinate, name=trim(dg_zoltan_coordinate%name))
+      call deallocate(dg_zoltan_coordinate)
+    end if
+
     allocate(zoltan_global_target_states(no_meshes))
     call collect_fields_by_mesh(interpolate_states, mesh_names(1:no_meshes), zoltan_global_target_states)
       
@@ -2182,7 +2259,10 @@ module zoltan_integration
     type(tensor_field), intent(inout), optional :: full_metric
     type(tensor_field), intent(in) :: new_metric
 
-    integer :: i
+    type(vector_field), pointer :: dg_periodic_coordinate, coordinate
+
+    integer :: i, stat
+
     call set_prescribed_field_values(states, exclude_interpolated = .true.)
     call populate_boundary_conditions(states)
     call set_boundary_conditions_values(states)
@@ -2195,6 +2275,23 @@ module zoltan_integration
     else if (present(metric)) then
        metric = new_metric
        call halo_update(metric)
+    end if
+
+    if(mesh_periodic(zoltan_global_new_positions)&
+       .and.have_option("/mesh_adaptivity/hr_adaptivity")) then
+      dg_periodic_coordinate => extract_vector_field(zoltan_global_target_states,  "State1_DGZoltanCoord")
+      coordinate => extract_vector_field(states(1), "Coordinate")
+      call unwrap_periodic_coordinates(dg_periodic_coordinate, coordinate, zoltan_global_new_positions)
+      
+      call shift_coordinates_periodic(coordinate)
+
+      call remap_field(coordinate, zoltan_global_new_positions, stat)
+      if(stat/=REMAP_ERR_UNPERIODIC_PERIODIC) then
+         FLAbort("Illegal remapping of Coordinate field.")
+      end if
+      
+      call remove_periodic_surface_ids(states(1), coordinate) 
+
     end if
     
     do i=1,size(zoltan_global_source_states)
@@ -2268,6 +2365,285 @@ module zoltan_integration
     call deallocate(unn)
     
   end subroutine dump_suggested_owner
+
+  subroutine unwrap_periodic_coordinates(dg_positions, positions, periodic_positions)
+    ! this routine takes in a dg_positions coordinate field
+    ! in each element the coordinates are consistent, but because
+    ! different processes may have applied the periodic map a different
+    ! number of times, the dg nodes corresponding to a single vertex may not
+    ! agree. The routine tries to reconstruct a consistent continous coordin>
+    ! field by starting in a single element and recursively making sure the 
+    ! neighbouring elements are continuously connected. This will only work
+    ! if the local domain is not wrapped around the periodic boundary.
+    ! The continuous positions field should already be allocated before
+    ! the call on the desired continuous CoordinateMesh
+    type(vector_field), intent(inout):: dg_positions
+    type(vector_field), intent(inout):: positions
+    type(vector_field), intent(in) :: periodic_positions
+
+    type(csr_sparsity), pointer :: nelist
+    
+    real, parameter:: EPSFRAC=epsilon(1.0)*1000.0
+    real, dimension(positions%dim):: eps
+    type(integer_set):: not_fixed_yet
+    integer:: i, ele
+
+    ewrite(1, *) "Inside unwrap_periodic_coordinates"
+
+    ! all nodes of positions should be set to something in the routine below
+    ! this is to check we're not leaving any out
+    call set(positions, (/ (-huge(1.0), i=1,positions%dim) /))
+
+    ! determine what a small distance is in each direction
+    do i=1, positions%dim
+      eps(i)=maxval(dg_positions%val(i,:))-minval(dg_positions%val(i,:))
+    end do
+    eps = eps * EPSFRAC
+
+    call allocate(not_fixed_yet)
+    do i=1, element_count(dg_positions)
+      call insert(not_fixed_yet, i)
+    end do
+
+    nelist => extract_nelist(periodic_positions)
+ 
+    do while (key_count(not_fixed_yet)>0)
+
+      ele = fetch(not_fixed_yet, 1)
+      ! fix all elements in a patch, starting with element ele
+      ! and all elements connected to it
+      call fix_connected_patch(ele)
+
+    end do
+
+    ewrite_minmax(dg_positions)
+    ewrite_minmax(positions)
+
+    contains
+
+    subroutine fix_connected_patch(starting_ele)
+      integer, intent(in):: starting_ele
+
+      ! this is a work stack of elements that have been fixed, but whose
+      ! neighbours possibly are not
+      type(integer_set):: work_stack
+      real, dimension(1:positions%dim):: dx
+      real, dimension(dg_positions%dim, ele_loc(dg_positions, 1)) :: dg_pos_ele, dg_pos_ele2
+      integer, dimension(:), pointer:: neigh, nodes, nodes2
+      integer:: ele, ele2, i, j, k, node
+
+      ewrite(1, *) "Inside fix_connected_patch"
+
+      call allocate(work_stack)
+      call set(positions, ele_nodes(positions, starting_ele), &
+        ele_val(dg_positions, starting_ele))
+      call insert(work_stack, starting_ele)
+
+      do while (key_count(work_stack)>0)
+
+        ele=fetch(work_stack,1)
+        nodes => ele_nodes(periodic_positions, ele)
+        dg_pos_ele = ele_val(dg_positions, ele)
+
+        do j=1, ele_loc(periodic_positions, ele)
+
+          node = nodes(j)
+          ! this has to use the periodic connectivity:
+          neigh => row_m_ptr(nelist, node)
+
+          do i=1, size(neigh)
+            ele2=neigh(i)
+            dg_pos_ele2 = ele_val(dg_positions, ele2)
+            nodes2 => ele_nodes(periodic_positions, ele2)
+            do k = 1, size(nodes2)
+              if (nodes2(k)==node) exit
+            end do
+
+            if (has_value(not_fixed_yet, ele2)) then
+              ! work out the jump from the difference in position of the node in both elements
+              dx = dg_pos_ele2(:,k) - dg_pos_ele(:,j)
+              ! subtract this difference (possibly zero) from all nodes in ele2
+              call set(dg_positions, ele_nodes(dg_positions, ele2), &
+                 dg_pos_ele2 - spread(dx,2,ele_loc(dg_positions, ele2)))
+              ! dg_pos_ele2 has just changed... update it so its valid for the test below
+              dg_pos_ele2 = ele_val(dg_positions, ele2)
+              call set(positions, ele_nodes(positions, ele2), dg_pos_ele2)
+              call insert(work_stack, ele2)
+              call remove(not_fixed_yet, ele2)
+            end if
+            ! at this stage ele2 should be fixed, either because
+            ! we've just moved it - or because it has been before
+            !   check there is indeed no longer a jump
+            if (any(abs(dg_pos_ele(:,j)-dg_pos_ele2(:,k))>eps)) then
+              ewrite(-1,*) "dg_pos_ele(:,j) = ", dg_pos_ele(:,j)
+              ewrite(-1,*) "dg_pos_ele2(:,k) = ", dg_pos_ele2(:,k)
+              ewrite(-1,*) "dx = ", dg_pos_ele(:,j)-dg_pos_ele2(:,k)
+              ewrite(-1,*) "eps = ", eps
+              ewrite(-1,*) "Unable to unwrap the periodic mesh locally."
+              ewrite(-1,*) "This typically happens when a local domain of a process"
+              ewrite(-1,*) "wraps around the periodic boundary - periodic parallel adaptivity"
+              ewrite(-1,*) "cannot handle this case (yet)."
+              ewrite(-1,*) "Make sure you have enough resolution in the periodic direction"
+              ewrite(-1,*) "and are running with enough processes."
+              FLExit("Periodic parallel adaptivity failure")
+            end if
+
+          end do
+
+        end do
+
+        ! we've done this element and its neighbours - never come back again:
+        call remove(work_stack, ele)
+
+      end do
+
+      call deallocate(work_stack)
+
+    end subroutine fix_connected_patch
+
+  end subroutine unwrap_periodic_coordinates
+
+  subroutine shift_coordinates_periodic(coordinate)
+    type(vector_field), intent(inout) :: coordinate
+
+    type(vector_field) :: remapped_coordinate
+    character(len=OPTION_PATH_LEN) :: bc_path
+    character(len=OPTION_PATH_LEN) :: coordinate_map, inverse_coordinate_map
+    real, dimension(coordinate%dim, 1) :: centroid, remapped_centroid
+    real :: distance, best_distance
+    integer bc, no_bcs, imap_stat, i, remaps, inversemaps, nodes
+    integer, parameter :: max_maps=100
+  
+    ewrite(1,*) 'Entering shift_coordinates_periodic'
+
+    no_bcs = option_count(trim(coordinate%mesh%option_path)//"/from_mesh/periodic_boundary_conditions")
+
+    call allocate(remapped_coordinate, coordinate%dim, coordinate%mesh, name="RemappedCoordinateZoltan")
+
+    centroid = 0
+    nodes = 0
+    do i = 1, node_count(coordinate)
+      if(node_owned(coordinate,i)) then
+        centroid(:,1) = centroid(:,1) + node_val(coordinate, i)
+        nodes = nodes + 1
+      end if
+    end do
+    centroid(:,1) = centroid(:,1)/nodes
+    best_distance = norm2(centroid(:,1)-global_domain_centroid)
+
+    bc_loop: do bc = 0, no_bcs-1
+      bc_path = trim(coordinate%mesh%option_path)//"/from_mesh/periodic_boundary_conditions["//int2str(bc)//"]"
+      
+      call get_option(trim(bc_path)//"/coordinate_map", coordinate_map)
+      call get_option(trim(bc_path)//"/inverse_coordinate_map", inverse_coordinate_map, stat=imap_stat)
+      
+      remaps = 0
+      remap_loop: do while(.true.)
+        call set_from_python_function(remapped_centroid, coordinate_map, centroid, time=0.0) 
+        distance = norm2(remapped_centroid(:,1)-global_domain_centroid)
+        if(distance < best_distance) then
+          best_distance = distance
+          call set_from_python_function(remapped_coordinate, coordinate_map, coordinate, time=0.0)
+          call set(coordinate, remapped_coordinate)
+          centroid = remapped_centroid
+          remaps = remaps + 1
+        else
+          exit remap_loop
+        end if
+        if(remaps > max_maps) then
+          ewrite(0,*) "WARNING: More than 100 remaps have taken place while shifting the coordinates."
+          ewrite(0,*) "This probably means something has gone wrong, exiting loop."
+          exit remap_loop
+        end if
+      end do remap_loop
+
+      inversemaps = 0
+      if((imap_stat==0).and.(remaps==0)) then
+        inversemap_loop: do while(.true.)
+          call set_from_python_function(remapped_centroid, inverse_coordinate_map, centroid, time=0.0) 
+          distance = norm2(remapped_centroid(:,1)-global_domain_centroid)
+          if(distance < best_distance) then
+            best_distance = distance
+            call set_from_python_function(remapped_coordinate, inverse_coordinate_map, coordinate, time=0.0)
+            call set(coordinate, remapped_coordinate)
+            centroid = remapped_centroid
+            inversemaps = inversemaps + 1
+          else
+            exit inversemap_loop
+          end if
+          if(inversemaps > max_maps) then
+            ewrite(0,*) "WARNING: More than 100 inverse maps have taken place while shifting the coordinates."
+            ewrite(0,*) "This probably means something has gone wrong, exiting loop."
+            exit inversemap_loop
+          end if
+        end do inversemap_loop
+      else if(imap_stat/=0) then
+        ewrite(0,*) "WARNING: You haven't provided an inverse_coordinate_map so I can't shift the"
+        ewrite(0,*) "coordinates in the inverse map direction.  Your domain may slide around a bit."
+      end if
+    end do bc_loop
+
+    ewrite(2,*) 'shift_coordinates_periodic: remaps, inversemaps, best_distance: ', remaps, inversemaps, best_distance
+
+    call deallocate(remapped_coordinate)
+
+  end subroutine shift_coordinates_periodic
+
+  subroutine remove_periodic_surface_ids(state, positions)
+    type(state_type), intent(inout):: state
+    type(vector_field), intent(in):: positions
+
+    character(len=OPTION_PATH_LEN):: mesh_path
+    type(mesh_type), pointer:: mesh
+    type(integer_set):: all_periodic_bc_ids
+    integer, dimension(:), allocatable:: periodic_ids
+    integer, dimension(:), pointer:: surface_ids
+    integer, dimension(2) :: shape_option
+    integer:: i,j, n_periodic_bcs
+
+    mesh_path = positions%mesh%option_path
+
+    n_periodic_bcs=option_count(trim(mesh_path)//"/from_mesh/periodic_boundary_conditions")
+    ewrite(2,*) "n_periodic_bcs=", n_periodic_bcs
+    if (n_periodic_bcs == 0) then
+      ewrite(-1,*) "You almost certainly didn't mean to pass in this option path."
+      ewrite(-1,*) "trim(mesh_path): ", trim(mesh_path)
+      FLAbort("No periodic boundary conditions to remove!")
+    end if
+
+    call allocate(all_periodic_bc_ids)
+    do j=0, n_periodic_bcs-1
+       shape_option = option_shape(trim(mesh_path)//"/from_mesh/periodic_boundary_conditions["//int2str(j)//"]/physical_boundary_ids")
+       allocate( periodic_ids(shape_option(1)) )
+       call get_option(trim(mesh_path)//"/from_mesh/periodic_boundary_conditions["//int2str(j)//"]/physical_boundary_ids",periodic_ids)
+       call insert(all_periodic_bc_ids, periodic_ids)
+       deallocate(periodic_ids)
+
+       shape_option = option_shape(trim(mesh_path)//"/from_mesh/periodic_boundary_conditions["//int2str(j)//"]/aliased_boundary_ids")
+       allocate( periodic_ids(shape_option(1)) )
+       call get_option(trim(mesh_path)//"/from_mesh/periodic_boundary_conditions["//int2str(j)//"]/aliased_boundary_ids", periodic_ids)
+       call insert(all_periodic_bc_ids, periodic_ids)
+       deallocate(periodic_ids)
+    end do
+
+    surface_ids => positions%mesh%faces%boundary_ids
+
+    do i=1, size(surface_ids)
+      if (has_value(all_periodic_bc_ids, surface_ids(i))) then
+        surface_ids(i)=0
+      end if
+    end do
+
+    call deallocate(all_periodic_bc_ids)
+
+    do i=1, mesh_count(state)
+      mesh => extract_mesh(state, i)
+      if (size(mesh%faces%boundary_ids)==size(surface_ids)) then
+        mesh%faces%boundary_ids=surface_ids
+      end if
+    end do
+
+  end subroutine remove_periodic_surface_ids
 
 #endif
 end module zoltan_integration

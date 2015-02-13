@@ -3870,6 +3870,7 @@ implicit none
     end do
 
     output_positions%option_path = input_positions%option_path
+    output_positions%multivalued_halo = input_positions%multivalued_halo
 
     ewrite(1, *) "Exiting renumber_positions"
 
@@ -3969,6 +3970,7 @@ implicit none
     end do
 
     output_positions%option_path = input_positions%option_path
+    output_positions%multivalued_halo = input_positions%multivalued_halo
 
     ewrite(1, *) "Exiting renumber_positions_elements"
 

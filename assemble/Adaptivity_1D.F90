@@ -117,7 +117,9 @@ contains
     new_positions%name = old_positions%name
     new_positions%mesh%name = old_positions%mesh%name
     new_positions%option_path = old_positions%option_path
+    new_positions%multivalued_halo = old_positions%multivalued_halo
     new_positions%mesh%option_path = old_positions%mesh%option_path
+    new_positions%mesh%periodic = old_positions%mesh%periodic
     
     if(present(node_ownership)) call generate_1d_node_ownership(old_positions, new_positions, node_ownership)
               

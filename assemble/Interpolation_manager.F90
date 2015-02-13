@@ -283,9 +283,9 @@ contains
       call insert(meshes_old(mesh), old_pos, "Coordinate")
       call insert(meshes_new(mesh), new_pos, "Coordinate")
 
-      if (mesh_periodic(new_mesh)) then
+      if (any_periodic_meshes) then
         
-        ! Nice work, soldier! Now if the mesh is periodic we need to expand the mesh in the plane,
+        ! Nice work, soldier! Now if any of the meshes are periodic we need to expand the mesh in the plane,
         ! as if we've adapted the domain edges won't match up, will they?
         
         ! first we keep a copy of meshes_new
@@ -377,11 +377,6 @@ contains
             call deallocate(alg_new(mesh))
           end do
         case("interpolation_galerkin")
-          if(.not. allocated(map_BA)) then
-            allocate(map_BA(ele_count(new_pos)))
-            map_BA = intersection_finder(new_pos, old_pos)
-          end if
-        
           do mesh = 1, mesh_cnt
             call get_option("/geometry/mesh[" // int2str(mesh - 1) // "]/name", mesh_name)
             old_mesh => extract_mesh(states_old(1), trim(mesh_name))
@@ -402,6 +397,11 @@ contains
             no_fields = no_fields + field_count(alg_old(mesh))
           end do
           if(no_fields > mesh_cnt) then ! there will always be a Coordinate per mesh
+            if(.not. allocated(map_BA)) then
+              allocate(map_BA(ele_count(new_pos)))
+              map_BA = intersection_finder(new_pos, old_pos)
+            end if
+        
             assert(allocated(map_BA))
             call interpolation_galerkin(alg_old, alg_new, map_BA = map_BA)
           end if
@@ -411,11 +411,6 @@ contains
             call deallocate(alg_new(mesh))
           end do
         case("grandy_interpolation")
-          if(.not. allocated(map_BA)) then
-            allocate(map_BA(ele_count(new_pos)))
-            map_BA = intersection_finder(new_pos, old_pos)
-          end if
-          
           do mesh = 1, mesh_cnt
             call get_option("/geometry/mesh[" // int2str(mesh - 1) // "]/name", mesh_name)
             old_mesh => extract_mesh(states_old(1), trim(mesh_name))
@@ -436,6 +431,11 @@ contains
             no_fields = no_fields + field_count(alg_old(mesh))
           end do
           if(no_fields > mesh_cnt) then ! there will always be a Coordinate per mesh
+            if(.not. allocated(map_BA)) then
+              allocate(map_BA(ele_count(new_pos)))
+              map_BA = intersection_finder(new_pos, old_pos)
+            end if
+          
             assert(allocated(map_BA))
             call grandy_projection(alg_old, alg_new, map_BA = map_BA)
           end if
@@ -460,8 +460,6 @@ contains
       do mesh=1,mesh_cnt
         call get_option("/geometry/mesh["//int2str(mesh-1)//"]/name", mesh_name)
         old_mesh => extract_mesh(states_old(1), trim(mesh_name))
-
-        if (.not. mesh_periodic(old_mesh)) cycle
 
         ! If we are periodic, we have interpolated the unwrapped version
         ! So let's remap to the periodic one we actually need
@@ -872,8 +870,15 @@ contains
       call incref(old_mesh_unperiodic)
     end if
     
-    call expand_periodic_mesh(positions_old, old_mesh_unperiodic, &
-      expanded_positions, old_mesh_expanded)
+    if(isparallel()) then
+      expanded_positions=positions_old
+      call incref(expanded_positions)
+      old_mesh_expanded=old_mesh_unperiodic
+      call incref(old_mesh_expanded)
+    else
+      call expand_periodic_mesh(positions_old, old_mesh_unperiodic, &
+        expanded_positions, old_mesh_expanded)
+    end if
     
     total_multiple = element_count(old_mesh_expanded)/element_count(old_mesh_unperiodic)
     assert(element_count(old_mesh_expanded) == total_multiple*element_count(old_mesh_unperiodic))
@@ -988,6 +993,9 @@ contains
     dim = positions_in%dim
     
     no_bcs = option_count(trim(periodic_boundary_option_path(dim)) // '/from_mesh/periodic_boundary_conditions')
+    if(no_bcs==0) then
+      FLAbort("Called expand_periodic_mesh with no periodic bcs.")
+    end if
     total_multiple = 1
     
     positions = positions_in

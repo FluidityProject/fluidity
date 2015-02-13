@@ -298,6 +298,7 @@ contains
       output_mesh%region_ids = lbe(:ne)
     end if
     output_mesh%option_path = input_positions%mesh%option_path
+    output_mesh%periodic = input_positions%mesh%periodic
 
     ! Construct the new positions
     call allocate(output_positions, dim, output_mesh, name = input_positions%name)
@@ -307,6 +308,7 @@ contains
       output_positions%val(i,:) = xyp(i, :np)
     end do
     output_positions%option_path = input_positions%option_path
+    output_positions%multivalued_halo = input_positions%multivalued_halo
 
     deallocate(xyp)
     deallocate(ipf)
