@@ -626,7 +626,8 @@ contains
               & .or. (have_option(trim(s_field%option_path) // "/prescribed") &
                 & .and. interpolate_field(s_field))) &
               & .and. .not. aliased(s_field) &
-              & .or. have_option(trim(s_field%option_path) // "/diagnostic/output/checkpoint") ) then
+              & .or. have_option(trim(s_field%option_path) // "/diagnostic/output/checkpoint") &
+		& .or. have_option(trim(s_field%option_path) // "/prescribed/output/checkpoint") ) then
               if(have_option(trim(complete_field_path(s_field%option_path)) // "/exclude_from_checkpointing")) cycle
               ! needs_initial_mesh indicates the field is from_file (i.e. we're dealing with a checkpoint)
               if(present_and_true(keep_initial_data) .and. .not. needs_initial_mesh(s_field)) cycle
