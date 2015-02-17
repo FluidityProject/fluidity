@@ -161,10 +161,14 @@
           <integer_value rank="0">1</integer_value>
         </number_of_adapts>
       </adapt_at_first_timestep>
-      <debug>
-        <write_metric_stages/>
-        <write_adapted_state/>
-      </debug>
+      <zoltan_options>
+        <element_quality_cutoff>
+          <real_value rank="0">0.35</real_value>
+        </element_quality_cutoff>
+        <additional_adapt_iterations>
+          <integer_value rank="0">20</integer_value>
+        </additional_adapt_iterations>
+      </zoltan_options>
     </hr_adaptivity>
   </mesh_adaptivity>
 </fluidity_options>
