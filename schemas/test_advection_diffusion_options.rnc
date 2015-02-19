@@ -3579,21 +3579,6 @@ scalar_field_choice =
                }
             )
          }|
-         ## Viscous dissipation
-         element scalar_field {
-            attribute rank { "0" },
-            attribute name { "ViscousDissipation" },
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  velocity_mesh_choice,
-                  diagnostic_scalar_field
-               }|
-               element aliased {
-                  generic_aliased_field
-               }
-            )
-         }|
          ## Richardson Number:
          ##
          ##  Ri = \frac{N^2}{(\frac{\partial u}{\partial z})^2 + (\frac{\partial u}{\partial z})^2}

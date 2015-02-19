@@ -60,7 +60,7 @@ CFLAGS	= @CPPFLAGS@ @CFLAGS@
 CXX	= @CXX@
 CXXFLAGS= @CPPFLAGS@ @CXXFLAGS@ -I./include
 
-LINKER  = @LINKER@ @LDFLAGS@
+LINKER  = @LINKER@ @LDFLAGS@ $(CXXFLAGS)
 
 FLLINKER = @FLLINKER@ @LDFLAGS@ $(FCFLAGS)
 
@@ -209,7 +209,7 @@ bin/burgers_equation: fluidity_library main/Burgers_Equation.F90
 	@echo "    MKDIR bin"
 	@mkdir -p bin
 	@echo "    LD burgers_equation"
-	@$(EVAL) $(FC) -o bin/burgers_equation main/Burgers_Equation.o $(FCFLAGS) $(LIBS)
+	@$(EVAL) $(FLLINKER) -o bin/burgers_equation main/Burgers_Equation.o $(FCFLAGS) $(LIBS)
 
 ifeq (@ENABLE_PSMILE@,yes)
 LIBPSMILE=@FLPSMILE_PATH@/lib/libpsmile_oa4.MPI1.a @FLPSMILE_PATH@/lib/libcommon_oa4.a @FLPSMILE_PATH@/lib/libmpp_io.a -lxml2
@@ -498,7 +498,7 @@ distclean: clean
 	@find ./ \( -name make.log \) -exec rm -f {} \; > /dev/null
 	@rm -f Makefile > /dev/null
 
-test: fltools bin/$(FLUIDITY) bin/shallow_water serialtest bin/burgers_equation
+test: serialtest
 
 serialtest: fltools bin/$(FLUIDITY) bin/shallow_water
 	@cd tests; ../bin/testharness -l short $(EXCLUDE_TAGS) -n $(THREADS)
@@ -624,7 +624,7 @@ install: default fltools bin/shallow_water bin/burgers_equation
 	rm -rf $(DESTDIR)$(docdir)/fluidity/examples/
 
 install-diamond: 
-	cd libspud; ./configure --prefix=$(DESTDIR)@prefix@; cd ../..
+	cd libspud; ./configure --prefix=@prefix@; cd ../..
 	cd libspud; $(MAKE) clean; cd ../..
 	cd libspud; $(MAKE) install-diamond; cd ../..
 	cd libspud; $(MAKE) install-dxdiff; cd ../..

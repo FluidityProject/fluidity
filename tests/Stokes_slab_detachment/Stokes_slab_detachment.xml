@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<testproblem>
+  <name>Stokes-slab-detachment</name>
+  <owner userid="rhodrid"/>
+  <tags>flml parallel petsc33</tags>
+
+  <problem_definition length="medium" nprocs="3">
+    <command_line>mpiexec ../../bin/flredecomp -i 1 -o 3 -v -l Slab-detachment Parallel_NP3_Slab-detachment &amp;&amp; 
+mpiexec ../../bin/fluidity -v2 -l Parallel_NP3_Slab-detachment.flml </command_line>
+  </problem_definition>
+
+<variables>  
+
+<variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+</variable>
+
+<variable name="viscosities" language="python">
+from probe_viscosities import *
+viscosities = numpy.zeros(4)
+viscosities = probe_visc()
+</variable>
+
+<variable name="viscous_dissipation" language="python">
+from fluidity_tools import stat_parser as stat 
+viscous_dissipation = stat("Benchmark_Case_1a.stat")["Mantle"]["ViscousDissipation"]["integral"][-1]
+</variable>
+</variables>
+
+
+<pass_tests>
+
+<test name="Solvers converged" language="python">
+assert(solvers_converged)
+</test>
+
+<test name="min_y_550 is within 1% of 1e21" language="python">
+assert( (abs(1e21 - viscosities[0])/1e21)*100. &lt; 1.)
+</test>
+
+<test name="max_y_550 is within 1% of 2.78e23" language="python">
+assert( (abs(2.78e23 - viscosities[1])/2.78e23)*100. &lt; 1.)
+</test>
+
+<test name="min_x_500 is within 1% of 1e21" language="python">
+assert( (abs(1e21 - viscosities[2])/1e21)*100. &lt; 1.)
+</test>
+
+<test name="max_x_500 is within 1% of 1e25" language="python">
+assert( (abs(1e25 - viscosities[3])/1e25)*100. &lt; 1.)
+</test>
+
+<test name="Viscous Dissipation: 80 .lt. VD .lt. 100" language="python">
+assert(abs(viscous_dissipation-90.0) &lt; 10.0)
+</test>
+
+</pass_tests>
+
+<warn_tests>
+</warn_tests>
+
+</testproblem>
+
+
+
+
+

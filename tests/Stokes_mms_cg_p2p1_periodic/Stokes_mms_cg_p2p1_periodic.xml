@@ -210,11 +210,11 @@ d_final_change_p = max(abs(vtu.GetScalarField("Pressure")-vtu.GetScalarField("Ol
     <variable name="number_of_timesteps" language="python">from fluidity_tools import stat_parser as stat
 number_of_timesteps = {}
 for case in ['A','B','C','D']:
-  stat_filename = "MMS_{}.stat".format(case)
+  stat_filename = "MMS_{0}.stat".format(case)
   number_of_timesteps[case] = len(stat(stat_filename)["ElapsedTime"]["value"])</variable>
     <variable name="number_of_nullspace_agreements" language="python">number_of_nullspace_agreements = {}
 for case in ['A','B','C','D']:
-  log_filename = 'MMS_{}.log'.format(case)
+  log_filename = 'MMS_{0}.log'.format(case)
   agree_count = 0
   disagree_count = 0
   for line in file(log_filename, 'r'):

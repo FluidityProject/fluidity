@@ -4,7 +4,7 @@
 # In order this looks at:
 #  - The PACKAGE_VERSION environment variable
 #  - the configure-time variable FLUIDITY_VERSION
-#  - bzr (asking for the branch nickname and revno)
+#  - git (asking for the branch nickname and revno)
 
 # Usage:
 # bin/version-info [FILENAME]
@@ -16,7 +16,9 @@
 
 if [ x"$PACKAGE_VERSION" = x"" ]; then
     if [ "@FLUIDITY_VERSION@" = "" ]; then
-        PACKAGE_VERSION=`bzr version-info --custom --template='{branch_nick}.{revno}'`
+        GIT_COMMIT=`git --no-pager log --pretty=format:'%H' -n 1`
+        GIT_BRANCH=`git rev-parse --abbrev-ref HEAD`
+        PACKAGE_VERSION=$GIT_BRANCH:$GIT_COMMIT
     else
         PACKAGE_VERSION="@FLUIDITY_VERSION@"
     fi
@@ -32,3 +34,4 @@ else
 #endif /* _FLUIDITY_VERSION_H */\n" > $@ &&
     echo "DEFINE __FLUIDITY_VERSION__")
 fi
+

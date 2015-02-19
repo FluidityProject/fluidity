@@ -52,6 +52,21 @@
     <output_mesh name="VelocityMesh"/>
     <stat/>
     <detectors>
+      <lagrangian_detector name="Single_Lagr_1">
+        <location>
+          <real_value shape="2" dim1="dim" rank="1">0.5 0.5</real_value>
+        </location>
+      </lagrangian_detector>
+      <lagrangian_detector name="Single_Lagr_2">
+        <location>
+          <real_value shape="2" dim1="dim" rank="1">0.625 0.5</real_value>
+        </location>
+      </lagrangian_detector>
+      <lagrangian_detector name="Single_Lagr_3">
+        <location>
+          <real_value shape="2" dim1="dim" rank="1">0.7475 0.5</real_value>
+        </location>
+      </lagrangian_detector>
       <detector_array name="Steve">
         <number_of_detectors>
           <integer_value rank="0">100</integer_value>

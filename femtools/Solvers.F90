@@ -25,7 +25,6 @@
 !    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 !    USA
 #include "fdebug.h"
-#include "petscversion.h"
 module solvers
   use FLDebug
   use elements
@@ -49,12 +48,7 @@ module solvers
   implicit none
   ! Module to provide explicit interfaces to matrix solvers.
 
-#include "petscversion.h"
-#ifdef HAVE_PETSC_MODULES
-#include "finclude/petscdef.h"
-#else
-#include "finclude/petsc.h"
-#endif
+#include "petsc_legacy.h"
 
   ! stuff used in the PETSc monitor (see petsc_solve_callback_setup() below)
   integer :: petsc_monitor_iteration = 0
@@ -683,7 +677,6 @@ type(vector_field), intent(in), optional :: positions
   logical, dimension(:), pointer:: inactive_mask
   integer, dimension(:), allocatable:: ghost_nodes
   Mat:: pmat
-  MatStructure:: matrix_structure
   ! one of the PETSc supplied orderings see
   ! http://www-unix.mcs.anl.gov/petsc/petsc-as/snapshots/petsc-current/docs/manualpages/MatOrderings/MatGetOrdering.html
   MatOrderingType:: ordering_type
@@ -751,7 +744,7 @@ type(vector_field), intent(in), optional :: positions
   
   if (ksp/=PETSC_NULL_OBJECT) then
     ! oh goody, we've been left something useful!
-    call KSPGetOperators(ksp, A, Pmat, matrix_structure, ierr)
+    call KSPGetOperators(ksp, A, Pmat, ierr)
     have_cache=.true.
     
     if (have_option(trim(solver_option_path)// &
@@ -1550,7 +1543,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     else
        call KSPCreate(MPI_COMM_SELF, ksp, ierr)
     end if
-    call KSPSetOperators(ksp, mat, pmat, DIFFERENT_NONZERO_PATTERN, ierr)
+    call KSPSetOperators(ksp, mat, pmat, ierr)
     
     call setup_ksp_from_options(ksp, mat, pmat, solver_option_path, &
       petsc_numbering=petsc_numbering, &
@@ -1612,7 +1605,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
        end if
 
 #if PETSC_VERSION_MINOR<3
-       FLExit("multigrid_near_null_space only available in petsc 3.3")
+       FLExit("multigrid_near_null_space only available in petsc version>=3.3")
 #else
        if (.not. present(petsc_numbering)) then
          FLAbort("Need petsc_numbering for multigrid near null space")
@@ -1659,7 +1652,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     ! needs checking
 
     ! this may end up in the schema:
-    dtol=PETSC_DEFAULT_DOUBLE_PRECISION
+    dtol=PETSC_DEFAULT_REAL
     ! maximum n/o iterations is required, so no default:
     call get_option(trim(solver_option_path)//'/max_iterations', max_its)
     
@@ -1823,7 +1816,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
        call PCKSPGetKSP(pc, subksp, ierr)
        ewrite(1,*) "Going into setup_ksp_from_options again to set the options "//&
           &"for the complete ksp solve of the preconditioner"
-       call KSPSetOperators(subksp, pmat, pmat, DIFFERENT_NONZERO_PATTERN, ierr)
+       call KSPSetOperators(subksp, pmat, pmat, ierr)
        call setup_ksp_from_options(subksp, pmat, pmat, &
          trim(option_path)//'/solver', petsc_numbering=petsc_numbering)
        ewrite(1,*) "Returned from setup_ksp_from_options for the preconditioner solve, "//&
@@ -1938,10 +1931,6 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     case ("additive")
       call pcfieldsplitsettype(pc, PC_COMPOSITE_ADDITIVE, ierr)
     case ("symmetric_multiplicative")
-! workaround silly bug in petsc 3.1
-#ifndef PC_COMPOSITE_SYMMETRIC_MULTIPLICATIVE
-#define PC_COMPOSITE_SYMMETRIC_MULTIPLICATIVE PC_COMPOSITE_SYM_MULTIPLICATIVE
-#endif
       call pcfieldsplitsettype(pc, PC_COMPOSITE_SYMMETRIC_MULTIPLICATIVE, ierr)
     case default
       FLAbort("Unknown fieldsplit_type")
@@ -1964,11 +1953,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     PCType:: pctype
     PetscReal:: rtol, atol, dtol
     PetscInt:: maxits
-#if PETSC_VERSION_MINOR>=2
     PetscBool:: flag
-#else
-    PetscTruth:: flag
-#endif
     PetscErrorCode:: ierr
     
     ewrite(2, *) 'Using solver options from cache:'
@@ -2281,7 +2266,6 @@ subroutine MyKSPMonitor(ksp,n,rnorm,dummy,ierr)
   
   PetscScalar :: rnorm
   PetscLogDouble :: flops
-  MatStructure:: flag
   Mat:: Amat, Pmat
   PC:: pc
   Vec:: dummy_vec, r, rhs
@@ -2310,7 +2294,7 @@ subroutine MyKSPMonitor(ksp,n,rnorm,dummy,ierr)
       call petsc2field(petsc_monitor_x, petsc_monitor_numbering, petsc_monitor_vfields(1))
     end if
     call KSPGetRhs(ksp, rhs, ierr)
-    call KSPGetOperators(ksp, Amat, Pmat, flag, ierr)
+    call KSPGetOperators(ksp, Amat, Pmat, ierr)
     call VecDuplicate(petsc_monitor_x, r, ierr)
     call MatMult(Amat, petsc_monitor_x, r, ierr)
     call VecAXPY(r, real(-1.0, kind = PetscScalar_kind), rhs, ierr)
@@ -2358,11 +2342,7 @@ function create_null_space_from_options(mat, null_space_option_path, &
    Vec, allocatable, dimension(:) :: null_space_array, rot_null_space_array
    PetscReal :: norm
    PetscErrorCode :: ierr
-#if PETSC_VERSION_MINOR>=2
    PetscBool :: isnull
-#else
-   PetscTruth :: isnull
-#endif
 
    integer :: i, nnulls, nnodes, comp, dim, universal_nodes
    logical, dimension(3) :: rot_mask
