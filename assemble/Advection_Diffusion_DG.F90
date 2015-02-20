@@ -1418,7 +1418,7 @@ contains
        ! Calculate the gradient in the direction of gravity
        ! TODO: Build on_sphere into ele_val_at_quad?
        if (on_sphere) then
-          grav_at_quads = sphere_inward_normal_at_quad_ele(X, ele)
+          grav_at_quads = radial_inward_normal_at_quad_ele(X, ele)
        else
           grav_at_quads = ele_val_at_quad(gravity, ele)
        end if

@@ -221,6 +221,7 @@ u_ref = sqrt(p/rho_g)</comment>
           <conservative_advection>
             <real_value rank="0">0.0</real_value>
           </conservative_advection>
+          <buoyancy/>
         </spatial_discretisation>
         <temporal_discretisation>
           <theta>
@@ -480,6 +481,7 @@ InternalEnergy needed for a Pressure of 1.013e5 = 205894.308943</comment>
           <conservative_advection>
             <real_value rank="0">0.0</real_value>
           </conservative_advection>
+          <buoyancy/>
         </spatial_discretisation>
         <temporal_discretisation>
           <theta>

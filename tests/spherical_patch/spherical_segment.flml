@@ -339,6 +339,9 @@
           <conservative_advection>
             <real_value rank="0">0.0</real_value>
           </conservative_advection>
+          <buoyancy>
+            <radial_gravity_direction_at_gauss_points/>
+          </buoyancy>
         </spatial_discretisation>
         <temporal_discretisation>
           <theta>

@@ -61,7 +61,7 @@ module Coordinates
        vector_lon_lat_height_2_cartesian_c, vector_cartesian_2_lon_lat_height_c, &
        tensor_spherical_polar_2_cartesian, &
        higher_order_sphere_projection, &
-       sphere_inward_normal_at_quad_ele, sphere_inward_normal_at_quad_face, &
+       radial_inward_normal_at_quad_ele, radial_inward_normal_at_quad_face, &
        rotate_diagonal_to_sphere_gi, rotate_diagonal_to_sphere_face, &
        rotate_ct_m_sphere, rotate_momentum_to_sphere, &
        rotate_velocity_sphere, rotate_velocity_back_sphere, &
@@ -1020,7 +1020,7 @@ contains
   
   end subroutine higher_order_sphere_projection
 
-  function sphere_inward_normal_at_quad_ele(positions, ele_number) result(quad_val)
+  function radial_inward_normal_at_quad_ele(positions, ele_number) result(quad_val)
     ! Return the direction of gravity at the quadrature points of and element.
     type(vector_field), intent(in) :: positions
     integer, intent(in) :: ele_number
@@ -1035,9 +1035,9 @@ contains
       end do
     end do
 
-  end function sphere_inward_normal_at_quad_ele
+  end function radial_inward_normal_at_quad_ele
 
-  function sphere_inward_normal_at_quad_face(positions, face_number) result(quad_val)
+  function radial_inward_normal_at_quad_face(positions, face_number) result(quad_val)
     ! Return the direction of gravity at the quadrature points of and element.
     type(vector_field), intent(in) :: positions
     integer, intent(in) :: face_number
@@ -1052,7 +1052,7 @@ contains
       end do
     end do
 
-  end function sphere_inward_normal_at_quad_face
+  end function radial_inward_normal_at_quad_face
 
   function rotate_diagonal_to_sphere_gi(positions, ele_number, diagonal) result(quad_val)
     ! Given the diagonal of a tensor in cartesian coordinates, this function

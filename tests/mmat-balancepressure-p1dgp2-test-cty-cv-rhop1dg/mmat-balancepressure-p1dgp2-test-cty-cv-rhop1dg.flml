@@ -246,6 +246,7 @@ This is however the same as when using the geostrophic or hydrostatic pressure s
           <conservative_advection>
             <real_value rank="0">0</real_value>
           </conservative_advection>
+          <buoyancy/>
         </spatial_discretisation>
         <temporal_discretisation>
           <theta>

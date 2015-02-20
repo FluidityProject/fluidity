@@ -219,6 +219,7 @@ The latter didnt work in 1d. The same vel-press element pair is used as the mixe
           <conservative_advection>
             <real_value rank="0">0.0</real_value>
           </conservative_advection>
+          <buoyancy/>
         </spatial_discretisation>
         <temporal_discretisation>
           <theta>

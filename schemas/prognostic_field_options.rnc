@@ -921,6 +921,17 @@ prognostic_velocity_field =
          ##  0. < BETA < 1.
          element conservative_advection {
             real
+         },
+         ## Options dealing with buoyancy
+         element buoyancy {
+           ## Align the gravity opposite to the radial direction (-(x,y) in 2d, -(x,y,z) in 3d)
+           ## and evaluate it at the gauss points.
+           ##
+           ## NOTE: this ignores whatever values are set under /physical_parameters/gravity/vector_field::GravityDirection 
+           ## for the buoyancy terms.
+           element radial_gravity_direction_at_gauss_points {
+             comment
+           }?
          }
       },
       ## Temporal discretisation options

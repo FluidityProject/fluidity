@@ -1120,6 +1120,19 @@ twice.</a:documentation>
  0. &lt; BETA &lt; 1.</a:documentation>
         <ref name="real"/>
       </element>
+      <element name="buoyancy">
+        <a:documentation>Options dealing with buoyancy</a:documentation>
+        <optional>
+          <element name="radial_gravity_direction_at_gauss_points">
+            <a:documentation>Align the gravity opposite to the radial direction (-(x,y) in 2d, -(x,y,z) in 3d)
+and evaluate it at the gauss points.
+
+NOTE: this ignores whatever values are set under /physical_parameters/gravity/vector_field::GravityDirection 
+for the buoyancy terms.</a:documentation>
+            <ref name="comment"/>
+          </element>
+        </optional>
+      </element>
     </element>
     <element name="temporal_discretisation">
       <a:documentation>Temporal discretisation options</a:documentation>

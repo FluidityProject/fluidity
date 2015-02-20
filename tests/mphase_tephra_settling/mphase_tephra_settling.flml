@@ -181,6 +181,7 @@
           <conservative_advection>
             <real_value rank="0">0.0</real_value>
           </conservative_advection>
+          <buoyancy/>
         </spatial_discretisation>
         <temporal_discretisation>
           <theta>
@@ -396,6 +397,7 @@
           <conservative_advection>
             <real_value rank="0">0.0</real_value>
           </conservative_advection>
+          <buoyancy/>
         </spatial_discretisation>
         <temporal_discretisation>
           <theta>

@@ -193,6 +193,7 @@ the geometry is 2d (although this is a 1d problem) and one time step is done (as
           <conservative_advection>
             <real_value rank="0">0.0</real_value>
           </conservative_advection>
+          <buoyancy/>
         </spatial_discretisation>
         <temporal_discretisation>
           <theta>
