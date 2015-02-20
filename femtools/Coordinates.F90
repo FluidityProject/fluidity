@@ -1444,9 +1444,12 @@ contains
     ! exit.
     nmat = option_count("/material_phase")
     do m = 0, nmat-1
-      if (have_option('/geometry/spherical_earth/superparametric_mapping/').and. &
-        (.not.have_option("/material_phase["//int2str(m)// &
-        "]/scalar_field::Pressure/prognostic/spatial_discretisation/continuous_galerkin/remove_stabilisation_term"))) then
+      if (have_option('/geometry/spherical_earth/superparametric_mapping/') &
+          .and. have_option("/material_phase["//int2str(m)//"]/scalar_field::Pressure/"// &
+                            "prognostic/spatial_discretisation/continuous_galerkin") &
+          .and. .not.have_option("/material_phase["//int2str(m)// &
+                                 "]/scalar_field::Pressure/prognostic/spatial_discretisation/"// &
+                                 "continuous_galerkin/remove_stabilisation_term")) then
         ewrite(-1,*) "Pressure stabilisation does not currently work with 2nd order or higher coordinate meshes. Please enable"
         ewrite(-1,*) "remove_stabilisation_term under the spatial discretisation tab of your pressure field. Things should work"
         ewrite(-1,*) "nicely then. Thanks!"
