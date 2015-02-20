@@ -386,8 +386,11 @@ contains
              position%name=trim(mesh%name)//"Coordinate"
           else 
              position%name="Coordinate"
+             if (have_option('/geometry/spherical_earth/analytical_mapping/')) then
+               position%field_type = FIELD_TYPE_SPHERICAL_COORDINATES
+             end if
           end if
-                       
+
           ! If running in parallel, additionally read in halo information and register the elements halo
           if(isparallel()) then
             if (no_active_processes == 1) then
@@ -795,7 +798,9 @@ contains
 
             if (have_option('/geometry/spherical_earth/superparametric_mapping/')) then
               call higher_order_sphere_projection(modelposition, coordinateposition)
-            else if (have_option('/geometry/spherical_earth/analytical_mapping/')) then
+            end if
+
+            if (have_option('/geometry/spherical_earth/analytical_mapping/')) then
               coordinateposition%field_type = FIELD_TYPE_SPHERICAL_COORDINATES
             end if
                    
