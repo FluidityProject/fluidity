@@ -169,8 +169,8 @@ contains
     
     end if
     
-    call get_option('/geometry/dimension', gdim)
     if(have_option("/geometry/spherical_earth") ) then
+      call get_option('/geometry/dimension', gdim)
       ! on the n-sphere the input mesh may be 1/2d (extrusion), or 3d but
       ! Coordinate is always geometry dimensional
       coordinate_dim  = gdim

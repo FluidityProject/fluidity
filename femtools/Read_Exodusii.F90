@@ -358,9 +358,9 @@ contains
     ! At this point, all relevant data has been read in from the exodusii file
     ! Now construct within Fluidity data structures
 
-    call get_option('/geometry/dimension', gdim)
-    if( num_dim .eq. gdim-1 .and. have_option("/geometry/spherical_earth/") ) then
-       eff_dim = num_dim+1
+    if( have_option("/geometry/spherical_earth/") ) then
+       call get_option('/geometry/dimension', gdim)
+       eff_dim = gdim
     else
        eff_dim = num_dim
     end if
