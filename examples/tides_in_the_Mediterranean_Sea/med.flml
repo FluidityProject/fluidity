@@ -93,9 +93,7 @@
         <integer_value rank="0">3</integer_value>
       </surface_degree>
     </quadrature>
-    <spherical_earth>
-      <linear_mapping/>
-    </spherical_earth>
+    <spherical_earth/>
     <ocean_boundaries>
       <top_surface_ids>
         <integer_value shape="1" rank="1">307</integer_value>
