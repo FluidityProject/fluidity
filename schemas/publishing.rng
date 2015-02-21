@@ -19,7 +19,7 @@
       <element name="software">
         <a:documentation>Software (source code) publishing options.</a:documentation>
         <optional>
-          <element name="article_id">
+          <element name="pid">
             <a:documentation>The ID of an existing software publication. This is optional. If left disabled, it will be enabled and populated by the fluidity-publish tool.</a:documentation>
             <ref name="integer"/>
           </element>
@@ -38,7 +38,7 @@ Note that wildcard characters can be used here (e.g. "*.msh" will publish all .m
           <ref name="anystring"/>
         </element>
         <optional>
-          <element name="article_id">
+          <element name="pid">
             <a:documentation>The ID of an existing input data publication. This is optional. If left disabled, it will be enabled and populated by the fluidity-publish tool.</a:documentation>
             <ref name="integer"/>
           </element>
@@ -57,7 +57,7 @@ Note that wildcard characters can be used here (e.g. "*.vtu" will publish all VT
           <ref name="anystring"/>
         </element>
         <optional>
-          <element name="article_id">
+          <element name="pid">
             <a:documentation>The ID of an existing output data publication. This is optional. If left disabled, it will be enabled and populated by the fluidity-publish tool.</a:documentation>
             <ref name="integer"/>
           </element>

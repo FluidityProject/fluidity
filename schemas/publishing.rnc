@@ -16,7 +16,7 @@ publishing =
          ## Software (source code) publishing options.
          element software {
             ## The ID of an existing software publication. This is optional. If left disabled, it will be enabled and populated by the fluidity-publish tool.
-            element article_id {
+            element pid {
                integer
             }?,
             ## The DOI of an existing software publication. This is optional. If left disabled, it will be enabled and populated by the fluidity-publish tool.
@@ -31,7 +31,7 @@ publishing =
                anystring
             },
             ## The ID of an existing input data publication. This is optional. If left disabled, it will be enabled and populated by the fluidity-publish tool.
-            element article_id {
+            element pid {
                integer
             }?,
             ## The DOI of an existing input data publication. This is optional. If left disabled, it will be enabled and populated by the fluidity-publish tool.
@@ -46,7 +46,7 @@ publishing =
                anystring
             },
             ## The ID of an existing output data publication. This is optional. If left disabled, it will be enabled and populated by the fluidity-publish tool.
-            element article_id {
+            element pid {
                integer
             }?,
             ## The DOI of an existing output data publication. This is optional. If left disabled, it will be enabled and populated by the fluidity-publish tool.
