@@ -1980,6 +1980,76 @@ This will appear in the stat file.</a:documentation>
                       <ref name="diagnostic_scalar_field"/>
                     </element>
                   </element>
+                  <element name="scalar_field">
+                    <a:documentation>F_1 blending function for k-omega SST</a:documentation>
+                    <attribute name="rank">
+                      <value>0</value>
+                    </attribute>
+                    <attribute name="name">
+                      <value>F_1</value>
+                    </attribute>
+                    <element name="diagnostic">
+                      <ref name="internal_algorithm"/>
+                      <ref name="velocity_mesh_choice"/>
+                      <ref name="diagnostic_scalar_field"/>
+                    </element>
+                  </element>
+                  <element name="scalar_field">
+                    <a:documentation>F_2 blending function for k-omega SST</a:documentation>
+                    <attribute name="rank">
+                      <value>0</value>
+                    </attribute>
+                    <attribute name="name">
+                      <value>F_2</value>
+                    </attribute>
+                    <element name="diagnostic">
+                      <ref name="internal_algorithm"/>
+                      <ref name="velocity_mesh_choice"/>
+                      <ref name="diagnostic_scalar_field"/>
+                    </element>
+                  </element>
+                  <element name="vector_field">
+                    <a:documentation>Grad k</a:documentation>
+                    <attribute name="rank">
+                      <value>0</value>
+                    </attribute>
+                    <attribute name="name">
+                      <value>Grad_k</value>
+                    </attribute>
+                    <element name="diagnostic">
+                      <ref name="internal_algorithm"/>
+                      <ref name="velocity_mesh_choice"/>
+                      <ref name="diagnostic_scalar_field"/>
+                    </element>
+                  </element>
+                  <element name="vector_field">
+                    <a:documentation>Grad omega</a:documentation>
+                    <attribute name="rank">
+                      <value>0</value>
+                    </attribute>
+                    <attribute name="name">
+                      <value>Grad_omg</value>
+                    </attribute>
+                    <element name="diagnostic">
+                      <ref name="internal_algorithm"/>
+                      <ref name="velocity_mesh_choice"/>
+                      <ref name="diagnostic_scalar_field"/>
+                    </element>
+                  </element>
+                  <element name="scalar_field">
+                    <a:documentation>CD_komg</a:documentation>
+                    <attribute name="rank">
+                      <value>0</value>
+                    </attribute>
+                    <attribute name="name">
+                      <value>CD_komg</value>
+                    </attribute>
+                    <element name="diagnostic">
+                      <ref name="internal_algorithm"/>
+                      <ref name="velocity_mesh_choice"/>
+                      <ref name="diagnostic_scalar_field"/>
+                    </element>
+                  </element>
                   <optional>
                     <element name="scalar_field">
                       <a:documentation>Describes distance to nearest solid wall.
@@ -2025,6 +2095,16 @@ Recommended value (default): 0.5.</a:documentation>
                   <element name="Sigma_Star">
                     <a:documentation>Sigma_Star.
 Recommended value (default): 0.5.</a:documentation>
+                    <ref name="real"/>
+                  </element>
+                  <element name="Beta_1">
+                    <a:documentation>Beta_1.
+Recommended value (default): 0.0750.</a:documentation>
+                    <ref name="real"/>
+                  </element>
+                  <element name="Beta_2">
+                    <a:documentation>Beta_2.
+Recommended value (default): 0.0828.</a:documentation>
                     <ref name="real"/>
                   </element>
                   <element name="time_discretisation">

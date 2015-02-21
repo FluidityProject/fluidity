@@ -1507,6 +1507,56 @@ start =
                         }
                      )
                   },
+                  ## F_1 blending function for k-omega SST
+                  element scalar_field {
+                     attribute rank { "0" },
+                     attribute name { "F_1" },
+                     element diagnostic {
+                        internal_algorithm,
+                        velocity_mesh_choice,
+                        diagnostic_scalar_field
+                     }
+                  },
+                  ## F_2 blending function for k-omega SST
+                  element scalar_field {
+                     attribute rank { "0" },
+                     attribute name { "F_2" },
+                     element diagnostic {
+                        internal_algorithm,
+                        velocity_mesh_choice,
+                        diagnostic_scalar_field
+                     }
+                  },
+                  ## Grad k
+                  element vector_field {
+                     attribute rank { "0" },
+                     attribute name { "Grad_k" },
+                     element diagnostic {
+                        internal_algorithm,
+                        velocity_mesh_choice,
+                        diagnostic_scalar_field
+                     }
+                  },
+                  ## Grad omega
+                  element vector_field {
+                     attribute rank { "0" },
+                     attribute name { "Grad_omg" },
+                     element diagnostic {
+                        internal_algorithm,
+                        velocity_mesh_choice,
+                        diagnostic_scalar_field
+                     }
+                  },
+                  ## CD_komg
+                  element scalar_field {
+                     attribute rank { "0" },
+                     attribute name { "CD_komg" },
+                     element diagnostic {
+                        internal_algorithm,
+                        velocity_mesh_choice,
+                        diagnostic_scalar_field
+                     }
+                  },
                   ## Describes distance to nearest solid wall.
                   ## Required for low_Re boundaries.
                   ## For simple geometries the simplest method of providing this information is to use a python function.
@@ -1538,6 +1588,12 @@ start =
                   ## Sigma_Star.
                   ## Recommended value (default): 0.5.
                   element Sigma_Star {real},
+                  ## Beta_1.
+                  ## Recommended value (default): 0.0750.
+                  element Beta_1 {real},
+                  ## Beta_2.
+                  ## Recommended value (default): 0.0828.
+                  element Beta_2 {real},
                   ## Time discretisation of the source terms in the k and epsilon equations and also
                   ## of the eddy viscosity
                   element time_discretisation {  
@@ -1973,7 +2029,7 @@ start =
             element calculate_total_volume{empty}?,
             element create_buffer{
                element buffer{real},
-              element solid_concentration_min{real},
+               element solid_concentration_min{real},
                element include_in_drag{empty}?,
                element profile1{real},
                element profile2{real},

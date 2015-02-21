@@ -364,11 +364,6 @@ contains
     Turbine = extract_scalar_field(state, "NodeOnTurbine")
     Turbine_L = extract_scalar_field(state, "NodeOnTurbineL") !A! change
     Turbine_R = extract_scalar_field(state, "NodeOnTurbineR") !A! update
-    !A!call get_option("/material_phase::fluid/subgridscale_parameterisations/k-omega/C_T", C_T, default = 0.0)
-    !A!call get_option("/material_phase::fluid/subgridscale_parameterisations/k-omega/thickness", thickness, default = 0.0125)
-    !A!call get_option("/material_phase::fluid/subgridscale_parameterisations/k-omega/DiscRegionID", region_id_disc, default = 901)
-    !A!call get_option("/material_phase::fluid/subgridscale_parameterisations/k-omega/LeftDiscRegionID", region_id_disc_L, default = 903)
-    !A!call get_option("/material_phase::fluid/subgridscale_parameterisations/k-omega/RightDiscRegionID", region_id_disc_R, default = 904)
     call get_option('/ADM/C_T', C_T, default = 0.0)
     call get_option('/ADM/DiscRadius', disc_radius, default = 0.075)
     call get_option('/ADM/DiscRegionID', region_id_disc, default = 901)

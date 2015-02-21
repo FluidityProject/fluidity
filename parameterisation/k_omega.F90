@@ -53,9 +53,9 @@ implicit none
 
   ! locally allocatad fields
   real, save     :: fields_min = 1.0e-11
-  logical, save  :: low_Re = .false.                     
+  logical, save  :: low_Re = .false. !A! remove
 
-  public :: komega_advdif_diagnostics, komega_momentum_diagnostics, & !! komega_bcs removed
+  public :: komega_advdif_diagnostics, komega_momentum_diagnostics, & ! komega_bcs removed
        & k_omega_check_options, tensor_inner_product
 
   ! Outline:
@@ -64,47 +64,166 @@ implicit none
 
 contains
 
-subroutine komega_advdif_diagnostics(state)
+subroutine komega_advdif_diagnostics(state)            !A! called in Fluids.F90
 
   type(state_type), intent(inout) :: state
   
-  call komega_eddyvisc(state, advdif=.true.)	     !! eddy viscosity
-  call komega_diffusion(state) 			     !! diff coeff
-  call komega_tracer_diffusion(state)		     !! 3rd equation. What is this?
-  call komega_calculate_rhs(state)		     !! source/sink terms on RHS of adv-diff eqs
+  call komega_blending_functions(state, advdif=.true.) !A! blending functions for k-omega SST !A!
+  call komega_eddyvisc(state, advdif=.true.)           !A! eddy viscosity
+  call komega_diffusion(state)                         !A! diff coeff
+  call komega_tracer_diffusion(state)                  !A! 3rd equation. What is this?
+  call komega_calculate_rhs(state)                     !A! source/sink terms on RHS of adv-diff eqs
 
 end subroutine komega_advdif_diagnostics
 
-subroutine komega_momentum_diagnostics(state)	     !! Reynolds Stress Tensor?	
+subroutine komega_momentum_diagnostics(state)          !A! called in Momentum_Diagnostic_Fields.F90
 
   type(state_type), intent(inout) :: state
   
-  call komega_eddyvisc(state, advdif=.false.)	     !! eddy viscosity
+  call komega_eddyvisc(state, advdif=.false.)          !A! eddy viscosity
 
 end subroutine komega_momentum_diagnostics
  
+!--------------------------------------------------------------------------------!
+
+subroutine komega_blending_functions(state, advdif) !A! used for k-omega SST only
+
+  type(state_type), intent(in)   :: state
+  logical, intent(in)            :: advdif
+  type(vector_field), pointer    :: X
+  type(scalar_field), pointer    :: F_1, F_2, y, dummydensity, density
+  type(scalar_field)             :: k, omega
+!  type(scalar_field), target     :: dummydensity
+  type(vector_field), pointer    :: grad_k, grad_omg
+  type(scalar_field), pointer    :: CD_komg
+  type(tensor_field), pointer    :: bg_visc
+  integer                        :: stat, ele, node
+  real                           :: beta_star, sigma_omg2
+  character(len=FIELD_NAME_LEN)  :: equation_type
+  character(len=OPTION_PATH_LEN) :: option_path
+
+  real                           :: a_3, a_4, a_5, arg_1, arg_2
+  real                           :: CD_komg_val, F_1_val, F_2_val
+
+  ewrite(1,*) 'in komega_blending_functions'
+
+  option_path = trim(state%option_path)//'/subgridscale_parameterisations/k-omega/'
+
+  F_1 => extract_scalar_field(state, "F_1")
+  F_2 => extract_scalar_field(state, "F_2")
+  grad_k   => extract_vector_field(state, "Grad_k")
+  grad_omg => extract_vector_field(state, "Grad_omg")
+  CD_komg  => extract_scalar_field(state, "CD_komg")
+
+  !A! initialise blending functions
+  call set(F_1, 1.0)
+  call set(F_2, 1.0)
+  !call set(grad_k, 1.0)
+  !call set(grad_omg, 1.0)
+
+  X       => extract_vector_field(state, "Coordinate")
+  bg_visc => extract_tensor_field(state, "BackgroundViscosity")
+  y       => extract_scalar_field(state, "DistanceToWall", stat = stat)
+
+  call time_averaged_value(state, k, 'TurbulentKineticEnergy', advdif, option_path)
+  call time_averaged_value(state, omega, 'TurbulentFrequency', advdif, option_path)
+
+  call get_option(trim(option_path)//'/Beta_Star', beta_star, default = 0.09)
+  call get_option(trim(option_path)//'/Sigma_Omg2', sigma_omg2, default = 0.856)
+
+  !A! set dummy density to 1.0
+  allocate(dummydensity)
+  call allocate(dummydensity, F_1%mesh, "DummyDensity", field_type=FIELD_TYPE_CONSTANT)
+  call set(dummydensity, 1.0)
+  dummydensity%option_path = ""
+  
+  ! Depending on the equation type, extract the density or set it to some dummy field allocated above
+  call get_option(trim(state%option_path)//&
+       "/vector_field::Velocity/prognostic/equation[0]/name", equation_type, stat=stat)
+  if (stat /= 0) then
+    density=>dummydensity
+  else
+    select case(equation_type)
+      case("LinearMomentum")
+        density=>extract_scalar_field(state, "Density")
+      case("Boussinesq") !A! this is our current case!
+        density=>dummydensity
+      case("Drainage")
+        density=>dummydensity
+      case default
+        ! developer error... out of sync options input and code
+        FLAbort("Unknown equation type for velocity")
+    end select
+  end if
+
+  call grad(k, X, grad_k)                       !A! grad(k)
+  call grad(omega, X, grad_omg)                 !A! grad(omega)
+  call inner_product(CD_komg, grad_k, grad_omg) !A! grad(k).grad(omega)
+
+  !CD_komg%val = (2.0*density%val*sigma_omg2*CD_komg%val) / omega%val
+  !CD_komg%val = (2.0*sigma_omg2*CD_komg%val) / omega%val ! left out density!!!
+
+  node_loop: do node = 1, node_count(k)
+
+    CD_komg_val = (2.0*node_val(density,node)*sigma_omg2*node_val(CD_komg,node)) / &
+                  node_val(omega,node)
+
+    a_3 = sqrt(node_val(k,node)) / (beta_star*node_val(omega,node)*node_val(y,node))
+    a_4 = ( 500.0*node_val(bg_visc,1,1,node) )/( node_val(omega,node)*node_val(y,node)**2.0 )
+    a_5 = ( 4.0*node_val(density,node)*sigma_omg2*node_val(k,node) ) / &
+          ( max(node_val(CD_komg,node),1.0e-20)*node_val(y,node)**2.0 ) !A! Menter 1994 (Menter 2003 => e-10)
+
+    arg_1 = min( max(a_3,a_4) , a_5 )
+    arg_2 = max( 2.0*a_3, a_4 )
+
+    F_1_val = tanh(arg_1**4.0)
+    F_2_val = tanh(arg_2**2.0)
+
+    ! set values of blending functions
+    call set(CD_komg, node, CD_komg_val)
+    call set(F_1, node, F_1_val)
+    call set(F_2, node, F_2_val)
+
+  end do node_loop
+
+  call deallocate(k)
+  call deallocate(omega)
+  call deallocate(dummydensity)
+  deallocate(dummydensity)
+
+end subroutine komega_blending_functions
+
 !------------------------------------------------------------------------------!
 
 subroutine komega_calculate_rhs(state)
 
-  type(state_type), intent(inout) :: state
+  type(state_type), intent(inout)  :: state
 
-  type(scalar_field), dimension(2) :: src_abs_terms !!! 3 to 2
+  type(scalar_field), dimension(2) :: src_abs_terms !A! 3 to 2
   type(scalar_field), dimension(2) :: fields
-  type(scalar_field), pointer :: src, abs, debug !! f_1, f_2, 
-  type(scalar_field) :: src_to_abs
-  type(vector_field), pointer :: x, u, g
-  type(scalar_field), pointer :: dummydensity, density, scalar_eddy_visc, NodeOnTurbine !!! , buoyancy_density
+  type(scalar_field), pointer      :: src, abs, debug !A! f_1, f_2
+  type(scalar_field)               :: src_to_abs
+  type(vector_field), pointer      :: x, u, g
+  type(scalar_field), pointer      :: dummydensity, density, scalar_eddy_visc !A! buoyancy_density
   integer :: i, ele, term, stat
-  real :: g_magnitude !!! , c_eps_1, c_eps_2, sigma_p !! change
-  real :: alpha, beta, beta_star, C_T, C_omega, beta_p, beta_d !!
-  integer :: region_id_disc, region_id_near_disc !!
-  logical :: lump_mass !!! have_buoyancy_turbulence = .true. removed
-  character(len=OPTION_PATH_LEN) :: option_path 
+  real    :: g_magnitude, alpha, beta, beta_star !A! c_eps_1, c_eps_2, sigma_p
+  logical :: lump_mass !A! have_buoyancy_turbulence = .true.
+  character(len=OPTION_PATH_LEN)              :: option_path 
   character(len=FIELD_NAME_LEN), dimension(2) :: field_names
-  character(len=FIELD_NAME_LEN) :: equation_type, implementation
+  character(len=FIELD_NAME_LEN)               :: equation_type, implementation
 
-  option_path = trim(state%option_path)//'/subgridscale_parameterisations/k-omega/' !!
+  !A! ADM correction terms
+  real    :: C_T, C_omega, beta_p, beta_d
+  integer :: region_id_disc, region_id_near_disc
+  type(scalar_field), pointer :: NodeOnTurbine
+
+  !A! SST
+  logical :: have_SST = .true.
+  real    :: gama_1, gama_2, beta_1, beta_2
+  type(scalar_field), pointer :: F_1, F_2, CD_komg
+  real                        :: sigma_omg2
+
+  option_path = trim(state%option_path)//'/subgridscale_parameterisations/k-omega/'
 
   if (.not. have_option(trim(option_path))) then 
      return
@@ -113,33 +232,40 @@ subroutine komega_calculate_rhs(state)
   ewrite(1,*) 'In calculate k-omega rhs' !!
 
   ! get model constants
-  !!! call get_option(trim(option_path)//'/C_eps_1', c_eps_1, default = 1.44)
-  !!! call get_option(trim(option_path)//'/C_eps_2', c_eps_2, default = 1.92)
-  !!! call get_option(trim(option_path)//'/sigma_p', sigma_p, default = 1.0)
-  call get_option(trim(option_path)//'/Alpha', alpha, default = 5.0/9.0) !! will 5/9 work?
-  call get_option(trim(option_path)//'/Beta', beta, default = 0.075) !!
-  call get_option(trim(option_path)//'/Beta_Star', beta_star, default = 0.09) !!
+  call get_option(trim(option_path)//'/Alpha', alpha, default = 5.0/9.0) !A! will 5/9 work?
+  call get_option(trim(option_path)//'/Beta', beta, default = 0.075)
+  call get_option(trim(option_path)//'/Beta_Star', beta_star, default = 0.09)
 
-  ! get ADM correction term constants !Amin!
+  !A! get ADM correction term constants
   call get_option('/ADM/C_T', C_T, default = 0.0)
-  call get_option('/ADM/C_Omega', C_omega, default = 4.0) !! Rados et al (2008)
-  call get_option('/ADM/Beta_p', beta_p, default = 0.05) !! Rethore et al (2009)
-  call get_option('/ADM/Beta_d', beta_d, default = 1.50) !! Rethore et al (2009)
+  call get_option('/ADM/C_Omega', C_omega, default = 4.0) ! Rados et al (2008)
+  call get_option('/ADM/Beta_p', beta_p, default = 0.05)  ! Rethore et al (2009)
+  call get_option('/ADM/Beta_d', beta_d, default = 1.50)  ! Rethore et al (2009)
   call get_option('/ADM/DiscRegionID', region_id_disc, default = 901)
   call get_option('/ADM/NearDiscRegionID', region_id_near_disc, default = 902)
+
+  !A! SST constants
+  call get_option(trim(option_path)//'/Beta_1', beta_1, default = 0.0750) ! same as beta
+  call get_option(trim(option_path)//'/Beta_2', beta_2, default = 0.0828)
+  call get_option(trim(option_path)//'/Gamma_1', gama_1, default = 0.5532)
+  call get_option(trim(option_path)//'/Gamma_2', gama_2, default = 0.4044)
 
   ! get field data
   x => extract_vector_field(state, "Coordinate")
   u => extract_vector_field(state, "NonlinearVelocity")
   scalar_eddy_visc => extract_scalar_field(state, "ScalarEddyViscosity")
   NodeOnTurbine => extract_scalar_field(state, "NodeOnTurbine") !A!
-!!  f_1 => extract_scalar_field(state, "f_1")
-!!  f_2 => extract_scalar_field(state, "f_2")
-  g => extract_vector_field(state, "GravityDirection", stat)
-  call get_option('/physical_parameters/gravity/magnitude', g_magnitude, stat) !!! interesting
-!!!  if (stat /= 0) then
-!!!     have_buoyancy_turbulence = .false. !!! interesting
-!!!  end if
+  F_1 => extract_scalar_field(state, "F_1") !A!
+  F_2 => extract_scalar_field(state, "F_2") !A!
+  CD_komg => extract_scalar_field(state, "CD_komg") !A!
+
+  call get_option(trim(option_path)//'/Sigma_Omg2', sigma_omg2, default = 0.856)
+
+!A!  g => extract_vector_field(state, "GravityDirection", stat)
+!A!  call get_option('/physical_parameters/gravity/magnitude', g_magnitude, stat)
+!A!  if (stat /= 0) then
+!A!     have_buoyancy_turbulence = .false. !!! interesting
+!A!  end if
 
   allocate(dummydensity)
   call allocate(dummydensity, X%mesh, "DummyDensity", field_type=FIELD_TYPE_CONSTANT)
@@ -148,7 +274,7 @@ subroutine komega_calculate_rhs(state)
   
   ! Depending on the equation type, extract the density or set it to some dummy field allocated above
   call get_option(trim(state%option_path)//&
-       "/vector_field::Velocity/prognostic/equation[0]/name", equation_type, stat=stat) !!!
+       "/vector_field::Velocity/prognostic/equation[0]/name", equation_type, stat=stat)
   if (stat /= 0) then
     density=>dummydensity
   else
@@ -172,9 +298,9 @@ subroutine komega_calculate_rhs(state)
 !!!  end if
 
   field_names(1) = 'TurbulentKineticEnergy'
-  field_names(2) = 'TurbulentFrequency' !!
+  field_names(2) = 'TurbulentFrequency'
 
-  !! whats going on? start with k and then do omega!
+  !A! start with k and then do omega
   field_loop: do i = 1, 2
      if (have_option(trim(option_path)//'scalar_field::'// &
           trim(field_names(i))//'/prescribed')) then !! for debugging purposes
@@ -192,17 +318,20 @@ subroutine komega_calculate_rhs(state)
 
      call allocate(src_abs_terms(1), fields(1)%mesh, name="production_term")
      call allocate(src_abs_terms(2), fields(1)%mesh, name="destruction_term")
-!!!     call allocate(src_abs_terms(3), fields(1)%mesh, name="buoyancy_term")
-     call zero(src_abs_terms(1)); call zero(src_abs_terms(2)) !!! ; call zero(src_abs_terms(3))
+!A!     call allocate(src_abs_terms(3), fields(1)%mesh, name="buoyancy_term")
+     call zero(src_abs_terms(1)); call zero(src_abs_terms(2)) !A! ; call zero(src_abs_terms(3))
      call zero(src); call zero(abs)
 
      !-----------------------------------------------------------------------------------
 
      ! Assembly loop
      do ele = 1, ele_count(fields(1))
-        call assemble_rhs_ele(src_abs_terms, fields(i), fields(3-i), scalar_eddy_visc, u, & !! main function call
+
+        call assemble_rhs_ele(src_abs_terms, fields(i), fields(3-i), scalar_eddy_visc, u, &
              density, g, g_magnitude, x, &
-             ele, i, alpha, beta, beta_star, C_T, C_omega, beta_p, beta_d, region_id_disc, region_id_near_disc, NodeOnTurbine) !!! f_1, f_2, c_eps_1, c_eps_2, sigma_p, buoyancy_density, have_buoyancy_turbulence removed
+             alpha, beta, beta_star, ele, i, &
+             C_T, C_omega, beta_p, beta_d, region_id_disc, region_id_near_disc, NodeOnTurbine, &
+             have_SST, gama_1, gama_2, beta_1, beta_2, F_1, F_2, CD_komg) !A! buoyancy_density, have_buoyancy_turbulence
      end do
 
      ! For non-DG we apply inverse mass globally
@@ -224,7 +353,7 @@ subroutine komega_calculate_rhs(state)
      !-----------------------------------------------------------------------------------
 
      ! Produce debugging output
-     do term = 1, 2 !!! 3 to 2
+     do term = 1, 2 !A! 3 to 2
         debug => extract_scalar_field(state, &
           trim(field_names(i))//"_"//trim(src_abs_terms(term)%name), stat)
         if (stat == 0) then
@@ -234,7 +363,7 @@ subroutine komega_calculate_rhs(state)
      !-----------------------------------------------------------------------------------
      
      ! Implement terms as source or absorbtion
-     do term = 1, 2 !!! 3 to 2
+     do term = 1, 2 !A! 3 to 2
         call get_option(trim(option_path)//&
              'time_discretisation/source_term_implementation/'//&
              trim(src_abs_terms(term)%name), implementation)
@@ -254,7 +383,7 @@ subroutine komega_calculate_rhs(state)
            call deallocate(src_to_abs)
         case default
            ! developer error... out of sync options input and code
-           FLAbort("Unknown implementation type for k-omega source terms") !!
+           FLAbort("Unknown implementation type for k-omega source terms")
         end select
      end do
      !-----------------------------------------------------------------------------------
@@ -269,14 +398,14 @@ subroutine komega_calculate_rhs(state)
      !-----------------------------------------------------------------------------------
 
      ! Deallocate fields
-     do term = 1, 2 !!! 3 to 2
+     do term = 1, 2 !A! 3 to 2
         call deallocate(src_abs_terms(term))
      end do
      call deallocate(fields(1))
      call deallocate(fields(2))
 
   end do field_loop
-  
+
   call deallocate(dummydensity)
   deallocate(dummydensity)
 
@@ -284,149 +413,150 @@ end subroutine komega_calculate_rhs
     
 !------------------------------------------------------------------------------!
 
-subroutine assemble_rhs_ele(src_abs_terms, k, omega, scalar_eddy_visc, u, density, & !!
+subroutine assemble_rhs_ele(src_abs_terms, k, omega, scalar_eddy_visc, u, density, &
      g, g_magnitude, &
-     X, ele, field_id, alpha, beta, beta_star, C_T, C_omega, beta_p, beta_d, region_id_disc, region_id_near_disc, NodeOnTurbine) !! change coeffs ? !!! f_1, f_2, c_eps_1, c_eps_2, sigma_p, have_buoyancy_turbulence, buoyancy_density removed
+     X, alpha, beta, beta_star, ele, field_id, &
+     C_T, C_omega, beta_p, beta_d, region_id_disc, region_id_near_disc, NodeOnTurbine, &
+     have_SST, gama_1, gama_2, beta_1, beta_2, F_1, F_2, CD_komg) !A! have_buoyancy_turbulence, buoyancy_density
 
-  type(scalar_field), dimension(2), intent(inout) :: src_abs_terms !!! 3 to 2
-  type(scalar_field), intent(in) :: k, omega, scalar_eddy_visc, NodeOnTurbine !! f_1, f_2
+  type(scalar_field), dimension(2), intent(inout) :: src_abs_terms !A! 3 to 2
+  type(scalar_field), intent(in) :: k, omega, scalar_eddy_visc !A! f_1, f_2
   type(vector_field), intent(in) :: X, u, g
-  type(scalar_field), intent(in) :: density !!! , buoyancy_density
-  real, intent(in) :: g_magnitude !!! , c_eps_1, c_eps_2, sigma_p !! change coeffs ?
-  real, intent(in) :: alpha, beta, beta_star, C_T, C_omega, beta_p, beta_d !!
-!!!  logical, intent(in) :: have_buoyancy_turbulence
-  integer, intent(in) :: ele, field_id
-  integer, intent(in) :: region_id_disc, region_id_near_disc !!
+  type(scalar_field), intent(in) :: density !A! buoyancy_density
+  real, intent(in)               :: g_magnitude, alpha, beta, beta_star
+!A!  logical, intent(in) :: have_buoyancy_turbulence
+  integer, intent(in)            :: ele, field_id
+
   real, dimension(ele_loc(k, ele), ele_ngi(k, ele), x%dim) :: dshape
-  real, dimension(ele_ngi(k, ele)) :: detwei, rhs, scalar_eddy_visc_ele, k_ele, omega_ele !!
-  real, dimension(2, ele_loc(k, ele)) :: rhs_addto !!! 3 to 2
+  real, dimension(ele_ngi(k, ele))    :: detwei, rhs, scalar_eddy_visc_ele, k_ele, omega_ele
+  real, dimension(2, ele_loc(k, ele)) :: rhs_addto !A! 3 to 2
   integer, dimension(ele_loc(k, ele)) :: nodes
   real, dimension(ele_loc(k, ele), ele_loc(k, ele)) :: invmass
-  real, dimension(u%dim, u%dim, ele_ngi(k, ele)) :: reynolds_stress, grad_u
-  type(element_type), pointer :: shape
-  integer :: term, ngi, dim, gi, i, iloc, inode !A!
-!A!  real, dimension(u%dim) :: coords !A!
-  real :: u_x, u_y, u_z, u_est, u_ele !A!
-  real :: a_fac, C_x !A! Rethore et al
-  real :: C_P, C_D, Cpw, C_1, C_2, deltaX !A! Roc et al
-  real :: volume !A!
-  real, dimension(u%dim) :: vel_integral !A!
+  real, dimension(u%dim, u%dim, ele_ngi(k, ele))    :: reynolds_stress, grad_u
+  type(element_type), pointer                       :: shape
+  integer :: term, ngi, dim, gi, i
 
-  ! For buoyancy turbulence stuff !! leave out of k-omega initially
-!!!  real, dimension(u%dim, ele_ngi(u, ele))  :: vector, u_quad, g_quad !!! these were used in Calculate buoyancy turbulence term
-!!!  real :: u_z, u_xy !! necessary!? these were used in Calculate buoyancy turbulence term
-!!!  real, dimension(ele_ngi(u, ele)) :: scalar, c_eps_3 !!! scalar was used in Calculate buoyancy turbulence term
-!!!  type(element_type), pointer :: shape_density !!! used in Calculate buoyancy turbulence term
-!!!  real, dimension(:, :, :), allocatable :: dshape_density !!! used in Calculate buoyancy turbulence term
+  ! For buoyancy turbulence stuff
+!A!  real, dimension(u%dim, ele_ngi(u, ele))  :: vector, u_quad, g_quad
+!A!  real :: u_z, u_xy
+!A!  real, dimension(ele_ngi(u, ele)) :: scalar, c_eps_3
+!A!  type(element_type), pointer :: shape_density
+!A!  real, dimension(:, :, :), allocatable :: dshape_density
+
+  !A! For ADM correction terms
+  type(scalar_field), intent(in)   :: NodeOnTurbine
+  real, intent(in)                 :: C_T, C_omega, beta_p, beta_d
+  integer, intent(in)              :: region_id_disc, region_id_near_disc
+  real                             :: a_fac, C_x, u_ele, volume !A! u_x, u_y, u_z, u_est, C_P, C_D, Cpw, C_1, C_2, deltaX
+  real, dimension(u%dim)           :: vel_integral !A! coords
+  real, dimension(ele_ngi(k, ele)) :: ADM_source
+
+  !A! SST terms
+  logical, intent(in)            :: have_SST
+  real, intent(in)               :: gama_1, gama_2, beta_1, beta_2
+  type(scalar_field), intent(in) :: F_1, F_2, CD_komg
 
   shape => ele_shape(k, ele)
   nodes = ele_nodes(k, ele)
 
-  !! transforms triangular elements into standard isosceles triangles !?
+  ! transforms triangular elements into standard isosceles triangles !?
   call transform_to_physical( X, ele, shape, dshape=dshape, detwei=detwei )
 
-  ! get bounded values of k and omega for source terms !!
-  ! this doesn't change the field values of k and omega !!
-  k_ele = ele_val_at_quad(k,ele) 	!! k value at quadrature point !?
-  omega_ele = ele_val_at_quad(omega, ele) !!
-  ngi = ele_ngi(u, ele) !?
+  ! get bounded values of k and omega for source terms
+  ! this doesn't change the field values of k and omega
+  k_ele = ele_val_at_quad(k,ele) ! k value at quadrature point
+  omega_ele = ele_val_at_quad(omega, ele)
+  ngi = ele_ngi(u, ele) !? ngi equals 11 => DG?
   do gi = 1, ngi
      k_ele(gi) = max(k_ele(gi), fields_min)
-     omega_ele(gi) = max(omega_ele(gi), fields_min) !!
+     omega_ele(gi) = max(omega_ele(gi), fields_min)
   end do
 
-  ! Compute Reynolds stress !! Fluidity Manual 4.1.1.2
+  ! Compute Reynolds stress
   grad_u = ele_grad_at_quad(u, ele, dshape)
   scalar_eddy_visc_ele = ele_val_at_quad(scalar_eddy_visc, ele)
-  dim = u%dim !! dimensions of u !?
+  dim = u%dim
   do gi = 1, ngi
-     reynolds_stress(:,:,gi) = scalar_eddy_visc_ele(gi)*(grad_u(:,:,gi) + transpose(grad_u(:,:,gi))) !! change? No
+     reynolds_stress(:,:,gi) = scalar_eddy_visc_ele(gi)*(grad_u(:,:,gi) + transpose(grad_u(:,:,gi)))
   end do
   do i = 1, dim
-     reynolds_stress(i,i,:) = reynolds_stress(i,i,:) - (2./3.)*k_ele*ele_val_at_quad(density, ele) !! change? No
+     reynolds_stress(i,i,:) = reynolds_stress(i,i,:) - (2./3.)*k_ele*ele_val_at_quad(density, ele)
   end do
 
-  !A! get u_ele for elements within the disc
+  !A! ADM: get u_ele for elements within the disc
   if (X%mesh%region_ids(ele)==region_id_disc) then
-
-    ! Loop through the nodes 
-    !u_ele = 0.0
-    !do iloc=1, size(nodes)
-         !get the global number
-         !inode=nodes(iloc)
-         !u_x = u%val(1,inode)
-         !u_y = u%val(2,inode)
-         !u_z = u%val(3,inode)
-         !u_est = sqrt(u_x*u_x + u_y*u_y + u_z*u_z)
-         !u_ele = u_ele + u_est
-    !end do
-    !u_ele = u_ele/4.0
-    !print*, 'AminCheck', ele, u_ele
-
-    !A!volume = integral_element_scalar(NodeOnTurbine, X, ele) ! Need NodeOnTurbine field!!!
     volume=dot_product(ele_val_at_quad(NodeOnTurbine, ele), detwei)
-    !A!vel_integral = integral_element_vector(u, X, ele)
     vel_integral=matmul(matmul(ele_val(u, ele), u%mesh%shape%n), detwei)
     u_ele = vel_integral(1)/volume
-    !print*, 'AminCheck', ele, u_ele, volume, vel_integral(1)
   end if
 
-  ! Compute P !! Production ?
-  if (field_id==1) then !! id=1 => k
+  ! Compute P (Production)
+  if (field_id==1) then ! id=1 => k
+     rhs = tensor_inner_product(reynolds_stress, grad_u)
      if (X%mesh%region_ids(ele)==region_id_disc) then ! Disc production term
-!        beta_p = 0.05 !user input!
-!        beta_d = 1.50 !user input!
-!        C_T = 0.90 !user input!
         a_fac = 0.5*(1.0-sqrt(1.0-C_T))
         C_x = (4.0*a_fac)/(1.0 - a_fac)
-        C_1 = 0.05
-        C_2 = 1.50
-        Cpw = C_T*sqrt(1.0-C_T)
-        deltaX = 0.0125
+!        C_1 = 0.05
+!        C_2 = 1.50
+!        Cpw = C_T*sqrt(1.0-C_T)
+!        deltaX = 0.0125
 
-        rhs = tensor_inner_product(reynolds_stress, grad_u)
-!        rhs = rhs + ele_val_at_quad(density, ele)*beta_star*k_ele*omega_ele ! ElKasmi et al.
 !        rhs = rhs + (1.0/deltaX)*( C_1*Cpw*u_ele**3.0 - C_2*Cpw*u_ele*k_ele) ! Roc et al
-        rhs = rhs +      0.5*C_x*(  beta_p*u_ele**3.0 -  beta_d*u_ele*k_ele) ! Rethore et al
-     else
-        rhs = tensor_inner_product(reynolds_stress, grad_u)
+        !rhs = rhs +      0.5*C_x*(  beta_p*u_ele**3.0 -  beta_d*u_ele*k_ele) ! Rethore et al
      end if
   end if
 
-  if (field_id==2) then !! id=2 , hence applies to omega field and not k
-     rhs = tensor_inner_product(reynolds_stress, grad_u)
-     if (X%mesh%region_ids(ele)==region_id_disc) then ! Disc production term 
-        rhs = rhs*alpha*(omega_ele/k_ele) + (C_omega*rhs*rhs)/(k_ele*k_ele) ! C_omega = 4.0 (Rados et al)
-!        rhs = rhs + ele_val_at_quad(density, ele)*beta*omega_ele*omega_ele ! ElKasmi et al.
-     elseif (X%mesh%region_ids(ele)==region_id_near_disc) then
-        rhs = rhs*alpha*(omega_ele/k_ele) + (C_omega*rhs*rhs)/(k_ele*k_ele) ! C_omega = 4.0 (Rados et al)
-     else
-        rhs = rhs*alpha*(omega_ele/k_ele) !! f1 is damping function *ele_val_at_quad(f_1,ele) removed
-     end if
-  end if
-  rhs_addto(1,:) = shape_rhs(shape, detwei*rhs) !! shape_rhs ?
+  if (field_id==2) then ! id=2 => omega
+    rhs = tensor_inner_product(reynolds_stress, grad_u)
+    ADM_Source = (C_omega*rhs*rhs)/(k_ele*k_ele) !ADM!
 
-  ! A: !! Absorption ?
-  rhs = -1.0*omega_ele*k_ele*beta_star*ele_val_at_quad(density, ele) !! changed! (k eq coeff)
+    if(have_SST) then ! Menter k-omega SST:
+
+      rhs = rhs*( ele_val_at_quad(F_1, ele)*gama_1 + (1.0-ele_val_at_quad(F_1, ele))*gama_2 ) * &
+                ( ele_val_at_quad(density, ele) / scalar_eddy_visc_ele ) + &
+                (1.0-ele_val_at_quad(F_1, ele))*ele_val_at_quad(CD_komg, ele)
+
+      if ((X%mesh%region_ids(ele)==region_id_disc) .or. (X%mesh%region_ids(ele)==region_id_near_disc)) then !ADM!
+        !rhs = rhs + ADM_Source
+      endif
+
+    else ! Wilcox k-omega:
+
+      rhs = rhs*alpha*(omega_ele/k_ele)
+      if ((X%mesh%region_ids(ele)==region_id_disc) .or. (X%mesh%region_ids(ele)==region_id_near_disc)) then !ADM!
+        rhs = rhs + ADM_Source
+      end if
+
+    endif
+  end if
+  rhs_addto(1,:) = shape_rhs(shape, detwei*rhs) ! shape_rhs?  integration
+
+  ! Compute A (Absorption)
+  rhs = -1.0*omega_ele*k_ele*beta_star*ele_val_at_quad(density, ele)
   if (field_id==2) then
-     rhs = rhs*(beta/beta_star)*(omega_ele/k_ele) !! chanegd (omega eq coeff) *ele_val_at_quad(f_2,ele) removed
+    if(have_SST) then
+      rhs = omega_ele*omega_ele*ele_val_at_quad(density, ele)*&
+            (ele_val_at_quad(F_1, ele)*beta_1 + (1.0-ele_val_at_quad(F_1, ele))*beta_2)
+    else
+      rhs = omega_ele*omega_ele*ele_val_at_quad(density, ele)*beta
+    endif
   end if
   rhs_addto(2,:) = shape_rhs(shape, detwei*rhs)
 
   ! Gk:  
   ! Calculate buoyancy turbulence term and add to addto array
   ! No buoyancy term, so set this part of the array to zero. !! Currently no buoyancy !!!
-!!!  rhs_addto(3,:) = 0.0    
+!A!  rhs_addto(3,:) = 0.0    
 
   ! In the DG case we apply the inverse mass locally.
   if(continuity(k)<0) then
      invmass = inverse(shape_shape(shape, shape, detwei))
-     do term = 1, 2 !!! 3 to 2
+     do term = 1, 2 !A! 3 to 2
         rhs_addto(term,:) = matmul(rhs_addto(term,:), invmass)
      end do
   end if
 
-  do term = 1, 2 !!! 3 to 2
+  do term = 1, 2 !A! 3 to 2
      call addto(src_abs_terms(term), nodes, rhs_addto(term,:))
   end do
 
@@ -450,10 +580,10 @@ function tensor_inner_product(A, B)
 
 end function tensor_inner_product
 
-!----------
+!---------------------------------------------------------------------------------------!
 ! eddyvisc calculates the lengthscale and the eddy viscosity
 ! Eddy viscosity is added to the background viscosity.
-!----------
+!---------------------------------------------------------------------------------------!
 subroutine komega_eddyvisc(state, advdif)
 
   type(state_type), intent(inout)  :: state
@@ -461,18 +591,24 @@ subroutine komega_eddyvisc(state, advdif)
 
   type(tensor_field), pointer      :: eddy_visc, viscosity, bg_visc
   type(vector_field), pointer      :: x, u
-  type(scalar_field)               :: kk, omega !! uses kk instead of k
-  type(scalar_field), pointer      :: scalar_eddy_visc, ll, density, dummydensity !! f_mu removed
+  type(scalar_field)               :: kk, omega ! uses kk instead of k
+  type(scalar_field), pointer      :: scalar_eddy_visc, ll, density, dummydensity
   type(scalar_field)               :: ev_rhs
   integer                          :: i, j, ele, stat
   
   ! Options grabbed from the options tree
-!!  real                             :: c_mu !! no coeff needed since in k-omega eddyvis = rho*k/omega
   character(len=OPTION_PATH_LEN)   :: option_path
   logical                          :: lump_mass, have_visc = .true.
   character(len=FIELD_NAME_LEN)    :: equation_type
 
-  option_path = trim(state%option_path)//'/subgridscale_parameterisations/k-omega/' !!
+  !A! SST terms
+  logical                          :: have_SST = .true.
+  type(scalar_field), pointer      :: F_2
+  type(scalar_field)               :: abs_vort
+  type(vector_field), pointer      :: vorticity
+  real                             :: beta_star
+
+  option_path = trim(state%option_path)//'/subgridscale_parameterisations/k-omega/'
 
   if (.not. have_option(trim(option_path))) then 
      return
@@ -480,26 +616,32 @@ subroutine komega_eddyvisc(state, advdif)
 
   ewrite(1,*) "In komega_eddyvisc"
 
-  ! Get model constant
-!!  call get_option(trim(option_path)//'/C_mu', c_mu, default = 0.09) !! change
   
-  ! Get field data !!  from diamond
+  ! Get field data
   call time_averaged_value(state, kk, "TurbulentKineticEnergy", advdif, option_path)
-  call time_averaged_value(state, omega, "TurbulentFrequency", advdif, option_path) !!
-  x  => extract_vector_field(state, "Coordinate")
-  u          => extract_vector_field(state, "NonlinearVelocity")
-  eddy_visc  => extract_tensor_field(state, "EddyViscosity")
-!!  f_mu       => extract_scalar_field(state, "f_mu")
-  bg_visc    => extract_tensor_field(state, "BackgroundViscosity")
-  scalar_eddy_visc         => extract_scalar_field(state, "ScalarEddyViscosity")
-  ll         => extract_scalar_field(state, "LengthScale")
-  viscosity  => extract_tensor_field(state, "Viscosity", stat)
+  call time_averaged_value(state, omega, "TurbulentFrequency", advdif, option_path)
+
+  x                => extract_vector_field(state, "Coordinate")
+  u                => extract_vector_field(state, "NonlinearVelocity")
+  eddy_visc        => extract_tensor_field(state, "EddyViscosity")
+  bg_visc          => extract_tensor_field(state, "BackgroundViscosity")
+  scalar_eddy_visc => extract_scalar_field(state, "ScalarEddyViscosity")
+  ll               => extract_scalar_field(state, "LengthScale")
+  viscosity        => extract_tensor_field(state, "Viscosity", stat)
   if (stat /= 0) then
      have_visc = .false.
   end if
 
-  ewrite_minmax(kk) !!
-  ewrite_minmax(omega) !!
+  call get_option(trim(option_path)//'/Beta_Star', beta_star, default = 0.09) !!
+
+  !A! SST terms
+  F_2       => extract_scalar_field(state, "F_2")
+  vorticity => extract_vector_field(state, "VectVort")
+  !A! random initialisation of abs_vort, this will be overwritten!
+  call time_averaged_value(state, abs_vort, 'TurbulentFrequency', advdif, option_path)
+
+  ewrite_minmax(kk)
+  ewrite_minmax(omega)
   ewrite_minmax(scalar_eddy_visc)
   
   allocate(dummydensity)
@@ -509,7 +651,7 @@ subroutine komega_eddyvisc(state, advdif)
   
   ! Depending on the equation type, extract the density or set it to some dummy field allocated above
   call get_option(trim(state%option_path)//&
-       "/vector_field::Velocity/prognostic/equation[0]/name", equation_type, stat=stat) !!!
+       "/vector_field::Velocity/prognostic/equation[0]/name", equation_type, stat=stat)
   if (stat /= 0) then
     density=>dummydensity
   else
@@ -526,7 +668,7 @@ subroutine komega_eddyvisc(state, advdif)
     end select
   end if
 
-  call allocate(ev_rhs, scalar_eddy_visc%mesh, name="EVRHS") !!
+  call allocate(ev_rhs, scalar_eddy_visc%mesh, name="EVRHS")
   call zero(ev_rhs)
 
   ! Initialise viscosity to background value
@@ -536,12 +678,13 @@ subroutine komega_eddyvisc(state, advdif)
   
   ! Compute the length scale diagnostic field here.
   do i = 1, node_count(scalar_eddy_visc)
-     call set(ll, i, max(node_val(kk,i), fields_min)**0.5 / max(node_val(omega,i), fields_min)) !! beta_star ? !!
+     call set(ll, i, max(node_val(kk,i), fields_min)**0.5 / max(node_val(omega,i)*beta_star, fields_min))
   end do
 
   ! Calculate scalar eddy viscosity by integration over element
   do ele = 1, ele_count(scalar_eddy_visc)
-     call komega_eddyvisc_ele(ele, X, kk, omega, scalar_eddy_visc, density, ev_rhs) !! main function call !! f_mu removed
+     call komega_eddyvisc_ele(ele, X, kk, omega, scalar_eddy_visc, density, ev_rhs, &
+                              F_2, vorticity, abs_vort)
   end do
 
   ! For non-DG we apply inverse mass globally
@@ -557,16 +700,16 @@ subroutine komega_eddyvisc(state, advdif)
 
   call deallocate(ev_rhs)
   call deallocate(kk)
-  call deallocate(omega) !!
+  call deallocate(omega)
   
   call deallocate(dummydensity)
   deallocate(dummydensity)
 
-  ewrite(2,*) "Setting k-omega eddy-viscosity tensor" !!
+  ewrite(2,*) "Setting k-omega eddy-viscosity tensor"
   call zero(eddy_visc)
 
   ! this is skipped if zero_eddy_viscosity is set - this is the easiest way to
-  ! disable feedback from the k-omega model back into the rest of the model !!
+  ! disable feedback from the k-omega model back into the rest of the model
   if (.not. have_option(trim(option_path)//'debugging_options/zero_reynolds_stress_tensor')) then
      do i = 1, eddy_visc%dim(1)
         do j = 1, eddy_visc%dim(1)
@@ -587,35 +730,44 @@ subroutine komega_eddyvisc(state, advdif)
   
   contains
   
-   subroutine komega_eddyvisc_ele(ele, X, kk, omega, scalar_eddy_visc, density, ev_rhs) !! f_mu removed
+   subroutine komega_eddyvisc_ele(ele, X, kk, omega, scalar_eddy_visc, density, ev_rhs, &
+                                  F_2, vorticity, abs_vort)
    
-      type(vector_field), intent(in)   :: x
-      type(scalar_field), intent(in)   :: kk, omega, scalar_eddy_visc, density !! f_mu removed
-      type(scalar_field), intent(inout):: ev_rhs
-      integer, intent(in)              :: ele
+      type(vector_field), intent(in)    :: x
+      type(scalar_field), intent(in)    :: kk, omega, scalar_eddy_visc, density
+      type(scalar_field), intent(inout) :: ev_rhs
+      integer, intent(in)               :: ele
       
-      type(element_type), pointer      :: shape_ev
-      integer, pointer, dimension(:)   :: nodes_ev
+      type(element_type), pointer       :: shape_ev
+      integer, pointer, dimension(:)    :: nodes_ev
       real, dimension(ele_ngi(scalar_eddy_visc, ele)) :: detwei
       real, dimension(ele_loc(scalar_eddy_visc, ele)) :: rhs_addto
       real, dimension(ele_loc(scalar_eddy_visc, ele), ele_loc(scalar_eddy_visc, ele)) :: invmass
-      real, dimension(ele_ngi(kk, ele)) :: kk_at_quad, omega_at_quad !!
-      
-   
+      real, dimension(ele_ngi(kk, ele)) :: kk_at_quad, omega_at_quad
+
+      !A! SST terms
+      type(scalar_field), intent(in)    :: F_2
+      type(scalar_field), intent(inout) :: abs_vort
+      type(vector_field), intent(in)    :: vorticity
+      integer                           :: iloc, inode
+      real                              :: a_1, w_x, w_y, w_z
+      logical                           :: have_SST = .true.
+      real, dimension(ele_ngi(scalar_eddy_visc, ele)) :: eddy_visc_SST
+
       nodes_ev => ele_nodes(scalar_eddy_visc, ele)
       shape_ev =>  ele_shape(scalar_eddy_visc, ele)
       
       ! Get detwei
       call transform_to_physical(X, ele, detwei=detwei)
       
-      ! Get the k and omega values at the Gauss points !!
+      ! Get the k and omega values at the Gauss points
       kk_at_quad = ele_val_at_quad(kk,ele)
-      omega_at_quad = ele_val_at_quad(omega,ele) !!
+      omega_at_quad = ele_val_at_quad(omega,ele)
       
       ! Clip the field values at the Gauss points.
       ! Note 1: This isn't a permanent change directly to the field itself,
       ! only to the values used in the computation of the eddy viscosity.
-      ! Note 2: Can't allow negative/zero omega or k. !!
+      ! Note 2: Can't allow negative/zero omega or k.
       ! Note 3: Here we assume all fields have the same number of
       ! Gauss points per element.
       where (kk_at_quad < fields_min)
@@ -624,17 +776,36 @@ subroutine komega_eddyvisc(state, advdif)
       where (omega_at_quad < fields_min)
          omega_at_quad = fields_min
       end where
+
+      !A! Compute absolute vorticity: loop through the nodes
+      do iloc=1, size(nodes_ev)
+         !get global number
+         inode=nodes_ev(iloc)
+         w_x = vorticity%val(1,inode)
+         w_y = vorticity%val(2,inode)
+         w_z = vorticity%val(3,inode)
+         call set(abs_vort, inode, sqrt(w_x*w_x + w_y*w_y + w_z*w_z))
+      end do
+      !print*, 'AminCheck', ele, ele_val_at_quad(abs_vort,ele)
       
-      ! Compute the eddy viscosity
-      rhs_addto = shape_rhs(shape_ev, detwei*ele_val_at_quad(density,ele)*&
-                  (kk_at_quad/omega_at_quad)) !! keep f_mu ? No
-            
+      a_1 = 0.31
+
+      !A! Set eddy_visc depending on have_SST:
+      if(have_SST) then
+        rhs_addto = shape_rhs(shape_ev, detwei*ele_val_at_quad(density,ele)*&
+                    a_1*kk_at_quad/&
+                    max(a_1*omega_at_quad , ele_val_at_quad(abs_vort,ele)*ele_val_at_quad(F_2,ele) ))
+      else
+        rhs_addto = shape_rhs(shape_ev, detwei*ele_val_at_quad(density,ele)*&
+                    (kk_at_quad/omega_at_quad))
+      endif
+
       ! In the DG case we will apply the inverse mass locally.
       if(continuity(scalar_eddy_visc)<0) then
          invmass = inverse(shape_shape(shape_ev, shape_ev, detwei))
          rhs_addto = matmul(rhs_addto, invmass)
       end if
-      
+
       ! Add the element's contribution to the nodes of ev_rhs
       call addto(ev_rhs, nodes_ev, rhs_addto)    
    
@@ -646,37 +817,48 @@ end subroutine komega_eddyvisc
 
 subroutine komega_diffusion(state)
 
-  ! calculates k and omega field diffusivities !!
+  ! calculates k and omega field diffusivities
   type(state_type), intent(inout)   :: state
+  type(tensor_field), pointer       :: diff, bg_visc, eddy_visc
+  real                              :: sigma, sigma_star
+  integer                           :: i, j
+  character(len=OPTION_PATH_LEN)    :: option_path
 
-  type(tensor_field), pointer :: diff, bg_visc, eddy_visc
-  !!! real :: sigma_k, sigma_eps
-  real :: sigma, sigma_star !!
-  integer :: i, j
-  character(len=OPTION_PATH_LEN) :: option_path 
+  !A! SST terms
+  real                              :: sigma_k1, sigma_k2, sigma_omg1, sigma_omg2
+  real                              :: sigma_k, sigma_omg
+  type(scalar_field), pointer       :: F_1
+  logical                           :: have_SST = .true.
 
   ewrite(1,*) 'in komega_diffusion'
 
   option_path = trim(state%option_path)//'/subgridscale_parameterisations/k-omega/'
 
-!  if (have_option(trim(option_path)//"/scalar_field::TurbulentKineticEnergy/prognostic")) then !A!
-!    if (.not.have_option(trim(option_path)//"/scalar_field::TurbulentKineticEnergy"//& !A!
-!         &"/prognostic/tensor_field::Diffusivity")) then !A!
-!      ewrite(1,*) 'NoDiffusivity' !A!
-!    else !A!
+!  if (have_option(trim(option_path)//"/scalar_field::TurbulentKineticEnergy/prognostic")) then
+!    if (.not.have_option(trim(option_path)//"/scalar_field::TurbulentKineticEnergy"//&
+!         &"/prognostic/tensor_field::Diffusivity")) then
+!      ewrite(1,*) 'NoDiffusivity'
+!    else
 
   eddy_visc => extract_tensor_field(state, "EddyViscosity")
-  bg_visc => extract_tensor_field(state, "BackgroundViscosity")
-  call get_option(trim(option_path)//'/Sigma', sigma, default = 0.5) !!
-  call get_option(trim(option_path)//'/Sigma_Star', sigma_star, default = 0.5) !!
+  bg_visc   => extract_tensor_field(state, "BackgroundViscosity")
+  F_1       => extract_scalar_field(state, "F_1")
+
+  call get_option(trim(option_path)//'/Sigma', sigma, default = 0.5)
+  call get_option(trim(option_path)//'/Sigma_Star', sigma_star, default = 0.5)
 
   ! Set diffusivity
   diff => extract_tensor_field(state, "TurbulentKineticEnergyDiffusivity")
   call zero(diff)
   do i = 1, node_count(diff)
      do j = 1, diff%dim(1)
-        call addto(diff, j, j, i, node_val(bg_visc, j, j, i)) !! why j j i ?
-        call addto(diff, j, j, i, node_val(eddy_visc, j, j, i) * sigma_star) !!
+        call addto(diff, j, j, i, node_val(bg_visc, j, j, i)) ! why j j i ?
+        if (have_SST) then
+          sigma_k = F_1%val(i)*sigma_k1 + (1.0-F_1%val(i))*sigma_k2
+          call addto(diff, j, j, i, node_val(eddy_visc, j, j, i) * sigma_k)
+        else
+          call addto(diff, j, j, i, node_val(eddy_visc, j, j, i) * sigma_star)
+        endif
      end do
   end do
   diff => extract_tensor_field(state, "TurbulentFrequencyDiffusivity") !!
@@ -684,7 +866,12 @@ subroutine komega_diffusion(state)
   do i = 1, node_count(diff)
      do j = 1, diff%dim(1)
         call addto(diff, j, j, i, node_val(bg_visc, j, j, i))
-        call addto(diff, j, j, i, node_val(eddy_visc, j, j, i) * sigma) !! changed
+        if (have_SST) then
+          sigma_omg = F_1%val(i)*sigma_omg1 + (1.0-F_1%val(i))*sigma_omg2
+          call addto(diff, j, j, i, node_val(eddy_visc, j, j, i) * sigma_omg)
+        else
+          call addto(diff, j, j, i, node_val(eddy_visc, j, j, i) * sigma)
+        endif
      end do
   end do
 
@@ -703,7 +890,7 @@ subroutine komega_tracer_diffusion(state)
 
   type(tensor_field), pointer       :: t_field
   integer                           :: i_field, i, stat
-  real                              :: local_background_diffusivity !!!, sigma_p, !! sigma p => buoyancy?
+  real                              :: local_background_diffusivity
   type(scalar_field)                :: local_background_diffusivity_field
   type(scalar_field), pointer       :: scalar_eddy_viscosity, s_field
   type(tensor_field), pointer       :: global_background_diffusivity
@@ -715,25 +902,25 @@ subroutine komega_tracer_diffusion(state)
      s_field => extract_scalar_field(state, i_field)
 
      if (have_option(trim(s_field%option_path)//&
-          '/prognostic/subgridscale_parameterisation::k-omega')) then !!
+          '/prognostic/subgridscale_parameterisation::k-omega')) then
 
         ewrite(1,*) 'Calculating turbulent diffusivity for field: ', s_field%name
         
         ! check options
-        if (.not.(have_option(trim(state%option_path)//'/subgridscale_parameterisations/k-omega')))& !!
+        if (.not.(have_option(trim(state%option_path)//'/subgridscale_parameterisations/k-omega')))&
              & then
-           FLExit('you must have /subgridscale_parameterisations/k-omega to be able to calculate diffusivity based upon the k-omega model') !!
+           FLExit('you must have /subgridscale_parameterisations/k-omega to be able to calculate diffusivity based upon the k-omega model')
         end if
 
         t_field => extract_tensor_field(state, trim(s_field%name)//'Diffusivity', stat=stat) 
         if (stat /= 0) then
-           FLExit('you must have a Diffusivity field to be able to calculate diffusivity based upon the k-omega model') !!
+           FLExit('you must have a Diffusivity field to be able to calculate diffusivity based upon the k-omega model')
         else if (.not. have_option(trim(t_field%option_path)//"/diagnostic/algorithm::Internal")) then
            FLExit('you must have a diagnostic Diffusivity field with algorithm::Internal to be able to calculate diffusivity based upon the k-omega model') !!
         end if
 
         ! get sigma_p number !! what is this? buoyancy term?
-        !!! call get_option(trim(state%option_path)//'/subgridscale_parameterisations/k-omega/sigma_p', sigma_p) !!
+        ! call get_option(trim(state%option_path)//'/subgridscale_parameterisations/k-omega/sigma_p', sigma_p)
 
         ! allocate and zero required fields
         call allocate(background_diffusivity, t_field%mesh, name="background_diffusivity")
@@ -764,9 +951,9 @@ subroutine komega_tracer_diffusion(state)
 
         call zero(t_field)
         call addto(t_field, background_diffusivity)
-        !!!do i = 1, t_field%dim(1)
-        !!!   call addto(t_field, i, i, scalar_eddy_viscosity, 1.0/sigma_p) !! change?
-        !!!end do
+        !do i = 1, t_field%dim(1)
+        !   call addto(t_field, i, i, scalar_eddy_viscosity, 1.0/sigma_p)
+        !end do
 
         call deallocate(background_diffusivity)
         call deallocate(local_background_diffusivity_field)
@@ -1005,9 +1192,9 @@ subroutine k_omega_check_options
            FLExit("You must use a prognostic or prescribed Velocity field")
         end if
      end if
-!!!     if(.not. kmsh==emsh .or. .not. kmsh==vmsh .or. .not. emsh==vmsh) then
-!!!        FLExit("You must use the Velocity mesh for TurbulentKineticEnergy and TurbulentFrequency fields") 
-!!!     end if
+!A!     if(.not. kmsh==emsh .or. .not. kmsh==vmsh .or. .not. emsh==vmsh) then
+!A!        FLExit("You must use the Velocity mesh for TurbulentKineticEnergy and TurbulentFrequency fields") 
+!A!     end if
 
      ! Velocity field options
      if (.not.have_option("/material_phase["//int2str(istate)//"]/vector_field::Velocity/prognostic"//&
