@@ -676,13 +676,13 @@ contains
 
   end function element_count_tensor
   
-  pure function surface_element_id_mesh(mesh, ele) result (id)
+  elemental function surface_element_id_mesh(mesh, ele) result (id)
     !!< Return the boundary id of the given surface element
     type(mesh_type), intent(in):: mesh
     integer, intent(in):: ele
     integer id
     
-    ! sorry can't assert in pure
+    ! sorry can't assert in elemental
     !assert(associated(mesh%faces))
     !assert(ele>0 .and. ele<size(mesh%faces%boundary_ids))
     
@@ -690,13 +690,13 @@ contains
     
   end function surface_element_id_mesh
   
-  pure function surface_element_id_scalar(field, ele) result (id)
+  elemental function surface_element_id_scalar(field, ele) result (id)
     !!< Return the boundary id of the given surface element
     type(scalar_field), intent(in):: field
     integer, intent(in):: ele
     integer id
     
-    ! sorry can't assert in pure
+    ! sorry can't assert in elemental
     !assert(associated(field%mesh%faces))
     !assert(ele>0 .and. ele<size(field%mesh%faces%boundary_ids))
     
@@ -704,13 +704,13 @@ contains
     
   end function surface_element_id_scalar
 
-  pure function surface_element_id_vector(field, ele) result (id)
+  elemental function surface_element_id_vector(field, ele) result (id)
     !!< Return the boundary id of the given surface element
     type(vector_field), intent(in):: field
     integer, intent(in):: ele
     integer id
     
-    ! sorry can't assert in pure
+    ! sorry can't assert in elemental
     !assert(associated(field%mesh%faces))
     !assert(ele>0 .and. ele<size(field%mesh%faces%boundary_ids))
     
@@ -718,7 +718,7 @@ contains
     
   end function surface_element_id_vector
   
-  pure function ele_region_id_mesh(mesh, ele) result(id)
+  elemental function ele_region_id_mesh(mesh, ele) result(id)
     !!< Return the region id of an element
     
     type(mesh_type), intent(in) :: mesh

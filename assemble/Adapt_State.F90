@@ -105,6 +105,7 @@ contains
     logical, intent(in), optional :: force_preserve_regions
     type(integer_set), intent(in), optional :: lock_faces
     logical, intent(in), optional :: allow_boundary_elements
+    type(vector_field) :: expanded_positions
 
     assert(.not. mesh_periodic(old_positions))
 
@@ -139,6 +140,8 @@ contains
         FLAbort("Mesh adaptivity requires a 1D, 2D or 3D mesh")
     end select
 
+    expanded_positions = expand_positions_halo(new_positions)
+
     ! deallocate stripped metric and positions - we don't need these anymore
     call deallocate(stripped_metric)
     call deallocate(stripped_positions)
@@ -154,7 +157,8 @@ contains
     type(vector_field), intent(out) :: stripped_positions
     type(tensor_field), intent(out):: stripped_metric
 
-    type(mesh_type):: stripped_mesh
+    type(halo_type), dimension(:), pointer :: save_halos
+    type(mesh_type):: stripped_mesh, mesh
     integer, dimension(:), pointer :: node_list, nodes
     integer, dimension(:), allocatable :: non_halo2_elements
     integer :: ele, j, non_halo2_count
@@ -172,8 +176,25 @@ contains
       end do
     end do ele_loop
 
-    call create_subdomain_mesh(positions%mesh, non_halo2_elements(1:non_halo2_count), positions%mesh%name, &
-      stripped_mesh, node_list)
+    ! to avoid create_subdomain_mesh recreating a new halo 2
+    ! temporarily take it away from the input positions%mesh
+    ! (create_sudomain_mesh would correctly recreate a halo2, but since
+    ! all halo2 nodes are stripped, it would end up being the same as halo 1)
+    ! the new element halos are recreated from the new nodal halo without
+    ! using those of the input positions%mesh
+    mesh = positions%mesh
+    if (.not. size(save_halos)/=2) then
+      FLAbort("In strip_l2_halo: halo2 is already stripped?")
+    end if
+    ! since mesh is a copy of positons%mesh, we can change mesh%halos
+    ! without changing positions%mesh%halos
+    allocate(mesh%halos(1))
+    mesh%halos(1)=positions%mesh%halos(1)
+
+    call create_subdomain_mesh(mesh, non_halo2_elements(1:non_halo2_count), &
+      mesh%name, stripped_mesh, node_list)
+
+    deallocate(mesh%halos)
 
     call allocate(stripped_positions, positions%dim, stripped_mesh, name=positions%name)
     call allocate(stripped_metric, stripped_mesh, name=metric%name)

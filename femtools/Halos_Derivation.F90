@@ -54,6 +54,7 @@ module halos_derivation
   public :: derive_l1_from_l2_halo, derive_element_halo_from_node_halo, &
     & derive_maximal_surface_element_halo, derive_nonperiodic_halos_from_periodic_halos, derive_sub_halo
   public :: invert_comms_sizes, ele_owner, combine_halos, create_combined_numbering_trailing_receives
+  public :: expand_positions_halo
   
   interface derive_l1_from_l2_halo
     module procedure derive_l1_from_l2_halo_mesh
@@ -1446,5 +1447,404 @@ contains
     end do
 
   end function create_combined_numbering_trailing_receives
+
+  function expand_positions_halo(positions) result (new_positions)
+    use vtk_interfaces
+    type(vector_field), intent(in) :: positions
+    type(vector_field) :: new_positions
+
+    type(mesh_type) :: new_mesh
+
+    new_mesh = expand_mesh_halo(positions%mesh)
+    call allocate(new_positions, positions%dim, new_mesh, name=positions%name)
+    new_positions%val(:,1:node_count(positions)) = positions%val
+    call halo_update(new_positions)
+
+    call vtk_write_fields("stripped", 0, model=positions%mesh, position=positions)
+    call vtk_write_fields("expanded", 0, model=new_positions%mesh, position=new_positions)
+
+    FLExit("So far so good!")
+
+  end function expand_positions_halo
+
+  function expand_mesh_halo(mesh) result (new_mesh)
+    type(mesh_type), intent(in) :: mesh
+    type(mesh_type) :: new_mesh
+
+    type(csr_sparsity), pointer :: nelist
+    type(halo_type), pointer :: old_halo, ele_halo
+    type(halo_type) :: new_halo
+    type(integer_hash_table) :: ueid_to_gid, uid_to_gid
+    type(integer_set) :: elements_to_send
+    type(integer_vector), dimension(:), allocatable :: send_buffer, recv_buffer
+    integer, dimension(:), allocatable :: send_request
+    integer, dimension(:), pointer :: neigh, nodes, facets
+    integer, dimension(:), allocatable :: statuses
+    integer, dimension(MPI_STATUS_SIZE) :: status
+    integer :: comm, tag, ierr, nprocs
+    integer :: nhalos, new_node_count, send_count, new_element_count, recv_size, nfaces, new_surface_element_count
+    integer :: no_boundary_id
+    integer :: proc, ele, i, j, nloc, ele_info_size
+    logical :: has_surface_mesh
+
+    nhalos = size(mesh%halos)
+    old_halo => mesh%halos(nhalos)
+    ele_halo => mesh%element_halos(size(mesh%element_halos))
+    new_halo = expand_halo(mesh, old_halo)
+
+    ! map from universal node id to global node id
+    call create_global_to_universal_numbering(new_halo)
+    call get_universal_numbering_inverse(new_halo, uid_to_gid)
+    ! map from universal element id to global element id
+    call create_global_to_universal_numbering(ele_halo)
+    call get_universal_numbering_inverse(ele_halo, ueid_to_gid)
+
+    new_node_count = key_count(uid_to_gid)
+    assert(new_node_count==max_halo_receive_node(new_halo))
+    new_element_count = element_count(mesh) ! we start with all existing elements
+    nloc = mesh%shape%loc
+    nfaces = mesh%shape%numbering%boundaries
+    ! things we send with each element:
+    ! 1) its universal element id
+    ! 2) its nodes (by uid)
+    ! if associated(mesh%faces): 3) the surface ids of adjacent facets
+    ele_info_size = 1+nloc
+
+    has_surface_mesh = .false.
+    if (associated(mesh%faces)) then
+      if (associated(mesh%faces%boundary_ids)) then
+        has_surface_mesh = .true.
+        ele_info_size = ele_info_size+nfaces
+        ! we have to agree on an id that means: this facet is not part of the surface mesh
+        no_boundary_id = minval(mesh%faces%boundary_ids)
+        call allmin(no_boundary_id)
+        no_boundary_id = no_boundary_id-1
+        new_surface_facet_element_count = surface_element_count(mesh)
+      end if
+    end if
+
+    ! send and recv buffers for each processor
+    nprocs = halo_proc_count(old_halo)
+    comm = halo_communicator(old_halo)
+    tag = next_mpi_tag()
+    allocate(send_buffer(nprocs), send_request(nprocs))
+    allocate(recv_buffer(nprocs))
+
+    ! loop over all new send nodes and send its adjacent elements
+    nelist => extract_nelist(mesh)
+    do proc=1, nprocs
+      call allocate(elements_to_send)
+      ! loop over all send nodes 
+      do i=1, halo_send_count(new_halo, proc)
+        neigh => row_m_ptr(nelist, halo_send(new_halo, proc, i))
+        call insert(elements_to_send, neigh)
+      end do
+      send_count = key_count(elements_to_send)
+      ! for each element, send its ueid and the uids of its nodes
+      ! and optionally, the surface ids of its facets
+      allocate(send_buffer(proc)%ptr(send_count*ele_info_size))
+      send_count = 1
+      do i=1, key_count(elements_to_send)
+        ele = fetch(elements_to_send, i)
+        send_buffer(proc)%ptr(send_count) = halo_universal_number(ele_halo, ele)
+        nodes => ele_nodes(mesh, ele)
+        send_buffer(proc)%ptr(send_count+1:send_count+size(nodes)) = halo_universal_number(new_halo, nodes)
+        send_count = send_count+1+size(nodes)
+        if (has_surface_mesh) then
+          facets => ele_faces(mesh, ele)
+          where (facets<=surface_element_count(mesh))
+            send_buffer(proc)%ptr(send_count+1:send_count+nfaces) = surface_element_id(mesh, facets)
+          elsewhere
+            send_buffer(proc)%ptr(send_count+1:send_count+nfaces) = no_boundary_id
+          end where
+          send_count = send_count+nfaces
+        end if
+      end do
+      assert(send_count==size(send_buffer(proc)%ptr)+1)
+      call deallocate(elements_to_send)
+      
+      call MPI_ISend(send_buffer(proc)%ptr, send_count-1, getpinteger(), &
+        proc-1, tag,  comm, send_request(proc), ierr)
+      assert(ierr == MPI_SUCCESS)
+
+    end do
+
+    do proc=1, nprocs
+      call mpi_probe(proc-1, tag, comm, status, ierr)
+      assert(ierr == MPI_SUCCESS)
+      
+      call mpi_get_count(status, getpinteger(), recv_size, ierr)
+      allocate(recv_buffer(proc)%ptr(1:recv_size))
+
+      call MPI_Recv(recv_buffer(proc)%ptr, recv_size, getpinteger(), &
+        proc-1, tag, comm, status, ierr)
+      assert(ierr == MPI_SUCCESS)
+
+      ele_loop: do i=1, recv_size/ele_info_size
+        ele = recv_buffer(proc)%ptr((i-1)*ele_info_size+1)
+        if (.not. has_key(ueid_to_gid, ele)) then
+          nodes => recv_buffer(proc)%ptr((i-1)*ele_info_size+2:(i-1)*ele_info_size+1+nloc)
+          ! we're only interested in this element if we know all its nodes:
+          do j=1, size(nodes)
+            if (.not. has_key(uid_to_gid, nodes(j))) cycle ele_loop
+          end do
+          new_element_count = new_element_count+1
+          call insert(ueid_to_gid, ele, new_element_count)
+          if (has_surface_mesh) then
+            new_surface_element_count = new_surface_element_count + &
+              count(recv_buffer(proc)%ptr((i-1)*ele_info_size+nloc+2:(i-1)*ele_info_size+1+nloc+nfaces)/=no_boundary_id)
+          end if
+        end if
+      end do ele_loop
+    end do
+
+    ! make sure all sends are dealt with
+    allocate(statuses(1:MPI_STATUS_SIZE*nprocs))
+    call MPI_WaitAll(nprocs, send_request, statuses, ierr)
+    assert(ierr==MPI_SUCCESS)
+    deallocate(statuses)
+
+    ! now we know enough to allocate the new mesh
+    call allocate(new_mesh, new_node_count, key_count(ueid_to_gid), &
+      mesh%shape, name=mesh%name)
+    allocate(new_mesh%halos(nhalos+1))
+    new_mesh%halos(1:nhalos) = mesh%halos
+    new_mesh%halos(nhalos+1) = new_halo
+    new_mesh%option_path = mesh%option_path
+
+    do ele=1, element_count(mesh)
+      call set_ele_nodes(new_mesh, ele, ele_nodes(mesh, ele))
+    end do
+    if (has_surface_mesh) then
+      allocate(sndgln(1:new_surface_element_count*nfaces))
+      call getsndgln(mesh, sndgln(1:surface_element_count(mesh)*nfaces))
+      if (mesh%faces%has_discontinuous_internal_boundaries) then
+        allocate(element_owners(1:new_surface_element_count))
+      end if
+    end if
+
+    ! now peel out the new elements from the recv buffers
+    do proc=1, nprocs
+      recv_size = size(recv_buffer(proc)%ptr)
+      do i=1, recv_size/ele_info_size
+        if (has_key(ueid_to_gid, recv_buffer(proc)%ptr((i-1)*ele_info_size+1))) then
+          ele = fetch(ueid_to_gid, recv_buffer(proc)%ptr((i-1)*ele_info_size+1))
+          if (ele>element_count(mesh)) then
+            ! a new element!
+            nodes => recv_buffer(proc)%ptr((i-1)*ele_info_size+2:i*ele_info_size)
+            call set_ele_nodes(new_mesh, ele, fetch(uid_to_gid, nodes))
+            if (has_faces) then
+            end if
+          end if
+        end if
+      end do
+      deallocate(recv_buffer(proc)%ptr)
+      deallocate(send_buffer(proc)%ptr)
+    end do
+
+    call deallocate(uid_to_gid)
+    call deallocate(ueid_to_gid)
+
+  end function expand_mesh_halo
+
+  function expand_halo(mesh, halo, name) result (new_halo)
+    !!< function that expands the halo one level further, starting 
+    !!< from existing recv nodes, e.g. derive a level 2 halo from a level 1 halo
+    !!< This handles the case where these new recv nodes do not yet exist in
+    !!< the mesh. The new recv nodes are numbered after the current ones,
+    !!< i.e. node_count(mesh)<N<=max_halo_receive_node(new_halo)
+    !!< The new send nodes are put at the end of the halo send lists in new_halo
+    !!< (after the existing send of nodes of halo)
+    type(mesh_type), intent(in) :: mesh
+    type(halo_type), intent(in) :: halo
+    character(len=*), intent(in), optional :: name
+    type(halo_type) :: new_halo
+
+    type(csr_sparsity), pointer :: nnlist
+    type(integer_hash_table) :: uid_to_gid
+    type(integer_set) :: halo1_nodes
+    type(integer_vector), dimension(:), allocatable :: send_buffer, recv_buffer
+    integer, dimension(:), allocatable :: send_request, recv_request
+    integer, dimension(:), allocatable :: new_halo_send_count, new_halo_recv_count, old_halo_count
+    type(integer_set), dimension(:), allocatable :: new_halo_recvs
+    integer, dimension(:), allocatable :: adjacency_count
+    integer, dimension(:), allocatable :: buffer
+    integer, dimension(:), allocatable :: statuses
+    integer, dimension(:), pointer :: nodes
+    integer :: send_count, recv_count, nprocs, nnodes, new_node_count, new_recv_count
+    integer, dimension(MPI_STATUS_SIZE) :: status
+    integer :: comm, tag, ierr
+    integer :: proc, i, j, node, my_rank, uid, owner
+
+    nnlist => extract_nnlist(mesh)
+
+    ! adjacency count: how many nodes connected each node
+    allocate(adjacency_count(1:node_count(mesh)))
+    adjacency_count = 0
+    ! set of all halo 1 nodes
+    call allocate(halo1_nodes)
+
+    ! send and recv buffers for each processor
+    nprocs = halo_proc_count(halo)
+    comm = halo_communicator(halo)
+    tag = next_mpi_tag()
+    my_rank = getrank(comm)
+    allocate(send_buffer(nprocs), recv_buffer(nprocs))
+    allocate(send_request(nprocs), recv_request(nprocs))
+
+    ! record the adjacency count for halo1 send nodes
+    ! and allocate send buffers
+    do proc=1, nprocs
+      send_count = 0
+      do i=1, halo_send_count(halo, proc)
+        node = halo_send(halo, proc, i)
+        nodes => row_m_ptr(nnlist, node)
+        adjacency_count(node) = size(nodes)
+        send_count = send_count+size(nodes)
+      end do
+      ! for each entry in the nnlist we send a uid and an owner
+      allocate(send_buffer(proc)%ptr(send_count*2))
+    end do
+
+    ! by halo updating, we get the true adjacency count for halo1 recv nodes as well
+    call halo_update(halo, adjacency_count)
+    ! so we can allocate the recv buffers
+    ! and setup the mpi recv call
+    do proc=1, nprocs
+      recv_count = 0
+      do i=1, halo_receive_count(halo, proc)
+        node = halo_receive(halo, proc, i)
+        recv_count = recv_count+adjacency_count(node)
+        ! while we're at it, build up set of all halo 1 nodes
+        call insert(halo1_nodes, halo_universal_number(halo, node))
+      end do
+      allocate(recv_buffer(proc)%ptr(recv_count*2))
+      call MPI_IRecv(recv_buffer(proc)%ptr, recv_count*2, getpinteger(), &
+        proc-1, tag,  comm, recv_request(proc), ierr)
+      assert(ierr == MPI_SUCCESS)
+    end do
+
+    ! now pack the send buffers with uid and owner for each entry 
+    ! in the nnlist around all halo1 send nodes, and send them off
+    do proc=1, nprocs
+      send_count = 0
+      do i=1, halo_send_count(halo, proc) 
+        node = halo_send(halo, proc, i)
+        nodes => row_m_ptr(nnlist, node)
+        send_buffer(proc)%ptr(send_count+1:send_count+size(nodes)) = halo_universal_number(halo, nodes)
+        send_count = send_count+size(nodes)
+        send_buffer(proc)%ptr(send_count+1:send_count+size(nodes)) = halo_node_owners(halo, nodes)
+        send_count = send_count+size(nodes)
+      end do
+      assert(size(send_buffer(proc)%ptr)==send_count)
+      call MPI_ISend(send_buffer(proc)%ptr, send_count, getpinteger(), &
+        proc-1, tag,  comm, send_request(proc), ierr)
+      assert(ierr == MPI_SUCCESS)
+    end do
+
+    ! from the bits of nnlist that we've got sent, collect the new halo recv nodes we encounter
+    allocate(new_halo_recvs(nprocs))
+    do proc=1, nprocs
+      call allocate(new_halo_recvs(proc))
+    end do
+
+    do proc=1, nprocs
+      call MPI_Wait(recv_request(proc), status, ierr)
+      assert(ierr==MPI_SUCCESS)
+      recv_count = 0
+      do i=1, halo_receive_count(halo, proc)
+        node = halo_receive(halo, proc, i)
+        nnodes = adjacency_count(node)
+        do j=1, nnodes
+          uid = recv_buffer(proc)%ptr(recv_count+j)
+          owner = recv_buffer(proc)%ptr(recv_count+nnodes+j)
+          if (owner/=my_rank+1) then
+            if (.not. has_value(halo1_nodes, uid)) then
+              call insert(new_halo_recvs(owner), uid)
+            end if
+          end if
+        end do
+        recv_count = recv_count+2*nnodes
+      end do
+      assert(recv_count==size(recv_buffer(proc)%ptr))
+      deallocate(recv_buffer(proc)%ptr)
+    end do
+    call deallocate(halo1_nodes)
+
+    ! before we move on to the next stage, make sure all our sends are done
+    ! so we don't mix anything up and we can reuse our buffers
+    allocate(statuses(1:MPI_STATUS_SIZE*nprocs))
+    call MPI_WaitAll(nprocs, send_request, statuses, ierr)
+    assert(ierr==MPI_SUCCESS)
+
+    ! so we've collected our new halo 2 recv nodes per process
+    ! now we need to tell these processes that we want these as recv nodes
+    tag = next_mpi_tag()
+    allocate(new_halo_recv_count(nprocs), new_halo_send_count(nprocs))
+    do proc=1, nprocs
+      new_halo_recv_count(proc) = key_count(new_halo_recvs(proc))
+      deallocate(send_buffer(proc)%ptr)
+      allocate(send_buffer(proc)%ptr(new_halo_recv_count(proc)))
+      send_buffer(proc)%ptr = set2vector(new_halo_recvs(proc))
+      call deallocate(new_halo_recvs(proc))
+      call MPI_ISend(send_buffer(proc)%ptr, new_halo_recv_count(proc), getpinteger(), &
+        proc-1, tag,  comm, send_request(proc), ierr)
+      assert(ierr == MPI_SUCCESS)
+    end do
+
+    ! the same request from other processes will tell us our new halo 2 send nodes
+    do proc=1, nprocs
+      call mpi_probe(proc-1, tag, comm, status, ierr)
+      assert(ierr == MPI_SUCCESS)
+      
+      call mpi_get_count(status, getpinteger(), new_halo_send_count(proc), ierr)
+      allocate(recv_buffer(proc)%ptr(new_halo_send_count(proc)))
+
+      call MPI_Recv(recv_buffer(proc)%ptr, new_halo_send_count(proc), getpinteger(), &
+        proc-1, tag, comm, status, ierr)
+      assert(ierr == MPI_SUCCESS)
+    end do
+
+    ! again make sure all sends are dealt with
+    call MPI_WaitAll(nprocs, send_request, statuses, ierr)
+    assert(ierr==MPI_SUCCESS)
+    deallocate(statuses)
+
+    ! the new halo should include the existing halo:
+    allocate(old_halo_count(nprocs))
+    call halo_send_counts(halo, old_halo_count)
+    new_halo_send_count = new_halo_send_count+old_halo_count
+    call halo_receive_counts(halo, old_halo_count)
+    new_halo_recv_count = new_halo_recv_count+old_halo_count
+    
+
+    ! we now have all the information to create a new halo nodal halo
+    call allocate(new_halo, new_halo_send_count, new_halo_recv_count, &
+      name=name, &
+      nowned_nodes = halo_nowned_nodes(halo), &
+      communicator = comm, data_type = halo%data_type)
+    call get_universal_numbering_inverse(halo, uid_to_gid)
+    assert(node_count(mesh)==key_count(uid_to_gid)) ! if this fails the old halo has duplicate nodes
+    new_node_count = node_count(mesh)
+    do proc=1, nprocs
+      allocate(buffer(1:halo_send_count(new_halo, proc)))
+      buffer(1:halo_send_count(halo,proc)) = halo_sends(halo, proc)
+      buffer(halo_send_count(halo,proc)+1:) = fetch(uid_to_gid, recv_buffer(proc)%ptr)
+      call set_halo_sends(new_halo, proc, buffer)
+      deallocate(buffer)
+      
+      allocate(buffer(1:halo_receive_count(new_halo, proc)))
+      new_recv_count = size(buffer)-halo_receive_count(halo, proc)
+      buffer(1:halo_receive_count(halo,proc)) = halo_receives(halo, proc)
+      buffer(halo_receive_count(halo,proc)+1:) = (/ ( i, i=new_node_count+1, new_node_count+new_recv_count)/)
+      call set_halo_receives(new_halo, proc, buffer)
+      deallocate(buffer)
+      deallocate(recv_buffer(proc)%ptr)
+      deallocate(send_buffer(proc)%ptr)
+      new_node_count = new_node_count+new_recv_count
+    end do
+    call deallocate(uid_to_gid)
+
+  end function expand_halo
 
 end module halos_derivation
