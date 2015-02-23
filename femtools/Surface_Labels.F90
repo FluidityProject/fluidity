@@ -86,7 +86,7 @@ contains
     end if
     
     NNodes=node_count(positions)
-    NElements=surface_element_count(positions)
+    NElements=unique_surface_element_count(positions%mesh)
     SNLOC=face_loc(positions, 1)
     X => positions%val(X_,:)
     Y => positions%val(Y_,:)

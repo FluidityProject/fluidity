@@ -1259,13 +1259,13 @@ module sam_integration
        dim = mesh_dim(mesh)
        nonods = node_count(mesh)
        totele = ele_count(mesh)
-       stotel = surface_element_count(mesh)
+       stotel = unique_surface_element_count(mesh)
        nloc = mesh%shape%loc
        snloc = mesh%faces%surface_mesh%shape%loc
        ndglno => mesh%ndglno
        allocate(sndgln(stotel * snloc))
        call getsndgln(mesh, sndgln)
-       allocate(surfid(surface_element_count(mesh)))
+       allocate(surfid(unique_surface_element_count(mesh)))
        call interleave_surface_ids(mesh, surfid, max_coplanar_id)
        
        ! Extract the level 1 halo

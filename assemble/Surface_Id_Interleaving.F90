@@ -69,30 +69,33 @@ contains
     
   end subroutine interleave_surface_ids_mesh
 
-  subroutine interleave_surface_ids_vector(mesh, surface_ids, max_coplanar_id)
+  subroutine interleave_surface_ids_vector(mesh, interleaved_surface_ids, max_coplanar_id)
     !!< Interleave all surface ID information for the supplied mesh. Useful for
     !!< handing surface element information to external libraries that expect
     !!< only one set of integers.
 
     type(mesh_type), intent(in) :: mesh
-    ! size(surface_element_count(mesh))
-    integer, dimension(:), intent(out) :: surface_ids
+    ! see assert on size below
+    integer, dimension(:), intent(out) :: interleaved_surface_ids
+    ! this number needs to be stored, to be able to deinterleave afterwards:
     integer, intent(out) :: max_coplanar_id
 
 #ifdef HAVE_MPI
     integer :: all_max_coplanar_id
 #endif
-    integer :: ierr, max_boundary_id
+    integer :: ierr, max_boundary_id, no_sids
 
-    assert(size(surface_ids) == surface_element_count(mesh))
+    no_sids = size(interleaved_surface_ids)
+    ! with internal boundary facets, the interior facets are duplicated with the first
+    ! copy N<=unique_surface_element_count, and the second copy
+    ! unique_surface_element_count<N<=surface_element_count
+    assert(no_sids==surface_element_count(mesh) .or. no_sids==unique_surface_element_count(mesh))
 
-#ifdef DDEBUG
-    if(surface_element_count(mesh) > 0) then
+    if(no_sids> 0) then
       assert(associated(mesh%faces))
     end if
-#endif
 
-    if(surface_element_count(mesh) == 0) then
+    if(no_sids == 0) then
       max_coplanar_id = 0
     else if(associated(mesh%faces%coplanar_ids)) then
       max_coplanar_id = maxval(mesh%faces%coplanar_ids)
@@ -108,7 +111,7 @@ contains
 #endif
     end if
 
-    if(surface_element_count(mesh) == 0) then
+    if(no_sids == 0) then
       max_boundary_id = 0
     else if(associated(mesh%faces%boundary_ids)) then
       max_boundary_id = maxval(mesh%faces%boundary_ids)
@@ -125,13 +128,13 @@ contains
       FLAbort("Too many different coplanar and/or boundary ids")
     end if
 
-    surface_ids = 0
-    if(surface_element_count(mesh) > 0) then
+    interleaved_surface_ids = 0
+    if(no_sids > 0) then
       if(associated(mesh%faces%boundary_ids)) then
-        surface_ids = mesh%faces%boundary_ids * (max_coplanar_id + 1)
+        interleaved_surface_ids = mesh%faces%boundary_ids(1:no_sids) * (max_coplanar_id + 1)
       end if
       if(associated(mesh%faces%coplanar_ids)) then
-        surface_ids = surface_ids + mesh%faces%coplanar_ids
+        interleaved_surface_ids = interleaved_surface_ids + mesh%faces%coplanar_ids(1:no_sids)
       end if
     end if
 
@@ -156,16 +159,16 @@ contains
     
   end subroutine deinterleave_surface_ids_mesh
 
-  subroutine deinterleave_surface_ids_vector(surface_ids, max_coplanar_id, boundary_ids, coplanar_ids)
+  subroutine deinterleave_surface_ids_vector(interleaved_surface_ids, max_coplanar_id, boundary_ids, coplanar_ids)
     !!< De-interleave the supplied interleaved surface ID information
 
-    integer, dimension(:), intent(in) :: surface_ids
+    integer, dimension(:), intent(in) :: interleaved_surface_ids
     integer, intent(in) :: max_coplanar_id
-    integer, dimension(size(surface_ids)), intent(out) :: boundary_ids
-    integer, dimension(size(surface_ids)), intent(out) :: coplanar_ids
+    integer, dimension(size(interleaved_surface_ids)), intent(out) :: boundary_ids
+    integer, dimension(size(interleaved_surface_ids)), intent(out) :: coplanar_ids
 
-    boundary_ids = surface_ids / (max_coplanar_id + 1)
-    coplanar_ids = surface_ids - boundary_ids * (max_coplanar_id + 1)
+    boundary_ids = interleaved_surface_ids / (max_coplanar_id + 1)
+    coplanar_ids = interleaved_surface_ids - boundary_ids * (max_coplanar_id + 1)
 
   end subroutine deinterleave_surface_ids_vector
 
