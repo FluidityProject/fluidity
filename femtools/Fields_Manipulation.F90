@@ -3815,6 +3815,8 @@ implicit none
                                size(output_mesh%faces%face_element_list), &
                                trim(output_mesh%name)//" face_element_list.")
 #endif
+      output_mesh%faces%unique_surface_element_count = input_positions%mesh%faces%unique_surface_element_count
+      output_mesh%faces%has_discontinuous_internal_boundaries = has_discontinuous_internal_boundaries(input_positions%mesh)
       allocate(output_mesh%faces%boundary_ids(size(input_positions%mesh%faces%boundary_ids)))
       output_mesh%faces%boundary_ids = input_positions%mesh%faces%boundary_ids
 #ifdef HAVE_MEMORY_STATS
@@ -3920,9 +3922,14 @@ implicit none
     ! Now here comes the damnable face information
 
     if (associated(input_positions%mesh%faces)) then
-      allocate(sndgln(surface_element_count(input_positions) * face_loc(input_positions, 1)))
+      allocate(sndgln(unique_surface_element_count(input_positions%mesh) * face_loc(input_positions, 1)))
       call getsndgln(input_positions%mesh, sndgln)
-      call add_faces(output_mesh, sndgln=sndgln, element_owner=permutation(input_positions%mesh%faces%face_element_list(1:surface_element_count(input_positions))))
+      if (has_discontinuous_internal_boundaries(input_positions%mesh)) then
+        assert(surface_element_count(input_positions%mesh)==unique_surface_element_count(input_positions%mesh))
+        call add_faces(output_mesh, sndgln=sndgln, element_owner=permutation(input_positions%mesh%faces%face_element_list(1:surface_element_count(input_positions))))
+      else
+        call add_faces(output_mesh, sndgln=sndgln)
+      end if
       deallocate(sndgln)
       output_mesh%faces%boundary_ids = input_positions%mesh%faces%boundary_ids
       if (associated(input_positions%mesh%faces%coplanar_ids)) then
@@ -4051,7 +4058,7 @@ implicit none
 
     mesh => positions%mesh
     if(has_faces(mesh)) then
-      allocate(sndgln(face_loc(mesh, 1) * surface_element_count(mesh)))
+      allocate(sndgln(face_loc(mesh, 1) * unique_surface_element_count(mesh)))
       call getsndgln(mesh, sndgln)
     end if
     
@@ -4099,7 +4106,7 @@ implicit none
 
     subroutine update_faces(mesh, sndgln)
       type(mesh_type), intent(inout) :: mesh
-      integer, dimension(face_loc(mesh, 1) * surface_element_count(mesh)), intent(in) :: sndgln
+      integer, dimension(face_loc(mesh, 1) * unique_surface_element_count(mesh)), intent(in) :: sndgln
 
       integer, dimension(surface_element_count(mesh)) :: boundary_ids
       integer, dimension(:), allocatable :: coplanar_ids, element_owners
@@ -4112,18 +4119,24 @@ implicit none
         coplanar_ids = mesh%faces%coplanar_ids
       end if
 
-      allocate(element_owners((surface_element_count(mesh))))
-      element_owners = mesh%faces%face_element_list(1:surface_element_count(mesh))
+      if (mesh%faces%has_discontinuous_internal_boundaries) then
+        allocate(element_owners((surface_element_count(mesh))))
+        element_owners = mesh%faces%face_element_list(1:surface_element_count(mesh))
 
-      call deallocate_faces(mesh)
-      call add_faces(mesh, sndgln = sndgln, element_owner=element_owners)
+        call deallocate_faces(mesh)
+        call add_faces(mesh, sndgln = sndgln, element_owner=element_owners)
+        deallocate(element_owners)
+      else
+        call deallocate_faces(mesh)
+        call add_faces(mesh, sndgln = sndgln)
+      end if
+
       mesh%faces%boundary_ids = boundary_ids
       if(allocated(coplanar_ids)) then
         allocate(mesh%faces%coplanar_ids(size(coplanar_ids)))
         mesh%faces%coplanar_ids = coplanar_ids
         deallocate(coplanar_ids)
       end if
-      deallocate(element_owners)
 
     end subroutine update_faces
 

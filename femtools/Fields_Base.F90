@@ -3685,7 +3685,7 @@ contains
     
     assert(associated(mesh%faces))
     
-    stotel=surface_element_count(mesh)
+    stotel=unique_surface_element_count(mesh)
     snloc=face_loc(mesh, 1)
     
     assert(size(sndgln)==stotel*snloc)
