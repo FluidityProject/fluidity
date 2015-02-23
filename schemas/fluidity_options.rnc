@@ -1588,12 +1588,33 @@ start =
                   ## Sigma_Star.
                   ## Recommended value (default): 0.5.
                   element Sigma_Star {real},
-                  ## Beta_1.
-                  ## Recommended value (default): 0.0750.
+                  ## a_1.[k-omega SST]
+                  ## Recommended value (default): 0.31.
+                  element a_1 {real},
+                  ## Beta_1.[k-omega SST]
+                  ## Recommended value (default): 0.075.
                   element Beta_1 {real},
-                  ## Beta_2.
+                  ## Beta_2.[k-omega SST]
                   ## Recommended value (default): 0.0828.
                   element Beta_2 {real},
+                  ## Gamma_1.[k-omega SST]
+                  ## Recommended value (default): 0.5532.
+                  element Gamma_1 {real},
+                  ## Gamma_2.[k-omega SST]
+                  ## Recommended value (default): 0.4044.
+                  element Gamma_2 {real},
+                  ## Sigma_k1.[k-omega SST]
+                  ## Recommended value (default): 0.85.
+                  element Sigma_k1 {real},
+                  ## Sigma_k2.[k-omega SST]
+                  ## Recommended value (default): 1.0.
+                  element Sigma_k2 {real},
+                  ## Sigma_omg1.[k-omega SST]
+                  ## Recommended value (default): 0.5.
+                  element Sigma_omg1 {real},
+                  ## Sigma_omg2.[k-omega SST]
+                  ## Recommended value (default): 0.856.
+                  element Sigma_omg2 {real},
                   ## Time discretisation of the source terms in the k and epsilon equations and also
                   ## of the eddy viscosity
                   element time_discretisation {  

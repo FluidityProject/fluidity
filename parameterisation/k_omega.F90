@@ -52,10 +52,10 @@ implicit none
   private
 
   ! locally allocatad fields
-  real, save     :: fields_min = 1.0e-11
-  logical, save  :: low_Re = .false. !A! remove
+  real, save     :: fields_min = 1.0e-11 !A! remove
+  !A!logical, save  :: low_Re = .false.
 
-  public :: komega_advdif_diagnostics, komega_momentum_diagnostics, & ! komega_bcs removed
+  public :: komega_advdif_diagnostics, komega_momentum_diagnostics, & !A! komega_bcs removed
        & k_omega_check_options, tensor_inner_product
 
   ! Outline:
@@ -71,7 +71,7 @@ subroutine komega_advdif_diagnostics(state)            !A! called in Fluids.F90
   call komega_blending_functions(state, advdif=.true.) !A! blending functions for k-omega SST !A!
   call komega_eddyvisc(state, advdif=.true.)           !A! eddy viscosity
   call komega_diffusion(state)                         !A! diff coeff
-  call komega_tracer_diffusion(state)                  !A! 3rd equation. What is this?
+  call komega_tracer_diffusion(state)                  !A! compute eddy visc scalar field
   call komega_calculate_rhs(state)                     !A! source/sink terms on RHS of adv-diff eqs
 
 end subroutine komega_advdif_diagnostics
@@ -244,22 +244,22 @@ subroutine komega_calculate_rhs(state)
   call get_option('/ADM/DiscRegionID', region_id_disc, default = 901)
   call get_option('/ADM/NearDiscRegionID', region_id_near_disc, default = 902)
 
-  !A! SST constants
-  call get_option(trim(option_path)//'/Beta_1', beta_1, default = 0.0750) ! same as beta
-  call get_option(trim(option_path)//'/Beta_2', beta_2, default = 0.0828)
-  call get_option(trim(option_path)//'/Gamma_1', gama_1, default = 0.5532)
-  call get_option(trim(option_path)//'/Gamma_2', gama_2, default = 0.4044)
 
   ! get field data
   x => extract_vector_field(state, "Coordinate")
   u => extract_vector_field(state, "NonlinearVelocity")
   scalar_eddy_visc => extract_scalar_field(state, "ScalarEddyViscosity")
   NodeOnTurbine => extract_scalar_field(state, "NodeOnTurbine") !A!
+
+  !A! SST terms
   F_1 => extract_scalar_field(state, "F_1") !A!
   F_2 => extract_scalar_field(state, "F_2") !A!
   CD_komg => extract_scalar_field(state, "CD_komg") !A!
-
-  call get_option(trim(option_path)//'/Sigma_Omg2', sigma_omg2, default = 0.856)
+  call get_option(trim(option_path)//'/Beta_1', beta_1, default = 0.0750) ! same as beta
+  call get_option(trim(option_path)//'/Beta_2', beta_2, default = 0.0828)
+  call get_option(trim(option_path)//'/Gamma_1', gama_1, default = 0.5532)
+  call get_option(trim(option_path)//'/Gamma_2', gama_2, default = 0.4044)
+  call get_option(trim(option_path)//'/Sigma_omg2', sigma_omg2, default = 0.856)
 
 !A!  g => extract_vector_field(state, "GravityDirection", stat)
 !A!  call get_option('/physical_parameters/gravity/magnitude', g_magnitude, stat)
@@ -291,19 +291,19 @@ subroutine komega_calculate_rhs(state)
     end select
   end if
   
-!!!  if(have_buoyancy_turbulence) then
-!!!     buoyancy_density => extract_scalar_field(state, 'VelocityBuoyancyDensity')
-!!!  else
-!!!     buoyancy_density => dummydensity
-!!!  end if
+!A!  if(have_buoyancy_turbulence) then
+!A!     buoyancy_density => extract_scalar_field(state, 'VelocityBuoyancyDensity')
+!A!  else
+!A!     buoyancy_density => dummydensity
+!A!  end if
 
   field_names(1) = 'TurbulentKineticEnergy'
   field_names(2) = 'TurbulentFrequency'
 
-  !A! start with k and then do omega
+  !A! start with k and then do omega, why?
   field_loop: do i = 1, 2
      if (have_option(trim(option_path)//'scalar_field::'// &
-          trim(field_names(i))//'/prescribed')) then !! for debugging purposes
+          trim(field_names(i))//'/prescribed')) then !A! for debugging purposes
         cycle
      end if
 
@@ -324,7 +324,7 @@ subroutine komega_calculate_rhs(state)
 
      !-----------------------------------------------------------------------------------
 
-     ! Assembly loop
+     !A! Assembly loop
      do ele = 1, ele_count(fields(1))
 
         call assemble_rhs_ele(src_abs_terms, fields(i), fields(3-i), scalar_eddy_visc, u, &
@@ -337,7 +337,7 @@ subroutine komega_calculate_rhs(state)
      ! For non-DG we apply inverse mass globally
      if(continuity(fields(1))>=0) then
         lump_mass = have_option(trim(option_path)//'mass_terms/lump_mass')
-        do term = 1, 2 !!! 3 to 2
+        do term = 1, 2 !A! 3 to 2
            call solve_cg_inv_mass(state, src_abs_terms(term), lump_mass, option_path)           
         end do
      end if
@@ -464,9 +464,9 @@ subroutine assemble_rhs_ele(src_abs_terms, k, omega, scalar_eddy_visc, u, densit
 
   ! get bounded values of k and omega for source terms
   ! this doesn't change the field values of k and omega
-  k_ele = ele_val_at_quad(k,ele) ! k value at quadrature point
+  k_ele = ele_val_at_quad(k,ele) !A! k value at quadrature points
   omega_ele = ele_val_at_quad(omega, ele)
-  ngi = ele_ngi(u, ele) !? ngi equals 11 => DG?
+  ngi = ele_ngi(u, ele) !A! ngi equals 11 => No. quadrature points
   do gi = 1, ngi
      k_ele(gi) = max(k_ele(gi), fields_min)
      omega_ele(gi) = max(omega_ele(gi), fields_min)
@@ -491,7 +491,7 @@ subroutine assemble_rhs_ele(src_abs_terms, k, omega, scalar_eddy_visc, u, densit
   end if
 
   ! Compute P (Production)
-  if (field_id==1) then ! id=1 => k
+  if (field_id==1) then !A! id=1 => k
      rhs = tensor_inner_product(reynolds_stress, grad_u)
      if (X%mesh%region_ids(ele)==region_id_disc) then ! Disc production term
         a_fac = 0.5*(1.0-sqrt(1.0-C_T))
@@ -502,25 +502,25 @@ subroutine assemble_rhs_ele(src_abs_terms, k, omega, scalar_eddy_visc, u, densit
 !        deltaX = 0.0125
 
 !        rhs = rhs + (1.0/deltaX)*( C_1*Cpw*u_ele**3.0 - C_2*Cpw*u_ele*k_ele) ! Roc et al
-        !rhs = rhs +      0.5*C_x*(  beta_p*u_ele**3.0 -  beta_d*u_ele*k_ele) ! Rethore et al
+        rhs = rhs +      0.5*C_x*(  beta_p*u_ele**3.0 -  beta_d*u_ele*k_ele) ! Rethore et al
      end if
   end if
 
-  if (field_id==2) then ! id=2 => omega
+  if (field_id==2) then !A! id=2 => omega
     rhs = tensor_inner_product(reynolds_stress, grad_u)
     ADM_Source = (C_omega*rhs*rhs)/(k_ele*k_ele) !ADM!
 
-    if(have_SST) then ! Menter k-omega SST:
+    if(have_SST) then !A! Menter k-omega SST:
 
       rhs = rhs*( ele_val_at_quad(F_1, ele)*gama_1 + (1.0-ele_val_at_quad(F_1, ele))*gama_2 ) * &
                 ( ele_val_at_quad(density, ele) / scalar_eddy_visc_ele ) + &
                 (1.0-ele_val_at_quad(F_1, ele))*ele_val_at_quad(CD_komg, ele)
 
       if ((X%mesh%region_ids(ele)==region_id_disc) .or. (X%mesh%region_ids(ele)==region_id_near_disc)) then !ADM!
-        !rhs = rhs + ADM_Source
+        rhs = rhs + ADM_Source
       endif
 
-    else ! Wilcox k-omega:
+    else !A! Wilcox k-omega:
 
       rhs = rhs*alpha*(omega_ele/k_ele)
       if ((X%mesh%region_ids(ele)==region_id_disc) .or. (X%mesh%region_ids(ele)==region_id_near_disc)) then !ADM!
@@ -529,7 +529,7 @@ subroutine assemble_rhs_ele(src_abs_terms, k, omega, scalar_eddy_visc, u, densit
 
     endif
   end if
-  rhs_addto(1,:) = shape_rhs(shape, detwei*rhs) ! shape_rhs?  integration
+  rhs_addto(1,:) = shape_rhs(shape, detwei*rhs) !A! shape_rhs => integration
 
   ! Compute A (Absorption)
   rhs = -1.0*omega_ele*k_ele*beta_star*ele_val_at_quad(density, ele)
@@ -545,7 +545,7 @@ subroutine assemble_rhs_ele(src_abs_terms, k, omega, scalar_eddy_visc, u, densit
 
   ! Gk:  
   ! Calculate buoyancy turbulence term and add to addto array
-  ! No buoyancy term, so set this part of the array to zero. !! Currently no buoyancy !!!
+  ! No buoyancy term, so set this part of the array to zero. !A! Currently no buoyancy
 !A!  rhs_addto(3,:) = 0.0    
 
   ! In the DG case we apply the inverse mass locally.
@@ -603,8 +603,8 @@ subroutine komega_eddyvisc(state, advdif)
 
   !A! SST terms
   logical                          :: have_SST = .true.
-  type(scalar_field), pointer      :: F_2
-  type(scalar_field)               :: abs_vort
+  type(scalar_field), pointer      :: F_2, abs_vort
+!  type(scalar_field), pointer      :: abs_vort
   type(vector_field), pointer      :: vorticity
   real                             :: beta_star
 
@@ -637,8 +637,9 @@ subroutine komega_eddyvisc(state, advdif)
   !A! SST terms
   F_2       => extract_scalar_field(state, "F_2")
   vorticity => extract_vector_field(state, "VectVort")
+  abs_vort  => extract_scalar_field(state, "AbsVort")
   !A! random initialisation of abs_vort, this will be overwritten!
-  call time_averaged_value(state, abs_vort, 'TurbulentFrequency', advdif, option_path)
+  !A! call time_averaged_value(state, abs_vort, 'TurbulentFrequency', advdif, option_path)
 
   ewrite_minmax(kk)
   ewrite_minmax(omega)
@@ -787,8 +788,9 @@ subroutine komega_eddyvisc(state, advdif)
          call set(abs_vort, inode, sqrt(w_x*w_x + w_y*w_y + w_z*w_z))
       end do
       !print*, 'AminCheck', ele, ele_val_at_quad(abs_vort,ele)
-      
-      a_1 = 0.31
+
+      call get_option(trim(option_path)//'/a_1', a_1, default = 0.31)
+      !a_1 = 0.31
 
       !A! Set eddy_visc depending on have_SST:
       if(have_SST) then
@@ -846,6 +848,12 @@ subroutine komega_diffusion(state)
 
   call get_option(trim(option_path)//'/Sigma', sigma, default = 0.5)
   call get_option(trim(option_path)//'/Sigma_Star', sigma_star, default = 0.5)
+
+  !A! SST terms
+  call get_option(trim(option_path)//'/Sigma_k1', sigma_k1, default = 0.85) !A! Wilcox: 0.50
+  call get_option(trim(option_path)//'/Sigma_k2', sigma_k2, default = 1.0)
+  call get_option(trim(option_path)//'/Sigma_omg1', sigma_omg1, default = 0.5)
+  call get_option(trim(option_path)//'/Sigma_omg2', sigma_omg2, default = 0.856)
 
   ! Set diffusivity
   diff => extract_tensor_field(state, "TurbulentKineticEnergyDiffusivity")

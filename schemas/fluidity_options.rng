@@ -2097,14 +2097,49 @@ Recommended value (default): 0.5.</a:documentation>
 Recommended value (default): 0.5.</a:documentation>
                     <ref name="real"/>
                   </element>
+                  <element name="a_1">
+                    <a:documentation>a_1.[k-omega SST]
+Recommended value (default): 0.31.</a:documentation>
+                    <ref name="real"/>
+                  </element>
                   <element name="Beta_1">
-                    <a:documentation>Beta_1.
-Recommended value (default): 0.0750.</a:documentation>
+                    <a:documentation>Beta_1.[k-omega SST]
+Recommended value (default): 0.075.</a:documentation>
                     <ref name="real"/>
                   </element>
                   <element name="Beta_2">
-                    <a:documentation>Beta_2.
+                    <a:documentation>Beta_2.[k-omega SST]
 Recommended value (default): 0.0828.</a:documentation>
+                    <ref name="real"/>
+                  </element>
+                  <element name="Gamma_1">
+                    <a:documentation>Gamma_1.[k-omega SST]
+Recommended value (default): 0.5532.</a:documentation>
+                    <ref name="real"/>
+                  </element>
+                  <element name="Gamma_2">
+                    <a:documentation>Gamma_2.[k-omega SST]
+Recommended value (default): 0.4044.</a:documentation>
+                    <ref name="real"/>
+                  </element>
+                  <element name="Sigma_k1">
+                    <a:documentation>Sigma_k1.[k-omega SST]
+Recommended value (default): 0.85.</a:documentation>
+                    <ref name="real"/>
+                  </element>
+                  <element name="Sigma_k2">
+                    <a:documentation>Sigma_k2.[k-omega SST]
+Recommended value (default): 1.0.</a:documentation>
+                    <ref name="real"/>
+                  </element>
+                  <element name="Sigma_omg1">
+                    <a:documentation>Sigma_omg1.[k-omega SST]
+Recommended value (default): 0.5.</a:documentation>
+                    <ref name="real"/>
+                  </element>
+                  <element name="Sigma_omg2">
+                    <a:documentation>Sigma_omg2.[k-omega SST]
+Recommended value (default): 0.856.</a:documentation>
                     <ref name="real"/>
                   </element>
                   <element name="time_discretisation">
