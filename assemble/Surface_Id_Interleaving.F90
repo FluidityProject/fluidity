@@ -75,7 +75,7 @@ contains
     !!< only one set of integers.
 
     type(mesh_type), intent(in) :: mesh
-    ! size(unique_surface_element_count(mesh))
+    ! see assert on size below
     integer, dimension(:), intent(out) :: interleaved_surface_ids
     ! this number needs to be stored, to be able to deinterleave afterwards:
     integer, intent(out) :: max_coplanar_id
@@ -85,13 +85,11 @@ contains
 #endif
     integer :: ierr, max_boundary_id, no_sids
 
+    no_sids = size(interleaved_surface_ids)
     ! with internal boundary facets, the interior facets are duplicated with the first
     ! copy N<=unique_surface_element_count, and the second copy 
     ! unique_surface_element_count<N<=surface_element_count
-    ! normally the pairs of internal boundary facets have the same surface id, so we only
-    ! need to deal with 1:no_sids
-    no_sids = unique_surface_element_count(mesh)
-    assert(size(interleaved_surface_ids) == no_sids)
+    assert(no_sids==surface_element_count(mesh) .or. no_sids==unique_surface_element_count(mesh))
 
     if(no_sids> 0) then
       assert(associated(mesh%faces))
