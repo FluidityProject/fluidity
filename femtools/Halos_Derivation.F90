@@ -1459,11 +1459,9 @@ contains
     call allocate(new_positions, positions%dim, new_mesh, name=positions%name)
     new_positions%val(:,1:node_count(positions)) = positions%val
     call halo_update(new_positions)
+    call deallocate(new_mesh)
 
-    call vtk_write_fields("stripped", 0, model=positions%mesh, position=positions)
     call vtk_write_fields("expanded", 0, model=new_positions%mesh, position=new_positions)
-
-    FLExit("So far so good!")
 
   end function expand_positions_halo
 
@@ -1479,12 +1477,14 @@ contains
     type(integer_vector), dimension(:), allocatable :: send_buffer, recv_buffer
     integer, dimension(:), allocatable :: send_request
     integer, dimension(:), pointer :: neigh, nodes, facets
+    integer, dimension(:), allocatable :: sndgln, boundary_ids, element_owners
     integer, dimension(:), allocatable :: statuses
     integer, dimension(MPI_STATUS_SIZE) :: status
     integer :: comm, tag, ierr, nprocs
-    integer :: nhalos, new_node_count, send_count, new_element_count, recv_size, nfaces, new_surface_element_count
+    integer :: new_node_count, new_element_count, new_surface_element_count
+    integer :: nhalos, nloc, snloc, nfaces, send_count, recv_size, ele_count, sele_count
     integer :: no_boundary_id
-    integer :: proc, ele, i, j, nloc, ele_info_size
+    integer :: proc, ele, i, j, ele_info_size
     logical :: has_surface_mesh
 
     nhalos = size(mesh%halos)
@@ -1495,6 +1495,7 @@ contains
     ! map from universal node id to global node id
     call create_global_to_universal_numbering(new_halo)
     call get_universal_numbering_inverse(new_halo, uid_to_gid)
+    call create_ownership(new_halo)
     ! map from universal element id to global element id
     call create_global_to_universal_numbering(ele_halo)
     call get_universal_numbering_inverse(ele_halo, ueid_to_gid)
@@ -1512,6 +1513,7 @@ contains
 
     has_surface_mesh = .false.
     if (associated(mesh%faces)) then
+      snloc = mesh%faces%shape%loc
       if (associated(mesh%faces%boundary_ids)) then
         has_surface_mesh = .true.
         ele_info_size = ele_info_size+nfaces
@@ -1519,7 +1521,7 @@ contains
         no_boundary_id = minval(mesh%faces%boundary_ids)
         call allmin(no_boundary_id)
         no_boundary_id = no_boundary_id-1
-        new_surface_facet_element_count = surface_element_count(mesh)
+        new_surface_element_count = unique_surface_element_count(mesh) ! start with existing ones
       end if
     end if
 
@@ -1552,11 +1554,13 @@ contains
         send_count = send_count+1+size(nodes)
         if (has_surface_mesh) then
           facets => ele_faces(mesh, ele)
-          where (facets<=surface_element_count(mesh))
-            send_buffer(proc)%ptr(send_count+1:send_count+nfaces) = surface_element_id(mesh, facets)
-          elsewhere
-            send_buffer(proc)%ptr(send_count+1:send_count+nfaces) = no_boundary_id
-          end where
+          do j=1, size(facets)
+            if (facets(j)<=surface_element_count(mesh) .and. all(nodes_owned(old_halo, face_global_nodes(mesh, facets(j))))) then
+              send_buffer(proc)%ptr(send_count+j-1) = surface_element_id(mesh, facets(j))
+            else
+              send_buffer(proc)%ptr(send_count:send_count+nfaces-1) = no_boundary_id
+            end if
+          end do
           send_count = send_count+nfaces
         end if
       end do
@@ -1591,8 +1595,8 @@ contains
           new_element_count = new_element_count+1
           call insert(ueid_to_gid, ele, new_element_count)
           if (has_surface_mesh) then
-            new_surface_element_count = new_surface_element_count + &
-              count(recv_buffer(proc)%ptr((i-1)*ele_info_size+nloc+2:(i-1)*ele_info_size+1+nloc+nfaces)/=no_boundary_id)
+            facets => recv_buffer(proc)%ptr((i-1)*ele_info_size+nloc+2:(i-1)*ele_info_size+1+nloc+nfaces)
+            new_surface_element_count = new_surface_element_count + count(facets>no_boundary_id)
           end if
         end if
       end do ele_loop
@@ -1608,18 +1612,30 @@ contains
     call allocate(new_mesh, new_node_count, key_count(ueid_to_gid), &
       mesh%shape, name=mesh%name)
     allocate(new_mesh%halos(nhalos+1))
-    new_mesh%halos(1:nhalos) = mesh%halos
+    do i=1, nhalos
+      new_mesh%halos(i) = mesh%halos(i)
+      call incref(new_mesh%halos(i))
+    end do
     new_mesh%halos(nhalos+1) = new_halo
     new_mesh%option_path = mesh%option_path
 
-    do ele=1, element_count(mesh)
+    ! start by copying over existing elements
+    ele_count = element_count(mesh)
+    do ele=1, ele_count
       call set_ele_nodes(new_mesh, ele, ele_nodes(mesh, ele))
     end do
+
     if (has_surface_mesh) then
-      allocate(sndgln(1:new_surface_element_count*nfaces))
-      call getsndgln(mesh, sndgln(1:surface_element_count(mesh)*nfaces))
-      if (mesh%faces%has_discontinuous_internal_boundaries) then
+      allocate(sndgln(1:new_surface_element_count*snloc), boundary_ids(1:new_surface_element_count))
+      if (has_discontinuous_internal_boundaries(mesh)) then
         allocate(element_owners(1:new_surface_element_count))
+      end if
+      ! again start with existing and copy their info
+      sele_count = unique_surface_element_count(mesh)
+      call getsndgln(mesh, sndgln(1:sele_count*snloc))
+      boundary_ids(1:sele_count) = mesh%faces%boundary_ids(1:sele_count)
+      if (has_discontinuous_internal_boundaries(mesh)) then
+        element_owners(1:sele_count) = mesh%faces%face_element_list(1:sele_count)
       end if
     end if
 
@@ -1627,14 +1643,29 @@ contains
     do proc=1, nprocs
       recv_size = size(recv_buffer(proc)%ptr)
       do i=1, recv_size/ele_info_size
-        if (has_key(ueid_to_gid, recv_buffer(proc)%ptr((i-1)*ele_info_size+1))) then
-          ele = fetch(ueid_to_gid, recv_buffer(proc)%ptr((i-1)*ele_info_size+1))
-          if (ele>element_count(mesh)) then
-            ! a new element!
-            nodes => recv_buffer(proc)%ptr((i-1)*ele_info_size+2:i*ele_info_size)
+        ele = recv_buffer(proc)%ptr((i-1)*ele_info_size+1)
+        if (has_key(ueid_to_gid, ele)) then
+          ele = fetch(ueid_to_gid, ele)
+          if (ele==ele_count+1) then
+            ! the next new element
+            ele_count = ele_count+1
+            nodes => recv_buffer(proc)%ptr((i-1)*ele_info_size+2:(i-1)*ele_info_size+1+nloc)
             call set_ele_nodes(new_mesh, ele, fetch(uid_to_gid, nodes))
-            if (has_faces) then
+            if (has_surface_mesh) then
+              facets => recv_buffer(proc)%ptr((i-1)*ele_info_size+nloc+2:(i-1)*ele_info_size+1+nloc+nfaces)
+              nodes => ele_nodes(new_mesh, ele) ! translated in gids just above
+              do j=1, size(facets)
+                if (facets(j)/=no_boundary_id) then
+                  sele_count = sele_count+1
+                  sndgln((sele_count-1)*snloc+1:sele_count*snloc) = nodes(boundary_numbering(mesh%shape, j))
+                  boundary_ids(sele_count) = facets(j)
+                  if (has_discontinuous_internal_boundaries(mesh)) then
+                    element_owners(sele_count) = ele
+                  end if
+                end if
+              end do
             end if
+
           end if
         end if
       end do
@@ -1642,8 +1673,27 @@ contains
       deallocate(send_buffer(proc)%ptr)
     end do
 
+    assert(ele_count==new_element_count)
+    if (has_surface_mesh) then
+      assert(sele_count==new_surface_element_count)
+      if (has_discontinuous_internal_boundaries(mesh)) then
+        call add_faces(new_mesh, sndgln=sndgln, boundary_ids=boundary_ids, element_owner=element_owners)
+      else
+        ! FIXME: need to add allow_duplicate_internal_facets from sndgln_fixes branch
+        call add_faces(new_mesh, sndgln=sndgln, boundary_ids=boundary_ids)
+      end if
+    end if
+
     call deallocate(uid_to_gid)
     call deallocate(ueid_to_gid)
+
+    if(all(serial_storage_halo(new_mesh%halos))) then
+      allocate(new_mesh%element_halos(0))
+    else
+      allocate(new_mesh%element_halos(nhalos+1))
+      call derive_element_halo_from_node_halo(new_mesh, &
+        & ordering_scheme = HALO_ORDER_TRAILING_RECEIVES, create_caches = .true.)
+    end if
 
   end function expand_mesh_halo
 

@@ -140,7 +140,11 @@ contains
         FLAbort("Mesh adaptivity requires a 1D, 2D or 3D mesh")
     end select
 
-    expanded_positions = expand_positions_halo(new_positions)
+    if(isparallel()) then
+      expanded_positions = expand_positions_halo(new_positions)
+      call deallocate(new_positions)
+      new_positions = expanded_positions
+    end if
 
     ! deallocate stripped metric and positions - we don't need these anymore
     call deallocate(stripped_metric)
@@ -1230,9 +1234,9 @@ contains
 
       ! Interpolate fields
       if(associated(node_ownership)) then
-        call interpolate(interpolate_states, states, map = node_ownership)
+        call interpolate(interpolate_states, states, map = node_ownership, only_owned=.true.)
       else
-        call interpolate(interpolate_states, states)
+        call interpolate(interpolate_states, states, only_owned=.true.)
       end if
 
       ! Deallocate the old fields used for interpolation, referenced in
