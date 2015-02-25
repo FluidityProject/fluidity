@@ -54,14 +54,14 @@ Transfinite Line{20} = lto+1;
 Transfinite Line{24} = lto+1;
 Transfinite Line{28} = lto+1;
 Transfinite Line{32} = lto+1;
-Transfinite Surface{5} = {1,2,3,4} Alternate;
-Transfinite Surface{9} = {3,4,9,10} Alternate;
-Transfinite Surface{13} = {9,10,11,12} Alternate;
-Transfinite Surface{17} = {11,12,13,14} Alternate;
-Transfinite Surface{21} = {13,14,15,16} Alternate;
-Transfinite Surface{25} = {15,16,17,18} Alternate;
-Transfinite Surface{29} = {17,18,19,20} Alternate;
-Transfinite Surface{33} = {19,20,1,2} Alternate;
+Transfinite Surface{5} = {1,2,3,4} Left;
+Transfinite Surface{9} = {3,4,9,10} Right;
+Transfinite Surface{13} = {9,10,11,12} Left;
+Transfinite Surface{17} = {11,12,13,14} Right;
+Transfinite Surface{21} = {13,14,15,16} Left;
+Transfinite Surface{25} = {15,16,17,18} Right;
+Transfinite Surface{29} = {17,18,19,20} Left;
+Transfinite Surface{33} = {19,20,1,2} Right;
 
 // inner tangential arc segments
 Physical Line(1) = {3};

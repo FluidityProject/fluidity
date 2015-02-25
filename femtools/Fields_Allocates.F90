@@ -1150,6 +1150,7 @@ contains
     type(integer_hash_table):: lperiodic_face_map
     type(mesh_type), pointer :: lmodel
     type(element_type), pointer :: element
+    type(element_type) :: element_s
     type(quadrature_type) :: quad_face
     integer, dimension(:), pointer :: faces, neigh, model_ele_glno, model_ele_glno2
     integer, dimension(1:mesh%shape%numbering%vertices) :: vertices, &
@@ -1290,6 +1291,10 @@ contains
             & dim=mesh_dim(mesh)-1, degree=element%quadrature%degree, family=element%quadrature%family)
       ! quad_face will be deallocated inside deallocate_faces!
     end if
+
+    element_s = make_element_shape(element, quad_s = quad_face)
+    call deallocate(element)
+    mesh%shape = element_s
 
     allocate(mesh%faces%shape)
     mesh%faces%shape = make_element_shape(vertices=face_vertices(element), &
