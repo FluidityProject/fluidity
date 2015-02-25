@@ -282,55 +282,24 @@ contains
     real, intent(out) :: integral
     real, optional, intent(out) :: area
     
-    integer :: ele, i, j, l_face_number
+    integer :: ele, i, j
     real, dimension(ele_loc(s_field, face_ele(s_field, face))) :: s_ele_val
     real, dimension(face_ngi(s_field, face)) :: detwei, grad_s_dot_n_at_quad
     real, dimension(ele_loc(s_field, face_ele(s_field, face)),face_ngi(s_field, face),mesh_dim(s_field)) :: ele_dshape_at_face_quad
     real, dimension(mesh_dim(s_field), face_ngi(s_field, face)) :: grad_s_at_quad, normal
-    real, dimension(mesh_dim(s_field), mesh_dim(s_field), ele_ngi(s_field, face_ele(s_field, face))) :: invj
-    real, dimension(mesh_dim(s_field), mesh_dim(s_field), face_ngi(s_field, face)) :: invj_face
-    type(element_type) :: augmented_shape
-    type(element_type), pointer :: element_shape, face_element_shape, &
-      & positions_face_element_shape, positions_shape
-    
+    type(element_type), pointer :: element_shape
+
     ele = face_ele(s_field, face)
     
     assert(face_ngi(s_field, face) == face_ngi(positions, face))
     assert(ele_ngi(s_field, ele) == ele_ngi(positions, ele))
     assert(mesh_dim(s_field) == positions%dim)
     
-    face_element_shape => face_shape(s_field, face)
-    positions_face_element_shape => face_shape(positions, face)
-    
     element_shape => ele_shape(s_field, ele)
-    positions_shape => ele_shape(positions, ele)
     
-    assert(positions_shape%degree == 1)
-    if(associated(element_shape%dn_s)) then
-      augmented_shape = element_shape
-      call incref(augmented_shape)
-    else
-      augmented_shape = make_element_shape(positions_shape%loc, element_shape%dim, &
-        & element_shape%degree, element_shape%quadrature, &
-        & quad_s = face_element_shape%quadrature)
-    end if
-    
-    call compute_inverse_jacobian(positions, ele, invj = invj)
-    assert(ele_numbering_family(positions_shape) == FAMILY_SIMPLEX)
-    invj_face = spread(invj(:, :, 1), 3, size(invj_face, 3))
-      
     call transform_facet_to_physical( &
-      positions, face, detwei_f = detwei, normal = normal)
+      positions, face, element_shape, ele_dshape_at_face_quad, detwei_f = detwei, normal = normal)
    
-    ! As "strain" calculation in diagnostic_body_drag_new_options
-    
-    ! Get the local face number
-    l_face_number = local_face_number(s_field, face)
-    
-    ! Evaluate the volume element shape function derivatives at the surface
-    ! element quadrature points
-    ele_dshape_at_face_quad = eval_volume_dshape_at_face_quad(augmented_shape, l_face_number, invj_face)
-    
     ! Calculate grad s_field at the surface element quadrature points
     s_ele_val = ele_val(s_field, ele)
     forall(i = 1:mesh_dim(s_field), j = 1:face_ngi(s_field, face))
@@ -347,8 +316,6 @@ contains
     if(present(area)) then
       area = sum(detwei)
     end if
-    
-    call deallocate(augmented_shape)
     
   end subroutine gradient_normal_surface_integral_face
   
