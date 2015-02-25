@@ -708,6 +708,9 @@ contains
          ! as it cannot be interpolated later.
          if (mesh_name=="CoordinateMesh") then
             extrudedposition%name = "Coordinate"
+            if (have_option('/geometry/spherical_earth/analytical_mapping/')) then
+              extrudedposition%field_type = FIELD_TYPE_SPHERICAL_COORDINATES
+            end if
          else
             extrudedposition%name = trim(mesh_name)//"Coordinate"
          end if
@@ -732,6 +735,9 @@ contains
            ! as it cannot be interpolated later.
            if (mesh_name=="CoordinateMesh") then
               nonperiodic_position%name = "Coordinate"
+              if (have_option('/geometry/spherical_earth/analytical_mapping/')) then
+                nonperiodic_position%field_type = FIELD_TYPE_SPHERICAL_COORDINATES
+              end if
            else
               nonperiodic_position%name = trim(mesh_name)//"Coordinate"
            end if

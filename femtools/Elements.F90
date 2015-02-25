@@ -109,7 +109,7 @@ module elements
        & CONSTRAINT_RT = 2, CONSTRAINT_BDM = 3
 
   interface allocate
-     module procedure allocate_element, allocate_element_with_surface
+     module procedure allocate_element 
      module procedure allocate_constraints_type
   end interface
 
@@ -150,7 +150,7 @@ module elements
 
 contains
 
-  subroutine allocate_element(element, ele_num, ngi, type, stat)
+  subroutine allocate_element(element, ele_num, ngi, ngi_s, type, stat)
     !!< Allocate memory for an element_type. 
     type(element_type), intent(inout) :: element
     !! Number of quadrature points
@@ -158,6 +158,7 @@ contains
     !! Element numbering
     type(ele_numbering_type), intent(in) :: ele_num
     !! Stat returns zero for success and nonzero otherwise.
+    integer, intent(in), optional :: ngi_s
     integer, intent(in), optional :: type
     integer, intent(out), optional :: stat
     !
@@ -223,13 +224,17 @@ contains
     element%ngi=ngi
     element%dim=ele_num%dimension
 
+    if (present(ngi_s)) then
+      allocate(element%n_s(ele_num%nodes,ngi_s,ele_num%boundaries), &
+               element%dn_s(ele_num%nodes,ngi_s,ele_num%boundaries,ele_num%dimension), stat=lstat)
+    else
+      nullify(element%n_s)
+      nullify(element%dn_s)
+    end if
 
     nullify(element%refcount) ! Hack for gfortran component initialisation
     !                         bug.
     call addref(element)
-    
-    nullify(element%n_s)
-    nullify(element%dn_s)
 
     if (present(stat)) then
        stat=lstat
@@ -238,42 +243,6 @@ contains
     end if
 
   end subroutine allocate_element
-
-  subroutine allocate_element_with_surface(element, dim, loc,&
-       ngi,faces, ngi_s, coords,surface_present,type, stat)
-    !!< Allocate memory for an element_type. 
-    type(element_type), intent(inout) :: element
-    !! Dim is the dimension of the element, loc is number of nodes, ngi is
-    !! number of gauss points. 
-    integer, intent(in) :: dim,loc,ngi,faces,ngi_s    
-    !! Number of local coordinates.
-    integer, intent(in) :: coords
-    logical, intent(in) :: surface_present
-    !! Stat returns zero for success and nonzero otherwise.
-    integer, intent(in), optional :: type
-    integer, intent(out), optional :: stat
-
-    integer :: lstat
-
-    allocate(element%n(loc,ngi),element%dn(loc,ngi,dim), &
-         element%n_s(loc,ngi_s,faces),element%dn_s(loc,ngi_s,faces,dim),&
-         element%spoly(coords,loc), element%dspoly(coords,loc), stat=lstat)
-    
-    element%loc=loc
-    element%ngi=ngi
-    element%dim=dim
-
-    if (present(stat)) then
-       stat=lstat
-    else if (lstat/=0) then
-       FLAbort("Unable to allocate element.")
-    end if
-    
-    nullify(element%refcount) ! Hack for gfortran component initialisation
-    !                         bug.
-    call addref(element)
-
-  end subroutine allocate_element_with_surface
 
   subroutine allocate_constraints_type(constraint, element, type, stat)
     !!< Allocate memory for a constraints type
@@ -365,6 +334,12 @@ contains
     end if
 
     call deallocate(element%quadrature)
+
+    if (associated(element%surface_quadrature)) then
+      call deallocate(element%surface_quadrature)
+      deallocate(element%surface_quadrature, stat=tstat)
+    end if
+    lstat=max(lstat,tstat)
 
     if(associated(element%spoly)) then
       do i=1,size(element%spoly,1)

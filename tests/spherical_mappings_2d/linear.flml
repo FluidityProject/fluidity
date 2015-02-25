@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <fluidity_options>
   <simulation_name>
-    <string_value lines="1">super_analytic_circle</string_value>
+    <string_value lines="1">linear</string_value>
   </simulation_name>
   <problem_type>
     <string_value lines="1">fluids</string_value>
@@ -11,19 +11,6 @@
       <integer_value rank="0">2</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
-      <from_mesh>
-        <mesh name="InputMesh"/>
-        <mesh_shape>
-          <polynomial_degree>
-            <integer_value rank="0">2</integer_value>
-          </polynomial_degree>
-        </mesh_shape>
-        <stat>
-          <exclude_from_stat/>
-        </stat>
-      </from_mesh>
-    </mesh>
-    <mesh name="InputMesh">
       <from_file file_name="src/circle">
         <format name="gmsh"/>
         <stat>
@@ -34,6 +21,11 @@
     <mesh name="RadiusMesh">
       <from_mesh>
         <mesh name="CoordinateMesh"/>
+        <mesh_shape>
+          <polynomial_degree>
+            <integer_value rank="0">2</integer_value>
+          </polynomial_degree>
+        </mesh_shape>
         <stat>
           <exclude_from_stat/>
         </stat>
@@ -44,10 +36,7 @@
         <integer_value rank="0">5</integer_value>
       </degree>
     </quadrature>
-    <spherical_earth>
-      <superparametric_mapping/>
-      <analytical_mapping/>
-    </spherical_earth>
+    <spherical_earth/>
   </geometry>
   <io>
     <dump_format>
@@ -58,7 +47,7 @@
         <integer_value rank="0">1</integer_value>
       </constant>
     </dump_period_in_timesteps>
-    <output_mesh name="InputMesh"/>
+    <output_mesh name="CoordinateMesh"/>
     <stat/>
   </io>
   <timestepping>
@@ -189,7 +178,106 @@
         </detectors>
       </prescribed>
     </scalar_field>
-    <scalar_field name="Radius" rank="0">
+    <scalar_field name="RadiusP1" rank="0">
+      <prescribed>
+        <mesh name="CoordinateMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value lines="20" type="code" language="python">def val(X,t):
+  from math import sqrt
+  from numpy import array
+  return sqrt(sum(array(X)**2))</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat>
+          <surface_integral type="gradient_normal" name="1">
+            <surface_ids>
+              <integer_value shape="1" rank="1">1</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="gradient_normal" name="2">
+            <surface_ids>
+              <integer_value shape="1" rank="1">2</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="gradient_normal" name="3">
+            <surface_ids>
+              <integer_value shape="1" rank="1">3</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="gradient_normal" name="4">
+            <surface_ids>
+              <integer_value shape="1" rank="1">4</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="gradient_normal" name="5">
+            <surface_ids>
+              <integer_value shape="1" rank="1">5</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="gradient_normal" name="6">
+            <surface_ids>
+              <integer_value shape="1" rank="1">6</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="gradient_normal" name="7">
+            <surface_ids>
+              <integer_value shape="1" rank="1">7</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="gradient_normal" name="8">
+            <surface_ids>
+              <integer_value shape="1" rank="1">8</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="gradient_normal" name="9">
+            <surface_ids>
+              <integer_value shape="1" rank="1">9</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="gradient_normal" name="10">
+            <surface_ids>
+              <integer_value shape="1" rank="1">10</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="gradient_normal" name="11">
+            <surface_ids>
+              <integer_value shape="1" rank="1">11</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="gradient_normal" name="12">
+            <surface_ids>
+              <integer_value shape="1" rank="1">12</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="gradient_normal" name="13">
+            <surface_ids>
+              <integer_value shape="1" rank="1">13</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="gradient_normal" name="14">
+            <surface_ids>
+              <integer_value shape="1" rank="1">14</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="gradient_normal" name="15">
+            <surface_ids>
+              <integer_value shape="1" rank="1">15</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="gradient_normal" name="16">
+            <surface_ids>
+              <integer_value shape="1" rank="1">16</integer_value>
+            </surface_ids>
+          </surface_integral>
+        </stat>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </scalar_field>
+    <scalar_field name="RadiusP2" rank="0">
       <prescribed>
         <mesh name="RadiusMesh"/>
         <value name="WholeMesh">
