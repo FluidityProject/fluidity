@@ -1786,7 +1786,7 @@ contains
         end if
       else
         facets_to_keep = facets_to_keep+1
-        mesh%faces%boundary_ids(facets_to_keep) = mesh%faces%boundary_ids(i)
+        mesh%faces%boundary_ids(facets_to_keep) = old_boundary_ids(i)
         ! note that we don't need to reallocate this one: we're merely shifting it forward
         mesh%faces%face_element_list(facets_to_keep) = mesh%faces%face_element_list(i)
         old_to_new_facet_number(i) = facets_to_keep
@@ -1807,7 +1807,7 @@ contains
 #endif
 
     ! now renumber the facet numbers we've already stored in face_list
-    do i=1, size(mesh%faces%face_list)
+    do i=1, size(mesh%faces%face_list,1)
       faces=>row_ival_ptr(mesh%faces%face_list, i)
       do j=1, size(faces)
         if (faces(j)/=0) then
