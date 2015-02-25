@@ -1041,7 +1041,7 @@ contains
     !! if these fields are initialised from_file (checkpointed).
     logical, optional, intent(in) :: initialise_fields
 
-    character(len = FIELD_NAME_LEN) :: metric_name
+    character(len = FIELD_NAME_LEN) :: metric_name, positions_name
     integer :: i, j, k, max_adapt_iteration
     integer :: zoltan_min_adapt_iterations, zoltan_max_adapt_iterations, zoltan_additional_adapt_iterations
     logical :: finished_adapting, final_adapt_iteration
@@ -1063,6 +1063,9 @@ contains
     type(detector_type), pointer :: detector => null()
 
     real :: global_min_quality, quality_tolerance
+    type(scalar_field) :: radius, base_radius
+    logical :: have_spherical_adaptivity=.true.
+    integer :: index=0
 
     ewrite(1, *) "In adapt_state_internal"
 
@@ -1074,6 +1077,7 @@ contains
      &  "/mesh_adaptivity/hr_adaptivity/vertically_structured_adaptivity")
     vertical_only = have_option(&
         & "/mesh_adaptivity/hr_adaptivity/vertically_structured_adaptivity/inhomogenous_vertical_resolution/adapt_in_vertical_only")
+
 
     ! Don't need to strip the level 2 halo with Zoltan .. in fact, we don't want to
 #ifndef HAVE_ZOLTAN
@@ -1129,6 +1133,25 @@ contains
       end if
       ewrite(2, *) "Mesh field to be adapted: " // trim(old_positions%name)
 
+      if (have_spherical_adaptivity) then
+        index = index+1
+        positions_name = old_positions%name
+        if (has_vector_field(states(1), trim(old_positions%name)//"BaseGeometry")) then
+          ! toss out the popped up positions field and replace with the base geometry
+          call deallocate(old_positions)
+          old_positions = extract_vector_field(states(1), trim(old_positions%name)//"BaseGeometry")
+          old_positions%name = positions_name
+          call insert(states(1), old_positions, positions_name)
+          call incref(old_positions)
+        else
+          ! first time around we need to insert the radius of the base geometry
+          radius = magnitude(old_positions)
+          radius%name = trim(positions_name)//"Radius"
+          call insert(states(1), radius, radius%name)
+          call deallocate(radius)
+        end if
+        call vtk_write_state("base_geometry_before", index, old_positions%mesh%name, states)
+      end if
       call prepare_vertically_structured_adaptivity(states, metric, full_metric, &
                                                     old_positions, extruded_positions)
 
@@ -1140,6 +1163,10 @@ contains
         call select_fields_to_interpolate(states(j), interpolate_states(j), &
           & first_time_step = initialise_fields)
       end do
+      if (have_spherical_adaptivity) then
+        radius = extract_scalar_field(states(1), trim(positions_name)//"Radius")
+        call insert(interpolate_states(1), radius, radius%name)
+      end if
 
       do j = 1, size(states)
         call deallocate(states(j))
@@ -1236,6 +1263,11 @@ contains
                                              interpolate_states(1), states(1), &
                                              metric_name = metric_name)
       end if
+      if (have_spherical_adaptivity) then
+        call allocate(radius, new_positions%mesh, trim(new_positions%name)//"Radius")
+        call insert(states(1), radius, radius%name)
+        call deallocate(radius)
+      end if
 
       ! We're done with the old metric, so we may deallocate it / drop our
       ! reference
@@ -1268,6 +1300,31 @@ contains
         metric = extract_and_remove_metric(states(1), metric_name)
         ! we haven't interpolated in halo2 nodes, so we need to halo update it
         call halo_update(metric)
+      end if
+
+      if (have_spherical_adaptivity) then
+        new_positions = get_coordinate_field(states(1), extract_mesh(states(1), topology_mesh_name))
+        positions_name = new_positions%name
+        ! make a copy of the new (still unpopped) positions and store it as the base geometry
+        call allocate(old_positions, new_positions%dim, new_positions%mesh, trim(positions_name)//"BaseGeometry")
+        call set(old_positions, new_positions)
+        call insert(states(1), old_positions, old_positions%name)
+        call vtk_write_state("base_geometry_after", index, old_positions%mesh%name, states)
+        call deallocate(old_positions)
+        ! extract the interpolated radius
+        radius = extract_scalar_field(states(1), trim(positions_name)//"Radius")
+        ! and compute the current unpopped radius
+        base_radius = magnitude(new_positions)
+        ! normalize the unpoped new positions, and then scale them back using the
+        ! interpolated radius to pop them out back onto the sphere
+        call invert(base_radius)
+        call scale(new_positions, base_radius)
+        call scale(new_positions, radius)
+        call deallocate(base_radius)
+        ! we leave the interpolated radius in state, to be used in the next adapt
+        ! drop our reference for new_positions again (still stored in state)
+        call deallocate(new_positions)
+        call vtk_write_state("popped_geometry_after", index, new_positions%mesh%name, states)
       end if
 
       if(present_and_true(initialise_fields)) then
