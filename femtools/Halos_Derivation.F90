@@ -1449,7 +1449,6 @@ contains
   end function create_combined_numbering_trailing_receives
 
   function expand_positions_halo(positions) result (new_positions)
-    use vtk_interfaces
     type(vector_field), intent(in) :: positions
     type(vector_field) :: new_positions
 
@@ -1460,8 +1459,6 @@ contains
     new_positions%val(:,1:node_count(positions)) = positions%val
     call halo_update(new_positions)
     call deallocate(new_mesh)
-
-    call vtk_write_fields("expanded", 0, model=new_positions%mesh, position=new_positions)
 
   end function expand_positions_halo
 
