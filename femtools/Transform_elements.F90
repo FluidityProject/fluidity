@@ -1779,6 +1779,7 @@ contains
     real, dimension(size(X_val,2),size(dshape,2)) :: n_s
     real, dimension(size(X_val,2),size(dshape,2),X%dim) :: dn_s
     real, dimension(shape%loc,size(dshape,2),X%dim) :: dm_s
+    real, dimension(X%dim) :: lnormal
     
     integer :: gi, i, k, dim, ele
     logical :: x_nonlinear, m_nonlinear, cache_valid, x_spherical
@@ -1853,8 +1854,11 @@ contains
     dim=X%dim
 
     if ((.not.x_nonlinear).and.cache_transform_elements) then
-       cache_valid=retrieve_cached_face_transform(X, face, normal(:,1),&
+       cache_valid=retrieve_cached_face_transform(X, face, lnormal(:),&
               & detJ_local, J_local_T, invJ_local)
+       if (cache_valid.and.present(normal)) then
+         normal(:,1) = lnormal(:)
+       end if
     else
       cache_valid = .false.
     end if
