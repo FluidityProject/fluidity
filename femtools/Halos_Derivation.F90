@@ -1684,12 +1684,15 @@ contains
     call deallocate(uid_to_gid)
     call deallocate(ueid_to_gid)
 
-    if(all(serial_storage_halo(new_mesh%halos))) then
-      allocate(new_mesh%element_halos(0))
-    else
-      allocate(new_mesh%element_halos(nhalos+1))
-      call derive_element_halo_from_node_halo(new_mesh, &
-        & ordering_scheme = HALO_ORDER_TRAILING_RECEIVES, create_caches = .true.)
+    allocate(new_mesh%element_halos(nhalos+1))
+    call derive_element_halo_from_node_halo(new_mesh, &
+      & ordering_scheme = HALO_ORDER_TRAILING_RECEIVES, create_caches = .true.)
+
+    if (associated(mesh%region_ids)) then
+      ! now we can simply copy and halo update the region ids
+      allocate(new_mesh%region_ids(1:new_element_count))
+      new_mesh%region_ids(1:element_count(mesh)) = mesh%region_ids
+      call halo_update(new_mesh%element_halos(nhalos+1), new_mesh%region_ids)
     end if
 
   end function expand_mesh_halo
