@@ -1255,6 +1255,8 @@ contains
         ! the next adapt iteration. If we will be calling sam_drive, always
         ! extract the new metric.
         metric = extract_and_remove_metric(states(1), metric_name)
+        ! we haven't interpolated in halo2 nodes, so we need to halo update it
+        call halo_update(metric)
       end if
 
       if(present_and_true(initialise_fields)) then
