@@ -43,9 +43,10 @@ module elements
      integer :: degree !! Polynomial degree of element.
      !! Shape functions: n is for the primitive function, dn is for partial derivatives, dn_s is for partial derivatives on surfaces. 
      !! n is loc x ngi, dn is loc x ngi x dim
-     !! dn_s is loc x ngi x face x dim 
+     !! n_s is loc x sngi, dn_s is loc x sngi x dim 
+     !! NOTE that both n_s and dn_s need to be reoriented before use so that they align with the arbitrary facet node ordering.
      real, pointer :: n(:,:)=>null(), dn(:,:,:)=>null()
-     real, pointer :: n_s(:,:,:)=>null(), dn_s(:,:,:,:)=>null()
+     real, pointer :: n_s(:,:)=>null(), dn_s(:,:,:)=>null()
      !! Polynomials defining shape functions and their derivatives.
      type(polynomial), dimension(:,:), pointer :: spoly=>null(), dspoly=>null()
      !! Link back to the node numbering used for this element.
@@ -225,8 +226,8 @@ contains
     element%dim=ele_num%dimension
 
     if (present(ngi_s)) then
-      allocate(element%n_s(ele_num%nodes,ngi_s,ele_num%boundaries), &
-               element%dn_s(ele_num%nodes,ngi_s,ele_num%boundaries,ele_num%dimension), stat=lstat)
+      allocate(element%n_s(ele_num%nodes,ngi_s), &
+               element%dn_s(ele_num%nodes,ngi_s,ele_num%dimension), stat=lstat)
     else
       nullify(element%n_s)
       nullify(element%dn_s)
@@ -580,38 +581,6 @@ contains
       transformed_dshape(loc, :) = matmul(invJ, untransformed_dshape(loc, :))
     end do
   end function eval_dshape_transformed
-
-  function eval_volume_dshape_at_face_quad(shape, local_face_number, invJ) result(output)
-    ! Compute the derivatives of the volume basis functions at the quadrature points
-    ! of a given surface element. Useful for strain tensors and such
-
-    ! If this segfaults on entry, it's probably because
-    ! shape%surface_quadrature is unassociated. You need to augment the shape
-    ! function with the quadrature information. See the drag calculation
-    ! in MeshDiagnostics.F90 for an example (search for augmented_shape).
-    type(element_type), intent(in) :: shape ! NOT the face shape! The volume shape!
-    integer, intent(in) :: local_face_number ! which face are we on
-    real, dimension(:, :, :), intent(in) :: invJ
-    real, dimension(shape%loc, shape%surface_quadrature%ngi, shape%dim) :: output
-    integer :: loc, gi
-
-    assert(associated(shape%dn_s))
-    assert(size(invJ, 1) == shape%dim)
-    assert(size(invJ, 2) == shape%dim)
-    assert(size(invJ, 3) == shape%surface_quadrature%ngi)
-    assert(shape%dim == size(shape%dn_s, 4))
-    assert(shape%loc == size(shape%dn_s, 1))
-    assert(shape%surface_quadrature%ngi == size(shape%dn_s, 2))
-    assert(local_face_number <= size(shape%dn_s, 3))
-    assert(shape%dim == size(shape%dn_s, 4))
-
-    ! You can probably do this with some fancy-pants tensor contraction.
-    do loc=1,shape%loc
-      do gi=1,shape%surface_quadrature%ngi
-        output(loc, gi, :) = matmul(invJ(:, :, gi), shape%dn_s(loc, gi, local_face_number, :))
-      end do
-    end do
-  end function eval_volume_dshape_at_face_quad
 
   pure function eval_dshape_simplex(shape, loc,  l) result (eval_dshape)
     !!< Evaluate the derivatives of the shape function for location loc at local

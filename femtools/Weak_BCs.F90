@@ -238,9 +238,6 @@
       integer, dimension(face_loc(u, sele)):: u_nodes_bdy, sfield_nodes
       integer, dimension(:), pointer       :: ele_nodes_u, ele_faces_u
 
-      real, dimension(x%dim, x%dim, ele_ngi(u, sele))        :: invJ
-      real, dimension(x%dim, x%dim, face_ngi(u, sele))       :: invJ_face
-      type(element_type)                                     :: augmented_shape
       real, dimension(ele_loc(u, ele), face_ngi(u, sele),x %dim):: vol_dshape_face
       real, dimension(x%dim, x%dim, face_ngi(u, sele))       :: viscosity_gi
       real, dimension(ele_loc(u, ele))                       :: u_dot_n_e
@@ -273,8 +270,6 @@
          if (ele_faces_u(i)==sele) exit
       end do
       inode = ele_nodes_u(i)
-
-      call compute_inverse_jacobian(x, ele, invJ)
 
       call transform_facet_to_physical( x, sele, detwei_f=detwei_bdy, normal=normal_bdy )
 
@@ -395,19 +390,10 @@
                  dt * theta * sum(mat3, 2) )
          end do
 
-         l_face_number = local_face_number(u, sele)
-         invJ_face = spread(invJ(:, :, 1), 3, size(invJ_face, 3))
-
          x_shape  => ele_shape(x, ele)
          u_shape  => ele_shape(u, ele)
 
-         augmented_shape = make_element_shape(x_shape%loc, &
-              u_shape%dim, u_shape%degree, u_shape%quadrature, &
-              quad_s=u_f_shape%quadrature )
-
-         ! nloc x sngi x dim
-         vol_dshape_face = eval_volume_dshape_at_face_quad( &
-              augmented_shape, l_face_number, invJ_face )
+         call transform_facet_to_physical(x, sele, u_shape, vol_dshape_face)
 
          do loc = 1, face_loc(u, sele)
             n_face = node_val(normal_nodes, sfield_nodes(loc))
@@ -460,8 +446,6 @@
             call addto_diag( bigm, dim, dim, ele_nodes_u, &
                  dt * theta * sum(mat2(:, :), 2) )
          end do
-
-         call deallocate(augmented_shape)
 
       else if (bc_type=="log_law_of_wall") then ! log law of the wall
 

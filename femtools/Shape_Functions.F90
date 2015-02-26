@@ -296,25 +296,16 @@ contains
              select case(ele_num%family)
              case(FAMILY_SIMPLEX)
                 allocate(g(dim+1))
-                do k=1,dim+1
-                   do j=1,quad_s%ngi
-                      if (dim==1) then
-                         g(mod(k+1,2)+1)=0.0
-                         g(mod(k,2)+1)=quad_s%l(j,1)
-                      else if (dim==2) then
-                         g(mod(k+2,3)+1)=0.0
-                         g(mod(k,3)+1)=quad_s%l(j,1)
-                         g(mod(k+1,3)+1)=quad_s%l(j,2)
-                      else if (dim==3) then
-                         ! Not checked !!
-                         g(mod(k+3,4)+1)=0.0
-                         g(mod(k,4)+1)=quad_s%l(j,1)
-                         g(mod(k+1,4)+1)=quad_s%l(j,2)
-                         g(mod(k+2,4)+1)=quad_s%l(j,3)
-                      end if
-                      shape%n_s(i,j,k)=eval_shape(shape, i,g)
-                      shape%dn_s(i,j,k,:)=eval_dshape(shape, i,g)
+                do j=1,quad_s%ngi
+                   g(1) = 0.0
+                   do k=1,dim
+                      g(k+1)=quad_s%l(j,k)
                    end do
+                   ! In order to match the arbitrary face node ordering
+                   ! these must get reoriented before use so we don't care
+                   ! about which local facet they're with respect to.
+                   shape%n_s(i,j)=eval_shape(shape,i,g)
+                   shape%dn_s(i,j,:)=eval_dshape(shape,i,g)
                 end do
                 deallocate(g)
              end select

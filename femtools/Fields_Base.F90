@@ -4104,7 +4104,7 @@ contains
 
     do i = 1, size(reordered_element_nodes)
       j = reordered_element_nodes(i)
-      n_s(j,:) = element%n_s(i,:,1)
+      n_s(j,:) = element%n_s(i,:)
     end do
 
   end function
@@ -4126,7 +4126,7 @@ contains
 
     do i = 1, size(reordered_element_nodes)
       j = reordered_element_nodes(i)
-      dn_s(j,:,:) = element%dn_s(i,:,1,:)
+      dn_s(j,:,:) = element%dn_s(i,:,:)
     end do
 
   end function
