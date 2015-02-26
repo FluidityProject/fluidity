@@ -599,7 +599,7 @@ contains
 
     assert(associated(X%mesh%shape%surface_quadrature))
     assert(associated(X%mesh%shape%dn_s))
-    allocate(dn_s(size(X%mesh%shape%dn_s,1), size(X%mesh%shape%dn_s,2), size(X%mesh%shape%dn_s,4)))
+    allocate(dn_s(size(X%mesh%shape%dn_s,1), size(X%mesh%shape%dn_s,2), size(X%mesh%shape%dn_s,3)))
 
     call abort_if_in_parallel_region
 
@@ -1818,10 +1818,10 @@ contains
     assert(associated(x_shape%dn_s))
     assert(x_shape%loc == size(x_shape%dn_s, 1))
     assert(x_shape%surface_quadrature%ngi == size(x_shape%dn_s, 2))
-    assert(x_shape%dim == size(x_shape%dn_s, 4))
+    assert(x_shape%dim == size(x_shape%dn_s, 3))
     assert(size(dn_s,1) == size(x_shape%dn_s, 1))
     assert(size(dn_s,2) == size(x_shape%dn_s, 2))
-    assert(size(dn_s,3) == size(x_shape%dn_s, 4))
+    assert(size(dn_s,3) == size(x_shape%dn_s, 3))
 
     assert(associated(shape%surface_quadrature))
     assert(shape%surface_quadrature%ngi==x_shape%surface_quadrature%ngi)
@@ -1832,10 +1832,10 @@ contains
     assert(associated(shape%dn_s))
     assert(shape%loc == size(shape%dn_s, 1))
     assert(shape%surface_quadrature%ngi == size(shape%dn_s, 2))
-    assert(X%dim == size(shape%dn_s, 4))
+    assert(X%dim == size(shape%dn_s, 3))
     assert(size(dm_s,1) == size(shape%dn_s, 1))
     assert(size(dm_s,2) == size(shape%dn_s, 2))
-    assert(size(dm_s,3) == size(shape%dn_s, 4))
+    assert(size(dm_s,3) == size(shape%dn_s, 3))
 #endif
 
     x_spherical = X%field_type==FIELD_TYPE_SPHERICAL_COORDINATES
@@ -2007,10 +2007,10 @@ contains
     assert(associated(x_shape%dn_s))
     assert(x_shape%loc == size(x_shape%dn_s, 1))
     assert(x_shape%surface_quadrature%ngi == size(x_shape%dn_s, 2))
-    assert(x_shape%dim == size(x_shape%dn_s, 4))
+    assert(x_shape%dim == size(x_shape%dn_s, 3))
     assert(size(dn_s,1) == size(x_shape%dn_s, 1))
     assert(size(dn_s,2) == size(x_shape%dn_s, 2))
-    assert(size(dn_s,3) == size(x_shape%dn_s, 4))
+    assert(size(dn_s,3) == size(x_shape%dn_s, 3))
 
     assert(X%dim==mesh_dim(X)) ! this routine doesn't work for embedded coordinates
 

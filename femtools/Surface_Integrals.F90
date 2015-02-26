@@ -501,10 +501,9 @@ contains
     integer, dimension(2) :: shape_option
     real, dimension(:), allocatable :: face_detwei, face_pressure
     real, dimension(:,:), allocatable :: velocity_ele, normal, strain, force_at_quad
-    real, dimension(:,:,:), allocatable :: dn_t,viscosity_ele, tau, invJ, vol_dshape_face, invJ_face
+    real, dimension(:,:,:), allocatable :: dn_t,viscosity_ele, tau, vol_dshape_face
     real :: sarea
-    integer :: l_face_number, stat
-    type(element_type) :: augmented_shape
+    integer :: stat
     logical :: have_viscosity
 
     ewrite(1,*) 'In diagnostic_body_drag'
@@ -537,16 +536,11 @@ contains
               tau(meshdim, meshdim, sngi), strain(meshdim, meshdim), &
               force_at_quad(meshdim, sngi))
 
-    allocate(invJ(meshdim, meshdim, ngi))
     allocate(vol_dshape_face(ele_loc(velocity, 1), face_ngi(velocity, 1),meshdim))
-    allocate(invJ_face(meshdim, meshdim, face_ngi(velocity, 1)))
 
     call get_option(trim(option_path)//'/prognostic/stat/compute_body_forces_on_surfaces::'//trim(surface_integral_name)//'/surface_ids', surface_ids)
     ewrite(2,*) 'Calculating forces on surfaces with these IDs: ', surface_ids
 
-    augmented_shape = make_element_shape(x_shape%loc, u_shape%dim, u_shape%degree, u_shape%quadrature, &
-                    & quad_s=u_f_shape%quadrature)
-                    
     sarea = 0.0
     nfaces = 0
     force = 0.0
@@ -559,7 +553,7 @@ contains
           call transform_facet_to_physical( &
              position, sele, detwei_f=face_detwei, normal=normal)
           call transform_to_physical(position, ele, &
-             shape=u_shape, dshape=dn_t, invJ=invJ)
+             shape=u_shape, dshape=dn_t)
           velocity_ele = ele_val(velocity,ele)
 
           ! Compute tau only if viscosity is present
@@ -570,13 +564,6 @@ contains
           ! Form the stress tensor
           !
 
-          ! If P1, Assume strain tensor is constant over 
-          ! the element.
-          ! If it isn't, computing this becomes a whole lot more
-          ! complicated. You have to compute the values of the
-          ! derivatives of the volume basis functions at the
-          ! quadrature points of the surface element.
-
             if (u_shape%degree == 1 .and. u_shape%numbering%family == FAMILY_SIMPLEX) then
               strain = matmul(velocity_ele, dn_t(:, 1, :))
               strain = (strain + transpose(strain)) / 2.0
@@ -584,19 +571,7 @@ contains
                 tau(:, :, gi) = 2 * matmul(viscosity_ele(:, :, gi), strain)
               end do
             else
-              ! Get the local face number.
-              l_face_number = local_face_number(velocity, sele)
-
-              ! Here comes the magic.
-              if (x_shape%degree == 1 .and. x_shape%numbering%family == FAMILY_SIMPLEX) then
-                invJ_face = spread(invJ(:, :, 1), 3, size(invJ_face, 3))
-              else
-                ewrite(-1,*) "If positions are nonlinear, then you have to compute"
-                ewrite(-1,*) "the inverse Jacobian of the volume element at the surface"
-                ewrite(-1,*) "quadrature points. Sorry ..."
-                FLExit("Calculating the body drag not supported for nonlinear coordinates.")
-              end if
-              vol_dshape_face = eval_volume_dshape_at_face_quad(augmented_shape, l_face_number, invJ_face)
+              call transform_facet_to_physical(position, sele, u_shape, vol_dshape_face)
 
               do gi=1,sngi
                 strain = matmul(velocity_ele, vol_dshape_face(:, gi, :))
@@ -653,8 +628,6 @@ contains
       ewrite(2,*) 'Viscous force on surface: ', viscous_force
     end if
 
-    call deallocate(augmented_shape)
-    
     ewrite(1, *) "Exiting diagnostic_body_drag"
     
   end subroutine diagnostic_body_drag
