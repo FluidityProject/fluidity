@@ -756,6 +756,10 @@ contains
     call allocate(submesh, nodes=size(node_list), elements=size(element_list),&
          & shape=shape, name=trim(name))
     submesh%option_path = mesh%option_path
+    if (associated(mesh%region_ids)) then
+      allocate(submesh%region_ids(size(element_list)))
+      submesh%region_ids = mesh%region_ids(element_list)
+    end if
 
     ! Determine ndglno (connectivity matrix) on subdomain_mesh:
     loc = shape%loc
@@ -810,7 +814,7 @@ contains
     if(isparallel()) then
        call generate_subdomain_halos(mesh, submesh, node_list, inverse_node_list)
     end if
-       
+
     deallocate(inverse_node_list)
     call deallocate(submesh_node_set)
 
