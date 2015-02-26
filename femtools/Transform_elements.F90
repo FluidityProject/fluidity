@@ -55,7 +55,7 @@ module transform_elements
   end interface
 
   interface retrieve_cached_face_transform
-     module procedure retrieve_cached_face_transform_full
+     module procedure retrieve_cached_face_transform_full, retrieve_cached_full_face_transform_full
   end interface
     
   private
@@ -87,6 +87,8 @@ module transform_elements
   integer, save :: last_mesh_movement=-1
   integer, save :: face_position_id=-1
   integer, save :: face_last_mesh_movement=-1
+  integer, save :: full_face_position_id=-1
+  integer, save :: full_face_last_mesh_movement=-1
 
 contains
 
@@ -103,7 +105,7 @@ contains
     !! Local version of the determinant of J
     real, intent(out) :: detJ_local
 
-    logical :: cache_valid
+    logical :: cache_valid, x_spherical, x_nonlinear
 
     cache_valid=.true.
     
@@ -122,6 +124,14 @@ contains
 
     end if
        
+    x_spherical = X%field_type==FIELD_TYPE_SPHERICAL_COORDINATES
+
+    x_nonlinear = x_spherical .or. .not.(X%mesh%shape%degree==1 .and. X%mesh%shape%numbering%family==FAMILY_SIMPLEX)
+    if (x_nonlinear) then
+      cache_valid=.false.
+      return
+    end if
+
     if (.not.cache_valid) then
        call construct_cache(X)
        cache_valid=.true.
@@ -144,7 +154,7 @@ contains
     !! Local version of the determinant of J
     real, intent(out) :: detJ_local
 
-    logical :: cache_valid
+    logical :: cache_valid, x_spherical, x_nonlinear
     
     cache_valid=.true.
 
@@ -163,6 +173,14 @@ contains
 
     end if
        
+    x_spherical = X%field_type==FIELD_TYPE_SPHERICAL_COORDINATES
+
+    x_nonlinear = x_spherical .or. .not.(X%mesh%shape%degree==1 .and. X%mesh%shape%numbering%family==FAMILY_SIMPLEX)
+    if (x_nonlinear) then
+      cache_valid=.false.
+      return
+    end if
+
     if (.not.cache_valid) then
        call construct_cache(X)
        cache_valid=.true.
@@ -182,6 +200,7 @@ contains
     type(vector_field), intent(in) :: X
     logical :: cache_valid
     logical :: face_cache_valid
+    logical :: x_spherical, x_nonlinear, xf_nonlinear
     cache_valid=.true.
     face_cache_valid=.true.
     ! Although the caches are thread safe, the code that assembles the
@@ -204,14 +223,22 @@ contains
        face_cache_valid = .false.
     end if
 
-    if (.not.cache_valid) then
+    x_spherical = X%field_type==FIELD_TYPE_SPHERICAL_COORDINATES
+
+    x_nonlinear = x_spherical .or. .not.(X%mesh%shape%degree==1 .and. X%mesh%shape%numbering%family==FAMILY_SIMPLEX)
+    xf_nonlinear = x_spherical .or. .not.(X%mesh%faces%shape%degree==1 .and. X%mesh%faces%shape%numbering%family==FAMILY_SIMPLEX)
+
+    if (x_nonlinear) then
+       cache_valid=.false.
+    else if (.not.cache_valid) then
        call construct_cache(X)
        cache_valid=.true.
     end if
 
-    if (.not.face_cache_valid) then
+    if (xf_nonlinear) then
+       face_cache_valid=.false.
+    else if (.not.face_cache_valid) then
        call construct_face_cache(X)
-       call construct_full_face_cache(X)
        face_cache_valid=.true.
     end if
 
@@ -301,7 +328,7 @@ contains
   end subroutine construct_cache
 
   function retrieve_cached_face_transform_full(X, face, &
-       & normal_local, detJ_local, J_local_T, invJ_local) result (cache_valid)
+       & normal_local, detJ_local) result (cache_valid)
     !!< Determine whether the transform cache is valid for this operation.
     !!< 
     !!< If caching is applicable and the cache is not ready, set up the
@@ -312,10 +339,8 @@ contains
     real, intent(out) :: detJ_local
     !! Face normal
     real, dimension(X%dim), intent(out) :: normal_local
-    !! invJ
-    real, intent(out), dimension(:,:), optional :: J_local_T, invJ_local
 
-    logical :: cache_valid
+    logical :: cache_valid, x_spherical, xf_nonlinear
 
     cache_valid=.true.
     
@@ -334,22 +359,109 @@ contains
 
     end if
        
+    x_spherical = X%field_type==FIELD_TYPE_SPHERICAL_COORDINATES
+
+    xf_nonlinear = x_spherical .or. .not.(X%mesh%faces%shape%degree==1 .and. X%mesh%faces%shape%numbering%family==FAMILY_SIMPLEX)
+    if (xf_nonlinear) then
+      cache_valid=.false.
+      return
+    end if
+
     if (.not.cache_valid) then
        call construct_face_cache(X)
-       call construct_full_face_cache(X)
        cache_valid=.true.
     end if
 
     detJ_local=face_detJ_cache(abs(face_cache(face)))  
     normal_local=sign(1,face_cache(face))*face_normal_cache(:,abs(face_cache(face)))
-    if (present(invJ_local)) then
-      invJ_local = face_invJ_cache(:,:,face)
-    end if
-    if (present(J_local_T)) then
-      J_local_T = face_J_T_cache(:,:,face)
-    end if
     
   end function retrieve_cached_face_transform_full
+
+  function retrieve_cached_full_face_transform_full(X, face, &
+       & normal_local, detJ_local, J_local_T, invJ_local) result (cache_valid)
+    !!< Determine whether the transform cache is valid for this operation.
+    !!< 
+    !!< If caching is applicable and the cache is not ready, set up the
+    !!< cache and then return true.
+    type(vector_field), intent(in) :: X
+    integer, intent(in) :: face
+    !! Face determinant
+    real, intent(out) :: detJ_local
+    !! Face normal
+    real, dimension(X%dim), intent(out) :: normal_local
+    !! invJ
+    real, intent(out), dimension(:,:) :: J_local_T, invJ_local
+
+    logical :: cache_valid, face_cache_valid, full_face_cache_valid, x_spherical, x_nonlinear, xf_nonlinear
+
+    cache_valid = .true.
+    face_cache_valid=.true.
+    full_face_cache_valid=.true.
+    
+    if (X%refcount%id/=face_position_id) then
+!       ewrite(2,*) "Reference count identity of X has changed."
+       face_cache_valid=.false.
+       if (X%name/="Coordinate") then
+          !!< If Someone is not calling this on the main Coordinate field
+          !!< then we're screwed anyway.
+          cache_valid = .false.
+          return
+       end if
+    
+    else if(eventcount(EVENT_MESH_MOVEMENT)/=face_last_mesh_movement) then
+!       ewrite(2,*) "Mesh has moved."
+       face_cache_valid=.false.
+
+    end if
+       
+    if (X%refcount%id/=full_face_position_id) then
+!       ewrite(2,*) "Reference count identity of X has changed."
+       full_face_cache_valid=.false.
+       if (X%name/="Coordinate") then
+          !!< If Someone is not calling this on the main Coordinate field
+          !!< then we're screwed anyway.
+          cache_valid = .false.
+          return
+       end if
+    
+    else if(eventcount(EVENT_MESH_MOVEMENT)/=full_face_last_mesh_movement) then
+!       ewrite(2,*) "Mesh has moved."
+       full_face_cache_valid=.false.
+
+    end if
+       
+    x_spherical = X%field_type==FIELD_TYPE_SPHERICAL_COORDINATES
+
+    x_nonlinear = x_spherical .or. .not.(X%mesh%shape%degree==1 .and. X%mesh%shape%numbering%family==FAMILY_SIMPLEX)
+    xf_nonlinear = x_spherical .or. .not.(X%mesh%faces%shape%degree==1 .and. X%mesh%faces%shape%numbering%family==FAMILY_SIMPLEX)
+
+    if (x_nonlinear) then
+      cache_valid = .false.
+      return
+    end if
+
+    if (xf_nonlinear) then
+      cache_valid = .false.
+      return
+    end if
+
+    if (.not.face_cache_valid) then
+       call construct_face_cache(X)
+       face_cache_valid=.true.
+    end if
+    if (.not.full_face_cache_valid) then
+       call construct_full_face_cache(X)
+       full_face_cache_valid=.true.
+    end if
+
+    detJ_local=face_detJ_cache(abs(face_cache(face)))  
+    normal_local=sign(1,face_cache(face))*face_normal_cache(:,abs(face_cache(face)))
+    invJ_local = face_invJ_cache(:,:,face)
+    J_local_T = face_J_T_cache(:,:,face)
+
+    cache_valid = face_cache_valid.and.full_face_cache_valid
+    
+  end function retrieve_cached_full_face_transform_full
 
   subroutine construct_face_cache(X)
     !!< The cache is invalid so make a new one.
@@ -491,8 +603,8 @@ contains
 
     call abort_if_in_parallel_region
 
-    face_position_id=X%refcount%id
-    face_last_mesh_movement=eventcount(EVENT_MESH_MOVEMENT)
+    full_face_position_id=X%refcount%id
+    full_face_last_mesh_movement=eventcount(EVENT_MESH_MOVEMENT)
 
     if (allocated(face_invJ_cache)) then
 #ifdef HAVE_MEMORY_STATS
@@ -625,6 +737,8 @@ contains
     last_mesh_movement=-1
     face_position_id=-1
     face_last_mesh_movement=-1
+    full_face_position_id=-1
+    full_face_last_mesh_movement=-1
 
   end subroutine deallocate_transform_cache
 
@@ -1527,7 +1641,7 @@ contains
     
     x_spherical = X%field_type==FIELD_TYPE_SPHERICAL_COORDINATES
 
-    if (x_spherical .or. .not.(x_shape_f%degree==1 .and. x_shape_f%numbering%type==FAMILY_SIMPLEX)) then
+    if (x_spherical .or. .not.(x_shape_f%degree==1 .and. x_shape_f%numbering%family==FAMILY_SIMPLEX)) then
       ! for non-linear compute on all gauss points
       compute_ngi=x_shape_f%ngi
       cache_valid=.false.
@@ -1740,7 +1854,7 @@ contains
 
     if ((.not.x_nonlinear).and.cache_transform_elements) then
        cache_valid=retrieve_cached_face_transform(X, face, normal(:,1),&
-              & detJ_local, J_local_T=J_local_T, invJ_local=invJ_local)
+              & detJ_local, J_local_T, invJ_local)
     else
       cache_valid = .false.
     end if
@@ -1831,6 +1945,9 @@ contains
        if (present(normal)) then
          if ((x_nonlinear.or.gi==1).and..not.cache_valid) then
              ! Calculate normal.
+             ! We call this using a partial local Jacobian, excluding the first
+             ! entry, which thanks to the reordering of dn_s has the opposite vertex
+             ! as the first entry
              normal(:,gi)=normgi(X_val,X_f,J_local_T(:,2:size(J_local_T,2)))
          else
              normal(:,gi)=normal(:,1)
