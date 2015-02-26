@@ -797,6 +797,7 @@ contains
 
     call deallocate(face_list)
 
+    ewrite(2,*) "Number of surface elements: ", edge_count
     ! Add faces to submesh:
     call add_faces(submesh, sndgln=sndglno, boundary_ids=boundary_ids)
 

@@ -167,6 +167,8 @@ contains
     integer, dimension(:), allocatable :: non_halo2_elements
     integer :: ele, j, non_halo2_count
 
+    ewrite(1,*) "Inside strip_l2_halo"
+
     allocate(non_halo2_elements(1:element_count(positions)))
     non_halo2_count = 0
     ele_loop: do ele=1, element_count(positions)
@@ -207,6 +209,8 @@ contains
 
     call deallocate(stripped_mesh)
     deallocate(node_list)
+
+    ewrite(1,*) "Exiting strip_l2_halo"
 
   end subroutine strip_l2_halo
 

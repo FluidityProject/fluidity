@@ -1454,11 +1454,15 @@ contains
 
     type(mesh_type) :: new_mesh
 
+    ewrite(1,*) "Inside expand_positions_halo"
+
     new_mesh = expand_mesh_halo(positions%mesh)
     call allocate(new_positions, positions%dim, new_mesh, name=positions%name)
     new_positions%val(:,1:node_count(positions)) = positions%val
     call halo_update(new_positions)
     call deallocate(new_mesh)
+
+    ewrite(1,*) "Exiting expand_positions_halo"
 
   end function expand_positions_halo
 
@@ -1484,6 +1488,7 @@ contains
     integer :: proc, ele, i, j, ele_info_size
     logical :: has_surface_mesh
 
+    ewrite(1,*) "Inside expand_mesh_halo"
     nhalos = size(mesh%halos)
     old_halo => mesh%halos(nhalos)
     ele_halo => mesh%element_halos(size(mesh%element_halos))
@@ -1672,6 +1677,7 @@ contains
 
     assert(ele_count==new_element_count)
     if (has_surface_mesh) then
+      ewrite(2,*) "No. surface elements before/after expanding halo:", surface_element_count(mesh), new_surface_element_count
       assert(sele_count==new_surface_element_count)
       if (has_discontinuous_internal_boundaries(mesh)) then
         call add_faces(new_mesh, sndgln=sndgln, boundary_ids=boundary_ids, element_owner=element_owners)
@@ -1694,6 +1700,8 @@ contains
       new_mesh%region_ids(1:element_count(mesh)) = mesh%region_ids
       call halo_update(new_mesh%element_halos(nhalos+1), new_mesh%region_ids)
     end if
+
+    ewrite(1,*) "Exiting expand_mesh_halo"
 
   end function expand_mesh_halo
 
@@ -1725,6 +1733,8 @@ contains
     integer, dimension(MPI_STATUS_SIZE) :: status
     integer :: comm, tag, ierr
     integer :: proc, i, j, node, my_rank, uid, owner
+
+    ewrite(1,*) "Inside expand_halo"
 
     nnlist => extract_nnlist(mesh)
 
@@ -1894,6 +1904,8 @@ contains
       new_node_count = new_node_count+new_recv_count
     end do
     call deallocate(uid_to_gid)
+
+    ewrite(1,*) "Exiting expand_halo"
 
   end function expand_halo
 
