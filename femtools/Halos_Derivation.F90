@@ -1473,7 +1473,7 @@ contains
     type(csr_sparsity), pointer :: nelist
     type(halo_type), pointer :: old_halo, ele_halo
     type(halo_type) :: new_halo
-    type(integer_hash_table) :: ueid_to_gid, uid_to_gid
+    type(integer_hash_table) :: ueid_to_gid, uid_to_gid, ufid_to_gid
     type(integer_set) :: elements_to_send
     type(integer_vector), dimension(:), allocatable :: send_buffer, recv_buffer
     integer, dimension(:), allocatable :: send_request
@@ -1483,9 +1483,9 @@ contains
     integer, dimension(MPI_STATUS_SIZE) :: status
     integer :: comm, tag, ierr, nprocs
     integer :: new_node_count, new_element_count, new_surface_element_count
-    integer :: nhalos, nloc, snloc, nfaces, send_count, recv_size, ele_count, sele_count
+    integer :: nhalos, nloc, snloc, nfaces, send_count, recv_size
     integer :: no_boundary_id
-    integer :: proc, ele, i, j, ele_info_size
+    integer :: proc, ele, sele, ele_uid, ufid, i, j, ele_info_size, lface
     logical :: has_surface_mesh
 
     ewrite(1,*) "Inside expand_mesh_halo"
@@ -1515,16 +1515,39 @@ contains
 
     has_surface_mesh = .false.
     if (associated(mesh%faces)) then
-      snloc = mesh%faces%shape%loc
       if (associated(mesh%faces%boundary_ids)) then
         has_surface_mesh = .true.
-        ele_info_size = ele_info_size+nfaces
-        ! we have to agree on an id that means: this facet is not part of the surface mesh
-        no_boundary_id = minval(mesh%faces%boundary_ids)
-        call allmin(no_boundary_id)
-        no_boundary_id = no_boundary_id-1
-        new_surface_element_count = unique_surface_element_count(mesh) ! start with existing ones
       end if
+    end if
+
+    if (has_surface_mesh) then
+      snloc = mesh%faces%shape%loc
+      ele_info_size = ele_info_size+nfaces
+      ! we have to agree on an id that means: this facet is not part of the surface mesh
+      no_boundary_id = minval(mesh%faces%boundary_ids)
+      call allmin(no_boundary_id)
+      no_boundary_id = no_boundary_id-1
+      ! Coming out of the 3d adaptivity wrapper we don't trust all surface elements.
+      ! In order to lock the halo, the 3d wrapper has marked surface elements at the end of the halo
+      ! and when reconstructing the mesh object after the adapt these get added to the surface mesh.
+      ! Luckily, surface elements at the end of the halo can be identified as not having any owned nodes.
+      ! This is because of the logic in strip_l2_halo, where we keep any elements with owned nodes, so a halo
+      ! surface element must be adjacent to an element that doesn't have any owned nodes. Because we don't
+      ! trust the information about these, we simply drop them here and let adacent node owners send the 
+      ! information again (it could for instance be that one of the surface elements is actually really
+      ! on the true surface mesh).
+      call allocate(ufid_to_gid) ! a map from universal facet ids to facet ids for the new mesh
+      new_surface_element_count = 0
+      do i=1, unique_surface_element_count(mesh)
+        if (any(nodes_owned(old_halo, face_global_nodes(mesh, i)))) then
+          new_surface_element_count = new_surface_element_count+1
+          ele = face_ele(mesh, i)
+          lface = local_face_number(mesh, i)
+          ! compute a universal facets numbering based on the universal element number
+          ufid = halo_universal_number(ele_halo, ele)*nfaces + lface
+          call insert(ufid_to_gid, ufid, new_surface_element_count)
+        end if
+      end do
     end if
 
     ! send and recv buffers for each processor
@@ -1550,17 +1573,19 @@ contains
       send_count = 1
       do i=1, key_count(elements_to_send)
         ele = fetch(elements_to_send, i)
-        send_buffer(proc)%ptr(send_count) = halo_universal_number(ele_halo, ele)
+        ele_uid = halo_universal_number(ele_halo, ele)
+        send_buffer(proc)%ptr(send_count) = ele_uid
         nodes => ele_nodes(mesh, ele)
         send_buffer(proc)%ptr(send_count+1:send_count+size(nodes)) = halo_universal_number(new_halo, nodes)
         send_count = send_count+1+size(nodes)
         if (has_surface_mesh) then
           facets => ele_faces(mesh, ele)
           do j=1, size(facets)
-            if (facets(j)<=surface_element_count(mesh) .and. all(nodes_owned(old_halo, face_global_nodes(mesh, facets(j))))) then
+            ufid = ele_uid*nfaces+j
+            if (has_key(ufid_to_gid, ufid)) then
               send_buffer(proc)%ptr(send_count+j-1) = surface_element_id(mesh, facets(j))
             else
-              send_buffer(proc)%ptr(send_count:send_count+nfaces-1) = no_boundary_id
+              send_buffer(proc)%ptr(send_count+j-1) = no_boundary_id
             end if
           end do
           send_count = send_count+nfaces
@@ -1575,6 +1600,8 @@ contains
 
     end do
 
+    ! loop over the recv buffers to work out the numbering
+    ! for new elements and surface elements
     do proc=1, nprocs
       call mpi_probe(proc-1, tag, comm, status, ierr)
       assert(ierr == MPI_SUCCESS)
@@ -1587,19 +1614,27 @@ contains
       assert(ierr == MPI_SUCCESS)
 
       ele_loop: do i=1, recv_size/ele_info_size
-        ele = recv_buffer(proc)%ptr((i-1)*ele_info_size+1)
-        if (.not. has_key(ueid_to_gid, ele)) then
+        ele_uid = recv_buffer(proc)%ptr((i-1)*ele_info_size+1)
+        if (.not. has_key(ueid_to_gid, ele_uid)) then
           nodes => recv_buffer(proc)%ptr((i-1)*ele_info_size+2:(i-1)*ele_info_size+1+nloc)
           ! we're only interested in this element if we know all its nodes:
           do j=1, size(nodes)
             if (.not. has_key(uid_to_gid, nodes(j))) cycle ele_loop
           end do
           new_element_count = new_element_count+1
-          call insert(ueid_to_gid, ele, new_element_count)
-          if (has_surface_mesh) then
-            facets => recv_buffer(proc)%ptr((i-1)*ele_info_size+nloc+2:(i-1)*ele_info_size+1+nloc+nfaces)
-            new_surface_element_count = new_surface_element_count + count(facets>no_boundary_id)
-          end if
+          call insert(ueid_to_gid, ele_uid, new_element_count)
+        end if
+        if (has_surface_mesh) then
+          facets => recv_buffer(proc)%ptr((i-1)*ele_info_size+nloc+2:(i-1)*ele_info_size+1+nloc+nfaces)
+          do j=1, nfaces
+            if (facets(j)/=no_boundary_id) then
+              ufid = ele_uid*nfaces+j
+              if (.not. has_key(ufid_to_gid, ufid)) then
+                new_surface_element_count = new_surface_element_count+1
+                call insert(ufid_to_gid, ufid, new_surface_element_count)
+              end if
+            end if
+          end do
         end if
       end do ele_loop
     end do
@@ -1622,63 +1657,71 @@ contains
     new_mesh%option_path = mesh%option_path
 
     ! start by copying over existing elements
-    ele_count = element_count(mesh)
-    do ele=1, ele_count
+    do ele=1, element_count(mesh)
       call set_ele_nodes(new_mesh, ele, ele_nodes(mesh, ele))
     end do
 
     if (has_surface_mesh) then
-      allocate(sndgln(1:new_surface_element_count*snloc), boundary_ids(1:new_surface_element_count))
+      allocate(sndgln(1:key_count(ufid_to_gid)*snloc))
+      allocate(boundary_ids(1:key_count(ufid_to_gid)))
       if (has_discontinuous_internal_boundaries(mesh)) then
-        allocate(element_owners(1:new_surface_element_count))
+        allocate(element_owners(1:size(boundary_ids)))
       end if
-      ! again start with existing and copy their info
-      sele_count = unique_surface_element_count(mesh)
-      call getsndgln(mesh, sndgln(1:sele_count*snloc))
-      boundary_ids(1:sele_count) = mesh%faces%boundary_ids(1:sele_count)
-      if (has_discontinuous_internal_boundaries(mesh)) then
-        element_owners(1:sele_count) = mesh%faces%face_element_list(1:sele_count)
-      end if
+      ! first copy element from trusted (see above) existing surface facets
+      do i=1, unique_surface_element_count(mesh)
+        ele = face_ele(mesh, i)
+        lface = local_face_number(mesh, i)
+        ufid = halo_universal_number(ele_halo, ele)*nfaces + lface
+        if (has_key(ufid_to_gid, ufid)) then
+          ! this may include existing elements we don't trust (see above)
+          ! but in that case its info will be overwritten by sent info
+          sele = fetch(ufid_to_gid, ufid)
+          sndgln((sele-1)*snloc+1:sele*snloc) = face_global_nodes(mesh, i)
+          boundary_ids(sele) = surface_element_id(mesh, i)
+          if (has_discontinuous_internal_boundaries(mesh)) then
+            element_owners(sele) = ele
+          end if
+        end if
+      end do
+
     end if
 
     ! now peel out the new elements from the recv buffers
     do proc=1, nprocs
       recv_size = size(recv_buffer(proc)%ptr)
       do i=1, recv_size/ele_info_size
-        ele = recv_buffer(proc)%ptr((i-1)*ele_info_size+1)
-        if (has_key(ueid_to_gid, ele)) then
-          ele = fetch(ueid_to_gid, ele)
-          if (ele==ele_count+1) then
-            ! the next new element
-            ele_count = ele_count+1
-            nodes => recv_buffer(proc)%ptr((i-1)*ele_info_size+2:(i-1)*ele_info_size+1+nloc)
-            call set_ele_nodes(new_mesh, ele, fetch(uid_to_gid, nodes))
-            if (has_surface_mesh) then
-              facets => recv_buffer(proc)%ptr((i-1)*ele_info_size+nloc+2:(i-1)*ele_info_size+1+nloc+nfaces)
-              nodes => ele_nodes(new_mesh, ele) ! translated in gids just above
-              do j=1, size(facets)
-                if (facets(j)/=no_boundary_id) then
-                  sele_count = sele_count+1
-                  sndgln((sele_count-1)*snloc+1:sele_count*snloc) = nodes(boundary_numbering(mesh%shape, j))
-                  boundary_ids(sele_count) = facets(j)
-                  if (has_discontinuous_internal_boundaries(mesh)) then
-                    element_owners(sele_count) = ele
-                  end if
-                end if
-              end do
-            end if
+        ele_uid = recv_buffer(proc)%ptr((i-1)*ele_info_size+1)
+        if (has_key(ueid_to_gid, ele_uid)) then
+          ele = fetch(ueid_to_gid, ele_uid)
+          nodes => recv_buffer(proc)%ptr((i-1)*ele_info_size+2:(i-1)*ele_info_size+1+nloc)
+          call set_ele_nodes(new_mesh, ele, fetch(uid_to_gid, nodes))
 
+          if (has_surface_mesh) then
+            facets => recv_buffer(proc)%ptr((i-1)*ele_info_size+nloc+2:(i-1)*ele_info_size+1+nloc+nfaces)
+            nodes => ele_nodes(new_mesh, ele) ! nodes now in gids
+            do j=1, size(facets)
+              ufid = ele_uid*nfaces + j
+              if (facets(j)/=no_boundary_id .and. has_key(ufid_to_gid, ufid)) then
+                sele = fetch(ufid_to_gid, ufid)
+                sndgln((sele-1)*snloc+1:sele*snloc) = nodes(boundary_numbering(mesh%shape, j))
+                boundary_ids(sele) = facets(j)
+                if (has_discontinuous_internal_boundaries(mesh)) then
+                  element_owners(sele) = ele
+                end if
+              end if
+            end do
           end if
+
         end if
       end do
       deallocate(recv_buffer(proc)%ptr)
       deallocate(send_buffer(proc)%ptr)
     end do
 
-    assert(ele_count==new_element_count)
+    ewrite(2,*) "No. nodes before/after expanding halo:", node_count(mesh), node_count(new_mesh)
+    ewrite(2,*) "No. elements before/after expanding halo:", element_count(mesh), new_element_count
     if (has_surface_mesh) then
       ewrite(2,*) "No. surface elements before/after expanding halo:", surface_element_count(mesh), new_surface_element_count
-      assert(sele_count==new_surface_element_count)
       if (has_discontinuous_internal_boundaries(mesh)) then
         call add_faces(new_mesh, sndgln=sndgln, boundary_ids=boundary_ids, element_owner=element_owners)
       else
@@ -1689,6 +1732,7 @@ contains
 
     call deallocate(uid_to_gid)
     call deallocate(ueid_to_gid)
+    call deallocate(ufid_to_gid)
 
     allocate(new_mesh%element_halos(nhalos+1))
     call derive_element_halo_from_node_halo(new_mesh, &
