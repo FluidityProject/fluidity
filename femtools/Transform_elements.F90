@@ -65,7 +65,7 @@ module transform_elements
             compute_jacobian, compute_inverse_jacobian, &
             compute_facet_full_inverse_jacobian, element_volume,&
             cache_transform_elements, deallocate_transform_cache, &
-            prepopulate_transform_cache
+            prepopulate_transform_cache, set_analytical_spherical_mapping
   
   integer, parameter :: cyc3(1:5)=(/ 1, 2, 3, 1, 2 /)  
 
@@ -90,7 +90,34 @@ module transform_elements
   integer, save :: full_face_position_id=-1
   integer, save :: full_face_last_mesh_movement=-1
 
+  integer, save :: analytical_spherical_position_id=-1
+  logical, save :: analytical_spherical_mapping=.false.
+
 contains
+
+  subroutine set_analytical_spherical_mapping()
+    !!< Set the global analytical spherical mapping flag
+    analytical_spherical_mapping = .true.
+  end subroutine
+
+  function use_analytical_spherical_mapping(X)
+    !!< Determine whether we are using analytical spherical mapping for this positions field
+    type(vector_field), intent(in) :: X
+    logical use_analytical_spherical_mapping
+
+    use_analytical_spherical_mapping=.false.
+    if (analytical_spherical_mapping) then
+      if (X%refcount%id==analytical_spherical_position_id) then
+        use_analytical_spherical_mapping = .true.
+      else
+        if (X%name=="Coordinate") then
+          analytical_spherical_position_id = X%refcount%id
+          use_analytical_spherical_mapping = .true.
+        end if
+      end if
+    end if
+
+  end function
 
   function retrieve_cached_transform_full(X, ele, J_local_T, invJ_local,&
        & detJ_local) result (cache_valid)
@@ -124,7 +151,7 @@ contains
 
     end if
        
-    x_spherical = X%field_type==FIELD_TYPE_SPHERICAL_COORDINATES
+    x_spherical = use_analytical_spherical_mapping(X)
 
     x_nonlinear = x_spherical .or. .not.(X%mesh%shape%degree==1 .and. X%mesh%shape%numbering%family==FAMILY_SIMPLEX)
     if (x_nonlinear) then
@@ -173,7 +200,7 @@ contains
 
     end if
        
-    x_spherical = X%field_type==FIELD_TYPE_SPHERICAL_COORDINATES
+    x_spherical = use_analytical_spherical_mapping(X)
 
     x_nonlinear = x_spherical .or. .not.(X%mesh%shape%degree==1 .and. X%mesh%shape%numbering%family==FAMILY_SIMPLEX)
     if (x_nonlinear) then
@@ -223,7 +250,7 @@ contains
        face_cache_valid = .false.
     end if
 
-    x_spherical = X%field_type==FIELD_TYPE_SPHERICAL_COORDINATES
+    x_spherical = use_analytical_spherical_mapping(X)
 
     x_nonlinear = x_spherical .or. .not.(X%mesh%shape%degree==1 .and. X%mesh%shape%numbering%family==FAMILY_SIMPLEX)
     xf_nonlinear = x_spherical .or. .not.(X%mesh%faces%shape%degree==1 .and. X%mesh%faces%shape%numbering%family==FAMILY_SIMPLEX)
@@ -359,7 +386,7 @@ contains
 
     end if
        
-    x_spherical = X%field_type==FIELD_TYPE_SPHERICAL_COORDINATES
+    x_spherical = use_analytical_spherical_mapping(X)
 
     xf_nonlinear = x_spherical .or. .not.(X%mesh%faces%shape%degree==1 .and. X%mesh%faces%shape%numbering%family==FAMILY_SIMPLEX)
     if (xf_nonlinear) then
@@ -430,7 +457,7 @@ contains
 
     end if
 
-    x_spherical = X%field_type==FIELD_TYPE_SPHERICAL_COORDINATES
+    x_spherical = use_analytical_spherical_mapping(X)
 
     x_nonlinear = x_spherical .or. .not.(X%mesh%shape%degree==1 .and. X%mesh%shape%numbering%family==FAMILY_SIMPLEX)
     xf_nonlinear = x_spherical .or. .not.(X%mesh%faces%shape%degree==1 .and. X%mesh%faces%shape%numbering%family==FAMILY_SIMPLEX)
@@ -798,7 +825,7 @@ contains
        lx_shape=>ele_shape(X,ele)
     end if
 
-    x_spherical = X%field_type==FIELD_TYPE_SPHERICAL_COORDINATES
+    x_spherical = use_analytical_spherical_mapping(X)
 
     ! Optimisation checks. Optimisations apply to linear elements.
     x_nonlinear= x_spherical .or. .not.(lx_shape%degree==1 .and. lx_shape%numbering%family==FAMILY_SIMPLEX)
@@ -966,7 +993,7 @@ contains
 
     x_shape=>ele_shape(X, ele)
 
-    x_spherical = X%field_type==FIELD_TYPE_SPHERICAL_COORDINATES
+    x_spherical = use_analytical_spherical_mapping(X)
 
     ! Optimisation checks. Optimisations apply to linear elements.
     x_nonlinear= x_spherical .or. .not.(x_shape%degree==1 .and. x_shape%numbering%family==FAMILY_SIMPLEX)
@@ -1126,7 +1153,7 @@ contains
       assert(size(detJ)==x_shape%ngi)
     end if
 
-    x_spherical = X%field_type==FIELD_TYPE_SPHERICAL_COORDINATES
+    x_spherical = use_analytical_spherical_mapping(X)
 
     if (x_spherical .or. .not.(x_shape%degree==1 .and. x_shape%numbering%family==FAMILY_SIMPLEX)) then
       ! for non-linear compute on all gauss points
@@ -1274,7 +1301,7 @@ contains
       assert(size(detJ)==x_shape%ngi)
     end if
 
-    x_spherical = X%field_type==FIELD_TYPE_SPHERICAL_COORDINATES
+    x_spherical = use_analytical_spherical_mapping(X)
 
     if (x_spherical .or. .not.(x_shape%degree==1 .and. x_shape%numbering%family==FAMILY_SIMPLEX)) then
       ! for non-linear compute on all gauss points
@@ -1445,7 +1472,7 @@ contains
     end if
 #endif
 
-    x_spherical = X%field_type==FIELD_TYPE_SPHERICAL_COORDINATES
+    x_spherical = use_analytical_spherical_mapping(X)
     
     if (x_spherical .or. .not.(x_shape_f%degree==1 .and. x_shape_f%numbering%family==FAMILY_SIMPLEX)) then
       ! for non-linear compute on all gauss points
@@ -1639,7 +1666,7 @@ contains
     end if
 #endif
     
-    x_spherical = X%field_type==FIELD_TYPE_SPHERICAL_COORDINATES
+    x_spherical = use_analytical_spherical_mapping(X)
 
     if (x_spherical .or. .not.(x_shape_f%degree==1 .and. x_shape_f%numbering%family==FAMILY_SIMPLEX)) then
       ! for non-linear compute on all gauss points
@@ -1839,7 +1866,7 @@ contains
     assert(size(dm_s,3) == size(shape%dn_s, 3))
 #endif
 
-    x_spherical = X%field_type==FIELD_TYPE_SPHERICAL_COORDINATES
+    x_spherical = use_analytical_spherical_mapping(X)
 
     dn_s = face_dn_s(x_shape, X%mesh, face)
     dm_s = face_dn_s(shape, X%mesh, face)  ! this should be safe to call even if X%mesh and shape aren't the same degree/continuity
@@ -2028,7 +2055,7 @@ contains
     n_s  = face_n_s(x_shape, X%mesh, face)
     dn_s = face_dn_s(x_shape, X%mesh, face)
 
-    x_spherical = X%field_type==FIELD_TYPE_SPHERICAL_COORDINATES
+    x_spherical = use_analytical_spherical_mapping(X)
 
     if (x_spherical .or. .not.(x_shape%degree==1 .and. x_shape%numbering%family==FAMILY_SIMPLEX)) then
       ! for non-linear compute on all gauss points
