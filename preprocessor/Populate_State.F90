@@ -386,9 +386,6 @@ contains
              position%name=trim(mesh%name)//"Coordinate"
           else 
              position%name="Coordinate"
-             if (have_option('/geometry/spherical_earth/analytical_mapping/')) then
-               position%field_type = FIELD_TYPE_SPHERICAL_COORDINATES
-             end if
           end if
 
           ! If running in parallel, additionally read in halo information and register the elements halo
@@ -514,6 +511,13 @@ contains
        end if
 
     end do outer_loop
+
+    ! not really a derived mesh but this is a relatively clean place to set the transform_to_physical
+    ! spherical flag so that the main Coordinate field is interpretted as being spherical at the gauss
+    ! points
+    if (have_option('/geometry/spherical_earth/analytical_mapping/')) then
+      call set_analytical_spherical_mapping()
+    end if
 
   end subroutine insert_derived_meshes
            
@@ -708,9 +712,6 @@ contains
          ! as it cannot be interpolated later.
          if (mesh_name=="CoordinateMesh") then
             extrudedposition%name = "Coordinate"
-            if (have_option('/geometry/spherical_earth/analytical_mapping/')) then
-              extrudedposition%field_type = FIELD_TYPE_SPHERICAL_COORDINATES
-            end if
          else
             extrudedposition%name = trim(mesh_name)//"Coordinate"
          end if
@@ -735,9 +736,6 @@ contains
            ! as it cannot be interpolated later.
            if (mesh_name=="CoordinateMesh") then
               nonperiodic_position%name = "Coordinate"
-              if (have_option('/geometry/spherical_earth/analytical_mapping/')) then
-                nonperiodic_position%field_type = FIELD_TYPE_SPHERICAL_COORDINATES
-              end if
            else
               nonperiodic_position%name = trim(mesh_name)//"Coordinate"
            end if
@@ -806,10 +804,6 @@ contains
               call higher_order_sphere_projection(modelposition, coordinateposition)
             end if
 
-            if (have_option('/geometry/spherical_earth/analytical_mapping/')) then
-              coordinateposition%field_type = FIELD_TYPE_SPHERICAL_COORDINATES
-            end if
-                   
           endif
 
           ! insert into states(1) and alias to all others

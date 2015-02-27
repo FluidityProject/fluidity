@@ -639,7 +639,7 @@ contains
 
     if (.not.field%wrapped) then
       select case(field%field_type)
-      case(FIELD_TYPE_NORMAL,FIELD_TYPE_CONSTANT,FIELD_TYPE_SPHERICAL_COORDINATES)
+      case(FIELD_TYPE_NORMAL,FIELD_TYPE_CONSTANT)
 #ifdef DDEBUG
         field%val = ieee_value(0.0, ieee_quiet_nan)
 #endif          
