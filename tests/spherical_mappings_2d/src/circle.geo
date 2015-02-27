@@ -2,8 +2,8 @@ lr=1; // number of cells in the radial direction
 lti=lr; // number of cells in a pi/4 segment in the tangential direction of the inner radius
 lto=lti; // has to be for a transfinite surface
 p=1;
-Point(1) = {1, 0, 0, 1.0};
-Extrude {1, 0, 0} {
+Point(1) = {1.2, 0, 0, 1.0};
+Extrude {1.5, 0, 0} {
   Point{1};
 }
 Extrude {{0, 0, 1}, {0, 0, 0}, Pi/4} {
