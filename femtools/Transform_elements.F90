@@ -1801,7 +1801,7 @@ contains
     !! Local versions of the Jacobian matrix and its inverse. (dim x dim)
     real, dimension(X%dim, X%dim) :: J_local_T, invJ_local
     !! Local version of the determinant of J
-    real :: detJ_local
+    real :: detJ_local, detJ_local_full
     !! reorientated shape functions
     real, dimension(size(X_val,2),size(dshape,2)) :: n_s
     real, dimension(size(X_val,2),size(dshape,2),X%dim) :: dn_s
@@ -1940,11 +1940,29 @@ contains
           end select
 
           ! Form determinant by expanding minors.
-          detJ_local=dot_product(J_local_T(:,1),invJ_local(:,1))
+          detJ_local_full=dot_product(J_local_T(:,1),invJ_local(:,1))
           
           ! Scale inverse by determinant.
-          invJ_local=invJ_local/detJ_local
+          invJ_local=invJ_local/detJ_local_full
  
+          detJ_local=0.0
+          ! Calculate facet determinant.
+          select case (dim)
+          case(1)
+             detJ_local=1.0
+          case(2)
+             detJ_local = sqrt(J_local_T(1,2)**2 + J_local_T(2,2)**2)
+          case(3)
+             do i=1,3
+                detJ_local=detJ_local+ &
+                     (J_local_T(cyc3(i+2),2)*J_local_T(cyc3(i+1),3)&
+                     -J_local_T(cyc3(i+2),3)*J_local_T(cyc3(i+1),2))**2
+             end do
+             detJ_local=sqrt(detJ_local)
+          case default
+             FLAbort("Unsupported dimension specified.  Universe is 3 dimensional (sorry Albert).")   
+          end select
+
        end if
 
        ! Evaluate derivatives in physical space.
@@ -1990,7 +2008,11 @@ contains
   end subroutine transform_full_facet_to_physical_full
   
   subroutine compute_facet_full_inverse_jacobian(X, face, invJ, detwei, detJ)
-    !!< Fast version of transform_to_physical that only calculates detwei and full invJ on a facet
+    !!< Fast version of transform_to_physical that only calculates detwei and full invJ on a facet.
+    !!< NOTE: the detJ and detwei that this (optionally) returns is based on 
+    !!< the determinant of the full facet Jacobian.  This is different to the 
+    !!< detJ and detwei returned by transform_facet_to_physical, which is lower
+    !!< dimensional and only based on the facet.
       
     !! positions field and element to compute inv. jacobian for
     type(vector_field), intent(in):: X
