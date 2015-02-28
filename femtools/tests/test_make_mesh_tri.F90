@@ -31,7 +31,7 @@ subroutine test_make_mesh_tri
 
   use fields
   use fldebug
-  use read_triangle
+  use mesh_files
   use unittest_tools
 
   implicit none
@@ -47,7 +47,7 @@ subroutine test_make_mesh_tri
   type(vector_field) :: positions_remap
   type(vector_field), target :: positions
   
-  positions = read_triangle_files("data/laplacian_grid.2", quad_degree = 1)
+  positions = read_mesh_files("data/laplacian_grid.2", quad_degree = 1, format="gmsh")
   base_mesh => positions%mesh
   base_shape => ele_shape(base_mesh, 1)
   call report_test("[Linear triangle input mesh]", &
