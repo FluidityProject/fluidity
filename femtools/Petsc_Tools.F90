@@ -681,9 +681,12 @@ contains
     do b=1, nfields
       
       call profiler_tic(fields(b), "petsc2field")
-      call VecGetValues(vec, nnodp, &
-        petsc_numbering%gnn2unn( 1:nnodp, b ), &
-        fields(b)%val( 1:nnodp ), ierr)
+      ! this check should be unnecessary but is a work around for a bug in petsc, fixed in 18ae1927 (pops up with intel 15)
+      if (nnodp>0) then
+        call VecGetValues(vec, nnodp, &
+          petsc_numbering%gnn2unn( 1:nnodp, b ), &
+          fields(b)%val( 1:nnodp ), ierr)
+      end if
       call profiler_toc(fields(b), "petsc2field")
         
     end do
@@ -692,9 +695,11 @@ contains
     do b=1, nfields
       
       call profiler_tic(fields(b), "petsc2field")
-      call VecGetValues(vec, nnodp, &
-        petsc_numbering%gnn2unn( 1:nnodp, b ), &
-        vals, ierr)
+      if (nnodp>0) then
+        call VecGetValues(vec, nnodp, &
+          petsc_numbering%gnn2unn( 1:nnodp, b ), &
+          vals, ierr)
+      end if
       fields(b)%val( 1:nnodp ) = vals
       call profiler_toc(fields(b), "petsc2field")
         
@@ -779,9 +784,12 @@ contains
       
       call profiler_tic(fields(i), "petsc2field")
       do j=1, fields(i)%dim
-         call VecGetValues(vec, nnodp, &
-           petsc_numbering%gnn2unn( 1:nnodp, b ), &
-           fields(i)%val(j, 1:nnodp ), ierr)
+         ! this check should be unnecessary but is a work around for a bug in petsc, fixed in 18ae1927 (pops up with intel 15)
+         if (nnodp>0) then
+           call VecGetValues(vec, nnodp, &
+             petsc_numbering%gnn2unn( 1:nnodp, b ), &
+             fields(i)%val(j, 1:nnodp ), ierr)
+         end if
          b=b+1
       end do
       call profiler_toc(fields(i), "petsc2field")
@@ -794,9 +802,11 @@ contains
       
       call profiler_tic(fields(i), "petsc2field")
       do j=1, fields(i)%dim
-         call VecGetValues(vec, nnodp, &
-           petsc_numbering%gnn2unn( 1:nnodp, b ), &
-           vals, ierr)
+         if (nnodp>0) then
+           call VecGetValues(vec, nnodp, &
+             petsc_numbering%gnn2unn( 1:nnodp, b ), &
+             vals, ierr)
+         end if
          fields(i)%val(j, 1:nnodp ) = vals
          b=b+1
       end do
