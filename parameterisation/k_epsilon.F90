@@ -47,7 +47,6 @@ module k_epsilon
   use FLDebug
   use vtk_interfaces
   use solvers
-  use node_boundary
 
 implicit none
 
@@ -336,7 +335,7 @@ type(integer), dimension(3) :: nn, n_ele
 !       print*, "yoyo", nn
 !       call set(temp_scalar, nn, nn*0.0+100.0)
 !     endif
-        call assemble_rhs_ele(src_abs_terms, fields(i), fields(3-i), scalar_eddy_visc, velocity_coordinate_mesh, &
+        call assemble_rhs_ele(src_abs_terms, fields(i), fields(3-i), scalar_eddy_visc, u, &
              density, buoyancy_density, have_buoyancy_turbulence, g, g_magnitude, multiphase, &
              vfrac, x, c_eps_1, c_eps_2, sigma_p, f_1, f_2, ele, i)
      end do

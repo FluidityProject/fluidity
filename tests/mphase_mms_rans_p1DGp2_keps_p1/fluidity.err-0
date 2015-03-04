@@ -1,0 +1,20 @@
+ Remapping from field Temperature to field RemapT.
+*** FLUIDITY ERROR ***
+Source location: (Fields_Manipulation.F90, 1807)
+Error message: Trying to remap from discontinuous to continuous field.
+Backtrace will follow if it is available:
+../../bin/fluidity(fprint_backtrace_+0x1f) [0x50dcc4]
+../../bin/fluidity(__fldebug_MOD_flabort_pinpoint+0x210) [0x506da0]
+../../bin/fluidity(__fields_manipulation_MOD_test_remap_validity_generic+0x8cf) [0x5fb65f]
+../../bin/fluidity(__fields_manipulation_MOD_test_remap_validity_scalar+0x135) [0x5fde15]
+../../bin/fluidity(__fields_manipulation_MOD_remap_scalar_field+0xe1) [0x607a21]
+../../bin/fluidity(__equation_of_state_MOD_calculate_perturbation_density+0x2544) [0xc5c034]
+../../bin/fluidity(__momentum_diagnostic_fields_MOD_calculate_densities_multiple_states+0xc97) [0xa8ead7]
+../../bin/fluidity(__diagnostic_fields_wrapper_MOD_calculate_diagnostic_variables+0x4248) [0x957018]
+../../bin/fluidity(__fluids_module_MOD_fluids+0xdd9) [0x509cd9]
+../../bin/fluidity(mainfl+0xd3) [0x504e13]
+../../bin/fluidity(main+0x177) [0x4fb7bb]
+/lib/x86_64-linux-gnu/libc.so.6(__libc_start_main+0xed) [0x7fe72722576d]
+../../bin/fluidity() [0x4fb591]
+Use addr2line -e <binary> <address> to decipher.
+Error is terminal.
