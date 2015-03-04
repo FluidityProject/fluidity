@@ -329,7 +329,7 @@ contains
     type(vector_field), pointer :: X
     type(scalar_field) :: dummy_scalar
     real :: theta, cond, growth_r, internal_dispersion_coeff, aggregation_freq_const, breakage_freq_const, breakage_freq_degree, perturb_val
-    integer :: i_pop, N, i, j, stat
+    integer :: i_pop, N, i, j, stat, i_node
     character(len=OPTION_PATH_LEN) :: option_path 
     character(len=FIELD_NAME_LEN) :: type, field_name, growth_type, aggregation_freq_type, breakage_freq_type, breakage_dist_type, singular_option
     logical :: have_D = .false.
@@ -337,6 +337,10 @@ contains
     logical :: have_internal_dispersion = .FALSE.
     logical :: have_aggregation = .FALSE.
     logical :: have_breakage = .FALSE.
+!type(scalar_field), pointer :: cont_field, disc_field
+!type(element_type), pointer :: shape_cont, shape_disc
+!real, dimension(:,:,:), allocatable :: dshape_cont, dshape_disc
+!real, dimension(:), allocatable :: detwei_cont, detwei_disc
 
     call get_pop_option_path(state, i_pop, option_path)
     N = option_count(trim(option_path)//'/abscissa/scalar_field')
@@ -496,6 +500,23 @@ contains
 !    print*, "test values min max"
 !    ewrite_minmax(s_weighted_abscissa(1)%ptr) 
 
+!cont_field => extract_scalar_field(state, "Cont_Field", stat=stat)
+!disc_field => extract_scalar_field(state, "Disc_Field", stat=stat)
+!allocate(dshape_cont(ele_loc(cont_field,2), ele_ngi(cont_field, 2), X%dim))
+!allocate(dshape_disc(ele_loc(disc_field,2), ele_ngi(disc_field, 2), X%dim))
+!allocate(detwei_cont(ele_ngi(cont_field, 2)))
+!allocate(detwei_disc(ele_ngi(disc_field, 2)))
+!shape_cont=>ele_shape(cont_field,2)
+!shape_disc=>ele_shape(disc_field,2)
+!call transform_to_physical( X, 20, shape_cont, dshape=dshape_cont, detwei=detwei_cont )
+!call transform_to_physical( X, 20, shape_disc, dshape=dshape_disc, detwei=detwei_disc )
+!print*, "contcont", dshape_cont
+!print*, "discdisc", dshape_disc
+!deallocate(dshape_cont)
+!deallocate(dshape_disc)
+!deallocate(detwei_cont)
+!deallocate(detwei_disc)
+
     ! Checking if the source terms need to be implemented as absorption
     if(have_option(trim(option_path)//'/apply_source_as_absorption')) then
        do i =1, N
@@ -551,6 +572,71 @@ contains
        end if
 
     end if
+
+    ! S = S_c + S_p phi_p. If S is positive, S=S_c otherwise S=S_p phi_p. This makes sure that the scalar remains non-negative.
+    if(have_option(trim(option_path)//'/apply_source_as_absorption_for_negative_source_only')) then
+       do i =1, N
+          a_weight(i)%ptr => extract_scalar_field(state, trim(weight(i)%ptr%name)//'Absorption', stat)
+          if (stat/=0) then
+             FLAbort("Absorption scalar field could not be extracted for population balance weights. How can I apply the source as absorption now!")
+          end if
+          call zero(a_weight(i)%ptr)
+          do i_node=1, node_count(weight(i)%ptr)
+             if (node_val(s_weight(i)%ptr, i_node)<0.0) then
+                if (node_val(weight(i)%ptr, i_node)>fields_min) then
+                   call set(a_weight(i)%ptr, i_node, -1.0*node_val(s_weight(i)%ptr, i_node)*(1./node_val(weight(i)%ptr, i_node)))
+                else
+                   call set(a_weight(i)%ptr, i_node, -1.0*node_val(s_weight(i)%ptr, i_node)*(1./fields_min))
+                end if
+                call set(s_weight(i)%ptr, i_node, 0.0)
+             end if
+          end do
+
+          call get_option(trim(option_path)//'/weighted_abscissa/scalar_field['// &
+            int2str(i - 1)//']/name', field_name)
+          a_weighted_abscissa(i)%ptr => extract_scalar_field(state, trim(field_name)//'Absorption', stat)
+          if (stat/=0) then
+             FLAbort("Absorption scalar field could not be extracted for population balance weighted_abscissa. How can I apply the source as absorption now!")
+          end if
+          call zero(a_weighted_abscissa(i)%ptr)
+          ! set dummy_scalar = weight * abscissa
+          call set(dummy_scalar, abscissa(i)%ptr)
+          call scale(dummy_scalar, weight(i)%ptr)
+          do i_node=1, node_count(weight(i)%ptr)
+             if (node_val(s_weighted_abscissa(i)%ptr, i_node)<0.0) then
+                if (node_val(dummy_scalar, i_node)>fields_min) then
+                   call set(a_weighted_abscissa(i)%ptr, i_node, -1.0*node_val(s_weighted_abscissa(i)%ptr, i_node)*(1./node_val(dummy_scalar, i_node)))
+                else
+                   call set(a_weighted_abscissa(i)%ptr, i_node, -1.0*node_val(s_weighted_abscissa(i)%ptr, i_node)*(1./fields_min))
+                end if 
+                call set(s_weighted_abscissa(i)%ptr, i_node, 0.0)
+             end if
+          end do
+       end do
+
+       if(have_option(trim(option_path)//'/apply_source_as_absorption_for_negative_source_only/include_sponge_region')) then
+          ! extract name of the sponge field
+          call get_option(trim(option_path)//'/apply_source_as_absorption_for_negative_source_only/include_sponge_region/sponge_scalar_field_name', field_name)
+          sponge_field => extract_scalar_field(state, field_name, stat)
+          if (stat/=0) then
+             FLAbort("Scalar sponge field could not be located in the state.")
+          end if
+          ! define temp_field - use dummy_scalar
+          call zero(dummy_scalar)
+          where (sponge_field%val<0.001)
+              dummy_scalar%val = 1.0
+          end where
+          ! abs_new = abs_old*temp_field + sponge_field... make sure the sponge field stays the same
+          do i=1, N
+             call scale(a_weight(i)%ptr, dummy_scalar)
+             call addto(a_weight(i)%ptr, sponge_field)
+             call scale(a_weighted_abscissa(i)%ptr, dummy_scalar)
+             call addto(a_weighted_abscissa(i)%ptr, sponge_field)
+          end do
+       end if
+
+    end if
+
 
     call deallocate(dummy_scalar)
     do i = 1, N
