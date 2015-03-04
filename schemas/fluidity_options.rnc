@@ -1879,7 +1879,7 @@ population_balance =
                ## Field type
                element prognostic {
                   velocity_mesh_choice,
-                  prognostic_scalar_field
+                  prognostic_scalar_field_source_adapt
                }
             },
             element scalar_field {
@@ -1888,7 +1888,7 @@ population_balance =
                ## Field type
                element prognostic {
                   velocity_mesh_choice,
-                  prognostic_scalar_field
+                  prognostic_scalar_field_source_adapt
                }
             },
             element scalar_field {
@@ -1897,7 +1897,7 @@ population_balance =
                ## Field type
                element prognostic {
                   velocity_mesh_choice,
-                  prognostic_scalar_field
+                  prognostic_scalar_field_source_adapt
                }
             }*
          },
@@ -1908,7 +1908,7 @@ population_balance =
                ## Field type
                element prognostic {
                   velocity_mesh_choice,
-                  prognostic_scalar_field
+                  prognostic_scalar_field_source_adapt
                }
             },
             element scalar_field {
@@ -1917,7 +1917,7 @@ population_balance =
                ## Field type
                element prognostic {
                   velocity_mesh_choice,
-                  prognostic_scalar_field
+                  prognostic_scalar_field_source_adapt
                }
             },
             element scalar_field {
@@ -1926,7 +1926,7 @@ population_balance =
                ## Field type
                element prognostic {
                   velocity_mesh_choice,
-                  prognostic_scalar_field
+                  prognostic_scalar_field_source_adapt
                }
             }*
          },
@@ -2274,6 +2274,19 @@ population_balance =
                ## be defined the the same material phase.
                element sponge_scalar_field_name{ string }
             }?         
+         }?,
+         ## This will apply selected source terms for the weights and weighted_abscissa scalar 
+         ## fields as absorption terms wherever the source is negative.
+         element apply_source_as_absorption_for_negative_source_only{
+            ## For including a sponge region for weights and weighted_abscissas (which are 
+            ## applied as absorption terms) a sponge field is defined which will be analogous to 
+            ## an absorption term. This field is zero everywhere except where a large absorption
+            ## is present. 
+            element include_sponge_region{
+               ## Name of the scalar field which is the sponge scalar field. Note: This sponge field must
+               ## be defined the the same material phase.
+               element sponge_scalar_field_name{ string }
+            }?
          }?
       }
    )

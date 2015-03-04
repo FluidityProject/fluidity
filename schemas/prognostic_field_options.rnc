@@ -338,6 +338,229 @@ prognostic_scalar_field =
       }?
    )
 
+prognostic_scalar_field_source_adapt =
+   (
+      scalar_equation_choice,
+      spatial_discretisation_options,
+      temporal_discretisation_options,
+      (
+         ## Solver
+         element solver {
+            linear_solver_options_asym_scalar
+         }|
+         ## Assume this field is being solved explicitly and skip the solver.
+         ##
+         ## ONLY AVAILABLE FOR PURE CONTROL VOLUME SPATIAL DISCRETISATIONS.
+         ##
+         ## Assumes lhs matrix only has diagonal lumped mass (times
+         ## density if appropriate for equation)
+         ## and divides the rhs by this.
+         element explicit {
+            empty
+         }
+      ),
+      (
+         ## Initial condition for WholeMesh
+         ##
+         ## Only specify one condition if not using mesh regions.
+         ## Otherwise select other initial_condition option, specify region_ids
+         ## and distinct names.  Then add extra intial conditions for other regions.
+         element initial_condition {
+            attribute name { "WholeMesh" },
+            input_choice_initial_condition_real
+         }|
+         ## Multiple initial_conditions are allowed if specifying
+         ## different values in different
+         ## regions of the mesh (defined by region_ids).  In this case
+         ## each initial_condition
+         ## requires a distinct name for the options dictionary.
+         element initial_condition {
+            attribute name { string },
+            region_ids?,
+            input_choice_initial_condition_real
+         }
+      )+,
+      scalar_boundary_conditions*,
+      ## Choice of subgridscale model to apply to this field. 
+      ## Note that the selected parameterisation must be switched 
+      ## on for this material phase.
+      ##
+      ## At this time, do not switch on this option if you are using Mellor-Yamada.
+      (
+         element subgridscale_parameterisation {
+            attribute name { "Gent_McWilliams"}
+         }|
+         element subgridscale_parameterisation {
+            attribute name { "GLS"}
+         }|
+         ## Turning this option on enables calculation of turbulent diffusivity for this field, and calculation of buoyancy 
+         ## source terms for this field in the k_eps code.
+         ##
+         ## TURBULENT DIFFUSIVITY
+         ##
+         ## To enable, set the diffusivity field to diagnostic/algorithm(k_epsilon). 
+         ##
+         ## The diffusivity, D, is set to the sum of the background diffusivity, D_bg, and the eddy diffusivity calculated 
+         ## by the k-epsilon turbulence model.
+         ##
+         ## D = D_bg  nu_t / Pr
+         ##
+         ## where: nu_t = turbulent viscosity ; Pr = Prandtl or Schmidt number
+         ##
+         ## A background diffusivity can either be set globally
+         ## under material_phase[]/subgridscale_parameterisations/k-epsilon, or individually for each field this is 
+         ## applied upon. If it is set globally and locally, the local background diffusivity is used.
+         ##
+         ## BUOYANCY EFFECTS
+         ##
+         ## Enable this by selecting the buoyancy_effects node. A buoyancy source term is added to the right hand side of the k
+         ## and epsilon equations. See the manual for more information.
+         ##
+         element subgridscale_parameterisation {
+            attribute name { "k-epsilon"},
+            ## Option to set a unique isotropic background diffusivity for this field.
+            element background_diffusivity { real }?
+         }|
+         element subgridscale_parameterisation {
+            attribute name { "prescribed_diffusivity"}
+         }         
+      )?,
+      ## Buoyancy adjustment (vertical stabilization) schemes.
+      element buoyancy_adjustment {
+         ## Vertical mixing by diffusion.
+         ## Stabilises unstable stratifications through mixing by diffusion.
+         ##
+         ## Note this scheme currently only applies to tracer fields represented in discontinuous spaces.
+         element by_vertical_diffusion{
+            ## Scaling amplitude of the applied diffusion. 
+            ## If left unspecified, the default value of 1.0 is applied.
+            element amplitude  {
+                real
+            }?,
+            ## Calculates the rate of change of buoyancy in the direction of gravity
+            ## on the field projected to continuous space - i.e. the buoyancy field is first projected to continous space.
+            ## Without this option, this calculation is performed directly on the discontinuous field.
+            ##
+            ## Note this only make a difference when the buoyancy field is represented in a discontinuous space, and in fact,
+            ## makes no difference to the routines called when this field is represented in a continuous space.
+            ##
+            ## This is one approach to allow the scheme to account for differences with respect to neighbouring
+            ## elements when buoyancy is a discontinuous field.
+            element project_buoyancy_to_continuous_space {
+                empty
+            }?
+         }?
+      }?,
+      ## Diffusivity for field
+      element tensor_field {
+         attribute name { "Diffusivity" },
+         attribute rank { "2" },
+         (
+            element prescribed {
+                mesh_choice?,
+                prescribed_tensor_field_no_adapt
+            }|
+            element diagnostic {
+               mesh_choice?,
+               (
+                  tensor_python_diagnostic_algorithm |
+                  internal_algorithm 
+               ),
+               diagnostic_tensor_field
+            }
+         )
+      }?,
+      ## Source term. If the scalar field to be 
+      ## solved for is subcycled then variations 
+      ## in this source field across the subcycled 
+      ## time steps are not considered.
+      element scalar_field {
+         attribute name { "Source" },
+         attribute rank { "0" },
+         (
+            element prescribed {
+               prescribed_scalar_field_no_adapt
+            }|
+            element diagnostic {
+               (
+                  scalar_python_diagnostic_algorithm |
+                  internal_algorithm
+               ),
+               ## Add the source field directly to the 
+               ## matrix system right hand side. To be 
+               ## consistent this term should be tested 
+               ## using the function space that 
+               ## is used for the spatial discretisation.
+               element add_directly_to_rhs {
+                  comment
+               }?,
+               diagnostic_scalar_field
+            } 
+         )
+      }?,
+      ## Absorption term
+      element scalar_field {
+         attribute name { "Absorption" },
+         attribute rank { "0" },
+         (
+            element prescribed {
+               prescribed_scalar_field_no_adapt
+            }|
+            element diagnostic {
+               (
+                  scalar_python_diagnostic_algorithm |
+                  internal_algorithm
+               ),
+               diagnostic_scalar_field_no_adapt
+            }
+         )
+      }?,
+      ## Velocity at which this substance sinks through the water column.
+      ## 
+      ## This velocity is in the direction of gravity so if the substance
+      ## floats or swims upwards, this field should be negative.
+      ##
+      ## This should be on the same mesh as the velocity field unless you are 
+      ## using a DG discretisation and projecting the velocity to contiuous, in 
+      ## which case it should be on a continuous mesh.
+      element scalar_field {
+         attribute name { "SinkingVelocity" },
+         attribute rank { "0" },
+         (
+            element prescribed {
+               velocity_mesh_choice,
+               prescribed_scalar_field_no_adapt
+            }|
+            element diagnostic {
+               velocity_mesh_choice,
+               (
+                  scalar_python_diagnostic_algorithm |
+                  internal_algorithm
+               ),
+               diagnostic_scalar_field_no_adapt
+            }
+         )
+      }?,
+      porosity_include?,
+      prognostic_scalar_output_options,
+      prognostic_scalar_stat_options,
+      scalar_convergence_options,
+      prognostic_detector_options,
+      scalar_steady_state_options,
+      adaptivity_options_prognostic_scalar_field,
+      interpolation_algorithm_scalar,
+      discrete_properties_algorithm_scalar?,
+      ## Set the priority of this field
+      ## This determines the order in which scalar_fields are solved for:
+      ##  - higher numbers have the highest priority
+      ##  - lower numbers (including negative) have the lowest priority
+      ##  - default if not set is 0
+      element priority {
+         integer
+      }?
+   )
+
+
 prognostic_velocity_field =
    (
       velocity_equation_choice,
