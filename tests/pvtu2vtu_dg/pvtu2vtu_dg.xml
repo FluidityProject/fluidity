@@ -1,0 +1,73 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>pvtu2vtu_dg</name>
+  <owner userid="skramer"/>
+  <tags>flml parallel</tags>
+  <problem_definition length="short" nprocs="3">
+    <command_line>mpiexec ../../bin/flredecomp -i 1 -o 3 -v -l pvtu2vtu pvtu2vtu_flredecomp &amp;&amp;
+mpiexec ../../bin/fluidity -v2 -l pvtu2vtu_flredecomp.flml &amp;&amp;
+../../bin/pvtu2vtu output 0 0</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="SameNodes" language="python">import vtktools
+import numpy
+
+pvtu = vtktools.vtu('output_0.pvtu')
+vtu = vtktools.vtu('output_0.vtu')
+pfield = pvtu.GetField('Field')
+pxyz = pvtu.GetLocations()
+xyz = vtu.GetLocations()
+field = vtu.GetField('Field')
+
+# build map from uid -&gt; xy locations
+uid2xy = numpy.zeros((int(pfield.max()), 2))
+for uid, loc in zip(pfield, pxyz):
+  uid2xy[uid[0]-1] = loc[0:2]
+
+# check that each node in vtu is still present and at the same location
+same = True
+for uid, loc in zip(field, xyz):
+  same = same and abs(uid2xy[uid[0]-1]-loc[0:2]).max()&lt;1e-7
+
+# also check that there are no duplicate nodes left:
+same = same and len(field)==len(uid2xy)
+
+SameNodes = same</variable>
+    <variable name="SameElements" language="python">import vtktools
+import numpy
+
+pvtu = vtktools.vtu('output_0.pvtu')
+vtu = vtktools.vtu('output_0.vtu')
+pfield = pvtu.GetField('Field')
+pxyz = pvtu.GetLocations()
+xyz = vtu.GetLocations()
+field = pvtu.GetField('Field')
+
+# first build parallel cells
+pcells = set()
+for i in range(pvtu.ugrid.GetNumberOfCells()):
+  cell = pfield[pvtu.GetCellPoints(i),0]
+  # fix orientation by starting at lowest uid
+  j = cell.argmin()
+  cell = numpy.hstack((cell[j:],cell[:j]))
+  pcells.add(tuple(cell))
+
+# check that each cell in vtu exists in the pvtu
+same = True
+for i in range(vtu.ugrid.GetNumberOfCells()):
+  cell = field[vtu.GetCellPoints(i), 0]
+  # fix orientation by starting at lowest uid
+  j = cell.argmin()
+  cell = numpy.hstack((cell[j:],cell[:j]))
+  same = same and tuple(cell) in pcells
+
+# check that we haven't left any cells out:
+same = same and len(pcells)==vtu.ugrid.GetNumberOfCells()
+
+SameElements = same</variable>
+  </variables>
+  <pass_tests>
+    <test name="NodesAreTheSame" language="python">assert SameNodes</test>
+    <test name="ElementsAreTheSame" language="python">assert SameElements</test>
+  </pass_tests>
+</testproblem>

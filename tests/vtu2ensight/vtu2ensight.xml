@@ -1,0 +1,133 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>vtu2ensight conversion test</name>
+  <owner userid="ffm10"/>
+  <tags>tool</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>../../bin/vtu2ensight -i 0 16ele</command_line>
+  </problem_definition>
+  <variables>
+    <variable name = "ensight_written" language = "python">
+import glob
+files=glob.glob("./16ele.0.*")
+ensight_written=len(files) == 6
+    </variable>
+    <variable name = "ensight_readable" language = "python">
+import vtk
+casefile="./16ele.0.case"
+en=vtk.vtkEnSightGoldBinaryReader()
+en.SetCaseFileName(casefile)
+en.Update()
+stat=en.CanReadFile(casefile)
+ensight_readable=stat==1
+    </variable>
+    <variable name = "vtu_ensight_nele_npoints_narrays" language = "python">
+import vtk
+vtufile="./16ele_0.vtu"
+casefile="./16ele.0.case"
+# read vtu:
+vr=vtk.vtkXMLUnstructuredGridReader()
+vr.SetFileName(vtufile)
+vr.Update()
+# read ensight gold:
+en = vtk.vtkEnSightGoldBinaryReader()
+en.SetCaseFileName(casefile)
+en.Update()
+# get objects number of elements, points, cell arrays, point arrays:
+vnele=int(vr.GetOutput().GetNumberOfCells())
+enele=int(en.GetOutput().GetBlock(0).GetNumberOfCells())
+vnpoints=int(vr.GetOutput().GetNumberOfPoints())
+enpoints=int(en.GetOutput().GetBlock(0).GetNumberOfPoints())
+vncarrays=int(vr.GetNumberOfCellArrays())
+encarrays=int(en.GetNumberOfCellArrays())
+vnparrays=int(vr.GetNumberOfPointArrays())
+enparrays=int(en.GetNumberOfPointArrays())
+vtu_ensight_nele_npoints_narrays=vnele==enele and vnpoints==enpoints and vncarrays==encarrays and vnparrays==enparrays
+    </variable>
+    <variable name = "vtu_ensight_coords" language = "python">
+import vtk
+from vtk.util.numpy_support import vtk_to_numpy
+from numpy import *
+vtufile="./16ele_0.vtu"
+casefile="./16ele.0.case"
+# read vtu:
+vr=vtk.vtkXMLUnstructuredGridReader()
+vr.SetFileName(vtufile)
+vr.Update()
+# read ensight gold:
+en = vtk.vtkEnSightGoldBinaryReader()
+en.SetCaseFileName(casefile)
+en.Update()
+# get grids:
+vug=vr.GetOutput()
+eug=en.GetOutput().GetBlock(0)
+# get coordinates:
+vcoords=vtk_to_numpy(vug.GetPoints().GetData())
+ecoords=vtk_to_numpy(eug.GetPoints().GetData())
+vtu_ensight_coords=all(vcoords==ecoords)
+    </variable>
+    <variable name = "vtu_ensight_fields" language = "python">
+import vtk
+from vtk.util.numpy_support import vtk_to_numpy
+from numpy import *
+vtufile="./16ele_0.vtu"
+casefile="./16ele.0.case"
+# read vtu:
+vr=vtk.vtkXMLUnstructuredGridReader()
+vr.SetFileName(vtufile)
+vr.Update()
+# read ensight gold:
+en = vtk.vtkEnSightGoldBinaryReader()
+en.SetCaseFileName(casefile)
+en.Update()
+# get grids:
+vug=vr.GetOutput()
+eug=en.GetOutput().GetBlock(0)
+
+#check fields:
+vnparrays=int(vr.GetNumberOfPointArrays())
+tests=True
+for n in range(vnparrays):
+    print "-------------------------------------------"
+    print "n = ", n
+    vfield = vr.GetPointArrayName(n)
+    vcomponents = vug.GetPointData().GetArray(vfield).GetNumberOfComponents()
+    vfielddata = vtk_to_numpy(vug.GetPointData().GetArray(vfield))
+    vfieldsize = vug.GetPointData().GetArray(vfield).GetSize()
+    # now for the ensight object:
+    efield = vfield+"_n"
+    ecomponents = eug.GetPointData().GetArray(efield).GetNumberOfComponents()
+    efielddata = vtk_to_numpy(eug.GetPointData().GetArray(efield))
+    efieldsize = eug.GetPointData().GetArray(efield).GetSize()
+    print "vfield = ", vfield
+    print "efield = ", efield
+    print "vcomponents = ", vcomponents
+    print "ecomponents = ", ecomponents
+    print "vfieldsize = ", vfieldsize
+    print "efieldsize = ", efieldsize
+    ftests=vcomponents == ecomponents and vfieldsize == efieldsize
+    ftests = all(ftests and abs(vfielddata-efielddata)&lt;1e-6)
+    print "passed tests for field "+vfield+": ", ftests
+    tests=all(tests and ftests)
+vtu_ensight_fields=tests
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name = "Ensight Gold files written" language = "python">
+assert(ensight_written)
+    </test>
+    <test name = "Ensight Gold file readable in python/vtk" language = "python">
+assert(ensight_readable)
+    </test>
+    <test name = "Number of elements, points, cell arrays, point arrays equal" language = "python">
+assert(vtu_ensight_nele_npoints_narrays)
+    </test>
+    <test name = "Comparing coordinates" language = "python">
+assert(vtu_ensight_coords)
+    </test>
+    <test name = "Comparing all fields" language = "python">
+assert(vtu_ensight_fields)
+    </test>
+  </pass_tests>
+</testproblem>
+

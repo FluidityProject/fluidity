@@ -60,7 +60,7 @@ CFLAGS	= @CPPFLAGS@ @CFLAGS@
 CXX	= @CXX@
 CXXFLAGS= @CPPFLAGS@ @CXXFLAGS@ -I./include
 
-LINKER  = @LINKER@ @LDFLAGS@
+LINKER  = @LINKER@ @LDFLAGS@ $(CXXFLAGS)
 
 FLLINKER = @FLLINKER@ @LDFLAGS@ $(FCFLAGS)
 
@@ -503,7 +503,7 @@ distclean: clean
 	@find ./ \( -name make.log \) -exec rm -f {} \; > /dev/null
 	@rm -f Makefile > /dev/null
 
-test: fltools bin/$(FLUIDITY) bin/shallow_water serialtest bin/burgers_equation
+test: serialtest
 
 serialtest: fltools bin/$(FLUIDITY) bin/shallow_water
 	@cd tests; ../bin/testharness -l short $(EXCLUDE_TAGS) -n $(THREADS)

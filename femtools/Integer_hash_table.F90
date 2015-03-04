@@ -9,50 +9,50 @@ module integer_hash_table_module
   end type integer_hash_table
 
   interface
-    subroutine integer_hash_table_create_c(i)
+    subroutine integer_hash_table_create_c(i) bind(c)
       use iso_c_binding, only: c_ptr
       type(c_ptr), intent(out) :: i
     end subroutine integer_hash_table_create_c
 
-    subroutine integer_hash_table_delete_c(i)
+    subroutine integer_hash_table_delete_c(i) bind(c)
       use iso_c_binding, only: c_ptr
       type(c_ptr), intent(inout) :: i
     end subroutine integer_hash_table_delete_c
 
-    subroutine integer_hash_table_insert_c(i, k, v)
+    subroutine integer_hash_table_insert_c(i, k, v) bind(c)
       use iso_c_binding, only: c_ptr
       type(c_ptr), intent(inout) :: i
       integer, intent(in) :: k, v
     end subroutine integer_hash_table_insert_c
 
-    pure subroutine integer_hash_table_length_c(i, l)
+    pure subroutine integer_hash_table_length_c(i, l) bind(c)
       use iso_c_binding, only: c_ptr
       type(c_ptr), intent(in) :: i
       integer, intent(out) :: l
     end subroutine integer_hash_table_length_c
 
-    subroutine integer_hash_table_fetch_c(i, key, val)
+    subroutine integer_hash_table_fetch_c(i, key, val) bind(c)
       use iso_c_binding, only: c_ptr
       type(c_ptr), intent(in) :: i
       integer, intent(in) :: key
       integer, intent(out) :: val
     end subroutine integer_hash_table_fetch_c
 
-    subroutine integer_hash_table_remove_c(i, key, stat)
+    subroutine integer_hash_table_remove_c(i, key, stat) bind(c)
       use iso_c_binding, only: c_ptr
       type(c_ptr), intent(inout) :: i
       integer, intent(in) :: key
       integer, intent(out) :: stat
     end subroutine integer_hash_table_remove_c
 
-    subroutine integer_hash_table_has_key_c(i, val, bool)
+    subroutine integer_hash_table_has_key_c(i, val, bool) bind(c)
       use iso_c_binding, only: c_ptr
       type(c_ptr), intent(in) :: i
       integer, intent(in) :: val
       integer, intent(out) :: bool
     end subroutine integer_hash_table_has_key_c
 
-    subroutine integer_hash_table_fetch_pair_c(i, idx, key, val)
+    subroutine integer_hash_table_fetch_pair_c(i, idx, key, val) bind(c)
       use iso_c_binding, only: c_ptr
       type(c_ptr), intent(in) :: i
       integer, intent(in) :: idx
