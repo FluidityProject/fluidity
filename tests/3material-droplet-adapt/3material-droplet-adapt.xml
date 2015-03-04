@@ -91,7 +91,7 @@ mnvfracsum = min(fluidity_tools.stat_parser("3material-droplet.stat")['Water']['
         assert(solvers_converged)
       </test>
     <test name="check end time" language="python">
-assert endtime &gt; 0.2
+assert endtime &gt; 0.18
     </test>
     <test name="check end timestep" language="python">
 assert endtimestep &gt; 0.001
