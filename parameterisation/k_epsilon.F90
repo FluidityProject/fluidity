@@ -47,6 +47,7 @@ module k_epsilon
   use FLDebug
   use vtk_interfaces
   use solvers
+  use node_boundary
 
 implicit none
 
@@ -206,12 +207,20 @@ subroutine keps_calculate_rhs(state)
   type(scalar_field) :: src_to_abs, vfrac
   type(vector_field), pointer :: x, u, g
   type(scalar_field), pointer :: dummydensity, density, buoyancy_density, scalar_eddy_visc
-  integer :: i, ele, term, stat
+  integer :: i, ele, term, stat, jjj
   real :: g_magnitude, c_eps_1, c_eps_2, sigma_p
   logical :: have_buoyancy_turbulence = .true., lump_mass, multiphase
   character(len=OPTION_PATH_LEN) :: option_path 
   character(len=FIELD_NAME_LEN), dimension(2) :: field_names
   character(len=FIELD_NAME_LEN) :: equation_type, implementation
+!type(SCALAR_field), pointer :: temp_SCALAR
+!type(VECTOR_field), pointer :: velocity_coordinate_mesh
+!type(tensor_field), pointer :: grad_u_tensor_shape, grad_u_main
+!type(scalar_field) :: inv_lumped_mass
+!type(scalar_field), pointer :: lumped_mass
+!type(scalar_field), pointer :: time
+type(integer), dimension(3) :: nn, n_ele
+!type(integer), pointer :: neigh_faces, nodes_faces
 
   option_path = trim(state%option_path)//'/subgridscale_parameterisations/k-epsilon/'
 
@@ -298,9 +307,36 @@ subroutine keps_calculate_rhs(state)
 
      !-----------------------------------------------------------------------------------
 
+!temp_SCALAR=>extract_SCALAR_field(state, "temp_scalar", stat=stat)
+!if (stat /= 0) then
+!   FLAbort("NO NO NO NO")
+!end if
+!velocity_coordinate_mesh=>extract_vector_field(state, "Velocity_Coordinate_Mesh", stat=stat)
+!if (stat /= 0) then
+!   FLAbort("NO NO NO NO")
+!end if
+!grad_u_tensor_shape=>extract_tensor_field(state, "grad_u_tensor", stat=stat)
+!if (stat /= 0) then
+!   FLAbort("NO NO NO NO")
+!end if
+!grad_u_main=>extract_tensor_field(state, "grad_u_main", stat=stat)
+!if (stat /= 0) then
+!   FLAbort("NO NO NO NO")
+!end if
+
+!call zero(grad_u_tensor_shape)
+!call zero(grad_u_main)
+!call grad(velocity_coordinate_mesh,X,grad_u_main)
+!call div(velocity_coordinate_mesh, X, temp_scalar)
+!call set(temp_vector,u)
      ! Assembly loop
+
      do ele = 1, ele_count(fields(1))
-        call assemble_rhs_ele(src_abs_terms, fields(i), fields(3-i), scalar_eddy_visc, u, &
+!       nn=ele_nodes(vfrac,ele)
+!       print*, "yoyo", nn
+!       call set(temp_scalar, nn, nn*0.0+100.0)
+!     endif
+        call assemble_rhs_ele(src_abs_terms, fields(i), fields(3-i), scalar_eddy_visc, velocity_coordinate_mesh, &
              density, buoyancy_density, have_buoyancy_turbulence, g, g_magnitude, multiphase, &
              vfrac, x, c_eps_1, c_eps_2, sigma_p, f_1, f_2, ele, i)
      end do
@@ -311,8 +347,31 @@ subroutine keps_calculate_rhs(state)
         do term = 1, 3
            call solve_cg_inv_mass(state, src_abs_terms(term), lump_mass, option_path)           
         end do
+
+!        do ele=1, surface_element_count(src_abs_terms(1))
+!           nn=ele_nodes(src_abs_terms(1),face_ele_scalar(src_abs_terms(1), ele))
+!           call set(src_abs_terms(1), nn, nn*0.0)
+!           n_ele= ele_neigh(src_abs_terms(1),face_ele(src_abs_terms(1), ele))
+!           do jjj=1, size(n_ele)
+!              if (n_ele(jjj) .gt. 0) then
+!                 nn=ele_nodes(src_abs_terms(1),n_ele(jjj))
+!                 call set(src_abs_terms(1), nn, nn*0.0)
+!              end if
+!           end do
+!        end do
+!call allocate(inv_lumped_mass, grad_u_tensor_shape%mesh)
+!lumped_mass => get_lumped_mass(state, grad_u_tensor_shape%mesh)
+!call invert(lumped_mass, inv_lumped_mass)
+!call scale(grad_u_tensor_shape, inv_lumped_mass)
+!call deallocate(inv_lumped_mass)
      end if
      !-----------------------------------------------------------------------------------
+
+!time => extract_scalar_field(state, "Time")
+!if (node_val(time,1)<1) then
+!call zero(src_abs_terms(1))
+!end if
+
 
      ! Source disabling for debugging purposes
      do term = 1, 3
@@ -396,18 +455,22 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, scalar_eddy_visc, u, density,
   type(scalar_field), intent(in) :: k, eps, scalar_eddy_visc, f_1, f_2, vfrac
   type(vector_field), intent(in) :: X, u, g
   type(scalar_field), intent(in) :: density, buoyancy_density
+!  type(scalar_field), intent(in) :: u_div
   real, intent(in) :: g_magnitude, c_eps_1, c_eps_2, sigma_p
   logical, intent(in) :: have_buoyancy_turbulence, multiphase
   integer, intent(in) :: ele, field_id
+!type(tensor_field), intent(inout) :: grad_u_tensor_shape
 
   real, dimension(ele_loc(k, ele), ele_ngi(k, ele), x%dim) :: dshape
   real, dimension(ele_ngi(k, ele)) :: detwei, rhs, scalar_eddy_visc_ele, k_ele, eps_ele
   real, dimension(3, ele_loc(k, ele)) :: rhs_addto
+!real, dimension(x%dim,x%dim,ele_loc(k,ele)) :: rhs_tensor
   integer, dimension(ele_loc(k, ele)) :: nodes
   real, dimension(ele_loc(k, ele), ele_loc(k, ele)) :: invmass
-  real, dimension(u%dim, u%dim, ele_ngi(k, ele)) :: reynolds_stress, grad_u
-  type(element_type), pointer :: shape
+  real, dimension(u%dim, u%dim, ele_ngi(u, ele)) :: reynolds_stress, grad_u
+  type(element_type), pointer :: shape, shape_u
   integer :: term, ngi, dim, gi, i
+  real, dimension(:, :, :), allocatable :: dshape_u
   
   ! For buoyancy turbulence stuff
   real, dimension(u%dim, ele_ngi(u, ele))  :: vector, u_quad, g_quad
@@ -415,7 +478,8 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, scalar_eddy_visc, u, density,
   real, dimension(ele_ngi(u, ele)) :: scalar, c_eps_3
   type(element_type), pointer :: shape_density
   real, dimension(:, :, :), allocatable :: dshape_density
-
+!  real, dimension(ele_ngi(u_div, ele)) :: u_div_ele
+!call set(TEMP_SCALAR, density)
   shape => ele_shape(k, ele)
   nodes = ele_nodes(k, ele)
 
@@ -432,15 +496,24 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, scalar_eddy_visc, u, density,
   end do
 
   ! Compute Reynolds stress
-  grad_u = ele_grad_at_quad(u, ele, dshape)
+  allocate(dshape_u(ele_loc(u, ele), ele_ngi(u, ele), X%dim))
+  if(.not.(u%mesh == k%mesh)) then
+     shape_u => ele_shape(u, ele)
+     call transform_to_physical( X, ele, shape_u, dshape=dshape_u )
+  else
+     dshape_u = dshape
+  end if
+  grad_u = ele_grad_at_quad(u, ele, dshape_u)
   scalar_eddy_visc_ele = ele_val_at_quad(scalar_eddy_visc, ele)
+!  u_div_ele = ele_val_at_quad(u_div, ele)
   dim = u%dim
   do gi = 1, ngi
      reynolds_stress(:,:,gi) = scalar_eddy_visc_ele(gi)*(grad_u(:,:,gi) + transpose(grad_u(:,:,gi)))
   end do
-  do i = 1, dim
-     reynolds_stress(i,i,:) = reynolds_stress(i,i,:) - (2./3.)*k_ele*ele_val_at_quad(density, ele)
-  end do
+!  do i = 1, dim
+!     reynolds_stress(i,i,:) = reynolds_stress(i,i,:) - (2./3.)*k_ele*ele_val_at_quad(density, ele) !- (2./3.)*scalar_eddy_visc_ele(:)*u_div_ele
+!  end do
+  deallocate(dshape_u)  
 
   ! Compute P
   rhs = tensor_inner_product(reynolds_stress, grad_u)
@@ -449,6 +522,8 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, scalar_eddy_visc, u, density,
   end if
   if(multiphase) then
      rhs_addto(1,:) = shape_rhs(shape, detwei*rhs*ele_val_at_quad(vfrac,ele))
+!rhs_tensor = shape_tensor_rhs(shape, grad_u, detwei)
+!call addto(grad_u_tensor_shape, nodes, rhs_tensor)     
   else
      rhs_addto(1,:) = shape_rhs(shape, detwei*rhs)
   end if
@@ -559,6 +634,7 @@ subroutine keps_eddyvisc(state, advdif)
   type(state_type), intent(inout)  :: state
   logical, intent(in) :: advdif
 
+  type(tensor_field)               :: visc_dg
   type(tensor_field), pointer      :: eddy_visc, viscosity, bg_visc
   type(vector_field), pointer      :: x, u
   type(scalar_field)               :: kk, eps
@@ -586,6 +662,10 @@ subroutine keps_eddyvisc(state, advdif)
   ! Get field data
   call time_averaged_value(state, kk, "TurbulentKineticEnergy", advdif, option_path)
   call time_averaged_value(state, eps, "TurbulentDissipation", advdif, option_path)
+  if (continuity(kk)<0 .or. continuity(eps)<0) then
+     FLExit('Currently k-epsilon only works for continuous meshes')          
+  end if
+
   x  => extract_vector_field(state, "Coordinate")
   u          => extract_vector_field(state, "NonlinearVelocity")
   eddy_visc  => extract_tensor_field(state, "EddyViscosity")
@@ -627,7 +707,23 @@ subroutine keps_eddyvisc(state, advdif)
 
   ! Initialise viscosity to background value
   if (have_visc) then
-     call set(viscosity, bg_visc)
+     ewrite(2,*) "Entering initialise viscosity to bg visc"   
+     ! Check if viscosity is on discontinuous mesh and bg_viscosity is on continuous mesh
+     ! We need t remap before setting the field as the set subroutine does not remap automatically.
+     if (continuity(viscosity)<0 .and. continuity(bg_visc)>=0) then     
+        ewrite(2,*) "Entering background viscosity remap conditional"
+        call allocate(visc_dg, viscosity%mesh, "RemappedBackgroundViscosityDG")
+        call remap_field(bg_visc,visc_dg,stat)
+        if (stat/=0) then
+           FLExit('There was some problem remapping the continuous backgroud viscosity to discontinuous mesh')
+        end if
+        call set(viscosity, visc_dg)
+        call deallocate(visc_dg)
+     else if (continuity(viscosity) == continuity(bg_visc)) then
+        ewrite(2,*) "Continuity of viscosity is the same as the continuity of bg_visc"
+        call set(viscosity, bg_visc)
+     end if
+     ewrite(2,*) "Exiting initialise viscosity to bg visc"
   end if
   
   ! Compute the length scale diagnostic field here.
@@ -681,6 +777,8 @@ subroutine keps_eddyvisc(state, advdif)
 
   ! Add turbulence model contribution to viscosity field
   if (have_visc) then
+     ! Tensor addto subroutine will remap the second tensor to the mesh of tensor1 if they are on different meshes.
+     ! So we don't need to manually remap in this case.
      call addto(viscosity, eddy_visc)
   end if
 
@@ -1259,8 +1357,8 @@ subroutine k_epsilon_check_options
            FLExit("You must use a prognostic or prescribed Velocity field")
         end if
      end if
-     if(.not. kmsh==emsh .or. .not. kmsh==vmsh .or. .not. emsh==vmsh) then
-        FLExit("You must use the Velocity mesh for TurbulentKineticEnergy and TurbulentDissipation fields")
+     if(.not. kmsh==emsh) then
+        FLExit("You must use same mesh for TurbulentKineticEnergy and TurbulentDissipation fields")
      end if
 
      ! Velocity field options
