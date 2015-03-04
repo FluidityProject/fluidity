@@ -845,7 +845,9 @@
     </scalar_field>
     <multiphase_properties>
       <particle_diameter>
-        <real_value rank="0">2e-4</real_value>
+        <constant>
+          <real_value rank="0">2e-4</real_value>
+        </constant>
       </particle_diameter>
       <specific_heat>
         <real_value rank="0">954</real_value>

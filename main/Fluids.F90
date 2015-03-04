@@ -103,6 +103,7 @@ module fluids_module
   use detector_parallel, only: sync_detector_coordinates, deallocate_detector_list_array
   use momentum_diagnostic_fields, only: calculate_densities
   use sediment_diagnostics, only: calculate_sediment_flux
+  use DQMOM
 
   implicit none
 
@@ -248,13 +249,16 @@ contains
          & default=1)
     call get_option("/timestepping/nonlinear_iterations/tolerance", &
          & nonlinear_iteration_tolerance, default=0.0)
-    
+
     if(have_option("/mesh_adaptivity/hr_adaptivity/adapt_at_first_timestep")) then
 
        if(have_option("/timestepping/nonlinear_iterations/nonlinear_iterations_at_adapt")) then
          call get_option('/timestepping/nonlinear_iterations/nonlinear_iterations_at_adapt',nonlinear_iterations_adapt)
          nonlinear_iterations = nonlinear_iterations_adapt
        end if
+      
+       ! set population balance initial conditions - for first adaptivity
+       call dqmom_init(state)
 
        call adapt_state_first_timestep(state)
 
@@ -298,6 +302,9 @@ contains
     if(use_sub_state()) then
        call populate_sub_state(state,sub_state)
     end if
+
+    ! set population balance initial conditions
+    call dqmom_init(state)
 
     ! Calculate the number of scalar fields to solve for and their correct
     ! solve order taking into account dependencies.
@@ -571,6 +578,9 @@ contains
 
           call compute_goals(state)
 
+          ! Calculate source terms for populations ------
+          call dqmom_calculate_source_terms(state, ITS)
+
           !------------------------------------------------
           ! Addition for calculating drag force ------ jem 05-06-2008
           if (have_option("/imported_solids/calculate_drag_on_surface")) then
@@ -750,6 +760,7 @@ contains
             end if
           end do 
 
+
           ! This is where the non-legacy momentum stuff happens
           ! a loop over state (hence over phases) is incorporated into this subroutine call
           ! hence this lives outside the phase_loop
@@ -761,6 +772,14 @@ contains
           else
              call solve_momentum(state,at_first_timestep=((timestep==1).and.(its==1)),timestep=timestep, POD_state=POD_state)
           end if
+
+          ! calculate abscissa for populations -----
+          ! this must be done at the end of each non-linear iteration
+          call dqmom_calculate_abscissa(state)
+          do i = 1, size(state)
+             call dqmom_calculate_moments(state(i))
+             call dqmom_calculate_statistics(state(i))
+          end do
 
           if(nonlinear_iterations > 1) then
              ! Check for convergence between non linear iteration loops

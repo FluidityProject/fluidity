@@ -499,7 +499,9 @@
             <string_value lines="1">Water::Velocity,Tephra::Velocity,Water::Density</string_value>
           </depends>
           <particle_diameter>
-            <real_value rank="0">1e-3</real_value>
+            <constant>
+              <real_value rank="0">1e-3</real_value>
+            </constant>
           </particle_diameter>
           <continuous_phase_name>Water</continuous_phase_name>
         </algorithm>
@@ -781,7 +783,9 @@ for i in range(field.node_count):
     </vector_field>
     <multiphase_properties>
       <particle_diameter>
-        <real_value rank="0">1e-3</real_value>
+        <constant>
+          <real_value rank="0">1e-3</real_value>
+        </constant>
       </particle_diameter>
     </multiphase_properties>
   </material_phase>

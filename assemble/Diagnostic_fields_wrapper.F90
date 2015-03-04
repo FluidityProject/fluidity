@@ -54,6 +54,7 @@ module diagnostic_fields_wrapper
   use momentum_diagnostic_fields
   use spontaneous_potentials, only: calculate_formation_conductivity
   use sediment_diagnostics
+  use dqmom
   use geostrophic_pressure
   use multiphase_module
   
@@ -80,7 +81,7 @@ contains
     type(state_type), dimension(:), pointer :: submaterials
     
     ewrite(1, *) "In calculate_diagnostic_variables"
- 
+
     do i = 1, size(state)
 
        ! start of fields that can be called through the generic calculate_diagnostic_variable
@@ -554,6 +555,11 @@ contains
           call calculate_sediment_active_layer_volume_fractions(state(i))
        end if
        ! End of sediment diagnostics.
+       
+       ! Start of population balance diagnostics.
+       call dqmom_calculate_moments(state(i))
+       call dqmom_calculate_statistics(state(i))
+       ! End of population balance diagnostics.
 
        ! Multiphase-related diagnostic fields
        s_field => extract_scalar_field(state(i), "PhaseVolumeFraction", stat)

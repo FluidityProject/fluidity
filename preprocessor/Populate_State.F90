@@ -97,7 +97,7 @@ module populate_state_module
        
   !! A list of relative paths under /material_phase[i]
   !! that are searched for additional fields to be added.
-  character(len=OPTION_PATH_LEN), dimension(13) :: additional_fields_relative=&
+  character(len=OPTION_PATH_LEN), dimension(18) :: additional_fields_relative=&
        (/ &
        "/subgridscale_parameterisations/Mellor_Yamada                                                       ", &
        "/subgridscale_parameterisations/prescribed_diffusivity                                              ", &
@@ -111,7 +111,12 @@ module populate_state_module
        "/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/dynamic_les ", &
        "/vector_field::Velocity/prognostic/equation::ShallowWater                                           ", &
        "/vector_field::Velocity/prognostic/equation::ShallowWater/bottom_drag                               ", &
-       "/vector_field::BedShearStress/diagnostic/calculation_method/velocity_gradient                       " &
+       "/vector_field::BedShearStress/diagnostic/calculation_method/velocity_gradient                       ", &
+       "/population_balance[#]/abscissa/                                                                    ", &
+       "/population_balance[#]/weights/                                                                     ", &
+       "/population_balance[#]/weighted_abscissa/                                                           ", &
+       "/population_balance[#]/moments/                                                                     ", &
+       "/population_balance[#]/statistics/                                                                  "  &
        /)
 
   !! Relative paths under a field that are searched for grandchildren
@@ -120,6 +125,22 @@ module populate_state_module
          grandchild_paths = (/&
          &    "/spatial_discretisation/inner_element" &
          /)
+
+
+  !! Dynamic paths that are searched for fields
+  !! This allows for searching for field within paths that may branch several times
+  !! The index of any particular path should be replaced with #
+  character(len=OPTION_PATH_LEN), dimension(6):: &
+         dynamic_paths = (/&
+         &    "/material_phase[#]/equation_of_state/fluids/linear/        ", &
+         &    "/material_phase[#]/population_balance[#]/abscissa/         ", &
+         &    "/material_phase[#]/population_balance[#]/weights/          ", &
+         &    "/material_phase[#]/population_balance[#]/weighted_abscissa/", &
+         &    "/material_phase[#]/population_balance[#]/moments/          ", &
+         &    "/material_phase[#]/population_balance[#]/statistics/       " &
+         /)
+
+  character(len=OPTION_PATH_LEN), dimension(:), allocatable :: field_locations
 
 contains
 

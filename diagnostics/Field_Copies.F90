@@ -97,10 +97,18 @@ contains
     
     type(vector_field), pointer :: source_field
     integer :: stat
-    
+    type(scalar_field), pointer :: scalar_field_count_node_shares
+  
     source_field => vector_source_field(state, v_field)
     
-    call remap_field(source_field, v_field, stat)
+
+    scalar_field_count_node_shares => extract_scalar_field(state, "scalar_field_count_node_shares", stat=stat)
+    if (stat/=0) then
+       FLAbort("I can't find the scalar field named scalar_field_count_node_shares. This has to be used for DG to CG interpolation")
+    end if
+
+!    call remap_field(source_field, v_field, stat)
+    call remap_field_vector_dg_cont_average(source_field, v_field, stat, scalar_field_count_node_shares)   !gb812
     if(stat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
       if(.not.have_option(trim(complete_field_path(v_field%option_path))//"/algorithm/allow_discontinuous_continuous_remap")) then
         FLExit("In the vector_copy diagnostic algorithm: remapping from a discontinuous mesh to a continuous mesh isn't allowed.")

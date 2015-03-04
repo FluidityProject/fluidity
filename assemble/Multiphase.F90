@@ -284,9 +284,10 @@
    
          ! Types of drag correlation
          integer, parameter :: DRAG_CORRELATION_TYPE_STOKES = 1, DRAG_CORRELATION_TYPE_WEN_YU = 2, DRAG_CORRELATION_TYPE_ERGUN = 3
+         integer, parameter :: DRAG_CORRELATION_TYPE_SCHILLER_NAUMANN = 4
          
          ewrite(1, *) "Entering add_fluid_particle_drag"
-         
+ 
          ! Let's check whether we actually have at least one particle phase.
          if(option_count("/material_phase/multiphase_properties/particle_diameter") == 0) then
             FLExit("Fluid-particle drag enabled but no particle_diameter has been specified for the particle phase(s).")
@@ -357,6 +358,8 @@
 
                type(scalar_field), pointer :: vfrac_fluid, vfrac_particle
                type(scalar_field), pointer :: density_fluid, density_particle
+               type(scalar_field), pointer :: pd_scalar_field ! scalar field defining particle diameter 
+
                type(vector_field), pointer :: velocity_fluid, velocity_particle
                type(vector_field), pointer :: oldu_fluid, oldu_particle
                type(vector_field), pointer :: nu_fluid, nu_particle ! Non-linear approximation to the Velocities
@@ -364,7 +367,9 @@
                type(scalar_field) :: nvfrac_fluid, nvfrac_particle
                real :: d ! Particle diameter
                character(len=OPTION_PATH_LEN) :: drag_correlation_name
+               character(len=OPTION_PATH_LEN) :: pd_field_name ! name of scalar field that defines particle diameter (can be the sauter mean dia)
                integer :: drag_correlation
+               logical :: have_constant_pd ! checks if the particle diameter is a constant or not 
 
                ! Get the necessary fields to calculate the drag force
                velocity_fluid => extract_vector_field(state(istate_fluid), "Velocity")
@@ -376,8 +381,15 @@
                   density_fluid => extract_scalar_field(state(istate_fluid), "Density")
                   density_particle => extract_scalar_field(state(istate_particle), "Density")
                   viscosity_fluid => extract_tensor_field(state(istate_fluid), "Viscosity")
-         
-                  call get_option(trim(state(istate_particle)%option_path)//"/multiphase_properties/particle_diameter", d)
+
+                  if(have_option(trim(state(istate_particle)%option_path)//"/multiphase_properties/particle_diameter/constant")) then
+                     call get_option(trim(state(istate_particle)%option_path)//"/multiphase_properties/particle_diameter/constant", d)
+                     have_constant_pd = .true.
+                  else if(have_option(trim(state(istate_particle)%option_path)//"/multiphase_properties/particle_diameter/use_scalar_field")) then
+                     call get_option(trim(state(istate_particle)%option_path)//"/multiphase_properties/particle_diameter/use_scalar_field", pd_field_name)
+                     pd_scalar_field => extract_scalar_field(state(istate_particle), pd_field_name)
+                     have_constant_pd = .false.
+                  end if
 
                   ! Calculate the non-linear approximation to the PhaseVolumeFractions
                   call allocate(nvfrac_fluid, vfrac_fluid%mesh, "NonlinearPhaseVolumeFraction")
@@ -401,7 +413,9 @@
                         drag_correlation = DRAG_CORRELATION_TYPE_WEN_YU
                      case("ergun")
                         drag_correlation = DRAG_CORRELATION_TYPE_ERGUN
-                     case("default")
+                     case("schiller_naumann")
+                        drag_correlation = DRAG_CORRELATION_TYPE_SCHILLER_NAUMANN
+                     case default
                         FLAbort("Unknown correlation for fluid-particle drag")
                   end select
                   
@@ -420,7 +434,9 @@
                                                             density_fluid, density_particle, &
                                                             nu_fluid, nu_particle, &
                                                             oldu_fluid, oldu_particle, &
-                                                            viscosity_fluid, d, drag_correlation)
+                                                            viscosity_fluid, &
+                                                            have_constant_pd, d, pd_scalar_field, &
+                                                            drag_correlation)
                      end if
 
                   end do element_loop
@@ -438,7 +454,9 @@
                                                       density_fluid, density_particle, &
                                                       nu_fluid, nu_particle, &
                                                       oldu_fluid, oldu_particle, &
-                                                      viscosity_fluid, d, drag_correlation)
+                                                      viscosity_fluid, &
+                                                      have_constant_pd, dia, pd_scalar_field, &
+                                                      drag_correlation)
                                                          
                integer, intent(in) :: ele
                type(element_type), intent(in) :: test_function
@@ -449,12 +467,14 @@
                     
                type(scalar_field), intent(in) :: vfrac_fluid, vfrac_particle
                type(scalar_field), intent(in) :: density_fluid, density_particle
+               type(scalar_field), intent(in) :: pd_scalar_field ! Scalar field representing particle diameter
                type(vector_field), intent(in) :: nu_fluid, nu_particle
                type(vector_field), intent(in) :: oldu_fluid, oldu_particle
                type(tensor_field), intent(in) :: viscosity_fluid    
-               real, intent(in) :: d ! Particle diameter 
+               real, intent(in) :: dia ! Constant particle diameter 
                integer, intent(in) :: drag_correlation
-               
+               logical, intent(in) :: have_constant_pd ! is true if particle diameter is a constant. is false if it is a scalar field (e.g. sauter mean dia)
+
                ! Local variables
                real, dimension(ele_ngi(u,ele)) :: vfrac_fluid_gi, vfrac_particle_gi
                real, dimension(ele_ngi(u,ele)) :: density_fluid_gi, density_particle_gi
@@ -473,6 +493,7 @@
                real, dimension(ele_ngi(u,ele)) :: particle_re_gi ! Particle Reynolds number
                real, dimension(ele_ngi(u,ele)) :: drag_coefficient_gi
                real, dimension(ele_ngi(u,ele)) :: magnitude_gi ! |v_f - v_p|
+               real, dimension(ele_ngi(u,ele)) :: d_gi ! particle diameter at the Gauss points
                
                real, dimension(ele_ngi(u,ele)) :: K
                real, dimension(ele_ngi(u,ele)) :: drag_force_big_m
@@ -497,9 +518,16 @@
                   magnitude_gi(gi) = norm2(nu_fluid_gi(:,gi) - nu_particle_gi(:,gi))
                end do
 
+               ! Compute the particle diameter at the Gauss points
+               if(have_constant_pd) then
+                  d_gi = dia
+               else 
+                  d_gi = ele_val_at_quad(pd_scalar_field, ele)
+               end if
+
                ! Compute the particle Reynolds number
                ! (Assumes isotropic viscosity for now)
-               particle_re_gi = (vfrac_fluid_gi*density_fluid_gi*magnitude_gi*d) / viscosity_fluid_gi(1,1,:)
+               particle_re_gi = (vfrac_fluid_gi*density_fluid_gi*magnitude_gi*d_gi) / viscosity_fluid_gi(1,1,:)
            
                ! Compute the drag coefficient
                select case(drag_correlation)
@@ -525,6 +553,18 @@
                      
                   case(DRAG_CORRELATION_TYPE_ERGUN)
                      ! No drag coefficient is needed here.                  
+
+                  case(DRAG_CORRELATION_TYPE_SCHILLER_NAUMANN)
+                     ! Schiller & Naumann (1933) drag correlation
+                     ! Since the particle Reynolds number definition currently contains vfrac_fluid in numerator,
+                     ! we need to take that out by dividing as done below. Must be changed when Reynolds number defn is changed - gb812
+                     do gi = 1, ele_ngi(u,ele)
+                        if((particle_re_gi(gi)/vfrac_fluid_gi(gi)) < 1000) then
+                           drag_coefficient_gi(gi) = (24.0/(particle_re_gi(gi)/vfrac_fluid_gi(gi)))*(1.0+0.15*(particle_re_gi(gi)/vfrac_fluid_gi(gi))**0.687)
+                        else
+                           drag_coefficient_gi(gi) = 0.44
+                        end if
+                     end do
                end select
                       
                ! Don't let the drag_coefficient_gi be NaN
@@ -536,12 +576,15 @@
            
                select case(drag_correlation)
                   case(DRAG_CORRELATION_TYPE_STOKES)
-                     K = vfrac_particle_gi*(3.0/4.0)*drag_coefficient_gi*(vfrac_fluid_gi*density_fluid_gi*magnitude_gi)/(d)
+                     K = vfrac_particle_gi*(3.0/4.0)*drag_coefficient_gi*(vfrac_fluid_gi*density_fluid_gi*magnitude_gi)/(d_gi)
                   case(DRAG_CORRELATION_TYPE_WEN_YU)
                      ! Wen & Yu (1966) drag term
-                     K = vfrac_particle_gi*(3.0/4.0)*drag_coefficient_gi*(vfrac_fluid_gi*density_fluid_gi*magnitude_gi)/(d*vfrac_fluid_gi**2.7)
+                     K = vfrac_particle_gi*(3.0/4.0)*drag_coefficient_gi*(vfrac_fluid_gi*density_fluid_gi*magnitude_gi)/(d_gi*vfrac_fluid_gi**2.7)
                   case(DRAG_CORRELATION_TYPE_ERGUN)
-                     K = 150.0*((vfrac_particle_gi**2)*viscosity_fluid_gi(1,1,:))/(vfrac_fluid_gi*(d**2)) + 1.75*(vfrac_particle_gi*density_fluid_gi*magnitude_gi/d)
+                     K = 150.0*((vfrac_particle_gi**2)*viscosity_fluid_gi(1,1,:))/(vfrac_fluid_gi*(d_gi**2)) + &
+                                1.75*(vfrac_particle_gi*density_fluid_gi*magnitude_gi/d_gi)
+                  case(DRAG_CORRELATION_TYPE_SCHILLER_NAUMANN)
+                     K = vfrac_fluid_gi*vfrac_particle_gi*(3.0/4.0)*drag_coefficient_gi*(density_fluid_gi*magnitude_gi)/(d_gi)
                end select               
                
                if(is_particle_phase) then
@@ -680,6 +723,7 @@
 
                type(scalar_field), pointer :: vfrac_fluid, vfrac_particle
                type(scalar_field), pointer :: density_fluid, density_particle
+               type(scalar_field), pointer :: pd_scalar_field ! scalar field defining particle diameter
                type(vector_field), pointer :: velocity_fluid, velocity_particle
                type(scalar_field), pointer :: internal_energy_fluid, internal_energy_particle
                type(scalar_field), pointer :: old_internal_energy_fluid, old_internal_energy_particle
@@ -691,6 +735,8 @@
                real :: C_fluid, C_particle ! Specific heat of the fluid and particle phases at constant volume
                real :: gamma ! Ratio of specific heats for compressible phase
                integer :: kstat, cstat_fluid, cstat_particle, gstat
+               character(len=OPTION_PATH_LEN) :: pd_field_name ! name of scalar field that defines particle diameter (can be the sauter mean dia)
+               logical :: have_constant_pd ! checks if the particle diameter is a constant or not 
 
                ! Get the necessary fields to calculate the heat transfer term
                velocity_fluid => extract_vector_field(state(istate_fluid), "Velocity")
@@ -703,7 +749,14 @@
                   density_particle => extract_scalar_field(state(istate_particle), "Density")
                   viscosity_fluid => extract_tensor_field(state(istate_fluid), "Viscosity")
          
-                  call get_option(trim(state(istate_particle)%option_path)//"/multiphase_properties/particle_diameter", d)
+                  if(have_option(trim(state(istate_particle)%option_path)//"/multiphase_properties/particle_diameter/constant")) then
+                     call get_option(trim(state(istate_particle)%option_path)//"/multiphase_properties/particle_diameter/constant", d)
+                     have_constant_pd = .true.
+                  else if(have_option(trim(state(istate_particle)%option_path)//"/multiphase_properties/particle_diameter/use_scalar_field")) then
+                     call get_option(trim(state(istate_particle)%option_path)//"/multiphase_properties/particle_diameter/use_scalar_field", pd_field_name)
+                     pd_scalar_field => extract_scalar_field(state(istate_particle), pd_field_name)
+                     have_constant_pd = .false.
+                  end if
                            
                   call get_option(trim(state(istate_fluid)%option_path)//"/multiphase_properties/effective_conductivity", k, kstat)
                            
@@ -759,7 +812,9 @@
                                                       internal_energy_particle, &
                                                       old_internal_energy_fluid, &
                                                       old_internal_energy_particle, &
-                                                      viscosity_fluid, d, k, C_fluid, &
+                                                      viscosity_fluid, &
+                                                      have_constant_pd, d, pd_scalar_field, &
+                                                      k, C_fluid, &
                                                       C_particle, gamma)
                      end if
 
@@ -781,7 +836,9 @@
                                                 internal_energy_particle, &
                                                 old_internal_energy_fluid, &
                                                 old_internal_energy_particle, &
-                                                viscosity_fluid, d, k, C_fluid, &
+                                                viscosity_fluid, &
+                                                have_constant_pd, dia, pd_scalar_field, &
+                                                k, C_fluid, &
                                                 C_particle, gamma)
                                                          
                integer, intent(in) :: ele
@@ -794,11 +851,14 @@
                     
                type(scalar_field), intent(in) :: vfrac_fluid, vfrac_particle
                type(scalar_field), intent(in) :: density_fluid, density_particle
+               type(scalar_field), intent(in) :: pd_scalar_field ! Scalar field representing particle diameter
                type(vector_field), intent(in) :: nu_fluid, nu_particle
                type(scalar_field), intent(in) :: internal_energy_fluid, internal_energy_particle
                type(scalar_field), intent(in) :: old_internal_energy_fluid, old_internal_energy_particle
                type(tensor_field), intent(in) :: viscosity_fluid    
-               real, intent(in) :: d, k, C_fluid, C_particle, gamma
+               real, intent(in) :: dia ! Constant particle diameter 
+               real, intent(in) :: k, C_fluid, C_particle, gamma
+               logical, intent(in) :: have_constant_pd ! is true if particle diameter is a constant. is false if it is a scalar field (e.g. sauter mean dia)
                
                ! Local variables
                real, dimension(ele_ngi(x,ele)) :: internal_energy_fluid_gi, internal_energy_particle_gi
@@ -814,6 +874,7 @@
                real, dimension(ele_loc(internal_energy,ele)) :: rhs_addto
                real, dimension(ele_loc(internal_energy,ele), ele_loc(internal_energy,ele)) :: matrix_addto
                
+               real, dimension(ele_ngi(x,ele)) :: d_gi ! particle diameter at quadrature points
                real, dimension(ele_ngi(x,ele)) :: particle_Re ! Particle Reynolds number
                real, dimension(ele_ngi(x,ele)) :: Pr ! Prandtl number
                real, dimension(ele_ngi(x,ele)) :: particle_Nu ! Particle Nusselt number
@@ -844,9 +905,16 @@
                   velocity_magnitude(gi) = norm2(nu_fluid_gi(:,gi) - nu_particle_gi(:,gi))
                end do
 
+               ! Compute the particle diameter at quadrature points
+               if(have_constant_pd) then
+                  d_gi = dia
+               else 
+                  d_gi = ele_val_at_quad(pd_scalar_field, ele)
+               end if
+
                ! Compute the particle Reynolds number
                ! (Assumes isotropic viscosity for now)
-               particle_Re = (density_fluid_gi*velocity_magnitude*d) / viscosity_fluid_gi(1,1,:)
+               particle_Re = (density_fluid_gi*velocity_magnitude*d_gi) / viscosity_fluid_gi(1,1,:)
            
                ! Compute the Prandtl number
                ! (Assumes isotropic viscosity for now)
@@ -856,7 +924,7 @@
                particle_Nu = (7.0 - 10.0*vfrac_fluid_gi + 5.0*vfrac_fluid_gi**2)*(1.0 + 0.7*(particle_Re**0.2)*(Pr**(1.0/3.0))) + &
                               (1.33 - 2.4*vfrac_fluid_gi + 1.2*vfrac_fluid_gi**2)*(particle_Re**0.7)*(Pr**(1.0/3.0))
 
-               Q = (6.0*k*vfrac_particle_gi*particle_Nu)/(d**2)
+               Q = (6.0*k*vfrac_particle_gi*particle_Nu)/(d_gi**2)
                
                ! Note that the transfer term is defined in terms of temperatures (T_fluid and T_particle)
                ! Let's convert the temperatures to internal energy (E) using E_i = C_i*T_i,

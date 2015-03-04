@@ -1800,7 +1800,14 @@ and also the Density, PhaseVolumeFraction and Viscosity fields of the continuous
       </element>
       <element name="particle_diameter">
         <a:documentation>The particle diameter</a:documentation>
-        <ref name="real"/>
+        <choice>
+          <element name="constant">
+            <ref name="real"/>
+          </element>
+          <element name="use_scalar_field">
+            <ref name="anystring"/>
+          </element>
+        </choice>
       </element>
       <element name="continuous_phase_name">
         <a:documentation>The name of the state representing the continuous phase</a:documentation>
