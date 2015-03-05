@@ -1607,7 +1607,7 @@ contains
                                     shape=t_cvshape_full, dshape=dt_t)
           diffusivity_gi = ele_val_at_quad(diffusivity, ele, diff_cvshape_full)
           
-          if(multiphase .and. (equation_type==FIELD_EQUATION_INTERNALENERGY .or. equation_type==FIELD_EQUATION_KEPSILON)) then
+          if(multiphase .and. equation_type==FIELD_EQUATION_INTERNALENERGY) then
             nvfrac_gi = ele_val_at_quad(nvfrac, ele, diff_cvshape_full)
           end if
           
@@ -1794,14 +1794,14 @@ contains
 
                     case(CV_DIFFUSION_ELEMENTGRADIENT)
                     
-                     if(multiphase .and. (equation_type==FIELD_EQUATION_INTERNALENERGY .or. equation_type==FIELD_EQUATION_KEPSILON)) then
+                     if(multiphase .and. equation_type==FIELD_EQUATION_INTERNALENERGY) then
                         ! This allows us to use the Diffusivity term as the heat flux term
                         ! in the multiphase InternalEnergy equation: div( (k/Cv) * vfrac * grad(ie) ).
                         ! The user needs to input k/Cv for the prescribed diffusivity,
                         ! where k is the effective conductivity and Cv is the specific heat
                         ! at constant volume. The division by Cv is needed because the heat flux
                         ! is defined in terms of temperature T = ie/Cv.
-                        ! This also takes care of the multiphase kepsilon equation
+
                         do dloc=1,size(dt_t,1)
                            ! n_i K_{ij} dT/dx_j
                            diff_mat_local(iloc,dloc) = diff_mat_local(iloc,dloc) - &
