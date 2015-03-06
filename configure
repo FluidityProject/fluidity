@@ -751,6 +751,7 @@ enable_option_checking
 enable_debugging
 enable_python
 enable_cgal
+enable_supermesh
 with_blas
 with_blas_dir
 with_lapack
@@ -1420,6 +1421,7 @@ Optional Features:
   --enable-debugging      turns on debugging flags
   --enable-python         embed python in fluidity for generic functions.
   --enable-cgal           turns on use of the CGAL library
+  --enable-supermesh      turns on use of the SuperMesh library
   --enable-openmp         turns on OpenMP support
   --disable-openmp        do not use OpenMP
   --enable-shared         Compile objects with -fPIC to enable the 'make
@@ -6327,6 +6329,37 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
   LIBS="$LIBS -lgmp -lmpfr"
+fi
+
+# Check whether --enable-supermesh was given.
+if test "${enable_supermesh+set}" = set; then :
+  enableval=$enable_supermesh;
+fi
+
+if test "x$enable_supermesh" = "xyes" ; then
+found_supermesh="no"
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking \"Checking for SuperMesh\"" >&5
+$as_echo_n "checking \"Checking for SuperMesh\"... " >&6; }
+  { $as_echo "$as_me:${as_lineno-$LINENO}: \"Checking for SuperMesh\"" >&5
+$as_echo "$as_me: \"Checking for SuperMesh\"" >&6;}
+  for i in `echo $LD_LIBRARY_PATH | sed -e 's/:/ /g'`
+    do
+    echo "looking in $i"
+    if test \( -f $i/libSuperMesh.a \)
+    then
+      { $as_echo "$as_me:${as_lineno-$LINENO}: Will look in $i for SuperMesh1." >&5
+$as_echo "$as_me: Will look in $i for SuperMesh1." >&6;}
+      found_supermesh="yes"
+    LIBS="$LIBS $i"
+    fi
+  done
+#  LIBS="$LIBS /home/ipanourg/fluidity_git/fluidity/lib/libSuperMesh.a"
+  if test "$found_supermesh" = "no"
+    then
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking the position of the stars to help find a versions of SuperMesh" >&5
+$as_echo "$as_me: checking the position of the stars to help find a versions of SuperMesh" >&6;}
+    as_fn_error $? "\"Cannot identify SuperMesh. Check that it is installed.\"" "$LINENO" 5
+  fi
 fi
 
 # Find a library which will give us blas and lapack routines

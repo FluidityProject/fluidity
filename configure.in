@@ -227,6 +227,29 @@ if test "x$enable_cgal" = "xyes" ; then
   LIBS="$LIBS -lgmp -lmpfr"
 fi
 
+AC_ARG_ENABLE(supermesh, [AC_HELP_STRING([--enable-supermesh], [turns on use of the SuperMesh library])])
+if test "x$enable_supermesh" = "xyes" ; then
+found_supermesh="no"
+  AC_MSG_CHECKING(["Checking for SuperMesh"])
+  AC_MSG_NOTICE(["Checking for SuperMesh"])
+  for i in `echo $LD_LIBRARY_PATH | sed -e 's/:/ /g'`
+    do
+    echo "looking in $i"
+    if test \( -f $i/libSuperMesh.a \)
+    then
+      AC_MSG_NOTICE([Will look in $i for SuperMesh1.])
+      found_supermesh="yes"
+    LIBS="$LIBS $i"
+    fi
+  done
+#  LIBS="$LIBS /home/ipanourg/fluidity_git/fluidity/lib/libSuperMesh.a"
+  if test "$found_supermesh" = "no"
+    then
+    AC_MSG_NOTICE([checking the position of the stars to help find a versions of SuperMesh])
+    AC_MSG_ERROR("Cannot identify SuperMesh. Check that it is installed.")
+  fi
+fi
+
 # Find a library which will give us blas and lapack routines
 AC_LANG_PUSH([C])
 found_blas="no"
