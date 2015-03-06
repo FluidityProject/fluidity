@@ -239,7 +239,7 @@ found_supermesh="no"
     then
       AC_MSG_NOTICE([Will look in $i for SuperMesh1.])
       found_supermesh="yes"
-    LIBS="$LIBS $i"
+    LIBS="$LIBS $i/libSuperMesh.a"
     fi
   done
 #  LIBS="$LIBS /home/ipanourg/fluidity_git/fluidity/lib/libSuperMesh.a"

@@ -6350,7 +6350,7 @@ $as_echo "$as_me: \"Checking for SuperMesh\"" >&6;}
       { $as_echo "$as_me:${as_lineno-$LINENO}: Will look in $i for SuperMesh1." >&5
 $as_echo "$as_me: Will look in $i for SuperMesh1." >&6;}
       found_supermesh="yes"
-    LIBS="$LIBS $i"
+    LIBS="$LIBS $i/libSuperMesh.a"
     fi
   done
 #  LIBS="$LIBS /home/ipanourg/fluidity_git/fluidity/lib/libSuperMesh.a"
