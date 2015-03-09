@@ -3,6 +3,21 @@
 
 module tetrahedron_intersection_module
 
+#ifdef HAVE_SUPERMESH
+  use libsupermesh_elements
+  use elements, only: allocate, local_coord_count, local_vertices, &
+                      boundary_numbering 
+  use libsupermesh_vector_tools
+  use libsupermesh_fields_data_types
+!  use fields_base, only: face_ngi, ele_faces, face_global_nodes
+  use fields_base
+  use libsupermesh_fields_base
+  use libsupermesh_fields_allocates
+  use libsupermesh_fields_manipulation
+  use libsupermesh_transform_elements
+  use transform_elements, only: transform_facet_to_physical
+  use libsupermesh_tet_intersection_module
+#else
   use elements
   use vector_tools
   use fields_data_types
@@ -10,6 +25,7 @@ module tetrahedron_intersection_module
   use fields_allocates
   use fields_manipulation
   use transform_elements
+#endif
   implicit none
 
   type tet_type
@@ -46,6 +62,26 @@ module tetrahedron_intersection_module
     end if
   end subroutine finalise_tet_intersector
 
+#ifdef HAVE_SUPERMESH
+  subroutine intersect_tets_dt(tetA, planesB, shape, stat, output, surface_shape, surface_positions, surface_colours)
+    type(tet_type), intent(in) :: tetA
+    type(plane_type), dimension(:), intent(in) :: planesB
+    type(element_type), intent(in) :: shape
+    type(vector_field), intent(inout) :: output
+    type(vector_field), intent(out), optional :: surface_positions
+    type(scalar_field), intent(out), optional :: surface_colours
+    type(element_type), intent(in), optional :: surface_shape
+    integer :: ele
+    integer, intent(out) :: stat
+    type(libsupermesh_tet_type) :: tetAlib
+    type(libsupermesh_plane_type), dimension(:) :: planesBlib
+
+!    tetAlib = tetA
+    
+    call libsupermesh_intersect_tets_dt(tetAlib, planesBlib, shape, stat, output,&
+surface_shape, surface_positions, surface_colours)
+  end subroutine intersect_tets_dt
+#else
   subroutine intersect_tets_dt(tetA, planesB, shape, stat, output, surface_shape, surface_positions, surface_colours)
     type(tet_type), intent(in) :: tetA
     type(plane_type), dimension(:), intent(in) :: planesB
@@ -173,6 +209,7 @@ module tetrahedron_intersection_module
     end if
 
   end subroutine intersect_tets_dt
+#endif
 
   subroutine clip(plane, tet)
   ! Clip tet against the plane

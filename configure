@@ -6338,27 +6338,24 @@ fi
 
 if test "x$enable_supermesh" = "xyes" ; then
 found_supermesh="no"
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking \"Checking for SuperMesh\"" >&5
-$as_echo_n "checking \"Checking for SuperMesh\"... " >&6; }
-  { $as_echo "$as_me:${as_lineno-$LINENO}: \"Checking for SuperMesh\"" >&5
-$as_echo "$as_me: \"Checking for SuperMesh\"" >&6;}
+  { $as_echo "$as_me:${as_lineno-$LINENO}: Checking for SuperMesh library" >&5
+$as_echo "$as_me: Checking for SuperMesh library" >&6;}
   for i in `echo $LD_LIBRARY_PATH | sed -e 's/:/ /g'`
     do
-    echo "looking in $i"
     if test \( -f $i/libSuperMesh.a \)
     then
-      { $as_echo "$as_me:${as_lineno-$LINENO}: Will look in $i for SuperMesh1." >&5
-$as_echo "$as_me: Will look in $i for SuperMesh1." >&6;}
       found_supermesh="yes"
     LIBS="$LIBS $i/libSuperMesh.a"
     fi
   done
-#  LIBS="$LIBS /home/ipanourg/fluidity_git/fluidity/lib/libSuperMesh.a"
+
   if test "$found_supermesh" = "no"
     then
-    { $as_echo "$as_me:${as_lineno-$LINENO}: checking the position of the stars to help find a versions of SuperMesh" >&5
-$as_echo "$as_me: checking the position of the stars to help find a versions of SuperMesh" >&6;}
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking the position of the stars to help find a version of SuperMesh" >&5
+$as_echo "$as_me: checking the position of the stars to help find a version of SuperMesh" >&6;}
     as_fn_error $? "\"Cannot identify SuperMesh. Check that it is installed.\"" "$LINENO" 5
+  else
+    echo "#define HAVE_SUPERMESH 1" >> include/confdefs.h
   fi
 fi
 
