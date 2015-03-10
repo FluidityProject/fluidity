@@ -60,7 +60,8 @@ Fluids.o ../include/fluids_module.mod: Fluids.F90 \
    ../include/spud.mod ../include/synthetic_bc.mod \
    ../include/timeloop_utilities.mod ../include/timers.mod \
    ../include/vertical_extrapolation_module.mod ../include/vtk_interfaces.mod \
-   ../include/write_state_module.mod ../include/write_triangle.mod
+   ../include/write_state_module.mod ../include/write_triangle.mod \
+   ../include/tictoc.mod
 
 Hybridized_Helmholtz_Solver.o : Hybridized_Helmholtz_Solver.F90 \
    ../include/fdebug.h ../include/fields.mod ../include/fldebug.mod \
