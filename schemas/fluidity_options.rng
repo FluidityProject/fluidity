@@ -2556,6 +2556,11 @@ while a factor of 1 represents a connected domain.</a:documentation>
         <ref name="multiphase_interaction"/>
       </optional>
       <optional>
+        <element name="extract_turbulent_fields_from_fluent">
+          <empty/>
+        </element>
+      </optional>
+      <optional>
         <element name="population_balance_continuous_phase_name">
           <data type="string" datatypeLibrary=""/>
         </element>

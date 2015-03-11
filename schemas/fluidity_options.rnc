@@ -1813,6 +1813,7 @@ start =
          embedded_models?,
          flredecomp?,
          multiphase_interaction?,
+         element extract_turbulent_fields_from_fluent{empty}?,
          element population_balance_continuous_phase_name{ string }?
       }
    )      

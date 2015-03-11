@@ -29,6 +29,7 @@
 
 module fluids_module
 
+  use vtk_cache_module
   use AuxilaryOptions
   use MeshDiagnostics
   use signal_vars
@@ -91,7 +92,8 @@ module fluids_module
                                simulation_start_time, &
                                simulation_start_cpu_time, &
                                simulation_start_wall_time, &
-                               topology_mesh_name
+                               topology_mesh_name, &
+                               is_active_process
   use eventcounter
   use reduced_model_runtime
   use implicit_solids
@@ -119,7 +121,7 @@ module fluids_module
 contains
 
   SUBROUTINE FLUIDS()
-    character(len = OPTION_PATH_LEN) :: filename
+    character(len = OPTION_PATH_LEN) :: filename, filename_pvtu
 
     INTEGER :: &
          & NTSOL,  &
@@ -175,7 +177,12 @@ contains
 
     !     backward compatibility with new option structure - crgw 21/12/07
     logical::use_advdif=.true.  ! decide whether we enter advdif or not
-
+    type(scalar_field), pointer :: temp_scalar_1, temp_scalar_2, turbulent_dissipation, effective_viscosity
+    !type(scalar_field), dimension(2) :: turbulent_scalars
+    !type(mesh_type), pointer :: model_mesh
+    integer :: num_turb
+    real :: time_turbulent
+    character (len=5) :: num_turb_padded
     INTEGER :: adapt_count
 
     ! Absolute first thing: check that the options, if present, are valid.
@@ -445,6 +452,16 @@ contains
         call gls_init(state(1))
     end if
 
+    ! gb812 ----
+    if (have_option("/extract_turbulent_fields_from_fluent")) then
+       turbulent_dissipation=>extract_scalar_field(state(1),"TurbulentDissipationRate")
+       call set(turbulent_dissipation, 1.0e-8) 
+       effective_viscosity=>extract_scalar_field(state(1),"EffectiveViscosity")
+       call set(effective_viscosity, 0.00101)
+       num_turb = 1
+    end if
+    !---------
+
     ! ******************************
     ! *** Start of timestep loop ***
     ! ******************************
@@ -486,7 +503,36 @@ contains
        end if
 
        ewrite(2,*)'steady_state_tolerance,nonlinear_iterations:',steady_state_tolerance,nonlinear_iterations
-
+! gb812       
+       if (have_option("/extract_turbulent_fields_from_fluent")) then
+          ! Writes turbulent_fields.pvtu containing TurbulentDissipationRate
+          ! and EffectiveViscosity
+          !turbulent_scalars(1)=extract_scalar_field(state(1),"TurbulentDissipationRate")
+          !turbulent_scalars(2)=extract_scalar_field(state(1),"EffectiveViscosity")
+          !model_mesh => extract_mesh(state(1), "CoordinateMesh")
+          !call vtk_write_fields("turbulent_fields", & 
+          !    position=extract_vector_field(state(1),"Coordinate"), &
+          !    model=model_mesh,  &
+          !    sfields=turbulent_scalars, &
+          !    write_region_ids=.true.)
+          time_turbulent = num_turb*0.01
+          if (current_time>=time_turbulent .and. (current_time-dt)<time_turbulent) then
+             write (num_turb_padded,'(I5.5)') num_turb
+             if(is_active_process) then
+                if(isparallel()) then
+                   filename_pvtu = parallel_filename(trim_file_extension('turbulent_fields_'//trim(num_turb_padded)//'.pvtu'),".vtu")
+                end if
+                temp_scalar_1 =>vtk_cache_read_scalar_field(filename_pvtu,'TurbulentDissipationRate')
+                temp_scalar_2 =>vtk_cache_read_scalar_field(filename_pvtu,'EffectiveViscosity')
+             end if
+             !print*, "nodes in temp scalar 2 = ", node_count(temp_scalar_2)
+             !print*, "nodes in turbulent_dissipation = ", node_count(turbulent_dissipation)
+             call set(turbulent_dissipation, temp_scalar_1)
+             call set(effective_viscosity, temp_scalar_2)
+             num_turb = num_turb + 1             
+          end if
+       end if
+! ---
        call copy_to_stored_values(state,"Old")
        if (have_option('/mesh_adaptivity/mesh_movement') .and. .not. have_option('/mesh_adaptivity/mesh_movement/free_surface')) then
           ! Coordinate isn't handled by the standard timeloop utility calls.
