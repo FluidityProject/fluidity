@@ -322,7 +322,7 @@ contains
 
     type(scalar_field_pointer), dimension(:), allocatable :: abscissa,&
          weight, it_abscissa, it_weight, weighted_abscissa, s_weighted_abscissa, s_weight, a_weighted_abscissa, a_weight
-    type(scalar_field), pointer :: lumped_mass, turbulent_dissipation, sponge_field
+    type(scalar_field), pointer :: lumped_mass, turbulent_dissipation, effective_viscosity_continuous, sponge_field
     type(csr_matrix), pointer :: mass_matrix
     type(scalar_field), dimension(:), allocatable :: r_abscissa, r_weight
     type(tensor_field), pointer :: D
@@ -429,9 +429,13 @@ contains
              FLAbort("Enable the option population_balance_continuous_phase_name and provide a name for the continuous phase
                       as it is needed for extracting the turbulence dissipation needed in laakkonen_2007_aggregation kernel")
           end if
-          turbulent_dissipation => extract_scalar_field(states(cont_state), "TurbulentDissipation", stat=stat)
+          turbulent_dissipation => extract_scalar_field(states(cont_state), "TurbulentDissipationRate", stat=stat)
           if (stat/=0) then
              FLAbort("I can't find the Turbulent Dissipation field of continuous phase for population balance aggregation term calculations.")
+          end if
+          effective_viscosity_continuous => extract_scalar_field(states(cont_state), "EffectiveViscosity", stat=stat)
+          if (stat/=0) then
+             FLAbort("I can't find the Effective Viscosity field for continuous phase for population balance aggregation term calculations.")
           end if
 
        end if
@@ -456,9 +460,13 @@ contains
                 FLAbort("Enable the option population_balance_continuous_phase_name and provide a name for the continuous phase &
                          as it is needed for extracting the turbulence dissipation needed in laakkonen_frequency kernel")
              end if
-             turbulent_dissipation => extract_scalar_field(states(cont_state), "TurbulentDissipation", stat=stat)
+             turbulent_dissipation => extract_scalar_field(states(cont_state), "TurbulentDissipationRate", stat=stat)
              if (stat/=0) then
                 FLAbort("I can't find the Turbulent Dissipation field of continuous phase for population balance breakage term calculations.")
+             end if
+             effective_viscosity_continuous => extract_scalar_field(states(cont_state), "EffectiveViscosity", stat=stat)
+             if (stat/=0) then
+                FLAbort("I can't find the Effective Viscosity field for continuous phase for population balance aggregation term calculations.")
              end if
           end if
        end if
@@ -493,7 +501,8 @@ contains
        call dqmom_calculate_source_term_node(r_abscissa, r_weight, s_weighted_abscissa, s_weight, &
                 &D, have_D, have_growth, growth_type, growth_r, have_internal_dispersion, internal_dispersion_coeff, &
                 &have_aggregation, aggregation_freq_type, aggregation_freq_const, &
-                &have_breakage, breakage_freq_type, breakage_freq_const, breakage_freq_degree, breakage_dist_type, turbulent_dissipation, X, singular_option, perturb_val, cond, i)       
+                &have_breakage, breakage_freq_type, breakage_freq_const, breakage_freq_degree, breakage_dist_type, &
+                &turbulent_dissipation, effective_viscosity_continuous, X, singular_option, perturb_val, cond, i)       
     end do
     
 
@@ -652,11 +661,11 @@ contains
                  &D, have_D, have_growth, growth_type, growth_r, have_internal_dispersion, internal_dispersion_coeff, &
                  &have_aggregation, aggregation_freq_type, aggregation_freq_const, &
                  &have_breakage, breakage_freq_type, breakage_freq_const, breakage_freq_degree, breakage_dist_type, &
-                 &turbulent_dissipation, &
+                 &turbulent_dissipation, effective_viscosity_continuous, &
                  &X, singular_option, perturb_val, cond, node)
 
     type(scalar_field), dimension(:), intent(in) :: abscissa, weight
-    type(scalar_field), intent(in) :: turbulent_dissipation
+    type(scalar_field), intent(in) :: turbulent_dissipation, effective_viscosity_continuous
     type(scalar_field_pointer), dimension(:), intent(inout) :: s_weighted_abscissa, s_weight
     type(tensor_field), pointer, intent(in) :: D
     type(vector_field), pointer, intent(in) :: X
@@ -674,12 +683,12 @@ contains
     real, dimension(size(abscissa)*2, 1) :: b
     real, dimension(1, size(abscissa)) :: abscissa_S
     real, dimension(1, size(weight)) :: weight_S
-    real :: eps_node
+    real :: eps_node, visc_node
     real, dimension(size(abscissa)*2, size(abscissa)*2) :: svd_tmp1, svd_tmp2
     real, dimension(size(abscissa)*2) :: SV
     integer :: stat, N, i, j, k
 
-    real :: sigma, density_continuous, density_dispersed, viscosity_continuous
+    real :: sigma, density_continuous, density_dispersed
 
     N = size(abscissa)
     
@@ -705,11 +714,11 @@ contains
        else if (breakage_freq_type=='laakkonen_frequency') then
           density_continuous = 1000
           density_dispersed = 1
-          viscosity_continuous = 0.001
           sigma = 0.072
           eps_node = node_val(turbulent_dissipation,node)
+          visc_node = node_val(effective_viscosity_continuous,node)
           do i = 1, N
-             break_freq(1,i) = 6.0*eps_node**(1./3) * erfc(sqrt( 0.04*(sigma/density_continuous)*(1./(eps_node**(2./3) * abscissa_val(1,i)**(5./3))) + 0.01*(viscosity_continuous/sqrt(density_continuous*density_dispersed))*(1./(eps_node**(1./3)*abscissa_val(1,i)**(4./3)))))
+             break_freq(1,i) = 6.0*eps_node**(1./3) * erfc(sqrt( 0.04*(sigma/density_continuous)*(1./(eps_node**(2./3) * abscissa_val(1,i)**(5./3))) + 0.01*(visc_node/sqrt(density_continuous*density_dispersed))*(1./(eps_node**(1./3)*abscissa_val(1,i)**(4./3)))))
           end do
        end if
 
@@ -745,12 +754,12 @@ contains
 
        else if (aggregation_freq_type=='laakkonen_2007_aggregation') then
           density_continuous = 1000
-          viscosity_continuous = 0.001
           sigma = 0.072
           eps_node = node_val(turbulent_dissipation, node)
+          visc_node=node_val(effective_viscosity_continuous, node)
           do i = 1, N
              do j = 1, N
-                aggregation_freq(1,i,j) = 0.88 * eps_node**(1./3) * (abscissa_val(1,i) + abscissa_val(1,j))**2 * (abscissa_val(1,i)**(2./3) + abscissa_val(1,j)**(2./3))**(1./2) * exp(-6.0E9*((viscosity_continuous*density_continuous)/sigma**2)*eps_node*((abscissa_val(1,i)*abscissa_val(1,j))/(abscissa_val(1,i)+abscissa_val(1,j)))**4)
+                aggregation_freq(1,i,j) = 0.88 * eps_node**(1./3) * (abscissa_val(1,i) + abscissa_val(1,j))**2 * (abscissa_val(1,i)**(2./3) + abscissa_val(1,j)**(2./3))**(1./2) * exp(-6.0E9*((visc_node*density_continuous)/sigma**2)*eps_node*((abscissa_val(1,i)*abscissa_val(1,j))/(abscissa_val(1,i)+abscissa_val(1,j)))**4)
              end do
           end do
 
