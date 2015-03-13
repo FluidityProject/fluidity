@@ -2205,6 +2205,13 @@ probably equal to the location of the borehole</a:documentation>
                 </element>
               </optional>
               <optional>
+                <element name="apply_diameter_cap">
+                  <element name="lower_cap">
+                    <ref name="real"/>
+                  </element>
+                </element>
+              </optional>
+              <optional>
                 <element name="effective_conductivity">
                   <a:documentation>If this is the fluid phase, 
 the effective conductivity is required 

@@ -366,6 +366,7 @@
                type(tensor_field), pointer :: viscosity_fluid
                type(scalar_field) :: nvfrac_fluid, nvfrac_particle
                real :: d ! Particle diameter
+               real :: dia_cap_low
                character(len=OPTION_PATH_LEN) :: drag_correlation_name
                character(len=OPTION_PATH_LEN) :: pd_field_name ! name of scalar field that defines particle diameter (can be the sauter mean dia)
                integer :: drag_correlation
@@ -390,6 +391,8 @@
                      pd_scalar_field => extract_scalar_field(state(istate_particle), pd_field_name)
                      have_constant_pd = .false.
                   end if
+
+                  call get_option(trim(state(istate_particle)%option_path)//"/multiphase_properties/apply_diameter_cap/lower_cap", dia_cap_low, default = 1.0e-12)
 
                   ! Calculate the non-linear approximation to the PhaseVolumeFractions
                   call allocate(nvfrac_fluid, vfrac_fluid%mesh, "NonlinearPhaseVolumeFraction")
@@ -435,7 +438,7 @@
                                                             nu_fluid, nu_particle, &
                                                             oldu_fluid, oldu_particle, &
                                                             viscosity_fluid, &
-                                                            have_constant_pd, d, pd_scalar_field, &
+                                                            have_constant_pd, d, pd_scalar_field, dia_cap_low, &
                                                             drag_correlation)
                      end if
 
@@ -455,7 +458,7 @@
                                                       nu_fluid, nu_particle, &
                                                       oldu_fluid, oldu_particle, &
                                                       viscosity_fluid, &
-                                                      have_constant_pd, dia, pd_scalar_field, &
+                                                      have_constant_pd, dia, pd_scalar_field, dia_cap_low, &
                                                       drag_correlation)
                                                          
                integer, intent(in) :: ele
@@ -472,6 +475,7 @@
                type(vector_field), intent(in) :: oldu_fluid, oldu_particle
                type(tensor_field), intent(in) :: viscosity_fluid    
                real, intent(in) :: dia ! Constant particle diameter 
+               real, intent(in) :: dia_cap_low
                integer, intent(in) :: drag_correlation
                logical, intent(in) :: have_constant_pd ! is true if particle diameter is a constant. is false if it is a scalar field (e.g. sauter mean dia)
 
@@ -525,6 +529,11 @@
                   d_gi = ele_val_at_quad(pd_scalar_field, ele)
                end if
 
+               ! Cap diameter on the lower side to prevent large drag forces
+               WHERE (d_gi<dia_cap_low)
+                  d_gi = dia_cap_low
+               END WHERE
+         
                ! Compute the particle Reynolds number
                ! (Assumes isotropic viscosity for now)
                particle_re_gi = (vfrac_fluid_gi*density_fluid_gi*magnitude_gi*d_gi) / viscosity_fluid_gi(1,1,:)

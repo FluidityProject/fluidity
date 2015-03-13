@@ -1615,8 +1615,11 @@ start =
             element multiphase_properties {
                comment,
                element particle_diameter {
-	          element constant { real }|
-		  element use_scalar_field { anystring }
+       	         element constant { real }|
+		            element use_scalar_field { anystring }
+               }?,
+               element apply_diameter_cap {
+                  element lower_cap { real }
                }?,
                ## If this is the fluid phase, 
                ## the effective conductivity is required 
