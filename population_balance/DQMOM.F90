@@ -426,7 +426,7 @@ contains
        else if (have_option(trim(option_path)//'/population_balance_source_terms/aggregation/aggregation_frequency/laakkonen_2007_aggregation')) then
           aggregation_freq_type = 'laakkonen_2007_aggregation'
           if (.not. have_option("/population_balance_continuous_phase_name")) then
-             FLAbort("Enable the option population_balance_continuous_phase_name and provide a name for the continuous phase
+             FLAbort("Enable the option population_balance_continuous_phase_name and provide a name for the continuous phase&
                       as it is needed for extracting the turbulence dissipation needed in laakkonen_2007_aggregation kernel")
           end if
           turbulent_dissipation => extract_scalar_field(states(cont_state), "TurbulentDissipationRate", stat=stat)

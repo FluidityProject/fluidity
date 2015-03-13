@@ -218,7 +218,7 @@ subroutine keps_calculate_rhs(state)
 !type(scalar_field) :: inv_lumped_mass
 !type(scalar_field), pointer :: lumped_mass
 !type(scalar_field), pointer :: time
-type(integer), dimension(3) :: nn, n_ele
+integer, dimension(3) :: nn, n_ele
 !type(integer), pointer :: neigh_faces, nodes_faces
 
   option_path = trim(state%option_path)//'/subgridscale_parameterisations/k-epsilon/'
@@ -347,17 +347,17 @@ type(integer), dimension(3) :: nn, n_ele
            call solve_cg_inv_mass(state, src_abs_terms(term), lump_mass, option_path)           
         end do
 
-!        do ele=1, surface_element_count(src_abs_terms(1))
-!           nn=ele_nodes(src_abs_terms(1),face_ele_scalar(src_abs_terms(1), ele))
-!           call set(src_abs_terms(1), nn, nn*0.0)
-!           n_ele= ele_neigh(src_abs_terms(1),face_ele(src_abs_terms(1), ele))
-!           do jjj=1, size(n_ele)
-!              if (n_ele(jjj) .gt. 0) then
-!                 nn=ele_nodes(src_abs_terms(1),n_ele(jjj))
-!                 call set(src_abs_terms(1), nn, nn*0.0)
-!              end if
-!           end do
-!        end do
+        do ele=1, surface_element_count(src_abs_terms(1))
+           nn=ele_nodes(src_abs_terms(1),face_ele_scalar(src_abs_terms(1), ele))
+           call set(src_abs_terms(1), nn, nn*0.0)
+           n_ele= ele_neigh(src_abs_terms(1),face_ele(src_abs_terms(1), ele))
+           do jjj=1, size(n_ele)
+              if (n_ele(jjj) .gt. 0) then
+                 nn=ele_nodes(src_abs_terms(1),n_ele(jjj))
+                 call set(src_abs_terms(1), nn, nn*0.0)
+              end if
+           end do
+        end do
 !call allocate(inv_lumped_mass, grad_u_tensor_shape%mesh)
 !lumped_mass => get_lumped_mass(state, grad_u_tensor_shape%mesh)
 !call invert(lumped_mass, inv_lumped_mass)
