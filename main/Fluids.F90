@@ -516,8 +516,9 @@ contains
           !    sfields=turbulent_scalars, &
           !    write_region_ids=.true.)
           time_turbulent = num_turb*0.01
-          if (current_time>=time_turbulent .and. (current_time-dt)<time_turbulent) then
+          if (current_time>=time_turbulent) then
              write (num_turb_padded,'(I5.5)') num_turb
+             num_turb = num_turb + 1
              if(is_active_process) then
                 if(isparallel()) then
                    filename_pvtu = parallel_filename(trim_file_extension('turbulent_fields_'//trim(num_turb_padded)//'.pvtu'),".vtu")
@@ -529,7 +530,6 @@ contains
              !print*, "nodes in turbulent_dissipation = ", node_count(turbulent_dissipation)
              call set(turbulent_dissipation, temp_scalar_1)
              call set(effective_viscosity, temp_scalar_2)
-             num_turb = num_turb + 1             
           end if
        end if
 ! ---
