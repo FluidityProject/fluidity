@@ -1484,9 +1484,9 @@ contains
     integer :: comm, tag, ierr, nprocs
     integer :: new_node_count, new_element_count, new_surface_element_count
     integer :: nhalos, nloc, snloc, nfaces, send_count, recv_size
-    integer :: no_boundary_id
+    integer :: no_boundary_id, old_node_count
     integer :: proc, ele, sele, ele_uid, ufid, i, j, ele_info_size, lface
-    logical :: has_surface_mesh
+    logical :: has_surface_mesh, all_new_nodes
 
     ewrite(1,*) "Inside expand_mesh_halo"
     nhalos = size(mesh%halos)
@@ -1502,6 +1502,7 @@ contains
     call create_global_to_universal_numbering(ele_halo)
     call get_universal_numbering_inverse(ele_halo, ueid_to_gid)
 
+    old_node_count =  node_count(mesh)
     new_node_count = key_count(uid_to_gid)
     assert(new_node_count==max_halo_receive_node(new_halo))
     new_element_count = element_count(mesh) ! we start with all existing elements
@@ -1618,9 +1619,21 @@ contains
         if (.not. has_key(ueid_to_gid, ele_uid)) then
           nodes => recv_buffer(proc)%ptr((i-1)*ele_info_size+2:(i-1)*ele_info_size+1+nloc)
           ! we're only interested in this element if we know all its nodes:
+          all_new_nodes = .true.
           do j=1, size(nodes)
             if (.not. has_key(uid_to_gid, nodes(j))) cycle ele_loop
+            all_new_nodes = all_new_nodes .and. fetch(uid_to_gid, nodes(j))>old_node_count
           end do
+          ! Additionaly, we also skip elements that consist of new nodes only - this is because
+          ! such elements can potentially become isolated (i.e. if all adjacent elements have a non-shared
+          ! node that is in an even higher level halo)
+          ! Elements consisting of the highest level halo nodes only, are not typically not needed because
+          ! even elements adjacent to elements adjacent to such elements will still consist of nodes that are either
+          ! in the highest or in the one-but-highest level halo. Thus e.g. if we're regrowing an l2-halo, 
+          ! elements adjacent to elements adjacent to an element consisting of l2-halo nodes only, still consists
+          ! of l1 or l2 halo nodes only and is thus not owned. Thus an l2-halo node only element is never in the 
+          ! level 2 *element* halo.
+          if (all_new_nodes) cycle
           new_element_count = new_element_count+1
           call insert(ueid_to_gid, ele_uid, new_element_count)
         end if
