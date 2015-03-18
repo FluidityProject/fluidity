@@ -2,13 +2,45 @@
 
 module supermesh_construction
   use fields_data_types
+#ifdef HAVE_SUPERMESH
+!  use elements, only: allocate, local_coord_count, local_vertices, &
+!                     boundary_numbering, operator(==)
+!  use libsupermesh_elements, only: element_type
+!  use elements
+!  use libsupermesh_elements, only: element_type_lib => element_type, &
+!                  real_format_lib => real_format
+
+  use libsupermesh_elements, only: element_type_lib => element_type
+  use libsupermesh_fields_data_types, mesh_faces_lib => mesh_faces, &
+                    mesh_subdomain_mesh_lib => mesh_subdomain_mesh, &
+                    scalar_field_lib => scalar_field, &
+                    vector_field_lib => vector_field, &
+                    tensor_field_lib => tensor_field, &
+  scalar_boundary_condition_lib => scalar_boundary_condition, &
+  vector_boundary_condition_lib => vector_boundary_condition, &
+  scalar_boundary_conditions_ptr_lib => scalar_boundary_conditions_ptr, &
+  vector_boundary_conditions_ptr => vector_boundary_conditions_ptr
+  use libsupermesh_construction
+#endif
   use fields_allocates
   use fields_base
+#ifdef HAVE_SUPERMESH
+!  use fields_allocates, only: deallocate, make_mesh, allocate, zero
+!  use libsupermesh_fields_allocates, make_mesh_lib => make_mesh
+  
+!  use fields_base, only: face_ngi, ele_faces, face_global_nodes, node_val, &
+!                         ele_nodes, ele_val, ele_ngi, ele_loc, &
+!                         ele_region_id, ele_shape, ele_count, &
+!                         ele_val_at_quad
+!  use libsupermesh_fields_base
+  
+!  use libsupermesh_futils, only: real_format_lib => real_format
+#endif
   use sparse_tools
   use futils
   use metric_tools
-  use linked_lists
   use unify_meshes_module
+  use linked_lists
   use transform_elements
   use global_parameters, only : real_4, real_8
   use tetrahedron_intersection_module
@@ -98,6 +130,30 @@ module supermesh_construction
     
   end subroutine intersector_get_output_sp
 
+#ifdef HAVE_SUPERMESH
+  function intersect_elements(positions_A, ele_A, posB, shape) result(intersection)
+    type(vector_field), intent(in) :: positions_A
+    integer, intent(in) :: ele_A
+    type(vector_field) :: intersection
+    type(mesh_type) :: intersection_mesh
+    type(element_type), intent(in) :: shape
+    real, dimension(:, :), intent(in) :: posB
+    
+    type(vector_field_lib) :: positions_A_lib
+    type(vector_field_lib) :: intersection_lib
+    type(element_type_lib) :: shape_lib
+    real(kind = real_4), dimension(size(posB, 1), size(posB, 2)) :: posB_lib
+    
+    positions_A_lib%dim = positions_A%dim
+    posB_lib = posB
+    
+    intersection_lib = libsupermesh_intersect_elements(positions_A_lib, ele_A, posB_lib, shape_lib)
+    
+    intersection%dim = intersection_lib%dim
+    
+    
+  end function intersect_elements
+#else
   function intersect_elements(positions_A, ele_A, posB, shape) result(intersection)
     type(vector_field), intent(in) :: positions_A
     integer, intent(in) :: ele_A
@@ -142,6 +198,7 @@ module supermesh_construction
     call deallocate(intersection_mesh)
 
   end function intersect_elements
+#endif
 
   subroutine intersector_set_exactness(exactness)
     logical, intent(in) :: exactness

@@ -580,6 +580,21 @@ contains
     
   end subroutine rtree_intersection_finder_find
   
+!#ifdef HAVE_SUPERMESH
+!  function rtree_intersection_finder(positions_a, positions_b, npredicates) result(map_ab)
+    !!< As advancing_front_intersection_finder, but uses an rtree algorithm. For
+    !!< testing *only*. For practical applications, use the linear algorithm.
+    
+    ! The positions and meshes of A and B
+!    type(vector_field), intent(in), target :: positions_a, positions_b
+!    integer, intent(out), optional :: npredicates
+    ! for each element in A, the intersecting elements in B
+!    type(ilist), dimension(ele_count(positions_a)) :: map_ab
+    
+!    libsupermesh_rtree_intersection_finder()
+    
+!  end function rtree_intersection_finder
+!#else
   function rtree_intersection_finder(positions_a, positions_b, npredicates) result(map_ab)
     !!< As advancing_front_intersection_finder, but uses an rtree algorithm. For
     !!< testing *only*. For practical applications, use the linear algorithm.
@@ -610,6 +625,7 @@ contains
     ewrite(1, *) "Exiting rtree_intersection_finder"
     
   end function rtree_intersection_finder
+!#endif
   
   subroutine verify_map(mesh_field_a, mesh_field_b, map_ab, map_ab_reference)
     !!< Verify the given intersection map against a reference map.

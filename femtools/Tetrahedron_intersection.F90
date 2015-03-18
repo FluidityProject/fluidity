@@ -3,29 +3,55 @@
 
 module tetrahedron_intersection_module
 
-#ifdef HAVE_SUPERMESH
-  use libsupermesh_elements
-  use elements, only: allocate, local_coord_count, local_vertices, &
-                      boundary_numbering 
-  use libsupermesh_vector_tools
-  use libsupermesh_fields_data_types
-!  use fields_base, only: face_ngi, ele_faces, face_global_nodes
-  use fields_base
-  use libsupermesh_fields_base
-  use libsupermesh_fields_allocates
-  use libsupermesh_fields_manipulation
-  use libsupermesh_transform_elements
-  use transform_elements, only: transform_facet_to_physical
-  use libsupermesh_tet_intersection_module
-#else
   use elements
   use vector_tools
   use fields_data_types
+#ifdef HAVE_SUPERMESH
+!  use elements, only: allocate, local_coord_count, local_vertices, &
+!                     boundary_numbering, operator(==)
+  use libsupermesh_elements, only: element_type_lib => element_type
+!  use futils
+!  use libsupermesh_futils, only: real_format_lib => real_format
+
+!  use element_numbering
+!  use libsupermesh_element_numbering, only: vertex_num_lib => vertex_num
+  
+!  use elements
+!  use libsupermesh_elements, only: element_type_lib => element_type
+
+!  use libsupermesh_vector_tools
+
+!  use fields_data_types
+  use libsupermesh_fields_data_types, mesh_faces_lib => mesh_faces, &
+                    mesh_subdomain_mesh_lib => mesh_subdomain_mesh, &
+                    scalar_field_lib => scalar_field, &
+                    vector_field_lib => vector_field, &
+                    tensor_field_lib => tensor_field, &
+  scalar_boundary_condition_lib => scalar_boundary_condition, &
+  vector_boundary_condition_lib => vector_boundary_condition, &
+  scalar_boundary_conditions_ptr_lib => scalar_boundary_conditions_ptr, &
+  vector_boundary_conditions_ptr => vector_boundary_conditions_ptr
+#endif
   use fields_base
   use fields_allocates
   use fields_manipulation
   use transform_elements
-#endif
+!  use fields_base, only: face_ngi, ele_faces, face_global_nodes, node_val, &
+!                         ele_nodes, ele_val
+!  use fields_base
+!  use libsupermesh_fields_base
+
+!  use spud
+
+!  use fields_allocates, only: deallocate, make_mesh, allocate
+!  use libsupermesh_fields_allocates, make_mesh_lib => make_mesh
+
+!  use fields_manipulation, only : addto, set_from_function, set
+!  use libsupermesh_fields_manipulation
+
+!  use transform_elements, only: transform_facet_to_physical
+!  use libsupermesh_transform_elements
+  use libsupermesh_tet_intersection_module
   implicit none
 
   type tet_type
@@ -73,13 +99,34 @@ module tetrahedron_intersection_module
     type(element_type), intent(in), optional :: surface_shape
     integer :: ele
     integer, intent(out) :: stat
-    type(libsupermesh_tet_type) :: tetAlib
-    type(libsupermesh_plane_type), dimension(:) :: planesBlib
 
-!    tetAlib = tetA
+    type(libsupermesh_tet_type) :: tetA_lib
+    type(libsupermesh_plane_type), dimension(4) :: planesB_lib
+    type(element_type_lib) :: shape_lib
+    type(vector_field_lib) :: output_lib
+    type(vector_field_lib) :: surface_positions_lib
+    type(scalar_field_lib) :: surface_colours_lib
+    type(element_type_lib) :: surface_shape_lib
+    integer :: i, j, surface_eles
+
+    tetA_lib%V = tetA%V
+    tetA_lib%colours = tetA%colours
+!    planesB_lib%normal = planesB%normal
+    planesB_lib%c = planesB%c
+
+    shape_lib%dim = shape%dim
+    shape_lib%loc = shape%loc
+    shape_lib%ngi = shape%ngi
+    shape_lib%degree = shape%degree
     
-    call libsupermesh_intersect_tets_dt(tetAlib, planesBlib, shape, stat, output,&
-surface_shape, surface_positions, surface_colours)
+    call libsupermesh_intersect_tets_dt(tetA_lib, planesB_lib, shape_lib, stat, output_lib, &
+                            surface_shape_lib, surface_positions_lib, surface_colours_lib)
+
+    output%val = output_lib%val
+    output%wrapped = output_lib%wrapped
+
+    return
+
   end subroutine intersect_tets_dt
 #else
   subroutine intersect_tets_dt(tetA, planesB, shape, stat, output, surface_shape, surface_positions, surface_colours)

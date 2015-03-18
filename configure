@@ -6355,7 +6355,7 @@ $as_echo "$as_me: Checking for SuperMesh library" >&6;}
 $as_echo "$as_me: checking the position of the stars to help find a version of SuperMesh" >&6;}
     as_fn_error $? "\"Cannot identify SuperMesh. Check that it is installed.\"" "$LINENO" 5
   else
-    echo "#define HAVE_SUPERMESH 1" >> include/confdefs.h
+    echo "#define HAVE_SUPERMESH 1" >> confdefs.h
   fi
 fi
 

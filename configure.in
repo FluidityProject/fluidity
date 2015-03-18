@@ -245,7 +245,7 @@ found_supermesh="no"
     AC_MSG_NOTICE([checking the position of the stars to help find a version of SuperMesh])
     AC_MSG_ERROR("Cannot identify SuperMesh. Check that it is installed.")
   else
-    echo "#define HAVE_SUPERMESH 1" >> include/confdefs.h
+    echo "#define HAVE_SUPERMESH 1" >> confdefs.h
   fi
 fi
 
