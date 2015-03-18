@@ -73,7 +73,7 @@ NetCDF_reader::NetCDF_reader(const char *filename, bool _verbose){
           data_source = coards;
         }else if(string("COARDS/CF-1.0").compare(Conventions)==0){
           data_source = coards_cf10;
-        }else if(string("COARDS, CF-1.5").compare(Conventions)==0{
+        }else if(string("COARDS, CF-1.5").compare(Conventions)==0){
 	    data_source=coards_cf10;
 	  }
         delete [] Conventions;
