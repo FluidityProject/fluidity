@@ -324,13 +324,12 @@ def ReadMsh(filename):
       eleId = int(lineSplit[0])
       assert(eleId > 0)
       typeId = int(lineSplit[1])
-      nIds = int(lineSplit[3])
+      nIds = int(lineSplit[2])
       
       type = GmshElementType(gmshElementTypeId = typeId)
       ids = [int(id) for id in lineSplit[3:3 + nIds]]
       nodes = FromGmshNodeOrder([int(node) - 1 for node in lineSplit[-type.GetNodeCount():]], type)
       element = elements.Element(nodes, ids)
-      
       if type.GetDim() == dim - 1:
         mesh.AddSurfaceElement(element)
       elif type.GetDim() == dim:
