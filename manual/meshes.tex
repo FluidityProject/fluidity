@@ -192,24 +192,31 @@ The following binaries will then be created in the \lstinline+bin/+ directory (s
 \index{mesh!meshing tools!mesh verification}
 
 The \lstinline[language = Bash]+checkmesh+ tool can be used to form a number of verification tests on a mesh
-in triangle mesh format. More information can be found in section~\ref{sec:checkmesh}.
+in gmsh mesh format. More information can be found in section~\ref{sec:checkmesh}.
 
 \subsection{Mesh creation}
 \index{mesh!meshing tools!mesh creation}
-The \lstinline[language = bash]+interval+ tool (section~\ref{sec:interval}) generates a 1D line mesh in triangle format. 
+The \lstinline[language = bash]+interval+ tool (section~\ref{sec:interval}) generates a 1D line mesh in gmsh format.
 
-The \lstinline[language = bash]+gen_square_meshes+ tool (section~\ref{sec:gen_square_meshes})  will generate triangle files for multiple 2D square meshes with a specified number of internal nodes.
+The \lstinline[language = bash]+gen_square_meshes+ tool (section~\ref{sec:gen_square_meshes})  will generate gmsh files for multiple 2D square meshes with a specified number of internal nodes.
 
-The \lstinline[language = bash]+create_aligned_mesh+ tool (section~\ref{sec:create_aligned_mesh}) creates the triangle files for a mesh that lines up in all directions, so that it can be made it into a singly, doubly or triply periodic mesh.
+The \lstinline[language = bash]+create_aligned_mesh+ tool (section~\ref{sec:create_aligned_mesh}) creates the gmsh files for a mesh that lines up in all directions, so that it can be made it into a singly, doubly or triply periodic mesh.
 
 \subsection{Mesh conversion}
 \index{mesh!meshing tools!mesh conversion}
 
+The \lstinline[language = Bash]+meshconv+ tool (section~\ref{sec:meshconv}) converts ExodusII format mesh files into Gmsh format.
+
 The \lstinline[language = Bash]+triangle2gmsh+ tool (section~\ref{sec:triangle2gmsh}) converts legacy Triangle format mesh files to the Gmsh format.
 
-The \lstinline[language = Bash]+triangle2vtu+ tool (section~\ref{sec:triangle2vtu}) can be used to convert triangle format files into vtu format. 
+%The \lstinline[language = Bash]+triangle2vtu+ tool (section~\ref{sec:triangle2vtu}) can be used to convert triangle format files into vtu format.
+The \lstinline[language = Bash]+gmsh2vtu+ tool (section~\ref{sec:gmsh2vtu}) can be used to convert Gmsh format files into vtu format.
 
-The \lstinline[language = Bash]+gmsh_mesh_transform+ script (section~\ref{sec:gmsh_mesh_transform}) applies a coordinate transformation to a region of a given mesh. 
+The \lstinline[language = Bash]+vtu2gmsh+ tool (section~\ref{sec:vtu2gmsh}) can be used to convert vtu format files into Gmsh format.
+
+The \lstinline[language = Bash]+gmsh_mesh_transform+ script (section~\ref{sec:gmsh_mesh_transform}) applies a coordinate transformation to a region of a given mesh.
+
+
 
 \subsection{Decomposing meshes for parallel}
 \label{decomp_meshes_parallel}
