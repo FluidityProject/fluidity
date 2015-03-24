@@ -29,6 +29,7 @@
 
 module fluids_module
 
+  use mpi_interfaces
   use vtk_cache_module
   use AuxilaryOptions
   use MeshDiagnostics
@@ -177,13 +178,19 @@ contains
 
     !     backward compatibility with new option structure - crgw 21/12/07
     logical::use_advdif=.true.  ! decide whether we enter advdif or not
-    type(scalar_field), pointer :: temp_scalar_1, temp_scalar_2, turbulent_dissipation, effective_viscosity
-    !type(scalar_field), dimension(2) :: turbulent_scalars
-    !type(mesh_type), pointer :: model_mesh
-    integer :: num_turb
+    type(scalar_field), pointer :: temp_scalar_1, temp_scalar_2, temp_scalar_3, &
+                                   turbulent_dissipation, effective_viscosity, air_effective_viscosity
+    type(scalar_field) :: eff_visc_remap, air_eff_visc_remap
+    type(tensor_field), pointer :: water_visc, air_visc
+    type(scalar_field), dimension(3) :: turbulent_scalars
+    type(mesh_type), pointer :: model_mesh
+    integer :: num_turb, stat
     real :: time_turbulent
     character (len=5) :: num_turb_padded
     INTEGER :: adapt_count
+    character(len=200)::command
+    real::zero_value
+    integer :: ierr
 
     ! Absolute first thing: check that the options, if present, are valid.
     call check_options
@@ -458,6 +465,34 @@ contains
        call set(turbulent_dissipation, 1.0e-8) 
        effective_viscosity=>extract_scalar_field(state(1),"EffectiveViscosity")
        call set(effective_viscosity, 0.00101)
+!       air_effective_viscosity=>extract_scalar_field(state(2),"AirEffectiveViscosity")
+!       call set(air_effective_viscosity, 1.254e-5)
+!       water_visc=>extract_tensor_field(state(1),"Viscosity")
+!       air_visc=>extract_tensor_field(state(2),"Viscosity")
+
+!       !allocate remap fields
+!       call allocate(eff_visc_remap,water_visc%mesh,"RemappedEffectiveViscosity")
+!       call allocate(air_eff_visc_remap,air_visc%mesh,"RemappedAirEffectiveViscosity")
+
+!       ! remap scalar viscosities onto Viscosity mesh
+!       call remap_field(effective_viscosity,eff_visc_remap, stat)
+!       if (stat/=0) then
+!          FLExit('There was some problem remapping the continuous effective viscosity to discontinuous mesh')
+!       end if
+!       call remap_field(air_effective_viscosity, air_eff_visc_remap, stat)
+!       if (stat/=0) then
+!          FLExit('There was some problem remapping the continuous effective viscosity to discontinuous mesh')
+!       end if
+
+!       call zero(air_visc)
+!       call zero(water_visc)
+!       do i=1, air_visc%dim(1)
+!       call set(air_visc, i, i, air_eff_visc_remap)
+!       call set(water_visc, i, i, eff_visc_remap)
+!       end do
+
+!       call deallocate(eff_visc_remap)
+!       call deallocate(air_eff_visc_remap)
        num_turb = 1
     end if
     !---------
@@ -506,9 +541,10 @@ contains
 ! gb812       
        if (have_option("/extract_turbulent_fields_from_fluent")) then
           ! Writes turbulent_fields.pvtu containing TurbulentDissipationRate
-          ! and EffectiveViscosity
+          ! and EffectiveViscosity and AirEffectiveViscosity
           !turbulent_scalars(1)=extract_scalar_field(state(1),"TurbulentDissipationRate")
           !turbulent_scalars(2)=extract_scalar_field(state(1),"EffectiveViscosity")
+          !turbulent_scalars(3)=extract_scalar_field(state(2),"AirEffectiveViscosity")
           !model_mesh => extract_mesh(state(1), "CoordinateMesh")
           !call vtk_write_fields("turbulent_fields", & 
           !    position=extract_vector_field(state(1),"Coordinate"), &
@@ -519,17 +555,73 @@ contains
           if (current_time>=time_turbulent) then
              write (num_turb_padded,'(I5.5)') num_turb
              num_turb = num_turb + 1
-             if(is_active_process) then
+             ! Write a vtu first if adaptivity is present
+             if(have_option("/extract_turbulent_fields_from_fluent/adaptivity_present")) then
+                turbulent_scalars(1)=extract_scalar_field(state(1),"TurbulentDissipationRate")
+                turbulent_scalars(2)=extract_scalar_field(state(1),"EffectiveViscosity")
+                model_mesh => extract_mesh(state(1), "CoordinateMesh")
+                call vtk_write_fields("turbulent_fields", & 
+                    position=extract_vector_field(state(1),"Coordinate"), &
+                    model=model_mesh,  &
+                    sfields=turbulent_scalars, &
+                    write_region_ids=.true.)
+              end if
+
+              ! If adaptivity present, then run a script to interpolate Fluent turbulence fields on to vtu mesh
+              if(getrank()==0) then
+                 print*, "running command"
+                 command = "python fluent_interpolate.py "//trim(num_turb_padded) ! the python script to run
+                 call system(command)
+              end if
+              if(isparallel()) then
+                 call mpi_bcast(zero_value, 1, getpreal(), 0, MPI_COMM_WORLD, ierr)
+                 assert(ierr == MPI_SUCCESS)
+              end if
+
+              if(is_active_process) then
                 if(isparallel()) then
-                   filename_pvtu = parallel_filename(trim_file_extension('turbulent_fields_'//trim(num_turb_padded)//'.pvtu'),".vtu")
+                   if(have_option("/extract_turbulent_fields_from_fluent/adaptivity_present")) then
+                      filename_pvtu = parallel_filename(trim_file_extension('turbulent_fields.pvtu'),".vtu")
+                   else
+                      filename_pvtu = parallel_filename(trim_file_extension('turbulent_fields_'//trim(num_turb_padded)//'.pvtu'),".vtu")
+                   end if
                 end if
                 temp_scalar_1 =>vtk_cache_read_scalar_field(filename_pvtu,'TurbulentDissipationRate')
                 temp_scalar_2 =>vtk_cache_read_scalar_field(filename_pvtu,'EffectiveViscosity')
+!                temp_scalar_3 =>vtk_cache_read_scalar_field(filename_pvtu,'AirEffectiveViscosity')
              end if
              !print*, "nodes in temp scalar 2 = ", node_count(temp_scalar_2)
              !print*, "nodes in turbulent_dissipation = ", node_count(turbulent_dissipation)
              call set(turbulent_dissipation, temp_scalar_1)
              call set(effective_viscosity, temp_scalar_2)
+!             call set(air_effective_viscosity, temp_scalar_3)
+!             water_visc=>extract_tensor_field(state(1),"Viscosity")
+!             air_visc=>extract_tensor_field(state(2),"Viscosity")
+
+!             !allocate remap fields
+!             call allocate(eff_visc_remap,water_visc%mesh,"RemappedEffectiveViscosity")
+!             call allocate(air_eff_visc_remap,air_visc%mesh,"RemappedAirEffectiveViscosity")
+
+!             ! remap scalar viscosities onto Viscosity mesh
+!             call remap_field(effective_viscosity,eff_visc_remap, stat)
+!             if (stat/=0) then
+!                FLExit('There was some problem remapping the continuous effective viscosity to discontinuous mesh')
+!             end if
+!             call remap_field(air_effective_viscosity, air_eff_visc_remap, stat)
+!             if (stat/=0) then
+!                FLExit('There was some problem remapping the continuous effective viscosity to discontinuous mesh')
+!             end if
+
+!             call zero(air_visc)
+!             call zero(water_visc)
+!             do i=1, air_visc%dim(1)
+!                call set(air_visc, i, i, air_eff_visc_remap)
+!                call set(water_visc, i, i, eff_visc_remap)
+!             end do
+
+!             call deallocate(eff_visc_remap)
+!             call deallocate(air_eff_visc_remap)
+
           end if
        end if
 ! ---
