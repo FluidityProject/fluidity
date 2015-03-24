@@ -2564,7 +2564,11 @@ while a factor of 1 represents a connected domain.</a:documentation>
       </optional>
       <optional>
         <element name="extract_turbulent_fields_from_fluent">
-          <empty/>
+          <optional>
+            <element name="adaptivity_present">
+              <empty/>
+            </element>
+          </optional>
         </element>
       </optional>
       <optional>
