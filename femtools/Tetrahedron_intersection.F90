@@ -27,31 +27,30 @@ module tetrahedron_intersection_module
                     scalar_field_lib => scalar_field, &
                     vector_field_lib => vector_field, &
                     tensor_field_lib => tensor_field, &
+                    mesh_type_lib => libsupermesh_mesh_type, &
   scalar_boundary_condition_lib => scalar_boundary_condition, &
   vector_boundary_condition_lib => vector_boundary_condition, &
   scalar_boundary_conditions_ptr_lib => scalar_boundary_conditions_ptr, &
   vector_boundary_conditions_ptr => vector_boundary_conditions_ptr
+  use libsupermesh_fields_allocates, only : allocate, deallocate
+  use libsupermesh_fields_base, only : ele_count_lib => ele_count, &
+                                      node_count_lib => node_count
+  use libsupermesh_tet_intersection_module, only : libsupermesh_tet_type, &
+                               & libsupermesh_plane_type, &
+                               & libsupermesh_intersect_tets_dt, &
+                               get_planes_lib => get_planes
+  use libsupermesh_quadrature, only : &
+                    quadrature_type_lib => quadrature_type, &
+                    make_quadrature_lib => make_quadrature, &
+                    deallocate
+  use libsupermesh_shape_functions, only : &
+                    make_element_shape_lib => make_element_shape, &
+                    deallocate
 #endif
   use fields_base
   use fields_allocates
   use fields_manipulation
   use transform_elements
-!  use fields_base, only: face_ngi, ele_faces, face_global_nodes, node_val, &
-!                         ele_nodes, ele_val
-!  use fields_base
-!  use libsupermesh_fields_base
-
-!  use spud
-
-!  use fields_allocates, only: deallocate, make_mesh, allocate
-!  use libsupermesh_fields_allocates, make_mesh_lib => make_mesh
-
-!  use fields_manipulation, only : addto, set_from_function, set
-!  use libsupermesh_fields_manipulation
-
-!  use transform_elements, only: transform_facet_to_physical
-!  use libsupermesh_transform_elements
-  use libsupermesh_tet_intersection_module
   implicit none
 
   type tet_type
@@ -102,28 +101,59 @@ module tetrahedron_intersection_module
 
     type(libsupermesh_tet_type) :: tetA_lib
     type(libsupermesh_plane_type), dimension(4) :: planesB_lib
-    type(element_type_lib) :: shape_lib
+!    type(libsupermesh_plane_type), dimension(:), allocatable :: planesB_lib
+    type(element_type_lib) :: shape_lib, shape_lib_temp
     type(vector_field_lib) :: output_lib
     type(vector_field_lib) :: surface_positions_lib
     type(scalar_field_lib) :: surface_colours_lib
     type(element_type_lib) :: surface_shape_lib
+    type(mesh_type_lib) :: mesh_lib
+    type(mesh_type) :: new_mesh
+    type(element_type) :: new_shape
+    type(quadrature_type) :: new_quad
+    
+    type(quadrature_type_lib) :: quad_lib, quad_lib_temp
     integer :: i, j, surface_eles
-
+    integer :: ele_A
+    type(tet_type) :: tet_A, tet_B
+    integer :: dim
+    
+    if (present(surface_colours) .or. present(surface_positions) .or. present(surface_shape)) then
+      assert(present(surface_positions))
+      assert(present(surface_colours))
+      assert(present(surface_shape))
+    end if
+    
     tetA_lib%V = tetA%V
     tetA_lib%colours = tetA%colours
-!    planesB_lib%normal = planesB%normal
-    planesB_lib%c = planesB%c
-
-    shape_lib%dim = shape%dim
-    shape_lib%loc = shape%loc
-    shape_lib%ngi = shape%ngi
-    shape_lib%degree = shape%degree
     
-    call libsupermesh_intersect_tets_dt(tetA_lib, planesB_lib, shape_lib, stat, output_lib, &
-                            surface_shape_lib, surface_positions_lib, surface_colours_lib)
+!    allocate(planesB_lib(4))
+!    planesB_lib%normal = planesB%normal
+    FORALL(i=1:3) planesB_lib%normal(i)=planesB%normal(i)
+    planesB_lib%c = planesB%c
+    
+    quad_lib = make_quadrature_lib(vertices = shape%quadrature%vertices, dim = shape%quadrature%dim, ngi = shape%quadrature%ngi, degree = shape%quadrature%degree)
+    shape_lib = make_element_shape_lib(vertices = shape%loc, dim = shape%dim, degree = shape%degree, quad = quad_lib)
+    call deallocate(quad_lib)
+    
+!    call libsupermesh_intersect_tets_dt(tetA_lib, planesB_lib, shape_lib, stat, output_lib, &
+!                            surface_shape_lib, surface_positions_lib, surface_colours_lib)
+    call libsupermesh_intersect_tets_dt(tetA_lib, planesB_lib, shape_lib, stat = stat, output = output_lib)
+    if (stat == 1) then
+      return
+    end if
 
+    new_quad = make_quadrature(vertices = output_lib%mesh%shape%quadrature%vertices, dim = output_lib%mesh%shape%quadrature%dim, ngi = output_lib%mesh%shape%quadrature%ngi, degree = output_lib%mesh%shape%quadrature%degree)
+    new_shape = make_element_shape(vertices = output_lib%mesh%shape%loc, dim = output_lib%mesh%shape%dim, degree = output_lib%mesh%shape%degree, quad = new_quad)
+    call deallocate(new_quad)
+    
+    call allocate(new_mesh, node_count_lib(output_lib), ele_count_lib(output_lib), new_shape)
+       
+    FORALL(i=1:size(new_mesh%ndglno)) new_mesh%ndglno(i)=output_lib%mesh%ndglno(i)
+    
+    call allocate(output, output_lib%dim, new_mesh, name = output_lib%name)
     output%val = output_lib%val
-    output%wrapped = output_lib%wrapped
+    call deallocate(new_mesh)
 
     return
 

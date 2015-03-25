@@ -16,11 +16,24 @@ module supermesh_construction
                     scalar_field_lib => scalar_field, &
                     vector_field_lib => vector_field, &
                     tensor_field_lib => tensor_field, &
+                    mesh_type_lib => libsupermesh_mesh_type, &
   scalar_boundary_condition_lib => scalar_boundary_condition, &
   vector_boundary_condition_lib => vector_boundary_condition, &
   scalar_boundary_conditions_ptr_lib => scalar_boundary_conditions_ptr, &
   vector_boundary_conditions_ptr => vector_boundary_conditions_ptr
+  use libsupermesh_fields_allocates, only : allocate, deallocate
+  use libsupermesh_fields_base, only : ele_count_lib => ele_count, &
+                    node_count_lib => node_count, &
+                    ele_val_lib => ele_val, &
+                    ele_loc_lib => ele_loc
   use libsupermesh_construction
+  use libsupermesh_quadrature, only : &
+                    quadrature_type_lib => quadrature_type, &
+                    make_quadrature_lib => make_quadrature, &
+                    deallocate
+  use libsupermesh_shape_functions, only : &
+                    make_element_shape_lib => make_element_shape, &
+                    deallocate
 #endif
   use fields_allocates
   use fields_base
@@ -81,6 +94,21 @@ module supermesh_construction
     end subroutine cintersector_get_output
   end interface cintersector_get_output
 
+#ifdef HAVE_SUPERMESH
+  interface intersector_set_dimension
+    subroutine libsupermesh_cintersector_set_dimension(ndim)
+      implicit none
+      integer, intent(in) :: ndim
+    end subroutine libsupermesh_cintersector_set_dimension
+  end interface intersector_set_dimension
+
+  interface 
+    subroutine libsupermesh_cintersector_set_exactness(exact)
+      implicit none
+      integer, intent(in) :: exact
+    end subroutine libsupermesh_cintersector_set_exactness
+  end interface
+#else
   interface intersector_set_dimension
     subroutine cintersector_set_dimension(ndim)
       implicit none
@@ -94,6 +122,7 @@ module supermesh_construction
       integer, intent(in) :: exact
     end subroutine cintersector_set_exactness
   end interface
+#endif
   
   ! I hope this is big enough ...
   real, dimension(1024) :: nodes_tmp
@@ -103,6 +132,10 @@ module supermesh_construction
   public :: construct_supermesh, compute_projection_error, intersector_exactness
   private
 
+  ! IAKOVOS REMOVE THIS
+  character(len=100), save, public :: test_error_message=""
+  
+  
   contains
   
   subroutine intersector_set_input_sp(nodes_A, nodes_B, ndim, loc)
@@ -141,16 +174,52 @@ module supermesh_construction
     
     type(vector_field_lib) :: positions_A_lib
     type(vector_field_lib) :: intersection_lib
-    type(element_type_lib) :: shape_lib
-    real(kind = real_4), dimension(size(posB, 1), size(posB, 2)) :: posB_lib
+    type(element_type_lib) :: shape_lib, shape_lib_temp
+    type(quadrature_type_lib) :: quad_lib
+    type(mesh_type_lib) :: mesh_lib
+    type(mesh_type) :: new_mesh
     
+    integer :: dim, loc, dim_lib, loc_lib
+    
+    integer :: dim_libbb, vertices_libbb, ele_count_libbb, node_count_libbb, ele_count_libbb_mesh
+    dim_libbb = mesh_dim(positions_A)
+    vertices_libbb = ele_loc(positions_A, 1)
+    ele_count_libbb = ele_count(positions_A)
+    node_count_libbb = node_count(positions_A)
+    
+!    quad_lib = make_quadrature_lib(vertices = positions_A%dim + 2, dim = positions_A%dim + 1, degree = positions_A%mesh%shape%degree * 2) ! JAMES
+!    shape_lib = make_element_shape_lib(vertices = positions_A%dim + 1, dim = positions_A%dim, degree = positions_A%mesh%shape%degree, quad = quad_lib) ! JAMES
+
+!    quad_lib = make_quadrature_lib(vertices = positions_A%mesh%shape%quadrature%vertices, dim = positions_A%mesh%shape%quadrature%dim, ngi = positions_A%mesh%shape%quadrature%ngi, degree = positions_A%mesh%shape%quadrature%degree * 2)
+    quad_lib = make_quadrature_lib(vertices = positions_A%mesh%shape%quadrature%vertices, dim = positions_A%mesh%shape%quadrature%dim, ngi = positions_A%mesh%shape%quadrature%ngi, degree = positions_A%mesh%shape%degree * 2)
+    shape_lib_temp = make_element_shape_lib(vertices = positions_A%mesh%shape%loc, dim = positions_A%mesh%shape%dim, degree = positions_A%mesh%shape%degree, quad = quad_lib)
+    call deallocate(quad_lib)
+    
+    call allocate(mesh_lib, node_count(positions_A), ele_count(positions_A), shape_lib_temp)
+    mesh_lib%ndglno = positions_A%mesh%ndglno
+    call allocate(positions_A_lib, positions_A%dim, mesh_lib)
+ 
+    allocate(positions_A_lib%val(size(positions_A%val, 1), size(positions_A%val, 2)))
+    positions_A_lib%val = positions_A%val 
     positions_A_lib%dim = positions_A%dim
-    posB_lib = posB
     
-    intersection_lib = libsupermesh_intersect_elements(positions_A_lib, ele_A, posB_lib, shape_lib)
+!    quad_lib = make_quadrature_lib(vertices = shape%quadrature%vertices, dim = shape%quadrature%dim, ngi = shape%quadrature%ngi, degree = shape%quadrature%degree)
+    quad_lib = make_quadrature_lib(vertices = shape%quadrature%vertices, dim = shape%quadrature%dim, ngi = shape%quadrature%ngi, degree = shape%degree * 2)
+    shape_lib = make_element_shape_lib(vertices = shape%loc, dim = shape%dim, degree = shape%degree, quad = quad_lib)
+       
+    intersection_lib = libsupermesh_intersect_elements(positions_A_lib, ele_A, posB, shape_lib)
     
-    intersection%dim = intersection_lib%dim
+    call deallocate(shape_lib)
+    call deallocate(mesh_lib)
+    call deallocate(positions_A_lib)
+
+    call allocate(new_mesh, node_count_lib(intersection_lib), ele_count_lib(intersection_lib), shape)
+    new_mesh%ndglno = intersection_lib%mesh%ndglno
+    new_mesh%continuity = intersection_lib%mesh%continuity
     
+    call allocate(intersection, intersection_lib%dim, new_mesh, name = intersection_lib%name)
+    intersection%val = intersection_lib%val
+    call deallocate(new_mesh)
     
   end function intersect_elements
 #else
@@ -200,6 +269,13 @@ module supermesh_construction
   end function intersect_elements
 #endif
 
+#ifdef HAVE_SUPERMESH
+  subroutine intersector_set_exactness(exactness)
+    logical, intent(in) :: exactness
+    
+    call libsupermesh_intersector_set_exactness(exactness)
+  end subroutine intersector_set_exactness
+#else
   subroutine intersector_set_exactness(exactness)
     logical, intent(in) :: exactness
     integer :: exact
@@ -213,6 +289,7 @@ module supermesh_construction
 
     call cintersector_set_exactness(exact)
   end subroutine intersector_set_exactness
+#endif
 
   ! A higher-level interface to supermesh construction.
   subroutine construct_supermesh(new_positions, ele_B, old_positions, map_BA, supermesh_shape, supermesh)
