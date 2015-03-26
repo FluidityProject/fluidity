@@ -62,7 +62,7 @@ subroutine test_quad_quadrature
   !           1 7 9         1  2
   call allocate(tri_mesh, 9, 2, tri_shape, "TwoElementMesh")
   call set_ele_nodes(tri_mesh, 1, (/ 1,2,3,4,5,6 /))
-  call set_ele_nodes(tri_mesh, 2, (/ 1,2,3,7,8,9 /))
+  call set_ele_nodes(tri_mesh, 2, (/ 3,2,1,8,7,9 /))
 
   ! and 2D positions field on it
   call allocate(tri_X, 2, tri_mesh, "Coordinate")
@@ -74,7 +74,7 @@ subroutine test_quad_quadrature
   call set(tri_X, 6, node_val(quad_X, 3))
   call set(tri_X, 7, (node_val(quad_X, 1)+node_val(quad_X,2))/2.0)
   call set(tri_X, 8, (node_val(quad_X, 2)+node_val(quad_X,4))/2.0)
-  call set(tri_X, 9, node_val(quad_X, 4))
+  call set(tri_X, 9, node_val(quad_X, 2))
 
   !compute the mass matrix using triangular quadrature
   call compute_jacobian(tri_X, 1, J=J_tri,detwei=detwei_tri)
@@ -85,8 +85,7 @@ subroutine test_quad_quadrature
   local2global(2,:) = (/0.,0.25,0.,0.,0.,0./)
   local2global(3,:) = (/0.,0.25,0.,0.5,0.5,1./)
   local2global(4,:) = (/0.,0.25,1.,0.,0.5,0./)
-  global_tri_mass = global_tri_mass + &
-       matmul(local2global,matmul(l_tri_mass,transpose(local2global)))
+  global_tri_mass = matmul(local2global,matmul(l_tri_mass,transpose(local2global)))
 
   call compute_jacobian(tri_X, 2, J=J_tri,detwei=detwei_tri)
   l_tri_mass = shape_shape(tri_shape,tri_shape,detwei_tri)
