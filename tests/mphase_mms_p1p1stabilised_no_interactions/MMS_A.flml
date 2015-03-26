@@ -123,11 +123,11 @@
             <stress_terms>
               <tensor_form/>
             </stress_terms>
+            <buoyancy/>
           </continuous_galerkin>
           <conservative_advection>
             <real_value rank="0">0.0</real_value>
           </conservative_advection>
-          <buoyancy/>
         </spatial_discretisation>
         <temporal_discretisation>
           <theta>
@@ -448,11 +448,11 @@ mass*rho*v_t + adv*rho*(u*v_x+v*v_y + beta*(v*u_x + v*v_y)) + p_y - nu*v_xx - nu
             <stress_terms>
               <tensor_form/>
             </stress_terms>
+            <buoyancy/>
           </continuous_galerkin>
           <conservative_advection>
             <real_value rank="0">0.0</real_value>
           </conservative_advection>
-          <buoyancy/>
         </spatial_discretisation>
         <temporal_discretisation>
           <theta>

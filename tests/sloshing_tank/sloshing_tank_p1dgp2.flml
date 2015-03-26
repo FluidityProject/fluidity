@@ -290,11 +290,11 @@ def val(X, t):
                 <twice/>
               </integrate_advection_by_parts>
             </advection_scheme>
+            <buoyancy/>
           </discontinuous_galerkin>
           <conservative_advection>
             <real_value rank="0">0</real_value>
           </conservative_advection>
-          <buoyancy/>
         </spatial_discretisation>
         <temporal_discretisation>
           <theta>

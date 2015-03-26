@@ -393,7 +393,7 @@
       end if
       ewrite_minmax(buoyancy)
 
-      radial_gravity = have_option(trim(u%option_path)//"/prognostic/spatial_discretisation"//&
+      radial_gravity = have_option(trim(u%option_path)//"/prognostic/spatial_discretisation/continuous_galerkin"//&
          &"/buoyancy/radial_gravity_direction_at_gauss_points")
 
       ! Splits up the Density and Pressure fields into a hydrostatic component (') and a perturbed component (''). 

@@ -217,11 +217,11 @@ u_ref = sqrt(p/rho_g)</comment>
             <stress_terms>
               <stress_form/>
             </stress_terms>
+            <buoyancy/>
           </continuous_galerkin>
           <conservative_advection>
             <real_value rank="0">0.0</real_value>
           </conservative_advection>
-          <buoyancy/>
         </spatial_discretisation>
         <temporal_discretisation>
           <theta>
@@ -477,11 +477,11 @@ InternalEnergy needed for a Pressure of 1.013e5 = 205894.308943</comment>
             <stress_terms>
               <tensor_form/>
             </stress_terms>
+            <buoyancy/>
           </continuous_galerkin>
           <conservative_advection>
             <real_value rank="0">0.0</real_value>
           </conservative_advection>
-          <buoyancy/>
         </spatial_discretisation>
         <temporal_discretisation>
           <theta>
