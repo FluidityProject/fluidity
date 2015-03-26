@@ -41,26 +41,26 @@ compare_variable(max_velocity_magn[0], max_llv_velocity_magn[0], 1e-10)</test>
     <test name="correct_velocity_transformation_atEnd" language="python">from fluidity_tools import compare_variable
 compare_variable(max_velocity_magn[-1], max_llv_velocity_magn[-1], 1e-10)</test>
     <test name="zero_max_velocity_magn" language="python">from fluidity_tools import compare_variable
-compare_variable(max_velocity_magn[-1], 0.0, 1e-10, zerotol=1e-10)</test>
+compare_variable(max_velocity_magn[-1], 0.0, 1e-9, zerotol=1e-8)</test>
     <test name="zero_max_llv_velocity_magn" language="python">from fluidity_tools import compare_variable
-compare_variable(max_llv_velocity_magn[-1], 0.0, 1e-10, zerotol=1e-10)</test>
+compare_variable(max_llv_velocity_magn[-1], 0.0, 1e-9, zerotol=1e-8)</test>
     <test name="max_temperature_retention" language="python">#The temprerature equation has no diffusivity, we expect only numerical diffusion.
 from fluidity_tools import compare_variable
-compare_variable(max_temperature[-1], max_temperature[0], 1e-9)</test>
+compare_variable(max_temperature[-1], max_temperature[0], 1e-8)</test>
     <test name="min_temperature_retention" language="python">#The temprerature equation has no diffusivity, we expect only numerical diffusion.
 from fluidity_tools import compare_variable
-compare_variable(min_temperature[-1], min_temperature[0], 1e-9)</test>
+compare_variable(min_temperature[-1], min_temperature[0], 1e-8)</test>
     <test name="l2norm_temperature_retention" language="python">#The temprerature equation has no diffusivity, we expect only numerical diffusion.
 from fluidity_tools import compare_variable
-compare_variable(l2norm_temperature[-1], l2norm_temperature[0], 1e-11)</test>
+compare_variable(l2norm_temperature[-1], l2norm_temperature[0], 1e-10)</test>
     <test name="max_salinity_retention" language="python">#The salinity equation has no diffusivity, and salinity is initialised to a uniform distribution!
 from fluidity_tools import compare_variable
-compare_variable(max_salinity[-1], max_salinity[0], 1e-11)</test>
+compare_variable(max_salinity[-1], max_salinity[0], 1e-10)</test>
     <test name="min_salinity_retention" language="python">#The salinity equation has no diffusivity, and salinity is initialised to a uniform distribution!
 from fluidity_tools import compare_variable
-compare_variable(min_salinity[-1], min_salinity[0], 1e-11)</test>
+compare_variable(min_salinity[-1], min_salinity[0], 1e-10)</test>
     <test name="l2norm_salinity_retention" language="python">#The salinity equation has no diffusivity, and salinity is initialised to a uniform distribution!
 from fluidity_tools import compare_variable
-compare_variable(l2norm_salinity[-1], l2norm_salinity[0], 1e-11)</test>
+compare_variable(l2norm_salinity[-1], l2norm_salinity[0], 1e-10)</test>
   </pass_tests>
 </testproblem>
