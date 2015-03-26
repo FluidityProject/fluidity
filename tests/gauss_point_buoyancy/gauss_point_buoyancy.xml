@@ -1,0 +1,24 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>Test of buoyancy at gauss points.</name>
+  <owner userid="cwilson"/>
+  <problem_definition length="special" nprocs="1">
+    <command_line>fluidity -v3 -l nodal_2d.flml; fluidity -v3 -l gauss_2d.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="nodal_2d_pressure_error" language="python">from fluidity_tools import stat_parser
+stat = stat_parser("nodal_2d.stat")
+nodal_2d_pressure_error = stat["State"]["AbsoluteDifferencePressure"]["l2norm"][-1]</variable>
+    <variable name="gauss_2d_pressure_error" language="python">from fluidity_tools import stat_parser
+stat = stat_parser("gauss_2d.stat")
+gauss_2d_pressure_error = stat["State"]["AbsoluteDifferencePressure"]["l2norm"][-1]</variable>
+    <variable name="nodal_2d_velocity_error" language="python">from fluidity_tools import stat_parser
+stat = stat_parser("nodal_2d.stat")
+nodal_2d_velocity_error = stat["State"]["Velocity%magnitude"]["l2norm"][-1]</variable>
+    <variable name="gauss_2d_velocity_error" language="python">from fluidity_tools import stat_parser
+stat = stat_parser("gauss_2d.stat")
+gauss_2d_velocity_error = stat["State"]["Velocity%magnitude"]["l2norm"][-1]</variable>
+  </variables>
+  <pass_tests/>
+  <warn_tests/>
+</testproblem>
