@@ -2953,7 +2953,7 @@ field_output_options =
          element exclude_from_vtu {
             comment
          }?,
-         ## To be used with time-averaged diagnostic fields so that they can be checkpointed.
+         ## Field will be checkpointed (this is not performed by default).
          element checkpoint {
             empty
          }?
