@@ -13,7 +13,7 @@ Function DrawParallel
  BSpline(newParallelID) = {firstPointOnParallel, newPointOnParallel-(pointsOnParallel-1):newPointOnParallel, lastPointOnParallel};
 Return
 
-//The coordinates of various points on the Surface of the Earth are converted to radians 
+//The coordinates of various points on the Surface of the Earth are converted to radians
 // and stereographic coordinates below. The geometry drawn is a square (in lon-lat space)
 // centered about the intersection of the Equator and the Greenwich meridian.
 
