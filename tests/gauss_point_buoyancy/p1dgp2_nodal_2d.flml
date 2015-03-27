@@ -13,6 +13,11 @@
     <mesh name="CoordinateMesh">
       <from_mesh>
         <mesh name="InputMesh"/>
+        <mesh_shape>
+          <polynomial_degree>
+            <integer_value rank="0">2</integer_value>
+          </polynomial_degree>
+        </mesh_shape>
         <stat>
           <exclude_from_stat/>
         </stat>
@@ -71,6 +76,10 @@
         <integer_value rank="0">5</integer_value>
       </degree>
     </quadrature>
+    <spherical_earth>
+      <superparametric_mapping/>
+      <analytical_mapping/>
+    </spherical_earth>
   </geometry>
   <io>
     <dump_format>
@@ -234,22 +243,7 @@
           <surface_ids>
             <integer_value shape="8" rank="1">1 2 3 4 5 6 7 8</integer_value>
           </surface_ids>
-          <type name="dirichlet">
-            <align_bc_with_surface>
-              <normal_component>
-                <constant>
-                  <real_value rank="0">0.0</real_value>
-                </constant>
-              </normal_component>
-              <normal_direction>
-                <python>
-                  <string_value lines="20" type="code" language="python">def val(X, t):
-  r = (X[0]**2 + X[1]**2)**0.5
-  return [-X[0]/r, -X[1]/r]</string_value>
-                </python>
-              </normal_direction>
-            </align_bc_with_surface>
-          </type>
+          <type name="no_normal_flow"/>
         </boundary_conditions>
         <output/>
         <stat>
