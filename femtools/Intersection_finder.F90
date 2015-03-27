@@ -3,6 +3,28 @@
 
 module intersection_finder_module
 
+#ifdef HAVE_SUPERMESH
+  use libsupermesh_fields_data_types, vector_field_lib => vector_field, &
+                             mesh_type_lib => libsupermesh_mesh_type
+  use libsupermesh_fields_allocates, only : allocate, deallocate
+  use libsupermesh_intersection_finder_module, &
+                          only: libsupermesh_rtree_intersection_finder, &
+                          libsupermesh_advancing_front_intersection_finder
+  use libsupermesh_linked_lists, only: &
+                                ilist_lib => ilist, &
+                                inode_lib => inode, &
+                                fetch_lib => fetch
+  use libsupermesh_quadrature, only : &
+                    quadrature_type_lib => quadrature_type, &
+                    make_quadrature_lib => make_quadrature, &
+                    deallocate
+  use libsupermesh_elements, only: element_type_lib => element_type
+  use libsupermesh_shape_functions, only : &
+                    make_element_shape_lib => make_element_shape, &
+                    deallocate
+#else
+
+#endif
 use quadrature
 use elements
 use fields_base
@@ -18,6 +40,46 @@ use data_structures
 
 implicit none
 
+#ifdef HAVE_SUPERMESH
+interface crtree_intersection_finder_set_input
+  subroutine libsupermesh_cintersection_finder_set_input(positions, enlist, ndim, loc, nnodes, nelements)
+    implicit none
+    integer, intent(in) :: ndim, loc, nnodes, nelements
+    real, intent(in), dimension(nnodes * ndim) :: positions
+    integer, intent(in), dimension(nelements * loc) :: enlist
+  end subroutine libsupermesh_cintersection_finder_set_input
+end interface crtree_intersection_finder_set_input
+
+interface crtree_intersection_finder_find
+  subroutine libsupermesh_cintersection_finder_find(positions, ndim, loc)
+    implicit none
+    integer, intent(in) :: ndim, loc
+    real, dimension(ndim * loc) :: positions
+  end subroutine libsupermesh_cintersection_finder_find
+end interface crtree_intersection_finder_find
+
+interface rtree_intersection_finder_query_output
+  subroutine libsupermesh_cintersection_finder_query_output(nelems)
+    implicit none
+    integer, intent(out) :: nelems
+  end subroutine libsupermesh_cintersection_finder_query_output
+end interface rtree_intersection_finder_query_output
+
+interface rtree_intersection_finder_get_output
+  subroutine libsupermesh_cintersection_finder_get_output(id, nelem)
+    implicit none
+    integer, intent(out) :: id
+    integer, intent(in) :: nelem
+  end subroutine libsupermesh_cintersection_finder_get_output
+end interface rtree_intersection_finder_get_output
+
+interface rtree_intersection_finder_reset
+  subroutine libsupermesh_cintersection_finder_reset(ntests)
+    implicit none
+    integer, intent(out) :: ntests
+  end subroutine libsupermesh_cintersection_finder_reset
+end interface rtree_intersection_finder_reset
+#else
 interface crtree_intersection_finder_set_input
   subroutine cintersection_finder_set_input(positions, enlist, ndim, loc, nnodes, nelements)
     implicit none
@@ -56,6 +118,7 @@ interface rtree_intersection_finder_reset
     integer, intent(out) :: ntests
   end subroutine cintersection_finder_reset
 end interface rtree_intersection_finder_reset
+#endif
 
 private
 
@@ -360,6 +423,72 @@ contains
     
   end function advancing_front_intersection_finder_seeds
 
+#ifdef HAVE_SUPERMESH
+  function advancing_front_intersection_finder(positionsA, positionsB, seed) result(map_AB)
+    ! The positions and meshes of A and B
+    type(vector_field), intent(in), target :: positionsA, positionsB
+    ! for each element in A, the intersecting elements in B
+    type(ilist), dimension(ele_count(positionsA)) :: map_AB
+    integer, optional, intent(in) :: seed
+    
+    type(vector_field_lib) :: positionsA_lib, positionsB_lib
+    ! for each element in A, the intersecting elements in B
+    type(ilist_lib), dimension(:), allocatable :: map_AB_lib
+!    type(ilist_lib), dimension(:), pointer :: map_AB_lib
+!    type(ilist_lib), dimension(ele_count(positionsA)) :: map_AB_lib
+    
+    integer :: i, temp_value
+    type(inode), pointer :: current_id
+    type(inode_lib), pointer :: current_id_lib
+    type(element_type_lib) :: shape_lib
+    type(quadrature_type_lib) :: quad_lib
+    type(mesh_type_lib) :: mesh_lib
+
+!    quad_lib = make_quadrature_lib(vertices = positionsA%mesh%shape%quadrature%vertices, dim = positionsA%mesh%shape%quadrature%dim, ngi = positionsA%mesh%shape%quadrature%ngi, degree = positionsA%mesh%shape%quadrature%degree)
+    quad_lib = make_quadrature_lib(vertices = positionsA%mesh%shape%quadrature%vertices, dim = positionsA%mesh%shape%quadrature%dim, ngi = positionsA%mesh%shape%quadrature%ngi, degree = positionsA%mesh%shape%degree)
+    shape_lib = make_element_shape_lib(vertices = positionsA%mesh%shape%loc, dim = positionsA%mesh%shape%dim, degree = positionsA%mesh%shape%degree, quad = quad_lib)
+    call deallocate(quad_lib)
+    call allocate(mesh_lib, node_count(positionsA), ele_count(positionsA), shape_lib)
+    
+    call deallocate(shape_lib)
+    mesh_lib%ndglno = positionsA%mesh%ndglno
+    call allocate(positionsA_lib, positionsA%dim, mesh_lib)
+    positionsA_lib%val = positionsA%val 
+    positionsA_lib%dim = positionsA%dim
+    call deallocate(mesh_lib)
+    
+!    quad_lib = make_quadrature_lib(vertices = positionsB%mesh%shape%quadrature%vertices, dim = positionsB%mesh%shape%quadrature%dim, ngi = positionsB%mesh%shape%quadrature%ngi, degree = positionsB%mesh%shape%quadrature%degree)
+    quad_lib = make_quadrature_lib(vertices = positionsB%mesh%shape%quadrature%vertices, dim = positionsB%mesh%shape%quadrature%dim, ngi = positionsB%mesh%shape%quadrature%ngi, degree = positionsB%mesh%shape%degree * 2)
+    shape_lib = make_element_shape_lib(vertices = positionsB%mesh%shape%loc, dim = positionsB%mesh%shape%dim, degree = positionsB%mesh%shape%degree, quad = quad_lib)
+    call deallocate(quad_lib)
+    
+    call allocate(mesh_lib, node_count(positionsB), ele_count(positionsB), shape_lib)
+    call deallocate(shape_lib)
+    mesh_lib%ndglno = positionsB%mesh%ndglno
+    call allocate(positionsB_lib, positionsB%dim, mesh_lib)
+    positionsB_lib%val = positionsB%val 
+    positionsB_lib%dim = positionsB%dim
+    call deallocate(mesh_lib)
+    
+    allocate(map_AB_lib(size(map_AB)))
+    map_AB_lib = libsupermesh_advancing_front_intersection_finder(positionsA_lib, positionsB_lib, seed)
+  
+    do i=1,size(map_AB_lib)
+      current_id_lib => map_AB_lib(i)%firstnode
+
+      do while(associated(current_id_lib))
+        temp_value = current_id_lib%value
+        call insert(map_AB(i), temp_value)
+        current_id_lib => current_id_lib%next
+      end do
+    end do
+    
+    deallocate(map_AB_lib)
+    call deallocate(positionsA_lib)
+    call deallocate(positionsB_lib)
+    
+  end function advancing_front_intersection_finder
+#else
   function advancing_front_intersection_finder(positionsA, positionsB, seed) result(map_AB)
     ! The positions and meshes of A and B
     type(vector_field), intent(in), target :: positionsA, positionsB
@@ -521,6 +650,7 @@ contains
         possible_size = 0
       end function advance_front
   end function advancing_front_intersection_finder
+#endif
   
   function brute_force_intersection_finder(positions_a, positions_b) result(map_ab)
     !!< As advancing_front_intersection_finder, but uses a brute force
@@ -580,21 +710,68 @@ contains
     
   end subroutine rtree_intersection_finder_find
   
-!#ifdef HAVE_SUPERMESH
-!  function rtree_intersection_finder(positions_a, positions_b, npredicates) result(map_ab)
+#ifdef HAVE_SUPERMESH
+  function rtree_intersection_finder(positions_a, positions_b, npredicates) result(map_ab)
     !!< As advancing_front_intersection_finder, but uses an rtree algorithm. For
     !!< testing *only*. For practical applications, use the linear algorithm.
     
     ! The positions and meshes of A and B
-!    type(vector_field), intent(in), target :: positions_a, positions_b
-!    integer, intent(out), optional :: npredicates
+    type(vector_field), intent(in), target :: positions_a, positions_b
+    integer, intent(out), optional :: npredicates
     ! for each element in A, the intersecting elements in B
-!    type(ilist), dimension(ele_count(positions_a)) :: map_ab
+    type(ilist), dimension(ele_count(positions_a)) :: map_ab
     
-!    libsupermesh_rtree_intersection_finder()
+    type(vector_field_lib), target :: positions_a_lib, positions_b_lib
+    ! for each element in A, the intersecting elements in B
+    type(ilist_lib), dimension(:), allocatable :: map_AB_lib
+!    type(ilist_lib), dimension(ele_count(positions_a)) :: map_ab_lib
     
-!  end function rtree_intersection_finder
-!#else
+    integer :: i, temp_value
+    type(element_type_lib) :: shape_lib
+    type(quadrature_type_lib) :: quad_lib
+    type(mesh_type_lib) :: mesh_lib
+    type(inode), pointer :: current_id
+    type(inode_lib), pointer :: current_id_lib
+
+    quad_lib = make_quadrature_lib(vertices = positions_a%mesh%shape%quadrature%vertices, dim = positions_a%mesh%shape%quadrature%dim, ngi = positions_a%mesh%shape%quadrature%ngi, degree = positions_a%mesh%shape%quadrature%degree)
+    shape_lib = make_element_shape_lib(vertices = positions_a%mesh%shape%loc, dim = positions_a%mesh%shape%dim, degree = positions_a%mesh%shape%degree, quad = quad_lib)
+    call deallocate(quad_lib)
+    
+    call allocate(mesh_lib, node_count(positions_a), ele_count(positions_a), shape_lib)
+    call deallocate(shape_lib)
+    mesh_lib%ndglno = positions_a%mesh%ndglno
+    call allocate(positions_a_lib, positions_a%dim, mesh_lib)
+    positions_a_lib%val = positions_a%val 
+    positions_a_lib%dim = positions_a%dim
+    call deallocate(mesh_lib)
+    
+    quad_lib = make_quadrature_lib(vertices = positions_b%mesh%shape%quadrature%vertices, dim = positions_b%mesh%shape%quadrature%dim, ngi = positions_b%mesh%shape%quadrature%ngi, degree = positions_b%mesh%shape%quadrature%degree)
+    shape_lib = make_element_shape_lib(vertices = positions_b%mesh%shape%loc, dim = positions_b%mesh%shape%dim, degree = positions_b%mesh%shape%degree, quad = quad_lib)
+    call deallocate(quad_lib)
+    
+    call allocate(mesh_lib, node_count(positions_b), ele_count(positions_b), shape_lib)
+    call deallocate(shape_lib)
+    mesh_lib%ndglno = positions_b%mesh%ndglno
+    call allocate(positions_b_lib, positions_b%dim, mesh_lib)
+    positions_b_lib%val = positions_b%val 
+    positions_b_lib%dim = positions_b%dim
+    call deallocate(mesh_lib)
+    
+    allocate(map_AB_lib(size(map_AB)))
+    map_ab_lib = libsupermesh_rtree_intersection_finder(positions_a_lib, positions_b_lib, npredicates)
+    
+    do i=1,size(map_AB_lib)
+      current_id_lib = map_AB_lib(i)%firstnode
+
+      do while(associated(current_id_lib))
+        temp_value = current_id_lib%value
+        call insert(map_AB(i), temp_value)
+        current_id_lib => current_id_lib%next
+      end do
+    end do
+    
+  end function rtree_intersection_finder
+#else
   function rtree_intersection_finder(positions_a, positions_b, npredicates) result(map_ab)
     !!< As advancing_front_intersection_finder, but uses an rtree algorithm. For
     !!< testing *only*. For practical applications, use the linear algorithm.
@@ -625,7 +802,7 @@ contains
     ewrite(1, *) "Exiting rtree_intersection_finder"
     
   end function rtree_intersection_finder
-!#endif
+#endif
   
   subroutine verify_map(mesh_field_a, mesh_field_b, map_ab, map_ab_reference)
     !!< Verify the given intersection map against a reference map.
