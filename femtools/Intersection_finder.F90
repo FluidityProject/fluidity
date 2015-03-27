@@ -5,7 +5,7 @@ module intersection_finder_module
 
 #ifdef HAVE_SUPERMESH
   use libsupermesh_fields_data_types, vector_field_lib => vector_field, &
-                             mesh_type_lib => libsupermesh_mesh_type
+                             mesh_type_lib => mesh_type
   use libsupermesh_fields_allocates, only : allocate, deallocate
   use libsupermesh_intersection_finder_module, &
                           only: libsupermesh_rtree_intersection_finder, &

@@ -27,7 +27,7 @@ module tetrahedron_intersection_module
                     scalar_field_lib => scalar_field, &
                     vector_field_lib => vector_field, &
                     tensor_field_lib => tensor_field, &
-                    mesh_type_lib => libsupermesh_mesh_type, &
+                    mesh_type_lib => mesh_type, &
   scalar_boundary_condition_lib => scalar_boundary_condition, &
   vector_boundary_condition_lib => vector_boundary_condition, &
   scalar_boundary_conditions_ptr_lib => scalar_boundary_conditions_ptr, &
