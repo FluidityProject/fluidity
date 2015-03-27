@@ -4,7 +4,7 @@ subroutine test_anisotropic_zz
   use fields
   use anisotropic_zz_module
   use mba_adapt_module
-  use read_triangle
+  use mesh_files
   use vtk_interfaces
   use edge_length_module
   use bounding_box_metric
@@ -41,7 +41,7 @@ subroutine test_anisotropic_zz
 
   call set_global_debug_level(2)
 
-  positions = read_triangle_files("data/unit_metric", 4)
+  positions = read_mesh_files("data/unit_metric", quad_degree=4, format="gmsh")
   call initialise_bounding_box_metric(positions)
   call insert(state, positions, "Coordinate")
   call deallocate(positions)

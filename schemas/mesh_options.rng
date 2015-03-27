@@ -6,16 +6,6 @@
         <a:documentation>Read mesh from file.</a:documentation>
         <choice>
           <element name="format">
-            <a:documentation>Triangle mesh format.
-
-Enter the base name without the .edge .ele, .face or
-.node extensions, and without process numbers.</a:documentation>
-            <attribute name="name">
-              <value>triangle</value>
-            </attribute>
-            <ref name="comment"/>
-          </element>
-          <element name="format">
             <a:documentation>Read the mesh from a vtu. Note that the mesh will have no 
 surface or region IDs.</a:documentation>
             <attribute name="name">

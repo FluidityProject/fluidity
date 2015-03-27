@@ -15,7 +15,7 @@ flml an edit of cube-1.flml</comment>
     </dimension>
     <mesh name="CoordinateMesh">
       <from_file file_name="cube-1">
-        <format name="triangle"/>
+        <format name="gmsh"/>
         <stat>
           <include_in_stat/>
         </stat>

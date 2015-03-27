@@ -12,7 +12,7 @@ subroutine vertical_integration(target_basename_, target_basename_len, &
   use halos
   use intersection_finder_module
   use linked_lists
-  use read_triangle
+  use read_gmsh
   use reference_counting
   use solvers
   use sparse_tools
@@ -23,7 +23,7 @@ subroutine vertical_integration(target_basename_, target_basename_len, &
   use supermesh_construction
   use tetrahedron_intersection_module
   use vtk_interfaces
-  use write_triangle
+  use mesh_files
   use iso_c_binding
 
   implicit none
@@ -74,7 +74,7 @@ subroutine vertical_integration(target_basename_, target_basename_len, &
   ! Step 1: Read in the data
   write(*,*) target_basename, output_basename, integrated_filename
 
-  positions_b_surf = read_triangle_files(target_basename, quad_degree = quad_degree)
+  positions_b_surf = read_gmsh_file(target_basename, quad_degree = quad_degree)
   dim = positions_b_surf%dim + 1
 
   call vtk_read_state(integrated_filename, state_a, quad_degree = quad_degree)
@@ -169,7 +169,7 @@ subroutine vertical_integration(target_basename_, target_basename_len, &
   ! and apply the offset
   positions_b_ext%val(dim,:) = positions_b_ext%val(dim,:) + top
 #ifdef DUMP_EXTRUSION
-  call write_triangle_files("extruded_vertical_integration_mesh", positions_b_ext)
+  call write_mesh_files("extruded_vertical_integration_mesh", format="gmsh", positions=positions_b_ext)
 #endif
 
   sparsity = make_sparsity(field_b_mesh, field_b_mesh, name = "Sparsity")

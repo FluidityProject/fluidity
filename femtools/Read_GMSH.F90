@@ -57,7 +57,7 @@ contains
   ! The main function for reading GMSH files
 
   function read_gmsh_simple( filename, quad_degree, &
-       quad_ngi, quad_family ) &
+       quad_ngi, quad_family, mdim ) &
        result (field)
     !!< Read a GMSH file into a coordinate field.
     !!< In parallel the filename must *not* include the process number.
@@ -69,6 +69,8 @@ contains
     integer, intent(in), optional, target :: quad_ngi
     !! What quadrature family to use
     integer, intent(in), optional :: quad_family
+    !! Dimension of mesh
+    integer, intent(in), optional :: mdim
     !! result: a coordinate field
     type(vector_field) :: field
 
@@ -173,6 +175,8 @@ contains
       ! on the sphere the input mesh may be 2d (extrusion), or 3d but
       ! Coordinate is always 3-dimensional
       coordinate_dim  = 3
+    elseif (present(mdim)) then
+       coordinate_dim = mdim
     else
       coordinate_dim  = dim
     end if
@@ -504,7 +508,7 @@ contains
     integer :: numAllElements
     character(len=longStringLen) :: charBuf
     character :: newlineChar
-    integer :: numEdges, numTriangles, numQuads, numTets, numHexes
+    integer :: numEdges, numTriangles, numQuads, numTets, numHexes, numVertices
     integer :: numFaces, faceType, numElements, elementType
     integer :: e, i, numLocNodes, tmp1, tmp2, tmp3
     integer :: groupType, groupElems, groupTags
@@ -606,6 +610,7 @@ contains
     numTets = 0
     numQuads = 0
     numHexes = 0
+    numVertices = 0
 
 
     ! Now we've got all our elements in memory, do some housekeeping.
@@ -626,7 +631,7 @@ contains
        case (GMSH_HEX)
           numHexes = numHexes+1
        case (GMSH_NODE)
-          ! Do nothing
+          numVertices = numVertices+1
        case default
           ewrite(0,*) "element id,type: ", allElements(e)%elementID, allElements(e)%type
           FLExit("Unsupported element type in gmsh .msh file")
@@ -660,19 +665,26 @@ contains
          FLExit("Cannot combine hexes or quads with triangles in one gmsh .msh file")
        end if
 
-    elseif (numHexes .gt. 0) then
+    elseif (numHexes > 0) then
        numElements = numHexes
        elementType = GMSH_HEX
        numFaces = numQuads
        faceType = GMSH_QUAD
        dim = 3
 
-    elseif (numQuads .gt. 0) then
+    elseif (numQuads > 0) then
        numElements = numQuads
        elementType = GMSH_QUAD
        numFaces = numEdges
        faceType = GMSH_LINE
        dim = 2
+
+    elseif (numEdges > 0) then
+       numElements = numEdges
+       elementType = GMSH_LINE
+       numFaces = numVertices
+       faceType = GMSH_NODE
+       dim = 1
 
     else
        FLExit("Unsupported mixture of face/element types")

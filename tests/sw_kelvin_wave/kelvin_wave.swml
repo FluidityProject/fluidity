@@ -9,9 +9,9 @@
     </dimension>
     <mesh name="CoordinateMesh">
       <from_file file_name="basin">
-        <format name="triangle"/>
+        <format name="gmsh"/>
         <dimension>
-          <integer_value rank="0">2</integer_value>
+          <integer_value rank="0">3</integer_value>
         </dimension>
         <stat>
           <include_in_stat/>

@@ -33,7 +33,7 @@
     </mesh>
     <mesh name="InputMesh">
       <from_file file_name="mesh/np_rectangle">
-        <format name="triangle"/>
+        <format name="gmsh"/>
         <stat>
           <exclude_from_stat/>
         </stat>

@@ -5,6 +5,7 @@ default: input
 
 input: src/$(MESH).tar.bz2
 	tar -xvjf src/$(MESH).tar.bz2
+	../../bin/triangle2gmsh square-unstructured
 
 clean: clean-mesh clean-run
 	rm -rf parallel_p2_consistent_interpolation_*

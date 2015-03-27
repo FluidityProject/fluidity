@@ -28,14 +28,14 @@
 subroutine test_fields_reference_counting
   !!< Test that basic integration and differentiation of 1d elements works.
   use fields
-  use read_triangle
+  use mesh_files
   use unittest_tools
   implicit none
 
   logical :: fail
   type(vector_field) :: X
   
-  X=read_triangle_files("data/interval", quad_degree=4)
+  X=read_mesh_files("data/interval", quad_degree=4, format="gmsh")
 
   call incref(X%mesh)
   

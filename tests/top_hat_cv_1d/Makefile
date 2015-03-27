@@ -3,7 +3,8 @@ FLMLMODEL = top_hat_cv
 default: input
 
 input:
-	
+	../../bin/interval --dx=0.025 0 1 line
+
 clean: clean-run-debug
 clean-run:
 	rm -f $(FLMLMODEL)_?*.pvtu $(FLMLMODEL)_?*.vtu
