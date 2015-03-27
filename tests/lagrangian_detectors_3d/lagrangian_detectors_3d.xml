@@ -5,9 +5,7 @@
   <owner userid="colin"/>
   <tags>flml parallel</tags>
   <problem_definition length="short" nprocs="4">
-    <command_line>mpiexec ../../bin/flredecomp -i 1 -o 4 -v -l lagrangian_detectors_3d lagrangian_detectors_3d_flredecomp &amp;&amp;
-mpiexec ../../bin/fluidity -v3 -l lagrangian_detectors_3d_flredecomp.flml
-    </command_line>
+    <command_line>mpiexec ../../bin/fluidity -v3 -l lagrangian_detectors_3d.flml</command_line>
   </problem_definition>
   <variables>
     <variable name="last_locations_error" language="python">

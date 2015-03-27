@@ -4,8 +4,7 @@
   <owner userid="cwilson"/>
   <tags>flml 2dadapt parallel</tags>
   <problem_definition length ="special" nprocs = "2">
-    <command_line>mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l mmat-interpolation mmat-interpolation_flredecomp &amp;&amp;
-      mpiexec ../../bin/fluidity -v2 -l mmat-interpolation_flredecomp.flml &amp;&amp; mv fluidity.log-0 first.log-0 &amp;&amp; mv fluidity.log-1 first.log-1 &amp;&amp; mv fluidity.err-0 first.err-0 &amp;&amp; mv fluidity.err-1 first.err-1 &amp;&amp; ./change_options.py &amp;&amp; mpiexec ../../bin/fluidity -v2 -l mmat-interpolation_2_checkpoint.flml &amp;&amp; mv fluidity.log-0 checkpoint.log-0 &amp;&amp; mv fluidity.log-1 checkpoint.log-1 &amp;&amp; mv fluidity.err-0 checkpoint.err-0 &amp;&amp; mv fluidity.err-1 checkpoint.err-1 </command_line>
+    <command_line>mpiexec ../../bin/fluidity -v2 -l mmat-interpolation.flml &amp;&amp; mv fluidity.log-0 first.log-0 &amp;&amp; mv fluidity.log-1 first.log-1 &amp;&amp; mv fluidity.err-0 first.err-0 &amp;&amp; mv fluidity.err-1 first.err-1 &amp;&amp; ./change_options.py &amp;&amp; mpiexec ../../bin/fluidity -v2 -l mmat-interpolation_2_checkpoint.flml &amp;&amp; mv fluidity.log-0 checkpoint.log-0 &amp;&amp; mv fluidity.log-1 checkpoint.log-1 &amp;&amp; mv fluidity.err-0 checkpoint.err-0 &amp;&amp; mv fluidity.err-1 checkpoint.err-1 </command_line>
   </problem_definition>
   <variables>
     <variable name="solvers_converged" language="python">

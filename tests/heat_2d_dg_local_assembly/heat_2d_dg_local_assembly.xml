@@ -6,8 +6,7 @@
   <owner userid="wence"/>
   <tags>flml parallel</tags>
   <problem_definition length="short" nprocs="8">
-    <command_line>mpiexec ../../bin/flredecomp -i 1 -o 8 -v -l heat heat_flredecomp &amp;&amp;
-      mpiexec ../../bin/fluidity -l heat_flredecomp.flml </command_line>
+    <command_line>mpiexec ../../bin/fluidity -l heat.flml </command_line>
     <!-- Two dimensional diffusion only problem. -->
   </problem_definition>
   <variables>

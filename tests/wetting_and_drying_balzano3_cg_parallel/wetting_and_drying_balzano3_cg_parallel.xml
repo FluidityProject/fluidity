@@ -4,8 +4,7 @@
   <owner userid="sf1409"/>
   <tags> parallel </tags>
   <problem_definition length="medium" nprocs="4">
-    <command_line>mpiexec ../../bin/flredecomp -i 1 -o 4 -v -l balzano1_2plus1 balzano1_2plus1_flredecomp &amp;&amp;
-mpiexec fluidity balzano1_2plus1_flredecomp.flml; ./plotfs_detec.py --file=balzano1_2plus1.detectors --save=fluidity</command_line>
+    <command_line>mpiexec fluidity balzano1_2plus1.flml; ./plotfs_detec.py --file=balzano1_2plus1.detectors --save=fluidity</command_line>
   </problem_definition>
   <variables>
     <variable name="solvers_converged" language="python">

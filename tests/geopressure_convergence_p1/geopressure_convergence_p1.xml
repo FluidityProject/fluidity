@@ -6,14 +6,10 @@
   <problem_definition length = "medium" nprocs = "2">
     <command_line>
       make clean-run; rm -f 8.log 16.log 32.log 64.log &amp;&amp;
-      mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l geopressure_8 geopressure_8_flredecomp &amp;&amp;
-      mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l geopressure_16 geopressure_16_flredecomp &amp;&amp;
-      mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l geopressure_32 geopressure_32_flredecomp &amp;&amp;
-      mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l geopressure_64 geopressure_64_flredecomp &amp;&amp;
-      mpiexec ../../bin/fluidity -v2 geopressure_8_flredecomp.flml &gt; 8.log;
-      mpiexec ../../bin/fluidity -v2 geopressure_16_flredecomp.flml &gt; 16.log;
-      mpiexec ../../bin/fluidity -v2 geopressure_32_flredecomp.flml &gt; 32.log;
-      mpiexec ../../bin/fluidity -v2 geopressure_64_flredecomp.flml &gt; 64.log;
+      mpiexec ../../bin/fluidity -v2 geopressure_8.flml &gt; 8.log;
+      mpiexec ../../bin/fluidity -v2 geopressure_16.flml &gt; 16.log;
+      mpiexec ../../bin/fluidity -v2 geopressure_32.flml &gt; 32.log;
+      mpiexec ../../bin/fluidity -v2 geopressure_64.flml &gt; 64.log;
     </command_line>
   </problem_definition>
   <variables>

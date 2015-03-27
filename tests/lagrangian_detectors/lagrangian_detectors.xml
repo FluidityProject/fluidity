@@ -5,10 +5,7 @@
   <owner userid="colin"/>
   <tags>flml parallel nozoltan</tags>
   <problem_definition length="short" nprocs="4">
-    <command_line>
-mpiexec ../../bin/flredecomp -i 1 -o 4 -v -l lagrangian_detectors_rk lagrangian_detectors_rk_flredecomp;
-mpiexec ../../bin/fluidity -v3 -l lagrangian_detectors_rk_flredecomp.flml
-    </command_line>
+    <command_line>mpiexec ../../bin/fluidity -v3 -l lagrangian_detectors_rk.flml</command_line>
   </problem_definition>
   <variables>
     <variable name="last_single_locations_error" language="python">

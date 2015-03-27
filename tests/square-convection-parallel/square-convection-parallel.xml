@@ -4,8 +4,7 @@
   <owner userid="pfarrell"/>
   <tags>flml parallel 2dadapt</tags>
   <problem_definition length = "medium" nprocs = "2">
-    <command_line>mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l square-convection square-convection_flredecomp &amp;&amp;
-mpiexec ../../bin/fluidity -v2 -l square-convection_flredecomp.flml</command_line>
+    <command_line>mpiexec ../../bin/fluidity -v2 -l square-convection.flml</command_line>
   </problem_definition>
   <variables>
     <variable name="solvers_converged" language="python">
