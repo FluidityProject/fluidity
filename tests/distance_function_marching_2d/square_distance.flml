@@ -1,0 +1,127 @@
+<?xml version='1.0' encoding='utf-8'?>
+<fluidity_options>
+  <simulation_name>
+    <string_value lines="1">square_distance</string_value>
+  </simulation_name>
+  <problem_type>
+    <string_value lines="1">fluids</string_value>
+  </problem_type>
+  <geometry>
+    <dimension>
+      <integer_value rank="0">2</integer_value>
+    </dimension>
+    <mesh name="CoordinateMesh">
+      <from_file file_name="src/square">
+        <format name="gmsh"/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+      </from_file>
+    </mesh>
+    <quadrature>
+      <degree>
+        <integer_value rank="0">5</integer_value>
+      </degree>
+    </quadrature>
+  </geometry>
+  <io>
+    <dump_format>
+      <string_value>vtk</string_value>
+    </dump_format>
+    <dump_period>
+      <constant>
+        <real_value rank="0">0</real_value>
+      </constant>
+    </dump_period>
+    <output_mesh name="CoordinateMesh"/>
+    <stat/>
+  </io>
+  <timestepping>
+    <current_time>
+      <real_value rank="0">0</real_value>
+    </current_time>
+    <timestep>
+      <real_value rank="0">1</real_value>
+    </timestep>
+    <finish_time>
+      <real_value rank="0">1</real_value>
+    </finish_time>
+  </timestepping>
+  <material_phase name="Fluid">
+    <vector_field name="Velocity" rank="1">
+      <prescribed>
+        <mesh name="CoordinateMesh"/>
+        <value name="WholeMesh">
+          <constant>
+            <real_value shape="2" dim1="dim" rank="1">0.0 0.0</real_value>
+          </constant>
+        </value>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </vector_field>
+    <scalar_field name="DistanceFromWalls" rank="0">
+      <diagnostic>
+        <algorithm source_field_type="scalar" material_phase_support="multiple" name="scalar_distance_function" source_field_name="Dummy">
+          <method name="MarchingMethod"/>
+          <zero_level>
+            <real_value rank="0">0.0</real_value>
+          </zero_level>
+          <surface_ids>
+            <integer_value shape="4" rank="1">1 2 3 4</integer_value>
+          </surface_ids>
+        </algorithm>
+        <mesh name="CoordinateMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="Dummy" rank="0">
+      <prescribed>
+        <mesh name="CoordinateMesh"/>
+        <value name="WholeMesh">
+          <constant>
+            <real_value rank="0">1.0</real_value>
+          </constant>
+        </value>
+        <output/>
+        <stat/>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </scalar_field>
+    <scalar_field name="AnalyticDistanceFromWalls" rank="0">
+      <prescribed>
+        <mesh name="CoordinateMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value type="code" lines="20" language="python">def val(X,t):
+  import numpy as np
+  x=abs(np.array(X)-0.5).max()
+  return 0.5-x</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat/>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </scalar_field>
+  </material_phase>
+</fluidity_options>
