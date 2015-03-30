@@ -1772,7 +1772,7 @@ contains
     !! X is the positions field.
     type(vector_field), intent(in) :: X
     !! The index of the current face
-    integer :: face
+    integer, intent(in) :: face
     !! Reference element of which the derivatives are to be transformed
     type(element_type), intent(in) :: shape
     !! Derivatives of this shape function transformed to physical space (ele_loc x sngi x dim)
