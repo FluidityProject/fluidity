@@ -761,7 +761,8 @@ contains
     map_ab_lib = libsupermesh_rtree_intersection_finder(positions_a_lib, positions_b_lib, npredicates)
     
     do i=1,size(map_AB_lib)
-      current_id_lib = map_AB_lib(i)%firstnode
+      if (associated(map_AB_lib(i)%firstnode) .eqv. .false.) cycle
+      current_id_lib => map_AB_lib(i)%firstnode
 
       do while(associated(current_id_lib))
         temp_value = current_id_lib%value
@@ -769,6 +770,9 @@ contains
         current_id_lib => current_id_lib%next
       end do
     end do
+    
+    deallocate(map_AB_lib)
+    call deallocate(positions_b_lib)
     
   end function rtree_intersection_finder
 #else
