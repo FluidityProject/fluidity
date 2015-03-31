@@ -367,6 +367,8 @@ def hasPeriodicBoundary(basename):
     fileHandle = file(basename+".edge", "r")
   elif (hasFace):
     fileHandle = file(basename+".face", "r")
+  else:
+    return 
   line = fileHandle.readline()
   fileHandle.close()
   nIds = int(line.strip().split()[-1])
