@@ -191,6 +191,7 @@ contains
     character(len=200)::command
     real::zero_value
     integer :: ierr
+    logical :: filename_pvtu_exists
 
     ! Absolute first thing: check that the options, if present, are valid.
     call check_options
@@ -565,36 +566,53 @@ contains
                     model=model_mesh,  &
                     sfields=turbulent_scalars, &
                     write_region_ids=.true.)
-              end if
 
-              ! If adaptivity present, then run a script to interpolate Fluent turbulence fields on to vtu mesh
-              if(getrank()==0) then
-                 print*, "running command"
-                 command = "python fluent_interpolate.py "//trim(num_turb_padded) ! the python script to run
-                 call system(command)
-              end if
-              if(isparallel()) then
-                 call mpi_bcast(zero_value, 1, getpreal(), 0, MPI_COMM_WORLD, ierr)
-                 assert(ierr == MPI_SUCCESS)
-              end if
-
-              if(is_active_process) then
-                if(isparallel()) then
-                   if(have_option("/extract_turbulent_fields_from_fluent/adaptivity_present")) then
-                      filename_pvtu = parallel_filename(trim_file_extension('turbulent_fields.pvtu'),".vtu")
-                   else
-                      filename_pvtu = parallel_filename(trim_file_extension('turbulent_fields_'//trim(num_turb_padded)//'.pvtu'),".vtu")
-                   end if
+                ! If adaptivity present, then run a script to interpolate Fluent turbulence fields on to vtu mesh
+                if(getrank()==0) then
+                   ewrite(2,*) "Running python script fluent_interpolate.py"
+                   command = "python fluent_interpolate.py "//trim(num_turb_padded) ! the python script to run
+                   call system(command)
                 end if
-                temp_scalar_1 =>vtk_cache_read_scalar_field(filename_pvtu,'TurbulentDissipationRate')
-                temp_scalar_2 =>vtk_cache_read_scalar_field(filename_pvtu,'EffectiveViscosity')
-!                temp_scalar_3 =>vtk_cache_read_scalar_field(filename_pvtu,'AirEffectiveViscosity')
+                if(isparallel()) then
+                   call mpi_bcast(zero_value, 1, getpreal(), 0, MPI_COMM_WORLD, ierr)
+                   assert(ierr == MPI_SUCCESS)
+                end if
+
              end if
-             !print*, "nodes in temp scalar 2 = ", node_count(temp_scalar_2)
-             !print*, "nodes in turbulent_dissipation = ", node_count(turbulent_dissipation)
-             call set(turbulent_dissipation, temp_scalar_1)
-             call set(effective_viscosity, temp_scalar_2)
-!             call set(air_effective_viscosity, temp_scalar_3)
+
+             if(is_active_process) then
+               if(isparallel()) then
+                  if(have_option("/extract_turbulent_fields_from_fluent/adaptivity_present")) then
+                     filename_pvtu = parallel_filename(trim_file_extension('turbulent_fields.pvtu'),".vtu")
+                     inquire(file="turbulent_fields/"//trim(filename_pvtu), exist=filename_pvtu_exists)
+                  else
+                     filename_pvtu = parallel_filename(trim_file_extension('turbulent_fields_'//trim(num_turb_padded)//'.pvtu'),".vtu")
+                     inquire(file="turbulent_fields_"//trim(num_turb_padded)//"/"//trim(filename_pvtu), exist=filename_pvtu_exists)
+                  end if
+               else
+                  if(have_option("/extract_turbulent_fields_from_fluent/adaptivity_present")) then
+                     filename_pvtu = 'turbulent_fields.vtu'
+                     inquire(file=trim(filename_pvtu), exist=filename_pvtu_exists)
+                  else
+                     filename_pvtu = 'turbulent_fields_'//trim(num_turb_padded)//'.vtu'
+                     inquire(file=trim(filename_pvtu), exist=filename_pvtu_exists)
+                  end if
+               end if
+
+               if(filename_pvtu_exists) then
+                  temp_scalar_1=>vtk_cache_read_scalar_field(filename_pvtu,'TurbulentDissipationRate')
+                  temp_scalar_2=>vtk_cache_read_scalar_field(filename_pvtu,'EffectiveViscosity')
+                  !temp_scalar_3=>vtk_cache_read_scalar_field(filename_pvtu,'AirEffectiveViscosity')
+
+                  turbulent_dissipation=>extract_scalar_field(state(1),"TurbulentDissipationRate")
+                  effective_viscosity=>extract_scalar_field(state(1),"EffectiveViscosity")
+                  call set(turbulent_dissipation, temp_scalar_1)
+                  call set(effective_viscosity, temp_scalar_2)
+                  !call set(air_effective_viscosity,temp_scalar_3)
+               else
+                  ewrite(1,*) "The file "//trim(filename_pvtu)//" does not exist"
+               end if
+             end if
 !             water_visc=>extract_tensor_field(state(1),"Viscosity")
 !             air_visc=>extract_tensor_field(state(2),"Viscosity")
 
