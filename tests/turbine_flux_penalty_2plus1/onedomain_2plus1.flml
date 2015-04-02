@@ -31,7 +31,7 @@
     </mesh>
     <mesh name="ExternalMesh">
       <from_file file_name="mesh/mesh_connected">
-        <format name="triangle"/>
+        <format name="gmsh"/>
         <stat>
           <include_in_stat/>
         </stat>

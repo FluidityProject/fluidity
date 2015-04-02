@@ -3,7 +3,7 @@
 subroutine test_conservative_interpolation_sa
 
   use fields
-  use read_triangle
+  use mesh_files
   use conservative_interpolation_module, only: interpolation_galerkin
   use unittest_tools
   use futils
@@ -57,8 +57,8 @@ subroutine test_conservative_interpolation_sa
   type(element_type) :: field_element
   type(mesh_type) :: donor_mesh, target_mesh
 
-  positionsA = read_triangle_files("data/pslgA", quad_degree=4, no_faces=.true.)
-  positionsB = read_triangle_files("data/pslgB", quad_degree=4, no_faces=.true.)
+  positionsA = read_mesh_files("data/pslgA", quad_degree=4, format="gmsh")
+  positionsB = read_mesh_files("data/pslgB", quad_degree=4, format="gmsh")
   
   field_element = make_element_shape(positionsA%mesh%shape%loc, positionsA%mesh%shape%dim, 2, positionsA%mesh%shape%quadrature)
   donor_mesh = make_mesh(positionsA%mesh, field_element, continuity=0, name="DonorMesh")

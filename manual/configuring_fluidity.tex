@@ -209,9 +209,9 @@ limit.
 
 Up to five sets of files are created when checkpointing:
 \begin{enumerate}
-\item Mesh files - The from\_file meshes, in triangle format. Surface IDs
+\item Mesh files - The from\_file meshes, in Gmsh format. Surface IDs
   and (if present) region IDs are written to the mesh files, and adaptivity
-  is supported. In parallel a triangle mesh is written for each process.
+  is supported. In parallel a Gmsh mesh is written for each process.
 \item Halo files (in parallel) - Halo information for each process.
 \item Field files - A vtu is written for each mesh with prognostic fields in
   each state and (in parallel) for each process.
@@ -528,12 +528,12 @@ mesh associated with each field is referred to by name in the
 
 \subsection{Reading meshes from file}
 \index{mesh!input}
-There must always be one mesh which is read in from a set of files in
-triangle format. This is usually the \option{CoordinateMesh}. To specify the
-triangle files from which the coordinate mesh should be read, set the
+There must always be one mesh which is read in from a file in
+Gmsh format. This is usually the \option{CoordinateMesh}. To specify the
+Gmsh file from which the coordinate mesh should be read, set the
 \option{file\_name} attribute of
 \option{/geometry/dimension/mesh::CoordinateMesh/from\_file} to the basename
-of the triangle files (that is, the filename without .node, .ele, etc.)
+of the Gmsh file (that is, the filename without .msh)
 
 The coordinate mesh read in from file will always have linear elements and
 the Coordinate field is always continuous between elements.
@@ -545,7 +545,7 @@ by setting the \onlypdf\option{/geometry/mesh/from\_file/format}\ option
 to \onlypdf\option{gmsh}.  \fluidity\ will now look for a file with the extension 
 \lstinline[language=bash]+.msh+ when it runs.
 
-For information on generating meshes in gmsh and triangle format, see chapter
+For information on generating meshes in Gmsh format, see chapter
 \ref{chap:meshes}. 
 
 \subsection{Deriving meshes from other meshes}
@@ -680,7 +680,7 @@ version. The new regions need to be named and the region IDs to which they
 apply specified.
 
 As well as extruding 2D meshes (where only the $x$ and $y$ coordinates are
-specified in the triangle file), given a pseudo 2D mesh on a spherical
+specified in the Gmsh file), given a pseudo 2D mesh on a spherical
 shell, \fluidity\ can perform and extrusion in the radial direction. To
 perform such an extrusion simply enable the options as noted above and
 additionally check the \option{/geometry/spherical\_earth option}. With this

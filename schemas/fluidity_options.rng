@@ -4654,7 +4654,7 @@ used in the nonlinear iteration.
       </optional>
       <optional>
         <element name="checkpoint">
-          <a:documentation>To be used with time-averaged diagnostic fields so that they can be checkpointed.</a:documentation>
+          <a:documentation>Field will be checkpointed (this is not performed by default).</a:documentation>
           <empty/>
         </element>
       </optional>

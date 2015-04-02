@@ -1,7 +1,7 @@
 subroutine test_intersection_finder_2d
 
   use unittest_tools
-  use read_triangle
+  use mesh_files
   use fields
   use linked_lists
   use intersection_finder_module
@@ -14,8 +14,8 @@ subroutine test_intersection_finder_2d
   integer :: i
   logical :: fail
 
-  positionsA = read_triangle_files("data/triangle.1", quad_degree=4)
-  positionsB = read_triangle_files("data/triangle.1", quad_degree=4)
+  positionsA = read_mesh_files("data/triangle.1", quad_degree=4, format="gmsh")
+  positionsB = read_mesh_files("data/triangle.1", quad_degree=4, format="gmsh")
   map_AB = advancing_front_intersection_finder(positionsA, positionsB)
 
   fail = (map_AB(1)%length /= 1)
@@ -26,7 +26,7 @@ subroutine test_intersection_finder_2d
   call report_test("[intersection finder: correct]", fail, .false., "The answer should be one")
 
   call deallocate(positionsB)
-  positionsB = read_triangle_files("data/triangle.2", quad_degree=4)
+  positionsB = read_mesh_files("data/triangle.2", quad_degree=4, format="gmsh")
   map_AB = advancing_front_intersection_finder(positionsA, positionsB)
 
   fail = (map_AB(1)%length /= 3)
@@ -38,7 +38,7 @@ subroutine test_intersection_finder_2d
   !end do
 
   call deallocate(positionsA)
-  positionsA = read_triangle_files("data/triangle.2", quad_degree=4)
+  positionsA = read_mesh_files("data/triangle.2", quad_degree=4, format="gmsh")
   bigger_map_AB = advancing_front_intersection_finder(positionsA, positionsB)
   do i=1,ele_count(positionsA)
     fail = (bigger_map_AB(i)%length < 1)

@@ -3,7 +3,6 @@ preprocess:
 	../../bin/interval --dx=100.0 -- 0.0 10000.0 line
 	@echo **********Creating pseudo-1D mesh
 	gmsh -2 -o subtract_out_reference_profile_pseudo1d.msh src/subtract_out_reference_profile_pseudo1d.geo
-	../../bin/gmsh2triangle --2d subtract_out_reference_profile_pseudo1d.msh
 
 run:
 	@echo **********Running 1D simulation

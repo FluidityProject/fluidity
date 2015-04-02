@@ -7,7 +7,6 @@ preprocess: envcheck
 	ln -s ../backward_facing_step_2d.flml .; \
 	echo **********Generating mesh; \
 	gmsh -2 -o step2d-kim-med.msh ../src/step2d-kim-med.geo; \
-	${BINPREFIX}gmsh2triangle -2 step2d-kim-med.msh; \
 	cd ..
 
 run: envcheck
