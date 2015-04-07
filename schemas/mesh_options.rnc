@@ -3,16 +3,16 @@ mesh_info =
       ## Read mesh from file.
       element from_file {
          (
+            ## GMSH mesh format
+            element format {
+               attribute name { "gmsh" },
+               comment
+            }|
             ## Read the mesh from a vtu. Note that the mesh will have no 
             ## surface or region IDs.
             element format {
               attribute name { "vtu" },
               comment
-            }|
-            ## GMSH mesh format
-            element format {
-               attribute name { "gmsh" },
-               comment
             }|
             ## ExodusII mesh format.
             ##
