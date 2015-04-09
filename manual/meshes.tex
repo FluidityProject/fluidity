@@ -76,7 +76,6 @@ sideset ids respectively.
 
 \section{Meshes and function spaces}
 \label{sec:meshes_and_function_spaces}
-\index{mesh!coordinate mesh}
 \index{mesh!nodes}
 \index{mesh!simplicial}
 \index{mesh!cubical}
@@ -123,6 +122,12 @@ discretisation. For a \PoDGPt discretisation we therefore need two additional
 meshes: a \PoDG mesh and \Ptwo mesh. In section \ref{sec:mesh_configuration} it
 is explained how these can be derived from the input mesh.
 
+\section{The coordinate mesh and superparametric meshes}
+\label{sec:coordinate_mesh_and_superparametric}
+\index{mesh!coordinate mesh}
+\index{mesh!superparametric}
+\index{mesh!curved elements}
+\index{mesh!bended elements}
 In finite element discretisations the actual shape of the elements in physical
 space is given by a function from local coordinates on the element to
 coordinates in physical space, the coordinate map. This map is typically linear,
@@ -130,9 +135,52 @@ resulting in elements with straight edges. For some applications, for example
 ocean models on the sphere, it may be desirable to use higher order
 polynomials however, so that large elements can be bended to fit the
 geometry. The mesh (function space) that is used for the coordinate map is
-referred to as the coordinate mesh. For standard, uncurved elements 
+referred to as the coordinate mesh and always has the name
+\option{CoordinateMesh}. For standard, uncurved elements 
 the coordinate mesh simply corresponds to the (linear) input mesh
 (except for periodic meshes, see section \ref{sec:periodic_meshes} below).
+
+\fluidity currently does not support reading in generic higher order coordinate
+meshes (e.g. it cannot read 2nd order meshes produced by Gmsh). For spherical
+geometries however, fluidity can generate a higher order coordinate mesh from
+a linear input mesh automatically. If
+$X_{\text{linear}}:\mathbb{R}^d\to\mathbb{R}^d; \xi\mapsto
+X_{\text{linear}}(\xi)$ is the coordinate map that maps local coordinates to
+physical coordinates according to the linear input mesh, we can transform it
+into a curved coordinate map according to:
+\begin{equation}
+  X_{\text{curved}}: \xi\mapsto
+    \frac{X_{\text{linear}}(\xi)}{\|X_{\text{linear}}(\xi)\|} r(\xi),
+    \label{eq:xcurved}
+\end{equation}
+where $r(\xi)$ is the function that linearly interpolates the radius (length) of
+the coordinates in the vertices of the input mesh. The elements described by
+this curved coordinate map have vertices that are in the same position as the
+input mesh. The interior of the elements however is curved in such a way that
+the radius of the physical coordinate varies linearly with the local
+coordinates. In particular this means that the radius varies linearly along an
+edge between two vertices. Also, for a triangle that forms the facet of an
+element which has all three vertices on a perfect sphere, the facet is curved to
+lie completely on the sphere.
+
+This mapping can be used in two ways in \fluidity: 1) The curved elements
+described by $X_{\text{curved}}$ can be approximated by a higher order
+polynomial and stored as an automatically generated superparametric
+coordinate mesh. 2) Without explicitly constructing a superparametric coordinate
+mesh,
+replace the coordinate map $X_{\text{linear}}$ by $X_{\text{curved}}$ in all
+computations on the gauss points. The derivative of the coordinate map, the
+Jacobian, is calculated analytically. This means that in all finite element
+integrals the elements are curved exactly according to \eqref{eq:xcurved} and
+the representation of a perfect sphere is only limited by the degree of
+quadrature (the accuracy with which the integrals are calculated). Some
+computations however, are not performed as finite element integral equations,
+but are done point-wise in the nodes of a field (e.g. when a field is
+prescribed from a python function). If this field is higher order, and the
+values have to be computed in nodes other than the vertices of the linear mesh,
+it may therefore still be advantageous to use option 1) to have an accurate 
+description of the curved elements in these nodes. See section
+\ref{sec:spherical_earth} how to configure these two options in \fluidity.
 
 \section{Extruded meshes}
 \label{sec:extruded_meshes}
