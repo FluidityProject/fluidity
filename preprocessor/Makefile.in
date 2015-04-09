@@ -55,7 +55,8 @@ TESTLIBS = $(shell echo @LIBS@ | sed 's@./lib/lib\([a-z]*\)\.a@-l\1@g')
 
 OBJS = Populate_State.o Populate_Sub_State.o Reserve_State.o Field_Priority_Lists.o\
        Physics_From_Options.o VTK_Cache.o Initialise_Fields.o \
-			 Boundary_Conditions_From_Options.o synthetic_bc.o Tidal_Modelling.o
+			 Boundary_Conditions_From_Options.o synthetic_bc.o Tidal_Modelling.o \
+	dl_fortran.o plugin_functions.o
 
 .SUFFIXES: .f90 .F90 .cpp .c .o .a
 
