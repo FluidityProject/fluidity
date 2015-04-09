@@ -130,6 +130,7 @@ The quadrature degree is specified by setting \option{/geometry/quadrature/degre
 \subsubsection{Spherical Earth}
 \label{sec:spherical_earth}
 \index{spherical earth}
+\index{mesh!superparametric}
 
 Enabling \option{/geometry/spherical\_earth} informs \fluidity that your
 simulation is being carried out in an Earth like geometry. In three dimensions
@@ -168,7 +169,8 @@ are available to improve the approximation of the spherical domain
 by the mesh, in particular for coarse meshes.
 The general idea is that instead of using straight, linearly
 interpolated tets and triangles, the elements are bent to better fit the curved
-geometry. The mesh vertices are kept in place, but all points in the interior of
+geometry (see section \ref{sec:coordinate_mesh_and_superparametric} for the
+exact formula). The mesh vertices are kept in place, but all points in the interior of
 an element are moved a little in the radial direction,
 such that the radial coordinate varies linearly
 between the vertices. For example, in the case of a triangle with all three
