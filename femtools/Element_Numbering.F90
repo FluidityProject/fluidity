@@ -45,9 +45,6 @@ module element_numbering
   !!< Nodes are subdivided into four disjoint sets: vertex nodes, those lying
   !!< on edges, those lying on faces and those interior to elements. 
   use futils
-#ifdef HAVE_SUPERMESH
-!  use libsupermesh_futils, only: real_format_lib => real_format
-#endif
   use FLDebug
   implicit none
 

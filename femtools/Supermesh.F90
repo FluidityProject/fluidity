@@ -11,7 +11,7 @@ module supermesh_construction
 !                  real_format_lib => real_format
 
   use libsupermesh_elements, only: element_type_lib => element_type
-  use libsupermesh_fields_data_types, mesh_faces_lib => mesh_faces, &
+  use libsupermesh_fields_data_types, only: mesh_faces_lib => mesh_faces, &
                     mesh_subdomain_mesh_lib => mesh_subdomain_mesh, &
                     scalar_field_lib => scalar_field, &
                     vector_field_lib => vector_field, &
@@ -173,45 +173,64 @@ module supermesh_construction
     real, dimension(:, :), intent(in) :: posB
     
     type(vector_field_lib) :: positions_A_lib
+    real, dimension(:,:), allocatable :: positions_A_lib_val
     type(vector_field_lib) :: intersection_lib
-    type(element_type_lib) :: shape_lib, shape_lib_temp
+    type(element_type_lib) :: shape_lib
+!    type(element_type_lib) :: shape_lib_temp
     type(quadrature_type_lib) :: quad_lib
-    type(mesh_type_lib) :: mesh_lib
+!    type(mesh_type_lib) :: mesh_lib
     type(mesh_type) :: new_mesh
     
-    integer :: dim, loc, dim_lib, loc_lib
+!    integer :: dim, loc, dim_lib, loc_lib, dimA, n_count
+    integer :: dimA, n_count
     
-    integer :: dim_libbb, vertices_libbb, ele_count_libbb, node_count_libbb, ele_count_libbb_mesh
-    dim_libbb = mesh_dim(positions_A)
-    vertices_libbb = ele_loc(positions_A, 1)
-    ele_count_libbb = ele_count(positions_A)
-    node_count_libbb = node_count(positions_A)
+!    integer :: dim_libbb, vertices_libbb, ele_count_libbb, node_count_libbb, ele_count_libbb_mesh
+!    dim_libbb = mesh_dim(positions_A)
+!    vertices_libbb = ele_loc(positions_A, 1)
+!    ele_count_libbb = ele_count(positions_A)
+!    node_count_libbb = node_count(positions_A)
     
-!    quad_lib = make_quadrature_lib(vertices = positions_A%dim + 2, dim = positions_A%dim + 1, degree = positions_A%mesh%shape%degree * 2) ! JAMES
-!    shape_lib = make_element_shape_lib(vertices = positions_A%dim + 1, dim = positions_A%dim, degree = positions_A%mesh%shape%degree, quad = quad_lib) ! JAMES
+!!!    quad_lib = make_quadrature_lib(vertices = positions_A%dim + 2, dim = positions_A%dim + 1, degree = positions_A%mesh%shape%degree * 2) ! JAMES
+!!!    shape_lib = make_element_shape_lib(vertices = positions_A%dim + 1, dim = positions_A%dim, degree = positions_A%mesh%shape%degree, quad = quad_lib) ! JAMES
 
-!    quad_lib = make_quadrature_lib(vertices = positions_A%mesh%shape%quadrature%vertices, dim = positions_A%mesh%shape%quadrature%dim, ngi = positions_A%mesh%shape%quadrature%ngi, degree = positions_A%mesh%shape%quadrature%degree * 2)
-    quad_lib = make_quadrature_lib(vertices = positions_A%mesh%shape%quadrature%vertices, dim = positions_A%mesh%shape%quadrature%dim, ngi = positions_A%mesh%shape%quadrature%ngi, degree = positions_A%mesh%shape%degree * 2)
-    shape_lib_temp = make_element_shape_lib(vertices = positions_A%mesh%shape%loc, dim = positions_A%mesh%shape%dim, degree = positions_A%mesh%shape%degree, quad = quad_lib)
-    call deallocate(quad_lib)
+!!!    quad_lib = make_quadrature_lib(vertices = positions_A%mesh%shape%quadrature%vertices, dim = positions_A%mesh%shape%quadrature%dim, ngi = positions_A%mesh%shape%quadrature%ngi, degree = positions_A%mesh%shape%quadrature%degree * 2)
+!    quad_lib = make_quadrature_lib(vertices = positions_A%mesh%shape%quadrature%vertices, dim = positions_A%mesh%shape%quadrature%dim, ngi = positions_A%mesh%shape%quadrature%ngi, degree = positions_A%mesh%shape%degree * 2)
+!    shape_lib_temp = make_element_shape_lib(vertices = positions_A%mesh%shape%loc, dim = positions_A%mesh%shape%dim, degree = positions_A%mesh%shape%degree, quad = quad_lib)
+!    call deallocate(quad_lib)
     
-    call allocate(mesh_lib, node_count(positions_A), ele_count(positions_A), shape_lib_temp)
-    mesh_lib%ndglno = positions_A%mesh%ndglno
-    call allocate(positions_A_lib, positions_A%dim, mesh_lib)
+!    call allocate(mesh_lib, node_count(positions_A), ele_count(positions_A), shape_lib_temp)
+!    mesh_lib%ndglno = positions_A%mesh%ndglno
+!!!    call allocate(positions_A_lib, positions_A%dim, mesh_lib)
  
-    allocate(positions_A_lib%val(size(positions_A%val, 1), size(positions_A%val, 2)))
-    positions_A_lib%val = positions_A%val 
-    positions_A_lib%dim = positions_A%dim
+!!!    allocate(positions_A_lib%val(size(positions_A%val, 1), size(positions_A%val, 2)))
+!!!    positions_A_lib%val = positions_A%val 
+!!!    positions_A_lib%dim = positions_A%dim
     
-!    quad_lib = make_quadrature_lib(vertices = shape%quadrature%vertices, dim = shape%quadrature%dim, ngi = shape%quadrature%ngi, degree = shape%quadrature%degree)
+!!!    quad_lib = make_quadrature_lib(vertices = shape%quadrature%vertices, dim = shape%quadrature%dim, ngi = shape%quadrature%ngi, degree = shape%quadrature%degree)
     quad_lib = make_quadrature_lib(vertices = shape%quadrature%vertices, dim = shape%quadrature%dim, ngi = shape%quadrature%ngi, degree = shape%degree * 2)
     shape_lib = make_element_shape_lib(vertices = shape%loc, dim = shape%dim, degree = shape%degree, quad = quad_lib)
        
-    intersection_lib = libsupermesh_intersect_elements(positions_A_lib, ele_A, posB, shape_lib)
+    dimA = positions_A%dim
+!    dimB = positions_b%dim
+    n_count = 0
+    
+    select case(positions_A%field_type)
+    case(FIELD_TYPE_NORMAL)
+      n_count = node_count(positions_A%mesh)
+      allocate(positions_a_lib_val(dimA,n_count))
+    case(FIELD_TYPE_CONSTANT)
+      allocate(positions_a_lib_val(dimA,1))
+    case(FIELD_TYPE_DEFERRED)
+      allocate(positions_a_lib_val(0,0))
+    end select
+    
+    positions_A_lib_val = positions_A%val
+    
+    intersection_lib = libsupermesh_intersect_elements(positions_A_lib_val, ele_A, posB, shape_lib, ele_loc(positions_A, ele_A), dimA, node_count(positions_A), positions_a%mesh%shape%loc, positions_a%field_type, positions_A%mesh%ndglno)
     
     call deallocate(shape_lib)
-    call deallocate(mesh_lib)
-    call deallocate(positions_A_lib)
+!    call deallocate(mesh_lib)
+!    call deallocate(positions_A_lib)
 
     call allocate(new_mesh, node_count_lib(intersection_lib), ele_count_lib(intersection_lib), shape)
     new_mesh%ndglno = intersection_lib%mesh%ndglno

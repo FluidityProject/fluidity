@@ -127,8 +127,6 @@ module tetrahedron_intersection_module
     tetA_lib%V = tetA%V
     tetA_lib%colours = tetA%colours
     
-!    allocate(planesB_lib(4))
-!    planesB_lib%normal = planesB%normal
     FORALL(i=1:3) planesB_lib%normal(i)=planesB%normal(i)
     planesB_lib%c = planesB%c
     
@@ -136,9 +134,26 @@ module tetrahedron_intersection_module
     shape_lib = make_element_shape_lib(vertices = shape%loc, dim = shape%dim, degree = shape%degree, quad = quad_lib)
     call deallocate(quad_lib)
     
-!    call libsupermesh_intersect_tets_dt(tetA_lib, planesB_lib, shape_lib, stat, output_lib, &
-!                            surface_shape_lib, surface_positions_lib, surface_colours_lib)
-    call libsupermesh_intersect_tets_dt(tetA_lib, planesB_lib, shape_lib, stat = stat, output = output_lib)
+    if ( associated(output%refcount) ) then 
+      quad_lib = make_quadrature_lib(vertices = output%mesh%shape%quadrature%vertices, dim = output%mesh%shape%quadrature%dim, ngi = output%mesh%shape%quadrature%ngi, degree = output%mesh%shape%degree * 2)
+      shape_lib_temp = make_element_shape_lib(vertices = output%mesh%shape%loc, dim = output%mesh%shape%dim, degree = output%mesh%shape%degree, quad = quad_lib)
+      call deallocate(quad_lib)
+    
+      call allocate(mesh_lib, node_count(output), ele_count(output), shape_lib_temp)
+      mesh_lib%ndglno = output%mesh%ndglno
+      call allocate(output_lib, output%dim, mesh_lib)
+ 
+      allocate(output_lib%val(size(output%val, 1), size(output%val, 2)))
+      output_lib%val = output%val 
+      output_lib%dim = output%dim
+    end if
+
+    if (present(surface_colours)) then
+      FLAbort("intersect_tets_dt: Not implemented optional parameters")
+!      call libsupermesh_intersect_tets_dt(tetA_lib, planesB_lib, shape_lib, stat = stat, output = output_lib)
+    else
+      call libsupermesh_intersect_tets_dt(tetA_lib, planesB_lib, shape_lib, stat = stat, output = output_lib)
+    end if
     if (stat == 1) then
       return
     end if
@@ -154,6 +169,7 @@ module tetrahedron_intersection_module
     call allocate(output, output_lib%dim, new_mesh, name = output_lib%name)
     output%val = output_lib%val
     call deallocate(new_mesh)
+    call deallocate(output_lib)
 
     return
 
