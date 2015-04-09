@@ -697,7 +697,8 @@ implicit none
       FLAbort("Programmmer laziness detected")
     end if
 
-    if (fieldA%field_type == FIELD_TYPE_NORMAL .and. fieldB%field_type == FIELD_TYPE_NORMAL) then
+    if ((fieldA%field_type == FIELD_TYPE_NORMAL) .and. &
+        (fieldB%field_type == FIELD_TYPE_NORMAL)) then
        do d=1,fieldA%dim
           val(d) = dot_product(fieldA%val(d,:), fieldB%val(d,:))
        end do
@@ -728,7 +729,8 @@ implicit none
       FLAbort("Programmmer laziness detected")
     end if
 
-    if (fieldA%field_type == FIELD_TYPE_NORMAL .and. fieldB%field_type == FIELD_TYPE_NORMAL) then
+    if ((fieldA%field_type == FIELD_TYPE_NORMAL) .and. &
+        (fieldB%field_type == FIELD_TYPE_NORMAL)) then
        do d1=1,fieldA%dim
           do d2=1,fieldB%dim
              val(d1,d2) = dot_product(fieldA%val(d1,:), fieldB%val(d2,:))

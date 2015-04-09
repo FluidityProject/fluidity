@@ -387,7 +387,7 @@ contains
           else 
              position%name="Coordinate"
           end if
-                       
+
           ! If running in parallel, additionally read in halo information and register the elements halo
           if(isparallel()) then
             if (no_active_processes == 1) then
@@ -511,6 +511,13 @@ contains
        end if
 
     end do outer_loop
+
+    ! not really a derived mesh but this is a relatively clean place to set the transform_to_physical
+    ! spherical flag so that the main Coordinate field is interpretted as being spherical at the gauss
+    ! points
+    if (have_option('/geometry/spherical_earth/analytical_mapping/')) then
+      call set_analytical_spherical_mapping()
+    end if
 
   end subroutine insert_derived_meshes
            
@@ -791,10 +798,12 @@ contains
           ! of the coordinates spans that of the external mesh
           call remap_field(from_field=modelposition, to_field=coordinateposition)
                 
-          if (mesh_name=="CoordinateMesh" .and. have_option('/geometry/spherical_earth/superparametric_mapping/')) then
+          if (mesh_name=="CoordinateMesh" .and. have_option('/geometry/spherical_earth/')) then
 
-             call higher_order_sphere_projection(modelposition, coordinateposition)
-                   
+            if (have_option('/geometry/spherical_earth/superparametric_mapping/')) then
+              call higher_order_sphere_projection(modelposition, coordinateposition)
+            end if
+
           endif
 
           ! insert into states(1) and alias to all others

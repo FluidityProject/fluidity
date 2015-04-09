@@ -85,7 +85,7 @@ contains
     integer :: loc, sloc
     integer :: numNodes, numElements, numFaces
     logical :: haveBounds, haveElementOwners, haveRegionIDs
-    integer :: dim, coordinate_dim
+    integer :: dim, coordinate_dim, gdim
     integer :: gmshFormat
     integer :: n, d, e, f, nodeID
 
@@ -171,12 +171,13 @@ contains
     
     end if
     
-    if(have_option("/geometry/spherical_earth/") ) then
-      ! on the sphere the input mesh may be 2d (extrusion), or 3d but
-      ! Coordinate is always 3-dimensional
-      coordinate_dim  = 3
-    elseif (present(mdim)) then
+    if (present(mdim)) then
        coordinate_dim = mdim
+    else if(have_option("/geometry/spherical_earth") ) then
+      ! on the n-sphere the input mesh may be 1/2d (extrusion), or 3d but
+      ! Coordinate is always geometry dimensional
+      call get_option('/geometry/dimension', gdim)
+      coordinate_dim  = gdim
     else
       coordinate_dim  = dim
     end if

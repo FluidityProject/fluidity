@@ -130,12 +130,70 @@ The quadrature degree is specified by setting \option{/geometry/quadrature/degre
 \subsubsection{Spherical Earth}
 \label{sec:spherical_earth}
 \index{spherical earth}
+\index{mesh!superparametric}
 
-Enabling \option{/geometry/spherical\_earth} informs \fluidity that your simulation is being carried out in an Earth like geometry, that is, a three dimensional geometry with gravity pointing towards the centre of the coordinate system. This has implications for various options and terms such as wind forcing (see section \ref{sec:wind_forcing}), the calculation of buoyancy and the `direction' of absorptions (see \ref{sec:Source}).
+Enabling \option{/geometry/spherical\_earth} informs \fluidity that your
+simulation is being carried out in an Earth like geometry. In three dimensions
+this means that the mesh domain is assumed to approximate (a part of) a sphere, but this option can
+also be used in two dimensions where the domain is assumed to be (a part of) a
+circle (cylindrical domain). The domain is still described in
+general $x,y,z$ coordinates (no spherical coordinates)
+and the centre of the N-sphere must coincide with the origin. Gravity is assumed
+to point to the centre. Generally, the sphere is only extruded to a certain
+depth, leaving a void around the origin. The two main applications of this
+option are large-scale ocean simulations on the sphere, and geodynamic simulations of the
+Earth's mantle.
 
-If this option is checked, wind forcing and \eg momentum forcing from bulk formulae (see \ref{sec:bulk_formulae}) will automatically be rotated and applied in the direction tangential to the Earth's surface. It will also result in absorption terms set through the options tree being rotated and applied in the longitudinal, latitudinal and radial directions respectively. Additionally, in many terms such as the buoyancy density, the direction of gravity is hard coded and calculated at explicitly at Gauss points when this option is enabled. Thus, if enabling this option, the direction of gravity specified in the options tree (see \ref{sec:Gravity}) must be set via a python function representing the inward normal to the sphere. Note however that the viscosity and diffusion operators are currently not rotated automatically and thus the user must carry such rotations out themselves. And example in which the viscosity is rotated is giving in section \ref{sec:tides_in_the_med}.
+One consequence of this option is that an input mesh can be set up that
+approximates the top surface of the spherical domain. This will be
+a $N$-dimensional mesh embedded in $N+1$ dimensions, and its vertex locations
+therefore need to be $N+1$-dimensional. If this option is combined with
+extrusion (see section \ref{sec:extruded_meshes}), the extrusion will
+happen downwards in the radial direction.
 
-Under \option{/geometry/spherical\_earth} the user must select \option{linear\_mapping} or \option{superparametric\_mapping}. The former results in cords between nodes being approximated as linear segments whilst the latter gives a better approximation to the Earth's shape through approximating cords with a higher order polynomial. The order of the polynomial is given by the degree of the mesh on which gravity is located.   
+Another consequence of this option is that the direction of gravity is no longer
+read from the \option{GravityDirection} field (under
+\option{/physical\_parameters/gravity}), but is always assumed to be the
+negative radial direction and is directly calculated at the gauss points
+(instead of being interpolated from the mesh nodes). It is however still advised
+to setup the \option{GravityDirection} from a python function that returns
+the same negative radial unit vector, as some places in the code still expect
+it.
+
+For ocean simulations, the option has implications for various options and terms such as wind forcing (see section \ref{sec:wind_forcing}), the calculation of buoyancy and the `direction' of absorptions (see \ref{sec:Source}).
+If this option is checked, wind forcing and \eg momentum forcing from bulk formulae (see \ref{sec:bulk_formulae}) will automatically be rotated and applied in the direction tangential to the Earth's surface. It will also result in absorption terms set through the options tree being rotated and applied in the longitudinal, latitudinal and radial directions respectively. Note however that the viscosity and diffusion operators are currently not rotated automatically and thus the user must carry such rotations out themselves. An example in which the viscosity is rotated is giving in section \ref{sec:tides_in_the_med}.
+
+Two options, \option{spherical\_earth/superparametric\_mapping} and
+\option{spherical\_earth/analytical\_mapping},
+are available to improve the approximation of the spherical domain
+by the mesh, in particular for coarse meshes.
+The general idea is that instead of using straight, linearly
+interpolated tets and triangles, the elements are bent to better fit the curved
+geometry (see section \ref{sec:coordinate_mesh_and_superparametric} for the
+exact formula). The mesh vertices are kept in place, but all points in the interior of
+an element are moved a little in the radial direction,
+such that the radial coordinate varies linearly
+between the vertices. For example, in the case of a triangle with all three
+points on a perfect sphere, this means the entire triangle is now curved
+to be exactly on that sphere. Using the \option{superparametric\_mapping} option
+the curved elements are approximated by a higher order polynomial by using a
+higher order \option{CoordinateMesh}. To use this option, you therefore need a
+seperate \option{CoordinateMesh} that is derived from the usual continuous P1
+mesh (typicall called \option{BaseMesh}). For example, when combining this with
+extrusion in 3D, one needs a 2D input mesh \option{InputMesh}, an extruded
+\option{BaseMesh} with extrusion options, and a \option{CoordinateMesh} derived
+from this that has set a higher order \option{mesh\_shape/polynomial\_degree}.
+Other meshes (function spaces) used in the discretisation, e.g. a \PoDG or a $P2$ mesh, are
+also derived from the \option{BaseMesh}.
+For the \option{analytical\_mapping} option a higher order
+\option{CoordinateMesh} is not necessary; the bending of the element is done
+directly at the gauss points using an analytical expression. Thus the
+conformance of a bended element with a perfect sphere is only limited by the
+quadrature degree. Nonetheless, for calculations that are done node-wise, in
+particular when setting a higher order prescribed field from a python
+function, it may still make sense to combine \option{superparametric\_mapping}
+and \option{analytical\_mapping}, so that the coordinates of the bended
+elements are available in the nodes of the higher order mesh.
 
 \subsubsection{Ocean Boundaries}\label{sec:ocean_boundaries}
 \index{boundary conditions!ocean}
