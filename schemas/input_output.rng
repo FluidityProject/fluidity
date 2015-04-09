@@ -77,6 +77,14 @@ be set to use this option.</a:documentation>
           </element>
         </element>
       </element>
+      <element name="plugin_function">
+        <attribute name="path">
+          <data type="string"/>
+        </attribute>
+        <attribute name="name">
+          <data type="string"/>
+        </attribute>
+      </element>
     </choice>
   </define>
   <define name="input_choice_real_plus_map">

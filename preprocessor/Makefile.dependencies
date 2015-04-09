@@ -39,7 +39,8 @@ Initialise_Fields.o ../include/initialise_fields_module.mod: \
    ../include/futils.mod ../include/global_parameters.mod \
    ../include/load_netcdf_module.mod ../include/nemo_states_module.mod \
    ../include/parallel_tools.mod ../include/physics_from_options.mod \
-   ../include/spud.mod ../include/tictoc.mod ../include/vtk_cache_module.mod
+   ../include/plugin_functions.mod ../include/spud.mod ../include/tictoc.mod \
+   ../include/vtk_cache_module.mod
 
 ../include/physics_from_options.mod: Physics_From_Options.o
 	@true
@@ -113,6 +114,18 @@ Tidal_Modelling.o ../include/tidal_module.mod: Tidal_Modelling.F90 \
 VTK_Cache.o ../include/vtk_cache_module.mod: VTK_Cache.F90 ../include/fdebug.h \
    ../include/fields.mod ../include/fldebug.mod ../include/state_module.mod \
    ../include/vtk_interfaces.mod
+
+../include/dl_fortran.mod: dl_fortran.o
+	@true
+
+dl_fortran.o ../include/dl_fortran.mod: dl_fortran.F90
+
+../include/plugin_functions.mod: plugin_functions.o
+	@true
+
+plugin_functions.o ../include/plugin_functions.mod: plugin_functions.F90 \
+   ../include/dl_fortran.mod ../include/fdebug.h ../include/fields.mod \
+   ../include/global_parameters.mod
 
 ../include/synthetic_bc.mod: synthetic_bc.o
 	@true

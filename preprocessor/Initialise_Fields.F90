@@ -40,6 +40,7 @@ use fluxes
 use nemo_states_module
 use physics_from_options
 use load_netcdf_module
+use plugin_functions
 
 implicit none
 
@@ -84,6 +85,7 @@ contains
     real :: const
     character(len=OPTION_PATH_LEN) :: format, field_name, filename
     character(len=PYTHON_FUNC_LEN) :: func
+    character(len=OPTION_PATH_LEN) :: plugin_name,function_name 
     real :: current_time
     real :: gravity_magnitude
     
@@ -106,6 +108,16 @@ contains
        end if
        ! Set initial condition from python function
        call set_from_python_function(field, trim(func), position, current_time)
+    else if(have_option(trim(path)//"/plugin_function")) then
+       call get_option(trim(path)//"/plugin_function/path", plugin_name)
+       call get_option(trim(path)//"/plugin_function/name", function_name)
+       ! Get current time
+       if (present(time)) then
+         current_time=time
+       else
+         call get_option("/timestepping/current_time", current_time)
+       end if
+       call set_from_plugin_function(field, trim(plugin_name),trim(function_name), position, current_time)
     else if(have_option(trim(path)//"/generic_function")) then
        FLExit("Generic functions are obsolete. Please use a Python function.")
     else if(have_option(trim(path)//"/internally_calculated")) then

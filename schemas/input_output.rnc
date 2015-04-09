@@ -48,6 +48,10 @@ input_choice_real_plus_file =
                   "Temperature"|"Salinity"|"Free-surface height"
               }
           }
+      }|
+      element plugin_function {
+         attribute path { xsd:string },
+	 attribute name { xsd:string }	    
       }
    )
 
