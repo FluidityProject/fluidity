@@ -106,13 +106,10 @@ contains
     call set(distance(1),sfield)
 
     do itr=1,20
-       print*, itr, maxval(abs(distance(1)%val)), sum(distance(1)%val)/size(distance(1)%val)
+       ewrite(2,*) itr, maxval(abs(distance(1)%val)), sum(distance(1)%val)/size(distance(1)%val)
        call pgrad(distance(1),positions,gradient(1))
 
        call calculate_timestep(gradient(1),positions, u_dot_dx,dt)
-
-       print*, dt
-
 
        do node=1,node_count(sfield)
           call set(distance(2),node,node_val(distance(1),node)+dt*L(distance(1),gradient(1),node))
