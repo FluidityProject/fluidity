@@ -35,8 +35,8 @@ module tetrahedron_intersection_module
   use libsupermesh_fields_allocates, only : allocate, deallocate
   use libsupermesh_fields_base, only : ele_count_lib => ele_count, &
                                       node_count_lib => node_count
-  use libsupermesh_tet_intersection_module, only : libsupermesh_tet_type, &
-                               & libsupermesh_plane_type, &
+  use libsupermesh_tet_intersection_module, only : tet_type_lib => tet_type, &
+                               & plane_type_lib => plane_type, &
                                & libsupermesh_intersect_tets_dt, &
                                get_planes_lib => get_planes
   use libsupermesh_quadrature, only : &
@@ -99,8 +99,8 @@ module tetrahedron_intersection_module
     integer :: ele
     integer, intent(out) :: stat
 
-    type(libsupermesh_tet_type) :: tetA_lib
-    type(libsupermesh_plane_type), dimension(4) :: planesB_lib
+    type(tet_type_lib) :: tetA_lib
+    type(plane_type_lib), dimension(4) :: planesB_lib
 !    type(libsupermesh_plane_type), dimension(:), allocatable :: planesB_lib
     type(element_type_lib) :: shape_lib, shape_lib_temp
     type(vector_field_lib) :: output_lib
