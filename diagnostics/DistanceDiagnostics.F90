@@ -56,6 +56,7 @@ subroutine calculate_scalar_distance_function(states,state_index,s_field)
   type(state_type), dimension(:) :: states
   integer, intent(in) :: state_index
   type(scalar_field), intent(inout):: s_field
+
   integer :: i, stat, diagnostic_count, n
   type(scalar_field), pointer :: source
   type(vector_field), pointer :: x
@@ -64,31 +65,64 @@ subroutine calculate_scalar_distance_function(states,state_index,s_field)
   real :: zero_level
   character( len = OPTION_PATH_LEN ) :: algorithm 
 
+  integer :: sele
+  integer, dimension(2) :: shape
+  integer, dimension(:), allocatable :: surface_ids
+
+  logical :: do_surfaces
+
   source=>scalar_source_field(states(state_index),s_field)
   x=>extract_vector_field(states,"Coordinate",stat)
 
   call get_option(trim(s_field%option_path)//&
        "/diagnostic/algorithm/zero_level",zero_level)
-call get_option(trim(s_field%option_path)//&
+  call get_option(trim(s_field%option_path)//&
      "/diagnostic/algorithm/method/name",algorithm)
+
+  if(have_option(trim(s_field%option_path) // "/diagnostic/algorithm/surface_ids")) then
+     shape = option_shape(trim(s_field%option_path) // "/diagnostic/algorithm/surface_ids")
+     assert(shape(1) >= 0)
+     allocate(surface_ids(shape(1)))
+     call get_option(trim(s_field%option_path) // "/diagnostic/algorithm/surface_ids", surface_ids)
+     do_surfaces=.true.
+  else
+     do_surfaces=.false.
+  end if
 
   if (stat==0) then
      call set(s_field,source)
      call addto(s_field,-zero_level)
+     if (do_surfaces) then
+        do sele = 1, surface_element_count(s_field) 
+           if (.not. associated(s_field%mesh%faces)) then
+              cycle
+           else if(.not. any(surface_ids == &
+                surface_element_id(s_field%mesh, sele))) then
+              cycle
+           end if
+
+           s_field%val(face_global_nodes(s_field,sele))=0.0
+        end do
+     end if
+        
      select case(algorithm)
      case("MarchingMethod")
-        call marching_distance_function(s_field,x)
+        call allocate(p1_field,x%mesh,"P1Field")
+        call remap_field(s_field,p1_field,stat)
+        call marching_distance_function(p1_field,x,0.6)
+        call remap_field(p1_field,s_field)
+        call deallocate(p1_field)
      case("HamiltonJacobi")
         call hamilton_jacobi_distance_function(s_field,x)
      case("Hybrid")
-        call allocate(p1_field,x%mesh,"P1Field2")
+        call allocate(p1_field,x%mesh,"P1Field")
         call remap_field(s_field,p1_field,stat)
-        call marching_distance_function(p1_field,x)
+        call marching_distance_function(p1_field,x,0.4)
         call halo_update(p1_field)
-        call hamilton_jacobi_distance_function(p1_field,x)
+        call hamilton_jacobi_distance_function(p1_field,x,20)
         call remap_field(p1_field,s_field)
         call deallocate(p1_field)
-        call hamilton_jacobi_distance_function(s_field,x)
+        call hamilton_jacobi_distance_function(s_field,x,0)
      end select
   end if
 

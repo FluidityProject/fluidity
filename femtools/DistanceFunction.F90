@@ -55,14 +55,15 @@ end type marching_type
 
 contains
 
-  subroutine hamilton_jacobi_distance_function(sfield,positions)
+  subroutine hamilton_jacobi_distance_function(sfield,positions,itrs)
 
     type(scalar_field), intent(inout)     :: sfield
     type(vector_field), intent(in)     :: positions
+    integer, intent(in), optional :: itrs
 
     type(scalar_field)  :: distance(3), mesh_length, inverse_volume, u_dot_dx
-    type(vector_field) :: gradient(3), DiscontinuousGradient
-    integer :: itr, ele, node, dim
+    type(vector_field) :: gradient(4), DiscontinuousGradient
+    integer :: itr, ele, node, dim, l_itrs
     integer, dimension(:), pointer :: nodes
     real :: dt, min_dx, vol
 
@@ -71,6 +72,12 @@ contains
     ! Subroutine implements a version of the Hamilton Jacobi algorithm to
     ! approximate a distance function from the zero contour of the input field,
     ! sfield, with a coordinate mesh described by positions
+
+    if (present(itrs)) then
+       l_itrs=itrs
+    else
+       l_itrs=10
+    end if
 
     dim=mesh_dim(sfield)
 
@@ -102,14 +109,18 @@ contains
        call allocate(distance(itr),sfield%mesh,name="Distance")
        call allocate(gradient(itr),dim=dim,mesh=sfield%mesh,name="Gradient")
     end do
+    call allocate(gradient(4),dim=dim,mesh=sfield%mesh,name="Gradient")
+
+    call pgrad(sfield,positions,gradient(4))
 
     call set(distance(1),sfield)
 
-    do itr=1,20
+    do itr=1,l_itrs
        ewrite(2,*) itr, maxval(abs(distance(1)%val)), sum(distance(1)%val)/size(distance(1)%val)
        call pgrad(distance(1),positions,gradient(1))
 
-       call calculate_timestep(gradient(1),positions, u_dot_dx,dt)
+       call calculate_timestep(sfield,gradient(1),positions, u_dot_dx,dt)
+
 
        do node=1,node_count(sfield)
           call set(distance(2),node,node_val(distance(1),node)+dt*L(distance(1),gradient(1),node))
@@ -143,6 +154,7 @@ contains
        call deallocate(distance(itr))
        call deallocate(gradient(itr))
     end do
+    call deallocate(gradient(4))
 
     call deallocate(mesh_length)
     call deallocate(DiscontinuousGradient)
@@ -152,8 +164,9 @@ contains
 
   contains 
 
-    subroutine calculate_timestep(grad_psi, X, u_dot_dx, dt)
+    subroutine calculate_timestep(psi,grad_psi, X, u_dot_dx, dt)
     !! Calculate the CFL number as a field.
+    type(scalar_field), intent(in) :: psi 
     type(vector_field), intent(inout) :: grad_psi
     type(vector_field), intent(in) :: X
     type(scalar_field), intent(inout) :: u_dot_dx
@@ -213,7 +226,8 @@ contains
 
     call invert(u_dot_dx)
 
-    dt=0.25*minval(u_dot_dx)
+    dt=0.1*minval(u_dot_dx)
+
     call allmin(dt)
 
   end subroutine calculate_timestep
@@ -236,21 +250,25 @@ contains
       
 
       grad_psi%val=0.0
+!      grad_psi%val=huge(1.0)
       do ele=1,ele_count(psi)
          nodes=>ele_nodes(grad_psi,ele)
-         dgp=ele_val(DiscontinuousGradient,ele)*element_volume(positions,ele)
+!         dgp=ele_val(DiscontinuousGradient,ele)*element_volume(positions,ele)#
+         dgp=ele_val(DiscontinuousGradient,ele)!*element_volume(positions,ele)
 
-         call addto(grad_psi,nodes,dgp)
+!         call addto(grad_psi,nodes,dgp)
 
-!         do i=1, size(nodes)
-!            gp=node_val(grad_psi,nodes(i))
-!            if (dot_product(gp,gp)>dot_product(dgp(:,i),dgp(:,i))) &
-!                 call set(grad_psi,nodes(i),&
-!                 dgp(:,i))        
-!         end do
+         do i=1, size(nodes)
+            gp=node_val(grad_psi,nodes(i))
+            if (abs(dot_product(gp,gp)-1)<abs(dot_product(dgp(:,i),dgp(:,i))-1)) &
+                 call set(grad_psi,nodes(i),&
+                 dgp(:,i))        
+         end do
       end do
      
-      call scale(grad_psi,inverse_volume)
+!      call scale(grad_psi,inverse_volume)
+
+      call halo_update(grad_psi)
 
     end subroutine pgrad
 
@@ -266,6 +284,7 @@ contains
         gp=node_val(grad_psi,node_number)
         
         L=-signum(psi,grad_psi,node_number)*(sqrt(dot_product(gp,gp))-1.0)
+!        L=-signum(sfield,gradient(4),node_number)*(sqrt(dot_product(gp,gp))-1.0)
 
       end function L
         
@@ -284,16 +303,17 @@ contains
 
 
 
-        signum=p/sqrt(p**2+dx**2*dot_product(gp,gp))
-!        signum=p/sqrt(p**2+dx**2)
+!        signum=p/sqrt(p**2+dx**2*dot_product(gp,gp))
+        signum=p/sqrt(p**2+dx**2)
 
       end function signum
 
   end subroutine hamilton_jacobi_distance_function
 
-  subroutine init_marching(marching_data,sfield)
+  subroutine init_marching(marching_data,sfield,first_time)
     type(marching_type), intent(inout) :: marching_data
     type(scalar_field), intent(in)     :: sfield
+    logical, intent(in) :: first_time
 
     ! local variables
 
@@ -302,13 +322,17 @@ contains
     ! routine initializes the data structures for the Fast Marching Method
     ! Believed to be independent of mesh structure
 
-    n_ele=ele_count(sfield)
-    n_node=node_count(sfield)
 
-    allocate(marching_data%ele%trial(n_ele)) 
-    allocate(marching_data%ele%accepted(n_ele))
-    allocate(marching_data%node%trial(n_node))
-    allocate(marching_data%node%accepted(n_node))
+    if (first_time) then
+       n_ele=ele_count(sfield)
+       n_node=node_count(sfield)
+
+       allocate(marching_data%ele%trial(n_ele)) 
+       allocate(marching_data%ele%accepted(n_ele))
+       allocate(marching_data%node%trial(n_node))
+       allocate(marching_data%node%accepted(n_node))
+
+    end if
 
     marching_data%ele%trial=.false.
     marching_data%ele%accepted=.false.
@@ -342,14 +366,17 @@ contains
     end if
   end function contains_interface
 
- subroutine setup_marching(marching,sfield,positions)
+ subroutine setup_marching(marching,sfield,positions,max_distance,interval)
    type(marching_type), intent(inout) :: marching
    type(scalar_field), intent(inout) :: sfield
    type(vector_field), intent(in) :: positions
+   real, intent(in) :: max_distance
+   real, intent(in), dimension(2) :: interval
    type(scalar_field) :: data 
    integer :: ele, node
 
-   real :: max_distance
+   real :: val
+
 
    ! local varibles
 
@@ -357,25 +384,40 @@ contains
 
    ! Routine producing the initial zero contour values
 
-   call allocate(data,sfield%mesh,"Temporary storage")
+   if (all(interval==[0.0,0.0])) then
 
-!      max_distance=1.0e-10*huge(sfield%val(node))
-   max_distance=1.0
+      call allocate(data,sfield%mesh,"TemporaryStorage")
+      
+      do node=1, node_count(sfield)
+         call set(data,node,signum(max_distance,node_val(sfield,node)))
+      end do
 
-   do node=1, node_count(sfield)
-      call set(data,node,sign(max_distance,sfield%val(node)))
-   end do
-   do ele= 1, ele_count(sfield)
-      if (contains_interface(sfield,ele)) then
-         marching%ele%accepted(ele)=.true.
+      do ele= 1, ele_count(sfield)
+         if (contains_interface(sfield,ele)) then
+            marching%ele%accepted(ele)=.true.
+            nodes=>ele_nodes(sfield,ele)
+            marching%node%accepted(nodes)=.true.
+            call estimate_nodes_first_go(marching,sfield,data,positions,ele)
+         end if
+      end do
+
+      call set(sfield,data)
+      call deallocate(data)
+
+   else
+      do node=1, node_count(sfield)
+         val=node_val(sfield,node)
+         if (val>=interval(1) .and. val<=interval(2)) then
+            marching%node%accepted(node)=.true.
+         end if
+      end do
+   
+      do ele= 1, ele_count(sfield)
          nodes=>ele_nodes(sfield,ele)
-         marching%node%accepted(nodes)=.true.
-         call estimate_nodes_first_go(marching,sfield,data,positions,ele)
-      end if
-   end do
+         if (all(marching%node%accepted(nodes))) marching%ele%accepted(ele)=.true.
+      end do
+   end if
 
-   call set(sfield,data)
-   call deallocate(data)
 
    do node=1, node_count(sfield)
       if (marching%node%accepted(node)) then
@@ -383,6 +425,20 @@ contains
                        marching,sfield,positions)
       end if
    end do
+
+   contains
+
+     function signum(a,b)
+
+       real , intent(in) :: a,b
+
+       real :: signum
+
+       real, parameter :: tol=1.0e-16
+
+       signum= a*b/sqrt(tol**2+b**2)
+
+     end function signum
 
  end subroutine setup_marching
 
@@ -685,6 +741,7 @@ end subroutine test_node_minimized
    
    integer, parameter:: LINE=2,TRIANGLE=13,TET=24
    integer, dimension(:), pointer :: node_list
+   type(scalar_field) :: temp
 
    ! get distances on an element which contains the zero contour,
    ! and store any which are better than the previous estimate.
@@ -745,8 +802,8 @@ end subroutine test_node_minimized
          
          
          Ainv=Ainv/(x(1,1)*Ainv(1,1)&
-                   -x(1,2)*Ainv(2,1)&
-                   +x(1,3)*Ainv(3,1))
+                   -x(1,2)*Ainv(1,2)&
+                   +x(1,3)*Ainv(1,3))
 
          n=matmul(Ainv,(/sval(1)-sval(4),&
                          sval(2)-sval(4),&
@@ -761,7 +818,8 @@ end subroutine test_node_minimized
 
 
       do node=1,ele_loc(sfield,ele)
-         if (abs(dval(node))<abs(node_val(data,node_list(node)))) then
+         if (abs(dval(node))<abs(node_val(data,node_list(node)))&
+              .and. sval(node)*dval(node)>=0.0 ) then
             call set(data,node_list(node),dval(node))
          end if
       end do
@@ -769,41 +827,98 @@ end subroutine test_node_minimized
    end if
  end subroutine estimate_nodes_first_go
 
- subroutine marching_distance_function(sfield,positions)
+ subroutine get_interval(sfield,interval,max_distance)
+   type(scalar_field), intent(inout) :: sfield
+   real, intent(out) :: interval(2)
+   real, intent(in) :: max_distance
+
+   type(scalar_field) :: temp
+   integer :: node
+   real :: a,b
+
+   interval=0.0
+
+   call allocate(temp,sfield%mesh,"TemporaryField")
+   call set(temp,sfield)
+   call halo_update(sfield)
+
+   ! loop over the nodes of the input and check for changes. This could be optimized
+
+   do node=1,node_count(sfield)
+      a=node_val(sfield,node)
+      b=node_val(temp,node)
+      if (a==b) then
+         call set(temp,node,0.0)
+      else
+         call set(temp,node,sign(min(abs(a),abs(b)),a))
+         call set(sfield,node,sign(min(abs(a),abs(b)),a))
+      end if
+   end do
+   if(any(temp%val<0.0)) interval(1)=maxval(temp%val,mask=temp%val<0.0)
+   if(any(temp%val>0.0)) interval(2)=minval(temp%val,mask=temp%val>0.0)
+
+   call deallocate(temp)
+
+ end subroutine get_interval
+
+ subroutine marching_distance_function(sfield,positions,max_distance)
    type(scalar_field), intent(inout) :: sfield
    type(vector_field), intent(in) :: positions
+   real, intent(in) :: max_distance
 
 !  local data structure for trial space and accepted space
    type(marching_type) :: marching
 
    integer, dimension(1) :: min_node 
    logical :: test_node
+   real, dimension(2) :: interval
+   integer :: itr
 
    ! main routine
 
-   call init_marching(marching,sfield)
+   call init_marching(marching,sfield,first_time=.true.)
 
    ! get zero contour
-   call setup_marching(marching,sfield,positions)
+   call setup_marching(marching,sfield,positions,max_distance,[0.0,0.0])
 
-   if (any(marching%node%trial)) then
-      ! after setup is there any work to do?
+   call run_marching()
 
-      do
-         ! Main loop
-         ! stop when all points are set to minimum value they can attain
-         if (all (marching%node%accepted)) exit
-         min_node=minloc(abs(sfield%val),mask=marching%node%trial)
-         !      call test_node_minimized(min_node(1),test_node,marching,sfield,positions)
-         !      if (test_node) then
-         call accept_node_and_recalculate_neighbours(min_node(1),&
-              marching,sfield,positions)
-         !      end if
+   if(isparallel()) then
+
+      do itr=2,50
+         ! get interval does a halo update and thus spreads the information across processes a bit
+         call get_interval(sfield,interval,max_distance)
+         call init_marching(marching,sfield,first_time=.false.)
+         call setup_marching(marching,sfield,positions,max_distance,interval)
+
+         call run_marching()
+
       end do
+
    end if
 
+   call finalize_marching(marching)
 
-call finalize_marching(marching)
+   contains 
+
+     subroutine run_marching()
+
+       if (any(marching%node%trial)) then
+          ! after setup is there any work to do?
+          
+          do
+             ! Main loop
+             ! stop when all points are set to minimum value they can attain
+             if (all (marching%node%accepted)) exit
+             min_node=minloc(abs(sfield%val),mask=marching%node%trial)
+             !      call test_node_minimized(min_node(1),test_node,marching,sfield,positions)
+             !      if (test_node) then
+             call accept_node_and_recalculate_neighbours(min_node(1),&
+                  marching,sfield,positions)
+             !      end if
+          end do
+       end if
+     end subroutine run_marching
 
  end subroutine marching_distance_function
 

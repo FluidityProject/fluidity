@@ -1923,12 +1923,16 @@ The mesh must be directly extruded.</a:documentation>
           </attribute>
         </element>
       </choice>
-      <element name="depends">
-        <ref name="anystring"/>
-      </element>
       <element name="zero_level">
         <ref name="real"/>
       </element>
+      <optional>
+        <element name="surface_ids">
+          <a:documentation>Physical surface ids for any boundaries to be included in the distance function calculation.
+ This is principally provided as a convenience function for multiphase simulations. </a:documentation>
+          <ref name="integer_vector"/>
+        </element>
+      </optional>
     </element>
   </define>
   <!-- Time averaged fields -->
@@ -1990,7 +1994,7 @@ This field needs to be interpolated between adapts.</a:documentation>
       <ref name="scalar_source_field"/>
       <optional>
         <element name="spin_up_time">
-          <a:documentation>When to start sampling?  Defaults to simulation start time.</a:documentation>
+          <a:documentation>When to start sampling? Defaults to simulation start time.</a:documentation>
           <ref name="real"/>
         </element>
       </optional>

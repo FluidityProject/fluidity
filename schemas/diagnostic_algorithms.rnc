@@ -877,10 +877,10 @@ bulk_viscosity_algorithm =
           attribute depends { "MaterialViscosity" },
           (
             ## Use an arithmetic mean (default):
-       ##
-       ##   \bar\nu = \alpha^i\nu^i
-       ##  
-       ## where \bar\nu is the bulk viscosity, \alpha^i is the volume fraction
+            ##
+            ##   \bar\nu = \alpha^i\nu^i
+            ##  
+            ## where \bar\nu is the bulk viscosity, \alpha^i is the volume fraction
             ## for material i and \nu^i is the viscosity of material i.
             element mean {
               attribute name { "arithmetic" },
@@ -1430,12 +1430,14 @@ scalar_distance_function =
 	    attribute name { "MarchingMethod" }
 	 }
 	 ),
-         element depends {
-            anystring
-         },
 	 element zero_level {
             real
-         }
+         },
+	 ## Physical surface ids for any boundaries to be included in the distance function calculation.
+##  This is principally provided as a convenience function for multiphase simulations. 
+	 element surface_ids {
+            integer_vector
+         }?
       }
    )
 
@@ -1487,7 +1489,7 @@ scalar_squared_time_averaged_algorithm =
          attribute name { "time_averaged_scalar_squared" },
          attribute material_phase_support { "single" },
          scalar_source_field,
-         ## When to start sampling?  Defaults to simulation start time.
+         ## When to start sampling? Defaults to simulation start time.
          element spin_up_time {
             real
          }?
