@@ -1,0 +1,23 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>initialise_from_shared_object</name>
+  <owner userid="jrper"/>
+  <problem_definition length="short" nprocs="1">
+    <command_line>fluidity initialise_from_shared_object.flml
+</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="vtu" language="python">import vtktools
+
+vtu = vtktools.vtu("initialise_from_shared_object_0.vtu")</variable>
+  </variables>
+  <pass_tests>
+    <test name="Difference" language="python">import fluidity_tools
+
+field = vtu.GetScalarField("Difference")
+
+print "Difference", field.min(), field.max()
+fluidity_tools.compare_variable(field.min(), 0.0, 1.0e-12)
+fluidity_tools.compare_variable(field.max(), 0.0, 1.0e-12)</test>
+  </pass_tests>
+</testproblem>
