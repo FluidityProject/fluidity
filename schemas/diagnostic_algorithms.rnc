@@ -877,10 +877,10 @@ bulk_viscosity_algorithm =
           attribute depends { "MaterialViscosity" },
           (
             ## Use an arithmetic mean (default):
-            ##
-            ##   \bar\nu = \alpha^i\nu^i
-            ##  
-            ## where \bar\nu is the bulk viscosity, \alpha^i is the volume fraction
+       ##
+       ##   \bar\nu = \alpha^i\nu^i
+       ##  
+       ## where \bar\nu is the bulk viscosity, \alpha^i is the volume fraction
             ## for material i and \nu^i is the viscosity of material i.
             element mean {
               attribute name { "arithmetic" },
@@ -1412,6 +1412,33 @@ control_volume_mass_matrix =
       }
    )
 
+scalar_distance_function =
+   (
+      ## distance from zeor contour of source field
+      element algorithm {
+         attribute name { "scalar_distance_function" },
+         attribute material_phase_support { "multiple" },
+         scalar_source_field,
+	 (
+	 element method {
+	    attribute name { "HamiltonJacobi" }
+	 }|
+	 element method {
+	    attribute name { "Hybrid" }
+	 }|
+	 element method {
+	    attribute name { "MarchingMethod" }
+	 }
+	 ),
+         element depends {
+            anystring
+         },
+	 element zero_level {
+            real
+         }
+      }
+   )
+
 # Time averaged fields
 
 scalar_time_averaged_algorithm =
@@ -1460,7 +1487,7 @@ scalar_squared_time_averaged_algorithm =
          attribute name { "time_averaged_scalar_squared" },
          attribute material_phase_support { "single" },
          scalar_source_field,
-         ## When to start sampling? Defaults to simulation start time.
+         ## When to start sampling?  Defaults to simulation start time.
          element spin_up_time {
             real
          }?
@@ -1535,6 +1562,7 @@ scalar_diagnostic_algorithms |= scalar_squared_time_averaged_algorithm
 scalar_diagnostic_algorithms |= scalar_potential_algorithm
 scalar_diagnostic_algorithms |= scalar_laplacian_algorithm
 scalar_diagnostic_algorithms |= scalar_galerkin_projection_algorithm
+scalar_diagnostic_algorithms |= scalar_distance_function
 scalar_diagnostic_algorithms |= scalar_difference_algorithm
 scalar_diagnostic_algorithms |= scalar_copy_algorithm
 scalar_diagnostic_algorithms |= scalar_advection_algorithm
