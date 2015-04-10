@@ -226,7 +226,7 @@ module supermesh_construction
     
     positions_A_lib_val = positions_A%val
     
-    intersection_lib = libsupermesh_intersect_elements(positions_A_lib_val, ele_A, posB, shape_lib, ele_loc(positions_A, ele_A), dimA, node_count(positions_A), positions_a%mesh%shape%loc, positions_a%field_type, positions_A%mesh%ndglno)
+    intersection_lib = libsupermesh_intersect_elements(positions_A_lib_val, ele_count(positions_A), positions_A%mesh%shape%quadrature%vertices, positions_A%mesh%shape%quadrature%dim, ele_A, posB, shape_lib, ele_loc(positions_A, ele_A), dimA, node_count(positions_A), positions_a%mesh%shape%loc, positions_a%field_type, positions_A%mesh%ndglno)
     
     call deallocate(shape_lib)
 !    call deallocate(mesh_lib)
