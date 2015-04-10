@@ -68,6 +68,7 @@ subroutine calculate_scalar_distance_function(states,state_index,s_field)
   integer :: sele
   integer, dimension(2) :: shape
   integer, dimension(:), allocatable :: surface_ids
+  real :: max_distance
 
   logical :: do_surfaces
 
@@ -84,6 +85,7 @@ subroutine calculate_scalar_distance_function(states,state_index,s_field)
      assert(shape(1) >= 0)
      allocate(surface_ids(shape(1)))
      call get_option(trim(s_field%option_path) // "/diagnostic/algorithm/surface_ids", surface_ids)
+     call get_option(trim(s_field%option_path) // "/diagnostic/algorithm/maximum_distance", max_distance, default=huge(1.0))
      do_surfaces=.true.
   else
      do_surfaces=.false.
@@ -109,7 +111,7 @@ subroutine calculate_scalar_distance_function(states,state_index,s_field)
      case("MarchingMethod")
         call allocate(p1_field,x%mesh,"P1Field")
         call remap_field(s_field,p1_field,stat)
-        call marching_distance_function(p1_field,x,0.6)
+        call marching_distance_function(p1_field,x,max_distance)
         call remap_field(p1_field,s_field)
         call deallocate(p1_field)
      case("HamiltonJacobi")
@@ -117,7 +119,7 @@ subroutine calculate_scalar_distance_function(states,state_index,s_field)
      case("Hybrid")
         call allocate(p1_field,x%mesh,"P1Field")
         call remap_field(s_field,p1_field,stat)
-        call marching_distance_function(p1_field,x,0.4)
+        call marching_distance_function(p1_field,x,max_distance)
         call halo_update(p1_field)
         call hamilton_jacobi_distance_function(p1_field,x,20)
         call remap_field(p1_field,s_field)

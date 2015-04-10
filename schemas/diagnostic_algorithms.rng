@@ -1923,6 +1923,18 @@ The mesh must be directly extruded.</a:documentation>
           </attribute>
         </element>
       </choice>
+      <optional>
+        <element name="depends">
+          <ref name="anystring"/>
+        </element>
+      </optional>
+      <optional>
+        <element name="maximum_distance">
+          <a:documentation>Specify maximum distance up to which to calculate
+Default: infinity</a:documentation>
+          <ref name="real"/>
+        </element>
+      </optional>
       <element name="zero_level">
         <ref name="real"/>
       </element>

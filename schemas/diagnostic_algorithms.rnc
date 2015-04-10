@@ -1430,6 +1430,14 @@ scalar_distance_function =
 	    attribute name { "MarchingMethod" }
 	 }
 	 ),
+         element depends {
+            anystring
+         }?,
+	 ## Specify maximum distance up to which to calculate
+	 ## Default: infinity
+	 element maximum_distance {
+            real
+         }?,
 	 element zero_level {
             real
          },
