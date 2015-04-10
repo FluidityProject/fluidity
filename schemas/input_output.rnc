@@ -49,6 +49,25 @@ input_choice_real_plus_file =
               }
           }
       }|
+      ## Initialize the field from a subroutine defined in an 
+      ## external shared object library.
+      ## Set path to the absolute or relative path to the .so file
+      ## and set name to the function name to be called. This should
+      ## have an interface of the form
+      ##
+      ##  subroutine f(field,X,t)
+      ##
+      ##  double precision :: field(:), X(:,:), t
+      ##
+      ## end subroutine 
+      ##
+      ## "field" is the data array for the field being set.
+      ## "X" is the physical location of the nodes ordered
+      ## [dimension,node number]
+      ## "t" is the current model time.
+      ##
+      ## The code file should be compiled like
+      ##    gfortran -fPIC -shared -o example.so example.F90
       element plugin_function {
          attribute path { xsd:string },
 	 attribute name { xsd:string }	    
