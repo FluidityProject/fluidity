@@ -45,7 +45,8 @@ module dmplex_reader
 
   private
 
-  public :: dmplex_read_mesh_file, dmplex_create_coordinate_field, dmplex_create_halos
+  public :: dmplex_read_mesh_file, dmplex_create_coordinate_field, &
+       dmplex_create_halos, dmplex_get_point_renumbering
 
   interface
 
@@ -185,18 +186,19 @@ contains
     ewrite(1,*) "Finished dmplex_read_mesh_file"
   end subroutine dmplex_read_mesh_file
 
-  subroutine dmplex_create_coordinate_field(plex, quad_degree, quad_ngi, quad_family, boundary_label, field)
+  subroutine dmplex_create_coordinate_field(plex, quad_degree, quad_ngi, &
+       quad_family, vertex_ordering, cell_ordering, boundary_label, field)
     type(DM), intent(in) :: plex
     integer, intent(in), optional, target :: quad_degree
     integer, intent(in), optional, target :: quad_ngi
     integer, intent(in), optional :: quad_family
+    IS, intent(in) :: vertex_ordering, cell_ordering
     character(len=*), intent(in) :: boundary_label
     type(vector_field), intent(out) :: field
 
     type(mesh_type) :: mesh
     type(quadrature_type) :: quad
     type(element_type) :: shape
-    IS :: v_renumbering, c_renumbering
     integer, dimension(:), pointer :: rnbr_v
     integer :: n, idx
 
@@ -230,10 +232,6 @@ contains
     end if
     shape=make_element_shape(loc, dim, 1, quad)
 
-    ! Get vertex reordering to enforce the expected node order
-    ierr = dmplex_get_point_renumbering(plex, 0, v_renumbering)
-    ierr = dmplex_get_point_renumbering(plex, dim, c_renumbering)
-
     ! Allocate Coordinate field and the CoordinateMesh
     call allocate(mesh, nnodes, nelements, shape, name="CoordinateMesh")
     call allocate(field, dim, mesh, name="Coordinate")
@@ -242,16 +240,16 @@ contains
     call DMGetCoordinatesLocal(plex, plex_coordinates, ierr)
     call VecGetArrayF90(plex_coordinates, coordinates, ierr)
     ! Re-map coordinates according to vertex renumbering
-    call ISGetIndicesF90(v_renumbering, rnbr_v, ierr)
+    call ISGetIndicesF90(vertex_ordering, rnbr_v, ierr)
     do n = 1, nnodes
        idx = rnbr_v(n) + 1
        field%val(:,idx) = coordinates((n-1)*dim+1 : n*dim)
     end do
-    call ISRestoreIndicesF90(v_renumbering, rnbr_v, ierr)
+    call ISRestoreIndicesF90(vertex_ordering, rnbr_v, ierr)
     call VecRestoreArrayF90(plex_coordinates, coordinates, ierr)
 
     ! Build mesh connectivity from cell closures
-    ierr = dmplex_get_mesh_connectivity(plex, nnodes, loc, c_renumbering, v_renumbering, mesh%ndglno)
+    ierr = dmplex_get_mesh_connectivity(plex, nnodes, loc, cell_ordering, vertex_ordering, mesh%ndglno)
 
     ! Build and add surface connectivity and boundary IDs
     ierr = dmplex_get_num_surface_facets(plex, boundary_label//C_NULL_CHAR, nfaces);
@@ -259,12 +257,10 @@ contains
     allocate(boundary_ids(nfaces))
     boundary_ids = 0
     ierr = dmplex_get_surface_connectivity(plex, boundary_label//C_NULL_CHAR, nfaces, sloc, &
-         v_renumbering, sndglno, boundary_ids)
+         vertex_ordering, sndglno, boundary_ids)
     call add_faces(field%mesh, sndgln = sndglno(1:nfaces*sloc), boundary_ids=boundary_ids)
 
     ! Clean up
-    call ISDestroy(v_renumbering, ierr)
-    call ISDestroy(c_renumbering, ierr)
     call deallocate_element(shape)
     call deallocate(quad)
     deallocate(sndglno)
@@ -273,15 +269,16 @@ contains
     ewrite(1,*) "Finished dmplex_create_coordinate_field"
   end subroutine dmplex_create_coordinate_field
 
-  subroutine dmplex_create_halos(plex, mesh, communicator)
+  subroutine dmplex_create_halos(plex, mesh, vertex_ordering, cell_ordering, communicator)
     type(DM), intent(inout) :: plex
     type(mesh_type), intent(inout) :: mesh
     integer, optional, intent(in) :: communicator
+    IS, intent(in) :: vertex_ordering, cell_ordering
 
     integer :: ierr, comm, nprocs, procno, pStart, pEnd, dim, nowned
     integer, dimension(:), allocatable :: nsend, nrecv, nrecv_l1, nrecv_l2, nsend_l1, nsend_l2
     integer, dimension(:), pointer :: sends, receives
-    IS :: c_renumbering, v_renumbering, receives_l1, receives_l2, sends_l1, sends_l2
+    IS :: receives_l1, receives_l2, sends_l1, sends_l2
     PetscSF :: pointSF
 
     ewrite(1, *) "In dmplex_create_halos"
@@ -305,18 +302,16 @@ contains
     call DMGetDimension(plex, dim, ierr)
     call DMGetPointSF(plex, pointSF, ierr)
 
-    ! Get vertex reordering to enforce the expected node order
-    ierr = dmplex_get_point_renumbering(plex, 0, v_renumbering)
-    ierr = dmplex_get_point_renumbering(plex, dim, c_renumbering)
-
     ! Build node halos
     allocate(nrecv_l1(nprocs))
     allocate(nrecv_l2(nprocs))
-    ierr = dmplex_get_halo_receives(plex, nprocs, 0, v_renumbering, nrecv_l1, receives_l1, nrecv_l2, receives_l2)
+    ierr = dmplex_get_halo_receives(plex, nprocs, 0, vertex_ordering, &
+         nrecv_l1, receives_l1, nrecv_l2, receives_l2)
 
     allocate(nsend_l1(nprocs))
     allocate(nsend_l2(nprocs))
-    ierr = dmplex_get_halo_sends(plex, nprocs, 0, v_renumbering, nsend_l1, sends_l1, nsend_l2, sends_l2)
+    ierr = dmplex_get_halo_sends(plex, nprocs, 0, vertex_ordering, &
+         nsend_l1, sends_l1, nsend_l2, sends_l2)
 
     call DMPlexGetDepthStratum(plex, 0, pStart, pEnd, ierr);CHKERRQ(ierr);
     nowned = pEnd - pStart - sum(nrecv_l2)
@@ -356,8 +351,8 @@ contains
     assert(trailing_receives_consistent(mesh%halos(1)))
 
     ! Build element halos
-    ierr = dmplex_get_halo_receives(plex, nprocs, dim, c_renumbering, nrecv_l1, receives_l1, nrecv_l2, receives_l2)
-    ierr = dmplex_get_halo_sends(plex, nprocs, dim, c_renumbering, nsend_l1, sends_l1, nsend_l2, sends_l2)
+    ierr = dmplex_get_halo_receives(plex, nprocs, dim, cell_ordering, nrecv_l1, receives_l1, nrecv_l2, receives_l2)
+    ierr = dmplex_get_halo_sends(plex, nprocs, dim, cell_ordering, nsend_l1, sends_l1, nsend_l2, sends_l2)
 
     call DMPlexGetDepthStratum(plex, dim, pStart, pEnd, ierr);CHKERRQ(ierr);
     nowned = pEnd - pStart - sum(nrecv_l2)
@@ -383,9 +378,6 @@ contains
     call ISDestroy(sends_l1, ierr)
 
     mesh%element_halos(1) = mesh%element_halos(2)
-
-    call ISDestroy(v_renumbering, ierr)
-    call ISDestroy(c_renumbering, ierr)
 
     ewrite(1, *) "Finished dmplex_create_halos"
   end subroutine dmplex_create_halos

@@ -208,6 +208,7 @@ contains
     integer :: dim, mdim, loc, column_ids
     integer :: quad_family
     type(DM) :: plex
+    IS :: vertex_ordering, cell_ordering
     
     call tic(TICTOC_ID_IO_READ)
 
@@ -267,9 +268,17 @@ contains
                    FLAbort("Invalid format for mesh file")
                 end select
 
+                ! Create a DMPlex toopology representation
                 call dmplex_read_mesh_file(mesh_name, mesh_file_format, plex)
+
+                ! Extract cell and vertex ordering
+                call DMGetDimension(plex, dim, stat)
+                stat = dmplex_get_point_renumbering(plex, 0, vertex_ordering)
+                stat = dmplex_get_point_renumbering(plex, dim, cell_ordering)
+
                 call dmplex_create_coordinate_field(plex, &
                      quad_degree=quad_degree, quad_family=quad_family, &
+                     vertex_ordering=vertex_ordering, cell_ordering=cell_ordering, &
                      boundary_label="Face Sets", field=position)
                 mesh=position%mesh
 
@@ -410,7 +419,8 @@ contains
                 call create_empty_halo(position)
              else
                 if (mesh_file_format /= "vtu") then
-                   call dmplex_create_halos(plex, position%mesh)
+                   call dmplex_create_halos(plex, position%mesh, &
+                        vertex_ordering, cell_ordering)
                 else
                    call read_halos(mesh_file_name, position)
                 end if
@@ -470,6 +480,8 @@ contains
         end if
 
         if (mesh_file_format /= "vtu") then
+           call ISDestroy(vertex_ordering, stat)
+           call ISDestroy(cell_ordering, stat)
            call DMDestroy(plex, stat)
         end if
 
