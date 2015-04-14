@@ -77,13 +77,13 @@ PetscErrorCode dmplex_mark_halo_regions(DM *plex)
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode dmplex_get_point_renumbering(DM *plex, PetscInt depth, IS *renumbering)
+PetscErrorCode dmplex_get_reordering(DM *plex, PetscInt depth, IS *permutation, IS *reordering)
 {
   MPI_Comm        comm;
-  PetscInt        v, p, pStart, pEnd, npoints, idx, *permutation;
+  PetscInt        v, p, pStart, pEnd, npoints, idx, size, *ordering;
   DMLabel         lblHalo;
   IS              haloL1, haloL2;
-  const PetscInt *points;
+  const PetscInt *points, *perm;
   PetscBool       hasPoint;
   PetscErrorCode  ierr;
 
@@ -92,24 +92,40 @@ PetscErrorCode dmplex_get_point_renumbering(DM *plex, PetscInt depth, IS *renumb
   ierr = DMPlexGetLabel(*plex, "HaloRegions", &lblHalo);CHKERRQ(ierr);
   ierr = DMPlexGetDepthStratum(*plex, depth, &pStart, &pEnd);CHKERRQ(ierr);
 
+  ierr = PetscMalloc1(pEnd - pStart, &ordering);CHKERRQ(ierr);
+  ierr = ISGetLocalSize(*permutation, &size);CHKERRQ(ierr);
+  ierr = ISGetIndices(*permutation, &perm);CHKERRQ(ierr);
+
   if (!lblHalo) {
-    ierr = ISCreateStride(comm, pEnd-pStart, 0, 1, renumbering);CHKERRQ(ierr);
+    for (idx = 0, v = 0; v < size; v++) {
+      const PetscInt point = perm[v];
+      if (pStart <= point && point < pEnd) ordering[point - pStart] = idx++;
+    }
+    ierr = ISRestoreIndices(*permutation, &perm);CHKERRQ(ierr);
+    ierr = ISCreateGeneral(comm, pEnd-pStart, ordering, PETSC_OWN_POINTER, reordering);CHKERRQ(ierr);
     PetscFunctionReturn(0);
   }
 
   /* Add owned points first */
-  ierr = PetscMalloc1(pEnd - pStart, &permutation);CHKERRQ(ierr);
-  for (idx = 0, v = pStart; v < pEnd; v++) {
-    ierr = DMLabelHasPoint(lblHalo, v, &hasPoint);CHKERRQ(ierr);
-    if (!hasPoint) permutation[v - pStart] = idx++;
+  ierr = PetscMalloc1(pEnd - pStart, &ordering);CHKERRQ(ierr);
+  for (idx = 0, v = 0; v < size; v++) {
+    const PetscInt point = perm[v];
+    if (pStart <= point && point < pEnd) {
+      ierr = DMLabelHasPoint(lblHalo, point, &hasPoint);CHKERRQ(ierr);
+      if (!hasPoint) ordering[point - pStart] = idx++;
+    }
   }
 
   /* Add entities in L1 halo region */
   ierr = DMLabelGetStratumIS(lblHalo, 1, &haloL1);CHKERRQ(ierr);
   ierr = DMLabelGetStratumSize(lblHalo, 1, &npoints);CHKERRQ(ierr);
   ierr = ISGetIndices(haloL1, &points);CHKERRQ(ierr);
-  for (p = 0; p < npoints; p++) {
-    if (pStart <= points[p] && points[p] < pEnd) permutation[points[p] - pStart] = idx++;
+  for (v = 0; v < size; v++) {
+    const PetscInt point = perm[v];
+    if (pStart <= point && point < pEnd) {
+      ierr = DMLabelStratumHasPoint(lblHalo, 1, point, &hasPoint);CHKERRQ(ierr);
+      if (hasPoint) ordering[point - pStart] = idx++;
+    }
   }
   ierr = ISRestoreIndices(haloL1, &points);CHKERRQ(ierr);
   ierr = ISDestroy(&haloL1);CHKERRQ(ierr);
@@ -117,18 +133,19 @@ PetscErrorCode dmplex_get_point_renumbering(DM *plex, PetscInt depth, IS *renumb
   /* Add entities in L2 halo region, but not already in L1 */
   ierr = DMLabelGetStratumIS(lblHalo, 2, &haloL2);CHKERRQ(ierr);
   ierr = DMLabelGetStratumSize(lblHalo, 2, &npoints);CHKERRQ(ierr);
-  if (npoints > 0) {
-    ierr = ISGetIndices(haloL2, &points);CHKERRQ(ierr);
-    for (p = 0; p < npoints; p++) {
-      ierr = DMLabelStratumHasPoint(lblHalo, 1, points[p], &hasPoint);CHKERRQ(ierr);
+  for (v = 0; v < size; v++) {
+    const PetscInt point = perm[v];
+    if (pStart <= point && point < pEnd) {
+      ierr = DMLabelStratumHasPoint(lblHalo, 1, point, &hasPoint);CHKERRQ(ierr);
       if (hasPoint) continue;
-      if (pStart <= points[p] && points[p] < pEnd) permutation[points[p] - pStart] = idx++;
+      ierr = DMLabelStratumHasPoint(lblHalo, 2, point, &hasPoint);CHKERRQ(ierr);
+      if (hasPoint) ordering[point - pStart] = idx++;
     }
-    ierr = ISRestoreIndices(haloL2, &points);CHKERRQ(ierr);
   }
   ierr = ISDestroy(&haloL2);CHKERRQ(ierr);
+  ierr = ISRestoreIndices(*permutation, &perm);CHKERRQ(ierr);
 
-  ierr = ISCreateGeneral(comm, pEnd-pStart, permutation, PETSC_OWN_POINTER, renumbering);CHKERRQ(ierr);
+  ierr = ISCreateGeneral(comm, pEnd-pStart, ordering, PETSC_OWN_POINTER, reordering);CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
@@ -398,8 +415,7 @@ PetscErrorCode dmplex_get_halo_sends(DM *plex, PetscInt nprocs, PetscInt height,
     for (r = 0; r < nranks; r++) {
       const PetscInt proc = rranks[roff+r];
       const PetscInt haloLevel = rootHaloLevel[roff+r];
-      /* const PetscInt point = perm[p - pStart]; */
-      const PetscInt point = p - pStart;
+      const PetscInt point = perm[p - pStart];
       if (haloLevel == 1) {
         ierr = PetscSectionGetOffset(sendSectionL1, proc, &offset);CHKERRQ(ierr);
         send_arr_l1[offset+idx_l1[proc]] = point;

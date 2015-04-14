@@ -208,7 +208,9 @@ contains
     integer :: dim, mdim, loc, column_ids
     integer :: quad_family
     type(DM) :: plex
-    IS :: vertex_ordering, cell_ordering
+    IS :: permutation, inverse, vertex_ordering, cell_ordering
+    PetscInt :: p, psize
+    PetscInt, dimension(:), pointer :: perm, iperm
     
     call tic(TICTOC_ID_IO_READ)
 
@@ -271,11 +273,27 @@ contains
                 ! Create a DMPlex toopology representation
                 call dmplex_read_mesh_file(mesh_name, mesh_file_format, plex)
 
-                ! Extract cell and vertex ordering
+                ! Extract topology reordering and invert the permutation
                 call DMGetDimension(plex, dim, stat)
-                stat = dmplex_get_point_renumbering(plex, 0, vertex_ordering)
-                stat = dmplex_get_point_renumbering(plex, dim, cell_ordering)
+                call DMPlexGetOrdering(plex, MATORDERINGRCM, permutation, stat)
+                call ISGetLocalSize(permutation, psize, stat)
+                call ISDuplicate(permutation, inverse, stat)
+                call ISGetIndicesF90(permutation, perm, stat)
+                call ISGetIndicesF90(inverse, iperm, stat)
+                do p = 1, psize
+                   iperm(perm(p)+1) = p - 1
+                end do
+                call ISRestoreIndicesF90(inverse, iperm, stat)
+                call ISRestoreIndicesF90(permutation, perm, stat)
 
+                ! Derive separate cell and vertex reorderings. Note,
+                ! that this is always requires, even if no mesh
+                ! reordering (RCM) is applied, since it separates L1
+                ! from L2 nodes during halo generation in parallel
+                stat = dmplex_get_reordering(plex, 0, inverse, vertex_ordering)
+                stat = dmplex_get_reordering(plex, dim, inverse, cell_ordering)
+
+                ! Build the coordinate mesh using the derived permutations
                 call dmplex_create_coordinate_field(plex, &
                      quad_degree=quad_degree, quad_family=quad_family, &
                      vertex_ordering=vertex_ordering, cell_ordering=cell_ordering, &
@@ -480,6 +498,7 @@ contains
         end if
 
         if (mesh_file_format /= "vtu") then
+           call ISDestroy(permutation, stat)
            call ISDestroy(vertex_ordering, stat)
            call ISDestroy(cell_ordering, stat)
            call DMDestroy(plex, stat)

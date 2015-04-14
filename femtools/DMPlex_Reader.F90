@@ -46,7 +46,7 @@ module dmplex_reader
   private
 
   public :: dmplex_read_mesh_file, dmplex_create_coordinate_field, &
-       dmplex_create_halos, dmplex_get_point_renumbering
+       dmplex_create_halos, dmplex_get_reordering
 
   interface
 
@@ -100,14 +100,14 @@ module dmplex_reader
        PetscFortranAddr :: plex
      end function dmplex_mark_halo_regions
 
-     function dmplex_get_point_renumbering(plex, depth, renumbering) &
+     function dmplex_get_reordering(plex, depth, permutation, renumbering) &
           bind(c) result(ierr)
        use iso_c_binding
        implicit none
        integer(c_int) :: ierr
        integer(c_int), value :: depth
-       PetscFortranAddr :: plex, renumbering
-     end function dmplex_get_point_renumbering
+       PetscFortranAddr :: plex, permutation, renumbering
+     end function dmplex_get_reordering
 
      function dmplex_get_halo_receives(plex, nprocs, height, renumbering, &
           nrecv_l1, receives_l1, nrecv_l2, receives_l2) &
