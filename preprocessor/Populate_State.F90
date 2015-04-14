@@ -198,7 +198,7 @@ contains
     type(vector_field) :: position
     type(vector_field), pointer :: position_ptr
     character(len=OPTION_PATH_LEN) :: mesh_path, mesh_file_name,&
-         & mesh_file_format, from_file_path
+         & mesh_file_format, from_file_path, mesh_name
     integer, dimension(:), pointer :: coplanar_ids
     integer, dimension(3) :: mesh_dims
     integer :: i, j, nmeshes, nstates, quad_degree, stat
@@ -252,87 +252,72 @@ contains
 
           call profiler_tic("I/O :: DMPlex")
           if (is_active_process) then
-            select case (mesh_file_format)
-            case("exodusii")
-               call dmplex_read_mesh_file(trim(mesh_file_name)//".exo", mesh_file_format, plex)
-               call dmplex_create_coordinate_field(plex, &
-                    quad_degree=quad_degree, quad_family=quad_family, &
-                    boundary_label="Face Sets", field=position)
-               mesh=position%mesh
 
-              ! After successfully reading in an ExodusII mesh, change the option
-              ! mesh file format to "gmsh", as the write routines for ExodusII are currently
-              ! not implemented. Thus, checkpoints etc are dumped as gmsh mesh files
-               mesh_file_format = "gmsh"
-               call set_option_attribute(trim(from_file_path)//"/format/name", &
-                    trim(mesh_file_format), stat=stat)
-               if (stat /= SPUD_NO_ERROR) then
-                  FLAbort("Failed to set the mesh format to gmsh (required for checkpointing). &&
-                       Spud error code is: "//int2str(stat))
-               end if
-            case("gmsh")
-               call dmplex_read_mesh_file(trim(mesh_file_name)//".msh", mesh_file_format, plex)
-               call dmplex_create_coordinate_field(plex, &
-                    quad_degree=quad_degree, quad_family=quad_family, &
-                    boundary_label="Face Sets", field=position)
-               mesh=position%mesh
-            case ("triangle")
-               call dmplex_read_mesh_file(trim(mesh_file_name), mesh_file_format, plex)
-               call dmplex_create_coordinate_field(plex, &
-                    quad_degree=quad_degree, quad_family=quad_family, &
-                    boundary_label="Boundary Marker", field=position)
-               mesh=position%mesh
-            case ("fluent")
-               call dmplex_read_mesh_file(trim(mesh_file_name)//".cas", mesh_file_format, plex)
-               call dmplex_create_coordinate_field(plex, &
-                    quad_degree=quad_degree, quad_family=quad_family, &
-                    boundary_label="Face Sets", field=position)
-               mesh=position%mesh
+             if (mesh_file_format /= "vtu") then
+                ! Standard mesh input from one of the following mesh file formats:
+                select case (mesh_file_format)
+                case("gmsh")
+                   mesh_name = trim(mesh_file_name)//".msh"
+                case("exodusii")
+                   mesh_name = trim(mesh_file_name)//".exo"
+                case("fluent")
+                   mesh_name = trim(mesh_file_name)//".cas"
+                case default
+                   ewrite(-1,*) trim(mesh_file_format), " is not a valid format for a mesh file"
+                   FLAbort("Invalid format for mesh file")
+                end select
 
-              ! Change mesh file format to "gmsh", as the write routines for Fluent meshes are currently
-              ! not implemented. Thus, checkpoints etc are dumped as gmsh mesh files
-               mesh_file_format = "gmsh"
-               call set_option_attribute(trim(from_file_path)//"/format/name", &
-                    trim(mesh_file_format), stat=stat)
-               if (stat /= SPUD_NO_ERROR) then
-                  FLAbort("Failed to set the mesh format to gmsh (required for checkpointing). &&
-                       Spud error code is: "//int2str(stat))
-               end if
-            case ("vtu")
-              position_ptr => vtk_cache_read_positions_field(mesh_file_name)
-              ! No hybrid mesh support here
-              assert(ele_count(position_ptr) > 0)
-              dim = position_ptr%dim
-              loc = ele_loc(position_ptr, 1)
+                call dmplex_read_mesh_file(mesh_name, mesh_file_format, plex)
+                call dmplex_create_coordinate_field(plex, &
+                     quad_degree=quad_degree, quad_family=quad_family, &
+                     boundary_label="Face Sets", field=position)
+                mesh=position%mesh
 
-              ! Generate a copy, and swap the quadrature degree
-              ! Note: Even if positions_ptr has the correct quadrature degree, it
-              ! won't have any faces and hence a copy is still required (as
-              ! add_faces is a construction routine only)
-              allocate(quad)
-              allocate(shape)
-              quad = make_quadrature(loc, dim, degree = quad_degree, family=quad_family)
-              shape = make_element_shape(loc, dim, 1, quad)
-              call allocate(mesh, nodes = node_count(position_ptr), elements = ele_count(position_ptr), shape = shape, name = position_ptr%mesh%name)
-              do j = 1, ele_count(mesh)
-                 call set_ele_nodes(mesh, j, ele_nodes(position_ptr%mesh, j))
-              end do
-              call add_faces(mesh)
-              call allocate(position, dim, mesh, position_ptr%name)
-              call set(position, position_ptr)
-              call deallocate(mesh)
-              call deallocate(shape)
-              call deallocate(quad)
-              deallocate(quad)
-              deallocate(shape)
+                ! Change the option mesh file format to "gmsh" to
+                ! force checkpoints etc to be dumped as gmsh files.
+                ! Writing ExodusII or Fluent is currently not supported.
+                if (mesh_file_format /= "gmsh") then
+                   mesh_file_format = "gmsh"
+                   call set_option_attribute(trim(from_file_path)//"/format/name", &
+                        trim(mesh_file_format), stat=stat)
+                   if (stat /= SPUD_NO_ERROR) then
+                      FLAbort("Failed to set the mesh format to gmsh (required for checkpointing). &&
+                           Spud error code is: "//int2str(stat))
+                   end if
+                end if
+             else
+                ! Standard mesh input from one of the following mesh file formats:
+                position_ptr => vtk_cache_read_positions_field(mesh_file_name)
+                ! No hybrid mesh support here
+                assert(ele_count(position_ptr) > 0)
+                dim = position_ptr%dim
+                loc = ele_loc(position_ptr, 1)
 
-              mesh = position%mesh
-            case default
-              ewrite(-1,*) trim(mesh_file_format), " is not a valid format for a mesh file"
-              FLAbort("Invalid format for mesh file")
-            end select
-         end if
-         call profiler_toc("I/O :: DMPlex")
+                ! Generate a copy, and swap the quadrature degree
+                ! Note: Even if positions_ptr has the correct quadrature degree, it
+                ! won't have any faces and hence a copy is still required (as
+                ! add_faces is a construction routine only)
+                allocate(quad)
+                allocate(shape)
+                quad = make_quadrature(loc, dim, degree = quad_degree, family=quad_family)
+                shape = make_element_shape(loc, dim, 1, quad)
+                call allocate(mesh, nodes = node_count(position_ptr), elements = ele_count(position_ptr), shape = shape, name = position_ptr%mesh%name)
+                do j = 1, ele_count(mesh)
+                   call set_ele_nodes(mesh, j, ele_nodes(position_ptr%mesh, j))
+                end do
+                call add_faces(mesh)
+                call allocate(position, dim, mesh, position_ptr%name)
+                call set(position, position_ptr)
+                call deallocate(mesh)
+                call deallocate(shape)
+                call deallocate(quad)
+                deallocate(quad)
+                deallocate(shape)
+
+                mesh = position%mesh
+             end if
+          end if
+          call profiler_toc("I/O :: DMPlex")
 
           if (no_active_processes /= getnprocs()) then
             ! not all processes are active, they need to be told the mesh dimensions
