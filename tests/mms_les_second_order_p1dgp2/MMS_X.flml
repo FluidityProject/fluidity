@@ -190,8 +190,12 @@
           </relaxation>
         </temporal_discretisation>
         <solver>
-          <iterative_method name="cg"/>
-          <preconditioner name="mg"/>
+          <iterative_method name="gmres">
+            <restart>
+              <integer_value rank="0">30</integer_value>
+            </restart>
+          </iterative_method>
+          <preconditioner name="eisenstat"/>
           <relative_error>
             <real_value rank="0">1.0e-07</real_value>
           </relative_error>
