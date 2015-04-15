@@ -209,7 +209,7 @@ contains
     integer :: quad_family
     type(DM) :: plex
     IS :: permutation, inverse, vertex_ordering, cell_ordering
-    PetscInt :: p, psize
+    PetscInt :: p, pstart, pend, psize
     PetscInt, dimension(:), pointer :: perm, iperm
     
     call tic(TICTOC_ID_IO_READ)
@@ -272,19 +272,25 @@ contains
 
                 ! Create a DMPlex toopology representation
                 call dmplex_read_mesh_file(mesh_name, mesh_file_format, plex)
-
-                ! Extract topology reordering and invert the permutation
                 call DMGetDimension(plex, dim, stat)
-                call DMPlexGetOrdering(plex, MATORDERINGRCM, permutation, stat)
-                call ISGetLocalSize(permutation, psize, stat)
-                call ISDuplicate(permutation, inverse, stat)
-                call ISGetIndicesF90(permutation, perm, stat)
-                call ISGetIndicesF90(inverse, iperm, stat)
-                do p = 1, psize
-                   iperm(perm(p)+1) = p - 1
-                end do
-                call ISRestoreIndicesF90(inverse, iperm, stat)
-                call ISRestoreIndicesF90(permutation, perm, stat)
+
+                if (have_option(trim(from_file_path)//'/format/rcm_reordering')) then
+                   ! Extract topology reordering and invert the permutation
+                   call DMPlexGetOrdering(plex, MATORDERINGRCM, permutation, stat)
+                   call ISGetLocalSize(permutation, psize, stat)
+                   call ISDuplicate(permutation, inverse, stat)
+                   call ISGetIndicesF90(permutation, perm, stat)
+                   call ISGetIndicesF90(inverse, iperm, stat)
+                   do p = 1, psize
+                      iperm(perm(p)+1) = p - 1
+                   end do
+                   call ISRestoreIndicesF90(inverse, iperm, stat)
+                   call ISRestoreIndicesF90(permutation, perm, stat)
+                   call ISDestroy(permutation, stat)
+                else
+                   call DMPlexGetChart(plex, pstart, pend, stat)
+                   call ISCreateStride(MPI_COMM_FEMTOOLS, pend-pstart, 0, 1, inverse, stat)
+                end if
 
                 ! Derive separate cell and vertex reorderings. Note,
                 ! that this is always requires, even if no mesh
@@ -498,7 +504,7 @@ contains
         end if
 
         if (mesh_file_format /= "vtu") then
-           call ISDestroy(permutation, stat)
+           call ISDestroy(inverse, stat)
            call ISDestroy(vertex_ordering, stat)
            call ISDestroy(cell_ordering, stat)
            call DMDestroy(plex, stat)

@@ -18,6 +18,7 @@ surface or region IDs.</a:documentation>
             <attribute name="name">
               <value>vtu</value>
             </attribute>
+            <ref name="mesh_reordering_options"/>
             <ref name="comment"/>
           </element>
           <element name="format">
@@ -28,6 +29,7 @@ Checkpoints are dumped in the GMSH file format.&lt;/b&gt;</a:documentation>
             <attribute name="name">
               <value>exodusii</value>
             </attribute>
+            <ref name="mesh_reordering_options"/>
             <ref name="comment"/>
           </element>
           <element name="format">
@@ -37,6 +39,7 @@ Enter the base name without the .cas ending</a:documentation>
             <attribute name="name">
               <value>fluent</value>
             </attribute>
+            <ref name="mesh_reordering_options"/>
             <ref name="comment"/>
           </element>
         </choice>
@@ -279,6 +282,20 @@ Enter the base name without the .edge .ele, .face or
       <a:documentation>Specify what is added to .stat files</a:documentation>
       <ref name="mesh_stat_options_disabled_default"/>
     </element>
+  </define>
+  <define name="mesh_reordering_options">
+    <choice>
+      <element name="rcm_reordering">
+        <a:documentation>Applies a Revese Cuthill-McGee reordering to the mesh
+which improves performance through increased cache
+coherency of assembled matrices on this mesh.</a:documentation>
+        <empty/>
+      </element>
+      <element name="no_reordering">
+        <a:documentation>Suppresses mesh reordering.</a:documentation>
+        <empty/>
+      </element>
+    </choice>
   </define>
   <define name="extrusion_options">
     <element name="bottom_depth">

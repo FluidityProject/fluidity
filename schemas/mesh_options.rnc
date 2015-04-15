@@ -6,6 +6,7 @@ mesh_info =
             ## GMSH mesh format
             element format {
                attribute name { "gmsh" },
+               mesh_reordering_options,
                comment
             }|
             ## Read the mesh from a vtu. Note that the mesh will have no 
@@ -20,6 +21,7 @@ mesh_info =
             ## Checkpoints are dumped in the GMSH file format.</b>
             element format {
                attribute name { "exodusii" },
+               mesh_reordering_options,
                comment
             }|
             ## Fluent mesh format (CASE files).
@@ -27,6 +29,7 @@ mesh_info =
             ## Enter the base name without the .cas ending
             element format {
                attribute name { "fluent" },
+               mesh_reordering_options,
                comment
             }
          ),
@@ -222,6 +225,19 @@ derived_mesh_stat_options =
       ## Specify what is added to .stat files
       element stat {
          mesh_stat_options_disabled_default
+      }
+   )
+mesh_reordering_options = 
+   (
+      ## Applies a Revese Cuthill-McGee reordering to the mesh
+      ## which improves performance through increased cache
+      ## coherency of assembled matrices on this mesh.
+      element rcm_reordering { 
+         empty
+      }|
+      ## Suppresses mesh reordering.
+      element no_reordering { 
+         empty
       }
    )
 
