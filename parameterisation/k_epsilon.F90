@@ -347,17 +347,17 @@ integer, dimension(3) :: nn, n_ele
            call solve_cg_inv_mass(state, src_abs_terms(term), lump_mass, option_path)           
         end do
 
-        do ele=1, surface_element_count(src_abs_terms(1))
-           nn=ele_nodes(src_abs_terms(1),face_ele_scalar(src_abs_terms(1), ele))
-           call set(src_abs_terms(1), nn, nn*0.0)
-           n_ele= ele_neigh(src_abs_terms(1),face_ele(src_abs_terms(1), ele))
-           do jjj=1, size(n_ele)
-              if (n_ele(jjj) .gt. 0) then
-                 nn=ele_nodes(src_abs_terms(1),n_ele(jjj))
-                 call set(src_abs_terms(1), nn, nn*0.0)
-              end if
-           end do
-        end do
+!        do ele=1, surface_element_count(src_abs_terms(1))
+!           nn=ele_nodes(src_abs_terms(1),face_ele_scalar(src_abs_terms(1), ele))
+!           call set(src_abs_terms(1), nn, nn*0.0)
+!           n_ele= ele_neigh(src_abs_terms(1),face_ele(src_abs_terms(1), ele))
+!           do jjj=1, size(n_ele)
+!              if (n_ele(jjj) .gt. 0) then
+!                 nn=ele_nodes(src_abs_terms(1),n_ele(jjj))
+!                 call set(src_abs_terms(1), nn, nn*0.0)
+!              end if
+!           end do
+!        end do
 !call allocate(inv_lumped_mass, grad_u_tensor_shape%mesh)
 !lumped_mass => get_lumped_mass(state, grad_u_tensor_shape%mesh)
 !call invert(lumped_mass, inv_lumped_mass)
@@ -509,9 +509,9 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, scalar_eddy_visc, u, density,
   do gi = 1, ngi
      reynolds_stress(:,:,gi) = scalar_eddy_visc_ele(gi)*(grad_u(:,:,gi) + transpose(grad_u(:,:,gi)))
   end do
-!  do i = 1, dim
-!     reynolds_stress(i,i,:) = reynolds_stress(i,i,:) - (2./3.)*k_ele*ele_val_at_quad(density, ele) !- (2./3.)*scalar_eddy_visc_ele(:)*u_div_ele
-!  end do
+  do i = 1, dim
+     reynolds_stress(i,i,:) = reynolds_stress(i,i,:) - (2./3.)*k_ele*ele_val_at_quad(density, ele) !- (2./3.)*scalar_eddy_visc_ele(:)*u_div_ele
+  end do
   deallocate(dshape_u)  
 
   ! Compute P
@@ -768,9 +768,9 @@ subroutine keps_eddyvisc(state, advdif)
   ! disable feedback from the k-epsilon model back into the rest of the model
   if (.not. have_option(trim(option_path)//'debugging_options/zero_reynolds_stress_tensor')) then
      do i = 1, eddy_visc%dim(1)
-        do j = 1, eddy_visc%dim(1)
-           call set(eddy_visc, i, j, scalar_eddy_visc)
-        end do
+!        do j = 1, eddy_visc%dim(1)
+           call set(eddy_visc, i, i, scalar_eddy_visc)
+!        end do
      end do
   end if
 
