@@ -3177,6 +3177,8 @@ contains
     ! Check mesh options
     call check_mesh_options
 
+    call check_geometry_options
+
     ! check problem specific options:
     call get_option("/problem_type", problem_type)
     select case (problem_type)
@@ -3200,6 +3202,34 @@ contains
     ewrite(2,*) 'Done with problem type choice'
 
   end subroutine populate_state_module_check_options
+
+  subroutine check_geometry_options
+
+    logical :: on_sphere
+    integer :: i, nstates
+
+    on_sphere = have_option("/geometry/spherical_earth")
+
+    if (on_sphere) then
+      nstates=option_count("/material_phase")
+
+      state_loop: do i=0, nstates-1
+        if (have_option("/material_phase[" // int2str(i) // "]/vector_field::Velocity/prognostic")) then
+          if (.not. (have_option("/material_phase[" // int2str(i) // "]/vector_field::Velocity/prognostic" // &
+                                 "/spatial_discretisation/continuous_galerkin/buoyancy" // &
+                                 "/radial_gravity_direction_at_gauss_points") .or. &
+                     have_option("/material_phase[" // int2str(i) // "]/vector_field::Velocity/prognostic" // &
+                                 "/spatial_discretisation/discontinuous_galerkin/buoyancy" // &
+                                 "/radial_gravity_direction_at_gauss_points"))) then
+            ewrite(0,*) "WARNING: the /geometry/spherical_earth option no long automatically makes the buoyancy radial."
+            ewrite(0,*) "To recreate the previous behaviour it is now necessary to turn on the "
+            ewrite(0,*) "buoyancy/radial_gravity_direction_at_gauss_points underneath the Velocity spatial_discretisation."
+          end if
+        end if
+      end do state_loop
+    end if
+
+  end subroutine check_geometry_options
 
   subroutine check_mesh_options
 
