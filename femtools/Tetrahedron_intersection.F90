@@ -113,10 +113,12 @@ module tetrahedron_intersection_module
     type(quadrature_type) :: new_quad
     
     type(quadrature_type_lib) :: quad_lib, quad_lib_temp
-    integer :: i, j, surface_eles
+    integer :: i, k, j, surface_eles
     integer :: ele_A
     type(tet_type) :: tet_A, tet_B
     integer :: dim
+    real, dimension(size(planesB),3) :: planesB_normal
+    real, dimension(size(planesB)) :: planesB_c
     
     if (present(surface_colours) .or. present(surface_positions) .or. present(surface_shape)) then
       assert(present(surface_positions))
@@ -129,6 +131,14 @@ module tetrahedron_intersection_module
     
     FORALL(i=1:3) planesB_lib%normal(i)=planesB%normal(i)
     planesB_lib%c = planesB%c
+    
+    do i = 1, size(planesB)
+      do k = 1, 3
+        planesB_normal(i,k)=planesB(i)%normal(k)
+      end do
+    end do
+!    FORALL(i=1:sizeOfPlanesB) FORALL(k=1:3) planesB_normal(i)(k)=planesB(i)%normal(k)
+    FORALL(i=1:size(planesB)) planesB_c(i)=planesB(i)%c
     
     quad_lib = make_quadrature_lib(vertices = shape%quadrature%vertices, dim = shape%quadrature%dim, ngi = shape%quadrature%ngi, degree = shape%quadrature%degree)
     shape_lib = make_element_shape_lib(vertices = shape%loc, dim = shape%dim, degree = shape%degree, quad = quad_lib)
@@ -152,7 +162,13 @@ module tetrahedron_intersection_module
       FLAbort("intersect_tets_dt: Not implemented optional parameters")
 !      call libsupermesh_intersect_tets_dt(tetA_lib, planesB_lib, shape_lib, stat = stat, output = output_lib)
     else
-      call libsupermesh_intersect_tets_dt(tetA_lib, planesB_lib, shape_lib, stat = stat, output = output_lib)
+!      call libsupermesh_intersect_tets_dt(tetA_lib, planesB_lib, shape_lib, stat = stat, output = output_lib)
+      call libsupermesh_intersect_tets_dt(tetA%V, tetA%colours, size(planesB), planesB_normal, planesB_c, &
+          shape%quadrature%vertices, shape%quadrature%dim, shape%quadrature%ngi, shape%quadrature%degree, shape%loc, shape%dim, shape%degree, &
+          output%mesh%shape%quadrature%vertices, output%mesh%shape%quadrature%dim, output%mesh%shape%quadrature%ngi, output%mesh%shape%degree * 2, &
+          output%mesh%shape%loc, output%mesh%shape%dim, output%mesh%shape%degree, &
+          node_count(output), ele_count(output), output%val, output%dim, &
+          stat = stat, output = output_lib)
     end if
     if (stat == 1) then
       return
