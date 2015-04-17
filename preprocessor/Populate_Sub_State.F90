@@ -170,7 +170,7 @@ contains
 
     type(element_type), pointer :: shape     
 
-    type(integer_set) :: face_list
+    type(integer_hash_table) :: face_list
     type(vector_field), pointer :: external_mesh_position
     type(vector_field) :: position
 
@@ -297,7 +297,7 @@ contains
         ! If this face is part of the full surface mesh (which includes internal faces) then
         ! it must be on the submesh boundary, and not on a processor boundary (if parallel).
         if (face  <= surf_ele_count) then
-           call insert(face_list, face)
+           call insert(face_list, face, ele)
         end if
       end do
     end do
@@ -306,24 +306,37 @@ contains
     edge_count = key_count(face_list)
     allocate(sndglno(edge_count*sloc))
     sndglno = 0
-    allocate(boundary_ids(1:edge_count))
+    allocate(boundary_ids(1:edge_count), element_owner(1:edge_count))
     boundary_ids = 0
     
     ! Set up sndglno and boundary_ids:
     do i = 1, edge_count
-      face = fetch(face_list, i)
+      call fetch_pair(face_list, i, face, ele)
       sndglno((i-1)*sloc+1:i*sloc) = inverse_n_list(face_global_nodes(external_mesh, face))
       boundary_ids(i) = surface_element_id(external_mesh, face)
+      element_owner(i) = ele
     end do
 
     call deallocate(face_list)
 
     ! Add faces to subdomain_mesh:
-    call add_faces(subdomain_mesh,sndgln=sndglno(1:edge_count*sloc), &
-    &               boundary_ids=boundary_ids(1:edge_count))
+    if (has_discontinuous_internal_boundaries(external_mesh)) then
+      ! provide element ownership information (this happens for periodic meshes)
+      call add_faces(subdomain_mesh,sndgln=sndglno(1:edge_count*sloc), &
+      &               boundary_ids=boundary_ids(1:edge_count), &
+      &               element_owner=element_owner)
+    else
+      ! there may be interior facets, which have been duplicated
+      ! whereas add_faces() expects each interior one only once (if no element ownership is given)
+      ! therefore we have to warn it to ignore the duplicate ones
+      call add_faces(subdomain_mesh,sndgln=sndglno(1:edge_count*sloc), &
+      &               boundary_ids=boundary_ids(1:edge_count), &
+      &               allow_duplicate_internal_facets=.true.)
+    end if
 
     deallocate(sndglno)
     deallocate(boundary_ids)
+    deallocate(element_owner)
 
     ! If parallel then set up node and element halos, by checking whether external_mesh halos
     ! exist on subdomain_mesh:
