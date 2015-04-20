@@ -145,12 +145,13 @@ depth, leaving a void around the origin. The two main applications of this
 option are large-scale ocean simulations on the sphere, and geodynamic simulations of the
 Earth's mantle.
 
-In general, when using this option you will want to specify the gravity direction to be opposed to the radial
-direction (i.e. pointing to the origin) however it can also be used in conjunction with the
+When using this option the gravity direction should be defined manually in the radial
+direction (pointing to the origin) using python
+(\option{/physical\_parameters/gravity/vector\_field::GravityDirection/prescribed/value::WholeMesh/python}).  If used in conjunction with the
 \option{buoyancy/radial\_gravity\_direction\_at\_gauss\_points} option underneath the \option{spatial\_discretisation} option for
-Velocity to both specify that it should be radial and defined at the gauss points (rather than the nodes) in the buoyancy term
-(ignoring whatever gravity direction you have specified manually but only in the buoyancy term).  Specifying the gravity direction at the
-gauss points helps eliminate spurious interpolation errors and non-physical imbalance in spherical simulations (see
+Velocity then gravity will be automatically defined to be radial at the gauss points (rather than the nodes) in the buoyancy term
+(ignoring whatever gravity direction you have specified manually in the buoyancy term only).  Specifying the gravity direction at the
+gauss points in the buoyancy term helps eliminate spurious interpolation errors and non-physical imbalance in spherical simulations (see
 \ref{sec:configuring_fluidity!spatial_discretisation!buoyancy}).
 
 For ocean simulations, the option has implications for various options and terms such as wind forcing (see section \ref{sec:wind_forcing}), the calculation of buoyancy and the `direction' of absorptions (see \ref{sec:Source}).
