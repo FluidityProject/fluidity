@@ -41,9 +41,9 @@ compare_variable(max_velocity_magn[0], max_llv_velocity_magn[0], 1e-10)</test>
     <test name="correct_velocity_transformation_atEnd" language="python">from fluidity_tools import compare_variable
 compare_variable(max_velocity_magn[-1], max_llv_velocity_magn[-1], 1e-10)</test>
     <test name="zero_max_velocity_magn" language="python">from fluidity_tools import compare_variable
-compare_variable(max_velocity_magn[-1], 0.0, 1e-9, zerotol=1e-8)</test>
+compare_variable(max_velocity_magn[-1], 0.0, 1e-8, zerotol=1e-7)</test>
     <test name="zero_max_llv_velocity_magn" language="python">from fluidity_tools import compare_variable
-compare_variable(max_llv_velocity_magn[-1], 0.0, 1e-9, zerotol=1e-8)</test>
+compare_variable(max_llv_velocity_magn[-1], 0.0, 1e-8, zerotol=1e-7)</test>
     <test name="max_temperature_retention" language="python">#The temprerature equation has no diffusivity, we expect only numerical diffusion.
 from fluidity_tools import compare_variable
 compare_variable(max_temperature[-1], max_temperature[0], 1e-8)</test>
