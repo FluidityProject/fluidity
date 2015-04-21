@@ -505,7 +505,7 @@
                 <solver>
                   <iterative_method name="preonly"/>
                   <preconditioner name="lu">
-                    <factorization_package name="mumps"/>
+                    <factorization_package name="petsc"/>
                   </preconditioner>
                   <relative_error>
                     <real_value rank="0">1.e-6</real_value>
@@ -529,7 +529,7 @@
             <solver>
               <iterative_method name="preonly"/>
               <preconditioner name="lu">
-                <factorization_package name="mumps"/>
+                <factorization_package name="petsc"/>
               </preconditioner>
               <relative_error>
                 <real_value rank="0">1.e-10</real_value>
@@ -601,7 +601,7 @@
         <solver>
           <iterative_method name="preonly"/>
           <preconditioner name="lu">
-            <factorization_package name="mumps"/>
+            <factorization_package name="petsc"/>
           </preconditioner>
           <relative_error>
             <real_value rank="0">1.e-6</real_value>
