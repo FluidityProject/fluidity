@@ -1691,5 +1691,4 @@ AC_OUTPUT(Makefile
           libjudy/src/JudyHS/Makefile
           libwm/Makefile
           libvtkfortran/Makefile
-          schemas/flml
 	  reduced_modelling/Makefile)
