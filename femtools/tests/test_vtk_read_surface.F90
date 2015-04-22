@@ -36,7 +36,7 @@ subroutine test_vtk_read_surface
   use unittest_tools
   use vtk_interfaces
   
-  !use read_triangle
+  !use mesh_files
   
   implicit none
   
@@ -47,7 +47,7 @@ subroutine test_vtk_read_surface
   
   call vtk_read_state("data/tet.vtu", state = state)
   mesh => extract_mesh(state, "Mesh")
-  !coordinate = read_triangle_files("data/tet", quad_degree = 1)
+  !coordinate = read_mesh_files("data/tet", quad_degree = 1, format="gmsh")
   !mesh => coordinate%mesh
   
   call report_test("[node_count]", node_count(mesh) /= 4, .false., "Incorrect element count")

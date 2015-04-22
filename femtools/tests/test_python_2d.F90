@@ -30,7 +30,7 @@
 subroutine test_python_2d
   !!< Test that we can set a field using python.
   use fields
-  use read_triangle
+  use mesh_files
   use unittest_tools
   use futils
   implicit none
@@ -41,7 +41,7 @@ subroutine test_python_2d
   logical :: fail
 
 #ifdef HAVE_PYTHON
-  X=read_triangle_files("data/square.1", quad_degree=4)
+  X=read_mesh_files("data/square.1", quad_degree=4, format="gmsh")
 
   call allocate(T, X%mesh, "tracer")
 

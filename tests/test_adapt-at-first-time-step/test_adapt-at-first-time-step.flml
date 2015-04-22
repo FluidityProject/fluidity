@@ -15,7 +15,7 @@ flml an edit of cube-1.flml</comment>
     </dimension>
     <mesh name="CoordinateMesh">
       <from_file file_name="cube-1">
-        <format name="triangle"/>
+        <format name="gmsh"/>
         <stat>
           <include_in_stat/>
         </stat>
@@ -132,6 +132,7 @@ flml an edit of cube-1.flml</comment>
             <stress_terms>
               <tensor_form/>
             </stress_terms>
+            <buoyancy/>
           </continuous_galerkin>
           <conservative_advection>
             <real_value rank="0">1</real_value>

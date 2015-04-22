@@ -55,8 +55,7 @@ void project_vtu_usage(char *binary){
   cerr<<"Usage: "<<binary<<" [OPTIONS] input_filename donor_mesh target_mesh output_filename\n"
       <<"Project an input vtu onto a different mesh\n\n"
       <<"input_filename and output_filename are the names of the input and output vtus\n"
-      <<"donor_mesh and target_mesh are either the name of gmsh file corresponding to the donor and target mesh (if ending in .msh), "
-      <<"or the basename for the triangle files (.node+.ele+.edge/.face) for those meshes\n\n"
+      <<"donor_mesh and target_mesh are of the basename of gmsh file corresponding to the donor and target mesh\n\n"
       <<"\t-h\t\tPrints out this message\n"
       <<"\t-v\t\tVerbose mode\n";
 }
@@ -115,7 +114,7 @@ int main(int argc, char **argv){
   set_global_debug_level_fc(&val);
 
   string input_filename = argv[optind];
-  size_t input_filename_len = input_filename.size();  
+  size_t input_filename_len = input_filename.size();
   
   string donor_basename = argv[optind + 1];
   size_t donor_basename_len = donor_basename.size();
@@ -124,7 +123,7 @@ int main(int argc, char **argv){
   size_t target_basename_len = target_basename.size();
   
   string output_filename = argv[optind + 3];
-  size_t output_filename_len = output_filename.size();  
+  size_t output_filename_len = output_filename.size();
 
   project_vtu(input_filename.c_str(), input_filename_len, donor_basename.c_str(), donor_basename_len, target_basename.c_str(), target_basename_len, output_filename.c_str(), output_filename_len);
     

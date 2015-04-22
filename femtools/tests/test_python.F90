@@ -30,7 +30,7 @@
 subroutine test_python
   !!< Test that we can set a field using python.
   use fields
-  use read_triangle
+  use mesh_files
   use unittest_tools
   use futils
   implicit none
@@ -44,7 +44,7 @@ subroutine test_python
   character(len=10000) :: func, buffer
 
 #ifdef HAVE_PYTHON
-  X=read_triangle_files("data/interval", quad_degree=4)
+  X=read_mesh_files("data/interval", quad_degree=4, format="gmsh")
 
   call allocate(T, X%mesh, "tracer")
 

@@ -279,7 +279,7 @@ Grashof number						& $Gr = \left( \frac{h \sqrt{g'h}}{\nu} \right)^2$ 		& $1.25
 \centering
 \begin{tabular}[h]{lll}  \hline
 Numerical component                           & Configuration                   & Section\\ \hline
-Geometry                                      & from triangle file, via gmsh    & \ref{sec:triangle_format}, \ref{sec:meshing_tools_non_fluidity_gmsh}\\
+Geometry                                      & from gmsh (or ExodusII)         & \ref{sec:gmsh_format}, \ref{sec:exodusii_format}, \ref{sec:meshing_tools_non_fluidity_gmsh}\\
 Time step                                     & 0.025\,s                        & \\
 Time loop                                     & 2 non-linear Picard iterations  & \ref{sec:ND_time_loop} \\
 Equation of state                             & linear                          & \ref{sec:equation_of_state} \\
@@ -352,7 +352,7 @@ The example settings are designed to provide a quick start for running the simul
 \item Change the frequency of the adapt, section \ref{sec:configuring_fluidity_adaptivity_options};
 \item Turn on metric advection, sections \ref{section:metric_advection_general} and \ref{sec:configuring_fluidity_metric_advection};
 \item Change the diffusivity and viscosity values;
-\item Run with a fixed mesh (note this will require making a new input mesh), sections \ref{sec:triangle_format}, \ref{sec:meshing_tools_non_fluidity_gmsh};
+\item Run with a fixed mesh (note this will require making a new input mesh), sections \ref{sec:gmsh_format}, \ref{sec:meshing_tools_non_fluidity_gmsh};
 \item Try adding some detectors to visualise the particle trajectories, section \ref{sec:diagnostics_detectors} %or \newline cf. \option{\ldots/fluidity-longtests/lock\_exchange\_2d\_}.
 \end{itemize}
 Note to compare Froude numbers and mixing between different runs the remember to copy the images and stat files otherwise they will be overwritten.

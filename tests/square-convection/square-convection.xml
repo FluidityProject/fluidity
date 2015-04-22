@@ -88,9 +88,7 @@ for i, coord in enumerate(coords):
     <variable name = "final_checkpoint_test" language = "python">
 import os
 final_checkpoint_test = {}
-final_checkpoint_test["square-convection_CoordinateMesh_51_checkpoint.edge"] = True
-final_checkpoint_test["square-convection_CoordinateMesh_51_checkpoint.ele"] = True
-final_checkpoint_test["square-convection_CoordinateMesh_51_checkpoint.node"] = True
+final_checkpoint_test["square-convection_CoordinateMesh_51_checkpoint.msh"] = True
 final_checkpoint_test["square-convection_51_checkpoint.flml"] = True
 for key in final_checkpoint_test.keys():
   try:

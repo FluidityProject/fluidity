@@ -5,7 +5,7 @@ default: input
 
 input: src/$(MESH).geo
 	gmsh -3 src/$(MESH).geo
-	../../bin/gmsh2triangle src/$(MESH).msh
+	cp src/$(MESH).msh .
 
 clean: clean-mesh clean-run
 	rm -rf parallel_p0_consistent_interpolation_[01]* parallel_p0_consistent_interpolation.stat

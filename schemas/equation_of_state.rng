@@ -58,8 +58,10 @@ value).</a:documentation>
           <zeroOrMore>
             <element name="generic_scalar_field_dependency">
               <a:documentation>Enable to add a generic scalar field
-dependency to the equation of state.</a:documentation>
-              <attribute name="scalar_field_name">
+dependency to the equation of state.
+
+The name of this dependency must correspond to a scalar field in this material_phase.</a:documentation>
+              <attribute name="name">
                 <data type="string"/>
               </attribute>
               <element name="reference_value">

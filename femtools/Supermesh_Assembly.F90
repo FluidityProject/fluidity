@@ -365,7 +365,7 @@ contains
     ! transformed shape function derivatives at the quadrature points of the
     ! supermesh element. A simple eval_dshape(...) isn't going to cut it, so we:
     
-    call compute_inverse_jacobian(ele_val(positions, ele), ele_shape(positions, ele), invj)
+    call compute_inverse_jacobian(positions, ele, invj)
     
     do i = 1, size(shapes_c)
       assert(ele_ngi(positions, ele) == ele_ngi(positions_c, i))
@@ -378,7 +378,7 @@ contains
       end do
     
       ! Then apply the inverse transform on the supermesh element
-      call compute_jacobian(ele_val(positions_c, i), ele_shape(positions_c, i), j_c)
+      call compute_jacobian(positions_c, i, j_c)
       forall(j = 1:size(shapes_c(i)%dn, 1), k = 1:size(shapes_c(i)%dn, 2))
         shapes_c(i)%dn(j, k, :) = matmul(j_c(:, :, k), shapes_c(i)%dn(j, k, :))
       end forall
@@ -427,7 +427,7 @@ contains
     ! transformed shape function derivatives at the quadrature points of the
     ! supermesh element. A simple eval_dshape(...) isn't going to cut it, so we:
     
-    call compute_inverse_jacobian(ele_val(positions, ele), ele_shape(positions, ele), invj)
+    call compute_inverse_jacobian(positions, ele, invj)
     
     ! First evaluate the transformed shape function derivatives at the
     ! quadrature points of the supermesh element (what we want a
@@ -437,7 +437,7 @@ contains
     end do
   
     ! Then apply the inverse transform on the supermesh element
-    call compute_jacobian(ele_val(positions_c, ele_c), ele_shape(positions_c, ele_c), j_c)
+    call compute_jacobian(positions_c, ele_c, j_c)
     forall(i = 1:size(shape_c%dn, 1), j = 1:size(shape_c%dn, 2))
       shape_c%dn(i, j, :) = matmul(j_c(:, :, j), shape_c%dn(i, j, :))
     end forall
