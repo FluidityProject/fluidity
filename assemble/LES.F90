@@ -237,6 +237,7 @@ contains
     ! Local quantities
     type(tensor_field), pointer                           :: tfield
     character(len=OPTION_PATH_LEN)                        :: lpath, HOT
+    logical                                               :: explicit_filter
     integer                                               :: i, ele, gi, loc
     real, dimension(:), allocatable                       :: u_loc
     real, dimension(:,:), allocatable                     :: t_loc
@@ -254,6 +255,7 @@ contains
 
       ! Path is to level above solver options
       lpath = (trim(path)//"/dynamic_les")
+      explicit_filter = .False.
 
     else if(exact_sgs) then
 
@@ -267,23 +269,42 @@ contains
       ! Otherwise just 2nd-order term (Clark or Gradient Model).
       call get_option(trim(lpath)//"/HOT", HOT)
 
+      ! Explicit or implicit filter
+      explicit_filter = have_option(trim(lpath)//"/explicit_filter")
+
     end if
 
     ewrite(2,*) "filter factor alpha: ", alpha
     ewrite(2,*) "filter factor gamma: ", gamma
+    ewrite(2,*) "explicit filter: ", explicit_filter
     ewrite(2,*) "filter width type: ", trim(length_scale_type)
     ewrite(2,*) "HOT: ", trim(HOT)
 
-    if(length_scale_type=="scalar") then
-      ! First filter operator returns u^f:
-      call smooth_vector(nu, positions, fnu, alpha, lpath)
+    if(explicit_filter) then
+      if(length_scale_type=="scalar") then
+        ! First filter operator returns u^f:
+        call smooth_vector(nu, positions, fnu, alpha, lpath)
+        ! Test filter operator needs the ratio of test filter to mesh size and returns u^ft:
+        call smooth_vector(fnu, positions, tnu, alpha*gamma, lpath)
+      else if(length_scale_type=="tensor") then
+        ! First filter operator returns u^f:
+        call anisotropic_smooth_vector(nu, positions, fnu, alpha, lpath)
+        ! Test filter operator needs the ratio of test filter to mesh size and returns u^ft:
+        call anisotropic_smooth_vector(fnu, positions, tnu, alpha*gamma, lpath)
+      end if
+
+      ! Must set nonlinear velocity to be filtered velocity
+      call set(nu, fnu)
+
+    else
+      ! Implicit filter: use discretised velocity as first filtered velocity
+      call set(fnu, nu)
       ! Test filter operator needs the ratio of test filter to mesh size and returns u^ft:
-      call smooth_vector(fnu, positions, tnu, alpha*gamma, lpath)
-    else if(length_scale_type=="tensor") then
-      ! First filter operator returns u^f:
-      call anisotropic_smooth_vector(nu, positions, fnu, alpha, lpath)
-      ! Test filter operator needs the ratio of test filter to mesh size and returns u^ft:
-      call anisotropic_smooth_vector(fnu, positions, tnu, alpha*gamma, lpath)
+      if(length_scale_type=="scalar") then
+        call smooth_vector(fnu, positions, tnu, gamma, lpath)
+      else if(length_scale_type=="tensor") then
+        call anisotropic_smooth_vector(fnu, positions, tnu, gamma, lpath)
+      end if
     end if
 
     ewrite_minmax(nu)

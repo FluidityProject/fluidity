@@ -708,6 +708,11 @@ prognostic_velocity_field =
                      element alpha {
                         real
                      },
+                     ## If turned on, solve NS for explicitly filtered velocity.
+                     ## Otherwise solve for unfiltered velocity.
+                     element explicit_filter {
+                        empty
+                     }?,
                      ## If turned on, apply zero Dirichlet BC to exact SGS field.
                      ## Otherwise no BCs are set.
                      element calculate_boundaries {

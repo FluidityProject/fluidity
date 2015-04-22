@@ -873,6 +873,12 @@ default value: 2.0</a:documentation>
                     <ref name="real"/>
                   </element>
                   <optional>
+                    <element name="explicit_filter">
+                      <a:documentation>If turned on, solve NS for explicitly filtered velocity. Otherwise solve for unfiltered velocity.</a:documentation>
+                      <empty/>
+                    </element>
+                  </optional>
+                  <optional>
                     <element name="calculate_boundaries">
                       <a:documentation>If turned on, apply zero Dirichlet BC to exact SGS field.
 Otherwise no BCs are set.</a:documentation>

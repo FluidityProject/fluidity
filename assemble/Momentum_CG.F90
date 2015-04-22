@@ -966,6 +966,8 @@
       end if
 
       if (exact_sgs) then
+        call deallocate(tnu); deallocate(tnu)
+        call deallocate(leonard); deallocate(leonard)
         if(.not. have_option(trim(les_option_path)//"/exact_sgs/vector_field::FilteredVelocity")) then
           call deallocate(fnu); deallocate(fnu)
         end if
