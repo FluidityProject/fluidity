@@ -491,7 +491,7 @@ distclean: clean
 	 include/spatialindex include/spud include/spud.h		\
 	 include/spud_enums.h include/tinystr.h include/tinyxml.h	\
 	 include/version.h include/vtk.h				\
-	 preprocessor/check_options.F90 schemas/flml			\
+	 preprocessor/check_options.F90 \
 	 preprocessor/register_diagnostics.F90 python/setup.py >	\
 	 /dev/null
 	@for i in `find ./*/ -name Makefile.in`; do rm -f `echo $$i | sed 's/.in$$//'`; done > /dev/null
@@ -615,7 +615,7 @@ install: default fltools bin/shallow_water bin/burgers_equation
 	mkdir -p $(DESTDIR)$(datadir)/fluidity
 	cp -r schemas/ $(DESTDIR)$(datadir)/fluidity/
 	mkdir -p $(DESTDIR)$(datadir)/diamond/schemata
-	sed 's/$${prefix}/$(subst /,\/,$(prefix))/g' schemas/flml > $(DESTDIR)$(datadir)/diamond/schemata/flml
+	sed 's/$${datadir}/$(subst /,\/,$(datadir))/g' schemas/flml.in > $(DESTDIR)$(datadir)/diamond/schemata/flml
 	cd python ; python setup.py install --root=$(shell echo ${DESTDIR} | sed 's/^$$/\//') --prefix="$(prefix)" $$FLUIDITY_PYTHON_INSTALL_ARGS
 	cp -r examples/ $(DESTDIR)$(docdir)/fluidity
 	find $(DESTDIR)$(docdir)/fluidity/examples -type f -exec sed -i "s/\.\.\/\.\.\/\.\.\/bin\///" '{}' \;

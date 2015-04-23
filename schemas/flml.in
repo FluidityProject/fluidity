@@ -1,2 +1,2 @@
 Fluidity Markup Language
-@datadir@/fluidity/schemas/fluidity_options.rng
+${datadir}/fluidity/schemas/fluidity_options.rng
