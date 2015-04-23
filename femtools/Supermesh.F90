@@ -132,10 +132,6 @@ module supermesh_construction
   public :: construct_supermesh, compute_projection_error, intersector_exactness
   private
 
-  ! IAKOVOS REMOVE THIS
-  character(len=100), save, public :: test_error_message=""
-  
-  
   contains
   
   subroutine intersector_set_input_sp(nodes_A, nodes_B, ndim, loc)
