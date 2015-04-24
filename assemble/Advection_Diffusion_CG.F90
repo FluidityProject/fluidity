@@ -581,7 +581,6 @@ contains
 
 #ifdef _OPENMP
     cache_valid = prepopulate_transform_cache(positions)
-    assert(cache_valid)
 #endif
 
     call get_mesh_colouring(state, t%mesh, COLOURING_CG1, colours)
