@@ -1,0 +1,77 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>Test of buoyancy at gauss points.</name>
+  <owner userid="cwilson"/>
+  <problem_definition length="short" nprocs="1">
+    <command_line>fluidity -v3 -l p1dgp2_nodal_2d.flml; fluidity -v3 -l p1dgp2_gauss_2d.flml; fluidity -v3 -l p2p1_nodal_2d.flml; fluidity -v3 -l p2p1_gauss_2d.flml; fluidity -v3 -l p1dgp2_nodal_3d.flml; fluidity -v3 -l p1dgp2_gauss_3d.flml; fluidity -v3 -l p2p1_nodal_3d.flml; fluidity -v3 -l p2p1_gauss_3d.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="p1dgp2_nodal_2d_pressure_error" language="python">from fluidity_tools import stat_parser
+stat = stat_parser("p1dgp2_nodal_2d.stat")
+p1dgp2_nodal_2d_pressure_error = stat["State"]["AbsoluteDifferencePressure"]["l2norm"][-1]</variable>
+    <variable name="p1dgp2_gauss_2d_pressure_error" language="python">from fluidity_tools import stat_parser
+stat = stat_parser("p1dgp2_gauss_2d.stat")
+p1dgp2_gauss_2d_pressure_error = stat["State"]["AbsoluteDifferencePressure"]["l2norm"][-1]</variable>
+    <variable name="p1dgp2_nodal_2d_velocity_error" language="python">from fluidity_tools import stat_parser
+stat = stat_parser("p1dgp2_nodal_2d.stat")
+p1dgp2_nodal_2d_velocity_error = stat["State"]["Velocity%magnitude"]["l2norm"][-1]</variable>
+    <variable name="p1dgp2_gauss_2d_velocity_error" language="python">from fluidity_tools import stat_parser
+stat = stat_parser("p1dgp2_gauss_2d.stat")
+p1dgp2_gauss_2d_velocity_error = stat["State"]["Velocity%magnitude"]["l2norm"][-1]</variable>
+    <variable name="p2p1_nodal_2d_pressure_error" language="python">from fluidity_tools import stat_parser
+stat = stat_parser("p2p1_nodal_2d.stat")
+p2p1_nodal_2d_pressure_error = stat["State"]["AbsoluteDifferencePressure"]["l2norm"][-1]</variable>
+    <variable name="p2p1_gauss_2d_pressure_error" language="python">from fluidity_tools import stat_parser
+stat = stat_parser("p2p1_gauss_2d.stat")
+p2p1_gauss_2d_pressure_error = stat["State"]["AbsoluteDifferencePressure"]["l2norm"][-1]</variable>
+    <variable name="p2p1_nodal_2d_velocity_error" language="python">from fluidity_tools import stat_parser
+stat = stat_parser("p2p1_nodal_2d.stat")
+p2p1_nodal_2d_velocity_error = stat["State"]["Velocity%magnitude"]["l2norm"][-1]</variable>
+    <variable name="p2p1_gauss_2d_velocity_error" language="python">from fluidity_tools import stat_parser
+stat = stat_parser("p2p1_gauss_2d.stat")
+p2p1_gauss_2d_velocity_error = stat["State"]["Velocity%magnitude"]["l2norm"][-1]</variable>
+    <variable name="p1dgp2_nodal_3d_pressure_error" language="python">from fluidity_tools import stat_parser
+stat = stat_parser("p1dgp2_nodal_3d.stat")
+p1dgp2_nodal_3d_pressure_error = stat["State"]["AbsoluteDifferencePressure"]["l2norm"][-1]</variable>
+    <variable name="p1dgp2_gauss_3d_pressure_error" language="python">from fluidity_tools import stat_parser
+stat = stat_parser("p1dgp2_gauss_3d.stat")
+p1dgp2_gauss_3d_pressure_error = stat["State"]["AbsoluteDifferencePressure"]["l2norm"][-1]</variable>
+    <variable name="p1dgp2_nodal_3d_velocity_error" language="python">from fluidity_tools import stat_parser
+stat = stat_parser("p1dgp2_nodal_3d.stat")
+p1dgp2_nodal_3d_velocity_error = stat["State"]["Velocity%magnitude"]["l2norm"][-1]</variable>
+    <variable name="p1dgp2_gauss_3d_velocity_error" language="python">from fluidity_tools import stat_parser
+stat = stat_parser("p1dgp2_gauss_3d.stat")
+p1dgp2_gauss_3d_velocity_error = stat["State"]["Velocity%magnitude"]["l2norm"][-1]</variable>
+    <variable name="p2p1_nodal_3d_pressure_error" language="python">from fluidity_tools import stat_parser
+stat = stat_parser("p2p1_nodal_3d.stat")
+p2p1_nodal_3d_pressure_error = stat["State"]["AbsoluteDifferencePressure"]["l2norm"][-1]</variable>
+    <variable name="p2p1_gauss_3d_pressure_error" language="python">from fluidity_tools import stat_parser
+stat = stat_parser("p2p1_gauss_3d.stat")
+p2p1_gauss_3d_pressure_error = stat["State"]["AbsoluteDifferencePressure"]["l2norm"][-1]</variable>
+    <variable name="p2p1_nodal_3d_velocity_error" language="python">from fluidity_tools import stat_parser
+stat = stat_parser("p2p1_nodal_3d.stat")
+p2p1_nodal_3d_velocity_error = stat["State"]["Velocity%magnitude"]["l2norm"][-1]</variable>
+    <variable name="p2p1_gauss_3d_velocity_error" language="python">from fluidity_tools import stat_parser
+stat = stat_parser("p2p1_gauss_3d.stat")
+p2p1_gauss_3d_velocity_error = stat["State"]["Velocity%magnitude"]["l2norm"][-1]</variable>
+  </variables>
+  <pass_tests>
+    <test name="p1dgp2_nodal_2d_pressure" language="python">assert abs(p1dgp2_nodal_2d_pressure_error - 1.5e-5) &lt; 1.e-6</test>
+    <test name="p1dgp2_gauss_2d_pressure" language="python">assert p1dgp2_gauss_2d_pressure_error/p1dgp2_nodal_2d_pressure_error &lt; 1.e-6</test>
+    <test name="p1dgp2_nodal_2d_velocity" language="python">assert abs(p1dgp2_nodal_2d_velocity_error - 1.5e-5) &lt; 9.9e-5</test>
+    <test name="p1dgp2_gauss_2d_velocity" language="python">assert p1dgp2_gauss_2d_velocity_error/p1dgp2_nodal_2d_velocity_error &lt; 1.e-6</test>
+    <test name="p2p1_nodal_2d_pressure" language="python">assert abs(p2p1_nodal_2d_pressure_error - 0.017) &lt; 1.e-3</test>
+    <test name="p2p1_gauss_2d_pressure" language="python">assert p2p1_gauss_2d_pressure_error/p2p1_nodal_2d_pressure_error &lt; 1.e-6</test>
+    <test name="p2p1_nodal_2d_velocity" language="python">assert abs(p2p1_nodal_2d_velocity_error - 0.035) &lt; 1.e-3</test>
+    <test name="p2p1_gauss_2d_velocity" language="python">assert p2p1_gauss_2d_velocity_error/p2p1_nodal_2d_velocity_error &lt; 1.e-6</test>
+    <test name="p1dgp2_nodal_3d_pressure" language="python">assert abs(p1dgp2_nodal_3d_pressure_error - 0.018) &lt; 1.e-3</test>
+    <test name="p1dgp2_gauss_3d_pressure" language="python">assert p1dgp2_gauss_3d_pressure_error/p1dgp2_nodal_3d_pressure_error &lt; 1.e-6</test>
+    <test name="p1dgp2_nodal_3d_velocity" language="python">assert abs(p1dgp2_nodal_3d_velocity_error - 0.15) &lt; 1.e-2</test>
+    <test name="p1dgp2_gauss_3d_velocity" language="python">assert p1dgp2_gauss_3d_velocity_error/p1dgp2_nodal_3d_velocity_error &lt; 1.e-6</test>
+    <test name="p2p1_nodal_3d_pressure" language="python">assert abs(p2p1_nodal_3d_pressure_error - 0.31) &lt; 1.e-2</test>
+    <test name="p2p1_gauss_3d_pressure" language="python">assert p2p1_gauss_3d_pressure_error/p2p1_nodal_3d_pressure_error &lt; 1.e-6</test>
+    <test name="p2p1_nodal_3d_velocity" language="python">assert abs(p2p1_nodal_3d_velocity_error - 1.31) &lt; 1.e-2</test>
+    <test name="p2p1_gauss_3d_velocity" language="python">assert p2p1_gauss_3d_velocity_error/p2p1_nodal_3d_velocity_error &lt; 1.e-6</test>
+  </pass_tests>
+  <warn_tests/>
+</testproblem>

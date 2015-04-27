@@ -33,7 +33,7 @@
   use colouring
   use sparsity_patterns
   use unittest_tools
-  use read_triangle
+  use mesh_files
   use data_structures
 
   implicit none
@@ -47,8 +47,7 @@
   integer :: no_colours
   type(integer_set), dimension(:), allocatable :: clr_sets
 
-  !positions = read_triangle_files("data/pslgA", quad_degree=4)
-  positions = read_triangle_files('data/square-cavity-2d', quad_degree=4)
+  positions = read_mesh_files('data/square-cavity-2d', quad_degree=4, format="gmsh")
   mesh = piecewise_constant_mesh(positions%mesh, "P0Mesh")   
   sparsity = make_sparsity_compactdgdouble(mesh, "cdG Sparsity")
 

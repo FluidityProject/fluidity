@@ -3,7 +3,7 @@ subroutine test_compute_inner_product_sa
   use conservative_interpolation_module
   use fields
   use interpolation_module
-  use read_triangle
+  use mesh_files
   use state_module
   use supermesh_assembly
   use unittest_tools
@@ -19,10 +19,8 @@ subroutine test_compute_inner_product_sa
   real :: prod
   logical :: fail
 
-  positions_a = read_triangle_files("data/laplacian_grid.1", quad_degree=4)
-  positions_b = read_triangle_files("data/laplacian_grid.2", quad_degree=4)
-  !positions_a = read_triangle_files("data/cube.1", quad_degree=4)
-  !positions_b = read_triangle_files("data/cube.2", quad_degree=4)
+  positions_a = read_mesh_files("data/laplacian_grid.1", quad_degree=4, format="gmsh")
+  positions_b = read_mesh_files("data/laplacian_grid.2", quad_degree=4, format="gmsh")
   !positions_a%val(1,:) = positions_a%val(1,:) + 3.0
   !call scale(positions_a, 1.0 / 6.0)  
   !positions_b%val(1,:) = positions_b%val(1,:) + 3.0

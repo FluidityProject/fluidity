@@ -1,7 +1,7 @@
 subroutine test_interpolation_quadratic
 
   use elements
-  use read_triangle
+  use mesh_files
   use fields
   use state_module
   use vector_tools
@@ -26,8 +26,8 @@ subroutine test_interpolation_quadratic
     end function
   end interface
 
-  old_positions = read_triangle_files("data/pslgA", 4)
-  new_positions = read_triangle_files("data/pslgB", 4)
+  old_positions = read_mesh_files("data/pslgA", quad_degree=4, format="gmsh")
+  new_positions = read_mesh_files("data/pslgB", quad_degree=4, format="gmsh")
 
   p2_shape = make_element_shape(vertices = 3, dim =2, degree=2, quad=old_positions%mesh%shape%quadrature)
   p2_old_mesh = make_mesh(old_positions%mesh, p2_shape, name="QuadraticMesh")

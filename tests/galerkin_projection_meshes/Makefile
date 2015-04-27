@@ -4,10 +4,11 @@ default: input
 
 input:
 	tar -xvjf src/meshes.tar.bz2
-	
+	for i in `seq 0 9`; do ../../bin/triangle2gmsh $$i ; done
+
 clean: clean-mesh clean-run-debug
 clean-mesh:
-	rm -f *.ele *.edge *.node
+	rm -f *.ele *.edge *.node *.msh
 clean-run:
 	rm -f $(FLMLMODEL)_?*.pvtu $(FLMLMODEL)_?*.vtu
 	rm -f $(FLMLMODEL).detectors $(FLMLMODEL).stat tmpf*

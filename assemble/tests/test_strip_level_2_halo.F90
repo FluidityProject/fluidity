@@ -32,7 +32,7 @@ subroutine test_strip_level_2_halo
   use fields
   use halos
   use parallel_tools
-  use read_triangle
+  use mesh_files
   use reserve_state_module
   use sam_integration
   use spud
@@ -92,7 +92,7 @@ subroutine test_strip_level_2_halo
   integer, dimension(:), allocatable :: scatter
   integer :: nscatter
 
-  mesh_field = read_triangle_files("data/cube-parallel_0", quad_degree = 1) 
+  mesh_field = read_mesh_files("data/cube-parallel_0", quad_degree = 1, format="gmsh")
   call read_halos("data/cube-parallel", mesh_field)
   assert(halo_count(mesh_field) > 0)
   halo => mesh_field%mesh%halos(1)

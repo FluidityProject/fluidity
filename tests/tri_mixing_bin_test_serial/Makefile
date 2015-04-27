@@ -4,7 +4,7 @@ MESH = square
 default: input
 
 input: src/$(MESH).msh
-	../../bin/gmsh2triangle -2 src/$(MESH).msh 
+	cp src/$(MESH).msh . 
 
 clean: clean-mesh clean-run-debug
 clean-mesh:

@@ -33,7 +33,7 @@
     </mesh>
     <mesh name="InputMesh">
       <from_file file_name="mesh/np_rectangle">
-        <format name="triangle"/>
+        <format name="gmsh"/>
         <stat>
           <exclude_from_stat/>
         </stat>
@@ -82,9 +82,7 @@
         <integer_value rank="0">3</integer_value>
       </surface_degree>
     </quadrature>
-    <spherical_earth>
-      <linear_mapping/>
-    </spherical_earth>
+    <spherical_earth/>
     <ocean_boundaries>
       <top_surface_ids>
         <integer_value shape="1" rank="1">1</integer_value>

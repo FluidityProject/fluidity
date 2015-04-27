@@ -1,5 +1,5 @@
 input: clean
-	../../bin/gmsh2triangle --2d src/drainage_a.msh
+	cp src/drainage_a.msh .
 
 clean:
 	rm -rf *.stat *.vtu *.node *.edge *.ele *.log *.log-0 *.err-0

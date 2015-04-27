@@ -4034,6 +4034,99 @@ contains
     opp_face = face_opposite_mesh(tfield%mesh, face)
   end function face_opposite_tensor
 
+  function reorder_element_nodes_face(element, mesh, face) result(reordered_element_nodes)
+    !!< Return a list of node numbers local to an element reordered such that
+    !!< they correspond with the node numbering on a face
+    !!<
+    !!< Note that the element supplied does not need to be from the mesh so long as they are topologically/geometrically the same.
+    !!< e.g. element can be p2 while mesh can be p1.
+    type(element_type), intent(in) :: element
+    type(mesh_type), intent(in) :: mesh
+    integer, intent(in) :: face  ! which global face number we're on
+
+    integer, dimension(:), pointer :: face_l_nodes
+    integer, dimension(mesh%faces%shape%numbering%vertices) :: face_l_vertices, element_face_local_vertices
+    integer, dimension(element%numbering%vertices) :: element_l_vertices, reordered_element_vertices
+    integer, dimension(mesh%shape%loc) :: node2vertex
+    integer, dimension(element%loc) :: reordered_element_nodes
+    integer :: i, j, l_face_number
+
+    ! local face number of face in element
+    l_face_number = local_face_number(mesh, face)
+
+    ! get the vertex numbers of the face (indexes into the face node numbering)
+    face_l_vertices = local_vertices(face_shape(mesh, face))  ! e.g. (1, 3, 6)
+
+    ! get the element local node numbers of the nodes on the face
+    face_l_nodes => face_local_nodes(mesh, face)  ! e.g. (5, 2, 1, 6, 3, 7)
+
+    ! work out the element local node numbers of the face vertices
+    element_face_local_vertices = face_l_nodes(face_l_vertices) ! e.g. (5, 1, 7)
+
+    ! get the vertex numbers of the element (indexes ino the element node numbering)
+    element_l_vertices = local_vertices(mesh%shape)  ! e.g. (1, 5, 7, 10)
+
+    ! work out which vertices in volume element are vertices in facet
+    ! and set up vertices in correct order on element
+    ! e.g. (l_face_number, 2, 1, 3) = (4, 2, 1, 3)
+    node2vertex = 0
+    do i = 1, size(element_l_vertices)
+      node2vertex(element_l_vertices(i)) = i
+    end do
+    reordered_element_vertices(1) = l_face_number
+    do i = 1, size(element_face_local_vertices)
+      j = node2vertex(element_face_local_vertices(i))
+      assert(j>0)
+      reordered_element_vertices(i+1) = j
+    end do
+    reordered_element_nodes = ele_local_num(reordered_element_vertices, element%numbering)
+
+  end function
+
+  function face_n_s(element, mesh, face) result(n_s)
+    !!< Reorders the element shape function evaluated at the face to match the face node ordering
+    !!<
+    !!< Note that the element supplied does not need to be from the mesh so long as they are topologically/geometrically the same.
+    !!< e.g. element can be p2 while mesh can be p1.
+    type(element_type), intent(in) :: element
+    type(mesh_type), intent(in) :: mesh
+    integer, intent(in) :: face
+    real, dimension(element%loc, element%surface_quadrature%ngi) :: n_s
+
+    integer, dimension(element%loc) :: reordered_element_nodes
+    integer :: i, j
+
+    reordered_element_nodes = reorder_element_nodes_face(element, mesh, face)
+
+    do i = 1, size(reordered_element_nodes)
+      j = reordered_element_nodes(i)
+      n_s(j,:) = element%n_s(i,:)
+    end do
+
+  end function
+
+  function face_dn_s(element, mesh, face) result(dn_s)
+    !!< Reorders the element shape function derivative evaluated at the face to match the face node ordering
+    !!<
+    !!< Note that the element supplied does not need to be from the mesh so long as they are topologically/geometrically the same.
+    !!< e.g. element can be p2 while mesh can be p1.
+    type(element_type), intent(in) :: element
+    type(mesh_type), intent(in) :: mesh
+    integer, intent(in) :: face
+    real, dimension(element%loc, element%surface_quadrature%ngi, element%dim) :: dn_s
+
+    integer, dimension(element%loc) :: reordered_element_nodes
+    integer :: i, j
+
+    reordered_element_nodes = reorder_element_nodes_face(element, mesh, face)
+
+    do i = 1, size(reordered_element_nodes)
+      j = reordered_element_nodes(i)
+      dn_s(j,:,:) = element%dn_s(i,:,:)
+    end do
+
+  end function
+
   subroutine write_minmax_scalar(sfield, field_expression)
     ! the scalar field to print its min and max of
     type(scalar_field), intent(in):: sfield

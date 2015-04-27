@@ -89,7 +89,7 @@
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value type="code" lines="20" language="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
   from math import cos, sin
   return cos(X[0])*sin(X[1]), cos(X[1])*sin(X[0])</string_value>
           </python>
@@ -108,7 +108,7 @@
         <mesh name="CoordinateMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value type="code" lines="20" language="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
   from math import sin,cos
   return sin(X[0])*cos(X[1])</string_value>
           </python>
@@ -127,7 +127,7 @@
         <value name="WholeMesh">
           <anisotropic_asymmetric>
             <python>
-              <string_value type="code" lines="20" language="python">def val(X,t):
+              <string_value lines="20" type="code" language="python">def val(X,t):
   from math import sin,cos
   return [[cos(X[0]),sin(X[1])],[sin(X[0]),cos(X[1])]]</string_value>
             </python>

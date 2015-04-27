@@ -3678,17 +3678,23 @@ adaptivity and is automatically disabled for non-linear positions fields.</a:doc
       </optional>
       <optional>
         <element name="spherical_earth">
-          <a:documentation>Options specifying that the problem is on the surface of the sphere.</a:documentation>
-          <choice>
-            <element name="linear_mapping">
-              <empty/>
-            </element>
+          <a:documentation>Options specifying that the problem is on the surface of the n-sphere.</a:documentation>
+          <optional>
             <element name="superparametric_mapping">
               <a:documentation>Enabling this option approximates the curvature of the Earth as an
 nth degree polynomial, where n is the polynomial degree of the coordinate mesh.</a:documentation>
               <empty/>
             </element>
-          </choice>
+          </optional>
+          <optional>
+            <element name="analytical_mapping">
+              <a:documentation>The simplicial elements (as defined by the CoordinateMesh) are bent on the n-sphere
+using an analytical expression (as opposed to superparametric where it's approximated
+by a higher order polynomial), the derivatives are calculated by taking the analytical
+derivative on the gauss points.</a:documentation>
+              <empty/>
+            </element>
+          </optional>
         </element>
       </optional>
       <optional>
@@ -4492,7 +4498,7 @@ used in the nonlinear iteration.
       </optional>
       <optional>
         <element name="checkpoint">
-          <a:documentation>To be used with time-averaged diagnostic fields so that they can be checkpointed.</a:documentation>
+          <a:documentation>Field will be checkpointed (this is not performed by default).</a:documentation>
           <empty/>
         </element>
       </optional>
