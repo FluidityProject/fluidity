@@ -45,7 +45,7 @@ extern "C"{
 
 void usage(){
   cerr<<"usage: gmsh2vtu <gmsh_file_name>\n"
-      <<"The gmsh file name should be without the .node suffix."<<endl;
+      <<"The gmsh file name should be without the .msh suffix."<<endl;
 }
 
 int main(int argc, char** argv){

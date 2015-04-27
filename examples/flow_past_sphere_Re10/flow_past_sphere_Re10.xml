@@ -36,8 +36,8 @@ assert(abs(time_average_xforce - exact_xforce)/exact_xforce &lt; 0.04)
     </test>
   </pass_tests>
   <warn_tests>
-    <test name="relative drag force difference (3%)." language="python">
-assert(abs(time_average_xforce - exact_xforce)/exact_xforce &lt; 0.03)
+    <test name="relative drag force difference (3.1%)." language="python">
+assert(abs(time_average_xforce - exact_xforce)/exact_xforce &lt; 0.031)
     </test>
   </warn_tests>
 </testproblem>

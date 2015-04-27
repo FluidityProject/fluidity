@@ -3,7 +3,7 @@ subroutine test_adaptive_interpolation_supermesh
   use quadrature
   use fields
   use adaptive_interpolation_module
-  use read_triangle
+  use mesh_files
   use unittest_tools
   implicit none
 
@@ -25,8 +25,8 @@ subroutine test_adaptive_interpolation_supermesh
 
   call set_global_debug_level(3)
 
-  positionsA = read_triangle_files("data/pslgA", quad_degree=2*max_ai_degree, no_faces=.true., quad_family=FAMILY_GM)
-  positionsB = read_triangle_files("data/pslgB", quad_degree=2*max_ai_degree, no_faces=.true., quad_family=FAMILY_GM)
+  positionsA = read_mesh_files("data/pslgA", quad_degree=2*max_ai_degree, quad_family=FAMILY_GM, format="gmsh")
+  positionsB = read_mesh_files("data/pslgB", quad_degree=2*max_ai_degree, quad_family=FAMILY_GM, format="gmsh")
 
   quadratic_shape = make_element_shape(vertices = ele_loc(positionsA, 1), dim =positionsA%dim, degree=2, quad=positionsA%mesh%shape%quadrature)
   quadratic_mesh = make_mesh(positionsB%mesh, quadratic_shape, -1, "QuadraticDgMesh")

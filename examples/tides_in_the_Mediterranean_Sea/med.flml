@@ -49,7 +49,7 @@
     </mesh>
     <mesh name="InputMesh">
       <from_file file_name="med">
-        <format name="triangle"/>
+        <format name="gmsh"/>
         <stat>
           <exclude_from_stat/>
         </stat>
@@ -93,9 +93,7 @@
         <integer_value rank="0">3</integer_value>
       </surface_degree>
     </quadrature>
-    <spherical_earth>
-      <linear_mapping/>
-    </spherical_earth>
+    <spherical_earth/>
     <ocean_boundaries>
       <top_surface_ids>
         <integer_value shape="1" rank="1">307</integer_value>
@@ -344,6 +342,7 @@
                 <length_scale_type>tensor</length_scale_type>
               </second_order>
             </les_model>
+            <buoyancy/>
           </continuous_galerkin>
           <conservative_advection>
             <real_value rank="0">0.0</real_value>

@@ -11,7 +11,7 @@
     use state_module
     use elements
     use sparse_tools
-    use read_triangle
+    use mesh_files
     use vtk_interfaces
     use boundary_conditions
     use global_parameters, only: OPTION_PATH_LEN, PYTHON_FUNC_LEN
@@ -31,7 +31,7 @@
     integer :: quad_degree=4, unit
     integer, parameter:: DIM=3
     real :: eps0
-    character(len=999) triangle_filename, exact_sol_filename
+    character(len=999) filename, exact_sol_filename
     character(len=PYTHON_FUNC_LEN) :: func, buffer
     logical :: vl_as, vl, no_vl, sor, vl_as_wsor
     logical :: file_exists
@@ -40,18 +40,18 @@
 
     ewrite(1,*) 'test_pressure_solve'
 
-    call pressure_solve_options(triangle_filename, eps0, &
+    call pressure_solve_options(filename, eps0, &
          & exact_sol_filename, vl_as, vl_as_wsor, vl, no_vl, sor)
 
-    ewrite(2,*) 'Using triangle files:',trim(triangle_filename)
+    ewrite(2,*) 'Using mesh files:',trim(filename)
     ewrite(2,*) 'epsilon =', eps0
     ewrite(2,*) 'using exact solution file', trim(exact_sol_filename)
     ewrite(2,*) vl_as, vl_as_wsor, vl, no_vl, sor
 
     if(vl_as.or.(vl.or.(no_vl.or.(vl_as_wsor.or.sor)))) then
 
-       positions=read_triangle_files(trim(triangle_filename), &
-            quad_degree=QUAD_DEGREE)
+       positions=read_mesh_files(trim(filename), &
+            quad_degree=QUAD_DEGREE, format="gmsh")
 
        x_mesh => positions%mesh
 
@@ -116,7 +116,6 @@
     use state_module
     use elements
     use sparse_tools_petsc
-    use read_triangle
     use sparsity_patterns
     use boundary_conditions
     use free_surface_module
@@ -261,7 +260,6 @@
     use state_module
     use elements
     use sparse_tools
-    use read_triangle
     implicit none
     type(csr_matrix), intent(inout) :: A
     type(vector_field), intent(in) :: positions
@@ -296,12 +294,12 @@
 
   end subroutine assemble_laplacian_element_contribution
 
-  subroutine pressure_solve_options(triangle_filename, eps0, &
+  subroutine pressure_solve_options(filename, eps0, &
        & exact_sol_filename, vl_as, vl_as_wsor, vl, no_vl, sor)
     use Fldebug
     use petsc_tools
     implicit none
-    character(len=*), intent(out):: triangle_filename, exact_sol_filename
+    character(len=*), intent(out):: filename, exact_sol_filename
     logical, intent(out) :: vl_as, vl, no_vl, sor, vl_as_wsor
     real, intent(out) :: eps0
 
@@ -316,7 +314,7 @@
     PetscReal :: number_in=0.0
 
     call PetscOptionsGetString(&
-         &PETSC_NULL_CHARACTER, '-filename', triangle_filename, flag, ierr)
+         &PETSC_NULL_CHARACTER, '-filename', filename, flag, ierr)
     if (.not. flag) then
        call usage()
     end if
@@ -347,7 +345,7 @@
 
   subroutine usage()
     use FLDebug    
-    ewrite(0,*) 'Usage: test_pressure_solve -filename <triangle_filename> &
+    ewrite(0,*) 'Usage: test_pressure_solve -filename <filename> &
          &-exact_solution <exact_solution_python_filename> -epsilon &
          &<epsilon> [options ...]'
     ewrite(0,*) 'Options:'

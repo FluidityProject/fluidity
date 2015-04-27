@@ -118,7 +118,7 @@
     logical :: have_les
     logical :: have_surface_fs_stabilisation
     logical :: les_second_order, les_fourth_order, wale, dynamic_les
-    logical :: on_sphere
+    logical :: on_sphere, radial_gravity
     
     logical :: move_mesh
     
@@ -392,6 +392,9 @@
         gravity_magnitude = 0.0
       end if
       ewrite_minmax(buoyancy)
+
+      radial_gravity = have_option(trim(u%option_path)//"/prognostic/spatial_discretisation/continuous_galerkin"//&
+         &"/buoyancy/radial_gravity_direction_at_gauss_points")
 
       ! Splits up the Density and Pressure fields into a hydrostatic component (') and a perturbed component (''). 
       ! The hydrostatic components, denoted p' and rho', should satisfy the balance: grad(p') = rho'*g
@@ -712,7 +715,6 @@
       
 #ifdef _OPENMP
     cache_valid = prepopulate_transform_cache(x)
-    assert(cache_valid)
     if (have_coriolis) then
        call set_coriolis_parameters
     end if
@@ -1107,7 +1109,7 @@
 
       if (velocity_bc_type(1,sele)==BC_TYPE_FREE_SURFACE .and. have_surface_fs_stabilisation) then
         if (on_sphere) then
-          upwards_gi=-sphere_inward_normal_at_quad_face(x, sele)
+          upwards_gi=-radial_inward_normal_at_quad_face(x, sele)
         else
           upwards_gi=-face_val_at_quad(gravity, sele)
         end if
@@ -1773,12 +1775,12 @@
          coefficient_detwei = coefficient_detwei*nvfrac_gi
       end if
 
-      if (on_sphere) then
-      ! If we're on a spherical Earth evaluate the direction of the gravity vector
+      if (radial_gravity) then
+      ! If we're using radial gravity evaluate the direction of the gravity vector
       ! exactly at quadrature points.
         rhs_addto = rhs_addto + &
                     shape_vector_rhs(test_function, &
-                                     sphere_inward_normal_at_quad_ele(positions, ele), &
+                                     radial_inward_normal_at_quad_ele(positions, ele), &
                                      coefficient_detwei)
       else
         rhs_addto = rhs_addto + &
@@ -1922,7 +1924,7 @@
 
           ! Calculate the gradient in the direction of gravity
           if (on_sphere) then
-            grav_at_quads=sphere_inward_normal_at_quad_ele(positions, ele)
+            grav_at_quads=radial_inward_normal_at_quad_ele(positions, ele)
           else
             grav_at_quads=ele_val_at_quad(gravity, ele)
           end if

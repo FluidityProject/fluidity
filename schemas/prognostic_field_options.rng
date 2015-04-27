@@ -880,6 +880,19 @@ upon temperature. This is only valid when you have a temperature field.</a:docum
               </element>
             </element>
           </optional>
+          <element name="buoyancy">
+            <a:documentation>Options dealing with buoyancy</a:documentation>
+            <optional>
+              <element name="radial_gravity_direction_at_gauss_points">
+                <a:documentation>Align the gravity opposite to the radial direction (-(x,y) in 2d, -(x,y,z) in 3d)
+and evaluate it at the gauss points.
+
+NOTE: this ignores whatever values are set under /physical_parameters/gravity/vector_field::GravityDirection 
+for the buoyancy terms.</a:documentation>
+                <ref name="comment"/>
+              </element>
+            </optional>
+          </element>
         </element>
         <element name="discontinuous_galerkin">
           <a:documentation>Discontinuous galerkin formulation. Confusingly it is not necessary to provide
@@ -1108,6 +1121,19 @@ This is invariant regardless of whether the main
 advection term is integrated by parts once or
 twice.</a:documentation>
                 <empty/>
+              </element>
+            </optional>
+          </element>
+          <element name="buoyancy">
+            <a:documentation>Options dealing with buoyancy</a:documentation>
+            <optional>
+              <element name="radial_gravity_direction_at_gauss_points">
+                <a:documentation>Align the gravity opposite to the radial direction (-(x,y) in 2d, -(x,y,z) in 3d)
+and evaluate it at the gauss points.
+
+NOTE: this ignores whatever values are set under /physical_parameters/gravity/vector_field::GravityDirection 
+for the buoyancy terms.</a:documentation>
+                <ref name="comment"/>
               </element>
             </optional>
           </element>

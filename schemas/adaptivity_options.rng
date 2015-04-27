@@ -1355,8 +1355,8 @@ adaptivity is doing something you don't expect.</a:documentation>
           </optional>
           <optional>
             <element name="write_adapted_mesh">
-              <a:documentation>Write out the Coordinate field to a triangle mesh for every
-state adapt. In parallel, a triangle mesh and .halo files
+              <a:documentation>Write out the Coordinate field to a mesh for every
+state adapt. In parallel, mesh and .halo files
 will be written for every parallel adapt iteration.</a:documentation>
               <ref name="comment"/>
             </element>
@@ -1440,9 +1440,9 @@ The return value must be a string.</a:documentation>
             <a:documentation>Read the mesh from file, rather than extracting it from the
 system state.</a:documentation>
             <element name="format">
-              <a:documentation>Input mesh file format.</a:documentation>
+              <a:documentation>GMSH mesh format</a:documentation>
               <attribute name="name">
-                <value>triangle</value>
+                <value>gmsh</value>
               </attribute>
               <ref name="comment"/>
             </element>

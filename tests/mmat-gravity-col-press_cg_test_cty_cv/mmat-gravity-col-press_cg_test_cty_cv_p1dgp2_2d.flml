@@ -183,6 +183,7 @@ crashes.</comment>
               </integrate_advection_by_parts>
               <integrate_conservation_term_by_parts/>
             </advection_scheme>
+            <buoyancy/>
           </discontinuous_galerkin>
           <conservative_advection>
             <real_value rank="0">0.0</real_value>

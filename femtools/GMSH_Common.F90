@@ -44,7 +44,7 @@ module gmsh_common
   ! For each type, the number of nodes. -1 means unsupported
   integer, dimension(15) :: elementNumNodes = (/ &
        2, 3, 4, 4, 8, &
-       -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 /)
+       -1, -1, -1, -1, -1, -1, -1, -1, -1, 1 /)
 
   type GMSHnode
      integer :: nodeID, columnID

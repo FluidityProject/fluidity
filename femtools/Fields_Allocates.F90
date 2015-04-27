@@ -1149,7 +1149,7 @@ contains
 
     type(integer_hash_table):: lperiodic_face_map
     type(mesh_type), pointer :: lmodel
-    type(element_type), pointer :: element
+    type(element_type) :: element_s
     type(quadrature_type) :: quad_face
     integer, dimension(:), pointer :: faces, neigh, model_ele_glno, model_ele_glno2
     integer, dimension(1:mesh%shape%numbering%vertices) :: vertices, &
@@ -1278,22 +1278,25 @@ contains
     ! ready (either newly computed or copied from model)
     ! now we only have to work out mesh%faces%face_lno
 
-    element => ele_shape(mesh, 1)
     if (present(sngi)) then
        ! if specified use quadrature with sngi gausspoints
-       quad_face = make_quadrature(vertices=face_vertices(element), &
-            & dim=mesh_dim(mesh)-1, ngi=sngi, family=element%quadrature%family)
+       quad_face = make_quadrature(vertices=face_vertices(mesh%shape), &
+            & dim=mesh_dim(mesh)-1, ngi=sngi, family=mesh%shape%quadrature%family)
       ! quad_face will be deallocated inside deallocate_faces!
     else
        ! otherwise use degree of full mesh
-       quad_face = make_quadrature(vertices=face_vertices(element), &
-            & dim=mesh_dim(mesh)-1, degree=element%quadrature%degree, family=element%quadrature%family)
+       quad_face = make_quadrature(vertices=face_vertices(mesh%shape), &
+            & dim=mesh_dim(mesh)-1, degree=mesh%shape%quadrature%degree, family=mesh%shape%quadrature%family)
       ! quad_face will be deallocated inside deallocate_faces!
     end if
 
+    element_s = make_element_shape(mesh%shape, quad_s = quad_face)
+    call deallocate(mesh%shape)
+    mesh%shape = element_s
+
     allocate(mesh%faces%shape)
-    mesh%faces%shape = make_element_shape(vertices=face_vertices(element), &
-         & dim=mesh_dim(mesh)-1, degree=element%degree, quad=quad_face)
+    mesh%faces%shape = make_element_shape(vertices=face_vertices(mesh%shape), &
+         & dim=mesh_dim(mesh)-1, degree=mesh%shape%degree, quad=quad_face)
 
     face_count=entries(mesh%faces%face_list)
     snloc=mesh%faces%shape%loc

@@ -32,7 +32,7 @@ subroutine test_find_node_ownership_rtree
   use fields
   use fldebug
   use node_ownership
-  use read_triangle
+  use mesh_files
   use unittest_tools
   
   implicit none
@@ -42,8 +42,8 @@ subroutine test_find_node_ownership_rtree
   logical :: fail
   type(vector_field) :: positions1, positions2
   
-  positions1 = read_triangle_files("data/rotated_square.1", quad_degree = 1)
-  positions2 = read_triangle_files("data/rotated_square.2", quad_degree = 1)
+  positions1 = read_mesh_files("data/rotated_square.1", quad_degree = 1, format="gmsh")
+  positions2 = read_mesh_files("data/rotated_square.2", quad_degree = 1, format="gmsh")
 
   allocate(node_ownership(node_count(positions2)))
   call find_node_ownership_rtree(positions1, positions2, node_ownership)

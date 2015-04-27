@@ -1,6 +1,6 @@
 subroutine test_hex_tet_intersector
 
-  use read_triangle
+  use mesh_files
   use tetrahedron_intersection_module
   use fields
   use unittest_tools
@@ -13,8 +13,8 @@ subroutine test_hex_tet_intersector
   logical :: fail
   real :: tet_vol, int_vol
 
-  cube = read_triangle_files("data/unit_cube", quad_degree=1)
-  tet  = read_triangle_files("data/unit_tet",  quad_degree=1)
+  cube = read_mesh_files("data/unit_cube", quad_degree=1, format="gmsh")
+  tet  = read_mesh_files("data/unit_tet",  quad_degree=1, format="gmsh")
 
   planes = get_planes(cube, 1)
   tet_t%v = ele_val(tet, 1)

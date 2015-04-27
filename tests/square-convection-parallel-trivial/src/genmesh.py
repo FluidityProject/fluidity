@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
 import fluidity.diagnostics.annulus_mesh as mesh
-import fluidity.diagnostics.triangletools as tt
+import fluidity.diagnostics.gmshtools as gt
 
 div = mesh.SliceCoordsConstant(0.0, 1.0, 3)
 m = mesh.GenerateRectangleMesh(div, div)
-tt.WriteTriangle(m, "square-structured-linear")
+gt.WriteMsh(m, "square-structured-linear.msh")

@@ -1,7 +1,7 @@
 default: input
 
 input: clean
-	../../bin/gmsh2triangle --2d src/square.msh
+	cp src/square.msh .
 
 clean: clean-mesh clean-run
 clean-mesh:
