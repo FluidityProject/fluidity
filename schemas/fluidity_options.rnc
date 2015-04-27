@@ -2066,6 +2066,12 @@ start =
          }?,
          ## ADM model
          element ADM {
+           ## ADM Correction.
+           ## Select to apply ADM correction.
+           element ADM_correction{empty}?,
+           ## Prescribed u_ref.
+           ## Specify u_ref if NOT using ADM correction.
+           element u_ref_def{real}?,
            ## C_T.
            ## Thrust coefficient of the disc(s) (default): 0.0.
            element C_T {real},
