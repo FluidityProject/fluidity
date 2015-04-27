@@ -71,7 +71,7 @@ subroutine komega_advdif_diagnostics(state)            !A! called in Fluids.F90
   call komega_blending_functions(state, advdif=.true.) !A! blending functions for k-omega SST !A!
   call komega_eddyvisc(state, advdif=.true.)           !A! eddy viscosity
   call komega_diffusion(state)                         !A! diff coeff
-  call komega_tracer_diffusion(state)                  !A! compute eddy visc scalar field
+  call komega_tracer_diffusion(state)                  !A! ???
   call komega_calculate_rhs(state)                     !A! source/sink terms on RHS of adv-diff eqs
 
 end subroutine komega_advdif_diagnostics
@@ -171,7 +171,7 @@ subroutine komega_blending_functions(state, advdif) !A! used for k-omega SST onl
     a_3 = sqrt(node_val(k,node)) / (beta_star*node_val(omega,node)*node_val(y,node))
     a_4 = ( 500.0*node_val(bg_visc,1,1,node) )/( node_val(omega,node)*node_val(y,node)**2.0 )
     a_5 = ( 4.0*node_val(density,node)*sigma_omg2*node_val(k,node) ) / &
-          ( max(node_val(CD_komg,node),1.0e-20)*node_val(y,node)**2.0 ) !A! Menter 1994 (Menter 2003 => e-10)
+          ( max(node_val(CD_komg,node),1.0e-10)*node_val(y,node)**2.0 ) !A! Menter 1994 (Menter 2003 => e-10)
 
     arg_1 = min( max(a_3,a_4) , a_5 )
     arg_2 = max( 2.0*a_3, a_4 )
@@ -493,6 +493,9 @@ subroutine assemble_rhs_ele(src_abs_terms, k, omega, scalar_eddy_visc, u, densit
   ! Compute P (Production)
   if (field_id==1) then !A! id=1 => k
      rhs = tensor_inner_product(reynolds_stress, grad_u)
+     if(have_SST) then !A! Menter k-omega SST (2003):
+       rhs = min(rhs,10.0*omega_ele*k_ele*beta_star*ele_val_at_quad(density, ele))
+     endif
      if (X%mesh%region_ids(ele)==region_id_disc) then ! Disc production term
         a_fac = 0.5*(1.0-sqrt(1.0-C_T))
         C_x = (4.0*a_fac)/(1.0 - a_fac)
@@ -508,6 +511,9 @@ subroutine assemble_rhs_ele(src_abs_terms, k, omega, scalar_eddy_visc, u, densit
 
   if (field_id==2) then !A! id=2 => omega
     rhs = tensor_inner_product(reynolds_stress, grad_u)
+    if(have_SST) then !A! Menter k-omega SST (2003):
+      rhs = min(rhs,10.0*omega_ele*k_ele*beta_star*ele_val_at_quad(density, ele))
+    endif
     ADM_Source = (C_omega*rhs*rhs)/(k_ele*k_ele) !ADM!
 
     if(have_SST) then !A! Menter k-omega SST:
@@ -535,10 +541,10 @@ subroutine assemble_rhs_ele(src_abs_terms, k, omega, scalar_eddy_visc, u, densit
   rhs = -1.0*omega_ele*k_ele*beta_star*ele_val_at_quad(density, ele)
   if (field_id==2) then
     if(have_SST) then
-      rhs = omega_ele*omega_ele*ele_val_at_quad(density, ele)*&
+      rhs = -1.0*omega_ele*omega_ele*ele_val_at_quad(density, ele)*&
             (ele_val_at_quad(F_1, ele)*beta_1 + (1.0-ele_val_at_quad(F_1, ele))*beta_2)
     else
-      rhs = omega_ele*omega_ele*ele_val_at_quad(density, ele)*beta
+      rhs = -1.0*omega_ele*omega_ele*ele_val_at_quad(density, ele)*beta
     endif
   end if
   rhs_addto(2,:) = shape_rhs(shape, detwei*rhs)
@@ -604,7 +610,6 @@ subroutine komega_eddyvisc(state, advdif)
   !A! SST terms
   logical                          :: have_SST = .true.
   type(scalar_field), pointer      :: F_2, abs_vort
-!  type(scalar_field), pointer      :: abs_vort
   type(vector_field), pointer      :: vorticity
   real                             :: beta_star
 
@@ -638,8 +643,6 @@ subroutine komega_eddyvisc(state, advdif)
   F_2       => extract_scalar_field(state, "F_2")
   vorticity => extract_vector_field(state, "VectVort")
   abs_vort  => extract_scalar_field(state, "AbsVort")
-  !A! random initialisation of abs_vort, this will be overwritten!
-  !A! call time_averaged_value(state, abs_vort, 'TurbulentFrequency', advdif, option_path)
 
   ewrite_minmax(kk)
   ewrite_minmax(omega)
@@ -787,10 +790,8 @@ subroutine komega_eddyvisc(state, advdif)
          w_z = vorticity%val(3,inode)
          call set(abs_vort, inode, sqrt(w_x*w_x + w_y*w_y + w_z*w_z))
       end do
-      !print*, 'AminCheck', ele, ele_val_at_quad(abs_vort,ele)
 
       call get_option(trim(option_path)//'/a_1', a_1, default = 0.31)
-      !a_1 = 0.31
 
       !A! Set eddy_visc depending on have_SST:
       if(have_SST) then

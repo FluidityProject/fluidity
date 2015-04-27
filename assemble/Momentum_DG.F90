@@ -279,9 +279,10 @@ contains
     !AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA!
     real, dimension(U%dim,3) :: U_intgrl !A! 3 discs hence 3
     real, dimension(3) :: u_disc, u_ref, new_source, intgrl_sum !A! 3 upto discs
-    real :: rho_fluid, a_fact, C_T, disc_radius, disc_area
+    real :: rho_fluid, a_fact, C_T, disc_radius, disc_area, u_ref_def
     type(scalar_field) :: Turbine, Turbine_L, Turbine_R
     integer :: ii, region_id_disc, region_id_disc_L, region_id_disc_R
+    logical :: ADM_correction
     !AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA!
 
     ewrite(1, *) "In construct_momentum_dg"
@@ -369,6 +370,10 @@ contains
     call get_option('/ADM/DiscRegionID', region_id_disc, default = 901)
     call get_option('/ADM/LeftDiscRegionID', region_id_disc_L, default = 903)
     call get_option('/ADM/RightDiscRegionID', region_id_disc_R, default = 904)
+    ADM_correction = have_option("/ADM/ADM_correction")
+    ewrite(2,*) 'ADM correction? ', ADM_correction
+    call get_option('/ADM/u_ref_def', u_ref_def)
+    ewrite(2,*) 'u_ref_def? ', u_ref_def
     !AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA!
 
     Abs=extract_vector_field(state, "VelocityAbsorption", stat)   
@@ -736,7 +741,7 @@ contains
 
       intgrl_sum = (/0.0,0.0,0.0/)
       u_disc = (/0.0,0.0,0.0/)
-      u_ref = (/0.0,0.0,0.0/)
+      u_ref = (/u_ref_def,u_ref_def,u_ref_def/)
       new_source = (/0.0,0.0,0.0/)
       U_intgrl(:,1) = (/0.0,0.0,0.0/)
       U_intgrl(:,2) = (/0.0,0.0,0.0/)
@@ -771,7 +776,9 @@ contains
 
       do ii=1, 3
         u_disc(ii) = U_intgrl(1,ii)/intgrl_sum(ii)
-        u_ref(ii) = u_disc(ii)/(1.0 - a_fact)
+        if (ADM_correction) then
+          u_ref(ii) = u_disc(ii)/(1.0 - a_fact)
+        end if
         new_source(ii) = -(0.5*rho_fluid*disc_area*C_T*u_ref(ii)*u_ref(ii))/intgrl_sum(ii)
      end do
 

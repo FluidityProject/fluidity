@@ -3009,6 +3009,20 @@ while a factor of 1 represents a connected domain.</a:documentation>
       <optional>
         <element name="ADM">
           <a:documentation>ADM model</a:documentation>
+          <optional>
+            <element name="ADM_correction">
+              <a:documentation>ADM Correction.
+Select to apply ADM correction.</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="u_ref_def">
+              <a:documentation>Prescribed u_ref.
+Specify u_ref if NOT using ADM correction.</a:documentation>
+              <ref name="real"/>
+            </element>
+          </optional>
           <element name="C_T">
             <a:documentation>C_T.
 Thrust coefficient of the disc(s) (default): 0.0.</a:documentation>
