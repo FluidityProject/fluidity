@@ -44,24 +44,17 @@
     use iso_c_binding
     use mangle_options_tree
     use hybridized_helmholtz
-    implicit none
-#ifdef HAVE_PETSC
-#include "finclude/petsc.h"
+#ifdef HAVE_PETSC_MODULES
+  use petsc
 #endif
+  implicit none
+#include "petsc_legacy.h"
 
     ! Interface blocks for the initialisation routines we need to call
     interface
        subroutine set_global_debug_level(n)
          integer, intent(in) :: n
        end subroutine set_global_debug_level
-
-       subroutine mpi_init(ierr)
-         integer, intent(out) :: ierr
-       end subroutine mpi_init
-
-       subroutine mpi_finalize(ierr)
-         integer, intent(out) :: ierr
-       end subroutine mpi_finalize
 
        subroutine python_init
        end subroutine python_init
