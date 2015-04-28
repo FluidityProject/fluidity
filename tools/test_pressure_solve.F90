@@ -17,10 +17,12 @@
     use global_parameters, only: OPTION_PATH_LEN, PYTHON_FUNC_LEN
     use free_surface_module
     use FLDebug
-    implicit none
+#ifdef HAVE_PETSC_MODULES
+  use petsc
+#endif
+  implicit none
+#include "petsc_legacy.h"
 
-#include "petscversion.h"
-#include "finclude/petsc.h"
     type(state_type) :: state
     type(vector_field), target:: positions, vertical_normal
     type(scalar_field) :: psi, DistanceToTop, exact
@@ -298,12 +300,15 @@
        & exact_sol_filename, vl_as, vl_as_wsor, vl, no_vl, sor)
     use Fldebug
     use petsc_tools
-    implicit none
+#ifdef HAVE_PETSC_MODULES
+  use petsc
+#endif
+  implicit none
+#include "petsc_legacy.h"
+
     character(len=*), intent(out):: filename, exact_sol_filename
     logical, intent(out) :: vl_as, vl, no_vl, sor, vl_as_wsor
     real, intent(out) :: eps0
-
-#include "finclude/petsc.h"
 
 #if PETSC_VERSION_MINOR>=2
     PetscBool:: flag
