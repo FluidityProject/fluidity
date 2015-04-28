@@ -688,7 +688,7 @@ subroutine komega_eddyvisc(state, advdif)
   ! Calculate scalar eddy viscosity by integration over element
   do ele = 1, ele_count(scalar_eddy_visc)
      call komega_eddyvisc_ele(ele, X, kk, omega, scalar_eddy_visc, density, ev_rhs, &
-                              F_2, vorticity, abs_vort)
+                              F_2, vorticity, abs_vort, u)
   end do
 
   ! For non-DG we apply inverse mass globally
@@ -735,7 +735,7 @@ subroutine komega_eddyvisc(state, advdif)
   contains
   
    subroutine komega_eddyvisc_ele(ele, X, kk, omega, scalar_eddy_visc, density, ev_rhs, &
-                                  F_2, vorticity, abs_vort)
+                                  F_2, vorticity, abs_vort, u)
    
       type(vector_field), intent(in)    :: x
       type(scalar_field), intent(in)    :: kk, omega, scalar_eddy_visc, density
@@ -758,12 +758,37 @@ subroutine komega_eddyvisc(state, advdif)
       logical                           :: have_SST = .true.
       real, dimension(ele_ngi(scalar_eddy_visc, ele)) :: eddy_visc_SST
 
+      !A! invariant strain
+      integer                                                    :: ngi, gi
+      type(vector_field), intent(in)                             :: u
+      type(element_type), pointer                                :: shape
+      real, dimension(ele_loc(kk, ele), ele_ngi(kk, ele), x%dim) :: dshape
+      real, dimension(u%dim, u%dim, ele_ngi(kk, ele))            :: grad_u, rate_of_strain
+      real, dimension(ele_ngi(scalar_eddy_visc, ele))            :: strain_invariant
+
+      ngi = ele_ngi(u, ele) !A! ngi equals 11 => No. quadrature points per element
+
+      shape => ele_shape(kk, ele)
+      call transform_to_physical( X, ele, shape, dshape=dshape, detwei=detwei )
+
+      grad_u = ele_grad_at_quad(u, ele, dshape)
+      do gi = 1, ngi
+        rate_of_strain(:,:,gi) = grad_u(:,:,gi) + transpose(grad_u(:,:,gi))
+      end do
+
+!A!        gi = 1
+!A!        print*, 'AminCheck', ele, gi, rate_of_strain(1,1,gi), rate_of_strain(1,2,gi), rate_of_strain(1,3,gi)
+!A!        print*, 'AminCheck', ele, gi, rate_of_strain(2,1,gi), rate_of_strain(2,2,gi), rate_of_strain(2,3,gi)
+!A!        print*, 'AminCheck', ele, gi, rate_of_strain(3,1,gi), rate_of_strain(3,2,gi), rate_of_strain(3,3,gi)
+
+      strain_invariant = sqrt( 2.0 * tensor_inner_product(rate_of_strain, rate_of_strain) )
+
       nodes_ev => ele_nodes(scalar_eddy_visc, ele)
       shape_ev =>  ele_shape(scalar_eddy_visc, ele)
       
       ! Get detwei
-      call transform_to_physical(X, ele, detwei=detwei)
-      
+!A!      call transform_to_physical(X, ele, detwei=detwei)
+
       ! Get the k and omega values at the Gauss points
       kk_at_quad = ele_val_at_quad(kk,ele)
       omega_at_quad = ele_val_at_quad(omega,ele)
@@ -797,7 +822,8 @@ subroutine komega_eddyvisc(state, advdif)
       if(have_SST) then
         rhs_addto = shape_rhs(shape_ev, detwei*ele_val_at_quad(density,ele)*&
                     a_1*kk_at_quad/&
-                    max(a_1*omega_at_quad , ele_val_at_quad(abs_vort,ele)*ele_val_at_quad(F_2,ele) ))
+                    max(a_1*omega_at_quad , strain_invariant*ele_val_at_quad(F_2,ele) ))
+!A!                    max(a_1*omega_at_quad , ele_val_at_quad(abs_vort,ele)*ele_val_at_quad(F_2,ele) ))
       else
         rhs_addto = shape_rhs(shape_ev, detwei*ele_val_at_quad(density,ele)*&
                     (kk_at_quad/omega_at_quad))
@@ -811,7 +837,15 @@ subroutine komega_eddyvisc(state, advdif)
 
       ! Add the element's contribution to the nodes of ev_rhs
       call addto(ev_rhs, nodes_ev, rhs_addto)    
-   
+
+!A!      print*, 'AminCheck', ele, strain_invariant
+!A!      print*, 'AminCheck', ele, kk_at_quad
+!A!      print*, 'AminCheck', ele, omega_at_quad
+!A!      print*, 'AminCheck', ele, ele_val_at_quad(F_2,ele)
+!A!      print*, 'AminCheck', ele, detwei
+!A!      print*, 'AminCheck', ele, rhs_addto
+!A!      print*, 'AminCheck', ele, ele_val_at_quad(ev_rhs,ele)
+
    end subroutine komega_eddyvisc_ele
 
 end subroutine komega_eddyvisc
