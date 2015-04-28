@@ -425,11 +425,11 @@ if test "x$PETSC_DIR" == "x"; then
 fi
 AC_MSG_NOTICE([Using PETSC_DIR=$PETSC_DIR])
 
-PETSC_LINK_LIBS=`make -s -f petsc_makefile getlinklibs`
+PETSC_LINK_LIBS=`make -s -f petsc_makefile_old getlinklibs 2> /dev/null || make -s -f petsc_makefile getlinklibs`
 LIBS="$PETSC_LINK_LIBS $LIBS"
 
 # need to add -Iinclude/ to what we get from petsc, so we can use our own petsc_legacy.h wrapper
-PETSC_INCLUDE_FLAGS=`make -s -f petsc_makefile getincludedirs`
+PETSC_INCLUDE_FLAGS=`make -s -f petsc_makefile_old getincludedirs 2> /dev/null || make -s -f petsc_makefile getincludedirs`
 CPPFLAGS="$CPPFLAGS $PETSC_INCLUDE_FLAGS -Iinclude/"
 FCFLAGS="$FCFLAGS $PETSC_INCLUDE_FLAGS -Iinclude/"
 
@@ -550,7 +550,7 @@ implicit none
       call MatMult(A,u,b,ierr)
 
       call KSPCreate(PETSC_COMM_WORLD,ksp,ierr)
-      call KSPSetOperators(ksp,A,A,DIFFERENT_NONZERO_PATTERN,ierr)
+      call KSPSetOperators(ksp,A,A,ierr)
       call KSPSetFromOptions(ksp,ierr)
 
       call KSPSolve(ksp,b,x,ierr)
