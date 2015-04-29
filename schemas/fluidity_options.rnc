@@ -2170,9 +2170,9 @@ start =
            ## NearDiscRegionID.
            ## Specify near disc region ID where ADM Correction Term wil be applied.
            element NearDiscRegionID {integer},
-           ## Radius.
-           ## Sepcify the radius of the disc
-           element DiscRadius {real},
+           ## Disc Thickness.
+           ## Sepcify the thickness of the disc
+           element DiscThickness {real},
            ## LeftDiscRegionID.
            ## Specify other disc region ID.
            element LeftDiscRegionID {integer}?,

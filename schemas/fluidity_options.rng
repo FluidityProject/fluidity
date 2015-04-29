@@ -3058,9 +3058,9 @@ Specify disc region ID.</a:documentation>
 Specify near disc region ID where ADM Correction Term wil be applied.</a:documentation>
             <ref name="integer"/>
           </element>
-          <element name="DiscRadius">
-            <a:documentation>Radius.
-Sepcify the radius of the disc</a:documentation>
+          <element name="DiscThickness">
+            <a:documentation>Disc Thickness.
+Sepcify the thickness of the disc</a:documentation>
             <ref name="real"/>
           </element>
           <optional>
