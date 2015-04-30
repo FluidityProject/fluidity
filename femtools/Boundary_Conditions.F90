@@ -34,7 +34,7 @@ use state_module
 use spud
 use global_parameters, only: OPTION_PATH_LEN
 use les_module
-    use smoothing_module
+use smoothing_module
 implicit none
     
   interface add_boundary_condition
