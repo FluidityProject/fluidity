@@ -2901,13 +2901,11 @@ Select to apply ADM correction.</a:documentation>
               <empty/>
             </element>
           </optional>
-          <optional>
-            <element name="u_ref_def">
-              <a:documentation>Prescribed u_ref.
+          <element name="u_ref_def">
+            <a:documentation>Prescribed u_ref.
 Specify u_ref if NOT using ADM correction.</a:documentation>
-              <ref name="real"/>
-            </element>
-          </optional>
+            <ref name="real"/>
+          </element>
           <element name="C_T">
             <a:documentation>C_T.
 Thrust coefficient of the disc(s) (default): 0.0.</a:documentation>
@@ -2943,9 +2941,9 @@ Specify disc region ID.</a:documentation>
 Specify near disc region ID where ADM Correction Term wil be applied.</a:documentation>
             <ref name="integer"/>
           </element>
-          <element name="DiscRadius">
-            <a:documentation>Radius.
-Sepcify the radius of the disc</a:documentation>
+          <element name="DiscThickness">
+            <a:documentation>Disc Thickness.
+Sepcify the thickness of the disc</a:documentation>
             <ref name="real"/>
           </element>
           <optional>

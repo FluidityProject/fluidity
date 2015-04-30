@@ -279,7 +279,7 @@ contains
     !AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA!
     real, dimension(U%dim,3) :: U_intgrl !A! 3 discs hence 3
     real, dimension(3) :: u_disc, u_ref, new_source, intgrl_sum !A! 3 upto discs
-    real :: rho_fluid, a_fact, C_T, disc_radius, disc_area, u_ref_def
+    real :: rho_fluid, a_fact, C_T, disc_thickness, disc_area, u_ref_def
     type(scalar_field) :: Turbine, Turbine_L, Turbine_R
     integer :: ii, region_id_disc, region_id_disc_L, region_id_disc_R
     logical :: ADM_correction
@@ -371,7 +371,7 @@ contains
     !A!call get_option("/material_phase::fluid/subgridscale_parameterisations/k-omega/LeftDiscRegionID", region_id_disc_L, default = 903)
     !A!call get_option("/material_phase::fluid/subgridscale_parameterisations/k-omega/RightDiscRegionID", region_id_disc_R, default = 904)
     call get_option('/ADM/C_T', C_T, default = 0.0)
-    call get_option('/ADM/DiscRadius', disc_radius, default = 0.075)
+    call get_option('/ADM/DiscThickness', disc_thickness, default = 0.0125)
     call get_option('/ADM/DiscRegionID', region_id_disc, default = 901)
     call get_option('/ADM/LeftDiscRegionID', region_id_disc_L, default = 903)
     call get_option('/ADM/RightDiscRegionID', region_id_disc_R, default = 904)
@@ -743,7 +743,7 @@ contains
       !AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA!
       rho_fluid = 1.0
       a_fact = 0.5*(1.0 - sqrt(1.0-C_T))
-      disc_area = 3.14159*disc_radius*disc_radius
+      !A!disc_area = 3.14159*disc_radius*disc_radius
 
       intgrl_sum = (/0.0,0.0,0.0/)
       u_disc = (/0.0,0.0,0.0/)
@@ -785,6 +785,7 @@ contains
         if (ADM_correction) then
           u_ref(ii) = u_disc(ii)/(1.0 - a_fact)
         end if
+        disc_area = intgrl_sum(ii)/disc_thickness
         new_source(ii) = -(0.5*rho_fluid*disc_area*C_T*u_ref(ii)*u_ref(ii))/intgrl_sum(ii)
      end do
 
@@ -801,17 +802,17 @@ contains
 
       print*, 'AminCheck----------------------------------------------'
       print*, 'Disc Volume:', intgrl_sum(1), 'Disc Velocity:', u_disc(1), 'Probe Velocity:', u_ref(1)
-      print*, 'C_T:', C_T, 'Thickness', intgrl_sum(1)/disc_area, 'ADM Source:', new_source(1)
+      print*, 'C_T:', C_T, 'Disc Area', intgrl_sum(1)/disc_thickness, 'ADM Source:', new_source(1)
       print*, '-------------------------------------------------------'
 
       print*, 'AminCheck-LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL'
       print*, 'Disc Volume:', intgrl_sum(2), 'Disc Velocity:', u_disc(2), 'Probe Velocity:', u_ref(2)
-      print*, 'C_T:', C_T, 'Thickness', intgrl_sum(2)/disc_area, 'ADM Source:', new_source(2)
+      print*, 'C_T:', C_T, 'Disc Area', intgrl_sum(2)/disc_thickness, 'ADM Source:', new_source(2)
       print*, '-------------------------------------------------------'
 
       print*, 'AminCheck-RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR'
       print*, 'Disc Volume:', intgrl_sum(3), 'Disc Velocity:', u_disc(3), 'Probe Velocity:', u_ref(3)
-      print*, 'C_T:', C_T, 'Thickness', intgrl_sum(3)/disc_area, 'ADM Source:', new_source(3)
+      print*, 'C_T:', C_T, 'Disc Area', intgrl_sum(3)/disc_thickness, 'ADM Source:', new_source(3)
       print*, '-------------------------------------------------------'
       !AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA!
 
