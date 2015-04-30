@@ -7,8 +7,7 @@ subroutine unifiedmesh(filename1, filename1_len, &
 
   use mpi_interfaces
   use fldebug
-  use read_triangle
-  use write_triangle
+  use mesh_files
   use fields
   use linked_lists
   use intersection_finder_module
@@ -40,8 +39,8 @@ subroutine unifiedmesh(filename1, filename1_len, &
   
   call set_global_debug_level(0)
 
-  positionsA = read_triangle_files(trim(filename1), quad_degree=1)
-  positionsB = read_triangle_files(trim(filename2), quad_degree=1)
+  positionsA = read_mesh_files(trim(filename1), quad_degree=1, format="gmsh")
+  positionsB = read_mesh_files(trim(filename2), quad_degree=1, format="gmsh")
 
   dim = positionsA%dim
 
@@ -79,7 +78,7 @@ subroutine unifiedmesh(filename1, filename1_len, &
 !   call write_triangle_files(trim(output), accum_positions_tmp)
 !   call deallocate(accum_positions_tmp)
 
-  call write_triangle_files(trim(output), accum_positions)
+  call write_mesh_files(trim(output), format="gmsh", positions=accum_positions)
   call vtk_write_fields(trim(output), 0, accum_positions, accum_positions%mesh)
 
   contains

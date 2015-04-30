@@ -34,7 +34,7 @@ from math import pi
 assert abs(tracer_integral_max - 10/pi) &lt; 1.5e-2
     </test>
     <test name="final tracer integral is 0" language="python">
-assert abs(tracer_integral_final) &lt; 5e-3
+assert abs(tracer_integral_final) &lt; 1.5e-2
     </test>
   </pass_tests>
   <warn_tests>

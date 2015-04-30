@@ -122,7 +122,7 @@ module momentum_DG
   logical :: have_mass
   logical :: have_source
   logical :: have_gravity
-  logical :: on_sphere
+  logical :: on_sphere, radial_gravity
   logical :: have_absorption
   logical :: have_vertical_stabilization
   logical :: have_implicit_buoyancy
@@ -425,7 +425,6 @@ contains
       call incref(buoyancy)
       gravity=extract_vector_field(state, "GravityDirection", stat)
       call incref(gravity)
-
     else
       call allocate(buoyancy, u%mesh, "VelocityBuoyancyDensity", FIELD_TYPE_CONSTANT)
       call zero(buoyancy)
@@ -433,6 +432,9 @@ contains
       call zero(gravity)
     end if
     ewrite_minmax(buoyancy)
+
+    radial_gravity = have_option(trim(u%option_path)//"/prognostic/spatial_discretisation/discontinuous_galerkin"//&
+       &"/buoyancy/radial_gravity_direction_at_gauss_points")
 
     ! Splits up the Density and Pressure fields into a hydrostatic component (') and a perturbed component (''). 
     ! The hydrostatic components, denoted p' and rho', should satisfy the balance: grad(p') = rho'*g
@@ -738,7 +740,6 @@ contains
     end if
 #ifdef _OPENMP
     cache_valid = prepopulate_transform_cache(X)
-    assert(cache_valid)
     if (have_coriolis) then
        call set_coriolis_parameters
     end if
@@ -763,7 +764,7 @@ contains
             & P, old_pressure, Rho, surfacetension, q_mesh, &
             & velocity_bc, velocity_bc_type, &
             & pressure_bc, pressure_bc_type, &
-            & turbine_conn_mesh, on_sphere, depth, have_wd_abs, &
+            & turbine_conn_mesh, depth, have_wd_abs, &
             & alpha_u_field, Abs_wd, vvr_sf, ib_min_grad, nvfrac, &
             & inverse_mass=inverse_mass, &
             & inverse_masslump=inverse_masslump, &
@@ -831,7 +832,7 @@ contains
        &Viscosity, swe_bottom_drag, swe_u_nl, P, old_pressure, Rho, surfacetension, q_mesh, &
        &velocity_bc, velocity_bc_type, &
        &pressure_bc, pressure_bc_type, &
-       &turbine_conn_mesh, on_sphere, depth, have_wd_abs, alpha_u_field, Abs_wd, &
+       &turbine_conn_mesh, depth, have_wd_abs, alpha_u_field, Abs_wd, &
        &vvr_sf, ib_min_grad, nvfrac, &
        &inverse_mass, inverse_masslump, mass, subcycle_m, partial_stress, &
        &have_les, smagorinsky_coefficient, eddy_visc, prescribed_filter_width, distance_to_wall, &
@@ -982,9 +983,6 @@ contains
     ! In parallel, we assemble terms on elements we own, and those in
     ! the L1 element halo
     logical :: assemble_element
-
-    ! If on the sphere evaluate gravity direction at the gauss points
-    logical :: on_sphere
 
     ! Absorption matrices
     real, dimension(u%dim, ele_ngi(u, ele)) :: absorption_gi
@@ -1380,11 +1378,11 @@ contains
          coefficient_detwei = detwei*gravity_magnitude*ele_val_at_quad(buoyancy, ele)
       end if
 
-      if (on_sphere) then
-      ! If were on a spherical Earth evaluate the direction of the gravity vector
+      if (radial_gravity) then
+      ! If we're using a radial gravity, evaluate the direction of the gravity vector
       ! exactly at quadrature points.
         rhs_addto(:, :loc) = rhs_addto(:, :loc) + shape_vector_rhs(u_shape, &
-                                    sphere_inward_normal_at_quad_ele(X, ele), &
+                                    radial_inward_normal_at_quad_ele(X, ele), &
                                     coefficient_detwei)
       else
       
@@ -1444,7 +1442,7 @@ contains
 
         ! Calculate the gradient in the direction of gravity
         if (on_sphere) then
-          grav_at_quads=sphere_inward_normal_at_quad_ele(X, ele)
+          grav_at_quads=radial_inward_normal_at_quad_ele(X, ele)
         else
           grav_at_quads=ele_val_at_quad(gravity, ele)
         end if

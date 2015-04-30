@@ -32,7 +32,7 @@ subroutine test_surface_integrals_3d
   
   use fields
   use fields_data_types
-  use read_triangle
+  use mesh_files
   use surface_integrals
   use unittest_tools
   
@@ -44,7 +44,7 @@ subroutine test_surface_integrals_3d
   type(scalar_field) :: test_s_field
   type(vector_field) :: mesh_field, test_v_field
   
-  mesh_field = read_triangle_files("data/square-cavity", quad_degree = 4)
+  mesh_field = read_mesh_files("data/square-cavity", quad_degree = 4, format="gmsh")
   assert(mesh_dim(mesh_field) == 3)
   
   call allocate(test_s_field, mesh_field%mesh, "TestScalar")

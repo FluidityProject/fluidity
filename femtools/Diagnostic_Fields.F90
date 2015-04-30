@@ -441,8 +441,7 @@ contains
        ele_CFL=>ele_nodes(CFL, ele)
        CFL_shape=>ele_shape(CFL, ele)
 
-       call compute_inverse_jacobian(ele_val(X,ele), ele_shape(X,ele), &
-            detwei=detwei, invJ=invJ)
+       call compute_inverse_jacobian(X, ele, detwei=detwei, invJ=invJ)
 
        ! Calculate the CFL number at each quadrature point.
        ! The matmul is the transpose of what I originally thought it should
@@ -527,8 +526,7 @@ contains
        ele_GRN=>ele_nodes(GRN, ele)
        GRN_shape=>ele_shape(GRN, ele)
 
-       call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), &
-            J=J, detwei=detwei)
+       call compute_jacobian(X, ele, J=J, detwei=detwei)
 
        ! Calculate the GRN number at each quadrature point.
        ! The matmul is as given by dham
@@ -616,8 +614,7 @@ contains
            ele_GPN=>ele_nodes(GPN, ele)
            GPN_shape=>ele_shape(GPN, ele)
 
-           call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), &
-            J=J, detwei=detwei)
+           call compute_jacobian(X, ele, J=J, detwei=detwei)
 
            ! Calculate the GPN number at each quadrature point.
            ! The matmul is as given by dham
@@ -2393,8 +2390,7 @@ contains
          ele_CFL=>ele_nodes(s_field, ele)
          CFL_shape=>ele_shape(s_field, ele)
 
-         call compute_inverse_jacobian(ele_val(X,ele), ele_shape(X,ele), &
-                                       detwei=detwei, invJ=invJ)
+         call compute_inverse_jacobian(X, ele, detwei=detwei, invJ=invJ)
 
          ! Calculate the CFL number at each quadrature point.
          ! The matmul is the transpose of what I originally thought it should
@@ -3228,10 +3224,7 @@ contains
      real, intent(in) :: density
 
      integer :: i, j, i_gi, ele, dim
-     type(element_type) :: augmented_shape
      type(element_type), pointer :: f_shape, shape, X_f_shape, X_shape
-     real, dimension(X%dim, X%dim, ele_ngi(X, face_ele(X, face))) :: invJ
-     real, dimension(X%dim, X%dim, face_ngi(X, face)) :: f_invJ  
      real, dimension(face_ngi(X, face)) :: detwei
      real, dimension(X%dim, face_ngi(X, face)) :: normal, normal_shear_at_quad, X_ele
      real, dimension(X%dim) :: abs_normal
@@ -3247,30 +3240,9 @@ contains
      f_shape => face_shape(U, face)     
      shape   => ele_shape(U, ele)     
      
-     ! generate shape functions that include quadrature points on the face required
-     ! check that the shape does not already have these first
-     assert(shape%degree == 1)
-     if(associated(shape%dn_s)) then
-        augmented_shape = shape
-        call incref(augmented_shape)
-     else
-        augmented_shape = make_element_shape(shape%loc, shape%dim, shape%degree, &
-             & shape%quadrature, quad_s = f_shape%quadrature)
-     end if
+     call transform_facet_to_physical(X, face, shape, ele_dshape_at_face_quad, &
+                                      detwei_f = detwei, normal = normal)
     
-     ! assumes that the jacobian is the same for all quadrature points
-     ! this is not valid for spheres!
-     call compute_inverse_jacobian(ele_val(X, ele), ele_shape(X, ele), invj = invJ)
-     assert(ele_numbering_family(shape) == FAMILY_SIMPLEX)
-     f_invJ = spread(invJ(:, :, 1), 3, size(f_invJ, 3))
-      
-     call transform_facet_to_physical(X, face, detwei_f = detwei, normal = normal)
-    
-     ! Evaluate the volume element shape function derivatives at the surface
-     ! element quadrature points
-     ele_dshape_at_face_quad = eval_volume_dshape_at_face_quad(augmented_shape, &
-          & local_face_number(X, face), f_invJ)
-
      ! Calculate grad U at the surface element quadrature points 
      do i=1, dim
         do j=1, dim
@@ -3306,8 +3278,6 @@ contains
      ! add to bed_shear_stress field
      call addto(bed_shear_stress, face_global_nodes(bed_shear_stress,face), normal_shear_at_loc)
 
-     call deallocate(augmented_shape)
-          
    end subroutine calculate_bed_shear_stress_ele_cg
 
    subroutine calculate_bed_shear_stress_ele_dg(bss, ele, X, grad_U, visc, density)

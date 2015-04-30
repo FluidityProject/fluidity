@@ -1,7 +1,7 @@
 subroutine test_get_jacobian_azz_3d
 
   use fields
-  use read_triangle
+  use mesh_files
   use anisotropic_zz_module
   use vector_tools
   use metric_tools
@@ -21,7 +21,7 @@ subroutine test_get_jacobian_azz_3d
   real, dimension(3) :: t_k
   integer :: i
 
-  positions = read_triangle_files("data/tet", 4)
+  positions = read_mesh_files("data/tet", quad_degree=4, format="gmsh")
   old_pos = ele_val(positions, 1)
   j_k = get_jacobian_azz(positions, 1)
   invj_k = inverse(j_k)

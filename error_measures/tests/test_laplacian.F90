@@ -1,6 +1,6 @@
 subroutine test_laplacian
   use quadrature
-  use read_triangle
+  use mesh_files
   use fields
   use FEtools
   use elements
@@ -66,7 +66,7 @@ subroutine test_laplacian
 
   do mesh=1,meshes
     write(buf, '(i0)') mesh
-    positions=read_triangle_files(trim(trim(filename) // "." // trim(buf)), quad_degree)
+    positions=read_mesh_files(trim(trim(filename) // "." // trim(buf)), quad_degree=quad_degree, format="gmsh")
     call insert(state(mesh), positions, "Coordinate")
     call deallocate(positions)
 
