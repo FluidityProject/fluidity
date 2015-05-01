@@ -268,6 +268,7 @@ contains
       ! Germano's exact SGS closure or the LANS-alpha model.
       ! Otherwise just 2nd-order term (Clark or Gradient Model).
       call get_option(trim(lpath)//"/HOT", HOT)
+      ewrite(2,*) "HOT: ", trim(HOT)
 
       ! Explicit or implicit filter
       explicit_filter = have_option(trim(lpath)//"/explicit_filter")
@@ -278,7 +279,6 @@ contains
     ewrite(2,*) "filter factor gamma: ", gamma
     ewrite(2,*) "explicit filter: ", explicit_filter
     ewrite(2,*) "filter width type: ", trim(length_scale_type)
-    ewrite(2,*) "HOT: ", trim(HOT)
 
     if(explicit_filter) then
       if(length_scale_type=="scalar") then
@@ -313,39 +313,29 @@ contains
 
     ! Velocity products (ui*uj)
     allocate(tfield)
-    !allocate(tui_tuj)
     call allocate(tfield, nu%mesh, "TensorField")
-    !call allocate(tui_tuj, nu%mesh, "TestNonlinearVelocityProduct")
     call zero(tfield)
-    !call zero(tui_tuj)
-
-    ! Other local variables
-    allocate(u_loc(nu%dim)); allocate(t_loc(nu%dim, nu%dim))
-    u_loc=0.0; t_loc=0.0
-
-    ! Get cross products of velocities
-    do i=1, node_count(nu)
-      u_loc = node_val(fnu,i)
-      t_loc = outer_product(u_loc, u_loc)
-      call set( tfield, i, t_loc )
-      !u_loc = node_val(tnu,i)
-      ! Calculate (test-filtered velocity) products: (ui^ft*uj^ft)
-      !t_loc = outer_product(u_loc, u_loc)
-      !call set( tui_tuj, i, t_loc )
-    end do
-
-    ! Calculate test-filtered (velocity products): (ui^f*uj^f)^t
-    if(length_scale_type=="scalar") then
-      call smooth_tensor(tfield, positions, leonard, alpha*gamma, lpath)
-    else if(length_scale_type=="tensor") then
-      !call anisotropic_smooth_tensor(tfield, positions, leonard, alpha*gamma, lpath)
-      call smooth_tensor(tfield, positions, leonard, alpha*gamma, lpath)
-    end if
-
-    ! Leonard tensor field
-    !call addto( leonard, tui_tuj, -1.0 )
 
     if(dynamic_les) then
+
+      ! Other local variables
+      allocate(u_loc(nu%dim)); allocate(t_loc(nu%dim, nu%dim))
+      u_loc=0.0; t_loc=0.0
+
+      ! Get cross products of velocities
+      do i=1, node_count(nu)
+        u_loc = node_val(fnu,i)
+        t_loc = outer_product(u_loc, u_loc)
+        call set( tfield, i, t_loc )
+      end do
+
+      ! Calculate test-filtered (velocity products): (ui^f*uj^f)^t
+      if(length_scale_type=="scalar") then
+        call smooth_tensor(tfield, positions, leonard, alpha*gamma, lpath)
+      else if(length_scale_type=="tensor") then
+        !call anisotropic_smooth_tensor(tfield, positions, leonard, alpha*gamma, lpath)
+        call smooth_tensor(tfield, positions, leonard, alpha*gamma, lpath)
+      end if
 
       ! Zero tensor field for reuse in strain product assembly
       call zero(tfield)
@@ -456,9 +446,7 @@ contains
     ! Deallocates
     deallocate(u_loc, t_loc)
     call deallocate(tfield)
-    !call deallocate(tui_tuj)
     deallocate(tfield)
-    !deallocate(tui_tuj)
 
   end subroutine compute_les_local_fields
 
