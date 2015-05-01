@@ -11,7 +11,7 @@ import StringIO
 
 # File header
 header="""
-subroutine check_options
+subroutine check_options(stat)
 
 """
 footer="""
@@ -42,6 +42,7 @@ fortran_files=glob.glob("*/*.F")+glob.glob("*/*.F90")
 module_re=re.compile(r"^\s*module\s+(\w+)\s*$",re.IGNORECASE|re.MULTILINE)
 
 module_list=[]
+module_arg_list=[]
 
 for filename in fortran_files:
 
@@ -51,9 +52,15 @@ for filename in fortran_files:
 
     for module in modules:
 
-        if re.search(r"^\s*subroutine\s+"+module+"_check_options\s*$",\
+        if re.search(r"^\s*subroutine\s+"+module+"_check_options\S*\s*$",\
                          fortran,\
                          re.IGNORECASE|re.MULTILINE):
+            if re.search(r"^\s*subroutine\s+"+module+"_check_options\S*stat\S*\s*$",\
+                         fortran,\
+                         re.IGNORECASE|re.MULTILINE):
+                module_arg_list.append('stat')
+            else:
+                module_arg_list.append('')
             module_list.append(module)
 
 for module in module_list:
@@ -62,12 +69,16 @@ for module in module_list:
 
 # Ensure that the subroutine is legal in the trivial case.
 output.write("""
+
+
+   integer, optional :: stat
+
    continue
    """)
 
-for module in module_list:
+for module,arg in zip(module_list,module_arg_list):
 
-    output.write("  call "+module+"_check_options\n")
+    output.write("  call "+module+"_check_options(%s)\n"%arg)
 
 output.write(footer)
 

@@ -3170,9 +3170,12 @@ contains
 
   end subroutine compute_domain_statistics
   
-  subroutine populate_state_module_check_options
+  subroutine populate_state_module_check_options(stat)
 
     character(len=OPTION_PATH_LEN) :: problem_type
+    integer, intent(out), optional :: stat
+
+    if (present(stat)) stat=0
 
     ! Check mesh options
     call check_mesh_options
@@ -3180,7 +3183,7 @@ contains
     call check_geometry_options
 
     ! check problem specific options:
-    call get_option("/problem_type", problem_type)
+    call get_option("/problem_type", problem_type, default='none')
     select case (problem_type)
     case ("fluids")
     case ("oceans")
@@ -3196,8 +3199,12 @@ contains
     case ("multiphase")
        call check_multiphase_options
     case default
-       ewrite(0,*) "Problem type:", trim(problem_type)
-       FLAbort("Error unknown problem_type")
+       if (present(stat)) then
+          stat=1
+       else
+          ewrite(0,*) "Problem type:", trim(problem_type)
+          FLAbort("Error unknown problem_type")
+       end if
     end select
     ewrite(2,*) 'Done with problem type choice'
 

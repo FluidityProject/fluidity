@@ -59,7 +59,7 @@ module coriolis_module
      
   private
   
-  public :: coriolis, funome, set_coriolis_parameters
+  public :: coriolis, funome, set_coriolis_parameters, coriolis_module_check_options
 
   contains
 

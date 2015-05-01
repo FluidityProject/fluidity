@@ -59,7 +59,8 @@ subroutine flredecomp(input_basename, input_basename_len, output_basename, outpu
   integer(kind=c_int), value :: target_nprocs
   
   interface
-    subroutine check_options()
+    subroutine check_options(stat)
+      integer :: stat
     end subroutine check_options
 
 #ifdef HAVE_PYTHON
@@ -79,6 +80,9 @@ subroutine flredecomp(input_basename, input_basename_len, output_basename, outpu
   real(zoltan_float) :: ver
   integer(zoltan_int) :: ierr
 
+  character (len=20) :: input_file_type, output_file_type
+  integer :: input_name_length, output_name_length, stat
+
   ierr = Zoltan_Initialize(ver)  
   assert(ierr == ZOLTAN_OK)
 #endif
@@ -97,6 +101,22 @@ subroutine flredecomp(input_basename, input_basename_len, output_basename, outpu
   do i=1, output_basename_len
     output_base(i:i)=output_basename(i)
   end do
+
+  input_name_length=scan(input_base,'.',back=.true.)
+  output_name_length=scan(output_base,'.',back=.true.)
+
+  if (input_name_length>0) then
+     input_file_type=trim(input_base(input_name_length:))
+     input_base(input_name_length:)=''
+  else
+     input_file_type='.flml'
+  end if
+  if (output_name_length>0) then
+     output_file_type=trim(output_base(output_name_length:))
+     output_base(output_name_length:)=''
+  else
+     output_file_type=input_file_type
+  end if
   
   ewrite(2, "(a)") "Input base name: " // trim(input_base)
   ewrite(2, "(a)") "Output base name: " // trim(output_base)
@@ -118,7 +138,7 @@ subroutine flredecomp(input_basename, input_basename_len, output_basename, outpu
   end if
   
   ! Load the options tree
-  call load_options(trim(input_base) // ".flml")
+  call load_options(trim(input_base) // trim(input_file_type))
   if(.not. have_option("/simulation_name")) then
     FLExit("Failed to find simulation name after loading options file")
   end if
@@ -130,7 +150,10 @@ subroutine flredecomp(input_basename, input_basename_len, output_basename, outpu
 
 #ifdef DDEBUG
   ewrite(1, *) "Performing options sanity check"
-  call check_options()
+  call check_options(stat)
+  if (stat /= 0 .and. trim(input_file_type)== '.flml') then
+     FLAbort("Error unknown problem_type")
+  end if
   ewrite(1, *) "Options sanity check successful"
 #endif
 
@@ -183,7 +206,8 @@ subroutine flredecomp(input_basename, input_basename_len, output_basename, outpu
   ! Output
   assert(associated(state))
   call checkpoint_simulation(state, prefix = output_base, postfix = "", protect_simulation_name = .false., &
-    keep_initial_data=.true., ignore_detectors=.true., number_of_partitions=target_nprocs)
+    keep_initial_data=.true., ignore_detectors=.true.,&
+    number_of_partitions=target_nprocs,file_type=trim(output_file_type))
 
   do i = 1, size(state)
     call deallocate(state(i))
