@@ -3,7 +3,7 @@ subroutine test_intersection_finder_periodic
   use intersection_finder_module
   use fields
   use linked_lists
-  use read_triangle
+  use mesh_files
   use unittest_tools
   implicit none
 
@@ -14,8 +14,8 @@ subroutine test_intersection_finder_periodic
   ! A has one element
   ! B has two disconnected elements
 
-  posA = read_triangle_files("data/intersection_finder_periodic_A", quad_degree=4)
-  posB = read_triangle_files("data/intersection_finder_periodic_B", quad_degree=4)
+  posA = read_mesh_files("data/intersection_finder_periodic_A", quad_degree=4, format="gmsh")
+  posB = read_mesh_files("data/intersection_finder_periodic_B", quad_degree=4, format="gmsh")
 
   map_AB = intersection_finder(posA, posB)
 

@@ -28,7 +28,7 @@
 subroutine test_length_scale_scalar
 
    use unittest_tools
-   use read_triangle
+   use mesh_files
    use fields
    use smoothing_module
    implicit none
@@ -37,7 +37,7 @@ subroutine test_length_scale_scalar
    real :: expected_result, computed_result
    logical :: fail
    
-   positions = read_triangle_files("data/structured", quad_degree=3)
+   positions = read_mesh_files("data/structured", quad_degree=3, format="gmsh")
    
    ! We'll just choose the first element here - each of them should have the same area
    computed_result = length_scale_scalar(positions, 1)

@@ -44,24 +44,17 @@
     use iso_c_binding
     use mangle_options_tree
     use hybridized_helmholtz
-    implicit none
-#ifdef HAVE_PETSC
-#include "finclude/petsc.h"
+#ifdef HAVE_PETSC_MODULES
+  use petsc
 #endif
+  implicit none
+#include "petsc_legacy.h"
 
     ! Interface blocks for the initialisation routines we need to call
     interface
        subroutine set_global_debug_level(n)
          integer, intent(in) :: n
        end subroutine set_global_debug_level
-
-       subroutine mpi_init(ierr)
-         integer, intent(out) :: ierr
-       end subroutine mpi_init
-
-       subroutine mpi_finalize(ierr)
-         integer, intent(out) :: ierr
-       end subroutine mpi_finalize
 
        subroutine python_init
        end subroutine python_init
@@ -235,8 +228,7 @@
       real, dimension(ele_ngi(D,ele)) :: D_gi,D_exact_gi,D_exact_D_mesh_gi,&
            &detwei
 
-      call compute_jacobian(ele_val(X,ele),ele_shape(X,ele), J=J, &
-           detwei=detwei)
+      call compute_jacobian(X, ele, J=J, detwei=detwei)
       d_gi = ele_val_at_quad(D,ele)
       d_exact_gi = ele_val_at_quad(D_exact,ele)
       d_exact_d_mesh_gi = ele_val_at_quad(D_exact_D_mesh,ele)
@@ -258,8 +250,7 @@
       real, dimension(U%dim, ele_ngi(X,ele)) :: U_quad, U_rhs_quad
       integer :: dim1
 
-      call compute_jacobian(ele_val(X,ele),ele_shape(X,ele), J=J, &
-           detwei=detwei)
+      call compute_jacobian(X, ele, J=J, detwei=detwei)
       u_quad = ele_val_at_quad(U,ele)
       u_rhs_quad = ele_val_at_quad(U_rhs,ele)
 

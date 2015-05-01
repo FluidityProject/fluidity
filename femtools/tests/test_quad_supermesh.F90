@@ -4,7 +4,7 @@
 subroutine test_quad_supermesh
 
   use unittest_tools
-  use read_triangle
+  use mesh_files
   use fields
   use linked_lists
   use intersection_finder_module
@@ -27,8 +27,8 @@ subroutine test_quad_supermesh
   integer :: dim
   integer :: dump_idx
 
-  positionsA = read_triangle_files("data/dg_interpolation_quads_A", quad_degree=1)
-  positionsB = read_triangle_files("data/dg_interpolation_quads_B", quad_degree=1)
+  positionsA = read_mesh_files("data/dg_interpolation_quads_A", quad_degree=1, format="gmsh")
+  positionsB = read_mesh_files("data/dg_interpolation_quads_B", quad_degree=1, format="gmsh")
 
   dim = positionsA%dim
 

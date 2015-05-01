@@ -33,7 +33,7 @@
   use colouring
   use sparsity_patterns
   use unittest_tools
-  use read_triangle
+  use mesh_files
   implicit none
 
   type(vector_field) :: positions
@@ -44,7 +44,7 @@
   type(scalar_field) :: node_colour
   integer :: no_colours
 
-  positions = read_triangle_files('data/square-cavity-2d', quad_degree=4)
+  positions = read_mesh_files('data/square-cavity-2d', quad_degree=4, format="gmsh")
   mesh = piecewise_constant_mesh(positions%mesh, "P0Mesh")   
   sparsity = make_sparsity_compactdgdouble(mesh, "cdG Sparsity")
 

@@ -48,9 +48,9 @@ extern "C"{
 
 void usage(){
   cerr<<"usage:\n"
-      <<"unifiedmesh <triangle-file-1> <triangle-file-2> <output-file-name>\n"
+      <<"unifiedmesh <mesh-file-1> <mesh-file-2> <output-file-name>\n"
       <<"Dumps the supermesh constructed from the two input meshes\n"
-      <<"to discontinuous triangle mesh files and a vtu file,\n"
+      <<"to discontinuous gmsh mesh files and a vtu file,\n"
       <<"both called output-file-name.\n"
       <<"All file names should not have extensions."<<endl;
 }
@@ -67,11 +67,11 @@ int main(int argc, char** argv){
     return -1;
   }
 
-  int triangle_file_1_len=strlen(argv[1]);
-  int triangle_file_2_len=strlen(argv[2]);
+  int mesh_file_1_len=strlen(argv[1]);
+  int mesh_file_2_len=strlen(argv[2]);
   int output_file_name_len=strlen(argv[3]);
-  unifiedmesh_(argv[1], &triangle_file_1_len,
-              argv[2], &triangle_file_2_len,
+  unifiedmesh_(argv[1], &mesh_file_1_len,
+              argv[2], &mesh_file_2_len,
               argv[3], &output_file_name_len);
 
 #ifdef HAVE_MPI

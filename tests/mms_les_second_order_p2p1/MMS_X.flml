@@ -225,6 +225,7 @@
                 </tensor_field>
               </second_order>
             </les_model>
+            <buoyancy/>
           </continuous_galerkin>
           <conservative_advection>
             <real_value rank="0">0.0</real_value>

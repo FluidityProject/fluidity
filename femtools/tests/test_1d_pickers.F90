@@ -32,15 +32,15 @@ subroutine test_1d_pickers
   use fields
   use fldebug
   use pickers
-  use read_triangle
+  use mesh_files
   use unittest_tools
   
   implicit none
   
   integer :: ele
   type(vector_field) :: positions
-  
-  positions = read_triangle_files("data/interval", quad_degree = 1)
+
+  positions = read_mesh_files("data/interval", quad_degree = 1, format="gmsh")
 
   call report_test("[Picker pointer allocated]", .not. associated(positions%picker), .false., "Picker pointer not allocated")
   call report_test("[No picker attached]", associated(positions%picker%ptr), .false., "Picker already attached")

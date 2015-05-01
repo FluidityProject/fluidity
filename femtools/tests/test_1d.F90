@@ -30,7 +30,7 @@ subroutine test_1d
   use shape_functions
   use fetools
   use fields
-  use read_triangle
+  use mesh_files
   use vector_tools
   use unittest_tools
   implicit none
@@ -54,7 +54,7 @@ subroutine test_1d
   real, dimension(:,:,:), allocatable :: dT_ele
   type(element_type), pointer :: T_shape
 
-  X=read_triangle_files("data/interval", quad_degree=4)
+  X=read_mesh_files("data/interval", quad_degree=4, format="gmsh")
 
   call allocate(T, X%mesh, "tracer")
 
