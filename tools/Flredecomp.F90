@@ -138,7 +138,7 @@ subroutine flredecomp(input_basename, input_basename_len, output_basename, outpu
   end if
   
   ! Load the options tree
-  call load_options(trim(input_base) // trim(input_file_type))F
+  call load_options(trim(input_base) // trim(input_file_type))
   ! Ignore this error if we're not processing fluidity schema 
   if(.not. have_option("/simulation_name") .and. trim(input_file_type) == "flml") then
     FLExit("Failed to find simulation name after loading options file")
