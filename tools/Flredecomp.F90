@@ -118,8 +118,8 @@ subroutine flredecomp(input_basename, input_basename_len, output_basename, outpu
      output_file_type=input_file_type
   end if
   
-  ewrite(2, "(a)") "Input base name: " // trim(input_base)
-  ewrite(2, "(a)") "Output base name: " // trim(output_base)
+  ewrite(2, "(a)") "Input base name: " // trim(input_base), " type " // trim(input_file_type)
+  ewrite(2, "(a)") "Output base name: " // trim(output_base), " type " // trim(input_file_type)
   ewrite(2, "(a,i0)") "Input number of processes: ", input_nprocs
   ewrite(2, "(a,i0)") "Target number of processes: ", target_nprocs
   ewrite(2, "(a,i0)") "Job number of processes: ", nprocs
@@ -138,8 +138,9 @@ subroutine flredecomp(input_basename, input_basename_len, output_basename, outpu
   end if
   
   ! Load the options tree
-  call load_options(trim(input_base) // trim(input_file_type))
-  if(.not. have_option("/simulation_name")) then
+  call load_options(trim(input_base) // trim(input_file_type))F
+  ! Ignore this error if we're not processing fluidity schema 
+  if(.not. have_option("/simulation_name") .and. trim(input_file_type) == "flml") then
     FLExit("Failed to find simulation name after loading options file")
   end if
 
@@ -170,6 +171,9 @@ subroutine flredecomp(input_basename, input_basename_len, output_basename, outpu
   
   ! Find out how many states there are
   nstates=option_count("/material_phase")
+  ! If we're not processing fluidity schema, then we may not have states
+  ! in the same fashion as fluidity
+  if (nstates == 0 .and. .not. trim(input_file_type) == "flml") nstates = 1
   allocate(state(1:nstates))
   do i = 1, nstates
      call nullify(state(i))
