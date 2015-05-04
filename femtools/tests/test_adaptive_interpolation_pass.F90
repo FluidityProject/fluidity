@@ -3,7 +3,7 @@ subroutine test_adaptive_interpolation_pass
   use quadrature
   use fields
   use adaptive_interpolation_module
-  use read_triangle
+  use mesh_files
   use unittest_tools
   implicit none
 
@@ -22,8 +22,8 @@ subroutine test_adaptive_interpolation_pass
     end function
   end interface
 
-  positionsA = read_triangle_files("data/pslgA", quad_degree=2*max_ai_degree, no_faces=.true., quad_family=FAMILY_GM)
-  positionsB = read_triangle_files("data/pslgA", quad_degree=2*max_ai_degree, no_faces=.true., quad_family=FAMILY_GM)
+  positionsA = read_mesh_files("data/pslgA", quad_degree=2*max_ai_degree, quad_family=FAMILY_GM, format="gmsh")
+  positionsB = read_mesh_files("data/pslgA", quad_degree=2*max_ai_degree, quad_family=FAMILY_GM, format="gmsh")
 
   call allocate(in_field, positionsA%mesh, "InField")
   call set_from_function(in_field, field_func, positionsA)

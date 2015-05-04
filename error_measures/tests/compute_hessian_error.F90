@@ -2,7 +2,7 @@
 
 subroutine compute_hessian_error
 
-  use read_triangle
+  use mesh_files
   use field_derivatives
   use fields
   use matrix_norms
@@ -37,7 +37,7 @@ subroutine compute_hessian_error
 
 !  quad = make_quadrature(vertices = DIMENSION+1, dim =DIMENSION, degree=8)
 !  x_shape = make_element_shape(vertices = DIMENSION+1, dim =DIMENSION, degree=1, quad=quad)
-!  positions = read_triangle_files("data/square.1", x_shape)
+!  positions = read_mesh_files("data/square.1", x_shape, format="gmsh")
 
   pseudo2d_coord = 3
 

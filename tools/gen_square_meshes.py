@@ -16,7 +16,7 @@ import fluidity.diagnostics.elements as elements
 import fluidity.diagnostics.filehandling as filehandling
 import fluidity.diagnostics.meshes as meshes
 import fluidity.diagnostics.polytools as polytools
-import fluidity.diagnostics.triangletools as triangletools
+import fluidity.diagnostics.gmshtools as gmshtools
 
 def Help():
   debug.dprint("Usage: gen_square_meshes [OPTIONS] ... NODES MESHES\n" + \
@@ -71,6 +71,6 @@ for i in range(meshCount):
   polyFilename = os.path.join(tempDir, str(i) + ".poly")
   polytools.WritePoly(mesh, polyFilename)
   mesh = polytools.TriangulatePoly(polyFilename, commandLineSwitches = ["-YY"])
-  triangletools.WriteTriangle(mesh, str(i))
+  gmshtools.WriteMsh(mesh, str(i))
   
 filehandling.Rmdir(tempDir, force = True)

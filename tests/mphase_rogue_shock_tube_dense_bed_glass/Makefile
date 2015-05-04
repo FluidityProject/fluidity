@@ -1,7 +1,6 @@
 preprocess:
 	@echo **********Creating 2D mesh
 	gmsh -2 -o mphase_rogue_shock_tube_dense_bed_glass.msh src/mphase_rogue_shock_tube_dense_bed_glass.geo
-	../../bin/gmsh2triangle --2d mphase_rogue_shock_tube_dense_bed_glass.msh
 
 run:
 	@echo **********Running simulation

@@ -1,0 +1,1088 @@
+<?xml version='1.0' encoding='utf-8'?>
+<fluidity_options>
+  <simulation_name>
+    <string_value lines="1">analytic</string_value>
+  </simulation_name>
+  <problem_type>
+    <string_value lines="1">fluids</string_value>
+  </problem_type>
+  <geometry>
+    <dimension>
+      <integer_value rank="0">3</integer_value>
+    </dimension>
+    <mesh name="CoordinateMesh">
+      <from_mesh>
+        <mesh name="InputMesh"/>
+        <extrude>
+          <regions name="25">
+            <region_ids>
+              <integer_value shape="1" rank="1">25</integer_value>
+            </region_ids>
+            <bottom_depth>
+              <constant>
+                <real_value rank="0">1.5</real_value>
+              </constant>
+            </bottom_depth>
+            <sizing_function>
+              <constant>
+                <real_value rank="0">2</real_value>
+              </constant>
+            </sizing_function>
+            <top_surface_id>
+              <integer_value rank="0">25</integer_value>
+            </top_surface_id>
+            <bottom_surface_id>
+              <integer_value rank="0">1</integer_value>
+            </bottom_surface_id>
+          </regions>
+          <regions name="26">
+            <region_ids>
+              <integer_value shape="1" rank="1">26</integer_value>
+            </region_ids>
+            <bottom_depth>
+              <constant>
+                <real_value rank="0">1.5</real_value>
+              </constant>
+            </bottom_depth>
+            <sizing_function>
+              <constant>
+                <real_value rank="0">2</real_value>
+              </constant>
+            </sizing_function>
+            <top_surface_id>
+              <integer_value rank="0">26</integer_value>
+            </top_surface_id>
+            <bottom_surface_id>
+              <integer_value rank="0">2</integer_value>
+            </bottom_surface_id>
+          </regions>
+          <regions name="27">
+            <region_ids>
+              <integer_value shape="1" rank="1">27</integer_value>
+            </region_ids>
+            <bottom_depth>
+              <constant>
+                <real_value rank="0">1.5</real_value>
+              </constant>
+            </bottom_depth>
+            <sizing_function>
+              <constant>
+                <real_value rank="0">2</real_value>
+              </constant>
+            </sizing_function>
+            <top_surface_id>
+              <integer_value rank="0">27</integer_value>
+            </top_surface_id>
+            <bottom_surface_id>
+              <integer_value rank="0">3</integer_value>
+            </bottom_surface_id>
+          </regions>
+          <regions name="28">
+            <region_ids>
+              <integer_value shape="1" rank="1">28</integer_value>
+            </region_ids>
+            <bottom_depth>
+              <constant>
+                <real_value rank="0">1.5</real_value>
+              </constant>
+            </bottom_depth>
+            <sizing_function>
+              <constant>
+                <real_value rank="0">2</real_value>
+              </constant>
+            </sizing_function>
+            <top_surface_id>
+              <integer_value rank="0">28</integer_value>
+            </top_surface_id>
+            <bottom_surface_id>
+              <integer_value rank="0">4</integer_value>
+            </bottom_surface_id>
+          </regions>
+          <regions name="29">
+            <region_ids>
+              <integer_value shape="1" rank="1">29</integer_value>
+            </region_ids>
+            <bottom_depth>
+              <constant>
+                <real_value rank="0">1.5</real_value>
+              </constant>
+            </bottom_depth>
+            <sizing_function>
+              <constant>
+                <real_value rank="0">2</real_value>
+              </constant>
+            </sizing_function>
+            <top_surface_id>
+              <integer_value rank="0">29</integer_value>
+            </top_surface_id>
+            <bottom_surface_id>
+              <integer_value rank="0">5</integer_value>
+            </bottom_surface_id>
+          </regions>
+          <regions name="30">
+            <region_ids>
+              <integer_value shape="1" rank="1">30</integer_value>
+            </region_ids>
+            <bottom_depth>
+              <constant>
+                <real_value rank="0">1.5</real_value>
+              </constant>
+            </bottom_depth>
+            <sizing_function>
+              <constant>
+                <real_value rank="0">2</real_value>
+              </constant>
+            </sizing_function>
+            <top_surface_id>
+              <integer_value rank="0">30</integer_value>
+            </top_surface_id>
+            <bottom_surface_id>
+              <integer_value rank="0">6</integer_value>
+            </bottom_surface_id>
+          </regions>
+          <regions name="31">
+            <region_ids>
+              <integer_value shape="1" rank="1">31</integer_value>
+            </region_ids>
+            <bottom_depth>
+              <constant>
+                <real_value rank="0">1.5</real_value>
+              </constant>
+            </bottom_depth>
+            <sizing_function>
+              <constant>
+                <real_value rank="0">2</real_value>
+              </constant>
+            </sizing_function>
+            <top_surface_id>
+              <integer_value rank="0">31</integer_value>
+            </top_surface_id>
+            <bottom_surface_id>
+              <integer_value rank="0">7</integer_value>
+            </bottom_surface_id>
+          </regions>
+          <regions name="32">
+            <region_ids>
+              <integer_value shape="1" rank="1">32</integer_value>
+            </region_ids>
+            <bottom_depth>
+              <constant>
+                <real_value rank="0">1.5</real_value>
+              </constant>
+            </bottom_depth>
+            <sizing_function>
+              <constant>
+                <real_value rank="0">2</real_value>
+              </constant>
+            </sizing_function>
+            <top_surface_id>
+              <integer_value rank="0">32</integer_value>
+            </top_surface_id>
+            <bottom_surface_id>
+              <integer_value rank="0">8</integer_value>
+            </bottom_surface_id>
+          </regions>
+          <regions name="33">
+            <region_ids>
+              <integer_value shape="1" rank="1">33</integer_value>
+            </region_ids>
+            <bottom_depth>
+              <constant>
+                <real_value rank="0">1.5</real_value>
+              </constant>
+            </bottom_depth>
+            <sizing_function>
+              <constant>
+                <real_value rank="0">2</real_value>
+              </constant>
+            </sizing_function>
+            <top_surface_id>
+              <integer_value rank="0">33</integer_value>
+            </top_surface_id>
+            <bottom_surface_id>
+              <integer_value rank="0">9</integer_value>
+            </bottom_surface_id>
+          </regions>
+          <regions name="34">
+            <region_ids>
+              <integer_value shape="1" rank="1">34</integer_value>
+            </region_ids>
+            <bottom_depth>
+              <constant>
+                <real_value rank="0">1.5</real_value>
+              </constant>
+            </bottom_depth>
+            <sizing_function>
+              <constant>
+                <real_value rank="0">2</real_value>
+              </constant>
+            </sizing_function>
+            <top_surface_id>
+              <integer_value rank="0">34</integer_value>
+            </top_surface_id>
+            <bottom_surface_id>
+              <integer_value rank="0">10</integer_value>
+            </bottom_surface_id>
+          </regions>
+          <regions name="35">
+            <region_ids>
+              <integer_value shape="1" rank="1">35</integer_value>
+            </region_ids>
+            <bottom_depth>
+              <constant>
+                <real_value rank="0">1.5</real_value>
+              </constant>
+            </bottom_depth>
+            <sizing_function>
+              <constant>
+                <real_value rank="0">2</real_value>
+              </constant>
+            </sizing_function>
+            <top_surface_id>
+              <integer_value rank="0">35</integer_value>
+            </top_surface_id>
+            <bottom_surface_id>
+              <integer_value rank="0">11</integer_value>
+            </bottom_surface_id>
+          </regions>
+          <regions name="36">
+            <region_ids>
+              <integer_value shape="1" rank="1">36</integer_value>
+            </region_ids>
+            <bottom_depth>
+              <constant>
+                <real_value rank="0">1.5</real_value>
+              </constant>
+            </bottom_depth>
+            <sizing_function>
+              <constant>
+                <real_value rank="0">2</real_value>
+              </constant>
+            </sizing_function>
+            <top_surface_id>
+              <integer_value rank="0">36</integer_value>
+            </top_surface_id>
+            <bottom_surface_id>
+              <integer_value rank="0">12</integer_value>
+            </bottom_surface_id>
+          </regions>
+          <regions name="37">
+            <region_ids>
+              <integer_value shape="1" rank="1">37</integer_value>
+            </region_ids>
+            <bottom_depth>
+              <constant>
+                <real_value rank="0">1.5</real_value>
+              </constant>
+            </bottom_depth>
+            <sizing_function>
+              <constant>
+                <real_value rank="0">2</real_value>
+              </constant>
+            </sizing_function>
+            <top_surface_id>
+              <integer_value rank="0">37</integer_value>
+            </top_surface_id>
+            <bottom_surface_id>
+              <integer_value rank="0">13</integer_value>
+            </bottom_surface_id>
+          </regions>
+          <regions name="38">
+            <region_ids>
+              <integer_value shape="1" rank="1">38</integer_value>
+            </region_ids>
+            <bottom_depth>
+              <constant>
+                <real_value rank="0">1.5</real_value>
+              </constant>
+            </bottom_depth>
+            <sizing_function>
+              <constant>
+                <real_value rank="0">2</real_value>
+              </constant>
+            </sizing_function>
+            <top_surface_id>
+              <integer_value rank="0">38</integer_value>
+            </top_surface_id>
+            <bottom_surface_id>
+              <integer_value rank="0">14</integer_value>
+            </bottom_surface_id>
+          </regions>
+          <regions name="39">
+            <region_ids>
+              <integer_value shape="1" rank="1">39</integer_value>
+            </region_ids>
+            <bottom_depth>
+              <constant>
+                <real_value rank="0">1.5</real_value>
+              </constant>
+            </bottom_depth>
+            <sizing_function>
+              <constant>
+                <real_value rank="0">2</real_value>
+              </constant>
+            </sizing_function>
+            <top_surface_id>
+              <integer_value rank="0">39</integer_value>
+            </top_surface_id>
+            <bottom_surface_id>
+              <integer_value rank="0">15</integer_value>
+            </bottom_surface_id>
+          </regions>
+          <regions name="40">
+            <region_ids>
+              <integer_value shape="1" rank="1">40</integer_value>
+            </region_ids>
+            <bottom_depth>
+              <constant>
+                <real_value rank="0">1.5</real_value>
+              </constant>
+            </bottom_depth>
+            <sizing_function>
+              <constant>
+                <real_value rank="0">2</real_value>
+              </constant>
+            </sizing_function>
+            <top_surface_id>
+              <integer_value rank="0">40</integer_value>
+            </top_surface_id>
+            <bottom_surface_id>
+              <integer_value rank="0">16</integer_value>
+            </bottom_surface_id>
+          </regions>
+        </extrude>
+        <stat>
+          <include_in_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <mesh name="RadiusMesh">
+      <from_mesh>
+        <mesh name="CoordinateMesh"/>
+        <mesh_shape>
+          <polynomial_degree>
+            <integer_value rank="0">2</integer_value>
+          </polynomial_degree>
+        </mesh_shape>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <mesh name="InputMesh">
+      <from_file file_name="src/hemisphere_shell">
+        <format name="gmsh"/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+      </from_file>
+    </mesh>
+    <quadrature>
+      <degree>
+        <integer_value rank="0">5</integer_value>
+      </degree>
+    </quadrature>
+    <spherical_earth>
+      <analytical_mapping/>
+    </spherical_earth>
+  </geometry>
+  <io>
+    <dump_format>
+      <string_value>vtk</string_value>
+    </dump_format>
+    <dump_period_in_timesteps>
+      <constant>
+        <integer_value rank="0">1</integer_value>
+      </constant>
+    </dump_period_in_timesteps>
+    <output_mesh name="CoordinateMesh"/>
+    <stat/>
+  </io>
+  <timestepping>
+    <current_time>
+      <real_value rank="0">0</real_value>
+    </current_time>
+    <timestep>
+      <real_value rank="0">1.0</real_value>
+    </timestep>
+    <finish_time>
+      <real_value rank="0">1.e6</real_value>
+    </finish_time>
+    <final_timestep>
+      <integer_value rank="0">1</integer_value>
+    </final_timestep>
+  </timestepping>
+  <material_phase name="State">
+    <vector_field name="Velocity" rank="1">
+      <prescribed>
+        <mesh name="CoordinateMesh"/>
+        <value name="WholeMesh">
+          <constant>
+            <real_value shape="3" dim1="dim" rank="1">0.0 0.0 0.0</real_value>
+          </constant>
+        </value>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </vector_field>
+    <scalar_field name="Field" rank="0">
+      <prescribed>
+        <mesh name="CoordinateMesh"/>
+        <value name="WholeMesh">
+          <constant>
+            <real_value rank="0">1.0</real_value>
+          </constant>
+        </value>
+        <output/>
+        <stat>
+          <surface_integral type="value" name="1">
+            <surface_ids>
+              <integer_value shape="1" rank="1">1</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="2">
+            <surface_ids>
+              <integer_value shape="1" rank="1">2</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="3">
+            <surface_ids>
+              <integer_value shape="1" rank="1">3</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="4">
+            <surface_ids>
+              <integer_value shape="1" rank="1">4</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="5">
+            <surface_ids>
+              <integer_value shape="1" rank="1">5</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="6">
+            <surface_ids>
+              <integer_value shape="1" rank="1">6</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="7">
+            <surface_ids>
+              <integer_value shape="1" rank="1">7</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="8">
+            <surface_ids>
+              <integer_value shape="1" rank="1">8</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="9">
+            <surface_ids>
+              <integer_value shape="1" rank="1">9</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="10">
+            <surface_ids>
+              <integer_value shape="1" rank="1">10</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="11">
+            <surface_ids>
+              <integer_value shape="1" rank="1">11</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="12">
+            <surface_ids>
+              <integer_value shape="1" rank="1">12</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="13">
+            <surface_ids>
+              <integer_value shape="1" rank="1">13</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="14">
+            <surface_ids>
+              <integer_value shape="1" rank="1">14</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="15">
+            <surface_ids>
+              <integer_value shape="1" rank="1">15</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="16">
+            <surface_ids>
+              <integer_value shape="1" rank="1">16</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="17">
+            <surface_ids>
+              <integer_value shape="1" rank="1">17</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="18">
+            <surface_ids>
+              <integer_value shape="1" rank="1">18</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="19">
+            <surface_ids>
+              <integer_value shape="1" rank="1">19</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="20">
+            <surface_ids>
+              <integer_value shape="1" rank="1">20</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="21">
+            <surface_ids>
+              <integer_value shape="1" rank="1">21</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="22">
+            <surface_ids>
+              <integer_value shape="1" rank="1">22</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="23">
+            <surface_ids>
+              <integer_value shape="1" rank="1">23</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="24">
+            <surface_ids>
+              <integer_value shape="1" rank="1">24</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="25">
+            <surface_ids>
+              <integer_value shape="1" rank="1">25</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="26">
+            <surface_ids>
+              <integer_value shape="1" rank="1">26</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="27">
+            <surface_ids>
+              <integer_value shape="1" rank="1">27</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="28">
+            <surface_ids>
+              <integer_value shape="1" rank="1">28</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="29">
+            <surface_ids>
+              <integer_value shape="1" rank="1">29</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="30">
+            <surface_ids>
+              <integer_value shape="1" rank="1">30</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="31">
+            <surface_ids>
+              <integer_value shape="1" rank="1">31</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="32">
+            <surface_ids>
+              <integer_value shape="1" rank="1">32</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="33">
+            <surface_ids>
+              <integer_value shape="1" rank="1">33</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="34">
+            <surface_ids>
+              <integer_value shape="1" rank="1">34</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="35">
+            <surface_ids>
+              <integer_value shape="1" rank="1">35</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="36">
+            <surface_ids>
+              <integer_value shape="1" rank="1">36</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="37">
+            <surface_ids>
+              <integer_value shape="1" rank="1">37</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="38">
+            <surface_ids>
+              <integer_value shape="1" rank="1">38</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="39">
+            <surface_ids>
+              <integer_value shape="1" rank="1">39</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="40">
+            <surface_ids>
+              <integer_value shape="1" rank="1">40</integer_value>
+            </surface_ids>
+          </surface_integral>
+        </stat>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </scalar_field>
+    <scalar_field name="RadiusP1" rank="0">
+      <prescribed>
+        <mesh name="CoordinateMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value lines="20" type="code" language="python">def val(X,t):
+  from math import sqrt
+  from numpy import array
+  return sqrt(sum(array(X)**2))</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat>
+          <surface_integral type="gradient_normal" name="1">
+            <surface_ids>
+              <integer_value shape="1" rank="1">1</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="gradient_normal" name="2">
+            <surface_ids>
+              <integer_value shape="1" rank="1">2</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="gradient_normal" name="3">
+            <surface_ids>
+              <integer_value shape="1" rank="1">3</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="gradient_normal" name="4">
+            <surface_ids>
+              <integer_value shape="1" rank="1">4</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="gradient_normal" name="5">
+            <surface_ids>
+              <integer_value shape="1" rank="1">5</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="gradient_normal" name="6">
+            <surface_ids>
+              <integer_value shape="1" rank="1">6</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="gradient_normal" name="7">
+            <surface_ids>
+              <integer_value shape="1" rank="1">7</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="gradient_normal" name="8">
+            <surface_ids>
+              <integer_value shape="1" rank="1">8</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="gradient_normal" name="9">
+            <surface_ids>
+              <integer_value shape="1" rank="1">9</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="gradient_normal" name="10">
+            <surface_ids>
+              <integer_value shape="1" rank="1">10</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="gradient_normal" name="11">
+            <surface_ids>
+              <integer_value shape="1" rank="1">11</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="gradient_normal" name="12">
+            <surface_ids>
+              <integer_value shape="1" rank="1">12</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="gradient_normal" name="13">
+            <surface_ids>
+              <integer_value shape="1" rank="1">13</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="gradient_normal" name="14">
+            <surface_ids>
+              <integer_value shape="1" rank="1">14</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="gradient_normal" name="15">
+            <surface_ids>
+              <integer_value shape="1" rank="1">15</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="gradient_normal" name="16">
+            <surface_ids>
+              <integer_value shape="1" rank="1">16</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="gradient_normal" name="17">
+            <surface_ids>
+              <integer_value shape="1" rank="1">17</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="gradient_normal" name="18">
+            <surface_ids>
+              <integer_value shape="1" rank="1">18</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="gradient_normal" name="19">
+            <surface_ids>
+              <integer_value shape="1" rank="1">19</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="gradient_normal" name="20">
+            <surface_ids>
+              <integer_value shape="1" rank="1">20</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="gradient_normal" name="21">
+            <surface_ids>
+              <integer_value shape="1" rank="1">21</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="gradient_normal" name="22">
+            <surface_ids>
+              <integer_value shape="1" rank="1">22</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="gradient_normal" name="23">
+            <surface_ids>
+              <integer_value shape="1" rank="1">23</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="gradient_normal" name="24">
+            <surface_ids>
+              <integer_value shape="1" rank="1">24</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="gradient_normal" name="25">
+            <surface_ids>
+              <integer_value shape="1" rank="1">25</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="gradient_normal" name="26">
+            <surface_ids>
+              <integer_value shape="1" rank="1">26</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="gradient_normal" name="27">
+            <surface_ids>
+              <integer_value shape="1" rank="1">27</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="gradient_normal" name="28">
+            <surface_ids>
+              <integer_value shape="1" rank="1">28</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="gradient_normal" name="29">
+            <surface_ids>
+              <integer_value shape="1" rank="1">29</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="gradient_normal" name="30">
+            <surface_ids>
+              <integer_value shape="1" rank="1">30</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="gradient_normal" name="31">
+            <surface_ids>
+              <integer_value shape="1" rank="1">31</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="gradient_normal" name="32">
+            <surface_ids>
+              <integer_value shape="1" rank="1">32</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="gradient_normal" name="33">
+            <surface_ids>
+              <integer_value shape="1" rank="1">33</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="gradient_normal" name="34">
+            <surface_ids>
+              <integer_value shape="1" rank="1">34</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="gradient_normal" name="35">
+            <surface_ids>
+              <integer_value shape="1" rank="1">35</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="gradient_normal" name="36">
+            <surface_ids>
+              <integer_value shape="1" rank="1">36</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="gradient_normal" name="37">
+            <surface_ids>
+              <integer_value shape="1" rank="1">37</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="gradient_normal" name="38">
+            <surface_ids>
+              <integer_value shape="1" rank="1">38</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="gradient_normal" name="39">
+            <surface_ids>
+              <integer_value shape="1" rank="1">39</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="gradient_normal" name="40">
+            <surface_ids>
+              <integer_value shape="1" rank="1">40</integer_value>
+            </surface_ids>
+          </surface_integral>
+        </stat>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </scalar_field>
+    <scalar_field name="RadiusP2" rank="0">
+      <prescribed>
+        <mesh name="RadiusMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value lines="20" type="code" language="python">def val(X,t):
+  from math import sqrt
+  from numpy import array
+  return sqrt(sum(array(X)**2))</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat>
+          <surface_integral type="value" name="1">
+            <surface_ids>
+              <integer_value shape="1" rank="1">1</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="2">
+            <surface_ids>
+              <integer_value shape="1" rank="1">2</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="3">
+            <surface_ids>
+              <integer_value shape="1" rank="1">3</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="4">
+            <surface_ids>
+              <integer_value shape="1" rank="1">4</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="5">
+            <surface_ids>
+              <integer_value shape="1" rank="1">5</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="6">
+            <surface_ids>
+              <integer_value shape="1" rank="1">6</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="7">
+            <surface_ids>
+              <integer_value shape="1" rank="1">7</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="8">
+            <surface_ids>
+              <integer_value shape="1" rank="1">8</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="9">
+            <surface_ids>
+              <integer_value shape="1" rank="1">9</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="10">
+            <surface_ids>
+              <integer_value shape="1" rank="1">10</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="11">
+            <surface_ids>
+              <integer_value shape="1" rank="1">11</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="12">
+            <surface_ids>
+              <integer_value shape="1" rank="1">12</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="13">
+            <surface_ids>
+              <integer_value shape="1" rank="1">13</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="14">
+            <surface_ids>
+              <integer_value shape="1" rank="1">14</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="15">
+            <surface_ids>
+              <integer_value shape="1" rank="1">15</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="16">
+            <surface_ids>
+              <integer_value shape="1" rank="1">16</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="17">
+            <surface_ids>
+              <integer_value shape="1" rank="1">17</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="18">
+            <surface_ids>
+              <integer_value shape="1" rank="1">18</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="19">
+            <surface_ids>
+              <integer_value shape="1" rank="1">19</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="20">
+            <surface_ids>
+              <integer_value shape="1" rank="1">20</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="21">
+            <surface_ids>
+              <integer_value shape="1" rank="1">21</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="22">
+            <surface_ids>
+              <integer_value shape="1" rank="1">22</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="23">
+            <surface_ids>
+              <integer_value shape="1" rank="1">23</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="24">
+            <surface_ids>
+              <integer_value shape="1" rank="1">24</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="25">
+            <surface_ids>
+              <integer_value shape="1" rank="1">25</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="26">
+            <surface_ids>
+              <integer_value shape="1" rank="1">26</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="27">
+            <surface_ids>
+              <integer_value shape="1" rank="1">27</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="28">
+            <surface_ids>
+              <integer_value shape="1" rank="1">28</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="29">
+            <surface_ids>
+              <integer_value shape="1" rank="1">29</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="30">
+            <surface_ids>
+              <integer_value shape="1" rank="1">30</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="31">
+            <surface_ids>
+              <integer_value shape="1" rank="1">31</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="32">
+            <surface_ids>
+              <integer_value shape="1" rank="1">32</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="33">
+            <surface_ids>
+              <integer_value shape="1" rank="1">33</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="34">
+            <surface_ids>
+              <integer_value shape="1" rank="1">34</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="35">
+            <surface_ids>
+              <integer_value shape="1" rank="1">35</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="36">
+            <surface_ids>
+              <integer_value shape="1" rank="1">36</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="37">
+            <surface_ids>
+              <integer_value shape="1" rank="1">37</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="38">
+            <surface_ids>
+              <integer_value shape="1" rank="1">38</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="39">
+            <surface_ids>
+              <integer_value shape="1" rank="1">39</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="40">
+            <surface_ids>
+              <integer_value shape="1" rank="1">40</integer_value>
+            </surface_ids>
+          </surface_integral>
+        </stat>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </scalar_field>
+  </material_phase>
+</fluidity_options>

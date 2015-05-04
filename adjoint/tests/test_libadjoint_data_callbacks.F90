@@ -7,7 +7,7 @@ subroutine test_libadjoint_data_callbacks
     call report_test("[libadjoint_datacallbacks]", .false., .false., "")
 #else
 
-  use read_triangle
+  use mesh_files
   use fields
   use libadjoint
   use libadjoint_data_callbacks
@@ -22,7 +22,7 @@ subroutine test_libadjoint_data_callbacks
   integer :: i
   logical :: fail = .false.
 
-  positions = read_triangle_files("data/pslgA", quad_degree=4)
+  positions = read_mesh_files("data/pslgA", quad_degree=4, format="gmsh")
   shape = make_element_shape(vertices = ele_loc(positions, 1), dim  = positions%dim, degree = 3, quad = positions%mesh%shape%quadrature)
   mesh = make_mesh(positions%mesh, shape, name="Mesh")
   call allocate(fieldA, mesh, "FieldA")

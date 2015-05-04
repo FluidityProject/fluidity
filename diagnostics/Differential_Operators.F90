@@ -803,44 +803,23 @@ contains
     type(vector_field), intent(in) :: positions
     type(scalar_field), intent(in) :: source_field
     
-    integer :: ele, lface, i, j
+    integer :: ele, i, j
     real, dimension(face_ngi(s_field, face)) :: detwei, grad_sgi_n
     real, dimension(positions%dim, face_ngi(s_field, face)) :: grad_sgi, normal    
-    real, dimension(positions%dim, positions%dim, ele_ngi(s_field, face_ele(s_field, face))) :: invj
-    real, dimension(positions%dim, positions%dim, face_ngi(s_field, face)) :: invj_face
     real, dimension(ele_loc(s_field, face_ele(source_field, face)), face_ngi(s_field, face), positions%dim) :: dshape_face
     real, dimension(ele_loc(s_field, face_ele(source_field, face))) :: s_ele_val
-    type(element_type) :: augmented_shape
     type(element_type), pointer :: fshape, source_shape, positions_shape
       
     ele = face_ele(s_field, face)
-    lface = local_face_number(s_field, face)
       
     positions_shape => ele_shape(positions, ele)
     fshape => face_shape(s_field, face)
     
     source_shape => ele_shape(source_field, ele)
-    if(associated(source_shape%dn_s)) then
-      augmented_shape = source_shape
-      call incref(augmented_shape)
-    else
-      augmented_shape = make_element_shape(positions_shape%loc, source_shape%dim, &
-        & source_shape%degree, source_shape%quadrature, &
-        & quad_s = fshape%quadrature)
-    end if    
     
-    call transform_facet_to_physical(positions, face, &
+    call transform_facet_to_physical(positions, face, source_shape, dshape_face, &
       & detwei_f = detwei, normal = normal)
-    call compute_inverse_jacobian( &
-      & ele_val(positions, ele), positions_shape, &
-      & invj = invj)
-    assert(positions_shape%degree == 1)
-    assert(ele_numbering_family(positions_shape) == FAMILY_SIMPLEX)
-    invj_face = spread(invj(:, :, 1), 3, size(invj_face, 3))
-      
-    dshape_face = eval_volume_dshape_at_face_quad(augmented_shape, lface, invj_face)
-    call deallocate(augmented_shape)
-    
+
     s_ele_val = ele_val(source_field, ele)
     forall(i = 1:positions%dim, j = 1:face_ngi(s_field, face))
       grad_sgi(i, j) = dot_product(s_ele_val, dshape_face(:, j, i))

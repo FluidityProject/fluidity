@@ -1034,7 +1034,7 @@ implicit none
     real, intent(in), dimension(:, :) :: val
     integer :: i
 
-    assert(field%field_type == FIELD_TYPE_NORMAL)
+    assert(field%field_type==FIELD_TYPE_NORMAL)
     
     do i=1,field%dim
       field%val(i,:) = val(i, :)
@@ -1048,7 +1048,7 @@ implicit none
     real, intent(in), dimension(:) :: val
     integer, intent(in):: dim
     
-    assert(field%field_type == FIELD_TYPE_NORMAL)
+    assert(field%field_type==FIELD_TYPE_NORMAL)
     assert(dim>=1 .and. dim<=field%dim)
     
     field%val(dim,:) = val
@@ -1063,10 +1063,15 @@ implicit none
     
     integer :: dim
 
+#ifndef NDEBUG
     assert(mesh_compatible(out_field%mesh, in_field%mesh))
     assert(out_field%field_type/=FIELD_TYPE_PYTHON)
-    assert(out_field%field_type==FIELD_TYPE_NORMAL .or. in_field%field_type==FIELD_TYPE_CONSTANT)
+    if (.not. (out_field%field_type==FIELD_TYPE_NORMAL .or. &
+      (out_field%field_type==FIELD_TYPE_CONSTANT .and. in_field%field_type==FIELD_TYPE_CONSTANT))) then
+      FLAbort("Wrong field_type in set()")
+    end if
     assert(in_field%dim==out_field%dim)
+#endif
 
     select case (in_field%field_type)
     case (FIELD_TYPE_NORMAL)
@@ -1130,10 +1135,15 @@ implicit none
     type(scalar_field), intent(in) :: in_field
     integer, intent(in):: dim
 
+#ifndef NDEBUG
     assert(mesh_compatible(out_field%mesh, in_field%mesh))
     assert(out_field%field_type/=FIELD_TYPE_PYTHON)
-    assert(out_field%field_type==FIELD_TYPE_NORMAL.or.in_field%field_type==FIELD_TYPE_CONSTANT)
+    if (.not. (out_field%field_type==FIELD_TYPE_NORMAL .or. &
+      (out_field%field_type==FIELD_TYPE_CONSTANT .and. in_field%field_type==FIELD_TYPE_CONSTANT))) then
+      FLAbort("Wrong field_type in set()")
+    end if
     assert(dim>=1 .and. dim<=out_field%dim)
+#endif
 
     select case (in_field%field_type)
     case (FIELD_TYPE_NORMAL)
@@ -1154,10 +1164,15 @@ implicit none
     type(vector_field), intent(in) :: in_field
     integer, intent(in):: dim
 
+#ifndef NDEBUG
     assert(mesh_compatible(out_field%mesh, in_field%mesh))
     assert(out_field%field_type/=FIELD_TYPE_PYTHON)
-    assert(out_field%field_type==FIELD_TYPE_NORMAL.or.in_field%field_type==FIELD_TYPE_CONSTANT)
+    if (.not. (out_field%field_type==FIELD_TYPE_NORMAL .or. &
+      (out_field%field_type==FIELD_TYPE_CONSTANT .and. in_field%field_type==FIELD_TYPE_CONSTANT))) then
+      FLAbort("Wrong field_type in set()")
+    end if
     assert(dim>=1 .and. dim<=out_field%dim .and. dim<=in_field%dim)
+#endif
 
     select case (in_field%field_type)
     case (FIELD_TYPE_NORMAL)
@@ -2004,6 +2019,8 @@ implicit none
         do i=1,from_field%dim
           to_field%val(i,:) = from_field%val(i,1)
         end do
+      case default
+        FLAbort("Wrong field_type for remap_field")
       end select
   
     end if
@@ -2043,6 +2060,8 @@ implicit none
         output(:, i, :) = from_field%val(i,1)
       end do
       return
+    case default
+      FLAbort("Wrong field_type for remap_field")
     end select
 
     call test_remap_validity(from_field, to_field, stat=stat)
@@ -2237,6 +2256,8 @@ implicit none
       do i=1, from_field%dim
         to_field%val(i,:) = from_field%val(i,1)
       end do
+    case default
+      FLAbort("Unknown field type in remap_field_to_surface")
     end select
 
     ! Zero any left-over dimensions

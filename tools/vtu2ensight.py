@@ -12,23 +12,37 @@ def parse_args(argv):
             prog="vtu2ensight",
             description="""This converts a vtu file to a ensight file. If applied to checkpointed files, use rename_checkpoint first and ensure that 'checkpoint' is removed from the basename of the solution files.""")
     parser.add_argument(
-            "-v", 
+            "-v",
             "--verbose",
             help="Print something...",
             action = "store_true",
-            dest = "verbose", 
+            dest = "verbose",
             default = False
             )
     parser.add_argument(
-            "-s", 
+            "-s",
             "--static",
             help="Use this flag only when a fixed mesh was used. By default a dynamically varying (adaptive) spatial mesh is assumed.",
             action = "store_true",
-            dest = "static", 
+            dest = "static",
             default = False
             )
     parser.add_argument(
-            'basename', 
+            "-i",
+            help="Use this flag to set the index of the vtu file you wish to convert. By default all vtu files with the matching basename are converted.",
+            dest = "dumpno",
+            default = -1
+            )
+    parser.add_argument(
+            "-l",
+            "--last-dump",
+            help="Use this flag to automatically find the vtu file with the highest dump number and only convert that opposed to all vtu files. Note: It does not check the timestamps. If -l and -i are given, -i is neglected.",
+            action = "store_true",
+            dest = "lastdump",
+            default = False
+            )
+    parser.add_argument(
+            'basename',
             metavar='basename',
             help="Basename of output (without .pvtu or .vtu)",
             )
@@ -43,12 +57,17 @@ def sorted_nicely(l):
     alphanum_key = lambda key: [ convert(c) for c in re.split('([0-9]+)', key) ]
     return sorted(l, key = alphanum_key)
 
-def getvtulist(basename):
+def getvtulist(basename, dumpno, lastdump):
     # Find all vtu/pvtu files for (p)vtus in this folder:
     vtus = []
-    for file in sorted_nicely(glob.glob(basename+'_[0-9]*vtu')):
+    searchstring = basename+"_"
+    if (dumpno <0): searchstring = searchstring+"[0-9]*vtu"
+    else: searchstring = searchstring+str(int(dumpno))+".*vtu"
+    for file in sorted_nicely(glob.glob(searchstring)):
         if (not ('checkpoint' in file)):
             vtus.append(file)
+    if (lastdump):
+        vtus = [vtus[-1]]
     return vtus
 
 def getvtk(filename):
@@ -75,6 +94,13 @@ def addblockid(ug):
     ug.GetCellData().AddArray(blockIDs)
     return ug
 
+def removeghostlevel(reader, ug):
+    for i in range(reader.gridreader.GetNumberOfCellArrays()):
+        if (reader.gridreader.GetCellArrayName(i) == "vtkGhostLevels"):
+            ug.GetCellData().RemoveArray(i)
+            break
+    return ug
+
 def writedata(writer, ug, i):
     #writer.SetGhostLevel(0)
     #writer.SetBlockIDs(1)
@@ -91,8 +117,11 @@ def main(args):
     verbose = args.verbose
     static = args.static
     basename = args.basename
+    dumpno = args.dumpno
+    lastdump = args.lastdump
+    if (dumpno>=0 or lastdump): static = True
     # get list of vtu/pvtu files:
-    vtus = getvtulist(basename)
+    vtus = getvtulist(basename, dumpno, lastdump)
     if (not vtus): raise IOError
     # prevent reading errors, if only one vtu file was found, set static to True:
     if (len(vtus) == 1): static = True
@@ -106,6 +135,8 @@ def main(args):
         reader = getvtk(vtus[i])
         # add block id (required by the ensight format):
         ug = addblockid(reader.ugrid)
+        # check/remove ghostlevel array:
+        ug = removeghostlevel(reader, ug)
         # write data:
         writedata(writer, ug, i)
     # write case file:

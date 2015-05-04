@@ -31,7 +31,7 @@ subroutine test_adaptive_timestepping
   use adaptive_timestepping
   use fields
   use fields_data_types
-  use read_triangle
+  use mesh_files
   use unittest_tools
   
   implicit none
@@ -40,7 +40,7 @@ subroutine test_adaptive_timestepping
   type(scalar_field) :: cflnumber_field
   type(vector_field) :: mesh_field
   
-  mesh_field = read_triangle_files("data/tet", quad_degree = 1)
+  mesh_field = read_mesh_files("data/tet", quad_degree = 1, format="gmsh")
   
   call allocate(cflnumber_field, mesh_field%mesh, "CFLNumber")
 

@@ -8,7 +8,7 @@ subroutine compare_intersection_finder
   use global_parameters, only : debug_error_unit
   use intersection_finder_module
   use linked_lists
-  use read_triangle
+  use mesh_files
   
   implicit none
 
@@ -29,8 +29,8 @@ subroutine compare_intersection_finder
     ewrite(0, *), "Base2 = " // trim(base2)
         
     ! Load in the mesh fields
-    mesh_field_a = read_triangle_files("data/" // trim(base1), quad_degree = 1)
-    mesh_field_b = read_triangle_files("data/" // trim(base2), quad_degree = 1)
+    mesh_field_a = read_mesh_files("data/" // trim(base1), quad_degree = 1, format="gmsh")
+    mesh_field_b = read_mesh_files("data/" // trim(base2), quad_degree = 1, format="gmsh")
     
     allocate(map_ab_af(ele_count(mesh_field_a)))
     allocate(map_ab(ele_count(mesh_field_a)))

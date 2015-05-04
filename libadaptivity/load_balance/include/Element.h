@@ -72,31 +72,33 @@ class Element{
   void append_field(const int*, const size_t);
   void append_field(const samfloat_t*, const size_t);
 
-  unsigned char get_flags() const;
+  void  set_eid(const eid_t);
   eid_t get_eid() const;
+  
+  void set_flags(const unsigned char flags);
+  unsigned char get_flags() const;
+  
+  void set_enlist(const std::vector<unn_t>&);
+  void set_MFenlist(const std::vector<unn_t>&);
+
   const std::vector<unn_t>& get_enlist() const;
-  const std::vector<samfloat_t>& get_fields() const;
-  const std::vector<int>& get_ifields() const;  
   const std::vector<unn_t>& get_MFenlist() const;
-  size_t get_size_fields() const;  
-  size_t get_size_ifields() const;
+  
   unsigned get_size_enlist() const;
   unsigned get_size_MFenlist() const;
+  
+  void set_ifields(const std::vector<int>&);
+  void set_fields(const std::vector<samfloat_t>&);
+  
+  const std::vector<int>& get_ifields() const;  
+  const std::vector<samfloat_t>& get_fields() const;
+  
+  size_t get_size_ifields() const;
+  size_t get_size_fields() const;
 
   void pack(char *buffer, int& bsize, int& offset) const;
-  unsigned pack_size() const;
-
-  samfloat_t pop_field(void);
-  int pop_ifield(void);
-
-  void set_fields(const std::vector<samfloat_t>&);
-  void set_flags(const unsigned char flags);
-  void set_eid(const eid_t);
-  void set_enlist(const std::vector<unn_t>&);
-  void set_ifields(const std::vector<int>&);
-  void set_MFenlist(const std::vector<unn_t>&);
-  
   void unpack(char *buffer, int& bsize, int& offset);
+  unsigned pack_size() const;
 
  private:
   eid_t eid;                   // element id number.

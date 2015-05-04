@@ -1,0 +1,659 @@
+<?xml version='1.0' encoding='utf-8'?>
+<fluidity_options>
+  <simulation_name>
+    <string_value lines="1">p1dgp2_nodal_3d</string_value>
+  </simulation_name>
+  <problem_type>
+    <string_value lines="1">fluids</string_value>
+  </problem_type>
+  <geometry>
+    <dimension>
+      <integer_value rank="0">3</integer_value>
+    </dimension>
+    <mesh name="CoordinateMesh">
+      <from_mesh>
+        <mesh name="ExtrudedMesh"/>
+        <mesh_shape>
+          <polynomial_degree>
+            <integer_value rank="0">2</integer_value>
+          </polynomial_degree>
+        </mesh_shape>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <mesh name="VelocityMesh">
+      <from_mesh>
+        <mesh name="ExtrudedMesh"/>
+        <mesh_continuity>
+          <string_value>discontinuous</string_value>
+        </mesh_continuity>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <mesh name="PressureMesh">
+      <from_mesh>
+        <mesh name="ExtrudedMesh"/>
+        <mesh_shape>
+          <polynomial_degree>
+            <integer_value rank="0">2</integer_value>
+          </polynomial_degree>
+        </mesh_shape>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <mesh name="OutputMesh">
+      <from_mesh>
+        <mesh name="ExtrudedMesh"/>
+        <mesh_shape>
+          <polynomial_degree>
+            <integer_value rank="0">2</integer_value>
+          </polynomial_degree>
+        </mesh_shape>
+        <mesh_continuity>
+          <string_value>discontinuous</string_value>
+        </mesh_continuity>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <mesh name="InputMesh">
+      <from_file file_name="src/hemisphere_shell">
+        <format name="gmsh"/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+      </from_file>
+    </mesh>
+    <mesh name="ExtrudedMesh">
+      <from_mesh>
+        <mesh name="InputMesh"/>
+        <extrude>
+          <regions name="25">
+            <region_ids>
+              <integer_value shape="1" rank="1">25</integer_value>
+            </region_ids>
+            <bottom_depth>
+              <constant>
+                <real_value rank="0">1.5</real_value>
+              </constant>
+            </bottom_depth>
+            <sizing_function>
+              <constant>
+                <real_value rank="0">10</real_value>
+              </constant>
+            </sizing_function>
+            <top_surface_id>
+              <integer_value rank="0">25</integer_value>
+            </top_surface_id>
+            <bottom_surface_id>
+              <integer_value rank="0">1</integer_value>
+            </bottom_surface_id>
+          </regions>
+          <regions name="26">
+            <region_ids>
+              <integer_value shape="1" rank="1">26</integer_value>
+            </region_ids>
+            <bottom_depth>
+              <constant>
+                <real_value rank="0">1.5</real_value>
+              </constant>
+            </bottom_depth>
+            <sizing_function>
+              <constant>
+                <real_value rank="0">10</real_value>
+              </constant>
+            </sizing_function>
+            <top_surface_id>
+              <integer_value rank="0">26</integer_value>
+            </top_surface_id>
+            <bottom_surface_id>
+              <integer_value rank="0">2</integer_value>
+            </bottom_surface_id>
+          </regions>
+          <regions name="27">
+            <region_ids>
+              <integer_value shape="1" rank="1">27</integer_value>
+            </region_ids>
+            <bottom_depth>
+              <constant>
+                <real_value rank="0">1.5</real_value>
+              </constant>
+            </bottom_depth>
+            <sizing_function>
+              <constant>
+                <real_value rank="0">10</real_value>
+              </constant>
+            </sizing_function>
+            <top_surface_id>
+              <integer_value rank="0">27</integer_value>
+            </top_surface_id>
+            <bottom_surface_id>
+              <integer_value rank="0">3</integer_value>
+            </bottom_surface_id>
+          </regions>
+          <regions name="28">
+            <region_ids>
+              <integer_value shape="1" rank="1">28</integer_value>
+            </region_ids>
+            <bottom_depth>
+              <constant>
+                <real_value rank="0">1.5</real_value>
+              </constant>
+            </bottom_depth>
+            <sizing_function>
+              <constant>
+                <real_value rank="0">10</real_value>
+              </constant>
+            </sizing_function>
+            <top_surface_id>
+              <integer_value rank="0">28</integer_value>
+            </top_surface_id>
+            <bottom_surface_id>
+              <integer_value rank="0">4</integer_value>
+            </bottom_surface_id>
+          </regions>
+          <regions name="29">
+            <region_ids>
+              <integer_value shape="1" rank="1">29</integer_value>
+            </region_ids>
+            <bottom_depth>
+              <constant>
+                <real_value rank="0">1.5</real_value>
+              </constant>
+            </bottom_depth>
+            <sizing_function>
+              <constant>
+                <real_value rank="0">10</real_value>
+              </constant>
+            </sizing_function>
+            <top_surface_id>
+              <integer_value rank="0">29</integer_value>
+            </top_surface_id>
+            <bottom_surface_id>
+              <integer_value rank="0">5</integer_value>
+            </bottom_surface_id>
+          </regions>
+          <regions name="30">
+            <region_ids>
+              <integer_value shape="1" rank="1">30</integer_value>
+            </region_ids>
+            <bottom_depth>
+              <constant>
+                <real_value rank="0">1.5</real_value>
+              </constant>
+            </bottom_depth>
+            <sizing_function>
+              <constant>
+                <real_value rank="0">10</real_value>
+              </constant>
+            </sizing_function>
+            <top_surface_id>
+              <integer_value rank="0">30</integer_value>
+            </top_surface_id>
+            <bottom_surface_id>
+              <integer_value rank="0">6</integer_value>
+            </bottom_surface_id>
+          </regions>
+          <regions name="31">
+            <region_ids>
+              <integer_value shape="1" rank="1">31</integer_value>
+            </region_ids>
+            <bottom_depth>
+              <constant>
+                <real_value rank="0">1.5</real_value>
+              </constant>
+            </bottom_depth>
+            <sizing_function>
+              <constant>
+                <real_value rank="0">10</real_value>
+              </constant>
+            </sizing_function>
+            <top_surface_id>
+              <integer_value rank="0">31</integer_value>
+            </top_surface_id>
+            <bottom_surface_id>
+              <integer_value rank="0">7</integer_value>
+            </bottom_surface_id>
+          </regions>
+          <regions name="32">
+            <region_ids>
+              <integer_value shape="1" rank="1">32</integer_value>
+            </region_ids>
+            <bottom_depth>
+              <constant>
+                <real_value rank="0">1.5</real_value>
+              </constant>
+            </bottom_depth>
+            <sizing_function>
+              <constant>
+                <real_value rank="0">10</real_value>
+              </constant>
+            </sizing_function>
+            <top_surface_id>
+              <integer_value rank="0">32</integer_value>
+            </top_surface_id>
+            <bottom_surface_id>
+              <integer_value rank="0">8</integer_value>
+            </bottom_surface_id>
+          </regions>
+          <regions name="33">
+            <region_ids>
+              <integer_value shape="1" rank="1">33</integer_value>
+            </region_ids>
+            <bottom_depth>
+              <constant>
+                <real_value rank="0">1.5</real_value>
+              </constant>
+            </bottom_depth>
+            <sizing_function>
+              <constant>
+                <real_value rank="0">10</real_value>
+              </constant>
+            </sizing_function>
+            <top_surface_id>
+              <integer_value rank="0">33</integer_value>
+            </top_surface_id>
+            <bottom_surface_id>
+              <integer_value rank="0">9</integer_value>
+            </bottom_surface_id>
+          </regions>
+          <regions name="34">
+            <region_ids>
+              <integer_value shape="1" rank="1">34</integer_value>
+            </region_ids>
+            <bottom_depth>
+              <constant>
+                <real_value rank="0">1.5</real_value>
+              </constant>
+            </bottom_depth>
+            <sizing_function>
+              <constant>
+                <real_value rank="0">10</real_value>
+              </constant>
+            </sizing_function>
+            <top_surface_id>
+              <integer_value rank="0">34</integer_value>
+            </top_surface_id>
+            <bottom_surface_id>
+              <integer_value rank="0">10</integer_value>
+            </bottom_surface_id>
+          </regions>
+          <regions name="35">
+            <region_ids>
+              <integer_value shape="1" rank="1">35</integer_value>
+            </region_ids>
+            <bottom_depth>
+              <constant>
+                <real_value rank="0">1.5</real_value>
+              </constant>
+            </bottom_depth>
+            <sizing_function>
+              <constant>
+                <real_value rank="0">10</real_value>
+              </constant>
+            </sizing_function>
+            <top_surface_id>
+              <integer_value rank="0">35</integer_value>
+            </top_surface_id>
+            <bottom_surface_id>
+              <integer_value rank="0">11</integer_value>
+            </bottom_surface_id>
+          </regions>
+          <regions name="36">
+            <region_ids>
+              <integer_value shape="1" rank="1">36</integer_value>
+            </region_ids>
+            <bottom_depth>
+              <constant>
+                <real_value rank="0">1.5</real_value>
+              </constant>
+            </bottom_depth>
+            <sizing_function>
+              <constant>
+                <real_value rank="0">10</real_value>
+              </constant>
+            </sizing_function>
+            <top_surface_id>
+              <integer_value rank="0">36</integer_value>
+            </top_surface_id>
+            <bottom_surface_id>
+              <integer_value rank="0">12</integer_value>
+            </bottom_surface_id>
+          </regions>
+          <regions name="37">
+            <region_ids>
+              <integer_value shape="1" rank="1">37</integer_value>
+            </region_ids>
+            <bottom_depth>
+              <constant>
+                <real_value rank="0">1.5</real_value>
+              </constant>
+            </bottom_depth>
+            <sizing_function>
+              <constant>
+                <real_value rank="0">10</real_value>
+              </constant>
+            </sizing_function>
+            <top_surface_id>
+              <integer_value rank="0">37</integer_value>
+            </top_surface_id>
+            <bottom_surface_id>
+              <integer_value rank="0">13</integer_value>
+            </bottom_surface_id>
+          </regions>
+          <regions name="38">
+            <region_ids>
+              <integer_value shape="1" rank="1">38</integer_value>
+            </region_ids>
+            <bottom_depth>
+              <constant>
+                <real_value rank="0">1.5</real_value>
+              </constant>
+            </bottom_depth>
+            <sizing_function>
+              <constant>
+                <real_value rank="0">10</real_value>
+              </constant>
+            </sizing_function>
+            <top_surface_id>
+              <integer_value rank="0">38</integer_value>
+            </top_surface_id>
+            <bottom_surface_id>
+              <integer_value rank="0">14</integer_value>
+            </bottom_surface_id>
+          </regions>
+          <regions name="39">
+            <region_ids>
+              <integer_value shape="1" rank="1">39</integer_value>
+            </region_ids>
+            <bottom_depth>
+              <constant>
+                <real_value rank="0">1.5</real_value>
+              </constant>
+            </bottom_depth>
+            <sizing_function>
+              <constant>
+                <real_value rank="0">10</real_value>
+              </constant>
+            </sizing_function>
+            <top_surface_id>
+              <integer_value rank="0">39</integer_value>
+            </top_surface_id>
+            <bottom_surface_id>
+              <integer_value rank="0">15</integer_value>
+            </bottom_surface_id>
+          </regions>
+          <regions name="40">
+            <region_ids>
+              <integer_value shape="1" rank="1">40</integer_value>
+            </region_ids>
+            <bottom_depth>
+              <constant>
+                <real_value rank="0">1.5</real_value>
+              </constant>
+            </bottom_depth>
+            <sizing_function>
+              <constant>
+                <real_value rank="0">10</real_value>
+              </constant>
+            </sizing_function>
+            <top_surface_id>
+              <integer_value rank="0">40</integer_value>
+            </top_surface_id>
+            <bottom_surface_id>
+              <integer_value rank="0">16</integer_value>
+            </bottom_surface_id>
+          </regions>
+        </extrude>
+        <stat>
+          <include_in_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <quadrature>
+      <degree>
+        <integer_value rank="0">5</integer_value>
+      </degree>
+    </quadrature>
+    <spherical_earth>
+      <superparametric_mapping/>
+      <analytical_mapping/>
+    </spherical_earth>
+  </geometry>
+  <io>
+    <dump_format>
+      <string_value>vtk</string_value>
+    </dump_format>
+    <dump_period>
+      <constant>
+        <real_value rank="0">1</real_value>
+      </constant>
+    </dump_period>
+    <output_mesh name="OutputMesh"/>
+    <stat/>
+  </io>
+  <timestepping>
+    <current_time>
+      <real_value rank="0">0.0</real_value>
+    </current_time>
+    <timestep>
+      <real_value rank="0">1.0</real_value>
+    </timestep>
+    <finish_time>
+      <real_value rank="0">1.0</real_value>
+    </finish_time>
+    <final_timestep>
+      <integer_value rank="0">1</integer_value>
+    </final_timestep>
+  </timestepping>
+  <physical_parameters>
+    <gravity>
+      <magnitude>
+        <real_value rank="0">10.0</real_value>
+      </magnitude>
+      <vector_field name="GravityDirection" rank="1">
+        <prescribed>
+          <mesh name="PressureMesh"/>
+          <value name="WholeMesh">
+            <python>
+              <string_value lines="20" type="code" language="python">def val(X, t):
+  r = (X[0]**2 + X[1]**2 + X[2]**2)**0.5
+  return [-X[0]/r, -X[1]/r, -X[2]/r]</string_value>
+            </python>
+          </value>
+          <output/>
+          <stat>
+            <include_in_stat/>
+          </stat>
+          <detectors>
+            <exclude_from_detectors/>
+          </detectors>
+        </prescribed>
+      </vector_field>
+    </gravity>
+  </physical_parameters>
+  <material_phase name="State">
+    <equation_of_state>
+      <fluids>
+        <linear>
+          <reference_density>
+            <real_value rank="0">1.0</real_value>
+          </reference_density>
+        </linear>
+      </fluids>
+    </equation_of_state>
+    <scalar_field name="Pressure" rank="0">
+      <prognostic>
+        <mesh name="PressureMesh"/>
+        <spatial_discretisation>
+          <continuous_galerkin>
+            <remove_stabilisation_term/>
+            <integrate_continuity_by_parts/>
+          </continuous_galerkin>
+        </spatial_discretisation>
+        <scheme>
+          <poisson_pressure_solution>
+            <string_value lines="1">never</string_value>
+          </poisson_pressure_solution>
+          <use_projection_method/>
+        </scheme>
+        <solver>
+          <iterative_method name="preonly"/>
+          <preconditioner name="lu">
+            <factorization_package name="petsc"/>
+          </preconditioner>
+          <relative_error>
+            <real_value rank="0">1.e-6</real_value>
+          </relative_error>
+          <max_iterations>
+            <integer_value rank="0">100</integer_value>
+          </max_iterations>
+          <never_ignore_solver_failures/>
+          <diagnostics>
+            <monitors/>
+          </diagnostics>
+        </solver>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+        <no_interpolation/>
+      </prognostic>
+    </scalar_field>
+    <vector_field name="Velocity" rank="1">
+      <prognostic>
+        <mesh name="VelocityMesh"/>
+        <equation name="Boussinesq"/>
+        <spatial_discretisation>
+          <discontinuous_galerkin>
+            <viscosity_scheme>
+              <compact_discontinuous_galerkin/>
+              <tensor_form/>
+            </viscosity_scheme>
+            <advection_scheme>
+              <none/>
+              <integrate_advection_by_parts>
+                <twice/>
+              </integrate_advection_by_parts>
+            </advection_scheme>
+            <buoyancy/>
+          </discontinuous_galerkin>
+          <conservative_advection>
+            <real_value rank="0">0.0</real_value>
+          </conservative_advection>
+        </spatial_discretisation>
+        <temporal_discretisation>
+          <theta>
+            <real_value rank="0">1.0</real_value>
+          </theta>
+          <relaxation>
+            <real_value rank="0">1.0</real_value>
+          </relaxation>
+        </temporal_discretisation>
+        <solver>
+          <iterative_method name="preonly"/>
+          <preconditioner name="lu">
+            <factorization_package name="petsc"/>
+          </preconditioner>
+          <relative_error>
+            <real_value rank="0">1.e-6</real_value>
+          </relative_error>
+          <max_iterations>
+            <integer_value rank="0">100</integer_value>
+          </max_iterations>
+          <never_ignore_solver_failures/>
+          <diagnostics>
+            <monitors/>
+          </diagnostics>
+        </solver>
+        <initial_condition name="WholeMesh">
+          <constant>
+            <real_value shape="3" dim1="dim" rank="1">0.0 0.0 0.0</real_value>
+          </constant>
+        </initial_condition>
+        <boundary_conditions name="Bottom">
+          <surface_ids>
+            <integer_value shape="16" rank="1">1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16</integer_value>
+          </surface_ids>
+          <type name="no_normal_flow"/>
+        </boundary_conditions>
+        <boundary_conditions name="Sides">
+          <surface_ids>
+            <integer_value shape="8" rank="1">17 18 19 20 21 22 23 24</integer_value>
+          </surface_ids>
+          <type name="no_normal_flow"/>
+        </boundary_conditions>
+        <output/>
+        <stat>
+          <include_in_stat/>
+          <previous_time_step>
+            <exclude_from_stat/>
+          </previous_time_step>
+          <nonlinear_field>
+            <exclude_from_stat/>
+          </nonlinear_field>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+        <consistent_interpolation/>
+      </prognostic>
+    </vector_field>
+    <scalar_field name="AnalyticalPressure" rank="0">
+      <prescribed>
+        <mesh name="PressureMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value lines="20" type="code" language="python">def val(X, t):
+  r = (X[0]**2 + X[1]**2 + X[2]**2)**0.5
+  return 10.*(2.7 - r)</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat/>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </scalar_field>
+    <scalar_field name="AbsoluteDifferencePressure" rank="0">
+      <diagnostic>
+        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="Pressure" source_field_2_name="AnalyticalPressure" material_phase_support="single" source_field_1_type="scalar">
+          <absolute_difference/>
+        </algorithm>
+        <mesh name="PressureMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+  </material_phase>
+</fluidity_options>
