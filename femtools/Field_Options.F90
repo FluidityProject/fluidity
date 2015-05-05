@@ -187,6 +187,10 @@ contains
 
        complete_field_path=trim(path) // "/prescribed"
 
+    else if (have_option(trim(path) // "/aliased")) then
+
+       complete_field_path=trim(path) // "/aliased"
+
     else
       
       if (present(stat)) then
