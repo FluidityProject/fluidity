@@ -80,6 +80,25 @@ FLFEMDEM="femdem"
 # Check system type
 AC_CANONICAL_HOST
 
+case $host_os in
+     darwin* ) 
+	     LINUX=no
+         DARWIN=yes
+	     FCFLAGS="-DDARWIN $FCFLAGS"
+	     CXXFLAGS="-DDARWIN -fpermissive $CXXFLAGS"
+	     CPPFLAGS="-DDARWIN $CPPFLAGS"
+# Should really check for Mac OS vs. straight Darwin here, or at least test
+# that the framework is valid
+	     LIBS="$LIBS -framework Carbon";;
+     linux*  )
+       LINUX=yes
+       DARWIN=no;;
+     *       )
+       LINUX=no
+	     DARWIN=no;;
+esac
+
+
 # Find compilers
 AC_MSG_NOTICE([*** Fishing for legacy fortran compiler.])
 AC_PROG_F77(ifort ifc efc sunf95 gfortran pgf95 pathf95 g95 f90,,f90,$PATH)
@@ -577,7 +596,9 @@ EOF
     FCFLAGS="-fbounds-check -Wall -Wimplicit-interface -Wno-surprising ${FCFLAGS}"
     CFLAGS="-fbounds-check -Wall ${CFLAGS}"
     CXXFLAGS="-fbounds-check -Wall ${CXXFLAGS}"
-    LDFLAGS="-rdynamic ${LDFLAGS}"
+    if test "$DARWIN" = "no" ; then
+        LDFLAGS="-rdynamic ${LDFLAGS}"
+    fi
   elif test "$fcompiler" = "g95" ; then
     FFLAGS="-fbounds-check -ftrace=full ${FFLAGS}"
     FCFLAGS="-fbounds-check -ftrace=full ${FCFLAGS}"
