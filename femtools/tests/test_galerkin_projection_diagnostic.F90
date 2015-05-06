@@ -3,7 +3,7 @@ subroutine test_galerkin_projection_diagnostic
   use diagnostic_fields
   use state_module
   use fields
-  use read_triangle
+  use mesh_files
   use unittest_tools
   use solvers
   use spud
@@ -24,7 +24,7 @@ subroutine test_galerkin_projection_diagnostic
   integer :: stat
   logical :: fail
 
-  positions = read_triangle_files("data/pslgA", quad_degree=4)
+  positions = read_mesh_files("data/pslgA", quad_degree=4, format="gmsh")
   pwc_mesh = piecewise_constant_mesh(positions%mesh, "PiecewiseConstantMesh")
   call allocate(tensA, pwc_mesh, "TensorA")
   call set_from_function(tensA, field_func_tensor, positions)

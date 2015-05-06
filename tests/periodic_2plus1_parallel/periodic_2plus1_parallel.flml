@@ -81,7 +81,7 @@
     </mesh>
     <mesh name="ExternalMesh">
       <from_file file_name="MMS_B">
-        <format name="triangle"/>
+        <format name="gmsh"/>
         <stat>
           <include_in_stat/>
         </stat>

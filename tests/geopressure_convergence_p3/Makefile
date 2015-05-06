@@ -7,6 +7,10 @@ default: input
 
 input:
 	tar -xvjf src/meshes.tar.bz2
+	../../bin/triangle2gmsh square-8
+	../../bin/triangle2gmsh square-16
+	../../bin/triangle2gmsh square-32
+	../../bin/triangle2gmsh square-64
 	cp $(FLMLMODEL1).flml $(FLMLMODEL2).flml 
 	sed -i "s/"$(FLMLMODEL1)"/"$(FLMLMODEL2)"/g" $(FLMLMODEL2).flml 
 	sed -i "s/square-8/square-16/g" $(FLMLMODEL2).flml 

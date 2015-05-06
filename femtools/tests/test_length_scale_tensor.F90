@@ -30,7 +30,7 @@
 subroutine test_length_scale_tensor
 
    use unittest_tools
-   use read_triangle
+   use mesh_files
    use fields
    use smoothing_module
    use global_parameters, only : pi
@@ -45,7 +45,7 @@ subroutine test_length_scale_tensor
    real, dimension(:,:), allocatable :: expected_result
    logical :: fail
    
-   positions = read_triangle_files("data/structured", quad_degree=3)
+   positions = read_mesh_files("data/structured", quad_degree=3, format="gmsh")
    ! Edge length in mesh
    edge = pi/8.
 

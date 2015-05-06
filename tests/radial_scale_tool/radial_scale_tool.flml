@@ -20,7 +20,7 @@
     </mesh>
     <mesh name="2dmesh">
       <from_file file_name="spherical_patch">
-        <format name="triangle"/>
+        <format name="gmsh"/>
         <stat>
           <include_in_stat/>
         </stat>
@@ -59,9 +59,7 @@
         <integer_value rank="0">4</integer_value>
       </degree>
     </quadrature>
-    <spherical_earth>
-      <linear_mapping/>
-    </spherical_earth>
+    <spherical_earth/>
     <ocean_boundaries>
       <top_surface_ids>
         <integer_value shape="1" rank="1">161</integer_value>

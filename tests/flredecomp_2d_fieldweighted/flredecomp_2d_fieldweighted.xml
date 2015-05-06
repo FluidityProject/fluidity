@@ -17,8 +17,8 @@ max_load_imbalance = calculate_partition_weights()
   </variables>
 
   <pass_tests>
-    <test name="maximum load imbalance .lt. 1.5 " language="python">
-      assert ( max_load_imbalance &lt; 1.5 )
+    <test name="maximum load imbalance .lt. 1.6 " language="python">
+      assert ( max_load_imbalance &lt; 1.6 )
     </test>
   </pass_tests>
 

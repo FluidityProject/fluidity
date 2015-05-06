@@ -735,7 +735,6 @@ type(vector_field), intent(in), optional :: positions
   logical, dimension(:), pointer:: inactive_mask
   integer, dimension(:), allocatable:: ghost_nodes
   Mat:: pmat
-  MatStructure:: matrix_structure
   ! one of the PETSc supplied orderings see
   ! http://www-unix.mcs.anl.gov/petsc/petsc-as/snapshots/petsc-current/docs/manualpages/MatOrderings/MatGetOrdering.html
   MatOrderingType:: ordering_type
@@ -803,7 +802,7 @@ type(vector_field), intent(in), optional :: positions
   
   if (ksp/=PETSC_NULL_OBJECT) then
     ! oh goody, we've been left something useful!
-    call KSPGetOperators(ksp, A, Pmat, matrix_structure, ierr)
+    call KSPGetOperators(ksp, A, Pmat, ierr)
     have_cache=.true.
     
     if (have_option(trim(solver_option_path)// &
@@ -2376,7 +2375,6 @@ subroutine MyKSPMonitor(ksp,n,rnorm,dummy,ierr)
   
   PetscScalar :: rnorm
   PetscLogDouble :: flops
-  MatStructure:: flag
   Mat:: Amat, Pmat
   PC:: pc
   Vec:: dummy_vec, r, rhs
@@ -2405,7 +2403,7 @@ subroutine MyKSPMonitor(ksp,n,rnorm,dummy,ierr)
       call petsc2field(petsc_monitor_x, petsc_monitor_numbering, petsc_monitor_vfields(1))
     end if
     call KSPGetRhs(ksp, rhs, ierr)
-    call KSPGetOperators(ksp, Amat, Pmat, flag, ierr)
+    call KSPGetOperators(ksp, Amat, Pmat, ierr)
     call VecDuplicate(petsc_monitor_x, r, ierr)
     call MatMult(Amat, petsc_monitor_x, r, ierr)
     call VecAXPY(r, real(-1.0, kind = PetscScalar_kind), rhs, ierr)

@@ -32,7 +32,7 @@ subroutine test_surface_integrals_2d
   
   use fields
   use fields_data_types
-  use read_triangle
+  use mesh_files
   use surface_integrals
   use unittest_tools
   
@@ -46,11 +46,12 @@ subroutine test_surface_integrals_2d
   type(scalar_field) :: test_s_field
   type(vector_field) :: mesh_field, test_v_field, derived_mesh_field
   
-  mesh_field = read_triangle_files("data/square-cavity-2d", quad_degree = 4)
+  mesh_field = read_mesh_files("data/square-cavity-2d", quad_degree = 4, format="gmsh")
+
   assert(mesh_dim(mesh_field) == 2)
   
   call allocate(test_s_field, mesh_field%mesh, "TestScalar")
-  
+
   call zero(test_s_field)
 
   integral = surface_integral(test_s_field, mesh_field)
@@ -223,22 +224,22 @@ subroutine test_surface_integrals_2d
   
   call deallocate(mesh_field)
   
-  mesh_field = read_triangle_files("data/square", quad_degree = 6)
-  
+  mesh_field = read_mesh_files("data/square", quad_degree = 6, format="gmsh")
+
   derived_shape = make_element_shape(mesh_field%mesh%shape, degree = 2)
   derived_mesh = make_mesh(mesh_field%mesh, derived_shape)
   call deallocate(derived_shape)
-  
+
   call allocate(test_s_field, derived_mesh)
   call allocate(derived_mesh_field, 2, derived_mesh)
   call deallocate(derived_mesh)
   call remap_field(mesh_field, derived_mesh_field)
-  
+
   do i = 1, node_count(derived_mesh_field)
     pos = node_val(derived_mesh_field, i)
     call set(test_s_field, i, pos(1)**2*pos(2))
   end do
-    
+
   integral = gradient_normal_surface_integral(test_s_field, mesh_field, surface_ids = (/2/)) ! Top
   call report_test("[Gradient of cubic scalar on quadratic mesh]", integral .fne. 0.25, .false., "Incorrect integral")
   

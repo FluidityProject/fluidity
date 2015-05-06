@@ -12,7 +12,7 @@
     </dimension>
     <mesh name="CoordinateMesh">
       <from_file file_name="gls-StationPapa-setup_CoordinateMesh_1_checkpoint">
-        <format name="triangle"/>
+        <format name="gmsh"/>
         <stat>
           <include_in_stat/>
         </stat>
@@ -719,6 +719,7 @@
             <stress_terms>
               <tensor_form/>
             </stress_terms>
+            <buoyancy/>
           </continuous_galerkin>
           <conservative_advection>
             <real_value rank="0">0</real_value>

@@ -2,6 +2,7 @@ default: input
 
 input: clean
 	tar -xvjf src/cube.tar.bz2
+	../../bin/triangle2gmsh cube
 
 clean: clean-mesh clean-run
 clean-mesh:

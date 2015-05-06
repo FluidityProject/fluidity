@@ -203,6 +203,7 @@ the absorption term is included in the pressure correction (being a necessity as
                 <twice/>
               </integrate_advection_by_parts>
             </advection_scheme>
+            <buoyancy/>
           </discontinuous_galerkin>
           <conservative_advection>
             <real_value rank="0">0.0</real_value>
@@ -523,6 +524,7 @@ for n in range(field.node_count):
                 <twice/>
               </integrate_advection_by_parts>
             </advection_scheme>
+            <buoyancy/>
           </discontinuous_galerkin>
           <conservative_advection>
             <real_value rank="0">0.0</real_value>

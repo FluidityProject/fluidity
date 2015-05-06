@@ -186,7 +186,7 @@ contains
     
     character(len = parallel_filename_len(filename)) :: lfilename
     integer :: i, j, nodes, dim, xdim, node_attributes, boundaries,&
-         & ele_attributes, loc, sloc, elements, edges, edge_count
+         & ele_attributes, loc, sloc, elements, edges, edge_count, gdim
     integer, allocatable, dimension(:):: node_order
     logical :: file_exists
     type(mesh_type) :: mesh
@@ -231,8 +231,9 @@ contains
     
     call allocate(mesh, nodes, elements, shape, name="CoordinateMesh")
 
-    if ((xdim==2).and.(have_option('/geometry/spherical_earth/'))) then
-      call allocate(field, xdim+1, mesh, name="Coordinate") ! Pseudo 2D mesh points have 3 coordinates
+    if (have_option('/geometry/spherical_earth/')) then
+      call get_option('/geometry/dimension', gdim)
+      call allocate(field, gdim, mesh, name="Coordinate")
     else
        call allocate(field, xdim, mesh, name="Coordinate")
     end if
@@ -240,7 +241,7 @@ contains
     ! Drop the local reference to mesh - now field owns the only reference.
     call deallocate(mesh)
 
-    if ((xdim==2).and.(have_option('/geometry/spherical_earth/'))) then
+    if (have_option('/geometry/spherical_earth/')) then
       allocate(read_buffer(xdim+node_attributes+boundaries+2))
     else
       allocate(read_buffer(xdim+node_attributes+boundaries+1))
@@ -251,7 +252,7 @@ contains
    end if
 
     do i=1,nodes
-       if ((xdim==2).and.(have_option('/geometry/spherical_earth/'))) then
+       if (have_option('/geometry/spherical_earth/')) then
          read(node_unit,*) read_buffer
          forall (j=1:xdim+1)
             field%val(j,i)=read_buffer(j+1)
