@@ -773,7 +773,7 @@ subroutine komega_eddyvisc(state, advdif)
 
       grad_u = ele_grad_at_quad(u, ele, dshape)
       do gi = 1, ngi
-        rate_of_strain(:,:,gi) = grad_u(:,:,gi) + transpose(grad_u(:,:,gi))
+        rate_of_strain(:,:,gi) = 0.5*( grad_u(:,:,gi) + transpose(grad_u(:,:,gi)) )
       end do
 
 !A!        gi = 1
