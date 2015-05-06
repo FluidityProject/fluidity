@@ -571,3 +571,5 @@ install-user-schemata:
 	mkdir -p $(HOME)/.diamond/schemata/
 	echo "Fluidity Markup Language" > $(HOME)/.diamond/schemata/flml
 	echo "$(PWD)/schemas/fluidity_options.rng" >> $(HOME)/.diamond/schemata/flml
+
+.PHONY: install
