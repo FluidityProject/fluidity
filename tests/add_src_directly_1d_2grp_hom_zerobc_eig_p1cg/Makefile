@@ -2,6 +2,8 @@ SHELL = sh
 
 SIM = add_src_directly_1d_2grp_hom_zerobc_eig_p1cg
 
+include ../tools.mk
+
 # options for 1d mesh interval script for different mesh resolutions
 LEFT_X    = 0.0
 RIGHT_X   = 44.5
@@ -16,7 +18,13 @@ input: clean
 	interval --dx=$(MESH_SIZE_A) $(LEFT_X) $(RIGHT_X) $(SIM)_A
 	interval --dx=$(MESH_SIZE_B) $(LEFT_X) $(RIGHT_X) $(SIM)_B
 	interval --dx=$(MESH_SIZE_C) $(LEFT_X) $(RIGHT_X) $(SIM)_C
-	interval --dx=$(MESH_SIZE_D) $(LEFT_X) $(RIGHT_X) $(SIM)_D
+	interval --dx=$(MESH_SIZE_D) $(LEFT_X) $(RIGHT_X) $(SIM)_D	
+	cp $(SIM)_A.flml $(SIM)_B.flml
+	cp $(SIM)_A.flml $(SIM)_C.flml
+	cp $(SIM)_A.flml $(SIM)_D.flml
+	$(SED) -i 's/_A/_B/' $(SIM)_B.flml
+	$(SED) -i 's/_A/_C/' $(SIM)_C.flml
+	$(SED) -i 's/_A/_D/' $(SIM)_D.flml
 
 clean:
 	rm -f $(SIM)*.ele
@@ -39,3 +47,4 @@ clean:
 	rm -f first_timestep_adapted_mesh*
 	rm -f $(SIM)*.eig_iteration_convergence
 	rm -f $(SIM)*checkpoint*
+	rm -f $(SIM)_{BCD}.flml

@@ -1688,6 +1688,10 @@ fi
 
 #*******************
 
+
+AC_PROG_SED
+AC_PROG_GREP
+
 AC_OUTPUT(Makefile
           debug/Makefile
           bathymetry/Makefile
@@ -1719,4 +1723,5 @@ AC_OUTPUT(Makefile
           libjudy/src/JudyHS/Makefile
           libwm/Makefile
           libvtkfortran/Makefile
-	  reduced_modelling/Makefile)
+	  reduced_modelling/Makefile
+	  tests/tools.mk)
