@@ -184,23 +184,27 @@ def generate_coords(extents, point_num):
 
 class GenericScalar:
     def __init__(self, symbol, phase_num, expression, diffusivity=Symbol('0'),
-                 external_source=Symbol('0'), scale=1.):
+                 external_source=Symbol('0'), scale=1., # advective=True,
+                 using_mms=True):
         self.symbol = symbol
         self.expression = expression
         self.phase_num = phase_num
         self.diffusivity = diffusivity
         self.external_source = external_source
         self.scale = scale
-        
+        # self.advective = advective
+        self.using_mms = using_mms
+            
     def compute(self, phase_num, phi, sat, darcy_vel):
         if self.phase_num != phase_num:
             return
         t = Symbol('t')
         dim = darcy_vel.dim()
-        self.manuf_source = diff(phi*sat*self.expression, t) \
-            + div(darcy_vel*self.expression) \
-            - div(phi*sat*self.diffusivity*grad(self.expression, dim)) \
-            - self.external_source.subs(self.symbol, self.expression)
+        if self.using_mms:
+            self.manuf_source = diff(phi*sat*self.expression, t) \
+                + div(darcy_vel*self.expression) \
+                - div(phi*sat*self.diffusivity*grad(self.expression, dim)) \
+                - self.external_source.subs(self.symbol, self.expression)
         self.external_source_grad = diff(self.external_source, self.symbol)
     
     def write_expressions(self, genfile, is_text, phase_num, dim):
@@ -224,9 +228,15 @@ class GenericScalar:
         write_expr(genfile, is_text,
                        'external_source_gradient_'+str(self.symbol)+str(self.phase_num)+suf,
                        self.external_source_grad, spacetime[:dim] + spacetime[3:])
-        write_expr(genfile, is_text,
-                   'manufactured_source_'+str(self.symbol)+str(self.phase_num)+suf,
-                   self.manuf_source, spacetime[:dim] + spacetime[3:])
+        if self.using_mms:
+            write_expr(genfile, is_text,
+                       'manufactured_source_'+str(self.symbol)+\
+                           str(self.phase_num)+suf,
+                       self.manuf_source, spacetime[:dim] + spacetime[3:])
+        else:
+            write_expr(genfile, is_text,
+                       'exact_solution_'+str(self.symbol)+str(self.phase_num)+suf,
+                       self.expression, spacetime[:dim] + spacetime[3:])
 
         
 
