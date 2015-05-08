@@ -41,10 +41,14 @@ extern "C" { // This is the glue between METIS and fluidity
   
   // Declarations needed from METIS
   typedef int idxtype;
+#ifdef PARMETIS_V3
   void METIS_PartGraphKway(int *,idxtype *,idxtype *,idxtype *,idxtype *,int *,int *,int *,
                            int *,int *,idxtype *);
   void METIS_PartGraphRecursive(int *,idxtype *,idxtype *,idxtype *,idxtype *,int *,int *,
-                                int *,int *,int *,idxtype *);
+                                  int *,int *,int *,idxtype *);
+#else
+#include <metis.h>
+#endif
 
 #ifndef HAVE_MPI
         void METIS_PartGraphKway(int *a, idxtype *b, idxtype *c, idxtype *d, idxtype *e,
@@ -192,14 +196,33 @@ namespace Fluidity{
     
     // Partition graph
     decomp.resize(nnodes);
-    int wgtflag=0, numflag=1, options[] = {0}, edgecut=0;
-    
+    int wgtflag=0, numflag=1, edgecut=0;
+#ifdef PARMETIS_V3
+    int options[] = {0};
+#else
+    idx_t nbc=1;
+    idx_t options[METIS_NOPTIONS];
+    METIS_SetDefaultOptions(options);
+    options[METIS_OPTION_NUMBERING]=1;
+#endif
     if(partition_method){
+#ifdef PARMETIS_V3
       METIS_PartGraphKway(&nnodes, &(xadj[0]), &(adjncy[0]), NULL, NULL, &wgtflag, 
                           &numflag, &npartitions, options, &edgecut, &(decomp[0]));
+#else
+      METIS_PartGraphKway(&nnodes,&nbc,&(xadj[0]),&(adjncy[0]), NULL, NULL,NULL,
+			  &npartitions, NULL, NULL,options,&edgecut,
+			  &(decomp[0]));
+#endif
     }else{
+#ifdef PARMETIS_V3
       METIS_PartGraphRecursive(&nnodes, &(xadj[0]), &(adjncy[0]), NULL, NULL, &wgtflag, 
                                &numflag, &npartitions, options, &edgecut, &(decomp[0]));
+#else
+      METIS_PartGraphRecursive(&nnodes,&nbc,&(xadj[0]),&(adjncy[0]), NULL, NULL,NULL,
+			  &npartitions, NULL, NULL,options,&edgecut,
+			  &(decomp[0]));
+#endif
     }
     
     // number from zero
