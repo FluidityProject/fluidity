@@ -256,6 +256,7 @@ module darcy_impes_assemble_module
       type(scalar_field)     :: rhs_full
       type(scalar_field)     :: rhs_high_resolution
       type(scalar_field)     :: inverse_cv_mass_pressure_mesh
+      type(scalar_field)     :: cv_mass_pressure_mesh
       type(scalar_field)     :: cv_mass_pressure_mesh_with_source
       type(scalar_field)     :: cv_mass_pressure_mesh_with_porosity   
       type(scalar_field)     :: cv_mass_pressure_mesh_with_old_porosity   
@@ -390,7 +391,12 @@ module darcy_impes_assemble_module
       ewrite(1,*) 'Start Darcy IMPES assemble and solve part one'
 
       ! Calculate the latest CV mass on the pressure mesh with porosity included
-      call compute_cv_mass(di%positions, di%cv_mass_pressure_mesh_with_porosity, di%porosity)      
+      call compute_cv_mass(di%positions, di%cv_mass_pressure_mesh_with_porosity, di%porosity)
+
+      ! repeat without porosity for fields solving d(scalar)/dt
+      ! instead of d(porosity*saturation*scalar)/dt (via do_not_dilute)
+      call compute_cv_mass(di%positions, di%cv_mass_pressure_mesh)
+      
       
       ! If it is the first iteration and there is subcycling (>1)
       ! and a consistent global continuity then solve the saturations 
@@ -2129,7 +2135,7 @@ module darcy_impes_assemble_module
                call compute_cv_mass(di%positions, di%cv_mass_pressure_mesh_with_lambda_dual, di%transmissibility_lambda_dual(p)%ptr)
 
                call set(di%rhs_dual, di%pressure_other_porous_media(p)%ptr)
-               call addto(di%rhs_dual, di%pressure(p)%ptr, scale = -1.0)            
+               call addto(di%rhs_dual, di%pressure(p)%ptr, scale = -1.0)
                call scale(di%rhs_dual, di%cv_mass_pressure_mesh_with_lambda_dual)
                
                call addto(di%rhs, di%rhs_dual)
@@ -2572,7 +2578,7 @@ dot_product((grad_pressure_face_quad(:,ggi) - di%cached_face_value%den(ggi,vele,
       call zero(di%matrix)
       call zero(di%rhs)
       call zero(di%rhs_full)
-      
+
       ! Add porosity*saturation(absorption + 1/dt) to lhs 
       if (di%generic_prog_sfield(f)%have_abs) then
          
@@ -2585,6 +2591,8 @@ dot_product((grad_pressure_face_quad(:,ggi) - di%cached_face_value%den(ggi,vele,
       if (di%generic_prog_sfield(f)%dilute) then
          call scale(di%lhs, di%cv_mass_pressure_mesh_with_porosity)
          call scale(di%lhs, di%saturation(p)%ptr)
+      else
+         call scale(di%lhs, di%cv_mass_pressure_mesh)
       end if
             
       ! Add old_porosity*old_saturation*old_sfield/dt to rhs      
@@ -2592,6 +2600,8 @@ dot_product((grad_pressure_face_quad(:,ggi) - di%cached_face_value%den(ggi,vele,
       if (di%generic_prog_sfield(f)%dilute) then
          call scale(di%rhs, di%cv_mass_pressure_mesh_with_old_porosity)
          call scale(di%rhs, di%old_saturation(p)%ptr)
+      else
+         call scale(di%rhs, di%cv_mass_pressure_mesh)
       end if
       call scale(di%rhs, di%generic_prog_sfield(f)%old_sfield)
 
