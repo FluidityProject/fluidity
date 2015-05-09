@@ -228,6 +228,8 @@ module supermesh_construction
         ele_A, posB, shape_lib, ele_loc(positions_A, ele_A), dimA, node_count(positions_A), &
         positions_A%mesh%shape%loc, positions_A%field_type, positions_A%mesh%ndglno)
     
+    deallocate(positions_A_lib_val)
+    call deallocate(quad_lib)
     call deallocate(shape_lib)
 !    call deallocate(mesh_lib)
 !    call deallocate(positions_A_lib)

@@ -447,7 +447,7 @@ contains
     type(mesh_type_lib) :: mesh_lib
     
 !    type(csr_sparsity), pointer :: eelistA, eelistB
-    type(csr_sparsity_lib) :: eelistA_lib, eelistB_lib
+!    type(csr_sparsity_lib) :: eelistA_lib, eelistB_lib
     real, dimension(:,:), allocatable :: positionsA_lib_val
     real, dimension(:,:), allocatable :: positionsB_lib_val
     integer :: dimA, dimB, n_count
@@ -485,24 +485,24 @@ contains
 !    call allocate(eelistA_lib, size(positionsA%mesh%adj_lists%eelist,2), size(positionsA%mesh%adj_lists%eelist,1), & 
 !           & entries=size(positionsA%mesh%adj_lists%eelist%colm))
 
-    call allocate(eelistA_lib, &
-       & rows=node_count(positionsA%mesh), &
-       & columns=node_count(positionsA%mesh), &
-       & entries=positionsA%mesh%shape%loc**2*element_count(positionsA%mesh), &
-       & name="EEListA")
-    call allocate(eelistB_lib, &
-       & rows=node_count(positionsB%mesh), &
-       & columns=node_count(positionsB%mesh), &
-       & entries=positionsB%mesh%shape%loc**2*element_count(positionsB%mesh), &
-       & name="EEListB")
+!    call allocate(eelistA_lib, &
+!       & rows=node_count(positionsA%mesh), &
+!       & columns=node_count(positionsA%mesh), &
+!       & entries=positionsA%mesh%shape%loc**2*element_count(positionsA%mesh), &
+!       & name="EEListA")
+!    call allocate(eelistB_lib, &
+!       & rows=node_count(positionsB%mesh), &
+!       & columns=node_count(positionsB%mesh), &
+!       & entries=positionsB%mesh%shape%loc**2*element_count(positionsB%mesh), &
+!       & name="EEListB")
        
-    eelistA_lib%findrm => positionsA%mesh%adj_lists%eelist%findrm
-    eelistA_lib%colm => positionsA%mesh%adj_lists%eelist%colm
+!    eelistA_lib%findrm => positionsA%mesh%adj_lists%eelist%findrm
+!    eelistA_lib%colm => positionsA%mesh%adj_lists%eelist%colm
     
-    if (associated(positionsB%mesh%adj_lists) .and. associated(positionsB%mesh%adj_lists%eelist)) then
-      eelistB_lib%findrm => positionsB%mesh%adj_lists%eelist%findrm
-      eelistB_lib%colm => positionsB%mesh%adj_lists%eelist%colm
-    end if
+!    if (associated(positionsB%mesh%adj_lists) .and. associated(positionsB%mesh%adj_lists%eelist)) then
+!      eelistB_lib%findrm => positionsB%mesh%adj_lists%eelist%findrm
+!      eelistB_lib%colm => positionsB%mesh%adj_lists%eelist%colm
+!    end if
 
     dimA = positionsA%dim
     n_count = 0
@@ -547,7 +547,9 @@ contains
         current_id_lib => current_id_lib%next
       end do
     end do
-    
+ 
+    deallocate(positionsA_lib_val)
+    deallocate(positionsB_lib_val)
     deallocate(map_AB_lib)
 !    call deallocate(positionsA_lib)
 !    call deallocate(positionsB_lib)
@@ -859,6 +861,7 @@ contains
       end do
     end do
     
+    deallocate(positions_a_lib_val)
     deallocate(map_AB_lib)
 !    call deallocate(positions_b_lib)
     

@@ -140,12 +140,11 @@ module tetrahedron_intersection_module
 !    FORALL(i=1:sizeOfPlanesB) FORALL(k=1:3) planesB_normal(i)(k)=planesB(i)%normal(k)
     FORALL(i=1:size(planesB)) planesB_c(i)=planesB(i)%c
 
-    quad_lib = make_quadrature_lib(vertices = shape%quadrature%vertices, dim = shape%quadrature%dim, ngi = shape%quadrature%ngi, degree = shape%quadrature%degree)
-    shape_lib = make_element_shape_lib(vertices = shape%loc, dim = shape%dim, degree = shape%degree, quad = quad_lib)
-    call deallocate(quad_lib)
+!    quad_lib = make_quadrature_lib(vertices = shape%quadrature%vertices, dim = shape%quadrature%dim, ngi = shape%quadrature%ngi, degree = shape%quadrature%degree)
+!    shape_lib = make_element_shape_lib(vertices = shape%loc, dim = shape%dim, degree = shape%degree, quad = quad_lib)
+!    call deallocate(quad_lib)
 
     if ( associated(output%refcount) ) then 
-
       quad_lib = make_quadrature_lib(vertices = output%mesh%shape%quadrature%vertices, dim = output%mesh%shape%quadrature%dim, ngi = output%mesh%shape%quadrature%ngi, degree = output%mesh%shape%degree * 2)
       shape_lib_temp = make_element_shape_lib(vertices = output%mesh%shape%loc, dim = output%mesh%shape%dim, degree = output%mesh%shape%degree, quad = quad_lib)
       call deallocate(quad_lib)
@@ -153,6 +152,8 @@ module tetrahedron_intersection_module
       call allocate(mesh_lib, node_count(output), ele_count(output), shape_lib_temp)
       mesh_lib%ndglno = output%mesh%ndglno
       call allocate(output_lib, output%dim, mesh_lib)
+      call deallocate(shape_lib_temp)
+      call deallocate(mesh_lib)
  
       allocate(output_lib%val(size(output%val, 1), size(output%val, 2)))
       output_lib%val = output%val 
@@ -183,6 +184,7 @@ module tetrahedron_intersection_module
     call deallocate(new_quad)
 
     call allocate(new_mesh, node_count_lib(output_lib), ele_count_lib(output_lib), new_shape)
+    call deallocate(new_shape)
        
     FORALL(i=1:size(new_mesh%ndglno)) new_mesh%ndglno(i)=output_lib%mesh%ndglno(i)
     
