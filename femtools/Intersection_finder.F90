@@ -15,7 +15,8 @@ module intersection_finder_module
   use libsupermesh_linked_lists, only: &
                                 ilist_lib => ilist, &
                                 inode_lib => inode, &
-                                fetch_lib => fetch
+                                fetch_lib => fetch, &
+                                flush_list_lib => flush_list
   use libsupermesh_quadrature, only : &
                     quadrature_type_lib => quadrature_type, &
                     make_quadrature_lib => make_quadrature, &
@@ -546,6 +547,7 @@ contains
         call insert(map_AB(i), temp_value)
         current_id_lib => current_id_lib%next
       end do
+      call flush_list_lib(map_AB_lib(i))
     end do
  
     deallocate(positionsA_lib_val)
