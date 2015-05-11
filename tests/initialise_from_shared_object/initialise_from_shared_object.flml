@@ -73,11 +73,13 @@
         </detectors>
       </prescribed>
     </vector_field>
-    <scalar_field name="TracerFromSharedObject" rank="0">
+    <scalar_field name="TracerFromSharedObjectFortran90" rank="0">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
-          <plugin_function path="./example.so" name="val"/>
+          <plugin_function path="./example.so" name="val_fortran90">
+            <interface_type name="Fortran90"/>
+          </plugin_function>
         </value>
         <output/>
         <stat/>
@@ -91,7 +93,7 @@
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value type="code" lines="20" language="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
   return X[0]**2-X[1]</string_value>
           </python>
         </value>
@@ -102,9 +104,73 @@
         </detectors>
       </prescribed>
     </scalar_field>
-    <scalar_field name="Difference" rank="0">
+    <scalar_field name="DifferenceFortran90" rank="0">
       <diagnostic>
-        <algorithm name="scalar_difference" source_field_1_name="TracerFromSharedObject" source_field_2_name="TracerFromPython" source_field_2_type="scalar" material_phase_support="single" source_field_1_type="scalar"/>
+        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="TracerFromSharedObjectFortran90" source_field_2_name="TracerFromPython" material_phase_support="single" source_field_1_type="scalar"/>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="TracerFromSharedObjectFortran77" rank="0">
+      <prescribed>
+        <mesh name="VelocityMesh"/>
+        <value name="WholeMesh">
+          <plugin_function path="./example.so" name="val_fortran77">
+            <interface_type name="Fortran77"/>
+          </plugin_function>
+        </value>
+        <output/>
+        <stat/>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </scalar_field>
+    <scalar_field name="DifferenceFortran77" rank="0">
+      <diagnostic>
+        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="TracerFromSharedObjectFortran77" source_field_2_name="TracerFromPython" material_phase_support="single" source_field_1_type="scalar"/>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="TracerFromSharedObjectC" rank="0">
+      <prescribed>
+        <mesh name="VelocityMesh"/>
+        <value name="WholeMesh">
+          <plugin_function path="./c_example.so" name="val">
+            <interface_type name="C"/>
+          </plugin_function>
+        </value>
+        <output/>
+        <stat/>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </scalar_field>
+    <scalar_field name="DifferenceC" rank="0">
+      <diagnostic>
+        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="TracerFromSharedObjectC" source_field_2_name="TracerFromPython" material_phase_support="single" source_field_1_type="scalar"/>
         <mesh name="VelocityMesh"/>
         <output/>
         <stat/>

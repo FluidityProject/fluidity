@@ -84,7 +84,7 @@ contains
     type(vector_field) :: field_position
     real :: const
     character(len=OPTION_PATH_LEN) :: format, field_name, filename
-    character(len=PYTHON_FUNC_LEN) :: func
+    character(len=PYTHON_FUNC_LEN) :: func, interface_type
     character(len=OPTION_PATH_LEN) :: plugin_name,function_name 
     real :: current_time
     real :: gravity_magnitude
@@ -111,13 +111,14 @@ contains
     else if(have_option(trim(path)//"/plugin_function")) then
        call get_option(trim(path)//"/plugin_function/path", plugin_name)
        call get_option(trim(path)//"/plugin_function/name", function_name)
+       call get_option(trim(path)//"/plugin_function/interface_type/name", interface_type)
        ! Get current time
        if (present(time)) then
          current_time=time
        else
          call get_option("/timestepping/current_time", current_time)
        end if
-       call set_from_plugin_function(field, trim(plugin_name),trim(function_name), position, current_time)
+       call set_from_plugin_function(field, trim(plugin_name),trim(function_name), position, current_time,interface_type)
     else if(have_option(trim(path)//"/generic_function")) then
        FLExit("Generic functions are obsolete. Please use a Python function.")
     else if(have_option(trim(path)//"/internally_calculated")) then

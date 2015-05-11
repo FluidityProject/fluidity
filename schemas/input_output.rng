@@ -82,7 +82,7 @@ be set to use this option.</a:documentation>
 external shared object library.
 Set path to the absolute or relative path to the .so file
 and set name to the function name to be called. This should
-have an interface of the form
+have a signature suitable for the selected interface type 
 
  subroutine f(field,X,t)
 
@@ -96,13 +96,68 @@ end subroutine
 "t" is the current model time.
 
 The code file should be compiled like
-   gfortran -fPIC -shared -o example.so example.F90</a:documentation>
+   &lt;fortran compiler&gt; -fPIC -shared -o example.so example.F90</a:documentation>
         <attribute name="path">
           <data type="string"/>
         </attribute>
         <attribute name="name">
           <data type="string"/>
         </attribute>
+        <choice>
+          <element name="interface_type">
+            <a:documentation>the interface should look like 
+ subroutine f(dim,n,field,X,t)
+
+ integer :: dim,n
+
+ double precision :: field(n), X(dim,n), t
+
+end subroutine
+
+"field" is the data array for the field being set.
+"X" is the physical location of the nodes ordered
+[dimension,node number]
+"t" is the current model time.
+
+This may not be interoperable between compiler versions</a:documentation>
+            <attribute name="name">
+              <value>Fortran77</value>
+            </attribute>
+          </element>
+          <element name="interface_type">
+            <a:documentation>the interface should look like 
+ subroutine f(field,X,t)
+
+ double precision :: field(:), X(:,:), t
+
+end subroutine
+
+"field" is the data array for the field being set.
+"X" is the physical location of the nodes ordered
+[dimension,node number]
+"t" is the current model time.</a:documentation>
+            <attribute name="name">
+              <value>Fortran90</value>
+            </attribute>
+          </element>
+          <element name="interface_type">
+            <a:documentation>the interface should look like 
+ function f(dim,n,field,X,t) {
+
+ int dim, n;
+ double :: field(n), X(n,dim), t
+
+end subroutine
+
+"field" is the data array for the field being set.
+"X" is the physical location of the nodes ordered
+[node number, dimension]
+"t" is the current model time.</a:documentation>
+            <attribute name="name">
+              <value>C</value>
+            </attribute>
+          </element>
+        </choice>
       </element>
     </choice>
   </define>
