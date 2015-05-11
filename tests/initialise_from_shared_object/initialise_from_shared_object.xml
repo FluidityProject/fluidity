@@ -27,7 +27,7 @@ fluidity_tools.compare_variable(field.min(), 0.0, 1.0e-12)
 fluidity_tools.compare_variable(field.max(), 0.0, 1.0e-12)</test>
   </pass_tests>
   <warn_tests>
-    <test name="DifferenceF77" language="python">import fluidity_tools
+    <test name="DifferenceFortran90" language="python">import fluidity_tools
 
 field = vtu.GetScalarField("DifferenceFortran90")
 
