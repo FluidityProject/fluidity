@@ -809,7 +809,7 @@ AS_IF([test "x$ac_cv_header_parmetis_h" = "xyes" ],
 	    AC_EGREP_CPP([test_true],
 		[
 #include <parmetis.h>
-#if defined(PARMETIS_MAJOR_VERSION) && PARMETIS_VERSION <= 3
+#if defined(PARMETIS_MAJOR_VERSION) && PARMETIS_MAJOR_VERSION <= 3
 test_true
 #endif
 		],
