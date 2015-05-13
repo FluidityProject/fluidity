@@ -6537,11 +6537,17 @@ where _c and _i denote the compressible and incompressible phases respectively.<
         <attribute name="name">
           <value>DGLESScalarEddyViscosity</value>
         </attribute>
-        <element name="diagnostic">
-          <ref name="internal_algorithm"/>
-          <ref name="velocity_mesh_choice"/>
-          <ref name="diagnostic_scalar_field"/>
-        </element>
+        <choice>
+          <element name="diagnostic">
+            <ref name="internal_algorithm"/>
+            <ref name="velocity_mesh_choice"/>
+            <ref name="diagnostic_scalar_field"/>
+          </element>
+          <element name="prescribed">
+            <ref name="velocity_mesh_choice"/>
+            <ref name="prescribed_scalar_field"/>
+          </element>
+        </choice>
       </element>
     </choice>
     <!--

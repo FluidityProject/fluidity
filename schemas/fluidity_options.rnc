@@ -5127,6 +5127,9 @@ scalar_field_choice =
                   internal_algorithm,
                   velocity_mesh_choice,
                   diagnostic_scalar_field
+               }|element prescribed {
+                  velocity_mesh_choice,
+                  prescribed_scalar_field
                }
             )
          } 
