@@ -531,13 +531,11 @@ contains
     end select
     positionsB_lib_val = positionsB%val
 
-    
-!    map_AB_lib = libsupermesh_advancing_front_intersection_finder(positionsA_lib, positionsB_lib, seed)
     map_AB_lib = libsupermesh_advancing_front_intersection_finder(positionsA_lib_val, positionsB_lib_val, &
-!                & dimA, ele_count(positionsA), positionsA%mesh%shape%quadrature%vertices, positionsA%mesh%shape%quadrature%dim, positionsA%mesh%shape%loc, eelistA_lib, positionsA%field_type, node_count(positionsA), positionsA%mesh%ndglno,   &
-!                & dimB, ele_count(positionsB), positionsB%mesh%shape%quadrature%vertices, positionsB%mesh%shape%quadrature%dim, positionsB%mesh%shape%loc, eelistB_lib, positionsB%field_type, node_count(positionsB), positionsB%mesh%ndglno, seed)
-                & dimA, ele_count(positionsA), positionsA%mesh%shape%quadrature%vertices, positionsA%mesh%shape%quadrature%dim, positionsA%mesh%shape%loc, positionsA%field_type, node_count(positionsA), positionsA%mesh%ndglno,   &
-                & dimB, ele_count(positionsB), positionsB%mesh%shape%quadrature%vertices, positionsB%mesh%shape%quadrature%dim, positionsB%mesh%shape%loc, positionsB%field_type, node_count(positionsB), positionsB%mesh%ndglno, seed)
+                & dimA, ele_count(positionsA), positionsA%mesh%shape%quadrature%vertices, positionsA%mesh%shape%quadrature%dim, &
+                positionsA%mesh%shape%loc, node_count(positionsA), positionsA%mesh%ndglno,   &
+                & dimB, ele_count(positionsB), positionsB%mesh%shape%quadrature%vertices, positionsB%mesh%shape%quadrature%dim, &
+                positionsB%mesh%shape%loc, node_count(positionsB), positionsB%mesh%ndglno, seed)
   
     do i=1,size(map_AB_lib)
       current_id_lib => map_AB_lib(i)%firstnode
@@ -850,7 +848,10 @@ contains
     end do
     
     allocate(map_AB_lib(size(map_AB)))
-    map_ab_lib = libsupermesh_rtree_intersection_finder(positions_a_lib_val, dimA, positions_a%mesh%shape%quadrature%vertices, positions_a%mesh%shape%quadrature%dim, node_count(positions_a), ele_loc(positions_a, 1), ele_count(positions_a), fieldMeshShapeLocA, positions_a%field_type, positions_a%mesh%ndglno, positions_b_lib, npredicates, dimB, node_count(positions_b), ele_count(positions_b), ele_loc(positions_b, 1), positions_b%mesh%ndglno)
+    map_ab_lib = libsupermesh_rtree_intersection_finder(positions_a_lib_val, dimA, &
+        positions_a%mesh%shape%quadrature%vertices, positions_a%mesh%shape%quadrature%dim, node_count(positions_a), &
+        ele_count(positions_a), fieldMeshShapeLocA, positions_a%mesh%ndglno, &
+        positions_b_lib, npredicates, dimB, node_count(positions_b), ele_count(positions_b), ele_loc(positions_b, 1), positions_b%mesh%ndglno)
     
     do i=1,size(map_AB_lib)
       if (associated(map_AB_lib(i)%firstnode) .eqv. .false.) cycle

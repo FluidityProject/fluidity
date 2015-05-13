@@ -171,9 +171,9 @@ module supermesh_construction
     type(vector_field_lib) :: positions_A_lib
     real, dimension(:,:), allocatable :: positions_A_lib_val
     type(vector_field_lib) :: intersection_lib
-    type(element_type_lib) :: shape_lib
+!    type(element_type_lib) :: shape_lib
 !    type(element_type_lib) :: shape_lib_temp
-    type(quadrature_type_lib) :: quad_lib
+!    type(quadrature_type_lib) :: quad_lib
 !    type(mesh_type_lib) :: mesh_lib
     type(mesh_type) :: new_mesh
     
@@ -203,8 +203,8 @@ module supermesh_construction
 !!!    positions_A_lib%dim = positions_A%dim
     
 !!!    quad_lib = make_quadrature_lib(vertices = shape%quadrature%vertices, dim = shape%quadrature%dim, ngi = shape%quadrature%ngi, degree = shape%quadrature%degree)
-    quad_lib = make_quadrature_lib(vertices = shape%quadrature%vertices, dim = shape%quadrature%dim, ngi = shape%quadrature%ngi, degree = shape%degree * 2)
-    shape_lib = make_element_shape_lib(vertices = shape%loc, dim = shape%dim, degree = shape%degree, quad = quad_lib)
+!    quad_lib = make_quadrature_lib(vertices = shape%quadrature%vertices, dim = shape%quadrature%dim, ngi = shape%quadrature%ngi, degree = shape%degree * 2)
+!    shape_lib = make_element_shape_lib(vertices = shape%loc, dim = shape%dim, degree = shape%degree, quad = quad_lib)
        
     dimA = positions_A%dim
 !    dimB = positions_b%dim
@@ -223,14 +223,14 @@ module supermesh_construction
 !    positions_A_lib_val = positions_A%val
     positions_A_lib_val = ele_val(positions_A, ele_A)
     
-    intersection_lib = libsupermesh_intersect_elements(positions_A_lib_val, ele_count(positions_A), &
-        positions_A%mesh%shape%quadrature%vertices, positions_A%mesh%shape%quadrature%dim, &
-        ele_A, posB, shape_lib, ele_loc(positions_A, ele_A), dimA, node_count(positions_A), &
-        positions_A%mesh%shape%loc, positions_A%field_type, positions_A%mesh%ndglno)
+    intersection_lib = libsupermesh_intersect_elements(positions_A_lib_val, &
+       posB, ele_loc(positions_A, ele_A), dimA, node_count(positions_A), &
+       shape%quadrature%vertices, shape%quadrature%dim, shape%quadrature%ngi, &
+       shape%quadrature%degree, shape%loc, shape%dim, shape%degree)
     
     deallocate(positions_A_lib_val)
-    call deallocate(quad_lib)
-    call deallocate(shape_lib)
+!    call deallocate(quad_lib)
+!    call deallocate(shape_lib)
 !    call deallocate(mesh_lib)
 !    call deallocate(positions_A_lib)
 

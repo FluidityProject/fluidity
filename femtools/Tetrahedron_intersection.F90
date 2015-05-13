@@ -167,12 +167,7 @@ module tetrahedron_intersection_module
 !      call libsupermesh_intersect_tets_dt(tetA_lib, planesB_lib, shape_lib, stat = stat, output = output_lib)
       call libsupermesh_intersect_tets_dt(tetA%V, tetA%colours, size(planesB), planesB_normal, planesB_c, &
           shape%quadrature%vertices, shape%quadrature%dim, shape%quadrature%ngi, &
-          shape%quadrature%degree, shape%loc, shape%dim, shape%degree, shape%numbering%family, &
-          output%mesh%shape%quadrature%vertices, output%mesh%shape%quadrature%dim, output%mesh%shape%quadrature%ngi, output%mesh%shape%degree * 2, &
-          output%mesh%shape%loc, output%mesh%shape%dim, output%mesh%shape%degree, &
-          node_count(output), ele_count(output), &
-          !output%val, 
-          output%dim, &
+          shape%quadrature%degree, shape%loc, shape%dim, shape%degree, &
           stat = stat, output = output_lib)
     end if
     if (stat == 1) then
