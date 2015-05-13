@@ -609,8 +609,8 @@ subroutine komega_eddyvisc(state, advdif)
 
   !A! SST terms
   logical                          :: have_SST = .true.
-  type(scalar_field), pointer      :: F_2, abs_vort
-  type(vector_field), pointer      :: vorticity
+  type(scalar_field), pointer      :: F_2 !A! abs_vort
+!A!  type(vector_field), pointer      :: vorticity
   real                             :: beta_star
 
   option_path = trim(state%option_path)//'/subgridscale_parameterisations/k-omega/'
@@ -641,8 +641,8 @@ subroutine komega_eddyvisc(state, advdif)
 
   !A! SST terms
   F_2       => extract_scalar_field(state, "F_2")
-  vorticity => extract_vector_field(state, "VectVort")
-  abs_vort  => extract_scalar_field(state, "AbsVort")
+!A!  vorticity => extract_vector_field(state, "VectVort")
+!A!  abs_vort  => extract_scalar_field(state, "AbsVort")
 
   ewrite_minmax(kk)
   ewrite_minmax(omega)
@@ -688,7 +688,7 @@ subroutine komega_eddyvisc(state, advdif)
   ! Calculate scalar eddy viscosity by integration over element
   do ele = 1, ele_count(scalar_eddy_visc)
      call komega_eddyvisc_ele(ele, X, kk, omega, scalar_eddy_visc, density, ev_rhs, &
-                              F_2, vorticity, abs_vort, u)
+                              F_2, u) !A! vorticity, abs_vort
   end do
 
   ! For non-DG we apply inverse mass globally
@@ -735,7 +735,7 @@ subroutine komega_eddyvisc(state, advdif)
   contains
   
    subroutine komega_eddyvisc_ele(ele, X, kk, omega, scalar_eddy_visc, density, ev_rhs, &
-                                  F_2, vorticity, abs_vort, u)
+                                  F_2, u) !A! vorticity, abs_vort
    
       type(vector_field), intent(in)    :: x
       type(scalar_field), intent(in)    :: kk, omega, scalar_eddy_visc, density
@@ -751,12 +751,12 @@ subroutine komega_eddyvisc(state, advdif)
 
       !A! SST terms
       type(scalar_field), intent(in)    :: F_2
-      type(scalar_field), intent(inout) :: abs_vort
-      type(vector_field), intent(in)    :: vorticity
-      integer                           :: iloc, inode
-      real                              :: a_1, w_x, w_y, w_z
+!A!      type(scalar_field), intent(inout) :: abs_vort
+!A!      type(vector_field), intent(in)    :: vorticity
+!A!      integer                           :: iloc, inode
+      real                              :: a_1 !A! w_x, w_y, w_z
       logical                           :: have_SST = .true.
-      real, dimension(ele_ngi(scalar_eddy_visc, ele)) :: eddy_visc_SST
+!A!      real, dimension(ele_ngi(scalar_eddy_visc, ele)) :: eddy_visc_SST
 
       !A! invariant strain
       integer                                                    :: ngi, gi
@@ -775,11 +775,6 @@ subroutine komega_eddyvisc(state, advdif)
       do gi = 1, ngi
         rate_of_strain(:,:,gi) = 0.5*( grad_u(:,:,gi) + transpose(grad_u(:,:,gi)) )
       end do
-
-!A!        gi = 1
-!A!        print*, 'AminCheck', ele, gi, rate_of_strain(1,1,gi), rate_of_strain(1,2,gi), rate_of_strain(1,3,gi)
-!A!        print*, 'AminCheck', ele, gi, rate_of_strain(2,1,gi), rate_of_strain(2,2,gi), rate_of_strain(2,3,gi)
-!A!        print*, 'AminCheck', ele, gi, rate_of_strain(3,1,gi), rate_of_strain(3,2,gi), rate_of_strain(3,3,gi)
 
       strain_invariant = sqrt( 2.0 * tensor_inner_product(rate_of_strain, rate_of_strain) )
 
@@ -807,14 +802,14 @@ subroutine komega_eddyvisc(state, advdif)
       end where
 
       !A! Compute absolute vorticity: loop through the nodes
-      do iloc=1, size(nodes_ev)
-         !get global number
-         inode=nodes_ev(iloc)
-         w_x = vorticity%val(1,inode)
-         w_y = vorticity%val(2,inode)
-         w_z = vorticity%val(3,inode)
-         call set(abs_vort, inode, sqrt(w_x*w_x + w_y*w_y + w_z*w_z))
-      end do
+!A!      do iloc=1, size(nodes_ev)
+!A!         !get global number
+!A!         inode=nodes_ev(iloc)
+!A!         w_x = vorticity%val(1,inode)
+!A!         w_y = vorticity%val(2,inode)
+!A!         w_z = vorticity%val(3,inode)
+!A!         call set(abs_vort, inode, sqrt(w_x*w_x + w_y*w_y + w_z*w_z))
+!A!      end do
 
       call get_option(trim(option_path)//'/a_1', a_1, default = 0.31)
 
@@ -838,13 +833,6 @@ subroutine komega_eddyvisc(state, advdif)
       ! Add the element's contribution to the nodes of ev_rhs
       call addto(ev_rhs, nodes_ev, rhs_addto)    
 
-!A!      print*, 'AminCheck', ele, strain_invariant
-!A!      print*, 'AminCheck', ele, kk_at_quad
-!A!      print*, 'AminCheck', ele, omega_at_quad
-!A!      print*, 'AminCheck', ele, ele_val_at_quad(F_2,ele)
-!A!      print*, 'AminCheck', ele, detwei
-!A!      print*, 'AminCheck', ele, rhs_addto
-!A!      print*, 'AminCheck', ele, ele_val_at_quad(ev_rhs,ele)
 
    end subroutine komega_eddyvisc_ele
 
