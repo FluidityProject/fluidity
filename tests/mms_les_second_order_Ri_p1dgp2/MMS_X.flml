@@ -152,7 +152,7 @@
           <reference_density>
             <real_value rank="0">1.0</real_value>
           </reference_density>
-          <generic_scalar_field_dependency scalar_field_name="Tracer">
+          <generic_scalar_field_dependency name="Tracer">
             <reference_value>
               <real_value rank="0">0.0</real_value>
             </reference_value>

@@ -176,6 +176,7 @@
                 </prescribed>
               </scalar_field>
             </les_model>
+            <buoyancy/>
           </discontinuous_galerkin>
           <conservative_advection>
             <real_value rank="0">0.0</real_value>
