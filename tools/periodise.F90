@@ -14,7 +14,13 @@ program periodise
   use field_options
   use mesh_files
   use integer_set_module
+#ifdef HAVE_PETSC_MODULES
+  use petsc
+#endif
+
   implicit none
+
+#include "petsc_legacy.h"
 
   character(len=4096) :: filename, external_filename, new_external_filename, new_filename
   integer :: status
@@ -29,6 +35,7 @@ program periodise
   call set_debug_level(0)
   call mpi_init(ierr)
   call python_init
+  call PetscInitialize(PETSC_NULL_CHARACTER, status)
 
   call get_command_argument(1, value=filename, status=status)
   if (status > 0) then
