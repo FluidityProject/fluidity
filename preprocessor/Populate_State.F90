@@ -256,7 +256,7 @@ contains
           call profiler_tic("I/O :: DMPlex")
           if (is_active_process) then
 
-             if (mesh_file_format /= "vtu") then
+             if (trim(mesh_file_format) /= "vtu") then
                 ! Standard mesh input from one of the following mesh file formats:
                 select case (mesh_file_format)
                 case("gmsh")
@@ -309,7 +309,7 @@ contains
                 ! Change the option mesh file format to "gmsh" to
                 ! force checkpoints etc to be dumped as gmsh files.
                 ! Writing ExodusII or Fluent is currently not supported.
-                if (mesh_file_format /= "gmsh") then
+                if (trim(mesh_file_format) /= "gmsh") then
                    mesh_file_format = "gmsh"
                    call set_option_attribute(trim(from_file_path)//"/format/name", &
                         trim(mesh_file_format), stat=stat)
@@ -442,7 +442,7 @@ contains
              if (no_active_processes == 1) then
                 call create_empty_halo(position)
              else
-                if (mesh_file_format /= "vtu") then
+                if (trim(mesh_file_format) /= "vtu") then
                    call dmplex_create_halos(plex, position%mesh, &
                         vertex_ordering, cell_ordering)
                 else
@@ -493,6 +493,13 @@ contains
           call insert(states, mesh, mesh%name)
           call insert(states, position, position%name)
           call deallocate(position)
+
+          if (trim(mesh_file_format) /= "vtu") then
+             call ISDestroy(inverse, stat)
+             call ISDestroy(vertex_ordering, stat)
+             call ISDestroy(cell_ordering, stat)
+             call DMDestroy(plex, stat)
+          end if
           
         else if (extruded) then
           
@@ -501,13 +508,6 @@ contains
           call insert(states, position, "AdaptedExtrudedPositions")
           call deallocate(position)
           
-        end if
-
-        if (mesh_file_format /= "vtu") then
-           call ISDestroy(inverse, stat)
-           call ISDestroy(vertex_ordering, stat)
-           call ISDestroy(cell_ordering, stat)
-           call DMDestroy(plex, stat)
         end if
 
     end do external_mesh_loop
