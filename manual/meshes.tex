@@ -26,10 +26,13 @@ and finally an overview of meshing tools provided with \fluidity (section
 \item Gmsh .msh files. Gmsh is a mesh generator freely available on the
 web at \url{http://geuz.org/gmsh/}, and is included in Linux distributions 
 such as Ubuntu. This is the recommended file format.
-\item Triangle format. This is stored as a set of 3 files: a .node file,
-a .ele file and a .face (3D) or .edge (2D) or .bound (1D) file. This file format
-is mainly supported for special purposes, like 1D meshes, and some offline 
-tools.
+\item {\bf DEPRECATED:} Triangle format. Support for the Triangle mesh
+  format in Fluidity has ceased in order to increase Fluidity's
+  interoperability with other codes. Instead the Gmsh format is now
+  utilised for all features previously provided by the Triangle mesh
+  reader. Moreover, a conversion tool \lstinline+triangle2gmsh+
+  (section~\ref{sec:triangle2gmsh}) is provided to convert all legacy
+  meshes.
 \item ExodusII: ExodusII is a model developed by Sandia National Laboratories 
 which can be used for pre- and postprocessing of finite element analyses. 
 In Fluidity we currently only read in the mesh from an ExodusII file which 
@@ -73,7 +76,6 @@ sideset ids respectively.
 
 \section{Meshes and function spaces}
 \label{sec:meshes_and_function_spaces}
-\index{mesh!coordinate mesh}
 \index{mesh!nodes}
 \index{mesh!simplicial}
 \index{mesh!cubical}
@@ -120,6 +122,12 @@ discretisation. For a \PoDGPt discretisation we therefore need two additional
 meshes: a \PoDG mesh and \Ptwo mesh. In section \ref{sec:mesh_configuration} it
 is explained how these can be derived from the input mesh.
 
+\section{The coordinate mesh and superparametric meshes}
+\label{sec:coordinate_mesh_and_superparametric}
+\index{mesh!coordinate mesh}
+\index{mesh!superparametric}
+\index{mesh!curved elements}
+\index{mesh!bended elements}
 In finite element discretisations the actual shape of the elements in physical
 space is given by a function from local coordinates on the element to
 coordinates in physical space, the coordinate map. This map is typically linear,
@@ -127,9 +135,52 @@ resulting in elements with straight edges. For some applications, for example
 ocean models on the sphere, it may be desirable to use higher order
 polynomials however, so that large elements can be bended to fit the
 geometry. The mesh (function space) that is used for the coordinate map is
-referred to as the coordinate mesh. For standard, uncurved elements 
+referred to as the coordinate mesh and always has the name
+\option{CoordinateMesh}. For standard, uncurved elements
 the coordinate mesh simply corresponds to the (linear) input mesh
 (except for periodic meshes, see section \ref{sec:periodic_meshes} below).
+
+\fluidity currently does not support reading in generic higher order coordinate
+meshes (e.g. it cannot read 2nd order meshes produced by Gmsh). For spherical
+geometries however, fluidity can generate a higher order coordinate mesh from
+a linear input mesh automatically. If
+$X_{\text{linear}}:\mathbb{R}^d\to\mathbb{R}^d; \xi\mapsto
+X_{\text{linear}}(\xi)$ is the coordinate map that maps local coordinates to
+physical coordinates according to the linear input mesh, we can transform it
+into a curved coordinate map according to:
+\begin{equation}
+  X_{\text{curved}}: \xi\mapsto
+    \frac{X_{\text{linear}}(\xi)}{\|X_{\text{linear}}(\xi)\|} r(\xi),
+    \label{eq:xcurved}
+\end{equation}
+where $r(\xi)$ is the function that linearly interpolates the radius (length) of
+the coordinates in the vertices of the input mesh. The elements described by
+this curved coordinate map have vertices that are in the same position as the
+input mesh. The interior of the elements however is curved in such a way that
+the radius of the physical coordinate varies linearly with the local
+coordinates. In particular this means that the radius varies linearly along an
+edge between two vertices. Also, for a triangle that forms the facet of an
+element which has all three vertices on a perfect sphere, the facet is curved to
+lie completely on the sphere.
+
+This mapping can be used in two ways in \fluidity: 1) The curved elements
+described by $X_{\text{curved}}$ can be approximated by a higher order
+polynomial and stored as an automatically generated superparametric
+coordinate mesh. 2) Without explicitly constructing a superparametric coordinate
+mesh,
+replace the coordinate map $X_{\text{linear}}$ by $X_{\text{curved}}$ in all
+computations on the gauss points. The derivative of the coordinate map, the
+Jacobian, is calculated analytically. This means that in all finite element
+integrals the elements are curved exactly according to \eqref{eq:xcurved} and
+the representation of a perfect sphere is only limited by the degree of
+quadrature (the accuracy with which the integrals are calculated). Some
+computations however, are not performed as finite element integral equations,
+but are done point-wise in the nodes of a field (e.g. when a field is
+prescribed from a python function). If this field is higher order, and the
+values have to be computed in nodes other than the vertices of the linear mesh,
+it may therefore still be advantageous to use option 1) to have an accurate
+description of the curved elements in these nodes. See section
+\ref{sec:spherical_earth} how to configure these two options in \fluidity.
 
 \section{Extruded meshes}
 \label{sec:extruded_meshes}
@@ -189,24 +240,31 @@ The following binaries will then be created in the \lstinline+bin/+ directory (s
 \index{mesh!meshing tools!mesh verification}
 
 The \lstinline[language = Bash]+checkmesh+ tool can be used to form a number of verification tests on a mesh
-in triangle mesh format. More information can be found in section~\ref{sec:checkmesh}.
+in gmsh mesh format. More information can be found in section~\ref{sec:checkmesh}.
 
 \subsection{Mesh creation}
 \index{mesh!meshing tools!mesh creation}
-The \lstinline[language = bash]+interval+ tool (section~\ref{sec:interval}) generates a 1D line mesh in triangle format. 
+The \lstinline[language = bash]+interval+ tool (section~\ref{sec:interval}) generates a 1D line mesh in gmsh format.
 
-The \lstinline[language = bash]+gen_square_meshes+ tool (section~\ref{sec:gen_square_meshes})  will generate triangle files for multiple 2D square meshes with a specified number of internal nodes.
+The \lstinline[language = bash]+gen_square_meshes+ tool (section~\ref{sec:gen_square_meshes})  will generate gmsh files for multiple 2D square meshes with a specified number of internal nodes.
 
-The \lstinline[language = bash]+create_aligned_mesh+ tool (section~\ref{sec:create_aligned_mesh}) creates the triangle files for a mesh that lines up in all directions, so that it can be made it into a singly, doubly or triply periodic mesh.
+The \lstinline[language = bash]+create_aligned_mesh+ tool (section~\ref{sec:create_aligned_mesh}) creates the gmsh files for a mesh that lines up in all directions, so that it can be made it into a singly, doubly or triply periodic mesh.
 
 \subsection{Mesh conversion}
 \index{mesh!meshing tools!mesh conversion}
 
-The \lstinline[language = Bash]+gmsh2triangle+ tool (section~\ref{sec:gmsh2triangle}) converts ASCII Gmsh mesh files into triangle format.
+The \lstinline[language = Bash]+meshconv+ tool (section~\ref{sec:meshconv}) converts ExodusII format mesh files into Gmsh format.
 
-The \lstinline[language = Bash]+triangle2vtu+ tool (section~\ref{sec:triangle2vtu}) can be used to convert triangle format files into vtu format. 
+The \lstinline[language = Bash]+triangle2gmsh+ tool (section~\ref{sec:triangle2gmsh}) converts legacy Triangle format mesh files to the Gmsh format.
 
-The \lstinline[language = Bash]+gmsh_mesh_transform+ script (section~\ref{sec:gmsh_mesh_transform}) applies a coordinate transformation to a region of a given mesh. 
+%The \lstinline[language = Bash]+triangle2vtu+ tool (section~\ref{sec:triangle2vtu}) can be used to convert triangle format files into vtu format.
+The \lstinline[language = Bash]+gmsh2vtu+ tool (section~\ref{sec:gmsh2vtu}) can be used to convert Gmsh format files into vtu format.
+
+The \lstinline[language = Bash]+vtu2gmsh+ tool (section~\ref{sec:vtu2gmsh}) can be used to convert vtu format files into Gmsh format.
+
+The \lstinline[language = Bash]+gmsh_mesh_transform+ script (section~\ref{sec:gmsh_mesh_transform}) applies a coordinate transformation to a region of a given mesh.
+
+
 
 \subsection{Decomposing meshes for parallel}
 \label{decomp_meshes_parallel}

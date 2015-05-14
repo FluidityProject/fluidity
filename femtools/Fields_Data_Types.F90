@@ -47,7 +47,8 @@ module fields_data_types
   !! Types of different halo associated with a field:
   integer, public, parameter :: HALO_TYPES=2
   !! Available sources of data for fields:
-  integer, public, parameter :: FIELD_TYPE_NORMAL=0, FIELD_TYPE_CONSTANT=1, FIELD_TYPE_PYTHON=2, FIELD_TYPE_DEFERRED=3
+  integer, public, parameter :: FIELD_TYPE_NORMAL=0, FIELD_TYPE_CONSTANT=1, FIELD_TYPE_PYTHON=2, &
+    FIELD_TYPE_DEFERRED=3
 
   type adjacency_cache
     type(csr_sparsity), pointer :: nnlist => null()

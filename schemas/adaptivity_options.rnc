@@ -977,10 +977,16 @@ hr_adaptivity =
 	        element scalar_field {
                   attribute rank { "0" },
                   attribute name { "FieldWeightedPartitionValues" },
-                  element prescribed {
-                     coordinate_mesh_choice,
-                     prescribed_scalar_field
-                  }
+                  (
+                     element prescribed {
+                        coordinate_mesh_choice,
+                        prescribed_scalar_field
+                     }|
+                     element diagnostic {
+                        coordinate_mesh_choice,
+                        diagnostic_scalar_field
+                     }
+                  )                  
                }
             }?,
             ## Zoltan Debugging
@@ -1128,8 +1134,8 @@ hr_adaptivity =
             element write_metric_stages {
                comment
             }?,
-            ## Write out the Coordinate field to a triangle mesh for every
-            ## state adapt. In parallel, a triangle mesh and .halo files
+            ## Write out the Coordinate field to a mesh for every
+            ## state adapt. In parallel, mesh and .halo files
             ## will be written for every parallel adapt iteration.
             element write_adapted_mesh {
                comment
@@ -1205,9 +1211,9 @@ prescribed_adaptivity =
             ## system state.
             element from_file {
                (
-                  ## Input mesh file format.
+                  ## GMSH mesh format
                   element format {
-                     attribute name {"triangle"},
+                     attribute name { "gmsh" },
                      comment
                   }
                ),

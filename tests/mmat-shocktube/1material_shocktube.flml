@@ -13,7 +13,7 @@
     </dimension>
     <mesh name="CoordinateMesh">
       <from_file file_name="mmat-shocktube">
-        <format name="triangle"/>
+        <format name="gmsh"/>
         <stat>
           <include_in_stat/>
         </stat>
@@ -177,6 +177,7 @@
             <stress_terms>
               <stress_form/>
             </stress_terms>
+            <buoyancy/>
           </continuous_galerkin>
           <conservative_advection>
             <real_value rank="0">1.0</real_value>
@@ -260,7 +261,9 @@
         </boundary_conditions>
         <tensor_field name="Viscosity" rank="2">
           <diagnostic>
-            <algorithm depends="MaterialViscosity" name="bulk_viscosity" material_phase_support="multiple"/>
+            <algorithm depends="MaterialViscosity" name="bulk_viscosity" material_phase_support="multiple">
+              <mean name="arithmetic"/>
+            </algorithm>
             <output/>
             <stat>
               <include_in_stat/>

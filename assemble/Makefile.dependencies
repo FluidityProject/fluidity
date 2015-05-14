@@ -336,11 +336,12 @@ Full_Projection.o ../include/full_projection.mod: Full_Projection.F90 \
    ../include/boundary_conditions_from_options.mod ../include/elements.mod \
    ../include/fdebug.h ../include/fields_base.mod ../include/fldebug.mod \
    ../include/global_parameters.mod ../include/halos.mod \
-   ../include/multigrid.mod ../include/petsc_solve_state_module.mod \
-   ../include/petsc_tools.mod ../include/signal_vars.mod \
-   ../include/solvers.mod ../include/sparse_matrices_fields.mod \
-   ../include/sparse_tools.mod ../include/sparse_tools_petsc.mod \
-   ../include/spud.mod ../include/state_module.mod
+   ../include/multigrid.mod ../include/petsc_legacy.h \
+   ../include/petsc_solve_state_module.mod ../include/petsc_tools.mod \
+   ../include/signal_vars.mod ../include/solvers.mod \
+   ../include/sparse_matrices_fields.mod ../include/sparse_tools.mod \
+   ../include/sparse_tools_petsc.mod ../include/spud.mod \
+   ../include/state_module.mod
 
 ../include/geostrophic_pressure.mod: Geostrophic_Pressure.o
 	@true

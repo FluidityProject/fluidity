@@ -7,10 +7,10 @@
   </problem_definition>
   <variables>
     <variable name = "partitions" language = "python">
-import fluidity.diagnostics.triangletools as triangletools
+import fluidity.diagnostics.gmshtools as gmshtools
 partitions = []
 for i in range(4):
-  partitions.append(triangletools.ReadTriangle("cube_" + str(i)))
+  partitions.append(gmshtools.ReadMsh("cube_" + str(i) + ".msh"))
     </variable>
   </variables>
   <pass_tests>

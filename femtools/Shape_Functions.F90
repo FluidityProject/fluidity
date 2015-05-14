@@ -46,24 +46,23 @@ module shape_functions
 contains
 
   function make_element_shape_from_element(model, vertices, dim, degree,&
-       & quad, type, constraint_type_choice, &
-       stat, quad_s)  result (shape)
+       & quad, type, quad_s, constraint_type_choice, stat)  result (shape)
     !!< This function enables element shapes to be derived from other
     !!< element shapes by specifying which attributes to change.
     type(element_type) :: shape
     type(element_type), intent(in) :: model
     !! Vertices is the number of vertices of the element, not the number of nodes!
     !! dim may be 1, 2, or 3.
-    !! Element constraints
-    integer, intent(in), optional :: constraint_type_choice
     !! Degree is the degree of the Lagrange polynomials.
     integer, intent(in), optional :: vertices, dim, degree
     type(quadrature_type), intent(in), target, optional :: quad
     integer, intent(in), optional :: type
-    integer, intent(out), optional :: stat
     type(quadrature_type), intent(in), optional, target :: quad_s
+    !! Element constraints
+    integer, intent(in), optional :: constraint_type_choice
+    integer, intent(out), optional :: stat
 
-    integer :: lvertices, ldim, ldegree
+    integer :: lvertices, ldim, ldegree, lconstraint_type_choice
     type(quadrature_type) :: lquad
     type(quadrature_type), pointer :: lquad_s
     integer :: ltype
@@ -73,26 +72,31 @@ contains
     else
        lvertices=model%numbering%vertices
     end if
+
     if (present(dim)) then
        ldim=dim
     else
        ldim=model%dim
     end if
+
     if(present(degree)) then
        ldegree=degree
     else
        ldegree=model%degree
     end if
+
     if(present(quad)) then
        lquad=quad
     else
        lquad=model%quadrature
     end if
+
     if(present(type)) then
        ltype=type
     else
        ltype=model%numbering%type
     end if
+
     if(present(quad_s)) then
        lquad_s=>quad_s
     else if (associated(model%surface_quadrature)) then
@@ -100,19 +104,28 @@ contains
     else
        lquad_s=>null()
     end if
+
+    if(present(constraint_type_choice)) then
+       lconstraint_type_choice=constraint_type_choice
+    else if (associated(model%constraints)) then
+       lconstraint_type_choice=model%constraints%type
+    else
+       lconstraint_type_choice=CONSTRAINT_NONE
+    end if
+
     
     if (associated(lquad_s)) then
        shape = make_element_shape(lvertices, ldim, ldegree, lquad, ltype,&
-            stat, lquad_s, constraint_type_choice=constraint_type_choice)
+            lquad_s, constraint_type_choice=lconstraint_type_choice, stat=stat)
     else
        shape = make_element_shape(lvertices, ldim, ldegree, lquad, ltype,&
-            stat, constraint_type_choice=constraint_type_choice)
+            constraint_type_choice=lconstraint_type_choice, stat=stat)
     end if
 
   end function make_element_shape_from_element
 
   function make_element_shape(vertices, dim, degree, quad, type,&
-       stat, quad_s, constraint_type_choice)  result (shape)
+       quad_s, constraint_type_choice, stat)  result (shape)
     !!< Generate the shape functions for an element. The result is a suitable
     !!< element_type.
     !!
@@ -124,16 +137,17 @@ contains
     integer, intent(in) :: vertices, dim, degree
     type(quadrature_type), intent(in), target :: quad
     integer, intent(in), optional :: type
-    integer, intent(out), optional :: stat
-    integer, intent(in), optional :: constraint_type_choice
     type(quadrature_type), intent(in), optional, target :: quad_s
+    integer, intent(in), optional :: constraint_type_choice
+    integer, intent(out), optional :: stat
+
     real, pointer :: g(:)=> null()
 
     type(ele_numbering_type), pointer :: ele_num
     ! Count coordinates of each point 
     integer, dimension(dim+1) :: counts
     integer :: i,j,k
-    integer :: ltype, coords,surface_count
+    integer :: ltype, coords
     real :: dx
     type(constraints_type), pointer :: constraint
 
@@ -183,19 +197,13 @@ contains
        FLAbort('Illegal element family.')
     end select
 
-    if (present(quad_s)) then
-       select case(dim)
-       case(2)
-          call allocate(shape, dim, ele_num%nodes, quad%ngi,&
-               ele_num%edges, quad_s%ngi,coords,.true.)
-          surface_count=ele_num%edges
-       case(3)
-          call allocate(shape, dim, ele_num%nodes, quad%ngi,&
-               ele_num%faces, quad_s%ngi,coords,.true.)
-          surface_count=ele_num%edges
-       case default
-          FLAbort("Unsupported dimension count.  Can only generate surface shape functions for elements that exist in 2 or 3 dimensions.")
-       end select
+    if (present(quad_s) .and. ele_num%type/=ELEMENT_TRACE .and. ele_num%family==FAMILY_SIMPLEX) then
+       allocate(shape%surface_quadrature)
+       shape%surface_quadrature=quad_s
+       call incref(quad_s)
+       call allocate(shape, ele_num, quad%ngi, ngi_s=quad_s%ngi)
+       shape%n_s=0.0
+       shape%dn_s=0.0
     else
        call allocate(shape, ele_num, quad%ngi)
     end if
@@ -273,9 +281,6 @@ contains
           !No interior functions, hence NaNs
           shape%n = ieee_value(0.0,ieee_quiet_nan)
           shape%dn = ieee_value(0.0,ieee_quiet_nan)
-          if(present(quad_s)) then
-             FLAbort('Shouldn''t be happening')
-          end if
        else
           ! Loop over all the quadrature points.
           do j=1,quad%ngi
@@ -288,26 +293,19 @@ contains
           end do
 
           if (present(quad_s)) then
-             shape%surface_quadrature=>quad_s
-             select case(ltype)
+             select case(ele_num%family)
              case(FAMILY_SIMPLEX)
                 allocate(g(dim+1))
-                do k=1,dim+1
-                   do j=1,quad_s%ngi
-                      if (dim==2) then
-                         g(mod(k+2,3)+1)=0.0
-                         g(mod(k,3)+1)=quad_s%l(j,1)
-                         g(mod(k+1,3)+1)=quad_s%l(j,2)
-                      else if (dim==3) then
-                         ! Not checked !!
-                         g(mod(k+3,4)+1)=0.0
-                         g(mod(k,4)+1)=quad_s%l(j,1)
-                         g(mod(k+1,4)+1)=quad_s%l(j,2)
-                         g(mod(k+2,4)+1)=quad_s%l(j,3)
-                      end if
-                      shape%n_s(i,j,k)=eval_shape(shape, i,g)
-                      shape%dn_s(i,j,k,:)=eval_dshape(shape, i,g)
+                do j=1,quad_s%ngi
+                   g(1) = 0.0
+                   do k=1,dim
+                      g(k+1)=quad_s%l(j,k)
                    end do
+                   ! In order to match the arbitrary face node ordering
+                   ! these must get reoriented before use so we don't care
+                   ! about which local facet they're with respect to.
+                   shape%n_s(i,j)=eval_shape(shape,i,g)
+                   shape%dn_s(i,j,:)=eval_dshape(shape,i,g)
                 end do
                 deallocate(g)
              end select

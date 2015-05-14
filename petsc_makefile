@@ -7,5 +7,8 @@
 # Before running this makefile you need to have PETSC_DIR set and
 # (unless you're using a prefix-installed installation of PETSc)
 # PETSC_ARCH
-include ${PETSC_DIR}/conf/variables
-include ${PETSC_DIR}/conf/rules
+#
+# this version assumes the *new* location of the conf/ directory (petsc release>=3.6)
+# in ${PETSC_DIR}/lib/petsc/conf/
+include ${PETSC_DIR}/lib/petsc/conf/variables
+include ${PETSC_DIR}/lib/petsc/conf/rules

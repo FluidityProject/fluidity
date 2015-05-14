@@ -3,24 +3,16 @@ mesh_info =
       ## Read mesh from file.
       element from_file {
          (
-            ## Triangle mesh format.
-            ##
-            ## Enter the base name without the .edge .ele, .face or
-            ## .node extensions, and without process numbers.
+            ## GMSH mesh format
             element format {
-              attribute name { "triangle" },
-              comment
+               attribute name { "gmsh" },
+               comment
             }|
             ## Read the mesh from a vtu. Note that the mesh will have no 
             ## surface or region IDs.
             element format {
               attribute name { "vtu" },
               comment
-            }|
-            ## GMSH mesh format
-            element format {
-               attribute name { "gmsh" },
-               comment
             }|
             ## ExodusII mesh format.
             ##

@@ -47,7 +47,7 @@ use parallel_tools
 implicit none
 
   private
-  
+
   public :: allocate, deallocate, incref, decref, has_references, add_faces, &
     & deallocate_faces, zero
   public :: make_element_shape, make_mesh, make_mesh_periodic, make_submesh, &
@@ -1149,7 +1149,7 @@ contains
 
     type(integer_hash_table):: lperiodic_face_map
     type(mesh_type), pointer :: lmodel
-    type(element_type), pointer :: element
+    type(element_type) :: element_s
     type(quadrature_type) :: quad_face
     integer, dimension(:), pointer :: faces, neigh, model_ele_glno, model_ele_glno2
     integer, dimension(1:mesh%shape%numbering%vertices) :: vertices, &
@@ -1278,22 +1278,25 @@ contains
     ! ready (either newly computed or copied from model)
     ! now we only have to work out mesh%faces%face_lno
 
-    element => ele_shape(mesh, 1)
     if (present(sngi)) then
        ! if specified use quadrature with sngi gausspoints
-       quad_face = make_quadrature(vertices=face_vertices(element), &
-            & dim=mesh_dim(mesh)-1, ngi=sngi, family=element%quadrature%family)
+       quad_face = make_quadrature(vertices=face_vertices(mesh%shape), &
+            & dim=mesh_dim(mesh)-1, ngi=sngi, family=mesh%shape%quadrature%family)
       ! quad_face will be deallocated inside deallocate_faces!
     else
        ! otherwise use degree of full mesh
-       quad_face = make_quadrature(vertices=face_vertices(element), &
-            & dim=mesh_dim(mesh)-1, degree=element%quadrature%degree, family=element%quadrature%family)
+       quad_face = make_quadrature(vertices=face_vertices(mesh%shape), &
+            & dim=mesh_dim(mesh)-1, degree=mesh%shape%quadrature%degree, family=mesh%shape%quadrature%family)
       ! quad_face will be deallocated inside deallocate_faces!
     end if
 
+    element_s = make_element_shape(mesh%shape, quad_s = quad_face)
+    call deallocate(mesh%shape)
+    mesh%shape = element_s
+
     allocate(mesh%faces%shape)
-    mesh%faces%shape = make_element_shape(vertices=face_vertices(element), &
-         & dim=mesh_dim(mesh)-1, degree=element%degree, quad=quad_face)
+    mesh%faces%shape = make_element_shape(vertices=face_vertices(mesh%shape), &
+         & dim=mesh_dim(mesh)-1, degree=mesh%shape%degree, quad=quad_face)
 
     face_count=entries(mesh%faces%face_list)
     snloc=mesh%faces%shape%loc
@@ -2660,10 +2663,8 @@ contains
     assert(associated(mesh%adj_lists))
     if(.not. associated(mesh%adj_lists%nnlist)) then    
       ewrite(2, *) "Adding node-node list to mesh " // trim(mesh%name)
-      allocate(mesh%adj_lists%nnlist)
-      ! Use this pointer to work around compilers that insist on having mesh
-      ! intent(inout) - it really only needs to be intent(in)
-      nnlist => mesh%adj_lists%nnlist
+      allocate(nnlist)
+      mesh%adj_lists%nnlist => nnlist
       call makelists(mesh, nnlist = nnlist)
 #ifdef DDEBUG
     else
@@ -2760,10 +2761,8 @@ contains
     assert(associated(mesh%adj_lists))
     if(.not. associated(mesh%adj_lists%nelist)) then
       ewrite(2, *) "Adding node-element list to mesh " // trim(mesh%name)
-      allocate(mesh%adj_lists%nelist)
-      ! Use this pointer to work around compilers that insist on having mesh
-      ! intent(inout) - it really only needs to be intent(in)
-      nelist => mesh%adj_lists%nelist
+      allocate(nelist)
+      mesh%adj_lists%nelist => nelist
       call makelists(mesh, nelist = nelist)
 #ifdef DDEBUG
     else
@@ -2860,10 +2859,8 @@ contains
     assert(associated(mesh%adj_lists))
     if(.not. associated(mesh%adj_lists%eelist)) then    
       ewrite(2, *) "Adding element-element list to mesh " // trim(mesh%name)
-      allocate(mesh%adj_lists%eelist)
-      ! Use this pointer to work around compilers that insist on having mesh
-      ! intent(inout) - it really only needs to be intent(in)
-      eelist => mesh%adj_lists%eelist
+      allocate(eelist)
+      mesh%adj_lists%eelist => eelist
       ! We need the nelist to generate the eelist, so extract it from the cache
       ! (generating if necessary)
       nelist => extract_nelist(mesh)
@@ -3167,7 +3164,6 @@ contains
     
   end subroutine zero_tensor_field_nodes
 
-    
 #include "Reference_count_mesh_type.F90"
 #include "Reference_count_scalar_field.F90"
 #include "Reference_count_vector_field.F90"

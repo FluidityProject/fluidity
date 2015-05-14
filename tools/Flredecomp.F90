@@ -183,7 +183,7 @@ subroutine flredecomp(input_basename, input_basename_len, output_basename, outpu
   ! Output
   assert(associated(state))
   call checkpoint_simulation(state, prefix = output_base, postfix = "", protect_simulation_name = .false., &
-    keep_initial_data=.true., ignore_detectors=.true.)
+    keep_initial_data=.true., ignore_detectors=.true., number_of_partitions=target_nprocs)
 
   do i = 1, size(state)
     call deallocate(state(i))

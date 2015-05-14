@@ -1,0 +1,13 @@
+# little Makefile used to get the required LIBS and include flags 
+# out of petsc, using:
+#
+# make -f petsc_makefile getlinklibs
+# make -f petsc_makefile getincludedirs
+#
+# Before running this makefile you need to have PETSC_DIR set and
+# (unless you're using a prefix-installed installation of PETSc)
+# PETSC_ARCH
+#
+# this version assumes the *old* location of the conf/ directory (petsc release <=3.5)
+include ${PETSC_DIR}/conf/variables
+include ${PETSC_DIR}/conf/rules

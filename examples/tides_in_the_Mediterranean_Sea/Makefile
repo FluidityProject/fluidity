@@ -1,12 +1,6 @@
 include envcheck.mk
 
 preprocess: envcheck
-	@echo **********Converting the gmsh mesh to triangle format:
-	${BINPREFIX}gmsh2triangle med.msh
-	@echo **********Modifying mesh nodal file using sed:
-	sed '1s/3/2/2' < med.node > med2.node
-	@echo **********Replacing mesh with modified version:
-	mv med2.node med.node
 
 run: envcheck
 ifndef ($(NPROCS))

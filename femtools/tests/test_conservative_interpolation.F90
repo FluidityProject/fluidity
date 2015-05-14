@@ -3,7 +3,7 @@
 subroutine test_conservative_interpolation
 
   use fields
-  use read_triangle
+  use mesh_files
   use conservative_interpolation_module, only: interpolation_galerkin
   use unittest_tools
   use futils
@@ -53,8 +53,8 @@ subroutine test_conservative_interpolation
   integer :: field, no_field
   type(state_type), dimension(1) :: stateA, stateB
 
-  positionsA = read_triangle_files("data/pslgA", quad_degree=4, no_faces=.true.)
-  positionsB = read_triangle_files("data/pslgB", quad_degree=4, no_faces=.true.)
+  positionsA = read_mesh_files("data/pslgA", quad_degree=4, format="gmsh")
+  positionsB = read_mesh_files("data/pslgB", quad_degree=4, format="gmsh")
 
   no_field = 5
 

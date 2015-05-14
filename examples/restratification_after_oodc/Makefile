@@ -8,7 +8,6 @@ preprocess: envcheck
 	@echo **********Generating the mesh using gmsh in 2d:
 	gmsh -2 circle.geo 
 	@echo **********Converting the gmsh mesh to triangle format:
-	${BINPREFIX}gmsh2triangle --2d circle.msh; 
 
 run: envcheck
 ifneq ($(NPROCS),64)

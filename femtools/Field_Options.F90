@@ -819,8 +819,10 @@ contains
       initialisation_path=trim(option_path)//'/prescribed/value'
     else
       ! diagnostic fields are not initialised/prescribed anyway
-      needs_initial_mesh_options=.false.
-      return
+      if(.not. have_option(trim(option_path)//'/diagnostic/output/checkpoint')) then
+        needs_initial_mesh_options=.false.
+        return
+      end if
     end if
     
     ! return .true. if any of the regions are initialised from file

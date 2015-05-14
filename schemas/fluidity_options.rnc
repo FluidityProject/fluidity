@@ -2256,18 +2256,20 @@ geometry =
          element disable_geometric_data_cache {
             empty
          }?,
-         ## Options specifying that the problem is on the surface of the sphere.
+         ## Options specifying that the problem is on the surface of the n-sphere.
          element spherical_earth {
-            (
-               element linear_mapping {
-                  empty
-               }|
-               ## Enabling this option approximates the curvature of the Earth as an
-               ## nth degree polynomial, where n is the polynomial degree of the coordinate mesh.
-               element superparametric_mapping {
-                  empty
-               }
-            )
+            ## Enabling this option approximates the curvature of the Earth as an
+            ## nth degree polynomial, where n is the polynomial degree of the coordinate mesh.
+            element superparametric_mapping {
+               empty
+            }?,
+            ## The simplicial elements (as defined by the CoordinateMesh) are bent on the n-sphere
+            ## using an analytical expression (as opposed to superparametric where it's approximated
+            ## by a higher order polynomial), the derivatives are calculated by taking the analytical
+            ## derivative on the gauss points.
+            element analytical_mapping {
+               empty
+            }?
          }?,
          ## Options specifying the top surface and bottom of the domain
          ## used in various ocean calculations.
@@ -2951,7 +2953,7 @@ field_output_options =
          element exclude_from_vtu {
             comment
          }?,
-         ## To be used with time-averaged diagnostic fields so that they can be checkpointed.
+         ## Field will be checkpointed (this is not performed by default).
          element checkpoint {
             empty
          }?
@@ -4122,33 +4124,6 @@ scalar_field_choice =
                }
             )
          }|
-         ## Viscous dissipation
-         ##   For Boussinesq fluid with isotropic viscosity (see below)
-         ##
-         ## Only coded for 2D
-         ##
-         ##   (grad u):(grad u) = sum_ij(du_i/dx_j)(du_i/dx_j)
-         ##
-         ##   The actual viscous dissipation for a Newtonian, Boussinesq fluid with
-         ##   constant, isotropic viscosity is nu*rho_0*(grad u):(grad u)
-         ##   where rho_0 is the reference density in the equation of state
-         ##   and nu is the viscosity so need to multiply by these when post-processing
-         ##
-         ## c.f. Winters 1995, Journal of Fluid Mechanics
-         element scalar_field {
-            attribute rank { "0" },
-            attribute name { "ViscousDissipation" },
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  velocity_mesh_choice,
-                  diagnostic_scalar_field
-               }|
-               element aliased {
-                  generic_aliased_field
-               }
-            )
-         }|
          ## Richardson Number:
          ##
          ##  Ri = \frac{N^2}{(\frac{\partial u}{\partial z})^2 + (\frac{\partial u}{\partial z})^2}
@@ -4351,6 +4326,20 @@ scalar_field_choice =
                }|
                element aliased {
                   generic_aliased_field
+               }
+            )
+         }|
+         ## Second invariant of the strain_rate tensor field. Selecting this field ensures
+         ## that it is updated as part of the momeuntum diagnostics (i.e. 
+         ## at the start of each momentum solve - within non-linear iterations.)
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "StrainRateSecondInvariant" },
+            (
+               element diagnostic {
+                  strain_rate_second_invariant_algorithm,
+                  velocity_mesh_choice,
+                  diagnostic_scalar_field
                }
             )
          }|
