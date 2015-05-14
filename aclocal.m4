@@ -431,6 +431,7 @@ LIBS="$PETSC_LINK_LIBS $LIBS"
 # need to add -Iinclude/ to what we get from petsc, so we can use our own petsc_legacy.h wrapper
 PETSC_INCLUDE_FLAGS=`make -s -f petsc_makefile_old getincludedirs 2> /dev/null || make -s -f petsc_makefile getincludedirs`
 CPPFLAGS="$CPPFLAGS $PETSC_INCLUDE_FLAGS -Iinclude/"
+CXXFLAGS="$CXXFLAGS $PETSC_INCLUDE_FLAGS -Iinclude/"
 FCFLAGS="$FCFLAGS $PETSC_INCLUDE_FLAGS -Iinclude/"
 
 # Horrible hacks needed for cx1
