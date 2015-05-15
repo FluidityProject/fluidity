@@ -96,29 +96,13 @@ module tetrahedron_intersection_module
     type(vector_field), intent(out), optional :: surface_positions
     type(scalar_field), intent(out), optional :: surface_colours
     type(element_type), intent(in), optional :: surface_shape
-    integer :: ele
     integer, intent(out) :: stat
 
     type(tet_type_lib) :: tetA_lib
     type(plane_type_lib), dimension(4) :: planesB_lib
-!    type(libsupermesh_plane_type), dimension(:), allocatable :: planesB_lib
-    type(element_type_lib) :: shape_lib, shape_lib_temp
-    type(vector_field_lib) :: output_lib
-    type(vector_field_lib) :: surface_positions_lib
-    type(scalar_field_lib) :: surface_colours_lib
-    type(element_type_lib) :: surface_shape_lib
-    type(mesh_type_lib) :: mesh_lib
-    type(mesh_type) :: new_mesh
-    type(element_type) :: new_shape
-    type(quadrature_type) :: new_quad
     
-    type(quadrature_type_lib) :: quad_lib, quad_lib_temp
-    integer :: i, k, j, surface_eles
-    integer :: ele_A
-    type(tet_type) :: tet_A, tet_B
-    integer :: dim
-    real, dimension(size(planesB),3) :: planesB_normal
-    real, dimension(size(planesB)) :: planesB_c
+    integer :: i, n_tetsC, ele
+    type(tet_type_lib), dimension(96) :: tetsC
     
     if (present(surface_colours) .or. present(surface_positions) .or. present(surface_shape)) then
       assert(present(surface_positions))
@@ -132,62 +116,51 @@ module tetrahedron_intersection_module
     FORALL(i=1:3) planesB_lib%normal(i)=planesB%normal(i)
     planesB_lib%c = planesB%c
     
-    do i = 1, size(planesB)
-      do k = 1, 3
-        planesB_normal(i,k)=planesB(i)%normal(k)
-      end do
-    end do
-!    FORALL(i=1:sizeOfPlanesB) FORALL(k=1:3) planesB_normal(i)(k)=planesB(i)%normal(k)
-    FORALL(i=1:size(planesB)) planesB_c(i)=planesB(i)%c
+!    if ( associated(output%refcount) ) then 
+!      quad_lib = make_quadrature_lib(vertices = output%mesh%shape%quadrature%vertices, dim = output%mesh%shape%quadrature%dim, ngi = output%mesh%shape%quadrature%ngi, degree = output%mesh%shape%degree * 2)
+!      shape_lib_temp = make_element_shape_lib(vertices = output%mesh%shape%loc, dim = output%mesh%shape%dim, degree = output%mesh%shape%degree, quad = quad_lib)
+!      call deallocate(quad_lib)
 
-!    quad_lib = make_quadrature_lib(vertices = shape%quadrature%vertices, dim = shape%quadrature%dim, ngi = shape%quadrature%ngi, degree = shape%quadrature%degree)
-!    shape_lib = make_element_shape_lib(vertices = shape%loc, dim = shape%dim, degree = shape%degree, quad = quad_lib)
-!    call deallocate(quad_lib)
-
-    if ( associated(output%refcount) ) then 
-      quad_lib = make_quadrature_lib(vertices = output%mesh%shape%quadrature%vertices, dim = output%mesh%shape%quadrature%dim, ngi = output%mesh%shape%quadrature%ngi, degree = output%mesh%shape%degree * 2)
-      shape_lib_temp = make_element_shape_lib(vertices = output%mesh%shape%loc, dim = output%mesh%shape%dim, degree = output%mesh%shape%degree, quad = quad_lib)
-      call deallocate(quad_lib)
-
-      call allocate(mesh_lib, node_count(output), ele_count(output), shape_lib_temp)
-      mesh_lib%ndglno = output%mesh%ndglno
-      call allocate(output_lib, output%dim, mesh_lib)
-      call deallocate(shape_lib_temp)
-      call deallocate(mesh_lib)
+!      call allocate(mesh_lib, node_count(output), ele_count(output), shape_lib_temp)
+!      mesh_lib%ndglno = output%mesh%ndglno
+!      call allocate(output_lib, output%dim, mesh_lib)
+!      call deallocate(shape_lib_temp)
+!      call deallocate(mesh_lib)
  
-      allocate(output_lib%val(size(output%val, 1), size(output%val, 2)))
-      output_lib%val = output%val 
-      output_lib%dim = output%dim
-    end if
+!      allocate(output_lib%val(size(output%val, 1), size(output%val, 2)))
+!      output_lib%val = output%val 
+!      output_lib%dim = output%dim
+!    end if
 
     if (present(surface_colours)) then
       FLAbort("intersect_tets_dt: Not implemented optional parameters")
 !      call libsupermesh_intersect_tets_dt(tetA_lib, planesB_lib, shape_lib, stat = stat, output = output_lib)
     else
-!      call libsupermesh_intersect_tets_dt(tetA_lib, planesB_lib, shape_lib, stat = stat, output = output_lib)
-      call libsupermesh_intersect_tets_dt(tetA%V, tetA%colours, size(planesB), planesB_normal, planesB_c, &
-          shape%quadrature%vertices, shape%quadrature%dim, shape%quadrature%ngi, &
-          shape%quadrature%degree, shape%loc, shape%dim, shape%degree, &
-          stat = stat, output = output_lib)
+      call libsupermesh_intersect_tets_dt(tetA_lib, planesB_lib, tetsC, n_tetsC)
+!      call libsupermesh_intersect_tets_dt(tetA%V, tetA%colours, size(planesB), planesB_normal, planesB_c, &
+!          shape%quadrature%vertices, shape%quadrature%dim, shape%quadrature%ngi, &
+!          shape%quadrature%degree, shape%loc, shape%dim, shape%degree, &
+!          stat = stat, output = output_lib)
     end if
     if (stat == 1) then
       return
     end if
 
-    new_quad = make_quadrature(vertices = output_lib%mesh%shape%quadrature%vertices, dim = output_lib%mesh%shape%quadrature%dim, ngi = output_lib%mesh%shape%quadrature%ngi, degree = output_lib%mesh%shape%quadrature%degree)
-    new_shape = make_element_shape(vertices = output_lib%mesh%shape%loc, dim = output_lib%mesh%shape%dim, degree = output_lib%mesh%shape%degree, quad = new_quad)
-    call deallocate(new_quad)
-
-    call allocate(new_mesh, node_count_lib(output_lib), ele_count_lib(output_lib), new_shape)
-    call deallocate(new_shape)
-       
-    FORALL(i=1:size(new_mesh%ndglno)) new_mesh%ndglno(i)=output_lib%mesh%ndglno(i)
+    if (.not. mesh_allocated) then
+      call allocate(intersection_mesh, BUF_SIZE * 4, BUF_SIZE, shape, name="IntersectionMesh")
+      intersection_mesh%ndglno = (/ (i, i=1,BUF_SIZE*4) /)
+      intersection_mesh%continuity = -1
+      mesh_allocated = .true.
+    end if
+    intersection_mesh%nodes = n_tetsC*4
+    intersection_mesh%elements = n_tetsC
     
-    call allocate(output, output_lib%dim, new_mesh, name = output_lib%name)
-    output%val = output_lib%val
-    call deallocate(new_mesh)
-    call deallocate(output_lib)
-
+    call allocate(output, 3, intersection_mesh, name = "IntersectionCoordinates")
+    do ele=1,n_tetsC
+      call set(output, ele_nodes(output, ele), tetsC(ele)%v)
+    end do
+    stat = 0
+    
     return
 
   end subroutine intersect_tets_dt
