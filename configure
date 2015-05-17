@@ -13264,7 +13264,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 fi
 
-CXXFLAGS="$CXXFLAGS $PARMETIS_FLAGS"
+CPPFLAGS="$CPPFLAGS $PARMETIS_FLAGS"
 
 # Check whether --enable-sam was given.
 if test "${enable_sam+set}" = set; then :
