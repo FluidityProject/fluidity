@@ -848,7 +848,7 @@ test_true
 	     ]
 	)
 
-CXXFLAGS="$CXXFLAGS $PARMETIS_FLAGS"
+CPPFLAGS="$CPPFLAGS $PARMETIS_FLAGS"
 	 
 AC_ARG_ENABLE(sam,
               [AC_HELP_STRING([--enable-sam],
