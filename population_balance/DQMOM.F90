@@ -716,7 +716,8 @@ contains
           density_dispersed = 1
           sigma = 0.072
           eps_node = node_val(turbulent_dissipation,node)
-          visc_node = node_val(effective_viscosity_continuous,node)
+!          visc_node = node_val(effective_viscosity_continuous,node)
+          visc_node = 0.001
           do i = 1, N
              break_freq(1,i) = 6.0*eps_node**(1./3) * erfc(sqrt( 0.04*(sigma/density_continuous)*(1./(eps_node**(2./3) * abscissa_val(1,i)**(5./3))) + 0.01*(visc_node/sqrt(density_continuous*density_dispersed))*(1./(eps_node**(1./3)*abscissa_val(1,i)**(4./3)))))
           end do
@@ -756,7 +757,8 @@ contains
           density_continuous = 1000
           sigma = 0.072
           eps_node = node_val(turbulent_dissipation, node)
-          visc_node=node_val(effective_viscosity_continuous, node)
+!          visc_node=node_val(effective_viscosity_continuous, node)
+          visc_node=0.001
           do i = 1, N
              do j = 1, N
                 aggregation_freq(1,i,j) = 0.88 * eps_node**(1./3) * (abscissa_val(1,i) + abscissa_val(1,j))**2 * (abscissa_val(1,i)**(2./3) + abscissa_val(1,j)**(2./3))**(1./2) * exp(-6.0E9*((visc_node*density_continuous)/sigma**2)*eps_node*((abscissa_val(1,i)*abscissa_val(1,j))/(abscissa_val(1,i)+abscissa_val(1,j)))**4)
