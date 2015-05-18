@@ -429,113 +429,24 @@ contains
 #ifdef HAVE_SUPERMESH
   function advancing_front_intersection_finder(positionsA, positionsB, seed) result(map_AB)
     ! The positions and meshes of A and B
-    type(vector_field), intent(in), target :: positionsA, positionsB
-    ! for each element in A, the intersecting elements in B
-    type(ilist), dimension(ele_count(positionsA)) :: map_AB
+    type(vector_field), intent(in) :: positionsA
+    type(vector_field), intent(in) :: positionsB
     integer, optional, intent(in) :: seed
     
-!    type(vector_field_lib) :: positionsA_lib, positionsB_lib
     ! for each element in A, the intersecting elements in B
+    type(ilist), dimension(ele_count(positionsA)) :: map_AB
+    
     type(ilist_lib), dimension(:), allocatable :: map_AB_lib
-!    type(ilist_lib), dimension(:), pointer :: map_AB_lib
-!    type(ilist_lib), dimension(ele_count(positionsA)) :: map_AB_lib
-    
+
     integer :: i, temp_value
-    type(inode), pointer :: current_id
     type(inode_lib), pointer :: current_id_lib
-    type(element_type_lib) :: shape_lib
-    type(quadrature_type_lib) :: quad_lib
-    type(mesh_type_lib) :: mesh_lib
     
-!    type(csr_sparsity), pointer :: eelistA, eelistB
-!    type(csr_sparsity_lib) :: eelistA_lib, eelistB_lib
-    real, dimension(:,:), allocatable :: positionsA_lib_val
-    real, dimension(:,:), allocatable :: positionsB_lib_val
-    integer :: dimA, dimB, n_count
-
-!!!!    quad_lib = make_quadrature_lib(vertices = positionsA%mesh%shape%quadrature%vertices, dim = positionsA%mesh%shape%quadrature%dim, ngi = positionsA%mesh%shape%quadrature%ngi, degree = positionsA%mesh%shape%quadrature%degree)
-!    quad_lib = make_quadrature_lib(vertices = positionsA%mesh%shape%quadrature%vertices, dim = positionsA%mesh%shape%quadrature%dim, ngi = positionsA%mesh%shape%quadrature%ngi, degree = positionsA%mesh%shape%degree)
-!    shape_lib = make_element_shape_lib(vertices = positionsA%mesh%shape%loc, dim = positionsA%mesh%shape%dim, degree = positionsA%mesh%shape%degree, quad = quad_lib)
-!    call deallocate(quad_lib)
-!    call allocate(mesh_lib, node_count(positionsA), ele_count(positionsA), shape_lib)
+    allocate(map_AB_lib(ele_count(positionsA)))
     
-!    call deallocate(shape_lib)
-!    mesh_lib%ndglno = positionsA%mesh%ndglno
-!    call allocate(positionsA_lib, positionsA%dim, mesh_lib)
-!    positionsA_lib%val = positionsA%val 
-!    positionsA_lib%dim = positionsA%dim
-!    call deallocate(mesh_lib)
-    
-!!!!    quad_lib = make_quadrature_lib(vertices = positionsB%mesh%shape%quadrature%vertices, dim = positionsB%mesh%shape%quadrature%dim, ngi = positionsB%mesh%shape%quadrature%ngi, degree = positionsB%mesh%shape%quadrature%degree)
-!    quad_lib = make_quadrature_lib(vertices = positionsB%mesh%shape%quadrature%vertices, dim = positionsB%mesh%shape%quadrature%dim, ngi = positionsB%mesh%shape%quadrature%ngi, degree = positionsB%mesh%shape%degree * 2)
-!    shape_lib = make_element_shape_lib(vertices = positionsB%mesh%shape%loc, dim = positionsB%mesh%shape%dim, degree = positionsB%mesh%shape%degree, quad = quad_lib)
-!    call deallocate(quad_lib)
-    
-!    call allocate(mesh_lib, node_count(positionsB), ele_count(positionsB), shape_lib)
-!    call deallocate(shape_lib)
-!    mesh_lib%ndglno = positionsB%mesh%ndglno
-!    call allocate(positionsB_lib, positionsB%dim, mesh_lib)
-!    positionsB_lib%val = positionsB%val 
-!    positionsB_lib%dim = positionsB%dim
-!    call deallocate(mesh_lib)
-    
-    allocate(map_AB_lib(size(map_AB)))
-    
-!    eelistA => positionsA%mesh%adj_lists%eelist
-!    eelistB => positionsB%mesh%adj_lists%eelist
-!    call allocate(eelistA_lib, size(positionsA%mesh%adj_lists%eelist,2), size(positionsA%mesh%adj_lists%eelist,1), & 
-!           & entries=size(positionsA%mesh%adj_lists%eelist%colm))
-
-!    call allocate(eelistA_lib, &
-!       & rows=node_count(positionsA%mesh), &
-!       & columns=node_count(positionsA%mesh), &
-!       & entries=positionsA%mesh%shape%loc**2*element_count(positionsA%mesh), &
-!       & name="EEListA")
-!    call allocate(eelistB_lib, &
-!       & rows=node_count(positionsB%mesh), &
-!       & columns=node_count(positionsB%mesh), &
-!       & entries=positionsB%mesh%shape%loc**2*element_count(positionsB%mesh), &
-!       & name="EEListB")
-       
-!    eelistA_lib%findrm => positionsA%mesh%adj_lists%eelist%findrm
-!    eelistA_lib%colm => positionsA%mesh%adj_lists%eelist%colm
-    
-!    if (associated(positionsB%mesh%adj_lists) .and. associated(positionsB%mesh%adj_lists%eelist)) then
-!      eelistB_lib%findrm => positionsB%mesh%adj_lists%eelist%findrm
-!      eelistB_lib%colm => positionsB%mesh%adj_lists%eelist%colm
-!    end if
-
-    dimA = positionsA%dim
-    n_count = 0
-    select case(positionsA%field_type)
-    case(FIELD_TYPE_NORMAL)
-      n_count = node_count(positionsA%mesh)
-      allocate(positionsA_lib_val(dimA,n_count))
-    case(FIELD_TYPE_CONSTANT)
-      allocate(positionsA_lib_val(dimA,1))
-    case(FIELD_TYPE_DEFERRED)
-      allocate(positionsA_lib_val(0,0))
-    end select
-    positionsA_lib_val = positionsA%val
-    
-    dimB = positionsB%dim
-    n_count = 0
-    select case(positionsB%field_type)
-    case(FIELD_TYPE_NORMAL)
-      n_count = node_count(positionsB%mesh)
-      allocate(positionsB_lib_val(dimB,n_count))
-    case(FIELD_TYPE_CONSTANT)
-      allocate(positionsB_lib_val(dimB,1))
-    case(FIELD_TYPE_DEFERRED)
-      allocate(positionsB_lib_val(0,0))
-    end select
-    positionsB_lib_val = positionsB%val
-
-    map_AB_lib = libsupermesh_advancing_front_intersection_finder(positionsA_lib_val, positionsB_lib_val, &
-                & dimA, ele_count(positionsA), positionsA%mesh%shape%quadrature%vertices, positionsA%mesh%shape%quadrature%dim, &
-                positionsA%mesh%shape%loc, node_count(positionsA), positionsA%mesh%ndglno,   &
-                & dimB, ele_count(positionsB), positionsB%mesh%shape%quadrature%vertices, positionsB%mesh%shape%quadrature%dim, &
-                positionsB%mesh%shape%loc, node_count(positionsB), positionsB%mesh%ndglno, seed)
+    map_AB_lib = libsupermesh_advancing_front_intersection_finder( &
+      & positionsA%val, reshape(positionsA%mesh%ndglno, (/ele_loc(positionsA, 1), ele_count(positionsA)/)), &
+      & positionsB%val, reshape(positionsB%mesh%ndglno, (/ele_loc(positionsB, 1), ele_count(positionsB)/)), &
+      & seed = seed)
   
     do i=1,size(map_AB_lib)
       current_id_lib => map_AB_lib(i)%firstnode
@@ -548,11 +459,7 @@ contains
       call flush_list_lib(map_AB_lib(i))
     end do
  
-    deallocate(positionsA_lib_val)
-    deallocate(positionsB_lib_val)
     deallocate(map_AB_lib)
-!    call deallocate(positionsA_lib)
-!    call deallocate(positionsB_lib)
     
   end function advancing_front_intersection_finder
 #else
