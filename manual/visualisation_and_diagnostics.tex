@@ -1131,9 +1131,9 @@ The flag \lstinline[language = Bash]+-h+ prints out the help message and the fla
 \label{sec:pvtu2vtu}
 pvtu2vtu combines pvtus into vtus. It is run from the command line:
 \begin{lstlisting}[language = Bash]
-pvtu2vtu [OPTIONS] PROJECT FIRSTID [LASTID]
+pvtu2vtu [OPTIONS] PROJECT [FIRSTID] [LASTID]
 \end{lstlisting} 
-with \lstinline[language = Bash]+PROJECT+ the basename of the pvtus and \lstinline[language = Bash]+FIRSTID+ and \lstinline[language = Bash]+LASTID+ the first and last id numbers respectively of the pvtus to be included. \lstinline[language = Bash]+LASTID+ is optional and defaults to \lstinline[language = Bash]+FIRSTID+. Running with the option \lstinline[language = Bash]+-h+ will give further information on the other options available. Note, this may not always work with vtus from adaptive runs.
+with \lstinline[language = Bash]+PROJECT+ the basename of the pvtus and \lstinline[language = Bash]+FIRSTID+ and \lstinline[language = Bash]+LASTID+ the first and last id numbers respectively of the pvtus to be included. \lstinline[language = Bash]+FIRSTID+ and \lstinline[language = Bash]+LASTID+ are optional.  If only \lstinline[language = Bash]+PROJECT+ and \lstinline[language = Bash]+FIRSTID+ are given, \lstinline[language = Bash]+LASTID+ defaults to \lstinline[language = Bash]+FIRSTID+. Running with the option \lstinline[language = Bash]+-h+ will give further information on the other options available. Note, this may not always work with vtus from adaptive runs.
 
 %%%%%%%%%%%%%%%%%%%%%% RADIAL SCALE %%%%%%%%%%%%%%%%%%%%%%%%%%
 
