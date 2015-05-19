@@ -183,7 +183,7 @@ contains
                                    turbulent_dissipation, effective_viscosity, air_effective_viscosity
     type(scalar_field) :: eff_visc_remap, air_eff_visc_remap
     type(tensor_field), pointer :: water_visc, air_visc
-    type(scalar_field), dimension(3) :: turbulent_scalars
+    type(scalar_field), dimension(1) :: turbulent_scalars
     type(mesh_type), pointer :: model_mesh
     integer :: num_turb, stat
     real :: time_turbulent
@@ -465,8 +465,8 @@ contains
     if (have_option("/extract_turbulent_fields_from_fluent")) then
        turbulent_dissipation=>extract_scalar_field(state(1),"TurbulentDissipationRate")
        call set(turbulent_dissipation, 1.0e-8) 
-       effective_viscosity=>extract_scalar_field(state(1),"EffectiveViscosity")
-       call set(effective_viscosity, 0.00101)
+!       effective_viscosity=>extract_scalar_field(state(1),"EffectiveViscosity")
+!       call set(effective_viscosity, 0.00101)
 !       air_effective_viscosity=>extract_scalar_field(state(2),"AirEffectiveViscosity")
 !       call set(air_effective_viscosity, 1.254e-5)
 !       water_visc=>extract_tensor_field(state(1),"Viscosity")
@@ -495,7 +495,7 @@ contains
 
 !       call deallocate(eff_visc_remap)
 !       call deallocate(air_eff_visc_remap)
-       num_turb = 1
+       call get_option('/extract_turbulent_fields_from_fluent/num_turb', num_turb, default=1)
     end if
     !---------
 
@@ -562,7 +562,7 @@ contains
              ! Write a vtu first if adaptivity is present
              if(have_option("/extract_turbulent_fields_from_fluent/adaptivity_present")) then
                 turbulent_scalars(1)=extract_scalar_field(state(1),"TurbulentDissipationRate")
-                turbulent_scalars(2)=extract_scalar_field(state(1),"EffectiveViscosity")
+!                turbulent_scalars(2)=extract_scalar_field(state(1),"EffectiveViscosity")
                 model_mesh => extract_mesh(state(1), "CoordinateMesh")
                 call vtk_write_fields("turbulent_fields", & 
                     position=extract_vector_field(state(1),"Coordinate"), &
@@ -604,13 +604,13 @@ contains
 
                if(filename_pvtu_exists) then
                   temp_scalar_1=>vtk_cache_read_scalar_field(filename_pvtu,'TurbulentDissipationRate')
-                  temp_scalar_2=>vtk_cache_read_scalar_field(filename_pvtu,'EffectiveViscosity')
+!                  temp_scalar_2=>vtk_cache_read_scalar_field(filename_pvtu,'EffectiveViscosity')
                   !temp_scalar_3=>vtk_cache_read_scalar_field(filename_pvtu,'AirEffectiveViscosity')
 
                   turbulent_dissipation=>extract_scalar_field(state(1),"TurbulentDissipationRate")
-                  effective_viscosity=>extract_scalar_field(state(1),"EffectiveViscosity")
+!                  effective_viscosity=>extract_scalar_field(state(1),"EffectiveViscosity")
                   call set(turbulent_dissipation, temp_scalar_1)
-                  call set(effective_viscosity, temp_scalar_2)
+!                  call set(effective_viscosity, temp_scalar_2)
                   !call set(air_effective_viscosity,temp_scalar_3)
                else
                   ewrite(1,*) "The file "//trim(filename_pvtu)//" does not exist"

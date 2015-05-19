@@ -2569,6 +2569,11 @@ while a factor of 1 represents a connected domain.</a:documentation>
               <empty/>
             </element>
           </optional>
+          <optional>
+            <element name="num_turb">
+              <ref name="integer"/>
+            </element>
+          </optional>
         </element>
       </optional>
       <optional>
