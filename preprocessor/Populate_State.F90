@@ -1362,14 +1362,20 @@ contains
               dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
          end if
          
-         !*******22 July 2014 lcai*Leaching_chemical_model************************
+         !******* lcai*Leaching_chemical_model************************
          !-------------allocate and insert the leaching source field of the prog sfield-----!
-         if (have_option(trim(path)//'/prognostic/LeachingChemicalSourceTerm')) then
+         if (have_option(trim(path)//'/prognostic/LeachingChemicalSourceTerm') .or. &
+             have_option(trim(path)//'/prognostic/leaching_temperature_sources')) then
          
-         call allocate_and_insert_leaching_src_prog_sfield(path,field_name, state)
+           call allocate_and_insert_leaching_src_prog_sfield(path,field_name, state)
 
-         end if 
-         !*************Finish*****lcai*Leaching*********************************
+         end if
+
+         if (have_option(trim(path)//'/prognostic/scalar_field::Immobile')) then
+            call allocate_and_insert_immobile_src_fields(path,field_name, state)
+         end if
+           
+         !*************Finish*************************************
       end do scalar_field_loop
 
       ! Get number of vector fields that are children of this state
@@ -1431,8 +1437,8 @@ contains
     Subroutine allocate_and_insert_MIM(state_path, state)
     character(len=*), intent(in) :: state_path
     type(state_type), intent(inout) :: state
-    character(len=OPTION_PATH_LEN) :: path
-    character(len=OPTION_PATH_LEN) :: field_name
+    character(len=OPTION_PATH_LEN) :: path1, path
+    character(len=OPTION_PATH_LEN) :: field_name1, field_name
     integer :: nfields ! number of fields
     integer :: j
   
@@ -1452,16 +1458,50 @@ contains
           call get_option(trim(path)//"/name", field_name)
           ! Reset path to have field name rather than index
           path=trim(state_path_MIM)//"/scalar_field::"//trim(field_name)
-          !if it is the prognostic immobile field, then adding the prefix to it
-          if (have_option(trim(path)//'/prognostic')) then
-            field_name = 'Immobile'//trim(field_name)
-          end if  
+
           call allocate_and_insert_scalar_field(trim(path), state, field_name=field_name, &
-                dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
+               dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
  
       end do scalar_field_loop
     
     end Subroutine allocate_and_insert_MIM
+
+    subroutine allocate_and_insert_immobile_src_fields(master_path,master_field_name, state)
+       character(len=*), intent(in) :: master_path
+       character(len=OPTION_PATH_LEN), intent(in) :: master_field_name
+       type(state_type), intent(inout) :: state         
+
+       !local variables
+       !local variables
+       character(len=OPTION_PATH_LEN) :: field_name, field_name1
+       character(len=OPTION_PATH_LEN):: field_path, field_path1
+       integer :: nfields, j
+
+       field_path=trim(master_path)//"/prognostic/scalar_field::Immobile"
+       !add the master field name to the immobile field
+       field_name="Immobile"//trim(master_field_name)
+
+       call allocate_and_insert_scalar_field(trim(field_path), state, field_name=field_name, &
+            dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
+
+       !for the fields under the immobile field
+       nfields=option_count(trim(field_path)//"/scalar_field")       
+       do j=0, nfields-1
+          field_path1=trim(field_path)//"/scalar_field["//int2str(j)//"]"
+          call get_option(trim(field_path1)//"/name", field_name1)
+          field_path1=trim(field_path)//"/scalar_field::"//trim(field_name1)
+          !add the prefix of the field name to the fields
+          field_name1=trim(master_field_name)//trim(field_name1)
+          
+          call allocate_and_insert_scalar_field(trim(field_path1), state, field_name=field_name1, &
+               dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
+       end do
+
+      
+      
+         
+    end subroutine allocate_and_insert_immobile_src_fields
+    
     !****Finish***LCai Allocate all the Mobile_Immbobile fields*******!
     !*****22 July 2014***lcai***Leaching_chemical_model***************!
     subroutine allocate_and_insert_leaching_src_prog_sfield(master_path,master_field_name, state)
@@ -1470,9 +1510,25 @@ contains
        type(state_type), intent(inout) :: state
    
        !local variables
-       character(len=OPTION_PATH_LEN) :: reaction_path, reaction_name, src_path, src_name
+       character(len=OPTION_PATH_LEN) :: reaction_path, reaction_name, src_path, src_path2, src_name
        integer :: nfields, j
-   
+
+
+        !---------------for MIM terms
+       if (have_option(trim(master_path)//'/prognostic/LeachingChemicalSourceTerm/Mobile_Immobile_Model')) then
+                src_path=trim(master_path)//'/prognostic/LeachingChemicalSourceTerm'
+               nfields=option_count(trim(src_path)//'/Mobile_Immobile_Model/scalar_field')
+               do j=0,nfields-1
+                  src_path2=trim(src_path)//"/Mobile_Immobile_Model/scalar_field["//int2str(j)//"]"
+                  call get_option(trim(src_path2)//"/name", src_name)
+                  src_path2=trim(src_path)//"/Mobile_Immobile_Model/scalar_field::"//trim(src_name)
+                  !add the prefix of the field name to the fields
+                  src_name=trim(master_field_name)//trim(src_name)            
+                  call allocate_and_insert_scalar_field(trim(src_path2), state, field_name=src_name, &
+                 dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
+                    
+               end do
+            end if
        !----------for the solution phase reactions
        if (have_option(trim(master_path)//'/prognostic/LeachingChemicalSourceTerm/SolutionPhaseSource')) then
          reaction_path=trim(master_path)//'/prognostic/LeachingChemicalSourceTerm/SolutionPhaseSource'
@@ -1488,7 +1544,7 @@ contains
          end do
        end if
    
-       !----------for mineral dissolution reactions
+       !----------for mineral dissolutison reactions
        if (have_option(trim(master_path)//'/prognostic/LeachingChemicalSourceTerm/MineralDissolutionSource')) then
          reaction_path=trim(master_path)//'/prognostic/LeachingChemicalSourceTerm/MineralDissolutionSource'
          nfields=option_count(trim(reaction_path)//"/scalar_field")
@@ -1502,7 +1558,54 @@ contains
                   dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
          end do
        end if
-   
+     
+       !------------for heat transfer model
+       if (master_field_name .eq. 'Temperature') then
+         if (have_option(trim(master_path)//'/prognostic/leaching_temperature_sources')) then
+            src_path=trim(master_path)//'/prognostic/leaching_temperature_sources'
+
+            !---------------for MIM terms
+            if (have_option(trim(src_path)//'/Mobile_Immobile_Model')) then
+               nfields=option_count(trim(src_path)//"/Mobile_Immobile_Model/scalar_field")
+               do j=0,nfields-1
+                  src_path2=trim(src_path)//"/Mobile_Immobile_Model/scalar_field["//int2str(j)//"]"
+                  call get_option(trim(src_path2)//"/name", src_name)
+                  src_path2=trim(src_path)//"/Mobile_Immobile_Model/scalar_field::"//trim(src_name)
+                  !add the prefix of the field name to the fields
+                  src_name=trim(master_field_name)//trim(src_name)            
+                  call allocate_and_insert_scalar_field(trim(src_path2), state, field_name=src_name, &
+                 dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
+                    
+               end do
+            end if
+            
+            nfields=option_count(trim(src_path)//"/scalar_field")
+            do j=0, nfields-1
+               src_path2=trim(src_path)//"/scalar_field["//int2str(j)//"]"
+               call get_option(trim(src_path2)//"/name", src_name)
+               src_path2=trim(src_path)//"/scalar_field::"//trim(src_name)
+               call allocate_and_insert_scalar_field(trim(src_path2), state, field_name=src_name, &
+                  dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
+            end do
+
+           if (have_option(trim(src_path)//'/heat_transfer_sources')) then
+              src_path=trim(src_path)//'/heat_transfer_sources'
+              nfields=option_count(trim(src_path)//"/scalar_field")
+              do j=0, nfields-1
+                 src_path2=trim(src_path)//"/scalar_field["//int2str(j)//"]"
+                 call get_option(trim(src_path2)//"/name", src_name)
+                 src_path2=trim(src_path)//"/scalar_field::"//trim(src_name)
+                 call allocate_and_insert_scalar_field(trim(src_path2), state, field_name=src_name, &
+                  dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
+              end do           
+           end if
+           
+        end if                
+     end if
+     
+
+       
+     
     end subroutine allocate_and_insert_leaching_src_prog_sfield
 
     !----------allocate and insert the fields under leaching chemical model--------! 
@@ -1510,12 +1613,14 @@ contains
          !populate the fields for the leaching chemical model 
          !and the leaching source terms for prog sfield
          type(state_type), intent(inout) :: state
-         character(len=OPTION_PATH_LEN) :: path
+         type(scalar_field) :: field
+         type(mesh_type), pointer :: mesh
+         character(len=OPTION_PATH_LEN) :: path, path2
          character(len=OPTION_PATH_LEN) :: field_name
     
          !local variable
-         character(len=OPTION_PATH_LEN) :: state_path_lc,reaction_path, reaction_name, prefix
-         integer :: nfields, nreaction, jr, j
+         character(len=OPTION_PATH_LEN) :: state_path_lc,reaction_path, reaction_name, prefix,mesh_name
+         integer :: nfields, nreaction, nfields2, jr, j
          !--------For solution phase reaction
          if (have_option('/Leaching_chemical_model/SolutionPhaseReactions')) then
            state_path_lc='/Leaching_chemical_model/SolutionPhaseReactions'
@@ -1530,7 +1635,7 @@ contains
                  case("Ferrous_Oxidation")
                     prefix="feox_"
                  case('Jarosite_Precipitation')
-                    prefix="jaro_"
+                    prefix="Jarosite_"
                  case('Oxygen_dissolution')
                     prefix="oxdi_"
                  case default
@@ -1548,7 +1653,16 @@ contains
                                 dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
     
               end do
-           end do
+   
+              if (have_option(trim(reaction_path)//'/rate_constant_Arrhenius')) then          
+                 !get the prefactor of the reaction rate
+                 path=trim(reaction_path)//'/rate_constant_Arrhenius/scalar_field::prefactor'
+                 field_name=trim(prefix)//'prefactor'
+                 
+                 call allocate_and_insert_scalar_field(trim(path), state, field_name=field_name, &
+                                dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
+              end if
+           end do           
          end if
 
          !--------For mineral dissolution
@@ -1584,9 +1698,82 @@ contains
                 call allocate_and_insert_scalar_field(trim(path), state, field_name=field_name, &
                                 dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)    
               end do
+              
+              if (have_option(trim(reaction_path)//'/rate_constant_Arrhenius')) then          
+                 !get the prefactor of the reaction rate
+                 path=trim(reaction_path)//'/rate_constant_Arrhenius/scalar_field::prefactor'
+                 field_name=trim(prefix)//'prefactor'
+                 
+                 call allocate_and_insert_scalar_field(trim(path), state, field_name=field_name, &
+                                dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
+              end if
+              
            end do
          end if
+
+         !**********For heat transfer model***********************************
+         !for the rock temperature if the heat transfer is set to be 2 phases
+         if (have_option('/Leaching_chemical_model/heat_transfer_model/two_phases_heat_transfer')) then
+           state_path_lc='/Leaching_chemical_model/heat_transfer_model/two_phases_heat_transfer' 
+           nfields=option_count(trim(state_path_lc)//"/scalar_field")
+           do j=0, nfields-1
+             path=trim(state_path_lc)//"/scalar_field["//int2str(j)//"]"
+             call get_option(trim(path)//"/name", field_name)
+             path=trim(state_path_lc)//"/scalar_field::"//trim(field_name)
+             call allocate_and_insert_scalar_field(trim(path), state, field_name=field_name, &
+                                dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)  
+
+             !get the children fields under this field
+             nfields2=option_count(trim(path)//'/scalar_field')
+             do jr=0, nfields2-1
+               path2=trim(path)//"/scalar_field["//int2str(jr)//"]"
+               call get_option(trim(path2)//"/name", field_name)
+               path2=trim(path)//"/scalar_field::"//trim(field_name)
+               call allocate_and_insert_scalar_field(trim(path2), state, field_name=field_name, &
+                             dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
+             end do
+           end do
+         
+           if (have_option('/Leaching_chemical_model/heat_transfer_model/two_phases_heat_transfer/heat_transfer_sources'))then
+             state_path_lc='/Leaching_chemical_model/heat_transfer_model/two_phases_heat_transfer/heat_transfer_sources'
+             nfields=option_count(trim(state_path_lc)//"/scalar_field")
+             do j=0, nfields-1
+                path=trim(state_path_lc)//"/scalar_field["//int2str(j)//"]"
+                call get_option(trim(path)//"/name", field_name)
+                path=trim(state_path_lc)//"/scalar_field::"//trim(field_name)
+                call allocate_and_insert_scalar_field(trim(path), state, field_name=field_name, &
+                                dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
+
+                !get the children fields under this field
+                nfields2=option_count(trim(path)//'/scalar_field')
+                do jr=0, nfields2-1
+                  path2=trim(path)//"/scalar_field["//int2str(jr)//"]"                  
+                  call get_option(trim(path2)//"/name", field_name)
+                  path2=trim(path)//"/scalar_field::"//trim(field_name)
+                  call allocate_and_insert_scalar_field(trim(path2), state, field_name=field_name, &
+                                dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
+                end do
+             end do
+           end if       
+         end if
+
+         !for leaching dynamic subcycling
+         if (have_option('/Leaching_chemical_model/leaching_chemical_dt_subcycle')) then
+           path=trim('/Leaching_chemical_model/leaching_chemical_dt_subcycle/scalar_field::subcycling_dt')
+           call get_option('/Leaching_chemical_model/leaching_chemical_dt_subcycle/scalar_field::subcycling_dt/&
+               &diagnostic/mesh[0]/name', mesh_name)
+           mesh => extract_mesh(state, trim(mesh_name))
+           call allocate(field, mesh, name='subcycling_dt', &
+                      field_type=FIELD_TYPE_CONSTANT)
+           call zero(field)
+           field%option_path=trim('/Leaching_chemical_model/leaching_chemical_dt_subcycle/scalar_field::subcycling_dt')
+           call insert(state, field, field%name)
+           call deallocate(field)
+           nullify(mesh)
+         end if
+
      end subroutine allocate_and_insert_leaching_model
+           
 
     !********Finish****lcai***Leaching********************************!
 
@@ -1839,6 +2026,97 @@ contains
        end if
        
     end if have_porous_media_dual
+    
+    !------------Leaching Chemical model----Lcai-------------------------!
+    !soulution phase reactions
+    if (have_option('/Leaching_chemical_model/SolutionPhaseReactions')) then
+           path='/Leaching_chemical_model/SolutionPhaseReactions'
+           nstates=option_count(trim(path)//"/reaction") !nstates for reaction
+    
+           do i=0, nstates-1
+              path='/Leaching_chemical_model/SolutionPhaseReactions'
+              call get_option(trim(path)//"/reaction["//int2str(i)//"]/name", field_name) !field_name for reaction name
+              path=trim(path)//"/reaction::"//trim(field_name)
+           
+             select case(trim(field_name))
+                 case("Ferrous_Oxidation")
+                    field_name="feox_"
+                 case('Jarosite_Precipitation')
+                    field_name="Jarosite_"
+                 case('Oxygen_dissolution')
+                    field_name="oxdi_"
+             end select
+    
+             nfields=option_count(trim(path)//"/scalar_field")
+             do j=0, nfields-1
+                call get_option(trim(path)//"/scalar_field["//int2str(j)//"]/name", aliased_field_name)
+                aliased_field_name=trim(field_name)//trim(aliased_field_name)
+    
+                ! alias field and insert to phase 2
+                sfield=extract_scalar_field(states(1), trim(aliased_field_name))
+                sfield%aliased = .true.
+                call insert(states(2), sfield, trim(aliased_field_name))
+
+    
+             end do
+   
+             if (have_option(trim(path)//'/rate_constant_Arrhenius')) then          
+                 !get the prefactor of the reaction rate
+                 aliased_field_name=trim(field_name)//'prefactor'
+                 
+                 ! alias field and insert to phase 2
+                 sfield=extract_scalar_field(states(1), trim(aliased_field_name))
+                 sfield%aliased = .true.
+                 call insert(states(2), sfield, trim(aliased_field_name))
+             end if
+           end do           
+      end if
+      
+      !----mineral dissolution reactions
+      if (have_option('/Leaching_chemical_model/MineralDissolution')) then
+           path='/Leaching_chemical_model/MineralDissolution'
+           nstates=option_count(trim(path)//"/reaction")
+           
+           do i=0, nstates-1
+              path='/Leaching_chemical_model/MineralDissolution'
+              call get_option(trim(path)//"/reaction["//int2str(i)//"]/name", field_name)
+              path=trim(path)//"/reaction::"//trim(field_name)
+              
+              select case(trim(field_name))
+                 case("CuFeS2_oxidation_aqueous_ferric_sulfate")
+                    field_name="chal_"
+                 case('FeS2_oxidation_aqueous_ferric_sulfate')
+                    field_name="pyri_"
+                 case('S0_dissolution')
+                    field_name="sulf_"
+
+              end select
+              
+              nfields=option_count(trim(path)//"/scalar_field")
+              
+              do j=0, nfields-1
+                call get_option(trim(path)//"/scalar_field["//int2str(j)//"]/name", aliased_field_name)         
+                aliased_field_name=trim(field_name)//trim(aliased_field_name)
+    
+                ! alias field and insert to phase 2
+                sfield=extract_scalar_field(states(1), trim(aliased_field_name))
+                sfield%aliased = .true.
+                call insert(states(2), sfield, trim(aliased_field_name))    
+              end do
+              
+              if (have_option(trim(path)//'/rate_constant_Arrhenius')) then          
+                 !get the prefactor of the reaction rate
+                 aliased_field_name=trim(field_name)//'prefactor'
+                 
+                 ! alias field and insert to phase 2
+                 sfield=extract_scalar_field(states(1), trim(aliased_field_name))
+                 sfield%aliased = .true.
+                 call insert(states(2), sfield, trim(aliased_field_name))
+              end if
+              
+           end do
+         end if
+    !-------------------Leaching Chemical model-finished------------------!
 
   end subroutine alias_fields
 

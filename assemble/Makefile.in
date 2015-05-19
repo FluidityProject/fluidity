@@ -78,7 +78,9 @@ OBJS    = Momentum_Diagnostic_Fields.o \
         Diagnostic_Children.o Reduced_Model_Runtime.o Turbine.o Implicit_Solids.o \
 				Manifold_Projections.o Hybridized_Helmholtz.o Burgers_Assembly.o Pressure_Dirichlet_BCS_CV.o \
             Porous_Media.o Darcy_IMPES_Assemble.o Darcy_IMPES_Leaching_Chemical_Model.o \
-            Darcy_IMPES_Leaching_types.o Darcy_IMPES_Assemble_type.o
+            Darcy_IMPES_Leaching_types.o Darcy_IMPES_Assemble_type.o \
+            Darcy_Transport_Model.o \
+            Darcy_Transport_types.o
 
 .SUFFIXES: .F90 .c .cpp .o .a
 

@@ -59,18 +59,18 @@ fluidity_tools.compare_variable(331.82668924133759,data['dIntFe3'], 0.0001)
 
 fluidity_tools.compare_variable(-567.45366785644728,data['dIntCu'], 0.0001)
 
-fluidity_tools.compare_variable(0.52852852338268974,data['dIntext'], 0.00001)
+fluidity_tools.compare_variable(0.0,data['dIntext'], 0.00001)
 
-fluidity_tools.compare_variable(0.029798712895261037,data['dIntext2'], 0.0000001)</test>
+fluidity_tools.compare_variable(0.0,data['dIntext2'], 0.0000001)</test>
     <test name="Bound" language="python">import fluidity_tools
 
-fluidity_tools.compare_variable(5.1699655610380757e-05,data['dextmax'], 1.0e-10)
+fluidity_tools.compare_variable(0.0,data['dextmax'], 1.0e-10)
 
-fluidity_tools.compare_variable(5.4023071167435491e-05,data['dextmin'], 1.0e-10)
+fluidity_tools.compare_variable(0.0,data['dextmin'], 1.0e-10)
 
-fluidity_tools.compare_variable(2.9803236047965914e-06,data['dext2min'], 1.0e-11)
+fluidity_tools.compare_variable(0.0,data['dext2min'], 1.0e-11)
 
-fluidity_tools.compare_variable(2.9794190200216559e-06,data['dext2max'], 1.0e-11)
+fluidity_tools.compare_variable(0.0,data['dext2max'], 1.0e-11)
 
 fluidity_tools.compare_variable(-0.00093430267557437219,data['dFe3max'], 1.0e-7)
 

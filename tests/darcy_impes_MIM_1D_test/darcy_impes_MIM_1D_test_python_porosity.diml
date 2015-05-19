@@ -108,7 +108,9 @@
             <real_value rank="0">1.0e5</real_value>
           </constant>
         </value>
+        <output/>
         <stat>
+          <include_in_stat/>
           <include_cv_stats/>
         </stat>
       </prescribed>
@@ -120,7 +122,9 @@
         <convergence>
           <include_in_convergence/>
         </convergence>
+        <output/>
         <stat>
+          <include_in_stat/>
           <include_cv_stats/>
         </stat>
         <consistent_interpolation/>
@@ -136,7 +140,9 @@
           </exponents>
         </correlation>
         <face_value name="FirstOrderUpwind"/>
+        <output/>
         <stat>
+          <include_in_stat/>
           <include_cv_stats/>
         </stat>
         <consistent_interpolation/>
@@ -150,7 +156,9 @@
             <real_value rank="0">1.725e-5</real_value>
           </constant>
         </value>
+        <output/>
         <stat>
+          <include_in_stat/>
           <include_cv_stats/>
         </stat>
       </prescribed>
@@ -165,7 +173,9 @@
           </reference_density>
         </equation_of_state>
         <face_value name="FirstOrderUpwind"/>
+        <output/>
         <stat>
+          <include_in_stat/>
           <include_cv_stats/>
         </stat>
         <consistent_interpolation/>
@@ -181,7 +191,9 @@
           </surface_ids>
           <type name="no_normal_flow"/>
         </boundary_conditions>
+        <output/>
         <stat>
+          <include_in_stat/>
           <include_cv_stats/>
         </stat>
         <consistent_interpolation/>
@@ -191,7 +203,9 @@
       <diagnostic>
         <mesh name="PressureMesh"/>
         <algorithm name="Internal"/>
+        <output/>
         <stat>
+          <include_in_stat/>
           <include_cv_stats/>
         </stat>
         <consistent_interpolation/>
@@ -201,7 +215,9 @@
       <diagnostic>
         <mesh name="PressureMesh"/>
         <algorithm name="Internal"/>
+        <output/>
         <stat>
+          <include_in_stat/>
           <include_cv_stats/>
         </stat>
         <consistent_interpolation/>
@@ -211,7 +227,9 @@
       <diagnostic>
         <mesh name="PressureMesh"/>
         <algorithm name="Internal"/>
+        <output/>
         <stat>
+          <include_in_stat/>
           <include_cv_stats/>
         </stat>
         <consistent_interpolation/>
@@ -221,7 +239,9 @@
       <diagnostic>
         <mesh name="PressureMesh"/>
         <algorithm name="Internal"/>
+        <output/>
         <stat>
+          <include_in_stat/>
           <include_cv_stats/>
         </stat>
         <consistent_interpolation/>
@@ -231,7 +251,9 @@
       <diagnostic>
         <mesh name="PressureMesh"/>
         <algorithm name="Internal"/>
+        <output/>
         <stat>
+          <include_in_stat/>
           <include_cv_stats/>
         </stat>
         <consistent_interpolation/>
@@ -241,7 +263,9 @@
       <diagnostic>
         <mesh name="PressureMesh"/>
         <algorithm name="Internal"/>
+        <output/>
         <stat>
+          <include_in_stat/>
           <include_cv_stats/>
         </stat>
         <consistent_interpolation/>
@@ -251,7 +275,9 @@
       <diagnostic>
         <mesh name="PressureMesh"/>
         <algorithm name="Internal"/>
+        <output/>
         <stat>
+          <include_in_stat/>
           <include_cv_stats/>
         </stat>
         <consistent_interpolation/>
@@ -261,7 +287,9 @@
       <diagnostic>
         <mesh name="PressureMesh"/>
         <algorithm name="Internal"/>
+        <output/>
         <stat>
+          <include_in_stat/>
           <include_cv_stats/>
         </stat>
         <consistent_interpolation/>
@@ -271,7 +299,9 @@
       <diagnostic>
         <mesh name="PressureMesh"/>
         <algorithm name="Internal"/>
+        <output/>
         <stat>
+          <include_in_stat/>
           <include_cv_stats/>
         </stat>
         <consistent_interpolation/>
@@ -283,7 +313,9 @@
       <diagnostic>
         <mesh name="PressureMesh"/>
         <algorithm name="Internal"/>
+        <output/>
         <stat>
+          <include_in_stat/>
           <include_cv_stats/>
         </stat>
         <consistent_interpolation/>
@@ -304,7 +336,9 @@ for n in range(field.node_count):
   p_c=p_ce/((sat_n)**0.5)
   field.set(n,p_c)</string_value>
         </algorithm>
+        <output/>
         <stat>
+          <include_in_stat/>
           <include_cv_stats/>
         </stat>
         <consistent_interpolation/>
@@ -321,7 +355,9 @@ for n in range(field.node_count):
         <convergence>
           <include_in_convergence/>
         </convergence>
+        <output/>
         <stat>
+          <include_in_stat/>
           <include_cv_stats/>
         </stat>
         <consistent_interpolation/>
@@ -331,7 +367,9 @@ for n in range(field.node_count):
       <diagnostic>
         <mesh name="PressureMesh"/>
         <algorithm name="Internal"/>
+        <output/>
         <stat>
+          <include_in_stat/>
           <include_cv_stats/>
         </stat>
         <consistent_interpolation/>
@@ -345,7 +383,9 @@ for n in range(field.node_count):
             <real_value rank="0">1.0e-3</real_value>
           </constant>
         </value>
+        <output/>
         <stat>
+          <include_in_stat/>
           <include_cv_stats/>
         </stat>
       </prescribed>
@@ -359,7 +399,9 @@ for n in range(field.node_count):
             <real_value rank="0">1000</real_value>
           </reference_density>
         </equation_of_state>
+        <output/>
         <stat>
+          <include_in_stat/>
           <include_cv_stats/>
         </stat>
         <consistent_interpolation/>
@@ -379,7 +421,9 @@ for n in range(field.node_count):
             </constant>
           </type>
         </boundary_conditions>
+        <output/>
         <stat>
+          <include_in_stat/>
           <include_cv_stats/>
         </stat>
         <consistent_interpolation/>
@@ -389,7 +433,9 @@ for n in range(field.node_count):
       <diagnostic>
         <mesh name="PressureMesh"/>
         <algorithm name="Internal"/>
+        <output/>
         <stat>
+          <include_in_stat/>
           <include_cv_stats/>
         </stat>
         <consistent_interpolation/>
@@ -399,7 +445,9 @@ for n in range(field.node_count):
       <diagnostic>
         <mesh name="PressureMesh"/>
         <algorithm name="Internal"/>
+        <output/>
         <stat>
+          <include_in_stat/>
           <include_cv_stats/>
         </stat>
         <consistent_interpolation/>
@@ -409,42 +457,9 @@ for n in range(field.node_count):
       <diagnostic>
         <mesh name="PressureMesh"/>
         <algorithm name="Internal"/>
+        <output/>
         <stat>
-          <include_cv_stats/>
-        </stat>
-        <consistent_interpolation/>
-      </diagnostic>
-    </scalar_field>
-    <scalar_field name="theta_s">
-      <diagnostic>
-        <mesh name="ElementWiseMesh"/>
-        <algorithm name="scalar_python_diagnostic" material_phase_support="multiple">
-          <string_value lines="20" type="code" language="python">#extract the Immobile saturation
-sats=states["Phase2"].scalar_fields["ImmobileSaturation"]
-#extract the porosity
-prt=states["Phase1"].scalar_fields["Porosity"]
-
-for n in range (field.node_count):
-  sats_n=sats.node_val(n)
-  prt_n=prt.node_val(n)
-  thetas_n=sats_n*prt_n
-  field.set(n,thetas_n)</string_value>
-          <depends>
-            <string_value lines="1">Phase2::ImmobileSaturation, Phase1::Porosity</string_value>
-            <comment>calculate the Immobile saturation first, so that 'theta=Sat_i*porosity' will be calculated at the current time, otherwise theta will be the value at the previous timestep.</comment>
-          </depends>
-        </algorithm>
-        <stat>
-          <include_cv_stats/>
-        </stat>
-        <consistent_interpolation/>
-      </diagnostic>
-    </scalar_field>
-    <scalar_field name="C_d_elem">
-      <diagnostic>
-        <mesh name="ElementWiseMesh"/>
-        <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_galerkin_projection" source_field_name="C_d"/>
-        <stat>
+          <include_in_stat/>
           <include_cv_stats/>
         </stat>
         <consistent_interpolation/>
@@ -508,84 +523,85 @@ for n in range (field.node_count):
             </value>
           </prescribed>
         </tensor_field>
-        <scalar_field name="Source" rank="0">
-          <diagnostic>
-            <mesh name="ElementWiseMesh"/>
-            <algorithm name="scalar_python_diagnostic" material_phase_support="multiple">
-              <string_value lines="20" type="code" language="python">#extract alpha
-alpha=states["Phase2"].scalar_fields["MassTransferCoefficient"]
-#extract old c_d
-cd_old=states["Phase2"].scalar_fields["OldC_d_elem"]
-#cd=states["Phase2"].scalar_fields["C_d_elem"]
-
-#print "maxOldC_d_elem", max(cd_old)
-#print "maxC_d_elem", max(cd)
-
-#extract the old C_s
-cs_old=states["Phase2"].scalar_fields["OldC_s"]
-
-#set the field
-for n in range(field.node_count):
-  cs_old_n=cs_old.node_val(n)
-  cd_old_n=cd_old.node_val(n)
-  alpha_n=alpha.node_val(n)
-  
-  src=-alpha_n*(cd_old_n-cs_old_n)
-  field.set(n,src)</string_value>
-            </algorithm>
-            <stat>
-              <include_cv_stats/>
-            </stat>
-            <consistent_interpolation/>
-          </diagnostic>
-        </scalar_field>
+        <ImmobileSource>
+          <algorithm material_phase_support="multiple" name="Internal" source_field_name="C_d"/>
+        </ImmobileSource>
+        <output/>
         <stat>
+          <include_in_stat/>
           <include_cv_stats/>
         </stat>
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
     <scalar_field name="C_s">
-      <diagnostic>
-        <mesh name="ElementWiseMesh"/>
-        <algorithm name="scalar_python_diagnostic" material_phase_support="multiple">
-          <string_value lines="20" type="code" language="python">#extract alpha
-alpha=states["Phase2"].scalar_fields["MassTransferCoefficient"]
-#extract old c_d
-cd_old=states["Phase2"].scalar_fields["OldC_d_elem"]
-#extract the old C_s
-cs_old=states["Phase2"].scalar_fields["OldC_s"]
-#extract old theta_s
-thetas_old=states["Phase2"].scalar_fields["Oldtheta_s"]
-#extract new theta_s
-thetas=states["Phase2"].scalar_fields["theta_s"]
-#print "max oldthetas", max(thetas_old)
-#print "max thetas", max(thetas)
-#print "time", time
-#print "cs", max(cs_old)
-
-for n in range (field.node_count):
-
-    cs_old_n=cs_old.node_val(n)
-    cd_old_n=cd_old.node_val(n)
-    alpha_n=alpha.node_val(n)
-    thetas_old_n=thetas_old.node_val(n)
-    thetas_n=thetas.node_val(n)
-    tac=dt*alpha_n*(cd_old_n-cs_old_n)
-    tactc=tac+thetas_old_n*cs_old_n
-    
-    cs=tactc/thetas_n
-    
-    field.set(n,cs)</string_value>
-          <depends>
-            <string_value lines="1">theta_s</string_value>
-          </depends>
-        </algorithm>
+      <prognostic>
+        <mesh name="PressureMesh"/>
+        <solver name="DefaultSolverOptionsGMRESSOR">
+          <iterative_method name="gmres">
+            <restart>
+              <integer_value rank="0">30</integer_value>
+            </restart>
+          </iterative_method>
+          <preconditioner name="sor"/>
+          <relative_error>
+            <real_value rank="0">1.0e-10</real_value>
+          </relative_error>
+          <max_iterations>
+            <integer_value rank="0">1000</integer_value>
+          </max_iterations>
+          <never_ignore_solver_failures/>
+        </solver>
+        <face_value name="FiniteElement">
+          <limit_face_value>
+            <limiter name="Sweby"/>
+          </limit_face_value>
+        </face_value>
+        <initial_condition name="WholeMesh">
+          <constant>
+            <real_value rank="0">0.0</real_value>
+          </constant>
+        </initial_condition>
+        <boundary_conditions name="Delta">
+          <surface_ids>
+            <integer_value shape="1" rank="1">1</integer_value>
+          </surface_ids>
+          <type name="dirichlet">
+            <apply_weakly/>
+            <python>
+              <string_value lines="20" type="code" language="python">def val(X, t):
+  if t&lt;1.1:
+    bc=1.0e+07
+  else:
+    bc=0.0
+  #print 'time', t
+  #print 'bc', bc
+  return bc</string_value>
+            </python>
+          </type>
+        </boundary_conditions>
+        <tensor_field name="Diffusivity" rank="2">
+          <prescribed>
+            <mesh name="ElementWiseMesh"/>
+            <value name="WholeMesh">
+              <isotropic>
+                <constant>
+                  <real_value rank="0">3.14e-07</real_value>
+                </constant>
+              </isotropic>
+            </value>
+          </prescribed>
+        </tensor_field>
+        <ImmobileSource>
+          <algorithm material_phase_support="multiple" name="Internal" source_field_name="C_s"/>
+        </ImmobileSource>
+        <output/>
         <stat>
+          <include_in_stat/>
           <include_cv_stats/>
         </stat>
         <consistent_interpolation/>
-      </diagnostic>
+      </prognostic>
     </scalar_field>
     <MobileImmobileModel>
       <scalar_field name="ImmobileSaturation" rank="0">
@@ -596,7 +612,9 @@ for n in range (field.node_count):
               <real_value rank="0">0.0035</real_value>
             </constant>
           </value>
+          <output/>
           <stat>
+            <include_in_stat/>
             <include_cv_stats/>
           </stat>
         </prescribed>
@@ -605,7 +623,9 @@ for n in range (field.node_count):
         <diagnostic>
           <mesh name="PressureMesh"/>
           <algorithm name="Internal"/>
+          <output/>
           <stat>
+            <include_in_stat/>
             <include_cv_stats/>
           </stat>
           <consistent_interpolation/>
@@ -619,10 +639,46 @@ for n in range (field.node_count):
               <real_value rank="0">4.29e-06</real_value>
             </constant>
           </value>
+          <output/>
           <stat>
+            <include_in_stat/>
             <include_cv_stats/>
           </stat>
         </prescribed>
+      </scalar_field>
+      <scalar_field name="C_d">
+        <prognostic>
+          <mesh name="PressureMesh"/>
+          <initial_condition name="WholeMesh">
+            <constant>
+              <real_value rank="0">0.0</real_value>
+            </constant>
+          </initial_condition>
+          <source_field_name>C_d</source_field_name>
+          <output/>
+          <stat>
+            <include_in_stat/>
+            <include_cv_stats/>
+          </stat>
+          <consistent_interpolation/>
+        </prognostic>
+      </scalar_field>
+      <scalar_field name="C_s">
+        <prognostic>
+          <mesh name="PressureMesh"/>
+          <initial_condition name="WholeMesh">
+            <constant>
+              <real_value rank="0">0.0</real_value>
+            </constant>
+          </initial_condition>
+          <source_field_name>C_s</source_field_name>
+          <output/>
+          <stat>
+            <include_in_stat/>
+            <include_cv_stats/>
+          </stat>
+          <consistent_interpolation/>
+        </prognostic>
       </scalar_field>
     </MobileImmobileModel>
   </material_phase>
@@ -631,11 +687,15 @@ for n in range (field.node_count):
       <prescribed>
         <mesh name="ElementWiseMesh"/>
         <value name="WholeMesh">
-          <constant>
-            <real_value rank="0">0.4</real_value>
-          </constant>
+          <python>
+            <string_value lines="20" type="code" language="python">def val(X,t):
+
+  return 0.4</string_value>
+          </python>
         </value>
+        <output/>
         <stat>
+          <include_in_stat/>
           <include_cv_stats/>
         </stat>
       </prescribed>
@@ -648,7 +708,9 @@ for n in range (field.node_count):
             <real_value rank="0">1.567346939e-9</real_value>
           </constant>
         </value>
+        <output/>
         <stat>
+          <include_in_stat/>
           <include_cv_stats/>
         </stat>
       </prescribed>

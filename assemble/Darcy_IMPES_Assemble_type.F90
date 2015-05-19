@@ -1,4 +1,3 @@
-
 !The typs originally declared in the darcy impes assemble are noved to this seperat file 
 !to avoid circular dependency between modules
 !lcai 18 July 2014
@@ -17,7 +16,7 @@ module darcy_impes_assemble_type
   
   !!*****03 July 2014 LCai ************use Leaching Chemical model****!
   use darcy_impes_leaching_types
-
+  use darcy_transport_types
 
   implicit none
   private
@@ -108,9 +107,6 @@ module darcy_impes_assemble_type
    type darcy_impes_generic_prog_sfield_type
       ! The phase this sfield is associated with
       integer :: phase
-      ! LCai 08 Aug 2013***********************
-      character(len=FIELD_NAME_LEN) :: source_name !the name of the source immobile filed
-      !****************Finish*******************
       type(scalar_field), pointer :: sfield
       type(scalar_field), pointer :: old_sfield
       type(scalar_field), pointer :: sfield_abs
@@ -120,47 +116,16 @@ module darcy_impes_assemble_type
       logical :: have_abs
       logical :: have_src
       logical :: have_adv
-      logical :: have_MIM_source !LCai 08 Aug 2013
       type(darcy_impes_cv_options_type) :: sfield_cv_options
-      !******For the Leaching chemical source term***LCai** 30 June 2014*****!
+      !********LCai*************for MIM model
+      type(prog_sfield_MIM_type) :: MIM
+      !******For the Leaching chemical source term******!
       type(leach_chemical_prog_sfield_src) :: lc_src
-      !*****Finish*******
-
+      !for heat transfer src under temperature
+      type(leach_prog_sfield_heat_transfer_src) ::lh_src
+      !***********LCai*******end***************
    end type darcy_impes_generic_prog_sfield_type
   
-
-
-   !***********************************LCai 08 Aug 2013**************
-   type immobile_prog_sfield_type
-      integer :: phase !the phase of this field
-      character(len=FIELD_NAME_LEN) :: source_name !the name of the source mobile filed
-      type(scalar_field), pointer :: sfield
-      type(scalar_field), pointer :: old_sfield
-   end type immobile_prog_sfield_type
-   
-   
-   !***********************************LCai 23 July & 08 & 16 Aug 2013**************
-   !the Mobile-Immobile model options
-   type darcy_impes_MIM_options_type
-      type(scalar_field_pointer), dimension(:), pointer :: immobile_saturation
-      type(scalar_field_pointer), dimension(:), pointer :: old_immobile_saturation
-      type(scalar_field_pointer), dimension(:), pointer :: mobile_saturation
-      type(scalar_field_pointer), dimension(:), pointer :: old_mobile_saturation
-      type(scalar_field_pointer), dimension(:), pointer :: mass_trans_coef
-      type(scalar_field_pointer), dimension(:), pointer :: old_mass_trans_coef
-      type(immobile_prog_sfield_type), dimension(:), pointer :: immobile_prog_sfield
-      type(scalar_field) :: MIM_src !the source term of MIM added to the matrix 
-      type(scalar_field) :: MIM_src_s !the second source term of MIM added to the matrix
-      ! *** Flag for Whether there is Mobile-Immobile model
-      logical, dimension(:), pointer :: have_MIM
-      ! *** Flag to check wether the MIM exist in at least one phase
-      logical :: have_MIM_phase
-      ! *** Flag for Whether there is Mass transfer coefficient
-      logical, dimension(:), pointer :: have_mass_trans_coef
-      ! *** Flag for wether there are immobile prognostic fields
-      !***NOT USED**logical, dimension(:), pointer :: have_immobile_prog_sfield
-   end type darcy_impes_MIM_options_type
-   !***********Finish******************LCai ***********************************
    
    
    type darcy_impes_type
@@ -277,9 +242,7 @@ module darcy_impes_assemble_type
 
       type(scalar_field) :: porosity_pmesh ! the porosity based on pressure mesh
       type(scalar_field) :: old_porosity_pmesh
-      real, dimension(1) :: porosity_cnt !constant value for porosity as a constant
-      real, dimension(1) :: old_porosity_cnt
-      logical :: prt_is_constant !is the porosity a constant
+      type(leach_chemical_prog_sfield_subcycling) :: lcsub !leaching subcycling term
      
       !***********Finish******************LCai **********************************************
       
