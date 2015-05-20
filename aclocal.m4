@@ -425,12 +425,13 @@ if test "x$PETSC_DIR" == "x"; then
 fi
 AC_MSG_NOTICE([Using PETSC_DIR=$PETSC_DIR])
 
-PETSC_LINK_LIBS=`make -s -f petsc_makefile getlinklibs`
+PETSC_LINK_LIBS=`make -s -f petsc_makefile_old getlinklibs 2> /dev/null || make -s -f petsc_makefile getlinklibs`
 LIBS="$PETSC_LINK_LIBS $LIBS"
 
-PETSC_INCLUDE_FLAGS=`make -s -f petsc_makefile getincludedirs`
-CPPFLAGS="$CPPFLAGS $PETSC_INCLUDE_FLAGS"
-FCFLAGS="$FCFLAGS $PETSC_INCLUDE_FLAGS"
+# need to add -Iinclude/ to what we get from petsc, so we can use our own petsc_legacy.h wrapper
+PETSC_INCLUDE_FLAGS=`make -s -f petsc_makefile_old getincludedirs 2> /dev/null || make -s -f petsc_makefile getincludedirs`
+CPPFLAGS="$CPPFLAGS $PETSC_INCLUDE_FLAGS -Iinclude/"
+FCFLAGS="$FCFLAGS $PETSC_INCLUDE_FLAGS -Iinclude/"
 
 # Horrible hacks needed for cx1
 # Somehow /apps/intel/ict/mpi/3.1.038/lib64 gets given as /apps/intel/ict/mpi/3.1.038/lib/64
@@ -479,16 +480,11 @@ fi
 AC_LINK_IFELSE(
 [AC_LANG_SOURCE([
 program test_petsc
-#include "petscversion.h"
 #ifdef HAVE_PETSC_MODULES
   use petsc
 #endif
 implicit none
-#ifdef HAVE_PETSC_MODULES
-#include "finclude/petscdef.h"
-#else
-#include "finclude/petsc.h"
-#endif
+#include "petsc_legacy.h"
       double precision  norm
       PetscInt  i,j,II,JJ,m,n,its
       PetscInt  Istart,Iend,ione
@@ -554,7 +550,7 @@ implicit none
       call MatMult(A,u,b,ierr)
 
       call KSPCreate(PETSC_COMM_WORLD,ksp,ierr)
-      call KSPSetOperators(ksp,A,A,DIFFERENT_NONZERO_PATTERN,ierr)
+      call KSPSetOperators(ksp,A,A,ierr)
       call KSPSetFromOptions(ksp,ierr)
 
       call KSPSolve(ksp,b,x,ierr)

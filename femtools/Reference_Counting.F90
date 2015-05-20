@@ -48,7 +48,8 @@ module reference_counting
 
   public print_references, refcount_type, &
          refcount_list, new_refcount, &
-         tag_references, print_tagged_references
+         tag_references, print_tagged_references, &
+         count_references
 
 contains
 
@@ -107,6 +108,29 @@ contains
 
   end subroutine print_references
     
+  function count_references()
+    !!< add up all currently registered reference counts
+    integer:: count_references
+    
+    type(refcount_type), pointer :: this_ref
+
+    count_references = 0
+    this_ref=>refcount_list%next
+    if (.not.associated(this_ref)) then
+      return
+    end if
+
+    do 
+       if (.not.associated(this_ref)) then
+          return
+       end if
+
+       count_references = count_references + this_ref%count
+       this_ref=>this_ref%next
+    end do
+
+  end function count_references
+
   subroutine tag_references
     !!< Tags all current references, so they can later be printed with 
     !!< print_tagged_references. This can be used if all current objects are 
