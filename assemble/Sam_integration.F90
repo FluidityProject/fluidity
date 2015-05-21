@@ -880,6 +880,7 @@ module sam_integration
          do field=1,scount(state)
            field_s => extract_scalar_field(interpolate_states(state), trim(namelist_s(state, field)))
            call remap_field(field_s, linear_s,stat)
+           call check_sam_linear_remap_validity(stat, trim(namelist_s(state, field)))
            call sam_add_field(linear_s)
            call remove_scalar_field(states(state), trim(namelist_s(state, field)))
            call remove_scalar_field(interpolate_states(state), trim(namelist_s(state, field)))
@@ -888,6 +889,7 @@ module sam_integration
          do field=1,vcount(state)
            field_v => extract_vector_field(interpolate_states(state), trim(namelist_v(state, field)))
            call remap_field(field_v, linear_v,stat)
+           call check_sam_linear_remap_validity(stat, trim(namelist_v(state, field)))
            call sam_add_field(linear_v)
            call remove_vector_field(states(state), trim(namelist_v(state, field)))
            call remove_vector_field(interpolate_states(state), trim(namelist_v(state, field)))
@@ -896,6 +898,7 @@ module sam_integration
          do field=1,tcount(state)
            field_t => extract_tensor_field(interpolate_states(state), trim(namelist_t(state, field)))
            call remap_field(field_t, linear_t,stat)
+           call check_sam_linear_remap_validity(stat, trim(namelist_t(state, field)))
            call sam_add_field(linear_t)
            call remove_tensor_field(states(state), trim(namelist_t(state, field)))
            call remove_tensor_field(interpolate_states(state), trim(namelist_t(state, field)))
@@ -940,6 +943,12 @@ module sam_integration
        call sam_query(nonods, totele, stotel, ncolga, nscate, pncolga, pnscate)
        ewrite(1, *) "Exited sam_query"
        
+       !!! sanity check
+
+       if (nonods==0) then
+          FLExit("Libsam has produced an empty partition for your problem. Please consider reconfiguring with Zoltan")
+       end if
+
        ! Export mesh data from sam
        allocate(linear_mesh)
        call allocate(linear_mesh, nonods, totele, linear_shape, linear_mesh_name)
@@ -1663,22 +1672,60 @@ module sam_integration
     end if
   
   end subroutine ewrite_load_imbalance
+
+  subroutine check_sam_linear_remap_validity(stat,name)
+    integer, intent(in) :: stat
+    character(len = * ) :: name
+
+
+    !! short circuit for the trivial case
+    if (stat==0) return
+    select case(stat)
+       
+    case (REMAP_ERR_DISCONTINUOUS_CONTINUOUS)
+       !! Apparantly acceptable to obtain linear mesh for flredecomp
+       return 
+    case(REMAP_ERR_HIGHER_LOWER_CONTINUOUS)
+       !! Acceptable to obtain linear mesh
+       return
+    case(REMAP_ERR_UNPERIODIC_PERIODIC)
+       FLExit("Unsupoorted periodic remapping. This periodic funcionality is not supported in parallel with libsam. Please consider reconfiguring with Zoltan")
+    case(REMAP_ERR_BUBBLE_LAGRANGE)
+       FLExit("Unsupoorted element remapping. This funcionality is not supported in parallel with libsam. Please consider reconfiguring with Zoltan")
+    case default
+       FLExit("Unsupoorted remapping. This funcionality is not supported in parallel with libsam. Please consider reconfiguring with Zoltan")
+    end select
+
+  end subroutine check_sam_linear_remap_validity
   
   subroutine sam_integration_check_options
+
+    integer :: i
+    character (len=OPTION_PATH_LEN) :: continuity_var
+
     !!< Check libsam integration related options
-    
-    if(.not. have_option("/mesh_adaptivity/hr_adaptivity") .or. .not. isparallel()) then
+   
+    if(.not. isparallel()) then
       ! Nothing to check
       return
     end if
+
+    if( have_option("/flredecomp") ) then
+       FLExit("Specification of flredecomp parameters in the options tree is not supported with libsam. Please remove or reconfigure with Zoltan")
+    end if
+       
     
 #ifndef HAVE_ZOLTAN
     ewrite(2, *) "Checking libsam integration related options"
     
     if(have_option("/mesh_adaptivity/hr_adaptivity/preserve_mesh_regions")) then
-      FLExit("Preserving of mesh regions through adapts is not supported in parallel")
+      FLExit("Preserving of mesh regions through adapts is not supported in parallel with libsam. Please reconfigure with Zoltan")
     end if
-    
+
+    if(option_count('/geometry/mesh/from_mesh/extrude')>0) then
+       FLExit("Mesh extrusion is not supported in parallel with libsam. Please reconfigure with Zoltan")
+    end if
+
     ewrite(2, *) "Finished checking libsam integration related options"
 #endif
 
