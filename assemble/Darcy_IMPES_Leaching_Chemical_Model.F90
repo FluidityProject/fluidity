@@ -803,7 +803,8 @@ module darcy_impes_leaching_chemical_model
       call zero(leach_src)
       
       call allocate(single_src,di%pressure_mesh)
-
+      p=di%generic_prog_sfield(f)%phase
+      
       !for the solution phase reactions
       if (di%generic_prog_sfield(f)%lc_src%have_sol_src) then
 
@@ -844,7 +845,7 @@ module darcy_impes_leaching_chemical_model
           
            
           node_loop: do i=1,di%number_pmesh_node
-
+            
             single_src%val(i)=single_src%val(i)/(di%porosity_pmesh%val(i)*di%saturation(p)%ptr%val(i))
             !this the reaction src based on the total averaged concentration
             di%generic_prog_sfield(f)%lc_src%sfield_sol_src(n)%sfield%val(i)=single_src%val(i) !mole/m^3_solution               

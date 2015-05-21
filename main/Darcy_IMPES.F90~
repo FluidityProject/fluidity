@@ -569,13 +569,7 @@ program Darcy_IMPES
       end if
    end if
    
-   !****************LCai****Deallocate Leaching Chemical model or MIM model******!
-   !For porosity pmesh
-   if (di%MIM_options%have_MIM_phase .or. have_option('/Leaching_chemical_model')) then 
-      call deallocate(di%porosity_pmesh)
-      call deallocate(di%old_porosity_pmesh)
-   end if
-
+   !****************LCai****Deallocate Leaching Chemical model******!
    if (di%lc%have_leach_chem_model) then
      call finalize_leaching_chemical_model(di)
    end if
@@ -1751,6 +1745,13 @@ contains
       deallocate(di%have_capilliary_pressure)
       deallocate(di%have_saturation_source)
      
+      ! **** 09 Aug 2013 *** LCai *************************
+      if (di%MIM_options%have_MIM_phase .or. have_option('/Leaching_chemical_model')) then 
+        call deallocate(di%porosity_pmesh)
+        call deallocate(di%old_porosity_pmesh)
+      end if
+      !**********Finish**************LCai **************************************!
+
       deallocate(di%pressure)
       deallocate(di%capilliary_pressure)
       deallocate(di%saturation)

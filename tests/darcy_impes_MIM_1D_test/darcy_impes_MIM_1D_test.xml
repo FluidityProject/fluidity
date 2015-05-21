@@ -40,7 +40,7 @@ import numpy
 #####the porosity by python script-will use the galarkin projection to change the porosity mesh
 vt = fluidity_tools.stat_parser('./darcy_impes_MIM_1D_test_python_porosity.stat')
 cd = vt['Phase2']['C_d']['integral']
-cs = vt['Phase2']['ImmobileC_d']['integral']
+cs = vt['Phase2']['C_dImmobile']['integral']
 prt=vt['Phase1']['Porosity'][u'max']
 msat=vt['Phase2']['MobileSaturation'][u'max']
 isat=vt['Phase2']['ImmobileSaturation'][u'max']
@@ -54,7 +54,7 @@ t1=t[u'value']
 
 #for the second species
 cd = vt['Phase2']['C_s']['integral']
-cs = vt['Phase2']['ImmobileC_s']['integral']
+cs = vt['Phase2']['C_sImmobile']['integral']
 prt=vt['Phase1']['Porosity'][u'max']
 c = theta_d*cd + theta_s*cs
 c[0] = c[1]
@@ -72,7 +72,7 @@ import numpy
 #####the porosity by python script-will use the galarkin projection to change the porosity mesh
 vt = fluidity_tools.stat_parser('./darcy_impes_MIM_1D_test_prescribed_porosity.stat')
 cd = vt['Phase2']['C_d']['integral']
-cs = vt['Phase2']['ImmobileC_d']['integral']
+cs = vt['Phase2']['C_dImmobile']['integral']
 prt=vt['Phase1']['Porosity'][u'max']
 msat=vt['Phase2']['MobileSaturation'][u'max']
 isat=vt['Phase2']['ImmobileSaturation'][u'max']
@@ -86,7 +86,7 @@ t1=t[u'value']
 
 #for the second species
 cd = vt['Phase2']['C_s']['integral']
-cs = vt['Phase2']['ImmobileC_s']['integral']
+cs = vt['Phase2']['C_sImmobile']['integral']
 prt=vt['Phase1']['Porosity'][u'max']
 c = theta_d*cd + theta_s*cs
 c[0] = c[1]

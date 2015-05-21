@@ -523,9 +523,71 @@ for n in range(field.node_count):
             </value>
           </prescribed>
         </tensor_field>
-        <ImmobileSource>
-          <algorithm material_phase_support="multiple" name="Internal" source_field_name="C_d"/>
-        </ImmobileSource>
+        <scalar_field name="Immobile" rank="0">
+          <diagnostic>
+            <mesh name="PressureMesh"/>
+            <algorithm name="Internal"/>
+            <initial_condition name="WholeMesh">
+              <constant>
+                <real_value rank="0">0.0</real_value>
+              </constant>
+            </initial_condition>
+            <output/>
+            <stat>
+              <include_in_stat/>
+            </stat>
+            <consistent_interpolation/>
+            <output/>
+            <stat>
+              <include_in_stat/>
+            </stat>
+          </diagnostic>
+          <scalar_field name="Average_mass" rank="0">
+            <diagnostic>
+              <mesh name="PressureMesh"/>
+              <algorithm name="Internal"/>
+              <output/>
+              <stat>
+                <include_in_stat/>
+              </stat>
+              <consistent_interpolation/>
+              <output/>
+              <stat>
+                <include_in_stat/>
+              </stat>
+            </diagnostic>
+          </scalar_field>
+          <scalar_field name="Mobile_ratio" rank="0">
+            <diagnostic>
+              <mesh name="PressureMesh"/>
+              <algorithm name="Internal"/>
+              <output/>
+              <stat>
+                <include_in_stat/>
+              </stat>
+              <consistent_interpolation/>
+              <output/>
+              <stat>
+                <include_in_stat/>
+              </stat>
+            </diagnostic>
+          </scalar_field>
+          <scalar_field name="Immobile_ratio" rank="0">
+            <diagnostic>
+              <mesh name="PressureMesh"/>
+              <algorithm name="Internal"/>
+              <output/>
+              <stat>
+                <include_in_stat/>
+              </stat>
+              <consistent_interpolation/>
+              <output/>
+              <stat>
+                <include_in_stat/>
+              </stat>
+            </diagnostic>
+          </scalar_field>
+        </scalar_field>
         <output/>
         <stat>
           <include_in_stat/>
@@ -592,9 +654,71 @@ for n in range(field.node_count):
             </value>
           </prescribed>
         </tensor_field>
-        <ImmobileSource>
-          <algorithm material_phase_support="multiple" name="Internal" source_field_name="C_s"/>
-        </ImmobileSource>
+        <scalar_field name="Immobile" rank="0">
+          <diagnostic>
+            <mesh name="PressureMesh"/>
+            <algorithm name="Internal"/>
+            <initial_condition name="WholeMesh">
+              <constant>
+                <real_value rank="0">0.0</real_value>
+              </constant>
+            </initial_condition>
+            <output/>
+            <stat>
+              <include_in_stat/>
+            </stat>
+            <consistent_interpolation/>
+            <output/>
+            <stat>
+              <include_in_stat/>
+            </stat>
+          </diagnostic>
+          <scalar_field name="Average_mass" rank="0">
+            <diagnostic>
+              <mesh name="PressureMesh"/>
+              <algorithm name="Internal"/>
+              <output/>
+              <stat>
+                <include_in_stat/>
+              </stat>
+              <consistent_interpolation/>
+              <output/>
+              <stat>
+                <include_in_stat/>
+              </stat>
+            </diagnostic>
+          </scalar_field>
+          <scalar_field name="Mobile_ratio" rank="0">
+            <diagnostic>
+              <mesh name="PressureMesh"/>
+              <algorithm name="Internal"/>
+              <output/>
+              <stat>
+                <include_in_stat/>
+              </stat>
+              <consistent_interpolation/>
+              <output/>
+              <stat>
+                <include_in_stat/>
+              </stat>
+            </diagnostic>
+          </scalar_field>
+          <scalar_field name="Immobile_ratio" rank="0">
+            <diagnostic>
+              <mesh name="PressureMesh"/>
+              <algorithm name="Internal"/>
+              <output/>
+              <stat>
+                <include_in_stat/>
+              </stat>
+              <consistent_interpolation/>
+              <output/>
+              <stat>
+                <include_in_stat/>
+              </stat>
+            </diagnostic>
+          </scalar_field>
+        </scalar_field>
         <output/>
         <stat>
           <include_in_stat/>
@@ -645,40 +769,6 @@ for n in range(field.node_count):
             <include_cv_stats/>
           </stat>
         </prescribed>
-      </scalar_field>
-      <scalar_field name="C_d">
-        <prognostic>
-          <mesh name="PressureMesh"/>
-          <initial_condition name="WholeMesh">
-            <constant>
-              <real_value rank="0">0.0</real_value>
-            </constant>
-          </initial_condition>
-          <source_field_name>C_d</source_field_name>
-          <output/>
-          <stat>
-            <include_in_stat/>
-            <include_cv_stats/>
-          </stat>
-          <consistent_interpolation/>
-        </prognostic>
-      </scalar_field>
-      <scalar_field name="C_s">
-        <prognostic>
-          <mesh name="PressureMesh"/>
-          <initial_condition name="WholeMesh">
-            <constant>
-              <real_value rank="0">0.0</real_value>
-            </constant>
-          </initial_condition>
-          <source_field_name>C_s</source_field_name>
-          <output/>
-          <stat>
-            <include_in_stat/>
-            <include_cv_stats/>
-          </stat>
-          <consistent_interpolation/>
-        </prognostic>
       </scalar_field>
     </MobileImmobileModel>
   </material_phase>

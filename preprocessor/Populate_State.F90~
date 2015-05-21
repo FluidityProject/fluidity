@@ -1370,10 +1370,10 @@ contains
            call allocate_and_insert_leaching_src_prog_sfield(path,field_name, state)
 
          end if
-
-         if (have_option(trim(path)//'/prognostic/scalar_field::Immobile')) then
-            call allocate_and_insert_immobile_src_fields(path,field_name, state)
-         end if
+         !liping
+         !if (have_option(trim(path)//'/prognostic/scalar_field::Immobile')) then
+          !  call allocate_and_insert_immobile_src_fields(path,field_name, state)
+         !end if
            
          !*************Finish*************************************
       end do scalar_field_loop

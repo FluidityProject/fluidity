@@ -2501,12 +2501,13 @@ dot_product((grad_pressure_face_quad(:,ggi) - di%cached_face_value%den(ggi,vele,
       
       ! ***************** LCai **********************
       !Solve the immobile prog sfield if it exist
+      !liping
       if (di%generic_prog_sfield(f)%MIM%have_MIM_source) then 
           
           call darcy_trans_assemble_and_solve_immobile_sfield(di, p, f, temp_MIM_src) 
           call deallocate(temp_MIM_src)
 
-          call leaching_MIM_calculate_fields_and_ratio(di,p,f)
+         ! call leaching_MIM_calculate_fields_and_ratio(di,p,f)
 
       end if
 

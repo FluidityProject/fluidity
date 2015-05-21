@@ -32,12 +32,14 @@ module darcy_transport_types
       type(scalar_field_pointer), dimension(:), pointer :: old_mobile_saturation
       type(scalar_field_pointer), dimension(:), pointer :: mass_trans_coef
       type(scalar_field_pointer), dimension(:), pointer :: old_mass_trans_coef
+      type(scalar_field) :: MIM_src !the source term of MIM added to the matrix 
+      type(scalar_field) :: MIM_src_s !the second source term of MIM added to the matrix
       ! *** Flag for Whether there is Mobile-Immobile model
       logical, dimension(:), pointer :: have_MIM
       ! *** Flag to check wether the MIM exist in at least one phase
       logical :: have_MIM_phase
       ! *** Flag for Whether there is Mass transfer coefficient
-      logical, dimension(:), pointer :: have_mass_trans_coef
+      logical, dimension(:), pointer :: have_mass_trans_coefd
   end type darcy_impes_MIM_options_type
    
   type prog_sfield_MIM_type
