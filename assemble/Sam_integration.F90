@@ -946,6 +946,12 @@ module sam_integration
        call sam_query(nonods, totele, stotel, ncolga, nscate, pncolga, pnscate)
        ewrite(1, *) "Exited sam_query"
        
+       !!! sanity check
+
+       if (nonods==0) then
+          FLExit("Libsam has produced an empty partition for your problem. Please consider reconfiguring with Zoltan")
+       end if
+
        ! Export mesh data from sam
        allocate(linear_mesh)
        call allocate(linear_mesh, nonods, totele, linear_shape, linear_mesh_name)
@@ -1693,17 +1699,24 @@ module sam_integration
        ewrite(0,*) "Failure to remap. This probably means a discretisation type that is not handled by sam"
     end select
     FLExit("This discretisation is not supported in parallel with libsam. Please consider reconfiguring with Zoltan")
-
   end subroutine check_sam_linear_remap_validity
   
   subroutine sam_integration_check_options
+
+    integer :: i
+    character (len=OPTION_PATH_LEN) :: continuity_var
+
     !!< Check libsam integration related options
-    
-    if(.not. have_option("/mesh_adaptivity/hr_adaptivity") .or. .not. isparallel()) then
+
+    if(.not. isparallel()) then
       ! Nothing to check
       return
-    end if       
-    
+    end if
+
+    if( have_option("/flredecomp") ) then
+       FLExit("Specification of flredecomp parameters in the options tree is not supported with libsam. Please remove or reconfigure with Zoltan")
+    end if
+
 #ifndef HAVE_ZOLTAN
     ewrite(2, *) "Checking libsam integration related options"
 
@@ -1712,7 +1725,7 @@ module sam_integration
     end if
     
     if(have_option("/mesh_adaptivity/hr_adaptivity/preserve_mesh_regions")) then
-      FLExit("Preserving of mesh regions through adapts is not supported in parallel")
+      FLExit("Preserving of mesh regions through adapts is not supported in parallel with libsam. Please reconfigure with Zoltan")
     end if
 
     if(option_count('/geometry/mesh/from_mesh/mesh_shape')+option_count('/geometry/mesh/from_mesh/mesh_continuity')>0 .and. &
@@ -1729,6 +1742,10 @@ module sam_integration
       ewrite(0,*) "It appears you have non P1 meshes (mesh that are not linear and continuous) and are using adaptivity."
       ewrite(0,*) "For this to work you need to reconfigure with Zoltan."
       FLExit("Non supported discretisation for sam with parallel adaptivity.")
+    end if
+
+    if(option_count('/geometry/mesh/from_mesh/extrude')>0) then
+       FLExit("Mesh extrusion is not supported in parallel with libsam. Please reconfigure with Zoltan")
     end if
 
     ewrite(2, *) "Finished checking libsam integration related options"

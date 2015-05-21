@@ -1,11 +1,10 @@
-<?xml version = "1.0" encoding = "UTF-8" ?>
+<?xml version='1.0' encoding='utf-8'?>
 <testproblem>
   <name>Geopressure convergence test (P1)</name>
   <owner userid="piggt01"/>
-  <tags>flml parallel</tags>
-  <problem_definition length = "medium" nprocs = "2">
-    <command_line>
-      make clean-run; rm -f 8.log 16.log 32.log 64.log &amp;&amp;
+  <tags>flml parallel zoltan<comment>zoltan tag added due to issue with python imports with libsam and flredecomp -jrper</comment></tags>
+  <problem_definition length="medium" nprocs="2">
+    <command_line>make clean-run; rm -f 8.log 16.log 32.log 64.log &amp;&amp;
       mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l geopressure_8 geopressure_8_flredecomp &amp;&amp;
       mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l geopressure_16 geopressure_16_flredecomp &amp;&amp;
       mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l geopressure_32 geopressure_32_flredecomp &amp;&amp;
@@ -13,30 +12,22 @@
       mpiexec ../../bin/fluidity -v2 geopressure_8_flredecomp.flml &gt; 8.log;
       mpiexec ../../bin/fluidity -v2 geopressure_16_flredecomp.flml &gt; 16.log;
       mpiexec ../../bin/fluidity -v2 geopressure_32_flredecomp.flml &gt; 32.log;
-      mpiexec ../../bin/fluidity -v2 geopressure_64_flredecomp.flml &gt; 64.log;
-    </command_line>
+      mpiexec ../../bin/fluidity -v2 geopressure_64_flredecomp.flml &gt; 64.log;</command_line>
   </problem_definition>
   <variables>
-    <variable name = "solvers_converged" language = "python">
-import os
+    <variable name="solvers_converged" language="python">import os
 files = os.listdir("./")
-solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files 
-    </variable>
-    <variable name = "l2_errors" language = "python">
-import fluidity_tools
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files</variable>
+    <variable name="l2_errors" language="python">import fluidity_tools
 
 l2_errors = []
 for i in [8, 16, 32, 64]:
   s = fluidity_tools.stat_parser("geopressure_" + str(i) + ".stat")
-  l2_errors.append(s["Fluid"]["ScalarAbsoluteDifference"]["l2norm"])
-    </variable>
+  l2_errors.append(s["Fluid"]["ScalarAbsoluteDifference"]["l2norm"])</variable>
   </variables>
   <pass_tests>
-    <test name = "Solvers converged" language = "python">
-assert(solvers_converged)
-    </test>
-    <test name = "Expected convergence (L2 norm)" language = "python">
-import math
+    <test name="Solvers converged" language="python">assert(solvers_converged)</test>
+    <test name="Expected convergence (L2 norm)" language="python">import math
 
 import fluidity_tools
 
@@ -51,9 +42,7 @@ print convergence
 
 fluidity_tools.compare_variable(convergence[0], 2.0, 0.02)
 fluidity_tools.compare_variable(convergence[1], 2.0, 0.005)
-fluidity_tools.compare_variable(convergence[2], 2.0, 0.002)
-    </test>
+fluidity_tools.compare_variable(convergence[2], 2.0, 0.002)</test>
   </pass_tests>
-  <warn_tests>
-  </warn_tests>
+  <warn_tests/>
 </testproblem>
