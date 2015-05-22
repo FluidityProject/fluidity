@@ -139,6 +139,7 @@ module darcy_impes_leaching_types
      logical:: heat_transfer_single = .false.
      logical:: heat_transfer_two = .false.
      logical:: heat_transfer_three = .false.
+     logical:: prog_liquid_temperature = .false.
      type(scalar_field), pointer :: liquid_temperature => null()
      type(scalar_field), pointer :: air_temperature => null()
      type(scalar_field), pointer :: rock_temperature => null()

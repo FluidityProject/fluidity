@@ -2414,7 +2414,8 @@ dot_product((grad_pressure_face_quad(:,ggi) - di%cached_face_value%den(ggi,vele,
          call addto(di%rhs, di%cv_mass_pressure_mesh_with_source)
          
       end if
- 
+
+      
       ! *********************************************LCai ********************************!
       
       !********allocate the leaching chemical src*************
@@ -2429,7 +2430,6 @@ dot_product((grad_pressure_face_quad(:,ggi) - di%cached_face_value%den(ggi,vele,
          
          end if
       end if
-   
 
      !***Leaching heat transfer model
       if (di%generic_prog_sfield(f)%lh_src%have_heat_src) then 
@@ -2451,7 +2451,7 @@ dot_product((grad_pressure_face_quad(:,ggi) - di%cached_face_value%den(ggi,vele,
          call darcy_trans_MIM_prog_sfield_allocate_rhs_lhs(di,p,f,temp_MIM_src)
       end if
       !*********************finish*******LCai
-      
+
            
       ! Add diagonal lhs to matrix
       call addto_diag(di%matrix, di%lhs)
@@ -2482,10 +2482,8 @@ dot_product((grad_pressure_face_quad(:,ggi) - di%cached_face_value%den(ggi,vele,
          
          ! Apply any strong dirichlet BC's
          call apply_dirichlet_conditions(di%matrix, di%rhs_full, di%generic_prog_sfield(f)%sfield)
-
          ! Solve the sfield
          call petsc_solve(di%generic_prog_sfield(f)%sfield, di%matrix, di%rhs_full, di%state(p))
-
          ! Set the strong BC nodes to the values to be consistent
          call set_dirichlet_consistent(di%generic_prog_sfield(f)%sfield) 
       

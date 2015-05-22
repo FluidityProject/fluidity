@@ -208,14 +208,13 @@ contains
 
                            tmp_char_option1 = trim(tmp_char_option)//'Immobile_chemical_src'
                            di%generic_prog_sfield(f_count)%MIM%chem%im_src => extract_scalar_field(di%state(p), &
-                                trim(tmp_char_option1), stat)
-                           
+                                trim(tmp_char_option1), stat)                       
                            if (.not. stat==0) then
                               FLExit('failed to extract the field:'//tmp_char_option1)
                            end if
 
-                        elseif (have_option('/material_phase['//int2str(p-1)//']/scalar_field['//int2str(f-1)//']/prognostic/leaching_temperature_sources')) then
-                           if (.not. have_option('/material_phase['//int2str(p-1)//']/scalar_field['//int2str(f-1)//']/prognostic/leaching_temperature_source/Mobile_Immobile_Model')) then
+                        elseif (have_option('/material_phase['//int2str(p-1)//']/scalar_field['//int2str(f-1)//']/prognostic/LeachingChemicalSourceTerm')) then
+                           if (.not. have_option('/material_phase['//int2str(p-1)//']/scalar_field['//int2str(f-1)//']/prognostic/LeachingChemicalSourceTerm/Mobile_Immobile_Model')) then
                               FLExit('please turn on the Mobile_Immobile_Model under leaching_temperature_sources of field:'// tmp_char_option)
                            end if
 
@@ -518,6 +517,7 @@ contains
 
       !local variables
       type(scalar_field) :: sfield,dfield,thetab,tb,tfield
+      integer :: i
 
       !!!----------calculate the average concentration--------
       call allocate(sfield,di%pressure_mesh)
@@ -543,23 +543,26 @@ contains
       call set(dfield,di%generic_prog_sfield(f)%sfield)
       call scale(dfield,di%porosity_pmesh)
       call scale(dfield,di%MIM_options%mobile_saturation(p)%ptr)
-
+      
       !the average concentration
       call set(di%generic_prog_sfield(f)%MIM%C_a ,sfield)
       call addto(di%generic_prog_sfield(f)%MIM%C_a,dfield)
       call scale(di%generic_prog_sfield(f)%MIM%C_a,tfield)
 
-      !!!----------calculate the weighting constant ratio--------
-      call scale(tb,di%generic_prog_sfield(f)%MIM%C_a )
-      call invert(tb,tfield)
-      
-      call set(di%generic_prog_sfield(f)%MIM%Fd, tfield)
-      call scale(di%generic_prog_sfield(f)%MIM%Fd,dfield)
+     !------------calculate the weighting constant ratio--------
 
-      call set(di%generic_prog_sfield(f)%MIM%Fs, tfield)
-      call scale(di%generic_prog_sfield(f)%MIM%Fs,sfield)
-      
-      
+      do i=1, di%number_pmesh_node
+         if (di%generic_prog_sfield(f)%MIM%C_a%val(i)<=1.0D-16) then
+            di%generic_prog_sfield(f)%MIM%Fs%val(i)=0.0
+            di%generic_prog_sfield(f)%MIM%Fd%val(i)=0.0
+         else
+             tfield%val(i)=1.0/(tb%val(i)*di%generic_prog_sfield(f)%MIM%C_a%val(i))
+             di%generic_prog_sfield(f)%MIM%Fd%val(i)=tfield%val(i)*dfield%val(i)
+
+             di%generic_prog_sfield(f)%MIM%Fs%val(i)=tfield%val(i)*sfield%val(i)
+          end if
+       end do
+                
       call deallocate(sfield)
       call deallocate(dfield)
       call deallocate(tb)
