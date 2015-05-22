@@ -1708,15 +1708,14 @@ module sam_integration
     if(.not. isparallel()) then
       ! Nothing to check
       return
-    end if
+    end if       
+    
+#ifndef HAVE_ZOLTAN
+    ewrite(2, *) "Checking libsam integration related options"
 
     if( have_option("/flredecomp") ) then
        FLExit("Specification of flredecomp parameters in the options tree is not supported with libsam. Please remove or reconfigure with Zoltan")
     end if
-       
-    
-#ifndef HAVE_ZOLTAN
-    ewrite(2, *) "Checking libsam integration related options"
     
     if(have_option("/mesh_adaptivity/hr_adaptivity/preserve_mesh_regions")) then
       FLExit("Preserving of mesh regions through adapts is not supported in parallel with libsam. Please reconfigure with Zoltan")
