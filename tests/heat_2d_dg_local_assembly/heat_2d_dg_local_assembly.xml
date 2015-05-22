@@ -1,43 +1,27 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
-
+<?xml version='1.0' encoding='utf-8'?>
 <testproblem>
   <name>heat_2d_dg</name>
   <owner userid="wence"/>
-  <tags>flml parallel</tags>
+  <tags>flml parallel zoltan<comment>zoltan tag added since test generates empty partitions with libsam.  -jrper</comment></tags>
   <problem_definition length="short" nprocs="8">
     <command_line>mpiexec ../../bin/flredecomp -i 1 -o 8 -v -l heat heat_flredecomp &amp;&amp;
-      mpiexec ../../bin/fluidity -l heat_flredecomp.flml </command_line>
-    <!-- Two dimensional diffusion only problem. -->
+      mpiexec ../../bin/fluidity -l heat_flredecomp.flml</command_line>
   </problem_definition>
   <variables>
-    <variable name="solvers_converged" language="python">
-import os
+    <variable name="solvers_converged" language="python">import os
 files = os.listdir("./")
-solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
-    </variable>
-    <variable name="tracer_integral" language="python">
-from fluidity_tools import stat_parser
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files</variable>
+    <variable name="tracer_integral" language="python">from fluidity_tools import stat_parser
 s = stat_parser("heat.stat")
-tracer_integral = s["Water"]["Tracer"]["integral"][-1]
-    </variable>
-    <variable name="tracer_error" language="python">
-from fluidity_tools import stat_parser
+tracer_integral = s["Water"]["Tracer"]["integral"][-1]</variable>
+    <variable name="tracer_error" language="python">from fluidity_tools import stat_parser
 s = stat_parser("heat.stat")
-tracer_error = s["Water"]["ScalarAbsoluteDifference"]["max"][-1]-9.9e-5
-    </variable>
+tracer_error = s["Water"]["ScalarAbsoluteDifference"]["max"][-1]-9.9e-5</variable>
   </variables>
   <pass_tests>
-    <test name="Solvers converged" language="python">
-      assert(solvers_converged)
-    </test>
-    <test name="tracer integral is 1.0" language="python">
-assert abs(tracer_integral - 1.0) &lt; 1e-3
-    </test>
-    <test name="tracer error compared with serial run" language="python">
-assert abs(tracer_error) &lt; 5.e-9
-    </test>
+    <test name="Solvers converged" language="python">assert(solvers_converged)</test>
+    <test name="tracer integral is 1.0" language="python">assert abs(tracer_integral - 1.0) &lt; 1e-3</test>
+    <test name="tracer error compared with serial run" language="python">assert abs(tracer_error) &lt; 5.e-9</test>
   </pass_tests>
-  <warn_tests>
-  </warn_tests>
+  <warn_tests/>
 </testproblem>
