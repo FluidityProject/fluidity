@@ -9,7 +9,8 @@ module intersection_finder_module
   use libsupermesh_fields_allocates, only : allocate, deallocate
   use libsupermesh_intersection_finder_module, &
                           only: libsupermesh_rtree_intersection_finder, &
-                          libsupermesh_advancing_front_intersection_finder
+                          libsupermesh_advancing_front_intersection_finder, &
+                          libsupermesh_intersection_finder
   use libsupermesh_adjacency_lists, only: csr_sparsity_lib => csr_sparsity
   use libsupermesh_sparse_tools, only: allocate, deallocate, entries
   use libsupermesh_linked_lists, only: &
@@ -252,7 +253,48 @@ contains
 #endif
 
   end subroutine reset_intersection_tests_counter
-      
+
+#ifdef HAVE_SUPERMESH
+  function intersection_finder(positionsA, positionsB) result(map_AB)
+    !!< A simple wrapper to select an intersection finder
+
+    ! The positions and meshes of A and B
+    type(vector_field), intent(in), target :: positionsA, positionsB
+    ! for each element in A, the intersecting elements in B
+    type(ilist), dimension(ele_count(positionsA)) :: map_AB
+
+    ! We cannot assume connectedness, so we may have to run the
+    ! advancing front more than once (once per connected sub-domain)
+    type(ilist_lib), dimension(:), allocatable :: map_AB_lib
+
+    integer :: i, temp_value
+    type(inode_lib), pointer :: current_id_lib
+
+    ewrite(1, *) "In intersection_finder"
+
+    allocate(map_AB_lib(ele_count(positionsA)))
+
+    map_AB_lib = libsupermesh_intersection_finder( &
+      & positionsA%val, reshape(positionsA%mesh%ndglno, (/ele_loc(positionsA, 1), ele_count(positionsA)/)), &
+      & positionsB%val, reshape(positionsB%mesh%ndglno, (/ele_loc(positionsB, 1), ele_count(positionsB)/)) )
+
+    do i=1,size(map_AB_lib)
+      current_id_lib => map_AB_lib(i)%firstnode
+
+      do while(associated(current_id_lib))
+        temp_value = current_id_lib%value
+        call insert(map_AB(i), temp_value)
+        current_id_lib => current_id_lib%next
+      end do
+      call flush_list_lib(map_AB_lib(i))
+    end do
+
+    deallocate(map_AB_lib)
+
+    ewrite(1, *) "Exiting intersection_finder"
+  
+  end function intersection_finder
+#else
   function intersection_finder(positionsA, positionsB) result(map_AB)
     !!< A simple wrapper to select an intersection finder
     
@@ -293,6 +335,7 @@ contains
     ewrite(1, *) "Exiting intersection_finder"
   
   end function intersection_finder
+#endif
   
   function connected(positions)
     !!< Return whether the supplied coordinate field is connected. Uses a simple
@@ -688,55 +731,27 @@ contains
   function rtree_intersection_finder(positions_a, positions_b, npredicates) result(map_ab)
     !!< As advancing_front_intersection_finder, but uses an rtree algorithm. For
     !!< testing *only*. For practical applications, use the linear algorithm.
-    
+
     ! The positions and meshes of A and B
     type(vector_field), intent(in), target :: positions_a, positions_b
     integer, intent(out), optional :: npredicates
     ! for each element in A, the intersecting elements in B
     type(ilist), dimension(ele_count(positions_a)) :: map_ab
-    
+
     type(vector_field_lib), target :: positions_a_lib
     real, dimension(:,:), allocatable :: positions_a_lib_val
     real, dimension(node_count(positions_b) * positions_b%dim) :: positions_b_lib
     ! for each element in A, the intersecting elements in B
     type(ilist_lib), dimension(:), allocatable :: map_AB_lib
-!    type(ilist_lib), dimension(ele_count(positions_a)) :: map_ab_lib
-    
+
     integer :: i, temp_value, node, dimA, dimB, fieldMeshShapeLocA, n_count
-!    type(element_type_lib) :: shape_lib
-!    type(quadrature_type_lib) :: quad_lib
-!    type(mesh_type_lib) :: mesh_lib
     type(inode), pointer :: current_id
     type(inode_lib), pointer :: current_id_lib
 
-!    quad_lib = make_quadrature_lib(vertices = positions_a%mesh%shape%quadrature%vertices, dim = positions_a%mesh%shape%quadrature%dim, ngi = positions_a%mesh%shape%quadrature%ngi, degree = positions_a%mesh%shape%quadrature%degree)
-!    shape_lib = make_element_shape_lib(vertices = positions_a%mesh%shape%loc, dim = positions_a%mesh%shape%dim, degree = positions_a%mesh%shape%degree, quad = quad_lib)
-!    call deallocate(quad_lib)
-    
-!    call allocate(mesh_lib, node_count(positions_a), ele_count(positions_a), shape_lib)
-!    call deallocate(shape_lib)
-!    mesh_lib%ndglno = positions_a%mesh%ndglno
-!    call allocate(positions_a_lib, positions_a%dim, mesh_lib)
-!    positions_a_lib%val = positions_a%val 
-!    positions_a_lib%dim = positions_a%dim
-!    call deallocate(mesh_lib)
-    
-!    quad_lib = make_quadrature_lib(vertices = positions_b%mesh%shape%quadrature%vertices, dim = positions_b%mesh%shape%quadrature%dim, ngi = positions_b%mesh%shape%quadrature%ngi, degree = positions_b%mesh%shape%quadrature%degree)
-!    shape_lib = make_element_shape_lib(vertices = positions_b%mesh%shape%loc, dim = positions_b%mesh%shape%dim, degree = positions_b%mesh%shape%degree, quad = quad_lib)
-!    call deallocate(quad_lib)
-    
-!    call allocate(mesh_lib, node_count(positions_b), ele_count(positions_b), shape_lib)
-!    call deallocate(shape_lib)
-!    mesh_lib%ndglno = positions_b%mesh%ndglno
-!    call allocate(positions_b_lib, positions_b%dim, mesh_lib)
-!    positions_b_lib%val = positions_b%val 
-!    positions_b_lib%dim = positions_b%dim
-!    call deallocate(mesh_lib)
-    
     dimA = positions_a%dim
     dimB = positions_b%dim
     n_count = 0
-    
+
     select case(positions_a%field_type)
     case(FIELD_TYPE_NORMAL)
       n_count = node_count(positions_a%mesh)
@@ -746,20 +761,17 @@ contains
     case(FIELD_TYPE_DEFERRED)
       allocate(positions_a_lib_val(0,0))
     end select
-    
+
     positions_a_lib_val = positions_a%val
     fieldMeshShapeLocA = positions_a%mesh%shape%loc
-    
+
     do node=1,node_count(positions_b)
       positions_b_lib((node-1)*dimB+1:node*dimB) = node_val(positions_b, node)
     end do
-    
+
     allocate(map_AB_lib(size(map_AB)))
-    map_ab_lib = libsupermesh_rtree_intersection_finder(positions_a_lib_val, dimA, &
-        positions_a%mesh%shape%quadrature%vertices, positions_a%mesh%shape%quadrature%dim, node_count(positions_a), &
-        ele_count(positions_a), fieldMeshShapeLocA, positions_a%mesh%ndglno, &
-        positions_b_lib, npredicates, dimB, node_count(positions_b), ele_count(positions_b), ele_loc(positions_b, 1), positions_b%mesh%ndglno)
-    
+    map_ab_lib = libsupermesh_rtree_intersection_finder(positions_a%val, positions_a%mesh%ndglno, positions_b%val, positions_b%mesh%ndglno, npredicates)
+
     do i=1,size(map_AB_lib)
       if (associated(map_AB_lib(i)%firstnode) .eqv. .false.) cycle
       current_id_lib => map_AB_lib(i)%firstnode
@@ -770,11 +782,10 @@ contains
         current_id_lib => current_id_lib%next
       end do
     end do
-    
+
     deallocate(positions_a_lib_val)
     deallocate(map_AB_lib)
-!    call deallocate(positions_b_lib)
-    
+
   end function rtree_intersection_finder
 #else
   function rtree_intersection_finder(positions_a, positions_b, npredicates) result(map_ab)
