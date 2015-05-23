@@ -365,8 +365,6 @@ contains
          !Addto the lhs matrix
          !calculate 1/(theta_s+alpha*dt)
          call set(MIM_src, di%MIM_options%immobile_saturation(p)%ptr)
-         
-         !check wether to scale with the porosity as a constant of a scalar field
 
          call scale(MIM_src, di%porosity_pmesh)
 
@@ -405,8 +403,16 @@ contains
            call zero(leach_im_src)
 
            call set(leach_im_src,di%generic_prog_sfield(f)%MIM%chem%im_src)
+           call scale(leach_im_src,di%porosity_pmesh)
+           call scale(leach_im_src,di%MIM_options%immobile_saturation(p)%ptr) !in mole per volume of heap
+
            call scale(leach_im_src,di%dt)
            call scale(leach_im_src,di%MIM_options%mass_trans_coef(p)%ptr)
+
+           if (f==3) then
+              print *, leach_im_src%val(3)
+           end if
+           
            call scale(leach_im_src,temp_MIM_src)
            call addto(di%rhs,leach_im_src)
 
@@ -451,6 +457,9 @@ contains
        !add the immobile src '(dt*S)/(theta_s+alpha*dt)'
        if (di%generic_prog_sfield(f)%MIM%chem%have_chem) then
           call set(temp_rhs,di%generic_prog_sfield(f)%MIM%chem%im_src)
+          call scale(temp_rhs,di%porosity_pmesh)
+          call scale(temp_rhs,di%MIM_options%immobile_saturation(p)%ptr) !in mole per volume of heap
+          
           call scale(temp_rhs,di%dt)
           call scale(temp_rhs,temp_MIM_src)
           call addto(di%generic_prog_sfield(f)%MIM%immobile_sfield%sfield,temp_rhs)
@@ -553,8 +562,8 @@ contains
 
       do i=1, di%number_pmesh_node
          if (di%generic_prog_sfield(f)%MIM%C_a%val(i)<=1.0D-16) then
-            di%generic_prog_sfield(f)%MIM%Fs%val(i)=0.0
-            di%generic_prog_sfield(f)%MIM%Fd%val(i)=0.0
+            di%generic_prog_sfield(f)%MIM%Fs%val(i)=0.5
+            di%generic_prog_sfield(f)%MIM%Fd%val(i)=0.5
          else
              tfield%val(i)=1.0/(tb%val(i)*di%generic_prog_sfield(f)%MIM%C_a%val(i))
              di%generic_prog_sfield(f)%MIM%Fd%val(i)=tfield%val(i)*dfield%val(i)
