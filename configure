@@ -13321,10 +13321,6 @@ if ac_fn_c_try_link "$LINENO"; then :
     { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 
-                                            $as_echo "#define HAVE_ZOLTAN 1" >>confdefs.h
-
-                                            HAVE_ZOLTAN=yes
-
 
 else
 
@@ -13384,11 +13380,16 @@ fi
 $as_echo "$ac_cv_lib_zoltan_Zoltan_Create" >&6; }
 if test "x$ac_cv_lib_zoltan_Zoltan_Create" = xyes; then :
 
-                                            $as_echo "#define HAVE_ZOLTAN 1" >>confdefs.h
-
-                                            HAVE_ZOLTAN=yes
-
        LIBS="-lzoltan $LIBS"
+else
+
+      { $as_echo "$as_me:${as_lineno-$LINENO}: Fluidity can be built without zoltan by configuring with the --enable-sam flag. This gives limited functionality when using parallel adaptivity. See the manual for more details." >&5
+$as_echo "$as_me: Fluidity can be built without zoltan by configuring with the --enable-sam flag. This gives limited functionality when using parallel adaptivity. See the manual for more details." >&6;}
+      { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "\"Could not link with Zoltan library.\"
+See \`config.log' for more details" "$LINENO" 5; }
+
 fi
 
 
@@ -13404,6 +13405,58 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
 
+
+  # Small test for zoltan .mod files:
+  ac_ext=${ac_fc_srcext-f}
+ac_compile='$FC -c $FCFLAGS $ac_fcflags_srcext conftest.$ac_ext >&5'
+ac_link='$FC -o conftest$ac_exeext $FCFLAGS $LDFLAGS $ac_fcflags_srcext conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_fc_compiler_gnu
+
+  c_ext=F90
+  # In fluidity's makefile we explicitly add CPPFLAGS, temporarily add it to
+  # FCFLAGS here for this zoltan test:
+  tmpFCFLAGS="$FCFLAGS"
+  FCFLAGS="$FCFLAGS $CPPFLAGS"
+  cat > conftest.$ac_ext <<_ACEOF
+
+      program test_zoltan
+       use zoltan
+      end program test_zoltan
+
+
+_ACEOF
+if ac_fn_fc_try_link "$LINENO"; then :
+
+    { $as_echo "$as_me:${as_lineno-$LINENO}: Great success! Zoltan .mod files exist and are usable" >&5
+$as_echo "$as_me: Great success! Zoltan .mod files exist and are usable" >&6;}
+
+else
+
+      cp conftest.F90 test_zoltan.F90
+      { $as_echo "$as_me:${as_lineno-$LINENO}: Fluiidity can be build without zoltan by configuring with the --enable-sam flag. This gives limited functionality when using parallel adaptivity. See the manual for more details." >&5
+$as_echo "$as_me: Fluiidity can be build without zoltan by configuring with the --enable-sam flag. This gives limited functionality when using parallel adaptivity. See the manual for more details." >&6;}
+      { $as_echo "$as_me:${as_lineno-$LINENO}: Failed to compile with zoltan.mod fortran module. This means the module can either not be found - please add the necessary -I flag to CPPFLAGS - or, the zoltan fortran module has been compiled with a different (version of the) fortran compiler than you are using to compile fluidity - in which case please rebuild zoltan with the same compiler." >&5
+$as_echo "$as_me: Failed to compile with zoltan.mod fortran module. This means the module can either not be found - please add the necessary -I flag to CPPFLAGS - or, the zoltan fortran module has been compiled with a different (version of the) fortran compiler than you are using to compile fluidity - in which case please rebuild zoltan with the same compiler." >&6;}
+      { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "Failed to find usable zoltan.mod file
+See \`config.log' for more details" "$LINENO" 5; }
+
+
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+  # And now revert FCFLAGS
+  FCFLAGS="$tmpFCFLAGS"
+  ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+  $as_echo "#define HAVE_ZOLTAN 1" >>confdefs.h
+
+  HAVE_ZOLTAN=yes
 fi
 
 
@@ -13910,9 +13963,10 @@ fi
 
 if test "$enable_profiling" = "yes" ; then
   PROFILING_FLAG="-pg"
-  CPPFLAGS="-pg $CPPFLAGS"
   FFLAGS="-pg $FFLAGS"
   FCFLAGS="-pg $FCFLAGS"
+  CFLAGS="-pg $CFLAGS"
+  CXXFLAGS="-pg $CXXFLAGS"
 
   LINKER="$LINKER -pg"
   LIBS="$LIBS -pg"
