@@ -220,6 +220,8 @@ subroutine keps_calculate_rhs(state)
 !type(scalar_field), pointer :: time
 integer, dimension(3) :: nn, n_ele
 !type(integer), pointer :: neigh_faces, nodes_faces
+  type(scalar_field) :: dummy_scalar
+  type(scalar_field), pointer :: sponge_field   
 
   option_path = trim(state%option_path)//'/subgridscale_parameterisations/k-epsilon/'
 
@@ -303,7 +305,6 @@ integer, dimension(3) :: nn, n_ele
      call allocate(src_abs_terms(3), fields(1)%mesh, name="buoyancy_term")
      call zero(src_abs_terms(1)); call zero(src_abs_terms(2)); call zero(src_abs_terms(3))
      call zero(src); call zero(abs)
-
      !-----------------------------------------------------------------------------------
 
 !temp_SCALAR=>extract_SCALAR_field(state, "temp_scalar", stat=stat)
@@ -409,6 +410,19 @@ integer, dimension(3) :: nn, n_ele
            end where
            call scale(src_abs_terms(term), src_to_abs)
            call addto(abs, src_abs_terms(term), -1.0)
+
+           !--- gb812
+!           sponge_field => extract_scalar_field(state, "Sponge_Field", stat)
+!           call allocate(dummy_scalar, abs%mesh, name="DummyScalar")
+!           call zero(dummy_scalar)
+!           where (sponge_field%val<0.001)
+!              dummy_scalar%val = 1.0
+!           end where
+!           call scale(abs, dummy_scalar)  
+!           call addto(abs, sponge_field)  
+!           call deallocate(dummy_scalar)
+           !---
+
            call deallocate(src_to_abs)
         case default
            ! developer error... out of sync options input and code
