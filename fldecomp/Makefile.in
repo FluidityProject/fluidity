@@ -31,11 +31,8 @@ FCFLAGS = -I../include @FCFLAGS@
 
 MPIF90  = @MPIF90@
 
-CC      = @CC@
-CFLAGS  = @CFLAGS@  -I../include
-
 CXX     = @CXX@
-CXXFLAGS= @CXXFLAGS@  -I../include
+CXXFLAGS= @CPPFLAGS@ @CXXFLAGS@  -I../include
 
 MAKE    = @MAKE@
 AR  = @AR@
