@@ -153,6 +153,38 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
+    <scalar_field name="TracerFromSharedObjectFortranBindC" rank="0">
+      <prescribed>
+        <mesh name="VelocityMesh"/>
+        <value name="WholeMesh">
+          <plugin_function path="./example.so" name="val_fortranbindc">
+            <interface_type name="C"/>
+          </plugin_function>
+        </value>
+        <output/>
+        <stat/>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </scalar_field>
+    <scalar_field name="DifferenceFortranBindC" rank="0">
+      <diagnostic>
+        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="TracerFromSharedObjectFortranBindC" source_field_2_name="TracerFromPython" material_phase_support="single" source_field_1_type="scalar"/>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
     <scalar_field name="TracerFromSharedObjectC" rank="0">
       <prescribed>
         <mesh name="VelocityMesh"/>
@@ -169,6 +201,38 @@
       </prescribed>
     </scalar_field>
     <scalar_field name="DifferenceC" rank="0">
+      <diagnostic>
+        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="TracerFromSharedObjectC" source_field_2_name="TracerFromPython" material_phase_support="single" source_field_1_type="scalar"/>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="TracerFromSharedObjectCpp" rank="0">
+      <prescribed>
+        <mesh name="VelocityMesh"/>
+        <value name="WholeMesh">
+          <plugin_function path="./cpp_example.so" name="val">
+            <interface_type name="C"/>
+          </plugin_function>
+        </value>
+        <output/>
+        <stat/>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </scalar_field>
+    <scalar_field name="DifferenceCpp" rank="0">
       <diagnostic>
         <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="TracerFromSharedObjectC" source_field_2_name="TracerFromPython" material_phase_support="single" source_field_1_type="scalar"/>
         <mesh name="VelocityMesh"/>

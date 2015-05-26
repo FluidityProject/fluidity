@@ -17,3 +17,13 @@ subroutine val_Fortran77(dim,n,field,X,t)
   field=X(1,:)**2-X(2,:)
 
 end subroutine val_Fortran77
+
+subroutine val_FortranBindC(dim,n,field,X,t) bind(C)
+  use iso_c_binding
+  integer(c_int) :: dim, n
+  real(c_double), dimension(n) :: field
+  real(c_double), dimension(dim,n) :: X
+  real(c_double) :: t
+
+  field=X(1,:)**2-X(2,:)
+end subroutine val_FortranBindC

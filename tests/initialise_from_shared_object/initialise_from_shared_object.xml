@@ -11,9 +11,9 @@
 vtu = vtktools.vtu("initialise_from_shared_object_0.vtu")</variable>
   </variables>
   <pass_tests>
-    <test name="DifferenceF77" language="python">import fluidity_tools
+    <test name="DifferenceFortranBindC" language="python">import fluidity_tools
 
-field = vtu.GetScalarField("DifferenceFortran77")
+field = vtu.GetScalarField("DifferenceFortranBindC")
 
 print "Difference", field.min(), field.max()
 fluidity_tools.compare_variable(field.min(), 0.0, 1.0e-12)
@@ -30,6 +30,20 @@ fluidity_tools.compare_variable(field.max(), 0.0, 1.0e-12)</test>
     <test name="DifferenceFortran90" language="python">import fluidity_tools
 
 field = vtu.GetScalarField("DifferenceFortran90")
+
+print "Difference", field.min(), field.max()
+fluidity_tools.compare_variable(field.min(), 0.0, 1.0e-12)
+fluidity_tools.compare_variable(field.max(), 0.0, 1.0e-12)</test>
+    <test name="DifferenceF77" language="python">import fluidity_tools
+
+field = vtu.GetScalarField("DifferenceFortran77")
+
+print "Difference", field.min(), field.max()
+fluidity_tools.compare_variable(field.min(), 0.0, 1.0e-12)
+fluidity_tools.compare_variable(field.max(), 0.0, 1.0e-12)</test>
+    <test name="DifferenceC" language="python">import fluidity_tools
+
+field = vtu.GetScalarField("DifferenceCpp")
 
 print "Difference", field.min(), field.max()
 fluidity_tools.compare_variable(field.min(), 0.0, 1.0e-12)
