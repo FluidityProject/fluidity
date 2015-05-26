@@ -50,25 +50,56 @@ input_choice_real_plus_file =
           }
       }|
       ## Initialize the field from a subroutine defined in an 
-      ## external shared object library.
+      ## external shared object library as per Section 8.6.2.7
+      ##  of the Fluidity manual
+      ##
       ## Set path to the absolute or relative path to the .so file
       ## and set name to the function name to be called. This should
       ## have a signature suitable for the selected interface type 
       ##
       ## The code file should be compiled like
       ##    <fortran compiler> -fPIC -shared -o example.so example.F90
+      ##
+      ## or
+      ##    < c compiler> -fPIC -shared -o c_example.so c_example.c
       element plugin_function {
          attribute path { xsd:string },
 	 attribute name { xsd:string },
 	 (
-	 	 ## the interface should look like 
-	 ##  subroutine f(dim,n,field,X,t)
-         ##
-	 ##  integer :: dim,n
+	 ## A Fortran interface using the ISO C bining should look like
+	 ##     subroutine val(dim,n,field,X,t) bind(C)
+         ##     use iso_c_binding
+         ##       integer(c_int) :: dim, n
+         ##       real(c_double), dimension(n) :: field
+         ##       real(c_double), dimension(dim,n) :: X
+         ##       real(c_double) :: t
+         ##       field=X(1,:)**2-X(2,:)
+         ##     end subroutine val
+         ## 
+	 ## A C interface should look like 
+	 ##    int val(int *dim,int *n,double field[],
+         ##                     double X[][*dim],double *t) {
+      	 ##    int i;
+     	 ##    for (i=0;i<*n;i++) {
+         ##        field[i]=X[i][0]*X[i][0]-X[i][1];
+      	 ##    };
+      	 ##    return 0;
+    	 ##    }
 	 ##
+         ## "field" is the data array for the field being set.
+         ## "X" is the physical location of the nodes ordered
+         ## [node number, dimension] and "t" is the current 
+	 ## model time.
+	 element interface_type {
+	   attribute name { "C" }
+	 }|
+	 ##  The Fortran interface should look like 
+	 ##
+	 ##  subroutine f(dim,n,field,X,t)
+	 ##  integer :: dim,n
          ##  double precision :: field(n), X(dim,n), t
-         ##
-         ## end subroutine
+         ##     field=X(1,:)*X(1,0)-X(2,:);
+         ##  end subroutine
 	 ##
          ## "field" is the data array for the field being set.
          ## "X" is the physical location of the nodes ordered
@@ -76,16 +107,15 @@ input_choice_real_plus_file =
          ## "t" is the current model time.
          ##
 	 ## This may not be interoperable between compiler versions
-
 	 element interface_type {
 	    attribute name { "Fortran77"}
 	 }|
-	 ## the interface should look like 
+	 ## the interface should look like
+	 ## 
 	 ##  subroutine f(field,X,t)
-         ##
          ##  double precision :: field(:), X(:,:), t
-         ##
-         ## end subroutine
+         ##     field=X(1,:)*X(1,0)-X(2,:);
+         ##  end subroutine
 	 ##
          ## "field" is the data array for the field being set.
          ## "X" is the physical location of the nodes ordered
@@ -93,17 +123,7 @@ input_choice_real_plus_file =
          ## "t" is the current model time.
 	 element interface_type {
 	    attribute name { "Fortran90"}
-	 }|
-	 ## the interface should look like 
-	 ##  function f(int dim,int n,double field[],double X[][],double t) {}
-	 ##
-         ## "field" is the data array for the field being set.
-         ## "X" is the physical location of the nodes ordered
-         ## [node number, dimension]
-         ## "t" is the current model time.
-	 element interface_type {
-	    attribute name { "C" }
-	 })	    
+	 })
       }
    )
 
