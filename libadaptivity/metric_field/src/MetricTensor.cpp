@@ -740,7 +740,9 @@ int MetricTensor::write_vtk(const char *name) const{
   newPts->InsertNextPoint(0.0, 0.0, 0.0);
   newPts->InsertNextPoint(1.0, 1.0, 1.0);
   dataSet->SetPoints(newPts);
+#if VTK_MAJOR_VERSION <= 5
   dataSet->Update();
+#endif
   newPts->Delete();
 
   vtkIdType Cell[]={0,1};
@@ -763,7 +765,9 @@ int MetricTensor::write_vtk(const char *name) const{
 			   0.0,     0.0,     FLT_MIN);
   dataSet->GetPointData()->AddArray(tensor);
   dataSet->GetPointData()->SetActiveAttribute("Metric tensor", vtkDataSetAttributes::TENSORS);
+#if VTK_MAJOR_VERSION <= 5
   dataSet->Update();
+#endif
   tensor->Delete();
   
   vtkXMLPolyDataWriter *writer= vtkXMLPolyDataWriter::New();
@@ -774,7 +778,12 @@ int MetricTensor::write_vtk(const char *name) const{
   std::string fname(name);
   fname.append(".vtp");
   writer->SetFileName(fname.c_str());
+#if VTK_MAJOR_VERSION <= 5
   writer->SetInput(dataSet);
+#else
+  writer->SetInputData(dataSet);
+#endif
+
   writer->Write();
   writer->Delete();
   dataSet->Delete();
