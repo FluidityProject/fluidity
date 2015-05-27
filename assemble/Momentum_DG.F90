@@ -277,11 +277,13 @@ contains
     logical :: partial_stress 
 
     !AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA!
-    real, dimension(U%dim,3) :: U_intgrl !A! 3 discs hence 3
-    real, dimension(3) :: u_disc, u_ref, new_source, intgrl_sum !A! 3 upto discs
-    real :: rho_fluid, a_fact, C_T, disc_thickness, disc_area, u_ref_def
-    type(scalar_field) :: Turbine, Turbine_L, Turbine_R
-    integer :: ii, region_id_disc, region_id_disc_L, region_id_disc_R
+    integer :: ii, discs, ndiscs
+	integer, dimension(:), allocatable :: region_id_disc
+	real,  dimension(:,:), allocatable :: U_intgrl
+    real,    dimension(:), allocatable :: u_disc, u_ref, new_source
+
+    real :: rho_fluid, a_fact, C_T, disc_thickness, disc_area, u_ref_def, intgrl_sum, disc_volume
+    type(scalar_field) :: Turbine
     logical :: ADM_correction
     !AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA!
 
@@ -363,17 +365,33 @@ contains
 
     !AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA!
     Turbine = extract_scalar_field(state, "NodeOnTurbine")
-    Turbine_L = extract_scalar_field(state, "NodeOnTurbineL") !A! change
-    Turbine_R = extract_scalar_field(state, "NodeOnTurbineR") !A! update
+
     call get_option('/ADM/C_T', C_T, default = 0.0)
-    call get_option('/ADM/DiscThickness', disc_thickness, default = 0.0125)
-    call get_option('/ADM/DiscRegionID', region_id_disc, default = 901)
-    call get_option('/ADM/LeftDiscRegionID', region_id_disc_L, default = 903)
-    call get_option('/ADM/RightDiscRegionID', region_id_disc_R, default = 904)
+    call get_option('/ADM/DiscThickness', disc_thickness)
     ADM_correction = have_option("/ADM/ADM_correction")
-    ewrite(2,*) 'ADM correction? ', ADM_correction
     call get_option('/ADM/u_ref_def', u_ref_def)
+
+    ewrite(2,*) 'ADM correction? ', ADM_correction
     ewrite(2,*) 'u_ref_def? ', u_ref_def
+
+    call get_option('/ADM/NDiscs', ndiscs)
+    ewrite(2,*) 'NDiscs: ', ndiscs
+
+    allocate(region_id_disc(ndiscs))
+	region_id_disc=0
+    call get_option('/ADM/DiscRegionID', region_id_disc)
+    ewrite(2,*) 'DiscRegionID(s): ', region_id_disc
+
+    allocate(U_intgrl(U%dim,ndiscs))
+    allocate(u_disc(ndiscs))
+    allocate(u_ref(ndiscs))
+    allocate(new_source(ndiscs))
+
+    U_intgrl   = 0.0
+    u_disc     = 0.0
+    u_ref      = u_ref_def
+    new_source = 0.0
+	!deallocate(drid)
     !AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA!
 
     Abs=extract_vector_field(state, "VelocityAbsorption", stat)   
@@ -737,77 +755,54 @@ contains
 
       !AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA!
       rho_fluid = 1.0
+      intgrl_sum = 0.0
+      disc_volume = 0.0
       a_fact = 0.5*(1.0 - sqrt(1.0-C_T))
-      !A!disc_area = 3.14159*disc_radius*disc_radius
-
-      intgrl_sum = (/0.0,0.0,0.0/)
-      u_disc = (/0.0,0.0,0.0/)
-      u_ref = (/u_ref_def,u_ref_def,u_ref_def/)
-      new_source = (/0.0,0.0,0.0/)
-      U_intgrl(:,1) = (/0.0,0.0,0.0/)
-      U_intgrl(:,2) = (/0.0,0.0,0.0/)
-      U_intgrl(:,3) = (/0.0,0.0,0.0/)
 
       elementD_loop: do nnid = 1, len
         ele = fetch(colours(clr), nnid)
-        if (X%mesh%region_ids(ele)==region_id_disc) then !A! center disc
-!      print*, 'U_intgrl 1',U_intgrl(1,1), U_intgrl(2,1), U_intgrl(3,1)
-          call calc_disc_velocity_integral(ele, X, U, U_intgrl(:,1))
-!      print*, 'U_intgrl 1',U_intgrl(1,1), U_intgrl(2,1), U_intgrl(3,1)
-        elseif (X%mesh%region_ids(ele)==region_id_disc_L) then !A! disc to the left
-!      print*, 'U_intgrl 2',U_intgrl(1,2), U_intgrl(2,2), U_intgrl(3,2)
-          call calc_disc_velocity_integral(ele, X, U, U_intgrl(:,2))
-!      print*, 'U_intgrl 2',U_intgrl(1,2), U_intgrl(2,2), U_intgrl(3,2)
-        elseif (X%mesh%region_ids(ele)==region_id_disc_R) then !A! disc to the right
-!      print*, 'U_intgrl 3',U_intgrl(1,3), U_intgrl(2,3), U_intgrl(3,3)
-          call calc_disc_velocity_integral(ele, X, U, U_intgrl(:,3))
-!      print*, 'U_intgrl 3',U_intgrl(1,3), U_intgrl(2,3), U_intgrl(3,3)
-        end if
+        do discs = 1, ndiscs
+          if (X%mesh%region_ids(ele)==region_id_disc(discs)) then
+            call calc_disc_velocity_integral(ele, X, U, U_intgrl(:,discs))
+          end if
+        end do
       end do elementD_loop
 
       do ii=1, U%dim
-        call allsum(U_intgrl(ii,1))
-        call allsum(U_intgrl(ii,2))
-        call allsum(U_intgrl(ii,3))
+        do discs = 1, ndiscs
+          call allsum(U_intgrl(ii,discs))
+          call allsum(U_intgrl(ii,discs))
+          call allsum(U_intgrl(ii,discs))
+        end do
       end do
 
-      intgrl_sum(1) = integral_scalar(Turbine, X)
-      intgrl_sum(2) = integral_scalar(Turbine_L, X)
-      intgrl_sum(3) = integral_scalar(Turbine_R, X)
+      intgrl_sum = integral_scalar(Turbine, X) !A! volume of all discs
+      disc_volume = intgrl_sum/ndiscs          !A! volume of a single disc
+      disc_area = disc_volume/disc_thickness
 
-      do ii=1, 3
-        u_disc(ii) = U_intgrl(1,ii)/intgrl_sum(ii)
+      do discs = 1, ndiscs
+        u_disc(discs) = U_intgrl(1,discs)/disc_volume
         if (ADM_correction) then
-          u_ref(ii) = u_disc(ii)/(1.0 - a_fact)
+          u_ref(discs) = u_disc(discs)/(1.0 - a_fact)
         end if
-        disc_area = intgrl_sum(ii)/disc_thickness
-        new_source(ii) = -(0.5*rho_fluid*disc_area*C_T*u_ref(ii)*u_ref(ii))/intgrl_sum(ii)
-     end do
+        new_source(discs) = -(0.5*rho_fluid*disc_area*C_T*u_ref(discs)*u_ref(discs))/disc_volume
+      end do
 
       elementS_loop: do nnid = 1, len
         ele = fetch(colours(clr), nnid)
-        if (X%mesh%region_ids(ele)==region_id_disc) then
-          call calc_disc_source(ele, X, Source, new_source(1))
-        elseif (X%mesh%region_ids(ele)==region_id_disc_L) then
-          call calc_disc_source(ele, X, Source, new_source(2))
-        elseif (X%mesh%region_ids(ele)==region_id_disc_R) then
-          call calc_disc_source(ele, X, Source, new_source(3))
-        end if
+        do discs = 1, ndiscs
+          if (X%mesh%region_ids(ele)==region_id_disc(discs)) then
+            call calc_disc_source(ele, X, Source, new_source(discs))
+          end if
+        end do
       end do elementS_loop
 
       print*, 'AminCheck----------------------------------------------'
-      print*, 'Disc Volume:', intgrl_sum(1), 'Disc Velocity:', u_disc(1), 'Probe Velocity:', u_ref(1)
-      print*, 'C_T:', C_T, 'Disc Area', intgrl_sum(1)/disc_thickness, 'ADM Source:', new_source(1)
-      print*, '-------------------------------------------------------'
-
-      print*, 'AminCheck-LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL'
-      print*, 'Disc Volume:', intgrl_sum(2), 'Disc Velocity:', u_disc(2), 'Probe Velocity:', u_ref(2)
-      print*, 'C_T:', C_T, 'Disc Area', intgrl_sum(2)/disc_thickness, 'ADM Source:', new_source(2)
-      print*, '-------------------------------------------------------'
-
-      print*, 'AminCheck-RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR'
-      print*, 'Disc Volume:', intgrl_sum(3), 'Disc Velocity:', u_disc(3), 'Probe Velocity:', u_ref(3)
-      print*, 'C_T:', C_T, 'Disc Area', intgrl_sum(3)/disc_thickness, 'ADM Source:', new_source(3)
+      print*, 'C_T:', C_T, 'Disc Area:', disc_area, 'Disc Volume:', disc_volume
+      do discs = 1, ndiscs
+        print*, 'Disc No.:', discs, 'Disc Vel:', u_disc(discs), 'Probe Vel:', u_ref(discs)
+        print*, 'ADM Source:', new_source(discs), 'Power:', u_disc(discs)*new_source(discs)*disc_volume
+      end do
       print*, '-------------------------------------------------------'
       !AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA!
 

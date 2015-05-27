@@ -3009,6 +3009,11 @@ while a factor of 1 represents a connected domain.</a:documentation>
       <optional>
         <element name="ADM">
           <a:documentation>ADM model</a:documentation>
+          <element name="NDiscs">
+            <a:documentation>No.Discs.
+Specify the number of discs.</a:documentation>
+            <ref name="integer"/>
+          </element>
           <optional>
             <element name="ADM_correction">
               <a:documentation>ADM Correction.
@@ -3050,8 +3055,8 @@ Used for ADM Correction Term, if not ADM set to zero (default): 4.0 [Rados et al
           </element>
           <element name="DiscRegionID">
             <a:documentation>DiscRegionID.
-Specify disc region ID.</a:documentation>
-            <ref name="integer"/>
+Specify disc region ID(s).</a:documentation>
+            <ref name="integer_vector"/>
           </element>
           <element name="NearDiscRegionID">
             <a:documentation>NearDiscRegionID.
@@ -3063,20 +3068,6 @@ Specify near disc region ID where ADM Correction Term wil be applied.</a:documen
 Sepcify the thickness of the disc</a:documentation>
             <ref name="real"/>
           </element>
-          <optional>
-            <element name="LeftDiscRegionID">
-              <a:documentation>LeftDiscRegionID.
-Specify other disc region ID.</a:documentation>
-              <ref name="integer"/>
-            </element>
-          </optional>
-          <optional>
-            <element name="RightDiscRegionID">
-              <a:documentation>RightDiscRegionID.
-Specify other disc region id.</a:documentation>
-              <ref name="integer"/>
-            </element>
-          </optional>
         </element>
       </optional>
       <optional>

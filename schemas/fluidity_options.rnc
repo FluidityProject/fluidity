@@ -2143,6 +2143,9 @@ start =
          }?,
          ## ADM model
          element ADM {
+           ## No.Discs.
+           ## Specify the number of discs.
+           element NDiscs {integer},
            ## ADM Correction.
            ## Select to apply ADM correction.
            element ADM_correction{empty}?,
@@ -2165,20 +2168,14 @@ start =
            ## Used for ADM Correction Term, if not ADM set to zero (default): 4.0 [Rados et al (2009)].
            element C_Omega {real},
            ## DiscRegionID.
-           ## Specify disc region ID.
-           element DiscRegionID {integer},
+           ## Specify disc region ID(s).
+           element DiscRegionID {integer_vector},
            ## NearDiscRegionID.
            ## Specify near disc region ID where ADM Correction Term wil be applied.
            element NearDiscRegionID {integer},
            ## Disc Thickness.
            ## Sepcify the thickness of the disc
-           element DiscThickness {real},
-           ## LeftDiscRegionID.
-           ## Specify other disc region ID.
-           element LeftDiscRegionID {integer}?,
-           ## RightDiscRegionID.
-           ## Specify other disc region id.
-           element RightDiscRegionID {integer}?
+           element DiscThickness {real}
          }?,
          biology?,
          forcing?,
