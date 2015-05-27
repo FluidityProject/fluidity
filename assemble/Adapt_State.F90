@@ -891,6 +891,7 @@ contains
 
     character(len = *), parameter :: base_path = "/mesh_adaptivity/hr_adaptivity/adapt_at_first_timestep"
     integer :: adapt_iterations, i
+    type(mesh_type), pointer :: old_mesh
     type(tensor_field) :: metric
     type(vector_field), pointer :: output_positions
     real :: dt
