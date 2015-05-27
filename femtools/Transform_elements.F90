@@ -64,6 +64,7 @@ module transform_elements
             transform_superconvergent_to_physical, transform_horizontal_to_physical, &
             compute_jacobian, compute_inverse_jacobian, &
             compute_facet_full_inverse_jacobian, element_volume,&
+            surface_element_area,&
             cache_transform_elements, deallocate_transform_cache, &
             prepopulate_transform_cache, set_analytical_spherical_mapping
   
