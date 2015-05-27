@@ -12,7 +12,7 @@
     </dimension>
     <mesh name="CoordinateMesh">
       <from_file file_name="data/laplacian_grid.1">
-        <format name="triangle"/>
+        <format name="gmsh"/>
         <stat>
           <exclude_from_stat/>
         </stat>

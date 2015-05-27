@@ -699,6 +699,16 @@ tensor_second_invariant_algorithm =
          tensor_source_field
       }
    )
+strain_rate_second_invariant_algorithm =
+   (
+      ## Algorithm for the second invariant of the strain_rate tensor field.
+      ## Note that the strain rate tensor is calculated automatically as a part
+      ## of this algorithm and, hence, a separate tensor field is not required.
+       element algorithm {
+         attribute name { "strain_rate_second_invariant" },
+         attribute material_phase_support { "single "}
+      }
+   )
 hessian_algorithm =
    (
       ## algorithm for the Hessian (2nd derivative) of a scalar field
@@ -860,16 +870,43 @@ bulk_viscosity_algorithm =
    (
        ## The average (or bulk) viscosity formed from the MaterialViscosity for
        ## each material_phase, weighted according to the MaterialVolumeFraction
-       ## fields from each material_phase:
-       ##
-       ##   \bar\nu = \alpha^i\nu^i
-       ##  
-       ## where \bar\nu is the bulk viscosity, \alpha^i is the volume fraction
-       ## for material i and \nu^i is the viscosity of material i
+       ## from each material_phase.
        element algorithm {
           attribute name { "bulk_viscosity" },
           attribute material_phase_support { "multiple" },
-          attribute depends { "MaterialViscosity" }
+          attribute depends { "MaterialViscosity" },
+          (
+            ## Use an arithmetic mean (default):
+            ##
+            ##   \bar\nu = \alpha^i\nu^i
+            ##  
+            ## where \bar\nu is the bulk viscosity, \alpha^i is the volume fraction
+            ## for material i and \nu^i is the viscosity of material i.
+            element mean {
+              attribute name { "arithmetic" },
+              empty
+            }|
+            ## Use a harmonic mean:
+            ##
+            ##   1./\bar\nu = \alpha^i/\nu^i
+            ##  
+            ## where \bar\nu is the bulk viscosity, \alpha^i is the volume fraction
+            ## for material i and \nu^i is the viscosity of material i.
+            element mean {
+              attribute name { "harmonic" },
+              empty
+            }|
+            ## Use a geometric mean:
+            ##
+            ##   \bar\nu = (\nu^i)^(\alpha^i)
+            ##  
+            ## where \bar\nu is the bulk viscosity, \alpha^i is the volume fraction
+            ## for material i and \nu^i is the viscosity of material i.
+            element mean {
+              attribute name { "geometric" },
+              empty
+            }
+          )
        }
    )
 sediment_concentration_dependent_viscosity_algorithm =
@@ -1346,6 +1383,15 @@ universal_column_id_algorithm =
       }
    )
 
+viscous_dissipation_algorithm =
+   (
+      ## algorithm for calculating the viscous dissipation.
+       element algorithm {
+         attribute name { "viscous_dissipation" },
+         attribute material_phase_support { "single "}
+      }
+   )
+
 # Mass matrix
    
 finite_element_lumped_mass_matrix =
@@ -1457,9 +1503,11 @@ vector_scalar_time_averaged_algorithm =
    )
 
 scalar_diagnostic_algorithms = universal_numbering_diagnostic_algorithm
+scalar_diagnostic_algorithms |= viscous_dissipation_algorithm
 scalar_diagnostic_algorithms |= universal_column_id_algorithm
 scalar_diagnostic_algorithms |= tidal_harmonic_algorithm
 scalar_diagnostic_algorithms |= tensor_second_invariant_algorithm
+scalar_diagnostic_algorithms |= strain_rate_second_invariant_algorithm
 scalar_diagnostic_algorithms |= temporalmin_algorithm
 scalar_diagnostic_algorithms |= scalar_temporalmax_algorithm
 scalar_diagnostic_algorithms |= scalar_time_averaged_algorithm

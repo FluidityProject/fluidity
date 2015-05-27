@@ -48,13 +48,16 @@ module write_triangle
   end interface write_triangle_files
   
 contains
-  
-  subroutine write_mesh_to_triangles(filename, state, mesh, solid)
+
+  subroutine write_mesh_to_triangles(filename, state, mesh, number_of_partitions, solid)
+
     !!< Write out the supplied mesh to the specified filename as triangle files.
     
     character(len = *), intent(in) :: filename
     type(state_type), intent(in) :: state
     type(mesh_type), intent(in) :: mesh
+    !!< If present, only write for processes 1:number_of_partitions (assumes the other partitions are empty)
+    integer, optional, intent(in):: number_of_partitions
     !! If it is a solid mesh, force it to be written in serial
     logical, intent(in), optional :: solid
     
@@ -68,13 +71,14 @@ contains
       positions = extract_vector_field(state, trim(state%name(1:len(trim(state%name))-10))//"SolidCoordinate")
     end if
 
-    call write_triangle_files(filename, positions, solid=solid)
+    call write_triangle_files(filename, positions, number_of_partitions=number_of_partitions, solid=solid)
     
     call deallocate(positions)
     
   end subroutine write_mesh_to_triangles
 
-  subroutine write_positions_to_triangles(filename, positions, print_internal_faces, solid)
+  subroutine write_positions_to_triangles(filename, positions, print_internal_faces, number_of_partitions, solid)
+
     !!< Write out the mesh given by the position field in triangle files:
     !!<    a .node and a .ele-file (and a .face file if the mesh has a %faces
     !!<    component with more than 0 surface elements)
@@ -82,13 +86,19 @@ contains
     character(len=*), intent(in):: filename
     type(vector_field), intent(in):: positions
     logical, intent(in), optional :: print_internal_faces
+    !!< If present, only write for processes 1:number_of_partitions (assumes the other partitions are empty)
+    integer, optional, intent(in):: number_of_partitions
     !! If it is a solid mesh, force it to be written in serial
     logical, intent(in), optional :: solid
     
     integer :: nparts
     
-    ! How many processes contain data?
-    nparts = get_active_nparts(ele_count(positions))
+    if (present(number_of_partitions)) then
+      nparts = number_of_partitions
+    else
+      nparts = getnprocs()
+    end if
+    
     
     ! Write out data only for those processes that contain data - SPMD requires
     ! that there be no early return

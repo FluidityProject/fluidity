@@ -30,12 +30,12 @@
 subroutine project_to_continuous(vtuname_, vtuname_len, meshname_,&
      & meshname_len) bind(c)
   !!< Given a vtu file containing fields on a discontinuous mesh, and the
-  !!< triangle files for the corresponding continuous mesh, produce a vtu
+  !!< mesh files for the corresponding continuous mesh, produce a vtu
   !!< with its fields projected onto the continuous mesh.
   use state_module
   use elements
   use fields
-  use read_triangle
+  use mesh_files
   use vtk_interfaces
   use sparse_tools
   use fefields
@@ -72,7 +72,7 @@ subroutine project_to_continuous(vtuname_, vtuname_len, meshname_,&
 
   call vtk_read_state(vtuname, dg_state, quad_degree=6)
   
-  cg_coordinate= read_triangle_files(meshname, quad_degree=6)
+  cg_coordinate= read_mesh_files(meshname, quad_degree=6, format="gmsh")
   cg_mesh=cg_coordinate%mesh
 
   call allocate(lumped_mass, cg_mesh, "LumpedMass")

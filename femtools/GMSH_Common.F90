@@ -44,7 +44,7 @@ module gmsh_common
   ! For each type, the number of nodes. -1 means unsupported
   integer, dimension(15) :: elementNumNodes = (/ &
        2, 3, 4, 4, 8, &
-       -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 /)
+       -1, -1, -1, -1, -1, -1, -1, -1, -1, 1 /)
 
   type GMSHnode
      integer :: nodeID, columnID
@@ -76,14 +76,8 @@ contains
     close(fd)
 
     select case( trim(readWriteStr) )
+
     case("read")
-#ifdef __INTEL_COMPILER
-#if __INTEL_COMPILER < 1211
-    ! Gets around a bug described in:
-    ! http://software.intel.com/en-us/forums/showthread.php?t=101333
-       position = position-1
-#endif
-#endif
        open( fd, file=trim(filename), action="read", form="formatted", &
             access="stream")
        read( fd, "(I1)", POS=position, ADVANCE="no" )
@@ -113,6 +107,7 @@ contains
     close(fd)
 
     select case( trim(readWriteStr) )
+
     case("read")
        open( fd, file=trim(filename), action="read", form="unformatted", &
             access="stream")

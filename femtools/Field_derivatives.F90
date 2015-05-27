@@ -384,8 +384,7 @@ module field_derivatives
 
       end do
       
-      ! Computing the final strain rate tensor
-      
+      ! Computing the final strain rate tensor      
       do node=1,node_count(t_field)
            t=node_val(t_field, node)
            call set(t_field, node, (t+transpose(t))/2) 
@@ -1588,7 +1587,7 @@ module field_derivatives
       do ele=1, element_count(infield)
         
          ! calculate the transformed derivative of the shape function
-         call compute_inverse_jacobian( ele_val(positions, ele), xshape, invJ, detwei=detwei)
+         call compute_inverse_jacobian( positions, ele, invJ, detwei=detwei)
          do gi=1, inshape%ngi
             do i=1, inshape%loc
                dinshape(i,gi,:)=matmul(invJ(:,:,gi), inshape%dn(i,gi,:))

@@ -12,7 +12,7 @@
     </dimension>
     <mesh name="CoordinateMesh">
       <from_file file_name="mphase_identical_velocities_dg">
-        <format name="triangle"/>
+        <format name="gmsh"/>
         <stat>
           <include_in_stat/>
         </stat>
@@ -118,6 +118,7 @@
                 <twice/>
               </integrate_advection_by_parts>
             </advection_scheme>
+            <buoyancy/>
           </discontinuous_galerkin>
           <conservative_advection>
             <real_value rank="0">1.0</real_value>
@@ -341,6 +342,7 @@
                 <twice/>
               </integrate_advection_by_parts>
             </advection_scheme>
+            <buoyancy/>
           </discontinuous_galerkin>
           <conservative_advection>
             <real_value rank="0">1.0</real_value>

@@ -222,9 +222,6 @@ contains
       case("DiffusiveDissipation")
         call calculate_diffusive_dissipation(state, d_field, stat)
       
-      case("ViscousDissipation")
-        call calculate_viscous_dissipation(state, d_field, stat)
-      
       case("RichardsonNumber")
         call calculate_richardson_number_new(state, d_field)
 
@@ -444,8 +441,7 @@ contains
        ele_CFL=>ele_nodes(CFL, ele)
        CFL_shape=>ele_shape(CFL, ele)
 
-       call compute_inverse_jacobian(ele_val(X,ele), ele_shape(X,ele), &
-            detwei=detwei, invJ=invJ)
+       call compute_inverse_jacobian(X, ele, detwei=detwei, invJ=invJ)
 
        ! Calculate the CFL number at each quadrature point.
        ! The matmul is the transpose of what I originally thought it should
@@ -530,8 +526,7 @@ contains
        ele_GRN=>ele_nodes(GRN, ele)
        GRN_shape=>ele_shape(GRN, ele)
 
-       call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), &
-            J=J, detwei=detwei)
+       call compute_jacobian(X, ele, J=J, detwei=detwei)
 
        ! Calculate the GRN number at each quadrature point.
        ! The matmul is as given by dham
@@ -619,8 +614,7 @@ contains
            ele_GPN=>ele_nodes(GPN, ele)
            GPN_shape=>ele_shape(GPN, ele)
 
-           call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), &
-            J=J, detwei=detwei)
+           call compute_jacobian(X, ele, J=J, detwei=detwei)
 
            ! Calculate the GPN number at each quadrature point.
            ! The matmul is as given by dham
@@ -1253,59 +1247,6 @@ contains
 
   end subroutine calculate_diffusive_dissipation
 
-  subroutine calculate_viscous_dissipation(state, viscous_dissipation_field, stat)
-    !!< Calculate (grad u):(grad u) or sum_ij(du_i/dx_j)(du_i/dx_j)
-    !!< this can be used to calculate viscous dissipation
-    !!< 2D at the moment
-    !!< it probably should be generalised 
-    !!< currently assumes a constant viscosity
-    
-    type(state_type), intent(in) :: state
-    type(scalar_field), intent(inout) :: viscous_dissipation_field
-    integer, intent(out), optional :: stat
-    
-    integer :: i
-    type(vector_field), pointer :: vel_field
-    type(vector_field), pointer :: positions
-    type(scalar_field), dimension(1) :: du_dx
-    type(scalar_field), dimension(1) :: dv_dx
-    type(scalar_field), dimension(1) :: du_dy
-    type(scalar_field), dimension(1) :: dv_dy
-
-    vel_field => extract_vector_field(state, "Velocity", stat)
-    positions => extract_vector_field(state, "Coordinate", stat)
-      
-    if(present_and_nonzero(stat)) then
-      return
-    end if
-        
-    call allocate(du_dx(1), vel_field%mesh, "DuDx")
-    call allocate(dv_dx(1), vel_field%mesh, "DvDx")
-    call allocate(du_dy(1), vel_field%mesh, "DuDy")
-    call allocate(dv_dy(1), vel_field%mesh, "DvDy")
-
-    call differentiate_field(extract_scalar_field(vel_field, 1), &
-     & positions, (/.true., .false./), du_dx)
-    call differentiate_field(extract_scalar_field(vel_field, 2), &
-     & positions, (/.true., .false./), dv_dx)
-    call differentiate_field(extract_scalar_field(vel_field, 1), &
-     & positions, (/.false., .true./), du_dy)
-    call differentiate_field(extract_scalar_field(vel_field, 2), &
-     & positions, (/.false., .true./), dv_dy)
-    
-    call zero(viscous_dissipation_field)
-    do i = 1, node_count(viscous_dissipation_field)
-      call set(viscous_dissipation_field, i, node_val(du_dx(1),i)**2   &
-       & + node_val(dv_dx(1),i)**2 + node_val(du_dy(1),i)**2 + node_val(dv_dy(1),i)**2)
-    end do  
-    
-    call deallocate(du_dx(1))
-    call deallocate(dv_dx(1))
-    call deallocate(du_dy(1))
-    call deallocate(dv_dy(1))
-
-  end subroutine calculate_viscous_dissipation
- 
   subroutine calculate_richardson_number_old(state, richardson_number_field)
     !!< Calculate the Richardson number field
     !!< Defined in Turner, Buoyancy Effects in Fluids, p.12 as
@@ -2449,8 +2390,7 @@ contains
          ele_CFL=>ele_nodes(s_field, ele)
          CFL_shape=>ele_shape(s_field, ele)
 
-         call compute_inverse_jacobian(ele_val(X,ele), ele_shape(X,ele), &
-                                       detwei=detwei, invJ=invJ)
+         call compute_inverse_jacobian(X, ele, detwei=detwei, invJ=invJ)
 
          ! Calculate the CFL number at each quadrature point.
          ! The matmul is the transpose of what I originally thought it should
@@ -3284,10 +3224,7 @@ contains
      real, intent(in) :: density
 
      integer :: i, j, i_gi, ele, dim
-     type(element_type) :: augmented_shape
      type(element_type), pointer :: f_shape, shape, X_f_shape, X_shape
-     real, dimension(X%dim, X%dim, ele_ngi(X, face_ele(X, face))) :: invJ
-     real, dimension(X%dim, X%dim, face_ngi(X, face)) :: f_invJ  
      real, dimension(face_ngi(X, face)) :: detwei
      real, dimension(X%dim, face_ngi(X, face)) :: normal, normal_shear_at_quad, X_ele
      real, dimension(X%dim) :: abs_normal
@@ -3303,30 +3240,9 @@ contains
      f_shape => face_shape(U, face)     
      shape   => ele_shape(U, ele)     
      
-     ! generate shape functions that include quadrature points on the face required
-     ! check that the shape does not already have these first
-     assert(shape%degree == 1)
-     if(associated(shape%dn_s)) then
-        augmented_shape = shape
-        call incref(augmented_shape)
-     else
-        augmented_shape = make_element_shape(shape%loc, shape%dim, shape%degree, &
-             & shape%quadrature, quad_s = f_shape%quadrature)
-     end if
+     call transform_facet_to_physical(X, face, shape, ele_dshape_at_face_quad, &
+                                      detwei_f = detwei, normal = normal)
     
-     ! assumes that the jacobian is the same for all quadrature points
-     ! this is not valid for spheres!
-     call compute_inverse_jacobian(ele_val(X, ele), ele_shape(X, ele), invj = invJ)
-     assert(ele_numbering_family(shape) == FAMILY_SIMPLEX)
-     f_invJ = spread(invJ(:, :, 1), 3, size(f_invJ, 3))
-      
-     call transform_facet_to_physical(X, face, detwei_f = detwei, normal = normal)
-    
-     ! Evaluate the volume element shape function derivatives at the surface
-     ! element quadrature points
-     ele_dshape_at_face_quad = eval_volume_dshape_at_face_quad(augmented_shape, &
-          & local_face_number(X, face), f_invJ)
-
      ! Calculate grad U at the surface element quadrature points 
      do i=1, dim
         do j=1, dim
@@ -3362,8 +3278,6 @@ contains
      ! add to bed_shear_stress field
      call addto(bed_shear_stress, face_global_nodes(bed_shear_stress,face), normal_shear_at_loc)
 
-     call deallocate(augmented_shape)
-          
    end subroutine calculate_bed_shear_stress_ele_cg
 
    subroutine calculate_bed_shear_stress_ele_dg(bss, ele, X, grad_U, visc, density)

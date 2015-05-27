@@ -25,6 +25,7 @@ AC_PROG_LN_S
 AC_PROG_MAKE_SET
 AC_PROG_LIBTOOL
 AM_INIT_AUTOMAKE([dist-bzip2 subdir-objects])
+AM_MAINTAINER_MODE([enable])
 
 # Checks for header files.
 AC_CHECK_HEADERS(fcntl.h,, [AC_MSG_ERROR([cannot find fcntl.h, bailing out])])

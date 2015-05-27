@@ -12,7 +12,7 @@
     </dimension>
     <mesh name="CoordinateMesh">
       <from_file file_name="2element_square">
-        <format name="triangle"/>
+        <format name="gmsh"/>
         <stat>
           <exclude_from_stat/>
         </stat>

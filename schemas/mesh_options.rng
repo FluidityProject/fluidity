@@ -6,12 +6,9 @@
         <a:documentation>Read mesh from file.</a:documentation>
         <choice>
           <element name="format">
-            <a:documentation>Triangle mesh format.
-
-Enter the base name without the .edge .ele, .face or
-.node extensions, and without process numbers.</a:documentation>
+            <a:documentation>GMSH mesh format</a:documentation>
             <attribute name="name">
-              <value>triangle</value>
+              <value>gmsh</value>
             </attribute>
             <ref name="comment"/>
           </element>
@@ -20,13 +17,6 @@ Enter the base name without the .edge .ele, .face or
 surface or region IDs.</a:documentation>
             <attribute name="name">
               <value>vtu</value>
-            </attribute>
-            <ref name="comment"/>
-          </element>
-          <element name="format">
-            <a:documentation>GMSH mesh format</a:documentation>
-            <attribute name="name">
-              <value>gmsh</value>
             </attribute>
             <ref name="comment"/>
           </element>

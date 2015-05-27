@@ -12,7 +12,7 @@ subroutine vertical_integration(target_basename_, target_basename_len, &
   use halos
   use intersection_finder_module
   use linked_lists
-  use read_triangle
+  use read_gmsh
   use reference_counting
   use solvers
   use sparse_tools
@@ -23,7 +23,7 @@ subroutine vertical_integration(target_basename_, target_basename_len, &
   use supermesh_construction
   use tetrahedron_intersection_module
   use vtk_interfaces
-  use write_triangle
+  use mesh_files
   use iso_c_binding
 
   implicit none
@@ -74,7 +74,7 @@ subroutine vertical_integration(target_basename_, target_basename_len, &
   ! Step 1: Read in the data
   write(*,*) target_basename, output_basename, integrated_filename
 
-  positions_b_surf = read_triangle_files(target_basename, quad_degree = quad_degree)
+  positions_b_surf = read_gmsh_file(target_basename, quad_degree = quad_degree)
   dim = positions_b_surf%dim + 1
 
   call vtk_read_state(integrated_filename, state_a, quad_degree = quad_degree)
@@ -88,7 +88,7 @@ subroutine vertical_integration(target_basename_, target_basename_len, &
 
   assert(ele_count(positions_b_surf) > 0)
   positions_b_surf_shape => ele_shape(positions_b_surf, 1)
-  field_b_shape = make_element_shape(positions_b_surf_shape%loc, positions_b_surf_shape%dim, field_b_degree, quad = positions_b_surf_shape%quadrature)
+  field_b_shape = make_element_shape(positions_b_surf_shape%numbering%vertices, positions_b_surf_shape%dim, field_b_degree, quad = positions_b_surf_shape%quadrature)
   if(field_b_degree == 0) then
     field_b_mesh = make_mesh(positions_b_surf%mesh, field_b_shape, name = "VerticalIntegralMesh", continuity = field_b_continuity)
   else
@@ -169,7 +169,7 @@ subroutine vertical_integration(target_basename_, target_basename_len, &
   ! and apply the offset
   positions_b_ext%val(dim,:) = positions_b_ext%val(dim,:) + top
 #ifdef DUMP_EXTRUSION
-  call write_triangle_files("extruded_vertical_integration_mesh", positions_b_ext)
+  call write_mesh_files("extruded_vertical_integration_mesh", format="gmsh", positions=positions_b_ext)
 #endif
 
   sparsity = make_sparsity(field_b_mesh, field_b_mesh, name = "Sparsity")
@@ -261,7 +261,7 @@ subroutine vertical_integration(target_basename_, target_basename_len, &
       do j = 1, ele_count(positions_c)
         ! Project the extruded target test function onto the supermesh
         field_c_shape => ele_shape(field_c(1), j)
-        field_b_shape_ext = extruded_shape_function(ele_b_surf, j, positions_b_surf, positions_c, field_b_shape, field_c_shape, &
+        field_b_shape_ext = extruded_shape_function(ele_b_surf, j, positions_b_surf, positions_c, field_b_mesh%shape, field_c_shape, &
           & form_dn = .false.)
 
         do k = 1, size(rhs)

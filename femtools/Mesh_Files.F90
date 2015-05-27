@@ -105,15 +105,16 @@ contains
 
     select case( trim(format) )
     case("triangle")
-       field = read_triangle_files(filename, quad_degree=quad_degree, quad_ngi=quad_ngi, &
-            quad_family=quad_family, mdim=mdim)
+       ewrite(-1,*) "The Triangle mesh format reader is deprecated."
+       ewrite(-1,*) "Please convert your mesh to the Gmsh format."
+       FLAbort("Triangle mesh format is no longer supported")
+
+       ! field = read_triangle_files(filename, quad_degree=quad_degree, quad_ngi=quad_ngi, &
+       !      quad_family=quad_family, mdim=mdim)
 
     case("gmsh")
-       if (present(mdim)) then
-         FLExit("Cannot specify dimension for gmsh format")
-       end if
        field = read_gmsh_file(filename, quad_degree=quad_degree, quad_ngi=quad_ngi, &
-            quad_family=quad_family, solid=solid)
+            quad_family=quad_family, mdim=mdim, solid=solid)
 
     case("exodusii")
 #ifdef HAVE_LIBEXOIIV2C
@@ -139,22 +140,24 @@ contains
   ! --------------------------------------------------------------------------
 
 
-  subroutine write_mesh_to_file(filename, format, state, mesh, solid)
+  subroutine write_mesh_to_file(filename, format, state, mesh, number_of_partitions, solid)
     ! Write out the supplied mesh to the specified filename as mesh files.
 
     character(len = *), intent(in) :: filename
     character(len = *), intent(in) :: format
     type(state_type), intent(in) :: state
     type(mesh_type), intent(in) :: mesh
+    !!< If present, only write for processes 1:number_of_partitions (assumes the other partitions are empty)
+    integer, optional, intent(in):: number_of_partitions
     !! If it is a solid mesh, force it to be written in serial
     logical, intent(in), optional :: solid
 
     select case(format)
     case("triangle")
-       call write_triangle_files(filename, state, mesh, solid=solid)
+       call write_triangle_files(filename, state, mesh, number_of_partitions=number_of_partitions, solid=solid)
 
     case("gmsh")
-       call write_gmsh_file(filename, state, mesh, solid=solid )
+       call write_gmsh_file(filename, state, mesh, number_of_partitions=number_of_partitions, solid=solid)
 
     ! ExodusII write routines are not implemented at this point. 
     ! Mesh is dumped as gmsh format for now.
@@ -172,20 +175,22 @@ contains
 
   ! --------------------------------------------------------------------------
 
-  subroutine write_positions_to_file(filename, format, positions, solid)
+  subroutine write_positions_to_file(filename, format, positions, number_of_partitions, solid)
     !!< Write out the mesh given by the position field in mesh files
     !!< In parallel, empty trailing processes are not written.
     character(len=*), intent(in):: filename, format
     type(vector_field), intent(in):: positions
+    !!< If present, only write for processes 1:number_of_partitions (assumes the other partitions are empty)
+    integer, optional, intent(in):: number_of_partitions
     !! If it is a solid mesh, force it to be written in serial
     logical, intent(in), optional :: solid
 
     select case( trim(format) )
     case("triangle")
-       call write_triangle_files( trim(filename), positions, solid=solid)
+       call write_triangle_files( trim(filename), positions, number_of_partitions=number_of_partitions, solid=solid)
 
     case("gmsh")
-       call write_gmsh_file( trim(filename), positions, solid=solid)
+       call write_gmsh_file( trim(filename), positions, number_of_partitions=number_of_partitions, solid=solid)
 
     ! ExodusII write routines are not implemented at this point. 
     ! Mesh is dumped as gmsh format for now.

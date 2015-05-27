@@ -102,6 +102,7 @@ module fluids_module
 #endif
   use multiphase_module
   use detector_parallel, only: sync_detector_coordinates, deallocate_detector_list_array
+  use tictoc
   use momentum_diagnostic_fields, only: calculate_densities
   use sediment_diagnostics, only: calculate_sediment_flux
 
@@ -498,6 +499,9 @@ contains
        end if
 
        if(simulation_completed(current_time, timestep)) exit timestep_loop
+
+       call tic(TICTOC_ID_TIMESTEP)
+
        if( &
                                 ! Do not dump at the start of the simulation (this is handled by write_state call earlier)
             & current_time > simulation_start_time &
@@ -928,6 +932,10 @@ contains
           end if
 
        end if
+
+       call toc(TICTOC_ID_TIMESTEP)
+       call tictoc_report(2, TICTOC_ID_TIMESTEP)
+       call tictoc_clear(TICTOC_ID_TIMESTEP)
 
        if(simulation_completed(current_time)) exit timestep_loop
 
