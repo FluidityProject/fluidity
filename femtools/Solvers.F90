@@ -1178,6 +1178,7 @@ logical, optional, intent(in):: nomatrixdump
   KSPConvergedReason reason
   MatNullSpace nullsp
   PetscLogDouble flops1, flops2
+  Mat mat, pmat
   character(len=FIELD_NAME_LEN):: name
   logical print_norms, timing
   real time1, time2
@@ -1222,7 +1223,8 @@ logical, optional, intent(in):: nomatrixdump
   ewrite(1, *) 'Entering solver.'
 
   ! if a null space is defined for the petsc matrix, make sure it's projected out of the rhs
-  call KSPGetNullSpace(ksp, nullsp, ierr)
+  call KSPGetOperators(ksp, mat, pmat, ierr)
+  call MatGetNullSpace(mat, nullsp, ierr)
   if (ierr==0  .and. nullsp/=PETSC_NULL_OBJECT) then
     call MatNullSpaceRemove(nullsp, b, PETSC_NULL_OBJECT, ierr)
   end if
@@ -1681,7 +1683,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
          null_space = create_null_space_from_options(mat, trim(solver_option_path)//"/remove_null_space", &
             petsc_numbering, positions=positions, rotation_matrix=rotation_matrix)
        end if
-       call KSPSetNullSpace(ksp, null_space, ierr)
+       call MatSetNullSpace(mat, null_space, ierr)
        call MatNullSpaceDestroy(null_space, ierr)
     end if
 
