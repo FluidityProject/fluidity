@@ -36,6 +36,7 @@ module fsi_projections
   use bound_field_module
   use fefields, only: compute_lumped_mass, project_field
   use tetrahedron_intersection_module
+  use tictoc
 
   implicit none
 
@@ -108,7 +109,9 @@ module fsi_projections
     supermesh_positions_shape = make_element_shape(vertices=ele_loc(positionsS, 1), dim=dim, degree=1, quad=supermesh_quad)
     supermesh_field_shape = make_element_shape(vertices=ele_loc(positionsS, 1), dim=dim, degree=max_degree, quad=supermesh_quad)
     ! For each element in S get the list of intersecting elements in F
+    call tic(TICTOC_ID_FSI_INTERSECTION_FINDER)
     map_SF = rtree_intersection_finder(positionsS, positionsF)
+    call toc(TICTOC_ID_FSI_INTERSECTION_FINDER)
 
     sparsity_fluid = make_sparsity(fieldF%mesh, fieldF%mesh, "FluidMassMatrixSparsity")
     call allocate(mass_matrix_fluid, sparsity_fluid, name="FluidMassMatrix")
@@ -151,7 +154,9 @@ module fsi_projections
       ! get the matrix for the coordinates of (solid) mesh S:
       call local_coords_matrix(positionsS, ele_S, inversion_matrix_S)
       ! Construct the supermesh associated with ele_S. (For advancing front algorithm, uncomment the following line:)
+      call tic(TICTOC_ID_FSI_SUPERMESH)
       call construct_supermesh(positionsS, ele_S, positionsF, map_SF(ele_S), supermesh_positions_shape, supermesh, stat=stat)
+      call toc(TICTOC_ID_FSI_SUPERMESH)
       ! if no intersection for proc x was found, no supermesh was created, then stat/=0
       if (stat /= 0) then ! should not happen, as we catch that event above, but doesn't hurt double checking
         cycle
@@ -164,6 +169,7 @@ module fsi_projections
       ! 1st step: Compute the project unity from the solid mesh to the supermesh:
 
       ! Allocate field for alpha on the supermesh:
+      call tic(TICTOC_ID_FSI_PROJECTION)
       supermesh_field_mesh = make_mesh(supermesh%mesh, supermesh_field_shape, -1, "SupermeshFieldMesh")
       call allocate(alpha_sf_on_supermesh, supermesh_field_mesh, "AlphaSFOnSupermesh")
       call zero(alpha_sf_on_supermesh)
@@ -205,6 +211,9 @@ module fsi_projections
       if (present(solid_velocity_on_solid) .and. present(solid_velocity_sf)) then
         call deallocate(solid_velocity_on_supermesh)
       end if
+
+      call toc(TICTOC_ID_FSI_PROJECTION)
+
     end do
 
     call deallocate(supermesh_quad)
@@ -219,6 +228,7 @@ module fsi_projections
     ! project alpha from the supermesh to the fluid mesh
 
     ! Project alpha to the fluid mesh:
+    call tic(TICTOC_ID_FSI_PROJECTION)
     call petsc_solve(alpha_sf, mass_matrix_fluid, rhs_alpha_sf, option_path=trim(solver_option_path))
 
     ! Same for solid velocity, IFF it was given:
@@ -239,6 +249,7 @@ module fsi_projections
                                   positionsF)
         end if
     end if
+    call toc(TICTOC_ID_FSI_PROJECTION)
 
     call deallocate(mass_matrix_fluid)
     call deallocate(alpha_sf_on_solid)
@@ -248,6 +259,13 @@ module fsi_projections
     end if
     call deallocate(lumped_mass_matrix_fluid)
     call deallocate(lumped_inverse_mass_matrix_fluid)
+
+    call tictoc_report(2, TICTOC_ID_FSI_INTERSECTION_FINDER)
+    call tictoc_clear(TICTOC_ID_FSI_INTERSECTION_FINDER)
+    call tictoc_report(2, TICTOC_ID_FSI_SUPERMESH)
+    call tictoc_clear(TICTOC_ID_FSI_SUPERMESH)
+    call tictoc_report(2, TICTOC_ID_FSI_PROJECTION)
+    call tictoc_clear(TICTOC_ID_FSI_PROJECTION)
 
     ewrite(2,*) "leaving fsi_one_way_galerkin_projection"
 
