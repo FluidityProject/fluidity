@@ -366,7 +366,7 @@ Fsi_Projections.o ../include/fsi_projections.mod: Fsi_Projections.F90 \
    ../include/fefields.mod ../include/global_parameters.mod \
    ../include/linked_lists.mod ../include/solvers.mod \
    ../include/supermesh_construction.mod \
-   ../include/tetrahedron_intersection_module.mod
+   ../include/tetrahedron_intersection_module.mod ../include/tictoc.mod
 
 ../include/full_projection.mod: Full_Projection.o
 	@true
