@@ -45,14 +45,9 @@ class Parameterisation:
       self.mesh_res = mesh_res_dict[mesh_suffix]
 
       # filenames
-      if dim==1:
-         m_t = None
-         g_e = '.sh'
-         m_e_l = ['.bound', '.ele', '.node']
-      else:
-         m_t = mesh_type
-         g_e = '.geo'
-         m_e_l = ['.msh']
+      m_t = mesh_type
+      g_e = '.geo'
+      m_e_l = ['.msh']
       self.mesh_name = join_with_underscores((self.domain_shape, 
                                               m_t, mesh_suffix))
       self.options_template_filename = "template_"+case+".diml"
@@ -73,13 +68,12 @@ class Parameterisation:
       """
       
       # dictionary entries
+      self.mesh_format = 'gmsh'
       if self.dim==1:
-         self.mesh_format = 'triangle'
          # for collapsing inappropriate wall BCs
          self.begin_rm_if_1D = '<!--'
          self.end_rm_if_1D = '-->'
       else:
-         self.mesh_format = 'gmsh'
          self.begin_rm_if_1D = ''
          self.end_rm_if_1D = ''
          

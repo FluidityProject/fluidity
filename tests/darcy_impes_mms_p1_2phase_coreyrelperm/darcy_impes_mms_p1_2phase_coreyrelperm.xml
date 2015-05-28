@@ -25,25 +25,25 @@ assert(find_norm("1d_pressure1_l2_B") &lt; 50)
 from test_tools import find_norm
 assert(find_norm("1d_pressure1_l2_C") &lt; 50)
     </test>
-    <test name="1d_pressure1_l2_BC: expect rate gt 0.6" language="python">
+    <test name="1d_pressure1_l2_BC: expect rate gt 0.7" language="python">
 from test_tools import find_rate
-assert(find_rate("1d_pressure1_l2_BC") &gt; 0.6)
+assert(find_rate("1d_pressure1_l2_BC") &gt; 0.7)
     </test>
     <test name="1d_pressure1_l2_D: expect norm lt 50" language="python">
 from test_tools import find_norm
 assert(find_norm("1d_pressure1_l2_D") &lt; 50)
     </test>
-    <test name="1d_pressure1_l2_CD: expect rate gt 0.6" language="python">
+    <test name="1d_pressure1_l2_CD: expect rate gt 0.7" language="python">
 from test_tools import find_rate
-assert(find_rate("1d_pressure1_l2_CD") &gt; 0.6)
+assert(find_rate("1d_pressure1_l2_CD") &gt; 0.7)
     </test>
     <test name="1d_pressure1_l2_E: expect norm lt 50" language="python">
 from test_tools import find_norm
 assert(find_norm("1d_pressure1_l2_E") &lt; 50)
     </test>
-    <test name="1d_pressure1_l2_DE: expect rate gt 0.6" language="python">
+    <test name="1d_pressure1_l2_DE: expect rate gt 0.7" language="python">
 from test_tools import find_rate
-assert(find_rate("1d_pressure1_l2_DE") &gt; 0.6)
+assert(find_rate("1d_pressure1_l2_DE") &gt; 0.7)
     </test>
     <test name="1d_saturation2_l2_B: expect norm lt 0.025" language="python">
 from test_tools import find_norm
@@ -53,25 +53,89 @@ assert(find_norm("1d_saturation2_l2_B") &lt; 0.025)
 from test_tools import find_norm
 assert(find_norm("1d_saturation2_l2_C") &lt; 0.025)
     </test>
-    <test name="1d_saturation2_l2_BC: expect rate gt 0.6" language="python">
+    <test name="1d_saturation2_l2_BC: expect rate gt 0.7" language="python">
 from test_tools import find_rate
-assert(find_rate("1d_saturation2_l2_BC") &gt; 0.6)
+assert(find_rate("1d_saturation2_l2_BC") &gt; 0.7)
     </test>
     <test name="1d_saturation2_l2_D: expect norm lt 0.025" language="python">
 from test_tools import find_norm
 assert(find_norm("1d_saturation2_l2_D") &lt; 0.025)
     </test>
-    <test name="1d_saturation2_l2_CD: expect rate gt 0.6" language="python">
+    <test name="1d_saturation2_l2_CD: expect rate gt 0.7" language="python">
 from test_tools import find_rate
-assert(find_rate("1d_saturation2_l2_CD") &gt; 0.6)
+assert(find_rate("1d_saturation2_l2_CD") &gt; 0.7)
     </test>
     <test name="1d_saturation2_l2_E: expect norm lt 0.025" language="python">
 from test_tools import find_norm
 assert(find_norm("1d_saturation2_l2_E") &lt; 0.025)
     </test>
-    <test name="1d_saturation2_l2_DE: expect rate gt 0.6" language="python">
+    <test name="1d_saturation2_l2_DE: expect rate gt 0.7" language="python">
 from test_tools import find_rate
-assert(find_rate("1d_saturation2_l2_DE") &gt; 0.6)
+assert(find_rate("1d_saturation2_l2_DE") &gt; 0.7)
+    </test>
+    <test name="2d_reg_pressure1_l2_B: expect norm lt 50" language="python">
+from test_tools import find_norm
+assert(find_norm("2d_reg_pressure1_l2_B") &lt; 50)
+    </test>
+    <test name="2d_reg_pressure1_l2_C: expect norm lt 50" language="python">
+from test_tools import find_norm
+assert(find_norm("2d_reg_pressure1_l2_C") &lt; 50)
+    </test>
+    <test name="2d_reg_pressure1_l2_BC: expect rate gt 0.7" language="python">
+from test_tools import find_rate
+assert(find_rate("2d_reg_pressure1_l2_BC") &gt; 0.7)
+    </test>
+    <test name="2d_reg_pressure1_l2_D: expect norm lt 50" language="python">
+from test_tools import find_norm
+assert(find_norm("2d_reg_pressure1_l2_D") &lt; 50)
+    </test>
+    <test name="2d_reg_pressure1_l2_CD: expect rate gt 0.7" language="python">
+from test_tools import find_rate
+assert(find_rate("2d_reg_pressure1_l2_CD") &gt; 0.7)
+    </test>
+    <test name="2d_reg_saturation2_l2_B: expect norm lt 0.025" language="python">
+from test_tools import find_norm
+assert(find_norm("2d_reg_saturation2_l2_B") &lt; 0.025)
+    </test>
+    <test name="2d_reg_saturation2_l2_C: expect norm lt 0.025" language="python">
+from test_tools import find_norm
+assert(find_norm("2d_reg_saturation2_l2_C") &lt; 0.025)
+    </test>
+    <test name="2d_reg_saturation2_l2_BC: expect rate gt 0.7" language="python">
+from test_tools import find_rate
+assert(find_rate("2d_reg_saturation2_l2_BC") &gt; 0.7)
+    </test>
+    <test name="2d_reg_saturation2_l2_D: expect norm lt 0.025" language="python">
+from test_tools import find_norm
+assert(find_norm("2d_reg_saturation2_l2_D") &lt; 0.025)
+    </test>
+    <test name="2d_reg_saturation2_l2_CD: expect rate gt 0.7" language="python">
+from test_tools import find_rate
+assert(find_rate("2d_reg_saturation2_l2_CD") &gt; 0.7)
+    </test>
+    <test name="3d_reg_pressure1_l2_B: expect norm lt 50" language="python">
+from test_tools import find_norm
+assert(find_norm("3d_reg_pressure1_l2_B") &lt; 50)
+    </test>
+    <test name="3d_reg_pressure1_l2_C: expect norm lt 50" language="python">
+from test_tools import find_norm
+assert(find_norm("3d_reg_pressure1_l2_C") &lt; 50)
+    </test>
+    <test name="3d_reg_pressure1_l2_BC: expect rate gt 0.7" language="python">
+from test_tools import find_rate
+assert(find_rate("3d_reg_pressure1_l2_BC") &gt; 0.7)
+    </test>
+    <test name="3d_reg_saturation2_l2_B: expect norm lt 0.025" language="python">
+from test_tools import find_norm
+assert(find_norm("3d_reg_saturation2_l2_B") &lt; 0.025)
+    </test>
+    <test name="3d_reg_saturation2_l2_C: expect norm lt 0.025" language="python">
+from test_tools import find_norm
+assert(find_norm("3d_reg_saturation2_l2_C") &lt; 0.025)
+    </test>
+    <test name="3d_reg_saturation2_l2_BC: expect rate gt 0.7" language="python">
+from test_tools import find_rate
+assert(find_rate("3d_reg_saturation2_l2_BC") &gt; 0.7)
     </test>
   </pass_tests>
   <warn_tests>

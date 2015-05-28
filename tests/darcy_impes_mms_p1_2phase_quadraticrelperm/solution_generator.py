@@ -42,7 +42,7 @@ def generate(solution_name, check_solution=False):
     fs_lon = lambda xi: exp(-xi)
     fs_lat = lambda xi: 3*(1. - xi)*(1.5*xi)**2
     fp_lon = lambda xi: cos(pi*xi)
-    fp_lat = lambda xi: sin(pi*xi)**2
+    fp_lat = lambda xi: sin(pi*xi)
     
     # 1D
     x = Symbol('x')

@@ -582,39 +582,39 @@ assert(solvers_converged)
     </test>
     
     <!-- basic comparisons, 1st order, 1D -->
-    <test name="Check pressure_change_relpermupwind_1d is 10.0 (hydrostatic) with relative tolerance 1.0e-08" language="python">
+    <test name="Check pressure_change_relpermupwind_1d is 10.0 (hydrostatic) with relative tolerance 1.0e-06" language="python">
 print 'difference: ',abs(pressure_change_relpermupwind_1d - 10.0)/10.0
-assert abs(pressure_change_relpermupwind_1d - 10.0)/10.0 &lt; 1.0e-08
+assert abs(pressure_change_relpermupwind_1d - 10.0)/10.0 &lt; 1.0e-06
     </test>
-    <test name="phase 1 for 1d has max(sat_relpermupwind) in [0,1] with tolerance 1.0e-08" language="python">
-assert abs(phase1_sat_max_relpermupwind_1d - 0.5) &lt; 0.5 + 1.0e-08
+    <test name="phase 1 for 1d has max(sat_relpermupwind) in [0,1] with tolerance 1.0e-06" language="python">
+assert abs(phase1_sat_max_relpermupwind_1d - 0.5) &lt; 0.5 + 1.0e-06
     </test>
-    <test name="phase 1 for 1d has min(sat_relpermupwind) in [0,1] with tolerance 1.0e-08" language="python">
-assert abs(phase1_sat_min_relpermupwind_1d - 0.5) &lt; 0.5 + 1.0e-08
+    <test name="phase 1 for 1d has min(sat_relpermupwind) in [0,1] with tolerance 1.0e-06" language="python">
+assert abs(phase1_sat_min_relpermupwind_1d - 0.5) &lt; 0.5 + 1.0e-06
     </test>
-    <test name="phase 1 for 1d check cv_integral(sat_relpermupwind) constant with tolerance 1.0e-08" language="python">
+    <test name="phase 1 for 1d check cv_integral(sat_relpermupwind) constant with tolerance 1.0e-06" language="python">
 for t in range(len(phase1_sat_cv_integral_relpermupwind_1d)):
-   assert abs(phase1_sat_cv_integral_relpermupwind_1d[t] - phase1_sat_cv_integral_relpermupwind_1d[0]) &lt; 1.0e-08
+   assert abs(phase1_sat_cv_integral_relpermupwind_1d[t] - phase1_sat_cv_integral_relpermupwind_1d[0]) &lt; 1.0e-06
     </test>
-    <test name="phase 2 for 1d has max(sat_relpermupwind) in [0,1] with tolerance 1.0e-08" language="python">
-assert abs(phase2_sat_max_relpermupwind_1d - 0.5) &lt; 0.5 + 1.0e-08
+    <test name="phase 2 for 1d has max(sat_relpermupwind) in [0,1] with tolerance 1.0e-06" language="python">
+assert abs(phase2_sat_max_relpermupwind_1d - 0.5) &lt; 0.5 + 1.0e-06
     </test>
-    <test name="phase 2 for 1d has min(sat_relpermupwind) in [0,1] with tolerance 1.0e-08" language="python">
-assert abs(phase2_sat_min_relpermupwind_1d - 0.5) &lt; 0.5 + 1.0e-08
+    <test name="phase 2 for 1d has min(sat_relpermupwind) in [0,1] with tolerance 1.0e-06" language="python">
+assert abs(phase2_sat_min_relpermupwind_1d - 0.5) &lt; 0.5 + 1.0e-06
     </test>
-    <test name="phase 2 for 1d check cv_integral(sat_relpermupwind) constant with tolerance 1.0e-08" language="python">
+    <test name="phase 2 for 1d check cv_integral(sat_relpermupwind) constant with tolerance 1.0e-06" language="python">
 for t in range(len(phase2_sat_cv_integral_relpermupwind_1d)):
-   assert abs(phase2_sat_cv_integral_relpermupwind_1d[t] - phase2_sat_cv_integral_relpermupwind_1d[0]) &lt; 1.0e-08
+   assert abs(phase2_sat_cv_integral_relpermupwind_1d[t] - phase2_sat_cv_integral_relpermupwind_1d[0]) &lt; 1.0e-06
     </test>
-    <test name="phase 3 for 1d has max(sat_relpermupwind) in [0,1] with tolerance 1.0e-08" language="python">
-assert abs(phase3_sat_max_relpermupwind_1d - 0.5) &lt; 0.5 + 1.0e-08
+    <test name="phase 3 for 1d has max(sat_relpermupwind) in [0,1] with tolerance 1.0e-06" language="python">
+assert abs(phase3_sat_max_relpermupwind_1d - 0.5) &lt; 0.5 + 1.0e-06
     </test>
-    <test name="phase 3 for 1d has min(sat_relpermupwind) in [0,1] with tolerance 1.0e-08" language="python">
-assert abs(phase3_sat_min_relpermupwind_1d - 0.5) &lt; 0.5 + 1.0e-08
+    <test name="phase 3 for 1d has min(sat_relpermupwind) in [0,1] with tolerance 1.0e-06" language="python">
+assert abs(phase3_sat_min_relpermupwind_1d - 0.5) &lt; 0.5 + 1.0e-06
     </test>
-    <test name="phase 3 for 1d check cv_integral(sat_relpermupwind) constant with tolerance 1.0e-08" language="python">
+    <test name="phase 3 for 1d check cv_integral(sat_relpermupwind) constant with tolerance 1.0e-06" language="python">
 for t in range(len(phase3_sat_cv_integral_relpermupwind_1d)):
-   assert abs(phase3_sat_cv_integral_relpermupwind_1d[t] - phase3_sat_cv_integral_relpermupwind_1d[0]) &lt; 1.0e-08
+   assert abs(phase3_sat_cv_integral_relpermupwind_1d[t] - phase3_sat_cv_integral_relpermupwind_1d[0]) &lt; 1.0e-06
     </test>
     <test name="Check sum_sat_max_relpermupwind for 1d is 1.0 with tolerance 1.0e-06" language="python">
 print 'difference: ',abs(sum_sat_max_relpermupwind_1d - 1.0)
@@ -634,35 +634,35 @@ assert abs(sum_sat_cv_integral_relpermupwind_1d - 1.0) &lt; 1.0e-06
 print 'difference: ',abs(pressure_change_relpermupwind_2d - 10.0)/10.0
 assert abs(pressure_change_relpermupwind_2d - 10.0)/10.0 &lt; 3.0e-03
     </test>
-    <test name="phase 1 for 2d has max(sat_relpermupwind) in [0,1] with tolerance 1.0e-08" language="python">
-assert abs(phase1_sat_max_relpermupwind_2d - 0.5) &lt; 0.5 + 1.0e-08
+    <test name="phase 1 for 2d has max(sat_relpermupwind) in [0,1] with tolerance 1.0e-06" language="python">
+assert abs(phase1_sat_max_relpermupwind_2d - 0.5) &lt; 0.5 + 1.0e-06
     </test>
-    <test name="phase 1 for 2d has min(sat_relpermupwind) in [0,1] with tolerance 1.0e-08" language="python">
-assert abs(phase1_sat_min_relpermupwind_2d - 0.5) &lt; 0.5 + 1.0e-08
+    <test name="phase 1 for 2d has min(sat_relpermupwind) in [0,1] with tolerance 1.0e-06" language="python">
+assert abs(phase1_sat_min_relpermupwind_2d - 0.5) &lt; 0.5 + 1.0e-06
     </test>
-    <test name="phase 1 for 2d check cv_integral(sat_relpermupwind) constant with tolerance 1.0e-08" language="python">
+    <test name="phase 1 for 2d check cv_integral(sat_relpermupwind) constant with tolerance 1.0e-06" language="python">
 for t in range(len(phase1_sat_cv_integral_relpermupwind_2d)):
-   assert abs(phase1_sat_cv_integral_relpermupwind_2d[t] - phase1_sat_cv_integral_relpermupwind_2d[0]) &lt; 1.0e-08
+   assert abs(phase1_sat_cv_integral_relpermupwind_2d[t] - phase1_sat_cv_integral_relpermupwind_2d[0]) &lt; 1.0e-06
     </test>
-    <test name="phase 2 for 2d has max(sat_relpermupwind) in [0,1] with tolerance 1.0e-08" language="python">
-assert abs(phase2_sat_max_relpermupwind_2d - 0.5) &lt; 0.5 + 1.0e-08
+    <test name="phase 2 for 2d has max(sat_relpermupwind) in [0,1] with tolerance 1.0e-06" language="python">
+assert abs(phase2_sat_max_relpermupwind_2d - 0.5) &lt; 0.5 + 1.0e-06
     </test>
-    <test name="phase 2 for 2d has min(sat_relpermupwind) in [0,1] with tolerance 1.0e-08" language="python">
-assert abs(phase2_sat_min_relpermupwind_2d - 0.5) &lt; 0.5 + 1.0e-08
+    <test name="phase 2 for 2d has min(sat_relpermupwind) in [0,1] with tolerance 1.0e-06" language="python">
+assert abs(phase2_sat_min_relpermupwind_2d - 0.5) &lt; 0.5 + 1.0e-06
     </test>
-    <test name="phase 2 for 2d check cv_integral(sat_relpermupwind) constant with tolerance 1.0e-08" language="python">
+    <test name="phase 2 for 2d check cv_integral(sat_relpermupwind) constant with tolerance 1.0e-06" language="python">
 for t in range(len(phase2_sat_cv_integral_relpermupwind_2d)):
-   assert abs(phase2_sat_cv_integral_relpermupwind_2d[t] - phase2_sat_cv_integral_relpermupwind_2d[0]) &lt; 1.0e-08
+   assert abs(phase2_sat_cv_integral_relpermupwind_2d[t] - phase2_sat_cv_integral_relpermupwind_2d[0]) &lt; 1.0e-06
     </test>
-    <test name="phase 3 for 2d has max(sat_relpermupwind) in [0,1] with tolerance 1.0e-08" language="python">
-assert abs(phase3_sat_max_relpermupwind_2d - 0.5) &lt; 0.5 + 1.0e-08
+    <test name="phase 3 for 2d has max(sat_relpermupwind) in [0,1] with tolerance 1.0e-06" language="python">
+assert abs(phase3_sat_max_relpermupwind_2d - 0.5) &lt; 0.5 + 1.0e-06
     </test>
-    <test name="phase 3 for 2d has min(sat_relpermupwind) in [0,1] with tolerance 1.0e-08" language="python">
-assert abs(phase3_sat_min_relpermupwind_2d - 0.5) &lt; 0.5 + 1.0e-08
+    <test name="phase 3 for 2d has min(sat_relpermupwind) in [0,1] with tolerance 1.0e-06" language="python">
+assert abs(phase3_sat_min_relpermupwind_2d - 0.5) &lt; 0.5 + 1.0e-06
     </test>
-    <test name="phase 3 for 2d check cv_integral(sat_relpermupwind) constant with tolerance 1.0e-08" language="python">
+    <test name="phase 3 for 2d check cv_integral(sat_relpermupwind) constant with tolerance 1.0e-06" language="python">
 for t in range(len(phase3_sat_cv_integral_relpermupwind_2d)):
-   assert abs(phase3_sat_cv_integral_relpermupwind_2d[t] - phase3_sat_cv_integral_relpermupwind_2d[0]) &lt; 1.0e-08
+   assert abs(phase3_sat_cv_integral_relpermupwind_2d[t] - phase3_sat_cv_integral_relpermupwind_2d[0]) &lt; 1.0e-06
     </test>
     <test name="Check sum_sat_max_relpermupwind for 2d is 1.0 with tolerance 1.0e-06" language="python">
 print 'difference: ',abs(sum_sat_max_relpermupwind_2d - 1.0)
@@ -682,35 +682,35 @@ assert abs(sum_sat_cv_integral_relpermupwind_2d - 1.0) &lt; 1.0e-06
 print 'difference: ',abs(pressure_change_relpermupwind_3d - 10.0)/10.0
 assert abs(pressure_change_relpermupwind_3d - 10.0)/10.0 &lt; 3.0e-03
     </test>
-    <test name="phase 1 for 3d has max(sat_relpermupwind) in [0,1] with tolerance 1.0e-08" language="python">
-assert abs(phase1_sat_max_relpermupwind_3d - 0.5) &lt; 0.5 + 1.0e-08
+    <test name="phase 1 for 3d has max(sat_relpermupwind) in [0,1] with tolerance 1.0e-06" language="python">
+assert abs(phase1_sat_max_relpermupwind_3d - 0.5) &lt; 0.5 + 1.0e-06
     </test>
-    <test name="phase 1 for 3d has min(sat_relpermupwind) in [0,1] with tolerance 1.0e-08" language="python">
-assert abs(phase1_sat_min_relpermupwind_3d - 0.5) &lt; 0.5 + 1.0e-08
+    <test name="phase 1 for 3d has min(sat_relpermupwind) in [0,1] with tolerance 1.0e-06" language="python">
+assert abs(phase1_sat_min_relpermupwind_3d - 0.5) &lt; 0.5 + 1.0e-06
     </test>
-    <test name="phase 1 for 3d check cv_integral(sat_relpermupwind) constant with tolerance 1.0e-08" language="python">
+    <test name="phase 1 for 3d check cv_integral(sat_relpermupwind) constant with tolerance 1.0e-06" language="python">
 for t in range(len(phase1_sat_cv_integral_relpermupwind_3d)):
-   assert abs(phase1_sat_cv_integral_relpermupwind_3d[t] - phase1_sat_cv_integral_relpermupwind_3d[0]) &lt; 1.0e-08
+   assert abs(phase1_sat_cv_integral_relpermupwind_3d[t] - phase1_sat_cv_integral_relpermupwind_3d[0]) &lt; 1.0e-06
     </test>
-    <test name="phase 2 for 3d has max(sat_relpermupwind) in [0,1] with tolerance 1.0e-08" language="python">
-assert abs(phase2_sat_max_relpermupwind_3d - 0.5) &lt; 0.5 + 1.0e-08
+    <test name="phase 2 for 3d has max(sat_relpermupwind) in [0,1] with tolerance 1.0e-06" language="python">
+assert abs(phase2_sat_max_relpermupwind_3d - 0.5) &lt; 0.5 + 1.0e-06
     </test>
-    <test name="phase 2 for 3d has min(sat_relpermupwind) in [0,1] with tolerance 1.0e-08" language="python">
-assert abs(phase2_sat_min_relpermupwind_3d - 0.5) &lt; 0.5 + 1.0e-08
+    <test name="phase 2 for 3d has min(sat_relpermupwind) in [0,1] with tolerance 1.0e-06" language="python">
+assert abs(phase2_sat_min_relpermupwind_3d - 0.5) &lt; 0.5 + 1.0e-06
     </test>
-    <test name="phase 2 for 3d check cv_integral(sat_relpermupwind) constant with tolerance 1.0e-08" language="python">
+    <test name="phase 2 for 3d check cv_integral(sat_relpermupwind) constant with tolerance 1.0e-06" language="python">
 for t in range(len(phase2_sat_cv_integral_relpermupwind_3d)):
-   assert abs(phase2_sat_cv_integral_relpermupwind_3d[t] - phase2_sat_cv_integral_relpermupwind_3d[0]) &lt; 1.0e-08
+   assert abs(phase2_sat_cv_integral_relpermupwind_3d[t] - phase2_sat_cv_integral_relpermupwind_3d[0]) &lt; 1.0e-06
     </test>
-    <test name="phase 3 for 3d has max(sat_relpermupwind) in [0,1] with tolerance 1.0e-08" language="python">
-assert abs(phase3_sat_max_relpermupwind_3d - 0.5) &lt; 0.5 + 1.0e-08
+    <test name="phase 3 for 3d has max(sat_relpermupwind) in [0,1] with tolerance 1.0e-06" language="python">
+assert abs(phase3_sat_max_relpermupwind_3d - 0.5) &lt; 0.5 + 1.0e-06
     </test>
-    <test name="phase 3 for 3d has min(sat_relpermupwind) in [0,1] with tolerance 1.0e-08" language="python">
-assert abs(phase3_sat_min_relpermupwind_3d - 0.5) &lt; 0.5 + 1.0e-08
+    <test name="phase 3 for 3d has min(sat_relpermupwind) in [0,1] with tolerance 1.0e-06" language="python">
+assert abs(phase3_sat_min_relpermupwind_3d - 0.5) &lt; 0.5 + 1.0e-06
     </test>
-    <test name="phase 3 for 3d check cv_integral(sat_relpermupwind) constant with tolerance 1.0e-08" language="python">
+    <test name="phase 3 for 3d check cv_integral(sat_relpermupwind) constant with tolerance 1.0e-06" language="python">
 for t in range(len(phase3_sat_cv_integral_relpermupwind_3d)):
-   assert abs(phase3_sat_cv_integral_relpermupwind_3d[t] - phase3_sat_cv_integral_relpermupwind_3d[0]) &lt; 1.0e-08
+   assert abs(phase3_sat_cv_integral_relpermupwind_3d[t] - phase3_sat_cv_integral_relpermupwind_3d[0]) &lt; 1.0e-06
     </test>
     <test name="Check sum_sat_max_relpermupwind for 3d is 1.0 with tolerance 1.0e-06" language="python">
 print 'difference: ',abs(sum_sat_max_relpermupwind_3d - 1.0)
@@ -797,39 +797,39 @@ print 'max difference :',max_diff
     </test>
     
     <!-- basic comparisons, 2nd order w/Sweby, 1D -->
-    <test name="Check pressure_change_modrelpermupwind_satfesweby_1d is 10.0 (hydrostatic) with relative tolerance 1.0e-08" language="python">
+    <test name="Check pressure_change_modrelpermupwind_satfesweby_1d is 10.0 (hydrostatic) with relative tolerance 1.0e-06" language="python">
 print 'difference: ',abs(pressure_change_modrelpermupwind_satfesweby_1d - 10.0)/10.0
-assert abs(pressure_change_modrelpermupwind_satfesweby_1d - 10.0)/10.0 &lt; 1.0e-08
+assert abs(pressure_change_modrelpermupwind_satfesweby_1d - 10.0)/10.0 &lt; 1.0e-06
     </test>
-    <test name="phase 1 for 1d has max(sat_modrelpermupwind_satfesweby) in [0,1] with tolerance 1.0e-08" language="python">
-assert abs(phase1_sat_max_modrelpermupwind_satfesweby_1d - 0.5) &lt; 0.5 + 1.0e-08
+    <test name="phase 1 for 1d has max(sat_modrelpermupwind_satfesweby) in [0,1] with tolerance 1.0e-06" language="python">
+assert abs(phase1_sat_max_modrelpermupwind_satfesweby_1d - 0.5) &lt; 0.5 + 1.0e-06
     </test>
-    <test name="phase 1 for 1d has min(sat_modrelpermupwind_satfesweby) in [0,1] with tolerance 1.0e-08" language="python">
-assert abs(phase1_sat_min_modrelpermupwind_satfesweby_1d - 0.5) &lt; 0.5 + 1.0e-08
+    <test name="phase 1 for 1d has min(sat_modrelpermupwind_satfesweby) in [0,1] with tolerance 1.0e-06" language="python">
+assert abs(phase1_sat_min_modrelpermupwind_satfesweby_1d - 0.5) &lt; 0.5 + 1.0e-06
     </test>
-    <test name="phase 1 for 1d check cv_integral(sat_modrelpermupwind_satfesweby) constant with tolerance 1.0e-08" language="python">
+    <test name="phase 1 for 1d check cv_integral(sat_modrelpermupwind_satfesweby) constant with tolerance 1.0e-06" language="python">
 for t in range(len(phase1_sat_cv_integral_modrelpermupwind_satfesweby_1d)):
-   assert abs(phase1_sat_cv_integral_modrelpermupwind_satfesweby_1d[t] - phase1_sat_cv_integral_modrelpermupwind_satfesweby_1d[0]) &lt; 1.0e-08
+   assert abs(phase1_sat_cv_integral_modrelpermupwind_satfesweby_1d[t] - phase1_sat_cv_integral_modrelpermupwind_satfesweby_1d[0]) &lt; 1.0e-06
     </test>
-    <test name="phase 2 for 1d has max(sat_modrelpermupwind_satfesweby) in [0,1] with tolerance 1.0e-08" language="python">
-assert abs(phase2_sat_max_modrelpermupwind_satfesweby_1d - 0.5) &lt; 0.5 + 1.0e-08
+    <test name="phase 2 for 1d has max(sat_modrelpermupwind_satfesweby) in [0,1] with tolerance 1.0e-06" language="python">
+assert abs(phase2_sat_max_modrelpermupwind_satfesweby_1d - 0.5) &lt; 0.5 + 1.0e-06
     </test>
-    <test name="phase 2 for 1d has min(sat_modrelpermupwind_satfesweby) in [0,1] with tolerance 1.0e-08" language="python">
-assert abs(phase2_sat_min_modrelpermupwind_satfesweby_1d - 0.5) &lt; 0.5 + 1.0e-08
+    <test name="phase 2 for 1d has min(sat_modrelpermupwind_satfesweby) in [0,1] with tolerance 1.0e-06" language="python">
+assert abs(phase2_sat_min_modrelpermupwind_satfesweby_1d - 0.5) &lt; 0.5 + 1.0e-06
     </test>
-    <test name="phase 2 for 1d check cv_integral(sat_modrelpermupwind_satfesweby) constant with tolerance 1.0e-08" language="python">
+    <test name="phase 2 for 1d check cv_integral(sat_modrelpermupwind_satfesweby) constant with tolerance 1.0e-06" language="python">
 for t in range(len(phase2_sat_cv_integral_modrelpermupwind_satfesweby_1d)):
-   assert abs(phase2_sat_cv_integral_modrelpermupwind_satfesweby_1d[t] - phase2_sat_cv_integral_modrelpermupwind_satfesweby_1d[0]) &lt; 1.0e-08
+   assert abs(phase2_sat_cv_integral_modrelpermupwind_satfesweby_1d[t] - phase2_sat_cv_integral_modrelpermupwind_satfesweby_1d[0]) &lt; 1.0e-06
     </test>
-    <test name="phase 3 for 1d has max(sat_modrelpermupwind_satfesweby) in [0,1] with tolerance 1.0e-08" language="python">
-assert abs(phase3_sat_max_modrelpermupwind_satfesweby_1d - 0.5) &lt; 0.5 + 1.0e-08
+    <test name="phase 3 for 1d has max(sat_modrelpermupwind_satfesweby) in [0,1] with tolerance 1.0e-06" language="python">
+assert abs(phase3_sat_max_modrelpermupwind_satfesweby_1d - 0.5) &lt; 0.5 + 1.0e-06
     </test>
-    <test name="phase 3 for 1d has min(sat_modrelpermupwind_satfesweby) in [0,1] with tolerance 1.0e-08" language="python">
-assert abs(phase3_sat_min_modrelpermupwind_satfesweby_1d - 0.5) &lt; 0.5 + 1.0e-08
+    <test name="phase 3 for 1d has min(sat_modrelpermupwind_satfesweby) in [0,1] with tolerance 1.0e-06" language="python">
+assert abs(phase3_sat_min_modrelpermupwind_satfesweby_1d - 0.5) &lt; 0.5 + 1.0e-06
     </test>
-    <test name="phase 3 for 1d check cv_integral(sat_modrelpermupwind_satfesweby) constant with tolerance 1.0e-08" language="python">
+    <test name="phase 3 for 1d check cv_integral(sat_modrelpermupwind_satfesweby) constant with tolerance 1.0e-06" language="python">
 for t in range(len(phase3_sat_cv_integral_modrelpermupwind_satfesweby_1d)):
-   assert abs(phase3_sat_cv_integral_modrelpermupwind_satfesweby_1d[t] - phase3_sat_cv_integral_modrelpermupwind_satfesweby_1d[0]) &lt; 1.0e-08
+   assert abs(phase3_sat_cv_integral_modrelpermupwind_satfesweby_1d[t] - phase3_sat_cv_integral_modrelpermupwind_satfesweby_1d[0]) &lt; 1.0e-06
     </test>
     <test name="Check sum_sat_max_modrelpermupwind_satfesweby for 1d is 1.0 with tolerance 1.0e-06" language="python">
 print 'difference: ',abs(sum_sat_max_modrelpermupwind_satfesweby_1d - 1.0)
@@ -849,35 +849,35 @@ assert abs(sum_sat_cv_integral_modrelpermupwind_satfesweby_1d - 1.0) &lt; 1.0e-0
 print 'difference: ',abs(pressure_change_modrelpermupwind_satfesweby_2d - 10.0)/10.0
 assert abs(pressure_change_modrelpermupwind_satfesweby_2d - 10.0)/10.0 &lt; 3.0e-03
     </test>
-    <test name="phase 1 for 2d has max(sat_modrelpermupwind_satfesweby) in [0,1] with tolerance 1.0e-08" language="python">
-assert abs(phase1_sat_max_modrelpermupwind_satfesweby_2d - 0.5) &lt; 0.5 + 1.0e-08
+    <test name="phase 1 for 2d has max(sat_modrelpermupwind_satfesweby) in [0,1] with tolerance 1.0e-06" language="python">
+assert abs(phase1_sat_max_modrelpermupwind_satfesweby_2d - 0.5) &lt; 0.5 + 1.0e-06
     </test>
-    <test name="phase 1 for 2d has min(sat_modrelpermupwind_satfesweby) in [0,1] with tolerance 1.0e-08" language="python">
-assert abs(phase1_sat_min_modrelpermupwind_satfesweby_2d - 0.5) &lt; 0.5 + 1.0e-08
+    <test name="phase 1 for 2d has min(sat_modrelpermupwind_satfesweby) in [0,1] with tolerance 1.0e-06" language="python">
+assert abs(phase1_sat_min_modrelpermupwind_satfesweby_2d - 0.5) &lt; 0.5 + 1.0e-06
     </test>
-    <test name="phase 1 for 2d check cv_integral(sat_modrelpermupwind_satfesweby) constant with tolerance 1.0e-08" language="python">
+    <test name="phase 1 for 2d check cv_integral(sat_modrelpermupwind_satfesweby) constant with tolerance 1.0e-06" language="python">
 for t in range(len(phase1_sat_cv_integral_modrelpermupwind_satfesweby_2d)):
-   assert abs(phase1_sat_cv_integral_modrelpermupwind_satfesweby_2d[t] - phase1_sat_cv_integral_modrelpermupwind_satfesweby_2d[0]) &lt; 1.0e-08
+   assert abs(phase1_sat_cv_integral_modrelpermupwind_satfesweby_2d[t] - phase1_sat_cv_integral_modrelpermupwind_satfesweby_2d[0]) &lt; 1.0e-06
     </test>
-    <test name="phase 2 for 2d has max(sat_modrelpermupwind_satfesweby) in [0,1] with tolerance 1.0e-08" language="python">
-assert abs(phase2_sat_max_modrelpermupwind_satfesweby_2d - 0.5) &lt; 0.5 + 1.0e-08
+    <test name="phase 2 for 2d has max(sat_modrelpermupwind_satfesweby) in [0,1] with tolerance 1.0e-06" language="python">
+assert abs(phase2_sat_max_modrelpermupwind_satfesweby_2d - 0.5) &lt; 0.5 + 1.0e-06
     </test>
-    <test name="phase 2 for 2d has min(sat_modrelpermupwind_satfesweby) in [0,1] with tolerance 1.0e-08" language="python">
-assert abs(phase2_sat_min_modrelpermupwind_satfesweby_2d - 0.5) &lt; 0.5 + 1.0e-08
+    <test name="phase 2 for 2d has min(sat_modrelpermupwind_satfesweby) in [0,1] with tolerance 1.0e-06" language="python">
+assert abs(phase2_sat_min_modrelpermupwind_satfesweby_2d - 0.5) &lt; 0.5 + 1.0e-06
     </test>
-    <test name="phase 2 for 2d check cv_integral(sat_modrelpermupwind_satfesweby) constant with tolerance 1.0e-08" language="python">
+    <test name="phase 2 for 2d check cv_integral(sat_modrelpermupwind_satfesweby) constant with tolerance 1.0e-06" language="python">
 for t in range(len(phase2_sat_cv_integral_modrelpermupwind_satfesweby_2d)):
-   assert abs(phase2_sat_cv_integral_modrelpermupwind_satfesweby_2d[t] - phase2_sat_cv_integral_modrelpermupwind_satfesweby_2d[0]) &lt; 1.0e-08
+   assert abs(phase2_sat_cv_integral_modrelpermupwind_satfesweby_2d[t] - phase2_sat_cv_integral_modrelpermupwind_satfesweby_2d[0]) &lt; 1.0e-06
     </test>
-    <test name="phase 3 for 2d has max(sat_modrelpermupwind_satfesweby) in [0,1] with tolerance 1.0e-08" language="python">
-assert abs(phase3_sat_max_modrelpermupwind_satfesweby_2d - 0.5) &lt; 0.5 + 1.0e-08
+    <test name="phase 3 for 2d has max(sat_modrelpermupwind_satfesweby) in [0,1] with tolerance 1.0e-06" language="python">
+assert abs(phase3_sat_max_modrelpermupwind_satfesweby_2d - 0.5) &lt; 0.5 + 1.0e-06
     </test>
-    <test name="phase 3 for 2d has min(sat_modrelpermupwind_satfesweby) in [0,1] with tolerance 1.0e-08" language="python">
-assert abs(phase3_sat_min_modrelpermupwind_satfesweby_2d - 0.5) &lt; 0.5 + 1.0e-08
+    <test name="phase 3 for 2d has min(sat_modrelpermupwind_satfesweby) in [0,1] with tolerance 1.0e-06" language="python">
+assert abs(phase3_sat_min_modrelpermupwind_satfesweby_2d - 0.5) &lt; 0.5 + 1.0e-06
     </test>
-    <test name="phase 3 for 2d check cv_integral(sat_modrelpermupwind_satfesweby) constant with tolerance 1.0e-08" language="python">
+    <test name="phase 3 for 2d check cv_integral(sat_modrelpermupwind_satfesweby) constant with tolerance 1.0e-06" language="python">
 for t in range(len(phase3_sat_cv_integral_modrelpermupwind_satfesweby_2d)):
-   assert abs(phase3_sat_cv_integral_modrelpermupwind_satfesweby_2d[t] - phase3_sat_cv_integral_modrelpermupwind_satfesweby_2d[0]) &lt; 1.0e-08
+   assert abs(phase3_sat_cv_integral_modrelpermupwind_satfesweby_2d[t] - phase3_sat_cv_integral_modrelpermupwind_satfesweby_2d[0]) &lt; 1.0e-06
     </test>
     <test name="Check sum_sat_max_modrelpermupwind_satfesweby for 2d is 1.0 with tolerance 1.0e-06" language="python">
 print 'difference: ',abs(sum_sat_max_modrelpermupwind_satfesweby_2d - 1.0)
@@ -897,35 +897,35 @@ assert abs(sum_sat_cv_integral_modrelpermupwind_satfesweby_2d - 1.0) &lt; 1.0e-0
 print 'difference: ',abs(pressure_change_modrelpermupwind_satfesweby_3d - 10.0)/10.0
 assert abs(pressure_change_modrelpermupwind_satfesweby_3d - 10.0)/10.0 &lt; 3.0e-03
     </test>
-    <test name="phase 1 for 3d has max(sat_modrelpermupwind_satfesweby) in [0,1] with tolerance 1.0e-08" language="python">
-assert abs(phase1_sat_max_modrelpermupwind_satfesweby_3d - 0.5) &lt; 0.5 + 1.0e-08
+    <test name="phase 1 for 3d has max(sat_modrelpermupwind_satfesweby) in [0,1] with tolerance 1.0e-06" language="python">
+assert abs(phase1_sat_max_modrelpermupwind_satfesweby_3d - 0.5) &lt; 0.5 + 1.0e-06
     </test>
-    <test name="phase 1 for 3d has min(sat_modrelpermupwind_satfesweby) in [0,1] with tolerance 1.0e-08" language="python">
-assert abs(phase1_sat_min_modrelpermupwind_satfesweby_3d - 0.5) &lt; 0.5 + 1.0e-08
+    <test name="phase 1 for 3d has min(sat_modrelpermupwind_satfesweby) in [0,1] with tolerance 1.0e-06" language="python">
+assert abs(phase1_sat_min_modrelpermupwind_satfesweby_3d - 0.5) &lt; 0.5 + 1.0e-06
     </test>
-    <test name="phase 1 for 3d check cv_integral(sat_modrelpermupwind_satfesweby) constant with tolerance 1.0e-08" language="python">
+    <test name="phase 1 for 3d check cv_integral(sat_modrelpermupwind_satfesweby) constant with tolerance 1.0e-06" language="python">
 for t in range(len(phase1_sat_cv_integral_modrelpermupwind_satfesweby_3d)):
-   assert abs(phase1_sat_cv_integral_modrelpermupwind_satfesweby_3d[t] - phase1_sat_cv_integral_modrelpermupwind_satfesweby_3d[0]) &lt; 1.0e-08
+   assert abs(phase1_sat_cv_integral_modrelpermupwind_satfesweby_3d[t] - phase1_sat_cv_integral_modrelpermupwind_satfesweby_3d[0]) &lt; 1.0e-06
     </test>
-    <test name="phase 2 for 3d has max(sat_modrelpermupwind_satfesweby) in [0,1] with tolerance 1.0e-08" language="python">
-assert abs(phase2_sat_max_modrelpermupwind_satfesweby_3d - 0.5) &lt; 0.5 + 1.0e-08
+    <test name="phase 2 for 3d has max(sat_modrelpermupwind_satfesweby) in [0,1] with tolerance 1.0e-06" language="python">
+assert abs(phase2_sat_max_modrelpermupwind_satfesweby_3d - 0.5) &lt; 0.5 + 1.0e-06
     </test>
-    <test name="phase 2 for 3d has min(sat_modrelpermupwind_satfesweby) in [0,1] with tolerance 1.0e-08" language="python">
-assert abs(phase2_sat_min_modrelpermupwind_satfesweby_3d - 0.5) &lt; 0.5 + 1.0e-08
+    <test name="phase 2 for 3d has min(sat_modrelpermupwind_satfesweby) in [0,1] with tolerance 1.0e-06" language="python">
+assert abs(phase2_sat_min_modrelpermupwind_satfesweby_3d - 0.5) &lt; 0.5 + 1.0e-06
     </test>
-    <test name="phase 2 for 3d check cv_integral(sat_modrelpermupwind_satfesweby) constant with tolerance 1.0e-08" language="python">
+    <test name="phase 2 for 3d check cv_integral(sat_modrelpermupwind_satfesweby) constant with tolerance 1.0e-06" language="python">
 for t in range(len(phase2_sat_cv_integral_modrelpermupwind_satfesweby_3d)):
-   assert abs(phase2_sat_cv_integral_modrelpermupwind_satfesweby_3d[t] - phase2_sat_cv_integral_modrelpermupwind_satfesweby_3d[0]) &lt; 1.0e-08
+   assert abs(phase2_sat_cv_integral_modrelpermupwind_satfesweby_3d[t] - phase2_sat_cv_integral_modrelpermupwind_satfesweby_3d[0]) &lt; 1.0e-06
     </test>
-    <test name="phase 3 for 3d has max(sat_modrelpermupwind_satfesweby) in [0,1] with tolerance 1.0e-08" language="python">
-assert abs(phase3_sat_max_modrelpermupwind_satfesweby_3d - 0.5) &lt; 0.5 + 1.0e-08
+    <test name="phase 3 for 3d has max(sat_modrelpermupwind_satfesweby) in [0,1] with tolerance 1.0e-06" language="python">
+assert abs(phase3_sat_max_modrelpermupwind_satfesweby_3d - 0.5) &lt; 0.5 + 1.0e-06
     </test>
-    <test name="phase 3 for 3d has min(sat_modrelpermupwind_satfesweby) in [0,1] with tolerance 1.0e-08" language="python">
-assert abs(phase3_sat_min_modrelpermupwind_satfesweby_3d - 0.5) &lt; 0.5 + 1.0e-08
+    <test name="phase 3 for 3d has min(sat_modrelpermupwind_satfesweby) in [0,1] with tolerance 1.0e-06" language="python">
+assert abs(phase3_sat_min_modrelpermupwind_satfesweby_3d - 0.5) &lt; 0.5 + 1.0e-06
     </test>
-    <test name="phase 3 for 3d check cv_integral(sat_modrelpermupwind_satfesweby) constant with tolerance 1.0e-08" language="python">
+    <test name="phase 3 for 3d check cv_integral(sat_modrelpermupwind_satfesweby) constant with tolerance 1.0e-06" language="python">
 for t in range(len(phase3_sat_cv_integral_modrelpermupwind_satfesweby_3d)):
-   assert abs(phase3_sat_cv_integral_modrelpermupwind_satfesweby_3d[t] - phase3_sat_cv_integral_modrelpermupwind_satfesweby_3d[0]) &lt; 1.0e-08
+   assert abs(phase3_sat_cv_integral_modrelpermupwind_satfesweby_3d[t] - phase3_sat_cv_integral_modrelpermupwind_satfesweby_3d[0]) &lt; 1.0e-06
     </test>
     <test name="Check sum_sat_max_modrelpermupwind_satfesweby for 3d is 1.0 with tolerance 1.0e-06" language="python">
 print 'difference: ',abs(sum_sat_max_modrelpermupwind_satfesweby_3d - 1.0)
