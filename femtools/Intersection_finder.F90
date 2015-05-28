@@ -738,42 +738,20 @@ contains
     ! for each element in A, the intersecting elements in B
     type(ilist), dimension(ele_count(positions_a)) :: map_ab
 
-    type(vector_field_lib), target :: positions_a_lib
-    real, dimension(:,:), allocatable :: positions_a_lib_val
-    real, dimension(node_count(positions_b) * positions_b%dim) :: positions_b_lib
     ! for each element in A, the intersecting elements in B
     type(ilist_lib), dimension(:), allocatable :: map_AB_lib
 
-    integer :: i, temp_value, node, dimA, dimB, fieldMeshShapeLocA, n_count
-    type(inode), pointer :: current_id
+    integer :: i, temp_value !, node, dimA, dimB, fieldMeshShapeLocA, n_count
     type(inode_lib), pointer :: current_id_lib
 
-    dimA = positions_a%dim
-    dimB = positions_b%dim
-    n_count = 0
+    allocate(map_AB_lib(ele_count(positions_a)))
 
-    select case(positions_a%field_type)
-    case(FIELD_TYPE_NORMAL)
-      n_count = node_count(positions_a%mesh)
-      allocate(positions_a_lib_val(dimA,n_count))
-    case(FIELD_TYPE_CONSTANT)
-      allocate(positions_a_lib_val(dimA,1))
-    case(FIELD_TYPE_DEFERRED)
-      allocate(positions_a_lib_val(0,0))
-    end select
-
-    positions_a_lib_val = positions_a%val
-    fieldMeshShapeLocA = positions_a%mesh%shape%loc
-
-    do node=1,node_count(positions_b)
-      positions_b_lib((node-1)*dimB+1:node*dimB) = node_val(positions_b, node)
-    end do
-
-    allocate(map_AB_lib(size(map_AB)))
-    map_ab_lib = libsupermesh_rtree_intersection_finder(positions_a%val, positions_a%mesh%ndglno, positions_b%val, positions_b%mesh%ndglno, npredicates)
-
+    map_AB_lib = libsupermesh_rtree_intersection_finder( &
+      & positions_a%val, reshape(positions_a%mesh%ndglno, (/ele_loc(positions_a, 1), ele_count(positions_a)/)), &
+      & positions_b%val, reshape(positions_b%mesh%ndglno, (/ele_loc(positions_b, 1), ele_count(positions_b)/)), &
+      & npredicates)
+    
     do i=1,size(map_AB_lib)
-      if (associated(map_AB_lib(i)%firstnode) .eqv. .false.) cycle
       current_id_lib => map_AB_lib(i)%firstnode
 
       do while(associated(current_id_lib))
@@ -781,9 +759,9 @@ contains
         call insert(map_AB(i), temp_value)
         current_id_lib => current_id_lib%next
       end do
+      call flush_list_lib(map_AB_lib(i))
     end do
-
-    deallocate(positions_a_lib_val)
+ 
     deallocate(map_AB_lib)
 
   end function rtree_intersection_finder

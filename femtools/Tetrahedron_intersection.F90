@@ -38,7 +38,7 @@ module tetrahedron_intersection_module
   use libsupermesh_tet_intersection_module, only : tet_type_lib => tet_type, &
                                & plane_type_lib => plane_type, &
                                & libsupermesh_intersect_tets_dt, &
-                               get_planes_lib => get_planes
+                               get_planes_lib => get_planes, tet_buf_size
   use libsupermesh_quadrature, only : &
                     quadrature_type_lib => quadrature_type, &
                     make_quadrature_lib => make_quadrature, &
@@ -102,7 +102,7 @@ module tetrahedron_intersection_module
     type(plane_type_lib), dimension(4) :: planesB_lib
     
     integer :: i, n_tetsC, ele
-    type(tet_type_lib), dimension(96) :: tetsC
+    type(tet_type_lib), dimension(tet_buf_size) :: tetsC
     
     if (present(surface_colours) .or. present(surface_positions) .or. present(surface_shape)) then
       assert(present(surface_positions))
