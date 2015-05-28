@@ -177,7 +177,7 @@ subroutine flredecomp(input_basename, input_basename_len, output_basename, outpu
      & flredecomping=.true., input_procs = input_nprocs, target_procs = target_nprocs)
 #else
   call strip_level_2_halo(state, initialise_fields=.true.)
-  call sam_drive(state, sam_options(target_nprocs))
+  call sam_drive(state, sam_options(target_nprocs), initialise_fields=.true.)
 #endif
   
   ! Output
