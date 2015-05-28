@@ -1729,7 +1729,7 @@ module sam_integration
        FLExit("Mesh extrusion is not supported in parallel with libsam. Please reconfigure with Zoltan")
     end if
 
-    if(option_count('/geometry/mesh/from_mesh/mesh_shape')+option_count('/geometry/mesh/from_mesh/mesh_continuity')>0 .and.
+    if(option_count('/geometry/mesh/from_mesh/mesh_shape')+option_count('/geometry/mesh/from_mesh/mesh_continuity')>0 .and. &
        have_option('/mesh_adaptivity/hr_adaptivity')) then
       ! there are meshes that change the mesh_shape or continuity
       ! from this we assume: 1) there are non P1 meshes, 2) there are fields on these meshes that need to be distributed by SAM
