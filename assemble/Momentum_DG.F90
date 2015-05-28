@@ -278,8 +278,8 @@ contains
 
     !AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA!
     integer :: ii, discs, ndiscs
-	integer, dimension(:), allocatable :: region_id_disc
-	real,  dimension(:,:), allocatable :: U_intgrl
+    integer, dimension(:), allocatable :: region_id_disc
+    real,  dimension(:,:), allocatable :: U_intgrl
     real,    dimension(:), allocatable :: u_disc, u_ref, new_source
 
     real :: rho_fluid, a_fact, C_T, disc_thickness, disc_area, u_ref_def, intgrl_sum, disc_volume
@@ -378,20 +378,19 @@ contains
     ewrite(2,*) 'NDiscs: ', ndiscs
 
     allocate(region_id_disc(ndiscs))
-	region_id_disc=0
-    call get_option('/ADM/DiscRegionID', region_id_disc)
-    ewrite(2,*) 'DiscRegionID(s): ', region_id_disc
-
     allocate(U_intgrl(U%dim,ndiscs))
     allocate(u_disc(ndiscs))
     allocate(u_ref(ndiscs))
     allocate(new_source(ndiscs))
 
+    region_id_disc=0
+    call get_option('/ADM/DiscRegionID', region_id_disc)
+    ewrite(2,*) 'DiscRegionID(s): ', region_id_disc
+
     U_intgrl   = 0.0
     u_disc     = 0.0
     u_ref      = u_ref_def
     new_source = 0.0
-	!deallocate(drid)
     !AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA!
 
     Abs=extract_vector_field(state, "VelocityAbsorption", stat)   
@@ -797,13 +796,19 @@ contains
         end do
       end do elementS_loop
 
-      print*, 'AminCheck----------------------------------------------'
-      print*, 'C_T:', C_T, 'Disc Area:', disc_area, 'Disc Volume:', disc_volume
+      ewrite(2,*) 'ADM----------------------------------------------------'
+      ewrite(2,*) 'C_T:', C_T, 'Disc Area:', disc_area, 'Disc Volume:', disc_volume
       do discs = 1, ndiscs
-        print*, 'Disc No.:', discs, 'Disc Vel:', u_disc(discs), 'Probe Vel:', u_ref(discs)
-        print*, 'ADM Source:', new_source(discs), 'Power:', u_disc(discs)*new_source(discs)*disc_volume
+        ewrite(2,*) 'Disc No.:', discs, 'Disc Vel:', u_disc(discs), 'Probe Vel:', u_ref(discs)
+        ewrite(2,*) 'Thrust(kN):', -new_source(discs)*disc_volume, 'Power(kW):', -u_disc(discs)*new_source(discs)*disc_volume
       end do
-      print*, '-------------------------------------------------------'
+      ewrite(2,*) '-------------------------------------------------------'
+
+      !deallocate(region_id_disc)
+      !deallocate(U_intgrl)
+      !deallocate(u_disc)
+      !deallocate(u_ref)
+      !deallocate(new_source)
       !AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA!
 
       !$OMP DO SCHEDULE(STATIC)
