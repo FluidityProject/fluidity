@@ -749,11 +749,13 @@ module sam_integration
       
      end subroutine renumber_halo
 
-     subroutine sam_drive(states, options, metric, external_mesh_name)
+     subroutine sam_drive(states, options, metric, external_mesh_name, initialise_fields)
        type(state_type), dimension(:), intent(inout) :: states
        integer, dimension(10), intent(in) :: options
        type(tensor_field), optional, intent(inout) :: metric
        character(len=FIELD_NAME_LEN), intent(in), optional :: external_mesh_name
+       ! if present and true: don't bother redistributing fields that can be reinitialised
+       logical, intent(in), optional :: initialise_fields
        
        type(state_type), dimension(size(states)) :: interpolate_states
 
@@ -842,7 +844,8 @@ module sam_integration
 
        ! Select fields to interpolate
        do state=1,size(states)
-         call select_fields_to_interpolate(states(state), interpolate_states(state), no_positions=.true.)
+         call select_fields_to_interpolate(states(state), interpolate_states(state), &
+           no_positions=.true., first_time_step=initialise_fields)
        end do
 
        ! Record the headers of the interpolated fields
@@ -1680,21 +1683,22 @@ module sam_integration
 
     !! short circuit for the trivial case
     if (stat==0) return
+    
+    ewrite(0,*) "For field ", trim(name)
+
     select case(stat)
-       
     case (REMAP_ERR_DISCONTINUOUS_CONTINUOUS)
-       !! Apparantly acceptable to obtain linear mesh for flredecomp
-       return 
+       ewrite(0,*) "Unable to redistribute discontinuous field."
     case(REMAP_ERR_HIGHER_LOWER_CONTINUOUS)
-       !! Acceptable to obtain linear mesh
-       return
+       ewrite(0,*) "Unable to redistribute higher order field."
     case(REMAP_ERR_UNPERIODIC_PERIODIC)
-       FLExit("Unsupoorted periodic remapping. This periodic funcionality is not supported in parallel with libsam. Please consider reconfiguring with Zoltan")
+       ewrite(0,*) "Unable to redistribute field on periodic mesh."
     case(REMAP_ERR_BUBBLE_LAGRANGE)
-       FLExit("Unsupoorted element remapping. This funcionality is not supported in parallel with libsam. Please consider reconfiguring with Zoltan")
+       ewrite(0,*) "Unable to redistribute field on finite element mesh with bubble function."
     case default
-       FLExit("Unsupoorted remapping. This funcionality is not supported in parallel with libsam. Please consider reconfiguring with Zoltan")
+       ewrite(0,*) "Failure to remap. This probably means a discretisation type that is not handled by sam"
     end select
+    FLExit("This discretisation is not supported in parallel with libsam. Please consider reconfiguring with Zoltan")
 
   end subroutine check_sam_linear_remap_validity
   
@@ -1723,6 +1727,22 @@ module sam_integration
 
     if(option_count('/geometry/mesh/from_mesh/extrude')>0) then
        FLExit("Mesh extrusion is not supported in parallel with libsam. Please reconfigure with Zoltan")
+    end if
+
+    if(option_count('/geometry/mesh/from_mesh/mesh_shape')+option_count('/geometry/mesh/from_mesh/mesh_continuity')>0 .and.
+       have_option('/mesh_adaptivity/hr_adaptivity')) then
+      ! there are meshes that change the mesh_shape or continuity
+      ! from this we assume: 1) there are non P1 meshes, 2) there are fields on these meshes that need to be distributed by SAM
+      ! neither of those are necessarily always true, but it will be the case in 98% of the cases
+
+      ! sam does not handle such fields
+
+      ! we allow this for non-adaptive cases - sam is then only going to be invoked during an flredecomp - if the fields
+      ! on the non-P1 can be represcribed they don't actually need to be handled by sam. This means flredecomp on a non-checkpoint
+      ! .flml will usually still work.
+      ewrite(0,*) "It appears you have non P1 meshes (mesh that are not linear and continuous) and are using adaptivity."
+      ewrite(0,*) "For this to work you need to reconfigure with Zoltan."
+      FLExit("Non supported discretisation for sam with parallel adaptivity.")
     end if
 
     ewrite(2, *) "Finished checking libsam integration related options"
