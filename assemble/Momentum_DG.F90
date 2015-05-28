@@ -767,12 +767,8 @@ contains
         end do
       end do elementD_loop
 
-      do ii=1, U%dim
-        do discs = 1, ndiscs
-          call allsum(U_intgrl(ii,discs))
-          call allsum(U_intgrl(ii,discs))
-          call allsum(U_intgrl(ii,discs))
-        end do
+      do discs = 1, ndiscs
+        call allsum(U_intgrl(1,discs))
       end do
 
       intgrl_sum = integral_scalar(Turbine, X) !A! volume of all discs
@@ -804,11 +800,11 @@ contains
       end do
       ewrite(2,*) '-------------------------------------------------------'
 
-      !deallocate(region_id_disc)
-      !deallocate(U_intgrl)
-      !deallocate(u_disc)
-      !deallocate(u_ref)
-      !deallocate(new_source)
+      deallocate(region_id_disc)
+      deallocate(U_intgrl)
+      deallocate(u_disc)
+      deallocate(u_ref)
+      deallocate(new_source)
       !AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA!
 
       !$OMP DO SCHEDULE(STATIC)
