@@ -3,47 +3,97 @@
   <name>initialise_from_shared_object</name>
   <owner userid="jrper"/>
   <problem_definition length="short" nprocs="1">
-    <command_line>fluidity initialise_from_shared_object.flml</command_line>
+    <command_line>fluidity initialise_from_shared_object_c_interface.flml
+fluidity initialise_from_shared_object_cpp_interface.flml
+fluidity initialise_from_shared_object_fortran_bind_c_interface.flml
+fluidity initialise_from_shared_object_Fortran90_interface.flml
+fluidity initialise_from_shared_object_FORTRAN77_interface.flml</command_line>
   </problem_definition>
   <variables>
-    <variable name="vtu" language="python">import vtktools
+    <variable name="c_vtu" language="python">import vtktools
 
-vtu = vtktools.vtu("initialise_from_shared_object_0.vtu")</variable>
+c_vtu = vtktools.vtu("initialise_from_shared_object_c_interface_0.vtu")</variable>
+    <variable name="cpp_vtu" language="python">import vtktools
+
+cpp_vtu = vtktools.vtu("initialise_from_shared_object_cpp_interface_0.vtu")</variable>
+    <variable name="fortran77_vtu" language="python">import vtktools
+
+fortran77_vtu = vtktools.vtu("initialise_from_shared_object_FORTRAN77_interface_0.vtu")</variable>
+    <variable name="fortran90_vtu" language="python">import vtktools
+
+fortran90_vtu = vtktools.vtu("initialise_from_shared_object_Fortran90_interface_0.vtu")</variable>
+    <variable name="fortran_bind_c_vtu" language="python">import vtktools
+
+fortran_bind_c_vtu = vtktools.vtu("initialise_from_shared_object_fortran_bind_c_interface_0.vtu")</variable>
   </variables>
-  <pass_tests>
-    <test name="DifferenceFortranBindC" language="python">import fluidity_tools
-
-field = vtu.GetScalarField("DifferenceFortranBindC")
-
-print "Difference", field.min(), field.max()
-fluidity_tools.compare_variable(field.min(), 0.0, 1.0e-12)
-fluidity_tools.compare_variable(field.max(), 0.0, 1.0e-12)</test>
-    <test name="DifferenceC" language="python">import fluidity_tools
-
-field = vtu.GetScalarField("DifferenceC")
-
-print "Difference", field.min(), field.max()
-fluidity_tools.compare_variable(field.min(), 0.0, 1.0e-12)
-fluidity_tools.compare_variable(field.max(), 0.0, 1.0e-12)</test>
-  </pass_tests>
+  <pass_tests/>
   <warn_tests>
     <test name="DifferenceFortran90" language="python">import fluidity_tools
 
-field = vtu.GetScalarField("DifferenceFortran90")
+field = fortran90_vtu.GetScalarField("DifferenceFortran90")
 
 print "Difference", field.min(), field.max()
 fluidity_tools.compare_variable(field.min(), 0.0, 1.0e-12)
 fluidity_tools.compare_variable(field.max(), 0.0, 1.0e-12)</test>
     <test name="DifferenceF77" language="python">import fluidity_tools
 
-field = vtu.GetScalarField("DifferenceFortran77")
+field = fortran77_vtu.GetScalarField("DifferenceFortran77")
+
+print "Difference", field.min(), field.max()
+fluidity_tools.compare_variable(field.min(), 0.0, 1.0e-12)
+fluidity_tools.compare_variable(field.max(), 0.0, 1.0e-12)</test>
+    <test name="DifferenceCpp" language="python">import fluidity_tools
+
+field = cpp_vtu.GetScalarField("DifferenceCpp")
+
+print "Difference", field.min(), field.max()
+fluidity_tools.compare_variable(field.min(), 0.0, 1.0e-12)
+fluidity_tools.compare_variable(field.max(), 0.0, 1.0e-12)</test>
+    <test name="DifferenceFortranBindC" language="python">import fluidity_tools
+
+field = fortran_bind_c_vtu.GetScalarField("DifferenceFortranBindC")
 
 print "Difference", field.min(), field.max()
 fluidity_tools.compare_variable(field.min(), 0.0, 1.0e-12)
 fluidity_tools.compare_variable(field.max(), 0.0, 1.0e-12)</test>
     <test name="DifferenceC" language="python">import fluidity_tools
 
-field = vtu.GetScalarField("DifferenceCpp")
+field = c_vtu.GetScalarField("DifferenceC")
+
+print "Difference", field.min(), field.max()
+fluidity_tools.compare_variable(field.min(), 0.0, 1.0e-12)
+fluidity_tools.compare_variable(field.max(), 0.0, 1.0e-12)</test>
+    <test name="VectorDifferenceFortran90" language="python">import fluidity_tools
+
+field = fortran90_vtu.GetVectorField("VectorDifferenceFortran90")
+
+print "Difference", field.min(), field.max()
+fluidity_tools.compare_variable(field.min(), 0.0, 1.0e-12)
+fluidity_tools.compare_variable(field.max(), 0.0, 1.0e-12)</test>
+    <test name="VectorDifferenceF77" language="python">import fluidity_tools
+
+field = fortran77_vtu.GetVectorField("VectorDifferenceFortran77")
+
+print "Difference", field.min(), field.max()
+fluidity_tools.compare_variable(field.min(), 0.0, 1.0e-12)
+fluidity_tools.compare_variable(field.max(), 0.0, 1.0e-12)</test>
+    <test name="VectorDifferenceCpp" language="python">import fluidity_tools
+
+field = cpp_vtu.GetVectorField("VectorDifferenceCpp")
+
+print "Difference", field.min(), field.max()
+fluidity_tools.compare_variable(field.min(), 0.0, 1.0e-12)
+fluidity_tools.compare_variable(field.max(), 0.0, 1.0e-12)</test>
+    <test name="VectorDifferenceFortranBindC" language="python">import fluidity_tools
+
+field = fortran_bind_c_vtu.GetVectorField("VectorDifferenceFortranBindC")
+
+print "Difference", field.min(), field.max()
+fluidity_tools.compare_variable(field.min(), 0.0, 1.0e-12)
+fluidity_tools.compare_variable(field.max(), 0.0, 1.0e-12)</test>
+    <test name="VectorDifferenceC" language="python">import fluidity_tools
+
+field = c_vtu.GetVectorField("VectorDifferenceC")
 
 print "Difference", field.min(), field.max()
 fluidity_tools.compare_variable(field.min(), 0.0, 1.0e-12)
