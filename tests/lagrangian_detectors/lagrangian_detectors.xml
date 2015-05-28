@@ -3,7 +3,7 @@
 <testproblem>
   <name>lagrangian_detectors</name>
   <owner userid="colin"/>
-  <tags>flml parallel nozoltan</tags>
+  <tags>flml parallel zoltan</tags>
   <problem_definition length="short" nprocs="4">
     <command_line>
 mpiexec ../../bin/flredecomp -i 1 -o 4 -v -l lagrangian_detectors_rk lagrangian_detectors_rk_flredecomp;
