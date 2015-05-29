@@ -119,7 +119,7 @@ contains
        field = read_exodusii_file(filename, quad_degree=quad_degree, quad_ngi=quad_ngi, &
             quad_family=quad_family)
 #else
-  FLExit("Fluidity was not configured with exodusII, reconfigure with '--with-exodusII'!")
+  FLExit("Fluidity was not configured with exodusII, reconfigure with '--with-exodusii'!")
 #endif
 
 
