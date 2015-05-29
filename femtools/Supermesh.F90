@@ -192,14 +192,10 @@ module supermesh_construction
     type(vector_field), intent(in) :: positions_A
     integer, intent(in) :: ele_A
     type(vector_field) :: intersection
-    type(mesh_type) :: intersection_mesh
     type(element_type), intent(in) :: shape
     real, dimension(:, :), intent(in) :: posB
     
-    type(vector_field_lib) :: positions_A_lib
-    real, dimension(:,:), allocatable :: positions_A_lib_val
-!    type(vector_field_lib) :: intersection_lib
-    type(mesh_type) :: new_mesh
+    type(mesh_type) :: intersection_mesh
     real, dimension(2, 3, tri_buf_size) ::  trisC_real
     real, dimension(3, 4, tet_buf_size) ::  tetsC_real
     type(tet_type_lib) :: tet_A, tet_B
@@ -207,68 +203,60 @@ module supermesh_construction
     
     integer :: dimA, n_trisC, i, n_tetsC, dim, loc, nonods, totele
 
-    dimA = positions_A%dim
-    if ( dimA == 1 ) then
-      ! 1D
-      dim = positions_A%dim
+    dim = positions_A%dim
 #ifdef DDEBUG
-      select case(dim)
-        case(2)
-          assert(shape%loc == 3)
-        case(3)
-          assert(shape%loc == 4)
-      end select
+    select case(dim)
+      case(2)
+        assert(shape%loc == 3)
+      case(3)
+        assert(shape%loc == 4)
+    end select
 #endif
-      loc = ele_loc(positions_A, ele_A)
 
-      call cintersector_set_input(ele_val(positions_A, ele_A), posB, dim, loc)
-      call cintersector_drive
-      call cintersector_query(nonods, totele)
-      call allocate(intersection_mesh, nonods, totele, shape, "IntersectionMesh")
-      intersection_mesh%continuity = -1
-      call allocate(intersection, dim, intersection_mesh, "IntersectionCoordinates")
-      if (nonods > 0) then
+     if ( dim == 1 ) then
+       ! 1D
+       loc = ele_loc(positions_A, ele_A)
+ 
+       call cintersector_set_input(ele_val(positions_A, ele_A), posB, dim, loc)
+       call cintersector_drive
+       call cintersector_query(nonods, totele)
+       call allocate(intersection_mesh, nonods, totele, shape, "IntersectionMesh")
+       intersection_mesh%continuity = -1
+       call allocate(intersection, dim, intersection_mesh, "IntersectionCoordinates")
+       if (nonods > 0) then
 #ifdef DDEBUG
-        intersection_mesh%ndglno = -1
+         intersection_mesh%ndglno = -1
 #endif
-        call cintersector_get_output(nonods, totele, dim, loc, nodes_tmp, intersection_mesh%ndglno)
-
-        do i = 1, dim
-          intersection%val(i,:) = nodes_tmp((i - 1) * nonods + 1:i * nonods)
-        end do
-      end if
-      call deallocate(intersection_mesh)
-    else if ( dimA == 2 ) then
-      if ( ele_loc(positions_A, ele_A) == 3 ) then
-        ! Triangles (2D)
-        tri_A%v = ele_val(positions_A, ele_A)
-        tri_B%v = posB
-        call libsupermesh_intersect_tris(tri_A%v, tri_B%v, trisC_real, n_trisC)
-        call allocate(new_mesh, n_trisC * 3, n_trisC, shape)
+         call cintersector_get_output(nonods, totele, dim, loc, nodes_tmp, intersection_mesh%ndglno)
+ 
+         do i = 1, dim
+           intersection%val(i,:) = nodes_tmp((i - 1) * nonods + 1:i * nonods)
+         end do
+       end if
+       call deallocate(intersection_mesh)
+     else if ( dim == 2 ) then
+       if ( ele_loc(positions_A, ele_A) == 3 ) then
+         ! Triangles (2D)
+         tri_A%v = ele_val(positions_A, ele_A)
+         tri_B%v = posB
+         call libsupermesh_intersect_tris(tri_A%v, tri_B%v, trisC_real, n_trisC)
+         call allocate(intersection_mesh, n_trisC * 3, n_trisC, shape)
+         intersection_mesh%continuity = -1
 
         if ( n_trisC > 0 ) then
-          new_mesh%ndglno = (/ (i, i=1,3 * n_trisC) /)
-          new_mesh%continuity = -1
+          intersection_mesh%ndglno = (/ (i, i=1,3 * n_trisC) /)
         end if
 
-        call allocate(intersection, positions_A%dim, new_mesh, "IntersectionCoordinates")
+        call allocate(intersection, positions_A%dim, intersection_mesh, "IntersectionCoordinates")
         if ( n_trisC > 0 ) then
           do i = 1, n_trisC
             call set(intersection, ele_nodes(intersection, i), trisC_real(:,:,i))
           end do
         end if
-        call deallocate(new_mesh)
+
+        call deallocate(intersection_mesh)
       else if ( ele_loc(positions_A, ele_A) == 4 ) then
         ! Quads (2D)
-        dim = positions_A%dim
-#ifdef DDEBUG
-        select case(dim)
-          case(2)
-            assert(shape%loc == 3)
-          case(3)
-            assert(shape%loc == 4)
-        end select
-#endif
         loc = ele_loc(positions_A, ele_A)
 
         call cintersector_set_input(ele_val(positions_A, ele_A), posB, dim, loc)
@@ -289,30 +277,30 @@ module supermesh_construction
         end if
         call deallocate(intersection_mesh)
       end if
-    else if ( dimA == 3 ) then
-      ! Tets (3D)
-      tet_A%v = ele_val(positions_A, ele_A)
-      tet_B%v = posB
-      call libsupermesh_intersect_tets(tet_A%v, tet_B%v, tetsC_real, n_tetsC)
-      call allocate(new_mesh, n_tetsC * 4, n_tetsC, shape)
+     else if ( dim == 3 ) then
+       ! Tets (3D)
+       tet_A%v = ele_val(positions_A, ele_A)
+       tet_B%v = posB
+       call libsupermesh_intersect_tets(tet_A%v, tet_B%v, tetsC_real, n_tetsC)
+       call allocate(intersection_mesh, n_tetsC * 4, n_tetsC, shape)
+       intersection_mesh%continuity = -1
 
-      if ( n_tetsC > 0 ) then
-        new_mesh%ndglno = (/ (i, i=1,4 * n_tetsC) /)
-        new_mesh%continuity = -1
-      end if
+       if ( n_tetsC > 0 ) then
+         intersection_mesh%ndglno = (/ (i, i=1,4 * n_tetsC) /)
+       end if
+ 
+       call allocate(intersection, positions_A%dim, intersection_mesh, "IntersectionCoordinates")
+       if ( n_tetsC > 0 ) then
+         do i = 1, n_tetsC
+           call set(intersection, ele_nodes(intersection, i), tetsC_real(:,:,i))
+         end do
+       end if
+       call deallocate(intersection_mesh)
+     else
+       ! Unkown D
+       FLAbort("Unknown input dimensions.")
+     end if
 
-      call allocate(intersection, positions_A%dim, new_mesh, "IntersectionCoordinates")
-      if ( n_tetsC > 0 ) then
-        do i = 1, n_tetsC
-          call set(intersection, ele_nodes(intersection, i), tetsC_real(:,:,i))
-        end do
-      end if
-      call deallocate(new_mesh)
-    else
-      ! Unkown D
-      FLAbort("Unknown input dimensions.")
-    end if
-!    call deallocate(intersection_lib)
   end function intersect_elements
 #else
   function intersect_elements(positions_A, ele_A, posB, shape) result(intersection)

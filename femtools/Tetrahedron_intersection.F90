@@ -99,48 +99,28 @@ module tetrahedron_intersection_module
     integer, intent(out) :: stat
 
     type(tet_type_lib) :: tetA_lib
-    type(plane_type_lib), dimension(4) :: planesB_lib
-    
+    type(plane_type_lib), dimension(size(planesB)) :: planesB_lib
+
     integer :: i, n_tetsC, ele
     type(tet_type_lib), dimension(tet_buf_size) :: tetsC
-    
+
     if (present(surface_colours) .or. present(surface_positions) .or. present(surface_shape)) then
       assert(present(surface_positions))
       assert(present(surface_colours))
       assert(present(surface_shape))
     end if
-    
+
     tetA_lib%V = tetA%V
     tetA_lib%colours = tetA%colours
-    
+
     FORALL(i=1:3) planesB_lib%normal(i)=planesB%normal(i)
     planesB_lib%c = planesB%c
-    
-!    if ( associated(output%refcount) ) then 
-!      quad_lib = make_quadrature_lib(vertices = output%mesh%shape%quadrature%vertices, dim = output%mesh%shape%quadrature%dim, ngi = output%mesh%shape%quadrature%ngi, degree = output%mesh%shape%degree * 2)
-!      shape_lib_temp = make_element_shape_lib(vertices = output%mesh%shape%loc, dim = output%mesh%shape%dim, degree = output%mesh%shape%degree, quad = quad_lib)
-!      call deallocate(quad_lib)
-
-!      call allocate(mesh_lib, node_count(output), ele_count(output), shape_lib_temp)
-!      mesh_lib%ndglno = output%mesh%ndglno
-!      call allocate(output_lib, output%dim, mesh_lib)
-!      call deallocate(shape_lib_temp)
-!      call deallocate(mesh_lib)
- 
-!      allocate(output_lib%val(size(output%val, 1), size(output%val, 2)))
-!      output_lib%val = output%val 
-!      output_lib%dim = output%dim
-!    end if
 
     if (present(surface_colours)) then
       FLAbort("intersect_tets_dt: Not implemented optional parameters")
 !      call libsupermesh_intersect_tets_dt(tetA_lib, planesB_lib, shape_lib, stat = stat, output = output_lib)
     else
       call libsupermesh_intersect_tets_dt(tetA_lib, planesB_lib, tetsC, n_tetsC)
-!      call libsupermesh_intersect_tets_dt(tetA%V, tetA%colours, size(planesB), planesB_normal, planesB_c, &
-!          shape%quadrature%vertices, shape%quadrature%dim, shape%quadrature%ngi, &
-!          shape%quadrature%degree, shape%loc, shape%dim, shape%degree, &
-!          stat = stat, output = output_lib)
     end if
     if (stat == 1) then
       return
