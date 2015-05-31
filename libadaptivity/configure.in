@@ -189,6 +189,7 @@ if test "x$enable_vtk" != "xno" ; then
         # Loop through potential vtk installations and get the highest version number 
         vtk_version=0
         vtk_include_dir=""
+        vtk_version_file=""
         for i in $(ls -d $VTK_INSTALL_PREFIX/vtk*) $VTK_INCLUDE; do
             # VTK 6 has a version macros file
             if test -r $i/vtkVersionMacros.h; then
@@ -198,6 +199,7 @@ if test "x$enable_vtk" != "xno" ; then
                 if [[ $this_vtk_version -gt $vtk_version ]]; then
                    vtk_version=$this_vtk_version
                    vtk_include_dir=$i
+                   vtk_version_file="vtkVersionMacros.h"
                 fi
             # VTK 5 has a configure file that defined the macros
             elif test -r $i/vtkConfigure.h; then
@@ -207,6 +209,7 @@ if test "x$enable_vtk" != "xno" ; then
                 if [[ $this_vtk_version -gt $vtk_version ]]; then
                    vtk_version=$this_vtk_version
                    vtk_include_dir=$i
+                   vtk_version_file="vtkConfigure.h"
                 fi
             else
               AC_MSG_WARN([Found VTK folder $i but could not find file to get version.])
@@ -214,7 +217,7 @@ if test "x$enable_vtk" != "xno" ; then
         done
 
         # Add to include path
-        AC_CHECK_HEADER([$vtk_include_dir/vtkVersionMacros.h],
+        AC_CHECK_HEADER([$vtk_include_dir/$vtk_version_file],
                         [CPPFLAGS="$CPPFLAGS -DHAVE_VTK=1"
                          VTK=yes],
                         [AC_MSG_ERROR([Cannot find vtk installation.])])

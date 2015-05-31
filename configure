@@ -14372,6 +14372,7 @@ rm -f core conftest.err conftest.$ac_objext \
         # Loop through potential vtk installations and get the highest version number
         vtk_version=0
         vtk_include_dir=""
+        vtk_version_file=""
         for i in $(ls -d $VTK_INSTALL_PREFIX/vtk*) $VTK_INCLUDE; do
             # VTK 6 has a version macros file
             if test -r $i/vtkVersionMacros.h; then
@@ -14381,6 +14382,7 @@ rm -f core conftest.err conftest.$ac_objext \
                 if [ $this_vtk_version -gt $vtk_version ]; then
                    vtk_version=$this_vtk_version
                    vtk_include_dir=$i
+                   vtk_version_file="vtkVersionMacros.h"
                 fi
             # VTK 5 has a configure file that defined the macros
             elif test -r $i/vtkConfigure.h; then
@@ -14390,6 +14392,7 @@ rm -f core conftest.err conftest.$ac_objext \
                 if [ $this_vtk_version -gt $vtk_version ]; then
                    vtk_version=$this_vtk_version
                    vtk_include_dir=$i
+                   vtk_version_file="vtkConfigure.h"
                 fi
             else
               { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Found VTK folder $i but could not find file to get version." >&5
@@ -14398,8 +14401,8 @@ $as_echo "$as_me: WARNING: Found VTK folder $i but could not find file to get ve
         done
 
         # Add to include path
-        as_ac_Header=`$as_echo "ac_cv_header_$vtk_include_dir/vtkVersionMacros.h" | $as_tr_sh`
-ac_fn_cxx_check_header_mongrel "$LINENO" "$vtk_include_dir/vtkVersionMacros.h" "$as_ac_Header" "$ac_includes_default"
+        as_ac_Header=`$as_echo "ac_cv_header_$vtk_include_dir/$vtk_version_file" | $as_tr_sh`
+ac_fn_cxx_check_header_mongrel "$LINENO" "$vtk_include_dir/$vtk_version_file" "$as_ac_Header" "$ac_includes_default"
 if eval test \"x\$"$as_ac_Header"\" = x"yes"; then :
   CPPFLAGS="$CPPFLAGS -DHAVE_VTK=1"
                          VTK=yes
