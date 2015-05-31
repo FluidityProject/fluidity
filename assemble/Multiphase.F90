@@ -536,7 +536,12 @@
          
                ! Compute the particle Reynolds number
                ! (Assumes isotropic viscosity for now)
-               particle_re_gi = (vfrac_fluid_gi*density_fluid_gi*magnitude_gi*d_gi) / viscosity_fluid_gi(1,1,:)
+
+!WARNING ------gb812 - NOTE: VISCOSITY FOR WATER HAS BEEN HARD CODED FOR NOW. TO USE WITH THE K-EPSILON CODE
+! THIS IS A HACK AND NEEDS TO BE CHANGED VERY SOON
+               !particle_re_gi = (vfrac_fluid_gi*density_fluid_gi*magnitude_gi*d_gi) / viscosity_fluid_gi(1,1,:)
+               particle_re_gi = (vfrac_fluid_gi*density_fluid_gi*magnitude_gi*d_gi) / 0.001002
+!----------
            
                ! Compute the drag coefficient
                select case(drag_correlation)
