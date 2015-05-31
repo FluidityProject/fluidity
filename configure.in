@@ -1382,6 +1382,7 @@ if test "$enable_vtk" != "no" ; then
         vtk_version=0
         vtk_include_dir=""
         for i in $(ls -d $VTK_INSTALL_PREFIX/vtk*) $VTK_INCLUDE; do
+            # VTK 6 has a version macros file
             if test -r $i/vtkVersionMacros.h; then
                 # Get the version number from the macros file
                 this_vtk_version=$(grep VTK_MAJOR_VERSION $i/vtkVersionMacros.h | sed 's/#define VTK_MAJOR_VERSION //')
@@ -1390,6 +1391,17 @@ if test "$enable_vtk" != "no" ; then
                    vtk_version=$this_vtk_version
                    vtk_include_dir=$i
                 fi
+            # VTK 5 has a configure file that defined the macros
+            elif test -r $i/vtkConfigure.h; then
+                # Get the version number from the configure file
+                this_vtk_version=$(grep VTK_MAJOR_VERSION $i/vtkConfigure.h | sed 's/#define VTK_MAJOR_VERSION //')
+                # Use the latest version available
+                if [[ $this_vtk_version -gt $vtk_version ]]; then
+                   vtk_version=$this_vtk_version
+                   vtk_include_dir=$i
+                fi
+            else
+              AC_MSG_WARN([Found VTK folder $i but could not find file to get version.])
             fi
         done
 

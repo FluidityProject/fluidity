@@ -14373,6 +14373,7 @@ rm -f core conftest.err conftest.$ac_objext \
         vtk_version=0
         vtk_include_dir=""
         for i in $(ls -d $VTK_INSTALL_PREFIX/vtk*) $VTK_INCLUDE; do
+            # VTK 6 has a version macros file
             if test -r $i/vtkVersionMacros.h; then
                 # Get the version number from the macros file
                 this_vtk_version=$(grep VTK_MAJOR_VERSION $i/vtkVersionMacros.h | sed 's/#define VTK_MAJOR_VERSION //')
@@ -14381,6 +14382,18 @@ rm -f core conftest.err conftest.$ac_objext \
                    vtk_version=$this_vtk_version
                    vtk_include_dir=$i
                 fi
+            # VTK 5 has a configure file that defined the macros
+            elif test -r $i/vtkConfigure.h; then
+                # Get the version number from the configure file
+                this_vtk_version=$(grep VTK_MAJOR_VERSION $i/vtkConfigure.h | sed 's/#define VTK_MAJOR_VERSION //')
+                # Use the latest version available
+                if [ $this_vtk_version -gt $vtk_version ]; then
+                   vtk_version=$this_vtk_version
+                   vtk_include_dir=$i
+                fi
+            else
+              { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Found VTK folder $i but could not find file to get version." >&5
+$as_echo "$as_me: WARNING: Found VTK folder $i but could not find file to get version." >&2;}
             fi
         done
 
