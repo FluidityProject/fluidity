@@ -9728,10 +9728,23 @@ rm -f core conftest.err conftest.$ac_objext \
                 fi
             fi
         done
-        echo "VTK INCLUDE DIR" $vtk_include_dir
+
+        # Add to include path
+        as_ac_Header=`$as_echo "ac_cv_header_$vtk_include_dir/vtkVersionMacros.h" | $as_tr_sh`
+ac_fn_cxx_check_header_mongrel "$LINENO" "$vtk_include_dir/vtkVersionMacros.h" "$as_ac_Header" "$ac_includes_default"
+if eval test \"x\$"$as_ac_Header"\" = x"yes"; then :
+  CPPFLAGS="$CPPFLAGS -DHAVE_VTK=1"
+                         VTK=yes
+else
+  as_fn_error $? "Cannot find vtk installation." "$LINENO" 5
+fi
+
+
+
         { $as_echo "$as_me:${as_lineno-$LINENO}: Found and using VTK major version: $vtk_version" >&5
 $as_echo "$as_me: Found and using VTK major version: $vtk_version" >&6;}
 
+        # Link the correct libraries depending on the version
         if [ "x$vtk_version" == "x5" ]; then
             # Usually the location of the libraries is not a mystery. The
             # header files are another matter.
