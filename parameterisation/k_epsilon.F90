@@ -223,6 +223,12 @@ integer, dimension(3) :: nn, n_ele
   type(scalar_field) :: dummy_scalar
   type(scalar_field), pointer :: sponge_field   
 
+!--
+!  type(vector_field) :: bc_value
+!  integer, dimension(:,:), allocatable :: bc_type    
+!  logical :: dg_velocity
+!--
+
   option_path = trim(state%option_path)//'/subgridscale_parameterisations/k-epsilon/'
 
   if (.not. have_option(trim(option_path))) then 
@@ -252,7 +258,16 @@ integer, dimension(3) :: nn, n_ele
   call allocate(dummydensity, X%mesh, "DummyDensity", field_type=FIELD_TYPE_CONSTANT)
   call set(dummydensity, 1.0)
   dummydensity%option_path = ""
-  
+!--
+!  dg_velocity = continuity(u)<0
+
+!  !! required for dg gradient calculation of u
+!  if(dg_velocity) then
+!      allocate(bc_type(u%dim, 1:surface_element_count(u)))	
+!      call get_entire_boundary_condition(u, (/"weakdirichlet"/), bc_value, bc_type)	
+!  end if
+!--
+
   ! Depending on the equation type, extract the density or set it to some dummy field allocated above
   call get_option(trim(state%option_path)//&
        "/vector_field::Velocity/prognostic/equation[0]/name", equation_type)
@@ -332,15 +347,38 @@ integer, dimension(3) :: nn, n_ele
      ! Assembly loop
 
      do ele = 1, ele_count(fields(1))
+!---
+       ! In parallel, we construct terms on elements we own and those in
+       ! the L1 element halo.
+       ! This is because we need neighbour info to determin jumps between elements and 
+       ! calculate a dg gradient.
+       ! Note that element_neighbour_owned(u, ele) may return .false. if
+       ! ele is owned.  For example, if ele is the only owned element on
+       ! this process.  Hence we have to check for element ownership
+       ! directly as well.
+!---
 !       nn=ele_nodes(vfrac,ele)
 !       print*, "yoyo", nn
 !       call set(temp_scalar, nn, nn*0.0+100.0)
 !     endif
-        call assemble_rhs_ele(src_abs_terms, fields(i), fields(3-i), scalar_eddy_visc, u, &
-             density, buoyancy_density, have_buoyancy_turbulence, g, g_magnitude, multiphase, &
-             vfrac, x, c_eps_1, c_eps_2, sigma_p, f_1, f_2, ele, i)
-     end do
+!       if (.not.dg_velocity.or.element_neighbour_owned(u, ele).or.element_owned(u, ele)) then
+!         call assemble_rhs_ele(src_abs_terms, fields(i), fields(3-i), scalar_eddy_visc, u, &
+!              density, buoyancy_density, have_buoyancy_turbulence, g, g_magnitude, multiphase, &
+!              vfrac, x, c_eps_1, c_eps_2, sigma_p, f_1, f_2, ele, i, bc_value, bc_type)
 
+         call assemble_rhs_ele(src_abs_terms, fields(i), fields(3-i), scalar_eddy_visc, u, &
+              density, buoyancy_density, have_buoyancy_turbulence, g, g_magnitude, multiphase, &
+              vfrac, x, c_eps_1, c_eps_2, sigma_p, f_1, f_2, ele, i)
+!       end if
+     end do
+!---
+     ! halo update to fill in halo_2 values with a dg velocity
+!     if (dg_velocity) then
+!       do term = 1, 3
+!         call halo_update(src_abs_terms(term))
+!       end do
+!     end if
+!---
      ! For non-DG we apply inverse mass globally
      if(continuity(fields(1))>=0) then
         lump_mass = have_option(trim(option_path)//'mass_terms/lump_mass')
@@ -448,7 +486,14 @@ integer, dimension(3) :: nn, n_ele
      call deallocate(fields(2))
 
   end do field_loop
-  
+
+!--  
+  !! deallocate velocity bc_type
+!  if(continuity(u)<0) then
+!      deallocate(bc_type)
+!      call deallocate(bc_value)	
+!  end if
+!--
   call deallocate(dummydensity)
   deallocate(dummydensity)
 
@@ -463,6 +508,10 @@ end subroutine keps_calculate_rhs
 subroutine assemble_rhs_ele(src_abs_terms, k, eps, scalar_eddy_visc, u, density, &
      buoyancy_density, have_buoyancy_turbulence, g, g_magnitude, multiphase, vfrac, &
      X, c_eps_1, c_eps_2, sigma_p, f_1, f_2, ele, field_id)
+
+!subroutine assemble_rhs_ele(src_abs_terms, k, eps, scalar_eddy_visc, u, density, &
+!     buoyancy_density, have_buoyancy_turbulence, g, g_magnitude, multiphase, vfrac, &
+!     X, c_eps_1, c_eps_2, sigma_p, f_1, f_2, ele, field_id, bc_value, bc_type)
 
   type(scalar_field), dimension(3), intent(inout) :: src_abs_terms
   type(scalar_field), intent(in) :: k, eps, scalar_eddy_visc, f_1, f_2, vfrac
@@ -483,6 +532,10 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, scalar_eddy_visc, u, density,
   real, dimension(u%dim, u%dim, ele_ngi(u, ele)) :: reynolds_stress, grad_u
   type(element_type), pointer :: shape, shape_u
   integer :: term, ngi, dim, gi, i
+
+!  type(vector_field), intent(in) :: bc_value	
+!  integer, dimension(:,:), intent(in) :: bc_type    
+
   real, dimension(:, :, :), allocatable :: dshape_u
   
   ! For buoyancy turbulence stuff
@@ -507,6 +560,13 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, scalar_eddy_visc, u, density,
      k_ele(gi) = max(k_ele(gi), fields_min)
      eps_ele(gi) = max(eps_ele(gi), fields_min)
   end do
+
+!  ! Compute Reynolds stress	
+!  if(continuity(u)<0) then
+!     grad_u = dg_ele_grad_at_quad(u, ele, shape, X, bc_value, bc_type)
+!  else
+!     grad_u = ele_grad_at_quad(u, ele, dshape)
+!  end if
 
   ! Compute Reynolds stress
   allocate(dshape_u(ele_loc(u, ele), ele_ngi(u, ele), X%dim))
@@ -1059,7 +1119,7 @@ end subroutine keps_tracer_diffusion
 
 subroutine keps_bcs(state)
 
-  type(state_type), intent(in)            :: state
+  type(state_type), intent(in)               :: state
   type(scalar_field), pointer                :: field1, field2    ! k or epsilon
   type(scalar_field), pointer                :: f_1, f_2, f_mu
   type(scalar_field), pointer                :: surface_field, scalar_eddy_visc
