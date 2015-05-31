@@ -218,7 +218,7 @@ if test "x$enable_vtk" != "xno" ; then
 
         # Add to include path
         AC_CHECK_HEADER([$vtk_include_dir/$vtk_version_file],
-                        [CPPFLAGS="$CPPFLAGS -DHAVE_VTK=1"
+                        [CPPFLAGS="$CPPFLAGS -I$vtk_include_dir -DHAVE_VTK=1"
                          VTK=yes],
                         [AC_MSG_ERROR([Cannot find vtk installation.])])
 
@@ -289,6 +289,8 @@ if test "x$enable_vtk" != "xno" ; then
                 ])
             AC_CHECK_LIB(vtkIOXML, main)
             AC_CHECK_LIB(vtkIOParallel, main)
+            AC_CHECK_LIB(vtkIOCore, main)
+            AC_CHECK_LIB(vtkCommonDataModel, main)
         fi
     fi
 fi
