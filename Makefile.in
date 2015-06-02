@@ -315,8 +315,6 @@ endif
 	@cd diagnostics;   	$(MAKE)
 	@echo "    MAKE reduced_modelling"
 	@cd reduced_modelling;   	$(MAKE)
-	@echo "    MAKE adjoint"
-	@cd adjoint; $(MAKE)
 	@echo "    MAKE main"
 	@cd main; $(MAKE)
 	@echo "    MAKE options_check"
@@ -341,7 +339,6 @@ error_measures/*.o \
 assemble/*.o \
 diagnostics/*.o \
 reduced_modelling/*.o \
-adjoint/*.o \
 main/*.o
 ifeq (@HYPERLIGHT@,yes)
 	@$(AR) $(ARFLAGS) lib/libfluidity.a hyperlight/*.o
@@ -394,9 +391,6 @@ clean-light:
 	@cd horizontal_adaptivity/tests;   $(MAKE) clean
 	@echo "    CLEAN tools"
 	@cd tools;    $(MAKE) clean
-	@echo "    CLEAN adjoint"
-	@cd adjoint;    $(MAKE) clean
-	@cd adjoint/tests;    $(MAKE) clean
 	@echo "    CLEAN bathymetry"
 	@cd bathymetry;  $(MAKE) clean
 	@echo "    CLEAN ocean_forcing"
@@ -412,8 +406,6 @@ endif
 	@echo "    CLEAN climatology"
 	@echo "    CLEAN reduced_modelling"
 	@cd reduced_modelling; $(MAKE) clean
-	@echo "    CLEAN adjoint"
-	@cd adjoint; $(MAKE) clean
 	@echo "    CLEAN main"
 	@cd main; $(MAKE) clean
 	@rm -fr bin lib
@@ -530,8 +522,6 @@ build_unittest: fluidity_library libfemtools setuputs
 	@cd parameterisation/tests; $(MAKE) unittest
 	@echo "    UNITTEST assemble"
 	@cd assemble/tests; $(MAKE) unittest
-	@echo "    UNITTEST adjoint"
-	@cd adjoint/tests; $(MAKE) unittest
 	@echo "    UNITTEST ocean_forcing"
 	@cd ocean_forcing/tests; $(MAKE) unittest
 
@@ -596,8 +586,6 @@ endif
 	Diagnostic_Fields_New.o 
 	@echo "    Generating reduced_modelling dependencies"
 	@cd reduced_modelling;   	../bin/create_makefile $(TESTOPTS)
-	@echo "    Generating adjoint dependencies"
-	@cd adjoint; ../bin/create_makefile $(TESTOPTS)
 	@echo "    Generating main dependencies"
 	@cd main; ../bin/create_makefile --exclude test_coupler.F90 $(TESTOPTS)
 	@echo "    Cleaning up the mess"
