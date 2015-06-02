@@ -179,17 +179,7 @@ bin/$(FLUIDITY): main.o lib/lib$(FLUIDITY).a
 	@echo "    LD $(PROGRAM)"
 	@$(EVAL) $(LINKER) -o $(PROGRAM) main.o $(LIBS)
 
-sw: bin/shallow_water
 hh: bin/hybridized_helmholtz_solver
-
-bin/shallow_water: fluidity_library bin/hybridized_helmholtz_solver main/Shallow_Water.F90
-	@cd main; $(MAKE) Shallow_Water.o
-	@echo "BUILD shallow_water"
-	@echo "    MKDIR bin"
-	@mkdir -p bin
-	@echo "    LD shallow_water"
-	@$(EVAL) $(FLLINKER) -o bin/hybridized_helmholtz_solver main/Hybridized_Helmholtz_Solver.o $(LIBS)
-	@$(EVAL) $(FLLINKER) -o bin/shallow_water main/Shallow_Water.o $(LIBS)
 
 bin/hybridized_helmholtz_solver: fluidity_library main/Hybridized_Helmholtz_Solver.F90
 	@cd main; $(MAKE) Hybridized_Helmholtz_Solver.o
@@ -464,10 +454,10 @@ distclean: clean
 
 test: serialtest
 
-serialtest: fltools bin/$(FLUIDITY) bin/shallow_water
+serialtest: fltools bin/$(FLUIDITY) 
 	@cd tests; ../bin/testharness -l short $(EXCLUDE_TAGS) -n $(THREADS)
 
-mediumtest: fltools bin/$(FLUIDITY) manual bin/shallow_water spudtools
+mediumtest: fltools bin/$(FLUIDITY) manual spudtools
 	@cd tests; ../bin/testharness -l medium $(EXCLUDE_TAGS) -n $(THREADS)
 
 .PHONY: spudtools
@@ -567,7 +557,7 @@ endif
 	$(MAKE) clean-light
 	@echo "    Congratulations, make makefiles succeeded!"
 
-install: default fltools bin/shallow_water 
+install: default fltools 
 	@mkdir -p $(DESTDIR)$(bindir) $(DESTDIR)$(docdir)/fluidity
 	find bin/ -maxdepth 1 -type f -exec cp '{}' $(DESTDIR)$(bindir) \;
 	rm -f $(DESTDIR)$(bindir)/spud-* $(DESTDIR)$(bindir)/diamond $(DESTDIR)$(bindir)/silenteval $(DESTDIR)$(bindir)/runut
