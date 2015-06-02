@@ -180,7 +180,6 @@ bin/$(FLUIDITY): main.o lib/lib$(FLUIDITY).a
 	@$(EVAL) $(LINKER) -o $(PROGRAM) main.o $(LIBS)
 
 sw: bin/shallow_water
-be: bin/burgers_equation
 hh: bin/hybridized_helmholtz_solver
 
 bin/shallow_water: fluidity_library bin/hybridized_helmholtz_solver main/Shallow_Water.F90
@@ -199,30 +198,6 @@ bin/hybridized_helmholtz_solver: fluidity_library main/Hybridized_Helmholtz_Solv
 	@mkdir -p bin
 	@echo "    LD hybridized_helmholtz_solver"
 	@$(EVAL) $(FLLINKER) -o bin/hybridized_helmholtz_solver main/Hybridized_Helmholtz_Solver.o $(LIBS)
-
-bin/burgers_equation: fluidity_library main/Burgers_Equation.F90
-	@cd main; $(MAKE) Burgers_Equation.o
-	@echo "BUILD burgers_equation"
-	@echo "    MKDIR bin"
-	@mkdir -p bin
-	@echo "    LD burgers_equation"
-	@$(EVAL) $(FLLINKER) -o bin/burgers_equation main/Burgers_Equation.o $(FCFLAGS) $(LIBS)
-
-ifeq (@ENABLE_PSMILE@,yes)
-LIBPSMILE=@FLPSMILE_PATH@/lib/libpsmile_oa4.MPI1.a @FLPSMILE_PATH@/lib/libcommon_oa4.a @FLPSMILE_PATH@/lib/libmpp_io.a -lxml2
-bin/test_coupler: fluidity_library main/test_coupler.F90
-	@cd main; $(MAKE) test_coupler.o
-	@echo "BUILD test_coupler"
-	@echo "    MKDIR bin"
-	@mkdir -p bin
-	@echo "    LD test_coupler"
-	@$(EVAL) $(FC) -o bin/test_coupler main/test_coupler.o $(LIBPSMILE) $(FCFLAGS) $(LIBS)
-else
-bin/test_coupler:
-	@echo "     Unable to build bin/test_coupler without psmile libraries"
-	@echo "     Please reconfigure --with-psmile=/path/to/oasis4"
-	exit 1
-endif
 
 bin/form_pod_basis: fluidity_library reduced_modelling/Form_Pod_Basis_Main.F90
 	@cd reduced_modelling; $(MAKE) Form_Pod_Basis_Main.o
@@ -492,7 +467,7 @@ test: serialtest
 serialtest: fltools bin/$(FLUIDITY) bin/shallow_water
 	@cd tests; ../bin/testharness -l short $(EXCLUDE_TAGS) -n $(THREADS)
 
-mediumtest: fltools bin/$(FLUIDITY) manual bin/burgers_equation bin/shallow_water spudtools
+mediumtest: fltools bin/$(FLUIDITY) manual bin/shallow_water spudtools
 	@cd tests; ../bin/testharness -l medium $(EXCLUDE_TAGS) -n $(THREADS)
 
 .PHONY: spudtools
@@ -592,7 +567,7 @@ endif
 	$(MAKE) clean-light
 	@echo "    Congratulations, make makefiles succeeded!"
 
-install: default fltools bin/shallow_water bin/burgers_equation
+install: default fltools bin/shallow_water 
 	@mkdir -p $(DESTDIR)$(bindir) $(DESTDIR)$(docdir)/fluidity
 	find bin/ -maxdepth 1 -type f -exec cp '{}' $(DESTDIR)$(bindir) \;
 	rm -f $(DESTDIR)$(bindir)/spud-* $(DESTDIR)$(bindir)/diamond $(DESTDIR)$(bindir)/silenteval $(DESTDIR)$(bindir)/runut
