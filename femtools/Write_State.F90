@@ -43,13 +43,12 @@ contains
   
   end subroutine initialise_write_state
 
-  function do_write_state(current_time, timestep, adjoint)
+  function do_write_state(current_time, timestep)
     !!< Data output test routine. Test conditions listed under /io. Returns true
     !!< if these conditions are satisfied and false otherwise.
     
     real, intent(in) :: current_time
     integer, intent(in) :: timestep
-    logical, intent(in), optional :: adjoint
     
     logical :: do_write_state
     
@@ -70,7 +69,7 @@ contains
           end if
         case(2)
           if(have_option("/io/dump_period")) then
-            if(real_dump_period == 0.0 .or. dump_count_greater(current_time, last_dump_time, real_dump_period, adjoint=adjoint)) then
+            if(real_dump_period == 0.0 .or. dump_count_greater(current_time, last_dump_time, real_dump_period)) then
               if(have_option("/io/dump_period/constant")) then
                  call get_option("/io/dump_period/constant", real_dump_period)
               else if (have_option("/io/dump_period/python")) then
@@ -137,22 +136,17 @@ contains
     
   contains
     
-    pure function dump_count_greater(later_time, earlier_time, dump_period, adjoint)
+    pure function dump_count_greater(later_time, earlier_time, dump_period)
       !!< Return if the total number of dumps at time later_time is greater
       !!< than the total number of dumps at time earlier_time.
       
       real, intent(in) :: later_time
       real, intent(in) :: earlier_time
       real, intent(in) :: dump_period
-      logical, intent(in), optional :: adjoint
       
       logical :: dump_count_greater
       
-      if (present_and_true(adjoint)) then
-        dump_count_greater = (floor(earlier_time / dump_period) > floor(later_time / dump_period))
-      else
-        dump_count_greater = (floor(later_time / dump_period) > floor(earlier_time / dump_period))
-      endif
+      dump_count_greater = (floor(later_time / dump_period) > floor(earlier_time / dump_period))
     
     end function dump_count_greater
     
@@ -193,16 +187,14 @@ contains
   
   end subroutine update_dump_times
 
-  subroutine write_state(dump_no, state, adjoint)
+  subroutine write_state(dump_no, state)
     !!< Data output routine. Write output data.
 
     integer, intent(inout) :: dump_no
     type(state_type), dimension(:), intent(inout) :: state
-    logical, intent(in), optional :: adjoint
 
     character(len = OPTION_PATH_LEN) :: dump_filename, dump_format
     integer :: max_dump_no, stat
-    integer :: increment
 
     ewrite(1, *) "In write_state"
     call profiler_tic("I/O")
@@ -221,13 +213,7 @@ contains
         FLAbort("Unrecognised dump file format.")      
     end select
 
-    if (present_and_true(adjoint)) then
-      increment = -1
-    else
-      increment = 1
-    end if
-
-    dump_no = modulo(dump_no + increment, max_dump_no)
+    dump_no = modulo(dump_no + 1, max_dump_no)
     call update_dump_times
 
     call profiler_toc("I/O")
