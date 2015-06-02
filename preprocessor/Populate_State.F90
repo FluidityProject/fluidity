@@ -191,7 +191,7 @@ contains
     character(len=OPTION_PATH_LEN) :: mesh_path, mesh_file_name,&
          & mesh_file_format, from_file_path
     integer, dimension(:), pointer :: coplanar_ids
-    integer, dimension(3) :: mesh_dims
+    integer, dimension(4) :: mesh_dims
     integer :: i, j, nmeshes, nstates, quad_degree, stat
     type(element_type), pointer :: shape
     type(quadrature_type), pointer :: quad
@@ -317,6 +317,11 @@ contains
                 else
                   mesh_dims(3)=0
                 end if
+                if (mesh%faces%has_discontinuous_internal_boundaries) then
+                  mesh_dims(4)=1
+                else
+                  mesh_dims(4)=0
+                end if
                 ! The coordinate dimension is not the same as the mesh dimension
                 ! in the case of spherical shells, and needs to be broadcast as
                 ! well.  And this needs to be here to allow for the special case
@@ -327,10 +332,11 @@ contains
                 call get_option('/geometry/dimension', mesh_dims(1))
                 mesh_dims(2)=mesh_dims(1)+1
                 mesh_dims(3)=0
+                mesh_dims(4)=0
                 dim = mesh_dims(1)
               end if
             end if
-            call MPI_bcast(mesh_dims, 3, getpinteger(), 0, MPI_COMM_FEMTOOLS, stat)
+            call MPI_bcast(mesh_dims, 4, getpinteger(), 0, MPI_COMM_FEMTOOLS, stat)
             call MPI_bcast(dim, 1, getpinteger(), 0, MPI_COMM_FEMTOOLS, stat)
           end if
 
@@ -351,6 +357,12 @@ contains
             call allocate(mesh, nodes=0, elements=0, shape=shape, name="EmptyMesh")
             call allocate(position, dim, mesh, "EmptyCoordinate")
             call add_faces(mesh)
+            if (mesh_dims(4)>0) then
+              ! rank 0 has element ownership for facets, allowing for multi-valued internal
+              ! facets (needed for periodic meshes). Setting this flag will allow us the
+              ! same when we receive facets after the redecomposition
+              mesh%faces%has_discontinuous_internal_boundaries=.true.
+            end if
             if (column_ids>0) then
               ! the association status of mesh%columns should be collective
               allocate(mesh%columns(1:0))
