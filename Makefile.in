@@ -93,9 +93,6 @@ ifneq (@HAVE_ZOLTAN@,yes)
 else
 	EXCLUDE_TAGS := $(EXCLUDE_TAGS) -e nozoltan
 endif
-ifneq (@HAVE_ADJOINT@,yes)
-	EXCLUDE_TAGS := $(EXCLUDE_TAGS) -e adjoint
-endif
 ifneq (@MBA2D@,yes)
 	EXCLUDE_TAGS := $(EXCLUDE_TAGS) -e 2dadapt
 endif
