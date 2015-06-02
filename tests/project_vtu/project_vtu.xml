@@ -1,7 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
 <testproblem>
-  <name>project_vtu
-</name>
+  <name>project_vtu</name>
   <owner userid="skramer"/>
   <problem_definition length="short" nprocs="1">
     <command_line>sed "s/INPUT/MMS_E/" prescribe.flml &gt; output.flml;
@@ -12,8 +11,8 @@ rm -rf output*;
 for i in A B C D; do
   sed "s/INPUT/MMS_${i}/" prescribe.flml &gt; output.flml;
   fluidity -l output.flml;
-  project_vtu output_CoordinateMesh_1_checkpoint.vtu output_CoordinateMesh_1_checkpoint.msh MMS_E.msh fine.vtu;
-  project_vtu output_1.vtu output_CoordinateMesh_1_checkpoint.msh MMS_E.msh fine_dg.vtu;
+  project_vtu output_CoordinateMesh_1_checkpoint.vtu MMS_E fine.vtu;
+  project_vtu output_1.vtu output_CoordinateMesh_1_checkpoint MMS_E fine_dg.vtu;
   vtudiff fine.vtu reference.vtu diff${i}.vtu;
   vtudiff fine_dg.vtu reference_dg.vtu diff${i}_dg.vtu;
   rm -rf output* fine*;
@@ -53,8 +52,8 @@ tensor_convergence = numpy.log(tensor_err[:-1]/tensor_err[1:])/numpy.log(2)
 convergence = {'scalar': scalar_convergence, 'vector': vector_convergence, 'tensor': tensor_convergence}</variable>
   </variables>
   <pass_tests>
-    <test name="ScalarConvergenceSecondOrder" language="python">assert(all(convergence['scalar']&gt;1.8))</test>
-    <test name="VectorConvergenceSecondOrder" language="python">assert(all(convergence['vector']&gt;1.8))</test>
+    <test name="ScalarConvergenceSecondOrder" language="python">assert(all(convergence['scalar']&gt;1.75))</test>
+    <test name="VectorConvergenceSecondOrder" language="python">assert(all(convergence['vector']&gt;1.75))</test>
     <test name="TensorConvergenceFirstOrder" language="python">assert(all(convergence['vector']&gt;0.95))</test>
   </pass_tests>
 </testproblem>

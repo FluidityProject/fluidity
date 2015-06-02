@@ -3123,17 +3123,23 @@ adaptivity and is automatically disabled for non-linear positions fields.</a:doc
       </optional>
       <optional>
         <element name="spherical_earth">
-          <a:documentation>Options specifying that the problem is on the surface of the sphere.</a:documentation>
-          <choice>
-            <element name="linear_mapping">
-              <empty/>
-            </element>
+          <a:documentation>Options specifying that the problem is on the surface of the n-sphere.</a:documentation>
+          <optional>
             <element name="superparametric_mapping">
               <a:documentation>Enabling this option approximates the curvature of the Earth as an
 nth degree polynomial, where n is the polynomial degree of the coordinate mesh.</a:documentation>
               <empty/>
             </element>
-          </choice>
+          </optional>
+          <optional>
+            <element name="analytical_mapping">
+              <a:documentation>The simplicial elements (as defined by the CoordinateMesh) are bent on the n-sphere
+using an analytical expression (as opposed to superparametric where it's approximated
+by a higher order polynomial), the derivatives are calculated by taking the analytical
+derivative on the gauss points.</a:documentation>
+              <empty/>
+            </element>
+          </optional>
         </element>
       </optional>
       <optional>
@@ -3937,7 +3943,7 @@ used in the nonlinear iteration.
       </optional>
       <optional>
         <element name="checkpoint">
-          <a:documentation>To be used with time-averaged diagnostic fields so that they can be checkpointed.</a:documentation>
+          <a:documentation>Field will be checkpointed (this is not performed by default).</a:documentation>
           <empty/>
         </element>
       </optional>
@@ -5304,37 +5310,6 @@ c.f. Winters 1995, Journal of Fluid Mechanics</a:documentation>
         </choice>
       </element>
       <element name="scalar_field">
-        <a:documentation>Viscous dissipation
-  For Boussinesq fluid with isotropic viscosity (see below)
-
-Only coded for 2D
-
-  (grad u):(grad u) = sum_ij(du_i/dx_j)(du_i/dx_j)
-
-  The actual viscous dissipation for a Newtonian, Boussinesq fluid with
-  constant, isotropic viscosity is nu*rho_0*(grad u):(grad u)
-  where rho_0 is the reference density in the equation of state
-  and nu is the viscosity so need to multiply by these when post-processing
-
-c.f. Winters 1995, Journal of Fluid Mechanics</a:documentation>
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <attribute name="name">
-          <value>ViscousDissipation</value>
-        </attribute>
-        <choice>
-          <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <ref name="velocity_mesh_choice"/>
-            <ref name="diagnostic_scalar_field"/>
-          </element>
-          <element name="aliased">
-            <ref name="generic_aliased_field"/>
-          </element>
-        </choice>
-      </element>
-      <element name="scalar_field">
         <a:documentation>Richardson Number:
 
  Ri = \frac{N^2}{(\frac{\partial u}{\partial z})^2 + (\frac{\partial u}{\partial z})^2}
@@ -5580,6 +5555,22 @@ Currently a test field</a:documentation>
             <ref name="generic_aliased_field"/>
           </element>
         </choice>
+      </element>
+      <element name="scalar_field">
+        <a:documentation>Second invariant of the strain_rate tensor field. Selecting this field ensures
+that it is updated as part of the momeuntum diagnostics (i.e. 
+at the start of each momentum solve - within non-linear iterations.)</a:documentation>
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>StrainRateSecondInvariant</value>
+        </attribute>
+        <element name="diagnostic">
+          <ref name="strain_rate_second_invariant_algorithm"/>
+          <ref name="velocity_mesh_choice"/>
+          <ref name="diagnostic_scalar_field"/>
+        </element>
       </element>
       <element name="scalar_field">
         <a:documentation>Discontinuity detector

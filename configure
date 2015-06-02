@@ -626,7 +626,6 @@ MBA3D
 MBA2D
 MODINC_FLAG
 ARFLAGS
-CXXCPP
 SPATIALINDEXDIR
 SPUD_ONLY
 JUDY_CFLAGS
@@ -636,17 +635,17 @@ DEFINE_MPI
 USE_CPP
 FLLINKER
 LINKER
-OPTIMIZATION_FFLAGS
 FORTRAN_REAL_8
 PROFILING_FLAG
+HAVE_ADJOINT
+HAVE_ZOLTAN
+CXXCPP
 HAVE_PETSC33
 X_EXTRA_LIBS
 X_LIBS
 X_PRE_LIBS
 X_CFLAGS
 XMKMF
-HAVE_ADJOINT
-HAVE_ZOLTAN
 HAVE_EXODUSII
 MPICXX
 MPIF77
@@ -763,10 +762,10 @@ with_femdem
 with_psmile
 with_netcdf
 with_exodusii
-enable_sam
-with_adjoint
 enable_petsc_fortran_modules
 with_x
+enable_sam
+with_adjoint
 enable_dp
 enable_profiling
 enable_spatialindex_version
@@ -1426,14 +1425,14 @@ Optional Features:
   --enable-shared         Compile objects with -fPIC to enable the 'make
                           shared' target.
   --enable-verbose        turns on super verbosity
-  --enable-sam            use sam rather than zoltan for adaptive load
-                          rebalancing
   --disable-petsc-fortran-modules
                           By default fluidity tries to use fortran modules
                           provided with petsc. Use
                           --disable-petsc-fortran-modules if these are known
                           to be not functional (e.g. compiled with different
                           compiler version)
+  --enable-sam            use sam rather than zoltan for adaptive load
+                          rebalancing
   --enable-dp=flag        compile with 64 bit floating point numbers (default)
   --enable-profiling      enable gprof profiling
   --enable-spatialindex-version
@@ -1460,8 +1459,8 @@ Optional Packages:
                           specify where to find lib/ and include/ for netCDF
   --with-exodusii[=exodus_ROOT]
                           specify where to find lib/ and include/ for exodusii
-  --with-adjoint=prefix        Prefix where libadjoint is installed
   --with-x                use the X Window System
+  --with-adjoint=prefix        Prefix where libadjoint is installed
   --with-arpack-lib[=<lib>]
                           specify arpack library
   --with-libnuma[=libnuma_library]
@@ -2285,6 +2284,130 @@ fi
 
 } # ac_fn_fc_try_link
 
+# ac_fn_c_check_header_mongrel LINENO HEADER VAR INCLUDES
+# -------------------------------------------------------
+# Tests whether HEADER exists, giving a warning if it cannot be compiled using
+# the include files in INCLUDES and setting the cache variable VAR
+# accordingly.
+ac_fn_c_check_header_mongrel ()
+{
+  as_lineno=${as_lineno-"$1"} as_lineno_stack=as_lineno_stack=$as_lineno_stack
+  if eval \${$3+:} false; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $2" >&5
+$as_echo_n "checking for $2... " >&6; }
+if eval \${$3+:} false; then :
+  $as_echo_n "(cached) " >&6
+fi
+eval ac_res=\$$3
+	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
+$as_echo "$ac_res" >&6; }
+else
+  # Is the header compilable?
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking $2 usability" >&5
+$as_echo_n "checking $2 usability... " >&6; }
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+$4
+#include <$2>
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  ac_header_compiler=yes
+else
+  ac_header_compiler=no
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_header_compiler" >&5
+$as_echo "$ac_header_compiler" >&6; }
+
+# Is the header present?
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking $2 presence" >&5
+$as_echo_n "checking $2 presence... " >&6; }
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include <$2>
+_ACEOF
+if ac_fn_c_try_cpp "$LINENO"; then :
+  ac_header_preproc=yes
+else
+  ac_header_preproc=no
+fi
+rm -f conftest.err conftest.i conftest.$ac_ext
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_header_preproc" >&5
+$as_echo "$ac_header_preproc" >&6; }
+
+# So?  What about this header?
+case $ac_header_compiler:$ac_header_preproc:$ac_c_preproc_warn_flag in #((
+  yes:no: )
+    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: accepted by the compiler, rejected by the preprocessor!" >&5
+$as_echo "$as_me: WARNING: $2: accepted by the compiler, rejected by the preprocessor!" >&2;}
+    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: proceeding with the compiler's result" >&5
+$as_echo "$as_me: WARNING: $2: proceeding with the compiler's result" >&2;}
+    ;;
+  no:yes:* )
+    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: present but cannot be compiled" >&5
+$as_echo "$as_me: WARNING: $2: present but cannot be compiled" >&2;}
+    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2:     check for missing prerequisite headers?" >&5
+$as_echo "$as_me: WARNING: $2:     check for missing prerequisite headers?" >&2;}
+    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: see the Autoconf documentation" >&5
+$as_echo "$as_me: WARNING: $2: see the Autoconf documentation" >&2;}
+    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2:     section \"Present But Cannot Be Compiled\"" >&5
+$as_echo "$as_me: WARNING: $2:     section \"Present But Cannot Be Compiled\"" >&2;}
+    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: proceeding with the compiler's result" >&5
+$as_echo "$as_me: WARNING: $2: proceeding with the compiler's result" >&2;}
+    ;;
+esac
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $2" >&5
+$as_echo_n "checking for $2... " >&6; }
+if eval \${$3+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  eval "$3=\$ac_header_compiler"
+fi
+eval ac_res=\$$3
+	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
+$as_echo "$ac_res" >&6; }
+fi
+  eval $as_lineno_stack; ${as_lineno_stack:+:} unset as_lineno
+
+} # ac_fn_c_check_header_mongrel
+
+# ac_fn_cxx_try_cpp LINENO
+# ------------------------
+# Try to preprocess conftest.$ac_ext, and return whether this succeeded.
+ac_fn_cxx_try_cpp ()
+{
+  as_lineno=${as_lineno-"$1"} as_lineno_stack=as_lineno_stack=$as_lineno_stack
+  if { { ac_try="$ac_cpp conftest.$ac_ext"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval ac_try_echo="\"\$as_me:${as_lineno-$LINENO}: $ac_try_echo\""
+$as_echo "$ac_try_echo"; } >&5
+  (eval "$ac_cpp conftest.$ac_ext") 2>conftest.err
+  ac_status=$?
+  if test -s conftest.err; then
+    grep -v '^ *+' conftest.err >conftest.er1
+    cat conftest.er1 >&5
+    mv -f conftest.er1 conftest.err
+  fi
+  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; } > conftest.i && {
+	 test -z "$ac_cxx_preproc_warn_flag$ac_cxx_werror_flag" ||
+	 test ! -s conftest.err
+       }; then :
+  ac_retval=0
+else
+  $as_echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+    ac_retval=1
+fi
+  eval $as_lineno_stack; ${as_lineno_stack:+:} unset as_lineno
+  as_fn_set_status $ac_retval
+
+} # ac_fn_cxx_try_cpp
+
 # ac_fn_fc_try_run LINENO
 # -----------------------
 # Try to link conftest.$ac_ext, and return whether this succeeded. Assumes
@@ -2326,43 +2449,6 @@ fi
   as_fn_set_status $ac_retval
 
 } # ac_fn_fc_try_run
-
-# ac_fn_cxx_try_cpp LINENO
-# ------------------------
-# Try to preprocess conftest.$ac_ext, and return whether this succeeded.
-ac_fn_cxx_try_cpp ()
-{
-  as_lineno=${as_lineno-"$1"} as_lineno_stack=as_lineno_stack=$as_lineno_stack
-  if { { ac_try="$ac_cpp conftest.$ac_ext"
-case "(($ac_try" in
-  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
-  *) ac_try_echo=$ac_try;;
-esac
-eval ac_try_echo="\"\$as_me:${as_lineno-$LINENO}: $ac_try_echo\""
-$as_echo "$ac_try_echo"; } >&5
-  (eval "$ac_cpp conftest.$ac_ext") 2>conftest.err
-  ac_status=$?
-  if test -s conftest.err; then
-    grep -v '^ *+' conftest.err >conftest.er1
-    cat conftest.er1 >&5
-    mv -f conftest.er1 conftest.err
-  fi
-  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
-  test $ac_status = 0; } > conftest.i && {
-	 test -z "$ac_cxx_preproc_warn_flag$ac_cxx_werror_flag" ||
-	 test ! -s conftest.err
-       }; then :
-  ac_retval=0
-else
-  $as_echo "$as_me: failed program was:" >&5
-sed 's/^/| /' conftest.$ac_ext >&5
-
-    ac_retval=1
-fi
-  eval $as_lineno_stack; ${as_lineno_stack:+:} unset as_lineno
-  as_fn_set_status $ac_retval
-
-} # ac_fn_cxx_try_cpp
 
 # ac_fn_cxx_check_header_mongrel LINENO HEADER VAR INCLUDES
 # ---------------------------------------------------------
@@ -3637,6 +3723,9 @@ if $FC -v 2>&1 | grep 'gcc version'; then
   if test "$(python -c "print \"$GFORTRAN_VERSION\" >= \"4.5\"")" = "True"; then
     GFORTRAN_4_5_OR_NEWER="yes"
 
+  fi
+  if test "$(python -c "print \"$GFORTRAN_VERSION\" >= \"4.8\"")" = "True"; then
+    GFORTRAN_4_8_OR_NEWER="yes"
   fi
 else
   USING_GFORTRAN="no"
@@ -10543,7 +10632,11 @@ $as_echo "$as_me: Setting optimisation flags for $F77" >&6;}
     cat >> confdefs.h << EOF
 #define NDEBUG 1
 EOF
-    OPTIMIZATION_FFLAGS="$OPTIMIZATION_FFLAGS -O3"
+    OPTIMISATION_FLAGS="$OPTIMISATION_FLAGS -O3"
+    if test "$fcompiler" = "ifort" ; then
+      # add inlining and cpu-specific optimisations for intel
+      OPTIMISATION_FLAGS="$OPTIMISATION_FLAGS -ip -xHost"
+    fi
 
     { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ltcmalloc" >&5
 $as_echo_n "checking for malloc in -ltcmalloc... " >&6; }
@@ -10611,13 +10704,10 @@ fi
 
 fi
 
-FFLAGS="$FFLAGS $OPTIMIZATION_FFLAGS"
-FCFLAGS="$FCFLAGS $OPTIMIZATION_FFLAGS"
-
-if test "$FC" = "ifc" ; then
-  FFLAGS="-implicitnone -132 -w95 $FFLAGS"
-  FCFLAGS="-implicitnone -w95 $FCFLAGS"
-fi
+FFLAGS="$FFLAGS $OPTIMISATION_FLAGS"
+FCFLAGS="$FCFLAGS $OPTIMISATION_FLAGS"
+CFLAGS="$CFLAGS $OPTIMISATION_FLAGS"
+CXXFLAGS="$CXXFLAGS $OPTIMISATION_FLAGS"
 
 ##########################################
 # Are we using FEMDEM
@@ -11481,532 +11571,6 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
 fi
-
-
-# Metis, ParMetis
-
-
-ac_ext=c
-ac_cpp='$CPP $CPPFLAGS'
-ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
-ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
-ac_compiler_gnu=$ac_cv_c_compiler_gnu
-
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking metis automagic" >&5
-$as_echo_n "checking metis automagic... " >&6; }
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-void METIS_PartGraphKway();
-
-#ifdef F77_DUMMY_MAIN
-
-#  ifdef __cplusplus
-     extern "C"
-#  endif
-   int F77_DUMMY_MAIN() { return 1; }
-
-#endif
-#ifdef FC_DUMMY_MAIN
-#ifndef FC_DUMMY_MAIN_EQ_F77
-#  ifdef __cplusplus
-     extern "C"
-#  endif
-   int FC_DUMMY_MAIN() { return 1; }
-#endif
-#endif
-int
-main ()
-{
-
-METIS_PartGraphKway();
-
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-
-    { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-$as_echo "yes" >&6; }
-    $as_echo "#define HAVE_LIBMETIS 1" >>confdefs.h
-
-
-else
-
-    { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for METIS_PartGraphKway in -lmetis" >&5
-$as_echo_n "checking for METIS_PartGraphKway in -lmetis... " >&6; }
-if ${ac_cv_lib_metis_METIS_PartGraphKway+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lmetis  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char METIS_PartGraphKway ();
-#ifdef F77_DUMMY_MAIN
-
-#  ifdef __cplusplus
-     extern "C"
-#  endif
-   int F77_DUMMY_MAIN() { return 1; }
-
-#endif
-#ifdef FC_DUMMY_MAIN
-#ifndef FC_DUMMY_MAIN_EQ_F77
-#  ifdef __cplusplus
-     extern "C"
-#  endif
-   int FC_DUMMY_MAIN() { return 1; }
-#endif
-#endif
-int
-main ()
-{
-return METIS_PartGraphKway ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_metis_METIS_PartGraphKway=yes
-else
-  ac_cv_lib_metis_METIS_PartGraphKway=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_metis_METIS_PartGraphKway" >&5
-$as_echo "$ac_cv_lib_metis_METIS_PartGraphKway" >&6; }
-if test "x$ac_cv_lib_metis_METIS_PartGraphKway" = xyes; then :
-  $as_echo "#define HAVE_LIBMETIS 1" >>confdefs.h
-
-       LIBS="-lmetis $LIBS"
-fi
-
-
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-
-ac_ext=c
-ac_cpp='$CPP $CPPFLAGS'
-ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
-ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
-ac_compiler_gnu=$ac_cv_c_compiler_gnu
-
-
-
-
-
-ac_ext=c
-ac_cpp='$CPP $CPPFLAGS'
-ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
-ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
-ac_compiler_gnu=$ac_cv_c_compiler_gnu
-
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking parmetis automagic" >&5
-$as_echo_n "checking parmetis automagic... " >&6; }
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-void ParMETIS_V3_AdaptiveRepart();
-
-#ifdef F77_DUMMY_MAIN
-
-#  ifdef __cplusplus
-     extern "C"
-#  endif
-   int F77_DUMMY_MAIN() { return 1; }
-
-#endif
-#ifdef FC_DUMMY_MAIN
-#ifndef FC_DUMMY_MAIN_EQ_F77
-#  ifdef __cplusplus
-     extern "C"
-#  endif
-   int FC_DUMMY_MAIN() { return 1; }
-#endif
-#endif
-int
-main ()
-{
-
-ParMETIS_V3_AdaptiveRepart();
-
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-
-    { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-$as_echo "yes" >&6; }
-    $as_echo "#define HAVE_LIBPARMETIS 1" >>confdefs.h
-
-
-else
-
-    { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ParMETIS_V3_AdaptiveRepart in -lparmetis" >&5
-$as_echo_n "checking for ParMETIS_V3_AdaptiveRepart in -lparmetis... " >&6; }
-if ${ac_cv_lib_parmetis_ParMETIS_V3_AdaptiveRepart+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lparmetis  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char ParMETIS_V3_AdaptiveRepart ();
-#ifdef F77_DUMMY_MAIN
-
-#  ifdef __cplusplus
-     extern "C"
-#  endif
-   int F77_DUMMY_MAIN() { return 1; }
-
-#endif
-#ifdef FC_DUMMY_MAIN
-#ifndef FC_DUMMY_MAIN_EQ_F77
-#  ifdef __cplusplus
-     extern "C"
-#  endif
-   int FC_DUMMY_MAIN() { return 1; }
-#endif
-#endif
-int
-main ()
-{
-return ParMETIS_V3_AdaptiveRepart ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_parmetis_ParMETIS_V3_AdaptiveRepart=yes
-else
-  ac_cv_lib_parmetis_ParMETIS_V3_AdaptiveRepart=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_parmetis_ParMETIS_V3_AdaptiveRepart" >&5
-$as_echo "$ac_cv_lib_parmetis_ParMETIS_V3_AdaptiveRepart" >&6; }
-if test "x$ac_cv_lib_parmetis_ParMETIS_V3_AdaptiveRepart" = xyes; then :
-  $as_echo "#define HAVE_LIBPARMETIS 1" >>confdefs.h
-
-       LIBS="-lparmetis $LIBS"
-fi
-
-
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-
-ac_ext=c
-ac_cpp='$CPP $CPPFLAGS'
-ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
-ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
-ac_compiler_gnu=$ac_cv_c_compiler_gnu
-
-
-
-
-# Check whether --enable-sam was given.
-if test "${enable_sam+set}" = set; then :
-  enableval=$enable_sam;
-fi
-
-if test "$enable_sam" = "yes"; then
-  HAVE_ZOLTAN=no
-else
-
-
-ac_ext=c
-ac_cpp='$CPP $CPPFLAGS'
-ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
-ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
-ac_compiler_gnu=$ac_cv_c_compiler_gnu
-
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking zoltan automagic" >&5
-$as_echo_n "checking zoltan automagic... " >&6; }
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-void Zoltan_Create();
-
-#ifdef F77_DUMMY_MAIN
-
-#  ifdef __cplusplus
-     extern "C"
-#  endif
-   int F77_DUMMY_MAIN() { return 1; }
-
-#endif
-#ifdef FC_DUMMY_MAIN
-#ifndef FC_DUMMY_MAIN_EQ_F77
-#  ifdef __cplusplus
-     extern "C"
-#  endif
-   int FC_DUMMY_MAIN() { return 1; }
-#endif
-#endif
-int
-main ()
-{
-
-Zoltan_Create();
-
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-
-    { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-$as_echo "yes" >&6; }
-
-                                            $as_echo "#define HAVE_ZOLTAN 1" >>confdefs.h
-
-                                            HAVE_ZOLTAN=yes
-
-
-else
-
-    { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for Zoltan_Create in -lzoltan" >&5
-$as_echo_n "checking for Zoltan_Create in -lzoltan... " >&6; }
-if ${ac_cv_lib_zoltan_Zoltan_Create+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lzoltan  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char Zoltan_Create ();
-#ifdef F77_DUMMY_MAIN
-
-#  ifdef __cplusplus
-     extern "C"
-#  endif
-   int F77_DUMMY_MAIN() { return 1; }
-
-#endif
-#ifdef FC_DUMMY_MAIN
-#ifndef FC_DUMMY_MAIN_EQ_F77
-#  ifdef __cplusplus
-     extern "C"
-#  endif
-   int FC_DUMMY_MAIN() { return 1; }
-#endif
-#endif
-int
-main ()
-{
-return Zoltan_Create ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_zoltan_Zoltan_Create=yes
-else
-  ac_cv_lib_zoltan_Zoltan_Create=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_zoltan_Zoltan_Create" >&5
-$as_echo "$ac_cv_lib_zoltan_Zoltan_Create" >&6; }
-if test "x$ac_cv_lib_zoltan_Zoltan_Create" = xyes; then :
-
-                                            $as_echo "#define HAVE_ZOLTAN 1" >>confdefs.h
-
-                                            HAVE_ZOLTAN=yes
-
-       LIBS="-lzoltan $LIBS"
-fi
-
-
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-
-ac_ext=c
-ac_cpp='$CPP $CPPFLAGS'
-ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
-ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
-ac_compiler_gnu=$ac_cv_c_compiler_gnu
-
-
-
-fi
-
-
-HAVE_ADJOINT=no
-CAN_USE_ADJOINT=yes
-WANTS_ADJOINT=yes
-if test "$USING_GFORTRAN" = "yes"; then # check gfortran version >= 4.5
-  # test really is so retarded that it can't lexicographically compare strings
-  if test "$GFORTRAN_4_5_OR_NEWER" != "yes"; then
-    CAN_USE_ADJOINT=no
-  fi
-fi
-
-if test "$with_adjoint" = no || test -z "$with_adjoint"; then
-  WANTS_ADJOINT=no
-fi
-
-if test "$CAN_USE_ADJOINT" = "no" && test "$WANTS_ADJOINT" = "yes"; then
-  echo "Wanted adjoint, but you need gcc > 4.5"
-  exit 1
-fi
-
-if test "$with_adjoint" != "no"; then
-  if test "$CAN_USE_ADJOINT" != "no"; then
-
-# Set variables...
-
-# Check whether --with-adjoint was given.
-if test "${with_adjoint+set}" = set; then :
-  withval=$with_adjoint; adjoint="$withval"
-fi
-
-
-bakLIBS=$LIBS
-tmpLIBS=$LIBS
-tmpCPPFLAGS=$CPPFLAGS
-if test "$adjoint" != "no"; then
-  if test -d "$adjoint" ; then
-    adjoint_LIBS_PATH="$adjoint/lib"
-    adjoint_INCLUDES_PATH="$adjoint/include"
-    # Ensure the comiler finds the library...
-    tmpLIBS="$tmpLIBS -L$adjoint/lib"
-    tmpCPPFLAGS="$tmpCPPFLAGS  -I$adjoint/include -I$adjoint/include/libadjoint"
-  fi
-  if [ -f /usr/lib/libadjoint.a -o -f /usr/local/lib/libadjoint.a ] ; then
-    tmpLIBS="$tmpLIBS -L/usr/lib -L/usr/local/lib/ -ladjoint"
-    tmpCPPFLAGS="$tmpCPPFLAGS -I/usr/include/ -I/usr/local/include/ -I/usr/include/libadjoint -I/usr/local/include/libadjoint"
-  fi
-fi
-LIBS=$tmpLIBS
-CPPFLAGS=$tmpCPPFLAGS
-
-
-ac_ext=c
-ac_cpp='$CPP $CPPFLAGS'
-ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
-ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
-ac_compiler_gnu=$ac_cv_c_compiler_gnu
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for adj_get_adjoint_equation in -ladjoint" >&5
-$as_echo_n "checking for adj_get_adjoint_equation in -ladjoint... " >&6; }
-if ${ac_cv_lib_adjoint_adj_get_adjoint_equation+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-ladjoint  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char adj_get_adjoint_equation ();
-#ifdef F77_DUMMY_MAIN
-
-#  ifdef __cplusplus
-     extern "C"
-#  endif
-   int F77_DUMMY_MAIN() { return 1; }
-
-#endif
-#ifdef FC_DUMMY_MAIN
-#ifndef FC_DUMMY_MAIN_EQ_F77
-#  ifdef __cplusplus
-     extern "C"
-#  endif
-   int FC_DUMMY_MAIN() { return 1; }
-#endif
-#endif
-int
-main ()
-{
-return adj_get_adjoint_equation ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_adjoint_adj_get_adjoint_equation=yes
-else
-  ac_cv_lib_adjoint_adj_get_adjoint_equation=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_adjoint_adj_get_adjoint_equation" >&5
-$as_echo "$ac_cv_lib_adjoint_adj_get_adjoint_equation" >&6; }
-if test "x$ac_cv_lib_adjoint_adj_get_adjoint_equation" = xyes; then :
-
-$as_echo "#define HAVE_ADJOINT 1" >>confdefs.h
-HAVE_ADJOINT=yes
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Could not link in libadjoint ...  " >&5
-$as_echo "$as_me: WARNING: Could not link in libadjoint ...  " >&2;};HAVE_ADJOINT=no;LIBS=$bakLIBS
-fi
-
-# Save variables...
-ac_ext=c
-ac_cpp='$CPP $CPPFLAGS'
-ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
-ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
-ac_compiler_gnu=$ac_cv_c_compiler_gnu
-
-
-
-  fi
-  if test "$HAVE_ADJOINT" = "no" && test "$WANTS_ADJOINT" = "yes"; then
-    echo "Wanted adjoint, but couldn't find it"
-    exit 1
-  fi
-fi
-
 
 # Check whether --enable-petsc-fortran-modules was given.
 if test "${enable_petsc_fortran_modules+set}" = set; then :
@@ -12916,12 +12480,13 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: Using PETSC_DIR=$PETSC_DIR" >&5
 $as_echo "$as_me: Using PETSC_DIR=$PETSC_DIR" >&6;}
 
-PETSC_LINK_LIBS=`make -s -f petsc_makefile getlinklibs`
+PETSC_LINK_LIBS=`make -s -f petsc_makefile_old getlinklibs 2> /dev/null || make -s -f petsc_makefile getlinklibs`
 LIBS="$PETSC_LINK_LIBS $LIBS"
 
-PETSC_INCLUDE_FLAGS=`make -s -f petsc_makefile getincludedirs`
-CPPFLAGS="$CPPFLAGS $PETSC_INCLUDE_FLAGS"
-FCFLAGS="$FCFLAGS $PETSC_INCLUDE_FLAGS"
+# need to add -Iinclude/ to what we get from petsc, so we can use our own petsc_legacy.h wrapper
+PETSC_INCLUDE_FLAGS=`make -s -f petsc_makefile_old getincludedirs 2> /dev/null || make -s -f petsc_makefile getincludedirs`
+CPPFLAGS="$CPPFLAGS $PETSC_INCLUDE_FLAGS -Iinclude/"
+FCFLAGS="$FCFLAGS $PETSC_INCLUDE_FLAGS -Iinclude/"
 
 # Horrible hacks needed for cx1
 # Somehow /apps/intel/ict/mpi/3.1.038/lib64 gets given as /apps/intel/ict/mpi/3.1.038/lib/64
@@ -12986,16 +12551,11 @@ fi
 cat > conftest.$ac_ext <<_ACEOF
 
 program test_petsc
-#include "petscversion.h"
 #ifdef HAVE_PETSC_MODULES
   use petsc
 #endif
 implicit none
-#ifdef HAVE_PETSC_MODULES
-#include "finclude/petscdef.h"
-#else
-#include "finclude/petsc.h"
-#endif
+#include "petsc_legacy.h"
       double precision  norm
       PetscInt  i,j,II,JJ,m,n,its
       PetscInt  Istart,Iend,ione
@@ -13061,7 +12621,7 @@ implicit none
       call MatMult(A,u,b,ierr)
 
       call KSPCreate(PETSC_COMM_WORLD,ksp,ierr)
-      call KSPSetOperators(ksp,A,A,DIFFERENT_NONZERO_PATTERN,ierr)
+      call KSPSetOperators(ksp,A,A,ierr)
       call KSPSetFromOptions(ksp,ierr)
 
       call KSPSolve(ksp,b,x,ierr)
@@ -13213,6 +12773,773 @@ if test "$HAVE_HYPRE" == "1"; then
 fi
 CPPFLAGS=`echo $CPPFLAGS | sed 's/-petsc-version-/3.4.2.0/' | sed 's/x86_64\/x86_64/x86_64/'`
 FCFLAGS=`echo $FCFLAGS | sed 's/-petsc-version-/3.4.2.0/' | sed 's/x86_64\/x86_64/x86_64/'`
+
+# Metis, ParMetis
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking if we can compile and link without using -lparmetis" >&5
+$as_echo_n "checking if we can compile and link without using -lparmetis... " >&6; }
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+#ifdef F77_DUMMY_MAIN
+
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int F77_DUMMY_MAIN() { return 1; }
+
+#endif
+#ifdef FC_DUMMY_MAIN
+#ifndef FC_DUMMY_MAIN_EQ_F77
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int FC_DUMMY_MAIN() { return 1; }
+#endif
+#endif
+int
+main ()
+{
+
+METIS_PartGraphKway();
+ParMETIS_V3_AdaptiveRepart();
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+$as_echo "#define HAVE_LIBMETIS 1" >>confdefs.h
+
+$as_echo "#define HAVE_LIBPARMETIS 1" >>confdefs.h
+
+
+else
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+
+
+ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking metis automagic" >&5
+$as_echo_n "checking metis automagic... " >&6; }
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+void METIS_PartGraphKway();
+
+#ifdef F77_DUMMY_MAIN
+
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int F77_DUMMY_MAIN() { return 1; }
+
+#endif
+#ifdef FC_DUMMY_MAIN
+#ifndef FC_DUMMY_MAIN_EQ_F77
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int FC_DUMMY_MAIN() { return 1; }
+#endif
+#endif
+int
+main ()
+{
+
+METIS_PartGraphKway();
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+    $as_echo "#define HAVE_LIBMETIS 1" >>confdefs.h
+
+
+else
+
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for METIS_PartGraphKway in -lmetis" >&5
+$as_echo_n "checking for METIS_PartGraphKway in -lmetis... " >&6; }
+if ${ac_cv_lib_metis_METIS_PartGraphKway+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lmetis  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char METIS_PartGraphKway ();
+#ifdef F77_DUMMY_MAIN
+
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int F77_DUMMY_MAIN() { return 1; }
+
+#endif
+#ifdef FC_DUMMY_MAIN
+#ifndef FC_DUMMY_MAIN_EQ_F77
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int FC_DUMMY_MAIN() { return 1; }
+#endif
+#endif
+int
+main ()
+{
+return METIS_PartGraphKway ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_metis_METIS_PartGraphKway=yes
+else
+  ac_cv_lib_metis_METIS_PartGraphKway=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_metis_METIS_PartGraphKway" >&5
+$as_echo "$ac_cv_lib_metis_METIS_PartGraphKway" >&6; }
+if test "x$ac_cv_lib_metis_METIS_PartGraphKway" = xyes; then :
+  $as_echo "#define HAVE_LIBMETIS 1" >>confdefs.h
+
+       LIBS="-lmetis $LIBS"
+fi
+
+
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+
+ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+
+
+
+
+ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking parmetis automagic" >&5
+$as_echo_n "checking parmetis automagic... " >&6; }
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+void ParMETIS_V3_AdaptiveRepart();
+
+#ifdef F77_DUMMY_MAIN
+
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int F77_DUMMY_MAIN() { return 1; }
+
+#endif
+#ifdef FC_DUMMY_MAIN
+#ifndef FC_DUMMY_MAIN_EQ_F77
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int FC_DUMMY_MAIN() { return 1; }
+#endif
+#endif
+int
+main ()
+{
+
+ParMETIS_V3_AdaptiveRepart();
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+    $as_echo "#define HAVE_LIBPARMETIS 1" >>confdefs.h
+
+
+else
+
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ParMETIS_V3_AdaptiveRepart in -lparmetis" >&5
+$as_echo_n "checking for ParMETIS_V3_AdaptiveRepart in -lparmetis... " >&6; }
+if ${ac_cv_lib_parmetis_ParMETIS_V3_AdaptiveRepart+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lparmetis  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char ParMETIS_V3_AdaptiveRepart ();
+#ifdef F77_DUMMY_MAIN
+
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int F77_DUMMY_MAIN() { return 1; }
+
+#endif
+#ifdef FC_DUMMY_MAIN
+#ifndef FC_DUMMY_MAIN_EQ_F77
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int FC_DUMMY_MAIN() { return 1; }
+#endif
+#endif
+int
+main ()
+{
+return ParMETIS_V3_AdaptiveRepart ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_parmetis_ParMETIS_V3_AdaptiveRepart=yes
+else
+  ac_cv_lib_parmetis_ParMETIS_V3_AdaptiveRepart=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_parmetis_ParMETIS_V3_AdaptiveRepart" >&5
+$as_echo "$ac_cv_lib_parmetis_ParMETIS_V3_AdaptiveRepart" >&6; }
+if test "x$ac_cv_lib_parmetis_ParMETIS_V3_AdaptiveRepart" = xyes; then :
+  $as_echo "#define HAVE_LIBPARMETIS 1" >>confdefs.h
+
+       LIBS="-lparmetis $LIBS"
+fi
+
+
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+
+ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+
+
+
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+for ac_header in parmetis.h
+do :
+  ac_fn_c_check_header_mongrel "$LINENO" "parmetis.h" "ac_cv_header_parmetis_h" "$ac_includes_default"
+if test "x$ac_cv_header_parmetis_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_PARMETIS_H 1
+_ACEOF
+
+fi
+
+done
+
+ac_ext=cpp
+ac_cpp='$CXXCPP $CPPFLAGS'
+ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking how to run the C++ preprocessor" >&5
+$as_echo_n "checking how to run the C++ preprocessor... " >&6; }
+if test -z "$CXXCPP"; then
+  if ${ac_cv_prog_CXXCPP+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+      # Double quotes because CXXCPP needs to be expanded
+    for CXXCPP in "$CXX -E" "/lib/cpp"
+    do
+      ac_preproc_ok=false
+for ac_cxx_preproc_warn_flag in '' yes
+do
+  # Use a header file that comes with gcc, so configuring glibc
+  # with a fresh cross-compiler works.
+  # Prefer <limits.h> to <assert.h> if __STDC__ is defined, since
+  # <limits.h> exists even on freestanding compilers.
+  # On the NeXT, cc -E runs the code through the compiler's parser,
+  # not just through cpp. "Syntax error" is here to catch this case.
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#ifdef __STDC__
+# include <limits.h>
+#else
+# include <assert.h>
+#endif
+		     Syntax error
+_ACEOF
+if ac_fn_cxx_try_cpp "$LINENO"; then :
+
+else
+  # Broken: fails on valid input.
+continue
+fi
+rm -f conftest.err conftest.i conftest.$ac_ext
+
+  # OK, works on sane cases.  Now check whether nonexistent headers
+  # can be detected and how.
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include <ac_nonexistent.h>
+_ACEOF
+if ac_fn_cxx_try_cpp "$LINENO"; then :
+  # Broken: success on invalid input.
+continue
+else
+  # Passes both tests.
+ac_preproc_ok=:
+break
+fi
+rm -f conftest.err conftest.i conftest.$ac_ext
+
+done
+# Because of `break', _AC_PREPROC_IFELSE's cleaning code was skipped.
+rm -f conftest.i conftest.err conftest.$ac_ext
+if $ac_preproc_ok; then :
+  break
+fi
+
+    done
+    ac_cv_prog_CXXCPP=$CXXCPP
+
+fi
+  CXXCPP=$ac_cv_prog_CXXCPP
+else
+  ac_cv_prog_CXXCPP=$CXXCPP
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $CXXCPP" >&5
+$as_echo "$CXXCPP" >&6; }
+ac_preproc_ok=false
+for ac_cxx_preproc_warn_flag in '' yes
+do
+  # Use a header file that comes with gcc, so configuring glibc
+  # with a fresh cross-compiler works.
+  # Prefer <limits.h> to <assert.h> if __STDC__ is defined, since
+  # <limits.h> exists even on freestanding compilers.
+  # On the NeXT, cc -E runs the code through the compiler's parser,
+  # not just through cpp. "Syntax error" is here to catch this case.
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#ifdef __STDC__
+# include <limits.h>
+#else
+# include <assert.h>
+#endif
+		     Syntax error
+_ACEOF
+if ac_fn_cxx_try_cpp "$LINENO"; then :
+
+else
+  # Broken: fails on valid input.
+continue
+fi
+rm -f conftest.err conftest.i conftest.$ac_ext
+
+  # OK, works on sane cases.  Now check whether nonexistent headers
+  # can be detected and how.
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include <ac_nonexistent.h>
+_ACEOF
+if ac_fn_cxx_try_cpp "$LINENO"; then :
+  # Broken: success on invalid input.
+continue
+else
+  # Passes both tests.
+ac_preproc_ok=:
+break
+fi
+rm -f conftest.err conftest.i conftest.$ac_ext
+
+done
+# Because of `break', _AC_PREPROC_IFELSE's cleaning code was skipped.
+rm -f conftest.i conftest.err conftest.$ac_ext
+if $ac_preproc_ok; then :
+
+else
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "C++ preprocessor \"$CXXCPP\" fails sanity check
+See \`config.log' for more details" "$LINENO" 5; }
+fi
+
+ac_ext=cpp
+ac_cpp='$CXXCPP $CPPFLAGS'
+ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
+
+
+if test "x$ac_cv_header_parmetis_h" = "xyes" ; then :
+
+
+	    ac_ext=cpp
+ac_cpp='$CXXCPP $CPPFLAGS'
+ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
+
+	    { $as_echo "$as_me:${as_lineno-$LINENO}: checking parmetis major version <=3" >&5
+$as_echo_n "checking parmetis major version <=3... " >&6; }
+	    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#include <parmetis.h>
+#if defined(PARMETIS_MAJOR_VERSION) && PARMETIS_MAJOR_VERSION <= 3
+test_true
+#endif
+
+_ACEOF
+if (eval "$ac_cpp conftest.$ac_ext") 2>&5 |
+  $EGREP "test_true" >/dev/null 2>&1; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+		$as_echo "#define HAVE_PARMETIS_V3 \"yes\"" >>confdefs.h
+
+		PARMETIS_FLAGS="-DPARMETIS_V3"
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+		PARMETIS_FLAGS=""
+
+fi
+rm -f conftest*
+
+	     ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+
+
+fi
+
+CPPFLAGS="$CPPFLAGS $PARMETIS_FLAGS"
+
+# Check whether --enable-sam was given.
+if test "${enable_sam+set}" = set; then :
+  enableval=$enable_sam;
+fi
+
+if test "$enable_sam" = "yes"; then
+  HAVE_ZOLTAN=no
+else
+
+
+ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking zoltan automagic" >&5
+$as_echo_n "checking zoltan automagic... " >&6; }
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+void Zoltan_Create();
+
+#ifdef F77_DUMMY_MAIN
+
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int F77_DUMMY_MAIN() { return 1; }
+
+#endif
+#ifdef FC_DUMMY_MAIN
+#ifndef FC_DUMMY_MAIN_EQ_F77
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int FC_DUMMY_MAIN() { return 1; }
+#endif
+#endif
+int
+main ()
+{
+
+Zoltan_Create();
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+
+                                            $as_echo "#define HAVE_ZOLTAN 1" >>confdefs.h
+
+                                            HAVE_ZOLTAN=yes
+
+
+else
+
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for Zoltan_Create in -lzoltan" >&5
+$as_echo_n "checking for Zoltan_Create in -lzoltan... " >&6; }
+if ${ac_cv_lib_zoltan_Zoltan_Create+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lzoltan  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char Zoltan_Create ();
+#ifdef F77_DUMMY_MAIN
+
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int F77_DUMMY_MAIN() { return 1; }
+
+#endif
+#ifdef FC_DUMMY_MAIN
+#ifndef FC_DUMMY_MAIN_EQ_F77
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int FC_DUMMY_MAIN() { return 1; }
+#endif
+#endif
+int
+main ()
+{
+return Zoltan_Create ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_zoltan_Zoltan_Create=yes
+else
+  ac_cv_lib_zoltan_Zoltan_Create=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_zoltan_Zoltan_Create" >&5
+$as_echo "$ac_cv_lib_zoltan_Zoltan_Create" >&6; }
+if test "x$ac_cv_lib_zoltan_Zoltan_Create" = xyes; then :
+
+                                            $as_echo "#define HAVE_ZOLTAN 1" >>confdefs.h
+
+                                            HAVE_ZOLTAN=yes
+
+       LIBS="-lzoltan $LIBS"
+fi
+
+
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+
+ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+
+
+fi
+
+
+HAVE_ADJOINT=no
+CAN_USE_ADJOINT=yes
+WANTS_ADJOINT=yes
+if test "$USING_GFORTRAN" = "yes"; then # check gfortran version >= 4.5
+  # test really is so retarded that it can't lexicographically compare strings
+  if test "$GFORTRAN_4_5_OR_NEWER" != "yes"; then
+    CAN_USE_ADJOINT=no
+  fi
+fi
+
+if test "$with_adjoint" = no || test -z "$with_adjoint"; then
+  WANTS_ADJOINT=no
+fi
+
+if test "$CAN_USE_ADJOINT" = "no" && test "$WANTS_ADJOINT" = "yes"; then
+  echo "Wanted adjoint, but you need gcc > 4.5"
+  exit 1
+fi
+
+if test "$with_adjoint" != "no"; then
+  if test "$CAN_USE_ADJOINT" != "no"; then
+
+# Set variables...
+
+# Check whether --with-adjoint was given.
+if test "${with_adjoint+set}" = set; then :
+  withval=$with_adjoint; adjoint="$withval"
+fi
+
+
+bakLIBS=$LIBS
+tmpLIBS=$LIBS
+tmpCPPFLAGS=$CPPFLAGS
+if test "$adjoint" != "no"; then
+  if test -d "$adjoint" ; then
+    adjoint_LIBS_PATH="$adjoint/lib"
+    adjoint_INCLUDES_PATH="$adjoint/include"
+    # Ensure the comiler finds the library...
+    tmpLIBS="$tmpLIBS -L$adjoint/lib"
+    tmpCPPFLAGS="$tmpCPPFLAGS  -I$adjoint/include -I$adjoint/include/libadjoint"
+  fi
+  if [ -f /usr/lib/libadjoint.a -o -f /usr/local/lib/libadjoint.a ] ; then
+    tmpLIBS="$tmpLIBS -L/usr/lib -L/usr/local/lib/ -ladjoint"
+    tmpCPPFLAGS="$tmpCPPFLAGS -I/usr/include/ -I/usr/local/include/ -I/usr/include/libadjoint -I/usr/local/include/libadjoint"
+  fi
+fi
+LIBS=$tmpLIBS
+CPPFLAGS=$tmpCPPFLAGS
+
+
+ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for adj_get_adjoint_equation in -ladjoint" >&5
+$as_echo_n "checking for adj_get_adjoint_equation in -ladjoint... " >&6; }
+if ${ac_cv_lib_adjoint_adj_get_adjoint_equation+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-ladjoint  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char adj_get_adjoint_equation ();
+#ifdef F77_DUMMY_MAIN
+
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int F77_DUMMY_MAIN() { return 1; }
+
+#endif
+#ifdef FC_DUMMY_MAIN
+#ifndef FC_DUMMY_MAIN_EQ_F77
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int FC_DUMMY_MAIN() { return 1; }
+#endif
+#endif
+int
+main ()
+{
+return adj_get_adjoint_equation ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_adjoint_adj_get_adjoint_equation=yes
+else
+  ac_cv_lib_adjoint_adj_get_adjoint_equation=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_adjoint_adj_get_adjoint_equation" >&5
+$as_echo "$ac_cv_lib_adjoint_adj_get_adjoint_equation" >&6; }
+if test "x$ac_cv_lib_adjoint_adj_get_adjoint_equation" = xyes; then :
+
+$as_echo "#define HAVE_ADJOINT 1" >>confdefs.h
+HAVE_ADJOINT=yes
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Could not link in libadjoint ...  " >&5
+$as_echo "$as_me: WARNING: Could not link in libadjoint ...  " >&2;};HAVE_ADJOINT=no;LIBS=$bakLIBS
+fi
+
+# Save variables...
+ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+
+
+  fi
+  if test "$HAVE_ADJOINT" = "no" && test "$WANTS_ADJOINT" = "yes"; then
+    echo "Wanted adjoint, but couldn't find it"
+    exit 1
+  fi
+fi
+
 
 # Double precision.
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking what voodoo is required to get 64 bit reals...." >&5
@@ -13606,7 +13933,6 @@ fi
 
 
 
-
 if test "$smart_fortran" = "yes" ; then
   F77=$MPIF90
 else
@@ -13670,6 +13996,9 @@ $as_echo "$as_me: Configuring libjudy" >&6;}
 $as_echo "$as_me: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&6;}
 
     cd libjudy
+    # NOTE: the output of libjudy's configure is actually overwritten by us at
+    # the end of the current configure. Do we actually need this or
+    # do we keep it as a check that libjudy is happy with the environment?
     FC="${saved_FC}" F77="${saved_F77}" F90="${saved_F90}" LIBS="${env_libs}" FCFLAGS="${env_fcflags}" FFLAGS="${env_fflags} $PIC_FLAG $PROFILING_FLAG" CC="${saved_CC}" ./configure --prefix=${PWD}/..
     if test "$?" -ne "0"; then
       as_fn_error $? "Configuration of libjudy has failed." "$LINENO" 5
@@ -13713,6 +14042,12 @@ _ACEOF
         JUDY_CFLAGS="-DJU_64BIT"
     else
         JUDY_CFLAGS="-UJU_64BIT"
+    fi
+    # this is a workaround for https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=755099
+    if echo "$CFLAGS" | grep -q -- "-O[2-3]"; then
+      if test "x$USING_GFORTRAN" = "xyes" -a "x$GFORTRAN_4_8_OR_NEWER" = "xyes"; then
+        JUDY_CFLAGS="$JUDY_CFLAGS -fno-aggressive-loop-optimizations"
+      fi
     fi
 
 
@@ -14543,141 +14878,7 @@ fi
                 CPPFLAGS="-I$i $CPPFLAGS"
             fi
         done
-        ac_ext=cpp
-ac_cpp='$CXXCPP $CPPFLAGS'
-ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
-ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
-ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking how to run the C++ preprocessor" >&5
-$as_echo_n "checking how to run the C++ preprocessor... " >&6; }
-if test -z "$CXXCPP"; then
-  if ${ac_cv_prog_CXXCPP+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-      # Double quotes because CXXCPP needs to be expanded
-    for CXXCPP in "$CXX -E" "/lib/cpp"
-    do
-      ac_preproc_ok=false
-for ac_cxx_preproc_warn_flag in '' yes
-do
-  # Use a header file that comes with gcc, so configuring glibc
-  # with a fresh cross-compiler works.
-  # Prefer <limits.h> to <assert.h> if __STDC__ is defined, since
-  # <limits.h> exists even on freestanding compilers.
-  # On the NeXT, cc -E runs the code through the compiler's parser,
-  # not just through cpp. "Syntax error" is here to catch this case.
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-#ifdef __STDC__
-# include <limits.h>
-#else
-# include <assert.h>
-#endif
-		     Syntax error
-_ACEOF
-if ac_fn_cxx_try_cpp "$LINENO"; then :
-
-else
-  # Broken: fails on valid input.
-continue
-fi
-rm -f conftest.err conftest.i conftest.$ac_ext
-
-  # OK, works on sane cases.  Now check whether nonexistent headers
-  # can be detected and how.
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-#include <ac_nonexistent.h>
-_ACEOF
-if ac_fn_cxx_try_cpp "$LINENO"; then :
-  # Broken: success on invalid input.
-continue
-else
-  # Passes both tests.
-ac_preproc_ok=:
-break
-fi
-rm -f conftest.err conftest.i conftest.$ac_ext
-
-done
-# Because of `break', _AC_PREPROC_IFELSE's cleaning code was skipped.
-rm -f conftest.i conftest.err conftest.$ac_ext
-if $ac_preproc_ok; then :
-  break
-fi
-
-    done
-    ac_cv_prog_CXXCPP=$CXXCPP
-
-fi
-  CXXCPP=$ac_cv_prog_CXXCPP
-else
-  ac_cv_prog_CXXCPP=$CXXCPP
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $CXXCPP" >&5
-$as_echo "$CXXCPP" >&6; }
-ac_preproc_ok=false
-for ac_cxx_preproc_warn_flag in '' yes
-do
-  # Use a header file that comes with gcc, so configuring glibc
-  # with a fresh cross-compiler works.
-  # Prefer <limits.h> to <assert.h> if __STDC__ is defined, since
-  # <limits.h> exists even on freestanding compilers.
-  # On the NeXT, cc -E runs the code through the compiler's parser,
-  # not just through cpp. "Syntax error" is here to catch this case.
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-#ifdef __STDC__
-# include <limits.h>
-#else
-# include <assert.h>
-#endif
-		     Syntax error
-_ACEOF
-if ac_fn_cxx_try_cpp "$LINENO"; then :
-
-else
-  # Broken: fails on valid input.
-continue
-fi
-rm -f conftest.err conftest.i conftest.$ac_ext
-
-  # OK, works on sane cases.  Now check whether nonexistent headers
-  # can be detected and how.
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-#include <ac_nonexistent.h>
-_ACEOF
-if ac_fn_cxx_try_cpp "$LINENO"; then :
-  # Broken: success on invalid input.
-continue
-else
-  # Passes both tests.
-ac_preproc_ok=:
-break
-fi
-rm -f conftest.err conftest.i conftest.$ac_ext
-
-done
-# Because of `break', _AC_PREPROC_IFELSE's cleaning code was skipped.
-rm -f conftest.i conftest.err conftest.$ac_ext
-if $ac_preproc_ok; then :
-
-else
-  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
-$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error $? "C++ preprocessor \"$CXXCPP\" fails sanity check
-See \`config.log' for more details" "$LINENO" 5; }
-fi
-
-ac_ext=cpp
-ac_cpp='$CXXCPP $CPPFLAGS'
-ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
-ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
-ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
-
-
-ac_fn_cxx_check_header_mongrel "$LINENO" "vtkCellData.h" "ac_cv_header_vtkCellData_h" "$ac_includes_default"
+        ac_fn_cxx_check_header_mongrel "$LINENO" "vtkCellData.h" "ac_cv_header_vtkCellData_h" "$ac_includes_default"
 if test "x$ac_cv_header_vtkCellData_h" = xyes; then :
   CPPFLAGS="$CPPFLAGS -DHAVE_VTK=1"
                 VTK=yes

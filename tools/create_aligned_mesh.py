@@ -4,10 +4,13 @@ from optparse import OptionParser
 import re
 import sys
 import os.path
+import fluidity.diagnostics.meshes as meshes
+import fluidity.diagnostics.elements as eles
+import fluidity.diagnostics.gmshtools as gmshtools
 
 face_number=1
 
-def write_side_boundary(f, face_start, start, stride1, stride2, N1, N2, boundarymarker):
+def write_side_boundary(mesh, face_start, start, stride1, stride2, N1, N2, boundarymarker):
   # adds the faces of one side of the box to the .face file
   face_number=face_start
   for i2 in range(N2-1):
@@ -15,13 +18,9 @@ def write_side_boundary(f, face_start, start, stride1, stride2, N1, N2, boundary
       node1 = start+i1*stride1+i2*stride2+1
       node2 = node1+stride1
       node3 = node2+stride2
-      f.write(`face_number`+' '+`node1`+' '+`node2`+' '+`node3`+' '+
-         `boundarymarker`+'\n')
-      face_number += 1
+      mesh.AddSurfaceElement(eles.Element(nodes=[node1-1, node2-1, node3-1], ids=[boundarymarker]))
       node4=node1+stride2
-      f.write(`face_number`+' '+`node1`+' '+`node4`+' '+`node3`+' '+
-         `boundarymarker`+'\n')
-      face_number += 1
+      mesh.AddSurfaceElement(eles.Element(nodes=[node1-1, node4-1, node3-1], ids=[boundarymarker]))
 
 #####################################################################
 # Script starts here.
@@ -66,10 +65,12 @@ dx=Lx/(Nx-1)
 dy=Ly/(Ny-1)
 dz=Lz/(Nz-1)
 
+# We're building a 3D mesh
+mesh = meshes.Mesh(3)
+
+
 ###
-### write the .node file
-f=file(meshname+'.node','w')
-f.write(`nodes`+' 3 1 0\n')
+### Add node coordinates
 for i in range(nodes):
   zlayer=i/(Nx*Ny)
   j=i-zlayer*(Nx*Ny)
@@ -79,46 +80,40 @@ for i in range(nodes):
   y=Oy+ylayer*dy
   z=Oz+zlayer*dz
   column=j+1
-  f.write(`i+1`+' '+`x`+' '+`y`+' '+`z`+' '+`column`+'\n')
-f.close()
+  mesh.AddNodeCoord([x, y, z])
   
 ###
-### write the .face file
-f=file(meshname+'.face','w')
+### Create and add facets / surface elements
 faces=4*((Nx-1)*(Ny-1)+(Ny-1)*(Nz-1)+(Nx-1)*(Nz-1))
-f.write(`faces`+' 1\n')
 # bottom side
 face_number=1
-write_side_boundary(f, face_number, 0, 1, Nx, Nx, Ny, 1)
+write_side_boundary(mesh, face_number, 0, 1, Nx, Nx, Ny, 1)
 face_number=face_number+2*(Nx-1)*(Ny-1)
 # top side
-write_side_boundary(f, face_number, Nx*Ny*(Nz-1), 1, Nx, Nx, Ny, 2)
+write_side_boundary(mesh, face_number, Nx*Ny*(Nz-1), 1, Nx, Nx, Ny, 2)
 face_number=face_number+2*(Nx-1)*(Ny-1)
 # front 
-write_side_boundary(f, face_number, 0, 1, Nx*Ny, Nx, Nz, 3)
+write_side_boundary(mesh, face_number, 0, 1, Nx*Ny, Nx, Nz, 3)
 face_number=face_number+2*(Nx-1)*(Nz-1)
 # back
-write_side_boundary(f, face_number, Nx*(Ny-1), 1, Nx*Ny, Nx, Nz, 4)
+write_side_boundary(mesh, face_number, Nx*(Ny-1), 1, Nx*Ny, Nx, Nz, 4)
 face_number=face_number+2*(Nx-1)*(Nz-1)
 # left side
-write_side_boundary(f, face_number, 0, Nx, Nx*Ny, Ny, Nz, 5)
+write_side_boundary(mesh, face_number, 0, Nx, Nx*Ny, Ny, Nz, 5)
 face_number=face_number+2*(Ny-1)*(Nz-1)
 # right side
-write_side_boundary(f, face_number, Nx-1, Nx, Nx*Ny, Ny, Nz, 6)
-f.close()
+write_side_boundary(mesh, face_number, Nx-1, Nx, Nx*Ny, Ny, Nz, 6)
 
 ###
-### write the .ele file
-f=file(meshname+'.ele','w')
+### Create and add volume elements
 elements=6*(Nx-1)*(Ny-1)*(Nz-1)
-f.write(`elements`+' 4 1\n')
 region_id=0 # this doesn't change at the moment
 ele_number=1
 for ix in range(Nx-1):
   for iy in range(Ny-1):
     for iz in range(Nz-1):
       # the first node in the cube
-      start=ix+iy*Nx+iz*(Nx*Ny)+1
+      start=ix+iy*Nx+iz*(Nx*Ny)
       # work out the 8 nodes in the cube
       node1=start
       node2=start+1
@@ -129,16 +124,12 @@ for ix in range(Nx-1):
       node8=node5+Nx
       node7=node8+1
       # trust us, the following is right:
-      f.write(`ele_number`+' '+`node1`+' '+`node4`+' '+`node3`+' '+`node7`+' '+`region_id`+'\n')
-      ele_number += 1
-      f.write(`ele_number`+' '+`node1`+' '+`node7`+' '+`node8`+' '+`node5`+' '+`region_id`+'\n')
-      ele_number += 1
-      f.write(`ele_number`+' '+`node8`+' '+`node3`+' '+`node7`+' '+`node1`+' '+`region_id`+'\n')
-      ele_number += 1
-      f.write(`ele_number`+' '+`node1`+' '+`node2`+' '+`node4`+' '+`node7`+' '+`region_id`+'\n')
-      ele_number += 1
-      f.write(`ele_number`+' '+`node1`+' '+`node7`+' '+`node5`+' '+`node6`+' '+`region_id`+'\n')
-      ele_number += 1
-      f.write(`ele_number`+' '+`node1`+' '+`node2`+' '+`node7`+' '+`node6`+' '+`region_id`+'\n')
-      ele_number += 1
-f.close()
+      mesh.AddVolumeElement(eles.Element(nodes=[node1, node4, node3, node7], ids=[region_id]))
+      mesh.AddVolumeElement(eles.Element(nodes=[node1, node7, node8, node5], ids=[region_id]))
+      mesh.AddVolumeElement(eles.Element(nodes=[node8, node3, node7, node1], ids=[region_id]))
+      mesh.AddVolumeElement(eles.Element(nodes=[node1, node2, node4, node7], ids=[region_id]))
+      mesh.AddVolumeElement(eles.Element(nodes=[node1, node7, node5, node6], ids=[region_id]))
+      mesh.AddVolumeElement(eles.Element(nodes=[node1, node2, node7, node6], ids=[region_id]))
+
+# Now write the constructed mesh to file
+gmshtools.WriteMsh(mesh, "%s.msh" % (meshname))

@@ -1104,15 +1104,25 @@ zoltan_options =
             element dump_node_sizes {
                empty
             }?,
-            ## Print out a dump file of halo node sizes.
-            ## Zoltan needs to be told how much data is associated with each halo node when
-            ## doing phase two migration.
-            ## Here we dump the size calculated by zoltan_cb_pack_halo_node_sizes for each
-            ## owned node.
-            ## Dump is to the current directory, in a file called halo_node_sizes_*.dat
-            ## One dump file is created for each rank.
-            element dump_halo_node_sizes {
-               empty
+            element field_weighted_partitions {
+            ## Field weighted partitions: turning on this option allows one to 
+            ## weight mesh partitions, based upon a prescribed scalar field. 
+            ## Note that the field should have a minimum value of 0 and a maximum
+            ## value of 1 (no normalisation is done within the code).
+	        element scalar_field {
+                  attribute rank { "0" },
+                  attribute name { "FieldWeightedPartitionValues" },
+                  (
+                     element prescribed {
+                        coordinate_mesh_choice,
+                        prescribed_scalar_field
+                     }|
+                     element diagnostic {
+                        coordinate_mesh_choice,
+                        diagnostic_scalar_field
+                     }
+                  )                  
+               }
             }?,
             ## Print out a dump file of field sizes.
             ## Zoltan needs to be told how much data is associated with the fields for each 
@@ -1146,8 +1156,10 @@ adaptivity_library =
             element disable_edge_split {
                comment
             }?,
-            ## Enable this option to turn off edge collapsing
-            element disable_edge_collapse {
+            ## Write out the Coordinate field to a mesh for every
+            ## state adapt. In parallel, mesh and .halo files
+            ## will be written for every parallel adapt iteration.
+            element write_adapted_mesh {
                comment
             }?,
             ## Enable this option to turn off edge/face, face/edge and
@@ -1297,9 +1309,9 @@ prescribed_adaptivity =
             ## system state.
             element from_file {
                (
-                  ## Input mesh file format.
+                  ## GMSH mesh format
                   element format {
-                     attribute name {"triangle"},
+                     attribute name { "gmsh" },
                      comment
                   }
                ),

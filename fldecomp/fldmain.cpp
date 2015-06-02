@@ -175,15 +175,15 @@ int main(int argc, char **argv){
     }
   }
 
-  // Get mesh format (optional - defaults to triangle if not specified)
+  // Get mesh format (optional - defaults to gmsh if not specified)
 
   string file_format;
 
   if(flArgs.count('m'))
       file_format = flArgs['m'].c_str();
   else {
-    cout << "fldecomp: defaulting to triangle format\n";
-    file_format="triangle";
+    cout << "fldecomp: defaulting to gmsh format\n";
+    file_format="gmsh";
   }
 
   // Read in the mesh

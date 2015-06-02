@@ -33,7 +33,7 @@ the geometry is 1d and one time step is done (as nothing depends on time)</comme
     </dimension>
     <mesh name="CoordinateMesh">
       <from_file file_name="darcy_p1dgp2_velBCinlet_1d">
-        <format name="triangle"/>
+        <format name="gmsh"/>
         <stat>
           <include_in_stat/>
         </stat>
@@ -178,6 +178,7 @@ the geometry is 1d and one time step is done (as nothing depends on time)</comme
                 <twice/>
               </integrate_advection_by_parts>
             </advection_scheme>
+            <buoyancy/>
           </discontinuous_galerkin>
           <conservative_advection>
             <real_value rank="0">0.0</real_value>

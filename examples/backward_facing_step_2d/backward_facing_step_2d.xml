@@ -7,7 +7,7 @@
   <tags>flml</tags>
   <!-- uses flml -->
   <problem_definition length="long" nprocs="8">
-    <command_line>cd reference &amp;&amp; mpiexec flredecomp -i 1 -o 8 -v -l backward_facing_step_2d_kim_reference backward_facing_step_2d_kim_reference_flredecomp &amp;&amp; mpiexec fluidity -v2 -l backward_facing_step_2d_kim_reference_flredecomp.flml &amp;&amp; cd .. &amp;&amp; cd kepsilon &amp;&amp; mpiexec flredecomp -i 1 -o 8 -v -l backward_facing_step_2d_kim_kepsilon backward_facing_step_2d_kim_kepsilon_flredecomp &amp;&amp; mpiexec fluidity -v2 -l backward_facing_step_2d_kim_kepsilon_flredecomp.flml &amp;&amp; cd ..</command_line>
+    <command_line>cd simulation &amp;&amp; mpiexec flredecomp -i 1 -o 8 -v -l backward_facing_step_2d backward_facing_step_2d_flredecomp &amp;&amp; mpiexec fluidity -v2 -l backward_facing_step_2d_flredecomp.flml &amp;&amp; cd ..</command_line>
   </problem_definition>
   <variables>
     <variable name="solvers_converged" language="python">
@@ -15,22 +15,12 @@ import os
 files = os.listdir("./")
 solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
     </variable>
-    <variable name="reference_finishtime" language="python">from fluidity_tools import stat_parser as stat
-reference_finishtime= stat("reference/backward_facing_step_2d_kim_reference.stat")["ElapsedTime"]["value"][-1]</variable>
     <variable name="kepsilon_finishtime" language="python">from fluidity_tools import stat_parser as stat
-kepsilon_finishtime= stat("kepsilon/backward_facing_step_2d_kim_kepsilon.stat")["ElapsedTime"]["value"][-1]</variable>
-    <variable name="reference_reattachment_length" language="python">
-from postprocessor_2d import reattachment_length, get_filelist
-import numpy, os
-os.chdir('./reference/')
-filelist = get_filelist(10,50)
-reference_reattachment_length = numpy.array(reattachment_length(filelist))
-os.chdir('../')
-    </variable>
+kepsilon_finishtime= stat("simulation/backward_facing_step_2d.stat")["ElapsedTime"]["value"][-1]</variable>
     <variable name="kepsilon_reattachment_length" language="python">
 from postprocessor_2d import reattachment_length, get_filelist
 import numpy, os
-os.chdir('./kepsilon/')
+os.chdir('./simulation/')
 filelist = get_filelist(10,120)
 kepsilon_reattachment_length = numpy.array(reattachment_length(filelist))
 os.chdir('../')
@@ -40,17 +30,9 @@ os.chdir('../')
     <test name="Solvers converged" language="python">
 assert(solvers_converged)
     </test>
-    <test name="reference_finish_time" language="python">assert reference_finishtime &gt; 199.0</test>
     <test name="kepsilon_finish_time" language="python">assert kepsilon_finishtime &gt; 199.0</test>
-    <test name="reference reattachment length is less than 20.0" language="python">
-assert(abs(reference_reattachment_length[-1,0]) &lt; 20.0)
-    </test>
     <test name="kepsilon reattachment length is approximately equal to the experimental value of 7.0" language="python">
 assert(abs(kepsilon_reattachment_length[-1,0] - 7.0) &lt; 2.0)
-    </test>
-    <test name="reference reattachment length converges with accuracy 25%" language="python">
-print abs(reference_reattachment_length[-1,0]/reference_reattachment_length[-2,0]-1.0)
-assert(abs(reference_reattachment_length[-1,0]/reference_reattachment_length[-2,0]-1.0) &lt; 0.25)
     </test>
     <test name="kepsilon reattachment length converges with accuracy 25%" language="python">
 print abs(kepsilon_reattachment_length[-1,0]/kepsilon_reattachment_length[-2,0]-1.0)

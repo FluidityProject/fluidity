@@ -3,7 +3,7 @@
   <name>fldecomp</name>
   <owner userid="ggorman"/>
   <problem_definition length = "short" nprocs = "1">
-    <command_line>rm -f fldecomp.log; make clean-run; fldecomp -n 4 -k -v line > fldecomp.log</command_line>
+    <command_line>rm -f fldecomp.log; make clean-run; fldecomp -n 4 -m triangle -k -v line > fldecomp.log</command_line>
   </problem_definition>
   <variables>
     <variable name = "partitions" language = "python">

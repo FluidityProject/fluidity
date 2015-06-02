@@ -502,7 +502,7 @@
         <integer_value rank="0">100</integer_value>
       </period_in_timesteps>
       <maximum_number_of_nodes>
-        <integer_value rank="0">500</integer_value>
+        <integer_value rank="0">510</integer_value>
       </maximum_number_of_nodes>
       <anisotropic_gradation>
         <tensor_field name="Gamma">

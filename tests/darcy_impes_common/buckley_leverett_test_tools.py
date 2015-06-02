@@ -65,6 +65,9 @@ def read_numerical_solution(filename, field_name):
     f = vtktools.vtu(filename)
     x = f.GetLocations()[:,0]
     v = f.GetScalarField(field_name)
+    isort = sorted(range(len(x)), key=lambda i: x[i])
+    x = numpy.array([x[i] for i in isort])
+    v = numpy.array([v[i] for i in isort])
     if not numpy.all(numpy.diff(x) > 0): 
         print ("Issue with numerical mesh: "
                "x-coordinates not monotonically increasing.")

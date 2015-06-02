@@ -50,11 +50,13 @@ module momentum_diagnostics
   
   private
   
-  public :: calculate_strain_rate, calculate_bulk_viscosity, calculate_sediment_concentration_dependent_viscosity, &
+  public :: calculate_strain_rate, calculate_bulk_viscosity, calculate_strain_rate_second_invariant, &
+            calculate_sediment_concentration_dependent_viscosity, &
             calculate_buoyancy, calculate_coriolis, calculate_tensor_second_invariant, &
-            calculate_imposed_material_velocity_source, calculate_imposed_material_velocity_absorption, &
+            calculate_imposed_material_velocity_source, &
+            calculate_imposed_material_velocity_absorption, &
             calculate_scalar_potential, calculate_projection_scalar_potential, &
-            calculate_geostrophic_velocity
+            calculate_geostrophic_velocity, calculate_viscous_dissipation
            
   
 contains
@@ -74,6 +76,36 @@ contains
     call strain_rate(source_field, positions, t_field)
 
   end subroutine calculate_strain_rate
+
+  subroutine calculate_strain_rate_second_invariant(state, s_field)
+    type(state_type), intent(inout) :: state
+    type(scalar_field), intent(inout) :: s_field
+
+    type(vector_field), pointer :: positions
+    type(vector_field), pointer :: velocity
+
+    type(tensor_field) :: strain_rate_tensor
+
+    ewrite(1,*) 'In calculate_strain_rate_second_invariant'
+    positions => extract_vector_field(state, "Coordinate")
+    velocity  => extract_vector_field(state, "IteratedVelocity")
+
+    ! Allocate strain_rate tensor:
+    call allocate(strain_rate_tensor, s_field%mesh, name="strain_rate_II")
+
+    call check_source_mesh_derivative(velocity, "strain_rate_second_invariant")
+
+    ! Calculate strain_rate and second invariant:
+    call strain_rate(velocity, positions, strain_rate_tensor)
+    call tensor_second_invariant(strain_rate_tensor, s_field)
+
+    ! Clean-up:
+    call deallocate(strain_rate_tensor)
+
+    ! Prin min and max:
+    ewrite_minmax(s_field) 
+
+  end subroutine calculate_strain_rate_second_invariant
 
   subroutine calculate_sediment_concentration_dependent_viscosity(state, t_field)
     ! calculates viscosity based upon total sediment concentration
@@ -139,12 +171,94 @@ contains
 
   end subroutine calculate_tensor_second_invariant
 
+  subroutine calculate_viscous_dissipation(state, s_field)
+    ! A routine to calculate the viscous dissipation. Currently
+    ! assumes a constant viscosity tensor:
+    type(state_type), intent(inout) :: state
+    type(scalar_field), intent(inout) :: s_field
+
+    type(vector_field), pointer :: positions
+    type(vector_field), pointer :: velocity
+    type(tensor_field), pointer :: viscosity
+
+    type(scalar_field) :: velocity_divergence
+    type(scalar_field) :: viscosity_component, viscosity_component_remap
+    type(tensor_field) :: strain_rate_tensor
+
+    integer :: dim1, dim2, node
+    real :: val
+
+    ewrite(1,*) 'In calculate_viscous_dissipation'
+
+    ! Extract velocity field from state - will be used to calculate strain-
+    ! rate tensor:
+    velocity => extract_vector_field(state, "NonlinearVelocity")
+    ! Check velocity field is not on a discontinous mesh:
+    call check_source_mesh_derivative(velocity, "Viscous_Dissipation")
+
+    ! Extract positions field from state:
+    positions => extract_vector_field(state, "Coordinate")
+
+    ! Allocate and initialize strain rate tensor:
+    call allocate(strain_rate_tensor, s_field%mesh, "Strain_Rate_VD")
+    call zero(strain_rate_tensor)
+
+    ! Calculate strain rate tensor:
+    call strain_rate(velocity, positions, strain_rate_tensor)
+
+    ! Calculate velocity divergence for correct definition of stress:
+    call allocate(velocity_divergence, s_field%mesh, 'Velocity_divergence')
+    call div(velocity, positions, velocity_divergence)
+    ewrite_minmax(velocity_divergence)
+
+    ! Extract viscosity from state and remap to s_field mesh:
+    viscosity => extract_tensor_field(state, "Viscosity")
+    ! Extract first component of viscosity tensor from full tensor:
+    !*** This is not ideal - only valid for constant viscosity tensors
+    !*** though they can still vary spatially and temporally.
+    viscosity_component = extract_scalar_field(viscosity,1,1)  
+    call allocate(viscosity_component_remap, s_field%mesh, "RemappedViscosityComponent")
+    call remap_field(viscosity_component, viscosity_component_remap)
+
+    ! Calculate viscous dissipation (scalar s_field):
+    do node=1,node_count(s_field)
+       val = 0.
+       do dim1 = 1, velocity%dim
+          do dim2 = 1, velocity%dim
+             if(dim1==dim2) then
+                ! Add divergence of velocity term to diagonal only: 
+                val = val + 2.*node_val(viscosity_component_remap, node) * & 
+                     & (node_val(strain_rate_tensor,dim1,dim2,node)      - &
+                     & 1./3. * node_val(velocity_divergence, node))**2
+             else
+                val = val + 2.*node_val(viscosity_component_remap, node) * & 
+                     & node_val(strain_rate_tensor,dim1,dim2,node)**2   
+             end if
+          end do
+       end do
+       call set(s_field, node, val)
+    end do
+
+    ewrite_minmax(s_field)
+
+    ! Deallocate:
+    call deallocate(strain_rate_tensor)
+    call deallocate(viscosity_component_remap)
+    call deallocate(velocity_divergence)
+
+  end subroutine calculate_viscous_dissipation
+
   subroutine calculate_bulk_viscosity(states, t_field)
     type(state_type), dimension(:), intent(inout) :: states
     type(tensor_field), intent(inout) :: t_field
+
+    character(len = OPTION_PATH_LEN) :: mean_type
     
+    call get_option(trim(complete_field_path(trim(t_field%option_path))) // &
+                    "/algorithm[0]/mean/name", mean_type, default="arithmetic")
+
     call calculate_bulk_property(states, t_field, "MaterialViscosity", &
-      & momentum_diagnostic = .true.)
+      & mean_type = mean_type, momentum_diagnostic = .true.)
   
   end subroutine calculate_bulk_viscosity
   

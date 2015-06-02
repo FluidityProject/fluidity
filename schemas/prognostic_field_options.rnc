@@ -713,7 +713,18 @@ prognostic_velocity_field =
                    element activation_energy {
                     real
                    }
-               }?
+               }?,
+               ## Options dealing with buoyancy
+               element buoyancy {
+                 ## Align the gravity opposite to the radial direction (-(x,y) in 2d, -(x,y,z) in 3d)
+                 ## and evaluate it at the gauss points.
+                 ##
+                 ## NOTE: this ignores whatever values are set under /physical_parameters/gravity/vector_field::GravityDirection 
+                 ## for the buoyancy terms.
+                 element radial_gravity_direction_at_gauss_points {
+                   comment
+                 }?
+               }
             }|
             ## Discontinuous galerkin formulation. Confusingly it is not necessary to provide
             ## a discontinuous velocity field for this to work!
@@ -912,6 +923,17 @@ prognostic_velocity_field =
                   element integrate_conservation_term_by_parts {
                     empty
                   }?
+               },
+               ## Options dealing with buoyancy
+               element buoyancy {
+                 ## Align the gravity opposite to the radial direction (-(x,y) in 2d, -(x,y,z) in 3d)
+                 ## and evaluate it at the gauss points.
+                 ##
+                 ## NOTE: this ignores whatever values are set under /physical_parameters/gravity/vector_field::GravityDirection 
+                 ## for the buoyancy terms.
+                 element radial_gravity_direction_at_gauss_points {
+                   comment
+                 }?
                }
             }
          ),
@@ -1297,7 +1319,8 @@ prognostic_pressure_field =
                }?,
                ## Test the continuity equation with the control volume dual mesh of the finite element pressure mesh.
                ## Only works for incompressible flow. This will make the pressure matrix non symmetric which must be 
-               ## considered when selecting the pressure solver options. This will not work with the free surface and 
+               ## considered when selecting the pressure solver options. This cannot be used with the standard p=0 
+               ## free surface model (but can be used with the zero normal stress free surface). It will not work with 
                ## wetting and drying models. Also the mesh assoicated with the pressure field must use the lagrangian 
                ## element type (the default). This will not work with the implicit solids model using two way coupling. 
                element test_continuity_with_cv_dual {

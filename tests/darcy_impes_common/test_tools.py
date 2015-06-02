@@ -234,12 +234,6 @@ class Parameteriser:
       options, geometries and meshes."""
       geo_ext = '.geo'
       mesh_ext_list = ['.msh']
-      try:
-          if self.dim()=="1":
-              geo_ext = '.sh'
-              mesh_ext_list = ['.bound', '.ele', '.node']
-      except KeyError:
-          pass
       return {
           'simulation_options_template':
               self.__simulation_options_filename_extension,
@@ -288,10 +282,7 @@ class Parameteriser:
       define new entries.
       """
       mesh_name = self.lookup('filename_stems', 'mesh')
-      if self.dim()=="1":
-         mesh_format = 'triangle'
-      else:
-         mesh_format = 'gmsh'
+      mesh_format = 'gmsh'
       return {
           'MESH_NAME': mesh_name,
           'MESH_FORMAT': mesh_format,

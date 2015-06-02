@@ -311,9 +311,8 @@ class ManufacturedSolution:
                 uij = self.u[i][j]
             except TypeError:
                 uij = self.u[i]
-            write_expr(
-                genfile, is_text, 'darcy_velocity'+str(i+1)+'_'+str(xi)+suf,
-                uij, spacetime[:self.dim] + spacetime[3:])
+        write_expr(genfile, is_text, 'darcy_velocity'+str(i+1)+'_'+str(xi)+suf,
+                   uij, spacetime[:self.dim] + spacetime[3:])
         write_expr(genfile, is_text,
                    'darcy_velocity'+str(i+1)+'_magnitude'+suf,
                    abs(self.u[i]), spacetime[:self.dim] + spacetime[3:])

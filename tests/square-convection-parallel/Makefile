@@ -11,7 +11,7 @@ input: clean
 
 clean: clean-mesh clean-run-debug 
 clean-mesh:
-	rm -f $(MESH)_?*.edge $(MESH)_?*.ele $(MESH)_?*.node $(MESH)_?*.halo
+	rm -f $(MESH)_?*.edge $(MESH)_?*.ele $(MESH)_?*.node $(MESH)_?*.halo $(MESH)_?*.msh
 clean-run:
 	rm -f *.dat *.halo *.pvtu *.vtu *.edge *.ele *.node $(FLMLMODEL)_?*_checkpoint.flml *.detectors *.stat *.err-? *.log-? matrixdump matrixdump.info
 	rm -rf $(MODEL)*_checkpoint $(MODEL)_?

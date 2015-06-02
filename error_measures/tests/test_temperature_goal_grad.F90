@@ -6,7 +6,7 @@ subroutine test_temperature_goal_grad
   use unittest_tools
   use futils
   use fields
-  use read_triangle
+  use mesh_files
   implicit none
   
   type(state_type) :: state(1)
@@ -23,7 +23,7 @@ subroutine test_temperature_goal_grad
     end function temperature_func
   end interface
 
-  positions = read_triangle_files("data/interval-0.0-1.0-1.0", quad_degree=4)
+  positions = read_mesh_files("data/interval-0.0-1.0-1.0", quad_degree=4, format="gmsh")
   mesh => positions%mesh
   call allocate(temperature, mesh, "Temperature")
   call allocate(sensitivity, mesh, "TemperatureSensitivity")

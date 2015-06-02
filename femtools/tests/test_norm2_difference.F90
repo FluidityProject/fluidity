@@ -1,6 +1,6 @@
 subroutine test_norm2_difference
 
-  use read_triangle
+  use mesh_files
   use fields
   use unittest_tools
   implicit none
@@ -16,8 +16,8 @@ subroutine test_norm2_difference
   real :: domain_volume
   integer :: ele
 
-  positionsA = read_triangle_files("data/pslgA", quad_degree=4)
-  positionsB = read_triangle_files("data/pslgB", quad_degree=4)
+  positionsA = read_mesh_files("data/pslgA", quad_degree=4, format="gmsh")
+  positionsB = read_mesh_files("data/pslgB", quad_degree=4, format="gmsh")
 
   domain_volume = 0.0
   do ele=1,ele_count(positionsA)

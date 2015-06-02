@@ -1,4 +1,4 @@
-from sympy import Symbol, Function, diff, integrate, sin, cos, pi, exp
+from sympy import Symbol, Function, diff, integrate, sin, cos, pi, exp, Max
 from manufactured_solution_generation_tools import \
     ManufacturedSolution, GenericScalar, SolutionHarness, generate_coords
 
@@ -23,8 +23,8 @@ def generate(solution_name, check_solution=False):
     # relperms - these do not have placeholders in the options template;
     # any changes made here also need to be made in the template
     sr = (0.2, 0.3)                      # residual sats
-    K = (lambda s: ka * max(0, s[0]-sr[0])**2, # quadratic relperm relation
-         lambda s: ka * max(0, s[1]-sr[1])**2)
+    K = (lambda s: ka * Max(0, s[0]-sr[0])**2, # quadratic relperm relation
+         lambda s: ka * Max(0, s[1]-sr[1])**2)
     
     # initialise object containing solution parameters
     sh = SolutionHarness(D, T, g_mag, ka, phi, mu, rho, K,
@@ -45,7 +45,7 @@ def generate(solution_name, check_solution=False):
     fs_lon = lambda xi: exp(-xi)
     fs_lat = lambda xi: 3*(1. - xi)*(1.5*xi)**2
     fp_lon = lambda xi: cos(pi*xi)
-    fp_lat = lambda xi: sin(pi*xi)**2
+    fp_lat = lambda xi: sin(pi*xi)
     fc_lon = fp_lon
     fc_lat = fp_lon
 

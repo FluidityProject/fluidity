@@ -6,7 +6,7 @@ input: clean
 	$(call import_python_code,batch_tools.py)
 	$(call import_python_code,test_tools.py)
 	$(call import_python_code,buckley_leverett_test_tools.py)
-	cp mesh_data/$(SIM)*.* .
+	cp mesh_data/line*.msh .
 	cp mesh_data/square*.msh .
 	cp mesh_data/cube*.msh .
 

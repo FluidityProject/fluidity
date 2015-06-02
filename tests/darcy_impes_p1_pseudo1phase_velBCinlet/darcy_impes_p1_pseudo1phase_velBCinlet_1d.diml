@@ -5,8 +5,8 @@
       <integer_value rank="0">1</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
-      <from_file file_name="darcy_impes_p1_pseudo1phase_velBCinlet_1d">
-        <format name="triangle"/>
+      <from_file file_name="line">
+        <format name="gmsh"/>
         <stat>
           <include_in_stat/>
         </stat>

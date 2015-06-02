@@ -2,16 +2,11 @@ include ../darcy_impes_common/Depend.mk
 
 SIM = darcy_impes_p1_3phase_layered
 
-# options for 1d mesh interval script
-MESH_SIZE = 0.05
-LEFT_X    = 0.0
-RIGHT_X   = 1.0
-
 input: clean
 	$(call import_python_code,batch_tools.py)
 	$(call import_python_code,test_tools.py)
 	$(call import_python_code,buckley_leverett_test_tools.py)
-	interval --dx=$(MESH_SIZE) $(LEFT_X) $(RIGHT_X) $(SIM)_1d
+	cp mesh_data/line*.msh .
 	cp mesh_data/square*.msh .
 	cp mesh_data/cube*.msh .
 

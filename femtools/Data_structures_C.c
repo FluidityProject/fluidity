@@ -7,12 +7,12 @@
    http://judy.sourceforge.net/doc/Judy1_3x.htm and
    http://judy.sourceforge.net/doc/JudyL_3x.htm */
 
-void F77_FUNC_(integer_set_create_c,INTEGER_SET_CREATE_C)(Pvoid_t* i)
+void integer_set_create_c(Pvoid_t* i)
 {
   *i = (Pvoid_t) NULL;
 }
 
-void F77_FUNC_(integer_set_delete_c,INTEGER_SET_DELETE_C)(Pvoid_t* i)
+void integer_set_delete_c(Pvoid_t* i)
 {
   Word_t mem_freed;
   Pvoid_t ptr = (Pvoid_t) *i;
@@ -20,9 +20,9 @@ void F77_FUNC_(integer_set_delete_c,INTEGER_SET_DELETE_C)(Pvoid_t* i)
   *i = ptr;
 }
 
-void F77_FUNC_(integer_set_insert_c,INTEGER_SET_INSERT_C)(Pvoid_t* i, int* v, int* c)
+void integer_set_insert_c(Pvoid_t* i, int* v, int* c)
 {
-  Word_t changed;
+  int changed;
   Word_t index = *v;
   Pvoid_t ptr = (Pvoid_t) *i;
   J1S(changed, ptr, index);
@@ -30,7 +30,7 @@ void F77_FUNC_(integer_set_insert_c,INTEGER_SET_INSERT_C)(Pvoid_t* i, int* v, in
   *i = ptr;
 }
 
-void F77_FUNC_(integer_set_length_c,INTEGER_SET_LENGTH_C)(Pvoid_t* i, int* l)
+void integer_set_length_c(Pvoid_t* i, int* l)
 {
   Word_t len;
   Pvoid_t ptr = (Pvoid_t) *i;
@@ -39,9 +39,10 @@ void F77_FUNC_(integer_set_length_c,INTEGER_SET_LENGTH_C)(Pvoid_t* i, int* l)
   *i = ptr;
 }
 
-void F77_FUNC_(integer_set_fetch_c,INTEGER_SET_FETCH_C)(Pvoid_t* i, int* idx, int* val)
+void integer_set_fetch_c(Pvoid_t* i, int* idx, int* val)
 {
-  Word_t worked, index = *idx, value;
+  Word_t index = *idx, value;
+  int worked;
   Pvoid_t ptr = (Pvoid_t) *i;
   J1BC(worked, ptr, index, value); 
   assert(worked == 1);
@@ -49,7 +50,7 @@ void F77_FUNC_(integer_set_fetch_c,INTEGER_SET_FETCH_C)(Pvoid_t* i, int* idx, in
   *i = ptr;
 }
 
-void F77_FUNC_(integer_set_remove_c,INTEGER_SET_REMOVE_C)(Pvoid_t* i, int* idx, int* status)
+void integer_set_remove_c(Pvoid_t* i, int* idx, int* status)
 {
   Word_t index = *idx;
   int stat;
@@ -59,21 +60,22 @@ void F77_FUNC_(integer_set_remove_c,INTEGER_SET_REMOVE_C)(Pvoid_t* i, int* idx, 
   *i = ptr;
 }
 
-void F77_FUNC_(integer_set_has_value_c,INTEGER_SET_HAS_VALUE_C)(Pvoid_t* i, int* val, int* present)
+void integer_set_has_value_c(Pvoid_t* i, int* val, int* present)
 {
-  Word_t wpresent, value = *val;
+  Word_t value = *val;
+  int wpresent;
   Pvoid_t ptr = (Pvoid_t) *i;
   J1T(wpresent, ptr, value); 
   *present = wpresent;
 }
 
-void F77_FUNC_(integer_hash_table_create_c,INTEGER_HASH_TABLE_CREATE_C)(Pvoid_t* i)
+void integer_hash_table_create_c(Pvoid_t* i)
 {
   assert(sizeof(int*) == sizeof(Pvoid_t));
   *i = (Pvoid_t) NULL;
 }
 
-void F77_FUNC_(integer_hash_table_delete_c,INTEGER_HASH_TABLE_DELETE_C)(Pvoid_t* i)
+void integer_hash_table_delete_c(Pvoid_t* i)
 {
   Word_t mem_freed;
   Pvoid_t ptr = (Pvoid_t) *i;
@@ -81,7 +83,7 @@ void F77_FUNC_(integer_hash_table_delete_c,INTEGER_HASH_TABLE_DELETE_C)(Pvoid_t*
   *i = ptr;
 }
 
-void F77_FUNC_(integer_hash_table_insert_c,INTEGER_HASH_TABLE_INSERT_C)(Pvoid_t* i, int* k, int* v)
+void integer_hash_table_insert_c(Pvoid_t* i, int* k, int* v)
 {
   Word_t key = *k;
   PWord_t pvalue;
@@ -91,7 +93,7 @@ void F77_FUNC_(integer_hash_table_insert_c,INTEGER_HASH_TABLE_INSERT_C)(Pvoid_t*
   *i = ptr;
 }
 
-void F77_FUNC_(integer_hash_table_length_c,INTEGER_HASH_TABLE_LENGTH_C)(Pvoid_t* i, int* l)
+void integer_hash_table_length_c(Pvoid_t* i, int* l)
 {
   Word_t len;
   Pvoid_t ptr = (Pvoid_t) *i;
@@ -100,7 +102,7 @@ void F77_FUNC_(integer_hash_table_length_c,INTEGER_HASH_TABLE_LENGTH_C)(Pvoid_t*
   *i = ptr;
 }
 
-void F77_FUNC_(integer_hash_table_fetch_c,INTEGER_HASH_TABLE_FETCH_C)(Pvoid_t* i, int* k, int* v)
+void integer_hash_table_fetch_c(Pvoid_t* i, int* k, int* v)
 {
   Word_t key = *k, value;
   PWord_t pvalue = &value;
@@ -115,7 +117,7 @@ void F77_FUNC_(integer_hash_table_fetch_c,INTEGER_HASH_TABLE_FETCH_C)(Pvoid_t* i
   *i = ptr;
 }
 
-void F77_FUNC_(integer_hash_table_remove_c,INTEGER_HASH_TABLE_REMOVE_C)(Pvoid_t* i, int* k, int* status)
+void integer_hash_table_remove_c(Pvoid_t* i, int* k, int* status)
 {
   Word_t key = *k;
   int stat;
@@ -125,7 +127,7 @@ void F77_FUNC_(integer_hash_table_remove_c,INTEGER_HASH_TABLE_REMOVE_C)(Pvoid_t*
   *i = ptr;
 }
 
-void F77_FUNC_(integer_hash_table_has_key_c,INTEGER_HASH_TABLE_HAS_KEY_C)(Pvoid_t* i, int* k, int* present)
+void integer_hash_table_has_key_c(Pvoid_t* i, int* k, int* present)
 {
   Word_t key = *k, value;
   PWord_t pvalue = &value;
@@ -135,7 +137,7 @@ void F77_FUNC_(integer_hash_table_has_key_c,INTEGER_HASH_TABLE_HAS_KEY_C)(Pvoid_
   *i = ptr;
 }
 
-void F77_FUNC_(integer_hash_table_fetch_pair_c,INTEGER_HASH_TABLE_FETCH_PAIR_C)(Pvoid_t* i, int* idx, int* key, int* val)
+void integer_hash_table_fetch_pair_c(Pvoid_t* i, int* idx, int* key, int* val)
 {
   Word_t nth = *idx; /* what Judy calls nth is what I am calling index */
   Word_t index; /* what Judy calls index is what I am calling key */

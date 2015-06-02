@@ -2,7 +2,8 @@
 <testproblem>
   <name>turbine_flux_penalty_2plus1</name>
   <owner userid="sf1409"/>
-  <problem_definition length="medium" nprocs="1">
+  <!-- Test disabled due to dependency on deprecated Triangle mesh format. -->
+  <problem_definition length="special" nprocs="1">
     <command_line>fluidity turbine_flux_penalty_2plus1.flml; fluidity onedomain_2plus1.flml</command_line>
   </problem_definition>
   <variables>

@@ -1,6 +1,6 @@
 input: clean
 	gmsh -3 ./src/cube-1.geo
-	../../bin/gmsh2triangle ./src/cube-1.msh
+	cp src/cube-1.msh .
 
 clean:
 	rm -f *.ele *.face *.node *.halo *.vtu *.s *.d.1 *.stat *.log-* *.err-* *.pvtu *~ ./src/*.msh ./src/*~  \

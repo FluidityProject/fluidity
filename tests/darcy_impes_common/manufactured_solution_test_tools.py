@@ -56,14 +56,13 @@ class ManufacturedSolutionParameteriser(Parameteriser):
 
    def simulation_options_dict(self):
       dim = self.get('dim')
+      mesh_format = 'gmsh'
       # some dictionary entries depend on whether 1D or multi-D
       if dim=="1":
-         mesh_format = 'triangle'
          # these markers are for collapsing inappropriate wall BCs
          begin_rm_if_1D = '<!--'
          end_rm_if_1D = '-->'
       else:
-         mesh_format = 'gmsh'
          begin_rm_if_1D = ''
          end_rm_if_1D = ''
       # these boundary IDs are dependent on the geometry templates and

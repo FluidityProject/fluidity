@@ -39,10 +39,8 @@ subroutine project_vtu(input_filename_, input_filename_len, donor_basename_, don
   use solvers
   use spud
   use state_module
-  use read_triangle
-  use read_gmsh
+  use mesh_files
   use vtk_interfaces
-  use write_triangle
   use iso_c_binding
   implicit none
   
@@ -57,7 +55,6 @@ subroutine project_vtu(input_filename_, input_filename_len, donor_basename_, don
   character(len = output_filename_len) :: output_filename
   character(len = *), parameter :: fields_path = "/dummy"
   integer :: i
-  logical :: ends_with_msh
   integer, parameter :: quad_degree = 4
   type(element_type), pointer :: shape
   type(ilist), dimension(:), allocatable :: map_BA
@@ -87,7 +84,6 @@ subroutine project_vtu(input_filename_, input_filename_len, donor_basename_, don
     output_filename(i:i)=output_filename_(i)
   end do
 
-
   
   call set_solver_options(fields_path // "/galerkin_projection/continuous", &
     & ksptype = "cg", pctype = "sor", atol = epsilon(0.0), rtol = 0.0, max_its = 2000, start_from_zero = .true.)
@@ -97,15 +93,7 @@ subroutine project_vtu(input_filename_, input_filename_len, donor_basename_, don
   donor_positions = extract_vector_field(input_state, "Coordinate")
   input_mesh => extract_mesh(input_state, "Mesh")
 
-  ends_with_msh = .false.
-  if (target_basename_len>4) then
-    ends_with_msh = target_basename(target_basename_len-3:target_basename_len)=='.msh'
-  end if
-  if (ends_with_msh) then
-    target_positions = read_gmsh_file(target_basename(:target_basename_len-4), quad_degree = quad_degree)
-  else
-    target_positions = read_triangle_files(trim(target_basename), quad_degree = quad_degree)
-  end if
+  target_positions = read_mesh_files(trim(target_basename), quad_degree = quad_degree, format="gmsh")
   
   shape => ele_shape(donor_positions, 1)
   if (shape==ele_shape(target_positions,1) .and. continuity(donor_positions)==continuity(target_positions)) then
@@ -118,14 +106,16 @@ subroutine project_vtu(input_filename_, input_filename_len, donor_basename_, don
     output_p0mesh = piecewise_constant_mesh(target_positions%mesh, "P0Mesh")
   end if
   
-  ends_with_msh = .false.
-  if (donor_basename_len>4) then
-    ends_with_msh = donor_basename(donor_basename_len-3:donor_basename_len)=='.msh'
-  end if
-  if (ends_with_msh) then
-    donor_positions = read_gmsh_file(donor_basename(:donor_basename_len-4), quad_degree = quad_degree)
+  if (donor_basename_len>0) then
+    donor_positions = read_mesh_files(trim(donor_basename), quad_degree = quad_degree, format="gmsh")
   else
-    donor_positions = read_triangle_files(trim(donor_basename), quad_degree = quad_degree)
+    ! no donor mesh specified:
+    ! use the one we got from vtk_read_state
+    ! this only works in serial and with a P1CG vtu
+    if (continuity(donor_positions)<0 .or. shape%degree/=1) then
+      FLExit("No donor mesh specified. This only works for a serial, continuous, linear input vtu")
+    end if
+    call incref(donor_positions)
   end if
   
   allocate(map_BA(ele_count(target_positions)))
