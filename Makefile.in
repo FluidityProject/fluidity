@@ -504,10 +504,6 @@ ifneq (@HAVE_ZOLTAN@,yes)
 	@echo "makefile dependency generation requires zoltan"
 	@false
 endif
-ifneq (@HAVE_ADJOINT@,yes)
-	@echo "makefile dependency generation requires adjoint"
-	@false
-endif
 	@echo "    Generating debug dependencies"
 	@cd debug; 	../bin/create_makefile $(TESTOPTS)
 	@echo "    Generating libwm dependencies"
