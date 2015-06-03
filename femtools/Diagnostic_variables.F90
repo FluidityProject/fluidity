@@ -2322,6 +2322,7 @@ contains
     
     type(vector_field), pointer :: coordinates
     integer :: convergence_norm
+    logical :: relative_norm
 
     maxerror = 0.0
 
@@ -2339,6 +2340,7 @@ contains
     
     coordinates => extract_vector_field(state(1), "Coordinate")
     convergence_norm = convergence_norm_integer("/timestepping/nonlinear_iterations/tolerance")
+    relative_norm = have_option("/timestepping/nonlinear_iterations/tolerance/relative")
 
     phaseloop: do phase=1,size(state)
 
@@ -2355,7 +2357,7 @@ contains
                                        "Iterated"//trim(default_stat%sfield_list(phase)%ptr(i)))
 
           call field_con_stats(sfield, nlsfield, error, &
-                               convergence_norm, coordinates)
+                               convergence_norm, relative_norm, coordinates)
           maxerror = max(maxerror, error)
 
           if(default_stat%write_convergence_file) then
@@ -2381,7 +2383,7 @@ contains
            & "Iterated"//default_stat%vfield_list(phase)%ptr(i))
 
          call field_con_stats(vfield, nlvfield, error, &
-                              convergence_norm, coordinates)
+                              convergence_norm, relative_norm, coordinates)
          maxerror = max(maxerror, error)
 
          if(default_stat%write_convergence_file) then
@@ -2400,7 +2402,7 @@ contains
            nlvfield_comp = extract_scalar_field(nlvfield, j)
 
            call field_con_stats(vfield_comp, nlvfield_comp, error, &
-                                convergence_norm, coordinates)
+                                convergence_norm, relative_norm, coordinates)
            maxerror = max(maxerror, error)
 
            if(default_stat%write_convergence_file) then
@@ -2484,7 +2486,7 @@ contains
                                        "Old"//trim(default_stat%sfield_list(phase)%ptr(i)))
 
           call field_con_stats(sfield, oldsfield, change, &
-                               convergence_norm, coordinates)
+                               convergence_norm, coordinates=coordinates)
           if(acceleration) change = change/dt
           ewrite(2, *) trim(state(phase)%name)//"::"//trim(sfield%name), change
           maxchange = max(maxchange, change)
@@ -2509,7 +2511,7 @@ contains
            & "Old"//default_stat%vfield_list(phase)%ptr(i))
 
          call field_con_stats(vfield, oldvfield, change, &
-                              convergence_norm, coordinates)
+                              convergence_norm, coordinates=coordinates)
          if(acceleration) change = change/dt
          ewrite(2, *) trim(state(phase)%name)//"::"//trim(vfield%name), change
          maxchange = max(maxchange, change)
@@ -2530,7 +2532,7 @@ contains
            oldvfield_comp = extract_scalar_field(oldvfield, j)
 
            call field_con_stats(vfield_comp, oldvfield_comp, change, &
-                                convergence_norm, coordinates)
+                                convergence_norm, coordinates=coordinates)
            if(acceleration) change = change/dt
            ewrite(2, *) trim(state(phase)%name)//"::"//trim(vfield%name), j,  change
            maxchange = max(maxchange, change)

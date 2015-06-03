@@ -45,7 +45,12 @@ temporal_control_volume_options =
                   element cv_l2_norm {
                     empty
                   }
-               )               
+               ),
+               ## Make the tolerance relative to the latest solution (evaluated in the same
+               ## norm as specified above)
+               element relative {
+                 comment
+               }?
             }?
          }?,
          (

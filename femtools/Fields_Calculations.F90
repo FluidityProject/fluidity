@@ -490,24 +490,29 @@ implicit none
   end subroutine field_stats_tensor
 
   subroutine field_con_stats_scalar(field, nlfield, error, &
-                                    norm, coordinates, cv_mass)
+                                    norm, relative, coordinates, cv_mass)
     !!< Return scalar convergence informaion about field.
     type(scalar_field), intent(inout) :: field, nlfield
     !! error in the field.
     real, intent(out) :: error
     !! what norm are we working out
     integer, intent(in), optional :: norm
+    logical, intent(in), optional :: relative
     type(vector_field), intent(in), optional :: coordinates
     type(scalar_field), intent(in), optional :: cv_mass
     
     type(scalar_field) :: difference
     integer :: l_norm
+    logical :: l_relative
+    real :: relerror
     
     if(present(norm)) then
       l_norm = norm
     else
       l_norm = CONVERGENCE_INFINITY_NORM
     end if
+
+    l_relative = present_and_true(relative)
     
     assert(field%mesh==nlfield%mesh)
     
@@ -520,11 +525,24 @@ implicit none
     case(CONVERGENCE_INFINITY_NORM)
       error = maxval(difference%val)
       call allmax(error)
+      if (l_relative) then
+        relerror = maxval(abs(nlfield%val))
+        call allmax(relerror)
+        error = error/max(relerror, epsilon(0.0))
+      end if
     case(CONVERGENCE_L2_NORM)
       call field_stats(difference, X=coordinates, norm2=error)
+      if (l_relative) then
+        call field_stats(nlfield, X=coordinates, norm2=relerror)
+        error = error/max(relerror, epsilon(0.0))
+      end if
     case(CONVERGENCE_CV_L2_NORM)
       if (present(cv_mass)) then
         call field_cv_stats(difference, cv_mass=cv_mass, norm2=error)
+        if (l_relative) then
+          call field_cv_stats(nlfield, cv_mass=cv_mass, norm2=relerror)
+          error = error/max(relerror, epsilon(0.0))
+        end if
       else
         FLAbort('Require cv_mass to calculate field_cv_stats')
       end if
@@ -537,13 +555,14 @@ implicit none
   end subroutine field_con_stats_scalar
 
   subroutine field_con_stats_vector(field, nlfield, error, &
-                                    norm, coordinates)
+                                    norm, relative, coordinates)
     !!< Return scalar convergence information about field. For a vector
     !!< field the statistics are calculated on the magnitude of the field.
     type(vector_field) :: field, nlfield
     !! error in the field.
     real, intent(out) :: error
     integer, intent(in), optional :: norm
+    logical, intent(in), optional :: relative
     type(vector_field), intent(in), optional :: coordinates
 
     type(scalar_field) :: mag, nlmag
@@ -552,7 +571,7 @@ implicit none
     nlmag=magnitude(nlfield)
 
     call field_con_stats(mag, nlmag, error, &
-                         norm, coordinates)
+                         norm, relative, coordinates)
 
     call deallocate(mag)
     call deallocate(nlmag)

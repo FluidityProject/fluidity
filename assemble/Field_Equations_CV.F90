@@ -3593,13 +3593,17 @@ contains
        integer :: fileno
        
        integer :: convergence_norm
+       logical :: relative_norm
        
        convergence_norm = convergence_norm_integer(trim(field%option_path)//&
                           "/prognostic/temporal_discretisation/control_volumes/number_advection_iterations/tolerance")
+       relative_norm = have_option(trim(field%option_path)//&
+                          "/prognostic/temporal_discretisation/control_volumes/number_advection_iterations/tolerance/relative")
 
        error = 0.0
        call field_con_stats(field, nlfield, error, &
-                            convergence_norm, coordinates, cv_mass)
+                            convergence_norm, relative_norm, &
+                            coordinates, cv_mass)
 
        format='(e15.6e3)'
        iformat='(i4)'
