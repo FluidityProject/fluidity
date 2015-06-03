@@ -179,16 +179,6 @@ bin/$(FLUIDITY): main.o lib/lib$(FLUIDITY).a
 	@echo "    LD $(PROGRAM)"
 	@$(EVAL) $(LINKER) -o $(PROGRAM) main.o $(LIBS)
 
-hh: bin/hybridized_helmholtz_solver
-
-bin/hybridized_helmholtz_solver: fluidity_library main/Hybridized_Helmholtz_Solver.F90
-	@cd main; $(MAKE) Hybridized_Helmholtz_Solver.o
-	@echo "BUILD hybridized_helmholtz_solver"
-	@echo "    MKDIR bin"
-	@mkdir -p bin
-	@echo "    LD hybridized_helmholtz_solver"
-	@$(EVAL) $(FLLINKER) -o bin/hybridized_helmholtz_solver main/Hybridized_Helmholtz_Solver.o $(LIBS)
-
 bin/form_pod_basis: fluidity_library reduced_modelling/Form_Pod_Basis_Main.F90
 	@cd reduced_modelling; $(MAKE) Form_Pod_Basis_Main.o
 	@echo "BUILD Form_Pod_Basis"
