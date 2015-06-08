@@ -443,6 +443,8 @@
         <value name="WholeMesh">
           <python>
             <string_value lines="20" type="code" language="python">def val(X, t):
+   from sys import path
+   path.append('../darcy_impes_common/')
    from buckley_leverett_test_tools import interp_using_analytic
    afname = "reference_solution/analytic_BL_QuadraticPerm_withgravity_updip_saturation2.txt"
    return interp_using_analytic(X[0], afname)</string_value>

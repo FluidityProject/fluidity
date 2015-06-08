@@ -210,9 +210,6 @@ class ProcessMesh(MMSCommand):
    def __init__(self):
       MMSCommand.__init__(self)
       default_fluidity_path()
-      self.interval_path = os.environ["FLUIDITYPATH"] + "bin/interval"
-      if not os.path.isfile(self.interval_path): 
-         raise IOError("Cannot find " + self.interval_path)
       
    def execute(self, level_name, value, indent):
       # all levels record level details
@@ -262,16 +259,9 @@ class ProcessMesh(MMSCommand):
 
          # call interval or gmsh
          # TODO tell user to 'make geo' if needed
-         if self.dim==1:
-            lx=self.domain_extents[0]
-            dx=lx/float(param.mesh_res)
-            subprocess.call([self.interval_path, '0.0',
-                             str(lx), '--dx='+str(dx),
-                             param.mesh_name])
-         else:
-            subprocess.call(['gmsh', '-'+str(self.dim),
-                             param.geo_filename],
-                            stdout=open(os.devnull, 'wb'))
+         subprocess.call(['gmsh', '-'+str(self.dim),
+                          param.geo_filename],
+                         stdout=open(os.devnull, 'wb'))
 
             
 class CleanUp(MMSCommand):

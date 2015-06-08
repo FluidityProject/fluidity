@@ -217,7 +217,8 @@ def interp_using_analytic(x, analytic_filename):
 
        
 class BuckleyLeverettTestSuite:
-    """Class to help run and postprocess tests.  numerical_filename_stem is
+    """
+    Class to help run and postprocess tests.  numerical_filename_stem is
     a string to be appended with the elements in model_name_list and
     mesh_suffix_list, where the latter is one of three elements in the
     list mesh_suffix_list_per_dimension.  analytic_filename_stem is a
@@ -225,7 +226,6 @@ class BuckleyLeverettTestSuite:
     question, which in turn are translated from the elements in
     field_name_list.  If a field_name is 'Phase2::Saturation', then the
     shorthand is saturation2.
-
     """
     def __init__(self, numerical_filename_stem, model_name_list,
                  mesh_suffix_list_per_dimension, analytic_filename_stem,

@@ -1,3 +1,6 @@
+from sys import path
+path.append('../darcy_impes_common')
+
 from buckley_leverett_test_tools import BuckleyLeverettTestSuite
 
 numerical_filename_stem = "darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag"

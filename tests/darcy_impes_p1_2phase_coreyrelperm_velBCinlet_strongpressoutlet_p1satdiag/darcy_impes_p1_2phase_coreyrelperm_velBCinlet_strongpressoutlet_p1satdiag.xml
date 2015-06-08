@@ -259,14 +259,20 @@ assert(solvers_converged)
     
     <!-- analytical comparisons, 1st order, 1D -->
     <test name="relpermupwind_1d_saturation2_l1_AB: order gt 0.45" language="python">
+from sys import path
+path.append('../darcy_impes_common/')
 from buckley_leverett_test_tools import find_rate
 assert( find_rate("relpermupwind_1d_saturation2_l1_AB") &gt; 0.45 )
     </test>
     <test name="relpermupwind_1d_saturation2_l1_BC: order gt 0.45" language="python">
+from sys import path
+path.append('../darcy_impes_common/')
 from buckley_leverett_test_tools import find_rate
 assert( find_rate("relpermupwind_1d_saturation2_l1_BC") &gt; 0.45 )
     </test>
     <test name="relpermupwind_1d_saturation2_l1_CD: order gt 0.45" language="python">
+from sys import path
+path.append('../darcy_impes_common/')
 from buckley_leverett_test_tools import find_rate
 assert( find_rate("relpermupwind_1d_saturation2_l1_CD") &gt; 0.45 )
     </test>
@@ -359,14 +365,20 @@ assert abs(v_tot_mag_min_relpermupwind_1d_A - 1.0) &lt; 1.0e-08
 
     <!-- analytical comparisons, 2nd order w/Sweby, 1D -->
     <test name="modrelpermupwind_satfesweby_1d_saturation2_l1_AB: order gt 0.45" language="python">
+from sys import path
+path.append('../darcy_impes_common/')
 from buckley_leverett_test_tools import find_rate
 assert( find_rate("modrelpermupwind_satfesweby_1d_saturation2_l1_AB") &gt; 0.45 )
     </test>
     <test name="modrelpermupwind_satfesweby_1d_saturation2_l1_BC: order gt 0.45" language="python">
+from sys import path
+path.append('../darcy_impes_common/')
 from buckley_leverett_test_tools import find_rate
 assert( find_rate("modrelpermupwind_satfesweby_1d_saturation2_l1_BC") &gt; 0.45 )
     </test>
     <test name="modrelpermupwind_satfesweby_1d_saturation2_l1_CD: order gt 0.45" language="python">
+from sys import path
+path.append('../darcy_impes_common/')
 from buckley_leverett_test_tools import find_rate
 assert( find_rate("modrelpermupwind_satfesweby_1d_saturation2_l1_CD") &gt; 0.45 )
     </test>
@@ -459,28 +471,40 @@ assert abs(v_tot_mag_min_modrelpermupwind_satfesweby_1d_A - 1.0) &lt; 1.0e-08
     
     <!-- analytical comparisons, 1st order, 2D and 3D -->
     <test name="relpermupwind_2d_saturation2_l1_AB: order gt 0.45" language="python">
+from sys import path
+path.append('../darcy_impes_common/')
 from buckley_leverett_test_tools import find_rate
 assert( find_rate("relpermupwind_2d_saturation2_l1_AB") &gt; 0.45 )
     </test>
     <test name="relpermupwind_2d_saturation2_l1_BC: order gt 0.45" language="python">
+from sys import path
+path.append('../darcy_impes_common/')
 from buckley_leverett_test_tools import find_rate
 assert( find_rate("relpermupwind_2d_saturation2_l1_BC") &gt; 0.45 )
     </test>
     <test name="relpermupwind_3d_saturation2_l1_AB: order gt 0.45" language="python">
+from sys import path
+path.append('../darcy_impes_common/')
 from buckley_leverett_test_tools import find_rate
 assert( find_rate("relpermupwind_3d_saturation2_l1_AB") &gt; 0.45 )
     </test>
     
     <!-- analytical comparisons, 2nd order w/Sweby, 2D and 3D -->
     <test name="modrelpermupwind_satfesweby_2d_saturation2_l1_AB: order gt 0.45" language="python">
+from sys import path
+path.append('../darcy_impes_common/')
 from buckley_leverett_test_tools import find_rate
 assert( find_rate("modrelpermupwind_satfesweby_2d_saturation2_l1_AB") &gt; 0.45 )
     </test>
     <test name="modrelpermupwind_satfesweby_2d_saturation2_l1_BC: order gt 0.45" language="python">
+from sys import path
+path.append('../darcy_impes_common/')
 from buckley_leverett_test_tools import find_rate
 assert( find_rate("modrelpermupwind_satfesweby_2d_saturation2_l1_BC") &gt; 0.45 )
     </test>
     <test name="modrelpermupwind_satfesweby_3d_saturation2_l1_AB: order gt 0.45" language="python">
+from sys import path
+path.append('../darcy_impes_common/')
 from buckley_leverett_test_tools import find_rate
 assert( find_rate("modrelpermupwind_satfesweby_3d_saturation2_l1_AB") &gt; 0.45 )
     </test>

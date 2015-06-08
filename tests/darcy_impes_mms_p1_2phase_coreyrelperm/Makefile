@@ -3,15 +3,10 @@ include ../darcy_impes_common/Depend.mk
 all: geo
 	python processing.py all
 
-input: code geo clean-generated
-
-code:
-	$(call import_python_code,batch_tools.py)
-	$(call import_python_code,test_tools.py)
-	$(call import_python_code,manufactured_solution_test_tools.py)
+input: geo clean-generated
 
 geo:
-	cp ../darcy_impes_common/mesh_data/template_* .
+	cp $(FLUIDITYPATH)/tests/darcy_impes_common/mesh_data/template_* .
 
 gen:
 	python processing.py gen
@@ -49,10 +44,5 @@ clean-geo:
 	rm -f template_*.sh
 	rm -f template_*.geo
 
-clean-code:
-	rm -f manufactured_solution_test_tools.py
-	rm -f test_tools.py
-	rm -f batch_tools.py
-
-clean: clean-generated clean-geo clean-code
+clean: clean-generated clean-geo
 
