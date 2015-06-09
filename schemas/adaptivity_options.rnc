@@ -771,17 +771,67 @@ hr_adaptivity =
          }?,
          ## Mesh size constraints: the minimum edge length bound.
          element tensor_field {
-           attribute name { "MinimumEdgeLengths" },
-           element anisotropic_symmetric {
-             input_choice_real_dim_symmetric_tensor
-           }
+            attribute rank { "2" },
+            attribute name { "MinimumEdgeLengths" },
+            ## Field type
+            (
+               element prescribed {
+	          (
+                     element value { 
+		        attribute name { "WholeMesh" },
+			element anisotropic_symmetric {
+  		           input_choice_real_dim_symmetric_tensor
+			}
+                     }|
+                     element value {
+                        attribute name { string },
+                        region_ids?,
+			element anisotropic_symmetric {	
+			   input_choice_real_dim_symmetric_tensor
+			}
+                     }
+                  )+
+               }|
+               element aliased {
+                  generic_aliased_field
+               }|
+               element diagnostic {
+                  tensor_diagnostic_algorithms,
+                  diagnostic_tensor_field
+               }
+            )
          },
          ## Mesh size constraints: the maximum edge length bound.
-         element tensor_field {
-           attribute name { "MaximumEdgeLengths" },
-           element anisotropic_symmetric {
-             input_choice_real_dim_symmetric_tensor
-           }
+	 element tensor_field {
+            attribute rank { "2" },
+            attribute name { "MaximumEdgeLengths" },
+            ## Field type
+            (
+               element prescribed {
+	          (
+                     element value { 
+		        attribute name { "WholeMesh" },
+			element anisotropic_symmetric {
+		           input_choice_real_dim_symmetric_tensor
+			}
+                     }|
+                     element value {
+                        attribute name { string },
+                        region_ids?,
+			element anisotropic_symmetric {
+			   input_choice_real_dim_symmetric_tensor
+			}
+                     }
+                  )+
+               }|
+               element aliased {
+                  generic_aliased_field
+               }|
+               element diagnostic {
+                  tensor_diagnostic_algorithms,
+                  diagnostic_tensor_field
+               }
+            )
          },
          ## Supply a reference mesh with which to bound the metric
          element reference_mesh {

@@ -4,6 +4,7 @@
 module form_metric_field
 
   use fields
+  use state_module
   use vector_tools
   use unittest_tools
   use merge_tensors
@@ -26,7 +27,8 @@ module form_metric_field
   end interface
 
   private
-  public :: form_metric, bound_metric, p_norm_scale_metric
+  public :: form_metric, bound_metric, p_norm_scale_metric,&
+       initialise_bounding_tensors
 
   contains
 
@@ -189,6 +191,45 @@ module form_metric_field
       end do
     end if
   end subroutine relative_metric
+
+  subroutine initialise_bounding_tensors(state)
+    !!< calculate the eigenvalue bounds of the metric 
+    !!  from the edge length tensors
+    type(state_type), dimension(:),  intent(inout) :: state
+
+    type(tensor_field), pointer :: min_bound, max_bound
+    type(tensor_field), pointer :: min_edge_lengths, max_edge_lengths
+
+    integer :: node, n_vals
+    
+    min_edge_lengths => extract_tensor_field(state(1), "MinimumEdgeLengths")
+    max_edge_lengths => extract_tensor_field(state(1), "MaximumEdgeLengths")
+    min_bound => extract_tensor_field(state(1), "MaxMetricEigenbound")
+    max_bound => extract_tensor_field(state(1), "MinMetricEigenbound")
+
+    !! Note : min and max exchange meanings, between edge lengths
+    !! and eignevalues, due to reciprocity
+
+    if (min_bound%field_type==FIELD_TYPE_CONSTANT) then
+       n_vals=1
+    else
+       n_vals=node_count(min_bound)
+    end if
+    do node=1,n_vals
+       call set(min_bound, node,&
+            eigenvalue_from_edge_length(node_val(max_edge_lengths, node)))
+    end do
+     if (max_bound%field_type==FIELD_TYPE_CONSTANT) then
+       n_vals=1
+    else
+       n_vals=node_count(max_bound)
+    end if
+    do node=1,n_vals
+       call set(max_bound, node,&
+            eigenvalue_from_edge_length(node_val(min_edge_lengths, node)))
+    end do
+
+  end subroutine initialise_bounding_tensors
 
   subroutine bound_metric_anisotropic(hessian, state, stat)
     !!< Implement the anisotropic edge length bounds.

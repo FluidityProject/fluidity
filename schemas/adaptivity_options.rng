@@ -888,21 +888,91 @@ in the goal, in the units of the goal itself.</a:documentation>
       </optional>
       <element name="tensor_field">
         <a:documentation>Mesh size constraints: the minimum edge length bound.</a:documentation>
+        <attribute name="rank">
+          <value>2</value>
+        </attribute>
         <attribute name="name">
           <value>MinimumEdgeLengths</value>
         </attribute>
-        <element name="anisotropic_symmetric">
-          <ref name="input_choice_real_dim_symmetric_tensor"/>
-        </element>
+        <choice>
+          <a:documentation>Field type</a:documentation>
+          <element name="prescribed">
+            <oneOrMore>
+              <choice>
+                <element name="value">
+                  <attribute name="name">
+                    <value>WholeMesh</value>
+                  </attribute>
+                  <element name="anisotropic_symmetric">
+                    <ref name="input_choice_real_dim_symmetric_tensor"/>
+                  </element>
+                </element>
+                <element name="value">
+                  <attribute name="name">
+                    <data type="string" datatypeLibrary=""/>
+                  </attribute>
+                  <optional>
+                    <ref name="region_ids"/>
+                  </optional>
+                  <element name="anisotropic_symmetric">
+                    <ref name="input_choice_real_dim_symmetric_tensor"/>
+                  </element>
+                </element>
+              </choice>
+            </oneOrMore>
+          </element>
+          <element name="aliased">
+            <ref name="generic_aliased_field"/>
+          </element>
+          <element name="diagnostic">
+            <ref name="tensor_diagnostic_algorithms"/>
+            <ref name="diagnostic_tensor_field"/>
+          </element>
+        </choice>
       </element>
       <element name="tensor_field">
         <a:documentation>Mesh size constraints: the maximum edge length bound.</a:documentation>
+        <attribute name="rank">
+          <value>2</value>
+        </attribute>
         <attribute name="name">
           <value>MaximumEdgeLengths</value>
         </attribute>
-        <element name="anisotropic_symmetric">
-          <ref name="input_choice_real_dim_symmetric_tensor"/>
-        </element>
+        <choice>
+          <a:documentation>Field type</a:documentation>
+          <element name="prescribed">
+            <oneOrMore>
+              <choice>
+                <element name="value">
+                  <attribute name="name">
+                    <value>WholeMesh</value>
+                  </attribute>
+                  <element name="anisotropic_symmetric">
+                    <ref name="input_choice_real_dim_symmetric_tensor"/>
+                  </element>
+                </element>
+                <element name="value">
+                  <attribute name="name">
+                    <data type="string" datatypeLibrary=""/>
+                  </attribute>
+                  <optional>
+                    <ref name="region_ids"/>
+                  </optional>
+                  <element name="anisotropic_symmetric">
+                    <ref name="input_choice_real_dim_symmetric_tensor"/>
+                  </element>
+                </element>
+              </choice>
+            </oneOrMore>
+          </element>
+          <element name="aliased">
+            <ref name="generic_aliased_field"/>
+          </element>
+          <element name="diagnostic">
+            <ref name="tensor_diagnostic_algorithms"/>
+            <ref name="diagnostic_tensor_field"/>
+          </element>
+        </choice>
       </element>
       <zeroOrMore>
         <element name="reference_mesh">

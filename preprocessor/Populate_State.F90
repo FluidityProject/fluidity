@@ -1340,7 +1340,7 @@ contains
        end do
     end do
 
-    call allocate_metric_limits(states(1))
+    call allocate_metric_limits(states)
     
   contains
     
@@ -1804,9 +1804,9 @@ contains
     logical :: is_constant
 
     if(trim(t_field%name) == "MinMetricEigenbound") then
-      is_constant = have_option("/mesh_adaptivity/hr_adaptivity/tensor_field::MinimumEdgeLengths/anisotropic_symmetric/constant")
+      is_constant = allocate_tensor_field_as_constant("/mesh_adaptivity/hr_adaptivity/tensor_field::MinimumEdgeLengths/")
     else if(trim(t_field%name) == "MaxMetricEigenbound") then
-      is_constant = have_option("/mesh_adaptivity/hr_adaptivity/tensor_field::MaximumEdgeLengths/anisotropic_symmetric/constant")
+      is_constant = allocate_tensor_field_as_constant("/mesh_adaptivity/hr_adaptivity/tensor_field::MaximumEdgeLengths/")
     else
       is_constant = allocate_tensor_field_as_constant(t_field%option_path)
     end if
@@ -2413,6 +2413,7 @@ contains
     !! the fields with needs_initial_mesh(field) are left untouched, they have to
     !! be interpolated (somewhere else)
     logical, intent(in), optional:: initial_mesh
+
 
     ! these must be pointers as bc's should be added to the original field
     type(scalar_field), pointer :: sfield
@@ -3057,7 +3058,7 @@ contains
 
 
   subroutine allocate_metric_limits(state)
-    type(state_type), intent(inout) :: state
+    type(state_type), dimension(:), intent(inout) :: state
     type(tensor_field) :: min_edge, max_edge
     type(tensor_field) :: min_eigen, max_eigen
     character(len=*), parameter :: path = &
@@ -3065,58 +3066,99 @@ contains
     logical :: is_constant
     type(mesh_type), pointer :: mesh
     type(vector_field), pointer :: X
-    integer :: node
+    integer :: i
+    character(len=FIELD_NAME_LEN) :: state_name, field_name
 
     if (.not. have_option(path)) then
       return
     end if
 
-    X => extract_vector_field(state, "Coordinate")
+    X => extract_vector_field(state(1), "Coordinate")
     ! We can't use the external mesh in the extruded case -- these have to go on the
     ! CoordinateMesh.
     !mesh => get_external_mesh((/state/))
-    mesh => extract_mesh(state, trim(topology_mesh_name))
+    mesh => extract_mesh(state(1), trim(topology_mesh_name))
 
-    if (.not. have_option(path // "/tensor_field::MinimumEdgeLengths")) then
+    if (.not. have_option(path // "tensor_field::MinimumEdgeLengths")) then
       ewrite(-1,*) "Warning: adaptivity turned on, but no edge length limits available?"
       return
     end if
 
-    is_constant = (have_option(path // "/tensor_field::MinimumEdgeLengths/anisotropic_symmetric/constant"))
-    if (is_constant) then
-      call allocate(min_edge, mesh, "MinimumEdgeLengths", field_type=FIELD_TYPE_CONSTANT)
-      call initialise_field(min_edge, path // "/tensor_field::MinimumEdgeLengths", X)
-      call allocate(max_eigen, mesh, "MaxMetricEigenbound", field_type=FIELD_TYPE_CONSTANT)
-      call set(max_eigen, eigenvalue_from_edge_length(node_val(min_edge, 1)))
+
+    is_constant = (have_option(path // "tensor_field::MinimumEdgeLengths/prescribed/value/anisotropic_symmetric/constant"))
+
+    if (have_option(path // "tensor_field::MinimumEdgeLengths/aliased")) then
+       call get_option(path // "tensor_field::MinimumEdgeLengths/aliased/material_phase_name",&
+       state_name)
+       call get_option(path // "tensor_field::MinimumEdgeLengths/aliased/field_name",&
+       field_name)
+       do i=1,size(state)
+          if (trim(state(i)%name)==trim(state_name)) exit
+       end do
+       if (i>size(state)) then
+          !! We've failed to find the name of the aliased state
+          FLAbort( "Unknown material phase name when aliasing MiniumumEdgeLengths: " //trim(state_name))
+       end if
+       min_edge=extract_tensor_field(state(i),trim(field_name))
+       min_edge%aliased=.true.
+    else if (is_constant) then
+          call allocate(min_edge, mesh, "MinimumEdgeLengths", field_type=FIELD_TYPE_CONSTANT)
+          call allocate(max_eigen, mesh, "MaxMetricEigenbound", field_type=FIELD_TYPE_CONSTANT)
+      !! Field gets value assigned in initialise_bounding_tensors() during 
+      !! mesh adaptivity routines
     else
       call allocate(min_edge, mesh, "MinimumEdgeLengths")
-      call initialise_field(min_edge, path // "/tensor_field::MinimumEdgeLengths", X)
       call allocate(max_eigen, mesh, "MaxMetricEigenbound")
-      do node=1,node_count(mesh)
-        call set(max_eigen, node, eigenvalue_from_edge_length(node_val(min_edge, node)))
-      end do
+      !! Field gets value assigned in initialise_bounding_tensors() during 
+      !! mesh adaptivity routines
     end if
       
-    call insert(state, max_eigen, "MaxMetricEigenbound")
+    call zero(max_eigen)
+    call zero(min_edge)
+    if (have_option(path // "tensor_field::MinimumEdgeLengths/prescribed"))&
+         call initialise_field_over_regions(min_edge, path // "tensor_field::MinimumEdgeLengths/prescribed/value", X)
+    !! Diagnostic fields get dealt with later on
+
+    call insert(state(1), min_edge,  "MinimumEdgeLengths")
+    call insert(state(1), max_eigen, "MaxMetricEigenbound")
     call deallocate(min_edge)
     call deallocate(max_eigen)
 
-    is_constant = (have_option(path // "/tensor_field::MaximumEdgeLengths/anisotropic_symmetric/constant"))
-    if (is_constant) then
+    is_constant = (have_option(path // "tensor_field::MaximumEdgeLengths/prescribed/value/anisotropic_symmetric/constant"))
+    if (have_option(path // "tensor_field::MaximumEdgeLengths/aliased")) then
+       call get_option(path // "tensor_field::MaximumEdgeLengths/aliased/material_phase_name",&
+       state_name)
+       call get_option(path // "tensor_field::MaximumEdgeLengths/aliased/field_name",&
+       field_name)
+       do i=1,size(state)
+          if (trim(state(i)%name)==trim(state_name)) exit
+       end do
+       if (i>size(state)) then
+          !! We've failed to find the name of the aliased state
+          FLAbort( "Unknown material phase name when aliasing MaxiumumEdgeLengths: " //trim(state_name))
+       end if
+       max_edge=extract_tensor_field(state(i),trim(field_name))
+       max_edge%aliased=.true.
+    else if (is_constant) then
       call allocate(max_edge, mesh, "MaximumEdgeLengths", field_type=FIELD_TYPE_CONSTANT)
-      call initialise_field(max_edge, path // "/tensor_field::MaximumEdgeLengths", X)
       call allocate(min_eigen, mesh, "MinMetricEigenbound", field_type=FIELD_TYPE_CONSTANT)
-      call set(min_eigen, eigenvalue_from_edge_length(node_val(max_edge, 1)))
+      !! Field gets value assigned in initialise_bounding_tensors() during 
+      !! mesh adaptivity routines
     else
       call allocate(max_edge, mesh, "MaximumEdgeLengths")
-      call initialise_field(max_edge, path // "/tensor_field::MaximumEdgeLengths", X)
       call allocate(min_eigen, mesh, "MinMetricEigenbound")
-      do node=1,node_count(mesh)
-        call set(min_eigen, node, eigenvalue_from_edge_length(node_val(max_edge, node)))
-      end do
+      !! Field gets value assigned in initialise_bounding_tensors() during 
+      !! mesh adaptivity routines
     end if
       
-    call insert(state, min_eigen, "MinMetricEigenbound")
+    call zero(min_eigen)
+    call zero(max_edge)
+    if (have_option(path // "tensor_field::MaximumEdgeLengths/prescribed"))&
+         call initialise_field_over_regions(max_edge, path // "tensor_field::MaximumEdgeLengths/prescribed/value", X)
+    !! Diagnostic fields get dealt with later on
+
+    call insert(state(1), max_edge,  "MaximumEdgeLengths")
+    call insert(state(1), min_eigen, "MinMetricEigenbound")
     call deallocate(max_edge)
     call deallocate(min_eigen)
 

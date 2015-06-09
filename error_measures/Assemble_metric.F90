@@ -79,6 +79,7 @@ module metric_assemble
     call zero(error_metric)
 
     call initialise_boundcount(error_metric%mesh, positions)
+    call initialise_bounding_tensors(state)
 
     call initialise_interpolation_metric
     call initialise_goal_metric
@@ -89,6 +90,7 @@ module metric_assemble
     call initialise_geometric_constraints_metric
     call initialise_metric_advection
     call initialise_richardson_number_metric
+
 
     if (use_goal_metric) then
 !     ***** Note that the following interface causes issues with the Intel compiler. Changed for now as a workaround ******
