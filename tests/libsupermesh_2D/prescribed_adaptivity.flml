@@ -221,7 +221,7 @@
       <real_value rank="0">1.0</real_value>
     </timestep>
     <finish_time>
-      <real_value rank="0">10.0</real_value>
+      <real_value rank="0">8.0</real_value>
     </finish_time>
   </timestepping>
   <physical_parameters/>

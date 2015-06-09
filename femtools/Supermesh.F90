@@ -155,6 +155,7 @@ module supermesh_construction
   ! I hope this is big enough ...
   real, dimension(1024) :: nodes_tmp
   logical :: intersector_exactness = .false.
+  integer, public :: returned_triangles, returned_tets
 
   public :: intersect_elements, intersector_set_dimension, intersector_set_exactness
   public :: construct_supermesh, compute_projection_error, intersector_exactness
@@ -252,6 +253,7 @@ module supermesh_construction
           do i = 1, n_trisC
             call set(intersection, ele_nodes(intersection, i), trisC_real(:,:,i))
           end do
+          returned_triangles = returned_triangles + n_trisC
         end if
 
         call deallocate(intersection_mesh)
@@ -295,6 +297,7 @@ module supermesh_construction
            call set(intersection, ele_nodes(intersection, i), tetsC_real(:,:,i))
          end do
        end if
+       returned_tets = returned_tets + n_tetsC
        call deallocate(intersection_mesh)
      else
        ! Unkown D
@@ -342,6 +345,11 @@ module supermesh_construction
       do i = 1, dim
         intersection%val(i,:) = nodes_tmp((i - 1) * nonods + 1:i * nonods)
       end do
+      if (dim == 2) then
+        returned_triangles = returned_triangles + ele_count(intersection)
+      else if (dim == 3) then
+        returned_tets = returned_tets + ele_count(intersection)
+      end if
     end if
 
     call deallocate(intersection_mesh)

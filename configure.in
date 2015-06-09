@@ -1117,17 +1117,39 @@ AC_ARG_ENABLE(profiling,
 [enable gprof profiling])])
 
 if test "$enable_profiling" = "yes" ; then
-  PROFILING_FLAG="-pg"
-  CPPFLAGS="-pg $CPPFLAGS"
-  FFLAGS="-pg $FFLAGS"
-  FCFLAGS="-pg $FCFLAGS"
+  PROFILING_FLAG="-pg -g"
+  CPPFLAGS="-pg -g $CPPFLAGS"
+  FFLAGS="-pg -g $FFLAGS"
+  FCFLAGS="-pg -g $FCFLAGS"
 
-  LINKER="$LINKER -pg"
-  LIBS="$LIBS -pg"
+  LINKER="$LINKER -pg -g"
+  LIBS="$LIBS -pg -g"
 else
   PROFILING_FLAG=""
 fi
 AC_SUBST(PROFILING_FLAG)
+
+
+##############################################################
+# enable perftools profiling
+
+AC_ARG_ENABLE(perfprofiling,
+[AC_HELP_STRING([--enable-perfprofiling],
+[enable perf profiling])])
+
+if test "$enable_perfprofiling" = "yes" ; then
+  PROFILING_FLAG="-lprofiler -g"
+  CPPFLAGS="-lprofiler -g $CPPFLAGS"
+  FFLAGS="-lprofiler -g $FFLAGS"
+  FCFLAGS="-lprofiler -g $FCFLAGS"
+
+  LINKER="$LINKER -lprofiler -g"
+  LIBS="$LIBS -lprofiler -g"
+else
+  PROFILING_FLAG=""
+fi
+AC_SUBST(PROFILING_FLAG)
+
 
 dnl Checks for typedefs, structures, and compiler characteristics.
 # These tests were just giving too much trouble. Need to investigate further.
