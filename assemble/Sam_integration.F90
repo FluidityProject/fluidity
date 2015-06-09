@@ -52,7 +52,6 @@ module sam_integration
   
   use data_structures
   use detector_data_types
-  use detector_tools
   use diagnostic_variables
   use pickers
   use ieee_arithmetic
