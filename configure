@@ -769,6 +769,7 @@ enable_petsc_fortran_modules
 with_x
 enable_dp
 enable_profiling
+enable_perfprofiling
 enable_spatialindex_version
 with_arpack_lib
 enable_vtk
@@ -1437,6 +1438,7 @@ Optional Features:
                           compiler version)
   --enable-dp=flag        compile with 64 bit floating point numbers (default)
   --enable-profiling      enable gprof profiling
+  --enable-perfprofiling  enable perftools profiling
   --enable-spatialindex-version
                           Select required version of spatialindex library:
                           1.8.0
@@ -13615,16 +13617,17 @@ fi
 
 
 if test "$enable_profiling" = "yes" ; then
-  PROFILING_FLAG="-pg"
-  CPPFLAGS="-pg $CPPFLAGS"
-  FFLAGS="-pg $FFLAGS"
-  FCFLAGS="-pg $FCFLAGS"
+  PROFILING_FLAG="-pg -g"
+  CPPFLAGS="-pg -g $CPPFLAGS"
+  FFLAGS="-pg -g $FFLAGS"
+  FCFLAGS="-pg -g $FCFLAGS"
 
-  LINKER="$LINKER -pg"
-  LIBS="$LIBS -pg"
+  LINKER="$LINKER -pg -g"
+  LIBS="$LIBS -pg -g"
 else
   PROFILING_FLAG=""
 fi
+
 
 
 # These tests were just giving too much trouble. Need to investigate further.
