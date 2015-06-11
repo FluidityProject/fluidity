@@ -65,8 +65,8 @@ module tetrahedron_intersection_module
 
   type(tet_type), dimension(BUF_SIZE), save :: tet_array, tet_array_tmp
   integer :: tet_cnt = 0, tet_cnt_tmp = 0
-  type(mesh_type), save :: intersection_mesh
-  logical, save :: mesh_allocated = .false.
+  type(mesh_type), save, private :: intersection_mesh
+  logical, save, private :: mesh_allocated = .false.
 
   public :: tet_type, plane_type, intersect_tets, get_planes, finalise_tet_intersector
 
