@@ -336,6 +336,24 @@
         state, inner_mesh, blocks(div_matrix_comp,2), inner_option_path, matrix_has_solver_cache=.false., &
         mesh_positions=mesh_positions)
       rotation_matrix => extract_petsc_csr_matrix(state, "RotationMatrix", stat=rotation_stat)
+
+      if (associated(mesh_positions)) then
+        if (rotation_stat==0) then
+          call attach_null_space_from_options(inner_M%M, inner_solver_option_path, &
+            positions=mesh_positions, rotation_matrix=rotation_matrix%M, &
+            petsc_numbering=petsc_numbering_u)
+        else
+          call attach_null_space_from_options(inner_M%M, inner_solver_option_path, &
+            positions=mesh_positions, petsc_numbering=petsc_numbering_u)
+        end if
+      elseif (rotation_stat==0) then
+        call attach_null_space_from_options(inner_M%M, inner_solver_option_path, &
+          rotation_matrix=rotation_matrix%M, petsc_numbering=petsc_numbering_u)
+      else
+        call attach_null_space_from_options(inner_M%M, inner_solver_option_path, &
+          petsc_numbering=petsc_numbering_u)
+      end if
+
       if (associated(prolongators)) then
         if (rotation_stat==0) then
           FLExit("Rotated boundary conditions do not work with mg prolongators")
@@ -344,31 +362,13 @@
         if (associated(surface_nodes)) then
           FLExit("Internal smoothing not available for inner solve")
         end if
-        if (associated(mesh_positions)) then
-          call setup_ksp_from_options(ksp_schur, inner_M%M, inner_M%M, &
-            inner_solver_option_path, petsc_numbering=petsc_numbering_u, startfromzero_in=.true., &
-            prolongators=prolongators, positions=mesh_positions)
-        else
-          call setup_ksp_from_options(ksp_schur, inner_M%M, inner_M%M, &
-            inner_solver_option_path, petsc_numbering=petsc_numbering_u, startfromzero_in=.true., &
-            prolongators=prolongators)
-        end if
+        call setup_ksp_from_options(ksp_schur, inner_M%M, inner_M%M, &
+          inner_solver_option_path, petsc_numbering=petsc_numbering_u, startfromzero_in=.true., &
+          prolongators=prolongators)
         do i=1, size(prolongators)
           call deallocate(prolongators(i))
         end do
         deallocate(prolongators)
-      else if (associated(mesh_positions) .and. rotation_stat==0) then
-        call setup_ksp_from_options(ksp_schur, inner_M%M, inner_M%M, &
-          inner_solver_option_path, petsc_numbering=petsc_numbering_u, startfromzero_in=.true., &
-          positions=mesh_positions, rotation_matrix=rotation_matrix%M)
-      else if (associated(mesh_positions)) then
-        call setup_ksp_from_options(ksp_schur, inner_M%M, inner_M%M, &
-          inner_solver_option_path, petsc_numbering=petsc_numbering_u, startfromzero_in=.true., &
-          positions=mesh_positions)
-      else if (rotation_stat==0) then
-        call setup_ksp_from_options(ksp_schur, inner_M%M, inner_M%M, &
-          inner_solver_option_path, petsc_numbering=petsc_numbering_u, startfromzero_in=.true., &
-          rotation_matrix=rotation_matrix%M)
       else
         call setup_ksp_from_options(ksp_schur, inner_M%M, inner_M%M, &
           inner_solver_option_path, petsc_numbering=petsc_numbering_u, startfromzero_in=.true.)
@@ -400,8 +400,11 @@
       parallel=IsParallel()
 
       if(have_preconditioner_matrix) then
+         ! inside ksp, PETSc seems to only look at the nullspace of the pmat, not mat itself
+         call attach_null_space_from_options(pmat, solver_option_path, petsc_numbering=petsc_numbering_p)
          call SetupKSP(ksp,A,pmat,solver_option_path,parallel,petsc_numbering_p, lstartfromzero)
       else
+         call attach_null_space_from_options(A, solver_option_path, petsc_numbering=petsc_numbering_p)
          ! If preconditioner matrix is not required, send in A instead:
          call SetupKSP(ksp,A,A,solver_option_path,parallel,petsc_numbering_p, lstartfromzero)
       end if
