@@ -93,7 +93,11 @@ coriolis_options =
             },
 	    element point_on_axis {
 	       real_dim_vector
-	       }
+	    },
+	    ## Unsteady case with d\Omega/dt /= 0 
+	    element rate_of_change {
+	       real
+	    }?
          }
       )
    }

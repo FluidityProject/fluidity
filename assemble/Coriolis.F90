@@ -44,12 +44,12 @@ module coriolis_module
   !! from the options tree, this is to avoid having to read the options
   !! in performance critical routines in this module. They are private
   !! and should not be accessed directly
-  real, save :: f0
+  real, save :: f0, dOmega_dt
   real, dimension(:), pointer, save :: coriolis_beta
   real, save :: latitude0, R_earth
   ! coriolis_option has to have one of the following values:
   integer, parameter :: NO_CORIOLIS=0, F_PLANE=1, BETA_PLANE=2, &
-     SINE_OF_LATITUDE=3, CORIOLIS_ON_SPHERE=4, PYTHON_F_PLANE=5, CORIOLIS_WITH_AXIS=6, NOT_INITIALISED=-1
+     SINE_OF_LATITUDE=3, CORIOLIS_ON_SPHERE=4, PYTHON_F_PLANE=5, CORIOLIS_WITH_AXIS=6, CORIOLIS_WITH_AXIS_UNSTEADY=7, NOT_INITIALISED=-1
   integer, save :: coriolis_option=NOT_INITIALISED
   
   character(len = PYTHON_FUNC_LEN), save :: coriolis_python_func
@@ -93,12 +93,24 @@ module coriolis_module
       coriolis = f0
     case (CORIOLIS_WITH_AXIS)
       coriolis=f0
+   case (CORIOLIS_WITH_AXIS_UNSTEADY)
+      call update_unsteady_coriolis()
+      coriolis=f0
     case default
       ewrite(-1,*) "coriolis_option:", coriolis_option
       FLAbort("Unknown coriolis option")
     end select
   
   end function coriolis
+
+  subroutine update_unsteady_coriolis()
+    if (current_time/=python_coriolis_time) then
+       f0=f0+2.0*dOmega_dt*(current_time-python_coriolis_time)
+       python_coriolis_time=current_time
+    end if
+  end subroutine update_unsteady_coriolis
+
+
 
   subroutine update_f_plane_coriolis()
     !!< Update python set f-plane Coriolis variables
@@ -155,6 +167,7 @@ module coriolis_module
 
     integer :: gi, dim
     real, dimension(mesh_dim(X),ele_ngi(X,ele)) :: X_quad
+    real, dimension(mesh_dim(X)) :: x_cross
 
     !!! subroutine calculates the centrigual force source term at velocity 
     !!! quadrature points.
@@ -166,7 +179,14 @@ module coriolis_module
     X_quad=ele_val_at_quad(X,ele)
 
     do gi=1,ele_ngi(u,ele)
-       force(:,gi)=(f0/2.0)**2*(X_quad(:,gi)-point_on_axis(1:dim)-dot_product(X_quad(:,gi)-point_on_axis(1:dim),axis(1:dim))*axis(1:dim))
+       if(dim==2) then
+          x_cross=[-X_quad(2,gi)+point_on_axis(2),X_quad(1,gi)-point_on_axis(1)]
+       else
+          x_cross=cross_product(axis,X_quad(:,gi))
+       end if
+
+       force(:,gi)=(f0/2.0)**2*(X_quad(:,gi)-point_on_axis(1:dim)-dot_product(X_quad(:,gi)-point_on_axis(1:dim),axis(1:dim))*axis(1:dim))&
+            +dOmega_dt*x_cross
     end do
 
   end function centrifugal_force
@@ -273,7 +293,15 @@ module coriolis_module
        call get_option("/physical_parameters/coriolis/specified_axis/&
             &point_on_axis", point_on_axis(1:dim(1)))  
 
-       coriolis_option=CORIOLIS_WITH_AXIS
+       if (have_option("/physical_parameters/coriolis/specified_axis/&
+            &rate_of_change")) then
+          call get_option("/physical_parameters/coriolis/specified_axis/&
+            &rate_of_change",dOmega_dt)
+          coriolis_option=CORIOLIS_WITH_AXIS_UNSTEADY
+       else
+          dOmega_dt=0.0
+          coriolis_option=CORIOLIS_WITH_AXIS
+       end if
     else 
     
       ewrite(2, *) "Coriolis type: None"
