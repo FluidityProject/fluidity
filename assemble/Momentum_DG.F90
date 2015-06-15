@@ -119,6 +119,7 @@ module momentum_DG
   ! which terms do we have?
   logical :: have_mass
   logical :: have_source
+  logical :: have_centrifugal_force
   logical :: have_gravity
   logical :: on_sphere, radial_gravity
   logical :: have_absorption
@@ -400,6 +401,8 @@ contains
       swe_u_nl = extract_vector_field(state, "NonlinearVelocity")
     end if
 
+    have_centrifugal_force=have_option("/physical_parameters//coriolis/specified_axis")
+
     call get_option("/physical_parameters/gravity/magnitude", gravity_magnitude, stat)
     have_gravity = stat==0
     if (have_option(trim(u%option_path)//'/prognostic/equation::ShallowWater')) then
@@ -413,6 +416,11 @@ contains
       call incref(buoyancy)
       gravity=extract_vector_field(state, "GravityDirection", stat)
       call incref(gravity)
+    else if (have_centrifugal_force) then
+       buoyancy=extract_scalar_field(state, "VelocityBuoyancyDensity")
+       call incref(buoyancy)
+       call allocate(gravity, u%dim, u%mesh, "GravityDirection", FIELD_TYPE_CONSTANT)
+       call zero(gravity)
     else
       call allocate(buoyancy, u%mesh, "VelocityBuoyancyDensity", FIELD_TYPE_CONSTANT)
       call zero(buoyancy)
@@ -1361,7 +1369,19 @@ contains
       end if
     end if
 
-    if(have_gravity .and. assemble_element) then
+    if(have_centrifugal_force.and.acceleration.and.assemble_element) then
+       coefficient_detwei = detwei*ele_val_at_quad(buoyancy, ele)
+       if(multiphase) then
+          rhs_addto(:, :loc) = rhs_addto(:, :loc) + shape_vector_rhs(u_shape, &
+                                    centrifugal_force(X, U,  ele), &
+                                    coefficient_detwei*nvfrac_gi)
+       else
+          rhs_addto(:, :loc) = rhs_addto(:, :loc) + shape_vector_rhs(u_shape, &
+                                    centrifugal_force(X, U,  ele), &
+                                    coefficient_detwei)
+       end if
+    end if
+    if(have_gravity.and. assemble_element) then
       ! buoyancy
       if(subtract_out_reference_profile) then
          coefficient_detwei = detwei*gravity_magnitude*(ele_val_at_quad(buoyancy, ele)-ele_val_at_quad(hb_density, ele))

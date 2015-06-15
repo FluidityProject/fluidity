@@ -81,6 +81,19 @@ coriolis_options =
          ## where the return value is a float.
          element python_f_plane {
             python_code
+         }|
+	 ## As f_plane, but specifying a point through which the
+	 ## axis of rotation passes (axis of rotation is still assumed
+	 ## aligned with the z coordinate axis)
+	 ##
+         element specified_axis {
+	    ## Rotational velocity of system (in radians per unit time)
+            element rotational_velocity {
+               real
+            },
+	    element point_on_axis {
+	       real_dim_vector
+	       }
          }
       )
    }

@@ -108,6 +108,7 @@
 
     ! which terms do we have?
     logical :: have_source
+    logical :: have_centrifugal_force
     logical :: have_gravity
     logical :: have_absorption
     logical :: have_vertical_stabilization
@@ -378,6 +379,8 @@
         nullify(old_pressure)
       end if
 
+      have_centrifugal_force=have_option("/physical_parameters//coriolis/specified_axis")
+
       call get_option("/physical_parameters/gravity/magnitude", gravity_magnitude, &
           stat=stat)
       have_gravity = stat == 0
@@ -387,9 +390,9 @@
         buoyancy=>dummyscalar
         gravity=>dummyvector
         ! but we do need gravity_magnitude to convert pressure to free surface elevation
-      else if(have_gravity) then
+      else if(have_gravity .or. have_centrifugal_force) then
         buoyancy=>extract_scalar_field(state, "VelocityBuoyancyDensity")
-        gravity=>extract_vector_field(state, "GravityDirection", stat)
+        if (have_gravity)gravity=>extract_vector_field(state, "GravityDirection", stat)
       else
         buoyancy=>dummyscalar
         gravity=>dummyvector
@@ -1424,6 +1427,12 @@
       if(have_source) then
         call add_sources_element_cg(ele, test_function, u, density, source, detwei, rhs_addto)
       end if
+
+      ! Centrifugal_force terms
+
+      if(have_centrifugal_force) then
+         call add_centrifugal_force_element_cg(x, ele, test_function, u, buoyancy, nvfrac, detwei, rhs_addto)
+      end if
       
       ! Buoyancy terms
       if(have_gravity) then
@@ -1753,6 +1762,34 @@
       end if
       
     end subroutine add_sources_element_cg
+
+    subroutine add_centrifugal_force_element_cg(positions, ele, test_function, u, buoyancy, nvfrac, detwei, rhs_addto)
+
+            type(vector_field), intent(in) :: positions
+      integer, intent(in) :: ele
+      type(element_type), intent(in) :: test_function
+      type(vector_field), intent(in) :: u
+      type(scalar_field), intent(in) :: buoyancy
+      type(scalar_field), intent(in) :: nvfrac
+      real, dimension(ele_ngi(u, ele)), intent(in) :: detwei
+      real, dimension(u%dim, ele_loc(u, ele)), intent(inout) :: rhs_addto
+      
+      real, dimension(ele_ngi(u, ele)) :: nvfrac_gi
+      real, dimension(ele_ngi(u, ele)) :: coefficient_detwei
+
+      coefficient_detwei = ele_val_at_quad(buoyancy, ele)*detwei
+
+      if(multiphase) then
+         nvfrac_gi = ele_val_at_quad(nvfrac, ele)
+         coefficient_detwei = coefficient_detwei*nvfrac_gi
+      end if      
+
+      rhs_addto = rhs_addto + &
+           shape_vector_rhs(test_function, &
+           centrifugal_force(positions, U,  ele), &
+           coefficient_detwei)
+
+    end subroutine add_centrifugal_force_element_cg
     
     subroutine add_buoyancy_element_cg(positions, ele, test_function, u, buoyancy, hb_density, gravity, nvfrac, detwei, rhs_addto)
       type(vector_field), intent(in) :: positions
