@@ -92,6 +92,19 @@ Functions should be of the form:
 where the return value is a float.</a:documentation>
           <ref name="python_code"/>
         </element>
+        <element name="specified_axis">
+          <a:documentation>As f_plane, but specifying a point through which the
+axis of rotation passes (axis of rotation is still assumed
+aligned with the z coordinate axis)
+</a:documentation>
+          <element name="rotational_velocity">
+            <a:documentation>Rotational velocity of system (in radians per unit time)</a:documentation>
+            <ref name="real"/>
+          </element>
+          <element name="point_on_axis">
+            <ref name="real_dim_vector"/>
+          </element>
+        </element>
       </choice>
     </element>
   </define>
