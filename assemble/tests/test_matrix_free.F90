@@ -8,7 +8,7 @@ subroutine test_matrix_free
   use state_module
   use elements
   use sparse_tools
-  use read_triangle
+  use mesh_files
   use vtk_interfaces
   implicit none
   
@@ -36,8 +36,8 @@ subroutine test_matrix_free
 
   call set_global_debug_level(3)
 
-  positions=read_triangle_files("data/cube_unstructured", &
-       quad_degree=QUAD_DEGREE)
+  positions=read_mesh_files("data/cube_unstructured", &
+       quad_degree=QUAD_DEGREE, format="gmsh")
   x_mesh => positions%mesh
   
   call insert(state, positions, name="Coordinate")
@@ -70,7 +70,7 @@ subroutine run_model(state, rhs_func)
   use state_module
   use elements
   use sparse_tools
-  use read_triangle
+  use mesh_files
   use sparsity_patterns
   implicit none
   type(state_type), intent(inout) :: state
@@ -149,7 +149,7 @@ subroutine assemble_element_contribution(A, rhs, positions, psi, rhs_func&
   use state_module
   use elements
   use sparse_tools
-  use read_triangle
+  use mesh_files
   implicit none
   type(csr_matrix), intent(inout) :: A
   type(scalar_field), intent(inout) :: rhs

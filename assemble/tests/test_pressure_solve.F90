@@ -10,7 +10,7 @@
     use state_module
     use elements
     use sparse_tools
-    use read_triangle
+    use mesh_files
     use vtk_interfaces
     use boundary_conditions
     use global_parameters, only: OPTION_PATH_LEN
@@ -56,14 +56,14 @@
     read(unit, epsilon_data)
     close(unit) 
 
-    positions=read_triangle_files("cube_unstructured", &
-         quad_degree=QUAD_DEGREE)
+    positions=read_mesh_files("cube_unstructured", &
+         quad_degree=QUAD_DEGREE, format="gmsh")
 
     !call vtk_read_state("cube-1_1.vtu", state_in, quad_degree)
     !positions=extract_vector_field(state_in,name="Coordinate")
 
-    !positions=read_triangle_files("test_laplacian.1", &
-    !     quad_degree=QUAD_DEGREE)
+    !positions=read_mesh_files("test_laplacian.1", &
+    !     quad_degree=QUAD_DEGREE, format="gmsh")
     x_mesh => positions%mesh
 
     call insert(state, positions, name="Coordinate")
@@ -99,7 +99,7 @@
       use state_module
       use elements
       use sparse_tools
-      use read_triangle
+      use mesh_files
       use sparsity_patterns
       use boundary_conditions
       implicit none
@@ -260,7 +260,7 @@ subroutine assemble_laplacian_element_contribution(A, positions, psi, ele, &
   use state_module
   use elements
   use sparse_tools
-  use read_triangle
+  use mesh_files
   implicit none
   type(csr_matrix), intent(inout) :: A
   type(vector_field), intent(in) :: positions

@@ -2,7 +2,7 @@
 Form_Pod_Basis_Main.o : Form_Pod_Basis_Main.F90 ../include/fdebug.h \
    ../include/fields.mod ../include/fldebug.mod \
    ../include/global_parameters.mod ../include/memory_diagnostics.mod \
-   ../include/snapsvd_module.mod ../include/spud.mod \
+   ../include/petsc_legacy.h ../include/snapsvd_module.mod ../include/spud.mod \
    ../include/state_module.mod ../include/timeloop_utilities.mod \
    ../include/vtk_interfaces.mod ../include/write_state_module.mod
 

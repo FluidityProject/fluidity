@@ -419,8 +419,7 @@ contains
       f_gi = ele_val_at_quad(f,ele)
       up_gi = -ele_val_at_quad(down,ele)
 
-      call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J=J, &
-           detwei=detwei, detJ=detJ)
+      call compute_jacobian(X, ele, J=J, detwei=detwei, detJ=detJ)
 
       call addto(h_mass_mat, D_ele, D_ele, &
            shape_shape(D_shape,D_shape,detwei))

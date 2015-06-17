@@ -3,7 +3,7 @@ subroutine test_tensor_second_invariant
   use fields
   use field_derivatives
   use vtk_interfaces
-  use read_triangle
+  use mesh_files
   use state_module
   use unittest_tools
   implicit none
@@ -25,7 +25,7 @@ subroutine test_tensor_second_invariant
     end function
   end interface
 
-  positions=read_triangle_files("data/cube.3", quad_degree=4)
+  positions=read_mesh_files("data/cube.3", quad_degree=4, format="gmsh")
   mesh => positions%mesh
 
   call allocate(field, mesh, "Field")

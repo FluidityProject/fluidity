@@ -20,7 +20,7 @@
     </mesh>
     <mesh name="externalMesh">
       <from_file file_name="cube-1">
-        <format name="triangle"/>
+        <format name="gmsh"/>
         <stat>
           <include_in_stat/>
         </stat>

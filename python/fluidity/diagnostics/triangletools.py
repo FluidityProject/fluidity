@@ -352,6 +352,28 @@ def WriteTriangle(mesh, baseName):
     
   return
 
+def hasPeriodicBoundary(basename):
+  """
+  The given file is checked for the number of ids defined the header of edge/face files and returns a boolean.
+  """
+  def hasEdgeFile(basename):
+    return filehandling.FileExists(basename + ".edge")
+  def hasFaceFile(basename):
+    return filehandling.FileExists(basename + ".face")
+
+  hasEdge = hasEdgeFile(basename)
+  hasFace = hasFaceFile(basename)
+  if (hasEdge):
+    fileHandle = file(basename+".edge", "r")
+  elif (hasFace):
+    fileHandle = file(basename+".face", "r")
+  else:
+    return 
+  line = fileHandle.readline()
+  fileHandle.close()
+  nIds = int(line.strip().split()[-1])
+  return nIds==2 # If nIds==2, periodic boundaries were found in the triangle file
+
 class triangletoolsUnittests(unittest.TestCase):
   def testTriangleIo(self):
     tempDir = tempfile.mkdtemp()

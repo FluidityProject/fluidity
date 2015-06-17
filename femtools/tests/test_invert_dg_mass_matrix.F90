@@ -2,7 +2,7 @@ subroutine test_invert_dg_mass_matrix
   
   use fldebug
   use fields
-  use read_triangle
+  use mesh_files
   use DGtools
   use sparse_tools
   use transform_elements
@@ -22,7 +22,7 @@ subroutine test_invert_dg_mass_matrix
   quad_degree = 4
   quad=make_quadrature(vertices = 3, dim =2, degree=quad_degree)
   X_shape=make_element_shape(vertices = 3, dim =2, degree=1, quad=quad)
-  positions=read_triangle_files('data/square.1', X_shape)
+  positions=read_mesh_files('data/square.1', quad_degree=quad_degree, format="gmsh")
   u_shape=make_element_shape(vertices = 3, dim =2, degree=1, quad=quad)
   u_mesh = make_mesh(positions%mesh,u_shape,-1,'u_mesh')
 
