@@ -1738,8 +1738,8 @@ contains
       if (has_discontinuous_internal_boundaries(mesh)) then
         call add_faces(new_mesh, sndgln=sndgln, boundary_ids=boundary_ids, element_owner=element_owners)
       else
-        ! FIXME: need to add allow_duplicate_internal_facets from sndgln_fixes branch
-        call add_faces(new_mesh, sndgln=sndgln, boundary_ids=boundary_ids)
+        call add_faces(new_mesh, sndgln=sndgln, boundary_ids=boundary_ids, &
+          allow_duplicate_internal_facets=.true.)
       end if
     end if
 
