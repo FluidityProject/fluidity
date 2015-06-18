@@ -1398,6 +1398,9 @@ start =
                ## Generates an isotropic 'eddy viscosity', added to molecular viscosity field, that
                ## carries the influence of turbulence onto the velocity field. See the manual for details.
                element k-omega {
+                  ## Menter k-omega SST (2003).
+                  ## Select to use k-omega SST model.
+                  element k-omega_SST{empty}?,
                   ## Turbulent kinetic energy (k).
                   ## 1. Turn on diffusivity, source and absorption diagnostic fields.
                   ## 2. Use the same mesh as Velocity.
@@ -1516,7 +1519,7 @@ start =
                         velocity_mesh_choice,
                         diagnostic_scalar_field
                      }
-                  },
+                  }?,
                   ## F_2 blending function for k-omega SST
                   element scalar_field {
                      attribute rank { "0" },
@@ -1526,7 +1529,7 @@ start =
                         velocity_mesh_choice,
                         diagnostic_scalar_field
                      }
-                  },
+                  }?,
                   ## Grad k
                   element vector_field {
                      attribute rank { "0" },
@@ -1536,7 +1539,7 @@ start =
                         velocity_mesh_choice,
                         diagnostic_scalar_field
                      }
-                  },
+                  }?,
                   ## Grad omega
                   element vector_field {
                      attribute rank { "0" },
@@ -1546,7 +1549,7 @@ start =
                         velocity_mesh_choice,
                         diagnostic_scalar_field
                      }
-                  },
+                  }?,
                   ## CD_komg
                   element scalar_field {
                      attribute rank { "0" },
@@ -1556,7 +1559,7 @@ start =
                         velocity_mesh_choice,
                         diagnostic_scalar_field
                      }
-                  },
+                  }?,
                   ## Describes distance to nearest solid wall.
                   ## Required for low_Re boundaries.
                   ## For simple geometries the simplest method of providing this information is to use a python function.
@@ -1590,31 +1593,31 @@ start =
                   element Sigma_Star {real},
                   ## a_1.[k-omega SST]
                   ## Recommended value (default): 0.31.
-                  element a_1 {real},
+                  element a_1 {real}?,
                   ## Beta_1.[k-omega SST]
                   ## Recommended value (default): 0.075.
-                  element Beta_1 {real},
+                  element Beta_1 {real}?,
                   ## Beta_2.[k-omega SST]
                   ## Recommended value (default): 0.0828.
-                  element Beta_2 {real},
+                  element Beta_2 {real}?,
                   ## Gamma_1.[k-omega SST]
                   ## Recommended value (default): 0.5532.
-                  element Gamma_1 {real},
+                  element Gamma_1 {real}?,
                   ## Gamma_2.[k-omega SST]
-                  ## Recommended value (default): 0.4044.
-                  element Gamma_2 {real},
+                  ## Recommended value (default): 0.4403.
+                  element Gamma_2 {real}?,
                   ## Sigma_k1.[k-omega SST]
-                  ## Recommended value (default): 0.85.
-                  element Sigma_k1 {real},
+                  ## Recommended value (default): 0.85034.
+                  element Sigma_k1 {real}?,
                   ## Sigma_k2.[k-omega SST]
                   ## Recommended value (default): 1.0.
-                  element Sigma_k2 {real},
+                  element Sigma_k2 {real}?,
                   ## Sigma_omg1.[k-omega SST]
                   ## Recommended value (default): 0.5.
-                  element Sigma_omg1 {real},
+                  element Sigma_omg1 {real}?,
                   ## Sigma_omg2.[k-omega SST]
-                  ## Recommended value (default): 0.856.
-                  element Sigma_omg2 {real},
+                  ## Recommended value (default): 0.85616.
+                  element Sigma_omg2 {real}?,
                   ## Time discretisation of the source terms in the k and epsilon equations and also
                   ## of the eddy viscosity
                   element time_discretisation {  
