@@ -382,7 +382,7 @@
                   density_fluid => extract_scalar_field(state(istate_fluid), "Density")
                   density_particle => extract_scalar_field(state(istate_particle), "Density")
                   ! Make sure that the molecular viscosity us used. Not the effective viscosity
-                  if(have_option(trim(state(1)%option_path)//'/subgridscale_parameterisations/k-epsilon')) then
+                  if(have_option(trim(state(istate_fluid)%option_path)//'/subgridscale_parameterisations/k-epsilon')) then
                      viscosity_fluid => extract_tensor_field(state(istate_fluid),"BackgroundViscosity")
                   else
                      viscosity_fluid => extract_tensor_field(state(istate_fluid), "Viscosity")
