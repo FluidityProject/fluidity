@@ -120,7 +120,11 @@ module multiphase_diagnostics
          u_continuous => extract_vector_field(states(continuous_state_index), "Velocity")
          u_particle => extract_vector_field(states(state_index), "Velocity")
          x => extract_vector_field(states(state_index), "Coordinate")
-         viscosity => extract_tensor_field(states(continuous_state_index), "Viscosity")
+         if(have_option(trim(states(continuous_state_index)%option_path)//'/subgridscale_parameterisations/k-epsilon')) then
+            viscosity => extract_tensor_field(states(continuous_state_index),"BackgroundViscosity")
+         else
+            viscosity => extract_tensor_field(states(continuous_state_index), "Viscosity")
+         end if
          density => extract_scalar_field(states(continuous_state_index), "Density")
          vfrac => extract_scalar_field(states(continuous_state_index), "PhaseVolumeFraction")
 

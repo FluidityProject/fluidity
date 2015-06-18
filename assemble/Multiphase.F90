@@ -381,8 +381,12 @@
                   vfrac_particle => extract_scalar_field(state(istate_particle), "PhaseVolumeFraction")
                   density_fluid => extract_scalar_field(state(istate_fluid), "Density")
                   density_particle => extract_scalar_field(state(istate_particle), "Density")
-                  viscosity_fluid => extract_tensor_field(state(istate_fluid), "Viscosity")
-
+                  ! Make sure that the molecular viscosity us used. Not the effective viscosity
+                  if(have_option(trim(state(1)%option_path)//'/subgridscale_parameterisations/k-epsilon')) then
+                     viscosity_fluid => extract_tensor_field(state(istate_fluid),"BackgroundViscosity")
+                  else
+                     viscosity_fluid => extract_tensor_field(state(istate_fluid), "Viscosity")
+                  end if
                   if(have_option(trim(state(istate_particle)%option_path)//"/multiphase_properties/particle_diameter/constant")) then
                      call get_option(trim(state(istate_particle)%option_path)//"/multiphase_properties/particle_diameter/constant", d)
                      have_constant_pd = .true.
@@ -536,12 +540,7 @@
          
                ! Compute the particle Reynolds number
                ! (Assumes isotropic viscosity for now)
-
-!WARNING ------gb812 - NOTE: VISCOSITY FOR WATER HAS BEEN HARD CODED FOR NOW. TO USE WITH THE K-EPSILON CODE
-! THIS IS A HACK AND NEEDS TO BE CHANGED VERY SOON
-               !particle_re_gi = (vfrac_fluid_gi*density_fluid_gi*magnitude_gi*d_gi) / viscosity_fluid_gi(1,1,:)
-               particle_re_gi = (vfrac_fluid_gi*density_fluid_gi*magnitude_gi*d_gi) / 0.001002
-!----------
+               particle_re_gi = (vfrac_fluid_gi*density_fluid_gi*magnitude_gi*d_gi) / viscosity_fluid_gi(1,1,:)
            
                ! Compute the drag coefficient
                select case(drag_correlation)
