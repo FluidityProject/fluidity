@@ -1483,6 +1483,8 @@ if test "$enable_vtk" != "no" ; then
             AC_CHECK_LIB(vtkIOParallel, main)
             AC_CHECK_LIB(vtkIOCore, main)
             AC_CHECK_LIB(vtkCommonDataModel, main)
+            AC_CHECK_LIB(vtkCommonExecutionModel, main)
+            AC_CHECK_LIB(vtkIOLegacy, main)
         fi
     fi
 fi
