@@ -53,6 +53,22 @@ if (len(fluid_vtus) == 0):
     sys.stderr.write(errmsg)
     raise SystemExit("No vtu files found. Exit")
 
+filename = fluid_vtus[0]
+if (filename.endswith('.pvtu')):
+   simbasename = filename.replace('.pvtu','')
+   filename = simbasename+'/'+simbasename+'_0.vtu'
+data = vtk.vtu(filename)
+fieldnames = data.GetFieldNames()
+if "Time" in fieldnames:
+  timename = "Time"
+else:
+  timecandidates = [f for f in fieldnames if f.endswith("::Time")]
+  if len(timecandidates) == 0:
+    errmsg = "ERROR: Cannot for a suitable Time field.\n"
+    sys.stderr.write(errmsg)
+    raise SystemExit("No Time field found. Exit")
+  timename = timecandidates[0]
+
 # Loop over all the fluid vtus found and collect time data from them to assemble the pvd file:
 time = []
 for filename in fluid_vtus:
@@ -65,7 +81,7 @@ for filename in fluid_vtus:
     data = vtk.vtu(filename)
     # Only process the first node in the mesh, as the time is constant over the whole mesh:
     n0 = data.ugrid.GetCell(0).GetPointId(0)
-    t = data.ugrid.GetPointData().GetArray("Time").GetTuple(n0)
+    t = data.ugrid.GetPointData().GetArray(timename).GetTuple(n0)
     time.append(t[0])
 
 # Generate fluid pvd file:
