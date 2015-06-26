@@ -81,8 +81,9 @@ contains
     call calculate_diagnostic_phase_volume_fraction(state)
 
     ! Calculate the density according to the eos... do the buoyancy density and the density
-    ! at the same time to save computations. Do not calculate buoyancy if there is no gravity.
-    gravity = have_option("/physical_parameters/gravity")
+    ! at the same time to save computations. Do not calculate buoyancy if there is no gravity or centrifugal force.
+    gravity = have_option("/physical_parameters/gravity") .or. &
+         have_option("/physical_parameters//coriolis/specified_axis")
 
     ! submaterials_istate should always have a Velocity
     velocity => extract_vector_field(submaterials(submaterials_istate), 'Velocity')

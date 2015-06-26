@@ -2650,7 +2650,8 @@ contains
             end if
 
             if(prognostic) then
-              gravity = have_option("/physical_parameters/gravity")
+              gravity = have_option("/physical_parameters/gravity") .or. &
+                    have_option("/physical_parameters//coriolis/specified_axis")
               if(gravity) then
                 sfield => extract_scalar_field(states(p), "Density", stat)
                 if(stat==0) then
