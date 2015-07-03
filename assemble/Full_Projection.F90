@@ -388,6 +388,8 @@
 
       if(have_preconditioner_matrix) then
          pmat=csr2petsc(preconditioner_matrix, petsc_numbering_p, petsc_numbering_p)
+      else
+         pmat=A
       end if
 
       ! Set up RHS and Solution vectors (note these are loaded later):
@@ -399,15 +401,8 @@
 
       parallel=IsParallel()
 
-      if(have_preconditioner_matrix) then
-         ! inside ksp, PETSc seems to only look at the nullspace of the pmat, not mat itself
-         call attach_null_space_from_options(pmat, solver_option_path, petsc_numbering=petsc_numbering_p)
-         call SetupKSP(ksp,A,pmat,solver_option_path,parallel,petsc_numbering_p, lstartfromzero)
-      else
-         call attach_null_space_from_options(A, solver_option_path, petsc_numbering=petsc_numbering_p)
-         ! If preconditioner matrix is not required, send in A instead:
-         call SetupKSP(ksp,A,A,solver_option_path,parallel,petsc_numbering_p, lstartfromzero)
-      end if
+      call attach_null_space_from_options(A, solver_option_path, pmat=pmat, petsc_numbering=petsc_numbering_p)
+      call SetupKSP(ksp,A,pmat,solver_option_path,parallel,petsc_numbering_p, lstartfromzero)
       
       ! Destroy the matrices setup for the schur complement computation. While
       ! these matrices are destroyed here, they are still required for the inner solve,
