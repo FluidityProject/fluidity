@@ -1572,6 +1572,9 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     type(csr_matrix), optional, intent(in) :: matrix_csr
     integer, optional, intent(in) :: internal_smoothing_option
     
+#if PETSC_VERSION_MINOR<6
+    MatNullSpace nullsp
+#endif
     KSPType ksptype
     PC pc
     PetscReal rtol, atol, dtol
