@@ -1174,7 +1174,7 @@ contains
   end subroutine apply_lagrangian_multiplier
 
   subroutine move_mesh_imposed_velocity(states)
-  type(state_type), dimension(:), intent(inout) :: states
+    type(state_type), dimension(:), intent(inout) :: states
   
     type(vector_field), pointer :: coordinate, old_coordinate, new_coordinate
     type(vector_field), pointer :: velocity
@@ -1215,7 +1215,7 @@ contains
     
     call set(new_coordinate, old_coordinate)
 
-    if (have_option("/mesh_movement/transform_coordiantes")) then
+    if (have_option("/mesh_adaptivity/mesh_movement/transform_coordinates")) then
        call update(new_coordinate, grid_velocity, scale=dt)
     else
        call addto(new_coordinate, grid_velocity, scale=dt)
@@ -1239,10 +1239,12 @@ contains
     integer:: dim
 
     dim=mesh_dim(x)
+
+    ewrite(1,*) 'Transforming to cylindrical coordinates'
     
     C=0.0
-    if (have_option("/mesh_movement/transform_coordinates/point_on_axis"))&
-         call get_option("/mesh_movement/transform_coordinates/point_on_axis",&
+    if (have_option("/mesh_adaptivity/mesh_movement/transform_coordinates/point_on_axis"))&
+         call get_option("/mesh_adaptivity/mesh_movement/transform_coordinates/point_on_axis",&
          C)
 
     if (dim==1) then
@@ -1252,7 +1254,7 @@ contains
        ihat=[1.,0.]
        jhat=[0.,1.]
     else
-       call get_option("/mesh_movement/transform_coordinates/axis_of_rotation",axis,default=[0.0,0.0,1.0])
+       call get_option("/mesh_adaptivity/mesh_movement/transform_coordinates/axis_of_rotation",axis,default=[0.0,0.0,1.0])
        assert(sum(axis*axis)>0.0)
        axis=axis/sqrt(sum(axis*axis))
        if (abs(axis(3))>1.0e-16) then
