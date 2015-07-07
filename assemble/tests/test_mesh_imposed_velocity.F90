@@ -29,18 +29,20 @@
 
 subroutine test_mesh_imposed_velocity
   
+  use unittest_tools
   use state_module
   use fields
   use vtk_interfaces
-  use meshmovement
   use spud
-  use unittest_tools
+  use vector_tools
   use futils
+  use meshmovement
   
   ! constants
   character(*), parameter :: FIXTURE_NAME = 'mesh_imposed_velocity'
-  logical, parameter :: DEBUG = .true.
+  real, parameter :: OMEGA = 2*3.1415926535897931
   real, parameter :: DT = 1./12.
+  logical, parameter :: DEBUG = .false.
 
   ! prescribed variables
   type(state_type), dimension(1) :: states
@@ -52,24 +54,45 @@ subroutine test_mesh_imposed_velocity
   ! variables under test
   type(vector_field) :: new_coordinate
   
-  ! work variables
-  type(vector_field) :: expected_coordinate
+  ! convenience/work variables
+  character(39) :: test_name
   integer :: stat
-
+  type(vector_field) :: expected_coordinate
+  
   !==========================================
   ! call tests here
   !==========================================
-  call test_linear_velocity()
-  call test_rotational_velocity_3d()
+  call test_translation()
+  call test_rotation_2d()
+  call test_offset_rotation_2d()
+  call test_rotation_3d()
+  call test_offset_rotation_3d()
+  call test_oblique_rotation_3d()
 
   
 contains
   
-  subroutine setup
-    ! mesh_0.vtu is a unit cube
-    call vtk_read_state("data/mesh_0.vtu", states(1))
+  subroutine setup(test_name_arg, ndim)
+    character(*), intent(in) :: test_name_arg
+    integer, intent(in) :: ndim
 
+    ! make the test name global for convenience
+    test_name = test_name_arg
+    
+    select case (ndim)
+    case (2)
+       ! a triangle
+       call vtk_read_state("data/2d_mesh.vtu", states(1))
+    case (3)
+       ! unit cube
+       call vtk_read_state("data/mesh_0.vtu", states(1))
+    end select
+    
     positions => extract_vector_field(states(1), "Coordinate")
+
+    if (DEBUG) then
+       call print_vectors('positions', positions)
+    end if
 
     mesh => positions%mesh
     mesh%name = "CoordinateMesh"
@@ -106,45 +129,50 @@ contains
 
 
   subroutine teardown
+    call clear_options()
     call deallocate(states)
     call report_test_no_references()
   end subroutine teardown
 
 
-  subroutine test_linear_velocity
-    call setup()
+  subroutine test_translation
+    call setup('translation', 3)
 
     ! invent a uniform grid velocity
     do i = 1, node_count(mesh)
        call set(grid_velocity, i, (/ 1., 2., 3./))
     end do
-    call assert_nonzero('linear_velocity', 'grid_velocity', grid_velocity)
+    call assert_nonzero('grid_velocity', grid_velocity)
 
     ! what are the expected coordinates?  Make sure we are not
     ! inadvertently doing nothing
     call set(expected_coordinate, old_coordinate)
     call addto(expected_coordinate, grid_velocity, scale=DT)
-    call assert_not_equal('linear_velocity', &
+    call assert_not_equal(&
          'expected_coordinate', expected_coordinate, &
          'old_coordinate', old_coordinate)
 
     ! compute new_coordinate field from old_coordinate and
     ! grid_velocity, and check it matches
     call move_mesh_imposed_velocity(states)
-    call assert_equal('linear_velocity', &
+    call assert_equal(&
          'new_coordinate', new_coordinate, &
          'expected_coordinate', expected_coordinate)
 
     call teardown()
-  end subroutine test_linear_velocity
+  end subroutine test_translation
 
-  
-  subroutine test_rotational_velocity_3d
-    real, parameter :: OMEGA = 2*3.1415926535897931
-    real :: dtheta
+
+  subroutine rotation_2d_boilerplate(point_on_axis)
+    real, dimension(2), intent(in), optional :: point_on_axis
     real, dimension(2, 2) :: rotation
-    real, dimension(3) :: r, u
-    call setup()
+    real, dimension(2) ::  r0, r, u
+
+    if (present(point_on_axis)) then
+       r0 = point_on_axis
+    else
+       r0 = 0.
+    end if
 
     dtheta = OMEGA*DT
     rotation(1, 1) = cos(dtheta)
@@ -158,33 +186,158 @@ contains
 
     ! loop over nodes
     do i = 1, node_count(mesh)
-       r = positions%val(:, i)
+       r = positions%val(:, i) - r0
        
        ! set velocity
-       u = (/ -OMEGA*r(2), OMEGA*r(1), 0. /)
+       u = (/ -OMEGA*r(2), OMEGA*r(1) /)
        call set(grid_velocity, i, u)
 
        ! what are the expected coordinates?
-       r(1:2) = matmul(rotation, r(1:2))
-       call set(expected_coordinate, i, r)
+       call set(expected_coordinate, i, matmul(rotation, r) + r0)
     end do
     
-    call assert_nonzero('rotational_velocity', &
-         'expected_coordinate', expected_coordinate)
+    call assert_nonzero('expected_coordinate', expected_coordinate)
 
     ! compute new_coordinate field from old_coordinate and
     ! grid_velocity, and check it matches
     call move_mesh_imposed_velocity(states)
-    call assert_equal('rotational_velocity_3d', &
+    call assert_equal(&
+         'new_coordinate', new_coordinate, &
+         'expected_coordinate', expected_coordinate)
+  end subroutine rotation_2d_boilerplate
+
+  
+  subroutine test_rotation_2d
+    call setup('rotation_2d', 2)
+    
+    call rotation_2d_boilerplate()
+    
+    call teardown()
+  end subroutine test_rotation_2d
+
+  
+  subroutine test_offset_rotation_2d
+    real, dimension(2), parameter :: R0 = (/-3., -2./)
+    call setup('offset_rotation_2d', 2)
+    
+    call add_option(&
+         "/mesh_adaptivity/mesh_movement/transform_coordinates/point_on_axis",&
+         stat = stat)
+    call set_option(&
+         "/mesh_adaptivity/mesh_movement/transform_coordinates/point_on_axis",&
+         R0, stat=stat)
+    
+    call rotation_2d_boilerplate(point_on_axis=R0)
+
+    call teardown()
+  end subroutine test_offset_rotation_2d
+
+  
+  subroutine rotation_3d_boilerplate(axis, point_on_axis)
+    real, dimension(3), intent(in), optional :: axis, point_on_axis
+    real :: dtheta
+    real, dimension(3, 3) :: rotation = 0.
+    real, dimension(3) :: a, r0, r, u
+
+    if (present(axis)) then
+       a = axis/sqrt(sum(AXIS**2))
+    else
+       a = (/ 0., 0., 1. /)
+    end if
+
+    if (present(point_on_axis)) then
+       r0 = point_on_axis
+    else
+       r0 = 0.
+    end if
+    
+    dtheta = OMEGA*DT
+
+    rotation(1, 1) = cos(dtheta) + a(1)**2*(1 - cos(dtheta))
+    rotation(1, 2) = a(1)*a(2)*(1 - cos(dtheta)) - a(3)*sin(dtheta) 
+    rotation(1, 3) = a(1)*a(3)*(1 - cos(dtheta)) + a(2)*sin(dtheta)
+
+    rotation(2, 1) = a(2)*a(1)*(1 - cos(dtheta)) + a(3)*sin(dtheta) 
+    rotation(2, 2) = cos(dtheta) + a(2)**2*(1 - cos(dtheta))
+    rotation(2, 3) = a(2)*a(3)*(1 - cos(dtheta)) - a(1)*sin(dtheta)
+
+    rotation(3, 1) = a(3)*a(1)*(1 - cos(dtheta)) - a(2)*sin(dtheta) 
+    rotation(3, 2) = a(3)*a(2)*(1 - cos(dtheta)) + a(1)*sin(dtheta) 
+    rotation(3, 3) = cos(dtheta) + a(3)**2*(1 - cos(dtheta))
+    
+    ! add option to transform to cylindrical coordinates
+    call add_option("/mesh_adaptivity/mesh_movement/transform_coordinates",&
+         stat = stat)
+
+    ! loop over nodes
+    do i = 1, node_count(mesh)
+       r = positions%val(:, i) - r0
+       
+       ! set velocity
+       u = cross_product(OMEGA*a, r)
+       call set(grid_velocity, i, u)
+
+       ! what are the expected coordinates?
+       r = matmul(rotation, r)
+       call set(expected_coordinate, i, r + r0)
+    end do
+    
+    call assert_nonzero('expected_coordinate', expected_coordinate)
+
+    ! compute new_coordinate field from old_coordinate and
+    ! grid_velocity, and check it matches
+    call move_mesh_imposed_velocity(states)
+    call assert_equal(&
          'new_coordinate', new_coordinate, &
          'expected_coordinate', expected_coordinate)
 
+  end subroutine rotation_3d_boilerplate
+
+  
+  subroutine test_rotation_3d
+    call setup('rotation_3d', 3)
+
+    call rotation_3d_boilerplate()
+
     call teardown()
-  end subroutine test_rotational_velocity_3d
+  end subroutine test_rotation_3d
 
+  
+  subroutine test_offset_rotation_3d
+    real, dimension(3), parameter :: R0 = (/ 3., 2., 1. /)
+    call setup('offset_rotation_3d', 3)
+    
+    call add_option(&
+         "/mesh_adaptivity/mesh_movement/transform_coordinates/point_on_axis",&
+         stat = stat)
+    call set_option(&
+         "/mesh_adaptivity/mesh_movement/transform_coordinates/point_on_axis",&
+         R0, stat=stat)
 
-  subroutine assert_nonzero(test_name, field_name, field)
-    character(*), intent(in) :: test_name
+    call rotation_3d_boilerplate(point_on_axis=R0)
+
+    call teardown()
+  end subroutine test_offset_rotation_3d
+
+  
+  subroutine test_oblique_rotation_3d
+    real, dimension(3), parameter :: AXIS = (/ 1., 2., 3. /)
+    call setup('oblique_rotation_3d', 3)
+
+    call add_option(&
+         "/mesh_adaptivity/mesh_movement/transform_coordinates/axis_of_rotation",&
+         stat = stat)
+    call set_option(&
+         "/mesh_adaptivity/mesh_movement/transform_coordinates/axis_of_rotation",&
+         AXIS, stat=stat)
+
+    call rotation_3d_boilerplate(axis=AXIS)
+
+    call teardown()
+  end subroutine test_oblique_rotation_3d
+
+  
+  subroutine assert_nonzero(field_name, field)
     character(*), intent(in) :: field_name
     type(vector_field), intent(inout) :: field
     real :: maxabsval
@@ -195,33 +348,30 @@ contains
     write (buffer, '(e10.4)'), maxabsval
     
     failure = (maxabsval .feq. 0.)
-    call report_test("["//FIXTURE_NAME//"::"//test_name//"]", &
+    call report_test("["//FIXTURE_NAME//"::"//trim(test_name)//"]", &
          failure, .false., trim(field_name)//&
          " value should be nonzero, but max abs value = "//trim(buffer))
   end subroutine assert_nonzero
 
   
-  subroutine assert_equal(test_name, field1_name, field1, field2_name, field2) 
-    character(*), intent(in) :: test_name
+  subroutine assert_equal(field1_name, field1, field2_name, field2) 
     character(*), intent(in) :: field1_name, field2_name
     type(vector_field), intent(inout) :: field1, field2
     call assert_with_vector_fields(&
-       test_name, field1_name, field1, field2_name, field2, .true.) 
+       field1_name, field1, field2_name, field2, .true.) 
   end subroutine assert_equal
 
 
-  subroutine assert_not_equal(test_name, field1_name, field1, field2_name, field2) 
-    character(*), intent(in) :: test_name
+  subroutine assert_not_equal(field1_name, field1, field2_name, field2) 
     character(*), intent(in) :: field1_name, field2_name
     type(vector_field), intent(inout) :: field1, field2
     call assert_with_vector_fields(&
-       test_name, field1_name, field1, field2_name, field2, .false.) 
+       field1_name, field1, field2_name, field2, .false.) 
   end subroutine assert_not_equal
 
 
   subroutine assert_with_vector_fields(&
-       test_name, field1_name, field1, field2_name, field2, equals) 
-    character(*), intent(in) :: test_name
+       field1_name, field1, field2_name, field2, equals) 
     character(*), intent(in) :: field1_name, field2_name
     type(vector_field), intent(inout) :: field1, field2
     logical, intent(in) :: equals
@@ -246,22 +396,21 @@ contains
        stipulation = "should not be equal to"
     end if
     
-    call report_test("["//FIXTURE_NAME//"::"//test_name//"]", &
+    call report_test("["//FIXTURE_NAME//"::"//trim(test_name)//"]", &
          failure, .false., &
          trim(field1_name)//" "//trim(stipulation)//" "//&
          trim(field2_name)//", but max abs value of difference = "//&
          trim(buffer))
 
-    if (failure) then
-       call print_vectors(3, field1_name, field1, field2_name, field2)
+    if (failure .or. DEBUG) then
+       call print_vectors(field1_name, field1, field2_name, field2)
     end if
 
     call deallocate(vector_work)
   end subroutine assert_with_vector_fields
 
   
-  subroutine print_vectors( dim, field1_name, field1, field2_name, field2)
-    integer, intent(in) :: dim
+  subroutine print_vectors(field1_name, field1, field2_name, field2)
     character(*), intent(in) :: field1_name
     character(*), intent(in), optional :: field2_name
     type(vector_field), intent(inout) :: field1
@@ -272,9 +421,10 @@ contains
     character(78) :: buffer
     character(39) :: semi
     character(COLWIDTH) :: segment
-    integer :: nnodes, nfields, i, j, k
+    integer :: nnodes, nfields, ndim, i, j, k
     real :: val
     
+    ndim = size(field1%val, 1)
     nnodes = size(field1%val, 2) 
     if (present(field2_name) .and. present(field2)) then
        nfields = 2
@@ -309,7 +459,7 @@ contains
              dims: do i = 1, 3
                 segment(:) = ' '
 
-                if (i .le. dim) then
+                if (i .le. ndim) then
                    if ((k .eq. NSTART+1) .and. (nnodes-k .gt. NEND)) then
                       ! before skipping the middle, write symbol to say 'etc.'
                       segment(6:6) = ':'
