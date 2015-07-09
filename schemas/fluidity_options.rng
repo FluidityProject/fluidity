@@ -351,6 +351,34 @@ The t argument is for future use only - currently detector locations are only se
                     </element>
                   </choice>
                 </element>
+                <element name="stochastic_detectors">
+                  <a:documentation>Detectors with their locations chosen
+stochasticallly based on a chosen distribution.</a:documentation>
+                  <attribute name="name">
+                    <data type="string"/>
+                  </attribute>
+                  <element name="number_of_detectors">
+                    <a:documentation>The number of detectors in this group</a:documentation>
+                    <ref name="integer"/>
+                  </element>
+                  <choice>
+                    <element name="static">
+                      <a:documentation>Create fixed detectors.</a:documentation>
+                      <empty/>
+                    </element>
+                    <element name="lagrangian">
+                      <a:documentation>Create detectors which move with the fluid velocity.</a:documentation>
+                      <empty/>
+                    </element>
+                  </choice>
+                  <optional>
+                    <element name="surface_ids">
+                      <a:documentation>Restrict initial detector positions to lie on a specified
+set of surfaces, identified by their physical id number</a:documentation>
+                      <ref name="integer_vector"/>
+                    </element>
+                  </optional>
+                </element>
               </choice>
             </zeroOrMore>
             <choice>

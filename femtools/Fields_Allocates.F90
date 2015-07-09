@@ -2023,7 +2023,7 @@ contains
   end subroutine fix_periodic_face_orientation
 
   subroutine create_surface_mesh(surface_mesh, surface_nodes, &
-    mesh, surface_elements, name)
+    mesh, surface_elements, name, surface_ids, get_surface_elements)
   !! Creates a surface mesh consisting of the surface elements
   !! specified by surface_element_list  
   type(mesh_type), intent(out):: surface_mesh
@@ -2036,22 +2036,45 @@ contains
   !! which surface elements to select
   !! (if not provided all surface elements are included)
   integer, dimension(:), optional, target,intent(in):: surface_elements
+  !! generate elements from a surface id number
+  integer, dimension(:), optional,intent(in):: surface_ids
+  !! Optional output of a pointer to a  list of the surface elements used.
+  !! Only useful along with the surface_ids option above.
+  integer, dimension(:), optional, pointer,intent(out):: get_surface_elements
   !! name for the new surface_mesh
   character(len=*), intent(in):: name
   
     integer, dimension(:), pointer:: lsurface_elements
+    integer, dimension(:), allocatable, target:: surface_elements_full
     integer, dimension(:), pointer:: suf_ndglno
     integer, dimension(:), allocatable:: nod2sufnod
     integer, dimension(mesh%faces%shape%loc):: glnodes
-    integer i, j, sele, sufnod, snloc
+    integer i, j, sele, sufnod, snloc, ele_count
     
     snloc=mesh%faces%shape%loc
     
     if (present(surface_elements)) then
        lsurface_elements => surface_elements
+    else if (present(surface_ids)) then
+       assert(associated(mesh%faces))
+
+       ele_count=0
+       allocate(surface_elements_full(1:surface_element_count(mesh)))
+       do i=1, surface_element_count(mesh)
+          if (any(surface_ids==surface_element_id(mesh, i))) then
+             ele_count=ele_count+1
+             surface_elements_full(ele_count)=i
+          end if
+       end do
+       lsurface_elements=>surface_elements_full(1:ele_count)
     else
        allocate(lsurface_elements(1:surface_element_count(mesh)))
        lsurface_elements=(/ (i, i=1, size(lsurface_elements)) /)
+    end if
+
+    if (present(get_surface_elements)) then
+       allocate(get_surface_elements(size(lsurface_elements)))
+       get_surface_elements=lsurface_elements
     end if
       
     allocate(nod2sufnod(1:node_count(mesh)))
@@ -2102,7 +2125,11 @@ contains
     deallocate(nod2sufnod)
     
     if (.not. present(surface_elements)) then
-       deallocate(lsurface_elements)
+       if (.not. present(surface_ids)) then
+          deallocate(lsurface_elements)
+       else
+          deallocate(surface_elements_full)
+       end if
     end if
   
   end subroutine create_surface_mesh

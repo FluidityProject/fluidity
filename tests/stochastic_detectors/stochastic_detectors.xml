@@ -1,0 +1,49 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>stochastic_detectors</name>
+  <owner userid="jrper"/>
+  <tags>flml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>fluidity  stochastic_detectors.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="solvers_converged" language="python">import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files</variable>
+    <variable name="detector" language="python">from fluidity_tools import stat_parser
+detector = stat_parser("stochastic_detectors.detectors")</variable>
+    <variable name="pos" language="python">from numpy import zeros
+from fluidity_tools import stat_parser
+detector = stat_parser("stochastic_detectors.detectors")
+pos=zeros((1000,2))
+
+for i in range(1000):
+	pos[i,:]=detector['G1_%04d'%(i+1)]["position"][:,0]</variable>
+    <variable name="pos2" language="python">from numpy import zeros
+from fluidity_tools import stat_parser
+detector = stat_parser("stochastic_detectors.detectors")
+pos2=zeros((500,2))
+
+for i in range(500):
+	pos2[i,:]=detector['G2_%03d'%(i+1)]["position"][:,0]</variable>
+  </variables>
+  <pass_tests>
+    <test name="Solvers converged" language="python">assert(solvers_converged)</test>
+    <test name="MeanOfY" language="python">from numpy import mean
+assert(all(pos2[:,1]==0.5))</test>
+  </pass_tests>
+  <warn_tests>
+    <test name="MeanOfX" language="python">from numpy import mean
+assert(mean(pos[:,0]))&lt;1e-2</test>
+    <test name="MeanOfY" language="python">from numpy import mean
+assert(mean(pos[:,1]))&lt;1e-2</test>
+    <test name="StdOfX" language="python">from numpy import std, sqrt
+assert(std(pos[:,0])-sqrt(1.0/12.0))&lt;1e-2</test>
+    <test name="StdOfY" language="python">from numpy import std, sqrt
+assert(std(pos[:,1])-sqrt(1.0/12.0))&lt;1e-2</test>
+    <test name="MeanOfXSurface" language="python">from numpy import mean
+assert(mean(pos2[:,0]))&lt;1e-2</test>
+    <test name="StdOfX" language="python">from numpy import std, sqrt
+assert(std(pos2[:,0])-sqrt(1.0/12.0))&lt;1e-2</test>
+  </warn_tests>
+</testproblem>

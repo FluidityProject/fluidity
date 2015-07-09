@@ -79,6 +79,7 @@ module diagnostic_variables
   use detector_move_lagrangian
   use ieee_arithmetic, only: cget_nan
   use state_fields_module, only: get_cv_mass
+  use stochastic
   
   implicit none
 
@@ -1416,8 +1417,8 @@ contains
     character(len=PYTHON_FUNC_LEN) :: func
 
     integer :: column, i, j, k, phase, m, IERROR, field_count, totaldet_global
-    integer :: static_dete, python_functions_or_files, total_dete, total_dete_groups, lagrangian_dete
-    integer :: python_dete, ndete, dim, str_size, type_det
+    integer :: static_dete, python_functions_or_files, total_dete, total_dete_groups, lagrangian_dete, stochastic_dete, stoc_dete
+    integer :: python_dete, ndete, dim, str_size, type_det, lndete, offset
     integer, dimension(2) :: shape_option
     character(len = 254) :: buffer, material_phase_name, fmt
     type(scalar_field), pointer :: sfield
@@ -1427,6 +1428,13 @@ contains
     real:: current_time
     character(len = OPTION_PATH_LEN) :: detectors_cp_filename, detector_file_filename
 
+    integer, dimension(:), allocatable :: surface_ids
+    integer, dimension(:), pointer :: surface_elements, surface_nodes
+
+    logical :: restricted
+    type(mesh_type) :: surface_mesh
+    type(vector_field), pointer :: restricted_Xfield
+
     type(detector_type), pointer :: detector
     type(element_type), pointer :: shape
 
@@ -1434,24 +1442,36 @@ contains
     if (default_stat%detectors_initialised) return
     default_stat%detectors_initialised=.true.
 
+    call initialise_stochastic_module()
+
     ewrite(2,*) "In initialise_detectors"
 
     ! Check whether there are actually any detectors.
     static_dete = option_count("/io/detectors/static_detector")
     lagrangian_dete = option_count("/io/detectors/lagrangian_detector")
     python_functions_or_files = option_count("/io/detectors/detector_array")
+    stochastic_dete = option_count("/io/detectors/stochastic_detectors")
+
     python_dete = 0
+    stoc_dete = 0
  
     do i=1,python_functions_or_files
        write(buffer, "(a,i0,a)") "/io/detectors/detector_array[",i-1,"]"
        call get_option(trim(buffer)//"/number_of_detectors", j)
        python_dete=python_dete+j
     end do
+
+    buffer=""
+    do i=1,stochastic_dete
+       write(buffer, "(a,i0,a)") "/io/detectors/stochastic_detectors[",i-1,"]"
+       call get_option(trim(buffer)//"/number_of_detectors", j)
+       stoc_dete=stoc_dete+j
+    end do
    
-    total_dete=static_dete+lagrangian_dete+python_dete
+    total_dete=static_dete+lagrangian_dete+python_dete+stoc_dete
     default_stat%detector_list%total_num_det=total_dete
 
-    total_dete_groups=static_dete+lagrangian_dete+python_functions_or_files
+    total_dete_groups=static_dete+lagrangian_dete+python_functions_or_files+stochastic_dete
 
     allocate(default_stat%detector_group_names(total_dete_groups))
     allocate(default_stat%number_det_in_each_group(total_dete_groups))
@@ -1540,7 +1560,7 @@ contains
 
        do i=1,python_functions_or_files
           write(buffer, "(a,i0,a)") "/io/detectors/detector_array[",i-1,"]"
-
+          
           call get_option(trim(buffer)//"/name", funcnam)
           call get_option(trim(buffer)//"/number_of_detectors", ndete)
           str_size=len_trim(int2str(ndete))
@@ -1594,7 +1614,79 @@ contains
                 k=k+1          
              end do
           end if
-       end do      
+       end do
+
+       do i=1,stochastic_dete
+          write(buffer, "(a,i0,a)") "/io/detectors/stochastic_detectors[",i-1,"]"
+          call get_option(trim(buffer)//"/name", funcnam)
+          call get_option(trim(buffer)//"/number_of_detectors", ndete)
+          str_size=len_trim(int2str(ndete))
+          fmt="(a,I"//int2str(str_size)//"."//int2str(str_size)//")"
+
+          if (have_option(trim(buffer)//"/lagrangian")) then
+             type_det=LAGRANGIAN_DETECTOR
+          else
+             type_det=STATIC_DETECTOR
+          end if
+
+          if (have_option(trim(buffer)//"/surface_ids")) then
+             restricted=.true.
+             shape_option=option_shape(trim(buffer)//"/surface_ids")
+             allocate(surface_ids(shape_option(1)))
+             call get_option(trim(buffer)//"/surface_ids",surface_ids)
+             call create_surface_mesh(surface_mesh,surface_nodes,Xfield%mesh,&
+                  surface_ids=surface_ids,&
+                  get_surface_elements=surface_elements,&
+                  name="DetectorsSurfaceMesh")
+             allocate(restricted_Xfield)
+             call allocate(restricted_Xfield,dim=Xfield%dim,mesh=surface_mesh,&
+                  name="RestrictedCoordinates")
+             call remap_field_to_surface(Xfield,restricted_Xfield,&
+                  surface_elements)
+          else
+             restricted=.false.
+             restricted_Xfield=>Xfield
+          end if
+
+          default_stat%detector_group_names(i+static_dete+lagrangian_dete+python_functions_or_files)=trim(funcnam)
+          default_stat%number_det_in_each_group(i+static_dete+lagrangian_dete+python_functions_or_files)=ndete
+
+          call partition_points_in_parallel(restricted_Xfield,ndete,&
+               lndete,offset)
+          allocate(coords(dim,lndete))
+
+          coords=get_random_points_in_mesh(restricted_Xfield,lndete)
+
+          if (restricted) then
+             call deallocate(restricted_Xfield)
+             call deallocate(surface_mesh)
+             deallocate(surface_elements)
+             deallocate(surface_nodes)
+             deallocate(restricted_Xfield)
+             deallocate(surface_ids)
+          end if
+
+          do j=1,offset
+             write(detector_name, fmt) trim(funcnam)//"_", j
+             default_stat%detector_list%detector_names(k)=trim(detector_name)
+             k=k+1
+          end do
+          do j=1,lndete
+             write(detector_name, fmt) trim(funcnam)//"_", j+offset
+             default_stat%detector_list%detector_names(k)=trim(detector_name)
+             
+             call create_single_detector(default_stat%detector_list, xfield, &
+                  coords(:,j), k, type_det, trim(detector_name))
+             k=k+1           
+          end do
+          do j=offset+lndete+1,ndete
+             write(detector_name, fmt) trim(funcnam)//"_", j
+             default_stat%detector_list%detector_names(k)=trim(detector_name)
+             k=k+1   
+          end do
+             
+          deallocate(coords)
+       end do
     else 
        ewrite(2,*) "Reading detectors from checkpoint"
 
@@ -1819,9 +1911,11 @@ contains
     ! bit of hack to delete any existing .detectors.dat file
     ! if we don't delete the existing .detectors.dat would simply be opened for random access and 
     ! gradually overwritten, mixing detector output from the current with that of a previous run
+
     call MPI_FILE_OPEN(MPI_COMM_FEMTOOLS, trim(filename) // '.detectors.dat', MPI_MODE_CREATE + MPI_MODE_RDWR + MPI_MODE_DELETE_ON_CLOSE, MPI_INFO_NULL, default_stat%detector_list%mpi_fh, IERROR)
+
     call MPI_FILE_CLOSE(default_stat%detector_list%mpi_fh, IERROR)
-    
+
     call MPI_FILE_OPEN(MPI_COMM_FEMTOOLS, trim(filename) // '.detectors.dat', MPI_MODE_CREATE + MPI_MODE_RDWR, MPI_INFO_NULL, default_stat%detector_list%mpi_fh, IERROR)
     assert(ierror == MPI_SUCCESS)
 

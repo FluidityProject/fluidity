@@ -38,6 +38,8 @@ module detector_move_lagrangian
   use detector_data_types
   use detector_tools
   use detector_parallel
+  use pickers
+  use stochastic
 
   implicit none
   
@@ -46,6 +48,7 @@ module detector_move_lagrangian
   public :: move_lagrangian_detectors, read_detector_move_options, check_any_lagrangian
 
   character(len=OPTION_PATH_LEN), parameter :: rk_gs_path="/lagrangian_timestepping/explicit_runge_kutta_guided_search"
+  logical, save :: reinsert
 
 contains
 
@@ -145,10 +148,12 @@ contains
        end if
     end if
 
+    reinsert=have_option("/io/detectors/reinsert_outside_domain")
+
   end subroutine read_detector_move_options
 
   subroutine move_lagrangian_detectors(state, detector_list, dt, timestep)
-    type(state_type), dimension(:), intent(in) :: state
+    type(state_type), dimension(:), intent(inout) :: state
     type(detector_linked_list), intent(inout) :: detector_list
     real, intent(in) :: dt
     integer, intent(in) :: timestep
@@ -225,8 +230,6 @@ contains
        end do RKstages_loop
     end do subcycling_loop
 
-    deallocate(send_list_array)
-
     ! Make sure all local detectors are owned and distribute the ones that 
     ! stoppped moving in a halo element
     call distribute_detectors(state(1), detector_list)
@@ -234,6 +237,12 @@ contains
     ! This needs to be called after distribute_detectors because the exchange  
     ! routine serialises det%k and det%update_vector if it finds the RK-GS option
     call deallocate_rk_guided_search(detector_list)
+
+    if (have_option('/io/detectors/reinsert_outside_domain')) then
+       call reinsert_detectors(state(1), detector_list, send_list_array)
+    end if
+
+    deallocate(send_list_array)
 
     ewrite(2,*) "After moving and distributing we have", detector_list%length, &
          "local and", detector_list%total_num_det, "global detectors"
@@ -383,7 +392,7 @@ contains
     real, dimension(mesh_dim(vfield)+1) :: arrival_local_coords
     integer, dimension(:), pointer :: neigh_list
     integer :: neigh, proc_local_number
-    logical :: make_static
+    logical :: make_static, set_to_reinsert
 
     !Loop over all the detectors
     det0 => detector_list%first
@@ -427,9 +436,15 @@ contains
                       end if
                    end do face_search
                    if (make_static) then
-                      ewrite(1,*) "WARNING: detector attempted to leave computational &
-                           domain; making it static, detector ID:", det0%id_number, "detector element:", det0%element
-                      det0%type=STATIC_DETECTOR
+                      if(reinsert) then
+                         ewrite(1,*) "WARNING: detector attempted to leave computational &
+                              domain; tag for reinsertion, detector ID:", det0%id_number, "detector element:", det0%element
+                         det0%type=REINSERT_DETECTOR
+                      else
+                         ewrite(1,*) "WARNING: detector attempted to leave computational &
+                              domain; making it static, detector ID:", det0%id_number, "detector element:", det0%element
+                         det0%type=STATIC_DETECTOR
+                      end if
                       ! move on to the next detector, without updating det0%position, 
                       ! because det0%update_vector is by now outside of the computational domain
                       det0 => det0%next
@@ -453,5 +468,167 @@ contains
        end if
     end do
   end subroutine move_detectors_guided_search
+
+  subroutine reinsert_detectors(state,detector_list,send_list_array)
+    !Subroutine to deal with  reinsertion of detectors:
+    ! - Static detectors in this processor's detector list and not inside
+    !   the owned domain are callected and set to LAGRANGIAN
+    ! - The detectors are partitioned across the processors.
+    ! - Excess detectors on the process are enumerated.
+    ! - These detectors are communicated.
+    ! - Local detectors have their coordinates reset.
+    type(state_type), intent(inout) :: state
+    type(detector_linked_list), intent(inout) :: detector_list
+    type(detector_linked_list), dimension(:), intent(inout) :: send_list_array
+
+    type(vector_field), pointer :: xfield,rxfield
+
+    integer :: element, det_count_local, det_count_global,&
+         target_det_count, offset, i, proc, nprocs, procno
+    integer, dimension(:), allocatable:: det_count_partition_target,&
+         det_count_partition_offset
+    type(detector_linked_list) :: reinsert_detector_list
+
+    type(detector_type), pointer :: det0, det_reinsert
+    real, dimension(:,:), allocatable :: coords
+
+    ewrite(2,*) "Entering reinsert_detectors"  
+
+    xfield=>extract_vector_field(state,"Coordinate")
+    if (.not. has_vector_field(state,"DetectorReinsertionCoordinate"))&
+         call make_reinsertion_fields(state,xfield)
+    rxfield=>extract_vector_field(state,"DetectorReinsertionCoordinate")
+
+    det_count_local=0
+    det0 => detector_list%first
+    do while (associated(det0))
+       if (det0%type .ne. REINSERT_DETECTOR) then
+          !! move on to next detector
+          det0=>det0%next
+       else
+          !! Otherwise we've found a detector which needs reinsertion
+
+          ewrite(1,*) "Reinserting detector ID:", det0%id_number
+
+          det0%type=LAGRANGIAN_DETECTOR
+          det0%element=-1
+          det_reinsert => det0
+          det0=>det0%next
+
+          call move(det_reinsert,detector_list,reinsert_detector_list)
+          det_count_local=det_count_local+1
+       end if
+    end do
+    
+    if (isparallel()) then
+       procno=getprocno()
+       nprocs=getnprocs()
+       det_count_global=det_count_local
+       call allsum(det_count_global)
+       !! send_list_array now contains all the detectors we need to move.
+       !! Lets partition them.
+       call partition_points_in_parallel(rXfield,det_count_global,&
+               target_det_count,offset)
+       if (target_det_count .eq. det_count_local) then
+          allocate(det_count_partition_target(nprocs),&
+               det_count_partition_offset(nprocs))
+          det_count_partition_offset=0
+          call allsum(det_count_partition_offset)
+          det_count_partition_target=0
+          call allsum(det_count_partition_target)
+       else
+          det0 => reinsert_detector_list%first
+          do i=1,min(target_det_count,det_count_local)
+             det0=>det0%next
+          end do
+          allocate(det_count_partition_target(nprocs),&
+               det_count_partition_offset(nprocs))
+          det_count_partition_offset(1:procno)=0
+          det_count_partition_offset(procno+1:nprocs)=max(0,&
+               det_count_local-target_det_count)
+          call allsum(det_count_partition_offset)
+          det_count_partition_target(1:procno-1)=0
+          det_count_partition_target(procno:nprocs)=max(0,&
+               target_det_count-det_count_local)
+          call allsum(det_count_partition_target)
+
+          ewrite(2,*) "Detectors to redistribute:", max(0,det_count_local-target_det_count)
+          ewrite(2,*) "Detectors to receive:", max(0,target_det_count-det_count_local)
+          ewrite(2,*) "Reinsertion offsets:", det_count_partition_offset
+          ewrite(2,*) "Reinsertion targets:", det_count_partition_target
+
+          proc=1
+          do i=1,det_count_local-target_det_count
+             do while (i+det_count_partition_offset(procno)&
+                  >det_count_partition_target(proc))
+                ewrite(2,*) i
+                proc=proc+1
+             end do
+             if(proc==procno) then
+                !! this one stays local
+                det0=>det0%next
+             else
+                det_reinsert=>det0
+                det0=>det0%next
+                !! we'll have to exchange this one
+                call move(det_reinsert,reinsert_detector_list,&
+                     send_list_array(proc))
+             end if
+          end do
+       end if
+       
+       !! now do the exchange
+       call exchange_detectors(state,reinsert_detector_list,send_list_array,&
+            reinsertion_call=.true.)   
+    else
+       target_det_count=det_count_local
+    end if
+
+    allocate(coords(xfield%dim,target_det_count))
+    
+    coords=get_random_points_in_mesh(rXfield,target_det_count)
+
+    det0=>reinsert_detector_list%first
+    do i=1,target_det_count
+       det0%position=coords(:,i)
+       call picker_inquire(xfield,det0%position,det0%element,local_coord=det0%local_coords,global=.false.)
+       det0=>det0%next
+    end do
+    call move_all(reinsert_detector_list,detector_list)
+
+    ewrite(2,*) "Exiting reinsert_detectors"  
+
+  end subroutine reinsert_detectors
+
+  subroutine make_reinsertion_fields(state,xfield)
+
+    type(state_type) :: state
+    type(vector_field), pointer :: xfield
+
+    type(mesh_type) :: surface_mesh
+    type(vector_field) :: rxfield
+    integer, dimension(2) :: shape_option
+    integer, dimension(:), pointer :: surface_elements, surface_nodes,&
+         surface_ids
+    
+
+    shape_option=option_shape("/io/detectors/reinsert_outside_domain/surface_ids")
+    allocate(surface_ids(shape_option(1)))
+    call get_option("/io/detectors/reinsert_outside_domain/surface_ids",surface_ids)
+    call create_surface_mesh(surface_mesh,surface_nodes,Xfield%mesh,&
+         surface_ids=surface_ids,&
+         get_surface_elements=surface_elements,&
+         name="DetectorsSurfaceMesh")
+    call allocate(rXfield,dim=Xfield%dim,mesh=surface_mesh,&
+                  name="DetectorReinsertionCoordinate")
+    call remap_field_to_surface(Xfield,rXfield,&
+                  surface_elements)
+
+    call insert(state,rxfield,name="DetectorReinsertionCoordinate")
+    call deallocate(rxfield)
+    call deallocate(surface_mesh)
+    deallocate(surface_nodes, surface_elements,surface_ids)
+
+  end subroutine make_reinsertion_fields
 
 end module detector_move_lagrangian
