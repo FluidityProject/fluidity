@@ -69,7 +69,8 @@ module transform_elements
             compute_jacobian, compute_inverse_jacobian, &
             compute_facet_full_inverse_jacobian, element_volume,&
             cache_transform_elements, deallocate_transform_cache, &
-            prepopulate_transform_cache, set_analytical_spherical_mapping
+            prepopulate_transform_cache, set_analytical_spherical_mapping,&
+            element_volume_field_weighted
   
   integer, parameter :: cyc3(1:5)=(/ 1, 2, 3, 1, 2 /)  
 
@@ -2736,5 +2737,21 @@ contains
     element_volume=sum(detwei)
 
   end function element_volume
+
+ function element_volume_field_weighted(position,sfield, ele)
+    !!< Return the volume of element in the positions field.
+    real :: element_volume_field_weighted
+    type(vector_field), intent(in) :: position
+    type(scalar_field), intent(in) :: sfield
+    integer, intent(in) :: ele
+    
+    real, dimension(ele_ngi(position, ele)) :: detwei, val
+
+    val=ele_val_at_quad(sfield,ele)
+    call transform_to_physical_detwei(position, ele, detwei)
+    
+    element_volume_field_weighted=sum(val*detwei)
+
+  end function element_volume_field_weighted
 
 end module transform_elements

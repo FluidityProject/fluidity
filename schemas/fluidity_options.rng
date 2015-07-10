@@ -390,6 +390,13 @@ set of surfaces, identified by their physical id number</a:documentation>
                 <a:documentation>Enable to write NaN values to detector output if a detector has left the domain.</a:documentation>
                 <empty/>
               </element>
+              <element name="reinsert_outside_domain">
+                <element name="surface_ids">
+                  <a:documentation>Physical ids of boundaries on which to reinsert
+Lagrangian detectors.</a:documentation>
+                  <ref name="integer_vector"/>
+                </element>
+              </element>
             </choice>
             <optional>
               <element name="binary_output">
