@@ -223,7 +223,7 @@ Detector_Move_Lagrangian.o ../include/detector_move_lagrangian.mod: \
    ../include/fdebug.h ../include/fields.mod ../include/global_parameters.mod \
    ../include/halo_data_types.mod ../include/halos_base.mod \
    ../include/integer_hash_table_module.mod ../include/spud.mod \
-   ../include/state_module.mod
+   ../include/state_module.mod ../include/stochastic.mod
 
 ../include/detector_parallel.mod: Detector_Parallel.o
 	@true
