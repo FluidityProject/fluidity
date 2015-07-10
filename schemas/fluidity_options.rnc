@@ -321,6 +321,13 @@ start =
                   ## Enable to write NaN values to detector output if a detector has left the domain.
                   element write_nan_outside_domain {
                      empty
+                  }|
+		  element reinsert_outside_domain {
+		  ## Physical ids of boundaries on which to reinsert
+		  ## Lagrangian detectors.
+                     element surface_ids {
+		        integer_vector
+		     }
                   }
                ),
                ## Enable to write detector output in binary format

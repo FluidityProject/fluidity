@@ -299,18 +299,25 @@ contains
 
   end subroutine distribute_detectors
 
-  subroutine exchange_detectors(state, detector_list, send_list_array)
+  subroutine exchange_detectors(state, detector_list, send_list_array, &
+       reinsertion_call)
     ! This subroutine serialises send_list_array, sends it, 
     ! receives serialised detectors from all procs and unpacks them.
     type(state_type), intent(in) :: state
     type(detector_linked_list), intent(inout) :: detector_list
     type(detector_linked_list), dimension(:), intent(inout) :: send_list_array
+    
+
+    !! if present then this is exchanging detectors for reinsertion and
+    !! all detectors in the send list array should be outside the 
+    !! computational domain
+    logical, optional :: reinsertion_call
 
     type(detector_buffer), dimension(:), allocatable :: send_buffer, recv_buffer
     type(detector_type), pointer :: detector, detector_received
     type(vector_field), pointer :: xfield
     type(halo_type), pointer :: ele_halo
-    type(integer_hash_table) :: ele_numbering_inverse
+    type(integer_hash_table) :: ele_numbering_inverse, null_hash
     integer :: j, dim, count, n_stages, target_proc, receive_proc, &
                det_size, ndet_to_send, ndet_received, &
                halo_level, nprocs, IERROR
@@ -362,8 +369,10 @@ contains
           do while (associated(detector))
 
              ! translate detector element to universal element
-             assert(detector%element>0)
-             detector%element = halo_universal_number(ele_halo, detector%element)
+             if (.not. present(reinsertion_call)) then
+                assert(detector%element>0)
+                detector%element = halo_universal_number(ele_halo, detector%element)
+             end if
 
              if (have_update_vector) then
                 call pack_detector(detector, send_buffer(target_proc)%ptr(j,1:det_size), dim, nstages=n_stages)
@@ -386,6 +395,7 @@ contains
 
     allocate( status(MPI_STATUS_SIZE) )
     call get_universal_numbering_inverse(ele_halo, ele_numbering_inverse)
+    call get_null_hash(null_hash)
 
     ! Receive from all procs
     allocate(recv_buffer(nprocs))
@@ -411,12 +421,22 @@ contains
 
           ! Unpack routine uses ele_numbering_inverse to translate universal element 
           ! back to local detector element
-          if (have_update_vector) then
-             call unpack_detector(detector_received,recv_buffer(receive_proc)%ptr(j,1:det_size),dim,&
-                    global_to_local=ele_numbering_inverse,coordinates=xfield,nstages=n_stages)
+          if (present(reinsertion_call)) then
+             if (have_update_vector) then
+                call unpack_detector(detector_received,recv_buffer(receive_proc)%ptr(j,1:det_size),dim,&
+                     global_to_local=null_hash,coordinates=xfield,nstages=n_stages)
+             else
+                call unpack_detector(detector_received,recv_buffer(receive_proc)%ptr(j,1:det_size),dim,&
+                     global_to_local=null_hash,coordinates=xfield)
+             end if
           else
-             call unpack_detector(detector_received,recv_buffer(receive_proc)%ptr(j,1:det_size),dim,&
-                    global_to_local=ele_numbering_inverse,coordinates=xfield)
+             if (have_update_vector) then
+                call unpack_detector(detector_received,recv_buffer(receive_proc)%ptr(j,1:det_size),dim,&
+                     global_to_local=ele_numbering_inverse,coordinates=xfield,nstages=n_stages)
+             else
+                call unpack_detector(detector_received,recv_buffer(receive_proc)%ptr(j,1:det_size),dim,&
+                     global_to_local=ele_numbering_inverse,coordinates=xfield)
+             end if
           end if
 
           ! If there is a list of detector names, use it, otherwise set ID as name
@@ -442,6 +462,7 @@ contains
     assert(ierror == MPI_SUCCESS)
 
     call deallocate(ele_numbering_inverse)
+    call deallocate(null_hash)
 
     ewrite(2,*) "Exiting exchange_detectors"  
 
@@ -481,5 +502,13 @@ contains
     end if
 
   end subroutine sync_detector_coordinates
+
+  subroutine get_null_hash(null_hash) 
+    type(integer_hash_table) :: null_hash
+    
+    call allocate(null_hash)
+    call insert(null_hash,-1,-1)
+    
+  end subroutine get_null_hash
 
 end module detector_parallel

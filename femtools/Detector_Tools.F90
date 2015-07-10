@@ -377,7 +377,8 @@ contains
           if (.not. allocated(detector%local_coords)) then
              allocate(detector%local_coords(local_coord_count(ele_shape(coordinates,1))))
           end if
-          detector%local_coords=local_coords(coordinates,detector%element,detector%position)
+          if (detector%element>0) &
+               detector%local_coords=local_coords(coordinates,detector%element,detector%position)
        end if
     end if
 

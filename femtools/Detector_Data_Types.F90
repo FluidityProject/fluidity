@@ -38,9 +38,10 @@ module detector_data_types
   
   public :: detector_type, rk_gs_parameters, detector_linked_list, &
             detector_list_ptr, stringlist, &
-            STATIC_DETECTOR, LAGRANGIAN_DETECTOR
+            STATIC_DETECTOR, LAGRANGIAN_DETECTOR, REINSERT_DETECTOR
 
-  integer, parameter :: STATIC_DETECTOR=1, LAGRANGIAN_DETECTOR=2  
+  integer, parameter :: STATIC_DETECTOR=1, LAGRANGIAN_DETECTOR=2,&
+       REINSERT_DETECTOR=-1
 
   type stringlist
      !!< Container type for a list of strings.

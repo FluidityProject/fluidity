@@ -214,7 +214,19 @@ contains
     end if
 
     if (present(pdf)) then
-       FLAbort('I still need to write this.')
+       if (element_owned(X,1)) then
+          cumulative_volume(1)=element_volume_field_weighted(X,pdf,1)
+       else
+          cumulative_volume(1)=0.0
+       end if
+       do ele=2,element_count(X)
+          if (element_owned(X,ele)) then
+             cumulative_volume(ele)=element_volume_field_weighted(x,pdf,ele)&
+                  +cumulative_volume(ele-1)
+          else
+             cumulative_volume(ele)=cumulative_volume(ele-1)
+          end if
+       end do
     else
        if (element_owned(X,1)) then
           cumulative_volume(1)=element_volume(X,1)

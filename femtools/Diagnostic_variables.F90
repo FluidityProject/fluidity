@@ -1657,6 +1657,8 @@ contains
 
           coords=get_random_points_in_mesh(restricted_Xfield,lndete)
 
+          detector_location=huge(1.0)          
+
           if (restricted) then
              call deallocate(restricted_Xfield)
              call deallocate(surface_mesh)
@@ -1669,12 +1671,13 @@ contains
           do j=1,offset
              write(detector_name, fmt) trim(funcnam)//"_", j
              default_stat%detector_list%detector_names(k)=trim(detector_name)
+             call create_single_detector(default_stat%detector_list, xfield, &
+                  detector_location, k, type_det, trim(detector_name))
              k=k+1
           end do
           do j=1,lndete
              write(detector_name, fmt) trim(funcnam)//"_", j+offset
              default_stat%detector_list%detector_names(k)=trim(detector_name)
-             
              call create_single_detector(default_stat%detector_list, xfield, &
                   coords(:,j), k, type_det, trim(detector_name))
              k=k+1           
@@ -1682,6 +1685,8 @@ contains
           do j=offset+lndete+1,ndete
              write(detector_name, fmt) trim(funcnam)//"_", j
              default_stat%detector_list%detector_names(k)=trim(detector_name)
+             call create_single_detector(default_stat%detector_list, xfield, &
+                  detector_location, k, type_det, trim(detector_name))
              k=k+1   
           end do
              
