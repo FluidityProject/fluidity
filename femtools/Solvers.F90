@@ -1742,6 +1742,13 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     PetscErrorCode :: ierr
     logical :: different_pmat
 
+    if (present(pmat)) then
+      different_pmat = mat/=pmat
+    else
+      different_pmat = .false.
+    end if
+
+
     if(have_option(trim(solver_option_path)//"/multigrid_near_null_space")) then
 
        ! Check that we are using the gamg preconditioner:
@@ -1757,7 +1764,12 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
        end if
        null_space = create_null_space_from_options(mat, trim(solver_option_path)//"/multigrid_near_null_space", &
           petsc_numbering, positions=positions, rotation_matrix=rotation_matrix)
-       call MatSetNearNullSpace(mat, null_space, ierr)
+       if (different_pmat) then
+         ! nns is only used in the preconditioner, so let's attach it to pmat only
+         call MatSetNearNullSpace(pmat, null_space, ierr)
+       else
+         call MatSetNearNullSpace(mat, null_space, ierr)
+       end if
        call MatNullSpaceDestroy(null_space, ierr)
 #endif
     end if
@@ -1786,12 +1798,6 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
           call attach_null_space_from_options(pmat, trim(solver_option_path)//"/preconditioner::ksp", &
              positions=positions, rotation_matrix=rotation_matrix, petsc_numbering=petsc_numbering)
        end if
-    end if
-
-    if (present(pmat)) then
-      different_pmat = mat/=pmat
-    else
-      different_pmat = .false.
     end if
 
     ! Check for nullspace options under the ksp preconditioner (near nullspaces aren't currently allowed in the schema)
@@ -1926,7 +1932,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
          FLAbort("Need to pass down petsc numbering to set up fieldsplit")
        end if
 
-       call setup_fieldsplit_preconditioner(pc, pmat, option_path, &
+       call setup_fieldsplit_preconditioner(pc, option_path, &
             petsc_numbering=petsc_numbering)
 
     else
@@ -1961,15 +1967,15 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     
   end subroutine setup_pc_from_options
 
-  recursive subroutine setup_fieldsplit_preconditioner(pc, pmat, option_path, &
+  recursive subroutine setup_fieldsplit_preconditioner(pc, option_path, &
     petsc_numbering)
   PC, intent(inout):: pc
-  Mat, intent(in):: pmat
   character(len=*), intent(in):: option_path
   type(petsc_numbering_type), intent(in):: petsc_numbering
 
     character(len=128):: fieldsplit_type
     KSP, dimension(size(petsc_numbering%gnn2unn,2)):: subksps
+    Mat :: mat, pmat
     IS:: index_set
     PetscErrorCode:: ierr
     integer:: i
@@ -2001,7 +2007,8 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     call pcfieldsplitgetsubksp(pc, subksps, ierr)
     do i=1, size(subksps)
 
-      call setup_ksp_from_options(subksps(i), pmat, pmat, option_path)
+      call KSPGetOperators(subksps(i), mat, pmat, ierr)
+      call setup_ksp_from_options(subksps(i), mat, pmat, option_path)
 
     end do
 
