@@ -75,7 +75,7 @@ module supermesh_construction
   real, dimension(1024), save :: nodes_tmp
 #endif
   logical, save :: intersector_exactness = .false.
-  integer, save, public :: returned_triangles, returned_tets, returned_lines, returned_quads
+  integer, save, public :: returned_intervals = 0, returned_tris = 0, returned_tets = 0
 
   public :: intersect_elements, intersector_set_dimension, intersector_set_exactness
   public :: construct_supermesh, compute_projection_error, intersector_exactness
@@ -105,14 +105,7 @@ module supermesh_construction
 #endif
 
     dim = positions_A%dim
-#ifdef DDEBUG
-    select case(dim)
-      case(2)
-        assert(shape%loc == 3)
-      case(3)
-        assert(shape%loc == 4)
-    end select
-#endif
+    assert(shape%loc == dim + 1)
 
      if ( dim == 1 ) then
        ! 1D
@@ -134,13 +127,13 @@ module supermesh_construction
          intersection_mesh%ndglno = reshape(ndglno, (/(dim + 1) * totele/))
          deallocate(ndglno)
 #else
-         call cintersector_get_output(nonods, totele, dim, loc, nodes_tmp, intersection_mesh%ndglno)
+         call cintersector_get_output(nonods, totele, dim, dim + 1, nodes_tmp, intersection_mesh%ndglno)
  
          do i = 1, dim
            intersection%val(i,:) = nodes_tmp((i - 1) * nonods + 1:i * nonods)
          end do
 #endif
-         returned_lines = returned_lines + totele
+         returned_intervals = returned_intervals + totele
        end if
        call deallocate(intersection_mesh)
      else if ( dim == 2 ) then
@@ -162,7 +155,7 @@ module supermesh_construction
           do i = 1, n_trisC
             call set(intersection, ele_nodes(intersection, i), trisC_real(:,:,i)) !trisC(i)%v)
           end do
-          returned_triangles = returned_triangles + n_trisC
+          returned_tris = returned_tris + n_trisC
         end if
 
         call deallocate(intersection_mesh)
@@ -186,13 +179,13 @@ module supermesh_construction
           intersection_mesh%ndglno = reshape(ndglno, (/(dim + 1) * totele/))
           deallocate(ndglno)
 #else
-          call cintersector_get_output(nonods, totele, dim, loc, nodes_tmp, intersection_mesh%ndglno)
+          call cintersector_get_output(nonods, totele, dim, dim + 1, nodes_tmp, intersection_mesh%ndglno)
 
           do i = 1, dim
             intersection%val(i,:) = nodes_tmp((i - 1) * nonods + 1:i * nonods)
           end do
 #endif
-          returned_quads = returned_quads + totele
+          returned_tris = returned_tris + totele
         end if
         call deallocate(intersection_mesh)
       end if
@@ -257,16 +250,21 @@ module supermesh_construction
 #ifdef DDEBUG
       intersection_mesh%ndglno = -1
 #endif
-      call cintersector_get_output(nonods, totele, dim, loc, nodes_tmp, intersection_mesh%ndglno)
+      call cintersector_get_output(nonods, totele, dim, dim + 1, nodes_tmp, intersection_mesh%ndglno)
 
       do i = 1, dim
         intersection%val(i,:) = nodes_tmp((i - 1) * nonods + 1:i * nonods)
       end do
-      if (dim == 2) then
-        returned_triangles = returned_triangles + ele_count(intersection)
-      else if (dim == 3) then
-        returned_tets = returned_tets + ele_count(intersection)
-      end if
+      select case(dim)
+        case(1)
+          returned_intervals = returned_intervals + ele_count(intersection)
+        case(2)
+          returned_tris = returned_tris + ele_count(intersection)
+        case(3)
+          returned_tets = returned_tets + ele_count(intersection)
+        case default
+          FLAbort("Invalid dimension")
+      end select
     end if
 
     call deallocate(intersection_mesh)

@@ -977,8 +977,8 @@ contains
     call print_current_memory_stats(0)
 #endif
 
-    ewrite(1, *) "Lines:",returned_lines,", Triangles :",returned_triangles,", Quads:",returned_quads,", Tets :",returned_tets
-    write (*, *) "Lines:",returned_lines,", Triangles :",returned_triangles,", Quads:",returned_quads,", Tets :",returned_tets
+    write(debug_log_unit, "(a,i0,a,i0,a,i0)") "Lines: ", returned_intervals , ", Triangles: ", returned_tris, ", Tets: ", returned_tets
+    
   contains
 
     subroutine set_simulation_start_times()
