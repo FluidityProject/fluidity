@@ -50,6 +50,30 @@ where Re_p is the particle Reynolds number.</a:documentation>
         </attribute>
         <ref name="comment"/>
       </element>
+      <element name="drag_correlation">
+        <attribute name="name">
+          <value>schiller_naumann_fluent</value>
+        </attribute>
+        <ref name="comment"/>
+      </element>
+      <element name="drag_correlation">
+        <attribute name="name">
+          <value>schiller_naumann_fluidity</value>
+        </attribute>
+        <ref name="comment"/>
+      </element>
+      <element name="drag_correlation">
+        <attribute name="name">
+          <value>lain_1_1999</value>
+        </attribute>
+        <ref name="comment"/>
+      </element>
+      <element name="drag_correlation">
+        <attribute name="name">
+          <value>lain_2_2002</value>
+        </attribute>
+        <ref name="comment"/>
+      </element>
     </choice>
   </define>
   <define name="heat_transfer">

@@ -285,6 +285,10 @@
          ! Types of drag correlation
          integer, parameter :: DRAG_CORRELATION_TYPE_STOKES = 1, DRAG_CORRELATION_TYPE_WEN_YU = 2, DRAG_CORRELATION_TYPE_ERGUN = 3
          integer, parameter :: DRAG_CORRELATION_TYPE_SCHILLER_NAUMANN = 4
+         integer, parameter :: DRAG_CORRELATION_TYPE_SCHILLER_NAUMANN_FLUENT = 5
+         integer, parameter :: DRAG_CORRELATION_TYPE_SCHILLER_NAUMANN_FLUIDITY = 6         
+         integer, parameter :: DRAG_CORRELATION_TYPE_LAIN_1_1999= 7
+         integer, parameter :: DRAG_CORRELATION_TYPE_LAIN_2_2002 = 8         
          
          ewrite(1, *) "Entering add_fluid_particle_drag"
  
@@ -422,6 +426,14 @@
                         drag_correlation = DRAG_CORRELATION_TYPE_ERGUN
                      case("schiller_naumann")
                         drag_correlation = DRAG_CORRELATION_TYPE_SCHILLER_NAUMANN
+                     case("schiller_naumann_fluent")
+                        drag_correlation = DRAG_CORRELATION_TYPE_SCHILLER_NAUMANN_FLUENT
+                     case("schiller_naumann_fluidity")
+                        drag_correlation = DRAG_CORRELATION_TYPE_SCHILLER_NAUMANN_FLUIDITY
+                     case("lain_1_1999")
+                        drag_correlation = DRAG_CORRELATION_TYPE_LAIN_1_1999
+                     case("lain_2_2002")
+                        drag_correlation = DRAG_CORRELATION_TYPE_LAIN_2_2002
                      case default
                         FLAbort("Unknown correlation for fluid-particle drag")
                   end select
@@ -554,7 +566,7 @@
                         end if
                      end do
                      
-                  case(DRAG_CORRELATION_TYPE_WEN_YU)
+                  case(DRAG_CORRELATION_TYPE_WEN_YU, DRAG_CORRELATION_TYPE_SCHILLER_NAUMANN_FLUIDITY)
                      ! Wen & Yu (1966) drag correlation
                      do gi = 1, ele_ngi(u,ele)
                         if(particle_re_gi(gi) < 1000) then
@@ -567,7 +579,7 @@
                   case(DRAG_CORRELATION_TYPE_ERGUN)
                      ! No drag coefficient is needed here.                  
 
-                  case(DRAG_CORRELATION_TYPE_SCHILLER_NAUMANN)
+                  case(DRAG_CORRELATION_TYPE_SCHILLER_NAUMANN, DRAG_CORRELATION_TYPE_SCHILLER_NAUMANN_FLUENT)
                      ! Schiller & Naumann (1933) drag correlation
                      ! Since the particle Reynolds number definition currently contains vfrac_fluid in numerator,
                      ! we need to take that out by dividing as done below. Must be changed when Reynolds number defn is changed - gb812
@@ -576,6 +588,49 @@
                            drag_coefficient_gi(gi) = (24.0/(particle_re_gi(gi)/vfrac_fluid_gi(gi)))*(1.0+0.15*(particle_re_gi(gi)/vfrac_fluid_gi(gi))**0.687)
                         else
                            drag_coefficient_gi(gi) = 0.44
+                        end if
+                     end do
+!                  case(DRAG_CORRELATION_TYPE_SCHILLER_NAUMANN_FLUENT)
+!                     ! Schiller & Naumann (1933) drag correlation - Fluent like implementation
+!                     do gi = 1, ele_ngi(u,ele)
+!                        if((particle_re_gi(gi)/vfrac_fluid_gi(gi)) < 1000) then
+!                           drag_coefficient_gi(gi) = (24.0/(particle_re_gi(gi)/vfrac_fluid_gi(gi)))*(1.0+0.15*(particle_re_gi(gi)/vfrac_fluid_gi(gi))**0.687)
+!                        else
+!                           drag_coefficient_gi(gi) = 0.44
+!                        end if
+!                     end do
+!                  case(DRAG_CORRELATION_TYPE_SCHILLER_NAUMANN_FLUIDITY)
+!                     ! Schiller & Naumann (1933) drag correlation - Fluidity like implementation
+!                     do gi = 1, ele_ngi(u,ele)
+!                        if(particle_re_gi(gi) < 1000) then
+!                           drag_coefficient_gi(gi) = (24.0/particle_re_gi(gi))*(1.0+0.15*particle_re_gi(gi)**0.687)
+!                        else
+!                           drag_coefficient_gi(gi) = 0.44
+!                        end if
+!                     end do
+                  case(DRAG_CORRELATION_TYPE_LAIN_1_1999)
+                     ! Lain 1999 - Rigud Bubble
+                     do gi = 1, ele_ngi(u,ele)
+                        if((particle_re_gi(gi)/vfrac_fluid_gi(gi)) < 500) then
+                           drag_coefficient_gi(gi) = (24.0/(particle_re_gi(gi)/vfrac_fluid_gi(gi)))*(1.0+0.15*(particle_re_gi(gi)/vfrac_fluid_gi(gi))**0.687)
+                        else if ((particle_re_gi(gi)/vfrac_fluid_gi(gi)) < 1500) then
+                           drag_coefficient_gi(gi) = 9.5E-5 * (particle_re_gi(gi)/vfrac_fluid_gi(gi))**1.397
+                        else 
+                           drag_coefficient_gi(gi) = 2.61
+                        end if
+                     end do
+                  case(DRAG_CORRELATION_TYPE_LAIN_2_2002)
+                     ! Lain 2002
+                     do gi = 1, ele_ngi(u,ele)
+                        if((particle_re_gi(gi)/vfrac_fluid_gi(gi)) <= 1.5) then
+                           drag_coefficient_gi(gi) = 16.0/(particle_re_gi(gi)/vfrac_fluid_gi(gi))
+                        else if ((particle_re_gi(gi)/vfrac_fluid_gi(gi)) <= 80.0) then
+                           drag_coefficient_gi(gi) = 14.9/(particle_re_gi(gi)/vfrac_fluid_gi(gi))**0.78
+                        else if ((particle_re_gi(gi)/vfrac_fluid_gi(gi)) <= 1500.0) then
+                           drag_coefficient_gi(gi) = (48.0/(particle_re_gi(gi)/vfrac_fluid_gi(gi)))*(1.0-2.21*(particle_re_gi(gi)/vfrac_fluid_gi(gi))**(-0.5))&
+                                                     & + 1.86E-15*(particle_re_gi(gi)/vfrac_fluid_gi(gi))**4.756
+                        else
+                           drag_coefficient_gi(gi) = 2.61
                         end if
                      end do
                end select
@@ -588,7 +643,7 @@
                end do
            
                select case(drag_correlation)
-                  case(DRAG_CORRELATION_TYPE_STOKES)
+                  case(DRAG_CORRELATION_TYPE_STOKES, DRAG_CORRELATION_TYPE_SCHILLER_NAUMANN, DRAG_CORRELATION_TYPE_SCHILLER_NAUMANN_FLUIDITY)
                      K = vfrac_particle_gi*(3.0/4.0)*drag_coefficient_gi*(vfrac_fluid_gi*density_fluid_gi*magnitude_gi)/(d_gi)
                   case(DRAG_CORRELATION_TYPE_WEN_YU)
                      ! Wen & Yu (1966) drag term
@@ -596,8 +651,12 @@
                   case(DRAG_CORRELATION_TYPE_ERGUN)
                      K = 150.0*((vfrac_particle_gi**2)*viscosity_fluid_gi(1,1,:))/(vfrac_fluid_gi*(d_gi**2)) + &
                                 1.75*(vfrac_particle_gi*density_fluid_gi*magnitude_gi/d_gi)
-                  case(DRAG_CORRELATION_TYPE_SCHILLER_NAUMANN)
-                     K = vfrac_fluid_gi*vfrac_particle_gi*(3.0/4.0)*drag_coefficient_gi*(density_fluid_gi*magnitude_gi)/(d_gi)
+!                  case(DRAG_CORRELATION_TYPE_SCHILLER_NAUMANN)
+!                     K = vfrac_fluid_gi*vfrac_particle_gi*(3.0/4.0)*drag_coefficient_gi*(density_fluid_gi*magnitude_gi)/(d_gi)
+                  case(DRAG_CORRELATION_TYPE_SCHILLER_NAUMANN_FLUENT, DRAG_CORRELATION_TYPE_LAIN_1_1999, DRAG_CORRELATION_TYPE_LAIN_2_2002)
+                     K = vfrac_particle_gi*(3.0/4.0)*drag_coefficient_gi*(density_fluid_gi*magnitude_gi)/(d_gi)
+!                  case(DRAG_CORRELATION_TYPE_SCHILLER_NAUMANN_FLUIDITY)
+!                     K = vfrac_fluid_gi*vfrac_particle_gi*(3.0/4.0)*drag_coefficient_gi*(density_fluid_gi*magnitude_gi)/(d_gi)
                end select               
                
                if(is_particle_phase) then
