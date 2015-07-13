@@ -32,7 +32,7 @@ module diagnostic_variables
   use quadrature
   use elements
   use global_parameters, only:FIELD_NAME_LEN,OPTION_PATH_LEN, &
-    & PYTHON_FUNC_LEN, int_16, integer_size, real_size
+    & PYTHON_FUNC_LEN, integer_size, real_size
   use fields
   use fields_base
   use field_derivatives
@@ -79,6 +79,7 @@ module diagnostic_variables
   use detector_move_lagrangian
   use ieee_arithmetic, only: cget_nan
   use state_fields_module, only: get_cv_mass
+  use iso_c_binding, only : c_long_long
   
   implicit none
 
@@ -169,7 +170,7 @@ module diagnostic_variables
     
     !! Recording wall time since the system start
     integer :: current_count, count_rate, count_max
-    integer(kind = int_16) :: elapsed_count
+    integer(kind = c_long_long) :: elapsed_count
   end type stat_type
 
   type(stat_type), save, target :: default_stat
