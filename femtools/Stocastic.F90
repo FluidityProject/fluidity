@@ -38,8 +38,11 @@ module stocastic
 
   implicit none
 
-  integer, parameter :: UNIFORM=1, NORMAL=2
+  integer, parameter :: UNIFORM=1, NORMAL=2, CAUCHY=3,&
+       SPHERE=4
   logical, save :: initialised=.false. 
+
+  real, parameter :: pi=3.14159265358979324
 
   private
 
@@ -115,8 +118,21 @@ contains
        call uniform_random_number(harvest)
     case(NORMAL)
        call normal_random_number(harvest)
+    case(CAUCHY)
+       call cauchy_random_number(harvest)
     end select
   end subroutine get_random_from_distribution
+
+  subroutine get_random_from_distribution_2d(harvest,distribution)
+    real, intent(out), dimension(:,:) :: harvest
+    integer, intent(in) :: distribution
+
+    select case(distribution)
+    case(SPHERE)
+       call spherical_random_number(harvest)
+    end select
+    
+  end subroutine get_random_from_distribution_2d
 
   subroutine uniform_random_number(harvest)
     real, dimension(:), intent(out) :: harvest
@@ -164,9 +180,41 @@ contains
 
   end subroutine normal_random_number
 
+  subroutine cauchy_random_number(harvest)
+    real, dimension(:), intent(out) :: harvest
+
+    ! obtain a random number from the Cauchy(0,1) distribution
+
+    ! To remap to the Cauchy(mu,sig) distribution use
+    ! call cauchy_random_number(harvest)
+    ! X=mu+sig*cauchy
 
 
+    call uniform_random_number(harvest)
+
+    harvest=tan(pi*(harvest-0.5))
+
+  end subroutine cauchy_random_number
     
+  subroutine spherical_random_number(harvest)
+    real, dimension(:,:), intent(out) :: harvest
+
+    real, dimension(size(harvest,2)) :: phi, theta
+
+    assert(size(harvest,1)==3)
+
+    call uniform_random_number(theta)
+
+    call uniform_random_number(phi)
+
+    phi=asin(2.0*phi-1.0)
+
+    harvest(1,:)=sin(2.0*pi*theta)*cos(phi)
+    harvest(2,:)=cos(2.0*pi*theta)*cos(phi)
+    harvest(3,:)=sin(phi)
+    
+
+  end subroutine spherical_random_number
 
 
   function get_random_point_in_simplex(X,p) result(point)
