@@ -594,7 +594,52 @@ contains
        call picker_inquire(xfield,det0%position,det0%element,local_coord=det0%local_coords,global=.false.)
        det0=>det0%next
     end do
-    call move_all(reinsert_detector_list,detector_list)
+    if (isparallel()) then
+       call move_all(reinsert_detector_list,detector_list)
+    else
+       !! remerge lists
+        
+       if(associated(reinsert_detector_list%first)&
+            .and. associated(detector_list%first)) then
+          if (detector_list%first%id_number&
+               >reinsert_detector_list%first%id_number) then
+             det0=>reinsert_detector_list%first
+             call remove(det0,reinsert_detector_list)
+             call insert_at_front(det0,detector_list)
+          else
+             det0=>detector_list%first
+          end if
+
+          det_reinsert=>reinsert_detector_list%first
+
+          do while (associated(det0%next) .and. associated(det_reinsert))
+             do while (det0%next%id_number<det_reinsert%id_number)
+                det0=>det0%next
+                 if (.not. associated(det0%next)) exit
+             end do
+             if (.not. associated(det0%next)) exit
+             do while (det0%next%id_number>det_reinsert%id_number)
+                call remove(det_reinsert,reinsert_detector_list)
+                call append(det0,det_reinsert,detector_list)
+                                
+                det0=>det_reinsert
+                det_reinsert=>reinsert_detector_list%first
+                if (.not. associated(det_reinsert) .or.&
+                     .not. associated(det0%next)) exit
+             end do
+          end do
+          
+          do while(associated(det_reinsert))
+             det0=>det_reinsert
+             det_reinsert=>det_reinsert%next
+             call remove(det0,reinsert_detector_list)
+             call insert(det0,detector_list)
+          end do
+       else if (associated(reinsert_detector_list%first)) then
+          call move_all(reinsert_detector_list,detector_list)
+       end if
+    end if
+       
 
     ewrite(2,*) "Exiting reinsert_detectors"  
 

@@ -41,10 +41,14 @@ module detector_tools
   public :: insert, allocate, deallocate, copy, move, move_all, remove, &
             delete, delete_all, pack_detector, unpack_detector, &
             detector_value, set_detector_coords_from_python, &
-            detector_buffer_size
+            detector_buffer_size, insert_at_front, append
 
   interface insert
      module procedure insert_into_detector_list
+  end interface
+
+  interface insert_at_front
+     module procedure insert_into_front_of_detector_list
   end interface
 
   ! Removes detector from a list without deallocating it
@@ -75,6 +79,10 @@ module detector_tools
   interface copy
      module procedure detector_copy
   end interface
+
+  interface append
+     module procedure detector_append
+  end interface append
 
   interface allocate
      module procedure detector_allocate_from_params, detector_allocate_from_detector
@@ -193,6 +201,20 @@ contains
       
   end subroutine detector_copy
 
+  subroutine detector_append(detector1,detector2,current_list)
+    ! Form the double links between two detectors, where detector1
+    ! is in the current list
+    type(detector_type),  pointer, intent(inOUT) :: detector1, detector2
+    type(detector_linked_list), intent(inout) :: current_list
+
+    detector2%next=>detector1%next
+    detector2%next%previous=>detector2
+    detector2%previous=>detector1
+    detector1%next=>detector2
+    current_list%length = current_list%length+1
+
+  end subroutine detector_append
+
   subroutine insert_into_detector_list(detector, current_list)
     ! Inserts detector at the end of a list
     type(detector_linked_list), intent(inout) :: current_list
@@ -213,6 +235,27 @@ contains
     end if
 
   end subroutine insert_into_detector_list
+
+  subroutine insert_into_front_of_detector_list(detector, current_list)
+    ! Inserts detector at the end of a list
+    type(detector_linked_list), intent(inout) :: current_list
+    type(detector_type), pointer :: detector
+
+    if (current_list%length == 0) then
+       current_list%first => detector 
+       current_list%last => detector 
+       current_list%first%previous => null()
+       current_list%last%next => null()
+       current_list%length = 1
+    else
+       detector%next => current_list%first
+       current_list%first%previous => detector
+       current_list%first => detector
+       current_list%first%previous => null()
+       current_list%length = current_list%length+1
+    end if
+
+  end subroutine insert_into_front_of_detector_list
 
   subroutine remove_detector_from_list(detector, detector_list)
     !! Removes the detector from the list, 
