@@ -100,7 +100,7 @@ module supermesh_construction
     type(tri_type) :: tri_A, tri_B
     
     integer :: n_trisC, i, n_tetsC, dim, loc, nonods, totele
-#if HAVE_SUPERMESH
+#ifdef HAVE_SUPERMESH
     integer, dimension(:, :), allocatable :: ndglno
 #endif
 
@@ -128,10 +128,10 @@ module supermesh_construction
 #ifdef DDEBUG
          intersection_mesh%ndglno = -1
 #endif
-#if HAVE_SUPERMESH
-         allocate(ndglno(loc, totele))
-         call cintersector_get_output(nonods, totele, dim, loc, intersection%val, ndglno)
-         intersection_mesh%ndglno = reshape(ndglno, (/loc * totele/))
+#ifdef HAVE_SUPERMESH
+         allocate(ndglno(dim + 1, totele))
+         call cintersector_get_output(nonods, totele, dim, dim + 1, intersection%val, ndglno)
+         intersection_mesh%ndglno = reshape(ndglno, (/(dim + 1) * totele/))
          deallocate(ndglno)
 #else
          call cintersector_get_output(nonods, totele, dim, loc, nodes_tmp, intersection_mesh%ndglno)
@@ -181,9 +181,9 @@ module supermesh_construction
           intersection_mesh%ndglno = -1
 #endif
 #ifdef HAVE_SUPERMESH
-          allocate(ndglno(loc, totele))
-          call cintersector_get_output(nonods, totele, dim, loc, intersection%val, ndglno)
-          intersection_mesh%ndglno = reshape(ndglno, (/loc * totele/))
+          allocate(ndglno(dim + 1, totele))
+          call cintersector_get_output(nonods, totele, dim, dim + 1, intersection%val, ndglno)
+          intersection_mesh%ndglno = reshape(ndglno, (/(dim + 1) * totele/))
           deallocate(ndglno)
 #else
           call cintersector_get_output(nonods, totele, dim, loc, nodes_tmp, intersection_mesh%ndglno)
