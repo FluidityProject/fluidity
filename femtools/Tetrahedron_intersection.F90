@@ -8,6 +8,7 @@ module tetrahedron_intersection_module
   use fields_base
   use fields_allocates
   use fields_manipulation
+  use transform_elements
 
   use libsupermesh_tet_intersection_module
   
@@ -24,6 +25,10 @@ module tetrahedron_intersection_module
   interface intersect_tets
     module procedure intersect_tets_dt, intersect_tets_dt_surface
   end interface intersect_tets
+
+  interface get_planes
+    module procedure get_planes_hex
+  end interface get_planes
 
 contains
 
@@ -483,40 +488,6 @@ contains
 
   end function get_planes_tet
 
-  function get_planes_hex(positions, ele) result(plane)
-    type(vector_field), intent(in) :: positions
-    integer, intent(in) :: ele
-    type(plane_type), dimension(6) :: plane
-    integer, dimension(:), pointer :: faces
-    integer :: i, face
-    integer, dimension(4) :: fnodes
-    real, dimension(positions%dim, face_ngi(positions, ele)) :: normals
-
-    ! This could be done much more efficiently by exploiting
-    ! more information about how we number faces and such on a hex
-
-    assert(positions%mesh%shape%numbering%family == FAMILY_CUBE)
-    assert(positions%mesh%faces%shape%numbering%family == FAMILY_CUBE)
-    assert(positions%mesh%shape%degree == 1)
-    assert(has_faces(positions%mesh))
-
-    faces => ele_faces(positions, ele)
-    assert(size(faces) == 6)
-
-    do i=1,size(faces)
-      face = faces(i)
-      fnodes = face_global_nodes(positions, face)
-
-      call transform_facet_to_physical(positions, face, normal=normals)
-      plane(i)%normal = normals(:, 1)
-
-      ! Now we calibrate the constant (setting the 'zero level' of the plane, as it were)
-      ! with a node we know is on the face
-      plane(i)%c = dot_product(plane(i)%normal, node_val(positions, fnodes(1)))
-
-    end do
-  end function get_planes_hex
-
   pure function unit_cross(vecA, vecB) result(cross)
     real, dimension(3), intent(in) :: vecA, vecB
     real, dimension(3) :: cross
@@ -565,5 +536,39 @@ contains
 
   end function face_no
 #endif
+
+  function get_planes_hex(positions, ele) result(plane)
+    type(vector_field), intent(in) :: positions
+    integer, intent(in) :: ele
+    type(plane_type), dimension(6) :: plane
+    integer, dimension(:), pointer :: faces
+    integer :: i, face
+    integer, dimension(4) :: fnodes
+    real, dimension(positions%dim, face_ngi(positions, ele)) :: normals
+
+    ! This could be done much more efficiently by exploiting
+    ! more information about how we number faces and such on a hex
+
+    assert(positions%mesh%shape%numbering%family == FAMILY_CUBE)
+    assert(positions%mesh%faces%shape%numbering%family == FAMILY_CUBE)
+    assert(positions%mesh%shape%degree == 1)
+    assert(has_faces(positions%mesh))
+
+    faces => ele_faces(positions, ele)
+    assert(size(faces) == 6)
+
+    do i=1,size(faces)
+      face = faces(i)
+      fnodes = face_global_nodes(positions, face)
+
+      call transform_facet_to_physical(positions, face, normal=normals)
+      plane(i)%normal = normals(:, 1)
+
+      ! Now we calibrate the constant (setting the 'zero level' of the plane, as it were)
+      ! with a node we know is on the face
+      plane(i)%c = dot_product(plane(i)%normal, node_val(positions, fnodes(1)))
+
+    end do
+  end function get_planes_hex
 
 end module tetrahedron_intersection_module

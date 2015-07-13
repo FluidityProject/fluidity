@@ -9,6 +9,10 @@ module intersection_finder_module
     & ilist_lib => ilist, &
     & flush_list_lib => flush_list
   use libsupermesh_intersection_finder_module, only : &
+    & rtree_intersection_finder_get_output, &
+    & rtree_intersection_finder_query_output, &
+    & rtree_intersection_finder_reset
+  use libsupermesh_intersection_finder_module, only : &
     & libsupermesh_intersection_finder => intersection_finder, &
     & libsupermesh_advancing_front_intersection_finder => advancing_front_intersection_finder, &
     & libsupermesh_rtree_intersection_finder => rtree_intersection_finder
@@ -45,28 +49,6 @@ interface crtree_intersection_finder_find
     real, dimension(ndim * loc) :: positions
   end subroutine libsupermesh_cintersection_finder_find
 end interface crtree_intersection_finder_find
-
-interface rtree_intersection_finder_query_output
-  subroutine libsupermesh_cintersection_finder_query_output(nelems)
-    implicit none
-    integer, intent(out) :: nelems
-  end subroutine libsupermesh_cintersection_finder_query_output
-end interface rtree_intersection_finder_query_output
-
-interface rtree_intersection_finder_get_output
-  subroutine libsupermesh_cintersection_finder_get_output(id, nelem)
-    implicit none
-    integer, intent(out) :: id
-    integer, intent(in) :: nelem
-  end subroutine libsupermesh_cintersection_finder_get_output
-end interface rtree_intersection_finder_get_output
-
-interface rtree_intersection_finder_reset
-  subroutine libsupermesh_cintersection_finder_reset(ntests)
-    implicit none
-    integer, intent(out) :: ntests
-  end subroutine libsupermesh_cintersection_finder_reset
-end interface rtree_intersection_finder_reset
 #else
 interface crtree_intersection_finder_set_input
   subroutine cintersection_finder_set_input(positions, enlist, ndim, loc, nnodes, nelements)
