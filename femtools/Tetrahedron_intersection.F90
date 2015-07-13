@@ -1,52 +1,91 @@
-#define BUF_SIZE 150
 #include "fdebug.h"
 
 module tetrahedron_intersection_module
 
+#ifdef HAVE_SUPERMESH
+  use elements
+  use fields_data_types
+  use fields_base
+  use fields_allocates
+  use fields_manipulation
+
+  use libsupermesh_tet_intersection_module
+  
+  implicit none
+
+  private
+
+  type(mesh_type), save, private :: intersection_mesh
+  logical, save, private :: intersection_mesh_allocated = .false.
+
+  public :: tet_type, plane_type, tet_buf_size, get_planes, intersect_tets, &
+    & finalise_tet_intersector
+    
+  interface intersect_tets
+    module procedure intersect_tets_dt, intersect_tets_dt_surface
+  end interface intersect_tets
+
+contains
+
+  subroutine finalise_tet_intersector()
+  
+    if(intersection_mesh_allocated) then
+      call deallocate(intersection_mesh)
+      intersection_mesh_allocated = .false.
+    end if
+    
+  end subroutine finalise_tet_intersector
+
+  subroutine intersect_tets_dt(tetA, planesB, shape, stat, output)
+    type(tet_type), intent(in) :: tetA
+    type(plane_type), dimension(:), intent(in) :: planesB
+    type(element_type), intent(in) :: shape
+    type(vector_field), intent(inout) :: output
+    integer, intent(out) :: stat
+
+    integer :: i, n_tetsC, ele
+    type(tet_type), dimension(tet_buf_size), save :: tetsC
+
+    call intersect_tets(tetA, planesB, tetsC, n_tetsC)
+    if(stat == 1) return
+
+    if(.not. intersection_mesh_allocated) then
+      call allocate(intersection_mesh, tet_buf_size * 4, tet_buf_size, shape, name = "IntersectionMesh")
+      intersection_mesh%ndglno = (/ (i, i = 1, tet_buf_size * 4) /)
+      intersection_mesh%continuity = -1
+      intersection_mesh_allocated = .true.
+    end if
+    intersection_mesh%nodes = n_tetsC * 4
+    intersection_mesh%elements = n_tetsC
+
+    call allocate(output, 3, intersection_mesh, name = "IntersectionCoordinates")
+    do ele = 1, n_tetsC
+      call set(output, ele_nodes(output, ele), tetsC(ele)%v)
+    end do
+    stat = 0
+
+  end subroutine intersect_tets_dt
+
+  subroutine intersect_tets_dt_surface(tetA, planesB, shape, stat, output, surface_shape, surface_positions, surface_colours)
+    type(tet_type), intent(in) :: tetA
+    type(plane_type), dimension(:), intent(in) :: planesB
+    type(element_type), intent(in) :: shape
+    type(vector_field), intent(inout) :: output
+    type(element_type), intent(in) :: surface_shape
+    type(vector_field), intent(out) :: surface_positions
+    type(scalar_field), intent(out) :: surface_colours
+    integer, intent(out) :: stat
+    
+    FLAbort("Surface parameters not supported by libsupermesh")
+
+  end subroutine intersect_tets_dt_surface
+  
+#else
+#define BUF_SIZE 150
+
   use elements
   use vector_tools
   use fields_data_types
-#ifdef HAVE_SUPERMESH
-!  use elements, only: allocate, local_coord_count, local_vertices, &
-!                     boundary_numbering, operator(==)
-  use libsupermesh_elements, only: element_type_lib => element_type
-!  use futils
-!  use libsupermesh_futils, only: real_format_lib => real_format
-
-!  use element_numbering
-!  use libsupermesh_element_numbering, only: vertex_num_lib => vertex_num
-  
-!  use elements
-!  use libsupermesh_elements, only: element_type_lib => element_type
-
-!  use libsupermesh_vector_tools
-
-!  use fields_data_types
-  use libsupermesh_fields_data_types, mesh_faces_lib => mesh_faces, &
-                    mesh_subdomain_mesh_lib => mesh_subdomain_mesh, &
-                    scalar_field_lib => scalar_field, &
-                    vector_field_lib => vector_field, &
-                    tensor_field_lib => tensor_field, &
-                    mesh_type_lib => mesh_type, &
-  scalar_boundary_condition_lib => scalar_boundary_condition, &
-  vector_boundary_condition_lib => vector_boundary_condition, &
-  scalar_boundary_conditions_ptr_lib => scalar_boundary_conditions_ptr, &
-  vector_boundary_conditions_ptr => vector_boundary_conditions_ptr
-  use libsupermesh_fields_allocates, only : allocate, deallocate
-  use libsupermesh_fields_base, only : ele_count_lib => ele_count, &
-                                      node_count_lib => node_count
-  use libsupermesh_tet_intersection_module, only : tet_type_lib => tet_type, &
-                               & plane_type_lib => plane_type, &
-                               & libsupermesh_intersect_tets_dt, &
-                               get_planes_lib => get_planes, tet_buf_size
-  use libsupermesh_quadrature, only : &
-                    quadrature_type_lib => quadrature_type, &
-                    make_quadrature_lib => make_quadrature, &
-                    deallocate
-  use libsupermesh_shape_functions, only : &
-                    make_element_shape_lib => make_element_shape, &
-                    deallocate
-#endif
   use fields_base
   use fields_allocates
   use fields_manipulation
@@ -87,64 +126,6 @@ module tetrahedron_intersection_module
     end if
   end subroutine finalise_tet_intersector
 
-#ifdef HAVE_SUPERMESH
-  subroutine intersect_tets_dt(tetA, planesB, shape, stat, output, surface_shape, surface_positions, surface_colours)
-    type(tet_type), intent(in) :: tetA
-    type(plane_type), dimension(:), intent(in) :: planesB
-    type(element_type), intent(in) :: shape
-    type(vector_field), intent(inout) :: output
-    type(vector_field), intent(out), optional :: surface_positions
-    type(scalar_field), intent(out), optional :: surface_colours
-    type(element_type), intent(in), optional :: surface_shape
-    integer, intent(out) :: stat
-
-    type(tet_type_lib) :: tetA_lib
-    type(plane_type_lib), dimension(size(planesB)) :: planesB_lib
-
-    integer :: i, n_tetsC, ele
-    type(tet_type_lib), dimension(tet_buf_size) :: tetsC
-
-    if (present(surface_colours) .or. present(surface_positions) .or. present(surface_shape)) then
-      assert(present(surface_positions))
-      assert(present(surface_colours))
-      assert(present(surface_shape))
-    end if
-
-    tetA_lib%V = tetA%V
-    tetA_lib%colours = tetA%colours
-
-    FORALL(i=1:3) planesB_lib%normal(i)=planesB%normal(i)
-    planesB_lib%c = planesB%c
-
-    if (present(surface_colours)) then
-      FLAbort("intersect_tets_dt: Not implemented optional parameters")
-!      call libsupermesh_intersect_tets_dt(tetA_lib, planesB_lib, shape_lib, stat = stat, output = output_lib)
-    else
-      call libsupermesh_intersect_tets_dt(tetA_lib, planesB_lib, tetsC, n_tetsC)
-    end if
-    if (stat == 1) then
-      return
-    end if
-
-    if (.not. mesh_allocated) then
-      call allocate(intersection_mesh, BUF_SIZE * 4, BUF_SIZE, shape, name="IntersectionMesh")
-      intersection_mesh%ndglno = (/ (i, i=1,BUF_SIZE*4) /)
-      intersection_mesh%continuity = -1
-      mesh_allocated = .true.
-    end if
-    intersection_mesh%nodes = n_tetsC*4
-    intersection_mesh%elements = n_tetsC
-    
-    call allocate(output, 3, intersection_mesh, name = "IntersectionCoordinates")
-    do ele=1,n_tetsC
-      call set(output, ele_nodes(output, ele), tetsC(ele)%v)
-    end do
-    stat = 0
-    
-    return
-
-  end subroutine intersect_tets_dt
-#else
   subroutine intersect_tets_dt(tetA, planesB, shape, stat, output, surface_shape, surface_positions, surface_colours)
     type(tet_type), intent(in) :: tetA
     type(plane_type), dimension(:), intent(in) :: planesB
@@ -272,7 +253,6 @@ module tetrahedron_intersection_module
     end if
 
   end subroutine intersect_tets_dt
-#endif
 
   subroutine clip(plane, tet)
   ! Clip tet against the plane
@@ -584,5 +564,6 @@ module tetrahedron_intersection_module
     end do
 
   end function face_no
+#endif
 
 end module tetrahedron_intersection_module

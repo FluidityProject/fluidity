@@ -3,42 +3,13 @@
 module supermesh_construction
   use fields_data_types
 #ifdef HAVE_SUPERMESH
-!  use elements, only: allocate, local_coord_count, local_vertices, &
-!                     boundary_numbering, operator(==)
-!  use libsupermesh_elements, only: element_type
-!  use elements
-!  use libsupermesh_elements, only: element_type_lib => element_type, &
-!                  real_format_lib => real_format
-
-  use libsupermesh_elements, only: element_type_lib => element_type
-  use libsupermesh_fields_data_types, only: mesh_faces_lib => mesh_faces, &
-                    mesh_subdomain_mesh_lib => mesh_subdomain_mesh, &
-                    scalar_field_lib => scalar_field, &
-                    vector_field_lib => vector_field, &
-                    tensor_field_lib => tensor_field, &
-                    mesh_type_lib => mesh_type, &
-  scalar_boundary_condition_lib => scalar_boundary_condition, &
-  vector_boundary_condition_lib => vector_boundary_condition, &
-  scalar_boundary_conditions_ptr_lib => scalar_boundary_conditions_ptr, &
-  vector_boundary_conditions_ptr => vector_boundary_conditions_ptr
-  use libsupermesh_fields_allocates, only : allocate, deallocate
-  use libsupermesh_fields_base, only : ele_count_lib => ele_count, &
-                    node_count_lib => node_count, &
-                    ele_val_lib => ele_val, &
-                    ele_loc_lib => ele_loc
-  use libsupermesh_construction
-  use libsupermesh_quadrature, only : &
-                    quadrature_type_lib => quadrature_type, &
-                    make_quadrature_lib => make_quadrature, &
-                    deallocate
-  use libsupermesh_shape_functions, only : &
-                    make_element_shape_lib => make_element_shape, &
-                    deallocate
+  use libsupermesh_tri_intersection_module, only : tri_type, tri_buf_size, &
+    & intersect_tris, &
+    & cintersector_set_input, cintersector_drive, cintersector_query, &
+    & cintersector_get_output, cintersection_finder_reset
   use libsupermesh_tri_intersection_module, only : &
-                &   tri_type, tri_buf_size, libsupermesh_intersect_tris
-  use libsupermesh_tet_intersection_module, only : &
-                &   tet_type_lib => tet_type, tet_buf_size, &
-                &   libsupermesh_intersect_tets
+    & intersector_set_dimension => cintersector_set_dimension
+  use libsupermesh_tet_intersection_module
 #endif
   use fields_allocates
   use fields_base
@@ -52,56 +23,7 @@ module supermesh_construction
   use tetrahedron_intersection_module
   implicit none
 
-#ifdef HAVE_SUPERMESH
-  interface cintersector_drive
-    subroutine libsupermesh_cintersector_drive
-    end subroutine libsupermesh_cintersector_drive
-  end interface cintersector_drive
-  
-  interface cintersector_query
-    subroutine libsupermesh_cintersector_query(nonods, totele)
-      implicit none
-      integer, intent(out) :: nonods, totele
-    end subroutine libsupermesh_cintersector_query
-  end interface cintersector_query
-
-  interface cintersector_set_input
-    module procedure intersector_set_input_sp
-  
-    subroutine libsupermesh_cintersector_set_input(nodes_A, nodes_B, ndim, loc)
-      use global_parameters, only : real_8
-      implicit none
-      real(kind = real_8), dimension(ndim, loc), intent(in) :: nodes_A, nodes_B
-      integer, intent(in) :: ndim, loc
-    end subroutine libsupermesh_cintersector_set_input
-  end interface cintersector_set_input
-
-  interface intersector_set_dimension
-    subroutine libsupermesh_cintersector_set_dimension(ndim)
-      implicit none
-      integer, intent(in) :: ndim
-    end subroutine libsupermesh_cintersector_set_dimension
-  end interface intersector_set_dimension
-
-  interface cintersector_set_exactness
-    subroutine libsupermesh_cintersector_set_exactness(exact)
-      implicit none
-      integer, intent(in) :: exact
-    end subroutine libsupermesh_cintersector_set_exactness
-  end interface cintersector_set_exactness
-
-  interface cintersector_get_output
-!    module procedure libsupermesh_intersector_get_output_sp
-  
-    subroutine libsupermesh_cintersector_get_output(nonods, totele, ndim, loc, nodes, enlist)
-      use global_parameters, only : real_8
-      implicit none
-      integer, intent(in) :: nonods, totele, ndim, loc
-      real(kind = real_8), dimension(nonods * ndim), intent(out) :: nodes
-      integer, dimension(totele * loc), intent(out) :: enlist
-    end subroutine libsupermesh_cintersector_get_output
-  end interface cintersector_get_output
-#else
+#ifndef HAVE_SUPERMESH
   interface 
     subroutine cintersector_drive
     end subroutine cintersector_drive
@@ -114,9 +36,7 @@ module supermesh_construction
     end subroutine cintersector_query
   end interface
 
-  interface cintersector_set_input
-    module procedure intersector_set_input_sp
-  
+  interface cintersector_set_input  
     subroutine cintersector_set_input(nodes_A, nodes_B, ndim, loc)
       use global_parameters, only : real_8
       implicit none
@@ -139,9 +59,7 @@ module supermesh_construction
     end subroutine cintersector_set_exactness
   end interface
 
-  interface cintersector_get_output
-    module procedure intersector_get_output_sp
-  
+  interface cintersector_get_output  
     subroutine cintersector_get_output(nonods, totele, ndim, loc, nodes, enlist)
       use global_parameters, only : real_8
       implicit none
@@ -151,42 +69,19 @@ module supermesh_construction
     end subroutine cintersector_get_output
   end interface cintersector_get_output
 #endif
-  
+
+#ifndef HAVE_SUPERMESH
   ! I hope this is big enough ...
-  real, dimension(1024) :: nodes_tmp
-  logical :: intersector_exactness = .false.
-  integer, public :: returned_triangles, returned_tets, returned_lines, returned_quads
+  real, dimension(1024), save :: nodes_tmp
+#endif
+  logical, save :: intersector_exactness = .false.
+  integer, save, public :: returned_triangles, returned_tets, returned_lines, returned_quads
 
   public :: intersect_elements, intersector_set_dimension, intersector_set_exactness
   public :: construct_supermesh, compute_projection_error, intersector_exactness
   private
 
   contains
-  
-  subroutine intersector_set_input_sp(nodes_A, nodes_B, ndim, loc)
-    real(kind = real_4), dimension(ndim, loc), intent(in) :: nodes_A
-    real(kind = real_4), dimension(ndim, loc), intent(in) :: nodes_B
-    integer, intent(in) :: ndim
-    integer, intent(in) :: loc
-    
-    call cintersector_set_input(real(nodes_A, kind = real_8), real(nodes_B, kind = real_8), ndim, loc)
-  
-  end subroutine intersector_set_input_sp
-  
-  subroutine intersector_get_output_sp(nonods, totele, ndim, loc, nodes, enlist)
-    integer, intent(in) :: nonods
-    integer, intent(in) :: totele
-    integer, intent(in) :: ndim
-    integer, intent(in) :: loc
-    real(kind = real_4), dimension(nonods * ndim), intent(out) :: nodes
-    integer, dimension(totele * loc), intent(out) :: enlist
-    
-    real(kind = real_8), dimension(size(nodes)) :: lnodes
-    
-    call cintersector_get_output(nonods, totele, ndim, loc, lnodes, enlist)
-    nodes = lnodes
-    
-  end subroutine intersector_get_output_sp
 
 #ifdef HAVE_SUPERMESH
   function intersect_elements(positions_A, ele_A, posB, shape) result(intersection)
@@ -198,13 +93,16 @@ module supermesh_construction
     
     type(mesh_type) :: intersection_mesh
 !    type(tri_type), dimension(tri_buf_size) :: trisC !using this we get hit with a 12% slowdown
-!    type(tet_type_lib), dimension(tet_buf_size) :: tetsC !using this we get hit with a 12% slowdown
+!    type(tet_type), dimension(tet_buf_size) :: tetsC !using this we get hit with a 12% slowdown
     real, dimension(2, 3, tri_buf_size) ::  trisC_real
     real, dimension(3, 4, tet_buf_size) ::  tetsC_real
-    type(tet_type_lib) :: tet_A, tet_B
+    type(tet_type) :: tet_A, tet_B
     type(tri_type) :: tri_A, tri_B
     
-    integer :: dimA, n_trisC, i, n_tetsC, dim, loc, nonods, totele
+    integer :: n_trisC, i, n_tetsC, dim, loc, nonods, totele
+#if HAVE_SUPERMESH
+    integer, dimension(:, :), allocatable :: ndglno
+#endif
 
     dim = positions_A%dim
 #ifdef DDEBUG
@@ -230,11 +128,18 @@ module supermesh_construction
 #ifdef DDEBUG
          intersection_mesh%ndglno = -1
 #endif
+#if HAVE_SUPERMESH
+         allocate(ndglno(loc, totele))
+         call cintersector_get_output(nonods, totele, dim, loc, intersection%val, ndglno)
+         intersection_mesh%ndglno = reshape(ndglno, (/loc * totele/))
+         deallocate(ndglno)
+#else
          call cintersector_get_output(nonods, totele, dim, loc, nodes_tmp, intersection_mesh%ndglno)
  
          do i = 1, dim
            intersection%val(i,:) = nodes_tmp((i - 1) * nonods + 1:i * nonods)
          end do
+#endif
          returned_lines = returned_lines + totele
        end if
        call deallocate(intersection_mesh)
@@ -243,7 +148,7 @@ module supermesh_construction
          ! Triangles (2D)
          tri_A%v = ele_val(positions_A, ele_A)
          tri_B%v = posB
-         call libsupermesh_intersect_tris(tri_A%v, tri_B%v, trisC_real, n_trisC)
+         call intersect_tris(tri_A%v, tri_B%v, trisC_real, n_trisC)
          call allocate(intersection_mesh, n_trisC * 3, n_trisC, shape, "IntersectionMeshTri")
          intersection_mesh%continuity = -1
 
@@ -275,11 +180,18 @@ module supermesh_construction
 #ifdef DDEBUG
           intersection_mesh%ndglno = -1
 #endif
+#ifdef HAVE_SUPERMESH
+          allocate(ndglno(loc, totele))
+          call cintersector_get_output(nonods, totele, dim, loc, intersection%val, ndglno)
+          intersection_mesh%ndglno = reshape(ndglno, (/loc * totele/))
+          deallocate(ndglno)
+#else
           call cintersector_get_output(nonods, totele, dim, loc, nodes_tmp, intersection_mesh%ndglno)
 
           do i = 1, dim
             intersection%val(i,:) = nodes_tmp((i - 1) * nonods + 1:i * nonods)
           end do
+#endif
           returned_quads = returned_quads + totele
         end if
         call deallocate(intersection_mesh)
@@ -288,7 +200,7 @@ module supermesh_construction
        ! Tets (3D)
        tet_A%v = ele_val(positions_A, ele_A)
        tet_B%v = posB
-       call libsupermesh_intersect_tets(tet_A%v, tet_B%v, tetsC_real, n_tetsC)
+       call intersect_tets(tet_A%v, tet_B%v, tetsC_real, n_tetsC)
        call allocate(intersection_mesh, n_tetsC * 4, n_tetsC, shape)
        intersection_mesh%continuity = -1
 
@@ -365,8 +277,11 @@ module supermesh_construction
 #ifdef HAVE_SUPERMESH
   subroutine intersector_set_exactness(exactness)
     logical, intent(in) :: exactness
-    
-    call libsupermesh_intersector_set_exactness(exactness)
+
+    if(exactness) then
+      FLAbort("Arbitrary precision arithmetic not supported by libsupermesh")
+    end if
+
   end subroutine intersector_set_exactness
 #else
   subroutine intersector_set_exactness(exactness)

@@ -4,30 +4,14 @@
 module intersection_finder_module
 
 #ifdef HAVE_SUPERMESH
-  use libsupermesh_fields_data_types, only: vector_field_lib => vector_field, &
-                             mesh_type_lib => mesh_type
-  use libsupermesh_fields_allocates, only : allocate, deallocate
-  use libsupermesh_intersection_finder_module, &
-                          only: libsupermesh_rtree_intersection_finder, &
-                          libsupermesh_advancing_front_intersection_finder, &
-                          libsupermesh_intersection_finder
-  use libsupermesh_adjacency_lists, only: csr_sparsity_lib => csr_sparsity
-  use libsupermesh_sparse_tools, only: allocate, deallocate, entries
-  use libsupermesh_linked_lists, only: &
-                                ilist_lib => ilist, &
-                                inode_lib => inode, &
-                                fetch_lib => fetch, &
-                                flush_list_lib => flush_list
-  use libsupermesh_quadrature, only : &
-                    quadrature_type_lib => quadrature_type, &
-                    make_quadrature_lib => make_quadrature, &
-                    deallocate
-  use libsupermesh_elements, only: element_type_lib => element_type
-  use libsupermesh_shape_functions, only : &
-                    make_element_shape_lib => make_element_shape, &
-                    deallocate
-#else
-
+  use libsupermesh_linked_lists, only : &
+    & inode_lib => inode, &
+    & ilist_lib => ilist, &
+    & flush_list_lib => flush_list
+  use libsupermesh_intersection_finder_module, only : &
+    & libsupermesh_intersection_finder => intersection_finder, &
+    & libsupermesh_advancing_front_intersection_finder => advancing_front_intersection_finder, &
+    & libsupermesh_rtree_intersection_finder => rtree_intersection_finder
 #endif
 use quadrature
 use elements
