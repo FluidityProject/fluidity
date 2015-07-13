@@ -1735,12 +1735,16 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     Mat, intent(in), optional:: rotation_matrix
     type(petsc_numbering_type), optional, intent(in):: petsc_numbering
 
-    ! hack to satisfy interface for MatNullSpaceCreate
-    ! only works as the array won't actually be used
-    PetscObject, dimension(1:0) :: PETSC_NULL_OBJECT_ARRAY
     MatNullSpace :: null_space
     PetscErrorCode :: ierr
     logical :: different_pmat
+
+    if (present(pmat)) then
+      different_pmat = mat/=pmat
+    else
+      different_pmat = .false.
+    end if
+
 
     if(have_option(trim(solver_option_path)//"/multigrid_near_null_space")) then
 
@@ -1755,9 +1759,14 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
        if (.not. present(petsc_numbering)) then
           FLAbort("Need petsc_numbering for multigrid near null space")
        end if
-       null_space = create_null_space_from_options(mat, trim(solver_option_path)//"/multigrid_near_null_space", &
+       null_space = create_null_space_from_options_vector(mat, trim(solver_option_path)//"/multigrid_near_null_space", &
           petsc_numbering, positions=positions, rotation_matrix=rotation_matrix)
-       call MatSetNearNullSpace(mat, null_space, ierr)
+       if (different_pmat) then
+         ! nns is only used in the preconditioner, so let's attach it to pmat only
+         call MatSetNearNullSpace(pmat, null_space, ierr)
+       else
+         call MatSetNearNullSpace(mat, null_space, ierr)
+       end if
        call MatNullSpaceDestroy(null_space, ierr)
 #endif
     end if
@@ -1766,12 +1775,11 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
        if (.not. present(petsc_numbering)) then
           FLAbort("Need petsc_numbering for null space removal")
        end if
+       ewrite(2,*) "Attaching nullspace to matrix"
        if (size(petsc_numbering%gnn2unn,2)==1) then
-          ! scalar case, only constant null space
-          ewrite(2,*) 'Adding null-space removal options to KSP'
-          call MatNullSpaceCreate(MPI_COMM_FEMTOOLS, PETSC_TRUE, 0, PETSC_NULL_OBJECT_ARRAY, null_space, ierr)
+          null_space = create_null_space_from_options_scalar(mat, trim(solver_option_path)//"/remove_null_space")
        else
-          null_space = create_null_space_from_options(mat, trim(solver_option_path)//"/remove_null_space", &
+          null_space = create_null_space_from_options_vector(mat, trim(solver_option_path)//"/remove_null_space", &
              petsc_numbering, positions=positions, rotation_matrix=rotation_matrix)
        end if
        call MatSetNullSpace(mat, null_space, ierr)
@@ -1786,12 +1794,6 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
           call attach_null_space_from_options(pmat, trim(solver_option_path)//"/preconditioner::ksp", &
              positions=positions, rotation_matrix=rotation_matrix, petsc_numbering=petsc_numbering)
        end if
-    end if
-
-    if (present(pmat)) then
-      different_pmat = mat/=pmat
-    else
-      different_pmat = .false.
     end if
 
     ! Check for nullspace options under the ksp preconditioner (near nullspaces aren't currently allowed in the schema)
@@ -1926,7 +1928,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
          FLAbort("Need to pass down petsc numbering to set up fieldsplit")
        end if
 
-       call setup_fieldsplit_preconditioner(pc, pmat, option_path, &
+       call setup_fieldsplit_preconditioner(pc, option_path, &
             petsc_numbering=petsc_numbering)
 
     else
@@ -1961,15 +1963,16 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     
   end subroutine setup_pc_from_options
 
-  recursive subroutine setup_fieldsplit_preconditioner(pc, pmat, option_path, &
+  recursive subroutine setup_fieldsplit_preconditioner(pc, option_path, &
     petsc_numbering)
   PC, intent(inout):: pc
-  Mat, intent(in):: pmat
   character(len=*), intent(in):: option_path
   type(petsc_numbering_type), intent(in):: petsc_numbering
 
     character(len=128):: fieldsplit_type
     KSP, dimension(size(petsc_numbering%gnn2unn,2)):: subksps
+    Mat :: mat, pmat
+    MatNullSpace :: null_space
     IS:: index_set
     PetscErrorCode:: ierr
     integer:: i
@@ -2001,7 +2004,13 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     call pcfieldsplitgetsubksp(pc, subksps, ierr)
     do i=1, size(subksps)
 
-      call setup_ksp_from_options(subksps(i), pmat, pmat, option_path)
+      call KSPGetOperators(subksps(i), mat, pmat, ierr)
+      if (have_option(trim(option_path)//"/remove_null_space")) then
+        null_space = create_null_space_from_options_scalar(mat, trim(option_path)//"/remove_null_space")
+        call MatSetNullSpace(mat, null_space, ierr)
+        call MatNullSpaceDestroy(null_space, ierr)
+      end if
+      call setup_ksp_from_options(subksps(i), mat, pmat, option_path)
 
     end do
 
@@ -2389,7 +2398,35 @@ subroutine MyKSPMonitor(ksp,n,rnorm,dummy,ierr)
   
 end subroutine MyKSPMonitor
 
-function create_null_space_from_options(mat, null_space_option_path, &
+function create_null_space_from_options_scalar(mat, null_space_option_path) &
+    result (null_space)
+
+   Mat, intent(in):: mat
+   !! the option path to remove_null_space
+   character(len=*), intent(in):: null_space_option_path
+
+   ! hack to satisfy interface for MatNullSpaceCreate
+   ! only works as the array won't actually be used
+   PetscObject, dimension(1:0) :: PETSC_NULL_OBJECT_ARRAY
+   MatNullSpace :: null_space
+   PetscErrorCode :: ierr
+   PetscBool :: isnull
+
+   call MatNullSpaceCreate(MPI_COMM_FEMTOOLS, PETSC_TRUE, 0, PETSC_NULL_OBJECT_ARRAY, null_space, ierr)
+
+   if(have_option(trim(null_space_option_path)//'/test_null_space')) then
+     call MatNullSpaceTest(null_space, mat, isnull, ierr)
+     ewrite(1,*) "For nullspace "//trim(null_space_option_path)//":"
+     if (isnull) then
+       ewrite(1,*) "PETSc's MatNullSpaceTest agrees that this is a null space"
+     else
+       ewrite(1,*) "PETSc's MatNullSpaceTest does not think this is a null space"
+     end if
+   end if
+
+end function create_null_space_from_options_scalar
+
+function create_null_space_from_options_vector(mat, null_space_option_path, &
       petsc_numbering, positions, rotation_matrix) result (null_space)
    Mat, intent(in):: mat
    !! the option path to remove_null_space or multigrid_near_space
@@ -2577,7 +2614,7 @@ function create_null_space_from_options(mat, null_space_option_path, &
      deallocate(rot_null_space_array)
    end if
 
-end function create_null_space_from_options
+end function create_null_space_from_options_vector
 
 function petsc_solve_needs_positions(solver_option_path)
   !!< Auxillary function to tell us if we need to pass in a positions field to petsc_solve
