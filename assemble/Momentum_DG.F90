@@ -284,6 +284,7 @@ contains
 
     real :: rho_fluid, a_fact, C_T, disc_thickness, disc_area, u_ref_def, intgrl_sum, disc_volume
     type(scalar_field) :: Turbine
+    type(scalar_field), pointer :: Turbine_Power
     logical :: ADM_correction
     !AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA!
 
@@ -365,6 +366,8 @@ contains
 
     !AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA!
     Turbine = extract_scalar_field(state, "NodeOnTurbine")
+    Turbine_Power => extract_scalar_field(state, "Turbine_Power")
+    call set(Turbine_Power, 0.0)
 
     call get_option('/ADM/C_T', C_T, default = 0.0)
     call get_option('/ADM/DiscThickness', disc_thickness)
@@ -788,6 +791,7 @@ contains
         do discs = 1, ndiscs
           if (X%mesh%region_ids(ele)==region_id_disc(discs)) then
             call calc_disc_source(ele, X, Source, new_source(discs))
+            call calc_turbine_power(ele, Turbine_Power, u_disc(discs), new_source(discs), disc_volume)
           end if
         end do
       end do elementS_loop
@@ -907,6 +911,28 @@ contains
     end do
 
   end subroutine calc_disc_source
+  !AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA!
+
+  !AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA!
+  subroutine calc_turbine_power(ele, Turbine_Power, u_disc, new_source, disc_volume)
+
+    !! Index of current element
+    integer :: ele, iloc, inode
+    real, intent(in) :: u_disc, new_source, disc_volume
+    type(scalar_field), intent(inout) :: Turbine_Power
+    integer, dimension(:), pointer:: Turbine_ele
+
+    ! Establish local node lists
+    Turbine_ele=>ele_nodes(Turbine_Power,ele)
+
+    ! Loop the nodes
+    do iloc=1, size(Turbine_ele)
+      !get the global number
+      inode=Turbine_ele(iloc)
+      Turbine_Power%val(inode) = -u_disc*new_source*disc_volume
+    end do
+
+  end subroutine calc_turbine_power
   !AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA!
 
   subroutine construct_momentum_element_dg(ele, big_m, rhs, &
