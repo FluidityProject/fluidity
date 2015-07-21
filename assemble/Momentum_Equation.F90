@@ -1934,7 +1934,7 @@
             ! Filter wiggles from u
             do d = 1, mesh_dim(u)
                u_cpt = extract_scalar_field_from_vector_field(u, d)
-               !call limit_vb(state(istate), u_cpt)
+               call limit_vb(state(istate), u_cpt)
             end do
          end if
          call profiler_toc(u, "assembly")
