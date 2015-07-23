@@ -13383,8 +13383,8 @@ if test "x$ac_cv_lib_zoltan_Zoltan_Create" = xyes; then :
        LIBS="-lzoltan $LIBS"
 else
 
-      { $as_echo "$as_me:${as_lineno-$LINENO}: Fluiidity can be build without zoltan by configuring with the --enable-sam flag. This gives limited functionality when using parallel adaptivity. See the manual for more details." >&5
-$as_echo "$as_me: Fluiidity can be build without zoltan by configuring with the --enable-sam flag. This gives limited functionality when using parallel adaptivity. See the manual for more details." >&6;}
+      { $as_echo "$as_me:${as_lineno-$LINENO}: Fluidity can be built without zoltan by configuring with the --enable-sam flag. This gives limited functionality when using parallel adaptivity. See the manual for more details." >&5
+$as_echo "$as_me: Fluidity can be built without zoltan by configuring with the --enable-sam flag. This gives limited functionality when using parallel adaptivity. See the manual for more details." >&6;}
       { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
 as_fn_error $? "\"Could not link with Zoltan library.\"

@@ -858,7 +858,7 @@ if test "$enable_sam" = "yes"; then
 else
   ACX_lib_automagic(zoltan, Zoltan_Create, [],
     [
-      AC_MSG_NOTICE([Fluiidity can be build without zoltan by configuring with the --enable-sam flag. This gives limited functionality when using parallel adaptivity. See the manual for more details.])
+      AC_MSG_NOTICE([Fluidity can be built without zoltan by configuring with the --enable-sam flag. This gives limited functionality when using parallel adaptivity. See the manual for more details.])
       AC_MSG_FAILURE("Could not link with Zoltan library.")
     ])
 
