@@ -1715,6 +1715,17 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
         end if
       end if
     end if
+#elif PETSC_VERSION_SUBMINOR==0
+    ! this is 3.6.0 case where KSPSetNullSpace no longer exists, but the nullspace picked up
+    ! in the krylov iteration is from *pmat* not mat (as it is in 3.6.1 and later)
+    if (mat/=pmat) then
+      call MatGetNullSpace(mat, nullsp, ierr)
+      if (ierr==0  .and. nullsp/=PETSC_NULL_OBJECT) then
+        ewrite(0,*) "Matrix and preconditioner matrix are different. For this case nullspaces"
+        ewrite(0,*) "and petsc 3.6.0 are not supported. Please upgrade to petsc 3.6.1 or higher"
+        FLExit("Cannot use petsc 3.6.0 with nullspaces when mat/=pmat")
+      end if
+    end if
 #endif
 
   end subroutine setup_ksp_from_options
