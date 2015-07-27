@@ -140,7 +140,7 @@ subroutine flredecomp(input_basename, input_basename_len, output_basename, outpu
   ! Load the options tree
   call load_options(trim(input_base) // trim(input_file_type))
   ! Ignore this error if we're not processing fluidity schema 
-  if(.not. have_option("/simulation_name") .and. trim(input_file_type) == "flml") then
+  if(.not. have_option("/simulation_name") .and. trim(input_file_type) == ".flml") then
     FLExit("Failed to find simulation name after loading options file")
   end if
 
@@ -173,7 +173,7 @@ subroutine flredecomp(input_basename, input_basename_len, output_basename, outpu
   nstates=option_count("/material_phase")
   ! If we're not processing fluidity schema, then we may not have states
   ! in the same fashion as fluidity
-  if (nstates == 0 .and. .not. trim(input_file_type) == "flml") nstates = 1
+  if (nstates == 0 .and. .not. trim(input_file_type) == ".flml") nstates = 1
   allocate(state(1:nstates))
   do i = 1, nstates
      call nullify(state(i))
