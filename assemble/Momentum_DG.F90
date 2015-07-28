@@ -282,7 +282,7 @@ contains
     real,  dimension(:,:), allocatable :: U_intgrl
     real,    dimension(:), allocatable :: u_disc, u_ref, new_source
 
-    real :: rho_fluid, a_fact, C_T, disc_thickness, disc_area, u_ref_def, intgrl_sum, disc_volume
+    real :: rho_fluid, a_fact, C_T, disc_thickness, disc_area, u_ref_def, intgrl_sum, disc_volume, total_power
     type(scalar_field) :: Turbine
     type(scalar_field), pointer :: Turbine_Power
     logical :: ADM_correction
@@ -796,12 +796,19 @@ contains
         end do
       end do elementS_loop
 
+      total_power = 0.0
+      do discs = 1, ndiscs
+        total_power = total_power + u_disc(discs)*(-new_source(discs))*disc_volume
+      end do
+
       ewrite(2,*) 'ADM----------------------------------------------------'
       ewrite(2,*) 'C_T:', C_T, 'Disc Area:', disc_area, 'Disc Volume:', disc_volume
       do discs = 1, ndiscs
         ewrite(2,*) 'Disc No.:', discs, 'Disc Vel:', u_disc(discs), 'Probe Vel:', u_ref(discs)
         ewrite(2,*) 'Thrust(kN):', -new_source(discs)*disc_volume, 'Power(kW):', -u_disc(discs)*new_source(discs)*disc_volume
       end do
+      ewrite(2,*) '-------------------------------------------------------'
+      ewrite(2,*) 'TOTAL POWER (kW):', total_power
       ewrite(2,*) '-------------------------------------------------------'
 
       deallocate(region_id_disc)
