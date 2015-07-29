@@ -7,7 +7,7 @@
   <tags>flml</tags>
   
   <problem_definition length="short" nprocs="1">
-    <command_line>make run</command_line>
+    <command_line>fluidity -v2 -l swe_dam_break_1d.flml</command_line>
     <!-- 1D shallow water test case involving a dam break. -->
   </problem_definition>
   
