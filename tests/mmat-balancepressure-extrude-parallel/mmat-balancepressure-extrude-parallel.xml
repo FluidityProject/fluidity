@@ -1,11 +1,10 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-
+<?xml version='1.0' encoding='utf-8'?>
 <testproblem>
   <name>Control volume, multi-material surface integral pressure check</name>
   <owner userid="cwilson"/>
-  <tags>flml parallel</tags>
-    <problem_definition length="medium" nprocs="2">
-      <command_line>mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l mmat-balancepressure-p0p1cv-gpp2 mmat-balancepressure-p0p1cv-gpp2_flredecomp &amp;&amp;
+  <tags>flml parallel zoltan</tags>
+  <problem_definition length="medium" nprocs="2">
+    <command_line>mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l mmat-balancepressure-p0p1cv-gpp2 mmat-balancepressure-p0p1cv-gpp2_flredecomp &amp;&amp;
 	mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l mmat-balancepressure-p0p1cv-hpp2dg mmat-balancepressure-p0p1cv-hpp2dg_flredecomp &amp;&amp;
 	mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l mmat-balancepressure-p0p1-rhop0-vfracp0 mmat-balancepressure-p0p1-rhop0-vfracp0_flredecomp &amp;&amp;
 	mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l mmat-balancepressure-p1dgp2-rhop1dg-vfracp1cv mmat-balancepressure-p1dgp2-rhop1dg-vfracp1cv_flredecomp &amp;&amp;
@@ -28,279 +27,130 @@
         mv fluidity.log-1 mmat-balancepressure-p1dgp2-rhop1dg-vfracp1cv.log-1 &amp;&amp; 
         mv fluidity.err-0 mmat-balancepressure-p1dgp2-rhop1dg-vfracp1cv.err-0 &amp;&amp; 
         mv fluidity.err-1 mmat-balancepressure-p1dgp2-rhop1dg-vfracp1cv.err-1</command_line>
-  </problem_definition>  
-  <variables>  
-    <variable name="pressure_p0p1cv_gpp2" language="python">
-import fluidity_tools
-pressure_p0p1cv_gpp2 = max(fluidity_tools.stat_parser("mmat-balancepressure-p0p1cv-gpp2.stat")['Water']['Pressure']['max'])
-    </variable>    
-    <variable name="minpressure_p0p1cv_gpp2" language="python">
-import fluidity_tools
-minpressure_p0p1cv_gpp2 = min(fluidity_tools.stat_parser("mmat-balancepressure-p0p1cv-gpp2.stat")['Water']['Pressure']['min'])
-    </variable>    
-    <variable name="geopressure_p0p1cv_gpp2" language="python">
-import fluidity_tools
-geopressure_p0p1cv_gpp2 = max(fluidity_tools.stat_parser("mmat-balancepressure-p0p1cv-gpp2.stat")['Water']['GeostrophicPressure']['max'])
-    </variable>    
-    <variable name="mingeopressure_p0p1cv_gpp2" language="python">
-import fluidity_tools
-mingeopressure_p0p1cv_gpp2 = min(fluidity_tools.stat_parser("mmat-balancepressure-p0p1cv-gpp2.stat")['Water']['GeostrophicPressure']['min'])
-    </variable>    
-    <variable name="velocityx_p0p1cv_gpp2" language="python">
-import fluidity_tools
-velocityx_p0p1cv_gpp2 = max(fluidity_tools.stat_parser("mmat-balancepressure-p0p1cv-gpp2.stat")['Water']['Velocity%1']['max'])
-    </variable>    
-    <variable name="velocityy_p0p1cv_gpp2" language="python">
-import fluidity_tools
-velocityy_p0p1cv_gpp2 = max(fluidity_tools.stat_parser("mmat-balancepressure-p0p1cv-gpp2.stat")['Water']['Velocity%2']['max'])
-    </variable>    
-    <variable name="velocity_p0p1cv_gpp2" language="python">
-import fluidity_tools
-velocity_p0p1cv_gpp2 = max(fluidity_tools.stat_parser("mmat-balancepressure-p0p1cv-gpp2.stat")['Water']['Velocity%magnitude']['max'])
-    </variable>    
-    <variable name="volfrac0_p0p1cv_gpp2" language="python">
-import fluidity_tools
-volfrac0_p0p1cv_gpp2 = fluidity_tools.stat_parser("mmat-balancepressure-p0p1cv-gpp2.stat")['Water']['MaterialVolumeFraction']['integral'][0]
-    </variable>    
-    <variable name="volfracend_p0p1cv_gpp2" language="python">
-import fluidity_tools
-volfracend_p0p1cv_gpp2 = fluidity_tools.stat_parser("mmat-balancepressure-p0p1cv-gpp2.stat")['Water']['MaterialVolumeFraction']['integral'][-1]
-    </variable>    
-    <variable name="maxdivergence_p0p1cv_gpp2" language="python">
-import fluidity_tools
-maxdivergence_p0p1cv_gpp2 = max(fluidity_tools.stat_parser("mmat-balancepressure-p0p1cv-gpp2.stat")['Water']['ControlVolumeDivergence']['max'])
-    </variable>    
-    <variable name="mindivergence_p0p1cv_gpp2" language="python">
-import fluidity_tools
-mindivergence_p0p1cv_gpp2 = min(fluidity_tools.stat_parser("mmat-balancepressure-p0p1cv-gpp2.stat")['Water']['ControlVolumeDivergence']['min'])
-    </variable>    
-    <variable name="pressure_p0p1cv_hpp2dg" language="python">
-import fluidity_tools
-pressure_p0p1cv_hpp2dg = max(fluidity_tools.stat_parser("mmat-balancepressure-p0p1cv-hpp2dg.stat")['Water']['Pressure']['max'])
-    </variable>    
-    <variable name="minpressure_p0p1cv_hpp2dg" language="python">
-import fluidity_tools
-minpressure_p0p1cv_hpp2dg = min(fluidity_tools.stat_parser("mmat-balancepressure-p0p1cv-hpp2dg.stat")['Water']['Pressure']['min'])
-    </variable>    
-    <variable name="geopressure_p0p1cv_hpp2dg" language="python">
-import fluidity_tools
-geopressure_p0p1cv_hpp2dg = max(fluidity_tools.stat_parser("mmat-balancepressure-p0p1cv-hpp2dg.stat")['Water']['HydrostaticPressure']['max'])
-    </variable>    
-    <variable name="mingeopressure_p0p1cv_hpp2dg" language="python">
-import fluidity_tools
-mingeopressure_p0p1cv_hpp2dg = min(fluidity_tools.stat_parser("mmat-balancepressure-p0p1cv-hpp2dg.stat")['Water']['HydrostaticPressure']['min'])
-    </variable>    
-    <variable name="velocityx_p0p1cv_hpp2dg" language="python">
-import fluidity_tools
-velocityx_p0p1cv_hpp2dg = max(fluidity_tools.stat_parser("mmat-balancepressure-p0p1cv-hpp2dg.stat")['Water']['Velocity%1']['max'])
-    </variable>    
-    <variable name="velocityy_p0p1cv_hpp2dg" language="python">
-import fluidity_tools
-velocityy_p0p1cv_hpp2dg = max(fluidity_tools.stat_parser("mmat-balancepressure-p0p1cv-hpp2dg.stat")['Water']['Velocity%2']['max'])
-    </variable>    
-    <variable name="velocity_p0p1cv_hpp2dg" language="python">
-import fluidity_tools
-velocity_p0p1cv_hpp2dg = max(fluidity_tools.stat_parser("mmat-balancepressure-p0p1cv-hpp2dg.stat")['Water']['Velocity%magnitude']['max'])
-    </variable>    
-    <variable name="volfrac0_p0p1cv_hpp2dg" language="python">
-import fluidity_tools
-volfrac0_p0p1cv_hpp2dg = fluidity_tools.stat_parser("mmat-balancepressure-p0p1cv-hpp2dg.stat")['Water']['MaterialVolumeFraction']['integral'][0]
-    </variable>    
-    <variable name="volfracend_p0p1cv_hpp2dg" language="python">
-import fluidity_tools
-volfracend_p0p1cv_hpp2dg = fluidity_tools.stat_parser("mmat-balancepressure-p0p1cv-hpp2dg.stat")['Water']['MaterialVolumeFraction']['integral'][-1]
-    </variable>    
-    <variable name="maxdivergence_p0p1cv_hpp2dg" language="python">
-import fluidity_tools
-maxdivergence_p0p1cv_hpp2dg = max(fluidity_tools.stat_parser("mmat-balancepressure-p0p1cv-hpp2dg.stat")['Water']['ControlVolumeDivergence']['max'])
-    </variable>    
-    <variable name="mindivergence_p0p1cv_hpp2dg" language="python">
-import fluidity_tools
-mindivergence_p0p1cv_hpp2dg = min(fluidity_tools.stat_parser("mmat-balancepressure-p0p1cv-hpp2dg.stat")['Water']['ControlVolumeDivergence']['min'])
-    </variable>    
-    <variable name="pressure_p0p1_rhop0_vfracp0" language="python">
-import fluidity_tools
-pressure_p0p1_rhop0_vfracp0 = max(fluidity_tools.stat_parser("mmat-balancepressure-p0p1-rhop0-vfracp0.stat")['Water']['Pressure']['max'])
-    </variable>    
-    <variable name="minpressure_p0p1_rhop0_vfracp0" language="python">
-import fluidity_tools
-minpressure_p0p1_rhop0_vfracp0 = min(fluidity_tools.stat_parser("mmat-balancepressure-p0p1-rhop0-vfracp0.stat")['Water']['Pressure']['min'])
-    </variable>    
-    <variable name="velocityx_p0p1_rhop0_vfracp0" language="python">
-import fluidity_tools
-velocityx_p0p1_rhop0_vfracp0 = max(fluidity_tools.stat_parser("mmat-balancepressure-p0p1-rhop0-vfracp0.stat")['Water']['Velocity%1']['max'])
-    </variable>    
-    <variable name="velocityy_p0p1_rhop0_vfracp0" language="python">
-import fluidity_tools
-velocityy_p0p1_rhop0_vfracp0 = max(fluidity_tools.stat_parser("mmat-balancepressure-p0p1-rhop0-vfracp0.stat")['Water']['Velocity%2']['max'])
-    </variable>    
-    <variable name="velocity_p0p1_rhop0_vfracp0" language="python">
-import fluidity_tools
-velocity_p0p1_rhop0_vfracp0 = max(fluidity_tools.stat_parser("mmat-balancepressure-p0p1-rhop0-vfracp0.stat")['Water']['Velocity%magnitude']['max'])
-    </variable>    
-    <variable name="volfrac0_p0p1_rhop0_vfracp0" language="python">
-import fluidity_tools
-volfrac0_p0p1_rhop0_vfracp0 = fluidity_tools.stat_parser("mmat-balancepressure-p0p1-rhop0-vfracp0.stat")['Water']['MaterialVolumeFraction']['integral'][0]
-    </variable>    
-    <variable name="volfracend_p0p1_rhop0_vfracp0" language="python">
-import fluidity_tools
-volfracend_p0p1_rhop0_vfracp0 = fluidity_tools.stat_parser("mmat-balancepressure-p0p1-rhop0-vfracp0.stat")['Water']['MaterialVolumeFraction']['integral'][-1]
-    </variable>    
-    <variable name="maxdivergence_p0p1_rhop0_vfracp0" language="python">
-import fluidity_tools
-maxdivergence_p0p1_rhop0_vfracp0 = max(fluidity_tools.stat_parser("mmat-balancepressure-p0p1-rhop0-vfracp0.stat")['Water']['ControlVolumeDivergence']['max'])
-    </variable>    
-    <variable name="mindivergence_p0p1_rhop0_vfracp0" language="python">
-import fluidity_tools
-mindivergence_p0p1_rhop0_vfracp0 = min(fluidity_tools.stat_parser("mmat-balancepressure-p0p1-rhop0-vfracp0.stat")['Water']['ControlVolumeDivergence']['min'])
-    </variable>
-    <variable name="pressure_p1dgp2_rhop1dg_vfracp1cv" language="python">
-import fluidity_tools
-pressure_p1dgp2_rhop1dg_vfracp1cv = max(fluidity_tools.stat_parser("mmat-balancepressure-p1dgp2-rhop1dg-vfracp1cv.stat")['Water']['Pressure']['max'])
-    </variable>    
-    <variable name="minpressure_p1dgp2_rhop1dg_vfracp1cv" language="python">
-import fluidity_tools
-minpressure_p1dgp2_rhop1dg_vfracp1cv = min(fluidity_tools.stat_parser("mmat-balancepressure-p1dgp2-rhop1dg-vfracp1cv.stat")['Water']['Pressure']['min'])
-    </variable>    
-    <variable name="velocityx_p1dgp2_rhop1dg_vfracp1cv" language="python">
-import fluidity_tools
-velocityx_p1dgp2_rhop1dg_vfracp1cv = max(fluidity_tools.stat_parser("mmat-balancepressure-p1dgp2-rhop1dg-vfracp1cv.stat")['Water']['Velocity%1']['max'])
-    </variable>    
-    <variable name="velocityy_p1dgp2_rhop1dg_vfracp1cv" language="python">
-import fluidity_tools
-velocityy_p1dgp2_rhop1dg_vfracp1cv = max(fluidity_tools.stat_parser("mmat-balancepressure-p1dgp2-rhop1dg-vfracp1cv.stat")['Water']['Velocity%2']['max'])
-    </variable>    
-    <variable name="velocity_p1dgp2_rhop1dg_vfracp1cv" language="python">
-import fluidity_tools
-velocity_p1dgp2_rhop1dg_vfracp1cv = max(fluidity_tools.stat_parser("mmat-balancepressure-p1dgp2-rhop1dg-vfracp1cv.stat")['Water']['Velocity%magnitude']['max'])
-    </variable>    
-    <variable name="volfrac0_p1dgp2_rhop1dg_vfracp1cv" language="python">
-import fluidity_tools
-volfrac0_p1dgp2_rhop1dg_vfracp1cv = fluidity_tools.stat_parser("mmat-balancepressure-p1dgp2-rhop1dg-vfracp1cv.stat")['Water']['MaterialVolumeFraction']['integral'][0]
-    </variable>    
-    <variable name="volfracend_p1dgp2_rhop1dg_vfracp1cv" language="python">
-import fluidity_tools
-volfracend_p1dgp2_rhop1dg_vfracp1cv = fluidity_tools.stat_parser("mmat-balancepressure-p1dgp2-rhop1dg-vfracp1cv.stat")['Water']['MaterialVolumeFraction']['integral'][-1]
-    </variable>    
-    <variable name="maxdivergence_p1dgp2_rhop1dg_vfracp1cv" language="python">
-import fluidity_tools
-maxdivergence_p1dgp2_rhop1dg_vfracp1cv = max(fluidity_tools.stat_parser("mmat-balancepressure-p1dgp2-rhop1dg-vfracp1cv.stat")['Water']['ControlVolumeDivergence']['max'])
-    </variable>    
-    <variable name="mindivergence_p1dgp2_rhop1dg_vfracp1cv" language="python">
-import fluidity_tools
-mindivergence_p1dgp2_rhop1dg_vfracp1cv = min(fluidity_tools.stat_parser("mmat-balancepressure-p1dgp2-rhop1dg-vfracp1cv.stat")['Water']['ControlVolumeDivergence']['min'])
-    </variable>    
-    <variable name = "solvers_converged" language = "python">
-import os
+  </problem_definition>
+  <variables>
+    <variable name="pressure_p0p1cv_gpp2" language="python">import fluidity_tools
+pressure_p0p1cv_gpp2 = max(fluidity_tools.stat_parser("mmat-balancepressure-p0p1cv-gpp2.stat")['Water']['Pressure']['max'])</variable>
+    <variable name="minpressure_p0p1cv_gpp2" language="python">import fluidity_tools
+minpressure_p0p1cv_gpp2 = min(fluidity_tools.stat_parser("mmat-balancepressure-p0p1cv-gpp2.stat")['Water']['Pressure']['min'])</variable>
+    <variable name="geopressure_p0p1cv_gpp2" language="python">import fluidity_tools
+geopressure_p0p1cv_gpp2 = max(fluidity_tools.stat_parser("mmat-balancepressure-p0p1cv-gpp2.stat")['Water']['GeostrophicPressure']['max'])</variable>
+    <variable name="mingeopressure_p0p1cv_gpp2" language="python">import fluidity_tools
+mingeopressure_p0p1cv_gpp2 = min(fluidity_tools.stat_parser("mmat-balancepressure-p0p1cv-gpp2.stat")['Water']['GeostrophicPressure']['min'])</variable>
+    <variable name="velocityx_p0p1cv_gpp2" language="python">import fluidity_tools
+velocityx_p0p1cv_gpp2 = max(fluidity_tools.stat_parser("mmat-balancepressure-p0p1cv-gpp2.stat")['Water']['Velocity%1']['max'])</variable>
+    <variable name="velocityy_p0p1cv_gpp2" language="python">import fluidity_tools
+velocityy_p0p1cv_gpp2 = max(fluidity_tools.stat_parser("mmat-balancepressure-p0p1cv-gpp2.stat")['Water']['Velocity%2']['max'])</variable>
+    <variable name="velocity_p0p1cv_gpp2" language="python">import fluidity_tools
+velocity_p0p1cv_gpp2 = max(fluidity_tools.stat_parser("mmat-balancepressure-p0p1cv-gpp2.stat")['Water']['Velocity%magnitude']['max'])</variable>
+    <variable name="volfrac0_p0p1cv_gpp2" language="python">import fluidity_tools
+volfrac0_p0p1cv_gpp2 = fluidity_tools.stat_parser("mmat-balancepressure-p0p1cv-gpp2.stat")['Water']['MaterialVolumeFraction']['integral'][0]</variable>
+    <variable name="volfracend_p0p1cv_gpp2" language="python">import fluidity_tools
+volfracend_p0p1cv_gpp2 = fluidity_tools.stat_parser("mmat-balancepressure-p0p1cv-gpp2.stat")['Water']['MaterialVolumeFraction']['integral'][-1]</variable>
+    <variable name="maxdivergence_p0p1cv_gpp2" language="python">import fluidity_tools
+maxdivergence_p0p1cv_gpp2 = max(fluidity_tools.stat_parser("mmat-balancepressure-p0p1cv-gpp2.stat")['Water']['ControlVolumeDivergence']['max'])</variable>
+    <variable name="mindivergence_p0p1cv_gpp2" language="python">import fluidity_tools
+mindivergence_p0p1cv_gpp2 = min(fluidity_tools.stat_parser("mmat-balancepressure-p0p1cv-gpp2.stat")['Water']['ControlVolumeDivergence']['min'])</variable>
+    <variable name="pressure_p0p1cv_hpp2dg" language="python">import fluidity_tools
+pressure_p0p1cv_hpp2dg = max(fluidity_tools.stat_parser("mmat-balancepressure-p0p1cv-hpp2dg.stat")['Water']['Pressure']['max'])</variable>
+    <variable name="minpressure_p0p1cv_hpp2dg" language="python">import fluidity_tools
+minpressure_p0p1cv_hpp2dg = min(fluidity_tools.stat_parser("mmat-balancepressure-p0p1cv-hpp2dg.stat")['Water']['Pressure']['min'])</variable>
+    <variable name="geopressure_p0p1cv_hpp2dg" language="python">import fluidity_tools
+geopressure_p0p1cv_hpp2dg = max(fluidity_tools.stat_parser("mmat-balancepressure-p0p1cv-hpp2dg.stat")['Water']['HydrostaticPressure']['max'])</variable>
+    <variable name="mingeopressure_p0p1cv_hpp2dg" language="python">import fluidity_tools
+mingeopressure_p0p1cv_hpp2dg = min(fluidity_tools.stat_parser("mmat-balancepressure-p0p1cv-hpp2dg.stat")['Water']['HydrostaticPressure']['min'])</variable>
+    <variable name="velocityx_p0p1cv_hpp2dg" language="python">import fluidity_tools
+velocityx_p0p1cv_hpp2dg = max(fluidity_tools.stat_parser("mmat-balancepressure-p0p1cv-hpp2dg.stat")['Water']['Velocity%1']['max'])</variable>
+    <variable name="velocityy_p0p1cv_hpp2dg" language="python">import fluidity_tools
+velocityy_p0p1cv_hpp2dg = max(fluidity_tools.stat_parser("mmat-balancepressure-p0p1cv-hpp2dg.stat")['Water']['Velocity%2']['max'])</variable>
+    <variable name="velocity_p0p1cv_hpp2dg" language="python">import fluidity_tools
+velocity_p0p1cv_hpp2dg = max(fluidity_tools.stat_parser("mmat-balancepressure-p0p1cv-hpp2dg.stat")['Water']['Velocity%magnitude']['max'])</variable>
+    <variable name="volfrac0_p0p1cv_hpp2dg" language="python">import fluidity_tools
+volfrac0_p0p1cv_hpp2dg = fluidity_tools.stat_parser("mmat-balancepressure-p0p1cv-hpp2dg.stat")['Water']['MaterialVolumeFraction']['integral'][0]</variable>
+    <variable name="volfracend_p0p1cv_hpp2dg" language="python">import fluidity_tools
+volfracend_p0p1cv_hpp2dg = fluidity_tools.stat_parser("mmat-balancepressure-p0p1cv-hpp2dg.stat")['Water']['MaterialVolumeFraction']['integral'][-1]</variable>
+    <variable name="maxdivergence_p0p1cv_hpp2dg" language="python">import fluidity_tools
+maxdivergence_p0p1cv_hpp2dg = max(fluidity_tools.stat_parser("mmat-balancepressure-p0p1cv-hpp2dg.stat")['Water']['ControlVolumeDivergence']['max'])</variable>
+    <variable name="mindivergence_p0p1cv_hpp2dg" language="python">import fluidity_tools
+mindivergence_p0p1cv_hpp2dg = min(fluidity_tools.stat_parser("mmat-balancepressure-p0p1cv-hpp2dg.stat")['Water']['ControlVolumeDivergence']['min'])</variable>
+    <variable name="pressure_p0p1_rhop0_vfracp0" language="python">import fluidity_tools
+pressure_p0p1_rhop0_vfracp0 = max(fluidity_tools.stat_parser("mmat-balancepressure-p0p1-rhop0-vfracp0.stat")['Water']['Pressure']['max'])</variable>
+    <variable name="minpressure_p0p1_rhop0_vfracp0" language="python">import fluidity_tools
+minpressure_p0p1_rhop0_vfracp0 = min(fluidity_tools.stat_parser("mmat-balancepressure-p0p1-rhop0-vfracp0.stat")['Water']['Pressure']['min'])</variable>
+    <variable name="velocityx_p0p1_rhop0_vfracp0" language="python">import fluidity_tools
+velocityx_p0p1_rhop0_vfracp0 = max(fluidity_tools.stat_parser("mmat-balancepressure-p0p1-rhop0-vfracp0.stat")['Water']['Velocity%1']['max'])</variable>
+    <variable name="velocityy_p0p1_rhop0_vfracp0" language="python">import fluidity_tools
+velocityy_p0p1_rhop0_vfracp0 = max(fluidity_tools.stat_parser("mmat-balancepressure-p0p1-rhop0-vfracp0.stat")['Water']['Velocity%2']['max'])</variable>
+    <variable name="velocity_p0p1_rhop0_vfracp0" language="python">import fluidity_tools
+velocity_p0p1_rhop0_vfracp0 = max(fluidity_tools.stat_parser("mmat-balancepressure-p0p1-rhop0-vfracp0.stat")['Water']['Velocity%magnitude']['max'])</variable>
+    <variable name="volfrac0_p0p1_rhop0_vfracp0" language="python">import fluidity_tools
+volfrac0_p0p1_rhop0_vfracp0 = fluidity_tools.stat_parser("mmat-balancepressure-p0p1-rhop0-vfracp0.stat")['Water']['MaterialVolumeFraction']['integral'][0]</variable>
+    <variable name="volfracend_p0p1_rhop0_vfracp0" language="python">import fluidity_tools
+volfracend_p0p1_rhop0_vfracp0 = fluidity_tools.stat_parser("mmat-balancepressure-p0p1-rhop0-vfracp0.stat")['Water']['MaterialVolumeFraction']['integral'][-1]</variable>
+    <variable name="maxdivergence_p0p1_rhop0_vfracp0" language="python">import fluidity_tools
+maxdivergence_p0p1_rhop0_vfracp0 = max(fluidity_tools.stat_parser("mmat-balancepressure-p0p1-rhop0-vfracp0.stat")['Water']['ControlVolumeDivergence']['max'])</variable>
+    <variable name="mindivergence_p0p1_rhop0_vfracp0" language="python">import fluidity_tools
+mindivergence_p0p1_rhop0_vfracp0 = min(fluidity_tools.stat_parser("mmat-balancepressure-p0p1-rhop0-vfracp0.stat")['Water']['ControlVolumeDivergence']['min'])</variable>
+    <variable name="pressure_p1dgp2_rhop1dg_vfracp1cv" language="python">import fluidity_tools
+pressure_p1dgp2_rhop1dg_vfracp1cv = max(fluidity_tools.stat_parser("mmat-balancepressure-p1dgp2-rhop1dg-vfracp1cv.stat")['Water']['Pressure']['max'])</variable>
+    <variable name="minpressure_p1dgp2_rhop1dg_vfracp1cv" language="python">import fluidity_tools
+minpressure_p1dgp2_rhop1dg_vfracp1cv = min(fluidity_tools.stat_parser("mmat-balancepressure-p1dgp2-rhop1dg-vfracp1cv.stat")['Water']['Pressure']['min'])</variable>
+    <variable name="velocityx_p1dgp2_rhop1dg_vfracp1cv" language="python">import fluidity_tools
+velocityx_p1dgp2_rhop1dg_vfracp1cv = max(fluidity_tools.stat_parser("mmat-balancepressure-p1dgp2-rhop1dg-vfracp1cv.stat")['Water']['Velocity%1']['max'])</variable>
+    <variable name="velocityy_p1dgp2_rhop1dg_vfracp1cv" language="python">import fluidity_tools
+velocityy_p1dgp2_rhop1dg_vfracp1cv = max(fluidity_tools.stat_parser("mmat-balancepressure-p1dgp2-rhop1dg-vfracp1cv.stat")['Water']['Velocity%2']['max'])</variable>
+    <variable name="velocity_p1dgp2_rhop1dg_vfracp1cv" language="python">import fluidity_tools
+velocity_p1dgp2_rhop1dg_vfracp1cv = max(fluidity_tools.stat_parser("mmat-balancepressure-p1dgp2-rhop1dg-vfracp1cv.stat")['Water']['Velocity%magnitude']['max'])</variable>
+    <variable name="volfrac0_p1dgp2_rhop1dg_vfracp1cv" language="python">import fluidity_tools
+volfrac0_p1dgp2_rhop1dg_vfracp1cv = fluidity_tools.stat_parser("mmat-balancepressure-p1dgp2-rhop1dg-vfracp1cv.stat")['Water']['MaterialVolumeFraction']['integral'][0]</variable>
+    <variable name="volfracend_p1dgp2_rhop1dg_vfracp1cv" language="python">import fluidity_tools
+volfracend_p1dgp2_rhop1dg_vfracp1cv = fluidity_tools.stat_parser("mmat-balancepressure-p1dgp2-rhop1dg-vfracp1cv.stat")['Water']['MaterialVolumeFraction']['integral'][-1]</variable>
+    <variable name="maxdivergence_p1dgp2_rhop1dg_vfracp1cv" language="python">import fluidity_tools
+maxdivergence_p1dgp2_rhop1dg_vfracp1cv = max(fluidity_tools.stat_parser("mmat-balancepressure-p1dgp2-rhop1dg-vfracp1cv.stat")['Water']['ControlVolumeDivergence']['max'])</variable>
+    <variable name="mindivergence_p1dgp2_rhop1dg_vfracp1cv" language="python">import fluidity_tools
+mindivergence_p1dgp2_rhop1dg_vfracp1cv = min(fluidity_tools.stat_parser("mmat-balancepressure-p1dgp2-rhop1dg-vfracp1cv.stat")['Water']['ControlVolumeDivergence']['min'])</variable>
+    <variable name="solvers_converged" language="python">import os
 files = os.listdir("./")
-solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
-    </variable>
-   </variables>
-    <pass_tests>  
-    <test name="check maximum pressure_p0p1cv_gpp2 is 0.0" language="python">
-   assert abs(pressure_p0p1cv_gpp2) &lt; 1e-6
-    </test>    
-    <test name="check minimum pressure_p0p1cv_gpp2 0.0" language="python">
-   assert abs(minpressure_p0p1cv_gpp2) &lt; 1e-6
-    </test>    
-    <test name="check minimum geopressure_p0p1cv_gpp2" language="python">
-   assert abs(mingeopressure_p0p1cv_gpp2) &lt; 1e-6
-    </test>    
-    <test name="check maximum geopressure_p0p1cv_gpp2" language="python">
-   assert abs(geopressure_p0p1cv_gpp2-2702.10500021) &lt; 10
-    </test>    
-    <test name="check maximum xspeed_p0p1cv_gpp2 is zero" language="python">
-   assert abs(velocityx_p0p1cv_gpp2) &lt; 1e-6
-    </test>
-    <test name="check maximum yspeed_p0p1cv_gpp2 is zero" language="python">
-   assert abs(velocityy_p0p1cv_gpp2) &lt; 1e-6
-    </test>
-    <test name="check maximum speed_p0p1cv_gpp2 is zero" language="python">
-   assert abs(velocity_p0p1cv_gpp2) &lt; 1e-6
-    </test>
-    <test name="check volume fraction_p0p1cv_gpp2 conserved" language="python">
-print 'mass loss = ', abs(volfracend_p0p1cv_gpp2-volfrac0_p0p1cv_gpp2)
-assert abs(volfracend_p0p1cv_gpp2-volfrac0_p0p1cv_gpp2) &lt; 1e-9
-    </test>
-    <test name="check divergence_p0p1cv_gpp2" language="python">
-   assert max(abs(maxdivergence_p0p1cv_gpp2), abs(mindivergence_p0p1cv_gpp2)) &lt; 1e-9
-    </test>
-    <test name="check maximum pressure_p0p1cv_hpp2dg is 0.0" language="python">
-   assert abs(pressure_p0p1cv_hpp2dg) &lt; 1e-6
-    </test>    
-    <test name="check minimum pressure_p0p1cv_hpp2dg 0.0" language="python">
-   assert abs(minpressure_p0p1cv_hpp2dg) &lt; 1e-6
-    </test>    
-    <test name="check minimum geopressure_p0p1cv_hpp2dg" language="python">
-   assert abs(mingeopressure_p0p1cv_hpp2dg) &lt; 1e-6
-    </test>    
-    <test name="check maximum geopressure_p0p1cv_hpp2dg" language="python">
-   assert abs(geopressure_p0p1cv_hpp2dg-2702.105) &lt; 10
-    </test>    
-    <test name="check maximum xspeed_p0p1cv_hpp2dg is zero" language="python">
-   assert abs(velocityx_p0p1cv_hpp2dg) &lt; 1e-9
-    </test>
-    <test name="check maximum yspeed_p0p1cv_hpp2dg is zero" language="python">
-   assert abs(velocityy_p0p1cv_hpp2dg) &lt; 1e-9
-    </test>
-    <test name="check maximum speed_p0p1cv_hpp2dg is zero" language="python">
-   assert abs(velocity_p0p1cv_hpp2dg) &lt; 1e-9
-    </test>
-    <test name="check volume fraction_p0p1cv_hpp2dg conserved" language="python">
-print 'mass loss = ', abs(volfracend_p0p1cv_hpp2dg-volfrac0_p0p1cv_hpp2dg)
-assert abs(volfracend_p0p1cv_hpp2dg-volfrac0_p0p1cv_hpp2dg) &lt; 1e-9
-    </test>
-    <test name="check divergence_p0p1cv_hpp2dg" language="python">
-   assert max(abs(maxdivergence_p0p1cv_hpp2dg), abs(mindivergence_p0p1cv_hpp2dg)) &lt; 1e-9
-    </test>
-    <test name="check maximum pressure_p0p1_rhop0_vfracp0 is 2457.35" language="python">
-   assert abs(pressure_p0p1_rhop0_vfracp0-2457.35) &lt; 1
-    </test>    
-    <test name="check minimum pressure_p0p1_rhop0_vfracp0 0.0" language="python">
-   assert abs(minpressure_p0p1_rhop0_vfracp0) &lt; 1e-6
-    </test>    
-    <test name="check maximum xspeed_p0p1_rhop0_vfracp0 is low" language="python">
-   assert abs(velocityx_p0p1_rhop0_vfracp0) &lt; 1e-3
-    </test>
-    <test name="check maximum yspeed_p0p1_rhop0_vfracp0 is low" language="python">
-   assert abs(velocityy_p0p1_rhop0_vfracp0) &lt; 1e-3
-    </test>
-    <test name="check maximum speed_p0p1_rhop0_vfracp0 is low" language="python">
-   assert abs(velocity_p0p1_rhop0_vfracp0) &lt; 1e-3
-    </test>
-    <test name="check volume fraction_p0p1_rhop0_vfracp0 almost conserved" language="python">
-print 'mass loss = ', abs(volfracend_p0p1_rhop0_vfracp0-volfrac0_p0p1_rhop0_vfracp0)
-assert abs(volfracend_p0p1_rhop0_vfracp0-volfrac0_p0p1_rhop0_vfracp0) &lt; 1e-5
-    </test>
-    <test name="check divergence_p0p1_rhop0_vfracp0" language="python">
-   assert max(abs(maxdivergence_p0p1_rhop0_vfracp0), abs(mindivergence_p0p1_rhop0_vfracp0)) &lt; 1e-9
-    </test>
-    <test name="check maximum pressure_p1dgp2_rhop1dg_vfracp1cv is 2702.105" language="python">
-   assert abs(pressure_p1dgp2_rhop1dg_vfracp1cv-2702.105) &lt; 1
-    </test>    
-    <test name="check minimum pressure_p1dgp2_rhop1dg_vfracp1cv 0.0" language="python">
-   assert abs(minpressure_p1dgp2_rhop1dg_vfracp1cv) &lt; 1e-6
-    </test>    
-    <test name="check maximum xspeed_p1dgp2_rhop1dg_vfracp1cv is low" language="python">
-   assert abs(velocityx_p1dgp2_rhop1dg_vfracp1cv) &lt; 1e-3
-    </test>
-    <test name="check maximum yspeed_p1dgp2_rhop1dg_vfracp1cv is low" language="python">
-   assert abs(velocityy_p1dgp2_rhop1dg_vfracp1cv) &lt; 1e-3
-    </test>
-    <test name="check maximum speed_p1dgp2_rhop1dg_vfracp1cv is low" language="python">
-   assert abs(velocity_p1dgp2_rhop1dg_vfracp1cv) &lt; 1e-3
-    </test>
-    <test name="check volume fraction_p1dgp2_rhop1dg_vfracp1cv almost conserved" language="python">
-print 'mass loss = ', abs(volfracend_p1dgp2_rhop1dg_vfracp1cv-volfrac0_p1dgp2_rhop1dg_vfracp1cv)
-assert abs(volfracend_p1dgp2_rhop1dg_vfracp1cv-volfrac0_p1dgp2_rhop1dg_vfracp1cv) &lt; 1e-5
-    </test>
-    <test name="check divergence_p1dgp2_rhop1dg_vfracp1cv" language="python">
-   assert max(abs(maxdivergence_p1dgp2_rhop1dg_vfracp1cv), abs(mindivergence_p1dgp2_rhop1dg_vfracp1cv)) &lt; 1e-9
-    </test>
-    <test name = "Solvers converged" language = "python">
-assert(solvers_converged)
-    </test>
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files</variable>
+  </variables>
+  <pass_tests>
+    <test name="check maximum pressure_p0p1cv_gpp2 is 0.0" language="python">assert abs(pressure_p0p1cv_gpp2) &lt; 1e-6</test>
+    <test name="check minimum pressure_p0p1cv_gpp2 0.0" language="python">assert abs(minpressure_p0p1cv_gpp2) &lt; 1e-6</test>
+    <test name="check minimum geopressure_p0p1cv_gpp2" language="python">assert abs(mingeopressure_p0p1cv_gpp2) &lt; 1e-6</test>
+    <test name="check maximum geopressure_p0p1cv_gpp2" language="python">assert abs(geopressure_p0p1cv_gpp2-2702.10500021) &lt; 10</test>
+    <test name="check maximum xspeed_p0p1cv_gpp2 is zero" language="python">assert abs(velocityx_p0p1cv_gpp2) &lt; 1e-6</test>
+    <test name="check maximum yspeed_p0p1cv_gpp2 is zero" language="python">assert abs(velocityy_p0p1cv_gpp2) &lt; 1e-6</test>
+    <test name="check maximum speed_p0p1cv_gpp2 is zero" language="python">assert abs(velocity_p0p1cv_gpp2) &lt; 1e-6</test>
+    <test name="check volume fraction_p0p1cv_gpp2 conserved" language="python">print 'mass loss = ', abs(volfracend_p0p1cv_gpp2-volfrac0_p0p1cv_gpp2)
+assert abs(volfracend_p0p1cv_gpp2-volfrac0_p0p1cv_gpp2) &lt; 1e-9</test>
+    <test name="check divergence_p0p1cv_gpp2" language="python">assert max(abs(maxdivergence_p0p1cv_gpp2), abs(mindivergence_p0p1cv_gpp2)) &lt; 1e-9</test>
+    <test name="check maximum pressure_p0p1cv_hpp2dg is 0.0" language="python">assert abs(pressure_p0p1cv_hpp2dg) &lt; 1e-6</test>
+    <test name="check minimum pressure_p0p1cv_hpp2dg 0.0" language="python">assert abs(minpressure_p0p1cv_hpp2dg) &lt; 1e-6</test>
+    <test name="check minimum geopressure_p0p1cv_hpp2dg" language="python">assert abs(mingeopressure_p0p1cv_hpp2dg) &lt; 1e-6</test>
+    <test name="check maximum geopressure_p0p1cv_hpp2dg" language="python">assert abs(geopressure_p0p1cv_hpp2dg-2702.105) &lt; 10</test>
+    <test name="check maximum xspeed_p0p1cv_hpp2dg is zero" language="python">assert abs(velocityx_p0p1cv_hpp2dg) &lt; 1e-9</test>
+    <test name="check maximum yspeed_p0p1cv_hpp2dg is zero" language="python">assert abs(velocityy_p0p1cv_hpp2dg) &lt; 1e-9</test>
+    <test name="check maximum speed_p0p1cv_hpp2dg is zero" language="python">assert abs(velocity_p0p1cv_hpp2dg) &lt; 1e-9</test>
+    <test name="check volume fraction_p0p1cv_hpp2dg conserved" language="python">print 'mass loss = ', abs(volfracend_p0p1cv_hpp2dg-volfrac0_p0p1cv_hpp2dg)
+assert abs(volfracend_p0p1cv_hpp2dg-volfrac0_p0p1cv_hpp2dg) &lt; 1e-9</test>
+    <test name="check divergence_p0p1cv_hpp2dg" language="python">assert max(abs(maxdivergence_p0p1cv_hpp2dg), abs(mindivergence_p0p1cv_hpp2dg)) &lt; 1e-9</test>
+    <test name="check maximum pressure_p0p1_rhop0_vfracp0 is 2457.35" language="python">assert abs(pressure_p0p1_rhop0_vfracp0-2457.35) &lt; 1</test>
+    <test name="check minimum pressure_p0p1_rhop0_vfracp0 0.0" language="python">assert abs(minpressure_p0p1_rhop0_vfracp0) &lt; 1e-6</test>
+    <test name="check maximum xspeed_p0p1_rhop0_vfracp0 is low" language="python">assert abs(velocityx_p0p1_rhop0_vfracp0) &lt; 1e-3</test>
+    <test name="check maximum yspeed_p0p1_rhop0_vfracp0 is low" language="python">assert abs(velocityy_p0p1_rhop0_vfracp0) &lt; 1e-3</test>
+    <test name="check maximum speed_p0p1_rhop0_vfracp0 is low" language="python">assert abs(velocity_p0p1_rhop0_vfracp0) &lt; 1e-3</test>
+    <test name="check volume fraction_p0p1_rhop0_vfracp0 almost conserved" language="python">print 'mass loss = ', abs(volfracend_p0p1_rhop0_vfracp0-volfrac0_p0p1_rhop0_vfracp0)
+assert abs(volfracend_p0p1_rhop0_vfracp0-volfrac0_p0p1_rhop0_vfracp0) &lt; 1e-5</test>
+    <test name="check divergence_p0p1_rhop0_vfracp0" language="python">assert max(abs(maxdivergence_p0p1_rhop0_vfracp0), abs(mindivergence_p0p1_rhop0_vfracp0)) &lt; 1e-9</test>
+    <test name="check maximum pressure_p1dgp2_rhop1dg_vfracp1cv is 2702.105" language="python">assert abs(pressure_p1dgp2_rhop1dg_vfracp1cv-2702.105) &lt; 1</test>
+    <test name="check minimum pressure_p1dgp2_rhop1dg_vfracp1cv 0.0" language="python">assert abs(minpressure_p1dgp2_rhop1dg_vfracp1cv) &lt; 1e-6</test>
+    <test name="check maximum xspeed_p1dgp2_rhop1dg_vfracp1cv is low" language="python">assert abs(velocityx_p1dgp2_rhop1dg_vfracp1cv) &lt; 1e-3</test>
+    <test name="check maximum yspeed_p1dgp2_rhop1dg_vfracp1cv is low" language="python">assert abs(velocityy_p1dgp2_rhop1dg_vfracp1cv) &lt; 1e-3</test>
+    <test name="check maximum speed_p1dgp2_rhop1dg_vfracp1cv is low" language="python">assert abs(velocity_p1dgp2_rhop1dg_vfracp1cv) &lt; 1e-3</test>
+    <test name="check volume fraction_p1dgp2_rhop1dg_vfracp1cv almost conserved" language="python">print 'mass loss = ', abs(volfracend_p1dgp2_rhop1dg_vfracp1cv-volfrac0_p1dgp2_rhop1dg_vfracp1cv)
+assert abs(volfracend_p1dgp2_rhop1dg_vfracp1cv-volfrac0_p1dgp2_rhop1dg_vfracp1cv) &lt; 1e-5</test>
+    <test name="check divergence_p1dgp2_rhop1dg_vfracp1cv" language="python">assert max(abs(maxdivergence_p1dgp2_rhop1dg_vfracp1cv), abs(mindivergence_p1dgp2_rhop1dg_vfracp1cv)) &lt; 1e-9</test>
+    <test name="Solvers converged" language="python">assert(solvers_converged)</test>
   </pass_tests>
-  <warn_tests>
-  </warn_tests>
+  <warn_tests/>
 </testproblem>

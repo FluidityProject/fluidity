@@ -2,6 +2,7 @@
 <testproblem>
   <name>spherical patch<comment>Tests gmsh reading and writing on the sphere with 2d horizontal spherical input mesh, checkpointing and flredecomp.</comment></name>
   <owner userid="skramer"/>
+  <tags>zoltan</tags>
   <problem_definition length="short" nprocs="3">
     <command_line>mpiexec ../../bin/flredecomp -i 1 -o 3 -v -l spherical_segment spherical_segment_flredecomp &amp;&amp;
 mpiexec fluidity -v2 -l spherical_segment_flredecomp.flml &amp;&amp;
@@ -50,7 +51,6 @@ compare_variable(fs_integral_before[0], fs_integral_before[-1], 1e-5)</test>
 compare_variable(fs_integral_after[0], fs_integral_after[-1], 1e-5)</test>
     <test name="fs_integral_run12" language="python">from fluidity_tools import compare_variable
 # compares freesurface integral at the end of first run with that of end first timestep second run
-compare_variable(fs_integral_before[-1], fs_integral_after[0], 1e-5)
-</test>
+compare_variable(fs_integral_before[-1], fs_integral_after[0], 1e-5)</test>
   </pass_tests>
 </testproblem>

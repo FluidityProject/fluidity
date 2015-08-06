@@ -849,17 +849,48 @@ test_true
 	)
 
 CPPFLAGS="$CPPFLAGS $PARMETIS_FLAGS"
-	 
+
 AC_ARG_ENABLE(sam,
               [AC_HELP_STRING([--enable-sam],
                               [use sam rather than zoltan for adaptive load rebalancing])])
 if test "$enable_sam" = "yes"; then
   HAVE_ZOLTAN=no
 else
-  ACX_lib_automagic(zoltan, Zoltan_Create, [
-                                            AC_DEFINE(HAVE_ZOLTAN, [1])
-                                            HAVE_ZOLTAN=yes
-                                            ])
+  ACX_lib_automagic(zoltan, Zoltan_Create, [],
+    [
+      AC_MSG_NOTICE([Fluidity can be built without zoltan by configuring with the --enable-sam flag. This gives limited functionality when using parallel adaptivity. See the manual for more details.])
+      AC_MSG_FAILURE("Could not link with Zoltan library.")
+    ])
+
+  # Small test for zoltan .mod files:
+  AC_LANG(Fortran)
+  c_ext=F90
+  # In fluidity's makefile we explicitly add CPPFLAGS, temporarily add it to
+  # FCFLAGS here for this zoltan test:
+  tmpFCFLAGS="$FCFLAGS"
+  FCFLAGS="$FCFLAGS $CPPFLAGS"
+  AC_LINK_IFELSE(
+    [AC_LANG_SOURCE([
+      program test_zoltan
+       use zoltan
+      end program test_zoltan
+      ])
+    ],
+    [
+    AC_MSG_NOTICE([Great success! Zoltan .mod files exist and are usable])
+    ],
+    [
+      cp conftest.F90 test_zoltan.F90
+      AC_MSG_NOTICE([Fluiidity can be build without zoltan by configuring with the --enable-sam flag. This gives limited functionality when using parallel adaptivity. See the manual for more details.])
+      AC_MSG_NOTICE([Failed to compile with zoltan.mod fortran module. This means the module can either not be found - please add the necessary -I flag to CPPFLAGS - or, the zoltan fortran module has been compiled with a different (version of the) fortran compiler than you are using to compile fluidity - in which case please rebuild zoltan with the same compiler.])
+      AC_MSG_FAILURE([Failed to find usable zoltan.mod file])
+    ]
+  )
+  # And now revert FCFLAGS
+  FCFLAGS="$tmpFCFLAGS"
+  AC_LANG_RESTORE
+  AC_DEFINE(HAVE_ZOLTAN, [1])
+  HAVE_ZOLTAN=yes
 fi
 AC_SUBST(HAVE_ZOLTAN)
 
@@ -1131,9 +1162,10 @@ AC_ARG_ENABLE(profiling,
 
 if test "$enable_profiling" = "yes" ; then
   PROFILING_FLAG="-pg"
-  CPPFLAGS="-pg $CPPFLAGS"
   FFLAGS="-pg $FFLAGS"
   FCFLAGS="-pg $FCFLAGS"
+  CFLAGS="-pg $CFLAGS"
+  CXXFLAGS="-pg $CXXFLAGS"
 
   LINKER="$LINKER -pg"
   LIBS="$LIBS -pg"
