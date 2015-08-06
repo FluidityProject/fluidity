@@ -42,7 +42,10 @@ for i in range(len(vtuFiles)):
   # The cutter
   cutter = vtk.vtkCutter()
   cutter.SetCutFunction(plane)
-  cutter.SetInput(vtu)
+  if vtk.vtkVersion.GetVTKMajorVersion() &lt;= 5:
+    cutter.SetInput(vtu)
+  else:
+    cutter.SetInputData(vtu)
   # Cut
   cutter.Update()
   cutVtu = cutter.GetOutput()
@@ -76,7 +79,10 @@ for i in range(len(vtuFiles)):
   # The cutter
   cutter = vtk.vtkCutter()
   cutter.SetCutFunction(plane)
-  cutter.SetInput(vtu)
+  if vtk.vtkVersion.GetVTKMajorVersion() &lt;= 5:
+    cutter.SetInput(vtu)
+  else:
+    cutter.SetInputData(vtu)
   # Cut
   cutter.Update()
   cutVtu = cutter.GetOutput()

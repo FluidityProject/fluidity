@@ -158,7 +158,11 @@ class vtu:
       gridwriter=vtk.vtkXMLUnstructuredGridWriter()
 
     gridwriter.SetFileName(filename)
-    gridwriter.SetInput(self.ugrid)
+    if vtk.vtkVersion.GetVTKMajorVersion() <= 5:
+      gridwriter.SetInput(self.ugrid)
+    else:
+      gridwriter.SetInputData(self.ugrid)
+
     gridwriter.Write()
 
   def AddScalarField(self, name, array):
@@ -315,7 +319,10 @@ class vtu:
   def Crop(self, min_x, max_x, min_y, max_y, min_z, max_z):
     """Trim off the edges defined by a bounding box."""
     trimmer = vtk.vtkExtractUnstructuredGrid()
-    trimmer.SetInput(self.ugrid)
+    if vtk.vtkVersion.GetVTKMajorVersion() <= 5:
+      trimmer.SetInput(self.ugrid)
+    else:
+      trimmer.SetInputData(self.ugrid)
     trimmer.SetExtent(min_x, max_x, min_y, max_y, min_z, max_z)
     trimmer.Update()
     trimmed_ug = trimmer.GetOutput()
@@ -408,7 +415,10 @@ class vtu:
     """ Probe the unstructured grid dataset using a structured points dataset. """
 
     probe = vtk.vtkProbeFilter ()
-    probe.SetSource (self.ugrid)
+    if vtk.vtkVersion.GetVTKMajorVersion() <= 5:
+      probe.SetSource(self.ugrid)
+    else:
+      probe.SetSourceData(self.ugrid)
 
     sgrid = vtk.vtkStructuredPoints()
 
@@ -429,7 +439,10 @@ class vtu:
 
     sgrid.SetSpacing(spacing)
 
-    probe.SetInput (sgrid)
+    if vtk.vtkVersion.GetVTKMajorVersion() <= 5:
+      probe.SetInput(sgrid)
+    else:
+      probe.SetInputData(sgrid)
     probe.Update ()
 
     return probe.GetOutput()
@@ -442,7 +455,10 @@ class vtu:
     The returned array gives a cell-wise derivative.
     """
     cd=vtk.vtkCellDerivatives()
-    cd.SetInput(self.ugrid)
+    if vtk.vtkVersion.GetVTKMajorVersion() <= 5:
+      cd.SetInput(sgrid)
+    else:
+      cd.SetInputData(sgrid)
     pointdata=self.ugrid.GetPointData()
     nc=pointdata.GetArray(name).GetNumberOfComponents()
     if nc==1:
@@ -467,7 +483,10 @@ class vtu:
     The returned array gives a cell-wise derivative.
     """
     cd=vtk.vtkCellDerivatives()
-    cd.SetInput(self.ugrid)
+    if vtk.vtkVersion.GetVTKMajorVersion() <= 5:
+      cd.SetInput(self.ugrid)
+    else:
+      cd.SetInputData(self.ugrid)
     pointdata=self.ugrid.GetPointData()
     cd.SetVectorModeToComputeVorticity()
     cd.SetTensorModeToPassTensors()
@@ -482,7 +501,10 @@ class vtu:
     All existing fields will remain.
     """
     cdtpd=vtk.vtkCellDataToPointData()
-    cdtpd.SetInput(self.ugrid)
+    if vtk.vtkVersion.GetVTKMajorVersion() <= 5:
+      cdtpd.SetInput(self.ugrid)
+    else:
+      cdtpd.SetInputData(self.ugrid)
     cdtpd.PassCellDataOn()
     cdtpd.Update()
     self.ugrid=cdtpd.GetUnstructuredGridOutput()
@@ -507,8 +529,12 @@ class VTU_Probe(object):
     polydata = vtk.vtkPolyData()
     polydata.SetPoints(points)
     self.probe = vtk.vtkProbeFilter()
-    self.probe.SetInput(polydata)
-    self.probe.SetSource(ugrid)
+    if vtk.vtkVersion.GetVTKMajorVersion() <= 5:
+      self.probe.SetInput(polydata)
+      self.probe.SetSource(ugrid)
+    else:
+      self.probe.SetInputData(polydata)
+      self.probe.SetSourceData(ugrid)
     self.probe.Update()
 
     # Generate a list invalidNodes, containing a map from invalid nodes in the

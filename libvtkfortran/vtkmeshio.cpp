@@ -550,6 +550,7 @@ int readVTKFile(const char * const filename,
       return -1;
     }else
       dataSet = read1->GetUnstructuredGridOutput();
+      read1->Update();
   } else if( strncmp(ext,".vtu",4)==0 ) {
     //printf("Reading from VTK XML file: %s\n",filename);
     read2 = vtkXMLUnstructuredGridReader::New();
@@ -560,6 +561,7 @@ int readVTKFile(const char * const filename,
     read2->SetFileName(filename);
     //reader->SetScalarsName("temp");
     dataSet = read2->GetOutput();
+    read2->Update();
   }else{
     const char * const pext = filename + strlen(filename) - 5;
     if( strncmp(pext,".pvtu",5)==0 ) {
@@ -572,6 +574,7 @@ int readVTKFile(const char * const filename,
       read3->SetFileName(filename);
       //reader->SetScalarsName("temp");
       dataSet = read3->GetOutput();
+      read3->Update();
     }else{
       cerr<<"ERROR: Filename: "<<filename<<endl
           <<"Don't know what this file is (should end in .vtk, .vtu or .pvtu)\n";
@@ -589,7 +592,6 @@ int readVTKFile(const char * const filename,
     return -1;
   }
 
-  dataSet->Update();
   vtkIdType nnodes = dataSet->GetNumberOfPoints();
   if( nnodes==0 ) {
     cerr<<"ERROR: Something went wrong (got no nodes) - aborting\n";
@@ -1288,11 +1290,18 @@ int readVTKFile(const char * const filename,
   }
 
   if(onlyinfo==0) {
-    if(read1) read1->ReleaseDataFlagOn();
-    if(read2) read2->ReleaseDataFlagOn();
-    if(read3) read3->ReleaseDataFlagOn();
-    dataSet->ReleaseDataFlagOn();
-    dataSet->Update();
+    if (read1) {
+      read1->ReleaseDataFlagOn();
+      read1->Update();
+    }
+    if (read2) {
+      read2->ReleaseDataFlagOn();
+      read2->Update();
+    }
+    if (read3) {
+      read3->ReleaseDataFlagOn();
+      read3->Update();
+    }
   }
 
   //dataSet->Delete();
