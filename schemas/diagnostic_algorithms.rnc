@@ -803,6 +803,28 @@ grad_normal_algorithm =
          }?
       }
    )
+weighted_normal_algorithm =
+   (
+      ##  
+      ## Galerkin projection of source field x normal
+      ##  
+      ##
+      ## The output is only on the specified surfaces.
+      element algorithm {
+         attribute name { "weighted_normal" },
+         attribute material_phase_support { "single" },
+         scalar_source_field,
+         ## Surface IDs defining the surface over which to compute the
+         ## diagnostic. If disabled, computes over the whole surface.
+         element surface_ids {
+            integer_vector
+         }?,
+         ## Linear solver options.
+         element solver {
+            linear_solver_options_sym
+         }
+      }
+   )
 # Momentum diagnostics
 buoyancy_algorithm =
    (
@@ -1687,7 +1709,8 @@ scalar_diagnostic_algorithms |= control_volume_mass_matrix
 scalar_diagnostic_algorithms |= scalar_python_diagnostic_algorithm
 scalar_diagnostic_algorithms |= internal_algorithm
 
-vector_diagnostic_algorithms = vector_time_averaged_algorithm
+vector_diagnostic_algorithms = weighted_normal_algorithm
+vector_diagnostic_algorithms |= vector_time_averaged_algorithm
 vector_diagnostic_algorithms |= vector_temporalmax_algorithm
 vector_diagnostic_algorithms |= vector_sum_algorithm
 vector_diagnostic_algorithms |= vector_scalar_time_averaged_algorithm

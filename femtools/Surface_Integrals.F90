@@ -43,6 +43,8 @@ module surface_integrals
   use fields
   use state_module
   use field_options
+  use sparsity_patterns
+  use sparsity_patterns_meshes
 
   implicit none
   
@@ -51,7 +53,7 @@ module surface_integrals
   public :: calculate_surface_integral, gradient_normal_surface_integral, &
     & normal_surface_integral, surface_integral, surface_gradient_normal, &
     & surface_normal_distance_sele
-  public :: diagnostic_body_drag, diagnostic_body_torque
+  public :: diagnostic_body_drag
   
   interface integrate_over_surface_element
     module procedure integrate_over_surface_element_mesh, &
@@ -374,6 +376,153 @@ contains
     end function include_face
     
   end subroutine surface_gradient_normal
+
+  subroutine surface_weighted_normal(state,source, positions, output, surface_ids,solver_option_path)
+    !!< Return a field containing:
+    !!<   /
+    !!<   | grad source dot dn
+    !!<   /
+    !!< The output field is P0 over the surface. Here, output is a volume field,
+    !!< hence there will be errors at edges.
+  
+    type(state_type),   intent(inout) :: state
+    type(scalar_field), intent(in) :: source
+    type(vector_field), intent(in) :: positions
+    type(vector_field), intent(inout) :: output
+    integer, dimension(:), optional, intent(in) :: surface_ids
+    character(len=*), intent(in), optional:: solver_option_path
+    
+    integer :: i
+    real, dimension(mesh_dim(positions),face_loc(output,1)) :: vec_face_integral
+    real, dimension(face_loc(output,1)) :: face_integral
+    real, dimension(face_loc(output,1),face_loc(output,1)) :: loc_mat
+    type(scalar_field) :: rhs, suboutput
+    type(vector_field) :: subpositions, vec_rhs
+    type(csr_matrix) :: mass, mat
+    type(csr_sparsity) :: temp_mass_sparsity
+
+    type(vector_field) :: basis
+    type(mesh_type) :: surface_mesh
+    integer, dimension(:), pointer:: surface_nodes, get_surface_elements
+    
+    if(.not. output%mesh == positions%mesh) then
+      FLAbort("Surface weighted normal must be defined on the coordinate mesh.")
+    end if
+    
+    call zero(output)
+
+    call create_surface_mesh(surface_mesh, surface_nodes, output%mesh,&
+         surface_ids=surface_ids, get_surface_elements=get_surface_elements,&
+         name=trim(output%mesh%name)//"SurfaceMesh")
+
+    if(isparallel()) then
+       call generate_surface_halos(output%mesh,surface_mesh,surface_nodes)
+    end if
+
+    call allocate(basis,mesh_dim(output),surface_mesh,name='Basis')
+    call zero(basis)
+    call allocate(rhs,surface_mesh,name='RHS')
+    call zero(rhs)
+    call allocate(vec_rhs,mesh_dim(output),surface_mesh,name='VectorRHS')
+    call zero(vec_rhs)
+    call allocate(suboutput,surface_mesh,name='Suboutput')
+    call zero(suboutput)
+    call allocate(subpositions,mesh_dim(output),surface_mesh,&
+         name='Subcoordinate')
+    subpositions%val=node_val(positions,surface_nodes)
+
+    temp_mass_sparsity = make_sparsity(surface_mesh, surface_mesh, "SufMeshSparsity")
+
+
+    call allocate(mat,temp_mass_sparsity, name='MassWithNormals')
+    call zero(mat)
+
+    call allocate(mass,temp_mass_sparsity, name='Submass')
+    call compute_mass(subpositions,surface_mesh,mass)
+
+    do i = 1, element_count(surface_mesh)
+      call continuous_normal_integral_face(get_surface_elements(i),&
+           positions, vec_face_integral,face_shape(output,i))
+      call addto(vec_rhs, ele_nodes(surface_mesh,i),vec_face_integral)
+   end do
+
+   call petsc_solve(basis,mass,vec_rhs,option_path=solver_option_path)
+
+   do i = 1, element_count(surface_mesh)
+      call weighted_normal_surface_integral_face(source,&
+           ele_val_at_quad(basis,i), get_surface_elements(i),&
+           positions, face_integral,loc_mat,face_shape(output,i))
+      call addto(rhs, ele_nodes(surface_mesh,i),face_integral)
+      call addto(mat, ele_nodes(surface_mesh,i),&
+           ele_nodes(surface_mesh,i),loc_mat)
+   end do
+
+    call petsc_solve(suboutput,mat,rhs,option_path=solver_option_path)
+    call set(output,surface_nodes,&
+         spread(suboutput%val,1,mesh_dim(output))*basis%val)
+    call deallocate(rhs)
+    call deallocate(vec_rhs)
+    call deallocate(suboutput)
+    call deallocate(subpositions)
+    call deallocate(basis)
+
+    call deallocate(mass)
+    call deallocate(mat)
+    call deallocate(temp_mass_sparsity)
+    call deallocate(surface_mesh)
+
+    deallocate(surface_nodes,get_surface_elements)
+    
+  end subroutine surface_weighted_normal
+
+  subroutine continuous_normal_integral_face(face,&
+           positions, integral,face_shape)
+    integer, intent(in) :: face
+    type(vector_field), intent(in) :: positions
+    type(element_type), intent(in) :: face_shape
+
+    real, dimension(mesh_dim(positions),face_shape%loc), intent(out) :: integral
+
+    integer :: i, j
+    real, dimension(face_ngi(positions, face)) :: detwei
+    real, dimension(mesh_dim(positions), face_ngi(positions, face)) :: normal
+
+    call transform_facet_to_physical( &
+         positions, face, detwei_f = detwei, normal = normal)
+
+    integral=shape_vector_rhs(face_shape,normal,detwei)
+
+  end subroutine continuous_normal_integral_face
+
+  subroutine weighted_normal_surface_integral_face(s_field, continuous_normal,&
+       face, positions, integral, loc_mat, face_shape)
+    type(scalar_field), intent(in) :: s_field
+    integer, intent(in) :: face
+    real, dimension(mesh_dim(s_field), face_ngi(s_field, face)),&
+          intent(in) ::  continuous_normal
+    type(vector_field), intent(in) :: positions
+    type(element_type), intent(in) :: face_shape
+
+    real, dimension(face_shape%loc), intent(out) :: integral
+    real, dimension(face_shape%loc,face_shape%loc), intent(out) :: loc_mat
+    
+    integer :: i, j
+    real, dimension(face_ngi(s_field, face)) :: detwei, s_face_quad
+    real, dimension(mesh_dim(s_field), face_ngi(s_field, face)) ::  normal
+    
+    assert(face_ngi(s_field, face) == face_ngi(positions, face))
+    assert(mesh_dim(s_field) == positions%dim)
+    
+    call transform_facet_to_physical( &
+         positions, face, detwei_f = detwei, normal = normal)
+   
+    ! Calculate grad s_field at the surface element quadrature points
+    s_face_quad = face_val_at_quad(s_field, face)
+    integral=shape_rhs(face_shape,s_face_quad*detwei)
+    loc_mat=shape_shape(face_shape,face_shape,&
+         sum(continuous_normal*normal,1)*detwei)
+    
+  end subroutine weighted_normal_surface_integral_face
   
   function surface_normal_distance_sele(positions, sele, ele) result(h)
     ! calculate wall-normal element size
@@ -490,7 +639,7 @@ contains
 
   subroutine diagnostic_body_drag(state, force, surface_integral_name, pressure_force, viscous_force)
     type(state_type), intent(in) :: state
-    real, dimension(:) :: force
+    real, dimension(:), intent(out) :: force
     character(len = FIELD_NAME_LEN), intent(in) :: surface_integral_name
     real, dimension(size(force)), optional, intent(out) :: pressure_force
     real, dimension(size(force)), optional, intent(out) :: viscous_force
@@ -635,225 +784,6 @@ contains
     ewrite(1, *) "Exiting diagnostic_body_drag"
     
   end subroutine diagnostic_body_drag
-
-  subroutine diagnostic_body_torque(state, torque, surface_integral_name, pressure_torque, viscous_torque)
-    type(state_type), intent(in) :: state
-    real :: torque
-    character(len = FIELD_NAME_LEN), intent(in) :: surface_integral_name
-    real, optional, intent(out) :: pressure_torque
-    real, optional, intent(out) :: viscous_torque
-
-    type(vector_field), pointer :: velocity
-    character(len=OPTION_PATH_LEN) :: option_path
-    integer, dimension(:), allocatable :: surface_ids
-    integer, dimension(2) :: shape_option
-    real, dimension(:), allocatable :: axis, point
-
-    ewrite(1,*) 'In diagnostic_body_torque'
-    ewrite(1,*) 'Computing body torques for label "'//trim(surface_integral_name)//'"'
-
-    velocity => extract_vector_field(state, "Velocity")
-    option_path = velocity%option_path          
-    shape_option = option_shape(trim(option_path)//'/prognostic/stat/compute_body_torque_on_surfaces::'//trim(surface_integral_name)//'/surface_ids')
-    allocate( surface_ids(shape_option(1)), &
-         axis(mesh_dim(velocity)), point(mesh_dim(velocity)))
-
-
-    call get_option(trim(option_path)//'/prognostic/stat/compute_body_torque_on_surfaces::'//trim(surface_integral_name)//'/surface_ids', surface_ids)
-    ewrite(2,*) 'Calculating torques on surfaces with these IDs: ', surface_ids
-
-    call get_option(trim(option_path)//'/prognostic/stat/compute_body_torque_on_surfaces::'//trim(surface_integral_name)//'/axis_of_rotation', axis)
-    call get_option(trim(option_path)//'/prognostic/stat/compute_body_torque_on_surfaces::'//trim(surface_integral_name)//'/point_on_axis', point)
-
-    call torque_on_surface(state, torque, surface_ids, axis, point,&
-         pressure_torque, viscous_torque)
-
-    ewrite(1, *) "Exiting diagnostic_body_torque"
-
-  end subroutine diagnostic_body_torque
-
- subroutine torque_on_surface(state, torque, surface_ids, axis, point,&
-      pressure_torque, viscous_torque)
-    type(state_type), intent(in) :: state
-    real :: torque
-    integer, dimension(:), intent(in) :: surface_ids
-    real, dimension(:), intent(in) :: axis, point
-    real, optional, intent(out) :: pressure_torque
-    real, optional, intent(out) :: viscous_torque
-
-    type(vector_field), pointer :: velocity, position
-    type(tensor_field), pointer :: viscosity
-    type(scalar_field), pointer :: pressure
-    type(element_type), pointer :: x_f_shape, x_shape, u_shape, u_f_shape
-    integer :: ele,sele,nloc,snloc,sngi,ngi,stotel,nfaces,meshdim, gi
-    real, dimension(:), allocatable :: face_detwei, face_pressure, torque_at_quad
-    real, dimension(:,:), allocatable :: velocity_ele, normal, strain, r_ele
-    real, dimension(:,:,:), allocatable :: dn_t,viscosity_ele, tau, vol_dshape_face
-    real :: sarea
-    integer :: stat
-    logical :: have_viscosity
-
-    position => extract_vector_field(state, "Coordinate")
-    pressure => extract_scalar_field(state, "Pressure")
-    velocity => extract_vector_field(state, "Velocity")  
-    viscosity=> extract_tensor_field(state, "Viscosity", stat)
-    have_viscosity = stat == 0
-    
-    meshdim = mesh_dim(velocity)
-    x_shape => ele_shape(position, 1)
-    u_shape => ele_shape(velocity, 1)
-    x_f_shape => face_shape(position, 1)
-    u_f_shape => face_shape(velocity, 1)
-    nloc = ele_loc(velocity, 1)
-    snloc = face_loc(velocity, 1)
-    ngi   = ele_ngi(velocity, 1)
-    sngi  = face_ngi(velocity, 1)
-    stotel = surface_element_count(velocity)
-    allocate( face_detwei(sngi), &
-              dn_t(nloc, ngi, meshdim), &
-              velocity_ele(meshdim, nloc), normal(meshdim, sngi), &
-              face_pressure(sngi), viscosity_ele(meshdim, meshdim, sngi), &
-              r_ele(meshdim, sngi), &
-              tau(meshdim, meshdim, sngi), strain(meshdim, meshdim), &
-              torque_at_quad(sngi))
-
-    allocate(vol_dshape_face(ele_loc(velocity, 1), face_ngi(velocity, 1),meshdim))
-
-    sarea = 0.0
-    nfaces = 0
-    torque = 0.0
-    if(present(pressure_torque)) pressure_torque = 0.0
-    if(present(viscous_torque)) viscous_torque = 0.0
-    do sele=1,stotel
-      if(integrate_over_surface_element(velocity, sele, surface_ids = surface_ids)) then
-        ! Get face_detwei and normal
-        ele = face_ele(velocity, sele)
-          call transform_facet_to_physical( &
-             position, sele, detwei_f=face_detwei, normal=normal)
-          call transform_to_physical(position, ele, &
-             shape=u_shape, dshape=dn_t)
-          velocity_ele = ele_val(velocity,ele)
-
-          ! Compute tau only if viscosity is present
-          if(have_viscosity) then
-            viscosity_ele = face_val_at_quad(viscosity,sele)
-            r_ele = get_radial(axis,point,face_val_at_quad(position,sele))
-
-          !
-          ! Form the stress tensor
-          !
-
-            if (u_shape%degree == 1 .and. u_shape%numbering%family == FAMILY_SIMPLEX) then
-              strain = matmul(velocity_ele, dn_t(:, 1, :))
-              strain = (strain + transpose(strain)) / 2.0
-              do gi=1,sngi
-                tau(:, :, gi) = 2 * matmul(viscosity_ele(:, :, gi), strain)
-              end do
-            else
-              call transform_facet_to_physical(position, sele, u_shape, vol_dshape_face)
-
-              do gi=1,sngi
-                strain = matmul(velocity_ele, vol_dshape_face(:, gi, :))
-                strain = (strain + transpose(strain)) / 2.0
-                tau(:, :, gi) = 2 * matmul(viscosity_ele(:, :, gi), strain)
-              end do
-            end if
-
-          end if
-
-          face_pressure = face_val_at_quad(pressure, sele)
-          nfaces = nfaces + 1
-          sarea = sarea + sum(face_detwei)
-
-
-          if(have_viscosity) then
-            do gi=1,sngi
-              torque_at_quad(gi) = cross(r_ele(:,gi), normal(:, gi), axis) * face_pressure(gi) - cross(r_ele(:,gi), matmul(normal(:, gi), tau(:, :, gi)), axis)
-            end do
-          else
-            do gi=1,sngi
-              torque_at_quad(gi) = cross(r_ele(:,gi), normal(:, gi), axis) * face_pressure(gi)
-            end do
-          end if
-          torque = torque + dot_product(torque_at_quad, face_detwei)
-
-          if(present(pressure_torque)) then
-            do gi=1,sngi
-              torque_at_quad(gi) = cross(r_ele(:, gi), normal(:, gi), axis) * face_pressure(gi)
-            end do
-            pressure_torque = pressure_torque + dot_product(torque_at_quad, face_detwei)
-          end if
-          if(present(viscous_torque)) then
-            do gi=1,sngi
-              torque_at_quad(gi) = - cross(r_ele(:,gi), matmul(normal(:, gi), tau(:, :, gi)), axis)
-            end do
-            viscous_torque = viscous_torque +dot_product(torque_at_quad, face_detwei)
-          end if
-       end if
-    enddo
-
-    call allsum(nfaces)
-    call allsum(sarea)
-    call allsum(torque)
-    if(present(pressure_torque)) call allsum(pressure_torque)
-    if(present(viscous_torque)) call allsum(viscous_torque)
-
-    ewrite(2,*) 'Integrated over this number of faces and total area: ', nfaces, sarea
-    ewrite(2, *) "Torque on surface: ", torque
-    if(present(pressure_torque)) then
-      ewrite(2,*) 'Pressure force on surface: ', pressure_torque
-    end if
-    if(present(viscous_torque)) then
-      ewrite(2,*) 'Viscous force on surface: ', viscous_torque
-    end if
-
-    contains
-
-      function cross(r,f,ax)
-        real, dimension(:) , intent(in) :: r , f,ax
-        real :: cross
-
-        real, dimension(size(r)) :: t
-
-        ! returns the magnitude of the cross product between r and f
-
-        select case(size(r))
-        case(2)
-           cross = r(1)*f(2)-r(2)*f(1)
-        case(3)
-           t(1)=r(2)*f(3)-r(3)*f(2)
-           t(2)=r(3)*f(1)-r(1)*f(3)
-           t(3)=r(1)*f(2)-r(2)*f(1)
-           cross = sqrt(sum(t*ax))
-        end select
-
-      end function cross
-
-      function get_radial(ax,p,x) result(radial)
-        real, dimension(:), intent(in)  :: ax,p
-        real,  dimension(:,:), intent(in) :: x
-
-        real, dimension(size(x,1), size(x,2)) :: radial
-
-        integer :: itr
-
-        ! return the radial vectors from an axis of rotation to the points x
-        ! The acis is defined by a point on the axis (p) and the unit vector along it (ax)
-
-        do itr = 1, size(x,2)
-
-           select case(size(p))
-           case(2)
-              radial(:, itr) = x(:, itr) - p
-           case(3)
-              radial(:, itr) = cross_product( cross_product(x(:,itr) - p,ax), ax)
-           end select
-
-        end do
-
-      end function get_radial
-    
-  end subroutine torque_on_surface
   
   function calculate_surface_integral_scalar(s_field, positions, index) result(integral)
     !!< Calculates a surface integral for the specified scalar field based upon

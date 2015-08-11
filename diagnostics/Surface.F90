@@ -43,7 +43,10 @@ module surface_diagnostics
   
   private
   
-  public :: calculate_grad_normal, calculate_surface_horizontal_divergence
+  public :: calculate_grad_normal, &
+            calculate_weighted_normal, &
+            calculate_surface_horizontal_divergence
+  
   
 contains
   
@@ -104,5 +107,35 @@ subroutine calculate_surface_horizontal_divergence(state, s_field)
     
   end subroutine calculate_surface_horizontal_divergence
 
+  subroutine calculate_weighted_normal(state, v_field)
+    type(state_type), intent(inout) :: state
+    type(vector_field), intent(inout) :: v_field
+    
+    type(scalar_field), pointer :: source_field
+    type(vector_field), pointer :: positions
+
+    character(len = OPTION_PATH_LEN) :: base_path
+    integer, dimension(2) :: nsurface_ids
+    integer, dimension(:), allocatable :: surface_ids
+
+    source_field => scalar_source_field(state, v_field)
+    positions => extract_vector_field(state, "Coordinate")
+    
+    base_path = trim(complete_field_path(v_field%option_path)) // "/algorithm"
+
+    if(have_option(trim(base_path) // "/surface_ids")) then
+      nsurface_ids = option_shape(trim(base_path) // "/surface_ids")
+      assert(nsurface_ids(1) >= 0)
+      allocate(surface_ids(nsurface_ids(1)))
+      call get_option(trim(base_path) // "/surface_ids", surface_ids)
+      
+      call surface_weighted_normal(state,source_field, positions, v_field, surface_ids = surface_ids,solver_option_path=trim(base_path))
+      
+      deallocate(surface_ids)
+    else
+      call surface_weighted_normal(state,source_field, positions, v_field,solver_option_path=trim(base_path))
+    end if
+
+  end subroutine calculate_weighted_normal
   
 end module surface_diagnostics
