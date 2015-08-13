@@ -673,6 +673,10 @@ namespace Spud{
   }
 
   OptionManager::Option::~Option(){
+    for(deque< pair<string, Option*> >::iterator it=children.begin();it!=children.end();++it){
+      delete it->second;
+    }
+
     return;
   }
 
@@ -779,7 +783,7 @@ namespace Spud{
 
     const Option* descendant = get_child(name);
     if(descendant != NULL){
-      for(deque< pair<string, Option> >::const_iterator it = descendant->children.begin();it != descendant->children.end();it++){
+      for(deque< pair<string, Option*> >::const_iterator it = descendant->children.begin();it != descendant->children.end();it++){
         kids.push_back(it->first);
       }
     }
@@ -789,31 +793,31 @@ namespace Spud{
 
   size_t OptionManager::Option::count(const string& key) const{
     size_t cnt=0;
-    for(deque< pair<string, Option> >::const_iterator it=children.begin();it!=children.end();++it){
+    for(deque< pair<string, Option*> >::const_iterator it=children.begin();it!=children.end();++it){
       if(it->first == key)
         cnt++;
     }
     return cnt;
   }
 
-  deque< pair<string, OptionManager::Option> >::iterator OptionManager::Option::find(const string& key){
-    for(deque< pair<string, Option> >::iterator it=children.begin();it!=children.end();++it){
+  deque< pair<string, OptionManager::Option*> >::iterator OptionManager::Option::find(const string& key){
+    for(deque< pair<string, Option*> >::iterator it=children.begin();it!=children.end();++it){
       if(it->first == key)
         return it;
     }
     return children.end();
   }
 
-  deque< pair<string, OptionManager::Option> >::const_iterator OptionManager::Option::find(const string& key) const{
-    for(deque< pair<string, Option> >::const_iterator it=children.begin();it!=children.end();++it){
+  deque< pair<string, OptionManager::Option*> >::const_iterator OptionManager::Option::find(const string& key) const{
+    for(deque< pair<string, Option*> >::const_iterator it=children.begin();it!=children.end();++it){
       if(it->first == key)
         return it;
     }
     return children.end();
   }
 
-  deque< pair<string, OptionManager::Option> >::iterator OptionManager::Option::find_next(deque< pair<string, OptionManager::Option> >::iterator current, const string& key){
-    deque< pair<string, OptionManager::Option> >::iterator it = current;
+  deque< pair<string, OptionManager::Option*> >::iterator OptionManager::Option::find_next(deque< pair<string, OptionManager::Option*> >::iterator current, const string& key){
+    deque< pair<string, OptionManager::Option*> >::iterator it = current;
     it++;
     for(;it!=children.end();++it){
       if(it->first == key)
@@ -822,8 +826,8 @@ namespace Spud{
     return children.end();
   }
 
-  deque< pair<string, OptionManager::Option> >::const_iterator OptionManager::Option::find_next(deque< pair<string, OptionManager::Option> >::const_iterator current, const string& key) const{
-    deque< pair<string, Option> >::const_iterator it = current;
+  deque< pair<string, OptionManager::Option*> >::const_iterator OptionManager::Option::find_next(deque< pair<string, OptionManager::Option*> >::const_iterator current, const string& key) const{
+    deque< pair<string, Option*> >::const_iterator it = current;
     it++;
     for(;it!=children.end();++it){
       if(it->first == key)
@@ -850,7 +854,7 @@ namespace Spud{
       return NULL;
     }
 
-    deque< pair<string, Option> >::const_iterator it;
+    deque< pair<string, Option*> >::const_iterator it;
     if(count(name) == 0){
       name += "::";
       int i = 0;
@@ -880,9 +884,9 @@ namespace Spud{
     if(it == children.end()){
       return NULL;
     }else if(branch.empty()){
-      return &(it->second);
+      return it->second;
     }else{
-      return it->second.get_child(branch);
+      return it->second->get_child(branch);
     }
   }
 
@@ -920,20 +924,20 @@ namespace Spud{
     }
 
     int count = 0, i = 0;
-    for(deque< pair<string, Option> >::const_iterator it = children.begin();it != children.end();it++){
+    for(deque< pair<string, Option*> >::const_iterator it = children.begin();it != children.end();it++){
       if(it->first.compare(0, name.size(), name) == 0 and (not match_whole or it->first.size() == name.size())){
         if(index < 0){
           if(branch.empty()){
             count++;
           }else{
-            count += it->second.option_count(branch);
+            count += it->second->option_count(branch);
           }
         }else{
           if(i == index){
             if(branch.empty()){
               count++;
             }else{
-              count += it->second.option_count(branch);
+              count += it->second->option_count(branch);
             }
             break;
           }
@@ -961,7 +965,7 @@ namespace Spud{
       cout << "OptionType OptionManager::Option::get_option_type(void) const\n";
 
     if(have_option("__value")){
-      return find("__value")->second.get_option_type();
+      return find("__value")->second->get_option_type();
     }
 
     if(!data_double.empty()){
@@ -980,7 +984,7 @@ namespace Spud{
       cout << "size_t OptionManager::Option::get_option_rank(void) const\n";
 
     if(have_option("__value")){
-      return find("__value")->second.get_option_rank();
+      return find("__value")->second->get_option_rank();
     }else{
       return rank;
     }
@@ -991,7 +995,7 @@ namespace Spud{
       cout << "vector<int> OptionManager::Option::get_option_shape(void) const\n";
 
     if(have_option("__value")){
-      return find("__value")->second.get_option_shape();
+      return find("__value")->second->get_option_shape();
     }else{
       vector<int> shape(2);
       shape[0] = this->shape[0];
@@ -1234,15 +1238,15 @@ namespace Spud{
       return SPUD_KEY_ERROR;
     }
 
-    Option new_option1 = Option(*option1);
-    new_option1.node_name = key2_name;
+    Option* new_option1 = new Option(*option1);
+    new_option1->node_name = key2_name;
     string new_node_name, name_attr;
-    new_option1.split_node_name(new_node_name, name_attr);
+    new_option1->split_node_name(new_node_name, name_attr);
     if(name_attr.size() == 0){
-      option2_parent->children.push_back(pair<string, Option>(new_node_name, new_option1));
+      option2_parent->children.push_back(pair<string, Option*>(new_node_name, new_option1));
     }else{
-      new_option1.set_attribute("name", name_attr);
-      option2_parent->children.push_back(pair<string, Option>(new_node_name + "::" + name_attr, new_option1));
+      new_option1->set_attribute("name", name_attr);
+      option2_parent->children.push_back(pair<string, Option*>(new_node_name + "::" + name_attr, new_option1));
     }
          
     return SPUD_NO_ERROR;
@@ -1272,15 +1276,15 @@ namespace Spud{
       return SPUD_KEY_ERROR;
     }
 
-    Option new_option1 = Option(*option1);
-    new_option1.node_name = key2_name;
+    Option* new_option1 = new Option(*option1);
+    new_option1->node_name = key2_name;
     string new_node_name, name_attr;
-    new_option1.split_node_name(new_node_name, name_attr);
+    new_option1->split_node_name(new_node_name, name_attr);
     if(name_attr.size() == 0){
-      option2_parent->children.push_back(pair<string, Option>(new_node_name, new_option1));
+      option2_parent->children.push_back(pair<string, Option*>(new_node_name, new_option1));
     }else{
-      new_option1.set_attribute("name", name_attr);
-      option2_parent->children.push_back(pair<string, Option>(new_node_name + "::" + name_attr, new_option1));
+      new_option1->set_attribute("name", name_attr);
+      option2_parent->children.push_back(pair<string, Option*>(new_node_name + "::" + name_attr, new_option1));
     }
          
     delete_option(key1);
@@ -1302,16 +1306,16 @@ namespace Spud{
     if(opt == NULL){
       return SPUD_KEY_ERROR;
     }else if(branch.empty()){
-      deque< pair<string, Option> >::iterator iter = find(name);
+      deque< pair<string, Option*> >::iterator iter = find(name);
       while(iter!=children.end()){
-        if(&iter->second == opt){
+        if(iter->second == opt){
           children.erase(iter);
           return SPUD_NO_ERROR;
         }
         iter = find_next(iter, name);
       }
       for(iter = children.begin();iter != children.end();iter++){
-        if(&iter->second == opt){
+        if(iter->second == opt){
           children.erase(iter);
           return SPUD_NO_ERROR;
         }
@@ -1361,8 +1365,8 @@ namespace Spud{
         cout << lprefix << "<value>: " << data_string;
         cout << endl;
       }
-      for(deque< pair<string, Option> >::const_iterator i = children.begin();i!=children.end();++i){
-        i->second.print(lprefix + " ");
+      for(deque< pair<string, Option*> >::const_iterator i = children.begin();i!=children.end();++i){
+        i->second->print(lprefix + " ");
       }
     }
 
@@ -1399,7 +1403,7 @@ namespace Spud{
       return NULL;
     }
 
-    deque< pair<string, Option> >::iterator child;
+    deque< pair<string, Option*> >::iterator child;
     if(count(name) == 0){
       string name2 = name + "::";
       int i = 0;
@@ -1417,11 +1421,12 @@ namespace Spud{
           cerr << "SPUD WARNING: Creating __value child for non null element - deleting parent data" << endl;
           set_option_type(SPUD_NONE);
         }
-        children.push_back(pair<string, Option>(name, Option(name)));
+        children.push_back(pair<string, Option*>(name, new Option(name)));
         string new_node_name, name_attr;
-        children.rbegin()->second.split_node_name(new_node_name, name_attr);
+        child = children.end(); child--;
+        child->second->split_node_name(new_node_name, name_attr);
         if(name_attr.size() > 0){
-          children.rbegin()->second.set_attribute("name", name_attr);
+          child->second->set_attribute("name", name_attr);
         }
         is_attribute = false;
       }
@@ -1438,7 +1443,7 @@ namespace Spud{
           child = find_next(child, name);
         }
         if(child == children.end() and index == (int)i){
-          children.push_back(pair<string, Option>(name, Option(name)));
+          children.push_back(pair<string, Option*>(name, new Option(name)));
           child = children.end(); child--;
           is_attribute = false;
         }
@@ -1448,9 +1453,9 @@ namespace Spud{
     if(child == children.end()){
       return NULL;
     }else if(branch.empty()){
-      return &child->second;
+      return child->second;
     }else{
-      return child->second.create_child(branch);
+      return child->second->create_child(branch);
     }
   }
 
@@ -1700,15 +1705,15 @@ namespace Spud{
     data_ele->SetValue(data_as_string());
     ele->LinkEndChild(data_ele);
 
-    for(deque< pair<string, Option> >::const_iterator iter = children.begin();iter != children.end();iter++){
-      if(iter->second.is_attribute){
+    for(deque< pair<string, Option*> >::const_iterator iter = children.begin();iter != children.end();iter++){
+      if(iter->second->is_attribute){
         // Add attribute
-        ele->SetAttribute(iter->second.node_name, iter->second.data_as_string());
+        ele->SetAttribute(iter->second->node_name, iter->second->data_as_string());
       }else{
-        TiXmlElement* child_ele = iter->second.to_element();
-        if(iter->second.node_name == "__value"){
+        TiXmlElement* child_ele = iter->second->to_element();
+        if(iter->second->node_name == "__value"){
           // Detect data sub-element
-          switch(iter->second.get_option_type()){
+          switch(iter->second->get_option_type()){
             case(SPUD_DOUBLE):
               child_ele->SetValue("real_value");
               break;
