@@ -1117,6 +1117,13 @@ diagnostic. If disabled, computes over the whole surface.</a:documentation>
           <ref name="integer_vector"/>
         </element>
       </optional>
+      <optional>
+        <element name="fixed_surface_ids">
+          <a:documentation>Surface IDs defining surfaces which must not have their normals
+assigned to change.</a:documentation>
+          <ref name="integer_vector"/>
+        </element>
+      </optional>
       <element name="solver">
         <a:documentation>Linear solver options.</a:documentation>
         <ref name="linear_solver_options_sym"/>

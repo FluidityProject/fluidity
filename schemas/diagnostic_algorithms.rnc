@@ -819,6 +819,11 @@ weighted_normal_algorithm =
          element surface_ids {
             integer_vector
          }?,
+	 ## Surface IDs defining surfaces which must not have their normals
+	 ## assigned to change.
+	 element fixed_surface_ids {
+            integer_vector
+         }?,
          ## Linear solver options.
          element solver {
             linear_solver_options_sym

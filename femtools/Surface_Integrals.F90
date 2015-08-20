@@ -377,7 +377,7 @@ contains
     
   end subroutine surface_gradient_normal
 
-  subroutine surface_weighted_normal(state,source, positions, output, surface_ids,solver_option_path)
+  subroutine surface_weighted_normal(state,source, positions, output, surface_ids,fixed_surface_ids,solver_option_path)
     !!< Return a field containing:
     !!<   /
     !!<   | grad source dot dn
@@ -389,7 +389,8 @@ contains
     type(scalar_field), intent(in) :: source
     type(vector_field), intent(in) :: positions
     type(vector_field), intent(inout) :: output
-    integer, dimension(:), optional, intent(in) :: surface_ids
+    integer, dimension(:), optional, intent(in) :: surface_ids,&
+         fixed_surface_ids
     character(len=*), intent(in), optional:: solver_option_path
     
     integer :: i
@@ -441,21 +442,21 @@ contains
     call compute_mass(subpositions,surface_mesh,mass)
 
     do i = 1, element_count(surface_mesh)
-      call continuous_normal_integral_face(get_surface_elements(i),&
-           positions, vec_face_integral,face_shape(output,i))
-      call addto(vec_rhs, ele_nodes(surface_mesh,i),vec_face_integral)
-   end do
-
-   call petsc_solve(basis,mass,vec_rhs,option_path=solver_option_path)
-
-   do i = 1, element_count(surface_mesh)
-      call weighted_normal_surface_integral_face(source,&
-           ele_val_at_quad(basis,i), get_surface_elements(i),&
-           positions, face_integral,loc_mat,face_shape(output,i))
-      call addto(rhs, ele_nodes(surface_mesh,i),face_integral)
-      call addto(mat, ele_nodes(surface_mesh,i),&
-           ele_nodes(surface_mesh,i),loc_mat)
-   end do
+       call continuous_normal_integral_face(get_surface_elements(i),&
+            positions, vec_face_integral,face_shape(output,i))
+       call addto(vec_rhs, ele_nodes(surface_mesh,i),vec_face_integral)
+    end do
+   
+    call petsc_solve(basis,mass,vec_rhs,option_path=solver_option_path)
+    
+    do i = 1, element_count(surface_mesh)
+       call weighted_normal_surface_integral_face(source,&
+            ele_val_at_quad(basis,i), get_surface_elements(i),&
+            positions, face_integral,loc_mat,face_shape(output,i))
+       call addto(rhs, ele_nodes(surface_mesh,i),face_integral)
+       call addto(mat, ele_nodes(surface_mesh,i),&
+            ele_nodes(surface_mesh,i),loc_mat)
+    end do
 
     call petsc_solve(suboutput,mat,rhs,option_path=solver_option_path)
     call set(output,surface_nodes,&
@@ -465,15 +466,56 @@ contains
     call deallocate(suboutput)
     call deallocate(subpositions)
     call deallocate(basis)
-
+    
     call deallocate(mass)
     call deallocate(mat)
     call deallocate(temp_mass_sparsity)
     call deallocate(surface_mesh)
-
+    
     deallocate(surface_nodes,get_surface_elements)
+
+    if (present(fixed_surface_ids)) then
+       if (size(fixed_surface_ids)>0) return
+
+       do i=1,surface_element_count(output)
+
+          if (.not. any(fixed_surface_ids==surface_element_id(output, i))) cycle
+
+          call correct_fixed_normals(output,positions,i)
+
+       end do
+
+       call halo_update(output)
+
+    end if
     
   end subroutine surface_weighted_normal
+
+  subroutine correct_fixed_normals(output,positions,face)
+
+     type(vector_field), intent(inout) :: output
+     type(vector_field), intent(in) :: positions
+     integer, intent(in) :: face
+
+     real, dimension(face_ngi(positions, face)) :: detwei
+     real, dimension(mesh_dim(positions), face_ngi(positions, face)) :: normal
+
+     real, dimension(mesh_dim(positions), face_loc(output, face)) :: out_loc
+     integer :: loc
+    
+     call transform_facet_to_physical( &
+         positions, face, detwei_f = detwei, normal = normal)
+
+     out_loc=face_val(output,face)
+     
+     do loc=1,face_loc(output,face)
+        out_loc(:,loc)=out_loc(:,loc)-dot_product(normal(:,1),out_loc(:,loc))&
+             *normal(:,1)
+     end do
+
+     call set(output,face_global_nodes(output,face),out_loc)
+    
+  end subroutine correct_fixed_normals
 
   subroutine continuous_normal_integral_face(face,&
            positions, integral,face_shape)
