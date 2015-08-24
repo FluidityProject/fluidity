@@ -1204,7 +1204,7 @@ contains
     
     call set(new_coordinate, old_coordinate)
 
-    if (have_option("/mesh_movement/transform_coordiantes")) then
+    if (have_option("/mesh_movement/transform_coordinates")) then
        call update(new_coordinate, grid_velocity, scale=dt)
     else
        call addto(new_coordinate, grid_velocity, scale=dt)
