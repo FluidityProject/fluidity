@@ -40,6 +40,9 @@ use fluxes
 use nemo_states_module
 use physics_from_options
 use load_netcdf_module
+use python_state
+use state_fields_module
+use solvers
 
 implicit none
 
@@ -67,7 +70,7 @@ implicit none
   
 contains
 
-  recursive subroutine initialise_scalar_field(field, path, position, time, phase_path)
+  recursive subroutine initialise_scalar_field(field, path, position, time, phase_path, project)
     !!< Initialises field with values prescribed in option_path
     !!< This is used for initial conditions, prescribed fields and
     !!< setting a boundary condition surface_field, a.o.
@@ -77,6 +80,7 @@ contains
     !! if present use this time level, instead of that in the options tree
     real, optional, intent(in):: time
     character(len=*), intent(in), optional :: phase_path
+    logical, intent(in), optional :: project
 
     type(scalar_field), pointer:: read_field
     type(vector_field), pointer:: vtk_position
@@ -105,7 +109,12 @@ contains
          call get_option("/timestepping/current_time", current_time)
        end if
        ! Set initial condition from python function
-       call set_from_python_function(field, trim(func), position, current_time)
+       if (present_and_true(project)) then
+          call set_from_python_via_projection(field, trim(func), position,&
+               current_time,path)
+       else
+          call set_from_python_function(field, trim(func), position, current_time)
+       end if
     else if(have_option(trim(path)//"/generic_function")) then
        FLExit("Generic functions are obsolete. Please use a Python function.")
     else if(have_option(trim(path)//"/internally_calculated")) then
@@ -517,7 +526,7 @@ contains
 
   end subroutine initialise_tensor_field
 
-  subroutine initialise_scalar_field_over_regions(field, path, position, time, phase_path)
+  subroutine initialise_scalar_field_over_regions(field, path, position, time, phase_path, state)
     !!< Wrapper to initialise_scalar_field for prescribed and prognostic
     !!< fields in case mesh regions are being used
     type(scalar_field), intent(inout) :: field
@@ -527,9 +536,24 @@ contains
     type(vector_field), intent(in):: position
     real, intent(in), optional :: time
     character(len=*), intent(in), optional :: phase_path
+    type( state_type), intent(inout), optional :: state
 
     type(scalar_field) :: tempfield
     integer :: value, nvalues
+    logical :: project
+    type(csr_matrix), pointer :: mass
+
+    character (len=OPTION_PATH_LEN) :: projection_solver_path
+    
+
+
+    
+
+    project=have_option(trim(complete_field_path(field%option_path))//"/initialise_via_projection/")
+    if (project) then
+       call zero(field)
+       projection_solver_path=trim(complete_field_path(field%option_path))//"/initialise_via_projection/"
+    end if
 
     call allocate(tempfield, field%mesh, field%name, field_type=field%field_type)
 
@@ -539,10 +563,20 @@ contains
        call zero(tempfield)
        call initialise_field(tempfield, &
             trim(path)//'['//int2str(value)//']', &
-            position, time=time, phase_path=trim(phase_path))
-       call apply_region_ids(field, tempfield, &
-            trim(path)//'['//int2str(value)//']')
+            position, time=time, phase_path=trim(phase_path), project=project)
+       if (project) then
+          call addto(field,tempfield)
+       else
+          call apply_region_ids(field, tempfield, &
+               trim(path)//'['//int2str(value)//']')
+       end if
     end do
+
+    if (project) then
+       mass=>get_mass_matrix(state,field%mesh)
+       call set(tempfield,field)
+       call petsc_solve(field,mass,tempfield,option_path=projection_solver_path)
+    end if
 
     call deallocate(tempfield)
 
@@ -703,5 +737,61 @@ contains
     end if
 
   end subroutine apply_region_ids_tensor
+
+
+  subroutine set_from_python_via_projection(field, func, position,&
+               current_time,path)
+
+    type(scalar_field), intent(inout) :: field
+    character (len =*), intent(in) :: func, path
+    type(vector_field), intent(in) :: position
+    real, intent(in) :: current_time
+
+    character (len=*), parameter :: run_string="f[:]=val(X,t[0])"
+
+    real, dimension(ele_ngi(field,1)) :: detwei, f
+    real, dimension(mesh_dim(field),ele_ngi(field,1)) :: X_gi
+    integer ::ele, stat, shape_option(2)
+    integer, allocatable, dimension(:) :: region_ids
+
+    stat = 1
+    if(have_option(trim(path)//"/region_ids")) then
+       shape_option=option_shape(trim(path)//"/region_ids")
+       allocate(region_ids(1:shape_option(1)))
+       call get_option(trim(path)//"/region_ids", region_ids, stat)
+    else
+       allocate(region_ids(0))
+    end if
+
+    call python_reset()
+
+    ewrite(1,*) "Setting field via python projection"
+
+
+    !! Add the python function
+    call python_run_string(func,stat)
+
+    call python_add_array([current_time],1,'t',1)
+
+    call python_add_array(X_gi,size(X_gi,1),size(X_gi,2),'X',1)
+    call python_add_array(f,size(f,1),'f',1)
+
+    do ele=1,element_count(field)
+
+       if(.not. any(region_ids==field%mesh%region_ids(ele)) .and. size(region_ids)>0) cycle
+
+       call transform_to_physical(position,ele,detwei)
+
+       X_gi=ele_val_at_quad(position,ele)
+
+       call python_run_string(run_string,stat)
+          
+       call addto(field,ele_nodes(field,ele),shape_rhs(field%mesh%shape,f*detwei))
+
+    end do
+
+    call python_reset()
+
+  end subroutine set_from_python_via_projection
     
 end module initialise_fields_module

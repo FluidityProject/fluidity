@@ -54,6 +54,37 @@ In this case each value requires a distinct name for the options dictionary.</a:
         </element>
       </choice>
     </oneOrMore>
+    <element name="initialise_via_projection">
+      <element name="solver">
+        <element name="iterative_method">
+          <attribute name="name">
+            <value>cg</value>
+          </attribute>
+        </element>
+        <element name="preconditioner">
+          <attribute name="name">
+            <value>sor</value>
+          </attribute>
+        </element>
+        <element name="relative_error">
+          <ref name="real"/>
+        </element>
+        <optional>
+          <element name="absolute_error">
+            <ref name="real"/>
+          </element>
+        </optional>
+        <element name="max_iterations">
+          <ref name="integer"/>
+        </element>
+        <element name="start_from_zero">
+          <empty/>
+        </element>
+        <element name="never_ignore_solver_failures">
+          <empty/>
+        </element>
+      </element>
+    </element>
   </define>
   <!--
     Default child of prescribed vector field

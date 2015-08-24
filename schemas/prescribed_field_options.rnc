@@ -38,7 +38,18 @@ prescribed_values_scalar_field =
             region_ids?,
             input_choice_real_plus_file
          }
-      )+
+      )+,
+      element initialise_via_projection { 
+         element solver {
+            element iterative_method { attribute name{ "cg" } },
+	    element preconditioner   { attribute name{ "sor" } },
+	    element relative_error   { real },	 
+	    element absolute_error   { real }?,
+	    element max_iterations   { integer },
+	    element start_from_zero  { empty },
+	    element never_ignore_solver_failures { empty }
+        }
+     }?	  
    )
 
 # Default child of prescribed vector field

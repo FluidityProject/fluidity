@@ -2299,7 +2299,7 @@ contains
   subroutine set_prescribed_field_values(states, &
     exclude_interpolated, exclude_nonreprescribed, initial_mesh, time)
 
-    type(state_type), dimension(:), intent(in):: states
+    type(state_type), dimension(:), intent(inout):: states
     !! don't prescribe the fields with interpolation options
     logical, intent(in), optional :: exclude_interpolated
     !! do not prescribe the fields that have requested not to be represcribed
@@ -2346,7 +2346,7 @@ contains
              call zero(sfield)
              call initialise_field_over_regions(sfield, &
                 trim(sfield%option_path)//'/prescribed/value', &
-                position, time=time)
+                position, time=time, state=states(p+1))
           end if
        end do
 
