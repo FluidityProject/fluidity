@@ -939,6 +939,26 @@ hr_adaptivity =
                     }
                 }
             }?,
+            ## Load-balancing approach, for all but the final adapt iteration. For the final
+	    ## adapt iteration we always use the PARTITION approach, to ensure the best 
+	    ## possible load balance after adaptivity.
+            element  load_balancing_approach {
+                ## PARTITION (default): partition from scratch, not taking the current data 
+		## distribution into account
+                element partition {
+                    empty
+                }|
+                ## REPARTITION: partition but try to stay close to the current 
+		## partition/distribution
+                element repartition {
+                    empty
+                }|
+                ## REFINE: refine the current partition/distribution; assumes only 
+		## small changes
+                element refine {
+                    empty
+                }
+            }?,
             ## Element quality cut off. 
             ## Elements with a quality greater than this will be liable to be
             ## on the parition boundary. Below this, they will be free to be adapted
