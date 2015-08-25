@@ -591,10 +591,10 @@ module zoltan_integration
           end if
          
        else
-          ! Use the Zoltan graph partitioner by default
+          ! Use th escotch graph partitioner by default
           ierr = Zoltan_Set_Param(zz, "LB_METHOD", "GRAPH"); assert(ierr == ZOLTAN_OK)
-          ierr = Zoltan_Set_Param(zz, "GRAPH_PACKAGE", "PHG"); assert(ierr == ZOLTAN_OK)
-          ewrite(3,*) "No partitioner option set, defaulting to using Zoltan-Graph."
+          ierr = Zoltan_Set_Param(zz, "GRAPH_PACKAGE", "SCOTCH"); assert(ierr == ZOLTAN_OK)
+          ewrite(3,*) "No partitioner option set, defaulting to using Scotch."
        end if
 
     else
@@ -644,10 +644,10 @@ module zoltan_integration
           end if
           
        else
-          ! Use ParMETIS by default on the final adapt iteration
+          ! Use Scotch by default on the final adapt iteration
           ierr = Zoltan_Set_Param(zz, "LB_METHOD", "GRAPH"); assert(ierr == ZOLTAN_OK)
-          ierr = Zoltan_Set_Param(zz, "GRAPH_PACKAGE", "PARMETIS"); assert(ierr == ZOLTAN_OK)
-          ewrite(3,*) "No final partitioner option set, defaulting to using ParMETIS."
+          ierr = Zoltan_Set_Param(zz, "GRAPH_PACKAGE", "SCOTCH"); assert(ierr == ZOLTAN_OK)
+          ewrite(3,*) "No final partitioner option set, defaulting to using scotch."
        end if
 
     end if
