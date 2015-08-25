@@ -591,7 +591,7 @@ module zoltan_integration
           end if
          
        else
-          ! Use th escotch graph partitioner by default
+          ! Use the scotch graph partitioner by default
           ierr = Zoltan_Set_Param(zz, "LB_METHOD", "GRAPH"); assert(ierr == ZOLTAN_OK)
           ierr = Zoltan_Set_Param(zz, "GRAPH_PACKAGE", "SCOTCH"); assert(ierr == ZOLTAN_OK)
           ewrite(3,*) "No partitioner option set, defaulting to using Scotch."
