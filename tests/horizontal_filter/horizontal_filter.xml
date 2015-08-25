@@ -1,0 +1,23 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>horizontal_filter</name>
+  <owner userid="jrper"/>
+  <tags>flml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>fluidity -v2 -l horizontal_filter_2d.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="solvers_converged" language="python">import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files</variable>
+    <variable name="e_integral" language="python">from fluidity_tools import stat_parser
+s = stat_parser("horizontal_filter_2d.stat")
+e_integral = s["Fluid"]["Error"]["integral"][-1]
+print e_integral</variable>
+  </variables>
+  <pass_tests>
+    <test name="Solvers converged" language="python">assert(solvers_converged)</test>
+    <test name="error_integral_small" language="python">assert abs(e_integral) &lt; 1e-5</test>
+  </pass_tests>
+  <warn_tests/>
+</testproblem>
