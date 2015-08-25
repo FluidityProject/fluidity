@@ -450,6 +450,26 @@ lumped_mass_smoothed_vector_algorithm =
          vector_source_field
       }
    )
+horizontal_filter_scalar_algorithm =
+   (
+      ##  
+      ## Horizontal smoothing of a field
+      ##  
+      ## This repeatedly applies a Helmholtz filter to the field
+      element algorithm {
+         attribute name { "horizontal_filter_scalar" },
+         attribute material_phase_support { "single" },
+         scalar_source_field,
+	 ## Scaling factor : filter is 1-\nabla_h \cdot \alpha^2 \nabla_h
+	 element alpha { real },
+	 ## Number of iterations of the filter
+	 element number_of_iterations { integer },
+         ## Linear solver options.
+         element solver {
+            linear_solver_options_sym
+         }
+      }
+   )
 # Binary operators
 scalar_sum_algorithm =
    (
@@ -1749,6 +1769,7 @@ scalar_diagnostic_algorithms |= node_halo_diagnostic_algorithm
 scalar_diagnostic_algorithms |= mesh_quality_algorithm
 scalar_diagnostic_algorithms |= lumped_mass_smoothed_scalar_algorithm
 scalar_diagnostic_algorithms |= l2norm_algorithm
+scalar_diagnostic_algorithms |= horizontal_filter_scalar_algorithm
 scalar_diagnostic_algorithms |= helmholtz_smoothed_scalar_algorithm
 scalar_diagnostic_algorithms |= helmholtz_anisotropic_smoothed_scalar_algorithm
 scalar_diagnostic_algorithms |= grad_normal_algorithm
