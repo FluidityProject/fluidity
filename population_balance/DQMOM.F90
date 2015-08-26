@@ -701,7 +701,8 @@ contains
     real, dimension(1, size(abscissa)) :: abscissa_S
     real, dimension(1, size(weight)) :: weight_S
     real :: eps_node
-    real, dimension(viscosity_continuous%dim(1), viscosity_continuous%dim(1)) :: visc_node
+!    real, dimension(viscosity_continuous%dim(1), viscosity_continuous%dim(1)) :: visc_node
+    real, dimension(:,:), allocatable :: visc_node
     real, dimension(size(abscissa)*2, size(abscissa)*2) :: svd_tmp1, svd_tmp2
     real, dimension(size(abscissa)*2) :: SV
     integer :: stat, N, i, j, k
@@ -730,8 +731,8 @@ contains
              break_freq(1,i) = breakage_freq_const*abscissa_val(1,i)**breakage_freq_degree
           end do
        else if (breakage_freq_type=='laakkonen_frequency') then
-          density_continuous = 1000
-          density_dispersed = 1
+          density_continuous = 998.2
+          density_dispersed = 1.205
           sigma = 0.072
 !eps_node=1.0e-8
           eps_node = node_val(turbulent_dissipation,node)
@@ -741,10 +742,12 @@ contains
 !end if
           ! Assuming isotropic molecular viscosity here
 !visc_node=0.001
+          allocate(visc_node(viscosity_continuous%dim(1), viscosity_continuous%dim(1)))
           visc_node = node_val(viscosity_continuous,node)
           do i = 1, N
              break_freq(1,i) = 6.0*eps_node**(1./3) * erfc(sqrt( 0.04*(sigma/density_continuous)*(1./(eps_node**(2./3) * abscissa_val(1,i)**(5./3))) + 0.01*(visc_node(1,1)/sqrt(density_continuous*density_dispersed))*(1./(eps_node**(1./3)*abscissa_val(1,i)**(4./3)))))
           end do
+          deallocate(visc_node)
        end if
 
        if (breakage_dist_type=='mcCoy_madras_2003') then
@@ -778,19 +781,20 @@ contains
           aggregation_freq = aggregation_freq_const
 
        else if (aggregation_freq_type=='laakkonen_2007_aggregation') then
-          density_continuous = 1000
+          density_continuous = 998.2
           sigma = 0.072
           eps_node = node_val(turbulent_dissipation, node)
 !eps_node=1.0e-8
           ! Assuming isotropic molecular viscosity here   
 !visc_node=0.001
+          allocate(visc_node(viscosity_continuous%dim(1), viscosity_continuous%dim(1)))
           visc_node=node_val(viscosity_continuous, node)
           do i = 1, N
              do j = 1, N
                 aggregation_freq(1,i,j) = 0.88 * eps_node**(1./3) * (abscissa_val(1,i) + abscissa_val(1,j))**2 * (abscissa_val(1,i)**(2./3) + abscissa_val(1,j)**(2./3))**(1./2) * exp(-6.0E9*((visc_node(1,1)*density_continuous)/sigma**2)*eps_node*((abscissa_val(1,i)*abscissa_val(1,j))/(abscissa_val(1,i)+abscissa_val(1,j)))**4)
              end do
           end do
-
+          deallocate(visc_node)
        end if
 
        do i = 1, 2*N
