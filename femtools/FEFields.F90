@@ -513,7 +513,7 @@ contains
 
       call set(to_field, ele_nodes(to_field, ele), &
            matmul(mass, &
-           shape_rhs(to_shape, ele_val(from_field, ele)*detwei)))
+           shape_rhs(to_shape, ele_val_at_quad(from_field, ele)*detwei)))
 
     end subroutine dg_projection_ele
 

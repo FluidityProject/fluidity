@@ -3,7 +3,6 @@ include envcheck.mk
 preprocess: envcheck
 	@echo **********Generating the mesh using gmsh in 2d:
 	gmsh -2 2dtank.geo
-	@echo **********Converting the gmsh mesh to triangle format:
 
 run:
 	@echo **********Calling fluidity with verbose log output enabled:

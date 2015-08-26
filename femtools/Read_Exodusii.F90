@@ -234,7 +234,7 @@ contains
     
     integer :: num_faces, num_elem, faceType
     integer :: loc, sloc
-    integer :: eff_dim, f
+    integer :: eff_dim, f, gdim
 
     ewrite(1,*) "In read_exodusii_file_to_field"
 
@@ -358,8 +358,9 @@ contains
     ! At this point, all relevant data has been read in from the exodusii file
     ! Now construct within Fluidity data structures
 
-    if( num_dim .eq. 2 .and. have_option("/geometry/spherical_earth/") ) then
-       eff_dim = num_dim+1
+    if( have_option("/geometry/spherical_earth/") ) then
+       call get_option('/geometry/dimension', gdim)
+       eff_dim = gdim
     else
        eff_dim = num_dim
     end if

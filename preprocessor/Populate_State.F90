@@ -212,7 +212,7 @@ contains
     character(len=OPTION_PATH_LEN) :: mesh_path, mesh_file_name,&
          & mesh_file_format, from_file_path
     integer, dimension(:), pointer :: coplanar_ids
-    integer, dimension(3) :: mesh_dims
+    integer, dimension(4) :: mesh_dims
     integer :: i, j, nmeshes, nstates, quad_degree, stat
     type(element_type), pointer :: shape
     type(quadrature_type), pointer :: quad
@@ -338,6 +338,11 @@ contains
                 else
                   mesh_dims(3)=0
                 end if
+                if (mesh%faces%has_discontinuous_internal_boundaries) then
+                  mesh_dims(4)=1
+                else
+                  mesh_dims(4)=0
+                end if
                 ! The coordinate dimension is not the same as the mesh dimension
                 ! in the case of spherical shells, and needs to be broadcast as
                 ! well.  And this needs to be here to allow for the special case
@@ -348,10 +353,11 @@ contains
                 call get_option('/geometry/dimension', mesh_dims(1))
                 mesh_dims(2)=mesh_dims(1)+1
                 mesh_dims(3)=0
+                mesh_dims(4)=0
                 dim = mesh_dims(1)
               end if
             end if
-            call MPI_bcast(mesh_dims, 3, getpinteger(), 0, MPI_COMM_FEMTOOLS, stat)
+            call MPI_bcast(mesh_dims, 4, getpinteger(), 0, MPI_COMM_FEMTOOLS, stat)
             call MPI_bcast(dim, 1, getpinteger(), 0, MPI_COMM_FEMTOOLS, stat)
           end if
 
@@ -372,6 +378,12 @@ contains
             call allocate(mesh, nodes=0, elements=0, shape=shape, name="EmptyMesh")
             call allocate(position, dim, mesh, "EmptyCoordinate")
             call add_faces(mesh)
+            if (mesh_dims(4)>0) then
+              ! rank 0 has element ownership for facets, allowing for multi-valued internal
+              ! facets (needed for periodic meshes). Setting this flag will allow us the
+              ! same when we receive facets after the redecomposition
+              mesh%faces%has_discontinuous_internal_boundaries=.true.
+            end if
             if (column_ids>0) then
               ! the association status of mesh%columns should be collective
               allocate(mesh%columns(1:0))
@@ -408,7 +420,7 @@ contains
           else 
              position%name="Coordinate"
           end if
-                       
+
           ! If running in parallel, additionally read in halo information and register the elements halo
           if(isparallel()) then
             if (no_active_processes == 1) then
@@ -532,6 +544,13 @@ contains
        end if
 
     end do outer_loop
+
+    ! not really a derived mesh but this is a relatively clean place to set the transform_to_physical
+    ! spherical flag so that the main Coordinate field is interpretted as being spherical at the gauss
+    ! points
+    if (have_option('/geometry/spherical_earth/analytical_mapping/')) then
+      call set_analytical_spherical_mapping()
+    end if
 
   end subroutine insert_derived_meshes
            
@@ -812,10 +831,12 @@ contains
           ! of the coordinates spans that of the external mesh
           call remap_field(from_field=modelposition, to_field=coordinateposition)
                 
-          if (mesh_name=="CoordinateMesh" .and. have_option('/geometry/spherical_earth/superparametric_mapping/')) then
+          if (mesh_name=="CoordinateMesh" .and. have_option('/geometry/spherical_earth/')) then
 
-             call higher_order_sphere_projection(modelposition, coordinateposition)
-                   
+            if (have_option('/geometry/spherical_earth/superparametric_mapping/')) then
+              call higher_order_sphere_projection(modelposition, coordinateposition)
+            end if
+
           endif
 
           ! insert into states(1) and alias to all others
@@ -3189,6 +3210,8 @@ contains
     ! Check mesh options
     call check_mesh_options
 
+    call check_geometry_options
+
     ! check problem specific options:
     call get_option("/problem_type", problem_type)
     select case (problem_type)
@@ -3212,6 +3235,34 @@ contains
     ewrite(2,*) 'Done with problem type choice'
 
   end subroutine populate_state_module_check_options
+
+  subroutine check_geometry_options
+
+    logical :: on_sphere
+    integer :: i, nstates
+
+    on_sphere = have_option("/geometry/spherical_earth")
+
+    if (on_sphere) then
+      nstates=option_count("/material_phase")
+
+      state_loop: do i=0, nstates-1
+        if (have_option("/material_phase[" // int2str(i) // "]/vector_field::Velocity/prognostic")) then
+          if (.not. (have_option("/material_phase[" // int2str(i) // "]/vector_field::Velocity/prognostic" // &
+                                 "/spatial_discretisation/continuous_galerkin/buoyancy" // &
+                                 "/radial_gravity_direction_at_gauss_points") .or. &
+                     have_option("/material_phase[" // int2str(i) // "]/vector_field::Velocity/prognostic" // &
+                                 "/spatial_discretisation/discontinuous_galerkin/buoyancy" // &
+                                 "/radial_gravity_direction_at_gauss_points"))) then
+            ewrite(0,*) "WARNING: the /geometry/spherical_earth option no long automatically makes the buoyancy radial."
+            ewrite(0,*) "To recreate the previous behaviour it is now necessary to turn on the "
+            ewrite(0,*) "buoyancy/radial_gravity_direction_at_gauss_points underneath the Velocity spatial_discretisation."
+          end if
+        end if
+      end do state_loop
+    end if
+
+  end subroutine check_geometry_options
 
   subroutine check_mesh_options
 

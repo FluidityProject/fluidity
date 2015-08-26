@@ -1035,7 +1035,7 @@ implicit none
     real, intent(in), dimension(:, :) :: val
     integer :: i
 
-    assert(field%field_type == FIELD_TYPE_NORMAL)
+    assert(field%field_type==FIELD_TYPE_NORMAL)
     
     do i=1,field%dim
       field%val(i,:) = val(i, :)
@@ -1049,7 +1049,7 @@ implicit none
     real, intent(in), dimension(:) :: val
     integer, intent(in):: dim
     
-    assert(field%field_type == FIELD_TYPE_NORMAL)
+    assert(field%field_type==FIELD_TYPE_NORMAL)
     assert(dim>=1 .and. dim<=field%dim)
     
     field%val(dim,:) = val
@@ -1064,10 +1064,15 @@ implicit none
     
     integer :: dim
 
+#ifndef NDEBUG
     assert(mesh_compatible(out_field%mesh, in_field%mesh))
     assert(out_field%field_type/=FIELD_TYPE_PYTHON)
-    assert(out_field%field_type==FIELD_TYPE_NORMAL .or. in_field%field_type==FIELD_TYPE_CONSTANT)
+    if (.not. (out_field%field_type==FIELD_TYPE_NORMAL .or. &
+      (out_field%field_type==FIELD_TYPE_CONSTANT .and. in_field%field_type==FIELD_TYPE_CONSTANT))) then
+      FLAbort("Wrong field_type in set()")
+    end if
     assert(in_field%dim==out_field%dim)
+#endif
 
     select case (in_field%field_type)
     case (FIELD_TYPE_NORMAL)
@@ -1131,10 +1136,15 @@ implicit none
     type(scalar_field), intent(in) :: in_field
     integer, intent(in):: dim
 
+#ifndef NDEBUG
     assert(mesh_compatible(out_field%mesh, in_field%mesh))
     assert(out_field%field_type/=FIELD_TYPE_PYTHON)
-    assert(out_field%field_type==FIELD_TYPE_NORMAL.or.in_field%field_type==FIELD_TYPE_CONSTANT)
+    if (.not. (out_field%field_type==FIELD_TYPE_NORMAL .or. &
+      (out_field%field_type==FIELD_TYPE_CONSTANT .and. in_field%field_type==FIELD_TYPE_CONSTANT))) then
+      FLAbort("Wrong field_type in set()")
+    end if
     assert(dim>=1 .and. dim<=out_field%dim)
+#endif
 
     select case (in_field%field_type)
     case (FIELD_TYPE_NORMAL)
@@ -1155,10 +1165,15 @@ implicit none
     type(vector_field), intent(in) :: in_field
     integer, intent(in):: dim
 
+#ifndef NDEBUG
     assert(mesh_compatible(out_field%mesh, in_field%mesh))
     assert(out_field%field_type/=FIELD_TYPE_PYTHON)
-    assert(out_field%field_type==FIELD_TYPE_NORMAL.or.in_field%field_type==FIELD_TYPE_CONSTANT)
+    if (.not. (out_field%field_type==FIELD_TYPE_NORMAL .or. &
+      (out_field%field_type==FIELD_TYPE_CONSTANT .and. in_field%field_type==FIELD_TYPE_CONSTANT))) then
+      FLAbort("Wrong field_type in set()")
+    end if
     assert(dim>=1 .and. dim<=out_field%dim .and. dim<=in_field%dim)
+#endif
 
     select case (in_field%field_type)
     case (FIELD_TYPE_NORMAL)
@@ -2005,6 +2020,8 @@ implicit none
         do i=1,from_field%dim
           to_field%val(i,:) = from_field%val(i,1)
         end do
+      case default
+        FLAbort("Wrong field_type for remap_field")
       end select
   
     end if
@@ -2133,6 +2150,8 @@ implicit none
         output(:, i, :) = from_field%val(i,1)
       end do
       return
+    case default
+      FLAbort("Wrong field_type for remap_field")
     end select
 
     call test_remap_validity(from_field, to_field, stat=stat)
@@ -2327,6 +2346,8 @@ implicit none
       do i=1, from_field%dim
         to_field%val(i,:) = from_field%val(i,1)
       end do
+    case default
+      FLAbort("Unknown field type in remap_field_to_surface")
     end select
 
     ! Zero any left-over dimensions
@@ -3905,6 +3926,8 @@ implicit none
                                size(output_mesh%faces%face_element_list), &
                                trim(output_mesh%name)//" face_element_list.")
 #endif
+      output_mesh%faces%unique_surface_element_count = input_positions%mesh%faces%unique_surface_element_count
+      output_mesh%faces%has_discontinuous_internal_boundaries = has_discontinuous_internal_boundaries(input_positions%mesh)
       allocate(output_mesh%faces%boundary_ids(size(input_positions%mesh%faces%boundary_ids)))
       output_mesh%faces%boundary_ids = input_positions%mesh%faces%boundary_ids
 #ifdef HAVE_MEMORY_STATS
@@ -4010,9 +4033,14 @@ implicit none
     ! Now here comes the damnable face information
 
     if (associated(input_positions%mesh%faces)) then
-      allocate(sndgln(surface_element_count(input_positions) * face_loc(input_positions, 1)))
+      allocate(sndgln(unique_surface_element_count(input_positions%mesh) * face_loc(input_positions, 1)))
       call getsndgln(input_positions%mesh, sndgln)
-      call add_faces(output_mesh, sndgln=sndgln, element_owner=permutation(input_positions%mesh%faces%face_element_list(1:surface_element_count(input_positions))))
+      if (has_discontinuous_internal_boundaries(input_positions%mesh)) then
+        assert(surface_element_count(input_positions%mesh)==unique_surface_element_count(input_positions%mesh))
+        call add_faces(output_mesh, sndgln=sndgln, element_owner=permutation(input_positions%mesh%faces%face_element_list(1:surface_element_count(input_positions))))
+      else
+        call add_faces(output_mesh, sndgln=sndgln)
+      end if
       deallocate(sndgln)
       output_mesh%faces%boundary_ids = input_positions%mesh%faces%boundary_ids
       if (associated(input_positions%mesh%faces%coplanar_ids)) then
@@ -4141,7 +4169,7 @@ implicit none
 
     mesh => positions%mesh
     if(has_faces(mesh)) then
-      allocate(sndgln(face_loc(mesh, 1) * surface_element_count(mesh)))
+      allocate(sndgln(face_loc(mesh, 1) * unique_surface_element_count(mesh)))
       call getsndgln(mesh, sndgln)
     end if
     
@@ -4189,7 +4217,7 @@ implicit none
 
     subroutine update_faces(mesh, sndgln)
       type(mesh_type), intent(inout) :: mesh
-      integer, dimension(face_loc(mesh, 1) * surface_element_count(mesh)), intent(in) :: sndgln
+      integer, dimension(face_loc(mesh, 1) * unique_surface_element_count(mesh)), intent(in) :: sndgln
 
       integer, dimension(surface_element_count(mesh)) :: boundary_ids
       integer, dimension(:), allocatable :: coplanar_ids, element_owners
@@ -4202,18 +4230,24 @@ implicit none
         coplanar_ids = mesh%faces%coplanar_ids
       end if
 
-      allocate(element_owners((surface_element_count(mesh))))
-      element_owners = mesh%faces%face_element_list(1:surface_element_count(mesh))
+      if (mesh%faces%has_discontinuous_internal_boundaries) then
+        allocate(element_owners((surface_element_count(mesh))))
+        element_owners = mesh%faces%face_element_list(1:surface_element_count(mesh))
 
-      call deallocate_faces(mesh)
-      call add_faces(mesh, sndgln = sndgln, element_owner=element_owners)
+        call deallocate_faces(mesh)
+        call add_faces(mesh, sndgln = sndgln, element_owner=element_owners)
+        deallocate(element_owners)
+      else
+        call deallocate_faces(mesh)
+        call add_faces(mesh, sndgln = sndgln)
+      end if
+
       mesh%faces%boundary_ids = boundary_ids
       if(allocated(coplanar_ids)) then
         allocate(mesh%faces%coplanar_ids(size(coplanar_ids)))
         mesh%faces%coplanar_ids = coplanar_ids
         deallocate(coplanar_ids)
       end if
-      deallocate(element_owners)
 
     end subroutine update_faces
 

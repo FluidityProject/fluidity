@@ -217,6 +217,7 @@ u_ref = sqrt(p/rho_g)</comment>
             <stress_terms>
               <stress_form/>
             </stress_terms>
+            <buoyancy/>
           </continuous_galerkin>
           <conservative_advection>
             <real_value rank="0">0.0</real_value>

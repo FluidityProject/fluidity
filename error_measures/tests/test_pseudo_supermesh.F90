@@ -10,6 +10,7 @@ subroutine test_pseudo_supermesh
   type(vector_field), target :: X_init, X_supermesh
   type(state_type) :: vtk_state
   logical :: fail
+  integer :: no_refs
   character(len=255), dimension(2) :: strings
 
   strings(1) = "data/pseudo_supermesh_0.vtu"
@@ -19,6 +20,9 @@ subroutine test_pseudo_supermesh
   X_init = extract_vector_field(vtk_state, "Coordinate")
 
   call add_faces(X_init%mesh)
+  ! add_faces() replaces mesh%shape, so we need to swap out the mesh already 
+  ! stored in state in order not to mess up the refcounts
+  call insert(vtk_state, X_init%mesh, X_init%mesh%name)
 
   call compute_pseudo_supermesh(strings, &
                               & X_init, X_supermesh)
@@ -33,6 +37,11 @@ subroutine test_pseudo_supermesh
 
   call deallocate(vtk_state)
   call deallocate(X_supermesh)
-  call print_references(-1)
+
+  ! ensure all references have been dropped now
+  no_refs = count_references()
+  fail = (no_refs /= 0)
+  call report_test("[zero final refcount]", fail, .false., "")
+  call print_references(-1) ! this should output nothing if the test passed
 
 end subroutine test_pseudo_supermesh

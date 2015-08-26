@@ -1,0 +1,497 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>Test of analytical mapping onto a sphere</name>
+  <owner userid="cwilson"/>
+  <problem_definition length="short" nprocs="1">
+    <command_line>fluidity -v3 -l linear.flml; fluidity -v3 -l analytic.flml; fluidity -v3 -l super.flml; fluidity -v3 -l super_analytic.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="linear_integral" language="python">from fluidity_tools import stat_parser
+stat = stat_parser("linear.stat")
+linear_integral = stat["State"]["Field"]["integral"][-1]</variable>
+    <variable name="linear_inner_upper_surfaceintegrals" language="python">from fluidity_tools import stat_parser
+import numpy
+stat = stat_parser("linear.stat")
+linear_inner_upper_surfaceintegrals = numpy.array([stat["State"]["Field"]["surface_integral%"+`i`][-1] for i in xrange(9,17)])</variable>
+    <variable name="linear_inner_middle_surfaceintegrals" language="python">from fluidity_tools import stat_parser
+import numpy
+stat = stat_parser("linear.stat")
+linear_inner_middle_surfaceintegrals = numpy.array([stat["State"]["Field"]["surface_integral%"+`i`][-1] for i in xrange(1,9)])</variable>
+    <variable name="linear_outer_upper_surfaceintegrals" language="python">from fluidity_tools import stat_parser
+import numpy
+stat = stat_parser("linear.stat")
+linear_outer_upper_surfaceintegrals = numpy.array([stat["State"]["Field"]["surface_integral%"+`i`][-1] for i in xrange(33,41)])</variable>
+    <variable name="linear_outer_middle_surfaceintegrals" language="python">from fluidity_tools import stat_parser
+import numpy
+stat = stat_parser("linear.stat")
+linear_outer_middle_surfaceintegrals = numpy.array([stat["State"]["Field"]["surface_integral%"+`i`][-1] for i in xrange(25,33)])</variable>
+    <variable name="linear_flat_surfaceintegrals" language="python">from fluidity_tools import stat_parser
+import numpy
+stat = stat_parser("linear.stat")
+linear_flat_surfaceintegrals = numpy.array([stat["State"]["Field"]["surface_integral%"+`i`][-1] for i in xrange(17,25)])</variable>
+    <variable name="linear_radius_inner_upper_surfaceintegrals" language="python">from fluidity_tools import stat_parser
+import numpy
+stat = stat_parser("linear.stat")
+linear_radius_inner_upper_surfaceintegrals = numpy.array([stat["State"]["RadiusP2"]["surface_integral%"+`i`][-1] for i in xrange(9,17)])</variable>
+    <variable name="linear_radius_inner_middle_surfaceintegrals" language="python">from fluidity_tools import stat_parser
+import numpy
+stat = stat_parser("linear.stat")
+linear_radius_inner_middle_surfaceintegrals = numpy.array([stat["State"]["RadiusP2"]["surface_integral%"+`i`][-1] for i in xrange(1,9)])</variable>
+    <variable name="linear_radius_outer_upper_surfaceintegrals" language="python">from fluidity_tools import stat_parser
+import numpy
+stat = stat_parser("linear.stat")
+linear_radius_outer_upper_surfaceintegrals = numpy.array([stat["State"]["RadiusP2"]["surface_integral%"+`i`][-1] for i in xrange(33,41)])</variable>
+    <variable name="linear_radius_outer_middle_surfaceintegrals" language="python">from fluidity_tools import stat_parser
+import numpy
+stat = stat_parser("linear.stat")
+linear_radius_outer_middle_surfaceintegrals = numpy.array([stat["State"]["RadiusP2"]["surface_integral%"+`i`][-1] for i in xrange(25,33)])</variable>
+    <variable name="linear_gradient_inner_upper_surfaceintegrals" language="python">from fluidity_tools import stat_parser
+import numpy
+stat = stat_parser("linear.stat")
+linear_gradient_inner_upper_surfaceintegrals = -numpy.array([stat["State"]["RadiusP1"]["surface_integral%"+`i`][-1] for i in xrange(9,17)])</variable>
+    <variable name="linear_gradient_inner_middle_surfaceintegrals" language="python">from fluidity_tools import stat_parser
+import numpy
+stat = stat_parser("linear.stat")
+linear_gradient_inner_middle_surfaceintegrals = -numpy.array([stat["State"]["RadiusP1"]["surface_integral%"+`i`][-1] for i in xrange(1,9)])</variable>
+    <variable name="linear_gradient_outer_upper_surfaceintegrals" language="python">from fluidity_tools import stat_parser
+import numpy
+stat = stat_parser("linear.stat")
+linear_gradient_outer_upper_surfaceintegrals = numpy.array([stat["State"]["RadiusP1"]["surface_integral%"+`i`][-1] for i in xrange(33,41)])</variable>
+    <variable name="linear_gradient_outer_middle_surfaceintegrals" language="python">from fluidity_tools import stat_parser
+import numpy
+stat = stat_parser("linear.stat")
+linear_gradient_outer_middle_surfaceintegrals = numpy.array([stat["State"]["RadiusP1"]["surface_integral%"+`i`][-1] for i in xrange(25,33)])</variable>
+    <variable name="analytic_integral" language="python">from fluidity_tools import stat_parser
+stat = stat_parser("analytic.stat")
+analytic_integral = stat["State"]["Field"]["integral"][-1]</variable>
+    <variable name="analytic_inner_upper_surfaceintegrals" language="python">from fluidity_tools import stat_parser
+import numpy
+stat = stat_parser("analytic.stat")
+analytic_inner_upper_surfaceintegrals = numpy.array([stat["State"]["Field"]["surface_integral%"+`i`][-1] for i in xrange(9,17)])</variable>
+    <variable name="analytic_inner_middle_surfaceintegrals" language="python">from fluidity_tools import stat_parser
+import numpy
+stat = stat_parser("analytic.stat")
+analytic_inner_middle_surfaceintegrals = numpy.array([stat["State"]["Field"]["surface_integral%"+`i`][-1] for i in xrange(1,9)])</variable>
+    <variable name="analytic_outer_upper_surfaceintegrals" language="python">from fluidity_tools import stat_parser
+import numpy
+stat = stat_parser("analytic.stat")
+analytic_outer_upper_surfaceintegrals = numpy.array([stat["State"]["Field"]["surface_integral%"+`i`][-1] for i in xrange(33,41)])</variable>
+    <variable name="analytic_outer_middle_surfaceintegrals" language="python">from fluidity_tools import stat_parser
+import numpy
+stat = stat_parser("analytic.stat")
+analytic_outer_middle_surfaceintegrals = numpy.array([stat["State"]["Field"]["surface_integral%"+`i`][-1] for i in xrange(25,33)])</variable>
+    <variable name="analytic_flat_surfaceintegrals" language="python">from fluidity_tools import stat_parser
+import numpy
+stat = stat_parser("analytic.stat")
+analytic_flat_surfaceintegrals = numpy.array([stat["State"]["Field"]["surface_integral%"+`i`][-1] for i in xrange(17,25)])</variable>
+    <variable name="analytic_radius_inner_upper_surfaceintegrals" language="python">from fluidity_tools import stat_parser
+import numpy
+stat = stat_parser("analytic.stat")
+analytic_radius_inner_upper_surfaceintegrals = numpy.array([stat["State"]["RadiusP2"]["surface_integral%"+`i`][-1] for i in xrange(9,17)])</variable>
+    <variable name="analytic_radius_inner_middle_surfaceintegrals" language="python">from fluidity_tools import stat_parser
+import numpy
+stat = stat_parser("analytic.stat")
+analytic_radius_inner_middle_surfaceintegrals = numpy.array([stat["State"]["RadiusP2"]["surface_integral%"+`i`][-1] for i in xrange(1,9)])</variable>
+    <variable name="analytic_radius_outer_upper_surfaceintegrals" language="python">from fluidity_tools import stat_parser
+import numpy
+stat = stat_parser("analytic.stat")
+analytic_radius_outer_upper_surfaceintegrals = numpy.array([stat["State"]["RadiusP2"]["surface_integral%"+`i`][-1] for i in xrange(33,41)])</variable>
+    <variable name="analytic_radius_outer_middle_surfaceintegrals" language="python">from fluidity_tools import stat_parser
+import numpy
+stat = stat_parser("analytic.stat")
+analytic_radius_outer_middle_surfaceintegrals = numpy.array([stat["State"]["RadiusP2"]["surface_integral%"+`i`][-1] for i in xrange(25,33)])</variable>
+    <variable name="analytic_gradient_inner_upper_surfaceintegrals" language="python">from fluidity_tools import stat_parser
+import numpy
+stat = stat_parser("analytic.stat")
+analytic_gradient_inner_upper_surfaceintegrals = -numpy.array([stat["State"]["RadiusP1"]["surface_integral%"+`i`][-1] for i in xrange(9,17)])</variable>
+    <variable name="analytic_gradient_inner_middle_surfaceintegrals" language="python">from fluidity_tools import stat_parser
+import numpy
+stat = stat_parser("analytic.stat")
+analytic_gradient_inner_middle_surfaceintegrals = -numpy.array([stat["State"]["RadiusP1"]["surface_integral%"+`i`][-1] for i in xrange(1,9)])</variable>
+    <variable name="analytic_gradient_outer_upper_surfaceintegrals" language="python">from fluidity_tools import stat_parser
+import numpy
+stat = stat_parser("analytic.stat")
+analytic_gradient_outer_upper_surfaceintegrals = numpy.array([stat["State"]["RadiusP1"]["surface_integral%"+`i`][-1] for i in xrange(33,41)])</variable>
+    <variable name="analytic_gradient_outer_middle_surfaceintegrals" language="python">from fluidity_tools import stat_parser
+import numpy
+stat = stat_parser("analytic.stat")
+analytic_gradient_outer_middle_surfaceintegrals = numpy.array([stat["State"]["RadiusP1"]["surface_integral%"+`i`][-1] for i in xrange(25,33)])</variable>
+    <variable name="super_integral" language="python">from fluidity_tools import stat_parser
+stat = stat_parser("super.stat")
+super_integral = stat["State"]["Field"]["integral"][-1]</variable>
+    <variable name="super_inner_upper_surfaceintegrals" language="python">from fluidity_tools import stat_parser
+import numpy
+stat = stat_parser("super.stat")
+super_inner_upper_surfaceintegrals = numpy.array([stat["State"]["Field"]["surface_integral%"+`i`][-1] for i in xrange(9,17)])</variable>
+    <variable name="super_inner_middle_surfaceintegrals" language="python">from fluidity_tools import stat_parser
+import numpy
+stat = stat_parser("super.stat")
+super_inner_middle_surfaceintegrals = numpy.array([stat["State"]["Field"]["surface_integral%"+`i`][-1] for i in xrange(1,9)])</variable>
+    <variable name="super_outer_upper_surfaceintegrals" language="python">from fluidity_tools import stat_parser
+import numpy
+stat = stat_parser("super.stat")
+super_outer_upper_surfaceintegrals = numpy.array([stat["State"]["Field"]["surface_integral%"+`i`][-1] for i in xrange(33,41)])</variable>
+    <variable name="super_outer_middle_surfaceintegrals" language="python">from fluidity_tools import stat_parser
+import numpy
+stat = stat_parser("super.stat")
+super_outer_middle_surfaceintegrals = numpy.array([stat["State"]["Field"]["surface_integral%"+`i`][-1] for i in xrange(25,33)])</variable>
+    <variable name="super_flat_surfaceintegrals" language="python">from fluidity_tools import stat_parser
+import numpy
+stat = stat_parser("super.stat")
+super_flat_surfaceintegrals = numpy.array([stat["State"]["Field"]["surface_integral%"+`i`][-1] for i in xrange(17,25)])</variable>
+    <variable name="super_radius_inner_upper_surfaceintegrals" language="python">from fluidity_tools import stat_parser
+import numpy
+stat = stat_parser("super.stat")
+super_radius_inner_upper_surfaceintegrals = numpy.array([stat["State"]["RadiusP2"]["surface_integral%"+`i`][-1] for i in xrange(9,17)])</variable>
+    <variable name="super_radius_inner_middle_surfaceintegrals" language="python">from fluidity_tools import stat_parser
+import numpy
+stat = stat_parser("super.stat")
+super_radius_inner_middle_surfaceintegrals = numpy.array([stat["State"]["RadiusP2"]["surface_integral%"+`i`][-1] for i in xrange(1,9)])</variable>
+    <variable name="super_radius_outer_upper_surfaceintegrals" language="python">from fluidity_tools import stat_parser
+import numpy
+stat = stat_parser("super.stat")
+super_radius_outer_upper_surfaceintegrals = numpy.array([stat["State"]["RadiusP2"]["surface_integral%"+`i`][-1] for i in xrange(33,41)])</variable>
+    <variable name="super_radius_outer_middle_surfaceintegrals" language="python">from fluidity_tools import stat_parser
+import numpy
+stat = stat_parser("super.stat")
+super_radius_outer_middle_surfaceintegrals = numpy.array([stat["State"]["RadiusP2"]["surface_integral%"+`i`][-1] for i in xrange(25,33)])</variable>
+    <variable name="super_gradient_inner_upper_surfaceintegrals" language="python">from fluidity_tools import stat_parser
+import numpy
+stat = stat_parser("super.stat")
+super_gradient_inner_upper_surfaceintegrals = -numpy.array([stat["State"]["RadiusP1"]["surface_integral%"+`i`][-1] for i in xrange(9,17)])</variable>
+    <variable name="super_gradient_inner_middle_surfaceintegrals" language="python">from fluidity_tools import stat_parser
+import numpy
+stat = stat_parser("super.stat")
+super_gradient_inner_middle_surfaceintegrals = -numpy.array([stat["State"]["RadiusP1"]["surface_integral%"+`i`][-1] for i in xrange(1,9)])</variable>
+    <variable name="super_gradient_outer_upper_surfaceintegrals" language="python">from fluidity_tools import stat_parser
+import numpy
+stat = stat_parser("super.stat")
+super_gradient_outer_upper_surfaceintegrals = numpy.array([stat["State"]["RadiusP1"]["surface_integral%"+`i`][-1] for i in xrange(33,41)])</variable>
+    <variable name="super_gradient_outer_middle_surfaceintegrals" language="python">from fluidity_tools import stat_parser
+import numpy
+stat = stat_parser("super.stat")
+super_gradient_outer_middle_surfaceintegrals = numpy.array([stat["State"]["RadiusP1"]["surface_integral%"+`i`][-1] for i in xrange(25,33)])</variable>
+    <variable name="super_analytic_integral" language="python">from fluidity_tools import stat_parser
+stat = stat_parser("super_analytic.stat")
+super_analytic_integral = stat["State"]["Field"]["integral"][-1]</variable>
+    <variable name="super_analytic_inner_upper_surfaceintegrals" language="python">from fluidity_tools import stat_parser
+import numpy
+stat = stat_parser("super_analytic.stat")
+super_analytic_inner_upper_surfaceintegrals = numpy.array([stat["State"]["Field"]["surface_integral%"+`i`][-1] for i in xrange(9,17)])</variable>
+    <variable name="super_analytic_inner_middle_surfaceintegrals" language="python">from fluidity_tools import stat_parser
+import numpy
+stat = stat_parser("super_analytic.stat")
+super_analytic_inner_middle_surfaceintegrals = numpy.array([stat["State"]["Field"]["surface_integral%"+`i`][-1] for i in xrange(1,9)])</variable>
+    <variable name="super_analytic_outer_upper_surfaceintegrals" language="python">from fluidity_tools import stat_parser
+import numpy
+stat = stat_parser("super_analytic.stat")
+super_analytic_outer_upper_surfaceintegrals = numpy.array([stat["State"]["Field"]["surface_integral%"+`i`][-1] for i in xrange(33,41)])</variable>
+    <variable name="super_analytic_outer_middle_surfaceintegrals" language="python">from fluidity_tools import stat_parser
+import numpy
+stat = stat_parser("super_analytic.stat")
+super_analytic_outer_middle_surfaceintegrals = numpy.array([stat["State"]["Field"]["surface_integral%"+`i`][-1] for i in xrange(25,33)])</variable>
+    <variable name="super_analytic_flat_surfaceintegrals" language="python">from fluidity_tools import stat_parser
+import numpy
+stat = stat_parser("super_analytic.stat")
+super_analytic_flat_surfaceintegrals = numpy.array([stat["State"]["Field"]["surface_integral%"+`i`][-1] for i in xrange(17,25)])</variable>
+    <variable name="super_analytic_radius_inner_upper_surfaceintegrals" language="python">from fluidity_tools import stat_parser
+import numpy
+stat = stat_parser("super_analytic.stat")
+super_analytic_radius_inner_upper_surfaceintegrals = numpy.array([stat["State"]["RadiusP2"]["surface_integral%"+`i`][-1] for i in xrange(9,17)])</variable>
+    <variable name="super_analytic_radius_inner_middle_surfaceintegrals" language="python">from fluidity_tools import stat_parser
+import numpy
+stat = stat_parser("super_analytic.stat")
+super_analytic_radius_inner_middle_surfaceintegrals = numpy.array([stat["State"]["RadiusP2"]["surface_integral%"+`i`][-1] for i in xrange(1,9)])</variable>
+    <variable name="super_analytic_radius_outer_upper_surfaceintegrals" language="python">from fluidity_tools import stat_parser
+import numpy
+stat = stat_parser("super_analytic.stat")
+super_analytic_radius_outer_upper_surfaceintegrals = numpy.array([stat["State"]["RadiusP2"]["surface_integral%"+`i`][-1] for i in xrange(33,41)])</variable>
+    <variable name="super_analytic_radius_outer_middle_surfaceintegrals" language="python">from fluidity_tools import stat_parser
+import numpy
+stat = stat_parser("super_analytic.stat")
+super_analytic_radius_outer_middle_surfaceintegrals = numpy.array([stat["State"]["RadiusP2"]["surface_integral%"+`i`][-1] for i in xrange(25,33)])</variable>
+    <variable name="super_analytic_gradient_inner_upper_surfaceintegrals" language="python">from fluidity_tools import stat_parser
+import numpy
+stat = stat_parser("super_analytic.stat")
+super_analytic_gradient_inner_upper_surfaceintegrals = -numpy.array([stat["State"]["RadiusP1"]["surface_integral%"+`i`][-1] for i in xrange(9,17)])</variable>
+    <variable name="super_analytic_gradient_inner_middle_surfaceintegrals" language="python">from fluidity_tools import stat_parser
+import numpy
+stat = stat_parser("super_analytic.stat")
+super_analytic_gradient_inner_middle_surfaceintegrals = -numpy.array([stat["State"]["RadiusP1"]["surface_integral%"+`i`][-1] for i in xrange(1,9)])</variable>
+    <variable name="super_analytic_gradient_outer_upper_surfaceintegrals" language="python">from fluidity_tools import stat_parser
+import numpy
+stat = stat_parser("super_analytic.stat")
+super_analytic_gradient_outer_upper_surfaceintegrals = numpy.array([stat["State"]["RadiusP1"]["surface_integral%"+`i`][-1] for i in xrange(33,41)])</variable>
+    <variable name="super_analytic_gradient_outer_middle_surfaceintegrals" language="python">from fluidity_tools import stat_parser
+import numpy
+stat = stat_parser("super_analytic.stat")
+super_analytic_gradient_outer_middle_surfaceintegrals = numpy.array([stat["State"]["RadiusP1"]["surface_integral%"+`i`][-1] for i in xrange(25,33)])</variable>
+  </variables>
+  <pass_tests>
+    <test name="linear_integral" language="python">from math import pi
+print abs(linear_integral-11.97*pi)/(11.97*pi)
+assert abs(linear_integral-11.97*pi)/(11.97*pi) &lt; 0.25</test>
+    <test name="linear_inner_upper_surfaceintegrals" language="python">from math import pi
+print abs(linear_inner_upper_surfaceintegrals-pi*(1.2**2)*(2-(2**0.5))/8)/(pi*(1.2**2)*(2-(2**0.5))/8)
+assert all(abs(linear_inner_upper_surfaceintegrals-pi*(1.2**2)*(2-(2**0.5))/8)/(pi*(1.2**2)*(2-(2**0.5))/8) &lt; 0.16)</test>
+    <test name="linear_inner_middle_surfaceintegrals" language="python">from math import pi
+print abs(linear_inner_middle_surfaceintegrals-(2**0.5)*pi*(1.2**2)/8)/((2**0.5)*pi*(1.2**2)/8)
+assert all(abs(linear_inner_middle_surfaceintegrals-(2**0.5)*pi*(1.2**2)/8)/((2**0.5)*pi*(1.2**2)/8) &lt; 0.11)</test>
+    <test name="linear_outer_upper_surfaceintegrals" language="python">from math import pi
+print abs(linear_outer_upper_surfaceintegrals-pi*(2.7**2)*(2-(2**0.5))/8)/(pi*(2.7**2)*(2-(2**0.5))/8)
+assert all(abs(linear_outer_upper_surfaceintegrals-pi*(2.7**2)*(2-(2**0.5))/8)/(pi*(2.7**2)*(2-(2**0.5))/8) &lt; 0.16)</test>
+    <test name="linear_outer_middle_surfaceintegrals" language="python">from math import pi
+print abs(linear_outer_middle_surfaceintegrals-(2**0.5)*pi*(2.7**2)/8)/((2**0.5)*pi*(2.7**2)/8)
+assert all(abs(linear_outer_middle_surfaceintegrals-(2**0.5)*pi*(2.7**2)/8)/((2**0.5)*pi*(2.7**2)/8) &lt; 0.11)</test>
+    <test name="linear_flat_surfaceintegrals" language="python">from math import pi
+print abs(linear_flat_surfaceintegrals-pi*(2.7**2-1.2**2)/8)/(pi*(2.7**2-1.2**2)/8)
+assert all(abs(linear_flat_surfaceintegrals-pi*(2.7**2-1.2**2)/8)/(pi*(2.7**2-1.2**2)/8) &lt; 0.1)</test>
+    <test name="linear_radius_inner_upper_surfaceintegrals" language="python">from math import pi
+print abs(linear_radius_inner_upper_surfaceintegrals-1.2*pi*(1.2**2)*(2-(2**0.5))/8)/(1.2*pi*(1.2**2)*(2-(2**0.5))/8)
+assert all(abs(linear_radius_inner_upper_surfaceintegrals-1.2*pi*(1.2**2)*(2-(2**0.5))/8)/(1.2*pi*(1.2**2)*(2-(2**0.5))/8) &lt; 0.25)</test>
+    <test name="linear_radius_inner_middle_surfaceintegrals" language="python">from math import pi
+print abs(linear_radius_inner_middle_surfaceintegrals-1.2*(2**0.5)*pi*(1.2**2)/8)/(1.2*(2**0.5)*pi*(1.2**2)/8)
+assert all(abs(linear_radius_inner_middle_surfaceintegrals-1.2*(2**0.5)*pi*(1.2**2)/8)/(1.2*(2**0.5)*pi*(1.2**2)/8) &lt; 0.2)</test>
+    <test name="linear_radius_outer_upper_surfaceintegrals" language="python">from math import pi
+print abs(linear_radius_outer_upper_surfaceintegrals-2.7*pi*(2.7**2)*(2-(2**0.5))/8)/(2.7*pi*(2.7**2)*(2-(2**0.5))/8)
+assert all(abs(linear_radius_outer_upper_surfaceintegrals-2.7*pi*(2.7**2)*(2-(2**0.5))/8)/(2.7*pi*(2.7**2)*(2-(2**0.5))/8) &lt; 0.25)</test>
+    <test name="linear_radius_outer_middle_surfaceintegrals" language="python">from math import pi
+print abs(linear_radius_outer_middle_surfaceintegrals-2.7*(2**0.5)*pi*(2.7**2)/8)/(2.7*(2**0.5)*pi*(2.7**2)/8)
+assert all(abs(linear_radius_outer_middle_surfaceintegrals-2.7*(2**0.5)*pi*(2.7**2)/8)/(2.7*(2**0.5)*pi*(2.7**2)/8) &lt; 0.2)</test>
+    <test name="linear_gradient_inner_upper_surfaceintegrals" language="python">from math import pi
+print abs(linear_gradient_inner_upper_surfaceintegrals-pi*(1.2**2)*(2-(2**0.5))/8)/(pi*(1.2**2)*(2-(2**0.5))/8)
+assert all(abs(linear_gradient_inner_upper_surfaceintegrals-pi*(1.2**2)*(2-(2**0.5))/8)/(pi*(1.2**2)*(2-(2**0.5))/8) &lt; 0.25)</test>
+    <test name="linear_gradient_inner_middle_surfaceintegrals" language="python">from math import pi
+print abs(linear_gradient_inner_middle_surfaceintegrals-(2**0.5)*pi*(1.2**2)/8)/((2**0.5)*pi*(1.2**2)/8)
+assert all(abs(linear_gradient_inner_middle_surfaceintegrals-(2**0.5)*pi*(1.2**2)/8)/((2**0.5)*pi*(1.2**2)/8) &lt; 0.2)</test>
+    <test name="linear_gradient_outer_upper_surfaceintegrals" language="python">from math import pi
+print abs(linear_gradient_outer_upper_surfaceintegrals-pi*(2.7**2)*(2-(2**0.5))/8)/(pi*(2.7**2)*(2-(2**0.5))/8)
+assert all(abs(linear_gradient_outer_upper_surfaceintegrals-pi*(2.7**2)*(2-(2**0.5))/8)/(pi*(2.7**2)*(2-(2**0.5))/8) &lt; 0.25)</test>
+    <test name="linear_gradient_outer_middle_surfaceintegrals" language="python">from math import pi
+print abs(linear_gradient_outer_middle_surfaceintegrals-(2**0.5)*pi*(2.7**2)/8)/((2**0.5)*pi*(2.7**2)/8)
+assert all(abs(linear_gradient_outer_middle_surfaceintegrals-(2**0.5)*pi*(2.7**2)/8)/((2**0.5)*pi*(2.7**2)/8) &lt; 0.2)</test>
+    <test name="linear_inner_upper_surfaceintegrals_equal" language="python">print abs(linear_inner_upper_surfaceintegrals[1:]-linear_inner_upper_surfaceintegrals[0])
+assert all(abs(linear_inner_upper_surfaceintegrals[1:]-linear_inner_upper_surfaceintegrals[0]) &lt; 1.e-6)</test>
+    <test name="linear_inner_middle_surfaceintegrals_equal" language="python">print abs(linear_inner_middle_surfaceintegrals[1:]-linear_inner_middle_surfaceintegrals[0])
+assert all(abs(linear_inner_middle_surfaceintegrals[1:]-linear_inner_middle_surfaceintegrals[0]) &lt; 1.e-6)</test>
+    <test name="linear_outer_upper_surfaceintegrals_equal" language="python">print abs(linear_outer_upper_surfaceintegrals[1:]-linear_outer_upper_surfaceintegrals[0])
+assert all(abs(linear_outer_upper_surfaceintegrals[1:]-linear_outer_upper_surfaceintegrals[0]) &lt; 1.e-6)</test>
+    <test name="linear_outer_middle_surfaceintegrals_equal" language="python">print abs(linear_outer_middle_surfaceintegrals[1:]-linear_outer_middle_surfaceintegrals[0])
+assert all(abs(linear_outer_middle_surfaceintegrals[1:]-linear_outer_middle_surfaceintegrals[0]) &lt; 1.e-6)</test>
+    <test name="linear_flat_surfaceintegrals_equal" language="python">print abs(linear_flat_surfaceintegrals[1:]-linear_flat_surfaceintegrals[0])
+assert all(abs(linear_flat_surfaceintegrals[1:]-linear_flat_surfaceintegrals[0]) &lt; 1.e-6)</test>
+    <test name="linear_radius_inner_upper_surfaceintegrals_equal" language="python">print abs(linear_radius_inner_upper_surfaceintegrals[1:]-linear_radius_inner_upper_surfaceintegrals[0])
+assert all(abs(linear_radius_inner_upper_surfaceintegrals[1:]-linear_radius_inner_upper_surfaceintegrals[0]) &lt; 1.e-6)</test>
+    <test name="linear_radius_inner_middle_surfaceintegrals_equal" language="python">print abs(linear_radius_inner_middle_surfaceintegrals[1:]-linear_radius_inner_middle_surfaceintegrals[0])
+assert all(abs(linear_radius_inner_middle_surfaceintegrals[1:]-linear_radius_inner_middle_surfaceintegrals[0]) &lt; 1.e-6)</test>
+    <test name="linear_radius_outer_upper_surfaceintegrals_equal" language="python">print abs(linear_radius_outer_upper_surfaceintegrals[1:]-linear_radius_outer_upper_surfaceintegrals[0])
+assert all(abs(linear_radius_outer_upper_surfaceintegrals[1:]-linear_radius_outer_upper_surfaceintegrals[0]) &lt; 1.e-6)</test>
+    <test name="linear_radius_outer_middle_surfaceintegrals_equal" language="python">print abs(linear_radius_outer_middle_surfaceintegrals[1:]-linear_radius_outer_middle_surfaceintegrals[0])
+assert all(abs(linear_radius_outer_middle_surfaceintegrals[1:]-linear_radius_outer_middle_surfaceintegrals[0]) &lt; 1.e-6)</test>
+    <test name="linear_gradient_inner_upper_surfaceintegrals_equal" language="python">print abs(linear_gradient_inner_upper_surfaceintegrals[1:]-linear_gradient_inner_upper_surfaceintegrals[0])
+assert all(abs(linear_gradient_inner_upper_surfaceintegrals[1:]-linear_gradient_inner_upper_surfaceintegrals[0]) &lt; 1.e-6)</test>
+    <test name="linear_gradient_inner_middle_surfaceintegrals_equal" language="python">print abs(linear_gradient_inner_middle_surfaceintegrals[1:]-linear_gradient_inner_middle_surfaceintegrals[0])
+assert all(abs(linear_gradient_inner_middle_surfaceintegrals[1:]-linear_gradient_inner_middle_surfaceintegrals[0]) &lt; 1.e-6)</test>
+    <test name="linear_gradient_outer_upper_surfaceintegrals_equal" language="python">print abs(linear_gradient_outer_upper_surfaceintegrals[1:]-linear_gradient_outer_upper_surfaceintegrals[0])
+assert all(abs(linear_gradient_outer_upper_surfaceintegrals[1:]-linear_gradient_outer_upper_surfaceintegrals[0]) &lt; 1.e-6)</test>
+    <test name="linear_gradient_outer_middle_surfaceintegrals_equal" language="python">print abs(linear_gradient_outer_middle_surfaceintegrals[1:]-linear_gradient_outer_middle_surfaceintegrals[0])
+assert all(abs(linear_gradient_outer_middle_surfaceintegrals[1:]-linear_gradient_outer_middle_surfaceintegrals[0]) &lt; 1.e-6)</test>
+    <test name="analytic_integral" language="python">from math import pi
+print abs(analytic_integral-11.97*pi)/(11.97*pi)
+assert abs(analytic_integral-11.97*pi)/(11.97*pi) &lt; 1.e-3</test>
+    <test name="analytic_inner_upper_surfaceintegrals" language="python">from math import pi
+print abs(analytic_inner_upper_surfaceintegrals-pi*(1.2**2)*(2-(2**0.5))/8)/(pi*(1.2**2)*(2-(2**0.5))/8)
+assert all(abs(analytic_inner_upper_surfaceintegrals-pi*(1.2**2)*(2-(2**0.5))/8)/(pi*(1.2**2)*(2-(2**0.5))/8) &lt; 0.07)</test>
+    <test name="analytic_inner_middle_surfaceintegrals" language="python">from math import pi
+print abs(analytic_inner_middle_surfaceintegrals-(2**0.5)*pi*(1.2**2)/8)/((2**0.5)*pi*(1.2**2)/8)
+assert all(abs(analytic_inner_middle_surfaceintegrals-(2**0.5)*pi*(1.2**2)/8)/((2**0.5)*pi*(1.2**2)/8) &lt; 0.03)</test>
+    <test name="analytic_outer_upper_surfaceintegrals" language="python">from math import pi
+print abs(analytic_outer_upper_surfaceintegrals-pi*(2.7**2)*(2-(2**0.5))/8)/(pi*(2.7**2)*(2-(2**0.5))/8)
+assert all(abs(analytic_outer_upper_surfaceintegrals-pi*(2.7**2)*(2-(2**0.5))/8)/(pi*(2.7**2)*(2-(2**0.5))/8) &lt; 0.07)</test>
+    <test name="analytic_outer_middle_surfaceintegrals" language="python">from math import pi
+print abs(analytic_outer_middle_surfaceintegrals-(2**0.5)*pi*(2.7**2)/8)/((2**0.5)*pi*(2.7**2)/8)
+assert all(abs(analytic_outer_middle_surfaceintegrals-(2**0.5)*pi*(2.7**2)/8)/((2**0.5)*pi*(2.7**2)/8) &lt; 0.03)</test>
+    <test name="analytic_flat_surfaceintegrals" language="python">from math import pi
+print abs(analytic_flat_surfaceintegrals-pi*(2.7**2-1.2**2)/8)/(pi*(2.7**2-1.2**2)/8)
+assert all(abs(analytic_flat_surfaceintegrals-pi*(2.7**2-1.2**2)/8)/(pi*(2.7**2-1.2**2)/8) &lt; 1.e-4)</test>
+    <test name="analytic_radius_inner_upper_surfaceintegrals" language="python">from math import pi
+print abs(analytic_radius_inner_upper_surfaceintegrals-1.2*pi*(1.2**2)*(2-(2**0.5))/8)/(1.2*pi*(1.2**2)*(2-(2**0.5))/8)
+assert all(abs(analytic_radius_inner_upper_surfaceintegrals-1.2*pi*(1.2**2)*(2-(2**0.5))/8)/(1.2*pi*(1.2**2)*(2-(2**0.5))/8) &lt; 0.15)</test>
+    <test name="analytic_radius_inner_middle_surfaceintegrals" language="python">from math import pi
+print abs(analytic_radius_inner_middle_surfaceintegrals-1.2*(2**0.5)*pi*(1.2**2)/8)/(1.2*(2**0.5)*pi*(1.2**2)/8)
+assert all(abs(analytic_radius_inner_middle_surfaceintegrals-1.2*(2**0.5)*pi*(1.2**2)/8)/(1.2*(2**0.5)*pi*(1.2**2)/8) &lt; 0.08)</test>
+    <test name="analytic_radius_outer_upper_surfaceintegrals" language="python">from math import pi
+print abs(analytic_radius_outer_upper_surfaceintegrals-2.7*pi*(2.7**2)*(2-(2**0.5))/8)/(2.7*pi*(2.7**2)*(2-(2**0.5))/8)
+assert all(abs(analytic_radius_outer_upper_surfaceintegrals-2.7*pi*(2.7**2)*(2-(2**0.5))/8)/(2.7*pi*(2.7**2)*(2-(2**0.5))/8) &lt; 0.15)</test>
+    <test name="analytic_radius_outer_middle_surfaceintegrals" language="python">from math import pi
+print abs(analytic_radius_outer_middle_surfaceintegrals-2.7*(2**0.5)*pi*(2.7**2)/8)/(2.7*(2**0.5)*pi*(2.7**2)/8)
+assert all(abs(analytic_radius_outer_middle_surfaceintegrals-2.7*(2**0.5)*pi*(2.7**2)/8)/(2.7*(2**0.5)*pi*(2.7**2)/8) &lt; 0.08)</test>
+    <test name="analytic_gradient_inner_upper_surfaceintegrals" language="python">from math import pi
+print abs(analytic_gradient_inner_upper_surfaceintegrals-pi*(1.2**2)*(2-(2**0.5))/8)/(pi*(1.2**2)*(2-(2**0.5))/8)
+assert all(abs(analytic_gradient_inner_upper_surfaceintegrals-pi*(1.2**2)*(2-(2**0.5))/8)/(pi*(1.2**2)*(2-(2**0.5))/8) &lt; 0.07)</test>
+    <test name="analytic_gradient_inner_middle_surfaceintegrals" language="python">from math import pi
+print abs(analytic_gradient_inner_middle_surfaceintegrals-(2**0.5)*pi*(1.2**2)/8)/((2**0.5)*pi*(1.2**2)/8)
+assert all(abs(analytic_gradient_inner_middle_surfaceintegrals-(2**0.5)*pi*(1.2**2)/8)/((2**0.5)*pi*(1.2**2)/8) &lt; 0.03)</test>
+    <test name="analytic_gradient_outer_upper_surfaceintegrals" language="python">from math import pi
+print abs(analytic_gradient_outer_upper_surfaceintegrals-pi*(2.7**2)*(2-(2**0.5))/8)/(pi*(2.7**2)*(2-(2**0.5))/8)
+assert all(abs(analytic_gradient_outer_upper_surfaceintegrals-pi*(2.7**2)*(2-(2**0.5))/8)/(pi*(2.7**2)*(2-(2**0.5))/8) &lt; 0.07)</test>
+    <test name="analytic_gradient_outer_middle_surfaceintegrals" language="python">from math import pi
+print abs(analytic_gradient_outer_middle_surfaceintegrals-(2**0.5)*pi*(2.7**2)/8)/((2**0.5)*pi*(2.7**2)/8)
+assert all(abs(analytic_gradient_outer_middle_surfaceintegrals-(2**0.5)*pi*(2.7**2)/8)/((2**0.5)*pi*(2.7**2)/8) &lt; 0.03)</test>
+    <test name="analytic_inner_upper_surfaceintegrals_equal" language="python">print abs(analytic_inner_upper_surfaceintegrals[1:]-analytic_inner_upper_surfaceintegrals[0])
+assert all(abs(analytic_inner_upper_surfaceintegrals[1:]-analytic_inner_upper_surfaceintegrals[0]) &lt; 1.e-6)</test>
+    <test name="analytic_inner_middle_surfaceintegrals_equal" language="python">print abs(analytic_inner_middle_surfaceintegrals[1:]-analytic_inner_middle_surfaceintegrals[0])
+assert all(abs(analytic_inner_middle_surfaceintegrals[1:]-analytic_inner_middle_surfaceintegrals[0]) &lt; 1.e-6)</test>
+    <test name="analytic_outer_upper_surfaceintegrals_equal" language="python">print abs(analytic_outer_upper_surfaceintegrals[1:]-analytic_outer_upper_surfaceintegrals[0])
+assert all(abs(analytic_outer_upper_surfaceintegrals[1:]-analytic_outer_upper_surfaceintegrals[0]) &lt; 1.e-6)</test>
+    <test name="analytic_outer_middle_surfaceintegrals_equal" language="python">print abs(analytic_outer_middle_surfaceintegrals[1:]-analytic_outer_middle_surfaceintegrals[0])
+assert all(abs(analytic_outer_middle_surfaceintegrals[1:]-analytic_outer_middle_surfaceintegrals[0]) &lt; 1.e-6)</test>
+    <test name="analytic_flat_surfaceintegrals_equal" language="python">print abs(analytic_flat_surfaceintegrals[1:]-analytic_flat_surfaceintegrals[0])
+assert all(abs(analytic_flat_surfaceintegrals[1:]-analytic_flat_surfaceintegrals[0]) &lt; 1.e-6)</test>
+    <test name="analytic_radius_inner_upper_surfaceintegrals_equal" language="python">print abs(analytic_radius_inner_upper_surfaceintegrals[1:]-analytic_radius_inner_upper_surfaceintegrals[0])
+assert all(abs(analytic_radius_inner_upper_surfaceintegrals[1:]-analytic_radius_inner_upper_surfaceintegrals[0]) &lt; 1.e-6)</test>
+    <test name="analytic_radius_inner_middle_surfaceintegrals_equal" language="python">print abs(analytic_radius_inner_middle_surfaceintegrals[1:]-analytic_radius_inner_middle_surfaceintegrals[0])
+assert all(abs(analytic_radius_inner_middle_surfaceintegrals[1:]-analytic_radius_inner_middle_surfaceintegrals[0]) &lt; 1.e-6)</test>
+    <test name="analytic_radius_outer_upper_surfaceintegrals_equal" language="python">print abs(analytic_radius_outer_upper_surfaceintegrals[1:]-analytic_radius_outer_upper_surfaceintegrals[0])
+assert all(abs(analytic_radius_outer_upper_surfaceintegrals[1:]-analytic_radius_outer_upper_surfaceintegrals[0]) &lt; 1.e-6)</test>
+    <test name="analytic_radius_outer_middle_surfaceintegrals_equal" language="python">print abs(analytic_radius_outer_middle_surfaceintegrals[1:]-analytic_radius_outer_middle_surfaceintegrals[0])
+assert all(abs(analytic_radius_outer_middle_surfaceintegrals[1:]-analytic_radius_outer_middle_surfaceintegrals[0]) &lt; 1.e-6)</test>
+    <test name="analytic_gradient_inner_upper_surfaceintegrals_equal" language="python">print abs(analytic_gradient_inner_upper_surfaceintegrals[1:]-analytic_gradient_inner_upper_surfaceintegrals[0])
+assert all(abs(analytic_gradient_inner_upper_surfaceintegrals[1:]-analytic_gradient_inner_upper_surfaceintegrals[0]) &lt; 1.e-6)</test>
+    <test name="analytic_gradient_inner_middle_surfaceintegrals_equal" language="python">print abs(analytic_gradient_inner_middle_surfaceintegrals[1:]-analytic_gradient_inner_middle_surfaceintegrals[0])
+assert all(abs(analytic_gradient_inner_middle_surfaceintegrals[1:]-analytic_gradient_inner_middle_surfaceintegrals[0]) &lt; 1.e-6)</test>
+    <test name="analytic_gradient_outer_upper_surfaceintegrals_equal" language="python">print abs(analytic_gradient_outer_upper_surfaceintegrals[1:]-analytic_gradient_outer_upper_surfaceintegrals[0])
+assert all(abs(analytic_gradient_outer_upper_surfaceintegrals[1:]-analytic_gradient_outer_upper_surfaceintegrals[0]) &lt; 1.e-6)</test>
+    <test name="analytic_gradient_outer_middle_surfaceintegrals_equal" language="python">print abs(analytic_gradient_outer_middle_surfaceintegrals[1:]-analytic_gradient_outer_middle_surfaceintegrals[0])
+assert all(abs(analytic_gradient_outer_middle_surfaceintegrals[1:]-analytic_gradient_outer_middle_surfaceintegrals[0]) &lt; 1.e-6)</test>
+    <test name="super_integral" language="python">from math import pi
+print abs(super_integral-11.97*pi)/(11.97*pi)
+assert abs(super_integral-11.97*pi)/(11.97*pi) &lt; 1.e-2</test>
+    <test name="super_inner_upper_surfaceintegrals" language="python">from math import pi
+print abs(super_inner_upper_surfaceintegrals-pi*(1.2**2)*(2-(2**0.5))/8)/(pi*(1.2**2)*(2-(2**0.5))/8)
+assert all(abs(super_inner_upper_surfaceintegrals-pi*(1.2**2)*(2-(2**0.5))/8)/(pi*(1.2**2)*(2-(2**0.5))/8) &lt; 0.07)</test>
+    <test name="super_inner_middle_surfaceintegrals" language="python">from math import pi
+print abs(super_inner_middle_surfaceintegrals-(2**0.5)*pi*(1.2**2)/8)/((2**0.5)*pi*(1.2**2)/8)
+assert all(abs(super_inner_middle_surfaceintegrals-(2**0.5)*pi*(1.2**2)/8)/((2**0.5)*pi*(1.2**2)/8) &lt; 0.03)</test>
+    <test name="super_outer_upper_surfaceintegrals" language="python">from math import pi
+print abs(super_outer_upper_surfaceintegrals-pi*(2.7**2)*(2-(2**0.5))/8)/(pi*(2.7**2)*(2-(2**0.5))/8)
+assert all(abs(super_outer_upper_surfaceintegrals-pi*(2.7**2)*(2-(2**0.5))/8)/(pi*(2.7**2)*(2-(2**0.5))/8) &lt; 0.07)</test>
+    <test name="super_outer_middle_surfaceintegrals" language="python">from math import pi
+print abs(super_outer_middle_surfaceintegrals-(2**0.5)*pi*(2.7**2)/8)/((2**0.5)*pi*(2.7**2)/8)
+assert all(abs(super_outer_middle_surfaceintegrals-(2**0.5)*pi*(2.7**2)/8)/((2**0.5)*pi*(2.7**2)/8) &lt; 0.03)</test>
+    <test name="super_flat_surfaceintegrals" language="python">from math import pi
+print abs(super_flat_surfaceintegrals-pi*(2.7**2-1.2**2)/8)/(pi*(2.7**2-1.2**2)/8)
+assert all(abs(super_flat_surfaceintegrals-pi*(2.7**2-1.2**2)/8)/(pi*(2.7**2-1.2**2)/8) &lt; 1.e-3)</test>
+    <test name="super_radius_inner_upper_surfaceintegrals" language="python">from math import pi
+print abs(super_radius_inner_upper_surfaceintegrals-1.2*pi*(1.2**2)*(2-(2**0.5))/8)/(1.2*pi*(1.2**2)*(2-(2**0.5))/8)
+assert all(abs(super_radius_inner_upper_surfaceintegrals-1.2*pi*(1.2**2)*(2-(2**0.5))/8)/(1.2*pi*(1.2**2)*(2-(2**0.5))/8) &lt; 0.07)</test>
+    <test name="super_radius_inner_middle_surfaceintegrals" language="python">from math import pi
+print abs(super_radius_inner_middle_surfaceintegrals-1.2*(2**0.5)*pi*(1.2**2)/8)/(1.2*(2**0.5)*pi*(1.2**2)/8)
+assert all(abs(super_radius_inner_middle_surfaceintegrals-1.2*(2**0.5)*pi*(1.2**2)/8)/(1.2*(2**0.5)*pi*(1.2**2)/8) &lt; 0.03)</test>
+    <test name="super_radius_outer_upper_surfaceintegrals" language="python">from math import pi
+print abs(super_radius_outer_upper_surfaceintegrals-2.7*pi*(2.7**2)*(2-(2**0.5))/8)/(2.7*pi*(2.7**2)*(2-(2**0.5))/8)
+assert all(abs(super_radius_outer_upper_surfaceintegrals-2.7*pi*(2.7**2)*(2-(2**0.5))/8)/(2.7*pi*(2.7**2)*(2-(2**0.5))/8) &lt; 0.07)</test>
+    <test name="super_radius_outer_middle_surfaceintegrals" language="python">from math import pi
+print abs(super_radius_outer_middle_surfaceintegrals-2.7*(2**0.5)*pi*(2.7**2)/8)/(2.7*(2**0.5)*pi*(2.7**2)/8)
+assert all(abs(super_radius_outer_middle_surfaceintegrals-2.7*(2**0.5)*pi*(2.7**2)/8)/(2.7*(2**0.5)*pi*(2.7**2)/8) &lt; 0.03)</test>
+    <test name="super_gradient_inner_upper_surfaceintegrals" language="python">from math import pi
+print abs(super_gradient_inner_upper_surfaceintegrals-pi*(1.2**2)*(2-(2**0.5))/8)/(pi*(1.2**2)*(2-(2**0.5))/8)
+assert all(abs(super_gradient_inner_upper_surfaceintegrals-pi*(1.2**2)*(2-(2**0.5))/8)/(pi*(1.2**2)*(2-(2**0.5))/8) &lt; 0.07)</test>
+    <test name="super_gradient_inner_middle_surfaceintegrals" language="python">from math import pi
+print abs(super_gradient_inner_middle_surfaceintegrals-(2**0.5)*pi*(1.2**2)/8)/((2**0.5)*pi*(1.2**2)/8)
+assert all(abs(super_gradient_inner_middle_surfaceintegrals-(2**0.5)*pi*(1.2**2)/8)/((2**0.5)*pi*(1.2**2)/8) &lt; 0.16)</test>
+    <test name="super_gradient_outer_upper_surfaceintegrals" language="python">from math import pi
+print abs(super_gradient_outer_upper_surfaceintegrals-pi*(2.7**2)*(2-(2**0.5))/8)/(pi*(2.7**2)*(2-(2**0.5))/8)
+assert all(abs(super_gradient_outer_upper_surfaceintegrals-pi*(2.7**2)*(2-(2**0.5))/8)/(pi*(2.7**2)*(2-(2**0.5))/8) &lt; 0.08)</test>
+    <test name="super_gradient_outer_middle_surfaceintegrals" language="python">from math import pi
+print abs(super_gradient_outer_middle_surfaceintegrals-(2**0.5)*pi*(2.7**2)/8)/((2**0.5)*pi*(2.7**2)/8)
+assert all(abs(super_gradient_outer_middle_surfaceintegrals-(2**0.5)*pi*(2.7**2)/8)/((2**0.5)*pi*(2.7**2)/8) &lt; 0.04)</test>
+    <test name="super_inner_upper_surfaceintegrals_equal" language="python">print abs(super_inner_upper_surfaceintegrals[1:]-super_inner_upper_surfaceintegrals[0])
+assert all(abs(super_inner_upper_surfaceintegrals[1:]-super_inner_upper_surfaceintegrals[0]) &lt; 1.e-6)</test>
+    <test name="super_inner_middle_surfaceintegrals_equal" language="python">print abs(super_inner_middle_surfaceintegrals[1:]-super_inner_middle_surfaceintegrals[0])
+assert all(abs(super_inner_middle_surfaceintegrals[1:]-super_inner_middle_surfaceintegrals[0]) &lt; 1.e-6)</test>
+    <test name="super_outer_upper_surfaceintegrals_equal" language="python">print abs(super_outer_upper_surfaceintegrals[1:]-super_outer_upper_surfaceintegrals[0])
+assert all(abs(super_outer_upper_surfaceintegrals[1:]-super_outer_upper_surfaceintegrals[0]) &lt; 1.e-6)</test>
+    <test name="super_outer_middle_surfaceintegrals_equal" language="python">print abs(super_outer_middle_surfaceintegrals[1:]-super_outer_middle_surfaceintegrals[0])
+assert all(abs(super_outer_middle_surfaceintegrals[1:]-super_outer_middle_surfaceintegrals[0]) &lt; 1.e-6)</test>
+    <test name="super_flat_surfaceintegrals_equal" language="python">print abs(super_flat_surfaceintegrals[1:]-super_flat_surfaceintegrals[0])
+assert all(abs(super_flat_surfaceintegrals[1:]-super_flat_surfaceintegrals[0]) &lt; 1.e-6)</test>
+    <test name="super_radius_inner_upper_surfaceintegrals_equal" language="python">print abs(super_radius_inner_upper_surfaceintegrals[1:]-super_radius_inner_upper_surfaceintegrals[0])
+assert all(abs(super_radius_inner_upper_surfaceintegrals[1:]-super_radius_inner_upper_surfaceintegrals[0]) &lt; 1.e-6)</test>
+    <test name="super_radius_inner_middle_surfaceintegrals_equal" language="python">print abs(super_radius_inner_middle_surfaceintegrals[1:]-super_radius_inner_middle_surfaceintegrals[0])
+assert all(abs(super_radius_inner_middle_surfaceintegrals[1:]-super_radius_inner_middle_surfaceintegrals[0]) &lt; 1.e-6)</test>
+    <test name="super_radius_outer_upper_surfaceintegrals_equal" language="python">print abs(super_radius_outer_upper_surfaceintegrals[1:]-super_radius_outer_upper_surfaceintegrals[0])
+assert all(abs(super_radius_outer_upper_surfaceintegrals[1:]-super_radius_outer_upper_surfaceintegrals[0]) &lt; 1.e-6)</test>
+    <test name="super_radius_outer_middle_surfaceintegrals_equal" language="python">print abs(super_radius_outer_middle_surfaceintegrals[1:]-super_radius_outer_middle_surfaceintegrals[0])
+assert all(abs(super_radius_outer_middle_surfaceintegrals[1:]-super_radius_outer_middle_surfaceintegrals[0]) &lt; 1.e-6)</test>
+    <test name="super_analytic_integral" language="python">from math import pi
+print abs(super_analytic_integral-11.97*pi)/(11.97*pi)
+assert abs(super_analytic_integral-11.97*pi)/(11.97*pi) &lt; 1.e-3</test>
+    <test name="super_analytic_inner_upper_surfaceintegrals" language="python">from math import pi
+print abs(super_analytic_inner_upper_surfaceintegrals-pi*(1.2**2)*(2-(2**0.5))/8)/(pi*(1.2**2)*(2-(2**0.5))/8)
+assert all(abs(super_analytic_inner_upper_surfaceintegrals-pi*(1.2**2)*(2-(2**0.5))/8)/(pi*(1.2**2)*(2-(2**0.5))/8) &lt; 0.07)</test>
+    <test name="super_analytic_inner_middle_surfaceintegrals" language="python">from math import pi
+print abs(super_analytic_inner_middle_surfaceintegrals-(2**0.5)*pi*(1.2**2)/8)/((2**0.5)*pi*(1.2**2)/8)
+assert all(abs(super_analytic_inner_middle_surfaceintegrals-(2**0.5)*pi*(1.2**2)/8)/((2**0.5)*pi*(1.2**2)/8) &lt; 0.03)</test>
+    <test name="super_analytic_outer_upper_surfaceintegrals" language="python">from math import pi
+print abs(super_analytic_outer_upper_surfaceintegrals-pi*(2.7**2)*(2-(2**0.5))/8)/(pi*(2.7**2)*(2-(2**0.5))/8)
+assert all(abs(super_analytic_outer_upper_surfaceintegrals-pi*(2.7**2)*(2-(2**0.5))/8)/(pi*(2.7**2)*(2-(2**0.5))/8) &lt; 0.07)</test>
+    <test name="super_analytic_outer_middle_surfaceintegrals" language="python">from math import pi
+print abs(super_analytic_outer_middle_surfaceintegrals-(2**0.5)*pi*(2.7**2)/8)/((2**0.5)*pi*(2.7**2)/8)
+assert all(abs(super_analytic_outer_middle_surfaceintegrals-(2**0.5)*pi*(2.7**2)/8)/((2**0.5)*pi*(2.7**2)/8) &lt; 0.03)</test>
+    <test name="super_analytic_flat_surfaceintegrals" language="python">from math import pi
+print abs(super_analytic_flat_surfaceintegrals-pi*(2.7**2-1.2**2)/8)/(pi*(2.7**2-1.2**2)/8)
+assert all(abs(super_analytic_flat_surfaceintegrals-pi*(2.7**2-1.2**2)/8)/(pi*(2.7**2-1.2**2)/8) &lt; 1.e-4)</test>
+    <test name="super_analytic_radius_inner_upper_surfaceintegrals" language="python">from math import pi
+print abs(super_analytic_radius_inner_upper_surfaceintegrals-1.2*pi*(1.2**2)*(2-(2**0.5))/8)/(1.2*pi*(1.2**2)*(2-(2**0.5))/8)
+assert all(abs(super_analytic_radius_inner_upper_surfaceintegrals-1.2*pi*(1.2**2)*(2-(2**0.5))/8)/(1.2*pi*(1.2**2)*(2-(2**0.5))/8) &lt; 0.07)</test>
+    <test name="super_analytic_radius_inner_middle_surfaceintegrals" language="python">from math import pi
+print abs(super_analytic_radius_inner_middle_surfaceintegrals-1.2*(2**0.5)*pi*(1.2**2)/8)/(1.2*(2**0.5)*pi*(1.2**2)/8)
+assert all(abs(super_analytic_radius_inner_middle_surfaceintegrals-1.2*(2**0.5)*pi*(1.2**2)/8)/(1.2*(2**0.5)*pi*(1.2**2)/8) &lt; 0.03)</test>
+    <test name="super_analytic_radius_outer_upper_surfaceintegrals" language="python">from math import pi
+print abs(super_analytic_radius_outer_upper_surfaceintegrals-2.7*pi*(2.7**2)*(2-(2**0.5))/8)/(2.7*pi*(2.7**2)*(2-(2**0.5))/8)
+assert all(abs(super_analytic_radius_outer_upper_surfaceintegrals-2.7*pi*(2.7**2)*(2-(2**0.5))/8)/(2.7*pi*(2.7**2)*(2-(2**0.5))/8) &lt; 0.07)</test>
+    <test name="super_analytic_radius_outer_middle_surfaceintegrals" language="python">from math import pi
+print abs(super_analytic_radius_outer_middle_surfaceintegrals-2.7*(2**0.5)*pi*(2.7**2)/8)/(2.7*(2**0.5)*pi*(2.7**2)/8)
+assert all(abs(super_analytic_radius_outer_middle_surfaceintegrals-2.7*(2**0.5)*pi*(2.7**2)/8)/(2.7*(2**0.5)*pi*(2.7**2)/8) &lt; 0.03)</test>
+    <test name="super_analytic_gradient_inner_upper_surfaceintegrals" language="python">from math import pi
+print abs(super_analytic_gradient_inner_upper_surfaceintegrals-pi*(1.2**2)*(2-(2**0.5))/8)/(pi*(1.2**2)*(2-(2**0.5))/8)
+assert all(abs(super_analytic_gradient_inner_upper_surfaceintegrals-pi*(1.2**2)*(2-(2**0.5))/8)/(pi*(1.2**2)*(2-(2**0.5))/8) &lt; 0.07)</test>
+    <test name="super_analytic_gradient_inner_middle_surfaceintegrals" language="python">from math import pi
+print abs(super_analytic_gradient_inner_middle_surfaceintegrals-(2**0.5)*pi*(1.2**2)/8)/((2**0.5)*pi*(1.2**2)/8)
+assert all(abs(super_analytic_gradient_inner_middle_surfaceintegrals-(2**0.5)*pi*(1.2**2)/8)/((2**0.5)*pi*(1.2**2)/8) &lt; 0.03)</test>
+    <test name="super_analytic_gradient_outer_upper_surfaceintegrals" language="python">from math import pi
+print abs(super_analytic_gradient_outer_upper_surfaceintegrals-pi*(2.7**2)*(2-(2**0.5))/8)/(pi*(2.7**2)*(2-(2**0.5))/8)
+assert all(abs(super_analytic_gradient_outer_upper_surfaceintegrals-pi*(2.7**2)*(2-(2**0.5))/8)/(pi*(2.7**2)*(2-(2**0.5))/8) &lt; 0.07)</test>
+    <test name="super_analytic_gradient_outer_middle_surfaceintegrals" language="python">from math import pi
+print abs(super_analytic_gradient_outer_middle_surfaceintegrals-(2**0.5)*pi*(2.7**2)/8)/((2**0.5)*pi*(2.7**2)/8)
+assert all(abs(super_analytic_gradient_outer_middle_surfaceintegrals-(2**0.5)*pi*(2.7**2)/8)/((2**0.5)*pi*(2.7**2)/8) &lt; 0.03)</test>
+    <test name="super_analytic_inner_upper_surfaceintegrals_equal" language="python">print abs(super_analytic_inner_upper_surfaceintegrals[1:]-super_analytic_inner_upper_surfaceintegrals[0])
+assert all(abs(super_analytic_inner_upper_surfaceintegrals[1:]-super_analytic_inner_upper_surfaceintegrals[0]) &lt; 1.e-6)</test>
+    <test name="super_analytic_inner_middle_surfaceintegrals_equal" language="python">print abs(super_analytic_inner_middle_surfaceintegrals[1:]-super_analytic_inner_middle_surfaceintegrals[0])
+assert all(abs(super_analytic_inner_middle_surfaceintegrals[1:]-super_analytic_inner_middle_surfaceintegrals[0]) &lt; 1.e-6)</test>
+    <test name="super_analytic_outer_upper_surfaceintegrals_equal" language="python">print abs(super_analytic_outer_upper_surfaceintegrals[1:]-super_analytic_outer_upper_surfaceintegrals[0])
+assert all(abs(super_analytic_outer_upper_surfaceintegrals[1:]-super_analytic_outer_upper_surfaceintegrals[0]) &lt; 1.e-6)</test>
+    <test name="super_analytic_outer_middle_surfaceintegrals_equal" language="python">print abs(super_analytic_outer_middle_surfaceintegrals[1:]-super_analytic_outer_middle_surfaceintegrals[0])
+assert all(abs(super_analytic_outer_middle_surfaceintegrals[1:]-super_analytic_outer_middle_surfaceintegrals[0]) &lt; 1.e-6)</test>
+    <test name="super_analytic_flat_surfaceintegrals_equal" language="python">print abs(super_analytic_flat_surfaceintegrals[1:]-super_analytic_flat_surfaceintegrals[0])
+assert all(abs(super_analytic_flat_surfaceintegrals[1:]-super_analytic_flat_surfaceintegrals[0]) &lt; 1.e-6)</test>
+    <test name="super_analytic_radius_inner_upper_surfaceintegrals_equal" language="python">print abs(super_analytic_radius_inner_upper_surfaceintegrals[1:]-super_analytic_radius_inner_upper_surfaceintegrals[0])
+assert all(abs(super_analytic_radius_inner_upper_surfaceintegrals[1:]-super_analytic_radius_inner_upper_surfaceintegrals[0]) &lt; 1.e-6)</test>
+    <test name="super_analytic_radius_inner_middle_surfaceintegrals_equal" language="python">print abs(super_analytic_radius_inner_middle_surfaceintegrals[1:]-super_analytic_radius_inner_middle_surfaceintegrals[0])
+assert all(abs(super_analytic_radius_inner_middle_surfaceintegrals[1:]-super_analytic_radius_inner_middle_surfaceintegrals[0]) &lt; 1.e-6)</test>
+    <test name="super_analytic_radius_outer_upper_surfaceintegrals_equal" language="python">print abs(super_analytic_radius_outer_upper_surfaceintegrals[1:]-super_analytic_radius_outer_upper_surfaceintegrals[0])
+assert all(abs(super_analytic_radius_outer_upper_surfaceintegrals[1:]-super_analytic_radius_outer_upper_surfaceintegrals[0]) &lt; 1.e-6)</test>
+    <test name="super_analytic_radius_outer_middle_surfaceintegrals_equal" language="python">print abs(super_analytic_radius_outer_middle_surfaceintegrals[1:]-super_analytic_radius_outer_middle_surfaceintegrals[0])
+assert all(abs(super_analytic_radius_outer_middle_surfaceintegrals[1:]-super_analytic_radius_outer_middle_surfaceintegrals[0]) &lt; 1.e-6)</test>
+    <test name="super_analytic_gradient_inner_upper_surfaceintegrals_equal" language="python">print abs(super_analytic_gradient_inner_upper_surfaceintegrals[1:]-super_analytic_gradient_inner_upper_surfaceintegrals[0])
+assert all(abs(super_analytic_gradient_inner_upper_surfaceintegrals[1:]-super_analytic_gradient_inner_upper_surfaceintegrals[0]) &lt; 1.e-6)</test>
+    <test name="super_analytic_gradient_inner_middle_surfaceintegrals_equal" language="python">print abs(super_analytic_gradient_inner_middle_surfaceintegrals[1:]-super_analytic_gradient_inner_middle_surfaceintegrals[0])
+assert all(abs(super_analytic_gradient_inner_middle_surfaceintegrals[1:]-super_analytic_gradient_inner_middle_surfaceintegrals[0]) &lt; 1.e-6)</test>
+    <test name="super_analytic_gradient_outer_upper_surfaceintegrals_equal" language="python">print abs(super_analytic_gradient_outer_upper_surfaceintegrals[1:]-super_analytic_gradient_outer_upper_surfaceintegrals[0])
+assert all(abs(super_analytic_gradient_outer_upper_surfaceintegrals[1:]-super_analytic_gradient_outer_upper_surfaceintegrals[0]) &lt; 1.e-6)</test>
+    <test name="super_analytic_gradient_outer_middle_surfaceintegrals_equal" language="python">print abs(super_analytic_gradient_outer_middle_surfaceintegrals[1:]-super_analytic_gradient_outer_middle_surfaceintegrals[0])
+assert all(abs(super_analytic_gradient_outer_middle_surfaceintegrals[1:]-super_analytic_gradient_outer_middle_surfaceintegrals[0]) &lt; 1.e-6)</test>
+  </pass_tests>
+  <warn_tests/>
+</testproblem>

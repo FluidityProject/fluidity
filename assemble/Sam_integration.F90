@@ -52,7 +52,6 @@ module sam_integration
   
   use data_structures
   use detector_data_types
-  use detector_tools
   use diagnostic_variables
   use pickers
   use ieee_arithmetic
@@ -750,11 +749,13 @@ module sam_integration
       
      end subroutine renumber_halo
 
-     subroutine sam_drive(states, options, metric, external_mesh_name)
+     subroutine sam_drive(states, options, metric, external_mesh_name, initialise_fields)
        type(state_type), dimension(:), intent(inout) :: states
        integer, dimension(10), intent(in) :: options
        type(tensor_field), optional, intent(inout) :: metric
        character(len=FIELD_NAME_LEN), intent(in), optional :: external_mesh_name
+       ! if present and true: don't bother redistributing fields that can be reinitialised
+       logical, intent(in), optional :: initialise_fields
        
        type(state_type), dimension(size(states)) :: interpolate_states
 
@@ -793,6 +794,8 @@ module sam_integration
        real, dimension(:,:), allocatable :: xyz
        real, dimension(:), allocatable :: value
    
+       integer :: stat
+
 
        ewrite(1, *) "In sam_drive"
        call tic(TICTOC_ID_DATA_REMAP)
@@ -841,7 +844,8 @@ module sam_integration
 
        ! Select fields to interpolate
        do state=1,size(states)
-         call select_fields_to_interpolate(states(state), interpolate_states(state), no_positions=.true.)
+         call select_fields_to_interpolate(states(state), interpolate_states(state), &
+           no_positions=.true., first_time_step=initialise_fields)
        end do
 
        ! Record the headers of the interpolated fields
@@ -878,7 +882,8 @@ module sam_integration
        do state=1,size(states)
          do field=1,scount(state)
            field_s => extract_scalar_field(interpolate_states(state), trim(namelist_s(state, field)))
-           call remap_field(field_s, linear_s)
+           call remap_field(field_s, linear_s,stat)
+           call check_sam_linear_remap_validity(stat, trim(namelist_s(state, field)))
            call sam_add_field(linear_s)
            call remove_scalar_field(states(state), trim(namelist_s(state, field)))
            call remove_scalar_field(interpolate_states(state), trim(namelist_s(state, field)))
@@ -886,7 +891,8 @@ module sam_integration
 
          do field=1,vcount(state)
            field_v => extract_vector_field(interpolate_states(state), trim(namelist_v(state, field)))
-           call remap_field(field_v, linear_v)
+           call remap_field(field_v, linear_v,stat)
+           call check_sam_linear_remap_validity(stat, trim(namelist_v(state, field)))
            call sam_add_field(linear_v)
            call remove_vector_field(states(state), trim(namelist_v(state, field)))
            call remove_vector_field(interpolate_states(state), trim(namelist_v(state, field)))
@@ -894,7 +900,8 @@ module sam_integration
 
          do field=1,tcount(state)
            field_t => extract_tensor_field(interpolate_states(state), trim(namelist_t(state, field)))
-           call remap_field(field_t, linear_t)
+           call remap_field(field_t, linear_t,stat)
+           call check_sam_linear_remap_validity(stat, trim(namelist_t(state, field)))
            call sam_add_field(linear_t)
            call remove_tensor_field(states(state), trim(namelist_t(state, field)))
            call remove_tensor_field(interpolate_states(state), trim(namelist_t(state, field)))
@@ -939,6 +946,12 @@ module sam_integration
        call sam_query(nonods, totele, stotel, ncolga, nscate, pncolga, pnscate)
        ewrite(1, *) "Exited sam_query"
        
+       !!! sanity check
+
+       if (nonods==0) then
+          FLExit("Libsam has produced an empty partition for your problem. Please consider reconfiguring with Zoltan")
+       end if
+
        ! Export mesh data from sam
        allocate(linear_mesh)
        call allocate(linear_mesh, nonods, totele, linear_shape, linear_mesh_name)
@@ -1259,13 +1272,13 @@ module sam_integration
        dim = mesh_dim(mesh)
        nonods = node_count(mesh)
        totele = ele_count(mesh)
-       stotel = surface_element_count(mesh)
+       stotel = unique_surface_element_count(mesh)
        nloc = mesh%shape%loc
        snloc = mesh%faces%surface_mesh%shape%loc
        ndglno => mesh%ndglno
        allocate(sndgln(stotel * snloc))
        call getsndgln(mesh, sndgln)
-       allocate(surfid(surface_element_count(mesh)))
+       allocate(surfid(unique_surface_element_count(mesh)))
        call interleave_surface_ids(mesh, surfid, max_coplanar_id)
        
        ! Extract the level 1 halo
@@ -1662,22 +1675,76 @@ module sam_integration
     end if
   
   end subroutine ewrite_load_imbalance
+
+  subroutine check_sam_linear_remap_validity(stat,name)
+    integer, intent(in) :: stat
+    character(len = * ) :: name
+
+
+    !! short circuit for the trivial case
+    if (stat==0) return
+    
+    ewrite(0,*) "For field ", trim(name)
+
+    select case(stat)
+    case (REMAP_ERR_DISCONTINUOUS_CONTINUOUS)
+       ewrite(0,*) "Unable to redistribute discontinuous field."
+    case(REMAP_ERR_HIGHER_LOWER_CONTINUOUS)
+       ewrite(0,*) "Unable to redistribute higher order field."
+    case(REMAP_ERR_UNPERIODIC_PERIODIC)
+       ewrite(0,*) "Unable to redistribute field on periodic mesh."
+    case(REMAP_ERR_BUBBLE_LAGRANGE)
+       ewrite(0,*) "Unable to redistribute field on finite element mesh with bubble function."
+    case default
+       ewrite(0,*) "Failure to remap. This probably means a discretisation type that is not handled by sam"
+    end select
+    FLExit("This discretisation is not supported in parallel with libsam. Please consider reconfiguring with Zoltan")
+
+  end subroutine check_sam_linear_remap_validity
   
   subroutine sam_integration_check_options
+
+    integer :: i
+    character (len=OPTION_PATH_LEN) :: continuity_var
+
     !!< Check libsam integration related options
-    
-    if(.not. have_option("/mesh_adaptivity/hr_adaptivity") .or. .not. isparallel()) then
+   
+    if(.not. isparallel()) then
       ! Nothing to check
       return
-    end if
+    end if       
     
 #ifndef HAVE_ZOLTAN
     ewrite(2, *) "Checking libsam integration related options"
-    
-    if(have_option("/mesh_adaptivity/hr_adaptivity/preserve_mesh_regions")) then
-      FLExit("Preserving of mesh regions through adapts is not supported in parallel")
+
+    if( have_option("/flredecomp") ) then
+       FLExit("Specification of flredecomp parameters in the options tree is not supported with libsam. Please remove or reconfigure with Zoltan")
     end if
     
+    if(have_option("/mesh_adaptivity/hr_adaptivity/preserve_mesh_regions")) then
+      FLExit("Preserving of mesh regions through adapts is not supported in parallel with libsam. Please reconfigure with Zoltan")
+    end if
+
+    if(option_count('/geometry/mesh/from_mesh/extrude')>0) then
+       FLExit("Mesh extrusion is not supported in parallel with libsam. Please reconfigure with Zoltan")
+    end if
+
+    if(option_count('/geometry/mesh/from_mesh/mesh_shape')+option_count('/geometry/mesh/from_mesh/mesh_continuity')>0 .and. &
+       have_option('/mesh_adaptivity/hr_adaptivity')) then
+      ! there are meshes that change the mesh_shape or continuity
+      ! from this we assume: 1) there are non P1 meshes, 2) there are fields on these meshes that need to be distributed by SAM
+      ! neither of those are necessarily always true, but it will be the case in 98% of the cases
+
+      ! sam does not handle such fields
+
+      ! we allow this for non-adaptive cases - sam is then only going to be invoked during an flredecomp - if the fields
+      ! on the non-P1 can be represcribed they don't actually need to be handled by sam. This means flredecomp on a non-checkpoint
+      ! .flml will usually still work.
+      ewrite(0,*) "It appears you have non P1 meshes (mesh that are not linear and continuous) and are using adaptivity."
+      ewrite(0,*) "For this to work you need to reconfigure with Zoltan."
+      FLExit("Non supported discretisation for sam with parallel adaptivity.")
+    end if
+
     ewrite(2, *) "Finished checking libsam integration related options"
 #endif
 

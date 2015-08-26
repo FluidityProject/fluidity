@@ -23,10 +23,11 @@ program test_laplacian_vector
   use boundary_conditions
   use fldebug
 
-  implicit none
-#ifdef HAVE_PETSC
-#include "finclude/petsc.h"
+#ifdef HAVE_PETSC_MODULES
+  use petsc
 #endif
+  implicit none
+#include "petsc_legacy.h"
   
   character, parameter:: NEWLINE_CHAR=achar(10)
   character(len=*), parameter:: BC_PYTHON_FUNCTION= &

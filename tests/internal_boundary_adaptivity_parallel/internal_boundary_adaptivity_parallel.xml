@@ -1,0 +1,110 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>interal_boundary_adaptivity_parallel<comment>This tests the following all in combination:
+* internal boundaries (including ones that are internal to the non-prescribed region)
+* prescribed regions
+* mesh movement
+* parallel
+* adaptivity
+* checkpointing
+
+This is tested by checking some surface integrals (to check that they don't disappear/get mangled). In the bottom part, the prescribed region we solve a trivial diffusion problem for the Scalar field. We also check that the adaptivity has coarsened the mesh (not a very strong test at the moment). And that properties are preserved across the checkpoint. And that the periodic mesh movement returns the mesh to its original position.</comment></name>
+  <owner userid="skramer"/>
+  <tags>zoltan</tags>
+  <problem_definition length="medium" nprocs="3">
+    <command_line>mpiexec ../../bin/flredecomp -v -l -i 1 -o 3 internal_boundary parallel_internal_boundary ; mpiexec ../../bin/fluidity -v2 -l parallel_internal_boundary.flml &amp;&amp; spud-set ib_1_checkpoint.flml /timestepping/finish_time 0.999999 &amp;&amp; mpiexec ../../bin/fluidity -v2 -l ib_1_checkpoint.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="solvers_converged" language="python">import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files</variable>
+    <variable name="stats" language="python">from fluidity_tools import stat_parser
+s=stat_parser("ib.stat")
+stats={}
+stats["nodes_begin"]=s["CoordinateMesh"]["nodes"][0]
+stats["nodes_end"]=s["CoordinateMesh"]["nodes"][-1]
+stats["vell2_begin"]=s["Fluid"]["Velocity%magnitude"]["l2norm"][0]
+stats["vell2_end"]=s["Fluid"]["Velocity%magnitude"]["l2norm"][-1]
+stats["scalarl2_begin"]=s["Fluid"]["Scalar"]["l2norm"][0]
+stats["scalarl2_end"]=s["Fluid"]["Scalar"]["l2norm"][-1]</variable>
+    <variable name="stats_after_checkpoint" language="python">from fluidity_tools import stat_parser
+s=stat_parser("ib_checkpoint.stat")
+stats_after_checkpoint={}
+stats_after_checkpoint["nodes_begin"]=s["CoordinateMesh"]["nodes"][0]
+stats_after_checkpoint["nodes_end"]=s["CoordinateMesh"]["nodes"][-1]
+stats_after_checkpoint["vell2_begin"]=s["Fluid"]["Velocity%magnitude"]["l2norm"][0]
+stats_after_checkpoint["vell2_end"]=s["Fluid"]["Velocity%magnitude"]["l2norm"][-1]
+stats_after_checkpoint["scalarl2_begin"]=s["Fluid"]["Scalar"]["l2norm"][0]
+stats_after_checkpoint["scalarl2_end"]=s["Fluid"]["Scalar"]["l2norm"][-1]
+stats_after_checkpoint["error"]=s["Fluid"]["Error"]["l2norm"][-1]</variable>
+    <variable name="min_ys" language="python">from fluidity_tools import stat_parser
+import numpy
+s=stat_parser("ib.stat")
+min_ys=s['Fluid']['AnalyticalSolutionBottom']['min']
+s=stat_parser("ib_checkpoint.stat")
+min_ys=numpy.hstack((min_ys, s['Fluid']['AnalyticalSolutionBottom']['min']))
+min_ys = min_ys/2.0</variable>
+    <variable name="max_ys" language="python">from fluidity_tools import stat_parser
+import numpy
+s=stat_parser("ib.stat")
+max_ys=s['Fluid']['AnalyticalSolutionBottom']['max']
+s=stat_parser("ib_checkpoint.stat")
+max_ys=numpy.hstack((max_ys, s['Fluid']['AnalyticalSolutionBottom']['max']))
+max_ys /= 2.0</variable>
+    <variable name="expected_ys" language="python">a = 0.05
+dt = 0.1
+import numpy
+t = numpy.linspace(0.1,1,10)
+v = a*2*numpy.pi*numpy.sin(2*numpy.pi*t)
+expected_ys = numpy.array([dt*v[:n].sum() for n in range(10)])</variable>
+    <variable name="internal_integral_horizontal" language="python">from fluidity_tools import stat_parser
+import numpy
+s=stat_parser("ib.stat")
+internal_integral_horizontal=s['Fluid']['AnalyticalSolutionBottom']['surface_integral%InternalIntegralHorizontal']
+s=stat_parser("ib_checkpoint.stat")
+internal_integral_horizontal=numpy.hstack((internal_integral_horizontal, s['Fluid']['AnalyticalSolutionBottom']['surface_integral%InternalIntegralHorizontal']))
+# the integral is normalised, so that gets rid of the
+# double counting we usually have internal surface integrals</variable>
+    <variable name="internal_integral_vertical1" language="python">from fluidity_tools import stat_parser
+import numpy
+s=stat_parser("ib.stat")
+internal_integral_vertical1=s['Fluid']['AnalyticalSolutionBottom']['surface_integral%InternalIntegralVertical1']
+s=stat_parser("ib_checkpoint.stat")
+internal_integral_vertical1=numpy.hstack((internal_integral_vertical1, s['Fluid']['AnalyticalSolutionBottom']['surface_integral%InternalIntegralVertical1']))
+# we actually want to integrate y instead of 2y
+# and internal integrals are counted double by fluidity currently
+internal_integral_vertical1 /= 4</variable>
+    <variable name="internal_integral_vertical2" language="python">from fluidity_tools import stat_parser
+import numpy
+s=stat_parser("ib.stat")
+internal_integral_vertical2=s['Fluid']['AnalyticalSolutionBottom']['surface_integral%InternalIntegralVertical1']
+s=stat_parser("ib_checkpoint.stat")
+internal_integral_vertical2=numpy.hstack((internal_integral_vertical2, s['Fluid']['AnalyticalSolutionBottom']['surface_integral%InternalIntegralVertical2']))
+# we actually want to integrate y instead of 2y
+# and internal integrals are counted double by fluidity currently
+internal_integral_vertical2 /= 4</variable>
+  </variables>
+  <pass_tests>
+    <test name="Solvers converged" language="python">assert(solvers_converged)</test>
+    <test name="NodesDecreaseInAdapt" language="python">assert stats['nodes_begin']&gt;stats['nodes_end']<comment>Adapt is set to coarsen everywhere.</comment></test>
+    <test name="ScalarL2Increased" language="python">assert stats['scalarl2_begin']&lt;stats['scalarl2_end']</test>
+    <test name="VelocityL2Increased" language="python">assert stats['vell2_begin']&lt;stats['vell2_end']</test>
+    <test name="SameNumberOfNodes" language="python">assert stats["nodes_end"]==stats_after_checkpoint["nodes_begin"]</test>
+    <test name="NearlySameScalarL2" language="python">assert abs(stats["scalarl2_end"]-stats_after_checkpoint["scalarl2_begin"])&lt;0.03<comment>The difference is in the one timestep after the restart.</comment></test>
+    <test name="CloseVelocityL2" language="python">assert abs(stats["vell2_end"]-stats_after_checkpoint["vell2_begin"])&lt;0.1</test>
+    <test name="ScalarL2IncreasedAfter" language="python">assert stats_after_checkpoint['scalarl2_begin']&lt;stats_after_checkpoint['scalarl2_end']</test>
+    <test name="NodesConstantAfter" language="python">assert abs(stats_after_checkpoint['nodes_begin']-stats_after_checkpoint['nodes_end'])&lt;40<comment>Most coarsening should have been done in first adapt (before the checkpoint). This can probably be tightened once we've improved parallel adaptivity by merging the strip-l2-halo branch.</comment></test>
+    <test name="SmallError" language="python">assert abs(stats_after_checkpoint['error'])&lt;0.05</test>
+    <test name="CorrectMinimumYCoordinate" language="python">assert(all((expected_ys+min_ys)&lt;1e-12))</test>
+    <test name="CorrectMaximumYCoordinate" language="python">assert(all((1.0+expected_ys-max_ys)&lt;1e-12))</test>
+    <test name="CorrectHorizontalIntegral" language="python">import numpy
+# we expect this integral to be 1.0 (due to symmetry: every bit
+# with a value slightly above 1.0 has a corresponding part
+# that has the same value just below 1.0)
+assert(all(numpy.abs(internal_integral_horizontal-1.0)&lt;1e-3))</test>
+    <test name="CorrectVerticalIntegral1" language="python">import numpy
+assert(all(numpy.abs(internal_integral_vertical1-0.25)&lt;1e-7))</test>
+    <test name="CorrectVerticalIntegral2" language="python">import numpy
+assert(all(numpy.abs(internal_integral_vertical2-0.25)&lt;1e-7))</test>
+  </pass_tests>
+</testproblem>

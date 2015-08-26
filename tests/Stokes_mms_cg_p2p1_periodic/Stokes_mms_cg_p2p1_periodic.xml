@@ -252,10 +252,10 @@ for case in ['A','B','C','D']:
     <test name="checking steady state was reached in B p" language="python">assert(b_final_change_p &lt; 1.E-3)</test>
     <test name="checking steady state was reached in C p" language="python">assert(c_final_change_p &lt; 1.E-3)</test>
     <test name="checking steady state was reached in D p" language="python">assert(d_final_change_p &lt; 1.E-3)</test>
-    <test name="checking for three nullspace agreements per timestep in A" language="python">assert(number_of_nullspace_agreements['A']['agrees']==3*number_of_timesteps['A'])</test>
-    <test name="checking for three nullspace agreements per timestep in B" language="python">assert(number_of_nullspace_agreements['B']['agrees']==3*number_of_timesteps['B'])</test>
-    <test name="checking for three nullspace agreements per timestep in C" language="python">assert(number_of_nullspace_agreements['C']['agrees']==3*number_of_timesteps['C'])</test>
-    <test name="checking for three nullspace agreements per timestep in D" language="python">assert(number_of_nullspace_agreements['D']['agrees']==3*number_of_timesteps['D'])</test>
+    <test name="checking for four nullspace agreements per timestep in A" language="python">assert(number_of_nullspace_agreements['A']['agrees']==4*number_of_timesteps['A'])</test>
+    <test name="checking for four nullspace agreements per timestep in B" language="python">assert(number_of_nullspace_agreements['B']['agrees']==4*number_of_timesteps['B'])</test>
+    <test name="checking for four nullspace agreements per timestep in C" language="python">assert(number_of_nullspace_agreements['C']['agrees']==4*number_of_timesteps['C'])</test>
+    <test name="checking for four nullspace agreements per timestep in D" language="python">assert(number_of_nullspace_agreements['D']['agrees']==4*number_of_timesteps['D'])</test>
     <test name="checking for no nullspace disagreements in A" language="python">assert(number_of_nullspace_agreements['A']['disagrees']==0)</test>
     <test name="checking for no nullspace disagreements in B" language="python">assert(number_of_nullspace_agreements['B']['disagrees']==0)</test>
     <test name="checking for no nullspace disagreements in C" language="python">assert(number_of_nullspace_agreements['C']['disagrees']==0)</test>

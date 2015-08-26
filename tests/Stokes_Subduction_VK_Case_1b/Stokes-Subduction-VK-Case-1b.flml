@@ -177,7 +177,6 @@
               <max_iterations>
                 <integer_value rank="0">10000</integer_value>
               </max_iterations>
-              <remove_null_space/>
               <never_ignore_solver_failures/>
               <diagnostics>
                 <monitors/>
@@ -249,6 +248,7 @@
             <stress_terms>
               <tensor_form/>
             </stress_terms>
+            <buoyancy/>
           </continuous_galerkin>
           <conservative_advection>
             <real_value rank="0">1.0</real_value>

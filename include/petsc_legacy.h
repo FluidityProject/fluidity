@@ -6,9 +6,17 @@
 ! still need #ifdef PETSC_VERSION>... in the main code
 #include "petscversion.h"
 #ifdef HAVE_PETSC_MODULES
+#if PETSC_VERSION_MINOR>=6
+#include "petsc/finclude/petscdef.h"
+#else
 #include "finclude/petscdef.h"
+#endif
+#else
+#if PETSC_VERSION_MINOR>=6
+#include "petsc/finclude/petsc.h"
 #else
 #include "finclude/petsc.h"
+#endif
 #endif
 ! this is the one exception where we keep the old names for now (until
 ! we get rid of petsc 3.1 and 3.2 support). MatCreate{Seq|MPI}[B]AIJ()
@@ -54,7 +62,6 @@
 ! mykspgetoperators is a wrapper function defined in Petsc_Tools.F90:
 #define KSPGetOperators(ksp, amat, pmat, ierr) mykspgetoperators(ksp, amat, pmat, ierr)
 #endif
-! renamed in petsc master
-#if PETSC_VERSION_RELEASE==0
-#define MatGetVecs MatCreateVecs
+#if PETSC_VERSION_MINOR<6
+#define MatCreateVecs MatGetVecs
 #endif
