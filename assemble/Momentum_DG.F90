@@ -283,9 +283,11 @@ contains
     real,    dimension(:), allocatable :: u_disc, u_ref, new_source
 
     real :: rho_fluid, a_fact, C_T, disc_thickness, disc_area, u_ref_def, intgrl_sum, disc_volume, total_power
-    type(scalar_field) :: Turbine
+    type(scalar_field) :: NodeOnTurbine, Turbine
     type(scalar_field), pointer :: Turbine_Power
     logical :: ADM_correction
+    real,    dimension(:), allocatable :: energy_integral !A! Absorption
+    logical :: ADM_absorption, ADM_source !A! Absorption
     !AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA!
 
     ewrite(1, *) "In construct_momentum_dg"
@@ -365,16 +367,21 @@ contains
     end if
 
     !AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA!
-    Turbine = extract_scalar_field(state, "NodeOnTurbine")
+    NodeOnTurbine = extract_scalar_field(state, "NodeOnTurbine") !A! 1 for turbine and 0 everywhere else
+    Turbine = extract_scalar_field(state, "Turbine") !A! number corresponds to turbine number
     Turbine_Power => extract_scalar_field(state, "Turbine_Power")
     call set(Turbine_Power, 0.0)
 
     call get_option('/ADM/C_T', C_T, default = 0.0)
     call get_option('/ADM/DiscThickness', disc_thickness)
     ADM_correction = have_option("/ADM/ADM_correction")
+    ADM_absorption = have_option("/ADM/ADM_absorption") !A! Absorption
+    ADM_source     = have_option("/ADM/ADM_source")     !A! Absorption
     call get_option('/ADM/u_ref_def', u_ref_def)
 
     ewrite(2,*) 'ADM correction? ', ADM_correction
+    ewrite(2,*) 'ADM absorption? ', ADM_absorption !A! Absorption
+    ewrite(2,*) 'ADM source? '    , ADM_source     !A! Absorption
     ewrite(2,*) 'u_ref_def? ', u_ref_def
 
     call get_option('/ADM/NDiscs', ndiscs)
@@ -385,6 +392,7 @@ contains
     allocate(u_disc(ndiscs))
     allocate(u_ref(ndiscs))
     allocate(new_source(ndiscs))
+    allocate(energy_integral(ndiscs)) !A! Absorption
 
     region_id_disc=0
     call get_option('/ADM/DiscRegionID', region_id_disc)
@@ -394,6 +402,7 @@ contains
     u_disc     = 0.0
     u_ref      = u_ref_def
     new_source = 0.0
+    energy_integral = 0.0 !A! Absorption
     !AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA!
 
     Abs=extract_vector_field(state, "VelocityAbsorption", stat)   
@@ -756,15 +765,22 @@ contains
       len = key_count(colours(clr))
 
       !AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA!
-      rho_fluid = 1.0
+      rho_fluid = 1025.0
       intgrl_sum = 0.0
       disc_volume = 0.0
       a_fact = 0.5*(1.0 - sqrt(1.0-C_T))
 
-      elementD_loop: do nnid = 1, len
+      intgrl_sum = integral_scalar(NodeOnTurbine, X) !A! volume of all discs
+      disc_volume = intgrl_sum/ndiscs          !A! volume of a single disc
+      disc_area = disc_volume/disc_thickness
+
+    if (ADM_source) then
+
+      elementD_loop: do nnid = 1, len !A! not needed for absorption term
         ele = fetch(colours(clr), nnid)
         do discs = 1, ndiscs
-          if (X%mesh%region_ids(ele)==region_id_disc(discs)) then
+          !A!if (X%mesh%region_ids(ele)==region_id_disc(discs)) then
+          if (Turbine%val(ele) .eq. float(discs)) then
             call calc_disc_velocity_integral(ele, X, U, U_intgrl(:,discs))
           end if
         end do
@@ -774,22 +790,23 @@ contains
         call allsum(U_intgrl(1,discs))
       end do
 
-      intgrl_sum = integral_scalar(Turbine, X) !A! volume of all discs
-      disc_volume = intgrl_sum/ndiscs          !A! volume of a single disc
-      disc_area = disc_volume/disc_thickness
+      !A!intgrl_sum = integral_scalar(Turbine, X) !A! volume of all discs
+      !A!disc_volume = intgrl_sum/ndiscs          !A! volume of a single disc
+      !A!disc_area = disc_volume/disc_thickness
 
       do discs = 1, ndiscs
         u_disc(discs) = U_intgrl(1,discs)/disc_volume
         if (ADM_correction) then
           u_ref(discs) = u_disc(discs)/(1.0 - a_fact)
         end if
-        new_source(discs) = -(0.5*rho_fluid*disc_area*C_T*u_ref(discs)*u_ref(discs))/disc_volume
+        new_source(discs) = -(0.5*disc_area*C_T*u_ref(discs)*u_ref(discs))/disc_volume
       end do
 
       elementS_loop: do nnid = 1, len
         ele = fetch(colours(clr), nnid)
         do discs = 1, ndiscs
-          if (X%mesh%region_ids(ele)==region_id_disc(discs)) then
+          !A!if (X%mesh%region_ids(ele)==region_id_disc(discs)) then
+          if (Turbine%val(ele) .eq. float(discs)) then
             call calc_disc_source(ele, X, Source, new_source(discs))
             call calc_turbine_power(ele, Turbine_Power, u_disc(discs), new_source(discs), disc_volume)
           end if
@@ -801,15 +818,17 @@ contains
         total_power = total_power + u_disc(discs)*(-new_source(discs))*disc_volume
       end do
 
-      ewrite(2,*) 'ADM----------------------------------------------------'
+      ewrite(2,*) 'ADM-(source)-------------------------------------------'
       ewrite(2,*) 'C_T:', C_T, 'Disc Area:', disc_area, 'Disc Volume:', disc_volume
       do discs = 1, ndiscs
         ewrite(2,*) 'Disc No.:', discs, 'Disc Vel:', u_disc(discs), 'Probe Vel:', u_ref(discs)
-        ewrite(2,*) 'Thrust(kN):', -new_source(discs)*disc_volume, 'Power(kW):', -u_disc(discs)*new_source(discs)*disc_volume
+        ewrite(2,*) 'Thrust (N):', -new_source(discs)*disc_volume*rho_fluid, 'Power (W):', -u_disc(discs)*new_source(discs)*disc_volume*rho_fluid
       end do
       ewrite(2,*) '-------------------------------------------------------'
       ewrite(2,*) 'TOTAL POWER (kW):', total_power
       ewrite(2,*) '-------------------------------------------------------'
+
+    end if
 
       deallocate(region_id_disc)
       deallocate(U_intgrl)
@@ -822,7 +841,7 @@ contains
       element_loop: do nnid = 1, len
        ele = fetch(colours(clr), nnid)
        call construct_momentum_element_dg(ele, big_m, rhs, &
-            & X, U, advecting_velocity, U_mesh, X_old, X_new, &
+            & X, U, advecting_velocity, U_nl, U_mesh, X_old, X_new, & !A! (ADM)
             & Source, Buoyancy, hb_density, hb_pressure, gravity, Abs, Viscosity, &
             & swe_bottom_drag, swe_u_nl, &
             & P, old_pressure, Rho, surfacetension, q_mesh, &
@@ -832,9 +851,24 @@ contains
             & alpha_u_field, Abs_wd, vvr_sf, ib_min_grad, nvfrac, &
             & inverse_mass=inverse_mass, &
             & inverse_masslump=inverse_masslump, &
-            & mass=mass, subcycle_m=subcycle_m, partial_stress=partial_stress)
+            & mass=mass, subcycle_m=subcycle_m, partial_stress=partial_stress, &
+            & Turbine=Turbine, disc_area=disc_area, disc_volume=disc_volume, & !A! (ADM)
+            & u_ref_def=u_ref_def, C_T=C_T, a_fact=a_fact, ADM_correction=ADM_correction, & !A! (ADM)
+            & energy_integral=energy_integral, ndiscs=ndiscs, ADM_absorption=ADM_absorption, Turbine_Power=Turbine_Power) !A! (ADM)
       end do element_loop
       !$OMP END DO
+
+    if (ADM_absorption) then
+      ewrite(2,*) 'ADM-(absorption)---------------------------------------'
+      do discs = 1, ndiscs
+        ewrite(2,*) 'Disc No.:', discs, 'Turbine Volume (m3):', disc_volume, 'Power (W):', energy_integral(discs)*rho_fluid
+      end do
+      ewrite(2,*) '-------------------------------------------------------'
+      ewrite(2,*) 'TOTAL POWER (W):', sum(energy_integral)*rho_fluid
+      ewrite(2,*) '-------------------------------------------------------'
+    end if
+
+    deallocate(energy_integral)
 
     end do colour_loop
     !$OMP END PARALLEL
@@ -886,7 +920,7 @@ contains
   subroutine calc_disc_velocity_integral(ele, X, U, U_intgrl)
 
     !! Index of current element
-    integer :: ele ! global element number
+    integer, intent(in) :: ele ! global element number
     type(vector_field), intent(in) :: X, U
     real, dimension(U%dim), intent(inout) :: U_intgrl
 
@@ -901,7 +935,8 @@ contains
   subroutine calc_disc_source(ele, X, Source, new_source)
 
     !! Index of current element
-    integer :: ele, iloc, inode
+    integer :: iloc, inode
+    integer, intent(in) :: ele
     real, intent(inout) :: new_source
     type(vector_field), intent(in) :: X
     type(vector_field), intent(inout) :: Source
@@ -943,13 +978,15 @@ contains
   !AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA!
 
   subroutine construct_momentum_element_dg(ele, big_m, rhs, &
-       &X, U, U_nl, U_mesh, X_old, X_new, Source, Buoyancy, hb_density, hb_pressure, gravity, Abs, &
+       &X, U, U_nl, U_nl_true, U_mesh, X_old, X_new, Source, Buoyancy, hb_density, hb_pressure, gravity, Abs, & !A! (ADM)
        &Viscosity, swe_bottom_drag, swe_u_nl, P, old_pressure, Rho, surfacetension, q_mesh, &
        &velocity_bc, velocity_bc_type, &
        &pressure_bc, pressure_bc_type, &
        &turbine_conn_mesh, depth, have_wd_abs, alpha_u_field, Abs_wd, &
        &vvr_sf, ib_min_grad, nvfrac, &
-       &inverse_mass, inverse_masslump, mass, subcycle_m, partial_stress)
+       &inverse_mass, inverse_masslump, mass, subcycle_m, partial_stress, &
+       &Turbine, disc_area, disc_volume, u_ref_def, C_T, a_fact, ADM_correction, &
+       &energy_integral, ndiscs, ADM_absorption, Turbine_Power) !A! (ADM)
 
     !!< Construct the momentum equation for discontinuous elements in
     !!< acceleration form.
@@ -968,7 +1005,8 @@ contains
 
     !! Position, velocity and source fields.
     type(scalar_field), intent(in) :: buoyancy
-    type(vector_field), intent(in) :: X, U, U_nl, Source, gravity, Abs
+    type(vector_field), intent(in) :: X, U, U_nl, U_nl_true, Source, gravity !A! Abs
+    type(vector_field), intent(inout) :: Abs !A! (ADM)
     type(vector_field), pointer :: U_mesh, X_old, X_new
     !! Viscosity
     type(tensor_field) :: Viscosity
@@ -1138,6 +1176,18 @@ contains
     ! added for partial stress form (sp911)
     logical, intent(in) :: partial_stress
 
+    !AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA!
+    integer :: iloc, inode, discs
+    real    :: src_term, u_x, u_y, u_z, u_mag, u_ref
+    integer, intent(in) :: ndiscs
+    real   , intent(in) :: disc_area, disc_volume, u_ref_def, C_T, a_fact
+    logical, intent(in) :: ADM_correction, ADM_absorption
+    type(scalar_field), intent(in)    :: Turbine
+    type(scalar_field), intent(inout) :: Turbine_Power
+    integer, dimension(:), pointer    :: Abs_ele
+    real, dimension(ndiscs),  intent(inout) :: energy_integral
+    !AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA!
+
     dg=continuity(U)<0
     p0=(element_degree(u,ele)==0)
     
@@ -1262,6 +1312,57 @@ contains
     if (assemble_element) then
        u_val = ele_val(u, ele)
     end if
+
+    !AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA!
+    ! Construct ADM Abosiption term
+    !AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA!
+    if (ADM_absorption) then
+    do discs = 1, ndiscs
+      if (Turbine%val(ele) .eq. float(discs)) then 
+
+        Abs_ele => ele_nodes(Abs,ele)
+
+        do iloc = 1, size(Abs_ele)
+
+          inode = Abs_ele(iloc)
+
+          u_x = U_nl_true%val(1,inode)
+          u_y = U_nl_true%val(2,inode)
+          u_z = U_nl_true%val(3,inode)
+
+          u_mag = sqrt( u_x*u_x + u_y*u_y + u_z*u_z )
+
+          if (ADM_correction) then
+            u_ref = u_mag/(1.0 - a_fact)
+          end if
+
+          src_term = (0.5*disc_area*C_T*u_ref*u_ref)/disc_volume !no rho
+
+          if (u_mag .ne. 0.0) then
+            Abs%val(1,inode) = src_term / u_mag
+            Abs%val(2,inode) = src_term / u_mag
+            Abs%val(3,inode) = src_term / u_mag
+          else
+            Abs%val(1,inode) = 0.0
+            Abs%val(2,inode) = 0.0
+            Abs%val(3,inode) = 0.0
+          endif
+
+        end do
+      
+        !energy_integral = energy_integral + sum(ele_val_at_quad(Abs, ele)*sum(ele_val_at_quad(U_nl_true, ele)**2, dim=1)*detwei)
+        energy_integral(discs) = energy_integral(discs) + sum(sum(ele_val_at_quad(Abs, ele)*ele_val_at_quad(U_nl_true, ele)**2, dim=1)*detwei)
+
+        do iloc=1, size(Abs_ele)
+          inode = Abs_ele(iloc)
+          Turbine_Power%val(inode) = sum(sum(ele_val_at_quad(Abs, ele)*ele_val_at_quad(U_nl_true, ele)**2, dim=1)*detwei) 
+        end do
+
+
+      end if
+    end do
+    end if
+    !AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA!
 
     !----------------------------------------------------------------------
     ! Construct bilinear forms.

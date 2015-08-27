@@ -2152,6 +2152,10 @@ start =
            ## ADM Correction.
            ## Select to apply ADM correction.
            element ADM_correction{empty}?,
+           ## Implement ADM as source.
+           element ADM_source{empty}?,
+           ## Implement ADM as absorption.
+           element ADM_absorption{empty}?,
            ## Prescribed u_ref.
            ## Specify u_ref if NOT using ADM correction.
            element u_ref_def{real}?,
