@@ -9705,9 +9705,66 @@ rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
 
     if test "x$search_for_vtk" == "xyes" ; then
-        # Usually the location of the libraries is not a mystery. The
-        # header files are another matter.
-        { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -ldl" >&5
+
+        # Need to check what version of VTK is on the system.
+
+        # User may set the install directory for VTK but use
+        # the default sensible location if not.
+        if test "x$VTK_INSTALL_PREFIX" == "x"; then
+            VTK_INSTALL_PREFIX=/usr/include
+        fi
+
+        # Loop through potential vtk installations and get the highest version number
+        vtk_version=0
+        vtk_include_dir=""
+        vtk_version_file=""
+        for i in $(ls -d $VTK_INSTALL_PREFIX/vtk*) $VTK_INCLUDE; do
+            # VTK 6 has a version macros file
+            if test -r $i/vtkVersionMacros.h; then
+                # Get the version number from the macros file
+                this_vtk_version=$(grep VTK_MAJOR_VERSION $i/vtkVersionMacros.h | sed 's/#define VTK_MAJOR_VERSION //')
+                # Use the latest version available
+                if [ $this_vtk_version -gt $vtk_version ]; then
+                   vtk_version=$this_vtk_version
+                   vtk_include_dir=$i
+                   vtk_version_file="vtkVersionMacros.h"
+                fi
+            # VTK 5 has a configure file that defined the macros
+            elif test -r $i/vtkConfigure.h; then
+                # Get the version number from the configure file
+                this_vtk_version=$(grep VTK_MAJOR_VERSION $i/vtkConfigure.h | sed 's/#define VTK_MAJOR_VERSION //')
+                # Use the latest version available
+                if [ $this_vtk_version -gt $vtk_version ]; then
+                   vtk_version=$this_vtk_version
+                   vtk_include_dir=$i
+                   vtk_version_file="vtkConfigure.h"
+                fi
+            else
+              { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Found VTK folder $i but could not find file to get version." >&5
+$as_echo "$as_me: WARNING: Found VTK folder $i but could not find file to get version." >&2;}
+            fi
+        done
+
+        # Add to include path
+        as_ac_Header=`$as_echo "ac_cv_header_$vtk_include_dir/$vtk_version_file" | $as_tr_sh`
+ac_fn_cxx_check_header_mongrel "$LINENO" "$vtk_include_dir/$vtk_version_file" "$as_ac_Header" "$ac_includes_default"
+if eval test \"x\$"$as_ac_Header"\" = x"yes"; then :
+  CPPFLAGS="$CPPFLAGS -I$vtk_include_dir -DHAVE_VTK=1"
+                         VTK=yes
+else
+  as_fn_error $? "Cannot find vtk installation." "$LINENO" 5
+fi
+
+
+
+        { $as_echo "$as_me:${as_lineno-$LINENO}: Found and using VTK major version: $vtk_version" >&5
+$as_echo "$as_me: Found and using VTK major version: $vtk_version" >&6;}
+
+        # Link the correct libraries depending on the version
+        if [ "x$vtk_version" == "x5" ]; then
+            # Usually the location of the libraries is not a mystery. The
+            # header files are another matter.
+            { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -ldl" >&5
 $as_echo_n "checking for main in -ldl... " >&6; }
 if ${ac_cv_lib_dl_main+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -9762,7 +9819,7 @@ _ACEOF
 
 fi
 
-        { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lvtkCommon" >&5
+            { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lvtkCommon" >&5
 $as_echo_n "checking for main in -lvtkCommon... " >&6; }
 if ${ac_cv_lib_vtkCommon_main+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -9817,9 +9874,9 @@ _ACEOF
 
 else
   if test "x$VTK_LIBS" != "x" ; then
-                LIBS="$LIBS -L$VTK_LIBS"
-                unset ac_cv_lib_vtkCommon_main
-                { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lvtkCommon" >&5
+                    LIBS="$LIBS -L$VTK_LIBS"
+                    unset ac_cv_lib_vtkCommon_main
+                    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lvtkCommon" >&5
 $as_echo_n "checking for main in -lvtkCommon... " >&6; }
 if ${ac_cv_lib_vtkCommon_main+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -9874,19 +9931,19 @@ _ACEOF
 
 else
 
-                      as_fn_error $? "Cannot find vtk installation." "$LINENO" 5
-                      exit -1
+                          as_fn_error $? "Cannot find vtk installation." "$LINENO" 5
+                          exit -1
 
 fi
 
-             else
-                as_fn_error $? "Cannot find vtk installation." "$LINENO" 5
-                exit -1
-             fi
+                 else
+                    as_fn_error $? "Cannot find vtk installation." "$LINENO" 5
+                    exit -1
+                 fi
 
 fi
 
-        { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lvtkzlib" >&5
+            { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lvtkzlib" >&5
 $as_echo_n "checking for main in -lvtkzlib... " >&6; }
 if ${ac_cv_lib_vtkzlib_main+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -9941,7 +9998,7 @@ _ACEOF
 
 fi
 
-        { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lvtkexpat" >&5
+            { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lvtkexpat" >&5
 $as_echo_n "checking for main in -lvtkexpat... " >&6; }
 if ${ac_cv_lib_vtkexpat_main+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -9996,7 +10053,7 @@ _ACEOF
 
 fi
 
-        { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lvtkFiltering" >&5
+            { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lvtkFiltering" >&5
 $as_echo_n "checking for main in -lvtkFiltering... " >&6; }
 if ${ac_cv_lib_vtkFiltering_main+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -10051,7 +10108,7 @@ _ACEOF
 
 fi
 
-        { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lvtkGraphics" >&5
+            { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lvtkGraphics" >&5
 $as_echo_n "checking for main in -lvtkGraphics... " >&6; }
 if ${ac_cv_lib_vtkGraphics_main+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -10106,7 +10163,7 @@ _ACEOF
 
 fi
 
-        { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lvtkIO" >&5
+            { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lvtkIO" >&5
 $as_echo_n "checking for main in -lvtkIO... " >&6; }
 if ${ac_cv_lib_vtkIO_main+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -10162,28 +10219,28 @@ _ACEOF
 fi
 
 
-        # check at the usual places:
-        for i in $(ls -d /usr/include/vtk*) $VTK_INCLUDE; do
-            if test -r $i/vtkCellData.h; then
-                CPPFLAGS="-I$i $CPPFLAGS"
-            fi
-        done
-        ac_fn_cxx_check_header_mongrel "$LINENO" "vtkCellData.h" "ac_cv_header_vtkCellData_h" "$ac_includes_default"
+            # check at the usual places:
+            for i in $(ls -d /usr/include/vtk*) $VTK_INCLUDE; do
+                if test -r $i/vtkCellData.h; then
+                    CPPFLAGS="-I$i $CPPFLAGS"
+                fi
+            done
+            ac_fn_cxx_check_header_mongrel "$LINENO" "vtkCellData.h" "ac_cv_header_vtkCellData_h" "$ac_includes_default"
 if test "x$ac_cv_header_vtkCellData_h" = xyes; then :
   CPPFLAGS="$CPPFLAGS -DHAVE_VTK=1"
-                VTK=yes
+                    VTK=yes
 
 else
   ac_fn_cxx_check_header_mongrel "$LINENO" "vtk-5.0/vtkCellData.h" "ac_cv_header_vtk_5_0_vtkCellData_h" "$ac_includes_default"
 if test "x$ac_cv_header_vtk_5_0_vtkCellData_h" = xyes; then :
   CPPFLAGS="$CPPFLAGS -DHAVE_VTK=1"
-                        VTK=yes
-                        vtk_header_relative_path="vtk-5.0/"
+                            VTK=yes
+                            vtk_header_relative_path="vtk-5.0/"
 
 else
 
-                        as_fn_error $? "Cannot find vtk installation." "$LINENO" 5
-                        exit -1
+                            as_fn_error $? "Cannot find vtk installation." "$LINENO" 5
+                            exit -1
 
 fi
 
@@ -10192,6 +10249,355 @@ fi
 fi
 
 
+        elif [ "x$vtk_version" == "x6" ]; then
+            if test -d /usr/lib64/vtk ; then
+                LIBS="$LIBS -L/usr/lib64/vtk"
+            fi
+            { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lvtkCommonCore" >&5
+$as_echo_n "checking for main in -lvtkCommonCore... " >&6; }
+if ${ac_cv_lib_vtkCommonCore_main+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lvtkCommonCore  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+#ifdef F77_DUMMY_MAIN
+
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int F77_DUMMY_MAIN() { return 1; }
+
+#endif
+#ifdef FC_DUMMY_MAIN
+#ifndef FC_DUMMY_MAIN_EQ_F77
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int FC_DUMMY_MAIN() { return 1; }
+#endif
+#endif
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"; then :
+  ac_cv_lib_vtkCommonCore_main=yes
+else
+  ac_cv_lib_vtkCommonCore_main=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_vtkCommonCore_main" >&5
+$as_echo "$ac_cv_lib_vtkCommonCore_main" >&6; }
+if test "x$ac_cv_lib_vtkCommonCore_main" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBVTKCOMMONCORE 1
+_ACEOF
+
+  LIBS="-lvtkCommonCore $LIBS"
+
+else
+  if test "x$VTK_LIBS" != "x" ; then
+                    LIBS="$LIBS -L$VTK_LIBS"
+                    unset ac_cv_lib_vtkCommonCore_main
+                    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lvtkCommonCore" >&5
+$as_echo_n "checking for main in -lvtkCommonCore... " >&6; }
+if ${ac_cv_lib_vtkCommonCore_main+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lvtkCommonCore  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+#ifdef F77_DUMMY_MAIN
+
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int F77_DUMMY_MAIN() { return 1; }
+
+#endif
+#ifdef FC_DUMMY_MAIN
+#ifndef FC_DUMMY_MAIN_EQ_F77
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int FC_DUMMY_MAIN() { return 1; }
+#endif
+#endif
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"; then :
+  ac_cv_lib_vtkCommonCore_main=yes
+else
+  ac_cv_lib_vtkCommonCore_main=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_vtkCommonCore_main" >&5
+$as_echo "$ac_cv_lib_vtkCommonCore_main" >&6; }
+if test "x$ac_cv_lib_vtkCommonCore_main" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBVTKCOMMONCORE 1
+_ACEOF
+
+  LIBS="-lvtkCommonCore $LIBS"
+
+else
+
+                          as_fn_error $? "Cannot find vtk installation." "$LINENO" 5
+                          exit -1
+
+fi
+
+                 else
+                    as_fn_error $? "Cannot find vtk installation." "$LINENO" 5
+                    exit -1
+                 fi
+
+fi
+
+            { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lvtkIOXML" >&5
+$as_echo_n "checking for main in -lvtkIOXML... " >&6; }
+if ${ac_cv_lib_vtkIOXML_main+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lvtkIOXML  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+#ifdef F77_DUMMY_MAIN
+
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int F77_DUMMY_MAIN() { return 1; }
+
+#endif
+#ifdef FC_DUMMY_MAIN
+#ifndef FC_DUMMY_MAIN_EQ_F77
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int FC_DUMMY_MAIN() { return 1; }
+#endif
+#endif
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"; then :
+  ac_cv_lib_vtkIOXML_main=yes
+else
+  ac_cv_lib_vtkIOXML_main=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_vtkIOXML_main" >&5
+$as_echo "$ac_cv_lib_vtkIOXML_main" >&6; }
+if test "x$ac_cv_lib_vtkIOXML_main" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBVTKIOXML 1
+_ACEOF
+
+  LIBS="-lvtkIOXML $LIBS"
+
+fi
+
+            { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lvtkIOParallel" >&5
+$as_echo_n "checking for main in -lvtkIOParallel... " >&6; }
+if ${ac_cv_lib_vtkIOParallel_main+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lvtkIOParallel  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+#ifdef F77_DUMMY_MAIN
+
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int F77_DUMMY_MAIN() { return 1; }
+
+#endif
+#ifdef FC_DUMMY_MAIN
+#ifndef FC_DUMMY_MAIN_EQ_F77
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int FC_DUMMY_MAIN() { return 1; }
+#endif
+#endif
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"; then :
+  ac_cv_lib_vtkIOParallel_main=yes
+else
+  ac_cv_lib_vtkIOParallel_main=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_vtkIOParallel_main" >&5
+$as_echo "$ac_cv_lib_vtkIOParallel_main" >&6; }
+if test "x$ac_cv_lib_vtkIOParallel_main" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBVTKIOPARALLEL 1
+_ACEOF
+
+  LIBS="-lvtkIOParallel $LIBS"
+
+fi
+
+            { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lvtkIOCore" >&5
+$as_echo_n "checking for main in -lvtkIOCore... " >&6; }
+if ${ac_cv_lib_vtkIOCore_main+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lvtkIOCore  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+#ifdef F77_DUMMY_MAIN
+
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int F77_DUMMY_MAIN() { return 1; }
+
+#endif
+#ifdef FC_DUMMY_MAIN
+#ifndef FC_DUMMY_MAIN_EQ_F77
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int FC_DUMMY_MAIN() { return 1; }
+#endif
+#endif
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"; then :
+  ac_cv_lib_vtkIOCore_main=yes
+else
+  ac_cv_lib_vtkIOCore_main=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_vtkIOCore_main" >&5
+$as_echo "$ac_cv_lib_vtkIOCore_main" >&6; }
+if test "x$ac_cv_lib_vtkIOCore_main" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBVTKIOCORE 1
+_ACEOF
+
+  LIBS="-lvtkIOCore $LIBS"
+
+fi
+
+            { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lvtkCommonDataModel" >&5
+$as_echo_n "checking for main in -lvtkCommonDataModel... " >&6; }
+if ${ac_cv_lib_vtkCommonDataModel_main+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lvtkCommonDataModel  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+#ifdef F77_DUMMY_MAIN
+
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int F77_DUMMY_MAIN() { return 1; }
+
+#endif
+#ifdef FC_DUMMY_MAIN
+#ifndef FC_DUMMY_MAIN_EQ_F77
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int FC_DUMMY_MAIN() { return 1; }
+#endif
+#endif
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"; then :
+  ac_cv_lib_vtkCommonDataModel_main=yes
+else
+  ac_cv_lib_vtkCommonDataModel_main=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_vtkCommonDataModel_main" >&5
+$as_echo "$ac_cv_lib_vtkCommonDataModel_main" >&6; }
+if test "x$ac_cv_lib_vtkCommonDataModel_main" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBVTKCOMMONDATAMODEL 1
+_ACEOF
+
+  LIBS="-lvtkCommonDataModel $LIBS"
+
+fi
+
+        fi
     fi
 fi
 cat > include/vtk.h <<EOF

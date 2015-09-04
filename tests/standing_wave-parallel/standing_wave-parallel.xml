@@ -2,7 +2,7 @@
 <testproblem>
   <name>Standing free surface wave in channel using P1DG-P2.</name>
   <owner userid="skramer"/>
-  <tags>flml parallel</tags>
+  <tags>flml parallel zoltan</tags>
   <problem_definition length="medium" nprocs="2">
     <command_line>mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l standing_wave standing_wave_flredecomp
 
@@ -13,11 +13,9 @@ spud-set standing_wave_1_checkpoint.flml /material_phase::water/scalar_field::Pr
 mpiexec ../../bin/fluidity -v3 -l standing_wave_1_checkpoint.flml</command_line>
   </problem_definition>
   <variables>
-    <variable name="solvers_converged" language="python">
-import os
+    <variable name="solvers_converged" language="python">import os
 files = os.listdir("./")
-solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
-    </variable>
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files</variable>
     <variable name="max_pressure_diff_left" language="python">import fluidity_tools
 det=fluidity_tools.stat_parser('standing_wave.detectors')
 plb=det['water']['Pressure']['LeftBottom']
@@ -59,9 +57,7 @@ diff=vtktools.VtuDiff(vtu_init_run, vtu_checkp)
 checkpoint_differences=dict([(name,abs(diff.GetField(name)).max()) for name in diff.GetFieldNames()])<comment>The checkpoint is run from half-way the initial run to the end. The outcome of the checkpoint run at the end should then be the same as the initial run at the end.</comment></variable>
   </variables>
   <pass_tests>
-    <test name="Solvers converged" language="python">
-      assert(solvers_converged)
-    </test>
+    <test name="Solvers converged" language="python">assert(solvers_converged)</test>
     <test name="pressure_diff_left" language="python">assert(max_pressure_diff_left&lt;0.05)</test>
     <test name="pressure_diff_right" language="python">assert(max_pressure_diff_right&lt;0.05)</test>
     <test name="pressure_diff_middle" language="python">assert(max_pressure_diff_middle&lt;0.005)</test>
