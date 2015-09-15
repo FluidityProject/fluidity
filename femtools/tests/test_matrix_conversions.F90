@@ -4,15 +4,14 @@ subroutine test_matrix_conversions
   use sparse_tools
   use petsc_tools
   use unittest_tools
+#ifdef HAVE_PETSC_MODULES
+  use petsc 
+#endif
   implicit none
   
-#ifdef HAVE_PETSC
-#include "finclude/petsc.h"
-#if PETSC_VERSION_MINOR==0
-#include "finclude/petscmat.h"
-#endif
-  Mat M
-#endif
+#include "petsc_legacy.h"
+
+  Mat:: M
   type(dynamic_csr_matrix):: R, S
   type(csr_matrix):: A, B
   logical fail
@@ -28,7 +27,6 @@ subroutine test_matrix_conversions
   call report_test("[dcsr2csr2dcsr]", fail, .false., &
     "Converting from dcsr_matrix to csr_matrix and back failed.")
     
-#ifdef HAVE_PETSC
   M=csr2petsc(A)
   
   B=petsc2csr(M)
@@ -39,7 +37,6 @@ subroutine test_matrix_conversions
   
   call report_test("[csr2petsc2csr]", fail, .false., &
     "Converting from csr_matrix to PETSc Mat and back failed.")
-#endif
 
 end subroutine test_matrix_conversions
 
