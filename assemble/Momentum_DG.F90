@@ -849,6 +849,7 @@ contains
     if (ADM_absorption) then
       ewrite(2,*) 'ADM-(absorption)---------------------------------------'
       do discs = 1, ndiscs
+        call allsum(energy_integral(discs)) !A! necessary when running in parallel
         ewrite(2,*) 'Disc No.:', discs, 'Turbine Volume (m3):', disc_volume, 'Power (W):', energy_integral(discs)*rho_fluid
       end do
       ewrite(2,*) '-------------------------------------------------------'
