@@ -33,7 +33,7 @@ endtime = stat['ElapsedTime']['value'][-1]</variable>
     <test name="TestUmin" language="python">assert(umin&gt;0.999)</test>
     <test name="TestUmax" language="python">assert(umax&lt;1.021)</test>
     <test name="TestErrorMax" language="python">assert(errormax&lt;0.025)</test>
-    <test name="TestVmax" language="python">assert(vmax&lt;1.e-5)</test>
+    <test name="TestVmax" language="python">assert(vmax&lt;2.e-5)</test>
     <test name="TestErrorL2" language="python">area=1.e5*1.e3
 assert(errorl2&lt;1.e-5*area)</test>
     <test name="TestEndTime" language="python">assert(endtime&lt;1.0e6)<comment>Make sure we reach a steady state</comment></test>
