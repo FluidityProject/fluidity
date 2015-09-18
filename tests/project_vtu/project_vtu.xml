@@ -11,7 +11,7 @@ rm -rf output*;
 for i in A B C D; do
   sed "s/INPUT/MMS_${i}/" prescribe.flml &gt; output.flml;
   fluidity -l output.flml;
-  project_vtu output_CoordinateMesh_1_checkpoint.vtu output_CoordinateMesh_1_checkpoint MMS_E fine.vtu;
+  project_vtu output_CoordinateMesh_1_checkpoint.vtu MMS_E fine.vtu;
   project_vtu output_1.vtu output_CoordinateMesh_1_checkpoint MMS_E fine_dg.vtu;
   vtudiff fine.vtu reference.vtu diff${i}.vtu;
   vtudiff fine_dg.vtu reference_dg.vtu diff${i}_dg.vtu;

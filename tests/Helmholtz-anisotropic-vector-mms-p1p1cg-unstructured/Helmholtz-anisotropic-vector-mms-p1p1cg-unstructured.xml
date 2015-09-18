@@ -569,11 +569,11 @@ assert(ab_convergence_isocomm[0][0] &gt; 0.9)
     <test name="ab_convergence_anisocomm: L2 order > 0.9" language="python">
 assert(ab_convergence_anisocomm[0][0] &gt; 0.9)
     </test>
-    <test name="bc_convergence_isocomm: L2 order > 0.8" language="python">
-assert(bc_convergence_isocomm[0][0] &gt; 0.8)
+    <test name="bc_convergence_isocomm: L2 order > 0.7" language="python">
+assert(bc_convergence_isocomm[0][0] &gt; 0.7)
     </test>
-    <test name="bc_convergence_anisocomm: L2 order > 0.6" language="python">
-assert(bc_convergence_anisocomm[0][0] &gt; 0.6)
+    <test name="bc_convergence_anisocomm: L2 order > 0.55" language="python">
+assert(bc_convergence_anisocomm[0][0] &gt; 0.55)
     </test>
     <test name="cd_convergence_isocomm: L2 order > 0.4" language="python">
 assert(cd_convergence_isocomm[0][0] &gt; 0.3)

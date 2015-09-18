@@ -31,8 +31,7 @@ PACKAGE_NAME = @PACKAGE_NAME@
 FLUIDITY = $(PACKAGE_NAME)
 
 FC      = @FC@
-FCFLAGS = -I../../include @FCFLAGS@ @MODINC_FLAG@../../f90modules \
-  @MODINC_FLAG@../
+FCFLAGS = -I../../include @FCFLAGS@ @MODINC_FLAG@../
 
 CC  = @CC@
 CFLAGS  = @CFLAGS@ -I../../include

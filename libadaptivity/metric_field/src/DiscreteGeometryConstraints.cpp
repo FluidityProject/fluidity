@@ -85,7 +85,9 @@ void DiscreteGeometryConstraints::set_volume_input(vtkUnstructuredGrid *_ug){
   if(verbose)
     cout<<"void DiscreteGeometryConstraints::set_volume_input(vtkUnstructuredGrid *ug)\n";
   ug = _ug;
+#if VTK_MAJOR_VERSION <= 5
   ug->Update();
+#endif
 
   // Get node-element adjancy list
   size_t NElements = ug->GetNumberOfCells();
@@ -193,7 +195,9 @@ void DiscreteGeometryConstraints::write_vtk(std::string filename){
       field->SetTuple1(i, coplanar_ids[i]);
     }
     sug->GetCellData()->AddArray(field);
+#if VTK_MAJOR_VERSION <= 5
     sug->Update();
+#endif
     field->Delete();
   }
 
@@ -207,13 +211,19 @@ void DiscreteGeometryConstraints::write_vtk(std::string filename){
       field->SetTuple1(i, gconstraint[i]);
     }
     sug->GetPointData()->AddArray(field);
+#if VTK_MAJOR_VERSION <= 5
     sug->Update();
+#endif
     field->Delete();
   }
 
   vtkXMLUnstructuredGridWriter *sug_writer = vtkXMLUnstructuredGridWriter::New();
   sug_writer->SetFileName(filename.c_str());
+#if VTK_MAJOR_VERSION <= 5
   sug_writer->SetInput(sug);
+#else
+  sug_writer->SetInputData(sug);
+#endif
   sug_writer->Write();
   sug_writer->Delete();
   
