@@ -136,9 +136,8 @@
         <spatial_discretisation>
           <discontinuous_galerkin>
             <viscosity_scheme>
-              <bassi_rebay>
-                <partial_stress_form/>
-              </bassi_rebay>
+              <bassi_rebay/>
+              <partial_stress_form/>
             </viscosity_scheme>
             <advection_scheme>
               <upwind/>
@@ -151,6 +150,7 @@
                 <real_value rank="0">0.164</real_value>
               </smagorinsky_coefficient>
             </les_model>
+            <buoyancy/>
           </discontinuous_galerkin>
           <conservative_advection>
             <real_value rank="0">0.0</real_value>
