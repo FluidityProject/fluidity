@@ -9,7 +9,7 @@ Homepage: http://amcg.ese.ic.ac.uk/fluidity
 
 Package: fluidity
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, diamond, triangle | triangle-bin, python, gmsh, python-lxml, python-scipy, python-numpy, python-vtk, python-matplotlib, python-sympy, python-fluidity, python-spud, libspud-dev, libadjoint, make
+Depends: ${shlibs:Depends}, ${misc:Depends}, diamond, triangle | triangle-bin, python, gmsh, python-lxml, python-scipy, python-numpy, python-vtk, python-matplotlib, python-sympy, python-fluidity, python-spud, libspud-dev, make
 Description: 3D adaptive CFD model from Imperial College London
  Fluidity is a general purpose multi-phase CFD code capable of solving
  numerically the Navier-Stokes and accompanying field equations on
