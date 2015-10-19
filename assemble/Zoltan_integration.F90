@@ -849,9 +849,13 @@ module zoltan_integration
        end if
 
        if (p1_num_import>0) then
+         ! It appears that with gcc5 this routine crashes if p1_num_import==0
+         ! not entirely sure whether this is a bug in zoltan with gcc5 or
+         ! whether we are indeed not suppposed to deallocate this if there are no imports
          ierr = Zoltan_LB_Free_Part(null_pointer, null_pointer, null_pointer, import_to_part); assert(ierr == ZOLTAN_OK)
        end if
        if (p1_num_export>0) then
+         ! see comment above, p1_num_import -> p1_num_export
          ierr = Zoltan_LB_Free_Part(null_pointer, null_pointer, null_pointer, export_to_part); assert(ierr == ZOLTAN_OK)
        end if
 
