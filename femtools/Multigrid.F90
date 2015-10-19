@@ -200,7 +200,7 @@ end subroutine DestroyInternalSmoother
 
 subroutine SetupMultigrid(prec, matrix, ierror, &
   external_prolongators, surface_node_list, matrix_csr, &
-  internal_smoothing_option, has_null_space)
+  internal_smoothing_option)
 !!< This subroutine sets up the multigrid preconditioner including
 !!< all options (vertical_lumping, internal_smoother)
 PC, intent(inout):: prec
@@ -216,8 +216,6 @@ type(petsc_csr_matrix), dimension(:), optional, intent(in):: external_prolongato
 integer, optional, dimension(:):: surface_node_list
 type(csr_matrix), intent(in), optional :: matrix_csr
 integer, optional, intent(in) :: internal_smoothing_option
-!! option to prevent a direct solve at the coarsest level
-logical, optional, intent(in) :: has_null_space
 
 integer :: linternal_smoothing_option
 
@@ -234,8 +232,7 @@ integer :: linternal_smoothing_option
   case (INTERNAL_SMOOTHING_NONE)
      !Don't apply internal smoothing, just regular mg
      call SetupSmoothedAggregation(prec, matrix, ierror, &
-          external_prolongators=external_prolongators, &
-          has_null_space=has_null_space)
+          external_prolongators=external_prolongators)
   case (INTERNAL_SMOOTHING_WRAP_SOR)
      !Apply the internal smoothing with wrapped SOR
      if(.not.present(surface_node_list)) then
@@ -277,8 +274,7 @@ integer :: linternal_smoothing_option
      ! set up the vertical_lumped mg
      call PCCompositeGetPC(subprec, 0, subsubprec, ierr)
      call SetupSmoothedAggregation(subsubprec, matrix, ierror, &
-          external_prolongators, no_top_smoothing=.true., &
-          has_null_space=has_null_space)
+          external_prolongators, no_top_smoothing=.true.)
      !set up the "internal" mg shell
      call PCCompositeGetPC(subprec, 1, subsubprec, ierr)
      call SetupInternalSmoother(surface_node_list,matrix_csr,subsubprec, &
@@ -303,8 +299,7 @@ integer :: linternal_smoothing_option
      ! set up the vertical_lumped mg
      call PCCompositeGetPC(prec, 0, subprec, ierr)
      call SetupSmoothedAggregation(subprec, matrix, ierror, &
-          external_prolongators=external_prolongators, &
-          has_null_space=has_null_space)
+          external_prolongators=external_prolongators)
      ! set up the "internal" mg shell
      call PCCompositeGetPC(prec, 1, subprec, ierr)
      call SetupInternalSmoother(surface_node_list,matrix_csr,subprec)
@@ -334,7 +329,7 @@ PC, intent(inout):: prec
 end subroutine DestroyMultigrid
 
 subroutine SetupSmoothedAggregation(prec, matrix, ierror, &
-  external_prolongators,no_top_smoothing, has_null_space)
+  external_prolongators,no_top_smoothing)
 !!< This subroutine sets up the preconditioner for using the smoothed
 !!< aggregation method (as described in Vanek et al. 
 !!< Computing 56, 179-196 (1996).
@@ -347,13 +342,12 @@ integer, intent(out):: ierror
 type(petsc_csr_matrix), dimension(:), optional, intent(in):: external_prolongators
 !! Don't do smoothing on the top level
 logical, intent(in), optional :: no_top_smoothing
-!! option to prevent a direct solve at the coarsest level
-logical, optional, intent(in) :: has_null_space
 
   Mat, allocatable, dimension(:):: matrices, prolongators
   KSP ksp_smoother
   PC  prec_smoother
   Vec lvec, rvec
+  MatNullSpace nullsp
   PetscErrorCode ierr
   PetscReal epsilon, epsilon_decay, omega
   PetscInt maxlevels, coarsesize
@@ -484,7 +478,7 @@ logical, optional, intent(in) :: has_null_space
         emax(ri)=eigval
         
         myPETSC_NULL_OBJECT=PETSC_NULL_OBJECT
-        call MatGetVecs(prolongators(ri-1), PETSC_NULL_OBJECT, Px, ierr)
+        call MatCreateVecs(prolongators(ri-1), PETSC_NULL_OBJECT, Px, ierr)
         if (myPETSC_NULL_OBJECT/=PETSC_NULL_OBJECT) then
            FLAbort("PETSC_NULL_OBJECT has changed please report to skramer")
         end if
@@ -565,7 +559,7 @@ logical, optional, intent(in) :: has_null_space
     do i=0, nolevels-2
       ri=nolevels-i
       ! using PETSC_NULL_OBJECT for rvec leaks a reference
-      call MatGetVecs(matrices(ri), lvec, rvec, ierr)
+      call MatCreateVecs(matrices(ri), lvec, rvec, ierr)
       call PCMGSetRHS(prec, i, lvec, ierr)
       ! Again, this does not yet destroy rhs immediately:
       call VecDestroy(lvec, ierr)
@@ -573,7 +567,7 @@ logical, optional, intent(in) :: has_null_space
     end do
       
     ! residual needs to be set if PCMG is used with KSPRICHARDSON
-    call MatGetVecs(matrices(1), lvec, rvec, ierr)
+    call MatCreateVecs(matrices(1), lvec, rvec, ierr)
     call PCMGSetR(prec, nolevels-1, lvec, ierr)
     call VecDestroy(lvec, ierr)
     call VecDestroy(rvec, ierr)
@@ -581,7 +575,9 @@ logical, optional, intent(in) :: has_null_space
     ! solver options coarsest level:
     call PCMGGetCoarseSolve(prec, ksp_smoother, ierr)
     call KSPGetPC(ksp_smoother, prec_smoother, ierr)
-    if (IsParallel() .or. present_and_true(has_null_space)) then
+    call MatGetNullSpace(matrix, nullsp, ierr)
+    if (IsParallel() .or. (nullsp/=PETSC_NULL_OBJECT .and. ierr==0)) then
+      ! if parallel or if we have a null space: use smoothing instead of direct solve
       call SetupSORSmoother(ksp_smoother, matrices(nolevels), &
         SOR_LOCAL_SYMMETRIC_SWEEP, 20)
     else
@@ -763,7 +759,7 @@ integer, optional, dimension(:), intent(out):: cluster
   allocate(findN(1:nrows+1), N(1:nentries), R(1:nrows))
      
   ! rescale the matrix: a_ij -> a_ij/sqrt(aii*ajj)
-  call MatGetVecs(A, diag, sqrt_diag, ierr)
+  call MatCreateVecs(A, diag, sqrt_diag, ierr)
   call MatGetDiagonal(A, diag, ierr)
   call VecMin(diag, diagminloc, diagmin, ierr)
   if (diagmin<=0.0) then
@@ -903,7 +899,7 @@ subroutine create_prolongator(P, nrows, ncols, findN, N, R, A, base, omega)
   end if
   
   myPETSC_NULL_OBJECT=PETSC_NULL_OBJECT
-  call MatGetVecs(A, rowsum_vec, PETSC_NULL_OBJECT, ierr)
+  call MatCreateVecs(A, rowsum_vec, PETSC_NULL_OBJECT, ierr)
   if (myPETSC_NULL_OBJECT/=PETSC_NULL_OBJECT) then
     FLAbort("PETSC_NULL_OBJECT has changed please report to skramer")
   end if
@@ -1110,7 +1106,7 @@ Vec, intent(out):: eigvec
   PetscRandom:: pr
   PetscObject:: myPETSC_NULL_OBJECT  
   
-  call MatGetVecs(matrix, x_kp1, x_k, ierr)
+  call MatCreateVecs(matrix, x_kp1, x_k, ierr)
   
   ! initial guess
   call PetscRandomCreate(PETSC_COMM_WORLD, pr, ierr)

@@ -80,7 +80,10 @@ def get_head_speed(filelist, timdum=0.25):
 #      cutter.Update()
       contour = vtk.vtkContourFilter ()
 #      contour.SetInput(cutter.GetOutput())
-      contour.SetInput(data)
+      if vtk.vtkVersion.GetVTKMajorVersion() &lt;= 5:
+        contour.SetInput(data)
+      else:
+        contour.SetInputData(data)
       contour.SetValue(0, 0.0)
       contour.Update()
       polydata = contour.GetOutput()

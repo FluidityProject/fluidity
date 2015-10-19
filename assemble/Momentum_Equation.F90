@@ -201,7 +201,10 @@
          type(vector_field), dimension(1:size(state)):: mom_rhs
          ! Projection RHS
          type(scalar_field) :: projec_rhs
+         ! RHS for continuity equation
          type(scalar_field), dimension(1:size(state)):: ct_rhs
+         ! RHS for subcycling containing advection bc terms
+         type(vector_field), dimension(1:size(state)):: subcycle_rhs
 
          ! Do we want to assemble the KMK stabilisation matrix?
          logical :: assemble_kmk
@@ -582,6 +585,7 @@
                   ! subcycle_m currently only contains advection, so diagonal=.true.
                   call allocate(subcycle_m(istate), u_sparsity, (/u%dim, u%dim/), &
                      diagonal=.true., name = "subcycle_m")
+                  call allocate(subcycle_rhs(istate), u%dim, u%mesh, "SubCycleMomentumRHS")
                end if
             else
                ! Create a sparsity if necessary or pull it from state:
@@ -631,7 +635,7 @@
                      inverse_masslump=inverse_masslump(istate), &
                      inverse_mass=inverse_mass(istate), &
                      include_pressure_bcs=.not. cv_pressure, &
-                     subcycle_m=subcycle_m(istate))
+                     subcycle_m=subcycle_m(istate), subcycle_rhs=subcycle_rhs(istate))
                else
                   call construct_momentum_dg(u, p, density, x, &
                      big_m(istate), mom_rhs(istate), state(istate), &
@@ -1052,7 +1056,7 @@
                   end if
 
                   call advance_velocity(state, istate, x, u, p_theta, big_m, ct_m, &
-                                        mom_rhs, subcycle_m, inverse_mass)
+                                        mom_rhs, subcycle_m, subcycle_rhs, inverse_mass)
 
                   if(prognostic_p) then
                      call assemble_projection(state, istate, u, old_u, p, cmc_m, reassemble_cmc_m, cmc_global, ctp_m, &
@@ -1252,7 +1256,7 @@
                                     &"/discontinuous_galerkin")) then
 
                call finalise_state(state, istate, u, mass, inverse_mass, inverse_masslump, &
-                                   big_m, mom_rhs, ct_rhs, subcycle_m)
+                                   big_m, mom_rhs, ct_rhs, subcycle_m, subcycle_rhs)
 
             end if
 
@@ -1516,7 +1520,7 @@
       end subroutine solve_poisson_pressure
 
 
-      subroutine advance_velocity(state, istate, x, u, p_theta, big_m, ct_m, mom_rhs, subcycle_m, inverse_mass)
+      subroutine advance_velocity(state, istate, x, u, p_theta, big_m, ct_m, mom_rhs, subcycle_m, subcycle_rhs, inverse_mass)
          !!< Solve momentum equation using pressure guess and advance velocity from u^{n} to u^{*}
 
          ! An array of buckets full of fields
@@ -1536,8 +1540,9 @@
 
          type(vector_field), dimension(:), intent(inout) :: mom_rhs
 
-         ! Matrix for split explicit advection
+         ! Matrix and rhs for split explicit advection
          type(block_csr_matrix), dimension(:), intent(in) :: subcycle_m
+         type(vector_field), dimension(:), intent(in) :: subcycle_rhs
 
          !! Local variables
          ! Change in velocity
@@ -1559,7 +1564,8 @@
 
          ! Apply advection subcycling
          if(subcycle(istate)) then
-            call subcycle_momentum_dg(u, mom_rhs(istate), subcycle_m(istate), inverse_mass(istate), state(istate))
+            call subcycle_momentum_dg(u, mom_rhs(istate), subcycle_m(istate), &
+              subcycle_rhs(istate), inverse_mass(istate), state(istate))
          end if
 
          if (associated(ct_m(istate)%ptr)) then
@@ -1878,7 +1884,7 @@
 
 
       subroutine finalise_state(state, istate, u, mass, inverse_mass, inverse_masslump, &
-                               big_m, mom_rhs, ct_rhs, subcycle_m)
+                               big_m, mom_rhs, ct_rhs, subcycle_m, subcycle_rhs)
          !!< Does some finalisation steps to the velocity field and deallocates some memory
          !!< allocated for the specified state.
 
@@ -1900,8 +1906,9 @@
          ! Momentum RHS
          type(vector_field), dimension(:), intent(inout) :: mom_rhs
          type(scalar_field), dimension(:), intent(inout) :: ct_rhs
-         ! Matrix for split explicit advection
+         ! Matrix and rhs for split explicit advection
          type(block_csr_matrix), dimension(:), intent(inout) :: subcycle_m
+         type(vector_field), dimension(:), intent(inout) :: subcycle_rhs
 
          ! Local variables for reduced model
          integer :: d
@@ -1947,6 +1954,7 @@
          call deallocate(big_m(istate))
          if(subcycle(istate)) then
             call deallocate(subcycle_m(istate))
+            call deallocate(subcycle_rhs(istate))
          end if
 
       end subroutine finalise_state
