@@ -48,7 +48,6 @@ module populate_state_module
   use halos
   use tictoc
   use hadapt_extrude
-  use hadapt_extrude_radially
   use initialise_fields_module
   use transform_elements
   use parallel_tools
@@ -710,8 +709,6 @@ contains
               call allocate(extrudedposition, h_dim+1, mesh, "EmptyCoordinate") ! name is fixed below
               call deallocate(mesh)
               if (IsParallel()) call create_empty_halo(extrudedposition)
-            else if (have_option('/geometry/spherical_earth/')) then
-              call extrude_radially(modelposition, mesh_path, extrudedposition)
             else
               call extrude(modelposition, mesh_path, extrudedposition)
             end if
