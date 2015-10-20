@@ -183,6 +183,14 @@ module zoltan_integration
       call cleanup_basic_module_variables(zz)
       call cleanup_quality_module_variables
       dumpno = dumpno + 1
+
+      if (final_adapt_iteration) then
+        ! interpolation does not interpolate in the halo regions, so we need a halo update afterwards
+        ! normally this happens automatically due to the subsequent zoltan migration process, however
+        ! if zoltan decides to not do anything we need to do it manually. We only need it in the final one
+        ! because interpolation does halo update the old fields before the adapt.
+        call halo_update(states)
+      end if
       return
     end if
 
