@@ -101,7 +101,7 @@
               <constant>
                 <real_value rank="0">0.1</real_value>
               </constant>
-              <varies_only_in_z/>
+              <varies_only_in_depth/>
             </sizing_function>
           </regions>
         </extrude>

@@ -99,14 +99,12 @@ not necessarily correspond to the data in a given file.</a:documentation>
         </optional>
         <optional>
           <element name="surface_height">
-            <a:documentation>For use with 2D depth maps.
-If you are reading data from a file whose top layer height
+            <a:documentation>If you are reading data from a file whose top layer height
 is not equal to zero, set the height of that top layer here.
 Note however that the height of the top layer in the the 
-extruded mesh will still be equal to zero, the given domain
-will in effect have been shifted down.
-This option has no effect when extruding meshes on the surface
-of a sphere.</a:documentation>
+extruded mesh will still be equal to zero (if planar) or 
+the radius of the shell mesh (if spherical), the given domain
+will in effect have been shifted down.</a:documentation>
             <ref name="real"/>
           </element>
         </optional>
