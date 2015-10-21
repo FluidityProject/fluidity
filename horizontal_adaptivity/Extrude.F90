@@ -496,8 +496,8 @@ module hadapt_extrude
       else
         delta_h = get_delta_h( xyz, is_constant, constant_value, py_func)
       end if
-      d=d + delta_h
-      if (d>depth-min_bottom_layer_frac*delta_h) exit
+      d=d + sign(delta_h, depth)
+      if (abs(d)>abs(depth)-min_bottom_layer_frac*delta_h) exit
       call insert(depths, d)
       if (depths%length>MAX_VERTICAL_NODES) then
         ewrite(-1,*) "Check your extrude/sizing_function"
@@ -523,7 +523,7 @@ module hadapt_extrude
 
     ! For pathological sizing functions the mesh might have gotten inverted at the last step.
     ! If you encounter this, make this logic smarter.
-    assert(node_val(z_mesh, z_mesh%dim, elements) > node_val(z_mesh, z_mesh%dim, elements+1))
+    assert(abs(node_val(z_mesh, 1, elements)) < abs(node_val(z_mesh, 1, elements+1)))
     
     assert(oned_quad%refcount%count == 1)
     assert(oned_shape%refcount%count == 1)

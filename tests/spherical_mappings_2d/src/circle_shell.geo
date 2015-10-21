@@ -1,6 +1,6 @@
 lto=1; // number of cells in a pi/4 segment in the tangential direction of the inner radius
 p=1;
-Point(1) = {2.7, 0, 0, 1.0};
+Point(1) = {1.2, 0, 0, 1.0};
 
 Extrude {{0, 0, 1}, {0, 0, 0}, Pi/4} {
   Point{1};
