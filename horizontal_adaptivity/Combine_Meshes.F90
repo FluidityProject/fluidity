@@ -32,18 +32,15 @@ module hadapt_combine_meshes
   !! the name of the topol. mesh to be created, not the coordinate field
   character(len=*), intent(in):: mesh_name, option_path
   logical, intent(in), optional :: sl
-  logical :: sigma_layers, radial_extrusion
+  logical :: sigma_layers
   
     type(csr_sparsity):: out_columns
     type(mesh_type):: mesh
     integer, dimension(:), allocatable:: no_hanging_nodes
     integer:: column, total_out_nodes, total_out_elements, z_elements, last_seen
-    real :: rescale_depth
 
     sigma_layers=present_and_true(sl)
 
-    radial_extrusion = have_option("/geometry/spherical_earth")
-    
     allocate(no_hanging_nodes(1:node_count(h_mesh)))
     no_hanging_nodes=0
     do column=1, size(z_meshes)
@@ -94,26 +91,16 @@ module hadapt_combine_meshes
     out_mesh%option_path=""
     out_mesh%mesh%periodic = mesh_periodic(h_mesh)
 
-    rescale_depth = 1.0
-    if (sigma_layers.and.radial_extrusion) then
-      rescale_depth = norm2(node_val(z_meshes(1),node_count(z_meshes(1)))-node_val(z_meshes(1),1))
-    end if
-
     last_seen = 0
     do column=1,node_count(h_mesh)
       if (node_owned(h_mesh, column)) then
-        if (sigma_layers.and..not.radial_extrusion) then
+        if (sigma_layers) then
           ! If we have sigma layers we will first use one chain to create a dummy
           ! 'mesh' that has the correct topological properties. We will later over write the
           !  vector field with the correct one. We always have chain '1', so we'll use that now.
-          call append_to_structures(column, z_meshes(1), out_mesh, last_seen)
-        else if (sigma_layers) then
-          ! If we are extruding radially then we can't just use the 1st z mesh as above.
-          ! Instead use the z_mesh for each column but rescale so the depth is the same as the 1st column.
-          ! Again, this will be undone later.
-          call append_to_structures(column, z_meshes(column), out_mesh, last_seen, rescale_depth=rescale_depth)
+          call append_to_structures(column, z_meshes(1), h_mesh, out_mesh, last_seen)
         else
-          call append_to_structures(column, z_meshes(column), out_mesh, last_seen)
+          call append_to_structures(column, z_meshes(column), h_mesh, out_mesh, last_seen)
         end if
       else
         ! for non-owned columns we reserve node numbers, 
@@ -143,7 +130,7 @@ module hadapt_combine_meshes
       last_seen = 0
       do column=1,node_count(h_mesh)
         if (node_owned(h_mesh, column)) then
-          call append_to_structures(column, z_meshes(column), out_mesh, last_seen)
+          call append_to_structures(column, z_meshes(column), h_mesh, out_mesh, last_seen)
         end if
       end do
       call halo_update(out_mesh)
@@ -153,40 +140,35 @@ module hadapt_combine_meshes
     
   end subroutine combine_z_meshes
   
-  subroutine append_to_structures(column, z_mesh, out_mesh, last_seen, rescale_depth)
+  subroutine append_to_structures(column, z_mesh, h_mesh, out_mesh, last_seen)
     integer, intent(in) :: column
-    type(vector_field), intent(in) :: z_mesh
+    type(vector_field), intent(in) :: z_mesh, h_mesh
     type(vector_field), intent(inout) :: out_mesh
     integer, intent(inout) :: last_seen
-    real, optional ::rescale_depth
 
     integer :: j
     integer :: v_dim
-    logical :: rescale
+    logical :: radial_extrusion
 
     real, dimension(mesh_dim(out_mesh)) :: pos, origin, direction
-    real :: depth_ratio, length
 
-    rescale = present(rescale_depth)
-
+    radial_extrusion = have_option("/geometry/spherical_earth")
+    
     v_dim = mesh_dim(out_mesh)
-    depth_ratio = 1.0
-    if (rescale) then
-      ! if we're rescaling (for sigma layers) we need to know the start and end of our z_mesh
-      ! and then the distance and direction between them
-      origin = node_val(z_mesh,1)
-      direction = origin-node_val(z_mesh, node_count(z_mesh))
-      length = norm2(direction)
-      depth_ratio = rescale_depth/length
-      direction = direction/length
-    end if
+
+    origin = 0.0
+    origin(1:h_mesh%dim) = node_val(h_mesh, column)
+    direction = 0.0
+    if (radial_extrusion) direction = origin/norm2(origin)
 
     do j=1,node_count(z_mesh)
       last_seen = last_seen + 1
       out_mesh%mesh%columns(last_seen)=column
-      pos(1:v_dim) = node_val(z_mesh, j)
-      if (j>1.and.rescale) then
-        pos = origin - direction*norm2(pos-origin)*depth_ratio
+      if (radial_extrusion) then
+        pos = origin + direction*node_val(z_mesh, 1, j)
+      else
+        pos = origin
+        pos(v_dim) = node_val(z_mesh, 1, j)
       end if
       call set(out_mesh, last_seen, pos)
     end do
