@@ -106,7 +106,10 @@ def writedata(writer, ug, i):
     #writer.SetBlockIDs(1)
     writer.SetNumberOfBlocks(1)
     writer.SetTimeStep(i)
-    writer.SetInput(ug)
+    if vtk.vtkVersion.GetVTKMajorVersion() <= 5:
+      writer.SetInput(ug)
+    else:
+      writer.SetInputData(ug)
     writer.Write()
 
 def writecase(writer, ntimesteps):

@@ -174,7 +174,9 @@ vtkUnstructuredGrid* ReadGrid(const string& filename){
   
   vtkUnstructuredGrid* grid = vtkUnstructuredGrid::New();
   grid->DeepCopy(reader->GetOutput());
+#if VTK_MAJOR_VERSION <= 5
   grid->Update();
+#endif
 
   reader->Delete();
   return grid;
@@ -185,7 +187,11 @@ void WriteGrid(vtkUnstructuredGrid* grid, const string& filename){
   DEBUG("void WriteGrid(vtkUnstructuredGrid* grid, const string& filename)");
   vtkXMLUnstructuredGridWriter* writer= vtkXMLUnstructuredGridWriter::New();
   writer->SetFileName( filename.c_str() );
+#if VTK_MAJOR_VERSION <= 5
   writer->SetInput(grid);
+#else
+  writer->SetInputData(grid);
+#endif
   vtkZLibDataCompressor* compressor = vtkZLibDataCompressor::New();
   writer->SetCompressor(compressor);
   writer->Write();
