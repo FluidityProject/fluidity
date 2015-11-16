@@ -977,7 +977,9 @@ prognostic_velocity_field =
                         }
                      )
                   }?,
-                  element debug {
+                  element debug 
+                     ## YPlus - the wall Reynolds number on the Van Driest formulation. Requires an LES model
+                     ## to be applied to the velocity field.
                      element scalar_field {
                         attribute rank { "0" },
                         attribute name { "YPlus" },
@@ -989,6 +991,12 @@ prognostic_velocity_field =
                            }
                         )
                      }?,
+                     ## DampedFilterWidth - Mixing length following application of the
+                     ## Van Driest formula:
+                     ##
+                     ## L_damped = L_{grid} * (1.0 - exp(-YPlus/25))
+                     ##
+                     ## Requires an LES model to be applied to the velocity field.
                      element scalar_field {
                         attribute rank { "0" },
                         attribute name { "DampedFilterWidth" },

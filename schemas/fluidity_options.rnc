@@ -5119,6 +5119,14 @@ scalar_field_choice =
                }
             )
          }|
+
+         ## DGLESScalarEddyViscosity
+         ##
+         ## Outputs the calculated (isotropic) eddy viscosity term
+         ## for a discontinuous velocity field. The subgridscale viscosity
+         ## follows that of the Smagorinsky–Lilly model. Requires that both a discontinous
+         ## representation of velocity and an les model have been selected.
+
          element scalar_field {
             attribute rank { "0" },
             attribute name { "DGLESScalarEddyViscosity" },
