@@ -185,7 +185,7 @@ solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
    assert abs(mingeopressure_p0p1cv_gpp2) &lt; 1e-6
     </test>    
     <test name="check maximum geopressure_p0p1cv_gpp2" language="python">
-   assert abs(geopressure_p0p1cv_gpp2-2702.10500021) &lt; 10
+   assert abs(geopressure_p0p1cv_gpp2-2212.595) &lt; 1
     </test>    
     <test name="check maximum xspeed_p0p1cv_gpp2 is zero" language="python">
    assert abs(velocityx_p0p1cv_gpp2) &lt; 2e-6
@@ -213,7 +213,7 @@ assert abs(volfracend_p0p1cv_gpp2-volfrac0_p0p1cv_gpp2) &lt; 1e-9
    assert abs(mingeopressure_p0p1cv_hpp2dg) &lt; 1e-6
     </test>    
     <test name="check maximum geopressure_p0p1cv_hpp2dg" language="python">
-   assert abs(geopressure_p0p1cv_hpp2dg-2702.105) &lt; 10
+   assert abs(geopressure_p0p1cv_hpp2dg-2212.595) &lt; 1
     </test>    
     <test name="check maximum xspeed_p0p1cv_hpp2dg is zero" language="python">
    assert abs(velocityx_p0p1cv_hpp2dg) &lt; 1e-9
@@ -253,8 +253,8 @@ assert abs(volfracend_p0p1_rhop0_vfracp0-volfrac0_p0p1_rhop0_vfracp0) &lt; 1e-5
     <test name="check divergence_p0p1_rhop0_vfracp0" language="python">
    assert max(abs(maxdivergence_p0p1_rhop0_vfracp0), abs(mindivergence_p0p1_rhop0_vfracp0)) &lt; 1e-9
     </test>
-    <test name="check maximum pressure_p1dgp2_rhop1dg_vfracp1cv is 2702.105" language="python">
-   assert abs(pressure_p1dgp2_rhop1dg_vfracp1cv-2702.105) &lt; 1
+    <test name="check maximum pressure_p1dgp2_rhop1dg_vfracp1cv is 2212.595" language="python">
+   assert abs(pressure_p1dgp2_rhop1dg_vfracp1cv-2212.595) &lt; 1
     </test>    
     <test name="check minimum pressure_p1dgp2_rhop1dg_vfracp1cv 0.0" language="python">
    assert abs(minpressure_p1dgp2_rhop1dg_vfracp1cv) &lt; 1e-6

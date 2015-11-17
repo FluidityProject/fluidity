@@ -49,7 +49,6 @@ module populate_sub_state_module
   use halos_registration
   use tictoc
   use hadapt_extrude
-  use hadapt_extrude_radially
   use initialise_fields_module
   use transform_elements
   use parallel_tools
