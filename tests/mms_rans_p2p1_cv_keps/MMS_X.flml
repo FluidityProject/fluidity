@@ -1,0 +1,2125 @@
+<?xml version='1.0' encoding='utf-8'?>
+<fluidity_options>
+  <simulation_name>
+    <string_value lines="1">MMS_X</string_value>
+  </simulation_name>
+  <problem_type>
+    <string_value lines="1">fluids</string_value>
+  </problem_type>
+  <geometry>
+    <dimension>
+      <integer_value rank="0">2</integer_value>
+    </dimension>
+    <mesh name="CoordinateMesh">
+      <from_file file_name="src/MMS_X">
+        <format name="gmsh"/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_file>
+    </mesh>
+    <mesh name="VelocityMesh">
+      <from_mesh>
+        <mesh name="CoordinateMesh"/>
+        <mesh_shape>
+          <polynomial_degree>
+            <integer_value rank="0">2</integer_value>
+          </polynomial_degree>
+        </mesh_shape>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <mesh name="PressureMesh">
+      <from_mesh>
+        <mesh name="CoordinateMesh"/>
+        <mesh_shape>
+          <polynomial_degree>
+            <integer_value rank="0">1</integer_value>
+          </polynomial_degree>
+        </mesh_shape>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <mesh name="ErrorMesh">
+      <from_mesh>
+        <mesh name="CoordinateMesh"/>
+        <mesh_shape>
+          <polynomial_degree>
+            <integer_value rank="0">4</integer_value>
+          </polynomial_degree>
+        </mesh_shape>
+        <mesh_continuity>
+          <string_value>continuous</string_value>
+        </mesh_continuity>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <quadrature>
+      <degree>
+        <integer_value rank="0">8</integer_value>
+      </degree>
+    </quadrature>
+  </geometry>
+  <io>
+    <dump_format>
+      <string_value>vtk</string_value>
+    </dump_format>
+    <dump_period>
+      <constant>
+        <real_value rank="0">2000</real_value>
+      </constant>
+    </dump_period>
+    <output_mesh name="VelocityMesh"/>
+    <stat/>
+  </io>
+  <timestepping>
+    <current_time>
+      <real_value rank="0">0.0</real_value>
+    </current_time>
+    <timestep>
+      <real_value rank="0">999.9</real_value>
+      <comment>gives a max cfl number of approximately 0.1</comment>
+    </timestep>
+    <finish_time>
+      <real_value rank="0">1000.0</real_value>
+      <comment>10.0</comment>
+    </finish_time>
+    <nonlinear_iterations>
+      <integer_value rank="0">2</integer_value>
+    </nonlinear_iterations>
+    <steady_state>
+      <tolerance>
+        <real_value rank="0">1.E-3</real_value>
+        <infinity_norm/>
+      </tolerance>
+    </steady_state>
+  </timestepping>
+  <physical_parameters>
+    <gravity>
+      <magnitude>
+        <real_value rank="0">1.0</real_value>
+      </magnitude>
+      <vector_field name="GravityDirection" rank="1">
+        <prescribed>
+          <mesh name="CoordinateMesh"/>
+          <value name="WholeMesh">
+            <constant>
+              <real_value shape="2" dim1="dim" rank="1">0.707106781 0.707106781</real_value>
+            </constant>
+          </value>
+          <output/>
+          <stat>
+            <exclude_from_stat/>
+          </stat>
+          <detectors>
+            <exclude_from_detectors/>
+          </detectors>
+        </prescribed>
+      </vector_field>
+    </gravity>
+  </physical_parameters>
+  <material_phase name="NS">
+    <equation_of_state>
+      <fluids>
+        <linear>
+          <reference_density>
+            <real_value rank="0">1.0</real_value>
+          </reference_density>
+          <temperature_dependency>
+            <reference_temperature>
+              <real_value rank="0">0.0</real_value>
+            </reference_temperature>
+            <thermal_expansion_coefficient>
+              <real_value rank="0">-1.0</real_value>
+            </thermal_expansion_coefficient>
+          </temperature_dependency>
+          <subtract_out_hydrostatic_level/>
+        </linear>
+      </fluids>
+    </equation_of_state>
+    <subgridscale_parameterisations>
+      <k-epsilon>
+        <scalar_field name="TurbulentKineticEnergy" rank="0">
+          <prognostic>
+            <mesh name="VelocityMesh"/>
+            <equation name="KEpsilon">
+              <density name="Density"/>
+            </equation>
+            <spatial_discretisation>
+              <control_volumes>
+                <face_value name="FiniteElement">
+                  <limit_face_value>
+                    <limiter name="Sweby"/>
+                  </limit_face_value>
+                </face_value>
+                <diffusion_scheme name="ElementGradient"/>
+              </control_volumes>
+              <conservative_advection>
+                <real_value rank="0">1.0</real_value>
+              </conservative_advection>
+            </spatial_discretisation>
+            <temporal_discretisation>
+              <theta>
+                <real_value rank="0">0.5</real_value>
+              </theta>
+              <control_volumes>
+                <number_advection_iterations>
+                  <integer_value rank="0">3</integer_value>
+                </number_advection_iterations>
+              </control_volumes>
+            </temporal_discretisation>
+            <solver>
+              <iterative_method name="gmres">
+                <restart>
+                  <integer_value rank="0">30</integer_value>
+                </restart>
+              </iterative_method>
+              <preconditioner name="sor"/>
+              <relative_error>
+                <real_value rank="0">1.0e-6</real_value>
+              </relative_error>
+              <absolute_error>
+                <real_value rank="0">1e-15</real_value>
+              </absolute_error>
+              <max_iterations>
+                <integer_value rank="0">1000</integer_value>
+              </max_iterations>
+              <never_ignore_solver_failures/>
+              <diagnostics>
+                <monitors/>
+              </diagnostics>
+            </solver>
+            <initial_condition name="WholeMesh">
+              <python>
+                <string_value lines="20" type="code" language="python">def val(X,t):
+   import mms_rans_p2p1_cv_keps_tools as k
+   return k.ke(X)</string_value>
+              </python>
+            </initial_condition>
+            <boundary_conditions name="all_sides">
+              <surface_ids>
+                <integer_value shape="1" rank="1">1</integer_value>
+              </surface_ids>
+              <type name="dirichlet">
+                <python>
+                  <string_value lines="20" type="code" language="python">def val(X,t):
+   import mms_rans_p2p1_cv_keps_tools as k
+   return k.ke(X)</string_value>
+                </python>
+              </type>
+            </boundary_conditions>
+            <tensor_field name="Diffusivity" rank="2">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <output/>
+                <stat>
+                  <exclude_from_stat/>
+                </stat>
+              </diagnostic>
+            </tensor_field>
+            <scalar_field name="Source" rank="0">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <output/>
+                <stat>
+                  <exclude_from_stat/>
+                </stat>
+                <detectors>
+                  <include_in_detectors/>
+                </detectors>
+              </diagnostic>
+            </scalar_field>
+            <scalar_field name="Absorption" rank="0">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <output/>
+                <stat>
+                  <exclude_from_stat/>
+                </stat>
+                <detectors>
+                  <include_in_detectors/>
+                </detectors>
+              </diagnostic>
+            </scalar_field>
+            <output/>
+            <stat>
+              <exclude_from_stat/>
+            </stat>
+            <convergence>
+              <include_in_convergence/>
+            </convergence>
+            <detectors>
+              <exclude_from_detectors/>
+            </detectors>
+            <steady_state>
+              <exclude_from_steady_state/>
+            </steady_state>
+            <consistent_interpolation/>
+          </prognostic>
+        </scalar_field>
+        <scalar_field name="TurbulentDissipation" rank="0">
+          <prognostic>
+            <mesh name="VelocityMesh"/>
+            <equation name="KEpsilon">
+              <density name="Density"/>
+            </equation>
+            <spatial_discretisation>
+              <control_volumes>
+                <face_value name="FiniteElement">
+                  <limit_face_value>
+                    <limiter name="Sweby"/>
+                  </limit_face_value>
+                </face_value>
+                <diffusion_scheme name="ElementGradient"/>
+              </control_volumes>
+              <conservative_advection>
+                <real_value rank="0">1.0</real_value>
+              </conservative_advection>
+            </spatial_discretisation>
+            <temporal_discretisation>
+              <theta>
+                <real_value rank="0">0.5</real_value>
+              </theta>
+              <control_volumes>
+                <number_advection_iterations>
+                  <integer_value rank="0">3</integer_value>
+                </number_advection_iterations>
+              </control_volumes>
+            </temporal_discretisation>
+            <solver>
+              <iterative_method name="gmres">
+                <restart>
+                  <integer_value rank="0">30</integer_value>
+                </restart>
+              </iterative_method>
+              <preconditioner name="sor"/>
+              <relative_error>
+                <real_value rank="0">1.0e-6</real_value>
+              </relative_error>
+              <absolute_error>
+                <real_value rank="0">1e-15</real_value>
+              </absolute_error>
+              <max_iterations>
+                <integer_value rank="0">1000</integer_value>
+              </max_iterations>
+              <never_ignore_solver_failures/>
+              <diagnostics>
+                <monitors/>
+              </diagnostics>
+            </solver>
+            <initial_condition name="WholeMesh">
+              <python>
+                <string_value lines="20" type="code" language="python">def val(X,t):
+   import mms_rans_p2p1_cv_keps_tools as k
+   return k.eps(X)</string_value>
+              </python>
+            </initial_condition>
+            <boundary_conditions name="all_sides">
+              <surface_ids>
+                <integer_value shape="1" rank="1">1</integer_value>
+              </surface_ids>
+              <type name="dirichlet">
+                <python>
+                  <string_value lines="20" type="code" language="python">def val(X,t):
+   import mms_rans_p2p1_cv_keps_tools as k
+   return k.eps(X)</string_value>
+                </python>
+              </type>
+            </boundary_conditions>
+            <tensor_field name="Diffusivity" rank="2">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <output/>
+                <stat>
+                  <exclude_from_stat/>
+                </stat>
+              </diagnostic>
+            </tensor_field>
+            <scalar_field name="Source" rank="0">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <output/>
+                <stat>
+                  <exclude_from_stat/>
+                </stat>
+                <detectors>
+                  <include_in_detectors/>
+                </detectors>
+              </diagnostic>
+            </scalar_field>
+            <scalar_field name="Absorption" rank="0">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <output/>
+                <stat>
+                  <exclude_from_stat/>
+                </stat>
+                <detectors>
+                  <include_in_detectors/>
+                </detectors>
+              </diagnostic>
+            </scalar_field>
+            <output/>
+            <stat>
+              <exclude_from_stat/>
+            </stat>
+            <convergence>
+              <include_in_convergence/>
+            </convergence>
+            <detectors>
+              <exclude_from_detectors/>
+            </detectors>
+            <steady_state>
+              <exclude_from_steady_state/>
+            </steady_state>
+            <consistent_interpolation/>
+          </prognostic>
+        </scalar_field>
+        <tensor_field name="BackgroundViscosity" rank="2">
+          <prescribed>
+            <mesh name="VelocityMesh"/>
+            <value name="WholeMesh">
+              <anisotropic_symmetric>
+                <constant>
+                  <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">1.0 1.0 1.0 1.0</real_value>
+                </constant>
+              </anisotropic_symmetric>
+            </value>
+            <output/>
+          </prescribed>
+        </tensor_field>
+        <tensor_field name="EddyViscosity" rank="2">
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
+            <mesh name="VelocityMesh"/>
+            <output/>
+            <stat>
+              <exclude_from_stat/>
+            </stat>
+          </diagnostic>
+        </tensor_field>
+        <scalar_field name="ScalarEddyViscosity" rank="0">
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
+            <mesh name="VelocityMesh"/>
+            <output/>
+            <stat>
+              <exclude_from_stat/>
+            </stat>
+            <convergence>
+              <include_in_convergence/>
+            </convergence>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+            <steady_state>
+              <exclude_from_steady_state/>
+            </steady_state>
+          </diagnostic>
+        </scalar_field>
+        <scalar_field name="LengthScale" rank="0">
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
+            <mesh name="VelocityMesh"/>
+            <output/>
+            <stat>
+              <exclude_from_stat/>
+            </stat>
+            <convergence>
+              <include_in_convergence/>
+            </convergence>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+            <steady_state>
+              <exclude_from_steady_state/>
+            </steady_state>
+          </diagnostic>
+        </scalar_field>
+        <scalar_field name="f_1" rank="0">
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
+            <mesh name="VelocityMesh"/>
+            <output/>
+            <stat>
+              <exclude_from_stat/>
+            </stat>
+            <convergence>
+              <include_in_convergence/>
+            </convergence>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+            <steady_state>
+              <exclude_from_steady_state/>
+            </steady_state>
+          </diagnostic>
+        </scalar_field>
+        <scalar_field name="f_2" rank="0">
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
+            <mesh name="VelocityMesh"/>
+            <output/>
+            <stat>
+              <exclude_from_stat/>
+            </stat>
+            <convergence>
+              <include_in_convergence/>
+            </convergence>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+            <steady_state>
+              <exclude_from_steady_state/>
+            </steady_state>
+          </diagnostic>
+        </scalar_field>
+        <scalar_field name="f_mu" rank="0">
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
+            <mesh name="VelocityMesh"/>
+            <output/>
+            <stat>
+              <exclude_from_stat/>
+            </stat>
+            <convergence>
+              <include_in_convergence/>
+            </convergence>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+            <steady_state>
+              <exclude_from_steady_state/>
+            </steady_state>
+          </diagnostic>
+        </scalar_field>
+        <max_damping_value>
+          <real_value rank="0">10.0</real_value>
+        </max_damping_value>
+        <C_mu>
+          <real_value rank="0">1.0</real_value>
+        </C_mu>
+        <C_eps_1>
+          <real_value rank="0">1.0</real_value>
+        </C_eps_1>
+        <C_eps_2>
+          <real_value rank="0">1.0</real_value>
+        </C_eps_2>
+        <sigma_k>
+          <real_value rank="0">1.0</real_value>
+        </sigma_k>
+        <sigma_eps>
+          <real_value rank="0">1.0</real_value>
+        </sigma_eps>
+        <sigma_p>
+          <real_value rank="0">1.0</real_value>
+        </sigma_p>
+        <time_discretisation>
+          <theta>
+            <real_value rank="0">0.5</real_value>
+          </theta>
+          <source_term_implementation>
+            <production_term>source</production_term>
+            <destruction_term>absorbtion</destruction_term>
+            <buoyancy_term>source</buoyancy_term>
+          </source_term_implementation>
+        </time_discretisation>
+        <mass_terms>
+          <use_consistent_mass_matrix>
+            <solver>
+              <iterative_method name="cg"/>
+              <preconditioner name="sor"/>
+              <relative_error>
+                <real_value rank="0">1.0e-10</real_value>
+              </relative_error>
+              <max_iterations>
+                <integer_value rank="0">1000</integer_value>
+              </max_iterations>
+              <never_ignore_solver_failures/>
+              <diagnostics>
+                <monitors/>
+              </diagnostics>
+            </solver>
+          </use_consistent_mass_matrix>
+        </mass_terms>
+        <debugging_options>
+          <source_term_output_fields>
+            <scalar_field name="TurbulentKineticEnergy_production_term" rank="0">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <mesh name="VelocityMesh"/>
+                <output/>
+                <stat>
+                  <exclude_from_stat/>
+                </stat>
+                <convergence>
+                  <include_in_convergence/>
+                </convergence>
+                <detectors>
+                  <include_in_detectors/>
+                </detectors>
+                <steady_state>
+                  <exclude_from_steady_state/>
+                </steady_state>
+              </diagnostic>
+            </scalar_field>
+            <scalar_field name="TurbulentKineticEnergy_destruction_term" rank="0">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <mesh name="VelocityMesh"/>
+                <output/>
+                <stat>
+                  <exclude_from_stat/>
+                </stat>
+                <convergence>
+                  <include_in_convergence/>
+                </convergence>
+                <detectors>
+                  <include_in_detectors/>
+                </detectors>
+                <steady_state>
+                  <exclude_from_steady_state/>
+                </steady_state>
+              </diagnostic>
+            </scalar_field>
+            <scalar_field name="TurbulentKineticEnergy_buoyancy_term" rank="0">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <mesh name="VelocityMesh"/>
+                <output/>
+                <stat>
+                  <exclude_from_stat/>
+                </stat>
+                <convergence>
+                  <include_in_convergence/>
+                </convergence>
+                <detectors>
+                  <include_in_detectors/>
+                </detectors>
+                <steady_state>
+                  <exclude_from_steady_state/>
+                </steady_state>
+              </diagnostic>
+            </scalar_field>
+            <scalar_field name="TurbulentDissipation_production_term" rank="0">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <mesh name="VelocityMesh"/>
+                <output/>
+                <stat>
+                  <exclude_from_stat/>
+                </stat>
+                <convergence>
+                  <include_in_convergence/>
+                </convergence>
+                <detectors>
+                  <include_in_detectors/>
+                </detectors>
+                <steady_state>
+                  <exclude_from_steady_state/>
+                </steady_state>
+              </diagnostic>
+            </scalar_field>
+            <scalar_field name="TurbulentDissipation_destruction_term" rank="0">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <mesh name="VelocityMesh"/>
+                <output/>
+                <stat>
+                  <exclude_from_stat/>
+                </stat>
+                <convergence>
+                  <include_in_convergence/>
+                </convergence>
+                <detectors>
+                  <include_in_detectors/>
+                </detectors>
+                <steady_state>
+                  <exclude_from_steady_state/>
+                </steady_state>
+              </diagnostic>
+            </scalar_field>
+            <scalar_field name="TurbulentDissipation_buoyancy_term" rank="0">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <mesh name="VelocityMesh"/>
+                <output/>
+                <stat>
+                  <exclude_from_stat/>
+                </stat>
+                <convergence>
+                  <include_in_convergence/>
+                </convergence>
+                <detectors>
+                  <include_in_detectors/>
+                </detectors>
+                <steady_state>
+                  <exclude_from_steady_state/>
+                </steady_state>
+              </diagnostic>
+            </scalar_field>
+          </source_term_output_fields>
+          <prescribed_source_terms>
+            <scalar_field name="TurbulentKineticEnergyPrescribedSource" rank="0">
+              <prescribed>
+                <mesh name="VelocityMesh"/>
+                <value name="WholeMesh">
+                  <python>
+                    <string_value lines="20" type="code" language="python">def val(X,t):
+   import mms_rans_p2p1_cv_keps_tools as k
+   return k.forcing_ke(X)</string_value>
+                  </python>
+                </value>
+                <output/>
+                <stat>
+                  <exclude_from_stat/>
+                </stat>
+                <detectors>
+                  <exclude_from_detectors/>
+                </detectors>
+              </prescribed>
+            </scalar_field>
+            <scalar_field name="TurbulentDissipationPrescribedSource" rank="0">
+              <prescribed>
+                <mesh name="VelocityMesh"/>
+                <value name="WholeMesh">
+                  <python>
+                    <string_value lines="20" type="code" language="python">def val(X,t):
+   import mms_rans_p2p1_cv_keps_tools as k
+   return k.forcing_eps(X)</string_value>
+                  </python>
+                </value>
+                <output/>
+                <stat>
+                  <exclude_from_stat/>
+                </stat>
+                <detectors>
+                  <exclude_from_detectors/>
+                </detectors>
+              </prescribed>
+            </scalar_field>
+          </prescribed_source_terms>
+        </debugging_options>
+      </k-epsilon>
+    </subgridscale_parameterisations>
+    <scalar_field name="Pressure" rank="0">
+      <prognostic>
+        <mesh name="PressureMesh"/>
+        <spatial_discretisation>
+          <continuous_galerkin>
+            <remove_stabilisation_term/>
+          </continuous_galerkin>
+        </spatial_discretisation>
+        <reference_coordinates>
+          <real_value shape="2" dim1="dim" rank="1">0.0 0.0</real_value>
+        </reference_coordinates>
+        <scheme>
+          <poisson_pressure_solution>
+            <string_value lines="1">only first timestep</string_value>
+          </poisson_pressure_solution>
+          <use_projection_method/>
+        </scheme>
+        <solver>
+          <iterative_method name="cg"/>
+          <preconditioner name="sor"/>
+          <relative_error>
+            <real_value rank="0">1.0e-6</real_value>
+          </relative_error>
+          <absolute_error>
+            <real_value rank="0">1e-15</real_value>
+          </absolute_error>
+          <max_iterations>
+            <integer_value rank="0">1000</integer_value>
+          </max_iterations>
+          <never_ignore_solver_failures/>
+          <diagnostics>
+            <monitors/>
+          </diagnostics>
+        </solver>
+        <output>
+          <include_previous_time_step/>
+        </output>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+        <steady_state>
+          <exclude_from_steady_state/>
+        </steady_state>
+        <consistent_interpolation/>
+      </prognostic>
+    </scalar_field>
+    <scalar_field name="Density" rank="0">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <exclude_from_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <vector_field name="Velocity" rank="1">
+      <prognostic>
+        <mesh name="VelocityMesh"/>
+        <equation name="Boussinesq"/>
+        <spatial_discretisation>
+          <continuous_galerkin>
+            <stabilisation>
+              <no_stabilisation/>
+            </stabilisation>
+            <mass_terms>
+              <lump_mass_matrix>
+                <use_submesh/>
+              </lump_mass_matrix>
+            </mass_terms>
+            <advection_terms/>
+            <stress_terms>
+              <partial_stress_form/>
+            </stress_terms>
+            <buoyancy/>
+          </continuous_galerkin>
+          <conservative_advection>
+            <real_value rank="0">1.0</real_value>
+          </conservative_advection>
+        </spatial_discretisation>
+        <temporal_discretisation>
+          <theta>
+            <real_value rank="0">0.5</real_value>
+          </theta>
+          <relaxation>
+            <real_value rank="0">0.5</real_value>
+          </relaxation>
+        </temporal_discretisation>
+        <solver>
+          <iterative_method name="gmres">
+            <restart>
+              <integer_value rank="0">30</integer_value>
+            </restart>
+          </iterative_method>
+          <preconditioner name="sor"/>
+          <relative_error>
+            <real_value rank="0">1e-6</real_value>
+          </relative_error>
+          <absolute_error>
+            <real_value rank="0">1e-15</real_value>
+          </absolute_error>
+          <max_iterations>
+            <integer_value rank="0">1000</integer_value>
+          </max_iterations>
+          <never_ignore_solver_failures/>
+          <diagnostics>
+            <monitors/>
+          </diagnostics>
+        </solver>
+        <initial_condition name="WholeMesh">
+          <python>
+            <string_value lines="20" type="code" language="python">def val(X,t):
+   import mms_rans_p2p1_cv_keps_tools as k
+   return k.velocity(X)</string_value>
+          </python>
+        </initial_condition>
+        <boundary_conditions name="all_sides">
+          <surface_ids>
+            <integer_value shape="1" rank="1">1</integer_value>
+          </surface_ids>
+          <type name="dirichlet">
+            <align_bc_with_cartesian>
+              <x_component>
+                <python>
+                  <string_value lines="20" type="code" language="python">def val(X,t):
+   import mms_rans_p2p1_cv_keps_tools as k
+   return k.u(X)</string_value>
+                </python>
+              </x_component>
+              <y_component>
+                <python>
+                  <string_value lines="20" type="code" language="python">def val(X,t):
+   import mms_rans_p2p1_cv_keps_tools as k
+   return k.v(X)</string_value>
+                </python>
+              </y_component>
+            </align_bc_with_cartesian>
+          </type>
+        </boundary_conditions>
+        <tensor_field name="Viscosity" rank="2">
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
+            <output/>
+            <stat>
+              <exclude_from_stat/>
+            </stat>
+          </diagnostic>
+        </tensor_field>
+        <vector_field name="Source" rank="1">
+          <prescribed>
+            <value name="WholeMesh">
+              <python>
+                <string_value lines="20" type="code" language="python">def val(X,t):
+   import mms_rans_p2p1_cv_keps_tools as k
+   return k.forcing_velocity(X)</string_value>
+              </python>
+            </value>
+            <output/>
+            <stat>
+              <exclude_from_stat/>
+            </stat>
+            <detectors>
+              <exclude_from_detectors/>
+            </detectors>
+          </prescribed>
+        </vector_field>
+        <output/>
+        <stat>
+          <exclude_from_stat/>
+          <previous_time_step>
+            <exclude_from_stat/>
+          </previous_time_step>
+          <nonlinear_field>
+            <exclude_from_stat/>
+          </nonlinear_field>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <exclude_from_steady_state/>
+        </steady_state>
+        <consistent_interpolation/>
+      </prognostic>
+    </vector_field>
+    <scalar_field name="CFLNumber" rank="0">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <exclude_from_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="Temperature" rank="0">
+      <prognostic>
+        <mesh name="VelocityMesh"/>
+        <equation name="AdvectionDiffusion"/>
+        <spatial_discretisation>
+          <continuous_galerkin>
+            <stabilisation>
+              <no_stabilisation/>
+            </stabilisation>
+            <advection_terms/>
+            <mass_terms/>
+          </continuous_galerkin>
+          <conservative_advection>
+            <real_value rank="0">1.0</real_value>
+          </conservative_advection>
+        </spatial_discretisation>
+        <temporal_discretisation>
+          <theta>
+            <real_value rank="0">0.5</real_value>
+          </theta>
+        </temporal_discretisation>
+        <solver>
+          <iterative_method name="gmres">
+            <restart>
+              <integer_value rank="0">30</integer_value>
+            </restart>
+          </iterative_method>
+          <preconditioner name="ilu"/>
+          <relative_error>
+            <real_value rank="0">1.0e-6</real_value>
+          </relative_error>
+          <absolute_error>
+            <real_value rank="0">1e-15</real_value>
+          </absolute_error>
+          <max_iterations>
+            <integer_value rank="0">1000</integer_value>
+          </max_iterations>
+          <never_ignore_solver_failures/>
+          <diagnostics>
+            <monitors/>
+          </diagnostics>
+        </solver>
+        <initial_condition name="WholeMesh">
+          <python>
+            <string_value lines="20" type="code" language="python">def val(X,t):
+   import mms_rans_p2p1_cv_keps_tools as k
+   return k.rho(X)</string_value>
+          </python>
+        </initial_condition>
+        <boundary_conditions name="all_sides">
+          <surface_ids>
+            <integer_value shape="1" rank="1">1</integer_value>
+          </surface_ids>
+          <type name="dirichlet">
+            <python>
+              <string_value lines="20" type="code" language="python">def val(X,t):
+   import mms_rans_p2p1_cv_keps_tools as k
+   return k.rho(X)</string_value>
+            </python>
+          </type>
+        </boundary_conditions>
+        <subgridscale_parameterisation name="k-epsilon">
+          <background_diffusivity>
+            <real_value rank="0">1.0</real_value>
+          </background_diffusivity>
+        </subgridscale_parameterisation>
+        <tensor_field name="Diffusivity" rank="2">
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
+            <output/>
+            <stat>
+              <exclude_from_stat/>
+            </stat>
+          </diagnostic>
+        </tensor_field>
+        <scalar_field name="Source" rank="0">
+          <prescribed>
+            <value name="WholeMesh">
+              <python>
+                <string_value lines="20" type="code" language="python">def val(X,t):
+   import mms_rans_p2p1_cv_keps_tools as k
+   return k.forcing_rho(X)</string_value>
+              </python>
+            </value>
+            <output/>
+            <stat>
+              <exclude_from_stat/>
+            </stat>
+            <detectors>
+              <exclude_from_detectors/>
+            </detectors>
+          </prescribed>
+        </scalar_field>
+        <output/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <exclude_from_steady_state/>
+        </steady_state>
+        <consistent_interpolation/>
+      </prognostic>
+    </scalar_field>
+    <scalar_field name="TemperatureAnalytical" rank="0">
+      <prescribed>
+        <mesh name="ErrorMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value lines="20" type="code" language="python">def val(X,t):
+   import mms_rans_p2p1_cv_keps_tools as k
+   return k.rho(X)</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </scalar_field>
+    <scalar_field name="TemperatureError" rank="0">
+      <diagnostic>
+        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="TemperatureAnalytical" source_field_2_name="TemperatureProjection" material_phase_support="single" source_field_1_type="scalar">
+          <absolute_difference/>
+        </algorithm>
+        <mesh name="ErrorMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="TemperatureProjection" rank="0">
+      <diagnostic>
+        <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_galerkin_projection" source_field_name="Temperature">
+          <solver>
+            <iterative_method name="cg"/>
+            <preconditioner name="sor"/>
+            <relative_error>
+              <real_value rank="0">1e-10</real_value>
+            </relative_error>
+            <max_iterations>
+              <integer_value rank="0">1000</integer_value>
+            </max_iterations>
+            <never_ignore_solver_failures/>
+            <diagnostics>
+              <monitors/>
+            </diagnostics>
+          </solver>
+        </algorithm>
+        <mesh name="ErrorMesh"/>
+        <output/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <exclude_from_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="PressureAnalytical" rank="0">
+      <prescribed>
+        <mesh name="ErrorMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value lines="20" type="code" language="python">def val(X,t):
+        import mms_rans_p2p1_cv_keps_tools as k
+        return k.p(X)</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </scalar_field>
+    <scalar_field name="PressureProjection" rank="0">
+      <diagnostic>
+        <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_galerkin_projection" source_field_name="Pressure">
+          <solver>
+            <iterative_method name="cg"/>
+            <preconditioner name="sor"/>
+            <relative_error>
+              <real_value rank="0">1e-10</real_value>
+            </relative_error>
+            <max_iterations>
+              <integer_value rank="0">1000</integer_value>
+            </max_iterations>
+            <never_ignore_solver_failures/>
+            <diagnostics>
+              <monitors/>
+            </diagnostics>
+          </solver>
+        </algorithm>
+        <mesh name="ErrorMesh"/>
+        <output/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <exclude_from_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="PressureError" rank="0">
+      <diagnostic>
+        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="PressureAnalytical" source_field_2_name="PressureProjection" material_phase_support="single" source_field_1_type="scalar">
+          <absolute_difference/>
+        </algorithm>
+        <mesh name="ErrorMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="TurbulentKineticEnergy_production_termCopy" rank="0">
+      <diagnostic>
+        <algorithm name="scalar_python_diagnostic" material_phase_support="single">
+          <string_value lines="20" type="code" language="python">E=state.scalar_fields["TurbulentKineticEnergy_production_term"]
+
+for n in range(field.node_count):
+	field.set(n,E.node_val(n))</string_value>
+        </algorithm>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <exclude_from_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="TurbulentKineticEnergy_production_termAnalytical" rank="0">
+      <prescribed>
+        <mesh name="ErrorMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value lines="20" type="code" language="python">def val(X,t):
+   import mms_rans_p2p1_cv_keps_tools as k
+   return k.P_ke(X)</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </scalar_field>
+    <scalar_field name="TurbulentKineticEnergy_production_termProjection" rank="0">
+      <diagnostic>
+        <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_galerkin_projection" source_field_name="TurbulentKineticEnergy_production_termCopy">
+          <solver>
+            <iterative_method name="cg"/>
+            <preconditioner name="sor"/>
+            <relative_error>
+              <real_value rank="0">1e-10</real_value>
+            </relative_error>
+            <max_iterations>
+              <integer_value rank="0">1000</integer_value>
+            </max_iterations>
+            <never_ignore_solver_failures/>
+            <diagnostics>
+              <monitors/>
+            </diagnostics>
+          </solver>
+        </algorithm>
+        <mesh name="ErrorMesh"/>
+        <output/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <exclude_from_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="TurbulentKineticEnergy_production_termError" rank="0">
+      <diagnostic>
+        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="TurbulentKineticEnergy_production_termAnalytical" source_field_2_name="TurbulentKineticEnergy_production_termProjection" material_phase_support="single" source_field_1_type="scalar">
+          <absolute_difference/>
+        </algorithm>
+        <mesh name="ErrorMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="TurbulentKineticEnergy_destruction_termCopy" rank="0">
+      <diagnostic>
+        <algorithm name="scalar_python_diagnostic" material_phase_support="single">
+          <string_value lines="20" type="code" language="python">E=state.scalar_fields["TurbulentKineticEnergy_destruction_term"]
+
+for n in range(field.node_count):
+	field.set(n,E.node_val(n))</string_value>
+        </algorithm>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <exclude_from_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="TurbulentKineticEnergy_destruction_termAnalytical" rank="0">
+      <prescribed>
+        <mesh name="ErrorMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value lines="20" type="code" language="python">def val(X,t):
+   import mms_rans_p2p1_cv_keps_tools as k
+   return k.A_ke(X)</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </scalar_field>
+    <scalar_field name="TurbulentKineticEnergy_destruction_termProjection" rank="0">
+      <diagnostic>
+        <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_galerkin_projection" source_field_name="TurbulentKineticEnergy_destruction_termCopy">
+          <solver>
+            <iterative_method name="cg"/>
+            <preconditioner name="sor"/>
+            <relative_error>
+              <real_value rank="0">1e-10</real_value>
+            </relative_error>
+            <max_iterations>
+              <integer_value rank="0">1000</integer_value>
+            </max_iterations>
+            <never_ignore_solver_failures/>
+            <diagnostics>
+              <monitors/>
+            </diagnostics>
+          </solver>
+        </algorithm>
+        <mesh name="ErrorMesh"/>
+        <output/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <exclude_from_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="TurbulentKineticEnergy_destruction_termError" rank="0">
+      <diagnostic>
+        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="TurbulentKineticEnergy_destruction_termAnalytical" source_field_2_name="TurbulentKineticEnergy_destruction_termProjection" material_phase_support="single" source_field_1_type="scalar">
+          <absolute_difference/>
+        </algorithm>
+        <mesh name="ErrorMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="TurbulentKineticEnergy_buoyancy_termCopy" rank="0">
+      <diagnostic>
+        <algorithm name="scalar_python_diagnostic" material_phase_support="single">
+          <string_value lines="20" type="code" language="python">E=state.scalar_fields["TurbulentKineticEnergy_buoyancy_term"]
+
+for n in range(field.node_count):
+	field.set(n,E.node_val(n))</string_value>
+        </algorithm>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <exclude_from_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="TurbulentKineticEnergy_buoyancy_termAnalytical" rank="0">
+      <prescribed>
+        <mesh name="ErrorMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value lines="20" type="code" language="python">def val(X,t):
+   import mms_rans_p2p1_cv_keps_tools as k
+   return k.B_ke(X)</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </scalar_field>
+    <scalar_field name="TurbulentKineticEnergy_buoyancy_termProjection" rank="0">
+      <diagnostic>
+        <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_galerkin_projection" source_field_name="TurbulentKineticEnergy_buoyancy_termCopy">
+          <solver>
+            <iterative_method name="cg"/>
+            <preconditioner name="sor"/>
+            <relative_error>
+              <real_value rank="0">1e-10</real_value>
+            </relative_error>
+            <max_iterations>
+              <integer_value rank="0">1000</integer_value>
+            </max_iterations>
+            <never_ignore_solver_failures/>
+            <diagnostics>
+              <monitors/>
+            </diagnostics>
+          </solver>
+        </algorithm>
+        <mesh name="ErrorMesh"/>
+        <output/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <exclude_from_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="TurbulentKineticEnergy_buoyancy_termError" rank="0">
+      <diagnostic>
+        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="TurbulentKineticEnergy_buoyancy_termAnalytical" source_field_2_name="TurbulentKineticEnergy_buoyancy_termProjection" material_phase_support="single" source_field_1_type="scalar">
+          <absolute_difference/>
+        </algorithm>
+        <mesh name="ErrorMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="TurbulentKineticEnergyCopy" rank="0">
+      <diagnostic>
+        <algorithm name="scalar_python_diagnostic" material_phase_support="single">
+          <string_value lines="20" type="code" language="python">E=state.scalar_fields["TurbulentKineticEnergy"]
+
+for n in range(field.node_count):
+	field.set(n,E.node_val(n))</string_value>
+        </algorithm>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+        <steady_state>
+          <exclude_from_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="TurbulentKineticEnergyAnalytical" rank="0">
+      <prescribed>
+        <mesh name="ErrorMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value lines="20" type="code" language="python">def val(X,t):
+   import mms_rans_p2p1_cv_keps_tools as k
+   return k.ke(X)</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </scalar_field>
+    <scalar_field name="TurbulentKineticEnergyProjection" rank="0">
+      <diagnostic>
+        <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_galerkin_projection" source_field_name="TurbulentKineticEnergyCopy">
+          <solver>
+            <iterative_method name="cg"/>
+            <preconditioner name="sor"/>
+            <relative_error>
+              <real_value rank="0">1e-10</real_value>
+            </relative_error>
+            <max_iterations>
+              <integer_value rank="0">1000</integer_value>
+            </max_iterations>
+            <never_ignore_solver_failures/>
+            <diagnostics>
+              <monitors/>
+            </diagnostics>
+          </solver>
+        </algorithm>
+        <mesh name="ErrorMesh"/>
+        <output/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <exclude_from_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="TurbulentKineticEnergyError" rank="0">
+      <diagnostic>
+        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="TurbulentKineticEnergyAnalytical" source_field_2_name="TurbulentKineticEnergyProjection" material_phase_support="single" source_field_1_type="scalar">
+          <absolute_difference/>
+        </algorithm>
+        <mesh name="ErrorMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="TurbulentDissipation_production_termCopy" rank="0">
+      <diagnostic>
+        <algorithm name="scalar_python_diagnostic" material_phase_support="single">
+          <string_value lines="20" type="code" language="python">E=state.scalar_fields["TurbulentDissipation_production_term"]
+
+for n in range(field.node_count):
+	field.set(n,E.node_val(n))</string_value>
+        </algorithm>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <exclude_from_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="TurbulentDissipation_production_termAnalytical" rank="0">
+      <prescribed>
+        <mesh name="ErrorMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value lines="20" type="code" language="python">def val(X,t):
+   import mms_rans_p2p1_cv_keps_tools as k
+   return k.P_eps(X)</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </scalar_field>
+    <scalar_field name="TurbulentDissipation_production_termProjection" rank="0">
+      <diagnostic>
+        <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_galerkin_projection" source_field_name="TurbulentDissipation_production_termCopy">
+          <solver>
+            <iterative_method name="cg"/>
+            <preconditioner name="sor"/>
+            <relative_error>
+              <real_value rank="0">1e-10</real_value>
+            </relative_error>
+            <max_iterations>
+              <integer_value rank="0">1000</integer_value>
+            </max_iterations>
+            <never_ignore_solver_failures/>
+            <diagnostics>
+              <monitors/>
+            </diagnostics>
+          </solver>
+        </algorithm>
+        <mesh name="ErrorMesh"/>
+        <output/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <exclude_from_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="TurbulentDissipation_production_termError" rank="0">
+      <diagnostic>
+        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="TurbulentDissipation_production_termAnalytical" source_field_2_name="TurbulentDissipation_production_termProjection" material_phase_support="single" source_field_1_type="scalar">
+          <absolute_difference/>
+        </algorithm>
+        <mesh name="ErrorMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="TurbulentDissipation_destruction_termCopy" rank="0">
+      <diagnostic>
+        <algorithm name="scalar_python_diagnostic" material_phase_support="single">
+          <string_value lines="20" type="code" language="python">E=state.scalar_fields["TurbulentDissipation_destruction_term"]
+
+for n in range(field.node_count):
+	field.set(n,E.node_val(n))</string_value>
+        </algorithm>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <exclude_from_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="TurbulentDissipation_destruction_termAnalytical" rank="0">
+      <prescribed>
+        <mesh name="ErrorMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value lines="20" type="code" language="python">def val(X,t):
+   import mms_rans_p2p1_cv_keps_tools as k
+   return k.A_eps(X)</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </scalar_field>
+    <scalar_field name="TurbulentDissipation_destruction_termProjection" rank="0">
+      <diagnostic>
+        <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_galerkin_projection" source_field_name="TurbulentDissipation_destruction_termCopy">
+          <solver>
+            <iterative_method name="cg"/>
+            <preconditioner name="sor"/>
+            <relative_error>
+              <real_value rank="0">1e-10</real_value>
+            </relative_error>
+            <max_iterations>
+              <integer_value rank="0">1000</integer_value>
+            </max_iterations>
+            <never_ignore_solver_failures/>
+            <diagnostics>
+              <monitors/>
+            </diagnostics>
+          </solver>
+        </algorithm>
+        <mesh name="ErrorMesh"/>
+        <output/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <exclude_from_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="TurbulentDissipation_destruction_termError" rank="0">
+      <diagnostic>
+        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="TurbulentDissipation_destruction_termAnalytical" source_field_2_name="TurbulentDissipation_destruction_termProjection" material_phase_support="single" source_field_1_type="scalar">
+          <absolute_difference/>
+        </algorithm>
+        <mesh name="ErrorMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="TurbulentDissipation_buoyancy_termCopy" rank="0">
+      <diagnostic>
+        <algorithm name="scalar_python_diagnostic" material_phase_support="single">
+          <string_value lines="20" type="code" language="python">E=state.scalar_fields["TurbulentDissipation_buoyancy_term"]
+
+for n in range(field.node_count):
+	field.set(n,E.node_val(n))</string_value>
+        </algorithm>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <exclude_from_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="TurbulentDissipation_buoyancy_termAnalytical" rank="0">
+      <prescribed>
+        <mesh name="ErrorMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value lines="20" type="code" language="python">def val(X,t):
+   import mms_rans_p2p1_cv_keps_tools as k
+   return k.B_eps(X)</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </scalar_field>
+    <scalar_field name="TurbulentDissipation_buoyancy_termProjection" rank="0">
+      <diagnostic>
+        <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_galerkin_projection" source_field_name="TurbulentDissipation_buoyancy_termCopy">
+          <solver>
+            <iterative_method name="cg"/>
+            <preconditioner name="sor"/>
+            <relative_error>
+              <real_value rank="0">1e-10</real_value>
+            </relative_error>
+            <max_iterations>
+              <integer_value rank="0">1000</integer_value>
+            </max_iterations>
+            <never_ignore_solver_failures/>
+            <diagnostics>
+              <monitors/>
+            </diagnostics>
+          </solver>
+        </algorithm>
+        <mesh name="ErrorMesh"/>
+        <output/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <exclude_from_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="TurbulentDissipation_buoyancy_termError" rank="0">
+      <diagnostic>
+        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="TurbulentDissipation_buoyancy_termAnalytical" source_field_2_name="TurbulentDissipation_buoyancy_termProjection" material_phase_support="single" source_field_1_type="scalar">
+          <absolute_difference/>
+        </algorithm>
+        <mesh name="ErrorMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="TurbulentDissipationCopy" rank="0">
+      <diagnostic>
+        <algorithm name="scalar_python_diagnostic" material_phase_support="single">
+          <string_value lines="20" type="code" language="python">E=state.scalar_fields["TurbulentDissipation"]
+
+for n in range(field.node_count):
+	field.set(n,E.node_val(n))</string_value>
+        </algorithm>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <exclude_from_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="TurbulentDissipationAnalytical" rank="0">
+      <prescribed>
+        <mesh name="ErrorMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value lines="20" type="code" language="python">def val(X,t):
+   import mms_rans_p2p1_cv_keps_tools as k
+   return k.eps(X)</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </scalar_field>
+    <scalar_field name="TurbulentDissipationProjection" rank="0">
+      <diagnostic>
+        <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_galerkin_projection" source_field_name="TurbulentDissipationCopy">
+          <solver>
+            <iterative_method name="cg"/>
+            <preconditioner name="sor"/>
+            <relative_error>
+              <real_value rank="0">1e-10</real_value>
+            </relative_error>
+            <max_iterations>
+              <integer_value rank="0">1000</integer_value>
+            </max_iterations>
+            <never_ignore_solver_failures/>
+            <diagnostics>
+              <monitors/>
+            </diagnostics>
+          </solver>
+        </algorithm>
+        <mesh name="ErrorMesh"/>
+        <output/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <exclude_from_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="TurbulentDissipationError" rank="0">
+      <diagnostic>
+        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="TurbulentDissipationAnalytical" source_field_2_name="TurbulentDissipationProjection" material_phase_support="single" source_field_1_type="scalar">
+          <absolute_difference/>
+        </algorithm>
+        <mesh name="ErrorMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="ScalarEddyViscosityCopy" rank="0">
+      <diagnostic>
+        <algorithm name="scalar_python_diagnostic" material_phase_support="single">
+          <string_value lines="20" type="code" language="python">E=state.scalar_fields["ScalarEddyViscosity"]
+
+for n in range(field.node_count):
+	field.set(n,E.node_val(n))</string_value>
+        </algorithm>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <exclude_from_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="ScalarEddyViscosityAnalytical" rank="0">
+      <prescribed>
+        <mesh name="ErrorMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value lines="20" type="code" language="python">def val(X,t):
+   import mms_rans_p2p1_cv_keps_tools as k
+   return k.EV(X)</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </scalar_field>
+    <scalar_field name="ScalarEddyViscosityProjection" rank="0">
+      <diagnostic>
+        <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_galerkin_projection" source_field_name="ScalarEddyViscosityCopy">
+          <solver>
+            <iterative_method name="cg"/>
+            <preconditioner name="sor"/>
+            <relative_error>
+              <real_value rank="0">1e-10</real_value>
+            </relative_error>
+            <max_iterations>
+              <integer_value rank="0">1000</integer_value>
+            </max_iterations>
+            <never_ignore_solver_failures/>
+            <diagnostics>
+              <monitors/>
+            </diagnostics>
+          </solver>
+        </algorithm>
+        <mesh name="ErrorMesh"/>
+        <output/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <exclude_from_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="ScalarEddyViscosityError" rank="0">
+      <diagnostic>
+        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="ScalarEddyViscosityAnalytical" source_field_2_name="ScalarEddyViscosityProjection" material_phase_support="single" source_field_1_type="scalar">
+          <absolute_difference/>
+        </algorithm>
+        <mesh name="ErrorMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <vector_field name="VelocityAnalytical" rank="1">
+      <prescribed>
+        <mesh name="ErrorMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value lines="20" type="code" language="python">def val(X,t):
+        import mms_rans_p2p1_cv_keps_tools as k
+        return k.velocity(X)</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </vector_field>
+    <vector_field name="VelocityProjection" rank="1">
+      <diagnostic>
+        <algorithm source_field_type="vector" material_phase_support="single" name="vector_galerkin_projection" source_field_name="Velocity">
+          <solver>
+            <iterative_method name="cg"/>
+            <preconditioner name="sor"/>
+            <relative_error>
+              <real_value rank="0">1e-10</real_value>
+            </relative_error>
+            <max_iterations>
+              <integer_value rank="0">1000</integer_value>
+            </max_iterations>
+            <never_ignore_solver_failures/>
+            <diagnostics>
+              <monitors/>
+            </diagnostics>
+          </solver>
+        </algorithm>
+        <mesh name="ErrorMesh"/>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <exclude_from_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </vector_field>
+    <vector_field name="VelocityError" rank="1">
+      <diagnostic>
+        <algorithm source_field_2_type="vector" name="vector_difference" source_field_1_name="VelocityProjection" source_field_2_name="VelocityAnalytical" material_phase_support="single" source_field_1_type="vector">
+          <absolute_difference/>
+        </algorithm>
+        <mesh name="ErrorMesh"/>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </vector_field>
+  </material_phase>
+</fluidity_options>

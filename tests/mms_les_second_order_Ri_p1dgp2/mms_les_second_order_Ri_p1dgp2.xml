@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+<testproblem>
+
+  <name>mms_les_second_order_Ri_p1dgp2</name>
+  <owner userid="ctj10"/>
+  <tags>flml</tags>
+  
+  <problem_definition length="short" nprocs="1">
+    <command_line>fluidity -v3 MMS_A.flml &gt; MMS_A.log; fluidity -v3 MMS_B.flml &gt; MMS_B.log; fluidity -v3 MMS_C.flml &gt; MMS_C.log; fluidity -v3 MMS_D.flml &gt; MMS_D.log</command_line>
+  </problem_definition>
+  
+  <variables>
+  
+    <variable name="convergence" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log
+
+meshes = [['A','B'], ['B','C'], ['C','D']]
+convergence = 1e10
+for mesh in meshes:
+
+    a_error = stat("MMS_"+str(mesh[0])+".stat")["NS"]["TracerError"]["l2norm"][-1]
+    b_error = stat("MMS_"+str(mesh[1])+".stat")["NS"]["TracerError"]["l2norm"][-1]
+
+    ratio = a_error / b_error
+
+    print mesh[0] + '->' + mesh[1] + ': ', log(ratio, 2)
+
+    convergence = min(convergence, log(ratio, 2))
+    </variable>
+    
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
+  </variables>
+  
+  <pass_tests>
+    <test name="convergence for tracer: L2 order > 1.9" language="python">
+assert(convergence &gt; 1.9)
+    </test>    
+    <test name="Solvers converged" language="python">
+assert(solvers_converged)
+    </test>
+	</pass_tests>
+  
+  <warn_tests>
+  </warn_tests>
+  
+</testproblem>
+
