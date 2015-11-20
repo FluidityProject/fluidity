@@ -1,0 +1,33 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>Differentiate_vtu</name>
+  <owner userid="jrper"/>
+  <problem_definition length="short" nprocs="1">
+    <command_line>fluidity test.flml
+differentiate_vtu differentiate_vtu_0.vtu result.vtu</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="CheckGradientX" language="python">import vtk
+import numpy
+
+reader=vtk.vtkXMLUnstructuredGridReader()
+reader.SetFileName('result.vtu')
+reader.Update()
+ugrid=reader.GetOutput()
+CheckGradientX=numpy.array(ugrid.GetPointData().GetVectors('TracerP1CGGradient').GetRange(0))
+
+</variable>
+    <variable name="CheckGradientY" language="python">import vtk
+import numpy
+
+reader=vtk.vtkXMLUnstructuredGridReader()
+reader.SetFileName('result.vtu')
+reader.Update()
+ugrid=reader.GetOutput()
+CheckGradientY=numpy.array(ugrid.GetPointData().GetVectors('TracerP1CGGradient').GetRange(1))</variable>
+  </variables>
+  <pass_tests>
+    <test name="CheckGradientX" language="python">assert all(abs(CheckGradientX-1.0)&lt;1.e8)</test>
+    <test name="CheckGradientY" language="python">assert all(abs(CheckGradientY+1.0)&lt;1.e8)</test>
+  </pass_tests>
+</testproblem>
