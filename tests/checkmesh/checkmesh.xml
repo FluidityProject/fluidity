@@ -1,0 +1,29 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>Checkmesh</name>
+  <owner userid="jrper"/>
+  <problem_definition length="short" nprocs="1">
+    <command_line>../../bin/checkmesh good_mesh &gt; good_mesh.log
+../../bin/checkmesh bad_mesh &gt; bad_mesh.log</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="good_mesh_finished" language="python">f = open('good_mesh.log')
+st = f.readlines()
+good_mesh_finished=(st[-1] == ' There are no references left.\n') </variable>
+    <variable name="bad_mesh_finished" language="python">f = open('bad_mesh.log')
+st = f.readlines()
+bad_mesh_finished = (st[-1] == ' There are no references left.\n')</variable>
+    <variable name="good_mesh_good" language="python">f = open('good_mesh.log')
+st = f.readlines()
+good_mesh_good=  ('No volume element tangling\n' in st)</variable>
+    <variable name="bad_mesh_bad" language="python">f = open('bad_mesh.log')
+st = f.readlines()
+bad_mesh_bad= not ('No volume element tangling\n' in st)</variable>
+  </variables>
+  <pass_tests>
+    <test name="GoodMeshFinished" language="python">assert good_mesh_finished</test>
+    <test name="BadMeshFinished" language="python">assert bad_mesh_finished</test>
+    <test name="GoodMeshGood" language="python">assert good_mesh_good</test>
+    <test name="BadMeshBad" language="python">assert bad_mesh_bad</test>
+  </pass_tests>
+</testproblem>
