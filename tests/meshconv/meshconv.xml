@@ -1,0 +1,37 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>Meshconv</name>
+  <owner userid="jrper"/>
+  <problem_definition length="short" nprocs="1">
+    <command_line>fluidity -V 2&gt;&amp;1 | grep "ExodusII support.*yes"
+if [ $? -eq 0 ]; then
+		../../bin/meshconv -i exodusii -o triangle exodus2triangle/block || true
+		../../bin/meshconv -i exodusii -o gmsh exodus2gmsh/block || true
+		
+fi
+../../bin/meshconv -i gmsh -o triangle gmsh2triangle/block
+make input-clean</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="CheckExodus" language="python">import filecmp
+import os.path
+
+CheckExodus=True
+
+if os.path.isfile('exodus2triangle/block.ele'):
+  for ext in ['node','ele','face']:
+    CheckExodus=CheckExodus and filecmp.cmp('exodus2triangle/block.%s'%ext,'inputs/block.%s'%ext)
+  CheckExodus=CheckExodus and filecmp.cmp('exodus2gmsh/block.msh','inputs/block.msh')
+</variable>
+    <variable name="CheckGmsh" language="python">import filecmp
+
+CheckGmsh=True
+
+for ext in ['node','ele','face']:
+  CheckGmsh=CheckGmsh and filecmp.cmp('gmsh2triangle/block.%s'%ext,'inputs/block.%s'%ext)</variable>
+  </variables>
+  <pass_tests>
+    <test name="ConvertFromExodusII" language="python">assert CheckExodus</test>
+    <test name="ConvertFromGmsh" language="python">assert CheckGmsh</test>
+  </pass_tests>
+</testproblem>

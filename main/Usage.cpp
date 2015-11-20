@@ -162,6 +162,12 @@ void print_version(ostream& stream){
 #else
       <<"no\n"
 #endif
+      <<"ExodusII support\t\t"
+#ifdef HAVE_EXODUSII
+      <<"yes\n"
+#else
+      <<"no\n"
+#endif
       ;
   stream.flush();
   return;
