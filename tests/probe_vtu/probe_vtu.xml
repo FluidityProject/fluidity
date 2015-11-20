@@ -1,0 +1,37 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>Probe_vtu</name>
+  <owner userid="jrper"/>
+  <problem_definition length="short" nprocs="1">
+    <command_line>fluidity test.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="CheckTool" language="python">import vtktools
+import numpy
+import os
+
+X = numpy.array(((0.0,0.0,0.0),
+                (0.5,0.25,0.0),
+                (0.3,0.6,0.0),
+                (0.2,0.7,0.0)))
+                
+f = vtktools.vtu('probe_vtu_0.vtu')
+py_data=f.ProbeData(X,'TracerP1CG')
+
+print py_data
+
+data=[]
+for x in X:
+  data.append(float(os.popen('../../bin/probe_vtu probe_vtu_0.vtu TracerP1CG %f %f'%(x[0],x[1])).read()))
+data=numpy.array(data)
+
+print data
+
+CheckTool=py_data.ravel()-data
+
+</variable>
+  </variables>
+  <pass_tests>
+    <test name="CheckTool" language="python">assert all(abs(CheckTool)&lt;1.0e8)</test>
+  </pass_tests>
+</testproblem>
