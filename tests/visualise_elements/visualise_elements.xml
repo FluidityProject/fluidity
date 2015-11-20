@@ -1,0 +1,15 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>visualise_elements</name>
+  <owner userid="slm06"/>
+  <problem_definition length="short" nprocs="1">
+    <command_line>../../bin/visualise_elements visualise_quadratic.xml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="scalar_sum" language="python">import vtktools; scalar_sum = sum(vtktools.vtu('visualise_quadratic_0.vtu').GetScalarField('ShapeValues'))</variable>
+  </variables>
+  <pass_tests>
+    <test name="Check sum" language="python">assert( abs( scalar_sum - 231.0 ) &lt; 1e-4 )</test>
+  </pass_tests>
+  <warn_tests/>
+</testproblem>
