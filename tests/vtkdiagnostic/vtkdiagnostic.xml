@@ -3,13 +3,15 @@
   <name>vtkdiagnostic</name>
   <owner userid="slm06"/>
   <problem_definition length="short" nprocs="1">
-    <command_line>../../bin/vtkdiagnostic -i input.vtu -e > element_sizes.dat</command_line>
+    <command_line>../../bin/vtkdiagnostic -i input.vtu -e &gt; element_sizes.dat ; ../../bin/vtkdiagnostic -i input.vtu -v &gt; vorticity_integral.dat </command_line>
   </problem_definition>
   <variables>
     <variable name="num_elements" language="python">num_elements = sum(1 for line in open('element_sizes.dat'))</variable>
+    <variable name="vorticity_integral" language="python">vorticity_integral = float( open('vorticity_integral.dat').readline()) </variable>
   </variables>
   <pass_tests>
-    <test name="Number of nodes" language="python">assert(num_elements == 463227)</test>
+    <test name="Number of elements" language="python">assert(num_elements == 463227)</test>
+    <test name="Vorticity integral" language="python">assert( abs(vorticity_integral - 885.375) &lt; 1e-4 )</test>
   </pass_tests>
   <warn_tests/>
 </testproblem>
