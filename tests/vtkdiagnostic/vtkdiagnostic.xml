@@ -1,0 +1,15 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>vtkdiagnostic</name>
+  <owner userid="slm06"/>
+  <problem_definition length="short" nprocs="1">
+    <command_line>../../bin/vtkdiagnostic -i input.vtu -e > element_sizes.dat</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="num_elements" language="python">num_elements = sum(1 for line in open('element_sizes.dat'))</variable>
+  </variables>
+  <pass_tests>
+    <test name="Number of nodes" language="python">assert(num_elements == 463227)</test>
+  </pass_tests>
+  <warn_tests/>
+</testproblem>
