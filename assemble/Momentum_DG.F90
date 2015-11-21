@@ -273,10 +273,11 @@ contains
     real,    dimension(:), allocatable :: u_disc, u_ref, new_source
 
     real :: rho_fluid, a_fact, C_T, disc_thickness, disc_area, u_ref_def, intgrl_sum, disc_volume, total_power
+    real :: C_T_bar, u_pin, u_rated
     type(scalar_field) :: NodeOnTurbine, Turbine
     type(scalar_field), pointer :: Turbine_Power
     logical :: ADM_correction
-    real,    dimension(:), allocatable :: energy_integral !A! Absorption
+    real,    dimension(:), allocatable :: energy_integral, source_integral !A! Absorption
     logical :: ADM_absorption, ADM_source !A! Absorption
     !AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA!
 
@@ -360,6 +361,9 @@ contains
     call set(Turbine_Power, 0.0)
 
     call get_option('/ADM/C_T', C_T, default = 0.0)
+    u_pin = 1.0 !A! extract from diamond in future 
+    u_rated = 2.5
+    C_T_bar = C_T
     call get_option('/ADM/DiscThickness', disc_thickness)
     ADM_correction = have_option("/ADM/ADM_correction")
     ADM_absorption = have_option("/ADM/ADM_absorption") !A! Absorption
@@ -380,6 +384,7 @@ contains
     allocate(u_ref(ndiscs))
     allocate(new_source(ndiscs))
     allocate(energy_integral(ndiscs)) !A! Absorption
+    allocate(source_integral(ndiscs)) !A! Absorption
 
     region_id_disc=0
     call get_option('/ADM/DiscRegionID', region_id_disc)
@@ -390,6 +395,7 @@ contains
     u_ref      = u_ref_def
     new_source = 0.0
     energy_integral = 0.0 !A! Absorption
+    source_integral = 0.0 !A! Absorption
     !AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA!
 
     Abs=extract_vector_field(state, "VelocityAbsorption", stat)   
@@ -819,7 +825,7 @@ contains
     end if
 
       deallocate(region_id_disc)
-      deallocate(U_intgrl)
+      !deallocate(U_intgrl)
       deallocate(u_disc)
       deallocate(u_ref)
       deallocate(new_source)
@@ -841,8 +847,10 @@ contains
             & inverse_masslump=inverse_masslump, &
             & mass=mass, subcycle_m=subcycle_m, subcycle_rhs=subcycle_rhs, &
             & partial_stress=partial_stress, Turbine=Turbine, disc_area=disc_area, disc_volume=disc_volume, & !A! (ADM)
-            & u_ref_def=u_ref_def, C_T=C_T, a_fact=a_fact, ADM_correction=ADM_correction, & !A! (ADM)
-            & energy_integral=energy_integral, ndiscs=ndiscs, ADM_absorption=ADM_absorption, Turbine_Power=Turbine_Power) !A! (ADM)
+            & u_ref_def=u_ref_def, ADM_correction=ADM_correction, & !A! (ADM)
+            & source_integral=source_integral, energy_integral=energy_integral, ndiscs=ndiscs, & !A! (ADM)
+            & ADM_absorption=ADM_absorption, Turbine_Power=Turbine_Power, U_intgrl=U_intgrl, & !A! (ADM)
+            & C_T_bar=C_T_bar, u_pin=u_pin, u_rated=u_rated) !A! (ADM)
       end do element_loop
       !$OMP END DO
 
@@ -850,7 +858,12 @@ contains
       ewrite(2,*) 'ADM-(absorption)---------------------------------------'
       do discs = 1, ndiscs
         call allsum(energy_integral(discs)) !A! necessary when running in parallel
-        ewrite(2,*) 'Disc No.:', discs, 'Turbine Volume (m3):', disc_volume, 'Power (W):', energy_integral(discs)*rho_fluid
+        call allsum(source_integral(discs)) !A! necessary when running in parallel
+        ewrite(2,*) 'Disc No.:', discs, 'Turbine Volume (m3):', disc_volume
+        ewrite(2,*) 'Thrust (N):', source_integral(discs)*rho_fluid, 'Power (W):', energy_integral(discs)*rho_fluid
+        call allsum(U_intgrl(:,discs))
+        ewrite(2,*) 'Disc u_x (m/s):', U_intgrl(1,discs)/disc_volume, 'Disc u_y (m/s):', U_intgrl(2,discs)/disc_volume, 'Disc u_z (m/s):', U_intgrl(3,discs)/disc_volume
+        
       end do
       ewrite(2,*) '-------------------------------------------------------'
       ewrite(2,*) 'TOTAL POWER (W):', sum(energy_integral)*rho_fluid
@@ -858,6 +871,8 @@ contains
     end if
 
     deallocate(energy_integral)
+    deallocate(source_integral)
+    deallocate(U_intgrl)
 
     end do colour_loop
     !$OMP END PARALLEL
@@ -974,8 +989,9 @@ contains
        &turbine_conn_mesh, depth, have_wd_abs, alpha_u_field, Abs_wd, &
        &vvr_sf, ib_min_grad, nvfrac, &
        &inverse_mass, inverse_masslump, mass, subcycle_m, subcycle_rhs, partial_stress, &
-       &Turbine, disc_area, disc_volume, u_ref_def, C_T, a_fact, ADM_correction, &
-       &energy_integral, ndiscs, ADM_absorption, Turbine_Power) !A! (ADM)
+       &Turbine, disc_area, disc_volume, u_ref_def, ADM_correction, &
+       &source_integral, energy_integral, ndiscs, ADM_absorption, Turbine_Power, U_intgrl, &
+       &C_T_bar, u_pin, u_rated) !A! (ADM)
 
     !!< Construct the momentum equation for discontinuous elements in
     !!< acceleration form.
@@ -1170,14 +1186,16 @@ contains
 
     !AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA!
     integer :: iloc, inode, discs
-    real    :: src_term, u_x, u_y, u_z, u_mag, u_ref
+    real    :: src_term, u_x, u_y, u_z, u_mag, u_ref, a_fact, C_T
     integer, intent(in) :: ndiscs
-    real   , intent(in) :: disc_area, disc_volume, u_ref_def, C_T, a_fact
+    real   , intent(in) :: disc_area, disc_volume, u_ref_def
+    real   , intent(in) :: C_T_bar, u_pin, u_rated
     logical, intent(in) :: ADM_correction, ADM_absorption
     type(scalar_field), intent(in)    :: Turbine
     type(scalar_field), intent(inout) :: Turbine_Power
     integer, dimension(:), pointer    :: Abs_ele
-    real, dimension(ndiscs),  intent(inout) :: energy_integral
+    real, dimension(ndiscs),  intent(inout) :: energy_integral, source_integral
+    real, dimension(U%dim,ndiscs), intent(inout) :: U_intgrl 
     !AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA!
 
     dg=continuity(U)<0
@@ -1312,6 +1330,9 @@ contains
     do discs = 1, ndiscs
       if (Turbine%val(ele) .eq. float(discs)) then 
 
+        !A! Calcualte disc velocity integral
+        call calc_disc_velocity_integral(ele, X, U, U_intgrl(:,discs))
+
         Abs_ele => ele_nodes(Abs,ele)
 
         do iloc = 1, size(Abs_ele)
@@ -1323,12 +1344,34 @@ contains
           u_z = U_nl_true%val(3,inode)
 
           u_mag = sqrt( u_x*u_x + u_y*u_y + u_z*u_z )
+          !A!cos_theta = u_x / sqrt(u_x*u_x + u_y*u_y) !A! assuming u_z is negligible
+
+          C_T = C_T_bar
+          a_fact = 0.5*(1.0 - sqrt(1.0-C_T))
 
           if (ADM_correction) then
             u_ref = u_mag/(1.0 - a_fact)
+          else
+            u_ref = u_ref_def
           end if
 
+          !A! thrust curves:
+          if (u_ref .lt. u_pin) then
+            C_T = 0.0
+            ewrite(2,*) 'u_ref = ', u_ref, 'C_T =', C_T
+          else if (u_ref .gt. u_pin .and. u_ref .lt. u_rated) then
+            C_T = C_T_bar
+            ewrite(2,*) 'u_ref = ', u_ref, 'C_T =', C_T
+          else if (u_ref .gt. u_rated) then
+            C_T = C_T_bar * (u_rated**3.0)/(u_ref**3.0)
+            ewrite(2,*) 'u_ref = ', u_ref, 'C_T =', C_T
+          else
+            ewrite(2,*) 'thrust curve ERROR: u_ref = ', u_ref
+          endif
+            
+          C_T = C_T_bar
           src_term = (0.5*disc_area*C_T*u_ref*u_ref)/disc_volume !no rho
+          !A!src_term = src_term * 1.0/0.866025403784 !A! cos(30)
 
           if (u_mag .ne. 0.0) then
             Abs%val(1,inode) = src_term / u_mag
@@ -1343,6 +1386,7 @@ contains
         end do
       
         !energy_integral = energy_integral + sum(ele_val_at_quad(Abs, ele)*sum(ele_val_at_quad(U_nl_true, ele)**2, dim=1)*detwei)
+        source_integral(discs) = source_integral(discs) + sum(sum(ele_val_at_quad(Abs, ele)*ele_val_at_quad(U_nl_true, ele), dim=1)*detwei)
         energy_integral(discs) = energy_integral(discs) + sum(sum(ele_val_at_quad(Abs, ele)*ele_val_at_quad(U_nl_true, ele)**2, dim=1)*detwei)
 
         do iloc=1, size(Abs_ele)
