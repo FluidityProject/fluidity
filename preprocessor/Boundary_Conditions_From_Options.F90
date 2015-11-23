@@ -1014,7 +1014,7 @@ contains
             call get_option(trim(bc_component_path),nots)
 
             ! allocate memory for eddies...
-            call initialise_sem_memory(ns,nots)
+            call initialise_sem_memory(ns,surface_field11%dim,nots)
             ! calculate the boundary condition...
             call synthetic_eddy_method(surface_field, surface_field11, surface_field21, surface_field22,  &
                  bc_position, bc_component_path, ns)
