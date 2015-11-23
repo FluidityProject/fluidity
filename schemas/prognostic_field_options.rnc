@@ -977,7 +977,7 @@ prognostic_velocity_field =
                         }
                      )
                   }?,
-                  element debug 
+                  element debug {
                      ## YPlus - the wall Reynolds number on the Van Driest formulation. Requires an LES model
                      ## to be applied to the velocity field.
                      element scalar_field {
