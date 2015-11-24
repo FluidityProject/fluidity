@@ -198,7 +198,10 @@ contains
          initz=.true.
       endif
 
-      if(initeddy(ns))then
+      if(initeddy(ns) .and. have_option('/synthetic_eddies/')) then
+         call initialise_sem_memory(ns,dim,number_of_eddies)
+         call read_eddies_from_checkpoint(ns,number_of_eddies)
+      else if (initeddy(ns)) then
          ! This is only done on process zero. In theory we could load balance this.
          if(GetRank()==0) then
             allocate(coords(dim,number_of_eddies))
@@ -391,6 +394,10 @@ contains
 
       call deallocate(ufl)
 
+      if (have_option("/io/checkpointing")) then
+         call checkpoint_synthetic_eddies(ns)
+      end if
+
       ewrite(3,*) 'leaving turbulent inlet boundary conditions routine'
     end subroutine synthetic_eddy_method
 
@@ -450,6 +457,55 @@ contains
        end if
        
      end subroutine add_sem_bc
+
+     subroutine checkpoint_synthetic_eddies(bc_id)
+       integer, intent(in) :: bc_id
+
+       character(len = OPTION_PATH_LEN) :: path, name
+       integer :: i, stat
+
+       if (bc_id==1) then
+          call add_option('/synthetic_eddies/',stat)
+       end if
+
+       path = '/synthetic_eddies/boundary['//int2str(bc_id-1)//']'
+       call add_option(trim(path),stat)
+
+       do i=1,size(eddies(bc_id)%eddy_positions,2)
+          name=trim(path)//'/eddy['//int2str(i-1)//']'
+          call add_option(trim(name),stat)
+          call add_option(trim(name)//'/position',stat)
+          call add_option(trim(name)//'/polarity',stat)
+
+          call set_option(trim(name)//'/position',&
+               eddies(bc_id)%eddy_positions(:,i),&
+               stat)
+          call set_option(trim(name)//'/polarity',&
+               eddies(bc_id)%eddy_polarities(:,i),&
+               stat)
+       end do
+
+     end subroutine checkpoint_synthetic_eddies
+
+     subroutine read_eddies_from_checkpoint(bc_id,number_of_eddies)
+       integer, intent(in) :: bc_id, number_of_eddies
+
+       character(len = OPTION_PATH_LEN) :: path, name
+       integer :: i, stat
+       
+       path = '/synthetic_eddies/boundary['//int2str(bc_id-1)//']'
+
+       do i=1,number_of_eddies
+          name=trim(path)//'/eddy['//int2str(i-1)//']'
+          call get_option(trim(name)//'/position',&
+               eddies(bc_id)%eddy_positions(:,i),&
+               stat)
+          call get_option(trim(name)//'/polarity',&
+               eddies(bc_id)%eddy_polarities(:,i),&
+               stat)
+       end do
+
+     end subroutine read_eddies_from_checkpoint
      
      
    end module synthetic_bc
