@@ -42,7 +42,7 @@ class TestHarness:
     def __init__(self, length="any", parallel="any", exclude_tags=None,
                  tags=None, file="", from_file=None,
                  verbose=True, justtest=False,
-                 valgrind=False, genpbs=False, xml_outfile=""):
+                 valgrind=False, genpbs=False, exit_fails=False, xml_outfile=""):
         self.tests = []
         self.verbose = verbose
         self.length = length
@@ -58,6 +58,7 @@ class TestHarness:
         self.xml_parser=TestSuite('TestHarness',[])
         self.cwd=os.getcwd()
         self.xml_outfile=xml_outfile
+        self.exit_fails=exit_fails
 
         fluidity_command = self.decide_fluidity_command()
 
@@ -350,9 +351,14 @@ class TestHarness:
             print "Warnings: %d" % self.warncount
 
         if self.xml_outfile!="":
-          fd=open(self.cwd+'/'+self.xml_outfile,'w')
-          self.xml_parser.to_file(fd,[self.xml_parser])
-          fd.close()
+            fd=open(self.cwd+'/'+self.xml_outfile,'w')
+            self.xml_parser.to_file(fd,[self.xml_parser])
+            fd.close()
+
+        if self.exit_fails:
+            sys.exit(self.failcount)
+
+          
 
     def threadrun(self):
         '''This is the portion of the loop which actually runs the
@@ -402,6 +408,7 @@ if __name__ == "__main__":
     parser.add_option("--just-list", action="store_true", dest="justlist")
     parser.add_option("--genpbs", action="store_true", dest="genpbs")
     parser.add_option("-x","--xml-output", dest="xml_outfile", default="", help="filename for xml output")
+    parser.add_option("--exit-failure-count", action="store_true", dest="exit_fails", help="Return failure count on exit")
     (options, args) = parser.parse_args()
 
     if len(args) > 0: parser.error("Too many arguments.")
@@ -441,6 +448,7 @@ if __name__ == "__main__":
                               valgrind=options.valgrind,
                               from_file=options.from_file,
                               genpbs=options.genpbs,
+                              exit_fails=options.exit_fails,
                               xml_outfile=options.xml_outfile)
 
     if options.justlist:
