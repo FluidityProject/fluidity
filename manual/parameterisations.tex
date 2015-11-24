@@ -837,6 +837,34 @@ The options available to the user are located under path \lstinline+.../les_mode
         Sub-options allow the user to store realisations of the eddy viscosity, $\nu_\tau$,
         for post-processing.
 \end{itemize}
+\subsubsection{Synthetic Eddy Method boundary conditions}
+\label{sec:LES_sem_modelling}
+
+When a high-resolution LES simulation is to be performed, it is usually impossible to model an entire closed system. Instead, only a small portion is modelled, with boundary information supplied where necessary either from theory, measurement or from a larger, Reynolds averaged model. In the case where these boundary conditions at inlets are smooth, or even laminar, it can take a considerable time (and, through the mean flow rate of the system, distance) for eddy phenomena to spin up in the LES model. The Synthetic Eddy Method boundary condition seeks to ameliorate this effect by introducing artificial turbulent eddies at the inlet with stochastically generated position and intensity. 
+
+Fluidity implements the method described in \cite{jarrin_2006}. This creates a virtual box around the plane of the boundary surface, in which a user-specified number of eddies are assumed to exist. Given a mean input velocity, $\bm{U}$, a Reynolds stress tensor, $R_{ij}=\bm{u}'_i\bm{u}'_j$ and a characteristic length metric, $\sigma$', the instantaneous Dirichlet inlet velocity is taken to be
+\[\bm{u}=\bm{U}+\frac{1}{\sqrt{N}}\sum_{k=1}{N}A_{ij}e^{(k)} f(\bm{x}-\bm{k}^{(k)})\]
+where $A$ is the Cholesky decomposition of the Reynolds stress tensor,
+\[A=\left(
+\begin{array}{ccc}
+\sqrt{R_{11}} & 0 & 0 \\
+\frac{R_{21}}{A_{11}}  & \sqrt{R_{22}-A_{21}^2} & 0 \\
+\frac{R_{31}}{A_{11}}  & \frac{R_{32}-A_{21}A_{31}}{A_{22}} & \sqrt{R_{33}-A_{31}^2 - A_{32}^2}
+\end{array}
+\right),
+\]
+so that $R=AA^T$ and the statistics are correct. Here the profile function $f$ decomposes along the Cartesian axes,
+\[f=C_0\prod_{i=1}^nf_i\left(\frac{x_i-x_i^{(k)}}{\sigma_i}\right),\]
+where we use the tent function
+\[f_i(a)=
+\begin{cases}
+1-|a|&|a|\leq 1,\\
+0 & |a|>1.
+\end{cases}
+\]
+The constant $C_0$ is a normalization so that the total forcing of the function across its support is unity.
+
+The eddies are initialised at  uniformally random locations $\bm{x}^{(k)}$ within the box with polarity $e^{(k)}$ $\pm 1$ taken with equal probability. They are convected with the mean velocity across the inlet face and are regenerated once they have convected across the entire length of the box (defined to be one characteristic width). 
 
 \section{Ice shelf parameterisation}
 Exchange of heat and salt between the ice and ocean drives the circulation.
