@@ -56,6 +56,12 @@
       <integer_value rank="0">2</integer_value>
     </max_dump_file_count>
     <output_mesh name="VelocityMesh"/>
+    <checkpointing>
+      <checkpoint_period_in_dumps>
+        <integer_value rank="0">1</integer_value>
+      </checkpoint_period_in_dumps>
+      <checkpoint_at_end/>
+    </checkpointing>
     <stat/>
   </io>
   <timestepping>
@@ -66,7 +72,7 @@
       <real_value rank="0">0.1</real_value>
     </timestep>
     <finish_time>
-      <real_value rank="0">0.1</real_value>
+      <real_value rank="0">0.2</real_value>
     </finish_time>
     <cpu_time_limit>
       <real_value rank="0">2.5E+5</real_value>

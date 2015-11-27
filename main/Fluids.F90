@@ -416,7 +416,10 @@ contains
     end if
     
     ! Checkpoint at start
-    if(do_checkpoint_simulation(dump_no)) call checkpoint_simulation(state, cp_no = dump_no)
+    if(do_checkpoint_simulation(dump_no)) then
+       if (have_sem_bcs()) call checkpoint_synthetic_eddies(dump_no)
+       call checkpoint_simulation(state, cp_no = dump_no)
+    end if
     ! Dump at start
     if( &
          ! if this is not a zero timestep simulation (otherwise, there would
@@ -478,6 +481,7 @@ contains
 
           ! Intermediate dumps
           if(do_checkpoint_simulation(dump_no)) then
+             if (have_sem_bcs()) call checkpoint_synthetic_eddies(dump_no)
              call checkpoint_simulation(state, cp_no = dump_no)
           end if
           call write_state(dump_no, state)
@@ -926,6 +930,7 @@ contains
 
     ! Checkpoint at end, if enabled
     if(have_option("/io/checkpointing/checkpoint_at_end")) then
+       if (have_sem_bcs()) call checkpoint_synthetic_eddies(dump_no)
        call checkpoint_simulation(state, cp_no = dump_no)
     end if
     ! Dump at end, unless explicitly disabled

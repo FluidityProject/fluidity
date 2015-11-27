@@ -49,7 +49,7 @@ DLIB = libvtkfortran.dylib
 MAJOR = 1
 VERSION = 1
 
-OBJS = vtkfortran.o vtkmeshio.o fvtkfortran.o
+OBJS = vtkfortran.o vtkmeshio.o fvtkfortran.o vtpfortran.o fvtpfortran.o
 TINY_OBJS = tinyxmlparser.o tinyxmlerror.o tinyxml.o
 
 .SUFFIXES:

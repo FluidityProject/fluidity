@@ -31,6 +31,7 @@ module synthetic_bc
 
 use fldebug
 use spud
+use vtpfortran
 use global_parameters, only: dt, option_path_len
 use elements
 use parallel_tools
@@ -42,7 +43,7 @@ use state_module
 implicit none
 
 private
-public synthetic_eddy_method, add_sem_bc, initialise_sem_memory
+public synthetic_eddy_method, add_sem_bc, initialise_sem_memory, checkpoint_synthetic_eddies, have_sem_bcs
 
   
 type eddy
@@ -57,6 +58,12 @@ integer, save:: sem_bc_count=0
 type(eddy),dimension(:),pointer,save:: eddies
 
 contains
+
+  function have_sem_bcs()
+    logical have_sem_bcs
+
+    have_sem_bcs = sem_bc_count > 0
+  end function have_sem_bcs
 
   subroutine synthetic_eddy_method(eddy_inlet_velocity, mean_velocity,  & 
        reynolds_stresses, turbulence_lengthscales, bc_position, bc_path_i, ns)
@@ -188,44 +195,46 @@ contains
       ! generate initial coordinades, signs of turbulent spots
       ! calculate convection velocity
       if (.not.initz) then
+         if (have_option('/embeded_models/synthetic_eddies/read_from_file')) then
+            call read_eddies_from_checkpoint()
+         end if
          allocate(initeddy(sem_bc_count))
          initeddy = .true.
-         
          allocate(averaged_velocity(dim, sem_bc_count))
          allocate(area(sem_bc_count))
          averaged_velocity=0.; area=0.
-       
          initz=.true.
       endif
 
-      if(initeddy(ns) .and. have_option('/synthetic_eddies/')) then
-         call initialise_sem_memory(ns,dim,number_of_eddies)
-         call read_eddies_from_checkpoint(ns,number_of_eddies)
-      else if (initeddy(ns)) then
+      if(initeddy(ns)) then
+         if (.not. have_option('/embedded_models/synthetic_eddies/read_from_file')) then
+      
          ! This is only done on process zero. In theory we could load balance this.
-         if(GetRank()==0) then
-            allocate(coords(dim,number_of_eddies))
-            call random_seed()
-            call random_number(coords)
+            if(GetRank()==0) then
+               allocate(coords(dim,number_of_eddies))
+               call random_seed()
+               call random_number(coords)
             
             !place each eddy randomly inside its box
             
-            do i=1,number_of_eddies
-               eddies(ns)%eddy_positions(:,i)=xminb+(xmaxb-xminb)*coords(:,i)
-            end do
-            deallocate(coords)
+               do i=1,number_of_eddies
+                  eddies(ns)%eddy_positions(:,i)=xminb+(xmaxb-xminb)*coords(:,i)
+               end do
+               deallocate(coords)
 
-            eddies(ns)%eddy_polarities=esign(dim,number_of_eddies)
-         end if
+               eddies(ns)%eddy_polarities=esign(dim,number_of_eddies)
+            end if
 
 #ifdef HAVE_MPI
-         if(IsParallel())then
-            call mpi_bcast(eddies(ns)%eddy_positions(:,:),number_of_eddies*dim,GetPREAL(),0,MPI_COMM_FEMTOOLS,ierr)
+            if(IsParallel())then
+               call mpi_bcast(eddies(ns)%eddy_positions(:,:),number_of_eddies*dim,GetPREAL(),0,MPI_COMM_FEMTOOLS,ierr)
 
-            call mpi_bcast(eddies(ns)%eddy_polarities(:,:),number_of_eddies*dim,mpi_integer,0,MPI_COMM_FEMTOOLS,ierr)
-         endif
+               call mpi_bcast(eddies(ns)%eddy_polarities(:,:),number_of_eddies*dim,mpi_integer,0,MPI_COMM_FEMTOOLS,ierr)
+            endif
 #endif
 
+         end if
+            
          x_shape   => ele_shape(bc_position,1)
          vel_shape => ele_shape(mean_velocity,1)
          
@@ -458,51 +467,100 @@ contains
        
      end subroutine add_sem_bc
 
-     subroutine checkpoint_synthetic_eddies(bc_id)
-       integer, intent(in) :: bc_id
+     subroutine checkpoint_synthetic_eddies(dump_no)
+       integer, intent(in) :: dump_no
+       character(len = OPTION_PATH_LEN) :: filename
+       integer :: bc_id, i, idx, stat, esize, lsize, dim
+       integer, dimension(:), allocatable :: bc_ids
+       real, dimension(:,:), allocatable :: positions,  polarities
 
-       character(len = OPTION_PATH_LEN) :: path, name
-       integer :: i, stat
+       if (getprocno()/=1) return
+          ! write to eddies to file only from the head node
 
-       if (bc_id==1) then
-          call add_option('/synthetic_eddies/',stat)
-       end if
+       call get_option('/simulation_name',filename)
+       filename=trim(filename)//'_synthetic_eddies_'//int2str(dump_no)&
+            //'_checkpoint.vtp'
+       call add_option('/embeded_models/synthetic_eddies/read_from_file',stat)
+       call set_option('/embeded_models/synthetic_eddies/read_from_file',&
+            trim(filename),stat)
 
-       path = '/synthetic_eddies/boundary['//int2str(bc_id-1)//']'
-       call add_option(trim(path),stat)
+       call get_option('/geometry/dimension',dim)
 
-       do i=1,size(eddies(bc_id)%eddy_positions,2)
-          name=trim(path)//'/eddy['//int2str(i-1)//']'
-          call add_option(trim(name),stat)
-          call add_option(trim(name)//'/position',stat)
-          call add_option(trim(name)//'/polarity',stat)
-
-          call set_option(trim(name)//'/position',&
-               eddies(bc_id)%eddy_positions(:,i),&
-               stat)
-          call set_option(trim(name)//'/polarity',&
-               eddies(bc_id)%eddy_polarities(:,i),&
-               stat)
+       esize = 0
+       do bc_id=1,sem_bc_count 
+          esize = esize + size(eddies(bc_id)%eddy_positions,2)
        end do
+
+       allocate(bc_ids(esize), polarities(esize,3), positions(esize,3))
+
+       polarities = 0
+       positions  = 0.0
+
+       idx=0
+       do bc_id=1,sem_bc_count
+          lsize = size(eddies(bc_id)%eddy_positions,2)
+          bc_ids(idx+1:idx+lsize) = bc_id
+          do i=1,dim
+             polarities(idx+1:idx+lsize,i) = eddies(bc_id)%eddy_polarities(i,:)
+             positions(idx+1:idx+lsize,i)  = eddies(bc_id)%eddy_positions(i,:)
+          end do
+          idx = idx + lsize
+       end do
+
+       !!! now write a file:
+
+       call vtpopen(trim(filename),trim(filename))
+       call vtpwritepoints(esize, positions(:,1), positions(:,2),&
+            positions(:,3))
+       
+       call vtpwritesn(bc_ids, "BoundaryID")
+       call vtpwritevn(polarities(:,1),&
+            polarities(:,2),polarities(:,3),&
+            "Polarity")
+       
+       if(getnprocs() > 1) then
+          call vtppclose(getrank(), getnprocs())
+       else
+          call vtpclose()
+       end if
 
      end subroutine checkpoint_synthetic_eddies
 
-     subroutine read_eddies_from_checkpoint(bc_id,number_of_eddies)
-       integer, intent(in) :: bc_id, number_of_eddies
+     subroutine read_eddies_from_checkpoint()
+       character(len = OPTION_PATH_LEN) :: filename, path
+       integer :: esize, nscalars, nvectors, ntensors, bc_id, i, j, &
+            idx, dim, lsize
+       real, dimension(:), allocatable :: x,y,z,bc_ids, polarities, tensors
+ 
+       path ='/embeded_models/synthetic_eddies/read_from_file'
 
-       character(len = OPTION_PATH_LEN) :: path, name
-       integer :: i, stat
+       call get_option(path,filename)
+       call get_option('/geometry/dimension',dim)
        
-       path = '/synthetic_eddies/boundary['//int2str(bc_id-1)//']'
+       call vtpopentoread(trim(filename),trim(filename))
+       call vtpgetsizes(esize,nscalars,nvectors,ntensors)
 
-       do i=1,number_of_eddies
-          name=trim(path)//'/eddy['//int2str(i-1)//']'
-          call get_option(trim(name)//'/position',&
-               eddies(bc_id)%eddy_positions(:,i),&
-               stat)
-          call get_option(trim(name)//'/polarity',&
-               eddies(bc_id)%eddy_polarities(:,i),&
-               stat)
+       allocate(x(esize),y(esize),z(esize),bc_ids(esize),&
+            polarities(3*esize), tensors(0))
+       call vtpread(x,y,z,bc_ids,polarities,tensors)
+
+
+       idx=0
+       do bc_id=1,sem_bc_count
+          !! count the number in each eddy
+          lsize = size(eddies(bc_id)%eddy_positions,2)
+          eddies(bc_id)%eddy_positions(1,:)=x(idx+1:idx+lsize)
+          if (dim>1) eddies(bc_id)%eddy_positions(2,:)=y(idx+1:idx+lsize)
+          if (dim>2) eddies(bc_id)%eddy_positions(2,:)=z(idx+1:idx+lsize)
+
+          do j=1,lsize
+             do i=1,dim
+                eddies(bc_id)%eddy_polarities(i,j)=polarities((idx+j-1)*3+i)
+             end do
+          end do
+
+          idx=idx+lsize
+          
        end do
 
      end subroutine read_eddies_from_checkpoint
