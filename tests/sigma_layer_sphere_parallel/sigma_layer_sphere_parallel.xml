@@ -5,7 +5,7 @@
   <tags>flml zoltan</tags>
   <problem_definition length="short" nprocs="2">
     <command_line>mpiexec flredecomp -i 1 -o 2  sphere_sigma  sphere_sigma_flredecomp;
-                    mpiexec fluidity sphere_sigma_flredecomp.flml</command_line>
+                    mpiexec fluidity -v2 -l sphere_sigma_flredecomp.flml</command_line>
   </problem_definition>
   <variables>
     <variable name="solvers_converged" language="python">import os

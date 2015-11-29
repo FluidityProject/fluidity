@@ -275,9 +275,6 @@ contains
       assert(face_loc(input_positions, 1) == snloc)
     end if
     assert(metric%mesh == input_positions%mesh)
-    if(present(node_ownership)) then
-      assert(.not. associated(node_ownership))
-    end if
 #endif
     
     ewrite(2, *) "Forming adaptmem arguments"
