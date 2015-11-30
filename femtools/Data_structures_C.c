@@ -2,6 +2,7 @@
 #include "confdefs.h"
 #include "stdio.h"
 #include "assert.h"
+#include "string.h"
 
 /* To understand these, read
    http://judy.sourceforge.net/doc/Judy1_3x.htm and
@@ -149,3 +150,135 @@ void integer_hash_table_fetch_pair_c(Pvoid_t* i, int* idx, int* key, int* val)
   *val = *pvalue;
   *i = ptr;
 }
+
+void string_hash_table_create_c(Pvoid_t* i)
+{
+  assert(sizeof(int*) == sizeof(Pvoid_t));
+  *i = (Pvoid_t) NULL;
+}
+
+void string_hash_table_delete_c(Pvoid_t* i)
+{
+  Word_t mem_freed;
+  Pvoid_t ptr = (Pvoid_t) *i;
+  JSLFA(mem_freed, ptr);
+  *i = ptr;
+}
+
+void string_hash_table_insert_c(Pvoid_t* i, uint8_t* key, int* v)
+{
+  PWord_t pvalue;
+  Pvoid_t ptr = (Pvoid_t) *i;
+  JSLI(pvalue, ptr, key);
+  *pvalue = *v;
+  *i = ptr;
+}
+
+void string_hash_table_insert_pointer_c(Pvoid_t* i, uint8_t* key, void* p)
+{
+  PWord_t pvalue;
+  Pvoid_t ptr = (Pvoid_t) *i;
+  JSLI(pvalue, ptr, key);
+  *pvalue = *(PWord_t)p;
+  *i = ptr;
+}
+
+void string_hash_table_fetch_c(Pvoid_t* i, uint8_t* key, int* v)
+{
+  PWord_t pvalue;
+  Pvoid_t ptr = (Pvoid_t) *i;
+  JSLG(pvalue, ptr, key); 
+  if (pvalue == NULL)
+  {
+    fprintf(stderr, "Error: hash table has no key %s\n", (char*) key);
+    assert(pvalue != NULL);
+  }
+  *v = *pvalue;
+  *i = ptr;
+}
+
+void string_hash_table_fetch_pointer_c(Pvoid_t* i, uint8_t* key, void* p)
+{
+  PWord_t pvalue;
+  Pvoid_t ptr = (Pvoid_t) *i;
+  JSLG(pvalue, ptr, key); 
+  if (pvalue == NULL)
+  {
+    fprintf(stderr, "Error: hash table has no key %s\n", (char*) key);
+    assert(pvalue != NULL);
+  }
+  *(PWord_t) p = *pvalue;
+  *i = ptr;
+}
+
+void string_hash_table_remove_c(Pvoid_t* i, uint8_t* key, int* status)
+{
+  int stat;
+  Pvoid_t ptr = (Pvoid_t) *i;
+  JSLD(stat, ptr, key); 
+  *status = stat;
+  *i = ptr;
+}
+
+void string_hash_table_has_key_c(Pvoid_t* i, uint8_t* key, int* present)
+{
+  PWord_t pvalue ;
+  Pvoid_t ptr = (Pvoid_t) *i;
+
+  JSLG(pvalue, ptr, key); 
+  *present = (pvalue != NULL);
+  *i = ptr;
+}
+
+void string_hash_table_get_first_c(Pvoid_t* i, uint8_t* key, int* key_len, int* v, int* status)
+{
+  uint8_t Index[255];
+  Index[0] = '\0';
+
+  PWord_t pvalue ;
+  Pvoid_t ptr = (Pvoid_t) *i;
+  JSLF(pvalue, ptr, Index); 
+  *status = (pvalue != NULL);
+  *v = *pvalue;
+  *i = ptr;
+  if (*status){ *key_len = strlen((char*) Index);} else { *key_len=0;};
+  key = Index;
+}
+
+void string_hash_table_get_first_pointer_c(Pvoid_t* i, uint8_t* key, int* key_len, void* p, int* status)
+{
+  uint8_t Index[255];
+  Index[0] = '\0';
+
+  PWord_t pvalue ;
+  Pvoid_t ptr = (Pvoid_t) *i;
+  JSLF(pvalue, ptr, Index); 
+  *status = (pvalue != NULL);
+  *(PWord_t) p = *pvalue;
+  *i = ptr;
+  if (*status){ *key_len = strlen((char*) Index);} else { *key_len=0;};
+  key = Index;
+}
+
+void string_hash_table_get_next_c(Pvoid_t* i, uint8_t* key, int* key_len, int* v, int* status)
+{
+  PWord_t pvalue ;
+  Pvoid_t ptr = (Pvoid_t) *i;
+  JSLN(pvalue, ptr, key); 
+  *status = (pvalue != NULL);
+  *v = *pvalue;
+  *i = ptr;
+  if (*status){ *key_len = strlen((char*) key);} else { *key_len=0;};
+}
+
+void string_hash_table_get_next_pointer_c(Pvoid_t* i, uint8_t* key, int* key_len, void* p, int* status)
+{
+  PWord_t pvalue ;
+  Pvoid_t ptr = (Pvoid_t) *i;
+  JSLN(pvalue, ptr, key); 
+  *status = (pvalue != NULL);
+  *(PWord_t) p = *pvalue;
+  *i = ptr;
+  if (*status){ *key_len = strlen((char*) key);} else { *key_len=0;};
+}
+

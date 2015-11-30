@@ -4,6 +4,7 @@ module data_structures
 
   use integer_set_module
   use integer_hash_table_module
+  use string_hash_table_module
 
   implicit none
 

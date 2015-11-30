@@ -211,7 +211,7 @@ DG_interpolation.o ../include/dg_interpolation_module.mod: \
 
 Data_structures.o ../include/data_structures.mod: Data_structures.F90 \
    ../include/fdebug.h ../include/integer_hash_table_module.mod \
-   ../include/integer_set_module.mod
+   ../include/integer_set_module.mod ../include/string_hash_table_module.mod
 
 ../include/detector_data_types.mod: Detector_Data_Types.o
 	@true
@@ -1141,6 +1141,12 @@ Streamfunction.o ../include/streamfunction.mod: Streamfunction.F90 \
    ../include/sparsity_patterns.mod ../include/sparsity_patterns_meshes.mod \
    ../include/state_module.mod ../include/transform_elements.mod \
    ../include/vector_tools.mod
+
+../include/string_hash_table_module.mod: String_hash_table.o
+	@true
+
+String_hash_table.o ../include/string_hash_table_module.mod: \
+   String_hash_table.F90 ../include/fdebug.h ../include/fldebug.mod
 
 ../include/superconvergence.mod: Superconvergence.o
 	@true
