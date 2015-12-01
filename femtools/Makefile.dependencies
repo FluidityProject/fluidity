@@ -1128,6 +1128,14 @@ State_Fields.o ../include/state_fields_module.mod: State_Fields.F90 \
    ../include/global_parameters.mod ../include/sparse_tools.mod \
    ../include/sparsity_patterns_meshes.mod ../include/state_module.mod
 
+../include/stochastic.mod: Stochastic.o
+	@true
+
+Stochastic.o ../include/stochastic.mod: Stochastic.F90 \
+   ../include/data_structures.mod ../include/fdebug.h ../include/fields.mod \
+   ../include/fldebug.mod ../include/global_parameters.mod \
+   ../include/parallel_tools.mod ../include/spud.mod ../include/version.h
+
 ../include/streamfunction.mod: Streamfunction.o
 	@true
 
