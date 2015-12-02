@@ -4,13 +4,15 @@
   <define name="embedded_models">
     <element name="embedded_models">
       <a:documentation>Fluidity embedded models</a:documentation>
-      <element name="synthetic_eddies">
-        <a:documentation>Global options for synthetic eddy method boundary condtions</a:documentation>
-        <element name="read_from_file">
-          <a:documentation>Initialise eddies from the named .vtp file. used for checkpointing.</a:documentation>
-          <data type="string"/>
+      <optional>
+        <element name="synthetic_eddies">
+          <a:documentation>Global options for synthetic eddy method boundary condtions</a:documentation>
+          <element name="read_from_file">
+            <a:documentation>Initialise eddies from the named .vtp file. used for checkpointing.</a:documentation>
+            <data type="string"/>
+          </element>
         </element>
-      </element>
+      </optional>
       <ref name="comment"/>
     </element>
   </define>
