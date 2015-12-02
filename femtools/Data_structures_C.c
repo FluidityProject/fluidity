@@ -254,7 +254,7 @@ void string_hash_table_get_first_pointer_c(Pvoid_t* i, uint8_t* key, int* key_le
   Pvoid_t ptr = (Pvoid_t) *i;
   JSLF(pvalue, ptr, Index); 
   *status = (pvalue != NULL);
-  *(PWord_t) p = *pvalue;
+  *(PWord_t) p = pvalue;
   *i = ptr;
   if (*status){ *key_len = strlen((char*) Index);} else { *key_len=0;};
   key = Index;
@@ -277,7 +277,7 @@ void string_hash_table_get_next_pointer_c(Pvoid_t* i, uint8_t* key, int* key_len
   Pvoid_t ptr = (Pvoid_t) *i;
   JSLN(pvalue, ptr, key); 
   *status = (pvalue != NULL);
-  *(PWord_t) p = *pvalue;
+  *(PWord_t) p = pvalue;
   *i = ptr;
   if (*status){ *key_len = strlen((char*) key);} else { *key_len=0;};
 }
