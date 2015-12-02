@@ -55,6 +55,7 @@ module fluids_module
   use halos
   use equation_of_state
   use timers
+  use stochastic
   use synthetic_bc
   use k_epsilon, only: keps_advdif_diagnostics
   use tictoc
@@ -977,6 +978,8 @@ contains
     ! deallocate the pointer to the array of states and sub-state:
     deallocate(state)
     if(use_sub_state()) deallocate(sub_state)
+
+    call finalise_stochastic_module
 
     ! Clean up registered diagnostics
     call destroy_registered_diagnostics 

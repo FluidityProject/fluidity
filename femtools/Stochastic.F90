@@ -46,13 +46,17 @@ module stochastic
   integer :: seed_size
 
   type(string_hash_table) :: named_seed
+
+  interface get_random
+     module procedure get_random_1d, get_random_2d
+  end interface get_random
      
 
   private
 
   public :: get_random_points_in_mesh, initialise_stochastic_module,&
        partition_points_in_parallel, deallocate_seeds, checkpoint_seeds,&
-       get_random, UNIFORM, NORMAL
+       get_random, finalise_stochastic_module, UNIFORM, NORMAL
 
 contains
 
@@ -203,6 +207,8 @@ contains
        call get_next(named_seed,key,ptr,stat)
     end do
 
+    deallocate(generic_seed)
+
   end subroutine deallocate_seeds
   
   subroutine initialise_stochastic_module()
@@ -210,6 +216,7 @@ contains
     if (initialised) return
     !! else set up the seed(s)
     call random_seed(size = seed_size)
+    allocate(generic_seed(seed_size))
     if (have_option('/embeded_models/random_seeds')) then
        call initialize_from_options_file()
     else
@@ -217,8 +224,13 @@ contains
     end if
     initialised=.true.
   end subroutine initialise_stochastic_module
+  
+  subroutine finalise_stochastic_module()
+    call deallocate_seeds()
+    initialised=.false.
+  end subroutine finalise_stochastic_module
 
-  subroutine get_random(harvest,distribution,series)
+  subroutine get_random_1d(harvest,distribution,series)
     real, intent(out), dimension(:) :: harvest
     integer, intent(in) :: distribution
     character(len=*), optional :: series
@@ -227,27 +239,47 @@ contains
 
     select case(distribution)
     case(UNIFORM)
-       call uniform_random_number(harvest)
+       call uniform_random_number(harvest,size(harvest))
     case(NORMAL)
-       call normal_random_number(harvest)
+       call normal_random_number(harvest,size(harvest))
     end select
 
     if (present(series)) call store_seed(series)
 
-  end subroutine get_random
+  end subroutine get_random_1d
 
-  subroutine uniform_random_number(harvest)
-    real, dimension(:), intent(out) :: harvest
+  subroutine get_random_2d(harvest,distribution,series)
+    real, intent(out), dimension(:,:) :: harvest
+    integer, intent(in) :: distribution
+    character(len=*), optional :: series
+
+    if (present(series)) call load_seed(series)
+
+    select case(distribution)
+    case(UNIFORM)
+       call uniform_random_number(harvest,size(harvest))
+    case(NORMAL)
+       call normal_random_number(harvest,size(harvest))
+    end select
+
+    if (present(series)) call store_seed(series)
+
+  end subroutine get_random_2d
+
+  subroutine uniform_random_number(harvest,n)
+    integer :: n
+    real, dimension(n), intent(out) :: harvest
     call random_number(harvest)
   end subroutine uniform_random_number
 
-  subroutine normal_random_number(harvest)
+  subroutine normal_random_number(harvest,n)
 
 ! basic Box-Muller algorithm for an arbitrary array.
 ! algorithm produces two variables from the correct distribution each time
 ! and we choose not to waste them.
 
-    real, dimension(:), intent(out) :: harvest
+    integer :: n
+    real, dimension(n), intent(out) :: harvest
     
     real :: x1(1),x2(1),w
     integer :: i
@@ -255,8 +287,8 @@ contains
     do i=1,size(harvest)/2
        w=1.0
        do while (w>=0)
-          call uniform_random_number(x1)
-          call uniform_random_number(x2)
+          call uniform_random_number(x1,size(x1))
+          call uniform_random_number(x2,size(x2))
           x1(1)=2.0*x1(1)-1.0
           x2(1)=2.0*x2(1)-1.0
           w=x1(1)*x1(1)+x2(1)*x2(1)
@@ -269,8 +301,8 @@ contains
     if (mod(size(harvest),2)==1) then
        w=1.0
        do while (w>=0)
-          call uniform_random_number(x1)
-          call uniform_random_number(x2)
+          call uniform_random_number(x1,size(x1))
+          call uniform_random_number(x2,size(x2))
           x1(1)=2.0*x1(1)-1.0
           x2(1)=2.0*x2(1)-1.0
           w=x1(1)*x1(1)+x2(1)*x2(1)
@@ -297,7 +329,7 @@ contains
     integer ::nloc, i
 
     nloc=size(q_fixed)
-    call uniform_random_number(q)
+    call get_random(q,UNIFORM)
 
     if (present(p)) then
        FLAbort("I haven't finished this code yet")
@@ -349,7 +381,7 @@ contains
     cumulative_volume=cumulative_volume&
          /cumulative_volume(size(cumulative_volume))
 
-    call uniform_random_number(q)
+    call get_random(q,UNIFORM)
     mask=.true.
 
     do ele=1,element_count(X)
@@ -403,7 +435,7 @@ contains
           call allsum(vols)
           vols=vols/vols(nprocs)
 
-          call uniform_random_number(q)
+          call get_random(q,UNIFORM)
           
           do i=1,nprocs
              p_points(i)=count(q<vols(i))
