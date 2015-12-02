@@ -149,7 +149,7 @@ module string_hash_table_module
       character(len=*) :: str
       character(kind=c_char, len=MAX_LEN+1) :: c_wrap
 
-      assert(len(str)<max_len)      
+      assert(len(str)<=max_len)      
       c_wrap=str//C_NULL_CHAR
     end function c_wrap
 
@@ -268,7 +268,7 @@ module string_hash_table_module
     character(len=MAX_LEN+1) :: lkey
     integer :: key_len
 
-    key=''
+    lkey=''
     call string_hash_table_get_first_c(shash%address, lkey, key_len, val, stat)
     key=lkey(:key_len)
 
@@ -283,7 +283,7 @@ module string_hash_table_module
     character(len=MAX_LEN+1) :: lkey
     integer :: key_len
 
-    key=''
+    lkey=''
     call string_hash_table_get_first_pointer_c(shash%address, lkey, key_len, ptr, stat)
     key=lkey(:key_len)
 
@@ -298,7 +298,7 @@ module string_hash_table_module
     character(len=MAX_LEN+1) :: lkey
     integer :: key_len
 
-    key=''
+    lkey=c_wrap(key)
     call string_hash_table_get_next_c(shash%address, lkey, key_len, val, stat)
     key=lkey(:key_len)
 
@@ -313,7 +313,7 @@ module string_hash_table_module
     character(len=MAX_LEN+1) :: lkey
     integer :: key_len
 
-    key=''
+    lkey=c_wrap(key)
     call string_hash_table_get_next_pointer_c(shash%address, lkey, key_len,&
          ptr, stat)
     key=lkey(:key_len)
