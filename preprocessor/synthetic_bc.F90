@@ -38,6 +38,7 @@ use parallel_tools
 use transform_elements
 use fetools
 use fields
+use stochastic
 use state_module
 
 implicit none
@@ -212,8 +213,7 @@ contains
          ! This is only done on process zero. In theory we could load balance this.
             if(GetRank()==0) then
                allocate(coords(dim,number_of_eddies))
-               call random_seed()
-               call random_number(coords)
+               call get_random(coords,UNIFORM,"SyntheticEddyMethod")
             
             !place each eddy randomly inside its box
             
@@ -270,7 +270,9 @@ contains
       end do
       ewrite(3,*) 'box volume',volume
       
-      if(GetRank()==0) then
+      if(getprocno()==1) then
+
+         print*, 'hi!', averaged_velocity(:,ns)
          ! convect turbulent spots by the representative averaged velocity
          do i=1,number_of_eddies
             eddies(ns)%eddy_positions(:,i)=eddies(ns)%eddy_positions(:,i)+averaged_velocity(:,ns)*dt
@@ -280,20 +282,19 @@ contains
          do i=1,number_of_eddies
             do j =1, dim
                if(eddies(ns)%eddy_positions(j,i)>xmaxb(j))then
-                  call random_number(tmpcord)
-                  ratio= int((abs(eddies(ns)%eddy_positions(j,i)-xminb(j)))/dxb(j))
+                  call get_random(tmpcord,UNIFORM,"SyntheticEddyMethod")
 
                   eddies(ns)%eddy_positions(:,i)=xminb+(xmaxb-xminb)*tmpcord
-                  eddies(ns)%eddy_positions(j,i)=eddies(ns)%eddy_positions(j,i)-ratio*dxb(j)
+                  eddies(ns)%eddy_positions(j,i)=xminb(j)+mod(eddies(ns)%eddy_positions(j,i)-xminb(j),dxb(j))
                   eddies(ns)%eddy_polarities(:,i:i)=esign(dim,1)
 
                elseif(eddies(ns)%eddy_positions(j,i)<xminb(j))then
                   call random_number(tmpcord)
 
-                  ratio= int((abs(eddies(ns)%eddy_positions(j,i)-xmaxb(j)))/dxb(j))
+                  ratio= floor((xmaxb(j)-eddies(ns)%eddy_positions(j,i))/dxb(j))
 
                   eddies(ns)%eddy_positions(:,i)=xminb+(xmaxb-xminb)*tmpcord
-                  eddies(ns)%eddy_positions(j,i)=eddies(ns)%eddy_positions(j,i)+ratio*dxb(j)
+                  eddies(ns)%eddy_positions(j,i)=xmaxb(j)+mod(eddies(ns)%eddy_positions(j,i)-xmaxb(j),dxb(j))
                    
                   eddies(ns)%eddy_polarities(:,i:i)=esign(dim,1)
 
@@ -480,8 +481,8 @@ contains
        call get_option('/simulation_name',filename)
        filename=trim(filename)//'_synthetic_eddies_'//int2str(dump_no)&
             //'_checkpoint.vtp'
-       call add_option('/embeded_models/synthetic_eddies/read_from_file',stat)
-       call set_option('/embeded_models/synthetic_eddies/read_from_file',&
+       call add_option('/embedded_models/synthetic_eddies/read_from_file',stat)
+       call set_option('/embedded_models/synthetic_eddies/read_from_file',&
             trim(filename),stat)
 
        call get_option('/geometry/dimension',dim)
@@ -532,7 +533,7 @@ contains
             idx, dim, lsize
        real, dimension(:), allocatable :: x,y,z,bc_ids, polarities, tensors
  
-       path ='/embeded_models/synthetic_eddies/read_from_file'
+       path ='/embedded_models/synthetic_eddies/read_from_file'
 
        call get_option(path,filename)
        call get_option('/geometry/dimension',dim)
@@ -564,7 +565,6 @@ contains
        end do
 
      end subroutine read_eddies_from_checkpoint
-     
      
    end module synthetic_bc
    

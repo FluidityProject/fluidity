@@ -4,6 +4,11 @@ embedded_models =
    (
       ## Fluidity embedded models
       element embedded_models {
+         ## Global options for synthetic eddy method boundary condtions
+         element synthetic_eddies {
+            ## Initialise eddies from the named .vtp file. used for checkpointing.
+            element read_from_file {xsd:string}
+         },
          comment
       }
    )

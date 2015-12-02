@@ -1,9 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<grammar xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns="http://relaxng.org/ns/structure/1.0">
+<grammar xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
   <!-- The embedded models -->
   <define name="embedded_models">
     <element name="embedded_models">
       <a:documentation>Fluidity embedded models</a:documentation>
+      <element name="synthetic_eddies">
+        <a:documentation>Global options for synthetic eddy method boundary condtions</a:documentation>
+        <element name="read_from_file">
+          <a:documentation>Initialise eddies from the named .vtp file. used for checkpointing.</a:documentation>
+          <data type="string"/>
+        </element>
+      </element>
       <ref name="comment"/>
     </element>
   </define>
