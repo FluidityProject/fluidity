@@ -4,6 +4,24 @@ embedded_models =
    (
       ## Fluidity embedded models
       element embedded_models {
+         ## Options controlling the stochastic module
+         element stochastic_routines {
+            ## Do not write the random number generator seeds to file when checkpointing.
+            element do_not_checkpoint {
+               empty
+            }?,
+            ## Seed used for processes not named below
+            element seed { 
+               attribute name {"Generic"},
+               integer_vector
+            }?,
+            ## Seed used for processes not named below
+            element seed {
+               attribute name {xsd:string},
+               integer_vector
+            }?,
+            comment
+         },
          ## Global options for synthetic eddy method boundary condtions
          element synthetic_eddies {
             ## Initialise eddies from the named .vtp file. used for checkpointing.

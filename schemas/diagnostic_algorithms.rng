@@ -1827,6 +1827,18 @@ i.e. Density multiplied by the PhaseVolumeFraction field.</a:documentation>
     </element>
   </define>
   <!-- Misc -->
+  <!-- random scalar algorithm -->
+  <define name="random_scalar_field_algorithm">
+    <element name="algorithm">
+      <a:documentation>Field is set at its nodes to values drawn from a uniform random distribution over [0,1].</a:documentation>
+      <attribute name="name">
+        <value>random_scalar_field</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+    </element>
+  </define>
   <!-- l2norm diagnostic algorithm -->
   <define name="l2norm_algorithm">
     <element name="algorithm">
@@ -2087,6 +2099,9 @@ a horizontal vector living on the specified surface.</a:documentation>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="scalar_edge_lengths_algorithm"/>
+  </define>
+  <define name="scalar_diagnostic_algorithms" combine="choice">
+    <ref name="random_scalar_field_algorithm"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="projection_scalar_potential_algorithm"/>

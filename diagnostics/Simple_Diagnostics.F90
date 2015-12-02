@@ -40,6 +40,7 @@ module simple_diagnostics
   use diagnostic_source_fields
   use vtk_cache_module
   use initialise_fields_module
+  use stochastic
   use state_fields_module
 
   implicit none
@@ -55,7 +56,7 @@ module simple_diagnostics
   public :: calculate_temporalmax_scalar, calculate_temporalmax_vector, calculate_temporalmin, calculate_l2norm, &
             calculate_time_averaged_scalar, calculate_time_averaged_vector, &
             calculate_time_averaged_scalar_squared, &
-            calculate_time_averaged_vector_times_scalar, calculate_period_averaged_scalar
+            calculate_time_averaged_vector_times_scalar, calculate_period_averaged_scalar, calculate_random_scalar_field
 
   ! for the period_averaged_scalar routine
   real, save :: last_output_time
@@ -387,6 +388,15 @@ contains
     end if
     call deallocate(l_field)
   end subroutine calculate_time_averaged_vector_times_scalar
+
+  subroutine calculate_random_scalar_field(state, s_field)
+    type(state_type), intent(in) :: state
+    type(scalar_field), intent(inout) :: s_field
+
+    call get_random(s_field%val,UNIFORM,trim(s_field%name))
+
+  end subroutine calculate_random_scalar_field
+
 
   subroutine initialise_diagnostic_scalar_from_checkpoint(s_field) 
     type(scalar_field), intent(inout) :: s_field

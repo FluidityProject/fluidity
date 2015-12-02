@@ -4,6 +4,34 @@
   <define name="embedded_models">
     <element name="embedded_models">
       <a:documentation>Fluidity embedded models</a:documentation>
+      <element name="stochastic_routines">
+        <a:documentation>Options controlling the stochastic module</a:documentation>
+        <optional>
+          <element name="do_not_checkpoint">
+            <a:documentation>Do not write the random number generator seeds to file when checkpointing.</a:documentation>
+            <empty/>
+          </element>
+        </optional>
+        <optional>
+          <element name="seed">
+            <a:documentation>Seed used for processes not named below</a:documentation>
+            <attribute name="name">
+              <value>Generic</value>
+            </attribute>
+            <ref name="integer_vector"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="seed">
+            <a:documentation>Seed used for processes not named below</a:documentation>
+            <attribute name="name">
+              <data type="string"/>
+            </attribute>
+            <ref name="integer_vector"/>
+          </element>
+        </optional>
+        <ref name="comment"/>
+      </element>
       <optional>
         <element name="synthetic_eddies">
           <a:documentation>Global options for synthetic eddy method boundary condtions</a:documentation>

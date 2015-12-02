@@ -138,7 +138,7 @@ contains
     !!! store the named series value
     seed=>fetch(named_seed,key,[seed_size])
     call random_seed(get=seed)
-
+    
     !!! get the generic series
     call random_seed(put=generic_seed)
   end subroutine store_seed
@@ -150,15 +150,17 @@ contains
 
     !!! read seeds out of the options file
 
-    do i=1, option_count('/embeded_models/random_seeds')
-       call get_option('/embeded_models/random_seeds/seed['//int2str(i-1)&
+
+    allocate(seed(seed_size))
+    do i=1, option_count('/embedded_models/stochastic_routines/seed')
+       call get_option('/embedded_models/stochastic_routines/seed['//int2str(i-1)&
             //']/name', series_name)
-       call get_option('/embeded_models/random_seeds/seed['//int2str(i-1)&
-            //']/seed', seed)
+       call get_option('/embedded_models/stochastic_routines/seed['//int2str(i-1)&
+            //']', seed)
        if (trim(series_name) == 'Generic') then
           generic_seed=seed
        else
-          allocate(seed(seed_size))
+          print*, seed
           call insert(named_seed,trim(series_name),c_loc(seed))
           nullify(seed)
        end if
@@ -174,18 +176,19 @@ contains
 
     integer, dimension(:), pointer :: fptr
 
-    call add_option('/embeded_models/random_seeds/seed::Generic/seed',stat)
-    call set_option('/embeded_models/random_seeds/seed::Generic/seed',&
+    call random_seed(get=generic_seed)
+    call add_option('/embedded_models/stochastic_routines/seed::Generic',stat)
+    call set_option('/embedded_models/stochastic_routines/seed::Generic',&
          generic_seed,stat)
 
     !!! walk the seeds
     call get_first(named_seed,key,ptr,stat)
     do while (stat>0)
        call c_f_pointer(ptr,fptr,[seed_size])
-       call add_option('/embeded_models/random_seeds/seed::'//trim(key)&
-            //'/seed',stat)
-       call set_option('/embeded_models/random_seeds/seed::'//trim(key)&
-            //'/seed',fptr,stat)
+       call add_option('/embedded_models/stochastic_routines/seed::'&
+            //trim(key),stat)
+       call set_option('/embedded_models/stochastic_routines/seed::'&
+            //trim(key),fptr,stat)
        call get_next(named_seed,key,ptr,stat)
     end do
 
@@ -217,7 +220,7 @@ contains
     !! else set up the seed(s)
     call random_seed(size = seed_size)
     allocate(generic_seed(seed_size))
-    if (have_option('/embeded_models/random_seeds')) then
+    if (have_option('/embedded_models/stochastic_routines')) then
        call initialize_from_options_file()
     else
        call init_random_seed()

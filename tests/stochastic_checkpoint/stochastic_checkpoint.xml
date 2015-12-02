@@ -1,0 +1,28 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>stochastic_checkpoint</name>
+  <owner userid="jrper"/>
+  <problem_definition length="short" nprocs="1">
+    <command_line>fluidity stochastic.flml
+fluidity stochastic_1_checkpoint.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="DataDifference" language="python">import vtk
+from vtk.util import numpy_support
+
+reader1=vtk.vtkXMLUnstructuredGridReader()
+reader1.SetFileName('stochastic_2.vtu')
+reader1.Update()
+ug1=reader1.GetOutput()
+data1=numpy_support.vtk_to_numpy(ug1.GetPointData().GetScalars('RandomScalar'))
+reader2=vtk.vtkXMLUnstructuredGridReader()
+reader2.SetFileName('stochastic_checkpoint_0.vtu')
+reader2.Update()
+ug2=reader2.GetOutput()
+data2=numpy_support.vtk_to_numpy(ug2.GetPointData().GetScalars('RandomScalar'))
+DataDifference=data1-data2</variable>
+  </variables>
+  <pass_tests>
+    <test name="DataSame" language="python">assert all(abs(DataDifference)&lt;1.e-16)</test>
+  </pass_tests>
+</testproblem>

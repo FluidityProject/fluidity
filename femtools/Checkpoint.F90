@@ -44,6 +44,7 @@ module checkpoint
   use mesh_files
   use detector_data_types
   use diagnostic_variables
+  use stochastic, only : checkpoint_seeds
 
   implicit none
 
@@ -146,6 +147,11 @@ contains
          .and. .not.present_and_true(ignore_detectors)) then
       call checkpoint_detectors(state, lprefix, postfix = lpostfix, cp_no = cp_no)
     end if
+
+    !! put the stochastic seeds in the options file
+    if (.not. have_option('/embedded_models/stochastic_routines/do_not_checkpoint'))&
+         call checkpoint_seeds()
+
     if(getrank() == 0) then
       ! Only rank zero should write out the options tree in parallel
       call checkpoint_options(lprefix, postfix = lpostfix, cp_no = cp_no, &
