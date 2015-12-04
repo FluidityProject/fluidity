@@ -43,7 +43,7 @@ module dqmom
   implicit none
 
   public dqmom_init, dqmom_calculate_source_terms, dqmom_calculate_abscissa,&
-       & dqmom_check_options, dqmom_calculate_moments, dqmom_calculate_statistics
+       & dqmom_check_options, dqmom_calculate_moments, dqmom_calculate_statistics, dqmom_apply_min_weight
 
   private
 
@@ -282,6 +282,45 @@ contains
     end do
     ewrite(1, *) "Exiting dqmom_calculate_abscissa"
   end subroutine dqmom_calculate_abscissa
+
+  subroutine dqmom_apply_min_weight(states)
+
+    type(state_type), dimension(:), intent(in) :: states
+
+    type(scalar_field), pointer :: weight, weighted_abscissa
+    integer :: i_state, i_pop, i_abscissa
+    real :: minvalue
+    character(len=OPTION_PATH_LEN) :: option_path
+    character(len=FIELD_NAME_LEN) :: type
+
+    ewrite(1, *) "In dqmom_apply_min_weight"
+    do i_state = 1, option_count("/material_phase")
+       do i_pop = 1, option_count(trim(states(i_state)%option_path)//'/population_balance')
+          call get_pop_option_path(states(i_state), i_pop, option_path)
+          do i_abscissa = 1, option_count(trim(option_path)//'/abscissa/scalar_field')
+             ! get required fields
+             type = 'weights'
+             call get_pop_field(states(i_state), i_pop, i_abscissa, type, weight)
+             type = 'weighted_abscissa'
+             call get_pop_field(states(i_state), i_pop, i_abscissa, type, weighted_abscissa)
+
+             ! Get minimum weight value from the diamond file
+             call get_option(trim(option_path)//'/minimum_weight', minvalue)
+             where (weight%val.le.minvalue)
+                weight%val=minvalue
+             end where
+
+             if (have_option(trim(option_path)//'/minimum_weighted_abscissa')) then
+                call get_option(trim(option_path)//'/minimum_weighted_abscissa', minvalue)
+                where (weighted_abscissa%val.le.minvalue)
+                   weighted_abscissa%val=minvalue
+                end where
+             endif
+          end do
+       end do
+    end do
+    ewrite(1, *) "Exiting dqmom_apply_min_weight"
+  end subroutine dqmom_apply_min_weight
 
   subroutine dqmom_calculate_source_terms(states, it)
 

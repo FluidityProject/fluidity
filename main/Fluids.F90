@@ -933,6 +933,9 @@ contains
              call solve_momentum(state,at_first_timestep=((timestep==1).and.(its==1)),timestep=timestep, POD_state=POD_state)
           end if
 
+          ! Apply minimum weight condition on weights - population balance
+          call dqmom_apply_min_weight(state)
+
           ! calculate abscissa for populations -----
           ! this must be done at the end of each non-linear iteration
           call dqmom_calculate_abscissa(state)

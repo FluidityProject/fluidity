@@ -1102,7 +1102,8 @@ start =
                         element diagnostic {
                            velocity_mesh_choice,
                            (
-                              sediment_concentration_dependent_viscosity_algorithm
+                              sediment_concentration_dependent_viscosity_algorithm|
+                              tensor_python_diagnostic_algorithm
                            ),
                            diagnostic_tensor_field
                         }
@@ -2247,6 +2248,8 @@ population_balance =
          ## weights of zero can cause instabilities. It is recommended that a minimum
          ## weight of approx 1e-10 is used.
          element minimum_weight{ real },
+         ## In case the user wants to apply a minimum cap for weighted abscissas. Not Recommended. 
+         element minimum_weighted_abscissa{ real }?,
          ## Scaling factor to be used for the Sauter Mean Diameter / Mean Diameter calculated in the 
          ## statistics. It is useful in a non-dimensional implementation of the PBE.
          element scaling_factor_Dia{ real }?,

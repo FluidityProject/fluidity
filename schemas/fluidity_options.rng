@@ -1416,7 +1416,10 @@ IMPORTANT: make velocity/viscosity diagnostic.</a:documentation>
                       </element>
                       <element name="diagnostic">
                         <ref name="velocity_mesh_choice"/>
-                        <ref name="sediment_concentration_dependent_viscosity_algorithm"/>
+                        <choice>
+                          <ref name="sediment_concentration_dependent_viscosity_algorithm"/>
+                          <ref name="tensor_python_diagnostic_algorithm"/>
+                        </choice>
                         <ref name="diagnostic_tensor_field"/>
                       </element>
                     </choice>
@@ -3193,6 +3196,12 @@ Recommended value of 1e-7</a:documentation>
 weight of approx 1e-10 is used.</a:documentation>
         <ref name="real"/>
       </element>
+      <optional>
+        <element name="minimum_weighted_abscissa">
+          <a:documentation>In case the user wants to apply a minimum cap for weighted abscissas. Not Recommended. </a:documentation>
+          <ref name="real"/>
+        </element>
+      </optional>
       <optional>
         <element name="scaling_factor_Dia">
           <a:documentation>Scaling factor to be used for the Sauter Mean Diameter / Mean Diameter calculated in the 
