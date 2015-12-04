@@ -37,7 +37,7 @@ module mba2d_integration
   contains
 
   subroutine adapt_mesh_mba2d(input_positions, metric, output_positions, force_preserve_regions, &
-    lock_faces, allow_boundary_elements)
+    lock_faces, allow_boundary_elements, lock_all_nodes)
     type(vector_field), intent(in), target :: input_positions
     type(tensor_field), intent(in) :: metric
     type(vector_field), intent(out) :: output_positions
@@ -46,7 +46,7 @@ module mba2d_integration
     ! if present and true allow boundary elements, i.e. elements with
     ! all nodes on the boundary, if not present, the default
     ! in serial is to forbid boundary elements, and allow them in parallel
-    logical, intent(in), optional :: allow_boundary_elements
+    logical, intent(in), optional :: allow_boundary_elements, lock_all_nodes
 
 #ifdef HAVE_MBA_2D
 
@@ -55,7 +55,7 @@ module mba2d_integration
     integer :: nonods, mxnods, orig_stotel, stotel, mxface, totele, maxele, stotel_external
     real, dimension(:, :), allocatable :: pos
     integer, dimension(:, :), allocatable :: ipf
-    integer, dimension(:, :), allocatable :: ipe
+    integer, dimension(:, :), allocatable :: ipe, nipe
     real, dimension(:, :), allocatable :: parcrv
     integer, dimension(:), allocatable :: ipv
     integer, dimension(:), allocatable :: ifv
@@ -74,7 +74,7 @@ module mba2d_integration
     integer, dimension(:,:), allocatable:: new_sndgln
     integer :: maxp
     integer :: iterations
-    integer, dimension(:), allocatable :: locked_nodes
+    integer, dimension(:), allocatable :: locked_nodes, mask
     integer, dimension(:), pointer :: neighbours, faces
     type(halo_type), pointer :: old_halo, new_halo
     integer :: proc
@@ -84,7 +84,7 @@ module mba2d_integration
     integer, dimension(:), allocatable :: boundary_ids, coplanar_ids, surface_ids, mba_boundary_ids
     type(integer_hash_table) :: physical_surface_ids
     ! Element locking
-    integer :: nfe
+    integer :: nfe, npe
     integer, dimension(:), allocatable :: ife
     integer, dimension(:), pointer:: nodes
     integer :: ele
@@ -223,11 +223,19 @@ module mba2d_integration
       FLAbort("Expected number of facets too small!")
     end if
 
-    allocate(ipe(3, maxele))
+    allocate(ipe(3, maxele), mask(nonods))
+    mask=.false.
     ipe = 0
+    j=1
     do i=1,totele
-      ipe(:, i) = ele_nodes(xmesh, i)
+       if (ele_region_id(xmesh,i)== 1) cycle
+       ipe(:, j) = ele_nodes(xmesh, i)
+       mask(ele_nodes(xmesh, j)) = .true.
+       j=j+1
     end do
+    npe = j-1
+    allocate(nipe(3,npe))
+    nipe=ipe(:,1:npe)
 
     nhalos = halo_count(xmesh)
     assert(any(nhalos == (/0, 1, 2/)))
@@ -372,7 +380,14 @@ module mba2d_integration
 
     iprint = min(max(current_debug_level *  5, 0), 9)
 
-    call mbaNodal(                                   &
+    if (present_and_true(lock_all_nodes)) then
+
+       call Delaunay(nonods,npe,pos,nipe,&
+            maxWr, maxWi, rW, iW)
+
+    else
+
+       call mbaNodal(                                   &
          nonods, maxp, stotel, mxface, totele, maxele, npv, &
          pos, ipf, ipe, ipv, &
          CrvFunction_ani, parcrv, iFnc, &
@@ -383,11 +398,23 @@ module mba2d_integration
          tmp_metric, quality, rQuality, &
          maxWr, maxWi, rW, iW, &
          iPrint, ierr)
+    end if
 
     call incrementeventcounter(EVENT_ADAPTIVITY)
     call incrementeventcounter(EVENT_MESH_MOVEMENT)
 
     ! Hooray! You didn't crash. Congratulations. Now let's assemble the output and interpolate.
+
+    j=1
+    do i=1,totele
+       if (ele_region_id(xmesh,i)== 1) then
+          ipe(:, i) = ele_nodes(xmesh, i)
+       else
+          ipe(:,i)=nipe(:,j)
+          j=j+1
+       end if
+    end do
+    deallocate(nipe)
 
     call allocate(new_mesh, nonods, totele, ele_shape(xmesh, 1), trim(xmesh%name))
     ! Hack: untag these references so that people (i.e. me) don't get confused.

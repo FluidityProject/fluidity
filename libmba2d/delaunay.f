@@ -135,7 +135,7 @@ c                    Call draw_T(nP, 0, nE, XYP, iW, iW, IPE, 'fin.ps')
                      End do
 
 c                    Call draw_T(nP, 0, nE, XYP, iW, iW, IPE, 'fin.ps')
-                     Call errMes(6006, 
+                     Call errMes(6016, 
      &                   'delaunay.f', 'Cannot build Delaunay mesh')
                   End if
                End if
@@ -146,9 +146,9 @@ c                    Call draw_T(nP, 0, nE, XYP, iW, iW, IPE, 'fin.ps')
       If(flagREPEAT) Then
          nloop = nloop + 1
  
-         If(nloop.GT.nE) Then
+         If(nloop.GT.10*nP) Then
 c          Call draw_T(nP, 0, nE, XYP, iW, iW, IPE, 'fin.ps')
-           Call wrnMes(6006, 
+           Call wrnMes(6026, 
      &                'delaunay.f', 'Cannot build Delaunay mesh')
            Return
          End if
@@ -305,7 +305,7 @@ C ==========================================================
 
       Open(30, file = fNameExt, status='UNKNOWN')
 
-      Call headerPS(30, ibx, iby)
+c      Call headerPS(30, ibx, iby)
 
       Do n = 1, nP
          x1 = (XYP(1, n) - fxmin) * kx

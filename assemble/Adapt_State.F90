@@ -102,7 +102,7 @@ module adapt_state_module
 contains
 
   subroutine adapt_mesh_simple(old_positions, metric, new_positions, node_ownership, force_preserve_regions, &
-      lock_faces, allow_boundary_elements)
+      lock_faces, allow_boundary_elements, lock_all_nodes)
     type(vector_field), intent(in) :: old_positions
     type(tensor_field), intent(in) :: metric
     type(vector_field) :: stripped_positions
@@ -111,7 +111,7 @@ contains
     integer, dimension(:), pointer, optional :: node_ownership
     logical, intent(in), optional :: force_preserve_regions
     type(integer_set), intent(in), optional :: lock_faces
-    logical, intent(in), optional :: allow_boundary_elements
+    logical, intent(in), optional :: allow_boundary_elements, lock_all_nodes
     type(vector_field) :: expanded_positions
 
     assert(.not. mesh_periodic(old_positions))
@@ -133,7 +133,7 @@ contains
       case(2)
         call adapt_mesh_mba2d(stripped_positions, stripped_metric, new_positions, &
           & force_preserve_regions=force_preserve_regions, lock_faces=lock_faces, &
-          & allow_boundary_elements=allow_boundary_elements)
+          & allow_boundary_elements=allow_boundary_elements, lock_all_nodes=lock_all_nodes)
       case(3)
         if(have_option("/mesh_adaptivity/hr_adaptivity/adaptivity_library/libmba3d")) then
           assert(.not. present(lock_faces))
@@ -918,7 +918,7 @@ contains
       call adapt_mesh_periodic(old_positions, metric, new_positions, force_preserve_regions=force_preserve_regions)
     ! Nonperiodic case
     else
-      call adapt_mesh_simple(old_positions, metric, new_positions, node_ownership=node_ownership, force_preserve_regions=force_preserve_regions)
+      call adapt_mesh_simple(old_positions, metric, new_positions, node_ownership=node_ownership, force_preserve_regions=force_preserve_regions,lock_all_nodes=.true.)
     end if
   end subroutine adapt_mesh
 
