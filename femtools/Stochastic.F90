@@ -37,6 +37,8 @@ module stochastic
   use iso_c_binding
   use global_parameters, only: OPTION_PATH_LEN
   use spud
+  use parallel_tools
+  use mpi_interfaces
   
   implicit none
 
@@ -50,13 +52,17 @@ module stochastic
   interface get_random
      module procedure get_random_1d, get_random_2d
   end interface get_random
+
+  interface get_random_on_root
+     module procedure get_random_on_root_1d, get_random_on_root_2d
+  end interface get_random_on_root
      
 
   private
 
   public :: get_random_points_in_mesh, initialise_stochastic_module,&
        partition_points_in_parallel, deallocate_seeds, checkpoint_seeds,&
-       get_random, finalise_stochastic_module, UNIFORM, NORMAL
+       get_random, get_random_on_root, finalise_stochastic_module, UNIFORM, NORMAL
 
 contains
 
@@ -232,6 +238,72 @@ contains
     call deallocate_seeds()
     initialised=.false.
   end subroutine finalise_stochastic_module
+
+  subroutine get_random_on_root_1d(harvest,distribution,series,root,comm)
+    real, intent(out), dimension(:) :: harvest
+    integer, intent(in) :: distribution
+    character(len=*), optional :: series
+    integer, optional :: root, comm
+
+    integer :: lroot, lcomm
+    integer :: ierr
+
+    !!! this routine fills harvest with random numbers from the chosen distribution on the root node (default 1), then broadcasts it across the communicator comm (default MPI_COMM_FEMTOOLS, i.e. the entire system.)
+
+    if (present(root)) then
+       lroot = root
+    else
+       lroot = 1
+    end if
+
+    if (present(comm)) then
+       lcomm=comm
+    else
+       lcomm = MPI_COMM_FEMTOOLS
+    end if
+      
+    if (getprocno()==lroot) then
+       call get_random(harvest,distribution,series)
+    end if
+ 
+    if (isparallel()) then
+       call mpi_bcast(harvest,size(harvest),getpreal(),lroot,lcomm,ierr)
+    end if
+
+  end subroutine get_random_on_root_1d
+
+  subroutine get_random_on_root_2d(harvest,distribution,series,root,comm)
+    real, intent(out), dimension(:,:) :: harvest
+    integer, intent(in) :: distribution
+    character(len=*), optional :: series
+    integer, optional :: root, comm
+
+    integer :: lroot, lcomm
+    integer :: ierr
+
+    !!! this routine fills harvest with random numbers from the chosen distribution on the root node (default 1), then broadcasts it across the communicator comm (default MPI_COMM_FEMTOOLS, i.e. the entire system.)
+
+    if (present(root)) then
+       lroot = root
+    else
+       lroot = 1
+    end if
+
+    if (present(comm)) then
+       lcomm=comm
+    else
+       lcomm = MPI_COMM_FEMTOOLS
+    end if
+      
+    if (getprocno()==lroot) then
+       call get_random(harvest,distribution,series)
+    end if
+ 
+    if (isparallel()) then
+       call mpi_bcast(harvest,size(harvest),getpreal(),lroot,lcomm,ierr)
+    end if
+
+  end subroutine get_random_on_root_2d
 
   subroutine get_random_1d(harvest,distribution,series)
     real, intent(out), dimension(:) :: harvest

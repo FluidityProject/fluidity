@@ -49,8 +49,9 @@ public synthetic_eddy_method, add_sem_bc, initialise_sem_memory, checkpoint_synt
   
 type eddy
 !!< Store eddy info, for synthetic eddy method
-   real, dimension(:,:),    pointer :: eddy_positions
-
+   integer, dimension(:), pointer   :: plane
+   real, dimension(:,:),    pointer :: eddy_plane_positions
+   real, dimension(:),    pointer :: eddy_depth
    integer, dimension(:,:), pointer :: eddy_polarities
 end type eddy
 
@@ -65,6 +66,10 @@ contains
 
     have_sem_bcs = sem_bc_count > 0
   end function have_sem_bcs
+
+  subroutine initialise_eddies()
+
+  end subroutine initialise_eddies
 
   subroutine synthetic_eddy_method(eddy_inlet_velocity, mean_velocity,  & 
        reynolds_stresses, turbulence_lengthscales, bc_position, bc_path_i, ns)
@@ -91,22 +96,21 @@ contains
       integer :: number_of_eddies, i, j, ele, ratio, dim
       integer, dimension(1)                :: idxp
       real,allocatable,dimension(:,:)      :: coords
-      real,dimension(mean_velocity%dim):: tmpcord
+      real,dimension(:,:), allocatable:: tmpcord
+      integer,dimension(:,:), allocatable:: tmp_polarity
+      logical,dimension(:), allocatable:: regenerate_eddy
 
       type(vector_field)                   :: ufl
 
+      integer :: plane(mean_velocity%dim-1), depth
+
       real,dimension(mean_velocity%dim):: uf, res, re_ii_min, re_ii_max,&
-           uflmin, uflmax, min_mean_velocity, max_mean_velocity, ff
+           uflmin, uflmax, min_mean_velocity, max_mean_velocity, ff, pos
       
       real,dimension(mean_velocity%dim*(mean_velocity%dim+1)/2):: a
 
       logical,save                         :: initz=.false.
       logical,allocatable,dimension(:),save:: initeddy
-
-#ifdef HAVE_MPI
-      include 'mpif.h'
-      integer ierr
-#endif
 
       ! time varying turbulent inlet conditions
       ! input:: mean flow, Reynolds stress tensor, turbulence length-scale
@@ -163,6 +167,9 @@ contains
          xmaxb(2:)=xmax(2:) + lxmax(2:)
 
          rdmax=lxmax(1)
+
+         depth=1
+         plane=[(i,i=2,dim)]
        
       case(2)
          ewrite(3,*) 'using an xz plane'
@@ -178,8 +185,12 @@ contains
 
          rdmax=lxmax(2)
 
+         depth=2
+         plane(1)=1
+         plane(3:)=[(i,i=3,dim)]
+
       case(3)
-         ewrite(3,*) 'using an xz plane'
+         ewrite(3,*) 'using an xy plane'
 
          xminb(1:2)=xmin(1:2) - lxmax(1:2)
          xmaxb(1:2)=xmax(1:2) + lxmax(1:2)
@@ -189,7 +200,12 @@ contains
 
          rdmax=lxmax(3)
 
+         depth=3
+         plane(1:2)=[1,2]
       end select
+
+      eddies(ns)%plane(1:dim-1)=plane
+      eddies(ns)%plane(dim)=depth
 
       dxb = xmaxb - xminb
 
@@ -208,33 +224,6 @@ contains
       endif
 
       if(initeddy(ns)) then
-         if (.not. have_option('/embedded_models/synthetic_eddies/read_from_file')) then
-      
-         ! This is only done on process zero. In theory we could load balance this.
-            if(GetRank()==0) then
-               allocate(coords(dim,number_of_eddies))
-               call get_random(coords,UNIFORM,"SyntheticEddyMethod")
-            
-            !place each eddy randomly inside its box
-            
-               do i=1,number_of_eddies
-                  eddies(ns)%eddy_positions(:,i)=xminb+(xmaxb-xminb)*coords(:,i)
-               end do
-               deallocate(coords)
-
-               eddies(ns)%eddy_polarities=esign(dim,number_of_eddies)
-            end if
-
-#ifdef HAVE_MPI
-            if(IsParallel())then
-               call mpi_bcast(eddies(ns)%eddy_positions(:,:),number_of_eddies*dim,GetPREAL(),0,MPI_COMM_FEMTOOLS,ierr)
-
-               call mpi_bcast(eddies(ns)%eddy_polarities(:,:),number_of_eddies*dim,mpi_integer,0,MPI_COMM_FEMTOOLS,ierr)
-            endif
-#endif
-
-         end if
-            
          x_shape   => ele_shape(bc_position,1)
          vel_shape => ele_shape(mean_velocity,1)
          
@@ -246,13 +235,29 @@ contains
             total_area=total_area+sum(vel_int)
             averaged_velocity(:,ns)=averaged_velocity(:,ns)+matmul(ele_val(mean_velocity,ele),vel_int)
          enddo
-
          call allsum(total_area)
          call allsum(averaged_velocity(:,ns))
-
          averaged_velocity(:,ns)=averaged_velocity(:,ns)/total_area
 
          area(ns)=total_area
+
+         if (.not. have_option('/embedded_models/synthetic_eddies/read_from_file')) then
+      
+            allocate(coords(dim,number_of_eddies))
+
+            !!! parallel broadcasts occur in these calls 
+            call get_random_on_root(coords,UNIFORM,"SyntheticEddyMethod")
+            eddies(ns)%eddy_polarities=esign(dim,number_of_eddies)
+            
+            !place each eddy randomly inside its box
+            
+            do i=1,number_of_eddies
+               eddies(ns)%eddy_plane_positions(:,i)=xminb(plane)+(xmaxb(plane)-xminb(plane))*coords(1:dim-1,i)
+            end do
+            eddies(ns)%eddy_depth=xminb(depth)+(xmaxb(depth)-xminb(depth))*coords(dim,:)
+            deallocate(coords)   
+         end if
+
          initeddy(ns)=.false.
       endif
       
@@ -270,45 +275,29 @@ contains
       end do
       ewrite(3,*) 'box volume',volume
       
-      if(getprocno()==1) then
 
-         print*, 'hi!', averaged_velocity(:,ns)
-         ! convect turbulent spots by the representative averaged velocity
-         do i=1,number_of_eddies
-            eddies(ns)%eddy_positions(:,i)=eddies(ns)%eddy_positions(:,i)+averaged_velocity(:,ns)*dt
-         end do
 
-         ! regenerate positions of eddies which have left the box
-         do i=1,number_of_eddies
-            do j =1, dim
-               if(eddies(ns)%eddy_positions(j,i)>xmaxb(j))then
-                  call get_random(tmpcord,UNIFORM,"SyntheticEddyMethod")
+      ! convect turbulent spots by the representative averaged velocity
 
-                  eddies(ns)%eddy_positions(:,i)=xminb+(xmaxb-xminb)*tmpcord
-                  eddies(ns)%eddy_positions(j,i)=xminb(j)+mod(eddies(ns)%eddy_positions(j,i)-xminb(j),dxb(j))
-                  eddies(ns)%eddy_polarities(:,i:i)=esign(dim,1)
+      eddies(ns)%eddy_depth=eddies(ns)%eddy_depth+averaged_velocity(depth,ns)*dt
 
-               elseif(eddies(ns)%eddy_positions(j,i)<xminb(j))then
-                  call random_number(tmpcord)
+      ! regenerate positions of eddies which have left the box
 
-                  ratio= floor((xmaxb(j)-eddies(ns)%eddy_positions(j,i))/dxb(j))
+      allocate(regenerate_eddy(size(eddies(ns)%eddy_depth)))
+      regenerate_eddy=eddies(ns)%eddy_depth>xmaxb(depth) .or. eddies(ns)%eddy_depth(i)<xminb(depth)
+      allocate(tmpcord(dim-1,count(regenerate_eddy)),tmp_polarity(dim,count(regenerate_eddy)))
+      call get_random_on_root(tmpcord,UNIFORM,"SyntheticEddyMethod")
+      tmp_polarity=esign(dim,count(regenerate_eddy))
 
-                  eddies(ns)%eddy_positions(:,i)=xminb+(xmaxb-xminb)*tmpcord
-                  eddies(ns)%eddy_positions(j,i)=xmaxb(j)+mod(eddies(ns)%eddy_positions(j,i)-xmaxb(j),dxb(j))
-                   
-                  eddies(ns)%eddy_polarities(:,i:i)=esign(dim,1)
+      j=1
 
-               end if
-            end do
-         end do
-      end if
-#ifdef HAVE_MPI
-      if(IsParallel())then
-         call mpi_bcast(eddies(ns)%eddy_positions(:,:),number_of_eddies*dim,GetPREAL(),0,MPI_COMM_FEMTOOLS,ierr)
-
-         call mpi_bcast(eddies(ns)%eddy_polarities(:,:),number_of_eddies*dim,mpi_integer,0,MPI_COMM_FEMTOOLS,ierr)
-      endif
-#endif
+      do i=1,number_of_eddies
+         if (.not. regenerate_eddy(i)) cycle 
+         eddies(ns)%eddy_plane_positions(:,i)=xminb(plane)+(xmaxb(plane)-xminb(plane))*tmpcord(:,j)
+         eddies(ns)%eddy_polarities(:,i)=tmp_polarity(:,j)
+         eddies(ns)%eddy_depth(i)=xminb(depth)+mod(eddies(ns)%eddy_depth(i)-xminb(depth),dxb(depth))
+         j=j+1
+      end do
 
       ! calculate fluctuating eddy components on inlet velocity
       
@@ -321,7 +310,9 @@ contains
          rts=node_val(turbulence_lengthscales,i)
 
          do j=1,number_of_eddies
-            dx=abs(node_val(bc_position,i)-eddies(ns)%eddy_positions(:,j))
+            pos=node_val(bc_position,i)
+            dx(plane)=abs(pos(plane)-eddies(ns)%eddy_plane_positions(:,j))
+            dx(depth)=abs(pos(depth)-eddies(ns)%eddy_depth(j))
 
             if (all(dx<rts)) then
 
@@ -409,6 +400,8 @@ contains
       end if
 
       ewrite(3,*) 'leaving turbulent inlet boundary conditions routine'
+
+
     end subroutine synthetic_eddy_method
 
     !----------------------------------------------------------
@@ -422,7 +415,8 @@ contains
 
       ! Assign polarity to the synthetic eddies on a given boundary. 
 
-      call random_number(i)
+
+      call get_random_on_root(i,UNIFORM,"SyntheticEddyMethod")
 
       where(i<0.5)
         esign = -1        
@@ -449,8 +443,10 @@ contains
        endif
        
        if(initeddymem(ns))then
-          allocate(eddies(ns)%eddy_positions(dim, number_of_eddies))
-          allocate(eddies(ns)%eddy_polarities(dim, number_of_eddies))  
+          allocate(eddies(ns)%plane(dim))
+          allocate(eddies(ns)%eddy_plane_positions(dim-1, number_of_eddies))
+          allocate(eddies(ns)%eddy_depth(number_of_eddies))
+          allocate(eddies(ns)%eddy_polarities(dim, number_of_eddies)) 
           initeddymem(ns)=.false.
        endif
        
@@ -489,7 +485,7 @@ contains
 
        esize = 0
        do bc_id=1,sem_bc_count 
-          esize = esize + size(eddies(bc_id)%eddy_positions,2)
+          esize = esize + size(eddies(bc_id)%eddy_depth)
        end do
 
        allocate(bc_ids(esize), polarities(esize,3), positions(esize,3))
@@ -499,12 +495,14 @@ contains
 
        idx=0
        do bc_id=1,sem_bc_count
-          lsize = size(eddies(bc_id)%eddy_positions,2)
+          lsize = size(eddies(bc_id)%eddy_depth)
           bc_ids(idx+1:idx+lsize) = bc_id
           do i=1,dim
              polarities(idx+1:idx+lsize,i) = eddies(bc_id)%eddy_polarities(i,:)
-             positions(idx+1:idx+lsize,i)  = eddies(bc_id)%eddy_positions(i,:)
           end do
+          positions(idx+1:idx+lsize,eddies(bc_id)%plane(1:dim-1))  = eddies(bc_id)%eddy_plane_positions
+          positions(idx+1:idx+lsize,eddies(bc_id)%plane(dim))  = eddies(bc_id)%eddy_depth(i)
+          
           idx = idx + lsize
        end do
 
@@ -531,7 +529,8 @@ contains
        character(len = OPTION_PATH_LEN) :: filename, path
        integer :: esize, nscalars, nvectors, ntensors, bc_id, i, j, &
             idx, dim, lsize
-       real, dimension(:), allocatable :: x,y,z,bc_ids, polarities, tensors
+       real, dimension(:), allocatable :: bc_ids, polarities, tensors
+        real, dimension(:,:), allocatable :: positions
  
        path ='/embedded_models/synthetic_eddies/read_from_file'
 
@@ -541,22 +540,24 @@ contains
        call vtpopentoread(trim(filename),trim(filename))
        call vtpgetsizes(esize,nscalars,nvectors,ntensors)
 
-       allocate(x(esize),y(esize),z(esize),bc_ids(esize),&
+       allocate(positions(esize,3),bc_ids(esize),&
             polarities(3*esize), tensors(0))
-       call vtpread(x,y,z,bc_ids,polarities,tensors)
+       call vtpread(positions(:,1),positions(:,1),positions(:,3),bc_ids,polarities,tensors)
 
 
        idx=0
        do bc_id=1,sem_bc_count
           !! count the number in each eddy
-          lsize = size(eddies(bc_id)%eddy_positions,2)
-          eddies(bc_id)%eddy_positions(1,:)=x(idx+1:idx+lsize)
-          if (dim>1) eddies(bc_id)%eddy_positions(2,:)=y(idx+1:idx+lsize)
-          if (dim>2) eddies(bc_id)%eddy_positions(2,:)=z(idx+1:idx+lsize)
+          lsize = size(eddies(bc_id)%eddy_depth)
+          eddies(bc_id)%eddy_depth=positions(idx+1:idx+lsize,eddies(bc_id)%plane(dim))
+          do j=1,dim-1
+             eddies(bc_id)%eddy_plane_positions(j,:)=&
+                  positions(idx+1:idx+lsize,eddies(bc_id)%plane(j))
+          end do
 
           do j=1,lsize
              do i=1,dim
-                eddies(bc_id)%eddy_polarities(i,j)=polarities((idx+j-1)*3+i)
+                eddies(bc_id)%eddy_polarities(i,j)=int(polarities((idx+j-1)*3+i))
              end do
           end do
 
