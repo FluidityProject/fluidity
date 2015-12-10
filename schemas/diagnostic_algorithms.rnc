@@ -709,6 +709,26 @@ strain_rate_second_invariant_algorithm =
          attribute material_phase_support { "single "}
       }
    )
+q_criterion_algorithm =
+   (
+      ## The Q criterion of Hunt, Wray & Moin (1988)
+      ##
+      ## Q=(\Omega_{ij}\Omega_{ij}-S_{ij}S_{ij})/2
+      ##
+      ## When the Q criterion is positive vortical rotation exceeds strain.
+      ## This can be used as a proxy in identifying vorticies. Note that strictly
+      ## this also requires the pressure in the vortex to be smaller than ambiant. 
+       element algorithm {
+         attribute name { "q_criterion" },
+         attribute material_phase_support { "single "},
+         ## Normalise the Q-criterion
+         ##
+         ## Q_n = (\Omega_{ij}\Omega_{ij}-S_{ij}S_{ij})/ (\Omega_{ij}\Omega_{ij}+S_{ij}S_{ij})
+         ##
+         ## So that Q_n \in [-1,1]
+         element normalise { empty }?
+      }
+   )
 hessian_algorithm =
    (
       ## algorithm for the Hessian (2nd derivative) of a scalar field
@@ -1325,8 +1345,9 @@ particle_reynolds_number_algorithm =
             anystring
          },
          ## The particle diameter
-         (element particle_diameter { real }|
-          element particle_diameter_use_scalar_field { anystring }),
+         element particle_diameter {
+            real
+         },
          ## The name of the state representing the continuous phase
          element continuous_phase_name {
             string
@@ -1346,6 +1367,17 @@ apparent_density_algorithm =
    )
 
 # Misc
+
+# random scalar algorithm
+
+random_scalar_field_algorithm =
+   (
+      ## Field is set at its nodes to values drawn from a uniform random distribution over [0,1].
+      element algorithm {
+        attribute name { "random_scalar_field" },
+        attribute material_phase_support { "single" }
+      }
+   )
 
 # l2norm diagnostic algorithm
 l2norm_algorithm =
@@ -1538,6 +1570,7 @@ scalar_diagnostic_algorithms |= scalar_difference_algorithm
 scalar_diagnostic_algorithms |= scalar_copy_algorithm
 scalar_diagnostic_algorithms |= scalar_advection_algorithm
 scalar_diagnostic_algorithms |= scalar_edge_lengths_algorithm
+scalar_diagnostic_algorithms |= random_scalar_field_algorithm
 scalar_diagnostic_algorithms |= projection_scalar_potential_algorithm
 scalar_diagnostic_algorithms |= particle_reynolds_number_algorithm
 scalar_diagnostic_algorithms |= apparent_density_algorithm
