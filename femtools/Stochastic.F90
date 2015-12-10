@@ -267,7 +267,7 @@ contains
     end if
  
     if (isparallel()) then
-       call mpi_bcast(harvest,size(harvest),getpreal(),lroot,lcomm,ierr)
+       call mpi_bcast(harvest,size(harvest),getpreal(),lroot-1,lcomm,ierr)
     end if
 
   end subroutine get_random_on_root_1d
@@ -300,7 +300,7 @@ contains
     end if
  
     if (isparallel()) then
-       call mpi_bcast(harvest,size(harvest),getpreal(),lroot,lcomm,ierr)
+       call mpi_bcast(harvest,size(harvest),getpreal(),lroot-1,lcomm,ierr)
     end if
 
   end subroutine get_random_on_root_2d
