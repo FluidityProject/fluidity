@@ -955,6 +955,31 @@ of this algorithm and, hence, a separate tensor field is not required.</a:docume
       </attribute>
     </element>
   </define>
+  <define name="q_criterion_algorithm">
+    <element name="algorithm">
+      <a:documentation>The Q criterion of Hunt, Wray &amp; Moin (1988)
+
+Q=(\Omega_{ij}\Omega_{ij}-S_{ij}S_{ij})/2
+
+When the Q criterion is positive vortical rotation exceeds strain.
+This can be used as a proxy in identifying vorticies. Note that strictly
+this also requires the pressure in the vortex to be smaller than ambiant. </a:documentation>
+      <attribute name="name">
+        <value>q_criterion</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single </value>
+      </attribute>
+      <optional>
+        <element name="normalise">
+          <a:documentation>Normalise the Q-criterion
+Q_n = (\Omega_{ij}\Omega_{ij}-S_{ij}S_{ij})/ (\Omega_{ij}\Omega_{ij}+S_{ij}S_{ij})
+Q_n \in [-1,1]</a:documentation>
+          <empty/>
+        </element>
+      </optional>
+    </element>
+  </define>
   <define name="hessian_algorithm">
     <element name="algorithm">
       <a:documentation>algorithm for the Hessian (2nd derivative) of a scalar field</a:documentation>
@@ -2102,6 +2127,9 @@ a horizontal vector living on the specified surface.</a:documentation>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="random_scalar_field_algorithm"/>
+  </define>
+  <define name="scalar_diagnostic_algorithms" combine="choice">
+    <ref name="q_criterion_algorithm"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="projection_scalar_potential_algorithm"/>
