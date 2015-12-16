@@ -1,0 +1,40 @@
+<?xml version = "1.0" encoding = "UTF-8" ?>
+<testproblem>
+  <name>adaptivity preprocessing</name>
+  <owner userid="pef"/>
+  <tags>flml</tags>
+  <problem_definition length = "short" nprocs = "1">
+    <command_line>make clean-run-debug; fluidity -v2 -l adaptivity_preprocessing.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
+    <variable name = "timesteps" language = "python">
+import fluidity_tools
+s = fluidity_tools.stat_parser("adaptivity_preprocessing.stat")
+timesteps = len(s["ElapsedTime"]["value"])
+    </variable>
+    <variable name = "tracer_integrals" language = "python">
+import fluidity_tools
+s = fluidity_tools.stat_parser("adaptivity_preprocessing.stat")
+tracer_integrals = s["Fluid"]["Tracer"]["integral"]
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
+    <test name = "Simulation completed" language = "python">
+assert(timesteps == 3)
+    </test>
+    <test name = "Conservative projection" language = "python">
+import fluidity_tools
+fluidity_tools.compare_variables(tracer_integrals[1:], [tracer_integrals[0] for i in range(len(tracer_integrals) - 1)], 1.0e-10)
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>
