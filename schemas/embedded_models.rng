@@ -1,10 +1,44 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<grammar xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns="http://relaxng.org/ns/structure/1.0">
+<grammar xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="">
   <!-- The embedded models -->
   <define name="embedded_models">
     <element name="embedded_models">
       <a:documentation>Fluidity embedded models</a:documentation>
+      <ref name="particle_model"/>
       <ref name="comment"/>
     </element>
+  </define>
+  <define name="particle_model">
+    <element name="particle_model">
+      <a:documentation>Options passed to the particle model itself</a:documentation>
+      <element name="particle_classes">
+        <oneOrMore>
+          <element name="particle_class">
+            <attribute name="name">
+              <data type="string"/>
+            </attribute>
+            <ref name="particle_class_base"/>
+          </element>
+        </oneOrMore>
+      </element>
+    </element>
+  </define>
+  <define name="particle_class_base">
+    <group>
+      <element name="diameter">
+        <a:documentation>Particle class descriptions</a:documentation>
+        <ref name="real"/>
+      </element>
+      <optional>
+        <element name="density">
+          <ref name="real"/>
+        </element>
+      </optional>
+    </group>
+    <!--
+              element distribution {
+                 empty
+              }
+    -->
   </define>
 </grammar>

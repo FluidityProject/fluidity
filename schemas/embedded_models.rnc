@@ -4,6 +4,31 @@ embedded_models =
    (
       ## Fluidity embedded models
       element embedded_models {
+         particle_model,
          comment
       }
+   )
+
+particle_model =
+   (
+      ## Options passed to the particle model itself
+      element particle_model {
+         element particle_classes {
+            element particle_class {
+               attribute name { string },
+               particle_class_base
+            }+
+         }
+      }
+   )
+
+
+particle_class_base = 
+   (
+      ## Particle class descriptions
+      element diameter { real },
+      element density { real }?
+      #         element distribution {
+      #            empty
+      #         }
    )
