@@ -13,6 +13,56 @@ particle_model =
    (
       ## Options passed to the particle model itself
       element particle_model {
+         ## Specify the surface ids of inlets (surfaces on which particles are introduced
+         element inlet {
+            attribute name {xsd:string},
+            element surface_ids{
+               integer_vector
+            },
+            element insertion_rate{
+               real
+            },
+            element particle_velocity{
+               (
+                  element constant {
+                     real_vector
+                   }|
+                   ## Python function prescribing real input. Functions should be of the form:
+                   ##
+                   ##  def val(X,t):
+                   ##     # Function code
+                   ##     return # Return value
+                   ##
+                   ## 
+                   element python {
+                     python_code
+                   }
+               )
+            },
+            element probability_density_function{
+               (
+                   element constant {
+                     real
+                   }|
+                   ## Python function prescribing real input. Functions should be of the form:
+                   ##
+                   ##  def val(X,t):
+                   ##     # Function code
+                   ##     return # Return value
+                   ##
+                   ## 
+                   element python {
+                     python_code
+                   }
+               )
+            }
+         }*,
+         ## Specify the surface ids of outlets (surfaces from which particles do not rebound)
+         element outlet_ids {
+            element surface_ids{
+               integer_vector
+            }
+         }?,
          element particle_classes {
             element particle_class {
                attribute name { string },
