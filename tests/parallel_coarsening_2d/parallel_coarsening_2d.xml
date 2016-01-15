@@ -1,0 +1,22 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>parallel_coarsening_2d<comment>This tests coarsening in parallel. We start from a uniform mesh of 200x200 in a unit square box, i.e. dx~0.01. There's no interpolation error specified, so it should just coarsen to a uniform mesh according to the maximum edge length of 0.05. This is run on 5 cores. On master this fails because of it failing to move around the halos sufficiently so that we can coarsen everywhere. With he new halo locking strategy that only locks a single row of elements this passes.</comment></name>
+  <owner userid="skramer"/>
+  <problem_definition length="short" nprocs="5">
+    <command_line>mpiexec flredecomp -i 1 -o 5 coarsen coarsenp &amp;&amp;
+mpiexec fluidity -v2 -l coarsenp.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="cell_area_stats" language="python">from fluidity_tools import stat_parser
+stat=stat_parser('coarsen.stat')
+cell_area_stats = stat['Fields']['CellArea']</variable>
+    <variable name="mesh_stats" language="python">from fluidity_tools import stat_parser
+stat=stat_parser('coarsen.stat')
+mesh_stats = stat['CoordinateMesh']</variable>
+  </variables>
+  <pass_tests>
+    <test name="min_cell_area" language="python">assert cell_area_stats['min']&gt;2e-5<comment>This is to test we've coarsened everywhere. We've asked for a max. edge length of 0.02. This means a max area (for equilateral) of 0.5*sin(pi/3)*0.02*0.02 ~ 2e-4. We allow an order smaller area, i.e roughly sqrt(10) smaller for edge lengths.</comment></test>
+    <test name="max_cell_area" language="python">assert cell_area_stats['max']&lt;1e-3<comment>We've asked for a max. edge length of 0.02. This means a max area (for equilateral) of 0.5*sin(pi/3)*0.02*0.02 ~ 2e-4. We allow an area that is 4 times bigger, i.e. edges that are twice as long.</comment></test>
+    <test name="number_of_elements" language="python">assert 2500&lt;mesh_stats['elements']&lt;10000<comment>If we had all equilateral triangles of area 1e-3, we'd get 5000 triangles. This test limits the *average* cell area.</comment></test>
+  </pass_tests>
+</testproblem>

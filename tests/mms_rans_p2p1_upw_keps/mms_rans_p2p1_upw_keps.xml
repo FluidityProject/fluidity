@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+<testproblem>
+  <name>p2lumpedp1 RANS k-epsilon spatial convergence test with strong bcs</name>
+  <owner userid="ffm10"/>
+  <tags>flml</tags>
+  <problem_definition length="medium" nprocs="1">
+    <command_line>fluidity -v3 MMS_A.flml &gt; MMS_A.log; fluidity -v3 MMS_B.flml &gt; MMS_B.log; fluidity -v3 MMS_C.flml &gt; MMS_C.log; fluidity -v3 MMS_D.flml &gt; MMS_D.log</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="convergence" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log
+import numpy as np
+
+meshes = [['A','B'], ['B','C'], ['C','D']]
+
+convergence = np.ones(12) * 1e10
+
+print ''
+print 'ORDER OF CONVERGENCE'
+print '-------------------------------------------'
+
+print 'VelocityError:'
+print '-------------------------------------------'
+
+for i, mesh in enumerate(meshes):
+
+    a_error_x = stat("MMS_"+str(mesh[0])+".stat")["NS"]["VelocityError%1"]["l2norm"][-1]
+    b_error_x = stat("MMS_"+str(mesh[1])+".stat")["NS"]["VelocityError%1"]["l2norm"][-1]
+    a_error_y = stat("MMS_"+str(mesh[0])+".stat")["NS"]["VelocityError%2"]["l2norm"][-1]
+    b_error_y = stat("MMS_"+str(mesh[1])+".stat")["NS"]["VelocityError%2"]["l2norm"][-1]
+
+    ratio_x = a_error_x / b_error_x
+    ratio_y = a_error_y / b_error_y
+
+    print mesh[0] + '->' + mesh[1] + ': ', [log(ratio_x, 2), log(ratio_y, 2)]
+
+    convergence[0] = min(log(ratio_x, 2), log(ratio_y, 2), convergence[0])
+
+print '-------------------------------------------'
+
+fields = ['TurbulentKineticEnergy_production_termError', 
+          'TurbulentKineticEnergy_destruction_termError',
+          'TurbulentKineticEnergy_buoyancy_termError',
+          'TurbulentKineticEnergyError',
+          'TurbulentDissipation_production_termError',
+          'TurbulentDissipation_destruction_termError',
+          'TurbulentDissipation_buoyancy_termError',
+          'TurbulentDissipationError',
+          'ScalarEddyViscosityError',
+          'TemperatureError', 
+          'PressureError',
+          ]
+
+for i, field in enumerate(fields):
+    print field
+    print '-------------------------------------------'
+
+    for j, mesh in enumerate(meshes):
+        
+        a_error = stat("MMS_"+str(mesh[0])+".stat")["NS"][field]["l2norm"][-1]
+        b_error = stat("MMS_"+str(mesh[1])+".stat")["NS"][field]["l2norm"][-1]
+        
+        ratio = a_error / b_error
+        
+        print mesh[0] + '->' + mesh[1] + ': ', log(ratio, 2)
+
+        convergence[i+1] = min(log(ratio, 2), convergence[i+1])
+    
+    print '-------------------------------------------'
+
+print ''
+    </variable>
+    <variable name="a_finish_time" language="python">
+from fluidity_tools import stat_parser as stat
+a_finish_time = stat("MMS_A.stat")["ElapsedTime"]["value"][-1]
+    </variable>
+    <variable name="b_finish_time" language="python">
+from fluidity_tools import stat_parser as stat
+b_finish_time = stat("MMS_B.stat")["ElapsedTime"]["value"][-1]
+    </variable>
+    <variable name="c_finish_time" language="python">
+from fluidity_tools import stat_parser as stat
+c_finish_time = stat("MMS_C.stat")["ElapsedTime"]["value"][-1]
+    </variable>
+    <variable name="d_finish_time" language="python">
+from fluidity_tools import stat_parser as stat
+d_finish_time = stat("MMS_D.stat")["ElapsedTime"]["value"][-1]
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="velocity convergence order > 2.0" language="python">
+assert(convergence[0] &gt; 2.0)
+    </test>
+    <test name="k production term convergence order > 1.9" language="python">
+assert(convergence[1] &gt; 1.9)
+    </test>
+    <test name="k destruction convergence order > 1.7" language="python">
+assert(convergence[2] &gt; 1.7)
+    </test>
+    <test name="k buoyancy term convergence order > 1.9" language="python">
+assert(convergence[3] &gt; 1.9)
+    </test>
+    <test name="k convergence order > 1.9" language="python">
+assert(convergence[4] &gt; 1.9)
+    </test>
+    <test name="epsilon production term convergence order > 2.0" language="python">
+assert(convergence[5] &gt; 2.0)
+    </test>
+    <test name="epsilon destruction convergence order > 1.9" language="python">
+assert(convergence[6] &gt; 1.9)
+    </test>
+    <test name="epsilon buoyancy term convergence order > 1.9" language="python">
+assert(convergence[7] &gt; 1.9)
+    </test>
+    <test name="epsilon convergence order > 1.7" language="python">
+assert(convergence[8] &gt; 1.7)
+    </test>
+    <test name="scalar eddy viscosity convergence order > 1.9" language="python">
+assert(convergence[9] &gt; 1.9)
+    </test>
+    <test name="buoyant scalar field convergence order > 1.9" language="python">
+assert(convergence[10] &gt; 1.9)
+    </test>
+    <test name="pressure convergence order > 1.7" language="python">
+assert(convergence[11] &gt; 1.7)
+    </test>
+    <test name="checking A finished in less than 100 seconds" language="python">
+assert(a_finish_time-100.0 &lt; 1.E-10)
+    </test>
+    <test name="checking B finished in less than 100 seconds" language="python">
+assert(b_finish_time-100.0 &lt; 1.E-10)
+    </test>
+    <test name="checking C finished in less than 100 seconds" language="python">
+assert(c_finish_time-100.0 &lt; 1.E-10)
+    </test>
+    <test name="checking D finished in less than 100 seconds" language="python">
+assert(d_finish_time-100.0 &lt; 1.E-10)
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>
+

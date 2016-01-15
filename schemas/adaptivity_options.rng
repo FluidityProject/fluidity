@@ -9,9 +9,14 @@ to fields before using them for the purposes of adaptivity.</a:documentation>
           <a:documentation>Invert a helmholtz operator to smooth out the field
 before using it to adapt. This can help with noisy
 fields.</a:documentation>
-          <element name="smoothing_length_scale">
-            <ref name="real_dim_symmetric_tensor"/>
-          </element>
+          <optional>
+            <element name="smoothing_scale_factor">
+              <a:documentation>The characteristic scale factor alpha used by the smoother.
+The length scale is alpha*local element width (a scalar)
+2 is recommended.</a:documentation>
+              <ref name="real"/>
+            </element>
+          </optional>
           <element name="solver">
             <ref name="linear_solver_options_sym"/>
           </element>
