@@ -3,7 +3,7 @@ subroutine test_compute_g_hat
   use fields
   use sparse_tools
   use adjacency_lists
-  use read_triangle
+  use mesh_files
   use anisotropic_zz_module
   use unittest_tools
   implicit none
@@ -22,7 +22,7 @@ subroutine test_compute_g_hat
     end function linear_func
   end interface
 
-  positions = read_triangle_files("data/pslgA", 4)
+  positions = read_mesh_files("data/pslgA", quad_degree=4, format="gmsh")
   call add_nelist(positions%mesh)
   pwc_mesh = piecewise_constant_mesh(positions%mesh, "PiecewiseConstantPlease")
   call allocate(field, positions%mesh, "Field")

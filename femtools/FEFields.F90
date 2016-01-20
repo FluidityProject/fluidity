@@ -2,7 +2,7 @@
 module fefields
   !!< Module containing general tools for discretising Finite Element problems.
 
-  use integer_set_module
+  use data_structures
   use fields
   use field_options, only: get_coordinate_field
   use halos
@@ -516,7 +516,7 @@ contains
 
       call set(to_field, ele_nodes(to_field, ele), &
            matmul(mass, &
-           shape_rhs(to_shape, ele_val(from_field, ele)*detwei)))
+           shape_rhs(to_shape, ele_val_at_quad(from_field, ele)*detwei)))
 
     end subroutine dg_projection_ele
 
@@ -720,9 +720,9 @@ contains
 
     type(element_type), pointer :: shape     
 
-    type(integer_set) :: face_list
+    type(integer_hash_table) :: face_ele_list
 
-    integer, allocatable, dimension(:) :: sndglno, boundary_ids
+    integer, allocatable, dimension(:) :: sndglno, boundary_ids, element_owner
 
     ewrite(1,*) "Entering create_subdomain_mesh"
 
@@ -774,7 +774,7 @@ contains
     surf_ele_count = surface_element_count(mesh)
 
     ! Begin by determining which faces are on submesh boundaries:
-    call allocate(face_list)
+    call allocate(face_ele_list)
     do i = 1, size(element_list)
       ele = element_list(i)
       neigh => ele_neigh(mesh, ele) ! Determine element neighbours on parent mesh
@@ -784,26 +784,40 @@ contains
         face = faces(ni)
         ! If this face is part of the full surface mesh (which includes internal faces) then
         ! it must be on the submesh boundary, and not on a processor boundary (if parallel).
+        ! note that for internal facets that are on now on the boundary of the subdomain, we only
+        ! collect one copy, whereas for internal facets that remain internal we collect both
+        ! this is dealt with using the allow_duplicate_internal_facets flag to add_faces()
         if (face  <= surf_ele_count) then
-           call insert(face_list, face)
+           call insert(face_ele_list, face, ele)
         end if
       end do
     end do
 
     ! Set up sndglno and boundary_ids:
-    edge_count = key_count(face_list)
+    edge_count = key_count(face_ele_list)
     allocate(sndglno(edge_count*sloc), boundary_ids(1:edge_count))
     do i = 1, edge_count
-      face = fetch(face_list, i)
+      call fetch_pair(face_ele_list, i, face, ele)
       sndglno((i-1)*sloc+1:i*sloc) = inverse_node_list(face_global_nodes(mesh, face))
       boundary_ids(i) = surface_element_id(mesh, face)
     end do
-
-    call deallocate(face_list)
+    call deallocate(face_ele_list)
 
     ewrite(2,*) "Number of surface elements: ", edge_count
     ! Add faces to submesh:
-    call add_faces(submesh, sndgln=sndglno, boundary_ids=boundary_ids)
+    if (has_discontinuous_internal_boundaries(mesh)) then
+      allocate(element_owner(1:edge_count))
+      do i=1, edge_count
+        call fetch_pair(face_ele_list, i, face, ele)
+        element_owner(i) = ele
+      end do
+      call add_faces(submesh, sndgln=sndglno, boundary_ids=boundary_ids, &
+        element_owner=element_owner)
+      deallocate(element_owner)
+    else
+      call add_faces(submesh, sndgln=sndglno, boundary_ids=boundary_ids, &
+        allow_duplicate_internal_facets=.true.)
+    end if
 
     deallocate(sndglno)
     deallocate(boundary_ids)

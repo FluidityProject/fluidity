@@ -289,6 +289,11 @@ contains
     elemType=0
 
     select case(mesh_dim(mesh))
+       ! One dimension
+    case(1)
+       faceType=15
+       elemType=1
+
        ! Two dimensions
     case(2)
        if (nloc==3 .and. sloc==2) then
@@ -296,7 +301,7 @@ contains
           elemType=2
        else if(nloc==4 .and. sloc==2) then
           faceType=1
-          elemType=4
+          elemType=3
        end if
 
        ! Three dimensions

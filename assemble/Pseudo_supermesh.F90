@@ -76,7 +76,6 @@ module pseudo_supermesh
         call vtk_read_state(trim(snapshots(i)), vtk_state)
         vtk_mesh = extract_mesh(vtk_state, "Mesh")
         vtk_pos  = extract_vector_field(vtk_state, "Coordinate")
-        call allocate(vtk_metric, vtk_mesh, "MeshMetric")
         call compute_mesh_metric(vtk_pos, vtk_metric)
         call insert(interpolation_input, vtk_metric, "InterpolatedMetric")
         call insert(interpolation_input, vtk_mesh, "Mesh")

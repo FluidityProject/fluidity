@@ -123,7 +123,7 @@ module mba2d_integration
 
     nonods = node_count(xmesh)
     totele = ele_count(xmesh)
-    orig_stotel = surface_element_count(xmesh)
+    orig_stotel = unique_surface_element_count(xmesh)
     mxface = int(max((float(mxnods) / float(nonods)) * orig_stotel * 3.5, 10000.0))
     maxele = int(max((float(mxnods) / float(nonods)) * totele * 1.5, 10000.0))
     maxp = mxnods * 1.2
@@ -134,7 +134,7 @@ module mba2d_integration
       pos(i, 1:nonods) = input_positions%val(i,:)
     end do
 
-    allocate(surface_ids(surface_element_count(xmesh)))
+    allocate(surface_ids(orig_stotel))
     call interleave_surface_ids(xmesh, surface_ids, max_coplanar_id)
 
     allocate(ipf(4, mxface))
@@ -157,6 +157,10 @@ module mba2d_integration
           if (face <= orig_stotel) then ! if facet is genuinely external, i.e. on the domain exterior
             ipf(4, stotel) = surface_ids(face)
             stotel_external = stotel_external + 1
+          else if (face <= surface_element_count(xmesh)) then
+            ! this should only happen for the 2nd copy of an internal facet
+            ! so something's wrong in the faces admin
+            FLAbort("Detected external facet that's numbered incorrectly.")
           else
             ipf(4, stotel) = partition_surface_id
           end if
@@ -166,22 +170,21 @@ module mba2d_integration
 
     if (stotel_external<orig_stotel) then
       ! not all facets in the surface mesh are external apparently
+      ! 1:orig_stotel should only give us one of each pair of internal facets
       do face=1, orig_stotel
         face2 = face_neigh(xmesh, face)
-        if (face>face2) then
+        if (face/=face2) then
           ! if face==face2 it's an external facet that's dealt with already
-          ! we check face>face2 to ensure we only copy one of the two coinciding facets
           stotel = stotel +1
           call insert(input_face_numbering_to_mba2d_numbering, face, stotel)
           ipf(1:2, stotel) = face_global_nodes(xmesh, face)
           ipf(3, stotel) = 0
           ipf(4, stotel) = surface_ids(face)
-          if (surface_ids(face)/=surface_ids(face2)) then
-            ! note that we're here checking for the combined surface+coplanar id to be the same
-            ! but the coplanar id of the 2 facets should always be the same
+          if (surface_element_id(xmesh, face)/=surface_element_id(xmesh, face2)) then
+            ! check that the surface id on either side is indeed the same
             FLExit("Adaptivity with internal boundaries only works if the surface id is single valued")
           end if
-        end if                
+        end if
       end do
 
     end if
@@ -211,7 +214,9 @@ module mba2d_integration
     ! Afterwards, we went through and counted (b) and added it on to stotel.
     ! But in a very odd situation, this might not be enough memory!
     ! So either find a smarter number to set mxface, or make the multiple bigger.
-    assert(stotel < mxface)
+    if (stotel > mxface) then
+      FLAbort("Expected number of facets too small!")
+    end if
 
     allocate(ipe(3, maxele))
     ipe = 0
@@ -425,6 +430,7 @@ module mba2d_integration
     deallocate(new_sndgln)
 
     ! and only deinterleave now we know the total number of elements in the surface mesh
+    ! add_faces will have copied the interleaved id to the second copy of each interior facet
     stotel = surface_element_count(new_mesh)
     allocate(boundary_ids(1:stotel), coplanar_ids(1:stotel))
     call deinterleave_surface_ids(new_mesh%faces%boundary_ids, max_coplanar_id, boundary_ids, coplanar_ids)

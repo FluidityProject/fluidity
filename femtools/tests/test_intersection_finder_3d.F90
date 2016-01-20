@@ -1,7 +1,7 @@
 subroutine test_intersection_finder_3d
 
   use unittest_tools
-  use read_triangle
+  use mesh_files
   use fields
   use linked_lists
   use intersection_finder_module
@@ -12,8 +12,8 @@ subroutine test_intersection_finder_3d
   integer :: i
   logical :: fail
 
-  positionsA = read_triangle_files("data/tet", quad_degree=4)
-  positionsB = read_triangle_files("data/tet", quad_degree=4)
+  positionsA = read_mesh_files("data/tet", quad_degree=4, format="gmsh")
+  positionsB = read_mesh_files("data/tet", quad_degree=4, format="gmsh")
   map_AB = advancing_front_intersection_finder(positionsA, positionsB)
 
   fail = (map_AB(1)%length /= 1)

@@ -1,5 +1,5 @@
 input: clean
-	../../bin/gmsh2triangle --2d src/square.msh
+	cp src/square.msh .
 
 clean:
 	rm -f  *.ele *.edge *.node *.poly *.halo *.vtu *.pvtu fluidity.* *.s *.d.1 *.stat *detectors*

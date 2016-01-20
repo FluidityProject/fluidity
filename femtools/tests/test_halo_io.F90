@@ -31,7 +31,7 @@ subroutine test_halo_io
 
   use fields
   use halos
-  use read_triangle
+  use mesh_files
   use unittest_tools
 
   implicit none
@@ -41,7 +41,7 @@ subroutine test_halo_io
   type(halo_type), pointer :: halo, halo_2
   type(vector_field) :: positions, positions_2
   
-  positions = read_triangle_files("data/cube-parallel_0", quad_degree = 1)  
+  positions = read_mesh_files("data/cube-parallel_0", quad_degree = 1, format="gmsh")
   ! Use make_mesh to create a copy of positions%mesh with no halos, for use
   ! with positions_2 later
   mesh_2 = make_mesh(positions%mesh)

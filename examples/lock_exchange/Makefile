@@ -4,7 +4,6 @@ preprocess: envcheck
 	@echo **********Generating the mesh using gmsh in 2d:
 	gmsh -2 -v 0 channel_2d.geo
 	@echo **********Converting the gmsh mesh to triangle format:
-	${BINPREFIX}gmsh2triangle -2 channel_2d.msh 
 
 run: envcheck
 	@echo **********Calling fluidity with least verbose log output enabled:

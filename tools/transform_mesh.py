@@ -2,9 +2,8 @@
 
 from optparse import OptionParser
 import sys
-import shutil
 import math
-
+import fluidity.diagnostics.gmshtools as gmshtools
 
 #####################################################################
 # Script starts here.
@@ -15,7 +14,7 @@ optparser=OptionParser(usage='usage: %prog transformation mesh',
 optparser.set_usage(
                   "usage: %prog <transformation> <mesh>\n\n"+
                   "<transformation> is a python expression giving the coordinate transformation.\n"+
-                  "<mesh> is the name of the triangle mesh files. You need a mesh.node, mesh.face and mesh.ele file.\n"+
+                  "<mesh> is the name of the gmsh mesh file. You need a mesh.msh file.\n"+
                   "\n"+
                   "Example:\n"
                   "To rescale the z-dimension by a factor of 1000,\n"
@@ -24,43 +23,26 @@ optparser.set_usage(
 
 (options, argv) = optparser.parse_args()
 
-if len(argv)!=2:
+if len(argv) != 2:
     optparser.print_help()
     sys.exit(1)
 
-transformation=argv[0]
-mesh_name=argv[1]
+transformation = argv[0]
+mesh_name = argv[1]
 
 # make all definitions of the math module available in
 # the transformation expression.
-globals=math.__dict__
+globals = math.__dict__
 
-f=file(mesh_name+'.node','r')
-newf=file(mesh_name+'.node.tmp','w')
-header=f.readline()
-nodes=int(header.split(' ')[0])
-dim=int(header.split(' ')[1])
-newf.write(header)
+mesh = gmshtools.ReadMsh(mesh_name+'.msh')
+dim = mesh.GetDim()
 
-for line in f:
-  # remove spaces leading and trailing spaces and the end of line character:
-  line=line.lstrip().rstrip()
-  if line.startswith('#'):
-    continue
-  cols=line.split(' ')
-  index=int(cols[0])
-  globals['x']=float(cols[1])
-  globals['y']=float(cols[2])
-  if dim==3:
-    globals['z']=float(cols[3])
-  xyz=eval(transformation, globals)
-  if dim==2:
-    newf.write(`index`+' '+`xyz[0]`+' '+`xyz[1]`+'\n')
-  else:
-    newf.write(`index`+' '+`xyz[0]`+' '+`xyz[1]`+' '+`xyz[2]`+'\n')
+def remap(coords):
+    globals['x'] = coords[0]
+    globals['y'] = coords[1]
+    if dim == 3:
+        globals['z'] = coords[2]
+    return eval(transformation, globals)
 
-newf.close()
-f.close()
-
-shutil.move(mesh_name+'.node', mesh_name+'.node.bak')
-shutil.move(mesh_name+'.node.tmp', mesh_name+'.node')
+mesh.RemapNodeCoords(remap)
+gmshtools.WriteMsh(mesh, mesh_name+'.msh')

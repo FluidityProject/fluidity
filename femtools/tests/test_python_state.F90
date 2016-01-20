@@ -32,7 +32,7 @@ subroutine test_python_state
   use fields
   use fldebug
   use python_state
-  use read_triangle
+  use mesh_files
   use state_module
   use unittest_tools
 
@@ -45,7 +45,7 @@ subroutine test_python_state
   type(tensor_field) :: t_field
   type(vector_field) :: positions, v_field
   
-  positions = read_triangle_files("data/interval", quad_degree = 1)
+  positions = read_mesh_files("data/interval", quad_degree = 1, format="gmsh")
   dim = positions%dim
   call insert(state, positions, name = "Coordinate")
   call insert(state, positions%mesh, name = "CoordinateMesh")

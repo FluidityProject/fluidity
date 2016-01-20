@@ -331,10 +331,6 @@ class TestHarness:
             print "Passes:   %d" % self.passcount
             print "Failures: %d" % self.failcount
             print "Warnings: %d" % self.warncount
-        
-        if self.failcount > 0:
-            print "Exiting with error since at least one failure..."
-            sys.exit(1)
 
     def threadrun(self):
         '''This is the portion of the loop which actually runs the

@@ -2,7 +2,9 @@ default: input
 
 input: clean
 	tar -xvjf src/basin.tar.bz2
+	../../bin/triangle2gmsh basin
 	tar -xvjf src/first_timestep_adapted_mesh.tar.bz2
+	../../bin/triangle2gmsh first_timestep_adapted_mesh
 
 clean: clean-mesh clean-run
 clean-mesh:

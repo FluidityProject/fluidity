@@ -2,6 +2,7 @@ default: input
 
 input: src/square-unstructured.tar.bz2
 	tar -xvjf src/square-unstructured.tar.bz2
+	../../bin/triangle2gmsh square-unstructured
 
 clean: clean-mesh clean-run
 	rm -rf parallel_p0_consistent_interpolation_*

@@ -183,6 +183,14 @@ module zoltan_integration
       call cleanup_basic_module_variables(zz)
       call cleanup_quality_module_variables
       dumpno = dumpno + 1
+
+      if (final_adapt_iteration) then
+        ! interpolation does not interpolate in the halo regions, so we need a halo update afterwards
+        ! normally this happens automatically due to the subsequent zoltan migration process, however
+        ! if zoltan decides to not do anything we need to do it manually. We only need it in the final one
+        ! because interpolation does halo update the old fields before the adapt.
+        call halo_update(states)
+      end if
       return
     end if
 
@@ -307,7 +315,7 @@ module zoltan_integration
     integer :: nhalos, stat
     integer, dimension(:), allocatable :: owned_nodes
     integer :: i, j, floc, eloc
-    integer, dimension(:), allocatable :: sndgln
+    integer, dimension(:), allocatable :: face_nodes
     integer :: old_element_number, universal_element_number, face_number, universal_surface_element_number
     integer, dimension(:), allocatable :: interleaved_surface_ids
 
@@ -394,10 +402,9 @@ module zoltan_integration
     ! this is another thing that needs to be generalised for mixed meshes
     floc = face_loc(zoltan_global_zz_positions, 1)
     eloc = ele_loc(zoltan_global_zz_positions, 1)
-    allocate(sndgln(surface_element_count(zoltan_global_zz_positions) * floc))
-    call getsndgln(zoltan_global_zz_mesh, sndgln)
+    allocate(face_nodes(1:floc))
     
-    do i=1,surface_element_count(zoltan_global_zz_positions)
+    do i=1, surface_element_count(zoltan_global_zz_positions)
        old_element_number = face_ele(zoltan_global_zz_positions, i)
        universal_element_number = halo_universal_number(zoltan_global_zz_ele_halo, old_element_number)
        face_number = local_face_number(zoltan_global_zz_positions, i)
@@ -405,14 +412,15 @@ module zoltan_integration
        
        call insert(zoltan_global_universal_surface_number_to_surface_id, universal_surface_element_number, interleaved_surface_ids(i))
        call insert(zoltan_global_universal_surface_number_to_element_owner, universal_surface_element_number, universal_element_number)
-       
-       do j=(i-1)*floc+1,i*floc
-          call insert(zoltan_global_old_snelist(sndgln(j)), universal_surface_element_number)
+
+       face_nodes = face_global_nodes(zoltan_global_zz_mesh, i)
+       do j=1, floc
+          call insert(zoltan_global_old_snelist(face_nodes(j)), universal_surface_element_number)
        end do
     end do
     
-    deallocate(sndgln)
     deallocate(interleaved_surface_ids)
+    deallocate(face_nodes)
     
     zoltan_global_preserve_mesh_regions = associated(zoltan_global_zz_mesh%region_ids)
     ! this deals with the case where some processors have no elements
@@ -865,8 +873,16 @@ module zoltan_integration
           end if
        end if
 
-       ierr = Zoltan_LB_Free_Part(null_pointer, null_pointer, null_pointer, import_to_part); assert(ierr == ZOLTAN_OK)
-       ierr = Zoltan_LB_Free_Part(null_pointer, null_pointer, null_pointer, export_to_part); assert(ierr == ZOLTAN_OK)
+       if (p1_num_import>0) then
+         ! It appears that with gcc5 this routine crashes if p1_num_import==0
+         ! not entirely sure whether this is a bug in zoltan with gcc5 or
+         ! whether we are indeed not suppposed to deallocate this if there are no imports
+         ierr = Zoltan_LB_Free_Part(null_pointer, null_pointer, null_pointer, import_to_part); assert(ierr == ZOLTAN_OK)
+       end if
+       if (p1_num_export>0) then
+         ! see comment above, p1_num_import -> p1_num_export
+         ierr = Zoltan_LB_Free_Part(null_pointer, null_pointer, null_pointer, export_to_part); assert(ierr == ZOLTAN_OK)
+       end if
 
     else
 
@@ -1454,10 +1470,11 @@ module zoltan_integration
     integer :: i, j, expected_loc, full_elements
     integer :: universal_number, new_local_number
     type(integer_hash_table) :: universal_surface_element_to_local_numbering
-    integer, dimension(:), allocatable, target :: sndgln, surface_ids, element_owners
+    integer, dimension(:), allocatable, target :: surface_ids, element_owners
     type(csr_sparsity), pointer :: nnlist
     
     logical, dimension(key_count(zoltan_global_new_surface_elements)) :: keep_surface_element
+    integer, dimension(:), allocatable :: sndgln
     integer :: universal_element_number
     
     ewrite(1,*) "In reconstruct_senlist"
@@ -1534,7 +1551,16 @@ module zoltan_integration
     end do
     assert(j == full_elements + 1)
 
-    call add_faces(zoltan_global_new_positions%mesh, sndgln=sndgln, boundary_ids=surface_ids, element_owner=element_owners)
+    if (zoltan_global_zz_mesh%faces%has_discontinuous_internal_boundaries) then
+      ! for internal facet pairs, the surface ids are not necessarily the same (this is used in periodic meshes)
+      ! we need to tell add_faces which facets is on which side by supplying element ownership info
+      call add_faces(zoltan_global_new_positions%mesh, sndgln=sndgln, boundary_ids=surface_ids, element_owner=element_owners)
+    else
+      ! surface ids on facets pairs are assumed consistent - add_faces will copy the first of the pair it encounters
+      ! in sndgln on either side - the next copy in sndgln is ignored (only checked that its surface id is consistent)
+      call add_faces(zoltan_global_new_positions%mesh, sndgln=sndgln, boundary_ids=surface_ids, &
+        allow_duplicate_internal_facets=.true.)
+    end if
     
     do i=1,size(senlists)
        call deallocate(senlists(i))

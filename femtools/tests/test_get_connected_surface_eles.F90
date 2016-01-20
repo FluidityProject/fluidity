@@ -31,7 +31,7 @@ subroutine test_get_connected_surface_eles
 
   use fields
   use fldebug
-  use read_triangle
+  use mesh_files
   use surfacelabels
   use unittest_tools
   
@@ -42,7 +42,7 @@ subroutine test_get_connected_surface_eles
   type(integer_vector), dimension(:), allocatable :: connected_surface_eles
   type(vector_field) :: positions
   
-  positions = read_triangle_files("data/interval", quad_degree = quad_degree)
+  positions = read_mesh_files("data/interval", quad_degree = quad_degree, format="gmsh")
   
   call get_connected_surface_eles(positions%mesh, connected_surface_eles)
   
@@ -58,7 +58,7 @@ subroutine test_get_connected_surface_eles
   
   call report_test_no_references()
   
-  positions = read_triangle_files("data/tet", quad_degree = quad_degree)
+  positions = read_mesh_files("data/tet", quad_degree = quad_degree, format="gmsh")
   
   call get_connected_surface_eles(positions%mesh, connected_surface_eles)
   

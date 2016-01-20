@@ -240,6 +240,7 @@
             <stress_terms>
               <tensor_form/>
             </stress_terms>
+            <buoyancy/>
           </continuous_galerkin>
           <conservative_advection>
             <real_value rank="0">1.0</real_value>

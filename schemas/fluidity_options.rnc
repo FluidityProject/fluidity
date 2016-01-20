@@ -2256,18 +2256,20 @@ geometry =
          element disable_geometric_data_cache {
             empty
          }?,
-         ## Options specifying that the problem is on the surface of the sphere.
+         ## Options specifying that the problem is on the surface of the n-sphere.
          element spherical_earth {
-            (
-               element linear_mapping {
-                  empty
-               }|
-               ## Enabling this option approximates the curvature of the Earth as an
-               ## nth degree polynomial, where n is the polynomial degree of the coordinate mesh.
-               element superparametric_mapping {
-                  empty
-               }
-            )
+            ## Enabling this option approximates the curvature of the Earth as an
+            ## nth degree polynomial, where n is the polynomial degree of the coordinate mesh.
+            element superparametric_mapping {
+               empty
+            }?,
+            ## The simplicial elements (as defined by the CoordinateMesh) are bent on the n-sphere
+            ## using an analytical expression (as opposed to superparametric where it's approximated
+            ## by a higher order polynomial), the derivatives are calculated by taking the analytical
+            ## derivative on the gauss points.
+            element analytical_mapping {
+               empty
+            }?
          }?,
          ## Options specifying the top surface and bottom of the domain
          ## used in various ocean calculations.
@@ -2951,7 +2953,7 @@ field_output_options =
          element exclude_from_vtu {
             comment
          }?,
-         ## To be used with time-averaged diagnostic fields so that they can be checkpointed.
+         ## Field will be checkpointed (this is not performed by default).
          element checkpoint {
             empty
          }?
@@ -5116,7 +5118,29 @@ scalar_field_choice =
                   }
                }
             )
-         }    
+         }|
+
+         ## DGLESScalarEddyViscosity
+         ##
+         ## Outputs the calculated (isotropic) eddy viscosity term
+         ## for a discontinuous velocity field. The subgridscale viscosity
+         ## follows that of the Smagorinsky–Lilly model. Requires that both a discontinous
+         ## representation of velocity and an les model have been selected.
+
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "DGLESScalarEddyViscosity" },
+            (
+               element diagnostic {
+                  internal_algorithm,
+                  velocity_mesh_choice,
+                  diagnostic_scalar_field
+               }|element prescribed {
+                  velocity_mesh_choice,
+                  prescribed_scalar_field
+               }
+            )
+         } 
 
 # Insert new diagnostic scalar fields here using the template:
 #        element scalar_field {

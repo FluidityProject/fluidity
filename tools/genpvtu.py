@@ -32,7 +32,10 @@ writer.SetFileName(os.path.join(tempDir, pvtuName))
 # knows which fields we have)
 pieceName = fluiditytools.VtuFilenames(basename, 0)[0]
 pieceVtu = vtktools.vtu(pieceName)
-writer.SetInput(0, pieceVtu.ugrid)
+if vtk.vtkVersion.GetVTKMajorVersion() <= 5:
+  writer.SetInput(0, pieceVtu.ugrid)
+else:
+  writer.SetInputData(0, pieceVtu.ugrid)
 
 # Write
 writer.Write()

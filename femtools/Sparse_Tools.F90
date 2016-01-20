@@ -774,7 +774,7 @@ contains
     totalmem=rows+1 + lentries
     
     if (ldiag) then
-       allocate(sparsity%centrm(min(rows, columns)), stat=lstat)
+       allocate(sparsity%centrm(rows), stat=lstat)
        if (lstat/=0) goto 42
        totalmem=totalmem + size(sparsity%centrm)
     else
