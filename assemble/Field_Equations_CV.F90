@@ -52,7 +52,7 @@ module field_equations_cv
   use halos
   use cv_upwind_values
   use cv_face_values, only: evaluate_face_val, theta_val, couple_face_value
-  use fefields, only: compute_cv_mass
+  use fefields, only: compute_cv_mass, get_cv_coordinate_field
   use state_fields_module
   use diagnostic_fields, only: calculate_diagnostic_variable
   use cv_fields
@@ -360,6 +360,10 @@ contains
       x=>extract_vector_field(state(istate), "Coordinate")
       ! the Coordinate field on the same mesh as tfield
       x_tfield=get_coordinate_field(state(istate), tfield%mesh)
+
+
+      if (tfield_options%facevalue==CV_FACEVALUE_ENO_CPAIN) &
+           xcv_tfield=get_cv_coordinate_field(state(istate), tfield%mesh)
 
       ! are we including the mass (generally yes)?
       include_mass = .not.have_option(trim(tfield%option_path)//"/prognostic/spatial_discretisation/control_volumes/mass_terms/exclude_mass_terms")
@@ -735,7 +739,8 @@ contains
                                         x_cvshape_full, x_cvbdyshape_full, &
                                         t_cvshape_full, t_cvbdyshape_full, &
                                         diff_cvshape_full, diff_cvbdyshape_full, &
-                                        state(istate:istate), advu, ug, x, x_tfield, cfl_no, sub_dt, &
+                                        state(istate:istate), advu, ug, x,&
+                                        x_tfield, xcv_tfield, cfl_no, sub_dt, &
                                         diffusivity, q_cvmass, &
                                         mesh_sparsity_x, grad_m_t_sparsity)
           end if
@@ -827,6 +832,9 @@ contains
         call deallocate(diff_rhs)
       end if
       call deallocate(x_tfield)
+      if (tfield_options%facevalue==CV_FACEVALUE_ENO_CPAIN) then
+         call deallocate(xcv_tfield)
+      end if
       if(move_mesh) then
         call deallocate(t_cvmass_new)
         call deallocate(t_cvmass_old)
@@ -1337,7 +1345,7 @@ contains
                                        x_cvshape_full, x_cvbdyshape_full, &
                                        t_cvshape_full, t_cvbdyshape_full, &
                                        diff_cvshape_full, diff_cvbdyshape_full, &
-                                       state, advu, ug, x, x_tfield, cfl_no, dt, &
+                                       state, advu, ug, x, x_tfield, xcv_tfield, cfl_no, dt, &
                                        diffusivity, q_cvmass, &
                                        mesh_sparsity, grad_m_t_sparsity)
 
@@ -1388,7 +1396,7 @@ contains
       type(vector_field), intent(in) :: advu
       type(vector_field), pointer :: ug
       ! the coordinates (base and on the tfield mesh)
-      type(vector_field), intent(inout) :: x, x_tfield
+      type(vector_field), intent(inout) :: x, x_tfield, xcv_tfield
       ! the cfl number
       type(scalar_field), intent(in) :: cfl_no
       ! timestep
@@ -1412,6 +1420,7 @@ contains
       ! and the cfl number at the gauss pts and nodes
       real, dimension(x%dim,ele_loc(x,1)) :: x_ele
       real, dimension(x%dim,ele_loc(tfield,1)) :: xt_ele
+      real, dimension(x%dim,ele_loc(tfield,1)) :: xcv_ele
       real, dimension(x%dim,face_loc(x,1)) :: x_ele_bdy
       real, dimension(x%dim,x_cvshape%ngi) :: x_f
       real, dimension(advu%dim,u_cvshape%ngi) :: u_f
@@ -1529,19 +1538,19 @@ contains
       if (tfield_options%facevalue==CV_FACEVALUE_ENO_CPAIN) then
          if (tfield_options%weno_parameter<0) then
             if(tfield_options%eno_directional) then
-               call k_one_ENO_select(tfield,x_tfield,tENO,gnew,advu)
-               call k_one_ENO_select(oldtfield,x_tfield,oldtENO,gold,advu)
+               call k_one_ENO_select(tfield,xcv_tfield,tENO,gnew,advu)
+               call k_one_ENO_select(oldtfield,xcv_tfield,oldtENO,gold,advu)
             else
-               call k_one_ENO_select(tfield,x_tfield,tENO,gnew)
-               call k_one_ENO_select(oldtfield,x_tfield,oldtENO,gold)
+               call k_one_ENO_select(tfield,xcv_tfield,tENO,gnew)
+               call k_one_ENO_select(oldtfield,xcv_tfield,oldtENO,gold)
             end if
          else
             if(tfield_options%eno_directional) then
-               call k_one_WENO_select(tfield,x_tfield,tENO,gnew,tfield_options%weno_parameter,advu)
-               call k_one_WENO_select(oldtfield,x_tfield,oldtENO,gold,tfield_options%weno_parameter,advu)
+               call k_one_WENO_select(tfield,xcv_tfield,tENO,gnew,tfield_options%weno_parameter,advu)
+               call k_one_WENO_select(oldtfield,xcv_tfield,oldtENO,gold,tfield_options%weno_parameter,advu)
             else
-               call k_one_WENO_select(tfield,x_tfield,tENO,gnew,tfield_options%weno_parameter)
-               call k_one_WENO_select(oldtfield,x_tfield,oldtENO,gold,tfield_options%weno_parameter)
+               call k_one_WENO_select(tfield,xcv_tfield,tENO,gnew,tfield_options%weno_parameter)
+               call k_one_WENO_select(oldtfield,xcv_tfield,oldtENO,gold,tfield_options%weno_parameter)
             end if
          end if
       end if
@@ -1595,6 +1604,9 @@ contains
       element_loop: do ele=1, element_count(tfield)
         x_ele=ele_val(x, ele)
         xt_ele=ele_val(x_tfield, ele)
+        if (tfield_options%facevalue==CV_FACEVALUE_ENO_CPAIN) then
+           xcv_ele=ele_val(xcv_tfield, ele)
+        end if
         x_f=ele_val_at_quad(x, ele, x_cvshape)
         nodes=>ele_nodes(tfield, ele)
         ! the nodes in this element from the coordinate mesh projected
@@ -1719,7 +1731,7 @@ contains
                                           tfield_options,&
                                           field_grad=ele_grad,&
                                           old_field_grad=old_ele_grad,&
-                                          X_ele=x_ele)
+                                          X_ele=xt_ele, xcv_ele=xcv_ele)
 
                     ! perform the time discretisation on the combined tdensity tfield product
                     tfield_theta_val=theta_val(iloc, oloc, &

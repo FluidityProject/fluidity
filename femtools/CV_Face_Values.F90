@@ -62,7 +62,7 @@ contains
                       upwind_values, old_upwind_values, &
                       inflow, cfl_ele, &
                       cv_options, save_pos,&
-                      field_grad,old_field_grad,X_ele)
+                      field_grad,old_field_grad,X_ele,Xcv_ele)
 
     ! given a discretisation type calculate the face value for a field
 
@@ -80,7 +80,7 @@ contains
     type(cv_options_type), intent(in) :: cv_options ! a wrapper type to pass in all the options for control volumes
     integer, intent(inout), optional :: save_pos
     real, dimension(:,:), optional :: field_grad, old_field_grad
-    real, dimension(:,:), optional :: X_ele
+    real, dimension(:,:), optional :: X_ele, Xcv_ele
 
     ! local memory:
     real :: upwind_val, donor_val, downwind_val
@@ -91,7 +91,7 @@ contains
     real :: income=0.0
     integer :: l_save_pos
 
-    real, dimension(:,:), allocatable :: p_ele
+    real, dimension(:), allocatable :: p_ele
 
     if(present(save_pos)) then
       l_save_pos=save_pos ! an attempt at optimising the val calls by saving the matrix position
@@ -288,20 +288,20 @@ contains
 
     case (CV_FACEVALUE_ENO_CPAIN)
 
-       allocate(p_ele(size(X_ele,1),size(X_ele,2)))
+       allocate(p_ele(size(X_ele,1)))
 
        income = merge(1.0,0.0,inflow)
 
        
 
        if (inflow) then
-          p_ele=(X_ele-spread(X_ele(:,oloc),2,size(X_ele,2)))
-          face_val = dot_product(cvshape%n(:,ggi), field_ele(oloc)+matmul(field_grad(:,oloc),p_ele))
-          old_face_val = dot_product(cvshape%n(:,ggi), old_field_ele(oloc)+matmul(old_field_grad(:,oloc),p_ele))
+          p_ele=matmul(X_ele,cvshape%n(:,ggi))-Xcv_ele(:,oloc)
+          face_val = field_ele(oloc) + dot_product(field_grad(:,oloc),p_ele)
+          old_face_val = old_field_ele(oloc) + dot_product(old_field_grad(:,oloc),p_ele)
        else
-          p_ele=(X_ele-spread(X_ele(:,iloc),2,size(X_ele,2)))
-          face_val = dot_product(cvshape%n(:,ggi), field_ele(iloc)+matmul(field_grad(:,iloc),p_ele))
-          old_face_val = dot_product(cvshape%n(:,ggi), old_field_ele(iloc)+matmul(old_field_grad(:,iloc),p_ele))
+          p_ele=matmul(X_ele,cvshape%n(:,ggi))-Xcv_ele(:,iloc)
+          face_val = field_ele(iloc) + dot_product(field_grad(:,iloc),p_ele)
+          old_face_val = old_field_ele(iloc) + dot_product(old_field_grad(:,iloc),p_ele)
        end if
 
    end select

@@ -28,7 +28,8 @@ module fefields
   private
   public :: compute_lumped_mass, compute_mass, compute_projection_matrix, add_source_to_rhs, &
             compute_lumped_mass_on_submesh, compute_cv_mass, project_field
-  public :: create_subdomain_mesh
+  public :: create_subdomain_mesh, compute_cv_barycentre_offsets, get_cv_coordinate_field
+
 
 contains
   
@@ -440,6 +441,157 @@ contains
     end subroutine projection_matrix_element
 
   end function compute_projection_matrix
+
+  subroutine compute_cv_barycentre_offsets(positions, cv_positions, cv_mass)
+
+    !!< Compute the barycentre offest of the cvs associated with the 
+    !!< input scalar fields mesh. This will use pre tabulated
+    !!< coefficients - which is only set up for constant, linear elements and 
+    !!< selected quadratic elements. This assumes that all 
+    !!< elements have the same vertices, degree and dim. Also 
+    !!< the mesh element type must be Lagrangian. This WILL work
+    !!< for both continuous and discontinuous meshes. 
+    
+    type(vector_field), intent(in) :: positions
+    type(scalar_field), intent(in), optional :: cv_mass
+    type(vector_field), intent(inout) :: cv_positions
+    
+    ! local variables
+    integer :: ele
+    integer :: vertices, polydegree, dim, type, family, loc
+    real, dimension(:,:), pointer :: subcv_ele_volf => null()
+    type(scalar_field), pointer :: lcv_mass
+
+    real, dimension(positions%dim,ele_loc(cv_positions,1)) :: X
+    integer, dimension(:), pointer :: nodes
+    integer :: i
+    logical :: build_mass
+    
+    if (present(cv_mass)) then
+       ! sanity check
+       assert(element_count(positions) == element_count(cv_mass))
+       assert(cv_mass%mesh == cv_positions%mesh)
+       build_mass=.false.
+    else
+       allocate(lcv_mass)
+       call allocate(lcv_mass,cv_positions%mesh,"CV_mass")
+       call compute_cv_mass(positions,lcv_mass)
+       build_mass=.true.
+    end if
+
+    call zero(cv_positions)
+       
+    ! get element info (assume all the same for whole mesh)
+    vertices   = ele_vertices(cv_positions,1)    
+    polydegree = cv_positions%mesh%shape%degree
+    dim        = cv_positions%mesh%shape%dim
+    type       = cv_positions%mesh%shape%numbering%type
+    family     = cv_positions%mesh%shape%numbering%family
+    loc        = cv_positions%mesh%shape%loc
+        
+    ! The element type must be Lagrangian
+    if (type /= ELEMENT_LAGRANGIAN) then
+       FLAbort('Can only find the CV baycentres if the element type is Lagrangian')
+    end if 
+    
+    ! The polydegree must be < 3
+    if (polydegree > 2) then       
+       FLAbort('Can only find the CV barycentres if the element polynomial degree is 2 or less')
+    end if
+    
+    ! If the polydegree is 2 then the element family must be Simplex
+    if ((polydegree == 2) .and. (.not. family == FAMILY_SIMPLEX)) then
+       FLAbort('Can only find the CV barycentres for a mesh with a 2nd degree element if the element familiy is Simplex')
+    end if
+    
+    ! Find the sub CV element volume fractions  
+
+    allocate(subcv_ele_volf(loc,loc))
+    
+    if (polydegree == 0) then
+       
+       ! dummy value for element wise
+       if (vertices == dim +1) then
+          subcv_ele_volf = 1.0/real(loc)
+       end if
+       
+    else if (polydegree == 1) then
+       
+       ! for linear poly the volume of each
+       ! subcontrol volume is ele_vol / loc
+              
+       select case(dim)
+       case(1)
+          subcv_ele_volf(:,1)=[-0.25,0.25]/real(loc)
+          subcv_ele_volf(:,2)=[0.25,-0.25]/real(loc)
+       case(2)
+          subcv_ele_volf(:,1) = [-0.388888888888888,0.194444444444444,0.194444444444444]/real(loc)
+          subcv_ele_volf(:,2) = [0.194444444444444,-0.388888888888888,0.194444444444444]/real(loc)/real(loc)
+          subcv_ele_volf(:,3) = [0.194444444444444,0.194444444444444,-0.388888888888888]/real(loc)
+       case default
+          FLAbort("Your code appears to have control volumes of unusal dimension(0 or >3). I'm afraid you'll need to do some maths to get the centres of mass.")
+       end select
+          
+    else
+    
+       FLAbort('No code to form the sub control volume element volume fractions if poly degree is > 1')
+       
+    end if
+    
+    do ele = 1,element_count(cv_positions)
+
+       nodes => ele_nodes(cv_positions, ele)
+       X = ele_val(positions,ele)
+          
+
+       do i=1,loc
+          call addto(cv_positions, &
+               nodes(i),&
+               matmul(X, subcv_ele_volf(:,i))&
+               *element_volume(positions, ele))
+       end do
+          
+    end do
+
+    do i=1,node_count(cv_positions)
+       cv_positions%val(:,i)=cv_positions%val(:,i)/node_val(lcv_mass,i)
+    end do
+    
+    deallocate(subcv_ele_volf)
+    if (build_mass) then
+       call deallocate(lcv_mass)
+       deallocate(lcv_mass)
+    end if
+    
+  end subroutine compute_cv_barycentre_offsets
+
+  function get_cv_coordinate_field(state, mesh) result (cv_positions)
+  !!< Returns a barycentric control volume coordinate field for the given
+  !!< finite element mesh, that has the same
+  !!< shape (and thus number of nodes) in each element. 
+  !!< NOTE: The returned vector_field should always be deallocated
+    type(state_type), intent(inout):: state
+    type(mesh_type), intent(in):: mesh
+    type(vector_field) cv_positions, cv_offsets
+    
+    type(vector_field), pointer:: coordinate_field    
+      
+    if (has_vector_field(state, trim(mesh%name)//"CVCoordinate")) then
+      cv_positions=extract_vector_field(state, trim(mesh%name)//"CVCoordinate")
+      call incref(cv_positions)
+    else 
+      coordinate_field => extract_vector_field(state, "Coordinate")
+      call allocate(cv_positions,coordinate_field%dim,&
+           coordinate_field%mesh,trim(mesh%name)//"CVCoordinate")
+      call allocate(cv_offsets,coordinate_field%dim,mesh,trim(mesh%name)//"CVOffsets")
+      call compute_cv_barycentre_offsets(coordinate_field,cv_offsets)
+      call remap_field(cv_offsets, cv_positions)
+      call addto(cv_positions,coordinate_field)
+      call deallocate(cv_offsets)
+      call insert(state,cv_positions,name=trim(mesh%name)//"CVCoordinate")
+    end if
+    
+  end function get_cv_coordinate_field
 
   subroutine project_scalar_field(from_field, to_field, X)
     !!< Project from_field onto to_field. If to_field is discontinuous then
