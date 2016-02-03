@@ -358,6 +358,112 @@ The example settings are designed to provide a quick start for running the simul
 Note to compare Froude numbers and mixing between different runs the remember to copy the images and stat files otherwise they will be overwritten.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%---------------Stratified Shear Instability----------------------%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Stratified Shear Instabilities}
+\label{sec:shear_instability}
+\subsection{Overview}
+\label{sec:shear_instability_overview}
+
+The growth of instabilities such as Kelvin--Helmholtz billows in a shearing medium is a ubiquitous phenemomenon in both laborotory-scale and geophysical fluid dynamics, \citep{thorpe1971, turner_73}. A less well known process is the Helmboe instability \citep{smyth2003}, which differs from the Kelvin-Helmholtz instability in that it travels with non-zero phase speed and generates less mixing than its more illustrious cousin. We illustrate both processes here in a two two-dimensional periodic example of a shearing stratified fluid.
+
+This example demonstrates the use of periodic boundary conditions within \fluidity, in concert with mesh adaptivity and parallelism.
+
+\subsection{Configuration}
+\label{sec:shear_instability_configuration}
+
+The fluid is 20m deep, existing in the region $-10 \leq y \leq 10$, with solid free slip boundaries above and below. The domain is taken to be singly periodic in the horizontal direction, of period 200m, with a mapping from the left-hand to right-hand virtual boundaries defined 
+\[ \bm{x}_\mathrm{right}:=\tau(\bm{x}_\mathrm{left}) = (x_\mathrm{left}+200,y_\mathrm{left}), \]
+with inverse mapping
+\[ \bm{x}_\mathrm{left}:=\tau^{-1}(\bm{x}_\mathrm{right}) = (x_\mathrm{right}-200,y_\mathrm{left}). \]
+The velocity vectors are not rotated across the periodic boundary, thus the system is suitable for the use of \fluidity's periodic boundary conditions option, see section \ref{ref:periodic}. Both the forward and backward mappings are defined, since mesh adaptivity will be used. The fluid initially experiences a shear flow with an anti-symmetric tanh profile with depth,
+\[ \bm{u}(t,x,y) = \left(0.38\tanh(y),0\right). \]
+For the Helmboe simulations the fluid density is assumed to be a linear function of its temperature, with expansion coefficent $10^{-3}$, while for the Kelvin--Helmholtz case the density is constant. The temperature anomaly takes the form
+\[ T-T_0=\tanh(5y)-0.1w(x) \]
+where $w(x)$ is a periodic perturbation function
+\[ w(x) = \cos\left(\frac{2\pi x}{40}\right)\mathrm{sech}\left(\frac{g(x)}{100}\right) \]
+and $g(x)$ is the periodic function of period 200m taking the value $g(x)=x$ in the region $-100\leq x <100$. The density perturbation thus decays exponentially away from the centre of the periodic box.
+
+\begin{table}[th]
+\centering
+\begin{tabular}[h]{l   c  c }  \hline
+gravitational acceleration (ms$^{-2}$)			& $g$ 								& $9.81$  \\
+kinematic viscosity (m$^2$s$^{-1}$)			& $\nu$								& 0  \\
+thermal diffusivity (m$^2$s$^{-1}$)					& $\kappa$ 					& 0  \\
+thermal expansion coefficient ($^\circ$C$^{-1}$)	& $\alpha$ 							& 0 \mbox{ (Kelvin Helmholtz) } $10^{-3}$ \mbox{ (Holmboe)}
+\end{tabular}
+\caption{Physical parameters for the Holmboe instability set-up.}
+\label{tab:shear_instability_physical_parameters}
+\end{table}
+
+\begin{table}[th]
+\centering
+\begin{tabular}[h]{lll}  \hline
+Numerical component                           & Configuration                   & Section\\ \hline
+Geometry                                      & from gmsh (or ExodusII)         & \ref{sec:gmsh_format}, \ref{sec:exodusii_format}, \ref{sec:meshing_tools_non_fluidity_gmsh}\\
+Time step                                     & 2.5\,s (low res) to 1 \,s (fixed mesh)                       & \\
+Time loop                                     & 2 non-linear Picard iterations  & \ref{sec:ND_time_loop} \\
+Equation of state                             & linear                          & \ref{sec:equation_of_state} \\
+Momentum and Pressure spatial discretisation  & \PoDGPt                            & \ref{sec:ND_momentum_equation}, \ref{sec:ND_pressure_equation}, \ref{sec:configuring_fluidity_continuous_galerkin}, \ref{sec:configuring_fluidity_pressure} \\
+Momentum temporal discretisation              & $\theta = 0.5$ (Crank-Nicolson)  & \ref{sec:ND_time_theta_scheme}, \ref{sec:configuring_fluidity_temporal_discretisation} \\
+                                              & non-linear relaxation term $=0.5$ & \ref{sec:relax} \\
+Temperature advection                         & advection-diffusion equation    & \ref{sec:MP-AdvdifEqn} \\
+                                              & control volumes                 & \ref{sec:CVs} \\
+Temperature temporal discretisation           & $\theta = 0.5$ (Crank-Nicolson)& \ref{sec:ND_time_theta_scheme}, \ref{sec:configuring_fluidity_temporal_discretisation} \\
+                                              & subcycling with CFL criterion & \ref{sec:cvtemp} \\\hline
+\end{tabular}
+\caption{Numerical configuration for the Holmboe instability problem.}
+\label{tab:le_numerical_configuration}
+\end{table}
+
+\subsection{Results} 
+\label{sec:shear_instability_results}
+
+\begin{figure}[ht]
+  \centering
+  \onlypdf{
+  \subfigure[$t = 150\,$s]{\fig[width=0.45\textwidth]{./examples_images/shear_instability/Vorticity_Holmboe_150}}
+  \subfigure[$t = 150\,$s]{\fig[width=0.45\textwidth]{./examples_images/shear_instability/Temperature_Holmboe_150}}
+  \subfigure[$t = 200\,$s]{\fig[width=0.45\textwidth]{./examples_images/shear_instability/Vorticity_Holmboe_200}}
+  \subfigure[$t = 200\,$s]{\fig[width=0.45\textwidth]{./examples_images/shear_instability/Temperature_Holmboe_200}}
+  \subfigure[$t = 250\,$s]{\fig[width=0.45\textwidth]{./examples_images/shear_instability/Vorticity_Holmboe_250}}
+  \subfigure[$t =
+  250\,$s]{\fig[width=0.45\textwidth]{./examples_images/shear_instability/Temperature_Holmboe_250}}
+  }
+  \caption{Spatial distribution of vorticity (left) and temperature (right), over time ($t$) for the Holmboe instability.}
+  \label{fig:shear_instability_Holmboe}
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \onlypdf{
+  \subfigure[$t = 250\,$s]{\fig[width=0.45\textwidth]{./examples_images/shear_instability/Vorticity_KelvinHelmholtz_250}}
+  \subfigure[$t = 250\,$s]{\fig[width=0.45\textwidth]{./examples_images/shear_instability/Temperature_KelvinHelmholtz_250}}
+  \subfigure[$t = 300\,$s]{\fig[width=0.45\textwidth]{./examples_images/shear_instability/Vorticity_KelvinHelmholtz_300}}
+  \subfigure[$t = 300\,$s]{\fig[width=0.45\textwidth]{./examples_images/shear_instability/Temperature_KelvinHelmholtz_300}}
+  \subfigure[$t = 350\,$s]{\fig[width=0.45\textwidth]{./examples_images/shear_instability/Vorticity_KelvinHelmholtz_350}}
+  \subfigure[$t =
+  350\,$s]{\fig[width=0.45\textwidth]{./examples_images/shear_instability/Temperature_KelvinHelmholtz_350}}
+  }
+  \caption{Spatial distribution of vorticity (left) and temperature (right), over time ($t$) for the Kelvin--Helmholtz instability.}
+  \label{fig:shear_instability_KelvinHelmholtz}
+\end{figure}
+
+The pure Kelvin--Helmholtz instability shows the classic roll-up pattern, in which a series of vortices of similar radius form, wrapping material layers into helical structures. The vortices are essentially static with the centres staying fixed, until they grow large enough to eventually interact and begin to orbit each other. In the Holmboe instability again large static roll-up vortices form, however additional pairs of travelling vortices form in the space between them, which propagate towards the static 
+
+\subsection{Exercises}
+\label{sec:le_exercises}
+The example settings are designed to provide a quick start for running the simulation. To explore the diagnostics and functionality of \fluidity, the following variations on this example would be constructive exercises:
+\begin{itemize}
+\item Try changing the parameters and fields controlling the adaptivity options, section \ref{sec:configuring_fluidity_error_metric};
+\item Change the frequency of the adapt, section \ref{sec:configuring_fluidity_adaptivity_options};
+\item The problem is sensitive to the numerical diffusion in the tracer transport equation. Try changing the method used to choose the face value for the control volumes.
+\item Change the thickness of the thermocline by changing the coeffient in the tanh term in the initial conditions for temperature.
+\item Try adding some detectors to visualise the particle trajectories, section \ref{sec:diagnostics_detectors}.
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %---------------------LID DRIVEN CAVITY---------------------------%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
