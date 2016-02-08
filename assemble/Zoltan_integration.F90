@@ -140,7 +140,7 @@ module zoltan_integration
     zoltan_global_field_weighted_partitions = &
      have_option(trim(zoltan_global_base_option_path) // "/field_weighted_partitions")
 
-    call setup_module_variables(states, final_adapt_iteration, zz)
+    call setup_module_variables(states, final_adapt_iteration, zz, flredecomp)
 
     call setup_quality_module_variables(metric, minimum_quality) ! this needs to be called after setup_module_variables
                                         ! (but only on the 2d mesh with 2+1d adaptivity)
@@ -234,7 +234,7 @@ module zoltan_integration
       ! so we don't need to reallocate them either)
       call cleanup_other_module_variables
       
-      call setup_module_variables(states, final_adapt_iteration, zz, mesh_name = topology_mesh_name)
+      call setup_module_variables(states, final_adapt_iteration, zz, flredecomp, mesh_name = topology_mesh_name)
 
 
       load_imbalance_tolerance = get_load_imbalance_tolerance(final_adapt_iteration)
@@ -305,9 +305,10 @@ module zoltan_integration
 
   end subroutine zoltan_drive
 
-  subroutine setup_module_variables(states, final_adapt_iteration, zz, mesh_name)
+  subroutine setup_module_variables(states, final_adapt_iteration, zz, flredecomp, mesh_name)
     type(state_type), dimension(:), intent(inout), target :: states
     logical, intent(in) :: final_adapt_iteration
+    logical, intent(in) :: flredecomp
     type(zoltan_struct), pointer, intent(out) :: zz
     
     type(mesh_type), pointer :: mesh_ptr
@@ -343,6 +344,8 @@ module zoltan_integration
 
     if(present(mesh_name)) then
        zoltan_global_zz_mesh = extract_mesh(states(1), trim(mesh_name))
+    else if (flredecomp) then
+       zoltan_global_zz_mesh = get_external_mesh(states)
     else
        ! This should actually be using get_external_mesh(), i.e. zoltan redistributes the mesh
        ! that all other meshes are derived from. However, in the case that we extrude and use
