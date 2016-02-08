@@ -801,7 +801,6 @@ contains
       sndglno((i-1)*sloc+1:i*sloc) = inverse_node_list(face_global_nodes(mesh, face))
       boundary_ids(i) = surface_element_id(mesh, face)
     end do
-    call deallocate(face_ele_list)
 
     ewrite(2,*) "Number of surface elements: ", edge_count
     ! Add faces to submesh:
@@ -819,6 +818,7 @@ contains
         allow_duplicate_internal_facets=.true.)
     end if
 
+    call deallocate(face_ele_list)
     deallocate(sndglno)
     deallocate(boundary_ids)
 
