@@ -137,18 +137,9 @@ module zoltan_integration
        zoltan_global_base_option_path = '/mesh_adaptivity/hr_adaptivity/zoltan_options'
     end if
 
-    zoltan_global_migrate_extruded_mesh = option_count('/geometry/mesh/from_mesh/extrude') > 0 &
-      .and. .not. present_and_true(ignore_extrusion)
-
     zoltan_global_field_weighted_partitions = &
      have_option(trim(zoltan_global_base_option_path) // "/field_weighted_partitions")
 
-    if(zoltan_global_migrate_extruded_mesh .AND. zoltan_global_field_weighted_partitions) then
-        ewrite(-1,*) "Cannot weight mesh partitions based upon extruded columns"// &
-                     "and a prescribed field. Select one option only or fix the code."
-        FLExit("Use Weighted mesh partitions for EITHER extruded meshes or prescribed fields")
-    end if
-    
     call setup_module_variables(states, final_adapt_iteration, zz)
 
     call setup_quality_module_variables(metric, minimum_quality) ! this needs to be called after setup_module_variables
@@ -162,11 +153,19 @@ module zoltan_integration
        end if
     end if
 
-    if(zoltan_global_migrate_extruded_mesh) then
-       full_mesh => extract_mesh(states(1), trim(topology_mesh_name))
-       call create_columns_sparsity(zoltan_global_columns_sparsity, full_mesh)
+    full_mesh => extract_mesh(states(1), trim(topology_mesh_name))
+    zoltan_global_migrate_extruded_mesh = (mesh_dim(full_mesh) /= mesh_dim(zoltan_global_zz_mesh)) .and. &
+      .not. present_and_true(ignore_extrusion)
+
+    if(zoltan_global_migrate_extruded_mesh .AND. zoltan_global_field_weighted_partitions) then
+        ewrite(-1,*) "Cannot weight mesh partitions based upon extruded columns"// &
+                     "and a prescribed field. Select one option only or fix the code."
+        FLExit("Use Weighted mesh partitions for EITHER extruded meshes or prescribed fields")
     end if
     
+    if(zoltan_global_migrate_extruded_mesh) then
+       call create_columns_sparsity(zoltan_global_columns_sparsity, full_mesh)
+    end if
 
     load_imbalance_tolerance = get_load_imbalance_tolerance(final_adapt_iteration)
     call set_zoltan_parameters(final_adapt_iteration, flredecomp, flredecomp_target_procs, load_imbalance_tolerance, zz)
@@ -311,6 +310,7 @@ module zoltan_integration
     logical, intent(in) :: final_adapt_iteration
     type(zoltan_struct), pointer, intent(out) :: zz
     
+    type(mesh_type), pointer :: mesh_ptr
     character(len=*), optional :: mesh_name
     integer :: nhalos, stat
     integer, dimension(:), allocatable :: owned_nodes
@@ -319,8 +319,6 @@ module zoltan_integration
     integer :: old_element_number, universal_element_number, face_number, universal_surface_element_number
     integer, dimension(:), allocatable :: interleaved_surface_ids
 
-    !call find_mesh_to_adapt(states(1), zoltan_global_zz_mesh)
-    
     if (final_adapt_iteration) then
        zoltan_global_calculate_edge_weights = .false.
     else
@@ -346,7 +344,15 @@ module zoltan_integration
     if(present(mesh_name)) then
        zoltan_global_zz_mesh = extract_mesh(states(1), trim(mesh_name))
     else
-       zoltan_global_zz_mesh = get_external_mesh(states)
+       ! This should actually be using get_external_mesh(), i.e. zoltan redistributes the mesh
+       ! that all other meshes are derived from. However, in the case that we extrude and use
+       ! generic adaptivity (not 2+1), the external horizontal mesh becomes seperated from the
+       ! other meshes and it's actually the 3d adapted mesh that we derive everything from. We
+       ! should probably actually completely remove the external horizontal mesh from the options
+       ! tree, and make the adapted 3d mesh the external mesh. For now we keep it around and leave
+       ! it in its old decomposition.
+       call find_mesh_to_adapt(states(1), mesh_ptr)
+       zoltan_global_zz_mesh = mesh_ptr
     end if
     call incref(zoltan_global_zz_mesh)
     if (zoltan_global_zz_mesh%name=="CoordinateMesh") then

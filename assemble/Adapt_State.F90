@@ -44,7 +44,7 @@ module adapt_state_module
   use edge_length_module
   use eventcounter
   use field_options
-  use global_parameters, only : OPTION_PATH_LEN, periodic_boundary_option_path, adaptivity_mesh_name, domain_bbox, topology_mesh_name
+  use global_parameters, only : OPTION_PATH_LEN, periodic_boundary_option_path, domain_bbox, topology_mesh_name
   use hadapt_extrude
   use hadapt_metric_based_extrude
   use halos
