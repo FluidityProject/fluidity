@@ -29,11 +29,11 @@
 
 module node_owner_finder
 
-  use data_structures
-  use fields
   use fldebug
+  use data_structures
   use global_parameters, only : real_4, real_8
   use mpi_interfaces
+  use fields
 
   implicit none
   

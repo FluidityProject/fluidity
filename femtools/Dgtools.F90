@@ -2,16 +2,16 @@
 
 module dgtools
 
-use elements
-use sparse_tools
-use sparsity_patterns
 use vector_tools
-use fields
-use fields_data_types
-use FETools
-use transform_elements
-use boundary_conditions, only: get_boundary_condition_nodes
+use elements
 use halos_base
+use sparse_tools
+use fields_data_types
+use sparsity_patterns
+use transform_elements
+use FETools
+use fields
+use boundary_conditions, only: get_boundary_condition_nodes
 
 implicit none
 

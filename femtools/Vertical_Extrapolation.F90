@@ -34,18 +34,18 @@ module vertical_extrapolation_module
 !!< fully unstructured 3D meshes. Also contains routines for updating
 !!< distance to top and bottom fields.
 use fldebug
+use global_parameters, only: real_4, real_8
 use elements
+use parallel_tools
+use spud
+use integer_set_module
 use sparse_tools
+use transform_elements
 use fields
 use state_module
-use transform_elements
 use boundary_conditions
-use parallel_tools
-use global_parameters, only: real_4, real_8
-use spud
 use dynamic_bin_sort_module
 use pickers
-use integer_set_module
 use vtk_interfaces
 implicit none
 

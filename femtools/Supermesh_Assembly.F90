@@ -29,23 +29,21 @@
 
 module supermesh_assembly
 
-! these 5 need to be on top and in this order, so as not to confuse silly old intel compiler 
+  use fldebug
   use quadrature
   use elements
   use sparse_tools
+  use linked_lists
+  use transform_elements
+  use supermesh_construction
+  use intersection_finder_module
   use fields
   use state_module
-!
+  use solvers
   use adaptive_interpolation_module
-  use fldebug
   use field_options
   use interpolation_module
-  use intersection_finder_module
-  use linked_lists
   use state_fields_module
-  use solvers
-  use supermesh_construction
-  use transform_elements
   
   implicit none
   

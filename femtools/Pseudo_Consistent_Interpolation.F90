@@ -29,12 +29,12 @@
   
 module pseudo_consistent_interpolation
 
-  use data_structures
-  use field_options
-  use fields
   use fldebug
-  use node_ownership
+  use data_structures
+  use fields
   use state_module
+  use field_options
+  use node_ownership
 
   implicit none
   

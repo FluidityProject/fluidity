@@ -29,16 +29,15 @@
 
 module surface_integrals
 
-  use quadrature
-  use elements
-  use field_options
-  use fields
   use fldebug
   use global_parameters, only : OPTION_PATH_LEN
-  use parallel_fields
   use spud
+  use quadrature
+  use elements
+  use parallel_fields
+  use fields
   use state_module
-  !use smoothing_module
+  use field_options
 
   implicit none
   

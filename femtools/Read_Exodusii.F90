@@ -33,15 +33,15 @@ module read_exodusii
   ! given an ID, e.g. for setting physical boundaries)
 
   use iso_c_binding, only: C_INT, C_FLOAT, C_CHAR, C_NULL_CHAR
+  use global_parameters, only : OPTION_PATH_LEN, real_4
   use futils
   use elements
+  use spud
   use fields
   use state_module
-  use spud
   use vtk_interfaces
   use exodusii_common
   use exodusii_f_interface
-  use global_parameters, only : OPTION_PATH_LEN, real_4
 
   implicit none
 

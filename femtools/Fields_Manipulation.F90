@@ -26,25 +26,25 @@
 !    USA
 #include "fdebug.h"
 module fields_manipulation
-use elements
-use element_set
-use embed_python
-use data_structures
-use fields_data_types
-use fields_base
-use fields_allocates
-use halo_data_types
-use halos_allocates
-use halos_base
-use halos_debug
-use halos_numbering
-use halos_ownership
-use halos_repair
-use quicksort
-use parallel_tools
-use vector_tools
-use memory_diagnostics
-implicit none
+  use vector_tools
+  use elements
+  use element_set
+  use embed_python
+  use data_structures
+  use halo_data_types
+  use quicksort
+  use parallel_tools
+  use halos_base
+  use halos_debug
+  use memory_diagnostics
+  use halos_allocates
+  use fields_data_types
+  use fields_base
+  use halos_numbering
+  use halos_ownership
+  use halos_repair
+  use fields_allocates
+  implicit none
 
   private
 

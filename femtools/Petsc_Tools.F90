@@ -27,19 +27,19 @@
 #include "fdebug.h"
 module Petsc_Tools
   use FLDebug
-  use Sparse_Tools
   use parallel_tools
-  use fields_base
-  use fields_manipulation
+  use Reference_Counting
   use halo_data_types
   use halos_base
-  use halos_communications
-  use halos_numbering
-  use Reference_Counting
-  use profiler
 #ifdef HAVE_PETSC_MODULES
   use petsc 
 #endif
+  use Sparse_Tools
+  use fields_base
+  use halos_communications
+  use halos_numbering
+  use fields_manipulation
+  use profiler
   implicit none
 
 #include "petsc_legacy.h"

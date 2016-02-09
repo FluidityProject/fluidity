@@ -50,8 +50,8 @@ module polynomials
   !!< operand of each operation must be a polynomial and not a vector acting
   !!< as a polynomial or the module won't know to do polynomial operations.
   !!<
-  use futils
   use FLDebug
+  use futils
   
   implicit none
 

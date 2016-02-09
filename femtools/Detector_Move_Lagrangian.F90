@@ -28,13 +28,13 @@
 #include "fdebug.h"
 
 module detector_move_lagrangian
-  use state_module
   use spud
-  use fields
   use global_parameters, only: OPTION_PATH_LEN
   use integer_hash_table_module
   use halo_data_types
   use halos_base
+  use fields
+  use state_module
   use detector_data_types
   use detector_tools
   use detector_parallel

@@ -27,25 +27,28 @@
 
 module halos_derivation
 
-  use data_structures
-  use fields_data_types
-  use fields_allocates
-  use fields_manipulation
-  use fields_base
-  use fldebug
-  use halo_data_types
-  use halos_allocates
-  use halos_base
-  use halos_debug
-  use halos_numbering
-  use halos_ownership
-  use halos_repair
-  use halos_communications
-  use mpi_interfaces
-  use parallel_tools
-  use sparse_tools
-  use linked_lists
-  use parallel_tools
+   use fldebug
+   use data_structures
+   use mpi_interfaces
+   use halo_data_types
+   use parallel_tools
+   use parallel_tools
+   use halos_base
+   use halos_debug
+   use halos_allocates
+   use sparse_tools
+   use fields_data_types
+   use fields_base
+   use linked_lists
+   use halos_communications
+   use halos_numbering
+   use halos_ownership
+   use halos_repair
+   use fields_allocates
+   use fields_manipulation
+#ifdef HAVE_ZOLTAN
+    use zoltan
+#endif
 
   implicit none
 
@@ -916,9 +919,6 @@ contains
   end function invert_comms_global
 
   function invert_comms(knowns, communicator) result(unknowns)
-#ifdef HAVE_ZOLTAN
-    use zoltan
-#endif
 
     type(integer_set), dimension(:), intent(in) :: knowns
     type(integer_set), dimension(size(knowns)) :: unknowns ! we'll actually know them by the end, but however

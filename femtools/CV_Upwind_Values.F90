@@ -27,24 +27,24 @@
 #include "fdebug.h"
 module cv_upwind_values
   !!< Module containing general tools for discretising Control Volume problems.
+  use fldebug
+  use vector_tools, only: norm2, cross_product, scalar_triple_product
+  use global_parameters, only: OPTION_PATH_LEN
   use quadrature
   use elements
   use spud
-  use fields
   use sparse_tools
-  use state_module
-  use fldebug
-  use cv_shape_functions, only: make_cvbdy_element_shape
   use cv_faces
+  use transform_elements, only: transform_cvsurf_facet_to_physical
+  use fields
+  use state_module
+  use cv_shape_functions, only: make_cvbdy_element_shape
   use cvtools, only: complete_cv_field_path
   use cv_options
-  use vector_tools, only: norm2, cross_product, scalar_triple_product
-  use transform_elements, only: transform_cvsurf_facet_to_physical
-  use field_derivatives, only: grad
-  use global_parameters, only: OPTION_PATH_LEN
   use boundary_conditions, only: get_periodic_boundary_condition, &
                                  get_entire_boundary_condition, &
                                  get_boundary_condition_nodes
+  use field_derivatives, only: grad
 
   implicit none
 
