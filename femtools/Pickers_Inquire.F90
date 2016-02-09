@@ -29,14 +29,14 @@
 
 module pickers_inquire
 
+  use fldebug
   use data_structures
   use detector_data_types
-  use fields
-  use fldebug
-  use node_owner_finder
   use picker_data_types
-  use pickers_allocates
   use pickers_base
+  use fields
+  use node_owner_finder
+  use pickers_allocates
   
   implicit none
   

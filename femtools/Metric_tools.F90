@@ -2,14 +2,14 @@
 
 module metric_tools
 
+  use fldebug
+  use vector_tools
+  use spud
   use unittest_tools
   use fields_data_types
   use fields_base
   use fields_allocates
   use fields_manipulation
-  use vector_tools
-  use spud
-  use fldebug
   implicit none
 
   interface edge_length_from_eigenvalue

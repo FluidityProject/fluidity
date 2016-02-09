@@ -27,24 +27,24 @@
 #include "fdebug.h"
 module solvers
   use FLDebug
-  use elements
-  use Petsc_tools
-  use Signal_Vars
-  use Multigrid
-  use Sparse_Tools
-  use sparse_tools_petsc
-  use sparse_matrices_fields
-  use Fields
   use Global_Parameters
+  use elements
   use spud
-  use halos
-  use profiler
-  use vtk_interfaces
   use parallel_tools
-  use MeshDiagnostics
 #ifdef HAVE_PETSC_MODULES
   use petsc 
 #endif
+  use Sparse_Tools
+  use Fields
+  use profiler
+  use Petsc_tools
+  use Signal_Vars
+  use Multigrid
+  use sparse_tools_petsc
+  use sparse_matrices_fields
+  use vtk_interfaces
+  use halos
+  use MeshDiagnostics
   implicit none
   ! Module to provide explicit interfaces to matrix solvers.
 

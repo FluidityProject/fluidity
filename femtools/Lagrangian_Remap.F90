@@ -1,14 +1,14 @@
 
 
 module lagrangian_remap
-  use conservative_interpolation_module
+  use sparse_tools
   use fields
   use vtk_interfaces
   use interpolation_module
+  use sparse_matrices_fields
   use solvers
   use sparsity_patterns
-  use sparse_tools
-  use sparse_matrices_fields
+  use conservative_interpolation_module
 
   implicit none
 

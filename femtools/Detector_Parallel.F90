@@ -28,15 +28,15 @@
 #include "fdebug.h"
 
 module detector_parallel
-  use state_module
-  use fields
   use spud
   use integer_hash_table_module
-  use detector_data_types
-  use detector_tools
+  use mpi_interfaces
   use halo_data_types
   use halos_numbering
-  use mpi_interfaces
+  use fields
+  use state_module
+  use detector_data_types
+  use detector_tools
   use pickers
 
   implicit none

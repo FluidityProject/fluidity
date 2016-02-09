@@ -4,10 +4,11 @@ module node_boundary
 !!< Does a node lie on a boundary? Surprisingly
 !!< difficult question to answer.
 
-  use surfacelabels
-  use fields
   use linked_lists
   use eventcounter
+  use fields
+  use surfacelabels
+
   implicit none
 
   integer, dimension(:), pointer, save :: boundcount

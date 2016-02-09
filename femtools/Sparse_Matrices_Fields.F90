@@ -26,11 +26,11 @@
 !    USA
 #include "fdebug.h"
 module sparse_matrices_fields
-use fields
+use iso_c_binding
 use sparse_tools
+use fields
 use sparse_tools_petsc
 use c_interfaces
-use iso_c_binding
 implicit none
 
   interface mult

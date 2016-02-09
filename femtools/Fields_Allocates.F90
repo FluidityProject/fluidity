@@ -26,23 +26,23 @@
 !    USA
 #include "fdebug.h"
 module fields_allocates
-use elements
-use fields_data_types
-use fields_base
-use shape_functions, only: make_element_shape
 use global_parameters, only: PYTHON_FUNC_LEN, empty_path, empty_name, &
      topology_mesh_name, NUM_COLOURINGS
+use elements
+use ieee_arithmetic
+use shape_functions, only: make_element_shape
 use halo_data_types
+use parallel_tools
 use halos_allocates
+use memory_diagnostics
+use data_structures
+use fields_data_types
+use fields_base
 use halos_repair
 use pickers_deallocates
 use adjacency_lists
 use global_numbering, only: make_global_numbering, make_global_numbering_dg,&
      &make_global_numbering_trace
-use memory_diagnostics
-use ieee_arithmetic
-use data_structures
-use parallel_tools
 
 implicit none
 

@@ -3,16 +3,16 @@ module fefields
   !!< Module containing general tools for discretising Finite Element problems.
 
   use data_structures
+  use element_numbering
+  use elements, only: element_type
+  use sparse_tools
+  use transform_elements, only: transform_to_physical, element_volume
+  use fetools, only: shape_shape
   use fields
+  use state_module
   use field_options, only: get_coordinate_field
   use halos
-  use elements, only: element_type
-  use element_numbering
-  use fetools, only: shape_shape
-  use transform_elements, only: transform_to_physical, element_volume
-  use sparse_tools
   use sparse_matrices_fields
-  use state_module
   implicit none
 
   interface add_source_to_rhs

@@ -43,21 +43,18 @@
 
 
 module mesh_files
+  use global_parameters, only : OPTION_PATH_LEN
   use futils
   use elements
+  use spud
   use fields
   use state_module
-
-  use global_parameters, only : OPTION_PATH_LEN
-
   use gmsh_common
   use read_gmsh
   use read_triangle
   use read_exodusii
   use write_gmsh
   use write_triangle
-
-  use spud
 
   implicit none
 

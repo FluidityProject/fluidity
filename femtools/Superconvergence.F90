@@ -7,8 +7,8 @@ module superconvergence
 !!< Zienkiewicz & Zhu, Int. J. Numer. Methods Eng, 33, 1331-1364 (1992)
 !! This is primarily used by field_derivatives.
 
-use elements
 use vector_tools
+use elements
 
 implicit none
 

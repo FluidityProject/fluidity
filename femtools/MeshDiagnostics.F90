@@ -28,13 +28,13 @@
 #include "fdebug.h"
 module MeshDiagnostics
 
-  use transform_elements
+  use fldebug
   use elements
   use spud
-  use fldebug
-  use parallel_fields
   use parallel_tools
   use fields_base
+  use transform_elements
+  use parallel_fields
 
   implicit none
 

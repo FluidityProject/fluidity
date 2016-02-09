@@ -23,10 +23,10 @@
 
 module python_state
   use fldebug
+  use global_parameters, only:FIELD_NAME_LEN, current_debug_level, OPTION_PATH_LEN, PYTHON_FUNC_LEN
   use quadrature
   use elements
   use fields
-  use global_parameters, only:FIELD_NAME_LEN, current_debug_level, OPTION_PATH_LEN, PYTHON_FUNC_LEN
   use state_module 
    
   implicit none

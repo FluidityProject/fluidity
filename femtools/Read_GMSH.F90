@@ -31,13 +31,13 @@ module read_gmsh
   ! This module reads GMSH files and results in a vector field of
   ! positions.
 
+  use global_parameters, only : OPTION_PATH_LEN
   use futils
   use elements
+  use spud
   use fields
   use state_module
-  use spud
   use gmsh_common
-  use global_parameters, only : OPTION_PATH_LEN
 
   implicit none
 

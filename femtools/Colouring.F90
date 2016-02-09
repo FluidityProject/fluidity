@@ -27,16 +27,14 @@
 #include "fdebug.h"
 
 module colouring
-  use fields
-  use fields_manipulation
-  use fields_base
-  use field_options, only : find_linear_parent_mesh
   use data_structures
-  use sparse_tools
   use global_parameters, only : topology_mesh_name, NUM_COLOURINGS, &
        COLOURING_CG1, COLOURING_DG0, COLOURING_DG2, &
        COLOURING_DG1
+  use sparse_tools
+  use fields
   use state_module, only : state_type, extract_mesh
+  use field_options, only : find_linear_parent_mesh
   use sparsity_patterns_meshes, only : get_csr_sparsity_secondorder, &
        get_csr_sparsity_firstorder
   implicit none

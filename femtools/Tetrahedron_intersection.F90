@@ -3,8 +3,8 @@
 
 module tetrahedron_intersection_module
 
-  use elements
   use vector_tools
+  use elements
   use fields_data_types
   use fields_base
   use fields_allocates

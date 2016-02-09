@@ -29,56 +29,53 @@
 
 module diagnostic_variables
   !!< A module to calculate and output diagnostics. This replaces the .s file.
-  use quadrature
-  use elements
   use global_parameters, only:FIELD_NAME_LEN,OPTION_PATH_LEN, &
     & PYTHON_FUNC_LEN, int_16, integer_size, real_size
-  use fields
+  use quadrature
+  use futils
+  use elements
+  use spud
+  use mpi_interfaces
+  use parallel_tools
+  use memory_diagnostics
+  use integer_hash_table_module
+  use data_structures
+  use halo_data_types
+  use halos_base
+  use halos_debug
+  use halos_allocates
+  use ieee_arithmetic
+  use sparse_tools
   use fields_base
+  use eventcounter
+  use fetools
+  use unittest_tools
+  use halos_communications
+  use halos_numbering
+  use halos_ownership
+  use fields_manipulation
+  use fields
+  use profiler
+  use state_module
+  use vtk_interfaces
+  use halos_derivation
+  use halos_registration
   use field_derivatives
   use field_options
-  use state_module
-  use futils
-  use fetools
+  use c_interfaces
   use fefields
-  use MeshDiagnostics
-  use spud
-  use parallel_tools
-  use Profiler
+  use meshdiagnostics
   use sparsity_patterns
   use solvers
   use write_state_module, only: vtk_write_state_new_options
   use surface_integrals
-  use vtk_interfaces
-  use embed_python
-  use eventcounter
-  use pickers
-  use sparse_tools
-  use mixing_statistics
-  use c_interfaces
-!  use checkpoint
-  use memory_diagnostics
-  use data_structures
-  use unittest_tools
-  use integer_hash_table_module
-  use halo_data_types
-  use halos_allocates
-  use halos_base
-  use halos_debug
-  use halos_numbering
-  use halos_ownership
-  use halos_derivation
-  use halos_communications
-  use halos_registration
-  use mpi_interfaces
-  use parallel_tools
-  use fields_manipulation
   use detector_data_types
+  use pickers
+  use mixing_statistics
   use detector_tools
   use detector_parallel
   use detector_move_lagrangian
-  use ieee_arithmetic, only: cget_nan
-  use state_fields_module, only: get_cv_mass
+  use state_fields_module
   
   implicit none
 

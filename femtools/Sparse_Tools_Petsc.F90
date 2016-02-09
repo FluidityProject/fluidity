@@ -30,17 +30,17 @@ module sparse_tools_petsc
   !!< implements a csr matrix type 'petsc_csr_matrix' that directly
   !!< stores the matrix in petsc format.
   use FLDebug
-  use Sparse_Tools
   use Reference_Counting
   use parallel_tools
   use halo_data_types
   use halos_allocates
-  use fields_base
-  use fields_manipulation
-  use petsc_tools
 #ifdef HAVE_PETSC_MODULES
   use petsc
 #endif
+  use Sparse_Tools
+  use fields_base
+  use fields_manipulation
+  use petsc_tools
   implicit none
 #include "petsc_legacy.h"
   private

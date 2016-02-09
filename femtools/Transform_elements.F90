@@ -29,14 +29,14 @@
 module transform_elements
   ! Module to calculate element transformations from local to physical
   ! coordinates.
+  use vector_tools
   use quadrature
   use elements
-  use vector_tools
   use parallel_tools, only: abort_if_in_parallel_region
+  use memory_diagnostics
   use fields_base
   use cv_faces, only: cv_faces_type
   use eventcounter
-  use memory_diagnostics
   
   implicit none
   

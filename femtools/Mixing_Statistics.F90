@@ -29,20 +29,20 @@
 
 module mixing_statistics
 
+  use global_parameters, only:FIELD_NAME_LEN,OPTION_PATH_LEN
+  use futils
   use elements
   use embed_python
-  use global_parameters, only:FIELD_NAME_LEN,OPTION_PATH_LEN
+  use spud
+  use fetools
+  use unittest_tools
   use fields
+  use state_module
+  use halos
   use field_derivatives
   use field_options
-  use state_module
-  use futils
-  use fetools
   use fefields
-  use halos
   use MeshDiagnostics
-  use spud
-  use unittest_tools
 
   implicit none
   

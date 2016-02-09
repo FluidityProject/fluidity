@@ -44,8 +44,8 @@ module element_numbering
   !!<
   !!< Nodes are subdivided into four disjoint sets: vertex nodes, those lying
   !!< on edges, those lying on faces and those interior to elements. 
-  use futils
   use FLDebug
+  use futils
   implicit none
 
   integer, parameter :: ELEMENT_LAGRANGIAN=1, ELEMENT_NONCONFORMING=2, ELEMENT_BUBBLE=3, &

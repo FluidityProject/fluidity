@@ -33,9 +33,9 @@ module read_triangle
    
   use futils
   use elements
+  use spud
   use fields
   use state_module
-  use spud
 
   implicit none
 

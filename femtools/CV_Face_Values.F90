@@ -28,16 +28,16 @@
 module cv_face_values
   !!< Module containing general tools for discretising Control Volume problems.
   use spud
-  use fields
+  use fldebug
   use sparse_tools
   use element_numbering
-  use state_module
-  use fldebug
-  use cv_shape_functions
-  use cv_faces
-  use cv_options
   use vector_tools
+  use cv_faces
   use transform_elements
+  use fields
+  use state_module
+  use cv_shape_functions
+  use cv_options
   use field_derivatives, only: grad
 
   implicit none

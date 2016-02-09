@@ -31,8 +31,8 @@ module detector_tools
   use spud
   use fldebug
   use detector_data_types
-  use fields
   use integer_hash_table_module
+  use fields
   
   implicit none
   

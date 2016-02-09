@@ -28,11 +28,11 @@
 #include "fdebug.h"
 module elements
   !!< This module provides derived types for finite elements and associated functions.
-  use element_numbering
-  use quadrature
   use FLDebug
-  use polynomials
+  use element_numbering
   use reference_counting
+  use quadrature
+  use polynomials
   implicit none
 
   type element_type
