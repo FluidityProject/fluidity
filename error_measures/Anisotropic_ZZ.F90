@@ -6,31 +6,31 @@ module anisotropic_zz_module
 ! If you understand the algorithm, the code is trivial,
 ! but not vice versa!
 
-  use fields
+  use global_parameters
+  use quicksort
   use sparse_tools
-  use adjacency_lists
   use vector_tools
+  use tensors
+  use adjacency_lists
   use transform_elements
   use fetools
-  use tensors
-  use conformity_measurement
   use metric_tools
-  use quicksort
-  use sparsity_patterns
-  use diagnostic_fields
+  use fields
   use state_module
-  use global_parameters
+  use state_module
   use field_options
   use meshdiagnostics
   use vtk_interfaces
-  use bounding_box_metric
-  use state_module
   use merge_tensors
-  use edge_length_module
-  use form_metric_field
   use vtk_interfaces
   use halos
   use limit_metric_module
+  use conformity_measurement
+  use sparsity_patterns
+  use diagnostic_fields
+  use edge_length_module
+  use bounding_box_metric
+  use form_metric_field
   
   implicit none
 

@@ -7,20 +7,19 @@ module interpolation_metric
 !!<   finite element calculations", Pain et. al,
 !!<  Comput. Methods Apll. Mech Engrg. 190 (2001) 3771-3796
 
-  use VTK_interfaces
-  use state_module
-  !use fields
-  use field_derivatives
-  use form_metric_field
-  use merge_tensors
-  use edge_length_module
-  use aspect_ratios_module
+  use spud
   use metric_tools
   use parallel_fields
-  use spud
-  use field_options
-  use field_preprocessing_module
+  use state_module
+  use vtk_interfaces
+  use merge_tensors
   use halos
+  use field_derivatives
+  use field_options
+  use form_metric_field
+  use edge_length_module
+  use aspect_ratios_module
+  use field_preprocessing_module
   use project_metric_to_surface_module
   
   implicit none

@@ -2,18 +2,19 @@
 
 module project_metric_to_surface_module
 
-  use fields
+  use quicksort
+  use spud
   use sparse_tools
   use vector_tools
+  use fields
   use merge_tensors
-  use quicksort
   use state_module
+  use vtk_interfaces
   use hadapt_advancing_front
   use boundary_conditions
   use field_options
   use edge_length_module
-  use vtk_interfaces
-  use spud
+
   implicit none
 
   public :: project_metric_to_surface, vertically_align_metric, incorporate_bathymetric_metric

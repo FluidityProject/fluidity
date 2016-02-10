@@ -11,13 +11,14 @@ module gradation_metric
 
   use unittest_tools
   use adjacency_lists
-  use vtk_interfaces
-  use node_boundary
   use linked_lists
   use metric_tools
-  use edge_length_module
   use fields
+  use vtk_interfaces
+  use node_boundary
+  use edge_length_module
   use field_derivatives
+
   implicit none
 
   ! These are the DEFAULTS ONLY IF YOU DON'T CALL

@@ -7,14 +7,15 @@ module bounding_box_metric
 !!< for the domain. Adaptivity really, really
 !!< doesn't like it, otherwise.
 
-  use vtk_interfaces
-  use edge_length_module
-  use merge_tensors
+  use spud
+  use global_parameters, only: domain_bbox
   use unittest_tools
   use metric_tools
   use fields
-  use spud
-  use global_parameters, only: domain_bbox
+  use vtk_interfaces
+  use edge_length_module
+  use merge_tensors
+
   implicit none
 
   logical, save :: use_bounding_box_metric = .true.

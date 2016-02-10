@@ -4,17 +4,18 @@ module geometric_constraints_metric
 !!< This module wraps Gerard's geometric constraints
 !!< code and applied it during metric formation.
 
-  use vtk_interfaces
+  use parallel_tools
   use metric_tools
+  use fields
+  use state_module
+  use vtk_interfaces
   use merge_tensors
   use edge_length_module
-  use fields
+  use halos
   use node_boundary
   use form_metric_field
   use gradation_metric
-  use parallel_tools
-  use halos
-  use state_module
+
   implicit none
 
   logical :: use_geometric_constraints_metric = .false.

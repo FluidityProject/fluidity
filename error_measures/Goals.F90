@@ -4,16 +4,17 @@ module goals
 !!< A repository of goals and their gradients,
 !!< suitable for use with goal-based optimisation.
 
-  use elements
-  use fields
-  use fetools
-  use fefields
-  use state_module
-  use field_derivatives
-  use unittest_tools, only: get_matrix_identity
-  use vector_tools
-  use spud
   use fldebug
+  use vector_tools
+  use elements
+  use spud
+  use fetools
+  use unittest_tools, only: get_matrix_identity
+  use fields
+  use state_module
+  use fefields
+  use field_derivatives
+
   implicit none
 
   public :: goal_temp, goal_temp_grad, &
