@@ -28,18 +28,19 @@
 #include "fdebug.h"
 
 module tidal_diagnostics
-  use diagnostic_source_fields
-  use field_options
-  use fields_manipulation
-  use initialise_fields_module
-  use fields
+
   use fldebug
   use global_parameters, only : timestep, OPTION_PATH_LEN, current_time
   use spud
-  use state_fields_module
+  use fields
   use state_module
-  use Tidal_module
+  use field_options
+  use diagnostic_source_fields
+  use initialise_fields_module
+  use state_fields_module
+  use tidal_module
   use write_state_module, only: do_write_state
+
   implicit none
 
   private
