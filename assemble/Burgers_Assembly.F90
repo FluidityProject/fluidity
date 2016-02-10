@@ -25,11 +25,11 @@
   !    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
   !    USA
 module burgers_assembly
-  use fields
-  use sparse_tools
   use spud
+  use sparse_tools
   use transform_elements
   use fetools
+  use fields
   implicit none
 
   private

@@ -29,43 +29,43 @@
 module momentum_DG
   ! This module contains the Discontinuous Galerkin form of the momentum
   ! equation. 
-  use elements
-  use sparse_tools
-  use fetools
-  use fefields
-  use fields
-  use sparse_matrices_fields
-  use state_module
-  use shape_functions
-  use transform_elements
-  use vector_tools
-  use field_derivatives
   use fldebug
-  use vtk_interfaces
-  use Coordinates
-  use spud
-  use boundary_conditions
-  use boundary_conditions_from_options
-  use solvers
-  use dgtools
+  use vector_tools
   use global_parameters, only: OPTION_PATH_LEN, FIELD_NAME_LEN, COLOURING_DG2, &
-       COLOURING_DG0
-  use coriolis_module
-  use halos
-  use sparsity_patterns
-  use petsc_tools
-  use turbine
-  use diagnostic_fields
-  use slope_limiters_dg
-  use smoothing_module
-  use fields_manipulation
-  use field_options
-  use sparsity_patterns_meshes
-  use colouring
-  use Profiler
+COLOURING_DG0
+  use elements
+  use spud
 #ifdef _OPENMP
   use omp_lib
 #endif
+  use sparse_tools
+  use shape_functions
+  use transform_elements
+  use fetools
+  use fields_manipulation
+  use fields
+  use profiler
+  use petsc_tools
+  use sparse_matrices_fields
+  use state_module
+  use vtk_interfaces
+  use halos
+  use field_options
+  use fefields
+  use boundary_conditions
+  use field_derivatives
+  use coordinates
+  use solvers
+  use dgtools
+  use sparsity_patterns
+  use smoothing_module
+  use sparsity_patterns_meshes
+  use boundary_conditions_from_options
+  use coriolis_module
+  use turbine
+  use diagnostic_fields
+  use slope_limiters_dg
+  use colouring
   use multiphase_module
 
 

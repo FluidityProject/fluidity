@@ -29,16 +29,16 @@
 
 module adapt_state_unittest_module
   
-  use adapt_integration, adapt_mesh_3d => adapt_mesh
-  use mba2d_integration
   use eventcounter
-  use field_options
   use fields
-  use interpolation_module
-  use node_boundary
   use state_module
-  use adapt_state_module
+  use adapt_integration, adapt_mesh_3d => adapt_mesh
+  use node_boundary
+  use field_options
+  use interpolation_module
+  use mba2d_integration
   use sam_integration
+  use adapt_state_module
  
   implicit none
   

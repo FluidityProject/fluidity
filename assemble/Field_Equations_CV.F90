@@ -29,34 +29,34 @@
 module field_equations_cv
   !!< This module contains the assembly subroutines for advection
   !!< using control volumes
+  use spud
+  use global_parameters, only: OPTION_PATH_LEN, FIELD_NAME_LEN
+  use cv_faces
+  use parallel_tools, only: getprocno
+  use transform_elements, only: transform_cvsurf_to_physical, &
+       transform_cvsurf_facet_to_physical
   use fields
   use sparse_matrices_fields
-  use sparsity_patterns_meshes
   use state_module
-  use spud
+  use sparsity_patterns_meshes
   use cv_shape_functions
-  use cv_faces
+  use field_options
   use cvtools
-  use cv_fields
+  use cv_options
+  use boundary_conditions
+  use halos
   use cv_upwind_values
   use cv_face_values
-  use diagnostic_fields, only: calculate_diagnostic_variable
-  use cv_options
-  use diagnostic_variables, only: field_tag
-  use boundary_conditions
-  use boundary_conditions_from_options
-  use divergence_matrix_cv, only: assemble_divergence_matrix_cv
-  use global_parameters, only: OPTION_PATH_LEN, FIELD_NAME_LEN
   use fefields, only: compute_cv_mass
-  use petsc_solve_state_module
-  use transform_elements, only: transform_cvsurf_to_physical, &
-                                transform_cvsurf_facet_to_physical
-  use parallel_tools, only: getprocno
-  use halos
-  use field_options
   use state_fields_module
-  use porous_media
+  use diagnostic_fields, only: calculate_diagnostic_variable
+  use cv_fields
+  use diagnostic_variables, only: field_tag
+  use boundary_conditions_from_options
   use multiphase_module
+  use divergence_matrix_cv, only: assemble_divergence_matrix_cv
+  use petsc_solve_state_module
+  use porous_media
 
   implicit none
 

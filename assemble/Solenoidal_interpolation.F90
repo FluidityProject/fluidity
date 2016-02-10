@@ -4,30 +4,30 @@
 
 module solenoidal_interpolation_module
 
-  use fields
-  use sparse_tools
-  use supermesh_construction
+  use global_parameters, only: OPTION_PATH_LEN, FIELD_NAME_LEN
   use futils
-  use transform_elements
-  use sparsity_patterns
+  use spud
+  use sparse_tools
   use vector_tools
   use tensors
+  use transform_elements
+  use supermesh_construction
   use fetools
-  use sparse_tools
-  use interpolation_module
-  use solvers
-  use spud
-  use assemble_cmc
-  use sparse_matrices_fields
+  use fields
+  use sparsity_patterns
   use boundary_conditions
-  use boundary_conditions_from_options
-  use momentum_cg, only: correct_masslumped_velocity, add_kmk_matrix, add_kmk_rhs, assemble_kmk_matrix
-  use momentum_dg, only: correct_velocity_dg
+  use interpolation_module
+  use sparse_matrices_fields
+  use solvers
   use fefields
+  use assemble_cmc
+  use dgtools
+  use boundary_conditions_from_options
   use divergence_matrix_cv, only: assemble_divergence_matrix_cv
   use divergence_matrix_cg, only: assemble_divergence_matrix_cg
-  use global_parameters, only: OPTION_PATH_LEN, FIELD_NAME_LEN
-  use dgtools
+  use momentum_cg, only: correct_masslumped_velocity, add_kmk_matrix, add_kmk_rhs, assemble_kmk_matrix
+  use momentum_cg
+  use momentum_dg, only: correct_velocity_dg
   implicit none
 
   private

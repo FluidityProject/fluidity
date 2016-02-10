@@ -27,17 +27,17 @@
 #include "fdebug.h"
 
 module slope_limiters_dg
-use fields
-use state_module
-use ieee_arithmetic
 use fldebug_parameters
+use ieee_arithmetic
 use spud
 use elements
 use eventcounter
+use transform_elements
+use fields
+use state_module
+use vtk_interfaces
 use state_fields_module
 use bound_field_module
-use vtk_interfaces
-use transform_elements
 implicit none
 
 private

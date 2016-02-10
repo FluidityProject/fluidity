@@ -28,56 +28,53 @@
 #include "fdebug.h"
 
 module adapt_state_module
-! these 5 need to be on top and in this order, so as not to confuse silly old intel compiler
+  use global_parameters, only : OPTION_PATH_LEN, periodic_boundary_option_path, adaptivity_mesh_name, domain_bbox, topology_mesh_name
   use quadrature
   use elements
+  use mpi_interfaces
+  use parallel_tools
+  use data_structures
   use sparse_tools
+  use eventcounter
+  use intersection_finder_module
   use fields
   use state_module
-!
+  use halos
+  use field_options
+  use boundary_conditions
+  use detector_data_types
+  use pickers
+  use interpolation_module
+  use hadapt_metric_based_extrude
+  use tictoc
   use adaptivity_1d
   use adapt_integration, only : adapt_mesh_3d => adapt_mesh
+  use fefields
   use adaptive_timestepping
+  use detector_parallel
+  use diagnostic_variables
   use checkpoint
+  use edge_length_module
+  use boundary_conditions_from_options
+  use diagnostic_fields_wrapper_new, only : calculate_diagnostic_variables_new => calculate_diagnostic_variables
+  use hadapt_extrude
+  use reserve_state_module
+  use fields_halos
+  use populate_state_module
   use diagnostic_fields_wrapper
   use discrete_properties_module
-  use edge_length_module
-  use eventcounter
-  use field_options
-  use global_parameters, only : OPTION_PATH_LEN, periodic_boundary_option_path, adaptivity_mesh_name, domain_bbox, topology_mesh_name
-  use hadapt_extrude
-  use hadapt_metric_based_extrude
-  use halos
-  use fefields
   use interpolation_manager
-  use interpolation_module
   use mba_adapt_module
   use mba2d_integration
   use mba3d_integration
-  use metric_assemble
   use anisotropic_gradation, only: use_anisotropic_gradation
-  use parallel_tools
-  use boundary_conditions
-  use boundary_conditions_from_options
-  use populate_state_module
   use project_metric_to_surface_module
-  use reserve_state_module
+  use metric_assemble
   use sam_integration
-  use tictoc
   use timeloop_utilities
-  use fields_halos
-  use data_structures
-  use detector_data_types
-  use detector_parallel
-  use diagnostic_variables
-  use intersection_finder_module
-  use diagnostic_variables
-  use diagnostic_fields_wrapper_new, only : calculate_diagnostic_variables_new => calculate_diagnostic_variables
-  use pickers
   use write_gmsh
 #ifdef HAVE_ZOLTAN
   use zoltan_integration
-  use mpi_interfaces
 #endif
 
   implicit none

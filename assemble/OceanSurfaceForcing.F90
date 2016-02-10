@@ -27,14 +27,14 @@
 #include "fdebug.h"
 
 module OceanSurfaceForcing
-  use elements
-  use state_module
-  use fields
-  use fetools
-  use transform_elements
   use global_parameters, only : OPTION_PATH_LEN, pi
-  use boundary_conditions
+  use elements
   use spud
+  use transform_elements
+  use fetools
+  use fields
+  use state_module
+  use boundary_conditions
   use coordinates
   
   implicit none

@@ -6,14 +6,13 @@ module zoltan_detectors
 #ifdef HAVE_ZOLTAN
 
   use zoltan, only: zoltan_int
-  use zoltan_global_variables, only: zoltan_global_uen_to_new_local_numbering, zoltan_global_old_local_numbering_to_uen, zoltan_global_new_positions
   use data_structures, only: has_key, fetch
-
   use detector_data_types
+  use fields
+  use zoltan_global_variables, only: zoltan_global_uen_to_new_local_numbering, zoltan_global_old_local_numbering_to_uen, zoltan_global_new_positions
   use detector_tools
   use detector_parallel
 
-  use fields
 
   implicit none
 

@@ -27,19 +27,18 @@
 #include "fdebug.h"
 
 module momentum_diagnostic_fields
-  use FLDebug
-  use equation_of_state
+  use fldebug
+  use spud
+  use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN
   use fields
   use state_module
-  use spud
-  use state_module
+  use equation_of_state
   use field_priority_lists
-  use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN
-  use multimaterial_module
   use multiphase_module
-  use diagnostic_fields_wrapper_new
   use k_epsilon
   use initialise_fields_module
+  use multimaterial_module
+  use diagnostic_fields_wrapper_new
   implicit none
 
   interface calculate_densities
