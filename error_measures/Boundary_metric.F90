@@ -1,10 +1,12 @@
 #include "fdebug.h"
 
 module boundary_metric
-  use node_boundary, only: initialise_boundcount, node_lies_on_boundary
+
+  use global_parameters, only: domain_bbox
   use unittest_tools, only: get_mat_diag
   use fields
-  use global_parameters, only: domain_bbox
+  use node_boundary, only: initialise_boundcount, node_lies_on_boundary
+
   implicit none
 
   logical, save :: use_boundary_metric = .false.

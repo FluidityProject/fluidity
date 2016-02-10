@@ -2,12 +2,12 @@
 
 module limit_metric_module
 
-  use elements
-  use fields
   use fldebug
-  use meshdiagnostics
-  use spud
   use vector_tools, only : determinant => det
+  use elements
+  use spud
+  use fields
+  use meshdiagnostics
 
   implicit none
 

@@ -7,16 +7,16 @@ module conformity_measurement
 !! International Journal for Numerical Methods in Engineering
 !! 2004, vol 61, issue 15
 
-  use fields
   use vector_tools
   use transform_elements
   use unittest_tools
+  use fetools
+  use metric_tools
+  use fields
   use state_module
   use fefields
   use meshdiagnostics
-  use fetools
   use merge_tensors
-  use metric_tools
   use limit_metric_module
 
   implicit none

@@ -4,22 +4,23 @@
 module goal_metric
 !!< Simple goal-based metric formation.
 
-  use elements
-  use fields
-  use edge_length_module, only: get_edge_lengths
-  use field_derivatives, only: compute_hessian, patch_type, get_patch_node
-  use state_module, only: state_type, extract_scalar_field, extract_vector_field, insert
   use global_parameters, only: dt, FIELD_NAME_LEN, OPTION_PATH_LEN
-  use form_metric_field, only: form_metric
-  use merge_tensors, only: merge_tensor_fields
+  use futils, only: count_chars, multiindex
+  use elements
+  use spud
   use transform_elements, only: transform_to_physical
   use fetools, only: shape_shape
-  use vtk_interfaces, only: vtk_write_fields
   use metric_tools, only: error_bound_name
-  use futils, only: count_chars, multiindex
+  use fields
+  use edge_length_module, only: get_edge_lengths
+  use state_module, only: state_type, extract_scalar_field, extract_vector_field, insert
+  use merge_tensors, only: merge_tensor_fields
+  use vtk_interfaces, only: vtk_write_fields
+  use field_derivatives, only: compute_hessian, patch_type, get_patch_node
+  use form_metric_field, only: form_metric
   use goals
   use gradation_metric, only: form_gradation_metric
-  use spud
+
   implicit none
 
   !! Use goal-based metric method, or

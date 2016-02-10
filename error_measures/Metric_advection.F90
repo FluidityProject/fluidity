@@ -27,42 +27,43 @@
 #include "fdebug.h"
 
 module metric_advection
+
+  use fldebug
+  use vector_tools
+  use global_parameters, only: OPTION_PATH_LEN
+  use futils, only: int2str
   use elements
+  use spud
+  use parallel_tools, only: getprocno
   use sparse_tools
+  use shape_functions
+  use cv_faces
+  use transform_elements
   use fetools
+  use unittest_tools
   use fields
   use state_module
-  use shape_functions
-  use transform_elements
-  use vector_tools
-  use fldebug
   use vtk_interfaces
+  use sparse_matrices_fields
   use solvers
   use boundary_conditions
-  use spud
   use merge_tensors
   use edge_length_module
   use sparsity_patterns
-  use sparse_matrices_fields
-  use CV_Shape_Functions
-  use CV_Faces
-  use CVTools
-  use CV_Upwind_Values
-  use CV_Face_Values
-  use CV_Options
+  use cv_shape_functions
+  use field_options, only: get_coordinate_field
+  use cvtools
+  use cv_options
+  use cv_upwind_values
+  use cv_face_values
+  use sparsity_patterns_meshes
+  use fefields, only: compute_cv_mass
+  use state_fields_module, only: get_cv_mass
   use diagnostic_variables, only: field_tag
   use diagnostic_fields, only: calculate_diagnostic_variable
-  use global_parameters, only: OPTION_PATH_LEN
-  use state_fields_module, only: get_cv_mass
-  use parallel_tools, only: getprocno
   use form_metric_field
   use populate_state_module
-  use unittest_tools
   use adaptive_timestepping
-  use field_options, only: get_coordinate_field
-  use sparsity_patterns_meshes
-  use futils, only: int2str
-  use fefields, only: compute_cv_mass
 
   implicit none
 

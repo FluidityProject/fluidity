@@ -2,17 +2,17 @@
 
 module richardson_metric_module
 
-  use edge_length_module
-  use field_options
-  use fields
   use global_parameters, only : OPTION_PATH_LEN
+  use spud
+  use vector_tools
+  use unittest_tools
+  use metric_tools
+  use fields
+  use edge_length_module
+  use state_module
+  use field_options
   use limit_metric_module
   use merge_tensors
-  use metric_tools
-  use unittest_tools
-  use spud
-  use state_module
-  use vector_tools
   
   implicit none
 

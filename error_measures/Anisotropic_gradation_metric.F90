@@ -2,17 +2,17 @@
 
 module anisotropic_gradation
 
-  use fields
   use spud
-  use initialise_fields_module
-  use adjacency_lists
   use sparse_tools
-  use linked_lists
-  use gradation_metric
-  use merge_tensors
   use vector_tools
+  use adjacency_lists
+  use linked_lists
   use metric_tools
+  use fields
   use state_module
+  use initialise_fields_module
+  use merge_tensors
+  use gradation_metric
   use form_metric_field
 
   implicit none
