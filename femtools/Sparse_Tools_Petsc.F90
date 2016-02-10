@@ -163,7 +163,7 @@ contains
     !! g=blocks/group_size and the petsc numbers within each group are contiguous. Thus the petsc
     !! numbering, going from major to minor, is given by g x nodes x group_size
     !! Default is group_size=(1,1), i.e. no grouping is taking place and all dofs are numbered such that
-    !! all dofs of the first block are numbered continously first, followed by those of the second block, etc.
+    !! all dofs of the first block are numbered continuously first, followed by those of the second block, etc.
     integer, dimension(2), intent(in), optional:: group_size
 
     PetscErrorCode:: ierr
@@ -210,11 +210,6 @@ contains
       ! Create serial matrix:
       matrix%M=csr2petsc_CreateSeqAIJ(sparsity, matrix%row_numbering, &
         matrix%column_numbering, ldiagonal, use_inodes=use_inodes)
-      ! this is very important for assembly routines (e.g. DG IP viscosity)
-      ! that try to add zeros outside the provided sparsity; if we go outside
-      ! the provided n/o nonzeros the assembly will become very slow!!!
-      call MatSetOption(matrix%M, MAT_IGNORE_ZERO_ENTRIES, PETSC_TRUE, ierr)
-
       
     else
 
@@ -230,11 +225,6 @@ contains
       ! Create parallel matrix:
       matrix%M=csr2petsc_CreateMPIAIJ(sparsity, matrix%row_numbering, &
         matrix%column_numbering, ldiagonal, use_inodes=use_inodes)
-
-      ! this is very important for assembly routines (e.g. DG IP viscosity)
-      ! that try to add zeros outside the provided sparsity; if we go outside
-      ! the provided n/o nonzeros the assembly will become very slow!!!
-      call MatSetOption(matrix%M, MAT_IGNORE_ZERO_ENTRIES, PETSC_TRUE, ierr)
       
       ! this is very important for assembly routines (e.g. DG IP viscosity)
       ! that try to add zeros outside the provided sparsity; if we go outside
@@ -243,6 +233,11 @@ contains
 
     endif
     
+    ! this is very important for assembly routines (e.g. DG IP viscosity)
+    ! that try to add zeros outside the provided sparsity; if we go outside
+    ! the provided n/o nonzeros the assembly will become very slow!!!
+    call MatSetOption(matrix%M, MAT_IGNORE_ZERO_ENTRIES, PETSC_TRUE, ierr)
+
     ! Necessary for local assembly: we don't want to communicate non-local dofs
     call MatSetOption(matrix%M, MAT_IGNORE_OFF_PROC_ENTRIES, PETSC_TRUE, ierr)
 

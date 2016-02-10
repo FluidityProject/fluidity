@@ -751,7 +751,6 @@
                end if
             end if
 
-            !call apply_dirichlet_conditions(big_m(istate), mom_rhs(istate), u, dt)
             call profiler_toc(u, "assembly")
 
             if (associated(ct_m(istate)%ptr)) then
@@ -823,12 +822,6 @@
                      end if
                      call rotate_ct_m_sphere(state(istate), ctp_m(istate)%ptr, u)
                   end if
-               end if
-
-               if (associated(ctp_m(istate)%ptr, ct_m(istate)%ptr)) then
-                 !call lift_div_grad_boundary_conditions(ctp_m(istate)%ptr, ct_rhs(istate), u)
-               else
-                 !call lift_div_grad_boundary_conditions(ctp_m(istate)%ptr, ct_rhs(istate), u, transposed_gradient=ct_m(istate)%ptr)
                end if
 
                ! Add mass source-absorption for implicit solids.
