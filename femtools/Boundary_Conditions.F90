@@ -141,7 +141,7 @@ implicit none
     set_reference_node, &
     get_periodic_boundary_condition, remove_boundary_condition, &
     set_dirichlet_consistent, apply_dirichlet_conditions, &
-    derive_collapsed_bcs, lift_div_grad_boundary_conditions, &
+    derive_collapsed_bcs, &
     collect_vector_dirichlet_conditions, zero_dirichlet_rows
 
 contains
