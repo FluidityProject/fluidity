@@ -28,25 +28,25 @@
 
 module pressure_dirichlet_bcs_cv
 
+  use global_parameters, only: OPTION_PATH_LEN
   use quadrature
-  use fields
-  use field_derivatives
-  use state_module
   use futils
-  use fetools
   use spud
   use cv_faces
+  use fetools
+  use fields
+  use state_module
+  use boundary_conditions
+  use field_derivatives
   use cv_shape_functions
+  use field_options, only: get_coordinate_field
   use cvtools
-  use cv_fields
+  use cv_options
   use cv_upwind_values
   use cv_face_values
-  use cv_options
-  use diagnostic_fields, only: calculate_diagnostic_variable
-  use boundary_conditions
-  use global_parameters, only: OPTION_PATH_LEN
-  use field_options, only: get_coordinate_field
   use sparsity_patterns_meshes
+  use diagnostic_fields, only: calculate_diagnostic_variable
+  use cv_fields
   use multiphase_module
 
   implicit none

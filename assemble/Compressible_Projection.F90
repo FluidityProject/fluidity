@@ -28,16 +28,16 @@
 
 module compressible_projection
   use fldebug
-  use state_module
-  use sparse_tools
   use spud
+  use global_parameters, only: OPTION_PATH_LEN
+  use sparse_tools
   use fields
+  use state_module
   use sparse_matrices_fields
   use field_options
-  use equation_of_state, only: compressible_eos, compressible_material_eos
-  use global_parameters, only: OPTION_PATH_LEN
   use fefields, only: compute_cv_mass
   use state_fields_module
+  use equation_of_state, only: compressible_eos, compressible_material_eos
   use upwind_stabilisation
   use multiphase_module
   implicit none 

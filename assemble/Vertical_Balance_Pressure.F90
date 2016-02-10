@@ -33,17 +33,17 @@ module vertical_balance_pressure
 
   use fldebug
   use elements
-  use sparse_tools
-  use fields
-  use state_module
-  use transform_elements
   use parallel_tools
   use spud
-  use boundary_conditions
-  use state_matrices_module
-  use upwind_stabilisation
+  use sparse_tools
+  use transform_elements
+  use fields
   use profiler
+  use state_module
+  use boundary_conditions
+  use upwind_stabilisation
   use solvers
+  use state_matrices_module
   implicit none
 
   public calculate_vertical_balance_pressure, &

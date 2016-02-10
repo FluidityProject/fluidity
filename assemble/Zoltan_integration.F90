@@ -4,47 +4,42 @@
 module zoltan_integration
 
 #ifdef HAVE_ZOLTAN
-! these 5 need to be on top and in this order, so as not to confuse silly old intel compiler 
+  use global_parameters, only: real_size, OPTION_PATH_LEN, topology_mesh_name
   use quadrature
   use elements
+  use mpi_interfaces
+  use data_structures
+  use parallel_tools
+  use memory_diagnostics
   use sparse_tools
+  use linked_lists
+  use halos_ownership
+  use parallel_fields
+  use metric_tools
   use fields
   use state_module
-
   use field_options
-  use mpi_interfaces
-  use halos
-  use parallel_fields
-  use sparsity_patterns_meshes
   use vtk_interfaces
   use zoltan
-  use linked_lists
-  use global_parameters, only: real_size, OPTION_PATH_LEN, topology_mesh_name
-  use data_structures
-  use populate_state_module
-  use reserve_state_module
-  use boundary_conditions_from_options
-  use boundary_conditions
-  use metric_tools
-  use c_interfaces
-  use surface_id_interleaving
-  use halos_ownership
-  use memory_diagnostics
-  use detector_data_types
-  use detector_tools
-  use detector_parallel
-  use pickers
-  use hadapt_advancing_front
-  use parallel_tools
-  use fields_halos
-  use adapt_integration
-
-! adding to use the ele_owner function
   use halos_derivation
-  
+  use halos
+  use sparsity_patterns_meshes
+  use reserve_state_module
+  use boundary_conditions
+  use c_interfaces
+  use detector_data_types
+  use boundary_conditions_from_options
+  use detector_tools
+  use pickers
+  use detector_parallel
+  use hadapt_advancing_front
+  use fields_halos
+  use populate_state_module
+  use surface_id_interleaving
+  use adapt_integration
   use zoltan_global_variables
-  use zoltan_callbacks
   use zoltan_detectors
+  use zoltan_callbacks
 
   implicit none
 

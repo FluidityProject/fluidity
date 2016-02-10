@@ -29,33 +29,32 @@
 
 module sam_integration
 
+  use global_parameters, only : OPTION_PATH_LEN, FIELD_NAME_LEN
   use quadrature
   use elements
-  use fields
-  use field_options
-  use state_module
-  use surfacelabels
-  use global_parameters, only : OPTION_PATH_LEN, FIELD_NAME_LEN
-  use halos
   use spud
-  use metric_tools
   use mpi_interfaces
-  use node_boundary
   use parallel_tools
-  use boundary_conditions
-  use boundary_conditions_from_options
-  use populate_state_module
-  use reserve_state_module
-  use surface_id_interleaving
-  use tictoc
   use memory_diagnostics
-  
   use data_structures
-  use detector_data_types
-  use diagnostic_variables
-  use pickers
   use ieee_arithmetic
-  use detector_tools  
+  use metric_tools
+  use fields
+  use state_module
+  use field_options
+  use halos
+  use surfacelabels
+  use node_boundary
+  use boundary_conditions
+  use tictoc
+  use detector_data_types
+  use boundary_conditions_from_options
+  use reserve_state_module
+  use pickers
+  use detector_tools
+  use diagnostic_variables
+  use populate_state_module
+  use surface_id_interleaving
 
   implicit none
   

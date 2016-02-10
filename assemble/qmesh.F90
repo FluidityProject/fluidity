@@ -29,18 +29,18 @@
 
 module qmesh_module
 
+  use fldebug
+  use spud
   use fields
-  use FLDebug
-  use Form_Metric_Field
-  use edge_length_module
-  use field_derivatives
-  use metric_assemble
   use state_module
   use vtk_interfaces
-  use spud
+  use field_derivatives
+  use form_metric_field
+  use edge_length_module
   use tictoc
-    
-implicit none
+  use metric_assemble
+  
+  implicit none
 
   private
   

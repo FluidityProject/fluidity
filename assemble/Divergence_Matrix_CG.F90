@@ -29,17 +29,17 @@
 
 module divergence_matrix_cg
 
-  use quadrature
-  use fields
-  use field_derivatives
-  use state_module
-  use futils
-  use fetools
-  use spud
-  use boundary_conditions
   use global_parameters, only: OPTION_PATH_LEN
-  use transform_elements
   use fldebug
+  use quadrature
+  use futils
+  use spud
+  use transform_elements
+  use fetools
+  use fields
+  use state_module
+  use boundary_conditions
+  use field_derivatives
   use field_options, only: complete_field_path
   use upwind_stabilisation
   use equation_of_state

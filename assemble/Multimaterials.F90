@@ -30,16 +30,17 @@ module multimaterial_module
   !! This module contains the options and material properties used
   !! when running a multimaterial simulation.
   use fldebug
-  use state_module
-  use fields
   use spud
-  use fefields, only: compute_cv_mass
   use global_parameters, only: OPTION_PATH_LEN
-  use field_priority_lists
+  use fields
+  use state_module
   use field_options
-  use diagnostic_fields_matrices
+  use fefields, only: compute_cv_mass
+  use field_priority_lists
   use cv_upwind_values
   use equation_of_state, only: compressible_material_eos
+  use diagnostic_fields_matrices
+
   implicit none
 
   interface calculate_bulk_property

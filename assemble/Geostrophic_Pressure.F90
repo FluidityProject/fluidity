@@ -28,39 +28,38 @@
 #include "fdebug.h"
 
 module geostrophic_pressure
-
-  use assemble_cmc
-  use boundary_conditions
-  use boundary_conditions_from_options 
-  use conservative_interpolation_module
-  use coriolis_module, only : two_omega => coriolis
-  use data_structures
-  use dgtools
-  use divergence_matrix_cg
-  use eventcounter
-  use fefields
-  use field_options
-  use quadrature
-  use elements
-  use fields
   use fldebug
   use global_parameters, only : empty_path, FIELD_NAME_LEN, OPTION_PATH_LEN
-  use hydrostatic_pressure
-  use momentum_cg
-  use momentum_dg
-  use petsc_solve_state_module
-  use pickers
-  use solvers
-  use state_fields_module
-  use sparse_matrices_fields
+  use spud
+  use data_structures
   use sparse_tools
+  use quadrature
+  use eventcounter
+  use elements
+  use unittest_tools
+  use fields
+  use state_module
+  use field_options
+  use sparse_matrices_fields
+  use vtk_interfaces
+  use fefields
+  use assemble_cmc
+  use boundary_conditions
+  use dgtools
+  use solvers
   use sparsity_patterns
   use sparsity_patterns_meshes
-  use spud
-  use state_module
-  use surfacelabels  
-  use unittest_tools
-  use vtk_interfaces
+  use state_fields_module
+  use surfacelabels
+  use boundary_conditions_from_options
+  use pickers
+  use conservative_interpolation_module
+  use coriolis_module, only : two_omega => coriolis
+  use divergence_matrix_cg
+  use hydrostatic_pressure
+  use petsc_solve_state_module
+  use momentum_cg
+  use momentum_dg
 
   implicit none
   

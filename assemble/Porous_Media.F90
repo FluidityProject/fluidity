@@ -32,10 +32,10 @@ module porous_media
    !!< Module containing porous media related procedures.
 
    use global_parameters, only: OPTION_PATH_LEN
-   use fields
-   use state_module
    use futils
    use spud
+   use fields
+   use state_module
 
    implicit none
    

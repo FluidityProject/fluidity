@@ -30,16 +30,16 @@
    module multiphase_module
       !! This module contains various subroutines and functions for 
       !! multiphase flow simulations
-      use fldebug
-      use state_module
-      use fields
+      use fldebug 
       use spud
       use global_parameters, only: OPTION_PATH_LEN
-      use field_priority_lists
-      use field_options
       use fetools
-      use sparse_tools_petsc
+      use fields
       use profiler
+      use sparse_tools_petsc
+      use state_module
+      use field_options
+      use field_priority_lists
 
       implicit none
 

@@ -29,19 +29,19 @@
 
 module adapt_state_prescribed_module
 
-  use embed_python
-  use field_options
-  use fields
   use global_parameters, only : OPTION_PATH_LEN
-  use interpolation_manager
-  use node_boundary
+  use embed_python
+  use spud
+  use fields
+  use state_module
+  use field_options
   use boundary_conditions
+  use node_boundary
   use boundary_conditions_from_options
-  use populate_state_module
   use mesh_files
   use reserve_state_module
-  use spud
-  use state_module
+  use populate_state_module
+  use interpolation_manager
 
   implicit none
   

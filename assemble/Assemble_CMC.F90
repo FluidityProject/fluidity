@@ -30,17 +30,17 @@
 module assemble_CMC
 
   use fldebug
-  use state_module
-  use sparse_tools
-  use sparse_tools_petsc
   use spud
-  use fields
+  use global_parameters, only: OPTION_PATH_LEN
+  use sparse_tools
   use fields_base
-  use fefields
+  use linked_lists
+  use fields
+  use sparse_tools_petsc
+  use state_module
   use sparse_matrices_fields
   use field_options
-  use global_parameters, only: OPTION_PATH_LEN
-  use linked_lists
+  use fefields
   
   implicit none 
 

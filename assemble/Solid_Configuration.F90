@@ -3,18 +3,18 @@
 
 module solidconfiguration
   use fldebug
-  use fields
-  use fefields,only: compute_lumped_mass
-  use fetools, only: X_, Y_, Z_
   use spud
-  use state_module
-  use transform_elements
-  use boundary_conditions
   use global_parameters, only: OPTION_PATH_LEN, dt, current_time
-  use write_triangle
   use parallel_tools
   use vector_tools, only: det
+  use transform_elements
+  use fetools, only: X_, Y_, Z_
+  use fields
+  use state_module
   use vtk_interfaces, only: vtk_write_fields
+  use fefields,only: compute_lumped_mass
+  use boundary_conditions
+  use write_triangle
   implicit none
 
   private

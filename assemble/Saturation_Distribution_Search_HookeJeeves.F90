@@ -33,15 +33,14 @@ module saturation_distribution_search_hookejeeves
   !!< The immediate application for this is as a quasi-inversion method for
   !!< determining water distribution within a reservoir during production
   
-  use diagnostic_fields_wrapper_new
-  use fields
-  use fields_base, only: ele_nodes
-  use field_options
   use fldebug
   use global_parameters, only: OPTION_PATH_LEN
-  use spontaneous_potentials
   use spud
+  use fields
   use state_module
+  use diagnostic_fields_wrapper_new
+  use field_options
+  use spontaneous_potentials
   use write_state_module
   use momentum_equation
 

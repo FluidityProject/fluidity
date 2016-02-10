@@ -30,27 +30,27 @@
 module diagnostic_fields_matrices
   !!< A module to link to diagnostic variable calculations.
 
-  use global_parameters, only:FIELD_NAME_LEN 
+  use global_parameters, only:FIELD_NAME_LEN
+  use futils
+  use spud
+  use parallel_tools
+  use sparse_tools
+  use transform_elements
+  use fetools
+  use parallel_fields, only: zero_non_owned
   use fields
   use sparse_matrices_fields
-  use field_derivatives
   use state_module
-  use futils
-  use fetools
-  use spud
-  use parallel_fields, only: zero_non_owned
+  use halos
+  use field_derivatives
+  use sparsity_patterns, only: make_sparsity
+  use sparsity_patterns_meshes
+  use state_fields_module
+  use solvers
   use divergence_matrix_cv, only: assemble_divergence_matrix_cv
   use divergence_matrix_cg, only: assemble_divergence_matrix_cg, assemble_compressible_divergence_matrix_cg
   use gradient_matrix_cg, only: assemble_gradient_matrix_cg
-  use parallel_tools
-  use sparsity_patterns, only: make_sparsity
-  use state_fields_module
-  use solvers
-  use transform_elements
-  use sparse_tools
-  use sparsity_patterns_meshes
   use state_matrices_module
-  use halos
 
   implicit none
 

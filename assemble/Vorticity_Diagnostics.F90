@@ -29,13 +29,13 @@
 
 module vorticity_diagnostics
 
+  use fldebug
   use coriolis_module
+  use fields
+  use state_module
   use field_derivatives
   use field_options
-  use fields
-  use fldebug
   use state_fields_module
-  use state_module
 
   implicit none
   

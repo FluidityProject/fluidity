@@ -5,24 +5,14 @@ module zoltan_global_variables
 
 #ifdef HAVE_ZOLTAN
 
-  ! Needed for zoltan_cb_owned_node_count
-  use halos, only: halo_type
-
-  ! Needed for zoltan_cb_get_owned_nodes
-  use sparse_tools, only: csr_sparsity
-
-  ! Needed for zoltan_cb_get_edge_list
-  use fields, only: scalar_field, vector_field, mesh_type
-
-  ! Needed for zoltan_cb_pack_node_sizes
-  use zoltan, only: zoltan_int, zoltan_float
   use data_structures, only: integer_set, integer_hash_table
-
-  ! Needed for zoltan_cb_pack_field_size
-  use state_module, only: state_type
-  use detector_data_types, only: detector_linked_list
-
   use global_parameters, only: OPTION_PATH_LEN
+  use sparse_tools, only: csr_sparsity
+  use fields, only: scalar_field, vector_field, mesh_type
+  use zoltan, only: zoltan_int, zoltan_float
+  use state_module, only: state_type
+  use halos, only: halo_type
+  use detector_data_types, only: detector_linked_list
 
   implicit none
 
