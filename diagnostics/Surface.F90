@@ -29,13 +29,13 @@
 
 module surface_diagnostics
 
-  use diagnostic_source_fields
-  use field_options
-  use fields
   use fldebug
   use global_parameters, only : OPTION_PATH_LEN
   use spud
+  use fields
   use state_module
+  use field_options
+  use diagnostic_source_fields
   use sediment
   use surface_integrals
   
