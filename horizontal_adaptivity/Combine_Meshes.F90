@@ -4,15 +4,17 @@ module hadapt_combine_meshes
   !!< Extrude a given 2D mesh to a full 3D mesh.
   !!< The layer depths are specified by a sizing function
   !!< which can be arbitrary python.
-  use elements
-  use fields
-  use spud
-  use quadrature
+
   use global_parameters
+  use quadrature
+  use elements
+  use spud
   use sparse_tools
-  use hadapt_advancing_front
   use linked_lists
+  use fields
   use halos
+  use hadapt_advancing_front
+
   implicit none
 
   private

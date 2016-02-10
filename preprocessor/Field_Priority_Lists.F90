@@ -28,10 +28,11 @@
 #include "fdebug.h"
 
 module field_priority_lists
+
   use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN
+  use spud
   use fields
   use state_module
-  use spud
   use sediment, only: get_n_sediment_fields, get_sediment_item
 
   implicit none
