@@ -27,39 +27,41 @@
 
 #include "fdebug.h"
 module populate_sub_state_module
+
+  use fldebug
+  use global_parameters, only: OPTION_PATH_LEN, is_active_process, pi, &
+no_active_processes, topology_mesh_name, adaptivity_mesh_name, &
+periodic_boundary_option_path, domain_bbox, domain_volume
   use elements
-  use state_module
-  use FLDebug
   use spud
+  use parallel_tools
+  use data_structures
+  use fields_manipulation
+  use metric_tools
+  use transform_elements
+  use profiler
+  use state_module
   use mesh_files
   use vtk_cache_module
-  use vtk_interfaces       
-  use global_parameters, only: OPTION_PATH_LEN, is_active_process, pi, &
-    no_active_processes, topology_mesh_name, adaptivity_mesh_name, &
-    periodic_boundary_option_path, domain_bbox, domain_volume
+  use vtk_interfaces
   use field_options
   use reserve_state_module
-  use fields_manipulation
   use field_options
+  use halos_registration
+  use halos
   use surfacelabels
   use climatology
-  use metric_tools
   use coordinates
-  use halos
-  use halos_registration
   use tictoc
   use hadapt_extrude
-  use initialise_fields_module
-  use transform_elements
-  use parallel_tools
-  use boundary_conditions_from_options
   use nemo_states_module
-  use data_structures
-  use fields_halos
+  use initialise_fields_module
   use fefields
+  use boundary_conditions_from_options
+  use fields_halos
   use read_triangle
+  use diagnostic_variables
   use populate_state_module
-  use diagnostic_variables , only: convergence_field, steady_state_field
 
   implicit none
 
@@ -75,8 +77,6 @@ contains
     ! This routine initialises all meshes, fields and boundary conditions
     ! that will be used in partially prognostic solves - i.e. where certain
     ! variables are only solved for in part of the computational domain.
-
-    use Profiler
 
     type(state_type), intent(in), dimension(:) :: states
     type(state_type), pointer, dimension(:) :: sub_states

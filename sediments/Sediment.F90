@@ -29,17 +29,17 @@
   
 module sediment
 
+  use global_parameters, only:   OPTION_PATH_LEN, dt, timestep
+  use fldebug
   use quadrature
   use elements
-  use field_derivatives
-  use fields
-  use sparse_matrices_fields
-  use state_module
   use spud
-  use global_parameters, only:   OPTION_PATH_LEN, dt, timestep
-  use state_fields_module
+  use fields
+  use state_module
   use boundary_conditions
-  use FLDebug
+  use field_derivatives
+  use sparse_matrices_fields
+  use state_fields_module
 
   implicit none
 

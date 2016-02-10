@@ -28,20 +28,21 @@
 #include "fdebug.h"
 
 module gls
+
+  use global_parameters, only:   OPTION_PATH_LEN
+  use fldebug
   use quadrature
   use elements
-  use field_derivatives
-  use fields
-  use sparse_matrices_fields
-  use state_module
   use spud
-  use global_parameters, only:   OPTION_PATH_LEN
-  use equation_of_state
-  use state_fields_module
+  use fields
+  use state_module
   use boundary_conditions
-  use Coordinates
-  use FLDebug
+  use field_derivatives
+  use sparse_matrices_fields
   use fefields
+  use state_fields_module
+  use equation_of_state
+  use coordinates
   use vertical_extrapolation_module
 
   implicit none

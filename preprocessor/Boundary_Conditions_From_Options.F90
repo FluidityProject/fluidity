@@ -27,31 +27,32 @@
 
 #include "fdebug.h"
 module boundary_conditions_from_options
+
 use fldebug
+use global_parameters, only: OPTION_PATH_LEN, PYTHON_FUNC_LEN, pi, current_debug_level
+use vector_tools
 use quadrature
 use elements
-use fields
-use fefields
-use field_options
-use state_module
-use sparse_tools_petsc
-use boundary_conditions
-use initialise_fields_module
-use global_parameters, only: OPTION_PATH_LEN, PYTHON_FUNC_LEN, pi, current_debug_level
-use tidal_module
-use SampleNetCDF
-use coordinates
-use synthetic_bc
 use spud
-use vector_tools
+use integer_set_module
+use halos_base
+use halos_numbering
+use fields
+use sparse_tools_petsc
+use state_module
+use field_options
 use vtk_interfaces
+use fefields
+use boundary_conditions
+use coordinates
+use initialise_fields_module
+use tidal_module
+use samplenetcdf
+use synthetic_bc
 use pickers_inquire
 use bulk_parameterisations
 use k_epsilon
-use integer_set_module !for iceshelf
 use sediment, only: set_sediment_reentrainment
-use halos_numbering
-use halos_base
 
 implicit none
 
