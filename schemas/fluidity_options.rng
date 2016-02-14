@@ -6530,6 +6530,31 @@ where _c and _i denote the compressible and incompressible phases respectively.<
           </element>
         </element>
       </element>
+      <element name="scalar_field">
+        <a:documentation>DGLESScalarEddyViscosity
+
+Outputs the calculated (isotropic) eddy viscosity term
+for a discontinuous velocity field. The subgridscale viscosity
+follows that of the Smagorinsky–Lilly model. Requires that both a discontinous
+representation of velocity and an les model have been selected.</a:documentation>
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>DGLESScalarEddyViscosity</value>
+        </attribute>
+        <choice>
+          <element name="diagnostic">
+            <ref name="internal_algorithm"/>
+            <ref name="velocity_mesh_choice"/>
+            <ref name="diagnostic_scalar_field"/>
+          </element>
+          <element name="prescribed">
+            <ref name="velocity_mesh_choice"/>
+            <ref name="prescribed_scalar_field"/>
+          </element>
+        </choice>
+      </element>
     </choice>
     <!--
       Insert new diagnostic scalar fields here using the template:

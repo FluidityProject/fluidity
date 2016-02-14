@@ -8,9 +8,12 @@ adaptivity_preprocessing =
             ## before using it to adapt. This can help with noisy
             ## fields.
             element helmholtz_smoother {
-                 element smoothing_length_scale {
-                     real_dim_symmetric_tensor
-                 },
+               ## The characteristic scale factor alpha used by the smoother.
+               ## The length scale is alpha*local element width (a scalar)
+               ## 2 is recommended.
+                 element smoothing_scale_factor {
+                     real
+                 }?,
                  element solver {
                    linear_solver_options_sym
                  }

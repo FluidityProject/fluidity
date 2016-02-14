@@ -28,17 +28,6 @@ Extrude.o ../include/hadapt_extrude.mod: Extrude.F90 ../include/elements.mod \
    ../include/sparse_tools.mod ../include/spud.mod \
    ../include/vtk_interfaces.mod
 
-../include/hadapt_extrude_radially.mod: Extrude_radially.o
-	@true
-
-Extrude_radially.o ../include/hadapt_extrude_radially.mod: \
-   Extrude_radially.F90 ../include/elements.mod ../include/fdebug.h \
-   ../include/fields.mod ../include/global_parameters.mod \
-   ../include/hadapt_combine_meshes.mod ../include/halos.mod \
-   ../include/linked_lists.mod ../include/quadrature.mod \
-   ../include/sparse_tools.mod ../include/spud.mod ../include/vector_tools.mod \
-   ../include/vtk_interfaces.mod
-
 ../include/hadapt_metric_based_extrude.mod: Metric_based_extrude.o
 	@true
 

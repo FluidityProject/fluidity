@@ -385,6 +385,14 @@ contains
        cache_valid=.false.
 
     end if
+
+    if (X%dim/=mesh_dim(X)) then
+    ! this is an embedded (manifold) mesh - construct_face_cache() does not handle this
+    ! tranform_facet_to_physical_full() hopefully does?
+      cache_valid = .false.
+      return
+    end if
+
        
     x_spherical = use_analytical_spherical_mapping(X)
 
@@ -439,6 +447,13 @@ contains
 !       ewrite(2,*) "Mesh has moved."
        face_cache_valid=.false.
 
+    end if
+
+    if (X%dim/=mesh_dim(X)) then
+    ! this is an embedded (manifold) mesh - construct_face_cache() does not handle this
+    ! tranform_facet_to_physical_full() hopefully does?
+      cache_valid = .false.
+      return
     end if
 
     if (X%refcount%id/=full_face_position_id) then

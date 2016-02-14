@@ -3,7 +3,7 @@ include envcheck.mk
 preprocess: envcheck
 
 run: envcheck
-ifndef ($(NPROCS))
+ifndef NPROCS
 	@echo **********ERROR: Please define NPROCS to set the number of processors to use
 	@exit 1
 endif

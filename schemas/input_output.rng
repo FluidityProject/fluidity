@@ -99,14 +99,12 @@ not necessarily correspond to the data in a given file.</a:documentation>
         </optional>
         <optional>
           <element name="surface_height">
-            <a:documentation>For use with 2D depth maps.
-If you are reading data from a file whose top layer height
+            <a:documentation>If you are reading data from a file whose top layer height
 is not equal to zero, set the height of that top layer here.
 Note however that the height of the top layer in the the 
-extruded mesh will still be equal to zero, the given domain
-will in effect have been shifted down.
-This option has no effect when extruding meshes on the surface
-of a sphere.</a:documentation>
+extruded mesh will still be equal to zero (if planar) or 
+the radius of the shell mesh (if spherical), the given domain
+will in effect have been shifted down.</a:documentation>
             <ref name="real"/>
           </element>
         </optional>
@@ -264,11 +262,6 @@ Simulations using the format 'other' should be updated to use 'raw'.</a:document
           </element>
         </element>
       </element>
-      <element name="no_initial_condition">
-        <a:documentation>Indicate that no initial condition exists. Users should not set this;
-this is only used in adjoint runs.</a:documentation>
-        <empty/>
-      </element>
     </choice>
   </define>
   <define name="input_choice_initial_condition_pressure">
@@ -344,11 +337,6 @@ Simulations using the format 'other' should be updated to use 'raw'.</a:document
           </element>
         </element>
       </element>
-      <element name="no_initial_condition">
-        <a:documentation>Indicate that no initial condition exists. Users should not set this;
-this is only used in adjoint runs.</a:documentation>
-        <empty/>
-      </element>
     </choice>
   </define>
   <!-- Choice of input method, e.g. for boundary conditions -->
@@ -379,11 +367,6 @@ be set to use this option.</a:documentation>
             <value>Velocity</value>
           </element>
         </element>
-      </element>
-      <element name="no_initial_condition">
-        <a:documentation>Indicate that no initial condition exists. Users should not set this;
-this is only used in adjoint runs.</a:documentation>
-        <empty/>
       </element>
     </choice>
   </define>
@@ -476,11 +459,6 @@ be set to use this option.</a:documentation>
             <value>Velocity</value>
           </element>
         </element>
-      </element>
-      <element name="no_initial_condition">
-        <a:documentation>Indicate that no initial condition exists. Users should not set this;
-this is only used in adjoint runs.</a:documentation>
-        <empty/>
       </element>
     </choice>
   </define>

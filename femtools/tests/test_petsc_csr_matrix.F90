@@ -1,13 +1,15 @@
 #include "fdebug.h"
 subroutine test_petsc_csr_matrix()
-#include "petscversion.h"
   use sparse_tools
   use sparse_tools_petsc
   use parallel_tools
   use petsc_tools
   use unittest_tools
+#ifdef HAVE_PETSC_MODULES
+  use petsc 
+#endif
   implicit none
-#include "finclude/petsc.h"
+#include "petsc_legacy.h"
   
   type(petsc_csr_matrix):: A
   type(csr_matrix):: B

@@ -1502,6 +1502,23 @@ vector_scalar_time_averaged_algorithm =
       }
    )
 
+# surface algorithm
+
+surface_horizontal_divergence_algorithm = 
+   (
+      ## Algorithm calculates the horizontally restricted divergence of
+      ## a horizontal vector living on the specified surface.
+      element algorithm {
+         attribute name { "surface_horizontal_divergence" },
+         attribute material_phase_support { "single" },
+         vector_source_field,
+         element surface_ids {
+            integer_vector
+         }
+      }
+   )
+      
+
 scalar_diagnostic_algorithms = universal_numbering_diagnostic_algorithm
 scalar_diagnostic_algorithms |= viscous_dissipation_algorithm
 scalar_diagnostic_algorithms |= universal_column_id_algorithm
@@ -1509,6 +1526,7 @@ scalar_diagnostic_algorithms |= tidal_harmonic_algorithm
 scalar_diagnostic_algorithms |= tensor_second_invariant_algorithm
 scalar_diagnostic_algorithms |= strain_rate_second_invariant_algorithm
 scalar_diagnostic_algorithms |= temporalmin_algorithm
+scalar_diagnostic_algorithms |= surface_horizontal_divergence_algorithm
 scalar_diagnostic_algorithms |= scalar_temporalmax_algorithm
 scalar_diagnostic_algorithms |= scalar_time_averaged_algorithm
 scalar_diagnostic_algorithms |= scalar_period_averaged_algorithm
