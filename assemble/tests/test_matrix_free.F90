@@ -235,18 +235,16 @@ subroutine petsc_solve_matrix_free(x, matrix, rhs)
   use solvers
   use petsc_tools
   use matrix_free_solvers
+
+#ifdef HAVE_PETSC_MODULES
+  use petsc 
+#endif
   implicit none
+#include "petsc_legacy.h"
   type(scalar_field), intent(inout) :: x
   type(scalar_field), intent(in) :: rhs
   type(csr_matrix), intent(in) :: matrix
   integer, dimension(:), allocatable :: petsc_numbering
-#ifdef HAVE_PETSC
-#include "finclude/petsc.h"
-#include "finclude/petscvec.h"
-#include "finclude/petscmat.h"
-#include "finclude/petscksp.h"
-#include "finclude/petscpc.h"
-#endif
   KSP :: ksp 
   Mat :: Amat, Pmat
   Vec :: y, b

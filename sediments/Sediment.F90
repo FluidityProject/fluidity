@@ -44,7 +44,7 @@ module sediment
   implicit none
 
   public set_sediment_reentrainment, sediment_check_options, get_n_sediment_fields, &
-       & get_sediment_item
+       & get_sediment_item, surface_horizontal_divergence
 
   private 
 
@@ -529,6 +529,95 @@ contains
     call addto(reentrainment, ele, E)
 
   end subroutine assemble_generic_reentrainment_ele
+
+ subroutine surface_horizontal_divergence(source, positions, output, surface_ids)
+    !!< Return a field containing:
+    !!<    div_HS source
+    !!< where div_hs is a divergence operator restricted to the surface and
+    !!< of spatial dimension one degree lower than the full mesh.
+  
+    type(vector_field), intent(in) :: source
+    type(vector_field), intent(in) :: positions
+    type(scalar_field), intent(inout) :: output
+    integer, dimension(:), intent(in) :: surface_ids
+    
+    type(mesh_type) :: surface_mesh, source_surface_mesh, output_surface_mesh
+
+    integer :: i, idx
+
+    integer, dimension(surface_element_count(output)) :: surface_elements
+    integer, dimension(:), pointer :: surface_nodes, source_surface_nodes,&
+         output_surface_nodes
+    real :: face_area, face_integral
+
+    type(vector_field) :: surface_source, surface_positions
+    type(scalar_field) :: surface_output
+    real, dimension(mesh_dim(positions))  :: val
+    
+    call zero(output)
+
+    !!! get the relevant surface. This wastes a bit of memory.
+    idx=1
+    do i = 1, surface_element_count(output)
+       if (any(surface_ids == surface_element_id(positions, i))) then
+          surface_elements(idx)=i
+          idx=idx+1
+       end if
+    end do
+
+    !!! make the surface meshes
+
+    call create_surface_mesh(surface_mesh,  surface_nodes, &
+         positions%mesh, surface_elements=surface_elements(:idx-1), &
+         name='CoordinateSurfaceMesh')
+    call create_surface_mesh(source_surface_mesh,  source_surface_nodes, &
+         source%mesh, surface_elements=surface_elements(:idx-1), &
+         name='SourceSurfaceMesh')
+    call create_surface_mesh(output_surface_mesh,  output_surface_nodes, &
+         output%mesh, surface_elements=surface_elements(:idx-1), &
+         name='OutputSurfaceMesh')
+
+    call allocate(surface_positions,mesh_dim(surface_mesh),surface_mesh,&
+         "Coordinates")
+    call allocate(surface_source,mesh_dim(surface_mesh),source_surface_mesh,&
+         "Source")
+    call allocate(surface_output,output_surface_mesh,"Divergence")
+
+    do i=1,size(surface_nodes)
+       val=node_val(positions,surface_nodes(i))
+       call set(surface_positions,i,val(:mesh_dim(surface_mesh)))
+    end do
+
+    do i=1,size(source_surface_nodes)
+       val=node_val(source,source_surface_nodes(i))
+       call set(surface_source,i,val(:mesh_dim(surface_mesh)))
+    end do
+
+!!! now do the low dimensional divergence operation
+
+    call div(surface_source,surface_positions,surface_output)
+
+    do i=1,size(output_surface_nodes)
+       call set(output,output_surface_nodes(i),node_val(surface_output,i))
+    end do
+
+!!! I *think* this surfices for parallel, due to the relatively locality of the 
+!!! divergence operator
+
+    call halo_update(output)
+
+    call deallocate(surface_positions)
+    call deallocate(surface_source)
+    call deallocate(surface_output)
+
+    call deallocate(surface_mesh)
+    call deallocate(source_surface_mesh)
+    call deallocate(output_surface_mesh)
+
+
+    deallocate(surface_nodes, source_surface_nodes, output_surface_nodes)
+
+  end subroutine surface_horizontal_divergence
 
   subroutine sediment_check_options
 

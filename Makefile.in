@@ -93,9 +93,6 @@ ifneq (@HAVE_ZOLTAN@,yes)
 else
 	EXCLUDE_TAGS := $(EXCLUDE_TAGS) -e nozoltan
 endif
-ifneq (@HAVE_ADJOINT@,yes)
-	EXCLUDE_TAGS := $(EXCLUDE_TAGS) -e adjoint
-endif
 ifneq (@MBA2D@,yes)
 	EXCLUDE_TAGS := $(EXCLUDE_TAGS) -e 2dadapt
 endif
@@ -181,51 +178,6 @@ bin/$(FLUIDITY): main.o lib/lib$(FLUIDITY).a
 	@mkdir -p bin
 	@echo "    LD $(PROGRAM)"
 	@$(EVAL) $(LINKER) -o $(PROGRAM) main.o $(LIBS)
-
-sw: bin/shallow_water
-be: bin/burgers_equation
-hh: bin/hybridized_helmholtz_solver
-
-bin/shallow_water: fluidity_library bin/hybridized_helmholtz_solver main/Shallow_Water.F90
-	@cd main; $(MAKE) Shallow_Water.o
-	@echo "BUILD shallow_water"
-	@echo "    MKDIR bin"
-	@mkdir -p bin
-	@echo "    LD shallow_water"
-	@$(EVAL) $(FLLINKER) -o bin/hybridized_helmholtz_solver main/Hybridized_Helmholtz_Solver.o $(LIBS)
-	@$(EVAL) $(FLLINKER) -o bin/shallow_water main/Shallow_Water.o $(LIBS)
-
-bin/hybridized_helmholtz_solver: fluidity_library main/Hybridized_Helmholtz_Solver.F90
-	@cd main; $(MAKE) Hybridized_Helmholtz_Solver.o
-	@echo "BUILD hybridized_helmholtz_solver"
-	@echo "    MKDIR bin"
-	@mkdir -p bin
-	@echo "    LD hybridized_helmholtz_solver"
-	@$(EVAL) $(FLLINKER) -o bin/hybridized_helmholtz_solver main/Hybridized_Helmholtz_Solver.o $(LIBS)
-
-bin/burgers_equation: fluidity_library main/Burgers_Equation.F90
-	@cd main; $(MAKE) Burgers_Equation.o
-	@echo "BUILD burgers_equation"
-	@echo "    MKDIR bin"
-	@mkdir -p bin
-	@echo "    LD burgers_equation"
-	@$(EVAL) $(FLLINKER) -o bin/burgers_equation main/Burgers_Equation.o $(FCFLAGS) $(LIBS)
-
-ifeq (@ENABLE_PSMILE@,yes)
-LIBPSMILE=@FLPSMILE_PATH@/lib/libpsmile_oa4.MPI1.a @FLPSMILE_PATH@/lib/libcommon_oa4.a @FLPSMILE_PATH@/lib/libmpp_io.a -lxml2
-bin/test_coupler: fluidity_library main/test_coupler.F90
-	@cd main; $(MAKE) test_coupler.o
-	@echo "BUILD test_coupler"
-	@echo "    MKDIR bin"
-	@mkdir -p bin
-	@echo "    LD test_coupler"
-	@$(EVAL) $(FC) -o bin/test_coupler main/test_coupler.o $(LIBPSMILE) $(FCFLAGS) $(LIBS)
-else
-bin/test_coupler:
-	@echo "     Unable to build bin/test_coupler without psmile libraries"
-	@echo "     Please reconfigure --with-psmile=/path/to/oasis4"
-	exit 1
-endif
 
 bin/form_pod_basis: fluidity_library reduced_modelling/Form_Pod_Basis_Main.F90
 	@cd reduced_modelling; $(MAKE) Form_Pod_Basis_Main.o
@@ -318,8 +270,6 @@ endif
 	@cd diagnostics;   	$(MAKE)
 	@echo "    MAKE reduced_modelling"
 	@cd reduced_modelling;   	$(MAKE)
-	@echo "    MAKE adjoint"
-	@cd adjoint; $(MAKE)
 	@echo "    MAKE main"
 	@cd main; $(MAKE)
 	@echo "    MAKE options_check"
@@ -344,7 +294,6 @@ error_measures/*.o \
 assemble/*.o \
 diagnostics/*.o \
 reduced_modelling/*.o \
-adjoint/*.o \
 main/*.o
 ifeq (@HYPERLIGHT@,yes)
 	@$(AR) $(ARFLAGS) lib/libfluidity.a hyperlight/*.o
@@ -397,9 +346,6 @@ clean-light:
 	@cd horizontal_adaptivity/tests;   $(MAKE) clean
 	@echo "    CLEAN tools"
 	@cd tools;    $(MAKE) clean
-	@echo "    CLEAN adjoint"
-	@cd adjoint;    $(MAKE) clean
-	@cd adjoint/tests;    $(MAKE) clean
 	@echo "    CLEAN bathymetry"
 	@cd bathymetry;  $(MAKE) clean
 	@echo "    CLEAN ocean_forcing"
@@ -415,8 +361,6 @@ endif
 	@echo "    CLEAN climatology"
 	@echo "    CLEAN reduced_modelling"
 	@cd reduced_modelling; $(MAKE) clean
-	@echo "    CLEAN adjoint"
-	@cd adjoint; $(MAKE) clean
 	@echo "    CLEAN main"
 	@cd main; $(MAKE) clean
 	@rm -fr bin lib
@@ -491,7 +435,7 @@ distclean: clean
 	 include/spatialindex include/spud include/spud.h		\
 	 include/spud_enums.h include/tinystr.h include/tinyxml.h	\
 	 include/version.h include/vtk.h				\
-	 preprocessor/check_options.F90 schemas/flml			\
+	 preprocessor/check_options.F90 \
 	 preprocessor/register_diagnostics.F90 python/setup.py >	\
 	 /dev/null
 	@for i in `find ./*/ -name Makefile.in`; do rm -f `echo $$i | sed 's/.in$$//'`; done > /dev/null
@@ -500,10 +444,10 @@ distclean: clean
 
 test: serialtest
 
-serialtest: fltools bin/$(FLUIDITY) bin/shallow_water
+serialtest: fltools bin/$(FLUIDITY) 
 	@cd tests; ../bin/testharness -l short $(EXCLUDE_TAGS) -n $(THREADS)
 
-mediumtest: fltools bin/$(FLUIDITY) manual bin/burgers_equation bin/shallow_water spudtools
+mediumtest: fltools bin/$(FLUIDITY) manual spudtools
 	@cd tests; ../bin/testharness -l medium $(EXCLUDE_TAGS) -n $(THREADS)
 
 .PHONY: spudtools
@@ -533,8 +477,6 @@ build_unittest: fluidity_library libfemtools setuputs
 	@cd parameterisation/tests; $(MAKE) unittest
 	@echo "    UNITTEST assemble"
 	@cd assemble/tests; $(MAKE) unittest
-	@echo "    UNITTEST adjoint"
-	@cd adjoint/tests; $(MAKE) unittest
 	@echo "    UNITTEST ocean_forcing"
 	@cd ocean_forcing/tests; $(MAKE) unittest
 
@@ -560,10 +502,6 @@ ifneq (@GFORTRAN_4_5_OR_NEWER@,yes)
 endif
 ifneq (@HAVE_ZOLTAN@,yes)
 	@echo "makefile dependency generation requires zoltan"
-	@false
-endif
-ifneq (@HAVE_ADJOINT@,yes)
-	@echo "makefile dependency generation requires adjoint"
 	@false
 endif
 	@echo "    Generating debug dependencies"
@@ -599,15 +537,13 @@ endif
 	Diagnostic_Fields_New.o 
 	@echo "    Generating reduced_modelling dependencies"
 	@cd reduced_modelling;   	../bin/create_makefile $(TESTOPTS)
-	@echo "    Generating adjoint dependencies"
-	@cd adjoint; ../bin/create_makefile $(TESTOPTS)
 	@echo "    Generating main dependencies"
 	@cd main; ../bin/create_makefile --exclude test_coupler.F90 $(TESTOPTS)
 	@echo "    Cleaning up the mess"
 	$(MAKE) clean-light
 	@echo "    Congratulations, make makefiles succeeded!"
 
-install: default fltools bin/shallow_water bin/burgers_equation
+install: default fltools 
 	@mkdir -p $(DESTDIR)$(bindir) $(DESTDIR)$(docdir)/fluidity
 	find bin/ -maxdepth 1 -type f -exec cp '{}' $(DESTDIR)$(bindir) \;
 	rm -f $(DESTDIR)$(bindir)/spud-* $(DESTDIR)$(bindir)/diamond $(DESTDIR)$(bindir)/silenteval $(DESTDIR)$(bindir)/runut
@@ -615,7 +551,7 @@ install: default fltools bin/shallow_water bin/burgers_equation
 	mkdir -p $(DESTDIR)$(datadir)/fluidity
 	cp -r schemas/ $(DESTDIR)$(datadir)/fluidity/
 	mkdir -p $(DESTDIR)$(datadir)/diamond/schemata
-	cp schemas/flml $(DESTDIR)$(datadir)/diamond/schemata
+	sed 's/$${datadir}/$(subst /,\/,$(datadir))/g' schemas/flml.in > $(DESTDIR)$(datadir)/diamond/schemata/flml
 	cd python ; python setup.py install --root=$(shell echo ${DESTDIR} | sed 's/^$$/\//') --prefix="$(prefix)" $$FLUIDITY_PYTHON_INSTALL_ARGS
 	cp -r examples/ $(DESTDIR)$(docdir)/fluidity
 	find $(DESTDIR)$(docdir)/fluidity/examples -type f -exec sed -i "s/\.\.\/\.\.\/\.\.\/bin\///" '{}' \;

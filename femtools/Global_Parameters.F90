@@ -152,7 +152,6 @@ module global_parameters
   real, dimension(:, :), allocatable :: domain_bbox
 
   real :: domain_volume
-  logical :: running_adjoint = .false.
 
   !! When on-the-sphere, the planet radius is needed.
   ! The variable is initiliased as unity, to avoid garbage

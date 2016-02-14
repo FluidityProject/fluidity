@@ -2012,7 +2012,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
       FLAbort("Unknown fieldsplit_type")
     end select
 
-    call pcfieldsplitgetsubksp(pc, subksps, ierr)
+    call pcfieldsplitgetsubksp(pc, PETSC_NULL_INTEGER, subksps, ierr)
     do i=1, size(subksps)
 
       call KSPGetOperators(subksps(i), mat, pmat, ierr)

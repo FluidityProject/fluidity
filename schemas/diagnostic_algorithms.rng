@@ -2006,6 +2006,23 @@ This field needs to be interpolated between adapts.</a:documentation>
       </optional>
     </element>
   </define>
+  <!-- surface algorithm -->
+  <define name="surface_horizontal_divergence_algorithm">
+    <element name="algorithm">
+      <a:documentation>Algorithm calculates the horizontally restricted divergence of
+a horizontal vector living on the specified surface.</a:documentation>
+      <attribute name="name">
+        <value>surface_horizontal_divergence</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <ref name="vector_source_field"/>
+      <element name="surface_ids">
+        <ref name="integer_vector"/>
+      </element>
+    </element>
+  </define>
   <define name="scalar_diagnostic_algorithms">
     <ref name="universal_numbering_diagnostic_algorithm"/>
   </define>
@@ -2026,6 +2043,9 @@ This field needs to be interpolated between adapts.</a:documentation>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="temporalmin_algorithm"/>
+  </define>
+  <define name="scalar_diagnostic_algorithms" combine="choice">
+    <ref name="surface_horizontal_divergence_algorithm"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="scalar_temporalmax_algorithm"/>

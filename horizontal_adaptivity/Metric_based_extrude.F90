@@ -94,7 +94,7 @@ module hadapt_metric_based_extrude
       lmap => map
     else
       allocate(lmap(node_count(h_positions_new)))
-      lmap = get_element_mapping(h_positions_old, h_positions_new)
+      lmap = get_element_mapping(h_positions_old, h_positions_new, only_owned=.true.)
     end if
     
     call allocate(top_surface_nodes)
