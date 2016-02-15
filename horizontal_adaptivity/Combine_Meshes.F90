@@ -17,7 +17,7 @@ module hadapt_combine_meshes
 
   private
   
-  public :: combine_z_meshes, combine_r_meshes
+  public :: combine_z_meshes
 
   contains
 
@@ -39,12 +39,8 @@ module hadapt_combine_meshes
     integer, dimension(:), allocatable:: no_hanging_nodes
     integer:: column, total_out_nodes, total_out_elements, z_elements, last_seen
 
-    if (present(sl)) then
-      sigma_layers=sl
-    else
-      sigma_layers=.false.
-    end if
-    
+    sigma_layers=present_and_true(sl)
+
     allocate(no_hanging_nodes(1:node_count(h_mesh)))
     no_hanging_nodes=0
     do column=1, size(z_meshes)
@@ -99,7 +95,7 @@ module hadapt_combine_meshes
     do column=1,node_count(h_mesh)
       if (node_owned(h_mesh, column)) then
         if (sigma_layers) then
-          ! If we have sigma layers we will first use one chain to chain to create a dummy
+          ! If we have sigma layers we will first use one chain to create a dummy
           ! 'mesh' that has the correct topological properties. We will later over write the
           !  vector field with the correct one. We always have chain '1', so we'll use that now.
           call append_to_structures(column, z_meshes(1), h_mesh, out_mesh, last_seen)
@@ -137,117 +133,13 @@ module hadapt_combine_meshes
           call append_to_structures(column, z_meshes(column), h_mesh, out_mesh, last_seen)
         end if
       end do
+      call halo_update(out_mesh)
     end if
 
     call deallocate(out_columns)
     
   end subroutine combine_z_meshes
   
-
-  subroutine combine_r_meshes(shell_mesh, r_meshes, out_mesh, &
-    full_shape, mesh_name, option_path, sl)
-  !! Given the shell_mesh and a r_mesh under each node of it combines these
-  !! into a full layered mesh
-  type(vector_field), intent(inout):: shell_mesh
-  type(vector_field), dimension(:), intent(in):: r_meshes
-  type(vector_field), intent(out):: out_mesh
-  type(element_type), intent(in):: full_shape
-  !! the name of the topol. mesh to be created, not the coordinate field
-  character(len=*), intent(in):: mesh_name, option_path
-  logical, intent(in), optional :: sl
-  logical :: sigma_layers
-  
-    type(csr_sparsity):: out_columns
-    type(mesh_type):: mesh
-    integer, dimension(:), allocatable:: no_hanging_nodes
-    integer:: column, total_out_nodes, total_out_elements, r_elements, last_seen
-
-    if (present(sl)) then
-      sigma_layers=sl
-    else
-      sigma_layers=.false.
-    end if
-    
-    allocate(no_hanging_nodes(1:node_count(shell_mesh)))
-    no_hanging_nodes=0
-    do column=1, size(r_meshes)
-      if (node_owned(shell_mesh, column)) then
-        no_hanging_nodes(column)=ele_count(r_meshes(column))
-      end if
-    end do
-    if (associated(shell_mesh%mesh%halos)) then
-      call halo_update(shell_mesh%mesh%halos(2), no_hanging_nodes)
-    end if
-
-    total_out_nodes = 0
-    ! For each column,
-    ! add (number of nodes hanging off (== number of 1d elements)) * (element connectivity of chain)
-    ! to compute the number of elements the extrusion routine will produce
-    total_out_elements = 0
-    do column=1, size(r_meshes)
-      r_elements = no_hanging_nodes(column)
-      total_out_nodes = total_out_nodes + r_elements + 1
-      assert(associated(shell_mesh%mesh%adj_lists))
-      assert(associated(shell_mesh%mesh%adj_lists%nelist))
-      total_out_elements = total_out_elements + r_elements * row_length(shell_mesh%mesh%adj_lists%nelist, column)
-    end do
-
-    call allocate(mesh, total_out_nodes, total_out_elements, &
-      full_shape, mesh_name)
-    ! allocate mapping between extruded nodes to surface node (column number)
-    ! it lies under
-    allocate(mesh%columns(total_out_nodes))
-    mesh%columns = 0
-    ! allocate mapping between extruded elements to surface elements in horizontal mesh
-    ! it lies under
-    allocate(mesh%element_columns(total_out_elements))
-    mesh%element_columns = 0
-    ! if the horizontal mesh has region ids these can be propagated down into the full
-    ! mesh.  allocate space for this...
-    if(associated(shell_mesh%mesh%region_ids)) then
-      allocate(mesh%region_ids(total_out_elements))
-    end if
-    if (mesh_name=="CoordinateMesh") then
-      call allocate(out_mesh, mesh_dim(shell_mesh)+1, mesh, "Coordinate")
-    else
-      call allocate(out_mesh, mesh_dim(shell_mesh)+1, mesh, trim(mesh_name)//"Coordinate")
-    end if
-    call deallocate(mesh)
-
-    out_mesh%mesh%option_path=option_path
-    out_mesh%option_path=""
-    out_mesh%mesh%periodic = mesh_periodic(shell_mesh) ! Leave this here for now
-    
-    last_seen = 0
-    do column=1,node_count(shell_mesh)
-      if (node_owned(shell_mesh, column)) then
-        call append_to_structures_radial(column, r_meshes(column), out_mesh, last_seen)
-      else
-        ! for non-owned columns we reserve node numbers, 
-        ! but don't fill in out_mesh positions yet
-        ! note that in this way out_mesh will obtain the same halo ordering
-        ! convention as h_mesh
-        out_mesh%mesh%columns(last_seen+1:last_seen+no_hanging_nodes(column)+1) = column
-        last_seen = last_seen + no_hanging_nodes(column)+1
-      end if
-    end do
-    assert(all(out_mesh%mesh%columns>0))
-      
-    call create_columns_sparsity(out_columns, out_mesh%mesh)
-
-    if (associated(shell_mesh%mesh%halos)) then
-      ! derive l2 node halo for the out_mesh
-      call derive_extruded_l2_node_halo(shell_mesh%mesh, out_mesh%mesh, out_columns)
-      ! positions in the non-owned columns can now simply be halo-updated
-      call halo_update(out_mesh)
-    end if
-
-    call generate_layered_mesh(out_mesh, shell_mesh)
-
-    call deallocate(out_columns)
-    
-  end subroutine combine_r_meshes
-
   subroutine append_to_structures(column, z_mesh, h_mesh, out_mesh, last_seen)
     integer, intent(in) :: column
     type(vector_field), intent(in) :: z_mesh, h_mesh
@@ -255,44 +147,33 @@ module hadapt_combine_meshes
     integer, intent(inout) :: last_seen
 
     integer :: j
-    integer :: h_dim, v_dim
+    integer :: v_dim
+    logical :: radial_extrusion
 
-    real, dimension(mesh_dim(out_mesh)) :: pos
+    real, dimension(mesh_dim(out_mesh)) :: pos, origin, direction
 
-    h_dim = mesh_dim(h_mesh)
+    radial_extrusion = have_option("/geometry/spherical_earth")
+    
     v_dim = mesh_dim(out_mesh)
+
+    origin = 0.0
+    origin(1:h_mesh%dim) = node_val(h_mesh, column)
+    direction = 0.0
+    if (radial_extrusion) direction = origin/norm2(origin)
 
     do j=1,node_count(z_mesh)
       last_seen = last_seen + 1
       out_mesh%mesh%columns(last_seen)=column
-      pos(1:h_dim) = node_val(h_mesh, column)
-      pos(v_dim) = node_val(z_mesh, 1, j)
+      if (radial_extrusion) then
+        pos = origin + direction*node_val(z_mesh, 1, j)
+      else
+        pos = origin
+        pos(v_dim) = node_val(z_mesh, 1, j)
+      end if
       call set(out_mesh, last_seen, pos)
     end do
     
   end subroutine append_to_structures
-
-  subroutine append_to_structures_radial(column, r_mesh, out_mesh, last_seen)
-    integer, intent(in) :: column
-    type(vector_field), intent(in) :: r_mesh
-    type(vector_field), intent(inout) :: out_mesh
-    integer, intent(inout) :: last_seen
-
-    integer :: j
-    integer :: r_dim
-
-    real, dimension(mesh_dim(out_mesh)) :: pos
-
-    r_dim = mesh_dim(out_mesh)
-
-    do j=1,node_count(r_mesh)
-      last_seen = last_seen + 1
-      out_mesh%mesh%columns(last_seen)=column
-      pos(1:r_dim) = node_val(r_mesh, j)             ! note that in z-dir extrusion case only the z value was loaded into the out mesh from the z mesh. Here however,
-      call set(out_mesh, last_seen, pos)
-    end do
-    
-  end subroutine append_to_structures_radial
 
   subroutine derive_extruded_l2_node_halo(h_mesh, out_mesh, columns)
     ! derive the l2 node halo for the extruded mesh
