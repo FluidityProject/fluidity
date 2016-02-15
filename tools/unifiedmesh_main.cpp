@@ -40,10 +40,9 @@
 using namespace std;
 
 extern "C"{
-#define unifiedmesh F77_FUNC(unifiedmesh, UNIFIEDMESH)
-  void unifiedmesh_(const char* filename1, const int* filename1_len,
-                   const char* filename2, const int* filename2_len,
-                   const char* output, const int* output_len);
+  void unifiedmesh(const char* filename1, size_t filename1_len,
+                   const char* filename2, size_t filename2_len,
+                   const char* output, size_t output_len);
 }
 
 void usage(){
@@ -67,12 +66,16 @@ int main(int argc, char** argv){
     return -1;
   }
 
-  int mesh_file_1_len=strlen(argv[1]);
-  int mesh_file_2_len=strlen(argv[2]);
-  int output_file_name_len=strlen(argv[3]);
-  unifiedmesh_(argv[1], &mesh_file_1_len,
-              argv[2], &mesh_file_2_len,
-              argv[3], &output_file_name_len);
+  string filename1, filename2, outputfilename;
+  filename1.append(argv[1]);
+  filename2.append(argv[2]);
+  outputfilename.append(argv[3]);
+  size_t mesh_file_1_len = filename1.size();
+  size_t mesh_file_2_len = filename2.size();
+  size_t output_file_name_len = outputfilename.size();
+  unifiedmesh(filename1.c_str(), mesh_file_1_len,
+              filename2.c_str(), mesh_file_2_len,
+              outputfilename.c_str(), output_file_name_len);
 
 #ifdef HAVE_MPI
   MPI::Finalize();
