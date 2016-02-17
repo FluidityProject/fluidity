@@ -38,23 +38,23 @@ subroutine test_find_node_ownership_rtree
   implicit none
   
   integer :: i
-  integer, dimension(:), allocatable :: l_coords, node_ownership
+  integer, dimension(:), allocatable :: l_coords, nodeownership
   logical :: fail
   type(vector_field) :: positions1, positions2
   
   positions1 = read_mesh_files("data/rotated_square.1", quad_degree = 1, format="gmsh")
   positions2 = read_mesh_files("data/rotated_square.2", quad_degree = 1, format="gmsh")
 
-  allocate(node_ownership(node_count(positions2)))
-  call find_node_ownership_rtree(positions1, positions2, node_ownership)
+  allocate(nodeownership(node_count(positions2)))
+  call find_node_ownership_rtree(positions1, positions2, nodeownership)
   
-  call report_test("[All node owners found]", any(node_ownership < 0), .false., "Not all node owners found")
+  call report_test("[All node owners found]", any(nodeownership < 0), .false., "Not all node owners found")
   
-  call report_test("[Correct map size]", size(node_ownership) /= node_count(positions2), .false., "Incorrect map size")
+  call report_test("[Correct map size]", size(nodeownership) /= node_count(positions2), .false., "Incorrect map size")
   fail = .false.
   do i = 1, node_count(positions2)
-    allocate(l_coords(ele_loc(positions1, node_ownership(i))))
-    l_coords = local_coords(positions1, node_ownership(i), node_val(positions2, i))
+    allocate(l_coords(ele_loc(positions1, nodeownership(i))))
+    l_coords = local_coords(positions1, nodeownership(i), node_val(positions2, i))
     if(any(l_coords < - default_ownership_tolerance)) then
       fail = .true.
       exit
@@ -63,7 +63,7 @@ subroutine test_find_node_ownership_rtree
   end do
   call report_test("[Valid map]", fail, .false., "Invalid map")
 
-  deallocate(node_ownership)
+  deallocate(nodeownership)
 
   call deallocate(positions1)
   call deallocate(positions2)
