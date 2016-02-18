@@ -1,5 +1,5 @@
 lr=2; // number of cells in the radial direction
-lti=lr; // number of cells in a pi/4 segment in the tangential direction of the inner radius
+lti=2; // number of cells in a pi/4 segment in the tangential direction of the inner radius
 lto=lti; // has to be for a transfinite surface
 p=1;
 Point(1) = {1.22, 0, 0, 1.0};
