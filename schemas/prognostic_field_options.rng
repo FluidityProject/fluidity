@@ -253,6 +253,38 @@ and epsilon equations. See the manual for more information.
           </optional>
         </element>
         <element name="subgridscale_parameterisation">
+          <a:documentation>Turning this option on enables a turbulent diffusion term for this field when using LES.
+This is only implemented for cases where velocity is discontinuous and this scalar field is discontiuous.
+
+The turbulent diffusion term is identical to the molecular diffusion term but takes its value of diffusivity
+from the LES eddy viscosity, scaled by a Prandtl number. 
+
+k_T = nu_T / Pr
+
+where k_T = turbulent diffusivity, nu_T = eddy viscosity and Pr = prandtl number
+
+See "Experimental and large eddy simulation results for the purging of salt water from a cavity by an 
+overflow of fresh water", Kirkpatrick 2005</a:documentation>
+          <attribute name="name">
+            <value>LES</value>
+          </attribute>
+          <optional>
+            <element name="PrandtlNumber">
+              <a:documentation>Ratio of turbulent momentum diffusivity to turbulent molecular diffusivity. 
+Default = 1.0, i.e. SGS viscosity = SGS diffusivity</a:documentation>
+              <ref name="real"/>
+            </element>
+          </optional>
+          <optional>
+            <element name="Ri_c">
+              <a:documentation>Richardson number (Ri) dependent SGS diffusivity. Specify the critical Ri number. 
+
+See Stevens et al., 1998; Dornbrack, 1998, Ozgokmen et. al. 2007</a:documentation>
+              <ref name="real"/>
+            </element>
+          </optional>
+        </element>
+        <element name="subgridscale_parameterisation">
           <attribute name="name">
             <value>prescribed_diffusivity</value>
           </attribute>
@@ -880,6 +912,19 @@ upon temperature. This is only valid when you have a temperature field.</a:docum
               </element>
             </element>
           </optional>
+          <element name="buoyancy">
+            <a:documentation>Options dealing with buoyancy</a:documentation>
+            <optional>
+              <element name="radial_gravity_direction_at_gauss_points">
+                <a:documentation>Align the gravity opposite to the radial direction (-(x,y) in 2d, -(x,y,z) in 3d)
+and evaluate it at the gauss points.
+
+NOTE: this ignores whatever values are set under /physical_parameters/gravity/vector_field::GravityDirection 
+for the buoyancy terms.</a:documentation>
+                <ref name="comment"/>
+              </element>
+            </optional>
+          </element>
         </element>
         <element name="discontinuous_galerkin">
           <a:documentation>Discontinuous galerkin formulation. Confusingly it is not necessary to provide
@@ -1108,6 +1153,103 @@ This is invariant regardless of whether the main
 advection term is integrated by parts once or
 twice.</a:documentation>
                 <empty/>
+              </element>
+            </optional>
+          </element>
+          <optional>
+            <element name="les_model">
+              <a:documentation>Large-eddy simulation (LES) models. Currently restricted to use in incompressible flow cases, where the discrete velocity is divergence-free and the eddy viscosity tensor is traceless.
+Also restricted to the Bassi-Rebay viscosity scheme which must be in partial stress form</a:documentation>
+              <element name="smagorinsky_coefficient">
+                <a:documentation>literature symbol: Cs
+
+suggested value 0.1</a:documentation>
+                <ref name="real"/>
+              </element>
+              <optional>
+                <element name="scalar_field">
+                  <a:documentation>In adaptive simulations you may want to prescribe a filter width to use throught the domain</a:documentation>
+                  <attribute name="rank">
+                    <value>0</value>
+                  </attribute>
+                  <attribute name="name">
+                    <value>FilterWidth</value>
+                  </attribute>
+                  <element name="prescribed">
+                    <ref name="velocity_mesh_choice"/>
+                    <ref name="prescribed_scalar_field"/>
+                  </element>
+                </element>
+              </optional>
+              <optional>
+                <element name="scalar_field">
+                  <a:documentation>If distance to wall is enabled a Van Driest damping function will be applied based upon the wall distances set in this field.</a:documentation>
+                  <attribute name="rank">
+                    <value>0</value>
+                  </attribute>
+                  <attribute name="name">
+                    <value>DistanceToWall</value>
+                  </attribute>
+                  <element name="prescribed">
+                    <ref name="velocity_mesh_choice"/>
+                    <ref name="prescribed_scalar_field"/>
+                  </element>
+                </element>
+              </optional>
+              <optional>
+                <element name="debug">
+                  <optional>
+                    <element name="scalar_field">
+                      <a:documentation>YPlus - the wall Reynolds number on the Van Driest formulation. Requires an LES model
+to be applied to the velocity field.</a:documentation>
+                      <attribute name="rank">
+                        <value>0</value>
+                      </attribute>
+                      <attribute name="name">
+                        <value>YPlus</value>
+                      </attribute>
+                      <element name="prescribed">
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="internal_algorithm"/>
+                        <ref name="diagnostic_scalar_field"/>
+                      </element>
+                    </element>
+                  </optional>
+                  <optional>
+                    <element name="scalar_field">
+                      <a:documentation>DampedFilterWidth - Mixing length following application of the
+Van Driest formula:
+
+L_damped = L_{grid} * (1.0 - exp(-YPlus/25))
+
+Requires an LES model to be applied to the velocity field.</a:documentation>
+                      <attribute name="rank">
+                        <value>0</value>
+                      </attribute>
+                      <attribute name="name">
+                        <value>DampedFilterWidth</value>
+                      </attribute>
+                      <element name="prescribed">
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="internal_algorithm"/>
+                        <ref name="diagnostic_scalar_field"/>
+                      </element>
+                    </element>
+                  </optional>
+                </element>
+              </optional>
+            </element>
+          </optional>
+          <element name="buoyancy">
+            <a:documentation>Options dealing with buoyancy</a:documentation>
+            <optional>
+              <element name="radial_gravity_direction_at_gauss_points">
+                <a:documentation>Align the gravity opposite to the radial direction (-(x,y) in 2d, -(x,y,z) in 3d)
+and evaluate it at the gauss points.
+
+NOTE: this ignores whatever values are set under /physical_parameters/gravity/vector_field::GravityDirection 
+for the buoyancy terms.</a:documentation>
+                <ref name="comment"/>
               </element>
             </optional>
           </element>

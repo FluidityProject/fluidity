@@ -1,7 +1,7 @@
 
 subroutine test_mesh_conformity
   use fields
-  use read_triangle
+  use mesh_files
   use unittest_tools
   use conformity_measurement
   implicit none
@@ -13,7 +13,7 @@ subroutine test_mesh_conformity
   logical :: fail
   real :: a, b
 
-  X=read_triangle_files("data/eqtriangle.1", quad_degree=4)
+  X=read_mesh_files("data/eqtriangle.1", format="gmsh", quad_degree=4)
   mesh => X%mesh
 
   call allocate(metric, mesh, "ErrorMetric", field_type=FIELD_TYPE_CONSTANT)

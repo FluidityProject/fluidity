@@ -57,7 +57,7 @@ module mba2d_integration
     integer, dimension(:), allocatable :: iFnc
     integer, dimension(:), allocatable :: lbE
     real, dimension(:, :), allocatable :: tmp_metric
-    integer :: i, j, k, partition_surface_id, face, face2
+    integer :: i, j, partition_surface_id, face, face2
     real :: quality, rQuality
     integer :: iPrint, ierr, maxWr, maxWi
     real, dimension(:), allocatable :: rW
@@ -71,7 +71,8 @@ module mba2d_integration
     integer :: iterations
     integer, dimension(:), allocatable :: locked_nodes
     integer, dimension(:), pointer :: neighbours, faces
-    type(halo_type), pointer :: old_halo
+    type(halo_type), pointer :: old_halo, new_halo
+    integer :: proc
     
     ! Surface ID interleaving
     integer :: max_coplanar_id
@@ -80,16 +81,12 @@ module mba2d_integration
     ! Element locking
     integer :: nfe
     integer, dimension(:), allocatable :: ife
+    integer, dimension(:), pointer:: nodes
+    integer :: ele
     integer :: nfv
-    logical, dimension(:), allocatable :: is_locked_ele
-    integer, dimension(:), pointer :: node_eles
     type(csr_sparsity), pointer :: nelist
     ! Flattened halo data
     integer :: nhalos
-    integer, dimension(:), allocatable :: old_sends, old_receives, sends_starts, receives_starts, new_sends, new_receives
-    ! Fields we use to find the new halo numbering
-    type(scalar_field) :: old_halo_field, new_halo_field
-    type(integer_hash_table) :: old_to_new
     type(integer_hash_table) :: input_face_numbering_to_mba2d_numbering
 
     ! if we're parallel we'll need to reorder the region ids after the halo derivation
@@ -97,8 +94,9 @@ module mba2d_integration
     
 !#define DUMP_HALO_INTERPOLATION
 #ifdef DUMP_HALO_INTERPOLATION
-    type(mesh_type) :: xmesh_pwc
-    type(scalar_field) :: locked_elements
+    type(mesh_type):: p0mesh
+    type(scalar_field):: locked_field
+    integer, save:: ix=0
 #endif
 
 #ifdef GIVE_LIPNIKOV_OUTPUT
@@ -109,7 +107,6 @@ module mba2d_integration
 !#define DUMP_HALO
 #ifdef DUMP_HALO
     type(scalar_field) :: sends_sfield, receives_sfield
-    integer :: proc
 #endif
 
     ewrite(1, *) "In adapt_mesh_mba2d"
@@ -126,7 +123,7 @@ module mba2d_integration
 
     nonods = node_count(xmesh)
     totele = ele_count(xmesh)
-    orig_stotel = surface_element_count(xmesh)
+    orig_stotel = unique_surface_element_count(xmesh)
     mxface = int(max((float(mxnods) / float(nonods)) * orig_stotel * 3.5, 10000.0))
     maxele = int(max((float(mxnods) / float(nonods)) * totele * 1.5, 10000.0))
     maxp = mxnods * 1.2
@@ -137,7 +134,7 @@ module mba2d_integration
       pos(i, 1:nonods) = input_positions%val(i,:)
     end do
 
-    allocate(surface_ids(surface_element_count(xmesh)))
+    allocate(surface_ids(orig_stotel))
     call interleave_surface_ids(xmesh, surface_ids, max_coplanar_id)
 
     allocate(ipf(4, mxface))
@@ -160,6 +157,10 @@ module mba2d_integration
           if (face <= orig_stotel) then ! if facet is genuinely external, i.e. on the domain exterior
             ipf(4, stotel) = surface_ids(face)
             stotel_external = stotel_external + 1
+          else if (face <= surface_element_count(xmesh)) then
+            ! this should only happen for the 2nd copy of an internal facet
+            ! so something's wrong in the faces admin
+            FLAbort("Detected external facet that's numbered incorrectly.")
           else
             ipf(4, stotel) = partition_surface_id
           end if
@@ -169,22 +170,21 @@ module mba2d_integration
 
     if (stotel_external<orig_stotel) then
       ! not all facets in the surface mesh are external apparently
+      ! 1:orig_stotel should only give us one of each pair of internal facets
       do face=1, orig_stotel
         face2 = face_neigh(xmesh, face)
-        if (face>face2) then
+        if (face/=face2) then
           ! if face==face2 it's an external facet that's dealt with already
-          ! we check face>face2 to ensure we only copy one of the two coinciding facets
           stotel = stotel +1
           call insert(input_face_numbering_to_mba2d_numbering, face, stotel)
           ipf(1:2, stotel) = face_global_nodes(xmesh, face)
           ipf(3, stotel) = 0
           ipf(4, stotel) = surface_ids(face)
-          if (surface_ids(face)/=surface_ids(face2)) then
-            ! note that we're here checking for the combined surface+coplanar id to be the same
-            ! but the coplanar id of the 2 facets should always be the same
+          if (surface_element_id(xmesh, face)/=surface_element_id(xmesh, face2)) then
+            ! check that the surface id on either side is indeed the same
             FLExit("Adaptivity with internal boundaries only works if the surface id is single valued")
           end if
-        end if                
+        end if
       end do
 
     end if
@@ -214,7 +214,9 @@ module mba2d_integration
     ! Afterwards, we went through and counted (b) and added it on to stotel.
     ! But in a very odd situation, this might not be enough memory!
     ! So either find a smarter number to set mxface, or make the multiple bigger.
-    assert(stotel < mxface)
+    if (stotel > mxface) then
+      FLAbort("Expected number of facets too small!")
+    end if
 
     allocate(ipe(3, maxele))
     ipe = 0
@@ -222,60 +224,81 @@ module mba2d_integration
       ipe(:, i) = ele_nodes(xmesh, i)
     end do
 
-    ! I hope mba2d doesn't mind the same node being locked twice.
-    call get_locked_nodes(input_positions, locked_nodes)
-    npv = count(boundcount > 1) + size(locked_nodes)
-    allocate(ipv(npv))
-    j = 1
-    do i=1,nonods
-      if (boundcount(i) > 1) then
-        ipv(j) = i
-        j = j + 1
-      end if
-    end do
-    ! So now j = count(boundcount > 1) + 1
-    ipv(j:) = locked_nodes
-    deallocate(locked_nodes)
-
-    allocate(parcrv(2, mxface))
-    parcrv = 0
-
     nhalos = halo_count(xmesh)
     assert(any(nhalos == (/0, 1, 2/)))
     if(nhalos > 0) then
+#ifdef DUMP_HALO_INTERPOLATION
+      p0mesh = piecewise_constant_mesh(xmesh, "P0Mesh")
+      call allocate(locked_field, p0mesh, "Locked")
+#endif
       nelist => extract_nelist(xmesh)
     
       old_halo => xmesh%halos(nhalos)
 
       allocate(ife(totele))
       nfe = 0
-      allocate(is_locked_ele(totele))
-      is_locked_ele = .false.
-      do i = 1, halo_proc_count(old_halo)
-        do j = 1, halo_send_count(old_halo, i)
-          node_eles => row_m_ptr(nelist, halo_send(old_halo, i, j))
-          do k = 1, size(node_eles)
-            if(is_locked_ele(node_eles(k))) cycle
-            nfe = nfe + 1
-            ife(nfe) = node_eles(k)
-            is_locked_ele(node_eles(k)) = .true.
-          end do
+      ele_loop: do ele=1, element_count(xmesh)
+        nodes => ele_nodes(xmesh, ele)
+        do j=1, size(nodes)
+          if (.not. node_owned(old_halo, nodes(j))) then
+            nfe = nfe +1
+            ife(nfe) = ele
+#ifdef DUMP_HALO_INTERPOLATION
+            call set(locked_field, ele, 1.0)
+#endif
+            cycle ele_loop
+          end if
         end do
-        do j = 1, halo_receive_count(old_halo, i)
-          node_eles => row_m_ptr(nelist, halo_receive(old_halo, i, j))
-          do k = 1, size(node_eles)
-            if(is_locked_ele(node_eles(k))) cycle
-            nfe = nfe + 1
-            ife(nfe) = node_eles(k)
-            is_locked_ele(node_eles(k)) = .true.
-          end do
-        end do
-      end do
-      deallocate(is_locked_ele)
+      end do ele_loop
+#ifdef DUMP_HALO_INTERPOLATION
+      call vtk_write_fields("locked", index=ix, position=input_positions, model=xmesh, sfields=(/ locked_field /))
+      ix = ix+1
+      call deallocate(locked_field)
+      call deallocate(p0mesh)
+#endif
     else
       nfe = 0
       allocate(ife(nfe))
     end if
+    
+    ! construct list of nodes to be locked
+    call get_locked_nodes(input_positions, locked_nodes)
+    npv = count(boundcount > 1) + size(locked_nodes)
+    if (nhalos>0) then
+      npv = npv + halo_all_sends_count(old_halo) + halo_all_receives_count(old_halo)
+    end if
+    allocate(ipv(npv))
+    j = 1
+
+    if (nhalos>0) then
+      ! lock the send and receive nodes - these are locked above already as halo 1 elements
+      ! but locking them here again, get back a list in the new numbering after the adapt
+      ! thus allowing us to reconstruct the halo
+      do proc=1, halo_proc_count(old_halo)
+        ipv(j:j+halo_send_count(old_halo, proc)-1) = halo_sends(old_halo, proc)
+        j = j + halo_send_count(old_halo, proc)
+      end do
+      do proc=1, halo_proc_count(old_halo)
+        ipv(j:j+halo_receive_count(old_halo, proc)-1) = halo_receives(old_halo, proc)
+        j = j + halo_receive_count(old_halo, proc)
+      end do
+    end if
+
+    ! lock nodes on the boundary that are adjacent to more than one coplanar id, i.e. corner nodes
+    ! (see node_boundary module)
+    do i=1,nonods
+      if (boundcount(i) > 1) then
+        ipv(j) = i
+        j = j + 1
+      end if
+    end do
+    ! nodes locked as prescribed by python
+    ipv(j:) = locked_nodes
+    deallocate(locked_nodes)
+
+    allocate(parcrv(2, mxface))
+    parcrv = 0
+
 
     allocate(iFnc(mxface))
     iFnc = 0
@@ -296,6 +319,8 @@ module mba2d_integration
       tmp_metric(2, i) = node_val(metric, 2, 2, i)
       tmp_metric(3, i) = node_val(metric, 1, 2, i)
     end do
+
+    call relax_metric_locked_regions(tmp_metric, ife(1:nfe), input_positions)
 
     maxWr = (4 * maxp + 10 * nonods + mxface + maxele)  * 1.5
     maxWi = (6 * maxp + 10 * nonods + 19 * mxface + 11 * maxele + 12 * totele) * 1.5
@@ -406,6 +431,7 @@ module mba2d_integration
     deallocate(new_sndgln)
 
     ! and only deinterleave now we know the total number of elements in the surface mesh
+    ! add_faces will have copied the interleaved id to the second copy of each interior facet
     stotel = surface_element_count(new_mesh)
     allocate(boundary_ids(1:stotel), coplanar_ids(1:stotel))
     call deinterleave_surface_ids(new_mesh%faces%boundary_ids, max_coplanar_id, boundary_ids, coplanar_ids)
@@ -432,74 +458,25 @@ module mba2d_integration
     call set_all(output_positions, pos(:, 1:nonods))
     
     if(nhalos > 0) then
-      ! Flatten the old halo
-      allocate(sends_starts(halo_proc_count(old_halo) + 1))
-      allocate(receives_starts(halo_proc_count(old_halo) + 1))
-      allocate(old_sends(halo_all_sends_count(old_halo)))
-      allocate(old_receives(halo_all_receives_count(old_halo)))
-      call extract_raw_halo_data(old_halo, old_sends, sends_starts, old_receives, receives_starts)
 
-      ! Sorry about this. Blame James and Patrick ...
-      ! Transfer the halo nodes by interpolating their flattened indices
-      call allocate(old_halo_field, xmesh, name = "OldHaloTransfer")
-      call zero(old_halo_field)
-      do i = 1, size(old_sends)
-        call set(old_halo_field, old_sends(i), float(old_sends(i)))
-      end do
-      do i = 1, size(old_receives)
-        call set(old_halo_field, old_receives(i), float(old_receives(i)))
-      end do
-      call allocate(new_halo_field, output_positions%mesh, name = "NewHaloTransfer")
-      call linear_interpolation(old_halo_field, input_positions, new_halo_field, output_positions)
-#ifdef DUMP_HALO_INTERPOLATION
-      input_positions%mesh%halos => null()
-      xmesh_pwc = piecewise_constant_mesh(input_positions%mesh, "XMeshPWC")
-      call allocate(locked_elements, xmesh_pwc, "LockedElements")
-      call zero(locked_elements)
-      do i=1,nfe
-        call set(locked_elements, ife(i), 1.0)
-      end do
-      call vtk_write_fields("halo_interpolation", 0, input_positions, input_positions%mesh, sfields=(/old_halo_field, locked_elements/))
-      call vtk_write_fields("halo_interpolation", 1, output_positions, output_positions%mesh, sfields=(/new_halo_field/))
-      call deallocate(locked_elements)
-      call deallocate(xmesh_pwc)
-#endif
-      call deallocate(old_halo_field)
-
-      ! Set the new halo numbering
-      call allocate(old_to_new)
-      do i = 1, node_count(new_halo_field)
-        j = floor(node_val(new_halo_field, i) + 0.5)
-        if(j > 0) then
-          call insert(old_to_new, j, i)
-        end if
-      end do
-
-      allocate(new_sends(size(old_sends)))
-      allocate(new_receives(size(old_receives)))
-      do i=1,size(old_sends)
-        new_sends(i) = fetch(old_to_new, old_sends(i))
-      end do
-      do i=1,size(old_receives)
-        new_receives(i) = fetch(old_to_new, old_receives(i))
-      end do
-
-      call deallocate(new_halo_field)
-      call deallocate(old_to_new)
-
-      ! Allocate and set the new halo
       allocate(output_positions%mesh%halos(nhalos))
-      call form_halo_from_raw_data(output_positions%mesh%halos(nhalos), size(sends_starts) - 1, new_sends, &
-        & sends_starts, new_receives, receives_starts, nowned_nodes = nonods - size(new_receives), &
-        & ordering_scheme = HALO_ORDER_GENERAL, create_caches = (nhalos == 1))
+      new_halo => output_positions%mesh%halos(nhalos)
+      
+      ! halo is the same in terms of n/o sends and receives, name, ordering_type, etc.
+      call allocate(new_halo, old_halo)
+      ! except for n/o owned nodes
+      call set_halo_nowned_nodes(new_halo, nonods-halo_all_receives_count(new_halo))
 
-      deallocate(sends_starts)
-      deallocate(receives_starts)
-      deallocate(old_sends)
-      deallocate(old_receives)
-      deallocate(new_sends)
-      deallocate(new_receives)
-
+      j = 1
+      do proc=1, halo_proc_count(new_halo)
+        call set_halo_sends(new_halo, proc, ipv(j:j+halo_send_count(new_halo, proc)-1))
+        j = j + halo_send_count(new_halo, proc)
+      end do
+      do proc=1, halo_proc_count(new_halo)
+        call set_halo_receives(new_halo, proc, ipv(j:j+halo_receive_count(new_halo, proc)-1))
+        j = j + halo_receive_count(new_halo, proc)
+      end do
+      
       allocate(renumber_permutation(totele))
       
       if(nhalos == 2) then
@@ -589,6 +566,46 @@ module mba2d_integration
     FLExit("You called mba_adapt without the mba2d library. Reconfigure with --enable-2d-adaptivity")
 #endif
   end subroutine adapt_mesh_mba2d
+
+  subroutine relax_metric_locked_regions(metric, locked_elements, positions)
+    ! in the locked regions (halo regions in parallel) and the region immediately
+    ! adjacent to it, mba can't satisfy what we ask for in the metric
+    ! This tends to upset mba and sometimes leads it to give up altogether (leaving other regions 
+    ! unadapted). Therefore we adjust the metric in the nodes of the locked regions to adhere to
+    ! the locked elements (i.e. tell mba that the mesh is perfect there already). Directly adjacent to
+    ! the locked region it will interpolate linearly between the overwritten metric and the metric we want,
+    ! so that it still adapts to our desired quality everywhere it is allowed to.
+    real, dimension(:,:), intent(inout):: metric
+    integer, dimension(:), intent(in):: locked_elements
+    type(vector_field), intent(in):: positions
+
+    real, dimension(2,2) :: ele_metric
+    real, dimension(3) :: ele_metric_vector
+    integer, dimension(:), allocatable:: adjacent_locked_element_count
+    integer, dimension(:), pointer:: nodes
+    integer :: i, j, ele, n
+
+    ! keep track of how many element metrics we've added into each node already
+    allocate(adjacent_locked_element_count(1:node_count(positions)))
+    adjacent_locked_element_count = 0
+
+    do i=1, size(locked_elements)
+      ele = locked_elements(i)
+      ele_metric = simplex_tensor(positions, ele)
+      ele_metric_vector(1) = ele_metric(1,1)
+      ele_metric_vector(2) = ele_metric(2,2)
+      ele_metric_vector(3) = ele_metric(1,2)
+      nodes => ele_nodes(positions, ele)
+      do j=1, size(nodes)
+        n = adjacent_locked_element_count(nodes(j))
+        ! take running average of all 'element metric's for the elements adjacent to the nodes
+        ! note that in the first contribution, n=0, we throw out the metric values that were there originally
+        metric(:,nodes(j)) = (n*metric(:,nodes(j))+ele_metric_vector)/(n+1)
+        adjacent_locked_element_count(nodes(j)) = n+1
+      end do
+    end do
+
+  end subroutine relax_metric_locked_regions
   
   subroutine mba2d_integration_check_options
     character(len = *), parameter :: base_path = "/mesh_adaptivity/hr_adaptivity"  

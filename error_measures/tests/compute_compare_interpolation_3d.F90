@@ -1,7 +1,7 @@
 subroutine compute_compare_interpolation_3d
 
   use fields
-  use read_triangle
+  use mesh_files
   use conservative_interpolation_module
   use unittest_tools
   use interpolation_module
@@ -61,7 +61,7 @@ subroutine compute_compare_interpolation_3d
   integer :: field, field_count
   integer :: i
 
-  positionsA = read_triangle_files("data/cube.1", quad_degree=4)
+  positionsA = read_mesh_files("data/cube.1", quad_degree=4, format="gmsh")
 
   field_count = 2
 
@@ -92,7 +92,7 @@ subroutine compute_compare_interpolation_3d
 
   do i=1,1
     write(0,'(a, i0)') "loop: ", i
-    positionsB = read_triangle_files("data/cube." // int2str(i+1), quad_degree=4)
+    positionsB = read_mesh_files("data/cube." // int2str(i+1), quad_degree=4, format="gmsh")
     do field=1,field_count
       call allocate(c_fieldB(field), positionsB%mesh, "Field" // int2str(field))
       c_fieldB(field)%option_path = "/c_fieldB" // int2str(field) // "/prognostic/conservative_interpolation_galerkin"

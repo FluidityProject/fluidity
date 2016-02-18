@@ -31,7 +31,7 @@ subroutine test_smooth_scalar
 
   use fields
   use fldebug
-  use read_triangle
+  use mesh_files
   use solvers
   use smoothing_module
   use unittest_tools
@@ -47,7 +47,7 @@ subroutine test_smooth_scalar
   type(scalar_field) :: s_field, smoothed_s_field
   type(vector_field) :: positions
   
-  positions = read_triangle_files("data/square-2d_A", quad_degree = quad_degree)
+  positions = read_mesh_files("data/square-2d_A", quad_degree = quad_degree, format="gmsh")
   
   call allocate(s_field, positions%mesh, "Scalar")
   do i = 1, node_count(s_field)

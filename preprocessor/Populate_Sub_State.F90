@@ -49,7 +49,6 @@ module populate_sub_state_module
   use halos_registration
   use tictoc
   use hadapt_extrude
-  use hadapt_extrude_radially
   use initialise_fields_module
   use transform_elements
   use parallel_tools
@@ -57,6 +56,7 @@ module populate_sub_state_module
   use nemo_states_module
   use data_structures
   use fields_halos
+  use fefields
   use read_triangle
   use populate_state_module
   use diagnostic_variables , only: convergence_field, steady_state_field
@@ -148,12 +148,12 @@ contains
     type(state_type), intent(in), dimension(:) :: states
     type(state_type), intent(inout), dimension(:) :: sub_states
 
-    ! Integer sets containing list of elements and nodes on subdomain_mesh:
-    type(integer_set) :: subdomain_mesh_element_list, subdomain_mesh_node_list
-    ! Element mapping functions to subdomain_mesh:
-    integer, dimension(:), allocatable :: subele_list
-    ! Node mapping functions to and from subdomain_mesh:
-    integer, dimension(:), allocatable :: n_list, inverse_n_list
+    ! Integer sets containing list of elements on subdomain_mesh:
+    type(integer_set) :: subdomain_element_set
+    ! same thing as list
+    integer, dimension(:), pointer :: subele_list
+    ! list of nodes in subdomain
+    integer, dimension(:), pointer :: node_list
 
     ! External mesh and subdomain_meshes:
     type(mesh_type) :: subdomain_mesh
@@ -161,22 +161,16 @@ contains
     character(len=FIELD_NAME_LEN) :: mesh_name
 
     ! Others:
-    integer :: ele, ele_2, ni, edge_count, i, node, loc, sloc, face, surf_ele_count
     integer, dimension(2) :: prescribed_regions_shape
     integer :: number_of_prescribed_regions
-    integer, dimension(:), pointer :: neigh, faces
     type(integer_set) :: prescribed_region_id_set
     integer, dimension(:), allocatable :: prescribed_region_ids
 
-    type(element_type), pointer :: shape     
-
-    type(integer_set) :: face_list
     type(vector_field), pointer :: external_mesh_position
     type(vector_field) :: position
 
     type(vector_field), pointer :: velocity
-
-    integer, allocatable, dimension(:) :: sndglno, boundary_ids, element_owner
+    integer :: ele, i
 
     ewrite(1,*) "Entering derive external subdomain mesh"
 
@@ -208,132 +202,25 @@ contains
     ! failing this may be caused by not preserving region ids in adaptivity - see options check below
     assert(associated(external_mesh%region_ids))
 
-    ! Derive subdomain_mesh_element list (an integer set):
-    call allocate(subdomain_mesh_element_list)
+    ! Derive subdomain_element_set
+    call allocate(subdomain_element_set)
     do ele = 1, element_count(external_mesh)
        if(.not.has_value(prescribed_region_id_set, external_mesh%region_ids(ele))) then
-          call insert(subdomain_mesh_element_list,ele)
+          call insert(subdomain_element_set,ele)
        end if
     end do
+    ! convert to array:
+    allocate(subele_list(key_count(subdomain_element_set))) ! Map from sub mesh --> full mesh
+    subele_list = set2vector(subdomain_element_set)
 
-    ! Build element mapping functions to and from sub mesh:
-    allocate(subele_list(key_count(subdomain_mesh_element_list))) ! Map from sub mesh --> full mesh
-
-    ! Initialise element mapping function to zero.
-    subele_list = 0
-
-    ! Set up element map from sub mesh --> full mesh:
-    do i = 1, key_count(subdomain_mesh_element_list)
-       subele_list(i) = fetch(subdomain_mesh_element_list,i)
-    end do
-
-    ewrite(1,*) 'Number of elements in subdomain_mesh_element_list:', size(subele_list)
-
-    ! Create subdomain_mesh:
-    call allocate(subdomain_mesh_node_list)
-
-    ! Derive node list for subdomain_mesh:
-    do i = 1, size(subele_list)
-       ele = subele_list(i)
-       call insert(subdomain_mesh_node_list,ele_nodes(external_mesh,ele))
-    end do
-
-    allocate(n_list(key_count(subdomain_mesh_node_list))) ! Nodal map from sub mesh --> full mesh
-    allocate(inverse_n_list(node_count(external_mesh))) ! Nodal map from full mesh --> sub mesh
-
-    ! Initialise mapping functions to zero. This is necessary for the inverse_node_list - if 
-    ! after it is set up, the value in inverse_subnode_list = 0, this means that that element of 
-    ! the full mesh does not have a corresponding element on the subdomain_mesh - i.e. it is not a part
-    ! of the prognostic subdomain.
-
-    n_list = 0
-    inverse_n_list = 0
-
-    ! Build maps to and from sub mesh:
-    do i = 1, key_count(subdomain_mesh_node_list)
-       n_list(i) = fetch(subdomain_mesh_node_list,i)
-    end do
-
-    ewrite(1,*) 'Number of nodes in subdomain_mesh_node_list:', key_count(subdomain_mesh_node_list)
-
-    do i = 1, key_count(subdomain_mesh_node_list)
-       node = n_list(i)
-       inverse_n_list(node) = i
-    end do
-
-    ! Allocate subdomain_mesh:
-    shape => external_mesh%shape
-    call allocate(subdomain_mesh, nodes=key_count(subdomain_mesh_node_list), elements=size(subele_list),&
-         & shape=shape, name=trim(mesh_name))
-
-    ! Determine ndglno (connectivity matrix) on subdomain_mesh:
-    loc = shape%loc
-    do i = 1, size(subele_list)
-      ele = subele_list(i)
-      call set_ele_nodes(subdomain_mesh, i, inverse_n_list(ele_nodes(external_mesh, ele)))
-    end do
+    call create_subdomain_mesh(external_mesh, subele_list, mesh_name, subdomain_mesh, node_list)
 
     ! Store subdomain_mesh element list, node list as mesh attributes:
     allocate(subdomain_mesh%subdomain_mesh)
-    allocate(subdomain_mesh%subdomain_mesh%element_list(size(subele_list)))
-    subdomain_mesh%subdomain_mesh%element_list = subele_list
+    subdomain_mesh%subdomain_mesh%element_list => subele_list
+    subdomain_mesh%subdomain_mesh%node_list => node_list
 
-    allocate(subdomain_mesh%subdomain_mesh%node_list(size(n_list)))
-    subdomain_mesh%subdomain_mesh%node_list = n_list
-
-    ! Calculate sndglno - an array of nodes corresponding to edges along surface:
-    sloc = external_mesh%faces%shape%loc
-    surf_ele_count = surface_element_count(external_mesh)
-
-    ! Begin by determining which faces are on subdomain_mesh boundaries:
-    call allocate(face_list)
-    do i = 1, size(subele_list)
-      ele = subele_list(i)
-      neigh => ele_neigh(external_mesh, ele) ! Determine element neighbours on parent mesh
-      faces => ele_faces(external_mesh, ele) ! Determine element faces on parent mesh
-      do ni = 1, size(neigh)
-        ele_2 = neigh(ni)
-        face = faces(ni)
-        ! If this face is part of the full surface mesh (which includes internal faces) then
-        ! it must be on the submesh boundary, and not on a processor boundary (if parallel).
-        if (face  <= surf_ele_count) then
-           call insert(face_list, face)
-        end if
-      end do
-    end do
-
-    ! Allocate and initialise sndglno and boundary ids:
-    edge_count = key_count(face_list)
-    allocate(sndglno(edge_count*sloc))
-    sndglno = 0
-    allocate(boundary_ids(1:edge_count))
-    boundary_ids = 0
-    
-    ! Set up sndglno and boundary_ids:
-    do i = 1, edge_count
-      face = fetch(face_list, i)
-      sndglno((i-1)*sloc+1:i*sloc) = inverse_n_list(face_global_nodes(external_mesh, face))
-      boundary_ids(i) = surface_element_id(external_mesh, face)
-    end do
-
-    call deallocate(face_list)
-
-    ! Add faces to subdomain_mesh:
-    call add_faces(subdomain_mesh,sndgln=sndglno(1:edge_count*sloc), &
-    &               boundary_ids=boundary_ids(1:edge_count))
-
-    deallocate(sndglno)
-    deallocate(boundary_ids)
-
-    ! If parallel then set up node and element halos, by checking whether external_mesh halos
-    ! exist on subdomain_mesh:
-
-    if(isparallel()) then
-       call generate_substate_halos(external_mesh,subdomain_mesh,n_list,inverse_n_list)
-    end if
-       
     ! Insert mesh and position fields for subdomain_mesh into sub_states:
-
     if(mesh_name=="CoordinateMesh") then
       external_mesh_position => extract_vector_field(states(1), "Coordinate")
     else
@@ -342,7 +229,7 @@ contains
 
     call allocate(position, mesh_dim(subdomain_mesh), subdomain_mesh, trim(external_mesh_position%name))
 
-    call remap_to_subdomain(external_mesh_position,position)
+    call remap_to_subdomain(external_mesh_position, position)
 
     ewrite(2,*) 'MinMax info for subdomain_mesh positions_field: '
     ewrite_minmax(position)
@@ -358,14 +245,7 @@ contains
     call deallocate(subdomain_mesh)
     call deallocate(position)
 
-    deallocate(n_list)
-    deallocate(inverse_n_list)
-
-    call deallocate(subdomain_mesh_node_list)
-
-    deallocate(subele_list)
-
-    call deallocate(subdomain_mesh_element_list)
+    call deallocate(subdomain_element_set)
     call deallocate(prescribed_region_id_set)
 
     ewrite(1,*) "Leaving derive external subdomain mesh"

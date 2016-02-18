@@ -119,7 +119,7 @@ module conservative_interpolation_module
     inversion_matrix_B = transpose(inversion_matrix_B)
 
     ! Second thing: assemble the mass matrix of B on the left.
-    call compute_inverse_jacobian(ele_val(new_position, ele_B), ele_shape(new_position, ele_B), invJ=invJ, detJ=detJ, detwei=detwei_B)
+    call compute_inverse_jacobian(new_position, ele_B, invJ=invJ, detJ=detJ, detwei=detwei_B)
 
     do mesh = 1, mesh_count
       if(field_counts(mesh)>0) then
@@ -341,6 +341,8 @@ module conservative_interpolation_module
     logical, dimension(:, :), allocatable :: force_bc
     integer :: bc
 
+    logical :: not_halo_2_element
+
     ewrite(1, *) "In interpolation_galerkin_scalars"
 
     stat = 0
@@ -509,11 +511,26 @@ module conservative_interpolation_module
 
     do ele_B=1,ele_count(new_position)
 
-       call galerkin_projection_inner_loop(ele_B, little_mass_matrix, detJ, local_rhs, conservation_tolerance, stat, &
-                                           field_counts, old_fields, old_position, new_fields, new_position, &
-                                           lmap_BA, inversion_matrices_A, supermesh_shape)
+      ! halo 2 elements are inconsistent after an adapt, and assembling over these is unneccesary, so we skip
+      ! anything without any owned nodes (i.e. in halo 2)
+      not_halo_2_element = .false.
+      nloc = ele_loc(new_position, ele_B)
+      ele_nodes_B => ele_nodes(new_position, ele_B)
+      
+      do j = 1, nloc
+        if (node_owned(new_position, ele_nodes_B(j))) then
+           not_halo_2_element = .true.
+           exit
+        end if
+      end do
 
-       if (stat /= 0) then
+      if (not_halo_2_element) then
+
+        call galerkin_projection_inner_loop(ele_B, little_mass_matrix, detJ, local_rhs, conservation_tolerance, stat, &
+             field_counts, old_fields, old_position, new_fields, new_position, &
+             lmap_BA, inversion_matrices_A, supermesh_shape)
+
+        if (stat /= 0) then
           ! Uhoh! We haven't found all the mass for ele_B :-/
           ! The intersector has missed something (almost certainly due to
           ! finite precision arithmetic). Geometry is hard!
@@ -533,9 +550,9 @@ module conservative_interpolation_module
           ewrite(0,*) "Warning: it appears a supermesh intersection wasn't found resulting in a conservation error."
           ewrite(0,*) "Recompile with CGAL if you want to try to fix it."
 #endif
-       end if
+        end if
 
-       do mesh = 1, mesh_count
+        do mesh = 1, mesh_count
           if(field_counts(mesh)>0) then
             nloc = ele_loc(new_fields(mesh,1),1)
             ele_nodes_B => ele_nodes(new_fields(mesh,1), ele_B)
@@ -603,17 +620,18 @@ module conservative_interpolation_module
           end if
 
         end do
-
-      end do
-
-      ewrite(1, *) "Supermeshing complete"
-
-      if (.not. present(map_BA)) then
-        do ele_B=1,ele_count(new_position)
-          call deallocate(lmap_BA(ele_B))
-        end do
-        deallocate(lmap_BA)
       end if
+      
+    end do
+
+    ewrite(1, *) "Supermeshing complete"
+
+    if (.not. present(map_BA)) then
+      do ele_B=1,ele_count(new_position)
+        call deallocate(lmap_BA(ele_B))
+      end do
+      deallocate(lmap_BA)
+    end if
 
     do mesh = 1, mesh_count
       if(field_counts(mesh)>0) then

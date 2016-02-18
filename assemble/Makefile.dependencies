@@ -24,7 +24,7 @@ Adapt_State.o ../include/adapt_state_module.mod: Adapt_State.F90 \
    ../include/diagnostic_variables.mod \
    ../include/discrete_properties_module.mod ../include/edge_length_module.mod \
    ../include/elements.mod ../include/eventcounter.mod ../include/fdebug.h \
-   ../include/field_options.mod ../include/fields.mod \
+   ../include/fefields.mod ../include/field_options.mod ../include/fields.mod \
    ../include/fields_halos.mod ../include/global_parameters.mod \
    ../include/hadapt_extrude.mod ../include/hadapt_metric_based_extrude.mod \
    ../include/halos.mod ../include/interpolation_manager.mod \
@@ -95,7 +95,8 @@ Advection_Diffusion_DG.o ../include/advection_diffusion_dg.mod: \
    ../include/coordinates.mod ../include/dgtools.mod \
    ../include/diagnostic_fields.mod ../include/elements.mod \
    ../include/fdebug.h ../include/fefields.mod ../include/fetools.mod \
-   ../include/field_options.mod ../include/fields.mod ../include/fldebug.mod \
+   ../include/field_derivatives.mod ../include/field_options.mod \
+   ../include/fields.mod ../include/fldebug.mod \
    ../include/global_parameters.mod ../include/petsc_solve_state_module.mod \
    ../include/porous_media.mod ../include/profiler.mod \
    ../include/shape_functions.mod ../include/slope_limiters_dg.mod \
@@ -336,11 +337,12 @@ Full_Projection.o ../include/full_projection.mod: Full_Projection.F90 \
    ../include/boundary_conditions_from_options.mod ../include/elements.mod \
    ../include/fdebug.h ../include/fields_base.mod ../include/fldebug.mod \
    ../include/global_parameters.mod ../include/halos.mod \
-   ../include/multigrid.mod ../include/petsc_solve_state_module.mod \
-   ../include/petsc_tools.mod ../include/signal_vars.mod \
-   ../include/solvers.mod ../include/sparse_matrices_fields.mod \
-   ../include/sparse_tools.mod ../include/sparse_tools_petsc.mod \
-   ../include/spud.mod ../include/state_module.mod
+   ../include/multigrid.mod ../include/petsc_legacy.h \
+   ../include/petsc_solve_state_module.mod ../include/petsc_tools.mod \
+   ../include/signal_vars.mod ../include/solvers.mod \
+   ../include/sparse_matrices_fields.mod ../include/sparse_tools.mod \
+   ../include/sparse_tools_petsc.mod ../include/spud.mod \
+   ../include/state_module.mod
 
 ../include/geostrophic_pressure.mod: Geostrophic_Pressure.o
 	@true
@@ -457,20 +459,6 @@ LES.o ../include/les_module.mod: LES.F90 ../include/fdebug.h \
    ../include/state_fields_module.mod ../include/state_module.mod \
    ../include/vector_tools.mod
 
-../include/linear_shallow_water.mod: Linear_Shallow_Water.o
-	@true
-
-Linear_Shallow_Water.o ../include/linear_shallow_water.mod: \
-   Linear_Shallow_Water.F90 ../include/assemble_cmc.mod \
-   ../include/diagnostic_fields_wrapper.mod \
-   ../include/diagnostic_variables.mod ../include/fdebug.h \
-   ../include/fields.mod ../include/fldebug.mod \
-   ../include/global_parameters.mod ../include/populate_state_module.mod \
-   ../include/solvers.mod ../include/sparse_matrices_fields.mod \
-   ../include/sparsity_patterns_meshes.mod ../include/spud.mod \
-   ../include/state_module.mod ../include/timeloop_utilities.mod \
-   ../include/write_state_module.mod
-
 ../include/manifold_projections.mod: Manifold_Projections.o
 	@true
 
@@ -549,7 +537,8 @@ Momentum_DG.o ../include/momentum_dg.mod: Momentum_DG.F90 \
    ../include/coordinates.mod ../include/coriolis_module.mod \
    ../include/dgtools.mod ../include/diagnostic_fields.mod \
    ../include/elements.mod ../include/fdebug.h ../include/fefields.mod \
-   ../include/fetools.mod ../include/field_options.mod ../include/fields.mod \
+   ../include/fetools.mod ../include/field_derivatives.mod \
+   ../include/field_options.mod ../include/fields.mod \
    ../include/fields_manipulation.mod ../include/fldebug.mod \
    ../include/global_parameters.mod ../include/halos.mod \
    ../include/multiphase_module.mod ../include/petsc_tools.mod \
@@ -885,7 +874,7 @@ Zoltan_global_variables.o ../include/zoltan_global_variables.mod: \
 	@true
 
 Zoltan_integration.o ../include/zoltan_integration.mod: Zoltan_integration.F90 \
-   ../include/boundary_conditions.mod \
+   ../include/adapt_integration.mod ../include/boundary_conditions.mod \
    ../include/boundary_conditions_from_options.mod ../include/c_interfaces.mod \
    ../include/data_structures.mod ../include/detector_data_types.mod \
    ../include/detector_parallel.mod ../include/detector_tools.mod \

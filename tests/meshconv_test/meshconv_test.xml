@@ -5,11 +5,8 @@
   <tags>exodusii</tags>
   <problem_definition length="short" nprocs="2">
     <command_line>../../bin/meshconv -i exodusii -o gmsh rectangle; fluidity meshconv_exo2gmsh.flml;
-    ../../bin/meshconv -i exodusii -o triangle rectangle; fluidity meshconv_exo2triangle.flml; rm rectangle.node rectangle.ele rectangle.edge;
     ../../bin/meshconv -i gmsh -o triangle rectangle; fluidity meshconv_gmsh2triangle.flml; rm rectangle.msh;
-    ../../bin/meshconv -i triangle -o gmsh rectangle; fluidity meshconv_triangle2gmsh.flml; rm rectangle.*
     mpiexec ../../bin/meshconv -i gmsh -o triangle prectangle; mpiexec fluidity meshconv_parallel_gmsh2triangle.flml; rm prectangle_?.msh;
-    mpiexec ../../bin/meshconv -i triangle -o gmsh prectangle; mpiexec fluidity meshconv_parallel_triangle2gmsh.flml; rm prectangle*;
     </command_line>
   </problem_definition>
   <variables>
@@ -39,27 +36,6 @@ NumberSurfaceElements_exo2gmsh=s["CoordinateMesh"]["surface_elements"]
 s = stat_parser("meshconv_test_exo2gmsh.stat")
 BoundaryCondition_exo2gmsh=s["Fluid"]["Velocity%magnitude"]["max"][0]
     </variable>
-    <!-- Below variables for exo2triangle -->
-    <variable name="ElapsedTime_exo2triangle" language="python">from fluidity_tools import stat_parser
-s = stat_parser("meshconv_test_exo2triangle.stat")
-ElapsedTime_exo2triangle=s["ElapsedTime"]["value"]
-    </variable>
-    <variable name="NumberNodes_exo2triangle" language="python">from fluidity_tools import stat_parser
-s = stat_parser("meshconv_test_exo2triangle.stat")
-NumberNodes_exo2triangle=s["CoordinateMesh"]["nodes"]
-    </variable>
-    <variable name="NumberElements_exo2triangle" language="python">from fluidity_tools import stat_parser
-s = stat_parser("meshconv_test_exo2triangle.stat")
-NumberElements_exo2triangle=s["CoordinateMesh"]["elements"]
-    </variable>
-    <variable name="NumberSurfaceElements_exo2triangle" language="python">from fluidity_tools import stat_parser
-s = stat_parser("meshconv_test_exo2triangle.stat")
-NumberSurfaceElements_exo2triangle=s["CoordinateMesh"]["surface_elements"]
-    </variable>
-    <variable name="BoundaryCondition_exo2triangle" language="python">from fluidity_tools import stat_parser
-s = stat_parser("meshconv_test_exo2triangle.stat")
-BoundaryCondition_exo2triangle=s["Fluid"]["Velocity%magnitude"]["max"][0]
-    </variable>
     <!-- Below variables for gmsh2triangle -->
     <variable name="ElapsedTime_gmsh2triangle" language="python">from fluidity_tools import stat_parser
 s = stat_parser("meshconv_test_gmsh2triangle.stat")
@@ -80,27 +56,6 @@ NumberSurfaceElements_gmsh2triangle=s["CoordinateMesh"]["surface_elements"]
     <variable name="BoundaryCondition_gmsh2triangle" language="python">from fluidity_tools import stat_parser
 s = stat_parser("meshconv_test_gmsh2triangle.stat")
 BoundaryCondition_gmsh2triangle=s["Fluid"]["Velocity%magnitude"]["max"][0]
-    </variable>
-    <!-- Below variables for triangle2gmsh -->
-    <variable name="ElapsedTime_triangle2gmsh" language="python">from fluidity_tools import stat_parser
-s = stat_parser("meshconv_test_triangle2gmsh.stat")
-ElapsedTime_triangle2gmsh=s["ElapsedTime"]["value"]
-    </variable>
-    <variable name="NumberNodes_triangle2gmsh" language="python">from fluidity_tools import stat_parser
-s = stat_parser("meshconv_test_triangle2gmsh.stat")
-NumberNodes_triangle2gmsh=s["CoordinateMesh"]["nodes"]
-    </variable>
-    <variable name="NumberElements_triangle2gmsh" language="python">from fluidity_tools import stat_parser
-s = stat_parser("meshconv_test_triangle2gmsh.stat")
-NumberElements_triangle2gmsh=s["CoordinateMesh"]["elements"]
-    </variable>
-    <variable name="NumberSurfaceElements_triangle2gmsh" language="python">from fluidity_tools import stat_parser
-s = stat_parser("meshconv_test_triangle2gmsh.stat")
-NumberSurfaceElements_triangle2gmsh=s["CoordinateMesh"]["surface_elements"]
-    </variable>
-    <variable name="BoundaryCondition_triangle2gmsh" language="python">from fluidity_tools import stat_parser
-s = stat_parser("meshconv_test_triangle2gmsh.stat")
-BoundaryCondition_triangle2gmsh=s["Fluid"]["Velocity%magnitude"]["max"][0]
     </variable>
     <!-- Below variables for parallel gmsh2triangle -->
     <variable name="ElapsedTime_parallel_gmsh2triangle" language="python">from fluidity_tools import stat_parser
@@ -123,27 +78,6 @@ NumberSurfaceElements_parallel_gmsh2triangle=s["CoordinateMesh"]["surface_elemen
 s = stat_parser("meshconv_test_parallel_gmsh2triangle.stat")
 BoundaryCondition_parallel_gmsh2triangle=s["Fluid"]["Velocity%magnitude"]["max"][0]
     </variable>
-    <!-- Below variables for parallel triangle2gmsh -->
-    <variable name="ElapsedTime_parallel_triangle2gmsh" language="python">from fluidity_tools import stat_parser
-s = stat_parser("meshconv_test_parallel_triangle2gmsh.stat")
-ElapsedTime_parallel_triangle2gmsh=s["ElapsedTime"]["value"]
-    </variable>
-    <variable name="NumberNodes_parallel_triangle2gmsh" language="python">from fluidity_tools import stat_parser
-s = stat_parser("meshconv_test_parallel_triangle2gmsh.stat")
-NumberNodes_parallel_triangle2gmsh=s["CoordinateMesh"]["nodes"]
-    </variable>
-    <variable name="NumberElements_parallel_triangle2gmsh" language="python">from fluidity_tools import stat_parser
-s = stat_parser("meshconv_test_parallel_triangle2gmsh.stat")
-NumberElements_parallel_triangle2gmsh=s["CoordinateMesh"]["elements"]
-    </variable>
-    <variable name="NumberSurfaceElements_parallel_triangle2gmsh" language="python">from fluidity_tools import stat_parser
-s = stat_parser("meshconv_test_parallel_triangle2gmsh.stat")
-NumberSurfaceElements_parallel_triangle2gmsh=s["CoordinateMesh"]["surface_elements"]
-    </variable>
-    <variable name="BoundaryCondition_parallel_triangle2gmsh" language="python">from fluidity_tools import stat_parser
-s = stat_parser("meshconv_test_parallel_triangle2gmsh.stat")
-BoundaryCondition_parallel_triangle2gmsh=s["Fluid"]["Velocity%magnitude"]["max"][0]
-    </variable>
   </variables>
   <pass_tests>
     <test name = "Solvers converged" language = "python">
@@ -157,14 +91,6 @@ fluidity_tools.compare_variable(NumberElements_exo2gmsh[-1], 30, 1.0e-6)
 fluidity_tools.compare_variable(NumberSurfaceElements_exo2gmsh[-1], 14, 1.0e-6)
 fluidity_tools.compare_variable(BoundaryCondition_exo2gmsh, 1, 1.0e-6)
     </test>
-    <test name = "Exo2Triangle: Simulation completed, No. Nodes, elements, surface elements, boundary condition:" language = "python">
-import fluidity_tools
-fluidity_tools.compare_variable(ElapsedTime_exo2triangle[-1], 0.01, 1.0e-6)
-fluidity_tools.compare_variable(NumberNodes_exo2triangle[-1], 23, 1.0e-6)
-fluidity_tools.compare_variable(NumberElements_exo2triangle[-1], 30, 1.0e-6)
-fluidity_tools.compare_variable(NumberSurfaceElements_exo2triangle[-1], 14, 1.0e-6)
-fluidity_tools.compare_variable(BoundaryCondition_exo2triangle, 1, 1.0e-6)
-    </test>
     <test name = "Gmsh2Triangle: Simulation completed, No. Nodes, elements, surface elements, boundary condition:" language = "python">
 import fluidity_tools
 fluidity_tools.compare_variable(ElapsedTime_gmsh2triangle[-1], 0.01, 1.0e-6)
@@ -173,14 +99,6 @@ fluidity_tools.compare_variable(NumberElements_gmsh2triangle[-1], 30, 1.0e-6)
 fluidity_tools.compare_variable(NumberSurfaceElements_gmsh2triangle[-1], 14, 1.0e-6)
 fluidity_tools.compare_variable(BoundaryCondition_gmsh2triangle, 1, 1.0e-6)
     </test>
-    <test name = "Triangle2Gmsh: Simulation completed, No. Nodes, elements, surface elements, boundary condition:" language = "python">
-import fluidity_tools
-fluidity_tools.compare_variable(ElapsedTime_triangle2gmsh[-1], 0.01, 1.0e-6)
-fluidity_tools.compare_variable(NumberNodes_triangle2gmsh[-1], 23, 1.0e-6)
-fluidity_tools.compare_variable(NumberElements_triangle2gmsh[-1], 30, 1.0e-6)
-fluidity_tools.compare_variable(NumberSurfaceElements_triangle2gmsh[-1], 14, 1.0e-6)
-fluidity_tools.compare_variable(BoundaryCondition_triangle2gmsh, 1, 1.0e-6)
-    </test>
     <test name = "Parallel Gmsh2Triangle: Simulation completed, No. Nodes, elements, surface elements, boundary condition:" language = "python">
 import fluidity_tools
 fluidity_tools.compare_variable(ElapsedTime_parallel_gmsh2triangle[-1], 0.01, 1.0e-6)
@@ -188,14 +106,6 @@ fluidity_tools.compare_variable(NumberNodes_parallel_gmsh2triangle[-1], 23, 1.0e
 fluidity_tools.compare_variable(NumberElements_parallel_gmsh2triangle[-1], 30, 1.0e-6)
 fluidity_tools.compare_variable(NumberSurfaceElements_parallel_gmsh2triangle[-1], 14, 1.0e-6)
 fluidity_tools.compare_variable(BoundaryCondition_parallel_gmsh2triangle, 1, 1.0e-6)
-    </test>
-    <test name = "Parallel Triangle2Gmsh: Simulation completed, No. Nodes, elements, surface elements, boundary condition:" language = "python">
-import fluidity_tools
-fluidity_tools.compare_variable(ElapsedTime_parallel_triangle2gmsh[-1], 0.01, 1.0e-6)
-fluidity_tools.compare_variable(NumberNodes_parallel_triangle2gmsh[-1], 23, 1.0e-6)
-fluidity_tools.compare_variable(NumberElements_parallel_triangle2gmsh[-1], 30, 1.0e-6)
-fluidity_tools.compare_variable(NumberSurfaceElements_parallel_triangle2gmsh[-1], 14, 1.0e-6)
-fluidity_tools.compare_variable(BoundaryCondition_parallel_triangle2gmsh, 1, 1.0e-6)
     </test>
   </pass_tests>
 </testproblem>

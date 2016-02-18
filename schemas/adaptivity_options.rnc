@@ -8,9 +8,12 @@ adaptivity_preprocessing =
             ## before using it to adapt. This can help with noisy
             ## fields.
             element helmholtz_smoother {
-                 element smoothing_length_scale {
-                     real_dim_symmetric_tensor
-                 },
+               ## The characteristic scale factor alpha used by the smoother.
+               ## The length scale is alpha*local element width (a scalar)
+               ## 2 is recommended.
+                 element smoothing_scale_factor {
+                     real
+                 }?,
                  element solver {
                    linear_solver_options_sym
                  }
@@ -1134,8 +1137,8 @@ hr_adaptivity =
             element write_metric_stages {
                comment
             }?,
-            ## Write out the Coordinate field to a triangle mesh for every
-            ## state adapt. In parallel, a triangle mesh and .halo files
+            ## Write out the Coordinate field to a mesh for every
+            ## state adapt. In parallel, mesh and .halo files
             ## will be written for every parallel adapt iteration.
             element write_adapted_mesh {
                comment
@@ -1211,9 +1214,9 @@ prescribed_adaptivity =
             ## system state.
             element from_file {
                (
-                  ## Input mesh file format.
+                  ## GMSH mesh format
                   element format {
-                     attribute name {"triangle"},
+                     attribute name { "gmsh" },
                      comment
                   }
                ),

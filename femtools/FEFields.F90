@@ -2,8 +2,10 @@
 module fefields
   !!< Module containing general tools for discretising Finite Element problems.
 
+  use data_structures
   use fields
   use field_options, only: get_coordinate_field
+  use halos
   use elements, only: element_type
   use element_numbering
   use fetools, only: shape_shape
@@ -24,6 +26,7 @@ module fefields
   private
   public :: compute_lumped_mass, compute_mass, compute_projection_matrix, add_source_to_rhs, &
             compute_lumped_mass_on_submesh, compute_cv_mass, project_field
+  public :: create_subdomain_mesh
 
 contains
   
@@ -513,7 +516,7 @@ contains
 
       call set(to_field, ele_nodes(to_field, ele), &
            matmul(mass, &
-           shape_rhs(to_shape, ele_val(from_field, ele)*detwei)))
+           shape_rhs(to_shape, ele_val_at_quad(from_field, ele)*detwei)))
 
     end subroutine dg_projection_ele
 
@@ -691,5 +694,201 @@ contains
     end do
       
   end subroutine add_source_to_rhs_vector
+
+  subroutine create_subdomain_mesh(mesh, element_list, name, submesh, node_list)
+    !!< Create a mesh that only covers part of the domain
+
+    ! full mesh to take submesh from
+    type(mesh_type), intent(in), target :: mesh
+    ! elements that will make up the submesh
+    integer, dimension(:), intent(in):: element_list
+    ! name for the new submesh
+    character(len=*), intent(in) :: name
+    ! submesh created
+    type(mesh_type), intent(out) :: submesh
+    ! list of nodes in submesh (also functions as node map from submesh to full mesh)
+    integer, dimension(:), pointer :: node_list
+
+    ! integer set containing nodes in submesh:
+    type(integer_set) :: submesh_node_set
+    ! node mapping functions from full to submesh (=0 if not in submesh)
+    integer, dimension(:), allocatable :: inverse_node_list
+
+    ! Others:
+    integer :: ele, ele_2, ni, edge_count, i, node, loc, sloc, face, surf_ele_count
+    integer, dimension(:), pointer :: neigh, faces
+
+    type(element_type), pointer :: shape     
+
+    type(integer_hash_table) :: face_ele_list
+
+    integer, allocatable, dimension(:) :: sndglno, boundary_ids, element_owner
+
+    ewrite(1,*) "Entering create_subdomain_mesh"
+
+    ! Build element mapping functions to and from sub mesh:
+
+    ewrite(1,*) 'Number of elements in submesh:', size(element_list)
+
+    ! Derive node list for subdomain_mesh:
+    call allocate(submesh_node_set)
+    do i = 1, size(element_list)
+       ele = element_list(i)
+       call insert(submesh_node_set, ele_nodes(mesh, ele))
+    end do
+
+    allocate(node_list(key_count(submesh_node_set))) ! Nodal map from sub mesh --> full mesh
+    node_list = set2vector(submesh_node_set)
+    ewrite(1,*) 'Number of nodes in submesh:', size(node_list)
+
+    allocate(inverse_node_list(node_count(mesh))) ! Nodal map from full mesh --> sub mesh
+    ! if after it is set up, the value in inverse_subnode_list = 0, this means that that element of 
+    ! the full mesh does not have a corresponding element on the subdomain_mesh - i.e. it is not a part
+    ! of the prognostic subdomain.
+    inverse_node_list = 0
+    do i = 1, key_count(submesh_node_set)
+       node = node_list(i)
+       inverse_node_list(node) = i
+    end do
+
+    ! Allocate subdomain_mesh:
+    shape => mesh%shape
+    call allocate(submesh, nodes=size(node_list), elements=size(element_list),&
+         & shape=shape, name=trim(name))
+    submesh%option_path = mesh%option_path
+    if (associated(mesh%region_ids)) then
+      allocate(submesh%region_ids(size(element_list)))
+      submesh%region_ids = mesh%region_ids(element_list)
+    end if
+
+    ! Determine ndglno (connectivity matrix) on subdomain_mesh:
+    loc = shape%loc
+    do i = 1, size(element_list)
+      ele = element_list(i)
+      ! can't use set_ele_nodes as it would create circularity between fields_allocates and fields_manipulation modules
+      submesh%ndglno(loc*(i-1)+1:loc*i) = inverse_node_list(ele_nodes(mesh, ele))
+    end do
+
+    ! Calculate sndglno - an array of nodes corresponding to edges along surface:
+    sloc = mesh%faces%shape%loc
+    surf_ele_count = surface_element_count(mesh)
+
+    ! Begin by determining which faces are on submesh boundaries:
+    call allocate(face_ele_list)
+    do i = 1, size(element_list)
+      ele = element_list(i)
+      neigh => ele_neigh(mesh, ele) ! Determine element neighbours on parent mesh
+      faces => ele_faces(mesh, ele) ! Determine element faces on parent mesh
+      do ni = 1, size(neigh)
+        ele_2 = neigh(ni)
+        face = faces(ni)
+        ! If this face is part of the full surface mesh (which includes internal faces) then
+        ! it must be on the submesh boundary, and not on a processor boundary (if parallel).
+        ! note that for internal facets that are on now on the boundary of the subdomain, we only
+        ! collect one copy, whereas for internal facets that remain internal we collect both
+        ! this is dealt with using the allow_duplicate_internal_facets flag to add_faces()
+        if (face  <= surf_ele_count) then
+           call insert(face_ele_list, face, ele)
+        end if
+      end do
+    end do
+
+    ! Set up sndglno and boundary_ids:
+    edge_count = key_count(face_ele_list)
+    allocate(sndglno(edge_count*sloc), boundary_ids(1:edge_count))
+    do i = 1, edge_count
+      call fetch_pair(face_ele_list, i, face, ele)
+      sndglno((i-1)*sloc+1:i*sloc) = inverse_node_list(face_global_nodes(mesh, face))
+      boundary_ids(i) = surface_element_id(mesh, face)
+    end do
+    call deallocate(face_ele_list)
+
+    ewrite(2,*) "Number of surface elements: ", edge_count
+    ! Add faces to submesh:
+    if (has_discontinuous_internal_boundaries(mesh)) then
+      allocate(element_owner(1:edge_count))
+      do i=1, edge_count
+        call fetch_pair(face_ele_list, i, face, ele)
+        element_owner(i) = ele
+      end do
+      call add_faces(submesh, sndgln=sndglno, boundary_ids=boundary_ids, &
+        element_owner=element_owner)
+      deallocate(element_owner)
+    else
+      call add_faces(submesh, sndgln=sndglno, boundary_ids=boundary_ids, &
+        allow_duplicate_internal_facets=.true.)
+    end if
+
+    deallocate(sndglno)
+    deallocate(boundary_ids)
+
+    ! If parallel then set up node and element halos, by checking whether mesh halos
+    ! exist on submesh:
+
+    if(isparallel()) then
+       call generate_subdomain_halos(mesh, submesh, node_list, inverse_node_list)
+    end if
+
+    deallocate(inverse_node_list)
+    call deallocate(submesh_node_set)
+
+    ewrite(1,*) "Leaving create_subdomain_mesh"
+
+  end subroutine create_subdomain_mesh
+
+  subroutine generate_subdomain_halos(external_mesh,subdomain_mesh,node_list,inverse_node_list)
+
+    type(mesh_type), intent(in) :: external_mesh
+    type(mesh_type), intent(inout) :: subdomain_mesh
+    integer, dimension(:) :: node_list, inverse_node_list 
+
+    integer :: nhalos, communicator, nprocs, procno, ihalo, inode, iproc, nowned_nodes
+
+    ewrite(1, *) "In generate_subdomain_halos"
+
+    assert(continuity(subdomain_mesh) == 0)
+    assert(.not. associated(subdomain_mesh%halos))
+    assert(.not. associated(subdomain_mesh%element_halos))
+
+    ! Initialise key MPI information:
+
+    nhalos = halo_count(external_mesh)
+    ewrite(2,*) "Number of subdomain_mesh halos = ",nhalos
+
+    if(nhalos == 0) return
+
+    communicator = halo_communicator(external_mesh%halos(nhalos))
+    nprocs = getnprocs(communicator = communicator)
+    ewrite(2,*) 'Number of processes = ', nprocs
+    procno = getprocno(communicator = communicator)
+    ewrite(2,*) 'Processor ID/number = ', procno
+
+    ! Allocate subdomain mesh halos:
+    allocate(subdomain_mesh%halos(nhalos))
+
+    ! Derive subdomain_mesh halos:
+    do ihalo = 1, nhalos
+
+       subdomain_mesh%halos(ihalo) = derive_sub_halo(external_mesh%halos(ihalo),node_list)
+       
+       assert(trailing_receives_consistent(subdomain_mesh%halos(ihalo)))
+      
+       if(.not. serial_storage_halo(external_mesh%halos(ihalo))) then
+          assert(halo_valid_for_communication(subdomain_mesh%halos(ihalo)))
+          call create_global_to_universal_numbering(subdomain_mesh%halos(ihalo))
+          call create_ownership(subdomain_mesh%halos(ihalo))
+       end if
+       
+    end do ! ihalo 
+    
+    if(all(serial_storage_halo(subdomain_mesh%halos))) then
+      allocate(subdomain_mesh%element_halos(0))
+    else
+      allocate(subdomain_mesh%element_halos(nhalos))
+      call derive_element_halo_from_node_halo(subdomain_mesh, &
+        & ordering_scheme = HALO_ORDER_TRAILING_RECEIVES, create_caches = .true.)
+    end if
+
+  end subroutine generate_subdomain_halos
 
 end module fefields

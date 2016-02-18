@@ -1098,7 +1098,8 @@ contains
   end function make_mesh
 
   subroutine add_faces(mesh, model, sndgln, sngi, boundary_ids, &
-    periodic_face_map, element_owner, incomplete_surface_mesh, stat)
+    periodic_face_map, element_owner, incomplete_surface_mesh, &
+    allow_duplicate_internal_facets, stat)
     !!< Subroutine to add a faces component to mesh. Since mesh may be 
     !!< discontinuous, a continuous model mesh must
     !!< be provided. To avoid duplicate computations, and ensure 
@@ -1142,15 +1143,25 @@ contains
     !! is provided, internal facets in sndgln are assumed to only appear once
     !! and a copy will be made, its boundary id will be copied as well. This 
     !! means afterwards the surface_element_count() will be higher than the 
-    !! number of facets provided in sndgln.
+    !! number of facets provided in sndgln. The original number of (unique)
+    !! facets is returned by unique_surface_element_count() and the copies
+    !! are numbered between unique_surface_element_count() and surface_element_count()
+    !! If element_owner is present, both copies of the interior facets should be
+    !! present in sndgln (each with a different adjacent element owner)
     integer, dimension(:), intent(in), optional :: element_owner
     !! See comments above sndgln
     logical, intent(in), optional :: incomplete_surface_mesh
+    !! if provided and true duplicate entries in sndgln are allowed for interior facets
+    !! but only if their boundary ids match. The duplicate entries will be stripped out
+    !! meaning that the facet numbering will no longer match that provided in sndgln
+    !! As always interior facets will occur twice, with one copy numbered <=unique_surface_element_count()
+    !! and one copy numbered <=surface_element_count()
+    logical, intent(in), optional :: allow_duplicate_internal_facets
     integer, intent(out), optional :: stat
 
     type(integer_hash_table):: lperiodic_face_map
     type(mesh_type), pointer :: lmodel
-    type(element_type), pointer :: element
+    type(element_type) :: element_s
     type(quadrature_type) :: quad_face
     integer, dimension(:), pointer :: faces, neigh, model_ele_glno, model_ele_glno2
     integer, dimension(1:mesh%shape%numbering%vertices) :: vertices, &
@@ -1174,6 +1185,11 @@ contains
       end if
     end if
 
+    if (present(element_owner) .and. present_and_true(allow_duplicate_internal_facets)) then
+      ! if element_owner is provided, each internal facet should occur exactly twice (possibly with differen boundary id)
+      FLAbort("You may not provide both element_owner and allow_duplicate_internal_facets in add_faces")
+    end if
+
     allocate(mesh%faces)
     
     ! only created in the first call to get_dg_surface_mesh()
@@ -1189,7 +1205,9 @@ contains
        !       (i.e. there are 2 opposite faces between two elements)
        ! and mesh%faces%face_element_list  storing the element adjacent to
        !     each face
-       call add_faces_face_list(mesh, sndgln, &
+       call add_faces_face_list(mesh, &
+         allow_duplicate_internal_facets=present_and_true(allow_duplicate_internal_facets), &
+         sndgln=sndgln, &
          boundary_ids=boundary_ids, &
          element_owner=element_owner, &
          incomplete_surface_mesh=incomplete_surface_mesh)
@@ -1279,22 +1297,25 @@ contains
     ! ready (either newly computed or copied from model)
     ! now we only have to work out mesh%faces%face_lno
 
-    element => ele_shape(mesh, 1)
     if (present(sngi)) then
        ! if specified use quadrature with sngi gausspoints
-       quad_face = make_quadrature(vertices=face_vertices(element), &
-            & dim=mesh_dim(mesh)-1, ngi=sngi, family=element%quadrature%family)
+       quad_face = make_quadrature(vertices=face_vertices(mesh%shape), &
+            & dim=mesh_dim(mesh)-1, ngi=sngi, family=mesh%shape%quadrature%family)
       ! quad_face will be deallocated inside deallocate_faces!
     else
        ! otherwise use degree of full mesh
-       quad_face = make_quadrature(vertices=face_vertices(element), &
-            & dim=mesh_dim(mesh)-1, degree=element%quadrature%degree, family=element%quadrature%family)
+       quad_face = make_quadrature(vertices=face_vertices(mesh%shape), &
+            & dim=mesh_dim(mesh)-1, degree=mesh%shape%quadrature%degree, family=mesh%shape%quadrature%family)
       ! quad_face will be deallocated inside deallocate_faces!
     end if
 
+    element_s = make_element_shape(mesh%shape, quad_s = quad_face)
+    call deallocate(mesh%shape)
+    mesh%shape = element_s
+
     allocate(mesh%faces%shape)
-    mesh%faces%shape = make_element_shape(vertices=face_vertices(element), &
-         & dim=mesh_dim(mesh)-1, degree=element%degree, quad=quad_face)
+    mesh%faces%shape = make_element_shape(vertices=face_vertices(mesh%shape), &
+         & dim=mesh_dim(mesh)-1, degree=mesh%shape%degree, quad=quad_face)
 
     face_count=entries(mesh%faces%face_list)
     snloc=mesh%faces%shape%loc
@@ -1383,12 +1404,17 @@ contains
 
   end subroutine add_faces
 
-  subroutine add_faces_face_list(mesh, sndgln, boundary_ids, &
+  subroutine add_faces_face_list(mesh, allow_duplicate_internal_facets, &
+    sndgln, boundary_ids, &
     element_owner, incomplete_surface_mesh)
     !!< Subroutine to calculate the face_list and face_element_list of the 
     !!< faces component of a 'model mesh'. This should be the linear continuous 
     !!< mesh that may serve as a 'model' for other meshes.
     type(mesh_type), intent(inout) :: mesh
+    !! if true duplicate entries in sndgln are allowed for interior facets
+    !! but only if their boundary ids match
+    !! the duplicate entries will be stripped out
+    logical, intent(in) :: allow_duplicate_internal_facets
     !! surface mesh (ndglno using the same node numbering as in 'mesh')
     !! if present the N elements in this mesh will correspond to the first
     !! N faces of the new faces component.
@@ -1397,12 +1423,12 @@ contains
     integer, dimension(:), intent(in), optional :: element_owner
     logical, intent(in), optional :: incomplete_surface_mesh
 
-    type(integer_hash_table):: internal_facet_map
+    type(integer_hash_table):: internal_facet_map, duplicate_facets
     type(element_type), pointer :: mesh_shape
     type(element_type) :: face_shape
-    logical:: surface_elements_added
+    logical:: surface_elements_added, registered_already
     ! listen very carefully, I shall say this only once:
-    logical, save :: warning_given=.false. 
+    logical, save :: warning_given=.false.
     integer, dimension(:), pointer :: faces, neigh, snodes
     integer, dimension(2) :: common_elements
     integer :: snloc, stotel
@@ -1433,6 +1459,7 @@ contains
     mesh%faces%has_discontinuous_internal_boundaries = present(element_owner)
 
     call allocate(internal_facet_map)
+    call allocate(duplicate_facets)
     
     snloc=face_vertices(mesh_shape)
     if (present(sndgln)) then
@@ -1476,21 +1503,35 @@ contains
             ewrite(0,*) "Found adjacent elements: ", common_elements
             FLExit("Provided element owner ship information is incorrect")
           end if
-          call register_internal_surface_element(mesh, sele, ele, neighbour_ele)
+          call register_internal_surface_element(mesh, sele, ele, neighbour_ele, snodes)
         else if (no_found==2) then
           ! internal facet but not element ownership information:
           ! we assume this facet only occurs once and we register both
           ! copies at once
 
           ! first one using the current surface element number:
-          call register_internal_surface_element(mesh, sele, common_elements(1), common_elements(2))
+          if (allow_duplicate_internal_facets) then
+            ! don't error for duplicate facets
+            call register_internal_surface_element(mesh, sele, common_elements(1), common_elements(2), &
+              snodes, duplicate_facets=duplicate_facets)
+            registered_already = has_key(duplicate_facets, sele)
+          else
+            ! do error for duplicate facets
+            call register_internal_surface_element(mesh, sele, common_elements(1), common_elements(2), &
+              snodes)
+            registered_already = .false.
+          end if
 
-          ! for the second one we create a new facet number at the end of the provided number surface
-          ! elements:
-          bdry_count = bdry_count+1
-          call register_internal_surface_element(mesh, bdry_count, common_elements(2), common_elements(1))
-          ! store this pair so we can later copy the boundary id of the first (sele) to the second one (bdry_count)
-          call insert(internal_facet_map, sele, bdry_count)
+          if (.not. registered_already) then
+            ! for the second one we create a new facet number at the end of the provided number surface
+            ! elements:
+            bdry_count = bdry_count+1
+            ! note that we don't allow duplicate ones here, since we should have picked this up
+            ! in the first call - so if only one side is registered already something is definitely wrong
+            call register_internal_surface_element(mesh, bdry_count, common_elements(2), common_elements(1), snodes)
+            ! store this pair so we can later copy the boundary id of the first (sele) to the second one (bdry_count)
+            call insert(internal_facet_map, sele, bdry_count)
+          end if
 
         else if (no_found==0) then
           ewrite(0,*) "Current surface element: ", sele
@@ -1557,6 +1598,7 @@ contains
       end if
 
     end if
+
       
     ! the size of this array will be the way to store the n/o
     ! exterior boundaries (returned by surface_element_count())
@@ -1584,6 +1626,12 @@ contains
         call fetch_pair(internal_facet_map, j, sele, sele2)
         mesh%faces%boundary_ids(sele2) = boundary_ids(sele)
       end do
+    end if
+
+    if (key_count(duplicate_facets)>0) then
+      call remove_duplicate_facets(mesh, duplicate_facets, sndgln)
+      ! update bdry_count
+      bdry_count = size(mesh%faces%boundary_ids)
     end if
 
     ! register the rest of the boundaries (the interior ones):
@@ -1616,17 +1664,19 @@ contains
     assert(.not.any(mesh%faces%face_list%ival==0))
 
     call deallocate(internal_facet_map)
+    call deallocate(duplicate_facets)
     
   end subroutine add_faces_face_list
 
-  subroutine register_internal_surface_element(mesh, sele, ele, neighbour_ele)
+  subroutine register_internal_surface_element(mesh, sele, ele, neighbour_ele, snodes, duplicate_facets)
     type(mesh_type), intent(inout):: mesh
     integer, intent(in):: sele, ele, neighbour_ele
+    integer, dimension(:), intent(in):: snodes ! only used to give a more helpful error message
+    ! if provided do not error for facets that have already been registered, but store the map between the two
+    type(integer_hash_table), intent(inout), optional:: duplicate_facets
 
     integer, dimension(:), pointer:: neigh, faces
     integer:: j
-
-    mesh%faces%face_element_list(sele)=ele
 
     ! neigh should contain correct neighbours already for internal facets:
     neigh=>row_m_ptr(mesh%faces%face_list, ele)
@@ -1643,7 +1693,23 @@ contains
       FLAbort("Something wrong with the mesh, sndgln, or mesh%nelist")
     end if
 
-    ! register the surface element in face_list
+    if (faces(j)/=0) then
+      if (present(duplicate_facets)) then
+        call insert(duplicate_facets, sele, faces(j))
+        return
+      else
+        ! if you hit this at the start of your simulation you have
+        ! marked the same part of the boundary more than once in gmsh
+        ! if this occurs later on in the run (e.g. during an adapt)
+        ! there may be a bug / unimplemented feature related to internal boundary facets
+        ewrite(0,*) 'Surface element:', faces(j),' and ',sele
+        ewrite(0,*) 'Both define the surface element:', snodes
+        FLExit("Provided surface mesh has duplicate surface elements")
+      end if
+    end if
+
+    ! register the surface element in surface_element_list and face_list
+    mesh%faces%face_element_list(sele)=ele
     faces(j)=sele
 
   end subroutine register_internal_surface_element
@@ -1693,6 +1759,74 @@ contains
     neigh(j)=-j ! negative number indicates exterior boundary
 
   end subroutine register_external_surface_element
+
+  subroutine remove_duplicate_facets(mesh, duplicate_facets, sndgln)
+    type(mesh_type), intent(inout) :: mesh
+    type(integer_hash_table), intent(in) :: duplicate_facets
+    integer, dimension(:), intent(in) :: sndgln
+
+    integer, dimension(:), pointer :: old_boundary_ids, faces
+    integer, dimension(:), allocatable :: old_to_new_facet_number
+    integer :: snloc, i, j, facets_to_keep, new_surface_element_count
+
+    old_boundary_ids => mesh%faces%boundary_ids
+    new_surface_element_count = size(old_boundary_ids)-key_count(duplicate_facets)
+    mesh%faces%unique_surface_element_count = mesh%faces%unique_surface_element_count-key_count(duplicate_facets)
+    allocate(old_to_new_facet_number(size(old_boundary_ids)))
+    allocate(mesh%faces%boundary_ids(new_surface_element_count))
+
+    ! number the facets to keep, and check that the duplicate actually have consistent surface ids
+    facets_to_keep = 0
+    do i=1, size(old_boundary_ids)
+      if (has_key(duplicate_facets, i)) then
+        ! check that the boundary ids match
+        if (old_boundary_ids(i)/=old_boundary_ids(fetch(duplicate_facets,i))) then
+          ewrite(0,*) 'Surface element:', i,' and ', fetch(duplicate_facets, i)
+          ewrite(0,*) 'Both define the surface element:', sndgln((i-1)*snloc+1:i*snloc)
+          ewrite(0,*) 'but define different surface ids:', old_boundary_ids(i), old_boundary_ids(fetch(duplicate_facets, i))
+          ! if we hit this here, it's probably a bug as we've explicitly told add_faces() that we expect duplicate
+          ! interior facets but with boundary ids that agreee.
+          FLAbort("Provided surface mesh has duplicate surface elements")
+        end if
+      else
+        facets_to_keep = facets_to_keep+1
+        mesh%faces%boundary_ids(facets_to_keep) = old_boundary_ids(i)
+        ! note that we don't need to reallocate this one: we're merely shifting it forward
+        mesh%faces%face_element_list(facets_to_keep) = mesh%faces%face_element_list(i)
+        old_to_new_facet_number(i) = facets_to_keep
+      end if
+    end do
+
+    if (facets_to_keep/=new_surface_element_count) then
+      FLAbort("Something wrong in mesh faces administration.")
+    end if
+
+    ! now we can safely deallocate the old boundary ids and fix the mem stats
+    deallocate(old_boundary_ids)
+#ifdef HAVE_MEMORY_STATS
+    call register_deallocation("mesh_type", "integer", size(old_boundary_ids), &
+         trim(mesh%name)//" boundary_ids")
+    call register_allocation("mesh_type", "integer", new_surface_element_count, &
+         trim(mesh%name)//" boundary_ids")
+#endif
+
+    ! now renumber the facet numbers we've already stored in face_list
+    do i=1, size(mesh%faces%face_list,1)
+      faces=>row_ival_ptr(mesh%faces%face_list, i)
+      do j=1, size(faces)
+        if (faces(j)/=0) then
+          faces(j) = old_to_new_facet_number(faces(j))
+        end if
+      end do
+    end do
+
+    deallocate(old_to_new_facet_number)
+
+    ewrite(2,*) "After removing duplicate interior facets:"
+    ewrite(2,*) "Number of surface elements: ", size(mesh%faces%boundary_ids)
+    ewrite(2,*) "Number of unique surface elements: ", mesh%faces%unique_surface_element_count
+
+  end subroutine remove_duplicate_facets
 
   subroutine add_faces_face_list_periodic_from_non_periodic_model( &
      mesh, model, periodic_face_map)

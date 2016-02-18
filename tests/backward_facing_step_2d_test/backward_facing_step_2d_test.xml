@@ -43,8 +43,8 @@ assert FinalTime &gt; 1.0
     <test name="Maximum velocity less than 1.1" language="python">
 assert MaximumVelocity &lt; 1.1
     </test>
-    <test name="Maximum pressure less than 0.25" language="python">
-assert MaximumPressure &lt; 0.25
+    <test name="Maximum pressure less than 0.3" language="python">
+assert MaximumPressure &lt; 0.3
     </test>
     <test name="Minimum pressure greater than -0.25" language="python">
 assert MinimumPressure &gt; -0.25

@@ -39,6 +39,7 @@ module momentum_DG
   use shape_functions
   use transform_elements
   use vector_tools
+  use field_derivatives
   use fldebug
   use vtk_interfaces
   use Coordinates
@@ -111,9 +112,6 @@ module momentum_DG
   ! Parameters for interior penalty method
   real :: Interior_Penalty_Parameter, edge_length_power, h0
 
-  ! Flag indicating whether equations are being solved in acceleration form.
-  logical :: acceleration
-
   ! Flag indicating whether to include pressure bcs (not for cv pressure)
   logical :: l_include_pressure_bcs
   
@@ -121,7 +119,7 @@ module momentum_DG
   logical :: have_mass
   logical :: have_source
   logical :: have_gravity
-  logical :: on_sphere
+  logical :: on_sphere, radial_gravity
   logical :: have_absorption
   logical :: have_vertical_stabilization
   logical :: have_implicit_buoyancy
@@ -137,6 +135,7 @@ module momentum_DG
   logical :: move_mesh
   logical :: have_pressure_bc
   logical :: subtract_out_reference_profile
+  logical :: have_les
   
   real :: gravity_magnitude
 
@@ -153,11 +152,9 @@ contains
   subroutine construct_momentum_dg(u, p, rho, x, &
        & big_m, rhs, state, &
        & inverse_masslump, inverse_mass, mass, &
-       & acceleration_form, include_pressure_bcs,&
-       & subcycle_m)
+       & include_pressure_bcs, subcycle_m, subcycle_rhs)
     !!< Construct the momentum equation for discontinuous elements in
-    !!< acceleration form. If acceleration_form is present and false, the
-    !!< matrices will be constructed for use in conventional solution form.
+    !!< acceleration form.
 
     !! velocity and coordinate
     type(vector_field), intent(inout) :: u, x
@@ -170,6 +167,8 @@ contains
     type(block_csr_matrix), intent(inout), optional :: subcycle_m
     !! Momentum right hand side vector for each point.
     type(vector_field), intent(inout) :: rhs
+    !! Right hand side vector containing advection bc terms if subcycling
+    type(vector_field), intent(inout), optional :: subcycle_rhs
     !! Collection of fields defining system state.
     type(state_type) :: state
     
@@ -188,15 +187,6 @@ contains
 
     !! whether to include the dirichlet pressure bc integrals to the rhs
     logical, intent(in), optional :: include_pressure_bcs
-
-    !! Optional indicator of whether we are solving in acceleration form.
-    !!
-    !! If not solving in acceleration form then big_m will be formed with
-    !! an effective theta of 1.0 and dt of 1.0 . In addition, only boundary
-    !! terms will be inserted on the right hand side. This is sufficient to
-    !! enable the full discrete equations to be written using matrix
-    !! multiplies outside this routine.
-    logical, intent(in), optional :: acceleration_form
 
     !! Position, velocity and source fields.
     type(vector_field), pointer :: U_mesh, X_old, X_new
@@ -266,7 +256,9 @@ contains
     type(integer_set), dimension(:), pointer :: colours
     integer :: len, clr, nnid
     !! Is the transform_to_physical cache we prepopulated valid
+#ifdef _OPENMP
     logical :: cache_valid
+#endif
     integer :: num_threads
 
     ! Volume fraction fields for multi-phase flow simulation
@@ -276,13 +268,15 @@ contains
     ! Partial stress - sp911
     logical :: partial_stress 
 
+    ! LES - sp911
+    real :: smagorinsky_coefficient
+    type(scalar_field), pointer :: eddy_visc, prescribed_filter_width, distance_to_wall, &
+         & y_plus_debug, les_filter_width_debug
+
     ewrite(1, *) "In construct_momentum_dg"
 
     call profiler_tic("construct_momentum_dg")
     assert(continuity(u)<0)
-
-    acceleration= .not. present_and_false(acceleration_form)
-    ewrite(2, *) "Acceleration form? ", acceleration
 
     if(present(include_pressure_bcs)) then
       l_include_pressure_bcs = include_pressure_bcs
@@ -291,12 +285,12 @@ contains
     end if
     
     ! These names are based on the CGNS SIDS.
+    U_nl=extract_vector_field(state, "NonlinearVelocity")
+    call incref(U_nl)
+
     if (.not.have_option(trim(U%option_path)//"/prognostic"//&
          &"/spatial_discretisation/discontinuous_galerkin"//&
          &"/advection_scheme/none")) then
-       U_nl=extract_vector_field(state, "NonlinearVelocity")
-       call incref(U_nl)
-
        if(have_option(trim(U%option_path)//"/prognostic"//&
             &"/spatial_discretisation/discontinuous_galerkin"//&
             &"/advection_scheme/project_velocity_to_continuous")) then
@@ -327,10 +321,6 @@ contains
        end if
        have_advection = .true.
     else
-       ! Forcing a zero NonlinearVelocity will disable advection.
-       call allocate(U_nl, U%dim,  U%mesh, "NonlinearVelocity", &
-            FIELD_TYPE_CONSTANT)
-       call zero(U_nl)
        have_advection=.false.
        advecting_velocity => U_nl
     end if
@@ -422,7 +412,6 @@ contains
       call incref(buoyancy)
       gravity=extract_vector_field(state, "GravityDirection", stat)
       call incref(gravity)
-
     else
       call allocate(buoyancy, u%mesh, "VelocityBuoyancyDensity", FIELD_TYPE_CONSTANT)
       call zero(buoyancy)
@@ -430,6 +419,9 @@ contains
       call zero(gravity)
     end if
     ewrite_minmax(buoyancy)
+
+    radial_gravity = have_option(trim(u%option_path)//"/prognostic/spatial_discretisation/discontinuous_galerkin"//&
+       &"/buoyancy/radial_gravity_direction_at_gauss_points")
 
     ! Splits up the Density and Pressure fields into a hydrostatic component (') and a perturbed component (''). 
     ! The hydrostatic components, denoted p' and rho', should satisfy the balance: grad(p') = rho'*g
@@ -493,14 +485,9 @@ contains
     on_sphere = have_option('/geometry/spherical_earth/')
 
     ! Extract model parameters from options dictionary.
-    if (acceleration) then
-       call get_option(trim(U%option_path)//&
-            &"/prognostic/temporal_discretisation/theta", theta)
-       call get_option("/timestepping/timestep", dt)
-    else
-       theta=1.0
-       dt=1.0
-    end if
+    call get_option(trim(U%option_path)//&
+        &"/prognostic/temporal_discretisation/theta", theta)
+    call get_option("/timestepping/timestep", dt)
 
     have_mass = .not. have_option(trim(u%option_path)//&
         &"/prognostic/spatial_discretisation"//&
@@ -605,11 +592,53 @@ contains
        FLAbort("Unknown viscosity scheme - Options tree corrupted?")
     end if
 
-    partial_stress = have_option(trim(u%option_path)//&
+    partial_stress = .false.
+    have_les = .false.
+    if (have_option(trim(u%option_path)//&
          &"/prognostic/spatial_discretisation"//&
          &"/discontinuous_galerkin/viscosity_scheme"//&
-         &"/partial_stress_form")
+         &"/partial_stress_form")) then
+
+      partial_stress = .true.
+      
+      ! if we have stress form then we may be doing LES modelling
+    end if
+
+    if (have_option(trim(u%option_path)//&
+         &"/prognostic/spatial_discretisation"//&
+         &"/discontinuous_galerkin/les_model")) then
+       have_les = .true.
+       call get_option(trim(u%option_path)//&
+            &"/prognostic/spatial_discretisation"//&
+            &"/discontinuous_galerkin/les_model"//&
+            &"/smagorinsky_coefficient", &
+            smagorinsky_coefficient)
+    end if
+
     ewrite(2,*) 'partial stress? ', partial_stress
+
+    ! les variables - need to be nullified if non-existent
+    eddy_visc => extract_scalar_field(state, "DGLESScalarEddyViscosity", stat=stat)   
+    if (stat/=0) then
+      nullify(eddy_visc)
+    end if
+    prescribed_filter_width => extract_scalar_field(state, "FilterWidth", stat=stat)  
+    if (stat/=0) then
+      nullify(prescribed_filter_width)
+    end if
+    distance_to_wall => extract_scalar_field(state, "DistanceToWall", stat=stat)  
+    if (stat/=0) then
+      nullify(distance_to_wall)
+    end if
+    y_plus_debug => extract_scalar_field(state, "YPlus", stat=stat)  
+    if (stat/=0) then
+      nullify(y_plus_debug)
+    end if
+    les_filter_width_debug => extract_scalar_field(state, "DampedFilterWidth", stat=stat)  
+    if (stat/=0) then
+      nullify(les_filter_width_debug)
+    end if
+    !  end of les variables
 
     integrate_surfacetension_by_parts = have_option(trim(u%option_path)//&
       &"/prognostic/tensor_field::SurfaceTension"//&
@@ -619,12 +648,18 @@ contains
     assert(has_faces(P%mesh))
 
     call zero(big_m)
+    call zero(RHS)
+
     subcycle=.false.
     if(present(subcycle_m)) subcycle=.true.
+
     if(subcycle) then
        call zero(subcycle_m)
+       if (.not. present(subcycle_rhs)) then
+         FLAbort("Need to call construct_momentum_dg with both subcycle_m and subcycle_rhs")
+       end if
+       call zero(subcycle_rhs)
     end if
-    call zero(RHS)
     
     if(present(inverse_masslump) .and. lump_mass) then
        call allocate(inverse_masslump, u%dim, u%mesh, "InverseLumpedMass")
@@ -695,7 +730,6 @@ contains
     end if
 #ifdef _OPENMP
     cache_valid = prepopulate_transform_cache(X)
-    assert(cache_valid)
     if (have_coriolis) then
        call set_coriolis_parameters
     end if
@@ -720,11 +754,16 @@ contains
             & P, old_pressure, Rho, surfacetension, q_mesh, &
             & velocity_bc, velocity_bc_type, &
             & pressure_bc, pressure_bc_type, &
-            & turbine_conn_mesh, on_sphere, depth, have_wd_abs, &
+            & turbine_conn_mesh, depth, have_wd_abs, &
             & alpha_u_field, Abs_wd, vvr_sf, ib_min_grad, nvfrac, &
             & inverse_mass=inverse_mass, &
             & inverse_masslump=inverse_masslump, &
-            & mass=mass, subcycle_m=subcycle_m, partial_stress=partial_stress)
+            & mass=mass, subcycle_m=subcycle_m, subcycle_rhs=subcycle_rhs, &
+            & partial_stress=partial_stress, &
+            & smagorinsky_coefficient=smagorinsky_coefficient, &
+            & eddy_visc=eddy_visc, prescribed_filter_width=prescribed_filter_width, &
+            & distance_to_wall=distance_to_wall, y_plus_debug=y_plus_debug, &
+            & les_filter_width_debug=les_filter_width_debug)
       end do element_loop
       !$OMP END DO
 
@@ -749,6 +788,11 @@ contains
       ewrite_minmax(inverse_mass)
     end if
     ewrite_minmax(rhs)
+
+    if (associated(eddy_visc)) then
+      ! eddy visc is calculated in momentum_dg element loop. we need to do a halo_update
+      call halo_update(eddy_visc)
+    end if
 
     ! Drop the reference to the fields we may have made.
     call deallocate(Viscosity)
@@ -779,9 +823,11 @@ contains
        &Viscosity, swe_bottom_drag, swe_u_nl, P, old_pressure, Rho, surfacetension, q_mesh, &
        &velocity_bc, velocity_bc_type, &
        &pressure_bc, pressure_bc_type, &
-       &turbine_conn_mesh, on_sphere, depth, have_wd_abs, alpha_u_field, Abs_wd, &
+       &turbine_conn_mesh, depth, have_wd_abs, alpha_u_field, Abs_wd, &
        &vvr_sf, ib_min_grad, nvfrac, &
-       &inverse_mass, inverse_masslump, mass, subcycle_m, partial_stress)
+       &inverse_mass, inverse_masslump, mass, subcycle_m, subcycle_rhs, partial_stress, &
+       &smagorinsky_coefficient, eddy_visc, prescribed_filter_width, distance_to_wall, &
+       &y_plus_debug, les_filter_width_debug)
 
     !!< Construct the momentum equation for discontinuous elements in
     !!< acceleration form.
@@ -797,6 +843,7 @@ contains
     type(mesh_type), intent(in) :: turbine_conn_mesh
     !! 
     type(block_csr_matrix), intent(inout), optional :: subcycle_m
+    type(vector_field), intent(inout), optional :: subcycle_rhs
 
     !! Position, velocity and source fields.
     type(scalar_field), intent(in) :: buoyancy
@@ -915,6 +962,8 @@ contains
     ! go, so that we only do the calculations we really need
     real, dimension(u%dim, ele_and_faces_loc(U,ele)) :: big_m_diag_addto,&
          & rhs_addto
+    ! rhs terms for subcycling coming from advection bc terms
+    real, dimension(u%dim, ele_loc(U, ele)) :: subcycle_rhs_addto
     
     real, dimension(u%dim, u%dim, ele_and_faces_loc(U,ele), ele_and_faces_loc(U,ele)) :: big_m_tensor_addto
     logical, dimension(u%dim, u%dim) :: diagonal_block_mask, off_diagonal_block_mask
@@ -928,9 +977,6 @@ contains
     ! In parallel, we assemble terms on elements we own, and those in
     ! the L1 element halo
     logical :: assemble_element
-
-    ! If on the sphere evaluate gravity direction at the gauss points
-    logical :: on_sphere
 
     ! Absorption matrices
     real, dimension(u%dim, ele_ngi(u, ele)) :: absorption_gi
@@ -973,6 +1019,12 @@ contains
     ! added for partial stress form (sp911)
     logical, intent(in) :: partial_stress
 
+    ! LES - sp911
+    real, intent(in) :: smagorinsky_coefficient
+    type(scalar_field), pointer, intent(inout) :: eddy_visc, y_plus_debug, &
+         & les_filter_width_debug
+    type(scalar_field), pointer, intent(in) :: prescribed_filter_width, distance_to_wall
+
     dg=continuity(U)<0
     p0=(element_degree(u,ele)==0)
     
@@ -1002,11 +1054,11 @@ contains
 
     big_m_diag_addto = 0.0
     big_m_tensor_addto = 0.0
+    rhs_addto = 0.0
     if(subcycle) then
        subcycle_m_tensor_addto = 0.0
+       subcycle_rhs_addto = 0.0
     end if
-
-    rhs_addto = 0.0
     
     diagonal_block_mask = .false.
     do dim = 1, u%dim
@@ -1172,10 +1224,8 @@ contains
       big_m_tensor_addto(U_, V_, :loc, :loc) = big_m_tensor_addto(U_, V_, :loc, :loc) - dt*theta*coriolis_mat
       big_m_tensor_addto(V_, U_, :loc, :loc) = big_m_tensor_addto(V_, U_, :loc, :loc) + dt*theta*coriolis_mat
 
-      if(acceleration)then
-        rhs_addto(U_, :loc) = rhs_addto(U_, :loc) + matmul(coriolis_mat, u_val(V_,:))
-        rhs_addto(V_, :loc) = rhs_addto(V_, :loc) - matmul(coriolis_mat, u_val(U_,:))
-      end if
+      rhs_addto(U_, :loc) = rhs_addto(U_, :loc) + matmul(coriolis_mat, u_val(V_,:))
+      rhs_addto(V_, :loc) = rhs_addto(V_, :loc) - matmul(coriolis_mat, u_val(U_,:))
     end if
 
     if(have_advection.and.(.not.p0).and.assemble_element) then
@@ -1286,15 +1336,14 @@ contains
             big_m_tensor_addto(dim, dim, :loc, :loc) &
                  &= big_m_tensor_addto(dim, dim, :loc, :loc) &
                  &+ dt*theta*advection_mat
+            rhs_addto(dim, :loc) = rhs_addto(dim, :loc) &
+                 &- matmul(advection_mat, u_val(dim,:))
          end if
-        if(acceleration.and..not.subcycle) then
-          rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - matmul(advection_mat, u_val(dim,:))
-        end if
       end do
 
     end if
 
-    if(have_source.and.acceleration.and.assemble_element) then
+    if(have_source .and. assemble_element) then
       ! Momentum source matrix.
       Source_mat = shape_shape(U_shape, ele_shape(Source,ele), detwei*Rho_q)
       if(lump_source) then
@@ -1311,7 +1360,7 @@ contains
       end if
     end if
 
-    if(have_gravity.and.acceleration.and.assemble_element) then
+    if(have_gravity .and. assemble_element) then
       ! buoyancy
       if(subtract_out_reference_profile) then
          coefficient_detwei = detwei*gravity_magnitude*(ele_val_at_quad(buoyancy, ele)-ele_val_at_quad(hb_density, ele))
@@ -1319,11 +1368,11 @@ contains
          coefficient_detwei = detwei*gravity_magnitude*ele_val_at_quad(buoyancy, ele)
       end if
 
-      if (on_sphere) then
-      ! If were on a spherical Earth evaluate the direction of the gravity vector
+      if (radial_gravity) then
+      ! If we're using a radial gravity, evaluate the direction of the gravity vector
       ! exactly at quadrature points.
         rhs_addto(:, :loc) = rhs_addto(:, :loc) + shape_vector_rhs(u_shape, &
-                                    sphere_inward_normal_at_quad_ele(X, ele), &
+                                    radial_inward_normal_at_quad_ele(X, ele), &
                                     coefficient_detwei)
       else
       
@@ -1383,7 +1432,7 @@ contains
 
         ! Calculate the gradient in the direction of gravity
         if (on_sphere) then
-          grav_at_quads=sphere_inward_normal_at_quad_ele(X, ele)
+          grav_at_quads=radial_inward_normal_at_quad_ele(X, ele)
         else
           grav_at_quads=ele_val_at_quad(gravity, ele)
         end if
@@ -1447,14 +1496,12 @@ contains
                     & dt*theta*Abs_lump_sphere(dim,dim2,i)
                 end do
               end do
-              if (acceleration) then
-                rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - Abs_lump_sphere(dim,dim,:)*u_val(dim,:)
-                ! off block diagonal absorption terms
-                do dim2 = 1, u%dim
-                  if (dim==dim2) cycle ! The dim=dim2 terms were done above
-                  rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - Abs_lump_sphere(dim,dim2,:)*u_val(dim2,:)
-                end do
-              end if
+              rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - Abs_lump_sphere(dim,dim,:)*u_val(dim,:)
+              ! off block diagonal absorption terms
+              do dim2 = 1, u%dim
+                if (dim==dim2) cycle ! The dim=dim2 terms were done above
+                rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - Abs_lump_sphere(dim,dim2,:)*u_val(dim2,:)
+              end do
             end do
           end if
           if (present(inverse_masslump) .and. pressure_corrected_absorption) then
@@ -1479,14 +1526,12 @@ contains
                 big_m_tensor_addto(dim, dim2, :loc, :loc) = big_m_tensor_addto(dim, dim2, :loc, :loc) + &
                   & dt*theta*Abs_mat_sphere(dim,dim2,:,:)
               end do
-              if (acceleration) then
-                rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - matmul(Abs_mat_sphere(dim,dim,:,:), u_val(dim,:))
-                ! off block diagonal absorption terms
-                do dim2 = 1, u%dim
-                  if (dim==dim2) cycle ! The dim=dim2 terms were done above
-                  rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - matmul(Abs_mat_sphere(dim,dim2,:,:), u_val(dim2,:))
-                end do
-              end if
+              rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - matmul(Abs_mat_sphere(dim,dim,:,:), u_val(dim,:))
+              ! off block diagonal absorption terms
+              do dim2 = 1, u%dim
+                if (dim==dim2) cycle ! The dim=dim2 terms were done above
+                rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - matmul(Abs_mat_sphere(dim,dim2,:,:), u_val(dim2,:))
+              end do
             end do
           end if
           Abs_lump_sphere = 0.0
@@ -1520,9 +1565,7 @@ contains
           do dim = 1, u%dim
             if (assemble_element) then
               big_m_diag_addto(dim, :loc) = big_m_diag_addto(dim, :loc) + dt*theta*abs_lump(dim,:)
-              if(acceleration) then
-                rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - abs_lump(dim,:)*u_val(dim,:)
-              end if
+              rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - abs_lump(dim,:)*u_val(dim,:)
             end if
             if (present(inverse_masslump) .and. pressure_corrected_absorption) then
               assert(lump_mass)
@@ -1542,9 +1585,7 @@ contains
             if (assemble_element) then
               big_m_tensor_addto(dim, dim, :loc, :loc) = big_m_tensor_addto(dim, dim, :loc, :loc) + &
                 & dt*theta*Abs_mat(dim,:,:)
-              if(acceleration) then
-                rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - matmul(Abs_mat(dim,:,:), u_val(dim,:))
-              end if
+              rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - matmul(Abs_mat(dim,:,:), u_val(dim,:))
             end if
             if (present(inverse_mass) .and. pressure_corrected_absorption) then
               assert(.not. lump_mass)
@@ -1770,7 +1811,7 @@ contains
                         & Rho, U, U_nl, U_mesh, P, q_mesh, surfacetension, &
                         & velocity_bc, velocity_bc_type, &
                         & pressure_bc, pressure_bc_type, hb_pressure, &
-                        & subcycle_m_tensor_addto, nvfrac, &
+                        & subcycle_m_tensor_addto, subcycle_rhs_addto, nvfrac, &
                         & ele2grad_mat=ele2grad_mat, kappa_mat=kappa_mat, &
                         & inverse_mass_mat=inverse_mass_mat, &
                         & viscosity=viscosity, viscosity_mat=viscosity_mat)
@@ -1783,7 +1824,7 @@ contains
                         & Rho, U, U_nl, U_mesh, P, q_mesh, surfacetension, &
                         & velocity_bc, velocity_bc_type, &
                         & pressure_bc, pressure_bc_type, hb_pressure, &
-                        & subcycle_m_tensor_addto, nvfrac)
+                        & subcycle_m_tensor_addto, subcycle_rhs_addto, nvfrac)
             end if
         end if
 
@@ -1880,15 +1921,13 @@ contains
         ! Insert viscosity in matrix.
         big_m_tensor_addto = big_m_tensor_addto + Viscosity_mat*theta*dt
         
-        if (acceleration) then
-          do dim1=1,U%dim
-            do dim2=1, U%dim
-              rhs_addto(dim1, :) = rhs_addto(dim1, :) &
-                   - matmul(Viscosity_mat(dim1,dim2,:,:), &
-                   node_val(U, dim2, local_glno))
-            end do
+        do dim1=1,U%dim
+          do dim2=1, U%dim
+            rhs_addto(dim1, :) = rhs_addto(dim1, :) &
+                 - matmul(Viscosity_mat(dim1,dim2,:,:), &
+                 node_val(U, dim2, local_glno))
           end do
-        end if
+        end do
         
      end if !have_viscosity
     
@@ -1929,6 +1968,7 @@ contains
              call addto(subcycle_m, u_ele, local_glno,&
                   &subcycle_m_tensor_addto(:,:,:loc,:), &
                   &block_mask=diagonal_block_mask)
+             call addto(subcycle_rhs, u_ele, subcycle_rhs_addto)
           end if
           if(.not. partial_stress .and. have_coriolis) then
             ! add in coupling between different components, but only within the element
@@ -2010,9 +2050,14 @@ contains
       ! off diagonal terms define the coupling between the velocity components
 
       real, dimension(size(Q_inv,1), size(Q_inv,2)) :: Q_visc
+      real, dimension(ele_loc(u, ele)) :: isotropic_visc
 
-      ! isotropic viscosity (just take the first component as scalar value)
-      Q_visc = mat_diag_mat(Q_inv, Viscosity_ele(1,1,:))
+      dim = Viscosity%dim(1)
+      isotropic_visc = Viscosity_ele(1,1,:)
+      if (have_les) then
+        call les_viscosity(isotropic_visc)
+      end if
+      Q_visc = mat_diag_mat(Q_inv, isotropic_visc)
 
       do dim1=1,u%dim
         do dim2=1,u%dim
@@ -2044,6 +2089,118 @@ contains
       
     end subroutine add_diagonal_to_tensor
 
+    subroutine les_viscosity(isotropic_visc)
+
+      !!! Calculate LES contribution to the viscosity in the momentum equation.
+
+      !!! This is a Smagorinsky style model
+
+      !!! \nu_{eddy} = C_s Delta x_{grid} | S | where
+      !!! S= ( \nabla u + \nabla u ^T )/2.0
+
+      real, dimension(ele_loc(u,ele)), intent(inout) :: isotropic_visc
+
+      real, dimension(ele_loc(u,ele)) :: les_filter_width
+      real, dimension(mesh_dim(u), mesh_dim(u), ele_loc(u,ele)) :: g_nl
+      real, dimension(mesh_dim(u), mesh_dim(u)) :: s
+      real, dimension(ele_loc(u,ele)) :: s_mod
+      real, dimension(ele_loc(u,ele)) :: les_scalar_viscosity, y_wall, y_plus
+      real, dimension(ele_loc(u,ele), ele_loc(u,ele)) :: M_inv
+
+      ! get inverse mass
+      M_inv = shape_shape(u_shape, u_shape, detwei)
+      call invert(M_inv)
+      
+      ! Compute gradient of non-linear velocity
+      do dim1=1,mesh_dim(u)
+        do dim2=1,mesh_dim(u)
+          ! interior contribution
+          g_nl(dim1,dim2,:)=matmul(grad_U_mat_q(dim2,:,:loc), ele_val(u_nl,dim1,ele))
+
+          ! boundary contributions (have to be done seperately as we need to apply bc's at boundaries)
+          ! local node map counter.
+          start=loc+1
+          do ni=1,size(neigh)
+            ! get neighbour ele, corresponding faces, and complete local node map
+            ele_2=neigh(ni)
+
+            if (ele_2>0) then
+              ! obtain corresponding faces, and complete local node map
+              face=ele_face(U, ele_2, ele)
+              finish=start+face_loc(U, face)-1  
+              ! for interior faces we use the face values  
+              g_nl(dim1,dim2,:)=g_nl(dim1,dim2,:)+matmul(grad_U_mat_q(dim2,:,start:finish), face_val(u_nl,dim1,face))
+            else
+              ! obtain corresponding faces, and complete local node map
+              face=ele_face(U, ele, ele_2)
+              finish=start+face_loc(U, face)-1 
+              ! for boundary faces the value we use depends upon if a weak bc is applied
+              if (velocity_bc_type(dim1,face)==1) then
+                ! weak bc! use the bc value
+                g_nl(dim1,dim2,:)=g_nl(dim1,dim2,:)+matmul(grad_U_mat_q(dim2,:,start:finish), ele_val(velocity_bc,dim1,face))
+              else
+                ! no weak bc, use node values on internal face
+                g_nl(dim1,dim2,:)=g_nl(dim1,dim2,:)+matmul(grad_U_mat_q(dim2,:,start:finish), face_val(u_nl,dim1,face))
+              end if
+            end if
+
+            ! update node map counter
+            start=start+face_loc(U, face)
+          end do
+
+          ! apply inverse mass
+          g_nl(dim1,dim2,:)=matmul(M_inv, g_nl(dim1,dim2,:))
+        end do
+      end do
+
+      ! call calculate_les_grad_u(g_nl)
+
+      ! Compute modulus of strain rate
+      do i=1,ele_loc(u,ele)
+        s=0.5*(g_nl(:,:,i)+transpose(g_nl(:,:,i)))
+        ! Calculate modulus of strain rate
+        s_mod(i)=sqrt(2*sum(s**2))
+      end do
+
+      ! Compute filter width
+      if (associated(prescribed_filter_width)) then
+        les_filter_width = ele_val(prescribed_filter_width, ele)
+      else
+        ! when using the element size to compute the filter width we assume the filter 
+        ! width is twice the element size
+        les_filter_width = 2*length_scale_scalar(X, ele)
+      end if
+
+      ! apply Van Driest damping functions
+      if (associated(distance_to_wall)) then
+        y_wall = ele_val(distance_to_wall, ele)
+        do i=1,ele_loc(u,ele)
+          y_plus(i) = y_wall(i) * sqrt(norm2(g_nl(:,:,i)+transpose(g_nl(:,:,i))))/sqrt(isotropic_visc(i))
+        end do
+        les_filter_width = (1 - exp(-1.0*y_plus/25.0))*les_filter_width
+        
+        ! debugging fields
+        if (associated(y_plus_debug)) then
+          call set(y_plus_debug, ele_nodes(y_plus_debug, ele), y_plus)
+        end if
+      end if 
+
+      if (associated(les_filter_width_debug)) then
+        call set(les_filter_width_debug, ele_nodes(les_filter_width_debug, ele), les_filter_width)
+      end if
+
+      les_scalar_viscosity = (les_filter_width*smagorinsky_coefficient)**2 * s_mod
+
+      ! store sgs viscosity
+      if (associated(eddy_visc)) then
+        call set(eddy_visc, ele_nodes(eddy_visc, ele), les_scalar_viscosity)
+      end if
+
+      ! Add to molecular viscosity
+      isotropic_visc = isotropic_visc + les_scalar_viscosity
+      
+    end subroutine les_viscosity
+    
   end subroutine construct_momentum_element_dg
 
   subroutine construct_momentum_interface_dg(ele, face, face_2, ni, &
@@ -2052,7 +2209,7 @@ contains
        & U_nl, U_mesh, P, q_mesh, surfacetension, &
        & velocity_bc, velocity_bc_type, &
        & pressure_bc, pressure_bc_type, hb_pressure, &
-       & subcycle_m_tensor_addto, nvfrac, &
+       & subcycle_m_tensor_addto, subcycle_rhs_addto, nvfrac, &
        & ele2grad_mat, kappa_mat, inverse_mass_mat, &
        & viscosity, viscosity_mat)
     !!< Construct the DG element boundary integrals on the ni-th face of
@@ -2064,7 +2221,7 @@ contains
     integer, intent(in) :: ele, face, face_2, ni
     real, dimension(:,:,:,:), intent(inout) :: big_m_tensor_addto
     real, dimension(:,:,:,:), intent(inout) :: subcycle_m_tensor_addto
-    real, dimension(:,:) :: rhs_addto
+    real, dimension(:,:), intent(inout) :: rhs_addto, subcycle_rhs_addto
     real, dimension(:,:,:), intent(inout) :: Grad_U_mat, Div_U_mat
     ! We pass these additional fields to save on state lookups.
     type(vector_field), intent(in) :: X, U, U_nl
@@ -2309,9 +2466,7 @@ contains
 
       do dim = 1, u%dim
       
-        ! Insert advection in matrix.
-    
-        ! Outflow boundary integral.
+         ! Insert advection in matrix.
          if(subcycle) then
             subcycle_m_tensor_addto(dim, dim, u_face_l, u_face_l) = &
                  &subcycle_m_tensor_addto(dim, dim, u_face_l, u_face_l) + &
@@ -2321,6 +2476,13 @@ contains
                subcycle_m_tensor_addto(dim, dim, u_face_l, start:finish) = &
                     &subcycle_m_tensor_addto(dim, dim, u_face_l, start:finish)&
                     &+nnAdvection_in
+            else
+               ! on a Dirichlet boundary, the incoming advection term
+               ! on the lhs is replaced by the same term on the right using
+               ! the boundary value - outgoing term is the same as always
+               ! (meaning no dirichlet bc is applied on outgoing facets)
+               subcycle_rhs_addto(dim,u_face_l) = subcycle_rhs_addto(dim,u_face_l) &
+                    -matmul(nnAdvection_in,ele_val(velocity_bc,dim,face))
             end if
          else
             big_m_tensor_addto(dim, dim, u_face_l, u_face_l) = &
@@ -2331,28 +2493,17 @@ contains
                big_m_tensor_addto(dim, dim, u_face_l, start:finish) = &
                     big_m_tensor_addto(dim, dim, u_face_l, start:finish) + &
                     nnAdvection_in*dt*theta
-            end if
-        
-            if (.not.dirichlet(dim)) then
-               ! For interior interfaces this is the upwinding term. For a
-               ! Neumann boundary it's necessary to apply downwinding here
-               ! to maintain the surface integral. Fortunately, since
-               ! face_2==face for a boundary this is automagic.
-
-               if (acceleration) then
-                  rhs_addto(dim,u_face_l) = rhs_addto(dim,u_face_l) &
-                       ! Outflow boundary integral.
-                       -matmul(nnAdvection_out,face_val(U,dim,face))&
-                       ! Inflow boundary integral.
-                       -matmul(nnAdvection_in,face_val(U,dim,face_2))
-               end if
-               
-            else
 
                rhs_addto(dim,u_face_l) = rhs_addto(dim,u_face_l) &
-                    ! Outflow boundary integral.
                     -matmul(nnAdvection_out,face_val(U,dim,face))&
-                    ! Inflow boundary integral.
+                    -matmul(nnAdvection_in,face_val(U,dim,face_2))
+            else
+               ! on a Dirichlet boundary, the incoming advection term
+               ! on the lhs is replaced by the same term on the right using
+               ! the boundary value - outgoing term is the same as always
+               ! (meaning no dirichlet bc is applied on outgoing facets)
+               rhs_addto(dim,u_face_l) = rhs_addto(dim,u_face_l) &
+                    -matmul(nnAdvection_out,face_val(U,dim,face))&
                     -matmul(nnAdvection_in,ele_val(velocity_bc,dim,face))
             end if
          end if
@@ -3031,10 +3182,11 @@ contains
 
   end subroutine construct_momentum_interface_dg
     
-  subroutine subcycle_momentum_dg(u, mom_rhs, subcycle_m, inverse_mass, state)
+  subroutine subcycle_momentum_dg(u, mom_rhs, subcycle_m, subcycle_rhs, inverse_mass, state)
     type(vector_field), intent(inout) :: u
     type(vector_field), intent(inout):: mom_rhs
     type(block_csr_matrix), intent(in):: subcycle_m, inverse_mass
+    type(vector_field), intent(in):: subcycle_rhs
     type(state_type), intent(inout):: state
       
     type(vector_field) :: u_sub, m_delta_u, delta_u
@@ -3075,7 +3227,7 @@ contains
     call allocate(m_delta_u, u%dim, u%mesh, "SubcycleMDeltaU")
     call zero(m_delta_u)
 
-   do i=1, subcycles
+    do i=1, subcycles
       if (limit_slope) then
 
         ! filter wiggles from u
@@ -3085,11 +3237,12 @@ contains
         end do
 
       end if
-
  
-      ! du = advection * u
+      ! du = advection * u - f_adv
       call mult(delta_u, subcycle_m, u_sub)
-      ! M*du/dt = M*du/dt - advection * u
+      ! -f_adv for bc terms
+      call addto(delta_u, subcycle_rhs, scale=-1.0)
+      ! M*du/dt = M*du/dt - advection * u + f_adv
       call addto(m_delta_u, delta_u, scale=-1.0/subcycles)
 
       ! we're only interested in m_delta_u, so we may leave early:
@@ -3101,11 +3254,6 @@ contains
       ! u = u - dt/s * du
       call addto(u_sub, delta_u, scale=-dt/subcycles)
       call halo_update(u_sub)
-
- 
-     ! strictly speaking we should have another halo_update here, but
-      ! we can assume that the limiting inside halo 1 elements can be
-      ! performed locally
 
     end do
 
@@ -3119,7 +3267,7 @@ contains
     !   big_m = M + dt*theta*K, where K are any terms not included in subcycling (viscosity, coriolis etc.)
     !   mom_rhs = f - K u^n
     ! This is what we want to solve:
-    !   M (u^sub - u^n)/dt + A u^n = 0, assuming one subcycle here
+    !   M (u^sub - u^n)/dt + A u^n = f_adv, assuming one subcycle here
     !   M (u^n+1 - u^sub)/dt + K u^n+theta = f
     ! The last eqn can be rewritten:
     !   M (u^n+1 - u^n)/dt - M (u^sub - u^n)/dt + K u^n + dt*theta*K (u^n+1-u^n)/dt = f
@@ -3478,6 +3626,16 @@ contains
        if (have_option(trim(dg_path)//"/viscosity_scheme/partial_stress_form") .and. .not. &
             have_option(trim(dg_path)//"/viscosity_scheme/bassi_rebay")) then
          FLAbort("partial stress form is only implemented for the bassi-rebay viscosity scheme in DG")
+       end if
+
+       if (have_option(trim(velocity_path)//&
+            &"/prognostic/spatial_discretisation"//&
+            &"/discontinuous_galerkin/les_model") .and.&
+            .not. have_option(trim(dg_path)//&
+            "/viscosity_scheme/partial_stress_form")) then
+          
+          FLAbort("The LES scheme for discontinuous velocity fields requires that the viscosity scheme use partial stress form.")
+ 
        end if
 
     end do state_loop

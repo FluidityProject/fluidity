@@ -1,6 +1,6 @@
 subroutine compute_anisotropic_gradation
 
-  use read_triangle
+  use mesh_files
   use anisotropic_gradation
   use mba_adapt_module
   use state_module
@@ -18,7 +18,7 @@ subroutine compute_anisotropic_gradation
     end function
   end interface
 
-  positions = read_triangle_files("data/laplacian_grid.2", quad_degree=4)
+  positions = read_mesh_files("data/laplacian_grid.2", quad_degree=4, format="gmsh")
   call insert(state, positions, "Coordinate")
   call insert(state, positions%mesh, "Mesh")
   call allocate(metric, positions%mesh, "Metric")

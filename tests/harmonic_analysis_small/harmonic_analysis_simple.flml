@@ -14,7 +14,7 @@ Shows how numerical scheme predicts frequencey and damping rate</comment>
     </dimension>
     <mesh name="CoordinateMesh">
       <from_file file_name="mesh2">
-        <format name="triangle"/>
+        <format name="gmsh"/>
         <stat>
           <include_in_stat/>
         </stat>
@@ -219,6 +219,7 @@ Shows how numerical scheme predicts frequencey and damping rate</comment>
             <stress_terms>
               <tensor_form/>
             </stress_terms>
+            <buoyancy/>
           </continuous_galerkin>
           <conservative_advection>
             <real_value rank="0">0</real_value>

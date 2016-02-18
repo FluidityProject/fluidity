@@ -13,7 +13,7 @@ import fluidity.diagnostics.fluiditytools as fluidity_tools
 import fluidity.diagnostics.vtutools as vtktools
 
 optionParser = optparse.OptionParser( \
-  usage = "%prog [OPTIONS] ... PROJECT FIRSTID [LASTID]", \
+  usage = "%prog [OPTIONS] ... PROJECT [FIRSTID] [LASTID]", \
   add_help_option = True, \
   description = "Combines pvtus into vtus")
 
@@ -24,25 +24,29 @@ opts, args = optionParser.parse_args()
 if not opts.verbose:
   debug.SetDebugLevel(0)
   
-if len(args) < 2:
-  debug.FatalError("Project name required and first dump ID required")
-elif len(args) > 3:
+if len(args) > 3:
   debug.FatalError("Unrecognised trailing argument")
 inputProject = args[0]
-try:
-  firstId = int(args[1])
-except ValueError:
-  debug.FatalError("Invalid first dump ID")
-if len(args) > 2:
+
+if len(args) == 2:
   try:
+    firstId = int(args[1])
+    lastId = firstId
+  except ValueError:
+    debug.FatalError("Invalid first dump ID")
+
+if len(args) == 3:
+  try:
+    firstId = int(args[1])
     lastId = int(args[2])
     assert(lastId >= firstId)
   except:
     debug.FatalError("Invalid last dump ID")
+ 
+if len(args) == 1:
+  filenames = [inputProject + ".pvtu"]
 else:
-  lastId = firstId
-  
-filenames = fluidity_tools.VtuFilenames(inputProject, firstId, lastId = lastId, extension = ".pvtu")
+  filenames = fluidity_tools.VtuFilenames(inputProject, firstId, lastId = lastId, extension = ".pvtu")
 
 for filename in filenames:
   debug.dprint("Processing file: " + filename)

@@ -795,54 +795,6 @@ if test "$with_exodusii" = "yes" ; then
                                            ])
 fi
 AC_SUBST(HAVE_EXODUSII)
-
-# Metis, ParMetis
-ACX_lib_automagic(metis, METIS_PartGraphKway, [AC_DEFINE(HAVE_LIBMETIS, [1])])
-ACX_lib_automagic(parmetis, ParMETIS_V3_AdaptiveRepart, [AC_DEFINE(HAVE_LIBPARMETIS, [1])])
-
-AC_ARG_ENABLE(sam,
-              [AC_HELP_STRING([--enable-sam],
-                              [use sam rather than zoltan for adaptive load rebalancing])])
-if test "$enable_sam" = "yes"; then
-  HAVE_ZOLTAN=no
-else
-  ACX_lib_automagic(zoltan, Zoltan_Create, [
-                                            AC_DEFINE(HAVE_ZOLTAN, [1])
-                                            HAVE_ZOLTAN=yes
-                                            ])
-fi
-AC_SUBST(HAVE_ZOLTAN)
-
-HAVE_ADJOINT=no
-CAN_USE_ADJOINT=yes
-WANTS_ADJOINT=yes
-if test "$USING_GFORTRAN" = "yes"; then # check gfortran version >= 4.5
-  # test really is so retarded that it can't lexicographically compare strings
-  if test "$GFORTRAN_4_5_OR_NEWER" != "yes"; then
-    CAN_USE_ADJOINT=no
-  fi
-fi
-
-if test "$with_adjoint" = no || test -z "$with_adjoint"; then
-  WANTS_ADJOINT=no
-fi
-
-if test "$CAN_USE_ADJOINT" = "no" && test "$WANTS_ADJOINT" = "yes"; then
-  echo "Wanted adjoint, but you need gcc > 4.5"
-  exit 1
-fi
-
-if test "$with_adjoint" != "no"; then
-  if test "$CAN_USE_ADJOINT" != "no"; then
-    ACX_adjoint([AC_MSG_NOTICE(["libadjoint found"])], [AC_MSG_WARN(["libadjoint not found"])])
-  fi
-  if test "$HAVE_ADJOINT" = "no" && test "$WANTS_ADJOINT" = "yes"; then
-    echo "Wanted adjoint, but couldn't find it"
-    exit 1
-  fi
-fi
-AC_SUBST(HAVE_ADJOINT)
-
 AC_ARG_ENABLE(petsc-fortran-modules,
     [AC_HELP_STRING([--disable-petsc-fortran-modules],
     [By default fluidity tries to use fortran modules provided with petsc. Use --disable-petsc-fortran-modules if these are known to be not functional (e.g. compiled with different compiler version)])])
@@ -857,6 +809,90 @@ if test "$HAVE_HYPRE" == "1"; then
 fi
 CPPFLAGS=`echo $CPPFLAGS | sed 's/-petsc-version-/3.4.2.0/' | sed 's/x86_64\/x86_64/x86_64/'`
 FCFLAGS=`echo $FCFLAGS | sed 's/-petsc-version-/3.4.2.0/' | sed 's/x86_64\/x86_64/x86_64/'`
+
+# Metis, ParMetis
+AC_MSG_CHECKING([if we can compile and link without using -lparmetis])
+AC_TRY_LINK([
+],[
+METIS_PartGraphKway();
+ParMETIS_V3_AdaptiveRepart();
+],[
+AC_MSG_RESULT([yes])
+AC_DEFINE(HAVE_LIBMETIS, [1])
+AC_DEFINE(HAVE_LIBPARMETIS, [1])
+],[
+AC_MSG_RESULT([no])
+ACX_lib_automagic(metis, METIS_PartGraphKway, [AC_DEFINE(HAVE_LIBMETIS, [1])])
+ACX_lib_automagic(parmetis, ParMETIS_V3_AdaptiveRepart, [AC_DEFINE(HAVE_LIBPARMETIS, [1])])
+])
+AC_CHECK_HEADERS([parmetis.h])
+AS_IF([test "x$ac_cv_header_parmetis_h" = "xyes" ],
+	    [
+	    AC_LANG_SAVE
+	    AC_LANG_CPLUSPLUS
+	    AC_MSG_CHECKING([parmetis major version <=3])
+	    AC_EGREP_CPP([test_true],
+		[
+#include <parmetis.h>
+#if defined(PARMETIS_MAJOR_VERSION) && PARMETIS_MAJOR_VERSION <= 3
+test_true
+#endif
+		],
+		[AC_MSG_RESULT([yes])
+		AC_DEFINE(HAVE_PARMETIS_V3,"yes")
+		PARMETIS_FLAGS="-DPARMETIS_V3" ],
+		[AC_MSG_RESULT([no])
+		PARMETIS_FLAGS=""]
+		)
+	     AC_LANG_RESTORE
+	     ]
+	)
+
+CPPFLAGS="$CPPFLAGS $PARMETIS_FLAGS"
+
+AC_ARG_ENABLE(sam,
+              [AC_HELP_STRING([--enable-sam],
+                              [use sam rather than zoltan for adaptive load rebalancing])])
+if test "$enable_sam" = "yes"; then
+  HAVE_ZOLTAN=no
+else
+  ACX_lib_automagic(zoltan, Zoltan_Create, [],
+    [
+      AC_MSG_NOTICE([Fluidity can be built without zoltan by configuring with the --enable-sam flag. This gives limited functionality when using parallel adaptivity. See the manual for more details.])
+      AC_MSG_FAILURE("Could not link with Zoltan library.")
+    ])
+
+  # Small test for zoltan .mod files:
+  AC_LANG(Fortran)
+  c_ext=F90
+  # In fluidity's makefile we explicitly add CPPFLAGS, temporarily add it to
+  # FCFLAGS here for this zoltan test:
+  tmpFCFLAGS="$FCFLAGS"
+  FCFLAGS="$FCFLAGS $CPPFLAGS"
+  AC_LINK_IFELSE(
+    [AC_LANG_SOURCE([
+      program test_zoltan
+       use zoltan
+      end program test_zoltan
+      ])
+    ],
+    [
+    AC_MSG_NOTICE([Great success! Zoltan .mod files exist and are usable])
+    ],
+    [
+      cp conftest.F90 test_zoltan.F90
+      AC_MSG_NOTICE([Fluiidity can be build without zoltan by configuring with the --enable-sam flag. This gives limited functionality when using parallel adaptivity. See the manual for more details.])
+      AC_MSG_NOTICE([Failed to compile with zoltan.mod fortran module. This means the module can either not be found - please add the necessary -I flag to CPPFLAGS - or, the zoltan fortran module has been compiled with a different (version of the) fortran compiler than you are using to compile fluidity - in which case please rebuild zoltan with the same compiler.])
+      AC_MSG_FAILURE([Failed to find usable zoltan.mod file])
+    ]
+  )
+  # And now revert FCFLAGS
+  FCFLAGS="$tmpFCFLAGS"
+  AC_LANG_RESTORE
+  AC_DEFINE(HAVE_ZOLTAN, [1])
+  HAVE_ZOLTAN=yes
+fi
+AC_SUBST(HAVE_ZOLTAN)
 
 # Double precision.
 AC_MSG_CHECKING(what voodoo is required to get 64 bit reals....)
@@ -1096,9 +1132,10 @@ AC_ARG_ENABLE(profiling,
 
 if test "$enable_profiling" = "yes" ; then
   PROFILING_FLAG="-pg"
-  CPPFLAGS="-pg $CPPFLAGS"
   FFLAGS="-pg $FFLAGS"
   FCFLAGS="-pg $FCFLAGS"
+  CFLAGS="-pg $CFLAGS"
+  CXXFLAGS="-pg $CXXFLAGS"
 
   LINKER="$LINKER -pg"
   LIBS="$LIBS -pg"
@@ -1334,50 +1371,124 @@ if test "$enable_vtk" != "no" ; then
 	])
     
     if test "x$search_for_vtk" = "xyes" ; then
-        # Usually the location of the libraries is not a mystery. The
-        # header files are another matter.
-        AC_CHECK_LIB(dl, main)
-        AC_CHECK_LIB(vtksys, main)
-        AC_CHECK_LIB(vtkCommon, main, [], 
-            [if test "x$VTK_LIBS" != "x" ; then
-                LIBS="$LIBS -L$VTK_LIBS"
-                unset ac_cv_lib_vtkCommon_main
-                AC_CHECK_LIB(vtkCommon, main, [], 
-                   [
-                      AC_MSG_ERROR([Cannot find vtk installation.])
-                      exit -1
-                   ])
-             else
-                AC_MSG_ERROR([Cannot find vtk installation.])
-                exit -1
-             fi
-            ])
-        AC_CHECK_LIB(vtkzlib, main)
-        AC_CHECK_LIB(vtkexpat, main)
-        AC_CHECK_LIB(vtkFiltering, main)
-        AC_CHECK_LIB(vtkGraphics, main)
-        AC_CHECK_LIB(vtkIO, main)
-        
-        # check at the usual places:
-        for i in $(ls -d /usr/include/vtk*) $VTK_INCLUDE; do
-            if test -r $i/vtkCellData.h; then
-                CPPFLAGS="-I$i $CPPFLAGS"
+
+        # Need to check what version of VTK is on the system.
+
+        # User may set the install directory for VTK but use
+        # the default sensible location if not.
+        if test "x$VTK_INSTALL_PREFIX" == "x"; then
+            VTK_INSTALL_PREFIX=/usr/include 
+        fi
+
+        # Loop through potential vtk installations and get the highest version number 
+        vtk_version=0
+        vtk_include_dir=""
+        vtk_version_file=""
+        for i in $(ls -d $VTK_INSTALL_PREFIX/vtk*) $VTK_INCLUDE; do
+            # VTK 6 has a version macros file
+            if test -r $i/vtkVersionMacros.h; then
+                # Get the version number from the macros file
+                this_vtk_version=$(grep VTK_MAJOR_VERSION $i/vtkVersionMacros.h | sed 's/#define VTK_MAJOR_VERSION //')
+                # Use the latest version available
+                if [[ $this_vtk_version -gt $vtk_version ]]; then
+                   vtk_version=$this_vtk_version
+                   vtk_include_dir=$i
+                   vtk_version_file="vtkVersionMacros.h"
+                fi
+            # VTK 5 has a configure file that defined the macros
+            elif test -r $i/vtkConfigure.h; then
+                # Get the version number from the configure file
+                this_vtk_version=$(grep VTK_MAJOR_VERSION $i/vtkConfigure.h | sed 's/#define VTK_MAJOR_VERSION //')
+                # Use the latest version available
+                if [[ $this_vtk_version -gt $vtk_version ]]; then
+                   vtk_version=$this_vtk_version
+                   vtk_include_dir=$i
+                   vtk_version_file="vtkConfigure.h"
+                fi
+            else
+              AC_MSG_WARN([Found VTK folder $i but could not find file to get version.])
             fi
         done
-        AC_CHECK_HEADER(vtkCellData.h,
-            [CPPFLAGS="$CPPFLAGS -DHAVE_VTK=1"
-                VTK=yes
-                ],
-            [AC_CHECK_HEADER(vtk-5.0/vtkCellData.h,
-                    [CPPFLAGS="$CPPFLAGS -DHAVE_VTK=1"
-                        VTK=yes
-                        vtk_header_relative_path="vtk-5.0/"
-                        ],
-                    [       
-                        AC_MSG_ERROR([Cannot find vtk installation.])
-                        exit -1
-                    ])
-          ])
+
+        # Add to include path
+        AC_CHECK_HEADER([$vtk_include_dir/$vtk_version_file],
+                        [CPPFLAGS="$CPPFLAGS -I$vtk_include_dir -DHAVE_VTK=1"
+                         VTK=yes],
+                        [AC_MSG_ERROR([Cannot find vtk installation.])])
+
+        AC_MSG_NOTICE([Found and using VTK major version: $vtk_version])
+
+        # Link the correct libraries depending on the version
+        if [[ "x$vtk_version" == "x5" ]]; then 
+            # Usually the location of the libraries is not a mystery. The
+            # header files are another matter.
+            AC_CHECK_LIB(dl, main)
+            AC_CHECK_LIB(vtkCommon, main, [], 
+                [if test "x$VTK_LIBS" != "x" ; then
+                    LIBS="$LIBS -L$VTK_LIBS"
+                    unset ac_cv_lib_vtkCommon_main
+                    AC_CHECK_LIB(vtkCommon, main, [], 
+                       [
+                          AC_MSG_ERROR([Cannot find vtk installation.])
+                          exit -1
+                       ])
+                 else
+                    AC_MSG_ERROR([Cannot find vtk installation.])
+                    exit -1
+                 fi
+                ])
+            AC_CHECK_LIB(vtkzlib, main)
+            AC_CHECK_LIB(vtkexpat, main)
+            AC_CHECK_LIB(vtkFiltering, main)
+            AC_CHECK_LIB(vtkGraphics, main)
+            AC_CHECK_LIB(vtkIO, main)
+            
+            # check at the usual places:
+            for i in $(ls -d /usr/include/vtk*) $VTK_INCLUDE; do
+                if test -r $i/vtkCellData.h; then
+                    CPPFLAGS="-I$i $CPPFLAGS"
+                fi
+            done
+            AC_CHECK_HEADER(vtkCellData.h,
+                [CPPFLAGS="$CPPFLAGS -DHAVE_VTK=1"
+                    VTK=yes
+                    ],
+                [AC_CHECK_HEADER(vtk-5.0/vtkCellData.h,
+                        [CPPFLAGS="$CPPFLAGS -DHAVE_VTK=1"
+                            VTK=yes
+                            vtk_header_relative_path="vtk-5.0/"
+                            ],
+                        [       
+                            AC_MSG_ERROR([Cannot find vtk installation.])
+                            exit -1
+                        ])
+              ])
+        elif [[ "x$vtk_version" == "x6" ]]; then
+            if test -d /usr/lib64/vtk ; then
+                LIBS="$LIBS -L/usr/lib64/vtk"
+            fi
+            AC_CHECK_LIB(vtkCommonCore, main, [], 
+                [if test "x$VTK_LIBS" != "x" ; then
+                    LIBS="$LIBS -L$VTK_LIBS"
+                    unset ac_cv_lib_vtkCommonCore_main
+                    AC_CHECK_LIB(vtkCommonCore, main, [], 
+                       [
+                          AC_MSG_ERROR([Cannot find vtk installation.])
+                          exit -1
+                       ])
+                 else
+                    AC_MSG_ERROR([Cannot find vtk installation.])
+                    exit -1
+                 fi
+                ])
+            AC_CHECK_LIB(vtkIOXML, main)
+            AC_CHECK_LIB(vtkIOParallel, main)
+            AC_CHECK_LIB(vtkIOCore, main)
+            AC_CHECK_LIB(vtkCommonDataModel, main)
+            AC_CHECK_LIB(vtkCommonExecutionModel, main)
+            AC_CHECK_LIB(vtkIOLegacy, main)
+            AC_CHECK_LIB(vtkFiltersGeneral, main)
+        fi
     fi
 fi
 cat > include/vtk.h <<EOF
@@ -1536,8 +1647,6 @@ AC_OUTPUT(Makefile
           tools/Makefile
           tools/version-info
           python/setup.py
-          adjoint/Makefile
-          adjoint/tests/Makefile
           climatology/Makefile
           libmba2d/Makefile
       	  libmba3d/Makefile
@@ -1550,5 +1659,4 @@ AC_OUTPUT(Makefile
           libjudy/src/JudyHS/Makefile
           libwm/Makefile
           libvtkfortran/Makefile
-          schemas/flml
 	  reduced_modelling/Makefile)

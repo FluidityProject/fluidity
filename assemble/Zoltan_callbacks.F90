@@ -235,8 +235,6 @@ contains
             MPI_COMM_FEMTOOLS,err)
     end if
     
-    zoltan_global_local_min_quality = 1.0
-    
     head = 1
     
     ! Aim is to assign high edge weights to poor quality elements
@@ -291,12 +289,6 @@ contains
              end if
           end do
 
-          ! Keep track of the lowest quality element of all those we've looked at
-          ! Will be used in zoltan_drive to calculate a global minimum element quality
-          if(min_quality .LT. zoltan_global_local_min_quality) then
-             zoltan_global_local_min_quality = min_quality
-          end if
-
           ! check if the quality is within the tolerance         
           if (min_quality .GT. zoltan_global_quality_tolerance) then
              ! if it is
@@ -310,8 +302,6 @@ contains
        head = head + size(neighbours)
     end do
     
-    zoltan_global_calculated_local_min_quality = .true.
-
     assert(head == sum(num_edges(1:num_obj))+1)
     
     ! calculate the local maximum edge weight

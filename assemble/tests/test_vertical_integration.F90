@@ -2,7 +2,7 @@ subroutine test_vertical_integration()
 use quadrature
 use fields
 use state_module
-use read_triangle
+use mesh_files
 use boundary_conditions
 use vertical_extrapolation_module
 use fields_calculations
@@ -81,7 +81,7 @@ real, intent(out):: l2error
   integer, dimension(:), pointer:: surface_element_list
     
   ! vertical integration() needs a "Coordinate" and  "GravityDirection" field
-  positions=read_triangle_files(mesh_file, quad_degree=QUAD_DEGREE)
+  positions = read_mesh_files(mesh_file, quad_degree=QUAD_DEGREE, format="gmsh")
   x_mesh => positions%mesh
   
   call allocate(vertical_normal, mesh_dim(x_mesh), x_mesh, &

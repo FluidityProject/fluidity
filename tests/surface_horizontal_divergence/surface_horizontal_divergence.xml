@@ -1,0 +1,43 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>surface_horizontal_divergence</name>
+  <owner userid="jrper"/>
+  <problem_definition length="short" nprocs="1">
+    <command_line>fluidity -v2 -l  surface_horizontal_divergence.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="OnSurface" language="python">import vtk
+import numpy
+
+reader=vtk.vtkXMLUnstructuredGridReader()
+reader.SetFileName('surface_horizontal_divergence_1.vtu')
+reader.Update()
+ugrid=reader.GetOutput()
+
+OnSurface=[]
+
+for i in range(ugrid.GetNumberOfPoints()):
+  p=ugrid.GetPoints().GetPoint(i)
+  OnSurface.append(1.0*(p[0]==p[1]))
+  
+OnSurface=numpy.array(OnSurface)</variable>
+    <variable name="SurfaceDivergence" language="python">import vtk
+import numpy
+
+reader=vtk.vtkXMLUnstructuredGridReader()
+reader.SetFileName('surface_horizontal_divergence_1.vtu')
+reader.Update()
+ugrid=reader.GetOutput()
+
+SurfaceDivergence=[]
+
+for i in range(ugrid.GetNumberOfPoints()):
+  SurfaceDivergence.append(ugrid.GetPointData().GetArray('SurfaceDivergence').GetValue(i))
+  
+SurfaceDivergence=numpy.array(SurfaceDivergence)</variable>
+  </variables>
+  <pass_tests>
+    <test name="testHaveData" language="python">assert len(OnSurface)&gt;0</test>
+    <test name="testSurfaceDivergence" language="python">assert all(abs(OnSurface-SurfaceDivergence)&lt;1.0e-10)</test>
+  </pass_tests>
+</testproblem>

@@ -147,7 +147,7 @@
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
    # Do not remove this comment
    u =  0.25 * ((4*X[0] - 2) + (4*X[1] - 2)**3)
    v = -0.25 * ((4*X[1] - 2) + (4*X[0] - 2)**3)
@@ -241,7 +241,7 @@
         <explicit/>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
 	from math import sqrt, pi
 	dx1 = X[0]-0.5
 	dx2 = X[1]-0.5
@@ -277,7 +277,7 @@
         <mesh name="PressureMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
 	from math import sqrt, pi
 	dx1 = X[0]-0.5
 	dx2 = X[1]-0.5

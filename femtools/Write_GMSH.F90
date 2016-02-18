@@ -282,29 +282,37 @@ contains
 
     ! Number of nodes for elements and faces
     nloc = ele_loc(mesh, 1)
-    sloc = face_loc(mesh,1)
+    sloc = 0
+    if (numFaces > 0) then
+      sloc = face_loc(mesh,1)
+    end if
 
     ! Working out face and element types now
     faceType=0
     elemType=0
 
     select case(mesh_dim(mesh))
+       ! One dimension
+    case(1)
+       faceType=15
+       elemType=1
+
        ! Two dimensions
     case(2)
-       if (nloc==3 .and. sloc==2) then
+       if (nloc==3 .and. (sloc==2 .or. numFaces==0)) then
           faceType=1
           elemType=2
-       else if(nloc==4 .and. sloc==2) then
+       else if(nloc==4 .and. (sloc==2 .or. numFaces==0)) then
           faceType=1
-          elemType=4
+          elemType=3
        end if
 
        ! Three dimensions
     case(3)
-       if(nloc==4 .and. sloc==3) then
+       if(nloc==4 .and. (sloc==3 .or. numFaces==0)) then
           faceType=2
           elemType=4
-       else if(nloc==8 .and. sloc==4) then
+       else if(nloc==8 .and. (sloc==4 .or. numFaces==0)) then
           faceType=3
           elemType=5
        end if

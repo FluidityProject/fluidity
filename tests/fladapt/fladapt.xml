@@ -8,9 +8,9 @@
   </problem_definition>
   <variables>
     <variable name = "output" language = "python">
-import fluidity.diagnostics.triangletools as triangletools
+import fluidity.diagnostics.gmshtools as gmshtools
 
-output = triangletools.ReadTriangle("fladapt")
+output = gmshtools.ReadMsh("fladapt.msh")
     </variable>
   </variables>
   <pass_tests>

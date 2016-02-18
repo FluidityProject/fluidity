@@ -3,7 +3,7 @@
 subroutine test_intersection_finder_completeness
 
   use unittest_tools
-  use read_triangle
+  use mesh_files
   use fields
   use linked_lists
   use intersection_finder_module
@@ -20,8 +20,8 @@ subroutine test_intersection_finder_completeness
   type(inode), pointer :: llnode
   type(vector_field) :: intersection
 
-  positionsA = read_triangle_files("data/intersection_finder.1", quad_degree=4)
-  positionsB = read_triangle_files("data/intersection_finder.2", quad_degree=4)
+  positionsA = read_mesh_files("data/intersection_finder.1", quad_degree=4, format="gmsh")
+  positionsB = read_mesh_files("data/intersection_finder.2", quad_degree=4, format="gmsh")
 
   allocate(map_BA(ele_count(positionsB)))
   allocate(detwei(ele_ngi(positionsA, 1)))

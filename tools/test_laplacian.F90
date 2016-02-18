@@ -9,7 +9,7 @@ program test_laplacian
   ! 1x1x1 cube with the boundary conditions 1 and 2 applied on the
   ! sides of the first coordinates direction (e.g. test_laplacian.poly
   ! - create a mesh with 'triangle -a0.01 -e test_laplacian.poly' )
-  use read_triangle
+  use mesh_files
   use fields
   use FEtools
   use elements
@@ -22,10 +22,11 @@ program test_laplacian
   use adapt_state_module 
   use boundary_conditions
 
-  implicit none
-#ifdef HAVE_PETSC
-#include "finclude/petsc.h"
+#ifdef HAVE_PETSC_MODULES
+  use petsc
 #endif
+  implicit none
+#include "petsc_legacy.h"
   
   character, parameter:: NEWLINE_CHAR=achar(10)
   character(len=*), parameter:: BC_PYTHON_FUNCTION= &
@@ -70,7 +71,7 @@ program test_laplacian
 
   call read_command_line(filename, degree, quad_degree)
 
-  positions=read_triangle_files(filename, quad_degree=quad_degree)
+  positions=read_mesh_files(filename, quad_degree=quad_degree, format="gmsh")
 
   call insert(state, positions, "Coordinate")
 
@@ -465,7 +466,7 @@ contains
 
   subroutine usage
     
-    write (0,*) "usage: test_laplacian <triangle_file_name> [<degree> [<quad_degree>]]"
+    write (0,*) "usage: test_laplacian <mesh_file_name> [<degree> [<quad_degree>]]"
     
   end subroutine usage
 

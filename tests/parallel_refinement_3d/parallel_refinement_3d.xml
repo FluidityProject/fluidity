@@ -1,0 +1,22 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>parallel_refinement_3d<comment>This tests 3D refinement in parallel. We start from a uniform mesh of 10x10x10 in a cube, i.e. dx~0.1. There's no interpolation error specified, so it should just refine to a uniform mesh according to the maximum edge length of 0.05. This is run on 3 cores. On master this fails because of it failing to move around the halos sufficiently so that we can refine everywhere. With he new halo locking strategy that only locks a single row of elements this passes.</comment></name>
+  <owner userid="skramer"/>
+  <problem_definition length="medium" nprocs="3">
+    <command_line>mpiexec ../../bin/flredecomp -i 1 -o 3 refine refinep &amp;&amp;
+mpiexec ../../bin/fluidity -v2 -l refinep.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="cell_volume_stats" language="python">from fluidity_tools import stat_parser
+stat=stat_parser('refine.stat')
+cell_volume_stats = stat['Fields']['CellVolume']</variable>
+    <variable name="mesh_stats" language="python">from fluidity_tools import stat_parser
+stat=stat_parser('refine.stat')
+mesh_stats = stat['CoordinateMesh']</variable>
+  </variables>
+  <pass_tests>
+    <test name="min_cell_volume" language="python">assert cell_volume_stats['min']&gt;1.5e-6<comment>We've asked for a max. edge length of 0.05. This means a min volume (for a regular tetrahedron) of 0.05**3/(6*sqrt(2)) ~ 1.5e-5. We allow an order smaller volume.</comment></test>
+    <test name="max_cell_volume" language="python">assert cell_volume_stats['max']&lt;1.5e-4<comment>This is to check we've refined everywhere. We've asked for a max. edge length of 0.05. This means a max volume (for a regular tetrahedron) of 0.05**3/(6*sqrt(2)) ~ 1.5e-5. We allow a volume that is 10 times bigger.</comment></test>
+    <test name="number_of_elements" language="python">assert 50000&lt;mesh_stats['elements']&lt;80000<comment>If we had all regular tetrahedron of volume 1.5e-5, we'd get ~66666 triangles. This test limits the *average* cell volume.</comment></test>
+  </pass_tests>
+</testproblem>

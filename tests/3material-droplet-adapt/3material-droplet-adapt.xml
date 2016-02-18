@@ -13,9 +13,9 @@ import os
 files = os.listdir("./")
 solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
     </variable>
-    <variable name="endtime" language="python">
+    <variable name="endnumtimesteps" language="python">
 from fluidity_tools import stat_parser as stat
-endtime=stat("3material-droplet.stat")["ElapsedTime"]["value"][-1]
+endnumtimesteps=len(stat("3material-droplet.stat")["ElapsedTime"]["value"])
     </variable>
     <variable name="endtimestep" language="python">
 from fluidity_tools import stat_parser as stat
@@ -90,8 +90,8 @@ mnvfracsum = min(fluidity_tools.stat_parser("3material-droplet.stat")['Water']['
       <test name="Solvers converged" language="python">
         assert(solvers_converged)
       </test>
-    <test name="check end time" language="python">
-assert endtime &gt; 0.2
+    <test name="check end number of timesteps" language="python">
+assert endnumtimesteps == 49
     </test>
     <test name="check end timestep" language="python">
 assert endtimestep &gt; 0.001

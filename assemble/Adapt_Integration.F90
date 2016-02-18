@@ -47,7 +47,7 @@ module adapt_integration
   
   private
   
-  public :: adapt_mesh, max_nodes, adapt_integration_check_options
+  public :: adapt_mesh, max_nodes, adapt_integration_check_options, element_quality_pain_p0
   
   character(len = *), parameter :: base_path = "/mesh_adaptivity/hr_adaptivity"
   
@@ -275,9 +275,6 @@ contains
       assert(face_loc(input_positions, 1) == snloc)
     end if
     assert(metric%mesh == input_positions%mesh)
-    if(present(node_ownership)) then
-      assert(.not. associated(node_ownership))
-    end if
 #endif
     
     ewrite(2, *) "Forming adaptmem arguments"
@@ -831,6 +828,8 @@ contains
     type(tensor_field), intent(in) :: metric
     type(scalar_field), intent(out) :: quality
     
+    type(tensor_field):: rescaled_metric
+    type(vector_field):: rescaled_positions
     integer :: ele
     type(mesh_type) :: pwc_mesh
 
@@ -840,11 +839,46 @@ contains
     call allocate(quality, pwc_mesh, "ElementQuality")
     call deallocate(pwc_mesh)
 
+    call rescale_mesh_and_metric(positions, metric, rescaled_positions, rescaled_metric)
+
     do ele=1,ele_count(positions)
-      call set(quality, ele, pain_functional(ele, positions, metric))
+      call set(quality, ele, pain_functional(ele, rescaled_positions, rescaled_metric))
     end do
+
+    call deallocate(rescaled_positions)
+    call deallocate(rescaled_metric)
     
   end subroutine element_quality_pain_p0
+
+  subroutine rescale_mesh_and_metric(positions, metric, rescaled_positions, rescaled_metric)
+    ! This routine applies the same rescaling to a 500x500x500 box that happens inside libadaptivity (3D)
+    ! (note that in parallel this happens for each local domain seperately)
+    type(vector_field), intent(in):: positions
+    type(tensor_field), intent(in):: metric
+    type(vector_field), intent(out):: rescaled_positions
+    type(tensor_field), intent(out):: rescaled_metric
+
+    real, parameter:: BOX_SIZE=500.0
+    real, dimension(positions%dim):: rescale
+    real:: shift
+    integer:: i, j
+
+    call allocate(rescaled_positions, positions%dim, positions%mesh, name="Rescaled"//trim(positions%name))
+    call allocate(rescaled_metric, metric%mesh, name="Rescaled"//trim(metric%name))
+
+    do i=1, positions%dim
+      shift = minval(positions%val(i,:))
+      rescale(i) = (maxval(positions%val(i,:))-shift)/BOX_SIZE
+      call set_all(rescaled_positions, i, (positions%val(i,:)-shift)/rescale(i))
+    end do
+
+    do i=1, positions%dim
+      do j=1, positions%dim
+        call set_all(rescaled_metric, i, j, metric%val(i,j,:)*rescale(i)*rescale(j))
+      end do
+    end do
+    
+  end subroutine rescale_mesh_and_metric
   
   subroutine adapt_integration_check_options
     !!< Checks libadaptivity integration related options

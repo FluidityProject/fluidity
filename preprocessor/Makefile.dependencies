@@ -55,8 +55,8 @@ Populate_State.o ../include/populate_state_module.mod: Populate_State.F90 \
    ../include/fdebug.h ../include/field_options.mod \
    ../include/fields_halos.mod ../include/fields_manipulation.mod \
    ../include/fldebug.mod ../include/global_parameters.mod \
-   ../include/hadapt_extrude.mod ../include/hadapt_extrude_radially.mod \
-   ../include/halos.mod ../include/initialise_fields_module.mod \
+   ../include/hadapt_extrude.mod ../include/halos.mod \
+   ../include/initialise_fields_module.mod \
    ../include/initialise_ocean_forcing_module.mod ../include/mesh_files.mod \
    ../include/meshdiagnostics.mod ../include/metric_tools.mod \
    ../include/nemo_states_module.mod ../include/parallel_tools.mod \
@@ -73,10 +73,10 @@ Populate_Sub_State.o ../include/populate_sub_state_module.mod: \
    Populate_Sub_State.F90 ../include/boundary_conditions_from_options.mod \
    ../include/climatology.mod ../include/coordinates.mod \
    ../include/data_structures.mod ../include/diagnostic_variables.mod \
-   ../include/elements.mod ../include/fdebug.h ../include/field_options.mod \
-   ../include/fields_halos.mod ../include/fields_manipulation.mod \
-   ../include/fldebug.mod ../include/global_parameters.mod \
-   ../include/hadapt_extrude.mod ../include/hadapt_extrude_radially.mod \
+   ../include/elements.mod ../include/fdebug.h ../include/fefields.mod \
+   ../include/field_options.mod ../include/fields_halos.mod \
+   ../include/fields_manipulation.mod ../include/fldebug.mod \
+   ../include/global_parameters.mod ../include/hadapt_extrude.mod \
    ../include/halos.mod ../include/halos_registration.mod \
    ../include/initialise_fields_module.mod ../include/mesh_files.mod \
    ../include/metric_tools.mod ../include/nemo_states_module.mod \
