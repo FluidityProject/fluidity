@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <fluidity_options>
   <simulation_name>
     <string_value lines="1">med</string_value>
@@ -60,7 +60,7 @@
         <mesh name="InputMesh"/>
         <extrude>
           <regions name="WholeMesh">
-            <bottom_depth>
+            <layers name="WholeDepth"><bottom_depth>
               <from_map file_name="mesh/globesampled.grd">
                 <min_depth>
                   <real_value rank="0">3.0</real_value>
@@ -78,7 +78,7 @@
             <bottom_surface_id>
               <integer_value rank="0">308</integer_value>
             </bottom_surface_id>
-          </regions>
+          </layers></regions>
         </extrude>
         <stat>
           <include_in_stat/>

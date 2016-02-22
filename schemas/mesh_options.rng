@@ -169,12 +169,36 @@ parallel periodic boundary conditions.</a:documentation>
                   <a:documentation>Extrusion options for WholeMesh
 
 Only specify one set of parameters if not using mesh regions.
-Otherwise select other regions option, specify region_ids
-and distinct names.  Then add extra regions for other regions.</a:documentation>
+Otherwise use the dropdown menu to specify a named region,
+specify the region_ids in the surface mesh that define this
+named region, and then hen add extra regions for other regions.</a:documentation>
                   <attribute name="name">
                     <value>WholeMesh</value>
                   </attribute>
-                  <ref name="extrusion_options"/>
+                  <oneOrMore>
+                    <choice>
+                      <element name="layers">
+                        <a:documentation>Extrusion options for WholeDepth
+
+Only specify one set of parameters for the entire depth. If
+you want to have different extrusion parameters in different
+layers, use the dropdown menu to select a named layer for the top
+layer, and add extra layers to specify the extrusion in layers below.</a:documentation>
+                        <attribute name="name">
+                          <value>WholeDepth</value>
+                        </attribute>
+                        <ref name="extrusion_options"/>
+                      </element>
+                      <element name="layers">
+                        <a:documentation>Multiple extrusion options are allowed if specifying different
+values in different named layers</a:documentation>
+                        <attribute name="name">
+                          <data type="string" datatypeLibrary=""/>
+                        </attribute>
+                        <ref name="extrusion_options"/>
+                      </element>
+                    </choice>
+                  </oneOrMore>
                 </element>
                 <element name="regions">
                   <a:documentation>Multiple extrusion options are allowed if specifying
@@ -188,7 +212,30 @@ requires a distinct name for the options dictionary.</a:documentation>
                   <optional>
                     <ref name="region_ids"/>
                   </optional>
-                  <ref name="extrusion_options"/>
+                  <oneOrMore>
+                    <choice>
+                      <element name="layers">
+                        <a:documentation>Extrusion options for WholeDepth
+
+Only specify one set of parameters for the entire depth. If
+you want to have different extrusion parameters in different
+layers, use the dropdown menu to select a named layer for the top
+layer, and add extra layers to specify the extrusion in layers below.</a:documentation>
+                        <attribute name="name">
+                          <value>WholeDepth</value>
+                        </attribute>
+                        <ref name="extrusion_options"/>
+                      </element>
+                      <element name="layers">
+                        <a:documentation>Multiple extrusion options are allowed if specifying different
+values in different named layers</a:documentation>
+                        <attribute name="name">
+                          <data type="string" datatypeLibrary=""/>
+                        </attribute>
+                        <ref name="extrusion_options"/>
+                      </element>
+                    </choice>
+                  </oneOrMore>
                 </element>
               </choice>
             </oneOrMore>

@@ -124,11 +124,29 @@ mesh_info =
               ## Extrusion options for WholeMesh
               ##
               ## Only specify one set of parameters if not using mesh regions.
-              ## Otherwise select other regions option, specify region_ids
-              ## and distinct names.  Then add extra regions for other regions.
+              ## Otherwise use the dropdown menu to specify a named region,
+              ## specify the region_ids in the surface mesh that define this
+              ## named region, and then hen add extra regions for other regions.
               element regions {
-                attribute name { "WholeMesh" },
-                extrusion_options
+                 attribute name { "WholeMesh" },
+                 (
+                    ## Extrusion options for WholeDepth
+                    ##
+                    ## Only specify one set of parameters for the entire depth. If
+                    ## you want to have different extrusion parameters in different
+                    ## layers, use the dropdown menu to select a named layer for the top
+                    ## layer, and add extra layers to specify the extrusion in layers below.
+                    element layers {
+                       attribute name { "WholeDepth" },
+                       extrusion_options
+                    }|
+                    ## Multiple extrusion options are allowed if specifying different
+                    ## values in different named layers
+                    element layers {
+                       attribute name { string },
+                       extrusion_options
+                    }
+                 )+
               }|
               ## Multiple extrusion options are allowed if specifying
               ## different values in different
@@ -136,9 +154,26 @@ mesh_info =
               ## each set of options
               ## requires a distinct name for the options dictionary.
               element regions {
-                attribute name { string },
-                region_ids?,
-                extrusion_options
+                 attribute name { string },
+                 region_ids?,
+                 (
+                    ## Extrusion options for WholeDepth
+                    ##
+                    ## Only specify one set of parameters for the entire depth. If
+                    ## you want to have different extrusion parameters in different
+                    ## layers, use the dropdown menu to select a named layer for the top
+                    ## layer, and add extra layers to specify the extrusion in layers below.
+                    element layers {
+                       attribute name { "WholeDepth" },
+                       extrusion_options
+                    }|
+                    ## Multiple extrusion options are allowed if specifying different
+                    ## values in different named layers
+                    element layers {
+                       attribute name { string },
+                       extrusion_options
+                    }
+                 )+
               }
             )+,
             ## This is an internal option used by checkpointing. The 

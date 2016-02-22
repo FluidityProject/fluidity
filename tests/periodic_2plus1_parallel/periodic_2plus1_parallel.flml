@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <fluidity_options>
   <simulation_name>
     <string_value lines="1">periodic_2plus1_parallel</string_value>
@@ -92,7 +92,7 @@
         <mesh name="PeriodicMesh"/>
         <extrude>
           <regions name="WholeMesh">
-            <bottom_depth>
+            <layers name="WholeDepth"><bottom_depth>
               <constant>
                 <real_value rank="0">1.0</real_value>
               </constant>
@@ -103,7 +103,7 @@
               </constant>
               <varies_only_in_depth/>
             </sizing_function>
-          </regions>
+          </layers></regions>
         </extrude>
         <stat>
           <exclude_from_stat/>

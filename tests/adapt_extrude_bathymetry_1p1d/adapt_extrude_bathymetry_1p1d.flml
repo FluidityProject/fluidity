@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <fluidity_options>
   <simulation_name>
     <string_value lines="1">landslide_benchmark</string_value>
@@ -18,7 +18,7 @@
             <region_ids>
               <integer_value rank="1" shape="1">1</integer_value>
             </region_ids>
-            <bottom_depth>
+            <layers name="WholeDepth"><bottom_depth>
               <python>
                 <string_value type="code" language="python" lines="20">def val(X,t):
    return X[0]+400.0</string_value>
@@ -35,12 +35,12 @@
             <bottom_surface_id>
               <integer_value rank="0">6</integer_value>
             </bottom_surface_id>
-          </regions>
+          </layers></regions>
           <regions name="FlatBottom">
             <region_ids>
               <integer_value rank="1" shape="1">2</integer_value>
             </region_ids>
-            <bottom_depth>
+            <layers name="WholeDepth"><bottom_depth>
               <constant>
                 <real_value rank="0">6400.0</real_value>
               </constant>
@@ -56,12 +56,12 @@
             <bottom_surface_id>
               <integer_value rank="0">7</integer_value>
             </bottom_surface_id>
-          </regions>
+          </layers></regions>
           <regions name="RightSlope">
             <region_ids>
               <integer_value rank="1" shape="1">3</integer_value>
             </region_ids>
-            <bottom_depth>
+            <layers name="WholeDepth"><bottom_depth>
               <python>
                 <string_value type="code" language="python" lines="20">def val(X,t):
   return -X[0]+10000.0+6400.0</string_value>
@@ -78,7 +78,7 @@
             <bottom_surface_id>
               <integer_value rank="0">8</integer_value>
             </bottom_surface_id>
-          </regions>
+          </layers></regions>
         </extrude>
         <stat>
           <include_in_stat/>

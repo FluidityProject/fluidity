@@ -142,10 +142,10 @@ module hadapt_advancing_front
       
       call get_option(trim(mesh%mesh%option_path)// &
                       '/from_mesh/extrude/regions['//int2str(r)//&
-                      ']/top_surface_id', top_surface_id, default=0)
+                      ']/layers[0]/top_surface_id', top_surface_id, default=0)
       call get_option(trim(mesh%mesh%option_path)// &
                       '/from_mesh/extrude/regions['//int2str(r)//&
-                      ']/bottom_surface_id', bottom_surface_id, default=0)
+                      ']/layers[0]/bottom_surface_id', bottom_surface_id, default=0)
                       
       do h_ele = 1, size(top_surface_ids)
         if(apply_region_ids) then
