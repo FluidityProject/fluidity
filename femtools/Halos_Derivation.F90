@@ -1458,6 +1458,7 @@ contains
 
     new_mesh = expand_mesh_halo(positions%mesh)
     call allocate(new_positions, positions%dim, new_mesh, name=positions%name)
+    new_positions%multivalued_halo = positions%multivalued_halo
     new_positions%val(:,1:node_count(positions)) = positions%val
     call halo_update(new_positions)
     call deallocate(new_mesh)
@@ -1668,6 +1669,7 @@ contains
     end do
     new_mesh%halos(nhalos+1) = new_halo
     new_mesh%option_path = mesh%option_path
+    new_mesh%periodic = mesh%periodic
 
     ! start by copying over existing elements
     do ele=1, element_count(mesh)

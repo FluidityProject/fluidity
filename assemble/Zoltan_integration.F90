@@ -355,6 +355,8 @@ module zoltan_integration
        zoltan_global_zz_positions = extract_vector_field(states, trim(zoltan_global_zz_mesh%name)//"Coordinate")
     end if
     call incref(zoltan_global_zz_positions)
+
+    zoltan_global_periodic_surface_ids = get_periodic_surface_ids(states(1))
     
     zoltan_global_zz_nelist => extract_nelist(zoltan_global_zz_mesh)
     
@@ -775,6 +777,7 @@ module zoltan_integration
     if(zoltan_global_field_weighted_partitions) then
        call deallocate(zoltan_global_field_weighted_partition_values)
     end if
+    call deallocate(zoltan_global_periodic_surface_ids)
 
   end subroutine cleanup_quality_module_variables
 
@@ -1471,11 +1474,10 @@ module zoltan_integration
     integer :: universal_number, new_local_number
     type(integer_hash_table) :: universal_surface_element_to_local_numbering
     integer, dimension(:), allocatable, target :: surface_ids, element_owners
-    type(csr_sparsity), pointer :: nnlist
     
     logical, dimension(key_count(zoltan_global_new_surface_elements)) :: keep_surface_element
     integer, dimension(:), allocatable :: sndgln
-    integer :: universal_element_number
+    integer :: universal_element_number, surface_id
     
     ewrite(1,*) "In reconstruct_senlist"
     
@@ -1510,7 +1512,6 @@ module zoltan_integration
     expected_loc = face_loc(zoltan_global_zz_mesh, 1)
     
     ! First, count how many we have
-    nnlist => extract_nnlist(zoltan_global_new_positions%mesh)
     do i=1,key_count(zoltan_global_new_surface_elements)
        j = key_count(senlists(i))
        assert(j <= expected_loc)
@@ -1520,8 +1521,15 @@ module zoltan_integration
           ! corresponding element!
           universal_number = fetch(zoltan_global_new_surface_elements, i)
           universal_element_number = fetch(zoltan_global_universal_surface_number_to_element_owner, universal_number)
-          keep_surface_element(i) = has_key(zoltan_global_uen_to_new_local_numbering, universal_element_number)
-          if (keep_surface_element(i)) full_elements = full_elements + 1
+          if (has_key(zoltan_global_uen_to_new_local_numbering, universal_element_number)) then
+            surface_id = fetch(zoltan_global_universal_surface_number_to_surface_id, universal_number)
+            if (has_value(zoltan_global_periodic_surface_ids, surface_id)) then
+              keep_surface_element(i) = .false.
+            else
+              keep_surface_element(i) = .true.
+              full_elements = full_elements + 1
+            end if
+          end if
        else
           keep_surface_element(i) = .false.
           ! write(0,*) "Surface element ", fetch(zoltan_global_new_surface_elements, i), " is degenerate. Dropping .."
@@ -2332,8 +2340,6 @@ module zoltan_integration
          FLAbort("Illegal remapping of Coordinate field.")
       end if
       
-      call remove_periodic_surface_ids(states(1), coordinate) 
-
     end if
     
     do i=1,size(zoltan_global_source_states)
@@ -2631,61 +2637,38 @@ module zoltan_integration
 
   end subroutine shift_coordinates_periodic
 
-  subroutine remove_periodic_surface_ids(state, positions)
+  function get_periodic_surface_ids(state) result(all_periodic_bc_ids)
     type(state_type), intent(inout):: state
-    type(vector_field), intent(in):: positions
 
+    type(vector_field), pointer :: coordinate
     character(len=OPTION_PATH_LEN):: mesh_path
-    type(mesh_type), pointer:: mesh
-    type(integer_set):: all_periodic_bc_ids
     integer, dimension(:), allocatable:: periodic_ids
-    integer, dimension(:), pointer:: surface_ids
     integer, dimension(2) :: shape_option
-    integer:: i,j, n_periodic_bcs
+    integer:: i,n_periodic_bcs
+    type(integer_set):: all_periodic_bc_ids
 
-    mesh_path = positions%mesh%option_path
+    coordinate => extract_vector_field(state, "Coordinate")
+    mesh_path = coordinate%mesh%option_path
 
     n_periodic_bcs=option_count(trim(mesh_path)//"/from_mesh/periodic_boundary_conditions")
     ewrite(2,*) "n_periodic_bcs=", n_periodic_bcs
-    if (n_periodic_bcs == 0) then
-      ewrite(-1,*) "You almost certainly didn't mean to pass in this option path."
-      ewrite(-1,*) "trim(mesh_path): ", trim(mesh_path)
-      FLAbort("No periodic boundary conditions to remove!")
-    end if
 
     call allocate(all_periodic_bc_ids)
-    do j=0, n_periodic_bcs-1
-       shape_option = option_shape(trim(mesh_path)//"/from_mesh/periodic_boundary_conditions["//int2str(j)//"]/physical_boundary_ids")
+    do i=0, n_periodic_bcs-1
+       shape_option = option_shape(trim(mesh_path)//"/from_mesh/periodic_boundary_conditions["//int2str(i)//"]/physical_boundary_ids")
        allocate( periodic_ids(shape_option(1)) )
-       call get_option(trim(mesh_path)//"/from_mesh/periodic_boundary_conditions["//int2str(j)//"]/physical_boundary_ids",periodic_ids)
+       call get_option(trim(mesh_path)//"/from_mesh/periodic_boundary_conditions["//int2str(i)//"]/physical_boundary_ids",periodic_ids)
        call insert(all_periodic_bc_ids, periodic_ids)
        deallocate(periodic_ids)
 
-       shape_option = option_shape(trim(mesh_path)//"/from_mesh/periodic_boundary_conditions["//int2str(j)//"]/aliased_boundary_ids")
+       shape_option = option_shape(trim(mesh_path)//"/from_mesh/periodic_boundary_conditions["//int2str(i)//"]/aliased_boundary_ids")
        allocate( periodic_ids(shape_option(1)) )
-       call get_option(trim(mesh_path)//"/from_mesh/periodic_boundary_conditions["//int2str(j)//"]/aliased_boundary_ids", periodic_ids)
+       call get_option(trim(mesh_path)//"/from_mesh/periodic_boundary_conditions["//int2str(i)//"]/aliased_boundary_ids", periodic_ids)
        call insert(all_periodic_bc_ids, periodic_ids)
        deallocate(periodic_ids)
     end do
 
-    surface_ids => positions%mesh%faces%boundary_ids
-
-    do i=1, size(surface_ids)
-      if (has_value(all_periodic_bc_ids, surface_ids(i))) then
-        surface_ids(i)=0
-      end if
-    end do
-
-    call deallocate(all_periodic_bc_ids)
-
-    do i=1, mesh_count(state)
-      mesh => extract_mesh(state, i)
-      if (size(mesh%faces%boundary_ids)==size(surface_ids)) then
-        mesh%faces%boundary_ids=surface_ids
-      end if
-    end do
-
-  end subroutine remove_periodic_surface_ids
+  end function get_periodic_surface_ids
 
 #endif
 end module zoltan_integration

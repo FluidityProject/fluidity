@@ -207,6 +207,7 @@ contains
     deallocate(mesh%halos)
 
     call allocate(stripped_positions, positions%dim, stripped_mesh, name=positions%name)
+    stripped_positions%multivalued_halo = positions%multivalued_halo
     call allocate(stripped_metric, stripped_mesh, name=metric%name)
     call set_all(stripped_positions, node_val(positions, node_list))
     call set_all(stripped_metric, node_val(metric, node_list))

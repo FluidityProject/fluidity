@@ -756,6 +756,7 @@ contains
     call allocate(submesh, nodes=size(node_list), elements=size(element_list),&
          & shape=shape, name=trim(name))
     submesh%option_path = mesh%option_path
+    submesh%periodic    = mesh%periodic
     if (associated(mesh%region_ids)) then
       allocate(submesh%region_ids(size(element_list)))
       submesh%region_ids = mesh%region_ids(element_list)
@@ -788,7 +789,7 @@ contains
         ! collect one copy, whereas for internal facets that remain internal we collect both
         ! this is dealt with using the allow_duplicate_internal_facets flag to add_faces()
         if (face  <= surf_ele_count) then
-           call insert(face_ele_list, face, ele)
+           call insert(face_ele_list, face, i)
         end if
       end do
     end do
@@ -796,29 +797,26 @@ contains
     ! Set up sndglno and boundary_ids:
     edge_count = key_count(face_ele_list)
     allocate(sndglno(edge_count*sloc), boundary_ids(1:edge_count))
+    allocate(element_owner(1:edge_count))
     do i = 1, edge_count
       call fetch_pair(face_ele_list, i, face, ele)
       sndglno((i-1)*sloc+1:i*sloc) = inverse_node_list(face_global_nodes(mesh, face))
       boundary_ids(i) = surface_element_id(mesh, face)
+      element_owner(i) = ele
     end do
-    call deallocate(face_ele_list)
 
     ewrite(2,*) "Number of surface elements: ", edge_count
     ! Add faces to submesh:
     if (has_discontinuous_internal_boundaries(mesh)) then
-      allocate(element_owner(1:edge_count))
-      do i=1, edge_count
-        call fetch_pair(face_ele_list, i, face, ele)
-        element_owner(i) = ele
-      end do
       call add_faces(submesh, sndgln=sndglno, boundary_ids=boundary_ids, &
         element_owner=element_owner)
-      deallocate(element_owner)
     else
       call add_faces(submesh, sndgln=sndglno, boundary_ids=boundary_ids, &
         allow_duplicate_internal_facets=.true.)
     end if
 
+    call deallocate(face_ele_list)
+    deallocate(element_owner)
     deallocate(sndglno)
     deallocate(boundary_ids)
 

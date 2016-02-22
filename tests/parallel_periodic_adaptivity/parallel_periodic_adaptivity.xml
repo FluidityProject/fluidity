@@ -1,0 +1,54 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>Parallel periodic adaptivity</name>
+  <owner userid="cwilson"/>
+  <tags>flml</tags>
+  <problem_definition length="short" nprocs="3">
+    <command_line>../../bin/periodise periodic_adaptivity.flml &amp;&amp; mpiexec ../../bin/flredecomp -i 1 -o 3 periodic_adaptivity_periodised periodic_adaptivity_periodised_parallel &amp;&amp; mpiexec fluidity -v2 -l periodic_adaptivity_periodised_parallel.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="wrapped_around" language="python">
+import glob
+wrapped_around = False
+for f in glob.glob("fluidity.err-*"):
+  wrapped_around = wrapped_around or "Unable to unwrap the periodic mesh locally." in open(f).read()
+    </variable>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
+    <variable name="consistent_max" language="python">
+import fluidity_tools
+s = fluidity_tools.stat_parser("periodic_adaptivity.stat")
+consistent_max = s['Main']['PrognosticFieldConsistent']['max'][-1]
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="Solvers converged" language="python">if not wrapped_around:
+  assert(solvers_converged)
+else:
+  assert(True)
+    </test>
+    <test name="completion" language="python">if not wrapped_around:
+  import fluidity_tools
+  stat = fluidity_tools.stat_parser("periodic_adaptivity.stat")
+  assert stat['ElapsedTime']['value'][-1] == 20.0</test>
+else:
+  assert(True)
+    <test name="references" language="python">if not wrapped_around:
+  assert "There are no references left" in open("fluidity.log-0").read()</test>
+else:
+  assert(True)
+    <test name="consistent_max" language="python">if not wrapped_around:
+  import fluidity_tools
+  fluidity_tools.compare_variable(consistent_max, 1.0, 1.0e-10)
+else:
+  assert(True)
+    </test>
+  </pass_tests>
+  <warn_tests>
+    <test name="wrapped_around" language="python">assert(not wrapped_around)
+    </test>
+  </warn_tests>
+</testproblem>

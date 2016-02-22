@@ -723,7 +723,7 @@ contains
               call extrude(modelposition, mesh_path, extrudedposition)
             end if
 
-            extrudedposition%multivalued_halo=extrudedposition%multivalued_halo
+            extrudedposition%multivalued_halo=modelposition%multivalued_halo
                 
          end if
                

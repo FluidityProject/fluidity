@@ -66,6 +66,7 @@ module zoltan_global_variables
   type(integer_hash_table), save :: zoltan_global_universal_surface_number_to_surface_id
   integer, dimension(:), allocatable, save :: zoltan_global_universal_columns
   type(halo_type), save, pointer :: zoltan_global_zz_ele_halo 
+  type(integer_set), save :: zoltan_global_periodic_surface_ids
 
 
   ! Needed for zoltan_cb_unpack_nodes
