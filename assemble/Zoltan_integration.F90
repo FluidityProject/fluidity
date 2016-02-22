@@ -1529,6 +1529,8 @@ module zoltan_integration
               keep_surface_element(i) = .true.
               full_elements = full_elements + 1
             end if
+          else
+            keep_surface_element(i) = .false.
           end if
        else
           keep_surface_element(i) = .false.
