@@ -166,13 +166,15 @@ module hadapt_extrude
                           depth_from_map, depth_vector(column),  have_min_depth, min_depth, &
                           sizing_is_constant, constant_sizing, list_sizing, sizing_function, sizing_vector, &
                           sigma_layers, number_sigma_layers, radial_extrusion)
-          do i=2, key_count(region_columns(r))
+          do i=1, key_count(region_columns(r))
             column = fetch(region_columns(r), i)
             call get_previous_z_nodes(z_meshes(layer, column), constant_z_mesh)
           end do
+          call deallocate(constant_z_mesh)
         else
           do i=1, key_count(region_columns(r))
             column = fetch(region_columns(r), i)
+            print *, "column = ", column
             call compute_z_nodes(z_meshes(layer, column), node_val(h_mesh, column), min_bottom_layer_frac, &
                             depth_is_constant, depth, depth_from_python, depth_function, &
                             depth_from_map, depth_vector(column),  have_min_depth, min_depth, &
