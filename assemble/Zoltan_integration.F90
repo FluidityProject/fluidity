@@ -1478,6 +1478,7 @@ module zoltan_integration
     logical, dimension(key_count(zoltan_global_new_surface_elements)) :: keep_surface_element
     integer, dimension(:), allocatable :: sndgln
     integer :: universal_element_number, surface_id
+    logical :: adaptive
     
     ewrite(1,*) "In reconstruct_senlist"
     
@@ -1511,6 +1512,7 @@ module zoltan_integration
     ! However, it's constant for now
     expected_loc = face_loc(zoltan_global_zz_mesh, 1)
     
+    adaptive = have_option("/mesh_adaptivity/hr_adaptivity")
     ! First, count how many we have
     do i=1,key_count(zoltan_global_new_surface_elements)
        j = key_count(senlists(i))
@@ -1523,7 +1525,7 @@ module zoltan_integration
           universal_element_number = fetch(zoltan_global_universal_surface_number_to_element_owner, universal_number)
           if (has_key(zoltan_global_uen_to_new_local_numbering, universal_element_number)) then
             surface_id = fetch(zoltan_global_universal_surface_number_to_surface_id, universal_number)
-            if (has_value(zoltan_global_periodic_surface_ids, surface_id)) then
+            if (adaptive.and.has_value(zoltan_global_periodic_surface_ids, surface_id)) then
               keep_surface_element(i) = .false.
             else
               keep_surface_element(i) = .true.
