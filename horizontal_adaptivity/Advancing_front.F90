@@ -123,8 +123,6 @@ module hadapt_advancing_front
       assert( snloc==face_loc(h_mesh,1)+1 )
     end if
 
-      
-
     ele = 0
       
     ! The main loop.
@@ -137,11 +135,22 @@ module hadapt_advancing_front
         call parallel_consistent_ordering(heights, mesh%mesh%halos(2), sorted, layer_nodes(layer)-1)
       else
         call qsort(heights, sorted)
+        sorted = sorted + layer_nodes(layer)-1
       end if
+
+      ! column_count and column_size are used to determine top and bottom elements in each column
+      ! column_size: for each column, find out how many nodes there are in this layer
+      column_size = 0
+      do i = 1, size(sorted)
+        node = sorted(i)
+        column = mesh%mesh%columns(node)
+        column_size(column) = column_size(column) + 1
+      end do
+      ! column_count: how many we've encountered so far - at the moment that's 1 (the top) node per column
+      column_count = 1
 
       if (layer==1) then
         ! for the top layer, find what the starting node is,
-        ! for layers below we continue with the nodes from the prev. layer
         hanging_node = 0
         ! we start with the top nodes
         l = 0
@@ -155,17 +164,12 @@ module hadapt_advancing_front
           if (l==size(hanging_node)) exit
         end do
         assert(l==size(hanging_node))
+      else
+        ! for layers below we continue with the nodes from the prev. layer
+        ! that means we've forgotten to count it in column_size
+        column_size = column_size + 1
       end if
 
-      ! column_count and column_size are used to determine top and bottom elements in each column
-      ! column_size: for each column, find out how many nodes there are in this layer
-      column_size = 0
-      do node = 1, node_count(mesh)
-        column = mesh%mesh%columns(node)
-        column_size(column) = column_size(column) + 1
-      end do
-      ! column_count: how many we've encountered so far - at the moment that's 1 (the top) node per column
-      column_count = 1
 
       do r = 0, n_regions-1
 
@@ -351,6 +355,11 @@ module hadapt_advancing_front
         assert( column_count(column)<=column_size(column) )
       end do nodes
 
+      assert(all(column_count==column_size))
+
+      deallocate(sorted)
+      deallocate(heights)
+
     end do layers
       
     assert(ele==element_count(mesh))
@@ -442,8 +451,6 @@ module hadapt_advancing_front
     deallocate(sndgln)
     deallocate(bottom_surface_ids)
     deallocate(top_surface_ids)
-    deallocate(sorted)
-    deallocate(heights)
     deallocate(hanging_node)
     deallocate(column_size)
     deallocate(column_count)

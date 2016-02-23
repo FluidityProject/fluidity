@@ -109,29 +109,35 @@ module hadapt_combine_meshes
     last_seen = 0
     do layer=1, size(z_meshes, 1)
       layer_nodes(layer) = last_seen + 1
+
       do column=1, size(z_meshes, 2)
         if (node_owned(h_mesh, column)) then
           if (sigma_layers(layer)) then
             ! If we have sigma layers we will first use one chain to create a dummy
             ! 'mesh' that has the correct topological properties. We will later over write the
             !  vector field with the correct one. We always have chain '1', so we'll use that now.
-            call append_to_structures(column, z_meshes(layer, 1), h_mesh, out_mesh, last_seen)
+            call append_to_structures(column, z_meshes(layer, 1), h_mesh, out_mesh, last_seen, skip_top_node=layer>1)
           else
-            call append_to_structures(column, z_meshes(layer, column), h_mesh, out_mesh, last_seen)
+            call append_to_structures(column, z_meshes(layer, column), h_mesh, out_mesh, last_seen, skip_top_node=layer>1)
           end if
         else
           ! for non-owned columns we reserve node numbers,
           ! but don't fill in out_mesh positions yet
           ! note that in this way out_mesh will obtain the same halo ordering
           ! convention as h_mesh
-          out_mesh%mesh%columns(last_seen+1:last_seen+no_hanging_nodes(layer, column)+1) = column
-          last_seen = last_seen + no_hanging_nodes(layer, column)+1
+          if (layer==1) then
+            last_seen = last_seen + 1
+            out_mesh%mesh%columns(last_seen) = column
+          end if
+          out_mesh%mesh%columns(last_seen+1:last_seen+no_hanging_nodes(layer, column)) = column
+          last_seen = last_seen + no_hanging_nodes(layer, column)
         end if
       end do
     end do
     layer_nodes(layer) = last_seen + 1
+    assert(last_seen==node_count(out_mesh))
     assert(all(out_mesh%mesh%columns>0))
-      
+
     call create_columns_sparsity(out_columns, out_mesh%mesh)
     
     if (associated(h_mesh%mesh%halos)) then
@@ -143,14 +149,14 @@ module hadapt_combine_meshes
       
     call generate_layered_mesh(out_mesh, h_mesh, layer_nodes)
 
+    ! If we have sigma layers we now populate the vector field with the actual positions
     do layer=1, size(z_meshes,1)
-      ! If we have sigma layers we now populate the vector field with the actual
-      ! node positions.
+      ! node positions
       if (sigma_layers(layer)) then
-        last_seen = 0
-        do column=1,node_count(h_mesh)
+        last_seen=layer_nodes(layer)-1
+        do column=1, node_count(h_mesh)
           if (node_owned(h_mesh, column)) then
-            call append_to_structures(column, z_meshes(layer, column), h_mesh, out_mesh, last_seen)
+            call append_to_structures(column, z_meshes(layer, column), h_mesh, out_mesh, last_seen, skip_top_node=layer>1)
           end if
         end do
       end if
@@ -163,13 +169,14 @@ module hadapt_combine_meshes
     
   end subroutine combine_z_meshes
   
-  subroutine append_to_structures(column, z_mesh, h_mesh, out_mesh, last_seen)
+  subroutine append_to_structures(column, z_mesh, h_mesh, out_mesh, last_seen, skip_top_node)
     integer, intent(in) :: column
     type(vector_field), intent(in) :: z_mesh, h_mesh
     type(vector_field), intent(inout) :: out_mesh
-    integer, intent(inout) :: last_seen
+    integer, intent(inout) :: last_seen ! last added node anywhere in mesh
+    logical, intent(in) :: skip_top_node ! for layers below, we skip the top node
 
-    integer :: j
+    integer :: j, start
     integer :: v_dim
     logical :: radial_extrusion
 
@@ -181,18 +188,24 @@ module hadapt_combine_meshes
 
     origin = 0.0
     origin(1:h_mesh%dim) = node_val(h_mesh, column)
-    direction = 0.0
+    if (skip_top_node) then
+      start = 2 ! skip the first node in z_mesh as this is the same as the last one from the previous layer
+    else
+      start = 1
+    end if
+
     if (radial_extrusion) direction = origin/norm2(origin)
 
-    do j=1,node_count(z_mesh)
+    do j=start, node_count(z_mesh)
       last_seen = last_seen + 1
       out_mesh%mesh%columns(last_seen)=column
       if (radial_extrusion) then
         pos = origin + direction*node_val(z_mesh, 1, j)
       else
         pos = origin
-        pos(v_dim) = node_val(z_mesh, 1, j)
+        pos(v_dim) = origin(v_dim) + node_val(z_mesh, 1, j)
       end if
+      print *, "@", column, pos
       call set(out_mesh, last_seen, pos)
     end do
     
