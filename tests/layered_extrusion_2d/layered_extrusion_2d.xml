@@ -1,0 +1,34 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>Test layered extrusion</name>
+  <owner userid="skramer"/>
+  <problem_definition length="short" nprocs="1">
+    <command_line>fluidity -v2 -l  analytic_layered.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="volume" language="python">from fluidity_tools import stat_parser
+stat = stat_parser("analytic.stat")
+volume = stat["State"]["Field"]["integral"][-1]</variable>
+    <variable name="surface_integrals" language="python">from fluidity_tools import stat_parser
+import numpy
+stat = stat_parser("analytic.stat")
+surface_integrals = numpy.array([stat["State"]["Field"]["surface_integral%"+`i`][-1] for i in xrange(1,7)])</variable>
+  </variables>
+  <pass_tests>
+    <test name="volume_integral" language="python">from math import pi
+Rt=2.2
+Rb=0.9
+assert(abs(volume-pi*(Rt**2-Rb**2))&lt;1e-3)</test>
+    <test name="top_integral" language="python">from math import pi
+Rt=2.2
+assert(abs(surface_integrals[0]-pi*Rt)&lt;1e-5)</test>
+    <test name="middle_integral" language="python">from math import pi
+Rm=1.2
+assert(abs(surface_integrals[1]-pi*Rm)&lt;1e-5)</test>
+    <test name="bottom_integral" language="python">from math import pi
+Rb=0.9
+assert(abs(surface_integrals[2]-pi*Rb)&lt;1e-5)</test>
+    <test name="integrals_left_and_right_are_the_same" language="python">assert(abs(surface_integrals[0:3]-surface_integrals[3:]).max()&lt;1e-5)</test>
+  </pass_tests>
+  <warn_tests/>
+</testproblem>
