@@ -31,39 +31,46 @@ module hadapt_combine_meshes
   !! Given the h_mesh and a z_mesh under each node of it combines these
   !! into a full horiz+vertic. mesh
   type(vector_field), intent(inout):: h_mesh
-  type(vector_field), dimension(:), intent(in):: z_meshes
+  type(vector_field), dimension(:,:), intent(in):: z_meshes
   type(vector_field), intent(out):: out_mesh
   type(element_type), intent(in):: full_shape
   !! the name of the topol. mesh to be created, not the coordinate field
   character(len=*), intent(in):: mesh_name, option_path
-  logical, intent(in), optional :: sl
-  logical :: sigma_layers
-  
+  logical, dimension(:), intent(in), optional :: sl
+
     type(csr_sparsity):: out_columns
     type(mesh_type):: mesh
-    integer, dimension(:), allocatable:: no_hanging_nodes
-    integer:: column, total_out_nodes, total_out_elements, z_elements, last_seen
+    integer, dimension(:, :), allocatable:: no_hanging_nodes
+    integer, dimension(:), allocatable:: layer_nodes
+    integer:: layer, column, total_out_nodes, total_out_elements, z_elements, last_seen
+    logical, dimension(size(z_meshes,1)) :: sigma_layers
 
-    sigma_layers=present_and_true(sl)
+    if (present(sl)) then
+      sigma_layers = sl
+    else
+      sigma_layers = .false.
+    end if
 
-    allocate(no_hanging_nodes(1:node_count(h_mesh)))
+    allocate(no_hanging_nodes(size(z_meshes,1), size(z_meshes,2)))
     no_hanging_nodes=0
-    do column=1, size(z_meshes)
-      if (node_owned(h_mesh, column)) then
-        no_hanging_nodes(column)=ele_count(z_meshes(column))
+    do layer=1, size(z_meshes,1)
+      do column=1, size(z_meshes,2)
+        if (node_owned(h_mesh, column)) then
+          no_hanging_nodes(layer, column) = no_hanging_nodes(layer, column) + ele_count(z_meshes(layer, column))
+        end if
+      end do
+      if (associated(h_mesh%mesh%halos)) then
+        call halo_update(h_mesh%mesh%halos(2), no_hanging_nodes(layer,:))
       end if
     end do
-    if (associated(h_mesh%mesh%halos)) then
-      call halo_update(h_mesh%mesh%halos(2), no_hanging_nodes)
-    end if
     
     total_out_nodes = 0
     ! For each column,
     ! add (number of nodes hanging off (== number of 1d elements)) * (element connectivity of chain)
     ! to compute the number of elements the extrusion routine will produce
     total_out_elements = 0
-    do column=1, size(z_meshes)
-      z_elements = no_hanging_nodes(column)
+    do column=1, size(z_meshes, 2)
+      z_elements = sum(no_hanging_nodes(:,column))
       total_out_nodes = total_out_nodes + z_elements + 1
       assert(associated(h_mesh%mesh%adj_lists))
       assert(associated(h_mesh%mesh%adj_lists%nelist))
@@ -96,26 +103,33 @@ module hadapt_combine_meshes
     out_mesh%option_path=""
     out_mesh%mesh%periodic = mesh_periodic(h_mesh)
 
+    ! stores the first node of each layer
+    allocate(layer_nodes(1:size(z_meshes,1)+1))
+
     last_seen = 0
-    do column=1,node_count(h_mesh)
-      if (node_owned(h_mesh, column)) then
-        if (sigma_layers) then
-          ! If we have sigma layers we will first use one chain to create a dummy
-          ! 'mesh' that has the correct topological properties. We will later over write the
-          !  vector field with the correct one. We always have chain '1', so we'll use that now.
-          call append_to_structures(column, z_meshes(1), h_mesh, out_mesh, last_seen)
+    do layer=1, size(z_meshes, 1)
+      layer_nodes(layer) = last_seen + 1
+      do column=1, size(z_meshes, 2)
+        if (node_owned(h_mesh, column)) then
+          if (sigma_layers(layer)) then
+            ! If we have sigma layers we will first use one chain to create a dummy
+            ! 'mesh' that has the correct topological properties. We will later over write the
+            !  vector field with the correct one. We always have chain '1', so we'll use that now.
+            call append_to_structures(column, z_meshes(layer, 1), h_mesh, out_mesh, last_seen)
+          else
+            call append_to_structures(column, z_meshes(layer, column), h_mesh, out_mesh, last_seen)
+          end if
         else
-          call append_to_structures(column, z_meshes(column), h_mesh, out_mesh, last_seen)
+          ! for non-owned columns we reserve node numbers,
+          ! but don't fill in out_mesh positions yet
+          ! note that in this way out_mesh will obtain the same halo ordering
+          ! convention as h_mesh
+          out_mesh%mesh%columns(last_seen+1:last_seen+no_hanging_nodes(layer, column)+1) = column
+          last_seen = last_seen + no_hanging_nodes(layer, column)+1
         end if
-      else
-        ! for non-owned columns we reserve node numbers, 
-        ! but don't fill in out_mesh positions yet
-        ! note that in this way out_mesh will obtain the same halo ordering
-        ! convention as h_mesh
-        out_mesh%mesh%columns(last_seen+1:last_seen+no_hanging_nodes(column)+1) = column
-        last_seen = last_seen + no_hanging_nodes(column)+1
-      end if
+      end do
     end do
+    layer_nodes(layer) = last_seen + 1
     assert(all(out_mesh%mesh%columns>0))
       
     call create_columns_sparsity(out_columns, out_mesh%mesh)
@@ -127,17 +141,21 @@ module hadapt_combine_meshes
       call halo_update(out_mesh)
     end if
       
-    call generate_layered_mesh(out_mesh, h_mesh)
+    call generate_layered_mesh(out_mesh, h_mesh, layer_nodes)
 
-    ! If we have sigma layers we now populate the vector field with the actual
-    ! node positions.
-    if (sigma_layers) then
-      last_seen = 0
-      do column=1,node_count(h_mesh)
-        if (node_owned(h_mesh, column)) then
-          call append_to_structures(column, z_meshes(column), h_mesh, out_mesh, last_seen)
-        end if
-      end do
+    do layer=1, size(z_meshes,1)
+      ! If we have sigma layers we now populate the vector field with the actual
+      ! node positions.
+      if (sigma_layers(layer)) then
+        last_seen = 0
+        do column=1,node_count(h_mesh)
+          if (node_owned(h_mesh, column)) then
+            call append_to_structures(column, z_meshes(layer, column), h_mesh, out_mesh, last_seen)
+          end if
+        end do
+      end if
+    end do
+    if (any(sigma_layers)) then
       call halo_update(out_mesh)
     end if
 

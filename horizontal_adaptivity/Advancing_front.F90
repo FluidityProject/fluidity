@@ -25,11 +25,13 @@ module hadapt_advancing_front
 
   contains
 
-  subroutine generate_layered_mesh(mesh, h_mesh)
+  subroutine generate_layered_mesh(mesh, h_mesh, layer_nodes)
     !! Given a columnar mesh with the positions of the vertical
     !! nodes, fill in the elements. 
     type(vector_field), intent(inout) :: mesh
     type(vector_field), intent(inout) :: h_mesh
+    !! Indicates first node in each layer - layer_nodes has one additional entry with value node_count+1 for convenience
+    integer, dimension(:), intent(in) :: layer_nodes
 
     type(csr_sparsity), pointer :: nelist
     type(scalar_field) :: height_field
@@ -50,7 +52,7 @@ module hadapt_advancing_front
     integer, dimension(:), allocatable :: region_ids
     integer, dimension(:), allocatable:: halo_level
     integer, dimension(:), pointer :: ndglno_ptr, h_elements, h_ndglno
-    integer, dimension(:), pointer :: nodes, faces, neigh
+    integer, dimension(:), pointer :: facet_nodes, faces, neigh
     
     logical:: adjacent_to_owned_element, adjacent_to_owned_column, shared_face
     logical :: top_element, bottom_element
@@ -62,7 +64,7 @@ module hadapt_advancing_front
     integer :: top_surface_id, bottom_surface_id
     integer :: faces_seen
     integer :: h_node, node, column, dim
-    integer :: n_regions, r
+    integer :: n_regions, r, layer
     integer :: ele, h_ele, snloc
     integer :: i, j, k, l
 
@@ -76,8 +78,6 @@ module hadapt_advancing_front
     allocate(sndgln(ele_count(mesh) * ele_loc(mesh, 1) * mesh_dim(mesh)))
     allocate(bottom_surface_ids(ele_count(h_mesh)))
     allocate(top_surface_ids(ele_count(h_mesh)))
-    allocate(sorted(node_count(mesh)))
-    allocate(heights(node_count(mesh)))
     allocate(hanging_node(node_count(h_mesh)))
     allocate(column_size(node_count(h_mesh)))
     allocate(column_count(node_count(h_mesh)))
@@ -95,18 +95,7 @@ module hadapt_advancing_front
       ! sort on last coordinate
       height_field = extract_scalar_field(mesh, mesh%dim)
     end if
-    ! we want it ordered top to bottom
-    heights = -height_field%val
-    if (associated(h_mesh%mesh%halos)) then
-      call parallel_consistent_ordering(heights, mesh%mesh%halos(2), sorted)
-    else
-      call qsort(heights, sorted)
-    end if
 
-    if (radial_layering) then
-      call deallocate( height_field )
-    end if
-    
     if (associated(h_mesh%mesh%halos)) then
       assert(has_faces(h_mesh%mesh)) ! needed for halo1 element recognition
       allocate(halo_level(1:element_count(mesh)))
@@ -128,225 +117,249 @@ module hadapt_advancing_front
     n_regions = option_count(trim(mesh%mesh%option_path)//'/from_mesh/extrude/regions')
     apply_region_ids = (n_regions>1)
 
-    do r = 0, n_regions-1
-    
-      if(apply_region_ids) then
-        shape_option=option_shape(trim(mesh%mesh%option_path)//&
-                                  "/from_mesh/extrude/regions["//int2str(r)//&
-                                  "]/region_ids")
-        allocate(region_ids(1:shape_option(1)))
-        call get_option(trim(mesh%mesh%option_path)//&
-                        "/from_mesh/extrude/regions["//int2str(r)//&
-                        "]/region_ids", region_ids)
-      end if
-      
-      call get_option(trim(mesh%mesh%option_path)// &
-                      '/from_mesh/extrude/regions['//int2str(r)//&
-                      ']/layers[0]/top_surface_id', top_surface_id, default=0)
-      call get_option(trim(mesh%mesh%option_path)// &
-                      '/from_mesh/extrude/regions['//int2str(r)//&
-                      ']/layers[0]/bottom_surface_id', bottom_surface_id, default=0)
-                      
-      do h_ele = 1, size(top_surface_ids)
-        if(apply_region_ids) then
-          if(.not. any(h_mesh%mesh%region_ids(h_ele)==region_ids)) cycle
-        end if
-        
-        top_surface_ids(h_ele) = top_surface_id
-        bottom_surface_ids(h_ele) = bottom_surface_id
-      end do
-      
-      if(apply_region_ids) deallocate(region_ids)
-      
-    end do
-
     faces_seen = 0
     if (has_faces(h_mesh%mesh)) then
       snloc = dim
       assert( snloc==face_loc(h_mesh,1)+1 )
     end if
 
-    ! for each column, find out how many nodes there are
-    column_size = 0
-    do node = 1, node_count(mesh)
-      column = mesh%mesh%columns(node)
-      column_size(column) = column_size(column) + 1
-    end do
       
-    ! for each column keep track what the last added node is
-    hanging_node = 0    
-    ! we start with the top nodes
-    l = 0
-    do i = 1, size(sorted)
-      node = sorted(i)
-      column = mesh%mesh%columns(node)
-      if (hanging_node(column)==0) then
-        l = l + 1
-        hanging_node(column) = node
-      end if
-      if (l==size(hanging_node)) exit
-    end do
-      
-    ! for each column keep track how many nodes we've added already,
-    ! at the moment that's just the top node in each column:
-    column_count = 1
-    
-    ! The main loop.
-    ele = 0
-    do i=1, size(sorted)
-      
-      node = sorted(i)
-      
-      ! Get the column we're dealing with
-      column = mesh%mesh%columns(node)
-      
-      if (hanging_node(column)==node) then
-        if (column_count(column)==1) then
-          ! this is simply the top node, we only start adding elements
-          ! when we have at least 2 nodes in this column
-          cycle
-        else
-          ! this node has already been added to the column, something
-          ! must have gone wrong horribly
-          FLAbort("Internal error in mesh extrustion, generate_layered_mesh")
-        end if
-      end if
-      
-      ! So we're going to form an element.
-      ! It's going to have nodes
-      ! [node, hanging_node(column), [others]]
-      ! where others are the hanging_nodes of the neighbouring columns
 
-      h_elements => row_m_ptr(nelist, column)
-      do j=1,size(h_elements)
-        h_ele = h_elements(j)
-        ! Get the columns in sele that are NOT the current column.
-        h_ndglno => ele_nodes(h_mesh, h_ele)
+    ele = 0
+      
+    ! The main loop.
+    layers: do layer = 1, size(layer_nodes)-1
+      ! order nodes within layer
+      allocate(sorted(layer_nodes(layer+1)-layer_nodes(layer)))
+      allocate(heights(size(sorted)))
+      heights = -height_field%val(layer_nodes(layer):layer_nodes(layer+1)-1)
+      if (associated(h_mesh%mesh%halos)) then
+        call parallel_consistent_ordering(heights, mesh%mesh%halos(2), sorted, layer_nodes(layer)-1)
+      else
+        call qsort(heights, sorted)
+      end if
+
+      if (layer==1) then
+        ! for the top layer, find what the starting node is,
+        ! for layers below we continue with the nodes from the prev. layer
+        hanging_node = 0
+        ! we start with the top nodes
         l = 0
-        ! we're adding a top element if all associated columns are still at top
-        top_element = all(column_count(h_ndglno)==1)
-        ! we're adding a bottom element if this column is one-but-last
-        ! and the other columns are at the last node (checked in the loop below)
-        bottom_element = column_count(column)==column_size(column)-1
-        do k=1,size(h_ndglno)
-          h_node = h_ndglno(k)
-          if (h_node /= column) then
-            ! add other column
-            l = l +1
-            other_column_heads(l) = hanging_node(h_node)
-            ! as promised check that other columns are at the last node
-            bottom_element = bottom_element .and. column_count(h_node)==column_size(h_node)
+        do i = 1, size(sorted)
+          node = sorted(i)
+          column = mesh%mesh%columns(node)
+          if (hanging_node(column)==0) then
+            l = l + 1
+            hanging_node(column) = node
           end if
+          if (l==size(hanging_node)) exit
+        end do
+        assert(l==size(hanging_node))
+      end if
+
+      ! column_count and column_size are used to determine top and bottom elements in each column
+      ! column_size: for each column, find out how many nodes there are in this layer
+      column_size = 0
+      do node = 1, node_count(mesh)
+        column = mesh%mesh%columns(node)
+        column_size(column) = column_size(column) + 1
+      end do
+      ! column_count: how many we've encountered so far - at the moment that's 1 (the top) node per column
+      column_count = 1
+
+      do r = 0, n_regions-1
+
+        if(apply_region_ids) then
+          shape_option=option_shape(trim(mesh%mesh%option_path)//&
+                                    "/from_mesh/extrude/regions["//int2str(r)//&
+                                    "]/region_ids")
+          allocate(region_ids(1:shape_option(1)))
+          call get_option(trim(mesh%mesh%option_path)//&
+                          "/from_mesh/extrude/regions["//int2str(r)//&
+                          "]/region_ids", region_ids)
+        end if
+        
+        call get_option(trim(mesh%mesh%option_path)// &
+                        '/from_mesh/extrude/regions['//int2str(r)//&
+                        ']/layers['//int2str(layer-1)//']/top_surface_id', top_surface_id, default=0)
+        call get_option(trim(mesh%mesh%option_path)// &
+                        '/from_mesh/extrude/regions['//int2str(r)//&
+                        ']/layers['//int2str(layer-1)//']/bottom_surface_id', bottom_surface_id, default=0)
+
+        do h_ele = 1, size(top_surface_ids)
+          if(apply_region_ids) then
+            if(.not. any(h_mesh%mesh%region_ids(h_ele)==region_ids)) cycle
+          end if
+
+          top_surface_ids(h_ele) = top_surface_id
+          bottom_surface_ids(h_ele) = bottom_surface_id
         end do
 
-        ! So now we know the heads of the columns next to us.
-        ! Let's form the element! Quick! quick!
-        ele = ele + 1
-        ndglno_ptr => ele_nodes(mesh, ele)
-
-        ndglno_ptr(1) = hanging_node(column)
-        ndglno_ptr(2) = node
-        ndglno_ptr(3:dim+1) = other_column_heads
-
-        ! Now we have to orient the element. 
-
-        vol = simplex_volume(mesh, ele)
-        assert(abs(vol) /= 0.0)
-        if (vol < 0.0) then
-          l = ndglno_ptr(1)
-          ndglno_ptr(1) = ndglno_ptr(2)
-          ndglno_ptr(2) = l
-        end if
-        
-        ! if the horizontal mesh has region_ids these may as well be preserved here
-        if(propagate_region_ids) then
-          mesh%mesh%region_ids(ele) = h_mesh%mesh%region_ids(h_ele)
-        end if
-        
-        ! we now know the relationship between the mesh element and the h_mesh surface element
-        ! save this for later...
-        mesh%mesh%element_columns(ele) = h_ele
-
-        ! if the horizontal element has any surface faces, add them to the extruded surface mesh
-        if (has_faces(h_mesh%mesh)) then
-          ! first the top and bottom faces
-          if (top_element) then
-            faces_seen = faces_seen + 1
-            element_owners(faces_seen) = ele
-            boundary_ids(faces_seen) = top_surface_ids(h_ele)
-            nodes => sndgln((faces_seen-1)*snloc+1:faces_seen*snloc)
-            nodes(1) = hanging_node(column)
-            nodes(2:dim) = other_column_heads
-          end if
-          if (bottom_element) then
-            faces_seen = faces_seen + 1
-            element_owners(faces_seen) = ele
-            boundary_ids(faces_seen) = bottom_surface_ids(h_ele)
-            nodes => sndgln((faces_seen-1)*snloc+1:faces_seen*snloc)
-            nodes(1) = node
-            nodes(2:dim) = other_column_heads
-          end if
-
-          faces => ele_faces(h_mesh, h_ele)
-          neigh => ele_neigh(h_mesh, h_ele)
-          adjacent_to_owned_element=.false.
-          adjacent_to_owned_column=.false.
-          do k=1, size(faces)
-            ! whether this horizontal face is above a face of our new element
-            shared_face = any(column == face_global_nodes(h_mesh, faces(k)))
-            if (shared_face .and. faces(k)<=surface_element_count(h_mesh)) then
-              faces_seen = faces_seen + 1
-              element_owners(faces_seen) = ele
-              boundary_ids(faces_seen) = surface_element_id(h_mesh, faces(k))
-              nodes => sndgln((faces_seen-1)*snloc+1:faces_seen*snloc)
-              nodes(1) = hanging_node(column)
-              nodes(2) = node
-
-              if (dim == 3) then
-                other_node = pack(face_global_nodes(h_mesh, faces(k)), mask=face_global_nodes(h_mesh, faces(k)) /= column)
-                nodes(3) = hanging_node(other_node(1))
-              end if
-            end if
-            ! grab the opportunity to see whether this is a halo1 or halo2 element
-            if (neigh(k)>0) then
-              if (element_owned(h_mesh%mesh, neigh(k))) then
-                adjacent_to_owned_column = .true.
-                if (shared_face) then
-                  adjacent_to_owned_element = .true.
-                end if
-              end if
-            end if
-          end do
-        end if
-        
-        if (associated(h_mesh%mesh%halos)) then
-          if(element_owned(h_mesh%mesh, h_ele)) then
-            ! element ownership (based on the process with lowest rank 
-            ! owning any node in the element), nicely transfers to the columns
-            halo_level(ele)=0
-          else if (adjacent_to_owned_element) then
-            ! this is not true for halo1 - only those that directly face owned elements
-            halo_level(ele)=1
-          else if (adjacent_to_owned_column) then
-            ! extruded halo2 elements are necessarily in a column under 
-            ! a halo1 element
-            halo_level(ele)=2
-          else
-            ! misc elements - not owned, not in any receive lists
-            halo_level(ele)=3
-          end if
-        end if
+        if(apply_region_ids) deallocate(region_ids)
 
       end do
 
-      ! And advance down the column
-      hanging_node(column) = node
-      column_count(column) = column_count(column) + 1
-      assert( column_count(column)<=column_size(column) )
-    end do
+      nodes: do i=1, size(sorted)
+
+        node = sorted(i)
+
+        ! Get the column we're dealing with
+        column = mesh%mesh%columns(node)
+
+        if (hanging_node(column)==node) then
+          if (column_count(column)==1) then
+            ! this is simply the top node, we only start adding elements
+            ! when we have at least 2 nodes in this column
+            cycle
+          else
+            ! this node has already been added to the column, something
+            ! must have gone wrong horribly
+            FLAbort("Internal error in mesh extrustion, generate_layered_mesh")
+          end if
+        end if
+        
+        ! So we're going to form an element.
+        ! It's going to have nodes
+        ! [node, hanging_node(column), [others]]
+        ! where others are the hanging_nodes of the neighbouring columns
+
+        h_elements => row_m_ptr(nelist, column)
+        do j=1,size(h_elements)
+          h_ele = h_elements(j)
+          ! Get the columns in sele that are NOT the current column.
+          h_ndglno => ele_nodes(h_mesh, h_ele)
+          l = 0
+          ! we're adding a top element if all associated columns are still at top
+          top_element = all(column_count(h_ndglno)==1)
+          ! we're adding a bottom element if this column is one-but-last
+          ! and the other columns are at the last node (checked in the loop below)
+          bottom_element = column_count(column)==column_size(column)-1
+          do k=1,size(h_ndglno)
+            h_node = h_ndglno(k)
+            if (h_node /= column) then
+              ! add other column
+              l = l +1
+              other_column_heads(l) = hanging_node(h_node)
+              ! as promised check that other columns are at the last node
+              bottom_element = bottom_element .and. column_count(h_node)==column_size(h_node)
+            end if
+          end do
+
+          ! So now we know the heads of the columns next to us.
+          ! Let's form the element! Quick! quick!
+          ele = ele + 1
+          ndglno_ptr => ele_nodes(mesh, ele)
+
+          ndglno_ptr(1) = hanging_node(column)
+          ndglno_ptr(2) = node
+          ndglno_ptr(3:dim+1) = other_column_heads
+
+          ! Now we have to orient the element.
+
+          vol = simplex_volume(mesh, ele)
+          assert(abs(vol) /= 0.0)
+          if (vol < 0.0) then
+            l = ndglno_ptr(1)
+            ndglno_ptr(1) = ndglno_ptr(2)
+            ndglno_ptr(2) = l
+          end if
+
+          ! if the horizontal mesh has region_ids these may as well be preserved here
+          if(propagate_region_ids) then
+            mesh%mesh%region_ids(ele) = h_mesh%mesh%region_ids(h_ele)
+          end if
+
+          ! we now know the relationship between the mesh element and the h_mesh surface element
+          ! save this for later...
+          mesh%mesh%element_columns(ele) = h_ele
+
+          ! if the horizontal element has any surface faces, add them to the extruded surface mesh
+          if (has_faces(h_mesh%mesh)) then
+            ! first the top and bottom faces
+            if (top_element) then
+              faces_seen = faces_seen + 1
+              element_owners(faces_seen) = ele
+              boundary_ids(faces_seen) = top_surface_ids(h_ele)
+              facet_nodes => sndgln((faces_seen-1)*snloc+1:faces_seen*snloc)
+              facet_nodes(1) = hanging_node(column)
+              facet_nodes(2:dim) = other_column_heads
+            end if
+            if (bottom_element) then
+              faces_seen = faces_seen + 1
+              element_owners(faces_seen) = ele
+              boundary_ids(faces_seen) = bottom_surface_ids(h_ele)
+              facet_nodes => sndgln((faces_seen-1)*snloc+1:faces_seen*snloc)
+              facet_nodes(1) = node
+              facet_nodes(2:dim) = other_column_heads
+            end if
+
+            faces => ele_faces(h_mesh, h_ele)
+            neigh => ele_neigh(h_mesh, h_ele)
+            adjacent_to_owned_element=.false.
+            adjacent_to_owned_column=.false.
+            do k=1, size(faces)
+              ! whether this horizontal face is above a face of our new element
+              shared_face = any(column == face_global_nodes(h_mesh, faces(k)))
+              if (shared_face .and. faces(k)<=surface_element_count(h_mesh)) then
+                faces_seen = faces_seen + 1
+                element_owners(faces_seen) = ele
+                boundary_ids(faces_seen) = surface_element_id(h_mesh, faces(k))
+                facet_nodes => sndgln((faces_seen-1)*snloc+1:faces_seen*snloc)
+                facet_nodes(1) = hanging_node(column)
+                facet_nodes(2) = node
+
+                if (dim == 3) then
+                  other_node = pack(face_global_nodes(h_mesh, faces(k)), mask=face_global_nodes(h_mesh, faces(k)) /= column)
+                  facet_nodes(3) = hanging_node(other_node(1))
+                end if
+              end if
+              ! grab the opportunity to see whether this is a halo1 or halo2 element
+              if (neigh(k)>0) then
+                if (element_owned(h_mesh%mesh, neigh(k))) then
+                  adjacent_to_owned_column = .true.
+                  if (shared_face) then
+                    adjacent_to_owned_element = .true.
+                  end if
+                end if
+              end if
+            end do
+          end if
+
+          if (associated(h_mesh%mesh%halos)) then
+            if(element_owned(h_mesh%mesh, h_ele)) then
+              ! element ownership (based on the process with lowest rank
+              ! owning any node in the element), nicely transfers to the columns
+              halo_level(ele)=0
+            else if (adjacent_to_owned_element) then
+              ! this is not true for halo1 - only those that directly face owned elements
+              halo_level(ele)=1
+            else if (adjacent_to_owned_column) then
+              ! extruded halo2 elements are necessarily in a column under
+              ! a halo1 element
+              halo_level(ele)=2
+            else
+              ! misc elements - not owned, not in any receive lists
+              halo_level(ele)=3
+            end if
+          end if
+
+        end do
+
+        ! And advance down the column
+        hanging_node(column) = node
+        column_count(column) = column_count(column) + 1
+        assert( column_count(column)<=column_size(column) )
+      end do nodes
+
+    end do layers
       
     assert(ele==element_count(mesh))
     assert(all(mesh%mesh%element_columns>0))
+
+    if (radial_layering) then
+      call deallocate( height_field )
+    end if
+
     
     if (associated(h_mesh%mesh%halos)) then
       ! now reorder the elements according to halo level
@@ -497,11 +510,13 @@ module hadapt_advancing_front
     
   end subroutine create_columns_sparsity
     
-  subroutine parallel_consistent_ordering(values, halo, index)
+  subroutine parallel_consistent_ordering(values, halo, index, layer_offset)
 
     real, dimension(:), intent(in):: values
     type(halo_type), intent(in):: halo
     integer, dimension(:), intent(out):: index
+    ! node number of first node in the layer minus one (nodes within a layer are (locally) numbered contiguously)
+    integer, intent(in) :: layer_offset
     
     real :: minv, maxv, int_base, int_range
     integer, dimension(size(values)):: ints, unn, reindex
@@ -547,7 +562,7 @@ module hadapt_advancing_front
       if (int2>int1) then
         if (i-start>1) then
           ! sort entries start to i-1 on unn
-          call qsort(unn(index(start:i-1)), reindex(1:i-start))
+          call qsort(unn(layer_offset+index(start:i-1)), reindex(1:i-start))
           index(start:i-1)=index(start+reindex(1:i-start)-1)
         end if
         ! start new series
@@ -557,6 +572,8 @@ module hadapt_advancing_front
         FLAbort("Something went wrong in sorting")
       end if
     end do
+
+    index = index + layer_offset
     
   end subroutine parallel_consistent_ordering
     

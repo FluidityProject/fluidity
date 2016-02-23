@@ -62,7 +62,7 @@ module hadapt_extrude
     real:: constant_sizing, depth, min_bottom_layer_frac
     integer:: h_dim, column, quadrature_degree
 
-    logical :: sigma_layers
+    logical, dimension(:), allocatable :: sigma_layers
     integer :: number_sigma_layers, nlayers, nregions
     
     integer :: i, ele, r, visit_count, layer
@@ -139,6 +139,8 @@ module hadapt_extrude
     ! auxillary array for depth_from_map:
     allocate(depth_vector(node_count(h_mesh)))
 
+    ! may vary per layer, but not per region
+    allocate(sigma_layers(nlayers))
 
     radial_extrusion = have_option("/geometry/spherical_earth")
     
@@ -152,7 +154,7 @@ module hadapt_extrude
         call get_layer_extrusion_options(layer_option_path, &
                    depth_is_constant, depth, depth_from_python, depth_function, depth_from_map, &
                    file_name, have_min_depth, min_depth, surface_height, sizing_is_constant, constant_sizing, list_sizing, &
-                   sizing_function, sizing_vector, min_bottom_layer_frac, varies_only_in_depth, sigma_layers, number_sigma_layers, &
+                   sizing_function, sizing_vector, min_bottom_layer_frac, varies_only_in_depth, sigma_layers(layer), number_sigma_layers, &
                    radial_extrusion)
 
         if (depth_from_map) then
@@ -165,7 +167,7 @@ module hadapt_extrude
                           depth_is_constant, depth, depth_from_python, depth_function, &
                           depth_from_map, depth_vector(column),  have_min_depth, min_depth, &
                           sizing_is_constant, constant_sizing, list_sizing, sizing_function, sizing_vector, &
-                          sigma_layers, number_sigma_layers, radial_extrusion)
+                          sigma_layers(layer), number_sigma_layers, radial_extrusion)
           do i=1, key_count(region_columns(r))
             column = fetch(region_columns(r), i)
             call get_previous_z_nodes(z_meshes(layer, column), constant_z_mesh)
@@ -179,7 +181,7 @@ module hadapt_extrude
                             depth_is_constant, depth, depth_from_python, depth_function, &
                             depth_from_map, depth_vector(column),  have_min_depth, min_depth, &
                             sizing_is_constant, constant_sizing, list_sizing, sizing_function, sizing_vector, &
-                            sigma_layers, number_sigma_layers, radial_extrusion)
+                            sigma_layers(layer), number_sigma_layers, radial_extrusion)
           end do
         end if
 
@@ -200,8 +202,8 @@ module hadapt_extrude
 
     ! combine the 1d vertical meshes into a full mesh
     assert(nlayers==1)
-    call combine_z_meshes(h_mesh, z_meshes(1,:), out_mesh, &
-       full_shape, mesh_name, option_path, sigma_layers)
+    call combine_z_meshes(h_mesh, z_meshes, out_mesh, &
+       full_shape, mesh_name, option_path, sl=sigma_layers)
        
     do layer=1, nlayers
       do column=1, node_count(h_mesh)
@@ -212,6 +214,7 @@ module hadapt_extrude
     call deallocate(full_shape)
     deallocate(z_meshes)
     deallocate(depth_vector)
+    deallocate(sigma_layers)
     
   end subroutine extrude
 
