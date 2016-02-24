@@ -35,12 +35,9 @@ for i in range(1, 7):
       assert(solvers_converged)
     </test>
     <test name = "Simulation completed" language = "python">
-assert(timesteps == 10)
+assert(timesteps == 7)
     </test>
     <test name = "Mesh adaptivity" language = "python">
-#for i in range(5):
-#  assert(nodes[i * 2] == 404)
-#  assert(nodes[i * 2 + 1] == 204)
 assert(nodes[0] == 45)
 assert(nodes[1] == 45)
 assert(nodes[2] == 142)
@@ -48,9 +45,9 @@ assert(nodes[3] == 253)
 assert(nodes[4] == 891)
 assert(nodes[5] == 3435)
 assert(nodes[6] == 13458)
-assert(nodes[7] == 20942)
-assert(nodes[8] == 82964)
-assert(nodes[9] == 331719)
+#assert(nodes[7] == 20942)
+#assert(nodes[8] == 82964)
+#assert(nodes[9] == 331719)
     </test>
     <test name = "Conservative projection" language = "python">
 import fluidity_tools

@@ -10,7 +10,7 @@ module tetrahedron_intersection_module
   use fields_manipulation
   use transform_elements
 
-  use libsupermesh_tet_intersection_module
+  use libsupermesh_tet_intersection
   
   implicit none
 

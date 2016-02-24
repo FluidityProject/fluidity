@@ -6428,10 +6428,11 @@ found_supermesh="no"
 $as_echo "$as_me: Checking for SuperMesh library" >&6;}
   for i in `echo $LD_LIBRARY_PATH | sed -e 's/:/ /g'`
     do
-    if test \( -f $i/libSuperMesh.a \)
+    if test \( -f $i/libsupermesh.a \)
     then
       found_supermesh="yes"
-    LIBS="$LIBS $i/libSuperMesh.a"
+      LIBS="$LIBS $i/libsupermesh.a"
+      FCFLAGS="$FCFLAGS -I$i/../include"
     fi
   done
 

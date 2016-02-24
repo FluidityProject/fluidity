@@ -17,9 +17,12 @@ use data_structures
 #ifdef HAVE_SUPERMESH
 use libsupermesh_intersection_finder, only : intersections, deallocate, &
   & rtree_intersection_finder_query_output, &
-  & rtree_intersection_finder_get_output, rtree_intersection_finder_reset
+  & rtree_intersection_finder_get_output
 use libsupermesh_intersection_finder, only : &
+  & libsupermesh_rtree_intersection_finder_reset => rtree_intersection_finder_reset, &
   & libsupermesh_intersection_finder_sub => intersection_finder, &
+  & libsupermesh_advancing_front_intersection_finder_sub => advancing_front_intersection_finder, &
+  & libsupermesh_rtree_intersection_finder_sub => rtree_intersection_finder, &
   & libsupermesh_rtree_intersection_finder_set_input => rtree_intersection_finder_set_input, &
   & libsupermesh_rtree_intersection_finder_find => rtree_intersection_finder_find
 #endif
@@ -155,6 +158,16 @@ contains
 
   end function bbox_predicate
 
+#ifdef HAVE_SUPERMESH
+  subroutine rtree_intersection_finder_reset(ntests)
+    integer, optional, intent(out) :: ntests
+
+    call libsupermesh_rtree_intersection_finder_reset()
+    ntests = -huge(0)
+
+  end subroutine rtree_intersection_finder_reset
+#endif 
+
   function intersection_finder(positionsA, positionsB) result(map_AB)
     !!< A simple wrapper to select an intersection finder
 
@@ -162,15 +175,30 @@ contains
     type(vector_field), intent(in), target :: positionsA, positionsB
     ! for each element in A, the intersecting elements in B
     type(ilist), dimension(ele_count(positionsA)) :: map_AB
-
+    integer :: i
 #if HAVE_SUPERMESH
-    ewrite(1, *) "In intersection_finder"
+    integer :: j
+    type(intersections), dimension(:), allocatable :: lmap_AB
 
-    map_AB = advancing_front_intersection_finder(positionsA, positionsB)
+    ewrite(1, *) "In intersection_finder"
+    allocate(lmap_AB(size(map_AB)))
+    call libsupermesh_intersection_finder_sub(positionsA%val, reshape(positionsA%mesh%ndglno, (/positionsA%mesh%shape%loc, ele_count(positionsA)/)), &
+                                            & positionsB%val, reshape(positionsB%mesh%ndglno, (/positionsB%mesh%shape%loc, ele_count(positionsB)/)), lmap_AB)
+!    call libsupermesh_rtree_intersection_finder_sub(positionsA%val, reshape(positionsA%mesh%ndglno, (/positionsA%mesh%shape%loc, ele_count(positionsA)/)), &
+!                                                  & positionsB%val, reshape(positionsB%mesh%ndglno, (/positionsB%mesh%shape%loc, ele_count(positionsB)/)), lmap_AB)
+!    call libsupermesh_advancing_front_intersection_finder_sub(positionsA%val, reshape(positionsA%mesh%ndglno, (/positionsA%mesh%shape%loc, ele_count(positionsA)/)), &
+!                                            & positionsB%val, reshape(positionsB%mesh%ndglno, (/positionsB%mesh%shape%loc, ele_count(positionsB)/)), lmap_AB)
+
+    do i = 1, size(lmap_AB)
+      do j = 1, lmap_AB(i)%n
+        call insert(map_AB(i), lmap_AB(i)%v(j))
+      end do
+    end do
+    call deallocate(lmap_AB)
+    deallocate(lmap_AB)
 
     ewrite(1, *) "Exiting intersection_finder"
 #else
-    integer :: i
     type(ilist) :: seeds
     type(inode), pointer :: node
     type(ilist), dimension(:), allocatable :: sub_map_AB
@@ -351,8 +379,8 @@ contains
     ewrite(1, *) "In advancing_front_intersection_finder"
 
     allocate(lmap_AB(size(map_AB)))
-    call libsupermesh_intersection_finder_sub(positionsA%val, reshape(positionsA%mesh%ndglno, (/positionsA%mesh%shape%loc, ele_count(positionsA)/)), &
-                                            & positionsB%val, reshape(positionsB%mesh%ndglno, (/positionsB%mesh%shape%loc, ele_count(positionsB)/)), lmap_AB)
+    call libsupermesh_advancing_front_intersection_finder_sub(positionsA%val, reshape(positionsA%mesh%ndglno, (/positionsA%mesh%shape%loc, ele_count(positionsA)/)), &
+                                             & positionsB%val, reshape(positionsB%mesh%ndglno, (/positionsB%mesh%shape%loc, ele_count(positionsB)/)), lmap_AB)
     do i = 1, size(lmap_AB)
       do j = 1, lmap_AB(i)%n
         call insert(map_AB(i), lmap_AB(i)%v(j))

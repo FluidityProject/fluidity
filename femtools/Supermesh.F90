@@ -3,13 +3,14 @@
 module supermesh_construction
   use fields_data_types
 #ifdef HAVE_SUPERMESH
-  use libsupermesh_tri_intersection_module, only : tri_type, tri_buf_size, &
-    & intersect_tris, &
-    & cintersector_set_input, cintersector_drive, cintersector_query, &
-    & cintersector_get_output, cintersection_finder_reset
-  use libsupermesh_tri_intersection_module, only : &
-    & intersector_set_dimension => cintersector_set_dimension
-  use libsupermesh_tet_intersection_module
+  use libsupermesh_tri_intersection, only : tri_type, tri_buf_size, &
+    & intersect_tris
+  use libsupermesh_tet_intersection
+  use libsupermesh_interval_intersection, only : intersect_intervals
+  use libsupermesh_supermesh, only : intersect_quads, &
+    & lib_intersect_elements => intersect_elements
+  use libsupermesh_intersection_finder, &
+    & cintersector_set_input => rtree_intersection_finder_set_input
 #endif
   use fields_allocates
   use fields_base
@@ -75,7 +76,7 @@ module supermesh_construction
   real, dimension(1024), save :: nodes_tmp
 #endif
   logical, save :: intersector_exactness = .false.
-  integer, save, public :: returned_intervals = 0, returned_tris = 0, returned_tets = 0
+  integer, save, public :: returned_intervals = 0, returned_tris = 0, returned_quads = 0, returned_tets = 0
 
   public :: intersect_elements, intersector_set_dimension, intersector_set_exactness
   public :: construct_supermesh, compute_projection_error, intersector_exactness
@@ -84,6 +85,10 @@ module supermesh_construction
   contains
 
 #ifdef HAVE_SUPERMESH
+  subroutine intersector_set_dimension(ndim)
+    integer, intent(in) :: ndim
+  end subroutine intersector_set_dimension
+
   function intersect_elements(positions_A, ele_A, posB, shape) result(intersection)
     type(vector_field), intent(in) :: positions_A
     integer, intent(in) :: ele_A
@@ -94,12 +99,15 @@ module supermesh_construction
     type(mesh_type) :: intersection_mesh
 !    type(tri_type), dimension(tri_buf_size) :: trisC !using this we get hit with a 12% slowdown
 !    type(tet_type), dimension(tet_buf_size) :: tetsC !using this we get hit with a 12% slowdown
+    real, dimension(1, 2, 1)            ::  intsC_real
     real, dimension(2, 3, tri_buf_size) ::  trisC_real
+    real, dimension(2, 3, tri_buf_size) ::  quadsC_real
     real, dimension(3, 4, tet_buf_size) ::  tetsC_real
     type(tet_type) :: tet_A, tet_B
     type(tri_type) :: tri_A, tri_B
+    real, dimension(2, 4) :: quad_A, quad_B, quad_temp
     
-    integer :: n_trisC, i, n_tetsC, dim, loc, nonods, totele
+    integer :: n_trisC, n_intsC, n_quadsC, n_tetsC, i, dim, loc, nonods, totele
 #ifdef HAVE_SUPERMESH
     integer, dimension(:, :), allocatable :: ndglno
 #endif
@@ -109,33 +117,24 @@ module supermesh_construction
 
      if ( dim == 1 ) then
        ! 1D
-       loc = ele_loc(positions_A, ele_A)
- 
-       call cintersector_set_input(ele_val(positions_A, ele_A), posB, dim, loc)
-       call cintersector_drive
-       call cintersector_query(nonods, totele)
-       call allocate(intersection_mesh, nonods, totele, shape, "IntersectionMesh1D")
+       call intersect_intervals(ele_val(positions_A, ele_A), posB, intsC_real, n_intsC)
+       call allocate(intersection_mesh, n_intsC * 2, n_intsC, shape, "IntersectionMeshInt")
        intersection_mesh%continuity = -1
-       call allocate(intersection, dim, intersection_mesh, "IntersectionCoordinates1D")
-       if (nonods > 0) then
-#ifdef DDEBUG
-         intersection_mesh%ndglno = -1
-#endif
-#ifdef HAVE_SUPERMESH
-         allocate(ndglno(dim + 1, totele))
-         call cintersector_get_output(nonods, totele, dim, dim + 1, intersection%val, ndglno)
-         intersection_mesh%ndglno = reshape(ndglno, (/(dim + 1) * totele/))
-         deallocate(ndglno)
-#else
-         call cintersector_get_output(nonods, totele, dim, dim + 1, nodes_tmp, intersection_mesh%ndglno)
- 
-         do i = 1, dim
-           intersection%val(i,:) = nodes_tmp((i - 1) * nonods + 1:i * nonods)
-         end do
-#endif
-         returned_intervals = returned_intervals + totele
+
+       if ( n_intsC > 0 ) then
+         intersection_mesh%ndglno = (/ (i, i=1,2 * n_intsC) /)
        end if
-       call deallocate(intersection_mesh)
+
+       call allocate(intersection, positions_A%dim, intersection_mesh, "IntersectionCoordinatesInt")
+
+       if ( n_intsC > 0 ) then
+         do i = 1, n_intsC
+           call set(intersection, ele_nodes(intersection, i), intsC_real(:,:,i))
+         end do
+         returned_intervals = returned_intervals + n_intsC
+      end if
+
+      call deallocate(intersection_mesh)
      else if ( dim == 2 ) then
        if ( ele_loc(positions_A, ele_A) == 3 ) then
          ! Triangles (2D)
@@ -160,35 +159,30 @@ module supermesh_construction
 
         call deallocate(intersection_mesh)
       else if ( ele_loc(positions_A, ele_A) == 4 ) then
-        ! Quads (2D)
-        loc = ele_loc(positions_A, ele_A)
-
-        call cintersector_set_input(ele_val(positions_A, ele_A), posB, dim, loc)
-        call cintersector_drive
-        call cintersector_query(nonods, totele)
-        call allocate(intersection_mesh, nonods, totele, shape, "IntersectionMeshQuad")
+        ! Quads (2D) - Rearrange from Z order to a GMSH consistent order
+        quad_temp = ele_val(positions_A, ele_A)
+        quad_A(:,1:2) = quad_temp(:,1:2) ; quad_A(:,3) = quad_temp(:,4) ; quad_A(:,4) = quad_temp(:,3)
+        quad_temp = posB
+        quad_B(:,1:2) = quad_temp(:,1:2) ; quad_B(:,3) = quad_temp(:,4) ; quad_B(:,4) = quad_temp(:,3)
+        call lib_intersect_elements(quad_A, quad_B, quadsC_real, n_quadsC)
+        call allocate(intersection_mesh, n_quadsC * 3, n_quadsC, shape, "IntersectionMeshQuad")
         intersection_mesh%continuity = -1
-        call allocate(intersection, dim, intersection_mesh, "IntersectionCoordinatesQuad")
-        if (nonods > 0) then
-#ifdef DDEBUG
-          intersection_mesh%ndglno = -1
-#endif
-#ifdef HAVE_SUPERMESH
-          allocate(ndglno(dim + 1, totele))
-          call cintersector_get_output(nonods, totele, dim, dim + 1, intersection%val, ndglno)
-          intersection_mesh%ndglno = reshape(ndglno, (/(dim + 1) * totele/))
-          deallocate(ndglno)
-#else
-          call cintersector_get_output(nonods, totele, dim, dim + 1, nodes_tmp, intersection_mesh%ndglno)
 
-          do i = 1, dim
-            intersection%val(i,:) = nodes_tmp((i - 1) * nonods + 1:i * nonods)
-          end do
-#endif
-          returned_tris = returned_tris + totele
+        if ( n_quadsC > 0 ) then
+          intersection_mesh%ndglno = (/ (i, i=1,3 * n_quadsC) /)
         end if
+
+        call allocate(intersection, positions_A%dim, intersection_mesh, "IntersectionCoordinatesQuad")
+
+        if ( n_quadsC > 0 ) then
+          do i = 1, n_quadsC
+            call set(intersection, ele_nodes(intersection, i), quadsC_real(:,:,i))
+          end do
+          returned_quads = returned_quads + n_quadsC
+        end if
+
         call deallocate(intersection_mesh)
-      end if
+       end if
      else if ( dim == 3 ) then
        ! Tets (3D)
        tet_A%v = ele_val(positions_A, ele_A)

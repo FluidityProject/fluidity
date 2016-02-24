@@ -3,7 +3,7 @@ FLMLMODEL = prescribed_adaptivity
 default: input
 
 input:
-	tar -xvjf src/files.tar.bz2
+	tar -xvjf src/meshes.tar.bz2
 	
 clean: clean-mesh clean-run-debug
 clean-mesh:
