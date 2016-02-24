@@ -30,8 +30,9 @@ module hadapt_advancing_front
     !! nodes, fill in the elements. 
     type(vector_field), intent(inout) :: mesh
     type(vector_field), intent(inout) :: h_mesh
-    !! Indicates first node in each layer - layer_nodes has one additional entry with value node_count+1 for convenience
-    integer, dimension(:), intent(in) :: layer_nodes
+    !! Indicates first owned and recv node in each layer - owned nodes and recv nodes
+    !! are (seperately) numbered consecutively within each layer - these arrays have an extra entry for convenience
+    type(integer_set), dimension(:), intent(in) :: layer_nodes
 
     type(csr_sparsity), pointer :: nelist
     type(scalar_field) :: height_field
@@ -44,7 +45,7 @@ module hadapt_advancing_front
     integer, dimension(:), allocatable :: element_owners, boundary_ids
     integer, dimension(:), target, allocatable :: sndgln
     integer, dimension(:), allocatable :: bottom_surface_ids, top_surface_ids
-    integer, dimension(:), allocatable :: sorted
+    integer, dimension(:), allocatable :: sorted, unn, integer_heights
     real, dimension(:), allocatable :: heights
     integer, dimension(:), allocatable :: hanging_node, column_size, column_count
     integer, dimension(mesh_dim(mesh) - 1) :: other_column_heads
@@ -99,6 +100,9 @@ module hadapt_advancing_front
     if (associated(h_mesh%mesh%halos)) then
       assert(has_faces(h_mesh%mesh)) ! needed for halo1 element recognition
       allocate(halo_level(1:element_count(mesh)))
+      allocate(unn(1:node_count(mesh)), integer_heights(1:node_count(mesh)))
+      call get_universal_numbering(mesh%mesh%halos(2), unn)
+      call create_integer_heights(height_field, mesh%mesh%halos(2), integer_heights)
     end if
 
     assert(associated(mesh%mesh%columns))
@@ -126,16 +130,19 @@ module hadapt_advancing_front
     ele = 0
       
     ! The main loop.
-    layers: do layer = 1, size(layer_nodes)-1
+    layers: do layer = 1, size(layer_nodes)
       ! order nodes within layer
-      allocate(sorted(layer_nodes(layer+1)-layer_nodes(layer)))
-      allocate(heights(size(sorted)))
-      heights = -height_field%val(layer_nodes(layer):layer_nodes(layer+1)-1)
+      allocate(sorted(key_count(layer_nodes(layer))))
       if (associated(h_mesh%mesh%halos)) then
-        call parallel_consistent_ordering(heights, mesh%mesh%halos(2), sorted, layer_nodes(layer)-1)
+        call parallel_consistent_ordering(integer_heights, unn, sorted, layer_nodes(layer))
       else
+        allocate(heights(size(sorted)))
+        heights = -height_field%val(set2vector(layer_nodes(layer)))
         call qsort(heights, sorted)
-        sorted = sorted + layer_nodes(layer)-1
+        do i=1, size(sorted)
+          sorted(i) = fetch(layer_nodes(layer), sorted(i))
+        end do
+        deallocate(heights)
       end if
 
       ! column_count and column_size are used to determine top and bottom elements in each column
@@ -358,7 +365,6 @@ module hadapt_advancing_front
       assert(all(column_count==column_size))
 
       deallocate(sorted)
-      deallocate(heights)
 
     end do layers
       
@@ -517,20 +523,16 @@ module hadapt_advancing_front
     
   end subroutine create_columns_sparsity
     
-  subroutine parallel_consistent_ordering(values, halo, index, layer_offset)
-
-    real, dimension(:), intent(in):: values
+  subroutine create_integer_heights(height_field, halo, integer_heights)
+    type(scalar_field), intent(in):: height_field
     type(halo_type), intent(in):: halo
-    integer, dimension(:), intent(out):: index
-    ! node number of first node in the layer minus one (nodes within a layer are (locally) numbered contiguously)
-    integer, intent(in) :: layer_offset
+    integer, dimension(:), intent(out):: integer_heights
     
     real :: minv, maxv, int_base, int_range
-    integer, dimension(size(values)):: ints, unn, reindex
-    integer :: i, int1, int2, start
     
-    minv=minval(values)
-    maxv=maxval(values)
+    ! NOTE: these are the min and max of -height_field%val
+    minv=-maxval(height_field)
+    maxv=-minval(height_field)
     call allmin(minv)
     call allmax(maxv)
     
@@ -542,34 +544,56 @@ module hadapt_advancing_front
     call allmax(int_base)
     call allmin(int_range)
     
-    ! round the real values to integer with as much precision as possible
-    ints=floor( int_base+(values-minv)/(maxv-minv)*int_range )
+    ! round the real heights to integer with as much precision as possible
+    integer_heights=floor( int_base+(-height_field%val-minv)/(maxv-minv)*int_range )
     
-    call halo_update(halo, ints)
+    call halo_update(halo, integer_heights)
+    call halo_update(halo, height_field%val)
+
+  end subroutine create_integer_heights
+
+  subroutine parallel_consistent_ordering(ints, unn, index, layer_nodes)
+
+    ! ints and unn are over the entire local node numbering
+    integer, dimension(:), intent(in):: ints ! integer heights
+    integer, dimension(:), intent(in):: unn ! for equal integer height, sort on unn secondly
+    ! returns a sorted index into the local node numbering, whose length is the number of nodes in the layer
+    integer, dimension(:), intent(out):: index
+    type(integer_set), intent(in) :: layer_nodes ! nodes in this layer
     
-    call qsort(ints, index)
+    integer, dimension(:), allocatable :: ints_packed, unn_packed, reindex
+    integer :: i, start, int1, int2
     
-    call get_universal_numbering(halo, unn)
+    if (key_count(layer_nodes)==0) return
+
+    allocate(ints_packed(1:key_count(layer_nodes)), unn_packed(1:key_count(layer_nodes)), reindex(1:key_count(layer_nodes)))
+
+    ! ints_packed: integer heights for layer nodes only
+    do i=1, key_count(layer_nodes)
+      ints_packed(i) = ints(fetch(layer_nodes, i))
+    end do
+
+    ! sort it (preliminary)
+    call qsort(ints_packed, index)
     
-    if (size(values)==0) then
-      ! we deal with this case for flredecomp, where non-active processes may have nothing to do
-      ! it's only safe to return here to avoid parallel dead-locks
-      return
-    end if
+    ! unn_packed: unn for layer nodes in preliminary order
+    do i=1, size(index)
+      unn_packed(i) = unn(fetch(layer_nodes, index(i)))
+    end do
     
     ! now go through to order equal heights on universal node number
     start=1
-    int1=ints(index(1))
-    do i=2, size(ints)+1
-      if (i<=size(ints)) then
-        int2=ints(index(i))
+    int1=ints_packed(index(1))
+    do i=2, size(ints_packed)+1
+      if (i<=size(ints_packed)) then
+        int2=ints_packed(index(i))
       else
         int2=int1+1
       end if
       if (int2>int1) then
         if (i-start>1) then
           ! sort entries start to i-1 on unn
-          call qsort(unn(layer_offset+index(start:i-1)), reindex(1:i-start))
+          call qsort(unn_packed(start:i-1), reindex(1:i-start))
           index(start:i-1)=index(start+reindex(1:i-start)-1)
         end if
         ! start new series
@@ -580,7 +604,10 @@ module hadapt_advancing_front
       end if
     end do
 
-    index = index + layer_offset
+    ! now change index from an index into the packed arrays to an index into the entire local node numbering
+    do i=1, size(index)
+      index(i) = fetch(layer_nodes, index(i))
+    end do
     
   end subroutine parallel_consistent_ordering
     
