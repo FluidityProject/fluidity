@@ -548,7 +548,6 @@ module hadapt_advancing_front
     integer_heights=floor( int_base+(-height_field%val-minv)/(maxv-minv)*int_range )
     
     call halo_update(halo, integer_heights)
-    call halo_update(halo, height_field%val)
 
   end subroutine create_integer_heights
 
