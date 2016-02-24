@@ -128,54 +128,49 @@ contains
     consistent_linear_state_loop: do state=1,state_cnt
       do field=1,scalar_field_count(states_old(state))
         field_s => extract_scalar_field(states_old(state), field)
+
         ! If the field has no option path, assume consistent interpolation
-        if(len_trim(field_s%option_path) /= 0) then
-          all_consistent_interpolation = all_consistent_interpolation &
-            .and. have_option(trim(complete_field_path(  &
-               field_s%option_path, stat=stat)) // "/consistent_interpolation")
-          
-          field_shape => ele_shape(field_s, 1)
-          all_linear_meshes = all_linear_meshes .and. (field_shape%degree == 1) .and. &
-                              (field_shape%numbering%type==ELEMENT_LAGRANGIAN)
-          any_periodic_meshes = any_periodic_meshes .or. mesh_periodic(field_s)
-        end if
+        all_consistent_interpolation = all_consistent_interpolation &
+          .and. (len_trim(field_s%option_path)==0 .or. have_option(trim(complete_field_path(  &
+             field_s%option_path, stat=stat)) // "/consistent_interpolation"))
+        
+        field_shape => ele_shape(field_s, 1)
+        all_linear_meshes = all_linear_meshes .and. (field_shape%degree == 1) .and. &
+                            (field_shape%numbering%type==ELEMENT_LAGRANGIAN)
+        any_periodic_meshes = any_periodic_meshes .or. mesh_periodic(field_s)
       end do
 
       do field=1,vector_field_count(states_old(state))
         field_v => extract_vector_field(states_old(state), field)
-        ! If the field has no option path, assume consistent interpolation
-        if(len_trim(field_v%option_path) /= 0) then
-          if (len_trim(field_v%name) >= len_trim("Coordinate")) then
-            if (field_v%name(len_trim(field_v%name)-10+1:) == trim("Coordinate")) then
-              cycle
-            end if
+        if (len_trim(field_v%name) >= len_trim("Coordinate")) then
+          if (field_v%name(len_trim(field_v%name)-10+1:) == trim("Coordinate")) then
+            cycle
           end if
-          
-          all_consistent_interpolation = all_consistent_interpolation &
-            .and. have_option(trim(complete_field_path( &
-               field_v%option_path, stat=stat)) // "/consistent_interpolation")
-          
-          field_shape => ele_shape(field_v, 1)
-          all_linear_meshes = all_linear_meshes .and. (field_shape%degree == 1) .and. &
-                              (field_shape%numbering%type==ELEMENT_LAGRANGIAN)
-          any_periodic_meshes = any_periodic_meshes .or. mesh_periodic(field_v)
         end if
+        
+        ! If the field has no option path, assume consistent interpolation
+        all_consistent_interpolation = all_consistent_interpolation &
+          .and. (len_trim(field_v%option_path)==0 .or. have_option(trim(complete_field_path( &
+             field_v%option_path, stat=stat)) // "/consistent_interpolation"))
+        
+        field_shape => ele_shape(field_v, 1)
+        all_linear_meshes = all_linear_meshes .and. (field_shape%degree == 1) .and. &
+                            (field_shape%numbering%type==ELEMENT_LAGRANGIAN)
+        any_periodic_meshes = any_periodic_meshes .or. mesh_periodic(field_v)
       end do
 
       do field=1,tensor_field_count(states_old(state))
         field_t => extract_tensor_field(states_old(state), field)
-        ! If the field has no option path, assume consistent interpolation
-        if(len_trim(field_t%option_path) /= 0) then
         
-          all_consistent_interpolation = all_consistent_interpolation &
-            .and. have_option(trim(complete_field_path( &
-               field_t%option_path, stat=stat)) // "/consistent_interpolation")
-          
-          field_shape => ele_shape(field_t, 1)
-          all_linear_meshes = all_linear_meshes .and. (field_shape%degree == 1) .and. &
-                              (field_shape%numbering%type==ELEMENT_LAGRANGIAN)
-          any_periodic_meshes = any_periodic_meshes .or. mesh_periodic(field_t)
-        end if
+        ! If the field has no option path, assume consistent interpolation
+        all_consistent_interpolation = all_consistent_interpolation &
+          .and. (len_trim(field_t%option_path)==0 .or. have_option(trim(complete_field_path( &
+             field_t%option_path, stat=stat)) // "/consistent_interpolation"))
+        
+        field_shape => ele_shape(field_t, 1)
+        all_linear_meshes = all_linear_meshes .and. (field_shape%degree == 1) .and. &
+                            (field_shape%numbering%type==ELEMENT_LAGRANGIAN)
+        any_periodic_meshes = any_periodic_meshes .or. mesh_periodic(field_t)
       end do
 
     end do consistent_linear_state_loop

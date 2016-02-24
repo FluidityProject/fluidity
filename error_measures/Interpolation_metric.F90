@@ -148,8 +148,8 @@ module interpolation_metric
     end if
 
     if (debug_metric) then
-      call allocate(edgelen, positions%mesh, "Desired edge lengths")
-      call allocate(aspect_ratios, positions%mesh, "Metric aspect ratio")
+      call allocate(edgelen, error_metric%mesh, "Desired edge lengths")
+      call allocate(aspect_ratios, error_metric%mesh, "Metric aspect ratio")
     endif
 
     ewrite(2,*) "++: Forming interpolation metric"
