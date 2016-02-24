@@ -37,7 +37,7 @@ use state_module
 use sparse_tools_petsc
 use boundary_conditions
 use initialise_fields_module
-use global_parameters, only: OPTION_PATH_LEN, PYTHON_FUNC_LEN, pi, current_debug_level
+use global_parameters, only: OPTION_PATH_LEN, PYTHON_FUNC_LEN, pi, current_debug_level, periodic_boundary_option_path, domain_bbox, global_domain_centroid
 use tidal_module
 use SampleNetCDF
 use coordinates
@@ -2368,76 +2368,276 @@ contains
     integer, intent(inout) :: reference_node
     logical, intent(inout) :: reference_node_owned
 
-    real, dimension(:), allocatable :: reference_coordinates, local_coord
+    real, dimension(positions%dim) :: reference_coordinates, last_reference_coordinates
+    real, dimension(ele_loc(positions,1)) :: local_coord
+    real, dimension(:,:), allocatable :: candidate_reference_coordinates
     integer, dimension(:), allocatable:: ele_local_vertices      
     integer, dimension(:), pointer :: nodes
     integer :: stat, stat2, ele, first_owned_node, total_owned_nodes, local_vertex
-    integer :: universal_reference_node
+    integer :: universal_reference_node, no_candidates
 
-    allocate(reference_coordinates(positions%dim))
+    type(integer_set), dimension(:), allocatable :: candidate_remaps, candidate_inversemaps
+    character(len=OPTION_PATH_LEN) :: coordinate_map, inverse_coordinate_map, bc_path
+    real, dimension(positions%dim,1) :: current_reference_coordinates, remapped_reference_coordinates
+    real, dimension(positions%dim,2) :: global_domain_bbox, tmp_bbox
+    real :: distance, best_distance
+    integer, dimension(:), allocatable :: final_remaps, final_inversemaps
+    integer :: dim, no_bcs, remaps, inversemaps, imap_stat, i_candidate, i, j, bc
+    integer, parameter :: max_maps=100
+    logical :: found_ele, adaptive
 
     call get_option(trim(complete_field_path(option_path, stat=stat2))//&
          &"/reference_coordinates", reference_coordinates, stat=stat)
 
+    adaptive = have_option("/mesh_adaptivity/hr_adaptivity")
+
     if (stat==0) then
-       allocate(local_coord(ele_loc(positions,1)))
-       ! Determine which element contains desired coordinates:
-       call picker_inquire(positions, reference_coordinates, ele, local_coord=local_coord, global=.false.)          
-       if(ele > 0) then
-          allocate(ele_local_vertices(ele_vertices(mesh,ele)))
-          ! List vertices of element incorporating desired coordinates:
-          ele_local_vertices = element_local_vertices(ele_shape(mesh,ele))
-          ! Find nearest vertex:
-          local_vertex = maxloc(local_coord,dim=1)             
-          ! List of nodes in element:
-          nodes => ele_nodes(mesh,ele)
-          ! Reference node:
-          reference_node = nodes(ele_local_vertices(local_vertex))
-          deallocate(ele_local_vertices)
-       end if
-       
-       ! Deal with parallel issues:
-       if(IsParallel()) then
-          if(ele > 0) then
-             universal_reference_node = halo_universal_number(mesh%halos(1),reference_node)
-          else
-             universal_reference_node = -1
+
+      if (mesh_periodic(mesh).and.adaptive) then
+
+        do dim=1,positions%dim
+          global_domain_bbox(dim, 1) = domain_bbox(dim, 1)
+          call allmin(global_domain_bbox(dim, 1))
+          global_domain_bbox(dim, 2) = domain_bbox(dim, 2)
+          call allmax(global_domain_bbox(dim, 2))
+        end do
+
+        no_bcs = option_count(trim(periodic_boundary_option_path(positions%dim))//"/from_mesh/periodic_boundary_conditions")
+        allocate(candidate_remaps(no_bcs), candidate_inversemaps(no_bcs), final_remaps(no_bcs), final_inversemaps(no_bcs))
+        final_remaps      = 0
+        final_inversemaps = 0
+
+        current_reference_coordinates(:,1) = reference_coordinates
+        best_distance = norm2(current_reference_coordinates(:,1)-global_domain_centroid)
+
+        bc_loop: do bc = 0, no_bcs-1
+          call allocate(candidate_remaps(bc+1))
+          call allocate(candidate_inversemaps(bc+1))
+
+          bc_path = trim(periodic_boundary_option_path(positions%dim))//"/from_mesh/periodic_boundary_conditions["//int2str(bc)//"]"
+      
+          call get_option(trim(bc_path)//"/coordinate_map", coordinate_map)
+          call get_option(trim(bc_path)//"/inverse_coordinate_map", inverse_coordinate_map, stat=imap_stat)
+      
+          remaps = 0
+          remap_loop: do while(.true.)
+            
+            tmp_bbox(:,1) = current_reference_coordinates(:,1)
+            tmp_bbox(:,2) = current_reference_coordinates(:,1)
+            if (bbox_predicate(global_domain_bbox, tmp_bbox)) then
+              call insert(candidate_remaps(bc+1), remaps)
+            end if
+              
+            call set_from_python_function(remapped_reference_coordinates, coordinate_map, current_reference_coordinates, time=0.0) 
+            distance = norm2(remapped_reference_coordinates(:,1)-global_domain_centroid)
+            if(distance < best_distance) then
+              best_distance = distance
+              current_reference_coordinates(:,1) = remapped_reference_coordinates(:,1)
+              remaps = remaps + 1
+            else
+              tmp_bbox(:,1) = remapped_reference_coordinates(:,1)
+              tmp_bbox(:,2) = remapped_reference_coordinates(:,1)
+              ! we have moved away from the centroid (and presumably will keep doing that)
+              ! but there's a chance we're still in the bounding box... let's check...
+              if (bbox_predicate(global_domain_bbox, tmp_bbox)) then
+                current_reference_coordinates(:,1) = remapped_reference_coordinates(:,1)
+                remaps = remaps + 1
+              else
+                final_remaps(bc+1) = remaps
+                exit remap_loop
+              end if
+            end if
+            if(remaps > max_maps) then
+              ewrite(0,*) "WARNING: More than 100 remaps have taken place while shifting the reference coordinates."
+              ewrite(0,*) "This probably means something has gone wrong, exiting loop."
+              final_remaps(bc+1) = remaps
+              exit remap_loop
+            end if
+          end do remap_loop
+
+          inversemaps = 0
+          ! FIXME: we might have remapped but still be in the bounding box if we inverse map as well
+          ! but for simplicity here we assume that we only want to try inverse mapping if we haven't
+          ! just successfully remapped
+          if((imap_stat==0).and.(remaps==0)) then
+
+            inversemap_loop: do while(.true.)
+
+              ! this should already be in the list of candidates when inversemaps == 0
+              if (inversemaps > 0) then
+                tmp_bbox(:,1) = current_reference_coordinates(:,1)
+                tmp_bbox(:,2) = current_reference_coordinates(:,1)
+                if (bbox_predicate(global_domain_bbox, tmp_bbox)) then
+                  call insert(candidate_inversemaps(bc+1), inversemaps)
+                end if
+              end if
+              
+              call set_from_python_function(remapped_reference_coordinates, inverse_coordinate_map, current_reference_coordinates, time=0.0) 
+              distance = norm2(remapped_reference_coordinates(:,1)-global_domain_centroid)
+              if(distance < best_distance) then
+                best_distance = distance
+                current_reference_coordinates = remapped_reference_coordinates
+                inversemaps = inversemaps + 1
+              else
+                tmp_bbox(:,1) = remapped_reference_coordinates(:,1)
+                tmp_bbox(:,2) = remapped_reference_coordinates(:,1)
+                ! we have moved away from the centroid (and presumably will keep doing that)
+                ! but there's a chance we're still in the bounding box
+                if (bbox_predicate(global_domain_bbox, tmp_bbox)) then
+                  current_reference_coordinates(:,1) = remapped_reference_coordinates(:,1)
+                  inversemaps = inversemaps + 1
+                else
+                  final_inversemaps(bc+1) = inversemaps
+                  exit inversemap_loop
+                end if
+              end if
+              if(inversemaps > max_maps) then
+                ewrite(0,*) "WARNING: More than 100 inverse maps have taken place while shifting the reference coordinates."
+                ewrite(0,*) "This probably means something has gone wrong, exiting loop."
+                final_inversemaps(bc+1) = inversemaps
+                exit inversemap_loop
+              end if
+            end do inversemap_loop
+          else if(imap_stat/=0) then
+            ewrite(0,*) "WARNING: You haven't provided an inverse_coordinate_map so I can't shift the"
+            ewrite(0,*) "reference coordinates in the inverse map direction.  You may not find the reference coordinate."
           end if
-          
-          ! Ensure that only 1 reference node is specified across all processors:
-          call allmax(universal_reference_node)
-          
-          if(universal_reference_node < 0) then
-             FLExit("Reference coordinate error: point defined in "//trim(complete_field_path(option_path, stat=stat2))//"/reference_coordinates is not located in a mesh element")
+
+        end do bc_loop
+
+        no_candidates = 0
+        do bc = 0, no_bcs-1
+          no_candidates = no_candidates + key_count(candidate_remaps(bc+1))
+          no_candidates = no_candidates + key_count(candidate_inversemaps(bc+1))
+        end do
+        ewrite(2,*) "For reference coordinate point defined in "//&
+                    trim(complete_field_path(option_path, stat=stat2))//&
+                    "/reference_coordinates has "//int2str(no_candidates)//&
+                    " candidate periodic locations."
+
+        allocate(candidate_reference_coordinates(no_candidates, positions%dim))
+        last_reference_coordinates = reference_coordinates
+        
+        i_candidate = 1
+        bc_loop2: do bc = 0, no_bcs-1
+          bc_path = trim(periodic_boundary_option_path(positions%dim))//"/from_mesh/periodic_boundary_conditions["//int2str(bc)//"]"
+      
+          call get_option(trim(bc_path)//"/coordinate_map", coordinate_map)
+          call get_option(trim(bc_path)//"/inverse_coordinate_map", inverse_coordinate_map, stat=imap_stat)
+
+          current_reference_coordinates(:,1) = last_reference_coordinates
+      
+          do i = 1, key_count(candidate_remaps(bc+1))
+            remaps = fetch(candidate_remaps(bc+1), i)
+            current_reference_coordinates(:,1) = last_reference_coordinates
+            do j = 1, remaps
+              call set_from_python_function(remapped_reference_coordinates, coordinate_map, current_reference_coordinates, time=0.0) 
+              current_reference_coordinates = remapped_reference_coordinates
+            end do
+            candidate_reference_coordinates(i_candidate,:) = current_reference_coordinates(:,1)
+            i_candidate = i_candidate + 1
+          end do
+          if (remaps /= final_remaps(bc+1)) then
+            current_reference_coordinates(:,1) = last_reference_coordinates
+            do j = 1, final_remaps(bc+1)
+              call set_from_python_function(remapped_reference_coordinates, coordinate_map, current_reference_coordinates, time=0.0)
+              current_reference_coordinates = remapped_reference_coordinates
+            end do
           end if
-          
-          first_owned_node = halo_universal_number(mesh%halos(1),1)
-          total_owned_nodes = halo_nowned_nodes(mesh%halos(1))
-          
-          ! Is the reference node on this process?
-          reference_node_owned = (universal_reference_node >= first_owned_node .AND. universal_reference_node < first_owned_node+total_owned_nodes)
 
-          ! To get local node number (we shouldn't really make this assumption):
-          if(reference_node_owned) then
-             reference_node = universal_reference_node - first_owned_node + 1
-          else
-             reference_node = 0
+          do i = 1, key_count(candidate_inversemaps(bc+1))
+            inversemaps = fetch(candidate_inversemaps(bc+1), i)
+            current_reference_coordinates(:,1) = last_reference_coordinates
+            do j = 1, inversemaps
+              call set_from_python_function(remapped_reference_coordinates, inverse_coordinate_map, current_reference_coordinates, time=0.0) 
+              current_reference_coordinates = remapped_reference_coordinates
+            end do
+            candidate_reference_coordinates(i_candidate,:) = current_reference_coordinates(:,1)
+            i_candidate = i_candidate + 1
+          end do
+          if (inversemaps /= final_inversemaps(bc+1)) then
+            current_reference_coordinates(:,1) = last_reference_coordinates
+            do j = 1, final_inversemaps(bc+1)
+              call set_from_python_function(remapped_reference_coordinates, inverse_coordinate_map, current_reference_coordinates, time=0.0)
+              current_reference_coordinates = remapped_reference_coordinates
+            end do
           end if
 
-       else ! serial
+          last_reference_coordinates = current_reference_coordinates(:,1)
 
-          ! Check that this node nuber is sensible:
-          if(reference_node < 0 .OR. reference_node > node_count(mesh)) then
-             FLExit("Reference coordinate error: point defined in "//trim(complete_field_path(option_path, stat=stat2))//"/reference_coordinates is not located in a mesh element")
-          end if
+          call deallocate(candidate_remaps(bc+1))
+          call deallocate(candidate_inversemaps(bc+1))
+        end do bc_loop2
 
-       end if
+        deallocate(candidate_remaps, candidate_inversemaps, final_remaps, final_inversemaps)
 
-       deallocate(local_coord)       
+      else
+        no_candidates = 1
+        allocate(candidate_reference_coordinates(no_candidates, positions%dim))
+        candidate_reference_coordinates(1,:) = reference_coordinates
+      end if
+
+      candidate_picker_loop: do i = 1, no_candidates
+        ! Determine which element contains desired coordinates:
+        call picker_inquire(positions, candidate_reference_coordinates(i,:), ele, local_coord=local_coord, global=.false.)          
+        found_ele = ele > 0
+        call allor(found_ele)
+        if(found_ele) then
+          exit candidate_picker_loop
+        end if
+      end do candidate_picker_loop
+      deallocate(candidate_reference_coordinates)
+      if(ele > 0) then
+         allocate(ele_local_vertices(ele_vertices(mesh,ele)))
+         ! List vertices of element incorporating desired coordinates:
+         ele_local_vertices = element_local_vertices(ele_shape(mesh,ele))
+         ! Find nearest vertex:
+         local_vertex = maxloc(local_coord,dim=1)             
+         ! List of nodes in element:
+         nodes => ele_nodes(mesh,ele)
+         ! Reference node:
+         reference_node = nodes(ele_local_vertices(local_vertex))
+         deallocate(ele_local_vertices)
+      end if
+      
+      ! Deal with parallel issues:
+      if(IsParallel()) then
+         if(ele > 0) then
+            universal_reference_node = halo_universal_number(mesh%halos(1),reference_node)
+         else
+            universal_reference_node = -1
+         end if
+         
+         ! Ensure that only 1 reference node is specified across all processors:
+         call allmax(universal_reference_node)
+         
+         if(universal_reference_node < 0) then
+            FLExit("Reference coordinate error: point defined in "//trim(complete_field_path(option_path, stat=stat2))//"/reference_coordinates is not located in a mesh element")
+         end if
+         
+         first_owned_node = halo_universal_number(mesh%halos(1),1)
+         total_owned_nodes = halo_nowned_nodes(mesh%halos(1))
+         
+         ! Is the reference node on this process?
+         reference_node_owned = (universal_reference_node >= first_owned_node .AND. universal_reference_node < first_owned_node+total_owned_nodes)
+
+         ! To get local node number (we shouldn't really make this assumption):
+         if(reference_node_owned) then
+            reference_node = universal_reference_node - first_owned_node + 1
+         else
+            reference_node = 0
+         end if
+
+      else ! serial
+
+         ! Check that this node nuber is sensible:
+         if(reference_node < 0 .OR. reference_node > node_count(mesh)) then
+            FLExit("Reference coordinate error: point defined in "//trim(complete_field_path(option_path, stat=stat2))//"/reference_coordinates is not located in a mesh element")
+         end if
+
+      end if
 
     end if
-
-    deallocate(reference_coordinates)
 
   end subroutine find_reference_node_from_coordinates
 

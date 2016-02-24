@@ -19,7 +19,7 @@ module zoltan_integration
   use vtk_interfaces
   use zoltan
   use linked_lists
-  use global_parameters, only: real_size, OPTION_PATH_LEN, topology_mesh_name, global_domain_centroid
+  use global_parameters, only: real_size, OPTION_PATH_LEN, topology_mesh_name, global_domain_centroid, periodic_boundary_option_path
   use data_structures
   use populate_state_module
   use reserve_state_module
@@ -2652,7 +2652,7 @@ module zoltan_integration
     type(integer_set):: all_periodic_bc_ids
 
     coordinate => extract_vector_field(state, "Coordinate")
-    mesh_path = coordinate%mesh%option_path
+    mesh_path = periodic_boundary_option_path(coordinate%dim)
 
     n_periodic_bcs=option_count(trim(mesh_path)//"/from_mesh/periodic_boundary_conditions")
     ewrite(2,*) "n_periodic_bcs=", n_periodic_bcs
