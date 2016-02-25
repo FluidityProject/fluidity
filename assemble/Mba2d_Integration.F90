@@ -114,6 +114,9 @@ module mba2d_integration
     type(scalar_field) :: sends_sfield, receives_sfield
 #endif
 
+    integer, dimension(:), allocatable :: region_ids
+    type(integer_set) :: region_list
+
     ewrite(1, *) "In adapt_mesh_mba2d"
 
     assert(all(metric%dim == 2))
@@ -227,6 +230,15 @@ module mba2d_integration
     mask=.false.
     ipe = 0
     j=1
+
+    id_shape=option_shape("/mesh_adaptivity/delauney_adapt/region_ids")
+    allocate(region_ids(id_shape))
+    call get_option("/mesh_adaptivity/delauney_adapt/region_ids",region_ids)
+    do i=1,size(region_ids)
+       call insert(region_list(i),region_ids(i))
+    end do
+
+
     do i=1,totele
        if (ele_region_id(xmesh,i)== 1) cycle
        ipe(:, j) = ele_nodes(xmesh, i)

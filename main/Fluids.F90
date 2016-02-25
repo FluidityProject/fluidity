@@ -901,6 +901,25 @@ contains
        ! *** Mesh adapt ***
        ! ******************
 
+       if(have_option("/mesh_adaptivity/delauney_adapt")) then
+
+          if(do_adapt_mesh_connectivity(current_time, timestep)) then
+
+             call pre_adapt_tasks(sub_state)
+
+             call qmesh(state, metric_tensor)
+             if(have_option("/io/stat/output_before_adapts")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)
+             call run_diagnostics(state)
+
+             call adapt_state(state, metric_tensor,lock_all_nodes = .true.)
+
+             call update_state_post_adapt(state, metric_tensor, dt, sub_state, nonlinear_iterations, nonlinear_iterations_adapt)
+
+             if(have_option("/io/stat/output_after_adapts")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)
+             call run_diagnostics(state)
+ 
+          end if
+       end if
        if(have_option("/mesh_adaptivity/hr_adaptivity")) then
 
           if(do_adapt_mesh(current_time, timestep)) then

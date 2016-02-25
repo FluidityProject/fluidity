@@ -897,7 +897,7 @@ contains
 
   end subroutine adapt_mesh_periodic
 
-  subroutine adapt_mesh(old_positions, metric, new_positions, node_ownership, force_preserve_regions)
+  subroutine adapt_mesh(old_positions, metric, new_positions, node_ownership, force_preserve_regions,lock_all_nodes)
     !!< A wrapper to select the appropriate adapt_mesh routine.
     !!< If the input is periodic, then apply the algorithm for adapting periodic meshes.
 
@@ -905,7 +905,7 @@ contains
     type(tensor_field), intent(inout) :: metric
     type(vector_field), intent(out) :: new_positions
     integer, dimension(:), pointer, optional :: node_ownership
-    logical, intent(in), optional :: force_preserve_regions
+    logical, intent(in), optional :: force_preserve_regions, lock_all_nodes
 
 #ifdef DDEBUG
     if(present(node_ownership)) then
@@ -918,7 +918,7 @@ contains
       call adapt_mesh_periodic(old_positions, metric, new_positions, force_preserve_regions=force_preserve_regions)
     ! Nonperiodic case
     else
-      call adapt_mesh_simple(old_positions, metric, new_positions, node_ownership=node_ownership, force_preserve_regions=force_preserve_regions,lock_all_nodes=.true.)
+      call adapt_mesh_simple(old_positions, metric, new_positions, node_ownership=node_ownership, force_preserve_regions=force_preserve_regions,lock_all_nodes=lock_all_nodes)
     end if
   end subroutine adapt_mesh
 
