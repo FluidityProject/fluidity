@@ -227,6 +227,8 @@ contains
         matrix%column_numbering, ldiagonal, use_inodes=use_inodes)
       
     endif
+
+    call MatSetBlockSizes(matrix%M, lgroup_size(1), lgroup_size(2), ierr)
     
     ! this is very important for assembly routines (e.g. DG IP viscosity)
     ! that try to add zeros outside the provided sparsity; if we go outside
