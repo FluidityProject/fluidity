@@ -182,12 +182,8 @@ contains
 
     ewrite(1, *) "In intersection_finder"
     allocate(lmap_AB(size(map_AB)))
-    call libsupermesh_intersection_finder_sub(positionsA%val, reshape(positionsA%mesh%ndglno, (/positionsA%mesh%shape%loc, ele_count(positionsA)/)), &
+    call libsupermesh_advancing_front_intersection_finder_sub(positionsA%val, reshape(positionsA%mesh%ndglno, (/positionsA%mesh%shape%loc, ele_count(positionsA)/)), &
                                             & positionsB%val, reshape(positionsB%mesh%ndglno, (/positionsB%mesh%shape%loc, ele_count(positionsB)/)), lmap_AB)
-!    call libsupermesh_rtree_intersection_finder_sub(positionsA%val, reshape(positionsA%mesh%ndglno, (/positionsA%mesh%shape%loc, ele_count(positionsA)/)), &
-!                                                  & positionsB%val, reshape(positionsB%mesh%ndglno, (/positionsB%mesh%shape%loc, ele_count(positionsB)/)), lmap_AB)
-!    call libsupermesh_advancing_front_intersection_finder_sub(positionsA%val, reshape(positionsA%mesh%ndglno, (/positionsA%mesh%shape%loc, ele_count(positionsA)/)), &
-!                                            & positionsB%val, reshape(positionsB%mesh%ndglno, (/positionsB%mesh%shape%loc, ele_count(positionsB)/)), lmap_AB)
 
     do i = 1, size(lmap_AB)
       do j = 1, lmap_AB(i)%n
