@@ -2463,6 +2463,7 @@ function create_null_space_from_options_vector(mat, null_space_option_path, &
 
    Vec, allocatable, dimension(:) :: null_space_array
    Vec :: aux_vec, swap
+   PetscReal, dimension(:), allocatable :: dots
    PetscReal :: norm
    PetscErrorCode :: ierr
    PetscBool :: isnull
@@ -2564,6 +2565,7 @@ function create_null_space_from_options_vector(mat, null_space_option_path, &
      if (mask(comp)) then
        i = i + 1
        null_vector = 0.0
+       ! ensure the translations are orthonormal:
        null_vector(:,comp)=1.0/sqrt(real(universal_nodes))
        null_space_array(i)=PetscNumberingCreateVec(petsc_numbering)
        call array2petsc(reshape(null_vector,(/nnodes*dim/)), petsc_numbering, null_space_array(i))
@@ -2595,7 +2597,6 @@ function create_null_space_from_options_vector(mat, null_space_option_path, &
            extract_scalar_field(positions, permutations(comp+1)))
          null_space_array(i)=PetscNumberingCreateVec(petsc_numbering)
          call field2petsc(null_vector_field, petsc_numbering, null_space_array(i))
-         call VecNormalize(null_space_array(i), norm, ierr)
        end if
      end do
      call deallocate(null_vector_field)
@@ -2617,6 +2618,21 @@ function create_null_space_from_options_vector(mat, null_space_option_path, &
        aux_vec = swap
      end do
      call VecDestroy(aux_vec, ierr)
+   end if
+
+   ! finally we need to ensure that the nullspace vectors are orthonormal
+   if (any(rot_mask)) then
+     ! but only the rotational ones, as the translations are orthonormal already
+     allocate(dots(1:nnulls))
+     do i=count(mask)+1, nnulls
+       ! take the dot product with all previous vectors:
+       call VecMDot(null_space_array(i), i-1, null_space_array(1:i-1), dots(1:i-1), ierr)
+       dots = -dots
+       ! then subtract their components
+       call VecMAXPY(null_space_array(i), i-1, dots(1:i-1), null_space_array(1:i-1), ierr)
+       call VecNormalize(null_space_array(i), norm, ierr)
+     end do
+     deallocate(dots)
    end if
 
    call MatNullSpaceCreate(MPI_COMM_FEMTOOLS, PETSC_FALSE, nnulls, &
