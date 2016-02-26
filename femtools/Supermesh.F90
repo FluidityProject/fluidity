@@ -99,10 +99,10 @@ module supermesh_construction
     type(mesh_type) :: intersection_mesh
 !    type(tri_type), dimension(tri_buf_size) :: trisC !using this we get hit with a 12% slowdown
 !    type(tet_type), dimension(tet_buf_size) :: tetsC !using this we get hit with a 12% slowdown
-    real, dimension(1, 2, 1)            ::  intsC_real
-    real, dimension(2, 3, tri_buf_size) ::  trisC_real
-    real, dimension(2, 3, tri_buf_size) ::  quadsC_real
-    real, dimension(3, 4, tet_buf_size) ::  tetsC_real
+    real, dimension(1, 2, 1), save            ::  intsC_real
+    real, dimension(2, 3, tri_buf_size), save ::  trisC_real
+    real, dimension(2, 3, 4 * (2 ** 4) - 2), save ::  quadsC_real
+    real, dimension(3, 4, tet_buf_size), save ::  tetsC_real
     type(tet_type) :: tet_A, tet_B
     type(tri_type) :: tri_A, tri_B
     real, dimension(2, 4) :: quad_A, quad_B, quad_temp

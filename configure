@@ -1420,7 +1420,7 @@ Optional Features:
   --enable-debugging      turns on debugging flags
   --enable-python         embed python in fluidity for generic functions.
   --enable-cgal           turns on use of the CGAL library
-  --enable-supermesh      turns on use of the SuperMesh library
+  --enable-supermesh      turns on use of the supermesh library
   --enable-openmp         turns on OpenMP support
   --disable-openmp        do not use OpenMP
   --enable-shared         Compile objects with -fPIC to enable the 'make
@@ -6424,8 +6424,8 @@ fi
 
 if test "x$enable_supermesh" = "xyes" ; then
 found_supermesh="no"
-  { $as_echo "$as_me:${as_lineno-$LINENO}: Checking for SuperMesh library" >&5
-$as_echo "$as_me: Checking for SuperMesh library" >&6;}
+  { $as_echo "$as_me:${as_lineno-$LINENO}: Checking for supermesh library" >&5
+$as_echo "$as_me: Checking for supermesh library" >&6;}
   for i in `echo $LD_LIBRARY_PATH | sed -e 's/:/ /g'`
     do
     if test \( -f $i/libsupermesh.a \)
@@ -6438,9 +6438,9 @@ $as_echo "$as_me: Checking for SuperMesh library" >&6;}
 
   if test "$found_supermesh" = "no"
     then
-    { $as_echo "$as_me:${as_lineno-$LINENO}: checking the position of the stars to help find a version of SuperMesh" >&5
-$as_echo "$as_me: checking the position of the stars to help find a version of SuperMesh" >&6;}
-    as_fn_error $? "\"Cannot identify SuperMesh. Check that it is installed.\"" "$LINENO" 5
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking the position of the stars to help find a version of supermesh" >&5
+$as_echo "$as_me: checking the position of the stars to help find a version of supermesh" >&6;}
+    as_fn_error $? "\"Cannot identify supermesh. Check that it is installed.\"" "$LINENO" 5
   else
     echo "#define HAVE_SUPERMESH 1" >> confdefs.h
   fi

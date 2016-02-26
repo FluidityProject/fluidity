@@ -227,10 +227,10 @@ if test "x$enable_cgal" = "xyes" ; then
   LIBS="$LIBS -lgmp -lmpfr"
 fi
 
-AC_ARG_ENABLE(supermesh, [AC_HELP_STRING([--enable-supermesh], [turns on use of the SuperMesh library])])
+AC_ARG_ENABLE(supermesh, [AC_HELP_STRING([--enable-supermesh], [turns on use of the supermesh library])])
 if test "x$enable_supermesh" = "xyes" ; then
 found_supermesh="no"
-  AC_MSG_NOTICE([Checking for SuperMesh library])
+  AC_MSG_NOTICE([Checking for supermesh library])
   for i in `echo $LD_LIBRARY_PATH | sed -e 's/:/ /g'`
     do
     if test \( -f $i/libsupermesh.a \)
@@ -243,8 +243,8 @@ found_supermesh="no"
 
   if test "$found_supermesh" = "no"
     then
-    AC_MSG_NOTICE([checking the position of the stars to help find a version of SuperMesh])
-    AC_MSG_ERROR("Cannot identify SuperMesh. Check that it is installed.")
+    AC_MSG_NOTICE([checking the position of the stars to help find a version of supermesh])
+    AC_MSG_ERROR("Cannot identify supermesh. Check that it is installed.")
   else
     echo "#define HAVE_SUPERMESH 1" >> confdefs.h
   fi
