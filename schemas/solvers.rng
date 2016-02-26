@@ -581,6 +581,13 @@ test you need to run fluidity with a verbosity level of at least -v1.</a:documen
         <empty/>
       </element>
     </optional>
+    <optional>
+      <element name="write_null_space">
+        <a:documentation>For debugging purposes: write a vtu file containing the null space vector fields
+for each solve.</a:documentation>
+        <empty/>
+      </element>
+    </optional>
   </define>
   <define name="basic_solver_options">
     <element name="relative_error">
