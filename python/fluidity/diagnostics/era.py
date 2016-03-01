@@ -26,9 +26,9 @@ import unittest
 import fluidity.diagnostics.debug as debug
 
 try:
-  import Scientific.IO.NetCDF as netcdf
+  import scipy.io.netcdf as netcdf
 except:
-  debug.deprint("Warning: Failed to import Scientific.IO.NetCDF module")
+  debug.deprint("Warning: Failed to import scipy.io.netcdf module")
 
 import fluidity.diagnostics.calc as calc
 import fluidity.diagnostics.filehandling as filehandling
@@ -254,7 +254,7 @@ class Era15:
 
 class eraUnittests(unittest.TestCase):
   def testNetcdfSupport(self):
-    import Scientific.IO.NetCDF
+    import scipy.io.netcdf
     
     return
 
