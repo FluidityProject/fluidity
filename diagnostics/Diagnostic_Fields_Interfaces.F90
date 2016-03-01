@@ -155,3 +155,115 @@ subroutine calculate_diagnostic_variable_tensor(states, states_size, state_index
   end if
   
 end subroutine calculate_diagnostic_variable_tensor
+
+
+subroutine calculate_diagnostic_variable_dep_scalar(states, states_size, state_index, s_field, algorithm, algorithm_len, stat)
+
+  use diagnostic_fields_new
+  use fields
+  use fldebug
+  use state_module
+
+  implicit none
+
+  integer, intent(in) :: states_size
+  integer, intent(in) :: algorithm_len
+
+  type(state_type), dimension(states_size), intent(inout) :: states
+  integer, intent(in) :: state_index
+  type(scalar_field), intent(inout) :: s_field
+  character(len = algorithm_len), intent(in) :: algorithm
+  integer, pointer :: stat
+
+  integer :: lstat
+
+  if(associated(stat)) then
+    if(len_trim(algorithm) == 0) then
+      call calculate_diagnostic_variable_dep(states, state_index, s_field, stat = lstat)
+    else
+      call calculate_diagnostic_variable_dep(states, state_index, s_field, algorithm = algorithm, stat = lstat)
+    end if
+    stat = lstat
+  else
+    if(len_trim(algorithm) == 0) then
+      call calculate_diagnostic_variable_dep(states, state_index, s_field)
+    else
+      call calculate_diagnostic_variable_dep(states, state_index, s_field, algorithm = algorithm)
+    end if
+  end if
+
+end subroutine calculate_diagnostic_variable_dep_scalar
+
+subroutine calculate_diagnostic_variable_dep_vector(states, states_size, state_index, v_field, algorithm, algorithm_len, stat)
+
+  use diagnostic_fields_new
+  use fields
+  use fldebug
+  use state_module
+
+  implicit none
+
+  integer, intent(in) :: states_size
+  integer, intent(in) :: algorithm_len
+
+  type(state_type), dimension(states_size), intent(inout) :: states
+  integer, intent(in) :: state_index
+  type(vector_field), intent(inout) :: v_field
+  character(len = algorithm_len), intent(in) :: algorithm
+  integer, pointer :: stat
+
+  integer :: lstat
+
+  if(associated(stat)) then
+    if(len_trim(algorithm) == 0) then
+      call calculate_diagnostic_variable_dep(states, state_index, v_field, stat = lstat)
+    else
+      call calculate_diagnostic_variable_dep(states, state_index, v_field, algorithm = algorithm, stat = lstat)
+    end if
+    stat = lstat
+  else
+    if(len_trim(algorithm) == 0) then
+      call calculate_diagnostic_variable_dep(states, state_index, v_field)
+    else
+      call calculate_diagnostic_variable_dep(states, state_index, v_field, algorithm = algorithm)
+    end if
+  end if
+
+end subroutine calculate_diagnostic_variable_dep_vector
+
+subroutine calculate_diagnostic_variable_dep_tensor(states, states_size, state_index, t_field, algorithm, algorithm_len, stat)
+
+  use diagnostic_fields_new
+  use fields
+  use fldebug
+  use state_module
+
+  implicit none
+
+  integer, intent(in) :: states_size
+  integer, intent(in) :: algorithm_len
+
+  type(state_type), dimension(states_size), intent(inout) :: states
+  integer, intent(in) :: state_index
+  type(tensor_field), intent(inout) :: t_field
+  character(len = algorithm_len), intent(in) :: algorithm
+  integer, pointer :: stat
+
+  integer :: lstat
+
+  if(associated(stat)) then
+    if(len_trim(algorithm) == 0) then
+      call calculate_diagnostic_variable_dep(states, state_index, t_field, stat = lstat)
+    else
+      call calculate_diagnostic_variable_dep(states, state_index, t_field, algorithm = algorithm, stat = lstat)
+    end if
+    stat = lstat
+  else
+    if(len_trim(algorithm) == 0) then
+      call calculate_diagnostic_variable_dep(states, state_index, t_field)
+    else
+      call calculate_diagnostic_variable_dep(states, state_index, t_field, algorithm = algorithm)
+    end if
+  end if
+
+end subroutine calculate_diagnostic_variable_dep_tensor
