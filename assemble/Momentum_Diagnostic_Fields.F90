@@ -137,18 +137,18 @@ contains
     do i = 1, size(state) ! really we should be looping over submaterials here but we need to pass state into
                           ! calculate_diagnostic_variable and there's no way to relate the index in submaterials 
                           ! to the one in state
-       ! In certain cases, there is a need to update the second invariant of strain-rate tensor
+       ! In certain cases, there is a need to update the second invariant of strain-rate tensor and other fields
        ! before updating the viscosity (e.g. Non-Newtonian Stokes flow simulations, where the viscosity is
        ! dependent upon this field) - do that here:
-       sfield => extract_scalar_field(state(i),'StrainRateSecondInvariant',stat)
-       if (stat == 0) then
-          call calculate_diagnostic_variable(state, i, sfield)
-       end if
+!       sfield => extract_scalar_field(state(i),'StrainRateSecondInvariant',stat)
+!       if (stat == 0) then
+!          call calculate_diagnostic_variable(state, i, sfield)
+!       end if
        ! Next update material viscosity:
        tfield => extract_tensor_field(state(i),'MaterialViscosity',stat)
        if (stat==0) then
           if(have_option(trim(tfield%option_path) // "/diagnostic/algorithm::tensor_python_diagnostic")) then
-             call calculate_diagnostic_variable(state, i, tfield)
+             call calculate_diagnostic_variable_dep(state, i, tfield)
           end if
        end if
     end do
