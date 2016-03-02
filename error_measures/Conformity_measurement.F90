@@ -8,8 +8,8 @@ module conformity_measurement
 !! 2004, vol 61, issue 15
 
   use vector_tools
-  use transform_elements
   use sparse_tools
+  use transform_elements
   use unittest_tools
   use fetools
   use metric_tools

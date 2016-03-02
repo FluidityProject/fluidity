@@ -33,7 +33,6 @@ module global_numbering
   use fldebug
   use element_numbering
   use elements
-  use fields_data_types
   use mpi_interfaces
   use halo_data_types
   use parallel_tools
@@ -41,6 +40,7 @@ module global_numbering
   use halos_debug
   use halos_allocates
   use sparse_tools
+  use fields_data_types
   use fields_base
   use adjacency_lists
   use linked_lists

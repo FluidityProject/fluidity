@@ -8,12 +8,12 @@ module solidconfiguration
   use futils, only: free_unit
   use parallel_tools
   use vector_tools, only: det
-  use transform_elements
-  use fetools, only: X_, Y_, Z_
-  use fields
   use embed_python, only: set_particle_sfield_from_python,&
        set_particle_vfield_from_python
+  use transform_elements
+  use fetools, only: X_, Y_, Z_
   use parallel_fields
+  use fields
   use state_module
   use vtk_interfaces, only: vtk_write_fields
   use fefields,only: compute_lumped_mass

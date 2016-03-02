@@ -32,10 +32,10 @@ module rotated_boundary_conditions
 use spud
 use fldebug
 use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN
-use sparse_tools
 use parallel_tools
-use fields
+use sparse_tools
 use parallel_fields, only: zero_non_owned
+use fields
 use sparse_tools_petsc
 use state_module
 use halos

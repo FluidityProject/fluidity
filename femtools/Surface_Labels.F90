@@ -40,8 +40,8 @@ module SurfaceLabels
   use sparse_tools
   use elements
   use adjacency_lists
-  use fetools, only : X_, Y_, Z_
   use transform_elements, only: transform_facet_to_physical
+  use fetools, only : X_, Y_, Z_
   use fields
   use merge_tensors
   use vtk_interfaces

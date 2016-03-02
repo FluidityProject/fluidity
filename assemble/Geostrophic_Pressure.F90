@@ -34,21 +34,21 @@ module geostrophic_pressure
   use spud
   use vector_tools, only: solve
   use data_structures
+  use parallel_tools, only: allsum
   use sparse_tools
   use quadrature
-  use parallel_tools, only: allsum
   use eventcounter
   use element_numbering, only : FAMILY_SIMPLEX
   use elements
   use unittest_tools
+  use parallel_fields, only: assemble_ele, element_owned
+  use fetools
   use fields
   use state_module
   use field_options
   use sparse_matrices_fields
   use vtk_interfaces
   use fefields
-  use parallel_fields, only: assemble_ele, element_owned
-  use fetools
   use assemble_cmc
   use boundary_conditions
   use sparsity_patterns

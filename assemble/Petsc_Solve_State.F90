@@ -39,8 +39,8 @@ use spud
 use fldebug
 use global_parameters, only: OPTION_PATH_LEN, FIELD_NAME_LEN
 use sparse_tools
-use fields
 use parallel_fields
+use fields
 use sparse_tools_petsc
 use state_module
 use solvers

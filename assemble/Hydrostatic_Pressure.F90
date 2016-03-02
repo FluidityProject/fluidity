@@ -32,17 +32,17 @@
 module hydrostatic_pressure
 
   use fldebug
+  use vector_tools, only: solve
   use quadrature
   use elements
-  use vector_tools, only: solve
   use parallel_tools
   use spud
   use sparse_tools
   use shape_functions
   use transform_elements
   use fetools
-  use fields
   use parallel_fields
+  use fields
   use profiler
   use state_module
   use boundary_conditions

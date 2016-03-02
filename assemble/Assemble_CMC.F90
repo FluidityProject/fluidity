@@ -34,9 +34,9 @@ module assemble_CMC
   use global_parameters, only: OPTION_PATH_LEN
   use sparse_tools
   use linked_lists
+  use elements
   use transform_elements
   use fetools, only: shape_shape
-  use elements
   use fields
   use sparse_tools_petsc
   use state_module

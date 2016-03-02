@@ -30,11 +30,11 @@ use fldebug
 use global_parameters, only : OPTION_PATH_LEN
 use spud
 use futils, only: int2str
-use sparse_tools
 use parallel_tools
+use sparse_tools
 use fetools
-use fields
 use parallel_fields
+use fields
 use sparse_tools_petsc
 use state_module
 use boundary_conditions

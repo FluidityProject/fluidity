@@ -39,13 +39,13 @@ COLOURING_DG0
 #ifdef _OPENMP
   use omp_lib
 #endif
+  use parallel_tools
   use sparse_tools
   use shape_functions
   use transform_elements
   use fetools
-  use parallel_tools
-  use fields
   use parallel_fields
+  use fields
   use profiler
   use state_module
   use boundary_conditions

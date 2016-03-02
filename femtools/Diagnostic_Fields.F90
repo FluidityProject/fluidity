@@ -35,10 +35,10 @@ module diagnostic_fields
   use futils
   use spud
   use Vector_Tools
-  use sparse_tools
-  use CV_Faces
   use parallel_tools
   use quicksort
+  use sparse_tools
+  use CV_Faces
   use fetools
   use unittest_tools
   use fields

@@ -34,10 +34,9 @@ module k_epsilon
   use futils, only: int2str
   use vector_tools
   use quadrature
+  use spud
   use sparse_tools
   use elements
-  use spud
-  use fields_manipulation
   use fetools
   use parallel_fields
   use fields

@@ -41,8 +41,8 @@ module advection_diffusion_cg
 #endif
   use sparse_tools
   use transform_elements
-  use fields
   use fetools
+  use fields
   use profiler
   use sparse_tools_petsc
   use state_module

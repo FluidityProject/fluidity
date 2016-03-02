@@ -36,12 +36,12 @@
 #ifdef HAVE_PETSC_MODULES
     use petsc
 #endif
-    use sparse_tools
     use parallel_tools
+    use sparse_tools
+    use fields
     use petsc_tools
     use signal_vars
     use sparse_tools_petsc
-    use fields
     use sparse_matrices_fields
     use state_module
     use halos

@@ -7,11 +7,11 @@ module hadapt_advancing_front
   use quicksort
   use data_structures
   use spud
+  use parallel_tools
   use sparse_tools
   use linked_lists
   use adjacency_lists
   use parallel_fields
-  use parallel_tools
   use fields
   use meshdiagnostics
   use halos_derivation

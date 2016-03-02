@@ -8,7 +8,6 @@ module dg_interpolation_module
   use spud
   use sparse_tools
   use tensors
-  use sparse_tools
   use transform_elements
   use adjacency_lists
   use unittest_tools
@@ -19,8 +18,8 @@ module dg_interpolation_module
   use fields
   use meshdiagnostics
   use sparsity_patterns
-  use vtk_interfaces
   use state_module
+  use vtk_interfaces
   use interpolation_module
   use sparse_matrices_fields
   use solvers

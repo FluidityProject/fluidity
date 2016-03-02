@@ -12,8 +12,8 @@ module gradation_metric
   use fldebug
   use spud
   use vector_tools
-  use unittest_tools
   use sparse_tools
+  use unittest_tools
   use adjacency_lists
   use linked_lists
   use metric_tools

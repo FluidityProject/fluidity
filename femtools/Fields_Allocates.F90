@@ -33,14 +33,14 @@ use futils, only: present_and_true
 use quadrature
 use element_numbering
 use elements
-use sparse_tools
 use ieee_arithmetic
-use shape_functions, only: make_element_shape
 use halo_data_types
 use parallel_tools
 use halos_allocates
 use memory_diagnostics
 use data_structures
+use sparse_tools
+use shape_functions, only: make_element_shape
 use fields_data_types
 use fields_base
 use halos_repair

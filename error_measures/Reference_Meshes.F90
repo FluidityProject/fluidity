@@ -7,9 +7,9 @@ module reference_meshes
   use futils, only: int2str
   use spud
   use fields
+  use state_module
   use field_options, only: get_coordinate_field
   use merge_tensors
-  use state_module
   use conformity_measurement
   use interpolation_module
   

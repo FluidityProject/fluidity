@@ -37,8 +37,8 @@
       use element_numbering, only: FAMILY_SIMPLEX
       use sparse_tools
       use linked_lists
-      use fields
       use parallel_fields, only: zero_non_owned
+      use fields
       use profiler
       use sparse_tools_petsc
       use state_module

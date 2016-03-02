@@ -29,14 +29,14 @@
 
 module Coordinates
   use fldebug
-  use futils, only: int2str
-  use vector_tools
   use iso_c_binding
   use global_parameters
+  use futils, only: int2str
+  use vector_tools
   use spud
-  use sparse_tools
   use parallel_tools, only: isparallel
   use halos_base
+  use sparse_tools
   use parallel_fields, only: zero_non_owned
   use fields
   use sparse_tools_petsc

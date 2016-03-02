@@ -30,8 +30,8 @@
 module mba3d_integration 
 
   use fldebug
-  use futils, only: present_and_true
   use global_parameters, only : real_8
+  use futils, only: present_and_true
   use quadrature
   use elements
   use spud

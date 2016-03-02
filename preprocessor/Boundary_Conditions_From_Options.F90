@@ -34,16 +34,16 @@ module boundary_conditions_from_options
   use futils, only: int2str, present_and_true
   use vector_tools
   use quadrature
-  use sparse_tools
-  use elements
   use spud
   use integer_set_module
   use parallel_tools
   use halos_base
+  use sparse_tools
+  use elements
+  use embed_python, only: real_from_python
   use transform_elements
   use halos_numbering
   use fields
-  use embed_python, only: real_from_python
   use sparse_tools_petsc
   use state_module
   use field_options

@@ -48,10 +48,10 @@ module diagnostic_variables
   use halos_allocates
   use ieee_arithmetic
   use sparse_tools
+  use embed_python
   use fields_base
   use eventcounter
   use fetools
-  use embed_python
   use unittest_tools
   use halos_communications
   use halos_numbering

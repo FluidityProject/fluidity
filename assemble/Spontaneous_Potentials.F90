@@ -37,8 +37,8 @@ module spontaneous_potentials
   use spud
   use futils, only: int2str
   use sparse_tools
-  use fields
   use fetools
+  use fields
   use state_module
   use field_options
   use solvers

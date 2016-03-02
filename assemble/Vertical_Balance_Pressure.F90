@@ -38,8 +38,8 @@ module vertical_balance_pressure
   use sparse_tools
   use transform_elements
   use fetools
-  use fields
   use parallel_fields
+  use fields
   use profiler
   use state_module
   use boundary_conditions

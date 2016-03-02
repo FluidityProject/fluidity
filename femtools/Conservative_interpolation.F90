@@ -15,7 +15,6 @@ module conservative_interpolation_module
   use data_structures
   use sparse_tools
   use tensors
-  use sparse_tools
   use transform_elements
   use adjacency_lists
   use unittest_tools
@@ -23,16 +22,16 @@ module conservative_interpolation_module
   use tetrahedron_intersection_module
   use supermesh_construction
   use fetools
+  use parallel_fields, only: node_owned
   use intersection_finder_module
   use fields
-  use parallel_fields, only: node_owned
+  use state_module
   use field_options, only: complete_field_path
   use meshdiagnostics
   use sparsity_patterns
   use vtk_interfaces
   use halos
   use boundary_conditions
-  use state_module
   use interpolation_module
   use sparse_matrices_fields
   use solvers

@@ -29,8 +29,8 @@
 module momentum_diagnostic_fields
   use fldebug
   use spud
-  use futils
   use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN
+  use futils
   use fields
   use state_module
   use equation_of_state

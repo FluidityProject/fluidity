@@ -13,12 +13,12 @@ module field_derivatives
     use elements
     use eventcounter
     use superconvergence
-    use transform_elements
     use sparse_tools
+    use tensors, only: tensormul
+    use transform_elements
     use fetools, only: shape_shape, shape_dshape, dshape_outer_dshape,&
      shape_vector_rhs
     use parallel_fields
-    use tensors, only: tensormul
     use fields
     use state_module
     use vtk_interfaces

@@ -4,8 +4,8 @@ module hadapt_metric_based_extrude
 
   use fldebug
   use vector_tools
-  use futils, only: present_and_true
   use global_parameters
+  use futils, only: present_and_true
   use quadrature
   use elements
   use spud
@@ -13,8 +13,8 @@ module hadapt_metric_based_extrude
   use data_structures
   use sparse_tools
   use metric_tools
-  use fields
   use parallel_fields
+  use fields
   use meshdiagnostics
   use vtk_interfaces
   use halos

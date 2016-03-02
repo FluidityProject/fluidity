@@ -32,13 +32,13 @@ module fluids_module
   use fldebug
   use auxilaryoptions
   use spud
+  use global_parameters, only: current_time, dt, timestep, OPTION_PATH_LEN, &
+       simulation_start_time, &
+       simulation_start_cpu_time, &
+       simulation_start_wall_time, &
+       topology_mesh_name, FIELD_NAME_LEN
   use futils, only: int2str
   use reference_counting, only: print_references
-  use global_parameters, only: current_time, dt, timestep, OPTION_PATH_LEN, &
-simulation_start_time, &
-simulation_start_cpu_time, &
-simulation_start_wall_time, &
-topology_mesh_name, FIELD_NAME_LEN
   use parallel_tools
   use memory_diagnostics
   use sparse_tools
@@ -53,7 +53,6 @@ topology_mesh_name, FIELD_NAME_LEN
   use vtk_interfaces
   use boundary_conditions
   use halos
-!  use sediment
   use equation_of_state
   use timers
   use synthetic_bc
@@ -84,8 +83,8 @@ topology_mesh_name, FIELD_NAME_LEN
   use adapt_state_prescribed_module
   use populate_sub_state_module
   use diagnostic_fields_new, only : &
-& calculate_diagnostic_variables_new => calculate_diagnostic_variables, &
-& check_diagnostic_dependencies
+       & calculate_diagnostic_variables_new => calculate_diagnostic_variables, &
+       & check_diagnostic_dependencies
   use diagnostic_children
   use advection_diffusion_cg
   use advection_diffusion_dg

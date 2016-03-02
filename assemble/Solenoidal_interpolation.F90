@@ -13,15 +13,15 @@ module solenoidal_interpolation_module
   use tensors
   use element_numbering, only: FAMILY_SIMPLEX
   use transform_elements
+  use linked_lists
   use supermesh_construction
   use fetools
   use fields
+  use state_module
   use field_options, only : complete_field_path
   use sparsity_patterns
   use boundary_conditions
-  use state_module
   use interpolation_module
-  use linked_lists
   use sparse_matrices_fields
   use solvers
   use fefields

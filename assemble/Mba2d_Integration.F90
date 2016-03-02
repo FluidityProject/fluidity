@@ -9,10 +9,10 @@ module mba2d_integration
   use elements
   use eventcounter
   use quicksort
-  use sparse_tools
   use data_structures
-  use metric_tools
   use parallel_tools
+  use sparse_tools
+  use metric_tools
   use fields
   use state_module
   use meshdiagnostics

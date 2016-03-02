@@ -4,9 +4,9 @@ module smoothing_module
   use fldebug
   use global_parameters, only : OPTION_PATH_LEN
   use sparse_tools
+  use element_numbering, only: FAMILY_SIMPLEX
   use metric_tools
   use fetools
-  use element_numbering, only: FAMILY_SIMPLEX
   use fields
   use state_module
   use sparsity_patterns

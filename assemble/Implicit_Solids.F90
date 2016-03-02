@@ -47,18 +47,17 @@ PYTHON_FUNC_LEN, dt, timestep, current_time
   use adjacency_lists
   use fields_allocates
   use fields_manipulation
-  use fields_calculations, only: field_integral
   use parallel_fields
   use transform_elements
-  use fields_manipulation
   use tetrahedron_intersection_module
   use unify_meshes_module
   use unittest_tools
   use supermesh_construction
   use intersection_finder_module
   use fetools
-  use field_options, only: complete_field_path
+  use fields_calculations, only: field_integral
   use state_module
+  use field_options, only: complete_field_path
   use vtk_interfaces
   use sparse_matrices_fields
   use halos

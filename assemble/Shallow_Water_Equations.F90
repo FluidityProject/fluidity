@@ -35,10 +35,10 @@ module shallow_water_equations
   use fldebug
   use global_parameters, only: OPTION_PATH_LEN
   use spud
-  use transform_elements
   use sparse_tools
-  use fields
+  use transform_elements
   use fetools
+  use fields
   use state_module
   use boundary_conditions
 
