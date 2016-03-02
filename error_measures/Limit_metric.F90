@@ -14,7 +14,7 @@ module limit_metric_module
   private
 
   public :: limit_metric, limit_metric_elements, expected_elements, &
-    & expected_nodes, determinant
+    & expected_nodes, determinant, limit_metric_module_check_options
 
   interface expected_nodes
     module procedure expected_nodes_expected_elements, expected_nodes_metric
