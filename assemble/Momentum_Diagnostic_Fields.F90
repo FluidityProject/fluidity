@@ -51,7 +51,7 @@ module momentum_diagnostic_fields
 
 contains
 
-  subroutine calculate_momentum_diagnostics(state, istate, submaterials, submaterials_istate)
+  subroutine calculate_momentum_diagnostics(state, istate, submaterials, submaterials_istate, submaterials_indices)
     !< A subroutine to group together all the diagnostic calculations that
     !< must happen before a momentum solve.
   
@@ -60,9 +60,12 @@ contains
     ! An array of submaterials of the current phase in state(istate).
     type(state_type), dimension(:), intent(inout) :: submaterials
     ! The index of the current phase (i.e. state(istate)) in the submaterials array
-    integer :: submaterials_istate
+    integer, intent(in) :: submaterials_istate
+    integer, dimension(:), intent(in) :: submaterials_indices
     
     ! Local variables  
+    type(state_type), dimension(size(state)) :: calculated_state
+    type(state_type), dimension(size(submaterials)) :: calculated_submaterials
     type(scalar_field), pointer :: bulk_density, buoyancy_density, sfield
     type(vector_field), pointer :: vfield, x, velocity
     type(vector_field) :: prescribed_source
@@ -117,8 +120,10 @@ contains
       if(have_option(trim(vfield%option_path) // "/diagnostic")) then
         if(have_option(trim(vfield%option_path) // "/diagnostic/algorithm::vector_python_diagnostic")) then
           call calculate_diagnostic_variable(state, istate, vfield)
+          call update_calculated_submaterials(calculated_submaterials, calculated_state, submaterials_indices)
         else
           call calculate_diagnostic_variable(submaterials, submaterials_istate, vfield)
+          call update_calculated_state(calculated_state, calculated_submaterials, submaterials_indices)
         end if
       end if
     end if
@@ -191,9 +196,44 @@ contains
        call keps_momentum_diagnostics(state(istate))
     end if
 
+    do i = 1, size(calculated_state)
+      call deallocate(calculated_state(i))
+    end do
+    do i = 1, size(calculated_submaterials)
+      call deallocate(calculated_submaterials(i))
+    end do
+
     ewrite(1,*) 'Exiting calculate_momentum_diagnostics'
     
   end subroutine calculate_momentum_diagnostics
+
+  subroutine update_calculated_state(calculated_state, calculated_submaterials, submaterials_indices)
+    
+    type(state_type), dimension(:), intent(inout) :: calculated_state
+    type(state_type), dimension(:), intent(in) :: calculated_submaterials
+    integer, dimension(:), intent(in) :: submaterials_indices
+
+    integer :: i
+
+    do i = 1, size(calculated_submaterials)
+      calculated_state(submaterials_indices(i)) = calculated_submaterials(i)
+    end do
+
+  end subroutine update_calculated_state
+
+  subroutine update_calculated_submaterials(calculated_submaterials, calculated_state, submaterials_indices)
+    
+    type(state_type), dimension(:), intent(inout) :: calculated_submaterials
+    type(state_type), dimension(:), intent(in) :: calculated_state
+    integer, dimension(:), intent(in) :: submaterials_indices
+
+    integer :: i
+
+    do i = 1, size(calculated_submaterials)
+      calculated_submaterials(i) = calculated_state(submaterials_indices(i))
+    end do
+
+  end subroutine update_calculated_submaterials
 
   subroutine calculate_densities_single_state(state, buoyancy_density, bulk_density, &
                                               momentum_diagnostic)
