@@ -5,9 +5,8 @@
 Adaptive_Timestepping.o ../include/adaptive_timestepping.mod: \
    Adaptive_Timestepping.F90 ../include/diagnostic_fields.mod \
    ../include/fdebug.h ../include/field_options.mod ../include/fields.mod \
-   ../include/fields_data_types.mod ../include/fldebug.mod \
-   ../include/global_parameters.mod ../include/signal_vars.mod \
-   ../include/spud.mod ../include/state_module.mod \
+   ../include/fldebug.mod ../include/global_parameters.mod \
+   ../include/signal_vars.mod ../include/spud.mod ../include/state_module.mod \
    ../include/unittest_tools.mod
 
 ../include/adaptive_interpolation_module.mod: Adaptive_interpolation.o
@@ -16,7 +15,7 @@ Adaptive_Timestepping.o ../include/adaptive_timestepping.mod: \
 Adaptive_interpolation.o ../include/adaptive_interpolation_module.mod: \
    Adaptive_interpolation.F90 ../include/adjacency_lists.mod \
    ../include/elements.mod ../include/fdebug.h ../include/fetools.mod \
-   ../include/fields.mod ../include/futils.mod \
+   ../include/fields.mod ../include/fldebug.mod ../include/futils.mod \
    ../include/intersection_finder_module.mod ../include/linked_lists.mod \
    ../include/meshdiagnostics.mod ../include/quadrature.mod \
    ../include/quicksort.mod ../include/solvers.mod \
@@ -56,8 +55,9 @@ Bound_field.o ../include/bound_field_module.mod: Bound_field.F90 \
 	@true
 
 Boundary_Conditions.o ../include/boundary_conditions.mod: \
-   Boundary_Conditions.F90 ../include/fdebug.h ../include/fields.mod \
-   ../include/fields_data_types.mod ../include/global_parameters.mod \
+   Boundary_Conditions.F90 ../include/fdebug.h ../include/fetools.mod \
+   ../include/fields.mod ../include/fldebug.mod ../include/futils.mod \
+   ../include/global_parameters.mod ../include/parallel_tools.mod \
    ../include/sparse_tools.mod ../include/sparse_tools_petsc.mod \
    ../include/spud.mod ../include/state_module.mod
 
@@ -65,7 +65,7 @@ Boundary_Conditions.o ../include/boundary_conditions.mod: \
 	@true
 
 CGAL_Tools.o ../include/cgal_tools.mod: CGAL_Tools.F90 ../include/fdebug.h \
-   ../include/fields.mod
+   ../include/fields.mod ../include/fldebug.mod
 
 ../include/cvtools.mod: CVTools.o
 	@true
@@ -81,7 +81,8 @@ CVTools.o ../include/cvtools.mod: CVTools.F90 ../include/fdebug.h \
 CV_Face_Values.o ../include/cv_face_values.mod: CV_Face_Values.F90 \
    ../include/cv_faces.mod ../include/cv_options.mod \
    ../include/cv_shape_functions.mod ../include/element_numbering.mod \
-   ../include/fdebug.h ../include/field_derivatives.mod ../include/fields.mod \
+   ../include/elements.mod ../include/fdebug.h \
+   ../include/field_derivatives.mod ../include/fields.mod \
    ../include/fldebug.mod ../include/sparse_tools.mod ../include/spud.mod \
    ../include/state_module.mod ../include/transform_elements.mod \
    ../include/vector_tools.mod
@@ -97,7 +98,8 @@ CV_Faces.o ../include/cv_faces.mod: CV_Faces.F90 ../include/fdebug.h \
 
 CV_Fields.o ../include/cv_fields.mod: CV_Fields.F90 ../include/cvtools.mod \
    ../include/diagnostic_fields.mod ../include/fdebug.h ../include/fields.mod \
-   ../include/fldebug.mod ../include/spud.mod ../include/state_module.mod
+   ../include/fldebug.mod ../include/global_parameters.mod ../include/spud.mod \
+   ../include/state_module.mod
 
 ../include/cv_options.mod: CV_Options.o
 	@true
@@ -120,7 +122,8 @@ CV_Shape_Functions.o ../include/cv_shape_functions.mod: CV_Shape_Functions.F90 \
 CV_Upwind_Values.o ../include/cv_upwind_values.mod: CV_Upwind_Values.F90 \
    ../include/boundary_conditions.mod ../include/cv_faces.mod \
    ../include/cv_options.mod ../include/cv_shape_functions.mod \
-   ../include/cvtools.mod ../include/elements.mod ../include/fdebug.h \
+   ../include/cvtools.mod ../include/element_numbering.mod \
+   ../include/elements.mod ../include/fdebug.h ../include/fetools.mod \
    ../include/field_derivatives.mod ../include/fields.mod \
    ../include/fldebug.mod ../include/global_parameters.mod \
    ../include/quadrature.mod ../include/sparse_tools.mod ../include/spud.mod \
@@ -139,8 +142,8 @@ C_Interfaces_Fortran.o ../include/c_interfaces.mod: C_Interfaces_Fortran.F90 \
 Checkpoint.o ../include/checkpoint.mod: Checkpoint.F90 \
    ../include/detector_data_types.mod ../include/diagnostic_variables.mod \
    ../include/fdebug.h ../include/field_options.mod ../include/fields.mod \
-   ../include/fields_data_types.mod ../include/fldebug.mod \
-   ../include/futils.mod ../include/global_parameters.mod ../include/halos.mod \
+   ../include/fldebug.mod ../include/futils.mod \
+   ../include/global_parameters.mod ../include/halos.mod \
    ../include/mesh_files.mod ../include/mpi_interfaces.mod \
    ../include/parallel_tools.mod ../include/spud.mod \
    ../include/state_module.mod ../include/vtk_interfaces.mod
@@ -151,7 +154,6 @@ Checkpoint.o ../include/checkpoint.mod: Checkpoint.F90 \
 Colouring.o ../include/colouring.mod: Colouring.F90 \
    ../include/data_structures.mod ../include/fdebug.h \
    ../include/field_options.mod ../include/fields.mod \
-   ../include/fields_base.mod ../include/fields_manipulation.mod \
    ../include/global_parameters.mod ../include/sparse_tools.mod \
    ../include/sparsity_patterns_meshes.mod ../include/state_module.mod
 
@@ -162,15 +164,17 @@ Conservative_interpolation.o ../include/conservative_interpolation_module.mod: \
    Conservative_interpolation.F90 ../include/adjacency_lists.mod \
    ../include/bound_field_module.mod ../include/boundary_conditions.mod \
    ../include/data_structures.mod ../include/diagnostic_fields.mod \
-   ../include/elements.mod ../include/fdebug.h ../include/fetools.mod \
+   ../include/element_numbering.mod ../include/elements.mod \
+   ../include/fdebug.h ../include/fetools.mod ../include/field_options.mod \
    ../include/fields.mod ../include/fldebug.mod ../include/futils.mod \
    ../include/global_parameters.mod ../include/halos.mod \
    ../include/interpolation_module.mod \
    ../include/intersection_finder_module.mod ../include/linked_lists.mod \
-   ../include/meshdiagnostics.mod ../include/quadrature.mod \
-   ../include/solvers.mod ../include/sparse_matrices_fields.mod \
-   ../include/sparse_tools.mod ../include/sparsity_patterns.mod \
-   ../include/spud.mod ../include/supermesh_construction.mod \
+   ../include/meshdiagnostics.mod ../include/parallel_fields.mod \
+   ../include/quadrature.mod ../include/solvers.mod \
+   ../include/sparse_matrices_fields.mod ../include/sparse_tools.mod \
+   ../include/sparsity_patterns.mod ../include/spud.mod \
+   ../include/state_module.mod ../include/supermesh_construction.mod \
    ../include/tensors.mod ../include/tetrahedron_intersection_module.mod \
    ../include/transform_elements.mod ../include/unittest_tools.mod \
    ../include/vector_tools.mod ../include/vtk_interfaces.mod
@@ -179,10 +183,12 @@ Conservative_interpolation.o ../include/conservative_interpolation_module.mod: \
 	@true
 
 Coordinates.o ../include/coordinates.mod: Coordinates.F90 ../include/fdebug.h \
-   ../include/fields.mod ../include/fldebug.mod \
+   ../include/fields.mod ../include/fldebug.mod ../include/futils.mod \
    ../include/global_parameters.mod ../include/halos.mod \
-   ../include/halos_base.mod ../include/sparse_tools_petsc.mod \
-   ../include/spud.mod ../include/state_module.mod ../include/vector_tools.mod
+   ../include/halos_base.mod ../include/parallel_fields.mod \
+   ../include/parallel_tools.mod ../include/sparse_tools.mod \
+   ../include/sparse_tools_petsc.mod ../include/spud.mod \
+   ../include/state_module.mod ../include/vector_tools.mod
 
 ../include/dg_interpolation_module.mod: DG_interpolation.o
 	@true
@@ -195,10 +201,10 @@ DG_interpolation.o ../include/dg_interpolation_module.mod: \
    ../include/meshdiagnostics.mod ../include/quadrature.mod \
    ../include/solvers.mod ../include/sparse_matrices_fields.mod \
    ../include/sparse_tools.mod ../include/sparsity_patterns.mod \
-   ../include/spud.mod ../include/supermesh_construction.mod \
-   ../include/tensors.mod ../include/transform_elements.mod \
-   ../include/unittest_tools.mod ../include/vector_tools.mod \
-   ../include/vtk_interfaces.mod
+   ../include/spud.mod ../include/state_module.mod \
+   ../include/supermesh_construction.mod ../include/tensors.mod \
+   ../include/transform_elements.mod ../include/unittest_tools.mod \
+   ../include/vector_tools.mod ../include/vtk_interfaces.mod
 
 ../include/data_structures.mod: Data_structures.o
 	@true
@@ -220,28 +226,32 @@ Detector_Data_Types.o ../include/detector_data_types.mod: \
 Detector_Move_Lagrangian.o ../include/detector_move_lagrangian.mod: \
    Detector_Move_Lagrangian.F90 ../include/detector_data_types.mod \
    ../include/detector_parallel.mod ../include/detector_tools.mod \
-   ../include/fdebug.h ../include/fields.mod ../include/global_parameters.mod \
-   ../include/halo_data_types.mod ../include/halos_base.mod \
-   ../include/integer_hash_table_module.mod ../include/spud.mod \
-   ../include/state_module.mod
+   ../include/fdebug.h ../include/fields.mod ../include/fldebug.mod \
+   ../include/global_parameters.mod ../include/halo_data_types.mod \
+   ../include/halos_base.mod ../include/integer_hash_table_module.mod \
+   ../include/parallel_fields.mod ../include/parallel_tools.mod \
+   ../include/spud.mod ../include/state_module.mod
 
 ../include/detector_parallel.mod: Detector_Parallel.o
 	@true
 
 Detector_Parallel.o ../include/detector_parallel.mod: Detector_Parallel.F90 \
    ../include/detector_data_types.mod ../include/detector_tools.mod \
-   ../include/fdebug.h ../include/fields.mod ../include/halo_data_types.mod \
+   ../include/elements.mod ../include/fdebug.h ../include/fields.mod \
+   ../include/fldebug.mod ../include/futils.mod ../include/halo_data_types.mod \
    ../include/halos_numbering.mod ../include/integer_hash_table_module.mod \
-   ../include/mpi_interfaces.mod ../include/pickers.mod ../include/spud.mod \
+   ../include/mpi_interfaces.mod ../include/parallel_fields.mod \
+   ../include/parallel_tools.mod ../include/pickers.mod ../include/spud.mod \
    ../include/state_module.mod
 
 ../include/detector_tools.mod: Detector_Tools.o
 	@true
 
 Detector_Tools.o ../include/detector_tools.mod: Detector_Tools.F90 \
-   ../include/detector_data_types.mod ../include/fdebug.h \
-   ../include/fields.mod ../include/fldebug.mod \
-   ../include/integer_hash_table_module.mod ../include/spud.mod
+   ../include/detector_data_types.mod ../include/elements.mod \
+   ../include/embed_python.mod ../include/fdebug.h ../include/fields.mod \
+   ../include/fldebug.mod ../include/integer_hash_table_module.mod \
+   ../include/spud.mod
 
 ../include/dgtools.mod: Dgtools.o
 	@true
@@ -249,9 +259,10 @@ Detector_Tools.o ../include/detector_tools.mod: Detector_Tools.F90 \
 Dgtools.o ../include/dgtools.mod: Dgtools.F90 \
    ../include/boundary_conditions.mod ../include/elements.mod \
    ../include/fdebug.h ../include/fetools.mod ../include/fields.mod \
-   ../include/fields_data_types.mod ../include/halos_base.mod \
-   ../include/sparse_tools.mod ../include/sparsity_patterns.mod \
-   ../include/transform_elements.mod ../include/vector_tools.mod
+   ../include/fields_data_types.mod ../include/fldebug.mod \
+   ../include/futils.mod ../include/halos_base.mod ../include/sparse_tools.mod \
+   ../include/sparsity_patterns.mod ../include/transform_elements.mod \
+   ../include/vector_tools.mod
 
 ../include/diagnostic_fields.mod: Diagnostic_Fields.o
 	@true
@@ -262,15 +273,16 @@ Diagnostic_Fields.o ../include/diagnostic_fields.mod: Diagnostic_Fields.F90 \
    ../include/cv_shape_functions.mod ../include/cv_upwind_values.mod \
    ../include/cvtools.mod ../include/fdebug.h ../include/fefields.mod \
    ../include/fetools.mod ../include/field_derivatives.mod \
-   ../include/field_options.mod ../include/fields.mod ../include/futils.mod \
-   ../include/global_parameters.mod ../include/halos.mod \
+   ../include/field_options.mod ../include/fields.mod ../include/fldebug.mod \
+   ../include/futils.mod ../include/global_parameters.mod ../include/halos.mod \
    ../include/interpolation_module.mod ../include/meshdiagnostics.mod \
    ../include/parallel_tools.mod ../include/quicksort.mod \
    ../include/solvers.mod ../include/sparse_matrices_fields.mod \
-   ../include/sparsity_patterns.mod ../include/sparsity_patterns_meshes.mod \
-   ../include/spud.mod ../include/state_fields_module.mod \
-   ../include/state_module.mod ../include/streamfunction.mod \
-   ../include/unittest_tools.mod ../include/vector_tools.mod
+   ../include/sparse_tools.mod ../include/sparsity_patterns.mod \
+   ../include/sparsity_patterns_meshes.mod ../include/spud.mod \
+   ../include/state_fields_module.mod ../include/state_module.mod \
+   ../include/streamfunction.mod ../include/unittest_tools.mod \
+   ../include/vector_tools.mod
 
 ../include/diagnostic_variables.mod: Diagnostic_variables.o
 	@true
@@ -283,23 +295,24 @@ Diagnostic_variables.o ../include/diagnostic_variables.mod: \
    ../include/embed_python.mod ../include/eventcounter.mod ../include/fdebug.h \
    ../include/fefields.mod ../include/fetools.mod \
    ../include/field_derivatives.mod ../include/field_options.mod \
-   ../include/fields.mod ../include/fields_base.mod \
-   ../include/fields_manipulation.mod ../include/futils.mod \
-   ../include/global_parameters.mod ../include/halo_data_types.mod \
-   ../include/halos_allocates.mod ../include/halos_base.mod \
-   ../include/halos_communications.mod ../include/halos_debug.mod \
-   ../include/halos_derivation.mod ../include/halos_numbering.mod \
-   ../include/halos_ownership.mod ../include/halos_registration.mod \
-   ../include/ieee_arithmetic.mod ../include/integer_hash_table_module.mod \
+   ../include/fields.mod ../include/fields_base.mod ../include/fldebug.mod \
+   ../include/futils.mod ../include/global_parameters.mod \
+   ../include/halo_data_types.mod ../include/halos_allocates.mod \
+   ../include/halos_base.mod ../include/halos_communications.mod \
+   ../include/halos_debug.mod ../include/halos_derivation.mod \
+   ../include/halos_numbering.mod ../include/halos_ownership.mod \
+   ../include/halos_registration.mod ../include/ieee_arithmetic.mod \
+   ../include/integer_hash_table_module.mod ../include/linked_lists.mod \
    ../include/memory_diagnostics.mod ../include/meshdiagnostics.mod \
    ../include/mixing_statistics.mod ../include/mpi_interfaces.mod \
-   ../include/parallel_tools.mod ../include/pickers.mod \
-   ../include/profiler.mod ../include/quadrature.mod ../include/solvers.mod \
-   ../include/sparse_tools.mod ../include/sparsity_patterns.mod \
-   ../include/spud.mod ../include/state_fields_module.mod \
-   ../include/state_module.mod ../include/surface_integrals.mod \
-   ../include/unittest_tools.mod ../include/version.h \
-   ../include/vtk_interfaces.mod ../include/write_state_module.mod
+   ../include/parallel_fields.mod ../include/parallel_tools.mod \
+   ../include/pickers.mod ../include/profiler.mod ../include/quadrature.mod \
+   ../include/solvers.mod ../include/sparse_tools.mod \
+   ../include/sparsity_patterns.mod ../include/spud.mod \
+   ../include/state_fields_module.mod ../include/state_module.mod \
+   ../include/surface_integrals.mod ../include/unittest_tools.mod \
+   ../include/version.h ../include/vtk_interfaces.mod \
+   ../include/write_state_module.mod
 
 ../include/dynamic_bin_sort_module.mod: Dynamic_Bin_Sort.o
 	@true
@@ -356,7 +369,8 @@ Exodusii_F_Interface.o ../include/exodusii_f_interface.mod: \
 FEFields.o ../include/fefields.mod: FEFields.F90 \
    ../include/data_structures.mod ../include/element_numbering.mod \
    ../include/elements.mod ../include/fdebug.h ../include/fetools.mod \
-   ../include/field_options.mod ../include/fields.mod ../include/halos.mod \
+   ../include/field_options.mod ../include/fields.mod ../include/fldebug.mod \
+   ../include/halos.mod ../include/parallel_tools.mod \
    ../include/sparse_matrices_fields.mod ../include/sparse_tools.mod \
    ../include/state_module.mod ../include/transform_elements.mod
 
@@ -365,6 +379,7 @@ FEFields.o ../include/fefields.mod: FEFields.F90 \
 
 FETools.o ../include/fetools.mod: FETools.F90 ../include/elements.mod \
    ../include/fdebug.h ../include/fields_base.mod \
+   ../include/fields_data_types.mod ../include/fldebug.mod \
    ../include/transform_elements.mod
 
 ../include/field_options.mod: Field_Options.o
@@ -377,7 +392,7 @@ Field_Options.o ../include/field_options.mod: Field_Options.F90 \
    ../include/fields_manipulation.mod ../include/fldebug.mod \
    ../include/futils.mod ../include/global_parameters.mod \
    ../include/metric_tools.mod ../include/quadrature.mod ../include/spud.mod \
-   ../include/state_module.mod
+   ../include/state_module.mod ../include/transform_elements.mod
 
 ../include/field_derivatives.mod: Field_derivatives.o
 	@true
@@ -385,9 +400,11 @@ Field_Options.o ../include/field_options.mod: Field_Options.F90 \
 Field_derivatives.o ../include/field_derivatives.mod: Field_derivatives.F90 \
    ../include/boundary_conditions.mod ../include/elements.mod \
    ../include/eventcounter.mod ../include/fdebug.h ../include/fetools.mod \
-   ../include/fields.mod ../include/halos.mod ../include/node_boundary.mod \
-   ../include/state_module.mod ../include/superconvergence.mod \
-   ../include/surfacelabels.mod ../include/transform_elements.mod \
+   ../include/fields.mod ../include/fldebug.mod ../include/halos.mod \
+   ../include/node_boundary.mod ../include/parallel_fields.mod \
+   ../include/sparse_tools.mod ../include/state_module.mod \
+   ../include/superconvergence.mod ../include/surfacelabels.mod \
+   ../include/tensors.mod ../include/transform_elements.mod \
    ../include/vector_set.mod ../include/vector_tools.mod \
    ../include/vtk_interfaces.mod
 
@@ -404,13 +421,16 @@ Fields.o ../include/fields.mod: Fields.F90 ../include/fdebug.h \
 
 Fields_Allocates.o ../include/fields_allocates.mod: Fields_Allocates.F90 \
    ../include/adjacency_lists.mod ../include/data_structures.mod \
-   ../include/elements.mod ../include/fdebug.h ../include/fields_base.mod \
-   ../include/fields_data_types.mod ../include/global_numbering.mod \
+   ../include/element_numbering.mod ../include/elements.mod \
+   ../include/fdebug.h ../include/fields_base.mod \
+   ../include/fields_data_types.mod ../include/fldebug.mod \
+   ../include/futils.mod ../include/global_numbering.mod \
    ../include/global_parameters.mod ../include/halo_data_types.mod \
    ../include/halos_allocates.mod ../include/halos_repair.mod \
    ../include/ieee_arithmetic.mod ../include/memory_diagnostics.mod \
    ../include/parallel_tools.mod ../include/pickers_deallocates.mod \
-   ../include/shape_functions.mod Reference_count_interface_mesh_type.F90 \
+   ../include/quadrature.mod ../include/shape_functions.mod \
+   ../include/sparse_tools.mod Reference_count_interface_mesh_type.F90 \
    Reference_count_interface_scalar_field.F90 \
    Reference_count_interface_tensor_field.F90 \
    Reference_count_interface_vector_field.F90 Reference_count_mesh_type.F90 \
@@ -423,7 +443,8 @@ Fields_Allocates.o ../include/fields_allocates.mod: Fields_Allocates.F90 \
 Fields_Base.o ../include/fields_base.mod: Fields_Base.F90 \
    ../include/element_numbering.mod ../include/elements.mod \
    ../include/embed_python.mod ../include/fdebug.h \
-   ../include/fields_data_types.mod ../include/global_parameters.mod \
+   ../include/fields_data_types.mod ../include/fldebug.mod \
+   ../include/futils.mod ../include/global_parameters.mod \
    ../include/reference_counting.mod ../include/shape_functions.mod \
    ../include/sparse_tools.mod ../include/tensors.mod \
    ../include/vector_tools.mod
@@ -435,10 +456,11 @@ Fields_Calculations.o ../include/fields_calculations.mod: \
    Fields_Calculations.F90 ../include/elements.mod ../include/fdebug.h \
    ../include/fetools.mod ../include/fields_allocates.mod \
    ../include/fields_base.mod ../include/fields_data_types.mod \
-   ../include/fields_manipulation.mod \
+   ../include/fields_manipulation.mod ../include/fldebug.mod \
    ../include/intersection_finder_module.mod ../include/linked_lists.mod \
    ../include/parallel_fields.mod ../include/parallel_tools.mod \
-   ../include/supermesh_construction.mod ../include/vector_tools.mod
+   ../include/quadrature.mod ../include/supermesh_construction.mod \
+   ../include/vector_tools.mod
 
 ../include/fields_data_types.mod: Fields_Data_Types.o
 	@true
@@ -455,22 +477,24 @@ Fields_Data_Types.o ../include/fields_data_types.mod: Fields_Data_Types.F90 \
 
 Fields_Halos.o ../include/fields_halos.mod: Fields_Halos.F90 \
    ../include/data_structures.mod ../include/fdebug.h ../include/fields.mod \
-   ../include/halos.mod
+   ../include/fldebug.mod ../include/halos.mod ../include/parallel_tools.mod
 
 ../include/fields_manipulation.mod: Fields_Manipulation.o
 	@true
 
 Fields_Manipulation.o ../include/fields_manipulation.mod: \
    Fields_Manipulation.F90 ../include/data_structures.mod \
-   ../include/element_set.mod ../include/elements.mod \
-   ../include/embed_python.mod ../include/fdebug.h \
+   ../include/element_numbering.mod ../include/element_set.mod \
+   ../include/elements.mod ../include/embed_python.mod ../include/fdebug.h \
    ../include/fields_allocates.mod ../include/fields_base.mod \
-   ../include/fields_data_types.mod ../include/halo_data_types.mod \
+   ../include/fields_data_types.mod ../include/fldebug.mod \
+   ../include/futils.mod ../include/halo_data_types.mod \
    ../include/halos_allocates.mod ../include/halos_base.mod \
    ../include/halos_debug.mod ../include/halos_numbering.mod \
    ../include/halos_ownership.mod ../include/halos_repair.mod \
    ../include/memory_diagnostics.mod ../include/parallel_tools.mod \
-   ../include/quicksort.mod ../include/vector_tools.mod
+   ../include/quicksort.mod ../include/sparse_tools.mod \
+   ../include/vector_tools.mod
 
 ../include/futils.mod: Futils.o
 	@true
@@ -487,14 +511,15 @@ GMSH_Common.o ../include/gmsh_common.mod: GMSH_Common.F90
 	@true
 
 Generic_interface.o ../include/generic_interface.mod: Generic_interface.F90 \
-   ../include/fdebug.h ../include/fields.mod
+   ../include/fdebug.h ../include/fields.mod ../include/fldebug.mod
 
 ../include/global_numbering.mod: Global_Numbering.o
 	@true
 
 Global_Numbering.o ../include/global_numbering.mod: Global_Numbering.F90 \
-   ../include/adjacency_lists.mod ../include/elements.mod ../include/fdebug.h \
-   ../include/fields_base.mod ../include/fldebug.mod \
+   ../include/adjacency_lists.mod ../include/element_numbering.mod \
+   ../include/elements.mod ../include/fdebug.h ../include/fields_base.mod \
+   ../include/fields_data_types.mod ../include/fldebug.mod \
    ../include/halo_data_types.mod ../include/halos_allocates.mod \
    ../include/halos_base.mod ../include/halos_debug.mod \
    ../include/halos_numbering.mod ../include/halos_ownership.mod \
@@ -573,10 +598,10 @@ Halos_Debug.o ../include/halos_debug.mod: Halos_Debug.F90 ../include/fdebug.h \
 	@true
 
 Halos_Derivation.o ../include/halos_derivation.mod: Halos_Derivation.F90 \
-   ../include/data_structures.mod ../include/fdebug.h \
+   ../include/data_structures.mod ../include/elements.mod ../include/fdebug.h \
    ../include/fields_allocates.mod ../include/fields_base.mod \
    ../include/fields_data_types.mod ../include/fields_manipulation.mod \
-   ../include/fldebug.mod ../include/halo_data_types.mod \
+   ../include/fldebug.mod ../include/futils.mod ../include/halo_data_types.mod \
    ../include/halos_allocates.mod ../include/halos_base.mod \
    ../include/halos_communications.mod ../include/halos_debug.mod \
    ../include/halos_numbering.mod ../include/halos_ownership.mod \
@@ -635,10 +660,11 @@ Halos_Registration.o ../include/halos_registration.mod: Halos_Registration.F90 \
 Halos_Repair.o ../include/halos_repair.mod: Halos_Repair.F90 \
    ../include/fdebug.h ../include/fields_base.mod \
    ../include/fields_data_types.mod ../include/fldebug.mod \
-   ../include/halo_data_types.mod ../include/halos_base.mod \
-   ../include/halos_debug.mod ../include/halos_numbering.mod \
-   ../include/halos_ownership.mod ../include/mpi_interfaces.mod \
-   ../include/parallel_tools.mod ../include/quicksort.mod
+   ../include/futils.mod ../include/halo_data_types.mod \
+   ../include/halos_base.mod ../include/halos_debug.mod \
+   ../include/halos_numbering.mod ../include/halos_ownership.mod \
+   ../include/mpi_interfaces.mod ../include/parallel_tools.mod \
+   ../include/quicksort.mod
 
 ../include/integer_hash_table_module.mod: Integer_hash_table.o
 	@true
@@ -657,11 +683,12 @@ Integer_set.o ../include/integer_set_module.mod: Integer_set.F90 \
 
 Interpolation.o ../include/interpolation_module.mod: Interpolation.F90 \
    ../include/fdebug.h ../include/field_derivatives.mod \
-   ../include/field_options.mod ../include/fields.mod ../include/futils.mod \
-   ../include/meshdiagnostics.mod ../include/node_ownership.mod \
-   ../include/parallel_fields.mod ../include/sparse_tools.mod \
-   ../include/state_module.mod ../include/superconvergence.mod \
-   ../include/supermesh_construction.mod ../include/transform_elements.mod
+   ../include/field_options.mod ../include/fields.mod ../include/fldebug.mod \
+   ../include/futils.mod ../include/meshdiagnostics.mod \
+   ../include/node_ownership.mod ../include/parallel_fields.mod \
+   ../include/sparse_tools.mod ../include/state_module.mod \
+   ../include/superconvergence.mod ../include/supermesh_construction.mod \
+   ../include/transform_elements.mod
 
 ../include/intersection_finder_module.mod: Intersection_finder.o
 	@true
@@ -670,19 +697,22 @@ Intersection_finder.o ../include/intersection_finder_module.mod: \
    Intersection_finder.F90 ../include/adjacency_lists.mod \
    ../include/data_structures.mod ../include/elements.mod ../include/fdebug.h \
    ../include/fields_allocates.mod ../include/fields_base.mod \
-   ../include/fields_data_types.mod ../include/linked_lists.mod \
-   ../include/parallel_fields.mod ../include/parallel_tools.mod \
-   ../include/quadrature.mod ../include/supermesh_construction.mod \
+   ../include/fields_data_types.mod ../include/fldebug.mod \
+   ../include/linked_lists.mod ../include/parallel_fields.mod \
+   ../include/parallel_tools.mod ../include/quadrature.mod \
+   ../include/sparse_tools.mod ../include/supermesh_construction.mod \
    ../include/transform_elements.mod
 
 ../include/lagrangian_remap.mod: Lagrangian_Remap.o
 	@true
 
 Lagrangian_Remap.o ../include/lagrangian_remap.mod: Lagrangian_Remap.F90 \
-   ../include/conservative_interpolation_module.mod ../include/fields.mod \
+   ../include/conservative_interpolation_module.mod ../include/elements.mod \
+   ../include/fetools.mod ../include/fields.mod ../include/futils.mod \
    ../include/interpolation_module.mod ../include/solvers.mod \
    ../include/sparse_matrices_fields.mod ../include/sparse_tools.mod \
-   ../include/sparsity_patterns.mod ../include/vtk_interfaces.mod
+   ../include/sparsity_patterns.mod ../include/state_module.mod \
+   ../include/transform_elements.mod ../include/vtk_interfaces.mod
 
 ../include/linked_lists.mod: Linked_Lists.o
 	@true
@@ -700,8 +730,8 @@ MPI_Interfaces.o ../include/mpi_interfaces.mod: MPI_Interfaces.F90 \
 	@true
 
 Matrix_Norms.o ../include/matrix_norms.mod: Matrix_Norms.F90 \
-   ../include/fdebug.h ../include/fields.mod ../include/node_boundary.mod \
-   ../include/vector_tools.mod
+   ../include/fdebug.h ../include/fields.mod ../include/fldebug.mod \
+   ../include/node_boundary.mod ../include/vector_tools.mod
 
 ../include/memory_diagnostics.mod: Memory_Diagnostics.o
 	@true
@@ -714,26 +744,27 @@ Memory_Diagnostics.o ../include/memory_diagnostics.mod: Memory_Diagnostics.F90 \
 	@true
 
 Merge_tensors.o ../include/merge_tensors.mod: Merge_tensors.F90 \
-   ../include/fdebug.h ../include/fields.mod ../include/metric_tools.mod \
-   ../include/unittest_tools.mod ../include/vector_tools.mod
+   ../include/fdebug.h ../include/fields.mod ../include/fldebug.mod \
+   ../include/metric_tools.mod ../include/unittest_tools.mod \
+   ../include/vector_tools.mod
 
 ../include/meshdiagnostics.mod: MeshDiagnostics.o
 	@true
 
 MeshDiagnostics.o ../include/meshdiagnostics.mod: MeshDiagnostics.F90 \
    ../include/elements.mod ../include/fdebug.h ../include/fields_base.mod \
-   ../include/fldebug.mod ../include/parallel_fields.mod \
-   ../include/parallel_tools.mod ../include/spud.mod \
-   ../include/transform_elements.mod
+   ../include/fields_data_types.mod ../include/fldebug.mod \
+   ../include/parallel_fields.mod ../include/parallel_tools.mod \
+   ../include/spud.mod ../include/transform_elements.mod
 
 ../include/mesh_files.mod: Mesh_Files.o
 	@true
 
 Mesh_Files.o ../include/mesh_files.mod: Mesh_Files.F90 ../include/elements.mod \
-   ../include/fdebug.h ../include/fields.mod ../include/futils.mod \
-   ../include/global_parameters.mod ../include/gmsh_common.mod \
-   ../include/read_exodusii.mod ../include/read_gmsh.mod \
-   ../include/read_triangle.mod ../include/spud.mod \
+   ../include/fdebug.h ../include/fields.mod ../include/fldebug.mod \
+   ../include/futils.mod ../include/global_parameters.mod \
+   ../include/gmsh_common.mod ../include/read_exodusii.mod \
+   ../include/read_gmsh.mod ../include/read_triangle.mod ../include/spud.mod \
    ../include/state_module.mod ../include/write_gmsh.mod \
    ../include/write_triangle.mod
 
@@ -741,23 +772,25 @@ Mesh_Files.o ../include/mesh_files.mod: Mesh_Files.F90 ../include/elements.mod \
 	@true
 
 Metric_tools.o ../include/metric_tools.mod: Metric_tools.F90 \
-   ../include/fdebug.h ../include/fields_allocates.mod \
-   ../include/fields_base.mod ../include/fields_data_types.mod \
-   ../include/fields_manipulation.mod ../include/fldebug.mod \
-   ../include/spud.mod ../include/unittest_tools.mod \
+   ../include/element_numbering.mod ../include/fdebug.h \
+   ../include/fields_allocates.mod ../include/fields_base.mod \
+   ../include/fields_data_types.mod ../include/fields_manipulation.mod \
+   ../include/fldebug.mod ../include/spud.mod ../include/unittest_tools.mod \
    ../include/vector_tools.mod
 
 ../include/mixing_statistics.mod: Mixing_Statistics.o
 	@true
 
 Mixing_Statistics.o ../include/mixing_statistics.mod: Mixing_Statistics.F90 \
-   ../include/elements.mod ../include/embed_python.mod ../include/fdebug.h \
-   ../include/fefields.mod ../include/fetools.mod \
-   ../include/field_derivatives.mod ../include/field_options.mod \
-   ../include/fields.mod ../include/futils.mod \
-   ../include/global_parameters.mod ../include/halos.mod \
-   ../include/meshdiagnostics.mod ../include/spud.mod \
-   ../include/state_module.mod ../include/unittest_tools.mod
+   ../include/element_numbering.mod ../include/elements.mod \
+   ../include/embed_python.mod ../include/fdebug.h ../include/fefields.mod \
+   ../include/fetools.mod ../include/field_derivatives.mod \
+   ../include/field_options.mod ../include/fields.mod ../include/fldebug.mod \
+   ../include/futils.mod ../include/global_parameters.mod ../include/halos.mod \
+   ../include/meshdiagnostics.mod ../include/parallel_fields.mod \
+   ../include/parallel_tools.mod ../include/spud.mod \
+   ../include/state_module.mod ../include/unittest_tools.mod \
+   ../include/vector_tools.mod
 
 ../include/multigrid.mod: Multigrid.o
 	@true
@@ -773,8 +806,10 @@ Multigrid.o ../include/multigrid.mod: Multigrid.F90 ../include/fdebug.h \
 
 Node_Owner_Finder_Fortran.o ../include/node_owner_finder.mod: \
    Node_Owner_Finder_Fortran.F90 ../include/data_structures.mod \
-   ../include/fdebug.h ../include/fields.mod ../include/fldebug.mod \
-   ../include/global_parameters.mod ../include/mpi_interfaces.mod
+   ../include/element_numbering.mod ../include/fdebug.h ../include/fields.mod \
+   ../include/fldebug.mod ../include/futils.mod \
+   ../include/global_parameters.mod ../include/mpi_interfaces.mod \
+   ../include/parallel_fields.mod ../include/parallel_tools.mod
 
 ../include/node_ownership.mod: Node_Ownership.o
 	@true
@@ -782,15 +817,17 @@ Node_Owner_Finder_Fortran.o ../include/node_owner_finder.mod: \
 Node_Ownership.o ../include/node_ownership.mod: Node_Ownership.F90 \
    ../include/adjacency_lists.mod ../include/data_structures.mod \
    ../include/fdebug.h ../include/fields.mod ../include/fldebug.mod \
-   ../include/linked_lists.mod ../include/node_owner_finder.mod \
-   ../include/pickers.mod ../include/sparse_tools.mod
+   ../include/intersection_finder_module.mod ../include/linked_lists.mod \
+   ../include/node_owner_finder.mod ../include/pickers.mod \
+   ../include/sparse_tools.mod
 
 ../include/node_boundary.mod: Node_boundary.o
 	@true
 
 Node_boundary.o ../include/node_boundary.mod: Node_boundary.F90 \
-   ../include/eventcounter.mod ../include/fdebug.h ../include/fields.mod \
-   ../include/linked_lists.mod ../include/surfacelabels.mod
+   ../include/elements.mod ../include/eventcounter.mod ../include/fdebug.h \
+   ../include/fields.mod ../include/fldebug.mod ../include/linked_lists.mod \
+   ../include/surfacelabels.mod
 
 ../include/parallel_tools.mod: Parallel_Tools.o
 	@true
@@ -803,9 +840,10 @@ Parallel_Tools.o ../include/parallel_tools.mod: Parallel_Tools.F90 \
 	@true
 
 Parallel_fields.o ../include/parallel_fields.mod: Parallel_fields.F90 \
-   ../include/fdebug.h ../include/fields_allocates.mod \
+   ../include/elements.mod ../include/fdebug.h ../include/fields_allocates.mod \
    ../include/fields_base.mod ../include/fields_data_types.mod \
-   ../include/fields_manipulation.mod ../include/halo_data_types.mod \
+   ../include/fields_manipulation.mod ../include/fldebug.mod \
+   ../include/futils.mod ../include/halo_data_types.mod \
    ../include/halos_base.mod ../include/halos_communications.mod \
    ../include/halos_numbering.mod ../include/halos_ownership.mod \
    ../include/mpi_interfaces.mod ../include/parallel_tools.mod
@@ -814,12 +852,14 @@ Parallel_fields.o ../include/parallel_fields.mod: Parallel_fields.F90 \
 	@true
 
 Petsc_Tools.o ../include/petsc_tools.mod: Petsc_Tools.F90 ../include/fdebug.h \
-   ../include/fields_base.mod ../include/fields_manipulation.mod \
-   ../include/fldebug.mod ../include/halo_data_types.mod \
-   ../include/halos_base.mod ../include/halos_communications.mod \
-   ../include/halos_numbering.mod ../include/parallel_tools.mod \
-   ../include/petsc_legacy.h ../include/profiler.mod \
-   ../include/reference_counting.mod ../include/sparse_tools.mod \
+   ../include/fields_base.mod ../include/fields_data_types.mod \
+   ../include/fields_manipulation.mod ../include/fldebug.mod \
+   ../include/futils.mod ../include/global_parameters.mod \
+   ../include/halo_data_types.mod ../include/halos_base.mod \
+   ../include/halos_communications.mod ../include/halos_numbering.mod \
+   ../include/parallel_tools.mod ../include/petsc_legacy.h \
+   ../include/profiler.mod ../include/reference_counting.mod \
+   ../include/sparse_tools.mod \
    Reference_count_interface_petsc_numbering_type.F90 \
    Reference_count_petsc_numbering_type.F90
 
@@ -870,8 +910,9 @@ Pickers_Deallocates.o ../include/pickers_deallocates.mod: \
 
 Pickers_Inquire.o ../include/pickers_inquire.mod: Pickers_Inquire.F90 \
    ../include/data_structures.mod ../include/detector_data_types.mod \
-   ../include/fdebug.h ../include/fields.mod ../include/fldebug.mod \
-   ../include/node_owner_finder.mod ../include/picker_data_types.mod \
+   ../include/element_numbering.mod ../include/fdebug.h ../include/fields.mod \
+   ../include/fldebug.mod ../include/node_owner_finder.mod \
+   ../include/parallel_tools.mod ../include/picker_data_types.mod \
    ../include/pickers_allocates.mod ../include/pickers_base.mod
 
 ../include/polynomials.mod: Polynomials.o
@@ -921,24 +962,28 @@ Quadrature_Test.o ../include/quadrature_test.mod: Quadrature_Test.F90 \
 Read_Exodusii.o ../include/read_exodusii.mod: Read_Exodusii.F90 \
    ../include/elements.mod ../include/exodusii_common.mod \
    ../include/exodusii_f_interface.mod ../include/fdebug.h \
-   ../include/fields.mod ../include/futils.mod \
-   ../include/global_parameters.mod ../include/spud.mod \
-   ../include/state_module.mod ../include/vtk_interfaces.mod
+   ../include/fields.mod ../include/fldebug.mod ../include/futils.mod \
+   ../include/global_parameters.mod ../include/parallel_tools.mod \
+   ../include/quadrature.mod ../include/spud.mod ../include/state_module.mod \
+   ../include/vtk_interfaces.mod
 
 ../include/read_gmsh.mod: Read_GMSH.o
 	@true
 
 Read_GMSH.o ../include/read_gmsh.mod: Read_GMSH.F90 ../include/elements.mod \
-   ../include/fdebug.h ../include/fields.mod ../include/futils.mod \
-   ../include/global_parameters.mod ../include/gmsh_common.mod \
-   ../include/spud.mod ../include/state_module.mod
+   ../include/fdebug.h ../include/fields.mod ../include/fldebug.mod \
+   ../include/futils.mod ../include/global_parameters.mod \
+   ../include/gmsh_common.mod ../include/parallel_tools.mod \
+   ../include/quadrature.mod ../include/spud.mod ../include/state_module.mod
 
 ../include/read_triangle.mod: Read_Triangle.o
 	@true
 
 Read_Triangle.o ../include/read_triangle.mod: Read_Triangle.F90 \
-   ../include/elements.mod ../include/fdebug.h ../include/fields.mod \
-   ../include/futils.mod ../include/spud.mod ../include/state_module.mod
+   ../include/element_numbering.mod ../include/elements.mod \
+   ../include/fdebug.h ../include/fields.mod ../include/fldebug.mod \
+   ../include/futils.mod ../include/parallel_tools.mod \
+   ../include/quadrature.mod ../include/spud.mod ../include/state_module.mod
 
 ../include/reference_counting.mod: Reference_Counting.o
 	@true
@@ -951,10 +996,11 @@ Reference_Counting.o ../include/reference_counting.mod: Reference_Counting.F90 \
 
 Rotated_Boundary_Conditions.o ../include/rotated_boundary_conditions.mod: \
    Rotated_Boundary_Conditions.F90 ../include/boundary_conditions.mod \
-   ../include/fdebug.h ../include/fields.mod ../include/global_parameters.mod \
-   ../include/halos.mod ../include/halos_base.mod \
-   ../include/sparse_tools_petsc.mod ../include/spud.mod \
-   ../include/state_module.mod
+   ../include/fdebug.h ../include/fields.mod ../include/fldebug.mod \
+   ../include/global_parameters.mod ../include/halos.mod \
+   ../include/parallel_fields.mod ../include/parallel_tools.mod \
+   ../include/sparse_tools.mod ../include/sparse_tools_petsc.mod \
+   ../include/spud.mod ../include/state_module.mod
 
 ../include/samplenetcdf.mod: SampleNetCDF_fortran.o
 	@true
@@ -969,7 +1015,7 @@ Shape_Functions.o ../include/shape_functions.mod: Shape_Functions.F90 \
    ../include/element_numbering.mod ../include/elements.mod \
    ../include/fdebug.h ../include/fldebug.mod ../include/futils.mod \
    ../include/ieee_arithmetic.mod ../include/polynomials.mod \
-   ../include/superconvergence.mod
+   ../include/quadrature.mod ../include/superconvergence.mod
 
 ../include/shape_functions_test.mod: Shape_Functions_Test.o
 	@true
@@ -992,8 +1038,9 @@ Signals.o ../include/signals.mod: Signals.F90 ../include/signal_vars.mod
 	@true
 
 Smoothing_module.o ../include/smoothing_module.mod: Smoothing_module.F90 \
-   ../include/boundary_conditions.mod ../include/fdebug.h \
-   ../include/fields.mod ../include/global_parameters.mod \
+   ../include/boundary_conditions.mod ../include/element_numbering.mod \
+   ../include/fdebug.h ../include/fetools.mod ../include/fields.mod \
+   ../include/fldebug.mod ../include/global_parameters.mod \
    ../include/metric_tools.mod ../include/solvers.mod \
    ../include/sparse_tools.mod ../include/sparsity_patterns.mod \
    ../include/state_module.mod
@@ -1003,7 +1050,7 @@ Smoothing_module.o ../include/smoothing_module.mod: Smoothing_module.F90 \
 
 Solvers.o ../include/solvers.mod: Solvers.F90 ../include/elements.mod \
    ../include/fdebug.h ../include/fields.mod ../include/fldebug.mod \
-   ../include/global_parameters.mod ../include/halos.mod \
+   ../include/futils.mod ../include/global_parameters.mod ../include/halos.mod \
    ../include/meshdiagnostics.mod ../include/multigrid.mod \
    ../include/parallel_tools.mod ../include/petsc_legacy.h \
    ../include/petsc_tools.mod ../include/profiler.mod \
@@ -1016,7 +1063,7 @@ Solvers.o ../include/solvers.mod: Solvers.F90 ../include/elements.mod \
 
 Sparse_Matrices_Fields.o ../include/sparse_matrices_fields.mod: \
    Sparse_Matrices_Fields.F90 ../include/c_interfaces.mod ../include/fdebug.h \
-   ../include/fields.mod ../include/sparse_tools.mod \
+   ../include/fields.mod ../include/fldebug.mod ../include/sparse_tools.mod \
    ../include/sparse_tools_petsc.mod
 
 ../include/sparse_tools.mod: Sparse_Tools.o
@@ -1042,11 +1089,13 @@ Sparse_Tools.o ../include/sparse_tools.mod: Sparse_Tools.F90 \
 
 Sparse_Tools_Petsc.o ../include/sparse_tools_petsc.mod: Sparse_Tools_Petsc.F90 \
    ../include/fdebug.h ../include/fields_base.mod \
-   ../include/fields_manipulation.mod ../include/fldebug.mod \
-   ../include/halo_data_types.mod ../include/halos_allocates.mod \
-   ../include/parallel_tools.mod ../include/petsc_legacy.h \
-   ../include/petsc_tools.mod ../include/reference_counting.mod \
-   ../include/sparse_tools.mod Reference_count_interface_petsc_csr_matrix.F90 \
+   ../include/fields_data_types.mod ../include/fields_manipulation.mod \
+   ../include/fldebug.mod ../include/futils.mod \
+   ../include/global_parameters.mod ../include/halo_data_types.mod \
+   ../include/halos_allocates.mod ../include/parallel_tools.mod \
+   ../include/petsc_legacy.h ../include/petsc_tools.mod \
+   ../include/reference_counting.mod ../include/sparse_tools.mod \
+   Reference_count_interface_petsc_csr_matrix.F90 \
    Reference_count_petsc_csr_matrix.F90
 
 ../include/sparsity_patterns.mod: Sparsity_Patterns.o
@@ -1054,7 +1103,8 @@ Sparse_Tools_Petsc.o ../include/sparse_tools_petsc.mod: Sparse_Tools_Petsc.F90 \
 
 Sparsity_Patterns.o ../include/sparsity_patterns.mod: Sparsity_Patterns.F90 \
    ../include/elements.mod ../include/fdebug.h ../include/fields_base.mod \
-   ../include/linked_lists.mod
+   ../include/fields_data_types.mod ../include/fldebug.mod \
+   ../include/linked_lists.mod ../include/sparse_tools.mod
 
 ../include/sparsity_patterns_meshes.mod: Sparsity_Patterns_Meshes.o
 	@true
@@ -1071,10 +1121,11 @@ Sparsity_Patterns_Meshes.o ../include/sparsity_patterns_meshes.mod: \
 State.o ../include/state_module.mod: State.F90 ../include/fdebug.h \
    ../include/fields_allocates.mod ../include/fields_base.mod \
    ../include/fields_data_types.mod ../include/fields_manipulation.mod \
-   ../include/futils.mod ../include/global_parameters.mod \
-   ../include/halo_data_types.mod ../include/halos_allocates.mod \
-   ../include/halos_communications.mod ../include/linked_lists.mod \
-   ../include/sparse_tools.mod ../include/sparse_tools_petsc.mod
+   ../include/fldebug.mod ../include/futils.mod \
+   ../include/global_parameters.mod ../include/halo_data_types.mod \
+   ../include/halos_allocates.mod ../include/halos_communications.mod \
+   ../include/linked_lists.mod ../include/sparse_tools.mod \
+   ../include/sparse_tools_petsc.mod
 
 ../include/state_fields_module.mod: State_Fields.o
 	@true
@@ -1082,15 +1133,17 @@ State.o ../include/state_module.mod: State.F90 ../include/fdebug.h \
 State_Fields.o ../include/state_fields_module.mod: State_Fields.F90 \
    ../include/dgtools.mod ../include/eventcounter.mod ../include/fdebug.h \
    ../include/fefields.mod ../include/fields.mod \
-   ../include/global_parameters.mod ../include/sparsity_patterns_meshes.mod \
-   ../include/state_module.mod
+   ../include/global_parameters.mod ../include/sparse_tools.mod \
+   ../include/sparsity_patterns_meshes.mod ../include/state_module.mod
 
 ../include/streamfunction.mod: Streamfunction.o
 	@true
 
 Streamfunction.o ../include/streamfunction.mod: Streamfunction.F90 \
-   ../include/boundary_conditions.mod ../include/eventcounter.mod \
-   ../include/fdebug.h ../include/fields.mod ../include/global_parameters.mod \
+   ../include/boundary_conditions.mod ../include/elements.mod \
+   ../include/eventcounter.mod ../include/fdebug.h ../include/fetools.mod \
+   ../include/fields.mod ../include/fldebug.mod ../include/futils.mod \
+   ../include/global_parameters.mod ../include/linked_lists.mod \
    ../include/parallel_fields.mod ../include/parallel_tools.mod \
    ../include/solvers.mod ../include/sparse_tools.mod \
    ../include/sparsity_patterns.mod ../include/sparsity_patterns_meshes.mod \
@@ -1101,14 +1154,16 @@ Streamfunction.o ../include/streamfunction.mod: Streamfunction.F90 \
 	@true
 
 Superconvergence.o ../include/superconvergence.mod: Superconvergence.F90 \
-   ../include/elements.mod ../include/fdebug.h ../include/vector_tools.mod
+   ../include/elements.mod ../include/fdebug.h ../include/fldebug.mod \
+   ../include/vector_tools.mod
 
 ../include/supermesh_construction.mod: Supermesh.o
 	@true
 
 Supermesh.o ../include/supermesh_construction.mod: Supermesh.F90 \
-   ../include/fdebug.h ../include/fields_allocates.mod \
+   ../include/elements.mod ../include/fdebug.h ../include/fields_allocates.mod \
    ../include/fields_base.mod ../include/fields_data_types.mod \
+   ../include/fields_manipulation.mod ../include/fldebug.mod \
    ../include/futils.mod ../include/global_parameters.mod \
    ../include/linked_lists.mod ../include/metric_tools.mod \
    ../include/sparse_tools.mod ../include/tetrahedron_intersection_module.mod \
@@ -1118,33 +1173,38 @@ Supermesh.o ../include/supermesh_construction.mod: Supermesh.F90 \
 	@true
 
 Supermesh_Assembly.o ../include/supermesh_assembly.mod: Supermesh_Assembly.F90 \
-   ../include/adaptive_interpolation_module.mod ../include/elements.mod \
-   ../include/fdebug.h ../include/field_options.mod ../include/fields.mod \
-   ../include/fldebug.mod ../include/interpolation_module.mod \
+   ../include/adaptive_interpolation_module.mod \
+   ../include/element_numbering.mod ../include/elements.mod \
+   ../include/fdebug.h ../include/fetools.mod ../include/field_options.mod \
+   ../include/fields.mod ../include/fldebug.mod ../include/futils.mod \
+   ../include/interpolation_module.mod \
    ../include/intersection_finder_module.mod ../include/linked_lists.mod \
    ../include/quadrature.mod ../include/solvers.mod \
    ../include/sparse_tools.mod ../include/state_fields_module.mod \
    ../include/state_module.mod ../include/supermesh_construction.mod \
-   ../include/transform_elements.mod
+   ../include/transform_elements.mod ../include/vector_tools.mod
 
 ../include/surface_integrals.mod: Surface_Integrals.o
 	@true
 
 Surface_Integrals.o ../include/surface_integrals.mod: Surface_Integrals.F90 \
-   ../include/elements.mod ../include/fdebug.h ../include/field_options.mod \
-   ../include/fields.mod ../include/fldebug.mod \
+   ../include/element_numbering.mod ../include/elements.mod \
+   ../include/fdebug.h ../include/field_options.mod ../include/fields.mod \
+   ../include/fldebug.mod ../include/futils.mod \
    ../include/global_parameters.mod ../include/parallel_fields.mod \
-   ../include/quadrature.mod ../include/spud.mod ../include/state_module.mod
+   ../include/parallel_tools.mod ../include/quadrature.mod ../include/spud.mod \
+   ../include/state_module.mod ../include/transform_elements.mod
 
 ../include/surfacelabels.mod: Surface_Labels.o
 	@true
 
 Surface_Labels.o ../include/surfacelabels.mod: Surface_Labels.F90 \
    ../include/adjacency_lists.mod ../include/data_structures.mod \
-   ../include/elements.mod ../include/fdebug.h ../include/fields.mod \
-   ../include/fldebug.mod ../include/halos.mod ../include/linked_lists.mod \
-   ../include/merge_tensors.mod ../include/mpi_interfaces.mod \
-   ../include/parallel_tools.mod ../include/sparse_tools.mod \
+   ../include/elements.mod ../include/fdebug.h ../include/fetools.mod \
+   ../include/fields.mod ../include/fldebug.mod ../include/halos.mod \
+   ../include/linked_lists.mod ../include/merge_tensors.mod \
+   ../include/mpi_interfaces.mod ../include/parallel_tools.mod \
+   ../include/sparse_tools.mod ../include/transform_elements.mod \
    ../include/vector_tools.mod ../include/vtk_interfaces.mod
 
 ../include/tensors.mod: Tensors.o
@@ -1157,9 +1217,10 @@ Tensors.o ../include/tensors.mod: Tensors.F90 ../include/fdebug.h \
 	@true
 
 Tetrahedron_intersection.o ../include/tetrahedron_intersection_module.mod: \
-   Tetrahedron_intersection.F90 ../include/elements.mod ../include/fdebug.h \
-   ../include/fields_allocates.mod ../include/fields_base.mod \
-   ../include/fields_data_types.mod ../include/fields_manipulation.mod \
+   Tetrahedron_intersection.F90 ../include/element_numbering.mod \
+   ../include/elements.mod ../include/fdebug.h ../include/fields_allocates.mod \
+   ../include/fields_base.mod ../include/fields_data_types.mod \
+   ../include/fields_manipulation.mod ../include/fldebug.mod \
    ../include/transform_elements.mod ../include/vector_tools.mod
 
 ../include/timers.mod: Timers.o
@@ -1173,8 +1234,10 @@ Timers.o ../include/timers.mod: Timers.F90 ../include/fdebug.h \
 	@true
 
 Transform_elements.o ../include/transform_elements.mod: Transform_elements.F90 \
-   ../include/cv_faces.mod ../include/elements.mod ../include/eventcounter.mod \
-   ../include/fdebug.h ../include/fields_base.mod \
+   ../include/cv_faces.mod ../include/element_numbering.mod \
+   ../include/elements.mod ../include/eventcounter.mod ../include/fdebug.h \
+   ../include/fields_base.mod ../include/fields_data_types.mod \
+   ../include/fldebug.mod ../include/futils.mod \
    ../include/memory_diagnostics.mod ../include/parallel_tools.mod \
    ../include/quadrature.mod ../include/vector_tools.mod
 
@@ -1199,11 +1262,12 @@ Unittest_tools.o ../include/unittest_tools.mod: Unittest_tools.F90 \
 
 VTK_interfaces.o ../include/vtk_interfaces.mod: VTK_interfaces.F90 \
    ../include/data_structures.mod ../include/elements.mod ../include/fdebug.h \
-   ../include/fetools.mod ../include/fields.mod \
-   ../include/global_numbering.mod ../include/global_parameters.mod \
-   ../include/mpi_interfaces.mod ../include/parallel_fields.mod \
-   ../include/parallel_tools.mod ../include/sparse_tools.mod \
-   ../include/spud.mod ../include/state_module.mod ../include/vtkfortran.mod
+   ../include/fetools.mod ../include/fields.mod ../include/fldebug.mod \
+   ../include/futils.mod ../include/global_numbering.mod \
+   ../include/global_parameters.mod ../include/mpi_interfaces.mod \
+   ../include/parallel_fields.mod ../include/parallel_tools.mod \
+   ../include/quadrature.mod ../include/sparse_tools.mod ../include/spud.mod \
+   ../include/state_module.mod ../include/vtkfortran.mod
 
 ../include/vector_tools.mod: Vector_Tools.o
 	@true
@@ -1222,8 +1286,9 @@ Vector_set.o ../include/vector_set.mod: Vector_set.F90
 Vertical_Extrapolation.o ../include/vertical_extrapolation_module.mod: \
    Vertical_Extrapolation.F90 ../include/boundary_conditions.mod \
    ../include/dynamic_bin_sort_module.mod ../include/elements.mod \
-   ../include/fdebug.h ../include/fields.mod ../include/fldebug.mod \
-   ../include/global_parameters.mod ../include/integer_set_module.mod \
+   ../include/fdebug.h ../include/fetools.mod ../include/fields.mod \
+   ../include/fldebug.mod ../include/global_parameters.mod \
+   ../include/integer_set_module.mod ../include/parallel_fields.mod \
    ../include/parallel_tools.mod ../include/pickers.mod \
    ../include/sparse_tools.mod ../include/spud.mod ../include/state_module.mod \
    ../include/transform_elements.mod ../include/vtk_interfaces.mod
@@ -1239,9 +1304,9 @@ Wandzura_Quadrature.o ../include/wandzura_quadrature.mod: \
 
 Write_GMSH.o ../include/write_gmsh.mod: Write_GMSH.F90 ../include/elements.mod \
    ../include/fdebug.h ../include/field_options.mod ../include/fields.mod \
-   ../include/futils.mod ../include/global_parameters.mod \
-   ../include/gmsh_common.mod ../include/parallel_tools.mod \
-   ../include/state_module.mod
+   ../include/fldebug.mod ../include/futils.mod \
+   ../include/global_parameters.mod ../include/gmsh_common.mod \
+   ../include/parallel_tools.mod ../include/state_module.mod
 
 ../include/write_state_module.mod: Write_State.o
 	@true
@@ -1250,16 +1315,17 @@ Write_State.o ../include/write_state_module.mod: Write_State.F90 \
    ../include/embed_python.mod ../include/fdebug.h \
    ../include/field_options.mod ../include/fields.mod ../include/fldebug.mod \
    ../include/futils.mod ../include/global_parameters.mod ../include/halos.mod \
-   ../include/profiler.mod ../include/spud.mod ../include/state_module.mod \
-   ../include/timers.mod ../include/vtk_interfaces.mod
+   ../include/parallel_tools.mod ../include/profiler.mod ../include/spud.mod \
+   ../include/state_module.mod ../include/timers.mod \
+   ../include/vtk_interfaces.mod
 
 ../include/write_triangle.mod: Write_Triangle.o
 	@true
 
 Write_Triangle.o ../include/write_triangle.mod: Write_Triangle.F90 \
    ../include/elements.mod ../include/fdebug.h ../include/field_options.mod \
-   ../include/fields.mod ../include/futils.mod ../include/parallel_tools.mod \
-   ../include/state_module.mod
+   ../include/fields.mod ../include/fldebug.mod ../include/futils.mod \
+   ../include/parallel_tools.mod ../include/state_module.mod
 
 ../include/ieee_arithmetic.mod: ieee_arithmetic_dummy.o
 	@true
@@ -1271,9 +1337,11 @@ ieee_arithmetic_dummy.o ../include/ieee_arithmetic.mod: \
 	@true
 
 python_state.o ../include/python_state.mod: python_state.F90 \
-   ../include/elements.mod ../include/fdebug.h ../include/fields.mod \
-   ../include/fldebug.mod ../include/global_parameters.mod \
-   ../include/quadrature.mod ../include/state_module.mod
+   ../include/element_numbering.mod ../include/elements.mod \
+   ../include/fdebug.h ../include/fields.mod ../include/fldebug.mod \
+   ../include/futils.mod ../include/global_parameters.mod \
+   ../include/quadrature.mod ../include/sparse_tools.mod \
+   ../include/state_module.mod
 
 ../include/quicksort.mod: qsortd.o
 	@true

@@ -36,7 +36,7 @@ module surface_diagnostics
   use state_module
   use field_options
   use diagnostic_source_fields
-  use sediment
+  use sediment, only: surface_horizontal_divergence
   use surface_integrals
   
   implicit none

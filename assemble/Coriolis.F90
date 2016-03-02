@@ -29,12 +29,12 @@
 
 module coriolis_module
 
+  use spud
   use fldebug
   use global_parameters, only : current_time, PYTHON_FUNC_LEN
   use embed_python 
   use parallel_tools, only: abort_if_in_parallel_region
-  use spud
-  
+
   implicit none
   
   !! Coriolis parameters:

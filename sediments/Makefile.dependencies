@@ -4,11 +4,12 @@
 
 Sediment.o ../include/sediment.mod: Sediment.F90 \
    ../include/boundary_conditions.mod ../include/elements.mod \
-   ../include/fdebug.h ../include/field_derivatives.mod ../include/fields.mod \
-   ../include/fldebug.mod ../include/global_parameters.mod \
-   ../include/quadrature.mod ../include/sparse_matrices_fields.mod \
-   ../include/spud.mod ../include/state_fields_module.mod \
-   ../include/state_module.mod
+   ../include/fdebug.h ../include/fetools.mod ../include/field_derivatives.mod \
+   ../include/fields.mod ../include/fldebug.mod ../include/futils.mod \
+   ../include/global_parameters.mod ../include/quadrature.mod \
+   ../include/sparse_matrices_fields.mod ../include/spud.mod \
+   ../include/state_fields_module.mod ../include/state_module.mod \
+   ../include/vector_tools.mod
 
 ../include/sediment_diagnostics.mod: Sediment_Diagnostics.o
 	@true
@@ -16,7 +17,9 @@ Sediment.o ../include/sediment.mod: Sediment.F90 \
 Sediment_Diagnostics.o ../include/sediment_diagnostics.mod: \
    Sediment_Diagnostics.F90 ../include/boundary_conditions.mod \
    ../include/elements.mod ../include/fdebug.h ../include/fefields.mod \
-   ../include/fields.mod ../include/global_parameters.mod \
+   ../include/fetools.mod ../include/fields.mod ../include/fldebug.mod \
+   ../include/futils.mod ../include/global_parameters.mod \
    ../include/quadrature.mod ../include/sediment.mod \
-   ../include/sparse_tools.mod ../include/spud.mod ../include/state_module.mod
+   ../include/sparse_tools.mod ../include/spud.mod ../include/state_module.mod \
+   ../include/vector_tools.mod
 

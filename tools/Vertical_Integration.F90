@@ -5,6 +5,9 @@ subroutine vertical_integration(target_basename_, target_basename_len, &
   & output_basename_, output_basename_len, &
   & top, bottom, sizing, field_b_continuity, field_b_degree) bind(c)
 
+  use fetools, only: shape_shape, shape_rhs
+  use transform_elements
+  use elements
   use fields
   use fldebug
   use global_parameters, only : current_debug_level, OPTION_PATH_LEN

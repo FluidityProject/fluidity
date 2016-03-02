@@ -41,6 +41,10 @@ module adjacency_lists
      module procedure MakeLists_Dynamic, MakeLists_Mesh
   end interface
 
+  private
+
+  public :: MakeLists, nodele, findcommonelements, makeeelist
+
 contains
 
 

@@ -28,10 +28,11 @@
 module halos_derivation
 
    use fldebug
+   use futils, only: present_and_false
    use data_structures
+   use elements, only: boundary_numbering
    use mpi_interfaces
    use halo_data_types
-   use parallel_tools
    use parallel_tools
    use halos_base
    use halos_debug

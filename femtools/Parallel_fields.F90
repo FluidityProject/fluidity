@@ -30,8 +30,11 @@
 module parallel_fields
   !!< This module exists to separate out parallel operations on fields
   
+  use fldebug
+  use futils
   use mpi_interfaces
   use parallel_tools
+  use elements
   use halo_data_types
   use halos_base
   use fields_data_types

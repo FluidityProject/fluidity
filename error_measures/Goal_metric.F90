@@ -4,8 +4,10 @@
 module goal_metric
 !!< Simple goal-based metric formation.
 
+  use fldebug
   use global_parameters, only: dt, FIELD_NAME_LEN, OPTION_PATH_LEN
   use futils, only: count_chars, multiindex
+  use vector_tools
   use elements
   use spud
   use transform_elements, only: transform_to_physical
@@ -16,7 +18,7 @@ module goal_metric
   use state_module, only: state_type, extract_scalar_field, extract_vector_field, insert
   use merge_tensors, only: merge_tensor_fields
   use vtk_interfaces, only: vtk_write_fields
-  use field_derivatives, only: compute_hessian, patch_type, get_patch_node
+  use field_derivatives, only: compute_hessian
   use form_metric_field, only: form_metric
   use goals
   use gradation_metric, only: form_gradation_metric
@@ -30,18 +32,23 @@ module goal_metric
   !! How much error should we tolerate in the goal?
   !! If goal_rel_tolerance /= 0.0, then use that as a relative
   !! tolerance, otherwise use goal_tolerance.
-  real :: goal_tolerance
-  real :: goal_rel_tolerance = 0.0
-  character(len=OPTION_PATH_LEN) :: goal_name
+  real, public :: goal_tolerance
+  real, public :: goal_rel_tolerance = 0.0
+  character(len=OPTION_PATH_LEN), public :: goal_name
 
   !! What state variables does the goal depend on?
   !! The gradient of the goal with respect to
   !! each dependency must be available from goal_grad.
-  character(len=FIELD_NAME_LEN), dimension(:), pointer :: goal_deps => null()
+  character(len=FIELD_NAME_LEN), dimension(:), pointer, public :: goal_deps => null()
 
   interface form_goal_metric
     module procedure form_goal_metric_generic, form_goal_metric_specific
   end interface
+
+  private
+
+  public :: initialise_goal_metric, form_goal_metric, use_goal_metric,&
+       form_goal_metric_generic
 
   contains
 

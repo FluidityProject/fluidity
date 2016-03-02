@@ -30,6 +30,7 @@
 !! in atomic calls where the state objects of vtu files that have been
 !! read before are cached.
 module vtk_cache_module
+use fldebug
 use fields
 use state_module
 use vtk_interfaces

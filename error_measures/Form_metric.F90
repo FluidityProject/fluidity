@@ -3,8 +3,10 @@
 
 module form_metric_field
 
+  use fldebug
   use vector_tools
   use global_parameters, only : OPTION_PATH_LEN
+  use futils, only: int2str
   use spud
   use unittest_tools
   use metric_tools

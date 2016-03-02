@@ -7,23 +7,39 @@ module superconvergence
 !!< Zienkiewicz & Zhu, Int. J. Numer. Methods Eng, 33, 1331-1364 (1992)
 !! This is primarily used by field_derivatives.
 
+use fldebug
 use vector_tools
 use elements
 
 implicit none
 
-integer, parameter :: MATRIX_SIZE_SPR=4
-integer, parameter :: MATRIX_SIZE_QF=11
-integer, parameter :: MATRIX_SIZE_CF=20
-integer, parameter :: MATRIX_SIZE_CF_2D=10
-integer, parameter :: MATRIX_SIZE_QF_2D=6
-integer, dimension(MATRIX_SIZE_QF_2D), parameter :: QF_2D_X = (/1, 3, 4, 6, 7, 10/)
-integer, dimension(MATRIX_SIZE_QF_2D), parameter :: QF_2D_Y = (/1, 2, 4, 5, 7, 9/)
-integer, dimension(MATRIX_SIZE_QF_2D), parameter :: QF_2D_Z = (/1, 2, 3, 5, 6, 8/)
-integer, dimension(MATRIX_SIZE_CF_2D), parameter :: CF_2D_X = (/1, 3, 4, 7, 9, 10, 15, 17, 19, 20/)
-integer, dimension(MATRIX_SIZE_CF_2D), parameter :: CF_2D_Y = (/1, 2, 4, 6, 8, 10, 13, 16, 18, 20/)
-integer, dimension(MATRIX_SIZE_CF_2D), parameter :: CF_2D_Z = (/1, 2, 3, 5, 8, 9,  12, 14, 18, 19/)
+integer, parameter, public :: MATRIX_SIZE_SPR=4
+integer, parameter, public :: MATRIX_SIZE_QF=11
+integer, parameter, public :: MATRIX_SIZE_CF=20
+integer, parameter, public :: MATRIX_SIZE_CF_2D=10
+integer, parameter, public :: MATRIX_SIZE_QF_2D=6
+integer, dimension(MATRIX_SIZE_QF_2D), parameter, public ::&
+     QF_2D_X = (/1, 3, 4, 6, 7, 10/)
+integer, dimension(MATRIX_SIZE_QF_2D), parameter, public ::&
+     QF_2D_Y = (/1, 2, 4, 5, 7, 9/)
+integer, dimension(MATRIX_SIZE_QF_2D), parameter, public ::&
+     QF_2D_Z = (/1, 2, 3, 5, 6, 8/)
+integer, dimension(MATRIX_SIZE_CF_2D), parameter, public ::&
+     CF_2D_X = (/1, 3, 4, 7, 9, 10, 15, 17, 19, 20/)
+integer, dimension(MATRIX_SIZE_CF_2D), parameter, public ::&
+     CF_2D_Y = (/1, 2, 4, 6, 8, 10, 13, 16, 18, 20/)
+integer, dimension(MATRIX_SIZE_CF_2D), parameter, public ::&
+     CF_2D_Z = (/1, 2, 3, 5, 8, 9,  12, 14, 18, 19/)
 type(superconvergence_type), save, target :: superconvergence_tet_array(1)
+
+private
+
+public :: initialise_superconvergence, get_superconvergence, getP_spr,&
+     compute_matrix_contribution_cf, getP_qf, compute_rhs_contribution_qf,&
+     compute_rhs_contribution_spr, compute_rhs_contribution_cf,&
+     compute_matrix_contribution_qf, compute_matrix_contribution_spr,&
+     evaluate_cf, evaluate_qf
+
 
 contains
 

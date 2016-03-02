@@ -31,6 +31,7 @@ module upwind_stabilisation
   !!< advection_diffusion equations.
 
   use spud
+  use vector_tools, only: inverse
   use shape_functions
   use metric_tools
   use fields

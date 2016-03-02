@@ -30,6 +30,7 @@ module equation_of_state
   !!< This module contains functions used to evaluate the equation of state.
 
   use fldebug
+  use futils, only: int2str
   use global_parameters, only: OPTION_PATH_LEN
   use spud
   use fields

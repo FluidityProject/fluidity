@@ -30,18 +30,19 @@ module field_options
    !!< This module contains code that uses scalar/vector/tensor_fields
    !!< in combination with floptions. Anything schema specific.
 
-   use FLDebug
-   use Global_Parameters, only: OPTION_PATH_LEN, adaptivity_mesh_name
+   use fldebug
+   use global_parameters
    use quadrature
    use futils
    use elements
    use spud
    use data_structures
-   use Fields_Data_Types
+   use fields_data_types
    use fields_base
    use fields_allocates
    use fields_manipulation
    use metric_tools
+   use transform_elements
    use fields_calculations
    use state_module
 

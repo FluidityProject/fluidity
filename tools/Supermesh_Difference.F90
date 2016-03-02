@@ -29,7 +29,7 @@
 
 subroutine supermesh_difference(vtu1_filename_, vtu1_filename_len, vtu2_filename_, &
             &vtu2_filename_len, output_filename_, output_filename_len) bind(c)
-  
+  use elements 
   use fields
   use fldebug
   use interpolation_module

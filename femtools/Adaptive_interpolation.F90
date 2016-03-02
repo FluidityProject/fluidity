@@ -2,6 +2,7 @@
 
 module adaptive_interpolation_module
 
+  use fldebug
   use vector_tools
   use quadrature
   use futils

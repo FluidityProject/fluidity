@@ -3,8 +3,16 @@
 module metric_assemble
 
   use spud
+  use fldebug
+  use global_parameters, only: domain_bbox
+  use mpi_interfaces, only: mpi_allreduce
   use parallel_tools
   use metric_tools
+  use sparse_tools
+  use quadrature
+  use elements
+  use fields
+  use field_options, only: get_coordinate_field
   use state_module
   use vtk_interfaces
   use merge_tensors
@@ -14,6 +22,8 @@ module metric_assemble
   use form_metric_field
   use edge_length_module
   use aspect_ratios_module
+  use node_boundary, only: initialise_boundcount
+  use initialise_fields_module, only: initialise_field
   use interpolation_metric
   use goals
   use gradation_metric
@@ -26,7 +36,9 @@ module metric_assemble
   use anisotropic_gradation
   use richardson_metric_module
   use anisotropic_zz_module
+  use project_metric_to_surface_module, only: project_metric_to_surface
   use reference_meshes
+  use hadapt_advancing_front, only: create_columns_sparsity
   use hadapt_metric_based_extrude, only: get_1d_mesh, recombine_metric, get_1d_tensor
   
   implicit none

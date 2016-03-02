@@ -30,12 +30,14 @@
 module differential_operator_diagnostics
 
   use fldebug
-  use global_parameters, only : OPTION_PATH_LEN
+  use global_parameters, only : OPTION_PATH_LEN, FIELD_NAME_LEN
+  use vector_tools, only: solve
   use quadrature
   use elements
   use spud
   use sparse_tools
   use eventcounter
+  use fetools
   use fields
   use state_module
   use field_options

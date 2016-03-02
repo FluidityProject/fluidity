@@ -20,6 +20,7 @@ module dg_interpolation_module
   use meshdiagnostics
   use sparsity_patterns
   use vtk_interfaces
+  use state_module
   use interpolation_module
   use sparse_matrices_fields
   use solvers

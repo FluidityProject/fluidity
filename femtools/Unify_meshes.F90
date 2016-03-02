@@ -39,6 +39,10 @@ module unify_meshes_module
     module procedure unify_meshes_linear
   end interface
 
+  private
+
+  public :: unify_meshes, unify_meshes_quadratic
+
   contains
 
   function unify_meshes_linear(meshes) result(union)

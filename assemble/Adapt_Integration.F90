@@ -30,10 +30,12 @@
 module adapt_integration
 
   use fldebug
+  use futils, only: present_and_true
   use data_structures
   use quadrature
   use elements
   use spud
+  use parallel_tools
   use fields
   use vtk_interfaces
   use halos
@@ -47,7 +49,7 @@ module adapt_integration
   
   private
   
-  public :: adapt_mesh, max_nodes, adapt_integration_check_options, element_quality_pain_p0
+  public :: adapt_mesh, max_nodes, adapt_integration_check_options, element_quality_pain_p0, mtetin
   
   character(len = *), parameter :: base_path = "/mesh_adaptivity/hr_adaptivity"
   

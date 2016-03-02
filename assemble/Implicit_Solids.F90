@@ -35,7 +35,9 @@ PYTHON_FUNC_LEN, dt, timestep, current_time
   use vector_tools
   use quadrature
   use futils
+  use element_numbering, only: FAMILY_SIMPLEX
   use elements
+  use shape_functions
   use spud
   use parallel_tools
   use data_structures
@@ -43,7 +45,10 @@ PYTHON_FUNC_LEN, dt, timestep, current_time
   use linked_lists
   use tensors
   use adjacency_lists
+  use fields_allocates
   use fields_manipulation
+  use fields_calculations, only: field_integral
+  use parallel_fields
   use transform_elements
   use fields_manipulation
   use tetrahedron_intersection_module
@@ -52,6 +57,7 @@ PYTHON_FUNC_LEN, dt, timestep, current_time
   use supermesh_construction
   use intersection_finder_module
   use fetools
+  use field_options, only: complete_field_path
   use state_module
   use vtk_interfaces
   use sparse_matrices_fields
@@ -889,7 +895,7 @@ contains
     deallocate(boundary_ids)
 
     call deallocate(mesh)
-    call deallocate_element(shape)
+    call deallocate(shape)
     call deallocate(quad)
 
     external_positions%dim=3

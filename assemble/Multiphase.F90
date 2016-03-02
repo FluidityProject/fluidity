@@ -33,6 +33,8 @@
       use fldebug 
       use spud
       use global_parameters, only: OPTION_PATH_LEN
+      use sparse_tools
+      use parallel_fields
       use fetools
       use fields
       use profiler

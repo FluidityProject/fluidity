@@ -32,28 +32,32 @@ module fluids_module
   use fldebug
   use auxilaryoptions
   use spud
+  use futils, only: int2str
+  use reference_counting, only: print_references
   use global_parameters, only: current_time, dt, timestep, OPTION_PATH_LEN, &
 simulation_start_time, &
 simulation_start_cpu_time, &
 simulation_start_wall_time, &
-topology_mesh_name
+topology_mesh_name, FIELD_NAME_LEN
   use parallel_tools
   use memory_diagnostics
   use sparse_tools
   use elements
   use adjacency_lists
   use eventcounter
+  use transform_elements, only: cache_transform_elements, deallocate_transform_cache
   use meshdiagnostics
   use signal_vars
   use fields
+  use state_module
   use vtk_interfaces
   use boundary_conditions
   use halos
-  use sediment
+!  use sediment
   use equation_of_state
   use timers
   use synthetic_bc
-  use k_epsilon
+  use k_epsilon, only: keps_advdif_diagnostics
   use tictoc
   use boundary_conditions_from_options
   use reserve_state_module

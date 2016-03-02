@@ -1,6 +1,7 @@
 #include "fdebug.h"
 
 module mba_adapt_module
+  use fldebug
   use eventcounter
   use metric_tools
   use fields
@@ -14,6 +15,10 @@ module mba_adapt_module
   use mba2d_module
 #endif
   implicit none
+
+  private
+
+  public :: mba_adapt, CrvFunction_ani, snap_positions, face_basis
 
   contains
 

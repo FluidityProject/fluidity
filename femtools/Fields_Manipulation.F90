@@ -26,10 +26,12 @@
 !    USA
 #include "fdebug.h"
 module fields_manipulation
+  use fldebug
   use vector_tools
+  use futils, only: present_and_true
+  use element_numbering
   use elements
   use element_set
-  use embed_python
   use data_structures
   use halo_data_types
   use quicksort
@@ -38,6 +40,8 @@ module fields_manipulation
   use halos_debug
   use memory_diagnostics
   use halos_allocates
+  use sparse_tools
+  use embed_python
   use fields_data_types
   use fields_base
   use halos_numbering

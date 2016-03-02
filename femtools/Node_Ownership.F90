@@ -34,6 +34,7 @@ module node_ownership
   use sparse_tools
   use adjacency_lists
   use linked_lists
+  use intersection_finder_module
   use fields
   use node_owner_finder
   use pickers

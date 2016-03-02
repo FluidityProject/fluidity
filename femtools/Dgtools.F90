@@ -2,7 +2,9 @@
 
 module dgtools
 
+use fldebug
 use vector_tools
+use futils, only: present_and_true, present_and_false
 use elements
 use halos_base
 use sparse_tools

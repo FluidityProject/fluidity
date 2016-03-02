@@ -31,6 +31,7 @@ module porous_media
    
    !!< Module containing porous media related procedures.
 
+   use fldebug
    use global_parameters, only: OPTION_PATH_LEN
    use futils
    use spud

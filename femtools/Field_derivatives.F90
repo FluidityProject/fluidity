@@ -8,12 +8,17 @@ module field_derivatives
     !!< (Since the k-th derivative of a scalar field is a rank-k tensor,
     !!< anything with k > 2 rapidly becomes far too big to store in memory.)
 
+    use fldebug
     use vector_tools
     use elements
     use eventcounter
     use superconvergence
     use transform_elements
-    use fetools, only: shape_shape, shape_dshape, dshape_outer_dshape
+    use sparse_tools
+    use fetools, only: shape_shape, shape_dshape, dshape_outer_dshape,&
+     shape_vector_rhs
+    use parallel_fields
+    use tensors, only: tensormul
     use fields
     use state_module
     use vtk_interfaces
@@ -53,7 +58,7 @@ module field_derivatives
     private
 
     public :: strain_rate, differentiate_field, grad, compute_hessian, &
-      domain_is_2d, patch_type, get_patch_ele, get_patch_node, get_quadratic_fit_qf, curl, &
+      domain_is_2d, get_quadratic_fit_qf, curl, &
       get_quadratic_fit_eqf, div, u_dot_nabla, get_cubic_fit_cf, differentiate_field_lumped, &
       dg_ele_grad_at_quad, dg_ele_grad
 

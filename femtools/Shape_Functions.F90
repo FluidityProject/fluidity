@@ -31,6 +31,7 @@ module shape_functions
   use futils
   use polynomials
   use element_numbering
+  use quadrature
   use elements
   use Superconvergence
   use ieee_arithmetic, only: ieee_quiet_nan, ieee_value

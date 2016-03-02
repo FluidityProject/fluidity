@@ -2,6 +2,7 @@
 
 module richardson_metric_module
 
+  use fldebug
   use global_parameters, only : OPTION_PATH_LEN
   use spud
   use vector_tools

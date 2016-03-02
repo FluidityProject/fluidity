@@ -29,6 +29,7 @@
 
 module write_triangle
 
+  use fldebug
   use futils
   use elements
   use parallel_tools

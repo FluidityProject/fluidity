@@ -29,8 +29,9 @@
 module state_module
   !!< This module provides a wrapper object which allows related groups of
   !!< fields to be passed around together.
-  use global_parameters, only:OPTION_PATH_LEN, empty_path
-  use futils, only: int2str
+  use fldebug
+  use global_parameters, only:OPTION_PATH_LEN, FIELD_NAME_LEN,  empty_path
+  use futils, only: int2str, present_and_false, present_and_true
   use halo_data_types
   use halos_allocates
   use sparse_tools

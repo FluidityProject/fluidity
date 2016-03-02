@@ -32,6 +32,8 @@ module simple_diagnostics
   use fldebug
   use global_parameters, only : timestep, OPTION_PATH_LEN
   use spud
+  use futils
+  use parallel_tools
   use fields
   use state_module
   use field_options

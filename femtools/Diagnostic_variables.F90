@@ -29,8 +29,9 @@
 
 module diagnostic_variables
   !!< A module to calculate and output diagnostics. This replaces the .s file.
+  use fldebug 
   use global_parameters, only:FIELD_NAME_LEN,OPTION_PATH_LEN, &
-    & PYTHON_FUNC_LEN, int_16, integer_size, real_size
+& PYTHON_FUNC_LEN, int_16, integer_size, real_size
   use quadrature
   use futils
   use elements
@@ -40,6 +41,7 @@ module diagnostic_variables
   use memory_diagnostics
   use integer_hash_table_module
   use data_structures
+  use linked_lists
   use halo_data_types
   use halos_base
   use halos_debug
@@ -49,11 +51,12 @@ module diagnostic_variables
   use fields_base
   use eventcounter
   use fetools
+  use embed_python
   use unittest_tools
   use halos_communications
   use halos_numbering
   use halos_ownership
-  use fields_manipulation
+  use parallel_fields, only: element_owned
   use fields
   use profiler
   use state_module
@@ -78,6 +81,11 @@ module diagnostic_variables
   use state_fields_module
   
   implicit none
+
+  interface
+     subroutine register_diagnostics()
+     end subroutine register_diagnostics
+  end interface
 
   private
 

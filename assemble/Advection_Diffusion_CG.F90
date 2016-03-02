@@ -31,14 +31,18 @@ module advection_diffusion_cg
   
   use fldebug
   use global_parameters, only : FIELD_NAME_LEN, OPTION_PATH_LEN, COLOURING_CG1
+  use futils, only: int2str
   use quadrature
   use elements
   use spud
+  use integer_set_module
 #ifdef _OPENMP
   use omp_lib
 #endif
   use sparse_tools
+  use transform_elements
   use fields
+  use fetools
   use profiler
   use sparse_tools_petsc
   use state_module

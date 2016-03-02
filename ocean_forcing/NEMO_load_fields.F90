@@ -18,6 +18,11 @@ character(len=FIELD_NAME_LEN), dimension(:), pointer, save :: nemo_vector_field_
 integer, save :: no_nemo_scalar_fields=0
 integer, save :: no_nemo_vector_fields=0
 
+private
+
+public :: insert_nemo_scalar_field, insert_nemo_vector_field, set_nemo_fields,&
+     load_nemo_values
+
 contains
 
 subroutine insert_nemo_scalar_field(field)

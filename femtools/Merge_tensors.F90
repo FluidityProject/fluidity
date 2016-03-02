@@ -6,6 +6,7 @@ module merge_tensors
     !!< satisfying both constraints.
     !!< See Gerard Gorman's thesis, section 2.4.
 
+    use fldebug
     use vector_tools
     use unittest_tools
     use metric_tools, only: aspect_ratio

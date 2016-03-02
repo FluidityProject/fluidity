@@ -34,12 +34,15 @@ module hydrostatic_pressure
   use fldebug
   use quadrature
   use elements
+  use vector_tools, only: solve
   use parallel_tools
   use spud
   use sparse_tools
   use shape_functions
   use transform_elements
+  use fetools
   use fields
+  use parallel_fields
   use profiler
   use state_module
   use boundary_conditions
@@ -49,6 +52,8 @@ module hydrostatic_pressure
   use state_matrices_module
   
   implicit none
+
+  private
 
   public calculate_hydrostatic_pressure, &
     & calculate_hydrostatic_pressure_gradient, &

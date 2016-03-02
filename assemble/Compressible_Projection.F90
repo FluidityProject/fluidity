@@ -29,10 +29,14 @@
 module compressible_projection
   use fldebug
   use spud
+  use futils, only: int2str
   use global_parameters, only: OPTION_PATH_LEN
   use sparse_tools
+  use elements
+  use transform_elements
   use fields
   use state_module
+  use fetools, only: shape_shape, shape_rhs
   use sparse_matrices_fields
   use field_options
   use fefields, only: compute_cv_mass

@@ -37,7 +37,9 @@ module vertical_balance_pressure
   use spud
   use sparse_tools
   use transform_elements
+  use fetools
   use fields
+  use parallel_fields
   use profiler
   use state_module
   use boundary_conditions
@@ -45,6 +47,8 @@ module vertical_balance_pressure
   use solvers
   use state_matrices_module
   implicit none
+
+  private
 
   public calculate_vertical_balance_pressure, &
   & subtract_vertical_balance_pressure_gradient

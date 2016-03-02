@@ -29,6 +29,7 @@
 module biology
   !!< This module implements a simple PZND (phytoplankton, zooplankton,
   !!< nutrient, detritus) model in ICOM.
+  use fldebug
   use spud
   use global_parameters, only:FIELD_NAME_LEN,OPTION_PATH_LEN, PYTHON_FUNC_LEN
   use sparse_tools

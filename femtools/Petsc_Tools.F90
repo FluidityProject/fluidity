@@ -27,6 +27,8 @@
 #include "fdebug.h"
 module Petsc_Tools
   use FLDebug
+  use futils
+  use global_parameters, only: FIELD_NAME_LEN
   use parallel_tools
   use Reference_Counting
   use halo_data_types
@@ -34,6 +36,7 @@ module Petsc_Tools
 #ifdef HAVE_PETSC_MODULES
   use petsc 
 #endif
+  use fields_data_types
   use Sparse_Tools
   use fields_base
   use halos_communications

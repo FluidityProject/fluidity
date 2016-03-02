@@ -29,13 +29,14 @@
 module momentum_diagnostic_fields
   use fldebug
   use spud
+  use futils
   use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN
   use fields
   use state_module
   use equation_of_state
   use field_priority_lists
   use multiphase_module
-  use k_epsilon
+  use k_epsilon, only: keps_momentum_diagnostics
   use initialise_fields_module
   use multimaterial_module
   use diagnostic_fields_wrapper_new

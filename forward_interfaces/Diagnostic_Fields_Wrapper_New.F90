@@ -30,6 +30,7 @@
 module diagnostic_fields_wrapper_new
 
   use global_parameters, only : empty_path, OPTION_PATH_LEN
+  use futils, only: present_and_true
   use fields
   use state_module
 

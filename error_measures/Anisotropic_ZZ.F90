@@ -6,17 +6,19 @@ module anisotropic_zz_module
 ! If you understand the algorithm, the code is trivial,
 ! but not vice versa!
 
+  use spud
+  use fldebug
   use global_parameters
   use quicksort
   use sparse_tools
   use vector_tools
   use tensors
+  use unittest_tools, only: get_mat_diag, is_nan
   use adjacency_lists
   use transform_elements
   use fetools
   use metric_tools
   use fields
-  use state_module
   use state_module
   use field_options
   use meshdiagnostics
@@ -33,6 +35,8 @@ module anisotropic_zz_module
   use form_metric_field
   
   implicit none
+
+  private
 
   public :: compute_anisotropic_zz_metric, compute_g_hat, form_anisotropic_zz_metric, get_jacobian_azz
 

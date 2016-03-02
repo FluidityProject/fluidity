@@ -6,12 +6,17 @@ module zoltan_callbacks
 #ifdef HAVE_ZOLTAN
 
   use zoltan
+  use spud
   use global_parameters, only: real_size, OPTION_PATH_LEN
+  use fldebug
   use data_structures
   use mpi_interfaces
   use parallel_tools, only: getrank, getnprocs, getprocno, MPI_COMM_FEMTOOLS
-  use sparse_tools, only: row_length
+  use sparse_tools 
+  use element_numbering
+  use elements
   use metric_tools
+  use fields
   use state_module
   use halos_derivation, only: ele_owner
   use halos, only: halo_nowned_nodes, halo_node_owner, halo_node_owners, get_owned_nodes, halo_universal_number
@@ -23,7 +28,13 @@ module zoltan_callbacks
 
   implicit none
   
-  public
+  private
+
+  public :: zoltan_cb_owned_node_count, zoltan_cb_get_owned_nodes, zoltan_cb_pack_field_sizes,&
+       zoltan_cb_pack_fields,  zoltan_cb_unpack_fields, zoltan_cb_pack_halo_node_sizes,&
+       zoltan_cb_pack_halo_nodes, zoltan_cb_unpack_halo_nodes, zoltan_cb_get_edge_list,&
+       zoltan_cb_get_num_edges, zoltan_cb_pack_node_sizes, zoltan_cb_pack_nodes,&
+       zoltan_cb_unpack_nodes, local_vertex_order
   
 contains
 

@@ -32,6 +32,7 @@ module multimaterial_module
   use fldebug
   use spud
   use global_parameters, only: OPTION_PATH_LEN
+  use futils, only: present_and_true
   use fields
   use state_module
   use field_options

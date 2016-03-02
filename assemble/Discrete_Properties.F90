@@ -29,7 +29,9 @@
 
 module discrete_properties_module
   use spud
+  use fldebug
   use global_parameters, only : OPTION_PATH_LEN
+  use futils, only: present_and_true
   use fields
   use state_module
   use field_options

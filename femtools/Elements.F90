@@ -106,7 +106,7 @@ module elements
      real, pointer :: orthogonal(:,:,:)=> null()
   end type constraints_type
 
-  integer, parameter :: CONSTRAINT_NONE =0, CONSTRAINT_BDFM = 1,&
+  integer, parameter, public :: CONSTRAINT_NONE =0, CONSTRAINT_BDFM = 1,&
        & CONSTRAINT_RT = 2, CONSTRAINT_BDM = 3
 
   interface allocate
@@ -148,6 +148,17 @@ module elements
   end interface
 
 #include "Reference_count_interface_element_type.F90"
+
+  private
+
+  public :: element_type, superconvergence_type, constraints_type,&
+       allocate, deallocate, local_coords, local_coord_count,&
+       local_vertices, boundary_numbering, operator(==), eval_shape,&
+       eval_dshape, make_constraints, eval_dshape_transformed
+
+!! public objects from the reference counting
+
+  public :: new_refcount, incref, decref       
 
 contains
 

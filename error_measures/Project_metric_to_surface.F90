@@ -2,10 +2,13 @@
 
 module project_metric_to_surface_module
 
+  use fldebug
   use quicksort
   use spud
   use sparse_tools
   use vector_tools
+  use transform_elements
+  use fetools
   use fields
   use merge_tensors
   use state_module
@@ -17,6 +20,7 @@ module project_metric_to_surface_module
 
   implicit none
 
+  private
   public :: project_metric_to_surface, vertically_align_metric, incorporate_bathymetric_metric
   contains
 

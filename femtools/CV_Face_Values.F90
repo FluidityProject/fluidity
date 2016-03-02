@@ -32,6 +32,7 @@ module cv_face_values
   use sparse_tools
   use element_numbering
   use vector_tools
+  use elements
   use cv_faces
   use transform_elements
   use fields

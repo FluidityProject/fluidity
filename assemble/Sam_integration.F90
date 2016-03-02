@@ -29,7 +29,10 @@
 
 module sam_integration
 
+  use fldebug
   use global_parameters, only : OPTION_PATH_LEN, FIELD_NAME_LEN
+  use futils
+  use reference_counting, only: print_tagged_references
   use quadrature
   use elements
   use spud

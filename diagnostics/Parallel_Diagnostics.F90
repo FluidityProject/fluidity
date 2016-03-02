@@ -3,6 +3,7 @@
 module parallel_diagnostics
 
   use fldebug
+  use elements
   use fields
   use halos
 

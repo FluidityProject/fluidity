@@ -1,6 +1,7 @@
 #include "fdebug.h"
 
 module interpolation_module
+  use fldebug
   use futils
   use superconvergence
   use sparse_tools
@@ -28,6 +29,11 @@ module interpolation_module
   interface cubic_interpolation
     module procedure cubic_interpolation_cf_scalar, cubic_interpolation_cf_vector
   end interface
+
+  private
+
+  public :: linear_interpolation, quadratic_interpolation, cubic_interpolation,&
+      get_element_mapping, linear_interpolate_states
 
   contains
 

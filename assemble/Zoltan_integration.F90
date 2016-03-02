@@ -4,8 +4,13 @@
 module zoltan_integration
 
 #ifdef HAVE_ZOLTAN
-  use global_parameters, only: real_size, OPTION_PATH_LEN, topology_mesh_name
+  use spud
+  use fldebug
+  use global_parameters, only: real_size, OPTION_PATH_LEN, topology_mesh_name,&
+      FIELD_NAME_LEN
+  use futils, only: int2str, present_and_true
   use quadrature
+  use element_numbering, only: ele_local_num
   use elements
   use mpi_interfaces
   use data_structures

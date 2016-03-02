@@ -36,6 +36,7 @@
 #ifdef _OPENMP
     use omp_lib
 #endif
+    use integer_set_module
     use sparse_tools
     use vector_tools
     use elements
@@ -51,20 +52,22 @@
     use halos
     use solvers
     use field_options
-    use sparsity_patterns_meshes
+    use sparsity_patterns_meshes, only: get_csr_sparsity_firstorder
     use physics_from_options
     use smoothing_module
     use fefields
-    use state_fields_module
+    use state_fields_module, only: get_lumped_mass
     use field_derivatives
-    use coordinates
+    use coordinates, only: radial_inward_normal_at_quad_face,&
+         rotate_diagonal_to_sphere_face, radial_inward_normal_at_quad_ele,&
+	 rotate_diagonal_to_sphere_gi
     use boundary_conditions_from_options
-    use petsc_solve_state_module
-    use coriolis_module
-    use upwind_stabilisation
+    use petsc_solve_state_module, only: petsc_solve
+    use coriolis_module, only: coriolis
+    use upwind_stabilisation, only: make_supg_element, supg_test_function, element_upwind_stabilisation, get_upwind_options
     use les_module
     use multiphase_module
-    use state_matrices_module
+    use state_matrices_module, only: get_pressure_stabilisation_matrix
     use rotated_boundary_conditions
     use edge_length_module
     use colouring

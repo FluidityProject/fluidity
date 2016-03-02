@@ -5,18 +5,40 @@ module hadapt_extrude
   !!< The layer depths are specified by a sizing function
   !!< which can be arbitrary python.
 
+  use fldebug
   use global_parameters
+  use futils, only: int2str
   use quadrature
   use elements
   use spud
+  use parallel_tools
   use sparse_tools
   use linked_lists
+  use parallel_fields
   use fields
   use vtk_interfaces
   use halos
   use hadapt_combine_meshes
 
   implicit none
+
+  interface
+
+     subroutine set_from_map(filename, x, y, z, depth, ncolumns, surface_height)
+       character (len=*) :: filename
+       real, dimension(:) :: x, y, z, depth
+       integer :: ncolumns
+       real :: surface_height
+     end subroutine set_from_map
+
+     subroutine set_from_map_beta(filename, x, y, depth, ncolumns, surface_height)
+       character (len=*) :: filename
+       real, dimension(:) :: x, y, depth
+       integer :: ncolumns
+       real :: surface_height
+     end subroutine set_from_map_beta
+
+  end interface
 
   private
   

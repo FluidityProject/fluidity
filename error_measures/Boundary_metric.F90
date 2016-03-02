@@ -9,7 +9,11 @@ module boundary_metric
 
   implicit none
 
-  logical, save :: use_boundary_metric = .false.
+  private
+
+  public :: initialise_boundary_metric, form_boundary_metric
+
+  logical, public, save :: use_boundary_metric = .false.
 
   contains
 

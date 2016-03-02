@@ -33,10 +33,13 @@ module read_exodusii
   ! given an ID, e.g. for setting physical boundaries)
 
   use iso_c_binding, only: C_INT, C_FLOAT, C_CHAR, C_NULL_CHAR
+  use fldebug
   use global_parameters, only : OPTION_PATH_LEN, real_4
   use futils
+  use quadrature
   use elements
   use spud
+  use parallel_tools
   use fields
   use state_module
   use vtk_interfaces
@@ -93,7 +96,7 @@ contains
 
     field=read_exodusii_file(filename, shape)
 
-    call deallocate_element(shape)
+    call deallocate(shape)
     call deallocate(quad)
 
     ewrite(2,*) "Out of read_exodusii_simple"

@@ -2,8 +2,11 @@
 
 module hadapt_metric_based_extrude
 
+  use fldebug
   use vector_tools
+  use futils, only: present_and_true
   use global_parameters
+  use quadrature
   use elements
   use spud
   use quicksort
@@ -11,6 +14,7 @@ module hadapt_metric_based_extrude
   use sparse_tools
   use metric_tools
   use fields
+  use parallel_fields
   use meshdiagnostics
   use vtk_interfaces
   use halos
@@ -20,7 +24,10 @@ module hadapt_metric_based_extrude
 
   implicit none
 
-  public :: metric_based_extrude, recombine_metric, get_1d_mesh, get_1d_tensor
+  private
+
+  public :: metric_based_extrude, recombine_metric, get_1d_mesh, get_1d_tensor,&
+       adapt_1d
 
   contains
 

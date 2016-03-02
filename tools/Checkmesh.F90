@@ -5,11 +5,19 @@ subroutine checkmesh(filename_, filename_len) bind(c)
 
 ! these 5 need to be on top and in this order, so as not to confuse silly old intel compiler 
   use quadrature
+  use element_numbering, only: FAMILY_SIMPLEX
   use elements
+  use transform_elements
   use sparse_tools
   use fields
   use state_module
 !
+  use fldebug
+  use futils
+  use reference_counting, only: print_references
+  use vector_tools, only: eigendecomposition_symmetric
+  use parallel_tools
+  use parallel_fields
   use halos
   use intersection_finder_module
   use linked_lists

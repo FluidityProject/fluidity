@@ -29,6 +29,7 @@ module state_fields_module
   !!< Module containing general tools for discretising Finite Element problems.
 
   use global_parameters, only: FIELD_NAME_LEN
+  use sparse_tools
   use eventcounter
   use fields
   use state_module

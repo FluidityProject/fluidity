@@ -29,10 +29,10 @@
 
 subroutine calculate_diagnostic_variables_multiple(states, states_size, exclude_nonrecalculated)
   
-  use diagnostic_fields_new, only : calculate_diagnostic_variables_internal => calculate_diagnostic_variables
-  use fields
   use fldebug
+  use fields
   use state_module  
+  use diagnostic_fields_new, only : calculate_diagnostic_variables_internal => calculate_diagnostic_variables
   
   implicit none
   
@@ -47,10 +47,10 @@ end subroutine calculate_diagnostic_variables_multiple
 
 subroutine calculate_diagnostic_variable_scalar(states, states_size, state_index, s_field, algorithm, algorithm_len, stat)
 
-  use diagnostic_fields_new
-  use fields
   use fldebug
+  use fields
   use state_module
+  use diagnostic_fields_new, only: calculate_diagnostic_variable
   
   implicit none
   
@@ -84,10 +84,10 @@ end subroutine calculate_diagnostic_variable_scalar
 
 subroutine calculate_diagnostic_variable_vector(states, states_size, state_index, v_field, algorithm, algorithm_len, stat)
 
-  use diagnostic_fields_new
-  use fields
   use fldebug
+  use fields
   use state_module
+  use diagnostic_fields_new, only: calculate_diagnostic_variable
   
   implicit none
   
@@ -121,10 +121,10 @@ end subroutine calculate_diagnostic_variable_vector
 
 subroutine calculate_diagnostic_variable_tensor(states, states_size, state_index, t_field, algorithm, algorithm_len, stat)
 
-  use diagnostic_fields_new
-  use fields
   use fldebug
+  use fields
   use state_module
+  use diagnostic_fields_new, only: calculate_diagnostic_variable
   
   implicit none
   

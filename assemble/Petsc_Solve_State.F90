@@ -36,9 +36,11 @@ module petsc_solve_state_module
 !!< in state is fluidity specific and should therefore not be dealt with
 !!< in femtools/.
 use spud
-use global_parameters, only: OPTION_PATH_LEN
+use fldebug
+use global_parameters, only: OPTION_PATH_LEN, FIELD_NAME_LEN
 use sparse_tools
 use fields
+use parallel_fields
 use sparse_tools_petsc
 use state_module
 use solvers

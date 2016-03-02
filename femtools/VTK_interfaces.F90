@@ -31,7 +31,10 @@ module vtk_interfaces
   ! libvtkfortran. It provides generic interfaces which ensure that the
   ! calls work in both single and double precision.
 
+  use fldebug
   use global_parameters, only : FIELD_NAME_LEN
+  use futils, only: present_and_true, int2str
+  use quadrature
   use elements
   use mpi_interfaces
   use parallel_tools

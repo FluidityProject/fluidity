@@ -33,6 +33,8 @@ subroutine fladapt(input_basename_, input_basename_len, &
   !!< Outputs the resulting mesh.
  
   use iso_c_binding
+  use global_parameters, only: FIELD_NAME_LEN
+  use parallel_tools, only: isparallel
   use adapt_state_module
   use diagnostic_fields_wrapper
   use diagnostic_fields_new, only : &

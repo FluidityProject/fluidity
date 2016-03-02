@@ -32,9 +32,10 @@ module advection_diffusion_fv
   use fldebug
   use vector_tools
   use global_parameters, only: OPTION_PATH_LEN, FIELD_NAME_LEN, COLOURING_DG2, &
-COLOURING_DG0
+COLOURING_DG0, COLOURING_DG1
   use elements
   use spud
+  use integer_set_module
 #ifdef _OPENMP
   use omp_lib
 #endif

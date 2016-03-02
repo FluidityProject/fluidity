@@ -2,6 +2,7 @@
 
 subroutine test_conservative_interpolation_sa
 
+  use elements
   use fields
   use mesh_files
   use conservative_interpolation_module, only: interpolation_galerkin

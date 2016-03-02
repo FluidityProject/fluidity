@@ -2,6 +2,7 @@
 
 module matrix_norms
 
+  use fldebug
   use vector_tools
   use fields
   use node_boundary
@@ -18,6 +19,10 @@ module matrix_norms
   interface inf_norm
     module procedure inf_norm_matrix, inf_norm_field
   end interface
+
+  private
+
+  public :: one_norm, two_norm, inf_norm
 
   contains
 

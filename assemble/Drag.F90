@@ -26,11 +26,15 @@
 !    USA
 #include "fdebug.h"
 module drag_module
+use fldebug
 use global_parameters, only : OPTION_PATH_LEN
 use spud
+use futils, only: int2str
 use sparse_tools
+use parallel_tools
 use fetools
 use fields
+use parallel_fields
 use sparse_tools_petsc
 use state_module
 use boundary_conditions

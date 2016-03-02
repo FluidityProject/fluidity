@@ -28,19 +28,27 @@
 #include "fdebug.h"
 
 module adapt_state_module
-  use global_parameters, only : OPTION_PATH_LEN, periodic_boundary_option_path, adaptivity_mesh_name, domain_bbox, topology_mesh_name
+  use spud
+  use fldebug
+  use global_parameters, only : OPTION_PATH_LEN, periodic_boundary_option_path, adaptivity_mesh_name, domain_bbox, topology_mesh_name, FIELD_NAME_LEN
+  use futils, only: int2str, int2str_len, present_and_false, present_and_true
   use quadrature
+  use reference_counting, only: tag_references, print_tagged_references
   use elements
   use mpi_interfaces
+  use metric_tools
   use parallel_tools
   use data_structures
   use sparse_tools
   use eventcounter
   use intersection_finder_module
   use fields
+  use parallel_fields
   use state_module
   use halos
+  use vtk_interfaces
   use field_options
+  use node_boundary, only: initialise_boundcount
   use boundary_conditions
   use detector_data_types
   use pickers
@@ -69,6 +77,7 @@ module adapt_state_module
   use mba3d_integration
   use anisotropic_gradation, only: use_anisotropic_gradation
   use project_metric_to_surface_module
+  use limit_metric_module, only: limit_metric
   use metric_assemble
   use sam_integration
   use timeloop_utilities

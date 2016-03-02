@@ -32,6 +32,7 @@ module MeshDiagnostics
   use elements
   use spud
   use parallel_tools
+  use fields_data_types
   use fields_base
   use transform_elements
   use parallel_fields

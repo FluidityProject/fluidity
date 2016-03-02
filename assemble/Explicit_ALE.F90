@@ -2,7 +2,7 @@
 #include "fdebug.h"
 module ale_module
   use fldebug
-  use global_parameters, only: OPTION_PATH_LEN, dt
+  use global_parameters, only: OPTION_PATH_LEN, FIELD_NAME_LEN, dt
   use quadrature
   use elements
   use spud
@@ -18,6 +18,7 @@ module ale_module
   use edge_length_module
   use metric_assemble
   use solidconfiguration
+  use adapt_integration, only: mtetin
 
   private
   real,              save :: toler_coarse,toler_fine,w1,w2,w3,w4,w5,fmin,minfchg,dx,dy,dz

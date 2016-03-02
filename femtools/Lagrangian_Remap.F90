@@ -1,9 +1,14 @@
 
 
 module lagrangian_remap
+  use futils, only: int2str
   use sparse_tools
+  use elements
+  use fetools, only: shape_shape
+  use transform_elements, only: transform_to_physical
   use fields
   use vtk_interfaces
+  use state_module
   use interpolation_module
   use sparse_matrices_fields
   use solvers
@@ -11,6 +16,10 @@ module lagrangian_remap
   use conservative_interpolation_module
 
   implicit none
+
+  private
+
+  public :: lagrangian_advection
 
 contains
 

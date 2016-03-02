@@ -30,8 +30,10 @@
 module momentum_diagnostics
 
   use fldebug
-  use global_parameters, only : OPTION_PATH_LEN
+  use global_parameters, only : OPTION_PATH_LEN, FIELD_NAME_LEN
   use spud
+  use sparse_tools
+  use fetools
   use fields
   use state_module
   use boundary_conditions

@@ -9,7 +9,11 @@ module gradation_metric
 !!< "Anisotropic mesh gradation control", Li et. al,
 !!< 13th International Meshing Roundtable, 2004
 
+  use fldebug
+  use spud
+  use vector_tools
   use unittest_tools
+  use sparse_tools
   use adjacency_lists
   use linked_lists
   use metric_tools
@@ -37,6 +41,12 @@ module gradation_metric
                         !!< misalignment of the metric tensors at distance 0.0.
   integer :: max_rot_its = 8
   real :: domain_scale
+
+  private
+
+  public :: initialise_gradation_metric, form_gradation_metric, use_gradation_metric,&
+       construct_edge_list, tag_edges, wrap_pop, match_up_ellipsoids, match_up_vectors,&
+       rotate_vec, warp_directions
 
   contains
 

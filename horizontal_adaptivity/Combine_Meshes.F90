@@ -5,12 +5,15 @@ module hadapt_combine_meshes
   !!< The layer depths are specified by a sizing function
   !!< which can be arbitrary python.
 
+  use fldebug
   use global_parameters
+  use futils, only: present_and_true
   use quadrature
   use elements
   use spud
   use sparse_tools
   use linked_lists
+  use parallel_fields
   use fields
   use halos
   use hadapt_advancing_front

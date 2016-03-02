@@ -31,10 +31,14 @@
 
       use spud
       use fldebug
+      use global_parameters, only: FIELD_NAME_LEN
+      use futils, only: int2str
       use parallel_tools
+      use element_numbering, only: FAMILY_SIMPLEX
       use sparse_tools
       use linked_lists
       use fields
+      use parallel_fields, only: zero_non_owned
       use profiler
       use sparse_tools_petsc
       use state_module

@@ -27,7 +27,40 @@
 
 module SampleNetCDF
   use FLDebug
+
   implicit none
+
+  private
+
+  public :: SampleNetCDF_Open, SampleNetCDF_SetVariable,&
+       SampleNetCDF_GetValue, SampleNetCDF_Close
+
+  interface
+
+     subroutine samplenetcdf_open_c(name, n, id)
+       character (len=*) :: name
+       integer, intent(in)  :: n
+       integer, intent(out) :: id
+     end subroutine samplenetcdf_open_c
+
+     subroutine samplenetcdf_setvariable_c(id, varname, n)
+       integer, intent(out) :: id
+       character (len=*) :: varname
+       integer, intent(in)  :: n
+     end subroutine samplenetcdf_setvariable_c
+
+     subroutine samplenetcdf_close_c(id)
+       integer, intent(out) ::id
+     end subroutine samplenetcdf_close_c
+
+     subroutine samplenetcdf_getvalue_c(id, longitude, latitude, val)
+       integer, intent(out)::id
+       real, intent(out)::longitude, latitude
+       real, intent(out)::val
+     end subroutine Samplenetcdf_getvalue_c
+ 
+  end interface
+
 contains
   
   subroutine SampleNetCDF_Open(name, id)

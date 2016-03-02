@@ -30,11 +30,15 @@
 module geostrophic_pressure
   use fldebug
   use global_parameters, only : empty_path, FIELD_NAME_LEN, OPTION_PATH_LEN
+  use futils, only: present_and_true, present_and_false, int2str
   use spud
+  use vector_tools, only: solve
   use data_structures
   use sparse_tools
   use quadrature
+  use parallel_tools, only: allsum
   use eventcounter
+  use element_numbering, only : FAMILY_SIMPLEX
   use elements
   use unittest_tools
   use fields
@@ -43,11 +47,13 @@ module geostrophic_pressure
   use sparse_matrices_fields
   use vtk_interfaces
   use fefields
+  use parallel_fields, only: assemble_ele, element_owned
+  use fetools
   use assemble_cmc
   use boundary_conditions
+  use sparsity_patterns
   use dgtools
   use solvers
-  use sparsity_patterns
   use sparsity_patterns_meshes
   use state_fields_module
   use surfacelabels

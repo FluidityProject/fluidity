@@ -32,6 +32,7 @@ module vorticity_diagnostics
   use fldebug
   use coriolis_module
   use fields
+  use fetools
   use state_module
   use field_derivatives
   use field_options

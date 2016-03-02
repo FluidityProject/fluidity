@@ -29,12 +29,17 @@
 module field_equations_cv
   !!< This module contains the assembly subroutines for advection
   !!< using control volumes
+  use fldebug
   use spud
+  use futils, only: int2str, free_unit
   use global_parameters, only: OPTION_PATH_LEN, FIELD_NAME_LEN
   use cv_faces
-  use parallel_tools, only: getprocno
+  use sparse_tools
+  use element_numbering, only: ELEMENT_CONTROLVOLUME_SURFACE_BODYDERIVATIVES
+  use elements
+  use parallel_tools
   use transform_elements, only: transform_cvsurf_to_physical, &
-       transform_cvsurf_facet_to_physical
+     transform_cvsurf_facet_to_physical, transform_to_physical
   use fields
   use sparse_matrices_fields
   use state_module
@@ -46,7 +51,7 @@ module field_equations_cv
   use boundary_conditions
   use halos
   use cv_upwind_values
-  use cv_face_values
+  use cv_face_values, only: evaluate_face_val, theta_val, couple_face_value
   use fefields, only: compute_cv_mass
   use state_fields_module
   use diagnostic_fields, only: calculate_diagnostic_variable

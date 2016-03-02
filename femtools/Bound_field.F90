@@ -55,7 +55,9 @@ module bound_field_module
                                 FUNCTIONAL_LUMPED_VEC_L2=1, &
                                 FUNCTIONAL_FUNC_L2=2
 
-  public :: bound_field
+  private 
+
+  public :: bound_field, bound_field_diffuse
 
   contains
   

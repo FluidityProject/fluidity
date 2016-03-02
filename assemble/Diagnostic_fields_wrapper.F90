@@ -30,6 +30,7 @@
 module diagnostic_fields_wrapper
   !!< A module to link to diagnostic variable calculations.
 
+  use fldebug
   use global_parameters, only: FIELD_NAME_LEN, timestep
   use futils
   use spud

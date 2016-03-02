@@ -30,6 +30,7 @@
 module halos_repair
 
   use fldebug
+  use futils
   use mpi_interfaces
   use parallel_tools
   use halo_data_types

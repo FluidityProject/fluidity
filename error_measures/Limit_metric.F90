@@ -4,8 +4,11 @@ module limit_metric_module
 
   use fldebug
   use vector_tools, only : determinant => det
+  use futils, only: present_and_true
   use elements
   use spud
+  use parallel_tools
+  use parallel_fields
   use fields
   use meshdiagnostics
 

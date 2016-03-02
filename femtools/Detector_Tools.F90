@@ -30,7 +30,9 @@
 module detector_tools
   use spud
   use fldebug
+  use elements, only: local_coord_count
   use detector_data_types
+  use embed_python, only: set_detectors_from_python
   use integer_hash_table_module
   use fields
   

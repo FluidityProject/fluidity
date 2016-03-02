@@ -1,5 +1,6 @@
 subroutine test_vertical_extrapolation()
 use quadrature
+use elements
 use fields
 use state_module
 use mesh_files

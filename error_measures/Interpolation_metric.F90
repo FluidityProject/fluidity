@@ -8,7 +8,9 @@ module interpolation_metric
 !!<  Comput. Methods Apll. Mech Engrg. 190 (2001) 3771-3796
 
   use spud
+  use fldebug
   use metric_tools
+  use fields
   use parallel_fields
   use state_module
   use vtk_interfaces
@@ -25,6 +27,10 @@ module interpolation_metric
   implicit none
 
   logical :: use_interpolation_metric
+
+  private
+  public :: use_interpolation_metric, initialise_interpolation_metric,&
+            form_interpolation_metric
 
   contains
 

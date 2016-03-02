@@ -32,11 +32,13 @@ module populate_sub_state_module
   use global_parameters, only: OPTION_PATH_LEN, is_active_process, pi, &
 no_active_processes, topology_mesh_name, adaptivity_mesh_name, &
 periodic_boundary_option_path, domain_bbox, domain_volume
+  use futils, only: int2str
   use elements
   use spud
   use parallel_tools
   use data_structures
-  use fields_manipulation
+  use fields
+  use boundary_conditions, only: set_dirichlet_consistent
   use metric_tools
   use transform_elements
   use profiler

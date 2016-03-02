@@ -31,12 +31,15 @@ module k_epsilon
 
   use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN, timestep, current_time
   use fldebug
+  use futils, only: int2str
   use vector_tools
   use quadrature
+  use sparse_tools
   use elements
   use spud
   use fields_manipulation
   use fetools
+  use parallel_fields
   use fields
   use state_module
   use boundary_conditions

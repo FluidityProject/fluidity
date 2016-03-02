@@ -30,7 +30,9 @@ module state_matrices_module
 
   use global_parameters, only: FIELD_NAME_LEN
   use spud
+  use futils, only: present_and_true
   use eventcounter
+  use sparse_tools
   use fields
   use state_module
   use sparsity_patterns_meshes

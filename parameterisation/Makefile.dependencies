@@ -4,8 +4,8 @@
 
 Equation_of_State.o ../include/equation_of_state.mod: Equation_of_State.F90 \
    ../include/fdebug.h ../include/fields.mod ../include/fldebug.mod \
-   ../include/global_parameters.mod ../include/sediment.mod \
-   ../include/spud.mod ../include/state_module.mod
+   ../include/futils.mod ../include/global_parameters.mod \
+   ../include/sediment.mod ../include/spud.mod ../include/state_module.mod
 
 ../include/gls.mod: Gls_vertical_turbulence_model.o
 	@true
@@ -14,10 +14,11 @@ Gls_vertical_turbulence_model.o ../include/gls.mod: \
    Gls_vertical_turbulence_model.F90 ../include/boundary_conditions.mod \
    ../include/coordinates.mod ../include/elements.mod \
    ../include/equation_of_state.mod ../include/fdebug.h \
-   ../include/fefields.mod ../include/field_derivatives.mod \
-   ../include/fields.mod ../include/fldebug.mod \
-   ../include/global_parameters.mod ../include/quadrature.mod \
-   ../include/sparse_matrices_fields.mod ../include/spud.mod \
+   ../include/fefields.mod ../include/fetools.mod \
+   ../include/field_derivatives.mod ../include/fields.mod \
+   ../include/fldebug.mod ../include/global_parameters.mod \
+   ../include/quadrature.mod ../include/sparse_matrices_fields.mod \
+   ../include/sparse_tools.mod ../include/spud.mod \
    ../include/state_fields_module.mod ../include/state_module.mod \
    ../include/vertical_extrapolation_module.mod
 
@@ -44,10 +45,11 @@ k_epsilon.o ../include/k_epsilon.mod: k_epsilon.F90 \
    ../include/fdebug.h ../include/fetools.mod ../include/field_derivatives.mod \
    ../include/field_options.mod ../include/fields.mod \
    ../include/fields_manipulation.mod ../include/fldebug.mod \
-   ../include/global_parameters.mod ../include/quadrature.mod \
+   ../include/futils.mod ../include/global_parameters.mod \
+   ../include/parallel_fields.mod ../include/quadrature.mod \
    ../include/smoothing_module.mod ../include/solvers.mod \
-   ../include/sparsity_patterns_meshes.mod ../include/spud.mod \
-   ../include/state_fields_module.mod ../include/state_module.mod \
-   ../include/surface_integrals.mod ../include/vector_tools.mod \
-   ../include/vtk_interfaces.mod
+   ../include/sparse_tools.mod ../include/sparsity_patterns_meshes.mod \
+   ../include/spud.mod ../include/state_fields_module.mod \
+   ../include/state_module.mod ../include/surface_integrals.mod \
+   ../include/vector_tools.mod ../include/vtk_interfaces.mod
 

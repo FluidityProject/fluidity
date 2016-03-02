@@ -29,6 +29,7 @@
 module physics_from_options
 
 use spud
+use fldebug
 use fields
 use state_module
 

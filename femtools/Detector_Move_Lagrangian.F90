@@ -29,10 +29,13 @@
 
 module detector_move_lagrangian
   use spud
+  use fldebug
   use global_parameters, only: OPTION_PATH_LEN
   use integer_hash_table_module
   use halo_data_types
+  use parallel_tools
   use halos_base
+  use parallel_fields
   use fields
   use state_module
   use detector_data_types

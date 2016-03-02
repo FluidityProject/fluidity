@@ -31,6 +31,7 @@ module qmesh_module
 
   use fldebug
   use spud
+  use parallel_tools
   use fields
   use state_module
   use vtk_interfaces

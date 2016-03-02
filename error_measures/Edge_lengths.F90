@@ -3,6 +3,7 @@
 module edge_length_module
 
   use fldebug
+  use vector_tools
   use unittest_tools
   use metric_tools
   use fields

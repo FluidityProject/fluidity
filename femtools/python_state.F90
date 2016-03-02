@@ -24,7 +24,10 @@
 module python_state
   use fldebug
   use global_parameters, only:FIELD_NAME_LEN, current_debug_level, OPTION_PATH_LEN, PYTHON_FUNC_LEN
+  use futils, only: int2str
   use quadrature
+  use sparse_tools
+  use element_numbering
   use elements
   use fields
   use state_module 

@@ -32,6 +32,8 @@ module tidal_diagnostics
   use fldebug
   use global_parameters, only : timestep, OPTION_PATH_LEN, current_time
   use spud
+  use futils
+  use vector_tools, only: solve
   use fields
   use state_module
   use field_options

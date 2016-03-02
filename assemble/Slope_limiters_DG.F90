@@ -27,13 +27,16 @@
 #include "fdebug.h"
 
 module slope_limiters_dg
-use fldebug_parameters
+use fldebug
 use ieee_arithmetic
 use spud
+use vector_tools, only: solve
 use elements
 use eventcounter
 use transform_elements
+use sparse_tools
 use fields
+use field_options, only: find_linear_parent_mesh
 use state_module
 use vtk_interfaces
 use state_fields_module

@@ -26,9 +26,14 @@
 !    USA
 #include "fdebug.h"
 module fields_allocates
+use fldebug
 use global_parameters, only: PYTHON_FUNC_LEN, empty_path, empty_name, &
      topology_mesh_name, NUM_COLOURINGS
+use futils, only: present_and_true
+use quadrature
+use element_numbering
 use elements
+use sparse_tools
 use ieee_arithmetic
 use shape_functions, only: make_element_shape
 use halo_data_types

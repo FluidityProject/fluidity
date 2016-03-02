@@ -29,6 +29,7 @@
 
 subroutine test_get_connected_surface_eles
 
+  use futils
   use fields
   use fldebug
   use mesh_files

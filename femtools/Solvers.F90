@@ -28,6 +28,7 @@
 module solvers
   use FLDebug
   use Global_Parameters
+  use futils, only: present_and_true, int2str, free_unit, real_format
   use elements
   use spud
   use parallel_tools

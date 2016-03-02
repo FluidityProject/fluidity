@@ -30,11 +30,11 @@ module metric_advection
 
   use fldebug
   use vector_tools
-  use global_parameters, only: OPTION_PATH_LEN
+  use global_parameters, only: OPTION_PATH_LEN, FIELD_NAME_LEN
   use futils, only: int2str
   use elements
   use spud
-  use parallel_tools, only: getprocno
+  use parallel_tools
   use sparse_tools
   use shape_functions
   use cv_faces
@@ -55,7 +55,7 @@ module metric_advection
   use cvtools
   use cv_options
   use cv_upwind_values
-  use cv_face_values
+  use cv_face_values, only: theta_val, evaluate_face_val
   use sparsity_patterns_meshes
   use fefields, only: compute_cv_mass
   use state_fields_module, only: get_cv_mass

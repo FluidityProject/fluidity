@@ -30,8 +30,8 @@ module Tidal_module
 
    use fldebug
    use spud
+   use sparse_tools
    use fields
-   use state_module
    use state_module
    use coordinates
    use sparse_matrices_fields

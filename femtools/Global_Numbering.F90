@@ -31,7 +31,9 @@ module global_numbering
   ! Module to construct the global node numbering map for elements of a
   ! given degree.
   use fldebug
+  use element_numbering
   use elements
+  use fields_data_types
   use mpi_interfaces
   use halo_data_types
   use parallel_tools
@@ -369,7 +371,7 @@ contains
     ! Vertices per surface element
     snloc = nloc - 1
 
-    call MakeLists_Dynamic(Nonods, Totele, Nloc, ndglno, D3, NEList,&
+    call MakeLists(Nonods, Totele, Nloc, ndglno, D3, NEList,&
        & NNList, EEList)
 
     new_ndglno=0

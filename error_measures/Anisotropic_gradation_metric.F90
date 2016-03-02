@@ -3,24 +3,28 @@
 module anisotropic_gradation
 
   use spud
+  use fldebug
   use sparse_tools
   use vector_tools
   use adjacency_lists
   use linked_lists
+  use unittest_tools, only: operator(.fne.)
   use metric_tools
   use fields
   use state_module
   use initialise_fields_module
   use merge_tensors
-  use gradation_metric
-  use form_metric_field
+  use gradation_metric 
+  use form_metric_field, only: bound_metric
 
   implicit none
+
+  private
 
   public :: initialise_anisotropic_gradation
   public :: form_anisotropic_gradation_metric
 
-  logical :: use_anisotropic_gradation = .true.
+  logical, public :: use_anisotropic_gradation = .true.
 
   contains
 

@@ -8,12 +8,13 @@ module goals
   use vector_tools
   use elements
   use spud
+  use tensors, only: tensormul
   use fetools
   use unittest_tools, only: get_matrix_identity
   use fields
   use state_module
   use fefields
-  use field_derivatives
+  use field_derivatives, only: grad, curl
 
   implicit none
 

@@ -38,4 +38,6 @@ module fields
 
   implicit none
 
+  public
+
 end module fields
