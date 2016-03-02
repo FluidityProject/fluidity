@@ -30,13 +30,13 @@
 module multiphase_diagnostics
    !!< Module containing all generic multiphase-related diagnostic algorithms.
 
-   use field_options
-   use fields
    use fldebug
    use global_parameters, only : OPTION_PATH_LEN
    use spud
-   use state_fields_module
+   use fields
    use state_module
+   use field_options
+   use state_fields_module
 
    implicit none
    

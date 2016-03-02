@@ -29,21 +29,21 @@
 
 module interpolation_manager
 
+  use spud
+  use global_parameters, only : OPTION_PATH_LEN, periodic_boundary_option_path
+  use linked_lists
+  use supermesh_construction
+  use intersection_finder_module
+  use fields
+  use state_module
+  use field_options
+  use vtk_interfaces
   use interpolation_module
   use conservative_interpolation_module
   use dg_interpolation_module
-  use state_module
-  use fields
-  use spud
-  use global_parameters, only : OPTION_PATH_LEN, periodic_boundary_option_path
-  use supermesh_construction
-  use field_options
-  use intersection_finder_module
-  use linked_lists
-  use boundary_conditions_from_options
   use tictoc
+  use boundary_conditions_from_options
   use populate_state_module
-  use vtk_interfaces
   use geostrophic_pressure
   use pseudo_consistent_interpolation
   

@@ -29,81 +29,80 @@
 
 module fluids_module
 
-  use AuxilaryOptions
-  use MeshDiagnostics
-  use signal_vars
+  use fldebug
+  use auxilaryoptions
   use spud
-  use equation_of_state
-  use timers
-  use adapt_state_module
-  use adapt_state_prescribed_module
-  use FLDebug
+  use global_parameters, only: current_time, dt, timestep, OPTION_PATH_LEN, &
+simulation_start_time, &
+simulation_start_cpu_time, &
+simulation_start_wall_time, &
+topology_mesh_name
+  use parallel_tools
+  use memory_diagnostics
   use sparse_tools
   use elements
+  use adjacency_lists
+  use eventcounter
+  use meshdiagnostics
+  use signal_vars
   use fields
-  use boundary_conditions_from_options
-  use populate_state_module
-  use populate_sub_state_module
-  use reserve_state_module
   use vtk_interfaces
-  use Diagnostic_variables
-  use diagnostic_fields_new, only : &
-    & calculate_diagnostic_variables_new => calculate_diagnostic_variables, &
-    & check_diagnostic_dependencies
-  use diagnostic_fields_wrapper
-  use diagnostic_children
-  use advection_diffusion_cg
-  use advection_diffusion_DG
-  use advection_diffusion_FV
-  use field_equations_cv, only: solve_field_eqn_cv, initialise_advection_convergence, coupled_cv_field_eqn
-  use vertical_extrapolation_module
-  use qmesh_module
-  use checkpoint
-  use write_state_module
+  use boundary_conditions
+  use halos
+  use sediment
+  use equation_of_state
+  use timers
   use synthetic_bc
+  use k_epsilon
+  use tictoc
+  use boundary_conditions_from_options
+  use reserve_state_module
+  use write_state_module
+  use detector_parallel, only: sync_detector_coordinates, deallocate_detector_list_array
+  use diagnostic_variables
+  use populate_state_module
+  use vertical_extrapolation_module
+  use field_priority_lists
+  use multiphase_module
+  use multimaterial_module
+  use spontaneous_potentials, only: calculate_electrical_potential
+  use free_surface_module
+  use momentum_diagnostic_fields, only: calculate_densities
+  use sediment_diagnostics, only: calculate_sediment_flux
+  use diagnostic_fields_wrapper
+  use checkpoint
   use goals
   use adaptive_timestepping
   use conformity_measurement
-  ! Use Solid-fluid coupling and ALE - Julian- 18-09-06
-  use ale_module
-  use adjacency_lists
-  use multimaterial_module
-  use parallel_tools
-  use SolidConfiguration
-  use MeshMovement
+  use timeloop_utilities
+  use discrete_properties_module
+  use adapt_state_module
+  use adapt_state_prescribed_module
+  use populate_sub_state_module
+  use diagnostic_fields_new, only : &
+& calculate_diagnostic_variables_new => calculate_diagnostic_variables, &
+& check_diagnostic_dependencies
+  use diagnostic_children
+  use advection_diffusion_cg
+  use advection_diffusion_dg
+  use advection_diffusion_fv
+  use field_equations_cv, only: solve_field_eqn_cv, initialise_advection_convergence, coupled_cv_field_eqn
+  use qmesh_module
   use write_triangle
+  use solidconfiguration
+  use ale_module
+  use meshmovement
   use biology
   use foam_flow_module, only: calculate_potential_flow, calculate_foam_velocity
-  use momentum_equation
-  use timeloop_utilities
-  use field_priority_lists
-  use boundary_conditions
-  use spontaneous_potentials, only: calculate_electrical_potential
-  use saturation_distribution_search_hookejeeves
-  use discrete_properties_module
-  use gls
-  use k_epsilon
-  use iceshelf_meltrate_surf_normal
-  use halos
-  use memory_diagnostics
-  use free_surface_module
-  use global_parameters, only: current_time, dt, timestep, OPTION_PATH_LEN, &
-                               simulation_start_time, &
-                               simulation_start_cpu_time, &
-                               simulation_start_wall_time, &
-                               topology_mesh_name
-  use eventcounter
   use reduced_model_runtime
   use implicit_solids
-  use sediment
+  use momentum_equation
+  use saturation_distribution_search_hookejeeves
+  use gls
+  use iceshelf_meltrate_surf_normal
 #ifdef HAVE_HYPERLIGHT
   use hyperlight
 #endif
-  use multiphase_module
-  use detector_parallel, only: sync_detector_coordinates, deallocate_detector_list_array
-  use tictoc
-  use momentum_diagnostic_fields, only: calculate_densities
-  use sediment_diagnostics, only: calculate_sediment_flux
 
   implicit none
 

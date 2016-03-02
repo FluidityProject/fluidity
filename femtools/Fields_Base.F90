@@ -29,16 +29,16 @@
 module fields_base
   !!< This module contains abstracted field types which carry shape and
   !!< connectivity with them.
+  use global_parameters, only: FIELD_NAME_LEN, current_debug_level, current_time
+  use reference_counting
+  use element_numbering
+  use vector_tools, only: solve, invert, norm2, cross_product
+  use elements
   use shape_functions, only: element_type
   use tensors
-  use fields_data_types
-  use reference_counting
-  use global_parameters, only: FIELD_NAME_LEN, current_debug_level, current_time
-  use elements
-  use element_numbering
-  use embed_python
   use sparse_tools
-  use vector_tools, only: solve, invert, norm2, cross_product
+  use fields_data_types
+  use embed_python
   implicit none
 
   interface ele_nodes

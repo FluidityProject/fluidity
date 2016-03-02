@@ -27,33 +27,35 @@
 
 #include "fdebug.h"
 module populate_state_module
+
+  use fldebug
+  use global_parameters, only: OPTION_PATH_LEN, is_active_process, pi, &
+no_active_processes, topology_mesh_name, adaptivity_mesh_name, &
+periodic_boundary_option_path, domain_bbox, domain_volume, surface_radius
   use elements
-  use state_module
-  use FLDebug
   use spud
+  use parallel_tools
+  use data_structures
+  use fields_manipulation
+  use metric_tools
+  use transform_elements
+  use profiler
+  use state_module
   use mesh_files
   use vtk_cache_module
-  use global_parameters, only: OPTION_PATH_LEN, is_active_process, pi, &
-    no_active_processes, topology_mesh_name, adaptivity_mesh_name, &
-    periodic_boundary_option_path, domain_bbox, domain_volume, surface_radius
   use field_options
   use reserve_state_module
-  use fields_manipulation
-  use diagnostic_variables, only: convergence_field, steady_state_field
   use field_options
-  use surfacelabels
-  use climatology
-  use metric_tools
-  use coordinates
   use halos
+  use surfacelabels
+  use diagnostic_variables, only: convergence_field, steady_state_field
+  use climatology
+  use coordinates
   use tictoc
   use hadapt_extrude
-  use initialise_fields_module
-  use transform_elements
-  use parallel_tools
-  use boundary_conditions_from_options
   use nemo_states_module
-  use data_structures
+  use initialise_fields_module
+  use boundary_conditions_from_options
   use fields_halos
   use read_triangle
   use initialise_ocean_forcing_module
@@ -126,7 +128,6 @@ contains
 
 
   subroutine populate_state(states)
-    use Profiler
     type(state_type), pointer, dimension(:) :: states
 
     integer :: nstates ! number of states
@@ -2959,7 +2960,6 @@ contains
 
   function mesh_name(field_path)
     !!< given a field path, establish the mesh that the field is on.
-    use global_parameters, only: FIELD_NAME_LEN
     character(len=FIELD_NAME_LEN) :: mesh_name
     character(len=*), intent(in) :: field_path
 

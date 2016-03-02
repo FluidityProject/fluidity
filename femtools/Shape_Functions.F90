@@ -27,11 +27,11 @@
 #include "fdebug.h"
 module shape_functions
   !!< Generate shape functions for elements of arbitrary polynomial degree.
-  use futils
   use FLDebug
+  use futils
   use polynomials
-  use elements
   use element_numbering
+  use elements
   use Superconvergence
   use ieee_arithmetic, only: ieee_quiet_nan, ieee_value
   

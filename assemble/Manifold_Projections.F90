@@ -26,9 +26,8 @@
 !    USA
 #include "fdebug.h"
 module manifold_projections
-  use state_module
   use fields
-  use fields_base
+  use state_module
 
   implicit none
   

@@ -31,34 +31,33 @@ module diagnostic_fields
   !!< A module to calculate diagnostic fields.
 
   use global_parameters, only:FIELD_NAME_LEN, current_time, OPTION_PATH_LEN
+  use futils
+  use spud
+  use Vector_Tools
+  use CV_Faces
+  use parallel_tools
+  use quicksort
+  use fetools
+  use unittest_tools
   use fields
+  use state_module
   use halos
+  use boundary_conditions
   use field_derivatives
   use field_options
-  use state_module
-  use futils
-  use fetools
+  use sparse_matrices_fields
   use fefields, only: compute_lumped_mass, compute_cv_mass
   use MeshDiagnostics
-  use spud
   use CV_Shape_Functions, only: make_cv_element_shape, make_cvbdy_element_shape
-  use CV_Faces
   use CVTools
+  use cv_options
   use CV_Upwind_Values
   use CV_Face_Values, only: evaluate_face_val, theta_val
-  use cv_options
-  use parallel_tools
   use sparsity_patterns
   use sparsity_patterns_meshes
   use solvers
-  use sparse_matrices_fields
-  use boundary_conditions, only: get_entire_boundary_condition, get_dg_surface_mesh
-  use quicksort
-  use unittest_tools
-  use boundary_conditions
   use state_fields_module
   use interpolation_module
-  use Vector_Tools
   use streamfunction
 
   implicit none

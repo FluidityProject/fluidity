@@ -30,16 +30,15 @@
 module adaptive_timestepping
   !!< Contains new style adaptive timestepping routines
   
-  use diagnostic_fields
-  use fields
-  use fields_data_types
-  use field_options
   use fldebug
   use global_parameters, only : OPTION_PATH_LEN, FIELD_NAME_LEN
-  use signal_vars, only : SIG_INT
-  use state_module
   use spud
   use unittest_tools
+  use fields
+  use state_module
+  use field_options
+  use signal_vars, only : SIG_INT
+  use diagnostic_fields
    
   implicit none
   

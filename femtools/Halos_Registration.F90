@@ -28,25 +28,25 @@
 #include "fdebug.h"
 
 module halos_registration
-
-  use fields_allocates
-  use fields_base
-  use fields_data_types
-  use fields_manipulation
+  
   use fldebug
   use futils
+  use mpi_interfaces
   use halo_data_types
-  use halos_allocates
+  use parallel_tools
   use halos_base
   use halos_debug
-  use halos_communications
-  use halos_derivation
-  use halos_ownership
-  use halos_numbering
-  use mpi_interfaces
-  use parallel_tools
+  use halos_allocates
   use data_structures
-
+  use fields_data_types
+  use fields_base
+  use halos_communications
+  use halos_numbering
+  use halos_ownership
+  use fields_allocates
+  use fields_manipulation
+  use halos_derivation
+   
   implicit none
   
   private

@@ -29,28 +29,39 @@
 module advection_diffusion_fv
   !!< This module contains the finite volume form of the advection
   !!< -diffusion equation for scalars.
-  use quadrature
-  use elements
-  use sparse_tools
-  use fields
-  
-  use fetools
-  use state_module
-  use shape_functions
-  use transform_elements
   use fldebug
-  use petsc_solve_state_module
-  use boundary_conditions
-  use boundary_conditions_from_options
+  use vector_tools
+  use global_parameters, only: OPTION_PATH_LEN, FIELD_NAME_LEN, COLOURING_DG2, &
+COLOURING_DG0
+  use elements
   use spud
-  use field_options
-  use sparsity_patterns_meshes
-  use global_parameters, only : FIELD_NAME_LEN, OPTION_PATH_LEN, COLOURING_DG1
-  use profiler
-  use colouring
 #ifdef _OPENMP
   use omp_lib
 #endif
+  use sparse_tools
+  use shape_functions
+  use transform_elements
+  use fetools
+  use fields
+  use profiler
+  use state_module
+  use boundary_conditions
+  use sparsity_patterns
+  use dgtools
+  use vtk_interfaces
+  use field_options
+  use sparse_matrices_fields
+  use fefields
+  use field_derivatives
+  use coordinates
+  use sparsity_patterns_meshes
+  use petsc_solve_state_module
+  use boundary_conditions_from_options
+  use upwind_stabilisation
+  use slope_limiters_dg
+  use diagnostic_fields, only: calculate_diagnostic_variable
+  use porous_media
+  use colouring
   
   implicit none
 

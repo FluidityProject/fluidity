@@ -27,26 +27,28 @@
 #include "fdebug.h"
 
   module Full_Projection
-    use FLDebug
-    use elements
-    use Petsc_tools
-    use Solvers
-    use Signal_Vars
-    use Sparse_Tools
-    use sparse_tools_petsc
-    use Sparse_matrices_fields
-    use Fields_Base
-    use Global_Parameters
-    use spud
-    use halos
-    use Multigrid
-    use state_module
-    use petsc_solve_state_module
-    use boundary_conditions_from_options
 
+ 
+    use fldebug
+    use global_parameters
+    use elements
+    use spud
 #ifdef HAVE_PETSC_MODULES
     use petsc
 #endif
+    use sparse_tools
+    use fields_base
+    use petsc_tools
+    use signal_vars
+    use sparse_tools_petsc
+    use sparse_matrices_fields
+    use state_module
+    use halos
+    use multigrid
+    use solvers
+    use petsc_solve_state_module
+    use boundary_conditions_from_options
+
 
     implicit none
     ! Module to provide solvers, preconditioners etc... for full_projection Solver.

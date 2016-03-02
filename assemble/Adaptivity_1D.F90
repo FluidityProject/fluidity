@@ -29,8 +29,8 @@
 
 module adaptivity_1d
   
-  use fields
   use fldebug
+  use fields
   use hadapt_metric_based_extrude
   use node_locking
   use tictoc

@@ -1,14 +1,14 @@
 #include "fdebug.h"
 
 module smoothing_module
-  use state_module
-  use fields
+  use global_parameters, only : OPTION_PATH_LEN
   use sparse_tools
+  use metric_tools
+  use fields
+  use state_module
   use sparsity_patterns
   use solvers
-  use metric_tools
   use boundary_conditions, only: apply_dirichlet_conditions
-  use global_parameters, only : OPTION_PATH_LEN
   implicit none
 
   private

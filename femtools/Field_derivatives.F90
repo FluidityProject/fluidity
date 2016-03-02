@@ -8,19 +8,19 @@ module field_derivatives
     !!< (Since the k-th derivative of a scalar field is a rank-k tensor,
     !!< anything with k > 2 rapidly becomes far too big to store in memory.)
 
+    use vector_tools
     use elements
+    use eventcounter
+    use superconvergence
+    use transform_elements
     use fetools, only: shape_shape, shape_dshape, dshape_outer_dshape
     use fields
-    use halos
-    use eventcounter
-    use transform_elements
-    use vector_tools
-    use vector_set
-    use node_boundary
-    use surfacelabels
-    use vtk_interfaces
-    use superconvergence
     use state_module
+    use vtk_interfaces
+    use halos
+    use vector_set
+    use surfacelabels
+    use node_boundary
     use boundary_conditions, only: get_entire_boundary_condition
     implicit none
 

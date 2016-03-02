@@ -4,8 +4,8 @@ module fetools
   !!< Module containing general tools for discretising Finite Element problems.
 
   use elements
-  use transform_elements
   use fields_base
+  use transform_elements
   implicit none
 
   !! X, Y and Z indices.

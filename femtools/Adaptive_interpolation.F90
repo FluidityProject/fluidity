@@ -2,28 +2,28 @@
 
 module adaptive_interpolation_module
 
-  use quadrature
-  use elements
-  use fields
-  use sparse_tools
-  use supermesh_construction
-  use futils
-  use transform_elements
-  use meshdiagnostics
-  use sparsity_patterns
   use vector_tools
-  use tensors
-  use fetools
-  use sparse_tools
-  use solvers
-  use adjacency_lists
-  use vtk_interfaces
-  use unittest_tools
+  use quadrature
+  use futils
+  use elements
   use spud
   use quicksort
-  use intersection_finder_module
+  use sparse_tools
+  use tensors
+  use sparse_tools
+  use transform_elements
+  use adjacency_lists
+  use unittest_tools
   use linked_lists
+  use supermesh_construction
+  use fetools
+  use intersection_finder_module
+  use fields
+  use meshdiagnostics
+  use sparsity_patterns
+  use vtk_interfaces
   use sparse_matrices_fields
+  use solvers
   implicit none
 
   integer :: max_ai_degree=14

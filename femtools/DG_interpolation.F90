@@ -2,27 +2,27 @@
 
 module dg_interpolation_module
 
+  use vector_tools
   use quadrature
-  use fields
-  use sparse_tools
-  use supermesh_construction
   use futils
+  use spud
+  use sparse_tools
+  use tensors
+  use sparse_tools
   use transform_elements
+  use adjacency_lists
+  use unittest_tools
+  use linked_lists
+  use supermesh_construction
+  use fetools
+  use intersection_finder_module
+  use fields
   use meshdiagnostics
   use sparsity_patterns
-  use vector_tools
-  use tensors
-  use fetools
-  use sparse_tools
-  use interpolation_module
-  use solvers
-  use adjacency_lists
   use vtk_interfaces
-  use unittest_tools
-  use spud
-  use intersection_finder_module
-  use linked_lists
+  use interpolation_module
   use sparse_matrices_fields
+  use solvers
   implicit none
 
   private

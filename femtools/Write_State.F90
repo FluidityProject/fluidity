@@ -5,17 +5,17 @@
 module write_state_module
   !!< Data output routines
   
-  use embed_python
-  use fields
   use FLDebug
+  use global_parameters, only: OPTION_PATH_LEN
+  use embed_python
   use spud
+  use futils
+  use fields
+  use Profiler
   use state_module
   use timers
-  use Profiler
   use vtk_interfaces
   use field_options
-  use futils
-  use global_parameters, only: OPTION_PATH_LEN
   use halos
   
   implicit none

@@ -3,16 +3,16 @@
 
 module form_metric_field
 
-  use fields
   use vector_tools
-  use unittest_tools
-  use merge_tensors
-  use metric_tools
-  use recovery_estimator
-  use vtk_interfaces, only: vtk_write_fields
   use global_parameters, only : OPTION_PATH_LEN
-  use state_module
   use spud
+  use unittest_tools
+  use metric_tools
+  use fields
+  use merge_tensors
+  use state_module
+  use vtk_interfaces, only: vtk_write_fields
+  use recovery_estimator
   use field_options
   
   implicit none

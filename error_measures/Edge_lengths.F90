@@ -2,9 +2,9 @@
 
 module edge_length_module
 
-  use metric_tools
   use fldebug
   use unittest_tools
+  use metric_tools
   use fields
 
   implicit none

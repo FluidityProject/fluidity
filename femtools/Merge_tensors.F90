@@ -6,10 +6,10 @@ module merge_tensors
     !!< satisfying both constraints.
     !!< See Gerard Gorman's thesis, section 2.4.
 
-    use fields
     use vector_tools
-    use metric_tools, only: aspect_ratio
     use unittest_tools
+    use metric_tools, only: aspect_ratio
+    use fields
     implicit none
 
     private

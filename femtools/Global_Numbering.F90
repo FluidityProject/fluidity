@@ -30,20 +30,20 @@ module global_numbering
   ! **********************************************************************
   ! Module to construct the global node numbering map for elements of a
   ! given degree.
-  use adjacency_lists
-  use elements
-  use sparse_tools
   use fldebug
+  use elements
+  use mpi_interfaces
   use halo_data_types
-  use halos_allocates
+  use parallel_tools
   use halos_base
   use halos_debug
-  use halos_numbering
-  use halos_ownership
-  use parallel_tools
-  use linked_lists
-  use mpi_interfaces
+  use halos_allocates
+  use sparse_tools
   use fields_base
+  use adjacency_lists
+  use linked_lists
+  use halos_numbering
+  use halos_ownership 
   
   implicit none
 

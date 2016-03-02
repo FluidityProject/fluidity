@@ -27,13 +27,13 @@
 #include "fdebug.h"
 module sparsity_patterns_meshes
   !! Calculate shape functions and sparsity patterns.
-  use sparse_tools
-  use sparsity_patterns
-  use shape_functions
-  use fields
-  use state_module
   use fldebug
   use global_parameters, only : FIELD_NAME_LEN
+  use sparse_tools
+  use shape_functions
+  use sparsity_patterns
+  use fields
+  use state_module
   
   implicit none
 

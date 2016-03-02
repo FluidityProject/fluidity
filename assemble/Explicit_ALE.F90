@@ -1,24 +1,23 @@
 #include "confdefs.h"
 #include "fdebug.h"
 module ale_module
+  use fldebug
+  use global_parameters, only: OPTION_PATH_LEN, dt
   use quadrature
   use elements
-  use FLDebug
-  use fldebug
-  use fields
-  use fefields,only: compute_lumped_mass
-  use fetools, only: X_, Y_, Z_
   use spud
-  use state_module
-  use transform_elements
-  use boundary_conditions
-  use global_parameters, only: OPTION_PATH_LEN, dt
-  use form_metric_field
-  use metric_assemble
-  use edge_length_module
-  use solidconfiguration
-  use fields_manipulation
   use eventcounter
+  use transform_elements
+  use fetools, only: X_, Y_, Z_
+  use fields_manipulation
+  use fields
+  use state_module
+  use fefields,only: compute_lumped_mass
+  use boundary_conditions
+  use form_metric_field
+  use edge_length_module
+  use metric_assemble
+  use solidconfiguration
 
   private
   real,              save :: toler_coarse,toler_fine,w1,w2,w3,w4,w5,fmin,minfchg,dx,dy,dz

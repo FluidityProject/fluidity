@@ -2,9 +2,6 @@
 !! This module contains multigrid related subroutines, such as the smoothed
 !! aggregation preconditioner.
 module multigrid
-use Petsc_Tools
-use Sparse_tools
-use sparse_tools_petsc
 use FLDebug
 use spud
 use futils
@@ -12,6 +9,9 @@ use parallel_tools
 #ifdef HAVE_PETSC_MODULES
   use petsc
 #endif
+use Sparse_tools
+use Petsc_Tools
+use sparse_tools_petsc
 implicit none
 #include "petsc_legacy.h"
 

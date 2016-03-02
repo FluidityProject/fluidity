@@ -34,14 +34,14 @@ module spontaneous_potentials
   !!< porous media.
 
   use fldebug
-  use state_module
-  use fields
   use spud
+  use fields
+  use state_module
   use field_options
   use solvers
   use boundary_conditions
-  use boundary_conditions_from_options
   use sparsity_patterns_meshes
+  use boundary_conditions_from_options
 
   implicit none
   

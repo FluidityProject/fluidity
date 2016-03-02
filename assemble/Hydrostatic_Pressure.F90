@@ -31,25 +31,22 @@
 
 module hydrostatic_pressure
 
-! these 5 need to be on top and in this order, so as not to confuse silly old intel compiler 
+  use fldebug
   use quadrature
   use elements
-  use sparse_tools
-  use fields
-  use state_module
-!
-
-  use fldebug
-  use transform_elements
   use parallel_tools
   use spud
+  use sparse_tools
+  use shape_functions
+  use transform_elements
+  use fields
+  use profiler
+  use state_module
   use boundary_conditions
   use vertical_extrapolation_module
-  use state_matrices_module
   use upwind_stabilisation
-  use profiler
-  use shape_functions
   use solvers
+  use state_matrices_module
   
   implicit none
 

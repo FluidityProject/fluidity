@@ -31,31 +31,31 @@ module diagnostic_fields_wrapper
   !!< A module to link to diagnostic variable calculations.
 
   use global_parameters, only: FIELD_NAME_LEN, timestep
-  use fields
-  use sparse_matrices_fields
-  use field_derivatives
-  use state_module
   use futils
-  use fetools
   use spud
   use parallel_tools
-  use diagnostic_fields, only: calculate_diagnostic_variable
-  use multimaterial_module, only: calculate_material_mass, &
-                                  calculate_bulk_material_pressure, &
-                                  calculate_sum_material_volume_fractions, &
-                                  calculate_material_volume
-  use free_surface_module, only: calculate_diagnostic_free_surface, &
-                                 calculate_diagnostic_wettingdrying_alpha
-  use tidal_module, only: calculate_diagnostic_equilibrium_pressure
+  use fetools
+  use fields
+  use sparse_matrices_fields
+  use state_module
+  use field_derivatives
   use field_options, only: do_not_recalculate
-  use vorticity_diagnostics
-  use diagnostic_fields_matrices
+  use diagnostic_fields, only: calculate_diagnostic_variable
   use equation_of_state
+  use multiphase_module
+  use diagnostic_fields_matrices
+  use multimaterial_module, only: calculate_material_mass, &
+       calculate_bulk_material_pressure, &
+       calculate_sum_material_volume_fractions, &
+       calculate_material_volume
+  use tidal_module, only: calculate_diagnostic_equilibrium_pressure
+  use free_surface_module, only: calculate_diagnostic_free_surface, &
+       calculate_diagnostic_wettingdrying_alpha
+  use vorticity_diagnostics
   use momentum_diagnostic_fields
   use spontaneous_potentials, only: calculate_formation_conductivity
   use sediment_diagnostics
   use geostrophic_pressure
-  use multiphase_module
   
   implicit none
 

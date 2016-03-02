@@ -1,16 +1,18 @@
 #include "fdebug.h"
 
 module hadapt_advancing_front
-  use fields
-  use sparse_tools
+
   use quicksort
-  use linked_lists
-  use adjacency_lists
-  use meshdiagnostics
   use data_structures
   use spud
-  use halos
+  use sparse_tools
+  use linked_lists
+  use adjacency_lists
+  use fields
+  use meshdiagnostics
   use halos_derivation
+  use halos
+
   implicit none
   
   private

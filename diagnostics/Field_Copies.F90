@@ -29,21 +29,21 @@
 
 module field_copies_diagnostics
 
-  use diagnostic_source_fields
-  use field_options
-  use fields
   use fldebug
   use global_parameters, only : OPTION_PATH_LEN
-  use smoothing_module
-  use solvers
-  use sparse_tools
-  use sparsity_patterns_meshes
   use spud
-  use state_module
-  use transform_elements
-  use state_fields_module
-  use sparse_matrices_fields
   use fldebug
+  use sparse_tools
+  use transform_elements
+  use fields
+  use state_module
+  use field_options
+  use diagnostic_source_fields
+  use sparse_matrices_fields
+  use solvers
+  use smoothing_module
+  use sparsity_patterns_meshes
+  use state_fields_module
 
   implicit none
   

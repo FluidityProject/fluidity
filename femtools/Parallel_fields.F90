@@ -30,17 +30,17 @@
 module parallel_fields
   !!< This module exists to separate out parallel operations on fields
   
-  use fields_allocates
-  use fields_base
-  use fields_data_types
+  use mpi_interfaces
   use parallel_tools
-  use halos_communications
-  use halos_ownership
-  use halos_numbering
   use halo_data_types
   use halos_base
+  use fields_data_types
+  use fields_base
+  use halos_communications
+  use halos_numbering
+  use halos_ownership
+  use fields_allocates
   use fields_manipulation
-  use mpi_interfaces
   
   implicit none
 

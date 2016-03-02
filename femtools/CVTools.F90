@@ -27,13 +27,14 @@
 #include "fdebug.h"
 module cvtools
   !!< Module containing general tools for discretising Control Volume problems.
+
   use spud
-  use state_module
   use fldebug
   use vector_tools
-  use futils, only: int2str
-  use field_options, only: complete_field_path
   use global_parameters, only: OPTION_PATH_LEN, FIELD_NAME_LEN
+  use futils, only: int2str
+  use state_module
+  use field_options, only: complete_field_path
 
   implicit none
 

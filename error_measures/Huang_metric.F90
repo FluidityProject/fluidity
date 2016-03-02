@@ -3,16 +3,16 @@
 module huang_metric_module
 ! 10.1016/j.jcp.2004.10.024
 
+  use fldebug
+  use vector_tools
+  use global_parameters, only: domain_volume, OPTION_PATH_LEN
+  use spud
+  use metric_tools
   use fields
   use state_module
   use vtk_interfaces
-  use form_metric_field
-  use vector_tools
-  use global_parameters, only: domain_volume, OPTION_PATH_LEN
-  use fldebug
-  use spud
-  use metric_tools
   use field_options
+  use form_metric_field
 
   implicit none
 

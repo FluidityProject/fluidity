@@ -31,20 +31,20 @@ module SurfaceLabels
   !!< These IDs are used to indicate how surface
   !!< elements can be coarsened or refined.
 
-  use vector_tools
   use fldebug
+  use vector_tools
   use linked_lists
-  use merge_tensors
+  use mpi_interfaces
   use parallel_tools
+  use data_structures
   use sparse_tools
+  use elements
+  use adjacency_lists
   use adjacency_lists
   use fields
-  use elements
+  use merge_tensors
   use vtk_interfaces
-  use adjacency_lists
-  use data_structures
   use halos
-  use mpi_interfaces
   
   implicit none
   

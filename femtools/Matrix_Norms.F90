@@ -2,8 +2,8 @@
 
 module matrix_norms
 
-  use fields
   use vector_tools
+  use fields
   use node_boundary
   implicit none
 

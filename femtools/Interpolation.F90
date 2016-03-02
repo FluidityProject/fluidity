@@ -1,18 +1,18 @@
 #include "fdebug.h"
 
 module interpolation_module
-  use fields
-  use superconvergence
-  use field_derivatives
-  use state_module
-  use sparse_tools
-  use supermesh_construction
   use futils
+  use superconvergence
+  use sparse_tools
   use transform_elements
+  use supermesh_construction
+  use parallel_fields
+  use fields
+  use state_module
+  use field_derivatives
   use meshdiagnostics
   use field_options
   use node_ownership
-  use parallel_fields
   implicit none
 
   interface linear_interpolation

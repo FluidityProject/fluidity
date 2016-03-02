@@ -29,11 +29,11 @@
 
 module diagnostic_source_fields
 
-  use field_options
-  use fields
   use global_parameters, only : OPTION_PATH_LEN
   use spud
+  use fields
   use state_module
+  use field_options
 
   implicit none
  

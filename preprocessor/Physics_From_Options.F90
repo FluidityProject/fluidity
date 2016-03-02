@@ -27,9 +27,11 @@
 #include "fdebug.h"
 
 module physics_from_options
+
+use spud
 use fields
 use state_module
-use spud
+
 implicit none
 
 private

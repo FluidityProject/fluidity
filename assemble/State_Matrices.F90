@@ -28,16 +28,16 @@
 module state_matrices_module
   !!< Module containing general tools for discretising Finite Element problems.
 
+  use global_parameters, only: FIELD_NAME_LEN
+  use spud
+  use eventcounter
   use fields
   use state_module
-  use global_parameters, only: FIELD_NAME_LEN
   use sparsity_patterns_meshes
+  use field_options
   use divergence_matrix_cv, only: assemble_divergence_matrix_cv
   use divergence_matrix_cg, only: assemble_divergence_matrix_cg
   use gradient_matrix_cg, only: assemble_gradient_matrix_cg
-  use eventcounter
-  use field_options
-  use spud
   implicit none
 
   interface get_divergence_matrix_cv
