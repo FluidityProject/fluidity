@@ -28,7 +28,7 @@
 #include "fdebug.h"
 
 module halos_registration
-  
+
   use fldebug
   use futils
   use mpi_interfaces
@@ -46,7 +46,7 @@ module halos_registration
   use fields_allocates
   use fields_manipulation
   use halos_derivation
-   
+
   implicit none
   
   private

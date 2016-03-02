@@ -35,7 +35,7 @@ module mass_matrix_diagnostics
    use global_parameters, only : OPTION_PATH_LEN
    use spud
    use fields
-   use state_module 
+   use state_module
    use field_options
    use state_fields_module
 

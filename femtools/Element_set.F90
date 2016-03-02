@@ -3,14 +3,14 @@ module element_set
   implicit none
 
   interface
-     
+
      subroutine ele_get_ele(i,ele)
        integer, intent(in)  :: i
        integer, intent(out) :: ele
      end subroutine ele_get_ele
 
      subroutine ele_fetch_list(arr)
-       use iso_c_binding 
+       use iso_c_binding
        integer(c_int), dimension(*), intent(out) :: arr
       end subroutine ele_fetch_list
 

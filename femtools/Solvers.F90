@@ -33,7 +33,7 @@ module solvers
   use spud
   use parallel_tools
 #ifdef HAVE_PETSC_MODULES
-  use petsc 
+  use petsc
 #endif
   use Sparse_Tools
   use Fields

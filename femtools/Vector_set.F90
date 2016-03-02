@@ -25,7 +25,7 @@ module vector_set
      subroutine vec_clear_set(idx)
        integer, intent(in) :: idx
      end subroutine vec_clear_set
-     
+
      subroutine vec_destroy_set(idx)
        integer, intent(in) :: idx
      end subroutine vec_destroy_set
@@ -43,7 +43,7 @@ module vector_set
      subroutine intvec_clear_set(idx)
        integer, intent(in) :: idx
      end subroutine intvec_clear_set
-     
+
      subroutine intvec_destroy_set(idx)
        integer, intent(in) :: idx
      end subroutine intvec_destroy_set

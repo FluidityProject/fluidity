@@ -45,7 +45,7 @@ module global_numbering
   use adjacency_lists
   use linked_lists
   use halos_numbering
-  use halos_ownership 
+  use halos_ownership
   
   implicit none
 

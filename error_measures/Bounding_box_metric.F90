@@ -18,7 +18,7 @@ module bounding_box_metric
   use merge_tensors
 
   implicit none
-  
+
   private
 
   public :: initialise_bounding_box_metric, form_bounding_box_metric,&

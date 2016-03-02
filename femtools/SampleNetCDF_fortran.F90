@@ -58,7 +58,7 @@ module SampleNetCDF
        real, intent(out)::longitude, latitude
        real, intent(out)::val
      end subroutine Samplenetcdf_getvalue_c
- 
+
   end interface
 
 contains

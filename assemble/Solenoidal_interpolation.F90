@@ -27,7 +27,7 @@ module solenoidal_interpolation_module
   use fefields
   use dgtools
   use assemble_cmc, only: assemble_cmc_dg, repair_stiff_nodes,&
-     zero_stiff_nodes, assemble_masslumped_cmc 
+     zero_stiff_nodes, assemble_masslumped_cmc
   use boundary_conditions_from_options
   use divergence_matrix_cv, only: assemble_divergence_matrix_cv
   use divergence_matrix_cg, only: assemble_divergence_matrix_cg

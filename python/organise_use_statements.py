@@ -12,7 +12,7 @@ SKIP_LIST=['Diagnostic_Fields_Interfaces.F90','Diagnostic_Fields_New.F90']
 
 def read_fortran_file(filename):
     """ Parse a Fortran 90 file and extract the use statements."""
-    
+
     data=""
 
     file_handle=open(filename)
@@ -39,7 +39,7 @@ def read_fortran_file(filename):
     module_text = {}
 
     for module in modules_used:
-        text='&' 
+        text='&'
         test =',.+'
         while text[-1]=='&':
             text = re.search("(?<=^use %s)%s"%(module,test),data,re.MULTILINE)
@@ -50,21 +50,21 @@ def read_fortran_file(filename):
                 break
             test+=r"\n.+"
         module_text[module] = text
-        
+    
 
     return module_name, modules_used, module_text, modflag
 
 def build_trees(filenames):
     """Build the hierarchy of use statements for an input list of filenames"""
-    
+
     data = dict()
     namelist = dict()
 
     for filename in filenames:
         filename = os.path.relpath(filename)
-        
+    
         name, children, module_text, test = read_fortran_file(filename)
-        
+    
         if test:
             namelist[filename]=children, name
         if name:
@@ -76,7 +76,7 @@ def build_trees(filenames):
 
     for name in data.keys():
         add_children(data,name)
-    
+
     return data, namelist
 
 def print_misplaced(data, namelist, silent, args):
@@ -109,8 +109,8 @@ def print_misplaced(data, namelist, silent, args):
                 insert_sort(out,comp)
 
         return out
-            
-                    
+
+  
     order = data.keys()
 
     out = ""
@@ -126,7 +126,7 @@ def print_misplaced(data, namelist, silent, args):
     clean_high_filenames = set([os.path.relpath(filename)
                       for filename in high_filenames])
 
-    
+
 
     for filename in clean_high_filenames:
         if (os.path.basename(filename) in SKIP_LIST
@@ -141,7 +141,7 @@ def print_misplaced(data, namelist, silent, args):
 
         if new_order != namelist[filename][0]:
             out+=filename+':\n'
-        
+
             for module in new_order:
                 out+= '  use '+module+module_text.setdefault(module,"")+'\n'
 
@@ -184,7 +184,7 @@ def make_graphs(tree, namelist):
 
             if name in visited:
                 return out
-            
+
             for module in tree[name]['directly_used_modules']:
                 if module not in visited or (name == namelist[filename][1]
                                              and module in namelist[filename][0]):
@@ -204,8 +204,8 @@ def make_graphs(tree, namelist):
     Image.open(io.BytesIO(raw)).show()
 
     return outstring
-                
-            
+
+
 
 if __name__ == "__main__":
     import optparse

@@ -30,7 +30,7 @@
 subroutine streamfunction_2d(input_basename_, input_basename_len, &
   & output_basename_, output_basename_len) bind(c)
 
-  use elements  
+  use elements
   use fields
   use fetools
   use fldebug

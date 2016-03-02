@@ -158,7 +158,7 @@ module elements
 
 !! public objects from the reference counting
 
-  public :: new_refcount, incref, decref       
+  public :: new_refcount, incref, decref
 
 contains
 

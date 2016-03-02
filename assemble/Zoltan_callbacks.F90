@@ -12,7 +12,7 @@ module zoltan_callbacks
   use data_structures
   use mpi_interfaces
   use parallel_tools, only: getrank, getnprocs, getprocno, MPI_COMM_FEMTOOLS
-  use sparse_tools 
+  use sparse_tools
   use element_numbering
   use elements
   use metric_tools

@@ -103,7 +103,7 @@ implicit none
   private
 
   public :: mean, maxval, minval, sum, norm2, field_stats, field_cv_stats,&
-  	 field_integral, fields_integral, function_val_at_quad,&
+	 field_integral, fields_integral, function_val_at_quad,&
 	 dot_product, outer_product, norm2_difference, magnitude,&
 	 magnitude_tensor, merge_meshes, distance, divergence_field_stats,&
 	 field_con_stats, function_val_at_quad_scalar, trace

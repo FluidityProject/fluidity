@@ -14,7 +14,7 @@ module NEMO_load_fields_vars
   private
 
   public :: deallocate_temp_fields
-  
+
   contains
 
 subroutine deallocate_temp_fields

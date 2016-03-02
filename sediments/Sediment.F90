@@ -46,7 +46,7 @@ module sediment
 
   implicit none
 
-  private 
+  private
   public set_sediment_reentrainment, sediment_check_options, get_n_sediment_fields, &
        & get_sediment_item, surface_horizontal_divergence
 
