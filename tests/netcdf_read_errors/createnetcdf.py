@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from Scientific.IO.NetCDF import NetCDFFile
+from scipy.io.netcdf import NetCDFFile
 from numpy import arange, zeros
 
 def create(missingdata = False, missingdimension = False, missingvariable = False, incorrectdimension = False, incorrectvariable = False):

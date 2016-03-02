@@ -354,11 +354,11 @@ Exodusii_F_Interface.o ../include/exodusii_f_interface.mod: \
 	@true
 
 FEFields.o ../include/fefields.mod: FEFields.F90 \
-   ../include/element_numbering.mod ../include/elements.mod \
-   ../include/fdebug.h ../include/fetools.mod ../include/field_options.mod \
-   ../include/fields.mod ../include/sparse_matrices_fields.mod \
-   ../include/sparse_tools.mod ../include/state_module.mod \
-   ../include/transform_elements.mod
+   ../include/data_structures.mod ../include/element_numbering.mod \
+   ../include/elements.mod ../include/fdebug.h ../include/fetools.mod \
+   ../include/field_options.mod ../include/fields.mod ../include/halos.mod \
+   ../include/sparse_matrices_fields.mod ../include/sparse_tools.mod \
+   ../include/state_module.mod ../include/transform_elements.mod
 
 ../include/fetools.mod: FETools.o
 	@true
@@ -659,9 +659,9 @@ Interpolation.o ../include/interpolation_module.mod: Interpolation.F90 \
    ../include/fdebug.h ../include/field_derivatives.mod \
    ../include/field_options.mod ../include/fields.mod ../include/futils.mod \
    ../include/meshdiagnostics.mod ../include/node_ownership.mod \
-   ../include/sparse_tools.mod ../include/state_module.mod \
-   ../include/superconvergence.mod ../include/supermesh_construction.mod \
-   ../include/transform_elements.mod
+   ../include/parallel_fields.mod ../include/sparse_tools.mod \
+   ../include/state_module.mod ../include/superconvergence.mod \
+   ../include/supermesh_construction.mod ../include/transform_elements.mod
 
 ../include/intersection_finder_module.mod: Intersection_finder.o
 	@true

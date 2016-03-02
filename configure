@@ -637,6 +637,7 @@ FLLINKER
 LINKER
 FORTRAN_REAL_8
 PROFILING_FLAG
+IO_ADVANCE_BUG
 HAVE_ZOLTAN
 CXXCPP
 HAVE_PETSC33
@@ -13619,6 +13620,72 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
+
+ac_ext=${ac_fc_srcext-f}
+ac_compile='$FC -c $FCFLAGS $ac_fcflags_srcext conftest.$ac_ext >&5'
+ac_link='$FC -o conftest$ac_exeext $FCFLAGS $LDFLAGS $ac_fcflags_srcext conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_fc_compiler_gnu
+
+c_ext=F90
+
+if test "$cross_compiling" = yes; then :
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "cannot run test program while cross compiling
+See \`config.log' for more details" "$LINENO" 5; }
+else
+  cat > conftest.$ac_ext <<_ACEOF
+      program main
+
+	implicit none
+
+	integer :: unit = 10
+	integer :: i, data(3)
+
+	open(access='stream', action='write', form='formatted', file='conftest.data', unit=unit)
+	do i = 1, 3
+ 	   write(fmt='(i0)', unit=unit) i
+	end do
+	close(unit=unit)
+
+	open(access='stream', action='read', form='formatted', file='conftest.data', unit=unit)
+	read(fmt='(i1)', advance='no', unit=unit)
+	read(fmt=*, unit=unit) data(1)
+	read(fmt=*, unit=unit) data(2)
+	read(fmt=*, unit=unit) data(3)
+	close(unit=unit)
+
+	if (all(data == (/1,2,3/))) then
+ 	   call exit(0)
+	else
+	   call exit(-1)
+  	end if
+
+      end
+_ACEOF
+if ac_fn_fc_try_run "$LINENO"; then :
+    IO_ADVANCE_BUG="no"
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: fortran compiler has bugged advance io" >&5
+$as_echo "$as_me: fortran compiler has bugged advance io" >&6;}
+  $as_echo "#define IO_ADVANCE_BUG 1" >>confdefs.h
+
+  IO_ADVANCE_BUG="yes"
+
+fi
+rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
+  conftest.$ac_objext conftest.beam conftest.$ac_ext
+fi
+
+
+
+ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+
 # Check whether --enable-dp was given.
 if test "${enable_dp+set}" = set; then :
   enableval=$enable_dp;
@@ -15059,6 +15126,61 @@ _ACEOF
 
 fi
 
+            { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lvtkIOParallelXML" >&5
+$as_echo_n "checking for main in -lvtkIOParallelXML... " >&6; }
+if ${ac_cv_lib_vtkIOParallelXML_main+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lvtkIOParallelXML  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+#ifdef F77_DUMMY_MAIN
+
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int F77_DUMMY_MAIN() { return 1; }
+
+#endif
+#ifdef FC_DUMMY_MAIN
+#ifndef FC_DUMMY_MAIN_EQ_F77
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int FC_DUMMY_MAIN() { return 1; }
+#endif
+#endif
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"; then :
+  ac_cv_lib_vtkIOParallelXML_main=yes
+else
+  ac_cv_lib_vtkIOParallelXML_main=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_vtkIOParallelXML_main" >&5
+$as_echo "$ac_cv_lib_vtkIOParallelXML_main" >&6; }
+if test "x$ac_cv_lib_vtkIOParallelXML_main" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBVTKIOPARALLELXML 1
+_ACEOF
+
+  LIBS="-lvtkIOParallelXML $LIBS"
+
+fi
+
             { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lvtkIOCore" >&5
 $as_echo_n "checking for main in -lvtkIOCore... " >&6; }
 if ${ac_cv_lib_vtkIOCore_main+:} false; then :
@@ -15665,7 +15787,7 @@ fi
 
 #*******************
 
-ac_config_files="$ac_config_files Makefile debug/Makefile bathymetry/Makefile ocean_forcing/Makefile ocean_forcing/tests/Makefile sediments/Makefile hyperlight/Makefile femtools/Makefile femtools/tests/Makefile forward_interfaces/Makefile horizontal_adaptivity/Makefile horizontal_adaptivity/tests/Makefile preprocessor/Makefile error_measures/Makefile error_measures/tests/Makefile parameterisation/Makefile parameterisation/tests/Makefile fldecomp/Makefile assemble/Makefile assemble/tests/Makefile diagnostics/Makefile main/Makefile tools/Makefile tools/version-info python/setup.py climatology/Makefile libmba2d/Makefile libmba3d/Makefile libjudy/Makefile libjudy/src/Makefile libjudy/src/JudyCommon/Makefile libjudy/src/Judy1/Makefile libjudy/src/JudyL/Makefile libjudy/src/JudySL/Makefile libjudy/src/JudyHS/Makefile libwm/Makefile libvtkfortran/Makefile schemas/flml reduced_modelling/Makefile"
+ac_config_files="$ac_config_files Makefile debug/Makefile bathymetry/Makefile ocean_forcing/Makefile ocean_forcing/tests/Makefile sediments/Makefile hyperlight/Makefile femtools/Makefile femtools/tests/Makefile forward_interfaces/Makefile horizontal_adaptivity/Makefile horizontal_adaptivity/tests/Makefile preprocessor/Makefile error_measures/Makefile error_measures/tests/Makefile parameterisation/Makefile parameterisation/tests/Makefile fldecomp/Makefile assemble/Makefile assemble/tests/Makefile diagnostics/Makefile main/Makefile tools/Makefile tools/version-info python/setup.py climatology/Makefile libmba2d/Makefile libmba3d/Makefile libjudy/Makefile libjudy/src/Makefile libjudy/src/JudyCommon/Makefile libjudy/src/Judy1/Makefile libjudy/src/JudyL/Makefile libjudy/src/JudySL/Makefile libjudy/src/JudyHS/Makefile libwm/Makefile libvtkfortran/Makefile reduced_modelling/Makefile"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure

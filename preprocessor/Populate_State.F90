@@ -3324,7 +3324,8 @@ contains
           
           if (have_option("/geometry/mesh::"//trim(from_mesh_name)//&
              "/exclude_from_mesh_adaptivity") .and. .not. &
-             have_option(trim(path)//"/exclude_from_mesh_adaptivity")) then
+             have_option(trim(path)//"/exclude_from_mesh_adaptivity") .and. .not. &
+             have_option(trim(path)//"/from_mesh/extrude")) then
              ! if the from_mesh is excluded, the mesh itself also needs to be
              ewrite(-1,*) "In derivation of mesh ", trim(mesh_name), " from ", trim(from_mesh_name)
              ewrite(-1,*) "A mesh derived from a mesh with exclude_from_mesh_adaptivity needs to have this options as well."

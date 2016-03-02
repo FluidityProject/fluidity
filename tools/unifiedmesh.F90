@@ -1,9 +1,9 @@
 #include "confdefs.h"
 #include "fdebug.h"
 
-subroutine unifiedmesh(filename1, filename1_len, &
-                        filename2, filename2_len, &
-                        output, output_len)
+subroutine unifiedmesh(filename1_, filename1_len, &
+                       filename2_, filename2_len, &
+                       output_, output_len) bind(c)
 
   use mpi_interfaces
   use fldebug
@@ -16,13 +16,16 @@ subroutine unifiedmesh(filename1, filename1_len, &
   use supermesh_construction
   use vtk_interfaces
   use unify_meshes_module
+  use iso_c_binding
 
   implicit none
   
-  integer, intent(in) :: filename1_len, filename2_len, output_len
-  character(len=filename1_len), intent(in) :: filename1
-  character(len=filename2_len), intent(in) :: filename2
-  character(len=output_len), intent(in) :: output
+  integer(kind=c_size_t), value :: filename1_len, filename2_len, output_len
+  character(kind=c_char, len=1) :: filename1_(*), filename2_(*), output_(*)
+
+  character(len=filename1_len) :: filename1
+  character(len=filename2_len) :: filename2
+  character(len=output_len) :: output
 
   type(vector_field) :: positionsA, positionsB
   type(ilist), dimension(:), allocatable :: map_BA
@@ -32,10 +35,20 @@ subroutine unifiedmesh(filename1, filename1_len, &
   type(vector_field) :: intersection
   type(element_type) :: supermesh_shape
   type(quadrature_type) :: supermesh_quad
-  integer :: dim
+  integer :: i, dim
 
   type(mesh_type) :: accum_mesh
   type(vector_field) :: accum_positions, accum_positions_tmp
+
+  do i=1, filename1_len
+    filename1(i:i)=filename1_(i)
+  end do
+  do i=1, filename2_len
+    filename2(i:i)=filename2_(i)
+  end do
+  do i=1, output_len
+    output(i:i)=output_(i)
+  end do
   
   call set_global_debug_level(0)
 
