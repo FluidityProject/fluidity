@@ -157,7 +157,7 @@ subroutine calculate_diagnostic_variable_tensor(states, states_size, state_index
 end subroutine calculate_diagnostic_variable_tensor
 
 
-subroutine calculate_diagnostic_variable_dep_scalar(states, states_size, state_index, s_field, algorithm, algorithm_len, stat)
+subroutine calculate_diagnostic_variable_dep_scalar(states, states_size, state_index, s_field, algorithm, algorithm_len, dep_states_mask, stat)
 
   use diagnostic_fields_new
   use fields
@@ -173,28 +173,48 @@ subroutine calculate_diagnostic_variable_dep_scalar(states, states_size, state_i
   integer, intent(in) :: state_index
   type(scalar_field), intent(inout) :: s_field
   character(len = algorithm_len), intent(in) :: algorithm
+  type(state_type), dimension(:), pointer :: dep_states_mask
+
   integer, pointer :: stat
 
   integer :: lstat
 
-  if(associated(stat)) then
-    if(len_trim(algorithm) == 0) then
-      call calculate_diagnostic_variable_dep(states, state_index, s_field, stat = lstat)
+  if(associated(dep_states_mask)) then
+    if(associated(stat)) then
+      if(len_trim(algorithm) == 0) then
+        call calculate_diagnostic_variable_dep(states, state_index, s_field, dep_states_mask=dep_states_mask, stat = lstat)
+      else
+        call calculate_diagnostic_variable_dep(states, state_index, s_field, algorithm = algorithm, dep_states_mask=dep_states_mask, stat = lstat)
+      end if
+      stat = lstat
     else
-      call calculate_diagnostic_variable_dep(states, state_index, s_field, algorithm = algorithm, stat = lstat)
+      if(len_trim(algorithm) == 0) then
+        call calculate_diagnostic_variable_dep(states, state_index, s_field, dep_states_mask=dep_states_mask)
+      else
+        call calculate_diagnostic_variable_dep(states, state_index, s_field, algorithm = algorithm, dep_states_mask=dep_states_mask)
+      end if
     end if
-    stat = lstat
   else
-    if(len_trim(algorithm) == 0) then
-      call calculate_diagnostic_variable_dep(states, state_index, s_field)
+    if(associated(stat)) then
+      if(len_trim(algorithm) == 0) then
+        call calculate_diagnostic_variable_dep(states, state_index, s_field, stat = lstat)
+      else
+        call calculate_diagnostic_variable_dep(states, state_index, s_field, algorithm = algorithm, stat = lstat)
+      end if
+      stat = lstat
     else
-      call calculate_diagnostic_variable_dep(states, state_index, s_field, algorithm = algorithm)
+      if(len_trim(algorithm) == 0) then
+        call calculate_diagnostic_variable_dep(states, state_index, s_field)
+      else
+        call calculate_diagnostic_variable_dep(states, state_index, s_field, algorithm = algorithm)
+      end if
     end if
   end if
 
+
 end subroutine calculate_diagnostic_variable_dep_scalar
 
-subroutine calculate_diagnostic_variable_dep_vector(states, states_size, state_index, v_field, algorithm, algorithm_len, stat)
+subroutine calculate_diagnostic_variable_dep_vector(states, states_size, state_index, v_field, algorithm, algorithm_len, dep_states_mask, stat)
 
   use diagnostic_fields_new
   use fields
@@ -210,28 +230,46 @@ subroutine calculate_diagnostic_variable_dep_vector(states, states_size, state_i
   integer, intent(in) :: state_index
   type(vector_field), intent(inout) :: v_field
   character(len = algorithm_len), intent(in) :: algorithm
+  type(state_type), dimension(:), pointer :: dep_states_mask
   integer, pointer :: stat
 
   integer :: lstat
 
-  if(associated(stat)) then
-    if(len_trim(algorithm) == 0) then
-      call calculate_diagnostic_variable_dep(states, state_index, v_field, stat = lstat)
+  if(associated(dep_states_mask)) then
+    if(associated(stat)) then
+      if(len_trim(algorithm) == 0) then
+        call calculate_diagnostic_variable_dep(states, state_index, v_field, dep_states_mask=dep_states_mask, stat = lstat)
+      else
+        call calculate_diagnostic_variable_dep(states, state_index, v_field, algorithm = algorithm, dep_states_mask=dep_states_mask, stat = lstat)
+      end if
+      stat = lstat
     else
-      call calculate_diagnostic_variable_dep(states, state_index, v_field, algorithm = algorithm, stat = lstat)
+      if(len_trim(algorithm) == 0) then
+        call calculate_diagnostic_variable_dep(states, state_index, v_field, dep_states_mask=dep_states_mask)
+      else
+        call calculate_diagnostic_variable_dep(states, state_index, v_field, algorithm = algorithm, dep_states_mask=dep_states_mask)
+      end if
     end if
-    stat = lstat
   else
-    if(len_trim(algorithm) == 0) then
-      call calculate_diagnostic_variable_dep(states, state_index, v_field)
+    if(associated(stat)) then
+      if(len_trim(algorithm) == 0) then
+        call calculate_diagnostic_variable_dep(states, state_index, v_field, stat = lstat)
+      else
+        call calculate_diagnostic_variable_dep(states, state_index, v_field, algorithm = algorithm, stat = lstat)
+      end if
+      stat = lstat
     else
-      call calculate_diagnostic_variable_dep(states, state_index, v_field, algorithm = algorithm)
+      if(len_trim(algorithm) == 0) then
+        call calculate_diagnostic_variable_dep(states, state_index, v_field)
+      else
+        call calculate_diagnostic_variable_dep(states, state_index, v_field, algorithm = algorithm)
+      end if
     end if
   end if
 
 end subroutine calculate_diagnostic_variable_dep_vector
 
-subroutine calculate_diagnostic_variable_dep_tensor(states, states_size, state_index, t_field, algorithm, algorithm_len, stat)
+subroutine calculate_diagnostic_variable_dep_tensor(states, states_size, state_index, t_field, algorithm, algorithm_len, dep_states_mask, stat)
 
   use diagnostic_fields_new
   use fields
@@ -247,22 +285,40 @@ subroutine calculate_diagnostic_variable_dep_tensor(states, states_size, state_i
   integer, intent(in) :: state_index
   type(tensor_field), intent(inout) :: t_field
   character(len = algorithm_len), intent(in) :: algorithm
+  type(state_type), dimension(:), pointer :: dep_states_mask
   integer, pointer :: stat
 
   integer :: lstat
 
-  if(associated(stat)) then
-    if(len_trim(algorithm) == 0) then
-      call calculate_diagnostic_variable_dep(states, state_index, t_field, stat = lstat)
+  if(associated(dep_states_mask)) then
+    if(associated(stat)) then
+      if(len_trim(algorithm) == 0) then
+        call calculate_diagnostic_variable_dep(states, state_index, t_field, dep_states_mask=dep_states_mask, stat = lstat)
+      else
+        call calculate_diagnostic_variable_dep(states, state_index, t_field, algorithm = algorithm, dep_states_mask=dep_states_mask, stat = lstat)
+      end if
+      stat = lstat
     else
-      call calculate_diagnostic_variable_dep(states, state_index, t_field, algorithm = algorithm, stat = lstat)
+      if(len_trim(algorithm) == 0) then
+        call calculate_diagnostic_variable_dep(states, state_index, t_field, dep_states_mask=dep_states_mask)
+      else
+        call calculate_diagnostic_variable_dep(states, state_index, t_field, algorithm = algorithm, dep_states_mask=dep_states_mask)
+      end if
     end if
-    stat = lstat
   else
-    if(len_trim(algorithm) == 0) then
-      call calculate_diagnostic_variable_dep(states, state_index, t_field)
+    if(associated(stat)) then
+      if(len_trim(algorithm) == 0) then
+        call calculate_diagnostic_variable_dep(states, state_index, t_field, stat = lstat)
+      else
+        call calculate_diagnostic_variable_dep(states, state_index, t_field, algorithm = algorithm, stat = lstat)
+      end if
+      stat = lstat
     else
-      call calculate_diagnostic_variable_dep(states, state_index, t_field, algorithm = algorithm)
+      if(len_trim(algorithm) == 0) then
+        call calculate_diagnostic_variable_dep(states, state_index, t_field)
+      else
+        call calculate_diagnostic_variable_dep(states, state_index, t_field, algorithm = algorithm)
+      end if
     end if
   end if
 

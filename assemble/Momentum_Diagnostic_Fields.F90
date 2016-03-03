@@ -153,7 +153,8 @@ contains
        tfield => extract_tensor_field(state(i),'MaterialViscosity',stat)
        if (stat==0) then
           if(have_option(trim(tfield%option_path) // "/diagnostic/algorithm::tensor_python_diagnostic")) then
-             call calculate_diagnostic_variable_dep(state, i, tfield)
+             call calculate_diagnostic_variable_dep(state, i, tfield, dep_states_mask = calculated_state)
+             call update_calculated_submaterials(calculated_submaterials, calculated_state, submaterials_indices)
           end if
        end if
     end do
