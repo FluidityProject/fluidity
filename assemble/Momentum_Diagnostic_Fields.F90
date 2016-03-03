@@ -119,10 +119,10 @@ contains
     if(stat == 0) then
       if(have_option(trim(vfield%option_path) // "/diagnostic")) then
         if(have_option(trim(vfield%option_path) // "/diagnostic/algorithm::vector_python_diagnostic")) then
-          call calculate_diagnostic_variable(state, istate, vfield)
+          call calculate_diagnostic_variable_dep(state, istate, vfield, dep_states_mask=calculated_state)
           call update_calculated_submaterials(calculated_submaterials, calculated_state, submaterials_indices)
         else
-          call calculate_diagnostic_variable(submaterials, submaterials_istate, vfield)
+          call calculate_diagnostic_variable_dep(submaterials, submaterials_istate, vfield, dep_states_mask=calculated_submaterials)
           call update_calculated_state(calculated_state, calculated_submaterials, submaterials_indices)
         end if
       end if
@@ -132,41 +132,25 @@ contains
     if(stat == 0) then
       if(have_option(trim(vfield%option_path) // "/diagnostic")) then
         if(have_option(trim(vfield%option_path) // "/diagnostic/algorithm::vector_python_diagnostic")) then
-          call calculate_diagnostic_variable(state, istate, vfield)
+          call calculate_diagnostic_variable_dep(state, istate, vfield, dep_states_mask=calculated_state)
+          call update_calculated_submaterials(calculated_submaterials, calculated_state, submaterials_indices)
         else
-          call calculate_diagnostic_variable(submaterials, submaterials_istate, vfield)
+          call calculate_diagnostic_variable_dep(submaterials, submaterials_istate, vfield, dep_states_mask=calculated_submaterials)
+          call update_calculated_state(calculated_state, calculated_submaterials, submaterials_indices)
         end if
       end if
     end if
-
-    do i = 1, size(state) ! really we should be looping over submaterials here but we need to pass state into
-                          ! calculate_diagnostic_variable and there's no way to relate the index in submaterials 
-                          ! to the one in state
-       ! In certain cases, there is a need to update the second invariant of strain-rate tensor and other fields
-       ! before updating the viscosity (e.g. Non-Newtonian Stokes flow simulations, where the viscosity is
-       ! dependent upon this field) - do that here:
-!       sfield => extract_scalar_field(state(i),'StrainRateSecondInvariant',stat)
-!       if (stat == 0) then
-!          call calculate_diagnostic_variable(state, i, sfield)
-!       end if
-       ! Next update material viscosity:
-       tfield => extract_tensor_field(state(i),'MaterialViscosity',stat)
-       if (stat==0) then
-          if(have_option(trim(tfield%option_path) // "/diagnostic/algorithm::tensor_python_diagnostic")) then
-             call calculate_diagnostic_variable_dep(state, i, tfield, dep_states_mask = calculated_state)
-             call update_calculated_submaterials(calculated_submaterials, calculated_state, submaterials_indices)
-          end if
-       end if
-    end do
 
     tfield => extract_tensor_field(submaterials(submaterials_istate),'Viscosity',stat)
     if (stat==0) then
       diagnostic = have_option(trim(tfield%option_path)//'/diagnostic')
       if(diagnostic) then
         if(have_option(trim(tfield%option_path) // "/diagnostic/algorithm::tensor_python_diagnostic")) then
-          call calculate_diagnostic_variable(state, istate, tfield)
+          call calculate_diagnostic_variable_dep(state, istate, tfield, dep_states_mask=calculated_state)
+          call update_calculated_submaterials(calculated_submaterials, calculated_state, submaterials_indices)
         else
-          call calculate_diagnostic_variable(submaterials, submaterials_istate, tfield)
+          call calculate_diagnostic_variable_dep(submaterials, submaterials_istate, tfield, dep_states_mask=calculated_submaterials)
+          call update_calculated_state(calculated_state, calculated_submaterials, submaterials_indices)
         end if
       end if
     end if
@@ -217,7 +201,7 @@ contains
     integer :: i
 
     do i = 1, size(calculated_submaterials)
-      calculated_state(submaterials_indices(i)) = calculated_submaterials(i)
+      call reference_fields(calculated_submaterials(i), calculated_state(submaterials_indices(i)))
     end do
 
   end subroutine update_calculated_state
@@ -231,10 +215,38 @@ contains
     integer :: i
 
     do i = 1, size(calculated_submaterials)
-      calculated_submaterials(i) = calculated_state(submaterials_indices(i))
+      call reference_fields(calculated_state(submaterials_indices(i)), calculated_submaterials(i))
     end do
 
   end subroutine update_calculated_submaterials
+
+  subroutine reference_fields(donor, target)
+    !!< Reference fields contained in donor in target
+
+    type(state_type), intent(in) :: donor
+    type(state_type), intent(inout) :: target
+
+    integer :: i
+    type(scalar_field), pointer :: s_field
+    type(tensor_field), pointer :: t_field
+    type(vector_field), pointer :: v_field
+
+    do i = 1, scalar_field_count(donor)
+      s_field => extract_scalar_field(donor, i)
+      call insert(target, s_field, s_field%name)
+    end do
+
+    do i = 1, vector_field_count(donor)
+      v_field => extract_vector_field(donor, i)
+      call insert(target, v_field, v_field%name)
+    end do
+
+    do i = 1, tensor_field_count(donor)
+      t_field => extract_tensor_field(donor, i)
+      call insert(target, t_field, t_field%name)
+    end do
+
+  end subroutine reference_fields
 
   subroutine calculate_densities_single_state(state, buoyancy_density, bulk_density, &
                                               momentum_diagnostic)
