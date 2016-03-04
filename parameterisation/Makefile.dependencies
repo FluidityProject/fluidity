@@ -43,8 +43,7 @@ iceshelf_meltrate_surf_normal.o ../include/iceshelf_meltrate_surf_normal.mod: \
 k_epsilon.o ../include/k_epsilon.mod: k_epsilon.F90 \
    ../include/boundary_conditions.mod ../include/elements.mod \
    ../include/fdebug.h ../include/fetools.mod ../include/field_derivatives.mod \
-   ../include/field_options.mod ../include/fields.mod \
-   ../include/fields_manipulation.mod ../include/fldebug.mod \
+   ../include/field_options.mod ../include/fields.mod ../include/fldebug.mod \
    ../include/futils.mod ../include/global_parameters.mod \
    ../include/parallel_fields.mod ../include/quadrature.mod \
    ../include/smoothing_module.mod ../include/solvers.mod \
