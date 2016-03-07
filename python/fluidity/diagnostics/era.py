@@ -27,7 +27,7 @@ import fluidity.diagnostics.debug as debug
 
 from scipy.version import version as SciPyVersion
 
-if SciPyVersion < '0.9.0':
+if tuple(int(x) for x in SciPyVersion.split('.')) < (0, 9, 0):
   try:
     import Scientific.IO.NetCDF as netcdf
   except:
@@ -268,7 +268,7 @@ class eraUnittests(unittest.TestCase):
 
     from scipy.version import version as SciPyVersion
 
-    if SciPyVersion < '0.9.0':
+    if tuple(int(x) for x in SciPyVersion.split('.')) < (0, 9, 0):
         import Scientific.IO.NetCDF
     else:
         import scipy.io.netcdf

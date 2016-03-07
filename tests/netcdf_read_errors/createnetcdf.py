@@ -2,7 +2,7 @@
 
 from scipy.version import version as SciPyVersion
 
-if SciPyVersion < '0.9.0':
+if tuple(int(x) for x in SciPyVersion.split('.')) < (0, 9, 0):
     from Scientific.IO.NetCDF import NetCDFFile as netcdf_file
 else:
     from scipy.io.netcdf import netcdf_file
