@@ -1,3 +1,5 @@
+include ../tools.mk
+
 default: input
 
 input:
@@ -7,14 +9,14 @@ input:
 	../../bin/triangle2gmsh square-32
 	../../bin/triangle2gmsh square-64
 	cp geopressure_8.flml geopressure_16.flml 
-	sed -i "s/"geopressure_8"/"geopressure_16"/g" geopressure_16.flml 
-	sed -i "s/square-8/square-16/g" geopressure_16.flml 
+	$(SED) -i "s/"geopressure_8"/"geopressure_16"/g" geopressure_16.flml 
+	$(SED) -i "s/square-8/square-16/g" geopressure_16.flml 
 	cp geopressure_8.flml geopressure_32.flml 
-	sed -i "s/"geopressure_8"/"geopressure_32"/g" geopressure_32.flml 
-	sed -i "s/square-8/square-32/g" geopressure_32.flml 
+	$(SED) -i "s/"geopressure_8"/"geopressure_32"/g" geopressure_32.flml 
+	$(SED) -i "s/square-8/square-32/g" geopressure_32.flml 
 	cp geopressure_8.flml geopressure_64.flml 
-	sed -i "s/"geopressure_8"/"geopressure_64"/g" geopressure_64.flml 
-	sed -i "s/square-8/square-64/g" geopressure_64.flml
+	$(SED) -i "s/"geopressure_8"/"geopressure_64"/g" geopressure_64.flml 
+	$(SED) -i "s/square-8/square-64/g" geopressure_64.flml
 
 
 clean: clean-mesh clean-run-debug

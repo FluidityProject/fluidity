@@ -8,8 +8,7 @@
     <command_line>mpiexec ../../bin/flredecomp -i 1 -o 4 -v -l standing_wave_failing_velocity standing_wave_failing_velocity_flredecomp;
 mpiexec ../../bin/flredecomp -i 1 -o 4 -v -l standing_wave_failing_pressure standing_wave_failing_pressure_flredecomp;
 mpiexec ../../bin/flredecomp -i 1 -o 4 -v -l standing_wave standing_wave_flredecomp;
-sed --in-place s/failing_velocity_flredecomp_CoordinateMesh/flredecomp_CoordinateMesh/g standing_wave_failing_velocity_flredecomp.flml;
-sed --in-place s/failing_pressure_flredecomp_CoordinateMesh/flredecomp_CoordinateMesh/g standing_wave_failing_pressure_flredecomp.flml;
+make mesh_rename
 rm -f *failing_velocity_flredecomp_CoordinateMesh* *failing_pressure_flredecomp_CoordinateMesh*
 ( mpiexec fluidity -v2 -l standing_wave_failing_velocity_flredecomp.flml 2&gt;&amp;1 ) &gt; /dev/null;
 mv matrixdump velocity_matrixdump;

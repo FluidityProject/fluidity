@@ -1,3 +1,5 @@
+include ../tools.mk
+
 FLMLMODEL1 = geopressure_8
 FLMLMODEL2 = geopressure_16
 FLMLMODEL3 = geopressure_32
@@ -12,14 +14,14 @@ input:
 	../../bin/triangle2gmsh square-32
 	../../bin/triangle2gmsh square-64
 	cp $(FLMLMODEL1).flml $(FLMLMODEL2).flml 
-	sed -i "s/"$(FLMLMODEL1)"/"$(FLMLMODEL2)"/g" $(FLMLMODEL2).flml 
-	sed -i "s/square-8/square-16/g" $(FLMLMODEL2).flml 
+	$(SED) -i "s/"$(FLMLMODEL1)"/"$(FLMLMODEL2)"/g" $(FLMLMODEL2).flml 
+	$(SED) -i "s/square-8/square-16/g" $(FLMLMODEL2).flml 
 	cp $(FLMLMODEL1).flml $(FLMLMODEL3).flml 
-	sed -i "s/"$(FLMLMODEL1)"/"$(FLMLMODEL3)"/g" $(FLMLMODEL3).flml 
-	sed -i "s/square-8/square-32/g" $(FLMLMODEL3).flml 
+	$(SED) -i "s/"$(FLMLMODEL1)"/"$(FLMLMODEL3)"/g" $(FLMLMODEL3).flml 
+	$(SED) -i "s/square-8/square-32/g" $(FLMLMODEL3).flml 
 	cp $(FLMLMODEL1).flml $(FLMLMODEL4).flml 
-	sed -i "s/"$(FLMLMODEL1)"/"$(FLMLMODEL4)"/g" $(FLMLMODEL4).flml 
-	sed -i "s/square-8/square-64/g" $(FLMLMODEL4).flml 
+	$(SED) -i "s/"$(FLMLMODEL1)"/"$(FLMLMODEL4)"/g" $(FLMLMODEL4).flml 
+	$(SED) -i "s/square-8/square-64/g" $(FLMLMODEL4).flml 
 
 clean: clean-mesh clean-run-debug
 	rm -f $(FLMLMODEL2).flml
