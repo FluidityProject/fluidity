@@ -1107,6 +1107,30 @@ and can produce non-contiguous partitions for certain problems.</a:documentation
             </element>
           </optional>
           <optional>
+            <element name="load_balancing_approach">
+              <a:documentation>Load-balancing approach, for all but the final adapt iteration. For the final
+adapt iteration we always use the PARTITION approach, to ensure the best 
+possible load balance after adaptivity.</a:documentation>
+              <choice>
+                <element name="partition">
+                  <a:documentation>PARTITION (default): partition from scratch, not taking the current data 
+distribution into account</a:documentation>
+                  <empty/>
+                </element>
+                <element name="repartition">
+                  <a:documentation>REPARTITION: partition but try to stay close to the current 
+partition/distribution</a:documentation>
+                  <empty/>
+                </element>
+                <element name="refine">
+                  <a:documentation>REFINE: refine the current partition/distribution; assumes only 
+small changes</a:documentation>
+                  <empty/>
+                </element>
+              </choice>
+            </element>
+          </optional>
+          <optional>
             <element name="element_quality_cutoff">
               <a:documentation>Element quality cut off. 
 Elements with a quality greater than this will be liable to be

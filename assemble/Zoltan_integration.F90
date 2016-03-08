@@ -678,10 +678,13 @@ module zoltan_integration
 
     end if
 
-    ! Choose the appropriate partitioning method based on the current adapt iteration
-    ! Idea is to do repartitioning on intermediate adapts but a clean partition on the last
-    ! iteration to produce a load balanced partitioning
+    ! Choose the appropriate partitioning method based on the current adapt iteration.
+    ! The default is currently to do a clean partition on all adapt iterations to produce a 
+    ! load balanced partitioning and to limit the required number of adapts. In certain cases,
+    ! repartitioning or refining may lead to improved performance, and this is optional for all
+    ! but the final adapt iteration.
     if (final_adapt_iteration) then
+
        ierr = Zoltan_Set_Param(zz, "LB_APPROACH", "PARTITION"); assert(ierr == ZOLTAN_OK)
        ewrite(3,*) "Setting partitioning approach to PARTITION."
        if (have_option(trim(zoltan_global_base_option_path) // "/final_partitioner/metis") .OR. &
@@ -690,15 +693,35 @@ module zoltan_integration
           ierr = Zoltan_Set_Param(zz, "PARMETIS_METHOD", "PartKway"); assert(ierr == ZOLTAN_OK)
           ewrite(3,*) "Setting ParMETIS method to PartKway."
        end if
+
     else
-       ierr = Zoltan_Set_Param(zz, "LB_APPROACH", "REPARTITION"); assert(ierr == ZOLTAN_OK)
-       ewrite(3,*) "Setting partitioning approach to REPARTITION."
+
+       if (have_option(trim(zoltan_global_base_option_path) // "/load_balancing_approach/")) then
+          if (have_option(trim(zoltan_global_base_option_path) // "/load_balancing_approach/partition"))  then
+             ! Partition from scratch, not taking the current data distribution into account:
+             ierr = Zoltan_Set_Param(zz, "LB_APPROACH", "PARTITION"); assert(ierr == ZOLTAN_OK)
+             ewrite(3,*) "Setting partitioning approach to PARTITION."
+          else if (have_option(trim(zoltan_global_base_option_path) // "/load_balancing_approach/repartition"))  then
+             ! Partition but try to stay close to the curruent partition/distribution:
+             ierr = Zoltan_Set_Param(zz, "LB_APPROACH", "REPARTITION"); assert(ierr == ZOLTAN_OK)
+             ewrite(3,*) "Setting partitioning approach to REPARTITION."
+          else if (have_option(trim(zoltan_global_base_option_path) // "/load_balancing_approach/refine"))  then
+             ! Refine the current partition/distribution; assumes only small changes:
+             ierr = Zoltan_Set_Param(zz, "LB_APPROACH", "REFINE"); assert(ierr == ZOLTAN_OK)
+             ewrite(3,*) "Setting partitioning approach to REFINE."
+          end if
+       else
+          ierr = Zoltan_Set_Param(zz, "LB_APPROACH", "PARTITION"); assert(ierr == ZOLTAN_OK)
+          ewrite(3,*) "Setting partitioning approach to PARTITION."
+       end if
+
        if (have_option(trim(zoltan_global_base_option_path) // "/partitioner/metis"))  then
           ! chosen to match what Sam uses
           ierr = Zoltan_Set_Param(zz, "PARMETIS_METHOD", "AdaptiveRepart"); assert(ierr == ZOLTAN_OK)
           ewrite(3,*) "Setting ParMETIS method to AdaptiveRepart."
           ierr = Zoltan_Set_Param(zz, "PARMETIS_ITR", "100000.0"); assert(ierr == ZOLTAN_OK)
        end if
+
     end if
 
     ierr = Zoltan_Set_Param(zz, "NUM_GID_ENTRIES", "1"); assert(ierr == ZOLTAN_OK)
