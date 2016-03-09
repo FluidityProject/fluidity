@@ -27,6 +27,7 @@
 #include "fdebug.h"
 
 module colouring
+  use fldebug
   use data_structures
   use global_parameters, only : topology_mesh_name, NUM_COLOURINGS, &
        COLOURING_CG1, COLOURING_DG0, COLOURING_DG2, &
