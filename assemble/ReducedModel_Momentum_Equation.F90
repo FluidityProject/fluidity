@@ -53,6 +53,9 @@
       use global_parameters, only:theta
       use global_parameters, only: option_path_len,current_time
       use write_state_module
+      use field_derivatives, only: compute_hessian, patch_type, get_patch_node
+      use optimal_interpolation
+
       implicit none
 
       private
@@ -322,7 +325,7 @@
        type(csr_matrix), optional, intent(inout) :: fs_m
        logical :: on_sphere, have_absorption, have_vertical_stabilization
        type(vector_field), pointer :: dummy_absorption
-       logical :: lump_mass_form
+       logical :: lump_mass_form       
        
        ! Adjoint model
        logical :: reduced_adjoint
@@ -332,7 +335,11 @@
        ! optimal_observation
        logical :: adaptive_observation
        integer :: no_optimal_obv
-       real,dimension(:), allocatable :: u_tmp,optimal_location
+       real,dimension(:), allocatable :: u_tmp
+       integer,dimension(:), allocatable :: optimal_location
+       real, allocatable, dimension(:) :: num, obs,diff
+       real :: RMSD, NRMSD, min_u, max_u,maginitute_u
+       integer :: node
        
 
        dump_no_tmp = 0
@@ -344,6 +351,7 @@
        nonlinear_iterations=1
 
        u => extract_vector_field(state(1), "Velocity", stat)
+       x => extract_vector_field(state(1), "Coordinate") 
        p => extract_scalar_field(state(1), "Pressure")
 
         
@@ -439,93 +447,70 @@
                       p=>extract_scalar_field(state(istate), "Pressure")
                       x => extract_vector_field(state(istate), "Coordinate") 
                       ! get the coordinate values
-                      adaptive_observation = .false.
+                      adaptive_observation = .true.
                       if(adaptive_observation) then
                          if(.false.) then
-                            open(10,file = 'observation_u_ini.dat')
-                            write(10,*) (u%val(1,i),i=1,size(u%val,2))
-                            close(10)
-                            open(10,file = 'observation_v_ini.dat')
-                            write(10,*) (u%val(2,i),i=1,size(u%val,2))
-                            close(10)
-                            open(10,file = 'observation_p_ini.dat')
-                            write(10,*) (p%val(i),i=1,size(u%val,2))
-                            close(10)
+                            open(20,file = 'observation_u_ini.dat')
+                            write(20,*) (u%val(1,i),i=1,size(u%val,2))
+                            close(20)
+                            open(20,file = 'observation_v_ini.dat')
+                            write(20,*) (u%val(2,i),i=1,size(u%val,2))
+                            close(20)
+                            open(20,file = 'observation_p_ini.dat')
+                            write(20,*) (p%val(i),i=1,size(u%val,2))
+                            close(20)
                             stop 24
                          else
-                            no_optimal_obv = 600
-                            ! save the optimal coordinate values
-                            allocate(u_tmp(size(u%val,2)))
-                            allocate(optimal_location(size(u%val,2)))
-                            open(10,file='optimal_sensor_location.dat')
-                            read(10,*) (optimal_location(i),i=1,size(optimal_location))
-                            close(10)  
+                            no_optimal_obv = 100
 if(.false.) then
-                open(10,file='optimal_sensor_coordinate_50.dat')
-                do i=1,50 ! only save 200 optimal location
+    allocate(optimal_location(size(u%val,2)))
+    open(20,file='optimal_sensor_location.dat')
+    read(20,*) (optimal_location(i),i=1,size(optimal_location))
+    close(20)  
+                open(20,file='optimal_sensor_coordinate_10.dat')
+                do i=1,10 ! only save 200 optimal location
                    j=optimal_location(i)
-                   write(10,*) x%val(1,j),x%val(2,j)
+                   write(20,*) x%val(1,j),x%val(2,j)
                 enddo
-                close(10)
-                open(10,file='optimal_sensor_coordinate_51_100.dat')
+                close(20)
+                open(20,file='optimal_sensor_coordinate_10_20.dat')
+                do i=11,20 ! only save 200 optimal location
+                   j=optimal_location(i)
+                   write(20,*) x%val(1,j),x%val(2,j)
+                enddo
+                close(20)
+
+                open(20,file='optimal_sensor_coordinate_50.dat')
+                do i=21,50 ! only save 200 optimal location
+                   j=optimal_location(i)
+                   write(20,*) x%val(1,j),x%val(2,j)
+                enddo
+                close(20)
+                open(20,file='optimal_sensor_coordinate_51_100.dat')
                 do i=51,100 ! only save 200 optimal location
                    j=optimal_location(i)
-                   write(10,*) x%val(1,j),x%val(2,j)
+                   write(20,*) x%val(1,j),x%val(2,j)
                 enddo
-                close(10)
-                open(10,file='optimal_sensor_coordinate_100_200.dat')
+                close(20)
+                open(20,file='optimal_sensor_coordinate_100_200.dat')
                 do i=101,200 ! only save 200 optimal location
                    j=optimal_location(i)
-                   write(10,*) x%val(1,j),x%val(2,j)
+                   write(20,*) x%val(1,j),x%val(2,j)
                 enddo
-                close(10)
-                open(10,file='optimal_sensor_coordinate_200_300.dat')
+                close(20)
+                open(20,file='optimal_sensor_coordinate_200_300.dat')
                 do i=201,300 ! only save 200 optimal location
                    j=optimal_location(i)
-                   write(10,*) x%val(1,j),x%val(2,j)
+                   write(20,*) x%val(1,j),x%val(2,j)
                 enddo
-                close(10)
+                close(20)
+    deallocate(optimal_location)
     
 stop 36
 endif
-                            ! u component
-                            open(10,file = 'observation_u_ini.dat')
-                            read(10,*) (u_tmp(i),i=1,size(u%val,2))
-                            close(10)
-                            do i=1,no_optimal_obv
-                               j=optimal_location(i)
-                               print*,u%val(1,j),u_tmp(j)
-                  !             u%val(1,j)=u_tmp(j)
-                               u%val(1,2000-i)=u_tmp(1000-i)
-                  !             u%val(1,i)=u_tmp(i)
-                            enddo
-                            ! v component
-                            open(10,file = 'observation_v_ini.dat')
-                            read(10,*) (u_tmp(i),i=1,size(u%val,2))
-                            close(10)
-                            do i=1,no_optimal_obv
-                               j=optimal_location(i)
-                               print*,u%val(2,j),u_tmp(j)
-                               ! use the optimal observational data
-                  !             u%val(2,j)=u_tmp(j)
-                               ! use the random observational data
-                               u%val(2,2000-i)=u_tmp(1000-i)
-                           !    u%val(2,i)=u_tmp(i)
-                            enddo
-                           ! p 
-                            open(10,file = 'observation_p_ini.dat')
-                            read(10,*) (u_tmp(i),i=1,size(p%val))
-                            close(10)
-                            do i=1,no_optimal_obv
-                               j=optimal_location(i)
-                               ! use the optimal observational data
-                   !            p%val(j)=u_tmp(j)
-                               ! use the random observational data
-                               p%val(2000-i)=u_tmp(1000-i)
-                    !           p%val(i)=u_tmp(i)
-                            enddo
-                            deallocate(u_tmp)
-                            deallocate(optimal_location)
+                           call optimal_interpolation_DA(istate,state,no_optimal_obv)
+
+
                          endif
                       endif
 
@@ -814,7 +799,7 @@ endif
                    pod_coef_dt=0.0
                    pod_coef_dt=pod_rhs%val
                    pod_rhs%val=0.0
-                   ! for  velocity, here we solved du/dt
+                   ! for  velocity, here we solve du/dt
                    pod_coef(1:size(POD_state,1)*u%dim)=pod_coef(1:size(POD_state,1)*u%dim)+dt*pod_coef_dt(1:size(POD_state,1)*u%dim)
                    ! for pressure, here we solve dp  
                    pod_coef(size(POD_state,1)*u%dim+1:size(POD_state,1)*(u%dim+1))=  &
@@ -893,6 +878,61 @@ endif
                 enddo
                 write(10,*) (p%val(j),j=1,node_count(p))
                 close(10)
+!****** adaptive error
+!if(adaptive_observation) then
+if(.true.) then
+                allocate(obs( (u%dim+1)*node_count(u)))
+                allocate(num( (u%dim+1)*node_count(u)))
+                allocate(diff( (u%dim+1)*node_count(u)))
+
+                open(20, file = 'num_last.dat')
+                do i=1,u%dim
+                   read(20,*) (num((i-1)*node_count(u)+j),j=1,node_count(u))
+                enddo
+                read(20,*) (num(u%dim*node_count(u)+j),j=1,node_count(p))
+                close(20) 
+
+                open(20, file = 'obs_last.dat')
+                do i=1,u%dim
+                   read(20,*) (obs((i-1)*node_count(u)+j),j=1,node_count(u))
+                enddo
+                read(20,*) (obs(u%dim*node_count(u)+j),j=1,node_count(p))
+                close(20) 
+                diff = obs-num
+                min_u = 1.0e10
+                max_u = 0.0
+                do node = 1, node_count(u)
+                   maginitute_u = sqrt(obs(node)**2+obs(node_count(u)+node)**2+obs(2*node_count(u)+node)**2)
+                   max_u = max(max_u, maginitute_u)
+                   min_u = min(min_u, maginitute_u)
+!                   if(abs(x%val(1,node)).gt.0.35.or.abs(x%val(1,node)).lt.0.15.or.  &
+!                        abs(x%val(2,node)).gt.0.8.or.abs(x%val(2,node)).lt.0.55) then
+                   if(abs(x%val(1,node)).gt.0.9.or.abs(x%val(1,node)).lt.0.6.or.  &
+                        abs(x%val(2,node)).gt.0.4.or.abs(x%val(2,node)).lt.0.15) then
+                      !          if(abs(x%val(1,node)).gt.1.17.or.abs(x%val(1,node)).lt.0.6.or.  &
+                      !               abs(x%val(2,node)).gt.0.5.or.abs(x%val(2,node)).lt.0.2) then
+                      !       data(node) = 0.0
+                      !       num(node) = 0.0
+                      diff(node) = 0.0
+                   endif
+                enddo
+                
+                RMSD = 0.0
+                do i =1, node_count(u)
+                   RMSD = RMSD + diff(i)**2
+                enddo
+                RMSD = sqrt(RMSD/node_count(u))
+                NRMSD = RMSD/(max_u-min_u)
+                open(20, file='RMS.dat')
+                write(20,*) RMSD, NRMSD
+                close(20)
+                deallocate(obs)
+                deallocate(num)
+                deallocate(diff)
+print*,'33'
+               
+endif
+!****** end adaptive error
              endif
 
              if(timestep.eq.total_timestep) then
@@ -999,6 +1039,8 @@ endif
 
        logical :: adaptive_observation
        real,dimension(:), allocatable :: misfit_POD_rhs
+       type(scalar_field) :: err_field,field_goal
+       type(tensor_field) :: field_hessian
 
        ewrite(1,*) 'Adjoint model, timestep',timestep,total_timestep
        ewrite(1,*) '================================================'
@@ -1188,6 +1230,7 @@ endif
           ! sort out the order of magniture of delta_u -- important map of sensor location
           adaptive_observation = .true.
           if(adaptive_observation) then
+
              if(timestep.eq.1) then
                 allocate(optimal_location(size(delta_u%val,2)))
                 allocate(u_total(size(delta_u%val,2)))
@@ -1198,6 +1241,27 @@ endif
                    enddo
                    u_total(i) = sqrt(u_total(i))
                 enddo
+                ! calculate interpolation error
+                call allocate(field_goal, u%mesh, "Goal Field")
+                call allocate(err_field, u%mesh, "Error Field")
+                call allocate(field_hessian, u%mesh, "Hessian")
+                field_goal%val = u_total                
+                ! Compute Hessians.
+                call compute_hessian(field_goal, x, field_hessian)
+                ! Compute forward error field.
+                call compute_err_field(field_goal, field_hessian, x, err_field)
+        
+        ! with interpolation error
+                if(.true.) then
+                   do i =1,size(u_total)
+                      u_total(i) = u_total(i)*err_field%val(i)
+                   enddo
+                endif
+                call deallocate(field_goal)
+                call deallocate(err_field)
+                call deallocate(field_hessian)
+               ! end calculate interpolation error
+
                 call max_sort(size(optimal_location),u_total,optimal_location)
                 open(10,file='optimal_sensor_location.dat')
                 write(10,*) (optimal_location(i),i=1,size(optimal_location))
@@ -1325,10 +1389,10 @@ endif
 
        diff = obs-num
        do node = 1, nonods
-!          if(abs(x%val(1,node)).gt.0.3.or.abs(x%val(1,node)).lt.0.05.or.  &
-!               abs(x%val(2,node)).gt.0.9.or.abs(x%val(2,node)).lt.0.7) then
-          if(abs(x%val(1,node)).gt.1.05.or.abs(x%val(1,node)).lt.0.79.or.  &
-               abs(x%val(2,node)).gt.0.65.or.abs(x%val(2,node)).lt.0.47) then
+!          if(abs(x%val(1,node)).gt.0.35.or.abs(x%val(1,node)).lt.0.15.or.  &
+!               abs(x%val(2,node)).gt.0.8.or.abs(x%val(2,node)).lt.0.55) then
+          if(abs(x%val(1,node)).gt.0.9.or.abs(x%val(1,node)).lt.0.6.or.  &
+               abs(x%val(2,node)).gt.0.4.or.abs(x%val(2,node)).lt.0.15) then
       !       data(node) = 0.0
       !       num(node) = 0.0
              diff(node) = 0.0
@@ -1351,5 +1415,247 @@ endif
     deallocate(diff)
        
   end subroutine misfit_POD
+
+  subroutine compute_err_field(field, hessian, positions, err_field)
+    type(scalar_field), intent(in) :: field
+    type(tensor_field), intent(in) :: hessian
+    type(vector_field), intent(in) :: positions
+    type(scalar_field), intent(inout) :: err_field
+
+    type(mesh_type) :: mesh
+    type(patch_type) :: patch
+    integer :: node, nnode, i
+    type(element_type), pointer :: t_shape, x_shape
+    real, dimension(hessian%dim(1), hessian%dim(2)) :: avg_hessian, evecs
+    real, dimension(hessian%dim(1)) :: edge, evals
+
+    real :: err
+
+    mesh = field%mesh
+    call add_nelist(mesh)
+    t_shape => ele_shape(field, 1)
+    x_shape => ele_shape(positions, 1)
+    
+    
+
+    do node=1,node_count(mesh)
+      patch = get_patch_node(mesh, node, level=1)
+      err = 0.0
+
+      ! estimate residual.
+      do i=1,patch%count
+        nnode = patch%elements(i)
+        edge = node_val(positions, node) - node_val(positions, nnode)
+        avg_hessian = (node_val(hessian, node) + node_val(hessian, nnode)) / 2.0
+        call eigendecomposition_symmetric(avg_hessian, evecs, evals)
+        evals = abs(evals)
+        call eigenrecomposition(avg_hessian, evecs, evals)
+        err = max(err, dot_product(edge, matmul(avg_hessian, edge)))
+      end do
+
+!      if (err == 0.0) then
+!        err_field%val(node) = 1.0e10
+!      else 
+!        err_field%val(node) = goal_tolerance / (node_count(mesh) * err)
+      err_field%val(node) = err
+!      end if
+      deallocate(patch%elements)
+    end do
+  end subroutine compute_err_field
+
+  subroutine optimal_interpolation_DA(istate,state,no_optimal_obv)
+
+    type(state_type), dimension(:), intent(inout) :: state
+    integer, intent(in):: no_optimal_obv,istate
+    ! Pressure and density
+    type(scalar_field), pointer :: p, density
+    type(mesh_type), pointer :: p_mesh
+    ! Velocity and space
+    type(vector_field), pointer :: u, x
+    real,dimension(:), allocatable :: u_tmp
+    integer,dimension(:), allocatable :: optimal_location
+    real,dimension(:), allocatable :: ovar, gvar,param
+    real,dimension(:,:), allocatable :: ox,gx,of,gf
+
+    integer :: i, j, k
+    integer :: stat
+    integer :: optimal_option ! 1 -- optimal interpolation DA, 2 -- u%val = (1-coef)*u%val +coef*u_o
+    integer :: data_option  ! 1 -- optimal data, 2 -- random data
+    real :: coef
+    optimal_option = 2
+    data_option = 1
+
+
+    u => extract_vector_field(state(istate), "Velocity", stat)
+    x => extract_vector_field(state(istate), "Coordinate") 
+    p => extract_scalar_field(state(istate), "Pressure")
+
+    ! save the optimal coordinate values
+    allocate(u_tmp(size(u%val,2)))
+    allocate(optimal_location(size(u%val,2)))
+    allocate(ox(u%dim,no_optimal_obv))
+    allocate(of(1,no_optimal_obv))
+    allocate(ovar(no_optimal_obv))
+    allocate(gx(u%dim,size(u%val,2)))
+    allocate(gf(1,size(u%val,2)))
+    allocate(gvar(size(u%val,2)))
+    allocate(param(u%dim))
+
+! var is the error variance ratio between of the observations and background.
+! observations are assumed to be 100 times more accurate (in terms of error variance) than the background estimation 
+    ovar = 0.01
+    coef = (1./ovar(1))/(1./ovar(1)+1.)
+    param = 1./0.1
+
+    open(20,file='optimal_sensor_location.dat')
+    read(20,*) (optimal_location(i),i=1,size(optimal_location))
+    close(20)  
+    optimal_location(1:100)=optimal_location(201:300)
+    
+
+    if(optimal_option == 1) then
+
+       ! u component
+       !-------------
+       open(20,file = 'observation_u_ini.dat')
+       read(20,*) (u_tmp(i),i=1,size(u%val,2))
+       close(20)
+
+       if(data_option == 1) then
+          do i=1,no_optimal_obv
+             j=optimal_location(i)
+             of(1,i) = u_tmp(j)-u%val(1,j)
+             do k =1,u%dim
+                ox(k,i) = x%val(k,j)
+             enddo
+          enddo
+       elseif(data_option == 2) then
+          do i=1,no_optimal_obv
+             of(1,i) = u_tmp(j)-u%val(1,2000-i)
+             do k =1,u%dim
+                ox(k,i) = x%val(k,2000-i)
+             enddo
+          enddo
+       endif
+       gx = x%val
+       call optiminterp(ox,of,ovar,param,no_optimal_obv,gx,gf,gvar)
+       u%val(1,:) = gf(1,:)+u%val(1,:)
+
+       ! v component
+       !-------------
+       open(20,file = 'observation_v_ini.dat')
+       read(20,*) (u_tmp(i),i=1,size(u%val,2))
+       close(20)
+       if(data_option == 1) then
+          do i=1,no_optimal_obv
+             j=optimal_location(i)
+             of(1,i) = u_tmp(j)-u%val(2,j)
+             do k =1,u%dim
+                ox(k,i) = x%val(k,j)
+             enddo
+          enddo
+       elseif(data_option == 2) then
+          do i=1,no_optimal_obv
+             of(1,i) = u_tmp(2000-i)-u%val(2,2000-i)
+             do k =1,u%dim
+                ox(k,i) = x%val(k,2000-i)
+             enddo
+          enddo
+       endif
+       gx = x%val    
+       call optiminterp(ox,of,ovar,param,no_optimal_obv,gx,gf,gvar)
+       u%val(2,:) = gf(1,:)+u%val(2,:)
+       
+       deallocate(u_tmp)
+
+       ! pressure p
+       !------------
+       allocate(u_tmp(size(p%val,1)))
+       open(20,file = 'observation_p_ini.dat')
+       read(20,*) (u_tmp(i),i=1,size(p%val))
+       close(20)
+       if(data_option == 1) then
+          do i=1,no_optimal_obv
+             j=optimal_location(i)  !!! There maybe some issue with p1dgp2
+             of(1,i) = u_tmp(j)-p%val(j)
+             do k =1,u%dim
+                ox(k,i) = x%val(k,j)
+             enddo
+          enddo
+       elseif(data_option == 2) then
+          do i=1,no_optimal_obv
+             of(1,i) = u_tmp(2000-i)-p%val(2000-i)
+             do k =1,u%dim
+                ox(k,i) = x%val(k,2000-i)
+             enddo
+          enddo
+       endif
+
+       gx = x%val       
+       call optiminterp(ox,of,ovar,param,no_optimal_obv,gx,gf,gvar)
+       p%val(:) = gf(1,:)+p%val(:)
+
+    elseif(optimal_option == 2) then
+
+       ! u component
+       !-------------
+       open(20,file = 'observation_u_ini.dat')
+       read(20,*) (u_tmp(i),i=1,size(u%val,2))
+       close(20)
+       do i=1,no_optimal_obv
+          j=optimal_location(i)
+          !             print*,u%val(1,j),u_tmp(j)
+          if(data_option == 1) then
+             u%val(1,j)=(1-coef)*u%val(1,j)+coef*u_tmp(j)
+          elseif(data_option == 2) then
+             u%val(1,2000-i)=u_tmp(2000-i)
+          endif
+       enddo
+
+       ! v component
+       !-------------
+       open(20,file = 'observation_v_ini.dat')
+       read(20,*) (u_tmp(i),i=1,size(u%val,2))
+       close(20)
+       do i=1,no_optimal_obv
+          j=optimal_location(i)
+          !             print*,u%val(1,j),u_tmp(j)
+          if(data_option == 1) then
+             u%val(2,j)= (1-coef)*u%val(2,j)+coef*u_tmp(j)
+          elseif(data_option == 2) then
+             u%val(2,2000-i)=u_tmp(2000-i)
+          endif
+       enddo
+       
+       deallocate(u_tmp)
+       ! pressure p
+       !-----------
+       allocate(u_tmp(size(p%val,1)))
+       open(20,file = 'observation_p_ini.dat')
+       read(20,*) (u_tmp(i),i=1,size(p%val))
+       close(20)
+       do i=1,no_optimal_obv
+          j=optimal_location(i)
+          !             print*,u%val(1,j),u_tmp(j)
+          if(data_option == 1) then
+             p%val(j) = (1-coef)*p%val(j)+coef*u_tmp(j)
+          elseif(data_option == 2) then
+             p%val(2000-i)=u_tmp(2000-i)
+          endif
+       enddo
+    endif
+
+
+    deallocate(u_tmp)
+    deallocate(optimal_location)
+    deallocate(ox)
+    deallocate(of)
+    deallocate(ovar)
+    deallocate(gx)
+    deallocate(gf)
+    deallocate(gvar)
+    deallocate(param)
+    
+  end subroutine optimal_interpolation_DA
   
 end module momentum_equation_reduced
