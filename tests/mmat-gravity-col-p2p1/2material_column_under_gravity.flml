@@ -46,7 +46,7 @@
     </mesh>
     <mesh name="InputMesh">
       <from_file file_name="mmat-gravity-col">
-        <format name="triangle"/>
+        <format name="gmsh"/>
         <stat>
           <include_in_stat/>
         </stat>
@@ -136,7 +136,9 @@
               <inner_matrix name="FullMassMatrix">
                 <solver>
                   <iterative_method name="preonly"/>
-                  <preconditioner name="lu"/>
+                  <preconditioner name="lu">
+                    <factorization_package name="petsc"/>
+                  </preconditioner>
                   <relative_error>
                     <real_value rank="0">1.E-10</real_value>
                   </relative_error>
@@ -215,6 +217,7 @@
             <stress_terms>
               <tensor_form/>
             </stress_terms>
+            <buoyancy/>
           </continuous_galerkin>
           <conservative_advection>
             <real_value rank="0">0.0</real_value>

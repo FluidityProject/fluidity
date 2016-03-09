@@ -29,20 +29,21 @@
 
 module binary_operators
 
-  use diagnostic_source_fields
-  use field_options
-  use fields
   use fldebug
   use global_parameters, only : OPTION_PATH_LEN
   use spud
+  use fields
   use state_module
+  use field_options
+  use diagnostic_source_fields
   
   implicit none
   
   private
   
   public :: calculate_scalar_sum, calculate_scalar_difference, &
-    & calculate_vector_sum, calculate_vector_difference
+    & calculate_vector_sum, calculate_vector_difference, &
+    & calculate_tensor_difference
   
 contains
 
@@ -116,5 +117,30 @@ contains
     end if
   
   end subroutine calculate_vector_difference
+
+  subroutine calculate_tensor_difference(state, t_field)
+    type(state_type), intent(in) :: state
+    type(tensor_field), intent(inout) :: t_field
+    
+    character(len = OPTION_PATH_LEN) :: path
+    integer :: i, j
+    type(tensor_field), pointer :: source_field_1, source_field_2
+    
+    source_field_1 => tensor_source_field(state, t_field, index = 1)
+    source_field_2 => tensor_source_field(state, t_field, index = 2)
+  
+    call remap_field(source_field_1, t_field)
+    call addto(t_field, source_field_2, scale = -1.0)
+  
+    path = trim(complete_field_path(t_field%option_path)) // "/algorithm"
+    if(have_option(trim(path) // "/absolute_difference")) then
+      do i = 1, t_field%dim(1)
+        do j = 1, t_field%dim(2)
+          t_field%val(i,j,:) = abs(t_field%val(i,j,:))
+        end do
+      end do
+    end if
+  
+  end subroutine calculate_tensor_difference
 
 end module binary_operators

@@ -52,11 +52,11 @@ extern "C" {
 using namespace std; 
 
 void project_vtu_usage(char *binary){
-  cerr<<"Usage: "<<binary<<" [OPTIONS] input_filename donor_mesh target_mesh output_filename\n"
+  cerr<<"Usage: "<<binary<<" [OPTIONS] input_filename [donor_mesh] target_mesh output_filename\n"
       <<"Project an input vtu onto a different mesh\n\n"
       <<"input_filename and output_filename are the names of the input and output vtus\n"
-      <<"donor_mesh and target_mesh are either the name of gmsh file corresponding to the donor and target mesh (if ending in .msh), "
-      <<"or the basename for the triangle files (.node+.ele+.edge/.face) for those meshes\n\n"
+      <<"donor_mesh and target_mesh are of the basename of gmsh file corresponding to the donor and target mesh\n\n"
+      <<"The donor_mesh argument can be left out for serial, continuous, linear vtus only. In this case the mesh is derived from the vtu.\n\n"
       <<"\t-h\t\tPrints out this message\n"
       <<"\t-v\t\tVerbose mode\n";
 }
@@ -102,8 +102,8 @@ int main(int argc, char **argv){
     exit(-1);
   }
   
-  if (optind != argc - 4){
-    cerr << "Need exactly four non-option arguments" << endl;
+  if (argc-optind<3 || argc-optind>4) {
+    cerr << "Need three or four non-option arguments" << endl;
     project_vtu_usage(argv[0]);
     exit(-1);
   }
@@ -115,16 +115,26 @@ int main(int argc, char **argv){
   set_global_debug_level_fc(&val);
 
   string input_filename = argv[optind];
-  size_t input_filename_len = input_filename.size();  
+  size_t input_filename_len = input_filename.size();
   
-  string donor_basename = argv[optind + 1];
-  size_t donor_basename_len = donor_basename.size();
+  string donor_basename;
+  size_t donor_basename_len;
+  int targetind;
+  if (argc-optind==3) {
+    donor_basename = "";
+    donor_basename_len = 0;
+    targetind = optind + 1;
+  } else {
+    donor_basename = argv[optind + 1];
+    donor_basename_len = donor_basename.size();
+    targetind = optind + 2;
+  }
   
-  string target_basename = argv[optind + 2];
+  string target_basename = argv[targetind];
   size_t target_basename_len = target_basename.size();
   
-  string output_filename = argv[optind + 3];
-  size_t output_filename_len = output_filename.size();  
+  string output_filename = argv[targetind + 1];
+  size_t output_filename_len = output_filename.size();
 
   project_vtu(input_filename.c_str(), input_filename_len, donor_basename.c_str(), donor_basename_len, target_basename.c_str(), target_basename_len, output_filename.c_str(), output_filename_len);
     

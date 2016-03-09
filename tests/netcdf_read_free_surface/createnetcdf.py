@@ -1,10 +1,16 @@
 #!/usr/bin/env python
 
-from Scientific.IO.NetCDF import NetCDFFile
+from scipy.version import version as SciPyVersion
+
+if tuple(int(x) for x in SciPyVersion.split('.')) < (0, 9, 0):
+    from Scientific.IO.NetCDF import NetCDFFile as netcdf_file
+else:
+    from scipy.io.netcdf import netcdf_file
+
 from numpy import arange, zeros
 import height
 
-f = NetCDFFile('height.nc', 'w')
+f = netcdf_file('height.nc', 'w')
 f.description = 'Example free surface height.'
 
 x = arange(-1.2, 1.21, 0.2)

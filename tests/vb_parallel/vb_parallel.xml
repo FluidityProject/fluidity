@@ -4,10 +4,16 @@
   <name>vb_parallel</name>
   <owner userid="colin"/>
   <tags>flml parallel</tags>
-  <problem_definition length="short" nprocs="1">
-    <command_line>mpiexec -n 2 ../../bin/fluidity blob.flml; ../../bin/pvtu2vtu blob 1</command_line>
+  <problem_definition length="short" nprocs="2">
+    <command_line>mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l blob blob_flredecomp &amp;&amp;
+mpiexec ../../bin/fluidity blob_flredecomp.flml; ../../bin/pvtu2vtu blob 1</command_line>
   </problem_definition>
   <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name="Tmax" language="python">
 import vtktools
 myvtu = vtktools.vtu("blob_1.vtu")
@@ -22,6 +28,9 @@ Tmin = T.min()
     </variable>
   </variables>
   <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
     <test name="MaxTBounds" language="python">
 assert Tmax &lt; 2.0
     </test>

@@ -7,32 +7,34 @@ Anisotropic_ZZ.o ../include/anisotropic_zz_module.mod: Anisotropic_ZZ.F90 \
    ../include/conformity_measurement.mod ../include/diagnostic_fields.mod \
    ../include/edge_length_module.mod ../include/fdebug.h \
    ../include/fetools.mod ../include/field_options.mod ../include/fields.mod \
-   ../include/form_metric_field.mod ../include/global_parameters.mod \
-   ../include/halos.mod ../include/limit_metric_module.mod \
-   ../include/merge_tensors.mod ../include/meshdiagnostics.mod \
-   ../include/metric_tools.mod ../include/quicksort.mod \
-   ../include/sparse_tools.mod ../include/sparsity_patterns.mod \
+   ../include/fldebug.mod ../include/form_metric_field.mod \
+   ../include/global_parameters.mod ../include/halos.mod \
+   ../include/limit_metric_module.mod ../include/merge_tensors.mod \
+   ../include/meshdiagnostics.mod ../include/metric_tools.mod \
+   ../include/quicksort.mod ../include/sparse_tools.mod \
+   ../include/sparsity_patterns.mod ../include/spud.mod \
    ../include/state_module.mod ../include/tensors.mod \
-   ../include/transform_elements.mod ../include/vector_tools.mod \
-   ../include/vtk_interfaces.mod
+   ../include/transform_elements.mod ../include/unittest_tools.mod \
+   ../include/vector_tools.mod ../include/vtk_interfaces.mod
 
 ../include/anisotropic_gradation.mod: Anisotropic_gradation_metric.o
 	@true
 
 Anisotropic_gradation_metric.o ../include/anisotropic_gradation.mod: \
    Anisotropic_gradation_metric.F90 ../include/adjacency_lists.mod \
-   ../include/fdebug.h ../include/fields.mod ../include/form_metric_field.mod \
-   ../include/gradation_metric.mod ../include/initialise_fields_module.mod \
-   ../include/linked_lists.mod ../include/merge_tensors.mod \
-   ../include/metric_tools.mod ../include/sparse_tools.mod ../include/spud.mod \
-   ../include/state_module.mod ../include/vector_tools.mod
+   ../include/fdebug.h ../include/fields.mod ../include/fldebug.mod \
+   ../include/form_metric_field.mod ../include/gradation_metric.mod \
+   ../include/initialise_fields_module.mod ../include/linked_lists.mod \
+   ../include/merge_tensors.mod ../include/metric_tools.mod \
+   ../include/sparse_tools.mod ../include/spud.mod ../include/state_module.mod \
+   ../include/unittest_tools.mod ../include/vector_tools.mod
 
 ../include/aspect_ratios_module.mod: Aspect_ratios.o
 	@true
 
 Aspect_ratios.o ../include/aspect_ratios_module.mod: Aspect_ratios.F90 \
-   ../include/fdebug.h ../include/fields.mod ../include/metric_tools.mod \
-   ../include/spud.mod ../include/vector_tools.mod
+   ../include/fdebug.h ../include/fields.mod ../include/fldebug.mod \
+   ../include/metric_tools.mod ../include/spud.mod ../include/vector_tools.mod
 
 ../include/metric_assemble.mod: Assemble_metric.o
 	@true
@@ -41,16 +43,23 @@ Assemble_metric.o ../include/metric_assemble.mod: Assemble_metric.F90 \
    ../include/anisotropic_gradation.mod ../include/anisotropic_zz_module.mod \
    ../include/aspect_ratios_module.mod ../include/boundary_metric.mod \
    ../include/bounding_box_metric.mod ../include/edge_length_module.mod \
-   ../include/fdebug.h ../include/field_derivatives.mod \
+   ../include/elements.mod ../include/fdebug.h \
+   ../include/field_derivatives.mod ../include/field_options.mod \
+   ../include/fields.mod ../include/fldebug.mod \
    ../include/form_metric_field.mod \
-   ../include/geometric_constraints_metric.mod ../include/goal_metric.mod \
+   ../include/geometric_constraints_metric.mod \
+   ../include/global_parameters.mod ../include/goal_metric.mod \
    ../include/goals.mod ../include/gradation_metric.mod \
+   ../include/hadapt_advancing_front.mod \
    ../include/hadapt_metric_based_extrude.mod ../include/halos.mod \
-   ../include/interpolation_metric.mod ../include/limit_metric_module.mod \
-   ../include/merge_tensors.mod ../include/metric_advection.mod \
-   ../include/metric_tools.mod ../include/parallel_tools.mod \
+   ../include/initialise_fields_module.mod ../include/interpolation_metric.mod \
+   ../include/limit_metric_module.mod ../include/merge_tensors.mod \
+   ../include/metric_advection.mod ../include/metric_tools.mod \
+   ../include/mpi_interfaces.mod ../include/node_boundary.mod \
+   ../include/parallel_tools.mod \
+   ../include/project_metric_to_surface_module.mod ../include/quadrature.mod \
    ../include/reference_meshes.mod ../include/richardson_metric_module.mod \
-   ../include/spud.mod ../include/state_module.mod \
+   ../include/sparse_tools.mod ../include/spud.mod ../include/state_module.mod \
    ../include/surfacelabels.mod ../include/vtk_interfaces.mod
 
 ../include/boundary_metric.mod: Boundary_metric.o
@@ -65,10 +74,10 @@ Boundary_metric.o ../include/boundary_metric.mod: Boundary_metric.F90 \
 
 Bounding_box_metric.o ../include/bounding_box_metric.mod: \
    Bounding_box_metric.F90 ../include/edge_length_module.mod \
-   ../include/fdebug.h ../include/fields.mod ../include/global_parameters.mod \
-   ../include/merge_tensors.mod ../include/metric_tools.mod \
-   ../include/spud.mod ../include/unittest_tools.mod \
-   ../include/vtk_interfaces.mod
+   ../include/fdebug.h ../include/fields.mod ../include/fldebug.mod \
+   ../include/global_parameters.mod ../include/merge_tensors.mod \
+   ../include/metric_tools.mod ../include/spud.mod \
+   ../include/unittest_tools.mod ../include/vtk_interfaces.mod
 
 ../include/conformity_measurement.mod: Conformity_measurement.o
 	@true
@@ -78,15 +87,17 @@ Conformity_measurement.o ../include/conformity_measurement.mod: \
    ../include/fetools.mod ../include/fields.mod \
    ../include/limit_metric_module.mod ../include/merge_tensors.mod \
    ../include/meshdiagnostics.mod ../include/metric_tools.mod \
-   ../include/state_module.mod ../include/transform_elements.mod \
-   ../include/unittest_tools.mod ../include/vector_tools.mod
+   ../include/sparse_tools.mod ../include/state_module.mod \
+   ../include/transform_elements.mod ../include/unittest_tools.mod \
+   ../include/vector_tools.mod
 
 ../include/edge_length_module.mod: Edge_lengths.o
 	@true
 
 Edge_lengths.o ../include/edge_length_module.mod: Edge_lengths.F90 \
    ../include/fdebug.h ../include/fields.mod ../include/fldebug.mod \
-   ../include/metric_tools.mod ../include/unittest_tools.mod
+   ../include/metric_tools.mod ../include/unittest_tools.mod \
+   ../include/vector_tools.mod
 
 ../include/field_preprocessing_module.mod: Field_preprocessing.o
 	@true
@@ -101,6 +112,7 @@ Field_preprocessing.o ../include/field_preprocessing_module.mod: \
 
 Form_metric.o ../include/form_metric_field.mod: Form_metric.F90 \
    ../include/fdebug.h ../include/field_options.mod ../include/fields.mod \
+   ../include/fldebug.mod ../include/futils.mod \
    ../include/global_parameters.mod ../include/merge_tensors.mod \
    ../include/metric_tools.mod ../include/recovery_estimator.mod \
    ../include/spud.mod ../include/state_module.mod \
@@ -112,11 +124,13 @@ Form_metric.o ../include/form_metric_field.mod: Form_metric.F90 \
 
 Geometric_constraints_metric.o ../include/geometric_constraints_metric.mod: \
    Geometric_constraints_metric.F90 ../include/edge_length_module.mod \
-   ../include/fdebug.h ../include/fields.mod ../include/form_metric_field.mod \
-   ../include/gradation_metric.mod ../include/halos.mod \
-   ../include/merge_tensors.mod ../include/metric_tools.mod \
+   ../include/fdebug.h ../include/fields.mod ../include/fldebug.mod \
+   ../include/form_metric_field.mod ../include/gradation_metric.mod \
+   ../include/halos.mod ../include/merge_tensors.mod \
+   ../include/metric_tools.mod ../include/mpi_interfaces.mod \
    ../include/node_boundary.mod ../include/parallel_tools.mod \
-   ../include/state_module.mod ../include/vtk_interfaces.mod
+   ../include/spud.mod ../include/state_module.mod \
+   ../include/surfacelabels.mod ../include/vtk_interfaces.mod
 
 ../include/goal_metric.mod: Goal_metric.o
 	@true
@@ -125,11 +139,12 @@ Goal_metric.o ../include/goal_metric.mod: Goal_metric.F90 \
    ../include/edge_length_module.mod ../include/elements.mod \
    ../include/fdebug.h ../include/fetools.mod ../include/field_derivatives.mod \
    ../include/fields.mod ../include/fields_data_types.mod \
-   ../include/form_metric_field.mod ../include/futils.mod \
-   ../include/global_parameters.mod ../include/goals.mod \
+   ../include/fldebug.mod ../include/form_metric_field.mod \
+   ../include/futils.mod ../include/global_parameters.mod ../include/goals.mod \
    ../include/gradation_metric.mod ../include/merge_tensors.mod \
    ../include/metric_tools.mod ../include/spud.mod ../include/state_module.mod \
-   ../include/transform_elements.mod ../include/vtk_interfaces.mod
+   ../include/transform_elements.mod ../include/vector_tools.mod \
+   ../include/vtk_interfaces.mod
 
 ../include/goals.mod: Goals.o
 	@true
@@ -138,7 +153,8 @@ Goals.o ../include/goals.mod: Goals.F90 ../include/elements.mod \
    ../include/fdebug.h ../include/fefields.mod ../include/fetools.mod \
    ../include/field_derivatives.mod ../include/fields.mod \
    ../include/fldebug.mod ../include/spud.mod ../include/state_module.mod \
-   ../include/unittest_tools.mod ../include/vector_tools.mod
+   ../include/tensors.mod ../include/unittest_tools.mod \
+   ../include/vector_tools.mod
 
 ../include/gradation_metric.mod: Gradation_metric.o
 	@true
@@ -146,8 +162,10 @@ Goals.o ../include/goals.mod: Goals.F90 ../include/elements.mod \
 Gradation_metric.o ../include/gradation_metric.mod: Gradation_metric.F90 \
    ../include/adjacency_lists.mod ../include/edge_length_module.mod \
    ../include/fdebug.h ../include/field_derivatives.mod ../include/fields.mod \
-   ../include/linked_lists.mod ../include/metric_tools.mod \
-   ../include/node_boundary.mod ../include/unittest_tools.mod \
+   ../include/fldebug.mod ../include/linked_lists.mod \
+   ../include/metric_tools.mod ../include/node_boundary.mod \
+   ../include/sparse_tools.mod ../include/spud.mod \
+   ../include/unittest_tools.mod ../include/vector_tools.mod \
    ../include/vtk_interfaces.mod
 
 ../include/huang_metric_module.mod: Huang_metric.o
@@ -157,15 +175,17 @@ Huang_metric.o ../include/huang_metric_module.mod: Huang_metric.F90 \
    ../include/fdebug.h ../include/field_options.mod ../include/fields.mod \
    ../include/fldebug.mod ../include/form_metric_field.mod \
    ../include/global_parameters.mod ../include/metric_tools.mod \
-   ../include/spud.mod ../include/state_module.mod ../include/vector_tools.mod \
-   ../include/vtk_interfaces.mod
+   ../include/spud.mod ../include/state_module.mod \
+   ../include/transform_elements.mod ../include/unittest_tools.mod \
+   ../include/vector_tools.mod ../include/vtk_interfaces.mod
 
 ../include/interpolation_error.mod: Interpolation_error.o
 	@true
 
 Interpolation_error.o ../include/interpolation_error.mod: \
-   Interpolation_error.F90 ../include/fdebug.h ../include/fields.mod \
-   ../include/transform_elements.mod ../include/vtk_interfaces.mod
+   Interpolation_error.F90 ../include/elements.mod ../include/fdebug.h \
+   ../include/fields.mod ../include/transform_elements.mod \
+   ../include/vtk_interfaces.mod
 
 ../include/interpolation_metric.mod: Interpolation_metric.o
 	@true
@@ -174,7 +194,8 @@ Interpolation_metric.o ../include/interpolation_metric.mod: \
    Interpolation_metric.F90 ../include/aspect_ratios_module.mod \
    ../include/edge_length_module.mod ../include/fdebug.h \
    ../include/field_derivatives.mod ../include/field_options.mod \
-   ../include/field_preprocessing_module.mod ../include/form_metric_field.mod \
+   ../include/field_preprocessing_module.mod ../include/fields.mod \
+   ../include/fldebug.mod ../include/form_metric_field.mod \
    ../include/halos.mod ../include/merge_tensors.mod \
    ../include/metric_tools.mod ../include/parallel_fields.mod \
    ../include/project_metric_to_surface_module.mod ../include/spud.mod \
@@ -185,18 +206,19 @@ Interpolation_metric.o ../include/interpolation_metric.mod: \
 
 Limit_metric.o ../include/limit_metric_module.mod: Limit_metric.F90 \
    ../include/elements.mod ../include/fdebug.h ../include/fields.mod \
-   ../include/fldebug.mod ../include/meshdiagnostics.mod ../include/spud.mod \
-   ../include/vector_tools.mod
+   ../include/fldebug.mod ../include/futils.mod ../include/meshdiagnostics.mod \
+   ../include/parallel_fields.mod ../include/parallel_tools.mod \
+   ../include/spud.mod ../include/vector_tools.mod
 
 ../include/mba_adapt_module.mod: Mba_adapt.o
 	@true
 
 Mba_adapt.o ../include/mba_adapt_module.mod: Mba_adapt.F90 \
    ../include/eventcounter.mod ../include/fdebug.h ../include/fields.mod \
-   ../include/interpolation_module.mod ../include/limit_metric_module.mod \
-   ../include/meshdiagnostics.mod ../include/metric_tools.mod \
-   ../include/node_boundary.mod ../include/state_module.mod \
-   ../include/vtk_interfaces.mod
+   ../include/fldebug.mod ../include/interpolation_module.mod \
+   ../include/limit_metric_module.mod ../include/meshdiagnostics.mod \
+   ../include/metric_tools.mod ../include/node_boundary.mod \
+   ../include/state_module.mod ../include/vtk_interfaces.mod
 
 ../include/metric_advection.mod: Metric_advection.o
 	@true
@@ -227,17 +249,19 @@ Metric_advection.o ../include/metric_advection.mod: Metric_advection.F90 \
 Project_metric_to_surface.o ../include/project_metric_to_surface_module.mod: \
    Project_metric_to_surface.F90 ../include/boundary_conditions.mod \
    ../include/edge_length_module.mod ../include/fdebug.h \
-   ../include/field_options.mod ../include/fields.mod \
-   ../include/hadapt_advancing_front.mod ../include/merge_tensors.mod \
-   ../include/quicksort.mod ../include/sparse_tools.mod ../include/spud.mod \
-   ../include/state_module.mod ../include/vector_tools.mod \
+   ../include/fetools.mod ../include/field_options.mod ../include/fields.mod \
+   ../include/fldebug.mod ../include/hadapt_advancing_front.mod \
+   ../include/merge_tensors.mod ../include/quicksort.mod \
+   ../include/sparse_tools.mod ../include/spud.mod ../include/state_module.mod \
+   ../include/transform_elements.mod ../include/vector_tools.mod \
    ../include/vtk_interfaces.mod
 
 ../include/recovery_estimator.mod: Recovery_estimator.o
 	@true
 
 Recovery_estimator.o ../include/recovery_estimator.mod: Recovery_estimator.F90 \
-   ../include/fdebug.h ../include/field_derivatives.mod ../include/fields.mod \
+   ../include/elements.mod ../include/fdebug.h \
+   ../include/field_derivatives.mod ../include/fields.mod \
    ../include/transform_elements.mod
 
 ../include/reference_meshes.mod: Reference_Meshes.o
@@ -245,17 +269,17 @@ Recovery_estimator.o ../include/recovery_estimator.mod: Recovery_estimator.F90 \
 
 Reference_Meshes.o ../include/reference_meshes.mod: Reference_Meshes.F90 \
    ../include/conformity_measurement.mod ../include/fdebug.h \
-   ../include/fields.mod ../include/fldebug.mod \
-   ../include/global_parameters.mod ../include/interpolation_module.mod \
-   ../include/merge_tensors.mod ../include/spud.mod \
-   ../include/state_module.mod
+   ../include/field_options.mod ../include/fields.mod ../include/fldebug.mod \
+   ../include/futils.mod ../include/global_parameters.mod \
+   ../include/interpolation_module.mod ../include/merge_tensors.mod \
+   ../include/spud.mod ../include/state_module.mod
 
 ../include/richardson_metric_module.mod: Richardson_metric.o
 	@true
 
 Richardson_metric.o ../include/richardson_metric_module.mod: \
    Richardson_metric.F90 ../include/edge_length_module.mod ../include/fdebug.h \
-   ../include/field_options.mod ../include/fields.mod \
+   ../include/field_options.mod ../include/fields.mod ../include/fldebug.mod \
    ../include/global_parameters.mod ../include/limit_metric_module.mod \
    ../include/merge_tensors.mod ../include/metric_tools.mod \
    ../include/spud.mod ../include/state_module.mod \

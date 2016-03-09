@@ -1,0 +1,21 @@
+#!/bin/bash
+
+n=8
+for F in A B C D
+do
+    echo creating set $F with n_ele=$n	
+    sed s/MMS_X/MMS_$F/ MMS_X.flml > MMS_$F.flml
+    sed s/XX/$n/ src/MMS_X.geo > src/MMS_$F.geo	
+    n=$((n*2))
+done
+
+echo setting flml timestep values
+
+sed -i s/999.9/0.125/ MMS_A.flml
+sed -i s/888.8/0.1/ MMS_A.flml
+sed -i s/999.9/0.0625/ MMS_B.flml
+sed -i s/888.8/0.2/ MMS_B.flml
+sed -i s/999.9/0.03125/ MMS_C.flml
+sed -i s/888.8/0.4/ MMS_C.flml
+sed -i s/999.9/0.015625/ MMS_D.flml
+sed -i s/888.8/0.8/ MMS_D.flml

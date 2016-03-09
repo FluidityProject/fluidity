@@ -12,7 +12,7 @@
     </dimension>
     <mesh name="CoordinateMesh">
       <from_file file_name="mphase_stokes_law">
-        <format name="triangle"/>
+        <format name="gmsh"/>
         <stat>
           <include_in_stat/>
         </stat>
@@ -150,6 +150,7 @@
             <stress_terms>
               <tensor_form/>
             </stress_terms>
+            <buoyancy/>
           </continuous_galerkin>
           <conservative_advection>
             <real_value rank="0">0.0</real_value>
@@ -352,6 +353,7 @@
             <stress_terms>
               <tensor_form/>
             </stress_terms>
+            <buoyancy/>
           </continuous_galerkin>
           <conservative_advection>
             <real_value rank="0">0.0</real_value>
@@ -680,4 +682,9 @@ for i in range(field.node_count):
       </particle_diameter>
     </multiphase_properties>
   </material_phase>
+  <multiphase_interaction>
+    <fluid_particle_drag>
+      <drag_correlation name="stokes"/>
+    </fluid_particle_drag>
+  </multiphase_interaction>
 </fluidity_options>

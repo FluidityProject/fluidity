@@ -9,6 +9,11 @@
     <!-- PZND model running in a water column not solving for any physics. No sinking of detritus, so everything conserved -->
   </problem_definition>
   <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name="phytoplankton1" language="python">
 from fluidity_tools import stat_parser
 d = stat_parser("biology_conservation.stat")
@@ -63,6 +68,9 @@ for i in range(0,nNodes-1):
 </variable>
   </variables>
   <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
       <test name="Total in water column conserved" language="python">
 before = nutrients1 + detritus1 + phytoplankton1 + zooplankton1
 after = nutrients2 + detritus2 + phytoplankton2 + zooplankton2

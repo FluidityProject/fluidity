@@ -6,6 +6,11 @@
     <command_line>fluidity turbine_dirichlet_3d.flml</command_line>
   </problem_definition>
   <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name="velocity_block1" language="python">from fluidity_tools import stat_parser
 s = stat_parser("turbine_3d.detectors")
 velocity_block1=s["Water"]["Velocity"]["right_block1"][0]
@@ -33,6 +38,9 @@ s = stat_parser("turbine_3d.stat")
 dt=s["dt"]["value"][-1]</variable>
   </variables>
   <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
     <test name="flux_conservation" language="python">assert(all(abs(area_block1*velocity_block1-area_block2*velocity_block2)&lt;1e-10))</test>
     <test name="time" language="python">from math import cos
 turbine_flux=velocity_block2

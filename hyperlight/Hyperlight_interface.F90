@@ -28,9 +28,11 @@
 
 module hyperlight
   use spud
-  use state_module
-  use fields
   use global_parameters, only:   OPTION_PATH_LEN
+  use fields
+  use state_module
+  use fluxes
+
   implicit none
 contains
 

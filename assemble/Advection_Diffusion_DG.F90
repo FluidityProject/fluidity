@@ -29,39 +29,48 @@
 module advection_diffusion_DG
   !!< This module contains the Discontinuous Galerkin form of the advection
   !!< -diffusion equation for scalars.
+  use fldebug
+  use vector_tools
+  use global_parameters, only: OPTION_PATH_LEN, FIELD_NAME_LEN, COLOURING_DG2, &
+COLOURING_DG0
   use elements
+  use integer_set_module
+  use spud
+#ifdef _OPENMP
+  use omp_lib
+#endif
+  use parallel_tools
   use sparse_tools
-  use fetools
-  use dgtools
-  use fields
-  use fefields
-  use state_module
   use shape_functions
   use transform_elements
-  use vector_tools
-  use fldebug
-  use vtk_interfaces
-  use Coordinates
-  use petsc_solve_state_module
+  use fetools
+  use parallel_fields
+  use fields
+  use profiler
+  use state_module
   use boundary_conditions
+  use sparsity_patterns
+  use dgtools
+  use vtk_interfaces
+  use field_options
+  use sparse_matrices_fields
+  use fefields
+  use field_derivatives
+  use coordinates
+  use sparsity_patterns_meshes
+  use petsc_solve_state_module
   use boundary_conditions_from_options
-  use spud
   use upwind_stabilisation
   use slope_limiters_dg
-  use sparsity_patterns
-  use sparse_matrices_fields
-  use sparsity_patterns_meshes
   use diagnostic_fields, only: calculate_diagnostic_variable
-  use global_parameters, only : FIELD_NAME_LEN
   use porous_media
+  use colouring, only: get_mesh_colouring
 
   implicit none
 
-  ! Buffer for output messages.
-  character(len=255), private :: message
-
   private
-  public solve_advection_diffusion_dg, construct_advection_diffusion_dg
+  public solve_advection_diffusion_dg, construct_advection_diffusion_dg, &
+       advection_diffusion_dg_check_options
 
   ! Local private control parameters. These are module-global parameters
   ! because it would be expensive and/or inconvenient to re-evaluate them
@@ -97,7 +106,7 @@ module advection_diffusion_DG
   ! Boundary condition types:
   ! (the numbers should match up with the order in the 
   !  get_entire_boundary_condition call)
-  integer :: BCTYPE_WEAKDIRICHLET=1, BCTYPE_DIRICHLET=2
+  integer :: BCTYPE_WEAKDIRICHLET=1, BCTYPE_DIRICHLET=2, BCTYPE_NEUMANN=3
 
   logical :: include_mass
   ! are we moving the mesh?
@@ -137,6 +146,7 @@ module advection_diffusion_DG
   logical :: on_sphere
   ! Vertical diffusion by mixing option
   logical :: have_buoyancy_adjustment_by_vertical_diffusion
+  logical :: have_buoyancy_adjustment_diffusivity
 
 contains
 
@@ -692,6 +702,7 @@ contains
     type(scalar_field) :: T
     !! Diffusivity
     type(tensor_field) :: Diffusivity
+    type(tensor_field) :: LESDiffusivity
 
     !! Source and absorption
     type(scalar_field) :: Source, Absorption
@@ -737,6 +748,18 @@ contains
     
     !! Add the Source directly to the right hand side?
     logical :: add_src_directly_to_rhs
+
+
+    type(integer_set), dimension(:), pointer :: colours
+    integer :: len, clr, nnid
+#ifdef _OPENMP
+    !! Is the transform_to_physical cache we prepopulated valid
+    logical :: cache_valid
+    integer :: num_threads
+#endif
+
+    !! Diffusivity to add due to the buoyancy adjustment by vertical mixing scheme
+    type(scalar_field) :: buoyancy_adjustment_diffusivity
 
     ewrite(1,*) "Writing advection-diffusion equation for "&
          &//trim(field_name)
@@ -809,8 +832,19 @@ contains
        call zero(Diffusivity)
        include_diffusion=.false.
     else
-       ! Grab an extra reference to cause the deallocate below to be safe.
-       call incref(Diffusivity)
+        if (have_option(trim(T%option_path)//"/prognostic"//&
+         &"/subgridscale_parameterisation::LES")) then
+
+          ! this routine takes Diffusivity as its background diffusivity
+          ! and returns the sum of this and the les diffusivity
+          call construct_les_dg(state,T, X, Diffusivity, LESDiffusivity)
+          ! the sum is what we want to apply:
+          Diffusivity = LESDiffusivity
+       else
+          ! Grab an extra reference to cause the deallocate below to be safe.
+          call incref(Diffusivity)
+       end if
+
        include_diffusion=.true.
     end if
 
@@ -923,7 +957,9 @@ contains
     ! BCTYPE_WEAKDIRICHLET=1)
     allocate( bc_type(1:surface_element_count(T)) )
     call get_entire_boundary_condition(T, &
-       & (/"weakdirichlet"/), &
+       & (/"weakdirichlet", &
+       &   "dirichlet    ", &
+       &   "neumann      "/), &
        & bc_value, bc_type)
 
     call zero(big_m)
@@ -932,7 +968,8 @@ contains
     if (present(diffusion_m)) call zero(diffusion_m)
     if (present(diffusion_RHS)) call zero(diffusion_RHS)
     if (have_buoyancy_adjustment_by_vertical_diffusion) then
-      if (have_option(trim(T%option_path)//"/prognostic/buoyancy_adjustment"&
+      ewrite(3,*) "Buoyancy adjustment by vertical mixing: enabled"
+      if (have_option(trim(T%option_path)//"/prognostic/buoyancy_adjustment"//&
           &"/by_vertical_diffusion/project_buoyancy_to_continuous_space")) then    
         buoyancy_from_state = extract_scalar_field(state, "VelocityBuoyancyDensity", stat)
         if (stat/=0) FLAbort('Error extracting buoyancy field.')
@@ -943,7 +980,9 @@ contains
         ! Grab an extra reference to cause the deallocate below to be safe.
         ! Check this is OK
         call lumped_mass_galerkin_projection_scalar(state, buoyancy, buoyancy_from_state)
+        ewrite(3,*) "Buoyancy adjustment by vertical mixing: projecting to continuous space"
       else
+        ewrite(3,*) "Buoyancy adjustment by vertical mixing: no projection"
         buoyancy = extract_scalar_field(state, "VelocityBuoyancyDensity", stat)
         if (stat/=0) FLAbort('Error extracting buoyancy field.')
         call incref(buoyancy)
@@ -963,18 +1002,60 @@ contains
       end if
       ! Set direction of mixing diffusion, default is in the y- and z-direction for 2- and 3-d spaces respectively
       ! TODO: Align this direction with gravity local to an element
+      
+      ! Check if the diagnostic associated with the buoyancy adjustment by vertical mixing scheme is required
+      buoyancy_adjustment_diffusivity = extract_scalar_field(state, "BuoyancyAdjustmentDiffusivity", stat)
+      if (stat==0) then
+        have_buoyancy_adjustment_diffusivity = .true.
+        ewrite(3,*) "Buoynacy adjustment by vertical mixing: Updating BuoyancyAdjustmentDiffusivity field."
+      else
+        have_buoyancy_adjustment_diffusivity = .false.
+      end if
+
     end if
 
-    element_loop: do ELE=1,element_count(T)
-       
+    if (include_diffusion) then
+       call get_mesh_colouring(state, T%mesh, COLOURING_DG2, colours)
+#ifdef _OPENMP
+      if(diffusion_scheme == MASSLUMPED_RT0) then
+         call omp_set_num_threads(1)
+         ewrite(1,*) "WARNING: hybrid assembly can't support The MASSLUMPED_RT0 scheme yet, &
+         set threads back to 1"
+      endif
+#endif
+    else
+       call get_mesh_colouring(state, T%mesh, COLOURING_DG0, colours)
+    end if
+
+#ifdef _OPENMP
+    cache_valid = prepopulate_transform_cache(X)
+#endif
+
+    call profiler_tic(t, "advection_diffusion_dg_loop")
+
+    !$OMP PARALLEL DEFAULT(SHARED) &
+    !$OMP PRIVATE(clr, nnid, ele, len)
+
+    colour_loop: do clr = 1, size(colours) 
+      len = key_count(colours(clr))
+
+      !$OMP DO SCHEDULE(STATIC)
+      element_loop: do nnid = 1, len
+       ele = fetch(colours(clr), nnid)
        call construct_adv_diff_element_dg(ele, big_m, rhs, big_m_diff,&
             & rhs_diff, X, X_old, X_new, T, U_nl, U_mesh, Source, &
             & Absorption, Diffusivity, bc_value, bc_type, q_mesh, mass, &
             & buoyancy, gravity, gravity_magnitude, mixing_diffusion_amplitude, &
+            & buoyancy_adjustment_diffusivity, &
             & add_src_directly_to_rhs, porosity_theta) 
        
-    end do element_loop
+      end do element_loop
+      !$OMP END DO
 
+    end do colour_loop
+    !$OMP END PARALLEL
+
+    call profiler_toc(t, "advection_diffusion_dg_loop")
     ! Add the source directly to the rhs if required 
     ! which must be included before dirichlet BC's.
     if (add_src_directly_to_rhs) call addto(rhs, Source)
@@ -990,6 +1071,134 @@ contains
     call deallocate(porosity_theta)
     
   end subroutine construct_advection_diffusion_dg
+
+  subroutine construct_les_dg(state, T, X, background_diffusivity, LESDiffusivity)
+
+    !  Calculate updates to the field diffusivity due to the LES terms.
+
+    type(state_type), intent(inout) :: state
+    type(scalar_field), intent(in) :: T
+    type(vector_field), intent(in) :: X
+    type(tensor_field), intent(in) :: background_diffusivity
+    type(tensor_field), intent(out) :: LESDiffusivity
+    
+    !! Turbulent diffusion - LES (sp911)
+    type(scalar_field), pointer :: scalar_eddy_visc
+    type(scalar_field) :: eddy_visc_component
+    type(vector_field) :: eddy_visc
+    real :: prandtl
+    integer :: i
+    !! Ri dependent LES (sp911)
+    real :: Ri_c, N_2, U_2, Ri, f_Ri
+    type(scalar_field), pointer :: rho
+    type(vector_field) :: grad_rho
+    type(vector_field), pointer :: gravity
+    type(tensor_field) :: grad_u
+    real, dimension(:), allocatable :: gravity_val, grad_rho_val, dU_dz
+    ! non-linear velocity (U_nl) is zero when advection is disabled
+    ! I want this to be the actual non-linear velocity so I obtain it myself
+    type(vector_field), pointer :: u_nl_ri
+    real :: gravity_magnitude
+    real, dimension(:,:), allocatable :: grad_u_val
+
+    integer :: stat
+
+    call allocate(LESDiffusivity, T%mesh, trim(background_diffusivity%name))
+    call set(LESDiffusivity, background_diffusivity)
+
+    scalar_eddy_visc => extract_scalar_field(state, "DGLESScalarEddyViscosity", stat=stat)
+    call get_option(trim(T%option_path)//"/prognostic"//&
+         &"/subgridscale_parameterisation::LES/PrandtlNumber", prandtl, default=1.0)
+
+    ! possibly anisotropic eddy viscosity if using Ri dependency
+    call allocate(eddy_visc, mesh_dim(T), scalar_eddy_visc%mesh, &
+              & "EddyViscosity")
+    do i = 1, mesh_dim(T)
+       call set(eddy_visc, i, scalar_eddy_visc)
+    end do
+    
+    ! apply Richardson dependence
+    if (have_option(trim(T%option_path)//"/prognostic"//&
+         &"/subgridscale_parameterisation::LES/Ri_c")) then
+       
+       ewrite(2,*) 'Calculating Ri dependent eddy viscosity'
+       
+       ! obtain required values
+       call get_option(trim(T%option_path)//"/prognostic"//&
+            &"/subgridscale_parameterisation::LES/Ri_c", Ri_c)
+       
+       rho => extract_scalar_field(state, "Density", stat=stat)
+       if (stat /= 0) then
+          FLExit("You must have a density field to have an Ri dependent les model.")
+       end if
+       
+       gravity=>extract_vector_field(state, "GravityDirection",stat)
+       if (stat/=0) FLAbort('You must have gravity to have an Ri dependent les model.')
+       call get_option("/physical_parameters/gravity/magnitude", gravity_magnitude)
+       
+       ! obtain gradients
+       call allocate(grad_rho, mesh_dim(T), T%mesh, "grad_rho")
+       call grad(rho, X, grad_rho)
+       u_nl_ri => extract_vector_field(state, "NonlinearVelocity", stat)
+       if (stat/=0) then 
+          FLExit("No velocity field? A velocity field is required for Ri dependent LES!")
+       end if
+       call allocate(grad_u, u_nl_ri%mesh, "grad_u")
+       call grad(u_nl_ri, X, grad_u)
+       
+       allocate(gravity_val(mesh_dim(T)))
+       allocate(grad_rho_val(mesh_dim(T)))
+       allocate(dU_dz(mesh_dim(T)))
+       allocate(grad_u_val(mesh_dim(T), mesh_dim(T)))
+       
+       do i=1,node_count(eddy_visc)
+             
+          gravity_val = node_val(gravity, i)
+          grad_rho_val = node_val(grad_rho, i)
+          grad_u_val = node_val(grad_u, i)
+             
+          ! assuming boussinesq rho_0 = 1 obtain N_2
+          N_2 = gravity_magnitude*dot_product(grad_rho_val, gravity_val)
+
+          ! obtain U_2 = du/dz**2 + dv/dz**2
+          dU_dz = matmul(transpose(grad_u_val), gravity_val) 
+          dU_dz = dU_dz - dot_product(dU_dz, gravity_val)
+          U_2 = norm2(dU_dz)**2.0
+
+             ! calculate Ri  - avoid floating point errors
+          if ((U_2 > N_2*1e-10) .and. U_2 > tiny(0.0)*1e10) then
+             Ri = N_2/U_2
+          else
+             Ri = Ri_c*1.1
+          end if
+             ! calculate f(Ri)
+          if (Ri >= 0 .and. Ri <= Ri_c) then
+             f_Ri = (1.0 - Ri/Ri_c)**0.5
+          else if (Ri > Ri_c) then
+             f_Ri = 0.0
+          else
+             f_Ri = 1.0
+          end if
+
+          ! calculate modified eddy viscosity
+          call addto(eddy_visc, i, (1-f_Ri)*gravity_val*node_val(scalar_eddy_visc, i))
+
+       end do
+           
+       call deallocate(grad_rho)
+       call deallocate(grad_u)
+
+       deallocate(gravity_val, grad_u_val, grad_rho_val, dU_dz)
+    end if
+
+    do i = 1, mesh_dim(X)
+       eddy_visc_component = extract_scalar_field(eddy_visc, i)
+       call addto(LESDiffusivity, i, i, eddy_visc_component, scale=1./prandtl)
+    end do
+    
+    call deallocate(eddy_visc)
+
+  end subroutine construct_les_dg
 
   subroutine lumped_mass_galerkin_projection_scalar(state, field, projected_field)
     type(state_type), intent(in) :: state
@@ -1077,14 +1286,12 @@ contains
          
    end subroutine lumped_mass_galerkin_projection_scalar
 
-
-
-
-  subroutine construct_adv_diff_element_dg(ele, big_m, rhs, big_m_diff,&
+   subroutine construct_adv_diff_element_dg(ele, big_m, rhs, big_m_diff,&
        & rhs_diff, &
        & X, X_old, X_new, T, U_nl, U_mesh, Source, Absorption, Diffusivity,&
        & bc_value, bc_type, &
        & q_mesh, mass, buoyancy, gravity, gravity_magnitude, mixing_diffusion_amplitude, &
+       & buoyancy_adjustment_diffusivity, &
        & add_src_directly_to_rhs, porosity_theta)
     !!< Construct the advection_diffusion equation for discontinuous elements in
     !!< acceleration form.
@@ -1112,6 +1319,9 @@ contains
     type(scalar_field), intent(in) :: T, Source, Absorption
     !! Diffusivity
     type(tensor_field), intent(in) :: Diffusivity
+
+    !! Diffusivity to add due to the buoyancy adjustment by vertical mixing scheme
+    type(scalar_field), intent(inout) :: buoyancy_adjustment_diffusivity
     
     !! If adding Source directly to rhs then
     !! do nothing with it here
@@ -1271,9 +1481,10 @@ contains
     if(diffusion_scheme == CDG) primal = .true.
     if(diffusion_scheme == IP) primal =.true.
 
-    ! In parallel, we only construct the equations on elements we own.
+    ! In parallel, we only construct the equations on elements we own, or
+    ! those in the L1 halo.
     if (dg) then
-       if (.not.element_owned(T,ele)) then
+       if (.not.(element_owned(T, ele).or.element_neighbour_owned(T, ele))) then
           return
        end if
     end if
@@ -1349,7 +1560,7 @@ contains
        ! Calculate the gradient in the direction of gravity
        ! TODO: Build on_sphere into ele_val_at_quad?
        if (on_sphere) then
-          grav_at_quads = sphere_inward_normal_at_quad_ele(X, ele)
+          grav_at_quads = radial_inward_normal_at_quad_ele(X, ele)
        else
           grav_at_quads = ele_val_at_quad(gravity, ele)
        end if
@@ -1380,12 +1591,18 @@ contains
                  &* gravity_magnitude * dr**2 * gravity_at_node(i) * drho_dz(:)
          end do
        end if
-       
-       !ewrite(3,*) "mixing_density_values", buoyancysample
-       ewrite(3,*) "mixing_grad_rho", minval(grad_rho(:,:)), maxval(grad_rho(:,:))
-       ewrite(3,*) "mixing_drho_dz", minval(drho_dz(:)), maxval(drho_dz(:))
-       ewrite(3,*) "mixing_coeffs amp dt g dr", mixing_diffusion_amplitude, dt, gravity_magnitude, dr**2
-       ewrite(3,*) "mixing_diffusion", minval(mixing_diffusion(2,2,:)), maxval(mixing_diffusion(2,2,:))
+        
+       if(have_buoyancy_adjustment_diffusivity) then
+        call set(buoyancy_adjustment_diffusivity, T_ele, mixing_diffusion_amplitude * dt&
+              &* gravity_magnitude * dr**2 * maxval(drho_dz(:)))
+         ewrite(4,*) "Buoynacy adjustment diffusivity, ele:", ele, "diffusivity:", mixing_diffusion_amplitude * dt * gravity_magnitude * dr**2 * maxval(drho_dz(:))
+       end if 
+        
+       !! Buoyancy adjustment by vertical mixing scheme debugging statements
+       ewrite(4,*) "mixing_grad_rho", minval(grad_rho(:,:)), maxval(grad_rho(:,:))
+       ewrite(4,*) "mixing_drho_dz", minval(drho_dz(:)), maxval(drho_dz(:))
+       ewrite(4,*) "mixing_coeffs amp dt g dr", mixing_diffusion_amplitude, dt, gravity_magnitude, dr**2
+       ewrite(4,*) "mixing_diffusion", minval(mixing_diffusion(2,2,:)), maxval(mixing_diffusion(2,2,:))
 
        mixing_diffusion_rhs=shape_tensor_rhs(T%mesh%shape, mixing_diffusion, detwei_rho)
        t_mass=shape_shape(T%mesh%shape, T%mesh%shape, detwei_rho)
@@ -1696,7 +1913,7 @@ contains
        if(primal) then
           call construct_adv_diff_interface_dg(ele, face, face_2, ni,&
                & centre_vec,& 
-               & big_m, rhs, Grad_T_mat, Div_T_mat, X, T, U_nl,&
+               & big_m, rhs, rhs_diff, Grad_T_mat, Div_T_mat, X, T, U_nl,&
                & bc_value, bc_type, &
                & U_mesh, q_mesh, cdg_switch_in, &
                & primal_fluxes_mat, ele2grad_mat,diffusivity, &
@@ -1715,7 +1932,7 @@ contains
        else
           call construct_adv_diff_interface_dg(ele, face, face_2, ni,&
                & centre_vec,&
-               & big_m, rhs, Grad_T_mat, Div_T_mat, X, T, U_nl,&
+               & big_m, rhs, rhs_diff, Grad_T_mat, Div_T_mat, X, T, U_nl,&
                & bc_value, bc_type, &
                & U_mesh, q_mesh)
        end if
@@ -1785,18 +2002,18 @@ contains
                     finish=start+face_loc(T, face)-1
                     
                     if (i==1) then
-                      ! Wipe out boundary condition's coupling to itself.
-                      Diffusivity_mat(start:finish,:)=0.0
+                       ! Wipe out boundary condition's coupling to itself.
+                       Diffusivity_mat(start:finish,:)=0.0
                     else
                       
-                      ! Add BC into RHS
-                      !
-                      call addto(RHS_diff, local_glno, &
-                           & -matmul(Diffusivity_mat(:,start:finish), &
-                           & ele_val( bc_value, face )))
-                      
-                      ! Ensure it is not used again.
-                      Diffusivity_mat(:,start:finish)=0.0
+                       ! Add BC into RHS
+                       !
+                       call addto(RHS_diff, local_glno, &
+                            & -matmul(Diffusivity_mat(:,start:finish), &
+                            & ele_val( bc_value, face )))
+
+                       ! Ensure it is not used again.
+                       Diffusivity_mat(:,start:finish)=0.0
                       
                     end if
                   
@@ -1822,7 +2039,7 @@ contains
     if (include_diffusion.or.have_buoyancy_adjustment_by_vertical_diffusion) then
        call addto(Big_m_diff, local_glno, local_glno,&
             & Diffusivity_mat*theta*dt)
-       
+
        if (.not.semi_discrete) then
           call addto(RHS_diff, local_glno, &
                & -matmul(Diffusivity_mat, node_val(T, local_glno)))
@@ -2280,7 +2497,7 @@ contains
   end subroutine construct_adv_diff_element_dg
   
   subroutine construct_adv_diff_interface_dg(ele, face, face_2, &
-       ni, centre_vec,big_m, rhs, Grad_T_mat, Div_T_mat, &
+       ni, centre_vec,big_m, rhs, rhs_diff, Grad_T_mat, Div_T_mat, &
        & X, T, U_nl,&
        & bc_value, bc_type, &
        & U_mesh, q_mesh, CDG_switch_in, &
@@ -2293,7 +2510,7 @@ contains
 
     integer, intent(in) :: ele, face, face_2, ni
     type(csr_matrix), intent(inout) :: big_m
-    type(scalar_field), intent(inout) :: rhs
+    type(scalar_field), intent(inout) :: rhs, rhs_diff
     real, dimension(:,:,:), intent(inout) :: Grad_T_mat, Div_T_mat
     ! We pass these additional fields to save on state lookups.
     type(vector_field), intent(in) :: X, U_nl
@@ -2344,7 +2561,7 @@ contains
     real, dimension(:,:,:), allocatable :: kappa_gi
 
     integer :: dim, start, finish
-    logical :: boundary, dirichlet
+    logical :: boundary, dirichlet, neumann
 
     logical :: do_primal_fluxes
 
@@ -2387,9 +2604,12 @@ contains
     ! Boundary nodes have both faces the same.
     boundary=(face==face_2)
     dirichlet=.false.
+    neumann=.false.
     if (boundary) then
        if (bc_type(face)==BCTYPE_WEAKDIRICHLET) then
          dirichlet=.true.
+       elseif (bc_type(face)==BCTYPE_NEUMANN) then
+         neumann=.true.
        end if
     end if
 
@@ -2573,13 +2793,13 @@ contains
        end if
 
        ! Insert advection in RHS.
-       
+
        if (.not.dirichlet) then
           ! For interior interfaces this is the upwinding term. For a Neumann
           ! boundary it's necessary to apply downwinding here to maintain the
           ! surface integral. Fortunately, since face_2==face for a boundary
           ! this is automagic.
-          
+
           if (.not.semi_discrete) then
              call addto(RHS, T_face, &
                   ! Outflow boundary integral.
@@ -2594,7 +2814,7 @@ contains
           call addto(RHS, T_face, &
                -matmul(nnAdvection_in,&
                ele_val(bc_value, face)))
-          
+
           if(.not.semi_discrete) then
              ! The interior integral is still interior!
              call addto(RHS, T_face, &
@@ -2602,8 +2822,13 @@ contains
           end if
 
        end if
-       
+      
     end if
+
+   ! Add non-zero contributions from Neumann boundary conditions (if present)
+   if (neumann) then
+      call addto(RHS_diff, T_face, shape_rhs(T_shape, detwei * ele_val_at_quad(bc_value, face)))
+   end if
 
   contains
 
@@ -3039,5 +3264,83 @@ contains
     end subroutine initialise_aijxy
      
   end function masslumped_rt0_aij
+    
+  subroutine advection_diffusion_dg_check_options
+    !!< Check DG advection-diffusion specific options
+    
+    character(len = FIELD_NAME_LEN) :: field_name, mesh_0, mesh_1, state_name
+    character(len = OPTION_PATH_LEN) :: path
+    integer :: i, j, stat
+
+    if(option_count("/material_phase/scalar_field/prognostic/spatial_discretisation/discontinuous_galerkin") == 0) then
+       ! Nothing to check
+       return
+    end if
+
+    ewrite(2, *) "Checking DG advection-diffusion options"
+
+    do i = 0, option_count("/material_phase") - 1
+       path = "/material_phase[" // int2str(i) // "]"
+       call get_option(trim(path) // "/name", state_name)
+
+       do j = 0, option_count(trim(path) // "/scalar_field") - 1
+          path = "/material_phase[" // int2str(i) // "]/scalar_field[" // int2str(j) // "]"
+          call get_option(trim(path) // "/name", field_name)
+
+          if(field_name /= "Pressure") then
+
+             path = trim(path) // "/prognostic"
+
+             if(have_option(trim(path) // "/spatial_discretisation/discontinuous_galerkin").and.&
+                  have_option(trim(path) // "/equation[0]")) then   
+                 
+                if (have_option(trim(path) // "/scalar_field::SinkingVelocity")) then
+                   call get_option(trim(complete_field_path(trim(path) // &
+                        "/scalar_field::SinkingVelocity"))//"/mesh[0]/name", &
+                        mesh_0, stat)
+                   if(stat == SPUD_NO_ERROR) then
+                      call get_option(trim(complete_field_path("/material_phase[" // int2str(i) // &
+                           "]/vector_field::Velocity")) // "/mesh[0]/name", mesh_1)
+                      if(trim(mesh_0) /= trim(mesh_1)) then
+                         call field_warning(state_name, field_name, &
+                              "SinkingVelocity is on a different mesh to the Velocity field this could "//&
+                              "cause problems. If using advection_scheme/project_velocity_to_continuous "//&
+                              "and a discontinuous Velocity field, then SinkingVelocity must be on a "//&
+                              "continuous mesh and hence should not be on the same mesh as the Velocity")
+                      end if
+                   end if
+                end if
+
+             end if
+
+          end if
+       end do
+    end do
+
+    ewrite(2, *) "Finished checking CG advection-diffusion options"
+
+  contains
+
+    subroutine field_warning(state_name, field_name, msg)
+      character(len = *), intent(in) :: state_name
+      character(len = *), intent(in) :: field_name
+      character(len = *), intent(in) :: msg
+
+      ewrite(0, *) "Warning: For field " // trim(field_name) // " in state " // trim(state_name)
+      ewrite(0, *) trim(msg)
+
+    end subroutine field_warning
+
+    subroutine field_error(state_name, field_name, msg)
+      character(len = *), intent(in) :: state_name
+      character(len = *), intent(in) :: field_name
+      character(len = *), intent(in) :: msg
+
+      ewrite(-1, *) "For field " // trim(field_name) // " in state " // trim(state_name)
+      FLExit(trim(msg))
+
+    end subroutine field_error
+
+  end subroutine advection_diffusion_dg_check_options
 
 end module advection_diffusion_DG

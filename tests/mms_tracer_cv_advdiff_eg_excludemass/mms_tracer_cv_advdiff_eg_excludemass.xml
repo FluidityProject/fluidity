@@ -7,6 +7,11 @@
     <command_line>fluidity -v1 MMS_A_cv.flml &gt; MMS_A.log; mv Burgers__NumericalSolution.convergence MMS_A_cv.convergence; fluidity -v1 MMS_B_cv.flml &gt; MMS_B.log; mv Burgers__NumericalSolution.convergence MMS_B_cv.convergence; fluidity -v1 MMS_C_cv.flml &gt; MMS_C.log; mv Burgers__NumericalSolution.convergence MMS_C_cv.convergence; fluidity -v1 MMS_D_cv.flml &gt; MMS_D.log; mv Burgers__NumericalSolution.convergence MMS_D_cv.convergence; fluidity -v1 MMS_E_cv.flml &gt; MMS_E.log; mv Burgers__NumericalSolution.convergence MMS_E_cv.convergence</command_line>
   </problem_definition>
   <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name="ab_convergence_gal_stat" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
@@ -157,6 +162,9 @@ f_max_adv_it = max(stat("MMS_F_cv.convergence")["AdvectionIteration"]["value"])
     </variable>-->
   </variables>
   <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
     <test name="ab_convergence_stat: L2 order in [1.8,2.2]" language="python">
 assert(abs(ab_convergence_gal_stat[0]-2.0) &lt; 0.2)
     </test>

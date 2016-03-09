@@ -5,12 +5,12 @@ module halos_ownership
   use fldebug
   use futils
   use halo_data_types
-  use halos_allocates
-  use halos_base
-  use halos_debug
-  use halos_numbering
   use parallel_tools
   use quicksort
+  use halos_base
+  use halos_debug
+  use halos_allocates
+  use halos_numbering
   
   implicit none
   

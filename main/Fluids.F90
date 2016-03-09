@@ -29,61 +29,79 @@
 
 module fluids_module
 
-  use AuxilaryOptions
-  use MeshDiagnostics
-  use signal_vars
+  use fldebug
+  use auxilaryoptions
   use spud
-  use equation_of_state
-  use timers
-  use adapt_state_module
-  use adapt_state_prescribed_module
-  use FLDebug
+  use global_parameters, only: current_time, dt, timestep, OPTION_PATH_LEN, &
+       simulation_start_time, &
+       simulation_start_cpu_time, &
+       simulation_start_wall_time, &
+       topology_mesh_name, FIELD_NAME_LEN
+  use futils, only: int2str
+  use reference_counting, only: print_references
+  use parallel_tools
+  use memory_diagnostics
   use sparse_tools
   use elements
+  use adjacency_lists
+  use eventcounter
+  use transform_elements, only: cache_transform_elements, deallocate_transform_cache
+  use meshdiagnostics
+  use signal_vars
   use fields
-  use boundary_conditions_from_options
-  use populate_state_module
-  use populate_sub_state_module
-  use reserve_state_module
+  use state_module
   use vtk_interfaces
-  use Diagnostic_variables
-  use diagnostic_fields_new, only : &
-    & calculate_diagnostic_variables_new => calculate_diagnostic_variables, &
-    & check_diagnostic_dependencies
-  use diagnostic_fields_wrapper
-  use diagnostic_children
-  use advection_diffusion_cg
-  use advection_diffusion_DG
-  use advection_diffusion_FV
-  use field_equations_cv, only: solve_field_eqn_cv, initialise_advection_convergence, coupled_cv_field_eqn
-  use vertical_extrapolation_module
-  use qmesh_module
-  use checkpoint
-  use write_state_module
+  use boundary_conditions
+  use halos
+  use equation_of_state
+  use timers
   use synthetic_bc
+  use k_epsilon, only: keps_advdif_diagnostics
+  use tictoc
+  use boundary_conditions_from_options
+  use reserve_state_module
+  use write_state_module
+  use detector_parallel, only: sync_detector_coordinates, deallocate_detector_list_array
+  use diagnostic_variables
+  use populate_state_module
+  use vertical_extrapolation_module
+  use field_priority_lists
+  use multiphase_module
+  use multimaterial_module
+  use spontaneous_potentials, only: calculate_electrical_potential
+  use free_surface_module
+  use momentum_diagnostic_fields, only: calculate_densities
+  use sediment_diagnostics, only: calculate_sediment_flux
+  use diagnostic_fields_wrapper
+  use checkpoint
   use goals
   use adaptive_timestepping
   use conformity_measurement
-  ! Use Solid-fluid coupling and ALE - Julian- 18-09-06
-  use ale_module
-  use adjacency_lists
-  use multimaterial_module
-  use parallel_tools
-  use SolidConfiguration
-  use MeshMovement
+  use timeloop_utilities
+  use discrete_properties_module
+  use adapt_state_module
+  use adapt_state_prescribed_module
+  use populate_sub_state_module
+  use diagnostic_fields_new, only : &
+       & calculate_diagnostic_variables_new => calculate_diagnostic_variables, &
+       & check_diagnostic_dependencies
+  use diagnostic_children
+  use advection_diffusion_cg
+  use advection_diffusion_dg
+  use advection_diffusion_fv
+  use field_equations_cv, only: solve_field_eqn_cv, initialise_advection_convergence, coupled_cv_field_eqn
+  use qmesh_module
   use write_triangle
+  use solidconfiguration
+  use ale_module
+  use meshmovement
   use biology
   use foam_flow_module, only: calculate_potential_flow, calculate_foam_velocity
+  use reduced_model_runtime
+  use implicit_solids
   use momentum_equation
-  use timeloop_utilities
-  use free_surface_module
-  use field_priority_lists
-  use boundary_conditions
-  use spontaneous_potentials, only: calculate_electrical_potential
   use saturation_distribution_search_hookejeeves
-  use discrete_properties_module
   use gls
-  use k_epsilon
   use iceshelf_meltrate_surf_normal
   use halos
   use memory_diagnostics
@@ -104,6 +122,9 @@ module fluids_module
   use multiphase_module
   use momentum_cg
   use detector_parallel, only: sync_detector_coordinates, deallocate_detector_list_array
+#ifdef HAVE_HYPERLIGHT
+  use hyperlight
+#endif
 
   implicit none
 
@@ -173,9 +194,10 @@ contains
     INTEGER :: ss,ph
     LOGICAL :: have_solids
 
-    !     Turbulence modelling - JBull 24-05-11
-    LOGICAL :: have_k_epsilon
-    character(len=OPTION_PATH_LEN) :: keps_option_path
+    ! An array of submaterials of the current phase in state(istate).
+    ! Needed for k-epsilon VelocityBuoyancyDensity calculation line:~630
+    ! S Parkinson 31-08-12
+    type(state_type), dimension(:), pointer :: submaterials     
 
     ! Pointers for scalars and velocity fields
     type(scalar_field), pointer :: sfield
@@ -215,11 +237,6 @@ contains
 
     call initialise_qmesh
     call initialise_write_state
-
-    ! Initialise sediments
-    if (have_option("/material_phase[0]/sediment")) then
-        call sediment_init()
-    end if
 
     ! Initialise Hyperlight
 #ifdef HAVE_HYPERLIGHT
@@ -365,17 +382,18 @@ contains
     !        Currently only needed for free surface
     if (has_scalar_field(state(1), "DistanceToTop")) then
        if (.not. have_option('/geometry/ocean_boundaries')) then
-          ewrite(-1,*) "There are no top and bottom boundary markers."
-          FLExit("Switch on /geometry/ocean_boundaries or remove your DistanceToTop field.")
-       end if
-       call CalculateTopBottomDistance(state(1))
-       ! Initialise the OriginalDistanceToBottom field used for wetting and drying
-       if (have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")) then
-          call insert_original_distance_to_bottom(state(1))
-          ! Wetting and drying only works with no poisson guess ... lets check that
-          call get_option("/material_phase::water/scalar_field::Pressure/prognostic/scheme/poisson_pressure_solution", option_buffer)
-          if (.not. trim(option_buffer) == "never") then 
-            FLExit("Please choose 'never' under /material_phase::water/scalar_field::Pressure/prognostic/scheme/poisson_pressure_solution when using wetting and drying")
+          ewrite(-1,*) "Warning: You have a field called DistanceToTop"
+          ewrite(-1,*) "but you don't have ocean_boundaries switched on."
+       else
+          call CalculateTopBottomDistance(state(1))
+          ! Initialise the OriginalDistanceToBottom field used for wetting and drying
+          if (have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")) then
+             call insert_original_distance_to_bottom(state(1))
+             ! Wetting and drying only works with no poisson guess ... let's check that
+             call get_option("/material_phase[0]/scalar_field::Pressure/prognostic/scheme/poisson_pressure_solution", option_buffer)
+             if (.not. trim(option_buffer) == "never") then 
+               FLExit("Please choose 'never' under /material_phase[0]/scalar_field::Pressure/prognostic/scheme/poisson_pressure_solution when using wetting and drying")
+             end if
           end if
        end if
     end if
@@ -493,14 +511,6 @@ contains
         call gls_init(state(1))
     end if
 
-    ! Initialise k_epsilon
-    have_k_epsilon = .false.
-    keps_option_path="/material_phase[0]/subgridscale_parameterisations/k-epsilon/"
-    if (have_option(trim(keps_option_path))) then
-        have_k_epsilon = .true.
-        call keps_init(state(1))
-    end if
-
     ! ******************************
     ! *** Start of timestep loop ***
     ! ******************************
@@ -556,6 +566,8 @@ contains
           if(timestep.gt.total_timestep) exit timestep_loop
        endif
 
+       call tic(TICTOC_ID_TIMESTEP)
+
        if( &
                                 ! Do not dump at the start of the simulation (this is handled by write_state call earlier)
             & current_time > simulation_start_time &
@@ -593,6 +605,10 @@ contains
           ! For the free surface this is dealt with within move_mesh_free_surface() below
           call set_vector_field_in_state(state(1), "OldCoordinate", "Coordinate")
        end if
+       ! if we're using an implicit (prognostic) viscous free surface then there will be a surface field stored
+       ! under the boundary condition _implicit_free_surface on the FreeSurface field that we need to update
+       ! - it has an old and a new timelevel and the old one needs to be set to the now old new values.
+       call update_implicit_scaled_free_surface(state)
 
        ! this may already have been done in populate_state, but now
        ! we evaluate at the correct "shifted" time level:
@@ -711,6 +727,30 @@ contains
              call solids(state(1), its, nonlinear_iterations)
           end if
 
+          ! Do we have the k-epsilon turbulence model?
+          ! If we do then we want to calculate source terms and diffusivity for the k and epsilon 
+          ! fields and also tracer field diffusivities at n + theta_nl
+          do i= 1, size(state)
+             if(have_option("/material_phase["//&
+                  int2str(i-1)//"]/subgridscale_parameterisations/k-epsilon")) then
+                if(timestep == 1 .and. its == 1 .and. have_option('/physical_parameters/gravity')) then
+                   ! The very first time k-epsilon is called, VelocityBuoyancyDensity
+                   ! is set to zero until calculate_densities is called in the momentum equation
+                   ! solve. Calling calculate_densities here is a work-around for this problem.  
+                   sfield => extract_scalar_field(state, 'VelocityBuoyancyDensity')
+                   if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1) then 
+                      call get_phase_submaterials(state, i, submaterials)
+                      call calculate_densities(submaterials, buoyancy_density=sfield)
+                      deallocate(submaterials)
+                   else
+                      call calculate_densities(state, buoyancy_density=sfield)
+                   end if
+                   ewrite_minmax(sfield)
+                end if
+                call keps_advdif_diagnostics(state(i))
+             end if
+          end do
+
           field_loop: do it = 1, ntsol
              ewrite(2, "(a,i0,a,i0)") "Considering scalar field ", it, " of ", ntsol
              ewrite(1, *) "Considering scalar field " // trim(field_name_list(it)) // " in state " // trim(state(field_state_list(it))%name)
@@ -724,28 +764,18 @@ contains
                 end if
              end if
 
-             ! do we have the k-epsilon 2 equation turbulence model?
-             if(have_k_epsilon .and. have_option(trim(keps_option_path)//"/scalar_field::"//trim(field_name_list(it)//"/prognostic"))) then
-                if( (trim(field_name_list(it))=="TurbulentKineticEnergy")) then
-                    call keps_tke(state(1))
-                else if( (trim(field_name_list(it))=="TurbulentDissipation")) then
-                    call keps_eps(state(1))
+             ! Calculate the meltrate
+             if(have_option("/ocean_forcing/iceshelf_meltrate/Holland08/") ) then
+                if( (trim(field_name_list(it))=="MeltRate")) then
+                   call melt_surf_calc(state(1))
                 endif
              end if
-
-            ! Calculate the meltrate
-            if(have_option("/ocean_forcing/iceshelf_meltrate/Holland08/") ) then
-                if( (trim(field_name_list(it))=="MeltRate")) then
-                    call melt_surf_calc(state(1))
-                endif
-            end if
-
 
              call get_option(trim(field_optionpath_list(it))//&
                   '/prognostic/equation[0]/name', &
                   option_buffer, default="UnknownEquationType")
              select case(trim(option_buffer))
-             case ( "AdvectionDiffusion", "ConservationOfMass", "ReducedConservationOfMass", "InternalEnergy", "HeatTransfer" )
+             case ( "AdvectionDiffusion", "ConservationOfMass", "ReducedConservationOfMass", "InternalEnergy", "HeatTransfer", "KEpsilon" )
                 use_advdif=.true.
              case default
                 use_advdif=.false.
@@ -782,13 +812,12 @@ contains
 
                    ! Solve the pure control volume form of the equations
                    call solve_field_eqn_cv(field_name=trim(field_name_list(it)), &
-                        state=state(field_state_list(it):field_state_list(it)), &
-                        global_it=its)
+                        state=state, istate=field_state_list(it), global_it=its)
 
                 else if(have_option(trim(field_optionpath_list(it)) // &
                      & "/prognostic/spatial_discretisation/continuous_galerkin")) then
 
-                   call solve_field_equation_cg(field_name_list(it), state(field_state_list(it)), dt)
+                   call solve_field_equation_cg(field_name_list(it), state, field_state_list(it), dt)
                 else
 
                    ewrite(2, *) "Not solving scalar field " // trim(field_name_list(it)) // " in state " // trim(state(field_state_list(it))%name) //" in an advdif-like subroutine."
@@ -804,12 +833,6 @@ contains
           ! Sort out the dregs of GLS after the solve on Psi (GenericSecondQuantity) has finished
           if( have_option("/material_phase[0]/subgridscale_parameterisations/GLS/option")) then
             call gls_diffusivity(state(1))
-          end if
-
-          ! k_epsilon after the solve on Epsilon has finished
-          if(have_k_epsilon .and. have_option(trim(keps_option_path)//"/scalar_field::ScalarEddyViscosity/diagnostic")) then
-            ! Update the diffusivity, at each iteration.
-            call keps_eddyvisc(state(1))
           end if
           
           !BC for ice melt
@@ -922,6 +945,8 @@ contains
           exit timestep_loop
       endif
     
+       ! Calculate prognostic sediment deposit fields
+       call calculate_sediment_flux(state(1))
 
        ! Reset the number of nonlinear iterations in case it was overwritten by nonlinear_iterations_adapt
        call get_option('/timestepping/nonlinear_iterations',nonlinear_iterations,&
@@ -1000,6 +1025,10 @@ contains
 
        end if
 
+       call toc(TICTOC_ID_TIMESTEP)
+       call tictoc_report(2, TICTOC_ID_TIMESTEP)
+       call tictoc_clear(TICTOC_ID_TIMESTEP)
+
        if(simulation_completed(current_time)) exit timestep_loop
 
        ! ******************
@@ -1045,6 +1074,7 @@ contains
        end if
 
     end do timestep_loop
+
     ! ****************************
     ! *** END OF TIMESTEP LOOP ***
     ! ****************************
@@ -1073,15 +1103,6 @@ contains
     ! cleanup GLS
     if (have_option('/material_phase[0]/subgridscale_parameterisations/GLS/')) then
         call gls_cleanup()
-    end if
-
-    ! cleanup k_epsilon
-    if (have_k_epsilon) then
-        call keps_cleanup()
-    end if
-
-    if (have_option("/material_phase[0]/sediment")) then
-        call sediment_cleanup()
     end if
 
     ! closing .stat, .convergence and .detector files
@@ -1124,16 +1145,6 @@ contains
        call deallocate(delta_p)
     endif
 
-!   deallocate(pod_state_deim)
-    ! if (allocated(pod_state_deim)) then
-     !  do i=1, size(pod_state_deim,1)
-         ! do j=1,size(pod_state_deim,2)
-           !  do k=1,size(pod_state_deim,3)
-             !   call deallocate(pod_state_deim(i,j,k))
-            ! enddo
-          !enddo
-      ! end do
-   ! end if
     ! deallocate the pointer to the array of states and sub-state:
     deallocate(state)
     if(use_sub_state()) deallocate(sub_state)
@@ -1196,12 +1207,6 @@ contains
         call gls_cleanup() ! deallocate everything
     end if
 
-    ! k_epsilon - we need to deallocate all module-level fields or the memory
-    ! management system complains
-    if (have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/")) then
-        call keps_cleanup() ! deallocate everything
-    end if
-
     ! deallocate sub-state
     if(use_sub_state()) then
       do ss = 1, size(sub_state)
@@ -1218,7 +1223,6 @@ contains
     real, intent(inout) :: dt
     integer, intent(inout) :: nonlinear_iterations, nonlinear_iterations_adapt
     type(state_type), dimension(:), pointer :: sub_state
-    character(len=OPTION_PATH_LEN) :: keps_option_path
 
     ! Overwrite the number of nonlinear iterations if the option is switched on
     if(have_option("/timestepping/nonlinear_iterations/nonlinear_iterations_at_adapt")) then
@@ -1281,14 +1285,6 @@ contains
     ! GLS
     if (have_option("/material_phase[0]/subgridscale_parameterisations/GLS/")) then
         call gls_adapt_mesh(state(1))
-    end if
-
-    ! k_epsilon
-    keps_option_path="/material_phase[0]/subgridscale_parameterisations/k-epsilon/"
-    if (have_option(trim(keps_option_path)//"/scalar_field::TurbulentKineticEnergy/prognostic") &
-        &.and. have_option(trim(keps_option_path)//"/scalar_field::TurbulentDissipation/prognostic") &
-        &.and. have_option(trim(keps_option_path)//"/scalar_field::ScalarEddyViscosity/diagnostic")) then
-        call keps_adapt_mesh(state(1))
     end if
 
   end subroutine update_state_post_adapt
@@ -1493,4 +1489,3 @@ contains
   end function value_cost_function
 
   end module fluids_module
-

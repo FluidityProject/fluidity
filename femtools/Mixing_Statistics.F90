@@ -29,20 +29,25 @@
 
 module mixing_statistics
 
+  use fldebug
+  use global_parameters, only:FIELD_NAME_LEN,OPTION_PATH_LEN
+  use futils
+  use vector_tools
+  use element_numbering
   use elements
   use embed_python
-  use global_parameters, only:FIELD_NAME_LEN,OPTION_PATH_LEN
+  use spud
+  use parallel_tools
+  use fetools
+  use unittest_tools
+  use parallel_fields
   use fields
+  use state_module
+  use halos
   use field_derivatives
   use field_options
-  use state_module
-  use futils
-  use fetools
   use fefields
-  use halos
-  use MeshDiagnostics
-  use spud
-  use unittest_tools
+  use meshdiagnostics
 
   implicit none
   

@@ -7,6 +7,11 @@
     <command_line>fluidity -v2 -l sloshing_tank_tracer.flml</command_line>
   </problem_definition>
   <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name="area_cons_error" language="python">from fluidity_tools import stat_parser as stat
 area_cons_error = max(abs(stat("sloshing_tank_tracer.stat")["water"]["Density"]["integral"]-stat("sloshing_tank_tracer.stat")["water"]["Density"]["integral"][0]))*100/stat("sloshing_tank_tracer.stat")["water"]["Density"]["integral"][0]</variable>
     <variable name="tracercg_cons_error" language="python">from fluidity_tools import stat_parser as stat
@@ -72,6 +77,9 @@ all = statf["Velocity%2"]["integral"] - statf["Pressure"]["surface_integral%Bott
 momvcg_cons_error = max(abs(all-initial))*100/initial</variable>
   </variables>
   <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
     <test name="area conservation error" language="python">
 assert(area_cons_error &lt; 1.E-7)</test>
     <test name="cg conservation error" language="python">

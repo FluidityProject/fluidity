@@ -7,6 +7,11 @@
     <command_line>fluidity -v2 -l adapt_extrude_bathymetry_1p1d.flml</command_line>
   </problem_definition>
   <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name="err_n_lines" language="python">import glob
 files = glob.glob1(".","*.err-?")
 err_n_lines = {}
@@ -43,6 +48,9 @@ no_nodes = stat("landslide_benchmark.stat")["CoordinateMesh"]["nodes"]</variable
 finish_time = stat("landslide_benchmark.stat")["ElapsedTime"]["value"][-1]</variable>
   </variables>
   <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
     <test name="domain_area_constant" language="python">print '% area change = ', max(abs(domain_area[1:]-domain_area[:-1]))*100/domain_area[0]
 assert max(abs(domain_area[1:]-domain_area[:-1]))*100/domain_area[0] &lt; 1.E-10</test>
     <test name="water_area_constant" language="python">print '% area change = ', max(abs(water_area[1:]-water_area[:-1]))*100/water_area[0]

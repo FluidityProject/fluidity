@@ -28,13 +28,14 @@
 module state_fields_module
   !!< Module containing general tools for discretising Finite Element problems.
 
+  use global_parameters, only: FIELD_NAME_LEN
+  use sparse_tools
+  use eventcounter
   use fields
   use state_module
   use fefields
-  use global_parameters, only: FIELD_NAME_LEN
   use sparsity_patterns_meshes
   use dgtools, only: get_dg_inverse_mass_matrix
-  use eventcounter
   implicit none
   
   interface get_cv_mass

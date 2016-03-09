@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<grammar xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+  <define name="equation_of_state_options">
+    <element name="equation_of_state">
+      <a:documentation>The equation of state</a:documentation>
+      <choice>
+        <ref name="fluids_eos_options"/>
+        <ref name="compressible_eos_options"/>
+      </choice>
+    </element>
+  </define>
+  <define name="fluids_eos_options">
+    <element name="fluids">
+      <a:documentation>Equations of state for ocean (and simple fluid) applications</a:documentation>
+      <choice>
+        <element name="linear">
+          <a:documentation>Incompressible linear equation of state
+
+(e.g. density=denini*(1.0-dengam*(temperature-temini)+dengam_sal*(salinity-S0)))</a:documentation>
+          <element name="reference_density">
+            <a:documentation>The reference or background density</a:documentation>
+            <ref name="real"/>
+          </element>
+          <optional>
+            <element name="temperature_dependency">
+              <a:documentation>Enable to add temperature dependency
+to the equation of state.</a:documentation>
+              <element name="reference_temperature">
+                <a:documentation>The reference or background
+temperature (actual temperature =
+calculated temperature plus this
+value).</a:documentation>
+                <ref name="real"/>
+              </element>
+              <element name="thermal_expansion_coefficient">
+                <a:documentation>The thermal expansion coefficient</a:documentation>
+                <ref name="real"/>
+              </element>
+            </element>
+          </optional>
+          <optional>
+            <element name="salinity_dependency">
+              <a:documentation>Enable to add salinity dependency to
+the equation of state.</a:documentation>
+              <element name="reference_salinity">
+                <a:documentation>The reference or background
+salinity (actual salinity =
+calculated salinity plus this
+value).</a:documentation>
+                <ref name="real"/>
+              </element>
+              <element name="saline_contraction_coefficient">
+                <a:documentation>The haline contraction coefficient</a:documentation>
+                <ref name="real"/>
+              </element>
+            </element>
+          </optional>
+          <zeroOrMore>
+            <element name="generic_scalar_field_dependency">
+              <a:documentation>Enable to add a generic scalar field
+dependency to the equation of state.
+
+The name of this dependency must correspond to a scalar field in this material_phase.</a:documentation>
+              <attribute name="name">
+                <data type="string"/>
+              </attribute>
+              <element name="reference_value">
+                <a:documentation>The reference or background value 
+for the generic scalar field.</a:documentation>
+                <ref name="real"/>
+              </element>
+              <element name="expansion_coefficient">
+                <a:documentation>The expansion coefficient associated 
+with this generic scalar field.</a:documentation>
+                <ref name="real"/>
+              </element>
+            </element>
+          </zeroOrMore>
+          <optional>
+            <element name="subtract_out_hydrostatic_level">
+              <a:documentation>Enable this option to subtract out
+the hydrostatic level</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+        </element>
+        <element name="ocean_pade_approximation">
+          <a:documentation>2002 McDougall, Jackett, Wright and
+Feistel equation of state using Pade
+approximation</a:documentation>
+          <optional>
+            <element name="include_depth_below_surface">
+              <empty/>
+            </element>
+          </optional>
+        </element>
+      </choice>
+    </element>
+  </define>
+  <define name="compressible_eos_options">
+    <element name="compressible">
+      <a:documentation>Equations of state for compressible applications</a:documentation>
+      <choice>
+        <element name="stiffened_gas">
+          <a:documentation>Stiffened Gas EoS
+
+Used with compressible simulations</a:documentation>
+          <optional>
+            <element name="reference_density">
+              <a:documentation>reference uncompressed density
+
+if activated then either Liquid EoS or
+full Stiffened Gas EoS</a:documentation>
+              <ref name="real"/>
+            </element>
+          </optional>
+          <optional>
+            <element name="ratio_specific_heats">
+              <a:documentation>Ratio of specific heats at constant
+pressure to that at constant volume
+
+Requires an energy field.
+If activated then a full Stiffened Gas EoS </a:documentation>
+              <ref name="real"/>
+            </element>
+          </optional>
+          <optional>
+            <element name="bulk_sound_speed_squared">
+              <a:documentation>bulk_sound_speed_squared = isothermal_bulk_modulus/reference_density
+
+if activated then either full or partial Liquid EoS or full
+Stiffened Gas EoS</a:documentation>
+              <ref name="real"/>
+            </element>
+          </optional>
+        </element>
+        <element name="giraldo">
+          <a:documentation>Giraldo et. al. 2008, J. Comp. Phys.
+
+Used with compressible simulations</a:documentation>
+          <element name="reference_pressure">
+            <a:documentation>reference pressure
+
+The pressure at which potential temperature
+equals actual temperature. Normally taken to
+be the surface pressure, 1.0e05.</a:documentation>
+            <ref name="real"/>
+          </element>
+          <element name="C_P">
+            <a:documentation>Heat capacity at constant pressure</a:documentation>
+            <ref name="real"/>
+          </element>
+          <element name="C_V">
+            <a:documentation>Heat capacity at constant volume</a:documentation>
+            <ref name="real"/>
+          </element>
+        </element>
+        <element name="foam">
+          <a:documentation>Foam EoS
+Used with compressible simulations of liquid drainage in foams.
+It describes the liquid content in the foam as the product of the 
+Plateau border cross sectional area and the local Plateau 
+border length per unit volume (lambda). </a:documentation>
+          <empty/>
+        </element>
+      </choice>
+      <optional>
+        <element name="subtract_out_reference_profile">
+          <a:documentation>This splits up the Density and Pressure fields into a hydrostatic (reference) component (') and a perturbed component (''). 
+The hydrostatic (reference) components, denoted p' and rho', should satisfy the balance:
+grad(p') = rho'*g
+
+Enabling this option will subtract the hydrostatic components, specified here, from the pressure and density used in the pressure gradient and buoyancy terms in the momentum equation. This helps to maintain hydrostatic balance and prevent spurious oscillations in the pressure field when using unbalanced finite element pairs.
+
+Note 1: You will also need to create two prescribed scalar fields, called HydrostaticReferencePressure and HydrostaticReferenceDensity, which define p' and rho'. These must be on the same mesh as pressure and density, respectively. Also, these fields are meant to be time-independent and set up as vertical profiles (i.e. constant in the horizontal direction).
+
+Note 2: Unlike all the other hydrostatic/geostrophic balance options in Fluidity (i.e. subtract_out_hydrostatic_level under the linear incompressible EoS option, or with HydrostaticPressure or GeostrophicPressure fields), the hydrostatic pressure is not subtracted from the Pressure field itself. In other words, the Pressure field that gets solved for (and output in the .vtu files) is still the combined Pressure (p = p' + p''), and the hydrostatic pressure p' is only subtracted in the momentum equation.</a:documentation>
+          <empty/>
+        </element>
+      </optional>
+    </element>
+  </define>
+</grammar>

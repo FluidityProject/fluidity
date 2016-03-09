@@ -31,20 +31,21 @@ module SurfaceLabels
   !!< These IDs are used to indicate how surface
   !!< elements can be coarsened or refined.
 
-  use vector_tools
   use fldebug
+  use vector_tools
   use linked_lists
-  use merge_tensors
-  use parallel_tools
-  use sparse_tools
-  use adjacency_lists
-  use fields
-  use elements
-  use vtk_interfaces
-  use adjacency_lists
-  use data_structures
-  use halos
   use mpi_interfaces
+  use parallel_tools
+  use data_structures
+  use sparse_tools
+  use elements
+  use adjacency_lists
+  use transform_elements, only: transform_facet_to_physical
+  use fetools, only : X_, Y_, Z_
+  use fields
+  use merge_tensors
+  use vtk_interfaces
+  use halos
   
   implicit none
   
@@ -86,7 +87,7 @@ contains
     end if
     
     NNodes=node_count(positions)
-    NElements=surface_element_count(positions)
+    NElements=unique_surface_element_count(positions%mesh)
     SNLOC=face_loc(positions, 1)
     X => positions%val(X_,:)
     Y => positions%val(Y_,:)
@@ -282,28 +283,22 @@ contains
   type(vector_field), intent(in):: positions
   integer, dimension(:), pointer:: coplanar_ids
     type(mesh_type), pointer:: surface_mesh
-    type(csr_sparsity), pointer :: eelist
     type(ilist) front
-    real, allocatable, dimension(:,:):: normals, normalgi
+    real, allocatable, dimension(:,:):: normalgi, normals
     real, allocatable, dimension(:):: detwei_f
-    integer, allocatable, dimension(:):: face_nodes
     real coplanar
-    integer, dimension(:), pointer:: neigh
+    integer, dimension(:), pointer:: neigh, nodes
     integer current_id, sngi, stotel
-    integer j, k, sele, pos, ele
+    integer j, k, sele, sele2, pos, ele
     
+    ewrite(1,*) "Inside get_coplanar_ids"
+
     if (.not. has_faces(mesh)) then
        call add_faces(mesh)
     end if
     
     stotel = surface_element_count(mesh)
-    if(stotel == 0) then
-      sngi = 0
-    else
-      sngi = face_ngi(mesh, 1)
-    end if
-    surface_mesh => mesh%faces%surface_mesh
-    
+
     if (.not. associated(mesh%faces%coplanar_ids)) then
        allocate(mesh%faces%coplanar_ids(1:stotel))
        coplanar_ids => mesh%faces%coplanar_ids
@@ -312,44 +307,49 @@ contains
        coplanar_ids => mesh%faces%coplanar_ids
        return
     end if
-    coplanar_ids => mesh%faces%coplanar_ids
-    allocate( normalgi(positions%dim,sngi), &
-       detwei_f(sngi), face_nodes(1:face_loc(mesh,1)) )
+
+    if(stotel == 0) then
+      sngi = 0
+    else
+      sngi = face_ngi(mesh, 1)
+    end if
+    surface_mesh => mesh%faces%surface_mesh
+
+    allocate(normalgi(positions%dim,sngi), detwei_f(sngi)) 
        
     ! Calculate element normals for all surface elements
     allocate(normals(positions%dim, stotel))
     do sele=1, stotel
        ele=face_ele(mesh, sele)
-       ! we don't want to use face_val on positions 
-       ! as it may not have a faces object (as opposed to the mesh)
-       face_nodes=face_global_nodes(mesh, sele)
        call transform_facet_to_physical( &
           positions, sele, detwei_f, normalgi)
        ! average over gauss points:
        normals(:,sele)=matmul(normalgi, detwei_f)/sum(detwei_f)
     end do
-    deallocate(normalgi, detwei_f, face_nodes)
+    deallocate(normalgi, detwei_f)
     
-    ! create element-element list for surface mesh
-    eelist => extract_eelist(surface_mesh)
+    ! create node-element list for surface mesh
+    ! (Note that we can't always construct an eelist, which would have been
+    ! more useful, because the surface mesh may split (for instance where an
+    ! external boundary meets an internal boundary) in which case multiple
+    ! surface elements can be connected via the same edge (facet of the surface element))
+    call add_nelist(surface_mesh)
     
     coplanar_ids = 0
     current_id = 1
     pos = 1
     do while (.true.)
-       ! Create a new starting point
+       ! Create a new starting point by finding a surface element without coplanar id
        do sele=pos, stotel
-          if(coplanar_ids(sele)==0) then
-             ! This is the first element in the new patch
-             pos = sele
-             coplanar_ids(pos) = current_id
-             exit
-          end if
+          if(coplanar_ids(sele)==0) exit
        end do
           
        ! Jump out of this while loop if we are finished
        if (sele>stotel) exit
           
+       ! This is the first element in the new patch
+       pos = sele
+       coplanar_ids(pos) = current_id
        ! Initialise the front
        call insert_ascending(front, pos)
           
@@ -358,19 +358,25 @@ contains
           sele = pop(front)
           
           ! surrounding surface elements:
-          neigh => row_m_ptr(eelist, sele)
-          do j=1, size(neigh)
-             k = neigh(j)
-             if (k>0) then
-                if(coplanar_ids(k)==0) then
-                   coplanar = dot_product(normals(:,pos), normals(:,k))
+          ! note that we not only consider directly adjacent surface elements,
+          ! but also surface elements that only connect via one other node, as
+          ! long as they have a normal in the same direction however they should
+          ! be on the same plane
+          nodes => ele_nodes(surface_mesh, sele)
+          do j=1, size(nodes)
+             ! loop over surface elements connected to nodes(j)
+             neigh => node_neigh(surface_mesh, nodes(j))
+             do k=1, size(neigh)
+                sele2 = neigh(k)
+                if(coplanar_ids(sele2)==0) then
+                   coplanar = abs(dot_product(normals(:,pos), normals(:,sele2)))
                    if(coplanar>=COPLANAR_MAGIC_NUMBER) then
                    
-                      call insert_ascending(front, k)
-                      coplanar_ids(k) = current_id
+                      call insert_ascending(front, sele2)
+                      coplanar_ids(sele2) = current_id
                    end if
                 end if
-            end if
+             end do
           end do
        end do
          
@@ -379,6 +385,8 @@ contains
     end do
     deallocate(normals)
     
+    ewrite(2,*) "Before merge_surface_ids, n/o local coplanes:", current_id-1
+
     call merge_surface_ids(mesh, coplanar_ids, max_id = current_id - 1)
 
   end subroutine get_coplanar_ids

@@ -26,29 +26,35 @@
 !    USA
 #include "fdebug.h"
 module fields_allocates
+use fldebug
+use global_parameters, only: PYTHON_FUNC_LEN, empty_path, empty_name, &
+     topology_mesh_name, NUM_COLOURINGS
+use futils, only: present_and_true
+use quadrature
+use element_numbering
 use elements
+use ieee_arithmetic
+use halo_data_types
+use parallel_tools
+use halos_allocates
+use memory_diagnostics
+use data_structures
+use sparse_tools
+use shape_functions, only: make_element_shape
 use fields_data_types
 use fields_base
-use shape_functions, only: make_element_shape
-use global_parameters, only: PYTHON_FUNC_LEN, empty_path, empty_name
-use halo_data_types
-use halos_allocates
 use halos_repair
 use pickers_deallocates
 use adjacency_lists
 use global_numbering, only: make_global_numbering, make_global_numbering_dg,&
      &make_global_numbering_trace
-use memory_diagnostics
-use ieee_arithmetic
-use data_structures
-use parallel_tools
 
 implicit none
 
   private
-  
+
   public :: allocate, deallocate, incref, decref, has_references, add_faces, &
-    & deallocate_faces
+    & deallocate_faces, zero
   public :: make_element_shape, make_mesh, make_mesh_periodic, make_submesh, &
     & create_surface_mesh, make_fake_mesh_linearnonconforming
   public :: extract_scalar_field, wrap_mesh, wrap_scalar_field, &
@@ -69,6 +75,12 @@ implicit none
           & deallocate_vector_field, deallocate_tensor_field, &
           & deallocate_scalar_boundary_condition, &
           & deallocate_vector_boundary_condition
+  end interface
+
+  interface zero
+     module procedure zero_scalar, zero_vector, zero_tensor, &
+          zero_vector_dim, zero_tensor_dim_dim, &
+          zero_scalar_field_nodes, zero_vector_field_nodes, zero_tensor_field_nodes
   end interface
 
   interface deallocate_faces
@@ -148,7 +160,11 @@ contains
     integer, intent(in) :: nodes, elements
     type(element_type), target, intent(in) :: shape
     character(len=*), intent(in), optional :: name
-        
+    integer :: i
+#ifdef _OPENMP
+    integer :: j
+#endif
+    
     mesh%nodes=nodes
 
     mesh%elements=elements
@@ -168,8 +184,23 @@ contains
     nullify(mesh%faces)
     nullify(mesh%columns)
     nullify(mesh%element_columns)
-    
+
+    allocate(mesh%colourings(NUM_COLOURINGS))
+    do i = 1, NUM_COLOURINGS
+       nullify(mesh%colourings(i)%sets)
+    end do
     allocate(mesh%ndglno(elements*shape%loc))
+
+#ifdef _OPENMP
+    ! Use first touch policy.
+    !$OMP PARALLEL DO SCHEDULE(STATIC)
+    do i=1, mesh%elements
+       do j=1, shape%loc
+          mesh%ndglno((i-1)*shape%loc+j)=0
+       end do
+    end do
+    !$OMP END PARALLEL DO
+#endif
 
 #ifdef HAVE_MEMORY_STATS
     call register_allocation("mesh_type", "integer", elements*shape%loc,&
@@ -190,7 +221,7 @@ contains
 
   subroutine allocate_scalar_field(field, mesh, name, field_type, py_func, py_positions)
     type(scalar_field), intent(out) :: field
-    type(mesh_type), intent(inout), target :: mesh
+    type(mesh_type), intent(in), target :: mesh
     character(len=*), intent(in),optional :: name
     integer, intent(in), optional :: field_type
 
@@ -280,6 +311,8 @@ contains
     nullify(field%refcount) ! Hacks for gfortran component initialisation
     !                         bug.
     call addref(field)
+
+    call zero(field)
     
   end subroutine allocate_scalar_field
 
@@ -338,6 +371,8 @@ contains
     
     call addref(field)
 
+    call zero(field)
+
   end subroutine allocate_vector_field
 
   subroutine allocate_tensor_field(field, mesh, name, field_type, dim)
@@ -395,6 +430,8 @@ contains
     nullify(field%refcount) ! Hack for gfortran component initialisation
     !                         bug.
     call addref(field)
+
+    call zero(field)
 
   end subroutine allocate_tensor_field
   
@@ -466,7 +503,7 @@ contains
     !!< Deallocate the components of mesh. Shape functions are not
     !!< deallocated here.
     type(mesh_type), intent(inout) :: mesh
-    
+    integer :: i
     call decref(mesh)
     if (has_references(mesh)) then
        ! There are still references to this mesh so we don't deallocate.
@@ -514,7 +551,16 @@ contains
     if(associated(mesh%element_columns)) then
       deallocate(mesh%element_columns)
     end if
-    
+
+    if(associated(mesh%colourings)) then
+       do i = 1, NUM_COLOURINGS
+          if(associated(mesh%colourings(i)%sets)) then
+             call deallocate(mesh%colourings(i)%sets)
+             deallocate(mesh%colourings(i)%sets)
+          end if
+       end do
+       deallocate(mesh%colourings)
+    end if
   end subroutine deallocate_mesh
 
   recursive subroutine deallocate_scalar_field(field)
@@ -873,6 +919,9 @@ contains
     integer, dimension(:), allocatable :: ndglno
     real, dimension(:), pointer :: val
     integer :: i, input_nodes, n_faces
+#ifdef _OPENMP
+    integer :: j
+#endif
 
     if (present(continuity)) then
        mesh%continuity=continuity
@@ -917,6 +966,18 @@ contains
 
        allocate(ndglno(mesh%shape%numbering%vertices*model%elements), &
             mesh%ndglno(mesh%shape%loc*model%elements))
+
+#ifdef _OPENMP
+          ! Use first touch policy.
+          !$OMP PARALLEL DO SCHEDULE(STATIC)
+          do i=1, mesh%elements
+             do j=1, mesh%shape%loc
+                mesh%ndglno((i-1)*mesh%shape%loc+j)=0
+             end do
+          end do
+          !$OMP END PARALLEL DO
+#endif
+
 #ifdef HAVE_MEMORY_STATS
        call register_allocation("mesh_type", "integer", &
             size(mesh%ndglno), name=name)
@@ -962,6 +1023,18 @@ contains
        if(mesh%shape%numbering%type/=ELEMENT_TRACE) then
           ! Make a discontinuous field.
           allocate(mesh%ndglno(mesh%shape%loc*model%elements))
+
+#ifdef _OPENMP
+          ! Use first touch policy.
+          !$OMP PARALLEL DO SCHEDULE(STATIC)
+          do i=1, mesh%elements
+             do j=1, mesh%shape%loc
+                mesh%ndglno((i-1)*mesh%shape%loc+j)=0
+             end do
+          end do
+          !$OMP END PARALLEL DO
+#endif
+
 #ifdef HAVE_MEMORY_STATS
           call register_allocation("mesh_type", "integer", &
                size(mesh%ndglno), name=name)
@@ -1011,7 +1084,7 @@ contains
        case(FAMILY_SIMPLEX)          
           n_faces = mesh%shape%dim + 1
        case(FAMILY_CUBE)
-          n_faces = 2**mesh%shape%dim
+          n_faces = 2*mesh%shape%dim
        case default
           FLExit('Element family not supported for trace elements')
        end select
@@ -1029,7 +1102,8 @@ contains
   end function make_mesh
 
   subroutine add_faces(mesh, model, sndgln, sngi, boundary_ids, &
-    periodic_face_map, element_owner, incomplete_surface_mesh, stat)
+    periodic_face_map, element_owner, incomplete_surface_mesh, &
+    allow_duplicate_internal_facets, stat)
     !!< Subroutine to add a faces component to mesh. Since mesh may be 
     !!< discontinuous, a continuous model mesh must
     !!< be provided. To avoid duplicate computations, and ensure 
@@ -1065,17 +1139,33 @@ contains
     !! be consistent with that of the periodic face local node numbering.
     type(integer_hash_table), intent(in), optional :: periodic_face_map
     !! This list gives the element owning each face in sndgln. This needs
-    !! to be provided when sndgln contains internal faces, as we need to
-    !! decide which of the two adjacent elements the face belongs to
-    !! (used in reading in periodic meshes which include the periodic faces in the surface mesh)
+    !! to be provided when sndgln contains internal faces and both copies
+    !! are included, as we need to decide which of the two adjacent elements 
+    !! the facet belongs to (used in reading in periodic meshes which include 
+    !! the periodic facets in the surface mesh with a different surface id on 
+    !! either side of the periodic boundary). If no element_owner information
+    !! is provided, internal facets in sndgln are assumed to only appear once
+    !! and a copy will be made, its boundary id will be copied as well. This 
+    !! means afterwards the surface_element_count() will be higher than the 
+    !! number of facets provided in sndgln. The original number of (unique)
+    !! facets is returned by unique_surface_element_count() and the copies
+    !! are numbered between unique_surface_element_count() and surface_element_count()
+    !! If element_owner is present, both copies of the interior facets should be
+    !! present in sndgln (each with a different adjacent element owner)
     integer, dimension(:), intent(in), optional :: element_owner
     !! See comments above sndgln
     logical, intent(in), optional :: incomplete_surface_mesh
+    !! if provided and true duplicate entries in sndgln are allowed for interior facets
+    !! but only if their boundary ids match. The duplicate entries will be stripped out
+    !! meaning that the facet numbering will no longer match that provided in sndgln
+    !! As always interior facets will occur twice, with one copy numbered <=unique_surface_element_count()
+    !! and one copy numbered <=surface_element_count()
+    logical, intent(in), optional :: allow_duplicate_internal_facets
     integer, intent(out), optional :: stat
 
     type(integer_hash_table):: lperiodic_face_map
     type(mesh_type), pointer :: lmodel
-    type(element_type), pointer :: element
+    type(element_type) :: element_s
     type(quadrature_type) :: quad_face
     integer, dimension(:), pointer :: faces, neigh, model_ele_glno, model_ele_glno2
     integer, dimension(1:mesh%shape%numbering%vertices) :: vertices, &
@@ -1099,6 +1189,11 @@ contains
       end if
     end if
 
+    if (present(element_owner) .and. present_and_true(allow_duplicate_internal_facets)) then
+      ! if element_owner is provided, each internal facet should occur exactly twice (possibly with differen boundary id)
+      FLAbort("You may not provide both element_owner and allow_duplicate_internal_facets in add_faces")
+    end if
+
     allocate(mesh%faces)
     
     ! only created in the first call to get_dg_surface_mesh()
@@ -1114,7 +1209,9 @@ contains
        !       (i.e. there are 2 opposite faces between two elements)
        ! and mesh%faces%face_element_list  storing the element adjacent to
        !     each face
-       call add_faces_face_list(mesh, sndgln, &
+       call add_faces_face_list(mesh, &
+         allow_duplicate_internal_facets=present_and_true(allow_duplicate_internal_facets), &
+         sndgln=sndgln, &
          boundary_ids=boundary_ids, &
          element_owner=element_owner, &
          incomplete_surface_mesh=incomplete_surface_mesh)
@@ -1150,8 +1247,8 @@ contains
          ! works as long as we're not discontinuous
          assert( mesh%continuity>=0 )
          
-         ! the periodic faces will be internal faces in the output periodic mesh
-         mesh%faces%has_internal_boundaries = .true.         
+         ! the periodic faces will be discontinuous internal faces in the output periodic mesh
+         mesh%faces%has_discontinuous_internal_boundaries = .true.         
          
       else if (model%periodic .and. .not. mesh%periodic) then
         
@@ -1160,7 +1257,7 @@ contains
             mesh, model, lperiodic_face_map, stat=stat)
             
          ! the subroutine above only works if the removing of periodic bcs has removed all internal boundaries
-         mesh%faces%has_internal_boundaries = .true.
+         mesh%faces%has_discontinuous_internal_boundaries = .false.
                      
       else
          ! Transfer the faces from model to mesh
@@ -1168,7 +1265,7 @@ contains
          call incref(mesh%faces%face_list)
          
          ! have internal faces if the model does
-         mesh%faces%has_internal_boundaries = has_internal_boundaries(model)
+         mesh%faces%has_discontinuous_internal_boundaries = has_discontinuous_internal_boundaries(model)
       end if
         
       ! face_element_list is a pure copy of that of the model
@@ -1188,6 +1285,7 @@ contains
            size(mesh%faces%boundary_ids), &
            trim(mesh%name)//" boundary_ids")
 #endif
+      mesh%faces%unique_surface_element_count = model%faces%unique_surface_element_count
        
       ! same for coplanar ids (if existent)
       if (associated(model%faces%coplanar_ids)) then
@@ -1203,22 +1301,25 @@ contains
     ! ready (either newly computed or copied from model)
     ! now we only have to work out mesh%faces%face_lno
 
-    element => ele_shape(mesh, 1)
     if (present(sngi)) then
        ! if specified use quadrature with sngi gausspoints
-       quad_face = make_quadrature(vertices=face_vertices(element), &
-            & dim=mesh_dim(mesh)-1, ngi=sngi, family=element%quadrature%family)
+       quad_face = make_quadrature(vertices=face_vertices(mesh%shape), &
+            & dim=mesh_dim(mesh)-1, ngi=sngi, family=mesh%shape%quadrature%family)
       ! quad_face will be deallocated inside deallocate_faces!
     else
        ! otherwise use degree of full mesh
-       quad_face = make_quadrature(vertices=face_vertices(element), &
-            & dim=mesh_dim(mesh)-1, degree=element%quadrature%degree, family=element%quadrature%family)
+       quad_face = make_quadrature(vertices=face_vertices(mesh%shape), &
+            & dim=mesh_dim(mesh)-1, degree=mesh%shape%quadrature%degree, family=mesh%shape%quadrature%family)
       ! quad_face will be deallocated inside deallocate_faces!
     end if
 
+    element_s = make_element_shape(mesh%shape, quad_s = quad_face)
+    call deallocate(mesh%shape)
+    mesh%shape = element_s
+
     allocate(mesh%faces%shape)
-    mesh%faces%shape = make_element_shape(vertices=face_vertices(element), &
-         & dim=mesh_dim(mesh)-1, degree=element%degree, quad=quad_face)
+    mesh%faces%shape = make_element_shape(vertices=face_vertices(mesh%shape), &
+         & dim=mesh_dim(mesh)-1, degree=mesh%shape%degree, quad=quad_face)
 
     face_count=entries(mesh%faces%face_list)
     snloc=mesh%faces%shape%loc
@@ -1307,12 +1408,17 @@ contains
 
   end subroutine add_faces
 
-  subroutine add_faces_face_list(mesh, sndgln, boundary_ids, &
+  subroutine add_faces_face_list(mesh, allow_duplicate_internal_facets, &
+    sndgln, boundary_ids, &
     element_owner, incomplete_surface_mesh)
     !!< Subroutine to calculate the face_list and face_element_list of the 
     !!< faces component of a 'model mesh'. This should be the linear continuous 
     !!< mesh that may serve as a 'model' for other meshes.
     type(mesh_type), intent(inout) :: mesh
+    !! if true duplicate entries in sndgln are allowed for interior facets
+    !! but only if their boundary ids match
+    !! the duplicate entries will be stripped out
+    logical, intent(in) :: allow_duplicate_internal_facets
     !! surface mesh (ndglno using the same node numbering as in 'mesh')
     !! if present the N elements in this mesh will correspond to the first
     !! N faces of the new faces component.
@@ -1321,15 +1427,16 @@ contains
     integer, dimension(:), intent(in), optional :: element_owner
     logical, intent(in), optional :: incomplete_surface_mesh
 
+    type(integer_hash_table):: internal_facet_map, duplicate_facets
     type(element_type), pointer :: mesh_shape
     type(element_type) :: face_shape
-    logical:: internal_face, surface_elements_added
+    logical:: surface_elements_added, registered_already
     ! listen very carefully, I shall say this only once:
-    logical, save :: warning_given=.false. 
+    logical, save :: warning_given=.false.
     integer, dimension(:), pointer :: faces, neigh, snodes
     integer, dimension(2) :: common_elements
-    integer :: nloc, snloc, stotel
-    integer :: bdry_count, ele, sele, j, no_found
+    integer :: snloc, stotel
+    integer :: bdry_count, ele, sele, sele2, neighbour_ele, j, no_found
     integer :: no_faces
     type(csr_sparsity) :: sparsity
     type(csr_sparsity) :: nelist
@@ -1337,7 +1444,6 @@ contains
     assert(continuity(mesh)>=0)
 
     mesh_shape=>ele_shape(mesh, 1)
-    nloc=mesh_shape%loc
 
     ! Calculate the node-to-element list.
     ! Calculate the element adjacency list.
@@ -1354,12 +1460,17 @@ contains
          trim(mesh%name)//" face_element_list")
 #endif
 
-    mesh%faces%has_internal_boundaries = present(element_owner)
+    mesh%faces%has_discontinuous_internal_boundaries = present(element_owner)
+
+    call allocate(internal_facet_map)
+    call allocate(duplicate_facets)
     
     snloc=face_vertices(mesh_shape)
     if (present(sndgln)) then
       
-      stotel=size(sndgln)/snloc
+      stotel=size(sndgln)/snloc ! number of provided surface elements
+      ! we might add some more when duplicating internal facets
+      bdry_count=stotel
       
       do sele=1, stotel
         
@@ -1371,63 +1482,81 @@ contains
         if (no_found==1) then
           ! we have found the adjacent element
           ele=common_elements(1)
-          internal_face=.false.
           if (present(element_owner)) then
-            assert(element_owner(sele)==ele)
+            if (element_owner(sele)/=ele) then
+              ewrite(0,*) "Surface element: ", sele
+              ewrite(0,*) "Provided element owner: ", element_owner(sele)
+              ewrite(0,*) "Found adjacent element: ", ele
+              FLExit("Provided element ownership information is incorrect")
+            end if
           end if
+          call register_external_surface_element(mesh, sele, ele, snodes)
         else if (no_found==2 .and. present(element_owner)) then
-          ele=element_owner(sele)
-          if (all(common_elements/=ele)) then
-            FLAbort("Face not adjacent to specified element_owner")
+          ! internal facet with element ownership infomation provided
+          ! so we assume both of the coinciding internal facets are
+          ! present in the provided surface mesh and register only
+          ! one of them here
+          ele = element_owner(sele)
+          if (ele==common_elements(1)) then
+            neighbour_ele = common_elements(2)
+          else if (ele==common_elements(2)) then
+            neighbour_ele = common_elements(1)
+          else
+            ewrite(0,*) "Surface element: ", sele
+            ewrite(0,*) "Provided element owner: ", ele
+            ewrite(0,*) "Found adjacent elements: ", common_elements
+            FLExit("Provided element owner ship information is incorrect")
           end if
-          internal_face=.true.
-        else
-          FLAbort("Surface element in sndgln is not on the surface.")
-        end if
-        
-        mesh%faces%face_element_list(sele)=ele
-        
-        ! now we have to fill in face_list:
-        neigh=>row_m_ptr(mesh%faces%face_list, ele)
-        faces=>row_ival_ptr(mesh%faces%face_list, ele)
+          call register_internal_surface_element(mesh, sele, ele, neighbour_ele, snodes)
+        else if (no_found==2) then
+          ! internal facet but not element ownership information:
+          ! we assume this facet only occurs once and we register both
+          ! copies at once
 
-        ! find the matching boundary of this element
-        do j=1, mesh%shape%numbering%boundaries
-          if (neigh(j)<=0 .or. internal_face) then
-            if (SetContains(snodes, mesh%ndglno( (ele-1)*nloc+ &
-                                  boundary_numbering(mesh%shape%numbering, j) &
-                                            ))) exit
+          ! first one using the current surface element number:
+          if (allow_duplicate_internal_facets) then
+            ! don't error for duplicate facets
+            call register_internal_surface_element(mesh, sele, common_elements(1), common_elements(2), &
+              snodes, duplicate_facets=duplicate_facets)
+            registered_already = has_key(duplicate_facets, sele)
+          else
+            ! do error for duplicate facets
+            call register_internal_surface_element(mesh, sele, common_elements(1), common_elements(2), &
+              snodes)
+            registered_already = .false.
           end if
-        end do
-          
-        if (j>mesh%shape%numbering%boundaries) then
-          ! not found a matching boundary, something's wrong
-          FLAbort("Something wrong with the mesh, sndgln, or mesh%nelist")
-          
-        else if (neigh(j)/=0 .and. .not. internal_face) then
-          ! this surface element is already registered
-          ! so apparently there's a duplicate element in the surface mesh
-          ewrite(0,*) 'Surface element:', faces(j),' and ',sele
-          ewrite(0,*) 'Both define the surface element:', snodes
-          FLAbort("Duplicate element in the surface mesh")
-        end if
-        
-        ! register the surface element in face_list
-        faces(j)=sele
-        if (.not. internal_face) then
-          neigh(j)=-j ! negative number indicates exterior boundary
+
+          if (.not. registered_already) then
+            ! for the second one we create a new facet number at the end of the provided number surface
+            ! elements:
+            bdry_count = bdry_count+1
+            ! note that we don't allow duplicate ones here, since we should have picked this up
+            ! in the first call - so if only one side is registered already something is definitely wrong
+            call register_internal_surface_element(mesh, bdry_count, common_elements(2), common_elements(1), snodes)
+            ! store this pair so we can later copy the boundary id of the first (sele) to the second one (bdry_count)
+            call insert(internal_facet_map, sele, bdry_count)
+          end if
+
+        else if (no_found==0) then
+          ewrite(0,*) "Current surface element: ", sele
+          ewrite(0,*) "With nodes: ", snodes
+          FLExit("Surface element does not exist in the mesh")
         else
-          ! if all went well neigh(j) should have the right value:
-          assert( neigh(j)==minval(common_elements, mask=common_elements/=ele) )
+          ! no_found>2 apparently
+          ! this might happen when calling add_faces on meshes with non-trivial toplogy such
+          ! as calling add_faces on the surface_mesh - we can't really deal with that
+          ewrite(0,*) "Current surface element: ", sele
+          ewrite(0,*) "With nodes: ", snodes
+          FLExit("Surface element (facet) adjacent to more than two elements!")
         end if
         
       end do
         
-      bdry_count=stotel
       
     else
     
-      bdry_count=0
+      stotel=0 ! number of facets provided in sndgln
+      bdry_count=0 ! number of facets including the doubling of interior facets
       
     end if
             
@@ -1456,13 +1585,24 @@ contains
          end do
          
       end do
-      if (surface_elements_added .and. .not. warning_given) then
+
+      if (surface_elements_added .and. key_count(internal_facet_map)>0) then
+        ewrite(0,*) "It appears this mesh has internal boundaries."
+        ewrite(0,*) "In this case all external boundaries need to be marked with a surface id."
+        FLExit("Incomplete surface mesh")
+      else if (surface_elements_added .and. .not. warning_given) then
         ewrite(0,*) "WARNING: an incomplete surface mesh has been provided."
         ewrite(0,*) "This will not work in parallel."
         ewrite(0,*) "All parts of the domain boundary need to be marked with a (physical) surface id."
         warning_given=.true.
       end if
+
+      if (surface_elements_added) then
+        stotel = bdry_count
+      end if
+
     end if
+
       
     ! the size of this array will be the way to store the n/o
     ! exterior boundaries (returned by surface_element_count())
@@ -1472,15 +1612,30 @@ contains
          trim(mesh%name)//" boundary_ids")
 #endif
 
+    mesh%faces%unique_surface_element_count = stotel
+    ewrite(2,*) "Number of surface elements: ", bdry_count
+    ewrite(2,*) "Number of unique surface elements: ", stotel
+
     mesh%faces%boundary_ids=0
     ! copy in supplied boundary ids
     if (present(boundary_ids)) then
       if (.not. present(sndgln)) then
         FLAbort("Boundary ids can only be supplied to add_faces with associated surface mesh")
-      else if (stotel/=size(boundary_ids)) then
+      else if (size(boundary_ids) /= size(sndgln)/snloc) then
         FLAbort("Must supply boundary_ids array for the same number of elements as the surface mesh sndgln")
       end if
-      mesh%faces%boundary_ids(1:stotel)=boundary_ids
+      mesh%faces%boundary_ids(1:size(boundary_ids))=boundary_ids
+
+      do j=1, key_count(internal_facet_map)
+        call fetch_pair(internal_facet_map, j, sele, sele2)
+        mesh%faces%boundary_ids(sele2) = boundary_ids(sele)
+      end do
+    end if
+
+    if (key_count(duplicate_facets)>0) then
+      call remove_duplicate_facets(mesh, duplicate_facets, sndgln)
+      ! update bdry_count
+      bdry_count = size(mesh%faces%boundary_ids)
     end if
 
     ! register the rest of the boundaries (the interior ones):
@@ -1511,9 +1666,172 @@ contains
     assert(bdry_count==size(mesh%faces%face_list%sparsity%colm))
     assert(.not.any(mesh%faces%face_list%sparsity%colm==0))
     assert(.not.any(mesh%faces%face_list%ival==0))
+
+    call deallocate(internal_facet_map)
+    call deallocate(duplicate_facets)
     
   end subroutine add_faces_face_list
+
+  subroutine register_internal_surface_element(mesh, sele, ele, neighbour_ele, snodes, duplicate_facets)
+    type(mesh_type), intent(inout):: mesh
+    integer, intent(in):: sele, ele, neighbour_ele
+    integer, dimension(:), intent(in):: snodes ! only used to give a more helpful error message
+    ! if provided do not error for facets that have already been registered, but store the map between the two
+    type(integer_hash_table), intent(inout), optional:: duplicate_facets
+
+    integer, dimension(:), pointer:: neigh, faces
+    integer:: j
+
+    ! neigh should contain correct neighbours already for internal facets:
+    neigh=>row_m_ptr(mesh%faces%face_list, ele)
+    faces=>row_ival_ptr(mesh%faces%face_list, ele)
+
+    ! find the corresponding boundary of ele
+    ! by searching for neighbour_ele in neigh
+    do j=1, mesh%shape%numbering%boundaries
+      if (neigh(j)==neighbour_ele) exit
+    end do
+
+    if (j>mesh%shape%numbering%boundaries) then
+      ! not found a matching boundary, something's wrong
+      FLAbort("Something wrong with the mesh, sndgln, or mesh%nelist")
+    end if
+
+    if (faces(j)/=0) then
+      if (present(duplicate_facets)) then
+        call insert(duplicate_facets, sele, faces(j))
+        return
+      else
+        ! if you hit this at the start of your simulation you have
+        ! marked the same part of the boundary more than once in gmsh
+        ! if this occurs later on in the run (e.g. during an adapt)
+        ! there may be a bug / unimplemented feature related to internal boundary facets
+        ewrite(0,*) 'Surface element:', faces(j),' and ',sele
+        ewrite(0,*) 'Both define the surface element:', snodes
+        FLExit("Provided surface mesh has duplicate surface elements")
+      end if
+    end if
+
+    ! register the surface element in surface_element_list and face_list
+    mesh%faces%face_element_list(sele)=ele
+    faces(j)=sele
+
+  end subroutine register_internal_surface_element
+
+  subroutine register_external_surface_element(mesh, sele, ele, snodes)
+    type(mesh_type), intent(inout):: mesh
+    integer, intent(in):: sele, ele
+    integer, dimension(:), intent(in):: snodes
+
+    integer, dimension(:), pointer:: neigh, faces, nodes
+    integer:: j, nloc
+
+    nloc = ele_loc(mesh, ele)
     
+    mesh%faces%face_element_list(sele)=ele
+
+    ! for external facets the corresponding entry in neigh
+    ! is still zero, a negative value will be filled in
+    ! when it's registered
+    neigh=>row_m_ptr(mesh%faces%face_list, ele)
+    faces=>row_ival_ptr(mesh%faces%face_list, ele)
+    nodes => ele_nodes(mesh, ele)
+
+    ! find the matching boundary of ele
+    do j=1, mesh%shape%numbering%boundaries
+      ! also check negative entries to check for duplicate registrations
+      if (neigh(j)<=0) then
+        if (SetContains(snodes, nodes(boundary_numbering(mesh%shape%numbering, j)))) exit
+      end if
+    end do
+
+    if (j>mesh%shape%numbering%boundaries) then
+      ! not found a matching boundary, something's wrong
+      FLAbort("Something wrong with the mesh, sndgln, or mesh%nelist")
+    end if
+
+    if (neigh(j)/=0) then
+      ! this surface element is already registered
+      ! so apparently there's a duplicate element in the surface mesh
+      ewrite(0,*) 'Surface element:', faces(j),' and ',sele
+      ewrite(0,*) 'Both define the surface element:', snodes
+      FLAbort("Duplicate element in the surface mesh")
+    end if
+
+    ! register the surface element in face_list
+    faces(j)=sele
+    neigh(j)=-j ! negative number indicates exterior boundary
+
+  end subroutine register_external_surface_element
+
+  subroutine remove_duplicate_facets(mesh, duplicate_facets, sndgln)
+    type(mesh_type), intent(inout) :: mesh
+    type(integer_hash_table), intent(in) :: duplicate_facets
+    integer, dimension(:), intent(in) :: sndgln
+
+    integer, dimension(:), pointer :: old_boundary_ids, faces
+    integer, dimension(:), allocatable :: old_to_new_facet_number
+    integer :: snloc, i, j, facets_to_keep, new_surface_element_count
+
+    old_boundary_ids => mesh%faces%boundary_ids
+    new_surface_element_count = size(old_boundary_ids)-key_count(duplicate_facets)
+    mesh%faces%unique_surface_element_count = mesh%faces%unique_surface_element_count-key_count(duplicate_facets)
+    allocate(old_to_new_facet_number(size(old_boundary_ids)))
+    allocate(mesh%faces%boundary_ids(new_surface_element_count))
+
+    ! number the facets to keep, and check that the duplicate actually have consistent surface ids
+    facets_to_keep = 0
+    do i=1, size(old_boundary_ids)
+      if (has_key(duplicate_facets, i)) then
+        ! check that the boundary ids match
+        if (old_boundary_ids(i)/=old_boundary_ids(fetch(duplicate_facets,i))) then
+          ewrite(0,*) 'Surface element:', i,' and ', fetch(duplicate_facets, i)
+          ewrite(0,*) 'Both define the surface element:', sndgln((i-1)*snloc+1:i*snloc)
+          ewrite(0,*) 'but define different surface ids:', old_boundary_ids(i), old_boundary_ids(fetch(duplicate_facets, i))
+          ! if we hit this here, it's probably a bug as we've explicitly told add_faces() that we expect duplicate
+          ! interior facets but with boundary ids that agreee.
+          FLAbort("Provided surface mesh has duplicate surface elements")
+        end if
+      else
+        facets_to_keep = facets_to_keep+1
+        mesh%faces%boundary_ids(facets_to_keep) = old_boundary_ids(i)
+        ! note that we don't need to reallocate this one: we're merely shifting it forward
+        mesh%faces%face_element_list(facets_to_keep) = mesh%faces%face_element_list(i)
+        old_to_new_facet_number(i) = facets_to_keep
+      end if
+    end do
+
+    if (facets_to_keep/=new_surface_element_count) then
+      FLAbort("Something wrong in mesh faces administration.")
+    end if
+
+    ! now we can safely deallocate the old boundary ids and fix the mem stats
+    deallocate(old_boundary_ids)
+#ifdef HAVE_MEMORY_STATS
+    call register_deallocation("mesh_type", "integer", size(old_boundary_ids), &
+         trim(mesh%name)//" boundary_ids")
+    call register_allocation("mesh_type", "integer", new_surface_element_count, &
+         trim(mesh%name)//" boundary_ids")
+#endif
+
+    ! now renumber the facet numbers we've already stored in face_list
+    do i=1, size(mesh%faces%face_list,1)
+      faces=>row_ival_ptr(mesh%faces%face_list, i)
+      do j=1, size(faces)
+        if (faces(j)/=0) then
+          faces(j) = old_to_new_facet_number(faces(j))
+        end if
+      end do
+    end do
+
+    deallocate(old_to_new_facet_number)
+
+    ewrite(2,*) "After removing duplicate interior facets:"
+    ewrite(2,*) "Number of surface elements: ", size(mesh%faces%boundary_ids)
+    ewrite(2,*) "Number of unique surface elements: ", mesh%faces%unique_surface_element_count
+
+  end subroutine remove_duplicate_facets
+
   subroutine add_faces_face_list_periodic_from_non_periodic_model( &
      mesh, model, periodic_face_map)
      ! computes the face_list of a periodic mesh by copying it from
@@ -1851,18 +2169,9 @@ contains
           z => positions%val(3,:)
        end if
     end if
-
+    call allocate(mesh, 0, model%elements, model%shape, name=name)
     !copy over all the mesh parameters
-    allocate(mesh%adj_lists)
     mesh%continuity=model%continuity
-    mesh%elements=model%elements
-    mesh%shape=model%shape
-    call incref(mesh%shape)
-    if (present(name)) then
-       mesh%name=name
-    else
-       mesh%name=empty_name
-    end if
     mesh%wrapped=.false.
     mesh%periodic=.true.
     
@@ -1873,19 +2182,10 @@ contains
 
     !allocate memory for temporary place to hold old connectivity,
     !and memory for periodic connectivity
-    allocate(ndglno(mesh%shape%numbering%vertices*model%elements), &
-         mesh%ndglno(mesh%shape%loc*model%elements))
-#ifdef HAVE_MEMORY_STATS
-    call register_allocation("mesh_type", "integer", size(mesh%ndglno), &
-      name=mesh%name)
-#endif
+    allocate(ndglno(mesh%shape%numbering%vertices*model%elements))
 
     !get old connectivity
     ndglno=model%ndglno
-    
-    nullify(mesh%refcount) ! Hack for gfortran component initialisation
-    !                         bug.
-    call addref(mesh)
     
     !mapping_list is mapping from coordinates to periodic node number
     !mapped takes value 1 if node is aliased
@@ -2499,10 +2799,8 @@ contains
     assert(associated(mesh%adj_lists))
     if(.not. associated(mesh%adj_lists%nnlist)) then    
       ewrite(2, *) "Adding node-node list to mesh " // trim(mesh%name)
-      allocate(mesh%adj_lists%nnlist)
-      ! Use this pointer to work around compilers that insist on having mesh
-      ! intent(inout) - it really only needs to be intent(in)
-      nnlist => mesh%adj_lists%nnlist
+      allocate(nnlist)
+      mesh%adj_lists%nnlist => nnlist
       call makelists(mesh, nnlist = nnlist)
 #ifdef DDEBUG
     else
@@ -2599,10 +2897,8 @@ contains
     assert(associated(mesh%adj_lists))
     if(.not. associated(mesh%adj_lists%nelist)) then
       ewrite(2, *) "Adding node-element list to mesh " // trim(mesh%name)
-      allocate(mesh%adj_lists%nelist)
-      ! Use this pointer to work around compilers that insist on having mesh
-      ! intent(inout) - it really only needs to be intent(in)
-      nelist => mesh%adj_lists%nelist
+      allocate(nelist)
+      mesh%adj_lists%nelist => nelist
       call makelists(mesh, nelist = nelist)
 #ifdef DDEBUG
     else
@@ -2699,10 +2995,8 @@ contains
     assert(associated(mesh%adj_lists))
     if(.not. associated(mesh%adj_lists%eelist)) then    
       ewrite(2, *) "Adding element-element list to mesh " // trim(mesh%name)
-      allocate(mesh%adj_lists%eelist)
-      ! Use this pointer to work around compilers that insist on having mesh
-      ! intent(inout) - it really only needs to be intent(in)
-      eelist => mesh%adj_lists%eelist
+      allocate(eelist)
+      mesh%adj_lists%eelist => eelist
       ! We need the nelist to generate the eelist, so extract it from the cache
       ! (generating if necessary)
       nelist => extract_nelist(mesh)
@@ -2849,7 +3143,163 @@ contains
     end if
     
   end subroutine remove_eelist_mesh
+
+  
+  subroutine zero_scalar(field)
+    !!< Set all entries in the field provided to 0.0
+    type(scalar_field), intent(inout) :: field
+#ifdef _OPENMP
+    integer :: i
+#endif
     
+    assert(field%field_type/=FIELD_TYPE_PYTHON)
+    
+#ifdef _OPENMP
+    ! Use first touch policy.
+    !$OMP PARALLEL DO SCHEDULE(STATIC)
+    do i=1, size(field%val)
+       field%val(i)=0.0
+    end do
+    !$OMP END PARALLEL DO
+#else
+    field%val=0.0
+#endif
+
+  end subroutine zero_scalar
+
+  subroutine zero_vector(field)
+    !!< Set all entries in the field provided to 0.0
+    type(vector_field), intent(inout) :: field
+
+#ifdef _OPENMP
+    integer :: i
+#endif
+
+    assert(field%field_type/=FIELD_TYPE_PYTHON)
+    
+#ifdef _OPENMP
+    ! Use first touch policy.
+    !$OMP PARALLEL DO SCHEDULE(STATIC)
+    do i=1, size(field%val, 2)
+       field%val(:,i)=0.0
+    end do
+    !$OMP END PARALLEL DO
+#else
+       field%val=0.0
+#endif
+
+  end subroutine zero_vector
+
+  subroutine zero_vector_dim(field, dim)
+    !!< Set all entries in dimension dim of the field provided to 0.0
+    type(vector_field), intent(inout) :: field
+    integer, intent(in) :: dim
+
+#ifdef _OPENMP
+    integer :: j
+#endif
+
+    assert(field%field_type/=FIELD_TYPE_PYTHON)
+
+#ifdef _OPENMP
+       ! Use first touch policy.
+       !$OMP PARALLEL DO SCHEDULE(STATIC)
+       do j=1, size(field%val, 2)
+          field%val(dim,j)=0.0
+       end do
+       !$OMP END PARALLEL DO
+#else
+       field%val(dim,:)=0.0
+#endif
+
+  end subroutine zero_vector_dim
+
+  subroutine zero_tensor(field)
+    !!< Set all entries in the field provided to 0.0
+    type(tensor_field), intent(inout) :: field
+
+#ifdef _OPENMP
+    integer :: j
+#endif
+
+    assert(field%field_type/=FIELD_TYPE_PYTHON)
+    
+#ifdef _OPENMP
+    ! Use first touch policy.
+    !$OMP PARALLEL DO SCHEDULE(STATIC)
+    do j=1, size(field%val, 3)
+       field%val(:,:,j)=0.0
+    end do
+    !$OMP END PARALLEL DO
+#else
+    field%val=0.0
+#endif
+
+  end subroutine zero_tensor  
+
+  subroutine zero_tensor_dim_dim(field, dim1, dim2)
+    !!< Set all entries in the component indicated of field to 0.0
+    type(tensor_field), intent(inout) :: field
+    integer, intent(in) :: dim1, dim2
+
+#ifdef _OPENMP
+    integer :: j
+#endif
+
+    assert(field%field_type/=FIELD_TYPE_PYTHON)
+
+#ifdef _OPENMP
+    ! Use first touch policy.
+    !$OMP PARALLEL DO SCHEDULE(STATIC)
+    do j=1, size(field%val, 3)
+       field%val(dim1,dim2,j)=0.0
+    end do
+    !$OMP END PARALLEL DO
+#else
+    field%val(dim1,dim2,:)=0.0
+#endif
+    
+  end subroutine zero_tensor_dim_dim
+
+  subroutine zero_scalar_field_nodes(field, node_numbers)
+    !!< Zeroes the scalar field at the specified node_numbers
+    !!< Does not work for constant fields
+    type(scalar_field), intent(inout) :: field
+    integer, dimension(:), intent(in) :: node_numbers
+
+    assert(field%field_type==FIELD_TYPE_NORMAL)
+    
+    field%val(node_numbers) = 0.0
+    
+  end subroutine zero_scalar_field_nodes
+  
+  subroutine zero_vector_field_nodes(field, node_numbers)
+    !!< Zeroes the vector field at the specified nodes
+    !!< Does not work for constant fields
+    type(vector_field), intent(inout) :: field
+    integer, dimension(:), intent(in) :: node_numbers
+    integer :: i
+
+    assert(field%field_type==FIELD_TYPE_NORMAL)
+    
+    do i=1,field%dim
+      field%val(i,node_numbers) = 0.0
+    end do
+    
+  end subroutine zero_vector_field_nodes
+
+  subroutine zero_tensor_field_nodes(field, node_numbers)
+    !!< Zeroes the tensor field at the specified nodes
+    !!< Does not work for constant fields
+    type(tensor_field), intent(inout) :: field
+    integer, dimension(:), intent(in) :: node_numbers
+
+    assert(field%field_type==FIELD_TYPE_NORMAL)
+
+    field%val(:, :, node_numbers) = 0.0
+    
+  end subroutine zero_tensor_field_nodes
+
 #include "Reference_count_mesh_type.F90"
 #include "Reference_count_scalar_field.F90"
 #include "Reference_count_vector_field.F90"

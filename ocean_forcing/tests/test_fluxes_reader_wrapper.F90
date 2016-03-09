@@ -1,5 +1,6 @@
 subroutine test_fluxes_reader_wrapper
   use unittest_tools
+  use fluxes
   implicit none
 
   real :: correct, value, correct_d, correct_t, values(2)

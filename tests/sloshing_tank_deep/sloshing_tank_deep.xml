@@ -10,6 +10,11 @@
     <command_line>fluidity -v3 -l sloshing_tank_deep.flml</command_line>
   </problem_definition>
   <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name="wave_speed" language="python">
 import fluidity_tools
 import numpy
@@ -27,6 +32,9 @@ print "This implies a free surface speed of: %s" % wave_speed
     </variable>
   </variables>
   <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
     <test name="Check that computed wave speed has an error less than 1.0% compared to the theoretical linear dispersion relation value (0.563137)." language="python">
 print (abs(wave_speed -  0.563137)/wave_speed)
 assert((abs(wave_speed -  0.563137)/wave_speed) &lt; 0.01)

@@ -197,7 +197,9 @@ Shows how numerical scheme predicts frequencey and damping rate</comment>
         </scheme>
         <solver>
           <iterative_method name="preonly"/>
-          <preconditioner name="lu"/>
+          <preconditioner name="lu">
+            <factorization_package name="petsc"/>
+          </preconditioner>
           <relative_error>
             <real_value rank="0">1.0e-12</real_value>
           </relative_error>
@@ -272,6 +274,7 @@ Shows how numerical scheme predicts frequencey and damping rate</comment>
             <stress_terms>
               <tensor_form/>
             </stress_terms>
+            <buoyancy/>
           </continuous_galerkin>
           <conservative_advection>
             <real_value rank="0">0</real_value>
@@ -287,7 +290,9 @@ Shows how numerical scheme predicts frequencey and damping rate</comment>
         </temporal_discretisation>
         <solver>
           <iterative_method name="preonly"/>
-          <preconditioner name="lu"/>
+          <preconditioner name="lu">
+            <factorization_package name="petsc"/>
+          </preconditioner>
           <relative_error>
             <real_value rank="0">1.0e-12</real_value>
           </relative_error>

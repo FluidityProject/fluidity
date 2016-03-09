@@ -29,17 +29,21 @@
 module adjacency_lists
   ! **********************************************************************
   !! Module to construct mesh adjacency lists.
-  use sparse_tools
   use FLDebug
-  use fields_base
-  use fields_data_types
-  use element_numbering
   use futils
+  use sparse_tools
+  use element_numbering
+  use fields_data_types
+  use fields_base
   implicit none
 
   interface MakeLists
      module procedure MakeLists_Dynamic, MakeLists_Mesh
   end interface
+
+  private
+
+  public :: MakeLists, nodele, findcommonelements, makeeelist
 
 contains
 
@@ -908,7 +912,7 @@ END SUBROUTINE NODELE
            if(.not. any(row_idx(j - 1)%ptr == candidate_ele)) cycle ele_loop
          end do
          
-#ifndef DDEBUG
+#ifdef DDEBUG
          if(adj_ele > 0) then
            ! We've found more than one adjacent element. We're in trouble.
            adj_ele = -1

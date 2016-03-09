@@ -8,6 +8,11 @@
     <command_line>fluidity  cube.flml </command_line>
   </problem_definition>
   <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name="maxspeed1" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("cube-1.stat")
@@ -34,6 +39,9 @@ cfl = fluidity_tools.stat_parser("cube-1.stat")['Water']['CFLNumber']['max'][-1]
     </variable>
   </variables>
   <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
     <test name="max speed (first timestep)" language="python">
 assert abs(maxspeed1 - 1.0) &lt; 1e-5
     </test>

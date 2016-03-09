@@ -27,14 +27,15 @@
 #include "fdebug.h"
 
 module reduced_model_runtime
-  use state_module
   use spud
-  use vtk_interfaces
-  use FLDebug
+  use fldebug
   use sparse_tools
-  use sparse_tools_petsc
-  use sparse_matrices_fields
+  use vector_tools
   use fields
+  use sparse_tools_petsc
+  use state_module
+  use vtk_interfaces
+  use sparse_matrices_fields
   use field_options
   use vector_tools
   use reduced_projection

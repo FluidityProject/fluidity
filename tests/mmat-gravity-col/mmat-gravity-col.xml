@@ -8,6 +8,11 @@
     <command_line>fluidity -v3 -l  2material_column_under_gravity.flml  </command_line>
   </problem_definition>  
   <variables>  
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name="pressure" language="python">
 import fluidity_tools
 pressure = fluidity_tools.stat_parser("2material_column_under_gravity.stat")['Material1']['Pressure']['max'][-1]
@@ -50,6 +55,9 @@ mnsumvfrac = fluidity_tools.stat_parser("2material_column_under_gravity.stat")['
     </variable>
    </variables>
     <pass_tests>  
+      <test name="Solvers converged" language="python">
+        assert(solvers_converged)
+      </test>
     <test name="check maximum pressure is 10.0" language="python">
    assert abs(pressure-1e+1) &lt; 1e-6
     </test>    

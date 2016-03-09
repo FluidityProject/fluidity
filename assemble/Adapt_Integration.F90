@@ -29,25 +29,27 @@
 
 module adapt_integration
 
+  use fldebug
+  use futils, only: present_and_true
   use data_structures
   use quadrature
   use elements
-  use fldebug
-  use fields
-  use halos
-  use limit_metric_module
-  use meshdiagnostics
-  use node_locking
   use spud
+  use parallel_tools
+  use fields
+  use vtk_interfaces
+  use halos
+  use meshdiagnostics
+  use limit_metric_module
+  use node_locking
   use surface_id_interleaving
   use tictoc
-  use vtk_interfaces
 
   implicit none
   
   private
   
-  public :: adapt_mesh, max_nodes, adapt_integration_check_options
+  public :: adapt_mesh, max_nodes, adapt_integration_check_options, element_quality_pain_p0, mtetin
   
   character(len = *), parameter :: base_path = "/mesh_adaptivity/hr_adaptivity"
   
@@ -275,9 +277,6 @@ contains
       assert(face_loc(input_positions, 1) == snloc)
     end if
     assert(metric%mesh == input_positions%mesh)
-    if(present(node_ownership)) then
-      assert(.not. associated(node_ownership))
-    end if
 #endif
     
     ewrite(2, *) "Forming adaptmem arguments"
@@ -356,6 +355,15 @@ contains
     allocate(snlist(nselm * snloc))
     if(nselm > 0) then
       call getsndgln(input_positions%mesh, snlist)
+    end if
+
+    if (surface_element_count(input_positions)/=unique_surface_element_count(input_positions%mesh)) then
+      ewrite(0,*) "It appears you have an internal boundary and you're trying to use 3D adaptivity."
+      ewrite(0,*) "This combination has not been implemented yet."
+      ! You could try to see if it somehow does work, by simply removing this FLExit()
+      ! (make sure to check you still have the right internal boundary ids after the adapt)
+      ! Feel free to discuss on the fluidity mailing list.
+      FLExit("Cannot have internal boundaries with 3D adaptivity")
     end if
     
     ! Surface IDs
@@ -820,6 +828,8 @@ contains
     type(tensor_field), intent(in) :: metric
     type(scalar_field), intent(out) :: quality
     
+    type(tensor_field):: rescaled_metric
+    type(vector_field):: rescaled_positions
     integer :: ele
     type(mesh_type) :: pwc_mesh
 
@@ -829,11 +839,46 @@ contains
     call allocate(quality, pwc_mesh, "ElementQuality")
     call deallocate(pwc_mesh)
 
+    call rescale_mesh_and_metric(positions, metric, rescaled_positions, rescaled_metric)
+
     do ele=1,ele_count(positions)
-      call set(quality, ele, pain_functional(ele, positions, metric))
+      call set(quality, ele, pain_functional(ele, rescaled_positions, rescaled_metric))
     end do
+
+    call deallocate(rescaled_positions)
+    call deallocate(rescaled_metric)
     
   end subroutine element_quality_pain_p0
+
+  subroutine rescale_mesh_and_metric(positions, metric, rescaled_positions, rescaled_metric)
+    ! This routine applies the same rescaling to a 500x500x500 box that happens inside libadaptivity (3D)
+    ! (note that in parallel this happens for each local domain seperately)
+    type(vector_field), intent(in):: positions
+    type(tensor_field), intent(in):: metric
+    type(vector_field), intent(out):: rescaled_positions
+    type(tensor_field), intent(out):: rescaled_metric
+
+    real, parameter:: BOX_SIZE=500.0
+    real, dimension(positions%dim):: rescale
+    real:: shift
+    integer:: i, j
+
+    call allocate(rescaled_positions, positions%dim, positions%mesh, name="Rescaled"//trim(positions%name))
+    call allocate(rescaled_metric, metric%mesh, name="Rescaled"//trim(metric%name))
+
+    do i=1, positions%dim
+      shift = minval(positions%val(i,:))
+      rescale(i) = (maxval(positions%val(i,:))-shift)/BOX_SIZE
+      call set_all(rescaled_positions, i, (positions%val(i,:)-shift)/rescale(i))
+    end do
+
+    do i=1, positions%dim
+      do j=1, positions%dim
+        call set_all(rescaled_metric, i, j, metric%val(i,j,:)*rescale(i)*rescale(j))
+      end do
+    end do
+    
+  end subroutine rescale_mesh_and_metric
   
   subroutine adapt_integration_check_options
     !!< Checks libadaptivity integration related options

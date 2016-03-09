@@ -30,20 +30,20 @@ module field_options
    !!< This module contains code that uses scalar/vector/tensor_fields
    !!< in combination with floptions. Anything schema specific.
 
+   use fldebug
+   use global_parameters
    use quadrature
+   use futils
    use elements
    use spud
-   use FLDebug
-   use Fields_Data_Types
+   use data_structures
+   use fields_data_types
    use fields_base
    use fields_allocates
    use fields_manipulation
-   use fields_calculations
-   use Global_Parameters, only: OPTION_PATH_LEN, adaptivity_mesh_name
-   use state_module
-   use futils
    use metric_tools
-   use data_structures
+   use transform_elements
+   use fields_calculations
    use state_module
 
    implicit none
@@ -106,14 +106,12 @@ module field_options
                                 FIELD_EQUATION_REDUCEDCONSERVATIONOFMASS = 3, &
                                 FIELD_EQUATION_INTERNALENERGY            = 4, &
                                 FIELD_EQUATION_HEATTRANSFER              = 5, &
-                                FIELD_EQUATION_ELECTRICALPOTENTIAL       = 6
+                                FIELD_EQUATION_ELECTRICALPOTENTIAL       = 6, &
+                                FIELD_EQUATION_KEPSILON       = 7
 
 contains
 
   recursive subroutine print_children(path)
-
-    use spud
-    use global_parameters, only: OPTION_PATH_LEN
 
     implicit none
 
@@ -185,6 +183,10 @@ contains
     else if (have_option(trim(path) // "/prescribed")) then
 
        complete_field_path=trim(path) // "/prescribed"
+
+    else if (have_option(trim(path) // "/aliased")) then
+
+       complete_field_path=trim(path) // "/aliased"
 
     else
       
@@ -818,8 +820,10 @@ contains
       initialisation_path=trim(option_path)//'/prescribed/value'
     else
       ! diagnostic fields are not initialised/prescribed anyway
-      needs_initial_mesh_options=.false.
-      return
+      if(.not. have_option(trim(option_path)//'/diagnostic/output/checkpoint')) then
+        needs_initial_mesh_options=.false.
+        return
+      end if
     end if
     
     ! return .true. if any of the regions are initialised from file
@@ -944,6 +948,8 @@ contains
       equation_type_index = FIELD_EQUATION_INTERNALENERGY
     case ( "ElectricalPotential" )
       equation_type_index = FIELD_EQUATION_ELECTRICALPOTENTIAL
+    case ( "KEpsilon" )
+      equation_type_index = FIELD_EQUATION_KEPSILON
     case default
       equation_type_index = FIELD_EQUATION_UNKNOWN
     end select
@@ -1235,8 +1241,14 @@ contains
                           trim(mat_name)//"."
             FLExit("Selected equation type only compatible with control volume spatial_discretisation")
           end if
+        case(FIELD_EQUATION_KEPSILON)
+          if(.not.cg_disc) then
+            ewrite(-1,*) "Options checking field "//&
+                          trim(field_name)//" in material_phase "//&
+                          trim(mat_name)//"."
+            FLExit("Selected equation type only compatible with continuous galerkin spatial_discretisation")
+          end if  
         end select
-
       end do
     end do
 

@@ -28,7 +28,7 @@
 subroutine test_interpolation
   !!< Test that we can interpolate from one field to another
   use fields
-  use read_triangle
+  use mesh_files
   use unittest_tools
   use vtk_interfaces
   use conservative_interpolation
@@ -41,8 +41,8 @@ subroutine test_interpolation
   real :: fmin_out, fmax_out, fnorm2_out, fintegral_out
   logical :: fail
 
-  X_in=read_triangle_files("square.1", quad_degree=4)
-  X_out=read_triangle_files("square.2", quad_degree=4)
+  X_in=read_mesh_files("square.1", quad_degree=4, format="gmsh")
+  X_out=read_mesh_files("square.2", quad_degree=4, format="gmsh")
 
   call allocate(T_in, X_in%mesh, "tracer")
   call allocate(T_in, X_out%mesh, "tracer")

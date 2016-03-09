@@ -7,6 +7,11 @@
     <command_line>fluidity -v2 -l  hyperc-shear-input.flml</command_line>
   </problem_definition>
   <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name="finish_time" language="python"> 
 from fluidity_tools import stat_parser as stat
 finish_time = stat("hyperc-shear.stat")["ElapsedTime"]["value"][-1]
@@ -65,6 +70,9 @@ divergence_max = max(abs(stat("hyperc-shear.stat")["Material1"]["ControlVolumeDi
     </variable>
   </variables>
   <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
     <test name="check finish time reached" language="python">
 assert finish_time &gt; 1.
     </test>

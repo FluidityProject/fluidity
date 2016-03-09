@@ -7,6 +7,11 @@
     <command_line>fluidity -v3 -l netcdf_read_free_surface.flml</command_line>
   </problem_definition>
   <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name="max_freesurface_error" language="python">
 import vtktools
 
@@ -40,6 +45,9 @@ max_freesurface_error = max(abs(err))
     </variable>
   </variables>
   <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
     <test name="Checking difference is smaller than 1e-10" language="python">
 assert ( max_freesurface_error &lt; 1e-10 )
     </test>

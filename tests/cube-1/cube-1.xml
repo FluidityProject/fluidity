@@ -8,6 +8,11 @@
     <command_line>fluidity -v2 -l cube-1.flml </command_line>
   </problem_definition>
   <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name="norm1" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("cube-1.stat")
@@ -28,6 +33,9 @@ grn = fluidity_tools.stat_parser("cube-1.stat")['Water']['GridReynoldsNumber']['
     </variable>
   </variables>
   <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
 <!-- The difference in the geostrophic pressure accross the channel should be 2*Omega. 
 In this case this is 2.0 -->
     <test name="geostrophic pressure difference (first timestep)" language="python">

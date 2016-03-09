@@ -1,16 +1,22 @@
 #include "fdebug.h"
 
 module hadapt_advancing_front
-  use fields
-  use sparse_tools
+
+  use fldebug
+  use futils
   use quicksort
-  use linked_lists
-  use adjacency_lists
-  use meshdiagnostics
   use data_structures
   use spud
-  use halos
+  use parallel_tools
+  use sparse_tools
+  use linked_lists
+  use adjacency_lists
+  use parallel_fields
+  use fields
+  use meshdiagnostics
   use halos_derivation
+  use halos
+
   implicit none
   
   private
@@ -59,6 +65,8 @@ module hadapt_advancing_front
     integer :: n_regions, r
     integer :: ele, h_ele, snloc
     integer :: i, j, k, l
+
+    logical :: radial_layering
     
     real :: vol
     
@@ -78,8 +86,9 @@ module hadapt_advancing_front
     
     nelist => extract_nelist(h_mesh)
 
+    radial_layering = have_option('/geometry/spherical_earth')
     ! Sort the new nodes by height
-    if (have_option('/geometry/spherical_earth')) then
+    if (radial_layering) then
       ! sort on radius
       height_field = magnitude(mesh)
     else
@@ -94,7 +103,7 @@ module hadapt_advancing_front
       call qsort(heights, sorted)
     end if
 
-    if (have_option('/geometry/spherical_earth')) then
+    if (radial_layering) then
       call deallocate( height_field )
     end if
     

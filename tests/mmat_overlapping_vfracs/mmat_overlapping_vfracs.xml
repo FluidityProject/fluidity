@@ -6,12 +6,20 @@
     <command_line>fluidity -v2 -l 3materials_overlapping.flml</command_line>
   </problem_definition>
   <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name="maxdensity" language="python">from fluidity_tools import stat_parser
 maxdensity = min(stat_parser("3materials_overlapping.stat")["Material1"]["Density"]["max"])</variable>
     <variable name="mindensity" language="python">from fluidity_tools import stat_parser
 mindensity = max(stat_parser("3materials_overlapping.stat")["Material1"]["Density"]["min"])</variable>
   </variables>
   <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
     <test name="maxdensity" language="python">assert(abs(maxdensity-3.0)&lt; 1.e-10)</test>
     <test name="mindensity" language="python">assert(abs(mindensity-3.0)&lt; 1.e-10)</test>
   </pass_tests>

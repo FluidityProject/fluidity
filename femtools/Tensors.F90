@@ -34,6 +34,10 @@ module tensors
      module procedure tensormul_3_1, tensormul_3_2, tensormul_4_1, tensormul_3_1_last
   end interface
 
+  private
+
+  public :: exclude, tensormul
+
 contains
 
   pure function exclude(i, j)

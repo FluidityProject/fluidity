@@ -10,9 +10,17 @@ import glob
 import threading
 import traceback
 
+try:
+    from junit_xml import TestCase
+except ImportError:
+    class TestCase(object):
+        def __init__(self,*args,**kwargs):
+            pass
+
+
 class TestProblem:
     """A test records input information as well as tests for the output."""
-    def __init__(self, filename, verbose=False, replace=None):
+    def __init__(self, filename, verbose=False, replace=None, genpbs=False):
         """Read a regression test from filename and record its details."""
         self.name = ""
         self.command = replace
@@ -26,6 +34,8 @@ class TestProblem:
         self.pass_status = []
         self.warn_status = []
         self.filename = filename.split('/')[-1]
+        self.genpbs = genpbs
+        self.xml_reports=[]
         # add dir to import path
         sys.path.insert(0, os.path.dirname(filename))
 
@@ -95,7 +105,7 @@ class TestProblem:
             raise Exception
 
     def is_finished(self):
-        if self.nprocs > 1 or self.length == "long":
+        if self.genpbs:
             file = os.environ["HOME"] + "/lock/" + self.random
             try:
                 os.remove(file)
@@ -121,6 +131,8 @@ class TestProblem:
         self.log("Running")
 
         run_time=0.0
+        start_time=time.clock()
+        wall_time=time.time()
 
         try:
           os.stat(dir+"/Makefile")
@@ -130,15 +142,19 @@ class TestProblem:
         except OSError:
           self.log("No Makefile, not calling make")
 
-        if self.nprocs > 1 or self.length == "long":
+        if self.genpbs:
             ret = self.call_genpbs(dir)
             self.log("cd "+dir+"; qsub " + self.filename[:-4] + ".pbs: " + self.command_line)
             os.system("cd "+dir+"; qsub " + self.filename[:-4] + ".pbs")
         else:
           self.log(self.command_line)
-          start_time=time.clock()
           os.system("cd "+dir+"; "+self.command_line)
           run_time=time.clock()-start_time
+
+        self.xml_reports.append(TestCase(self.name,
+                                            '%s.%s'%(self.length,
+                                                     self.filename[:-4]),
+                                           elapsed_sec=time.time()-wall_time))
 
         return run_time
         
@@ -189,15 +205,21 @@ class TestProblem:
             for test in self.pass_tests:
                 self.log("Running %s:" % test.name)
                 status = test.run(varsdict)
+                tc=TestCase(test.name,
+                            '%s.%s'%(self.length,
+                                     self.filename[:-4]))
                 if status == True:
                     self.log("success.")
                     self.pass_status.append('P')
                 elif status == False:
                     self.log("failure.")
                     self.pass_status.append('F')
+                    tc.add_failure_info(  "Failure" )
                 else:
                     self.log("failure (info == %s)." % status)
                     self.pass_status.append('F')
+                    tc.add_failure_info(  "Failure", status )
+                self.xml_reports.append(tc)
 
         if len(self.warn_tests) != 0:
             self.log("Running warning tests: ")

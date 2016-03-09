@@ -29,11 +29,12 @@
 
 module write_triangle
 
+  use fldebug
+  use futils
   use elements
+  use parallel_tools
   use fields
   use state_module
-  use futils
-  use parallel_tools
   use field_options
 
   implicit none
@@ -49,12 +50,14 @@ module write_triangle
   
 contains
   
-  subroutine write_mesh_to_triangles(filename, state, mesh)
+  subroutine write_mesh_to_triangles(filename, state, mesh, number_of_partitions)
     !!< Write out the supplied mesh to the specified filename as triangle files.
     
     character(len = *), intent(in) :: filename
     type(state_type), intent(in) :: state
     type(mesh_type), intent(in) :: mesh
+    !!< If present, only write for processes 1:number_of_partitions (assumes the other partitions are empty)
+    integer, optional, intent(in):: number_of_partitions
     
     type(vector_field):: positions
     
@@ -62,13 +65,13 @@ contains
     ! interpolated from "Coordinate", always takes a reference:
     positions = get_nodal_coordinate_field(state, mesh)
 
-    call write_triangle_files(filename, positions)
+    call write_triangle_files(filename, positions, number_of_partitions=number_of_partitions)
     
     call deallocate(positions)
     
   end subroutine write_mesh_to_triangles
 
-  subroutine write_positions_to_triangles(filename, positions, print_internal_faces)
+  subroutine write_positions_to_triangles(filename, positions, print_internal_faces, number_of_partitions)
     !!< Write out the mesh given by the position field in triangle files:
     !!<    a .node and a .ele-file (and a .face file if the mesh has a %faces
     !!<    component with more than 0 surface elements)
@@ -76,11 +79,17 @@ contains
     character(len=*), intent(in):: filename
     type(vector_field), intent(in):: positions
     logical, intent(in), optional :: print_internal_faces
+    !!< If present, only write for processes 1:number_of_partitions (assumes the other partitions are empty)
+    integer, optional, intent(in):: number_of_partitions
     
     integer :: nparts
     
-    ! How many processes contain data?
-    nparts = get_active_nparts(ele_count(positions))
+    if (present(number_of_partitions)) then
+      nparts = number_of_partitions
+    else
+      nparts = getnprocs()
+    end if
+    
     
     ! Write out data only for those processes that contain data - SPMD requires
     ! that there be no early return
@@ -233,18 +242,17 @@ contains
     type(mesh_type), intent(in):: mesh
     
     integer unit, dim, nofaces, i
-    integer :: stotel, dg_total ! dg_total counts each internal face twice
+    integer :: dg_total ! dg_total counts each internal face twice
     integer :: ele, neigh, j, face
     integer, dimension(:), pointer :: neighbours
     
     unit=free_unit()
     
     dim=mesh_dim(mesh)
-    stotel=surface_element_count(mesh)
     dg_total=size(mesh%faces%face_list%sparsity%colm)
     
-    nofaces = (dg_total - stotel) / 2 ! internal faces, only once
-    nofaces = nofaces + stotel ! and the surface mesh
+    nofaces = (dg_total - surface_element_count(mesh)) / 2 ! internal faces, only once
+    nofaces = nofaces + unique_surface_element_count(mesh) ! and the surface mesh (again counting internal facets only once)
     
     select case(dim)
       case(3)
@@ -301,7 +309,7 @@ contains
     unit=free_unit()
     
     dim=mesh_dim(mesh)
-    nofaces=surface_element_count(mesh)
+    nofaces=unique_surface_element_count(mesh)
     
     select case(dim)
       case(3)
@@ -315,7 +323,7 @@ contains
         FLAbort("Invalid dimension")
     end select
 
-    if (has_internal_boundaries(mesh)) then
+    if (has_discontinuous_internal_boundaries(mesh)) then
       ! If the mesh is periodic, we want to write out the parent element of every face
       nolabels = 2
     else
@@ -325,7 +333,7 @@ contains
     ! header line: nofaces, and number of boundary markers
     write(unit, *, err=42) nofaces, nolabels
     
-    if (.not. has_internal_boundaries(mesh)) then
+    if (.not. has_discontinuous_internal_boundaries(mesh)) then
       do i=1, nofaces
          write(unit, *, err=42) i, face_global_nodes(mesh, i), &
               surface_element_id(mesh, i)

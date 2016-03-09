@@ -28,17 +28,19 @@
 #include "fdebug.h"
 
 module simple_diagnostics
-  use diagnostic_source_fields
-  use field_options
-  use fields_manipulation
-  use initialise_fields_module
-  use fields
+
   use fldebug
   use global_parameters, only : timestep, OPTION_PATH_LEN
   use spud
-  use state_fields_module
+  use futils
+  use parallel_tools
+  use fields
   use state_module
+  use field_options
+  use diagnostic_source_fields
   use vtk_cache_module
+  use initialise_fields_module
+  use state_fields_module
 
   implicit none
 
@@ -50,7 +52,7 @@ module simple_diagnostics
 
   private
 
-  public :: calculate_temporalmax, calculate_temporalmin, calculate_l2norm, &
+  public :: calculate_temporalmax_scalar, calculate_temporalmax_vector, calculate_temporalmin, calculate_l2norm, &
             calculate_time_averaged_scalar, calculate_time_averaged_vector, &
             calculate_time_averaged_scalar_squared, &
             calculate_time_averaged_vector_times_scalar, calculate_period_averaged_scalar
@@ -60,7 +62,7 @@ module simple_diagnostics
   integer, save :: n_times_added
   
 contains
-  subroutine calculate_temporalmax(state, s_field)
+  subroutine calculate_temporalmax_scalar(state, s_field)
     type(state_type), intent(in) :: state
     type(scalar_field), intent(inout) :: s_field
     type(scalar_field), pointer :: source_field
@@ -91,7 +93,54 @@ contains
        val = max(node_val(s_field,i),node_val(source_field,i))
        call set(s_field,i,val)
     end do
-  end subroutine calculate_temporalmax
+  end subroutine calculate_temporalmax_scalar
+
+  subroutine calculate_temporalmax_vector(state, v_field)
+    type(state_type), intent(in) :: state
+    type(vector_field), intent(inout) :: v_field
+    type(vector_field), pointer :: source_field
+    type(vector_field), pointer :: position
+    type(scalar_field) :: magnitude_max_vel, magnitude_vel
+    character(len = OPTION_PATH_LEN) :: path
+    integer :: i, d
+    real :: current_time, spin_up_time
+    source_field => vector_source_field(state, v_field)
+    assert(node_count(v_field) == node_count(source_field))
+    position => extract_vector_field(state, "Coordinate")
+
+    if(timestep==0) then
+       path=trim(complete_field_path(v_field%option_path)) // "/algorithm/initial_condition"
+       if (have_option(trim(path))) then
+          call zero(v_field)
+          call initialise_field_over_regions(v_field, path, position)
+       else
+          call set(v_field,source_field)
+       end if
+       return
+    end if
+    if(have_option(trim(complete_field_path(v_field%option_path)) // "/algorithm/spin_up_time")) then
+       call get_option("/timestepping/current_time", current_time)
+       call get_option(trim(complete_field_path(v_field%option_path)) // "/algorithm/spin_up_time", spin_up_time)
+       if (current_time<spin_up_time) return
+    end if
+
+    ! We actually care about the vector that causes the maximum magnitude
+    ! of velocity, so check the magnitude and store if higher than
+    ! what we already have.
+    magnitude_max_vel = magnitude(v_field)
+    magnitude_vel = magnitude(source_field)
+
+    do i=1,node_count(magnitude_vel)
+        if (node_val(magnitude_vel,i) .gt. node_val(magnitude_max_vel,i)) then
+            call set(v_field,i,node_val(source_field,i))
+        end if
+    end do
+
+    call deallocate(magnitude_max_vel)
+    call deallocate(magnitude_vel)
+
+  end subroutine calculate_temporalmax_vector
+
 
   subroutine calculate_temporalmin(state, s_field)
     type(state_type), intent(in) :: state
@@ -198,11 +247,17 @@ contains
     if (timestep==0) then 
       last_output_time = 0.0
       n_times_added = 0
-      call allocate(cumulative_value, s_field%mesh, "_AveCumulativeValue")
-      call zero(cumulative_value)
-      call insert(state, cumulative_value, cumulative_value%name)
-      call deallocate(cumulative_value)
-      call initialise_diagnostic_from_checkpoint(s_field)
+      running_tot => extract_scalar_field(state,"AveCumulativeValue",stat)
+      if (stat .ne. 0) then
+          ewrite(-1,*) "You haven't set up a field call AveCumulativeValue for the time-averaged scalar diagnostic to use."
+          ewrite(-1,*) "I'm going to make one for you, but this will *not* work with adaptivity and checkpointing"
+          ewrite(-1,*) "If you need these features, stop the run and add a scalar field called AveCumulativeValue as a diagnostic, set via internal function"
+          call allocate(cumulative_value, s_field%mesh, "AveCumulativeValue")
+          call zero(cumulative_value)
+          call insert(state, cumulative_value, cumulative_value%name)
+          call deallocate(cumulative_value)
+          call initialise_diagnostic_from_checkpoint(s_field)
+      end if
       return
     end if
 
@@ -210,7 +265,7 @@ contains
     call get_option(trim(s_field%option_path)//"/diagnostic/algorithm/averaging_period",averaging_period)
 
     source_field => scalar_source_field(state, s_field)
-    running_tot => extract_scalar_field(state,"_AveCumulativeValue")
+    running_tot => extract_scalar_field(state,"AveCumulativeValue")
     if (current_time < averaging_period*(floor(last_output_time / averaging_period)+1.)) then
         call addto(running_tot,source_field)
         n_times_added = n_times_added+1
@@ -347,7 +402,7 @@ contains
     do i = 1, option_count("/geometry/mesh")
       if(have_option("/geometry/mesh["//int2str(i)//"]/from_file/file_name")) then
         call get_option("/geometry/mesh["//int2str(i)//"]/from_file/file_name", filename, stat)
-        ewrite(2,*) "mesh from file: ", filename
+        ewrite(2,*) "mesh from file: ", trim(filename)
       end if
     end do
     if (stat /= 0) return
@@ -380,7 +435,7 @@ contains
     do i = 1, option_count("/geometry/mesh")
       if(have_option("/geometry/mesh["//int2str(i)//"]/from_file/file_name")) then
         call get_option("/geometry/mesh["//int2str(i)//"]/from_file/file_name", filename , stat)
-        ewrite(2,*) "mesh from file: ", filename
+        ewrite(2,*) "mesh from file: ", trim(filename)
       end if
     end do
     if (stat /= 0) return
@@ -413,7 +468,7 @@ contains
     do i = 1, option_count("/geometry/mesh")
       if(have_option("/geometry/mesh["//int2str(i)//"]/from_file/file_name")) then
         call get_option("/geometry/mesh["//int2str(i)//"]/from_file/file_name", filename, stat)
-        ewrite(2,*) "mesh from file: ", filename
+        ewrite(2,*) "mesh from file: ", trim(filename)
       end if
     end do
     if (stat /= 0) return

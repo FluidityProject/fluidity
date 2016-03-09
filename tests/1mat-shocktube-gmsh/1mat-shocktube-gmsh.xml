@@ -8,6 +8,11 @@
     <command_line>fluidity -v2 -l 1material_shocktube.flml</command_line>
   </problem_definition>  
   <variables>  
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name="pressureerror" language="python">
 import vtktools
 from numpy import concatenate, arange, newaxis, ones, array
@@ -121,6 +126,9 @@ checkpointstarttime=fluidity_tools.stat_parser('1material_shocktube_checkpoint.s
     </variable>-->
   </variables>
     <pass_tests>  
+      <test name="Solvers converged" language="python">
+        assert(solvers_converged)
+      </test>
     <test name="check pressure follows a step pattern" language="python">
    assert pressureerror &lt; 1e-3
     </test>    

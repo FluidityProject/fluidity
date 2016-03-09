@@ -7,6 +7,11 @@
     <command_line>make clean-run-debug; fluidity -v2 -l python_persistent.flml</command_line>
   </problem_definition>
   <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name = "node_count" language = "python">
 import fluidity_tools
 s = fluidity_tools.stat_parser("python-persistent.stat")
@@ -19,6 +24,9 @@ test_max = s["Test"]["Test"]["max"]
     </variable>
   </variables>
   <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
     <test name = "Persistent variable" language = "python">
 import fluidity_tools
 fluidity_tools.compare_variables(test_max, [node_count * float(i) for i in range(2, len(test_max) + 2)], 1.0e-6)

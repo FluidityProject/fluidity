@@ -26,28 +26,33 @@
 !    USA
 #include "fdebug.h"
 module fields_manipulation
-use elements
-use element_set
-use embed_python
-use data_structures
-use fields_data_types
-use fields_base
-use fields_allocates
-use halo_data_types
-use halos_allocates
-use halos_base
-use halos_debug
-use halos_numbering
-use halos_ownership
-use halos_repair
-use quicksort
-use parallel_tools
-use vector_tools
-implicit none
+  use fldebug
+  use vector_tools
+  use futils, only: present_and_true
+  use element_numbering
+  use elements
+  use element_set
+  use data_structures
+  use halo_data_types
+  use quicksort
+  use parallel_tools
+  use halos_base
+  use halos_debug
+  use memory_diagnostics
+  use halos_allocates
+  use sparse_tools
+  use embed_python
+  use fields_data_types
+  use fields_base
+  use halos_numbering
+  use halos_ownership
+  use halos_repair
+  use fields_allocates
+  implicit none
 
   private
 
-  public :: addto, zero, set_from_function, set, set_all, &
+  public :: addto, set_from_function, set, set_all, &
     & set_from_python_function, remap_field, remap_field_to_surface, &
     & set_to_submesh, set_from_submesh, scale, bound, invert, &
     & absolute_value, inner_product, cross_prod, clone_header
@@ -59,6 +64,7 @@ implicit none
   public :: set_ele_nodes, normalise, tensor_second_invariant
   public :: remap_to_subdomain, remap_to_full_domain
   public :: get_coordinates_remapped_to_surface, get_remapped_coordinates
+  public :: power
   
   integer, parameter, public :: REMAP_ERR_DISCONTINUOUS_CONTINUOUS = 1, &
                                 REMAP_ERR_HIGHER_LOWER_CONTINUOUS  = 2, &
@@ -76,11 +82,6 @@ implicit none
           real_addto_real, vector_field_addto_field_scale_field
   end interface
 
-  interface zero
-     module procedure zero_scalar, zero_vector, zero_tensor, &
-          zero_vector_dim, zero_tensor_dim_dim
-  end interface
-
   interface set_from_function
      module procedure set_from_function_scalar, set_from_function_vector,&
           & set_from_function_tensor 
@@ -90,8 +91,9 @@ implicit none
     module procedure set_scalar_field_node, set_scalar_field, &
                    & set_vector_field_node, set_vector_field, &
                    & set_vector_field_node_dim, set_vector_field_dim, &
-                   & set_tensor_field_node, set_tensor_field, &
-                   & set_scalar_field_nodes, set_tensor_field_node_dim, &
+                   & set_tensor_field_node, set_tensor_field, set_tensor_field_dim, &
+                   & set_scalar_field_nodes, set_scalar_field_constant_nodes, &
+                   & set_tensor_field_node_dim, &
                    & set_vector_field_nodes, &
                    & set_vector_field_nodes_dim, &
                    & set_tensor_field_nodes, &
@@ -130,7 +132,7 @@ implicit none
   end interface
 
   interface remap_field_to_surface
-     module procedure remap_scalar_field_to_surface, remap_vector_field_to_surface
+     module procedure remap_scalar_field_to_surface, remap_vector_field_to_surface, remap_tensor_field_to_surface
   end interface
 
   interface set_to_submesh
@@ -146,7 +148,15 @@ implicit none
           scalar_scale_scalar_field, &
           vector_scale_scalar_field, &
           tensor_scale_scalar_field, &
-          vector_scale_vector_field
+          vector_scale_vector_field, &
+          tensor_scale_tensor_field
+  end interface
+  
+  interface power
+     module procedure scalar_power, vector_power, tensor_power, &
+          scalar_power_scalar_field, &
+          vector_power_scalar_field, &
+          tensor_power_scalar_field
   end interface
   
   interface bound
@@ -154,8 +164,8 @@ implicit none
   end interface
     
   interface invert
-     module procedure invert_scalar_field, invert_vector_field, &
-      invert_scalar_field_inplace, invert_vector_field_inplace
+     module procedure invert_scalar_field, invert_vector_field, invert_tensor_field, &
+      invert_scalar_field_inplace, invert_vector_field_inplace, invert_tensor_field_inplace
   end interface
   
   interface absolute_value
@@ -233,96 +243,6 @@ implicit none
       call deallocate(t_field_local)
                
   end subroutine tensor_second_invariant
-
-  subroutine zero_scalar(field)
-    !!< Set all entries in the field provided to 0.0
-    type(scalar_field), intent(inout) :: field
-
-    assert(field%field_type/=FIELD_TYPE_PYTHON)
-    field%val=0.0
-
-  end subroutine zero_scalar
-
-  subroutine zero_vector(field)
-    !!< Set all entries in the field provided to 0.0
-    type(vector_field), intent(inout) :: field
-
-    integer :: i
-
-    assert(field%field_type/=FIELD_TYPE_PYTHON)
-    do i=1,field%dim
-       field%val(i,:)=0.0
-    end do
-
-  end subroutine zero_vector
-
-  subroutine zero_vector_dim(field, dim)
-    !!< Set all entries in dimension dim of the field provided to 0.0
-    type(vector_field), intent(inout) :: field
-    integer, intent(in) :: dim
-
-    assert(field%field_type/=FIELD_TYPE_PYTHON)
-    field%val(dim,:)=0.0
-
-  end subroutine zero_vector_dim
-
-  subroutine zero_tensor(field)
-    !!< Set all entries in the field provided to 0.0
-    type(tensor_field), intent(inout) :: field
-
-    assert(field%field_type/=FIELD_TYPE_PYTHON)
-    field%val=0.0
-
-  end subroutine zero_tensor  
-
-  subroutine zero_tensor_dim_dim(field, dim1, dim2)
-    !!< Set all entries in the component indicated of field to 0.0
-    type(tensor_field), intent(inout) :: field
-    integer, intent(in) :: dim1, dim2
-
-    assert(field%field_type/=FIELD_TYPE_PYTHON)
-    field%val(dim1,dim2,:)=0.0
-
-  end subroutine zero_tensor_dim_dim
-
-  subroutine zero_scalar_field_nodes(field, node_numbers)
-    !!< Zeroes the scalar field at the specified node_numbers
-    !!< Does not work for constant fields
-    type(scalar_field), intent(inout) :: field
-    integer, dimension(:), intent(in) :: node_numbers
-
-    assert(field%field_type==FIELD_TYPE_NORMAL)
-    
-    field%val(node_numbers) = 0.0
-    
-  end subroutine zero_scalar_field_nodes
-  
-  subroutine zero_vector_field_nodes(field, node_numbers)
-    !!< Zeroes the vector field at the specified nodes
-    !!< Does not work for constant fields
-    type(vector_field), intent(inout) :: field
-    integer, dimension(:), intent(in) :: node_numbers
-    integer :: i
-
-    assert(field%field_type==FIELD_TYPE_NORMAL)
-    
-    do i=1,field%dim
-      field%val(i,node_numbers) = 0.0
-    end do
-    
-  end subroutine zero_vector_field_nodes
-
-  subroutine zero_tensor_field_nodes(field, node_numbers)
-    !!< Zeroes the tensor field at the specified nodes
-    !!< Does not work for constant fields
-    type(tensor_field), intent(inout) :: field
-    integer, dimension(:), intent(in) :: node_numbers
-
-    assert(field%field_type==FIELD_TYPE_NORMAL)
-
-    field%val(:, :, node_numbers) = 0.0
-    
-  end subroutine zero_tensor_field_nodes
   
   subroutine scalar_field_vaddto(field, node_numbers, val)
     !!< Add val to the field%val(node_numbers) for a vector of
@@ -944,10 +864,25 @@ implicit none
     real, dimension(:), intent(in) :: val
 
     assert(field%field_type==FIELD_TYPE_NORMAL)
-    
+    assert(size(node_numbers)==size(val))
+
     field%val(node_numbers) = val
     
   end subroutine set_scalar_field_nodes
+  
+  subroutine set_scalar_field_constant_nodes(field, node_numbers, val)
+    !!< Set the scalar field at the specified node_numbers
+    !!< to a constant value
+    !!< Does not work for constant fields
+    type(scalar_field), intent(inout) :: field
+    integer, dimension(:), intent(in) :: node_numbers
+    real, intent(in) :: val
+
+    assert(field%field_type==FIELD_TYPE_NORMAL)
+
+    field%val(node_numbers) = val
+    
+  end subroutine set_scalar_field_constant_nodes
   
   subroutine set_scalar_field(field, val)
     !!< Set the scalar field with a constant value
@@ -1105,7 +1040,7 @@ implicit none
     real, intent(in), dimension(:, :) :: val
     integer :: i
 
-    assert(field%field_type == FIELD_TYPE_NORMAL)
+    assert(field%field_type==FIELD_TYPE_NORMAL)
     
     do i=1,field%dim
       field%val(i,:) = val(i, :)
@@ -1119,7 +1054,7 @@ implicit none
     real, intent(in), dimension(:) :: val
     integer, intent(in):: dim
     
-    assert(field%field_type == FIELD_TYPE_NORMAL)
+    assert(field%field_type==FIELD_TYPE_NORMAL)
     assert(dim>=1 .and. dim<=field%dim)
     
     field%val(dim,:) = val
@@ -1134,10 +1069,15 @@ implicit none
     
     integer :: dim
 
+#ifndef NDEBUG
     assert(mesh_compatible(out_field%mesh, in_field%mesh))
     assert(out_field%field_type/=FIELD_TYPE_PYTHON)
-    assert(out_field%field_type==FIELD_TYPE_NORMAL .or. in_field%field_type==FIELD_TYPE_CONSTANT)
+    if (.not. (out_field%field_type==FIELD_TYPE_NORMAL .or. &
+      (out_field%field_type==FIELD_TYPE_CONSTANT .and. in_field%field_type==FIELD_TYPE_CONSTANT))) then
+      FLAbort("Wrong field_type in set()")
+    end if
     assert(in_field%dim==out_field%dim)
+#endif
 
     select case (in_field%field_type)
     case (FIELD_TYPE_NORMAL)
@@ -1201,10 +1141,15 @@ implicit none
     type(scalar_field), intent(in) :: in_field
     integer, intent(in):: dim
 
+#ifndef NDEBUG
     assert(mesh_compatible(out_field%mesh, in_field%mesh))
     assert(out_field%field_type/=FIELD_TYPE_PYTHON)
-    assert(out_field%field_type==FIELD_TYPE_NORMAL.or.in_field%field_type==FIELD_TYPE_CONSTANT)
+    if (.not. (out_field%field_type==FIELD_TYPE_NORMAL .or. &
+      (out_field%field_type==FIELD_TYPE_CONSTANT .and. in_field%field_type==FIELD_TYPE_CONSTANT))) then
+      FLAbort("Wrong field_type in set()")
+    end if
     assert(dim>=1 .and. dim<=out_field%dim)
+#endif
 
     select case (in_field%field_type)
     case (FIELD_TYPE_NORMAL)
@@ -1225,10 +1170,15 @@ implicit none
     type(vector_field), intent(in) :: in_field
     integer, intent(in):: dim
 
+#ifndef NDEBUG
     assert(mesh_compatible(out_field%mesh, in_field%mesh))
     assert(out_field%field_type/=FIELD_TYPE_PYTHON)
-    assert(out_field%field_type==FIELD_TYPE_NORMAL.or.in_field%field_type==FIELD_TYPE_CONSTANT)
+    if (.not. (out_field%field_type==FIELD_TYPE_NORMAL .or. &
+      (out_field%field_type==FIELD_TYPE_CONSTANT .and. in_field%field_type==FIELD_TYPE_CONSTANT))) then
+      FLAbort("Wrong field_type in set()")
+    end if
     assert(dim>=1 .and. dim<=out_field%dim .and. dim<=in_field%dim)
+#endif
 
     select case (in_field%field_type)
     case (FIELD_TYPE_NORMAL)
@@ -1436,6 +1386,22 @@ implicit none
     end do
     
   end subroutine set_tensor_field
+    
+  subroutine set_tensor_field_dim(field, dim1, dim2, val)
+    !!< Sets one component of a tensor with constant value
+    !!< Works for constant and space varying fields.
+    type(tensor_field), intent(inout) :: field
+    real, intent(in) :: val
+    integer, intent(in):: dim1, dim2
+    integer :: i
+
+    assert(field%field_type/=FIELD_TYPE_PYTHON)
+    
+    do i=1,size(field%val, 3)
+      field%val(dim1, dim2, i) = val
+    end do
+    
+  end subroutine set_tensor_field_dim
 
   subroutine set_tensor_field_arr(field, val)
     !!< Set the tensor field at all nodes at once
@@ -2058,12 +2024,14 @@ implicit none
         do i=1,from_field%dim
           to_field%val(i,:) = from_field%val(i,1)
         end do
+      case default
+        FLAbort("Wrong field_type for remap_field")
       end select
   
     end if
     
     ! Zero any left-over dimensions
-    do ele=from_field%dim+1,to_field%dim
+    do i=from_field%dim+1,to_field%dim
       to_field%val(i,:)=0.0
     end do
     
@@ -2097,6 +2065,8 @@ implicit none
         output(:, i, :) = from_field%val(i,1)
       end do
       return
+    case default
+      FLAbort("Wrong field_type for remap_field")
     end select
 
     call test_remap_validity(from_field, to_field, stat=stat)
@@ -2291,6 +2261,8 @@ implicit none
       do i=1, from_field%dim
         to_field%val(i,:) = from_field%val(i,1)
       end do
+    case default
+      FLAbort("Unknown field type in remap_field_to_surface")
     end select
 
     ! Zero any left-over dimensions
@@ -2299,6 +2271,82 @@ implicit none
     end do
 
   end subroutine remap_vector_field_to_surface
+
+  subroutine remap_tensor_field_to_surface(from_field, to_field, surface_element_list, stat)
+    !!< Remap the values of from_field onto the surface_field to_field, which is defined
+    !!< on the faces given by surface_element_list.
+    !!< This also deals with remapping between different orders.
+    type(tensor_field), intent(in):: from_field
+    type(tensor_field), intent(inout):: to_field
+    integer, dimension(:), intent(in):: surface_element_list
+    integer, intent(out), optional:: stat
+    
+    real, dimension(ele_loc(to_field,1), face_loc(from_field,1)) :: locweight
+    type(element_type), pointer:: from_shape, to_shape
+    real, dimension(from_field%dim(1), from_field%dim(2), face_loc(from_field,1)) :: from_val
+    integer, dimension(:), pointer :: to_nodes
+    integer toloc, fromloc, ele, face, i, j
+
+    if(present(stat)) stat = 0
+
+    assert(to_field%dim(1)>=from_field%dim(1))
+    assert(to_field%dim(2)>=from_field%dim(2))
+
+    select case(from_field%field_type)
+    case(FIELD_TYPE_NORMAL)
+    
+      call test_remap_validity(from_field, to_field, stat=stat)
+
+      ! the remapping happens from a face of from_field which is at the same
+      ! time an element of to_field
+      from_shape => face_shape(from_field, 1)
+      to_shape => ele_shape(to_field, 1)
+      ! First construct remapping weights.
+      do toloc=1,size(locweight,1)
+         do fromloc=1,size(locweight,2)
+            locweight(toloc,fromloc)=eval_shape(from_shape, fromloc, &
+                 local_coords(toloc, to_shape))
+         end do
+      end do
+    
+      ! Now loop over the surface elements.
+      do ele=1, size(surface_element_list)
+         ! element ele is a face in the mesh of from_field:
+         face=surface_element_list(ele)
+         
+         to_nodes => ele_nodes(to_field, ele)
+
+         from_val = face_val(from_field, face)
+
+         do i=1, to_field%dim(1)
+            do j=1, to_field%dim(2)
+               to_field%val(i,j,to_nodes)=matmul(locweight,from_val(i,j,:))
+            end do
+         end do
+         
+      end do
+      
+    case(FIELD_TYPE_CONSTANT)
+      do i=1, from_field%dim(1)
+         do j=1, from_field%dim(2)
+            to_field%val(i,j,:) = from_field%val(i,j,1)
+         end do
+      end do
+    end select
+
+    ! Zero any left-over dimensions
+    do i=from_field%dim(1)+1, to_field%dim(1)
+       do j=1, to_field%dim(2)
+          to_field%val(i,j,:)=0.0
+       end do
+    end do
+    do j=from_field%dim(2)+1, to_field%dim(2)
+       do i=1, to_field%dim(1)
+          to_field%val(i,j,:)=0.0
+       end do
+    end do
+
+  end subroutine remap_tensor_field_to_surface
 
   function piecewise_constant_mesh(in_mesh, name) result(new_mesh)
     !!< From a given mesh, return a scalar field
@@ -2312,7 +2360,7 @@ implicit none
 
     old_shape = in_mesh%shape
 
-    shape = make_element_shape(vertices=old_shape%loc, dim=old_shape%dim, degree=0, quad=old_shape%quadrature)
+    shape = make_element_shape(vertices=old_shape%numbering%vertices, dim=old_shape%dim, degree=0, quad=old_shape%quadrature)
     new_mesh = make_mesh(model=in_mesh, shape=shape, continuity=-1)
     new_mesh%name=name
     call deallocate(shape)
@@ -2352,18 +2400,23 @@ implicit none
 
   end subroutine scalar_scale
 
-  subroutine vector_scale(field, factor)
+  subroutine vector_scale(field, factor, dim)
     !!< Multiply vector field with factor
     type(vector_field), intent(inout) :: field
     real, intent(in) :: factor
+    integer, intent(in), optional :: dim
 
     integer :: i
 
     assert(field%field_type/=FIELD_TYPE_PYTHON)
     
-    do i=1,field%dim
-      field%val(i,:) = field%val(i,:) * factor
-    end do
+    if (present(dim)) then
+      field%val(dim,:) = field%val(dim,:) * factor
+    else
+      do i=1,field%dim
+        field%val(i,:) = field%val(i,:) * factor
+      end do
+    end if
       
   end subroutine vector_scale
 
@@ -2457,7 +2510,7 @@ implicit none
           end do
        end do
     case (FIELD_TYPE_CONSTANT)
-       field%val(:,:,1) = field%val(:,:,1) * sfield%val(1)
+       field%val(:,:,:) = field%val(:,:,:) * sfield%val(1)
     case default
        ! someone could implement in_field type python
        FLAbort("Illegal in_field field type in scale()")
@@ -2496,6 +2549,154 @@ implicit none
     
   end subroutine vector_scale_vector_field
     
+  subroutine tensor_scale_tensor_field(field, tfield)
+    !!< Multiply tensor field with tensor field. This will only work if the 
+    !!< fields have the same mesh.
+    !!< NOTE that the integral of the resulting field by a weighted sum over its values in gauss points
+    !!< will not be as accurate as multiplying the fields at each gauss point seperately 
+    !!< and then summing over these.
+    type(tensor_field), intent(inout) :: field
+    type(tensor_field), intent(in) :: tfield
+
+    integer :: i,j
+
+    assert(field%mesh%refcount%id==tfield%mesh%refcount%id)
+    assert(field%field_type/=FIELD_TYPE_PYTHON)
+    assert(field%field_type==FIELD_TYPE_NORMAL .or. tfield%field_type==FIELD_TYPE_CONSTANT)
+    
+    select case (tfield%field_type)
+    case (FIELD_TYPE_NORMAL)
+       do i=1,field%dim(1)
+         do j=1,field%dim(2)
+           field%val(i,j,:) = field%val(i,j,:) * tfield%val(i,j,:)
+         end do
+       end do
+    case (FIELD_TYPE_CONSTANT)
+       do i=1,field%dim(1)
+         do j=1,field%dim(2)
+           field%val(i,j,:) = field%val(i,j,:) * tfield%val(i,j,1)
+         end do
+       end do
+    case default
+       ! someone could implement in_field type python
+       FLAbort("Illegal in_field field type in scale()")
+    end select
+    
+  end subroutine tensor_scale_tensor_field
+    
+  subroutine scalar_power(field, power)
+    !!< Raise scalar field to power
+    type(scalar_field), intent(inout) :: field
+    real, intent(in) :: power
+
+    assert(field%field_type/=FIELD_TYPE_PYTHON)
+      
+    field%val = field%val ** power
+
+  end subroutine scalar_power
+
+  subroutine vector_power(field, power, dim)
+    !!< Raise vector field to power
+    type(vector_field), intent(inout) :: field
+    real, intent(in) :: power
+    integer, intent(in), optional :: dim
+
+    assert(field%field_type/=FIELD_TYPE_PYTHON)
+    
+    if (present(dim)) then
+      field%val(dim,:) = field%val(dim,:) ** power
+    else
+      field%val = field%val ** power
+    end if
+      
+  end subroutine vector_power
+
+  subroutine tensor_power(field, power)
+    !!< Raise tensor field to power
+    type(tensor_field), intent(inout) :: field
+    real, intent(in) :: power
+
+    assert(field%field_type/=FIELD_TYPE_PYTHON)
+    
+    field%val = field%val ** power
+      
+  end subroutine tensor_power
+    
+  subroutine scalar_power_scalar_field(field, sfield)
+    !!< Raise scalar field to power based on sfield
+    type(scalar_field), intent(inout) :: field
+    type(scalar_field), intent(in) :: sfield
+
+    assert(field%mesh==sfield%mesh)
+    assert(field%field_type/=FIELD_TYPE_PYTHON)
+    assert(field%field_type==FIELD_TYPE_NORMAL .or. sfield%field_type==FIELD_TYPE_CONSTANT)
+    
+    select case (sfield%field_type)
+    case (FIELD_TYPE_NORMAL)
+       field%val = field%val ** sfield%val
+    case (FIELD_TYPE_CONSTANT)
+       field%val = field%val ** sfield%val(1)
+    case default
+       ! someone could implement in_field type python
+       FLAbort("Illegal in_field field type in power()")
+    end select
+    
+  end subroutine scalar_power_scalar_field
+
+  subroutine vector_power_scalar_field(field, sfield)
+    !!< Raise vector field to power based on sfield
+    type(vector_field), intent(inout) :: field
+    type(scalar_field), intent(in) :: sfield
+
+    integer :: i
+
+    assert(field%mesh==sfield%mesh)
+    assert(field%field_type/=FIELD_TYPE_PYTHON)
+    assert(field%field_type==FIELD_TYPE_NORMAL .or. sfield%field_type==FIELD_TYPE_CONSTANT)
+    
+    select case (sfield%field_type)
+    case (FIELD_TYPE_NORMAL)
+       do i=1,field%dim
+          field%val(i,:) = field%val(i,:) ** sfield%val
+       end do
+    case (FIELD_TYPE_CONSTANT)
+       do i=1,field%dim
+          field%val(i,:) = field%val(i,:) ** sfield%val(1)
+       end do
+    case default
+       ! someone could implement in_field type python
+       FLAbort("Illegal in_field field type in power()")
+    end select
+    
+  end subroutine vector_power_scalar_field
+
+  subroutine tensor_power_scalar_field(field, sfield)
+    !!< Raise tensor field to power based on sfield
+    type(tensor_field), intent(inout) :: field
+    type(scalar_field), intent(in) :: sfield
+
+    integer :: i, j
+
+    assert(field%mesh==sfield%mesh)
+    assert(field%field_type/=FIELD_TYPE_PYTHON)
+    assert(field%field_type==FIELD_TYPE_NORMAL .or. sfield%field_type==FIELD_TYPE_CONSTANT)
+    
+    select case (sfield%field_type)
+    case (FIELD_TYPE_NORMAL)
+       do i=1,field%dim(1)
+          do j=1,field%dim(2)
+             field%val(i,j,:) = field%val(i,j,:) ** sfield%val
+          end do
+       end do
+    case (FIELD_TYPE_CONSTANT)
+       field%val(:,:,:) = field%val(:,:,:) ** sfield%val(1)
+    case default
+       ! someone could implement in_field type python
+       FLAbort("Illegal in_field field type in power()")
+    end select
+    
+  end subroutine tensor_power_scalar_field
+
   subroutine bound_scalar_field(field, lower_bound, upper_bound)
     !!< Bound a field by the lower and upper bounds supplied
     type(scalar_field), intent(inout) :: field
@@ -2723,6 +2924,50 @@ implicit none
     end do
     
   end subroutine invert_vector_field
+
+  subroutine invert_tensor_field_inplace(field, tolerance)
+  !!< Computes 1/field for a tensor field
+    type(tensor_field), intent(inout):: field
+    real, intent(in), optional :: tolerance
+    
+    call invert_tensor_field(field, field, tolerance)
+    
+  end subroutine invert_tensor_field_inplace
+
+  subroutine invert_tensor_field(in_field, out_field, tolerance)
+  !!< Computes 1/field for a tensor field
+    type(tensor_field), intent(in):: in_field
+    type(tensor_field), intent(inout):: out_field
+    real, intent(in), optional :: tolerance
+    
+    integer :: i, j, k
+  
+    assert(out_field%field_type==FIELD_TYPE_NORMAL .or. out_field%field_type==FIELD_TYPE_CONSTANT)
+    assert(in_field%dim(1)==in_field%dim(1))
+    assert(in_field%dim(2)==in_field%dim(2))
+    do i = 1, out_field%dim(1)
+      do j = 1, out_field%dim(2)
+        if (in_field%field_type==out_field%field_type) then
+          if(present(tolerance)) then
+            do k = 1, size(out_field%val(i,j,:))
+              out_field%val(i,j,k) = 1/sign(max(tolerance, abs(in_field%val(i,j,k))), in_field%val(i,j,k))
+            end do
+          else
+            out_field%val(i,j,:)=1/in_field%val(i,j,:)
+          end if
+        else if (in_field%field_type==FIELD_TYPE_CONSTANT) then
+          if(present(tolerance)) then
+            out_field%val(i,j,:)=1/sign(max(tolerance, abs(in_field%val(i,j,1))), in_field%val(i,j,1))
+          else
+            out_field%val(i,j,:)=1/in_field%val(i,j,1)
+          end if
+        else
+          FLAbort("Calling invert_vector_field with wrong field type")
+        end if
+      end do
+    end do
+    
+  end subroutine invert_tensor_field
 
   subroutine absolute_value_scalar_field(field)
   !!< Computes abs(field) for a scalar field
@@ -3577,14 +3822,34 @@ implicit none
       call incref(output_mesh%faces%face_list)
       allocate(output_mesh%faces%face_lno(size(input_positions%mesh%faces%face_lno)))
       output_mesh%faces%face_lno = input_positions%mesh%faces%face_lno
+#ifdef HAVE_MEMORY_STATS
+      call register_allocation("mesh_type", "integer", &
+                                size(output_mesh%faces%face_lno), name=output_mesh%name)
+#endif
       output_mesh%faces%surface_mesh = input_positions%mesh%faces%surface_mesh
       call incref(output_mesh%faces%surface_mesh)
       allocate(output_mesh%faces%surface_node_list(size(input_positions%mesh%faces%surface_node_list)))
       output_mesh%faces%surface_node_list = permutation(input_positions%mesh%faces%surface_node_list)
+#ifdef HAVE_MEMORY_STATS
+      call register_allocation("mesh_type", "integer", &
+                               size(output_mesh%faces%surface_node_list), name='Surface'//trim(output_mesh%name))
+#endif
       allocate(output_mesh%faces%face_element_list(size(input_positions%mesh%faces%face_element_list)))
       output_mesh%faces%face_element_list = input_positions%mesh%faces%face_element_list
+#ifdef HAVE_MEMORY_STATS
+      call register_allocation("mesh_type", "integer", &
+                               size(output_mesh%faces%face_element_list), &
+                               trim(output_mesh%name)//" face_element_list.")
+#endif
+      output_mesh%faces%unique_surface_element_count = input_positions%mesh%faces%unique_surface_element_count
+      output_mesh%faces%has_discontinuous_internal_boundaries = has_discontinuous_internal_boundaries(input_positions%mesh)
       allocate(output_mesh%faces%boundary_ids(size(input_positions%mesh%faces%boundary_ids)))
       output_mesh%faces%boundary_ids = input_positions%mesh%faces%boundary_ids
+#ifdef HAVE_MEMORY_STATS
+      call register_allocation("mesh_type", "integer", &
+                               size(output_mesh%faces%boundary_ids), &
+                               trim(output_mesh%name)//" boundary_ids")
+#endif
       if(associated(input_positions%mesh%faces%coplanar_ids)) then
         allocate(output_mesh%faces%coplanar_ids(size(input_positions%mesh%faces%coplanar_ids)))
         output_mesh%faces%coplanar_ids = input_positions%mesh%faces%coplanar_ids
@@ -3651,6 +3916,7 @@ implicit none
     integer :: ele, node, halo_num, lelement_halo_ordering_scheme, proc
     type(halo_type), pointer :: input_halo, output_halo
     integer, dimension(:), allocatable :: sndgln
+    integer :: no_unique_facets
 
     ewrite(1, *) "In renumber_positions_elements"
 
@@ -3683,11 +3949,17 @@ implicit none
     ! Now here comes the damnable face information
 
     if (associated(input_positions%mesh%faces)) then
-      allocate(sndgln(surface_element_count(input_positions) * face_loc(input_positions, 1)))
+      no_unique_facets = unique_surface_element_count(input_positions%mesh)
+      allocate(sndgln(no_unique_facets * face_loc(input_positions, 1)))
       call getsndgln(input_positions%mesh, sndgln)
-      call add_faces(output_mesh, sndgln=sndgln, element_owner=permutation(input_positions%mesh%faces%face_element_list(1:surface_element_count(input_positions))))
+      if (has_discontinuous_internal_boundaries(input_positions%mesh)) then
+        assert(surface_element_count(input_positions%mesh)==no_unique_facets)
+        call add_faces(output_mesh, sndgln=sndgln, boundary_ids=input_positions%mesh%faces%boundary_ids, &
+          element_owner=permutation(input_positions%mesh%faces%face_element_list(1:no_unique_facets)))
+      else
+        call add_faces(output_mesh, sndgln=sndgln, boundary_ids=input_positions%mesh%faces%boundary_ids(1:no_unique_facets))
+      end if
       deallocate(sndgln)
-      output_mesh%faces%boundary_ids = input_positions%mesh%faces%boundary_ids
       if (associated(input_positions%mesh%faces%coplanar_ids)) then
         allocate(output_mesh%faces%coplanar_ids(size(input_positions%mesh%faces%coplanar_ids)))
         output_mesh%faces%coplanar_ids = input_positions%mesh%faces%coplanar_ids
@@ -3814,7 +4086,7 @@ implicit none
 
     mesh => positions%mesh
     if(has_faces(mesh)) then
-      allocate(sndgln(face_loc(mesh, 1) * surface_element_count(mesh)))
+      allocate(sndgln(face_loc(mesh, 1) * unique_surface_element_count(mesh)))
       call getsndgln(mesh, sndgln)
     end if
     
@@ -3862,31 +4134,39 @@ implicit none
 
     subroutine update_faces(mesh, sndgln)
       type(mesh_type), intent(inout) :: mesh
-      integer, dimension(face_loc(mesh, 1) * surface_element_count(mesh)), intent(in) :: sndgln
+      integer, dimension(face_loc(mesh, 1) * unique_surface_element_count(mesh)), intent(in) :: sndgln
 
-      integer, dimension(surface_element_count(mesh)) :: boundary_ids
-      integer, dimension(:), allocatable :: coplanar_ids, element_owners
+      integer, dimension(:), allocatable :: boundary_ids, coplanar_ids, element_owners
 
       assert(has_faces(mesh))
 
-      boundary_ids = mesh%faces%boundary_ids
       if(associated(mesh%faces%coplanar_ids)) then
         allocate(coplanar_ids(surface_element_count(mesh)))
         coplanar_ids = mesh%faces%coplanar_ids
       end if
 
-      allocate(element_owners((surface_element_count(mesh))))
-      element_owners = mesh%faces%face_element_list(1:surface_element_count(mesh))
+      allocate(boundary_ids(1:unique_surface_element_count(mesh)))
+      boundary_ids = mesh%faces%boundary_ids(1:size(boundary_ids))
 
-      call deallocate_faces(mesh)
-      call add_faces(mesh, sndgln = sndgln, element_owner=element_owners)
-      mesh%faces%boundary_ids = boundary_ids
+      if (has_discontinuous_internal_boundaries(mesh)) then
+        allocate(element_owners((surface_element_count(mesh))))
+        element_owners = mesh%faces%face_element_list(1:surface_element_count(mesh))
+
+        call deallocate_faces(mesh)
+        call add_faces(mesh, sndgln = sndgln, boundary_ids=boundary_ids, &
+          element_owner=element_owners)
+        deallocate(element_owners)
+      else
+        call deallocate_faces(mesh)
+        call add_faces(mesh, sndgln = sndgln, boundary_ids=boundary_ids)
+      end if
+
       if(allocated(coplanar_ids)) then
         allocate(mesh%faces%coplanar_ids(size(coplanar_ids)))
         mesh%faces%coplanar_ids = coplanar_ids
         deallocate(coplanar_ids)
       end if
-      deallocate(element_owners)
+      deallocate(boundary_ids)
 
     end subroutine update_faces
 

@@ -11,8 +11,8 @@
       <integer_value rank="0">2</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
-      <from_file file_name="Subduction_Mesh">
-        <format name="triangle"/>
+      <from_file file_name="mesh/Subduction_Mesh">
+        <format name="gmsh"/>
         <stat>
           <include_in_stat/>
         </stat>
@@ -177,7 +177,6 @@
               <max_iterations>
                 <integer_value rank="0">10000</integer_value>
               </max_iterations>
-              <remove_null_space/>
               <never_ignore_solver_failures/>
               <diagnostics>
                 <monitors/>
@@ -249,6 +248,7 @@
             <stress_terms>
               <tensor_form/>
             </stress_terms>
+            <buoyancy/>
           </continuous_galerkin>
           <conservative_advection>
             <real_value rank="0">1.0</real_value>
@@ -497,7 +497,9 @@
         </temporal_discretisation>
         <solver>
           <iterative_method name="preonly"/>
-          <preconditioner name="lu"/>
+          <preconditioner name="lu">
+            <factorization_package name="petsc"/>
+          </preconditioner>
           <relative_error>
             <real_value rank="0">1.0e-10</real_value>
           </relative_error>

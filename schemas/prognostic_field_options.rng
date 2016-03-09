@@ -71,11 +71,33 @@ sediment grain</a:documentation>
           <attribute name="name">
             <value>sediment_reentrainment</value>
           </attribute>
-          <empty/>
+          <element name="algorithm">
+            <a:documentation>Select algorithm to calculate reentrainment by (see the manual for more detail)</a:documentation>
+            <choice>
+              <value>Garcia_1991</value>
+              <value>Generic</value>
+            </choice>
+          </element>
+          <optional>
+            <element name="viscosity">
+              <a:documentation>Viscosity value to use within this algorithm. This allows the user to override 
+use of the material viscosity used for the rest of the simulation for calculating 
+sediment reentrainment. </a:documentation>
+              <ref name="real"/>
+            </element>
+          </optional>
+          <optional>
+            <!--
+              Only for debugging purposes - sets Neumann boundary to zero (diagnostic fields are
+              still set)
+            -->
+            <element name="set_to_zero">
+              <empty/>
+            </element>
+          </optional>
         </element>
         <element name="type">
-          <a:documentation>[UNDER DEVELOPMENT - DOES NOT WORK YET]
-Special type of Dirichlet boundary condition for the k-epsilon
+          <a:documentation>Special type of Dirichlet boundary condition for the k-epsilon
 turbulence model. Can be used on TurbulentKineticEnergy (k)
 and/or TurbulentDissipation (epsilon) fields.
 e.g. use a Dirichlet BC on inlets and k_epsilon on walls.</a:documentation>
@@ -83,11 +105,8 @@ e.g. use a Dirichlet BC on inlets and k_epsilon on walls.</a:documentation>
             <value>k_epsilon</value>
           </attribute>
           <element name="string_value">
-            <a:documentation>Select high/low Reynolds number wall functions for k and epsilon fields.</a:documentation>
-            <choice>
-              <value>low_Re</value>
-              <value>high_Re</value>
-            </choice>
+            <a:documentation>Select low Reynolds number wall function for k and epsilon fields.</a:documentation>
+            <value>low_Re</value>
           </element>
         </element>
         <element name="type">
@@ -113,7 +132,8 @@ a boundary when solving the advection-diffusion equation.</a:documentation>
  T the scalar field value on the surface,
  C0 is the input order zero coefficient and
  C1 is the input order one coefficient.
- THIS WILL ONLY WORK FOR CONTINUOUS GALERKIN SPATIAL DISCRETISATION</a:documentation>
+ THIS WILL ONLY WORK FOR CONTINUOUS GALERKIN OR CONTROL VOLUME 
+ (USING AN ELEMENTGRADIENT DIFFUSION SCHEME) SPATIAL DISCRETISATIONS.</a:documentation>
       <attribute name="name">
         <value>robin</value>
       </attribute>
@@ -136,7 +156,7 @@ a boundary when solving the advection-diffusion equation.</a:documentation>
     <choice>
       <element name="solver">
         <a:documentation>Solver</a:documentation>
-        <ref name="linear_solver_options_asym"/>
+        <ref name="linear_solver_options_asym_scalar"/>
       </element>
       <element name="explicit">
         <a:documentation>Assume this field is being solved explicitly and skip the solver.
@@ -199,18 +219,68 @@ At this time, do not switch on this option if you are using Mellor-Yamada.</a:do
           </attribute>
         </element>
         <element name="subgridscale_parameterisation">
-          <a:documentation>[UNDER DEVELOPMENT - DOES NOT WORK YET]
-Set the diffusivity to the eddy diffusivity calculated by the
-k-epsilon turbulence model. If using this, set the diffusivity field to
-diagnostic/algorithm(internal).</a:documentation>
+          <a:documentation>Turning this option on enables calculation of turbulent diffusivity for this field, and calculation of buoyancy 
+source terms for this field in the k_eps code.
+
+TURBULENT DIFFUSIVITY
+
+To enable, set the diffusivity field to diagnostic/algorithm(k_epsilon). 
+
+The diffusivity, D, is set to the sum of the background diffusivity, D_bg, and the eddy diffusivity calculated 
+by the k-epsilon turbulence model.
+
+D = D_bg  nu_t / Pr
+
+where: nu_t = turbulent viscosity ; Pr = Prandtl or Schmidt number
+
+A background diffusivity can either be set globally
+under material_phase[]/subgridscale_parameterisations/k-epsilon, or individually for each field this is 
+applied upon. If it is set globally and locally, the local background diffusivity is used.
+
+BUOYANCY EFFECTS
+
+Enable this by selecting the buoyancy_effects node. A buoyancy source term is added to the right hand side of the k
+and epsilon equations. See the manual for more information.
+</a:documentation>
           <attribute name="name">
             <value>k-epsilon</value>
           </attribute>
           <optional>
-            <element name="Prandtl_number">
-              <a:documentation>Option to set the Prandtl number (ratio of momentum diffusivity to field diffusivity)
- for this field. Default = 1.0 if not specified.</a:documentation>
-              <ref name="input_choice_real"/>
+            <element name="background_diffusivity">
+              <a:documentation>Option to set a unique isotropic background diffusivity for this field.</a:documentation>
+              <ref name="real"/>
+            </element>
+          </optional>
+        </element>
+        <element name="subgridscale_parameterisation">
+          <a:documentation>Turning this option on enables a turbulent diffusion term for this field when using LES.
+This is only implemented for cases where velocity is discontinuous and this scalar field is discontiuous.
+
+The turbulent diffusion term is identical to the molecular diffusion term but takes its value of diffusivity
+from the LES eddy viscosity, scaled by a Prandtl number. 
+
+k_T = nu_T / Pr
+
+where k_T = turbulent diffusivity, nu_T = eddy viscosity and Pr = prandtl number
+
+See "Experimental and large eddy simulation results for the purging of salt water from a cavity by an 
+overflow of fresh water", Kirkpatrick 2005</a:documentation>
+          <attribute name="name">
+            <value>LES</value>
+          </attribute>
+          <optional>
+            <element name="PrandtlNumber">
+              <a:documentation>Ratio of turbulent momentum diffusivity to turbulent molecular diffusivity. 
+Default = 1.0, i.e. SGS viscosity = SGS diffusivity</a:documentation>
+              <ref name="real"/>
+            </element>
+          </optional>
+          <optional>
+            <element name="Ri_c">
+              <a:documentation>Richardson number (Ri) dependent SGS diffusivity. Specify the critical Ri number. 
+
+See Stevens et al., 1998; Dornbrack, 1998, Ozgokmen et. al. 2007</a:documentation>
+              <ref name="real"/>
             </element>
           </optional>
         </element>
@@ -348,7 +418,11 @@ is used for the spatial discretisation.</a:documentation>
         <a:documentation>Velocity at which this substance sinks through the water column.
 
 This velocity is in the direction of gravity so if the substance
-floats or swims upwards, this field should be negative.</a:documentation>
+floats or swims upwards, this field should be negative.
+
+This should be on the same mesh as the velocity field unless you are 
+using a DG discretisation and projecting the velocity to contiuous, in 
+which case it should be on a continuous mesh.</a:documentation>
         <attribute name="name">
           <value>SinkingVelocity</value>
         </attribute>
@@ -357,9 +431,11 @@ floats or swims upwards, this field should be negative.</a:documentation>
         </attribute>
         <choice>
           <element name="prescribed">
+            <ref name="velocity_mesh_choice"/>
             <ref name="prescribed_scalar_field_no_adapt"/>
           </element>
           <element name="diagnostic">
+            <ref name="velocity_mesh_choice"/>
             <choice>
               <ref name="scalar_python_diagnostic_algorithm"/>
               <ref name="internal_algorithm"/>
@@ -593,21 +669,32 @@ where N_a and N_b are shape functions of the ath and bth node respectively and m
           </element>
           <optional>
             <element name="les_model">
-              <a:documentation>large-eddy simulation models (currently restricted to use in incompressible flow cases, where the discrete velocity is divergence-free and the eddy viscosity tensor is traceless)</a:documentation>
+              <a:documentation>Large-eddy simulation (LES) models. Currently restricted to use in incompressible flow cases, where the discrete velocity is divergence-free and the eddy viscosity tensor is traceless.</a:documentation>
               <choice>
                 <element name="second_order">
-                  <a:documentation>similar to the original Smag model</a:documentation>
+                  <a:documentation>Similar to the original Smagorinsky model</a:documentation>
                   <element name="smagorinsky_coefficient">
-                    <a:documentation>literature symbol: Cs
+                    <a:documentation>Literature symbol: Cs
 
-suggested value 0.1</a:documentation>
+Suggested value: 0.1</a:documentation>
                     <ref name="real"/>
+                  </element>
+                  <element name="length_scale_type">
+                    <a:documentation>The 'scalar' length scale is the cube root of the element's volume in 3D. In 2D, it is the square root of the element's area. Using this will result in an isotropic eddy viscosity tensor.
+
+The 'tensor' length scale uses the metric from the adaptivity process. Using this will result in an anisotropic eddy viscosity tensor.</a:documentation>
+                    <choice>
+                      <value>scalar</value>
+                      <value>tensor</value>
+                    </choice>
                   </element>
                   <optional>
                     <element name="tensor_field">
-                      <a:documentation>eddy viscosity (turbulent diffusion of velocity).
-This is an anisotropic symmetric viscosity, added to normal viscosity field, that
-carries the influence of turbulence onto the velocity field.</a:documentation>
+                      <a:documentation>Eddy viscosity diagnostic field (turbulent diffusion of velocity).
+This is a symmetric viscosity, added to normal viscosity field, that
+carries the influence of turbulence onto the velocity field. It will
+be anisotropic if the 'tensor' length scale is chosen. Otherwise, it
+will be isotropic.</a:documentation>
                       <attribute name="rank">
                         <value>2</value>
                       </attribute>
@@ -618,6 +705,20 @@ carries the influence of turbulence onto the velocity field.</a:documentation>
                         <ref name="internal_algorithm"/>
                         <ref name="velocity_mesh_choice"/>
                         <ref name="diagnostic_tensor_field"/>
+                        <element name="mass_matrix">
+                          <choice>
+                            <element name="use_lumped_mass_matrix">
+                              <optional>
+                                <element name="use_submesh">
+                                  <empty/>
+                                </element>
+                              </optional>
+                            </element>
+                            <element name="use_consistent_mass_matrix">
+                              <empty/>
+                            </element>
+                          </choice>
+                        </element>
                       </element>
                     </element>
                   </optional>
@@ -646,59 +747,96 @@ suggested value 0.1</a:documentation>
                   </element>
                 </element>
                 <element name="dynamic_les">
-                  <a:documentation>[UNDER DEVELOPMENT] The Germano dynamic method (See Germano 1991, Lilly 1991, Pope)
+                  <a:documentation>The dynamic LES method (See Lilly 1991, Pope)
 accounts for turbulent flow anisotropy by implementing the Smagorinsky model
 with a spatially varying coefficient. At its heart is the difference between turbulent
- stress tensors calculated from the velocity field filtered at 2 filter widths, G_t and G_m.
+ stress tensors calculated from the velocity field filtered at 2 filter widths,
+first filter G_f and test filter G_t.
 See the manual for further details.</a:documentation>
                   <element name="alpha">
-                    <a:documentation>Filtering scale factor alpha: the ratio between the filter widths.
-The test filter G_t = G_m*alpha, where G_m is the filter
-width associated with the local mesh size. Filtering is achieved by applying
-the inverse Helmholtz operator: u_filter_2 = (1-alpha*M)^-1 * u_filter_1.
+                    <a:documentation>Filtering scale factor alpha: the ratio between the mesh size and first filter width G_f.
+First filtering is achieved by applying the inverse Helmholtz operator:
+u_f = (1-alpha^2/24*M*L)^-1 * u, where M is the mesh size squared (a tensor) and L is the Laplacian.
+Lower values will result in less information being filtered out of the velocity.
 
-default/recommended value: 2.0</a:documentation>
+default value: 2.0</a:documentation>
                     <ref name="real"/>
+                  </element>
+                  <element name="gamma">
+                    <a:documentation>Filtering scale factor gamma: the ratio between the first filter G_f and test filter G_t.
+Test filtering is achieved by applying the inverse Helmholtz operator:
+u_t = (1-gamma^2*alpha^2/24*M*L)^-1 * u_f, where M is the mesh size squared (a tensor) and L is the Laplacian.
+Lower values will result in less information being filtered out of the first filtered velocity.
+
+default value: 2.0</a:documentation>
+                    <ref name="real"/>
+                  </element>
+                  <element name="length_scale_type">
+                    <a:documentation>The 'scalar' length scale is the cube root of the element's volume in 3D. In 2D, it is the square root of the element's area. Using this will result in an isotropic eddy viscosity tensor.
+
+The 'tensor' length scale uses the metric from the adaptivity process. Using this will result in an anisotropic eddy viscosity tensor.</a:documentation>
+                    <choice>
+                      <value>scalar</value>
+                      <value>tensor</value>
+                    </choice>
                   </element>
                   <element name="solver">
                     <a:documentation>Solver options are required for calculation of Helmholtz-smoothed velocity.</a:documentation>
                     <ref name="linear_solver_options_sym"/>
                   </element>
                   <optional>
-                    <element name="enable_lilly">
-                      <a:documentation>Use the Lilly modification to the model (see Lilly 1991).
-</a:documentation>
-                      <empty/>
-                    </element>
-                  </optional>
-                  <optional>
-                    <element name="enable_backscatter">
-                      <a:documentation>Allow negative eddy viscosity (backscatter).
-WARNING: this may result in the simulation blowing up.
-</a:documentation>
-                      <empty/>
-                    </element>
-                  </optional>
-                  <optional>
-                    <element name="vector_field">
-                      <a:documentation>Filtered velocity (diagnostic). This is the Velocity field filtered
-with the test filter - see manual.</a:documentation>
-                      <attribute name="rank">
-                        <value>2</value>
-                      </attribute>
+                    <element name="scalar_field">
+                      <a:documentation>Spatially varying Smagorinsky coefficient.</a:documentation>
                       <attribute name="name">
-                        <value>FilteredVelocity</value>
+                        <value>SmagorinskyCoefficient</value>
+                      </attribute>
+                      <attribute name="rank">
+                        <value>1</value>
                       </attribute>
                       <element name="diagnostic">
                         <ref name="internal_algorithm"/>
                         <ref name="velocity_mesh_choice"/>
-                        <ref name="diagnostic_vector_field"/>
+                        <ref name="diagnostic_scalar_field"/>
+                      </element>
+                    </element>
+                  </optional>
+                  <optional>
+                    <element name="vector_field">
+                      <a:documentation>First filtered velocity (diagnostic). This is the Velocity field filtered
+with the first filter - see manual.</a:documentation>
+                      <attribute name="rank">
+                        <value>2</value>
+                      </attribute>
+                      <attribute name="name">
+                        <value>FirstFilteredVelocity</value>
+                      </attribute>
+                      <element name="diagnostic">
+                        <ref name="internal_algorithm"/>
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="diagnostic_tensor_field"/>
+                      </element>
+                    </element>
+                  </optional>
+                  <optional>
+                    <element name="vector_field">
+                      <a:documentation>Test filtered velocity (diagnostic). This is the first filtered velocity field filtered
+again with the test filter - see manual.</a:documentation>
+                      <attribute name="rank">
+                        <value>2</value>
+                      </attribute>
+                      <attribute name="name">
+                        <value>TestFilteredVelocity</value>
+                      </attribute>
+                      <element name="diagnostic">
+                        <ref name="internal_algorithm"/>
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="diagnostic_tensor_field"/>
                       </element>
                     </element>
                   </optional>
                   <optional>
                     <element name="tensor_field">
-                      <a:documentation>Filter width tensor (diagnostic). This is the square of the mesh size.</a:documentation>
+                      <a:documentation>First filter width tensor (diagnostic): G_f = meshsize^2*alpha^2.</a:documentation>
                       <attribute name="rank">
                         <value>2</value>
                       </attribute>
@@ -709,38 +847,20 @@ with the test filter - see manual.</a:documentation>
                         <ref name="internal_algorithm"/>
                         <ref name="velocity_mesh_choice"/>
                         <ref name="diagnostic_tensor_field"/>
-                      </element>
-                    </element>
-                  </optional>
-                  <optional>
-                    <element name="tensor_field">
-                      <a:documentation>Strain rate S1: the test filter applied to the strain rate of the mesh-filtered velocity.</a:documentation>
-                      <attribute name="rank">
-                        <value>2</value>
-                      </attribute>
-                      <attribute name="name">
-                        <value>StrainRate</value>
-                      </attribute>
-                      <element name="diagnostic">
-                        <ref name="internal_algorithm"/>
-                        <ref name="velocity_mesh_choice"/>
-                        <ref name="diagnostic_tensor_field"/>
-                      </element>
-                    </element>
-                  </optional>
-                  <optional>
-                    <element name="tensor_field">
-                      <a:documentation>Strain rate S2: the strain rate of the test-filtered velocity.</a:documentation>
-                      <attribute name="rank">
-                        <value>2</value>
-                      </attribute>
-                      <attribute name="name">
-                        <value>FilteredStrainRate</value>
-                      </attribute>
-                      <element name="diagnostic">
-                        <ref name="internal_algorithm"/>
-                        <ref name="velocity_mesh_choice"/>
-                        <ref name="diagnostic_tensor_field"/>
+                        <element name="mass_matrix">
+                          <choice>
+                            <element name="use_lumped_mass_matrix">
+                              <optional>
+                                <element name="use_submesh">
+                                  <empty/>
+                                </element>
+                              </optional>
+                            </element>
+                            <element name="use_consistent_mass_matrix">
+                              <empty/>
+                            </element>
+                          </choice>
+                        </element>
                       </element>
                     </element>
                   </optional>
@@ -759,6 +879,20 @@ carries the influence of turbulence onto the velocity field.</a:documentation>
                         <ref name="internal_algorithm"/>
                         <ref name="velocity_mesh_choice"/>
                         <ref name="diagnostic_tensor_field"/>
+                        <element name="mass_matrix">
+                          <choice>
+                            <element name="use_lumped_mass_matrix">
+                              <optional>
+                                <element name="use_submesh">
+                                  <empty/>
+                                </element>
+                              </optional>
+                            </element>
+                            <element name="use_consistent_mass_matrix">
+                              <empty/>
+                            </element>
+                          </choice>
+                        </element>
                       </element>
                     </element>
                   </optional>
@@ -778,6 +912,19 @@ upon temperature. This is only valid when you have a temperature field.</a:docum
               </element>
             </element>
           </optional>
+          <element name="buoyancy">
+            <a:documentation>Options dealing with buoyancy</a:documentation>
+            <optional>
+              <element name="radial_gravity_direction_at_gauss_points">
+                <a:documentation>Align the gravity opposite to the radial direction (-(x,y) in 2d, -(x,y,z) in 3d)
+and evaluate it at the gauss points.
+
+NOTE: this ignores whatever values are set under /physical_parameters/gravity/vector_field::GravityDirection 
+for the buoyancy terms.</a:documentation>
+                <ref name="comment"/>
+              </element>
+            </optional>
+          </element>
         </element>
         <element name="discontinuous_galerkin">
           <a:documentation>Discontinuous galerkin formulation. Confusingly it is not necessary to provide
@@ -815,7 +962,8 @@ scaled by C_0</a:documentation>
               </element>
               <element name="bassi_rebay">
                 <a:documentation>Classical scheme from Bassi and Rebay 
-(JCP 131 267-179 1997)</a:documentation>
+(JCP 131 267-179 1997)
+Partial stress form is available for inhomogenous isotropic viscosities</a:documentation>
                 <empty/>
               </element>
               <element name="arbitrary_upwind">
@@ -887,6 +1035,19 @@ Int grad u.kappa.grad v dV</a:documentation>
                     </optional>
                   </element>
                 </optional>
+              </element>
+            </choice>
+            <choice>
+              <element name="tensor_form">
+                <a:documentation>solves the viscosity term in the form:  d/dx_j K du_i/dx_j</a:documentation>
+                <empty/>
+              </element>
+              <element name="partial_stress_form">
+                <a:documentation>solves the viscosity term in the form:  d/dx_j k (du_i/dx_j + du_j/dx_j)
+note that the viscosity, k, must be isoptropic
+
+only implemented for the bassi-rebay viscosity scheme</a:documentation>
+                <empty/>
               </element>
             </choice>
           </element>
@@ -995,6 +1156,103 @@ twice.</a:documentation>
               </element>
             </optional>
           </element>
+          <optional>
+            <element name="les_model">
+              <a:documentation>Large-eddy simulation (LES) models. Currently restricted to use in incompressible flow cases, where the discrete velocity is divergence-free and the eddy viscosity tensor is traceless.
+Also restricted to the Bassi-Rebay viscosity scheme which must be in partial stress form</a:documentation>
+              <element name="smagorinsky_coefficient">
+                <a:documentation>literature symbol: Cs
+
+suggested value 0.1</a:documentation>
+                <ref name="real"/>
+              </element>
+              <optional>
+                <element name="scalar_field">
+                  <a:documentation>In adaptive simulations you may want to prescribe a filter width to use throught the domain</a:documentation>
+                  <attribute name="rank">
+                    <value>0</value>
+                  </attribute>
+                  <attribute name="name">
+                    <value>FilterWidth</value>
+                  </attribute>
+                  <element name="prescribed">
+                    <ref name="velocity_mesh_choice"/>
+                    <ref name="prescribed_scalar_field"/>
+                  </element>
+                </element>
+              </optional>
+              <optional>
+                <element name="scalar_field">
+                  <a:documentation>If distance to wall is enabled a Van Driest damping function will be applied based upon the wall distances set in this field.</a:documentation>
+                  <attribute name="rank">
+                    <value>0</value>
+                  </attribute>
+                  <attribute name="name">
+                    <value>DistanceToWall</value>
+                  </attribute>
+                  <element name="prescribed">
+                    <ref name="velocity_mesh_choice"/>
+                    <ref name="prescribed_scalar_field"/>
+                  </element>
+                </element>
+              </optional>
+              <optional>
+                <element name="debug">
+                  <optional>
+                    <element name="scalar_field">
+                      <a:documentation>YPlus - the wall Reynolds number on the Van Driest formulation. Requires an LES model
+to be applied to the velocity field.</a:documentation>
+                      <attribute name="rank">
+                        <value>0</value>
+                      </attribute>
+                      <attribute name="name">
+                        <value>YPlus</value>
+                      </attribute>
+                      <element name="prescribed">
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="internal_algorithm"/>
+                        <ref name="diagnostic_scalar_field"/>
+                      </element>
+                    </element>
+                  </optional>
+                  <optional>
+                    <element name="scalar_field">
+                      <a:documentation>DampedFilterWidth - Mixing length following application of the
+Van Driest formula:
+
+L_damped = L_{grid} * (1.0 - exp(-YPlus/25))
+
+Requires an LES model to be applied to the velocity field.</a:documentation>
+                      <attribute name="rank">
+                        <value>0</value>
+                      </attribute>
+                      <attribute name="name">
+                        <value>DampedFilterWidth</value>
+                      </attribute>
+                      <element name="prescribed">
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="internal_algorithm"/>
+                        <ref name="diagnostic_scalar_field"/>
+                      </element>
+                    </element>
+                  </optional>
+                </element>
+              </optional>
+            </element>
+          </optional>
+          <element name="buoyancy">
+            <a:documentation>Options dealing with buoyancy</a:documentation>
+            <optional>
+              <element name="radial_gravity_direction_at_gauss_points">
+                <a:documentation>Align the gravity opposite to the radial direction (-(x,y) in 2d, -(x,y,z) in 3d)
+and evaluate it at the gauss points.
+
+NOTE: this ignores whatever values are set under /physical_parameters/gravity/vector_field::GravityDirection 
+for the buoyancy terms.</a:documentation>
+                <ref name="comment"/>
+              </element>
+            </optional>
+          </element>
         </element>
       </choice>
       <element name="conservative_advection">
@@ -1022,15 +1280,39 @@ twice.</a:documentation>
         <ref name="real"/>
       </element>
       <optional>
+        <element name="theta_pressure_gradient">
+          <a:documentation>Implicit/explicit control of pressure gradient temporal
+ discretisation, theta_pg
+
+ =0.  -- explicit
+
+ =0.5 -- Crank-Nicolson
+
+ =1.  -- implicit
+
+ Specification of this parameter will only affect
+ solution procedure when a free-surface is present or 
+ compressible projection or equation type Shallow Water is used. 
+ If left unspecified
+ the code defaults to theta_pg = theta.</a:documentation>
+          <ref name="real"/>
+        </element>
+      </optional>
+      <optional>
         <element name="theta_divergence">
           <a:documentation>Implicit/explicit control of velocity-divergence temporal
  discretisation, theta_divergence
+
  =0.  -- explicit
+
  =0.5 -- Crank-Nicolson
+
  =1.  -- implicit
+
  Specification of this parameter will only affect
  solution procedure when a free-surface is present or 
- compressible projection is used. If left unspecified
+ compressible projection or equation type Shallow Water is used. 
+ If left unspecified
  the code defaults to theta_divergence = theta.</a:documentation>
           <ref name="real"/>
         </element>
@@ -1046,10 +1328,10 @@ Specify the maximum courant number per subcycle.</a:documentation>
       </optional>
     </element>
     <optional>
-      <element name="reference_node">
+      <choice>
         <a:documentation>&lt;b&gt;ONLY MAKES SENSE WITH STOKES&lt;/b&gt;
 
-Reference node (Node at which all components of velocity = 0.)
+Reference node (Node at which specified components of velocity = 0.)
 
 Must be less than the total number of nodes.
 If parallel must be less than the total number of nodes of the first processor.
@@ -1063,12 +1345,65 @@ Note: it is also an option to remove the null-space of the residual vector. This
 option is available under solvers but only removes a single null space so will
 only work if your Stokes velocities are coupled in some way (not generally the 
 case unless using stress form viscosity and/or coriolis).</a:documentation>
-        <ref name="integer"/>
-      </element>
+        <element name="reference_node">
+          <ref name="integer"/>
+          <choice>
+            <element name="all_components">
+              <a:documentation>Apply this reference node to all components of velocity</a:documentation>
+              <empty/>
+            </element>
+            <element name="specify_components">
+              <a:documentation>Specify individual components of velocity to apply this reference node to</a:documentation>
+              <optional>
+                <element name="x_component">
+                  <empty/>
+                </element>
+              </optional>
+              <optional>
+                <element name="y_component">
+                  <empty/>
+                </element>
+              </optional>
+              <optional>
+                <element name="z_component">
+                  <empty/>
+                </element>
+              </optional>
+            </element>
+          </choice>
+        </element>
+        <element name="reference_coordinates">
+          <ref name="real_dim_vector"/>
+          <choice>
+            <element name="all_components">
+              <a:documentation>Apply this reference node to all components of velocity</a:documentation>
+              <empty/>
+            </element>
+            <element name="specify_components">
+              <a:documentation>Specify individual components of velocity to apply this reference node to</a:documentation>
+              <optional>
+                <element name="x_component">
+                  <empty/>
+                </element>
+              </optional>
+              <optional>
+                <element name="y_component">
+                  <empty/>
+                </element>
+              </optional>
+              <optional>
+                <element name="z_component">
+                  <empty/>
+                </element>
+              </optional>
+            </element>
+          </choice>
+        </element>
+      </choice>
     </optional>
     <element name="solver">
       <a:documentation>Solver</a:documentation>
-      <ref name="linear_solver_options_asym"/>
+      <ref name="linear_solver_options_asym_vector"/>
     </element>
     <oneOrMore>
       <choice>
@@ -1149,6 +1484,7 @@ viscosity tensor is dealt with in the momentum equation.</a:documentation>
               <ref name="internal_algorithm"/>
               <ref name="bulk_viscosity_algorithm"/>
               <ref name="tensor_python_diagnostic_algorithm"/>
+              <ref name="sediment_concentration_dependent_viscosity_algorithm"/>
             </choice>
             <ref name="diagnostic_tensor_field"/>
           </element>
@@ -1405,20 +1741,11 @@ If activated this means that the pressure gradient operator is not integrated by
             </element>
           </optional>
           <optional>
-            <element name="low_re_p_correction_fix">
-              <a:documentation>** UNDER DEVELOPMENT **
-
-Fix for low reynolds numbers by adding the viscous terms to the inversed lumped mass matrix for the pressure correction.
-
-** ONLY WORKS with continuous_galerkin Velocity and lumping the mass matrix and not with lumping on submesh.</a:documentation>
-              <empty/>
-            </element>
-          </optional>
-          <optional>
             <element name="test_continuity_with_cv_dual">
               <a:documentation>Test the continuity equation with the control volume dual mesh of the finite element pressure mesh.
 Only works for incompressible flow. This will make the pressure matrix non symmetric which must be 
-considered when selecting the pressure solver options. This will not work with the free surface and 
+considered when selecting the pressure solver options. This cannot be used with the standard p=0 
+free surface model (but can be used with the zero normal stress free surface). It will not work with 
 wetting and drying models. Also the mesh assoicated with the pressure field must use the lagrangian 
 element type (the default). This will not work with the implicit solids model using two way coupling. </a:documentation>
               <ref name="comment"/>
@@ -1466,19 +1793,17 @@ This is useful as a debugging tool if PETSc complains about zeros on the diagona
       <element name="atmospheric_pressure">
         <a:documentation>Atmospheric pressure
 
-Manual suggests 1.01325E+6</a:documentation>
+Manual suggests 1.01325e+5 Pa</a:documentation>
         <ref name="real"/>
       </element>
     </optional>
     <element name="scheme">
       <a:documentation>scheme</a:documentation>
       <element name="poisson_pressure_solution">
-        <a:documentation>Use a poisson pressure equation to calculate a first guess at pressure.
-This does not necessarily satisfy continuity.
-  = 1 -- use a poisson guess at every timestep
-  = 0 -- never use a poisson guess
-  =-1 -- use a poisson guess at the first timestep only
-Manual suggests -1</a:documentation>
+        <a:documentation>Use a poisson pressure equation to calculate a first guess at pressure
+before the first momentum solve (in addition to the usual 
+pressure correction after the momentum solve). Recommended in most
+runs to ensure correct results.</a:documentation>
         <element name="string_value">
           <!--
             Lines is a hint to the gui about the size of the text box.
@@ -1494,130 +1819,87 @@ Manual suggests -1</a:documentation>
         </element>
         <ref name="comment"/>
       </element>
-      <choice>
-        <element name="use_projection_method">
-          <a:documentation>Use the incompressible projection method to determine
+      <element name="use_projection_method">
+        <a:documentation>Use the projection method to determine
 the pressure and satisfy continuity</a:documentation>
-          <optional>
-            <element name="full_schur_complement">
-              <a:documentation>Assemble and use the full schur complement.
+        <optional>
+          <element name="full_schur_complement">
+            <a:documentation>Assemble and use the full schur complement.
 This allows you to not lump the mass matrix if you're using
 cg and to use the full momentum matrix in the projection if
 you so desire.</a:documentation>
-              <choice>
-                <element name="inner_matrix">
-                  <a:documentation>Specify the inner matrix (IM) to form the projection schur complement (C^T*IM^{-1}*C). 
+            <choice>
+              <element name="inner_matrix">
+                <a:documentation>Specify the inner matrix (IM) to form the projection schur complement (C^T*IM^{-1}*C). 
 Use the full mass matrix.
 
 Make sure you've not lumped your mass in the velocity spatial_discretisation if you want to be consistent!</a:documentation>
-                  <attribute name="name">
-                    <value>FullMassMatrix</value>
-                  </attribute>
-                  <element name="solver">
-                    <ref name="linear_solver_options_sym"/>
-                  </element>
+                <attribute name="name">
+                  <value>FullMassMatrix</value>
+                </attribute>
+                <element name="solver">
+                  <ref name="linear_solver_options_sym"/>
                 </element>
-                <element name="inner_matrix">
-                  <a:documentation>Specify the inner matrix (IM) to form the projection schur complement (C^T*IM^{-1}*C). 
+              </element>
+              <element name="inner_matrix">
+                <a:documentation>Specify the inner matrix (IM) to form the projection schur complement (C^T*IM^{-1}*C). 
 Use the full momentum matrix.
 
 Doesn't really matter if you've lumped your mass or not but why would you if you're doing a full inner solve anyway?</a:documentation>
-                  <attribute name="name">
-                    <value>FullMomentumMatrix</value>
-                  </attribute>
-                  <element name="solver">
-                    <ref name="linear_solver_options_asym"/>
-                  </element>
+                <attribute name="name">
+                  <value>FullMomentumMatrix</value>
+                </attribute>
+                <element name="solver">
+                  <ref name="linear_solver_options_asym_vector"/>
                 </element>
-              </choice>
-              <choice>
-                <element name="preconditioner_matrix">
-                  <a:documentation>Specify the preconditioner matrix to use on the schur complement.
+              </element>
+            </choice>
+            <choice>
+              <element name="preconditioner_matrix">
+                <a:documentation>Specify the preconditioner matrix to use on the schur complement.
 
 For DG, the LumpedSchurComplement is our best approximation to CMC.</a:documentation>
-                  <attribute name="name">
-                    <value>LumpedSchurComplement</value>
-                  </attribute>
-                  <optional>
-                    <element name="lump_on_submesh">
-                      <empty/>
-                    </element>
-                  </optional>
-                </element>
-                <element name="preconditioner_matrix">
-                  <a:documentation>Specify the preconditioner matrix to use on the schur complement.
+                <attribute name="name">
+                  <value>LumpedSchurComplement</value>
+                </attribute>
+                <optional>
+                  <element name="lump_on_submesh">
+                    <empty/>
+                  </element>
+                </optional>
+              </element>
+              <element name="preconditioner_matrix">
+                <a:documentation>Specify the preconditioner matrix to use on the schur complement.
 
 DiagonalSchurComplement = C_P^T * [(Big_m)_diagonal]^-1 * C</a:documentation>
-                  <attribute name="name">
-                    <value>DiagonalSchurComplement</value>
-                  </attribute>
-                  <empty/>
-                </element>
-                <element name="preconditioner_matrix">
-                  <a:documentation>Specify the preconditioner matrix to use on the schur complement.
+                <attribute name="name">
+                  <value>DiagonalSchurComplement</value>
+                </attribute>
+                <empty/>
+              </element>
+              <element name="preconditioner_matrix">
+                <a:documentation>Specify the preconditioner matrix to use on the schur complement.
 
 Pressure Mass Matrix, scaled with the inverse of viscosity. This is
 shown to be spectrally equivalent to the Schur complement.
 Note that this currently only works with isoviscous and/or isotropic
 viscosity tensors.</a:documentation>
-                  <attribute name="name">
-                    <value>ScaledPressureMassMatrix</value>
-                  </attribute>
-                  <empty/>
-                </element>
-                <element name="preconditioner_matrix">
-                  <a:documentation>Specify the preconditioner matrix to use on the schur complement.</a:documentation>
-                  <attribute name="name">
-                    <value>NoPreconditionerMatrix</value>
-                  </attribute>
-                  <empty/>
-                </element>
-              </choice>
-            </element>
-          </optional>
-        </element>
-        <element name="use_compressible_projection_method">
-          <a:documentation>Use the compressible projection method to determine the
-pressure and satisfy continuity and the eos.
-This is only currently compatible with control volume
-pressure spatial discretisations and requires a
-multimaterial eos.</a:documentation>
-          <optional>
-            <choice>
-              <element name="normalisation">
-                <a:documentation>Variable (normally a density) used to normalise
-each materials contribution
-to the C_P^T matrix.  Leave unselected for no normalisation.
-Selects the MaterialDensity field.</a:documentation>
                 <attribute name="name">
-                  <value>MaterialDensity</value>
+                  <value>ScaledPressureMassMatrix</value>
                 </attribute>
                 <empty/>
               </element>
-              <element name="normalisation">
-                <a:documentation>Variable (normally a density) used to normalise
-each materials contribution
-to the C_P^T matrix.  Leave unselected for no normalisation.
-Selects the bulk Density field.</a:documentation>
+              <element name="preconditioner_matrix">
+                <a:documentation>Specify the preconditioner matrix to use on the schur complement.</a:documentation>
                 <attribute name="name">
-                  <value>Density</value>
-                </attribute>
-                <empty/>
-              </element>
-              <element name="normalisation">
-                <a:documentation>Variable (normally a density) used to normalise
-each materials contribution
-to the C_P^T matrix.  Leave unselected for no normalisation.
-Allows the selection of an arbitrary field.</a:documentation>
-                <attribute name="name">
-                  <data type="string" datatypeLibrary=""/>
+                  <value>NoPreconditionerMatrix</value>
                 </attribute>
                 <empty/>
               </element>
             </choice>
-          </optional>
-        </element>
-      </choice>
+          </element>
+        </optional>
+      </element>
       <optional>
         <element name="update_discretised_equation">
           <a:documentation>rediscretise the equations at every timestep and iteration
@@ -1904,7 +2186,7 @@ be valid for a continuous HydrostaticPressure.</a:documentation>
       <element name="solver">
         <a:documentation>Solver
 Only required for continuous_galerkin spatial_discretisations!</a:documentation>
-        <ref name="linear_solver_options_asym"/>
+        <ref name="linear_solver_options_asym_scalar"/>
       </element>
     </optional>
     <element name="exclude_from_checkpointing">
@@ -2048,283 +2330,13 @@ Only applicable to control volume spatial discretisations.</a:documentation>
     </optional>
   </define>
   <!--
-    free surface field, this is a copy of prognostic_scalar_field above
-    removing all options that don't apply (mainly advection related)
-  -->
-  <define name="prognostic_free_surface_field">
-    <element name="spatial_discretisation">
-      <a:documentation>Spatial discretisation options</a:documentation>
-      <optional>
-        <element name="free_surface_3D">
-          <a:documentation>Form a full 3D system for the free surface</a:documentation>
-          <empty/>
-        </element>
-      </optional>
-      <optional>
-        <element name="fourth_order_dissipation">
-          <empty/>
-        </element>
-      </optional>
-      <optional>
-        <element name="low_order_free_surface">
-          <a:documentation>low order (linear) free surface</a:documentation>
-          <empty/>
-        </element>
-      </optional>
-      <choice>
-        <element name="default_free_surface_filter">
-          <a:documentation>Select free surface filter
-
-With PN-PN we need some filter to supress spurious modes.</a:documentation>
-          <empty/>
-        </element>
-        <element name="user_specified_free_surface_filter">
-          <a:documentation>Select free surface filter
-
-With PN-PN we need some filter to supress spurious modes.</a:documentation>
-          <element name="non_linear_filter_coefficient">
-            <a:documentation>Default is to apply 0.01 and for wetting and drying cases 1.0</a:documentation>
-            <ref name="real"/>
-          </element>
-        </element>
-        <element name="switch_off_free_surface_filter">
-          <a:documentation>Switch off free surface filter, this is more efficient than setting the coefficient to 0.</a:documentation>
-          <empty/>
-        </element>
-      </choice>
-      <optional>
-        <element name="wetting_drying">
-          <a:documentation>Apply wetting and drying routines</a:documentation>
-          <empty/>
-        </element>
-      </optional>
-      <optional>
-        <element name="tidal_forcing">
-          <a:documentation>Tidal forcing options </a:documentation>
-          <optional>
-            <element name="M2">
-              <a:documentation>M2</a:documentation>
-              <empty/>
-            </element>
-          </optional>
-          <optional>
-            <element name="S2">
-              <a:documentation>S2</a:documentation>
-              <empty/>
-            </element>
-          </optional>
-          <optional>
-            <element name="N2">
-              <a:documentation>N2</a:documentation>
-              <empty/>
-            </element>
-          </optional>
-          <optional>
-            <element name="K2">
-              <a:documentation>K2</a:documentation>
-              <empty/>
-            </element>
-          </optional>
-          <optional>
-            <element name="K1">
-              <a:documentation>K1</a:documentation>
-              <empty/>
-            </element>
-          </optional>
-          <optional>
-            <element name="O1">
-              <a:documentation>O1</a:documentation>
-              <empty/>
-            </element>
-          </optional>
-          <optional>
-            <element name="P1">
-              <a:documentation>P1</a:documentation>
-              <empty/>
-            </element>
-          </optional>
-          <optional>
-            <element name="Q1">
-              <a:documentation>Q1</a:documentation>
-              <empty/>
-            </element>
-          </optional>
-          <optional>
-            <element name="all_tidal_components">
-              <a:documentation>Switch on all tidal components</a:documentation>
-              <empty/>
-            </element>
-          </optional>
-          <optional>
-            <element name="love_number">
-              <a:documentation>Switches on a Love number of 0.3</a:documentation>
-              <empty/>
-            </element>
-          </optional>
-          <optional>
-            <element name="static_tidal_force">
-              <a:documentation>Use static tidal force for testing</a:documentation>
-              <empty/>
-            </element>
-          </optional>
-        </element>
-      </optional>
-    </element>
-    <!--
-      atheta, ctheta and fstheta (absorption, coriolis and free surface)
-      need to go in temporal discretisation
-      they are currently hard-coded however
-    -->
-    <element name="temporal_discretisation">
-      <element name="theta">
-        <a:documentation>Implicit/explicitness for the free surface.
-
-Suggested value 1.0 (should be at least bigger than 0.5).
- =0.  -- explicit
- =0.5 -- Crank-Nicolson
- =1.  -- implicit</a:documentation>
-        <ref name="real"/>
-      </element>
-      <optional>
-        <!-- Maybe this should go under a proper absorption field under free surface? -->
-        <element name="absorption_theta">
-          <a:documentation>Implicit/explicitness for absorption
-=0.  -- explicit (default)
-=0.5 -- Crank-Nicolson
-=1.  -- implicit</a:documentation>
-          <ref name="real"/>
-        </element>
-      </optional>
-    </element>
-    <element name="solver">
-      <a:documentation>Solver</a:documentation>
-      <ref name="linear_solver_options_sym"/>
-    </element>
-    <oneOrMore>
-      <choice>
-        <element name="initial_condition">
-          <a:documentation>Initial condition for WholeMesh
-
-Only specify one condition if not using mesh regions.
-Otherwise select other initial_condition option, specify region_ids
-and distinct names.  Then add extra intial conditions for other regions.</a:documentation>
-          <attribute name="name">
-            <value>WholeMesh</value>
-          </attribute>
-          <ref name="input_choice_initial_condition_real"/>
-        </element>
-        <element name="initial_condition">
-          <a:documentation>Multiple initial_conditions are allowed if specifying
-different values in different
-regions of the mesh (defined by region_ids).  In this case
-each initial_condition
-requires a distinct name for the options dictionary.</a:documentation>
-          <attribute name="name">
-            <data type="string" datatypeLibrary=""/>
-          </attribute>
-          <optional>
-            <ref name="region_ids"/>
-          </optional>
-          <ref name="input_choice_initial_condition_real"/>
-        </element>
-      </choice>
-    </oneOrMore>
-    <zeroOrMore>
-      <element name="boundary_conditions">
-        <a:documentation>Boundary conditions</a:documentation>
-        <attribute name="name">
-          <data type="string" datatypeLibrary=""/>
-        </attribute>
-        <element name="surface_ids">
-          <a:documentation>Surface id:</a:documentation>
-          <ref name="integer_vector"/>
-        </element>
-        <choice>
-          <a:documentation>Type</a:documentation>
-          <element name="type">
-            <attribute name="name">
-              <value>dirichlet</value>
-            </attribute>
-            <choice>
-              <ref name="input_choice_real_plus_field"/>
-              <element name="from_file">
-                <oneOrMore>
-                  <element name="tidal">
-                    <attribute name="file_name">
-                      <data type="string" datatypeLibrary=""/>
-                    </attribute>
-                    <attribute name="variable_name_amplitude">
-                      <data type="string" datatypeLibrary=""/>
-                    </attribute>
-                    <attribute name="variable_name_phase">
-                      <data type="string" datatypeLibrary=""/>
-                    </attribute>
-                    <attribute name="name">
-                      <a:documentation>See E.W. Schwiderski - Rev. Geophys. Space
-Phys. Vol. 18 No. 1 pp. 243--268, 1980
-for details of these constituent.</a:documentation>
-                      <choice>
-                        <value>M2</value>
-                        <value>S2</value>
-                        <value>N2</value>
-                        <value>K2</value>
-                        <value>K1</value>
-                        <value>O1</value>
-                        <value>P1</value>
-                        <value>Q1</value>
-                        <value>Mf</value>
-                        <value>Mm</value>
-                        <value>Ssa</value>
-                      </choice>
-                    </attribute>
-                  </element>
-                </oneOrMore>
-              </element>
-              <element name="NEMO_data">
-                <a:documentation>Set the boundary free-surface height from NEMO data.
-A prescribed NEMO pressure scalar field must be set to use this option.
-Set the name of the prescribed NEMO pressure scalar field below.</a:documentation>
-                <attribute name="field_name">
-                  <data type="string" datatypeLibrary=""/>
-                </attribute>
-              </element>
-            </choice>
-          </element>
-          <element name="type">
-            <attribute name="name">
-              <value>neumann</value>
-            </attribute>
-            <ref name="input_choice_real_plus_field"/>
-          </element>
-          <ref name="robin_bc_scalar"/>
-        </choice>
-      </element>
-    </zeroOrMore>
-    <!--
-      no Diffusivity for field
-      no source term
-      no Absorption term
-      no Adaptive timestepping option
-    -->
-    <ref name="prognostic_scalar_output_options"/>
-    <ref name="prognostic_scalar_stat_options"/>
-    <ref name="scalar_convergence_options"/>
-    <ref name="prognostic_detector_options"/>
-    <ref name="scalar_steady_state_options"/>
-    <ref name="adaptivity_options_prognostic_scalar_field"/>
-    <ref name="interpolation_algorithm_scalar"/>
-    <optional>
-      <ref name="discrete_properties_algorithm_scalar"/>
-    </optional>
-  </define>
-  <!--
     stream function, this is a copy of prognostic_scalar_field above
     removing all options that don't apply (mainly advection related)
   -->
   <define name="prognostic_stream_function_field">
     <element name="solver">
       <a:documentation>Solver</a:documentation>
-      <ref name="linear_solver_options_asym"/>
+      <ref name="linear_solver_options_asym_scalar"/>
     </element>
     <element name="exclude_from_checkpointing">
       <a:documentation>Disables checkpointing of this field</a:documentation>
@@ -2352,7 +2364,7 @@ Set the name of the prescribed NEMO pressure scalar field below.</a:documentatio
   <define name="prognostic_multipath_stream_function_field">
     <element name="solver">
       <a:documentation>Solver</a:documentation>
-      <ref name="linear_solver_options_asym"/>
+      <ref name="linear_solver_options_asym_scalar"/>
     </element>
     <element name="boundary_conditions">
       <a:documentation>Boundary conditions</a:documentation>
@@ -2492,14 +2504,12 @@ MaterialDensity (Advection) equations in compressible multimaterial simulations.
         <ref name="equation_coefficients"/>
       </element>
       <element name="equation">
-        <a:documentation>***UNDER TESTING***
-
-Select the equation used to solve for this field.
+        <a:documentation>Select the equation used to solve for this field.
 Internal Energy equation - requires the selection of a Density field.
-ONLY WORKS FOR CONTROL VOLUME DISCRETISATIONS
+ONLY WORKS FOR CG and CV DISCRETISATIONS
 Solve the internal energy equation for this field.
 Requires pressure and velocity fields to be present.
-Uses a nonconservative time discretisation.</a:documentation>
+Uses a non-conservative time discretisation.</a:documentation>
         <attribute name="name">
           <value>InternalEnergy</value>
         </attribute>
@@ -2510,6 +2520,21 @@ Uses a nonconservative time discretisation.</a:documentation>
 electrokinetic, electrochemical or electrothermal sources </a:documentation>
         <attribute name="name">
           <value>ElectricalPotential</value>
+        </attribute>
+      </element>
+      <element name="equation">
+        <a:documentation>Equation type for the k-epsilon model fields.
+Note: Only works for continuous galerkin or control volume discretisations.</a:documentation>
+        <attribute name="name">
+          <value>KEpsilon</value>
+        </attribute>
+        <ref name="equation_coefficients"/>
+      </element>
+      <element name="equation">
+        <a:documentation>Equation type for the sediment bedload fields.
+Note: Only works for P1 discretisations.</a:documentation>
+        <attribute name="name">
+          <value>SedimentBedload</value>
         </attribute>
       </element>
     </choice>
@@ -2600,6 +2625,45 @@ Boussinesq only works for continuous_galerkin and discontinuous_galerkin.</a:doc
         <attribute name="name">
           <value>Boussinesq</value>
         </attribute>
+      </element>
+      <element name="equation">
+        <a:documentation>Select the equation used to solve for velocity.
+
+Select ShallowWater to solve the non-linear shallow water equations in non-conservative form.
+The Velocity field will be the depth-averaged flow velocity and the Pressure field
+will be the free surface elevation multiplied by the gravitational constant g</a:documentation>
+        <attribute name="name">
+          <value>ShallowWater</value>
+        </attribute>
+        <!-- Bottom depth (excluding free surface elevation), a positive number -->
+        <element name="scalar_field">
+          <attribute name="rank">
+            <value>0</value>
+          </attribute>
+          <attribute name="name">
+            <value>BottomDepth</value>
+          </attribute>
+          <element name="prescribed">
+            <ref name="coordinate_mesh_choice"/>
+            <ref name="prescribed_scalar_field"/>
+          </element>
+        </element>
+        <optional>
+          <element name="bottom_drag">
+            <element name="scalar_field">
+              <attribute name="rank">
+                <value>0</value>
+              </attribute>
+              <attribute name="name">
+                <value>BottomDragCoefficient</value>
+              </attribute>
+              <element name="prescribed">
+                <ref name="coordinate_mesh_choice"/>
+                <ref name="prescribed_scalar_field"/>
+              </element>
+            </element>
+          </element>
+        </optional>
       </element>
       <element name="equation">
         <a:documentation>Select the equation used to solve for velocity.

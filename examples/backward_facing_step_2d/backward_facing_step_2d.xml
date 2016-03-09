@@ -1,0 +1,44 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+   <name>Backward-facing step 2D example</name>
+   <!--Runs a reference and kepsilon 2D backward-facing step problems.-->
+   <!-- this seems to be a fragile test. Anyone with experience of BFS think of a better one-->   
+  <owner userid="asc"/>
+  <tags>flml</tags>
+  <!-- uses flml -->
+  <problem_definition length="long" nprocs="8">
+    <command_line>cd simulation &amp;&amp; mpiexec flredecomp -i 1 -o 8 -v -l backward_facing_step_2d backward_facing_step_2d_flredecomp &amp;&amp; mpiexec fluidity -v2 -l backward_facing_step_2d_flredecomp.flml &amp;&amp; cd ..</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
+    <variable name="kepsilon_finishtime" language="python">from fluidity_tools import stat_parser as stat
+kepsilon_finishtime= stat("simulation/backward_facing_step_2d.stat")["ElapsedTime"]["value"][-1]</variable>
+    <variable name="kepsilon_reattachment_length" language="python">
+from postprocessor_2d import reattachment_length, get_filelist
+import numpy, os
+os.chdir('./simulation/')
+filelist = get_filelist(10,120)
+kepsilon_reattachment_length = numpy.array(reattachment_length(filelist))
+os.chdir('../')
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="Solvers converged" language="python">
+assert(solvers_converged)
+    </test>
+    <test name="kepsilon_finish_time" language="python">assert kepsilon_finishtime &gt; 199.0</test>
+    <test name="kepsilon reattachment length is approximately equal to the experimental value of 7.0" language="python">
+assert(abs(kepsilon_reattachment_length[-1,0] - 7.0) &lt; 2.0)
+    </test>
+    <test name="kepsilon reattachment length converges with accuracy 25%" language="python">
+print abs(kepsilon_reattachment_length[-1,0]/kepsilon_reattachment_length[-2,0]-1.0)
+assert(abs(kepsilon_reattachment_length[-1,0]/kepsilon_reattachment_length[-2,0]-1.0) &lt; 0.25)
+    </test>
+  </pass_tests>
+  <warn_tests/>
+</testproblem>
+

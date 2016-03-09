@@ -30,20 +30,22 @@ module global_numbering
   ! **********************************************************************
   ! Module to construct the global node numbering map for elements of a
   ! given degree.
-  use adjacency_lists
-  use elements
-  use sparse_tools
   use fldebug
+  use element_numbering
+  use elements
+  use mpi_interfaces
   use halo_data_types
-  use halos_allocates
+  use parallel_tools
   use halos_base
   use halos_debug
+  use halos_allocates
+  use sparse_tools
+  use fields_data_types
+  use fields_base
+  use adjacency_lists
+  use linked_lists
   use halos_numbering
   use halos_ownership
-  use parallel_tools
-  use linked_lists
-  use mpi_interfaces
-  use fields_base
   
   implicit none
 
@@ -369,7 +371,7 @@ contains
     ! Vertices per surface element
     snloc = nloc - 1
 
-    call MakeLists_Dynamic(Nonods, Totele, Nloc, ndglno, D3, NEList,&
+    call MakeLists(Nonods, Totele, Nloc, ndglno, D3, NEList,&
        & NNList, EEList)
 
     new_ndglno=0
@@ -605,8 +607,9 @@ contains
                       
                       if (any(this_send_targets%length/=0)) then
                          do i=1,size(ndglno_pos)
-                            call copy(new_send_targets(new_ndglno(ndglno_pos(i)),:) &
-                                 ,this_send_targets)
+                           call deallocate(new_send_targets(new_ndglno(ndglno_pos(i)),:))
+                           call copy(new_send_targets(new_ndglno(ndglno_pos(i)),:) &
+                                ,this_send_targets)
                          end do
                       end if
                    end if
@@ -1306,6 +1309,10 @@ contains
     end do
 
     call flush_lists(visible_elements)
+
+    do proc=1, nprocs
+       deallocate(send_lists(proc)%ptr)
+    end do
 #else
     FLAbort("Communicating halo visibility makes no sense without MPI.")
 #endif

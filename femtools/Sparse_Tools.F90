@@ -25,14 +25,13 @@
 !    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 !    USA
 #include "fdebug.h"
-#include "petscversion.h"
 module sparse_tools
   !!< This module implements abstract data types for sparse matrices and
   !!< operations on them.
   use FLDebug
+  use Global_Parameters, only: FIELD_NAME_LEN
   use Futils
   use Reference_Counting
-  use Global_Parameters, only: FIELD_NAME_LEN
   use Halo_data_types
   use halos_allocates
   use memory_diagnostics
@@ -44,15 +43,7 @@ module sparse_tools
   
   implicit none
   
-#ifdef HAVE_PETSC_MODULES
-#include "finclude/petsckspdef.h"
-#else
-#include "finclude/petsc.h"
-#if PETSC_VERSION_MINOR==0
-#include "finclude/petscksp.h"
-#include "finclude/petscsys.h"
-#endif
-#endif
+#include "petsc_legacy.h"
 
   private
   
@@ -783,9 +774,9 @@ contains
     totalmem=rows+1 + lentries
     
     if (ldiag) then
-       allocate(sparsity%centrm(min(rows, columns)), stat=lstat)
+       allocate(sparsity%centrm(rows), stat=lstat)
        if (lstat/=0) goto 42
-       totalmem=totalmem + rows 
+       totalmem=totalmem + size(sparsity%centrm)
     else
        ! fix for 'old' gfortran bug:
        nullify(sparsity%centrm) 
@@ -4795,7 +4786,7 @@ contains
     type(csr_sparsity), intent(in):: sparsity
     
     integer, dimension(:), pointer:: cols
-    integer i, j, col
+    integer i, j 
     logical sorted
     
     do i=1, size(sparsity,1)
@@ -4896,6 +4887,7 @@ contains
     sparsityC%sorted_rows=.true.
         
   end function sparsity_merge
+
   
   subroutine csr_matrix2file(filename, matrix)
     !!< Write the dense form of matrix to filename.

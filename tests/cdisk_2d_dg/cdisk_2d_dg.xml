@@ -5,7 +5,7 @@
   <owner userid="dham"/>
   <tags>flml</tags>
   <problem_definition length="short" nprocs="1">
-    <command_line>fluidity  cdisk.flml </command_line>
+    <command_line>fluidity  -v2 -l cdisk.flml </command_line>
     <!-- Trivial 2D test case of uniform flow through a square. -->
   </problem_definition>
   <variables>
@@ -19,10 +19,45 @@ from fluidity_tools import stat_parser
 s = stat_parser("cdisk.stat")
 conservation2=s["Water"]["Tracer"]["integral"][1]
     </variable>
+    <variable name="barycentre_radius_squared" language="python">
+from fluidity_tools import stat_parser
+from numpy import array
+s = stat_parser("cdisk.stat")
+x=s["Water"]["TracerMoment%1"]["integral"]
+y=s["Water"]["TracerMoment%2"]["integral"]
+barycentre_radius_squared = (array([x,y])**2).sum(axis=0)
+    </variable>
+    <variable name="barycentre_angle" language="python">
+from fluidity_tools import stat_parser
+from numpy import array, dot
+s = stat_parser("cdisk.stat")
+x=s["Water"]["TracerMoment%1"]["integral"]
+y=s["Water"]["TracerMoment%2"]["integral"]
+xy=array([x,y]).T
+barycentre_angle = dot(xy[0], xy[1])
+    </variable>
+    <variable name = "solvers_converged" language = "python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files 
+    </variable>
     </variables>
     <pass_tests>
-    <test name="Tracer is conserved." language="python">
+    <test name="Tracer is conserved" language="python">
 assert abs(conservation1-conservation2) &lt; 5e-6
+    </test>
+    <test name="Radius of barycentre is constant" language="python">
+assert abs(barycentre_radius_squared[1]-barycentre_radius_squared[0])&lt;1e-5
+    </test>
+    <test name="Barycentre travelled right amount" language="python">
+from math import acos,sqrt,pi
+angle = acos(barycentre_angle/barycentre_radius_squared[0])
+# dist=angle*radius, but also speed=radius
+dt = 2*pi/50
+assert abs(dt-angle)&lt; 5e-3
+    </test>
+    <test name = "Solvers converged" language = "python">
+assert(solvers_converged)
     </test>
   </pass_tests>
   <warn_tests>

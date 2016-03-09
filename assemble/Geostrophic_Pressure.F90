@@ -28,39 +28,44 @@
 #include "fdebug.h"
 
 module geostrophic_pressure
-
-  use assemble_cmc
-  use boundary_conditions
-  use boundary_conditions_from_options 
-  use conservative_interpolation_module
-  use coriolis_module, only : two_omega => coriolis
-  use data_structures
-  use dgtools
-  use divergence_matrix_cg
-  use eventcounter
-  use fefields
-  use field_options
-  use quadrature
-  use elements
-  use fields
   use fldebug
   use global_parameters, only : empty_path, FIELD_NAME_LEN, OPTION_PATH_LEN
+  use futils, only: present_and_true, present_and_false, int2str
+  use spud
+  use vector_tools, only: solve
+  use data_structures
+  use parallel_tools, only: allsum
+  use sparse_tools
+  use quadrature
+  use eventcounter
+  use element_numbering, only : FAMILY_SIMPLEX
+  use elements
+  use unittest_tools
+  use parallel_fields, only: assemble_ele, element_owned
+  use fetools
+  use fields
+  use state_module
+  use field_options
+  use sparse_matrices_fields
+  use vtk_interfaces
+  use fefields
+  use assemble_cmc
+  use boundary_conditions
+  use sparsity_patterns
+  use dgtools
+  use solvers
+  use sparsity_patterns_meshes
+  use state_fields_module
+  use surfacelabels
+  use boundary_conditions_from_options
+  use pickers
+  use conservative_interpolation_module
+  use coriolis_module, only : two_omega => coriolis
+  use divergence_matrix_cg
   use hydrostatic_pressure
+  use petsc_solve_state_module
   use momentum_cg
   use momentum_dg
-  use petsc_solve_state_module
-  use pickers
-  use solvers
-  use state_fields_module
-  use sparse_matrices_fields
-  use sparse_tools
-  use sparsity_patterns
-  use sparsity_patterns_meshes
-  use spud
-  use state_module
-  use surfacelabels  
-  use unittest_tools
-  use vtk_interfaces
 
   implicit none
   
@@ -110,7 +115,7 @@ module geostrophic_pressure
     !! Mass option path
     character(len = OPTION_PATH_LEN) :: mass_option_path
     !! Divergence matrix
-    type(block_csr_matrix) :: ct_m
+    type(block_csr_matrix), pointer :: ct_m
     !! RHS terms from integrating the divergence operator by parts
     type(scalar_field) :: ct_rhs
     !! Mass matrix. Only used when not lumping mass for continuous u_mesh.
@@ -785,6 +790,7 @@ contains
     ewrite(2, *) "Boundary conditions field: ", trim(lbcfield%name)
     
     ct_sparsity => get_csr_sparsity_firstorder(state, matrices%p_mesh, matrices%u_mesh)
+    allocate(matrices%ct_m)
     call allocate(matrices%ct_m, ct_sparsity, blocks = (/1, dim/), name = "CT")
     call allocate(matrices%ct_rhs, matrices%p_mesh, "CTRHS")
     
@@ -1197,6 +1203,7 @@ contains
       end select
     end if
     call deallocate(matrices%ct_m)
+    deallocate(matrices%ct_m)
     call deallocate(matrices%ct_rhs)
     
     if(matrices%have_cmc_m) then
@@ -1434,7 +1441,7 @@ contains
     !!< Compute the divergence of a field
   
     type(vector_field), intent(in) :: field
-    type(block_csr_matrix), intent(in) :: ct_m
+    type(block_csr_matrix), pointer :: ct_m
     type(csr_matrix), intent(in) :: mass
     type(scalar_field), intent(inout) :: div
     

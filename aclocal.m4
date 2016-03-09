@@ -319,9 +319,6 @@ if test "x$acx_blas_ok" != xyes; then
 	acx_lapack_ok=noblas
 fi
 
-# add BLAS to libs
-LIBS="$BLAS_LIBS $LIBS"
-
 # Are we linking from C?
 case "$ac_ext" in
   f*|F*) dsyev="dsyev" ;;
@@ -404,25 +401,37 @@ dnl check for the required PETSc library
 dnl ----------------------------------------------------------------------------
 AC_DEFUN([ACX_PETSc], [
 AC_REQUIRE([ACX_BLAS])
-AC_REQUIRE([ACX_ParMetis])
 BLAS_LIBS="$BLAS_LIBS $FLIBS"
 AC_REQUIRE([ACX_LAPACK])
 LAPACK_LIBS="$LAPACK_LIBS $BLAS_LIBS"
 AC_PATH_XTRA
 
 if test "x$PETSC_DIR" == "x"; then
+  AC_MSG_WARN( [No PETSC_DIR set - trying to autodetect] )
+
+  # Try to identify the obvious choice
+  if test -f /usr/lib/petsc/include/petscversion.h ; then
+    export PETSC_DIR=/usr/lib/petsc
+  elif test -f /usr/include/petscversion.h ; then
+    export PETSC_DIR=/usr
+  elif test -f /usr/local/include/petscversion.h ; then
+    export PETSC_DIR=/usr/local
+  fi
+fi
+# Check again incase we failed.
+if test "x$PETSC_DIR" == "x"; then 
   AC_MSG_WARN( [No PETSC_DIR set - do you need to load a petsc module?] )
   AC_MSG_ERROR( [You need to set PETSC_DIR to point at your PETSc installation... exiting] )
 fi
+AC_MSG_NOTICE([Using PETSC_DIR=$PETSC_DIR])
 
-
-
-PETSC_LINK_LIBS=`make -s -f petsc_makefile getlinklibs`
+PETSC_LINK_LIBS=`make -s -f petsc_makefile_old getlinklibs 2> /dev/null || make -s -f petsc_makefile getlinklibs`
 LIBS="$PETSC_LINK_LIBS $LIBS"
 
-PETSC_INCLUDE_FLAGS=`make -s -f petsc_makefile getincludedirs`
-CPPFLAGS="$CPPFLAGS $PETSC_INCLUDE_FLAGS"
-FCFLAGS="$FCFLAGS $PETSC_INCLUDE_FLAGS"
+# need to add -Iinclude/ to what we get from petsc, so we can use our own petsc_legacy.h wrapper
+PETSC_INCLUDE_FLAGS=`make -s -f petsc_makefile_old getincludedirs 2> /dev/null || make -s -f petsc_makefile getincludedirs`
+CPPFLAGS="$CPPFLAGS $PETSC_INCLUDE_FLAGS -Iinclude/"
+FCFLAGS="$FCFLAGS $PETSC_INCLUDE_FLAGS -Iinclude/"
 
 # Horrible hacks needed for cx1
 # Somehow /apps/intel/ict/mpi/3.1.038/lib64 gets given as /apps/intel/ict/mpi/3.1.038/lib/64
@@ -470,37 +479,17 @@ fi
 # petsc tutorial - using the headers in the same way as we do in the code
 AC_LINK_IFELSE(
 [AC_LANG_SOURCE([
-program test
-#include "petscversion.h"
+program test_petsc
 #ifdef HAVE_PETSC_MODULES
   use petsc
-#if PETSC_VERSION_MINOR==0
-  use petscvec 
-  use petscmat 
-  use petscksp 
-  use petscpc
-#endif
 #endif
 implicit none
-#ifdef HAVE_PETSC_MODULES
-#include "finclude/petscvecdef.h"
-#include "finclude/petscmatdef.h"
-#include "finclude/petsckspdef.h"
-#include "finclude/petscpcdef.h"
-#else
-#include "finclude/petsc.h"
-#if PETSC_VERSION_MINOR==0
-#include "finclude/petscvec.h"
-#include "finclude/petscmat.h"
-#include "finclude/petscksp.h"
-#include "finclude/petscpc.h"
-#endif
-#endif
+#include "petsc_legacy.h"
       double precision  norm
       PetscInt  i,j,II,JJ,m,n,its
       PetscInt  Istart,Iend,ione
       PetscErrorCode ierr
-#if PETSC_VERSION_MINOR==2
+#if PETSC_VERSION_MINOR>=2
       PetscBool flg
 #else
       PetscTruth  flg
@@ -561,7 +550,7 @@ implicit none
       call MatMult(A,u,b,ierr)
 
       call KSPCreate(PETSC_COMM_WORLD,ksp,ierr)
-      call KSPSetOperators(ksp,A,A,DIFFERENT_NONZERO_PATTERN,ierr)
+      call KSPSetOperators(ksp,A,A,ierr)
       call KSPSetFromOptions(ksp,ierr)
 
       call KSPSolve(ksp,b,x,ierr)
@@ -577,62 +566,42 @@ implicit none
       call MatDestroy(A,ierr)
 
       call PetscFinalize(ierr)
-end program test
+end program test_petsc
 ])],
 [
 AC_MSG_NOTICE([PETSc program succesfully compiled and linked.])
 ],
 [
-cp conftest.F90 test.F90
+cp conftest.F90 test_petsc.F90
 AC_MSG_FAILURE([Failed to compile and link PETSc program.])])
 
 AC_LANG_RESTORE
 
 # finally check we have the right petsc version
 AC_COMPUTE_INT(PETSC_VERSION_MAJOR, "PETSC_VERSION_MAJOR", [#include "petscversion.h"], 
-  [AC_MSG_ERROR([Unknown petsc version])])
-if test "x$PETSC_VERSION_MAJOR" == "x3" ; then
-  AC_MSG_NOTICE([Detected PETSc version 3])
-else
-  AC_MSG_NOTICE([Detected PETSc version "$PETSC_VERSION_MAJOR"])
-  AC_MSG_ERROR([Fluidity needs PETSc version 3])
+  [AC_MSG_ERROR([Unknown petsc major version])])
+AC_COMPUTE_INT(PETSC_VERSION_MINOR, "PETSC_VERSION_MINOR", [#include "petscversion.h"], 
+  [AC_MSG_ERROR([Unknown petsc minor version])])
+AC_MSG_NOTICE([Detected PETSc version "$PETSC_VERSION_MAJOR"."$PETSC_VERSION_MINOR"])
+# if major<3 or minor<1
+if test "0$PETSC_VERSION_MAJOR" -lt 3 -o "0$PETSC_VERSION_MINOR" -lt 1; then
+  AC_MSG_ERROR([Fluidity needs PETSc version >=3.1])
 fi
 
 AC_DEFINE(HAVE_PETSC,1,[Define if you have the PETSc library.])
 
+# define HAVE_PETSC33 for use in the Makefiles (including petsc's makefiles
+# would require having PETSC_DIR+PETSC_ARCH set correctly for every make)
+if test "0$PETSC_VERSION_MINOR" -ge 3; then
+  HAVE_PETSC33=yes
+else
+  HAVE_PETSC33=no
+fi
+AC_SUBST(HAVE_PETSC33)
+
 ])dnl ACX_PETSc
 
-AC_DEFUN([ACX_ParMetis], [
-# Set variables...
-AC_ARG_WITH(
-	[ParMetis],
-	[  --with-ParMetis=PFX        Prefix where ParMetis is installed],
-	[ParMetis="$withval"],
-    [])
-ParMetis_LIBS_PATH="$ParMetis/lib"
-
-# Check that the compiler uses the library we specified...
-if test -e $ParMetis_LIBS_PATH/libparmetis.a; then
-	echo "note: using $ParMetis_LIBS_PATH/libparmetis.a"
-fi 
-
-# Ensure the comiler finds the library...
-tmpLIBS=$LIBS
-tmpCPPFLAGS=$CPPFLAGS
-AC_LANG_SAVE
-AC_LANG_C
-LIBS="$tmpLIBS -L$ParMetis_LIBS_PATH -lparmetis -lmetis -lm $ZOLTAN_DEPS"
-AC_CHECK_LIB(
-	[parmetis],
-	[ParMETIS_V3_AdaptiveRepart],
-	[AC_DEFINE(HAVE_PARMETIS,1,[Define if you have ParMetis library.])],
-	[AC_MSG_ERROR( [Could not link in the ParMetis library... exiting] )] )
-tmpLIBS="$tmpLIBS -L$ParMetis_LIBS_PATH -lparmetis -lmetis"
-# Save variables...
-AC_LANG_RESTORE
-LIBS=$tmpLIBS
-CPPFLAGS=$tmpCPPFLAGS
-])dnl ACX_ParMetis
+m4_include(m4/ACX_lib_automagic.m4)
 
 dnl ----------------------------------------------------------------------------
 dnl check for the optional hypre library (linked in with PETSc)
@@ -976,56 +945,6 @@ EOD`
 	#
 ])
 
-AC_DEFUN([ACX_zoltan], [
-# Set variables...
-AC_ARG_WITH(
-	[zoltan],
-	[  --with-zoltan=prefix        Prefix where zoltan is installed],
-	[zoltan="$withval"],
-    [])
-
-tmpLIBS=$LIBS
-tmpCPPFLAGS=$CPPFLAGS
-if test $zoltan != no; then
-  if test $zoltan != yes; then
-    zoltan_LIBS_PATH="$zoltan/lib"
-    zoltan_INCLUDES_PATH="$zoltan/include"
-    # Ensure the comiler finds the library...
-    tmpLIBS="$tmpLIBS -L$zoltan_LIBS_PATH"
-    tmpCPPFLAGS="$tmpCPPFLAGS  -I/$zoltan_INCLUDES_PATH"
-  fi
-  tmpLIBS="$tmpLIBS -L/usr/lib -L/usr/local/lib/ -lzoltan -lparmetis -lmetis $ZOLTAN_DEPS"
-  tmpCPPFLAGS="$tmpCPPFLAGS -I/usr/include/ -I/usr/local/include/"
-fi
-LIBS=$tmpLIBS
-CPPFLAGS=$tmpCPPFLAGS
-# Check that the compiler uses the library we specified...
-if test -e $zoltan_LIBS_PATH/libzoltan.a; then
-  echo "note: using $zoltan_LIBS_PATH/libzoltan.a"
-fi 
-
-# Check that the compiler uses the include path we specified...
-if test -e $zoltan_INCLUDES_PATH/zoltan.mod; then
-	echo "note: using $zoltan_INCLUDES_PATH/zoltan.mod"
-fi 
-
-
-AC_LANG_SAVE
-AC_LANG_C
-AC_CHECK_LIB(
-	[zoltan],
-	[Zoltan_Initialize],
-	[AC_DEFINE(HAVE_ZOLTAN,1,[Define if you have zoltan library.])],
-	[AC_MSG_ERROR( [Could not link in the zoltan library... exiting] )] )
-# Save variables...
-AC_LANG_RESTORE
-
-ZOLTAN="yes"
-AC_SUBST(ZOLTAN)
-
-echo $LIBS
-])dnl ACX_zoltan
-
 AC_DEFUN([ACX_adjoint], [
 # Set variables...
 AC_ARG_WITH(
@@ -1038,15 +957,17 @@ bakLIBS=$LIBS
 tmpLIBS=$LIBS
 tmpCPPFLAGS=$CPPFLAGS
 if test "$adjoint" != "no"; then
-  if test "$adjoint" != "yes"; then
+  if test -d "$adjoint" ; then
     adjoint_LIBS_PATH="$adjoint/lib"
     adjoint_INCLUDES_PATH="$adjoint/include"
     # Ensure the comiler finds the library...
     tmpLIBS="$tmpLIBS -L$adjoint/lib"
     tmpCPPFLAGS="$tmpCPPFLAGS  -I$adjoint/include -I$adjoint/include/libadjoint"
   fi
-  tmpLIBS="$tmpLIBS -L/usr/lib -L/usr/local/lib/ -ladjoint"
-  tmpCPPFLAGS="$tmpCPPFLAGS -I/usr/include/ -I/usr/local/include/ -I/usr/include/libadjoint -I/usr/local/include/libadjoint"
+  if [[ -f /usr/lib/libadjoint.a -o -f /usr/local/lib/libadjoint.a ]] ; then
+    tmpLIBS="$tmpLIBS -L/usr/lib -L/usr/local/lib/ -ladjoint"
+    tmpCPPFLAGS="$tmpCPPFLAGS -I/usr/include/ -I/usr/local/include/ -I/usr/include/libadjoint -I/usr/local/include/libadjoint"
+  fi
 fi
 LIBS=$tmpLIBS
 CPPFLAGS=$tmpCPPFLAGS
@@ -1055,7 +976,7 @@ AC_LANG_SAVE
 AC_LANG_C
 AC_CHECK_LIB(
 	[adjoint],
-	[adj_register_equation],
+	[adj_get_adjoint_equation],
 	[AC_DEFINE(HAVE_ADJOINT,1,[Define if you have libadjoint.])HAVE_ADJOINT=yes],
 	[AC_MSG_WARN( [Could not link in libadjoint ... ] );HAVE_ADJOINT=no;LIBS=$bakLIBS] )
 # Save variables...

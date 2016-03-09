@@ -57,6 +57,8 @@ implicit none
   interface deallocate
      module procedure deallocate_dynamic_bins
   end interface deallocate
+
+  private
   
   public allocate, deallocate, move_element, pull_element, pull_from_bin, &
      element_pulled

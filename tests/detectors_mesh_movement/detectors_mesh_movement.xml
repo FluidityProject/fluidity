@@ -10,6 +10,11 @@
     <!-- Test that detectors behave correctly with a moving mesh. -->
   </problem_definition>
   <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name="D1_position" language="python">
 from fluidity_tools import stat_parser
 D1_position = stat_parser("detectors.detectors")['D1']['position']
@@ -36,6 +41,9 @@ D3_tracer = stat_parser("detectors.detectors")['Water']['Tracer']['D3']
     </variable>
   </variables>
   <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
     <test name="D1 final position" language="python">
 assert abs(D1_position[0,-1] - 1.1) &lt; 1e-12
     </test>

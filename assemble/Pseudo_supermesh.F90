@@ -15,15 +15,20 @@ module pseudo_supermesh
 !!< nodal placement for heuristic statements
 !!< about local node density.
 
-  use adapt_state_unittest_module, only : adapt_state => adapt_state_unittest
   use fields
-  use interpolation_module
+  use state_module
   use vtk_interfaces
-  use conformity_measurement
   use merge_tensors
+  use interpolation_module
   use edge_length_module
   use limit_metric_module
+  use conformity_measurement
+  use adapt_state_unittest_module, only : adapt_state => adapt_state_unittest
   implicit none
+
+  private
+
+  public :: compute_pseudo_supermesh
 
   contains
 
@@ -76,7 +81,6 @@ module pseudo_supermesh
         call vtk_read_state(trim(snapshots(i)), vtk_state)
         vtk_mesh = extract_mesh(vtk_state, "Mesh")
         vtk_pos  = extract_vector_field(vtk_state, "Coordinate")
-        call allocate(vtk_metric, vtk_mesh, "MeshMetric")
         call compute_mesh_metric(vtk_pos, vtk_metric)
         call insert(interpolation_input, vtk_metric, "InterpolatedMetric")
         call insert(interpolation_input, vtk_mesh, "Mesh")

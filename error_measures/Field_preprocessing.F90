@@ -2,11 +2,12 @@
 
 module field_preprocessing_module
 
+  use spud
+  use global_parameters
   use fields
   use smoothing_module
-  use spud
   use field_options
-  use global_parameters
+
   implicit none
 
   private
@@ -42,11 +43,11 @@ module field_preprocessing_module
       type(scalar_field), intent(inout) :: field_in
       type(vector_field), intent(in) :: positions
       type(scalar_field), intent(out) :: field_out
-      real, dimension(positions%dim, positions%dim) :: alpha
+      real :: alpha
       character(len=OPTION_PATH_LEN) :: path
 
       call get_option(trim(complete_field_path(trim(field_in%option_path))) &
-               & // "/adaptivity_options/preprocessing/helmholtz_smoother/smoothing_length_scale", alpha)
+               & // "/adaptivity_options/preprocessing/helmholtz_smoother/smoothing_scale_factor", alpha)
 
       call allocate(field_out, field_in%mesh, "Smoothed" // trim(field_in%name))
       call zero(field_out)

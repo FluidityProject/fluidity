@@ -29,20 +29,18 @@
 
 module pickers_inquire
 
-  use data_structures
-  use detector_data_types
-  use fields
   use fldebug
-  use node_owner_finder
+  use data_structures
+  use element_numbering, only: FAMILY_SIMPLEX
+  use parallel_tools
+  use detector_data_types
   use picker_data_types
-  use pickers_allocates
   use pickers_base
+  use fields
+  use node_owner_finder
+  use pickers_allocates
   
   implicit none
-  
-  private
-  
-  public :: picker_inquire, search_for_detectors
 
   interface picker_inquire
     module procedure picker_inquire_single_position, &
@@ -55,6 +53,10 @@ module pickers_inquire
   end interface picker_inquire
 
   real, parameter, public :: max_picker_ownership_tolerance = rtree_tolerance
+
+  public :: picker_inquire, search_for_detectors
+
+  private
 
 contains
 

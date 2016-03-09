@@ -27,14 +27,16 @@
 
 #include "fdebug.h"
 module initialise_fields_module
-use fields
 use spud
-use coordinates
-use futils
-use tictoc
 use global_parameters, only: OPTION_PATH_LEN, PYTHON_FUNC_LEN, is_active_process
+use futils
+use parallel_tools
+use fields
+use coordinates
+use tictoc
 use vtk_cache_module
 use climatology
+use fluxes
 use nemo_states_module
 use physics_from_options
 use load_netcdf_module

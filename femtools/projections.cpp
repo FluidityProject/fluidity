@@ -37,6 +37,7 @@
 #include <string>
 #include <map>
 #include <vector>
+#include "global_parameters.h"
 
 using namespace std;
 
@@ -50,10 +51,6 @@ using namespace std;
 
 #ifndef DEG_TO_RAD_FACTOR
 #define DEG_TO_RAD_FACTOR 0.0174532925194444
-#endif
-
-#ifndef RADIUS_OF_EARTH
-#define RADIUS_OF_EARTH 6378137.0
 #endif
 
 int stereographic2spherical(double x, double y, double& longitude, double& latitude);
@@ -89,9 +86,9 @@ int spherical2cartesian(double longitude, double latitude, double &x, double &y,
   latitude  = radians(latitude);
   longitude = radians(longitude);
 
-  x = RADIUS_OF_EARTH*cos(longitude)*sin(PI*0.5-latitude);
-  y = RADIUS_OF_EARTH*sin(longitude)*sin(PI*0.5-latitude);
-  z = RADIUS_OF_EARTH*cos(PI*0.5-latitude);
+  x = get_surface_radius()*cos(longitude)*sin(PI*0.5-latitude);
+  y = get_surface_radius()*sin(longitude)*sin(PI*0.5-latitude);
+  z = get_surface_radius()*cos(PI*0.5-latitude);
 
   return 0;
 }
@@ -124,7 +121,7 @@ int spherical2stereographic(double longitude, double latitude, double &x, double
     return -1;
   }
   
-  double k = 2.0*RADIUS_OF_EARTH/
+  double k = 2.0*get_surface_radius()/
     (1.0 +
      sin(latitude_0)*sin(latitude) +
      cos(latitude_0)*cos(latitude)*cos(longitude-longitude_0));
@@ -155,7 +152,7 @@ int stereographic2spherical(double x, double y, double& longitude, double& latit
   }
   
   double rho = sqrt(x*x + y*y);
-  double c = 2.0*atan2(rho, 2*RADIUS_OF_EARTH);
+  double c = 2.0*atan2(rho, 2*get_surface_radius());
       
   latitude = asin(cos(c)*sin(latitude_0) + y*sin(c)*cos(latitude_0)/rho);
   longitude = longitude_0 + atan2(x*sin(c),
@@ -309,7 +306,7 @@ void tests(){
   cartesian2spherical(x0, y0, z0, x1, y1);
   cout<<x0<<", "<<y0<<" --> "<<x1<<", "<<y1<<endl;
 
-  x0=215.0; y0=54.0; z0=RADIUS_OF_EARTH;
+  x0=215.0; y0=54.0; z0=get_surface_radius();
   spherical2cartesian(x0,y0,x1,y1,z1);
   cout<<x0<<", "<<y0<<" --> "<<x1<<", "<<y1<<", "<<z1<<endl;
 

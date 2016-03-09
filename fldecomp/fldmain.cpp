@@ -78,6 +78,29 @@ int main(int argc, char **argv){
     {0, 0, 0, 0}
   };
 #endif
+
+  // Always recommend using flredecomp
+  cerr<<"\n"
+      <<"\t*** fldecomp will be removed in a future release of Fluidity. ***\n"
+      <<"\n"
+      <<"\tflredecomp is the recommended tool for mesh decomposition.\n"
+      <<"\n"
+      <<"\tReplace the fldecomp workflow:\n"
+      <<"\n"
+      <<"\t<generate mesh>\n"
+      <<"\tfldecomp -n <nparts> <other options> mesh\n"
+      <<"\tmpiexec -n <nparts> fluidity <other options> foo.flml\n"
+      <<"\n"
+      <<"\twith the flredecomp workflow:\n"
+      <<"\n"
+      <<"\t<generate mesh>\n"
+      <<"\tmpiexec -n <nparts> flredecomp -i 1 -o <nparts> foo foo_flredecomp\n"
+      <<"\tmpiexec -n <nparts> fluidity <other options> foo_flredecomp.flml\n"
+      <<"\n"
+      <<"\tfldecomp is retained only to decompose Terreno meshes, which\n"
+      <<"\tflredecomp cannot process.\n"
+      <<"\n";
+
   int optionIndex = 0;
   
   optarg = NULL;  
@@ -152,15 +175,15 @@ int main(int argc, char **argv){
     }
   }
 
-  // Get mesh format (optional - defaults to triangle if not specified)
+  // Get mesh format (optional - defaults to gmsh if not specified)
 
   string file_format;
 
   if(flArgs.count('m'))
       file_format = flArgs['m'].c_str();
   else {
-    cout << "fldecomp: defaulting to triangle format\n";
-    file_format="triangle";
+    cout << "fldecomp: defaulting to gmsh format\n";
+    file_format="gmsh";
   }
 
   // Read in the mesh

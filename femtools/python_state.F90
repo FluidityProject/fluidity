@@ -23,10 +23,13 @@
 
 module python_state
   use fldebug
+  use global_parameters, only:FIELD_NAME_LEN, current_debug_level, OPTION_PATH_LEN, PYTHON_FUNC_LEN
+  use futils, only: int2str
   use quadrature
+  use sparse_tools
+  use element_numbering
   use elements
   use fields
-  use global_parameters, only:FIELD_NAME_LEN, current_debug_level, OPTION_PATH_LEN, PYTHON_FUNC_LEN
   use state_module 
    
   implicit none
@@ -262,6 +265,14 @@ module python_state
     
     csrSparsity = csrMatrix%sparsity 
     values => csrMatrix%val
+
+    ! For CSR_INTEGER matrices, %val is not allocated. To ensure that python state
+    ! does not try to wrap it in an array, we return if this is the case.
+    if (.not. associated(values)) then
+      ewrite(2,*) "Skipping "//trim(csrMatrix%name)//" insertion into python state."
+      return
+    end if
+
     valSize = size(csrMatrix%val,1)
     col_ind => csrSparsity%colm
     col_indSize = valSize

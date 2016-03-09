@@ -9,6 +9,11 @@
     <!-- Check that the sinking velocity term works. -->
   </problem_definition>
   <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name="detritus_initial" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("sinking_velocity.stat")
@@ -26,6 +31,9 @@ mixed_layer_detritus_final = s["Water"]["MixedLayerDetritus"]["integral"][-1]
     </variable>
   </variables>
   <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
     <test name="Detritus is conserved" language="python">
 import fluidity_tools
 fluidity_tools.compare_variable(detritus_final, detritus_initial, 1.6e-5)

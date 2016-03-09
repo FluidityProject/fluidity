@@ -29,58 +29,63 @@
 
 module diagnostic_variables
   !!< A module to calculate and output diagnostics. This replaces the .s file.
-  use quadrature
-  use elements
+  use fldebug 
   use global_parameters, only:FIELD_NAME_LEN,OPTION_PATH_LEN, &
-    & PYTHON_FUNC_LEN, int_16, integer_size, real_size
-  use fields
+& PYTHON_FUNC_LEN, int_16, integer_size, real_size
+  use quadrature
+  use futils
+  use elements
+  use spud
+  use mpi_interfaces
+  use parallel_tools
+  use memory_diagnostics
+  use integer_hash_table_module
+  use data_structures
+  use linked_lists
+  use halo_data_types
+  use halos_base
+  use halos_debug
+  use halos_allocates
+  use ieee_arithmetic
+  use sparse_tools
+  use embed_python
   use fields_base
+  use eventcounter
+  use fetools
+  use unittest_tools
+  use halos_communications
+  use halos_numbering
+  use halos_ownership
+  use parallel_fields, only: element_owned
+  use fields
+  use profiler
+  use state_module
+  use vtk_interfaces
+  use halos_derivation
+  use halos_registration
   use field_derivatives
   use field_options
-  use state_module
-  use futils
-  use fetools
+  use c_interfaces
   use fefields
-  use MeshDiagnostics
-  use spud
-  use parallel_tools
-  use Profiler
+  use meshdiagnostics
   use sparsity_patterns
   use solvers
   use write_state_module, only: vtk_write_state_new_options
   use surface_integrals
-  use vtk_interfaces
-  use embed_python
-  use eventcounter
-  use pickers
-  use sparse_tools
-  use mixing_statistics
-  use c_interfaces
-!  use checkpoint
-  use memory_diagnostics
-  use data_structures
-  use unittest_tools
-  use integer_hash_table_module
-  use halo_data_types
-  use halos_allocates
-  use halos_base
-  use halos_debug
-  use halos_numbering
-  use halos_ownership
-  use halos_derivation
-  use halos_communications
-  use halos_registration
-  use mpi_interfaces
-  use parallel_tools
-  use fields_manipulation
   use detector_data_types
+  use pickers
+  use mixing_statistics
   use detector_tools
   use detector_parallel
   use detector_move_lagrangian
-  use ieee_arithmetic, only: cget_nan
-  use state_fields_module, only: get_cv_mass
+  use state_fields_module
   
   implicit none
+
+  interface
+     subroutine register_diagnostics()
+     end subroutine register_diagnostics
+  end interface
 
   private
 
@@ -494,7 +499,7 @@ contains
     character(len=*) :: filename
     type(state_type), dimension(:), intent(in) :: state
 
-    integer :: column, i, j, k, phase, stat
+    integer :: column, i, j, k, s, phase, stat
     integer, dimension(2) :: shape_option
     integer :: no_mixing_bins
     real, dimension(:), pointer :: mixing_bin_bounds
@@ -752,26 +757,29 @@ contains
 
            ! drag calculation
            if(have_option(trim(complete_field_path(vfield%option_path, stat=stat)) // "/stat/compute_body_forces_on_surfaces")) then
-             do j = 1, mesh_dim(vfield%mesh)
-               column = column + 1
-               buffer = field_tag(name=trim(vfield%name), column=column, statistic="force%" &
-               // int2str(j), material_phase_name=material_phase_name)
-               write(default_stat%diag_unit, '(a)') trim(buffer)
+             do s = 0, option_count(trim(complete_field_path(vfield%option_path, stat = stat)) // "/stat/compute_body_forces_on_surfaces") - 1
+               call get_option(trim(complete_field_path(vfield%option_path))//"/stat/compute_body_forces_on_surfaces[" // int2str(s) // "]/name", surface_integral_name)
+               do j = 1, mesh_dim(vfield%mesh)
+                 column = column + 1
+                 buffer = field_tag(name=trim(vfield%name), column=column, statistic="force_"//trim(surface_integral_name)//"%" &
+                 // int2str(j), material_phase_name=material_phase_name)
+                 write(default_stat%diag_unit, '(a)') trim(buffer)
+               end do
+               if(have_option(trim(complete_field_path(vfield%option_path, stat=stat)) // "/stat/compute_body_forces_on_surfaces[" // int2str(s) // "]/output_terms")) then
+                 do j = 1, mesh_dim(vfield%mesh)
+                   column = column + 1
+                   buffer = field_tag(name=trim(vfield%name), column=column, statistic="pressure_force_"//trim(surface_integral_name)//"%" &
+                   // int2str(j), material_phase_name=material_phase_name)
+                   write(default_stat%diag_unit, '(a)') trim(buffer)
+                 end do
+                 do j = 1, mesh_dim(vfield%mesh)
+                   column = column + 1
+                   buffer = field_tag(name=trim(vfield%name), column=column, statistic="viscous_force_"//trim(surface_integral_name)//"%" &
+                   // int2str(j), material_phase_name=material_phase_name)
+                   write(default_stat%diag_unit, '(a)') trim(buffer)
+                 end do
+               end if
              end do
-             if(have_option(trim(complete_field_path(vfield%option_path, stat=stat)) // "/stat/compute_body_forces_on_surfaces/output_terms")) then
-               do j = 1, mesh_dim(vfield%mesh)
-                 column = column + 1
-                 buffer = field_tag(name=trim(vfield%name), column=column, statistic="pressure_force%" &
-                 // int2str(j), material_phase_name=material_phase_name)
-                 write(default_stat%diag_unit, '(a)') trim(buffer)
-               end do
-               do j = 1, mesh_dim(vfield%mesh)
-                 column = column + 1
-                 buffer = field_tag(name=trim(vfield%name), column=column, statistic="viscous_force%" &
-                 // int2str(j), material_phase_name=material_phase_name)
-                 write(default_stat%diag_unit, '(a)') trim(buffer)
-               end do
-             end if
            end if
 
            if(have_option(trim(complete_field_path(vfield%option_path, stat=stat)) // "/stat/divergence_stats")) then
@@ -1369,7 +1377,10 @@ contains
     assert(xfield%dim+1==local_coord_count(shape))
 
     ! Determine element and local_coords from position
-    call picker_inquire(xfield,position,element,local_coord=lcoords,global=.false.)
+    ! In parallel, global=.false. can often work because there will be
+    ! a halo of non-owned elements in your process and so you can work out
+    ! ownership without communication.  But in general it won't work.
+    call picker_inquire(xfield,position,element,local_coord=lcoords,global=.true.)
 
     ! If we're in parallel and don't own the element, skip this detector
     if (isparallel()) then
@@ -1379,6 +1390,7 @@ contains
        ! In serial make sure the detector is in the domain
        ! unless we have the write_nan_outside override
        if (element<0 .and. .not.detector_list%write_nan_outside) then
+          ewrite(-1,*) "Dealing with detector ", id, " named: ", trim(name)
           FLExit("Trying to initialise detector outside of computational domain")
        end if
     end if
@@ -1526,7 +1538,7 @@ contains
           default_stat%detector_list%detector_names(static_dete+i)=detector_name
 
           call create_single_detector(default_stat%detector_list, xfield, &
-                detector_location, static_dete+1, LAGRANGIAN_DETECTOR, trim(detector_name))
+                detector_location, static_dete+i, LAGRANGIAN_DETECTOR, trim(detector_name))
        end do
 
        k=static_dete+lagrangian_dete+1
@@ -1568,26 +1580,24 @@ contains
           else
 
              ! Reading from a binary file where the user has placed the detector positions
-             if (getprocno() == 1) then
-                 default_stat%detector_file_unit=free_unit()
-                 call get_option("/io/detectors/detector_array/from_file/file_name",detector_file_filename)
+             default_stat%detector_file_unit=free_unit()
+             call get_option("/io/detectors/detector_array/from_file/file_name",detector_file_filename)
 
 #ifdef STREAM_IO
-                 open(unit = default_stat%detector_file_unit, file = trim(detector_file_filename), &
-                      & action = "read", access = "stream", form = "unformatted")
+             open(unit = default_stat%detector_file_unit, file = trim(detector_file_filename), &
+                  & action = "read", access = "stream", form = "unformatted")
 #else
-                 FLAbort("No stream I/O support")
+             FLAbort("No stream I/O support")
 #endif
-       
-                 do j=1,ndete
-                    write(detector_name, fmt) trim(funcnam)//"_", j
-                    default_stat%detector_list%detector_names(k)=trim(detector_name)
-                    read(default_stat%detector_file_unit) detector_location
-                    call create_single_detector(default_stat%detector_list, xfield, &
-                          detector_location, k, type_det, trim(detector_name))
-                    k=k+1          
-                 end do
-              end if                
+   
+             do j=1,ndete
+                write(detector_name, fmt) trim(funcnam)//"_", j
+                default_stat%detector_list%detector_names(k)=trim(detector_name)
+                read(default_stat%detector_file_unit) detector_location
+                call create_single_detector(default_stat%detector_list, xfield, &
+                      detector_location, k, type_det, trim(detector_name))
+                k=k+1          
+             end do
           end if
        end do      
     else 
@@ -1677,6 +1687,7 @@ contains
                    read(default_stat%detector_checkpoint_unit) detector_location
                    call create_single_detector(default_stat%detector_list, xfield, &
                           detector_location, k, type_det, trim(detector_name)) 
+                   default_stat%detector_list%detector_names(k)=trim(detector_name)
                    k=k+1           
                 end do
              else                     
@@ -2169,41 +2180,46 @@ contains
       type(tensor_field), pointer :: viscosity
 
       logical :: have_viscosity      
-      integer :: i
+      integer :: i, s
       real :: force(vfield%dim), pressure_force(vfield%dim), viscous_force(vfield%dim)
+      character(len = FIELD_NAME_LEN) :: surface_integral_name
     
       viscosity=>extract_tensor_field(state, "Viscosity", stat)
       have_viscosity = stat == 0
 
-      if(have_option(trim(complete_field_path(vfield%option_path, stat=stat)) // "/stat/compute_body_forces_on_surfaces/output_terms")) then
-        if(have_viscosity) then
-          ! calculate the forces on the surface
-          call diagnostic_body_drag(state, force, pressure_force = pressure_force, viscous_force = viscous_force)
-        else   
-          call diagnostic_body_drag(state, force, pressure_force = pressure_force)   
-        end if
-        if(getprocno() == 1) then
-          do i=1, mesh_dim(vfield%mesh)
-            write(default_stat%diag_unit, trim(format), advance="no") force(i)
-          end do
-          do i=1, mesh_dim(vfield%mesh)
-            write(default_stat%diag_unit, trim(format), advance="no") pressure_force(i)
-          end do
+      do s = 0, option_count(trim(complete_field_path(vfield%option_path, stat = stat)) // "/stat/compute_body_forces_on_surfaces") - 1
+        call get_option(trim(complete_field_path(vfield%option_path))//"/stat/compute_body_forces_on_surfaces[" // int2str(s) // "]/name", surface_integral_name)
+
+        if(have_option(trim(complete_field_path(vfield%option_path, stat=stat)) // "/stat/compute_body_forces_on_surfaces[" // int2str(s) // "]/output_terms")) then
           if(have_viscosity) then
-            do i=1, mesh_dim(vfield%mesh)
-             write(default_stat%diag_unit, trim(format), advance="no") viscous_force(i)
-            end do
+            ! calculate the forces on the surface
+            call diagnostic_body_drag(state, force, surface_integral_name, pressure_force = pressure_force, viscous_force = viscous_force)
+          else
+            call diagnostic_body_drag(state, force, surface_integral_name, pressure_force = pressure_force)   
           end if
-        end if
-      else
-          ! calculate the forces on the surface
-          call diagnostic_body_drag(state, force) 
           if(getprocno() == 1) then
-           do i=1, mesh_dim(vfield%mesh)
+            do i=1, mesh_dim(vfield%mesh)
               write(default_stat%diag_unit, trim(format), advance="no") force(i)
-           end do
-          end if     
-      end if 
+            end do
+            do i=1, mesh_dim(vfield%mesh)
+              write(default_stat%diag_unit, trim(format), advance="no") pressure_force(i)
+            end do
+            if(have_viscosity) then
+              do i=1, mesh_dim(vfield%mesh)
+               write(default_stat%diag_unit, trim(format), advance="no") viscous_force(i)
+              end do
+            end if
+          end if
+        else
+            ! calculate the forces on the surface
+            call diagnostic_body_drag(state, force, surface_integral_name) 
+            if(getprocno() == 1) then
+             do i=1, mesh_dim(vfield%mesh)
+                write(default_stat%diag_unit, trim(format), advance="no") force(i)
+             end do
+            end if     
+        end if
+      end do
       
     end subroutine write_body_forces
 
@@ -2475,7 +2491,7 @@ contains
           call field_con_stats(sfield, oldsfield, change, &
                                convergence_norm, coordinates)
           if(acceleration) change = change/dt
-          ewrite(2, *) trim(sfield%name), change
+          ewrite(2, *) trim(state(phase)%name)//"::"//trim(sfield%name), change
           maxchange = max(maxchange, change)
 
           if(default_stat%write_steady_state_file .and. procno == 1) then
@@ -2500,7 +2516,7 @@ contains
          call field_con_stats(vfield, oldvfield, change, &
                               convergence_norm, coordinates)
          if(acceleration) change = change/dt
-         ewrite(2, *) trim(vfield%name), change
+         ewrite(2, *) trim(state(phase)%name)//"::"//trim(vfield%name), change
          maxchange = max(maxchange, change)
 
          if(default_stat%write_steady_state_file .and. procno == 1) then
@@ -2521,7 +2537,7 @@ contains
            call field_con_stats(vfield_comp, oldvfield_comp, change, &
                                 convergence_norm, coordinates)
            if(acceleration) change = change/dt
-           ewrite(2, *) trim(vfield%name), j, change
+           ewrite(2, *) trim(state(phase)%name)//"::"//trim(vfield%name), j,  change
            maxchange = max(maxchange, change)
 
            if(default_stat%write_steady_state_file .and. procno == 1) then

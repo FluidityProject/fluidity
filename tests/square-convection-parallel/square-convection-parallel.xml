@@ -3,10 +3,16 @@
   <name>Square convection (Adaptive CG-test version)</name>
   <owner userid="pfarrell"/>
   <tags>flml parallel 2dadapt</tags>
-  <problem_definition length = "medium" nprocs = "1">
-    <command_line>mpiexec -n 2 ../../bin/fluidity -v2 -l square-convection.flml</command_line>
+  <problem_definition length = "medium" nprocs = "2">
+    <command_line>mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l square-convection square-convection_flredecomp &amp;&amp;
+mpiexec ../../bin/fluidity -v2 -l square-convection_flredecomp.flml</command_line>
   </problem_definition>
   <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name = "time" language = "python">
 import fluidity_tools
 s = fluidity_tools.stat_parser("square-convection.stat")
@@ -14,6 +20,9 @@ time = s["ElapsedTime"]["value"][-1]
     </variable>
   </variables>
   <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
 <!--Crash tests-->
     <test name = "Simulation completed" language = "python">
 import fluidity_tools

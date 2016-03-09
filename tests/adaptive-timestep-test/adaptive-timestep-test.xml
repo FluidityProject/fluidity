@@ -8,6 +8,11 @@
     <command_line>fluidity  channel_flow_input.flml </command_line>
   </problem_definition>  
   <variables>  
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
      <variable name="start_dt" language="python"> 
 import fluidity_tools
 start_dt = fluidity_tools.stat_parser("channel_flow.stat")['dt']['value'][0]
@@ -26,6 +31,9 @@ no_timesteps = len(fluidity_tools.stat_parser("channel_flow.stat")['dt']['value'
     </variable>
   </variables>
     <pass_tests>  
+      <test name="Solvers converged" language="python">
+        assert(solvers_converged)
+      </test>
     <test name="check starting timestep is 0.021 (what is allowed from 0.02 by tolerance)" language="python">
    assert abs(start_dt-0.021) &lt; 1e-10
     </test>

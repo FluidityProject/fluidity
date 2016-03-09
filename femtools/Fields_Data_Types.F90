@@ -28,12 +28,13 @@
 module fields_data_types
 
   use global_parameters, only:FIELD_NAME_LEN, current_debug_level, OPTION_PATH_LEN, PYTHON_FUNC_LEN
+  use reference_counting
   use picker_data_types
   use shape_functions
-  use sparse_tools
   use spud
-  use reference_counting
   use halo_data_types
+  use data_structures, only : integer_set_vector
+  use sparse_tools
   implicit none
 
   private
@@ -46,7 +47,8 @@ module fields_data_types
   !! Types of different halo associated with a field:
   integer, public, parameter :: HALO_TYPES=2
   !! Available sources of data for fields:
-  integer, public, parameter :: FIELD_TYPE_NORMAL=0, FIELD_TYPE_CONSTANT=1, FIELD_TYPE_PYTHON=2, FIELD_TYPE_DEFERRED=3
+  integer, public, parameter :: FIELD_TYPE_NORMAL=0, FIELD_TYPE_CONSTANT=1, FIELD_TYPE_PYTHON=2, &
+    FIELD_TYPE_DEFERRED=3
 
   type adjacency_cache
     type(csr_sparsity), pointer :: nnlist => null()
@@ -90,6 +92,7 @@ module fields_data_types
      !! Halo information for parallel simulations.
      type(halo_type), dimension(:), pointer :: halos=>null()
      type(halo_type), dimension(:), pointer :: element_halos=>null()
+     type(integer_set_vector), dimension(:), pointer :: colourings=>null()
      !! A logical indicating if this mesh is periodic or not
      !! (does not tell you how periodic it is... i.e. true if
      !! any surface is periodic)
@@ -118,9 +121,27 @@ module fields_data_types
      integer, dimension(:), pointer :: coplanar_ids => null()
      !! a DG version of the surface mesh, useful for storing bc values
      type(mesh_type), pointer:: dg_surface_mesh => null()
-     !! A logical indicating if this mesh has internal boundaries
-     !! This means that element owners need to be written when writing out this mesh
-     logical :: has_internal_boundaries=.false.
+     !! A logical indicating if this mesh has a discontinuous internal boundary
+     !! This means that the pairs of internal facets are allowed to have two different
+     !! surface ids. When writing out this mesh both facets are written out and
+     !! element owners (an extra column indiciating which element is adjacent to each facet)
+     !! needs to be written out along with the surface mesh.
+     !! This is currently only used for periodic meshes which have a physical and aliased surface id
+     !! along the periodic boundary (which is an internal boundary of the periodic mesh).
+     !! Note that other meshes (with has_internal_boundaries==.false.) may still have internal facets
+     !! as part of the surface mesh, in this case the surface ids do have to agree and only one of each
+     !! pair of facets is written when writing out the mesh.
+     logical :: has_discontinuous_internal_boundaries=.false.
+     !! If internal facets are present in the surface mesh (and has_discontinuous_internal_boundaries==.false.) 
+     !! the surface facets are numbered such that 1:unique_surface_element_count visits each external facet
+     !! and each pair of internal facets only once (the order of this is typically determined by the 
+     !! read-in input mesh in which internal facets are only also only present once)
+     !! The second facets of each pair of internal facets are numbered 
+     !! unique_surface_element_count+1:surface_element_count (surface_element_count()==size(boundary_ids))
+     !! For meshes with no internal facets: unique_surface_element_count==surface_element_count()
+     !! For meshes with has_discontinuous_internal_boundaries no order is guaranteed and also
+     !! unique_surface_element_count==surface_element_count()
+     integer :: unique_surface_element_count
   end type mesh_faces
 
   type mesh_subdomain_mesh

@@ -29,26 +29,26 @@
 
 module differential_operator_diagnostics
 
-! these 5 need to be on top and in this order, so as not to confuse silly old intel compiler 
+  use fldebug
+  use global_parameters, only : OPTION_PATH_LEN, FIELD_NAME_LEN
+  use vector_tools, only: solve
   use quadrature
   use elements
+  use spud
   use sparse_tools
+  use eventcounter
+  use fetools
   use fields
   use state_module
-!
-  use diagnostic_source_fields
-  use divergence_matrix_cg
-  use eventcounter
-  use field_derivatives
   use field_options
-  use fldebug
-  use geostrophic_pressure
-  use global_parameters, only : OPTION_PATH_LEN
-  use solvers
+  use diagnostic_source_fields
+  use field_derivatives
   use sparse_matrices_fields
   use sparsity_patterns_meshes
-  use spud
   use state_fields_module
+  use divergence_matrix_cg
+  use solvers
+  use geostrophic_pressure
 
   implicit none
   
@@ -71,10 +71,18 @@ contains
     type(vector_field), pointer :: positions
     
     source_field => scalar_source_field(state, v_field)
+    if (source_field%mesh%continuity<0 .and. .not. (v_field%mesh%continuity<0)) then
+      ewrite(-1,*) "For diagnostic algorithm (grad)"
+      ewrite(-1,*) "You are trying to take the derivative of field: ", trim(source_field%name)
+      ewrite(-1,*) "which is on a discontinuous mesh. and store it on: ", trim(v_field%name)
+      ewrite(-1,*) "which is continuous. The code does not support this."
+      ewrite(-1,*) "Please change the diagnostic field discretisation to discontinuous"
+      ewrite(-1,*) "or use a galerkin_projection first to derive a continuous approximation"
+      ewrite(-1,*) "of the source field."
+      FLExit("Diagnostic algorithm does not support taking continuous gradients of discontinuous fields")
+    end if
     
     positions => extract_vector_field(state, "Coordinate")
-    
-    call check_source_mesh_derivative(source_field, "grad")
     
     call grad(source_field, positions, v_field)
     
@@ -89,8 +97,16 @@ contains
 
     positions => extract_vector_field(state, "Coordinate")
     source_field => vector_source_field(state, t_field)
-
-    call check_source_mesh_derivative(source_field, "grad_vector")
+    if (source_field%mesh%continuity<0 .and. .not. (t_field%mesh%continuity<0)) then
+      ewrite(-1,*) "For diagnostic algorithm (grad)"
+      ewrite(-1,*) "You are trying to take the derivative of field: ", trim(source_field%name)
+      ewrite(-1,*) "which is on a discontinuous mesh. and store it on: ", trim(t_field%name)
+      ewrite(-1,*) "which is continuous. The code does not support this."
+      ewrite(-1,*) "Please change the diagnostic field discretisation to discontinuous"
+      ewrite(-1,*) "or use a galerkin_projection first to derive a continuous approximation"
+      ewrite(-1,*) "of the source field."
+      FLExit("Diagnostic algorithm does not support taking continuous gradients of discontinuous fields")
+    end if
 
     call grad(source_field, positions, t_field)
 
@@ -134,18 +150,20 @@ contains
     type(scalar_field), intent(inout) :: s_field
     
     character(len = OPTION_PATH_LEN) :: path
-    type(block_csr_matrix) :: ct_m
+    type(block_csr_matrix), pointer :: ct_m
     type(csr_sparsity), pointer :: divergence_sparsity
     type(csr_matrix), pointer :: mass
     type(scalar_field) :: ctfield, ct_rhs
     type(scalar_field), pointer :: masslump
     type(vector_field), pointer :: positions, source_field
+    logical :: using_divergence_matrix_cache
     
     source_field => vector_source_field(state, s_field)
     path = trim(complete_field_path(s_field%option_path)) // "/algorithm"
     
-    if(use_divergence_matrix_cache(state)) then
-      ct_m = extract_block_csr_matrix(state, trim(s_field%name) // "DivergenceMatrix")
+    using_divergence_matrix_cache = use_divergence_matrix_cache(state)
+    if(using_divergence_matrix_cache) then
+      ct_m => extract_block_csr_matrix(state, trim(s_field%name) // "DivergenceMatrix")
       call incref(ct_m)
       ct_rhs = extract_scalar_field(state, trim(s_field%name) // "DivergenceRHS")
       call incref(ct_rhs)
@@ -153,6 +171,7 @@ contains
       positions => extract_vector_field(state, "Coordinate")
     
       divergence_sparsity => get_csr_sparsity_firstorder(state, s_field%mesh, source_field%mesh)
+      allocate(ct_m)
       call allocate(ct_m, divergence_sparsity, (/1, source_field%dim/), name = "DivergenceMatrix" )
       call allocate(ct_rhs, s_field%mesh, name = "CTRHS")
     
@@ -177,6 +196,9 @@ contains
     end if
 
     call deallocate(ct_m)
+    if(.not.using_divergence_matrix_cache)then
+      deallocate(ct_m)
+    end if
     call deallocate(ctfield)
 
   contains
@@ -371,17 +393,21 @@ contains
     if(source_field%dim /= 2) then
       FLExit("Can only calculate 2D curl in 2D")
     end if
-    
-    call check_source_mesh_derivative(source_field, "curl_2d")
+
+    if(continuity(s_field)==-1 .and. continuity(source_field)==-1) then
+      ewrite(-1,*) "If you want to compute the 2d curl of a DG vector field, "// &
+        "the diagnostic field itself should be on a continuous mesh."
+      FLExit("Cannot compute 2D curl of DG field onto a DG mesh")
+    end if
     
     positions => extract_vector_field(state, "Coordinate")    
     path = trim(complete_field_path(s_field%option_path)) // "/algorithm"
     if(have_option(trim(path) // "/lump_mass")) then
       masslump => get_lumped_mass(state, s_field%mesh)
+
       call zero(s_field)
-      do i = 1, ele_count(s_field)
-        call assemble_curl_ele(i, positions, source_field, s_field)
-      end do
+      call assemble_rhs(positions, source_field, s_field)
+
       s_field%val = s_field%val / masslump%val
     else
       select case(continuity(s_field))
@@ -392,9 +418,10 @@ contains
           mass => get_mass_matrix(state, s_field%mesh)
           call allocate(rhs, s_field%mesh, "CurlRHS")
           call zero(rhs)
-          do i = 1, ele_count(rhs)
-            call assemble_curl_ele(i, positions, source_field, rhs)
-          end do
+          call assemble_rhs(positions, source_field, rhs)
+
+          call zero(s_field)
+
           call petsc_solve(s_field, mass, rhs, option_path = path)
           call deallocate(rhs)
         case(-1)
@@ -413,6 +440,31 @@ contains
     
   contains
   
+    subroutine assemble_rhs(positions, source, rhs)
+      type(vector_field), intent(in) :: positions, source
+      type(scalar_field), intent(inout) :: rhs
+
+      integer :: ele, sele
+
+      select case (continuity(source))
+      case (0)
+        do ele = 1, ele_count(rhs)
+          call assemble_curl_ele(ele, positions, source, rhs)
+        end do
+      case (-1)
+        do ele = 1, ele_count(rhs)
+          call assemble_curl_ele_dg(ele, positions, source, rhs)
+        end do
+        do sele = 1, surface_element_count(rhs)
+          call assemble_curl_sele_dg(sele, positions, source, rhs)
+        end do
+      case default
+        ewrite(-1, *) "For mesh continuity: ", continuity(source)
+        FLAbort("Unrecognised mesh continuity")
+      end select
+
+    end subroutine assemble_rhs
+
     subroutine assemble_curl_ele(ele, positions, source, rhs)
       integer, intent(in) :: ele
       type(vector_field), intent(in) :: positions
@@ -431,6 +483,50 @@ contains
     
     end subroutine assemble_curl_ele
     
+    subroutine assemble_curl_ele_dg(ele, positions, source, rhs)
+      integer, intent(in) :: ele
+      type(vector_field), intent(in) :: positions
+      type(vector_field), intent(in) :: source
+      type(scalar_field), intent(inout) :: rhs
+      
+      real, dimension(ele_ngi(positions, ele)) :: detwei
+      real, dimension(ele_loc(rhs, ele), ele_ngi(rhs, ele), positions%dim) :: dshape, skew_dshape
+      
+      call transform_to_physical(positions, ele, ele_shape(rhs, ele), &
+        & dshape = dshape, detwei = detwei)
+
+      ! this computes *minus* the skew, as we integrate by parts
+      skew_dshape(:,:,1) = dshape(:,:,2)
+      skew_dshape(:,:,2) = -dshape(:,:,1)
+      
+      call addto(rhs, ele_nodes(rhs, ele), &
+        & dshape_dot_vector_rhs(skew_dshape, ele_val_at_quad(source, ele) , detwei))
+    
+    end subroutine assemble_curl_ele_dg
+
+    subroutine assemble_curl_sele_dg(sele, positions, source, rhs)
+      integer, intent(in) :: sele
+      type(vector_field), intent(in) :: positions
+      type(vector_field), intent(in) :: source
+      type(scalar_field), intent(inout) :: rhs
+
+      real, dimension(face_ngi(positions,sele)) :: detwei
+      real, dimension(positions%dim, size(detwei)) :: face_normals, face_tangents
+
+      call transform_facet_to_physical(positions, sele, detwei, face_normals)
+      face_tangents(1,:) = -face_normals(2,:)
+      face_tangents(2,:) = face_normals(1,:)
+
+      ! work around for gfortran bug http://gcc.gnu.org/bugzilla/show_bug.cgi?id=57798
+      ! if you put the product below directly in the sum(..,dim=1) you get a segfault on 4.8.1
+      face_tangents = face_tangents*face_val_at_quad(source, sele)
+
+      call addto(rhs, face_global_nodes(rhs, sele), &
+        & shape_rhs(face_shape(rhs, sele), detwei* &
+        &   sum(face_tangents, dim=1)))
+
+    end subroutine assemble_curl_sele_dg
+
     subroutine solve_curl_ele(ele, positions, source, curl)
       integer, intent(in) :: ele
       type(vector_field), intent(in) :: positions
@@ -707,44 +803,23 @@ contains
     type(vector_field), intent(in) :: positions
     type(scalar_field), intent(in) :: source_field
     
-    integer :: ele, lface, i, j
+    integer :: ele, i, j
     real, dimension(face_ngi(s_field, face)) :: detwei, grad_sgi_n
     real, dimension(positions%dim, face_ngi(s_field, face)) :: grad_sgi, normal    
-    real, dimension(positions%dim, positions%dim, ele_ngi(s_field, face_ele(s_field, face))) :: invj
-    real, dimension(positions%dim, positions%dim, face_ngi(s_field, face)) :: invj_face
     real, dimension(ele_loc(s_field, face_ele(source_field, face)), face_ngi(s_field, face), positions%dim) :: dshape_face
     real, dimension(ele_loc(s_field, face_ele(source_field, face))) :: s_ele_val
-    type(element_type) :: augmented_shape
     type(element_type), pointer :: fshape, source_shape, positions_shape
       
     ele = face_ele(s_field, face)
-    lface = local_face_number(s_field, face)
       
     positions_shape => ele_shape(positions, ele)
     fshape => face_shape(s_field, face)
     
     source_shape => ele_shape(source_field, ele)
-    if(associated(source_shape%dn_s)) then
-      augmented_shape = source_shape
-      call incref(augmented_shape)
-    else
-      augmented_shape = make_element_shape(positions_shape%loc, source_shape%dim, &
-        & source_shape%degree, source_shape%quadrature, &
-        & quad_s = fshape%quadrature)
-    end if    
     
-    call transform_facet_to_physical(positions, face, &
+    call transform_facet_to_physical(positions, face, source_shape, dshape_face, &
       & detwei_f = detwei, normal = normal)
-    call compute_inverse_jacobian( &
-      & ele_val(positions, ele), positions_shape, &
-      & invj = invj)
-    assert(positions_shape%degree == 1)
-    assert(ele_numbering_family(positions_shape) == FAMILY_SIMPLEX)
-    invj_face = spread(invj(:, :, 1), 3, size(invj_face, 3))
-      
-    dshape_face = eval_volume_dshape_at_face_quad(augmented_shape, lface, invj_face)
-    call deallocate(augmented_shape)
-    
+
     s_ele_val = ele_val(source_field, ele)
     forall(i = 1:positions%dim, j = 1:face_ngi(s_field, face))
       grad_sgi(i, j) = dot_product(s_ele_val, dshape_face(:, j, i))

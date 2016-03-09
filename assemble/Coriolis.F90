@@ -29,11 +29,12 @@
 
 module coriolis_module
 
-  use embed_python 
+  use spud
   use fldebug
   use global_parameters, only : current_time, PYTHON_FUNC_LEN
-  use spud
-  
+  use embed_python
+  use parallel_tools, only: abort_if_in_parallel_region
+
   implicit none
   
   !! Coriolis parameters:
@@ -58,7 +59,7 @@ module coriolis_module
      
   private
   
-  public :: coriolis, funome, set_coriolis_parameters
+  public :: coriolis, funome, set_coriolis_parameters, coriolis_module_check_options
 
   contains
 
@@ -145,7 +146,9 @@ module coriolis_module
     real:: omega
     
     if (coriolis_option/=NOT_INITIALISED) return
-    
+
+    call abort_if_in_parallel_region
+
     ewrite(1, *) "Initialising Coriolis"
     
     call get_option("/geometry/dimension", coriolis_dim)

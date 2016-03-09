@@ -1,0 +1,12 @@
+#!/bin/bash
+
+n=8
+for F in A B C D
+do
+    echo creating set $F with n_ele=$n	
+
+    sed s/MMS_X/MMS_$F/ MMS_X.flml > MMS_$F.flml
+    sed s/XX/$n/ src/MMS_X.geo > src/MMS_$F.geo	
+
+    n=$((n*2))
+done

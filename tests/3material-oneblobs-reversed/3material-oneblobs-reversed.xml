@@ -8,6 +8,11 @@
     <command_line>fluidity -v2 -l 3material-oneblobs.flml </command_line>
   </problem_definition>  
   <variables>  
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
      <variable name="mxvfracwater" language="python"> 
 import fluidity_tools
 mxvfracwater = max(fluidity_tools.stat_parser("3material-oneblobs.stat")['Water']['MaterialVolumeFraction']['max'])
@@ -54,6 +59,9 @@ mncfl = min(fluidity_tools.stat_parser("3material-oneblobs.stat")['Water']['Cont
     </variable>    
   </variables>
     <pass_tests>  
+      <test name="Solvers converged" language="python">
+        assert(solvers_converged)
+      </test>
     <test name="check minimum water volume fraction is 0.0" language="python">
    assert abs(mnvfracwater) &lt; 1e-10
     </test>

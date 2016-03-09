@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<testproblem>
+   
+  <name>swe_dam_break_2d</name>
+  <owner userid="ctj10"/>
+  <tags>flml</tags>
+  
+  <problem_definition length="short" nprocs="1">
+    <command_line>fluidity -v2 -l swe_dam_break_2d.flml</command_line>
+    <!-- 2D shallow water test case involving a dam break. -->
+  </problem_definition>
+  
+  <variables>
+    <variable name="ux_max" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("swe_dam_break_2d.stat")
+ux_max = s["Water"]["Velocity%1"]["max"][-1]
+    </variable>
+    
+    <variable name="ux_min" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("swe_dam_break_2d.stat")
+ux_min = s["Water"]["Velocity%1"]["min"][-1]
+    </variable>
+
+    <variable name="uy_max" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("swe_dam_break_2d.stat")
+uy_max = s["Water"]["Velocity%2"]["max"][-1]
+    </variable>
+    
+    <variable name="uy_min" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("swe_dam_break_2d.stat")
+uy_min = s["Water"]["Velocity%2"]["min"][-1]
+    </variable>
+    
+    <variable name="h_max" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("swe_dam_break_2d.stat")
+h_max = s["Water"]["FreeSurface"]["max"][-1]
+    </variable>
+    
+    <variable name="h_min" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("swe_dam_break_2d.stat")
+h_min = s["Water"]["FreeSurface"]["min"][-1]
+    </variable>
+    
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
+    
+  </variables>
+    
+  <pass_tests>
+    <test name="max(ux) is about 5.75" language="python">
+assert abs(ux_max - 5.75) &lt; 1.5e-1
+    </test>
+    <test name="min(ux) is about -1.0" language="python">
+assert abs(ux_min - (-1.0)) &lt; 1.5e-1
+    </test>
+    <test name="max(uy) is about 3.2" language="python">
+assert abs(uy_max - 3.2) &lt; 1e-1
+    </test>
+    <test name="min(uy) is about -3.2" language="python">
+assert abs(uy_min - (-3.2)) &lt; 1.5e-1
+    </test>
+    <test name="max(h) is about 5.0" language="python">
+assert abs(h_max - 5.0) &lt; 1e-1
+    </test>
+    <test name="min(h) is about 0.0" language="python">
+assert abs(h_min) &lt; 2e-1
+    </test>
+    <test name="Solvers converged" language="python">
+assert(solvers_converged)
+    </test>
+  </pass_tests>
+  
+  <warn_tests>
+  </warn_tests>
+  
+</testproblem>

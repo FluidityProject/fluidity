@@ -5,7 +5,7 @@
 This chapter describes several example problems that cover the various aspects of the functionality
 of \fluidity. The input files for these examples can be found in separate directories
 under \\ \texttt{\fluiditysourcepath/examples/}. Each directory contains a \texttt{Makefile},
-that implements the following commands. The examples are run by giving these 3 commands in order.
+that implements the following commands. Unless otherwise specified, the examples are run by giving these 3 commands in order.
 
 \hspace{0.05\textwidth}
 \begin{minipage}{0.9\textwidth}
@@ -47,6 +47,7 @@ examples plots are created and put in the directory.
   \ref{sec:tides_in_the_med} Tides in the Mediterranean Sea  & \texttt{tides\_in\_the\_Mediterranean\_Sea/} & 64 & 5 hr. \\
   \ref{sec:hokkaido-nansei-oki_tsunami} Hokkaido-Nansei-Oki tsunami  & \texttt{hokkaido-nansei-oki\_tsunami/} & 4 & 1.5 hr. \\
   \ref{sec:tephra_settling} Tephra settling & \texttt{tephra\_settling/} & 1 & 1 hr. \\
+  \ref{sec:stokes_square_convection} Stokes square convection & \texttt{stokes\_square\_convection/} & 1 & 15 min. \\
   \hline
 \end{tabular}
 \caption{Estimated run times (wall time) for the examples. For parallel examples this is using
@@ -278,7 +279,7 @@ Grashof number						& $Gr = \left( \frac{h \sqrt{g'h}}{\nu} \right)^2$ 		& $1.25
 \centering
 \begin{tabular}[h]{lll}  \hline
 Numerical component                           & Configuration                   & Section\\ \hline
-Geometry                                      & from triangle file, via gmsh    & \ref{sec:triangle_format}, \ref{sec:meshing_tools_non_fluidity_gmsh}\\
+Geometry                                      & from gmsh (or ExodusII)         & \ref{sec:gmsh_format}, \ref{sec:exodusii_format}, \ref{sec:meshing_tools_non_fluidity_gmsh}\\
 Time step                                     & 0.025\,s                        & \\
 Time loop                                     & 2 non-linear Picard iterations  & \ref{sec:ND_time_loop} \\
 Equation of state                             & linear                          & \ref{sec:equation_of_state} \\
@@ -306,7 +307,8 @@ The second diagnostic is the background potential energy, which can be used to a
 \begin{equation}
 E_b = \int \rho(z_*) g z_* \, dz_* \, ,
 \end{equation}
-where $g$ is gravity and $\rho$ the density. Most crucially, for a closed system, the background potential energy can only be altered by diapycnal mixing and increases in the background potential energy correspond to mixing in the system. The reference state is calculated using the method of \citet{tseng2001} which uses a probability density function to calculate the value of $z_*$ associated with a given $\rho$ (or here temperature). Here the probability density function is obtained from a set of `mixing bins'. Each mixing bin contains the fraction of fluid in the domain that has temperature within a given range or `class'. A set of mixing bins, the reference state and background potential energy are presented in figure \ref{fig:lock_exchange_mixing}. As the simulation progresses, the mixing and the amount of mixed fluid increases, more rapidly at first as Kelvin--Helmholtz billows form and just after the fronts hit the end walls. Later, as the dynamics become less turbulent and the fluid oscillates back and forth in the tank the mixing is less vigorous. The increase in mixed fluid is compensated for by a decrease in non--mixed fluid.
+where $g$ is gravity and $\rho$ the density. Most crucially, for a closed system, the background potential energy can only be altered by diapycnal mixing and increases in the background potential energy correspond to mixing in the system. The reference state is calculated using the method of \citet{tseng2001} which uses a probability density function to calculate the value of $z_*$ associated with a given $\rho$ (or here temperature). Here the probability density function is obtained from a set of `mixing bins'. Each mixing bin contains the fraction of fluid in the domain that has temperature within a given range or `class'. A set of mixing bins, the reference state and background potential energy are presented in figure \ref{fig:lock_exchange_mixing}. As the simulation progresses, the mixing and the amount of mixed fluid increases, more rapidly at first as Kelvin--Helmholtz billows form and just after the fronts hit the end walls. Later, as the dynamics become less turbulent and the fluid oscillates back 
+and forth in the tank the mixing is less vigorous. The increase in mixed fluid is compensated for by a decrease in non--mixed fluid.
 
 
 \begin{figure}[ht]
@@ -350,7 +352,7 @@ The example settings are designed to provide a quick start for running the simul
 \item Change the frequency of the adapt, section \ref{sec:configuring_fluidity_adaptivity_options};
 \item Turn on metric advection, sections \ref{section:metric_advection_general} and \ref{sec:configuring_fluidity_metric_advection};
 \item Change the diffusivity and viscosity values;
-\item Run with a fixed mesh (note this will require making a new input mesh), sections \ref{sec:triangle_format}, \ref{sec:meshing_tools_non_fluidity_gmsh};
+\item Run with a fixed mesh (note this will require making a new input mesh), sections \ref{sec:gmsh_format}, \ref{sec:meshing_tools_non_fluidity_gmsh};
 \item Try adding some detectors to visualise the particle trajectories, section \ref{sec:diagnostics_detectors} %or \newline cf. \option{\ldots/fluidity-longtests/lock\_exchange\_2d\_}.
 \end{itemize}
 Note to compare Froude numbers and mixing between different runs the remember to copy the images and stat files otherwise they will be overwritten.
@@ -500,8 +502,6 @@ u(z) =
     0.0 & \text{if } 3.0-z_0 < z
   \end{cases}
 \end{equation*}
-
-The log law of the wall is applied weakly on the upper and lower boundaries.
 This approach has been found useful in high-Reynolds number flow, allowing coarser near-wall mesh resolution.
 
 \subsection{Results}
@@ -999,7 +999,8 @@ state interface in appendix \ref{chap:python}\ may be useful.
 \label{sec:water_collapse}
 
 \subsection{Overview}
-A commonly used validation experiment for multi-material models is that of a collapsing column of liquid, normally water, within an atmosphere or vacuum \citep{lakehal_interface_2002}, also known as the dam break problem.  In the experimental set-up a reservoir of water is held behind an impermeable barrier separating it from the rest of the tank.  The barrier is then quickly removed, allowing the water column to collapse and flood the remaining sections of the tank.  In the numerical analogue the initial condition is generally taken as the trapped water column, still behind the dam.  At the start of the simulation the barrier is imagined to have been removed instantaneously and switching on gravity, $|g| = 9.81$, causes the column to collapse.   Several experimental set-ups have been published and used as comparison and validation tools for numerical models \citep{martin_part_1952, greaves_simulation_2006}.  Those with water depth gauges distributed throughout the tank are particularly useful, allowing the direct comparison of data.  Furthermore, pressure gauges located on the tank walls or on any obstacles within the tank provide another useful validation tool.
+A commonly used validation experiment for multi-material models is that of a collapsing column of liquid, normally water, within an atmosphere or vacuum \citep{lakehal_interface_2002}, also known as the dam break problem.  In the experimental set-up a reservoir of water is held behind an impermeable barrier separating it from the rest of the tank.  The barrier is then quickly removed, allowing the water column to collapse and flood the remaining sections of the tank.  In the numerical analogue the initial condition is generally taken as the trapped water column, still behind the dam.  At the start of the simulation the barrier is imagined to have been removed instantaneously and switching on gravity, $|g| = 9.81$, causes the column to collapse.   Several experimental set-ups have been published and used as comparison and validation tools for numerical models \citep{martin_part_1952, greaves_simulation_2006}.  Those with water depth gauges distributed throughout the tank are particularly useful, allowing the 
+direct comparison of data.  Furthermore, pressure gauges located on the tank walls or on any obstacles within the tank provide another useful validation tool.
 
 In this example, \fluidity\ is used to simulate a simple dam break experiment \citep{zhou_nonlinear_1999}.  The example demonstrates the following functionality:
 
@@ -1017,7 +1018,8 @@ The simulation illustrated here took $\sim$2 hours to run in serial on a Intel X
 \subsection{Problem specification}
 The experiment on which this example is based was a simple dam break problem in a $3.22\times2\times1m$ (length $\times$ height $\times$ depth) tank \citep{zhou_nonlinear_1999}.  A reservoir of water $1.2\times0.6\times1m$ (length $\times$ height $\times$ depth) was held behind a barrier at one end of the tank.  Water depth gauges were placed at two points, marked H1 and H2 in Figure \ref{fig:zhouinitial}(a), at $x_1 = 2.725m$ and $2.228m$ respectively.  Additionally, a pressure gauge was located at the point marked P2 in Figure \ref{fig:zhouinitial}(a), at $x_2=0.16m$ on the wall facing the initial water column.
 
-As no variations were introduced in the third dimension, the experiment is reproduced here numerically in two dimensions within the domain $\Omega$: $x_1 \in [0,3.22]$, $x_2 \in [0,2]$ \citep{lee_numerical_2002, colagrossi_numerical_2003, park_volume-of-fluid_2009}.  The two materials (water and air) are distinguished by scalar fields $\alpha_k$ representing their volume fraction, where the volume fraction of air $\alpha_2 = 1-\alpha_1$ and $\alpha_1$ is the volume fraction of water. The initial condition of the water volume fraction is shown in Figure \ref{fig:zhouinitial}(a).  The presence of water is indicated as a blue region and the interface to air is delineated by contours at volume fraction values of $0.025$, $0.5$ and $0.975$.  The densities of the water and air are taken as $ 1,000kg\,m^{-2}$ and $1kg\,m^{-2}$ respectively.  Both fluids are treated inviscidly. As the simulation is inviscid, free slip boundary conditions are imposed on the tank bottom, $x_2=0$, and sides, $x_1=0,\,3.22$.  The top of the tank, $x_2=2$, is left open.
+As no variations were introduced in the third dimension, the experiment is reproduced here numerically in two dimensions within the domain $\Omega$: $x_1 \in [0,3.22]$, $x_2 \in [0,2]$ \citep{lee_numerical_2002, colagrossi_numerical_2003, park_volume-of-fluid_2009}.  The two materials (water and air) are distinguished by scalar fields $\alpha_k$ representing their volume fraction, where the volume fraction of air $\alpha_2 = 1-\alpha_1$ and $\alpha_1$ is the volume fraction of water. The initial condition of the water volume fraction is shown in Figure \ref{fig:zhouinitial}(a).  The presence of water is indicated as a blue region and the interface to air is delineated by contours at volume fraction values of $0.025$, $0.5$ and $0.975$.  The densities of the water and air are taken as $ 1,000kg\,m^{-2}$ and $1kg\,m^{-2}$ respectively.  Both fluids are treated inviscidly. As the simulation is inviscid, free slip boundary conditions are imposed on the tank bottom, $x_2=0$, and sides, $x_1=0,\,3.22$.  The top of 
+the tank, $x_2=2$, is left open.
 
 \begin{figure}[tbp]
 \hspace{1cm}(a)
@@ -1096,7 +1098,8 @@ The images show the column collapse (Figure \ref{fig:zhouwholea}(a)), run-up aga
 \end{center}
 \end{figure}
 
-For validation purposes, the post-processing script provided for this example extracts information from the detector file (pressure) and from the water volume fraction field stored in the vtu files (water depth) and plots these data in comparison with the experimental results. The water depth gauge data is displayed in Figure \ref{fig:zhoudepth} alongside the experimental data.  The numerical results show the total thickness of water at the points H1 and H2, discounting any air bubbles that cross the gauges.  The simulation results show a close similarity to the experimental results with the exception of a small lip of water when the initial water head passes the gauge.  It is unclear what causes this structure, though it may be related to the initial withdrawal of the barrier in the experiment or drag effects from the bottom of the tank.  All previous published attempts to model the experiment also fail to reproduce this initial lip \citep{zhou_nonlinear_1999, lee_numerical_2002, colagrossi_numerical_2003, park_volume-of-fluid_2009}.
+For validation purposes, the post-processing script provided for this example extracts information from the detector file (pressure) and from the water volume fraction field stored in the vtu files (water depth) and plots these data in comparison with the experimental results. The water depth gauge data is displayed in Figure \ref{fig:zhoudepth} alongside the experimental data.  The numerical results show the total thickness of water at the points H1 and H2, discounting any air bubbles that cross the gauges.  The simulation results show a close similarity to the experimental results with the exception of a small lip of water when the initial water head passes the gauge.  It is unclear what causes this structure, though it may be related to the initial withdrawal of the barrier in the experiment or drag effects from the bottom of the tank.  All previous published attempts to model the experiment also fail to reproduce this initial lip \citep{zhou_nonlinear_1999, lee_numerical_2002, colagrossi_numerical_2003, 
+park_volume-of-fluid_2009}.
 
 After $t=1.5s$ the overturning wave starts to pass the water gauges and the match between the experimental results and the numerical simulation deteriorates. As would be expected from such complex behaviour, all previous published attempts have also failed to reproduce the experimental depth gauge data after this point.  However, the broad pattern and average depth observed in the simulation after $t=1.5s$ can be seen in Figure \ref{fig:zhoudepth} to match the experiment reasonably well.
 
@@ -1383,19 +1386,23 @@ The plot shows the surface elevation measurements at the three gauge stations of
 \label{sec:tephra_settling}
 
 \subsection{Overview}
-In this example, \fluidity\ is used to replicate a laboratory experiment of tephra (fine volcanic ash particles) settling through a tank of water \citep{carey1997}. The \cite{carey1997} experiments introduced tephra particles into a $0.3\times 0.3\times 0.7$ m tank, filled with water, from above using a delivery system and a particle disperser. The particles settled through the air in the tank at an approximately constant rate until they landed in the water and began to settle through the water at a much reduced velocity. While the particles in the water were sufficiently dispersed their settling velocity was that predicted by Stokes' flow (a few mm/s).  However, the build-up of particles caused by the air-water interface eventually created a layer of particles and water with a bulk density so great, relative to the density of the particle-poor water beneath, as to be gravitationally unstable and promote the formation of a vertical gravity current (plumes). The settling velocity of these plumes of particles and water was observed to be an order of magnitude greater than the Stokes settling velocity of the individual particles.
+In this example, \fluidity\ is used to replicate a laboratory experiment of tephra (fine volcanic ash particles) settling through a tank of water \citep{carey1997}. The experiments by \cite{carey1997} introduced tephra particles into a $0.3\times 0.3\times 0.7$ m tank, filled with water, from above using a delivery system and a particle disperser. The particles settled through the air in the tank at an approximately constant rate until they landed in the water and began to settle through the water at a much reduced velocity. While the particles in the water were sufficiently dispersed their settling velocity was that predicted by Stokes' flow (a few mm/s).  However, the build-up of particles caused by the air-water interface eventually created a layer of particles and water with a bulk density so great, relative to the density of the particle-poor water beneath, as to be gravitationally unstable and promote the formation of a vertical gravity current (plumes). The settling velocity of these plumes of 
+particles 
+and water was observed to be an order of magnitude greater than the Stokes settling velocity of the individual particles.
 
-In the \fluidity\ simulations, rather than represent each tephra particle individually using a multimaterial approach (which would be prohibitively expensive), a ``dispersed multiphase'' approach is adopted (see \ref{sec:multiphase_equations}), in which one phase represents the water in the tank and the other phase represents all the particles dispersed within the water. Similar to the water column collapse example (\ref{sec:water_collapse}), a volume fraction field is used to distinguish between the continuous phase (water) and the dispersed phase (particles). In an element the volume fraction of particles represents the fraction of the element volume that is occupied by particles, which is typically very small. In contrast to the multimaterial approach, however, the multiphase approach assigns each phase a separate velocity, allowing the dispersed phase (particles) to move through the continuous phase (water). In this example, the dispersed phase is more dense than the continuous phase and so sinks under the influence of gravity.
+In the \fluidity\ simulations, rather than represent each tephra particle individually using a multimaterial approach (which would be prohibitively expensive), a ``dispersed multiphase'' approach is adopted (see \ref{sec:multiphase_equations}), in which one phase represents the water in the tank and the other phase represents all the particles dispersed within the water. Similar to the water column collapse example (\ref{sec:water_collapse}), a volume fraction field is used to distinguish between the continuous phase (water) and the dispersed phase (particles). In an element the volume fraction of particles represents the fraction of the element volume that is occupied by particles, which is typically very small. In contrast to the multimaterial approach, however, the multiphase approach assigns each phase a separate velocity, allowing the dispersed phase (particles) to move through the continuous phase (water). In this example, the dispersed phase is more dense than the continuous phase and so sinks under 
+the influence of gravity.
 
-The simulation replicates one of the \cite{carey1997} experiments (with a characteristic particle size of 48 $\mu$m) by considering a constant influx of the particle phase into a 2D tank of water. The simulation results can be compared to the experiment in terms of the conditions under which plumes of tephra particles form as well as the settling velocities of the individual particles and plumes. The example demonstrates the following functionality:
+The simulation replicates one of the experiments by \cite{carey1997} (with a characteristic particle size of 48 $\mu$m) by considering a constant influx of the particle phase into a 2D tank of water. The simulation results can be compared to the experiment in terms of the conditions under which plumes of tephra particles form as well as the settling velocities of the individual particles and plumes. The example demonstrates the following functionality:
 \begin{itemize}
 \item 2D flow
 \item Multi-phase flow
 \item Incompressible flow
 \item Adaptive timestepping
 \end{itemize}
+The simulation illustrated here took $\sim$1 hour to run in serial on an Intel Xeon E5430 2.66 GHz processor. 
 
-The simulation illustrated here took $\sim$1 hour to run in serial on an Intel Xeon E5430 2.66 GHz processor.
+For more information about the simulation of volcanic ash particles settling in water using \fluidity, see the paper by \cite{Jacobs_etal_2013}.
 
 \subsection{Problem specification}
 The simulation uses a 0.3 x 0.7 metre domain, replicating the cross-section of the water tank used in the experiments, with an initial characteristic element size of 0.01 metres. No normal flow boundary conditions are weakly imposed along with a zero velocity initial condition. The parameters for density, viscosity, particle diameter and gravity are $\rho_p = 2340\ \mathrm{kgm^{-3}}$, $\rho_l = 1000\ \mathrm{kgm^{-3}}$, $\mu_l = 0.001\ \mathrm{Pa\cdot s}$, $d = 48\times 10^{-6}\ \mathrm{m}$, and $\mathbf{g} = 9.8\ \mathrm{ms^{-2}}$ respectively (with the subscripts $p$ and $l$ denoting the properties of the particle/tephra and liquid phase).
@@ -1444,3 +1451,63 @@ To explore the multiphase functionality of \fluidity, the following variations o
 \item Alter the particle size to observe its affect on plume formation
 \item Add a second dispersed phase (with a different particle size).
 \end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%% Stokes square convection  %%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Stokes Square Convection}
+\label{sec:stokes_square_convection}
+
+\subsection{Overview}
+
+In this example we compare the numerical predictions of \fluidity{} with a well--established two--dimensional cartesian geometry benchmark result for Stokes flow \citep{blankenbach1989}. Fluidity's results from this, and similar cases, are published in \citet{Davies2011}, where solution strategies employed for solving the Stokes system are also discussed. 
+
+
+\subsection{Problem Specification}
+
+The specific example considered is steady--state isoviscous convection at a Rayleigh number ($Ra$) of $10^{5}$, in a two--dimensional square domain of unit dimensions. Boundary conditions for temperature are $T=0$ at the surface, $T=1$ at the base, with insulating (homogeneous Neumann) side--walls. For velocity, free--slip and no normal flow boundary conditions are specified at all boundaries. 
+
+The example incorporates two cases, on uniform, structured meshes, where the domain is subdivided into $24 \times 24$ and $48 \times 48$ elements, respectively (excluding mesh resolution, each case is identical). For direct comparison with the benchmark solutions, we calculate the Nusselt Number ($Nu$) and RMS velocity ($V_{RMS}$), once a steady--state has been achieved (the variation in the infinity--norm of the velocity and temperature fields is $< 5 \times 10^{-5}$, between consecutive time--steps). The Nusselt Number is defined as:
+
+\begin{equation}
+Nu = -z_{\max}\frac{\int_{z=z_{\max}} \sum_{i} n_{i} \partial_{i} T}{\int_{z=0} T},
+\end{equation}
+
+\medskip \noindent where $T$ is temperature, $z_{\max}$ is the maximum $z$ coordinate of the domain, $\int_{z=z_{\max}}$ denotes the integral over the top surface of the domain and $\int_{z=0}$ denotes the integral over the bottom surface of the domain.  The RMS velocity is given by:
+
+\begin{equation}
+V_{RMS} = \sqrt{\frac{1}{V}{\int \sum_i u_{i}^{2}}}.
+\end{equation}
+
+\medskip \noindent Here, $u_{i}$ is the velocity vector, whilst $V$ denotes the domain volume. 
+
+\begin{figure}[t]
+	\centering
+	      \includegraphics[width=0.90\columnwidth]{./examples_images/stokes_square_convection/Temperature_planform.png}
+   \caption{Steady--state temperature field from an isoviscous Stokes simulation at $Ra = 1 \times 10^{5}$, on a uniform structured mesh of $48 \times 48$ elements. Contours are spaced at intervals of 0.1.}
+   \label{fig:stokes_square_convection_planform}
+\end{figure}
+
+\subsection{Results}
+
+Results are presented in Figures \ref{fig:stokes_square_convection_planform} and \ref{fig:stokes_square_convection_graphs}. The final steady--state solution consists of one convective cell, with hot upwelling flow confined to the left hand side of the domain and cold downwelling flow on the right hand side. Note that, excluding the location of upwelling flow at $x=0$ or $x=1$, results are insensitive to the initial condition. Quantitatively, results show excellent agreement with the benchmark predictions of \citet{blankenbach1989}, with solution accuracy improving with increased resolution, as expected. A higher resolution case (at a resolution of $96 \times 96$ elements), achieves results that are almost identical to the benchmark solution.
+
+\begin{figure}[t]
+	\centering
+	      \includegraphics[width=0.48\columnwidth]{./examples_images/stokes_square_convection/Nu_1e5.png}
+	      \includegraphics[width=0.48\columnwidth]{./examples_images/stokes_square_convection/RMS_1e5.png}
+   \caption{Results from 2-D, isoviscous Stokes square convection benchmark cases: (a) Nusselt number vs. number of triangle vertices, at $Ra = 1 \times 10^{5}$ \citep[case 1b:][]{blankenbach1989}, for a series of uniform, structured meshes. Filled circles reporesent the example cases at a resolution of $24 \times 24$ and $48 \times 48$ elements respectively. The open circle represents the result from a case at $96 \times 96$ elements, to illustrate that as mesh resolution is increased, solutions converge towards the benchmark values; (b) RMS velocity vs. number of triangle vertices, at $Ra = 1 \times 10^{5}$. Benchmark values are denoted by horizontal dashed lines. Note that the highest resolution case is not included in the example.}
+   \label{fig:stokes_square_convection_graphs}
+\end{figure}
+
+
+\subsection{Exercises}
+To explore the Stokes functionality of \fluidity, the following variations on this example would be constructive learning exercises:
+\begin{itemize}
+\item Verify that results do indeed converge towards the benchmark values at higher resolution.
+\item Alter the initial condition for temperature to verify that, excluding the location of upwelling flow at $x=0$ or $x=1$, results are insensitive to this initial condition. 
+\item Change the Rayleigh number to $Ra = 1 \times 10^{4}$ and compare your results to Case 1b from \citet{blankenbach1989}.
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

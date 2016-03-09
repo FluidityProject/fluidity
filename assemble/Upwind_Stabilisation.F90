@@ -30,10 +30,12 @@ module upwind_stabilisation
   !!< This module provides routines for the upwind stabilisation of
   !!< advection_diffusion equations.
 
-  use fields
-  use metric_tools
   use spud
+  use vector_tools, only: inverse
   use shape_functions
+  use metric_tools
+  use fields
+
 
   implicit none
 
@@ -362,8 +364,12 @@ contains
     call incref(quad)
     
     test_function%dn = huge(0.0)    
-    assert(.not. associated(test_function%dn_s))
-    assert(.not. associated(test_function%n_s))
+    if (associated(test_function%n_s)) then
+      test_function%n_s = huge(0.0)
+    end if
+    if (associated(test_function%dn_s)) then
+      test_function%dn_s = huge(0.0)
+    end if
     deallocate(test_function%spoly)
     nullify(test_function%spoly)
     deallocate(test_function%dspoly)
@@ -396,8 +402,12 @@ contains
 
     test_function%n = huge(0.0)    
     test_function%dn = huge(0.0)    
-    assert(.not. associated(test_function%dn_s))
-    assert(.not. associated(test_function%n_s))
+    if (associated(test_function%n_s)) then
+      test_function%n_s = huge(0.0)
+    end if
+    if (associated(test_function%dn_s)) then
+      test_function%dn_s = huge(0.0)
+    end if
     deallocate(test_function%spoly)
     nullify(test_function%spoly)
     deallocate(test_function%dspoly)

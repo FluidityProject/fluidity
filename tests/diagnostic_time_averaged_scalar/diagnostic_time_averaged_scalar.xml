@@ -8,6 +8,11 @@
     <command_line>fluidity time_averaged_scalar.flml </command_line>
   </problem_definition>
   <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name="FinalDailyAveragedVal" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("time_average_scalar.stat")
@@ -20,6 +25,9 @@ FinalTimeAveraged = s["Fluid"]["TimeAveraged"]["max"][-1]
   </variable>
   </variables>
   <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
     <test name="Final daily averaged value is correct" language="python">
 assert abs(FinalDailyAveragedVal-100.0) &lt; 1e-5
     </test>

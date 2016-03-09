@@ -2,14 +2,18 @@
 module NEMO_load_fields_vars
 
   use fldebug
-  use fields
-  use state_module
   use global_parameters, only: OPTION_PATH_LEN, pi, current_debug_level
   use spud
+  use fields
+  use state_module
  
-  type(scalar_field), save :: salinity_t, temperature_t, pressure_t
-  type(vector_field), save :: velocity_t
-  type(vector_field), save :: position
+  type(scalar_field), public, save :: salinity_t, temperature_t, pressure_t
+  type(vector_field), public, save :: velocity_t
+  type(vector_field), public, save :: position
+
+  private
+
+  public :: deallocate_temp_fields
 
   contains
 

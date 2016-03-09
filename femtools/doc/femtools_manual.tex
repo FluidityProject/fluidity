@@ -63,8 +63,8 @@
   \usepackage{color}
   \usepackage{pst-node,pst-tree}
   \psset{framearc=.2} 
-  \newcommand{\typebox}[2]{\psframebox{\parbox{4cm}{\centering #1\\(\lstinline!#2!)}}}
 \end{psinputs}
+\newcommand{\typebox}[2]{\psframebox{\parbox{4cm}{\centering #1\\(\lstinline!#2!)}}}
 
 
 \begin{document}
@@ -1186,7 +1186,6 @@ following matrix:
 
 
 
-
 \chapter{Meshes}\targetlabel{chap:meshes}
 
 A mesh is a collection of elements. The roles of the mesh as a data object in
@@ -1416,6 +1415,57 @@ in the third dimension. In this case, the topological dimension of the mesh
 would be 2 but we might require all 3 components of the Velocity field in
 order to calculate the Coriolis term in the plane in which we are actually
 solving the equations.
+
+
+\section{Changing coordinates and bases}
+A number of routines have been implemented in \lstinline{femtools/Coordinates.F90}
+that can be used for coordinate transformations and vector/tensor change of basis.
+The transformations available allow expression of tensor fields in three coordinate
+systems:
+\begin{enumerate}
+\item{\emph{Cartesian coordinates:}} The coordinate-set used in Fluidity. In an
+ocean modelling context the origin of the axes is placed at the centre of the planet,
+the $x$--axis goes through the $0^\circ$ East, $0^\circ$ North point on the surface,
+the $y$--axis goes through the $90^\circ$ East, $0^\circ$ North point on the surface
+and the $z$--axis runs though the planet's poles (spherical planet assumed).
+\item{\emph{Spherical-polar coordinates:}} The position vector is specified in terms
+of $\left[ r \ \theta \ \phi \right]^T$, where $r$ is the distance from the axes origin,
+$\theta$ is the polar angle and $\phi$ is the azimuthal angle, also shown in the left
+panel of figure \ref{fig:polarCoordinates}. The vector basis is $\left[ \hat{e}_r \ \hat{e}_\theta \ \hat{e}_\phi \right]^T$, also shown in figure \ref{fig:polarCoordinates}.
+\item{\emph{longitude--latitude coordinates:}} The position vector is specified in terms of $\left[ \lambda \ \delta \ r \right]^T$, where $\lambda$ is the longitude $\delta$ is the latitude and $r$ is the distance from the axes origin, as shown in the right panel of figure \ref{fig:polarCoordinates}. The vector basis is $\left[ \hat{e}_\lambda \ \hat{e}_\delta \ \hat{e}_r \right]^T$, also shown in figure \ref{fig:polarCoordinates}.
+\end{enumerate}
+\begin{figure}[ht]
+  \centering
+  \scalebox{0.55}{\includegraphics{coordinate_transformations.png}}
+  \caption{Polar coordinates. Left: Spherical-polar coordinates where $\phi$ is the azimuthal angle and $\theta$ is the polar angle. Right: Longitude-latitude coordinates where $\lambda$ denotes longitude and $\delta$ denotes latitude.}
+  \label{fig:polarCoordinates}
+\end{figure}
+\par
+The transformation routines also feature C-interoperable routines so that the
+tansformations can also be called from C/C++ code. The C function prototypes are
+located in \lstinline{include/coordinates.h}.
+\par
+The following lists the availabe transformations:
+\begin{itemize}
+\item{\textbf{Spherical-polar to Cartesian}}\\
+Fortran routine: \lstinline{spherical_polar_2_cartesian}\\
+Fortran routine unit-test: \lstinline{femtools/tests/test_spherical_polar_2_cartesian.F90}\\
+C-inter-operable wrapper: \lstinline{spherical_polar_2_cartesian_c}\\
+C-inter-operable wrapper unit-test: \lstinline{femtools/tests/test_spherical_polar_2_cartesian_c.F90}\\
+Interface: describe routine interface, state that angles are expected in radians\\
+Short description.
+
+\item{\textbf{Cartesian to Spherical-polar}}\\
+Fortran routine: \lstinline{cartesian_2_spherical_polar}\\
+Fortran routine unit-test: \lstinline{femtools/tests/test_cartesian_2_spherical_polar.F90}\\
+C-inter-operable wrapper: \lstinline{cartesian_2_spherical_polar_c}\\
+C-inter-operable wrapper unit-test: \lstinline{femtools/tests/test_cartesian_2_spherical_polar_c.F90}\\
+Interface: describe routine interface, state that angles are returned in radians\\
+Short description.
+\end{itemize}
+\par
+A python version of the transformation routines is available, contained in the module \lstinline{python/GFD_basisChange_tools.py}. Example of use in \lstinline{tests/data/on_sphere_rotations/construct_fields.py}, where the dataset used in the unit-tests is constructed.
+
 
 
 \chapter{State dictionaries}\targetlabel{chap:state}
@@ -1803,7 +1853,7 @@ pure function node_count(mesh)
 
 \begin{lstlisting}
 pure function node_count(field)
-  logical :: node_count
+  integer :: node_count
   type(@\anyfield@), intent(in) :: field
 \end{lstlisting}
 
@@ -1819,7 +1869,7 @@ pure function element_count(mesh)
 
 \begin{lstlisting}
 pure function element_count(field)
-  logical :: element_count
+  integer :: element_count
   type(@\anyfield@), intent(in) :: field
 \end{lstlisting}
 
@@ -1835,11 +1885,47 @@ pure function surface_element_count(mesh)
 
 \begin{lstlisting}
 pure function surface_element_count(field)
-  logical :: surface_element_count
+  integer :: surface_element_count
   type(@\anyfield@), intent(in) :: field
 \end{lstlisting}
 
 Return the number of surface elements in the mesh or field provided.
+
+\procedure{unique\_surface\_element\_count}{proc:uniquesurfaceelementcount}
+
+\begin{lstlisting}
+pure function unique_surface_element_count(mesh)
+  integer :: unique_surface_element_count
+  type(@\meshtype@), intent(in) :: mesh
+\end{lstlisting}
+
+\begin{lstlisting}
+pure function unique_surface_element_count(field)
+  integer :: unique_surface_element_count
+  type(@\anyfield@), intent(in) :: field
+\end{lstlisting}
+
+Return the number of unique surface elements in the mesh or field provided. When
+using internal boundaries, the facets on the internal boundary (which have a
+non-zero surface\_id associated with them), are included in the surface mesh.
+These interior facets come in pairs corresponding to the two facets associated
+with the two adjacent elements on either side of the internal boundary. The
+facets of the surface mesh numbered one to
+\hyperlink{proc:uniquesurfaceelementcount}{unique\_surface\_element\_count}
+loop through all facets, with only one of each pair of internal facets
+appearing. The second facet of each pair is numbered with a facet number bigger
+than
+\hyperlink{proc:uniquesurfaceelementcount}{unique\_surface\_element\_count}
+but smaller or equal to
+\hyperlink{proc:surfaceelementcount}{surface\_element\_count}. If there are no
+internal facets, both counts return the same number. In finite element assembly
+code
+\hyperlink{proc:uniquesurfaceelementcount}{unique\_surface\_element\_count}
+should typically be used, as boundary conditions should be applied on both sides of the
+internal boundary, whereas
+\hyperlink{proc:uniquesurfaceelementcount}{unique\_surface\_element\_count}
+may appear in parts of the code that deal with the geometry of the mesh.
+
 
 \procedure{face\_count}{proc:facecount}
 
@@ -1856,7 +1942,8 @@ pure function face_count(field)
 \end{lstlisting}
 
 Return the number of faces in the mesh or field provided. Note that this
-includes interior faces, not just surface faces (for which see
+includes all interior faces, not just facets that have a surface\_id
+associated with them (for which see
 \hyperlink{proc:surfaceelementcount}{surface\_element\_count} above). Note
 also that on internal faces, there is a separate face for each of the two
 elements adjacent to the face.
@@ -2864,7 +2951,7 @@ functions should be drawn:
   \begin{tabular}{ll}
     \textbf{element type} & \textbf{description} \\\hline
     \lstinline+ELEMENT_LAGRANGIAN+ & Equispaced Lagrangian elements.\\
-    \lstinline+ELEMENT_LAGRANGIAN+ & $\mathrm{P}1_\mathrm{NC}$
+    \lstinline+ELEMENT_LAGRANGIAN+ & $\mathrm{P}1_{\mathrm{NC}}$
     non-conforming elements on triangles.\\
     \lstinline+ELEMENT_CONTROLVOLUME_SURFACE+ & A control
     volume surface interior to the domain.\\
@@ -3420,7 +3507,7 @@ function shape_vector_rhs(shape, vector, detwei)
   real, dimension(:,:), intent(in) :: vector
   real, dimension(shape1%ngi), intent(in) :: detwei
 
-  real, dimension(shape%loc, vector_dim(vector)) :: shape_vector_rhs
+  real, dimension(vector_dim(vector), shape%loc) :: shape_vector_rhs
 \end{lstlisting}
 
 This routine constructs the following matrix:
@@ -3440,7 +3527,7 @@ function shape_tensor_rhs(shape, tensor, detwei)
   real, dimension(:,:,:), intent(in) :: tensor
   real, dimension(shape1%ngi), intent(in) :: detwei
 
-  real, dimension(shape%loc, tensor_dim(tensor,1), tensor_dim(tensor,2)) &
+  real, dimension(tensor_dim(tensor,1), tensor_dim(tensor,2), shape%loc) &
        & :: shape_tensor_rhs
 \end{lstlisting}
 

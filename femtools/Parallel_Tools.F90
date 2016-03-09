@@ -31,15 +31,18 @@ module parallel_tools
 
   use fldebug
   use mpi_interfaces
-  use global_parameters, only: is_active_process, no_active_processes
   use iso_c_binding
+  use global_parameters, only: is_active_process, no_active_processes
+#ifdef _OPENMP
+  use omp_lib
+#endif
   implicit none
 
   private
 
-  public :: halgetnb, halgetnb_simple
+  public :: halgetnb, halgetnb_simple, abort_if_in_parallel_region
   public :: allor, alland, allmax, allmin, allsum, allmean, allfequals,&
-       get_active_nparts, getnprocs, getpinteger, getpreal, getprocno, getrank, &
+       getnprocs, getpinteger, getpreal, getprocno, getrank, &
        isparallel, parallel_filename, parallel_filename_len, &
        pending_communication, valid_communicator, next_mpi_tag, &
        MPI_COMM_FEMTOOLS, set_communicator
@@ -184,71 +187,6 @@ contains
 
   end function getnprocs
   
-  function get_active_nparts(element_count, communicator) result(active_nparts)
-    !!< Return the number of active partitions, based upon the supplied element
-    !!< count. The inactive partitions must all be trailing processes.
-  
-    integer, intent(in) :: element_count
-    integer, optional, intent(in) :: communicator
-    
-    integer :: active_nparts
-    
-#ifdef HAVE_MPI
-#ifdef DDEBUG
-    logical :: active_found
-#endif
-    integer, dimension(:), allocatable :: nelm
-    integer :: lcommunicator, i, ierr
-    
-    assert(element_count >= 0)
-    if(present(communicator)) then
-      lcommunicator = communicator
-    else
-      lcommunicator = MPI_COMM_FEMTOOLS
-    end if
-    
-    active_nparts = getnprocs()
-
-    if(isparallel()) then
-       allocate(nelm(getnprocs()))
-       
-       call MPI_allgather(element_count, 1, getpinteger(), &
-         & nelm, 1, getpinteger(), lcommunicator, ierr)
-       assert(ierr == MPI_SUCCESS)
-      
-      ! Interleaved #ifdef s assert that trailing process assumption is valid
-      ! with debugging, and uses it to exit the loop early otherwise
-           
-#ifdef DDEBUG
-       active_found = .false.
-#endif 
-       do i = getnprocs(), 1, -1
-         if(nelm(i) == 0) then
-           active_nparts = active_nparts - 1
-#ifdef DDEBUG
-           if(active_found) then
-             ewrite(-1, "(a,i0)") "For process ", i
-             FLAbort("Inactive process is not a trailing process")
-           end if
-#endif
-         else
-#ifdef DDEBUG
-           active_found = .true.
-#else
-           exit
-#endif
-         end if
-       end do
-       
-       deallocate(nelm)
-    end if
-#else
-
-    active_nparts = getnprocs()    
-#endif
-    
-  end function get_active_nparts
-
   logical function isparallel()
     !!< Return true if we are running in parallel, and false otherwise.
   
@@ -297,6 +235,21 @@ contains
 #endif
 
   end function usingmpi
+
+  ! Abort run if we're in an OMP parallel region
+  ! Call this routine at the start of functions that are known not to
+  ! be thread safe (for example, populating caches) and should
+  ! therefore never be called in a parallel region due to race
+  ! conditions.
+  subroutine abort_if_in_parallel_region()
+#ifdef _OPENMP
+    if (omp_in_parallel()) then
+       FLAbort("Calling non-thread-safe code in OMP parallel region")
+    endif
+#else
+    return
+#endif
+  end subroutine abort_if_in_parallel_region
 
   ! Array - points to the begining of the real array that stores the field values
   ! blockLen - the number of field values continiously stored per node

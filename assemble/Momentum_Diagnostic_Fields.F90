@@ -27,16 +27,18 @@
 #include "fdebug.h"
 
 module momentum_diagnostic_fields
-  use FLDebug
-  use equation_of_state
+  use fldebug
+  use spud
+  use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN
+  use futils
   use fields
   use state_module
-  use spud
-  use state_module
+  use equation_of_state
   use field_priority_lists
-  use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN
-  use multimaterial_module
   use multiphase_module
+  use k_epsilon, only: keps_momentum_diagnostics
+  use initialise_fields_module
+  use multimaterial_module
   use diagnostic_fields_wrapper_new
   implicit none
 
@@ -62,10 +64,11 @@ contains
     
     ! Local variables  
     type(scalar_field), pointer :: bulk_density, buoyancy_density, sfield
-    type(vector_field), pointer :: vfield
+    type(vector_field), pointer :: vfield, x, velocity
+    type(vector_field) :: prescribed_source
     type(tensor_field), pointer :: tfield
     
-    integer :: stat
+    integer :: stat, i
     logical :: gravity, diagnostic
     
     ewrite(1,*) 'Entering calculate_momentum_diagnostics'
@@ -75,9 +78,16 @@ contains
     call calculate_diagnostic_phase_volume_fraction(state)
 
     ! Calculate the density according to the eos... do the buoyancy density and the density
-    ! at the same time to save computations
-    ! don't calculate buoyancy if no gravity
+    ! at the same time to save computations. Do not calculate buoyancy if there is no gravity.
     gravity = have_option("/physical_parameters/gravity")
+
+    ! submaterials_istate should always have a Velocity
+    velocity => extract_vector_field(submaterials(submaterials_istate), 'Velocity')
+    if (have_option(trim(velocity%option_path)//'/prognostic/equation::ShallowWater')) then
+      ! for the swe there's no buoyancy term
+      gravity = .false.
+    end if
+
     bulk_density => extract_scalar_field(submaterials(submaterials_istate), 'Density', stat)
     diagnostic = .false.
     if (stat==0) diagnostic = have_option(trim(bulk_density%option_path)//'/diagnostic')
@@ -124,6 +134,25 @@ contains
       end if
     end if
 
+    do i = 1, size(state) ! really we should be looping over submaterials here but we need to pass state into
+                          ! calculate_diagnostic_variable and there's no way to relate the index in submaterials 
+                          ! to the one in state
+       ! In certain cases, there is a need to update the second invariant of strain-rate tensor
+       ! before updating the viscosity (e.g. Non-Newtonian Stokes flow simulations, where the viscosity is
+       ! dependent upon this field) - do that here:
+       sfield => extract_scalar_field(state(i),'StrainRateSecondInvariant',stat)
+       if (stat == 0) then
+          call calculate_diagnostic_variable(state, i, sfield)
+       end if
+       ! Next update material viscosity:
+       tfield => extract_tensor_field(state(i),'MaterialViscosity',stat)
+       if (stat==0) then
+          if(have_option(trim(tfield%option_path) // "/diagnostic/algorithm::tensor_python_diagnostic")) then
+             call calculate_diagnostic_variable(state, i, tfield)
+          end if
+       end if
+    end do
+
     tfield => extract_tensor_field(submaterials(submaterials_istate),'Viscosity',stat)
     if (stat==0) then
       diagnostic = have_option(trim(tfield%option_path)//'/diagnostic')
@@ -154,6 +183,12 @@ contains
       if(diagnostic) then
         call calculate_diagnostic_pressure(submaterials(submaterials_istate), sfield)
       end if
+    end if
+
+    ! k-epsilon momentum diagnostics (reynolds stress tensor)
+    if(have_option(trim(state(istate)%option_path)//&
+         "/subgridscale_parameterisations/k-epsilon")) then
+       call keps_momentum_diagnostics(state(istate))
     end if
 
     ewrite(1,*) 'Exiting calculate_momentum_diagnostics'

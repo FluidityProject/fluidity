@@ -7,6 +7,11 @@
     <command_line>fluidity drainage_a.flml -l -v1 &gt; drainage_a.log</command_line>
   </problem_definition>
   <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name="a_error_rho" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
@@ -62,6 +67,9 @@ print a_final_change_vel
     </variable>
   </variables>
   <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
     <test name="ss_reached_in_a_rho" language="python">assert(a_final_change_rho &lt; 1.E-8)
     </test>
     <test name="ss_reached_in_a_vel" language="python">assert(a_final_change_vel &lt; 1.E-09)

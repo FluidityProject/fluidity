@@ -29,19 +29,22 @@
 
 module mba3d_integration 
 
-  use adapt_integration
+  use fldebug
+  use global_parameters, only : real_8
+  use futils, only: present_and_true
   use quadrature
   use elements
+  use spud
+  use parallel_tools
   use fields
-  use global_parameters, only : real_8
   use halos
   use limit_metric_module
   use node_locking
+  use surface_id_interleaving
+  use adapt_integration
 #ifdef HAVE_MBA_3D
   use mba3d_mba_nodal
 #endif
-  use spud
-  use surface_id_interleaving
 
   implicit none
   
@@ -117,7 +120,7 @@ contains
     ! Factor of limit_buffer buffers in limits
     np = node_count(input_positions)
     maxp = max_nodes(input_positions, expected_nodes(input_positions, nestar, global = .false.)) * limit_buffer
-    nf = surface_element_count(input_positions)
+    nf = unique_surface_element_count(input_positions%mesh)
     maxf = max(int(((maxp * 1.0) / (np * 1.0)) * nf), nf) * limit_buffer + 1
     ne = ele_count(input_positions)
     maxe = max(nestar, ne) * limit_buffer + 1
@@ -288,6 +291,11 @@ contains
     call deinterleave_surface_ids(lbf(:nf), max_coplanar_id, boundary_ids, coplanar_ids)
     call add_faces(output_mesh, sndgln = reshape(ipf(:, :nf), (/nf * snloc/)), boundary_ids = boundary_ids)
     deallocate(boundary_ids)
+    if (nf/=surface_element_count(output_mesh)) then
+      ! add_faces has duplicated internal boundary facets - this needs to be fixed
+      ! see the mba2d wrapper
+      FLAbort("Mba3d wrapper does not support internal boundary facets.")
+    end if
     allocate(output_mesh%faces%coplanar_ids(nf))
     output_mesh%faces%coplanar_ids = coplanar_ids
     deallocate(coplanar_ids)

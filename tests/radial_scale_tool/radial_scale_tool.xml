@@ -9,6 +9,11 @@
     <!-- Test for radial scale tool. -->
   </problem_definition>
   <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name="scale_error" language="python">
 import vtktools
 import math
@@ -33,6 +38,9 @@ scale_error = math.fabs(scale - 10.0)
     </variable>
   </variables>
   <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
     <test name="Scale correctly applied" language="python">
 assert scale_error &lt; 0.001
     </test>

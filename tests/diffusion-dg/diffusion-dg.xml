@@ -8,6 +8,11 @@
     <command_line>fluidity diffusion_dg_A.flml -v3 -l; fluidity diffusion_dg_B.flml -v3 -l; fluidity diffusion_dg_C.flml -v3 -l; fluidity diffusion_dg_D.flml -v3 -l; fluidity diffusion_dg_E.flml -v3 -l;</command_line>
   </problem_definition>
   <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name="convergence_AB" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
@@ -106,6 +111,9 @@ convergence_DE = [ log(de_ratio_br,2), log(de_ratio_ip,2), log(de_ratio_cdg,2) ]
     </variable>
   </variables>
   <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
     <test name="BR ratio AB" language="python">
 from math import log
 assert( convergence_AB[0] &gt; 1.5)

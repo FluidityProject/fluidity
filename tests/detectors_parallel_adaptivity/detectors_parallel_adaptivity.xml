@@ -3,20 +3,39 @@
   <name>Detectors with adaptivity in parallel</name>
   <owner userid="jhill1"/>
   <tags>flml parallel</tags>
-  <problem_definition length="short" nprocs="1">
-    <command_line>mpiexec -n 2 ../../bin/fluidity -v2 -l detectors.flml</command_line>
+  <problem_definition length="short" nprocs="2">
+    <command_line>mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l detectors detectors_flredecomp &amp;&amp;
+mpiexec ../../bin/fluidity -v2 -l detectors_flredecomp.flml</command_line>
   </problem_definition>
   <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name="ElapsedTime" language="python">from fluidity_tools import stat_parser
 s= stat_parser("detectors.stat")
 ElapsedTime=s["ElapsedTime"]["value"]
     </variable>
     <variable name="last_locations_error" language="python">
-from readtool import readstat
-last_locations_error = readstat("detectors.detectors")
+from fluidity_tools import stat_parser
+from numpy import zeros,fromfile
+
+s = stat_parser('detectors.detectors')
+last_locations_error = zeros((2,100))
+X = fromfile('Xvals.txt',sep=' ')
+Y = fromfile('Yvals.txt',sep=' ')
+for i in range(100):
+    name = 'Steve_' + str(i+1).zfill(3)
+    # +0.5 due to domain change from the lagrangian_detectors setup
+    last_locations_error[0,i] = s[name]['position'][0][-1] - X[i] + 0.5
+    last_locations_error[1,i] = s[name]['position'][1][-1] - Y[i] + 0.5
     </variable>
   </variables>
   <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
     <test name="Finished" language="python">
 assert ElapsedTime[-1] &gt; 7.9999
     </test>

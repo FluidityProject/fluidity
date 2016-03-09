@@ -1,8 +1,9 @@
 subroutine test_vertical_integration()
 use quadrature
+use elements
 use fields
 use state_module
-use read_triangle
+use mesh_files
 use boundary_conditions
 use vertical_extrapolation_module
 use fields_calculations
@@ -43,7 +44,7 @@ implicit none
   
   call test_vertical_integration_from_file("data/cube_unstructured", &
     PYTHON_FUNCTION1, l2error=l2error)
-  fail= l2error>1e-3
+  fail= l2error>2e-3
   call report_test("[test_vertical_integration_unstructured]", fail, .false., &
     "Too large error in vertical integration on unstructured mesh.")
 
@@ -81,7 +82,7 @@ real, intent(out):: l2error
   integer, dimension(:), pointer:: surface_element_list
     
   ! vertical integration() needs a "Coordinate" and  "GravityDirection" field
-  positions=read_triangle_files(mesh_file, quad_degree=QUAD_DEGREE)
+  positions = read_mesh_files(mesh_file, quad_degree=QUAD_DEGREE, format="gmsh")
   x_mesh => positions%mesh
   
   call allocate(vertical_normal, mesh_dim(x_mesh), x_mesh, &

@@ -29,16 +29,18 @@
 module fields_base
   !!< This module contains abstracted field types which carry shape and
   !!< connectivity with them.
+  use fldebug
+  use global_parameters, only: FIELD_NAME_LEN, current_debug_level, current_time
+  use futils, only: free_unit, int2str
+  use reference_counting
+  use element_numbering
+  use vector_tools, only: solve, invert, norm2, cross_product
+  use elements
   use shape_functions, only: element_type
   use tensors
-  use fields_data_types
-  use reference_counting
-  use global_parameters, only: FIELD_NAME_LEN, current_debug_level, current_time
-  use elements
-  use element_numbering
-  use embed_python
   use sparse_tools
-  use vector_tools, only: solve, invert, norm2, cross_product
+  use fields_data_types
+  use embed_python
   implicit none
 
   interface ele_nodes
@@ -177,9 +179,9 @@ module fields_base
 
   interface face_val_at_quad
      module procedure face_val_at_quad_scalar, face_val_at_quad_vector, &
-          & face_val_at_quad_tensor, face_val_at_quad_vector_dim, &
-          & face_val_at_shape_quad_scalar, face_val_at_shape_quad_vector, &
-          & face_val_at_shape_quad_tensor
+          & face_val_at_quad_tensor, face_val_at_quad_vector_dim,&
+          & face_val_at_quad_tensor_dim_dim, face_val_at_shape_quad_scalar,&
+          & face_val_at_shape_quad_vector, face_val_at_shape_quad_tensor
   end interface
 
   interface ele_grad_at_quad
@@ -223,6 +225,10 @@ module fields_base
           & surface_element_count_tensor, surface_element_count_mesh
   end interface
 
+  interface unique_surface_element_count
+    module procedure unique_surface_element_count_mesh
+  end interface
+
   interface surface_element_id
     module procedure surface_element_id_scalar, surface_element_id_vector, &
       surface_element_id_mesh
@@ -262,9 +268,9 @@ module fields_base
           & mesh_periodic_tensor
   end interface
     
-  interface has_internal_boundaries
-     module procedure mesh_has_internal_boundaries
-  end interface has_internal_boundaries
+  interface has_discontinuous_internal_boundaries
+     module procedure mesh_has_discontinuous_internal_boundaries
+  end interface has_discontinuous_internal_boundaries
 
   interface extract_scalar_field ! extract_scalar_field is already used in State.F90
      module procedure extract_scalar_field_from_vector_field, extract_scalar_field_from_tensor_field
@@ -337,6 +343,31 @@ module fields_base
   interface write_minmax
     module procedure write_minmax_scalar, write_minmax_vector, write_minmax_tensor
   end interface
+
+  private
+
+  public :: mesh_dim, mesh_periodic, halo_count, node_val, ele_loc, &
+            node_count, node_ele, element_count, surface_element_count,&
+	    unique_surface_element_count, face_count, surface_element_id,&
+	    ele_region_id, ele_region_ids, mesh_connectivity, mesh_equal,&
+	    mesh_compatible, print_mesh_incompatibility,&
+	    ele_faces, ele_neigh, operator (==), local_coords, eval_field,&
+	    face_eval_field, set_from_python_function, tetvol, face_opposite,&
+	    write_minmax, field_val, element_halo_count, field2file,&
+	    ele_val_at_superconvergent, extract_scalar_field,&
+	    has_discontinuous_internal_boundaries, has_faces,&
+	    element_degree, face_val_at_quad, ele_val_at_quad, face_val,&
+	    ele_val, ele_n_constraints, ele_shape, face_ngi, ele_and_faces_loc,&
+	    face_loc, ele_ngi, face_vertices, ele_vertices, ele_num_type,&
+	    ele_numbering_family, ele_face_count, face_ele, ele_face,&
+	    face_neigh, node_neigh, face_global_nodes, face_local_nodes,&
+	    ele_nodes, ele_count, local_face_number, face_shape, face_n_s,&
+	    face_dn_s, continuity, simplex_volume, ele_div_at_quad,&
+	    extract_scalar_field_from_vector_field, triarea, ele_grad_at_quad,&
+	    extract_scalar_field_from_tensor_field, ele_curl_at_quad,&
+	    eval_shape, ele_jacobian_at_quad, ele_div_at_quad_tensor,&
+	    ele_2d_curl_at_quad, getsndgln, local_coords_matrix,&
+            local_coords_interpolation
     
 contains
 
@@ -412,18 +443,21 @@ contains
   
   end function mesh_periodic_tensor
 
-  pure function mesh_has_internal_boundaries(mesh)
-    !!< Return whether the mesh has internal boundaries
-    logical :: mesh_has_internal_boundaries
+  pure function mesh_has_discontinuous_internal_boundaries(mesh)
+    !!< Return whether the mesh has discontinuous boundaries
+    !!< These are internal boundaries where the surface id are 
+    !!< allowed to be discontinuous (the pair of adjacent 
+    !!< internal facets can have two different ids).
+    logical :: mesh_has_discontinuous_internal_boundaries
     type(mesh_type), intent(in) :: mesh
     
     if (associated(mesh%faces)) then
-      mesh_has_internal_boundaries = mesh%faces%has_internal_boundaries
+      mesh_has_discontinuous_internal_boundaries = mesh%faces%has_discontinuous_internal_boundaries
     else
-      mesh_has_internal_boundaries = .false.
+      mesh_has_discontinuous_internal_boundaries = .false.
     end if
   
-  end function mesh_has_internal_boundaries
+  end function mesh_has_discontinuous_internal_boundaries
 
   pure function node_count_mesh(mesh) result (node_count)
     ! Return the number of nodes in a mesh.
@@ -575,6 +609,21 @@ contains
 
   end function surface_element_count_mesh  
   
+  pure function unique_surface_element_count_mesh(mesh) result (element_count)
+    ! Return the number of unique surface elements of a mesh. For internal
+    ! facets that are part of the surface mesh, each pair of adjacent facets
+    ! is only counted once.
+    integer :: element_count
+    type(mesh_type),intent(in) :: mesh
+
+    if (associated(mesh%faces)) then
+      element_count=mesh%faces%unique_surface_element_count
+    else
+      element_count=0
+    end if
+
+  end function unique_surface_element_count_mesh  
+
   pure function face_count_scalar(field) result (face_count)
     ! Return the number of faces in a mesh.
     integer :: face_count
@@ -654,13 +703,13 @@ contains
 
   end function element_count_tensor
   
-  pure function surface_element_id_mesh(mesh, ele) result (id)
+  elemental function surface_element_id_mesh(mesh, ele) result (id)
     !!< Return the boundary id of the given surface element
     type(mesh_type), intent(in):: mesh
     integer, intent(in):: ele
     integer id
     
-    ! sorry can't assert in pure
+    ! sorry can't assert in elemental
     !assert(associated(mesh%faces))
     !assert(ele>0 .and. ele<size(mesh%faces%boundary_ids))
     
@@ -668,13 +717,13 @@ contains
     
   end function surface_element_id_mesh
   
-  pure function surface_element_id_scalar(field, ele) result (id)
+  elemental function surface_element_id_scalar(field, ele) result (id)
     !!< Return the boundary id of the given surface element
     type(scalar_field), intent(in):: field
     integer, intent(in):: ele
     integer id
     
-    ! sorry can't assert in pure
+    ! sorry can't assert in elemental
     !assert(associated(field%mesh%faces))
     !assert(ele>0 .and. ele<size(field%mesh%faces%boundary_ids))
     
@@ -682,13 +731,13 @@ contains
     
   end function surface_element_id_scalar
 
-  pure function surface_element_id_vector(field, ele) result (id)
+  elemental function surface_element_id_vector(field, ele) result (id)
     !!< Return the boundary id of the given surface element
     type(vector_field), intent(in):: field
     integer, intent(in):: ele
     integer id
     
-    ! sorry can't assert in pure
+    ! sorry can't assert in elemental
     !assert(associated(field%mesh%faces))
     !assert(ele>0 .and. ele<size(field%mesh%faces%boundary_ids))
     
@@ -696,7 +745,7 @@ contains
     
   end function surface_element_id_vector
   
-  pure function ele_region_id_mesh(mesh, ele) result(id)
+  elemental function ele_region_id_mesh(mesh, ele) result(id)
     !!< Return the region id of an element
     
     type(mesh_type), intent(in) :: mesh
@@ -2382,6 +2431,21 @@ contains
     quad_val=tensormul(face_val(field, face_number), shape%n)
 
   end function face_val_at_quad_tensor
+  
+  function face_val_at_quad_tensor_dim_dim(field, face_number, dim1, dim2) result (quad_val)
+    ! Return the values of field at the quadrature points of face_number.
+    type(tensor_field),intent(in) :: field
+    integer, intent(in) :: face_number
+    real, dimension(face_ngi(field, face_number)) :: quad_val
+    integer, intent(in) :: dim1, dim2
+    
+    type(element_type), pointer :: shape
+
+    shape=>face_shape(field,face_number)
+
+    quad_val=matmul(face_val(field, dim1, dim2, face_number), shape%n)
+
+  end function face_val_at_quad_tensor_dim_dim
 
   function face_val_at_shape_quad_scalar(field, face_number, shape) result (quad_val)
     ! Return the values of field at the quadrature points of shape in face_number.
@@ -2945,6 +3009,7 @@ contains
     sfield%mesh = tfield%mesh
     sfield%val  => tfield%val(dim1, dim2, :)
     sfield%val_stride = tfield%dim(1) * tfield%dim(2)
+    sfield%option_path = tfield%option_path
     sfield%field_type = tfield%field_type
     write(sfield%name, '(a, 2i0)') trim(tfield%name) // "%", (dim1-1) * tfield%dim + dim2
 
@@ -3647,7 +3712,7 @@ contains
     
     assert(associated(mesh%faces))
     
-    stotel=surface_element_count(mesh)
+    stotel=unique_surface_element_count(mesh)
     snloc=face_loc(mesh, 1)
     
     assert(size(sndgln)==stotel*snloc)
@@ -3995,6 +4060,99 @@ contains
 
     opp_face = face_opposite_mesh(tfield%mesh, face)
   end function face_opposite_tensor
+
+  function reorder_element_nodes_face(element, mesh, face) result(reordered_element_nodes)
+    !!< Return a list of node numbers local to an element reordered such that
+    !!< they correspond with the node numbering on a face
+    !!<
+    !!< Note that the element supplied does not need to be from the mesh so long as they are topologically/geometrically the same.
+    !!< e.g. element can be p2 while mesh can be p1.
+    type(element_type), intent(in) :: element
+    type(mesh_type), intent(in) :: mesh
+    integer, intent(in) :: face  ! which global face number we're on
+
+    integer, dimension(:), pointer :: face_l_nodes
+    integer, dimension(mesh%faces%shape%numbering%vertices) :: face_l_vertices, element_face_local_vertices
+    integer, dimension(element%numbering%vertices) :: element_l_vertices, reordered_element_vertices
+    integer, dimension(mesh%shape%loc) :: node2vertex
+    integer, dimension(element%loc) :: reordered_element_nodes
+    integer :: i, j, l_face_number
+
+    ! local face number of face in element
+    l_face_number = local_face_number(mesh, face)
+
+    ! get the vertex numbers of the face (indexes into the face node numbering)
+    face_l_vertices = local_vertices(face_shape(mesh, face))  ! e.g. (1, 3, 6)
+
+    ! get the element local node numbers of the nodes on the face
+    face_l_nodes => face_local_nodes(mesh, face)  ! e.g. (5, 2, 1, 6, 3, 7)
+
+    ! work out the element local node numbers of the face vertices
+    element_face_local_vertices = face_l_nodes(face_l_vertices) ! e.g. (5, 1, 7)
+
+    ! get the vertex numbers of the element (indexes ino the element node numbering)
+    element_l_vertices = local_vertices(mesh%shape)  ! e.g. (1, 5, 7, 10)
+
+    ! work out which vertices in volume element are vertices in facet
+    ! and set up vertices in correct order on element
+    ! e.g. (l_face_number, 2, 1, 3) = (4, 2, 1, 3)
+    node2vertex = 0
+    do i = 1, size(element_l_vertices)
+      node2vertex(element_l_vertices(i)) = i
+    end do
+    reordered_element_vertices(1) = l_face_number
+    do i = 1, size(element_face_local_vertices)
+      j = node2vertex(element_face_local_vertices(i))
+      assert(j>0)
+      reordered_element_vertices(i+1) = j
+    end do
+    reordered_element_nodes = ele_local_num(reordered_element_vertices, element%numbering)
+
+  end function
+
+  function face_n_s(element, mesh, face) result(n_s)
+    !!< Reorders the element shape function evaluated at the face to match the face node ordering
+    !!<
+    !!< Note that the element supplied does not need to be from the mesh so long as they are topologically/geometrically the same.
+    !!< e.g. element can be p2 while mesh can be p1.
+    type(element_type), intent(in) :: element
+    type(mesh_type), intent(in) :: mesh
+    integer, intent(in) :: face
+    real, dimension(element%loc, element%surface_quadrature%ngi) :: n_s
+
+    integer, dimension(element%loc) :: reordered_element_nodes
+    integer :: i, j
+
+    reordered_element_nodes = reorder_element_nodes_face(element, mesh, face)
+
+    do i = 1, size(reordered_element_nodes)
+      j = reordered_element_nodes(i)
+      n_s(j,:) = element%n_s(i,:)
+    end do
+
+  end function
+
+  function face_dn_s(element, mesh, face) result(dn_s)
+    !!< Reorders the element shape function derivative evaluated at the face to match the face node ordering
+    !!<
+    !!< Note that the element supplied does not need to be from the mesh so long as they are topologically/geometrically the same.
+    !!< e.g. element can be p2 while mesh can be p1.
+    type(element_type), intent(in) :: element
+    type(mesh_type), intent(in) :: mesh
+    integer, intent(in) :: face
+    real, dimension(element%loc, element%surface_quadrature%ngi, element%dim) :: dn_s
+
+    integer, dimension(element%loc) :: reordered_element_nodes
+    integer :: i, j
+
+    reordered_element_nodes = reorder_element_nodes_face(element, mesh, face)
+
+    do i = 1, size(reordered_element_nodes)
+      j = reordered_element_nodes(i)
+      dn_s(j,:,:) = element%dn_s(i,:,:)
+    end do
+
+  end function
 
   subroutine write_minmax_scalar(sfield, field_expression)
     ! the scalar field to print its min and max of

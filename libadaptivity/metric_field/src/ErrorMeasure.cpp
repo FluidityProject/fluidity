@@ -421,7 +421,9 @@ void ErrorMeasure::get_hessian(string field){
                     (ddxz+ddzx)/2, (ddyz+ddzy)/2, ddzz        );
   }
   ug->GetPointData()->AddArray(H);
+#if VTK_MAJOR_VERSION <= 5
   ug->Update();
+#endif
   H->Delete();
 
   ug->GetPointData()->RemoveArray(string(field+"_dx").c_str());
@@ -437,7 +439,9 @@ void ErrorMeasure::get_hessian(string field){
   ug->GetPointData()->RemoveArray(string(field+"_dz_dx").c_str());
   ug->GetPointData()->RemoveArray(string(field+"_dz_dy").c_str());
   ug->GetPointData()->RemoveArray(string(field+"_dz_dz").c_str());
+#if VTK_MAJOR_VERSION <= 5
   ug->Update();
+#endif
 
   return;
 }
@@ -463,17 +467,29 @@ int ErrorMeasure::grad(std::string field){
   ug->GetPointData()->SetActiveScalars(field.c_str());
   
   vtkCellDerivatives *derivatives = vtkCellDerivatives::New();
+#if VTK_MAJOR_VERSION <= 5
   derivatives->SetInput(ug);
+#else
+  derivatives->SetInputData(ug);
+#endif
   derivatives->Update();
 
   vtkCellDataToPointData *cell2point = vtkCellDataToPointData::New();
+#if VTK_MAJOR_VERSION <= 5
   cell2point->SetInput(derivatives->GetUnstructuredGridOutput());
+#else
+  cell2point->SetInputData(derivatives->GetUnstructuredGridOutput());
+#endif
   cell2point->PassCellDataOff();
   cell2point->Update();
 
   vtkExtractVectorComponents *components = vtkExtractVectorComponents::New();
   components->ExtractToFieldDataOn();
+#if VTK_MAJOR_VERSION <= 5
   components->SetInput(cell2point->GetUnstructuredGridOutput());
+#else
+  components->SetInputData(cell2point->GetUnstructuredGridOutput());
+#endif
   components->Update();
 
   vtkUnstructuredGrid *dug = components->GetUnstructuredGridOutput();

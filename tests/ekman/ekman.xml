@@ -8,6 +8,11 @@
     <command_line>fluidity -v3 -l  ekman.flml</command_line>
   </problem_definition>
   <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name="max_uv_error" language="python">
 import vtktools
 from numpy import sqrt,exp, pi, cos, sin, zeros, array
@@ -46,6 +51,9 @@ max_uv_error[1]=abs(uvw_num[:,1]-uv_exact[:,1]).max()
     </variable>
   </variables>
   <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
     <test name="Checking error is smaller than 1e-3" language="python">
 assert all( max_uv_error &lt; 1e-3 )
     </test>

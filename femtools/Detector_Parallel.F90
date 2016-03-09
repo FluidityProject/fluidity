@@ -28,15 +28,20 @@
 #include "fdebug.h"
 
 module detector_parallel
-  use state_module
-  use fields
   use spud
+  use fldebug
+  use futils, only: int2str
   use integer_hash_table_module
+  use mpi_interfaces
+  use elements
+  use halo_data_types
+  use parallel_tools
+  use halos_numbering
+  use parallel_fields
+  use fields
+  use state_module
   use detector_data_types
   use detector_tools
-  use halo_data_types
-  use halos_numbering
-  use mpi_interfaces
   use pickers
 
   implicit none
@@ -49,6 +54,11 @@ module detector_parallel
 
   type(detector_list_ptr), dimension(:), allocatable, target, save :: detector_list_array
   integer :: num_detector_lists = 0
+
+  type detector_buffer
+     !!< Container type for MPI data buffers
+     real, dimension(:,:), pointer :: ptr
+  end type detector_buffer
 
 contains
 
@@ -301,7 +311,7 @@ contains
     type(detector_linked_list), intent(inout) :: detector_list
     type(detector_linked_list), dimension(:), intent(inout) :: send_list_array
 
-    real, dimension(:,:), allocatable :: detector_buffer
+    type(detector_buffer), dimension(:), allocatable :: send_buffer, recv_buffer
     type(detector_type), pointer :: detector, detector_received
     type(vector_field), pointer :: xfield
     type(halo_type), pointer :: ele_halo
@@ -342,9 +352,10 @@ contains
     end if
     
     ! Send to all procs
+    allocate(send_buffer(nprocs))
     do target_proc=1, nprocs
        ndet_to_send=send_list_array(target_proc)%length
-       allocate(detector_buffer(ndet_to_send,det_size))
+       allocate(send_buffer(target_proc)%ptr(ndet_to_send,det_size))
 
        if (ndet_to_send>0) then
           ewrite(2,*) " Sending", ndet_to_send, "detectors to process", target_proc
@@ -360,9 +371,9 @@ contains
              detector%element = halo_universal_number(ele_halo, detector%element)
 
              if (have_update_vector) then
-                call pack_detector(detector, detector_buffer(j,1:det_size), dim, nstages=n_stages)
+                call pack_detector(detector, send_buffer(target_proc)%ptr(j,1:det_size), dim, nstages=n_stages)
              else
-                call pack_detector(detector, detector_buffer(j,1:det_size), dim)
+                call pack_detector(detector, send_buffer(target_proc)%ptr(j,1:det_size), dim)
              end if
 
              ! delete also advances detector
@@ -372,18 +383,17 @@ contains
        end if
 
        ! getprocno() returns the rank of the processor + 1, hence target_proc-1
-       call MPI_ISEND(detector_buffer,size(detector_buffer), &
+       call MPI_ISEND(send_buffer(target_proc)%ptr,size(send_buffer(target_proc)%ptr(:,:)), &
             & getpreal(), target_proc-1, TAG, MPI_COMM_FEMTOOLS, sendRequest(target_proc), IERROR)
        assert(ierror == MPI_SUCCESS)
 
-       ! deallocate buffer after sending
-       deallocate(detector_buffer)
     end do
 
     allocate( status(MPI_STATUS_SIZE) )
     call get_universal_numbering_inverse(ele_halo, ele_numbering_inverse)
 
     ! Receive from all procs
+    allocate(recv_buffer(nprocs))
     do receive_proc=1, nprocs
        call MPI_PROBE(receive_proc-1, TAG, MPI_COMM_FEMTOOLS, status(:), IERROR) 
        assert(ierror == MPI_SUCCESS)
@@ -392,13 +402,13 @@ contains
        assert(ierror == MPI_SUCCESS)
 
        ndet_received=count/det_size
-       allocate(detector_buffer(ndet_received,det_size))
+       allocate(recv_buffer(receive_proc)%ptr(ndet_received,det_size))
 
        if (ndet_received>0) then
           ewrite(2,*) " Receiving", ndet_received, "detectors from process", receive_proc
        end if
 
-       call MPI_Recv(detector_buffer,count, getpreal(), status(MPI_SOURCE), TAG, MPI_COMM_FEMTOOLS, MPI_STATUS_IGNORE, IERROR)
+       call MPI_Recv(recv_buffer(receive_proc)%ptr,count, getpreal(), status(MPI_SOURCE), TAG, MPI_COMM_FEMTOOLS, MPI_STATUS_IGNORE, IERROR)
        assert(ierror == MPI_SUCCESS)
 
        do j=1, ndet_received
@@ -407,10 +417,10 @@ contains
           ! Unpack routine uses ele_numbering_inverse to translate universal element 
           ! back to local detector element
           if (have_update_vector) then
-             call unpack_detector(detector_received,detector_buffer(j,1:det_size),dim,&
+             call unpack_detector(detector_received,recv_buffer(receive_proc)%ptr(j,1:det_size),dim,&
                     global_to_local=ele_numbering_inverse,coordinates=xfield,nstages=n_stages)
           else
-             call unpack_detector(detector_received,detector_buffer(j,1:det_size),dim,&
+             call unpack_detector(detector_received,recv_buffer(receive_proc)%ptr(j,1:det_size),dim,&
                     global_to_local=ele_numbering_inverse,coordinates=xfield)
           end if
 
@@ -423,8 +433,15 @@ contains
 
           call insert(detector_received, detector_list)           
        end do
-       deallocate(detector_buffer)
-    end do    
+    end do
+
+    ! Deallocate buffers after exchange
+    do target_proc=1, nprocs
+       deallocate(send_buffer(target_proc)%ptr)
+       deallocate(recv_buffer(target_proc)%ptr)
+    end do
+    deallocate(send_buffer)
+    deallocate(recv_buffer)
 
     call MPI_WAITALL(nprocs, sendRequest, MPI_STATUSES_IGNORE, IERROR)
     assert(ierror == MPI_SUCCESS)

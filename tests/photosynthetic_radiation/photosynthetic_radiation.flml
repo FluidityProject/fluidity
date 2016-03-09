@@ -12,7 +12,7 @@
     </dimension>
     <mesh name="CoordinateMesh">
       <from_file file_name="column">
-        <format name="triangle"/>
+        <format name="gmsh"/>
         <stat>
           <include_in_stat/>
         </stat>
@@ -140,12 +140,12 @@
                 <integer_value rank="0">30</integer_value>
               </restart>
             </iterative_method>
-            <preconditioner name="ilu"/>
+            <preconditioner name="sor"/>
             <relative_error>
-              <real_value rank="0">1.0e-7</real_value>
+              <real_value rank="0">1.0e-8</real_value>
             </relative_error>
             <max_iterations>
-              <integer_value rank="0">3000</integer_value>
+              <integer_value rank="0">5000</integer_value>
             </max_iterations>
             <never_ignore_solver_failures/>
             <diagnostics>

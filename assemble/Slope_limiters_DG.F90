@@ -27,17 +27,20 @@
 #include "fdebug.h"
 
 module slope_limiters_dg
-use fields
-use state_module
+use fldebug
 use ieee_arithmetic
-use fldebug_parameters
 use spud
+use vector_tools, only: solve
 use elements
 use eventcounter
+use sparse_tools
+use transform_elements
+use fields
+use state_module
+use field_options, only: find_linear_parent_mesh
+use vtk_interfaces
 use state_fields_module
 use bound_field_module
-use vtk_interfaces
-use transform_elements
 implicit none
 
 private
@@ -1425,14 +1428,15 @@ contains
        T_val_slope = T_val - Tbar
        T_val_max = ele_val(T_max,ele)
        T_val_min = ele_val(T_min,ele)
-
+       
        !loop over nodes, adjust alpha
        do node = 1, size(T_val)
-          if(T_val(node)>Tbar*(1.0+sign(1.0e-12,Tbar))) then
-             alpha = min(alpha,(T_val_max(node)-Tbar)/(T_val(node)-Tbar))
-          else if(T_val(node)<Tbar*(1.0-sign(1.0e-12,Tbar))) then
-             alpha = min(alpha,(T_val_min(node)-Tbar)/(T_val(node)-Tbar))
-          end if
+         !check whether to use max or min, and avoid floating point algebra errors due to round-off and underflow
+         if(T_val(node)>Tbar*(1.0+sign(1.0e-12,Tbar)) .and. T_val(node)-Tbar > tiny(0.0)*1e10) then
+           alpha = min(alpha,(T_val_max(node)-Tbar)/(T_val(node)-Tbar))
+         else if(T_val(node)<Tbar*(1.0-sign(1.0e-12,Tbar)) .and. T_val(node)-Tbar < -tiny(0.0)*1e10) then
+           alpha = min(alpha,(T_val_min(node)-Tbar)/(T_val(node)-Tbar))
+         end if
        end do
 
        call set(T_limit, T_ele, Tbar + alpha*T_val_slope)
