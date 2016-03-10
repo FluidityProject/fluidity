@@ -75,13 +75,14 @@
       use foam_drainage, only: calculate_drainage_source_absor
       use oceansurfaceforcing
       use drag_module
+      use elements
       use parallel_tools
       use linked_lists
       use sparsity_patterns_meshes
       use state_matrices_module
       use vtk_interfaces
       use rotated_boundary_conditions
-      use Weak_BCs
+!      use Weak_BCs
       use state_fields_module
       use Tidal_module
       use Coordinates

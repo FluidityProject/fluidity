@@ -6,7 +6,10 @@
       use state_module
       use spud
       use fldebug
-!      use momentum_cg
+      use quadrature
+      use futils
+      use fetools
+      use elements
       use divergence_matrix_cv
       use divergence_matrix_cg
       use momentum_dg
@@ -19,7 +22,7 @@
       use boundary_conditions_from_options
       use sparse_matrices_fields
       use sparse_tools
-      use sparse_tools_petsc
+!      use sparse_tools_petsc
 !      use free_surface_module
       use solvers
 !      use full_projection
@@ -50,11 +53,11 @@
 !      use pressure_dirichlet_bcs_cv
       use reduced_projection
       use sparse_tools_petsc 
-      use global_parameters, only:theta
-      use global_parameters, only: option_path_len,current_time
+      use global_parameters, only: option_path_len,current_time, theta
       use write_state_module
-      use field_derivatives, only: compute_hessian, patch_type, get_patch_node
+      use field_derivatives, only: compute_hessian
       use optimal_interpolation
+      use fields_manipulation
 
       implicit none
 
@@ -137,6 +140,9 @@
        ! An array of buckets full of fields
        ! The whole array is needed for the sake of multimaterial assembly
        type(state_type), dimension(:), intent(inout) :: state
+       type(vector_field), pointer, intent(inout)  :: u
+       type(scalar_field), pointer, intent(inout) :: p
+
        ! Momentum LHS
        type(petsc_csr_matrix), dimension(:), intent(inout), target :: big_m
        ! The pressure gradient matrix (extracted from state)
@@ -148,6 +154,13 @@
        type(state_type), dimension(:,:,:), intent(inout) :: POD_state
        type(state_type), dimension(:), intent(inout) :: POD_state_deim
        logical, optional, intent(in) :: if_optimal
+       type(vector_field), dimension(1:size(state)), intent(inout) :: inverse_masslump
+       real, intent(in) :: eps
+       logical, intent(in) :: snapmean
+       integer, intent(in) :: its, total_timestep
+       !free surface matrix
+       type(csr_matrix), optional, intent(inout) :: fs_m
+
 
        ! Counter iterating over each state
        integer :: istate 
@@ -186,11 +199,11 @@
        ! For compressible flow this differs to ct_m in that it will contain the variable density.
        type(block_csr_matrix_pointer), dimension(:), allocatable :: ctp_m
        ! The lumped mass matrix (may vary per component as absorption could be included)
-       type(vector_field), dimension(1:size(state)) :: inverse_masslump, visc_inverse_masslump
        ! Mass matrix
        type(petsc_csr_matrix), dimension(1:size(state)), target :: mass
        ! For DG:
        type(block_csr_matrix), dimension(1:size(state)):: inverse_mass
+       type(vector_field), dimension(1:size(state)) :: visc_inverse_masslump
        
        ! Momentum RHS
        type(vector_field), dimension(1:size(state)):: rhs_deim, rhs_advec,rhs_deim_res
@@ -210,10 +223,10 @@
        type(scalar_field), pointer :: dummyscalar, dummydensity, dummypressure
        
        ! Pressure and density
-       type(scalar_field), pointer :: p, density
+       type(scalar_field), pointer :: density
        type(mesh_type), pointer :: p_mesh
        ! Velocity and space
-       type(vector_field), pointer :: u, x
+       type(vector_field), pointer :: x
        
        ! with free-surface or compressible pressure projection pressures 
        ! are at integer time levels and we apply a theta weighting to the
@@ -230,7 +243,7 @@
        ! use_theta_pg .eqv. .false. and p_theta => p
        
        ! What is the equation type?
-       character(len=FIELD_NAME_LEN) :: equation_type, poisson_scheme, schur_scheme, pressure_pmat
+!       character(len=FIELD_NAME_LEN) :: equation_type, poisson_scheme, schur_scheme, pressure_pmat
        
        integer :: stat
        real ::  theta_pp
@@ -272,8 +285,6 @@
        real, dimension(:,:), allocatable :: pod_sol_velocity, pod_ct_m
        real, dimension(:), allocatable :: pod_sol_pressure
        integer :: d, i, j, k,dim,jd
-       real, intent(in) :: eps
-       logical, intent(in) :: snapmean
        logical :: timestep_check
        type(scalar_field) :: u_cpt
        
@@ -318,11 +329,7 @@
        
        !nonlinear_iteration_loop
        integer :: nonlinear_iterations
-       integer, intent(in) :: its, total_timestep
        
-       !free surface matrix
-       !type(csr_matrix) :: fs_m
-       type(csr_matrix), optional, intent(inout) :: fs_m
        logical :: on_sphere, have_absorption, have_vertical_stabilization
        type(vector_field), pointer :: dummy_absorption
        logical :: lump_mass_form       
@@ -943,6 +950,7 @@ endif
        enddo reduced_model_loop
        
         end subroutine solve_momentum_reduced
+
 
         SUBROUTINE Matrix_vector_multiplication(size_vector,A_phi,Mat_A,phi)
           IMPLICIT NONE

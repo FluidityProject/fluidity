@@ -68,7 +68,7 @@
 !#endif
   implicit none
 #ifdef HAVE_PETSC
-#include "finclude/petsc.h"
+#include "petsc_legacy.h"
 #endif 
 
 

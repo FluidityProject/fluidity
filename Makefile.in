@@ -254,7 +254,6 @@ python_clean:
 
 scripts:
 	@echo "INSTALL local scripts"
-	@mkdir -p bin
 	@cd tools ; $(MAKE) scripts
 
 fluidity_library: lib/lib$(FLUIDITY).a
@@ -296,9 +295,10 @@ endif
 	@cd reduced_modelling;   	$(MAKE)
 	@echo "    MAKE enkf"
 	@cd enkf;          $(MAKE)
+	@echo "    MAKE adjoint_reduced_modelling"
+	@cd adjoint_reduced_modelling;  $(MAKE)
 	@echo "    MAKE main"
 	@cd main; $(MAKE)
-	@cd adjoint; $(MAKE)
 	@echo "    MAKE options_check"
 	@./tools/make_check_options.py
 	@cd preprocessor; $(MAKE) check_options.o
@@ -322,6 +322,7 @@ assemble/*.o \
 diagnostics/*.o \
 reduced_modelling/*.o \
 enkf/*.o \
+adjoint_reduced_modelling/*.o \
 main/*.o
 ifeq (@HYPERLIGHT@,yes)
 	@$(AR) $(ARFLAGS) lib/libfluidity.a hyperlight/*.o
@@ -391,6 +392,8 @@ endif
 	@cd reduced_modelling; $(MAKE) clean
 	@echo "    CLEAN enkf"
 	@cd enkf; $(MAKE) clean
+	@echo "    CLEAN adjoint_reduced_modelling"
+	@cd adjoint_reduced_modelling; $(MAKE) clean
 	@echo "    CLEAN main"
 	@cd main; $(MAKE) clean
 	@rm -fr bin lib
@@ -569,6 +572,8 @@ endif
 	@cd reduced_modelling;   	../bin/create_makefile $(TESTOPTS)
 	@echo "    Generating enkf dependencies"
 	@cd enkf; ../bin/create_makefile $(TESTOPTS)
+	@echo "    Generating adjoint_reduced_modelling dependencies"
+	@cd adjoint_reduced_modelling;   	../bin/create_makefile $(TESTOPTS)
 	@echo "    Generating main dependencies"
 	@cd main; ../bin/create_makefile --exclude test_coupler.F90 $(TESTOPTS)
 	@echo "    Cleaning up the mess"

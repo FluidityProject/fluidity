@@ -50,7 +50,7 @@
     </dump_format>
     <dump_period_in_timesteps>
       <constant>
-        <integer_value rank="0">0</integer_value>
+        <integer_value rank="0">10</integer_value>
       </constant>
     </dump_period_in_timesteps>
     <output_mesh name="VelocityMesh"/>
@@ -454,19 +454,11 @@
           </constant>
         </anisotropic_symmetric>
       </tensor_field>
+      <adapt_at_first_timestep>
+        <number_of_adapts>
+          <integer_value rank="0">6</integer_value>
+        </number_of_adapts>
+      </adapt_at_first_timestep>
     </hr_adaptivity>
   </mesh_adaptivity>
-  <reduced_model>
-    <pod_basis_formation>
-      <dump_sampling_period>
-        <integer_value rank="0">10</integer_value>
-      </dump_sampling_period>
-      <pod_basis_count>
-        <integer_value rank="0">4</integer_value>
-      </pod_basis_count>
-      <pod_basis_perturbation_coefficient>
-        <real_value rank="0">0.1</real_value>
-      </pod_basis_perturbation_coefficient>
-    </pod_basis_formation>
-  </reduced_model>
 </fluidity_options>

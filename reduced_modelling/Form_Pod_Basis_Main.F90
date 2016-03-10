@@ -47,11 +47,21 @@ program form_pod_basis
   use solvers 
   use momentum_cg 
   use momentum_equation_reduced
+  use elements
+  use limit_metric_module
+  use futils, only: int2str, present_and_nonempty
+#ifdef HAVE_PETSC_MODULES
+  use petsc
+#endif
+  use Petsc_tools
+  use sparse_tools_petsc
+  use reference_counting, only: print_references
+use transform_elements, only: deallocate_transform_cache
 !  use checkpoint
 
   implicit none
 #ifdef HAVE_PETSC
-#include "finclude/petsc.h"
+#include "petsc_legacy.h"
 #endif
   integer, dimension(:), allocatable :: indices,indices_tmp
   type(state_type), dimension(:), allocatable :: state,state_test,state_deim
@@ -977,18 +987,18 @@ subroutine read_input_states_deim(state_deim)
        positions => extract_vector_field(state(i), "Coordinate")
        do j = 1, size(state(i)%meshes)
           mesh => state(i)%meshes(j)%ptr
-          nparts = get_active_nparts(ele_count(mesh))
+!          nparts = get_active_nparts(ele_count(mesh))
           ! Construct a new field checkpoint filename
           vtu_filename = trim(prefix)
           if(size(state) > 1) vtu_filename = trim(vtu_filename) // "_" // trim(state(i)%name)
           vtu_filename = trim(vtu_filename) // "_" // trim(mesh%name)
          if(present(cp_no)) vtu_filename = trim(vtu_filename) // "_" // int2str(cp_no)
           if(present_and_nonempty(postfix)) vtu_filename = trim(vtu_filename) // "_" // trim(postfix)
-          if(nparts > 1) then
-             vtu_filename = trim(vtu_filename) // ".pvtu"
-          else
+!          if(nparts > 1) then
+!             vtu_filename = trim(vtu_filename) // ".pvtu"
+!          else
              vtu_filename = trim(vtu_filename) // ".vtu"
-          end if
+!          end if
           
 
           !        if(associated(state(i)%scalar_fields)) then

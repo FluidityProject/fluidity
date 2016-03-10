@@ -867,55 +867,20 @@
           ! copy over to other components
           do dim = 2, inverse_masslump%dim
             call set(inverse_masslump, dim, masslump_component)
-          end do
+         end do
 
-          if(vel_lump_on_submesh) then
+         if(vel_lump_on_submesh) then
             call addto_diag(big_m, masslump_component)
           end if
         end if
         
-        if (low_re_p_correction_fix .and. timestep/=1) then
-          ewrite(2,*) "****************************************"
-          ewrite(2,*) "Using low_re_p_correction_fix"
-          ewrite(2,*) "In Momentum_CG, construct_momentum_cg"
-          ! Add viscous terms (stored in visc_inverse_masslump)
-          ! to inverse_masslump (and store it in visc_inverse_masslump):
-          ewrite(2,*) "The viscous_terms are:"
-          ewrite_minmax(visc_inverse_masslump)
-          ! Add the viscous terms to the lumped mass matrix
-          call addto(visc_inverse_masslump, inverse_masslump)
-          ewrite(2,*) "For comparison only:"
-          ewrite(2,*) "The orig inverse_masslump is:"
-          ewrite_minmax(inverse_masslump)
-          ewrite(2,*) "The new visc_inverse_masslump is:"
-          ewrite_minmax(visc_inverse_masslump)
-          ! invert the visc_inverse_masslump:
-          call invert(visc_inverse_masslump)
-          ! apply boundary conditions (zeroing out strong dirichl. rows)
-          call apply_dirichlet_conditions_inverse_mass(visc_inverse_masslump, u)
-          
-          ewrite(2,*) "Inverted new visc_inverse_masslump and boundary conditions is:"
-          ewrite_minmax(visc_inverse_masslump)
-          
-          ! Now invert the original inverse_masslump, apply dirichlet conditions:
-          if(.not.reduced_model) then
-             call invert(inverse_masslump)
-             call apply_dirichlet_conditions_inverse_mass(inverse_masslump, u)
-             ewrite_minmax(inverse_masslump)
-             ewrite(2,*) "****************************************"
-          endif
-   
-        else 
-          ! thus far we have just assembled the lumped mass in inverse_masslump
-          ! now invert it:
-          if(.not.reduced_model) then
-             call invert(inverse_masslump)
-             ! apply boundary conditions (zeroing out strong dirichl. rows)
-             call apply_dirichlet_conditions_inverse_mass(inverse_masslump, u)
-             ewrite_minmax(inverse_masslump)
-          endif
-
- 
+        ! thus far we have just assembled the lumped mass in inverse_masslump
+        ! now invert it:
+        if(.not.reduced_model) then
+           call invert(inverse_masslump)
+           ! apply boundary conditions (zeroing out strong dirichl. rows)
+           call apply_dirichlet_conditions_inverse_mass(inverse_masslump, u)
+           ewrite_minmax(inverse_masslump)
         endif
       end if
       

@@ -46,7 +46,7 @@ ARFLAGS = @ARFLAGS@
 
 LIB = ../lib/lib$(FLUIDITY).a
 
-OBJS    = snapsvd.o\
+OBJS    = snapsvd.o Form_Pod_Basis_Main.o \
 #        ******.o
 
 .SUFFIXES: .F90 .c .o .a

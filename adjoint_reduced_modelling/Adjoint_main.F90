@@ -65,11 +65,17 @@ program Adjoint_main
   use momentum_equation_reduced
   use reduced_model_runtime
 !#endif
+#ifdef HAVE_PETSC_MODULES
+  use petsc
+#endif
+  use Petsc_tools
+  use sparse_tools_petsc
 
   implicit none
 #ifdef HAVE_PETSC
-#include "finclude/petsc.h"
+#include "petsc_legacy.h"
 #endif 
+
   type(state_type), dimension(:), pointer :: state=> null()
   ! type(state_type), dimension(:), allocatable :: state_adj
  ! type(state_type), dimension(:,:,:), allocatable :: POD_state

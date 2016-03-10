@@ -48,6 +48,7 @@
     use fldebug
     use fields_allocates
     use mesh_files
+    use parallel_tools
 
     implicit none
 
@@ -820,18 +821,18 @@ print*,analysis_pressure%val(100:150)
        positions => extract_vector_field(state(i), "Coordinate")
        do j = 1, size(state(i)%meshes)
           mesh => state(i)%meshes(j)%ptr
-          nparts = get_active_nparts(ele_count(mesh))
+!          nparts = get_active_nparts(ele_count(mesh))
           ! Construct a new field checkpoint filename
           vtu_filename = trim(prefix)
           if(size(state) > 1) vtu_filename = trim(vtu_filename) // "_" // trim(state(i)%name)
           vtu_filename = trim(vtu_filename) // "_" // trim(mesh%name)
          if(present(cp_no)) vtu_filename = trim(vtu_filename) // "_" // int2str(cp_no)
           if(present_and_nonempty(postfix)) vtu_filename = trim(vtu_filename) // "_" // trim(postfix)
-          if(nparts > 1) then
-             vtu_filename = trim(vtu_filename) // ".pvtu"
-          else
+!          if(nparts > 1) then
+!             vtu_filename = trim(vtu_filename) // ".pvtu"
+!          else
              vtu_filename = trim(vtu_filename) // ".vtu"
-          end if
+!          end if
           
 
           !        if(associated(state(i)%scalar_fields)) then

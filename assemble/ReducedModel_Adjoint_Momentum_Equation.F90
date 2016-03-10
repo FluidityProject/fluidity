@@ -37,6 +37,7 @@
     use divergence_matrix_cg
     use momentum_dg
     !      use assemble_cmc
+    use elements
     use field_priority_lists
     use momentum_diagnostic_fields, only: calculate_momentum_diagnostics
     use field_options
@@ -244,7 +245,7 @@
       ! use_theta_pg .eqv. .false. and p_theta => p
       
       ! What is the equation type?
-      character(len=FIELD_NAME_LEN) :: equation_type, poisson_scheme, schur_scheme, pressure_pmat
+!      character(len=FIELD_NAME_LEN) :: equation_type, poisson_scheme, schur_scheme, pressure_pmat
       
       integer :: stat
       real ::  theta_pp

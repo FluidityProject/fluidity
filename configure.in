@@ -1724,4 +1724,6 @@ AC_OUTPUT(Makefile
           libwm/Makefile
           libvtkfortran/Makefile
 	  reduced_modelling/Makefile
+	  enkf/Makefile
+	  adjoint_reduced_modelling/Makefile
 	  tests/tools.mk)

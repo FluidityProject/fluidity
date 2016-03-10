@@ -65,10 +65,11 @@
   use momentum_equation_reduced_adjoint
   use momentum_equation_reduced
   use reduced_model_runtime
+
 !#endif
   implicit none
 #ifdef HAVE_PETSC
-#include "finclude/petsc.h"
+#include "petsc_legacy.h"
 #endif 
 
 
