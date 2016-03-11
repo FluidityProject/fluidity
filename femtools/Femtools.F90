@@ -101,7 +101,7 @@ module femtools
        compute_matrix_contribution_qf, compute_matrix_contribution_spr,&
        evaluate_cf, evaluate_qf
   use ieee_arithmetic
-  use shape_functions
+  use shape_functions, only: make_cv_element_shape, make_cvbdy_element_shape
   use quicksort, only: qsort, sort, count_unique, inverse_permutation, apply_permutation,&
        apply_reverse_permutation
   use halo_data_types, only:  halo_type, halo_pointer
