@@ -31,9 +31,9 @@ module advection_diffusion_DG
   !!< -diffusion equation for scalars.
   use fldebug
   use vector_tools
-  use futils, only: int2str, present_and_true
   use global_parameters, only: OPTION_PATH_LEN, FIELD_NAME_LEN, COLOURING_DG2, &
 COLOURING_DG0
+  use futils, only: int2str, present_and_true
   use elements
   use integer_set_module
   use spud

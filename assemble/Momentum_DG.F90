@@ -31,10 +31,10 @@ module momentum_DG
   ! equation. 
   use spud
   use fldebug
-  use futils, only: int2str
   use vector_tools
   use global_parameters, only: OPTION_PATH_LEN, FIELD_NAME_LEN, COLOURING_DG2, &
        COLOURING_DG0
+  use futils, only: int2str
 #ifdef _OPENMP
   use omp_lib
 #endif
