@@ -30,6 +30,9 @@ module shape_functions_test
   !!< Support module for all unit tests related to shape_functions.
   !!< Provides auxiliary routines needed by these tests and separates these
   !!< from the actual module, thereby reducing dependencies.
+  use fldebug
+  use futils, only: int2str
+  use elements, only: element_type, local_coords
   use shape_functions
   use spud, only: option_count, get_option
 

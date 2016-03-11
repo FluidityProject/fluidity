@@ -31,6 +31,7 @@ module momentum_DG
   ! equation. 
   use spud
   use fldebug
+  use futils, only: int2str
   use vector_tools
   use global_parameters, only: OPTION_PATH_LEN, FIELD_NAME_LEN, COLOURING_DG2, &
        COLOURING_DG0
@@ -38,6 +39,7 @@ module momentum_DG
   use omp_lib
 #endif
   use integer_set_module
+  use elements, only: element_type
   use parallel_tools
   use sparse_tools
   use shape_functions

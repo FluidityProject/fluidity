@@ -28,6 +28,9 @@
 #include "fdebug.h"
 module cv_faces
   use FLDebug
+  use quadrature, only: quadrature_type, make_quadrature
+  use element_numbering, only: ELEMENT_LAGRANGIAN
+  use elements
   use shape_functions
   implicit none
 

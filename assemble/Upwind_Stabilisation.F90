@@ -30,8 +30,13 @@ module upwind_stabilisation
   !!< This module provides routines for the upwind stabilisation of
   !!< advection_diffusion equations.
 
+  use fldebug
   use spud
   use vector_tools, only: inverse
+  use element_numbering, only: ele_numbering_type,&
+       find_element_numbering
+  use quadrature, only: quadrature_type 
+  use elements, only: element_type, local_coord_count
   use shape_functions
   use metric_tools
   use fields

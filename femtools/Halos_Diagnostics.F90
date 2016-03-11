@@ -28,6 +28,7 @@
 #include "fdebug.h"
 module halos_diagnostics
   !!< this module contains routines for diagnosing halo problems.
+  use elements, only: element_type
   use shape_functions
   use halo_data_types
   use fields_data_types

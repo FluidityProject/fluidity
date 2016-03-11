@@ -38,11 +38,15 @@ module shape_functions
   
   implicit none
 
+  private
+
   private :: lagrange_polynomial, nonconforming_polynomial
 
   interface make_element_shape
      module procedure make_element_shape_from_element, make_element_shape
   end interface
+
+  public :: make_element_shape
   
 contains
 

@@ -34,6 +34,7 @@ module fields_data_types
   use spud
   use halo_data_types
   use data_structures, only : integer_set_vector
+  use elements, only: element_type
   use sparse_tools
   implicit none
 

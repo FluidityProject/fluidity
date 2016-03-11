@@ -36,7 +36,6 @@ module fields_base
   use element_numbering
   use vector_tools, only: solve, invert, norm2, cross_product
   use elements
-  use shape_functions, only: element_type
   use tensors
   use sparse_tools
   use fields_data_types

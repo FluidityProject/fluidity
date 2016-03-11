@@ -29,6 +29,11 @@
 module cv_shape_functions
   !!< Generate shape functions for elements of arbitrary polynomial degree.
   use FLDebug
+  use element_numbering, only: ele_numbering_type, find_element_numbering,&
+       ELEMENT_CONTROLVOLUME_SURFACE, ELEMENT_CONTROLVOLUMEBDY_SURFACE,&
+       ELEMENT_CONTROLVOLUME_SURFACE_BODYDERIVATIVES
+  use quadrature, only: quadrature_type
+  use elements, only: element_type, allocate, deallocate, incref
   use shape_functions
   use cv_faces, only: cv_faces_type
   implicit none
