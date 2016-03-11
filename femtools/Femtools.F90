@@ -26,6 +26,7 @@
 !    USA
 
 #include "fdebug.h"
+#include "petsc_legacy.h"
 
 module femtools
 
@@ -52,8 +53,7 @@ module femtools
        local_coords, local_vertices, vertex_num,&
        boundary_numbering, edge_num, face_num, boundary_local_num, operator(==),&
        ele_numbering_type, boundary_num_length, ele_local_num, face_local_num,&
-       edge_local_num, tr, te 
-  use grundmann_moeller_quadrature
+       edge_local_num, tr, te
   use polynomials, only: polynomial, ddx, eval, deallocate, assignment(=), &
        operator(+), operator(-), operator(*), operator(/), poly2string,&
        & write_polynomial
@@ -64,7 +64,6 @@ module femtools
        cholesky_factor, mat_diag_mat, eigendecomposition,&
        eigendecomposition_symmetric, eigenrecomposition, &
        outer_product, det, det_2, det_3, scalar_triple_product, svd, cross_product2
-  use wandzura_quadrature
   use quadrature, only: make_quadrature, allocate, deallocate,&
        quadrature_type, quadrature_template, construct_quadrature_templates, &
        operator(==), incref, addref, decref, has_references, FAMILY_COOLS,&
@@ -80,7 +79,11 @@ module femtools
        real_vector_from_python, integer_from_python, string_from_python,&
        integer_vector_from_python
 #ifdef HAVE_MPI
-  use mpi_interfaces
+  use mpi_interfaces, only: mpi_barrier, mpi_comm_rank, mpi_comm_size, mpi_comm_test_inter,&
+       mpi_finalize, mpi_init, mpi_initialized, mpi_iprobe, mpi_tick, mpi_type_commit,&
+       mpi_type_indexed, mpi_type_free, mpi_type_vector, mpi_allreduce, mpi_alltoall,&
+       mpi_bcast, mpi_gather, mpi_irecv, mpi_isend, mpi_scan, mpi_waitall,&
+       mpi_type_create_indexed_block
 #endif
   use parallel_tools, only: halgetnb, halgetnb_simple, abort_if_in_parallel_region,&
        getnprocs, getpinteger, getpreal, getprocno, getrank, &
@@ -100,8 +103,8 @@ module femtools
        compute_rhs_contribution_spr, compute_rhs_contribution_cf,&
        compute_matrix_contribution_qf, compute_matrix_contribution_spr,&
        evaluate_cf, evaluate_qf
-  use ieee_arithmetic
-  use shape_functions, only: make_cv_element_shape, make_cvbdy_element_shape
+  use ieee_arithmetic, only: cget_nan, ieee_is_nan, ieee_value
+  use shape_functions, only: make_element_shape
   use quicksort, only: qsort, sort, count_unique, inverse_permutation, apply_permutation,&
        apply_reverse_permutation
   use halo_data_types, only:  halo_type, halo_pointer
@@ -264,7 +267,18 @@ module femtools
   use profiler, only: profiler_tic, profiler_toc, profiler_zero, &
        profiler_minorpagefaults, profiler_majorpagefaults, &
        profiler_getresidence
-  use petsc_tools
+  use petsc_tools, only: reorder, DumpMatrixEquation, Initialize_Petsc,&
+       csr2petsc, petsc2csr, block_csr2petsc, petsc2array, array2petsc,&
+       field2petsc, petsc2field, petsc_numbering_create_is,&
+       petsc_numbering_type, PetscNumberingCreateVec, allocate, deallocate,&
+       csr2petsc_CreateSeqAIJ, csr2petsc_CreateMPIAIJ,&
+#if PETSC_VERSION_MINOR>=3
+       MatCreateSeqAIJ, MatCreateMPIAIJ, MatCreateSeqBAIJ, MatCreateMPIBAIJ,&
+#endif
+#if PETSC_VERSION_MINOR<5
+       mykspgetoperators,&
+#endif
+       addup_global_assembly
   use sparse_tools_petsc, only: petsc_csr_matrix, petsc_csr_matrix_pointer, &
        allocate, deallocate, size, block_size, blocks, entries, &
        zero, addto, addto_diag, scale, extract_diagonal, assemble,&
@@ -387,7 +401,7 @@ module femtools
        INTERNAL_SMOOTHING_NONE, INTERNAL_SMOOTHING_WRAP_SOR,&
        INTERNAL_SMOOTHING_SEPARATE_SOR, SetupSmoothedAggregation, SetupMultigrid,&
        DestroyMultigrid
-  use signal_vars
+  use signal_vars, only: sig_hup, sig_int, SIGHUP, SIGINT, SIGFPE, SIGTERM
   use solvers, only: petsc_solve, set_solver_options, &
        complete_solver_option_path, petsc_solve_needs_positions,&
        petsc_solve_setup, petsc_solve_core, petsc_solve_destroy,&
@@ -462,8 +476,6 @@ module femtools
   use dg_interpolation_module, only: dg_interpolation_galerkin_supermesh_free
   use dynamic_bin_sort_module, only: allocate, deallocate, move_element, pull_element,&
        pull_from_bin, element_pulled
-  use exodusii_common
-  use gmsh_common
   use lagrangian_remap, only: lagrangian_advection
   use matrix_norms, only: one_norm, two_norm, inf_norm
   use pseudo_consistent_interpolation, only: pseudo_consistent_interpolate
