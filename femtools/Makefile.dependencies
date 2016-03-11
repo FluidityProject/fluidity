@@ -153,7 +153,7 @@ Checkpoint.o ../include/checkpoint.mod: Checkpoint.F90 \
 
 Colouring.o ../include/colouring.mod: Colouring.F90 \
    ../include/data_structures.mod ../include/fdebug.h \
-   ../include/field_options.mod ../include/fields.mod \
+   ../include/field_options.mod ../include/fields.mod ../include/fldebug.mod \
    ../include/global_parameters.mod ../include/sparse_tools.mod \
    ../include/sparsity_patterns_meshes.mod ../include/state_module.mod
 
