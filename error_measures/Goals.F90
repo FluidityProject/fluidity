@@ -9,6 +9,7 @@ module goals
   use elements
   use spud
   use tensors, only: tensormul
+  use transform_elements, only: transform_to_physical
   use fetools
   use unittest_tools, only: get_matrix_identity
   use fields

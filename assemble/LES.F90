@@ -31,8 +31,10 @@ module les_module
   use fldebug
   use spud
   use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN
-  use sparse_tools
   use vector_tools
+  use elements, only: element_type
+  use sparse_tools
+  use transform_elements, only: transform_to_physical
   use fetools
   use fields
   use state_module

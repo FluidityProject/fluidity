@@ -29,6 +29,8 @@ module manifold_projections
   use fldebug
   use futils, only: present_and_true
   use vector_tools, only: solve
+  use elements, only: element_type
+  use transform_elements, only: compute_jacobian
   use fetools
   use fields
   use state_module

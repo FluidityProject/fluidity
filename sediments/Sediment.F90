@@ -36,6 +36,7 @@ module sediment
   use quadrature
   use elements
   use spud
+  use transform_elements, only: transform_facet_to_physical
   use fetools
   use fields
   use state_module

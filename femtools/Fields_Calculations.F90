@@ -34,6 +34,7 @@ use elements
 use parallel_tools
 use fields_data_types
 use fields_base
+use transform_elements, only: element_volume, transform_to_physical
 use linked_lists
 use fields_allocates
 use fields_manipulation

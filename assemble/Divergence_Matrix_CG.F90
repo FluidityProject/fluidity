@@ -35,6 +35,7 @@ module divergence_matrix_cg
   use futils
   use spud
   use sparse_tools
+  use elements, only: element_type
   use transform_elements
   use fetools
   use fields

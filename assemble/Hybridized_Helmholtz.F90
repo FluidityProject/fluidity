@@ -36,6 +36,9 @@ module hybridized_helmholtz
     use vector_tools, only: solve, cross_product
     use sparse_tools
     use element_numbering, only: FAMILY_SIMPLEX, FAMILY_CUBE
+    use elements, only: element_type, constraints_type
+    use transform_elements, only: compute_jacobian,&
+         transform_facet_to_physical
     use fetools
     use fields
     use state_module

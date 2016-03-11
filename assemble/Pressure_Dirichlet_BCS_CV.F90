@@ -33,7 +33,9 @@ module pressure_dirichlet_bcs_cv
   use quadrature
   use futils
   use spud
+  use elements, only: element_type
   use cv_faces
+  use transform_elements, only: transform_cvsurf_facet_to_physical
   use fetools
   use fields
   use state_module

@@ -37,8 +37,10 @@ module diagnostic_fields
   use Vector_Tools
   use parallel_tools
   use quicksort
+  use elements
   use sparse_tools
   use CV_Faces
+  use transform_elements
   use fetools
   use unittest_tools
   use fields

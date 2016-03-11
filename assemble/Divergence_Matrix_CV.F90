@@ -33,7 +33,10 @@ module divergence_matrix_cv
   use futils
   use spud
   use sparse_tools
+  use elements, only: element_type
   use cv_faces
+  use transform_elements, only: transform_cvsurf_to_physical,&
+       transform_cvsurf_facet_to_physical
   use fetools
   use fields
   use state_module

@@ -51,6 +51,7 @@ module diagnostic_variables
   use embed_python
   use fields_base
   use eventcounter
+  use transform_elements, only: transform_to_physical, transform_facet_to_physical
   use fetools
   use unittest_tools
   use halos_communications

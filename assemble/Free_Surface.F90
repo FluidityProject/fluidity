@@ -34,6 +34,7 @@ use spud
 use global_parameters, only: OPTION_PATH_LEN, FIELD_NAME_LEN
 use futils, only: int2str, present_and_true
 use parallel_tools
+use elements, only: element_type
 use sparse_tools
 use parallel_fields
 use eventcounter

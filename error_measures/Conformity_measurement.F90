@@ -9,6 +9,7 @@ module conformity_measurement
 
   use vector_tools
   use sparse_tools
+  use elements, only: element_type
   use transform_elements
   use unittest_tools
   use fetools

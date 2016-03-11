@@ -40,7 +40,8 @@
     use sparse_tools
     use vector_tools
     use elements
-    use transform_elements, only: transform_to_physical
+    use transform_elements, only: transform_to_physical,&
+         transform_facet_to_physical
     use fetools
     use metric_tools
     use fields

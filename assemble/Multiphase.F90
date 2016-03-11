@@ -34,7 +34,9 @@
       use spud
       use global_parameters, only: OPTION_PATH_LEN
       use sparse_tools
+      use elements, only: element_type
       use parallel_fields
+      use transform_elements, only: transform_to_physical
       use fetools
       use fields
       use profiler

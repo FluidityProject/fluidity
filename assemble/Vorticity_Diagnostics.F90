@@ -31,6 +31,8 @@ module vorticity_diagnostics
 
   use fldebug
   use coriolis_module
+  use elements, only: element_type
+  use transform_elements, only: transform_to_physical
   use fetools
   use fields
   use state_module

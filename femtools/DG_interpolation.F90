@@ -7,6 +7,7 @@ module dg_interpolation_module
   use futils
   use spud
   use sparse_tools
+  use elements
   use tensors
   use transform_elements
   use adjacency_lists

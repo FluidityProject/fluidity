@@ -38,6 +38,7 @@ module mixing_statistics
   use embed_python
   use spud
   use parallel_tools
+  use transform_elements, only: transform_to_physical
   use fetools
   use unittest_tools
   use parallel_fields

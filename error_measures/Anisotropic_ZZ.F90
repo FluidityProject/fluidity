@@ -14,6 +14,7 @@ module anisotropic_zz_module
   use vector_tools
   use tensors
   use unittest_tools, only: get_mat_diag, is_nan
+  use elements, only: element_type
   use adjacency_lists
   use transform_elements
   use fetools

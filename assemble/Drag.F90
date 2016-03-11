@@ -32,6 +32,7 @@ use spud
 use futils, only: int2str
 use parallel_tools
 use sparse_tools
+use transform_elements, only: transform_facet_to_physical
 use fetools
 use parallel_fields
 use fields

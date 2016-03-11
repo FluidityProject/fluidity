@@ -13,6 +13,7 @@ module meshmovement
   use fields_base
   use global_numbering
   use eventcounter
+  use transform_elements, only: transform_to_physical
   use fetools
   use unittest_tools
   use fields

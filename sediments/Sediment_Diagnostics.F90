@@ -37,6 +37,7 @@ module sediment_diagnostics
   use elements
   use spud
   use sparse_tools
+  use transform_elements, only: transform_facet_to_physical
   use fetools
   use fields
   use state_module

@@ -42,6 +42,8 @@ module geostrophic_pressure
   use elements
   use unittest_tools
   use parallel_fields, only: assemble_ele, element_owned
+  use transform_elements, only: transform_to_physical,&
+       transform_facet_to_physical
   use fetools
   use fields
   use state_module

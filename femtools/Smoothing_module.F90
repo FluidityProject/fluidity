@@ -5,7 +5,9 @@ module smoothing_module
   use global_parameters, only : OPTION_PATH_LEN
   use sparse_tools
   use element_numbering, only: FAMILY_SIMPLEX
+  use elements
   use metric_tools
+  use transform_elements
   use fetools
   use fields
   use state_module

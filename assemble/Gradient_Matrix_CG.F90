@@ -34,6 +34,7 @@ module gradient_matrix_cg
   use quadrature
   use futils
   use spud
+  use elements, only: element_type
   use sparse_tools
   use transform_elements
   use fetools

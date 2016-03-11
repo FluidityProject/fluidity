@@ -26,8 +26,18 @@ module fetools
      module procedure integral_element_scalar, integral_element_vector, integral_element_scalars
   end interface
 
-  private :: norm2_element
-  private :: integral_element_scalar, integral_element_vector, integral_element_scalars
+  private
+
+  public :: X_, Y_, Z_, U_, V_, W_, norm2, integral_element, shape_rhs,&
+       shape_vector_rhs, shape_tensor_rhs, shape_tensor_dot_vector_rhs,&
+       dshape_dot_vector_rhs, dshape_dot_tensor_rhs, shape_shape, shape_shape_vector,&
+       shape_shape_tensor, shape_shape_vector_outer_vector, dshape_rhs, shape_dshape,&
+       dshape_shape, dshape_dot_dshape, shape_vector_outer_dshape,&
+       dshape_outer_vector_shape, dshape_outer_dshape, dshape_diagtensor_dshape,&
+       dshape_vector_dshape, dshape_tensor_dshape, shape_vector_dot_dshape,&
+       shape_curl_shape_2d, lumped, dshape_dot_tensor_shape,&
+       dshape_dot_vector_shape, INFINITY
+
 
 contains
   

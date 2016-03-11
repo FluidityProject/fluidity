@@ -35,6 +35,7 @@ module shallow_water_equations
   use fldebug
   use global_parameters, only: OPTION_PATH_LEN
   use spud
+  use elements, only: element_type
   use sparse_tools
   use transform_elements
   use fetools

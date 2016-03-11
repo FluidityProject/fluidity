@@ -32,7 +32,10 @@ module biology
   use fldebug
   use spud
   use global_parameters, only:FIELD_NAME_LEN,OPTION_PATH_LEN, PYTHON_FUNC_LEN
+  use elements, only: element_type
   use sparse_tools
+  use transform_elements, only: transform_to_physical,&
+       transform_facet_to_physical
   use fetools
   use fields
   use state_module

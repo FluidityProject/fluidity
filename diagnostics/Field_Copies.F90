@@ -34,6 +34,7 @@ module field_copies_diagnostics
   use spud
   use fldebug
   use vector_tools, only: solve
+  use elements, only: element_type
   use sparse_tools
   use transform_elements
   use fetools

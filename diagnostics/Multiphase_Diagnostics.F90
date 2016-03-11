@@ -34,6 +34,8 @@ module multiphase_diagnostics
    use global_parameters, only : OPTION_PATH_LEN
    use vector_tools
    use spud
+   use elements, only: element_type
+   use transform_elements, only: transform_to_physical
    use fetools
    use fields
    use state_module

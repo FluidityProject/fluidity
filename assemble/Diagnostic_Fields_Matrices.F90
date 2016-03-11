@@ -34,6 +34,7 @@ module diagnostic_fields_matrices
   use global_parameters, only:FIELD_NAME_LEN
   use futils
   use spud
+  use elements, only: element_type
   use parallel_tools
   use sparse_tools
   use transform_elements

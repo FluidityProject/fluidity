@@ -37,6 +37,8 @@ module differential_operator_diagnostics
   use spud
   use sparse_tools
   use eventcounter
+  use transform_elements, only: transform_to_physical,&
+       transform_facet_to_physical
   use fetools
   use fields
   use state_module

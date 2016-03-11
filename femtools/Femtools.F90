@@ -178,7 +178,8 @@ module femtools
        dshape_shape, dshape_dot_dshape, shape_vector_outer_dshape,&
        dshape_outer_vector_shape, dshape_outer_dshape, dshape_diagtensor_dshape,&
        dshape_vector_dshape, dshape_tensor_dshape, shape_vector_dot_dshape,&
-       shape_curl_shape_2d, lumped, INFINITY
+       shape_curl_shape_2d, lumped, dshape_dot_tensor_shape,&
+       dshape_dot_vector_shape, INFINITY
   use linked_lists, only: inode, ilist, edgenode, elist, rlist, insert_ascending,&
        has_value, deallocate, insert, flush_list, flush_lists, pop, fetch,&
        spop, list2vector, pop_last, size_intersection, has_value_sorted, print_list,&

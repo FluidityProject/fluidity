@@ -55,7 +55,7 @@ PYTHON_FUNC_LEN, dt, timestep, current_time
   use supermesh_construction
   use intersection_finder_module
   use fetools
-  use fields_calculations, only: field_integral
+  use fields
   use state_module
   use field_options, only: complete_field_path
   use vtk_interfaces

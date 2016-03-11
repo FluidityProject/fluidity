@@ -37,6 +37,7 @@ module k_epsilon
   use spud
   use sparse_tools
   use elements
+  use transform_elements, only: transform_to_physical
   use fetools
   use parallel_fields
   use fields
