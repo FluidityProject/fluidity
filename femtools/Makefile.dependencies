@@ -382,6 +382,65 @@ FETools.o ../include/fetools.mod: FETools.F90 ../include/elements.mod \
    ../include/fields_data_types.mod ../include/fldebug.mod \
    ../include/transform_elements.mod
 
+../include/femtools.mod: Femtools.o
+	@true
+
+Femtools.o ../include/femtools.mod: Femtools.F90 \
+   ../include/adaptive_interpolation_module.mod \
+   ../include/adaptive_timestepping.mod ../include/adjacency_lists.mod \
+   ../include/auxilaryoptions.mod ../include/bound_field_module.mod \
+   ../include/boundary_conditions.mod ../include/c_interfaces.mod \
+   ../include/cgal_tools.mod ../include/checkpoint.mod \
+   ../include/colouring.mod ../include/conservative_interpolation_module.mod \
+   ../include/coordinates.mod ../include/cv_face_values.mod \
+   ../include/cv_faces.mod ../include/cv_fields.mod ../include/cv_options.mod \
+   ../include/cv_shape_functions.mod ../include/cv_upwind_values.mod \
+   ../include/cvtools.mod ../include/data_structures.mod \
+   ../include/detector_data_types.mod ../include/detector_move_lagrangian.mod \
+   ../include/detector_parallel.mod ../include/detector_tools.mod \
+   ../include/dg_interpolation_module.mod ../include/dgtools.mod \
+   ../include/diagnostic_fields.mod ../include/diagnostic_variables.mod \
+   ../include/dynamic_bin_sort_module.mod ../include/element_numbering.mod \
+   ../include/element_set.mod ../include/elements.mod \
+   ../include/embed_python.mod ../include/eventcounter.mod \
+   ../include/exodusii_common.mod ../include/fdebug.h ../include/fefields.mod \
+   ../include/fetools.mod ../include/field_derivatives.mod \
+   ../include/field_options.mod ../include/fields.mod ../include/futils.mod \
+   ../include/global_numbering.mod ../include/global_parameters.mod \
+   ../include/gmsh_common.mod ../include/grundmann_moeller_quadrature.mod \
+   ../include/halos.mod ../include/ieee_arithmetic.mod \
+   ../include/integer_hash_table_module.mod ../include/integer_set_module.mod \
+   ../include/interpolation_module.mod \
+   ../include/intersection_finder_module.mod ../include/lagrangian_remap.mod \
+   ../include/linked_lists.mod ../include/matrix_norms.mod \
+   ../include/memory_diagnostics.mod ../include/merge_tensors.mod \
+   ../include/mesh_files.mod ../include/meshdiagnostics.mod \
+   ../include/metric_tools.mod ../include/mixing_statistics.mod \
+   ../include/mpi_interfaces.mod ../include/multigrid.mod \
+   ../include/node_boundary.mod ../include/node_owner_finder.mod \
+   ../include/node_ownership.mod ../include/parallel_fields.mod \
+   ../include/parallel_tools.mod ../include/petsc_tools.mod \
+   ../include/pickers.mod ../include/polynomials.mod ../include/profiler.mod \
+   ../include/pseudo_consistent_interpolation.mod ../include/python_state.mod \
+   ../include/quadrature.mod ../include/quicksort.mod \
+   ../include/read_exodusii.mod ../include/read_gmsh.mod \
+   ../include/read_triangle.mod ../include/reference_counting.mod \
+   ../include/rotated_boundary_conditions.mod ../include/shape_functions.mod \
+   ../include/signal_vars.mod ../include/smoothing_module.mod \
+   ../include/solvers.mod ../include/sparse_matrices_fields.mod \
+   ../include/sparse_tools.mod ../include/sparse_tools_petsc.mod \
+   ../include/sparsity_patterns.mod ../include/sparsity_patterns_meshes.mod \
+   ../include/state_fields_module.mod ../include/state_module.mod \
+   ../include/streamfunction.mod ../include/superconvergence.mod \
+   ../include/supermesh_assembly.mod ../include/supermesh_construction.mod \
+   ../include/surface_integrals.mod ../include/tensors.mod \
+   ../include/tetrahedron_intersection_module.mod ../include/timers.mod \
+   ../include/transform_elements.mod ../include/unify_meshes_module.mod \
+   ../include/unittest_tools.mod ../include/vector_set.mod \
+   ../include/vector_tools.mod ../include/vertical_extrapolation_module.mod \
+   ../include/vtk_interfaces.mod ../include/wandzura_quadrature.mod \
+   ../include/write_gmsh.mod ../include/write_state_module.mod
+
 ../include/field_options.mod: Field_Options.o
 	@true
 
