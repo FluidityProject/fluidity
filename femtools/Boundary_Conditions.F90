@@ -29,13 +29,23 @@ module boundary_conditions
   use fldebug
   use spud
   use global_parameters, only: OPTION_PATH_LEN, FIELD_NAME_LEN
-  use futils
-  use parallel_tools
-  use sparse_tools
+  use futils, only: int2str, present_and_true
+  use parallel_tools, only: isparallel, getprocno
+  use sparse_tools, only: csr_matrix, block_csr_matrix, block,&
+      set_inactive, initialise_inactive, set, set_diag
   use fetools, only : INFINITY
-  use fields
+  use fields, only: scalar_field, scalar_boundary_condition,&
+      vector_field, vector_boundary_condition, mesh_type,&
+      scalar_field_pointer, surface_element_count, surface_element_id,&
+      allocate, deallocate, ele_nodes, zero, ele_val, ele_nodes,&
+      local_face_number, face_ele, ele_neigh, has_faces,&
+      node_val, make_mesh, write_minmax, face_global_nodes,&
+      extract_scalar_field_from_vector_field, wrap_scalar_field,&
+      set, incref
   use sparse_tools_petsc
-  use state_module
+  use state_module, only: state_type, extract_scalar_field,&
+      extract_vector_field, scalar_field_count, vector_field_count,&
+      insert
 
   implicit none
     
@@ -131,7 +141,7 @@ module boundary_conditions
   end interface apply_dirichlet_conditions    
 
   private
-  public add_boundary_condition, add_boundary_condition_surface_elements, &
+  public :: add_boundary_condition, add_boundary_condition_surface_elements, &
     get_boundary_condition, get_boundary_condition_count, &
     insert_surface_field, extract_surface_field, has_surface_field, &
     extract_scalar_surface_field, get_entire_boundary_condition, &

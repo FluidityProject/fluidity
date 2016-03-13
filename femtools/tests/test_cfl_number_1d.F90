@@ -29,7 +29,7 @@
 
 subroutine test_cfl_number_1d
 
-  use diagnostic_fields
+  use diagnostic_fields, only: calculate_cfl_number
   use quadrature
   use elements
   use fields

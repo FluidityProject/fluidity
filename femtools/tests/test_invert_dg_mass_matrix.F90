@@ -5,6 +5,7 @@ subroutine test_invert_dg_mass_matrix
   use fields
   use mesh_files
   use DGtools
+  use elements, only: element_type
   use sparse_tools
   use transform_elements
   use Unittest_tools

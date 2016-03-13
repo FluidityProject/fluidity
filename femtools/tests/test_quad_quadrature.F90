@@ -1,7 +1,9 @@
 subroutine test_quad_quadrature
   
   use unittest_tools
+  use quadrature
   use elements
+  use transform_elements, only: compute_jacobian
   use fetools
   use shape_functions
   use fields

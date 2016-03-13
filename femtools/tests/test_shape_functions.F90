@@ -28,6 +28,7 @@
 subroutine test_shape_functions
   !!< Generic element test function. 
   use quadrature
+  use elements
   use shape_functions_test
   use unittest_tools
   type(element_type) :: element

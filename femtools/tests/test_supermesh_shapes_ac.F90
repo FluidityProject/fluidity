@@ -31,10 +31,11 @@ subroutine test_supermesh_shapes_ac
 
   use quadrature
   use elements
+  use transform_elements
   use fetools
   use fields
   use fldebug
-  use supermesh_assembly
+  use supermesh_assembly, only: project_donor_shape_to_supermesh
   use unittest_tools
   
   implicit none

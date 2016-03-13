@@ -35,7 +35,7 @@ module discrete_properties_module
   use fields
   use state_module
   use field_options
-  use solenoidal_interpolation_module
+  use solenoidal_interpolation_module, only: solenoidal_interpolation
   
   implicit none
   

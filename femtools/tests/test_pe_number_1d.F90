@@ -29,7 +29,7 @@
 
 subroutine test_pe_number_1d
 
-  use diagnostic_fields
+  use diagnostic_fields, only: calculate_diagnostic_variable
   use quadrature
   use elements
   use fields

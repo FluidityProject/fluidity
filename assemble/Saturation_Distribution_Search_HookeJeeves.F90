@@ -44,7 +44,7 @@ module saturation_distribution_search_hookejeeves
   use field_options
   use spontaneous_potentials
   use write_state_module
-  use momentum_equation
+!  use momentum_equation
 
   implicit none
 

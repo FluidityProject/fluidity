@@ -26,11 +26,19 @@
 !    USA
 
 #include "fdebug.h"
-#include "petsc_legacy.h"
 
 module femtools
 
+#include "petscversion.h"
+#if PETSC_VERSION_MINOR>=3
+#define MatCreateSeqAIJ myMatCreateSeqAIJ
+#define MatCreateMPIAIJ myMatCreateMPIAIJ
+#define MatCreateSeqBAIJ myMatCreateSeqBAIJ
+#define MatCreateMPIBAIJ myMatCreateMPIBAIJ
+#endif
+
   use fldebug
+  use spud
   use data_structures, only: integer_hash_table,&
        allocate, deallocate, has_key, key_count, fetch, insert, &
        fetch_pair, print, remove, copy, integer_set, allocate, deallocate,&
