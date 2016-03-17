@@ -45,11 +45,13 @@ module qmesh_module
 
   private
   
-  public :: initialise_qmesh, do_adapt_mesh, qmesh, qmesh_module_check_options
+  public :: initialise_qmesh, do_adapt_mesh, qmesh, qmesh_module_check_options,&
+       do_adapt_mesh_connectivity
     
   ! Static variables set by update_adapt_mesh_times and used by do_adapt_mesh
   logical, save :: last_times_initialised = .false.
   real, save :: last_adapt_mesh_time
+  real, save :: last_adapt_mesh_connectivity_time=0.0
   real, save :: last_adapt_mesh_cpu_time
 
 contains
@@ -61,6 +63,39 @@ contains
     call update_adapt_mesh_times
   
   end subroutine initialise_qmesh
+
+  function do_adapt_mesh_connectivity(current_time, timestep)
+    !!< Mesh adapt test routine. Tests mesh adapt conditions. Returns true if
+    !!< these conditions are satisfied and false otherwise.
+    
+    real, intent(in) :: current_time
+    integer, intent(in) :: timestep
+    
+    logical :: do_adapt_mesh_connectivity
+
+    real :: period
+    integer :: period_in_timesteps
+
+    do_adapt_mesh_connectivity = .false.
+
+    if(have_option("/mesh_adaptivity/delauney_adapt/period")) then
+
+       call get_option("/mesh_adaptivity/delauney_adapt/period",period)
+       if (period == 0.0 .or. &
+            floor(current_time / period) &
+            > floor(last_adapt_mesh_connectivity_time / period)) then
+          do_adapt_mesh_connectivity = .true.
+          last_adapt_mesh_connectivity_time=current_time
+       end if
+    else
+       call get_option("/mesh_adaptivity/delauney_adapt/period_in_timesteps",&
+       period_in_timesteps)
+       if (period_in_timesteps == 0 .or. mod(timestep, period_in_timesteps) == 0) then
+          do_adapt_mesh_connectivity = .true.
+       end if
+    end if
+
+  end function do_adapt_mesh_connectivity  
 
   function do_adapt_mesh(current_time, timestep)
     !!< Mesh adapt test routine. Tests mesh adapt conditions. Returns true if

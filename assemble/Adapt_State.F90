@@ -922,27 +922,30 @@ contains
     end if
   end subroutine adapt_mesh
 
-  subroutine adapt_state_single(state, metric, initialise_fields)
+  subroutine adapt_state_single(state, metric, initialise_fields,&
+       lock_all_nodes)
 
     type(state_type), intent(inout) :: state
     type(tensor_field), intent(inout) :: metric
     !! If present and .true., initialise fields rather than interpolate them
-    logical, optional, intent(in) :: initialise_fields
+    logical, optional, intent(in) :: initialise_fields, lock_all_nodes
 
     type(state_type), dimension(1) :: states
 
     states = (/state/)
-    call adapt_state(states, metric, initialise_fields = initialise_fields)
+    call adapt_state(states, metric, initialise_fields = initialise_fields,&
+         lock_all_nodes = lock_all_nodes)
     state = states(1)
 
   end subroutine adapt_state_single
 
-  subroutine adapt_state_multiple(states, metric, initialise_fields)
+  subroutine adapt_state_multiple(states, metric, initialise_fields,&
+       lock_all_nodes)
 
     type(state_type), dimension(:), intent(inout) :: states
     type(tensor_field), intent(inout) :: metric
     !! If present and .true., initialise fields rather than interpolate them
-    logical, optional, intent(in) :: initialise_fields
+    logical, optional, intent(in) :: initialise_fields, lock_all_nodes
 
     call tictoc_clear(TICTOC_ID_SERIAL_ADAPT)
     call tictoc_clear(TICTOC_ID_DATA_MIGRATION)
@@ -951,7 +954,8 @@ contains
 
     call tic(TICTOC_ID_ADAPT)
 
-    call adapt_state_internal(states, metric, initialise_fields = initialise_fields)
+    call adapt_state_internal(states, metric, initialise_fields = initialise_fields,&
+         lock_all_nodes=lock_all_nodes)
 
     call toc(TICTOC_ID_ADAPT)
 
@@ -1028,7 +1032,8 @@ contains
 
   end subroutine adapt_state_first_timestep
 
-  subroutine adapt_state_internal(states, metric, initialise_fields)
+  subroutine adapt_state_internal(states, metric, initialise_fields,&
+       lock_all_nodes)
     !!< Adapt the supplied states according to the supplied metric. In parallel,
     !!< additionally re-load-balance with libsam. metric is deallocated by this
     !!< routine. Based on adapt_state_2d.
@@ -1039,7 +1044,7 @@ contains
     !! This means that the fields are not interpolated but rather reinitialise
     !! according to the specified initial condition in the options tree, except
     !! if these fields are initialised from_file (checkpointed).
-    logical, optional, intent(in) :: initialise_fields
+    logical, optional, intent(in) :: initialise_fields, lock_all_nodes
 
     character(len = FIELD_NAME_LEN) :: metric_name
     integer :: i, j, k, max_adapt_iteration
@@ -1159,7 +1164,8 @@ contains
       ! metric
       if (.not. vertical_only) then
         call adapt_mesh(old_positions, metric, new_positions, node_ownership = node_ownership, &
-          & force_preserve_regions=initialise_fields)
+          & force_preserve_regions=initialise_fields,&
+          lock_all_nodes = lock_all_nodes)
       else
         call allocate(new_positions,old_positions%dim,old_positions%mesh,name=trim(old_positions%name))
         call set(new_positions,old_positions)

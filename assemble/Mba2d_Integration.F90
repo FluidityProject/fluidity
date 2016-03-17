@@ -116,6 +116,7 @@ module mba2d_integration
 
     integer, dimension(:), allocatable :: region_ids
     type(integer_set) :: region_list
+    integer :: id_shape(2)
 
     ewrite(1, *) "In adapt_mesh_mba2d"
 
@@ -227,27 +228,34 @@ module mba2d_integration
     end if
 
     allocate(ipe(3, maxele), mask(nonods))
-    mask=.false.
+    mask= 0
     ipe = 0
     j=1
 
-    id_shape=option_shape("/mesh_adaptivity/delauney_adapt/region_ids")
-    allocate(region_ids(id_shape))
-    call get_option("/mesh_adaptivity/delauney_adapt/region_ids",region_ids)
-    do i=1,size(region_ids)
-       call insert(region_list(i),region_ids(i))
-    end do
 
+    call allocate(region_list)
+    if (present_and_true(lock_all_nodes) .and.&
+         have_option("/mesh_adaptivity/delauney_adapt")) then
+       id_shape=option_shape("/mesh_adaptivity/delauney_adapt/region_ids")
+       allocate(region_ids(id_shape(1)))
+       call get_option("/mesh_adaptivity/delauney_adapt/region_ids",region_ids)
+       do i=1,size(region_ids)
+          call insert(region_list,region_ids(i))
+       end do
+    end if
 
     do i=1,totele
-       if (ele_region_id(xmesh,i)== 1) cycle
+       if (.not. has_value(region_list,ele_region_id(xmesh,i))) cycle
        ipe(:, j) = ele_nodes(xmesh, i)
-       mask(ele_nodes(xmesh, j)) = .true.
+       mask(ele_nodes(xmesh, j)) = 1
        j=j+1
     end do
     npe = j-1
-    allocate(nipe(3,npe))
-    nipe=ipe(:,1:npe)
+
+    if (present_and_true(lock_all_nodes)) then
+       allocate(nipe(3,npe))
+       nipe=ipe(:,1:npe)
+    end if
 
     nhalos = halo_count(xmesh)
     assert(any(nhalos == (/0, 1, 2/)))
@@ -417,16 +425,18 @@ module mba2d_integration
 
     ! Hooray! You didn't crash. Congratulations. Now let's assemble the output and interpolate.
 
-    j=1
-    do i=1,totele
-       if (ele_region_id(xmesh,i)== 1) then
-          ipe(:, i) = ele_nodes(xmesh, i)
-       else
-          ipe(:,i)=nipe(:,j)
-          j=j+1
-       end if
-    end do
-    deallocate(nipe)
+
+    if (present_and_true(lock_all_nodes)) then
+       j=1
+       do i=1,totele
+          if (ele_region_id(xmesh,i)== 1) then
+             ipe(:, i) = ele_nodes(xmesh, i)
+          else
+             ipe(:,i)=nipe(:,j)
+             j=j+1
+          end if
+       end do
+    end if
 
     call allocate(new_mesh, nonods, totele, ele_shape(xmesh, 1), trim(xmesh%name))
     ! Hack: untag these references so that people (i.e. me) don't get confused.
@@ -508,7 +518,6 @@ module mba2d_integration
       call allocate(new_halo, old_halo)
       ! except for n/o owned nodes
       call set_halo_nowned_nodes(new_halo, nonods-halo_all_receives_count(new_halo))
-
       j = 1
       do proc=1, halo_proc_count(new_halo)
         call set_halo_sends(new_halo, proc, ipv(j:j+halo_send_count(new_halo, proc)-1))
