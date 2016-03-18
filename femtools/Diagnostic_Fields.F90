@@ -410,9 +410,9 @@ contains
     type(scalar_field), intent(inout) :: cfl
     real, intent(in), optional :: dt
 
-    type(vector_field), pointer :: U, X
+    type(vector_field), pointer :: U, X, ugrid
     real :: l_dt
-    integer :: ele, gi
+    integer :: ele, gi, stat
     ! Transformed quadrature weights.
     real, dimension(ele_ngi(CFL, 1)) :: detwei
     ! Inverse of the local coordinate change matrix.
@@ -426,8 +426,13 @@ contains
     ! current CFL element shape
     type(element_type), pointer :: CFL_shape
 
+    logical :: move_mesh
+
     U=>extract_vector_field(state, "Velocity")
     X=>extract_vector_field(state, "Coordinate")
+
+    move_mesh = have_option("/mesh_adaptivity/mesh_movement")
+    U=>extract_vector_field(state, "GridVelocity", stat)
     
     if(present(dt)) then
       l_dt = dt
@@ -449,6 +454,9 @@ contains
        ! be. I don't understand why it's this way round but the results
        ! appear correct. -dham
        CFL_q=ele_val_at_quad(U, ele)
+
+       if (move_mesh) CFL_q=CFL_q-ele_val_at_quad(ugrid, ele)
+
        do gi=1, size(detwei)
           CFL_q(:,gi)=l_dt*matmul(CFL_q(:,gi), invJ(:,:,gi))
        end do
@@ -1611,9 +1619,10 @@ contains
     type(scalar_field), intent(inout) :: courant
     real, intent(in), optional :: dt
     !
-    type(vector_field), pointer :: u, x
+    type(vector_field), pointer :: u, x, ugrid
     real :: l_dt
     integer :: ele, stat
+    logical :: grid_vel
 
     u=>extract_vector_field(state, "NonlinearVelocity",stat)
     if(stat.ne.0) then    
@@ -1622,6 +1631,8 @@ contains
           FLExit('Missing velocity field!')
        end if
     end if
+    grid_vel = have_option("/mesh_adaptivity/mesh_movement")
+    ugrid=>extract_vector_field(state, "GridVelocity",stat)
     x=>extract_vector_field(state, "Coordinate")
 
     if(present(dt)) then
@@ -1633,7 +1644,7 @@ contains
     call zero(courant)
     
     do ele = 1, element_count(courant)
-       call calculate_courant_number_dg_ele(courant,x,u,ele,l_dt)
+       call calculate_courant_number_dg_ele(courant,x,u,ugrid,ele,l_dt,grid_vel)
     end do
         
     ! the courant values at the edge of the halo are going to be incorrect
@@ -1642,11 +1653,12 @@ contains
 
   end subroutine calculate_courant_number_dg
 
-  subroutine calculate_courant_number_dg_ele(courant,x,u,ele,dt)
-    type(vector_field), intent(in) :: x, u
+  subroutine calculate_courant_number_dg_ele(courant,x,u,ugrid,ele,dt,grid_vel)
+    type(vector_field), intent(in) :: x, u, ugrid
     type(scalar_field), intent(inout) :: courant
     real, intent(in) :: dt
     integer, intent(in) :: ele
+    logical :: grid_vel
     !
     real :: Vol
     real :: Flux
@@ -1678,6 +1690,10 @@ contains
        
        U_f_quad =0.5*(face_val_at_quad(U, face)&
             &     +face_val_at_quad(U, face_2))
+
+       if (grid_vel) then
+          u_f_quad=u_f_quad-face_val_at_quad(ugrid,face)
+       end if
 
        call transform_facet_to_physical(X, face, &
             &                          detwei_f=detwei_f,&
