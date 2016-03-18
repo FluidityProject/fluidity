@@ -387,7 +387,8 @@ contains
     !     end initialise solid-fluid coupling, and ALE  -Julian 17-07-2008
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
-    if (have_option("/mesh_adaptivity/hr_adaptivity")) then
+    if (have_option("/mesh_adaptivity/hr_adaptivity") .or. &
+        have_option("/mesh_adaptivity/delaunay_adaptivity")) then
        call allocate(metric_tensor, extract_mesh(state(1), topology_mesh_name), "ErrorMetric")
     end if
 
@@ -901,13 +902,13 @@ contains
        ! *** Mesh adapt ***
        ! ******************
 
-       if(have_option("/mesh_adaptivity/delauney_adapt")) then
+       if(have_option("/mesh_adaptivity/delaunay_adaptivity")) then
 
           if(do_adapt_mesh_connectivity(current_time, timestep)) then
 
              call pre_adapt_tasks(sub_state)
 
-             call qmesh(state, metric_tensor)
+!             call qmesh(state, metric_tensor)
              if(have_option("/io/stat/output_before_adapts")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)
              call run_diagnostics(state)
 
@@ -988,7 +989,8 @@ contains
     call print_references(1)
 
     ! Deallocate the metric tensor
-    if(have_option("/mesh_adaptivity/hr_adaptivity")) call deallocate(metric_tensor)
+    if(have_option("/mesh_adaptivity/hr_adaptivity") .or.&
+         have_option("/mesh_adaptivity/delaunay_adaptivity")) call deallocate(metric_tensor)
     ! Deallocate state
     do i = 1, size(state)
        call deallocate(state(i))
@@ -1079,7 +1081,8 @@ contains
     end if
 
     ! The adaptivity metric
-    if(have_option("/mesh_adaptivity/hr_adaptivity")) then
+    if(have_option("/mesh_adaptivity/hr_adaptivity") .or.&
+         have_option("/mesh_adaptivity/delaunay_adaptivity")) then
       call allocate(metric_tensor, extract_mesh(state(1), topology_mesh_name), "ErrorMetric")
     end if
 

@@ -235,26 +235,29 @@ module mba2d_integration
 
     call allocate(region_list)
     if (present_and_true(lock_all_nodes) .and.&
-         have_option("/mesh_adaptivity/delauney_adapt")) then
-       id_shape=option_shape("/mesh_adaptivity/delauney_adapt/region_ids")
+         have_option("/mesh_adaptivity/delaunay_adaptivity")) then
+       !! delaunay retriangulation only, in specified regions
+       id_shape=option_shape("/mesh_adaptivity/delaunay_adaptivity/region_ids")
        allocate(region_ids(id_shape(1)))
-       call get_option("/mesh_adaptivity/delauney_adapt/region_ids",region_ids)
+       call get_option("/mesh_adaptivity/delaunay_adaptivity/region_ids",region_ids)
        do i=1,size(region_ids)
           call insert(region_list,region_ids(i))
        end do
-    end if
 
-    do i=1,totele
-       if (.not. has_value(region_list,ele_region_id(xmesh,i))) cycle
-       ipe(:, j) = ele_nodes(xmesh, i)
-       mask(ele_nodes(xmesh, j)) = 1
-       j=j+1
-    end do
-    npe = j-1
+       do i=1,totele
+          if (has_value(region_list,ele_region_id(xmesh,i))) cycle
+          ipe(:, j) = ele_nodes(xmesh, i)
+          mask(ele_nodes(xmesh, j)) = 1
+          j=j+1
+       end do
+       npe = j-1
 
-    if (present_and_true(lock_all_nodes)) then
        allocate(nipe(3,npe))
        nipe=ipe(:,1:npe)
+    else
+       do i=1,totele
+          ipe(:, i) = ele_nodes(xmesh, i)
+       end do
     end if
 
     nhalos = halo_count(xmesh)
@@ -340,7 +343,8 @@ module mba2d_integration
     lbE = 1
     if ((associated(xmesh%region_ids)).and.&
         (have_option("/mesh_adaptivity/hr_adaptivity/preserve_mesh_regions")&
-         .or.present_and_true(force_preserve_regions))) then
+         .or.present_and_true(force_preserve_regions)&
+         .or.present_and_true(lock_all_nodes))) then
       ! offset surface IDs by 1 because libmba2d requires them to be positive
       lbE(1:totele) = xmesh%region_ids + 1
     end if
@@ -429,7 +433,7 @@ module mba2d_integration
     if (present_and_true(lock_all_nodes)) then
        j=1
        do i=1,totele
-          if (ele_region_id(xmesh,i)== 1) then
+          if (has_value(region_list,ele_region_id(xmesh,i))) then
              ipe(:, i) = ele_nodes(xmesh, i)
           else
              ipe(:,i)=nipe(:,j)
@@ -498,7 +502,8 @@ module mba2d_integration
     deallocate(boundary_ids, coplanar_ids)
     
     if(have_option("/mesh_adaptivity/hr_adaptivity/preserve_mesh_regions")&
-                              .or.present_and_true(force_preserve_regions)) then
+                              .or.present_and_true(force_preserve_regions)&
+                              .or.present_and_true(lock_all_nodes)) then
       allocate(new_mesh%region_ids(totele))
       new_mesh%region_ids = lbE(1:totele) - 1
     end if
@@ -553,7 +558,8 @@ module mba2d_integration
       end if
       
       if(have_option("/mesh_adaptivity/hr_adaptivity/preserve_mesh_regions")&
-                                .or.present_and_true(force_preserve_regions)) then
+                                .or.present_and_true(force_preserve_regions)&
+                                .or.present_and_true(lock_all_nodes)) then
         ! reorder the region_ids since all out elements have been jiggled about
         allocate(old_new_region_ids(totele))
         old_new_region_ids = output_positions%mesh%region_ids

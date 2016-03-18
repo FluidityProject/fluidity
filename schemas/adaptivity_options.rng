@@ -463,6 +463,28 @@ Source: Fluidity/ICOM manual draft version 1.2</a:documentation>
       </element>
     </optional>
   </define>
+  <define name="delaunay_adaptivity">
+    <element name="delaunay_adaptivity">
+      <a:documentation>Adaptivity via retriangulation only</a:documentation>
+      <choice>
+        <element name="period_in_timesteps">
+          <a:documentation>Time interval (in simulation time) when mesh adaptivity performed.
+
+Usually set to 10-20 times the timestep.</a:documentation>
+          <ref name="integer"/>
+        </element>
+        <element name="period">
+          <a:documentation>Specify the period in simulation time units</a:documentation>
+          <ref name="real"/>
+        </element>
+      </choice>
+      <optional>
+        <element name="region_ids">
+          <ref name="integer_vector"/>
+        </element>
+      </optional>
+    </element>
+  </define>
   <define name="hr_adaptivity">
     <element name="hr_adaptivity">
       <a:documentation>Anisotropic mesh hr-adaptivity</a:documentation>
@@ -2374,6 +2396,9 @@ Please specify a scalar field</a:documentation>
             </choice>
           </element>
         </element>
+      </optional>
+      <optional>
+        <ref name="delaunay_adaptivity"/>
       </optional>
       <optional>
         <choice>

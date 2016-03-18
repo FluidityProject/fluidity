@@ -78,9 +78,9 @@ contains
 
     do_adapt_mesh_connectivity = .false.
 
-    if(have_option("/mesh_adaptivity/delauney_adapt/period")) then
+    if(have_option("/mesh_adaptivity/delaunay_adapt/period")) then
 
-       call get_option("/mesh_adaptivity/delauney_adapt/period",period)
+       call get_option("/mesh_adaptivity/delaunay_adaptivity/period",period)
        if (period == 0.0 .or. &
             floor(current_time / period) &
             > floor(last_adapt_mesh_connectivity_time / period)) then
@@ -88,7 +88,7 @@ contains
           last_adapt_mesh_connectivity_time=current_time
        end if
     else
-       call get_option("/mesh_adaptivity/delauney_adapt/period_in_timesteps",&
+       call get_option("/mesh_adaptivity/delaunay_adaptivity/period_in_timesteps",&
        period_in_timesteps)
        if (period_in_timesteps == 0 .or. mod(timestep, period_in_timesteps) == 0) then
           do_adapt_mesh_connectivity = .true.

@@ -399,6 +399,28 @@ adaptivity_options_tensor_field =
       }?
    )
 
+delaunay_adaptivity = 
+   (
+   ## Adaptivity via retriangulation only
+      element delaunay_adaptivity {
+         (
+            ## Time interval (in simulation time) when mesh adaptivity performed.
+            ##
+            ## Usually set to 10-20 times the timestep.
+            element period_in_timesteps {
+               integer
+            }|
+            ## Specify the period in simulation time units
+            element period {
+               real
+            }
+         ),
+         element region_ids {
+            integer_vector
+         }?
+      }
+   )        
+
 hr_adaptivity =
    (
    ## Anisotropic mesh hr-adaptivity
@@ -1957,6 +1979,7 @@ mesh_adaptivity_options =
             )
          }               
       }?,
+      delaunay_adaptivity?,
       (
          hr_adaptivity |
          prescribed_adaptivity
