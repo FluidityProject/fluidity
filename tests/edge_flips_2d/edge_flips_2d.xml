@@ -1,0 +1,25 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>edge_flips_2d</name>
+  <owner userid="jrper"/>
+  <problem_definition length="medium" nprocs="1">
+    <command_line>fluidity -v 1 -l edge_flips_2d.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="mass" language="python">from fluidity_tools import stat_parser
+s = stat_parser("edge_flips_2d.stat")
+mass = s["Fluid"]["Density"]["integral"]</variable>
+    <variable name="solvers_converged" language="python">import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files</variable>
+    <variable name="final_time" language="python">from fluidity_tools import stat_parser
+s = stat_parser("edge_flips_2d.stat")
+final_time = s["ElapsedTime"]["value"][-1]</variable>
+  </variables>
+  <pass_tests>
+    <test name="Solvers converged" language="python">assert(solvers_converged)</test>
+    <test name="mass_conservation" language="python">assert(abs(mass[-1]-mass[0])&lt;1.0e-8)</test>
+    <test name="assert no crash during adaptivity" language="python">assert abs(final_time - 5.1) &lt; 1.0e-8</test>
+  </pass_tests>
+  <warn_tests/>
+</testproblem>
