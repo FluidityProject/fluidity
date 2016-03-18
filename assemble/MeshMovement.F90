@@ -1214,11 +1214,85 @@ contains
     end if
     
     call set(new_coordinate, old_coordinate)
-    call addto(new_coordinate, grid_velocity, scale=dt)
+
+    if (have_option("/mesh_adaptivity/mesh_movement/transform_coordinates")) then
+       call update(new_coordinate, grid_velocity, scale=dt)
+    else
+       call addto(new_coordinate, grid_velocity, scale=dt)
+    end if
     
     call set(coordinate, new_coordinate, old_coordinate, itheta)
-  
+
   end subroutine move_mesh_imposed_velocity
+
+  subroutine update(X,u,scale)
+    type(vector_field), intent(inout) :: X
+    type(vector_field), intent(in)    :: u
+    real, intent(in)                  :: scale
+
+    integer :: node
+    real    :: r, theta, pos(mesh_dim(X)), v(mesh_dim(X)), pos_new(mesh_dim(X))
+    real, parameter :: epsilon=1.0e-16
+
+    real :: axis(3), ihat(mesh_dim(X)), jhat(mesh_dim(X))
+    real :: C(mesh_dim(X)),p1, p2, v1, v2, delta_r, delta_theta, delta_z
+    integer:: dim
+
+    dim=mesh_dim(x)
+    
+    C=0.0
+    if (have_option("/mesh_movement/transform_coordinates/point_on_axis"))&
+         call get_option("/mesh_movement/transform_coordinates/point_on_axis",&
+         C)
+
+    if (dim==1) then
+       FLAbort("Trying to use cylindrical coordinates for 1D mesh movement. This isn't going to work.")
+    else if (dim==2) then
+       axis=[0.,0.,1.]
+       ihat=[1.,0.]
+       jhat=[0.,1.]
+    else
+       call get_option("/mesh_movement/transform_coordinates/axis_of_rotation",axis,default=[0.0,0.0,1.0])
+       assert(sum(axis*axis)>0.0)
+       axis=axis/sqrt(sum(axis*axis))
+       if (abs(axis(3))>1.0e-16) then
+          ihat=[axis(3),0.0,-axis(1)]
+          ihat=ihat/sqrt(sum(ihat*ihat))
+          jhat=[-axis(1)*axis(2),axis(3)**2+axis(1)**2,-axis(2)*axis(3)]
+       else
+          ihat=[-axis(2),axis(1),0.0]
+          jhat=[-axis(1)*axis(3),-axis(2)*axis(3),axis(1)**2+axis(2)**2]
+       end if
+       ihat=ihat/sqrt(sum(ihat*ihat))
+       jhat=jhat/sqrt(sum(jhat*jhat))
+    end if       
+
+    do node=1, node_count(X)
+       pos=node_val(X,node)-C
+       v=node_val(u,node)
+
+       p1=dot_product(pos,ihat)
+       p2=dot_product(pos,jhat)
+       v1=dot_product(v,ihat)
+       v2=dot_product(v,jhat)
+
+       r=sqrt(sum((pos-dot_product(pos,axis(1:dim))*axis(1:dim))**2))
+       theta=atan2(p1,p2)
+
+       delta_r=r+dot_product(pos,v)*scale/(r+epsilon)
+       delta_theta=theta+(v1*p2-v2*p1)*scale/(r+epsilon)**2
+       delta_z=dot_product(pos+v*scale,axis(1:dim))
+
+       pos_new=C+ihat*delta_r*sin(delta_theta)&
+                +jhat*delta_r*cos(delta_theta)&
+                +delta_z*axis(1:dim)
+
+       call set(X,node,pos_new)
+    end do
+
+
+  end subroutine update
+
 
   subroutine move_mesh_pseudo_lagrangian(states)
   type(state_type), dimension(:), intent(inout) :: states

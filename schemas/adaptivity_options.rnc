@@ -1977,7 +1977,15 @@ mesh_adaptivity_options =
                  generic_aliased_field
                }
             )
-         }               
+         },
+         element transform_coordinates {
+            element axis_of_rotation {
+	       real_dim_vector
+	    }?,
+            element point_on_axis {
+	       real_dim_vector
+	    }?
+         }?                
       }?,
       delaunay_adaptivity?,
       (
