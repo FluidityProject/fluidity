@@ -141,7 +141,8 @@ contains
                              force_preserve_regions=force_preserve_regions)
         else
           call adapt_mesh_3d(stripped_positions, stripped_metric, new_positions, &
-                             force_preserve_regions=force_preserve_regions, lock_faces=lock_faces)
+                             force_preserve_regions=force_preserve_regions, lock_faces=lock_faces,&
+                             lock_all_nodes=lock_all_nodes)
         end if
       case default
         FLAbort("Mesh adaptivity requires a 1D, 2D or 3D mesh")

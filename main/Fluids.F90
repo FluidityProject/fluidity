@@ -908,7 +908,12 @@ contains
 
              call pre_adapt_tasks(sub_state)
 
-!             call qmesh(state, metric_tensor)
+             call zero(metric_tensor)
+             
+             do i=1,mesh_dim(metric_tensor)
+                metric_tensor%val(i,i,:)=1.0
+             end do
+
              if(have_option("/io/stat/output_before_adapts")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)
              call run_diagnostics(state)
 

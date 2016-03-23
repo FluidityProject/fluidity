@@ -189,7 +189,7 @@ module adapt_integration
 contains
 
   subroutine adapt_mesh(input_positions, metric, output_positions, node_ownership, &
-      & force_preserve_regions, lock_faces)
+      & force_preserve_regions, lock_faces, lock_all_nodes)
     !!< Adapt the supplied input mesh using libadaptivity. Return the new
     !!< adapted mesh in output_positions (which is allocated by this routine).
     
@@ -200,6 +200,7 @@ contains
     integer, dimension(:), pointer, optional :: node_ownership
     logical, intent(in), optional :: force_preserve_regions
     type(integer_set), intent(in), optional :: lock_faces
+    logical, intent(in), optional :: lock_all_nodes
     
     ! Linear tets only
     integer, parameter :: dim = 3, nloc = 4, snloc = 3
@@ -339,7 +340,8 @@ contains
     ! Region IDs
     allocate(elmreg(nelm))
     if(associated(input_positions%mesh%region_ids).and.&
-      (have_option(base_path // "/preserve_mesh_regions").or.present_and_true(force_preserve_regions))) then
+      (have_option(base_path // "/preserve_mesh_regions").or.present_and_true(force_preserve_regions)&
+      .or. present_and_true(lock_all_nodes))) then
       elmreg = input_positions%mesh%region_ids
     else
       elmreg = 0
@@ -436,6 +438,25 @@ contains
     twostg = .false.  ! Two stages of adapting, with no refinement on first
     togthr = .true.  ! Lumps node movement adaptivity in with connectivity
                      ! changes
+
+    ! In the node locked case:
+
+       if (present_and_true(lock_all_nodes)) then       
+       !! disable h-refinement, copying the options structure from Adaptivity.cpp
+
+          twostg = .false.
+          togthr = .false.
+
+          mshopt(1)=.false.
+          mshopt(2)=.false.
+          mshopt(3)=.true.
+          mshopt(4)=.false.
+          mshopt(5)=.false.
+          mshopt(6)=.false.
+
+          nsweep = 200
+          
+       end if
 
     ! Parallel data
     nhalos = halo_count(input_positions)
@@ -576,7 +597,8 @@ contains
 
     ! put the region id info in now so we can reorder it if we're parallel
     if(have_option(base_path // "/preserve_mesh_regions")&
-              .or.present_and_true(force_preserve_regions)) then
+              .or.present_and_true(force_preserve_regions)&
+              .or. present_and_true(lock_all_nodes)) then
       allocate(output_mesh%region_ids(nwnelm))
       output_mesh%region_ids = intarr(nwelrg:nwelrg + nwnelm - 1)
     end if  
@@ -607,7 +629,8 @@ contains
       end if
       
       if(have_option(base_path // "/preserve_mesh_regions")&
-                .or.present_and_true(force_preserve_regions)) then
+                .or.present_and_true(force_preserve_regions)&
+                .or. present_and_true(lock_all_nodes)) then
         ! reorder the region_ids since all out elements have been jiggled about
         allocate(old_new_region_ids(nwnelm))
         old_new_region_ids = output_positions%mesh%region_ids
