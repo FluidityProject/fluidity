@@ -519,8 +519,8 @@ module zoltan_integration
   function get_load_imbalance_tolerance(final_adapt_iteration) result(load_imbalance_tolerance)
     logical, intent(in) :: final_adapt_iteration    
  
-    real, parameter :: default_load_imbalance_tolerance = 1.5  
-    real, parameter :: final_iteration_load_imbalance_tolerance = 1.075
+    real, parameter :: default_load_imbalance_tolerance = 1.05
+    real, parameter :: final_iteration_load_imbalance_tolerance = 1.02
     real :: load_imbalance_tolerance
 
     if (.NOT. final_adapt_iteration) then
