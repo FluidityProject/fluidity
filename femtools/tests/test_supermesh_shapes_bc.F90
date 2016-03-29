@@ -29,6 +29,9 @@
 
 subroutine test_supermesh_shapes_bc
 
+  use quadrature
+  use elements
+  use fetools
   use fields
   use fldebug
   use supermesh_assembly

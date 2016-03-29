@@ -29,24 +29,26 @@
   
 module sediment
 
+  use global_parameters, only:   OPTION_PATH_LEN, FIELD_NAME_LEN, dt, timestep
+  use fldebug
+  use futils, only: int2str
+  use vector_tools
   use quadrature
   use elements
-  use field_derivatives
-  use fields
-  use sparse_matrices_fields
-  use state_module
   use spud
-  use global_parameters, only:   OPTION_PATH_LEN, dt, timestep
-  use state_fields_module
+  use fetools
+  use fields
+  use state_module
   use boundary_conditions
-  use FLDebug
+  use field_derivatives
+  use sparse_matrices_fields
+  use state_fields_module
 
   implicit none
 
+  private
   public set_sediment_reentrainment, sediment_check_options, get_n_sediment_fields, &
        & get_sediment_item, surface_horizontal_divergence
-
-  private 
 
   interface get_sediment_item
      module procedure get_sediment_field, get_sediment_field_name,&

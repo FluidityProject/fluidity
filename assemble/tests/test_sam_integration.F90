@@ -1,5 +1,6 @@
 subroutine test_sam_integration
 
+  use fldebug
   use fields
   use mesh_files
   use conservative_interpolation_module

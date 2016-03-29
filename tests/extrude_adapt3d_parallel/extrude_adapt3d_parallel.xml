@@ -1,0 +1,44 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>extrude_adapt3d_parallel</name>
+  <owner userid="skramer"/>
+  <problem_definition length="short" nprocs="2">
+    <command_line>mpiexec ../../bin/flredecomp -i 1 -o 2 box box_flredecomp &amp;&amp;
+mpiexec ../../bin/fluidity -v2 -l box_flredecomp.flml &amp;&amp;
+mpiexec ../../bin/fluidity -v2 -l box_1_checkpoint.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="ConservationError" language="python">from fluidity_tools import stat_parser
+stat = stat_parser('box.stat')
+integral = stat['Rock']['Blob']['integral']
+ConservationError = integral[-1]-integral[0]</variable>
+    <variable name="ConservationErrorCheckpoint" language="python">from fluidity_tools import stat_parser
+stat = stat_parser('box_checkpoint.stat')
+integral = stat['Rock']['Blob']['integral']
+ConservationErrorCheckpoint = integral[-1]-integral[0]</variable>
+    <variable name="EndTime" language="python">from fluidity_tools import stat_parser
+stat = stat_parser('box.stat')
+EndTime = stat['ElapsedTime']['value'][-1]</variable>
+    <variable name="EndTimeCheckpoint" language="python">from fluidity_tools import stat_parser
+stat = stat_parser('box_checkpoint.stat')
+EndTimeCheckpoint = stat['ElapsedTime']['value'][-1]</variable>
+    <variable name="HeatError" language="python">from fluidity_tools import stat_parser
+stat = stat_parser('box.stat')
+HeatError = stat['Rock']['HeatError']['l2norm'][-1]</variable>
+    <variable name="HeatErrorCheckpoint" language="python">from fluidity_tools import stat_parser
+stat = stat_parser('box_checkpoint.stat')
+HeatErrorCheckpoint = stat['Rock']['HeatError']['l2norm'][-1]</variable>
+    <variable name="solvers_converged" language="python">import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files</variable>
+  </variables>
+  <pass_tests>
+    <test name="solvers_converged" language="python">assert solvers_converged</test>
+    <test name="ConservationError" language="python">assert abs(ConservationError)&lt;1e-14</test>
+    <test name="ConservationErrorCheckpoint" language="python">assert abs(ConservationErrorCheckpoint)&lt;1e-14</test>
+    <test name="EndTime" language="python">assert abs(EndTime-0.21)&lt;1e-10</test>
+    <test name="EndTimeCheckpoint" language="python">assert abs(EndTimeCheckpoint-0.21)&lt;1e-10</test>
+    <test name="HeatError" language="python">assert HeatError&lt;5e-4</test>
+    <test name="HeatErrorCheckpoint" language="python">assert HeatErrorCheckpoint&lt;5e-4</test>
+  </pass_tests>
+</testproblem>

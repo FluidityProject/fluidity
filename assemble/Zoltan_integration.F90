@@ -4,47 +4,47 @@
 module zoltan_integration
 
 #ifdef HAVE_ZOLTAN
-! these 5 need to be on top and in this order, so as not to confuse silly old intel compiler 
+  use spud
+  use fldebug
+  use global_parameters, only: real_size, OPTION_PATH_LEN, topology_mesh_name,&
+      FIELD_NAME_LEN
+  use futils, only: int2str, present_and_true
   use quadrature
+  use element_numbering, only: ele_local_num
   use elements
+  use mpi_interfaces
+  use data_structures
+  use parallel_tools
+  use memory_diagnostics
   use sparse_tools
+  use linked_lists
+  use halos_ownership
+  use parallel_fields
+  use metric_tools
   use fields
   use state_module
-
   use field_options
-  use mpi_interfaces
-  use halos
-  use parallel_fields
-  use sparsity_patterns_meshes
   use vtk_interfaces
   use zoltan
-  use linked_lists
-  use global_parameters, only: real_size, OPTION_PATH_LEN, topology_mesh_name
-  use data_structures
-  use populate_state_module
-  use reserve_state_module
-  use boundary_conditions_from_options
-  use boundary_conditions
-  use metric_tools
-  use c_interfaces
-  use surface_id_interleaving
-  use halos_ownership
-  use memory_diagnostics
-  use detector_data_types
-  use detector_tools
-  use detector_parallel
-  use pickers
-  use hadapt_advancing_front
-  use parallel_tools
-  use fields_halos
-  use adapt_integration
-
-! adding to use the ele_owner function
   use halos_derivation
-  
+  use halos
+  use sparsity_patterns_meshes
+  use reserve_state_module
+  use boundary_conditions
+  use c_interfaces
+  use detector_data_types
+  use boundary_conditions_from_options
+  use detector_tools
+  use pickers
+  use detector_parallel
+  use hadapt_advancing_front
+  use fields_halos
+  use populate_state_module
+  use surface_id_interleaving
+  use adapt_integration
   use zoltan_global_variables
-  use zoltan_callbacks
   use zoltan_detectors
+  use zoltan_callbacks
 
   implicit none
 
@@ -137,19 +137,10 @@ module zoltan_integration
        zoltan_global_base_option_path = '/mesh_adaptivity/hr_adaptivity/zoltan_options'
     end if
 
-    zoltan_global_migrate_extruded_mesh = option_count('/geometry/mesh/from_mesh/extrude') > 0 &
-      .and. .not. present_and_true(ignore_extrusion)
-
     zoltan_global_field_weighted_partitions = &
      have_option(trim(zoltan_global_base_option_path) // "/field_weighted_partitions")
 
-    if(zoltan_global_migrate_extruded_mesh .AND. zoltan_global_field_weighted_partitions) then
-        ewrite(-1,*) "Cannot weight mesh partitions based upon extruded columns"// &
-                     "and a prescribed field. Select one option only or fix the code."
-        FLExit("Use Weighted mesh partitions for EITHER extruded meshes or prescribed fields")
-    end if
-    
-    call setup_module_variables(states, final_adapt_iteration, zz)
+    call setup_module_variables(states, final_adapt_iteration, zz, flredecomp)
 
     call setup_quality_module_variables(metric, minimum_quality) ! this needs to be called after setup_module_variables
                                         ! (but only on the 2d mesh with 2+1d adaptivity)
@@ -162,11 +153,19 @@ module zoltan_integration
        end if
     end if
 
-    if(zoltan_global_migrate_extruded_mesh) then
-       full_mesh => extract_mesh(states(1), trim(topology_mesh_name))
-       call create_columns_sparsity(zoltan_global_columns_sparsity, full_mesh)
+    full_mesh => extract_mesh(states(1), trim(topology_mesh_name))
+    zoltan_global_migrate_extruded_mesh = (mesh_dim(full_mesh) /= mesh_dim(zoltan_global_zz_mesh)) .and. &
+      .not. present_and_true(ignore_extrusion)
+
+    if(zoltan_global_migrate_extruded_mesh .AND. zoltan_global_field_weighted_partitions) then
+        ewrite(-1,*) "Cannot weight mesh partitions based upon extruded columns"// &
+                     "and a prescribed field. Select one option only or fix the code."
+        FLExit("Use Weighted mesh partitions for EITHER extruded meshes or prescribed fields")
     end if
     
+    if(zoltan_global_migrate_extruded_mesh) then
+       call create_columns_sparsity(zoltan_global_columns_sparsity, full_mesh)
+    end if
 
     load_imbalance_tolerance = get_load_imbalance_tolerance(final_adapt_iteration)
     call set_zoltan_parameters(final_adapt_iteration, flredecomp, flredecomp_target_procs, load_imbalance_tolerance, zz)
@@ -235,7 +234,7 @@ module zoltan_integration
       ! so we don't need to reallocate them either)
       call cleanup_other_module_variables
       
-      call setup_module_variables(states, final_adapt_iteration, zz, mesh_name = topology_mesh_name)
+      call setup_module_variables(states, final_adapt_iteration, zz, flredecomp, mesh_name = topology_mesh_name)
 
 
       load_imbalance_tolerance = get_load_imbalance_tolerance(final_adapt_iteration)
@@ -306,11 +305,13 @@ module zoltan_integration
 
   end subroutine zoltan_drive
 
-  subroutine setup_module_variables(states, final_adapt_iteration, zz, mesh_name)
+  subroutine setup_module_variables(states, final_adapt_iteration, zz, flredecomp, mesh_name)
     type(state_type), dimension(:), intent(inout), target :: states
     logical, intent(in) :: final_adapt_iteration
+    logical, intent(in) :: flredecomp
     type(zoltan_struct), pointer, intent(out) :: zz
     
+    type(mesh_type), pointer :: mesh_ptr
     character(len=*), optional :: mesh_name
     integer :: nhalos, stat
     integer, dimension(:), allocatable :: owned_nodes
@@ -319,8 +320,6 @@ module zoltan_integration
     integer :: old_element_number, universal_element_number, face_number, universal_surface_element_number
     integer, dimension(:), allocatable :: interleaved_surface_ids
 
-    !call find_mesh_to_adapt(states(1), zoltan_global_zz_mesh)
-    
     if (final_adapt_iteration) then
        zoltan_global_calculate_edge_weights = .false.
     else
@@ -345,8 +344,18 @@ module zoltan_integration
 
     if(present(mesh_name)) then
        zoltan_global_zz_mesh = extract_mesh(states(1), trim(mesh_name))
-    else
+    else if (flredecomp) then
        zoltan_global_zz_mesh = get_external_mesh(states)
+    else
+       ! This should actually be using get_external_mesh(), i.e. zoltan redistributes the mesh
+       ! that all other meshes are derived from. However, in the case that we extrude and use
+       ! generic adaptivity (not 2+1), the external horizontal mesh becomes seperated from the
+       ! other meshes and it's actually the 3d adapted mesh that we derive everything from. We
+       ! should probably actually completely remove the external horizontal mesh from the options
+       ! tree, and make the adapted 3d mesh the external mesh. For now we keep it around and leave
+       ! it in its old decomposition.
+       call find_mesh_to_adapt(states(1), mesh_ptr)
+       zoltan_global_zz_mesh = mesh_ptr
     end if
     call incref(zoltan_global_zz_mesh)
     if (zoltan_global_zz_mesh%name=="CoordinateMesh") then
@@ -519,8 +528,8 @@ module zoltan_integration
   function get_load_imbalance_tolerance(final_adapt_iteration) result(load_imbalance_tolerance)
     logical, intent(in) :: final_adapt_iteration    
  
-    real, parameter :: default_load_imbalance_tolerance = 1.5  
-    real, parameter :: final_iteration_load_imbalance_tolerance = 1.075
+    real, parameter :: default_load_imbalance_tolerance = 1.05
+    real, parameter :: final_iteration_load_imbalance_tolerance = 1.02
     real :: load_imbalance_tolerance
 
     if (.NOT. final_adapt_iteration) then
@@ -678,10 +687,13 @@ module zoltan_integration
 
     end if
 
-    ! Choose the appropriate partitioning method based on the current adapt iteration
-    ! Idea is to do repartitioning on intermediate adapts but a clean partition on the last
-    ! iteration to produce a load balanced partitioning
+    ! Choose the appropriate partitioning method based on the current adapt iteration.
+    ! The default is currently to do a clean partition on all adapt iterations to produce a 
+    ! load balanced partitioning and to limit the required number of adapts. In certain cases,
+    ! repartitioning or refining may lead to improved performance, and this is optional for all
+    ! but the final adapt iteration.
     if (final_adapt_iteration) then
+
        ierr = Zoltan_Set_Param(zz, "LB_APPROACH", "PARTITION"); assert(ierr == ZOLTAN_OK)
        ewrite(3,*) "Setting partitioning approach to PARTITION."
        if (have_option(trim(zoltan_global_base_option_path) // "/final_partitioner/metis") .OR. &
@@ -690,15 +702,35 @@ module zoltan_integration
           ierr = Zoltan_Set_Param(zz, "PARMETIS_METHOD", "PartKway"); assert(ierr == ZOLTAN_OK)
           ewrite(3,*) "Setting ParMETIS method to PartKway."
        end if
+
     else
-       ierr = Zoltan_Set_Param(zz, "LB_APPROACH", "REPARTITION"); assert(ierr == ZOLTAN_OK)
-       ewrite(3,*) "Setting partitioning approach to REPARTITION."
+
+       if (have_option(trim(zoltan_global_base_option_path) // "/load_balancing_approach/")) then
+          if (have_option(trim(zoltan_global_base_option_path) // "/load_balancing_approach/partition"))  then
+             ! Partition from scratch, not taking the current data distribution into account:
+             ierr = Zoltan_Set_Param(zz, "LB_APPROACH", "PARTITION"); assert(ierr == ZOLTAN_OK)
+             ewrite(3,*) "Setting partitioning approach to PARTITION."
+          else if (have_option(trim(zoltan_global_base_option_path) // "/load_balancing_approach/repartition"))  then
+             ! Partition but try to stay close to the curruent partition/distribution:
+             ierr = Zoltan_Set_Param(zz, "LB_APPROACH", "REPARTITION"); assert(ierr == ZOLTAN_OK)
+             ewrite(3,*) "Setting partitioning approach to REPARTITION."
+          else if (have_option(trim(zoltan_global_base_option_path) // "/load_balancing_approach/refine"))  then
+             ! Refine the current partition/distribution; assumes only small changes:
+             ierr = Zoltan_Set_Param(zz, "LB_APPROACH", "REFINE"); assert(ierr == ZOLTAN_OK)
+             ewrite(3,*) "Setting partitioning approach to REFINE."
+          end if
+       else
+          ierr = Zoltan_Set_Param(zz, "LB_APPROACH", "PARTITION"); assert(ierr == ZOLTAN_OK)
+          ewrite(3,*) "Setting partitioning approach to PARTITION."
+       end if
+
        if (have_option(trim(zoltan_global_base_option_path) // "/partitioner/metis"))  then
           ! chosen to match what Sam uses
           ierr = Zoltan_Set_Param(zz, "PARMETIS_METHOD", "AdaptiveRepart"); assert(ierr == ZOLTAN_OK)
           ewrite(3,*) "Setting ParMETIS method to AdaptiveRepart."
           ierr = Zoltan_Set_Param(zz, "PARMETIS_ITR", "100000.0"); assert(ierr == ZOLTAN_OK)
        end if
+
     end if
 
     ierr = Zoltan_Set_Param(zz, "NUM_GID_ENTRIES", "1"); assert(ierr == ZOLTAN_OK)

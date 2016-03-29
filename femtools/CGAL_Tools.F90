@@ -1,6 +1,7 @@
 #include "fdebug.h"
 module cgal_tools
 
+  use fldebug
   use fields
   implicit none
 
@@ -11,6 +12,8 @@ module cgal_tools
       real, intent(out) :: area
     end subroutine convex_hull_area_3d
   end interface
+
+  private
 
   public :: convex_hull_area
 

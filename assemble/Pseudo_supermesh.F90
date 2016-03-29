@@ -15,15 +15,20 @@ module pseudo_supermesh
 !!< nodal placement for heuristic statements
 !!< about local node density.
 
-  use adapt_state_unittest_module, only : adapt_state => adapt_state_unittest
   use fields
-  use interpolation_module
+  use state_module
   use vtk_interfaces
-  use conformity_measurement
   use merge_tensors
+  use interpolation_module
   use edge_length_module
   use limit_metric_module
+  use conformity_measurement
+  use adapt_state_unittest_module, only : adapt_state => adapt_state_unittest
   implicit none
+
+  private
+
+  public :: compute_pseudo_supermesh
 
   contains
 

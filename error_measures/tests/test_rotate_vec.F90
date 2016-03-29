@@ -1,6 +1,7 @@
 subroutine test_rotate_vec
 
   use gradation_metric
+  use metric_tools, only: get_angle
   use unittest_tools
   implicit none
 

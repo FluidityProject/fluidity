@@ -1,28 +1,33 @@
 #include "fdebug.h"
 
 module mba2d_integration
+  use fldebug
+  use spud
+  use global_parameters, only : current_debug_level
+  use futils, only: present_and_true
   use quadrature
   use elements
+  use eventcounter
+  use quicksort
+  use data_structures
+  use parallel_tools
+  use sparse_tools
+  use metric_tools
   use fields
   use state_module
-  use interpolation_module
   use meshdiagnostics
   use vtk_interfaces
-  use eventcounter
-  use node_boundary
-  use metric_tools
-  use limit_metric_module
-  use mba_adapt_module
-  use node_locking
   use halos
-  use quicksort
-  use surface_id_interleaving
-  use data_structures
-  use global_parameters, only : current_debug_level
-  use adapt_integration
+  use node_boundary
+  use interpolation_module
+  use limit_metric_module
 #ifdef HAVE_MBA_2D
   use mba2d_module
 #endif
+  use mba_adapt_module
+  use node_locking
+  use surface_id_interleaving
+  use adapt_integration
   implicit none
   
   private

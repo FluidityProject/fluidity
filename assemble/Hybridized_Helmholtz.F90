@@ -30,24 +30,29 @@
 
 module hybridized_helmholtz
     use spud
+    use FLDebug
+    use global_parameters, only: option_path_len
+    use FUtils, only : real_vector, real_matrix, present_and_true
+    use vector_tools, only: solve, cross_product
+    use sparse_tools
+    use element_numbering, only: FAMILY_SIMPLEX, FAMILY_CUBE
+    use fetools
     use fields
     use state_module
-    use FLDebug
-    use populate_state_module
     use write_state_module
-    use populate_state_module
-    use timeloop_utilities
     use sparsity_patterns_meshes
     use sparse_matrices_fields
     use solvers
     use diagnostic_variables
-    use diagnostic_fields_wrapper
+    use populate_state_module
+    use timeloop_utilities
     use assemble_cmc
-    use FUtils, only : real_vector, real_matrix
-    use global_parameters, only: option_path_len
-    use vector_tools, only: solve
     use manifold_projections
     implicit none
+
+    private
+
+    public :: solve_hybridized_helmholtz
 
 contains
   subroutine solve_hybridized_helmholtz(state,D_rhs,U_Rhs,&

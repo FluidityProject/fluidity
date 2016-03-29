@@ -29,6 +29,7 @@
 
 subroutine test_halo_io
 
+  use fldebug
   use fields
   use halos
   use mesh_files

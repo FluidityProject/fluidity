@@ -29,14 +29,14 @@
 
 module surface_diagnostics
 
-  use diagnostic_source_fields
-  use field_options
-  use fields
   use fldebug
   use global_parameters, only : OPTION_PATH_LEN
   use spud
+  use fields
   use state_module
-  use sediment
+  use field_options
+  use diagnostic_source_fields
+  use sediment, only: surface_horizontal_divergence
   use surface_integrals
   
   implicit none

@@ -34,15 +34,16 @@
 
 module bulk_parameterisations
 
-    use boundary_conditions
     use fldebug
+    use global_parameters, only: OPTION_PATH_LEN, FIELD_NAME_LEN
+    use futils, only: int2str
     use quadrature
     use elements
-    use fields
-    use field_options
-    use state_module
     use spud
-    use global_parameters, only: OPTION_PATH_LEN
+    use fields
+    use state_module
+    use boundary_conditions
+    use field_options
 
     implicit none
  

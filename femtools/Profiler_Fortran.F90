@@ -26,6 +26,7 @@
 !    USA
 
 module Profiler
+  use iso_c_binding, only : c_ptr
   use global_parameters, only : real_8
   use fields
 
@@ -225,7 +226,6 @@ contains
   end subroutine profiler_majorpagefaults
 
   subroutine profiler_getresidence(ptr, residence)
-    use iso_c_binding, only : c_ptr
     type(c_ptr), intent(in) :: ptr
     integer, intent(out) :: residence
     call cprofiler_getresidence(ptr, residence)

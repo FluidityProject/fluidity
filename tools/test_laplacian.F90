@@ -9,6 +9,7 @@ program test_laplacian
   ! 1x1x1 cube with the boundary conditions 1 and 2 applied on the
   ! sides of the first coordinates direction (e.g. test_laplacian.poly
   ! - create a mesh with 'triangle -a0.01 -e test_laplacian.poly' )
+  use quadrature
   use mesh_files
   use fields
   use FEtools

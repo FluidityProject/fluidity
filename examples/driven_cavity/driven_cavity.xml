@@ -25,10 +25,10 @@ print convergence[:,1]
 assert(numpy.all(convergence[:,1]&gt;1.38))</test>
     <test name="Quantity3ConvergesToSecondOrder" language="python">import numpy
 print convergence[:,2]
-assert(numpy.all(convergence[:,2]&gt;1.9))</test>
+assert(numpy.all(convergence[:,2]&gt;1.85))</test>
     <test name="Quantity4ConvergesToSecondOrder" language="python">import numpy
 print convergence[:,3]
-assert(numpy.all(convergence[:,3]&gt;1.9))</test>
+assert(numpy.all(convergence[:,3]&gt;1.85))</test>
     <test name="Quantity5ConvergesToSecondOrder" language="python">import numpy
 print convergence[:,4]
 assert(numpy.all(convergence[:,4]&gt;1.9))</test>

@@ -3,6 +3,7 @@
 
 subroutine test_solenoidal_interpolation
 
+  use fldebug
   use fields
   use populate_state_module
   use spud

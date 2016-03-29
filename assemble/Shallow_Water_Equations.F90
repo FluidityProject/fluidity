@@ -32,13 +32,22 @@
 ! a different implementation than the one in main/Shallow_Water.F90
 ! that has its own binary and schema.
 module shallow_water_equations
+  use fldebug
   use global_parameters, only: OPTION_PATH_LEN
   use spud
+  use sparse_tools
+  use transform_elements
+  use fetools
   use fields
   use state_module
   use boundary_conditions
 
   implicit none
+
+  private
+
+  public :: assemble_shallow_water_projection,  assemble_swe_divergence_matrix_cg,&
+       shallow_water_equations_check_options
 
   contains
 

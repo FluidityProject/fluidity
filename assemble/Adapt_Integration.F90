@@ -29,25 +29,27 @@
 
 module adapt_integration
 
+  use fldebug
+  use futils, only: present_and_true
   use data_structures
   use quadrature
   use elements
-  use fldebug
-  use fields
-  use halos
-  use limit_metric_module
-  use meshdiagnostics
-  use node_locking
   use spud
+  use parallel_tools
+  use fields
+  use vtk_interfaces
+  use halos
+  use meshdiagnostics
+  use limit_metric_module
+  use node_locking
   use surface_id_interleaving
   use tictoc
-  use vtk_interfaces
 
   implicit none
   
   private
   
-  public :: adapt_mesh, max_nodes, adapt_integration_check_options, element_quality_pain_p0
+  public :: adapt_mesh, max_nodes, adapt_integration_check_options, element_quality_pain_p0, mtetin
   
   character(len = *), parameter :: base_path = "/mesh_adaptivity/hr_adaptivity"
   

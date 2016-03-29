@@ -31,13 +31,16 @@ module read_gmsh
   ! This module reads GMSH files and results in a vector field of
   ! positions.
 
+  use fldebug
+  use global_parameters, only : OPTION_PATH_LEN
   use futils
+  use quadrature
   use elements
+  use spud
+  use parallel_tools
   use fields
   use state_module
-  use spud
   use gmsh_common
-  use global_parameters, only : OPTION_PATH_LEN
 
   implicit none
 
@@ -332,7 +335,7 @@ contains
     ! Done with error checking... set format (ie. ascii or binary)
     gmshFormat = gmshFileType
 
-#ifdef __INTEL_COMPILER
+#ifdef IO_ADVANCE_BUG
 !   for intel the call to ascii_formatting causes the first read after it to have advance='no'
 !   therefore forcing it to jump to a newline here
     if(gmshFormat == binaryFormat) read(fd, *) charBuf
@@ -393,7 +396,7 @@ contains
     if( trim(charBuf) .ne. "$EndNodes" ) then
        FLExit("Error: can't find '$EndNodes' in GMSH file '"//trim(filename)//"'")
     end if
-#ifdef __INTEL_COMPILER
+#ifdef IO_ADVANCE_BUG
 !   for intel the call to ascii_formatting causes the first read after it to have advance='no'
 !   therefore forcing it to jump to a newline here
     if(gmshFormat == binaryFormat) read(fd, *) charBuf
@@ -484,7 +487,7 @@ contains
        FLExit("Error: cannot find '$EndNodeData' in GMSH mesh file")
     end if
 
-#ifdef __INTEL_COMPILER
+#ifdef IO_ADVANCE_BUG
 !   for intel the call to ascii_formatting causes the first read after it to have advance='no'
 !   therefore forcing it to jump to a newline here
     if(gmshFormat == binaryFormat) read(fd, *) charBuf
@@ -599,7 +602,7 @@ contains
        FLExit("Error: cannot find '$EndElements' in GMSH mesh file")
     end if
 
-#ifdef __INTEL_COMPILER
+#ifdef IO_ADVANCE_BUG
 !   for intel the call to ascii_formatting causes the first read after it to have advance='no'
 !   therefore forcing it to jump to a newline here
     if(gmshFormat == binaryFormat) read(fd, *) charBuf

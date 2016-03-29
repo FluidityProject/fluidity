@@ -29,11 +29,11 @@
 
 module python_diagnostics
 
-  use fields
   use fldebug
   use global_parameters, only : PYTHON_FUNC_LEN, OPTION_PATH_LEN
-  use python_state
   use spud
+  use fields
+  use python_state
   use state_module
 
   implicit none

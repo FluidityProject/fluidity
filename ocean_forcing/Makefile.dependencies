@@ -19,7 +19,7 @@ InitialiseOceanForcing.o ../include/initialise_ocean_forcing_module.mod: \
    InitialiseOceanForcing.F90 ../include/climatology.mod ../include/fdebug.h \
    ../include/fldebug.mod ../include/fluxes.mod \
    ../include/global_parameters.mod ../include/nemo_states_module.mod \
-   ../include/spud.mod
+   ../include/nemo_v2.mod ../include/spud.mod
 
 ../include/nemo_states_module.mod: NEMO_load_fields.o
 	@true
@@ -58,7 +58,7 @@ NetCDFWriter.o ../include/netcdfwriter.mod: NetCDFWriter.F90 \
 bulk_parameterisations.o ../include/bulk_parameterisations.mod: \
    bulk_parameterisations.F90 ../include/boundary_conditions.mod \
    ../include/elements.mod ../include/fdebug.h ../include/field_options.mod \
-   ../include/fields.mod ../include/fldebug.mod \
+   ../include/fields.mod ../include/fldebug.mod ../include/futils.mod \
    ../include/global_parameters.mod ../include/quadrature.mod \
    ../include/spud.mod ../include/state_module.mod
 
@@ -70,5 +70,6 @@ forcingERA40_fortran.o : forcingERA40_fortran.F90 \
 
 load_netcdf.o ../include/load_netcdf_module.mod: load_netcdf.F90 \
    ../include/coordinates.mod ../include/fdebug.h ../include/field_options.mod \
-   ../include/fields.mod ../include/global_parameters.mod ../include/spud.mod
+   ../include/fields.mod ../include/fldebug.mod \
+   ../include/global_parameters.mod ../include/spud.mod
 
