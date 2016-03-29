@@ -1,15 +1,15 @@
 ! This module loads NEMO data into the states specified in the flml
 module nemo_states_module
 
-use NEMO_load_fields_vars
+use nemo_load_fields_vars
+use global_parameters, only: OPTION_PATH_LEN, pi, current_debug_level
 use nemo_v2
 use spud
 use fields
 use state_module
 use boundary_conditions
-use global_parameters, only: OPTION_PATH_LEN, pi, current_debug_level
 use coordinates
-use Field_Options
+use field_options
 
 implicit none
 
@@ -17,6 +17,11 @@ character(len=FIELD_NAME_LEN), dimension(:), pointer, save :: nemo_scalar_field_
 character(len=FIELD_NAME_LEN), dimension(:), pointer, save :: nemo_vector_field_names
 integer, save :: no_nemo_scalar_fields=0
 integer, save :: no_nemo_vector_fields=0
+
+private
+
+public :: insert_nemo_scalar_field, insert_nemo_vector_field, set_nemo_fields,&
+     load_nemo_values
 
 contains
 

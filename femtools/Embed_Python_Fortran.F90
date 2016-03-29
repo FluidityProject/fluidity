@@ -30,8 +30,8 @@
 module embed_python
 
   use fldebug
-  use global_parameters, only : real_4, real_8
   use iso_c_binding
+  use global_parameters, only : real_4, real_8
 
   implicit none
   

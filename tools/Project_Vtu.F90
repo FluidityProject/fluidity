@@ -31,8 +31,10 @@ subroutine project_vtu(input_filename_, input_filename_len, donor_basename_, don
                        &target_basename_, target_basename_len, output_filename_, output_filename_len) bind(c)
 
   use conservative_interpolation_module
+  use elements
   use fields
   use fldebug
+  use reference_counting, only: print_references
   use global_parameters, only : current_debug_level
   use intersection_finder_module
   use linked_lists

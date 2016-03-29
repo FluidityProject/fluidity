@@ -3,8 +3,10 @@
 
 module tetrahedron_intersection_module
 
-  use elements
+  use fldebug
   use vector_tools
+  use element_numbering, only: FAMILY_CUBE, FAMILY_SIMPLEX
+  use elements
   use fields_data_types
   use fields_base
   use fields_allocates
@@ -26,6 +28,8 @@ module tetrahedron_intersection_module
   integer :: tet_cnt = 0, tet_cnt_tmp = 0
   type(mesh_type), save :: intersection_mesh
   logical, save :: mesh_allocated = .false.
+
+  private
 
   public :: tet_type, plane_type, intersect_tets, get_planes, finalise_tet_intersector
 

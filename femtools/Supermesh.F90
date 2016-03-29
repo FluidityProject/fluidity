@@ -1,16 +1,19 @@
 #include "fdebug.h"
 
 module supermesh_construction
-  use fields_data_types
-  use fields_allocates
-  use fields_base
-  use sparse_tools
+  use fldebug
+  use global_parameters, only : real_4, real_8
   use futils
-  use metric_tools
+  use sparse_tools
+  use elements
+  use fields_data_types
+  use fields_base
   use linked_lists
+  use fields_allocates
+  use fields_manipulation
+  use metric_tools
   use unify_meshes_module
   use transform_elements
-  use global_parameters, only : real_4, real_8
   use tetrahedron_intersection_module
   implicit none
 
@@ -67,9 +70,10 @@ module supermesh_construction
   real, dimension(1024) :: nodes_tmp
   logical :: intersector_exactness = .false.
 
+  private
+
   public :: intersect_elements, intersector_set_dimension, intersector_set_exactness
   public :: construct_supermesh, compute_projection_error, intersector_exactness
-  private
 
   contains
   

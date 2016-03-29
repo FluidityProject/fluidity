@@ -68,7 +68,7 @@ p2p1_gauss_3d_velocity_error = stat["State"]["Velocity%magnitude"]["l2norm"][-1]
     <test name="p1dgp2_gauss_3d_pressure" language="python">assert p1dgp2_gauss_3d_pressure_error/p1dgp2_nodal_3d_pressure_error &lt; 1.e-6</test>
     <test name="p1dgp2_nodal_3d_velocity" language="python">assert abs(p1dgp2_nodal_3d_velocity_error - 0.15) &lt; 1.e-2</test>
     <test name="p1dgp2_gauss_3d_velocity" language="python">assert p1dgp2_gauss_3d_velocity_error/p1dgp2_nodal_3d_velocity_error &lt; 1.e-6</test>
-    <test name="p2p1_nodal_3d_pressure" language="python">assert abs(p2p1_nodal_3d_pressure_error - 0.31) &lt; 1.e-2</test>
+    <test name="p2p1_nodal_3d_pressure" language="python">assert abs(p2p1_nodal_3d_pressure_error - 0.31) &lt; 1.1e-2</test>
     <test name="p2p1_gauss_3d_pressure" language="python">assert p2p1_gauss_3d_pressure_error/p2p1_nodal_3d_pressure_error &lt; 1.e-6</test>
     <test name="p2p1_nodal_3d_velocity" language="python">assert abs(p2p1_nodal_3d_velocity_error - 1.31) &lt; 1.e-2</test>
     <test name="p2p1_gauss_3d_velocity" language="python">assert p2p1_gauss_3d_velocity_error/p2p1_nodal_3d_velocity_error &lt; 1.e-6</test>

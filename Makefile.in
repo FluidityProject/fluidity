@@ -444,11 +444,11 @@ distclean: clean
 
 test: serialtest
 
-serialtest: fltools bin/$(FLUIDITY) 
-	@cd tests; ../bin/testharness -l short $(EXCLUDE_TAGS) -n $(THREADS)
+serialtest: fltools bin/$(FLUIDITY)
+	@cd tests; ../bin/testharness -x test_results.xml -l short $(EXCLUDE_TAGS) -n $(THREADS)
 
 mediumtest: fltools bin/$(FLUIDITY) manual spudtools
-	@cd tests; ../bin/testharness -l medium $(EXCLUDE_TAGS) -n $(THREADS)
+	@cd tests; ../bin/testharness -x test_results_medium.xml -l medium $(EXCLUDE_TAGS) -n $(THREADS)
 
 .PHONY: spudtools
 
@@ -571,3 +571,5 @@ install-user-schemata:
 	mkdir -p $(HOME)/.diamond/schemata/
 	echo "Fluidity Markup Language" > $(HOME)/.diamond/schemata/flml
 	echo "$(PWD)/schemas/fluidity_options.rng" >> $(HOME)/.diamond/schemata/flml
+
+.PHONY: install

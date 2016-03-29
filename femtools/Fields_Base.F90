@@ -29,16 +29,18 @@
 module fields_base
   !!< This module contains abstracted field types which carry shape and
   !!< connectivity with them.
+  use fldebug
+  use global_parameters, only: FIELD_NAME_LEN, current_debug_level, current_time
+  use futils, only: free_unit, int2str
+  use reference_counting
+  use element_numbering
+  use vector_tools, only: solve, invert, norm2, cross_product
+  use elements
   use shape_functions, only: element_type
   use tensors
-  use fields_data_types
-  use reference_counting
-  use global_parameters, only: FIELD_NAME_LEN, current_debug_level, current_time
-  use elements
-  use element_numbering
-  use embed_python
   use sparse_tools
-  use vector_tools, only: solve, invert, norm2, cross_product
+  use fields_data_types
+  use embed_python
   implicit none
 
   interface ele_nodes
@@ -341,6 +343,31 @@ module fields_base
   interface write_minmax
     module procedure write_minmax_scalar, write_minmax_vector, write_minmax_tensor
   end interface
+
+  private
+
+  public :: mesh_dim, mesh_periodic, halo_count, node_val, ele_loc, &
+            node_count, node_ele, element_count, surface_element_count,&
+	    unique_surface_element_count, face_count, surface_element_id,&
+	    ele_region_id, ele_region_ids, mesh_connectivity, mesh_equal,&
+	    mesh_compatible, print_mesh_incompatibility,&
+	    ele_faces, ele_neigh, operator (==), local_coords, eval_field,&
+	    face_eval_field, set_from_python_function, tetvol, face_opposite,&
+	    write_minmax, field_val, element_halo_count, field2file,&
+	    ele_val_at_superconvergent, extract_scalar_field,&
+	    has_discontinuous_internal_boundaries, has_faces,&
+	    element_degree, face_val_at_quad, ele_val_at_quad, face_val,&
+	    ele_val, ele_n_constraints, ele_shape, face_ngi, ele_and_faces_loc,&
+	    face_loc, ele_ngi, face_vertices, ele_vertices, ele_num_type,&
+	    ele_numbering_family, ele_face_count, face_ele, ele_face,&
+	    face_neigh, node_neigh, face_global_nodes, face_local_nodes,&
+	    ele_nodes, ele_count, local_face_number, face_shape, face_n_s,&
+	    face_dn_s, continuity, simplex_volume, ele_div_at_quad,&
+	    extract_scalar_field_from_vector_field, triarea, ele_grad_at_quad,&
+	    extract_scalar_field_from_tensor_field, ele_curl_at_quad,&
+	    eval_shape, ele_jacobian_at_quad, ele_div_at_quad_tensor,&
+	    ele_2d_curl_at_quad, getsndgln, local_coords_matrix,&
+            local_coords_interpolation
     
 contains
 

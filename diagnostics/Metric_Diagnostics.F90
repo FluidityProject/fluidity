@@ -28,19 +28,19 @@
 
 module metric_diagnostics
 
+  use fldebug
+  use quicksort
+  use spud
+  use vector_tools
+  use metric_tools
+  use fields
+  use state_module
+  use field_options
   use conformity_measurement
   use diagnostic_source_fields
   use edge_length_module
   use field_derivatives
-  use field_options
-  use fields
   use form_metric_field
-  use fldebug
-  use metric_tools
-  use quicksort
-  use state_module
-  use spud
-  use vector_tools
 
   implicit none
   

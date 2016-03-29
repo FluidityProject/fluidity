@@ -1,5 +1,8 @@
 #include "confdefs.h"
 program visualise_elements
+  use quadrature
+  use element_numbering, only: tr, ELEMENT_LAGRANGIAN
+  use elements
   use spud
   use fields
   use state_module

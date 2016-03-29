@@ -34,8 +34,8 @@ infnorm_error=s['water']['ScalarAbsoluteDifference']['max'][-100:].max()
     <test name="l2norm_error smaller than 1e-3" language="python">
 assert(l2norm_error &lt; 1e-3)
     </test>
-    <test name="infnorm_error smaller than 0.2" language="python">
-assert(infnorm_error &lt; 0.2)
+    <test name="infnorm_error smaller than 0.22" language="python">
+assert(infnorm_error &lt; 0.22)
     </test>
   </pass_tests>
   <warn_tests>

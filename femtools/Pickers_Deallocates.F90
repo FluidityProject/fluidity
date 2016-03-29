@@ -30,11 +30,11 @@
 module pickers_deallocates
 
   use fldebug
-  use fields_data_types
   use global_parameters, only : empty_name
-  use picker_data_types
-  use pickers_base
   use reference_counting
+  use picker_data_types
+  use fields_data_types
+  use pickers_base
 
   implicit none
 

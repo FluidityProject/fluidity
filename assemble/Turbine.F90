@@ -28,9 +28,13 @@
 
 module turbine
 
+  use fldebug
   use spud
   use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN
   use futils
+  use elements
+  use transform_elements
+  use fetools, only: shape_shape
   use fields
   implicit none
 

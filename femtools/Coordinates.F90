@@ -28,17 +28,20 @@
 #include "fdebug.h"
 
 module Coordinates
-  use FLDebug
-  use vector_tools
-  use fields
+  use fldebug
+  use iso_c_binding
   use global_parameters
+  use futils, only: int2str
+  use vector_tools
   use spud
-  use halos
+  use parallel_tools, only: isparallel
   use halos_base
+  use sparse_tools
+  use parallel_fields, only: zero_non_owned
+  use fields
   use sparse_tools_petsc
   use state_module
-  use global_parameters, only: surface_radius
-  use iso_c_binding
+  use halos
 
   implicit none
   

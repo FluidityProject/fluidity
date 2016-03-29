@@ -31,8 +31,8 @@ module parallel_tools
 
   use fldebug
   use mpi_interfaces
-  use global_parameters, only: is_active_process, no_active_processes
   use iso_c_binding
+  use global_parameters, only: is_active_process, no_active_processes
 #ifdef _OPENMP
   use omp_lib
 #endif

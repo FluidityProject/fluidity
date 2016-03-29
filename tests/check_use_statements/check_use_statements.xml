@@ -1,0 +1,24 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>check_use_statements</name>
+  <owner userid="jrper"/>
+  <problem_definition length="short" nprocs="1">
+    <command_line>:</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="out" language="python">import organise_use_statements as ous
+import os
+import glob
+
+tree, namelist = ous.build_trees(glob.glob(os.path.dirname(os.path.realpath(ous.__file__))+"/../*/*.F90"))
+out = ous.print_misplaced(tree, namelist, True, [])</variable>
+  </variables>
+  <pass_tests/>
+  <warn_tests>
+    <test name="Check_use_statements" language="python">if out=="":
+  assert(True)
+else:
+  print out
+  assert(False)</test>
+  </warn_tests>
+</testproblem>

@@ -4,47 +4,47 @@
 module zoltan_integration
 
 #ifdef HAVE_ZOLTAN
-! these 5 need to be on top and in this order, so as not to confuse silly old intel compiler 
+  use spud
+  use fldebug
+  use global_parameters, only: real_size, OPTION_PATH_LEN, topology_mesh_name,&
+      FIELD_NAME_LEN
+  use futils, only: int2str, present_and_true
   use quadrature
+  use element_numbering, only: ele_local_num
   use elements
+  use mpi_interfaces
+  use data_structures
+  use parallel_tools
+  use memory_diagnostics
   use sparse_tools
+  use linked_lists
+  use halos_ownership
+  use parallel_fields
+  use metric_tools
   use fields
   use state_module
-
   use field_options
-  use mpi_interfaces
-  use halos
-  use parallel_fields
-  use sparsity_patterns_meshes
   use vtk_interfaces
   use zoltan
-  use linked_lists
-  use global_parameters, only: real_size, OPTION_PATH_LEN, topology_mesh_name
-  use data_structures
-  use populate_state_module
-  use reserve_state_module
-  use boundary_conditions_from_options
-  use boundary_conditions
-  use metric_tools
-  use c_interfaces
-  use surface_id_interleaving
-  use halos_ownership
-  use memory_diagnostics
-  use detector_data_types
-  use detector_tools
-  use detector_parallel
-  use pickers
-  use hadapt_advancing_front
-  use parallel_tools
-  use fields_halos
-  use adapt_integration
-
-! adding to use the ele_owner function
   use halos_derivation
-  
+  use halos
+  use sparsity_patterns_meshes
+  use reserve_state_module
+  use boundary_conditions
+  use c_interfaces
+  use detector_data_types
+  use boundary_conditions_from_options
+  use detector_tools
+  use pickers
+  use detector_parallel
+  use hadapt_advancing_front
+  use fields_halos
+  use populate_state_module
+  use surface_id_interleaving
+  use adapt_integration
   use zoltan_global_variables
-  use zoltan_callbacks
   use zoltan_detectors
+  use zoltan_callbacks
 
   implicit none
 
@@ -528,8 +528,8 @@ module zoltan_integration
   function get_load_imbalance_tolerance(final_adapt_iteration) result(load_imbalance_tolerance)
     logical, intent(in) :: final_adapt_iteration    
  
-    real, parameter :: default_load_imbalance_tolerance = 1.5  
-    real, parameter :: final_iteration_load_imbalance_tolerance = 1.075
+    real, parameter :: default_load_imbalance_tolerance = 1.05
+    real, parameter :: final_iteration_load_imbalance_tolerance = 1.02
     real :: load_imbalance_tolerance
 
     if (.NOT. final_adapt_iteration) then
@@ -687,10 +687,13 @@ module zoltan_integration
 
     end if
 
-    ! Choose the appropriate partitioning method based on the current adapt iteration
-    ! Idea is to do repartitioning on intermediate adapts but a clean partition on the last
-    ! iteration to produce a load balanced partitioning
+    ! Choose the appropriate partitioning method based on the current adapt iteration.
+    ! The default is currently to do a clean partition on all adapt iterations to produce a 
+    ! load balanced partitioning and to limit the required number of adapts. In certain cases,
+    ! repartitioning or refining may lead to improved performance, and this is optional for all
+    ! but the final adapt iteration.
     if (final_adapt_iteration) then
+
        ierr = Zoltan_Set_Param(zz, "LB_APPROACH", "PARTITION"); assert(ierr == ZOLTAN_OK)
        ewrite(3,*) "Setting partitioning approach to PARTITION."
        if (have_option(trim(zoltan_global_base_option_path) // "/final_partitioner/metis") .OR. &
@@ -699,15 +702,35 @@ module zoltan_integration
           ierr = Zoltan_Set_Param(zz, "PARMETIS_METHOD", "PartKway"); assert(ierr == ZOLTAN_OK)
           ewrite(3,*) "Setting ParMETIS method to PartKway."
        end if
+
     else
-       ierr = Zoltan_Set_Param(zz, "LB_APPROACH", "REPARTITION"); assert(ierr == ZOLTAN_OK)
-       ewrite(3,*) "Setting partitioning approach to REPARTITION."
+
+       if (have_option(trim(zoltan_global_base_option_path) // "/load_balancing_approach/")) then
+          if (have_option(trim(zoltan_global_base_option_path) // "/load_balancing_approach/partition"))  then
+             ! Partition from scratch, not taking the current data distribution into account:
+             ierr = Zoltan_Set_Param(zz, "LB_APPROACH", "PARTITION"); assert(ierr == ZOLTAN_OK)
+             ewrite(3,*) "Setting partitioning approach to PARTITION."
+          else if (have_option(trim(zoltan_global_base_option_path) // "/load_balancing_approach/repartition"))  then
+             ! Partition but try to stay close to the curruent partition/distribution:
+             ierr = Zoltan_Set_Param(zz, "LB_APPROACH", "REPARTITION"); assert(ierr == ZOLTAN_OK)
+             ewrite(3,*) "Setting partitioning approach to REPARTITION."
+          else if (have_option(trim(zoltan_global_base_option_path) // "/load_balancing_approach/refine"))  then
+             ! Refine the current partition/distribution; assumes only small changes:
+             ierr = Zoltan_Set_Param(zz, "LB_APPROACH", "REFINE"); assert(ierr == ZOLTAN_OK)
+             ewrite(3,*) "Setting partitioning approach to REFINE."
+          end if
+       else
+          ierr = Zoltan_Set_Param(zz, "LB_APPROACH", "PARTITION"); assert(ierr == ZOLTAN_OK)
+          ewrite(3,*) "Setting partitioning approach to PARTITION."
+       end if
+
        if (have_option(trim(zoltan_global_base_option_path) // "/partitioner/metis"))  then
           ! chosen to match what Sam uses
           ierr = Zoltan_Set_Param(zz, "PARMETIS_METHOD", "AdaptiveRepart"); assert(ierr == ZOLTAN_OK)
           ewrite(3,*) "Setting ParMETIS method to AdaptiveRepart."
           ierr = Zoltan_Set_Param(zz, "PARMETIS_ITR", "100000.0"); assert(ierr == ZOLTAN_OK)
        end if
+
     end if
 
     ierr = Zoltan_Set_Param(zz, "NUM_GID_ENTRIES", "1"); assert(ierr == ZOLTAN_OK)
