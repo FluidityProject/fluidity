@@ -30,7 +30,7 @@
 module adapt_state_module
   use spud
   use fldebug
-  use global_parameters, only : OPTION_PATH_LEN, periodic_boundary_option_path, adaptivity_mesh_name, domain_bbox, topology_mesh_name, FIELD_NAME_LEN
+  use global_parameters, only : OPTION_PATH_LEN, periodic_boundary_option_path, adaptivity_mesh_name, adaptivity_mesh_name, domain_bbox, topology_mesh_name, FIELD_NAME_LEN
   use futils, only: int2str, int2str_len, present_and_false, present_and_true
   use reference_counting, only: tag_references, print_tagged_references
   use quadrature
