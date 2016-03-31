@@ -118,6 +118,9 @@ contains
     vfield => extract_vector_field(submaterials(submaterials_istate), "VelocityAbsorption", stat = stat)
     if(stat == 0) then
       if(have_option(trim(vfield%option_path) // "/diagnostic")) then
+         ! Update VelocityAbsorption Field and all associated dependencies (dep) using the generic subroutine 
+         ! calculate_diagnostic_variable_dep. To maximise efficiency, we track the various dependencies through a calculated mask (dep_states_mask),
+         ! which requires some copying back and forth between two arrays of states (one for all states the other for the phase/submaterials). 
         if(have_option(trim(vfield%option_path) // "/diagnostic/algorithm::vector_python_diagnostic")) then
           call calculate_diagnostic_variable_dep(state, istate, vfield, dep_states_mask=calculated_state)
           call update_calculated_submaterials(calculated_submaterials, calculated_state, submaterials_indices)
@@ -131,6 +134,9 @@ contains
     vfield => extract_vector_field(submaterials(submaterials_istate), "VelocitySource", stat = stat)
     if(stat == 0) then
       if(have_option(trim(vfield%option_path) // "/diagnostic")) then
+         ! Update VelocitySource Field and all associated dependencies (dep) using the generic subroutine 
+         ! calculate_diagnostic_variable_dep. To maximise efficiency, we track the various dependencies through a calculated mask (dep_states_mask),
+         ! which requires some copying back and forth between two arrays of states (one for all states the other for the phase/submaterials). 
         if(have_option(trim(vfield%option_path) // "/diagnostic/algorithm::vector_python_diagnostic")) then
           call calculate_diagnostic_variable_dep(state, istate, vfield, dep_states_mask=calculated_state)
           call update_calculated_submaterials(calculated_submaterials, calculated_state, submaterials_indices)
@@ -145,6 +151,12 @@ contains
     if (stat==0) then
       diagnostic = have_option(trim(tfield%option_path)//'/diagnostic')
       if(diagnostic) then
+         ! Update Viscosity Field and all associated dependencies (dep). In certain simulations, there is the need to
+         ! update the second invariant of the strain rate tensor and other fields before updating the viscosity (e.g. Non Newtonian
+         ! Stokes simulations). Calculate_diagnostic_variable_dep does so. To maximise efficiency, we track the various dependencies 
+         ! through a calculated mask (dep_states_mask), which requires some copying back and forth of updated dependencies between 
+         ! two arrays of states (one for all states the other for the phase/submaterials). The calculated dependencies are stored in 
+         ! calculated_state and calculate_submaterials, respectively.
         if(have_option(trim(tfield%option_path) // "/diagnostic/algorithm::tensor_python_diagnostic")) then
           call calculate_diagnostic_variable_dep(state, istate, tfield, dep_states_mask=calculated_state)
           call update_calculated_submaterials(calculated_submaterials, calculated_state, submaterials_indices)
@@ -181,6 +193,7 @@ contains
        call keps_momentum_diagnostics(state(istate))
     end if
 
+    ! clean up
     do i = 1, size(calculated_state)
       call deallocate(calculated_state(i))
     end do
@@ -193,6 +206,9 @@ contains
   end subroutine calculate_momentum_diagnostics
 
   subroutine update_calculated_state(calculated_state, calculated_submaterials, submaterials_indices)
+    ! When updating diagnostic dependencie, we track the various dependencies through a calculated mask. This requires some copying back and forth
+    ! between two arrays of states (one for all states the other for the phase/submaterials). This routine updates the state mask (target) by copying across
+    ! references from the submaterials mask (donor).
     
     type(state_type), dimension(:), intent(inout) :: calculated_state
     type(state_type), dimension(:), intent(in) :: calculated_submaterials
@@ -207,7 +223,9 @@ contains
   end subroutine update_calculated_state
 
   subroutine update_calculated_submaterials(calculated_submaterials, calculated_state, submaterials_indices)
-    
+    ! When updating diagnostic dependencie, we track the various dependencies through a calculated mask. This requires some copying back and forth
+    ! between two arrays of states (one for all states the other for the phase/submaterials). This routine updates the submaterials mask (target) by copying across
+    ! references from the state mask (donor).
     type(state_type), dimension(:), intent(inout) :: calculated_submaterials
     type(state_type), dimension(:), intent(in) :: calculated_state
     integer, dimension(:), intent(in) :: submaterials_indices
