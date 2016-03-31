@@ -2,11 +2,11 @@
 
 module unittest_tools
 !!< This module contains utility functions for the unit testing framework.
-  use vector_tools
-  use sparse_tools
   use fldebug
+  use vector_tools
   use reference_counting
   use ieee_arithmetic
+  use sparse_tools
   implicit none
 
   private

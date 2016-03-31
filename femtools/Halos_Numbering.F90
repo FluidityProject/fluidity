@@ -29,17 +29,17 @@
 
 module halos_numbering
 
-  use data_structures
   use fldebug
+  use data_structures
   use futils
-  use halo_data_types
-  use halos_allocates
-  use halos_base
-  use halos_communications
-  use halos_debug
   use mpi_interfaces
+  use halo_data_types
   use parallel_tools
   use quicksort
+  use halos_base
+  use halos_debug
+  use halos_allocates
+  use halos_communications
 
   implicit none
   

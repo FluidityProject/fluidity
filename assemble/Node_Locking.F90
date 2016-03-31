@@ -29,11 +29,11 @@
 
 module node_locking
 
-  use embed_python
-  use fields
   use fldebug
   use global_parameters, only : PYTHON_FUNC_LEN
+  use embed_python
   use spud
+  use fields
   
   implicit none
   

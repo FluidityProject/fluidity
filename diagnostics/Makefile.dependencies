@@ -13,8 +13,8 @@ Binary_Operators.o ../include/binary_operators.mod: Binary_Operators.F90 \
 
 Diagnostic_Source_Fields.o ../include/diagnostic_source_fields.mod: \
    Diagnostic_Source_Fields.F90 ../include/fdebug.h \
-   ../include/field_options.mod ../include/fields.mod \
-   ../include/global_parameters.mod ../include/spud.mod \
+   ../include/field_options.mod ../include/fields.mod ../include/fldebug.mod \
+   ../include/futils.mod ../include/global_parameters.mod ../include/spud.mod \
    ../include/state_module.mod
 
 ../include/differential_operator_diagnostics.mod: Differential_Operators.o
@@ -23,26 +23,28 @@ Diagnostic_Source_Fields.o ../include/diagnostic_source_fields.mod: \
 Differential_Operators.o ../include/differential_operator_diagnostics.mod: \
    Differential_Operators.F90 ../include/diagnostic_source_fields.mod \
    ../include/divergence_matrix_cg.mod ../include/elements.mod \
-   ../include/eventcounter.mod ../include/fdebug.h \
+   ../include/eventcounter.mod ../include/fdebug.h ../include/fetools.mod \
    ../include/field_derivatives.mod ../include/field_options.mod \
    ../include/fields.mod ../include/fldebug.mod \
    ../include/geostrophic_pressure.mod ../include/global_parameters.mod \
    ../include/quadrature.mod ../include/solvers.mod \
    ../include/sparse_matrices_fields.mod ../include/sparse_tools.mod \
    ../include/sparsity_patterns_meshes.mod ../include/spud.mod \
-   ../include/state_fields_module.mod ../include/state_module.mod
+   ../include/state_fields_module.mod ../include/state_module.mod \
+   ../include/vector_tools.mod
 
 ../include/field_copies_diagnostics.mod: Field_Copies.o
 	@true
 
 Field_Copies.o ../include/field_copies_diagnostics.mod: Field_Copies.F90 \
    ../include/diagnostic_source_fields.mod ../include/fdebug.h \
-   ../include/field_options.mod ../include/fields.mod ../include/fldebug.mod \
-   ../include/global_parameters.mod ../include/smoothing_module.mod \
-   ../include/solvers.mod ../include/sparse_matrices_fields.mod \
-   ../include/sparse_tools.mod ../include/sparsity_patterns_meshes.mod \
-   ../include/spud.mod ../include/state_fields_module.mod \
-   ../include/state_module.mod ../include/transform_elements.mod
+   ../include/fetools.mod ../include/field_options.mod ../include/fields.mod \
+   ../include/fldebug.mod ../include/global_parameters.mod \
+   ../include/smoothing_module.mod ../include/solvers.mod \
+   ../include/sparse_matrices_fields.mod ../include/sparse_tools.mod \
+   ../include/sparsity_patterns_meshes.mod ../include/spud.mod \
+   ../include/state_fields_module.mod ../include/state_module.mod \
+   ../include/transform_elements.mod ../include/vector_tools.mod
 
 ../include/mass_matrix_diagnostics.mod: Mass_Matrix_Diagnostics.o
 	@true
@@ -80,29 +82,30 @@ Metric_Diagnostics.o ../include/metric_diagnostics.mod: Metric_Diagnostics.F90 \
 Momentum_Diagnostics.o ../include/momentum_diagnostics.mod: \
    Momentum_Diagnostics.F90 ../include/boundary_conditions.mod \
    ../include/coriolis_module.mod ../include/diagnostic_source_fields.mod \
-   ../include/fdebug.h ../include/field_derivatives.mod \
+   ../include/fdebug.h ../include/fetools.mod ../include/field_derivatives.mod \
    ../include/field_options.mod ../include/fields.mod ../include/fldebug.mod \
    ../include/geostrophic_pressure.mod ../include/global_parameters.mod \
    ../include/multimaterial_module.mod ../include/sediment.mod \
-   ../include/solvers.mod ../include/sparsity_patterns_meshes.mod \
-   ../include/spud.mod ../include/state_fields_module.mod \
-   ../include/state_module.mod
+   ../include/solvers.mod ../include/sparse_tools.mod \
+   ../include/sparsity_patterns_meshes.mod ../include/spud.mod \
+   ../include/state_fields_module.mod ../include/state_module.mod
 
 ../include/multiphase_diagnostics.mod: Multiphase_Diagnostics.o
 	@true
 
 Multiphase_Diagnostics.o ../include/multiphase_diagnostics.mod: \
-   Multiphase_Diagnostics.F90 ../include/fdebug.h ../include/field_options.mod \
-   ../include/fields.mod ../include/fldebug.mod \
+   Multiphase_Diagnostics.F90 ../include/fdebug.h ../include/fetools.mod \
+   ../include/field_options.mod ../include/fields.mod ../include/fldebug.mod \
    ../include/global_parameters.mod ../include/spud.mod \
-   ../include/state_fields_module.mod ../include/state_module.mod
+   ../include/state_fields_module.mod ../include/state_module.mod \
+   ../include/vector_tools.mod
 
 ../include/parallel_diagnostics.mod: Parallel_Diagnostics.o
 	@true
 
 Parallel_Diagnostics.o ../include/parallel_diagnostics.mod: \
-   Parallel_Diagnostics.F90 ../include/fdebug.h ../include/fields.mod \
-   ../include/fldebug.mod ../include/halos.mod
+   Parallel_Diagnostics.F90 ../include/elements.mod ../include/fdebug.h \
+   ../include/fields.mod ../include/fldebug.mod ../include/halos.mod
 
 ../include/python_diagnostics.mod: Python_Diagnostics.o
 	@true
@@ -117,9 +120,9 @@ Python_Diagnostics.o ../include/python_diagnostics.mod: Python_Diagnostics.F90 \
 
 Simple_Diagnostics.o ../include/simple_diagnostics.mod: Simple_Diagnostics.F90 \
    ../include/diagnostic_source_fields.mod ../include/fdebug.h \
-   ../include/field_options.mod ../include/fields.mod \
-   ../include/fields_manipulation.mod ../include/fldebug.mod \
-   ../include/global_parameters.mod ../include/initialise_fields_module.mod \
+   ../include/field_options.mod ../include/fields.mod ../include/fldebug.mod \
+   ../include/futils.mod ../include/global_parameters.mod \
+   ../include/initialise_fields_module.mod ../include/parallel_tools.mod \
    ../include/spud.mod ../include/state_fields_module.mod \
    ../include/state_module.mod ../include/vtk_cache_module.mod
 
@@ -138,10 +141,10 @@ Surface.o ../include/surface_diagnostics.mod: Surface.F90 \
 
 Tidal_Diagnostics.o ../include/tidal_diagnostics.mod: Tidal_Diagnostics.F90 \
    ../include/diagnostic_source_fields.mod ../include/fdebug.h \
-   ../include/field_options.mod ../include/fields.mod \
-   ../include/fields_manipulation.mod ../include/fldebug.mod \
-   ../include/global_parameters.mod ../include/initialise_fields_module.mod \
-   ../include/spud.mod ../include/state_fields_module.mod \
-   ../include/state_module.mod ../include/tidal_module.mod \
+   ../include/field_options.mod ../include/fields.mod ../include/fldebug.mod \
+   ../include/futils.mod ../include/global_parameters.mod \
+   ../include/initialise_fields_module.mod ../include/spud.mod \
+   ../include/state_fields_module.mod ../include/state_module.mod \
+   ../include/tidal_module.mod ../include/vector_tools.mod \
    ../include/write_state_module.mod
 

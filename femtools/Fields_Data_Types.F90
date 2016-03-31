@@ -28,13 +28,13 @@
 module fields_data_types
 
   use global_parameters, only:FIELD_NAME_LEN, current_debug_level, OPTION_PATH_LEN, PYTHON_FUNC_LEN
+  use reference_counting
   use picker_data_types
   use shape_functions
-  use sparse_tools
   use spud
-  use reference_counting
   use halo_data_types
   use data_structures, only : integer_set_vector
+  use sparse_tools
   implicit none
 
   private

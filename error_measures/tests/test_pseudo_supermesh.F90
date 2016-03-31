@@ -3,6 +3,7 @@ subroutine test_pseudo_supermesh
   use fields
   use unittest_tools
   use pseudo_supermesh
+  use state_module
   use vtk_interfaces
   use reference_counting
   implicit none

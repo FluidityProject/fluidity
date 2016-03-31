@@ -1,6 +1,8 @@
 subroutine test_node_lies_on_boundary
 
   use node_boundary
+  use surfacelabels
+  use fields
   use state_module
   use vtk_interfaces
   use unittest_tools

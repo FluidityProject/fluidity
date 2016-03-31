@@ -29,13 +29,13 @@
 
 module diagnostic_fields_new
 
-  use field_options
-  use fields
   use fldebug
-  use futils
   use global_parameters, only : FIELD_NAME_LEN, OPTION_PATH_LEN
+  use futils
   use spud
+  use fields
   use state_module
+  use field_options
 
 USE_MODULES
   

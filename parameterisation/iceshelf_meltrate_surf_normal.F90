@@ -28,26 +28,28 @@
 #include "fdebug.h"
 
 module iceshelf_meltrate_surf_normal
+
+  use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN
+  use fldebug
+  use vector_tools
   use quadrature
   use elements
-  use field_derivatives
-  use fields
-  use field_options
-  use fields_allocates
-  use state_module
   use spud
-  use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN
-  use state_fields_module
-  use boundary_conditions
-  use fields_manipulation
-  use surface_integrals
-  use fetools
-  use vector_tools
-  use FLDebug
   use integer_set_module
-  use pickers_inquire
+  use fields_allocates
+  use fields_manipulation
   use transform_elements
+  use fetools
+  use fields
+  use state_module
+  use boundary_conditions
+  use field_derivatives
+  use field_options
   use state_fields_module
+  use surface_integrals
+  use pickers_inquire
+  use state_fields_module
+
 implicit none
 
   private

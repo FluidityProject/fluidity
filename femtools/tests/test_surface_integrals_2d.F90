@@ -30,8 +30,9 @@
 subroutine test_surface_integrals_2d
   !!< Test 2D surface integrals
   
+  use fldebug
+  use elements
   use fields
-  use fields_data_types
   use mesh_files
   use surface_integrals
   use unittest_tools

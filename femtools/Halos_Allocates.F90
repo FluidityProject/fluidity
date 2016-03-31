@@ -31,12 +31,12 @@ module halos_allocates
 
   use fldebug
   use global_parameters, only : empty_name
+  use mpi_interfaces
+  use reference_counting
   use halo_data_types
+  use parallel_tools
   use halos_base
   use halos_debug
-  use mpi_interfaces
-  use parallel_tools
-  use reference_counting
 
   implicit none
   

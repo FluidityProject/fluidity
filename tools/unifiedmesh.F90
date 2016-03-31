@@ -5,6 +5,7 @@ subroutine unifiedmesh(filename1_, filename1_len, &
                        filename2_, filename2_len, &
                        output_, output_len) bind(c)
 
+  use quadrature
   use mpi_interfaces
   use fldebug
   use mesh_files

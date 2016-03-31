@@ -28,27 +28,30 @@
 #include "fdebug.h"
 
 module k_epsilon
-  use quadrature
-  use elements
-  use field_derivatives
-  use fields
-  use field_options
-  use state_module
-  use spud
-  use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN, timestep, current_time
-  use state_fields_module
-  use boundary_conditions
-  use fields_manipulation
-  use surface_integrals
-  use smoothing_module
-  use fetools
-  use vector_tools
-  use sparsity_patterns_meshes
-  use FLDebug
-  use vtk_interfaces
-  use solvers
 
-implicit none
+  use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN, timestep, current_time
+  use fldebug
+  use futils, only: int2str
+  use vector_tools
+  use quadrature
+  use spud
+  use sparse_tools
+  use elements
+  use fetools
+  use parallel_fields
+  use fields
+  use state_module
+  use boundary_conditions
+  use vtk_interfaces
+  use field_derivatives
+  use field_options
+  use sparsity_patterns_meshes
+  use state_fields_module
+  use surface_integrals
+  use solvers
+  use smoothing_module
+
+  implicit none
 
   private
 

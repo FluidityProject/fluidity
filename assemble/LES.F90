@@ -28,16 +28,19 @@
 
 module les_module
   !!< This module contains several subroutines and functions used to implement LES models
-  use state_module
-  use fields
-  use field_options
+  use fldebug
   use spud
   use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN
-  use smoothing_module
+  use sparse_tools
   use vector_tools
   use fetools
-  use state_fields_module
+  use fields
+  use state_module
+  use field_options
   use solvers
+  use smoothing_module
+  use state_fields_module, only: get_lumped_mass_on_submesh, get_lumped_mass,&
+               get_mass_matrix
   implicit none
 
   private

@@ -27,8 +27,12 @@
   
 #include "fdebug.h"
 program form_pod_basis
+  use fldebug
   use spud
+  use elements
+  use reference_counting, only: print_references
   use fields
+  use embed_python
   use state_module
   use write_state_module
   use timeloop_utilities

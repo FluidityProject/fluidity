@@ -29,7 +29,8 @@
 
 subroutine test_surface_integrals_3d
   !!< Test 3D surface integrals
-  
+
+  use fldebug
   use fields
   use fields_data_types
   use mesh_files

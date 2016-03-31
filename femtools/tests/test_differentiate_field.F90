@@ -1,5 +1,6 @@
 subroutine test_differentiate_field
 
+  use elements
   use fields
   use field_derivatives
   use state_module

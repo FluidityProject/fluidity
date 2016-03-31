@@ -34,6 +34,7 @@ subroutine test_intersection_finder_seeds
   use linked_lists
   use quadrature
   use unittest_tools
+  use intersection_finder_module
   
   implicit none
   

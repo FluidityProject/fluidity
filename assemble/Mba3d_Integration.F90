@@ -29,19 +29,22 @@
 
 module mba3d_integration 
 
-  use adapt_integration
+  use fldebug
+  use global_parameters, only : real_8
+  use futils, only: present_and_true
   use quadrature
   use elements
+  use spud
+  use parallel_tools
   use fields
-  use global_parameters, only : real_8
   use halos
   use limit_metric_module
   use node_locking
+  use surface_id_interleaving
+  use adapt_integration
 #ifdef HAVE_MBA_3D
   use mba3d_mba_nodal
 #endif
-  use spud
-  use surface_id_interleaving
 
   implicit none
   

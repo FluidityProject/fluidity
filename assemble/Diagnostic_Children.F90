@@ -32,6 +32,10 @@ use fields
 use state_module
 use diagnostic_fields_wrapper_new, only: calculate_diagnostic_variable
 
+private
+
+public :: calculate_diagnostic_children
+
 contains
 
   subroutine calculate_diagnostic_children(states, istate, field)

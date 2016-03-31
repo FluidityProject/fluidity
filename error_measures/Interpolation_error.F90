@@ -2,10 +2,16 @@
 
 module interpolation_error
 
+  use elements
   use transform_elements, only: transform_to_physical
   use fields
   use vtk_interfaces, only: vtk_write_fields
   implicit none
+
+  private
+
+  public :: compute_interpolation_error_l2, compute_interpolation_error_inf,&
+       compute_interpolation_error_h1
 
   contains
 

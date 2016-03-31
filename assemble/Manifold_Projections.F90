@@ -26,9 +26,12 @@
 !    USA
 #include "fdebug.h"
 module manifold_projections
-  use state_module
+  use fldebug
+  use futils, only: present_and_true
+  use vector_tools, only: solve
+  use fetools
   use fields
-  use fields_base
+  use state_module
 
   implicit none
   
