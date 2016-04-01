@@ -1,3 +1,5 @@
+include ../tools.mk
+
 input:	clean
 	./copy_script
 	gmsh -2 -bin src/MMS_A.geo
