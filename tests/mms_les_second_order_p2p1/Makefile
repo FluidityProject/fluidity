@@ -1,7 +1,7 @@
 include ../tools.mk
 
 input:	clean
-	./copy_script
+	SED=${SED} ./copy_script
 	gmsh -2 -bin src/MMS_A.geo
 	gmsh -2 -bin src/MMS_B.geo
 	gmsh -2 -bin src/MMS_C.geo
