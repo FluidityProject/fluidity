@@ -2,7 +2,7 @@
 <testproblem>
   <name>initialise_from_shared_object</name>
   <owner userid="jrper"/>
-  <problem_definition length="short" nprocs="1">
+  <problem_definition length="medium" nprocs="1">
     <command_line>fluidity initialise_from_shared_object_c_interface.flml
 fluidity initialise_from_shared_object_cpp_interface.flml
 fluidity initialise_from_shared_object_fortran_bind_c_interface.flml
