@@ -29,10 +29,10 @@
 module plugin_functions
 
   use fldebug
-  use fields
+  use iso_c_binding
   use global_parameters, only: OPTION_PATH_LEN, PYTHON_FUNC_LEN,&
        is_active_process
-  use iso_c_binding
+  use fields
   use dl_fortran
 
   implicit none
