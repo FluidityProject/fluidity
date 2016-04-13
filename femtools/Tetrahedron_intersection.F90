@@ -51,7 +51,7 @@ contains
     integer :: i, n_tetsC, ele
     type(tet_type), dimension(tet_buf_size), save :: tetsC
 
-    call intersect_tets(tetA, planesB, tetsC, n_tetsC)
+    call intersect_polys(tetA, planesB, tetsC, n_tetsC)
     if(stat == 1) return
 
     if(.not. intersection_mesh_allocated) then
