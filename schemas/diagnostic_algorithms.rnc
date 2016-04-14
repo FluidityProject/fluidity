@@ -941,6 +941,15 @@ imposed_material_velocity_absorption_algorithm =
           }?
        }
    )
+actuator_line_momentum_source =
+   (
+       ## Computes the momentum source to implement an actuator line model
+       element algorithm {
+          attribute name { "actuator_line_momentum_source" },
+          attribute material_phase_support { "multiple "},
+          attribute depends { "Velocity" }
+       }
+   )
 
 # Parallel diagnostics
 node_halo_diagnostic_algorithm =

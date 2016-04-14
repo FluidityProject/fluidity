@@ -311,6 +311,15 @@ contains
   
   end subroutine calculate_imposed_material_velocity_source
 
+  subroutine calculate_actuator_line_momentum_source(states, state_index, v_field)
+    type(state_type), dimension(:), intent(inout) :: states
+    integer, intent(in) :: state_index
+    type(vector_field), intent(inout) :: v_field
+
+    ! bla
+
+  end subroutine calculate_actuator_line_momentum_source
+
   subroutine calculate_imposed_material_velocity_absorption(states, v_field)
     type(state_type), dimension(:), intent(inout) :: states
     type(vector_field), intent(inout) :: v_field

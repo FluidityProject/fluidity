@@ -1231,6 +1231,7 @@ prognostic_velocity_field =
                (
                   vector_python_diagnostic_algorithm |
                   imposed_material_velocity_source_algorithm |
+                  actuator_line_momentum_source |
                   internal_velocity_source_algorithm
                ),
                diagnostic_vector_field

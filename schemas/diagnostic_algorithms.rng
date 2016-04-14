@@ -1262,6 +1262,20 @@ of the sediment fields and the zero concentration viscosity
       </optional>
     </element>
   </define>
+  <define name="actuator_line_momentum_source">
+    <element name="algorithm">
+      <a:documentation>Computes the momentum source to implement an actuator line model</a:documentation>
+      <attribute name="name">
+        <value>actuator_line_momentum_source</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>multiple </value>
+      </attribute>
+      <attribute name="depends">
+        <value>Velocity</value>
+      </attribute>
+    </element>
+  </define>
   <!-- Parallel diagnostics -->
   <define name="node_halo_diagnostic_algorithm">
     <element name="algorithm">
