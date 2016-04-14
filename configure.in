@@ -164,10 +164,16 @@ if test "$fcompiler" = "ifort" ; then
     FCFLAGS="$FCFLAGS -vec-report=0"
 fi
 
-AC_PROG_CC(icc ecc suncc pgcc gcc cc)
-AC_PROG_CXX(icpc icc ecc sunCC pgCC g++ CC)
+AC_PROG_CC(icc ecc suncc pgcc gcc cc clang)
+AC_PROG_CXX(icpc icc ecc sunCC pgCC g++ CC clang++)
 AC_PROG_CPP
 LINKER=$CXX
+
+if $CC -v 2>&1 | grep 'clang'; then
+   USING_CLANG="yes"
+else
+   USING_CLANG="no"
+fi
 
 AC_LONG_64_BITS
 
@@ -1329,7 +1335,7 @@ if test -d libjudy ; then
     fi
     # this is a workaround for https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=755099
     if echo "$CFLAGS" | grep -q -- "-O[[2-3]]"; then
-      if test "x$USING_GFORTRAN" = "xyes" -a "x$GFORTRAN_4_8_OR_NEWER" = "xyes"; then
+      if test "x$USING_GFORTRAN" = "xyes" -a "x$GFORTRAN_4_8_OR_NEWER" = "xyes" -a "x$USING_CLANG" = "xno"; then
         JUDY_CFLAGS="$JUDY_CFLAGS -fno-aggressive-loop-optimizations"
       fi
     fi
