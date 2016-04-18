@@ -1364,7 +1364,14 @@ fi
 AC_SUBST(FLIBJUDY)
 
 # Configure libspud
-if test -d libspud ; then
+AC_ARG_WITH([libspud-root],
+	[AC_HELP_STRING([--with-libspud-root=<lib>], [specify external libspud installation root directory])])
+
+if test -n "$with_libspud_root"; then
+   	SPUDLIB="${with_libspud_root}/lib/libspud.a"
+	SPUDHEADER="${with_libspud_root}/include/spud.h"
+	CPPFLAGS="$CPPFLAGS -I${with_libspud_root}/include"
+elif test -d libspud ; then
     AC_MSG_NOTICE([%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%])
     AC_MSG_NOTICE([Configuring libspud])
     AC_MSG_NOTICE([%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%])
@@ -1383,6 +1390,9 @@ if test -d libspud ; then
     if test "$enable_profiling" = "yes" ; then
         CONFIG_FLAG="${CONFIG_FLAG} --enable-profiling"
     fi
+
+    SPUDLIB="./lib/libspud.a"
+    SPUDHEADER="${with_libspud_root}/include/spud.h"
 
     AC_SUBST(SPUD_ONLY)
 
@@ -1407,6 +1417,8 @@ EOF
 else
     AC_MSG_ERROR("libspud directory missing!!")
 fi
+AC_SUBST(SPUDLIB)
+AC_SUBST(SPUDHEADER)
 
 #*************SpatialIndex******
 AC_ARG_ENABLE(spatialindex-version, 
