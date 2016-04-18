@@ -432,7 +432,7 @@ contains
     X=>extract_vector_field(state, "Coordinate")
 
     move_mesh = have_option("/mesh_adaptivity/mesh_movement")
-    U=>extract_vector_field(state, "GridVelocity", stat)
+    Ugrid=>extract_vector_field(state, "GridVelocity", stat)
     
     if(present(dt)) then
       l_dt = dt
