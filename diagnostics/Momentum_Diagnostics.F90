@@ -56,6 +56,7 @@ module momentum_diagnostics
             calculate_sediment_concentration_dependent_viscosity, &
             calculate_buoyancy, calculate_coriolis, calculate_tensor_second_invariant, &
             calculate_imposed_material_velocity_source, &
+            calculate_actuator_line_momentum_source,&
             calculate_imposed_material_velocity_absorption, &
             calculate_scalar_potential, calculate_projection_scalar_potential, &
             calculate_geostrophic_velocity, calculate_viscous_dissipation
@@ -312,13 +313,61 @@ contains
   end subroutine calculate_imposed_material_velocity_source
 
   subroutine calculate_actuator_line_momentum_source(states, state_index, v_field)
+    
+    use pickers_inquire
+
     type(state_type), dimension(:), intent(inout) :: states
     integer, intent(in) :: state_index
     type(vector_field), intent(inout) :: v_field
+    
+    real,dimension(v_field%dim) :: Scoords
+    real,dimension(v_field%dim) :: max_limit,min_limit
+    type(vector_field), pointer :: positions, velocity
+    integer :: i,j,ele
+    real, dimension(v_field%dim+1) :: local_coord
+    real, dimension(v_field%dim) :: value
+    logical :: global
+    
+    
+    ewrite(1,*) 'In ALM Momentum Source' 
 
-    ! bla
+    ! * GD
+    ! * This routine sets the momentum source in Navier-Stokes equations for the actuator line method. 
+    
+    ! * Test Functions / Need to be removed
+    Scoords(1)=12.5
+    Scoords(2)=0.5
+    
+    !* Makes sure that the source field has been zeroed at each time step
+    call zero(v_field)
+    
+    !* Get Position and Velocity Field
+    positions => extract_vector_field(states,"Coordinate")  
+    velocity  => extract_vector_field(states, "Velocity")
+    
+    !* Check if this point belongs in the domain
+    max_limit = maxval(positions%val)
+    min_limit = minval(positions%val)
+    
+    do i=1, positions%dim
+    if((Scoords(i)>max_limit(i)).or.(Scoords(i)<min_limit(i))) then 
+        FLExit("One or more of the ALM point(s) lie(s) outside the computational domain") 
+    endif
+    end do
+   
+    !* Finds the element number end local coordinates of the element where the point of interest
+    !* belongs in.
+    call picker_inquire(positions,Scoords,ele,local_coord,.false.)
+     
+    !* Evaluates the velocity at the point of interest 
+    value = eval_field(ele,velocity, local_coord)
+    
+    !* Evaluate the source term using the distribution field 
+   
+    
+    ewrite(1,*) 'Exiting ALM Momentum Source'
 
-  end subroutine calculate_actuator_line_momentum_source
+    end subroutine calculate_actuator_line_momentum_source
 
   subroutine calculate_imposed_material_velocity_absorption(states, v_field)
     type(state_type), dimension(:), intent(inout) :: states
