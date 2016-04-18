@@ -627,6 +627,7 @@ MBA3D
 MBA2D
 MODINC_FLAG
 ARFLAGS
+LIBSPATIALINDEX
 SPATIALINDEXDIR
 SPUD_ONLY
 FLIBJUDY
@@ -771,6 +772,7 @@ enable_dp
 enable_profiling
 with_judy
 enable_spatialindex_version
+with_spatialindex_root
 with_arpack_lib
 enable_vtk
 enable_2d_adaptivity
@@ -1463,6 +1465,9 @@ Optional Packages:
                           specify where to find lib/ and include/ for exodusii
   --with-x                use the X Window System
   --with-judy=<lib>       specify Judy library <lib>
+  --with-spatialindex-root=<dir>
+                          specify root directory of system spatialindex
+                          installation
   --with-arpack-lib[=<lib>]
                           specify arpack library
   --with-libnuma[=libnuma_library]
@@ -14143,6 +14148,12 @@ if test "${enable_spatialindex_version+set}" = set; then :
 fi
 
 
+# Check whether --with-spatialindex-root was given.
+if test "${with_spatialindex_root+set}" = set; then :
+  withval=$with_spatialindex_root;
+fi
+
+
 if test "x$enable_spatialindex_version" != "x"
 then
   SPATIALINDEXDIR="spatialindex-$enable_spatialindex_version"
@@ -14150,6 +14161,14 @@ else
   enable_spatialindex_version="1.8.0"
   SPATIALINDEXDIR="spatialindex-1.8.0"
 fi
+
+if test -n "$with_spatialindex_root"; then
+   LIBSPATIALINDEX="${with_spatialindex_root}/lib/libspatialindex.a"
+   CPPFLAGS="$CPPFLAGS -I${with_spatialindex_root}/include/spatialindex/"
+else
+
+LIBSPATIALINDEX = "./lib/libspatialindex.a"
+
 
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&5
@@ -14173,6 +14192,8 @@ if test "$?" -ne "0"; then
   exit -1
 fi
 cd ../
+fi
+
 
 #*************ARPACK*********
 ac_ext=${ac_fc_srcext-f}
