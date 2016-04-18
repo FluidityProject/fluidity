@@ -1270,7 +1270,18 @@ else
 fi
 
 # Configure libjudy
-if test -d libjudy ; then
+
+AC_ARG_WITH([judy],
+	[AC_HELP_STRING([--with-judy=<lib>], [specify Judy library <lib>])])
+
+if test -n "$with_judy"; then
+    AC_MSG_NOTICE([Linking against $with_judy])
+   	case $with_judy in
+	      -l* | */* | *.a | *.so | *.so.* | *.o) acx_judy_lib="$with_judy" ;;
+	      *) acx_judy_lib="-l$with_judy" ;;
+	esac	      
+   	FLIBJUDY="$acx_judy_lib"
+elif test -d libjudy ; then
     AC_MSG_NOTICE([%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%])
     AC_MSG_NOTICE([Configuring libjudy])
     AC_MSG_NOTICE([%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%])
@@ -1298,6 +1309,8 @@ if test -d libjudy ; then
       fi
     fi
     AC_SUBST(JUDY_CFLAGS)
+    LIBJUDY=-ljudy
+    FLIBJUDY="./lib/libjudy.a"
 
     
 cat >> confdefs.h << EOF
@@ -1306,6 +1319,7 @@ EOF
 else
     AC_MSG_ERROR("libjudy directory missing!!")
 fi
+AC_SUBST(FLIBJUDY)
 
 # Configure libspud
 if test -d libspud ; then
