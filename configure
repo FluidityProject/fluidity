@@ -629,6 +629,7 @@ MODINC_FLAG
 ARFLAGS
 SPATIALINDEXDIR
 SPUD_ONLY
+FLIBJUDY
 JUDY_CFLAGS
 CLEAN_LIBADAPT
 BUILD_LIBADAPT
@@ -770,6 +771,7 @@ enable_sam
 enable_dp
 enable_profiling
 enable_libsupermesh
+with_judy
 enable_spatialindex_version
 with_arpack_lib
 enable_vtk
@@ -1463,6 +1465,7 @@ Optional Packages:
   --with-exodusii[=exodus_ROOT]
                           specify where to find lib/ and include/ for exodusii
   --with-x                use the X Window System
+  --with-judy=<lib>       specify Judy library <lib>
   --with-arpack-lib[=<lib>]
                           specify arpack library
   --with-libnuma[=libnuma_library]
@@ -14141,7 +14144,23 @@ else
 fi
 
 # Configure libjudy
-if test -d libjudy ; then
+
+
+# Check whether --with-judy was given.
+if test "${with_judy+set}" = set; then :
+  withval=$with_judy;
+fi
+
+
+if test -n "$with_judy"; then
+    { $as_echo "$as_me:${as_lineno-$LINENO}: Linking against $with_judy" >&5
+$as_echo "$as_me: Linking against $with_judy" >&6;}
+   	case $with_judy in
+	      -l* | */* | *.a | *.so | *.so.* | *.o) acx_judy_lib="$with_judy" ;;
+	      *) acx_judy_lib="-l$with_judy" ;;
+	esac
+   	FLIBJUDY="$acx_judy_lib"
+elif test -d libjudy ; then
     { $as_echo "$as_me:${as_lineno-$LINENO}: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&5
 $as_echo "$as_me: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&6;}
     { $as_echo "$as_me:${as_lineno-$LINENO}: Configuring libjudy" >&5
@@ -14204,6 +14223,8 @@ _ACEOF
       fi
     fi
 
+    LIBJUDY=-ljudy
+    FLIBJUDY="./lib/libjudy.a"
 
 
 cat >> confdefs.h << EOF
@@ -14212,6 +14233,7 @@ EOF
 else
     as_fn_error $? "\"libjudy directory missing!!\"" "$LINENO" 5
 fi
+
 
 # Configure libspud
 if test -d libspud ; then
