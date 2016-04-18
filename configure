@@ -629,6 +629,8 @@ MODINC_FLAG
 ARFLAGS
 LIBSPATIALINDEX
 SPATIALINDEXDIR
+SPUDHEADER
+SPUDLIB
 SPUD_ONLY
 FLIBJUDY
 JUDY_CFLAGS
@@ -771,6 +773,7 @@ enable_sam
 enable_dp
 enable_profiling
 with_judy
+with_libspud_root
 enable_spatialindex_version
 with_spatialindex_root
 with_arpack_lib
@@ -1465,6 +1468,8 @@ Optional Packages:
                           specify where to find lib/ and include/ for exodusii
   --with-x                use the X Window System
   --with-judy=<lib>       specify Judy library <lib>
+  --with-libspud-root=<lib>
+                          specify external libspud installation root directory
   --with-spatialindex-root=<dir>
                           specify root directory of system spatialindex
                           installation
@@ -14093,7 +14098,18 @@ fi
 
 
 # Configure libspud
-if test -d libspud ; then
+
+# Check whether --with-libspud-root was given.
+if test "${with_libspud_root+set}" = set; then :
+  withval=$with_libspud_root;
+fi
+
+
+if test -n "$with_libspud_root"; then
+   	SPUDLIB="${with_libspud_root}/lib/libspud.a"
+	SPUDHEADER="${with_libspud_root}/include/spud.h"
+	CPPFLAGS="$CPPFLAGS -I${with_libspud_root}/include"
+elif test -d libspud ; then
     { $as_echo "$as_me:${as_lineno-$LINENO}: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&5
 $as_echo "$as_me: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&6;}
     { $as_echo "$as_me:${as_lineno-$LINENO}: Configuring libspud" >&5
@@ -14116,6 +14132,9 @@ $as_echo "$as_me: Building on ARCHER; disabling shared libraries" >&6;}
     if test "$enable_profiling" = "yes" ; then
         CONFIG_FLAG="${CONFIG_FLAG} --enable-profiling"
     fi
+
+    SPUDLIB="./lib/libspud.a"
+    SPUDHEADER="${with_libspud_root}/include/spud.h"
 
 
 
@@ -14140,6 +14159,8 @@ EOF
 else
     as_fn_error $? "\"libspud directory missing!!\"" "$LINENO" 5
 fi
+
+
 
 #*************SpatialIndex******
 # Check whether --enable-spatialindex-version was given.
@@ -14167,7 +14188,7 @@ if test -n "$with_spatialindex_root"; then
    CPPFLAGS="$CPPFLAGS -I${with_spatialindex_root}/include/spatialindex/"
 else
 
-LIBSPATIALINDEX = "./lib/libspatialindex.a"
+LIBSPATIALINDEX="./lib/libspatialindex.a"
 
 
 

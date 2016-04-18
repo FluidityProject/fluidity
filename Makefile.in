@@ -65,7 +65,7 @@ LINKER  = @LINKER@ @LDFLAGS@ $(CXXFLAGS)
 FLLINKER = @FLLINKER@ @LDFLAGS@ $(FCFLAGS)
 
 LIBS    = -L./lib -l$(FLUIDITY) @LIB_FEMDEM@ ./lib/libadaptivity.a \
-           ./lib/libvtkfortran.a @LIBSPATIALINDEX@ ./lib/libspud.a @FLIBJUDY@ \
+           ./lib/libvtkfortran.a @LIBSPATIALINDEX@ @SPUDLIB@ @FLIBJUDY@ \
            @LIBS@ @BLAS_LIBS@
 
 OBJS = $(shell find . -mindepth 2 -maxdepth 2 -name '*.c' -o -name '*.cpp' -o -name '*.[fF]' -o -name '*.F90' | grep -v ^./lib | xargs)
@@ -113,7 +113,7 @@ default: bin/$(FLUIDITY)
 
 sub_system: $(LIBMBA2D) $(LIBMBA3D) @LIB_FEMDEM@ \
 	lib/libadaptivity.a lib/libvtkfortran.a @LIBSPATIALINDEX@ \
-	lib/libspud.a @FLIBJUDY@ include/version.h
+	@SPUDLIB@ @FLIBJUDY@ include/version.h
 
 lib/libjudy.a:
 	@echo '    MKDIR lib'; mkdir -p lib
@@ -162,7 +162,7 @@ endif
 
 include/spud.h: lib/libspud.a
 
-main.o: include/version.h include/spud.h
+main.o: include/version.h @SPUDHEADER@
 
 include/version.h: version-info
 	@bin/version-info $@
@@ -453,7 +453,7 @@ mediumtest: fltools bin/$(FLUIDITY) manual spudtools
 .PHONY: spudtools
 
 spudtools:
-	@cd libspud ; $(MAKE) install-spudtools
+	@cd libspud ; $(MAKE) install-tools
 	@echo "    INSTALL spudtools"
 
 setuputs: 
