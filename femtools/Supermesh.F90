@@ -1,7 +1,20 @@
 #include "fdebug.h"
 
 module supermesh_construction
+  use fldebug
+  use global_parameters, only : real_4, real_8
+  use futils
+  use sparse_tools
+  use elements
   use fields_data_types
+  use fields_base
+  use linked_lists
+  use fields_allocates
+  use fields_manipulation
+  use metric_tools
+  use unify_meshes_module
+  use transform_elements
+  use tetrahedron_intersection_module
 #ifdef HAVE_SUPERMESH
   use libsupermesh_tri_intersection, only : tri_type, tri_buf_size, &
     & intersect_tris
@@ -12,16 +25,6 @@ module supermesh_construction
   use libsupermesh_intersection_finder, &
     & cintersector_set_input => rtree_intersection_finder_set_input
 #endif
-  use fields_allocates
-  use fields_base
-  use sparse_tools
-  use futils
-  use metric_tools
-  use unify_meshes_module
-  use linked_lists
-  use transform_elements
-  use global_parameters, only : real_4, real_8
-  use tetrahedron_intersection_module
   implicit none
 
 #ifndef HAVE_SUPERMESH
@@ -78,9 +81,10 @@ module supermesh_construction
   logical, save :: intersector_exactness = .false.
   integer, save, public :: returned_intervals = 0, returned_tris = 0, returned_quads = 0, returned_tets = 0
 
+  private
+
   public :: intersect_elements, intersector_set_dimension, intersector_set_exactness
   public :: construct_supermesh, compute_projection_error, intersector_exactness
-  private
 
   contains
 

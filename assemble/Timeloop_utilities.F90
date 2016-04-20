@@ -27,14 +27,16 @@
 #include "fdebug.h"
 
 module timeloop_utilities
-  use state_module
-  use FEFields
-  use fields
+  use fldebug
   use spud
+  use global_parameters, only: simulation_start_cpu_time,&
+    & simulation_start_wall_time, OPTION_PATH_LEN
+  use parallel_tools
+  use fields
+  use state_module
+  use fefields
   use signal_vars
   use timers
-  use global_parameters, only: simulation_start_cpu_time,&
-       & simulation_start_wall_time, OPTION_PATH_LEN
   implicit none
   
   private

@@ -1,5 +1,6 @@
 subroutine test_vertical_integration()
 use quadrature
+use elements
 use fields
 use state_module
 use mesh_files

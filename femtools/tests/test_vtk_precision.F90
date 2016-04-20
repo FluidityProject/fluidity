@@ -30,6 +30,7 @@
 subroutine test_vtk_precision
   !!< Test the precision of VTK I/O
 
+  use quadrature
   use elements  
   use fields
   use fields_data_types

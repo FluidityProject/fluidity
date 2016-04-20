@@ -29,8 +29,8 @@
 module cv_shape_functions
   !!< Generate shape functions for elements of arbitrary polynomial degree.
   use FLDebug
-  use cv_faces, only: cv_faces_type
   use shape_functions
+  use cv_faces, only: cv_faces_type
   implicit none
   
   private

@@ -29,14 +29,15 @@
 
 module node_ownership
 
-  use adjacency_lists
-  use data_structures
-  use fields
   use fldebug
+  use data_structures
+  use sparse_tools
+  use adjacency_lists
   use linked_lists
+  use intersection_finder_module
+  use fields
   use node_owner_finder
   use pickers
-  use sparse_tools
 
   implicit none
   

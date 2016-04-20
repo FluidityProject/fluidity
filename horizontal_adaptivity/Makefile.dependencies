@@ -4,27 +4,32 @@
 
 Advancing_front.o ../include/hadapt_advancing_front.mod: Advancing_front.F90 \
    ../include/adjacency_lists.mod ../include/data_structures.mod \
-   ../include/fdebug.h ../include/fields.mod ../include/halos.mod \
-   ../include/halos_derivation.mod ../include/linked_lists.mod \
-   ../include/meshdiagnostics.mod ../include/quicksort.mod \
-   ../include/sparse_tools.mod ../include/spud.mod
+   ../include/fdebug.h ../include/fields.mod ../include/fldebug.mod \
+   ../include/futils.mod ../include/halos.mod ../include/halos_derivation.mod \
+   ../include/linked_lists.mod ../include/meshdiagnostics.mod \
+   ../include/parallel_fields.mod ../include/parallel_tools.mod \
+   ../include/quicksort.mod ../include/sparse_tools.mod ../include/spud.mod
 
 ../include/hadapt_combine_meshes.mod: Combine_Meshes.o
 	@true
 
 Combine_Meshes.o ../include/hadapt_combine_meshes.mod: Combine_Meshes.F90 \
    ../include/elements.mod ../include/fdebug.h ../include/fields.mod \
+   ../include/fldebug.mod ../include/futils.mod \
    ../include/global_parameters.mod ../include/hadapt_advancing_front.mod \
-   ../include/halos.mod ../include/linked_lists.mod ../include/quadrature.mod \
+   ../include/halos.mod ../include/linked_lists.mod \
+   ../include/parallel_fields.mod ../include/quadrature.mod \
    ../include/sparse_tools.mod ../include/spud.mod
 
 ../include/hadapt_extrude.mod: Extrude.o
 	@true
 
 Extrude.o ../include/hadapt_extrude.mod: Extrude.F90 ../include/elements.mod \
-   ../include/fdebug.h ../include/fields.mod ../include/global_parameters.mod \
+   ../include/fdebug.h ../include/fields.mod ../include/fldebug.mod \
+   ../include/futils.mod ../include/global_parameters.mod \
    ../include/hadapt_combine_meshes.mod ../include/halos.mod \
-   ../include/linked_lists.mod ../include/quadrature.mod \
+   ../include/linked_lists.mod ../include/parallel_fields.mod \
+   ../include/parallel_tools.mod ../include/quadrature.mod \
    ../include/sparse_tools.mod ../include/spud.mod \
    ../include/vtk_interfaces.mod
 
@@ -34,10 +39,12 @@ Extrude.o ../include/hadapt_extrude.mod: Extrude.F90 ../include/elements.mod \
 Metric_based_extrude.o ../include/hadapt_metric_based_extrude.mod: \
    Metric_based_extrude.F90 ../include/data_structures.mod \
    ../include/elements.mod ../include/fdebug.h ../include/fields.mod \
+   ../include/fldebug.mod ../include/futils.mod \
    ../include/global_parameters.mod ../include/hadapt_advancing_front.mod \
    ../include/hadapt_combine_meshes.mod ../include/halos.mod \
    ../include/interpolation_module.mod ../include/meshdiagnostics.mod \
-   ../include/metric_tools.mod ../include/quicksort.mod \
+   ../include/metric_tools.mod ../include/parallel_fields.mod \
+   ../include/quadrature.mod ../include/quicksort.mod \
    ../include/sparse_tools.mod ../include/spud.mod ../include/vector_tools.mod \
    ../include/vtk_interfaces.mod
 

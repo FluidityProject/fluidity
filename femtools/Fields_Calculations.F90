@@ -27,18 +27,20 @@
 #include "fdebug.h"
 module fields_calculations
 
+use fldebug
+use vector_tools
+use quadrature
 use elements
-use fields_allocates
+use parallel_tools
 use fields_data_types
 use fields_base
+use linked_lists
+use fields_allocates
 use fields_manipulation
 use fetools
 use parallel_fields
-use parallel_tools
-use vector_tools
 use supermesh_construction
 use intersection_finder_module
-use linked_lists
 
 implicit none
     
@@ -97,6 +99,14 @@ implicit none
   interface norm2_difference
     module procedure norm2_difference_single, norm2_difference_multiple
   end interface
+
+  private
+
+  public :: mean, maxval, minval, sum, norm2, field_stats, field_cv_stats,&
+	 field_integral, fields_integral, function_val_at_quad,&
+	 dot_product, outer_product, norm2_difference, magnitude,&
+	 magnitude_tensor, merge_meshes, distance, divergence_field_stats,&
+	 field_con_stats, function_val_at_quad_scalar, trace
     
   integer, parameter, public :: CONVERGENCE_INFINITY_NORM=0, CONVERGENCE_L2_NORM=1, CONVERGENCE_CV_L2_NORM=2
   

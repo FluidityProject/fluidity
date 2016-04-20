@@ -28,12 +28,14 @@
 #include "fdebug.h"
 
 module discrete_properties_module
-  use state_module
-  use solenoidal_interpolation_module
-  use fields
   use spud
+  use fldebug
   use global_parameters, only : OPTION_PATH_LEN
+  use futils, only: present_and_true
+  use fields
+  use state_module
   use field_options
+  use solenoidal_interpolation_module
   
   implicit none
   

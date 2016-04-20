@@ -26,14 +26,18 @@
 !    USA
 #include "fdebug.h"
 module boundary_conditions
-use fields_data_types
-use fields
-use sparse_tools
-use sparse_tools_petsc
-use state_module
-use spud
-use global_parameters, only: OPTION_PATH_LEN
-implicit none
+  use fldebug
+  use spud
+  use global_parameters, only: OPTION_PATH_LEN, FIELD_NAME_LEN
+  use futils
+  use parallel_tools
+  use sparse_tools
+  use fetools, only : INFINITY
+  use fields
+  use sparse_tools_petsc
+  use state_module
+
+  implicit none
     
   interface add_boundary_condition
      module procedure add_scalar_boundary_condition, &

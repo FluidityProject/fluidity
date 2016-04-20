@@ -30,29 +30,27 @@
 module foam_flow_module
   ! This module contains the options used to solve Laplace's equation for arbitrary geometries and BC's in Fluidity and to calculate the foam velocity
   use fldebug
-  use state_module
-  use fields
   use spud
-  use field_options
-  use FEtools
+  use global_parameters, only : OPTION_PATH_LEN, FIELD_NAME_LEN
+  use vector_tools
+  use quadrature
   use elements
   use sparse_tools
-  use vtk_interfaces
   use transform_elements
+  use fetools
+  use fields
+  use state_module
+  use field_options
+  use vtk_interfaces
   use sparsity_patterns
+  use sparse_matrices_fields
   use solvers
   use boundary_conditions
-  use quadrature
-  use global_parameters, only : OPTION_PATH_LEN, FIELD_NAME_LEN
-  use petsc_solve_state_module
   use sparsity_patterns_meshes
-  use sparse_matrices_fields
-  use vector_tools
+  use petsc_solve_state_module
   use field_derivatives
-  use state_matrices_module
   use gradient_matrix_cg, only: assemble_gradient_matrix_cg
-
-
+  use state_matrices_module
 
   implicit none
 

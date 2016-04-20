@@ -2,17 +2,19 @@
 module fefields
   !!< Module containing general tools for discretising Finite Element problems.
 
+  use fldebug
   use data_structures
+  use element_numbering
+  use elements, only: element_type
+  use parallel_tools
+  use sparse_tools
+  use transform_elements, only: transform_to_physical, element_volume
+  use fetools, only: shape_shape, shape_rhs, shape_vector_rhs
   use fields
+  use state_module
   use field_options, only: get_coordinate_field
   use halos
-  use elements, only: element_type
-  use element_numbering
-  use fetools, only: shape_shape
-  use transform_elements, only: transform_to_physical, element_volume
-  use sparse_tools
   use sparse_matrices_fields
-  use state_module
   implicit none
 
   interface add_source_to_rhs
@@ -801,7 +803,6 @@ contains
       sndglno((i-1)*sloc+1:i*sloc) = inverse_node_list(face_global_nodes(mesh, face))
       boundary_ids(i) = surface_element_id(mesh, face)
     end do
-    call deallocate(face_ele_list)
 
     ewrite(2,*) "Number of surface elements: ", edge_count
     ! Add faces to submesh:
@@ -819,6 +820,7 @@ contains
         allow_duplicate_internal_facets=.true.)
     end if
 
+    call deallocate(face_ele_list)
     deallocate(sndglno)
     deallocate(boundary_ids)
 

@@ -29,11 +29,15 @@
 
 module node_owner_finder
 
-  use data_structures
-  use fields
   use fldebug
   use global_parameters, only : real_4, real_8
+  use futils, only: present_and_false
+  use data_structures
+  use element_numbering, only: FAMILY_SIMPLEX
   use mpi_interfaces
+  use parallel_tools
+  use parallel_fields
+  use fields
 
   implicit none
   

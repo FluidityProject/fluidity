@@ -28,11 +28,12 @@
 module cv_fields
   !!< Module containing general tools for discretising Control Volume problems.
   use spud
-  use state_module
   use fldebug
+  use global_parameters, only: FIELD_NAME_LEN
+  use fields
+  use state_module
   use cvtools
   use diagnostic_fields
-  use fields
 
   implicit none
 

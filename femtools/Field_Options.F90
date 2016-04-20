@@ -30,20 +30,20 @@ module field_options
    !!< This module contains code that uses scalar/vector/tensor_fields
    !!< in combination with floptions. Anything schema specific.
 
+   use fldebug
+   use global_parameters
    use quadrature
+   use futils
    use elements
    use spud
-   use FLDebug
-   use Fields_Data_Types
+   use data_structures
+   use fields_data_types
    use fields_base
    use fields_allocates
    use fields_manipulation
-   use fields_calculations
-   use Global_Parameters, only: OPTION_PATH_LEN, adaptivity_mesh_name
-   use state_module
-   use futils
    use metric_tools
-   use data_structures
+   use transform_elements
+   use fields_calculations
    use state_module
 
    implicit none
@@ -112,9 +112,6 @@ module field_options
 contains
 
   recursive subroutine print_children(path)
-
-    use spud
-    use global_parameters, only: OPTION_PATH_LEN
 
     implicit none
 
@@ -186,6 +183,10 @@ contains
     else if (have_option(trim(path) // "/prescribed")) then
 
        complete_field_path=trim(path) // "/prescribed"
+
+    else if (have_option(trim(path) // "/aliased")) then
+
+       complete_field_path=trim(path) // "/aliased"
 
     else
       

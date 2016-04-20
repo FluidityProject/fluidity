@@ -1,6 +1,7 @@
 subroutine test_invert_dg_mass_matrix
   
   use fldebug
+  use quadrature
   use fields
   use mesh_files
   use DGtools

@@ -20,6 +20,15 @@ import threading
 import xml.parsers.expat
 import string
 
+try:
+  from junit_xml import TestSuite
+except ImportError:
+  class TestSuite(object):
+     def __init__(self, name, test_cases):
+         self.test_cases=test_cases
+     def to_file(self,*args):
+         print "cannot generate xml report without junit_xml module."
+
 # make sure we use the correct version of regressiontest
 sys.path.insert(0, os.path.join(os.getcwd(), os.path.dirname(sys.argv[0]), os.pardir, "python"))
 import fluidity.regressiontest as regressiontest
@@ -33,7 +42,7 @@ class TestHarness:
     def __init__(self, length="any", parallel="any", exclude_tags=None,
                  tags=None, file="", from_file=None,
                  verbose=True, justtest=False,
-                 valgrind=False, genpbs=False):
+                 valgrind=False, genpbs=False, exit_fails=False, xml_outfile=""):
         self.tests = []
         self.verbose = verbose
         self.length = length
@@ -46,6 +55,10 @@ class TestHarness:
         self.justtest = justtest
         self.valgrind = valgrind
         self.genpbs = genpbs
+        self.xml_parser=TestSuite('TestHarness',[])
+        self.cwd=os.getcwd()
+        self.xml_outfile=xml_outfile
+        self.exit_fails=exit_fails
 
         fluidity_command = self.decide_fluidity_command()
 
@@ -100,14 +113,16 @@ class TestHarness:
 
         if files:
           for (subdir, xml_file) in [os.path.split(x) for x in xml_files]:
-            if xml_file == file:
-              p = etree.parse(os.path.join(subdir,xml_file))
-              prob_defn = p.findall("problem_definition")[0]
-              prob_nprocs = int(prob_defn.attrib["nprocs"])                
-              testprob = regressiontest.TestProblem(filename=os.path.join(subdir, xml_file),
-                           verbose=self.verbose, replace=self.modify_command_line(prob_nprocs), genpbs=genpbs)
-              self.tests.append((subdir, testprob))
-              files.remove(xml_file)
+            temp_files=files
+            for file in temp_files:
+              if xml_file == file:
+                p = etree.parse(os.path.join(subdir,xml_file))
+                prob_defn = p.findall("problem_definition")[0]
+                prob_nprocs = int(prob_defn.attrib["nprocs"])                
+                testprob = regressiontest.TestProblem(filename=os.path.join(subdir, xml_file),
+                                                      verbose=self.verbose, replace=self.modify_command_line(prob_nprocs), genpbs=genpbs)
+                self.tests.append((subdir, testprob))
+                files.remove(xml_file)
           if files != []:
             print "Could not find the following specified test files:"
             for f in files:
@@ -299,6 +314,7 @@ class TestHarness:
                         self.teststatus += ['F']
                         test.pass_status = ['F']
                       self.completed_tests += [test]
+                      self.xml_parser.test_cases+=test.xml_reports
                       t = None
                       count -= 1
 
@@ -314,6 +330,8 @@ class TestHarness:
               test.fl_logs(nLogLines = 0)
             self.teststatus += test.test()
             self.completed_tests += [test]
+
+            self.xml_parser.test_cases+=test.xml_reports
 
         self.passcount = self.teststatus.count('P')
         self.failcount = self.teststatus.count('F')
@@ -331,6 +349,16 @@ class TestHarness:
             print "Passes:   %d" % self.passcount
             print "Failures: %d" % self.failcount
             print "Warnings: %d" % self.warncount
+
+        if self.xml_outfile!="":
+            fd=open(self.cwd+'/'+self.xml_outfile,'w')
+            self.xml_parser.to_file(fd,[self.xml_parser])
+            fd.close()
+
+        if self.exit_fails:
+            sys.exit(self.failcount)
+
+          
 
     def threadrun(self):
         '''This is the portion of the loop which actually runs the
@@ -379,6 +407,8 @@ if __name__ == "__main__":
     parser.add_option("--just-test", action="store_true", dest="justtest", default=False)
     parser.add_option("--just-list", action="store_true", dest="justlist")
     parser.add_option("--genpbs", action="store_true", dest="genpbs")
+    parser.add_option("-x","--xml-output", dest="xml_outfile", default="", help="filename for xml output")
+    parser.add_option("--exit-failure-count", action="store_true", dest="exit_fails", help="Return failure count on exit")
     (options, args) = parser.parse_args()
 
     if len(args) > 0: parser.error("Too many arguments.")
@@ -417,7 +447,9 @@ if __name__ == "__main__":
                               justtest=options.justtest,
                               valgrind=options.valgrind,
                               from_file=options.from_file,
-                              genpbs=options.genpbs)
+                              genpbs=options.genpbs,
+                              exit_fails=options.exit_fails,
+                              xml_outfile=options.xml_outfile)
 
     if options.justlist:
       testharness.list()

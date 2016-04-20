@@ -29,18 +29,18 @@
 
 module halos_communications
 
-  use fields_data_types
-  use fields_base
   use fldebug
   use futils
+  use mpi_interfaces
   use halo_data_types
-  use halos_allocates
+  use parallel_tools
+  use quicksort
   use halos_base
   use halos_debug
-  use mpi_interfaces
-  use parallel_tools
+  use halos_allocates
+  use fields_data_types
+  use fields_base
   use linked_lists
-  use quicksort
 
   implicit none
   

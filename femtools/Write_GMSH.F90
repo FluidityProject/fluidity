@@ -29,13 +29,15 @@
 
 module write_gmsh
 
+  use fldebug
+
+  use global_parameters, only : OPTION_PATH_LEN
+  use futils
   use elements
+  use parallel_tools
   use fields
   use state_module
-  use futils
-  use parallel_tools
   use field_options
-  use global_parameters, only : OPTION_PATH_LEN
   use gmsh_common
 
   implicit none

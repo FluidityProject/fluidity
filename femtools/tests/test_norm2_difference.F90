@@ -1,6 +1,7 @@
 subroutine test_norm2_difference
 
   use mesh_files
+  use elements
   use fields
   use unittest_tools
   implicit none

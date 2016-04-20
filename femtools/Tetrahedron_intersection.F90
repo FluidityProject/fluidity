@@ -112,6 +112,8 @@ contains
   type(mesh_type), save, private :: intersection_mesh
   logical, save, private :: mesh_allocated = .false.
 
+  private
+
   public :: tet_type, plane_type, intersect_tets, get_planes, finalise_tet_intersector
 
   interface intersect_tets
