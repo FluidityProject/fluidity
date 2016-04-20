@@ -3,6 +3,8 @@
 subroutine benchmark_tri_intersector
 
   use supermesh_construction
+  use elements
+  use fields_data_types
   use fields_allocates
   use fields_base
   use read_triangle
