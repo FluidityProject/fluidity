@@ -986,8 +986,6 @@ contains
     call print_current_memory_stats(0)
 #endif
 
-    write(debug_log_unit, "(a,i0,a,i0,a,i0)") "Lines: ", returned_intervals , ", Triangles: ", returned_tris, ", Tets: ", returned_tets
-    
   contains
 
     subroutine set_simulation_start_times()
