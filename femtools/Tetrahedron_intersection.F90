@@ -3,6 +3,8 @@
 module tetrahedron_intersection_module
 
 #ifdef HAVE_SUPERMESH
+  use fldebug
+  use element_numbering, only: FAMILY_CUBE, FAMILY_SIMPLEX
   use elements
   use fields_data_types
   use fields_base
