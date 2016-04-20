@@ -88,6 +88,9 @@ contains
 #else
 #define BUF_SIZE 150
 
+  use fldebug
+  use vector_tools
+  use element_numbering, only: FAMILY_CUBE, FAMILY_SIMPLEX
   use elements
   use vector_tools
   use fields_data_types
