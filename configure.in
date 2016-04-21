@@ -1323,6 +1323,12 @@ if test -n "$with_judy"; then
 	      *) acx_judy_lib="-l$with_judy" ;;
 	esac	      
    	FLIBJUDY="$acx_judy_lib"
+    if test "x$ARCHER" != "x" ; then
+        FLLINKER=$CXX
+    else
+        FLLINKER=$FC
+    fi
+    AC_SUBST(FLLINKER)
 elif test -d libjudy ; then
     AC_MSG_NOTICE([%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%])
     AC_MSG_NOTICE([Configuring libjudy])
@@ -1371,6 +1377,7 @@ if test -n "$with_libspud_root"; then
    	SPUDLIB="${with_libspud_root}/lib/libspud.a"
 	SPUDHEADER="${with_libspud_root}/include/spud.h"
 	CPPFLAGS="$CPPFLAGS -I${with_libspud_root}/include"
+	FCFLAGS="$FCFLAGS -I${with_libspud_root}/include"
 elif test -d libspud ; then
     AC_MSG_NOTICE([%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%])
     AC_MSG_NOTICE([Configuring libspud])
@@ -1391,8 +1398,8 @@ elif test -d libspud ; then
         CONFIG_FLAG="${CONFIG_FLAG} --enable-profiling"
     fi
 
-    SPUDLIB="./lib/libspud.a"
-    SPUDHEADER="${with_libspud_root}/include/spud.h"
+    SPUDLIB="${PWD}/lib/libspud.a"
+    SPUDHEADER="${PWD}/include/spud.h"
 
     AC_SUBST(SPUD_ONLY)
 
@@ -1441,7 +1448,7 @@ if test -n "$with_spatialindex_root"; then
    CPPFLAGS="$CPPFLAGS -I${with_spatialindex_root}/include/spatialindex/"
 else
 
-LIBSPATIALINDEX="./lib/libspatialindex.a"
+LIBSPATIALINDEX="${PWD}/lib/libspatialindex.a"
 
 AC_SUBST(SPATIALINDEXDIR)
 

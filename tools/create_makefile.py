@@ -17,7 +17,9 @@ dep_exclusions=[\
     # Get rid of absolute paths.
     # We are only interested in dependencies from within the
     # Fluidity tree  so we dump the ones from outside.  
-    "/"
+    "/",
+    # libspud is really external
+    "../include/spud.mod"
     ]
 
 
