@@ -65,7 +65,7 @@ LINKER  = @LINKER@ @LDFLAGS@ $(CXXFLAGS)
 FLLINKER = @FLLINKER@ @LDFLAGS@ $(FCFLAGS)
 
 LIBS    = -L./lib -l$(FLUIDITY) @LIB_FEMDEM@ ./lib/libadaptivity.a \
-           ./lib/libvtkfortran.a @LIBSPATIALINDEX@ @SPUDLIB@ @FLIBJUDY@ \
+           ./lib/libvtkfortran.a @LIBSPATIALINDEX@  @SPUDLIB@ @FLIBJUDY@ \
            @LIBS@ @BLAS_LIBS@
 
 OBJS = $(shell find . -mindepth 2 -maxdepth 2 -name '*.c' -o -name '*.cpp' -o -name '*.[fF]' -o -name '*.F90' | grep -v ^./lib | xargs)
@@ -370,8 +370,10 @@ clean: clean-light clean-test python_clean clean-debian
 	@cd libvtkfortran; $(MAKE) clean
 	@echo "    CLEAN libjudy"
 	@cd libjudy; $(MAKE) clean >> make.log 2>&1
+ifeq (@SPUDLIB@,./lib/libspud.a)
 	@echo "    CLEAN libspud"
 	@cd libspud; $(MAKE) clean
+endif
 	@echo "    CLEAN libspatialindex"
 	@cd @SPATIALINDEXDIR@; $(MAKE) clean >> make.log
 	@echo "    CLEAN libmba2d"
@@ -465,8 +467,10 @@ setuputs:
 	@ln -sf ../../tests/data bin/tests/data
 
 build_unittest: fluidity_library libfemtools setuputs
+ifeq (@SPUDLIB@,./lib/libspud.a)
 	@echo "    UNITTEST libspud"
-	@cd libspud/src/tests; $(MAKE) test-binaries; find bin/* -maxdepth 1 -type f -exec ln -sf ../../libspud/src/tests/{} ../../../bin/tests \; 
+	@cd libspud/src/tests; $(MAKE) test-binaries; find bin/* -maxdepth 1 -type f -exec ln -sf ../../libspud/src/tests/{} ../../../bin/tests \;
+endif
 	@echo "    UNITTEST error_measures"
 	@cd error_measures/tests; $(MAKE) unittest
 	@echo "    UNITTEST horizontal_adaptivity"

@@ -35,14 +35,13 @@ Fluids.o ../include/fluids_module.mod: Fluids.F90 \
    ../include/saturation_distribution_search_hookejeeves.mod \
    ../include/sediment_diagnostics.mod ../include/signal_vars.mod \
    ../include/solidconfiguration.mod ../include/sparse_tools.mod \
-   ../include/spontaneous_potentials.mod ../include/spud.mod \
-   ../include/state_module.mod ../include/synthetic_bc.mod \
-   ../include/tictoc.mod ../include/timeloop_utilities.mod \
-   ../include/timers.mod ../include/transform_elements.mod \
+   ../include/spontaneous_potentials.mod ../include/state_module.mod \
+   ../include/synthetic_bc.mod ../include/tictoc.mod \
+   ../include/timeloop_utilities.mod ../include/timers.mod \
+   ../include/transform_elements.mod \
    ../include/vertical_extrapolation_module.mod ../include/vtk_interfaces.mod \
    ../include/write_state_module.mod ../include/write_triangle.mod
 
 mainfl.o : mainfl.F90 ../include/fdebug.h ../include/fldebug.mod \
-   ../include/fluids_module.mod ../include/signals.mod ../include/spud.mod \
-   ../include/tictoc.mod
+   ../include/fluids_module.mod ../include/signals.mod ../include/tictoc.mod
 

@@ -16,7 +16,7 @@ void test_FluxesReader_fc() {
   FluxesReader data;
   FluxesReader data2;
   data.VerboseOff();
-  const int nFields = 1;
+  const int nFields = 2;
   double values[nFields];
   double value;
   double correct, correct_t, correct_d;
@@ -307,7 +307,6 @@ void test_FluxesReader_fc() {
   //report_test("[test_FluxesReader global: dodgy lat/long]",fail,warn,errorMessage);
   fail = true;
 
-
   /****************************************
    *  Now testing a subset of data - this
    *  does not contained the whole globe
@@ -470,6 +469,7 @@ void test_FluxesReader_fc() {
   sprintf(errorMessage, "Expected %f, got %f",correct_t,values[0]); 
   report_test("[test_FluxesReader subset: GetScalars interp all: t]",fail,warn,errorMessage);
   fail = true;
+
   if (abs(values[1]-correct_d) < 0.001 ) fail = false;
   sprintf(errorMessage, "Expected %f, got %f",correct_d,values[1]); 
   report_test("[test_FluxesReader subset: GetScalars interp all: d]",fail,warn,errorMessage);
@@ -492,6 +492,7 @@ void test_FluxesReader_fc() {
   data2.SetTimeSeconds(10800);  // 30 hours in - missing data here
   //err = data2.GetScalars(215.0,50.0,values);
   if ( err == -1 ) fail = false;
+
   //report_test("[test_FluxesReader subset: Identify missing values]",fail,warn,"Failed to spot missing values");
   fail = true;
 #else

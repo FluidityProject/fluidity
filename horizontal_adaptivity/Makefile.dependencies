@@ -8,7 +8,7 @@ Advancing_front.o ../include/hadapt_advancing_front.mod: Advancing_front.F90 \
    ../include/futils.mod ../include/halos.mod ../include/halos_derivation.mod \
    ../include/linked_lists.mod ../include/meshdiagnostics.mod \
    ../include/parallel_fields.mod ../include/parallel_tools.mod \
-   ../include/quicksort.mod ../include/sparse_tools.mod ../include/spud.mod
+   ../include/quicksort.mod ../include/sparse_tools.mod
 
 ../include/hadapt_combine_meshes.mod: Combine_Meshes.o
 	@true
@@ -19,7 +19,7 @@ Combine_Meshes.o ../include/hadapt_combine_meshes.mod: Combine_Meshes.F90 \
    ../include/global_parameters.mod ../include/hadapt_advancing_front.mod \
    ../include/halos.mod ../include/linked_lists.mod \
    ../include/parallel_fields.mod ../include/quadrature.mod \
-   ../include/sparse_tools.mod ../include/spud.mod
+   ../include/sparse_tools.mod
 
 ../include/hadapt_extrude.mod: Extrude.o
 	@true
@@ -30,8 +30,7 @@ Extrude.o ../include/hadapt_extrude.mod: Extrude.F90 ../include/elements.mod \
    ../include/hadapt_combine_meshes.mod ../include/halos.mod \
    ../include/linked_lists.mod ../include/parallel_fields.mod \
    ../include/parallel_tools.mod ../include/quadrature.mod \
-   ../include/sparse_tools.mod ../include/spud.mod \
-   ../include/vtk_interfaces.mod
+   ../include/sparse_tools.mod ../include/vtk_interfaces.mod
 
 ../include/hadapt_metric_based_extrude.mod: Metric_based_extrude.o
 	@true
@@ -45,6 +44,6 @@ Metric_based_extrude.o ../include/hadapt_metric_based_extrude.mod: \
    ../include/interpolation_module.mod ../include/meshdiagnostics.mod \
    ../include/metric_tools.mod ../include/parallel_fields.mod \
    ../include/quadrature.mod ../include/quicksort.mod \
-   ../include/sparse_tools.mod ../include/spud.mod ../include/vector_tools.mod \
+   ../include/sparse_tools.mod ../include/vector_tools.mod \
    ../include/vtk_interfaces.mod
 
