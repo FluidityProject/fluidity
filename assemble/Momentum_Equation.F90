@@ -1834,16 +1834,18 @@
          ! Solve for the change in pressure, delta_p
          if(full_schur) then
             allocate(inactive_mask(size(ct_m(prognostic_p_istate)%ptr, 1)))
+            inactive_mask = .false.
             call apply_dirichlet_conditions(inactive_mask, projec_rhs, p, dt=1.0/(dt*theta_pg*theta_divergence))
             call impose_reference_pressure_node(inactive_mask, projec_rhs, positions, trim(p%option_path))
             
             if(assemble_schur_auxiliary_matrix) then
                call petsc_solve_full_projection(delta_p, ctp_m(prognostic_p_istate)%ptr, inner_m(prognostic_p_istate)%ptr, ct_m(prognostic_p_istate)%ptr, projec_rhs, &
                full_projection_preconditioner, state(prognostic_p_istate), u%mesh, &
-               auxiliary_matrix=schur_auxiliary_matrix)
+               auxiliary_matrix=schur_auxiliary_matrix, inactive_mask=inactive_mask)
             else
                call petsc_solve_full_projection(delta_p, ctp_m(prognostic_p_istate)%ptr, inner_m(prognostic_p_istate)%ptr, ct_m(prognostic_p_istate)%ptr, projec_rhs, &
-               full_projection_preconditioner, state(prognostic_p_istate), u%mesh)
+               full_projection_preconditioner, state(prognostic_p_istate), u%mesh, &
+               inactive_mask=inactive_mask)
             end if
 
             deallocate(inactive_mask)
