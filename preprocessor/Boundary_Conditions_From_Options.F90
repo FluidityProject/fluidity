@@ -101,6 +101,10 @@ module boundary_conditions_from_options
 
   end interface
 
+  interface impose_reference_pressure_node
+     module procedure impose_reference_pressure_node_matrix, impose_reference_pressure_node_inactive_mask
+  end interface impose_reference_pressure_node
+
 contains
 
   subroutine populate_boundary_conditions(states, suppress_warnings)
@@ -2342,7 +2346,7 @@ contains
     end subroutine insert_flux_turbine_boundary_condition
   end subroutine populate_flux_turbine_boundary_conditions
 
-  subroutine impose_reference_pressure_node(cmc_m, rhs, positions, option_path)
+  subroutine impose_reference_pressure_node_matrix(cmc_m, rhs, positions, option_path)
     !!< If there are only Neumann boundaries on P, it is necessary to pin
     !!< the value of the pressure at one point. As the rhs of the equation
     !!< needs to be zeroed for this node, you will have to call this for
@@ -2387,7 +2391,54 @@ contains
 
     end if
 
-  end subroutine impose_reference_pressure_node
+  end subroutine impose_reference_pressure_node_matrix
+
+  subroutine impose_reference_pressure_node_inactive_mask(inactive_mask, rhs, positions, option_path)
+    !!< If there are only Neumann boundaries on P, it is necessary to pin
+    !!< the value of the pressure at one point. As the rhs of the equation
+    !!< needs to be zeroed for this node, you will have to call this for
+    !!< both pressure equations.
+    logical, dimension(:), intent(inout) :: inactive_mask
+    type(scalar_field), intent(inout):: rhs
+    type(vector_field), intent(inout) :: positions
+    character(len=*), intent(in) :: option_path
+
+    integer :: stat, stat2
+    integer :: reference_node
+
+    logical :: apply_reference_node, apply_reference_node_from_coordinates, reference_node_owned
+
+    apply_reference_node = have_option(trim(complete_field_path(option_path, stat=stat2))//&
+        &"/reference_node")
+    apply_reference_node_from_coordinates = have_option(trim(complete_field_path(option_path, stat=stat2))//&
+        &"/reference_coordinates")
+
+    if(apply_reference_node) then
+
+       call get_option(trim(complete_field_path(option_path, stat=stat2))//&
+            &"/reference_node", reference_node, stat=stat)
+
+       if (stat==0) then
+          ! all processors now have to call this routine, although only
+          ! process 1 sets it
+          ewrite(1,*) 'Imposing_reference_pressure_node at node',reference_node
+          call set_reference_node(inactive_mask, reference_node, rhs)
+       end if
+
+    elseif(apply_reference_node_from_coordinates) then
+
+       ewrite(1,*) 'Imposing_reference_pressure_node at user-specified coordinates'    
+       call find_reference_node_from_coordinates(positions,rhs%mesh,option_path,reference_node,reference_node_owned)
+
+       if(IsParallel()) then
+          call set_reference_node(inactive_mask, reference_node, rhs, reference_node_owned=reference_node_owned)
+       else
+          call set_reference_node(inactive_mask, reference_node, rhs)
+       end if
+
+    end if
+
+  end subroutine impose_reference_pressure_node_inactive_mask
 
   subroutine find_reference_node_from_coordinates(positions,mesh,option_path,reference_node,reference_node_owned)
     !! This routine determines which element contains the reference coordinates and,

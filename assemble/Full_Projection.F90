@@ -64,7 +64,7 @@
     
 !--------------------------------------------------------------------------------------------------------------------
     subroutine petsc_solve_full_projection(x,ctp_m,inner_m,ct_m,rhs,pmat,&
-      state, inner_mesh, auxiliary_matrix)
+      state, inner_mesh, auxiliary_matrix, inactive_mask)
 !--------------------------------------------------------------------------------------------------------------------
 
       ! Solve Schur complement problem the nice way (using petsc) !!
@@ -84,6 +84,7 @@
       type(mesh_type), intent(in):: inner_mesh
       ! p1-p1 stabilization matrix or free surface terms:
       type(csr_matrix), optional, intent(in) :: auxiliary_matrix
+      logical, dimension(:), intent(in), optional :: inactive_mask
 
       KSP ksp ! Object type for outer solve (i.e. A * delta_p = rhs)
       Mat A ! PETSc Schur complement matrix (i.e. G^t*m^-1*G) 
@@ -107,7 +108,7 @@
       ewrite(2,*) 'Entering PETSc setup for Full Projection Solve'
       call petsc_solve_setup_full_projection(y,A,b,ksp,petsc_numbering,name,solver_option_path, &
            lstartfromzero,inner_m,ctp_m,ct_m,x%option_path,pmat, &
-           rhs, state, inner_mesh, auxiliary_matrix)
+           rhs, state, inner_mesh, auxiliary_matrix, inactive_mask)
 
       ewrite(2,*) 'Create RHS and solution Vectors in PETSc Format'
       ! create PETSc vec for rhs using above numbering:
@@ -140,7 +141,7 @@
 !--------------------------------------------------------------------------------------------------------
     subroutine petsc_solve_setup_full_projection(y,A,b,ksp,petsc_numbering_p,name,solver_option_path, &
          lstartfromzero,inner_m,div_matrix_comp, div_matrix_incomp,option_path,preconditioner_matrix,rhs, &
-         state, inner_mesh, auxiliary_matrix)
+         state, inner_mesh, auxiliary_matrix, inactive_mask)
          
 !--------------------------------------------------------------------------------------------------------
 
@@ -181,6 +182,7 @@
       ! state, and inner_mesh are used to setup mg preconditioner of inner solve
       type(state_type), intent(in):: state
       type(mesh_type), intent(in):: inner_mesh
+      logical, dimension(:), intent(in), optional :: inactive_mask
 
       type(vector_field), pointer :: positions, mesh_positions
       type(petsc_csr_matrix), pointer:: rotation_matrix
@@ -209,7 +211,7 @@
       integer reference_node, stat, i, rotation_stat
       logical parallel, have_auxiliary_matrix, have_preconditioner_matrix
 
-      logical :: apply_reference_node, apply_reference_node_from_coordinates, reference_node_owned
+      integer :: j
 
       ! Sort option paths etc...
       solver_option_path=complete_solver_option_path(option_path)
@@ -225,49 +227,18 @@
          name=option_path
       end if
 
-      ! Are we applying a reference pressure node?
-      apply_reference_node = have_option(trim(option_path)//&
-                 '/prognostic/reference_node')
-      apply_reference_node_from_coordinates = have_option(trim(option_path)//&
-                 '/prognostic/reference_coordinates')
-
-      ! If so, impose reference pressure node:
-      if(apply_reference_node) then
-
-         call get_option(trim(option_path)//&
-              '/prognostic/reference_node', reference_node)
-         if (GetProcNo()==1) then
-            ewrite(2,*) 'Imposing_reference_pressure_node'        
-            allocate(ghost_nodes(1:1))
-            ghost_nodes(1) = reference_node
-            call set(rhs,reference_node,0.0) ! Modify RHS accordingly
-         else
-            allocate(ghost_nodes(1:0))
-         end if
-
-      elseif(apply_reference_node_from_coordinates) then
-
-         ewrite(1,*) 'Imposing_reference_pressure_node from user-specified coordinates'
-         positions => extract_vector_field(state, "Coordinate")
-         call find_reference_node_from_coordinates(positions,rhs%mesh,option_path,reference_node,reference_node_owned)
-         if(IsParallel()) then
-            if (reference_node_owned) then
-               allocate(ghost_nodes(1:1))
-               ghost_nodes(1) = reference_node
-               call set(rhs,reference_node,0.0)
-            else
-               allocate(ghost_nodes(1:0))
-            end if
-         else
-            allocate(ghost_nodes(1:1))
-            ghost_nodes(1) = reference_node
-            call set(rhs,reference_node,0.0)
-         end if
-
+      ! create list of inactive, ghost_nodes
+      if(present(inactive_mask)) then
+        allocate( ghost_nodes(1:count(inactive_mask)) )
+        j=0
+        do i=1, size(inactive_mask)
+           if (inactive_mask(i)) then
+             j=j+1
+             ghost_nodes(j)=i
+           end if
+        end do
       else
-
-         allocate(ghost_nodes(1:0))
-
+        allocate( ghost_nodes(1:0) )
       end if
 
       ! Is auxiliary matrix present?
@@ -281,6 +252,7 @@
       call allocate(petsc_numbering_p, &
            nnodes=block_size(div_matrix_comp,1), nfields=1, &
            halo=preconditioner_matrix%sparsity%row_halo, ghost_nodes=ghost_nodes)
+      deallocate(ghost_nodes)
 
            ! - why is this using the row halo of the preconditioner matrix when there might be rows missing?
            ! - same question about the nnodes use of the rows of the block of the divergence matrix?
