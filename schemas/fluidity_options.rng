@@ -2436,6 +2436,26 @@ optimal size)</a:documentation>
         </element>
       </optional>
       <optional>
+        <element name="ALM_Turbine">
+          <a:documentation>Actuator Line Model Turbine</a:documentation>
+          <zeroOrMore>
+            <element name="alm_turbine">
+              <a:documentation>specifies an ALM Turbine</a:documentation>
+              <attribute name="name">
+                <data type="string"/>
+              </attribute>
+              <group>
+                <a:documentation>Turbine_Description</a:documentation>
+                <element name="axis_location">
+                  <a:documentation>Location for the axis of rotation point location</a:documentation>
+                  <ref name="real_dim_vector"/>
+                </element>
+              </group>
+            </element>
+          </zeroOrMore>
+        </element>
+      </optional>
+      <optional>
         <element name="turbine_model">
           <a:documentation>turbine model</a:documentation>
           <zeroOrMore>
