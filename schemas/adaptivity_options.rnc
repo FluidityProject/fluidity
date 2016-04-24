@@ -417,6 +417,59 @@ delaunay_adaptivity =
          ),
          element region_ids {
             integer_vector
+         }?,
+         ## Vertically structured adaptivity.
+         ##
+         ## The mesh will be unstructured in the horizontal, but columnar
+         ## in the vertical.
+         ## To enable this, your meshes must be derived by extrusion
+         ## from a lower-dimensional horizontal mesh.
+         ## This will give a columnar, layered mesh.
+         element vertically_structured_adaptivity {
+           ## If this is enabled, the resolution along each column
+           ## will be computed from the error metric.
+           ## This will give a columnar mesh, but not a layered one.
+           element inhomogenous_vertical_resolution {
+              ## Ignore the horizontal adapt, and *only* adapt in the vertical
+              element adapt_in_vertical_only {
+                empty
+              }?
+           }?,
+           ## Apply a separate step of horizontal (and vertical, if using inhomogeneous_vertical_resolution)
+           ## gradation to the horizontal (and vertical) metric.
+           ## This replaces is the gradation applied to the full metric and uses the gradation
+           ## algorithm specified above.
+           element split_gradation {
+             empty
+           }?,
+           (
+            ## Remove components from each field's metric that aren't aligned either horizontally
+            ## or vertically.  This can help prevent the horizontal metric from becoming
+            ## contaminated by parts of the vertical metric.
+            ##
+            ## NOTE: Vertical is defined using the GravityDirection field.  This is unlike some other
+            ## parts of the vertically_structured_adaptivity and extrusion routines where vertical is defined as the
+            ## last dimension.
+            element vertically_align_metric {
+              empty
+            }|
+            ## When separating the horizontal metric from the vertical use the full metric.  This
+            ## can lead to more constrained horizontal resolution due to leakage between the vertical
+            ## and horizontal components.
+            element use_full_metric {
+              empty
+            }
+           ),
+           ## When constructing the horizontal metric incorporate the components of the 
+           ## full metric tangential to the bottom boundary.  For example, this is useful 
+           ## when horizontal contours of a field intersect the bathymetry and this information
+           ## is not automatically incorporated into the horizontal metric leading to
+           ## the contact point being underresolved.
+           ##
+           ## Depends on /geometry/ocean_boundaries.
+           element include_bottom_metric {
+            empty
+           }?
          }?
       }
    )        

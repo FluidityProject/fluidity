@@ -41,7 +41,7 @@ module meshmovement
   
   private
   
-  public :: move_mesh_imposed_velocity, move_mesh_pseudo_lagrangian, movemeshy
+  public :: move_mesh_imposed_velocity, move_mesh_pseudo_lagrangian, movemeshy, update
 
 contains
   subroutine movemeshy(state,move_option,TimeStep)

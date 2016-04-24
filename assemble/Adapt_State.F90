@@ -83,6 +83,7 @@ module adapt_state_module
   use sam_integration
   use timeloop_utilities
   use write_gmsh
+  use hadapt_advancing_front
 #ifdef HAVE_ZOLTAN
   use zoltan_integration
 #endif
@@ -93,7 +94,7 @@ module adapt_state_module
 
   public :: adapt_mesh, adapt_state, adapt_state_first_timestep
   public :: insert_metric_for_interpolation, extract_and_remove_metric, sam_options
-  public :: adapt_state_module_check_options
+  public :: adapt_state_module_check_options, update_base_coordinates
 
   interface adapt_state
     module procedure adapt_state_single, adapt_state_multiple
@@ -1077,9 +1078,13 @@ contains
     max_adapt_iteration = adapt_iterations()
 
     vertically_structured_adaptivity = have_option( &
-     &  "/mesh_adaptivity/hr_adaptivity/vertically_structured_adaptivity")
+     &  "/mesh_adaptivity/hr_adaptivity/vertically_structured_adaptivity") &
+     & .or. have_option( &
+     &  "/mesh_adaptivity/delaunay_adaptivity/vertically_structured_adaptivity") 
     vertical_only = have_option(&
-        & "/mesh_adaptivity/hr_adaptivity/vertically_structured_adaptivity/inhomogenous_vertical_resolution/adapt_in_vertical_only")
+        & "/mesh_adaptivity/hr_adaptivity/vertically_structured_adaptivity/inhomogenous_vertical_resolution/adapt_in_vertical_only") &
+    .or. have_option( &
+     &  "/mesh_adaptivity/delaunay_adaptivity/vertically_structured_adaptivity/inhomogenous_vertical_resolution/adapt_in_vertical_only") 
 
     ! Don't need to strip the level 2 halo with Zoltan .. in fact, we don't want to
 #ifndef HAVE_ZOLTAN
@@ -1584,13 +1589,21 @@ contains
     type(scalar_field) :: edge_lengths
 
     vertically_structured_adaptivity = have_option( &
-     &  "/mesh_adaptivity/hr_adaptivity/vertically_structured_adaptivity")
+     &  "/mesh_adaptivity/hr_adaptivity/vertically_structured_adaptivity") &
+     .or. have_option( &
+     &  "/mesh_adaptivity/delaunay_adaptivity/vertically_structured_adaptivity")
+     
     vertically_inhomogenous_adaptivity = have_option( &
-     &  "/mesh_adaptivity/hr_adaptivity/vertically_structured_adaptivity/inhomogenous_vertical_resolution")
+     &  "/mesh_adaptivity/hr_adaptivity/vertically_structured_adaptivity/inhomogenous_vertical_resolution") &
+     .or. have_option( &
+     &  "/mesh_adaptivity/delaunay_adaptivity/vertically_structured_adaptivity/inhomogenous_vertical_resolution")
     include_bottom_metric = have_option( &
-     &  "/mesh_adaptivity/hr_adaptivity/vertically_structured_adaptivity/include_bottom_metric")
+     &  "/mesh_adaptivity/hr_adaptivity/vertically_structured_adaptivity/include_bottom_metric") &
+     .or. have_option( &
+     &  "/mesh_adaptivity/delaunay_adaptivity/vertically_structured_adaptivity/include_bottom_metric")
     split_gradation = have_option( &
-     &  "/mesh_adaptivity/hr_adaptivity/vertically_structured_adaptivity/split_gradation")
+     &  "/mesh_adaptivity/hr_adaptivity/vertically_structured_adaptivity/split_gradation") .or. have_option( &
+     &  "/mesh_adaptivity/delaunay_adaptivity/vertically_structured_adaptivity/split_gradation")
 
     if (vertically_structured_adaptivity) then
       ! project full mesh metric to horizontal surface mesh metric
@@ -1775,6 +1788,32 @@ contains
     end function adapt_state_debug_file_name
 
   end subroutine write_adapt_state_debug_output
+
+  subroutine update_base_coordinates(state)
+    
+    type(state_type), dimension(:) :: state
+
+    type(vector_field), pointer :: base_positions, positions
+
+    type(csr_sparsity):: columns
+    integer :: column
+    integer, dimension(:), pointer :: column_nodes
+
+    base_positions => extract_vector_field(state(1),&
+         trim(adaptivity_mesh_name)//"Coordinate")
+    positions =>  extract_vector_field(state(1),"Coordinate")
+
+    call create_columns_sparsity(columns, positions%mesh)
+
+    do column=1,node_count(base_positions)
+       column_nodes => row_m_ptr(columns, column)
+       base_positions%val(:,column) = positions%val(1:2,column_nodes(1))
+    end do
+
+    call deallocate(columns)
+       
+
+  end subroutine update_base_coordinates
 
   subroutine adapt_state_module_check_options
 

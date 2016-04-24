@@ -483,6 +483,69 @@ Usually set to 10-20 times the timestep.</a:documentation>
           <ref name="integer_vector"/>
         </element>
       </optional>
+      <optional>
+        <element name="vertically_structured_adaptivity">
+          <a:documentation>Vertically structured adaptivity.
+
+The mesh will be unstructured in the horizontal, but columnar
+in the vertical.
+To enable this, your meshes must be derived by extrusion
+from a lower-dimensional horizontal mesh.
+This will give a columnar, layered mesh.</a:documentation>
+          <optional>
+            <element name="inhomogenous_vertical_resolution">
+              <a:documentation>If this is enabled, the resolution along each column
+will be computed from the error metric.
+This will give a columnar mesh, but not a layered one.</a:documentation>
+              <optional>
+                <element name="adapt_in_vertical_only">
+                  <a:documentation>Ignore the horizontal adapt, and *only* adapt in the vertical</a:documentation>
+                  <empty/>
+                </element>
+              </optional>
+            </element>
+          </optional>
+          <optional>
+            <element name="split_gradation">
+              <a:documentation>Apply a separate step of horizontal (and vertical, if using inhomogeneous_vertical_resolution)
+gradation to the horizontal (and vertical) metric.
+This replaces is the gradation applied to the full metric and uses the gradation
+algorithm specified above.</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <choice>
+            <element name="vertically_align_metric">
+              <a:documentation>Remove components from each field's metric that aren't aligned either horizontally
+or vertically.  This can help prevent the horizontal metric from becoming
+contaminated by parts of the vertical metric.
+
+NOTE: Vertical is defined using the GravityDirection field.  This is unlike some other
+parts of the vertically_structured_adaptivity and extrusion routines where vertical is defined as the
+last dimension.</a:documentation>
+              <empty/>
+            </element>
+            <element name="use_full_metric">
+              <a:documentation>When separating the horizontal metric from the vertical use the full metric.  This
+can lead to more constrained horizontal resolution due to leakage between the vertical
+and horizontal components.</a:documentation>
+              <empty/>
+            </element>
+          </choice>
+          <optional>
+            <element name="include_bottom_metric">
+              <a:documentation>When constructing the horizontal metric incorporate the components of the 
+full metric tangential to the bottom boundary.  For example, this is useful 
+when horizontal contours of a field intersect the bathymetry and this information
+is not automatically incorporated into the horizontal metric leading to
+the contact point being underresolved.
+
+Depends on /geometry/ocean_boundaries.</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+        </element>
+      </optional>
     </element>
   </define>
   <define name="hr_adaptivity">

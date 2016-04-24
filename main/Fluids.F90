@@ -906,11 +906,15 @@ contains
 
           if(do_adapt_mesh_connectivity(current_time, timestep)) then
 
+             if (have_option("/mesh_adaptivity/delaunay_adaptivity/vertically_structured_adaptivity")) then
+                call update_base_coordinates(state)
+             end if
+
              call pre_adapt_tasks(sub_state)
 
              call zero(metric_tensor)
              
-             do i=1,mesh_dim(metric_tensor)
+             do i=1,metric_tensor%dim(1)
                 metric_tensor%val(i,i,:)=1.0
              end do
 
@@ -936,7 +940,9 @@ contains
              if(have_option("/io/stat/output_before_adapts")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)
              call run_diagnostics(state)
 
+             call shift_mesh(state,1.0)
              call adapt_state(state, metric_tensor)
+             call shift_mesh(state,-1.0)
 
              call update_state_post_adapt(state, metric_tensor, dt, sub_state, nonlinear_iterations, nonlinear_iterations_adapt)
 
@@ -1071,6 +1077,39 @@ contains
     end if
 
   end subroutine pre_adapt_tasks
+
+  subroutine shift_mesh(state,delta)
+    type(state_type), dimension(:), intent(inout) :: state
+    real, intent(in) :: delta
+
+    real :: dt
+    integer :: nsteps
+    type(vector_field), pointer :: coordinate, grid_velocity
+
+    if(.not.have_option("/mesh_adaptivity/mesh_movement/imposed_grid_velocity")) return
+
+    ewrite(1,*) 'Shift mesh for adaptivity:'
+
+    if (have_option("/mesh_adaptivity/hr_adaptivity/period")) then
+       call get_option("/mesh_adaptivity/hr_adaptivity/period", dt)
+    else
+       call get_option("/timestepping/timestep", dt)
+       call get_option("/mesh_adaptivity/hr_adaptivity/period_in_timesteps",nsteps)
+       dt = dt * nsteps
+    end if
+
+    dt = dt/2.0
+
+    coordinate => extract_vector_field(state(1), "Coordinate")
+    grid_velocity => extract_vector_field(state(1), "GridVelocity")
+
+    if (have_option("/mesh_movement/transform_coordinates")) then
+       call update(coordinate, grid_velocity, scale=dt)
+    else
+       call addto(coordinate, grid_velocity, scale=dt)
+    end if
+
+  end subroutine shift_mesh
 
   subroutine update_state_post_adapt(state, metric_tensor, dt, sub_state, nonlinear_iterations, nonlinear_iterations_adapt)
     type(state_type), dimension(:), intent(inout) :: state
