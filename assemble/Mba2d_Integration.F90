@@ -14,6 +14,7 @@ module mba2d_integration
   use sparse_tools
   use metric_tools
   use fields
+  use parallel_fields
   use state_module
   use meshdiagnostics
   use vtk_interfaces
@@ -230,8 +231,6 @@ module mba2d_integration
     allocate(ipe(3, maxele), mask(nonods))
     mask= 0
     ipe = 0
-    j=1
-
 
     call allocate(region_list)
     if (present_and_true(lock_all_nodes) .and.&
@@ -244,11 +243,14 @@ module mba2d_integration
           call insert(region_list,region_ids(i))
        end do
 
+
+       j=1
        do i=1,totele
-          if (has_value(region_list,ele_region_id(xmesh,i))) cycle
-          ipe(:, j) = ele_nodes(xmesh, i)
-          mask(ele_nodes(xmesh, j)) = 1
-          j=j+1
+          if (valid_delaunay_element(xmesh,i,region_list)) then
+             ipe(:, j) = ele_nodes(xmesh, i)
+             mask(ele_nodes(xmesh, j)) = 1
+             j=j+1
+          end if
        end do
        npe = j-1
 
@@ -433,14 +435,16 @@ module mba2d_integration
     if (present_and_true(lock_all_nodes)) then
        j=1
        do i=1,totele
-          if (has_value(region_list,ele_region_id(xmesh,i))) then
-             ipe(:, i) = ele_nodes(xmesh, i)
-          else
-             ipe(:,i)=nipe(:,j)
+          if (valid_delaunay_element(xmesh, i, region_list)) then
+             ipe(:, i) = nipe(:,j)
              j=j+1
+          else
+             ipe(:, i) = ele_nodes(xmesh, i)
           end if
        end do
     end if
+
+    assert( j==npe+1)
 
     call allocate(new_mesh, nonods, totele, ele_shape(xmesh, 1), trim(xmesh%name))
     ! Hack: untag these references so that people (i.e. me) don't get confused.
@@ -693,5 +697,30 @@ module mba2d_integration
     end if
   
   end subroutine mba2d_integration_check_options
+
+  function valid_delaunay_element(xmesh, ele, region_list) result(valid)
+
+    type(mesh_type) :: xmesh
+    integer         :: ele
+    type(integer_set) :: region_list
+    logical         :: valid
+
+    integer         :: k, n, nhalos
+    integer, dimension(:), pointer :: neighbours, nodes
+
+
+    if (isParallel()) then
+       nhalos = halo_count(xmesh)
+       nodes => ele_nodes(xmesh,ele)
+       do k=1, size(nodes)
+          if (.not. node_owned(xmesh%halos(nhalos), nodes(k))) then
+             valid = .false.
+             return
+          end if
+       end do
+    end if
+    valid = .not. has_value(region_list,ele_region_id(xmesh,ele))
+
+  end function valid_delaunay_element
 
 end module mba2d_integration
