@@ -5557,22 +5557,6 @@ Currently a test field</a:documentation>
         </choice>
       </element>
       <element name="scalar_field">
-        <a:documentation>Second invariant of the strain_rate tensor field. Selecting this field ensures
-that it is updated as part of the momeuntum diagnostics (i.e. 
-at the start of each momentum solve - within non-linear iterations.)</a:documentation>
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <attribute name="name">
-          <value>StrainRateSecondInvariant</value>
-        </attribute>
-        <element name="diagnostic">
-          <ref name="strain_rate_second_invariant_algorithm"/>
-          <ref name="velocity_mesh_choice"/>
-          <ref name="diagnostic_scalar_field"/>
-        </element>
-      </element>
-      <element name="scalar_field">
         <a:documentation>Discontinuity detector
 
 takes value 1 where detector is triggered
