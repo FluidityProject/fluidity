@@ -206,7 +206,7 @@ contains
   end subroutine calculate_momentum_diagnostics
 
   subroutine update_calculated_state(calculated_state, calculated_submaterials, submaterials_indices)
-    ! When updating diagnostic dependencie, we track the various dependencies through a calculated mask. This requires some copying back and forth
+    ! When updating diagnostic dependencies, we track the various dependencies through a calculated mask. This requires some copying back and forth
     ! between two arrays of states (one for all states the other for the phase/submaterials). This routine updates the state mask (target) by copying across
     ! references from the submaterials mask (donor).
     
@@ -217,13 +217,13 @@ contains
     integer :: i
 
     do i = 1, size(calculated_submaterials)
-      call reference_fields(calculated_submaterials(i), calculated_state(submaterials_indices(i)))
+      call insert(calculated_state(submaterials_indices(i)), calculated_submaterials(i))
     end do
 
   end subroutine update_calculated_state
 
   subroutine update_calculated_submaterials(calculated_submaterials, calculated_state, submaterials_indices)
-    ! When updating diagnostic dependencie, we track the various dependencies through a calculated mask. This requires some copying back and forth
+    ! When updating diagnostic dependencies, we track the various dependencies through a calculated mask. This requires some copying back and forth
     ! between two arrays of states (one for all states the other for the phase/submaterials). This routine updates the submaterials mask (target) by copying across
     ! references from the state mask (donor).
     type(state_type), dimension(:), intent(inout) :: calculated_submaterials
@@ -233,39 +233,11 @@ contains
     integer :: i
 
     do i = 1, size(calculated_submaterials)
-      call reference_fields(calculated_state(submaterials_indices(i)), calculated_submaterials(i))
+      call insert(calculated_submaterials(i), calculated_state(submaterials_indices(i)))
     end do
 
   end subroutine update_calculated_submaterials
 
-  subroutine reference_fields(donor, target)
-    !!< Reference fields contained in donor in target
-  
-    type(state_type), intent(in) :: donor
-    type(state_type), intent(inout) :: target
-    
-    integer :: i
-    type(scalar_field), pointer :: s_field
-    type(tensor_field), pointer :: t_field
-    type(vector_field), pointer :: v_field
-    
-    do i = 1, scalar_field_count(donor)
-      s_field => extract_scalar_field(donor, i)
-      call insert(target, s_field, s_field%name)
-    end do
-    
-    do i = 1, vector_field_count(donor)
-      v_field => extract_vector_field(donor, i)
-      call insert(target, v_field, v_field%name)
-    end do
-    
-    do i = 1, tensor_field_count(donor)
-      t_field => extract_tensor_field(donor, i)
-      call insert(target, t_field, t_field%name)
-    end do
-    
-  end subroutine reference_fields
-  
   subroutine calculate_densities_single_state(state, buoyancy_density, bulk_density, &
                                               momentum_diagnostic)
   
