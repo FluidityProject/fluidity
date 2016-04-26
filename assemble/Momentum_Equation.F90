@@ -1806,6 +1806,8 @@
 
          type(vector_field), pointer :: positions
 
+         ! An array indicating the location of the pressure reference node and/or
+         ! boundary conditions.  Only used for schur_complement solves.
          logical, dimension(:), allocatable :: inactive_mask
 
          ewrite(1,*) 'Entering correct_pressure'

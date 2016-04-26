@@ -2398,6 +2398,9 @@ contains
     !!< the value of the pressure at one point. As the rhs of the equation
     !!< needs to be zeroed for this node, you will have to call this for
     !!< both pressure equations.
+    !!< This version of this routine returns the reference node location through
+    !!< an inactive mask array (inactive_mask), that is true in the location of
+    !!< the reference node.
     logical, dimension(:), intent(inout) :: inactive_mask
     type(scalar_field), intent(inout):: rhs
     type(vector_field), intent(inout) :: positions

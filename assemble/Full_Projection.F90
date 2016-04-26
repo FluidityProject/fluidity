@@ -84,6 +84,8 @@
       type(mesh_type), intent(in):: inner_mesh
       ! p1-p1 stabilization matrix or free surface terms:
       type(csr_matrix), optional, intent(in) :: auxiliary_matrix
+      ! an array indicating which entries in the matrix are boundary conditions and 
+      ! therefore inactive (flagged as true)
       logical, dimension(:), intent(in), optional :: inactive_mask
 
       KSP ksp ! Object type for outer solve (i.e. A * delta_p = rhs)
@@ -182,6 +184,8 @@
       ! state, and inner_mesh are used to setup mg preconditioner of inner solve
       type(state_type), intent(in):: state
       type(mesh_type), intent(in):: inner_mesh
+      ! an array indicating which entries in the matrix are boundary conditions and 
+      ! therefore inactive (flagged as true)
       logical, dimension(:), intent(in), optional :: inactive_mask
 
       type(vector_field), pointer :: positions, mesh_positions

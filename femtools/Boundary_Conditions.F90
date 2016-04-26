@@ -1573,6 +1573,9 @@ contains
     !!< This is typically done for a Poisson equation with all Neumann
     !!< bcs to eliminate the spurious freedom of adding a constant value
     !!< to the solution.
+    !!< This version of this routine returns the reference node location through
+    !!< an inactive mask array (inactive_mask), that is true in the location of
+    !!< the reference node.
     logical, dimension(:), intent(inout) :: inactive_mask
     integer, intent(in):: node
     !! if rhs is not provided, you have to make sure the rhs at 
@@ -1995,6 +1998,10 @@ contains
     !!<
     !!< If dt is supplied, this assumes that boundary 
     !!< conditions are applied in rate of change form.
+    !!<
+    !!< This version of this routine returns the boundary condition location(s) through
+    !!< an inactive mask array (inactive_mask), that is true in the location of the
+    !!< dofs where the boundary condition is being applied.
     logical, dimension(:):: inactive_mask
     type(scalar_field), intent(inout) :: rhs
     type(scalar_field), intent(in) :: field
