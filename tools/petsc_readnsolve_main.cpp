@@ -40,14 +40,14 @@ void usage(int argc, char **argv){
   char flml_extension[]=".flml";
   char *flml_file=NULL;
   PetscErrorCode ierr;
-#if PETSC_VERSION_MINOR>=2
   PetscBool      flg;
-#else
-  PetscTruth     flg;
-#endif
   
   // if it's already specified as a PETSc option, we do nothing:
+#if PETSC_VERSION_MINOR<7
   ierr = PetscOptionsHasName("prns_","-flml",&flg);
+#else
+  ierr = PetscOptionsHasName(NULL, "prns_","-flml",&flg);
+#endif
   if (flg) {
     return;
   }
@@ -65,15 +65,27 @@ void usage(int argc, char **argv){
     my_PETSc_options+= flml_file;
     // see if next argument is a valid fieldname
     // but only if not already in the PETSc options database
+#if PETSC_VERSION_MINOR<7
     ierr = PetscOptionsHasName("prns_","-field",&flg);
+#else
+    ierr = PetscOptionsHasName(NULL, "prns_","-field",&flg);
+#endif
     if( !flg && (i+1<argc) && (argv[i+1][0]!='-') ) {
       my_PETSc_options+= " -prns_field " + string(argv[i+1]);
     }
+#if PETSC_VERSION_MINOR<7
     ierr = PetscOptionsInsertString( my_PETSc_options.c_str() );
+#else
+    ierr = PetscOptionsInsertString(NULL, my_PETSc_options.c_str() );
+#endif
   }
   
   // -l option needs to be dealt with in c++ already
+#if PETSC_VERSION_MINOR<7
   ierr = PetscOptionsHasName("","-l",&flg);
+#else
+  ierr = PetscOptionsHasName(NULL, "","-l",&flg);
+#endif
   if (flg) {
     int rank = 0;
 #ifdef HAVE_MPI
