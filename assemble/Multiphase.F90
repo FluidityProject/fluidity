@@ -52,7 +52,7 @@
 
    contains
 
-      subroutine get_phase_submaterials(state, istate, submaterials, phase_istate)
+      subroutine get_phase_submaterials(state, istate, submaterials, phase_istate, submaterials_indices)
          !!< Sets up an array of the submaterials of a phase.
          !!< NB: This includes the current state itself (i.e. state(istate)).
 
@@ -60,6 +60,7 @@
          integer, intent(in) :: istate
          type(state_type), dimension(:), pointer :: submaterials
          integer, intent(inout), optional :: phase_istate
+         integer, dimension(:), pointer, optional :: submaterials_indices
 
          !! Local variables
          integer :: i, next, stat, material_count
@@ -112,12 +113,18 @@
 
          !! Allocate submaterials array
          allocate(submaterials(material_count))
+         if (present(submaterials_indices)) then
+           allocate(submaterials_indices(material_count))
+         end if
          
          !! Assign the states to the submaterials array
          next = 1 ! Keep track of where we are in the submaterials array
          do i = 1, size(state)
             if(is_submaterial(i)) then
                submaterials(next) = state(i)
+               if (present(submaterials_indices)) then
+                 submaterials_indices(next) = i
+               end if
 
                ! Keep track of the phase's index in the new submaterials array
                if(present(phase_istate) .and. (i == istate)) then
