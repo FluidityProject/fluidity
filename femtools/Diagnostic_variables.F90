@@ -29,6 +29,7 @@
 
 module diagnostic_variables
   !!< A module to calculate and output diagnostics. This replaces the .s file.
+  use iso_c_binding, only: c_long
   use fldebug 
   use global_parameters, only:FIELD_NAME_LEN,OPTION_PATH_LEN, &
 & PYTHON_FUNC_LEN, integer_size, real_size
