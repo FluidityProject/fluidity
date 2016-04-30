@@ -29,9 +29,10 @@
 
 module diagnostic_variables
   !!< A module to calculate and output diagnostics. This replaces the .s file.
+  use iso_c_binding, only: c_long
   use fldebug 
   use global_parameters, only:FIELD_NAME_LEN,OPTION_PATH_LEN, &
-& PYTHON_FUNC_LEN, int_16, integer_size, real_size
+& PYTHON_FUNC_LEN, integer_size, real_size
   use quadrature
   use futils
   use elements
@@ -174,7 +175,7 @@ module diagnostic_variables
     
     !! Recording wall time since the system start
     integer :: current_count, count_rate, count_max
-    integer(kind = int_16) :: elapsed_count
+    integer(kind = c_long) :: elapsed_count
   end type stat_type
 
   type(stat_type), save, target :: default_stat

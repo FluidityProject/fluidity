@@ -31,7 +31,7 @@ module bound_field_module
 
   use FLDebug
   use spud
-  use global_parameters, only : FIELD_NAME_LEN, real_8
+  use global_parameters, only : FIELD_NAME_LEN
   use quicksort
   use parallel_tools
   use sparse_tools
