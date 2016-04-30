@@ -1,0 +1,1 @@
+add_library_sources(NetCDF_reader.cpp SampleNetCDF2.cpp import_bath_data.cpp read_netcdf_interface.cpp)
