@@ -1,0 +1,1 @@
+set(JUDY_SRCS_JUDYHS JudyHS.c)
