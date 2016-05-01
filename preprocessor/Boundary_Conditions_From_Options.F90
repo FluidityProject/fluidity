@@ -695,7 +695,7 @@ contains
         call set_dirichlet_turbine_boundary_conditions(states(1))
         call set_flux_turbine_boundary_conditions(states(1))
     end if
-
+    
   end subroutine set_boundary_conditions_values
 
   subroutine set_scalar_boundary_conditions_values(state, field, bc_path, position, shift_time)

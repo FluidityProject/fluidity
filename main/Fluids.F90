@@ -103,6 +103,8 @@ module fluids_module
   use saturation_distribution_search_hookejeeves
   use gls
   use iceshelf_meltrate_surf_normal
+  use alturbine
+
 #ifdef HAVE_HYPERLIGHT
   use hyperlight
 #endif
@@ -401,6 +403,13 @@ contains
     if (have_option("/ocean_biology")) then
        call calculate_biology_terms(state(1))
     end if
+
+    !GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
+    ! initilise the Actuator Line Model 
+    if (have_option("/ALM_Turbine")) then
+        call turbine_init(state(1))
+    end if
+    !GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
 
     call initialise_diagnostics(filename, state)
 
