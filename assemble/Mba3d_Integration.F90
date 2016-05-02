@@ -29,8 +29,8 @@
 
 module mba3d_integration 
 
+  use iso_c_binding, only: c_double
   use fldebug
-  use global_parameters, only : real_8
   use futils, only: present_and_true
   use quadrature
   use elements
@@ -80,7 +80,7 @@ contains
     ! mbanodal arguments
     ! Group (M)
     integer :: np, maxp, nf, maxf, ne, maxe
-    real(kind = real_8), dimension(:, :), allocatable :: xyp
+    real(kind = c_double), dimension(:, :), allocatable :: xyp
     integer, dimension(:, :), allocatable :: ipf, ipe
     integer, dimension(:), allocatable :: lbf, lbe
     integer :: nestar
@@ -91,11 +91,11 @@ contains
     integer :: status
     ! Group (Q)
     integer :: maxskipe, maxqitr
-    real(kind = real_8), dimension(:, :), allocatable :: metric_handle
-    real(kind = real_8) :: quality, rquality
+    real(kind = c_double), dimension(:, :), allocatable :: metric_handle
+    real(kind = c_double) :: quality, rquality
     ! Group (W)
     integer :: maxwr, maxwi
-    real(kind = real_8), dimension(:), allocatable :: rw
+    real(kind = c_double), dimension(:), allocatable :: rw
     integer, dimension(:), allocatable :: iw
     integer :: iprint, ierr
 
@@ -206,7 +206,7 @@ contains
       metric_handle(6, i) = node_val(metric, 1, 3, i)
     end do
 
-    call get_option(base_path // "/adaptivity_library/libmba3d/quality", quality, default = real(0.6, kind = real_8))
+    call get_option(base_path // "/adaptivity_library/libmba3d/quality", quality, default = real(0.6, kind = c_double))
     ! Output variable - initialise just in case it's also used as input
     rquality = 0.0
 

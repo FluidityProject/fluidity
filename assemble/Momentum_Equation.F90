@@ -275,6 +275,8 @@
          type(state_type), dimension(:), pointer :: submaterials
          ! The index of the current phase (i.e. state(istate)) in the submaterials array
          integer :: submaterials_istate
+         ! The full list of indices between submaterials and state
+         integer, dimension(:), pointer :: submaterials_indices
          ! Do we have fluid-particle drag between phases?
          logical :: have_fp_drag
 
@@ -394,9 +396,10 @@
 
             ! This sets up an array of the submaterials of a phase.
             ! NB: The submaterials array includes the current state itself, at index submaterials_istate.
-            call get_phase_submaterials(state, istate, submaterials, submaterials_istate)
-            call calculate_momentum_diagnostics(state, istate, submaterials, submaterials_istate)
+            call get_phase_submaterials(state, istate, submaterials, submaterials_istate, submaterials_indices)
+            call calculate_momentum_diagnostics(state, istate, submaterials, submaterials_istate, submaterials_indices)
             deallocate(submaterials)
+            deallocate(submaterials_indices)
 
             call profiler_toc("momentum_diagnostics")
 

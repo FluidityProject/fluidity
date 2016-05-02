@@ -100,13 +100,13 @@ contains
   end subroutine nemo_v2_SetSimulationTimeunits
   
   subroutine nemo_v2_SetTimeSeconds(time)
-    real(real_8), intent(in) :: time
+    real(c_double), intent(in) :: time
     call nemo_v2_SetTimeSeconds_c(time)
   end subroutine nemo_v2_SetTimeSeconds
   
   subroutine get_nemo_variables(time, X, Y, Z, DEPTH, Te, Sa, U, V, W, SSH, NNodes)
     use, intrinsic :: iso_c_binding
-    real(real_8), intent(in) :: time
+    real(c_double), intent(in) :: time
     real, dimension(:), intent(in) :: X, Y, Z, DEPTH
     real, dimension(:), intent(out) :: Te, Sa, U, V, W, SSH
     integer, intent(in) :: NNodes

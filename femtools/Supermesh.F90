@@ -1,8 +1,8 @@
 #include "fdebug.h"
 
 module supermesh_construction
+  use iso_c_binding, only: c_float, c_double
   use fldebug
-  use global_parameters, only : real_4, real_8
   use futils
   use sparse_tools
   use elements
@@ -28,6 +28,17 @@ module supermesh_construction
   implicit none
 
 #ifndef HAVE_SUPERMESH
+  interface cintersector_set_input
+    module procedure intersector_set_input_sp
+  
+    subroutine cintersector_set_input(nodes_A, nodes_B, ndim, loc)
+      use iso_c_binding, only: c_double
+      implicit none
+      real(kind = c_double), dimension(ndim, loc), intent(in) :: nodes_A, nodes_B
+      integer, intent(in) :: ndim, loc
+    end subroutine cintersector_set_input
+  end interface cintersector_set_input
+
   interface 
     subroutine cintersector_drive
     end subroutine cintersector_drive
@@ -40,14 +51,17 @@ module supermesh_construction
     end subroutine cintersector_query
   end interface
 
-  interface cintersector_set_input  
-    subroutine cintersector_set_input(nodes_A, nodes_B, ndim, loc)
-      use global_parameters, only : real_8
+  interface cintersector_get_output
+    module procedure intersector_get_output_sp
+  
+    subroutine cintersector_get_output(nonods, totele, ndim, loc, nodes, enlist)
+      use iso_c_binding, only: c_double
       implicit none
-      real(kind = real_8), dimension(ndim, loc), intent(in) :: nodes_A, nodes_B
-      integer, intent(in) :: ndim, loc
-    end subroutine cintersector_set_input
-  end interface cintersector_set_input
+      integer, intent(in) :: nonods, totele, ndim, loc
+      real(kind = c_double), dimension(nonods * ndim), intent(out) :: nodes
+      integer, dimension(totele * loc), intent(out) :: enlist
+    end subroutine cintersector_get_output
+  end interface cintersector_get_output
 
   interface intersector_set_dimension
     subroutine cintersector_set_dimension(ndim)
@@ -62,16 +76,6 @@ module supermesh_construction
       integer, intent(in) :: exact
     end subroutine cintersector_set_exactness
   end interface
-
-  interface cintersector_get_output  
-    subroutine cintersector_get_output(nonods, totele, ndim, loc, nodes, enlist)
-      use global_parameters, only : real_8
-      implicit none
-      integer, intent(in) :: nonods, totele, ndim, loc
-      real(kind = real_8), dimension(nonods * ndim), intent(out) :: nodes
-      integer, dimension(totele * loc), intent(out) :: enlist
-    end subroutine cintersector_get_output
-  end interface cintersector_get_output
 #endif
 
 #ifndef HAVE_SUPERMESH
@@ -214,6 +218,31 @@ module supermesh_construction
 
   end function intersect_elements
 #else
+  subroutine intersector_set_input_sp(nodes_A, nodes_B, ndim, loc)
+    real(kind = c_float), dimension(ndim, loc), intent(in) :: nodes_A
+    real(kind = c_float), dimension(ndim, loc), intent(in) :: nodes_B
+    integer, intent(in) :: ndim
+    integer, intent(in) :: loc
+    
+    call cintersector_set_input(real(nodes_A, kind = c_double), real(nodes_B, kind = c_double), ndim, loc)
+  
+  end subroutine intersector_set_input_sp
+  
+  subroutine intersector_get_output_sp(nonods, totele, ndim, loc, nodes, enlist)
+    integer, intent(in) :: nonods
+    integer, intent(in) :: totele
+    integer, intent(in) :: ndim
+    integer, intent(in) :: loc
+    real(kind = c_float), dimension(nonods * ndim), intent(out) :: nodes
+    integer, dimension(totele * loc), intent(out) :: enlist
+    
+    real(kind = c_double), dimension(size(nodes)) :: lnodes
+
+    call cintersector_get_output(nonods, totele, ndim, loc, lnodes, enlist)
+    nodes = lnodes
+
+  end subroutine intersector_get_output_sp
+
   function intersect_elements(positions_A, ele_A, posB, shape) result(intersection)
     type(vector_field), intent(in) :: positions_A
     integer, intent(in) :: ele_A
