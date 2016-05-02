@@ -5,3 +5,6 @@ bulk_parameterisations.F90 forcingERA40_fortran.F90
 NEMO_load_fields_vars.F90 NEMO_load_fields.F90 load_netcdf.F90 
 InitialiseOceanForcing.F90 FluxesReader_interface.F90 
 NemoReader_interface.F90)
+add_subdirectory(tests EXCLUDE_FROM_ALL)
+
+set(unittests ${ocean_forcing_unittests};${unittests} PARENT_SCOPE)

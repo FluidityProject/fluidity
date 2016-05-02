@@ -5,3 +5,6 @@ add_library_sources(Form_metric.F90 Assemble_metric.F90 Interpolation_metric.F90
      Conformity_measurement.F90 Metric_advection.F90  Mba_adapt.F90 Limit_metric.F90 Anisotropic_gradation_metric.F90
      Project_metric_to_surface.F90 Field_preprocessing.F90 Anisotropic_ZZ.F90 Richardson_metric.F90
      Reference_Meshes.F90 Huang_metric.F90)
+add_subdirectory(tests EXCLUDE_FROM_ALL)
+
+set(unittests ${error_measure_unittests}${unittests} PARENT_SCOPE)

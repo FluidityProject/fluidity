@@ -1,0 +1,17 @@
+cmake_minimum_required(VERSION 2.6)
+enable_language (Fortran CXX)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/tests)
+
+file(GLOB tests RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *.F90)
+list(REMOVE_ITEM tests test_mba_supermesh.F90 test_legacy_cv_faces.F90 test_lagrangian_remap.F90 test_adapt_mesh_mba3d.F90 test_pressure_solve.F90 test_matrix_free.F90 test_dg_interpolation_quads.F90 test_dg_diffusion.F90)
+foreach(unittest IN LISTS tests)
+   get_filename_component(test_name ${unittest} NAME_WE)
+   add_library(${test_name}_main OBJECT test_main.cpp)
+   set_target_properties(${test_name}_main PROPERTIES COMPILE_FLAGS -DTESTNAME=${test_name}_)
+   add_executable(${test_name} ${unittest} $<TARGET_OBJECTS:${test_name}_main>)
+   target_link_libraries(${test_name} fluidity vtkfortran ${spatialindex} adaptivity ${VTK_LIBRARIES} ${MPI_LIBRARIES} ${PETSC_PACKAGE_LIBS} ${PETSC_LIB} ${ZOLTAN_LIB} ${SPUD_LIB} ${JUDY_LIB} ${UDUNITS_LIB} mba2d ${PYTHON_LIBRARIES})
+   list(APPEND unittests ${test_name})
+endforeach()
+
+set(assemble_unittests ${unittests} PARENT_SCOPE)
+set(assemble_unittest_meshes_3d "cube_prismatic;cube_unstructured;" PARENT_SCOPE)

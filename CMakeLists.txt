@@ -61,7 +61,7 @@ if(PYTHON_NUMPY_FOUND)
    add_definitions(-DHAVE_NUMPY)
 endif()
 
-include_directories(./include ${MPI_INCLUDE_PATH} ${PETSC_PACKAGE_INCLUDES} ${ZOLTAN_INCLUDE_DIR} ./libwm ./libvtkfortran/include)
+include_directories(./include ${MPI_INCLUDE_PATH} ${PETSC_PACKAGE_INCLUDES} ${ZOLTAN_INCLUDE_DIR} ./libwm ./libvtkfortran/include ${PYTHON_INCLUDE_DIRS})
 
 
 macro (add_Library_sources)
@@ -97,6 +97,11 @@ add_subdirectory(error_measures)
 add_subdirectory(assemble)
 add_subdirectory(diagnostics)
 add_subdirectory(reduced_modelling)
+add_subdirectory(tests)
+add_subdirectory(tools)
+
+execute_process(COMMAND "${CMAKE_COMMAND}" "-E" "copy_if_different" ${CMAKE_SOURCE_DIR}/python ${CMAKE_BINARY_DIR}/python)
+execute_process(COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" ${CMAKE_SOURCE_DIR}/python ${CMAKE_BINARY_DIR}/python)
 
 if(MBA2D)
    add_subdirectory(libmba2d)
@@ -124,4 +129,15 @@ target_link_libraries(fluidity-bin fluidity vtkfortran ${spatialindex} adaptivit
 add_definitions(-DPACKAGE_NAME="fluidity"
 	        -DPACKAGE_TARNAME="fluidity"
 		-DSIGNAL
+                -DHAVE_MPI
+                -DDOUBLEP
 		-DHAVE_MEMORY_STATS=1)
+
+
+add_custom_target(unittest
+        "${CMAKE_COMMAND}" "-E" "create_symlink" "${CMAKE_SOURCE_DIR}/tests/data"  "${CMAKE_BINARY_DIR}/bin/tests/data"
+	COMMAND bin/unittestharness bin/tests)
+add_dependencies(unittest ${unittests})
+foreach(mesh IN LISTS unittest_meshes_3d)
+    add_dependencies(unittest ${mesh})
+endforeach()

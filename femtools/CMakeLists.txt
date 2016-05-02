@@ -47,3 +47,7 @@ add_library_sources(Dgtools.F90 Coordinates.F90 EventCounter.F90
   GMSH_Common.F90 Read_GMSH.F90 Write_GMSH.F90 
   Exodusii_C_Interface.c Exodusii_F_Interface.F90 Exodusii_Common.F90 Read_Exodusii.F90 
   Mesh_Files.F90 Vertical_Extrapolation.F90)
+
+add_subdirectory(tests EXCLUDE_FROM_ALL)
+
+set(unittests ${femtools_unittests};${unittests} PARENT_SCOPE)

@@ -1,0 +1,16 @@
+cmake_minimum_required(VERSION 2.6)
+enable_language (Fortran CXX)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/tests)
+
+file(GLOB tests RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *.F90 *.cpp)
+list(REMOVE_ITEM tests test_main.cpp)
+foreach(unittest IN LISTS tests)
+   get_filename_component(test_name ${unittest} NAME_WE)
+   add_library(${test_name}_main OBJECT test_main.cpp)
+   set_target_properties(${test_name}_main PROPERTIES COMPILE_FLAGS -DTESTNAME=${test_name}_)
+   add_executable(${test_name} ${unittest} $<TARGET_OBJECTS:${test_name}_main>)
+   target_link_libraries(${test_name} fluidity vtkfortran ${spatialindex} adaptivity ${VTK_LIBRARIES} ${MPI_LIBRARIES} ${PETSC_PACKAGE_LIBS} ${PETSC_LIB} ${ZOLTAN_LIB} ${SPUD_LIB} ${JUDY_LIB} ${UDUNITS_LIB} mba2d ${PYTHON_LIBRARIES})
+   list(APPEND unittests ${test_name})
+endforeach()
+
+set(ocean_forcing_unittests ${unittests} PARENT_SCOPE)
