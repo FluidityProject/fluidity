@@ -1,6 +1,13 @@
 cmake_minimum_required(VERSION 2.8)
-enable_language (Fortran CXX)
+enable_language (Fortran C CXX)
 project(fluidity)
+
+# make sure that the default is a RELEASE
+if (NOT CMAKE_BUILD_TYPE)
+  set (CMAKE_BUILD_TYPE RELEASE CACHE STRING
+      "Choose the type of build, options are: None Debug Release."
+      FORCE)
+endif (NOT CMAKE_BUILD_TYPE)
 
 SET(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}")
 
@@ -12,6 +19,9 @@ find_package(VTK REQUIRED)
 find_package(PETSc REQUIRED)
 add_definitions(-DHAVE_PETSC=1
 	        -DHAVE_PETSC_MODULES=1)
+# seperate check for hypre
+find_library(HYBRE_LIB HYPRE)
+add_definitions(-DHAVE_HYPRE=1)
 #check for zoltan
 find_path(ZOLTAN_INCLUDE_DIR zoltan.h)
 find_library(ZOLTAN_LIB zoltan)
@@ -19,6 +29,16 @@ if(ZOLTAN_LIB)
    message(STATUS "Zoltan library found!")
    add_definitions(-DHAVE_ZOLTAN)
 endif()
+# netcdf searching
+find_package(PkgConfig)
+pkg_check_modules(NETCDF QUIET netcdf)
+pkg_check_modules(NETCDFF QUIET netcdf-fortran)
+find_library(NETCDF_LIB netcdf
+             HINTS ${NETCDF_LIBDIR} ${NETCDF_LIBRARY_DIRS} )
+find_library(NETCDFF_LIB netcdff
+             HINTS ${NETCDFF_LIBDIR} ${NETCDFF_LIBRARY_DIRS} )
+add_definitions(-DHAVE_LIBNETCDF)
+
 #check for spud
 find_library(SPUD_LIB spud)
 add_definitions(-DHAVE_SPUD=1)
@@ -26,8 +46,8 @@ add_definitions(-DHAVE_SPUD=1)
 find_library(JUDY_LIB Judy)
 add_definitions(-DHAVE_JUDY=1)
 #check for udunits
-find_library(UDUNITS_LIB udunits)
-add_definitions(-DHAVE_UDUNITS=1)
+find_library(UDUNITS_LIB udunits2 udunits)
+add_definitions(-DHAVE_LIBUDUNITS=1)
 #check for spatialindex
 find_library(spatialindex spatialindex)
 
@@ -36,7 +56,7 @@ add_definitions(-DHAVE_VTK=1)
 
 find_library (PETSC_LIB petsc HINTS ${PETSc_DIR}/../../)
 
-include_directories(${MPI_INCLUDE_PATH} ${PETSC_PACKAGE_INCLUDES} ${ZOLTAN_INCLUDE_DIR} ./libwm ./libvtkfortran/include)
+include_directories(${MPI_INCLUDE_PATH} ${PETSC_PACKAGE_INCLUDES} ${ZOLTAN_INCLUDE_DIR} ./libwm ./libvtkfortran/include ${NETCDF_INCLUDE_DIRS})
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
@@ -61,6 +81,19 @@ if(PYTHON_NUMPY_FOUND)
    add_definitions(-DHAVE_NUMPY)
 endif()
 
+file(WRITE "${CMAKE_BINARY_DIR}/teststream.F90" 
+     "program teststream
+      open(unit = 0, access = 'stream')
+      end program teststream")
+try_compile(RESULT_VAR ${CMAKE_BINARY_DIR} ${CMAKE_BINARY_DIR}/teststream.F90 OUTPUT_VARIABLE STREAM)
+if (STREAM)
+   message(STATUS "Streaming io works")
+   add_definitions(-DSTREAM_IO)
+else(STREAM)
+   message(STATUS "No streaming io")
+endif()
+file(REMOVE "${CMAKE_BINARY_DIR}/teststream.F90")
+
 include_directories(./include ${MPI_INCLUDE_PATH} ${PETSC_PACKAGE_INCLUDES} ${ZOLTAN_INCLUDE_DIR} ./libwm ./libvtkfortran/include ${PYTHON_INCLUDE_DIRS})
 
 
@@ -80,7 +113,30 @@ macro (add_Library_sources)
 endmacro()
 
 set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_BINARY_DIR}/include)
-set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -frecord-marker=4 -ffree-line-length-none -ffixed-line-length-none -fdefault-real-8 -fdefault-double-8")
+
+# FFLAGS depend on the compiler
+get_filename_component (Fortran_COMPILER_NAME ${CMAKE_Fortran_COMPILER} NAME)
+
+if (Fortran_COMPILER_NAME MATCHES "gfortran.*")
+  # gfortran
+  set (CMAKE_Fortran_FLAGS_RELEASE "-funroll-all-loops  -O3")
+  set (CMAKE_Fortran_FLAGS_DEBUG   "-O0 -g")
+  set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -frecord-marker=4 -ffree-line-length-none -ffixed-line-length-none -fdefault-real-8 -fdefault-double-8")
+elseif (Fortran_COMPILER_NAME MATCHES "ifort.*")
+  # ifort (untested)
+  set (CMAKE_Fortran_FLAGS_RELEASE "-f77rtl -O3")
+  set (CMAKE_Fortran_FLAGS_DEBUG   "-f77rtl -O0 -g")
+elseif (Fortran_COMPILER_NAME MATCHES "g77")
+  # g77
+  set (CMAKE_Fortran_FLAGS_RELEASE "-funroll-all-loops -fno-f2c -O3 -m32")
+  set (CMAKE_Fortran_FLAGS_DEBUG   "-fno-f2c -O0 -g -m32")
+else (Fortran_COMPILER_NAME MATCHES "gfortran.*")
+  message ("CMAKE_Fortran_COMPILER full path: " ${CMAKE_Fortran_COMPILER})
+  message ("Fortran compiler: " ${Fortran_COMPILER_NAME})
+  message ("No optimized Fortran compiler flags are known, we just try -O2...")
+  set (CMAKE_Fortran_FLAGS_RELEASE "-O2")
+  set (CMAKE_Fortran_FLAGS_DEBUG   "-O0 -g")
+endif (Fortran_COMPILER_NAME MATCHES "gfortran.*")
 
 add_library_sources()
 add_subdirectory(debug)
@@ -129,7 +185,14 @@ if(MPI_LINK_FLAGS)
       LINK_FLAGS "${MPI_LINK_FLAGS}")
 endif()
 
-target_link_libraries(fluidity-bin fluidity vtkfortran ${spatialindex} adaptivity ${VTK_LIBRARIES} ${MPI_LIBRARIES} ${PETSC_PACKAGE_LIBS} ${PETSC_LIB} ${ZOLTAN_LIB} ${SPUD_LIB} ${JUDY_LIB} ${UDUNITS_LIB} ${MBA2D_LIBS} ${PYTHON_LIBRARIES})
+if(APPLE)
+   find_library(COCOA_LIBRARY Cocoa)
+   find_library(EXPAT_LIB expat)
+   MARK_AS_ADVANCED (COCOA_LIBRARY EXPAT_LIB)
+   set(EXTRA_LIBS ${COCOA_LIBRARY} ${EXPAT_LIB})
+endif()
+
+target_link_libraries(fluidity-bin fluidity vtkfortran ${spatialindex} adaptivity ${VTK_LIBRARIES} ${MPI_LIBRARIES} ${PETSC_PACKAGE_LIBS} ${PETSC_LIB} ${HYPRE_LIB} ${ZOLTAN_LIB} ${SPUD_LIB} ${JUDY_LIB} ${UDUNITS_LIB} ${MBA2D_LIBS} ${PYTHON_LIBRARIES} ${NETCDF_LIB} ${EXTRA_LIBS})
 
 add_definitions(-DPACKAGE_NAME="fluidity"
 	        -DPACKAGE_TARNAME="fluidity"
