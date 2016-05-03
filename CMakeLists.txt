@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 2.8)
 enable_language (Fortran CXX)
 project(fluidity)
 
@@ -98,19 +98,24 @@ add_subdirectory(assemble)
 add_subdirectory(diagnostics)
 add_subdirectory(reduced_modelling)
 add_subdirectory(tests)
-add_subdirectory(tools)
+add_subdirectory(fldecomp)
+add_subdirectory(climatology)
 
 execute_process(COMMAND "${CMAKE_COMMAND}" "-E" "copy_if_different" ${CMAKE_SOURCE_DIR}/python ${CMAKE_BINARY_DIR}/python)
 execute_process(COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" ${CMAKE_SOURCE_DIR}/python ${CMAKE_BINARY_DIR}/python)
 
-if(MBA2D)
+if(${USING_TWOD_ADAPTIVITY} MATCHES ON)
+   message(STATUS "link to libmba2d")
    add_subdirectory(libmba2d)
    set(MBA2D_LIBS mba2d)
    add_definitions(-DHAVE_MBA_2D=1)
+else()
+   message(STATUS "Not using libmba2d")
+   set(USING_TWOD_ADAPTIVITY OFF)
 endif()
 
-add_library(fluidity ${LIB_SRCS})
-add_executable(fluidity-bin main.cpp main/mainfl.F90 main/Fluids.F90 main/Usage.cpp preprocessor/check_options.F90)
+add_library(fluidity ${LIB_SRCS} main/mainfl.F90 main/Fluids.F90 main/Usage.cpp preprocessor/check_options.F90)
+add_executable(fluidity-bin main.cpp)
 
 SET_TARGET_PROPERTIES(fluidity-bin PROPERTIES OUTPUT_NAME fluidity)
 
@@ -133,6 +138,7 @@ add_definitions(-DPACKAGE_NAME="fluidity"
                 -DDOUBLEP
 		-DHAVE_MEMORY_STATS=1)
 
+add_subdirectory(tools)
 
 add_custom_target(unittest
         "${CMAKE_COMMAND}" "-E" "create_symlink" "${CMAKE_SOURCE_DIR}/tests/data"  "${CMAKE_BINARY_DIR}/bin/tests/data"
@@ -141,3 +147,5 @@ add_dependencies(unittest ${unittests})
 foreach(mesh IN LISTS unittest_meshes_3d)
     add_dependencies(unittest ${mesh})
 endforeach()
+
+add_custom_target(fltools DEPENDS ${tools} fldecomp)
