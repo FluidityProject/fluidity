@@ -1,7 +1,7 @@
 <?xml version = "1.0" encoding = "UTF-8" ?>
 <testproblem>
   <name>Prescribed adaptivity with a number of function spaces</name>
-  <owner userid="pef"/>
+  <owner userid="ipanourgias"/>
   <tags>flml</tags>
   <problem_definition length = "short" nprocs = "1">
     <command_line>make clean-run-debug; fluidity -v2 -l prescribed_adaptivity.flml</command_line>
@@ -35,7 +35,7 @@ for i in range(1, 7):
       assert(solvers_converged)
     </test>
     <test name = "Simulation completed" language = "python">
-assert(timesteps == 7)
+assert(timesteps == 8)
     </test>
     <test name = "Mesh adaptivity" language = "python">
 assert(nodes[0] == 45)
@@ -44,10 +44,8 @@ assert(nodes[2] == 142)
 assert(nodes[3] == 253)
 assert(nodes[4] == 891)
 assert(nodes[5] == 3435)
-assert(nodes[6] == 13458)
-#assert(nodes[7] == 20942)
-#assert(nodes[8] == 82964)
-#assert(nodes[9] == 331719)
+assert(nodes[6] == 13462)
+assert(nodes[7] == 20947)
     </test>
     <test name = "Conservative projection" language = "python">
 import fluidity_tools
