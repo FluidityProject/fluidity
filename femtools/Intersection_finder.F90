@@ -28,7 +28,6 @@ use libsupermesh_intersection_finder, only : &
   & libsupermesh_rtree_intersection_finder_find => rtree_intersection_finder_find
 #endif
 
-
 implicit none
 
 #ifndef HAVE_SUPERMESH
