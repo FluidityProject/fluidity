@@ -88,4 +88,3 @@ clean:
 	rm -f $(TEST_BINARIES)
 	rm -f *.o *.mod
 	rm -f lib
-	rm -f plcC* plcD*
