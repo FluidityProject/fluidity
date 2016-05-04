@@ -17,8 +17,18 @@ find_package(MPI REQUIRED)
 # Check for vtk
 find_package(VTK REQUIRED)
 # Check for PETSc
-set(PETSC_DIR "/usr/lib/petscdir/3.6.3" CACHE STRING
-  "Base directory for the PETsc installation")
+if(APPLE)
+  if(DEFINED ENV{HOMEBREW_PREFIX})
+     set(PETSC_DIR "$ENV{HOMEBREW_PREFIX}/Cellar/petsc-fluidity/3.6.3-fluidity"
+         CACHE STRING "Base directory for the PETsc installation")
+  else()
+     set(PETSC_DIR "/opt/local/petsc-fluidity"
+         CACHE STRING "Base directory for the PETsc installation")
+  endif()
+else()
+  set(PETSC_DIR "/usr/lib/petscdir/3.6.3" CACHE STRING
+      "Base directory for the PETsc installation")
+endif()
 find_program(petscarch petscarch)
 if(petscarch)
   execute_process(COMMAND petscarch
@@ -36,7 +46,9 @@ add_definitions(-DHAVE_PETSC=1
 	        -DHAVE_PETSC_MODULES=1)
 get_filename_component(PETSC_LIB_DIR ${PETSC_LIB} DIRECTORY)
 find_path(PETSC_EXTRAS_DIR petscversion.h
-          HINTS ${PETSC_LIB_DIR}/../../include)
+          HINTS ${PETSC_LIB_DIR}/../include
+	        ${PETSC_LIB_DIR}/../../include
+                ${PETSC_LIB_DIR}/../../../include)
 # Seperate check for hypre just in case
 find_library(HYPRE_LIB HYPRE
              HINTS "${PETSC_LIB_DIR}")
@@ -79,7 +91,8 @@ if(NOT SPUD_LIB)
 endif()
 get_filename_component(SPUD_LIB_DIR ${SPUD_LIB} DIRECTORY)
 find_path(SPUD_INCLUDE_DIR spud.mod
-          HINTS ${SPUD_LIB_DIR} ${SPUD_LIB_DIR}/../include)
+          HINTS ${SPUD_LIB_DIR}/include 
+	  HINTS ${SPUD_LIB_DIR}/../include)
 add_definitions(-DHAVE_SPUD=1)
 # Check for libjudy, otherwise build
 find_library(JUDY_LIB Judy)
