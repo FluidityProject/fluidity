@@ -1232,14 +1232,8 @@ LINKER=$CXX
 AC_ARG_ENABLE(libsupermesh, [AC_HELP_STRING([--enable-libsupermesh], [enable use of the libsupermesh library])])
 if test "x$enable_libsupermesh" = "xyes" ; then
   AC_MSG_CHECKING([libsupermesh])
-  tmpLIBS="$LIBS"
-  tmpFLIBS="$FLIBS"
-  AC_FC_LIBRARY_LDFLAGS()
   AC_LANG_PUSH([C++])
-  LIBS="$LIBS $FLIBS"
   AC_SEARCH_LIBS([libsupermesh_build_rtree], [supermesh])
-  LIBS="$tmpLIBS"
-  FLIBS="$tmpFLIBS"
   if test "$ac_cv_search_libsupermesh_build_rtree" = "none required" ; then
     AC_MSG_ERROR("Unexpected error when checking for libsupermesh")
   elif test "$ac_cv_search_libsupermesh_build_rtree" = "no" ; then
