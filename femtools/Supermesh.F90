@@ -89,6 +89,11 @@ module supermesh_construction
   subroutine intersector_set_dimension(ndim)
     integer, intent(in) :: ndim
     
+    if(allocated(elements_c)) then
+      if(size(elements_c, 1) == ndim) return
+      deallocate(elements_c)
+    end if
+    
     select case(ndim)
       case(1)
         allocate(elements_c(1, 2, 2))
