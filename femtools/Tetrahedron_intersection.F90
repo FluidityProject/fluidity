@@ -1,107 +1,28 @@
 #include "fdebug.h"
+#ifdef HAVE_SUPERMESH
+#define BUF_SIZE 81
+#else
+#define BUF_SIZE 150
+#endif
 
 module tetrahedron_intersection_module
 
+  use fldebug
+  use vector_tools
+  use element_numbering, only: FAMILY_CUBE, FAMILY_SIMPLEX
+  use elements
+  use fields_data_types
+  use fields_base
+  use fields_allocates
+  use fields_manipulation
+  use transform_elements
 #ifdef HAVE_SUPERMESH
-  use fldebug
-  use element_numbering, only: FAMILY_CUBE, FAMILY_SIMPLEX
-  use elements
-  use fields_data_types
-  use fields_base
-  use fields_allocates
-  use fields_manipulation
-  use transform_elements
+  use libsupermesh_tet_intersection, only : tet_type, plane_type, intersect_polys
+#endif
 
-  use libsupermesh_tet_intersection
-  
   implicit none
 
-  private
-
-  type(mesh_type), save, private :: intersection_mesh
-  logical, save, private :: intersection_mesh_allocated = .false.
-
-  public :: tet_type, plane_type, tet_buf_size, get_planes, intersect_tets, &
-    & finalise_tet_intersector
-    
-  interface intersect_tets
-    module procedure intersect_tets_dt, intersect_tets_dt_surface
-  end interface intersect_tets
-
-  interface get_planes
-    module procedure get_planes_hex
-  end interface get_planes
-
-contains
-
-  subroutine finalise_tet_intersector()
-  
-    if(intersection_mesh_allocated) then
-      call deallocate(intersection_mesh)
-      intersection_mesh_allocated = .false.
-    end if
-    
-  end subroutine finalise_tet_intersector
-
-  subroutine intersect_tets_dt(tetA, planesB, shape, stat, output)
-    type(tet_type), intent(in) :: tetA
-    type(plane_type), dimension(:), intent(in) :: planesB
-    type(element_type), intent(in) :: shape
-    type(vector_field), intent(inout) :: output
-    integer, intent(out) :: stat
-
-    integer :: i, n_tetsC, ele
-    type(tet_type), dimension(tet_buf_size), save :: tetsC
-
-    call intersect_polys(tetA, planesB, tetsC, n_tetsC)
-    if(stat == 1) return
-
-    if(.not. intersection_mesh_allocated) then
-      call allocate(intersection_mesh, tet_buf_size * 4, tet_buf_size, shape, name = "IntersectionMesh")
-      intersection_mesh%ndglno = (/ (i, i = 1, tet_buf_size * 4) /)
-      intersection_mesh%continuity = -1
-      intersection_mesh_allocated = .true.
-    end if
-    intersection_mesh%nodes = n_tetsC * 4
-    intersection_mesh%elements = n_tetsC
-
-    call allocate(output, 3, intersection_mesh, name = "IntersectionCoordinates")
-    do ele = 1, n_tetsC
-      call set(output, ele_nodes(output, ele), tetsC(ele)%v)
-    end do
-    stat = 0
-
-  end subroutine intersect_tets_dt
-
-  subroutine intersect_tets_dt_surface(tetA, planesB, shape, stat, output, surface_shape, surface_positions, surface_colours)
-    type(tet_type), intent(in) :: tetA
-    type(plane_type), dimension(:), intent(in) :: planesB
-    type(element_type), intent(in) :: shape
-    type(vector_field), intent(inout) :: output
-    type(element_type), intent(in) :: surface_shape
-    type(vector_field), intent(out) :: surface_positions
-    type(scalar_field), intent(out) :: surface_colours
-    integer, intent(out) :: stat
-    
-    FLAbort("Surface parameters not supported by libsupermesh")
-
-  end subroutine intersect_tets_dt_surface
-  
-#else
-#define BUF_SIZE 150
-
-  use fldebug
-  use vector_tools
-  use element_numbering, only: FAMILY_CUBE, FAMILY_SIMPLEX
-  use elements
-  use vector_tools
-  use fields_data_types
-  use fields_base
-  use fields_allocates
-  use fields_manipulation
-  use transform_elements
-  implicit none
-
+#ifndef HAVE_SUPERMESH
   type tet_type
     real, dimension(3, 4) :: V ! vertices of the tet
     integer, dimension(4) :: colours = -1 ! surface colours
@@ -112,10 +33,12 @@ contains
     real :: c
   end type plane_type
 
+  integer :: tet_cnt_tmp = 0
+#endif
   type(tet_type), dimension(BUF_SIZE), save :: tet_array, tet_array_tmp
-  integer :: tet_cnt = 0, tet_cnt_tmp = 0
-  type(mesh_type), save, private :: intersection_mesh
-  logical, save, private :: mesh_allocated = .false.
+  integer :: tet_cnt = 0
+  type(mesh_type), save :: intersection_mesh
+  logical, save :: mesh_allocated = .false.
 
   private
 
@@ -150,11 +73,14 @@ contains
     integer, intent(out) :: stat
 
     integer :: i, j, k, l
+    integer, dimension(3) :: idx_tmp
+    integer :: surface_eles
+    type(mesh_type) :: surface_mesh, pwc_surface_mesh
+#ifndef HAVE_SUPERMESH
     real :: vol
     real, dimension(3) :: vec_tmp
-    integer, dimension(3) :: idx_tmp
-    integer :: surface_eles, colour_tmp
-    type(mesh_type) :: surface_mesh, pwc_surface_mesh
+    integer :: colour_tmp
+#endif
 
     if (present(surface_colours) .or. present(surface_positions) .or. present(surface_shape)) then
       assert(present(surface_positions))
@@ -167,9 +93,6 @@ contains
     assert(shape%numbering%family == FAMILY_SIMPLEX)
     assert(shape%dim == 3)
 
-    tet_cnt = 1
-    tet_array(1) = tetA
-
     if (.not. mesh_allocated) then
       call allocate(intersection_mesh, BUF_SIZE * 4, BUF_SIZE, shape, name="IntersectionMesh")
       intersection_mesh%ndglno = (/ (i, i=1,BUF_SIZE*4) /)
@@ -177,6 +100,12 @@ contains
       mesh_allocated = .true.
     end if
 
+#ifdef HAVE_SUPERMESH
+    call intersect_polys(tetA, planesB, tet_array, tet_cnt, work = tet_array_tmp)
+#else
+    tet_cnt = 1
+    tet_array(1) = tetA
+    
     do i=1,size(planesB)
       ! Clip the tet_array against the i'th plane
       tet_cnt_tmp = 0
@@ -210,6 +139,7 @@ contains
         end do
       end if
     end do
+#endif
 
     if (tet_cnt == 0) then
       stat=1
@@ -266,6 +196,7 @@ contains
 
   end subroutine intersect_tets_dt
 
+#ifndef HAVE_SUPERMESH
   subroutine clip(plane, tet)
   ! Clip tet against the plane
   ! and append any output to tet_array_tmp.
@@ -460,6 +391,7 @@ contains
     end select
 
   end subroutine clip
+#endif
 
   pure function get_planes_tet(tet) result(plane)
     type(tet_type), intent(in) :: tet
@@ -474,7 +406,7 @@ contains
     edge30 = tet%V(:, 4) - tet%V(:, 1);
     edge21 = tet%V(:, 3) - tet%V(:, 2);
     edge31 = tet%V(:, 4) - tet%V(:, 2);
-    
+ 
     plane(1)%normal = unit_cross(edge20, edge10)
     plane(2)%normal = unit_cross(edge10, edge30)
     plane(3)%normal = unit_cross(edge30, edge20)
@@ -495,6 +427,40 @@ contains
 
   end function get_planes_tet
 
+  function get_planes_hex(positions, ele) result(plane)
+    type(vector_field), intent(in) :: positions
+    integer, intent(in) :: ele
+    type(plane_type), dimension(6) :: plane
+    integer, dimension(:), pointer :: faces
+    integer :: i, face
+    integer, dimension(4) :: fnodes
+    real, dimension(positions%dim, face_ngi(positions, ele)) :: normals
+
+    ! This could be done much more efficiently by exploiting
+    ! more information about how we number faces and such on a hex
+
+    assert(positions%mesh%shape%numbering%family == FAMILY_CUBE)
+    assert(positions%mesh%faces%shape%numbering%family == FAMILY_CUBE)
+    assert(positions%mesh%shape%degree == 1)
+    assert(has_faces(positions%mesh))
+
+    faces => ele_faces(positions, ele)
+    assert(size(faces) == 6)
+
+    do i=1,size(faces)
+      face = faces(i)
+      fnodes = face_global_nodes(positions, face)
+
+      call transform_facet_to_physical(positions, face, normal=normals)
+      plane(i)%normal = normals(:, 1)
+
+      ! Now we calibrate the constant (setting the 'zero level' of the plane, as it were)
+      ! with a node we know is on the face
+      plane(i)%c = dot_product(plane(i)%normal, node_val(positions, fnodes(1)))
+
+    end do
+  end function get_planes_hex
+
   pure function unit_cross(vecA, vecB) result(cross)
     real, dimension(3), intent(in) :: vecA, vecB
     real, dimension(3) :: cross
@@ -505,6 +471,7 @@ contains
     cross = cross / norm2(cross)
   end function unit_cross
 
+#ifndef HAVE_SUPERMESH
   pure function distances_to_plane(plane, tet) result(dists)
     type(plane_type), intent(in) :: plane
     type(tet_type), intent(in) :: tet
@@ -543,39 +510,5 @@ contains
 
   end function face_no
 #endif
-
-  function get_planes_hex(positions, ele) result(plane)
-    type(vector_field), intent(in) :: positions
-    integer, intent(in) :: ele
-    type(plane_type), dimension(6) :: plane
-    integer, dimension(:), pointer :: faces
-    integer :: i, face
-    integer, dimension(4) :: fnodes
-    real, dimension(positions%dim, face_ngi(positions, ele)) :: normals
-
-    ! This could be done much more efficiently by exploiting
-    ! more information about how we number faces and such on a hex
-
-    assert(positions%mesh%shape%numbering%family == FAMILY_CUBE)
-    assert(positions%mesh%faces%shape%numbering%family == FAMILY_CUBE)
-    assert(positions%mesh%shape%degree == 1)
-    assert(has_faces(positions%mesh))
-
-    faces => ele_faces(positions, ele)
-    assert(size(faces) == 6)
-
-    do i=1,size(faces)
-      face = faces(i)
-      fnodes = face_global_nodes(positions, face)
-
-      call transform_facet_to_physical(positions, face, normal=normals)
-      plane(i)%normal = normals(:, 1)
-
-      ! Now we calibrate the constant (setting the 'zero level' of the plane, as it were)
-      ! with a node we know is on the face
-      plane(i)%c = dot_product(plane(i)%normal, node_val(positions, fnodes(1)))
-
-    end do
-  end function get_planes_hex
 
 end module tetrahedron_intersection_module
