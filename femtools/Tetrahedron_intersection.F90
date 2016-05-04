@@ -1,6 +1,6 @@
 #include "fdebug.h"
 #ifdef HAVE_LIBSUPERMESH
-#define BUF_SIZE 81
+#define BUF_SIZE 3645
 #else
 #define BUF_SIZE 150
 #endif
