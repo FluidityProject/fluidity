@@ -48,6 +48,18 @@ add_library_sources(Dgtools.F90 Coordinates.F90 EventCounter.F90
   Exodusii_C_Interface.c Exodusii_F_Interface.F90 Exodusii_Common.F90 Read_Exodusii.F90 
   Mesh_Files.F90 Vertical_Extrapolation.F90)
 
+set(ref_types "block_csr_matrix;block_dynamic_csr_matrix;csr_matrix;csr_sparsity;dynamic_csr_matrix;element_type;halo_type;mesh_type;petsc_csr_matrix;petsc_numbering_type;picker_type;quadrature_type;scalar_field;tensor_field;vector_field")
+
+file(READ ${CMAKE_CURRENT_SOURCE_DIR}/Refcount_templates.F90 Refcount_template)
+file(READ ${CMAKE_CURRENT_SOURCE_DIR}/Refcount_interface_templates.F90 Refcount_interface_template)
+foreach(type IN LISTS ref_types)
+   message(STATUS "make reference counting code for ${type}")
+   string(REPLACE "REFCOUNT_TYPE" ${type} TMP ${Refcount_template})
+   file(WRITE ${CMAKE_CURRENT_SOURCE_DIR}/Reference_count_${type}.F90 ${TMP})
+   string(REPLACE "REFCOUNT_TYPE" ${type} TMP ${Refcount_interface_template})
+   file(WRITE ${CMAKE_CURRENT_SOURCE_DIR}/Reference_count_interface_${type}.F90 ${TMP})
+endforeach()
+
 add_subdirectory(tests EXCLUDE_FROM_ALL)
 
 set(unittests ${femtools_unittests};${unittests} PARENT_SCOPE)

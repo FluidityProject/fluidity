@@ -7,12 +7,12 @@ enable_language (Fortran)
 find_package(MPI REQUIRED)
 
 if(MPI_COMPILE_FLAGS)
-	set_target_properties(fluidity PROPERTIES
+	set_target_properties(adaptivity PROPERTIES
       	COMPILE_FLAGS "${MPI_COMPILE_FLAGS} -DHAVE_VTK")
 endif()
 
 if(MPI_LINK_FLAGS)
-  set_target_properties(fluidity PROPERTIES
+  set_target_properties(adaptivity PROPERTIES
       LINK_FLAGS "${MPI_LINK_FLAGS}")
 endif()
 
@@ -23,5 +23,7 @@ list(REMOVE_ITEM lib_srcs load_balance/src/calculate_submeshes.cpp load_balance/
 set(CMAKE_Fortran_MODULE_DIRECTORY include)
 set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -ffree-line-length-none -ffixed-line-length-none -fdefault-real-8")
 
-add_library(adaptivity ${lib_srcs})
+add_definitions(-DHAVE_MPI -DUSING_DOUBLE_PRECISION=1)
+
+add_library(adaptivity STATIC ${lib_srcs})
 target_include_directories(adaptivity BEFORE PUBLIC ${MPI_INCLUDE_PATH} include adapt3d/include load_balance/include)
