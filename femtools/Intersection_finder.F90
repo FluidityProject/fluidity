@@ -18,13 +18,12 @@ use transform_elements
 use supermesh_construction
 #ifdef HAVE_SUPERMESH
 use libsupermesh_intersection_finder, only : intersections, deallocate, &
+  & rtree_intersection_finder_reset, &
   & rtree_intersection_finder_query_output, &
   & rtree_intersection_finder_get_output
 use libsupermesh_intersection_finder, only : &
-  & libsupermesh_rtree_intersection_finder_reset => rtree_intersection_finder_reset, &
-  & libsupermesh_intersection_finder_sub => intersection_finder, &
-  & libsupermesh_advancing_front_intersection_finder_sub => advancing_front_intersection_finder, &
-  & libsupermesh_rtree_intersection_finder_sub => rtree_intersection_finder, &
+  & libsupermesh_advancing_front_intersection_finder => advancing_front_intersection_finder, &
+  & libsupermesh_rtree_intersection_finder => rtree_intersection_finder, &
   & libsupermesh_rtree_intersection_finder_set_input => rtree_intersection_finder_set_input, &
   & libsupermesh_rtree_intersection_finder_find => rtree_intersection_finder_find
 #endif
@@ -65,12 +64,12 @@ interface rtree_intersection_finder_get_output
   end subroutine cintersection_finder_get_output
 end interface rtree_intersection_finder_get_output
 
-interface rtree_intersection_finder_reset
+interface crtree_intersection_finder_reset
   subroutine cintersection_finder_reset(ntests)
     implicit none
     integer, intent(out) :: ntests
   end subroutine cintersection_finder_reset
-end interface rtree_intersection_finder_reset
+end interface crtree_intersection_finder_reset
 #endif
 
 private
@@ -161,32 +160,25 @@ contains
 
   end function bbox_predicate
 
-#ifdef HAVE_SUPERMESH
-  subroutine rtree_intersection_finder_reset(ntests)
-    integer, optional, intent(out) :: ntests
-
-    call libsupermesh_rtree_intersection_finder_reset()
-    ntests = -huge(0)
-
-  end subroutine rtree_intersection_finder_reset
-#endif 
-
   function intersection_finder(positionsA, positionsB) result(map_AB)
     !!< A simple wrapper to select an intersection finder
-
+    
     ! The positions and meshes of A and B
     type(vector_field), intent(in), target :: positionsA, positionsB
     ! for each element in A, the intersecting elements in B
     type(ilist), dimension(ele_count(positionsA)) :: map_AB
+    
     integer :: i
 #if HAVE_SUPERMESH
     integer :: j
     type(intersections), dimension(:), allocatable :: lmap_AB
 
     ewrite(1, *) "In intersection_finder"
+
     allocate(lmap_AB(size(map_AB)))
-    call libsupermesh_advancing_front_intersection_finder_sub(positionsA%val, reshape(positionsA%mesh%ndglno, (/positionsA%mesh%shape%loc, ele_count(positionsA)/)), &
-                                            & positionsB%val, reshape(positionsB%mesh%ndglno, (/positionsB%mesh%shape%loc, ele_count(positionsB)/)), lmap_AB)
+    call libsupermesh_advancing_front_intersection_finder( &
+      & positionsA%val, reshape(positionsA%mesh%ndglno, (/positionsA%mesh%shape%loc, ele_count(positionsA)/)), &
+      & positionsB%val, reshape(positionsB%mesh%ndglno, (/positionsB%mesh%shape%loc, ele_count(positionsB)/)), lmap_AB)
 
     do i = 1, size(lmap_AB)
       do j = 1, lmap_AB(i)%n
@@ -378,15 +370,16 @@ contains
     ewrite(1, *) "In advancing_front_intersection_finder"
 
     allocate(lmap_AB(size(map_AB)))
-    call libsupermesh_advancing_front_intersection_finder_sub(positionsA%val, reshape(positionsA%mesh%ndglno, (/positionsA%mesh%shape%loc, ele_count(positionsA)/)), &
-                                             & positionsB%val, reshape(positionsB%mesh%ndglno, (/positionsB%mesh%shape%loc, ele_count(positionsB)/)), lmap_AB)
+    call libsupermesh_advancing_front_intersection_finder( &
+      & positionsA%val, reshape(positionsA%mesh%ndglno, (/positionsA%mesh%shape%loc, ele_count(positionsA)/)), &
+      & positionsB%val, reshape(positionsB%mesh%ndglno, (/positionsB%mesh%shape%loc, ele_count(positionsB)/)), lmap_AB)
+
     do i = 1, size(lmap_AB)
       do j = 1, lmap_AB(i)%n
         call insert(map_AB(i), lmap_AB(i)%v(j))
       end do
     end do
     call deallocate(lmap_AB)
-    deallocate(lmap_AB)
 
     ewrite(1, *) "Exiting advancing_front_intersection_finder"
     
@@ -580,12 +573,23 @@ contains
     ewrite(1, *) "Exiting brute_force_intersection_finder"
     
   end function brute_force_intersection_finder
+
+#ifndef HAVE_SUPERMESH
+  subroutine rtree_intersection_finder_reset()
+    integer :: ntests
+
+    call crtree_intersection_finder_reset(ntests)
+
+  end subroutine rtree_intersection_finder_reset
+#endif
   
   subroutine rtree_intersection_finder_set_input(old_positions)
     type(vector_field), intent(in) :: old_positions
     
 #ifdef HAVE_SUPERMESH
-    call libsupermesh_rtree_intersection_finder_set_input(old_positions%val, reshape(old_positions%mesh%ndglno, (/old_positions%mesh%shape%loc, ele_count(old_positions)/)))
+    call libsupermesh_rtree_intersection_finder_set_input( &
+      & old_positions%val, &
+      & reshape(old_positions%mesh%ndglno, (/old_positions%mesh%shape%loc, ele_count(old_positions)/)))
 #else
     real, dimension(node_count(old_positions) * old_positions%dim) :: tmp_positions
     integer :: node, dim
@@ -622,17 +626,16 @@ contains
     
   end subroutine rtree_intersection_finder_find
   
-  function rtree_intersection_finder(positions_a, positions_b, npredicates) result(map_ab)
+  function rtree_intersection_finder(positions_a, positions_b) result(map_ab)
     !!< As advancing_front_intersection_finder, but uses an rtree algorithm. For
     !!< testing *only*. For practical applications, use the linear algorithm.
     
     ! The positions and meshes of A and B
     type(vector_field), intent(in), target :: positions_a, positions_b
-    integer, intent(out), optional :: npredicates
     ! for each element in A, the intersecting elements in B
     type(ilist), dimension(ele_count(positions_a)) :: map_ab
     
-    integer :: i, j, id, nelms, ntests
+    integer :: i, j, id, nelms
 
     ewrite(1, *) "In rtree_intersection_finder"
     
@@ -645,9 +648,7 @@ contains
         call insert(map_ab(i), id)
       end do
     end do
-    call rtree_intersection_finder_reset(ntests)
-
-    if (present(npredicates)) npredicates = ntests
+    call rtree_intersection_finder_reset()
     
     ewrite(1, *) "Exiting rtree_intersection_finder"
     

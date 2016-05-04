@@ -373,7 +373,7 @@ contains
     integer :: ele_A, ele_B, ele_C
     type(tet_type) :: tet_A, tet_B
     type(plane_type), dimension(:), allocatable :: planes_A
-    integer :: stat, nintersections, i, j, k, ntests
+    integer :: stat, nintersections, i, j, k
     integer, dimension(:), pointer :: ele_A_nodes
     type(vector_field) :: intersection
     real, dimension(:, :), allocatable :: pos_A
@@ -499,7 +499,7 @@ contains
     call bound_concentration()
 
     call finalise_tet_intersector
-    call rtree_intersection_finder_reset(ntests)
+    call rtree_intersection_finder_reset()
 
     call deallocate(external_positions_local)
 
@@ -1926,7 +1926,6 @@ contains
     ! femdem
     logical :: femdem_in
     logical, intent(in), optional :: femdem_out
-    integer :: ntests
     type(scalar_field), intent(inout), optional :: solid
 
     ewrite(1, *) "In interpolation_galerkin_scalars"
@@ -2471,7 +2470,7 @@ contains
     deallocate(little_rhs)
 
     call finalise_tet_intersector
-    call rtree_intersection_finder_reset(ntests)
+    call rtree_intersection_finder_reset()
 
     ewrite(1, *) "Exiting interpolation_galerkin_scalars"
     
