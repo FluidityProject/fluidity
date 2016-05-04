@@ -16,8 +16,7 @@ module supermesh_construction
   use transform_elements
   use tetrahedron_intersection_module
 #ifdef HAVE_SUPERMESH
-  use libsupermesh_supermesh, only : &
-    & libsupermesh_intersect_elements => intersect_elements
+  use libsupermesh, only : libsupermesh_intersect_elements => intersect_elements
 #endif
   implicit none
 

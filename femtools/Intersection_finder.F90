@@ -17,11 +17,11 @@ use parallel_fields
 use transform_elements
 use supermesh_construction
 #ifdef HAVE_SUPERMESH
-use libsupermesh_intersection_finder, only : intersections, deallocate, &
+use libsupermesh, only : intersections, deallocate, &
   & rtree_intersection_finder_reset, &
   & rtree_intersection_finder_query_output, &
   & rtree_intersection_finder_get_output
-use libsupermesh_intersection_finder, only : &
+use libsupermesh, only : &
   & libsupermesh_advancing_front_intersection_finder => advancing_front_intersection_finder, &
   & libsupermesh_rtree_intersection_finder => rtree_intersection_finder, &
   & libsupermesh_rtree_intersection_finder_set_input => rtree_intersection_finder_set_input, &

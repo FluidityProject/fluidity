@@ -17,7 +17,7 @@ module tetrahedron_intersection_module
   use fields_manipulation
   use transform_elements
 #ifdef HAVE_SUPERMESH
-  use libsupermesh_tet_intersection, only : tet_type, plane_type, intersect_polys
+  use libsupermesh, only : tet_type, plane_type, intersect_polys
 #endif
 
   implicit none
