@@ -16,7 +16,7 @@ use fields_allocates
 use parallel_fields
 use transform_elements
 use supermesh_construction
-#ifdef HAVE_SUPERMESH
+#ifdef HAVE_LIBSUPERMESH
 use libsupermesh, only : intersections, deallocate, &
   & rtree_intersection_finder_reset, &
   & rtree_intersection_finder_query_output, &
@@ -30,7 +30,7 @@ use libsupermesh, only : &
 
 implicit none
 
-#ifndef HAVE_SUPERMESH
+#ifndef HAVE_LIBSUPERMESH
 interface crtree_intersection_finder_set_input
   subroutine cintersection_finder_set_input(positions, enlist, ndim, loc, nnodes, nelements)
     implicit none
@@ -168,7 +168,7 @@ contains
     type(ilist), dimension(ele_count(positionsA)) :: map_AB
     
     integer :: i
-#if HAVE_SUPERMESH
+#if HAVE_LIBSUPERMESH
     integer :: j
     type(intersections), dimension(:), allocatable :: lmap_AB
 
@@ -354,7 +354,7 @@ contains
     
   end function advancing_front_intersection_finder_seeds
 
-#ifdef HAVE_SUPERMESH
+#ifdef HAVE_LIBSUPERMESH
   function advancing_front_intersection_finder(positionsA, positionsB) result(map_AB)
     ! The positions and meshes of A and B
     type(vector_field), intent(in) :: positionsA
@@ -573,7 +573,7 @@ contains
     
   end function brute_force_intersection_finder
 
-#ifndef HAVE_SUPERMESH
+#ifndef HAVE_LIBSUPERMESH
   subroutine rtree_intersection_finder_reset()
     integer :: ntests
 
@@ -585,7 +585,7 @@ contains
   subroutine rtree_intersection_finder_set_input(old_positions)
     type(vector_field), intent(in) :: old_positions
     
-#ifdef HAVE_SUPERMESH
+#ifdef HAVE_LIBSUPERMESH
     call libsupermesh_rtree_intersection_finder_set_input( &
       & old_positions%val, &
       & reshape(old_positions%mesh%ndglno, (/old_positions%mesh%shape%loc, ele_count(old_positions)/)))
@@ -612,7 +612,7 @@ contains
     type(vector_field), intent(in) :: new_positions
     integer, intent(in) :: ele_B
 
-#ifdef HAVE_SUPERMESH
+#ifdef HAVE_LIBSUPERMESH
     call libsupermesh_rtree_intersection_finder_find(ele_val(new_positions, ele_B))
 #else
     integer :: dim, loc
@@ -741,7 +741,7 @@ contains
   
   end subroutine verify_map
 
-#ifndef HAVE_SUPERMESH
+#ifndef HAVE_LIBSUPERMESH
   subroutine compute_bboxes(positionsB, bboxes_B)
     type(vector_field), intent(in) :: positionsB
     real, dimension(:, :, :), intent(out) :: bboxes_B

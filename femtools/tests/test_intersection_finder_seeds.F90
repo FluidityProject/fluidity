@@ -73,7 +73,7 @@ subroutine test_intersection_finder_seeds
   call report_test("[seed]", seeds_vec(1) /= 1, .false., "Incorrect seed")
   call report_test("[seed]", seeds_vec(2) /= 3, .false., "Incorrect seed")
 
-#ifndef HAVE_SUPERMESH
+#ifndef HAVE_LIBSUPERMESH
   map = advancing_front_intersection_finder(positions, positions, seed = seeds_vec(1))
   ele_found = .false.
   do i = 1, size(map)

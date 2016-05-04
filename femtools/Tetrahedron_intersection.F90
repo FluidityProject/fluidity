@@ -1,5 +1,5 @@
 #include "fdebug.h"
-#ifdef HAVE_SUPERMESH
+#ifdef HAVE_LIBSUPERMESH
 #define BUF_SIZE 81
 #else
 #define BUF_SIZE 150
@@ -16,13 +16,13 @@ module tetrahedron_intersection_module
   use fields_allocates
   use fields_manipulation
   use transform_elements
-#ifdef HAVE_SUPERMESH
+#ifdef HAVE_LIBSUPERMESH
   use libsupermesh, only : tet_type, plane_type, intersect_polys
 #endif
 
   implicit none
 
-#ifndef HAVE_SUPERMESH
+#ifndef HAVE_LIBSUPERMESH
   type tet_type
     real, dimension(3, 4) :: V ! vertices of the tet
     integer, dimension(4) :: colours = -1 ! surface colours
@@ -76,7 +76,7 @@ module tetrahedron_intersection_module
     integer, dimension(3) :: idx_tmp
     integer :: surface_eles
     type(mesh_type) :: surface_mesh, pwc_surface_mesh
-#ifndef HAVE_SUPERMESH
+#ifndef HAVE_LIBSUPERMESH
     real :: vol
     real, dimension(3) :: vec_tmp
     integer :: colour_tmp
@@ -100,7 +100,7 @@ module tetrahedron_intersection_module
       mesh_allocated = .true.
     end if
 
-#ifdef HAVE_SUPERMESH
+#ifdef HAVE_LIBSUPERMESH
     call intersect_polys(tetA, planesB, tet_array, tet_cnt, work = tet_array_tmp)
 #else
     tet_cnt = 1
@@ -196,7 +196,7 @@ module tetrahedron_intersection_module
 
   end subroutine intersect_tets_dt
 
-#ifndef HAVE_SUPERMESH
+#ifndef HAVE_LIBSUPERMESH
   subroutine clip(plane, tet)
   ! Clip tet against the plane
   ! and append any output to tet_array_tmp.
@@ -471,7 +471,7 @@ module tetrahedron_intersection_module
     cross = cross / norm2(cross)
   end function unit_cross
 
-#ifndef HAVE_SUPERMESH
+#ifndef HAVE_LIBSUPERMESH
   pure function distances_to_plane(plane, tet) result(dists)
     type(plane_type), intent(in) :: plane
     type(tet_type), intent(in) :: tet

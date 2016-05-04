@@ -163,7 +163,7 @@ void print_version(ostream& stream){
       <<"no\n"
 #endif
       <<"libsupermesh support\t\t"
-#ifdef HAVE_SUPERMESH
+#ifdef HAVE_LIBSUPERMESH
       <<"yes\n"
 #else
       <<"no\n"

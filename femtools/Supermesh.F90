@@ -15,12 +15,12 @@ module supermesh_construction
   use unify_meshes_module
   use transform_elements
   use tetrahedron_intersection_module
-#ifdef HAVE_SUPERMESH
+#ifdef HAVE_LIBSUPERMESH
   use libsupermesh, only : libsupermesh_intersect_elements => intersect_elements
 #endif
   implicit none
 
-#ifdef HAVE_SUPERMESH
+#ifdef HAVE_LIBSUPERMESH
   real, dimension(:, :, :), allocatable, save :: elements_c
 #else
   interface cintersector_set_input
@@ -84,7 +84,7 @@ module supermesh_construction
 
   contains
 
-#ifdef HAVE_SUPERMESH
+#ifdef HAVE_LIBSUPERMESH
   subroutine intersector_set_dimension(ndim)
     integer, intent(in) :: ndim
     
@@ -227,7 +227,7 @@ module supermesh_construction
   subroutine intersector_set_exactness(exactness)
     logical, intent(in) :: exactness
 
-#ifdef HAVE_SUPERMESH
+#ifdef HAVE_LIBSUPERMESH
     if(exactness) then
       FLAbort("Arbitrary precision arithmetic not supported by libsupermesh")
     end if
