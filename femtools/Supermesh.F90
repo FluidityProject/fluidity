@@ -22,7 +22,7 @@ module supermesh_construction
   implicit none
 
 #ifdef HAVE_SUPERMESH
-  real, dimension(:, :, :), pointer, save :: elements_c
+  real, dimension(:, :, :), allocatable, save :: elements_c
 #else
   interface cintersector_set_input
     module procedure intersector_set_input_sp
