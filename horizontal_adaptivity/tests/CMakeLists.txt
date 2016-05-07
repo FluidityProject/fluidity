@@ -9,7 +9,7 @@ foreach(unittest IN LISTS tests)
    add_library(${test_name}_main OBJECT test_main.cpp)
    set_target_properties(${test_name}_main PROPERTIES COMPILE_FLAGS -DTESTNAME=${test_name}_)
    add_executable(${test_name} ${unittest} $<TARGET_OBJECTS:${test_name}_main>)
-   target_link_libraries(${test_name} fluidity vtkfortran ${spatialindex} adaptivity ${VTK_LIBRARIES} ${MPI_LIBRARIES} ${PETSC_PACKAGE_LIBS} ${PETSC_LIB} ${ZOLTAN_LIB} ${SPUD_LIB} ${JUDY_LIB} ${UDUNITS_LIB} mba2d ${PYTHON_LIBRARIES})
+   target_link_libraries(${test_name} fluidity ${FLUIDITY_PACKAGE_LIBS})
    list(APPEND unittests ${test_name})
 endforeach()
 

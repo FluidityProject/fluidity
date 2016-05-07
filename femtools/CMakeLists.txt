@@ -55,9 +55,9 @@ file(READ ${CMAKE_CURRENT_SOURCE_DIR}/Refcount_interface_templates.F90 Refcount_
 foreach(type IN LISTS ref_types)
    message(STATUS "make reference counting code for ${type}")
    string(REPLACE "REFCOUNT_TYPE" ${type} TMP ${Refcount_template})
-   file(WRITE ${CMAKE_CURRENT_SOURCE_DIR}/Reference_count_${type}.F90 ${TMP})
+   file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/Reference_count_${type}.F90 ${TMP})
    string(REPLACE "REFCOUNT_TYPE" ${type} TMP ${Refcount_interface_template})
-   file(WRITE ${CMAKE_CURRENT_SOURCE_DIR}/Reference_count_interface_${type}.F90 ${TMP})
+   file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/Reference_count_interface_${type}.F90 ${TMP})
 endforeach()
 
 add_subdirectory(tests EXCLUDE_FROM_ALL)

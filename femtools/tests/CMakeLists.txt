@@ -4,7 +4,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/tests)
 
 file(GLOB tests RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *.F90)
 list(REMOVE_ITEM tests test_blasmul.F90 test_surface_ids.F90
-  test_elementwise_fields.F90 test_1d test_compute_hessian.F90 test_pseudo2d_hessian.F90
+  test_elementwise_fields.F90 test_1d.F90 test_compute_hessian.F90 test_pseudo2d_hessian.F90
   test_seamount_hessian.F90 test_interpolation.F90 test_python_fields.F90 test_vecset.F90
   test_halo_communication.F90 test_halo_numbering.F90 test_halo_receive_renumbering.F90
   test_submesh.F90 test_cv_faces.F90
@@ -15,7 +15,7 @@ foreach(unittest IN LISTS tests)
    add_library(${test_name}_main OBJECT test_main.cpp)
    set_target_properties(${test_name}_main PROPERTIES COMPILE_FLAGS -DTESTNAME=${test_name}_)
    add_executable(${test_name} ${unittest} $<TARGET_OBJECTS:${test_name}_main>)
-   target_link_libraries(${test_name} fluidity vtkfortran ${spatialindex} adaptivity ${VTK_LIBRARIES} ${MPI_LIBRARIES} ${PETSC_PACKAGE_LIBS} ${PETSC_LIB} ${ZOLTAN_LIB} ${SPUD_LIB} ${JUDY_LIB} ${UDUNITS_LIB} mba2d ${PYTHON_LIBRARIES})
+   target_link_libraries(${test_name} fluidity ${FLUIDITY_PACKAGE_LIBS})
    list(APPEND unittests ${test_name})
 endforeach()
 

@@ -6,4 +6,4 @@ enable_language (Fortran)
 
 file(GLOB lib_srcs RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *.f *.c)
 
-add_library(mba2d ${lib_srcs})
+add_library(mba2d STATIC ${lib_srcs})

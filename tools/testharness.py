@@ -367,7 +367,10 @@ class TestHarness:
                         self.teststatus += ['F']
                         test.pass_status = ['F']
                       self.completed_tests += [test]
-                      self.xml_parser.test_cases+=test.xml_reports
+                      try:
+                        self.xml_parser.test_cases+=test.xml_reports
+                      except:
+                        pass
                       t = None
                       count -= 1
 
