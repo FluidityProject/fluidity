@@ -422,7 +422,6 @@ program Darcy_IMPES
          exit timestep_loop
       
       end if
-
       ewrite(1, *) "********************"
       ewrite(1, *) "*** NEW TIMESTEP ***"
       ewrite(1, *) "********************"
@@ -456,28 +455,10 @@ program Darcy_IMPES
       call darcy_impes_copy_to_old(di)      
       if (have_dual) call darcy_impes_copy_to_old(di_dual)
       
-      if ((di%MIM_options%have_MIM_phase) .or. (di%lc%have_leach_chem_model)) then
-        call darcy_trans_leaching_copy_to_old(di)
-      end if
       
       ! *** Darcy IMPES evaluate pre solve system fields - BCs, prescribed fields and gravity ***
       call darcy_impes_evaluate_pre_solve_fields()
-           
-      ! ************************************** LCai********************************
-      !calculate the porosity used to solve the Mobile-immobile model
-      if ((di%MIM_options%have_MIM_phase) .or. (di%lc%have_leach_chem_model)) then           
-             call zero(di%porosity_pmesh)
-             ! then do galerkin projection to project the porosity on elementwise mesh to pressure mesh
-             !note that this now only support the porosity which is originally based on dg elemernwise mesh
-             if (continuity(di%porosity) < 0) then !check wether the porosity is dg
-               do ele_prt=1,ele_count(di%porosity_pmesh)
-               call darcy_trans_assemble_galerkin_projection_elemesh_to_pmesh(di%porosity_pmesh, di%porosity, di%positions, ele_prt)
-               end do
-             else
-               FLExit("the mesh of porosity should be elementwise dg")
-             end if
-       end if
-       ! ************Finish *** LCai **********************************
+
       ! Solve the system of equations with a non linear iteration
       call darcy_impes_solve_system_of_equations_with_non_linear_iteration()
       ! exit timestep loop if non linear iteration has not converged if required
@@ -569,7 +550,15 @@ program Darcy_IMPES
       end if
    end if
    
-   !****************LCai****Deallocate Leaching Chemical model******!
+   !****************LCai****Deallocate Leaching Chemical model or MIM model******!
+   !For porosity pmesh
+   if (di%MIM_options%have_MIM_phase .or. have_option('/Leaching_chemical_model')) then 
+      nullify(di%porosity_pmesh)
+      nullify(di%old_porosity_pmesh)
+      nullify(di%lviscosity_pmesh)
+      nullify(di%old_lviscosity_pmesh)
+   end if
+
    if (di%lc%have_leach_chem_model) then
      call finalize_leaching_chemical_model(di)
    end if
@@ -579,6 +568,8 @@ program Darcy_IMPES
    end if
 
    call finalize_MIM_model(di)
+
+   call finalize_heap_property(di)
    !**************************fin**************************************
 
 
@@ -677,7 +668,7 @@ contains
 
       di%current_time = current_time
       
-      di%nonlinear_iter = 0
+      di%nonlinear_iter = 0      
       
       call get_option('/geometry/dimension', di%ndim)
       
@@ -1059,9 +1050,11 @@ contains
          allocate(di%sfield_bc_flag(surface_element_count(di%pressure_mesh)))
       
       end if
+
       !******************************LCai********MIM model***********************************
       call initialize_MIM_model(di)
       !**********************************fin**************************************************
+      
       ! Allocate an upwind value matrix that is used for generic scalar 
       ! fields, saturations and density if required
       call allocate(di%sfield_upwind, di%sparsity_pmesh_pmesh) 
@@ -1192,6 +1185,16 @@ contains
          if (di%number_phase /= 2) then
             FLExit('Cannot use the relative permeability correlation Corey2PhaseOpposite if not a 2 phase simulation')
          end if
+         
+      else if (trim(tmp_char_option) == 'Corey2PhaseOpposite_Correct') then
+         
+         di%relperm_corr_options%type = RELPERM_CORRELATION_COREY2PHASEOPPOSITE_Correct
+         
+         ! Check there are 2 phases
+         if (di%number_phase /= 2) then
+            FLExit('Cannot use the relative permeability correlation Corey2PhaseOpposite if not a 2 phase simulation')
+         end if  
+         
       
       else if (trim(tmp_char_option) == 'Mineral') then
  
@@ -1304,7 +1307,7 @@ contains
          allocate(di%old_saturation_subcycle(p)%ptr)
          call allocate(di%old_saturation_subcycle(p)%ptr, di%pressure_mesh)
       end do
-            
+  
       ! Determine the adaptive time stepping options
       di%adaptive_dt_options%have = have_option('/timestepping/adaptive_timestep')
       
@@ -1433,6 +1436,33 @@ contains
         di%lc%have_leach_chem_model= .false.
 
       end if
+    
+      if (di%MIM_options%have_MIM_phase.or.&
+           have_option('/Leaching_chemical_model')) then
+
+           di%porosity_pmesh => extract_scalar_field(state(2), 'Porosity_pmesh', stat=stat)
+           if (.not. stat==0) then
+              FLAbort('please turn on Porosity_pmesh and Viscosity_pmesh under liquid phase')
+           end if
+
+           di%old_porosity_pmesh => extract_scalar_field(state(2), 'OldPorosity_pmesh', stat=stat)
+           if (.not. stat==0) then
+              FLAbort('Failed to extract OldPorosity_pmesh')
+           end if
+
+           di%lviscosity_pmesh => extract_scalar_field(state(2), 'Viscosity_pmesh', stat=stat)
+           if (.not. stat==0) then
+              FLAbort('please turn on Porosity_pmesh and Viscosity_pmesh under liquid phase')
+           end if
+
+           di%old_lviscosity_pmesh => extract_scalar_field(state(2), 'OldViscosity_pmesh', stat=stat)
+           if (.not. stat==0) then
+              FLAbort('Failed to extract OldViscosity_pmesh')
+           end if
+
+      end if
+
+      call initialize_heap_property(di)
       !********finish*******leaching chemistry model**************!
 
       ! If the first phase saturation is diagnostic then calculate it
@@ -1450,38 +1480,10 @@ contains
       ! calculate generic diagnostics - DO NOT ADD 'calculate_diagnostic_variables'
       call calculate_diagnostic_variables_new(all_state)
       
-      ! ******* 22 Aug 2013 ****** LCai ***********************************
-      ! check that is the immobile prog sfield exist
-      ! if exist, then allocate the porosity used to calcalate MIM
-      !constant or projected to pmesh
-       if (di%MIM_options%have_MIM_phase.or.&
-               have_option('/Leaching_chemical_model')) then   
-           call allocate(di%porosity_pmesh, di%pressure_mesh)
-           call allocate(di%old_porosity_pmesh, di%pressure_mesh)
-           call zero(di%old_porosity_pmesh)
-           call zero(di%porosity_pmesh)
-           ! then do galerkin projection to project the porosity on elementwise mesh to pressure mesh
-           !note that this now only support the porosity which is originally based on dg elemernwise mesh
-           if (continuity(di%porosity) < 0) then !check wether the porosity is dg
-             
-              do ele_prt=1,ele_count(di%porosity_pmesh)
-                 call darcy_trans_assemble_galerkin_projection_elemesh_to_pmesh(di%porosity_pmesh, di%porosity, di%positions, ele_prt)
-
-              end do
-           else
-              FLExit("the mesh of porosity should be elementwise dg")
-           end if
-       end if
-
-      ! *********** Finish **********LCai *********************************
       
       ! Calculate the latest CV mass on the pressure mesh with porosity
       call compute_cv_mass(di%positions, di%cv_mass_pressure_mesh_with_porosity, di%porosity)
       
-      !*********************26 July 2013 LCai*****************************!
-      ! calculate the Mobile saturations if MIM is used
-      if (di%MIM_options%have_MIM_phase) call darcy_trans_MIM_assemble_and_solve_mobile_saturation(di)
-      !***********end*******lcai**************************** 
       
       ! Calculate the non first phase pressure's, needs to be after the python fields
       call darcy_impes_calculate_non_first_phase_pressures(di)       
@@ -1510,15 +1512,11 @@ contains
       call copy_to_stored_values(di%state,"Iterated")
       call relax_to_nonlinear(di%state)
       
-      
-      call leaching_prog_sfield_subcycle_initialize(di)
-      if (di%lcsub%have_leach_subcycle) then 
-        call calculate_leach_prog_sfield_subcycle_terms(di)
-        !call darcy_trans_leaching_sub_copy_to_iterated(di)       
-        call darcy_trans_leaching_sub_copy_to_old(di)
-      end if
-
-      !******************LCai******Leaching chemical model***********************!
+      !*********************26 July 2013 LCai*****************************!
+      ! calculate the Mobile saturations if MIM is used
+      if (di%MIM_options%have_MIM_phase) call darcy_trans_solve_MIM_saturations_and_mass_transfer_coefficient(di)
+      !***********end*******lcai****************************
+     !******************LCai******Leaching chemical model***********************!
 
          if (di%MIM_options%have_MIM_phase) then
             sfield_loop: do f = 1, size(di%generic_prog_sfield)
@@ -1528,6 +1526,9 @@ contains
                end if
             end do sfield_loop
          end if
+         
+         call leaching_prog_sfield_subcycle_initialize(di)
+         
          ! **********Lcai*************leaching heat transfer model************
          !calculate heat transfer before the chemistry is updated
          !calculate the leaching heat transfer sources terms for the first time step as an explicit source term
@@ -1542,7 +1543,6 @@ contains
            call calculate_leaching_chemical_model(di)
          end if
       !*******************Finish*LCai************************************!
-      
       ewrite(1,*) 'Finished initialising Darcy IMPES data'
       
    end subroutine darcy_impes_initialise
@@ -1745,13 +1745,6 @@ contains
       deallocate(di%have_capilliary_pressure)
       deallocate(di%have_saturation_source)
      
-      ! **** 09 Aug 2013 *** LCai *************************
-      if (di%MIM_options%have_MIM_phase .or. have_option('/Leaching_chemical_model')) then 
-        call deallocate(di%porosity_pmesh)
-        call deallocate(di%old_porosity_pmesh)
-      end if
-      !**********Finish**************LCai **************************************!
-
       deallocate(di%pressure)
       deallocate(di%capilliary_pressure)
       deallocate(di%saturation)

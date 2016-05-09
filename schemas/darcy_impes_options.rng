@@ -766,6 +766,9 @@ at the first timestep or not.</a:documentation>
     <optional>
       <ref name="darcy_impes_non_first_phase_temperature_field"/>
     </optional>
+    <optional>
+      <ref name="darcy_impes_pmesh_porosity_viscosity_field"/>
+    </optional>
     <zeroOrMore>
       <ref name="darcy_impes_generic_scalar_field"/>
     </zeroOrMore>
@@ -1284,6 +1287,18 @@ relperm_2 = sat_2**4</a:documentation>
         <ref name="comment"/>
         <attribute name="name">
           <value>Corey2PhaseOpposite</value>
+        </attribute>
+        <optional>
+          <ref name="darcy_impes_residual_saturations"/>
+        </optional>
+      </element>
+      <element name="correlation">
+        <a:documentation>Use the opposite to Corey 2 phase correlation such that:
+relperm_1 = (1 - sat_2**2) * (1 - sat_2)**2,
+relperm_2 = sat_2**4</a:documentation>
+        <ref name="comment"/>
+        <attribute name="name">
+          <value>Corey2PhaseOpposite_Correct</value>
         </attribute>
         <optional>
           <ref name="darcy_impes_residual_saturations"/>
@@ -1875,7 +1890,6 @@ i.e. if the name of this scalar field is 'cd', then the name will be changed to 
           <optional>
             <ref name="darcy_impes_recalculation_options"/>
           </optional>
-          <ref name="field_output_options"/>
           <ref name="darcy_impes_include_stat"/>
         </element>
         <element name="scalar_field">
@@ -1893,7 +1907,6 @@ i.e. if the name of this scalar field is 'cd', then the name will be changed to 
             <optional>
               <ref name="darcy_impes_recalculation_options"/>
             </optional>
-            <ref name="field_output_options"/>
             <ref name="darcy_impes_include_stat"/>
           </element>
         </element>
@@ -1912,7 +1925,6 @@ i.e. if the name of this scalar field is 'cd', then the name will be changed to 
             <optional>
               <ref name="darcy_impes_recalculation_options"/>
             </optional>
-            <ref name="field_output_options"/>
             <ref name="darcy_impes_include_stat"/>
           </element>
         </element>
@@ -1931,7 +1943,6 @@ i.e. if the name of this scalar field is 'cd', then the name will be changed to 
             <optional>
               <ref name="darcy_impes_recalculation_options"/>
             </optional>
-            <ref name="field_output_options"/>
             <ref name="darcy_impes_include_stat"/>
           </element>
         </element>
@@ -2277,6 +2288,36 @@ the first material_phase state then aliased in all others.</a:documentation>
         </attribute>
         <ref name="darcy_impes_scalar_field_prescribed_or_python_diagnostic_element_wise_mesh"/>
       </element>
+      <optional>
+        <element name="scalar_field">
+          <a:documentation>specify the rock diameters inside the heap,
+which is used to calculate the wetting efficienct and immobile saturation and mass transfer coefficient diagnosticlly         </a:documentation>
+          <attribute name="rank">
+            <value>0</value>
+          </attribute>
+          <attribute name="name">
+            <value>Rock_diameter</value>
+          </attribute>
+          <choice>
+            <element name="prescribed">
+              <ref name="mesh_choice_pressure"/>
+              <ref name="prescribed_scalar_field"/>
+              <ref name="field_output_options"/>
+              <ref name="darcy_impes_include_stat"/>
+              <optional>
+                <ref name="darcy_impes_recalculation_options"/>
+              </optional>
+            </element>
+            <element name="diagnostic">
+              <ref name="mesh_choice_pressure"/>
+              <ref name="darcy_impes_diagnostic_scalar_field"/>
+              <optional>
+                <ref name="darcy_impes_recalculation_options"/>
+              </optional>
+            </element>
+          </choice>
+        </element>
+      </optional>
     </element>
     <optional>
       <ref name="darcy_impes_dual_porous_media_model"/>
@@ -2660,7 +2701,7 @@ Please turn on the corresponding immobile field under the mobile prognostic fiel
           </element>
           <element name="diagnostic">
             <ref name="mesh_choice_pressure"/>
-            <ref name="scalar_diagnostic_algorithms"/>
+            <ref name="darcy_impes_internal_algorithm"/>
             <ref name="darcy_impes_diagnostic_scalar_field"/>
             <optional>
               <ref name="darcy_impes_recalculation_options"/>
@@ -2706,7 +2747,7 @@ Please turn on the corresponding immobile field under the mobile prognostic fiel
             </element>
             <element name="diagnostic">
               <ref name="mesh_choice_pressure"/>
-              <ref name="scalar_diagnostic_algorithms"/>
+              <ref name="darcy_impes_internal_algorithm"/>
               <ref name="darcy_impes_diagnostic_scalar_field"/>
               <optional>
                 <ref name="darcy_impes_recalculation_options"/>
@@ -2765,6 +2806,13 @@ Please turn on the corresponding immobile field under the mobile prognostic fiel
         </element>
       </optional>
       <optional>
+        <element name="field_maximun_value">
+          <a:documentation>place a cap of the field
+to limit the maximun value, ensure the stability of the sigular corner of the heap</a:documentation>
+          <ref name="real"/>
+        </element>
+      </optional>
+      <optional>
         <ref name="darcy_impes_leaching_solution_phase_prog_src"/>
       </optional>
       <optional>
@@ -2790,8 +2838,6 @@ while the chemical source term under the prognostic field is mole per total volu
               <optional>
                 <ref name="darcy_impes_recalculation_options"/>
               </optional>
-              <ref name="field_output_options"/>
-              <ref name="darcy_impes_include_stat"/>
             </element>
           </element>
           <element name="scalar_field">
@@ -2810,8 +2856,6 @@ mole per volume of immobile solution</a:documentation>
               <optional>
                 <ref name="darcy_impes_recalculation_options"/>
               </optional>
-              <ref name="field_output_options"/>
-              <ref name="darcy_impes_include_stat"/>
             </element>
           </element>
         </element>
@@ -2977,6 +3021,23 @@ the value of this source term is based on unit: mole/m^3_heap</a:documentation>
               </optional>
             </element>
           </element>
+          <element name="scalar_field">
+            <attribute name="rank">
+              <value>0</value>
+            </attribute>
+            <attribute name="name">
+              <value>Gangue_mineral_acid_dissolution</value>
+            </attribute>
+            <element name="diagnostic">
+              <ref name="mesh_choice_pressure"/>
+              <ref name="darcy_impes_internal_algorithm"/>
+              <ref name="darcy_impes_chemical_stoichiometric_factor"/>
+              <ref name="darcy_impes_diagnostic_scalar_field"/>
+              <optional>
+                <ref name="darcy_impes_recalculation_options"/>
+              </optional>
+            </element>
+          </element>
         </choice>
       </oneOrMore>
     </element>
@@ -2994,11 +3055,56 @@ the value of this source term is based on unit: mole/m^3_heap</a:documentation>
         <optional>
           <ref name="leaching_chemical_dt_subcycle_options"/>
         </optional>
+        <optional>
+          <element name="scalar_field">
+            <a:documentation>Redox potential, Eh,
+is necessary when limit the chalcopyrite dissolution by Eh</a:documentation>
+            <attribute name="rank">
+              <value>0</value>
+            </attribute>
+            <attribute name="name">
+              <value>Eh</value>
+            </attribute>
+            <element name="diagnostic">
+              <ref name="mesh_choice_pressure"/>
+              <ref name="darcy_impes_internal_algorithm"/>
+              <ref name="darcy_impes_diagnostic_scalar_field"/>
+              <optional>
+                <ref name="darcy_impes_recalculation_options"/>
+              </optional>
+            </element>
+          </element>
+        </optional>
         <ref name="leaching_mineral_dissolution_options"/>
         <ref name="leaching_solution_phase_options"/>
         <ref name="leaching_heat_transfer_model"/>
+        <optional>
+          <ref name="leaching_liquid_solid_wetting_efficiency"/>
+        </optional>
       </element>
     </optional>
+  </define>
+  <define name="leaching_liquid_solid_wetting_efficiency">
+    <element name="liquid_solid_wetting_efficiency">
+      <a:documentation>This is the solid wetting efficiency to correct the reaction kenitics
+based on (Muthanna, et al, 1995)</a:documentation>
+      <element name="scalar_field">
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>Wetting_efficiency</value>
+        </attribute>
+        <element name="diagnostic">
+          <ref name="mesh_choice_pressure"/>
+          <ref name="darcy_impes_internal_algorithm"/>
+          <ref name="darcy_impes_diagnostic_scalar_field"/>
+          <optional>
+            <ref name="darcy_impes_recalculation_options"/>
+          </optional>
+        </element>
+      </element>
+    </element>
   </define>
   <define name="leaching_chemical_dt_subcycle_options">
     <element name="leaching_chemical_dt_subcycle">
@@ -3062,18 +3168,50 @@ dt_sub&lt;=beta*C_mast_field/[dC_mast_field/dt]</a:documentation>
         <a:documentation>this is the mineral dissolution option for the leaching chemical model
 this contains the semi-empirical model based on the experiment result
 for pytite and chalcopyrite dissolution
-and the elemental sulper dissolution</a:documentation>
+and the elemental sulper dissolution
+The internal algorithms currently available are for chalcopyrite leaching</a:documentation>
         <zeroOrMore>
           <choice>
             <element name="reaction">
-              <a:documentation>The internal algorithms currently available are for chalcopyrite leaching</a:documentation>
+              <a:documentation>This is the semi-empirical model for chalcopyrite dissolution 
+by ferric sulfate
+the value of this reaction is based on unit: mole/m^3_heap</a:documentation>
               <attribute name="name">
                 <value>CuFeS2_oxidation_aqueous_ferric_sulfate</value>
               </attribute>
+              <zeroOrMore>
+                <element name="Cap_field">
+                  <a:documentation>when the reacting species reach the extreme values somewhere. stop the reaction at that place 
+fill in the same name of the field in the phase to limite reaction</a:documentation>
+                  <attribute name="name">
+                    <data type="string"/>
+                  </attribute>
+                  <element name="phase">
+                    <a:documentation>the phase number of the field,
+e.g if the field is under Phase1 then enter 1</a:documentation>
+                    <ref name="integer"/>
+                  </element>
+                  <element name="field_maximun_value">
+                    <a:documentation>place a cap of the field
+to limit the maximun value, ensure the stability of the sigular corner of the heap</a:documentation>
+                    <ref name="real"/>
+                  </element>
+                </element>
+              </zeroOrMore>
+              <optional>
+                <element name="Optimum_Eh">
+                  <element name="Eh_optimum_value">
+                    <a:documentation>When Eh exceed the optimum Eh, the activation energy become high 
+to limit the reaction rate when ferrivs are high</a:documentation>
+                    <ref name="real"/>
+                  </element>
+                  <element name="higher_activation_energy">
+                    <a:documentation>The higher activation energy when Eh exceed the optimum Eh</a:documentation>
+                    <ref name="real"/>
+                  </element>
+                </element>
+              </optional>
               <element name="scalar_field">
-                <a:documentation>This is the semi-empirical model for chalcopyrite dissolution 
-by ferric sulfate
-the value of this reaction is based on unit: mole/m^3_heap</a:documentation>
                 <attribute name="rank">
                   <a:documentation>This is the concentraction change rate of CuFeS2
 mole/s per m^3 of heap</a:documentation>
@@ -3095,13 +3233,32 @@ mole/s per m^3 of heap</a:documentation>
               <ref name="rate_constant"/>
             </element>
             <element name="reaction">
+              <a:documentation>This is the semi-empirical model for pyrite dissolution 
+by ferric sulfate
+the value of this reaction is based on unit: mole/m^3_heap</a:documentation>
               <attribute name="name">
                 <value>FeS2_oxidation_aqueous_ferric_sulfate</value>
               </attribute>
+              <zeroOrMore>
+                <element name="Cap_field">
+                  <a:documentation>when the reacting species reach the extreme values somewhere. stop the reaction at that place
+fill in the same name of the field in the phase to limite reaction </a:documentation>
+                  <attribute name="name">
+                    <data type="string"/>
+                  </attribute>
+                  <element name="phase">
+                    <a:documentation>the phase number of the field,
+e.g if the field is under Phase1 then enter 1</a:documentation>
+                    <ref name="integer"/>
+                  </element>
+                  <element name="field_maximun_value">
+                    <a:documentation>place a cap of the field
+to limit the maximun value, ensure the stability of the sigular corner of the heap</a:documentation>
+                    <ref name="real"/>
+                  </element>
+                </element>
+              </zeroOrMore>
               <element name="scalar_field">
-                <a:documentation>This is the semi-empirical model for pyrite dissolution 
-by ferric sulfate
-the value of this reaction is based on unit: mole/m^3_heap</a:documentation>
                 <attribute name="rank">
                   <a:documentation>This is the concentraction change rate of FeS2
 mole/s per m^3 of heap</a:documentation>
@@ -3127,8 +3284,8 @@ mole/s per m^3 of heap</a:documentation>
                 <value>S0_dissolution</value>
               </attribute>
               <element name="scalar_field">
-                <a:documentation>The molar concentration of jarosite,
-mole per m^3 of liquid solution</a:documentation>
+                <a:documentation>The molar concentration of S0,
+mole per m^3 of heap</a:documentation>
                 <attribute name="rank">
                   <value>0</value>
                 </attribute>
@@ -3189,6 +3346,37 @@ please specify the percentage of the S0 to dissolve,noramlly 0.05 to 0.2 </a:doc
               </element>
               <element name="H_name">
                 <a:documentation>The scalar filed name for H+ in phase 2</a:documentation>
+                <data type="string" datatypeLibrary=""/>
+              </element>
+            </element>
+            <element name="reaction">
+              <attribute name="name">
+                <value>Gangue_mineral_acid_dissolution</value>
+              </attribute>
+              <element name="scalar_field">
+                <a:documentation>This is the dissolution rate of gangue mineral by acid
+mole/s per m^3 of heap</a:documentation>
+                <attribute name="rank">
+                  <value>0</value>
+                </attribute>
+                <attribute name="name">
+                  <value>dG_dt</value>
+                </attribute>
+                <element name="diagnostic">
+                  <ref name="mesh_choice_pressure"/>
+                  <ref name="darcy_impes_internal_algorithm"/>
+                  <ref name="darcy_impes_diagnostic_scalar_field"/>
+                  <optional>
+                    <ref name="darcy_impes_recalculation_options"/>
+                  </optional>
+                </element>
+              </element>
+              <element name="rate_constant">
+                <a:documentation>please specify the rate constant of dissolution, 1/s </a:documentation>
+                <ref name="real"/>
+              </element>
+              <element name="H_name">
+                <a:documentation>The scalar filed name for H+ in Phase 2 used to gangue mineral dissolution</a:documentation>
                 <data type="string" datatypeLibrary=""/>
               </element>
             </element>
@@ -3392,6 +3580,11 @@ mole per m^3 of liquid solution</a:documentation>
                 <a:documentation>The scalar filed name for Fe3 in Phase 2 used to calculate jarosite precipitation</a:documentation>
                 <data type="string" datatypeLibrary=""/>
               </element>
+              <element name="rate_constant">
+                <a:documentation>The jarosite precipitation rate constant</a:documentation>
+                <ref name="comment"/>
+                <ref name="real"/>
+              </element>
             </element>
             <element name="reaction">
               <attribute name="name">
@@ -3564,6 +3757,56 @@ NOT Finished yet</a:documentation>
       </choice>
     </element>
   </define>
+  <define name="darcy_impes_pmesh_porosity_viscosity_field">
+    <element name="scalar_field">
+      <attribute name="rank">
+        <value>0</value>
+      </attribute>
+      <attribute name="name">
+        <value>Porosity_pmesh</value>
+      </attribute>
+      <choice>
+        <element name="prescribed">
+          <ref name="mesh_choice_pressure"/>
+          <ref name="prescribed_scalar_field"/>
+          <ref name="field_output_options"/>
+          <ref name="darcy_impes_include_stat"/>
+        </element>
+        <element name="diagnostic">
+          <ref name="mesh_choice_pressure"/>
+          <ref name="scalar_galerkin_projection_algorithm"/>
+          <ref name="darcy_impes_diagnostic_scalar_field"/>
+          <optional>
+            <ref name="darcy_impes_recalculation_options"/>
+          </optional>
+        </element>
+      </choice>
+    </element>
+    <element name="scalar_field">
+      <attribute name="rank">
+        <value>0</value>
+      </attribute>
+      <attribute name="name">
+        <value>Viscosity_pmesh</value>
+      </attribute>
+      <choice>
+        <element name="prescribed">
+          <ref name="mesh_choice_pressure"/>
+          <ref name="prescribed_scalar_field"/>
+          <ref name="field_output_options"/>
+          <ref name="darcy_impes_include_stat"/>
+        </element>
+        <element name="diagnostic">
+          <ref name="mesh_choice_pressure"/>
+          <ref name="scalar_galerkin_projection_algorithm"/>
+          <ref name="darcy_impes_diagnostic_scalar_field"/>
+          <optional>
+            <ref name="darcy_impes_recalculation_options"/>
+          </optional>
+        </element>
+      </choice>
+    </element>
+  </define>
   <define name="darcy_impes_leaching_mineral_experiment_field">
     <element name="experiment_data">
       <a:documentation>The expriment data used to do cubic spline interpolation
@@ -3582,6 +3825,53 @@ each point is seperated by space</a:documentation>
 each point is seperated by space</a:documentation>
         <ref name="real_vector"/>
       </element>
+    </element>
+  </define>
+  <define name="rock_temperature_surface_heat_transfer">
+    <element name="diagnostic">
+      <ref name="mesh_choice_pressure"/>
+      <ref name="darcy_impes_internal_algorithm"/>
+      <ref name="darcy_impes_diagnostic_scalar_field"/>
+    </element>
+    <element name="Boundary">
+      <attribute name="name">
+        <data type="string"/>
+      </attribute>
+      <element name="surface_ID">
+        <ref name="integer_vector"/>
+      </element>
+      <choice>
+        <element name="heat_transfer_type">
+          <attribute name="name">
+            <value>heat_convection</value>
+          </attribute>
+          <element name="heat_transfer_coefficient">
+            <ref name="real"/>
+          </element>
+          <element name="surface_area">
+            <ref name="real"/>
+          </element>
+          <element name="reference_temperature">
+            <a:documentation>the reference temperature which transfer the heat to/from rock</a:documentation>
+            <ref name="real"/>
+          </element>
+        </element>
+        <element name="heat_transfer_type">
+          <attribute name="name">
+            <value>radiation</value>
+          </attribute>
+          <element name="emissivity">
+            <ref name="real"/>
+          </element>
+          <element name="surface_area">
+            <ref name="real"/>
+          </element>
+          <element name="reference_temperature">
+            <a:documentation>the reference temperature which transfer the heat to/from rock</a:documentation>
+            <ref name="real"/>
+          </element>
+        </element>
+      </choice>
     </element>
   </define>
   <define name="darcy_impes_leaching_rock_properties_and_source">
@@ -3633,6 +3923,120 @@ equation tobe solved: (d(T_s*(1-porosity))/dt)=-k_eff(T_s-T_l)*(T_s-T_l)*(1-poro
           </element>
         </element>
       </optional>
+      <zeroOrMore>
+        <choice>
+          <element name="scalar_field">
+            <a:documentation>the surface heat loss or gain at heap boundary
+now convection and radiation available  </a:documentation>
+            <attribute name="rank">
+              <value>0</value>
+            </attribute>
+            <attribute name="name">
+              <value>Rock_Temperature_Surface_Src1</value>
+            </attribute>
+            <ref name="rock_temperature_surface_heat_transfer"/>
+          </element>
+          <element name="scalar_field">
+            <attribute name="rank">
+              <value>0</value>
+            </attribute>
+            <attribute name="name">
+              <value>Rock_Temperature_Surface_Src2</value>
+            </attribute>
+            <ref name="rock_temperature_surface_heat_transfer"/>
+          </element>
+          <element name="scalar_field">
+            <attribute name="rank">
+              <value>0</value>
+            </attribute>
+            <attribute name="name">
+              <value>Rock_Temperature_Surface_Src3</value>
+            </attribute>
+            <ref name="rock_temperature_surface_heat_transfer"/>
+          </element>
+          <element name="scalar_field">
+            <attribute name="rank">
+              <value>0</value>
+            </attribute>
+            <attribute name="name">
+              <value>Rock_Temperature_Surface_Src4</value>
+            </attribute>
+            <ref name="rock_temperature_surface_heat_transfer"/>
+          </element>
+          <element name="scalar_field">
+            <attribute name="rank">
+              <value>0</value>
+            </attribute>
+            <attribute name="name">
+              <value>Rock_Temperature_Surface_Src5</value>
+            </attribute>
+            <ref name="rock_temperature_surface_heat_transfer"/>
+          </element>
+          <element name="scalar_field">
+            <attribute name="rank">
+              <value>0</value>
+            </attribute>
+            <attribute name="name">
+              <value>Rock_Temperature_Surface_Src6</value>
+            </attribute>
+            <ref name="rock_temperature_surface_heat_transfer"/>
+          </element>
+          <element name="scalar_field">
+            <attribute name="rank">
+              <value>0</value>
+            </attribute>
+            <attribute name="name">
+              <value>Rock_Temperature_Surface_Src7</value>
+            </attribute>
+            <ref name="rock_temperature_surface_heat_transfer"/>
+          </element>
+          <element name="scalar_field">
+            <attribute name="rank">
+              <value>0</value>
+            </attribute>
+            <attribute name="name">
+              <value>Rock_Temperature_Surface_Src8</value>
+            </attribute>
+            <ref name="rock_temperature_surface_heat_transfer"/>
+          </element>
+          <element name="scalar_field">
+            <attribute name="rank">
+              <value>0</value>
+            </attribute>
+            <attribute name="name">
+              <value>Rock_Temperature_Surface_Src9</value>
+            </attribute>
+            <ref name="rock_temperature_surface_heat_transfer"/>
+          </element>
+          <element name="scalar_field">
+            <attribute name="rank">
+              <value>0</value>
+            </attribute>
+            <attribute name="name">
+              <value>Rock_Temperature_Surface_Src10</value>
+            </attribute>
+            <ref name="rock_temperature_surface_heat_transfer"/>
+          </element>
+          <element name="scalar_field">
+            <attribute name="rank">
+              <value>0</value>
+            </attribute>
+            <attribute name="name">
+              <value>Rock_Temperature_Surface_Src11</value>
+            </attribute>
+            <ref name="rock_temperature_surface_heat_transfer"/>
+          </element>
+          <element name="scalar_field">
+            <attribute name="rank">
+              <value>0</value>
+            </attribute>
+            <attribute name="name">
+              <value>Rock_Temperature_Surface_Src12</value>
+            </attribute>
+            <ref name="rock_temperature_surface_heat_transfer"/>
+          </element>
+        </choice>
+      </zeroOrMore>
     </element>
     <element name="scalar_field">
       <attribute name="rank">
@@ -3777,6 +4181,17 @@ H_dissolution/(cp_r*rho_r),unit: (k/s)*(m^3_r/m^3_heap)</a:documentation>
                   <ref name="real"/>
                 </element>
               </element>
+              <element name="mineral_dissolutions">
+                <a:documentation>Gangue mineral dissolution dissolution   </a:documentation>
+                <attribute name="name">
+                  <value>gang_dG_dt</value>
+                </attribute>
+                <element name="Enthalpy">
+                  <a:documentation>KJ/mole    </a:documentation>
+                  <ref name="comment"/>
+                  <ref name="real"/>
+                </element>
+              </element>
             </choice>
           </oneOrMore>
         </element>
@@ -3823,21 +4238,23 @@ the heat generation and consumption form solution phase reactions</a:documentati
       </group>
       <element name="heat_transfer_sources">
         <a:documentation>the source term of liqud temperature</a:documentation>
-        <element name="scalar_field">
-          <a:documentation>the solid-liquid convection heat transfer term
+        <optional>
+          <element name="scalar_field">
+            <a:documentation>the solid-liquid convection heat transfer term
 k_eff(T_r-T_l)*(1-porosity)/(Cp_l*rho_l), unit: (k/s)*(m^3_l/m^3_heap)</a:documentation>
-          <attribute name="rank">
-            <value>0</value>
-          </attribute>
-          <attribute name="name">
-            <value>solid_liquid_heat_transfer_liquid_phase</value>
-          </attribute>
-          <element name="diagnostic">
-            <ref name="mesh_choice_pressure"/>
-            <ref name="darcy_impes_internal_algorithm"/>
-            <ref name="darcy_impes_diagnostic_scalar_field"/>
+            <attribute name="rank">
+              <value>0</value>
+            </attribute>
+            <attribute name="name">
+              <value>solid_liquid_heat_transfer_liquid_phase</value>
+            </attribute>
+            <element name="diagnostic">
+              <ref name="mesh_choice_pressure"/>
+              <ref name="darcy_impes_internal_algorithm"/>
+              <ref name="darcy_impes_diagnostic_scalar_field"/>
+            </element>
           </element>
-        </element>
+        </optional>
         <optional>
           <element name="scalar_field">
             <a:documentation>the source term of the heat released by solution phase reactions
@@ -3889,8 +4306,6 @@ while the chemical source term under the prognostic field is mole per total volu
               <optional>
                 <ref name="darcy_impes_recalculation_options"/>
               </optional>
-              <ref name="field_output_options"/>
-              <ref name="darcy_impes_include_stat"/>
             </element>
           </element>
           <element name="scalar_field">
@@ -3909,8 +4324,6 @@ mole per volume of immobile solution</a:documentation>
               <optional>
                 <ref name="darcy_impes_recalculation_options"/>
               </optional>
-              <ref name="field_output_options"/>
-              <ref name="darcy_impes_include_stat"/>
             </element>
           </element>
         </element>

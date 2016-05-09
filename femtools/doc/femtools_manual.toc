@@ -1,0 +1,152 @@
+\contentsline {part}{I\hspace {1em}The finite element method}{9}{part.1}
+\contentsline {chapter}{\numberline {1}Finite approximations to functions}{11}{chapter.1}
+\contentsline {section}{\numberline {1.1}Functions on the unit interval}{11}{section.1.1}
+\contentsline {section}{\numberline {1.2}One dimensional meshes}{11}{section.1.2}
+\contentsline {section}{\numberline {1.3}Function arithmetic}{14}{section.1.3}
+\contentsline {section}{\numberline {1.4}Numerical integration}{15}{section.1.4}
+\contentsline {subsection}{\numberline {1.4.1}Integration over a single element}{15}{subsection.1.4.1}
+\contentsline {subsection}{\numberline {1.4.2}Integration over a one dimensional domain}{16}{subsection.1.4.2}
+\contentsline {section}{\numberline {1.5}Numerical differentiation}{17}{section.1.5}
+\contentsline {chapter}{\numberline {2}Weak forms and the Galerkin projection}{19}{chapter.2}
+\contentsline {section}{\numberline {2.1}Equality in the weak sense}{19}{section.2.1}
+\contentsline {subsection}{\numberline {2.1.1}Matrix assembly}{20}{subsection.2.1.1}
+\contentsline {subsection}{\numberline {2.1.2}Right hand side assembly}{20}{subsection.2.1.2}
+\contentsline {section}{\numberline {2.2}The weak form of numerical differentiation}{21}{section.2.2}
+\contentsline {subsection}{\numberline {2.2.1}Numerical evaluation}{21}{subsection.2.2.1}
+\contentsline {chapter}{\numberline {3}Extension to more dimensions}{27}{chapter.3}
+\contentsline {section}{\numberline {3.1}Local coordinates on triangles and tets}{27}{section.3.1}
+\contentsline {section}{\numberline {3.2}Integration over an element}{27}{section.3.2}
+\contentsline {part}{II\hspace {1em}Key data structures}{29}{part.2}
+\contentsline {chapter}{\numberline {4}Common data structure features}{31}{chapter.4}
+\contentsline {section}{\numberline {4.1}The Femtools data structure heirarchy}{31}{section.4.1}
+\contentsline {section}{\numberline {4.2}Object descriptors vs. data space}{31}{section.4.2}
+\contentsline {section}{\numberline {4.3}Option paths: integrating Femtools and Spud}{32}{section.4.3}
+\contentsline {chapter}{\numberline {5}Quadrature}{33}{chapter.5}
+\contentsline {chapter}{\numberline {6}Elements}{35}{chapter.6}
+\contentsline {section}{\numberline {6.1}Shape functions at quadrature points}{35}{section.6.1}
+\contentsline {section}{\numberline {6.2}Evaluating shape functions at arbitrary points}{35}{section.6.2}
+\contentsline {section}{\numberline {6.3}Local node numbering}{35}{section.6.3}
+\contentsline {section}{\numberline {6.4}Changing coordinates}{35}{section.6.4}
+\contentsline {chapter}{\numberline {7}Meshes}{37}{chapter.7}
+\contentsline {section}{\numberline {7.1}Node and element numbering}{37}{section.7.1}
+\contentsline {section}{\numberline {7.2}mesh\_type}{37}{section.7.2}
+\contentsline {chapter}{\numberline {8}Fields}{39}{chapter.8}
+\contentsline {section}{\numberline {8.1}Vector and tensor fields}{39}{section.8.1}
+\contentsline {section}{\numberline {8.2}Field data types}{40}{section.8.2}
+\contentsline {section}{\numberline {8.3}Constant fields}{41}{section.8.3}
+\contentsline {section}{\numberline {8.4}The coordinate field}{41}{section.8.4}
+\contentsline {section}{\numberline {8.5}Topological and data dimension}{41}{section.8.5}
+\contentsline {section}{\numberline {8.6}Changing coordinates and bases}{41}{section.8.6}
+\contentsline {chapter}{\numberline {9}State dictionaries}{43}{chapter.9}
+\contentsline {section}{\numberline {9.1}Inserting and extracting objects in states}{43}{section.9.1}
+\contentsline {section}{\numberline {9.2}Aliased fields and listing the same field in multiple state dictionaries}{43}{section.9.2}
+\contentsline {chapter}{\numberline {10}Reference counting}{45}{chapter.10}
+\contentsline {section}{\numberline {10.1}Creating and destroying references}{46}{section.10.1}
+\contentsline {subsection}{\numberline {10.1.1}Allocate}{46}{subsection.10.1.1}
+\contentsline {subsection}{\numberline {10.1.2}Deallocate}{46}{subsection.10.1.2}
+\contentsline {subsection}{\numberline {10.1.3}Inserting into state}{47}{subsection.10.1.3}
+\contentsline {subsection}{\numberline {10.1.4}Extracting from states}{47}{subsection.10.1.4}
+\contentsline {subsection}{\numberline {10.1.5}Incref}{47}{subsection.10.1.5}
+\contentsline {section}{\numberline {10.2}Creating new reference counted data types}{47}{section.10.2}
+\contentsline {section}{\numberline {10.3}Memory accounting diagnostics}{47}{section.10.3}
+\contentsline {subsection}{\numberline {10.3.1}Memory statistics in the .stat file}{48}{subsection.10.3.1}
+\contentsline {part}{III\hspace {1em}Procedure reference}{49}{part.3}
+\contentsline {chapter}{\numberline {11}General principles for procedures}{51}{chapter.11}
+\contentsline {section}{\numberline {11.1}Field, mesh and matrix interfaces}{51}{section.11.1}
+\contentsline {section}{\numberline {11.2}Status arguments}{51}{section.11.2}
+\contentsline {chapter}{\numberline {12}Field and mesh methods}{53}{chapter.12}
+\contentsline {section}{\numberline {12.1}Global field and mesh enquiry routines}{53}{section.12.1}
+\contentsline {subsection}{\numberline {12.1.1}mesh\_dim}{53}{subsection.12.1.1}
+\contentsline {subsection}{\numberline {12.1.2}mesh\_periodic}{53}{subsection.12.1.2}
+\contentsline {subsection}{\numberline {12.1.3}node\_count}{53}{subsection.12.1.3}
+\contentsline {subsection}{\numberline {12.1.4}element\_count}{54}{subsection.12.1.4}
+\contentsline {subsection}{\numberline {12.1.5}surface\_element\_count}{54}{subsection.12.1.5}
+\contentsline {subsection}{\numberline {12.1.6}face\_count}{54}{subsection.12.1.6}
+\contentsline {subsection}{\numberline {12.1.7}aliased}{54}{subsection.12.1.7}
+\contentsline {section}{\numberline {12.2}Element enquiry routines}{54}{section.12.2}
+\contentsline {subsection}{\numberline {12.2.1}ele\_loc}{54}{subsection.12.2.1}
+\contentsline {subsection}{\numberline {12.2.2}ele\_and\_faces\_loc}{55}{subsection.12.2.2}
+\contentsline {subsection}{\numberline {12.2.3}ele\_vertices}{55}{subsection.12.2.3}
+\contentsline {subsection}{\numberline {12.2.4}ele\_ngi}{56}{subsection.12.2.4}
+\contentsline {subsection}{\numberline {12.2.5}ele\_nodes}{56}{subsection.12.2.5}
+\contentsline {section}{\numberline {12.3}Face enquiry routines}{56}{section.12.3}
+\contentsline {subsection}{\numberline {12.3.1}face\_loc}{56}{subsection.12.3.1}
+\contentsline {subsection}{\numberline {12.3.2}face\_vertices}{57}{subsection.12.3.2}
+\contentsline {subsection}{\numberline {12.3.3}face\_ngi}{57}{subsection.12.3.3}
+\contentsline {subsection}{\numberline {12.3.4}face\_local\_nodes}{57}{subsection.12.3.4}
+\contentsline {subsection}{\numberline {12.3.5}face\_global\_nodes}{58}{subsection.12.3.5}
+\contentsline {section}{\numberline {12.4}Data retrieval routines}{58}{section.12.4}
+\contentsline {subsection}{\numberline {12.4.1}ele\_val}{58}{subsection.12.4.1}
+\contentsline {subsection}{\numberline {12.4.2}ele\_val\_at\_quad}{59}{subsection.12.4.2}
+\contentsline {subsection}{\numberline {12.4.3}face\_val}{59}{subsection.12.4.3}
+\contentsline {subsection}{\numberline {12.4.4}node\_val}{60}{subsection.12.4.4}
+\contentsline {section}{\numberline {12.5}Data setting routines}{61}{section.12.5}
+\contentsline {subsection}{\numberline {12.5.1}addto}{61}{subsection.12.5.1}
+\contentsline {subsubsection}{Adding to node values}{61}{section*.2}
+\contentsline {subsubsection}{Adding fields to each other}{62}{section*.3}
+\contentsline {subsection}{\numberline {12.5.2}scale}{62}{subsection.12.5.2}
+\contentsline {subsection}{\numberline {12.5.3}set}{63}{subsection.12.5.3}
+\contentsline {subsubsection}{Setting node values}{63}{section*.4}
+\contentsline {subsubsection}{Setting the whole field to a constant value}{63}{section*.5}
+\contentsline {subsubsection}{Setting a field to the value of another field}{64}{section*.6}
+\contentsline {subsection}{\numberline {12.5.4}zero}{64}{subsection.12.5.4}
+\contentsline {chapter}{\numberline {13}State dictionary methods}{65}{chapter.13}
+\contentsline {section}{\numberline {13.1}Inserting objects in states}{65}{section.13.1}
+\contentsline {subsection}{\numberline {13.1.1}insert}{65}{subsection.13.1.1}
+\contentsline {section}{\numberline {13.2}Extracting objects from states}{65}{section.13.2}
+\contentsline {subsection}{\numberline {13.2.1}Extracting objects by name}{66}{subsection.13.2.1}
+\contentsline {subsubsection}{Reference counts of objects extracted from states}{66}{section*.7}
+\contentsline {subsubsection}{Extracting scalar components of vector fields}{66}{section*.8}
+\contentsline {subsection}{\numberline {13.2.2}Extracting objects by index}{67}{subsection.13.2.2}
+\contentsline {section}{\numberline {13.3}Auxiliary state routines}{67}{section.13.3}
+\contentsline {subsection}{\numberline {13.3.1}deallocate}{67}{subsection.13.3.1}
+\contentsline {subsection}{\numberline {13.3.2}remove object}{67}{subsection.13.3.2}
+\contentsline {subsection}{\numberline {13.3.3}object counts}{67}{subsection.13.3.3}
+\contentsline {chapter}{\numberline {14}Element methods}{69}{chapter.14}
+\contentsline {section}{\numberline {14.1}Quadrature methods}{69}{section.14.1}
+\contentsline {subsection}{\numberline {14.1.1}make\_quadrature}{69}{subsection.14.1.1}
+\contentsline {subsection}{\numberline {14.1.2}deallocate}{70}{subsection.14.1.2}
+\contentsline {section}{\numberline {14.2}Shape function methods}{70}{section.14.2}
+\contentsline {subsection}{\numberline {14.2.1}make\_element\_shape}{70}{subsection.14.2.1}
+\contentsline {subsection}{\numberline {14.2.2}deallocate}{71}{subsection.14.2.2}
+\contentsline {subsection}{\numberline {14.2.3}local\_coords}{71}{subsection.14.2.3}
+\contentsline {subsection}{\numberline {14.2.4}local\_coord\_count}{71}{subsection.14.2.4}
+\contentsline {subsection}{\numberline {14.2.5}eval\_shape}{72}{subsection.14.2.5}
+\contentsline {chapter}{\numberline {15}Functions implementing integrals over elements}{73}{chapter.15}
+\contentsline {section}{\numberline {15.1}Bilinear forms}{73}{section.15.1}
+\contentsline {subsection}{\numberline {15.1.1}shape\_shape}{74}{subsection.15.1.1}
+\contentsline {subsection}{\numberline {15.1.2}shape\_shape\_vector}{74}{subsection.15.1.2}
+\contentsline {subsection}{\numberline {15.1.3}shape\_shape\_tensor}{74}{subsection.15.1.3}
+\contentsline {subsection}{\numberline {15.1.4}shape\_shape\_vector\_outer\_vector}{75}{subsection.15.1.4}
+\contentsline {subsection}{\numberline {15.1.5}shape\_dshape}{75}{subsection.15.1.5}
+\contentsline {subsection}{\numberline {15.1.6}dshape\_shape}{75}{subsection.15.1.6}
+\contentsline {subsection}{\numberline {15.1.7}shape\_vector\_dot\_dshape}{76}{subsection.15.1.7}
+\contentsline {subsection}{\numberline {15.1.8}dshape\_dot\_vector\_shape}{76}{subsection.15.1.8}
+\contentsline {subsection}{\numberline {15.1.9}dshape\_dot\_tensor\_shape}{77}{subsection.15.1.9}
+\contentsline {subsection}{\numberline {15.1.10}shape\_vector\_outer\_dshape}{77}{subsection.15.1.10}
+\contentsline {subsection}{\numberline {15.1.11}dshape\_outer\_vector\_shape}{77}{subsection.15.1.11}
+\contentsline {subsection}{\numberline {15.1.12}dshape\_dot\_dshape}{78}{subsection.15.1.12}
+\contentsline {subsection}{\numberline {15.1.13}dshape\_tensor\_dshape}{78}{subsection.15.1.13}
+\contentsline {subsection}{\numberline {15.1.14}dshape\_outer\_dshape}{79}{subsection.15.1.14}
+\contentsline {subsection}{\numberline {15.1.15}shape\_curl\_shape\_2d}{79}{subsection.15.1.15}
+\contentsline {section}{\numberline {15.2}Linear Forms}{79}{section.15.2}
+\contentsline {subsection}{\numberline {15.2.1}shape\_rhs}{79}{subsection.15.2.1}
+\contentsline {subsection}{\numberline {15.2.2}shape\_vector\_rhs}{80}{subsection.15.2.2}
+\contentsline {subsection}{\numberline {15.2.3}shape\_tensor\_rhs}{80}{subsection.15.2.3}
+\contentsline {subsection}{\numberline {15.2.4}shape\_tensor\_dot\_vector\_rhs}{80}{subsection.15.2.4}
+\contentsline {subsection}{\numberline {15.2.5}dshape\_rhs}{81}{subsection.15.2.5}
+\contentsline {subsection}{\numberline {15.2.6}dshape\_dot\_vector\_rhs}{81}{subsection.15.2.6}
+\contentsline {subsection}{\numberline {15.2.7}dshape\_dot\_tensor\_rhs}{81}{subsection.15.2.7}
+\contentsline {section}{\numberline {15.3}Auxiliary form functions}{82}{section.15.3}
+\contentsline {subsection}{\numberline {15.3.1}dshape\_loc}{82}{subsection.15.3.1}
+\contentsline {subsection}{\numberline {15.3.2}dshape\_ngi}{82}{subsection.15.3.2}
+\contentsline {subsection}{\numberline {15.3.3}dshape\_dim}{82}{subsection.15.3.3}
+\contentsline {subsection}{\numberline {15.3.4}vector\_dim}{83}{subsection.15.3.4}
+\contentsline {subsection}{\numberline {15.3.5}tensor\_dim}{83}{subsection.15.3.5}
+\contentsline {chapter}{\numberline {16}Diagnostic statistics}{85}{chapter.16}
+\contentsline {section}{\numberline {16.1}Diagnostic I/O routines}{85}{section.16.1}
+\contentsline {section}{\numberline {16.2}Memory statistics}{85}{section.16.2}
+\contentsline {subsection}{\numberline {16.2.1}print\_current\_memory\_stats}{85}{subsection.16.2.1}
+\contentsline {subsection}{\numberline {16.2.2}print\_memory\_stats}{85}{subsection.16.2.2}
+\contentsline {subsection}{\numberline {16.2.3}reset\_memory\_logs}{85}{subsection.16.2.3}
+\contentsline {section}{\numberline {16.3}Register diagnostics in the .stat file}{86}{section.16.3}

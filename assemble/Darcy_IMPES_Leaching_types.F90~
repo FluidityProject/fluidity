@@ -161,7 +161,7 @@ module darcy_impes_leaching_types
   
   type rock_surface_temperature_src_type
       logical :: have_rtss=.false. !if have rock surface temperature source
-      type(integer_array_type),  dimension(:), allocatable :: ids !the boundary ids
+      integer,  dimension(:), allocatable :: ids !the boundary ids
       integer,  dimension(:,:), allocatable :: sele !the surface numbering of the boundary id, the first column is the source number, and the second column is the surface number
       integer,  dimension(:), allocatable :: transfer_type !the heat transfer type, 1 is convection, 2 is radiation
       real, dimension(:), allocatable :: coefficient !the heat transfer coefficient or emissivity

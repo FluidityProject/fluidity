@@ -1135,7 +1135,7 @@ module darcy_impes_leaching_chemical_model
                    if (mineral%cap%have_cap) then
                       
                       do icap=1, size(mineral%cap%field_index)
-                         if (di%generic_prog_sfield(mineral%cap%field_index(icap))%sfield%val(node)>=mineral%cap%cap_val(icap) .or. node_val(temperature, node)>=323.15) then
+                         if (di%generic_prog_sfield(mineral%cap%field_index(icap))%sfield%val(node)>=mineral%cap%cap_val(icap)) then
                             call set(mineral%ex_r, node, 0.0)
                             call set(mineral%ex, node, ext)
                             call set(mineral%dcdt, node, 0.0)

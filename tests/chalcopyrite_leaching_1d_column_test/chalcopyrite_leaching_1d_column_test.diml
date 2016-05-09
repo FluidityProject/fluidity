@@ -586,6 +586,34 @@ for n in range(field.node_count):
         </stat>
       </prescribed>
     </scalar_field>
+    <scalar_field name="Porosity_pmesh" rank="0">
+      <prescribed>
+        <mesh name="PressureMesh"/>
+        <value name="WholeMesh">
+          <constant>
+            <real_value rank="0">0.400488031</real_value>
+          </constant>
+        </value>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+      </prescribed>
+    </scalar_field>
+    <scalar_field name="Viscosity_pmesh" rank="0">
+      <prescribed>
+        <mesh name="PressureMesh"/>
+        <value name="WholeMesh">
+          <constant>
+            <real_value rank="0">0.467e-03</real_value>
+          </constant>
+        </value>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+      </prescribed>
+    </scalar_field>
     <scalar_field name="H">
       <prognostic>
         <mesh name="PressureMesh"/>

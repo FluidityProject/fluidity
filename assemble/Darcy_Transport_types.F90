@@ -15,12 +15,13 @@ module darcy_transport_types
 
   public :: immobile_sfield_type, &
        darcy_impes_MIM_options_type, &
-       prog_sfield_MIM_type
+       prog_sfield_MIM_type,&
+       heap_property_type
 
 
   type immobile_sfield_type
-      type(scalar_field), pointer :: sfield
-      type(scalar_field), pointer :: old_sfield
+      type(scalar_field),pointer  :: sfield
+      type(scalar_field),pointer  :: old_sfield
   end type immobile_sfield_type
    
   
@@ -38,6 +39,8 @@ module darcy_transport_types
       logical :: have_MIM_phase
       ! *** Flag for Whether there is Mass transfer coefficient
       logical, dimension(:), pointer :: have_mass_trans_coef
+      logical :: Lima_immobile_sat=.false. !if the immobile saturation if calculated by internal algrithm which is based on Lima,2005
+      logical :: Lima_mass_trans=.false. !if the mass transfer coefficient if calculated by internal algrithm which is based on Lima,2005
   end type darcy_impes_MIM_options_type
    
   type prog_sfield_MIM_type
@@ -49,6 +52,10 @@ module darcy_transport_types
      type (scalar_field), pointer :: Fs !the weight factor for the immobile field, which is ratio of immobile part to average mass
      type(leach_chemical_MIM_type) :: chem
   end type prog_sfield_MIM_type
+
+  type heap_property_type
+     type(scalar_field), pointer :: rock_d  !diameter of rock particle
+  end type heap_property_type
   
 end module darcy_transport_types
   

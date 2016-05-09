@@ -465,6 +465,34 @@ for n in range(field.node_count):
         <consistent_interpolation/>
       </diagnostic>
     </scalar_field>
+    <scalar_field name="Porosity_pmesh" rank="0">
+      <prescribed>
+        <mesh name="PressureMesh"/>
+        <value name="WholeMesh">
+          <constant>
+            <real_value rank="0">0.4</real_value>
+          </constant>
+        </value>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+      </prescribed>
+    </scalar_field>
+    <scalar_field name="Viscosity_pmesh" rank="0">
+      <prescribed>
+        <mesh name="PressureMesh"/>
+        <value name="WholeMesh">
+          <constant>
+            <real_value rank="0">1.0e-3</real_value>
+          </constant>
+        </value>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+      </prescribed>
+    </scalar_field>
     <scalar_field name="C_d">
       <prognostic>
         <mesh name="PressureMesh"/>
@@ -537,10 +565,6 @@ for n in range(field.node_count):
               <include_in_stat/>
             </stat>
             <consistent_interpolation/>
-            <output/>
-            <stat>
-              <include_in_stat/>
-            </stat>
           </diagnostic>
           <scalar_field name="Average_mass" rank="0">
             <diagnostic>
@@ -551,10 +575,6 @@ for n in range(field.node_count):
                 <include_in_stat/>
               </stat>
               <consistent_interpolation/>
-              <output/>
-              <stat>
-                <include_in_stat/>
-              </stat>
             </diagnostic>
           </scalar_field>
           <scalar_field name="Mobile_ratio" rank="0">
@@ -566,10 +586,6 @@ for n in range(field.node_count):
                 <include_in_stat/>
               </stat>
               <consistent_interpolation/>
-              <output/>
-              <stat>
-                <include_in_stat/>
-              </stat>
             </diagnostic>
           </scalar_field>
           <scalar_field name="Immobile_ratio" rank="0">
@@ -581,10 +597,6 @@ for n in range(field.node_count):
                 <include_in_stat/>
               </stat>
               <consistent_interpolation/>
-              <output/>
-              <stat>
-                <include_in_stat/>
-              </stat>
             </diagnostic>
           </scalar_field>
         </scalar_field>
@@ -668,10 +680,6 @@ for n in range(field.node_count):
               <include_in_stat/>
             </stat>
             <consistent_interpolation/>
-            <output/>
-            <stat>
-              <include_in_stat/>
-            </stat>
           </diagnostic>
           <scalar_field name="Average_mass" rank="0">
             <diagnostic>
@@ -682,10 +690,6 @@ for n in range(field.node_count):
                 <include_in_stat/>
               </stat>
               <consistent_interpolation/>
-              <output/>
-              <stat>
-                <include_in_stat/>
-              </stat>
             </diagnostic>
           </scalar_field>
           <scalar_field name="Mobile_ratio" rank="0">
@@ -697,10 +701,6 @@ for n in range(field.node_count):
                 <include_in_stat/>
               </stat>
               <consistent_interpolation/>
-              <output/>
-              <stat>
-                <include_in_stat/>
-              </stat>
             </diagnostic>
           </scalar_field>
           <scalar_field name="Immobile_ratio" rank="0">
@@ -712,10 +712,6 @@ for n in range(field.node_count):
                 <include_in_stat/>
               </stat>
               <consistent_interpolation/>
-              <output/>
-              <stat>
-                <include_in_stat/>
-              </stat>
             </diagnostic>
           </scalar_field>
         </scalar_field>

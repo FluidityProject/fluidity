@@ -1,0 +1,6 @@
+  \usepackage{listings}
+  \usepackage{palatino}
+  \usepackage{color}
+  \usepackage{pst-node,pst-tree}
+  \psset{framearc=.2}
+  \newcommand{\typebox}[2]{\psframebox{\parbox{4cm}{\centering #1\\(\lstinline!#2!)}}}

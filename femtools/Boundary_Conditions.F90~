@@ -1916,7 +1916,7 @@ contains
     integer, dimension(:), pointer:: surface_node_list
     character(len=FIELD_NAME_LEN):: bctype
     integer :: i,j
-
+    print *, 'bc1', minval(rhs%val),maxval(rhs%val),maxloc(rhs%val)
     bcloop: do i=1, get_boundary_condition_count(field)
        call get_boundary_condition(field, i, type=bctype, &
           surface_node_list=surface_node_list)
@@ -1942,6 +1942,7 @@ contains
        end if
        
     end do bcloop
+    print *, 'bc2', minval(rhs%val),maxval(rhs%val),maxloc(rhs%val)
   end subroutine apply_dirichlet_conditions_scalar
 
   subroutine apply_dirichlet_conditions_scalar_lumped(lhs, rhs, field, dt)
@@ -2063,6 +2064,7 @@ contains
        end do bcloop
      
      end do field_loop
+     
   end subroutine apply_dirichlet_conditions_scalars_petsc_csr
 
   subroutine apply_dirichlet_conditions_vector(matrix, rhs, field, dt)

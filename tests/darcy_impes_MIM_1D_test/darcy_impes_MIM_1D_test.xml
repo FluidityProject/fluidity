@@ -5,7 +5,6 @@
   <tags>diml immobile-mobile</tags>
   <problem_definition length="medium" nprocs="1">
     <command_line>make input;
-darcy_impes  -v2 -l darcy_impes_MIM_1D_test_python_porosity.diml;
 darcy_impes  -v2 -l darcy_impes_MIM_1D_test_prescribed_porosity.diml;
 cd ./src ;
 ./py_script;
@@ -33,38 +32,6 @@ for i in range(lt):
         Int_exp+=(t2[i+1]-t2[i])*(RTD2[i+1]+RTD2[i])/2
 
 Exp_data={'Intexp':Int_exp, 'Finexp':RTD2[-1]}<comment>!data from experiment, the integration of its RTD, and the RTD at the final time step
-!extract the data from excel
-!numerical integration by Trapezoidal rule</comment></variable>
-    <variable name="Mdl_data_py" language="python">import fluidity.diagnostics.fluiditytools as fluidity_tools
-import numpy
-#####the porosity by python script-will use the galarkin projection to change the porosity mesh
-vt = fluidity_tools.stat_parser('./darcy_impes_MIM_1D_test_python_porosity.stat')
-cd = vt['Phase2']['C_d']['integral']
-cs = vt['Phase2']['C_dImmobile']['integral']
-prt=vt['Phase1']['Porosity'][u'max']
-msat=vt['Phase2']['MobileSaturation'][u'max']
-isat=vt['Phase2']['ImmobileSaturation'][u'max']
-theta_s=prt*isat
-theta_d=prt*msat
-c = theta_d*cd + theta_s*cs
-c[0] = c[1]
-rtd1 = 1-c/c[0] 
-t=vt['ElapsedTime']
-t1=t[u'value']
-
-#for the second species
-cd = vt['Phase2']['C_s']['integral']
-cs = vt['Phase2']['C_sImmobile']['integral']
-prt=vt['Phase1']['Porosity'][u'max']
-c = theta_d*cd + theta_s*cs
-c[0] = c[1]
-rtd2 = 1-c/c[0]
-#numerical integration by Trapezoidal rule
-dth=vt['dt'][u'value'][0]/2
-lt=len(rtd1)-1
-Int_model=dth*(rtd1[0]+2*sum(rtd1[1:lt])+rtd1[lt])
-
-Mdl_data_py={'Intmdl':Int_model, 'Finmdl':rtd1[-1],'min1':min(rtd1),'max1':max(rtd1),'min2':min(rtd2),'max2':max(rtd2)}<comment>!data from model, the integration of its RTD, and the RTD at the final time step
 !extract the data from excel
 !numerical integration by Trapezoidal rule</comment></variable>
     <variable name="Mdl_data_pr" language="python">import fluidity.diagnostics.fluiditytools as fluidity_tools
@@ -103,29 +70,15 @@ Mdl_data_pr={'Intmdl':Int_model, 'Finmdl':rtd1[-1],'min1':min(rtd1),'max1':max(r
   <pass_tests>
     <test name="Solvers_converged" language="python">assert(solvers_converged)</test>
     <test name="Bound" language="python">import fluidity_tools
-
-##Mdl_data_py
-fluidity_tools.compare_variable(0.0,Mdl_data_py['min1'], 0.0001)
-fluidity_tools.compare_variable(0.990287, Mdl_data_py['max1'], 0.001)
-
-fluidity_tools.compare_variable(0.0,Mdl_data_py['min2'], 0.0001)
-fluidity_tools.compare_variable(0.991559, Mdl_data_py['max2'], 0.001)
-
 ##Mdl_data_pr
 fluidity_tools.compare_variable(0.0,Mdl_data_pr['min1'], 0.0001)
 fluidity_tools.compare_variable(0.990287, Mdl_data_pr['max1'], 0.001)
 
 fluidity_tools.compare_variable(0.0,Mdl_data_pr['min2'], 0.0001)
 fluidity_tools.compare_variable(0.991559, Mdl_data_pr['max2'], 0.001)<comment>!bound in 0 to 1</comment></test>
-    <test name="Integration_error" language="python">IntErr=abs(Exp_data['Intexp']-Mdl_data_py['Intmdl'])
-assert(abs(IntErr-36.734112)&lt; 0.001)
-
-IntErr=abs(Exp_data['Intexp']-Mdl_data_pr['Intmdl'])
+    <test name="Integration_error" language="python">IntErr=abs(Exp_data['Intexp']-Mdl_data_pr['Intmdl'])
 assert(abs(IntErr-36.734112)&lt; 0.001)</test>
-    <test name="absolute_error_final_step" language="python">FinErr=abs(Exp_data['Finexp']-Mdl_data_py['Finmdl'])
-assert(abs(FinErr-0.0096871)&lt; 0.0001)
-
-FinErr=abs(Exp_data['Finexp']-Mdl_data_pr['Finmdl'])
+    <test name="absolute_error_final_step" language="python">FinErr=abs(Exp_data['Finexp']-Mdl_data_pr['Finmdl'])
 assert(abs(FinErr-0.0096871)&lt; 0.0001)</test>
   </pass_tests>
   <comment>This is the test cases for the Mobile-immobile model. The mobile-immobile model is turned on, and the mass transfer term is turned on.
