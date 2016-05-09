@@ -41,7 +41,9 @@ find_package(PETSc REQUIRED
    HINTS "${PETSC_DIR}/${PETSC_ARCH}/petsc/conf"
    HINTS "/usr/lib/petscdir/3.6.3/${PETSC_ARCH}/lib/petsc/conf"
     "/usr/lib/petsc/conf")
-find_library (PETSC_LIB petsc HINTS ${PETSc_DIR}/../../)
+find_library (PETSC_LIB petsc 
+  HINTS ${PETSc_DIR}/../../
+  HINTS ${PETSc_DIR}/../lib)
 add_definitions(-DHAVE_PETSC=1
 	        -DHAVE_PETSC_MODULES=1)
 get_filename_component(PETSC_LIB_DIR ${PETSC_LIB} DIRECTORY)
