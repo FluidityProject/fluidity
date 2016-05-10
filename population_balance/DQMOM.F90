@@ -368,7 +368,7 @@ contains
     type(tensor_field), pointer :: D
     type(vector_field), pointer :: X
     type(scalar_field) :: dummy_scalar
-    real :: theta, cond, growth_r, internal_dispersion_coeff, aggregation_freq_const, breakage_freq_const, breakage_freq_degree, perturb_val
+    real :: theta, cond, growth_r, internal_dispersion_coeff, aggregation_freq_const, breakage_freq_const, breakage_freq_degree, perturb_val, C5
     integer :: i_pop, N, i, j, stat, i_node
     character(len=OPTION_PATH_LEN) :: option_path 
     character(len=FIELD_NAME_LEN) :: type, field_name, growth_type, aggregation_freq_type, breakage_freq_type, breakage_dist_type, singular_option
@@ -465,6 +465,7 @@ contains
           call get_option(trim(option_path)//'/population_balance_source_terms/aggregation/aggregation_frequency/sum_aggregation', aggregation_freq_const)
        else if (have_option(trim(option_path)//'/population_balance_source_terms/aggregation/aggregation_frequency/laakkonen_2007_aggregation')) then
           aggregation_freq_type = 'laakkonen_2007_aggregation'
+          call get_option(trim(option_path)//'/population_balance_source_terms/aggregation/aggregation_frequency/laakkonen_2007_aggregation/C5', C5, default = 0.88)
           if (.not. have_option("/population_balance_continuous_phase_name")) then
              FLAbort("Enable the option population_balance_continuous_phase_name and provide a name for the continuous phase&
                       as it is needed for extracting the turbulence dissipation needed in laakkonen_2007_aggregation kernel")
@@ -555,7 +556,7 @@ contains
     do i = 1, node_count(r_abscissa(1))
        call dqmom_calculate_source_term_node(r_abscissa, r_weight, s_weighted_abscissa, s_weight, &
                 &D, have_D, have_growth, growth_type, growth_r, have_internal_dispersion, internal_dispersion_coeff, &
-                &have_aggregation, aggregation_freq_type, aggregation_freq_const, &
+                &have_aggregation, aggregation_freq_type, aggregation_freq_const, C5, &
                 &have_breakage, breakage_freq_type, breakage_freq_const, breakage_freq_degree, breakage_dist_type, &
                 &turbulent_dissipation, viscosity_continuous, X, singular_option, perturb_val, cond, i)       
     end do
@@ -714,7 +715,7 @@ contains
 
   subroutine dqmom_calculate_source_term_node(abscissa, weight, s_weighted_abscissa, s_weight, &
                  &D, have_D, have_growth, growth_type, growth_r, have_internal_dispersion, internal_dispersion_coeff, &
-                 &have_aggregation, aggregation_freq_type, aggregation_freq_const, &
+                 &have_aggregation, aggregation_freq_type, aggregation_freq_const, C5, &
                  &have_breakage, breakage_freq_type, breakage_freq_const, breakage_freq_degree, breakage_dist_type, &
                  &turbulent_dissipation, viscosity_continuous, &
                  &X, singular_option, perturb_val, cond, node)
@@ -726,10 +727,10 @@ contains
     type(tensor_field), pointer, intent(in) :: D
     type(vector_field), pointer, intent(in) :: X
     integer, intent(in) :: node
-    real, intent(in) :: cond, growth_r, internal_dispersion_coeff, aggregation_freq_const, breakage_freq_const, breakage_freq_degree, perturb_val
+    real, intent(in) :: cond, growth_r, internal_dispersion_coeff, aggregation_freq_const, breakage_freq_const, breakage_freq_degree, perturb_val, C5
     logical, intent(in) :: have_D, have_growth, have_internal_dispersion, have_aggregation, have_breakage
     character(len=FIELD_NAME_LEN), intent(in) :: growth_type, aggregation_freq_type, breakage_freq_type, breakage_dist_type, singular_option
-
+    
     real, dimension(1, size(abscissa)) :: abscissa_val
     real, dimension(1, size(abscissa)*2, size(abscissa)*2) :: A
     real, dimension(1, size(abscissa)*2) :: S_rhs  ! source term (includes growth, breakage and coalescence term): gb 15-11-2012
@@ -830,7 +831,7 @@ contains
           visc_node=node_val(viscosity_continuous, node)
           do i = 1, N
              do j = 1, N
-                aggregation_freq(1,i,j) = 0.88 * eps_node**(1./3) * (abscissa_val(1,i) + abscissa_val(1,j))**2 * (abscissa_val(1,i)**(2./3) + abscissa_val(1,j)**(2./3))**(1./2) * exp(-6.0E9*((visc_node(1,1)*density_continuous)/sigma**2)*eps_node*((abscissa_val(1,i)*abscissa_val(1,j))/(abscissa_val(1,i)+abscissa_val(1,j)))**4)
+                aggregation_freq(1,i,j) = C5 * eps_node**(1./3) * (abscissa_val(1,i) + abscissa_val(1,j))**2 * (abscissa_val(1,i)**(2./3) + abscissa_val(1,j)**(2./3))**(1./2) * exp(-6.0E9*((visc_node(1,1)*density_continuous)/sigma**2)*eps_node*((abscissa_val(1,i)*abscissa_val(1,j))/(abscissa_val(1,i)+abscissa_val(1,j)))**4)
              end do
           end do
           deallocate(visc_node)

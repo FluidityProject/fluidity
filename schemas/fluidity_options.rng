@@ -3099,7 +3099,12 @@ breakage, aggegation and internal dispersion</a:documentation>
                 </element>
                 <element name="laakkonen_2007_aggregation">
                   <a:documentation/>
-                  <empty/>
+                  <optional>
+                    <element name="C5">
+                      <a:documentation>enter the value of the coefficient C5 in Laakkonen's aggregation rate expression. default: 0.88  </a:documentation>
+                      <ref name="real"/>
+                    </element>
+                  </optional>
                 </element>
               </choice>
             </element>
