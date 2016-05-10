@@ -450,15 +450,15 @@ integer, dimension(3) :: nn, n_ele
            call addto(abs, src_abs_terms(term), -1.0)
 
            !--- gb812
-           sponge_field => extract_scalar_field(state, "Sponge_Field", stat)
-           call allocate(dummy_scalar, abs%mesh, name="DummyScalar")
-           call zero(dummy_scalar)
-           where (sponge_field%val<0.001)
-              dummy_scalar%val = 1.0
-           end where
-           call scale(abs, dummy_scalar)  
-           call addto(abs, sponge_field)  
-           call deallocate(dummy_scalar)
+!           sponge_field => extract_scalar_field(state, "Sponge_Field", stat)
+!           call allocate(dummy_scalar, abs%mesh, name="DummyScalar")
+!           call zero(dummy_scalar)
+!           where (sponge_field%val<0.001)
+!              dummy_scalar%val = 1.0
+!           end where
+!           call scale(abs, dummy_scalar)  
+!           call addto(abs, sponge_field)  
+!           call deallocate(dummy_scalar)
            !---
 
            call deallocate(src_to_abs)
