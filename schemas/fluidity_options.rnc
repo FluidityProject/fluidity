@@ -2182,8 +2182,11 @@ population_balance =
                   element hydrodynamic_aggregation{ empty }|
                   ## aggregation frequency is given by \beta_{alpha gamma} = \beta_o (\xi_{alpha} + \xi_{gamma}). Enter the value of constant \beta_o below
                   element sum_aggregation{ real }|
-                  ##
-                  element laakkonen_2007_aggregation{ empty }
+                  ## 
+                  element laakkonen_2007_aggregation{ 
+                     ## enter the value of the coefficient C5 in Laakkonen's aggregation rate expression. default: 0.88  
+                     element C5{ real }? 
+                  }
                }
             }?,
             ##
