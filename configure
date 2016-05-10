@@ -653,6 +653,7 @@ X_PRE_LIBS
 X_CFLAGS
 XMKMF
 HAVE_EXODUSII
+HAVE_TETGEN
 MPICXX
 MPIF77
 MPIF90
@@ -767,6 +768,7 @@ enable_verbose
 with_femdem
 with_psmile
 with_netcdf
+with_tetgen
 with_exodusii
 enable_petsc_fortran_modules
 with_x
@@ -1467,6 +1469,7 @@ Optional Packages:
                           specify the oasis4 path
   --with-netcdf[=netcdf_ROOT]
                           specify where to find lib/ and include/ for netCDF
+  --with-tetgen           include support for tetgen for mesh generation
   --with-exodusii[=exodus_ROOT]
                           specify where to find lib/ and include/ for exodusii
   --with-x                use the X Window System
@@ -11503,6 +11506,91 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
 fi
+
+# Tetgen support
+
+ac_ext=cpp
+ac_cpp='$CXXCPP $CPPFLAGS'
+ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
+
+
+# Check whether --with-tetgen was given.
+if test "${with_tetgen+set}" = set; then :
+  withval=$with_tetgen;
+fi
+
+if test "$with_tetgen" = "yes" ; then
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for tetrahedralize in -ltet" >&5
+$as_echo_n "checking for tetrahedralize in -ltet... " >&6; }
+if ${ac_cv_lib_tet_tetrahedralize+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-ltet  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char tetrahedralize ();
+#ifdef F77_DUMMY_MAIN
+
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int F77_DUMMY_MAIN() { return 1; }
+
+#endif
+#ifdef FC_DUMMY_MAIN
+#ifndef FC_DUMMY_MAIN_EQ_F77
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int FC_DUMMY_MAIN() { return 1; }
+#endif
+#endif
+int
+main ()
+{
+return tetrahedralize ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"; then :
+  ac_cv_lib_tet_tetrahedralize=yes
+else
+  ac_cv_lib_tet_tetrahedralize=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_tet_tetrahedralize" >&5
+$as_echo "$ac_cv_lib_tet_tetrahedralize" >&6; }
+if test "x$ac_cv_lib_tet_tetrahedralize" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBTET 1
+_ACEOF
+
+  LIBS="-ltet $LIBS"
+
+fi
+
+fi
+
+ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
 
 # Exodus-II support
 HAVE_EXODUSII=no

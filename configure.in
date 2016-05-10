@@ -807,6 +807,18 @@ if test "$with_netcdf" != "no" ; then
   ACX_lib_automagic(netcdff, nc_create, [AC_DEFINE(HAVE_LIBNETCDFF, [1])])
 fi
 
+# Tetgen support
+
+AC_LANG_PUSH([C++])
+AC_ARG_WITH(tetgen,
+[AC_HELP_STRING([--with-tetgen],
+[include support for tetgen for mesh generation])])
+if test "$with_tetgen" = "yes" ; then
+    AC_CHECK_LIB(tet, tetrahedralize)
+fi
+AC_SUBST(HAVE_TETGEN)
+AC_LANG_POP()
+
 # Exodus-II support
 HAVE_EXODUSII=no
 AC_LANG_PUSH([C])

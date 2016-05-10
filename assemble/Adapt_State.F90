@@ -58,6 +58,7 @@ module adapt_state_module
   use adaptivity_1d
   use limit_metric_module, only: limit_metric
   use adapt_integration, only : adapt_mesh_3d => adapt_mesh
+  use tetgen_integration, only : adapt_mesh_tetgen => tetgenerate_mesh
   use fefields
   use adaptive_timestepping
   use detector_parallel
@@ -141,9 +142,13 @@ contains
           call adapt_mesh_mba3d(stripped_positions, stripped_metric, new_positions, &
                              force_preserve_regions=force_preserve_regions)
         else
-          call adapt_mesh_3d(stripped_positions, stripped_metric, new_positions, &
+           if(lock_all_nodes) then
+              call adapt_mesh_tetgen(stripped_positions, new_positions)
+           else
+              call adapt_mesh_3d(stripped_positions, stripped_metric, new_positions, &
                              force_preserve_regions=force_preserve_regions, lock_faces=lock_faces,&
                              lock_all_nodes=lock_all_nodes)
+           end if
         end if
       case default
         FLAbort("Mesh adaptivity requires a 1D, 2D or 3D mesh")
