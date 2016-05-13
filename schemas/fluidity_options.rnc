@@ -1730,26 +1730,15 @@ start =
          
          ## Actuator Line Model Turbine
          element ALM_Turbine{
-          ## specifies an ALM Turbine
+         ## specifies an ALM Turbine
              element alm_turbine {
                  attribute name {xsd:string},
-                    ## Turbine_Description
+                 ## Turbine_Description
                  (
-                    ## Location for the axis of rotation point location
-                  element axis_location {
-                  real_dim_vector
-                  },
-                  ## File containing the geometry of the turbine in ASCII form
-                  element geometry_file {
-                    attribute file_name { xsd:string },
-                    ## The format of the input file containing field data.
-                    element format {
-                        element string_value {
-                        "ascii"
-                        }
-                        }
-                  }
-
+                 ## Location for the axis of rotation point location
+                 element axis_location {
+                     real_dim_vector
+                 }
                  )
              }*
          }?,
