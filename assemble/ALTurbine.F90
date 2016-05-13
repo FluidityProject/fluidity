@@ -49,6 +49,7 @@ module alturbine
 !GGGGG
 ! Define the types that will be used
 
+
 type BladeType
     integer :: NElem
     integer :: FlipN
@@ -83,86 +84,125 @@ type BladeType
     real :: CFz ! Fz coefficient due to this blade
 end type BladeType
 
-    type(BladeType), allocatable :: Blades(:)   ! Input blade geometry
+type TurbineType
 
-	real, allocatable :: xBE(:)     ! X location for each blade segment end (quarter chord) 	
-	real, allocatable :: yBE(:)     ! Y location for each blade segment end (quarter chord)		
-	real, allocatable :: zBE(:)     ! Z location for each blade segment end (quarter chord)	
+    real,dimension(3) :: axis_loc
+    character(len=100) :: name
+    character(len=100) :: geom_file 
+    integer :: NBlades
+    real, dimension(3) :: RotN, RotP ! Rotational vectors in the normal and perpendicular directions
+    type(BladeType), allocatable :: Blade(:)
+    
+end type TurbineType
 
-    real, allocatable :: txBE(:)    ! Tangential X for each blade segment end
-    real, allocatable :: tyBE(:)    ! Tangential Y for each blade segment end
-    real, allocatable :: tzBE(:)    ! Tangential Z for each blade segment end
-
-    real, allocatable :: CtoR(:)    ! Chord to radius ratio for each blade segment end
-
-    real, allocatable :: xBC(:)     ! X location for each blade segment center (quarter chord)         
-    real, allocatable :: yBC(:)     ! Y location for each blade segment center (quarter chord)         
-    real, allocatable :: zBC(:)     ! Z location for each blade segment center (quarter chord) 	
-
-    real :: dSGeom                  ! Geometry discretization level used in vortex core calculation
-    real :: CrRef                   ! Ref chord to radius ratio 	
-	real, allocatable :: nxBC(:)    ! Normal X for each blade segment
-	real, allocatable :: nyBC(:)    ! Normal Y for each blade segment
-	real, allocatable :: nzBC(:)    ! Normal Z for each blade segment 
-	real, allocatable :: txBC(:)    ! Tangential X for each blade segment 	
-	real, allocatable :: tyBC(:)    ! Tangential Y for each blade segment 	
-	real, allocatable :: tzBC(:)    ! Tangential Z for each blade segment 	
-    real, allocatable :: sxBC(:)    ! Spanwise X for each blade segment 	
-	real, allocatable :: syBC(:)    ! Spanwise Y for each blade segment 	
-	real, allocatable :: szBC(:)    ! Spanwise Z for each blade segment 
-    ! JCM: note CircSign could be made a function of blade not element with the new geometry spec, or eliminated as it is a function of FlipN
-    real, allocatable :: CircSign(:)        ! Direction of segment circulation on wake grid at positive lift
-	real, allocatable :: eArea(:)           ! Element area to radius ratio for each element
-	real, allocatable :: eChord(:)          ! Element chord to radius ratio for each element
-    integer, allocatable :: iSect(:)        ! Array of indicies of the section table to apply to each blade element
-
-    ! Current sum of output over all blades (nomalized by machine scale parameters)
-    real :: CP_B  ! Power coefficient due to all blades
-    real :: CTR_B ! Torque coefficient due to all blades
-    real :: CFx_B ! Fx coefficient due to all blades
-    real :: CFy_B ! Fy coefficient due to all blades
-    real :: CFz_B ! Fz coefficient due to all blades
-
+    type(TurbineType), allocatable :: Turbine(:) ! Turbine 
+    integer :: notur, NBlades, NElem      ! Number of the turbines 
+    integer, parameter :: NBlades_max = 4 ! Maximum Number of Blades
+    integer, parameter :: NElem_max = 50  ! Maximum Number of Elements per blade
+    
+    private turbine_geometry_read, allocate_turbine_elements
+    public  turbine_init
 
 contains
     
     subroutine turbine_init(state)
-     implicit none
-     type(state_type), intent(inout) :: state
-     ewrite(1,*) 'Hi there from the turbine init subroutine'
-     !* This a routine from which fluidity reads the information about the turbine
-     !* We start with a single turb
-    
-     call read_geometry
-
-    end subroutine turbine_init
-    
-    subroutine read_geometry
     
     implicit none
     
+    type(state_type), intent(inout) :: state
     character(len=OPTION_PATH_LEN):: turbine_path, turbine_name, bc_name
-    integer :: notur, i, j
+    integer :: i, j
     integer, parameter :: MaxReadLine = 1000    
     character(MaxReadLine) :: FN    ! path to geometry input file 
     integer :: NElem
     character(MaxReadLine) :: ReadLine
 
+    ewrite(1,*) 'Hi there from the turbine init subroutine'
 
     !GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
+    !* This a routine from which fluidity reads the information about the turbine
+    !* We start with a single turb 
     ! In the final version of the code we should be able to enable 
     ! multiple turbines. This is we we f
     ! loop through turbines
-    notur = option_count("/ALM_Turbine/turbine")
-    do i=0, notur-1
-       turbine_path="/ALM_Turbine/turbine["//int2str(i)//"]"
-       write(*,*) notur
-       stop
+    notur = option_count("/ALM_Turbine/alm_turbine")
+    ewrite(1,*) 'Number of Actuator Line Turbines : ', notur
+    ! Allocate Turbines Array 
     
-    end do
+    call allocate_turbine_elements(notur,NBlades_max,NElem_max)
+
+    do i=1, notur
+       !turbine_path="/ALM_Turbine/alm_turbine["//int2str(i)//"]"  
+       call get_option("/ALM_Turbine/alm_turbine["//int2str(i-1)//"]/name",Turbine(i)%name)
+       call get_option("/ALM_Turbine/alm_turbine["//int2str(i-1)//"]/axis_location",Turbine(i)%axis_loc)
+       call get_option("/ALM_Turbine/alm_turbine["//int2str(i-1)//"]/geometry_file/file_name",Turbine(i)%geom_file)
+       ewrite(1,*) Turbine(i)%name
+       ewrite(1,*) Turbine(i)%axis_loc
+       ewrite(1,*) Turbine(i)%geom_file
+       call turbine_geometry_read(i,Turbine(i)%geom_file)
+
+   end do
+   
+   stop
+
+end subroutine turbine_init
+    
+subroutine allocate_turbine_elements(notur,NBlades_max,NElem_max)
+
+    implicit none
+
+    integer :: notur,NBlades_max,NElem_max
      
+    allocate(Turbine(notur)%Blade(NBlades_max)%QCx(NElem_max+1))
+    allocate(Turbine(notur)%Blade(NBlades_max)%QCy(NElem_max+1))
+    allocate(Turbine(notur)%Blade(NBlades_max)%QCz(NElem_max+1))
+    allocate(Turbine(notur)%Blade(NBlades_max)%tx(NElem_max+1))
+    allocate(Turbine(notur)%Blade(NBlades_max)%ty(NElem_max+1))
+    allocate(Turbine(notur)%Blade(NBlades_max)%tz(NElem_max+1))
+    allocate(Turbine(notur)%Blade(NBlades_max)%CtoR(NElem_max+1))
+    allocate(Turbine(notur)%Blade(NBlades_max)%PEx(NElem_max))
+    allocate(Turbine(notur)%Blade(NBlades_max)%PEy(NElem_max))
+    allocate(Turbine(notur)%Blade(NBlades_max)%PEz(NElem_max))
+    allocate(Turbine(notur)%Blade(NBlades_max)%tEx(NElem_max))
+    allocate(Turbine(notur)%Blade(NBlades_max)%tEy(NElem_max))
+    allocate(Turbine(notur)%Blade(NBlades_max)%tEz(NElem_max))
+    allocate(Turbine(notur)%Blade(NBlades_max)%nEx(NElem_max))
+    allocate(Turbine(notur)%Blade(NBlades_max)%nEy(NElem_max))
+    allocate(Turbine(notur)%Blade(NBlades_max)%nEz(NElem_max))
+    allocate(Turbine(notur)%Blade(NBlades_max)%sEx(NElem_max))
+    allocate(Turbine(notur)%Blade(NBlades_max)%sEy(NElem_max))
+    allocate(Turbine(notur)%Blade(NBlades_max)%sEz(NElem_max))
+    allocate(Turbine(notur)%Blade(NBlades_max)%ECtoR(NElem_max))
+    allocate(Turbine(notur)%Blade(NBlades_max)%EAreaR(NElem_max))
+    allocate(Turbine(notur)%Blade(NBlades_max)%iSect(NElem_max))
+
     
-    end subroutine read_geometry
+end subroutine allocate_turbine_elements
+    
+subroutine turbine_geometry_read(i,FN)
+    
+    implicit none
+    character(len=*) :: FN ! FileName of the geometry file
+    integer :: i
+    character(1000) :: ReadLine
+    if(i>notur) then
+        FLExit("turbine index in turbine geometry_read has exceeded the number of the turbines")
+    endif
+    
+    open(15,file=FN)
+    read(15,'(A)') ReadLine
+    read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%NBlades
+    
+    if(NBlades>4) then
+        FLExit("The maximum number of blades is 4")
+    endif
+   
+    write(*,*) Turbine(i)%NBlades
+    close(15)
+
+
+end subroutine turbine_geometry_read
+
 
 
 end module alturbine
