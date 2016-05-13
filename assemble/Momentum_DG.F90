@@ -29,44 +29,46 @@
 module momentum_DG
   ! This module contains the Discontinuous Galerkin form of the momentum
   ! equation. 
-  use elements
-  use sparse_tools
-  use fetools
-  use fefields
-  use fields
-  use sparse_matrices_fields
-  use state_module
-  use shape_functions
-  use transform_elements
-  use vector_tools
-  use fldebug
-  use vtk_interfaces
-  use Coordinates
   use spud
-  use boundary_conditions
-  use boundary_conditions_from_options
-  use solvers
-  use dgtools
+  use fldebug
+  use vector_tools
   use global_parameters, only: OPTION_PATH_LEN, FIELD_NAME_LEN, COLOURING_DG2, &
        COLOURING_DG0
-  use coriolis_module
-  use halos
-  use sparsity_patterns
-  use petsc_tools
-  use turbine
-  use diagnostic_fields
-  use slope_limiters_dg
-  use smoothing_module
-  use fields_manipulation
-  use field_options
-  use sparsity_patterns_meshes
-  use colouring
-  use Profiler
 #ifdef _OPENMP
   use omp_lib
 #endif
+  use integer_set_module
+  use parallel_tools
+  use sparse_tools
+  use shape_functions
+  use transform_elements
+  use fetools
+  use parallel_fields
+  use fields
+  use profiler
+  use petsc_tools
+  use sparse_tools_petsc
+  use sparse_matrices_fields
+  use state_module
+  use vtk_interfaces
+  use halos
+  use field_options
+  use fefields
+  use boundary_conditions, only: has_boundary_condition, get_entire_boundary_condition
+  use field_derivatives
+  use coordinates
+  use solvers
+  use sparsity_patterns
+  use dgtools
+  use smoothing_module
+  use sparsity_patterns_meshes
+  use boundary_conditions_from_options
+  use coriolis_module, only : coriolis, set_coriolis_parameters
+  use turbine
+  use diagnostic_fields
+  use slope_limiters_dg
+  use colouring
   use multiphase_module
-
 
   implicit none
 
@@ -134,6 +136,7 @@ module momentum_DG
   logical :: move_mesh
   logical :: have_pressure_bc
   logical :: subtract_out_reference_profile
+  logical :: have_les
   
   real :: gravity_magnitude
 
@@ -266,6 +269,11 @@ contains
     ! Partial stress - sp911
     logical :: partial_stress 
 
+    ! LES - sp911
+    real :: smagorinsky_coefficient
+    type(scalar_field), pointer :: eddy_visc, prescribed_filter_width, distance_to_wall, &
+         & y_plus_debug, les_filter_width_debug
+
     ewrite(1, *) "In construct_momentum_dg"
 
     call profiler_tic("construct_momentum_dg")
@@ -278,12 +286,12 @@ contains
     end if
     
     ! These names are based on the CGNS SIDS.
+    U_nl=extract_vector_field(state, "NonlinearVelocity")
+    call incref(U_nl)
+
     if (.not.have_option(trim(U%option_path)//"/prognostic"//&
          &"/spatial_discretisation/discontinuous_galerkin"//&
          &"/advection_scheme/none")) then
-       U_nl=extract_vector_field(state, "NonlinearVelocity")
-       call incref(U_nl)
-
        if(have_option(trim(U%option_path)//"/prognostic"//&
             &"/spatial_discretisation/discontinuous_galerkin"//&
             &"/advection_scheme/project_velocity_to_continuous")) then
@@ -314,10 +322,6 @@ contains
        end if
        have_advection = .true.
     else
-       ! Forcing a zero NonlinearVelocity will disable advection.
-       call allocate(U_nl, U%dim,  U%mesh, "NonlinearVelocity", &
-            FIELD_TYPE_CONSTANT)
-       call zero(U_nl)
        have_advection=.false.
        advecting_velocity => U_nl
     end if
@@ -589,11 +593,53 @@ contains
        FLAbort("Unknown viscosity scheme - Options tree corrupted?")
     end if
 
-    partial_stress = have_option(trim(u%option_path)//&
+    partial_stress = .false.
+    have_les = .false.
+    if (have_option(trim(u%option_path)//&
          &"/prognostic/spatial_discretisation"//&
          &"/discontinuous_galerkin/viscosity_scheme"//&
-         &"/partial_stress_form")
+         &"/partial_stress_form")) then
+
+      partial_stress = .true.
+      
+      ! if we have stress form then we may be doing LES modelling
+    end if
+
+    if (have_option(trim(u%option_path)//&
+         &"/prognostic/spatial_discretisation"//&
+         &"/discontinuous_galerkin/les_model")) then
+       have_les = .true.
+       call get_option(trim(u%option_path)//&
+            &"/prognostic/spatial_discretisation"//&
+            &"/discontinuous_galerkin/les_model"//&
+            &"/smagorinsky_coefficient", &
+            smagorinsky_coefficient)
+    end if
+
     ewrite(2,*) 'partial stress? ', partial_stress
+
+    ! les variables - need to be nullified if non-existent
+    eddy_visc => extract_scalar_field(state, "DGLESScalarEddyViscosity", stat=stat)   
+    if (stat/=0) then
+      nullify(eddy_visc)
+    end if
+    prescribed_filter_width => extract_scalar_field(state, "FilterWidth", stat=stat)  
+    if (stat/=0) then
+      nullify(prescribed_filter_width)
+    end if
+    distance_to_wall => extract_scalar_field(state, "DistanceToWall", stat=stat)  
+    if (stat/=0) then
+      nullify(distance_to_wall)
+    end if
+    y_plus_debug => extract_scalar_field(state, "YPlus", stat=stat)  
+    if (stat/=0) then
+      nullify(y_plus_debug)
+    end if
+    les_filter_width_debug => extract_scalar_field(state, "DampedFilterWidth", stat=stat)  
+    if (stat/=0) then
+      nullify(les_filter_width_debug)
+    end if
+    !  end of les variables
 
     integrate_surfacetension_by_parts = have_option(trim(u%option_path)//&
       &"/prognostic/tensor_field::SurfaceTension"//&
@@ -714,7 +760,11 @@ contains
             & inverse_mass=inverse_mass, &
             & inverse_masslump=inverse_masslump, &
             & mass=mass, subcycle_m=subcycle_m, subcycle_rhs=subcycle_rhs, &
-            & partial_stress=partial_stress)
+            & partial_stress=partial_stress, &
+            & smagorinsky_coefficient=smagorinsky_coefficient, &
+            & eddy_visc=eddy_visc, prescribed_filter_width=prescribed_filter_width, &
+            & distance_to_wall=distance_to_wall, y_plus_debug=y_plus_debug, &
+            & les_filter_width_debug=les_filter_width_debug)
       end do element_loop
       !$OMP END DO
 
@@ -739,6 +789,11 @@ contains
       ewrite_minmax(inverse_mass)
     end if
     ewrite_minmax(rhs)
+
+    if (associated(eddy_visc)) then
+      ! eddy visc is calculated in momentum_dg element loop. we need to do a halo_update
+      call halo_update(eddy_visc)
+    end if
 
     ! Drop the reference to the fields we may have made.
     call deallocate(Viscosity)
@@ -771,7 +826,9 @@ contains
        &pressure_bc, pressure_bc_type, &
        &turbine_conn_mesh, depth, have_wd_abs, alpha_u_field, Abs_wd, &
        &vvr_sf, ib_min_grad, nvfrac, &
-       &inverse_mass, inverse_masslump, mass, subcycle_m, subcycle_rhs, partial_stress)
+       &inverse_mass, inverse_masslump, mass, subcycle_m, subcycle_rhs, partial_stress, &
+       &smagorinsky_coefficient, eddy_visc, prescribed_filter_width, distance_to_wall, &
+       &y_plus_debug, les_filter_width_debug)
 
     !!< Construct the momentum equation for discontinuous elements in
     !!< acceleration form.
@@ -962,6 +1019,12 @@ contains
 
     ! added for partial stress form (sp911)
     logical, intent(in) :: partial_stress
+
+    ! LES - sp911
+    real, intent(in) :: smagorinsky_coefficient
+    type(scalar_field), pointer, intent(inout) :: eddy_visc, y_plus_debug, &
+         & les_filter_width_debug
+    type(scalar_field), pointer, intent(in) :: prescribed_filter_width, distance_to_wall
 
     dg=continuity(U)<0
     p0=(element_degree(u,ele)==0)
@@ -1988,9 +2051,14 @@ contains
       ! off diagonal terms define the coupling between the velocity components
 
       real, dimension(size(Q_inv,1), size(Q_inv,2)) :: Q_visc
+      real, dimension(ele_loc(u, ele)) :: isotropic_visc
 
-      ! isotropic viscosity (just take the first component as scalar value)
-      Q_visc = mat_diag_mat(Q_inv, Viscosity_ele(1,1,:))
+      dim = Viscosity%dim(1)
+      isotropic_visc = Viscosity_ele(1,1,:)
+      if (have_les) then
+        call les_viscosity(isotropic_visc)
+      end if
+      Q_visc = mat_diag_mat(Q_inv, isotropic_visc)
 
       do dim1=1,u%dim
         do dim2=1,u%dim
@@ -2022,6 +2090,118 @@ contains
       
     end subroutine add_diagonal_to_tensor
 
+    subroutine les_viscosity(isotropic_visc)
+
+      !!! Calculate LES contribution to the viscosity in the momentum equation.
+
+      !!! This is a Smagorinsky style model
+
+      !!! \nu_{eddy} = C_s Delta x_{grid} | S | where
+      !!! S= ( \nabla u + \nabla u ^T )/2.0
+
+      real, dimension(ele_loc(u,ele)), intent(inout) :: isotropic_visc
+
+      real, dimension(ele_loc(u,ele)) :: les_filter_width
+      real, dimension(mesh_dim(u), mesh_dim(u), ele_loc(u,ele)) :: g_nl
+      real, dimension(mesh_dim(u), mesh_dim(u)) :: s
+      real, dimension(ele_loc(u,ele)) :: s_mod
+      real, dimension(ele_loc(u,ele)) :: les_scalar_viscosity, y_wall, y_plus
+      real, dimension(ele_loc(u,ele), ele_loc(u,ele)) :: M_inv
+
+      ! get inverse mass
+      M_inv = shape_shape(u_shape, u_shape, detwei)
+      call invert(M_inv)
+      
+      ! Compute gradient of non-linear velocity
+      do dim1=1,mesh_dim(u)
+        do dim2=1,mesh_dim(u)
+          ! interior contribution
+          g_nl(dim1,dim2,:)=matmul(grad_U_mat_q(dim2,:,:loc), ele_val(u_nl,dim1,ele))
+
+          ! boundary contributions (have to be done seperately as we need to apply bc's at boundaries)
+          ! local node map counter.
+          start=loc+1
+          do ni=1,size(neigh)
+            ! get neighbour ele, corresponding faces, and complete local node map
+            ele_2=neigh(ni)
+
+            if (ele_2>0) then
+              ! obtain corresponding faces, and complete local node map
+              face=ele_face(U, ele_2, ele)
+              finish=start+face_loc(U, face)-1  
+              ! for interior faces we use the face values  
+              g_nl(dim1,dim2,:)=g_nl(dim1,dim2,:)+matmul(grad_U_mat_q(dim2,:,start:finish), face_val(u_nl,dim1,face))
+            else
+              ! obtain corresponding faces, and complete local node map
+              face=ele_face(U, ele, ele_2)
+              finish=start+face_loc(U, face)-1 
+              ! for boundary faces the value we use depends upon if a weak bc is applied
+              if (velocity_bc_type(dim1,face)==1) then
+                ! weak bc! use the bc value
+                g_nl(dim1,dim2,:)=g_nl(dim1,dim2,:)+matmul(grad_U_mat_q(dim2,:,start:finish), ele_val(velocity_bc,dim1,face))
+              else
+                ! no weak bc, use node values on internal face
+                g_nl(dim1,dim2,:)=g_nl(dim1,dim2,:)+matmul(grad_U_mat_q(dim2,:,start:finish), face_val(u_nl,dim1,face))
+              end if
+            end if
+
+            ! update node map counter
+            start=start+face_loc(U, face)
+          end do
+
+          ! apply inverse mass
+          g_nl(dim1,dim2,:)=matmul(M_inv, g_nl(dim1,dim2,:))
+        end do
+      end do
+
+      ! call calculate_les_grad_u(g_nl)
+
+      ! Compute modulus of strain rate
+      do i=1,ele_loc(u,ele)
+        s=0.5*(g_nl(:,:,i)+transpose(g_nl(:,:,i)))
+        ! Calculate modulus of strain rate
+        s_mod(i)=sqrt(2*sum(s**2))
+      end do
+
+      ! Compute filter width
+      if (associated(prescribed_filter_width)) then
+        les_filter_width = ele_val(prescribed_filter_width, ele)
+      else
+        ! when using the element size to compute the filter width we assume the filter 
+        ! width is twice the element size
+        les_filter_width = 2*length_scale_scalar(X, ele)
+      end if
+
+      ! apply Van Driest damping functions
+      if (associated(distance_to_wall)) then
+        y_wall = ele_val(distance_to_wall, ele)
+        do i=1,ele_loc(u,ele)
+          y_plus(i) = y_wall(i) * sqrt(norm2(g_nl(:,:,i)+transpose(g_nl(:,:,i))))/sqrt(isotropic_visc(i))
+        end do
+        les_filter_width = (1 - exp(-1.0*y_plus/25.0))*les_filter_width
+        
+        ! debugging fields
+        if (associated(y_plus_debug)) then
+          call set(y_plus_debug, ele_nodes(y_plus_debug, ele), y_plus)
+        end if
+      end if 
+
+      if (associated(les_filter_width_debug)) then
+        call set(les_filter_width_debug, ele_nodes(les_filter_width_debug, ele), les_filter_width)
+      end if
+
+      les_scalar_viscosity = (les_filter_width*smagorinsky_coefficient)**2 * s_mod
+
+      ! store sgs viscosity
+      if (associated(eddy_visc)) then
+        call set(eddy_visc, ele_nodes(eddy_visc, ele), les_scalar_viscosity)
+      end if
+
+      ! Add to molecular viscosity
+      isotropic_visc = isotropic_visc + les_scalar_viscosity
+      
+    end subroutine les_viscosity
+    
   end subroutine construct_momentum_element_dg
 
   subroutine construct_momentum_interface_dg(ele, face, face_2, ni, &
@@ -3048,7 +3228,7 @@ contains
     call allocate(m_delta_u, u%dim, u%mesh, "SubcycleMDeltaU")
     call zero(m_delta_u)
 
-   do i=1, subcycles
+    do i=1, subcycles
       if (limit_slope) then
 
         ! filter wiggles from u
@@ -3058,7 +3238,6 @@ contains
         end do
 
       end if
-
  
       ! du = advection * u - f_adv
       call mult(delta_u, subcycle_m, u_sub)
@@ -3448,6 +3627,16 @@ contains
        if (have_option(trim(dg_path)//"/viscosity_scheme/partial_stress_form") .and. .not. &
             have_option(trim(dg_path)//"/viscosity_scheme/bassi_rebay")) then
          FLAbort("partial stress form is only implemented for the bassi-rebay viscosity scheme in DG")
+       end if
+
+       if (have_option(trim(velocity_path)//&
+            &"/prognostic/spatial_discretisation"//&
+            &"/discontinuous_galerkin/les_model") .and.&
+            .not. have_option(trim(dg_path)//&
+            "/viscosity_scheme/partial_stress_form")) then
+          
+          FLAbort("The LES scheme for discontinuous velocity fields requires that the viscosity scheme use partial stress form.")
+ 
        end if
 
     end do state_loop

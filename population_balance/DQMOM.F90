@@ -36,6 +36,8 @@ module dqmom
   use state_fields_module
   use initialise_fields_module
   use global_parameters, only: OPTION_PATH_LEN, FIELD_NAME_LEN
+  use fldebug
+  use futils, only: int2str
 !  use sparsity_patterns_meshes
   use sparse_tools
   use solvers
@@ -102,7 +104,7 @@ contains
     option_path = trim(state%option_path)//'/population_balance'
     if (option_count(option_path) > 1) then
        option_path = trim(state%option_path)//'/population_balance['&
-            &//int2str(i_pop)//']'
+            &//int2str(i_pop-1)//']'
     end if
 
   end subroutine get_pop_option_path
@@ -113,7 +115,7 @@ contains
 
     integer :: i_state, i_pop
     character(len=OPTION_PATH_LEN) :: option_path 
-    
+
     do i_state = 1, option_count("/material_phase")
        do i_pop = 1, option_count(trim(states(i_state)%option_path)//&
             '/population_balance')
@@ -1088,34 +1090,35 @@ print*, "node number", node
 
   end subroutine dqmom_calculate_statistics
 
-  subroutine dqmom_check_options(state)
+  subroutine dqmom_check_options
 
-    type(state_type), intent(in) :: state
+!    type(state_type), intent(in) :: state
     
-    integer :: i_pop
+    integer :: i_pop, i_state
     integer :: n_abscissa, n_weights, n_weighted_abscissa, n_moments
     character(len=OPTION_PATH_LEN) :: option_path 
 
     write(*,*) 'in dqmom_check_options'
 
-    do i_pop = 1, option_count(trim(state%option_path)//'/population_balance')
-       option_path = trim(state%option_path)//'/population_balance['//int2str(i_pop)//']'
+    do i_state = 1, option_count("/material_phase")
+       do i_pop = 1, option_count('material_phase['//int2str(i_state-1)//']/population_balance')
+          option_path = 'material_phase['//int2str(i_state-1)//']/population_balance['//int2str(i_pop-1)//']'
 
-       ! Check there are the same number of abscissa, weight and weighted abscissa fields
-       n_abscissa = option_count(trim(option_path)//'/abscissa/scalar_field')
-       n_weights = option_count(trim(option_path)//'/weights/scalar_field')
-       n_weighted_abscissa = option_count(trim(option_path)// &
-            '/weighted_abscissa/scalar_field')
-       assert(n_weights == n_abscissa) 
-       assert(n_weights == n_weighted_abscissa)
+          ! Check there are the same number of abscissa, weight and weighted abscissa fields
+          n_abscissa = option_count(trim(option_path)//'/abscissa/scalar_field')
+          n_weights = option_count(trim(option_path)//'/weights/scalar_field')
+          n_weighted_abscissa = option_count(trim(option_path)// &
+               '/weighted_abscissa/scalar_field')
+          assert(n_weights == n_abscissa) 
+          assert(n_weights == n_weighted_abscissa)
 
-       ! Check there are sufficient abscissa to calculate requested moments
-       n_moments = option_count(trim(option_path)//'/moments/scalar_field')
-       assert((n_moments / 2) == n_abscissa)       
+          ! Check there are sufficient abscissa to calculate requested moments
+          n_moments = option_count(trim(option_path)//'/moments/scalar_field')
+          assert((n_moments / 2) == n_abscissa)       
 
-       ! Need to check that all fields are on the same mesh
+          ! Need to check that all fields are on the same mesh
+       end do
     end do
-
   end subroutine dqmom_check_options
 
 end module dqmom

@@ -118,9 +118,9 @@ solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
     <test name="check minimum pressure_p0p1cv_gpp2 0.0" language="python">assert abs(minpressure_p0p1cv_gpp2) &lt; 1e-6</test>
     <test name="check minimum geopressure_p0p1cv_gpp2" language="python">assert abs(mingeopressure_p0p1cv_gpp2) &lt; 1e-6</test>
     <test name="check maximum geopressure_p0p1cv_gpp2" language="python">assert abs(geopressure_p0p1cv_gpp2-2702.10500021) &lt; 10</test>
-    <test name="check maximum xspeed_p0p1cv_gpp2 is zero" language="python">assert abs(velocityx_p0p1cv_gpp2) &lt; 1e-6</test>
-    <test name="check maximum yspeed_p0p1cv_gpp2 is zero" language="python">assert abs(velocityy_p0p1cv_gpp2) &lt; 1e-6</test>
-    <test name="check maximum speed_p0p1cv_gpp2 is zero" language="python">assert abs(velocity_p0p1cv_gpp2) &lt; 1e-6</test>
+    <test name="check maximum xspeed_p0p1cv_gpp2 is zero" language="python">assert abs(velocityx_p0p1cv_gpp2) &lt; 1e-5</test>
+    <test name="check maximum yspeed_p0p1cv_gpp2 is zero" language="python">assert abs(velocityy_p0p1cv_gpp2) &lt; 1e-5</test>
+    <test name="check maximum speed_p0p1cv_gpp2 is zero" language="python">assert abs(velocity_p0p1cv_gpp2) &lt; 1e-5</test>
     <test name="check volume fraction_p0p1cv_gpp2 conserved" language="python">print 'mass loss = ', abs(volfracend_p0p1cv_gpp2-volfrac0_p0p1cv_gpp2)
 assert abs(volfracend_p0p1cv_gpp2-volfrac0_p0p1cv_gpp2) &lt; 1e-9</test>
     <test name="check divergence_p0p1cv_gpp2" language="python">assert max(abs(maxdivergence_p0p1cv_gpp2), abs(mindivergence_p0p1cv_gpp2)) &lt; 1e-9</test>

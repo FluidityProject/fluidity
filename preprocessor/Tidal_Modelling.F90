@@ -28,13 +28,13 @@
 
 module Tidal_module
 
-   use FLDebug
+   use fldebug
+   use spud
+   use sparse_tools
    use fields
    use state_module
-   use spud
    use coordinates
    use sparse_matrices_fields
-   use state_module
    
    implicit none
    

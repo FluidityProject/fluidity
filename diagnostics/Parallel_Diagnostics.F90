@@ -2,8 +2,9 @@
 
 module parallel_diagnostics
 
-  use fields
   use fldebug
+  use elements
+  use fields
   use halos
 
   implicit none

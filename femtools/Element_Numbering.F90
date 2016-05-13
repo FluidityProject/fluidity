@@ -44,16 +44,16 @@ module element_numbering
   !!<
   !!< Nodes are subdivided into four disjoint sets: vertex nodes, those lying
   !!< on edges, those lying on faces and those interior to elements. 
-  use futils
   use FLDebug
+  use futils
   implicit none
 
-  integer, parameter :: ELEMENT_LAGRANGIAN=1, ELEMENT_NONCONFORMING=2, ELEMENT_BUBBLE=3, &
+  integer, parameter, public  :: ELEMENT_LAGRANGIAN=1, ELEMENT_NONCONFORMING=2, ELEMENT_BUBBLE=3, &
                         ELEMENT_CONTROLVOLUMEBDY_SURFACE=4, ELEMENT_CONTROLVOLUME_SURFACE=5, &
                         ELEMENT_CONTROLVOLUME_SURFACE_BODYDERIVATIVES=6, &
                         ELEMENT_TRACE=7
 
-  integer, parameter :: FAMILY_SIMPLEX=1, FAMILY_CUBE=2
+  integer, parameter, public :: FAMILY_SIMPLEX=1, FAMILY_CUBE=2
 
   type ele_numbering_type
      ! Type to record element numbering details.
@@ -163,6 +163,13 @@ module element_numbering
   interface operator(==)
      module procedure element_num_equal
   end interface
+
+private
+
+public :: find_element_numbering, local_coords, local_vertices, vertex_num,&
+     boundary_numbering, edge_num, face_num, boundary_local_num, operator(==),&
+     ele_numbering_type, boundary_num_length, ele_local_num, face_local_num,&
+     edge_local_num, tr, te
 
 contains
 

@@ -1,5 +1,5 @@
 input: clean
-	gmsh -2 src/circle.geo
+	gmsh -1 src/circle_shell.geo
 
 clean:
 	rm -rf *.d.* *.stat *.vtu *.convergence *checkpoint* src/circle.msh fluidity.[le]* \

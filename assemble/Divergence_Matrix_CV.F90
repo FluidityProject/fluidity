@@ -27,25 +27,27 @@
 #include "fdebug.h"
 
 module divergence_matrix_cv
+  use fldebug
+  use global_parameters, only: OPTION_PATH_LEN, FIELD_NAME_LEN
   use quadrature
-  use fields
-  use field_derivatives
-  use state_module
   use futils
-  use fetools
   use spud
+  use sparse_tools
   use cv_faces
-  use cv_shape_functions
-  use cvtools
-  use cv_fields
-  use cv_upwind_values
-  use cv_face_values
-  use cv_options
-  use diagnostic_fields, only: calculate_diagnostic_variable
+  use fetools
+  use fields
+  use state_module
   use boundary_conditions
-  use global_parameters, only: OPTION_PATH_LEN
+  use field_derivatives
+  use cv_shape_functions
   use field_options, only: get_coordinate_field
+  use cvtools
+  use cv_options
+  use cv_upwind_values
+  use cv_face_values, only: theta_val, evaluate_face_val
   use sparsity_patterns_meshes
+  use diagnostic_fields, only: calculate_diagnostic_variable
+  use cv_fields
   use multiphase_module
   implicit none
 

@@ -30,10 +30,12 @@ module upwind_stabilisation
   !!< This module provides routines for the upwind stabilisation of
   !!< advection_diffusion equations.
 
-  use fields
-  use metric_tools
   use spud
+  use vector_tools, only: inverse
   use shape_functions
+  use metric_tools
+  use fields
+
 
   implicit none
 

@@ -29,14 +29,18 @@
 module transform_elements
   ! Module to calculate element transformations from local to physical
   ! coordinates.
-  use quadrature
-  use elements
+  use fldebug
+  use futils, only: present_and_true
   use vector_tools
+  use quadrature
+  use element_numbering
+  use elements
   use parallel_tools, only: abort_if_in_parallel_region
+  use memory_diagnostics
+  use fields_data_types
   use fields_base
   use cv_faces, only: cv_faces_type
   use eventcounter
-  use memory_diagnostics
   
   implicit none
   
@@ -385,6 +389,14 @@ contains
        cache_valid=.false.
 
     end if
+
+    if (X%dim/=mesh_dim(X)) then
+    ! this is an embedded (manifold) mesh - construct_face_cache() does not handle this
+    ! tranform_facet_to_physical_full() hopefully does?
+      cache_valid = .false.
+      return
+    end if
+
        
     x_spherical = use_analytical_spherical_mapping(X)
 
@@ -439,6 +451,13 @@ contains
 !       ewrite(2,*) "Mesh has moved."
        face_cache_valid=.false.
 
+    end if
+
+    if (X%dim/=mesh_dim(X)) then
+    ! this is an embedded (manifold) mesh - construct_face_cache() does not handle this
+    ! tranform_facet_to_physical_full() hopefully does?
+      cache_valid = .false.
+      return
     end if
 
     if (X%refcount%id/=full_face_position_id) then

@@ -3,18 +3,20 @@
 
 module intersection_finder_module
 
+use fldebug
 use quadrature
 use elements
-use fields_base
+use parallel_tools
+use data_structures
+use sparse_tools
 use fields_data_types
-use fields_allocates
+use fields_base
 use adjacency_lists
 use linked_lists
+use fields_allocates
 use parallel_fields
-use parallel_tools
-use supermesh_construction
 use transform_elements
-use data_structures
+use supermesh_construction
 
 implicit none
 

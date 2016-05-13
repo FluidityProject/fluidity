@@ -27,34 +27,40 @@
 
 #include "fdebug.h"
 module populate_state_module
+
+  use fldebug
+  use global_parameters, only: OPTION_PATH_LEN, is_active_process, pi, &
+no_active_processes, topology_mesh_name, adaptivity_mesh_name, &
+periodic_boundary_option_path, domain_bbox, domain_volume, surface_radius
+  use futils, only: int2str, present_and_true, starts_with
+  use quadrature
+  use element_numbering
   use elements
-  use state_module
-  use FLDebug
   use spud
+  use mpi_interfaces, only: MPI_bcast
+  use parallel_tools
+  use data_structures
+  use metric_tools
+  use transform_elements
+  use fields
+  use profiler
+  use state_module
+  use boundary_conditions, only: set_dirichlet_consistent
   use mesh_files
   use vtk_cache_module
-  use global_parameters, only: OPTION_PATH_LEN, is_active_process, pi, &
-    no_active_processes, topology_mesh_name, adaptivity_mesh_name, &
-    periodic_boundary_option_path, domain_bbox, domain_volume, surface_radius
   use field_options
   use reserve_state_module
-  use fields_manipulation
-  use diagnostic_variables, only: convergence_field, steady_state_field
   use field_options
-  use surfacelabels
-  use climatology
-  use metric_tools
-  use coordinates
   use halos
+  use surfacelabels
+  use diagnostic_variables, only: convergence_field, steady_state_field
+  use climatology
+  use coordinates
   use tictoc
   use hadapt_extrude
-  use hadapt_extrude_radially
-  use initialise_fields_module
-  use transform_elements
-  use parallel_tools
-  use boundary_conditions_from_options
   use nemo_states_module
-  use data_structures
+  use initialise_fields_module
+  use boundary_conditions_from_options
   use fields_halos
   use read_triangle
   use initialise_ocean_forcing_module
@@ -97,7 +103,7 @@ module populate_state_module
        
   !! A list of relative paths under /material_phase[i]
   !! that are searched for additional fields to be added.
-  character(len=OPTION_PATH_LEN), dimension(18) :: additional_fields_relative=&
+  character(len=OPTION_PATH_LEN), dimension(20) :: additional_fields_relative=&
        (/ &
        "/subgridscale_parameterisations/Mellor_Yamada                                                       ", &
        "/subgridscale_parameterisations/prescribed_diffusivity                                              ", &
@@ -109,6 +115,8 @@ module populate_state_module
        "/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/fourth_order", &
        "/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/wale        ", &
        "/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/dynamic_les ", &
+       "/vector_field::Velocity/prognostic/spatial_discretisation/discontinuous_galerkin/les_model/         ", &
+       "/vector_field::Velocity/prognostic/spatial_discretisation/discontinuous_galerkin/les_model/debug/   ", &
        "/vector_field::Velocity/prognostic/equation::ShallowWater                                           ", &
        "/vector_field::Velocity/prognostic/equation::ShallowWater/bottom_drag                               ", &
        "/vector_field::BedShearStress/diagnostic/calculation_method/velocity_gradient                       ", &
@@ -144,9 +152,7 @@ module populate_state_module
 
 contains
 
-
   subroutine populate_state(states)
-    use Profiler
     type(state_type), pointer, dimension(:) :: states
 
     integer :: nstates ! number of states
@@ -731,8 +737,6 @@ contains
               call allocate(extrudedposition, h_dim+1, mesh, "EmptyCoordinate") ! name is fixed below
               call deallocate(mesh)
               if (IsParallel()) call create_empty_halo(extrudedposition)
-            else if (have_option('/geometry/spherical_earth/')) then
-              call extrude_radially(modelposition, mesh_path, extrudedposition)
             else
               call extrude(modelposition, mesh_path, extrudedposition)
             end if
@@ -2981,7 +2985,6 @@ contains
 
   function mesh_name(field_path)
     !!< given a field path, establish the mesh that the field is on.
-    use global_parameters, only: FIELD_NAME_LEN
     character(len=FIELD_NAME_LEN) :: mesh_name
     character(len=*), intent(in) :: field_path
 
@@ -3346,7 +3349,8 @@ contains
           
           if (have_option("/geometry/mesh::"//trim(from_mesh_name)//&
              "/exclude_from_mesh_adaptivity") .and. .not. &
-             have_option(trim(path)//"/exclude_from_mesh_adaptivity")) then
+             have_option(trim(path)//"/exclude_from_mesh_adaptivity") .and. .not. &
+             have_option(trim(path)//"/from_mesh/extrude")) then
              ! if the from_mesh is excluded, the mesh itself also needs to be
              ewrite(-1,*) "In derivation of mesh ", trim(mesh_name), " from ", trim(from_mesh_name)
              ewrite(-1,*) "A mesh derived from a mesh with exclude_from_mesh_adaptivity needs to have this options as well."

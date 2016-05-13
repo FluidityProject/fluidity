@@ -29,10 +29,10 @@
 
 module surface_id_interleaving
 
-  use fields
   use fldebug
   use mpi_interfaces
   use parallel_tools
+  use fields
 
   implicit none
 

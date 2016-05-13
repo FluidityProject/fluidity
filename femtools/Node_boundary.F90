@@ -4,16 +4,19 @@ module node_boundary
 !!< Does a node lie on a boundary? Surprisingly
 !!< difficult question to answer.
 
-  use surfacelabels
-  use fields
+  use fldebug
   use linked_lists
   use eventcounter
+  use elements
+  use fields
+  use surfacelabels
+
   implicit none
 
-  integer, dimension(:), pointer, save :: boundcount
+  integer, dimension(:), pointer, public, save :: boundcount
   integer, save :: expected_boundcount
   logical, save :: boundcount_initialised = .false.
-  integer, save :: pseudo2d_coord = 0
+  integer, public, save :: pseudo2d_coord = 0
 
   interface node_boundary_count
     module procedure node_boundary_count_full, node_boundary_count_slim
@@ -22,6 +25,13 @@ module node_boundary
   interface node_lies_on_boundary
     module procedure node_lies_on_boundary_full, node_lies_on_boundary_slim
   end interface
+
+  private
+
+  public :: node_boundary_count, node_lies_on_boundary, one_to_n,&
+       boundcount_is_initialised, deallocate_boundcount,&
+       initialise_boundcount, get_expected_boundcount, domain_is_2d,&
+       domain_is_2d_x, domain_is_2d_y, domain_is_2d_z
 
   contains
 

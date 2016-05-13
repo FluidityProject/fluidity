@@ -6293,22 +6293,6 @@ Currently a test field</a:documentation>
         </choice>
       </element>
       <element name="scalar_field">
-        <a:documentation>Second invariant of the strain_rate tensor field. Selecting this field ensures
-that it is updated as part of the momeuntum diagnostics (i.e. 
-at the start of each momentum solve - within non-linear iterations.)</a:documentation>
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <attribute name="name">
-          <value>StrainRateSecondInvariant</value>
-        </attribute>
-        <element name="diagnostic">
-          <ref name="strain_rate_second_invariant_algorithm"/>
-          <ref name="velocity_mesh_choice"/>
-          <ref name="diagnostic_scalar_field"/>
-        </element>
-      </element>
-      <element name="scalar_field">
         <a:documentation>Discontinuity detector
 
 takes value 1 where detector is triggered
@@ -7265,6 +7249,31 @@ where _c and _i denote the compressible and incompressible phases respectively.<
             <ref name="linear_solver_options_sym"/>
           </element>
         </element>
+      </element>
+      <element name="scalar_field">
+        <a:documentation>DGLESScalarEddyViscosity
+
+Outputs the calculated (isotropic) eddy viscosity term
+for a discontinuous velocity field. The subgridscale viscosity
+follows that of the Smagorinsky–Lilly model. Requires that both a discontinous
+representation of velocity and an les model have been selected.</a:documentation>
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>DGLESScalarEddyViscosity</value>
+        </attribute>
+        <choice>
+          <element name="diagnostic">
+            <ref name="internal_algorithm"/>
+            <ref name="velocity_mesh_choice"/>
+            <ref name="diagnostic_scalar_field"/>
+          </element>
+          <element name="prescribed">
+            <ref name="velocity_mesh_choice"/>
+            <ref name="prescribed_scalar_field"/>
+          </element>
+        </choice>
       </element>
     </choice>
     <!--

@@ -30,11 +30,12 @@
 subroutine probe_vtu(vtu_filename_, vtu_filename_len, fieldname_, &
     & fieldname_len, x, y, z, dim) bind(c)
 
+  use element_numbering, only: FAMILY_SIMPLEX
   use fields
   use fldebug
   use futils
   use pickers
-  use reference_counting
+  use reference_counting, only: print_references
   use state_module
   use vtk_interfaces
   use iso_c_binding

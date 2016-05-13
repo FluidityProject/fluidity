@@ -8,19 +8,24 @@ module field_derivatives
     !!< (Since the k-th derivative of a scalar field is a rank-k tensor,
     !!< anything with k > 2 rapidly becomes far too big to store in memory.)
 
-    use elements
-    use fetools, only: shape_shape, shape_dshape, dshape_outer_dshape
-    use fields
-    use halos
-    use eventcounter
-    use transform_elements
+    use fldebug
     use vector_tools
-    use vector_set
-    use node_boundary
-    use surfacelabels
-    use vtk_interfaces
+    use elements
+    use eventcounter
     use superconvergence
+    use sparse_tools
+    use tensors, only: tensormul
+    use transform_elements
+    use fetools, only: shape_shape, shape_dshape, dshape_outer_dshape,&
+     shape_vector_rhs
+    use parallel_fields
+    use fields
     use state_module
+    use vtk_interfaces
+    use halos
+    use vector_set
+    use surfacelabels
+    use node_boundary
     use boundary_conditions, only: get_entire_boundary_condition
     implicit none
 
@@ -53,7 +58,7 @@ module field_derivatives
     private
 
     public :: strain_rate, differentiate_field, grad, compute_hessian, &
-      domain_is_2d, patch_type, get_patch_ele, get_patch_node, get_quadratic_fit_qf, curl, &
+      domain_is_2d, get_quadratic_fit_qf, curl, &
       get_quadratic_fit_eqf, div, u_dot_nabla, get_cubic_fit_cf, differentiate_field_lumped, &
       dg_ele_grad_at_quad, dg_ele_grad
 
@@ -62,9 +67,12 @@ module field_derivatives
     contains
 
     function dg_ele_grad_scalar(field, ele, X, bc_value, bc_type) result (loc_grad)
+      ! Return the element contritubtion to the grad matrix of (scalar)
+      ! field for element ele. X is the coordinate field, Optional 
+      ! arguments bc_value and bc_type allow for boundary information.
       ! Return the grad of field at the quadrature points of
-      ! ele_number. dn is the transformed element gradient. 
-      ! including interface terms for dg discretisations based upon
+      ! ele_number.
+      !
       ! N_i N_j grad_u = N_i delta u_h - 
       !                  ({N_i} (u_h^-n^- + u_h^+n^+)) on internal faces -
       !                  (N_i (u_h - u_b) n) on weak dirichlet boundaries
@@ -88,7 +96,7 @@ module field_derivatives
 
       ! variables for surface integral
       integer :: ni, ele_2, face, face_2, i
-      integer, dimension(:), pointer :: neigh
+      integer, dimension(:), pointer :: neigh, faces
 
       ! inverse mass
       real, dimension(ele_loc(field, ele), ele_loc(field, ele)) :: inv_mass
@@ -110,10 +118,11 @@ module field_derivatives
 
       ! Interface integrals
       neigh=>ele_neigh(field, ele)
+      faces => ele_faces(field, ele)
       do ni=1,size(neigh)
         ! Find the relevant faces.
         ele_2 = neigh(ni)
-        face = ele_face(field, ele, ele_2)
+        face = faces(ni)
 
         if (ele_2>0) then
           ! Internal faces.
@@ -123,13 +132,8 @@ module field_derivatives
           face_2=face
         end if
 
-        if (present(bc_value)) then
-          call dg_ele_grad_scalar_interface(ele, face, face_2, ni, &
-               & loc_grad, X, field, bc_value, bc_type)
-        else
-          call dg_ele_grad_scalar_interface(ele, face, face_2, ni, &
-               & loc_grad, X, field)
-        end if
+        call dg_ele_grad_scalar_interface(ele, face, face_2, ni, &
+             & loc_grad, X, field, bc_value, bc_type)
       end do
 
       ! multiply by inverse of mass matrix
@@ -158,8 +162,7 @@ module field_derivatives
       real, dimension(face_ngi(field, face)) :: detwei, in_q, in_q_2, in_bc_q
       real, dimension(mesh_dim(field), face_ngi(field, face)) :: vector
       real, dimension(mesh_dim(field), face_loc(field, face)) :: face_rhs
-      real, dimension(ele_loc(field, ele)) :: elenodes
-      real, dimension(face_loc(field, face)) :: facenodes
+      integer, dimension(face_loc(field, face))  :: lnodes
 
       integer :: i, j
 
@@ -193,27 +196,23 @@ module field_derivatives
         in_q_2 = face_val_at_quad(field, face_2)
 
         do i=1, mesh_dim(field)
+          !! factor of 0.5 comes from the averaging operator applied to the
+          !! test function at the interface.
           vector(i,:) = -0.5*(in_q(:) - in_q_2(:))*normal(i,:)
         end do
         face_rhs = shape_vector_rhs(shape, vector, detwei) 
       end if
 
-      elenodes = ele_nodes(field, ele)
-      facenodes = face_global_nodes(field, face)
-      do i=1, face_loc(field, face)
-        do j=1, ele_loc(field, face)
-          if (facenodes(i) == elenodes(j)) then
-            loc_grad(:, j) = loc_grad(:, j) + face_rhs(:, i)
-          end if
-        end do
-      end do
+      lnodes = face_local_nodes(field, face)
+      loc_grad(:,lnodes) = loc_grad(:,lnodes) + face_rhs
 
     end subroutine dg_ele_grad_scalar_interface
     
     function dg_ele_grad_vector(field, ele_number, X, bc_value, bc_type) result (loc_grad)
-      ! Return the grad of field at the quadrature points of
-      ! ele_number. dn is the transformed element gradient. 
-      ! including interface terms for dg discretisations based upon
+      ! Return the element contritubtion to the grad matrix of vector
+      ! field for element ele_number. X is the coordinate field, Optional 
+      ! arguments bc_value and bc_type allow for boundary information.
+      !
       ! N_i N_j grad_u = N_i delta u_h - 
       !                  ({N_i} (u_h^-n^- + u_h^+n^+)) on internal faces -
       !                  (N_i (u_h - u_b) n) on weak dirichlet boundaries
@@ -269,11 +268,7 @@ module field_derivatives
       type(scalar_field) :: field_component
       integer :: j
 
-      if (present(bc_value)) then
-        loc_grad = dg_ele_grad(field, ele_number, X, bc_value, bc_type)
-      else
-        loc_grad = dg_ele_grad(field, ele_number, X)
-      end if
+      loc_grad = dg_ele_grad(field, ele_number, X, bc_value, bc_type)
 
       ! transform to physical
       quad_grad = matmul(loc_grad, shape%n)

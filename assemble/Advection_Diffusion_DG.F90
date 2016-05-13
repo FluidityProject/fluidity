@@ -29,43 +29,44 @@
 module advection_diffusion_DG
   !!< This module contains the Discontinuous Galerkin form of the advection
   !!< -diffusion equation for scalars.
-  use elements
-  use sparse_tools
-  use fetools
-  use dgtools
-  use fields
-  use fefields
-  use state_module
-  use shape_functions
-  use transform_elements
-  use vector_tools
   use fldebug
-  use vtk_interfaces
-  use Coordinates
-  use petsc_solve_state_module
-  use boundary_conditions
-  use boundary_conditions_from_options
-  use field_options
-  use spud
-  use upwind_stabilisation
-  use slope_limiters_dg
-  use sparsity_patterns
-  use sparse_matrices_fields
-  use sparsity_patterns_meshes
-  use diagnostic_fields, only: calculate_diagnostic_variable
+  use vector_tools
   use global_parameters, only: OPTION_PATH_LEN, FIELD_NAME_LEN, COLOURING_DG2, &
-       COLOURING_DG0
-  use porous_media
-  use colouring
-  use Profiler
+COLOURING_DG0
+  use elements
+  use integer_set_module
+  use spud
 #ifdef _OPENMP
   use omp_lib
 #endif
+  use parallel_tools
+  use sparse_tools
+  use shape_functions
+  use transform_elements
+  use fetools
+  use parallel_fields
+  use fields
+  use profiler
+  use state_module
+  use boundary_conditions
+  use sparsity_patterns
+  use dgtools
+  use vtk_interfaces
+  use field_options
+  use sparse_matrices_fields
+  use fefields
+  use field_derivatives
+  use coordinates
+  use sparsity_patterns_meshes
+  use petsc_solve_state_module
+  use boundary_conditions_from_options
+  use upwind_stabilisation
+  use slope_limiters_dg
+  use diagnostic_fields, only: calculate_diagnostic_variable
+  use porous_media
+  use colouring, only: get_mesh_colouring
 
   implicit none
-
-  ! Buffer for output messages.
-  character(len=255), private :: message
 
   private
   public solve_advection_diffusion_dg, construct_advection_diffusion_dg, &
@@ -701,6 +702,7 @@ contains
     type(scalar_field) :: T
     !! Diffusivity
     type(tensor_field) :: Diffusivity
+    type(tensor_field) :: LESDiffusivity
 
     !! Source and absorption
     type(scalar_field) :: Source, Absorption
@@ -750,9 +752,11 @@ contains
 
     type(integer_set), dimension(:), pointer :: colours
     integer :: len, clr, nnid
+#ifdef _OPENMP
     !! Is the transform_to_physical cache we prepopulated valid
     logical :: cache_valid
     integer :: num_threads
+#endif
 
     !! Diffusivity to add due to the buoyancy adjustment by vertical mixing scheme
     type(scalar_field) :: buoyancy_adjustment_diffusivity
@@ -828,8 +832,19 @@ contains
        call zero(Diffusivity)
        include_diffusion=.false.
     else
-       ! Grab an extra reference to cause the deallocate below to be safe.
-       call incref(Diffusivity)
+        if (have_option(trim(T%option_path)//"/prognostic"//&
+         &"/subgridscale_parameterisation::LES")) then
+
+          ! this routine takes Diffusivity as its background diffusivity
+          ! and returns the sum of this and the les diffusivity
+          call construct_les_dg(state,T, X, Diffusivity, LESDiffusivity)
+          ! the sum is what we want to apply:
+          Diffusivity = LESDiffusivity
+       else
+          ! Grab an extra reference to cause the deallocate below to be safe.
+          call incref(Diffusivity)
+       end if
+
        include_diffusion=.true.
     end if
 
@@ -1056,6 +1071,134 @@ contains
     call deallocate(porosity_theta)
     
   end subroutine construct_advection_diffusion_dg
+
+  subroutine construct_les_dg(state, T, X, background_diffusivity, LESDiffusivity)
+
+    !  Calculate updates to the field diffusivity due to the LES terms.
+
+    type(state_type), intent(inout) :: state
+    type(scalar_field), intent(in) :: T
+    type(vector_field), intent(in) :: X
+    type(tensor_field), intent(in) :: background_diffusivity
+    type(tensor_field), intent(out) :: LESDiffusivity
+    
+    !! Turbulent diffusion - LES (sp911)
+    type(scalar_field), pointer :: scalar_eddy_visc
+    type(scalar_field) :: eddy_visc_component
+    type(vector_field) :: eddy_visc
+    real :: prandtl
+    integer :: i
+    !! Ri dependent LES (sp911)
+    real :: Ri_c, N_2, U_2, Ri, f_Ri
+    type(scalar_field), pointer :: rho
+    type(vector_field) :: grad_rho
+    type(vector_field), pointer :: gravity
+    type(tensor_field) :: grad_u
+    real, dimension(:), allocatable :: gravity_val, grad_rho_val, dU_dz
+    ! non-linear velocity (U_nl) is zero when advection is disabled
+    ! I want this to be the actual non-linear velocity so I obtain it myself
+    type(vector_field), pointer :: u_nl_ri
+    real :: gravity_magnitude
+    real, dimension(:,:), allocatable :: grad_u_val
+
+    integer :: stat
+
+    call allocate(LESDiffusivity, T%mesh, trim(background_diffusivity%name))
+    call set(LESDiffusivity, background_diffusivity)
+
+    scalar_eddy_visc => extract_scalar_field(state, "DGLESScalarEddyViscosity", stat=stat)
+    call get_option(trim(T%option_path)//"/prognostic"//&
+         &"/subgridscale_parameterisation::LES/PrandtlNumber", prandtl, default=1.0)
+
+    ! possibly anisotropic eddy viscosity if using Ri dependency
+    call allocate(eddy_visc, mesh_dim(T), scalar_eddy_visc%mesh, &
+              & "EddyViscosity")
+    do i = 1, mesh_dim(T)
+       call set(eddy_visc, i, scalar_eddy_visc)
+    end do
+    
+    ! apply Richardson dependence
+    if (have_option(trim(T%option_path)//"/prognostic"//&
+         &"/subgridscale_parameterisation::LES/Ri_c")) then
+       
+       ewrite(2,*) 'Calculating Ri dependent eddy viscosity'
+       
+       ! obtain required values
+       call get_option(trim(T%option_path)//"/prognostic"//&
+            &"/subgridscale_parameterisation::LES/Ri_c", Ri_c)
+       
+       rho => extract_scalar_field(state, "Density", stat=stat)
+       if (stat /= 0) then
+          FLExit("You must have a density field to have an Ri dependent les model.")
+       end if
+       
+       gravity=>extract_vector_field(state, "GravityDirection",stat)
+       if (stat/=0) FLAbort('You must have gravity to have an Ri dependent les model.')
+       call get_option("/physical_parameters/gravity/magnitude", gravity_magnitude)
+       
+       ! obtain gradients
+       call allocate(grad_rho, mesh_dim(T), T%mesh, "grad_rho")
+       call grad(rho, X, grad_rho)
+       u_nl_ri => extract_vector_field(state, "NonlinearVelocity", stat)
+       if (stat/=0) then 
+          FLExit("No velocity field? A velocity field is required for Ri dependent LES!")
+       end if
+       call allocate(grad_u, u_nl_ri%mesh, "grad_u")
+       call grad(u_nl_ri, X, grad_u)
+       
+       allocate(gravity_val(mesh_dim(T)))
+       allocate(grad_rho_val(mesh_dim(T)))
+       allocate(dU_dz(mesh_dim(T)))
+       allocate(grad_u_val(mesh_dim(T), mesh_dim(T)))
+       
+       do i=1,node_count(eddy_visc)
+             
+          gravity_val = node_val(gravity, i)
+          grad_rho_val = node_val(grad_rho, i)
+          grad_u_val = node_val(grad_u, i)
+             
+          ! assuming boussinesq rho_0 = 1 obtain N_2
+          N_2 = gravity_magnitude*dot_product(grad_rho_val, gravity_val)
+
+          ! obtain U_2 = du/dz**2 + dv/dz**2
+          dU_dz = matmul(transpose(grad_u_val), gravity_val) 
+          dU_dz = dU_dz - dot_product(dU_dz, gravity_val)
+          U_2 = norm2(dU_dz)**2.0
+
+             ! calculate Ri  - avoid floating point errors
+          if ((U_2 > N_2*1e-10) .and. U_2 > tiny(0.0)*1e10) then
+             Ri = N_2/U_2
+          else
+             Ri = Ri_c*1.1
+          end if
+             ! calculate f(Ri)
+          if (Ri >= 0 .and. Ri <= Ri_c) then
+             f_Ri = (1.0 - Ri/Ri_c)**0.5
+          else if (Ri > Ri_c) then
+             f_Ri = 0.0
+          else
+             f_Ri = 1.0
+          end if
+
+          ! calculate modified eddy viscosity
+          call addto(eddy_visc, i, (1-f_Ri)*gravity_val*node_val(scalar_eddy_visc, i))
+
+       end do
+           
+       call deallocate(grad_rho)
+       call deallocate(grad_u)
+
+       deallocate(gravity_val, grad_u_val, grad_rho_val, dU_dz)
+    end if
+
+    do i = 1, mesh_dim(X)
+       eddy_visc_component = extract_scalar_field(eddy_visc, i)
+       call addto(LESDiffusivity, i, i, eddy_visc_component, scale=1./prandtl)
+    end do
+    
+    call deallocate(eddy_visc)
+
+  end subroutine construct_les_dg
 
   subroutine lumped_mass_galerkin_projection_scalar(state, field, projected_field)
     type(state_type), intent(in) :: state
@@ -3128,7 +3271,6 @@ contains
     character(len = FIELD_NAME_LEN) :: field_name, mesh_0, mesh_1, state_name
     character(len = OPTION_PATH_LEN) :: path
     integer :: i, j, stat
-    real :: beta, l_theta
 
     if(option_count("/material_phase/scalar_field/prognostic/spatial_discretisation/discontinuous_galerkin") == 0) then
        ! Nothing to check

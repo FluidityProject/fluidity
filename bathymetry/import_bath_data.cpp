@@ -52,14 +52,14 @@ void get_ll(double x, double y, double z, double &longitude, double &latitude){
 
 extern "C" {
 #define set_from_map_fc F77_FUNC(set_from_map, SET_FROM_MAP)
-        void set_from_map_fc(const char* filename, const double *X, const double *Y, const double *Z, double *depth, int *ncolumns);
+        void set_from_map_fc(const char* filename, const double *X, const double *Y, const double *Z, double *depth, int *ncolumns, double *surf_h);
 
 #define set_from_map_beta_fc F77_FUNC(set_from_map_beta, SET_FROM_MAP_BETA)
         void set_from_map_beta_fc(const char* filename, const double *X, const double *Y, double *depth, int *ncolumns, double *surf_h);
 
 }
 
-void set_from_map_fc(const char* filename, const double *X, const double *Y, const double *Z, double *depth, int *n){
+void set_from_map_fc(const char* filename, const double *X, const double *Y, const double *Z, double *depth, int *n, double *surf_h){
 
         string file=string(filename);
         SampleNetCDF2 map(file);
@@ -68,6 +68,7 @@ void set_from_map_fc(const char* filename, const double *X, const double *Y, con
         double *x = new double[ncolumns];
         double *y = new double[ncolumns];
         double *z = new double[ncolumns];
+        const double sh = *surf_h;
         double height[ncolumns];
         for (int i = 0; i < ncolumns; i++) {
           x[i] = X[i];
@@ -89,7 +90,7 @@ void set_from_map_fc(const char* filename, const double *X, const double *Y, con
 
         for (int i=0; i<ncolumns; i++) {
 
-          depth[i]=-height[i];
+          depth[i]=sh-height[i];
 
         }
 }

@@ -1,16 +1,19 @@
 #include "fdebug.h"
 
 module supermesh_construction
-  use fields_data_types
-  use fields_allocates
-  use fields_base
-  use sparse_tools
+  use iso_c_binding, only: c_float, c_double
+  use fldebug
   use futils
-  use metric_tools
+  use sparse_tools
+  use elements
+  use fields_data_types
+  use fields_base
   use linked_lists
+  use fields_allocates
+  use fields_manipulation
+  use metric_tools
   use unify_meshes_module
   use transform_elements
-  use global_parameters, only : real_4, real_8
   use tetrahedron_intersection_module
   implicit none
 
@@ -18,9 +21,9 @@ module supermesh_construction
     module procedure intersector_set_input_sp
   
     subroutine cintersector_set_input(nodes_A, nodes_B, ndim, loc)
-      use global_parameters, only : real_8
+      use iso_c_binding, only: c_double
       implicit none
-      real(kind = real_8), dimension(ndim, loc), intent(in) :: nodes_A, nodes_B
+      real(kind = c_double), dimension(ndim, loc), intent(in) :: nodes_A, nodes_B
       integer, intent(in) :: ndim, loc
     end subroutine cintersector_set_input
   end interface cintersector_set_input
@@ -41,10 +44,10 @@ module supermesh_construction
     module procedure intersector_get_output_sp
   
     subroutine cintersector_get_output(nonods, totele, ndim, loc, nodes, enlist)
-      use global_parameters, only : real_8
+      use iso_c_binding, only: c_double
       implicit none
       integer, intent(in) :: nonods, totele, ndim, loc
-      real(kind = real_8), dimension(nonods * ndim), intent(out) :: nodes
+      real(kind = c_double), dimension(nonods * ndim), intent(out) :: nodes
       integer, dimension(totele * loc), intent(out) :: enlist
     end subroutine cintersector_get_output
   end interface cintersector_get_output
@@ -67,19 +70,20 @@ module supermesh_construction
   real, dimension(1024) :: nodes_tmp
   logical :: intersector_exactness = .false.
 
+  private
+
   public :: intersect_elements, intersector_set_dimension, intersector_set_exactness
   public :: construct_supermesh, compute_projection_error, intersector_exactness
-  private
 
   contains
   
   subroutine intersector_set_input_sp(nodes_A, nodes_B, ndim, loc)
-    real(kind = real_4), dimension(ndim, loc), intent(in) :: nodes_A
-    real(kind = real_4), dimension(ndim, loc), intent(in) :: nodes_B
+    real(kind = c_float), dimension(ndim, loc), intent(in) :: nodes_A
+    real(kind = c_float), dimension(ndim, loc), intent(in) :: nodes_B
     integer, intent(in) :: ndim
     integer, intent(in) :: loc
     
-    call cintersector_set_input(real(nodes_A, kind = real_8), real(nodes_B, kind = real_8), ndim, loc)
+    call cintersector_set_input(real(nodes_A, kind = c_double), real(nodes_B, kind = c_double), ndim, loc)
   
   end subroutine intersector_set_input_sp
   
@@ -88,10 +92,10 @@ module supermesh_construction
     integer, intent(in) :: totele
     integer, intent(in) :: ndim
     integer, intent(in) :: loc
-    real(kind = real_4), dimension(nonods * ndim), intent(out) :: nodes
+    real(kind = c_float), dimension(nonods * ndim), intent(out) :: nodes
     integer, dimension(totele * loc), intent(out) :: enlist
     
-    real(kind = real_8), dimension(size(nodes)) :: lnodes
+    real(kind = c_double), dimension(size(nodes)) :: lnodes
     
     call cintersector_get_output(nonods, totele, ndim, loc, lnodes, enlist)
     nodes = lnodes

@@ -29,50 +29,54 @@
 
    module momentum_equation
 
-      use fields
-      use state_module
       use spud
       use fldebug
-      use momentum_cg
+      use global_parameters, only: FIELD_NAME_LEN
+      use futils, only: int2str
+      use parallel_tools
+      use element_numbering, only: FAMILY_SIMPLEX
+      use sparse_tools
+      use linked_lists
+      use parallel_fields, only: zero_non_owned
+      use fields
+      use profiler
+      use sparse_tools_petsc
+      use state_module
+      use field_options
+      use boundary_conditions
+      use sparsity_patterns_meshes
+      use sparse_matrices_fields
+      use vtk_interfaces
+      use dgtools, only: dg_apply_mass
+      use state_fields_module
+      use field_priority_lists
+      use solvers
+      use diagnostic_fields, only: calculate_diagnostic_variable
+      use multiphase_module
       use divergence_matrix_cv
       use divergence_matrix_cg
+      use coordinates
+      use tidal_module
+      use boundary_conditions_from_options
+      use free_surface_module
+      use petsc_solve_state_module
+      use state_matrices_module
+      use rotated_boundary_conditions
+      use momentum_cg
+      use slope_limiters_dg
       use momentum_dg
       use assemble_cmc
-      use field_priority_lists
       use momentum_diagnostic_fields, only: calculate_momentum_diagnostics
-      use field_options
       use compressible_projection
-      use boundary_conditions
-      use boundary_conditions_from_options
-      use sparse_matrices_fields
-      use sparse_tools
-      use sparse_tools_petsc
-      use free_surface_module
-      use solvers
       use full_projection
-      use petsc_solve_state_module
-      use Profiler
-      use geostrophic_pressure
       use hydrostatic_pressure
+      use geostrophic_pressure
       use vertical_balance_pressure
       use foam_drainage, only: calculate_drainage_source_absor
       use oceansurfaceforcing
       use drag_module
-      use parallel_tools
-      use linked_lists
-      use sparsity_patterns_meshes
-      use state_matrices_module
-      use vtk_interfaces
-      use rotated_boundary_conditions
       use reduced_model_runtime
-      use state_fields_module
-      use Tidal_module
-      use Coordinates
-      use diagnostic_fields, only: calculate_diagnostic_variable
-      use dgtools, only: dg_apply_mass
-      use slope_limiters_dg
       use implicit_solids
-      use multiphase_module
       use pressure_dirichlet_bcs_cv
       use shallow_water_equations
 
@@ -271,6 +275,8 @@
          type(state_type), dimension(:), pointer :: submaterials
          ! The index of the current phase (i.e. state(istate)) in the submaterials array
          integer :: submaterials_istate
+         ! The full list of indices between submaterials and state
+         integer, dimension(:), pointer :: submaterials_indices
          ! Do we have fluid-particle drag between phases?
          logical :: have_fp_drag
 
@@ -390,9 +396,10 @@
 
             ! This sets up an array of the submaterials of a phase.
             ! NB: The submaterials array includes the current state itself, at index submaterials_istate.
-            call get_phase_submaterials(state, istate, submaterials, submaterials_istate)
-            call calculate_momentum_diagnostics(state, istate, submaterials, submaterials_istate)
+            call get_phase_submaterials(state, istate, submaterials, submaterials_istate, submaterials_indices)
+            call calculate_momentum_diagnostics(state, istate, submaterials, submaterials_istate, submaterials_indices)
             deallocate(submaterials)
+            deallocate(submaterials_indices)
 
             call profiler_toc("momentum_diagnostics")
 

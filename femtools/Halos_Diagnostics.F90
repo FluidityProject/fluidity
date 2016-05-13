@@ -28,14 +28,14 @@
 #include "fdebug.h"
 module halos_diagnostics
   !!< this module contains routines for diagnosing halo problems.
-  use vtk_interfaces
-  use fields_data_types
-  use fields_allocates
-  use fields_base
   use shape_functions
-  use halos_numbering
   use halo_data_types
+  use fields_data_types
+  use fields_base
+  use halos_numbering
+  use fields_allocates
   use fields_manipulation
+  use vtk_interfaces
   implicit none
 
   private

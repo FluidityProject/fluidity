@@ -58,6 +58,4 @@ typedef IntrTetrahedron3Tetrahedron3<double> IntrTetrahedron3Tetrahedron3d;
 
 }
 
-#include "Wm4IntrTetrahedron3Tetrahedron3.cpp"
-
 #endif
