@@ -2450,6 +2450,18 @@ optimal size)</a:documentation>
                   <a:documentation>Location for the axis of rotation point location</a:documentation>
                   <ref name="real_dim_vector"/>
                 </element>
+                <element name="geometry_file">
+                  <a:documentation>File containing the geometry of the turbine in ASCII form</a:documentation>
+                  <attribute name="file_name">
+                    <data type="string"/>
+                  </attribute>
+                  <element name="format">
+                    <a:documentation>The format of the input file containing field data.</a:documentation>
+                    <element name="string_value">
+                      <value>ascii</value>
+                    </element>
+                  </element>
+                </element>
               </group>
             </element>
           </zeroOrMore>

@@ -955,7 +955,6 @@ actuator_line_momentum_source =
        }
   )
 
-
 # Parallel diagnostics
 node_halo_diagnostic_algorithm =
    (

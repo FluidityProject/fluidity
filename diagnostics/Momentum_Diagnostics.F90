@@ -405,10 +405,7 @@ contains
   
     ewrite(1,*) 'Exiting ALM Momentum Source'
     
-
-
-  end subroutine calculate_actuator_line_momentum_source
-
+    end subroutine calculate_actuator_line_momentum_source
 
   subroutine calculate_imposed_material_velocity_absorption(states, v_field)
     type(state_type), dimension(:), intent(inout) :: states
