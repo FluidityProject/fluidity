@@ -1274,10 +1274,13 @@ of the sediment fields and the zero concentration viscosity
       <attribute name="depends">
         <value>Velocity</value>
       </attribute>
+<<<<<<< HEAD
       <element name="prescribed_point">
         <a:documentation>These are the coordinates of the prescribed Source point (used for test purposes only)</a:documentation>
         <ref name="real_dim_vector"/>
       </element>
+=======
+>>>>>>> Adding actuator_line_momentum_source as diagnostic algorithm.
     </element>
   </define>
   <!-- Parallel diagnostics -->

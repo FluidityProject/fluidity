@@ -947,6 +947,7 @@ actuator_line_momentum_source =
        element algorithm {
           attribute name { "actuator_line_momentum_source" },
           attribute material_phase_support { "multiple "},
+<<<<<<< HEAD
           attribute depends { "Velocity" },
           ## These are the coordinates of the prescribed Source point (used for test purposes only)
           element prescribed_point {
@@ -954,6 +955,11 @@ actuator_line_momentum_source =
           }
        }
   )
+=======
+          attribute depends { "Velocity" }
+       }
+   )
+>>>>>>> Adding actuator_line_momentum_source as diagnostic algorithm.
 
 # Parallel diagnostics
 node_halo_diagnostic_algorithm =
