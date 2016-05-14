@@ -91,6 +91,7 @@ type TurbineType
     character(len=100) :: geom_file 
     integer :: NBlades
     real, dimension(3) :: RotN, RotP ! Rotational vectors in the normal and perpendicular directions
+    real :: at, Rmax
     type(BladeType), allocatable :: Blade(:)
     
 end type TurbineType
@@ -100,7 +101,7 @@ end type TurbineType
     integer, parameter :: NBlades_max = 4 ! Maximum Number of Blades
     integer, parameter :: NElem_max = 50  ! Maximum Number of Elements per blade
     
-    private turbine_geometry_read, allocate_turbine_elements
+    private turbine_geometry_read, allocate_turbine_elements, allocate_turbine_blades, set_turbine_location
     public  turbine_init
 
 contains
@@ -117,64 +118,78 @@ contains
     integer :: NElem
     character(MaxReadLine) :: ReadLine
 
-    ewrite(1,*) 'Hi there from the turbine init subroutine'
+    ewrite(1,*) 'Entering the ALTurbine_init '
 
     !GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
-    !* This a routine from which fluidity reads the information about the turbine
-    !* We start with a single turb 
+    !* This a routine from which fluidity reads the information about the turbine model 
+    !* We start with a single turbine model 
     ! In the final version of the code we should be able to enable 
-    ! multiple turbines. This is we we f
-    ! loop through turbines
+    ! multiple turbines. 
+    !GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
+
     notur = option_count("/ALM_Turbine/alm_turbine")
     ewrite(1,*) 'Number of Actuator Line Turbines : ', notur
     ! Allocate Turbines Array 
-    
-    call allocate_turbine_elements(notur,NBlades_max,NElem_max)
+    Allocate(Turbine(notur))
 
     do i=1, notur
+       
        !turbine_path="/ALM_Turbine/alm_turbine["//int2str(i)//"]"  
        call get_option("/ALM_Turbine/alm_turbine["//int2str(i-1)//"]/name",Turbine(i)%name)
        call get_option("/ALM_Turbine/alm_turbine["//int2str(i-1)//"]/axis_location",Turbine(i)%axis_loc)
        call get_option("/ALM_Turbine/alm_turbine["//int2str(i-1)//"]/geometry_file/file_name",Turbine(i)%geom_file)
-       ewrite(1,*) Turbine(i)%name
-       ewrite(1,*) Turbine(i)%axis_loc
-       ewrite(1,*) Turbine(i)%geom_file
+       ewrite(1,*) 'Turbine ',i,' : ', Turbine(i)%name
+       ewrite(1,*) '---------------'
+       ewrite(1,*) 'Axis location : ',Turbine(i)%axis_loc
+       ewrite(1,*) 'Geometry File :    ',Turbine(i)%geom_file
        call turbine_geometry_read(i,Turbine(i)%geom_file)
-
-   end do
+       
+       call set_turbine_location(i,Turbine(i)%axis_loc)
    
+   end do
+    
+   ewrite(1,*) 'Exiting the ALTurbine_init'
    stop
 
 end subroutine turbine_init
+
+subroutine allocate_turbine_blades(ITurbine,NBlades)
+    implicit none
+
+    integer :: ITurbine,NBlades
+
+    allocate(Turbine(ITurbine)%Blade(NBlades))
     
-subroutine allocate_turbine_elements(notur,NBlades_max,NElem_max)
+end subroutine allocate_turbine_blades
+
+subroutine allocate_turbine_elements(ITurbine,IBlade,NElem)
 
     implicit none
 
-    integer :: notur,NBlades_max,NElem_max
+    integer :: ITurbine,IBlade,NElem
      
-    allocate(Turbine(notur)%Blade(NBlades_max)%QCx(NElem_max+1))
-    allocate(Turbine(notur)%Blade(NBlades_max)%QCy(NElem_max+1))
-    allocate(Turbine(notur)%Blade(NBlades_max)%QCz(NElem_max+1))
-    allocate(Turbine(notur)%Blade(NBlades_max)%tx(NElem_max+1))
-    allocate(Turbine(notur)%Blade(NBlades_max)%ty(NElem_max+1))
-    allocate(Turbine(notur)%Blade(NBlades_max)%tz(NElem_max+1))
-    allocate(Turbine(notur)%Blade(NBlades_max)%CtoR(NElem_max+1))
-    allocate(Turbine(notur)%Blade(NBlades_max)%PEx(NElem_max))
-    allocate(Turbine(notur)%Blade(NBlades_max)%PEy(NElem_max))
-    allocate(Turbine(notur)%Blade(NBlades_max)%PEz(NElem_max))
-    allocate(Turbine(notur)%Blade(NBlades_max)%tEx(NElem_max))
-    allocate(Turbine(notur)%Blade(NBlades_max)%tEy(NElem_max))
-    allocate(Turbine(notur)%Blade(NBlades_max)%tEz(NElem_max))
-    allocate(Turbine(notur)%Blade(NBlades_max)%nEx(NElem_max))
-    allocate(Turbine(notur)%Blade(NBlades_max)%nEy(NElem_max))
-    allocate(Turbine(notur)%Blade(NBlades_max)%nEz(NElem_max))
-    allocate(Turbine(notur)%Blade(NBlades_max)%sEx(NElem_max))
-    allocate(Turbine(notur)%Blade(NBlades_max)%sEy(NElem_max))
-    allocate(Turbine(notur)%Blade(NBlades_max)%sEz(NElem_max))
-    allocate(Turbine(notur)%Blade(NBlades_max)%ECtoR(NElem_max))
-    allocate(Turbine(notur)%Blade(NBlades_max)%EAreaR(NElem_max))
-    allocate(Turbine(notur)%Blade(NBlades_max)%iSect(NElem_max))
+    allocate(Turbine(ITurbine)%Blade(IBlade)%QCx(NElem+1))
+    allocate(Turbine(ITurbine)%Blade(IBlade)%QCy(NElem+1))
+    allocate(Turbine(ITurbine)%Blade(IBlade)%QCz(NElem+1))
+    allocate(Turbine(ITurbine)%Blade(IBlade)%tx(NElem+1))
+    allocate(Turbine(ITurbine)%Blade(IBlade)%ty(NElem+1))
+    allocate(Turbine(ITurbine)%Blade(IBlade)%tz(NElem+1))
+    allocate(Turbine(ITurbine)%Blade(IBlade)%CtoR(NElem+1))
+    allocate(Turbine(ITurbine)%Blade(IBlade)%PEx(NElem))
+    allocate(Turbine(ITurbine)%Blade(IBlade)%PEy(NElem))
+    allocate(Turbine(ITurbine)%Blade(IBlade)%PEz(NElem))
+    allocate(Turbine(ITurbine)%Blade(IBlade)%tEx(NElem))
+    allocate(Turbine(ITurbine)%Blade(IBlade)%tEy(NElem))
+    allocate(Turbine(ITurbine)%Blade(IBlade)%tEz(NElem))
+    allocate(Turbine(ITurbine)%Blade(IBlade)%nEx(NElem))
+    allocate(Turbine(ITurbine)%Blade(IBlade)%nEy(NElem))
+    allocate(Turbine(ITurbine)%Blade(IBlade)%nEz(NElem))
+    allocate(Turbine(ITurbine)%Blade(IBlade)%sEx(NElem))
+    allocate(Turbine(ITurbine)%Blade(IBlade)%sEy(NElem))
+    allocate(Turbine(ITurbine)%Blade(IBlade)%sEz(NElem))
+    allocate(Turbine(ITurbine)%Blade(IBlade)%ECtoR(NElem))
+    allocate(Turbine(ITurbine)%Blade(IBlade)%EAreaR(NElem))
+    allocate(Turbine(ITurbine)%Blade(IBlade)%iSect(NElem))
 
     
 end subroutine allocate_turbine_elements
@@ -183,27 +198,161 @@ subroutine turbine_geometry_read(i,FN)
     
     implicit none
     character(len=*) :: FN ! FileName of the geometry file
-    integer :: i
+    integer :: i,j
     character(1000) :: ReadLine
+    
     if(i>notur) then
-        FLExit("turbine index in turbine geometry_read has exceeded the number of the turbines")
+        FLExit("turbine index in turbine_geometry_read has exceeded the number of the turbines")
     endif
     
     open(15,file=FN)
+    ! Read the Number of Blades
     read(15,'(A)') ReadLine
     read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%NBlades
+     
+    call allocate_turbine_blades(i,Turbine(i)%NBlades)
     
-    if(NBlades>4) then
-        FLExit("The maximum number of blades is 4")
-    endif
-   
-    write(*,*) Turbine(i)%NBlades
+    ! Read the Turbine rotation axis normal vector (x y z values)
+    read(15,'(A)') ReadLine
+    read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%RotN(1), Turbine(i)%RotN(2), Turbine(i)%RotN(3)
+    
+    ! Read the Turbine rotation origin point (x y z values)
+    read(15,'(A)') ReadLine
+    read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%RotP(1), Turbine(i)%RotP(2), Turbine(i)%RotP(3)
+    
+    ! Read the perpendicular Axis of Rotation
+    read(15,'(A)') ReadLine
+    read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%at
+
+    ! Read the perpendicular Axis of Rotation
+    read(15,'(A)') ReadLine
+    read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Rmax 
+
+    read(15,'(A)') ReadLine ! Defines the Type of the Turbine
+
+    
+    do j=1,Turbine(i)%NBlades
+    
+        read(15,'(A)') ReadLine ! Blade ....
+    
+        !Read Number of Elements
+        read(15,'(A)') ReadLine
+        read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Blade(j)%NElem
+
+        call allocate_turbine_elements(i,j,Turbine(i)%Blade(j)%NElem)
+        
+        !Read FlipN
+        read(15,'(A)') ReadLine
+        read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Blade(j)%FlipN
+
+        !Read QCx(1:NElem+1)
+        read(15,'(A)') ReadLine
+        read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Blade(j)%QCx(1:Turbine(i)%Blade(j)%Nelem+1)
+        
+        !Read QCy(1:NElem+1)
+        read(15,'(A)') ReadLine
+        read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Blade(j)%QCy(1:Turbine(i)%Blade(j)%Nelem+1)
+        
+        !Read QCz(1:NElem+1)
+        read(15,'(A)') ReadLine
+        read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Blade(j)%QCz(1:Turbine(i)%Blade(j)%Nelem+1)
+        
+        !Read tx(1:NElem+1)
+        read(15,'(A)') ReadLine
+        read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Blade(j)%tx(1:Turbine(i)%Blade(j)%Nelem+1)
+        
+        !Read ty(1:NElem+1)
+        read(15,'(A)') ReadLine
+        read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Blade(j)%ty(1:Turbine(i)%Blade(j)%Nelem+1)
+        
+        !Read tz(1:NElem+1)
+        read(15,'(A)') ReadLine
+        read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Blade(j)%tz(1:Turbine(i)%Blade(j)%Nelem+1)
+      
+        !Read CtoR(1:NElem+1)
+        read(15,'(A)') ReadLine
+        read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Blade(j)%CtoR(1:Turbine(i)%Blade(j)%Nelem+1)
+        
+        !Read PEx(1:NElem)
+        read(15,'(A)') ReadLine
+        read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Blade(j)%PEx(1:Turbine(i)%Blade(j)%Nelem)
+
+        !Read PEy(1:NElem)
+        read(15,'(A)') ReadLine
+        read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Blade(j)%PEy(1:Turbine(i)%Blade(j)%Nelem)
+        
+        !Read PEz(1:NElem)
+        read(15,'(A)') ReadLine
+        read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Blade(j)%PEz(1:Turbine(i)%Blade(j)%Nelem)
+        
+        !Read tEx(1:NElem)
+        read(15,'(A)') ReadLine
+        read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Blade(j)%tEx(1:Turbine(i)%Blade(j)%Nelem)
+        
+        !Read tEy(1:NElem)
+        read(15,'(A)') ReadLine
+        read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Blade(j)%tEy(1:Turbine(i)%Blade(j)%Nelem)
+        
+        !Read tEz(1:NElem)
+        read(15,'(A)') ReadLine
+        read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Blade(j)%tEz(1:Turbine(i)%Blade(j)%Nelem)
+        
+        !Read nEx(1:NElem)
+        read(15,'(A)') ReadLine
+        read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Blade(j)%nEx(1:Turbine(i)%Blade(j)%Nelem)
+        
+        !Read nEy(1:NElem)
+        read(15,'(A)') ReadLine
+        read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Blade(j)%nEy(1:Turbine(i)%Blade(j)%Nelem)
+        
+        !Read nEz(1:NElem)
+        read(15,'(A)') ReadLine
+        read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Blade(j)%nEz(1:Turbine(i)%Blade(j)%Nelem)
+        
+        !Read sEx(1:NElem)
+        read(15,'(A)') ReadLine
+        read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Blade(j)%sEx(1:Turbine(i)%Blade(j)%Nelem)
+        
+        !Read sEy(1:NElem)
+        read(15,'(A)') ReadLine
+        read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Blade(j)%sEy(1:Turbine(i)%Blade(j)%Nelem)
+        
+        !Read sEz(1:NElem)
+        read(15,'(A)') ReadLine
+        read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Blade(j)%sEz(1:Turbine(i)%Blade(j)%Nelem)
+        
+        !Read ECtoR(1:NElem)
+        read(15,'(A)') ReadLine
+        read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Blade(j)%ECtoR(1:Turbine(i)%Blade(j)%Nelem)
+        
+        !Read EAreaR(1:NElem+1)
+        read(15,'(A)') ReadLine
+        read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Blade(j)%EAreaR(1:Turbine(i)%Blade(j)%Nelem)
+        
+        !Read iSect(1:NElem+1)
+        read(15,'(A)') ReadLine
+        read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Blade(j)%iSect(1:Turbine(i)%Blade(j)%Nelem)
+        
+    end do
+    
     close(15)
 
 
 end subroutine turbine_geometry_read
 
+    subroutine set_turbine_location(i,axis_loc)
+        implicit none
+        integer :: i
+        real,dimension(3) :: axis_loc
+        
+        !GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
+        ! This Routine translates the turbine axis (and all the turbine) from the (0,0,0)
+        ! to the given axis_location of 
+        !GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
+        
 
+
+    end subroutine set_turbine_location
 
 end module alturbine
 
