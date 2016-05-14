@@ -309,7 +309,11 @@ subroutine keps_calculate_rhs(state)
      call allocate(src_abs_terms(3), fields(1)%mesh, name="buoyancy_term")
      call zero(src_abs_terms(1)); call zero(src_abs_terms(2)); call zero(src_abs_terms(3))
      call zero(src); call zero(abs)
+
      !-----------------------------------------------------------------------------------
+
+     ! Check if k and epsilon are on a discontinuous mesh.
+     ! It is currently assumed here that both fields are on the same mesh.
      dg_keps = continuity(fields(1))<0
 
      ! Assembly loop
@@ -456,6 +460,7 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, scalar_eddy_visc, u, density,
   real, dimension(ele_ngi(u, ele)) :: scalar, c_eps_3
   type(element_type), pointer :: shape_density
   real, dimension(:, :, :), allocatable :: dshape_density
+
   shape => ele_shape(k, ele)
   nodes = ele_nodes(k, ele)
 
@@ -681,7 +686,7 @@ subroutine keps_eddyvisc(state, advdif)
   ! Initialise viscosity to background value
   if (have_visc) then
      ewrite(2,*) "Entering Initialise Viscosity to Background Viscosity"   
-     ! Check if the viscosity field is on a discontinuous mesh and the bg_viscosity is on continuous mesh
+     ! Checking if the viscosity field is on a discontinuous mesh and the bg_viscosity is on continuous mesh
      ! We need to remap before setting the field as the set subroutine does not remap automatically.
      if (continuity(viscosity)<0 .and. continuity(bg_visc)>=0) then     
         ewrite(2,*) "Entering background viscosity remap conditional"
@@ -742,6 +747,7 @@ subroutine keps_eddyvisc(state, advdif)
   ! disable feedback from the k-epsilon model back into the rest of the model
   if (.not. have_option(trim(option_path)//'debugging_options/zero_reynolds_stress_tensor')) then
      do i = 1, eddy_visc%dim(1)
+           ! Eddy viscosity tensor is assumed to be isotropic in k-epsilon model
            call set(eddy_visc, i, i, scalar_eddy_visc)
      end do
   end if
