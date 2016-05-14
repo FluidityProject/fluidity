@@ -1,0 +1,7 @@
+0.4  # Turbine Radius
+0.05 # Hub Radius
+25   # Rotor tilt angle (deg, positive windward axis tilted up)
+0    # Coning angle (deg, positive tip into the wind (-x)
+0    # Yaw angle 
+5.0  # Blade planform incidence (deg) aka set angle
+3    # Number of blades

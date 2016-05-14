@@ -2444,25 +2444,42 @@ optimal size)</a:documentation>
               <attribute name="name">
                 <data type="string"/>
               </attribute>
-              <group>
+              <choice>
                 <a:documentation>Turbine_Description</a:documentation>
-                <element name="axis_location">
-                  <a:documentation>Location for the axis of rotation point location</a:documentation>
-                  <ref name="real_dim_vector"/>
+                <element name="constant_rotational_velocity">
+                  <a:documentation>constant rotational velocity given in RPM (revolutions per minute)</a:documentation>
+                  <element name="geometry_file">
+                    <a:documentation>geometry file</a:documentation>
+                    <attribute name="file_name">
+                      <data type="string"/>
+                    </attribute>
+                    <element name="format">
+                      <a:documentation>The format of the input file containing field data.</a:documentation>
+                      <element name="string_value">
+                        <value>ascii</value>
+                      </element>
+                    </element>
+                  </element>
+                  <element name="RPM">
+                    <a:documentation>Revolutions Per Minute</a:documentation>
+                    <ref name="real"/>
+                  </element>
                 </element>
-                <element name="geometry_file">
-                  <a:documentation>File containing the geometry of the turbine in ASCII form</a:documentation>
-                  <attribute name="file_name">
-                    <data type="string"/>
-                  </attribute>
-                  <element name="format">
-                    <a:documentation>The format of the input file containing field data.</a:documentation>
-                    <element name="string_value">
-                      <value>ascii</value>
+                <element name="force_based_rotational_velocity">
+                  <element name="geometry_file">
+                    <a:documentation>File containing the geometry of the turbine in ASCII form</a:documentation>
+                    <attribute name="file_name">
+                      <data type="string"/>
+                    </attribute>
+                    <element name="format">
+                      <a:documentation>The format of the input file containing field data.</a:documentation>
+                      <element name="string_value">
+                        <value>ascii</value>
+                      </element>
                     </element>
                   </element>
                 </element>
-              </group>
+              </choice>
             </element>
           </zeroOrMore>
         </element>
@@ -2481,7 +2498,7 @@ optimal size)</a:documentation>
                 <element name="dirichlet">
                   <a:documentation>Enforces the turbine model by using the dirichlet condition.</a:documentation>
                   <element name="boundary_condition_name_1">
-                    <a:documentation>Name of the upstream (weak or strong) dirichlet boundary condition where the turbine model shall be applied to.</a:documentation>
+                    <a:documentation>Name of the up stream (weak or strong) dirichlet boundary condition where the turbine model shall be applied to.</a:documentation>
                     <attribute name="name">
                       <data type="string"/>
                     </attribute>

@@ -1735,11 +1735,28 @@ start =
                  attribute name {xsd:string},
                     ## Turbine_Description
                  (
-                    ## Location for the axis of rotation point location
-                  element axis_location {
-                  real_dim_vector
+                    ## constant rotational velocity given in RPM (revolutions per minute)
+                 element constant_rotational_velocity  {
+                    ## geometry file
+                  element geometry_file {
+                    attribute file_name { xsd:string },
+                    ## The format of the input file containing field data.
+                    element format {
+                        element string_value {
+                        "ascii"
+                        }
+                        }
                   },
+
+                  ## Revolutions Per Minute
+                   element RPM {
+                       real
+                  }
+                  
+                  }|
+                 element force_based_rotational_velocity {
                   ## File containing the geometry of the turbine in ASCII form
+                  
                   element geometry_file {
                     attribute file_name { xsd:string },
                     ## The format of the input file containing field data.
@@ -1749,7 +1766,7 @@ start =
                         }
                         }
                   }
-
+                }
                  )
              }*
          }?,
@@ -1762,7 +1779,7 @@ start =
                (
                   ## Enforces the turbine model by using the dirichlet condition.
                   element dirichlet {
-                     ## Name of the upstream (weak or strong) dirichlet boundary condition where the turbine model shall be applied to.
+                     ## Name of the up stream (weak or strong) dirichlet boundary condition where the turbine model shall be applied to.
                      element boundary_condition_name_1 {
                        attribute name {xsd:string}
                      },

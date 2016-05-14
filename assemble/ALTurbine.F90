@@ -92,14 +92,15 @@ type TurbineType
     integer :: NBlades
     real, dimension(3) :: RotN, RotP ! Rotational vectors in the normal and perpendicular directions
     real :: at, Rmax
+    real :: RPM 
+    logical :: Is_constant_rotation_operated = .false. ! For a constant rotational velocity (in Revolutions Per Minute)
+    logical :: Is_forced_based_operated = .false. ! For a forced based rotational velocity (Computed during the simulation)
     type(BladeType), allocatable :: Blade(:)
     
 end type TurbineType
 
     type(TurbineType), allocatable :: Turbine(:) ! Turbine 
     integer :: notur, NBlades, NElem      ! Number of the turbines 
-    integer, parameter :: NBlades_max = 4 ! Maximum Number of Blades
-    integer, parameter :: NElem_max = 50  ! Maximum Number of Elements per blade
     
     private turbine_geometry_read, allocate_turbine_elements, allocate_turbine_blades, set_turbine_location
     public  turbine_init
@@ -136,14 +137,32 @@ contains
        
        !turbine_path="/ALM_Turbine/alm_turbine["//int2str(i)//"]"  
        call get_option("/ALM_Turbine/alm_turbine["//int2str(i-1)//"]/name",Turbine(i)%name)
-       call get_option("/ALM_Turbine/alm_turbine["//int2str(i-1)//"]/axis_location",Turbine(i)%axis_loc)
-       call get_option("/ALM_Turbine/alm_turbine["//int2str(i-1)//"]/geometry_file/file_name",Turbine(i)%geom_file)
+       
+       ! Check the type of Turbine Operation
+       if (have_option(trim("/ALM_Turbine/alm_turbine["//int2str(i-1)//"]")//"/constant_rotational_velocity")) then
+       Turbine(i)%Is_constant_rotation_operated= .true.
+       call get_option("/ALM_Turbine/alm_turbine["//int2str(i-1)//"]/constant_rotational_velocity/geometry_file/file_name",Turbine(i)%geom_file)
+       call get_option("/ALM_Turbine/alm_turbine["//int2str(i-1)//"]/constant_rotational_velocity/RPM",Turbine(i)%RPM)
+       else if(have_option(trim("/ALM_Turbine/alm_turbine["//int2str(i-1)//"]")//"/force_based_rotational_velocity")) then
+       Turbine(i)%Is_forced_based_operated = .true.
+       call get_option("/ALM_Turbine/alm_turbine["//int2str(i-1)//"]/force_based_rotational_velocity/geometry_file/file_name",Turbine(i)%geom_file) 
+       else
+           FLExit("At the moment only the constant and the force_based rotational velocity models are supported") 
+       endif
+       
+       call turbine_geometry_read(i,Turbine(i)%geom_file) 
        ewrite(1,*) 'Turbine ',i,' : ', Turbine(i)%name
        ewrite(1,*) '---------------'
-       ewrite(1,*) 'Axis location : ',Turbine(i)%axis_loc
-       ewrite(1,*) 'Geometry File :    ',Turbine(i)%geom_file
-       call turbine_geometry_read(i,Turbine(i)%geom_file)
-       
+       ewrite(1,*) 'Axis location : ',Turbine(i)%RotP
+       ewrite(1,*) 'Geometry file :    ',Turbine(i)%geom_file
+       if(Turbine(i)%Is_constant_rotation_operated) then
+       ewrite(1,*) 'Constant rotational velocity : ', Turbine(i)%Is_constant_rotation_operated 
+       ewrite(1,*) 'RPM : ', Turbine(i)%RPM
+       else
+       ewrite(1,*) 'Forced-based rotational velocity : ', Turbine(i)%Is_forced_based_operated
+       endif
+       ewrite(1,*) ' '
+
        call set_turbine_location(i,Turbine(i)%axis_loc)
    
    end do
