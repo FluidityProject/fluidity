@@ -1806,7 +1806,7 @@ contains
                         ! where k is the effective conductivity and Cv is the specific heat
                         ! at constant volume. The division by Cv is needed because the heat flux
                         ! is defined in terms of temperature T = ie/Cv.
-
+                     
                         do dloc=1,size(dt_t,1)
                            ! n_i K_{ij} dT/dx_j
                            diff_mat_local(iloc,dloc) = diff_mat_local(iloc,dloc) - &
