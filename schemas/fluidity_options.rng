@@ -1416,7 +1416,10 @@ IMPORTANT: make velocity/viscosity diagnostic.</a:documentation>
                       </element>
                       <element name="diagnostic">
                         <ref name="velocity_mesh_choice"/>
-                        <ref name="sediment_concentration_dependent_viscosity_algorithm"/>
+                        <choice>
+                          <ref name="sediment_concentration_dependent_viscosity_algorithm"/>
+                          <ref name="tensor_python_diagnostic_algorithm"/>
+                        </choice>
                         <ref name="diagnostic_tensor_field"/>
                       </element>
                     </choice>
