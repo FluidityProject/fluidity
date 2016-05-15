@@ -400,11 +400,11 @@
                   else
                      viscosity_fluid => extract_tensor_field(state(istate_fluid), "Viscosity")
                   end if
-                  if(have_option(trim(state(istate_particle)%option_path)//"/multiphase_properties/particle_diameter/constant")) then
-                     call get_option(trim(state(istate_particle)%option_path)//"/multiphase_properties/particle_diameter/constant", d)
+                  if(have_option(trim(state(istate_particle)%option_path)//"/multiphase_properties/particle_diameter")) then
+                     call get_option(trim(state(istate_particle)%option_path)//"/multiphase_properties/particle_diameter", d)
                      have_constant_pd = .true.
-                  else if(have_option(trim(state(istate_particle)%option_path)//"/multiphase_properties/particle_diameter/use_scalar_field")) then
-                     call get_option(trim(state(istate_particle)%option_path)//"/multiphase_properties/particle_diameter/use_scalar_field", pd_field_name)
+                  else if(have_option(trim(state(istate_particle)%option_path)//"/multiphase_properties/particle_dia_use_scalar_field")) then
+                     call get_option(trim(state(istate_particle)%option_path)//"/multiphase_properties/particle_dia_use_scalar_field", pd_field_name)
                      pd_scalar_field => extract_scalar_field(state(istate_particle), pd_field_name)
                      have_constant_pd = .false.
                   end if
@@ -642,12 +642,8 @@
                   case(DRAG_CORRELATION_TYPE_ERGUN)
                      K = 150.0*((vfrac_particle_gi**2)*viscosity_fluid_gi(1,1,:))/(vfrac_fluid_gi*(d_gi**2)) + &
                                 1.75*(vfrac_particle_gi*density_fluid_gi*magnitude_gi/d_gi)
-!                  case(DRAG_CORRELATION_TYPE_SCHILLER_NAUMANN)
-!                     K = vfrac_fluid_gi*vfrac_particle_gi*(3.0/4.0)*drag_coefficient_gi*(density_fluid_gi*magnitude_gi)/(d_gi)
                   case(DRAG_CORRELATION_TYPE_SCHILLER_NAUMANN_FLUENT, DRAG_CORRELATION_TYPE_LAIN_1_1999, DRAG_CORRELATION_TYPE_LAIN_2_2002)
                      K = vfrac_particle_gi*(3.0/4.0)*drag_coefficient_gi*(density_fluid_gi*magnitude_gi)/(d_gi)
-!                  case(DRAG_CORRELATION_TYPE_SCHILLER_NAUMANN_FLUIDITY)
-!                     K = vfrac_fluid_gi*vfrac_particle_gi*(3.0/4.0)*drag_coefficient_gi*(density_fluid_gi*magnitude_gi)/(d_gi)
                end select               
                
                if(is_particle_phase) then
@@ -812,11 +808,11 @@
                   density_particle => extract_scalar_field(state(istate_particle), "Density")
                   viscosity_fluid => extract_tensor_field(state(istate_fluid), "Viscosity")
          
-                  if(have_option(trim(state(istate_particle)%option_path)//"/multiphase_properties/particle_diameter/constant")) then
-                     call get_option(trim(state(istate_particle)%option_path)//"/multiphase_properties/particle_diameter/constant", d)
+                  if(have_option(trim(state(istate_particle)%option_path)//"/multiphase_properties/particle_diameter")) then
+                     call get_option(trim(state(istate_particle)%option_path)//"/multiphase_properties/particle_diameter", d)
                      have_constant_pd = .true.
-                  else if(have_option(trim(state(istate_particle)%option_path)//"/multiphase_properties/particle_diameter/use_scalar_field")) then
-                     call get_option(trim(state(istate_particle)%option_path)//"/multiphase_properties/particle_diameter/use_scalar_field", pd_field_name)
+                  else if(have_option(trim(state(istate_particle)%option_path)//"/multiphase_properties/particle_dia_use_scalar_field")) then
+                     call get_option(trim(state(istate_particle)%option_path)//"/multiphase_properties/particle_dia_use_scalar_field", pd_field_name)
                      pd_scalar_field => extract_scalar_field(state(istate_particle), pd_field_name)
                      have_constant_pd = .false.
                   end if

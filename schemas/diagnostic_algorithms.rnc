@@ -1325,10 +1325,8 @@ particle_reynolds_number_algorithm =
             anystring
          },
          ## The particle diameter
-         element particle_diameter {
-            element constant { real }|
-            element use_scalar_field { anystring }
-         },
+         (element particle_diameter { real }|
+          element particle_dia_use_scalar_field { anystring }),
          ## The name of the state representing the continuous phase
          element continuous_phase_name {
             string
