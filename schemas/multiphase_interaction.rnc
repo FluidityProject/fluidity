@@ -35,6 +35,27 @@ drag_correlation =
       element drag_correlation {
          attribute name { "ergun" },
          comment
+      }|
+      ## Fluid-particle drag term by Schiller-Naumann (1933).
+      element drag_correlation {
+         attribute name { "schiller_naumann" },
+         comment
+      }|
+      element drag_correlation {
+         attribute name { "schiller_naumann_fluent" },
+         comment
+      }|
+      element drag_correlation {
+         attribute name { "schiller_naumann_fluidity" },
+         comment
+      }|
+      element drag_correlation {
+         attribute name { "lain_1_1999" },
+         comment
+      }|
+      element drag_correlation {
+         attribute name { "lain_2_2002" },
+         comment
       }
    )
    
