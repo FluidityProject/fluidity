@@ -45,6 +45,8 @@ module alturbine
   use field_options
   use fefields
 
+  !use the ALTurbine_Airfoil Module
+  use alturbine_airfoils
     implicit none
 !GGGGG
 ! Define the types that will be used
@@ -87,7 +89,7 @@ end type BladeType
 type TurbineType
 
     real,dimension(3) :: axis_loc
-    character(len=100) :: name
+    character(len=100) :: turb_name
     character(len=100) :: geom_file 
     integer :: NBlades
     real, dimension(3) :: RotN, RotP ! Rotational vectors in the normal and perpendicular directions
@@ -112,34 +114,35 @@ contains
     implicit none
     
     type(state_type), intent(inout) :: state
-    character(len=OPTION_PATH_LEN):: turbine_path, turbine_name, bc_name
+    character(len=OPTION_PATH_LEN)::  turbine_name
     integer :: i, j
     integer, parameter :: MaxReadLine = 1000    
     character(MaxReadLine) :: FN    ! path to geometry input file 
     integer :: NElem
     character(MaxReadLine) :: ReadLine
+    character(len=OPTION_PATH_LEN), allocatable :: turbine_path(:)
 
     ewrite(1,*) 'Entering the ALTurbine_init '
 
-    !GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
+    !GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
     !* This a routine from which fluidity reads the information about the turbine model 
     !* We start with a single turbine model 
     ! In the final version of the code we should be able to enable 
     ! multiple turbines. 
-    !GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
+    !GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
 
     notur = option_count("/ALM_Turbine/alm_turbine")
     ewrite(1,*) 'Number of Actuator Line Turbines : ', notur
     ! Allocate Turbines Array 
     Allocate(Turbine(notur))
-
+    Allocate(turbine_path(notur))
     do i=1, notur
        
-       !turbine_path="/ALM_Turbine/alm_turbine["//int2str(i)//"]"  
-       call get_option("/ALM_Turbine/alm_turbine["//int2str(i-1)//"]/name",Turbine(i)%name)
-       
+       turbine_path(i)="/ALM_Turbine/alm_turbine["//int2str(i-1)//"]"
+       call get_option("/ALM_Turbine/alm_turbine["//int2str(i-1)//"]/name",Turbine(i)%turb_name)
+
        ! Check the type of Turbine Operation
-       if (have_option(trim("/ALM_Turbine/alm_turbine["//int2str(i-1)//"]")//"/constant_rotational_velocity")) then
+       if (have_option(trim(turbine_path(i))//"/constant_rotational_velocity")) then
        Turbine(i)%Is_constant_rotation_operated= .true.
        call get_option("/ALM_Turbine/alm_turbine["//int2str(i-1)//"]/constant_rotational_velocity/geometry_file/file_name",Turbine(i)%geom_file)
        call get_option("/ALM_Turbine/alm_turbine["//int2str(i-1)//"]/constant_rotational_velocity/RPM",Turbine(i)%RPM)
@@ -151,7 +154,7 @@ contains
        endif
        
        call turbine_geometry_read(i,Turbine(i)%geom_file) 
-       ewrite(1,*) 'Turbine ',i,' : ', Turbine(i)%name
+       ewrite(1,*) 'Turbine ',i,' : ', Turbine(i)%turb_name
        ewrite(1,*) '---------------'
        ewrite(1,*) 'Axis location : ',Turbine(i)%RotP
        ewrite(1,*) 'Geometry file :    ',Turbine(i)%geom_file
@@ -162,6 +165,8 @@ contains
        ewrite(1,*) 'Forced-based rotational velocity : ', Turbine(i)%Is_forced_based_operated
        endif
        ewrite(1,*) ' '
+       
+       call airfoils_init(turbine_path(i))
 
        call set_turbine_location(i,Turbine(i)%axis_loc)
    
@@ -368,8 +373,8 @@ end subroutine turbine_geometry_read
         ! This Routine translates the turbine axis (and all the turbine) from the (0,0,0)
         ! to the given axis_location of 
         !GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
-        
-
+             
+         
 
     end subroutine set_turbine_location
 
