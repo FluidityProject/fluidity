@@ -1733,43 +1733,42 @@ start =
           ## specifies an ALM Turbine
              element alm_turbine {
                  attribute name {xsd:string},
-                    ## Turbine_Description
+                ## geometry file
+                  element geometry_file {
+                    attribute file_name { xsd:string },
+                    ## The format of the input file containing field data.
+                        element string_value {
+                        "ascii"
+                        }
+                  },
+                  ## Airfoil Sections  
+                  element airfoil_sections{ 
+                      element section{
+                          attribute name{xsd:string},
+                          attribute airfoil_file{xsd:string},
+                          element string_value {
+                              "ascii"
+                          }
+                      }*
+                  },
+                 
+                 element operation {
                  (
                     ## constant rotational velocity given in RPM (revolutions per minute)
                  element constant_rotational_velocity  {
-                    ## geometry file
-                  element geometry_file {
-                    attribute file_name { xsd:string },
-                    ## The format of the input file containing field data.
-                    element format {
-                        element string_value {
-                        "ascii"
-                        }
-                        }
-                  },
-
-                  ## Revolutions Per Minute
-                   element RPM {
-                       real
-                  }
-                  
+                    element RPM{
+                        real
+                    }
                   }|
                  element force_based_rotational_velocity {
-                  ## File containing the geometry of the turbine in ASCII form
-                  
-                  element geometry_file {
-                    attribute file_name { xsd:string },
-                    ## The format of the input file containing field data.
-                    element format {
-                        element string_value {
-                        "ascii"
-                        }
-                        }
+                    attribute name {xsd:string}
                   }
-                }
                  )
+                }              
              }*
          }?,
+
+
          ## turbine model
          element turbine_model {
            ## specifies a turbine

@@ -24,6 +24,8 @@
 !    License along with this library; if not, write to the Free Software
 !    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 !    USA
+! **************************************************************************************
+
 #include "fdebug.h"
 
 module alturbine_airfoils 
@@ -75,17 +77,15 @@ module alturbine_airfoils
   
   end type AirfoilType
 
-  type(AirfoilType), allocatable :: airfoil(:)
-
   ! Private subroutines
-  private intp
+  private intp, read_airfoil
  
   ! Public subroutines
-  public airfoils_init
+  public airfoil_init
 
 contains
    
-    subroutine airfoils_init(airfoil_path)
+    subroutine airfoil_init(airfoil)
     
     implicit none
     !GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
@@ -93,20 +93,53 @@ contains
     ! the existing input files and allocating the memory of the
     ! airfoil array
     !GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
-    character(len=OPTION_PATH_LEN) :: airfoil_path
+    type(AirfoilType),intent(OUT) :: airfoil
 
     ewrite(1,*) 'In airfoils_init'
+    
      
+    call read_airfoil(airfoil)
 
-    ewrite(1,*) 'Exiting airdoil_init'
+    ewrite(1,*) 'Exiting airfoils_init'
 
-    end subroutine airfoils_init
+    end subroutine airfoil_init
     
     !GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
     ! These routines have been taken directly out of CACTUS and changed
     ! slightly so they fit the needs of the present coupling
     !GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
 
+    subroutine read_airfoil(airfoil)
+    
+    implicit none
+    
+    !GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
+    ! This routine reads the airfoil data from 
+    !GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
+    
+    type(AirfoilType),intent(INOUT) :: airfoil
+    character :: ReadLine
+    logical :: NotDone
+    integer :: EOF, CI
+    
+    open(15, file = airfoil%aftitle)
+    EOF=0
+
+    NotDone=.TRUE.
+
+    do while (NotDone)
+        read(15,'(A)') ReadLine
+        CI=index(ReadLine,':')
+        if (CI>0) then
+            NotDone=.FALSE.
+        end if
+    end do
+
+    
+    
+
+    end subroutine read_airfoil
+    
     subroutine intp(RE,ALPHA,CL,CD,CM25,airfoil)   
         
         implicit none

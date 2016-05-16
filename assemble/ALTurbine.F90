@@ -91,13 +91,14 @@ type TurbineType
     real,dimension(3) :: axis_loc
     character(len=100) :: turb_name
     character(len=100) :: geom_file 
-    integer :: NBlades
+    integer :: NBlades, NAirfoils
     real, dimension(3) :: RotN, RotP ! Rotational vectors in the normal and perpendicular directions
     real :: at, Rmax
     real :: RPM 
     logical :: Is_constant_rotation_operated = .false. ! For a constant rotational velocity (in Revolutions Per Minute)
     logical :: Is_forced_based_operated = .false. ! For a forced based rotational velocity (Computed during the simulation)
     type(BladeType), allocatable :: Blade(:)
+    type(AirfoilType), allocatable :: Airfoil(:)
     
 end type TurbineType
 
@@ -115,12 +116,13 @@ contains
     
     type(state_type), intent(inout) :: state
     character(len=OPTION_PATH_LEN)::  turbine_name
-    integer :: i, j
+    integer :: i, j,k
     integer, parameter :: MaxReadLine = 1000    
     character(MaxReadLine) :: FN    ! path to geometry input file 
     integer :: NElem
     character(MaxReadLine) :: ReadLine
     character(len=OPTION_PATH_LEN), allocatable :: turbine_path(:)
+    character(len=OPTION_PATH_LEN) :: section_path
 
     ewrite(1,*) 'Entering the ALTurbine_init '
 
@@ -132,48 +134,61 @@ contains
     !GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
 
     notur = option_count("/ALM_Turbine/alm_turbine")
-    ewrite(1,*) 'Number of Actuator Line Turbines : ', notur
+    ewrite(2,*) 'Number of Actuator Line Turbines : ', notur
     ! Allocate Turbines Array 
     Allocate(Turbine(notur))
     Allocate(turbine_path(notur))
+    
     do i=1, notur
        
        turbine_path(i)="/ALM_Turbine/alm_turbine["//int2str(i-1)//"]"
        call get_option("/ALM_Turbine/alm_turbine["//int2str(i-1)//"]/name",Turbine(i)%turb_name)
+       call get_option("/ALM_Turbine/alm_turbine["//int2str(i-1)//"]/geometry_file/file_name",Turbine(i)%geom_file)
+       
+       ! Count how many Airfoil Sections are available
+       Turbine(i)%NAirfoils=option_count("/ALM_Turbine/alm_turbine["//int2str(i-1)//"]/airfoil_sections/section") 
+       ewrite(2,*) 'Number of airfoils : ', Turbine(i)%NAirfoils
+       ! Allocate the memory of the Airfoils
+       Allocate(Turbine(i)%Airfoil(Turbine(i)%NAirfoils))
+       
+       do k=1, Turbine(i)%NAirfoils
+           
+        call get_option(trim(turbine_path(i))//"/airfoil_sections/section["//int2str(k-1)//"]/airfoil_file",Turbine(i)%Airfoil(k)%aftitle)
+           
+           ! Read and Store Airfoils
+           call airfoil_init(Turbine(i)%Airfoil(k))
+
+       end do
 
        ! Check the type of Turbine Operation
-       if (have_option(trim(turbine_path(i))//"/constant_rotational_velocity")) then
-       Turbine(i)%Is_constant_rotation_operated= .true.
-       call get_option("/ALM_Turbine/alm_turbine["//int2str(i-1)//"]/constant_rotational_velocity/geometry_file/file_name",Turbine(i)%geom_file)
-       call get_option("/ALM_Turbine/alm_turbine["//int2str(i-1)//"]/constant_rotational_velocity/RPM",Turbine(i)%RPM)
-       else if(have_option(trim("/ALM_Turbine/alm_turbine["//int2str(i-1)//"]")//"/force_based_rotational_velocity")) then
-       Turbine(i)%Is_forced_based_operated = .true.
-       call get_option("/ALM_Turbine/alm_turbine["//int2str(i-1)//"]/force_based_rotational_velocity/geometry_file/file_name",Turbine(i)%geom_file) 
+       if (have_option(trim(turbine_path(i))//"/operation/constant_rotational_velocity")) then
+            Turbine(i)%Is_constant_rotation_operated= .true.
+            call get_option("/ALM_Turbine/alm_turbine["//int2str(i-1)//"]/operation/constant_rotational_velocity/RPM",Turbine(i)%RPM)
+       else if(have_option(trim("/ALM_Turbine/alm_turbine["//int2str(i-1)//"]")//"/operation/force_based_rotational_velocity")) then
+            Turbine(i)%Is_forced_based_operated = .true. 
        else
            FLExit("At the moment only the constant and the force_based rotational velocity models are supported") 
        endif
        
        call turbine_geometry_read(i,Turbine(i)%geom_file) 
-       ewrite(1,*) 'Turbine ',i,' : ', Turbine(i)%turb_name
-       ewrite(1,*) '---------------'
-       ewrite(1,*) 'Axis location : ',Turbine(i)%RotP
-       ewrite(1,*) 'Geometry file :    ',Turbine(i)%geom_file
+       ewrite(2,*) 'Turbine ',i,' : ', Turbine(i)%turb_name
+       ewrite(2,*) '---------------'
+       ewrite(2,*) 'Axis location : ',Turbine(i)%RotP
+       ewrite(2,*) 'Geometry file :    ',Turbine(i)%geom_file
        if(Turbine(i)%Is_constant_rotation_operated) then
-       ewrite(1,*) 'Constant rotational velocity : ', Turbine(i)%Is_constant_rotation_operated 
-       ewrite(1,*) 'RPM : ', Turbine(i)%RPM
+       ewrite(2,*) 'Constant rotational velocity : ', Turbine(i)%Is_constant_rotation_operated 
+       ewrite(2,*) 'RPM : ', Turbine(i)%RPM
        else
-       ewrite(1,*) 'Forced-based rotational velocity : ', Turbine(i)%Is_forced_based_operated
+       ewrite(2,*) 'Forced-based rotational velocity : ', Turbine(i)%Is_forced_based_operated
        endif
-       ewrite(1,*) ' '
+       ewrite(2,*) ' '
        
-       call airfoils_init(turbine_path(i))
-
        call set_turbine_location(i,Turbine(i)%axis_loc)
    
    end do
     
    ewrite(1,*) 'Exiting the ALTurbine_init'
-   stop
+stop
 
 end subroutine turbine_init
 

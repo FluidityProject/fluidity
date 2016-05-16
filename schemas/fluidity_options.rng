@@ -2444,42 +2444,47 @@ optimal size)</a:documentation>
               <attribute name="name">
                 <data type="string"/>
               </attribute>
-              <choice>
-                <a:documentation>Turbine_Description</a:documentation>
-                <element name="constant_rotational_velocity">
-                  <a:documentation>constant rotational velocity given in RPM (revolutions per minute)</a:documentation>
-                  <element name="geometry_file">
-                    <a:documentation>geometry file</a:documentation>
-                    <attribute name="file_name">
+              <element name="geometry_file">
+                <a:documentation>geometry file</a:documentation>
+                <attribute name="file_name">
+                  <data type="string"/>
+                </attribute>
+                <element name="string_value">
+                  <a:documentation>The format of the input file containing field data.</a:documentation>
+                  <value>ascii</value>
+                </element>
+              </element>
+              <element name="airfoil_sections">
+                <a:documentation>Airfoil Sections  </a:documentation>
+                <zeroOrMore>
+                  <element name="section">
+                    <attribute name="name">
                       <data type="string"/>
                     </attribute>
-                    <element name="format">
-                      <a:documentation>The format of the input file containing field data.</a:documentation>
-                      <element name="string_value">
-                        <value>ascii</value>
-                      </element>
-                    </element>
-                  </element>
-                  <element name="RPM">
-                    <a:documentation>Revolutions Per Minute</a:documentation>
-                    <ref name="real"/>
-                  </element>
-                </element>
-                <element name="force_based_rotational_velocity">
-                  <element name="geometry_file">
-                    <a:documentation>File containing the geometry of the turbine in ASCII form</a:documentation>
-                    <attribute name="file_name">
+                    <attribute name="airfoil_file">
                       <data type="string"/>
                     </attribute>
-                    <element name="format">
-                      <a:documentation>The format of the input file containing field data.</a:documentation>
-                      <element name="string_value">
-                        <value>ascii</value>
-                      </element>
+                    <element name="string_value">
+                      <value>ascii</value>
                     </element>
                   </element>
-                </element>
-              </choice>
+                </zeroOrMore>
+              </element>
+              <element name="operation">
+                <choice>
+                  <element name="constant_rotational_velocity">
+                    <a:documentation>constant rotational velocity given in RPM (revolutions per minute)</a:documentation>
+                    <element name="RPM">
+                      <ref name="real"/>
+                    </element>
+                  </element>
+                  <element name="force_based_rotational_velocity">
+                    <attribute name="name">
+                      <data type="string"/>
+                    </attribute>
+                  </element>
+                </choice>
+              </element>
             </element>
           </zeroOrMore>
         </element>
