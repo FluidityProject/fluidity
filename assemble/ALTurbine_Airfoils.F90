@@ -52,7 +52,7 @@ module alturbine_airfoils
   type AirfoilType
   
   ! Naming and others
-  character(len=OPTION_PATH_LEN) :: aftitle ! Title for each airfoil section 
+  character(len=100) :: afname, aftitle ! Title for each airfoil section 
   integer :: camb ! Camber flag for each section
   real    :: tc      ! Thickness to chord ration for each section
   real    :: alzer   ! Zero lift AOA for each section
@@ -63,22 +63,32 @@ module alturbine_airfoils
   real, allocatable :: TCD(:,:)  ! Table CD values
   real, allocatable :: TCM(:,:)  ! Table Cm values
   real, allocatable :: TRE(:)    ! Table Reynolds Number values  
-  real, allocatable :: nTBL(:)   ! Number of AOA values for each Re number, in each section data table
-  real  :: nRET   ! Number of Re number values in each section data table
+  integer, allocatable :: nTBL(:)   ! Number of AOA values for each Re number, in each section data table
+  integer  :: nRET   ! Number of Re number values in each section data table
 
   ! Interpolation warning flags
   integer :: ilxtp
   integer :: iuxtp
 
+  ! Airfoil params for BV dyn stall
+  real, allocatable :: alstlp(:)    ! Stall AOA (positive) at all Re numbers
+  real, allocatable :: alstln(:)    ! Stall AOA (negative) at all Re numbers
+
   ! Airfoil params for Leisham Beddoes dyn stall
   real, allocatable :: CLaData(:)
   real, allocatable :: CLCritPData(:)
   real, allocatable :: CLCritNData(:)
-  
+ 
   end type AirfoilType
+ 
+  ! Maximum Numbers of Reynolds Number data that can be stored
+  ! Globla parameters
+  integer, parameter :: MaxReVals = 20
+  integer, parameter :: MaxAOAVals = 1000
 
+  real, parameter :: conrad = 2*acos(-1.0)/360.0
   ! Private subroutines
-  private intp, read_airfoil
+  private intp, read_airfoil, allocate_airfoil
  
   ! Public subroutines
   public airfoil_init
@@ -97,9 +107,10 @@ contains
 
     ewrite(1,*) 'In airfoils_init'
     
-     
-    call read_airfoil(airfoil)
+    call allocate_airfoil(airfoil,MaxAOAVals,MaxReVals)
 
+    call read_airfoil(airfoil)
+    ewrite(2,*) 'Airfoil section title : ', airfoil%aftitle
     ewrite(1,*) 'Exiting airfoils_init'
 
     end subroutine airfoil_init
@@ -118,15 +129,17 @@ contains
     !GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
     
     type(AirfoilType),intent(INOUT) :: airfoil
-    character :: ReadLine
-    logical :: NotDone
-    integer :: EOF, CI
-    
-    open(15, file = airfoil%aftitle)
+    character(len=100) :: ReadLine
+    logical :: NotDone, NotBlank
+    integer :: EOF, CI, i, ii, jj
+    real :: temp, temp1(1000,4)
+
+    ewrite(1,*) 'In read_airfoil'
+    open(15, file = airfoil%afname)
     EOF=0
 
+    ! Find title block
     NotDone=.TRUE.
-
     do while (NotDone)
         read(15,'(A)') ReadLine
         CI=index(ReadLine,':')
@@ -135,11 +148,177 @@ contains
         end if
     end do
 
-    
-    
+    ! Read title and airfoil thickness
+    if(len_trim(ReadLine)>CI) then
+        airfoil%aftitle = ReadLine(CI+1:len_trim(ReadLine))
+    else
+        airfoil%aftitle = 'No Title'
+    end if
+    read(15,'(A)') ReadLine
+    read(ReadLine(index(ReadLine,':')+1:),*) airfoil%tc
+    read(15,'(A)') ReadLine
+    read(ReadLine(index(ReadLine,':')+1:),*) airfoil%alzer
+    read(15,'(A)') ReadLine
+    read(ReadLine(index(ReadLine,':')+1:),*) airfoil%camb
+ 
+    ! Reverse camber direction if desired
+    if (airfoil%camb==1) then
+        airfoil%alzer = -airfoil%alzer
+    end if
+
+    ! Find first Reynolds Number block
+    NotDone =.true.
+    do while (NotDone)
+        read(15,'(A)',IOSTAT=EOF) ReadLine
+        CI=index(ReadLine,':')
+        if (CI>0 .OR. EOF<0) then
+            NotDone=.false.
+        end if
+    end do
+
+    ! Read data for each Reynolds value
+     
+    do while (EOF>=0 .and. (i<MaxReVals))
+        i=i+1
+        ! Read Re and dyn. stall data
+        read(ReadLine(index(ReadLine,':')+1:),*) airfoil%TRE(i)
+        read(15,'(A)') ReadLine                          
+        read(ReadLine(index(ReadLine,':')+1:),*) airfoil%alstlp(i)
+        airfoil%alstlp(i)=airfoil%alstlp(i)*conrad
+        read(15,'(A)') ReadLine                          
+        read(ReadLine(index(ReadLine,':')+1:),*) airfoil%alstln(i)
+        airfoil%alstln(i)=airfoil%alstln(i)*conrad
+        read(15,'(A)') ReadLine                          
+        read(ReadLine(index(ReadLine,':')+1:),*) airfoil%CLaData(i)
+        read(15,'(A)') ReadLine                          
+        read(ReadLine(index(ReadLine,':')+1:),*) airfoil%CLCritPData(i)
+        read(15,'(A)') ReadLine                          
+        read(ReadLine(index(ReadLine,':')+1:),*) airfoil%CLCritNData(i)
+
+        ! Reverse camber direction if desired
+        if (airfoil%camb == 1) then
+            temp = airfoil%alstlp(i)
+            airfoil%alstlp(i) = -airfoil%alstln(i)
+            airfoil%alstln(i) = -temp   
+            temp = airfoil%CLCritPData(i)
+            airfoil%CLCritPData(i) = -airfoil%CLCritNData(i)
+            airfoil%CLCritNData(i) = -temp 
+        end if
+
+        ! Read AOA data
+        read(15,'(A)') ReadLine
+        NotDone=.TRUE.
+        ii=0
+        do while (NotDone)
+            read(15,'(A)',IOSTAT=EOF) ReadLine
+            ! Check for carriage return (len_trim doesn't consider this a blank)
+            NotBlank=.TRUE.
+            if (len_trim(ReadLine)==0) then
+                NotBlank=.FALSE.
+            else if (len_trim(ReadLine)==1) then
+                if (ichar(ReadLine(len_trim(ReadLine):len_trim(ReadLine))) == 13) then
+                    NotBlank=.FALSE.
+                end if
+            end if
+            if (EOF>=0 .AND. NotBlank) then
+                if (ii == MaxAOAVals) then
+                    FLExit("Max. allowed AOA values exceeded in airfoil data file: "//airfoil%aftitle)
+                    NotDone=.FALSE.
+                else
+                    ii=ii+1                        
+                    read(ReadLine,*) airfoil%ta(ii,i),airfoil%tcl(ii,i),airfoil%tcd(ii,i),airfoil%tcm(ii,i) 
+                end if
+            else
+                NotDone=.FALSE.
+            end if
+        end do
+        airfoil%ntbl(i)=ii
+
+        !GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGg
+        ! This is under consideration. In general it is very difficult 
+        ! to find data for airfoils spanning from -180 to 180
+        !GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
+
+         ! Check AOA limits
+        if (airfoil%ta(1,i) > -180.0 .OR. airfoil%ta(airfoil%ntbl(i),i) < 180.0) then
+            FLExit("AOA data needs to be +/-180 deg in airfoil data file: "// airfoil%aftitle)
+        end if
+
+        ! Reverse camber direction if desired
+        if(airfoil%camb == 1) then       
+            do ii = 1, airfoil%ntbl(i)
+                temp1(ii,1) = airfoil%ta(ii,i) 
+                temp1(ii,2) = airfoil%tcl(ii,i)
+                temp1(ii,3) = airfoil%tcd(ii,i)
+                temp1(ii,4) = airfoil%tcm(ii,i)
+            end do
+
+            do ii = 1, airfoil%ntbl(i)
+                jj = airfoil%ntbl(i)-(ii-1)
+                airfoil%ta(ii,i) = -temp1(jj,1)
+                airfoil%tcl(ii,i) = -temp1(jj,2)
+                airfoil%tcd(ii,i) = temp1(jj,3)
+                airfoil%tcm(ii,i) = -temp1(jj,4)
+            end do
+        end if
+
+        ! Find next Re block
+        NotDone=.TRUE.
+        if (EOF<0) then
+            NotDone=.FALSE.
+        end if
+        do while (NotDone)
+            read(15,'(A)',IOSTAT=EOF) ReadLine
+            CI=index(ReadLine,':')
+            if (CI>0 .OR. EOF<0) then
+                NotDone=.FALSE.
+            end if
+        end do
+
+        end do
+        ! Set number of Re vals for this section
+        airfoil%nRET=i
+
+        ! Close input file for this section
+        close(15)
+
+        ! Check data
+        if (i == 0) then
+            FLExit("Error reading airfoil data file: "// airfoil%aftitle)
+        end if
+        if (EOF > 0) then
+            FLExit("Warning: Max. allowed Re values exceeded in airfoil data file: "//airfoil%aftitle)
+        end if
+
+         
+    ewrite(1,*) 'Exiting read_airfoil'
 
     end subroutine read_airfoil
+   
+    subroutine allocate_airfoil(airfoil,MaxAOAVals,MaxReVals)
     
+    implicit none
+    
+    type(AirfoilType),intent(INOUT) :: airfoil
+    integer, intent(IN) :: MaxAOAVals,MaxReVals
+
+    ewrite(1,*) 'In allocate_airfoil'
+    allocate(airfoil%TA(MaxAOAVals,MaxReVals))
+    allocate(airfoil%TCL(MaxAOAVals,MaxReVals))
+    allocate(airfoil%TCD(MaxAOAVals,MaxReVals))
+    allocate(airfoil%TCM(MaxAOAVals,MaxReVals))
+    allocate(airfoil%TRE(MAxReVals))
+    allocate(airfoil%nTBL(MaxReVals))
+    allocate(airfoil%alstln(MaxReVals))
+    allocate(airfoil%alstlp(MaxReVals))
+    allocate(airfoil%CLaData(MaxReVals))
+    allocate(airfoil%CLCritPData(MaxReVals))
+    allocate(airfoil%CLCritNData(MaxReVals))
+
+    ewrite(1,*) 'Exiting allocate_airfoil'
+
+    end subroutine allocate_airfoil
+
     subroutine intp(RE,ALPHA,CL,CD,CM25,airfoil)   
         
         implicit none

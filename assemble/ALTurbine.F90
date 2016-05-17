@@ -147,13 +147,19 @@ contains
        
        ! Count how many Airfoil Sections are available
        Turbine(i)%NAirfoils=option_count("/ALM_Turbine/alm_turbine["//int2str(i-1)//"]/airfoil_sections/section") 
-       ewrite(2,*) 'Number of airfoils : ', Turbine(i)%NAirfoils
+       ewrite(2,*) 'Number of Airfoils available : ', Turbine(i)%NAirfoils
        ! Allocate the memory of the Airfoils
        Allocate(Turbine(i)%Airfoil(Turbine(i)%NAirfoils))
        
+       call turbine_geometry_read(i,Turbine(i)%geom_file) 
+       ewrite(2,*) 'Turbine ',i,' : ', Turbine(i)%turb_name
+       ewrite(2,*) '---------------'
+       ewrite(2,*) 'Axis location : ',Turbine(i)%RotP
+       ewrite(2,*) 'Geometry file :    ',Turbine(i)%geom_file
+       
        do k=1, Turbine(i)%NAirfoils
            
-        call get_option(trim(turbine_path(i))//"/airfoil_sections/section["//int2str(k-1)//"]/airfoil_file",Turbine(i)%Airfoil(k)%aftitle)
+        call get_option(trim(turbine_path(i))//"/airfoil_sections/section["//int2str(k-1)//"]/airfoil_file",Turbine(i)%Airfoil(k)%afname)
            
            ! Read and Store Airfoils
            call airfoil_init(Turbine(i)%Airfoil(k))
@@ -170,11 +176,7 @@ contains
            FLExit("At the moment only the constant and the force_based rotational velocity models are supported") 
        endif
        
-       call turbine_geometry_read(i,Turbine(i)%geom_file) 
-       ewrite(2,*) 'Turbine ',i,' : ', Turbine(i)%turb_name
-       ewrite(2,*) '---------------'
-       ewrite(2,*) 'Axis location : ',Turbine(i)%RotP
-       ewrite(2,*) 'Geometry file :    ',Turbine(i)%geom_file
+       ! Specify the operation mode of the turbine
        if(Turbine(i)%Is_constant_rotation_operated) then
        ewrite(2,*) 'Constant rotational velocity : ', Turbine(i)%Is_constant_rotation_operated 
        ewrite(2,*) 'RPM : ', Turbine(i)%RPM
