@@ -159,10 +159,10 @@ end subroutine calculate_diagnostic_variable_tensor
 
 subroutine calculate_diagnostic_variable_dep_scalar(states, states_size, state_index, s_field, algorithm, algorithm_len, dep_states_mask, stat)
 
-  use diagnostic_fields_new
-  use fields
   use fldebug
+  use fields
   use state_module
+  use diagnostic_fields_new, only: calculate_diagnostic_variable_dep
 
   implicit none
 
@@ -216,10 +216,10 @@ end subroutine calculate_diagnostic_variable_dep_scalar
 
 subroutine calculate_diagnostic_variable_dep_vector(states, states_size, state_index, v_field, algorithm, algorithm_len, dep_states_mask, stat)
 
-  use diagnostic_fields_new
-  use fields
   use fldebug
+  use fields
   use state_module
+  use diagnostic_fields_new, only: calculate_diagnostic_variable_dep
 
   implicit none
 
@@ -271,10 +271,10 @@ end subroutine calculate_diagnostic_variable_dep_vector
 
 subroutine calculate_diagnostic_variable_dep_tensor(states, states_size, state_index, t_field, algorithm, algorithm_len, dep_states_mask, stat)
 
-  use diagnostic_fields_new
-  use fields
   use fldebug
+  use fields
   use state_module
+  use diagnostic_fields_new, only: calculate_diagnostic_variable_dep
 
   implicit none
 
