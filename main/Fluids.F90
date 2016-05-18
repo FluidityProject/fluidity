@@ -650,6 +650,8 @@ contains
                 call keps_advdif_diagnostics(state(i))
              end if
           end do
+          
+
 
           field_loop: do it = 1, ntsol
              ewrite(2, "(a,i0,a,i0)") "Considering scalar field ", it, " of ", ntsol
@@ -850,6 +852,12 @@ contains
        ! calculate and write diagnostics before the timestep gets changed
        call calculate_diagnostic_variables(State, exclude_nonrecalculated=.true.)
        call calculate_diagnostic_variables_new(state, exclude_nonrecalculated = .true.)
+          
+       ! If the ALTurbine Model is switched on then move turbine and compute the 
+          ! forcing terms to be added to the momentum equation
+          if (have_option("/ALM_Turbine")) then
+            call turbine_timeloop(State,exclude_nonrecalculated=.true.)
+          end if
           
        ! Call the modern and significantly less satanic version of study
        call write_diagnostics(state, current_time, dt, timestep)

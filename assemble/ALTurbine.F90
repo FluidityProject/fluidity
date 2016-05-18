@@ -30,7 +30,7 @@ module alturbine
 
   use fldebug
   use spud
-  use global_parameters, only:FIELD_NAME_LEN,OPTION_PATH_LEN, PYTHON_FUNC_LEN
+  use global_parameters, only:FIELD_NAME_LEN,OPTION_PATH_LEN, PYTHON_FUNC_LEN, pi
   use sparse_tools
   use fetools
   use fields
@@ -38,6 +38,7 @@ module alturbine
   use elements
   use transform_elements
   use state_module
+  use state_fields_module
   use boundary_conditions
   use solvers
   use python_state
@@ -47,7 +48,8 @@ module alturbine
 
   !use the ALTurbine_Airfoil Module
   use alturbine_airfoils
-    implicit none
+  use alturbine_utils
+  implicit none
 !GGGGG
 ! Define the types that will be used
 
@@ -77,13 +79,17 @@ type BladeType
     real, allocatable :: ECtoR(:)
     real, allocatable :: EAreaR(:)
     integer, allocatable :: iSect(:)
+    
+    ! Momentum Sink Forces in the nts direction
+    real, allocatable :: CFn(:)
+    real, allocatable :: CFt(:)
+    real, allocatable :: CFs(:)
 
-    ! Current total blade output (nomalized by machine scale parameters)
-    real :: CP  ! Power coefficient due to this blade
-    real :: CTR ! Torque coefficient due to this blade
-    real :: CFx ! Fx coefficient due to this blade
-    real :: CFy ! Fy coefficient due to this blade
-    real :: CFz ! Fz coefficient due to this blade
+    ! Momentum Sink Forces in the xyz direction
+    real, allocatable :: CFx(:)
+    real, allocatable :: CFy(:)
+    real, allocatable :: CFz(:)
+    
 end type BladeType
 
 type TurbineType
@@ -96,17 +102,23 @@ type TurbineType
     real :: at, Rmax
     real :: RPM 
     logical :: Is_constant_rotation_operated = .false. ! For a constant rotational velocity (in Revolutions Per Minute)
-    logical :: Is_forced_based_operated = .false. ! For a forced based rotational velocity (Computed during the simulation)
+    logical :: Is_force_based_operated = .false. ! For a forced based rotational velocity (Computed during the simulation)
     type(BladeType), allocatable :: Blade(:)
     type(AirfoilType), allocatable :: Airfoil(:)
-    
+    real :: CP  ! Power coefficient 
+    real :: CTR ! Torque coefficient 
+    real :: CFx ! Fx coefficient 
+    real :: CFy ! Fy coefficient 
+    real :: CFz ! Fz coefficient 
+    real :: CT  ! Thrust coefficient
+
 end type TurbineType
 
     type(TurbineType), allocatable :: Turbine(:) ! Turbine 
     integer :: notur, NBlades, NElem      ! Number of the turbines 
     
     private turbine_geometry_read, allocate_turbine_elements, allocate_turbine_blades, set_turbine_location
-    public  turbine_init
+    public  turbine_init, turbine_timeloop
 
 contains
     
@@ -171,7 +183,7 @@ contains
             Turbine(i)%Is_constant_rotation_operated= .true.
             call get_option("/ALM_Turbine/alm_turbine["//int2str(i-1)//"]/operation/constant_rotational_velocity/RPM",Turbine(i)%RPM)
        else if(have_option(trim("/ALM_Turbine/alm_turbine["//int2str(i-1)//"]")//"/operation/force_based_rotational_velocity")) then
-            Turbine(i)%Is_forced_based_operated = .true. 
+            Turbine(i)%Is_force_based_operated = .true. 
        else
            FLExit("At the moment only the constant and the force_based rotational velocity models are supported") 
        endif
@@ -181,7 +193,7 @@ contains
        ewrite(2,*) 'Constant rotational velocity : ', Turbine(i)%Is_constant_rotation_operated 
        ewrite(2,*) 'RPM : ', Turbine(i)%RPM
        else
-       ewrite(2,*) 'Forced-based rotational velocity : ', Turbine(i)%Is_forced_based_operated
+       ewrite(2,*) 'Forced-based rotational velocity : ', Turbine(i)%Is_force_based_operated
        endif
        ewrite(2,*) ' '
        
@@ -190,9 +202,178 @@ contains
    end do
     
    ewrite(1,*) 'Exiting the ALTurbine_init'
-stop
 
 end subroutine turbine_init
+
+subroutine turbine_timeloop(states,exclude_nonrecalculated)
+
+    use pickers_inquire
+    
+    implicit none
+    
+    type(state_type), dimension(:), intent(inout) :: states
+    logical, intent(in), optional :: exclude_nonrecalculated
+    type(vector_field), pointer :: positions, velocity
+    type(vector_field) :: v_field
+    integer :: i,j,k
+    real :: dt, theta
+    ! Zero the Source Term at each time step
+    
+    ewrite(1,*) 'Entering the turbine_timeloop'
+   
+    
+    ! First we need to get the dt in order to rotate the turbine
+    call get_option("/timestepping/timestep",dt) 
+    
+    do i=1,notur
+    ! Depending on whether the turbine is using a constant or a forced
+    ! Based model for its operation: we will have the following options
+     if(Turbine(i)%Is_constant_rotation_operated) then
+        ewrite(2,*) 'Operating Turbine with a constant rotational Velocity'
+        theta=Turbine(i)%RPM*2*pi/60*dt ! 1 revolution/minute = 2 pi tads / 60 s
+        call rotate_turbines(theta) 
+    elseif(Turbine(i)%Is_force_based_operated) then
+        ewrite(2,*) 'Operating Turbine with a force-based approach'
+     
+     else
+         FLExit("At the moment only constant rotational velocity and the force-based approach are supported")
+     
+     endif
+    
+
+    !* Get Position and Velocity Field
+    positions => extract_vector_field(states,"Coordinate")  
+    velocity  => extract_vector_field(states, "Velocity")
+
+    ewrite(2,*) positions%dim
+
+   
+    !* Finds the element number end local coordinates of the element where the point of interest
+    !* belongs in.
+    
+    !do j=1,Turbine(i)%NBlade
+    !    k=1,Turbine(i)%Blade(j)%NElem+1
+    !    SCoords(1)=
+    !call picker_inquire(positions,Turbine(i)%Blade(1:Turbine(i)%NBlades)%,ele,local_coord,.false.)
+    ! 
+    !* Evaluates the velocity at the point of interest 
+    !value_vel = eval_field(ele,velocity, local_coord) 
+    !
+    !!* Temporary Parameters that will be deleted and normaly be loaded
+    !!* From a file.
+    !
+    !radius= 0.25
+    !epsilon_par=0.05
+    !Area = pi*radius**2 ! Termporary computation of the Area 
+    !Force_coeff(1)=-1.1
+    !Force_coeff(2)=0
+
+    !do i = 1, node_count(v_field)
+    !    ! Compute a molification function in 2D 
+    !    Rcoords=node_val(positions,i)
+    !        dr2=0
+    !        d=0
+    !        do j=1, v_field%dim
+    !            d(j) = Scoords(j)-Rcoords(j)
+    !            dr2=dr2+d(j)**2
+    !        end do
+
+    !        do j=1, v_field%dim
+    !        
+    !        if(v_field%dim==2) then    
+    !            kernel(j) = 1/(epsilon_par**2*pi)*exp(-dr2/epsilon_par**2)
+    !        else 
+    !            FLAbort("3D source not implemented yet")
+    !        endif
+
+    !        end do
+   
+    !    call set(v_field, i, 0.5*Area*(value_vel(1)**2+value_vel(2)**2)*kernel*Force_coeff)
+    !end do
+
+
+
+    end do
+
+    ewrite(1,*) 'Exiting the turbine_timeloop'
+    stop
+end subroutine turbine_timeloop
+
+subroutine rotate_turbines(theta)
+
+        implicit none
+
+        real :: theta,nrx,nry,nrz,px,py,pz 
+        integer :: j,ielem,i
+        real :: vrx,vry,vrz,VMag
+        real :: xtmp,ytmp,ztmp, txtmp, tytmp, tztmp
+        ! Rotates data in blade arrays. Rotate element end geometry and recalculate element geometry.
+
+        ewrite(1,*) 'Entering rotate_turbines'
+        do i=1,notur
+            
+            ! Specify the rotation axis and the normal vector of rotation
+            
+            nrx=Turbine(i)%RotN(1)
+            nry=Turbine(i)%RotN(2)
+            nrz=Turbine(i)%RotN(3)
+            
+            px=Turbine(i)%RotP(1)
+            py=Turbine(i)%RotP(2)
+            pz=Turbine(i)%RotP(3)
+
+
+            do j=1,Turbine(i)%NBlades
+                do ielem=1,Turbine(i)%Blade(j)%Nelem+1
+                ! Blade end locations (quarter chord). xBE(MaxSegEnds)
+                xtmp=Turbine(i)%Blade(j)%QCx(ielem)
+                ytmp=Turbine(i)%Blade(j)%QCy(ielem)
+                ztmp=Turbine(i)%Blade(j)%QCz(ielem)
+                
+                Call QuatRot(xtmp,ytmp,ztmp,theta,nrx,nry,nrz,px,py,pz,vrx,vry,vrz)
+                Turbine(i)%Blade(j)%QCx(ielem)=vrx                                       
+                Turbine(i)%Blade(j)%QCy(ielem)=vry                                       
+                Turbine(i)%Blade(j)%QCz(ielem)=vrz                                  
+                
+                txtmp=Turbine(i)%Blade(j)%tx(ielem)
+                tytmp=Turbine(i)%Blade(j)%ty(ielem)
+                tztmp=Turbine(i)%Blade(j)%tz(ielem)
+                
+                ! Tangent vectors
+                Call QuatRot(txtmp,tytmp,tztmp,theta,nrx,nry,nrz,px,py,pz,vrx,vry,vrz)
+                VMag=sqrt(vrx**2+vry**2+vrz**2)
+                Turbine(i)%Blade(j)%tx(ielem)=vrx/VMag                                      
+                Turbine(i)%Blade(j)%ty(ielem)=vry/VMag                                  
+                Turbine(i)%Blade(j)%tz(ielem)=vrz/VMag                                       
+  
+                end do
+            end do
+        
+        end do
+
+        ewrite(1,*) 'Exiting rotate_turbines'
+
+end subroutine rotate_turbines
+    
+subroutine compute_loads
+
+    implicit none
+    integer :: i,j,k
+
+    ! Test function that simulates a simple sink with a coefficient -1
+    do i=1,notur
+        do j=1,Turbine(i)%NBlades
+            do k=1,Turbine(j)%Blade(j)%NElem
+            Turbine(i)%Blade(j)%CFx(k)=-1.0
+            Turbine(i)%Blade(j)%CFy(k)= 0.0
+            Turbine(i)%Blade(j)%CFz(k)= 0.0 
+            end do
+        end do
+    end do
+
+end subroutine compute_loads
+
+
 
 subroutine allocate_turbine_blades(ITurbine,NBlades)
     implicit none
@@ -231,6 +412,12 @@ subroutine allocate_turbine_elements(ITurbine,IBlade,NElem)
     allocate(Turbine(ITurbine)%Blade(IBlade)%ECtoR(NElem))
     allocate(Turbine(ITurbine)%Blade(IBlade)%EAreaR(NElem))
     allocate(Turbine(ITurbine)%Blade(IBlade)%iSect(NElem))
+    allocate(Turbine(ITurbine)%Blade(IBlade)%CFn(NElem))
+    allocate(Turbine(ITurbine)%Blade(IBlade)%CFt(NElem))
+    allocate(Turbine(ITurbine)%Blade(IBlade)%CFs(NElem))
+    allocate(Turbine(ITurbine)%Blade(IBlade)%CFx(NElem))
+    allocate(Turbine(ITurbine)%Blade(IBlade)%CFy(NElem))
+    allocate(Turbine(ITurbine)%Blade(IBlade)%CFz(NElem))
 
     
 end subroutine allocate_turbine_elements
