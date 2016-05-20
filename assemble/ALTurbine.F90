@@ -117,16 +117,16 @@ end type TurbineType
     type(TurbineType), allocatable :: Turbine(:) ! Turbine 
     integer :: notur, NBlades, NElem      ! Number of the turbines 
     
-    private turbine_geometry_read, allocate_turbine_elements, allocate_turbine_blades, set_turbine_location
+    private turbine_geometry_read, allocate_turbine_elements, allocate_turbine_blades 
     public  turbine_init, turbine_timeloop
 
 contains
     
-    subroutine turbine_init(state)
+    subroutine turbine_init(states)
     
     implicit none
     
-    type(state_type), intent(inout) :: state
+    type(state_type), dimension(:) :: states
     character(len=OPTION_PATH_LEN)::  turbine_name
     integer :: i, j,k
     integer, parameter :: MaxReadLine = 1000    
@@ -197,7 +197,6 @@ contains
        endif
        ewrite(2,*) ' '
        
-       call set_turbine_location(i,Turbine(i)%axis_loc)
    
    end do
     
@@ -232,6 +231,7 @@ subroutine turbine_timeloop(states,exclude_nonrecalculated)
         ewrite(2,*) 'Operating Turbine with a constant rotational Velocity'
         theta=Turbine(i)%RPM*2*pi/60*dt ! 1 revolution/minute = 2 pi tads / 60 s
         call rotate_turbines(theta) 
+
     elseif(Turbine(i)%Is_force_based_operated) then
         ewrite(2,*) 'Operating Turbine with a force-based approach'
      
@@ -239,13 +239,6 @@ subroutine turbine_timeloop(states,exclude_nonrecalculated)
          FLExit("At the moment only constant rotational velocity and the force-based approach are supported")
      
      endif
-    
-
-    !* Get Position and Velocity Field
-    positions => extract_vector_field(states,"Coordinate")  
-    velocity  => extract_vector_field(states, "Velocity")
-
-    ewrite(2,*) positions%dim
 
    
     !* Finds the element number end local coordinates of the element where the point of interest
@@ -291,13 +284,12 @@ subroutine turbine_timeloop(states,exclude_nonrecalculated)
     !    call set(v_field, i, 0.5*Area*(value_vel(1)**2+value_vel(2)**2)*kernel*Force_coeff)
     !end do
 
-
-
     end do
 
     ewrite(1,*) 'Exiting the turbine_timeloop'
-    stop
+
 end subroutine turbine_timeloop
+
 
 subroutine rotate_turbines(theta)
 
@@ -355,26 +347,6 @@ subroutine rotate_turbines(theta)
 
 end subroutine rotate_turbines
     
-subroutine compute_loads
-
-    implicit none
-    integer :: i,j,k
-
-    ! Test function that simulates a simple sink with a coefficient -1
-    do i=1,notur
-        do j=1,Turbine(i)%NBlades
-            do k=1,Turbine(j)%Blade(j)%NElem
-            Turbine(i)%Blade(j)%CFx(k)=-1.0
-            Turbine(i)%Blade(j)%CFy(k)= 0.0
-            Turbine(i)%Blade(j)%CFz(k)= 0.0 
-            end do
-        end do
-    end do
-
-end subroutine compute_loads
-
-
-
 subroutine allocate_turbine_blades(ITurbine,NBlades)
     implicit none
 
@@ -568,19 +540,90 @@ subroutine turbine_geometry_read(i,FN)
 
 end subroutine turbine_geometry_read
 
-    subroutine set_turbine_location(i,axis_loc)
-        implicit none
-        integer :: i
-        real,dimension(3) :: axis_loc
-        
-        !GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
-        ! This Routine translates the turbine axis (and all the turbine) from the (0,0,0)
-        ! to the given axis_location of 
-        !GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
-             
-         
+    SUBROUTINE set_blade_geometry
 
-    end subroutine set_turbine_location
+        implicit none
+
+        integer :: BNum
+        integer :: nbe, nei, FlipN, nej, j
+    !    real :: sEM, tEM, nEM
+    !    real :: PE(3), sE(3), tE(3), normE(3), P1(3), P2(3), P3(3), P4(3), V1(3), V2(3), V3(3), V4(3), A1(3), A2(3)
+
+    !    ! Calculates element geometry from element end geometry
+
+    !    ! JCM: Eventually, should just be able to loop through Blades(BNum) data structure
+    !    ! While data is still held in arrays concatenated across blades, need to replicate
+    !    ! nbe (stored in configr) from Blades(1).NElem
+    !    nbe=Blades(1)%NElem
+
+    !    FlipN=Blades(BNum)%FlipN
+
+    !    nei=1+(BNum-1)*(nbe+1)
+
+    !    do j=1,nbe
+    !        nej=nei+j
+
+    !        ! Element center locations
+    !        xBC(nej)=(xBE(nej)+xBE(nej-1))/2.0
+    !        yBC(nej)=(yBE(nej)+yBE(nej-1))/2.0
+    !        zBC(nej)=(zBE(nej)+zBE(nej-1))/2.0
+
+    !        ! Set spanwise and tangential vectors
+	!	    sE=-(/xBE(nej)-xBE(nej-1),yBE(nej)-yBE(nej-1),zBE(nej)-zBE(nej-1)/) ! nominal element spanwise direction set opposite to QC line
+	!	    sEM=sqrt(dot_product(sE,sE))
+	!	    sE=sE/sEM
+	!	    tE=(/txBE(nej)+txBE(nej-1),tyBE(nej)+tyBE(nej-1),tzBE(nej)+tzBE(nej-1)/)/2.0
+	!	    ! Force tE normal to sE
+	!	    tE=tE-dot_product(tE,sE)*sE
+	!	    tEM=sqrt(dot_product(tE,tE))
+	!	    tE=tE/tEM
+	!	    sxBC(nej)=sE(1)
+	!	    syBC(nej)=sE(2)
+	!	    szBC(nej)=sE(3)
+    !        txBC(nej)=tE(1)
+    !        tyBC(nej)=tE(2)
+    !        tzBC(nej)=tE(3)
+
+	!	    ! Calc normal vector
+	!	    Call cross(sE(1),sE(2),sE(3),tE(1),tE(2),tE(3),normE(1),normE(2),normE(3))
+	!	    nEM=sqrt(dot_product(normE,normE))
+	!	    normE=normE/nEM
+	!	    nxBC(nej)=normE(1)
+	!	    nyBC(nej)=normE(2)
+	!	    nzBC(nej)=normE(3)
+
+	!	    ! Flip normal direction if requested
+	!	    CircSign(nej)=1.0
+	!	    if (FlipN .eq. 1) then
+	!            nxBC(nej)=-nxBC(nej)
+	!            nyBC(nej)=-nyBC(nej)
+	!            nzBC(nej)=-nzBC(nej)
+    !            sxBC(nej)=-sxBC(nej)
+    !            syBC(nej)=-syBC(nej)
+    !            szBC(nej)=-szBC(nej)
+    !            CircSign(nej)=-1.0
+	!	    end if
+
+	!	    ! Calc element area and chord
+	!	    P1=(/xBE(nej-1)-0.25*CtoR(nej-1)*txBE(nej-1),yBE(nej-1)-0.25*CtoR(nej-1)*tyBE(nej-1),zBE(nej-1)-0.25*CtoR(nej-1)*tzBE(nej-1)/)
+	!	    P2=(/xBE(nej-1)+0.75*CtoR(nej-1)*txBE(nej-1),yBE(nej-1)+0.75*CtoR(nej-1)*tyBE(nej-1),zBE(nej-1)+0.75*CtoR(nej-1)*tzBE(nej-1)/)
+	!	    P3=(/xBE(nej)+0.75*CtoR(nej)*txBE(nej),yBE(nej)+0.75*CtoR(nej)*tyBE(nej),zBE(nej)+0.75*CtoR(nej)*tzBE(nej)/)
+	!	    P4=(/xBE(nej)-0.25*CtoR(nej)*txBE(nej),yBE(nej)-0.25*CtoR(nej)*tyBE(nej),zBE(nej)-0.25*CtoR(nej)*tzBE(nej)/)
+	!	    V1=P2-P1
+	!	    V2=P3-P2
+	!	    V3=P4-P3
+	!	    V4=P1-P4
+	!	    ! Calc quad area from two triangular facets
+	!	    Call cross(V1(1),V1(2),V1(3),V2(1),V2(2),V2(3),A1(1),A1(2),A1(3))
+	!	    A1=A1/2.0
+    !        Call cross(V3(1),V3(2),V3(3),V4(1),V4(2),V4(3),A2(1),A2(2),A2(3))
+    !        A2=A2/2.0
+	!	    eArea(nej)=sqrt(dot_product(A1,A1))+sqrt(dot_product(A2,A2))
+	!	    ! Calc average element chord from area and span
+	!	    eChord(nej)=eArea(nej)/sEM
+
+    !    end do
+    End SUBROUTINE set_blade_geometry 
 
 end module alturbine
 

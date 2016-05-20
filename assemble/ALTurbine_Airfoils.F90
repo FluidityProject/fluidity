@@ -31,21 +31,7 @@
 module alturbine_airfoils 
 
   use fldebug
-  use spud
-  use global_parameters, only:FIELD_NAME_LEN,OPTION_PATH_LEN, PYTHON_FUNC_LEN
-  use sparse_tools
-  use fetools
-  use fields
-  use futils
-  use elements
-  use transform_elements
-  use state_module
-  use boundary_conditions
-  use solvers
-  use python_state
-  use sparsity_patterns_meshes
-  use field_options
-  use fefields
+  use global_parameters, only:FIELD_NAME_LEN,OPTION_PATH_LEN, PYTHON_FUNC_LEN, pi
 
   implicit none
   
@@ -86,12 +72,13 @@ module alturbine_airfoils
   integer, parameter :: MaxReVals = 20
   integer, parameter :: MaxAOAVals = 1000
 
-  real, parameter :: conrad = 2*acos(-1.0)/360.0
+  real, parameter :: conrad = pi / 180.0 
+  real, parameter :: condeg = 180.0 / pi  
   ! Private subroutines
   private intp, read_airfoil, allocate_airfoil
  
   ! Public subroutines
-  public airfoil_init
+  public airfoil_init, compute_aeroCoeffs, compute_aeroCoeffs_one_airfoil
 
 contains
    
@@ -103,12 +90,12 @@ contains
     ! the existing input files and allocating the memory of the
     ! airfoil array
     !GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
-    type(AirfoilType),intent(OUT) :: airfoil
+    type(AirfoilType),intent(INOUT) :: airfoil
 
     ewrite(1,*) 'In airfoils_init'
     
     call allocate_airfoil(airfoil,MaxAOAVals,MaxReVals)
-
+ 
     call read_airfoil(airfoil)
     ewrite(2,*) 'Airfoil section title : ', airfoil%aftitle
     ewrite(1,*) 'Exiting airfoils_init'
@@ -134,7 +121,9 @@ contains
     integer :: EOF, CI, i, ii, jj
     real :: temp, temp1(1000,4)
 
+
     ewrite(1,*) 'In read_airfoil'
+
     open(15, file = airfoil%afname)
     EOF=0
 
@@ -318,16 +307,200 @@ contains
     ewrite(1,*) 'Exiting allocate_airfoil'
 
     end subroutine allocate_airfoil
+   
+    subroutine compute_aeroCoeffs(airfoils,thtoc,alpha75,alpha5,Re,adotnorm,umach,CL,CD,CN,CT,CLCirc,CM25)
+
+    ! GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
+    ! inputs :
+    !           NumAir  : Number of available airfoils
+    !           Airfoils: structure for all the airfoil sections available  
+    !           thtoc   : Thickness to Chord length 
+    !           alpha75 : Angle of Attack at 3/4 of the element 
+    !           alpha5  : Angle of Attack at 1/2 (middle) of the element
+    !           Re      : Element Reynolds Number
+    !           adotnorm: rate of change of the angle of attack (locally)
+    !           umach   : local element Mach Number 
+    ! 
+    ! outputs: 
+    !           CL      : Lift Coefficient
+    !           CD      : Drag Coefficient
+    !           CN      : Normal Force Coefficient
+    !           CD      : Tangential Force Coefficient
+    !           CLCirc  :
+    !               
+    !       
+    ! GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
+    implicit none
+    type(AirfoilType),dimension(:),target, intent(IN) :: airfoils 
+    type(AirfoilType), pointer :: airfoil_pointer => null()
+    real, intent(IN) :: alpha75, alpha5, adotnorm, Re, umach 
+    real :: alpha75_loc, alpha5_loc, adotnorm_loc, Re_loc, umach_loc
+    real,intent(OUT) ::CL, CD, CN, CT, CLCirc, thtoc, CM25
+    real,allocatable :: Thicks(:), diffthick(:)
+    real :: xtc, CLtc(2),CDtc(2),CM25tc(2), CNtc(2),CTtc(2),CLcirctc(2)                                 
+    integer :: NumAir , abcdf
+    integer :: iair,imin,imax, iL, iU, iint
+    logical :: notDone=.true.
+    
+    CLtc(:)=0.0
+    CDtc(:)=0.0
+    CM25tc(:)=0.0
+    CNtc(:)=0.0
+    CTtc(:)=0.0
+    CLCirctc(:)=0.0
+
+    NumAir = size(airfoils)
+    allocate(Thicks(NumAir),diffthick(NumAir))
+
+    if(NumAir==1) then
+        call compute_aeroCoeffs_one_airfoil(airfoils(1),alpha75,alpha5,Re,adotnorm,umach,CL,CD,CN,CT,CLCirc,CM25)
+    else
+        !> Linearly Interpolating from the available airfoils 
+        !> If the airfoil thickness to chord lenght ratio is exceeded then the min or max airfoils will be used
+        do iair=1,NumAir
+            Thicks(iair)=Airfoils(iair)%tc
+            diffthick(iair)=abs(thtoc-Thicks(iair))
+        end do
+        
+        ! Minimum and Maximum indices 
+        imin=minloc(Thicks,1)
+        imax=maxloc(Thicks,1)
+        iint=minloc(diffthick,1)
+        write(*,*) iint
+        if (thtoc<=minval(Thicks)) then
+            iair=minloc(Thicks,1)
+            call compute_aeroCoeffs_one_airfoil(airfoils(iair),alpha75,alpha5,Re,adotnorm,umach,CL,CD,CN,CT,CLCirc,CM25)
+        elseif(thtoc>=maxval(Thicks)) then
+            iair=maxloc(Thicks,1)
+            call compute_aeroCoeffs_one_airfoil(airfoils(iair),alpha75,alpha5,Re,adotnorm,umach,CL,CD,CN,CT,CLCirc,CM25)
+        else
+            if(thicks(iint)<=thtoc) then
+                iL=iint
+                iU=iint+1
+            elseif(thicks(iint)>thtoc) then
+                iL=iint-1
+
+                iU=iint
+            endif
+            airfoil_pointer => airfoils(iL)
+
+            call compute_aeroCoeffs_one_airfoil(airfoil_pointer,alpha75,alpha5,Re,adotnorm,umach,&
+                                            CLtc(1),CDtc(1),CNtc(1),CTtc(1),CLCirctc(1),CM25tc(1))
+            airfoil_pointer => airfoils(iU)
+            call compute_aeroCoeffs_one_airfoil(airfoil_pointer,alpha75,alpha5,Re,adotnorm,umach,&
+                                            CLtc(2),CDtc(2),CNtc(2),CTtc(2),CLCirctc(2),CM25tc(2))
+
+        xtc = (thtoc-airfoils(iL)%tc)/(airfoils(iU)%tc-airfoils(iL)%tc)
+        CL=CLtc(1)+xtc*(CLtc(2)-CLtc(1))
+        CD=CDtc(1)+xtc*(CDtc(2)-CDtc(1))
+        CN=CNtc(1)+xtc*(CNtc(2)-CNtc(1))
+        CT=CTtc(1)+xtc*(CTtc(2)-CTtc(1))
+        CLCirc=CLCirctc(1)+xtc*(CLCirctc(2)-CLCirctc(1))
+        CM25=CM25tc(1)+xtc*(CM25tc(2)-CM25tc(1))
+
+        endif
+        
+    end if
+    deallocate(thicks,diffthick)
+
+    end subroutine compute_aeroCoeffs
+
+    subroutine compute_aeroCoeffs_one_airfoil(airfoil,alpha75,alpha5,Re,adotnorm,umach,CL,CD,CN,CT,CLCirc,CM25)
+
+    implicit none
+   
+    ! GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
+    ! inputs :
+    !           alpha75 : Angle of Attack at 3/4 of the element 
+    !           alpha5  : Angle of Attack at 1/2 (middle) of the element
+    !           Re      : Element Reynolds Number
+    !           adotnorm: rate of change of the angle of attack (locally)
+    !           umach   : local element Mach Number 
+    ! 
+    ! outputs: 
+    !           CL      : Lift Coefficient
+    !           CD      : Drag Coefficient
+    !           CN      : Normal Force Coefficient
+    !           CD      : Tangential Force Coefficient
+    !           CLCirc  :
+    !               
+    !       
+    ! GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
+    type(AirfoilType),intent(IN) :: airfoil
+    real,intent(IN) :: alpha75, alpha5, adotnorm, Re, umach
+    real,intent(OUT) :: CL, CD, CN, CT, CLCirc, CM25
+    real :: CLstat75, CLstat5, CDstat75, CLdyn5, CDdyn5, dCLAD, dCTAM, dCNAM, CL5, CD5, C, C1, CM25stat
+    real :: alphaL, alphaD, aref, Fac   
+    
+    ewrite(2,*) 'Entering compute_aeroCoeffs_one_airfoil'
+
+    ! Calculate static characteristics
+    call intp(Re,alpha75*condeg,CLstat75,CDstat75,CM25stat,airfoil) 
+    call intp(Re,alpha5*condeg,CLstat5,C,C1,airfoil)
+   
+    ! Apply pitch rate effects by analogy to pitching flat plate potential flow theory (SAND report)
+    CL5=CLstat75
+    CD5=CDstat75
+    CM25=CM25stat+cos(alpha5)*(CLstat75-CLstat5)/4.0
+    alphaL=alpha75
+    CLCirc=CLstat75
+    
+    ! If no dynamic stall, use static values, else calc dynamic stall
+    !if (DSFlag/=0) then
+
+    !    if (DSFlag==1) then
+    !        ! Modified Boeing-Vertol approach  
+    !        Call BV_DynStall(nElem,CL5,CD5,alphaL,adotnorm,umach,Re,SectInd,CLdyn5,CDdyn5)   
+    !    else
+    !        ! Leishman-Beddoes model
+    !        Call LB_DynStall(nElem,CL5,CD5,alphaL,alpha5,umach,Re,SectInd,CLdyn5,CDdyn5)
+    !    end if
+
+    !    CL5=CLdyn5
+    !    CD5=CDdyn5  
+    !    CLCirc=CLdyn5  
+
+    !end if
+
+    ! Tangential and normal coeffs
+    CN=CL5*cos(alpha5)+CD5*sin(alpha5)                                   
+    CT=-CL5*sin(alpha5)+CD5*cos(alpha5) 
+
+   ! ! Calc tangential added mass increment by analogy to pitching flat plate potential flow theory (SAND report) 
+   ! dCTAM=2.0/cos(alpha5)*wPNorm*CM25stat-CLstat5/2.0*wPNorm
+   ! ! Add in alphadot added mass effects (Theodorsen flat plate approx., Katz ch. 13)
+   ! dCLAD=pi*adotnorm
+   ! dCTAM=dCTAM-dCLAD*sin(alpha5)
+   ! dCNAM=dCLAD*cos(alpha5)       
+
+   ! ! Add in added mass effects at low AOA (models not accurate at high AOA)
+   ! Fac=1.0
+   ! aref=abs(alpha5)
+   ! if ((aref > pi/4.0) .AND. (aref < 3.0*pi/4.0)) then
+   !     Fac = abs(1-4.0/pi*(aref-pi/4.0))
+   ! end if
+   ! CT=CT+Fac*dCTAM
+   ! CN=CN+Fac*dCNAM
+
+    ! Calc total lift and drag coefficient based on flow direction at half-chord for reference
+    CL=CN*cos(alpha5)-CT*sin(alpha5)
+    CD=CN*sin(alpha5)+CT*cos(alpha5)
+
+
+    ewrite(2,*) 'Exiting compute_aeroCoeffs_one_airfoil'
+
+    end subroutine compute_aeroCoeffs_one_airfoil
 
     subroutine intp(RE,ALPHA,CL,CD,CM25,airfoil)   
         
         implicit none
 
-        real :: RE, ALPHA, CL, CD, CM25
+        real,intent(IN) :: RE, ALPHA
+        real,intent(OUT):: CL, CD, CM25
         integer :: i,j               
         real :: XRE, XA 
         real :: CLA(2),CDA(2),CM25A(2)                                      
-        type(AirfoilType) :: airfoil 
+        type(AirfoilType),intent(IN) :: airfoil 
         integer :: U1, X1, iUB, iLB, NTB, L1
         logical :: NotDone                                               
 
@@ -358,7 +531,7 @@ contains
                         NotDone=.false.                                                       
                         iLB=iUB                                                           
                         XRE=0.0                                                           
-                        airfoil%IUXTP=1
+                        !airfoil%IUXTP=1
                     else    
                         ! No upper bound, increment and continue                                
                         iUB=iUB+1
@@ -372,7 +545,7 @@ contains
             iLB=1                                                             
             iUB=1                                                             
             XRE=0.0                                                                                                 
-            airfoil%ILXTP=1
+            !airfoil%ILXTP=1
         end if
 
 
@@ -422,5 +595,58 @@ contains
         CM25=CM25A(1)+XRE*(CM25A(2)-CM25A(1))
 
     END SUBROUTINE intp
+
+    Subroutine CalcLBStallAOALim(airfoil,Re,CLa,CLCritP,CLCritN)
+
+        ! Get stall data for LB model from airfoil data
+        real :: Re, CLa, CLCritP, CLCritN, XRE
+        type(AirfoilType),intent(IN) :: airfoil 
+        integer :: iUB, iLB
+        logical :: NotDone 
+
+        ! Find Re upper and lower bounds.                                     
+
+        if (RE >= airfoil%TRE(1)) then                                                                                                                                  
+            NotDone=.true.    
+            iUB=2                                                                 
+            do while (NotDone)   
+
+                if (RE <= airfoil%TRE(iUB)) then
+                    ! Done
+                    NotDone=.false.
+                    if (RE == airfoil%TRE(iUB)) then
+                        iLB=iUB
+                    else
+                        iLB=iUB-1                                                           
+                        XRE=(RE-airfoil%TRE(iLB))/(airfoil%TRE(iUB)-airfoil%TRE(iLB))
+                    end if
+                else
+                    if (iUB == airfoil%nRET) then       
+                        ! No upper bound in table, take last point...
+                        NotDone=.false.                                                       
+                        iLB=iUB                                                           
+                        XRE=0.0                                                           
+                    else    
+                        ! No upper bound, increment and continue                                
+                        iUB=iUB+1
+                    end if
+                end if
+
+            end do
+
+        else        
+            ! No lower bound in table, take first point.                                            
+            iLB=1                                                             
+            iUB=1                                                             
+            XRE=0.0                                                                                                 
+        end if
+
+        ! Interp
+        CLa=airfoil%CLaData(iLB)+xRE*(airfoil%CLaData(iUB)-airfoil%CLaData(iLB))            
+        CLCritP=airfoil%CLCritPData(iLB)+xRE*(airfoil%CLCritPData(iUB)-airfoil%CLCritPData(iLB))  
+        CLCritN=airfoil%CLCritNData(iLB)+xRE*(airfoil%CLCritNData(iUB)-airfoil%CLCritNData(iLB)) 
+    
+    End Subroutine CalcLBStallAOALim
+    
 
 end module alturbine_airfoils 
