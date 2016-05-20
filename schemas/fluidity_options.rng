@@ -2204,6 +2204,7 @@ probably equal to the location of the borehole</a:documentation>
               </optional>
               <optional>
                 <element name="apply_diameter_cap">
+                  <!-- default value 1.0E-12 -->
                   <element name="lower_cap">
                     <ref name="real"/>
                   </element>
