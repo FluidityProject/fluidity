@@ -174,7 +174,7 @@ contains
         call get_option(trim(turbine_path(i))//"/airfoil_sections/section["//int2str(k-1)//"]/airfoil_file",Turbine(i)%Airfoil(k)%afname)
            
            ! Read and Store Airfoils
-           call airfoil_init(Turbine(i)%Airfoil(k))
+           call airfoil_init_data(Turbine(i)%Airfoil(k))
 
        end do
 

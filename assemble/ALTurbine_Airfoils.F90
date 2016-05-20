@@ -52,10 +52,6 @@ module alturbine_airfoils
   integer, allocatable :: nTBL(:)   ! Number of AOA values for each Re number, in each section data table
   integer  :: nRET   ! Number of Re number values in each section data table
 
-  ! Interpolation warning flags
-  integer :: ilxtp
-  integer :: iuxtp
-
   ! Airfoil params for BV dyn stall
   real, allocatable :: alstlp(:)    ! Stall AOA (positive) at all Re numbers
   real, allocatable :: alstln(:)    ! Stall AOA (negative) at all Re numbers
@@ -78,11 +74,11 @@ module alturbine_airfoils
   private intp, read_airfoil, allocate_airfoil
  
   ! Public subroutines
-  public airfoil_init, compute_aeroCoeffs, compute_aeroCoeffs_one_airfoil
+  public airfoil_init_data, compute_aeroCoeffs ,CalcLBStallAOALim 
 
 contains
    
-    subroutine airfoil_init(airfoil)
+    subroutine airfoil_init_data(airfoil)
     
     implicit none
     !GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
@@ -95,12 +91,12 @@ contains
     ewrite(1,*) 'In airfoils_init'
     
     call allocate_airfoil(airfoil,MaxAOAVals,MaxReVals)
- 
+
     call read_airfoil(airfoil)
     ewrite(2,*) 'Airfoil section title : ', airfoil%aftitle
     ewrite(1,*) 'Exiting airfoils_init'
 
-    end subroutine airfoil_init
+    end subroutine airfoil_init_data
     
     !GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
     ! These routines have been taken directly out of CACTUS and changed
@@ -308,109 +304,111 @@ contains
 
     end subroutine allocate_airfoil
    
-    subroutine compute_aeroCoeffs(airfoils,thtoc,alpha75,alpha5,Re,adotnorm,umach,CL,CD,CN,CT,CLCirc,CM25)
+    !subroutine compute_aeroCoeffs(airfoils,thtoc,alpha75,alpha5,Re,adotnorm,umach,CL,CD,CN,CT,CLCirc,CM25)
 
-    ! GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
-    ! inputs :
-    !           NumAir  : Number of available airfoils
-    !           Airfoils: structure for all the airfoil sections available  
-    !           thtoc   : Thickness to Chord length 
-    !           alpha75 : Angle of Attack at 3/4 of the element 
-    !           alpha5  : Angle of Attack at 1/2 (middle) of the element
-    !           Re      : Element Reynolds Number
-    !           adotnorm: rate of change of the angle of attack (locally)
-    !           umach   : local element Mach Number 
-    ! 
-    ! outputs: 
-    !           CL      : Lift Coefficient
-    !           CD      : Drag Coefficient
-    !           CN      : Normal Force Coefficient
-    !           CD      : Tangential Force Coefficient
-    !           CLCirc  :
-    !               
-    !       
-    ! GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
-    implicit none
-    type(AirfoilType),dimension(:),target, intent(IN) :: airfoils 
-    type(AirfoilType), pointer :: airfoil_pointer => null()
-    real, intent(IN) :: alpha75, alpha5, adotnorm, Re, umach 
-    real :: alpha75_loc, alpha5_loc, adotnorm_loc, Re_loc, umach_loc
-    real,intent(OUT) ::CL, CD, CN, CT, CLCirc, thtoc, CM25
-    real,allocatable :: Thicks(:), diffthick(:)
-    real :: xtc, CLtc(2),CDtc(2),CM25tc(2), CNtc(2),CTtc(2),CLcirctc(2)                                 
-    integer :: NumAir , abcdf
-    integer :: iair,imin,imax, iL, iU, iint
-    logical :: notDone=.true.
-    
-    CLtc(:)=0.0
-    CDtc(:)=0.0
-    CM25tc(:)=0.0
-    CNtc(:)=0.0
-    CTtc(:)=0.0
-    CLCirctc(:)=0.0
+    !! GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
+    !! inputs :
+    !!           NumAir  : Number of available airfoils
+    !!           Airfoils: structure for all the airfoil sections available  
+    !!           thtoc   : Thickness to Chord length 
+    !!           alpha75 : Angle of Attack at 3/4 of the element 
+    !!           alpha5  : Angle of Attack at 1/2 (middle) of the element
+    !!           Re      : Element Reynolds Number
+    !!           adotnorm: rate of change of the angle of attack (locally)
+    !!           umach   : local element Mach Number 
+    !! 
+    !! outputs: 
+    !!           CL      : Lift Coefficient
+    !!           CD      : Drag Coefficient
+    !!           CN      : Normal Force Coefficient
+    !!           CD      : Tangential Force Coefficient
+    !!           CLCirc  :
+    !!               
+    !!       
+    !! GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
+    !implicit none
+    !type(AirfoilType),dimension(:),target, intent(IN) :: airfoils 
+    !type(AirfoilType), pointer :: airfoil_pointer => null()
+    !real, intent(IN) :: alpha75, alpha5, adotnorm, Re, umach 
+    !real :: alpha75_loc, alpha5_loc, adotnorm_loc, Re_loc, umach_loc
+    !real,intent(OUT) ::CL, CD, CN, CT, CLCirc, thtoc, CM25
+    !real,allocatable :: Thicks(:), diffthick(:)
+    !real :: xtc, CLtc(2),CDtc(2),CM25tc(2), CNtc(2),CTtc(2),CLcirctc(2)                                 
+    !integer :: NumAir , abcdf
+    !integer :: iair,imin,imax, iL, iU, iint
+    !logical :: notDone=.true.
+    !
+    !CLtc(:)=0.0
+    !CDtc(:)=0.0
+    !CM25tc(:)=0.0
+    !CNtc(:)=0.0
+    !CTtc(:)=0.0
+    !CLCirctc(:)=0.0
 
-    NumAir = size(airfoils)
-    allocate(Thicks(NumAir),diffthick(NumAir))
+    !NumAir = size(airfoils)
+    !allocate(Thicks(NumAir),diffthick(NumAir))
 
-    if(NumAir==1) then
-        call compute_aeroCoeffs_one_airfoil(airfoils(1),alpha75,alpha5,Re,adotnorm,umach,CL,CD,CN,CT,CLCirc,CM25)
-    else
-        !> Linearly Interpolating from the available airfoils 
-        !> If the airfoil thickness to chord lenght ratio is exceeded then the min or max airfoils will be used
-        do iair=1,NumAir
-            Thicks(iair)=Airfoils(iair)%tc
-            diffthick(iair)=abs(thtoc-Thicks(iair))
-        end do
-        
-        ! Minimum and Maximum indices 
-        imin=minloc(Thicks,1)
-        imax=maxloc(Thicks,1)
-        iint=minloc(diffthick,1)
-        write(*,*) iint
-        if (thtoc<=minval(Thicks)) then
-            iair=minloc(Thicks,1)
-            call compute_aeroCoeffs_one_airfoil(airfoils(iair),alpha75,alpha5,Re,adotnorm,umach,CL,CD,CN,CT,CLCirc,CM25)
-        elseif(thtoc>=maxval(Thicks)) then
-            iair=maxloc(Thicks,1)
-            call compute_aeroCoeffs_one_airfoil(airfoils(iair),alpha75,alpha5,Re,adotnorm,umach,CL,CD,CN,CT,CLCirc,CM25)
-        else
-            if(thicks(iint)<=thtoc) then
-                iL=iint
-                iU=iint+1
-            elseif(thicks(iint)>thtoc) then
-                iL=iint-1
+    !if(NumAir==1) then
+    !    call compute_aeroCoeffs_one_airfoil(airfoils(1),alpha75,alpha5,Re,adotnorm,umach,CL,CD,CN,CT,CLCirc,CM25)
+    !else
+    !    !> Linearly Interpolating from the available airfoils 
+    !    !> If the airfoil thickness to chord lenght ratio is exceeded then the min or max airfoils will be used
+    !    do iair=1,NumAir
+    !        Thicks(iair)=Airfoils(iair)%tc
+    !        diffthick(iair)=abs(thtoc-Thicks(iair))
+    !    end do
+    !    
+    !    ! Minimum and Maximum indices 
+    !    imin=minloc(Thicks,1)
+    !    imax=maxloc(Thicks,1)
+    !    iint=minloc(diffthick,1)
+    !    write(*,*) iint
+    !    if (thtoc<=minval(Thicks)) then
+    !        iair=minloc(Thicks,1)
+    !        call compute_aeroCoeffs_one_airfoil(airfoils(iair),alpha75,alpha5,Re,adotnorm,umach,CL,CD,CN,CT,CLCirc,CM25)
+    !    elseif(thtoc>=maxval(Thicks)) then
+    !        iair=maxloc(Thicks,1)
+    !        call compute_aeroCoeffs_one_airfoil(airfoils(iair),alpha75,alpha5,Re,adotnorm,umach,CL,CD,CN,CT,CLCirc,CM25)
+    !    else
+    !        if(thicks(iint)<=thtoc) then
+    !            iL=iint
+    !            iU=iint+1
+    !        elseif(thicks(iint)>thtoc) then
+    !            iL=iint-1
 
-                iU=iint
-            endif
-            airfoil_pointer => airfoils(iL)
+    !            iU=iint
+    !        endif
+    !        airfoil_pointer => airfoils(iL)
 
-            call compute_aeroCoeffs_one_airfoil(airfoil_pointer,alpha75,alpha5,Re,adotnorm,umach,&
-                                            CLtc(1),CDtc(1),CNtc(1),CTtc(1),CLCirctc(1),CM25tc(1))
-            airfoil_pointer => airfoils(iU)
-            call compute_aeroCoeffs_one_airfoil(airfoil_pointer,alpha75,alpha5,Re,adotnorm,umach,&
-                                            CLtc(2),CDtc(2),CNtc(2),CTtc(2),CLCirctc(2),CM25tc(2))
+    !        call compute_aeroCoeffs_one_airfoil(airfoil_pointer,alpha75,alpha5,Re,adotnorm,umach,&
+    !                                        CLtc(1),CDtc(1),CNtc(1),CTtc(1),CLCirctc(1),CM25tc(1))
+    !        airfoil_pointer => airfoils(iU)
+    !        call compute_aeroCoeffs_one_airfoil(airfoil_pointer,alpha75,alpha5,Re,adotnorm,umach,&
+    !                                        CLtc(2),CDtc(2),CNtc(2),CTtc(2),CLCirctc(2),CM25tc(2))
 
-        xtc = (thtoc-airfoils(iL)%tc)/(airfoils(iU)%tc-airfoils(iL)%tc)
-        CL=CLtc(1)+xtc*(CLtc(2)-CLtc(1))
-        CD=CDtc(1)+xtc*(CDtc(2)-CDtc(1))
-        CN=CNtc(1)+xtc*(CNtc(2)-CNtc(1))
-        CT=CTtc(1)+xtc*(CTtc(2)-CTtc(1))
-        CLCirc=CLCirctc(1)+xtc*(CLCirctc(2)-CLCirctc(1))
-        CM25=CM25tc(1)+xtc*(CM25tc(2)-CM25tc(1))
+    !    xtc = (thtoc-airfoils(iL)%tc)/(airfoils(iU)%tc-airfoils(iL)%tc)
+    !    CL=CLtc(1)+xtc*(CLtc(2)-CLtc(1))
+    !    CD=CDtc(1)+xtc*(CDtc(2)-CDtc(1))
+    !    CN=CNtc(1)+xtc*(CNtc(2)-CNtc(1))
+    !    CT=CTtc(1)+xtc*(CTtc(2)-CTtc(1))
+    !    CLCirc=CLCirctc(1)+xtc*(CLCirctc(2)-CLCirctc(1))
+    !    CM25=CM25tc(1)+xtc*(CM25tc(2)-CM25tc(1))
 
-        endif
-        
-    end if
-    deallocate(thicks,diffthick)
+    !    endif
+    !    
+    !end if
+    !deallocate(thicks,diffthick)
 
-    end subroutine compute_aeroCoeffs
+    !end subroutine compute_aeroCoeffs
 
-    subroutine compute_aeroCoeffs_one_airfoil(airfoil,alpha75,alpha5,Re,adotnorm,umach,CL,CD,CN,CT,CLCirc,CM25)
+    subroutine compute_aeroCoeffs(airfoil,iStall,alpha75,alpha5,Re,adotnorm,umach,CL,CD,CN,CT,CLCirc,CM25)
 
     implicit none
    
     ! GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
     ! inputs :
+    !           airfoil : The airfoil under consideration
+    !           iStall  : Dynamic Stall Flag (0=no stall, 1= BV stall model, 2=LB)
     !           alpha75 : Angle of Attack at 3/4 of the element 
     !           alpha5  : Angle of Attack at 1/2 (middle) of the element
     !           Re      : Element Reynolds Number
@@ -430,7 +428,8 @@ contains
     real,intent(IN) :: alpha75, alpha5, adotnorm, Re, umach
     real,intent(OUT) :: CL, CD, CN, CT, CLCirc, CM25
     real :: CLstat75, CLstat5, CDstat75, CLdyn5, CDdyn5, dCLAD, dCTAM, dCNAM, CL5, CD5, C, C1, CM25stat
-    real :: alphaL, alphaD, aref, Fac   
+    real :: alphaL, alphaD, aref, Fac  
+    integer,intent(IN) :: iStall
     
     ewrite(2,*) 'Entering compute_aeroCoeffs_one_airfoil'
 
@@ -446,21 +445,17 @@ contains
     CLCirc=CLstat75
     
     ! If no dynamic stall, use static values, else calc dynamic stall
-    !if (DSFlag/=0) then
+    ! Leishman-Beddoes model
+   
+    if(iStall>0) then
+    !Call LB_DynStall(airfoil,CL5,CD5,alphaL,alpha5,umach,Re,CLdyn5,CDdyn5)
+    endif
+    
+    !CL5=CLdyn5
+    !CD5=CDdyn5  
+    !CLCirc=CLdyn5  
 
-    !    if (DSFlag==1) then
-    !        ! Modified Boeing-Vertol approach  
-    !        Call BV_DynStall(nElem,CL5,CD5,alphaL,adotnorm,umach,Re,SectInd,CLdyn5,CDdyn5)   
-    !    else
-    !        ! Leishman-Beddoes model
-    !        Call LB_DynStall(nElem,CL5,CD5,alphaL,alpha5,umach,Re,SectInd,CLdyn5,CDdyn5)
-    !    end if
 
-    !    CL5=CLdyn5
-    !    CD5=CDdyn5  
-    !    CLCirc=CLdyn5  
-
-    !end if
 
     ! Tangential and normal coeffs
     CN=CL5*cos(alpha5)+CD5*sin(alpha5)                                   
@@ -489,7 +484,9 @@ contains
 
     ewrite(2,*) 'Exiting compute_aeroCoeffs_one_airfoil'
 
-    end subroutine compute_aeroCoeffs_one_airfoil
+    end subroutine compute_aeroCoeffs
+
+    !subroutine LB_DynStall(airfoil,CLstat,
 
     subroutine intp(RE,ALPHA,CL,CD,CM25,airfoil)   
         
