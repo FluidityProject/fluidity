@@ -758,6 +758,8 @@ darcy_impes_other_phase_options =
       
       darcy_impes_pmesh_porosity_viscosity_field?, 
       
+      darcy_impes_non_first_phase_phi_l_field?,
+      
       darcy_impes_generic_scalar_field*,
      
       MobileImmobileModel?     
@@ -3277,9 +3279,90 @@ leaching_solution_phase_options =
                                           darcy_impes_diagnostic_scalar_field,
                                           darcy_impes_recalculation_options?
                                       }    
-                              },   
-                 rate_constant     
-                 }|
+                              }, 
+                 (
+                     ##Choose the algorithm to calculate ferrous oxidation                     
+                    (
+                      ##The dissolution without bacteria,                       
+                       element Dissolution_Algorithm {
+                       attribute name {"Non-bio_leaching"},
+                       rate_constant
+                                                     }       
+                    )|
+
+                    (
+                      ##The dissolution with bacteria, 
+                      ##please turn on the scaler field of phi_l in liquid phase
+                         element Dissolution_Algorithm {                       
+                         attribute name {"bio_leaching"},
+                         element scalar_field {
+                               ##This is the concentraction of bacteria attached to rock
+                               ##cells (kg ore)^-1
+                               attribute rank { "0" },
+                               attribute name {"phi_ore"},
+                               element diagnostic {
+                                          mesh_choice_pressure,
+                                          darcy_impes_internal_algorithm,
+                                          darcy_impes_diagnostic_scalar_field,
+                                          darcy_impes_recalculation_options?
+                                      }  
+                           },
+                          element scalar_field {
+                               ##This is the first-order growth rate constant of bacteria
+                               ##cells (kg ore)^-1
+                               attribute rank { "0" },
+                               attribute name {"miu"},
+                               element diagnostic {
+                                          mesh_choice_pressure,
+                                          darcy_impes_internal_algorithm,
+                                          darcy_impes_diagnostic_scalar_field,
+                                          darcy_impes_recalculation_options?
+                                      }  
+                           },
+                           element Y {
+                                  comment,
+                                  real
+                               },
+                           element k1 {
+                                  comment,
+                                  real
+                               },
+                           element k2 {
+                                  comment,
+                                  real
+                               }, 
+                           element k_death {
+                                  comment,
+                                  real
+                               },
+                           element phi_max {
+                                  comment,
+                                  real
+                               },
+                           element miu_max {
+                                  comment,
+                                  real
+                               },
+                           element kmo {
+                                  comment,
+                                  real
+                               },
+                           element kmfe2 {
+                                  comment,
+                                  real
+                               },
+                           (    
+                             ##The scalar filed name for Ferrous in Phase 2
+                             element Ferrous_name {string }   
+                            ),  
+                           (    
+                             ##The scalar filed name for liquid oxygen in Phase 1
+                             element Oxygen_name {string }   
+                            ) 
+                          }
+                        )                                                  
+               )
+              }|
                
 
                  element reaction{
@@ -3461,6 +3544,96 @@ darcy_impes_non_first_phase_temperature_field =
                darcy_impes_generic_scalar_field_src?,
                darcy_MIM_generic_scalar_field_immobile_src?,   
                darcy_impes_leaching_liquid_phase_temperature_src?,	                    
+               field_output_options,
+               darcy_impes_include_stat, 
+               adaptivity_options_prognostic_scalar_field,
+               interpolation_algorithm_scalar
+            
+            }
+         )    
+      }    
+   )
+   
+   darcy_impes_non_first_phase_phi_l_field =
+   (
+      element scalar_field {
+         attribute rank { "0" },
+         attribute name { "phi_l" },
+         (
+            element prognostic {
+               mesh_choice_pressure,
+               darcy_impes_asym_solver_options,
+               darcy_impes_generic_scalar_field_face_value,
+               initial_condition_scalar+,
+               darcy_impes_generic_scalar_field_bc*,
+               darcy_impes_generic_scalar_field_diff?,
+               darcy_impes_generic_scalar_field_src?,
+               ( 
+	        ## The source term from the chemical reactions for heap leaching
+                element LeachingChemicalSourceTerm{
+               (
+                  ##to ensure the scalar field always-positive
+                  element Source_Linearization{
+                    comment
+                   }
+                )?,
+               (
+                ##place a cap of the field
+                ##to limit the maximun value, ensure the stability of the sigular corner of the heap                 
+                element field_maximun_value{
+                   real
+                 } 
+                )?,   
+          element SolutionPhaseSource{
+              ( 
+		     element scalar_field {
+                          attribute rank { "0" },
+                          attribute name {"Bacteria_Ferrous_oxidation"},
+                          element diagnostic {
+                             mesh_choice_pressure,
+                             darcy_impes_internal_algorithm,
+                             darcy_impes_chemical_stoichiometric_factor,
+                             darcy_impes_diagnostic_scalar_field,
+                             darcy_impes_recalculation_options?
+                             }
+                        }
+                    )
+                   }, 
+                 (
+	             ##This is the the leaching chemical source terms from the mobile concentration
+                     element Mobile_Immobile_Model{
+                           ##This is the average leaching chemical source term based on the mobile solution
+                           ##mole per  volume of mobile solution
+                           ##while the chemical source term under the prognostic field is mole per total volume of solution, which is based on the average mass of both mobile and immobile solution 
+                           element scalar_field{
+                              attribute rank { "0" },
+                              attribute name { "Mobile_chemical_src" },
+                              element diagnostic {
+                                   mesh_choice_pressure,
+			                    darcy_impes_internal_algorithm,
+			                    darcy_impes_diagnostic_scalar_field,
+			                    darcy_impes_recalculation_options?
+			                }
+                           },
+                         ##This is the chemical source term of the contribution from the immobile part
+                         ##mole per volume of immobile solution
+                         element scalar_field{
+                              attribute rank { "0" },
+                              attribute name { "Immobile_chemical_src" },
+                              element diagnostic {
+                                   mesh_choice_pressure,
+			                    darcy_impes_internal_algorithm,
+			                    darcy_impes_diagnostic_scalar_field,
+			                    darcy_impes_recalculation_options?
+			                }
+                           }
+                           
+                     	}		      
+			       )?
+
+                   }
+		),
+               darcy_MIM_generic_scalar_field_immobile_src?,                       
                field_output_options,
                darcy_impes_include_stat, 
                adaptivity_options_prognostic_scalar_field,

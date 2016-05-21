@@ -1615,7 +1615,7 @@ contains
     
          !local variable
          character(len=OPTION_PATH_LEN) :: state_path_lc,reaction_path, reaction_name, prefix,mesh_name
-         integer :: nfields, nreaction, nfields2, jr, j
+         integer :: nfields, nreaction, nfields2, jr, j, jc
          !--------For solution phase reaction
          if (have_option('/Leaching_chemical_model')) then
            state_path_lc=('/Leaching_chemical_model')
@@ -1661,15 +1661,32 @@ contains
                                 dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
     
               end do
-   
-              if (have_option(trim(reaction_path)//'/rate_constant_Arrhenius')) then          
+              
+              if (have_option(trim(reaction_path)//'/Dissolution_Algorithm::Non-bio_leaching')) then          
                  !get the prefactor of the reaction rate
-                 path=trim(reaction_path)//'/rate_constant_Arrhenius/scalar_field::prefactor'
+                 path=trim(reaction_path)//'/Dissolution_Algorithm::Non-bio_leaching/rate_constant_Arrhenius/scalar_field::prefactor'
                  field_name=trim(prefix)//'prefactor'
-                 
+
                  call allocate_and_insert_scalar_field(trim(path), state, field_name=field_name, &
                                 dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
               end if
+
+              if (have_option(trim(reaction_path)//'/Dissolution_Algorithm::bio_leaching')) then          
+                 !get the prefactor of the reaction rate
+                 path=trim(reaction_path)//'/Dissolution_Algorithm::bio_leaching'
+                 nfields=option_count(trim(path)//"/scalar_field")
+                 do jc=0, nfields-1
+                 path=trim(reaction_path)//"/Dissolution_Algorithm::bio_leaching/scalar_field["//int2str(jc)//"]"
+                 call get_option(trim(path)//"/name", field_name)
+                 path=trim(reaction_path)//"/Dissolution_Algorithm::bio_leaching/scalar_field::"//trim(field_name)
+                 field_name=trim(field_name)//'_'//trim(prefix)
+    
+                 call allocate_and_insert_scalar_field(trim(path), state, field_name=field_name, &
+                                dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)    
+                 end do
+                 
+              end if
+              
            end do           
          end if
 

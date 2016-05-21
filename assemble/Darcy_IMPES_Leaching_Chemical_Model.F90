@@ -45,8 +45,8 @@ module darcy_impes_leaching_chemical_model
   
      !local parameter
      type(vector_field), pointer :: position =>null()
-     integer :: p,f,flc, ns, nd, nb,fb, stat,ndata,nshape(2),n_md,f_md,i,nc,isf
-     character(len=OPTION_PATH_LEN) :: option_path, reaction_name, path_l,path_md,md_name,name_temp,cap_name, f_name
+     integer :: p,f,flc, ns, nd, nb,fb, stat,ndata,nshape(2),n_md,f_md,i,nc,isf, ff
+     character(len=OPTION_PATH_LEN) :: option_path, reaction_name, path_l,path_md,md_name,name_temp,cap_name, f_name,o_name,fe2_name
         !---------------------allocate the fields in the chemical model-------------
         !Extract scalar field directly under the model
         if (have_option('/Leaching_chemical_model/scalar_field')) then
@@ -84,34 +84,109 @@ module darcy_impes_leaching_chemical_model
                   if (.not. stat==0) then
                     FLAbort('failed to extract the leaching reaction named feox_dFe2_dt')
                   end if
-
-                  !get the reaction frefactor
-                  di%lc%sol%feox%ak%A => extract_scalar_field(di%state(2), 'feox_prefactor', stat=stat)
-                  if (.not. stat==0) then
-                     FLAbort('failed to extract the leaching reaction named feox_prefactor')
-                  end if
-
-                  !get activation energy
-                  path_l = trim(option_path)//'::'//trim(reaction_name)
-                  call get_option(trim(path_l)//'/rate_constant_Arrhenius/activation_energy',& 
-                                                                          di%lc%sol%feox%ak%ae) 
-                  !get gas constant
-                  call get_option(trim(path_l)//'/rate_constant_Arrhenius/gas_constant',& 
-                                                                     di%lc%sol%feox%ak%gc)
-                  !count the reacting bulk species
-                  nb=option_count(trim(path_l)//'/bulk_fluid_conditions/bulk_concentration')
-                  if (nb < 1)  FLAbort('the number of reacting bulk concentration for ferrous oxidation should be at least 1')
-                  allocate(di%lc%sol%feox%ak%bulk(nb))
                   
-                  do fb=1, nb
-                    !get related bulk species name
-                    call get_option(trim(path_l)//'/bulk_fluid_conditions/bulk_concentration['//int2str(fb-1)//']/name', di%lc%sol%feox%ak%bulk(fb)%lc_name)
-                    !gri the order of reaction
-                    call get_option(trim(path_l)//'/bulk_fluid_conditions/bulk_concentration::'//trim(di%lc%sol%feox%ak%bulk(fb)%lc_name)&
+                  if (have_option(trim(option_path)//'::Ferrous_Oxidation/Dissolution_Algorithm::bio_leaching')) then
+                     path_l=trim(option_path)//'::Ferrous_Oxidation/Dissolution_Algorithm::bio_leaching'
+                     di%lc%sol%feox%bio%ifbio = .true.
+                     di%lc%sol%feox%bio%miu => extract_scalar_field(di%state(1), 'miu_feox_', stat=stat)
+                     if (.not. stat==0) then
+                       FLAbort('failed to extract the scaler field miu under ferrous oxidation by bacteria')
+                     end if
+                    
+                     di%lc%sol%feox%bio%phi_ore => extract_scalar_field(di%state(1), 'phi_ore_feox_', stat=stat)
+                     if (.not. stat==0) then
+                       FLAbort('failed to extract the scaler field phi_ore under ferrous oxidation by bacteria')
+                     end if
+                     !get the name of liquid oxygen
+                     call get_option(trim(path_l)//'/Oxygen_name', o_name)
+                     !get the name of Ferrous
+                     call get_option(trim(path_l)//'/Ferrous_name', fe2_name)
+                     
+                     if (di%MIM_options%have_MIM(2)) then
+                       
+                       di%lc%sol%feox%bio%cl => extract_scalar_field(di%state(2), trim(o_name)//'Average_mass', stat=stat)
+                       if (.not. stat==0) then
+                         FLAbort('failed to extract the scaler field Average liquid oxygen for ferrous oxidation by bacteria')
+                       end if
+                       
+                       
+                       di%lc%sol%feox%bio%cfe2 => extract_scalar_field(di%state(2), trim(fe2_name)//'Average_mass', stat=stat)
+                       if (.not. stat==0) then
+                         FLAbort('failed to extract the scaler field Average Ferrous concentration for ferrous oxidation by bacteria')
+                       end if
+                                              
+                       di%lc%sol%feox%bio%phi_l => extract_scalar_field(di%state(2), 'phi_lAverage_mass', stat=stat)
+                       if (.not. stat==0) then
+                         FLAbort('failed to extract the scaler field Average phi_l for ferrous oxidation by bacteria')
+                       end if
+                     else
+                     
+                       di%lc%sol%feox%bio%cl => extract_scalar_field(di%state(2), trim(o_name), stat=stat)
+                       if (.not. stat==0) then
+                         FLAbort('failed to extract the scaler field  liquid oxygen for ferrous oxidation by bacteria')
+                       end if
+                       
+                       
+                       di%lc%sol%feox%bio%cfe2 => extract_scalar_field(di%state(2), trim(fe2_name), stat=stat)
+                       if (.not. stat==0) then
+                         FLAbort('failed to extract the scaler field  Ferrous concentration for ferrous oxidation by bacteria')
+                       end if
+                       
+                       di%lc%sol%feox%bio%phi_l => extract_scalar_field(di%state(2), 'phi_l', stat=stat)
+                       if (.not. stat==0) then
+                         FLAbort('failed to extract the scaler field phi_l for ferrous oxidation by bacteria')
+                       end if
+                     end if
+                     
+                     di%lc%sol%feox%bio%phi_l_src => extract_scalar_field(di%state(2), 'phi_l_Bacteria_Ferrous_oxidation', stat=stat)
+                     if (.not. stat==0) then
+                       FLAbort('failed to extract the scaler field  phi_l_Bacteria_Ferrous_oxidation under phi_l')
+                     end if
+                          
+                     !extract the constant
+                     path_l=trim(option_path)//'::Ferrous_Oxidation/Dissolution_Algorithm::bio_leaching'
+                     call get_option(trim(path_l)//'/Y', di%lc%sol%feox%bio%Y)
+                     call get_option(trim(path_l)//'/k1', di%lc%sol%feox%bio%k1)
+                     call get_option(trim(path_l)//'/k2', di%lc%sol%feox%bio%k2)
+                     call get_option(trim(path_l)//'/k_death', di%lc%sol%feox%bio%k_death)
+                     call get_option(trim(path_l)//'/phi_max', di%lc%sol%feox%bio%phi_max)
+                     call get_option(trim(path_l)//'/miu_max', di%lc%sol%feox%bio%miu_max)
+                     call get_option(trim(path_l)//'/kmo', di%lc%sol%feox%bio%kmo)
+                     call get_option(trim(path_l)//'/kmfe2', di%lc%sol%feox%bio%kmfe2)
+                     
+                     !allocate the source field for phi_ore and phi_l
+                     call allocate(di%lc%sol%feox%bio%s_po, di%pressure_mesh)
+
+                  else
+                     !get the reaction prefactor
+                     di%lc%sol%feox%ak%A => extract_scalar_field(di%state(1), 'feox_prefactor', stat=stat)
+                     if (.not. stat==0) then
+                        FLAbort('failed to extract the leaching reaction named feox_prefactor')
+                     end if
+
+                     !get activation energy
+                     path_l = trim(option_path)//'::Ferrous_Oxidation/Dissolution_Algorithm::Non-bio_leaching'
+                     call get_option(trim(path_l)//'/rate_constant_Arrhenius/activation_energy',& 
+                                                                          di%lc%sol%feox%ak%ae) 
+                     !get gas constant
+                     call get_option(trim(path_l)//'/rate_constant_Arrhenius/gas_constant',& 
+                                                                     di%lc%sol%feox%ak%gc)
+                     !count the reacting bulk species
+                     nb=option_count(trim(path_l)//'/bulk_fluid_conditions/bulk_concentration')
+                     if (nb < 1)  FLAbort('the number of reacting bulk concentration for ferrous oxidation should be at least 1')
+                     allocate(di%lc%sol%feox%ak%bulk(nb))
+                  
+                     do fb=1, nb
+                       !get related bulk species name
+                       call get_option(trim(path_l)//'/bulk_fluid_conditions/bulk_concentration['//int2str(fb-1)//']/name', di%lc%sol%feox%ak%bulk(fb)%lc_name)
+                       !gri the order of reaction
+                       call get_option(trim(path_l)//'/bulk_fluid_conditions/bulk_concentration::'//trim(di%lc%sol%feox%ak%bulk(fb)%lc_name)&
                                                                                           //'/order', di%lc%sol%feox%ak%bulk(fb)%order)
-                    call get_option(trim(path_l)//'/bulk_fluid_conditions/bulk_concentration::'//trim(di%lc%sol%feox%ak%bulk(fb)%lc_name)&
+                       call get_option(trim(path_l)//'/bulk_fluid_conditions/bulk_concentration::'//trim(di%lc%sol%feox%ak%bulk(fb)%lc_name)&
                                                                                                               //'/phase', di%lc%sol%feox%ak%bulk(fb)%phase)
-                  end do
+                     end do
+                     
+                  end if
                    
                   
                 case('Jarosite_Precipitation')
@@ -967,6 +1042,16 @@ module darcy_impes_leaching_chemical_model
           call finalize_rock_temperature_surface_source(di)
           
        end if
+       
+       if (di%lc%sol%feox%bio%ifbio) then
+          call deallocate(di%lc%sol%feox%bio%s_po)
+          nullify(di%lc%sol%feox%bio%phi_ore)
+          nullify(di%lc%sol%feox%bio%phi_l)
+          nullify(di%lc%sol%feox%bio%cl)
+          nullify(di%lc%sol%feox%bio%cfe2)
+          nullify(di%lc%sol%feox%bio%miu)
+          nullify(di%lc%sol%feox%bio%phi_l_src)
+       end if
                
     end if
 
@@ -1017,6 +1102,13 @@ module darcy_impes_leaching_chemical_model
       if (di%lc%have_sol) then
          !ferrous oxidation
          if (associated(di%lc%sol%feox%dcdt)) then
+           if (di%lc%sol%feox%bio%ifbio) then
+            call calculate_ferrous_oxidation_bio_terms(di)
+            call set(di%lc%sol%feox%dcdt,di%lc%sol%feox%bio%miu)
+            call scale(di%lc%sol%feox%dcdt,di%lc%sol%feox%bio%phi_l)
+            call scale(di%lc%sol%feox%dcdt, -1.0/di%lc%sol%feox%bio%Y)
+            call scale(di%lc%sol%feox%dcdt, 1.0/0.056)
+          else
             !calcultae the prefactor A, since the partial pressure of oxygen in the reaction rate equation are
             !transformed to the molar concentraction of dissolved oxygen by empirical equilibrium equatiion (Tromans1998)
             allocate(A(di%number_pmesh_node))
@@ -1047,6 +1139,8 @@ module darcy_impes_leaching_chemical_model
             call scale(di%lc%sol%feox%dcdt,di%saturation(2)%ptr)
             
             deallocate(A)
+            
+           end if
 
          end if
 
@@ -1135,7 +1229,7 @@ module darcy_impes_leaching_chemical_model
                    if (mineral%cap%have_cap) then
                       
                       do icap=1, size(mineral%cap%field_index)
-                         if (di%generic_prog_sfield(mineral%cap%field_index(icap))%sfield%val(node)>=mineral%cap%cap_val(icap) .or. node_val(temperature, node)>=323.15) then
+                         if (di%generic_prog_sfield(mineral%cap%field_index(icap))%sfield%val(node)>=mineral%cap%cap_val(icap)) then
                             call set(mineral%ex_r, node, 0.0)
                             call set(mineral%ex, node, ext)
                             call set(mineral%dcdt, node, 0.0)
@@ -1263,7 +1357,7 @@ module darcy_impes_leaching_chemical_model
               !node loop
               node_loop: do node=1, node_number
                    
-                   if (abs(A(node))<=1.0e-16 .or. node_val(temperature, node)>=323.15) then
+                   if (abs(A(node))<=1.0e-16) then
                       
                       call set(reaction%dcdt, node, 0.0)
                       
@@ -1628,14 +1722,69 @@ module darcy_impes_leaching_chemical_model
         
    end subroutine calculate_oxygen_dissolution
    
+   subroutine calculate_ferrous_oxidation_bio_terms(di)
+     type(darcy_impes_type), intent(inout) :: di
+     integer :: i,f
+     real :: Ta, ft,cl,cfe2,rho_h,lh,phi_l,phi_o,src_o,old_phi_o,Fd,lh_m,miu
+     
+     node_loop: do i=1,di%number_pmesh_node
+         !-------------calculate f(t)-----------------
+         !the temperature T is based on the average of liquid and ore
+         if (di%lc%ht%heat_transfer_single) then
+           Ta=di%lc%ht%liquid_temperature%val(i)
+         else
+           Ta=(di%lc%ht%rock_temperature%val(i)+di%lc%ht%liquid_temperature%val(i))/2.0
+         end if
 
+         ft=21830090.0*Ta*exp(-7000.0/Ta)/(1.0+exp(236.0-74000.0/Ta))
+         
+         !---------------calculate miu----------------------
+         !change the concentration fron mole/m3 to kg/m3 
+         cl=di%lc%sol%feox%bio%cl%val(i)*0.016
+         cfe2=di%lc%sol%feox%bio%cfe2%val(i)*0.056
+         miu=di%lc%sol%feox%bio%miu_max*ft*(cl/(di%lc%sol%feox%bio%kmo+cl))*(cfe2/(di%lc%sol%feox%bio%kmfe2+cfe2))
+
+         di%lc%sol%feox%bio%miu%val(i)=miu
+         
+         !-----------------calculate bacteria source terms---------------
+         rho_h=(1-di%porosity_pmesh%val(i))*di%lc%ht%rock_density%val(i)
+         lh=di%porosity_pmesh%val(i)*di%saturation(2)%ptr%val(i)
+         phi_l=di%lc%sol%feox%bio%phi_l%val(i)
+         phi_o=di%lc%sol%feox%bio%phi_ore%val(i)
+
+         !in unit of cell/m^3 heap
+         di%lc%sol%feox%bio%phi_l_src%val(i)=(miu-di%lc%sol%feox%bio%k_death)*phi_l*lh &
+                                             -di%lc%sol%feox%bio%k1*phi_l*lh*(1-(phi_o/di%lc%sol%feox%bio%phi_max)) &
+                                             +di%lc%sol%feox%bio%k2*rho_h*phi_o
+         
+         !in unit of cell/m^3 heap
+         src_o=(miu-di%lc%sol%feox%bio%k_death)*rho_h*phi_o &
+                                             +di%lc%sol%feox%bio%k1*phi_l*lh*(1-(phi_o/di%lc%sol%feox%bio%phi_max)) &
+                                             -di%lc%sol%feox%bio%k2*rho_h*phi_o
+         
+         !-------------------------calculate new phi_ore-------------------------------------
+         !initially, phi_ore=phi_max
+         if (di%current_time<=1.0e-10) then
+           old_phi_o=0.0!di%lc%sol%feox%bio%phi_max
+         else
+           old_phi_o=phi_o
+         end if
+         
+         !in kg/m^3_ore
+         if (src_o>=0.0) then
+            di%lc%sol%feox%bio%phi_ore%val(i)=old_phi_o+src_o*di%dt/rho_h
+         else
+            di%lc%sol%feox%bio%phi_ore%val(i)=old_phi_o/(1.0-src_o*di%dt/(rho_h*old_phi_o))
+         end if
+     end do node_loop
+   end subroutine calculate_ferrous_oxidation_bio_terms
 
    subroutine calculate_leach_heat_transfer_src(di)
      type(darcy_impes_type), intent(inout) :: di
 
      !local variables
      integer :: i,n_s,n_l,nsrc_s,nsrc_l,nd,nr,n2_s,n2_l
-     real :: Crs,Crl,prts,dTsl,ktp,Hs,Hr
+     real :: Crs,Crl,prts,dTsl,ktp,Hs,Hr,miu
 
      !---------------for two phase heat transfer--------------------
      !count the number of sources term for solid temperature
@@ -1991,6 +2140,10 @@ module darcy_impes_leaching_chemical_model
                if (.not. associated(di%lc%sol%oxdi%dcdt)) &
                FLAbort('Oxygen_dissolution is turned off in the leaching chemical model, while its source term is turned on under the prognostic scaler field')
                cycle !calculate elsewhere, in the calculate oxygen dissolution subroutine
+               
+             case('Bacteria_Ferrous_oxidation')
+                 src => di%lc%sol%feox%bio%phi_l_src 
+
             
             case default
                FLAbort("Leaching chemical algorithm " // trim(lc_name) // " not found")

@@ -37,10 +37,29 @@ module darcy_impes_leaching_types
      type(bulk_fluid_type), dimension(:), allocatable :: bulk
   end type arrhenius_rate_constant_type
   
-  
+  type leaching_bio_ferrous_oxi
+     logical :: ifbio = .false.
+     type(scalar_field), pointer :: phi_ore => null()
+     type(scalar_field), pointer :: phi_l => null()
+     type(scalar_field), pointer :: miu => null()
+     type(scalar_field), pointer :: phi_l_src => null()
+     type(scalar_field), pointer :: cl => null()
+     type(scalar_field), pointer :: cfe2 => null()
+     type(scalar_field) :: s_po
+     real :: phi_max
+     real :: Y
+     real :: k1
+     real :: k2
+     real :: k_death
+     real :: miu_max
+     real :: kmo
+     real :: kmfe2
+  end type leaching_bio_ferrous_oxi
+    
   type leaching_arrhenius_reaction_type
      type(scalar_field), pointer :: dcdt => null() !the change rate of concentration per volume of heap
      type(arrhenius_rate_constant_type):: ak
+     type(leaching_bio_ferrous_oxi):: bio
   end type leaching_arrhenius_reaction_type
   
   type leaching_reaction_cap_type
@@ -90,6 +109,8 @@ module darcy_impes_leaching_types
      logical :: bio = .false. !Wether the S0 dissolution is under bacteria activity
      real :: ps  !the persentage of the S0 to dissolve when the leaching is non-bio
   end type leaching_internal_algorithm_sulf
+  
+  
 
   type leaching_internal_algorithm_gangue
      !name of H+ used to dissolve gangue mineral
