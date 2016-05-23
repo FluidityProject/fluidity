@@ -28,10 +28,11 @@
 
 #include "fdebug.h"
 
-module alturbine_airfoils 
+module airfoils 
 
   use fldebug
   use global_parameters, only:FIELD_NAME_LEN,OPTION_PATH_LEN, PYTHON_FUNC_LEN, pi
+  use lbdynstall
 
   implicit none
   
@@ -60,16 +61,14 @@ module alturbine_airfoils
   real, allocatable :: CLaData(:)
   real, allocatable :: CLCritPData(:)
   real, allocatable :: CLCritNData(:)
- 
+
   end type AirfoilType
  
   ! Maximum Numbers of Reynolds Number data that can be stored
   ! Globla parameters
   integer, parameter :: MaxReVals = 20
   integer, parameter :: MaxAOAVals = 1000
-
-  real, parameter :: conrad = pi / 180.0 
-  real, parameter :: condeg = 180.0 / pi  
+  
   ! Private subroutines
   private intp, read_airfoil, allocate_airfoil
  
@@ -304,104 +303,7 @@ contains
 
     end subroutine allocate_airfoil
    
-    !subroutine compute_aeroCoeffs(airfoils,thtoc,alpha75,alpha5,Re,adotnorm,umach,CL,CD,CN,CT,CLCirc,CM25)
-
-    !! GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
-    !! inputs :
-    !!           NumAir  : Number of available airfoils
-    !!           Airfoils: structure for all the airfoil sections available  
-    !!           thtoc   : Thickness to Chord length 
-    !!           alpha75 : Angle of Attack at 3/4 of the element 
-    !!           alpha5  : Angle of Attack at 1/2 (middle) of the element
-    !!           Re      : Element Reynolds Number
-    !!           adotnorm: rate of change of the angle of attack (locally)
-    !!           umach   : local element Mach Number 
-    !! 
-    !! outputs: 
-    !!           CL      : Lift Coefficient
-    !!           CD      : Drag Coefficient
-    !!           CN      : Normal Force Coefficient
-    !!           CD      : Tangential Force Coefficient
-    !!           CLCirc  :
-    !!               
-    !!       
-    !! GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
-    !implicit none
-    !type(AirfoilType),dimension(:),target, intent(IN) :: airfoils 
-    !type(AirfoilType), pointer :: airfoil_pointer => null()
-    !real, intent(IN) :: alpha75, alpha5, adotnorm, Re, umach 
-    !real :: alpha75_loc, alpha5_loc, adotnorm_loc, Re_loc, umach_loc
-    !real,intent(OUT) ::CL, CD, CN, CT, CLCirc, thtoc, CM25
-    !real,allocatable :: Thicks(:), diffthick(:)
-    !real :: xtc, CLtc(2),CDtc(2),CM25tc(2), CNtc(2),CTtc(2),CLcirctc(2)                                 
-    !integer :: NumAir , abcdf
-    !integer :: iair,imin,imax, iL, iU, iint
-    !logical :: notDone=.true.
-    !
-    !CLtc(:)=0.0
-    !CDtc(:)=0.0
-    !CM25tc(:)=0.0
-    !CNtc(:)=0.0
-    !CTtc(:)=0.0
-    !CLCirctc(:)=0.0
-
-    !NumAir = size(airfoils)
-    !allocate(Thicks(NumAir),diffthick(NumAir))
-
-    !if(NumAir==1) then
-    !    call compute_aeroCoeffs_one_airfoil(airfoils(1),alpha75,alpha5,Re,adotnorm,umach,CL,CD,CN,CT,CLCirc,CM25)
-    !else
-    !    !> Linearly Interpolating from the available airfoils 
-    !    !> If the airfoil thickness to chord lenght ratio is exceeded then the min or max airfoils will be used
-    !    do iair=1,NumAir
-    !        Thicks(iair)=Airfoils(iair)%tc
-    !        diffthick(iair)=abs(thtoc-Thicks(iair))
-    !    end do
-    !    
-    !    ! Minimum and Maximum indices 
-    !    imin=minloc(Thicks,1)
-    !    imax=maxloc(Thicks,1)
-    !    iint=minloc(diffthick,1)
-    !    write(*,*) iint
-    !    if (thtoc<=minval(Thicks)) then
-    !        iair=minloc(Thicks,1)
-    !        call compute_aeroCoeffs_one_airfoil(airfoils(iair),alpha75,alpha5,Re,adotnorm,umach,CL,CD,CN,CT,CLCirc,CM25)
-    !    elseif(thtoc>=maxval(Thicks)) then
-    !        iair=maxloc(Thicks,1)
-    !        call compute_aeroCoeffs_one_airfoil(airfoils(iair),alpha75,alpha5,Re,adotnorm,umach,CL,CD,CN,CT,CLCirc,CM25)
-    !    else
-    !        if(thicks(iint)<=thtoc) then
-    !            iL=iint
-    !            iU=iint+1
-    !        elseif(thicks(iint)>thtoc) then
-    !            iL=iint-1
-
-    !            iU=iint
-    !        endif
-    !        airfoil_pointer => airfoils(iL)
-
-    !        call compute_aeroCoeffs_one_airfoil(airfoil_pointer,alpha75,alpha5,Re,adotnorm,umach,&
-    !                                        CLtc(1),CDtc(1),CNtc(1),CTtc(1),CLCirctc(1),CM25tc(1))
-    !        airfoil_pointer => airfoils(iU)
-    !        call compute_aeroCoeffs_one_airfoil(airfoil_pointer,alpha75,alpha5,Re,adotnorm,umach,&
-    !                                        CLtc(2),CDtc(2),CNtc(2),CTtc(2),CLCirctc(2),CM25tc(2))
-
-    !    xtc = (thtoc-airfoils(iL)%tc)/(airfoils(iU)%tc-airfoils(iL)%tc)
-    !    CL=CLtc(1)+xtc*(CLtc(2)-CLtc(1))
-    !    CD=CDtc(1)+xtc*(CDtc(2)-CDtc(1))
-    !    CN=CNtc(1)+xtc*(CNtc(2)-CNtc(1))
-    !    CT=CTtc(1)+xtc*(CTtc(2)-CTtc(1))
-    !    CLCirc=CLCirctc(1)+xtc*(CLCirctc(2)-CLCirctc(1))
-    !    CM25=CM25tc(1)+xtc*(CM25tc(2)-CM25tc(1))
-
-    !    endif
-    !    
-    !end if
-    !deallocate(thicks,diffthick)
-
-    !end subroutine compute_aeroCoeffs
-
-    subroutine compute_aeroCoeffs(airfoil,iStall,alpha75,alpha5,Re,adotnorm,umach,CL,CD,CN,CT,CLCirc,CM25)
+    subroutine compute_aeroCoeffs(airfoil,lb_model,alpha75,alpha5,Re,adotnorm,umach,CL,CD,CN,CT,CLCirc,CM25)
 
     implicit none
    
@@ -425,14 +327,14 @@ contains
     !       
     ! GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
     type(AirfoilType),intent(IN) :: airfoil
+    type(LB_type) :: lb_model
     real,intent(IN) :: alpha75, alpha5, adotnorm, Re, umach
     real,intent(OUT) :: CL, CD, CN, CT, CLCirc, CM25
     real :: CLstat75, CLstat5, CDstat75, CLdyn5, CDdyn5, dCLAD, dCTAM, dCNAM, CL5, CD5, C, C1, CM25stat
     real :: alphaL, alphaD, aref, Fac  
-    integer,intent(IN) :: iStall
     
     ewrite(2,*) 'Entering compute_aeroCoeffs_one_airfoil'
-
+    write(*,*) condeg, conrad
     ! Calculate static characteristics
     call intp(Re,alpha75*condeg,CLstat75,CDstat75,CM25stat,airfoil) 
     call intp(Re,alpha5*condeg,CLstat5,C,C1,airfoil)
@@ -447,15 +349,13 @@ contains
     ! If no dynamic stall, use static values, else calc dynamic stall
     ! Leishman-Beddoes model
    
-    if(iStall>0) then
-    !Call LB_DynStall(airfoil,CL5,CD5,alphaL,alpha5,umach,Re,CLdyn5,CDdyn5)
+    if(lb_model%StallFlag) then
+    write(*,*) 'Hi there'
+    Call LB_DynStall(airfoil,lb_model,CL5,CD5,alphaL,alpha5,umach,Re,CLdyn5,CDdyn5) 
+    CL5=CLdyn5
+    CD5=CDdyn5  
+    CLCirc=CLdyn5  
     endif
-    
-    !CL5=CLdyn5
-    !CD5=CDdyn5  
-    !CLCirc=CLdyn5  
-
-
 
     ! Tangential and normal coeffs
     CN=CL5*cos(alpha5)+CD5*sin(alpha5)                                   
@@ -486,8 +386,125 @@ contains
 
     end subroutine compute_aeroCoeffs
 
-    !subroutine LB_DynStall(airfoil,CLstat,
+    subroutine LB_DynStall(airfoil,lb,CLstat,CDstat,alphaL,alpha5,umach,Re,CL,CD)
+    ! GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
+    ! Routine that computes the Leishmann-Beddoes dynamic stall model
+    ! with incompressible reduction and returns corrected values for 
+    ! CL and CD having taken into account the dynamic stall effects
+    ! GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
 
+    implicit none
+    type(AirfoilType) :: airfoil        ! Airfoil structure
+    type(LB_Type) :: lb                 ! Leishmann-Beddoes model structure
+    real :: CLstat, CDstat, alphaL, alpha5, umach, Re, CL, CD
+    real :: AOA0, CLID, Trans, dCLRefLE, dAOARefLE, AOARefLE, CLstatF, C, C1, CLIDF 
+    real :: CLRatio, CLsep, CLF, dCDF, KD, CLa, NOF, dCLv, dCDv, acut, CLCritP, CLCritN
+
+    ! Airfoil data
+    AOA0=airfoil%alzer
+    call CalcLBStallAOALim(airfoil,lb,Re,CLa)
+    
+    ! Model constants
+    KD=0.1          ! Trailing Edge separation drag factor
+
+    ! Evaluate the ideal CL curve at current AOA
+    call LB_EvalIdealCL(alphaL,AOA0,CLa,1,lb%CLRef) 
+    call LB_EvalIdealCL(alphaL,AOA0,CLa,0,CLID)
+    
+    ! calc lagged ideal CL for comparison with critical LE separation CL
+    Trans=(cos(alphaL-AOA0))**2 ! fair effect to zero at 90 deg. AOA...
+    dCLRefLE=Trans*lb%dp  ! dp is lagged CLRef change
+    dAOARefLE=dCLRefLE/CLa
+
+    ! define reference LE CL and AOA
+    lb%CLRefLE=lb%CLRef-dCLRefLE
+    if (lb%CLRefLE*(lb%CLRefLE-lb%CLRefLE_Last) > 0) then
+        lb%CLRateFlag=1
+    else
+        lb%CLRateFlag=0
+    end if
+    AOARefLE=alphaL-dAOARefLE
+    Call Force180(AOARefLE)
+
+    ! calc effective static TE separation point using effective LE AOA
+    Call intp(Re,AOARefLE*condeg,CLstatF,C,C1,airfoil)
+    Call LB_EvalIdealCL(AOARefLE,AOA0,CLa,0,CLIDF)
+    if (abs(CLIDF)<0.001) then
+        CLRatio=999
+    else
+        CLRatio=CLstatF/CLIDF;
+    end if
+
+    if (CLRatio > 0.25) then
+        lb%Fstat=min((sqrt(4.0*CLRatio)-1.0)**2,1.0)
+
+        ! Test logic
+        lb%LB_LogicOutputs(1)=1
+    else
+        lb%Fstat=0
+
+        ! Test logic
+        lb%LB_LogicOutputs(1)=2
+    end if
+    ! calc lagged Fstat to represent dynamic TE separation point
+    lb%F=lb%Fstat-lb%dF
+    ! force limits on lagged F (needed due to discretization error...)
+    lb%F=min(max(lb%F,0.0),1.0)
+
+    ! Calc dynamic CL due to TE separation as fairing between fully attached and fully separated predictions from the Kirchoff approximation at current AOA
+    if (abs(CLID)<0.001) then
+        CLRatio=999
+    else
+        CLRatio=CLstat/CLID
+    end if
+
+    if (CLRatio > 1.0) then
+        CLID=CLstat
+
+        ! Test logic
+        lb%LB_LogicOutputs(2)=1
+    end if
+
+    if (CLRatio > 0.25) then
+        CLsep=CLID/4.0
+
+        ! Test logic
+        lb%LB_LogicOutputs(3)=1
+    else
+        CLsep=CLstat
+
+        ! Test logic
+        lb%LB_LogicOutputs(3)=2
+    end if
+    CLF=CLsep+CLID*0.25*(lb%F+2.0*sqrt(lb%F))
+    dCDF=KD*(CLstat-CLF)*sign(1.0,CLstat)
+
+    ! LE vortex lift component, dCNv is a lagged change in the added normal force due
+    ! to LE vortex shedding. Assumed to affect lift coeff as an added circulation...
+    dCLv=lb%dCNv*cos(alpha5)
+    dCDv=lb%dCNv*sin(alpha5)
+    ! vortex feed is given by the rate at which lift (circulation) is being shed due to dynamic separation. Lift component due to separation is defined by the
+    ! difference between the ideal lift and the lift including dynamic separation effects.
+    lb%cv=CLID-CLF
+    lb%dcv=lb%cv-lb%cv_Last
+    ! If the sign of dcv is opposite the reference LE CL, set to zero to disallow negative vorticity from shedding from the leading edge. Also, limit the model 
+    ! at AOA>acut or if the magnitude of the reference CL is decreasing...
+    acut=50.0*conrad
+    if (sign(1.0,lb%dcv*lb%CLRefLE)<0 .OR. abs(alphaL-AOA0)>acut .OR. lb%CLRateFlag<0) then
+        lb%dcv=0.0
+
+        ! Test logic
+        lb%LB_LogicOutputs(4)=1
+    end if
+
+    ! Total lift and drag
+    CL=CLF+dCLv
+    CD=CDstat+dCDF+dCDv
+    
+    return
+
+    end subroutine LB_DynStall
+   
     subroutine intp(RE,ALPHA,CL,CD,CM25,airfoil)   
         
         implicit none
@@ -593,11 +610,12 @@ contains
 
     END SUBROUTINE intp
 
-    Subroutine CalcLBStallAOALim(airfoil,Re,CLa,CLCritP,CLCritN)
+    Subroutine CalcLBStallAOALim(airfoil,lb,Re,CLa)
 
         ! Get stall data for LB model from airfoil data
-        real :: Re, CLa, CLCritP, CLCritN, XRE
-        type(AirfoilType),intent(IN) :: airfoil 
+        real :: Re, CLa, XRE
+        type(AirfoilType),intent(IN) :: airfoil
+        type(LB_type),intent(INOUT) :: lb
         integer :: iUB, iLB
         logical :: NotDone 
 
@@ -640,10 +658,10 @@ contains
 
         ! Interp
         CLa=airfoil%CLaData(iLB)+xRE*(airfoil%CLaData(iUB)-airfoil%CLaData(iLB))            
-        CLCritP=airfoil%CLCritPData(iLB)+xRE*(airfoil%CLCritPData(iUB)-airfoil%CLCritPData(iLB))  
-        CLCritN=airfoil%CLCritNData(iLB)+xRE*(airfoil%CLCritNData(iUB)-airfoil%CLCritNData(iLB)) 
+        lb%CLCritP=airfoil%CLCritPData(iLB)+xRE*(airfoil%CLCritPData(iUB)-airfoil%CLCritPData(iLB))  
+        lb%CLCritN=airfoil%CLCritNData(iLB)+xRE*(airfoil%CLCritNData(iUB)-airfoil%CLCritNData(iLB)) 
     
     End Subroutine CalcLBStallAOALim
     
 
-end module alturbine_airfoils 
+end module airfoils 

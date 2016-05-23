@@ -31,13 +31,10 @@ module alturbine_utils
 
     implicit none
 
-    private cross
-    public QuatRot
+    public QuatRot, cross
 
 contains 
-
-
-    
+ 
     !SUBROUTINE CalcBEGeom(BNum)
 
     !    implicit none

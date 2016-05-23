@@ -46,49 +46,55 @@ module alturbine
   use field_options
   use fefields
 
-  !use the ALTurbine_Airfoil Module
-  use alturbine_airfoils
+  !use the ALTurbine Modules
+  use airfoils
   use alturbine_utils
+  use lbdynstall
+
   implicit none
 !GGGGG
 ! Define the types that will be used
 
 
 type BladeType
-    integer :: NElem
-    integer :: FlipN
-    real, allocatable :: QCx(:)
-    real, allocatable :: QCy(:)
-    real, allocatable :: QCz(:)
-    real, allocatable :: tx(:)
-    real, allocatable :: ty(:)
-    real, allocatable :: tz(:)
-    real, allocatable :: CtoR(:)
-    real, allocatable :: PEx(:)
-    real, allocatable :: PEy(:)
-    real, allocatable :: PEz(:)
-    real, allocatable :: tEx(:)
-    real, allocatable :: tEy(:)
-    real, allocatable :: tEz(:)
-    real, allocatable :: nEx(:)
-    real, allocatable :: nEy(:)
-    real, allocatable :: nEz(:)
-    real, allocatable :: sEx(:)
-    real, allocatable :: sEy(:)
-    real, allocatable :: sEz(:)
-    real, allocatable :: ECtoR(:)
-    real, allocatable :: EAreaR(:)
-    integer, allocatable :: iSect(:)
+    integer :: NElem                ! Number of Elements of the Blade
+    integer :: FlipN                ! 
+    real, allocatable :: QCx(:)     ! Blade quarter-chord line x coordinates at element ends
+    real, allocatable :: QCy(:)     ! Blade quarter-chord line y coordinates at element ends
+    real, allocatable :: QCz(:)     ! Blade quarter-chord line z coordinates at element ends
+    real, allocatable :: tx(:)      ! Blade unit tangent vector (rearward chord line direction) x-componenst at element ends
+    real, allocatable :: ty(:)      ! Blade unit tangent vector (rearward chord line direction) y-componenst at element ends 
+    real, allocatable :: tz(:)      ! Blade unit tangent vector (rearward chord line direction) z-componenst at element ends  
+    real, allocatable :: CtoR(:)    ! Blade chord to turbine reference radius ratio at element ends
+    real, allocatable :: PEx(:)     ! Element centre x coordinates
+    real, allocatable :: PEy(:)     ! Element centre y coordinates
+    real, allocatable :: PEz(:)     ! Element centre z coordinates
+    real, allocatable :: tEx(:)     ! Element unit tangent vector (rearward chord line direction) x-component
+    real, allocatable :: tEy(:)     ! Element unit tangent vector (rearward chord line direction) y-component
+    real, allocatable :: tEz(:)     ! Element unit tangent vector (rearward chord line direction) z-component
+    real, allocatable :: nEx(:)     ! Element unit normal vector x-component
+    real, allocatable :: nEy(:)     ! Element unit normal vector y-component
+    real, allocatable :: nEz(:)     ! Element unit normal vector z-component
+    real, allocatable :: sEx(:)     ! Element unit spanwise vector x-component 
+    real, allocatable :: sEy(:)     ! Element unit spanwise vector y-component
+    real, allocatable :: sEz(:)     ! Element unit spanwise vector z-component
+    real, allocatable :: EC(:)      ! Element chord lenght
+    real, allocatable :: CircSign(:)! Direction of segment circulation on wake
+    real, allocatable :: EArea(:)   ! Element Area
+    integer, allocatable :: ETtoC(:)! Element thickness to Chord ratio
     
+    type(AirfoilType), allocatable :: EAirfoil(:) ! Element Airfoil Data for
+    type(LB_Type), allocatable :: E_LB_Model(:)   ! Element Leishman-Beddoes Model
+
     ! Momentum Sink Forces in the nts direction
-    real, allocatable :: CFn(:)
-    real, allocatable :: CFt(:)
-    real, allocatable :: CFs(:)
+    real, allocatable :: CFn(:)     ! Element Force in the normal direction
+    real, allocatable :: CFt(:)     ! Element Force in the tangential direction (rearward chord line direction) 
+    real, allocatable :: CFs(:)     ! Element Force in the spanwise direction
 
     ! Momentum Sink Forces in the xyz direction
-    real, allocatable :: CFx(:)
-    real, allocatable :: CFy(:)
-    real, allocatable :: CFz(:)
+    real, allocatable :: CFx(:)     ! Element Force in the global x-direction
+    real, allocatable :: CFy(:)     ! Element Force in the global y-direction
+    real, allocatable :: CFz(:)     ! Element Force in the global z-direction
     
 end type BladeType
 
@@ -97,14 +103,14 @@ type TurbineType
     real,dimension(3) :: axis_loc
     character(len=100) :: turb_name
     character(len=100) :: geom_file 
-    integer :: NBlades, NAirfoils
+    integer :: NBlades, NAirfoilData
     real, dimension(3) :: RotN, RotP ! Rotational vectors in the normal and perpendicular directions
     real :: at, Rmax
     real :: RPM 
     logical :: Is_constant_rotation_operated = .false. ! For a constant rotational velocity (in Revolutions Per Minute)
     logical :: Is_force_based_operated = .false. ! For a forced based rotational velocity (Computed during the simulation)
     type(BladeType), allocatable :: Blade(:)
-    type(AirfoilType), allocatable :: Airfoil(:)
+    type(AirfoilType), allocatable :: AirfoilData(:)
     real :: CP  ! Power coefficient 
     real :: CTR ! Torque coefficient 
     real :: CFx ! Fx coefficient 
@@ -158,10 +164,10 @@ contains
        call get_option("/ALM_Turbine/alm_turbine["//int2str(i-1)//"]/geometry_file/file_name",Turbine(i)%geom_file)
        
        ! Count how many Airfoil Sections are available
-       Turbine(i)%NAirfoils=option_count("/ALM_Turbine/alm_turbine["//int2str(i-1)//"]/airfoil_sections/section") 
-       ewrite(2,*) 'Number of Airfoils available : ', Turbine(i)%NAirfoils
+       Turbine(i)%NAirfoilData=option_count("/ALM_Turbine/alm_turbine["//int2str(i-1)//"]/airfoil_sections/section") 
+       ewrite(2,*) 'Number of Airfoils available : ', Turbine(i)%NAirfoilData
        ! Allocate the memory of the Airfoils
-       Allocate(Turbine(i)%Airfoil(Turbine(i)%NAirfoils))
+       Allocate(Turbine(i)%AirfoilData(Turbine(i)%NAirfoilData))
        
        call turbine_geometry_read(i,Turbine(i)%geom_file) 
        ewrite(2,*) 'Turbine ',i,' : ', Turbine(i)%turb_name
@@ -169,12 +175,12 @@ contains
        ewrite(2,*) 'Axis location : ',Turbine(i)%RotP
        ewrite(2,*) 'Geometry file :    ',Turbine(i)%geom_file
        
-       do k=1, Turbine(i)%NAirfoils
+       do k=1, Turbine(i)%NAirfoilData
            
-        call get_option(trim(turbine_path(i))//"/airfoil_sections/section["//int2str(k-1)//"]/airfoil_file",Turbine(i)%Airfoil(k)%afname)
+        call get_option(trim(turbine_path(i))//"/airfoil_sections/section["//int2str(k-1)//"]/airfoil_file",Turbine(i)%AirfoilData(k)%afname)
            
            ! Read and Store Airfoils
-           call airfoil_init_data(Turbine(i)%Airfoil(k))
+           call airfoil_init_data(Turbine(i)%AirfoilData(k))
 
        end do
 
@@ -240,50 +246,6 @@ subroutine turbine_timeloop(states,exclude_nonrecalculated)
      
      endif
 
-   
-    !* Finds the element number end local coordinates of the element where the point of interest
-    !* belongs in.
-    
-    !do j=1,Turbine(i)%NBlade
-    !    k=1,Turbine(i)%Blade(j)%NElem+1
-    !    SCoords(1)=
-    !call picker_inquire(positions,Turbine(i)%Blade(1:Turbine(i)%NBlades)%,ele,local_coord,.false.)
-    ! 
-    !* Evaluates the velocity at the point of interest 
-    !value_vel = eval_field(ele,velocity, local_coord) 
-    !
-    !!* Temporary Parameters that will be deleted and normaly be loaded
-    !!* From a file.
-    !
-    !radius= 0.25
-    !epsilon_par=0.05
-    !Area = pi*radius**2 ! Termporary computation of the Area 
-    !Force_coeff(1)=-1.1
-    !Force_coeff(2)=0
-
-    !do i = 1, node_count(v_field)
-    !    ! Compute a molification function in 2D 
-    !    Rcoords=node_val(positions,i)
-    !        dr2=0
-    !        d=0
-    !        do j=1, v_field%dim
-    !            d(j) = Scoords(j)-Rcoords(j)
-    !            dr2=dr2+d(j)**2
-    !        end do
-
-    !        do j=1, v_field%dim
-    !        
-    !        if(v_field%dim==2) then    
-    !            kernel(j) = 1/(epsilon_par**2*pi)*exp(-dr2/epsilon_par**2)
-    !        else 
-    !            FLAbort("3D source not implemented yet")
-    !        endif
-
-    !        end do
-   
-    !    call set(v_field, i, 0.5*Area*(value_vel(1)**2+value_vel(2)**2)*kernel*Force_coeff)
-    !end do
-
     end do
 
     ewrite(1,*) 'Exiting the turbine_timeloop'
@@ -339,9 +301,14 @@ subroutine rotate_turbines(theta)
                 Turbine(i)%Blade(j)%tz(ielem)=vrz/VMag                                       
   
                 end do
+                
+                call set_blade_geometry(Turbine(i)%Blade(j))
+            
             end do
         
         end do
+        
+
 
         ewrite(1,*) 'Exiting rotate_turbines'
 
@@ -381,9 +348,12 @@ subroutine allocate_turbine_elements(ITurbine,IBlade,NElem)
     allocate(Turbine(ITurbine)%Blade(IBlade)%sEx(NElem))
     allocate(Turbine(ITurbine)%Blade(IBlade)%sEy(NElem))
     allocate(Turbine(ITurbine)%Blade(IBlade)%sEz(NElem))
-    allocate(Turbine(ITurbine)%Blade(IBlade)%ECtoR(NElem))
-    allocate(Turbine(ITurbine)%Blade(IBlade)%EAreaR(NElem))
-    allocate(Turbine(ITurbine)%Blade(IBlade)%iSect(NElem))
+    allocate(Turbine(ITurbine)%Blade(IBlade)%EC(NElem))
+    allocate(Turbine(ITurbine)%Blade(IBlade)%EArea(NElem))
+    allocate(Turbine(ITurbine)%Blade(IBlade)%CircSign(NElem))
+    allocate(Turbine(ITurbine)%Blade(IBlade)%ETtoC(NElem))
+    allocate(Turbine(ITurbine)%Blade(IBlade)%EAirfoil(Nelem))
+    allocate(Turbine(ITurbine)%Blade(IBlade)%E_LB_Model(Nelem))
     allocate(Turbine(ITurbine)%Blade(IBlade)%CFn(NElem))
     allocate(Turbine(ITurbine)%Blade(IBlade)%CFt(NElem))
     allocate(Turbine(ITurbine)%Blade(IBlade)%CFs(NElem))
@@ -523,15 +493,15 @@ subroutine turbine_geometry_read(i,FN)
         
         !Read ECtoR(1:NElem)
         read(15,'(A)') ReadLine
-        read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Blade(j)%ECtoR(1:Turbine(i)%Blade(j)%Nelem)
+        read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Blade(j)%EC(1:Turbine(i)%Blade(j)%Nelem)
         
         !Read EAreaR(1:NElem+1)
         read(15,'(A)') ReadLine
-        read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Blade(j)%EAreaR(1:Turbine(i)%Blade(j)%Nelem)
+        read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Blade(j)%EArea(1:Turbine(i)%Blade(j)%Nelem)
         
         !Read iSect(1:NElem+1)
         read(15,'(A)') ReadLine
-        read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Blade(j)%iSect(1:Turbine(i)%Blade(j)%Nelem)
+        read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Blade(j)%ETtoC(1:Turbine(i)%Blade(j)%Nelem)
         
     end do
     
@@ -540,89 +510,103 @@ subroutine turbine_geometry_read(i,FN)
 
 end subroutine turbine_geometry_read
 
-    SUBROUTINE set_blade_geometry
+    SUBROUTINE set_blade_geometry(blade)
 
         implicit none
-
+        
+        type(BladeType),intent(INOUT) :: blade
         integer :: BNum
         integer :: nbe, nei, FlipN, nej, j
-    !    real :: sEM, tEM, nEM
-    !    real :: PE(3), sE(3), tE(3), normE(3), P1(3), P2(3), P3(3), P4(3), V1(3), V2(3), V3(3), V4(3), A1(3), A2(3)
+        real :: sEM, tEM, nEM
+        real :: PE(3), sE(3), tE(3), normE(3), P1(3), P2(3), P3(3), P4(3), V1(3), V2(3), V3(3), V4(3), A1(3), A2(3)
+    
+    ewrite(2,*) 'Entering set_blade_geometry'
+    ! Calculates element geometry from element end geometry
 
-    !    ! Calculates element geometry from element end geometry
+    ! JCM: Eventually, should just be able to loop through Blades(BNum) data structure
+    ! While data is still held in arrays concatenated across blades, need to replicate
+    ! nbe (stored in configr) from Blades(1).NElem
+        nbe=blade%NElem
 
-    !    ! JCM: Eventually, should just be able to loop through Blades(BNum) data structure
-    !    ! While data is still held in arrays concatenated across blades, need to replicate
-    !    ! nbe (stored in configr) from Blades(1).NElem
-    !    nbe=Blades(1)%NElem
+        FlipN=blade%FlipN
+        
+        do j=1,nbe
+            nej=1+j
 
-    !    FlipN=Blades(BNum)%FlipN
+            ! Element center locations
+            blade%PEx(nej)=(blade%QCx(nej)+blade%QCx(nej-1))/2.0
+            blade%PEy(nej)=(blade%QCy(nej)+blade%QCy(nej-1))/2.0
+            blade%PEz(nej)=(blade%QCz(nej)+blade%QCz(nej-1))/2.0
 
-    !    nei=1+(BNum-1)*(nbe+1)
+  ! Set spanwise and tangential vectors
+   sE=-(/blade%QCx(nej)-blade%QCx(nej-1),blade%QCy(nej)-blade%QCy(nej-1),blade%QCz(nej)-blade%QCz(nej-1)/) ! nominal element spanwise direction set opposite to QC line
+		    sEM=sqrt(dot_product(sE,sE))
+		    sE=sE/sEM
+		    tE=(/blade%tx(nej)+blade%tx(nej-1),blade%ty(nej)+blade%ty(nej-1),blade%tz(nej)+blade%tz(nej-1)/)/2.0
+		    ! Force tE normal to sE
+		    tE=tE-dot_product(tE,sE)*sE
+		    tEM=sqrt(dot_product(tE,tE))
+		    tE=tE/tEM
+		    blade%sEx(nej)=sE(1)
+		    blade%sEy(nej)=sE(2)
+		    blade%sEz(nej)=sE(3)
+		    blade%tEx(nej)=tE(1)
+		    blade%tEy(nej)=tE(2)
+		    blade%tEz(nej)=tE(3)
+		    
+            
+            ewrite(2,*) 'Hi 1'
 
-    !    do j=1,nbe
-    !        nej=nei+j
+		    ! Calc normal vector
+		    Call cross(sE(1),sE(2),sE(3),tE(1),tE(2),tE(3),normE(1),normE(2),normE(3))
+		    nEM=sqrt(dot_product(normE,normE))
+		    normE=normE/nEM
+		    blade%nEx(nej)=normE(1)
+		    blade%nEy(nej)=normE(2)
+		    blade%nEz(nej)=normE(3)
 
-    !        ! Element center locations
-    !        xBC(nej)=(xBE(nej)+xBE(nej-1))/2.0
-    !        yBC(nej)=(yBE(nej)+yBE(nej-1))/2.0
-    !        zBC(nej)=(zBE(nej)+zBE(nej-1))/2.0
+            ewrite(2,*) 'Hi 1'
+		    
+            ! Flip normal direction if requested
+		    blade%CircSign(nej)=1.0
+		    if (FlipN .eq. 1) then
+		        blade%nEx(nej)= -blade%nEx(nej)
+		        blade%nEy(nej)= -blade%nEy(nej)
+		        blade%nEz(nej)= -blade%nEz(nej)
+		        blade%sEx(nej)= -blade%sEx(nej)
+		        blade%sEy(nej)= -blade%sEy(nej)
+		        blade%sEz(nej)= -blade%sEz(nej)
+		        blade%tEx(nej)= -blade%tEx(nej)
+		        blade%tEy(nej)= -blade%tEy(nej)
+		        blade%tEz(nej)= -blade%tEz(nej)
+                blade%CircSign(nej)=-1.0
+		    end if
 
-    !        ! Set spanwise and tangential vectors
-	!	    sE=-(/xBE(nej)-xBE(nej-1),yBE(nej)-yBE(nej-1),zBE(nej)-zBE(nej-1)/) ! nominal element spanwise direction set opposite to QC line
-	!	    sEM=sqrt(dot_product(sE,sE))
-	!	    sE=sE/sEM
-	!	    tE=(/txBE(nej)+txBE(nej-1),tyBE(nej)+tyBE(nej-1),tzBE(nej)+tzBE(nej-1)/)/2.0
-	!	    ! Force tE normal to sE
-	!	    tE=tE-dot_product(tE,sE)*sE
-	!	    tEM=sqrt(dot_product(tE,tE))
-	!	    tE=tE/tEM
-	!	    sxBC(nej)=sE(1)
-	!	    syBC(nej)=sE(2)
-	!	    szBC(nej)=sE(3)
-    !        txBC(nej)=tE(1)
-    !        tyBC(nej)=tE(2)
-    !        tzBC(nej)=tE(3)
+		    ! Calc element area and chord
+    P1=(/blade%QCx(nej-1)-0.25*blade%CtoR(nej-1)*blade%tx(nej-1),blade%QCy(nej-1)-0.25*blade%CtoR(nej-1)*blade%ty(nej-1),blade%QCz(nej-1)-0.25*blade%CtoR(nej-1)*blade%tz(nej-1)/)
 
-	!	    ! Calc normal vector
-	!	    Call cross(sE(1),sE(2),sE(3),tE(1),tE(2),tE(3),normE(1),normE(2),normE(3))
-	!	    nEM=sqrt(dot_product(normE,normE))
-	!	    normE=normE/nEM
-	!	    nxBC(nej)=normE(1)
-	!	    nyBC(nej)=normE(2)
-	!	    nzBC(nej)=normE(3)
+    P2=(/blade%QCx(nej-1)+0.75*blade%CtoR(nej-1)*blade%tx(nej-1),blade%QCy(nej-1)+0.75*blade%CtoR(nej-1)*blade%ty(nej-1),blade%QCz(nej-1)+0.75*blade%CtoR(nej-1)*blade%tz(nej-1)/)
 
-	!	    ! Flip normal direction if requested
-	!	    CircSign(nej)=1.0
-	!	    if (FlipN .eq. 1) then
-	!            nxBC(nej)=-nxBC(nej)
-	!            nyBC(nej)=-nyBC(nej)
-	!            nzBC(nej)=-nzBC(nej)
-    !            sxBC(nej)=-sxBC(nej)
-    !            syBC(nej)=-syBC(nej)
-    !            szBC(nej)=-szBC(nej)
-    !            CircSign(nej)=-1.0
-	!	    end if
+    P3=(/blade%QCx(nej)+0.75*blade%CtoR(nej)*blade%tx(nej),blade%QCy(nej)+0.75*blade%CtoR(nej)*blade%ty(nej),blade%QCz(nej)+0.75*blade%CtoR(nej)*blade%tz(nej)/)
 
-	!	    ! Calc element area and chord
-	!	    P1=(/xBE(nej-1)-0.25*CtoR(nej-1)*txBE(nej-1),yBE(nej-1)-0.25*CtoR(nej-1)*tyBE(nej-1),zBE(nej-1)-0.25*CtoR(nej-1)*tzBE(nej-1)/)
-	!	    P2=(/xBE(nej-1)+0.75*CtoR(nej-1)*txBE(nej-1),yBE(nej-1)+0.75*CtoR(nej-1)*tyBE(nej-1),zBE(nej-1)+0.75*CtoR(nej-1)*tzBE(nej-1)/)
-	!	    P3=(/xBE(nej)+0.75*CtoR(nej)*txBE(nej),yBE(nej)+0.75*CtoR(nej)*tyBE(nej),zBE(nej)+0.75*CtoR(nej)*tzBE(nej)/)
-	!	    P4=(/xBE(nej)-0.25*CtoR(nej)*txBE(nej),yBE(nej)-0.25*CtoR(nej)*tyBE(nej),zBE(nej)-0.25*CtoR(nej)*tzBE(nej)/)
-	!	    V1=P2-P1
-	!	    V2=P3-P2
-	!	    V3=P4-P3
-	!	    V4=P1-P4
-	!	    ! Calc quad area from two triangular facets
-	!	    Call cross(V1(1),V1(2),V1(3),V2(1),V2(2),V2(3),A1(1),A1(2),A1(3))
-	!	    A1=A1/2.0
-    !        Call cross(V3(1),V3(2),V3(3),V4(1),V4(2),V4(3),A2(1),A2(2),A2(3))
-    !        A2=A2/2.0
-	!	    eArea(nej)=sqrt(dot_product(A1,A1))+sqrt(dot_product(A2,A2))
-	!	    ! Calc average element chord from area and span
-	!	    eChord(nej)=eArea(nej)/sEM
+    P4=(/blade%QCx(nej)-0.25*blade%CtoR(nej)*blade%tx(nej),blade%QCy(nej)-0.25*blade%CtoR(nej)*blade%ty(nej),blade%QCz(nej)-0.25*blade%CtoR(nej)*blade%tz(nej)/)
 
-    !    end do
+		    V1=P2-P1
+		    V2=P3-P2
+		    V3=P4-P3
+		    V4=P1-P4
+		    ! Calc quad area from two triangular facets
+		    Call cross(V1(1),V1(2),V1(3),V2(1),V2(2),V2(3),A1(1),A1(2),A1(3))
+		    A1=A1/2.0
+            Call cross(V3(1),V3(2),V3(3),V4(1),V4(2),V4(3),A2(1),A2(2),A2(3))
+            A2=A2/2.0
+		    blade%EArea(nej)=sqrt(dot_product(A1,A1))+sqrt(dot_product(A2,A2))
+            ! Calc average element chord from area and span
+		    blade%EC(nej)=blade%EArea(nej)/sEM
+
+        end do
+        ewrite(2,*) 'Exiting set_blade_geometry'
+
     End SUBROUTINE set_blade_geometry 
 
 end module alturbine
