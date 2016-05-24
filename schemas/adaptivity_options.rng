@@ -546,6 +546,11 @@ Depends on /geometry/ocean_boundaries.</a:documentation>
           </optional>
         </element>
       </optional>
+      <zeroOrMore>
+        <element name="mesh_hole">
+          <ref name="real_dim_vector"/>
+        </element>
+      </zeroOrMore>
     </element>
   </define>
   <define name="hr_adaptivity">

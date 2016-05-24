@@ -470,7 +470,10 @@ delaunay_adaptivity =
            element include_bottom_metric {
             empty
            }?
-         }?
+         }?,
+         element mesh_hole {
+            real_dim_vector
+         }*
       }
    )        
 

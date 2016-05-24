@@ -653,6 +653,7 @@ X_PRE_LIBS
 X_CFLAGS
 XMKMF
 HAVE_EXODUSII
+HAVE_TRIANGLE
 HAVE_TETGEN
 MPICXX
 MPIF77
@@ -768,7 +769,10 @@ enable_verbose
 with_femdem
 with_psmile
 with_netcdf
+with_tetgenroot
 with_tetgen
+with_triangleroot
+with_triangle
 with_exodusii
 enable_petsc_fortran_modules
 with_x
@@ -1469,7 +1473,12 @@ Optional Packages:
                           specify the oasis4 path
   --with-netcdf[=netcdf_ROOT]
                           specify where to find lib/ and include/ for netCDF
+  --with-tetgenroot[=tetgen_ROOT]
+                          specify where to find lib/ and include/ for tetgen
   --with-tetgen           include support for tetgen for mesh generation
+  --with-triangleroot[=triangle_ROOT]
+                          specify where to find lib/ and include/ for triangle
+  --with-triangle         include support for triangle for mesh generation
   --with-exodusii[=exodus_ROOT]
                           specify where to find lib/ and include/ for exodusii
   --with-x                use the X Window System
@@ -11508,12 +11517,18 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 fi
 
 # Tetgen support
-
+HAVE_TETGEN=no
 ac_ext=cpp
 ac_cpp='$CXXCPP $CPPFLAGS'
 ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
+
+
+# Check whether --with-tetgenroot was given.
+if test "${with_tetgenroot+set}" = set; then :
+  withval=$with_tetgenroot;
+fi
 
 
 # Check whether --with-tetgen was given.
@@ -11522,67 +11537,102 @@ if test "${with_tetgen+set}" = set; then :
 fi
 
 if test "$with_tetgen" = "yes" ; then
-    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for tetrahedralize in -ltet" >&5
-$as_echo_n "checking for tetrahedralize in -ltet... " >&6; }
-if ${ac_cv_lib_tet_tetrahedralize+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-ltet  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+    OLDLIBS="$LIBS"
+    OLDCPPFLAGS="$CPPFLAGS"
+    if test -d "$with_tetgenroot" ; then
+      LIBS="$LIBS -L$with_tetgenroot/lib -ltet"
+      CPPFLAGS="$CPPFLAGS -I$with_triangle/include"
+    else
+      LIBS="$LIBS -ltet"
+    fi
+    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char tetrahedralize ();
-#ifdef F77_DUMMY_MAIN
 
-#  ifdef __cplusplus
-     extern "C"
-#  endif
-   int F77_DUMMY_MAIN() { return 1; }
-
-#endif
-#ifdef FC_DUMMY_MAIN
-#ifndef FC_DUMMY_MAIN_EQ_F77
-#  ifdef __cplusplus
-     extern "C"
-#  endif
-   int FC_DUMMY_MAIN() { return 1; }
-#endif
-#endif
-int
-main ()
-{
-return tetrahedralize ();
-  ;
-  return 0;
+#include <tetgen.h>
+int main(){
+tetgenio in, out;
+tetgenbehavior b;
+tetrahedralize(&b, &in, &out);
 }
+
 _ACEOF
-if ac_fn_cxx_try_link "$LINENO"; then :
-  ac_cv_lib_tet_tetrahedralize=yes
+if ac_fn_cxx_try_compile "$LINENO"; then :
+  $as_echo "#define HAVE_LIBTET 1" >>confdefs.h
+
+    	HAVE_TETGEN=yes
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: \"Tetgen found\"" >&5
+$as_echo "$as_me: \"Tetgen found\"" >&6;}
+
 else
-  ac_cv_lib_tet_tetrahedralize=no
+  LIBS="$OLDLIBS"
+	CPPFLAGS="$OLDCPPFLAGS"
+	as_fn_error $? "\"No working tetgen found\"" "$LINENO" 5
 fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
 fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_tet_tetrahedralize" >&5
-$as_echo "$ac_cv_lib_tet_tetrahedralize" >&6; }
-if test "x$ac_cv_lib_tet_tetrahedralize" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBTET 1
+
+ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+
+# libtriangle support
+HAVE_TRIANGLE=no
+ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+
+# Check whether --with-triangleroot was given.
+if test "${with_triangleroot+set}" = set; then :
+  withval=$with_triangleroot;
+fi
+
+
+# Check whether --with-triangle was given.
+if test "${with_triangle+set}" = set; then :
+  withval=$with_triangle;
+fi
+
+if test "$with_triangle" = "yes" ; then
+    OLDLIBS="$LIBS"
+    OLDCPPFLAGS="$CPPFLAGS"
+    if test -d "$with_triangleroot" ; then
+      LIBS="$LIBS -L$with_triangle/lib -ltriangle"
+      CPPFLAGS="$CPPFLAGS -I$with_triangle/include"
+    else
+      LIBS="$LIBS -ltriangle"
+    fi
+    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+typedef double REAL;
+#include <triangle.h>
+int main(){
+struct triangulateio in, out, varout;
+triangulate("r", &in, &out, &varout);
+}
+
 _ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  $as_echo "#define HAVE_LIBTRIANGLE 1" >>confdefs.h
 
-  LIBS="-ltet $LIBS"
+    	HAVE_TRIANGLE=yes
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: \"Tetgen found\"" >&5
+$as_echo "$as_me: \"Tetgen found\"" >&6;}
 
+else
+  LIBS="$OLDLIBS"
+	CPPFLAGS="$OLDCPPFLAGS"
+	as_fn_error $? "\"No working libtriangle found\"" "$LINENO" 5
 fi
-
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
 fi
 
 ac_ext=c

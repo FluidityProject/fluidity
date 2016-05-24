@@ -808,15 +808,77 @@ if test "$with_netcdf" != "no" ; then
 fi
 
 # Tetgen support
-
+HAVE_TETGEN=no
 AC_LANG_PUSH([C++])
+AC_ARG_WITH(tetgenroot,
+[AC_HELP_STRING([--with-tetgenroot@<:@=tetgen_ROOT@:>@],
+[specify where to find lib/ and include/ for tetgen])])
 AC_ARG_WITH(tetgen,
 [AC_HELP_STRING([--with-tetgen],
 [include support for tetgen for mesh generation])])
 if test "$with_tetgen" = "yes" ; then
-    AC_CHECK_LIB(tet, tetrahedralize)
+    OLDLIBS="$LIBS"
+    OLDCPPFLAGS="$CPPFLAGS"
+    if test -d "$with_tetgenroot" ; then
+      LIBS="$LIBS -L$with_tetgenroot/lib -ltet"
+      CPPFLAGS="$CPPFLAGS -I$with_triangle/include"
+    else
+      LIBS="$LIBS -ltet"
+    fi
+    AC_COMPILE_IFELSE([
+      AC_LANG_SOURCE([
+#include <tetgen.h> 
+int main(){
+tetgenio in, out;
+tetgenbehavior b;
+tetrahedralize(&b, &in, &out);
+}
+	])],
+	[AC_DEFINE(HAVE_LIBTET, [1])
+    	HAVE_TETGEN=yes
+	AC_MSG_NOTICE(["Tetgen found"])
+	],[LIBS="$OLDLIBS"
+	CPPFLAGS="$OLDCPPFLAGS"
+	AC_MSG_ERROR(["No working tetgen found"])])
 fi
 AC_SUBST(HAVE_TETGEN)
+AC_LANG_POP()
+
+# libtriangle support
+HAVE_TRIANGLE=no
+AC_LANG_PUSH([C])
+AC_ARG_WITH(triangleroot,
+[AC_HELP_STRING([--with-triangleroot@<:@=triangle_ROOT@:>@],
+[specify where to find lib/ and include/ for triangle])])
+AC_ARG_WITH(triangle,
+[AC_HELP_STRING([--with-triangle],
+[include support for triangle for mesh generation])])
+if test "$with_triangle" = "yes" ; then
+    OLDLIBS="$LIBS"
+    OLDCPPFLAGS="$CPPFLAGS"
+    if test -d "$with_triangleroot" ; then
+      LIBS="$LIBS -L$with_triangle/lib -ltriangle"
+      CPPFLAGS="$CPPFLAGS -I$with_triangle/include"
+    else
+      LIBS="$LIBS -ltriangle"
+    fi
+    AC_COMPILE_IFELSE([
+      AC_LANG_SOURCE([
+typedef double REAL;
+#include <triangle.h> 
+int main(){
+struct triangulateio in, out, varout;
+triangulate("r", &in, &out, &varout);
+}
+	])],
+	[AC_DEFINE(HAVE_LIBTRIANGLE, [1])
+    	HAVE_TRIANGLE=yes
+	AC_MSG_NOTICE(["Tetgen found"])
+	],[LIBS="$OLDLIBS"
+	CPPFLAGS="$OLDCPPFLAGS"
+	AC_MSG_ERROR(["No working libtriangle found"])])
+fi
+AC_SUBST(HAVE_TRIANGLE)
 AC_LANG_POP()
 
 # Exodus-II support
@@ -1564,6 +1626,9 @@ if test "$enable_vtk" != "no" ; then
                    vtk_version=$this_vtk_version
                    vtk_include_dir=$i
                    vtk_version_file="vtkVersionMacros.h"
+		   vtk_major_version=$this_vtk_version
+		   vtk_minor_version=$(grep VTK_MINOR_VERSION $i/vtkVersionMacros.h | sed 's/#define VTK_MINOR_VERSION //')
+		   vtk_full_version=$vtk_major_version.$vtk_minor_version
                 fi
             # VTK 5 has a configure file that defined the macros
             elif test -r $i/vtkConfigure.h; then
@@ -1637,11 +1702,11 @@ if test "$enable_vtk" != "no" ; then
             if test -d /usr/lib64/vtk ; then
                 LIBS="$LIBS -L/usr/lib64/vtk"
             fi
-            AC_CHECK_LIB(vtkCommonCore, main, [], 
+            AC_CHECK_LIB(vtkCommonCore-${vtk_full_version}, main, [], 
                 [if test "x$VTK_LIBS" != "x" ; then
                     LIBS="$LIBS -L$VTK_LIBS"
-                    unset ac_cv_lib_vtkCommonCore_main
-                    AC_CHECK_LIB(vtkCommonCore, main, [], 
+                    unset ac_cv_lib_vtkCommonCore-${vtk_full_version}_main
+                    AC_CHECK_LIB(vtkCommonCore-${vtk_full_version}, main, [], 
                        [
                           AC_MSG_ERROR([Cannot find vtk installation.])
                           exit -1
@@ -1651,14 +1716,14 @@ if test "$enable_vtk" != "no" ; then
                     exit -1
                  fi
                 ])
-            AC_CHECK_LIB(vtkIOXML, main)
-            AC_CHECK_LIB(vtkIOParallel, main)
-            AC_CHECK_LIB(vtkIOParallelXML, main)
-            AC_CHECK_LIB(vtkIOCore, main)
-            AC_CHECK_LIB(vtkCommonDataModel, main)
-            AC_CHECK_LIB(vtkCommonExecutionModel, main)
-            AC_CHECK_LIB(vtkIOLegacy, main)
-            AC_CHECK_LIB(vtkFiltersGeneral, main)
+            AC_CHECK_LIB(vtkIOXML-${vtk_full_version}, main)
+            AC_CHECK_LIB(vtkIOParallel-${vtk_full_version}, main)
+            AC_CHECK_LIB(vtkIOParallelXML-${vtk_full_version}, main)
+            AC_CHECK_LIB(vtkIOCore-${vtk_full_version}, main)
+            AC_CHECK_LIB(vtkCommonDataModel-${vtk_full_version}, main)
+            AC_CHECK_LIB(vtkCommonExecutionModel-${vtk_full_version}, main)
+            AC_CHECK_LIB(vtkIOLegacy-${vtk_full_version}, main)
+            AC_CHECK_LIB(vtkFiltersGeneral-${vtk_full_version}, main)
         fi
     fi
 fi
