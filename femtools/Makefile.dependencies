@@ -344,7 +344,7 @@ Elements.o ../include/elements.mod: Elements.F90 \
 	@true
 
 Embed_Python_Fortran.o ../include/embed_python.mod: Embed_Python_Fortran.F90 \
-   ../include/fdebug.h ../include/fldebug.mod ../include/global_parameters.mod
+   ../include/fdebug.h ../include/fldebug.mod
 
 ../include/eventcounter.mod: EventCounter.o
 	@true
@@ -536,7 +536,7 @@ Global_Parameters.o ../include/global_parameters.mod: Global_Parameters.F90 \
 	@true
 
 Grundmann_Moeller_Quadrature.o ../include/grundmann_moeller_quadrature.mod: \
-   Grundmann_Moeller_Quadrature.F90 ../include/global_parameters.mod
+   Grundmann_Moeller_Quadrature.F90
 
 ../include/halo_data_types.mod: Halo_Data_Types.o
 	@true
@@ -724,7 +724,7 @@ Linked_Lists.o ../include/linked_lists.mod: Linked_Lists.F90 \
 	@true
 
 MPI_Interfaces.o ../include/mpi_interfaces.mod: MPI_Interfaces.F90 \
-   ../include/fdebug.h ../include/global_parameters.mod
+   ../include/fdebug.h
 
 ../include/matrix_norms.mod: Matrix_Norms.o
 	@true
@@ -807,8 +807,7 @@ Multigrid.o ../include/multigrid.mod: Multigrid.F90 ../include/fdebug.h \
 Node_Owner_Finder_Fortran.o ../include/node_owner_finder.mod: \
    Node_Owner_Finder_Fortran.F90 ../include/data_structures.mod \
    ../include/element_numbering.mod ../include/fdebug.h ../include/fields.mod \
-   ../include/fldebug.mod ../include/futils.mod \
-   ../include/global_parameters.mod ../include/mpi_interfaces.mod \
+   ../include/fldebug.mod ../include/futils.mod ../include/mpi_interfaces.mod \
    ../include/parallel_fields.mod ../include/parallel_tools.mod
 
 ../include/node_ownership.mod: Node_Ownership.o
@@ -925,7 +924,7 @@ Polynomials.o ../include/polynomials.mod: Polynomials.F90 ../include/fdebug.h \
 	@true
 
 Profiler_Fortran.o ../include/profiler.mod: Profiler_Fortran.F90 \
-   ../include/fields.mod ../include/global_parameters.mod
+   ../include/fields.mod
 
 Pseudo_2D.o : Pseudo_2D.F90 ../include/node_boundary.mod
 
@@ -1164,9 +1163,9 @@ Supermesh.o ../include/supermesh_construction.mod: Supermesh.F90 \
    ../include/elements.mod ../include/fdebug.h ../include/fields_allocates.mod \
    ../include/fields_base.mod ../include/fields_data_types.mod \
    ../include/fields_manipulation.mod ../include/fldebug.mod \
-   ../include/futils.mod ../include/global_parameters.mod \
-   ../include/linked_lists.mod ../include/metric_tools.mod \
-   ../include/sparse_tools.mod ../include/tetrahedron_intersection_module.mod \
+   ../include/futils.mod ../include/linked_lists.mod \
+   ../include/metric_tools.mod ../include/sparse_tools.mod \
+   ../include/tetrahedron_intersection_module.mod \
    ../include/transform_elements.mod ../include/unify_meshes_module.mod
 
 ../include/supermesh_assembly.mod: Supermesh_Assembly.o
@@ -1227,8 +1226,7 @@ Tetrahedron_intersection.o ../include/tetrahedron_intersection_module.mod: \
 	@true
 
 Timers.o ../include/timers.mod: Timers.F90 ../include/fdebug.h \
-   ../include/fldebug.mod ../include/global_parameters.mod \
-   ../include/mpi_interfaces.mod
+   ../include/fldebug.mod ../include/mpi_interfaces.mod
 
 ../include/transform_elements.mod: Transform_elements.o
 	@true
@@ -1297,7 +1295,7 @@ Vertical_Extrapolation.o ../include/vertical_extrapolation_module.mod: \
 	@true
 
 Wandzura_Quadrature.o ../include/wandzura_quadrature.mod: \
-   Wandzura_Quadrature.F90 ../include/global_parameters.mod
+   Wandzura_Quadrature.F90
 
 ../include/write_gmsh.mod: Write_GMSH.o
 	@true
@@ -1347,7 +1345,7 @@ python_state.o ../include/python_state.mod: python_state.F90 \
 	@true
 
 qsortd.o ../include/quicksort.mod: qsortd.F90 ../include/fdebug.h \
-   ../include/fldebug.mod ../include/global_parameters.mod
+   ../include/fldebug.mod
 
 signal_handlers.o : signal_handlers.F90 ../include/fdebug.h \
    ../include/fldebug.mod ../include/signal_vars.mod

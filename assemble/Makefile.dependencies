@@ -532,7 +532,7 @@ Mba2d_Integration.o ../include/mba2d_integration.mod: Mba2d_Integration.F90 \
 Mba3d_Integration.o ../include/mba3d_integration.mod: Mba3d_Integration.F90 \
    ../include/adapt_integration.mod ../include/elements.mod \
    ../include/fdebug.h ../include/fields.mod ../include/fldebug.mod \
-   ../include/futils.mod ../include/global_parameters.mod ../include/halos.mod \
+   ../include/futils.mod ../include/halos.mod \
    ../include/limit_metric_module.mod ../include/node_locking.mod \
    ../include/parallel_tools.mod ../include/quadrature.mod ../include/spud.mod \
    ../include/surface_id_interleaving.mod
