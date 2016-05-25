@@ -292,10 +292,7 @@
          integer :: istate_fluid, istate_particle
    
          ! Types of drag correlation
-         integer, parameter :: DRAG_CORRELATION_TYPE_STOKES = 1, DRAG_CORRELATION_TYPE_WEN_YU = 2, DRAG_CORRELATION_TYPE_ERGUN = 3
-         integer, parameter :: DRAG_CORRELATION_TYPE_SCHILLER_NAUMANN = 4
-         integer, parameter :: DRAG_CORRELATION_TYPE_LAIN_1_1999= 5
-         integer, parameter :: DRAG_CORRELATION_TYPE_LAIN_2_2002 = 6         
+         integer, parameter :: DRAG_CORRELATION_TYPE_STOKES = 1, DRAG_CORRELATION_TYPE_WEN_YU = 2, DRAG_CORRELATION_TYPE_ERGUN = 3, DRAG_CORRELATION_TYPE_SCHILLER_NAUMANN = 4, DRAG_CORRELATION_TYPE_LAIN_1_1999= 5, DRAG_CORRELATION_TYPE_LAIN_2_2002 = 6         
          
          ewrite(1, *) "Entering add_fluid_particle_drag"
          
@@ -369,18 +366,18 @@
 
                type(scalar_field), pointer :: vfrac_fluid, vfrac_particle
                type(scalar_field), pointer :: density_fluid, density_particle
-               type(scalar_field), pointer :: pd_scalar_field ! scalar field defining particle diameter 
+               type(scalar_field), pointer :: d_field ! scalar field defining particle diameter 
                type(vector_field), pointer :: velocity_fluid, velocity_particle
                type(vector_field), pointer :: oldu_fluid, oldu_particle
                type(vector_field), pointer :: nu_fluid, nu_particle ! Non-linear approximation to the Velocities
                type(tensor_field), pointer :: viscosity_fluid
                type(scalar_field) :: nvfrac_fluid, nvfrac_particle
                real :: d ! Particle diameter
-               real :: dia_cap_low
+               real :: d_cap_lower
                character(len=OPTION_PATH_LEN) :: drag_correlation_name
-               character(len=OPTION_PATH_LEN) :: pd_field_name ! name of scalar field that defines particle diameter (can be the sauter mean dia)
+               character(len=OPTION_PATH_LEN) :: d_field_name ! name of scalar field that defines particle diameter (can be the sauter mean dia)
                integer :: drag_correlation
-               logical :: have_constant_pd ! checks if the particle diameter is a constant or not 
+               logical :: have_constant_d ! checks if the particle diameter is a constant or not 
 
                ! Get the necessary fields to calculate the drag force
                velocity_fluid => extract_vector_field(state(istate_fluid), "Velocity")
@@ -399,14 +396,14 @@
                   end if
                   if(have_option(trim(state(istate_particle)%option_path)//"/multiphase_properties/particle_diameter")) then
                      call get_option(trim(state(istate_particle)%option_path)//"/multiphase_properties/particle_diameter", d)
-                     have_constant_pd = .true.
-                  else if(have_option(trim(state(istate_particle)%option_path)//"/multiphase_properties/particle_dia_use_scalar_field")) then
-                     call get_option(trim(state(istate_particle)%option_path)//"/multiphase_properties/particle_dia_use_scalar_field", pd_field_name)
-                     pd_scalar_field => extract_scalar_field(state(istate_particle), pd_field_name)
-                     have_constant_pd = .false.
+                     have_constant_d = .true.
+                  else if(have_option(trim(state(istate_particle)%option_path)//"/multiphase_properties/particle_diameter_use_scalar_field")) then
+                     call get_option(trim(state(istate_particle)%option_path)//"/multiphase_properties/particle_diameter_use_scalar_field", d_field_name)
+                     d_field => extract_scalar_field(state(istate_particle), d_field_name)
+                     have_constant_d = .false.
                   end if
 
-                  call get_option(trim(state(istate_particle)%option_path)//"/multiphase_properties/apply_diameter_cap/lower_cap", dia_cap_low, default = 1.0e-12)
+                  call get_option(trim(state(istate_particle)%option_path)//"/multiphase_properties/apply_diameter_cap/lower_cap", d_cap_lower, default = 1.0e-12)
 
                   ! Calculate the non-linear approximation to the PhaseVolumeFractions
                   call allocate(nvfrac_fluid, vfrac_fluid%mesh, "NonlinearPhaseVolumeFraction")
@@ -456,7 +453,7 @@
                                                             nu_fluid, nu_particle, &
                                                             oldu_fluid, oldu_particle, &
                                                             viscosity_fluid, &
-                                                            have_constant_pd, d, pd_scalar_field, dia_cap_low, &
+                                                            have_constant_d, d, d_field, d_cap_lower, &
                                                             drag_correlation)
                      end if
 
@@ -476,7 +473,7 @@
                                                       nu_fluid, nu_particle, &
                                                       oldu_fluid, oldu_particle, &
                                                       viscosity_fluid, &
-                                                      have_constant_pd, dia, pd_scalar_field, dia_cap_low, &
+                                                      have_constant_d, d, d_field, d_cap_lower, &
                                                       drag_correlation)
                                                          
                integer, intent(in) :: ele
@@ -488,14 +485,14 @@
                     
                type(scalar_field), intent(in) :: vfrac_fluid, vfrac_particle
                type(scalar_field), intent(in) :: density_fluid, density_particle
-               type(scalar_field), intent(in) :: pd_scalar_field ! Scalar field representing particle diameter
+               type(scalar_field), intent(in) :: d_field ! Scalar field representing particle diameter
                type(vector_field), intent(in) :: nu_fluid, nu_particle
                type(vector_field), intent(in) :: oldu_fluid, oldu_particle
                type(tensor_field), intent(in) :: viscosity_fluid    
-               real, intent(in) :: dia ! Constant particle diameter 
-               real, intent(in) :: dia_cap_low
+               real, intent(in) :: d ! Constant particle diameter 
+               real, intent(in) :: d_cap_lower
                integer, intent(in) :: drag_correlation
-               logical, intent(in) :: have_constant_pd ! is true if particle diameter is a constant. is false if it is a scalar field (e.g. sauter mean dia)
+               logical, intent(in) :: have_constant_d ! is true if particle diameter is a constant. is false if it is a scalar field (e.g. sauter mean dia)
 
                ! Local variables
                real, dimension(ele_ngi(u,ele)) :: vfrac_fluid_gi, vfrac_particle_gi
@@ -541,15 +538,15 @@
                end do
 
                ! Compute the particle diameter at the Gauss points
-               if(have_constant_pd) then
-                  d_gi = dia
+               if(have_constant_d) then
+                  d_gi = d
                else 
-                  d_gi = ele_val_at_quad(pd_scalar_field, ele)
+                  d_gi = ele_val_at_quad(d_field, ele)
                end if
 
                ! Cap diameter on the lower side to prevent large drag forces
-               WHERE (d_gi<dia_cap_low)
-                  d_gi = dia_cap_low
+               WHERE (d_gi<d_cap_lower)
+                  d_gi = d_cap_lower
                END WHERE
          
                ! Compute the particle Reynolds number
@@ -775,7 +772,7 @@
 
                type(scalar_field), pointer :: vfrac_fluid, vfrac_particle
                type(scalar_field), pointer :: density_fluid, density_particle
-               type(scalar_field), pointer :: pd_scalar_field ! scalar field defining particle diameter
+               type(scalar_field), pointer :: d_field ! scalar field defining particle diameter
                type(vector_field), pointer :: velocity_fluid, velocity_particle
                type(scalar_field), pointer :: internal_energy_fluid, internal_energy_particle
                type(scalar_field), pointer :: old_internal_energy_fluid, old_internal_energy_particle
@@ -787,8 +784,8 @@
                real :: C_fluid, C_particle ! Specific heat of the fluid and particle phases at constant volume
                real :: gamma ! Ratio of specific heats for compressible phase
                integer :: kstat, cstat_fluid, cstat_particle, gstat
-               character(len=OPTION_PATH_LEN) :: pd_field_name ! name of scalar field that defines particle diameter (can be the sauter mean dia)
-               logical :: have_constant_pd ! checks if the particle diameter is a constant or not 
+               character(len=OPTION_PATH_LEN) :: d_field_name ! name of scalar field that defines particle diameter (can be the sauter mean dia)
+               logical :: have_constant_d ! checks if the particle diameter is a constant or not 
 
                ! Get the necessary fields to calculate the heat transfer term
                velocity_fluid => extract_vector_field(state(istate_fluid), "Velocity")
@@ -803,11 +800,11 @@
          
                   if(have_option(trim(state(istate_particle)%option_path)//"/multiphase_properties/particle_diameter")) then
                      call get_option(trim(state(istate_particle)%option_path)//"/multiphase_properties/particle_diameter", d)
-                     have_constant_pd = .true.
-                  else if(have_option(trim(state(istate_particle)%option_path)//"/multiphase_properties/particle_dia_use_scalar_field")) then
-                     call get_option(trim(state(istate_particle)%option_path)//"/multiphase_properties/particle_dia_use_scalar_field", pd_field_name)
-                     pd_scalar_field => extract_scalar_field(state(istate_particle), pd_field_name)
-                     have_constant_pd = .false.
+                     have_constant_d = .true.
+                  else if(have_option(trim(state(istate_particle)%option_path)//"/multiphase_properties/particle_diameter_use_scalar_field")) then
+                     call get_option(trim(state(istate_particle)%option_path)//"/multiphase_properties/particle_diameter_use_scalar_field", d_field_name)
+                     d_field => extract_scalar_field(state(istate_particle), d_field_name)
+                     have_constant_d = .false.
                   end if
                            
                   call get_option(trim(state(istate_fluid)%option_path)//"/multiphase_properties/effective_conductivity", k, kstat)
@@ -865,7 +862,7 @@
                                                       old_internal_energy_fluid, &
                                                       old_internal_energy_particle, &
                                                       viscosity_fluid, &
-                                                      have_constant_pd, d, pd_scalar_field, &
+                                                      have_constant_d, d, d_field, &
                                                       k, C_fluid, &
                                                       C_particle, gamma)
                      end if
@@ -889,7 +886,7 @@
                                                 old_internal_energy_fluid, &
                                                 old_internal_energy_particle, &
                                                 viscosity_fluid, &
-                                                have_constant_pd, dia, pd_scalar_field, &
+                                                have_constant_d, d, d_field, &
                                                 k, C_fluid, &
                                                 C_particle, gamma)
                                                          
@@ -903,14 +900,14 @@
                     
                type(scalar_field), intent(in) :: vfrac_fluid, vfrac_particle
                type(scalar_field), intent(in) :: density_fluid, density_particle
-               type(scalar_field), intent(in) :: pd_scalar_field ! Scalar field representing particle diameter
+               type(scalar_field), intent(in) :: d_field ! Scalar field representing particle diameter
                type(vector_field), intent(in) :: nu_fluid, nu_particle
                type(scalar_field), intent(in) :: internal_energy_fluid, internal_energy_particle
                type(scalar_field), intent(in) :: old_internal_energy_fluid, old_internal_energy_particle
                type(tensor_field), intent(in) :: viscosity_fluid    
-               real, intent(in) :: dia ! Constant particle diameter 
+               real, intent(in) :: d ! Constant particle diameter 
                real, intent(in) :: k, C_fluid, C_particle, gamma
-               logical, intent(in) :: have_constant_pd ! is true if particle diameter is a constant. is false if it is a scalar field (e.g. sauter mean dia)
+               logical, intent(in) :: have_constant_d ! is true if particle diameter is a constant. is false if it is a scalar field (e.g. sauter mean dia)
                
                ! Local variables
                real, dimension(ele_ngi(x,ele)) :: internal_energy_fluid_gi, internal_energy_particle_gi
@@ -958,10 +955,10 @@
                end do
 
                ! Compute the particle diameter at quadrature points
-               if(have_constant_pd) then
-                  d_gi = dia
+               if(have_constant_d) then
+                  d_gi = d
                else 
-                  d_gi = ele_val_at_quad(pd_scalar_field, ele)
+                  d_gi = ele_val_at_quad(d_field, ele)
                end if
 
                ! Compute the particle Reynolds number

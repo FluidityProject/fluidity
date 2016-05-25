@@ -2667,11 +2667,11 @@ with a slightly different definition for the Reynolds number than above:
 \begin{equation}\label{eq:particle_reynolds_number_2}
 \mathrm{Re} = \frac{\rho_f\ d\ |\mathbf{u}_f-\mathbf{u}_p|}{\mu_f}.
 \end{equation}
-The above drag force correlation was developed for spherical and solid dispersed phase but fluid dispersed particles with slight impurities can be modelled using the same. \cite{schiller1935drag} drag has been used for the modelling of dilute bubble columns successfully. 
+The above drag force correlation was developed for a spherical and solid dispersed phase but dispersed fluids with slight impurities can be modelled using the same correlation. \cite{schiller1935drag} drag has been used for the modelling of dilute bubble columns successfully. 
 
-Note that within each dispersed phase, a value for $d$ must be specified in \option{../multiphase\_properties/particle\_diameter} regardless of which drag correlation is used. A scalar field can also be used instead of a constant dispersed phase diameter by choosing the \option{../multiphase\_properties/particle\_dia\_use\_scalar\_field} option instead. The latter option is useful when the multiphase model is coupled to the population balance equation.
+Note that within each dispersed phase, a value for $d$ must be specified in \option{../multiphase\_properties/particle\_diameter} regardless of which drag correlation is used. A scalar field can also be used instead of a constant dispersed phase diameter by choosing the \option{../multiphase\_properties/particle\_dia\_use\_scalar\_field} option instead. The latter option is useful when the multiphase model is coupled to the population balance equation \citep{bhutani2016polydispersed}.
 
-Additionally, it is also possible to cap the dispersed phase diameter, which is useful when using a scalar field for the diameter. For instance, a very small diameter can result in a very large drag force which can result in the code to crash.
+Additionally, it is also possible to cap the dispersed phase diameter, which is useful when using a scalar field for the diameter. For instance, a very small diameter can result in a very large drag force which can result in a failing simulation.
 
 \subsubsection{Inter-phase energy interaction}
 This subsection considers compressible multiphase flow simulations where each phase has its own InternalEnergy field. Users can choose to include the inter-phase heat transfer term by \cite{gunn1978}, denoted $Q$ in Section \ref{sec:multiphase_equations}, on the RHS of each internal energy equation:
