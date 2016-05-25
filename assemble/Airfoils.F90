@@ -70,10 +70,11 @@ module airfoils
   integer, parameter :: MaxAOAVals = 1000
   
   ! Private subroutines
-  private intp, read_airfoil, allocate_airfoil
+  private intp, read_airfoil
  
   ! Public subroutines
-  public airfoil_init_data, compute_aeroCoeffs ,CalcLBStallAOALim 
+  public airfoil_init_data, compute_aeroCoeffs ,CalcLBStallAOALim,allocate_airfoil, copy_airfoil_values
+
 
 contains
    
@@ -96,7 +97,31 @@ contains
     ewrite(1,*) 'Exiting airfoils_init'
 
     end subroutine airfoil_init_data
-    
+
+    subroutine copy_airfoil_values(airfoil1,airfoil2)
+    implicit none
+    type(AirfoilType),intent(INOUT) :: airfoil1,airfoil2
+    ewrite(2,*) 'Entering copy_airfoil_values'
+
+    airfoil1%afname=airfoil2%afname
+    airfoil1%aftitle=airfoil2%aftitle
+    airfoil1%camb=airfoil2%camb
+    airfoil1%tc=airfoil2%tc
+    airfoil1%TA(1:MaxAOAVals,1:MaxReVals)=airfoil2%TA(1:MaxAOAVals,1:MaxReVals)
+    airfoil1%TCL(1:MaxAOAVals,1:MaxReVals)=airfoil2%TCL(1:MaxAOAVals,1:MaxReVals)
+    airfoil1%TCD(1:MaxAOAVals,1:MaxReVals)=airfoil2%TCD(1:MaxAOAVals,1:MaxReVals)
+    airfoil1%TCM(1:MaxAOAVals,1:MaxReVals)=airfoil2%TCM(1:MaxAOAVals,1:MaxReVals)
+    airfoil1%TRE(1:MaxReVals)=airfoil2%TRE(1:MaxReVals)
+    airfoil1%nTBL(1:MaxReVals)=airfoil2%nTBL(1:MaxReVals)
+    airfoil1%alstlp(1:MaxReVals)=airfoil2%alstlp(1:MaxReVals)
+    airfoil1%alstln(1:MaxReVals)=airfoil2%alstln(1:MaxReVals)
+    airfoil1%CLaData(1:MaxReVals)=airfoil2%CLaData(1:MaxReVals)
+    airfoil1%CLCritPData(1:MaxReVals)=airfoil2%CLCritPData(1:MaxReVals)
+    airfoil1%CLCritNData(1:MaxReVals)=airfoil2%CLCritNData(1:MaxReVals)
+
+    ewrite(2,*) 'Exiting copy_airfoil_values'
+
+    end subroutine copy_airfoil_values
     !GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
     ! These routines have been taken directly out of CACTUS and changed
     ! slightly so they fit the needs of the present coupling
@@ -286,7 +311,7 @@ contains
     type(AirfoilType),intent(INOUT) :: airfoil
     integer, intent(IN) :: MaxAOAVals,MaxReVals
 
-    ewrite(1,*) 'In allocate_airfoil'
+    ewrite(1,*) 'In allocate_airfoil -- ', airfoil%afname
     allocate(airfoil%TA(MaxAOAVals,MaxReVals))
     allocate(airfoil%TCL(MaxAOAVals,MaxReVals))
     allocate(airfoil%TCD(MaxAOAVals,MaxReVals))
@@ -350,7 +375,6 @@ contains
     ! Leishman-Beddoes model
    
     if(lb_model%StallFlag) then
-    write(*,*) 'Hi there'
     Call LB_DynStall(airfoil,lb_model,CL5,CD5,alphaL,alpha5,umach,Re,CLdyn5,CDdyn5) 
     CL5=CLdyn5
     CD5=CDdyn5  

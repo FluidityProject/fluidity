@@ -35,90 +35,6 @@ module alturbine_utils
 
 contains 
  
-    !SUBROUTINE CalcBEGeom(BNum)
-
-    !    implicit none
-
-    !    integer :: BNum
-    !    integer :: nbe, nei, FlipN, nej, j
-    !    real :: sEM, tEM, nEM
-    !    real :: PE(3), sE(3), tE(3), normE(3), P1(3), P2(3), P3(3), P4(3), V1(3), V2(3), V3(3), V4(3), A1(3), A2(3)
-
-    !    ! Calculates element geometry from element end geometry
-
-    !    ! JCM: Eventually, should just be able to loop through Blades(BNum) data structure
-    !    ! While data is still held in arrays concatenated across blades, need to replicate
-    !    ! nbe (stored in configr) from Blades(1).NElem
-    !    nbe=Blades(1)%NElem
-
-    !    FlipN=Blades(BNum)%FlipN
-
-    !    nei=1+(BNum-1)*(nbe+1)
-
-    !    do j=1,nbe
-    !        nej=nei+j
-
-    !        ! Element center locations
-    !        xBC(nej)=(xBE(nej)+xBE(nej-1))/2.0
-    !        yBC(nej)=(yBE(nej)+yBE(nej-1))/2.0
-    !        zBC(nej)=(zBE(nej)+zBE(nej-1))/2.0
-
-    !        ! Set spanwise and tangential vectors
-	!	    sE=-(/xBE(nej)-xBE(nej-1),yBE(nej)-yBE(nej-1),zBE(nej)-zBE(nej-1)/) ! nominal element spanwise direction set opposite to QC line
-	!	    sEM=sqrt(dot_product(sE,sE))
-	!	    sE=sE/sEM
-	!	    tE=(/txBE(nej)+txBE(nej-1),tyBE(nej)+tyBE(nej-1),tzBE(nej)+tzBE(nej-1)/)/2.0
-	!	    ! Force tE normal to sE
-	!	    tE=tE-dot_product(tE,sE)*sE
-	!	    tEM=sqrt(dot_product(tE,tE))
-	!	    tE=tE/tEM
-	!	    sxBC(nej)=sE(1)
-	!	    syBC(nej)=sE(2)
-	!	    szBC(nej)=sE(3)
-    !        txBC(nej)=tE(1)
-    !        tyBC(nej)=tE(2)
-    !        tzBC(nej)=tE(3)
-
-	!	    ! Calc normal vector
-	!	    Call cross(sE(1),sE(2),sE(3),tE(1),tE(2),tE(3),normE(1),normE(2),normE(3))
-	!	    nEM=sqrt(dot_product(normE,normE))
-	!	    normE=normE/nEM
-	!	    nxBC(nej)=normE(1)
-	!	    nyBC(nej)=normE(2)
-	!	    nzBC(nej)=normE(3)
-
-	!	    ! Flip normal direction if requested
-	!	    CircSign(nej)=1.0
-	!	    if (FlipN .eq. 1) then
-	!            nxBC(nej)=-nxBC(nej)
-	!            nyBC(nej)=-nyBC(nej)
-	!            nzBC(nej)=-nzBC(nej)
-    !            sxBC(nej)=-sxBC(nej)
-    !            syBC(nej)=-syBC(nej)
-    !            szBC(nej)=-szBC(nej)
-    !            CircSign(nej)=-1.0
-	!	    end if
-
-	!	    ! Calc element area and chord
-	!	    P1=(/xBE(nej-1)-0.25*CtoR(nej-1)*txBE(nej-1),yBE(nej-1)-0.25*CtoR(nej-1)*tyBE(nej-1),zBE(nej-1)-0.25*CtoR(nej-1)*tzBE(nej-1)/)
-	!	    P2=(/xBE(nej-1)+0.75*CtoR(nej-1)*txBE(nej-1),yBE(nej-1)+0.75*CtoR(nej-1)*tyBE(nej-1),zBE(nej-1)+0.75*CtoR(nej-1)*tzBE(nej-1)/)
-	!	    P3=(/xBE(nej)+0.75*CtoR(nej)*txBE(nej),yBE(nej)+0.75*CtoR(nej)*tyBE(nej),zBE(nej)+0.75*CtoR(nej)*tzBE(nej)/)
-	!	    P4=(/xBE(nej)-0.25*CtoR(nej)*txBE(nej),yBE(nej)-0.25*CtoR(nej)*tyBE(nej),zBE(nej)-0.25*CtoR(nej)*tzBE(nej)/)
-	!	    V1=P2-P1
-	!	    V2=P3-P2
-	!	    V3=P4-P3
-	!	    V4=P1-P4
-	!	    ! Calc quad area from two triangular facets
-	!	    Call cross(V1(1),V1(2),V1(3),V2(1),V2(2),V2(3),A1(1),A1(2),A1(3))
-	!	    A1=A1/2.0
-    !        Call cross(V3(1),V3(2),V3(3),V4(1),V4(2),V4(3),A2(1),A2(2),A2(3))
-    !        A2=A2/2.0
-	!	    eArea(nej)=sqrt(dot_product(A1,A1))+sqrt(dot_product(A2,A2))
-	!	    ! Calc average element chord from area and span
-	!	    eChord(nej)=eArea(nej)/sEM
-
-    !    end do
-    !End SUBROUTINE CalcBEGeom
     
 
     SUBROUTINE cross(ax,ay,az,bx,by,bz,cx,cy,cz) 
@@ -181,5 +97,49 @@ contains
         vRz=pR(4,1)+Oz
 
     end subroutine QuatRot
+   
+    integer function FindMinimum(x,Start,End)
+    implicit none
+    integer, dimension(1:),intent(in) :: x
+    integer, intent(in)               :: Start, End
+    integer                           :: Minimum
+    integer                           :: Location
+    integer                           :: i
 
+    minimum = x(start)
+    Location = Start 
+    do i=start+1,End
+        if(x(i) < Minimum) then
+            Minimum = x(i)
+            Location = i 
+        end if
+    end do
+    FindMinimum = Location
+    end function FindMinimum
+
+    subroutine swap(a,b)
+    implicit none
+    integer, intent(inout) :: a,b
+    integer                :: Temp
+
+    Temp = a
+    a = b
+    b = Temp
+    end subroutine swap
+
+    subroutine sort(x,size)
+    implicit none
+    integer, dimension(1:), intent(INOUT) :: x
+    integer, intent(in)                   :: size
+    integer                               :: i 
+    integer                               :: Location
+
+    do i=1,Size-1
+        location=FindMinimum(x,i,size)
+        call swap(x(i),x(Location))
+    end do
+    end subroutine
+
+
+ 
 end module alturbine_utils

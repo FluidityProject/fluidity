@@ -407,7 +407,7 @@ contains
     !GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
     ! initilise the Actuator Line Model 
     if (have_option("/ALM_Turbine")) then
-        call turbine_init(state)
+        call turbine_init(state(1))
     end if
     !GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
 
@@ -745,6 +745,14 @@ contains
           if(option_count("/material_phase/scalar_field/prognostic/spatial_discretisation/coupled_cv")>0) then
              call coupled_cv_field_eqn(state, global_it=its)
           end if
+          
+          ! If the ALTurbine Model is switched on then move turbine and compute the 
+          ! forcing terms to be added to the momentum equation
+          if (have_option("/ALM_Turbine")) then
+            call turbine_timeloop(State(1),exclude_nonrecalculated=.true.)
+          end if
+          
+          
           !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
           !
           ! Assemble and solve N.S equations.
@@ -853,12 +861,7 @@ contains
        call calculate_diagnostic_variables(State, exclude_nonrecalculated=.true.)
        call calculate_diagnostic_variables_new(state, exclude_nonrecalculated = .true.)
           
-       ! If the ALTurbine Model is switched on then move turbine and compute the 
-          ! forcing terms to be added to the momentum equation
-          if (have_option("/ALM_Turbine")) then
-            call turbine_timeloop(State,exclude_nonrecalculated=.true.)
-          end if
-          
+
        ! Call the modern and significantly less satanic version of study
        call write_diagnostics(state, current_time, dt, timestep)
        ! Work out the domain volume by integrating the water depth function over the surface if using wetting and drying
