@@ -10,7 +10,7 @@ extern "C" {
     double* nodes;
     int* node_ids;
     int* ndglno;
-    int* region_ids;
+    double* region_ids;
     int* facets;
     int* face_ids;
     double* holes;
@@ -44,6 +44,10 @@ void mesh_data_cleanup(struct mesh_data* mesh, int* dim){
     delete mesh->facets;
     mesh->facets = NULL;
   }
+  if (mesh->facets) {
+    delete mesh->region_ids;
+    mesh->region_ids = NULL;
+  }
   break;
   }
   }
@@ -57,6 +61,13 @@ extern "C" {
   void* mesh_to_tetgenio(struct mesh_data* mesh);
   struct mesh_data tetgenio_to_mesh(void* out);
     }
+
+void tet_average(double x[3],double p1[3],double p2[3],
+		 double p3[3], double p4[3]){
+  for (int i=0;i<3;i++) {
+    x[i]=(p1[i]+p2[i]+p3[i]+p4[i])/4.0;
+      }
+}
 
 void* mesh_to_tetgenio(struct mesh_data* mesh) {
   tetgenio* out;
@@ -95,8 +106,33 @@ void* mesh_to_tetgenio(struct mesh_data* mesh) {
   out->tetrahedronlist = mesh->ndglno;
 
   
+
+
   out->numberofholes = mesh->nholes;
   out->holelist=mesh->holes;
+
+
+  //  out->numberofholes = 0;
+  //  out-> holelist = NULL;
+
+  out->numberofregions = 1;
+  out->regionlist = new double[5*out->numberofregions];
+
+  tet_average(out->regionlist,
+        &(mesh->nodes[3*mesh->ndglno[0]]),
+	      &(mesh->nodes[3*mesh->ndglno[1]]),
+  	      &(mesh->nodes[3*mesh->ndglno[2]]),
+  	      &(mesh->nodes[3*mesh->ndglno[3]]));
+  out->regionlist[3]=1.0;
+  out->regionlist[4]=0.0;
+
+   // for(int i=0;i<mesh->nholes;i++){
+   //   for(int j=0;j<3;j++){
+   //     out->regionlist[5*(i+1)+j]=mesh->holes[3*i+j];
+   //   }
+   //   out->regionlist[5*(i+1)+3]=-1.0*i;
+   //   out->regionlist[5*(i+1)+4]=0.0;
+   // } 
 
   return (void*) out;
 }
@@ -120,6 +156,9 @@ struct mesh_data tetgenio_to_mesh(void* context){
   //  We ignore the holes
   //  out.nholes=in->numberofholes;
   //  out.holes=in->holelist;
+
+  out.lregion_ids = in->numberoftetrahedronattributes;
+  out.region_ids = in->tetrahedronattributelist;
 
   return out;
 }
@@ -150,6 +189,9 @@ struct mesh_data tetgen(struct mesh_data* input_mesh,char* command){
   output.pointlist = NULL;
   output.numberoftetrahedra = 0;
   output.tetrahedronlist = NULL;
+
+  output.numberoftetrahedronattributes = 0;
+  output.tetrahedronattributelist = NULL;
 
   return output_mesh;
 }

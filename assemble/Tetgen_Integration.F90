@@ -175,10 +175,10 @@ module tetgen_integration
 
       integer :: dim, nloc, snloc, reg
       type(mesh_data) :: input, output(size(regions))
-      integer(c_int), pointer, dimension(:) :: idata_1d
+      integer(c_int), pointer, dimension(:,:) :: idata_2d
       real(c_double), pointer, dimension(:,:) :: rdata_2d, holes
 
-      integer :: i, j, n_surface_elements, nholes, fixed_eles
+      integer :: i, j, n_surface_elements, nholes, fixed_eles, nelements
       integer, dimension(size(regions)) :: extra_nodes
       integer, dimension(:), pointer :: snlist
       type int_ptr
@@ -260,7 +260,7 @@ module tetgen_integration
 
       ewrite(1,*) 'Remeshing regions:', regions
 
-      if (isparallel()) then
+      if (isparallel() .and. .false.) then
          nholes=0
          allocate(holes(dim,0))
       else
@@ -309,7 +309,7 @@ module tetgen_integration
 #endif
          case(3)
 #ifdef HAVE_LIBTET
-            output(reg) = tetgen(input, "YYYCS0ps5ss20"//C_NULL_CHAR)
+            output(reg) = tetgen(input, "YYYpABMFO2/1"//C_NULL_CHAR)
 #else
             FLExit("Fluidity compiled without tetgen support")
 #endif
@@ -321,12 +321,13 @@ module tetgen_integration
       end do
 
       ewrite(1,*) "nodes:", node_count(input_positions)+sum(extra_nodes)
-      ewrite(1,*) "elements:", sum(output%nelements)+fixed_eles
-
+      nelements = count_interior_elements(output)+fixed_eles
+      ewrite(1,*) "elements:", nelements
+      
       allocate(output_mesh)
       call allocate(output_mesh,&
            node_count(input_positions)+sum(extra_nodes), &
-           sum(output%nelements)+fixed_eles, input_positions%mesh%shape, &
+           nelements, input_positions%mesh%shape, &
            name = input_positions%mesh%name)
       output_mesh%shape%refcount%tagged = .false.
       output_mesh%shape%quadrature%refcount%tagged = .false.
@@ -335,26 +336,28 @@ module tetgen_integration
       end if
       if (use_submesh) then
          do reg=1, size(regions)
-            call c_f_pointer(output(reg)%ndglno, idata_1d,&
-                 [nloc*output(reg)%nelements])
+            call c_f_pointer(output(reg)%ndglno, idata_2d,&
+                 [nloc,output(reg)%nelements])
             call add_free_elements(input_positions%mesh,&
-                 output_mesh, sum(output(1:reg-1)%nelements),&
+                 output(reg), output_mesh,&
+                 count_interior_elements(output(1:reg-1)),&
                  node_count(submesh(reg)),&
                  node_count(input_positions)+sum(extra_nodes(1:reg-1)),&
-                 idata_1d, node_list(reg)%ptr, regions(reg))
+                 idata_2d, node_list(reg)%ptr, regions(reg))
             call deallocate(submesh(reg))
             deallocate(node_list(reg)%ptr)
          end do
          call add_fixed_elements(input_positions%mesh,&
-                 output_mesh, sum(output%nelements), validity)
+                 output_mesh, count_interior_elements(output), validity)
       else
          j=0
-         do reg=1,size(regions)
-            call c_f_pointer(output(reg)%ndglno, idata_1d,&
-                 [nloc*output(reg)%nelements])
-            output_mesh%ndglno(j+1:j+nloc*output(reg)%nelements)=idata_1d(:)
-            j=j+nloc*output(reg)%nelements
-         end do
+         call c_f_pointer(output(1)%ndglno, idata_2d,&
+              [nloc,output(1)%nelements])
+         call add_free_elements(input_positions%mesh,&
+              output(1), output_mesh,&
+              0, node_count(input_positions),&
+              node_count(input_positions),&
+              idata_2d, node_list(1)%ptr, -1)
       end if
       output_mesh%option_path = input_positions%mesh%option_path 
 
@@ -530,29 +533,41 @@ module tetgen_integration
 
     end subroutine get_surfaces
 
-    subroutine add_free_elements(xmesh, output_mesh, offset,&
+    subroutine add_free_elements(xmesh, imesh, output_mesh, offset,&
          free_nodes, original_nodes, data, node_list, region)
       type(mesh_type), intent(in) :: xmesh
+      type(mesh_data), intent(in) :: imesh
       type(mesh_type), intent(inout) :: output_mesh
       integer, intent(in) :: offset, free_nodes, original_nodes, region
-      integer, intent(in), dimension(:) :: data, node_list
+      integer, intent(in), dimension(:,:) :: data
+      integer, intent(in), dimension(:) :: node_list
 
-      integer :: i, nloc
+      logical, dimension(imesh%nelements) :: interior
+      
+      integer :: i, j, k, nloc
 
       print*, 'offset:', offset
 
       nloc =ele_loc(xmesh,1)
 
-      do i=1,size(data)
-         if (data(i)<=size(node_list)) then
-            output_mesh%ndglno(i+nloc*offset)=node_list(data(i))
-         else
-            output_mesh%ndglno(i+nloc*offset)=data(i)-free_nodes+original_nodes
-         end if   
+      interior = get_interior_elements(imesh)
+
+      k=0
+      do j = 1,imesh%nelements
+         if (.not. interior(j)) cycle
+         do i=1,nloc
+            if (data(i,j)<=size(node_list)) then
+               output_mesh%ndglno(i+nloc*(offset+k))=node_list(data(i,j))
+            else
+               output_mesh%ndglno(i+nloc*(offset+k))=data(i,j)&
+                    -free_nodes+original_nodes
+            end if
+         end do
+         k=k+1 
       end do
 
       if (associated(output_mesh%region_ids)) then
-         output_mesh%region_ids(offset+1:offset+size(data)/nloc) = region
+         output_mesh%region_ids(offset+1:offset+count(interior)) = region
       end if
       
     end subroutine add_free_elements
@@ -600,6 +615,43 @@ module tetgen_integration
       allocate(region_id_nos(j))
       region_id_nos = tmp_region_id_nos(1:j)
     end subroutine count_regions
+
+    function count_interior_elements(mesh) result(out)
+      type(mesh_data), intent(in), dimension(:) :: mesh
+      integer :: i, out
+
+      out = 0
+      do i=1, size(mesh)
+         out = out + count(get_interior_elements(mesh(i)))
+      end do
+
+    end function count_interior_elements
+    
+    real function get_max_region(mesh)
+
+      type(mesh_data), intent(in) :: mesh
+
+      real(c_double), pointer, dimension(:,:) :: region_ids
+
+      call c_f_pointer(mesh%region_ids,region_ids,&
+           [mesh%lregion_ids,mesh%nelements])
+
+      get_max_region = maxval(region_ids(1,:))
+
+    end function get_max_region
+
+    function get_interior_elements(mesh) result(out)
+      type(mesh_data), intent(in) :: mesh
+      logical, dimension(mesh%nelements) :: out
+
+      real(c_double), pointer, dimension(:,:) :: region_ids
+
+      call c_f_pointer(mesh%region_ids,region_ids,&
+           [mesh%lregion_ids,mesh%nelements])
+      out = region_ids(1,:)>0.0
+
+     end function get_interior_elements
+      
 
   end module tetgen_integration
 
