@@ -821,7 +821,7 @@ if test "$with_tetgen" = "yes" ; then
     OLDCPPFLAGS="$CPPFLAGS"
     if test -d "$with_tetgenroot" ; then
       LIBS="$LIBS -L$with_tetgenroot/lib -ltet"
-      CPPFLAGS="$CPPFLAGS -I$with_triangle/include"
+      CPPFLAGS="$CPPFLAGS -I$with_tetgenroot/include"
     else
       LIBS="$LIBS -ltet"
     fi
@@ -857,8 +857,8 @@ if test "$with_triangle" = "yes" ; then
     OLDLIBS="$LIBS"
     OLDCPPFLAGS="$CPPFLAGS"
     if test -d "$with_triangleroot" ; then
-      LIBS="$LIBS -L$with_triangle/lib -ltriangle"
-      CPPFLAGS="$CPPFLAGS -I$with_triangle/include"
+      LIBS="$LIBS -L$with_triangleroot/lib -ltriangle"
+      CPPFLAGS="$CPPFLAGS -I$with_triangleroot/include"
     else
       LIBS="$LIBS -ltriangle"
     fi

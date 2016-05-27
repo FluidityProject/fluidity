@@ -57,6 +57,7 @@ module tetgen_integration
      type(c_ptr)    :: facets
      type(c_ptr)    :: face_ids
      type(c_ptr)    :: holes
+     type(c_ptr)    :: element_adjacency
   end type mesh_data
 
   public tetgenerate_mesh
@@ -181,6 +182,7 @@ module tetgen_integration
       integer :: i, j, n_surface_elements, nholes, fixed_eles, nelements
       integer, dimension(size(regions)) :: extra_nodes
       integer, dimension(:), pointer :: snlist
+      integer(c_int), dimension(:), pointer :: eelist
       type int_ptr
          integer, dimension(:), pointer :: ptr
       end type int_ptr
@@ -208,6 +210,7 @@ module tetgen_integration
               type(c_ptr)    :: facets
               type(c_ptr)    :: face_ids
               type(c_ptr)    :: holes
+              type(c_ptr)    :: element_adjacency
            end type mesh_data
            type(mesh_data) :: mesh
            character(kind=c_char) :: command(*)
@@ -228,6 +231,7 @@ module tetgen_integration
               type(c_ptr)    :: facets
               type(c_ptr)    :: face_ids
               type(c_ptr)    :: holes
+              type(c_ptr)    :: element_adjacency
            end type mesh_data
            type(mesh_data) :: mesh
            character(kind=c_char) :: command(*)
@@ -247,6 +251,7 @@ module tetgen_integration
               type(c_ptr)    :: facets
               type(c_ptr)    :: face_ids
               type(c_ptr)    :: holes
+              type(c_ptr)    :: element_adjacency
            end type mesh_data
            type(mesh_data) :: mesh
            integer(c_int) :: dim
@@ -274,7 +279,9 @@ module tetgen_integration
 
       n_surface_elements = surface_element_count(input_positions)
 
-      use_submesh = isparallel() .or. (regions(1) >= 0)
+      use_submesh = isparallel() .or. (regions(1) >= 0) 
+
+      use_submesh = .false.
 
       if (use_submesh) then
          call get_validity(input_positions%mesh, regions, validity)
@@ -284,7 +291,7 @@ module tetgen_integration
       do reg = 1, size(regions) 
          if (use_submesh) then
             call get_free_subdomain(input_positions%mesh,submesh(reg),&
-                 validity, node_list(reg)%ptr, snlist,regions(reg))
+                 validity, node_list(reg)%ptr, snlist, regions(reg))
             allocate(pnodes(dim,node_count(submesh(reg))))
             pnodes = input_positions%val(:,node_list(reg)%ptr)
             input = pack_mesh_data(pnodes,submesh(reg), snlist, holes)
@@ -298,6 +305,7 @@ module tetgen_integration
             input = pack_mesh_data(input_positions%val, input_positions%mesh,&
                  snlist, holes)
             fixed_eles = 0
+            allocate(node_list(reg)%ptr(0))
          end if
 
          select case(dim)
@@ -309,7 +317,7 @@ module tetgen_integration
 #endif
          case(3)
 #ifdef HAVE_LIBTET
-            output(reg) = tetgen(input, "YYYpABMFO2/1"//C_NULL_CHAR)
+            output(reg) = tetgen(input, "YYYpABMFnO2/1"//C_NULL_CHAR)
 #else
             FLExit("Fluidity compiled without tetgen support")
 #endif
@@ -358,6 +366,10 @@ module tetgen_integration
               0, node_count(input_positions),&
               node_count(input_positions),&
               idata_2d, node_list(1)%ptr, -1)
+
+         call c_f_pointer(output(1)%element_adjacency, eelist,&
+              [nloc*output(1)%nelements])
+         deallocate(node_list(1)%ptr)
       end if
       output_mesh%option_path = input_positions%mesh%option_path 
 
@@ -386,7 +398,8 @@ module tetgen_integration
            snlist(1:n_surface_elements * snloc))
       call add_faces(output_mesh,&
            sndgln = snlist,&
-           boundary_ids = input_positions%mesh%faces%boundary_ids)
+           boundary_ids = input_positions%mesh%faces%boundary_ids,&
+           known_eelist = eelist)
       if(associated(input_positions%mesh%faces%coplanar_ids)) then
          allocate(output_mesh%faces%coplanar_ids(n_surface_elements))
          output_mesh%faces%coplanar_ids = input_positions%mesh%faces%coplanar_ids
@@ -430,6 +443,7 @@ module tetgen_integration
       else
          mesh%holes = c_null_ptr
       end if
+      mesh%element_adjacency = c_null_ptr
       
 
     end function pack_mesh_data
@@ -546,8 +560,6 @@ module tetgen_integration
       
       integer :: i, j, k, nloc
 
-      print*, 'offset:', offset
-
       nloc =ele_loc(xmesh,1)
 
       interior = get_interior_elements(imesh)
@@ -602,6 +614,12 @@ module tetgen_integration
 
       integer :: ele, j
       integer, dimension(element_count(mesh)) :: tmp_region_id_nos
+
+      if (.not. associated(mesh%region_ids)) then
+         allocate(region_id_nos(1))
+         region_id_nos(1) = -1
+         return
+      end if
 
       j=0
 

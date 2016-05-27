@@ -43,7 +43,7 @@ module adjacency_lists
 
   private
 
-  public :: MakeLists, nodele, findcommonelements, makeeelist
+  public :: MakeLists, nodele, findcommonelements, makeeelist, eelist_to_sparsity
 
 contains
 
@@ -971,6 +971,36 @@ END SUBROUTINE NODELE
     end do ele_loop
 
   end subroutine FindCommonElements
+
+  subroutine eelist_to_sparsity(mesh, known_eelist)
+    type(mesh_type), intent(in) :: mesh
+    integer, dimension(:), intent(in) :: known_eelist
+
+    type(csr_sparsity), pointer :: eelist, nelist
+    integer ele, noboundaries
+    
+    !! this subroutine builds the mesh eelist sparsity from a flat
+    !! eelist, as generated from tetgen
+
+    allocate(eelist, nelist)
+
+    call MakeLists(mesh, NEList=nelist)
+
+    noboundaries=mesh%shape%numbering%boundaries
+    call allocate(EEList, rows=mesh%elements, columns=mesh%elements, &
+         entries=mesh%elements*noboundaries, name='EEListSparsity')
+    
+
+    EEList%findrm=(/  (1+ele*noboundaries, ele=0,  mesh%elements) /)
+    EEList%colm= merge( known_eelist, 0, known_eelist>0)
+
+    mesh%adj_lists%eelist => eelist
+    mesh%adj_lists%nelist => Nelist
+
+  end subroutine eelist_to_sparsity
+    
+
+  
 
 end module adjacency_lists
 
