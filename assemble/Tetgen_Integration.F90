@@ -48,7 +48,7 @@ module tetgen_integration
   private
 
   type, bind(c) :: mesh_data
-     integer(c_int) :: nnodes, nelements, nfacets, nholes
+     integer(c_int) :: nnodes, nelements, nfacets, nholes, nfaces
      integer(c_int) :: lnode_ids, lregion_ids, lface_ids
      type(c_ptr)    :: nodes 
      type(c_ptr)    :: node_ids
@@ -58,6 +58,8 @@ module tetgen_integration
      type(c_ptr)    :: face_ids
      type(c_ptr)    :: holes
      type(c_ptr)    :: element_adjacency
+     type(c_ptr)    :: faces
+     type(c_ptr)    :: faces_adjacency
   end type mesh_data
 
   public tetgenerate_mesh
@@ -182,7 +184,7 @@ module tetgen_integration
       integer :: i, j, n_surface_elements, nholes, fixed_eles, nelements
       integer, dimension(size(regions)) :: extra_nodes
       integer, dimension(:), pointer :: snlist
-      integer(c_int), dimension(:), pointer :: eelist
+      integer(c_int), dimension(:), pointer :: eelist, faceelist, faces
       type int_ptr
          integer, dimension(:), pointer :: ptr
       end type int_ptr
@@ -201,7 +203,7 @@ module tetgen_integration
            use iso_c_binding
            implicit none
            type, bind(c) :: mesh_data
-              integer(c_int) :: nnodes, nelements, nfacets, nholes
+              integer(c_int) :: nnodes, nelements, nfacets, nholes, nfaces
               integer(c_int) :: lnode_ids, lregion_ids, lface_ids
               type(c_ptr)    :: nodes 
               type(c_ptr)    :: node_ids
@@ -211,6 +213,8 @@ module tetgen_integration
               type(c_ptr)    :: face_ids
               type(c_ptr)    :: holes
               type(c_ptr)    :: element_adjacency
+              type(c_ptr)    :: faces
+              type(c_ptr)    :: faces_adjacency
            end type mesh_data
            type(mesh_data) :: mesh
            character(kind=c_char) :: command(*)
@@ -222,7 +226,7 @@ module tetgen_integration
 
            implicit none
            type, bind(c) :: mesh_data
-              integer(c_int) :: nnodes, nelements, nfacets, nholes
+              integer(c_int) :: nnodes, nelements, nfacets, nholes, nfaces
               integer(c_int) :: lnode_ids, lregion_ids, lface_ids
               type(c_ptr)    :: nodes 
               type(c_ptr)    :: node_ids
@@ -232,6 +236,8 @@ module tetgen_integration
               type(c_ptr)    :: face_ids
               type(c_ptr)    :: holes
               type(c_ptr)    :: element_adjacency
+              type(c_ptr)    :: faces
+              type(c_ptr)    :: faces_adjacency
            end type mesh_data
            type(mesh_data) :: mesh
            character(kind=c_char) :: command(*)
@@ -242,7 +248,7 @@ module tetgen_integration
            use iso_c_binding
            implicit none
            type, bind(c) :: mesh_data
-              integer(c_int) :: nnodes, nelements, nfacets, nholes
+              integer(c_int) :: nnodes, nelements, nfacets, nholes, nfaces
               integer(c_int) :: lnode_ids, lregion_ids, lface_ids
               type(c_ptr)    :: nodes 
               type(c_ptr)    :: node_ids
@@ -252,6 +258,8 @@ module tetgen_integration
               type(c_ptr)    :: face_ids
               type(c_ptr)    :: holes
               type(c_ptr)    :: element_adjacency
+              type(c_ptr)    :: faces
+              type(c_ptr)    :: faces_adjacency
            end type mesh_data
            type(mesh_data) :: mesh
            integer(c_int) :: dim
@@ -317,7 +325,7 @@ module tetgen_integration
 #endif
          case(3)
 #ifdef HAVE_LIBTET
-            output(reg) = tetgen(input, "YYYpABMFnO2/1"//C_NULL_CHAR)
+            output(reg) = tetgen(input, "YYYpABMfnnO2/1"//C_NULL_CHAR)
 #else
             FLExit("Fluidity compiled without tetgen support")
 #endif
@@ -369,6 +377,10 @@ module tetgen_integration
 
          call c_f_pointer(output(1)%element_adjacency, eelist,&
               [nloc*output(1)%nelements])
+         call c_f_pointer(output(1)%faces_adjacency, faceelist,&
+              [2*output(1)%nfaces])
+         call c_f_pointer(output(1)%faces, faces,&
+              [3*output(1)%nfaces])
          deallocate(node_list(1)%ptr)
       end if
       output_mesh%option_path = input_positions%mesh%option_path 
@@ -399,6 +411,8 @@ module tetgen_integration
       call add_faces(output_mesh,&
            sndgln = snlist,&
            boundary_ids = input_positions%mesh%faces%boundary_ids,&
+           known_faces = faces,&
+           face_adjacency = faceelist,&
            known_eelist = eelist)
       if(associated(input_positions%mesh%faces%coplanar_ids)) then
          allocate(output_mesh%faces%coplanar_ids(n_surface_elements))
@@ -444,7 +458,10 @@ module tetgen_integration
          mesh%holes = c_null_ptr
       end if
       mesh%element_adjacency = c_null_ptr
-      
+
+      mesh%nfaces = 0
+      mesh%faces = c_null_ptr
+      mesh%faces_adjacency = c_null_ptr
 
     end function pack_mesh_data
 

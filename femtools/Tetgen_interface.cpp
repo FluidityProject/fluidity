@@ -5,7 +5,7 @@
 
 extern "C" {
   struct mesh_data {
-    int nnodes, nelements, nfacets, nholes;
+    int nnodes, nelements, nfacets, nholes, nfaces;
     int lnode_ids, lregion_ids, lface_ids;
     double* nodes;
     int* node_ids;
@@ -15,6 +15,8 @@ extern "C" {
     int* face_ids;
     double* holes;
     int* element_adjacency;
+    int* faces;
+    int* faces_adjacency;
   };
 void mesh_data_cleanup(struct mesh_data* mesh, int* dim);
 }
@@ -52,6 +54,14 @@ void mesh_data_cleanup(struct mesh_data* mesh, int* dim){
   if (mesh->element_adjacency) {
     delete mesh->element_adjacency;
     mesh->element_adjacency = NULL;
+  }
+  if (mesh->faces) {
+    delete mesh->faces;
+    mesh->faces = NULL;
+  }
+  if (mesh->faces_adjacency) {
+    delete mesh->faces_adjacency;
+    mesh->faces_adjacency = NULL;
   }
   break;
   }
@@ -168,6 +178,10 @@ struct mesh_data tetgenio_to_mesh(void* context){
   // remember how Americans spell
   out.element_adjacency = in->neighborlist;
 
+  out.nfaces = in->numberoftrifaces;
+  out.faces = in->trifacelist;
+  out.faces_adjacency = in->adjtetlist;
+
   return out;
 }
  
@@ -201,6 +215,10 @@ struct mesh_data tetgen(struct mesh_data* input_mesh,char* command){
   output.numberoftetrahedronattributes = 0;
   output.tetrahedronattributelist = NULL;
   output.neighborlist = NULL;
+
+  output.numberoftrifaces=0;
+  output.trifacelist = NULL;
+  output.adjtetlist = NULL;
 
   return output_mesh;
 }

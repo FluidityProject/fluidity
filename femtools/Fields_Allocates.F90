@@ -1103,7 +1103,7 @@ contains
 
   subroutine add_faces(mesh, model, sndgln, sngi, boundary_ids, &
     periodic_face_map, element_owner, incomplete_surface_mesh, &
-    allow_duplicate_internal_facets, known_edges, known_eelist, stat)
+    allow_duplicate_internal_facets, known_faces, face_adjacency, known_eelist, stat)
     !!< Subroutine to add a faces component to mesh. Since mesh may be 
     !!< discontinuous, a continuous model mesh must
     !!< be provided. To avoid duplicate computations, and ensure 
@@ -1162,7 +1162,8 @@ contains
     !! and one copy numbered <=surface_element_count()
     logical, intent(in), optional :: allow_duplicate_internal_facets
     !! known connectivity lists to save time
-    integer, dimension(:), intent(in), optional :: known_edges, known_eelist
+    integer, dimension(:), intent(in), optional :: known_faces, face_adjacency,&
+         known_eelist
     integer, intent(out), optional :: stat
 
     type(integer_hash_table):: lperiodic_face_map
@@ -1342,59 +1343,71 @@ contains
          size(mesh%faces%face_lno), name=mesh%name)
 #endif
 
-    vertices=local_vertices(lmodel%shape%numbering)    
 
-    ! now fill in face_lno
-    eleloop: do ele=1, size(mesh%faces%face_list,1)
+    if (present(known_faces)) then
 
-       faces => row_ival_ptr(mesh%faces%face_list, ele)
-       neigh => row_m_ptr(mesh%faces%face_list, ele)
-       model_ele_glno => ele_nodes(lmodel, ele)
+       !! This only works for linear simplices
 
-       faceloop: do j=1, size(faces)
-          if (ele<neigh(j)) then
-             ! interior face between ele and neigh(j)
-             ! ele<neigh(j) to ensure each pair {ele, neigh(j)} is handled once
+       call process_faces_to_lno(mesh, known_faces, face_adjacency)
 
-             model_ele_glno2 => ele_nodes(lmodel, neigh(j))
-             p=0
-             ! Look for common boundaries by matching common vertices
-             ! Note that we have to use the model mesh here
-             do m=1,size(vertices)
-                do n=1,size(vertices)
-                   if (model_ele_glno(vertices(m))==model_ele_glno2(vertices(n))) then
-                      p=p+1
-                      ele_boundary(p)=m
-                      ele_boundary2(p)=n
-                   end if
+    else
+
+
+       vertices=local_vertices(lmodel%shape%numbering)    
+       
+       ! now fill in face_lno
+       eleloop: do ele=1, size(mesh%faces%face_list,1)
+
+          faces => row_ival_ptr(mesh%faces%face_list, ele)
+          neigh => row_m_ptr(mesh%faces%face_list, ele)
+          model_ele_glno => ele_nodes(lmodel, ele)
+
+          faceloop: do j=1, size(faces)
+             if (ele<neigh(j)) then
+                ! interior face between ele and neigh(j)
+                ! ele<neigh(j) to ensure each pair {ele, neigh(j)} is handled once
+
+                model_ele_glno2 => ele_nodes(lmodel, neigh(j))
+                p=0
+                ! Look for common boundaries by matching common vertices
+                ! Note that we have to use the model mesh here
+                do m=1,size(vertices)
+                   do n=1,size(vertices)
+                      if (model_ele_glno(vertices(m))==model_ele_glno2(vertices(n))) then
+                         p=p+1
+                         ele_boundary(p)=m
+                         ele_boundary2(p)=n
+                      end if
+                   end do
                 end do
-             end do
+                
+                ! Check that we really have found two boundaries.
+                ASSERT(p==lmodel%faces%shape%numbering%vertices)
+                ! (this might break for the case where elements share more than one
+                ! face, but in that case the next few lines are wrong as well)
 
-             ! Check that we really have found two boundaries.
-             ASSERT(p==lmodel%faces%shape%numbering%vertices)
-             ! (this might break for the case where elements share more than one
-             ! face, but in that case the next few lines are wrong as well)
+                mesh%faces%face_lno((faces(j)-1)*snloc+1:faces(j)*snloc)= &
+                     boundary_local_num(ele_boundary(1:p), mesh%shape%numbering)
 
-             mesh%faces%face_lno((faces(j)-1)*snloc+1:faces(j)*snloc)= &
-                  boundary_local_num(ele_boundary(1:p), mesh%shape%numbering)
+                face2=ival(mesh%faces%face_list, neigh(j), ele)
+                
+                mesh%faces%face_lno((face2-1)*snloc+1:face2*snloc)= &
+                     boundary_local_num(ele_boundary2(1:p), mesh%shape%numbering)
 
-             face2=ival(mesh%faces%face_list, neigh(j), ele)
-
-             mesh%faces%face_lno((face2-1)*snloc+1:face2*snloc)= &
-                  boundary_local_num(ele_boundary2(1:p), mesh%shape%numbering)
-
-          else if (neigh(j)<0) then
+             else if (neigh(j)<0) then
 
              ! boundary face:
-             mesh%faces%face_lno((faces(j)-1)*snloc+1:faces(j)*snloc)= &
-                  & boundary_numbering(ele_shape(mesh, ele), j)
+                mesh%faces%face_lno((faces(j)-1)*snloc+1:faces(j)*snloc)= &
+                     & boundary_numbering(ele_shape(mesh, ele), j)
                   
              
-          end if
+             end if
 
-       end do faceloop
-    end do eleloop
-    
+          end do faceloop
+       end do eleloop
+
+    end if
+
     if (present(periodic_face_map)) then  
       call fix_periodic_face_orientation(model, mesh, periodic_face_map)
     else if (present(model)) then
@@ -2394,6 +2407,108 @@ subroutine add_faces_face_list_known_lists(mesh, allow_duplicate_internal_facets
     end if
   
   end subroutine create_surface_mesh
+
+  subroutine process_faces_to_lno(mesh, known_faces, face_adjacency)
+    type(mesh_type), intent(inout) :: mesh
+    integer, dimension(:) , intent(in), target :: known_faces
+    integer, dimension(:) , intent(in) ::face_adjacency
+
+    integer :: iface, face, ele_1, ele_2, i, nfaces, snloc, efaces
+
+    integer, pointer, dimension(:) :: face_vertices, neigh
+
+    nfaces = size(face_adjacency)/2
+    snloc  = mesh%faces%shape%loc
+    efaces = size(ele_neigh(mesh,1))
+
+    do iface=1, nfaces
+       ele_1=face_adjacency(2*iface-1)
+       ele_2=face_adjacency(2*iface)
+
+       face_vertices => known_faces(snloc*(iface-1)+1:snloc*iface)
+
+       if (ele_1>0) then
+          if (ele_2>0) then
+             face = ival(mesh%faces%face_list, ele_1, ele_2)
+          else
+             i=  find_face(ele_nodes(mesh,ele_1), face_vertices)
+             neigh => ele_neigh(mesh,ele_1)
+             face = ival(mesh%faces%face_list, ele_1, neigh(i))
+          end if
+
+          mesh%faces%face_lno((face-1)*snloc+1&
+               :face*snloc)&
+               = find_lno(ele_nodes(mesh,ele_1), face_vertices)
+
+       end if
+
+       if (ele_2>0) then
+          if (ele_1>0) then
+             face = ival(mesh%faces%face_list, ele_2, ele_1)
+          else
+             i=find_face(ele_nodes(mesh,ele_2), face_vertices)
+             neigh => ele_neigh(mesh,ele_2)
+             face = ival(mesh%faces%face_list, ele_2, neigh(i))
+          end if
+
+          mesh%faces%face_lno((face-1)*snloc+1&
+                                 :face*snloc)&
+               = find_lno(ele_nodes(mesh,ele_2), face_vertices)
+       end if
+       
+    end do
+
+
+
+  contains
+    
+
+    pure function find_neigh_no(neighbours,ele)
+      integer, dimension(:), intent(in) :: neighbours
+      integer, intent(in) :: ele
+
+      integer find_neigh_no
+      
+      find_neigh_no = minloc(neighbours, 1, neighbours==ele)
+      
+    end function find_neigh_no
+
+    pure function find_lno(element_nodes,face_nodes)
+
+      integer, dimension(:), intent(in) :: element_nodes
+      integer, dimension(:), intent(in) :: face_nodes
+
+      integer, dimension(size(face_nodes)) :: find_lno
+
+      integer i, j
+
+      do i=1,size(face_nodes)
+         find_lno(i) = minloc(element_nodes, 1, element_nodes==face_nodes(i))
+      end do
+
+    end function find_lno
+
+    pure function find_face(element_nodes,face_nodes)
+
+      integer, dimension(:), intent(in) :: element_nodes
+      integer, dimension(:), intent(in) :: face_nodes
+
+      integer find_face, node
+
+      find_face = 0
+
+      do node =1, size(element_nodes)
+
+         if (.not. any(face_nodes==element_nodes(node))) then
+            find_face = node
+            exit
+         end if
+         
+      end do
+
+    end function find_face
+    
+  end subroutine process_faces_to_lno
     
   logical function SetContains(a, b)
   !!< Auxillary function that returns true if b contains a
