@@ -436,6 +436,8 @@ module tetgen_integration
       integer(c_int), dimension(:), pointer :: snlist
       real(c_double), dimension(:,:), pointer :: holes
       type(mesh_data) :: mesh
+      integer(c_int), pointer :: iptr
+      real(c_double), pointer :: dptr
 
       mesh%nnodes    = node_count(inmesh)
       mesh%nelements = element_count(inmesh)
@@ -445,15 +447,19 @@ module tetgen_integration
       mesh%lnode_ids = 0
       mesh%lregion_ids = 0
       mesh%lface_ids = 0
-
-      mesh%nodes  = c_loc(nodes)
+      
+      dptr => nodes(1,1)
+      mesh%nodes  = c_loc(dptr)
       mesh%node_ids = c_null_ptr
-      mesh%ndglno = c_loc(inmesh%ndglno)
+      iptr => inmesh%ndglno(1)
+      mesh%ndglno = c_loc(iptr)
       mesh%region_ids = c_null_ptr
-      mesh%facets = c_loc(snlist)
+      iptr => snlist(1)
+      mesh%facets = c_loc(iptr)
       mesh%face_ids = c_null_ptr
-      if (mesh%nholes>0) then      
-         mesh%holes = c_loc(holes)
+      if (mesh%nholes>0) then 
+         dptr => holes(1,1)
+         mesh%holes = c_loc(dptr)
       else
          mesh%holes = c_null_ptr
       end if
