@@ -32,6 +32,7 @@ module tetgen_integration
   use iso_c_binding
   use fldebug
   use futils, only: present_and_true, int2str
+  use tetgen_data_types
   use data_structures
   use quadrature
   use elements
@@ -46,21 +47,6 @@ module tetgen_integration
   implicit none
   
   private
-
-  type, bind(c) :: mesh_data
-     integer(c_int) :: nnodes, nelements, nfacets, nholes, nfaces
-     integer(c_int) :: lnode_ids, lregion_ids, lface_ids
-     type(c_ptr)    :: nodes 
-     type(c_ptr)    :: node_ids
-     type(c_ptr)    :: ndglno
-     type(c_ptr)    :: region_ids
-     type(c_ptr)    :: facets
-     type(c_ptr)    :: face_ids
-     type(c_ptr)    :: holes
-     type(c_ptr)    :: element_adjacency
-     type(c_ptr)    :: faces
-     type(c_ptr)    :: faces_adjacency
-  end type mesh_data
 
   public tetgenerate_mesh
 
@@ -201,21 +187,10 @@ module tetgen_integration
          
          function tetgen( mesh, command) bind(c)
            use iso_c_binding
+           use tetgen_data_types
+
            implicit none
-           type, bind(c) :: mesh_data
-              integer(c_int) :: nnodes, nelements, nfacets, nholes, nfaces
-              integer(c_int) :: lnode_ids, lregion_ids, lface_ids
-              type(c_ptr)    :: nodes 
-              type(c_ptr)    :: node_ids
-              type(c_ptr)    :: ndglno
-              type(c_ptr)    :: region_ids
-              type(c_ptr)    :: facets
-              type(c_ptr)    :: face_ids
-              type(c_ptr)    :: holes
-              type(c_ptr)    :: element_adjacency
-              type(c_ptr)    :: faces
-              type(c_ptr)    :: faces_adjacency
-           end type mesh_data
+
            type(mesh_data) :: mesh
            character(kind=c_char) :: command(*)
            type(mesh_data) :: tetgen
@@ -223,22 +198,10 @@ module tetgen_integration
 
           function triangle( mesh, command) bind(c)
            use iso_c_binding
+           use tetgen_data_types
 
            implicit none
-           type, bind(c) :: mesh_data
-              integer(c_int) :: nnodes, nelements, nfacets, nholes, nfaces
-              integer(c_int) :: lnode_ids, lregion_ids, lface_ids
-              type(c_ptr)    :: nodes 
-              type(c_ptr)    :: node_ids
-              type(c_ptr)    :: ndglno
-              type(c_ptr)    :: region_ids
-              type(c_ptr)    :: facets
-              type(c_ptr)    :: face_ids
-              type(c_ptr)    :: holes
-              type(c_ptr)    :: element_adjacency
-              type(c_ptr)    :: faces
-              type(c_ptr)    :: faces_adjacency
-           end type mesh_data
+
            type(mesh_data) :: mesh
            character(kind=c_char) :: command(*)
            type(mesh_data) :: triangle
@@ -246,21 +209,10 @@ module tetgen_integration
 
          subroutine mesh_data_cleanup(mesh, dim) bind(c)
            use iso_c_binding
+           use tetgen_data_types
+
            implicit none
-           type, bind(c) :: mesh_data
-              integer(c_int) :: nnodes, nelements, nfacets, nholes, nfaces
-              integer(c_int) :: lnode_ids, lregion_ids, lface_ids
-              type(c_ptr)    :: nodes 
-              type(c_ptr)    :: node_ids
-              type(c_ptr)    :: ndglno
-              type(c_ptr)    :: region_ids
-              type(c_ptr)    :: facets
-              type(c_ptr)    :: face_ids
-              type(c_ptr)    :: holes
-              type(c_ptr)    :: element_adjacency
-              type(c_ptr)    :: faces
-              type(c_ptr)    :: faces_adjacency
-           end type mesh_data
+
            type(mesh_data) :: mesh
            integer(c_int) :: dim
          end subroutine mesh_data_cleanup
