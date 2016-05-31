@@ -472,6 +472,7 @@ delaunay_adaptivity =
            }?
          }?,
          element mesh_hole {
+            attribute name {xsd:string},
             real_dim_vector
          }*
       }

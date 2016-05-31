@@ -548,6 +548,9 @@ Depends on /geometry/ocean_boundaries.</a:documentation>
       </optional>
       <zeroOrMore>
         <element name="mesh_hole">
+          <attribute name="name">
+            <data type="string"/>
+          </attribute>
           <ref name="real_dim_vector"/>
         </element>
       </zeroOrMore>
