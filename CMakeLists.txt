@@ -252,6 +252,21 @@ else()
       "Build and link libmba2d")
 endif()
 
+#CGAL
+if(USE_CGAL)
+   message(STATUS "Link in CGAL support")
+   find_package(CGAL REQUIRED)
+   include(${CGAL_USE_FILE})
+   set(USE_CGAL ON CACHE BOOL
+      "Link to CGAL")
+   add_definitions(-DHAVE_CGAL=yes)
+   set(CGAL_LIBS ${CGAL_LIB} )
+else()
+   message(STATUS "No CGAL support")
+   set(USE_CGAL OFF CACHE BOOL
+      "Link to CGAL")
+endif()
+
 if(NOT FLUIDITY_PACKAGE_LIBS)
   set(FLUIDITY_PACKAGE_LIBS vtkfortran ${spatialindex} adaptivity ${VTK_LIBRARIES} ${MPI_LIBRARIES} ${ZOLTAN_LIB} -L${PETSC_LIB_DIR} ${PETSC_PACKAGE_LIBS} ${PETSC_LIB} ${HYPRE_LIB} ${EXODUSII_LIB} ${SPUD_LIB} ${JUDY_LIB} ${UDUNITS_LIB} ${MBA2D_LIBS} ${PYTHON_LIBRARIES} ${NETCDF_LIB} ${NETCDFF_LIB} ${EXTRA_LIBS})
 endif()
