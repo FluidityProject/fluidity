@@ -748,9 +748,9 @@ contains
           
           ! If the ALTurbine Model is switched on then move turbine and compute the 
           ! forcing terms to be added to the momentum equation
-          if (have_option("/ALM_Turbine")) then
-            call turbine_timeloop(State(1),exclude_nonrecalculated=.true.)
-          end if
+          !if (have_option("/ALM_Turbine")) then
+          !  call turbine_timeloop(State(1),exclude_nonrecalculated=.true.)
+          !end if
           
           
           !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC

@@ -86,14 +86,14 @@ type BladeType
     type(LB_Type), allocatable :: E_LB_Model(:)   ! Element Leishman-Beddoes Model
 
     ! Momentum Sink Forces in the nts direction
-    real, allocatable :: CFn(:)     ! Element Force in the normal direction
-    real, allocatable :: CFt(:)     ! Element Force in the tangential direction (rearward chord line direction) 
-    real, allocatable :: CFs(:)     ! Element Force in the spanwise direction
+    real, allocatable :: Fn(:)     ! Element Force in the normal direction
+    real, allocatable :: Ft(:)     ! Element Force in the tangential direction (rearward chord line direction) 
+    real, allocatable :: Fs(:)     ! Element Force in the spanwise direction
 
     ! Momentum Sink Forces in the xyz direction
-    real, allocatable :: CFx(:)     ! Element Force in the global x-direction
-    real, allocatable :: CFy(:)     ! Element Force in the global y-direction
-    real, allocatable :: CFz(:)     ! Element Force in the global z-direction
+    real, allocatable :: Fx(:)     ! Element Force in the global x-direction
+    real, allocatable :: Fy(:)     ! Element Force in the global y-direction
+    real, allocatable :: Fz(:)     ! Element Force in the global z-direction
     
 end type BladeType
 
@@ -105,7 +105,7 @@ type TurbineType
     integer :: NBlades, NAirfoilData
     real, dimension(3) :: RotN, RotP ! Rotational vectors in the normal and perpendicular directions
     real :: at, Rmax
-    real :: RPM 
+    real :: RPM , angularVel
     logical :: Is_constant_rotation_operated = .false. ! For a constant rotational velocity (in Revolutions Per Minute)
     logical :: Is_force_based_operated = .false. ! For a forced based rotational velocity (Computed during the simulation)
     type(BladeType), allocatable :: Blade(:)
@@ -116,15 +116,14 @@ type TurbineType
     real :: CFy ! Fy coefficient 
     real :: CFz ! Fz coefficient 
     real :: CT  ! Thrust coefficient
-
+    
 end type TurbineType
 
     type(TurbineType), allocatable :: Turbine(:) ! Turbine 
     integer :: notur, NBlades, NElem      ! Number of the turbines 
-    type(vector_field), pointer :: TurbineSource ! Pointer to the turbine source term
     
     private turbine_geometry_read, allocate_turbine_elements, allocate_turbine_blades 
-    public  turbine_init, turbine_timeloop
+    public  turbine_init, turbine_operate
 
 contains
     
@@ -181,8 +180,6 @@ contains
            
            ! Read and Store Airfoils
            call airfoil_init_data(Turbine(i)%AirfoilData(k))
-            
-
        end do
 
        do j=1,Turbine(i)%NBlades 
@@ -213,27 +210,19 @@ contains
    
    end do
   
-   ! Creating the Source Term that will allow to model the Turbine input
-   !TurbineSource => extract_vector_field(states,"VelocitySource")
-   ! Zeroing the Source Term (This should be done at each time step)
-   !call zero(TurbineSource)
    ewrite(1,*) 'Exiting the ALTurbine_init'
 
 end subroutine turbine_init
 
-subroutine turbine_timeloop(state,exclude_nonrecalculated)
+subroutine turbine_operate
  
     implicit none
     
-    type(state_type), intent(inout) :: state
-    logical, intent(in), optional :: exclude_nonrecalculated
-    type(vector_field), pointer :: positions, velocity
     integer :: i,j,k
     real :: dt, theta
     ! Zero the Source Term at each time step
     
     ewrite(1,*) 'Entering the turbine_timeloop'
-   
     
     ! First we need to get the dt in order to rotate the turbine
     call get_option("/timestepping/timestep",dt) 
@@ -244,6 +233,7 @@ subroutine turbine_timeloop(state,exclude_nonrecalculated)
      if(Turbine(i)%Is_constant_rotation_operated) then
         ewrite(2,*) 'Operating Turbine with a constant rotational Velocity'
         theta=Turbine(i)%RPM*2*pi/60*dt ! 1 revolution/minute = 2 pi tads / 60 s
+        Turbine(i)%angularVel = Turbine(i)%RPM*2*pi/60 
         call rotate_turbines(theta) 
 
     elseif(Turbine(i)%Is_force_based_operated) then
@@ -257,7 +247,71 @@ subroutine turbine_timeloop(state,exclude_nonrecalculated)
     ewrite(1,*) 'Exiting the turbine_timeloop'
     return
 
-end subroutine turbine_timeloop
+end subroutine turbine_operate
+
+subroutine Compute_Forces(iturb,iblade,ielem,Local_Vel,Force)
+       
+    implicit none
+    integer,intent(in) :: iturb, iblade, ielem
+    real, intent(in) :: Local_Vel(3)
+    real, intent(out) :: Force(3)
+    real :: R(3)
+    real :: wRotX,wRotY,wRotZ,Rx,Ry,Rz,ublade,vblade,wblade
+    real :: nxe,nye,nze,txe,tye,tze,sxe,sye,sze
+    real :: urdn,urdc, wP,ur,alpha,Re,nu,alpha5,alpha75,adotnorm
+    real :: CL,CD,CN,CT,CLCirc,CM25
+    integer :: i
+  
+    ewrite(2,*) 'Entering Compute_Forces '
+    ! Compute angular velocity
+    wRotX=Turbine(iturb)%angularVel*Turbine(iturb)%RotN(1)
+    wRotY=Turbine(iturb)%angularVel*Turbine(iturb)%RotN(2)
+    wRotZ=Turbine(iturb)%angularVel*Turbine(iturb)%RotN(3)
+
+    Rx=Turbine(iturb)%RotP(1)-Turbine(iturb)%Blade(iblade)%PEx(ielem);
+    Ry=Turbine(iturb)%RotP(2)-Turbine(iturb)%Blade(iblade)%PEx(ielem);
+    Rz=Turbine(iturb)%RotP(3)-Turbine(iturb)%Blade(iblade)%PEx(ielem);
+
+    nxe=Turbine(iturb)%Blade(iblade)%nEx(ielem)
+    nye=Turbine(iturb)%Blade(iblade)%nEy(ielem)
+    nze=Turbine(iturb)%Blade(iblade)%nEz(ielem)
+    txe=Turbine(iturb)%Blade(iblade)%tEx(ielem)
+    tye=Turbine(iturb)%Blade(iblade)%tEy(ielem)
+    tze=Turbine(iturb)%Blade(iblade)%tEz(ielem)
+    sxe=Turbine(iturb)%Blade(iblade)%sEx(ielem)
+    sye=Turbine(iturb)%Blade(iblade)%sEy(ielem)
+    sze=Turbine(iturb)%Blade(iblade)%sEz(ielem)
+
+    ! Find the cross product Ublade = Omega x R
+    call cross(wRotX,wRotY,wRotZ,Rx,Ry,Rz,ublade,vblade,wblade)
+
+    ! Calculate element normal and tangential velocity components. 
+    ! Calculate element pitch rate
+
+    urdn=nxe*(Local_vel(1)-ublade)+nye*(Local_vel(2)-vblade)+nze*(Local_vel(3)-wblade) ! Normal
+    
+    urdn=txe*(Local_vel(1)-ublade)+tye*(Local_vel(2)-vblade)+tze*(Local_vel(3)-wblade) ! Tangential
+
+    wP = sxe*wRotX + sye*wRotY + sze*wRotZ
+    ur=sqrt(urdn**2+urdc**2)
+    alpha=atan2(urdn,urdc)
+    nu=1e-6
+    Re = ur*Turbine(iturb)%Blade(iblade)%EC(ielem)/nu
+    alpha5=alpha
+    alpha75=alpha
+    adotnorm=0
+   
+    call compute_aeroCoeffs(Turbine(iturb)%Blade(iblade)%EAirfoil(ielem),alpha75,alpha5,Re,adotnorm,CL,CD,CN,CT,CLCirc,CM25)
+
+    Turbine(iturb)%Blade(iblade)%FN(ielem)=CN*Turbine(iturb)%Blade(iblade)%EArea(ielem)*ur**2
+    Turbine(iturb)%Blade(iblade)%FT(ielem)=CT*Turbine(iturb)%Blade(iblade)%EArea(ielem)*ur**2
+    Turbine(iturb)%Blade(iblade)%FS(ielem)=0.0 ! Makes sure that there is no spanwise force
+
+
+
+    ewrite(2,*) 'Exiting Compute_Forces'
+
+end subroutine compute_forces
 
 subroutine populate_blade_airfoils(NElem,EAirfoil,AirfoilData,ETtoC)
 
@@ -407,12 +461,12 @@ subroutine allocate_turbine_elements(ITurbine,IBlade,NElem)
     allocate(Turbine(ITurbine)%Blade(IBlade)%ETtoC(NElem))
     allocate(Turbine(ITurbine)%Blade(IBlade)%EAirfoil(Nelem))
     allocate(Turbine(ITurbine)%Blade(IBlade)%E_LB_Model(Nelem))
-    allocate(Turbine(ITurbine)%Blade(IBlade)%CFn(NElem))
-    allocate(Turbine(ITurbine)%Blade(IBlade)%CFt(NElem))
-    allocate(Turbine(ITurbine)%Blade(IBlade)%CFs(NElem))
-    allocate(Turbine(ITurbine)%Blade(IBlade)%CFx(NElem))
-    allocate(Turbine(ITurbine)%Blade(IBlade)%CFy(NElem))
-    allocate(Turbine(ITurbine)%Blade(IBlade)%CFz(NElem))
+    allocate(Turbine(ITurbine)%Blade(IBlade)%Fn(NElem))
+    allocate(Turbine(ITurbine)%Blade(IBlade)%Ft(NElem))
+    allocate(Turbine(ITurbine)%Blade(IBlade)%Fs(NElem))
+    allocate(Turbine(ITurbine)%Blade(IBlade)%Fx(NElem))
+    allocate(Turbine(ITurbine)%Blade(IBlade)%Fy(NElem))
+    allocate(Turbine(ITurbine)%Blade(IBlade)%Fz(NElem))
 
     
 end subroutine allocate_turbine_elements

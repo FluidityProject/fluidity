@@ -328,7 +328,7 @@ contains
 
     end subroutine allocate_airfoil
    
-    subroutine compute_aeroCoeffs(airfoil,lb_model,alpha75,alpha5,Re,adotnorm,umach,CL,CD,CN,CT,CLCirc,CM25)
+    subroutine compute_aeroCoeffs(airfoil,alpha75,alpha5,Re,adotnorm,CL,CD,CN,CT,CLCirc,CM25)
 
     implicit none
    
@@ -352,8 +352,8 @@ contains
     !       
     ! GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
     type(AirfoilType),intent(IN) :: airfoil
-    type(LB_type) :: lb_model
-    real,intent(IN) :: alpha75, alpha5, adotnorm, Re, umach
+    !type(LB_type),intent(IN),optional :: lb_model
+    real,intent(IN) :: alpha75, alpha5, adotnorm, Re
     real,intent(OUT) :: CL, CD, CN, CT, CLCirc, CM25
     real :: CLstat75, CLstat5, CDstat75, CLdyn5, CDdyn5, dCLAD, dCTAM, dCNAM, CL5, CD5, C, C1, CM25stat
     real :: alphaL, alphaD, aref, Fac  
@@ -374,12 +374,12 @@ contains
     ! If no dynamic stall, use static values, else calc dynamic stall
     ! Leishman-Beddoes model
    
-    if(lb_model%StallFlag) then
-    Call LB_DynStall(airfoil,lb_model,CL5,CD5,alphaL,alpha5,umach,Re,CLdyn5,CDdyn5) 
-    CL5=CLdyn5
-    CD5=CDdyn5  
-    CLCirc=CLdyn5  
-    endif
+    !if(lb_model%StallFlag) then
+    !Call LB_DynStall(airfoil,lb_model,CL5,CD5,alphaL,alpha5,umach,Re,CLdyn5,CDdyn5) 
+    !CL5=CLdyn5
+    !CD5=CDdyn5  
+    !CLCirc=CLdyn5  
+    !endif
 
     ! Tangential and normal coeffs
     CN=CL5*cos(alpha5)+CD5*sin(alpha5)                                   

@@ -314,98 +314,97 @@ contains
   end subroutine calculate_imposed_material_velocity_source
 
   subroutine calculate_actuator_line_momentum_source(states, state_index, v_field)
-    
-    use pickers_inquire
 
-    type(state_type), dimension(:), intent(inout) :: states
-    integer, intent(in) :: state_index
-    type(vector_field), intent(inout) :: v_field
-    
-    real,dimension(v_field%dim) :: Scoords , Rcoords, kernel, d, Force_coeff
-    real,dimension(v_field%dim) :: max_limit,min_limit
-    type(scalar_field), pointer :: density
-    type(vector_field), pointer :: positions, velocity, force
-    integer :: i,j,ele
-    real, dimension(v_field%dim+1) :: local_coord
-    real, dimension(v_field%dim) :: value_vel
-    real :: dr2, epsilon_par, Area, radius
-    logical :: global
-    character(len = OPTION_PATH_LEN) :: base_path
-     
-    ewrite(1,*) 'In ALM Momentum Source' 
+      use pickers_inquire
+      use alturbine
 
-    ! * GD
-    ! * This routine sets the momentum source in Navier-Stokes equations for the actuator line method.  
-    ! * Test Functions / Needs to be removed when the full turbine ALM point is implemented 
-    base_path = trim(complete_field_path(v_field%option_path)) // "/algorithm[0]"
-    if(have_option(trim(base_path) // "/prescribed_point")) then
-     call get_option(trim(base_path) //"/prescribed_point",Scoords,default=spread(0.5,1,v_field%dim))
-    else
-      FLAbort("Failed to read the prescribed points")
-    end if  
+      type(state_type), dimension(:), intent(inout) :: states
+      integer, intent(in) :: state_index
+      type(vector_field), intent(inout) :: v_field
 
-    !* Makes sure that the source field has been zeroed at each time step
-    call zero(v_field)
-   
-    !* Get Position and Velocity Field
-    positions => extract_vector_field(states,"Coordinate")  
-    velocity  => extract_vector_field(states, "Velocity")
-    
-    !* Check if this point belongs in the domain
-    max_limit = maxval(positions%val)
-    min_limit = minval(positions%val)
-   
-    !* Is there any better function to determine whether a point belongs in the domain or
-    !* not ?
-    !do i=1, positions%dim
-    !if((Scoords(i)>max_limit(i)).or.(Scoords(i)<min_limit(i))) then 
-    !    FLAbort("One or more of the ALM point(s) lie(s) outside the computational domain") 
-    !endif
-    !end do
-   
-    !* Finds the element number end local coordinates of the element where the point of interest
-    !* belongs in.
-    call picker_inquire(positions,Scoords,ele,local_coord,.false.)
-     
-    !* Evaluates the velocity at the point of interest 
-    value_vel = eval_field(ele,velocity, local_coord) 
-    
-    !* Temporary Parameters that will be deleted and normaly be loaded
-    !* From a file.
-    
-    radius= 0.25
-    epsilon_par=0.05
-    Area = pi*radius**2 ! Termporary computation of the Area 
-    Force_coeff(1)=-1.1
-    Force_coeff(2)=0
+      real,dimension(v_field%dim) :: Scoords , Rcoords, kernel, d, Force_coeff, Source
+      real,dimension(v_field%dim) :: max_limit,min_limit
+      type(scalar_field), pointer :: density
+      type(vector_field), pointer :: positions, velocity, force
+      integer :: i,j,ele, iturb, jblade, kelem
+      real, dimension(v_field%dim+1) :: local_coord
+      real, dimension(v_field%dim) :: value_vel
+      real :: dr2, epsilon_par, Area, radius, V_rel,V_rel2
+      logical :: global
+      character(len = OPTION_PATH_LEN) :: base_path
 
-    do i = 1, node_count(v_field)
-        ! Compute a molification function in 2D 
-        Rcoords=node_val(positions,i)
-            dr2=0
-            d=0
-            do j=1, v_field%dim
-                d(j) = Scoords(j)-Rcoords(j)
-                dr2=dr2+d(j)**2
-            end do
+      ewrite(1,*) 'In ALM Momentum Source' 
+      
+      ! Call turbine to operate the turbine
+      
+      !call turbine_operate
+      
+      !* Makes sure that the source field has been zeroed at each time step
+      call zero(v_field)
 
-            do j=1, v_field%dim
-            
-            if(v_field%dim==2) then    
-                kernel(j) = 1/(epsilon_par**2*pi)*exp(-dr2/epsilon_par**2)
-            else 
-                FLAbort("3D source not implemented yet")
-            endif
+      !* Get Position and Velocity Field
+      positions => extract_vector_field(states,"Coordinate")  
+      velocity  => extract_vector_field(states, "Velocity")
+    
+      ! Start with a turbine model that 
+      !do iTurb=1,notur
+          
+          !do jblade=1,Turbine(iTurb)%NBlades
 
-            end do
-        !call set(v_field, i, 0.5*Area*kernel*Force_coeff)
-    
-        call set(v_field, i, 0.5*Area*(value_vel(1)**2+value_vel(2)**2)*kernel*Force_coeff)
-    end do
-  
-    ewrite(1,*) 'Exiting ALM Momentum Source'
-    
-    end subroutine calculate_actuator_line_momentum_source
+              !do kelem=1,Turbine(iTurb)%Blade(jblade)%NElem
+                  
+                  ! Set the elements
+                  Scoords(1)=0.0!Turbine(iTurb)%Blade(jblade)%PEx(kelem)
+                  Scoords(2)=0.0!Turbine(iTurb)%Blade(jblade)%PEy(kelem)
+                  Scoords(3)=0.0!Turbine(iTurb)%Blade(jblade)%PEz(kelem)
+
+                  !call picker_inquire(positions,Scoords,ele,local_coord,.false.)
+
+                  !* Evaluates the velocity at the point of interest // It does not work for parallel 
+                  value_vel(1) = 1.0 !eval_field(ele,velocity, local_coord) 
+                  value_vel(2) = 0.0
+                  value_vel(3) = 0.0
+
+                  V_rel2=value_vel(1)**2+value_vel(2)**2+value_vel(3)**2  
+
+                  !* Temporary Parameters that will be deleted and normaly be loaded
+                  epsilon_par=0.1 !Turbine(iturb)%Blade(jblade)%EC(kelem)/2.0
+                  Area = 1.0 !Turbine(iturb)%Blade(jblade)%EC(kelem) ! Termporary computation of the Area
+                  ! Compute Loads Based on the local angle of attack and the local Forces
+                  Force_coeff(1)= 0.1
+                  Force_coeff(2)= 0
+                  Force_coeff(3)= 0
+                  Source(:) = 0.0
+
+                  do i = 1, node_count(v_field)
+                      ! Compute a molification function in 3D 
+                      Rcoords=node_val(positions,i)
+                      dr2=0
+                      d(:)=0
+                      do j=1, v_field%dim
+                          d(j) = Scoords(j)-Rcoords(j)
+                          dr2=dr2+d(j)**2
+                      end do
+
+                      do j=1, v_field%dim
+                          if(v_field%dim==2) then    
+                              kernel(j) = 1/(epsilon_par**2*pi)*exp(-dr2/epsilon_par**2)
+                          elseif(v_field%dim==3) then
+                              kernel(j) = 1/(epsilon_par**2*pi**1.5)*exp(-dr2/epsilon_par**2)
+                              Source(j) = 0.5*Area*kernel(j)*Force_coeff(j)*V_rel2
+                          else 
+                              FLAbort("1D source not implemented")
+                          endif
+
+                      end do
+                      call set(v_field, i, Source)
+                  end do
+              !end do
+          !end do
+      !end do
+       
+      ewrite(1,*) 'Exiting ALM Momentum Source'
+  end subroutine calculate_actuator_line_momentum_source
 
   subroutine calculate_imposed_material_velocity_absorption(states, v_field)
     type(state_type), dimension(:), intent(inout) :: states
