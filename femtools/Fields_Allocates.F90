@@ -1162,7 +1162,7 @@ contains
     !! and one copy numbered <=surface_element_count()
     logical, intent(in), optional :: allow_duplicate_internal_facets
     !! known connectivity lists to save time
-    integer, dimension(:), intent(in), optional :: known_faces, face_adjacency,&
+    integer, dimension(:), intent(in), pointer,  optional :: known_faces, face_adjacency,&
          known_eelist
     integer, intent(out), optional :: stat
 
@@ -2410,12 +2410,12 @@ subroutine add_faces_face_list_known_lists(mesh, allow_duplicate_internal_facets
 
   subroutine process_faces_to_lno(mesh, known_faces, face_adjacency)
     type(mesh_type), intent(inout) :: mesh
-    integer, dimension(:) , intent(in), target :: known_faces
-    integer, dimension(:) , intent(in) ::face_adjacency
+    integer, dimension(:) , intent(in), pointer :: known_faces
+    integer, dimension(:) , intent(in), pointer ::face_adjacency
 
     integer :: iface, face, ele_1, ele_2, i, nfaces, snloc, efaces
 
-    integer, pointer, dimension(:) :: face_vertices, neigh
+    integer, pointer, dimension(:) :: face_vertices
 
     nfaces = size(face_adjacency)/2
     snloc  = mesh%faces%shape%loc
@@ -2429,31 +2429,31 @@ subroutine add_faces_face_list_known_lists(mesh, allow_duplicate_internal_facets
 
        if (ele_1>0) then
           if (ele_2>0) then
-             face = ival(mesh%faces%face_list, ele_1, ele_2)
+             i = find_neigh_no(mesh%faces%face_list%sparsity%colm(efaces*(ele_1-1)+1:&
+                  efaces*ele_1), ele_2)
+             face = mesh%faces%face_list%ival(efaces*(ele_1-1)+i)
           else
-             i=  find_face(ele_nodes(mesh,ele_1), face_vertices)
-             neigh => ele_neigh(mesh,ele_1)
-             face = ival(mesh%faces%face_list, ele_1, neigh(i))
+             i = find_face(ele_nodes(mesh,ele_1), face_vertices)
+             face = mesh%faces%face_list%ival(efaces*(ele_1-1)+i)
           end if
 
-          mesh%faces%face_lno((face-1)*snloc+1&
-               :face*snloc)&
-               = find_lno(ele_nodes(mesh,ele_1), face_vertices)
+          call find_lno(ele_nodes(mesh,ele_1), face_vertices,&
+                   mesh%faces%face_lno((face-1)*snloc+1:face*snloc))
 
        end if
 
        if (ele_2>0) then
           if (ele_1>0) then
-             face = ival(mesh%faces%face_list, ele_2, ele_1)
+             i = find_neigh_no(mesh%faces%face_list%sparsity%colm(efaces*(ele_2-1)+1:&
+                  efaces*ele_2), ele_1)
+             face = mesh%faces%face_list%ival(efaces*(ele_2-1)+i)
           else
              i=find_face(ele_nodes(mesh,ele_2), face_vertices)
-             neigh => ele_neigh(mesh,ele_2)
-             face = ival(mesh%faces%face_list, ele_2, neigh(i))
+             face = mesh%faces%face_list%ival(efaces*(ele_2-1)+i)
           end if
 
-          mesh%faces%face_lno((face-1)*snloc+1&
-                                 :face*snloc)&
-               = find_lno(ele_nodes(mesh,ele_2), face_vertices)
+              call find_lno(ele_nodes(mesh,ele_2), face_vertices,&
+                   mesh%faces%face_lno((face-1)*snloc+1:face*snloc))
        end if
        
     end do
@@ -2463,30 +2463,40 @@ subroutine add_faces_face_list_known_lists(mesh, allow_duplicate_internal_facets
   contains
     
 
-    pure function find_neigh_no(neighbours,ele)
+    pure function find_neigh_no(neighbours, ele)
       integer, dimension(:), intent(in) :: neighbours
       integer, intent(in) :: ele
 
-      integer find_neigh_no
-      
-      find_neigh_no = minloc(neighbours, 1, neighbours==ele)
+      integer find_neigh_no, i
+
+      do i=1, size(neighbours)
+         if(neighbours(i)==ele) then
+            find_neigh_no = i
+            return
+         end if
+      end do
       
     end function find_neigh_no
 
-    pure function find_lno(element_nodes,face_nodes)
+    pure subroutine find_lno(element_nodes, face_nodes, output_lno)
 
       integer, dimension(:), intent(in) :: element_nodes
       integer, dimension(:), intent(in) :: face_nodes
 
-      integer, dimension(size(face_nodes)) :: find_lno
+      integer, dimension(:), intent(out) :: output_lno
 
       integer i, j
 
       do i=1,size(face_nodes)
-         find_lno(i) = minloc(element_nodes, 1, element_nodes==face_nodes(i))
+         do j=1,size(element_nodes)
+            if (element_nodes(j)==face_nodes(i)) then
+               output_lno(i) = j
+               exit
+            end if
+         end do
       end do
 
-    end function find_lno
+    end subroutine find_lno
 
     pure function find_face(element_nodes,face_nodes)
 
@@ -2494,8 +2504,6 @@ subroutine add_faces_face_list_known_lists(mesh, allow_duplicate_internal_facets
       integer, dimension(:), intent(in) :: face_nodes
 
       integer find_face, node
-
-      find_face = 0
 
       do node =1, size(element_nodes)
 
