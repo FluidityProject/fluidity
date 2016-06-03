@@ -322,23 +322,20 @@ contains
       integer, intent(in) :: state_index
       type(vector_field), intent(inout) :: v_field
 
-      real,dimension(v_field%dim) :: Scoords , Rcoords, kernel, d, Force_coeff, Source
+      real,dimension(v_field%dim) :: Scoords , Rcoords, d, Source,DSource
       real,dimension(v_field%dim) :: max_limit,min_limit
       type(scalar_field), pointer :: density
       type(vector_field), pointer :: positions, velocity, force
       integer :: i,j,ele, iturb, jblade, kelem
       real, dimension(v_field%dim+1) :: local_coord
       real, dimension(v_field%dim) :: value_vel
-      real :: dr2, epsilon_par, Area, radius, V_rel,V_rel2
+      real :: dr2, epsilon_par, Area, radius, V_rel,V_rel2,loc_kern
       logical :: global
       character(len = OPTION_PATH_LEN) :: base_path
 
       ewrite(1,*) 'In ALM Momentum Source' 
       
-      ! Call turbine to operate the turbine
-      
-      !call turbine_operate
-      
+
       !* Makes sure that the source field has been zeroed at each time step
       call zero(v_field)
 
@@ -347,37 +344,33 @@ contains
       velocity  => extract_vector_field(states, "Velocity")
     
       ! Start with a turbine model that 
-      !do iTurb=1,notur
+      do iTurb=1,notur
           
-          !do jblade=1,Turbine(iTurb)%NBlades
+          do jblade=1,Turbine(iTurb)%NBlades
 
-              !do kelem=1,Turbine(iTurb)%Blade(jblade)%NElem
+              do kelem=1,Turbine(iTurb)%Blade(jblade)%NElem
                   
                   ! Set the elements
-                  Scoords(1)=0.0!Turbine(iTurb)%Blade(jblade)%PEx(kelem)
-                  Scoords(2)=0.0!Turbine(iTurb)%Blade(jblade)%PEy(kelem)
-                  Scoords(3)=0.0!Turbine(iTurb)%Blade(jblade)%PEz(kelem)
+                  Scoords(1)=Turbine(iTurb)%Blade(jblade)%PEx(kelem)
+                  Scoords(2)=Turbine(iTurb)%Blade(jblade)%PEy(kelem)
+                  Scoords(3)=Turbine(iTurb)%Blade(jblade)%PEz(kelem)
 
                   !call picker_inquire(positions,Scoords,ele,local_coord,.false.)
 
-                  !* Evaluates the velocity at the point of interest // It does not work for parallel 
-                  value_vel(1) = 1.0 !eval_field(ele,velocity, local_coord) 
-                  value_vel(2) = 0.0
-                  value_vel(3) = 0.0
+                !* Evaluates the velocity at the point of interest 
+                !* It does not work for parallel 
+                  !value_vel=eval_field(ele,velocity, local_coord) 
 
-                  V_rel2=value_vel(1)**2+value_vel(2)**2+value_vel(3)**2  
-
-                  !* Temporary Parameters that will be deleted and normaly be loaded
-                  epsilon_par=0.1 !Turbine(iturb)%Blade(jblade)%EC(kelem)/2.0
-                  Area = 1.0 !Turbine(iturb)%Blade(jblade)%EC(kelem) ! Termporary computation of the Area
-                  ! Compute Loads Based on the local angle of attack and the local Forces
-                  Force_coeff(1)= 0.1
-                  Force_coeff(2)= 0
-                  Force_coeff(3)= 0
-                  Source(:) = 0.0
+                  value_vel(1)=1.0
+                  value_vel(2)=0.0
+                  value_vel(3)=0.0
+                     
+                  call Compute_Element_Forces(iTurb,jblade,kelem,value_vel)
+                  epsilon_par=Turbine(iTurb)%Blade(jblade)%EC(kelem)
 
                   do i = 1, node_count(v_field)
-                      ! Compute a molification function in 3D 
+                  DSource(:)=0.0
+                ! Compute a molification function in 3D 
                       Rcoords=node_val(positions,i)
                       dr2=0
                       d(:)=0
@@ -385,23 +378,19 @@ contains
                           d(j) = Scoords(j)-Rcoords(j)
                           dr2=dr2+d(j)**2
                       end do
+      
+                  loc_kern=Kernel(dr2,epsilon_par,v_field%dim)
+                  
+                  DSource(1)=loc_kern*Turbine(iturb)%Blade(jblade)%Fx(kelem)
+                  DSource(2)=loc_kern*Turbine(iturb)%Blade(jblade)%Fy(kelem)
+                  DSource(3)=loc_kern*Turbine(iturb)%Blade(jblade)%Fz(kelem)
+                  
+                  call addto(v_field,i,DSource)
 
-                      do j=1, v_field%dim
-                          if(v_field%dim==2) then    
-                              kernel(j) = 1/(epsilon_par**2*pi)*exp(-dr2/epsilon_par**2)
-                          elseif(v_field%dim==3) then
-                              kernel(j) = 1/(epsilon_par**2*pi**1.5)*exp(-dr2/epsilon_par**2)
-                              Source(j) = 0.5*Area*kernel(j)*Force_coeff(j)*V_rel2
-                          else 
-                              FLAbort("1D source not implemented")
-                          endif
-
-                      end do
-                      call set(v_field, i, Source)
                   end do
-              !end do
-          !end do
-      !end do
+              end do
+          end do
+      end do
        
       ewrite(1,*) 'Exiting ALM Momentum Source'
   end subroutine calculate_actuator_line_momentum_source
