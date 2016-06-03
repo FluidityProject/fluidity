@@ -359,7 +359,7 @@ contains
     real :: alphaL, alphaD, aref, Fac  
     
     ewrite(2,*) 'Entering compute_aeroCoeffs_one_airfoil'
-    write(*,*) condeg, conrad
+
     ! Calculate static characteristics
     call intp(Re,alpha75*condeg,CLstat75,CDstat75,CM25stat,airfoil) 
     call intp(Re,alpha5*condeg,CLstat5,C,C1,airfoil)

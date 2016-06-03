@@ -25,9 +25,14 @@
 !    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 !    USA
 #include "fdebug.h"
+  
+
 
 
 module alturbine_utils
+
+    use fldebug
+use global_parameters, only:FIELD_NAME_LEN,OPTION_PATH_LEN, PYTHON_FUNC_LEN, pi
 
     implicit none
 
@@ -97,7 +102,26 @@ contains
         vRz=pR(4,1)+Oz
 
     end subroutine QuatRot
-   
+  
+    real function Kernel(dr2,epsilon_par,dim)
+    
+        implicit none
+        integer,intent(in) :: dim
+        real,intent(in) ::dr2
+        real :: epsilon_par
+        integer :: j
+    
+
+            if(dim==2) then    
+            Kernel = 1/(epsilon_par**2*pi)*exp(-dr2/epsilon_par**2)
+            elseif(dim==3) then
+            Kernel = 1/(epsilon_par**2*pi**1.5)*exp(-dr2/epsilon_par**2)
+            else 
+            FLAbort("1D source not implemented")
+            endif
+        
+    end function Kernel
+
     integer function FindMinimum(x,Start,End)
     implicit none
     integer, dimension(1:),intent(in) :: x

@@ -94,7 +94,7 @@ type BladeType
     real, allocatable :: Fx(:)     ! Element Force in the global x-direction
     real, allocatable :: Fy(:)     ! Element Force in the global y-direction
     real, allocatable :: Fz(:)     ! Element Force in the global z-direction
-    
+    real, allocatable :: Torque(:)   ! Element Torque over the point of rotation 
 end type BladeType
 
 type TurbineType
@@ -249,17 +249,17 @@ subroutine turbine_operate
 
 end subroutine turbine_operate
 
-subroutine Compute_Forces(iturb,iblade,ielem,Local_Vel,Force)
+subroutine Compute_Element_Forces(iturb,iblade,ielem,Local_Vel)
        
     implicit none
     integer,intent(in) :: iturb, iblade, ielem
     real, intent(in) :: Local_Vel(3)
-    real, intent(out) :: Force(3)
     real :: R(3)
     real :: wRotX,wRotY,wRotZ,Rx,Ry,Rz,ublade,vblade,wblade
-    real :: nxe,nye,nze,txe,tye,tze,sxe,sye,sze
+    real :: nxe,nye,nze,txe,tye,tze,sxe,sye,sze,ElemArea,ElemChord
     real :: urdn,urdc, wP,ur,alpha,Re,nu,alpha5,alpha75,adotnorm
-    real :: CL,CD,CN,CT,CLCirc,CM25
+    real :: CL,CD,CN,CT,CLCirc,CM25,rho,MS,FN,FT,FS,FX,Fy,Fz,te
+    real :: TRx,TRy,TRz,RotX,RotY,RotZ
     integer :: i
   
     ewrite(2,*) 'Entering Compute_Forces '
@@ -268,9 +268,13 @@ subroutine Compute_Forces(iturb,iblade,ielem,Local_Vel,Force)
     wRotY=Turbine(iturb)%angularVel*Turbine(iturb)%RotN(2)
     wRotZ=Turbine(iturb)%angularVel*Turbine(iturb)%RotN(3)
 
-    Rx=Turbine(iturb)%RotP(1)-Turbine(iturb)%Blade(iblade)%PEx(ielem);
-    Ry=Turbine(iturb)%RotP(2)-Turbine(iturb)%Blade(iblade)%PEx(ielem);
-    Rz=Turbine(iturb)%RotP(3)-Turbine(iturb)%Blade(iblade)%PEx(ielem);
+    RotX=Turbine(iturb)%RotN(1)
+    RotY=Turbine(iturb)%RotN(2)
+    RotZ=Turbine(iturb)%RotN(3)
+
+    Rx=-Turbine(iturb)%RotP(1)+Turbine(iturb)%Blade(iblade)%PEx(ielem);
+    Ry=-Turbine(iturb)%RotP(2)+Turbine(iturb)%Blade(iblade)%PEx(ielem);
+    Rz=-Turbine(iturb)%RotP(3)+Turbine(iturb)%Blade(iblade)%PEx(ielem);
 
     nxe=Turbine(iturb)%Blade(iblade)%nEx(ielem)
     nye=Turbine(iturb)%Blade(iblade)%nEy(ielem)
@@ -281,6 +285,9 @@ subroutine Compute_Forces(iturb,iblade,ielem,Local_Vel,Force)
     sxe=Turbine(iturb)%Blade(iblade)%sEx(ielem)
     sye=Turbine(iturb)%Blade(iblade)%sEy(ielem)
     sze=Turbine(iturb)%Blade(iblade)%sEz(ielem)
+
+    ElemArea=Turbine(iturb)%Blade(iblade)%EArea(ielem)
+    ElemChord=Turbine(iturb)%Blade(iblade)%EC(ielem)
 
     ! Find the cross product Ublade = Omega x R
     call cross(wRotX,wRotY,wRotZ,Rx,Ry,Rz,ublade,vblade,wblade)
@@ -296,22 +303,41 @@ subroutine Compute_Forces(iturb,iblade,ielem,Local_Vel,Force)
     ur=sqrt(urdn**2+urdc**2)
     alpha=atan2(urdn,urdc)
     nu=1e-6
-    Re = ur*Turbine(iturb)%Blade(iblade)%EC(ielem)/nu
+    Re = ur*ElemChord/nu
     alpha5=alpha
     alpha75=alpha
     adotnorm=0
    
     call compute_aeroCoeffs(Turbine(iturb)%Blade(iblade)%EAirfoil(ielem),alpha75,alpha5,Re,adotnorm,CL,CD,CN,CT,CLCirc,CM25)
 
-    Turbine(iturb)%Blade(iblade)%FN(ielem)=CN*Turbine(iturb)%Blade(iblade)%EArea(ielem)*ur**2
-    Turbine(iturb)%Blade(iblade)%FT(ielem)=CT*Turbine(iturb)%Blade(iblade)%EArea(ielem)*ur**2
-    Turbine(iturb)%Blade(iblade)%FS(ielem)=0.0 ! Makes sure that there is no spanwise force
+    rho = 1000
+    FN=0.5*CN*rho*ElemArea*ur**2
+    FT=0.5*CT*rho*ElemArea*ur**2
+    FS=0.0 ! Makes sure that there is no spanwise force
 
+    MS=0.5*rho*CM25*ElemChord*(ElemArea)*ur**2
 
+    ! Compute forces in the X, Y, Z axis and torque    
+
+    FX=FN*nxe+FT*txe
+    FY=FN*nye+FT*tye
+    FZ=FN*nze+FT*tze
+
+    call cross(Rx,Ry,Rz,Fx,Fy,Fz,TRx,TRy,TRz)
+
+    te=(TRx*RotX+Try*RotY+TRz*RotZ)+MS*(sxe*RotX+sye*RotY+sze*RotZ)
+    
+    Turbine(iturb)%Blade(iblade)%FN(ielem)=FN
+    Turbine(iturb)%Blade(iblade)%FT(ielem)=FT
+    Turbine(iturb)%Blade(iblade)%FS(ielem)=FS
+    Turbine(iturb)%Blade(iblade)%FX(ielem)=FX
+    Turbine(iturb)%Blade(iblade)%FY(ielem)=FY
+    Turbine(iturb)%Blade(iblade)%FZ(ielem)=FZ
+    Turbine(iturb)%Blade(iblade)%Torque(ielem)=te 
 
     ewrite(2,*) 'Exiting Compute_Forces'
 
-end subroutine compute_forces
+end subroutine compute_element_forces
 
 subroutine populate_blade_airfoils(NElem,EAirfoil,AirfoilData,ETtoC)
 
@@ -467,6 +493,7 @@ subroutine allocate_turbine_elements(ITurbine,IBlade,NElem)
     allocate(Turbine(ITurbine)%Blade(IBlade)%Fx(NElem))
     allocate(Turbine(ITurbine)%Blade(IBlade)%Fy(NElem))
     allocate(Turbine(ITurbine)%Blade(IBlade)%Fz(NElem))
+    allocate(Turbine(ITurbine)%Blade(IBlade)%Torque(NElem))
 
     
 end subroutine allocate_turbine_elements
