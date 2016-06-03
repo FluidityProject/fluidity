@@ -47,7 +47,7 @@ module momentum_diagnostics
   use sediment, only : get_n_sediment_fields, get_sediment_item
   use geostrophic_pressure
   use multimaterial_module
-  use actuator_line_source 
+
   
   implicit none
   
