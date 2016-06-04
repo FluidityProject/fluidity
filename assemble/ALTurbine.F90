@@ -679,16 +679,15 @@ end subroutine turbine_geometry_read
             
             ! Element length
             
-           dx=blade%QCx(nej)-blade%QCx(nej-1) 
-           dy=blade%QCy(nej)-blade%QCy(nej-1) 
-           dz=blade%QCz(nej)-blade%QCz(nej-1)
-
            blade%EDS(nej-1)=sqrt(dx**2+dy**2+dz**2)
 
-  ! Set spannwise and tangential vectors
+            ! Set spannwise and tangential vectors
    sE=-(/blade%QCx(nej)-blade%QCx(nej-1),blade%QCy(nej)-blade%QCy(nej-1),blade%QCz(nej)-blade%QCz(nej-1)/) ! nominal element spanwise direction set opposite to QC line
 		    sEM=sqrt(dot_product(sE,sE))
-		    sE=sE/sEM
+		    
+            blade%EDS(nej-1) = sEM
+            
+            sE=sE/sEM
 		    tE=(/blade%tx(nej)+blade%tx(nej-1),blade%ty(nej)+blade%ty(nej-1),blade%tz(nej)+blade%tz(nej-1)/)/2.0
 		    ! Force tE normal to sE
 		    tE=tE-dot_product(tE,sE)*sE
