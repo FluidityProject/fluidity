@@ -220,6 +220,13 @@ contains
        ewrite(1,*) "Disabling geometric data cache"
        cache_transform_elements=.false.
     end if
+    
+    !GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
+    ! Initilise the Actuator Line Model 
+    if (have_option("/ALM_Turbine")) then
+        call turbine_init(state(1))
+    end if
+    !GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
 
     adapt_count = 0
 
@@ -404,12 +411,7 @@ contains
        call calculate_biology_terms(state(1))
     end if
 
-    !GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
-    ! initilise the Actuator Line Model 
-    if (have_option("/ALM_Turbine")) then
-        call turbine_init(state(1))
-    end if
-    !GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
+
 
     call initialise_diagnostics(filename, state)
 

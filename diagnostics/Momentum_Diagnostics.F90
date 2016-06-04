@@ -338,7 +338,7 @@ contains
 
       !* Makes sure that the source field has been zeroed at each time step
       call zero(v_field)
-
+      
       !* Get Position and Velocity Field
       positions => extract_vector_field(states,"Coordinate")  
       velocity  => extract_vector_field(states, "Velocity")
@@ -349,28 +349,36 @@ contains
           do jblade=1,Turbine(iTurb)%NBlades
 
               do kelem=1,Turbine(iTurb)%Blade(jblade)%NElem
+
                   
                   ! Set the elements
                   Scoords(1)=Turbine(iTurb)%Blade(jblade)%PEx(kelem)
                   Scoords(2)=Turbine(iTurb)%Blade(jblade)%PEy(kelem)
                   Scoords(3)=Turbine(iTurb)%Blade(jblade)%PEz(kelem)
 
-                  !call picker_inquire(positions,Scoords,ele,local_coord,.false.)
+                  !ewrite(2,*) 'hi 3'
+                  call picker_inquire(positions,Scoords,ele,local_coord,.false.)
 
                 !* Evaluates the velocity at the point of interest 
                 !* It does not work for parallel 
-                  !value_vel=eval_field(ele,velocity, local_coord) 
+                  value_vel=eval_field(ele,velocity, local_coord) 
 
-                  value_vel(1)=1.0
-                  value_vel(2)=0.0
-                  value_vel(3)=0.0
+                  !value_vel(1)=1.0
+                  !value_vel(2)=0.0
+                  !value_vel(3)=0.0
                      
                   call Compute_Element_Forces(iTurb,jblade,kelem,value_vel)
-                  epsilon_par=Turbine(iTurb)%Blade(jblade)%EC(kelem)
+                  
+                   
+                  !ewrite(2,*) Turbine(iturb)%Blade(jblade)%Fx(kelem)
+                  !***********************************************
+                  ! This is for inducing the velocities
+                  !***********************************************
+                  epsilon_par=1.5*Turbine(iTurb)%Blade(jblade)%EDS(kelem)
 
                   do i = 1, node_count(v_field)
                   DSource(:)=0.0
-                ! Compute a molification function in 3D 
+                    ! Compute a molification function in 3D 
                       Rcoords=node_val(positions,i)
                       dr2=0
                       d(:)=0
@@ -381,9 +389,9 @@ contains
       
                   loc_kern=Kernel(dr2,epsilon_par,v_field%dim)
                   
-                  DSource(1)=loc_kern*Turbine(iturb)%Blade(jblade)%Fx(kelem)
-                  DSource(2)=loc_kern*Turbine(iturb)%Blade(jblade)%Fy(kelem)
-                  DSource(3)=loc_kern*Turbine(iturb)%Blade(jblade)%Fz(kelem)
+                  DSource(1)=-loc_kern*Turbine(iturb)%Blade(jblade)%Fx(kelem)
+                  DSource(2)=-loc_kern*Turbine(iturb)%Blade(jblade)%Fy(kelem)
+                  DSource(3)=-loc_kern*Turbine(iturb)%Blade(jblade)%Fz(kelem)
                   
                   call addto(v_field,i,DSource)
 
@@ -391,7 +399,7 @@ contains
               end do
           end do
       end do
-       
+
       ewrite(1,*) 'Exiting ALM Momentum Source'
   end subroutine calculate_actuator_line_momentum_source
 

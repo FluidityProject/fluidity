@@ -78,6 +78,7 @@ type BladeType
     real, allocatable :: sEy(:)     ! Element unit spanwise vector y-component
     real, allocatable :: sEz(:)     ! Element unit spanwise vector z-component
     real, allocatable :: EC(:)      ! Element chord lenght
+    real, allocatable :: EDS(:)     ! Element spanwise distance (length)
     real, allocatable :: CircSign(:)! Direction of segment circulation on wake
     real, allocatable :: EArea(:)   ! Element Area
     real, allocatable :: ETtoC(:)! Element thickness to Chord ratio
@@ -183,6 +184,9 @@ contains
        end do
 
        do j=1,Turbine(i)%NBlades 
+       ! Set turbine geometry
+        
+         call set_blade_geometry(Turbine(i)%Blade(j))
        ! Populate Turbine Airfoil Sections
         ewrite(2,*) 'Populating blade airfoils for turbine ',i,' Blade ', j
         call populate_blade_airfoils(Turbine(i)%Blade(j)%NElem,Turbine(i)%Blade(j)%EAirfoil,Turbine(i)%AirfoilData,Turbine(i)%Blade(j)%ETtoC)
@@ -315,7 +319,7 @@ subroutine Compute_Element_Forces(iturb,iblade,ielem,Local_Vel)
     FT=0.5*CT*rho*ElemArea*ur**2
     FS=0.0 ! Makes sure that there is no spanwise force
 
-    MS=0.5*rho*CM25*ElemChord*(ElemArea)*ur**2
+    MS=0.5*rho*CM25*ElemChord*ElemArea*ur**2
 
     ! Compute forces in the X, Y, Z axis and torque    
 
@@ -482,6 +486,7 @@ subroutine allocate_turbine_elements(ITurbine,IBlade,NElem)
     allocate(Turbine(ITurbine)%Blade(IBlade)%sEy(NElem))
     allocate(Turbine(ITurbine)%Blade(IBlade)%sEz(NElem))
     allocate(Turbine(ITurbine)%Blade(IBlade)%EC(NElem))
+    allocate(Turbine(ITurbine)%Blade(IBlade)%EDS(NElem))
     allocate(Turbine(ITurbine)%Blade(IBlade)%EArea(NElem))
     allocate(Turbine(ITurbine)%Blade(IBlade)%CircSign(NElem))
     allocate(Turbine(ITurbine)%Blade(IBlade)%ETtoC(NElem))
@@ -651,7 +656,7 @@ end subroutine turbine_geometry_read
         type(BladeType),intent(INOUT) :: blade
         integer :: BNum
         integer :: nbe, nei, FlipN, nej, j
-        real :: sEM, tEM, nEM
+        real :: sEM, tEM, nEM, dx,dy,dz
         real :: PE(3), sE(3), tE(3), normE(3), P1(3), P2(3), P3(3), P4(3), V1(3), V2(3), V3(3), V4(3), A1(3), A2(3)
     
     ewrite(2,*) 'Entering set_blade_geometry'
@@ -671,8 +676,16 @@ end subroutine turbine_geometry_read
             blade%PEx(nej-1)=(blade%QCx(nej)+blade%QCx(nej-1))/2.0
             blade%PEy(nej-1)=(blade%QCy(nej)+blade%QCy(nej-1))/2.0
             blade%PEz(nej-1)=(blade%QCz(nej)+blade%QCz(nej-1))/2.0
+            
+            ! Element length
+            
+           dx=blade%QCx(nej)-blade%QCx(nej-1) 
+           dy=blade%QCy(nej)-blade%QCy(nej-1) 
+           dz=blade%QCz(nej)-blade%QCz(nej-1)
 
-  ! Set spanwise and tangential vectors
+           blade%EDS(nej-1)=sqrt(dx**2+dy**2+dz**2)
+
+  ! Set spannwise and tangential vectors
    sE=-(/blade%QCx(nej)-blade%QCx(nej-1),blade%QCy(nej)-blade%QCy(nej-1),blade%QCz(nej)-blade%QCz(nej-1)/) ! nominal element spanwise direction set opposite to QC line
 		    sEM=sqrt(dot_product(sE,sE))
 		    sE=sE/sEM
