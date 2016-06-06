@@ -317,7 +317,7 @@ contains
 
       use pickers_inquire
       use alturbine
-
+      
       type(state_type), dimension(:), intent(inout) :: states
       integer, intent(in) :: state_index
       type(vector_field), intent(inout) :: v_field
@@ -329,7 +329,7 @@ contains
       integer :: i,j,ele, iturb, jblade, kelem
       real, dimension(v_field%dim+1) :: local_coord
       real, dimension(v_field%dim) :: value_vel
-      real :: dr2, epsilon_par, Area, radius, V_rel,V_rel2,loc_kern
+      real :: dr2, epsilon_par, Area, radius, V_rel,V_rel2,loc_kern, nu
       logical :: global
       character(len = OPTION_PATH_LEN) :: base_path
 
@@ -342,8 +342,14 @@ contains
       !* Get Position and Velocity Field
       positions => extract_vector_field(states,"Coordinate")  
       velocity  => extract_vector_field(states, "Velocity")
-    
       ! Start with a turbine model that 
+     
+
+      nu=1e-3
+
+      ! there should be two models: one for checking a single airfoil
+      ! And another for checking the turbine
+      
       do iTurb=1,notur
           
           do jblade=1,Turbine(iTurb)%NBlades
@@ -356,25 +362,25 @@ contains
                   Scoords(2)=Turbine(iTurb)%Blade(jblade)%PEy(kelem)
                   Scoords(3)=Turbine(iTurb)%Blade(jblade)%PEz(kelem)
 
-                  !ewrite(2,*) 'hi 3'
-                  call picker_inquire(positions,Scoords,ele,local_coord,.false.)
+                  !call picker_inquire(positions,Scoords,ele,local_coord,.false.)
 
-                !* Evaluates the velocity at the point of interest 
-                !* It does not work for parallel 
-                  value_vel=eval_field(ele,velocity, local_coord) 
+                  !* Evaluates the velocity at the point of interest 
+                  !* It does not work for parallel 
+                  !value_vel=eval_field(ele,velocity, local_coord) 
 
-                  !value_vel(1)=1.0
-                  !value_vel(2)=0.0
-                  !value_vel(3)=0.0
-                     
-                  call Compute_Element_Forces(iTurb,jblade,kelem,value_vel)
+                  value_vel(1)=1.0
+                  value_vel(2)=0.0
+                  value_vel(3)=0.0
+                  !nu=1e-6
+
+                  call Compute_Element_Forces(iTurb,jblade,kelem,value_vel,nu)
                   
                    
                   !ewrite(2,*) Turbine(iturb)%Blade(jblade)%Fx(kelem)
                   !***********************************************
                   ! This is for inducing the velocities
                   !***********************************************
-                  epsilon_par=1.5*Turbine(iTurb)%Blade(jblade)%EDS(kelem)
+                  epsilon_par=3.0*Turbine(iTurb)%Blade(jblade)%EDS(kelem)
 
                   do i = 1, node_count(v_field)
                   DSource(:)=0.0
@@ -388,7 +394,7 @@ contains
                       end do
       
                   loc_kern=Kernel(dr2,epsilon_par,v_field%dim)
-                  
+                  ! The (-) means that the fluid and the body are in equilibrium at each time
                   DSource(1)=-loc_kern*Turbine(iturb)%Blade(jblade)%Fx(kelem)
                   DSource(2)=-loc_kern*Turbine(iturb)%Blade(jblade)%Fy(kelem)
                   DSource(3)=-loc_kern*Turbine(iturb)%Blade(jblade)%Fz(kelem)

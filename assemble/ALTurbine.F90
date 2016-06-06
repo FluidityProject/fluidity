@@ -253,16 +253,16 @@ subroutine turbine_operate
 
 end subroutine turbine_operate
 
-subroutine Compute_Element_Forces(iturb,iblade,ielem,Local_Vel)
+subroutine Compute_Element_Forces(iturb,iblade,ielem,Local_Vel,nu)
        
     implicit none
     integer,intent(in) :: iturb, iblade, ielem
-    real, intent(in) :: Local_Vel(3)
+    real, intent(in) :: Local_Vel(3), nu
     real :: R(3)
     real :: wRotX,wRotY,wRotZ,Rx,Ry,Rz,ublade,vblade,wblade
     real :: nxe,nye,nze,txe,tye,tze,sxe,sye,sze,ElemArea,ElemChord
-    real :: urdn,urdc, wP,ur,alpha,Re,nu,alpha5,alpha75,adotnorm
-    real :: CL,CD,CN,CT,CLCirc,CM25,rho,MS,FN,FT,FS,FX,Fy,Fz,te
+    real :: urdn,urdc, wP,ur,alpha,Re,alpha5,alpha75,adotnorm
+    real :: CL,CD,CN,CT,CLCirc,CM25,MS,FN,FT,FS,FX,Fy,Fz,te
     real :: TRx,TRy,TRz,RotX,RotY,RotZ
     integer :: i
   
@@ -277,8 +277,8 @@ subroutine Compute_Element_Forces(iturb,iblade,ielem,Local_Vel)
     RotZ=Turbine(iturb)%RotN(3)
 
     Rx=-Turbine(iturb)%RotP(1)+Turbine(iturb)%Blade(iblade)%PEx(ielem);
-    Ry=-Turbine(iturb)%RotP(2)+Turbine(iturb)%Blade(iblade)%PEx(ielem);
-    Rz=-Turbine(iturb)%RotP(3)+Turbine(iturb)%Blade(iblade)%PEx(ielem);
+    Ry=-Turbine(iturb)%RotP(2)+Turbine(iturb)%Blade(iblade)%PEy(ielem);
+    Rz=-Turbine(iturb)%RotP(3)+Turbine(iturb)%Blade(iblade)%PEz(ielem);
 
     nxe=Turbine(iturb)%Blade(iblade)%nEx(ielem)
     nye=Turbine(iturb)%Blade(iblade)%nEy(ielem)
@@ -301,12 +301,12 @@ subroutine Compute_Element_Forces(iturb,iblade,ielem,Local_Vel)
 
     urdn=nxe*(Local_vel(1)-ublade)+nye*(Local_vel(2)-vblade)+nze*(Local_vel(3)-wblade) ! Normal
     
-    urdn=txe*(Local_vel(1)-ublade)+tye*(Local_vel(2)-vblade)+tze*(Local_vel(3)-wblade) ! Tangential
+    urdc=txe*(Local_vel(1)-ublade)+tye*(Local_vel(2)-vblade)+tze*(Local_vel(3)-wblade) ! Tangential
 
     wP = sxe*wRotX + sye*wRotY + sze*wRotZ
     ur=sqrt(urdn**2+urdc**2)
     alpha=atan2(urdn,urdc)
-    nu=1e-6
+    
     Re = ur*ElemChord/nu
     alpha5=alpha
     alpha75=alpha
@@ -314,12 +314,11 @@ subroutine Compute_Element_Forces(iturb,iblade,ielem,Local_Vel)
    
     call compute_aeroCoeffs(Turbine(iturb)%Blade(iblade)%EAirfoil(ielem),alpha75,alpha5,Re,adotnorm,CL,CD,CN,CT,CLCirc,CM25)
 
-    rho = 1000
-    FN=0.5*CN*rho*ElemArea*ur**2
-    FT=0.5*CT*rho*ElemArea*ur**2
+    FN=0.5*CN*ElemArea*ur**2
+    FT=0.5*CT*ElemArea*ur**2
     FS=0.0 ! Makes sure that there is no spanwise force
 
-    MS=0.5*rho*CM25*ElemChord*ElemArea*ur**2
+    MS=0.5*CM25*ElemChord*ElemArea*ur**2
 
     ! Compute forces in the X, Y, Z axis and torque    
 
@@ -529,9 +528,6 @@ subroutine turbine_geometry_read(i,FN)
     read(15,'(A)') ReadLine
     read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%RotP(1), Turbine(i)%RotP(2), Turbine(i)%RotP(3)
     
-    ! Read the perpendicular Axis of Rotation
-    read(15,'(A)') ReadLine
-    read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%at
 
     ! Read the perpendicular Axis of Rotation
     read(15,'(A)') ReadLine
@@ -630,15 +626,15 @@ subroutine turbine_geometry_read(i,FN)
         read(15,'(A)') ReadLine
         read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Blade(j)%sEz(1:Turbine(i)%Blade(j)%Nelem)
         
-        !Read ECtoR(1:NElem)
+        !Read EC(1:NElem)
         read(15,'(A)') ReadLine
         read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Blade(j)%EC(1:Turbine(i)%Blade(j)%Nelem)
         
-        !Read EAreaR(1:NElem
+        !Read EArea(1:NElem
         read(15,'(A)') ReadLine
         read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Blade(j)%EArea(1:Turbine(i)%Blade(j)%Nelem)
         
-        !Read iSect(1:NElem)
+        !Read ETtoC(1:NElem)
         read(15,'(A)') ReadLine
         read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Blade(j)%ETtoC(1:Turbine(i)%Blade(j)%Nelem)
         
@@ -678,52 +674,50 @@ end subroutine turbine_geometry_read
             blade%PEz(nej-1)=(blade%QCz(nej)+blade%QCz(nej-1))/2.0
             
             ! Element length
-            
-           blade%EDS(nej-1)=sqrt(dx**2+dy**2+dz**2)
 
             ! Set spannwise and tangential vectors
    sE=-(/blade%QCx(nej)-blade%QCx(nej-1),blade%QCy(nej)-blade%QCy(nej-1),blade%QCz(nej)-blade%QCz(nej-1)/) ! nominal element spanwise direction set opposite to QC line
-		    sEM=sqrt(dot_product(sE,sE))
-		    
+    sEM=sqrt(dot_product(sE,sE))
+    
             blade%EDS(nej-1) = sEM
             
             sE=sE/sEM
-		    tE=(/blade%tx(nej)+blade%tx(nej-1),blade%ty(nej)+blade%ty(nej-1),blade%tz(nej)+blade%tz(nej-1)/)/2.0
-		    ! Force tE normal to sE
-		    tE=tE-dot_product(tE,sE)*sE
-		    tEM=sqrt(dot_product(tE,tE))
-		    tE=tE/tEM
-		    blade%sEx(nej-1)=sE(1)
-		    blade%sEy(nej-1)=sE(2)
-		    blade%sEz(nej-1)=sE(3)
-		    blade%tEx(nej-1)=tE(1)
-		    blade%tEy(nej-1)=tE(2)
-		    blade%tEz(nej-1)=tE(3)
-		     
-		    ! Calc normal vector
-		    Call cross(sE(1),sE(2),sE(3),tE(1),tE(2),tE(3),normE(1),normE(2),normE(3))
-		    nEM=sqrt(dot_product(normE,normE))
-		    normE=normE/nEM
-		    blade%nEx(nej-1)=normE(1)
-		    blade%nEy(nej-1)=normE(2)
-		    blade%nEz(nej-1)=normE(3)
+    tE=(/blade%tx(nej)+blade%tx(nej-1),blade%ty(nej)+blade%ty(nej-1),blade%tz(nej)+blade%tz(nej-1)/)/2.0
+    ! Force tE normal to sE
+    tE=tE-dot_product(tE,sE)*sE
+    tEM=sqrt(dot_product(tE,tE))
+    tE=tE/tEM
+    blade%sEx(nej-1)=sE(1)
+    blade%sEy(nej-1)=sE(2)
+    blade%sEz(nej-1)=sE(3)
+    blade%tEx(nej-1)=tE(1)
+    blade%tEy(nej-1)=tE(2)
+    blade%tEz(nej-1)=tE(3)
+     
+    ! Calc normal vector
+    Call cross(sE(1),sE(2),sE(3),tE(1),tE(2),tE(3),normE(1),normE(2),normE(3))
+    nEM=sqrt(dot_product(normE,normE))
+    normE=normE/nEM
+    blade%nEx(nej-1)=normE(1)
+    blade%nEy(nej-1)=normE(2)
+    blade%nEz(nej-1)=normE(3)
 
-            ! Flip normal direction if requested
-		    blade%CircSign(nej)=1.0
-		    if (FlipN .eq. 1) then
-		        blade%nEx(nej-1)= -blade%nEx(nej-1)
-		        blade%nEy(nej-1)= -blade%nEy(nej-1)
-		        blade%nEz(nej-1)= -blade%nEz(nej-1)
-		        blade%sEx(nej-1)= -blade%sEx(nej-1)
-		        blade%sEy(nej-1)= -blade%sEy(nej-1)
-		        blade%sEz(nej-1)= -blade%sEz(nej-1)
-		        blade%tEx(nej-1)= -blade%tEx(nej-1)
-		        blade%tEy(nej-1)= -blade%tEy(nej-1)
-		        blade%tEz(nej-1)= -blade%tEz(nej-1)
+    ! Flip normal direction if requested
+    blade%CircSign(nej)=1.0
+    if (FlipN .eq. 1) then
+        blade%nEx(nej-1)= -blade%nEx(nej-1)
+        blade%nEy(nej-1)= -blade%nEy(nej-1)
+        blade%nEz(nej-1)= -blade%nEz(nej-1)
+        blade%sEx(nej-1)= -blade%sEx(nej-1)
+        blade%sEy(nej-1)= -blade%sEy(nej-1)
+        blade%sEz(nej-1)= -blade%sEz(nej-1)
+        blade%tEx(nej-1)= -blade%tEx(nej-1)
+        blade%tEy(nej-1)= -blade%tEy(nej-1)
+        blade%tEz(nej-1)= -blade%tEz(nej-1)
                 blade%CircSign(nej-1)=-1.0
-		    end if
-
-		    ! Calc element area and chord
+    end if
+    
+    ! Calc element area and chord
     P1=(/blade%QCx(nej-1)-0.25*blade%CtoR(nej-1)*blade%tx(nej-1),blade%QCy(nej-1)-0.25*blade%CtoR(nej-1)*blade%ty(nej-1),blade%QCz(nej-1)-0.25*blade%CtoR(nej-1)*blade%tz(nej-1)/)
 
     P2=(/blade%QCx(nej-1)+0.75*blade%CtoR(nej-1)*blade%tx(nej-1),blade%QCy(nej-1)+0.75*blade%CtoR(nej-1)*blade%ty(nej-1),blade%QCz(nej-1)+0.75*blade%CtoR(nej-1)*blade%tz(nej-1)/)

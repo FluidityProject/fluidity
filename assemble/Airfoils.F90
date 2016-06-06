@@ -383,7 +383,7 @@ contains
 
     ! Tangential and normal coeffs
     CN=CL5*cos(alpha5)+CD5*sin(alpha5)                                   
-    CT=-CL5*sin(alpha5)+CD5*cos(alpha5) 
+    CT=CL5*sin(alpha5)-CD5*cos(alpha5) 
 
    ! ! Calc tangential added mass increment by analogy to pitching flat plate potential flow theory (SAND report) 
    ! dCTAM=2.0/cos(alpha5)*wPNorm*CM25stat-CLstat5/2.0*wPNorm
@@ -541,7 +541,8 @@ contains
         type(AirfoilType),intent(IN) :: airfoil 
         integer :: U1, X1, iUB, iLB, NTB, L1
         logical :: NotDone                                               
-
+        
+        ewrite(2,*) 'Entering intp subroutine'
         !    INTERPOLATE ON RE NO. AND ANGLE OF ATTACK TO GET AIRFOIL CHARACTERISTICS                                            
         CLA(:)=0.0                                                        
         CDA(:)=0.0  
@@ -570,6 +571,8 @@ contains
                         iLB=iUB                                                           
                         XRE=0.0                                                           
                         !airfoil%IUXTP=1
+ewrite(2,*) 'Warning : Upper Reynolds number has been exceeded in the airfoil data; The largest available Reynolds number data will be used'
+
                     else    
                         ! No upper bound, increment and continue                                
                         iUB=iUB+1
@@ -584,6 +587,8 @@ contains
             iUB=1                                                             
             XRE=0.0                                                                                                 
             !airfoil%ILXTP=1
+ewrite(2,*) 'Warning : Lower Reynolds number has been exceeded in the airfoil data; The smaller available Reynolds number data will be used'
+
         end if
 
 
@@ -632,6 +637,7 @@ contains
         CD=CDA(1)+XRE*(CDA(2)-CDA(1))  
         CM25=CM25A(1)+XRE*(CM25A(2)-CM25A(1))
 
+        ewrite(2,*) 'Exiting intp subroutine'
     END SUBROUTINE intp
 
     Subroutine CalcLBStallAOALim(airfoil,lb,Re,CLa)
