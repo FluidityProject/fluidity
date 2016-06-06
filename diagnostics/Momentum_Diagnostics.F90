@@ -345,7 +345,7 @@ contains
       ! Start with a turbine model that 
      
 
-      nu=1e-3
+      nu=1e-6
 
       ! there should be two models: one for checking a single airfoil
       ! And another for checking the turbine
@@ -362,21 +362,15 @@ contains
                   Scoords(2)=Turbine(iTurb)%Blade(jblade)%PEy(kelem)
                   Scoords(3)=Turbine(iTurb)%Blade(jblade)%PEz(kelem)
 
-                  !call picker_inquire(positions,Scoords,ele,local_coord,.false.)
+                  call picker_inquire(positions,Scoords,ele,local_coord,.false.)
 
                   !* Evaluates the velocity at the point of interest 
                   !* It does not work for parallel 
-                  !value_vel=eval_field(ele,velocity, local_coord) 
-
-                  value_vel(1)=1.0
-                  value_vel(2)=0.0
-                  value_vel(3)=0.0
-                  !nu=1e-6
-
+                  value_vel=eval_field(ele,velocity, local_coord) 
+ 
                   call Compute_Element_Forces(iTurb,jblade,kelem,value_vel,nu)
                   
                    
-                  !ewrite(2,*) Turbine(iturb)%Blade(jblade)%Fx(kelem)
                   !***********************************************
                   ! This is for inducing the velocities
                   !***********************************************
