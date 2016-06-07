@@ -64,7 +64,7 @@ type BladeType
     real, allocatable :: tx(:)      ! Blade unit tangent vector (rearward chord line direction) x-componenst at element ends
     real, allocatable :: ty(:)      ! Blade unit tangent vector (rearward chord line direction) y-componenst at element ends 
     real, allocatable :: tz(:)      ! Blade unit tangent vector (rearward chord line direction) z-componenst at element ends  
-    real, allocatable :: CtoR(:)    ! Blade chord to turbine reference radius ratio at element ends
+    real, allocatable :: C(:)       ! Blade chord length at element ends
     real, allocatable :: PEx(:)     ! Element centre x coordinates
     real, allocatable :: PEy(:)     ! Element centre y coordinates
     real, allocatable :: PEz(:)     ! Element centre z coordinates
@@ -239,7 +239,7 @@ subroutine turbine_operate
         theta=Turbine(i)%RPM*2*pi/60*dt ! 1 revolution/minute = 2 pi tads / 60 s
         Turbine(i)%angularVel = Turbine(i)%RPM*2*pi/60 
         call rotate_turbines(theta) 
-
+        call calculate_performance(Turbine(i))
     elseif(Turbine(i)%Is_force_based_operated) then
         ewrite(2,*) 'Operating Turbine with a force-based approach'
      else
@@ -295,7 +295,15 @@ subroutine calculate_performance(turbine)
     turbine%CFx=FX/(0.5*pi*R**2*U_ref**2)
     turbine%CFy=FY/(0.5*pi*R**2*U_ref**2)
     turbine%CFz=Fz/(0.5*pi*R**2*U_ref**2)
-
+    turbine%CT=sqrt(turbine%CFx**2+turbine%CFy**2+turbine%CFz**2)
+    turbine%CP=abs(TR*turbine%angularVel/(0.5*pi*R**2*U_ref**3))
+    
+    ewrite(1,*) '--------------------------------------------------------'
+    ewrite(1,*) 'Calculate performance for Turbine : ',turbine%turb_name
+    ewrite(1,*) 'Thrust Coefficient : ', turbine%CT
+    ewrite(1,*) 'Power Coefficient " ', turbine%CP
+    ewrite(1,*) '--------------------------------------------------------'
+    
     ewrite(2,*) 'Exiting calculate_performance'
 
 end subroutine calculate_performance
@@ -518,7 +526,7 @@ subroutine allocate_turbine_elements(ITurbine,IBlade,NElem)
     allocate(Turbine(ITurbine)%Blade(IBlade)%tx(NElem+1))
     allocate(Turbine(ITurbine)%Blade(IBlade)%ty(NElem+1))
     allocate(Turbine(ITurbine)%Blade(IBlade)%tz(NElem+1))
-    allocate(Turbine(ITurbine)%Blade(IBlade)%CtoR(NElem+1))
+    allocate(Turbine(ITurbine)%Blade(IBlade)%C(NElem+1))
     allocate(Turbine(ITurbine)%Blade(IBlade)%PEx(NElem))
     allocate(Turbine(ITurbine)%Blade(IBlade)%PEy(NElem))
     allocate(Turbine(ITurbine)%Blade(IBlade)%PEz(NElem))
@@ -621,9 +629,9 @@ subroutine turbine_geometry_read(i,FN)
         read(15,'(A)') ReadLine
         read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Blade(j)%tz(1:Turbine(i)%Blade(j)%Nelem+1)
       
-        !Read CtoR(1:NElem+1)
+        !Read C(1:NElem+1)
         read(15,'(A)') ReadLine
-        read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Blade(j)%CtoR(1:Turbine(i)%Blade(j)%Nelem+1)
+        read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Blade(j)%C(1:Turbine(i)%Blade(j)%Nelem+1)
         
         !Read PEx(1:NElem)
         read(15,'(A)') ReadLine
@@ -765,13 +773,13 @@ end subroutine turbine_geometry_read
     end if
     
     ! Calc element area and chord
-    P1=(/blade%QCx(nej-1)-0.25*blade%CtoR(nej-1)*blade%tx(nej-1),blade%QCy(nej-1)-0.25*blade%CtoR(nej-1)*blade%ty(nej-1),blade%QCz(nej-1)-0.25*blade%CtoR(nej-1)*blade%tz(nej-1)/)
+    P1=(/blade%QCx(nej-1)-0.25*blade%C(nej-1)*blade%tx(nej-1),blade%QCy(nej-1)-0.25*blade%C(nej-1)*blade%ty(nej-1),blade%QCz(nej-1)-0.25*blade%C(nej-1)*blade%tz(nej-1)/)
 
-    P2=(/blade%QCx(nej-1)+0.75*blade%CtoR(nej-1)*blade%tx(nej-1),blade%QCy(nej-1)+0.75*blade%CtoR(nej-1)*blade%ty(nej-1),blade%QCz(nej-1)+0.75*blade%CtoR(nej-1)*blade%tz(nej-1)/)
+    P2=(/blade%QCx(nej-1)+0.75*blade%C(nej-1)*blade%tx(nej-1),blade%QCy(nej-1)+0.75*blade%C(nej-1)*blade%ty(nej-1),blade%QCz(nej-1)+0.75*blade%C(nej-1)*blade%tz(nej-1)/)
 
-    P3=(/blade%QCx(nej)+0.75*blade%CtoR(nej)*blade%tx(nej),blade%QCy(nej)+0.75*blade%CtoR(nej)*blade%ty(nej),blade%QCz(nej)+0.75*blade%CtoR(nej)*blade%tz(nej)/)
+    P3=(/blade%QCx(nej)+0.75*blade%C(nej)*blade%tx(nej),blade%QCy(nej)+0.75*blade%C(nej)*blade%ty(nej),blade%QCz(nej)+0.75*blade%C(nej)*blade%tz(nej)/)
 
-    P4=(/blade%QCx(nej)-0.25*blade%CtoR(nej)*blade%tx(nej),blade%QCy(nej)-0.25*blade%CtoR(nej)*blade%ty(nej),blade%QCz(nej)-0.25*blade%CtoR(nej)*blade%tz(nej)/)
+    P4=(/blade%QCx(nej)-0.25*blade%C(nej)*blade%tx(nej),blade%QCy(nej)-0.25*blade%C(nej)*blade%ty(nej),blade%QCz(nej)-0.25*blade%C(nej)*blade%tz(nej)/)
 
 		    V1=P2-P1
 		    V2=P3-P2
