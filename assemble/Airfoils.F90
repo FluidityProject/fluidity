@@ -380,11 +380,12 @@ contains
     !CD5=CDdyn5  
     !CLCirc=CLdyn5  
     !endif
-
+    
     ! Tangential and normal coeffs
     CN=CL5*cos(alpha5)+CD5*sin(alpha5)                                   
     CT=CL5*sin(alpha5)-CD5*cos(alpha5) 
 
+    ewrite(2,*) 'Computing Normal and Tangential forces with alpha = ', alpha5, 'Cn, Ct = ', CN , CT
    ! ! Calc tangential added mass increment by analogy to pitching flat plate potential flow theory (SAND report) 
    ! dCTAM=2.0/cos(alpha5)*wPNorm*CM25stat-CLstat5/2.0*wPNorm
    ! ! Add in alphadot added mass effects (Theodorsen flat plate approx., Katz ch. 13)
@@ -548,21 +549,21 @@ contains
         CDA(:)=0.0  
         CM25A(:)=0.0
 
-        if (RE >= airfoil%TRE(1)) then                                                                                                   
-
+        
+    if (RE >= airfoil%TRE(1)) then                                                                                                   
             ! Find Re upper and lower bounds.                                     
             NotDone=.true.    
-            iUB=2                                                                 
+            iUB=2 ! maxloc(airfoil%TRE,1) ?                                                             
             do while (NotDone)   
 
-                if (RE <= airfoil%TRE(iUB)) then
+        if (RE <= airfoil%TRE(iUB)) then
                     ! Done
                     NotDone=.false.
                     if (RE == airfoil%TRE(iUB)) then
                         iLB=iUB
                     else
                         iLB=iUB-1                                                           
-                        XRE=(RE-airfoil%TRE(iLB)/(airfoil%TRE(iUB)-airfoil%TRE(iLB)))
+                        XRE=(RE-airfoil%TRE(iLB))/(airfoil%TRE(iUB)-airfoil%TRE(iLB))
                     end if
                 else
                     if (iUB == airfoil%nRET) then       
@@ -571,7 +572,7 @@ contains
                         iLB=iUB                                                           
                         XRE=0.0                                                           
                         !airfoil%IUXTP=1
-ewrite(2,*) 'Warning : Upper Reynolds number has been exceeded in the airfoil data; The largest available Reynolds number data will be used'
+ewrite(2,*) 'Warning : Upper Reynolds number has been exceeded in the airfoil data; Reynolds number ', airfoil%TRE(iUB)
 
                     else    
                         ! No upper bound, increment and continue                                
@@ -587,7 +588,7 @@ ewrite(2,*) 'Warning : Upper Reynolds number has been exceeded in the airfoil da
             iUB=1                                                             
             XRE=0.0                                                                                                 
             !airfoil%ILXTP=1
-ewrite(2,*) 'Warning : Lower Reynolds number has been exceeded in the airfoil data; The smaller available Reynolds number data will be used'
+ewrite(2,*) 'Warning : Lower Reynolds number has been exceeded in the airfoil data; Reynolds number ', airfoil%TRE(iLB)
 
         end if
 

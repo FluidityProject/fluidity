@@ -306,7 +306,7 @@ subroutine Compute_Element_Forces(iturb,iblade,ielem,Local_Vel,nu)
     wP = sxe*wRotX + sye*wRotY + sze*wRotZ
     ur=sqrt(urdn**2+urdc**2)
     alpha=atan2(urdn,urdc)
-    
+     
     Re = ur*ElemChord/nu
     alpha5=alpha
     alpha75=alpha

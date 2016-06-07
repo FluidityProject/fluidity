@@ -317,7 +317,8 @@ contains
 
       use pickers_inquire
       use alturbine
-      
+      use alturbine_utils
+
       type(state_type), dimension(:), intent(inout) :: states
       integer, intent(in) :: state_index
       type(vector_field), intent(inout) :: v_field
@@ -345,8 +346,6 @@ contains
       ! Start with a turbine model that 
      
 
-      nu=1e-3
-
       ! there should be two models: one for checking a single airfoil
       ! And another for checking the turbine
       
@@ -367,16 +366,15 @@ contains
                   !* Evaluates the velocity at the point of interest 
                   !* It does not work for parallel 
                   !value_vel=eval_field(ele,velocity, local_coord) 
-
                   value_vel(1)=1.0
                   value_vel(2)=0.0
                   value_vel(3)=0.0
-                  !nu=1e-6
+
+                  nu=1e-6
 
                   call Compute_Element_Forces(iTurb,jblade,kelem,value_vel,nu)
                   
                    
-                  !ewrite(2,*) Turbine(iturb)%Blade(jblade)%Fx(kelem)
                   !***********************************************
                   ! This is for inducing the velocities
                   !***********************************************
@@ -394,6 +392,7 @@ contains
                       end do
       
                   loc_kern=Kernel(dr2,epsilon_par,v_field%dim)
+                  
                   ! The (-) means that the fluid and the body are in equilibrium at each time
                   DSource(1)=-loc_kern*Turbine(iturb)%Blade(jblade)%Fx(kelem)
                   DSource(2)=-loc_kern*Turbine(iturb)%Blade(jblade)%Fy(kelem)
