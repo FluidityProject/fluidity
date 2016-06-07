@@ -328,7 +328,7 @@ contains
 
     end subroutine allocate_airfoil
    
-    subroutine compute_aeroCoeffs(airfoil,alpha75,alpha5,Re,adotnorm,CL,CD,CN,CT,CLCirc,CM25)
+    subroutine compute_aeroCoeffs(airfoil,alpha75,alpha5,Re,adotnorm,CN,CT,CM25)
 
     implicit none
    
@@ -354,7 +354,7 @@ contains
     type(AirfoilType),intent(IN) :: airfoil
     !type(LB_type),intent(IN),optional :: lb_model
     real,intent(IN) :: alpha75, alpha5, adotnorm, Re
-    real,intent(OUT) :: CL, CD, CN, CT, CLCirc, CM25
+    real,intent(OUT) :: CN, CT, CM25
     real :: CLstat75, CLstat5, CDstat75, CLdyn5, CDdyn5, dCLAD, dCTAM, dCNAM, CL5, CD5, C, C1, CM25stat
     real :: alphaL, alphaD, aref, Fac  
     
@@ -369,42 +369,10 @@ contains
     CD5=CDstat75
     CM25=CM25stat+cos(alpha5)*(CLstat75-CLstat5)/4.0
     alphaL=alpha75
-    CLCirc=CLstat75
-    
-    ! If no dynamic stall, use static values, else calc dynamic stall
-    ! Leishman-Beddoes model
-   
-    !if(lb_model%StallFlag) then
-    !Call LB_DynStall(airfoil,lb_model,CL5,CD5,alphaL,alpha5,umach,Re,CLdyn5,CDdyn5) 
-    !CL5=CLdyn5
-    !CD5=CDdyn5  
-    !CLCirc=CLdyn5  
-    !endif
     
     ! Tangential and normal coeffs
     CN=CL5*cos(alpha5)+CD5*sin(alpha5)                                   
     CT=CL5*sin(alpha5)-CD5*cos(alpha5) 
-
-    ewrite(2,*) 'Computing Normal and Tangential forces with alpha = ', alpha5, 'Cn, Ct = ', CN , CT
-   ! ! Calc tangential added mass increment by analogy to pitching flat plate potential flow theory (SAND report) 
-   ! dCTAM=2.0/cos(alpha5)*wPNorm*CM25stat-CLstat5/2.0*wPNorm
-   ! ! Add in alphadot added mass effects (Theodorsen flat plate approx., Katz ch. 13)
-   ! dCLAD=pi*adotnorm
-   ! dCTAM=dCTAM-dCLAD*sin(alpha5)
-   ! dCNAM=dCLAD*cos(alpha5)       
-
-   ! ! Add in added mass effects at low AOA (models not accurate at high AOA)
-   ! Fac=1.0
-   ! aref=abs(alpha5)
-   ! if ((aref > pi/4.0) .AND. (aref < 3.0*pi/4.0)) then
-   !     Fac = abs(1-4.0/pi*(aref-pi/4.0))
-   ! end if
-   ! CT=CT+Fac*dCTAM
-   ! CN=CN+Fac*dCNAM
-
-    ! Calc total lift and drag coefficient based on flow direction at half-chord for reference
-    CL=CN*cos(alpha5)-CT*sin(alpha5)
-    CD=CN*sin(alpha5)+CT*cos(alpha5)
 
 
     ewrite(2,*) 'Exiting compute_aeroCoeffs_one_airfoil'
@@ -572,8 +540,8 @@ contains
                         iLB=iUB                                                           
                         XRE=0.0                                                           
                         !airfoil%IUXTP=1
-ewrite(2,*) 'Warning : Upper Reynolds number has been exceeded in the airfoil data; Reynolds number ', airfoil%TRE(iUB)
 
+    ewrite(2,*) 'Warning : The upper Reynolds number available data was exceeded. Calculate CD,CL,CM with : Re = ', airfoil%TRE(iUB)
                     else    
                         ! No upper bound, increment and continue                                
                         iUB=iUB+1
@@ -588,7 +556,9 @@ ewrite(2,*) 'Warning : Upper Reynolds number has been exceeded in the airfoil da
             iUB=1                                                             
             XRE=0.0                                                                                                 
             !airfoil%ILXTP=1
-ewrite(2,*) 'Warning : Lower Reynolds number has been exceeded in the airfoil data; Reynolds number ', airfoil%TRE(iLB)
+
+    ewrite(2,*) 'Warning : The lower Reynolds number available data was exceeded. Calculate CD,CL,CM with : Re = ', airfoil%TRE(iLB)
+
 
         end if
 

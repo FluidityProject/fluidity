@@ -105,7 +105,7 @@ type TurbineType
     character(len=100) :: geom_file 
     integer :: NBlades, NAirfoilData
     real, dimension(3) :: RotN, RotP ! Rotational vectors in the normal and perpendicular directions
-    real :: at, Rmax
+    real :: Rmax, Uref ! Reference radius and reference velocity
     real :: RPM , angularVel
     logical :: Is_constant_rotation_operated = .false. ! For a constant rotational velocity (in Revolutions Per Minute)
     logical :: Is_force_based_operated = .false. ! For a forced based rotational velocity (Computed during the simulation)
@@ -253,6 +253,53 @@ subroutine turbine_operate
 
 end subroutine turbine_operate
 
+subroutine calculate_performance(turbine)
+
+    implicit none
+    type(TurbineType), intent(inout) :: turbine
+    real :: TR_i,FX_i,FY_i,FZ_i, FX,FY,FZ,TR
+    real :: U_ref, R
+    integer :: iblade, ielem
+    ewrite(2,*) 'In calculate_performance'
+
+    ! Compute the contribution from each blade
+        TR=0.0
+        FX=0.0
+        FY=0.0
+        FZ=0.0
+    
+    do iblade=1,turbine%Nblades
+        
+        TR_i=0.0
+        FX_i=0.0
+        FY_i=0.0
+        FZ_i=0.0
+
+        do ielem=1,turbine%Blade(iblade)%Nelem
+        FX_i=FX_i+turbine%Blade(iblade)%Fx(ielem)
+        FY_i=FY_i+turbine%Blade(iblade)%Fy(ielem)
+        FZ_i=FZ_i+turbine%Blade(iblade)%Fz(ielem)
+        TR_i=TR_i+turbine%Blade(iblade)%Torque(ielem)
+        end do
+        
+        FX=FX+FX_i
+        FY=FY+FY_i
+        FZ=FZ+FZ_i
+        TR=TR+TR_i
+       
+    end do
+    
+    turbine%Uref=1
+    U_ref=turbine%Uref
+    R=turbine%Rmax
+    turbine%CFx=FX/(0.5*pi*R**2*U_ref**2)
+    turbine%CFy=FY/(0.5*pi*R**2*U_ref**2)
+    turbine%CFz=Fz/(0.5*pi*R**2*U_ref**2)
+
+    ewrite(2,*) 'Exiting calculate_performance'
+
+end subroutine calculate_performance
+
 subroutine Compute_Element_Forces(iturb,iblade,ielem,Local_Vel,nu)
        
     implicit none
@@ -312,7 +359,7 @@ subroutine Compute_Element_Forces(iturb,iblade,ielem,Local_Vel,nu)
     alpha75=alpha
     adotnorm=0
    
-    call compute_aeroCoeffs(Turbine(iturb)%Blade(iblade)%EAirfoil(ielem),alpha75,alpha5,Re,adotnorm,CL,CD,CN,CT,CLCirc,CM25)
+    call compute_aeroCoeffs(Turbine(iturb)%Blade(iblade)%EAirfoil(ielem),alpha75,alpha5,Re,adotnorm,CN,CT,CM25)
 
     FN=0.5*CN*ElemArea*ur**2
     FT=0.5*CT*ElemArea*ur**2
