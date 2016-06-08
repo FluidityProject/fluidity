@@ -1,10 +1,24 @@
-! Basic template for DG assembly routines. This is used to generate optimised versions.
-! For simplicity, removed following functionality:
-!   -   Arbitrary upwind viscosity scheme
+! Basic template for DG assembly routines. This is used to generate optimised 
+! versions. This gives a 1.6x - 2x speedup on previous assembly code. Intended
+! to suggest optimisations that can be carried over to Momentum_DG.F90.
+!
+! Note, there are several CPP defines (NDIM, NLOC, NGI, etc.) that need to be
+! set before this will compile.
+!
+! What's not here:
+! - Arbitrary Upwind
+! - Interior Penalty
+! - Working Bassi-Rebay (attempted to reinstate: failed)
+!
+! What is here:
+! - Compact DG
+! - Tentative partial-stress form Compact DG (will discuss with the esteemed
+!   Dr. J. Percival for proper implementation).
+!
+! Dr. Angus Creech,
+! University of Edinburgh <a.creeched.ac.uk>
 
-#define ELEMENT_CONFIG
 
-#include "element_type_defs.h"
 
 !------------------ Start of template code ------------------------------
 
