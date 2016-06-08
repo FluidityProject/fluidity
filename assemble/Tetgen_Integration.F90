@@ -43,6 +43,7 @@ module tetgen_integration
   use halos
   use meshdiagnostics
   use tictoc
+  use pickers
 
   implicit none
   
@@ -54,7 +55,7 @@ module tetgen_integration
 
     subroutine tetgenerate_mesh(input_positions, output_positions)
 
-      type(vector_field), intent(in) :: input_positions
+      type(vector_field), intent(inout) :: input_positions
       type(vector_field), target, intent(out) :: output_positions
 
       integer :: nhalos
@@ -65,21 +66,23 @@ module tetgen_integration
       integer :: stat
       integer, dimension(2) :: shape_option
       integer, dimension(:), allocatable :: region_id_nos
+      logical :: keep_regions, renumber_nodes
 
       ewrite(1,*) "In tetgenerate_mesh"
 
       stat = 1
       !! Work out which regions are to be remeshed
-      if( have_option("/mesh_adaptivity/delaunay_adaptivity/region_ids")) then
-         shape_option=option_shape("/mesh_adaptivity/delaunay_adaptivity/region_ids")
-         allocate(region_id_nos(1:shape_option(1)))
-         call get_option("/mesh_adaptivity/delaunay_adaptivity/region_ids",&
-              region_id_nos, stat)
-      elseif(.not. have_option("/mesh_adaptivity/delaunay_adaptivity/ignore_region_ids")) then
-         call count_regions(input_positions%mesh,region_id_nos)
+!!      if( have_option("/mesh_adaptivity/delaunay_adaptivity/region_ids")) then
+!!         shape_option=option_shape("/mesh_adaptivity/delaunay_adaptivity/region_ids")
+!!         allocate(region_id_nos(1:shape_option(1)))
+!!         call get_option("/mesh_adaptivity/delaunay_adaptivity/region_ids",&
+!!              region_id_nos, stat)
+      if(.not. have_option("/mesh_adaptivity/delaunay_adaptivity/ignore_region_ids")) then
+!!         call count_regions(input_positions%mesh,region_id_nos)
+         keep_regions = .true.
       else
-         allocate(region_id_nos(1))
-         region_id_nos=-1
+!         allocate(region_id_nos(1))
+         keep_regions = .false.
       end if
 
       nhalos = halo_count(input_positions)
@@ -88,9 +91,9 @@ module tetgen_integration
          old_halo => input_positions%mesh%halos(nhalos)
       end if
 
-      call external_remesh(input_positions, output_positions,region_id_nos)
+      call external_remesh(input_positions, output_positions, keep_regions)
 
-      deallocate(region_id_nos)
+      renumber_nodes = node_count(input_positions) /= node_count(output_positions)
 
       if(nhalos > 0) then
 
@@ -113,30 +116,47 @@ module tetgen_integration
          if(nhalos == 2) then
             ! Derive remaining halos
             call derive_l1_from_l2_halo(output_positions%mesh, ordering_scheme = HALO_ORDER_GENERAL, create_caches = .false.)
-            ! Reorder the nodes for trailing receives consistency
-            call renumber_positions_trailing_receives(output_positions)
+
+
+            if (renumber_nodes) then
+               ! Reorder the nodes for trailing receives consistency
+               call renumber_positions_trailing_receives(output_positions)
+            else
+               do i=1, nhalos
+                  call create_ownership(output_positions%mesh%halos(i))
+                  call create_global_to_universal_numbering(output_positions%mesh%halos(i))
+               end do
+            end if
             
             allocate(output_positions%mesh%element_halos(2))
             ! Reorder the elements for trailing receives consistency
             call derive_element_halo_from_node_halo(output_positions%mesh, &
-                 & ordering_scheme = HALO_ORDER_GENERAL, create_caches = .false.)
-            call renumber_positions_elements_trailing_receives(output_positions, permutation=renumber_permutation)
+                 & ordering_scheme = HALO_ORDER_GENERAL)
+ !           call renumber_positions_elements_trailing_receives(output_positions, permutation=renumber_permutation)
          else
-            ! Reorder the nodes for trailing receives consistency
-            call renumber_positions_trailing_receives(output_positions)
+            if (renumber_nodes) then
+               ! Reorder the nodes for trailing receives consistency
+               call renumber_positions_trailing_receives(output_positions)
+            else
+               do i=1, nhalos
+                  call create_ownership(output_positions%mesh%halos(i))
+                  call create_global_to_universal_numbering(output_positions%mesh%halos(i))
+               end do
+            end if
+
         
             allocate(output_positions%mesh%element_halos(1))
             ! Reorder the elements for trailing receives consistency
             call derive_element_halo_from_node_halo(output_positions%mesh, &
-                 & ordering_scheme = HALO_ORDER_GENERAL, create_caches = .false.)
-            call renumber_positions_elements_trailing_receives(output_positions, permutation=renumber_permutation)
+                 & ordering_scheme = HALO_ORDER_GENERAL)
+!            call renumber_positions_elements_trailing_receives(output_positions, permutation=renumber_permutation)
          end if
 
          deallocate(renumber_permutation)
 
          ! Adaptivity is not guaranteed to return halo elements in the same
          ! order in which they went in. We therefore need to fix this order.
-         call reorder_element_numbering(output_positions)
+!         call reorder_element_numbering(output_positions)
 
 #ifdef DDEBUG
          do i = 1, nhalos
@@ -151,36 +171,31 @@ module tetgen_integration
 
     end subroutine tetgenerate_mesh
 
-    subroutine external_remesh(input_positions, output_positions, regions)
+    subroutine external_remesh(input_positions, output_positions, keep_regions)
       !! This routine does the hard work in extracting the regions to be
       !! remeshed, then reconstructing the final output after tetgen has
       !! been called.
       !! The input positional vector field
-      type(vector_field), intent(in) :: input_positions
+      type(vector_field), intent(inout) :: input_positions
       !! The output positional vector field
       type(vector_field), intent(out), target :: output_positions
       !! An array of region ids to be considered, or -1 to skip,
-      integer, intent(in), dimension(:) :: regions
+      logical, intent(in) :: keep_regions
 
       integer :: dim, nloc, snloc, reg
-      type(mesh_data) :: input, output(size(regions))
+      type(mesh_data) :: input, output, temp
       integer(c_int), pointer, dimension(:,:) :: idata_2d
       real(c_double), pointer, dimension(:,:) :: rdata_2d, holes
 
       integer :: i, j, n_surface_elements, nholes, fixed_eles, nelements
-      integer, dimension(size(regions)) :: extra_nodes
       integer, dimension(:), pointer :: snlist
       integer(c_int), dimension(:), pointer :: eelist, faceelist, faces
-      type int_ptr
-         integer, dimension(:), pointer :: ptr
-      end type int_ptr
-      type(int_ptr), dimension(size(regions)) :: node_list
+      real(c_double), pointer, dimension(:) :: region_attributes=> null()
 
       real, dimension(:,:), pointer :: pnodes
 
       type(mesh_type), pointer :: output_mesh
-      type(mesh_type) :: submesh(size(regions))
-      logical, dimension(element_count(input_positions)) :: validity
+      integer, dimension(element_count(input_positions)) :: validity
       logical :: use_submesh
 
       interface
@@ -223,118 +238,78 @@ module tetgen_integration
       nloc = ele_loc(input_positions,1)
       snloc = face_loc(input_positions,1)
 
-      ewrite(1,*) 'Remeshing regions:', regions
-
-      if (isparallel() .and. .false.) then
-         nholes=0
-         allocate(holes(dim,0))
-      else
-         nholes = option_count("/mesh_adaptivity/delaunay_adaptivity/mesh_hole")
-         allocate(holes(dim, nholes))
-         do i=0,nholes-1
-            call get_option("/mesh_adaptivity/delaunay_adaptivity/mesh_hole["&
-                 //int2str(i)//"]",holes(:,i+1))
-         end do
-      end if
+      nholes = option_count("/mesh_adaptivity/delaunay_adaptivity/mesh_hole")
+      allocate(holes(dim, nholes))
+      do i=0,nholes-1
+         call get_option("/mesh_adaptivity/delaunay_adaptivity/mesh_hole["&
+              //int2str(i)//"]",holes(:,i+1))
+      end do
 
       n_surface_elements = surface_element_count(input_positions)
 
-      use_submesh = isparallel() .or. (regions(1) >= 0) 
-
-      use_submesh = .false.
+      use_submesh = isparallel() .or. keep_regions 
 
       if (use_submesh) then
-         call get_validity(input_positions%mesh, regions, validity)
+         call get_validity(input_positions%mesh, keep_regions, validity)
+         fixed_eles = count(validity == 0)
+         call get_free_subdomain(input_positions%mesh, validity, snlist)
+         call paint_regions(input_positions, validity, region_attributes)
+         input = pack_mesh_data(input_positions%val,input_positions%mesh,&
+              snlist, holes, region_attributes)
+      else
+         allocate(snlist(n_surface_elements * snloc))
+         if(n_surface_elements > 0) then
+            call getsndgln(input_positions%mesh, snlist)
+         end if
+         input = pack_mesh_data(input_positions%val, input_positions%mesh,&
+              snlist, holes)
+         fixed_eles = 0
       end if
 
-      fixed_eles = element_count(input_positions)
-      do reg = 1, size(regions) 
-         if (use_submesh) then
-            call get_free_subdomain(input_positions%mesh,submesh(reg),&
-                 validity, node_list(reg)%ptr, snlist, regions(reg))
-            allocate(pnodes(dim,node_count(submesh(reg))))
-            pnodes = input_positions%val(:,node_list(reg)%ptr)
-            input = pack_mesh_data(pnodes,submesh(reg), snlist, holes)
-            fixed_eles = fixed_eles&
-                 - element_count(submesh(reg))
-         else
-            allocate(snlist(n_surface_elements * snloc))
-            if(n_surface_elements > 0) then
-               call getsndgln(input_positions%mesh, snlist)
-            end if
-            input = pack_mesh_data(input_positions%val, input_positions%mesh,&
-                 snlist, holes)
-            fixed_eles = 0
-            allocate(node_list(reg)%ptr(0))
-         end if
-
-         select case(dim)
-         case(2)
+      select case(dim)
+      case(2)
 #ifdef HAVE_LIBTRIANGLE
-            output(reg) = triangle(input, "YYYCS0ps5ss20"//C_NULL_CHAR)
+         output = triangle(input, "YYYCS0ps5ss20"//C_NULL_CHAR)
 #else
-            FLExit("Fluidity compiled without triangle support")
+         FLExit("Fluidity compiled without triangle support")
 #endif
-         case(3)
+      case(3)
 #ifdef HAVE_LIBTET
-            output(reg) = tetgen(input, "YYYpABMfnnO2/1"//C_NULL_CHAR)
+         output = tetgen(input, "YYYS0pABMfnnO2/1"//C_NULL_CHAR)
 #else
-            FLExit("Fluidity compiled without tetgen support")
+         FLExit("Fluidity compiled without tetgen support")
 #endif
-         end select
+      end select
 
-         extra_nodes(reg) = output(reg)%nnodes - input%nnodes
-         deallocate(snlist)
-         if (use_submesh) deallocate(pnodes)
-      end do
+      deallocate(snlist)
 
-      ewrite(1,*) "nodes:", node_count(input_positions)+sum(extra_nodes)
-      nelements = count_interior_elements(output)+fixed_eles
+      ewrite(1,*) "nodes:", output%nnodes
+      nelements = count_interior_elements([output])+fixed_eles
       ewrite(1,*) "elements:", nelements
+      ewrite(1,*) "free elements:", count_interior_elements([output])
       
       allocate(output_mesh)
       call allocate(output_mesh,&
-           node_count(input_positions)+sum(extra_nodes), &
+           node_count(input_positions), &
            nelements, input_positions%mesh%shape, &
            name = input_positions%mesh%name)
       output_mesh%shape%refcount%tagged = .false.
       output_mesh%shape%quadrature%refcount%tagged = .false.
-      if (regions(1)>=0) then
+      if (keep_regions) then
          allocate(output_mesh%region_ids(element_count(output_mesh)))
       end if
+      call c_f_pointer(output%ndglno, idata_2d,&
+           [nloc,output%nelements])
+      call add_free_elements(input_positions%mesh,&
+           output, output_mesh,&
+           node_count(input_positions),&
+           node_count(input_positions),&
+           idata_2d)
       if (use_submesh) then
-         do reg=1, size(regions)
-            call c_f_pointer(output(reg)%ndglno, idata_2d,&
-                 [nloc,output(reg)%nelements])
-            call add_free_elements(input_positions%mesh,&
-                 output(reg), output_mesh,&
-                 count_interior_elements(output(1:reg-1)),&
-                 node_count(submesh(reg)),&
-                 node_count(input_positions)+sum(extra_nodes(1:reg-1)),&
-                 idata_2d, node_list(reg)%ptr, regions(reg))
-            call deallocate(submesh(reg))
-            deallocate(node_list(reg)%ptr)
-         end do
          call add_fixed_elements(input_positions%mesh,&
-                 output_mesh, count_interior_elements(output), validity)
-      else
-         j=0
-         call c_f_pointer(output(1)%ndglno, idata_2d,&
-              [nloc,output(1)%nelements])
-         call add_free_elements(input_positions%mesh,&
-              output(1), output_mesh,&
-              0, node_count(input_positions),&
-              node_count(input_positions),&
-              idata_2d, node_list(1)%ptr, -1)
-
-         call c_f_pointer(output(1)%element_adjacency, eelist,&
-              [nloc*output(1)%nelements])
-         call c_f_pointer(output(1)%faces_adjacency, faceelist,&
-              [2*output(1)%nfaces])
-         call c_f_pointer(output(1)%faces, faces,&
-              [3*output(1)%nfaces])
-         deallocate(node_list(1)%ptr)
+              output_mesh, count_interior_elements([output]), validity)
       end if
+
       output_mesh%option_path = input_positions%mesh%option_path 
 
       ! Construct the new positions
@@ -349,23 +324,40 @@ module tetgen_integration
       output_positions%val(:,1:node_count(input_positions))&
            = input_positions%val
       j=node_count(input_positions)
-      do reg=1,size(regions)
-         call c_f_pointer(output(reg)%nodes, rdata_2d, [dim, output(reg)%nnodes])
-         !! extra nodes are put on the end for now.
-         output_positions%val(:,j+1:j+extra_nodes(reg))&
-              = rdata_2d(:,output(reg)%nnodes-extra_nodes(reg)+1:output(reg)%nnodes)
-         j = j+extra_nodes(reg)
-      end do
+      call c_f_pointer(output%nodes, rdata_2d, [dim, output%nnodes])
+      !! extra nodes are put on the end for now.
+      output_positions%val(:,j+1:node_count(output_positions))&
+           = rdata_2d(:,j+1:output%nnodes)
 
       allocate(snlist(n_surface_elements * snloc))
       call getsndgln(input_positions%mesh,&
            snlist(1:n_surface_elements * snloc))
-      call add_faces(output_mesh,&
-           sndgln = snlist,&
-           boundary_ids = input_positions%mesh%faces%boundary_ids,&
-           known_faces = faces,&
-           face_adjacency = faceelist,&
-           known_eelist = eelist)
+      if (isparallel()) then
+         call mesh_data_cleanup(output, dim)
+         input = pack_mesh_data(output_positions%val, output_positions%mesh)
+#ifdef HAVE_LIBTET
+         output = tetgen(input, "YYYS0rBNMfnn"//C_NULL_CHAR)
+#else
+         FLExit("Fluidity compiled without tetgen support")
+#endif
+ !                 call add_faces(output_mesh,&
+ !             sndgln = snlist,&
+ !             boundary_ids = input_positions%mesh%faces%boundary_ids)
+      end if
+
+         call c_f_pointer(output%element_adjacency, eelist,&
+              [nloc*element_count(output_positions)])
+         call c_f_pointer(output%faces_adjacency, faceelist,&
+              [2*output%nfaces])
+         call c_f_pointer(output%faces, faces,&
+              [3*output%nfaces])
+         call add_faces(output_mesh,&
+              sndgln = snlist,&
+              boundary_ids = input_positions%mesh%faces%boundary_ids,&
+              known_faces = faces,&
+              face_adjacency = faceelist,&
+              known_eelist = eelist)
+!      end if
       if(associated(input_positions%mesh%faces%coplanar_ids)) then
          allocate(output_mesh%faces%coplanar_ids(n_surface_elements))
          output_mesh%faces%coplanar_ids = input_positions%mesh%faces%coplanar_ids
@@ -373,30 +365,198 @@ module tetgen_integration
 
       assert(n_surface_elements == surface_element_count(output_positions))
 
-      deallocate(snlist)
+      deallocate(snlist, holes)
 
-      do reg=1,size(regions)
-         call mesh_data_cleanup(output(reg), dim)
-      end do
+      call mesh_data_cleanup(output, dim)
 
     end subroutine external_remesh
 
-    function pack_mesh_data(nodes, inmesh, snlist, holes) result(mesh)
+    subroutine match_regions(positions, validity, outmesh)
+
+      type(vector_field), intent(inout) :: positions
+      integer, dimension(:), intent(in) :: validity
+      type(mesh_data), intent(inout) :: outmesh
+
+      real(c_double), pointer, dimension(:,:) :: region_ids
+      integer(c_int), pointer, dimension(:,:) :: ndglno
+
+      integer :: max_id, ele, ele_b, nloc, i
+      real, dimension(positions%dim) :: coord
+      
+
+      integer, dimension(:), allocatable:: map 
+
+      nloc = positions%dim + 1
+
+      call c_f_pointer(outmesh%region_ids,region_ids,&
+           [outmesh%lregion_ids,outmesh%nelements])
+      call c_f_pointer(outmesh%ndglno, ndglno,&
+           [nloc,outmesh%nelements])
+
+      max_id = int(maxval(region_ids(1,:)))
+
+      !! only one region of interest
+      
+      if (max_id==1) return
+
+      allocate(map(max_id))
+
+      do i=1, max_id
+         do ele = 1, outmesh%nelements
+            if (int(region_ids(1,ele)) == i) then
+               coord = get_centre(ele)
+               call picker_inquire(positions, coord, ele_b, global=.false.)
+               map(i) = validity(ele_b)
+               exit
+            end if
+         end do
+      end do
+
+      do ele = 1, outmesh%nelements
+         region_ids(1,ele)= map(nint(region_ids(1,ele)))
+      end do
+
+      contains
+
+        function get_centre(e)
+          integer, intent(in) :: e
+
+          real, dimension(positions%dim) :: get_centre
+          integer :: j
+
+          get_centre = 0
+
+          do j=1, nloc
+             get_centre = get_centre + node_val(positions, ndglno(j,e))
+          end do
+
+          get_centre = get_centre / nloc
+
+        end function get_centre
+
+    end subroutine match_regions
+
+    subroutine paint_regions(positions, validity, region_attributes)
+      type(vector_field), intent(inout) :: positions
+      integer, dimension(:), intent(in) :: validity
+      real(c_double), dimension(:), pointer :: region_attributes
+
+      integer :: ncoloured, ncols, nfront1,nfront2, ele
+      integer, dimension(element_count(positions)) :: ele_colour, front_list1,&
+           front_list2, ele_num
+      integer, dimension(:), pointer :: nodes
+      logical :: do_colouring
+
+      ele_colour = 0
+      ncoloured = 0
+      ncols = 0
+      
+      do_colouring = .true.
+
+      if (.not. isParallel() .and. associated(positions%mesh%region_ids)) then
+         if (size(positions%mesh%region_ids)==1) then
+            ncols =0
+            do_colouring = .false.
+         end if
+      end if   
+
+      if (do_colouring) then
+         do while (ncoloured<element_count(positions))
+            nfront1=0
+            front_list1=0
+            do ele=1, element_count(positions)
+               if (ele_colour(ele) == 0) then
+                  ncols = ncols + 1
+                  ele_colour(ele) = ncols
+                  ncoloured = ncoloured + 1
+                  ele_num(ncols) = ele               
+                  call paint_neighs(ele)
+                  exit
+               end if
+            end do
+            do while(nfront1>0) 
+               nfront2 = nfront1
+               front_list2 = front_list1
+               nfront1=0
+               front_list1=0
+               do ele=1,nfront2
+                  call paint_neighs(front_list2(ele))
+               end do
+            end do
+         end do
+      end if
+
+      allocate(region_attributes(5*ncols))
+
+      do ele=1, ncols
+         region_attributes(5*(ele-1)+1:5*(ele-1)+3) = &
+              sum(ele_val(positions,ele_num(ele)), dim=2)/4.0
+         region_attributes(5*(ele-1)+4) = 1.0*validity(ele_num(ele))
+         region_attributes(5*(ele-1)+5) = 0.0
+      end do
+        
+      contains
+
+        subroutine paint_neighs(e)
+
+          integer, intent(in) :: e
+
+          integer :: i
+          integer, dimension(:), pointer :: neigh
+
+          neigh => ele_neigh(positions%mesh, e)
+          do i=1,size(neigh)
+             if (neigh(i)<0) cycle
+             if (ele_colour(neigh(i))>0) cycle
+             if (validity(e) /= validity(neigh(i))) cycle
+             
+             ele_colour(neigh(i)) = ncols
+             ncoloured = ncoloured + 1
+             nfront1 = nfront1+1
+             front_list1(nfront1) = neigh(i)
+          end do
+
+        end subroutine paint_neighs
+        
+    end subroutine paint_regions
+
+    function pack_mesh_data(nodes, inmesh, snlist, holes, region_attributes) result(mesh)
       !! put the data for the mesh into a C compatible type
       real, dimension(:,:), pointer :: nodes
       type(mesh_type), intent(in) :: inmesh
-      integer(c_int), dimension(:), pointer :: snlist
-      real(c_double), dimension(:,:), pointer :: holes
+      integer(c_int), dimension(:), pointer, optional :: snlist
+      real(c_double), dimension(:,:), pointer, optional :: holes
+      real(c_double), dimension(:), pointer, optional :: region_attributes
       type(mesh_data) :: mesh
       integer(c_int), pointer :: iptr
       real(c_double), pointer :: dptr
 
       mesh%nnodes    = node_count(inmesh)
       mesh%nelements = element_count(inmesh)
-      mesh%nfacets   = size(snlist)/face_loc(inmesh,1)
-      mesh%nholes = size(holes,2)
+      if (present(snlist)) then
+         mesh%nfacets = size(snlist)/face_loc(inmesh,1)
+      else
+         mesh%nfacets = 0
+      end if
+      if (present(holes)) then
+         mesh%nholes = size(holes,2)
+      else
+         mesh%nholes = 0
+      end if
 
       mesh%lnode_ids = 0
+      if (present(region_attributes)) then
+         mesh%nattributes = size(region_attributes)/5
+         if (size(region_attributes)>0) then
+            dptr => region_attributes(1)
+         else
+            nullify(dptr) 
+         end if
+         mesh%region_attributes = c_loc(dptr)
+      else
+         mesh%nattributes = 0
+         mesh%region_attributes = c_null_ptr
+      end if
       mesh%lregion_ids = 0
       mesh%lface_ids = 0
       
@@ -406,8 +566,12 @@ module tetgen_integration
       iptr => inmesh%ndglno(1)
       mesh%ndglno = c_loc(iptr)
       mesh%region_ids = c_null_ptr
-      iptr => snlist(1)
-      mesh%facets = c_loc(iptr)
+      if (mesh%nfacets>0) then
+         iptr => snlist(1)
+         mesh%facets = c_loc(iptr)
+      else
+         mesh%facets = c_null_ptr
+      end if
       mesh%face_ids = c_null_ptr
       if (mesh%nholes>0) then 
          dptr => holes(1,1)
@@ -423,24 +587,20 @@ module tetgen_integration
 
     end function pack_mesh_data
 
-    subroutine get_validity(xmesh, regions, validity)
+    subroutine get_validity(xmesh, keep_regions, validity)
       ! full mesh to take free elements from
       type(mesh_type), intent(in) :: xmesh
-      integer, dimension(:), intent(in) :: regions
+      logical, intent(in) :: keep_regions
       ! elements that will make up the free submesh
-      logical, dimension(:) :: validity
+      integer, dimension(:) :: validity
 
       integer :: ele, nhalos, k
       integer, dimension(:), pointer :: nodes
 
-      validity = .true.
-
-      if (regions(1)>=0) then
-         do ele=1,element_count(xmesh)
-            if (.not. any(regions==xmesh%region_ids(ele))) then
-               validity(ele) = .false.
-            end if
-         end do
+      if (keep_regions) then
+         validity = xmesh%region_ids
+      else
+         validity = 1
       end if
 
       nhalos = halo_count(xmesh)
@@ -449,52 +609,25 @@ module tetgen_integration
             nodes => ele_nodes(xmesh,ele)
             do k=1, size(nodes)
                if (.not. node_owned(xmesh%halos(nhalos), nodes(k))) then
-                  validity(ele) = .false.
+                  validity(ele) = 0
                   exit
                end if
             end do
          end do
       end if
+
     end subroutine get_validity
     
-    subroutine get_free_subdomain(xmesh, submesh, validity, node_list, snlist, region_id)
+    subroutine get_free_subdomain(xmesh, validity, snlist)
       ! full mesh to take submesh from
       type(mesh_type), intent(in) :: xmesh
-      ! submesh created
-      type(mesh_type), intent(out) :: submesh
-      ! elements that will make up the submesh
-      logical, dimension(:) :: validity
-      ! list of nodes in submesh (also functions as node map from submesh to full mesh)
-      integer, dimension(:), pointer :: node_list
-      ! surface face list
-      integer, dimension(:), pointer :: snlist
-      ! region_id to pick out
-      integer, intent(in) :: region_id
-     
-      integer :: k
-      
-      if (region_id>=0) then
-         call create_subdomain_mesh(xmesh,&
-              pack([(k,k=1,element_count(xmesh))],&
-                     validity .and. xmesh%region_ids==region_id),&
-              "Free region", submesh, node_list)
-      else
-         call create_subdomain_mesh(xmesh,&
-              pack([(k,k=1,element_count(xmesh))],validity),&
-              "Free subdomain", submesh, node_list)
-      end if
-         
-      call get_surfaces(submesh,snlist)
-      
-    end subroutine get_free_subdomain
-
-    subroutine get_surfaces(xmesh, snlist)
-      type(mesh_type), intent(in) :: xmesh
+      ! elements that will make up the regions of the submesh
+      integer, dimension(:) :: validity
       integer, dimension(:), pointer :: snlist
 
       integer :: ele, face, k, opface, sloc
       integer :: face_list(face_count(xmesh))
-      integer, dimension(:), pointer :: faces
+      integer, dimension(:), pointer :: faces, neigh
 
       sloc = face_loc(xmesh,1)
 
@@ -502,14 +635,22 @@ module tetgen_integration
 
       do ele=1,element_count(xmesh)
          faces => ele_faces(xmesh, ele)
+         neigh => ele_neigh(xmesh, ele)
          do k=1, size(faces)
-               opface = face_opposite(xmesh, faces(k))
-               if (opface<0) face_list(faces(k)) = 1
+               if (ele<neigh(k)) cycle
+               if (neigh(k)<0) then
+                  face_list(faces(k)) = 1
+                  cycle
+               end if
+               if (validity(ele) /= validity(neigh(k))) then
+                  face_list(faces(k)) = 1
+                  cycle
+               end if
          end do
       end do
 
 
-     allocate(snlist(3*(count(face_list==1))))
+     allocate(snlist(sloc*(count(face_list==1))))
 
      k=0
 
@@ -520,16 +661,15 @@ module tetgen_integration
          end if
       end do
 
-    end subroutine get_surfaces
+    end subroutine get_free_subdomain
 
-    subroutine add_free_elements(xmesh, imesh, output_mesh, offset,&
-         free_nodes, original_nodes, data, node_list, region)
+    subroutine add_free_elements(xmesh, imesh, output_mesh,&
+         free_nodes, original_nodes, data)
       type(mesh_type), intent(in) :: xmesh
       type(mesh_data), intent(in) :: imesh
       type(mesh_type), intent(inout) :: output_mesh
-      integer, intent(in) :: offset, free_nodes, original_nodes, region
+      integer, intent(in) :: free_nodes, original_nodes
       integer, intent(in), dimension(:,:) :: data
-      integer, intent(in), dimension(:) :: node_list
 
       logical, dimension(imesh%nelements) :: interior
       
@@ -543,18 +683,15 @@ module tetgen_integration
       do j = 1,imesh%nelements
          if (.not. interior(j)) cycle
          do i=1,nloc
-            if (data(i,j)<=size(node_list)) then
-               output_mesh%ndglno(i+nloc*(offset+k))=node_list(data(i,j))
-            else
-               output_mesh%ndglno(i+nloc*(offset+k))=data(i,j)&
-                    -free_nodes+original_nodes
-            end if
+            output_mesh%ndglno(i+nloc*k)=data(i,j)
          end do
          k=k+1 
       end do
 
+      assert(k==count(interior))
+
       if (associated(output_mesh%region_ids)) then
-         output_mesh%region_ids(offset+1:offset+count(interior)) = region
+         output_mesh%region_ids(1:count(interior)) = 1
       end if
       
     end subroutine add_free_elements
@@ -564,7 +701,7 @@ module tetgen_integration
       type(mesh_type), intent(in) :: xmesh
       type(mesh_type), intent(inout) :: output_mesh
       integer, intent(in) :: offset
-      logical, intent(in), dimension(:) :: validitylist
+      integer, intent(in), dimension(:) :: validitylist
 
       integer :: j, ele, nloc
 
@@ -573,13 +710,15 @@ module tetgen_integration
       if (j == element_count(output_mesh)) return
 
       do ele=1,element_count(xmesh)
-         if (validitylist(ele)) cycle
-         output_mesh%ndglno(nloc*j+1:nloc*(j+1))=ele_nodes(xmesh,ele)
+         if (validitylist(ele) > 0) cycle
+         output_mesh%ndglno(nloc*j+1:nloc*(j+1)) = ele_nodes(xmesh,ele)
          if (associated(output_mesh%region_ids)) then
             output_mesh%region_ids(j+1) = xmesh%region_ids(ele)
          end if
          j = j + 1
       end do
+
+      assert( j == element_count(output_mesh))
 
     end subroutine add_fixed_elements
 

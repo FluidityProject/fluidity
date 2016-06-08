@@ -36,12 +36,13 @@ module tetgen_data_types
   private
 
   type, bind(c) :: mesh_data
-     integer(c_int) :: nnodes, nelements, nfacets, nholes, nfaces
+     integer(c_int) :: nnodes, nelements, nfacets, nholes, nfaces, nattributes
      integer(c_int) :: lnode_ids, lregion_ids, lface_ids
      type(c_ptr)    :: nodes 
      type(c_ptr)    :: node_ids
      type(c_ptr)    :: ndglno
      type(c_ptr)    :: region_ids
+     type(c_ptr)    :: region_attributes
      type(c_ptr)    :: facets
      type(c_ptr)    :: face_ids
      type(c_ptr)    :: holes

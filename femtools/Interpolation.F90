@@ -361,7 +361,7 @@ module interpolation_module
 
   end subroutine linear_interpolation_tensor
     
-  subroutine linear_interpolation_state(old_state, new_state, map, different_domains, only_owned)
+  subroutine linear_interpolation_state(old_state, new_state, map, different_domains, only_owned, lock_all_nodes)
     !!< Interpolate the fields defined on the old_fields mesh
     !!< onto the new_fields mesh.
     !!< This routine assumes new_state has all been allocated,
@@ -374,6 +374,7 @@ module interpolation_module
     integer, dimension(:), pointer :: lmap
     logical, intent(in), optional :: different_domains
     logical, intent(in), optional :: only_owned
+    logical, intent(in), optional :: lock_all_nodes
 
     type(vector_field), pointer :: old_position
     type(vector_field) :: new_position
@@ -415,6 +416,48 @@ module interpolation_module
     if (associated(old_state%tensor_fields)) then
       allocate(old_fields_t(size(old_state%tensor_fields)))
       allocate(new_fields_t(size(new_state%tensor_fields)))
+    end if
+
+    if (present_and_true(lock_all_nodes)) then
+       if (associated(old_state%scalar_fields)) then
+          field_count_s = size(old_state%scalar_fields)
+          do field_s=1,field_count_s
+             old_fields_s(field_s) = extract_scalar_field(old_state, trim(old_state%scalar_names(field_s)))
+             new_fields_s(field_s) = extract_scalar_field(new_state, trim(old_state%scalar_names(field_s)))
+             call set(new_fields_s(field_s),old_fields_s(field_s))
+          end do
+       end if
+       if (associated(old_state%vector_fields)) then
+          field_count_v = size(old_state%vector_fields)
+          j=1
+          do i=1, vector_field_count(old_state)
+             old_fields_v(j) = extract_vector_field(old_state, i)
+             ! skip coordinate fields
+             if (.not. (old_fields_v(j)%name=="Coordinate" .or. &
+                  old_fields_v(j)%name==trim(old_fields_v(j)%mesh%name)//"Coordinate")) then
+           
+                new_fields_v(j) = extract_vector_field(new_state, old_state%vector_names(i))
+                call set(new_fields_v(i),old_fields_v(j))
+             end if
+          end do
+       end if
+        if (associated(old_state%tensor_fields)) then
+          field_count_t = size(old_state%tensor_fields)
+          do field_t=1,field_count_t
+             old_fields_t(field_t) = extract_tensor_field(old_state, trim(old_state%tensor_names(field_t)))
+             new_fields_t(field_t) = extract_tensor_field(new_state, trim(old_state%tensor_names(field_t)))
+             if (.not. trim(old_state%tensor_names(field_t))=="ErrorMetric") then
+                call set(new_fields_t(field_t),old_fields_t(field_t))
+             else
+                !!! don't need a proper metric for connectivity adaptivity
+                call zero (new_fields_t(field_t))
+                do i=1,mesh_dim(new_fields_t(field_t))
+                   call set(new_fields_t(field_t),i,i,1.0)
+                end do
+             end if
+          end do
+       end if
+       return
     end if
 
     only_owned_b = present_and_true(only_owned)
@@ -681,11 +724,12 @@ module interpolation_module
 
   end subroutine cubic_interpolation_cf_vector
     
-  subroutine linear_interpolate_states(from_states, target_states, map, only_owned)
+  subroutine linear_interpolate_states(from_states, target_states, map, only_owned, lock_all_nodes)
   type(state_type), dimension(:), intent(inout):: from_states
   type(state_type), dimension(:), intent(inout):: target_states
   integer, dimension(:), intent(in), optional :: map
   logical, intent(in), optional :: only_owned
+  logical, intent(in), optional :: lock_all_nodes
     
     type(state_type) meshj_state
     type(vector_field), pointer:: from_positions
@@ -705,7 +749,7 @@ module interpolation_module
         call insert(meshj_state, from_positions, name=from_positions%name)
         
         call linear_interpolation_state(meshj_state, target_states(i), &
-          map = map, only_owned = only_owned)
+          map = map, only_owned = only_owned, lock_all_nodes = lock_all_nodes)
         call deallocate(meshj_state)
       end do
     end do

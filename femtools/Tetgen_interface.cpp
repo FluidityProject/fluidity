@@ -5,12 +5,13 @@
 
 extern "C" {
   struct mesh_data {
-    int nnodes, nelements, nfacets, nholes, nfaces;
+    int nnodes, nelements, nfacets, nholes, nfaces, nattributes;
     int lnode_ids, lregion_ids, lface_ids;
     double* nodes;
     int* node_ids;
     int* ndglno;
     double* region_ids;
+    double* region_attributes;
     int* facets;
     int* face_ids;
     double* holes;
@@ -130,24 +131,8 @@ void* mesh_to_tetgenio(struct mesh_data* mesh) {
   //  out->numberofholes = 0;
   //  out-> holelist = NULL;
 
-  out->numberofregions = 1;
-  out->regionlist = new double[5*out->numberofregions];
-
-  tet_average(out->regionlist,
-        &(mesh->nodes[3*mesh->ndglno[0]]),
-	      &(mesh->nodes[3*mesh->ndglno[1]]),
-  	      &(mesh->nodes[3*mesh->ndglno[2]]),
-  	      &(mesh->nodes[3*mesh->ndglno[3]]));
-  out->regionlist[3]=1.0;
-  out->regionlist[4]=0.0;
-
-   // for(int i=0;i<mesh->nholes;i++){
-   //   for(int j=0;j<3;j++){
-   //     out->regionlist[5*(i+1)+j]=mesh->holes[3*i+j];
-   //   }
-   //   out->regionlist[5*(i+1)+3]=-1.0*i;
-   //   out->regionlist[5*(i+1)+4]=0.0;
-   // } 
+  out->numberofregions = mesh->nattributes;
+  out->regionlist = mesh->region_attributes;
 
   return (void*) out;
 }

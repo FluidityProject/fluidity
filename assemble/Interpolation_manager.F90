@@ -64,13 +64,13 @@ module interpolation_manager
 
 contains
 
-  subroutine interpolate(states_old, states_new, map, only_owned)
+  subroutine interpolate(states_old, states_new, map, only_owned, lock_all_nodes)
     !! OK! We need to figure out what algorithm to use when and where.
     type(state_type), dimension(:), intent(inout) :: states_old, states_new
     !! Map from new nodes to old elements
     integer, dimension(:), optional, intent(in) :: map
     !! Only interpolate in owned nodes
-    logical, optional, intent(in) :: only_owned
+    logical, optional, intent(in) :: only_owned, lock_all_nodes
 
     ! The fields organised by mesh:
     type(state_type), dimension(:), allocatable :: meshes_old, meshes_new
@@ -193,7 +193,7 @@ contains
       call tic(TICTOC_ID_INTERPOLATION)
 
       ! Assuming here that "map" is for the linear mesh
-      call linear_interpolate_states(states_old, states_new, map = map, only_owned=only_owned)
+      call linear_interpolate_states(states_old, states_new, map = map, only_owned=only_owned, lock_all_nodes=lock_all_nodes)
 
       call toc(TICTOC_ID_INTERPOLATION)
       call tictoc_report(2, TICTOC_ID_INTERPOLATION)
@@ -350,7 +350,9 @@ contains
                   call linear_interpolation(alg_old(mesh), alg_new(mesh), only_owned=only_owned)
                 end if
               else
-                call linear_interpolation(alg_old(mesh), alg_new(mesh), only_owned=only_owned)
+                call linear_interpolation(alg_old(mesh), alg_new(mesh), only_owned=only_owned, &
+                     lock_all_nodes=lock_all_nodes .and. new_mesh%continuity>-1&
+                     .and. new_mesh%shape%degree==1)
               end if
             end if
           
