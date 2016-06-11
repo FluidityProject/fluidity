@@ -81,8 +81,9 @@ type BladeType
     real, allocatable :: EDS(:)     ! Element spanwise distance (length)
     real, allocatable :: CircSign(:)! Direction of segment circulation on wake
     real, allocatable :: EArea(:)   ! Element Area
-    real, allocatable :: ETtoC(:)! Element thickness to Chord ratio
-    
+    real, allocatable :: ETtoC(:)       ! Element thickness to Chord ratio
+    real, allocatable :: AOA_LAST(:)    ! Last angle of Attack
+
     type(AirfoilType), allocatable :: EAirfoil(:) ! Element Airfoil 
     type(LB_Type), allocatable :: E_LB_Model(:)   ! Element Leishman-Beddoes Model
 
@@ -109,6 +110,7 @@ type TurbineType
     real :: RPM , angularVel
     logical :: Is_constant_rotation_operated = .false. ! For a constant rotational velocity (in Revolutions Per Minute)
     logical :: Is_force_based_operated = .false. ! For a forced based rotational velocity (Computed during the simulation)
+    logical :: IsRotating=.false.
     type(BladeType), allocatable :: Blade(:)
     type(AirfoilType), allocatable :: AirfoilData(:)
     real :: CP  ! Power coefficient 
@@ -122,7 +124,7 @@ end type TurbineType
 
     type(TurbineType), allocatable :: Turbine(:) ! Turbine 
     integer :: notur, NBlades, NElem      ! Number of the turbines 
-    
+    real :: deltaT
     private turbine_geometry_read, allocate_turbine_elements, allocate_turbine_blades 
     public  turbine_init, turbine_operate
 
@@ -190,7 +192,9 @@ contains
        ! Populate Turbine Airfoil Sections
         ewrite(2,*) 'Populating blade airfoils for turbine ',i,' Blade ', j
         call populate_blade_airfoils(Turbine(i)%Blade(j)%NElem,Turbine(i)%Blade(j)%EAirfoil,Turbine(i)%AirfoilData,Turbine(i)%Blade(j)%ETtoC)
-       enddo
+       ! Write the initial angle of attack
+        Turbine(i)%Blade(j)%AOA_LAST(:)=0
+        enddo
 
        ! Check the type of Turbine Operation
        if (have_option(trim(turbine_path(i))//"/operation/constant_rotational_velocity")) then
@@ -223,20 +227,20 @@ subroutine turbine_operate
     implicit none
     
     integer :: i,j,k
-    real :: dt, theta
+    real :: theta
     ! Zero the Source Term at each time step
     
     ewrite(1,*) 'Entering the turbine_timeloop'
     
     ! First we need to get the dt in order to rotate the turbine
-    call get_option("/timestepping/timestep",dt) 
+    call get_option("/timestepping/timestep",deltaT) 
     
     do i=1,notur
     ! Depending on whether the turbine is using a constant or a forced
     ! Based model for its operation: we will have the following options
      if(Turbine(i)%Is_constant_rotation_operated) then
         ewrite(2,*) 'Operating Turbine with a constant rotational Velocity'
-        theta=Turbine(i)%RPM*2*pi/60*dt ! 1 revolution/minute = 2 pi tads / 60 s
+        theta=Turbine(i)%RPM*2*pi/60*deltaT ! 1 revolution/minute = 2 pi tads / 60 s
         Turbine(i)%angularVel = Turbine(i)%RPM*2*pi/60 
         call rotate_turbines(theta) 
         call calculate_performance(Turbine(i))
@@ -298,11 +302,11 @@ subroutine calculate_performance(turbine)
     turbine%CT=sqrt(turbine%CFx**2+turbine%CFy**2+turbine%CFz**2)
     turbine%CP=abs(TR*turbine%angularVel/(0.5*pi*R**2*U_ref**3))
     
-    ewrite(1,*) '--------------------------------------------------------'
-    ewrite(1,*) 'Calculate performance for Turbine : ',turbine%turb_name
-    ewrite(1,*) 'Thrust Coefficient : ', turbine%CT
-    ewrite(1,*) 'Power Coefficient " ', turbine%CP
-    ewrite(1,*) '--------------------------------------------------------'
+    ewrite(2,*) '--------------------------------------------------------'
+    ewrite(2,*) 'Calculate performance for Turbine : ',turbine%turb_name
+    ewrite(2,*) 'Thrust Coefficient : ', turbine%CT
+    ewrite(2,*) 'Power Coefficient " ', turbine%CP
+    ewrite(2,*) '--------------------------------------------------------'
     
     ewrite(2,*) 'Exiting calculate_performance'
 
@@ -318,7 +322,7 @@ subroutine Compute_Element_Forces(iturb,iblade,ielem,Local_Vel,nu)
     real :: nxe,nye,nze,txe,tye,tze,sxe,sye,sze,ElemArea,ElemChord
     real :: urdn,urdc, wP,ur,alpha,Re,alpha5,alpha75,adotnorm
     real :: CL,CD,CN,CT,CLCirc,CM25,MS,FN,FT,FS,FX,Fy,Fz,te
-    real :: TRx,TRy,TRz,RotX,RotY,RotZ
+    real :: TRx,TRy,TRz,RotX,RotY,RotZ, dal, wPNorm
     integer :: i
   
     ewrite(2,*) 'Entering Compute_Forces '
@@ -358,16 +362,31 @@ subroutine Compute_Element_Forces(iturb,iblade,ielem,Local_Vel,nu)
     
     urdc=txe*(Local_vel(1)-ublade)+tye*(Local_vel(2)-vblade)+tze*(Local_vel(3)-wblade) ! Tangential
 
-    wP = sxe*wRotX + sye*wRotY + sze*wRotZ
     ur=sqrt(urdn**2+urdc**2)
     alpha=atan2(urdn,urdc)
      
     Re = ur*ElemChord/nu
     alpha5=alpha
     alpha75=alpha
-    adotnorm=0
    
-    call compute_aeroCoeffs(Turbine(iturb)%Blade(iblade)%EAirfoil(ielem),alpha75,alpha5,Re,adotnorm,CN,CT,CM25)
+    if(Turbine(iturb)%IsRotating.eqv..false.) then
+    
+        wPNorm=0.0
+        adotnorm=0.0
+    else
+
+    wP = sxe*wRotX + sye*wRotY + sze*wRotZ
+    wPNorm=wP*ElemChord/(2.0*max(ur,0.001))
+    
+    dal=alpha75-Turbine(iturb)%Blade(iblade)%AOA_Last(ielem)
+    
+    adotnorm=dal/deltaT*ElemChord/(2.0*max(ur,0.001))
+     
+    endif
+
+    Turbine(iturb)%IsRotating=.true.
+
+    call compute_aeroCoeffs(Turbine(iturb)%Blade(iblade)%EAirfoil(ielem),alpha75,alpha5,Re,wPNorm,adotnorm,CN,CT,CM25)
 
     FN=0.5*CN*ElemArea*ur**2
     FT=0.5*CT*ElemArea*ur**2
@@ -377,9 +396,9 @@ subroutine Compute_Element_Forces(iturb,iblade,ielem,Local_Vel,nu)
 
     ! Compute forces in the X, Y, Z axis and torque    
 
-    FX=FN*nxe+FT*txe
-    FY=FN*nye+FT*tye
-    FZ=FN*nze+FT*tze
+    FX=FN*nxe+FT*txe+FS*sxe
+    FY=FN*nye+FT*tye+FS*sye
+    FZ=FN*nze+FT*tze+FS*sze
 
     call cross(Rx,Ry,Rz,Fx,Fy,Fz,TRx,TRy,TRz)
 
@@ -392,6 +411,10 @@ subroutine Compute_Element_Forces(iturb,iblade,ielem,Local_Vel,nu)
     Turbine(iturb)%Blade(iblade)%FY(ielem)=FY
     Turbine(iturb)%Blade(iblade)%FZ(ielem)=FZ
     Turbine(iturb)%Blade(iblade)%Torque(ielem)=te 
+    
+    !! Set the AOA_LAST before exiting the routine
+    Turbine(iturb)%Blade(iblade)%AOA_LAST(ielem)=alpha 
+
 
     ewrite(2,*) 'Exiting Compute_Forces'
 
@@ -546,6 +569,7 @@ subroutine allocate_turbine_elements(ITurbine,IBlade,NElem)
     allocate(Turbine(ITurbine)%Blade(IBlade)%ETtoC(NElem))
     allocate(Turbine(ITurbine)%Blade(IBlade)%EAirfoil(Nelem))
     allocate(Turbine(ITurbine)%Blade(IBlade)%E_LB_Model(Nelem))
+    allocate(Turbine(ITurbine)%Blade(IBlade)%AOA_LAST(Nelem))
     allocate(Turbine(ITurbine)%Blade(IBlade)%Fn(NElem))
     allocate(Turbine(ITurbine)%Blade(IBlade)%Ft(NElem))
     allocate(Turbine(ITurbine)%Blade(IBlade)%Fs(NElem))
@@ -685,7 +709,7 @@ subroutine turbine_geometry_read(i,FN)
         read(15,'(A)') ReadLine
         read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Blade(j)%EC(1:Turbine(i)%Blade(j)%Nelem)
         
-        !Read EArea(1:NElem
+        !Read EArea(1:NElem)
         read(15,'(A)') ReadLine
         read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Blade(j)%EArea(1:Turbine(i)%Blade(j)%Nelem)
         
@@ -781,18 +805,18 @@ end subroutine turbine_geometry_read
 
     P4=(/blade%QCx(nej)-0.25*blade%C(nej)*blade%tx(nej),blade%QCy(nej)-0.25*blade%C(nej)*blade%ty(nej),blade%QCz(nej)-0.25*blade%C(nej)*blade%tz(nej)/)
 
-		    V1=P2-P1
-		    V2=P3-P2
-		    V3=P4-P3
-		    V4=P1-P4
-		    ! Calc quad area from two triangular facets
-		    Call cross(V1(1),V1(2),V1(3),V2(1),V2(2),V2(3),A1(1),A1(2),A1(3))
-		    A1=A1/2.0
-            Call cross(V3(1),V3(2),V3(3),V4(1),V4(2),V4(3),A2(1),A2(2),A2(3))
-            A2=A2/2.0
-		    blade%EArea(nej-1)=sqrt(dot_product(A1,A1))+sqrt(dot_product(A2,A2))
-            ! Calc average element chord from area and span
-		    blade%EC(nej-1)=blade%EArea(nej-1)/sEM
+    V1=P2-P1
+    V2=P3-P2
+    V3=P4-P3
+    V4=P1-P4
+    ! Calc quad area from two triangular facets
+    Call cross(V1(1),V1(2),V1(3),V2(1),V2(2),V2(3),A1(1),A1(2),A1(3))
+    A1=A1/2.0
+    Call cross(V3(1),V3(2),V3(3),V4(1),V4(2),V4(3),A2(1),A2(2),A2(3))
+    A2=A2/2.0
+    blade%EArea(nej-1)=sqrt(dot_product(A1,A1))+sqrt(dot_product(A2,A2))
+    ! Calc average element chord from area and span
+    blade%EC(nej-1)=blade%EArea(nej-1)/sEM
 
         end do
         ewrite(2,*) 'Exiting set_blade_geometry'

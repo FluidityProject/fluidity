@@ -364,10 +364,9 @@ contains
                   Scoords(3)=Turbine(iTurb)%Blade(jblade)%PEz(kelem)
 
                   call picker_inquire(positions,Scoords,ele,local_coord,.false.)
-
+                  
                   !* Evaluates the velocity at the point of interest 
                   !* It does not work for parallel 
-
                   value_vel=eval_field(ele,velocity, local_coord) 
 
                   call Compute_Element_Forces(iTurb,jblade,kelem,value_vel,nu)
@@ -376,7 +375,11 @@ contains
                   !***********************************************
                   ! This is for inducing the velocities
                   !***********************************************
-                  epsilon_par=3.0*Turbine(iTurb)%Blade(jblade)%EDS(kelem)
+                  ! To find the parameter which will be used to distribute the loads
+                  ! on the mesh points we need first to take the mamimum of the local mesh
+                  ! size and the chord of the element
+                    
+                  epsilon_par=2.0*Turbine(iTurb)%Blade(jblade)%EDS(kelem)
 
                   do i = 1, node_count(v_field)
                   DSource(:)=0.0

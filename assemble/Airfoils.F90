@@ -328,7 +328,7 @@ contains
 
     end subroutine allocate_airfoil
    
-    subroutine compute_aeroCoeffs(airfoil,alpha75,alpha5,Re,adotnorm,CN,CT,CM25)
+    subroutine compute_aeroCoeffs(airfoil,alpha75,alpha5,Re,wPNorm,adotnorm,CN,CT,CM25)
 
     implicit none
    
@@ -353,7 +353,7 @@ contains
     ! GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
     type(AirfoilType),intent(IN) :: airfoil
     !type(LB_type),intent(IN),optional :: lb_model
-    real,intent(IN) :: alpha75, alpha5, adotnorm, Re
+    real,intent(IN) :: alpha75, alpha5, adotnorm, Re, wPNorm
     real,intent(OUT) :: CN, CT, CM25
     real :: CLstat75, CLstat5, CDstat75, CLdyn5, CDdyn5, dCLAD, dCTAM, dCNAM, CL5, CD5, C, C1, CM25stat
     real :: alphaL, alphaD, aref, Fac  
@@ -361,6 +361,7 @@ contains
     ewrite(2,*) 'Entering compute_aeroCoeffs_one_airfoil'
 
     ! Calculate static characteristics
+    ewrite(2,*) airfoil%afname
     call intp(Re,alpha75*condeg,CLstat75,CDstat75,CM25stat,airfoil) 
     call intp(Re,alpha5*condeg,CLstat5,C,C1,airfoil)
    
@@ -372,7 +373,26 @@ contains
     
     ! Tangential and normal coeffs
     CN=CL5*cos(alpha5)+CD5*sin(alpha5)                                   
-    CT=CL5*sin(alpha5)-CD5*cos(alpha5) 
+    CT=-CL5*sin(alpha5)+CD5*cos(alpha5) 
+
+    ! Calculate tangential added mass increment by analogy to pitching flat plate
+    ! potential flow theory 
+    dCTAM=2.0/cos(alpha5)*wPNorm*CM25stat-CLstat5/2.0*wPNorm
+    ! Add in alphadot added mass effects (Theodersen flat plate approx., Katz ch. 13)
+    dCLAD=pi*adotnorm
+    dCTAM=dCTAM-dCLAD*sin(alpha5)
+    dCNAM=dCLAD*cos(alpha5)
+
+    ! Add in added mass effects at low AOA (models not accurate at high AOA)
+
+    Fac=1.0
+    aref=abs(alpha5)
+    if((aref > pi/4.0) .AND. (aref < 3.0*pi/4.0)) then
+        Fac = abs(1-4.0/pi*(aref-pi/4.0))
+    end if
+
+    CT=CT+Fac*dCTAM
+    CN=CN+Fac*dCNAM
 
 
     ewrite(2,*) 'Exiting compute_aeroCoeffs_one_airfoil'
@@ -516,8 +536,7 @@ contains
         CLA(:)=0.0                                                        
         CDA(:)=0.0  
         CM25A(:)=0.0
-
-        
+          
     if (RE >= airfoil%TRE(1)) then                                                                                                   
             ! Find Re upper and lower bounds.                                     
             NotDone=.true.    
@@ -529,6 +548,7 @@ contains
                     NotDone=.false.
                     if (RE == airfoil%TRE(iUB)) then
                         iLB=iUB
+                    
                     else
                         iLB=iUB-1                                                           
                         XRE=(RE-airfoil%TRE(iLB))/(airfoil%TRE(iUB)-airfoil%TRE(iLB))
