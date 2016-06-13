@@ -2474,7 +2474,12 @@ optimal size)</a:documentation>
                 <choice>
                   <element name="constant_rotational_velocity">
                     <a:documentation>constant rotational velocity given in RPM (revolutions per minute)</a:documentation>
-                    <element name="RPM">
+                    <element name="TSR">
+                      <a:documentation>Tip Speed Ratio of the turbine</a:documentation>
+                      <ref name="real"/>
+                    </element>
+                    <element name="Uref">
+                      <a:documentation>Average reference Velocity upstream the turbine (usually taken one diameter upstream at hub height </a:documentation>
                       <ref name="real"/>
                     </element>
                   </element>

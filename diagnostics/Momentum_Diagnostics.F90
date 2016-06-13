@@ -331,12 +331,16 @@ contains
       real, dimension(v_field%dim+1) :: local_coord
       real, dimension(v_field%dim) :: value_vel
       real :: dr2, epsilon_par, Area, radius, V_rel,V_rel2,loc_kern, nu
+      real :: volume
       logical :: global
       character(len = OPTION_PATH_LEN) :: base_path
 
       ewrite(1,*) 'In ALM Momentum Source' 
       
 
+      !* Get options for the distribution of the Source term
+      ! Parameter C : This should be appropriate for unstructured grids 
+      ! 
       !* Makes sure that the source field has been zeroed at each time step
       call zero(v_field)
       
@@ -345,7 +349,6 @@ contains
       velocity  => extract_vector_field(states, "Velocity")
       ! Start with a turbine model that 
      
-
       nu=1e-6
 
       ! there should be two models: one for checking a single airfoil
@@ -378,9 +381,8 @@ contains
                   ! To find the parameter which will be used to distribute the loads
                   ! on the mesh points we need first to take the mamimum of the local mesh
                   ! size and the chord of the element
-                    
-                  epsilon_par=2.0*Turbine(iTurb)%Blade(jblade)%EDS(kelem)
-
+                  volume=element_volume(positions,ele)
+                  epsilon_par= 4.0*volume**(1.0/3.0) 
                   do i = 1, node_count(v_field)
                   DSource(:)=0.0
                     ! Compute a molification function in 3D 

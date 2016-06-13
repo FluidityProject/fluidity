@@ -1756,9 +1756,15 @@ start =
                  (
                     ## constant rotational velocity given in RPM (revolutions per minute)
                  element constant_rotational_velocity  {
-                    element RPM{
+                    ## Tip Speed Ratio of the turbine
+                    element TSR{
+                        real
+                    },
+                    ## Average reference Velocity upstream the turbine (usually taken one diameter upstream at hub height 
+                    element Uref{
                         real
                     }
+
                   }|
                  element force_based_rotational_velocity {
                     attribute name {xsd:string}

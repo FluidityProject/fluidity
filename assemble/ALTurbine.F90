@@ -107,10 +107,10 @@ type TurbineType
     integer :: NBlades, NAirfoilData
     real, dimension(3) :: RotN, RotP ! Rotational vectors in the normal and perpendicular directions
     real :: Rmax, Uref ! Reference radius and reference velocity
-    real :: RPM , angularVel
+    real :: TSR , angularVel
     logical :: Is_constant_rotation_operated = .false. ! For a constant rotational velocity (in Revolutions Per Minute)
     logical :: Is_force_based_operated = .false. ! For a forced based rotational velocity (Computed during the simulation)
-    logical :: IsRotating=.false.
+    logical :: IsRotating = .false.
     type(BladeType), allocatable :: Blade(:)
     type(AirfoilType), allocatable :: AirfoilData(:)
     real :: CP  ! Power coefficient 
@@ -199,7 +199,8 @@ contains
        ! Check the type of Turbine Operation
        if (have_option(trim(turbine_path(i))//"/operation/constant_rotational_velocity")) then
             Turbine(i)%Is_constant_rotation_operated= .true.
-            call get_option("/ALM_Turbine/alm_turbine["//int2str(i-1)//"]/operation/constant_rotational_velocity/RPM",Turbine(i)%RPM)
+            call get_option("/ALM_Turbine/alm_turbine["//int2str(i-1)//"]/operation/constant_rotational_velocity/TSR",Turbine(i)%TSR)
+            call get_option("/ALM_Turbine/alm_turbine["//int2str(i-1)//"]/operation/constant_rotational_velocity/Uref",Turbine(i)%Uref)
        else if(have_option(trim("/ALM_Turbine/alm_turbine["//int2str(i-1)//"]")//"/operation/force_based_rotational_velocity")) then
             Turbine(i)%Is_force_based_operated = .true. 
        else
@@ -209,7 +210,7 @@ contains
        ! Specify the operation mode of the turbine
        if(Turbine(i)%Is_constant_rotation_operated) then
        ewrite(2,*) 'Constant rotational velocity : ', Turbine(i)%Is_constant_rotation_operated 
-       ewrite(2,*) 'RPM : ', Turbine(i)%RPM
+       ewrite(2,*) 'Tip Speed Ratio : ', Turbine(i)%TSR
        else
        ewrite(2,*) 'Forced-based rotational velocity : ', Turbine(i)%Is_force_based_operated
        endif
@@ -240,8 +241,8 @@ subroutine turbine_operate
     ! Based model for its operation: we will have the following options
      if(Turbine(i)%Is_constant_rotation_operated) then
         ewrite(2,*) 'Operating Turbine with a constant rotational Velocity'
-        theta=Turbine(i)%RPM*2*pi/60*deltaT ! 1 revolution/minute = 2 pi tads / 60 s
-        Turbine(i)%angularVel = Turbine(i)%RPM*2*pi/60 
+        Turbine(i)%angularVel = Turbine(i)%TSR*Turbine(i)%Uref/Turbine(i)%Rmax  
+        theta=Turbine(i)%angularVel*deltaT ! 1 revolution/minute = 2 pi tads / 60 s
         call rotate_turbines(theta) 
         call calculate_performance(Turbine(i))
     elseif(Turbine(i)%Is_force_based_operated) then
@@ -293,7 +294,6 @@ subroutine calculate_performance(turbine)
        
     end do
     
-    turbine%Uref=1
     U_ref=turbine%Uref
     R=turbine%Rmax
     turbine%CFx=FX/(0.5*pi*R**2*U_ref**2)
@@ -369,12 +369,6 @@ subroutine Compute_Element_Forces(iturb,iblade,ielem,Local_Vel,nu)
     alpha5=alpha
     alpha75=alpha
    
-    if(Turbine(iturb)%IsRotating.eqv..false.) then
-    
-        wPNorm=0.0
-        adotnorm=0.0
-    else
-
     wP = sxe*wRotX + sye*wRotY + sze*wRotZ
     wPNorm=wP*ElemChord/(2.0*max(ur,0.001))
     
@@ -382,17 +376,13 @@ subroutine Compute_Element_Forces(iturb,iblade,ielem,Local_Vel,nu)
     
     adotnorm=dal/deltaT*ElemChord/(2.0*max(ur,0.001))
      
-    endif
-
-    Turbine(iturb)%IsRotating=.true.
-
     call compute_aeroCoeffs(Turbine(iturb)%Blade(iblade)%EAirfoil(ielem),alpha75,alpha5,Re,wPNorm,adotnorm,CN,CT,CM25)
 
     FN=0.5*CN*ElemArea*ur**2
     FT=0.5*CT*ElemArea*ur**2
     FS=0.0 ! Makes sure that there is no spanwise force
 
-    MS=0.5*CM25*ElemChord*ElemArea*ur**2
+    MS=0.5*CM25*ElemChord*pi*ElemArea*ur**2
 
     ! Compute forces in the X, Y, Z axis and torque    
 
@@ -724,43 +714,43 @@ subroutine turbine_geometry_read(i,FN)
 
 end subroutine turbine_geometry_read
 
-    SUBROUTINE set_blade_geometry(blade)
+SUBROUTINE set_blade_geometry(blade)
 
-        implicit none
-        
-        type(BladeType),intent(INOUT) :: blade
-        integer :: BNum
-        integer :: nbe, nei, FlipN, nej, j
-        real :: sEM, tEM, nEM, dx,dy,dz
-        real :: PE(3), sE(3), tE(3), normE(3), P1(3), P2(3), P3(3), P4(3), V1(3), V2(3), V3(3), V4(3), A1(3), A2(3)
-    
+    implicit none
+
+    type(BladeType),intent(INOUT) :: blade
+    integer :: BNum
+    integer :: nbe, nei, FlipN, nej, j
+    real :: sEM, tEM, nEM, dx,dy,dz
+    real :: PE(3), sE(3), tE(3), normE(3), P1(3), P2(3), P3(3), P4(3), V1(3), V2(3), V3(3), V4(3), A1(3), A2(3)
+
     ewrite(2,*) 'Entering set_blade_geometry'
     ! Calculates element geometry from element end geometry
 
     ! JCM: Eventually, should just be able to loop through Blades(BNum) data structure
     ! While data is still held in arrays concatenated across blades, need to replicate
     ! nbe (stored in configr) from Blades(1).NElem
-        nbe=blade%NElem
+    nbe=blade%NElem
 
-        FlipN=blade%FlipN
-        
-        do j=1,nbe
-            nej=1+j
+    FlipN=blade%FlipN
 
-            ! Element center locations
-            blade%PEx(nej-1)=(blade%QCx(nej)+blade%QCx(nej-1))/2.0
-            blade%PEy(nej-1)=(blade%QCy(nej)+blade%QCy(nej-1))/2.0
-            blade%PEz(nej-1)=(blade%QCz(nej)+blade%QCz(nej-1))/2.0
-            
-            ! Element length
+    do j=1,nbe
+    nej=1+j
 
-            ! Set spannwise and tangential vectors
-   sE=-(/blade%QCx(nej)-blade%QCx(nej-1),blade%QCy(nej)-blade%QCy(nej-1),blade%QCz(nej)-blade%QCz(nej-1)/) ! nominal element spanwise direction set opposite to QC line
+    ! Element center locations
+    blade%PEx(nej-1)=(blade%QCx(nej)+blade%QCx(nej-1))/2.0
+    blade%PEy(nej-1)=(blade%QCy(nej)+blade%QCy(nej-1))/2.0
+    blade%PEz(nej-1)=(blade%QCz(nej)+blade%QCz(nej-1))/2.0
+
+    ! Element length
+
+    ! Set spannwise and tangential vectors
+    sE=-(/blade%QCx(nej)-blade%QCx(nej-1),blade%QCy(nej)-blade%QCy(nej-1),blade%QCz(nej)-blade%QCz(nej-1)/) ! nominal element spanwise direction set opposite to QC line
     sEM=sqrt(dot_product(sE,sE))
-    
-            blade%EDS(nej-1) = sEM
-            
-            sE=sE/sEM
+
+    blade%EDS(nej-1) = sEM
+
+    sE=sE/sEM
     tE=(/blade%tx(nej)+blade%tx(nej-1),blade%ty(nej)+blade%ty(nej-1),blade%tz(nej)+blade%tz(nej-1)/)/2.0
     ! Force tE normal to sE
     tE=tE-dot_product(tE,sE)*sE
@@ -772,7 +762,7 @@ end subroutine turbine_geometry_read
     blade%tEx(nej-1)=tE(1)
     blade%tEy(nej-1)=tE(2)
     blade%tEz(nej-1)=tE(3)
-     
+
     ! Calc normal vector
     Call cross(sE(1),sE(2),sE(3),tE(1),tE(2),tE(3),normE(1),normE(2),normE(3))
     nEM=sqrt(dot_product(normE,normE))
@@ -793,9 +783,9 @@ end subroutine turbine_geometry_read
         blade%tEx(nej-1)= -blade%tEx(nej-1)
         blade%tEy(nej-1)= -blade%tEy(nej-1)
         blade%tEz(nej-1)= -blade%tEz(nej-1)
-                blade%CircSign(nej-1)=-1.0
+        blade%CircSign(nej-1)=-1.0
     end if
-    
+
     ! Calc element area and chord
     P1=(/blade%QCx(nej-1)-0.25*blade%C(nej-1)*blade%tx(nej-1),blade%QCy(nej-1)-0.25*blade%C(nej-1)*blade%ty(nej-1),blade%QCz(nej-1)-0.25*blade%C(nej-1)*blade%tz(nej-1)/)
 
@@ -818,10 +808,10 @@ end subroutine turbine_geometry_read
     ! Calc average element chord from area and span
     blade%EC(nej-1)=blade%EArea(nej-1)/sEM
 
-        end do
-        ewrite(2,*) 'Exiting set_blade_geometry'
+    end do
+    ewrite(2,*) 'Exiting set_blade_geometry'
 
-    End SUBROUTINE set_blade_geometry 
+End SUBROUTINE set_blade_geometry 
 
 end module alturbine
 
