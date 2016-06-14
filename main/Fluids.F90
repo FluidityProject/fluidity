@@ -547,11 +547,6 @@ contains
 #endif
         
           
-       !If the ALTurbine Model is switched on then move turbine and compute the 
-       ! forcing terms to be added to the momentum equation
-          if (have_option("/ALM_Turbine")) then
-            call turbine_operate
-          end if
 
        ! nonlinear_iterations=maximum no of iterations within a time step
 
@@ -753,6 +748,12 @@ contains
           
           if(option_count("/material_phase/scalar_field/prognostic/spatial_discretisation/coupled_cv")>0) then
              call coupled_cv_field_eqn(state, global_it=its)
+          end if
+       
+          !If the ALTurbine Model is switched on then move turbine and compute the 
+       ! forcing terms to be added to the momentum equation
+          if (have_option("/ALM_Turbine")) then
+            call turbine_operate
           end if
 
           
