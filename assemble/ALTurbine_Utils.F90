@@ -103,19 +103,18 @@ contains
 
     end subroutine QuatRot
   
-    real function Kernel(dr2,epsilon_par,dim)
+    real function Kernel(dr,epsilon_par,dim)
     
         implicit none
         integer,intent(in) :: dim
-        real,intent(in) ::dr2
-        real :: epsilon_par
+        real,intent(in) ::dr, epsilon_par
         integer :: j
     
 
             if(dim==2) then    
-            Kernel = 1/(epsilon_par**2*pi)*exp(-dr2/epsilon_par**2)
+            Kernel = 1.0/(epsilon_par**2*pi)*exp(-(dr/epsilon_par)**2.0)
             elseif(dim==3) then
-            Kernel = 1/(epsilon_par**3*pi**1.5)*exp(-dr2/epsilon_par**2)
+            Kernel = 1.0/(epsilon_par**3.0*pi**1.5)*exp(-(dr/epsilon_par)**2.0)
             else 
             FLAbort("1D source not implemented")
             endif

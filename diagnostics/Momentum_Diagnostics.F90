@@ -323,13 +323,13 @@ contains
       integer, intent(in) :: state_index
       type(vector_field), intent(inout) :: v_field
 
-      real,dimension(v_field%dim) :: Scoords , Rcoords, d, Source,DSource
+      real,dimension(v_field%dim) :: Scoords , Rcoords, DSource
       type(scalar_field), pointer :: density
       type(vector_field), pointer :: positions, velocity
       integer :: i,j,ele, iturb, jblade, kelem
       real, dimension(v_field%dim+1) :: local_coord
       real, dimension(v_field%dim) :: value_vel
-      real :: dr2, epsilon_par, Area, radius, V_rel,V_rel2,loc_kern, nu
+      real :: dr2, d, epsilon_par, Area, radius, V_rel,V_rel2,loc_kern, nu
       real :: volume, meshFactor, dragFactor, chordFactor
       real :: epsilon_par_drag, epsilon_par_chord, epsilon_par_mesh, epsilon_threshold
       character(len = OPTION_PATH_LEN) :: base_path, RANS_option_path
@@ -398,30 +398,39 @@ contains
                   
                   epsilon_threshold = max(epsilon_par_drag,epsilon_par_chord)
 
-                  if(epsilon_threshold > epsilon_par_mesh) then
+                  if(epsilon_threshold >= epsilon_par_mesh) then
                     epsilon_par=epsilon_threshold
                   else
                       epsilon_par=epsilon_par_mesh
                   end if
 
                   do i = 1, node_count(v_field)
-                  DSource(:)=0.0
-                    ! Compute a molification function in 3D 
+                      ! Compute a Sphere of Influence with diameter equal to chord/2
+                      DSource(:)=0.0
+                      ! Compute a molification function in 3D 
                       Rcoords=node_val(positions,i)
-                      dr2=0
-                      d(:)=0
+                      dr2=0.0
+                      d=0.0
                       do j=1, v_field%dim
-                          d(j) = Scoords(j)-Rcoords(j)
-                          dr2=dr2+d(j)**2
+                          d = Scoords(j)-Rcoords(j)
+                          dr2=dr2+d**2.0
                       end do
-      
-                  loc_kern=Kernel(dr2,epsilon_par,v_field%dim)
-                  
+                      
+                      if(sqrt(dr2)<Turbine(iTurb)%Blade(jblade)%EDS(kelem)/2.0+epsilon_par*sqrt(3.0)) then
+                        loc_kern=Kernel(sqrt(dr2),epsilon_par,v_field%dim)
+                      else
+                          loc_kern=0.0
+                      endif
+
                   ! The (-) means that the fluid and the body are in equilibrium at each time
                   DSource(1)=-loc_kern*Turbine(iturb)%Blade(jblade)%Fx(kelem)
                   DSource(2)=-loc_kern*Turbine(iturb)%Blade(jblade)%Fy(kelem)
                   DSource(3)=-loc_kern*Turbine(iturb)%Blade(jblade)%Fz(kelem)
-                  
+                  if(sqrt(DSource(1)**2+DSource(2)**2+DSource(3)**2)>100) then
+                      ewrite(2,*) jblade, kelem ,loc_kern , dr2, epsilon_par
+                      ewrite(2,*) Rcoords 
+                      stop
+                  endif
                   call addto(v_field,i,DSource)
 
                   end do
