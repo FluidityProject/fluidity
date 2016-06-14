@@ -34,6 +34,8 @@ FCFLAGS = -I../include @MOD_FLAG@../include @CPPFLAGS@ @FCFLAGS@ -I/usr/local/in
 
 MPIF90  = @MPIF90@
 
+CPP     = @CPP@ 
+
 CC      = @CC@
 CFLAGS  = @CPPFLAGS@ @CFLAGS@ -I../include -I/usr/local/include -g
 
@@ -76,7 +78,7 @@ OBJS    = Momentum_Diagnostic_Fields.o \
 	Zoltan_global_variables.o Zoltan_integration.o Zoltan_callbacks.o Zoltan_detectors.o \
         Diagnostic_Children.o Reduced_Model_Runtime.o Turbine.o Implicit_Solids.o \
 				Manifold_Projections.o Hybridized_Helmholtz.o Burgers_Assembly.o Pressure_Dirichlet_BCS_CV.o \
-            Porous_Media.o
+            Porous_Media.o Construct_Momentum_Element_DG_processed.o
 
 .SUFFIXES: .F90 .c .cpp .o .a
 
@@ -101,6 +103,13 @@ default: $(LIB)
 
 clean:
 	rm -f *.o *.d *.mod
+
+Construct_Momentum_Element_DG_processed.F90:Construct_Momentum_Element_DG.F90 Construct_Momentum_Element_DG_template.F90
+	$(CPP) -x c $(CFLAGS) $(GENFLAGS) Construct_Momentum_Element_DG.F90 -o Construct_Momentum_Element_DG_processed.F90
+
+Construct_Momentum_Element_DG_processed.o: Construct_Momentum_Element_DG_processed.F90
+	@echo "        FC Construct_Momentum_Element_DG"
+	$(FC) $(FCFLAGS) $(GENFLAGS) -c Construct_Momentum_Element_DG_processed.F90
 
 # Special case mba dependencies
 ifeq (@MBA2D@,yes)

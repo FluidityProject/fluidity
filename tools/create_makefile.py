@@ -123,8 +123,8 @@ def trysystem(command):
 def create_refcounts():
     '''create_refcounts()
 
-    Produce all the generated reference counting Fortran source. This
-    currently only has effect in the femtools directory.
+    Produce all the generated reference counting and precompiled kernel Fortran source. This
+    currently only has effect in the femtools and assemble directories.
     '''
 
     refcounts_raw=os.popen("grep include.*Ref *.F90").read()
@@ -133,6 +133,11 @@ def create_refcounts():
 
     if len(refcounts)>0:
         trysystem("make "+" ".join(refcounts))
+
+    test = glob.glob("Construct_Momentum_Element_DG.F90")
+
+    if len(test)>0:
+        trysystem("make Construct_Momentum_Element_DG_processed.F90")
 
 def generate_dependencies(fortran):
     '''generate_dependencies(fortran)
@@ -202,7 +207,7 @@ def handle_options():
 
     optparser.add_option("--exclude",
                   help="list of .F90 files to exclude from consideration.",
-                  action="store", type="string", dest="exclude", default="")
+                  action="store", type="string", dest="exclude", default="Construct_Momentum_Element_DG.F90 Construct_Momentum_Element_DG_template.F90")
 
     optparser.add_option("--test",
                          help="Cause a failure if the dependencies would"+
