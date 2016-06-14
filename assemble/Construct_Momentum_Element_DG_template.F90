@@ -229,9 +229,9 @@
       assert(dg)
     end if
     if(move_mesh) then
-      ! In the declarations above we've assumed these
-      ! so that U_mesh doesn't always have to be
-      ! present
+      !// In the declarations above we've assumed these
+      !// so that U_mesh doesn't always have to be
+      !// present
       assert(ele_loc(U_mesh, ele)==ele_loc(X, ele))
       assert(ele_ngi(U_mesh, ele)==ele_ngi(U, ele))
       assert(mesh_dim(U_mesh)==mesh_dim(U))
@@ -359,8 +359,8 @@
     l_masslump= sum(rho_mat,2)
     
     if(present(mass)) then
-       ! Return mass separately.
-       ! NOTE: this doesn't deal with mesh movement
+       !// Return mass separately.
+       !// NOTE: this doesn't deal with mesh movement
        call addto(mass, u_ele, u_ele, Rho_mat)
     else
       if(have_mass.and.assemble_element) then
@@ -554,8 +554,8 @@
       end if
 
       if (radial_gravity) then
-      ! If we're using a radial gravity, evaluate the direction of the gravity vector
-      ! exactly at quadrature points.
+      !// If we're using a radial gravity, evaluate the direction of the gravity vector
+      !// exactly at quadrature points.
         rhs_addto(:, :loc) = rhs_addto(:, :loc) + shape_vector_rhs(u_shape, &
                                     radial_inward_normal_at_quad_ele(X, ele), &
                                     coefficient_detwei)
@@ -1074,7 +1074,7 @@
                     finish=start+face_loc(U, face)-1
 
                     if (i==1) then
-                      ! Wipe out boundary condition's coupling to itself.
+                      !// Wipe out boundary condition's coupling to itself.
                       Viscosity_mat(:,dim,start:finish,:)=0.0
                     else
                       ! Add BC into RHS
@@ -1302,8 +1302,8 @@
           ! interior contribution
           g_nl(dim1,dim2,:)=matmul(grad_U_mat_q(dim2,:,:loc), ele_val(u_nl,dim1,ele))
 
-          ! boundary contributions (have to be done seperately as we need to apply bc's at boundaries)
-          ! local node map counter.
+          !// boundary contributions (have to be done seperately as we need to apply bc's at boundaries)
+          !// local node map counter.
           start=loc+1
           do ni=1,size(neigh)
             ! get neighbour ele, corresponding faces, and complete local node map
@@ -1596,8 +1596,8 @@
         ! if it isn't then you're in trouble because your mesh will tear
         ! itself apart
         u_nl_q=u_nl_q - face_val_at_quad(U_mesh, face)
-        ! the velocity on the internal face isn't used again so we can
-        ! modify it directly here...
+        !// the velocity on the internal face isn't used again so we can
+        !// modify it directly here...
         u_f_q = u_f_q - face_val_at_quad(U_mesh, face)
       end if
   
@@ -1616,7 +1616,7 @@
       ! (this is the flux *out* of the element)
       inner_advection_integral = (1.-income)*u_nl_q_dotn
       if(.not.integrate_by_parts_once) then
-        ! i.e. if we're integrating by parts twice
+        !// i.e. if we're integrating by parts twice
         inner_advection_integral = inner_advection_integral &
                                     - sum(u_f_q*normal,1)
       end if
@@ -1884,8 +1884,8 @@
 
       !!< -Int_e (v n. kappa grad u + u n. kappa grad v)
 
-      !!< In practise we'll assemble it everywhere and only 
-      !!< add it on if we have a Dirichlet boundary
+      !!//< In practise we'll assemble it everywhere and only 
+      !!//< add it on if we have a Dirichlet boundary
 
       !!< primal_fluxes_mat(1,:,:) maps from ele degrees of freedom
       !!<                                 to internal face dof
@@ -2007,8 +2007,8 @@
 
       !! Int_e C uv
 
-      !! In practise we'll assemble it everywhere and only 
-      !! add it on if we have a Dirichlet boundary
+      !!// In practise we'll assemble it everywhere and only 
+      !!// add it on if we have a Dirichlet boundary
 
       !! penalty_fluxes_mat(1,:,:) maps from internal face dof
       !!                                 to internal face dof
