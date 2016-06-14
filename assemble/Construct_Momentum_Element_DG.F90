@@ -309,6 +309,8 @@ interface
 
 #undef NGI_U
 #undef FNGI
+#undef WRAP_NAME
+
 #undef NLOC_U
 #undef NLOC_SOURCE
 #undef NLOC_Q
