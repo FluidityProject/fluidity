@@ -1274,6 +1274,28 @@ of the sediment fields and the zero concentration viscosity
       <attribute name="depends">
         <value>Velocity</value>
       </attribute>
+      <optional>
+        <element name="meshFactor">
+          <a:documentation>Mesh factor that takes into account the aspect ratio of the elements.
+It takes values between 1 and 2 when the aspect ratio of the elements
+is 1 and 2 when skewed elements are considered. Default value : 2.0</a:documentation>
+          <ref name="real"/>
+        </element>
+      </optional>
+      <optional>
+        <element name="dragFactor">
+          <a:documentation>Drag factor that takes into account the width due to the wake caused
+by the foil drag force, and it is of the order of the momentum thickness
+Cd=2*theta/l. Default value : 1.00</a:documentation>
+          <ref name="real"/>
+        </element>
+      </optional>
+      <optional>
+        <element name="chordFactor">
+          <a:documentation>Chord factor (0.14-0.25). Default value: 0.25 </a:documentation>
+          <ref name="real"/>
+        </element>
+      </optional>
     </element>
   </define>
   <!-- Parallel diagnostics -->

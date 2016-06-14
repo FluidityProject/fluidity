@@ -324,16 +324,15 @@ contains
       type(vector_field), intent(inout) :: v_field
 
       real,dimension(v_field%dim) :: Scoords , Rcoords, d, Source,DSource
-      real,dimension(v_field%dim) :: max_limit,min_limit
       type(scalar_field), pointer :: density
-      type(vector_field), pointer :: positions, velocity, force
+      type(vector_field), pointer :: positions, velocity
       integer :: i,j,ele, iturb, jblade, kelem
       real, dimension(v_field%dim+1) :: local_coord
       real, dimension(v_field%dim) :: value_vel
       real :: dr2, epsilon_par, Area, radius, V_rel,V_rel2,loc_kern, nu
-      real :: volume
-      logical :: global
-      character(len = OPTION_PATH_LEN) :: base_path
+      real :: volume, meshFactor, dragFactor, chordFactor
+      real :: epsilon_par_drag, epsilon_par_chord, epsilon_par_mesh, epsilon_threshold
+      character(len = OPTION_PATH_LEN) :: base_path, RANS_option_path
 
       ewrite(1,*) 'In ALM Momentum Source' 
       
@@ -344,11 +343,21 @@ contains
       !* Makes sure that the source field has been zeroed at each time step
       call zero(v_field)
       
-      !* Get Position and Velocity Field
+      !> Get Position and Velocity Field
       positions => extract_vector_field(states,"Coordinate")  
       velocity  => extract_vector_field(states, "Velocity")
-      ! Start with a turbine model that 
+      
+      !> Read the Cmax values
+      call get_option(trim(complete_field_path(trim(v_field%option_path))) // &        
+                    "/algorithm[0]/meshFactor", meshFactor, default=2.0)   
+      call get_option(trim(complete_field_path(trim(v_field%option_path))) // &        
+                    "/algorithm[0]/dragFactor", dragFactor, default=1.0)   
+      call get_option(trim(complete_field_path(trim(v_field%option_path))) // &        
+                    "/algorithm[0]/chordFactor", chordFactor, default=0.25)   
      
+      ! Read kinematic viscosity 
+      
+    
       nu=1e-6
 
       ! there should be two models: one for checking a single airfoil
@@ -382,7 +391,19 @@ contains
                   ! on the mesh points we need first to take the mamimum of the local mesh
                   ! size and the chord of the element
                   volume=element_volume(positions,ele)
-                  epsilon_par= 4.0*volume**(1.0/3.0) 
+                  
+                  epsilon_par_mesh  = 2.0*meshFactor*volume**(1.0/3.0) 
+                  epsilon_par_drag  = 1.1*dragFactor*Turbine(iTurb)%Blade(jblade)%EC(kelem)/2.0      
+                  epsilon_par_chord = chordFactor*Turbine(iTurb)%Blade(jblade)%EC(kelem)
+                  
+                  epsilon_threshold = max(epsilon_par_drag,epsilon_par_chord)
+
+                  if(epsilon_threshold > epsilon_par_mesh) then
+                    epsilon_par=epsilon_threshold
+                  else
+                      epsilon_par=epsilon_par_mesh
+                  end if
+
                   do i = 1, node_count(v_field)
                   DSource(:)=0.0
                     ! Compute a molification function in 3D 

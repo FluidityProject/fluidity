@@ -82,8 +82,8 @@ type BladeType
     real, allocatable :: CircSign(:)! Direction of segment circulation on wake
     real, allocatable :: EArea(:)   ! Element Area
     real, allocatable :: ETtoC(:)       ! Element thickness to Chord ratio
-    real, allocatable :: AOA_LAST(:)    ! Last angle of Attack
-
+    real, allocatable :: AOA_LAST(:)    ! Last angle of Attack (used in added mass terms)
+    real, allocatable :: Un_LAST(:)     ! Last normal velocity (used in added mass terms)
     type(AirfoilType), allocatable :: EAirfoil(:) ! Element Airfoil 
     type(LB_Type), allocatable :: E_LB_Model(:)   ! Element Leishman-Beddoes Model
 
@@ -194,7 +194,10 @@ contains
         call populate_blade_airfoils(Turbine(i)%Blade(j)%NElem,Turbine(i)%Blade(j)%EAirfoil,Turbine(i)%AirfoilData,Turbine(i)%Blade(j)%ETtoC)
        ! Write the initial angle of attack
         Turbine(i)%Blade(j)%AOA_LAST(:)=0
+        Turbine(i)%Blade(j)%Un_LAST(:)=0
         enddo
+        
+        call get_option("/timestepping/timestep",deltaT) 
 
        ! Check the type of Turbine Operation
        if (have_option(trim(turbine_path(i))//"/operation/constant_rotational_velocity")) then
@@ -320,9 +323,9 @@ subroutine Compute_Element_Forces(iturb,iblade,ielem,Local_Vel,nu)
     real :: R(3)
     real :: wRotX,wRotY,wRotZ,Rx,Ry,Rz,ublade,vblade,wblade
     real :: nxe,nye,nze,txe,tye,tze,sxe,sye,sze,ElemArea,ElemChord
-    real :: urdn,urdc, wP,ur,alpha,Re,alpha5,alpha75,adotnorm
+    real :: urdn,urdc, wP,ur,alpha,Re,alpha5,alpha75,alphadot
     real :: CL,CD,CN,CT,CLCirc,CM25,MS,FN,FT,FS,FX,Fy,Fz,te
-    real :: TRx,TRy,TRz,RotX,RotY,RotZ, dal, wPNorm
+    real :: TRx,TRy,TRz,RotX,RotY,RotZ, dal, Undot
     integer :: i
   
     ewrite(2,*) 'Entering Compute_Forces '
@@ -362,24 +365,27 @@ subroutine Compute_Element_Forces(iturb,iblade,ielem,Local_Vel,nu)
     
     urdc=txe*(Local_vel(1)-ublade)+tye*(Local_vel(2)-vblade)+tze*(Local_vel(3)-wblade) ! Tangential
 
-    ur=sqrt(urdn**2+urdc**2)
+    ur=sqrt(urdn**2.0+urdc**2.0)
     alpha=atan2(urdn,urdc)
      
     Re = ur*ElemChord/nu
     alpha5=alpha
     alpha75=alpha
-   
-    wP = sxe*wRotX + sye*wRotY + sze*wRotZ
-    wPNorm=wP*ElemChord/(2.0*max(ur,0.001))
     
-    dal=alpha75-Turbine(iturb)%Blade(iblade)%AOA_Last(ielem)
+    if(Turbine(iturb)%Blade(iblade)%AOA_Last(ielem)==0) then
+    alphadot=0.0
+    Undot=0.0
+    else
+    alphadot=(alpha75-Turbine(iturb)%Blade(iblade)%AOA_Last(ielem))/deltaT
+    Undot=(urdn-Turbine(iturb)%Blade(iblade)%Un_Last(ielem))/deltaT;
+    endif
     
-    adotnorm=dal/deltaT*ElemChord/(2.0*max(ur,0.001))
-     
-    call compute_aeroCoeffs(Turbine(iturb)%Blade(iblade)%EAirfoil(ielem),alpha75,alpha5,Re,wPNorm,adotnorm,CN,CT,CM25)
+    ewrite(2,*) ur, Re, alphadot, Undot
 
-    FN=0.5*CN*ElemArea*ur**2
-    FT=0.5*CT*ElemArea*ur**2
+    call compute_aeroCoeffs(Turbine(iturb)%Blade(iblade)%EAirfoil(ielem),alpha75,alpha5,Re,Undot,alphadot,ElemChord,urdn,urdc,ur,CN,CT,CM25)
+
+    FN=0.5*CN*ElemArea*ur**2.0
+    FT=0.5*CT*ElemArea*ur**2.0
     FS=0.0 ! Makes sure that there is no spanwise force
 
     MS=0.5*CM25*ElemChord*pi*ElemArea*ur**2
@@ -404,6 +410,7 @@ subroutine Compute_Element_Forces(iturb,iblade,ielem,Local_Vel,nu)
     
     !! Set the AOA_LAST before exiting the routine
     Turbine(iturb)%Blade(iblade)%AOA_LAST(ielem)=alpha 
+    Turbine(iturb)%Blade(iblade)%Un_LAST(ielem)=urdn 
 
 
     ewrite(2,*) 'Exiting Compute_Forces'
@@ -560,6 +567,7 @@ subroutine allocate_turbine_elements(ITurbine,IBlade,NElem)
     allocate(Turbine(ITurbine)%Blade(IBlade)%EAirfoil(Nelem))
     allocate(Turbine(ITurbine)%Blade(IBlade)%E_LB_Model(Nelem))
     allocate(Turbine(ITurbine)%Blade(IBlade)%AOA_LAST(Nelem))
+    allocate(Turbine(ITurbine)%Blade(IBlade)%Un_LAST(Nelem))
     allocate(Turbine(ITurbine)%Blade(IBlade)%Fn(NElem))
     allocate(Turbine(ITurbine)%Blade(IBlade)%Ft(NElem))
     allocate(Turbine(ITurbine)%Blade(IBlade)%Fs(NElem))
