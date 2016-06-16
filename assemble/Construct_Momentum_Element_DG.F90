@@ -254,38 +254,34 @@ interface
 
 !!! Two dimensional
 
-#define NDIM_U 2
-#define NDIM_X 2
+#define NDIM(variable) 2
+#define MDIM(variable) 2
 #define NLOC_X 3
 
 !!! P1DGP2
 
-#define NLOC_U 3
-#define NLOC_SOURCE 3
-#define NLOC_Q 3
-#define FLOC 2
-#define EFLOC 9
+#define NLOC(variable,ele) 3
+#define FLOC(variable,face) 2
+#define EFLOC(variable,face) 9
 #define P_FLOC 3
 
-#define NGI_U 6
-#define FNGI 4
+#define NGI(variable,ele) 6
+#define FNGI(variable,face) 4
 #define WRAP_NAME(name) name##_P1DGP2_2D_6GI
 #include "Construct_Momentum_Element_DG_template.F90"
-#undef NGI_U
+#undef NGI
 #undef FNGI
 #undef WRAP_NAME
-#define NGI_U 16
-#define FNGI 8
+#define NGI(variable,ele) 16
+#define FNGI(variable,face) 8
 #define WRAP_NAME(name) name##_P1DGP2_2D_16GI
 #include "Construct_Momentum_Element_DG_template.F90"
-#undef NGI_U
+#undef NGI
 #undef FNGI
 #undef WRAP_NAME
 
 
-#undef NLOC_U
-#undef NLOC_SOURCE
-#undef NLOC_Q
+#undef NLOC
 #undef FLOC
 #undef EFLOC
 #undef P_FLOC
@@ -293,71 +289,68 @@ interface
 
 
 
-#undef NDIM_U
+#undef NDIM
+#undef MDIM
 #undef NDIM_X
 #undef NLOC_X
 
 !!! Three dimensional
 
-#define NDIM_U 3
-#define NDIM_X 3
+
+#define NDIM(variable) 3
+#define MDIM(variable) 3
 #define NLOC_X 4
 
 !!! P1DGP2
 
-#define NLOC_U 4
-#define NLOC_SOURCE 4
-#define NLOC_Q 4
-#define FLOC 3
+#define NLOC(variable,ele) 4
+#define FLOC(variable,face) 3
 
-#define EFLOC 9
-#define P_FLOC 3
-#define NGI_U 6
-#define FNGI 4
+#define EFLOC(variable,face) 16
+#define P_FLOC 6
+#define NGI(variable,ele) 11
+#define FNGI(variable,face) 6
 
-#define WRAP_NAME(name) name##_P1DGP2_3D_6GI
+#define WRAP_NAME(name) name##_P1DGP2_3D_11GI
 #include "Construct_Momentum_Element_DG_template.F90"
 
-#undef NGI_U
+#undef NGI
 #undef FNGI
 #undef WRAP_NAME
 
-#undef NLOC_U
-#undef NLOC_SOURCE
-#undef NLOC_Q
+#undef NLOC
 #undef FLOC
 #undef EFLOC
 #undef P_FLOC
 
-#undef NDIM_U
+#undef NDIM
+#undef MDIM
 #undef NDIM_X
 #undef NLOC_X
 
 !!! generic
 
-#define NDIM_U U%dim
-#define NDIM_X X%dim
-#define NLOC_U ele_loc(U,ele)
-#define NLOC_X ele_loc(X,ele)
-#define NLOC_SOURCE ele_loc(Source,ele)
-#define NLOC_Q ele_loc(q_mesh,ele)
-#define NGI_U ele_ngi(U,ele)
-#define FNGI face_ngi(U_nl,face) 
-#define FLOC face_loc(U,face)
-#define EFLOC ele_and_faces_loc(U,ele)
+#define GENERIC
+#define NDIM(variable) field_dim(variable)
+#define MDIM(variable) mesh_dim(variable)
+#define NLOC(variable,ele) ele_loc(variable,ele)
+#define NGI(variable,ele) ele_ngi(U,ele)
+#define FNGI(variable,face) face_ngi(variable,face) 
+#define FLOC(variable,face) face_loc(U,face)
+#define EFLOC(variable,face) ele_and_faces_loc(U,ele)
 #define P_FLOC face_loc(P,face)
+#define NLOC_X ele_loc(X,ele)
 #define WRAP_NAME(name) name##_generic
 #include "Construct_Momentum_Element_DG_template.F90"
-#undef NDIM_U
+#undef NDIM
 #undef NDIM_X
-#undef NLOC_U
+#undef NLOC
 #undef NLOC_X
-#undef NLOC_SOURCE
-#undef NLOC_Q
-#undef NGI_U
+#undef NGI
 #undef FNGI
 #undef FLOC
 #undef EFLOC
 #undef P_FLOC
+#undef GENERIC
 
 end module momentum_element_dg

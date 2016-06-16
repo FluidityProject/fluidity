@@ -89,6 +89,29 @@ contains
                end select
             end select
          end select
+      case(3)
+         select case(velocity%mesh%shape%loc)
+         case(4)
+            select case(pressure%mesh%shape%loc)
+            case(10)
+               select case(velocity%mesh%shape%ngi)
+               case(11)
+                  construct_momentum_element_dg =>&
+                       construct_momentum_element_dg_P1DGP2_3D_11GI
+                  construct_momentum_interface_dg =>&
+                       construct_momentum_interface_dg_P1DGP2_3D_11GI
+                  ewrite(1,*) "using construct_momentum_interface_dg_P1DGP2_3D_11GI"
+                  return
+               case(16)
+                  construct_momentum_element_dg =>&
+                       construct_momentum_element_dg_P1DGP2_2D_16GI
+                  construct_momentum_interface_dg =>&
+                       construct_momentum_interface_dg_P1DGP2_2D_16GI
+                  ewrite(1,*) "using construct_momentum_interface_dg_P1DGP2_2D_16GI"
+                  return
+               end select
+            end select
+         end select
       end select
 
       ewrite(1,*) 'using construct_momentum_interface_dg_generic'

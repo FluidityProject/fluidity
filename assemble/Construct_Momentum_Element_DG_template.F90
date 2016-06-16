@@ -57,50 +57,55 @@
     type(vector_field), intent(in) :: Abs_wd
     
     ! Bilinear forms.
-    real, dimension(NLOC_U, NLOC_U) :: &
+    real, dimension(NLOC(U,ele), NLOC(U,ele)) :: &
          Coriolis_mat, rho_mat, rho_move_mat, mass_mat
-    real, dimension(NLOC_U, NLOC_U) :: &
+    real, dimension(NLOC(U,ele), NLOC(U,ele)) :: &
          inverse_mass_mat
-    real, dimension(mesh_dim(U), NLOC_U, &
-         NLOC_U) :: ele2grad_mat
-    real, dimension(NLOC_U, NLOC_U) :: &
+    real, dimension(NDIM(X), NLOC(U,ele), &
+         NLOC(U,ele)) :: ele2grad_mat
+    real, dimension(NLOC(U,ele), NLOC(U,ele)) :: &
          Advection_mat
-    real, dimension(NLOC_U, NLOC_SOURCE) :: &
+    real, dimension(NLOC(U,ele), NLOC(source,ele)) :: &
          Source_mat
-    real, dimension(NDIM_U, NLOC_U, NLOC_U) :: &
+    real, dimension(NDIM(U), NLOC(U,ele), NLOC(U,ele)) :: &
          Abs_mat
-    real, dimension(NDIM_U, NDIM_U, NLOC_U, NLOC_U) :: &
+    real, dimension(NDIM(U), NDIM(U), NLOC(U,ele), NLOC(U,ele)) :: &
          Abs_mat_sphere
-    real, dimension(NDIM_U, NLOC_U) :: &
+    real, dimension(NDIM(U), NLOC(U,ele)) :: &
          Abs_lump
-        real, dimension(NDIM_U, NDIM_U, NLOC_U) :: &
+        real, dimension(NDIM(U), NDIM(U), NLOC(U,ele)) :: &
          Abs_lump_sphere
-    real, dimension(NLOC_U) :: &
+    real, dimension(NLOC(U,ele)) :: &
          source_lump
-    real, dimension(NLOC_Q, NLOC_Q) :: Q_inv 
-    real, dimension(NDIM_U, NLOC_Q, EFLOC) ::&
+    real, dimension(NLOC(q_mesh,ele), NLOC(q_mesh,ele)) :: Q_inv 
+    real, dimension(NDIM(U), NLOC(q_mesh,ele), EFLOC(U,ele)) ::&
          & Grad_u_mat_q, Div_u_mat_q 
-    real, dimension(NDIM_U,NDIM_U,EFLOC,EFLOC) ::&
+    real, dimension(NDIM(U),NDIM(U),EFLOC(U,ele),EFLOC(U,ele)) ::&
          & Viscosity_mat
     real, dimension(Viscosity%dim(1), Viscosity%dim(2), &
          & ele_loc(Viscosity,ele)) :: Viscosity_ele
-    real, dimension(x%dim, ele_loc(x,ele)) :: x_val, x_val_2
-    real, dimension(NDIM_U, NLOC_U) :: u_val
+    real, dimension(NDIM(X), NLOC_X) :: x_val, x_val_2
+    real, dimension(NDIM(U), NLOC(U,ele)) :: u_val
 
      ! \Int_{ele} N_i kappa N_j dV, used for CDG fluxes
-    real, dimension(mesh_dim(U),mesh_dim(U), &
-         & NLOC_U,NLOC_U) :: kappa_mat
+    real, dimension(NDIM(X),NDIM(X), &
+         & NLOC(U,ele),NLOC(U,ele)) :: kappa_mat
    
     ! Local assembly matrices.
-    real, dimension(NLOC_U) :: l_MassLump, l_move_masslump
+    real, dimension(NLOC(U,ele)) :: l_MassLump, l_move_masslump
 
     ! Local node number map for 2nd order element.
-    integer, dimension(EFLOC) :: local_glno
+    integer, dimension(EFLOC(U,ele)) :: local_glno
 
     ! Local variables.
     
     ! Neighbour element, face, neighbour face, no. internal element nodes
-    integer :: ele_2, ele_2_X, face, face_2, loc
+    integer :: ele_2, ele_2_X, face, face_2
+#ifdef GENERIC
+    integer :: loc
+#else
+    integer, parameter :: loc = NLOC(U,ele)
+#endif
     ! Count variable for loops over dimension.
     integer :: dim, dim1, dim2, dim3, dim4
     ! Loops over faces.
@@ -109,24 +114,24 @@
     integer :: start, finish
     
     ! Variable transform times quadrature weights.
-    real, dimension(ele_ngi(U,ele)) :: detwei, detwei_old, detwei_new, coefficient_detwei
+    real, dimension(NGI(U,ele)) :: detwei, detwei_old, detwei_new, coefficient_detwei
     ! Transformed gradient function for velocity.
-    real, dimension(ele_loc(U, ele), ele_ngi(U, ele), mesh_dim(U)) :: du_t
+    real, dimension(NLOC(U,ele), NGI(U,ele), NDIM(X)) :: du_t
     ! Transformed gradient function for grid velocity.
-    real, dimension(ele_loc(X, ele), ele_ngi(U, ele), mesh_dim(U)) :: dug_t
+    real, dimension(NLOC_X, NGI(U,ele), NDIM(X)) :: dug_t
     ! Transformed gradient function for auxiliary variable. 
-    real, dimension(NLOC_Q, ele_ngi(q_mesh,ele), mesh_dim(U)) :: dq_t
+    real, dimension(NLOC(q_mesh,ele), NGI(q_mesh,ele), NDIM(X)) :: dq_t
     ! Density at quadrature points.
-    real, dimension(ele_ngi(U_nl, ele)) :: Rho_q
+    real, dimension(NGI(U_nl, ele)) :: Rho_q
     ! Coriolis magnitude and sign at quadrature points.
-    real, dimension(ele_ngi(U_nl, ele)) :: Coriolis_q
+    real, dimension(NGI(U_nl, ele)) :: Coriolis_q
     ! Different velocities at quad points.
-    real, dimension(NDIM_U, ele_ngi(U_nl, ele)) :: u_nl_q
-    real, dimension(ele_ngi(U_nl, ele)) :: u_nl_div_q
+    real, dimension(NDIM(U), NGI(U,ele)) :: u_nl_q
+    real, dimension(NGI(U,ele)) :: u_nl_div_q
 
     ! surface tension terms
-    real, dimension(NDIM_U, NDIM_U, NGI_U) :: tension
-    real, dimension(NDIM_U, NGI_U) :: dtensiondj
+    real, dimension(NDIM(U), NDIM(U), NGI(U,ele)) :: tension
+    real, dimension(NDIM(U), NGI(U,ele)) :: dtensiondj
 
     ! Node and shape pointers.
     integer, dimension(:), pointer :: u_ele, p_ele
@@ -140,16 +145,16 @@
 
     ! What we will be adding to the matrix and RHS - assemble these as we
     ! go, so that we only do the calculations we really need
-    real, dimension(NDIM_U, EFLOC) :: big_m_diag_addto,&
+    real, dimension(NDIM(U), EFLOC(U,ele)) :: big_m_diag_addto,&
          & rhs_addto
     ! rhs terms for subcycling coming from advection bc terms
-    real, dimension(NDIM_U, NLOC_U) :: subcycle_rhs_addto
+    real, dimension(NDIM(U), NLOC(U,ele)) :: subcycle_rhs_addto
     
-    real, dimension(NDIM_U, NDIM_U, EFLOC, EFLOC) :: big_m_tensor_addto
-    logical, dimension(NDIM_U, NDIM_U) :: diagonal_block_mask, off_diagonal_block_mask
+    real, dimension(NDIM(U), NDIM(U), EFLOC(U,ele), EFLOC(U,ele)) :: big_m_tensor_addto
+    logical, dimension(NDIM(U), NDIM(U)) :: diagonal_block_mask, off_diagonal_block_mask
     ! Addto matrices for when subcycling is performed
-    real, dimension(NDIM_U, NDIM_U, EFLOC, &
-         EFLOC) :: subcycle_m_tensor_addto
+    real, dimension(NDIM(U), NDIM(U), EFLOC(U,ele), &
+         EFLOC(U,ele)) :: subcycle_m_tensor_addto
 
     !Switch to select if we are assembling the primal or dual form
     logical :: primal
@@ -159,24 +164,24 @@
     logical :: assemble_element
 
     ! Absorption matrices
-    real, dimension(NDIM_U, NGI_U) :: absorption_gi
-    real, dimension(NDIM_U, NDIM_U, NGI_U) :: tensor_absorption_gi
+    real, dimension(NDIM(U), NGI(U,ele)) :: absorption_gi
+    real, dimension(NDIM(U), NDIM(U), NGI(U,ele)) :: tensor_absorption_gi
 
     ! Add vertical velocity relaxation to the absorption if present
     real, intent(in) :: vvr_sf
-    real, dimension(NDIM_U,NDIM_U,NGI_U) :: vvr_abs
-    real, dimension(NDIM_U,NGI_U) :: vvr_abs_diag
-    real, dimension(NGI_U) :: depth_at_quads
+    real, dimension(NDIM(U),NDIM(U),NGI(U,ele)) :: vvr_abs
+    real, dimension(NDIM(U),NGI(U,ele)) :: vvr_abs_diag
+    real, dimension(NGI(U,ele)) :: depth_at_quads
     type(scalar_field), intent(in) :: depth
 
     ! Add implicit buoyancy to the absorption if present
     real, intent(in) :: ib_min_grad
-    real, dimension(NDIM_U,NDIM_U,NGI_U) :: ib_abs
-    real, dimension(NDIM_U,NGI_U) :: ib_abs_diag
-    real, dimension(NLOC_U,NGI_U,mesh_dim(u)) :: dt_rho
-    real, dimension(NDIM_U,NGI_U) :: grav_at_quads
-    real, dimension(NDIM_U,NGI_U) :: grad_rho
-    real, dimension(NGI_U) :: drho_dz
+    real, dimension(NDIM(U),NDIM(U),NGI(U,ele)) :: ib_abs
+    real, dimension(NDIM(U),NGI(U,ele)) :: ib_abs_diag
+    real, dimension(NLOC(U,ele),NGI(U,ele),MDIM(u)) :: dt_rho
+    real, dimension(NDIM(U),NGI(U,ele)) :: grav_at_quads
+    real, dimension(NDIM(U),NGI(U,ele)) :: grad_rho
+    real, dimension(NGI(U,ele)) :: drho_dz
 
     ! Non-linear approximation to the PhaseVolumeFraction field
     type(scalar_field), intent(in) :: nvfrac
@@ -184,17 +189,17 @@
     ! Transformed gradient function for the non-linear PhaseVolumeFraction. 
     real, dimension(:, :, :), allocatable :: dnvfrac_t
     ! nvfrac at quadrature points.
-    real, dimension(NGI_U) :: nvfrac_gi, u_nl_dot_grad_nvfrac_gi
-    real, dimension(NDIM_U, NGI_U) :: grad_nvfrac_gi
+    real, dimension(NGI(U,ele)) :: nvfrac_gi, u_nl_dot_grad_nvfrac_gi
+    real, dimension(NDIM(U), NGI(U,ele)) :: grad_nvfrac_gi
 
     ! element centre and neighbour centre
     ! for IP parameters
 
-    real, dimension(mesh_dim(U)) :: ele_centre, neigh_centre, &
+    real, dimension(NDIM(X)) :: ele_centre, neigh_centre, &
          & face_centre, face_centre_2
     real :: turbine_fluxfac
 
-    real, dimension(NGI_U) :: alpha_u_quad
+    real, dimension(NGI(U,ele)) :: alpha_u_quad
 
     ! added for partial stress form (sp911)
     logical, intent(in) :: partial_stress
@@ -209,8 +214,8 @@
     p0=(element_degree(u,ele)==0)
 
 !    print*, "start"
-!    print*, NDIM_U, NDIM_X, NLOC_U, NLOC_X ,NLOC_SOURCE,&
-!         NLOC_Q, NGI_U, FNGI, FLOC, EFLOC, P_FLOC
+!    print*, NDIM(U), NLOC_X ,NLOC(U,ele),&
+!         NGI(U,ele), FNGI(U_nl,face), EFLOC(U,ele), FLOC(u,face), P_FLOC
 
     
     ! In parallel, we construct terms on elements we own and those in
@@ -228,6 +233,7 @@
     if(p0) then
       assert(dg)
     end if
+#ifdef GENERIC
     if(move_mesh) then
       !// In the declarations above we've assumed these
       !// so that U_mesh doesn't always have to be
@@ -236,6 +242,7 @@
       assert(ele_ngi(U_mesh, ele)==ele_ngi(U, ele))
       assert(mesh_dim(U_mesh)==mesh_dim(U))
     end if
+#endif
 
     big_m_diag_addto = 0.0
     big_m_tensor_addto = 0.0
@@ -246,7 +253,7 @@
     end if
     
     diagonal_block_mask = .false.
-    do dim = 1, NDIM_U
+    do dim = 1, NDIM(U)
       diagonal_block_mask(dim, dim) = .true.
     end do
     
@@ -258,8 +265,10 @@
 
     u_ele=>ele_nodes(U,ele)  ! Velocity
     p_ele=>ele_nodes(P,ele)  ! Pressure
-    
-    loc = ele_loc(u, ele)
+
+#ifdef GENERIC
+    loc =ele_loc(u,ele)
+#endif
 
     local_glno=0
     local_glno(:loc)=u_ele ! Viscosity node list
@@ -310,7 +319,7 @@
     Rho_q=ele_val_at_quad(Rho, ele)
 
     if(multiphase) then
-      allocate(dnvfrac_t(ele_loc(nvfrac%mesh,ele), ele_ngi(nvfrac%mesh,ele), mesh_dim(u)))
+      allocate(dnvfrac_t(ele_loc(nvfrac%mesh,ele), NGI(nvfrac%mesh,ele), MDIM(u)))
 
       ! If the Velocity and PhaseVolumeFraction meshes are different, then we need to
       ! compute the derivatives of the PhaseVolumeFraction shape functions.
@@ -365,11 +374,11 @@
     else
       if(have_mass.and.assemble_element) then
         if(lump_mass) then        
-          do dim = 1, NDIM_U
+          do dim = 1, NDIM(U)
             big_m_diag_addto(dim, :loc) = big_m_diag_addto(dim, :loc) + l_masslump
           end do
         else
-          do dim = 1, NDIM_U
+          do dim = 1, NDIM(U)
             big_m_tensor_addto(dim, dim, :loc, :loc) = big_m_tensor_addto(dim, dim, :loc, :loc) + rho_mat
           end do
         end if
@@ -388,11 +397,11 @@
         rho_move_mat = shape_shape(u_shape, u_shape, (detwei_new-detwei_old)*Rho_q)
         if(lump_mass) then
           l_move_masslump= sum(rho_move_mat,2)
-          do dim = 1, NDIM_U
+          do dim = 1, NDIM(U)
             rhs_addto(dim,:loc) = rhs_addto(dim,:loc) - l_move_masslump*u_val(dim,:)/dt
           end do
         else
-          do dim = 1, NDIM_U
+          do dim = 1, NDIM(U)
             rhs_addto(dim,:loc) = rhs_addto(dim,:loc) - matmul(rho_move_mat, u_val(dim,:))/dt
           end do
         end if
@@ -464,7 +473,7 @@
              ! We need to compute \int{T div(u_nl vfrac) T},
              ! so split up the div using the product rule and compute
              ! \int{T vfrac div(u_nl) T} + \int{T u_nl grad(vfrac) T}
-             do i = 1, ele_ngi(u, ele)
+             do i = 1, NGI(u, ele)
                 u_nl_dot_grad_nvfrac_gi(i) = dot_product(U_nl_q(:,i), grad_nvfrac_gi(:,i))
              end do
              Advection_mat = -dshape_dot_vector_shape(du_t, U_nl_q, u_shape, detwei*Rho_q*nvfrac_gi) &
@@ -490,7 +499,7 @@
              ! We need to compute \int{T div(vfrac u_nl) T},
              ! so split up the div using the product rule and compute
              ! \int{T vfrac div(u_nl) T} + \int{T u_nl grad(vfrac) T}
-             do i = 1, ele_ngi(u, ele)
+             do i = 1, NGI(u, ele)
                 u_nl_dot_grad_nvfrac_gi(i) = dot_product(U_nl_q(:,i), grad_nvfrac_gi(:,i))
              end do
              Advection_mat = shape_vector_dot_dshape(u_shape, U_nl_q, du_t, detwei*Rho_q*nvfrac_gi) &
@@ -512,7 +521,7 @@
         end if
       end if
       
-      do dim = 1, NDIM_U
+      do dim = 1, NDIM(U)
          if(subcycle) then
             subcycle_m_tensor_addto(dim, dim, :loc, :loc) &
                  &= subcycle_m_tensor_addto(dim, dim, :loc, :loc) &
@@ -533,12 +542,12 @@
       Source_mat = shape_shape(U_shape, ele_shape(Source,ele), detwei*Rho_q)
       if(lump_source) then
         source_lump = sum(source_mat, 2)
-        do dim = 1, NDIM_U
+        do dim = 1, NDIM(U)
           ! lumped source
           rhs_addto(dim, :loc) = rhs_addto(dim, :loc) + source_lump*(ele_val(source, dim, ele))
         end do
       else
-        do dim = 1, NDIM_U
+        do dim = 1, NDIM(U)
           ! nonlumped source
           rhs_addto(dim, :loc) = rhs_addto(dim, :loc) + matmul(source_mat, ele_val(source, dim, ele))
         end do
@@ -598,12 +607,12 @@
         depth_at_quads=ele_val_at_quad(depth, ele)
 
         if (on_sphere) then
-          do i=1,ele_ngi(U,ele)
+          do i=1,NGI(U,ele)
             vvr_abs_diag(3,i)=-vvr_sf*gravity_magnitude*dt*rho_q(i)/depth_at_quads(i)
           end do
           vvr_abs=rotate_diagonal_to_sphere_gi(X, ele, vvr_abs_diag)
         else
-          do i=1,ele_ngi(u,ele)
+          do i=1,NGI(u,ele)
             vvr_abs_diag(:,i)=vvr_sf*gravity_magnitude*dt*grav_at_quads(:,i)*rho_q(i)/depth_at_quads(i)
           end do
         end if
@@ -622,19 +631,19 @@
           grav_at_quads=ele_val_at_quad(gravity, ele)
         end if
 
-        do i=1,ele_ngi(U,ele)
+        do i=1,NGI(U,ele)
           drho_dz(i)=dot_product(grad_rho(:,i),grav_at_quads(:,i)) ! Divide this by rho_0 for non-Boussinesq?
           if (drho_dz(i) < ib_min_grad) drho_dz(i)=ib_min_grad ! Default ib_min_grad=0.0
         end do
 
         ! Form the implicit buoyancy absorption terms
         if (on_sphere) then
-          do i=1,ele_ngi(U,ele)
+          do i=1,NGI(U,ele)
             ib_abs_diag(3,i)=-theta*dt*gravity_magnitude*drho_dz(i)
           end do
           ib_abs=rotate_diagonal_to_sphere_gi(X, ele, ib_abs_diag)
         else
-          do i=1,ele_ngi(U,ele)
+          do i=1,NGI(U,ele)
               ib_abs_diag(:,i)=theta*dt*gravity_magnitude*drho_dz(i)*grav_at_quads(:,i)
           end do
         end if
@@ -654,7 +663,7 @@
         depth_at_quads = ele_val_at_quad(depth, ele) + (theta_nl*ele_val_at_quad(p, ele) + (1.0-theta_nl)*ele_val_at_quad(old_pressure, ele))/gravity_magnitude
         ! now reuse depth_at_quads to be the absorption coefficient: C_D*|u|/H
         depth_at_quads = (ele_val_at_quad(swe_bottom_drag, ele)*sqrt(sum(ele_val_at_quad(swe_u_nl, ele)**2, dim=1)))/depth_at_quads
-        do i=1, NDIM_U
+        do i=1, NDIM(U)
           absorption_gi(i,:) = absorption_gi(i,:) + depth_at_quads
         end do
       
@@ -674,16 +683,16 @@
 
           Abs_lump_sphere = sum(Abs_mat_sphere, 4)
           if (assemble_element) then
-            do dim = 1, NDIM_U
-              do dim2 = 1, NDIM_U
-                do i = 1, ele_loc(U, ele)
+            do dim = 1, NDIM(U)
+              do dim2 = 1, NDIM(U)
+                do i = 1, NLOC(U,ele)
                   big_m_tensor_addto(dim, dim2, i, i) = big_m_tensor_addto(dim, dim2, i, i) + &
                     & dt*theta*Abs_lump_sphere(dim,dim2,i)
                 end do
               end do
               rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - Abs_lump_sphere(dim,dim,:)*u_val(dim,:)
               ! off block diagonal absorption terms
-              do dim2 = 1, NDIM_U
+              do dim2 = 1, NDIM(U)
                 if (dim==dim2) cycle ! The dim=dim2 terms were done above
                 rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - Abs_lump_sphere(dim,dim2,:)*u_val(dim2,:)
               end do
@@ -692,7 +701,7 @@
           if (present(inverse_masslump) .and. pressure_corrected_absorption) then
             assert(lump_mass)
             abs_lump = sum(Abs_mat, 3)
-            do dim = 1, NDIM_U             
+            do dim = 1, NDIM(U)             
               if(have_mass) then
                 call set( inverse_masslump, dim, u_ele, &
                   1.0/(l_masslump+dt*theta*abs_lump(dim,:)) )
@@ -706,14 +715,14 @@
         else
 
           if (assemble_element) then
-            do dim = 1, NDIM_U
-              do dim2 = 1, NDIM_U
+            do dim = 1, NDIM(U)
+              do dim2 = 1, NDIM(U)
                 big_m_tensor_addto(dim, dim2, :loc, :loc) = big_m_tensor_addto(dim, dim2, :loc, :loc) + &
                   & dt*theta*Abs_mat_sphere(dim,dim2,:,:)
               end do
               rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - matmul(Abs_mat_sphere(dim,dim,:,:), u_val(dim,:))
               ! off block diagonal absorption terms
-              do dim2 = 1, NDIM_U
+              do dim2 = 1, NDIM(U)
                 if (dim==dim2) cycle ! The dim=dim2 terms were done above
                 rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - matmul(Abs_mat_sphere(dim,dim2,:,:), u_val(dim2,:))
               end do
@@ -722,7 +731,7 @@
           Abs_lump_sphere = 0.0
           if (present(inverse_mass) .and. pressure_corrected_absorption) then
             assert(.not. lump_mass)
-            do dim = 1, NDIM_U              
+            do dim = 1, NDIM(U)              
               if(have_mass) then
                 call set(inverse_mass, dim, dim, u_ele, u_ele, &
                   inverse(rho_mat + dt*theta*Abs_mat(dim,:,:)))
@@ -747,7 +756,7 @@
 
         if(lump_abs) then        
           abs_lump = sum(Abs_mat, 3)
-          do dim = 1, NDIM_U
+          do dim = 1, NDIM(U)
             if (assemble_element) then
               big_m_diag_addto(dim, :loc) = big_m_diag_addto(dim, :loc) + dt*theta*abs_lump(dim,:)
               rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - abs_lump(dim,:)*u_val(dim,:)
@@ -766,7 +775,7 @@
 
         else
       
-          do dim = 1, NDIM_U
+          do dim = 1, NDIM(U)
             if (assemble_element) then
               big_m_tensor_addto(dim, dim, :loc, :loc) = big_m_tensor_addto(dim, dim, :loc, :loc) + &
                 & dt*theta*Abs_mat(dim,:,:)
@@ -798,13 +807,13 @@
         if (.not. inverse_mass%equal_diagonal_blocks) then
           ! after the strong dirichlet bcs have been applied, the diagonal 
           ! blocks will be different. So for now we just copy:
-          do dim = 2, NDIM_U
+          do dim = 2, NDIM(U)
             call set(inverse_mass, dim, dim, u_ele, u_ele, inverse_mass_mat)
           end do
         end if
       end if
       if (present(inverse_masslump) .and. lump_mass) then
-        do dim = 1, NDIM_U
+        do dim = 1, NDIM(U)
           call set(inverse_masslump, dim, u_ele, 1.0/l_masslump)
         end do
       end if
@@ -815,7 +824,7 @@
     Viscosity_mat=0
     if(have_viscosity.and.assemble_element) then
        if (primal) then
-          do dim = 1, NDIM_U
+          do dim = 1, NDIM(U)
              if(multiphase) then
                ! Viscosity matrix is \int{grad(N_A)*viscosity*vfrac*grad(N_B)} for multiphase.
                Viscosity_mat(dim,dim,:loc,:loc) = &
@@ -836,7 +845,7 @@
              inverse_mass_mat = mass_mat
              call invert(inverse_mass_mat)
              ele2grad_mat = shape_dshape(u_shape,du_t,detwei)
-             do i = 1, mesh_dim(U)
+             do i = 1, MDIM(U)
                 ele2grad_mat(i,:,:) = matmul(inverse_mass_mat, &
                      ele2grad_mat(i,:,:))
              end do
@@ -977,7 +986,7 @@
         !--------------
 
         if (dg) then
-            finish=start+face_loc(U, face_2)-1
+            finish=start+FLOC(U, face_2)-1
   
             local_glno(start:finish)=face_global_nodes(U, face_2)
         end if
@@ -1050,7 +1059,7 @@
             ! as we should not try to move the coefficient in columns corresponding to boundary face 1
             ! in rows correspoding to face 2 to the rhs, i.e. we need to wipe *all* boundary rows first.
 
-            do dim=1,NDIM_U
+            do dim=1,NDIM(U)
 
               ! Local node map counter.
               start=loc+1
@@ -1071,7 +1080,7 @@
 
                     ! Dirichlet condition.
 
-                    finish=start+face_loc(U, face)-1
+                    finish=start+FLOC(U, face)-1
 
                     if (i==1) then
                       !// Wipe out boundary condition's coupling to itself.
@@ -1079,7 +1088,7 @@
                     else
                       ! Add BC into RHS
                       !
-                      do dim1=1,NDIM_U
+                      do dim1=1,NDIM(U)
                         rhs_addto(dim1,:) = rhs_addto(dim1,:) &
                              & -matmul(Viscosity_mat(dim1,dim,:,start:finish), &
                              & ele_val(velocity_bc,dim,face))
@@ -1093,7 +1102,7 @@
                     face=face_neigh(turbine_conn_mesh, face)
                   end if
                 end if
-                start=start+face_loc(U, face)
+                start=start+FLOC(U, face)
 
               end do boundary_neighbourloop
 
@@ -1106,8 +1115,8 @@
         ! Insert viscosity in matrix.
         big_m_tensor_addto = big_m_tensor_addto + Viscosity_mat*theta*dt
         
-        do dim1=1,NDIM_U
-          do dim2=1, NDIM_U
+        do dim1=1,NDIM(U)
+          do dim2=1, NDIM(U)
             rhs_addto(dim1, :) = rhs_addto(dim1, :) &
                  - matmul(Viscosity_mat(dim1,dim2,:,:), &
                  node_val(U, dim2, local_glno))
@@ -1184,7 +1193,7 @@
 
       do dim1=1, Viscosity%dim(1)
          do dim2=1,Viscosity%dim(2)
-            do d3 = 1, mesh_dim(U)
+            do d3 = 1, MDIM(U)
                ! Div U * G^U * Viscosity * G * Grad U
                ! Where G^U*G = inverse(Q_mass)
                Viscosity_mat(d3,d3,:,:)=Viscosity_mat(d3,d3,:,:)&
@@ -1208,7 +1217,7 @@
 
       do dim1=1, Viscosity%dim(1)
          do dim2=1,Viscosity%dim(2)
-            do d3 = 1, mesh_dim(U)
+            do d3 = 1, MDIM(U)
 
                ! Div U * G^U * Viscosity * G * Grad U
                ! Where G^U*G = inverse(Q_mass)
@@ -1235,7 +1244,7 @@
       ! off diagonal terms define the coupling between the velocity components
 
       real, dimension(size(Q_inv,1), size(Q_inv,2)) :: Q_visc
-      real, dimension(ele_loc(u, ele)) :: isotropic_visc
+      real, dimension(NLOC(u, ele)) :: isotropic_visc
 
       dim = Viscosity%dim(1)
       isotropic_visc = Viscosity_ele(1,1,:)
@@ -1244,10 +1253,10 @@
       end if
       Q_visc = mat_diag_mat(Q_inv, isotropic_visc)
 
-      do dim1=1,NDIM_U
-        do dim2=1,NDIM_U
-          do dim3=1,NDIM_U 
-            do dim4=1,NDIM_U
+      do dim1=1,NDIM(U)
+        do dim2=1,NDIM(U)
+          do dim3=1,NDIM(U) 
+            do dim4=1,NDIM(U)
               if (dim1==dim2 .and. dim2==dim3 .and. dim3==dim4) then
                 Viscosity_mat(dim1,dim3,:,:) = Viscosity_mat(dim1,dim3,:,:) &
                      + 2.0 * matmul(matmul(transpose(grad_U_mat_q(dim2,:,:)),Q_visc),grad_U_mat_q(dim4,:,:))
@@ -1263,8 +1272,8 @@
     end subroutine local_assembly_bassi_rebay_stress_form
 
     subroutine add_diagonal_to_tensor(big_m_diag_addto, big_m_tensor_addto)
-      real, dimension(NDIM_U, EFLOC), intent(in) :: big_m_diag_addto
-      real, dimension(NDIM_U, NDIM_U, EFLOC, EFLOC), intent(inout) :: big_m_tensor_addto
+      real, dimension(NDIM(U), EFLOC(U,ele)), intent(in) :: big_m_diag_addto
+      real, dimension(NDIM(U), NDIM(U), EFLOC(U,ele), EFLOC(U,ele)), intent(inout) :: big_m_tensor_addto
       
       integer :: dim, loc
       
@@ -1283,22 +1292,22 @@
       !!! \nu_{eddy} = C_s Delta x_{grid} | S | where
       !!! S= ( \nabla u + \nabla u ^T )/2.0
 
-      real, dimension(NLOC_U), intent(inout) :: isotropic_visc
+      real, dimension(NLOC(U,ele)), intent(inout) :: isotropic_visc
 
-      real, dimension(NLOC_U) :: les_filter_width
-      real, dimension(mesh_dim(u), mesh_dim(u), NLOC_U) :: g_nl
-      real, dimension(mesh_dim(u), mesh_dim(u)) :: s
-      real, dimension(NLOC_U) :: s_mod
-      real, dimension(NLOC_U) :: les_scalar_viscosity, y_wall, y_plus
-      real, dimension(NLOC_U, NLOC_U) :: M_inv
+      real, dimension(NLOC(U,ele)) :: les_filter_width
+      real, dimension(MDIM(u), MDIM(u), NLOC(U,ele)) :: g_nl
+      real, dimension(MDIM(u), MDIM(u)) :: s
+      real, dimension(NLOC(U,ele)) :: s_mod
+      real, dimension(NLOC(U,ele)) :: les_scalar_viscosity, y_wall, y_plus
+      real, dimension(NLOC(U,ele), NLOC(U,ele)) :: M_inv
 
       ! get inverse mass
       M_inv = shape_shape(u_shape, u_shape, detwei)
       call invert(M_inv)
       
       ! Compute gradient of non-linear velocity
-      do dim1=1,mesh_dim(u)
-        do dim2=1,mesh_dim(u)
+      do dim1=1,MDIM(u)
+        do dim2=1,MDIM(u)
           ! interior contribution
           g_nl(dim1,dim2,:)=matmul(grad_U_mat_q(dim2,:,:loc), ele_val(u_nl,dim1,ele))
 
@@ -1312,13 +1321,13 @@
             if (ele_2>0) then
               ! obtain corresponding faces, and complete local node map
               face=ele_face(U, ele_2, ele)
-              finish=start+face_loc(U, face)-1  
+              finish=start+FLOC(U, face)-1  
               ! for interior faces we use the face values  
               g_nl(dim1,dim2,:)=g_nl(dim1,dim2,:)+matmul(grad_U_mat_q(dim2,:,start:finish), face_val(u_nl,dim1,face))
             else
               ! obtain corresponding faces, and complete local node map
               face=ele_face(U, ele, ele_2)
-              finish=start+face_loc(U, face)-1 
+              finish=start+FLOC(U, face)-1 
               ! for boundary faces the value we use depends upon if a weak bc is applied
               if (velocity_bc_type(dim1,face)==1) then
                 ! weak bc! use the bc value
@@ -1341,7 +1350,7 @@
       ! call calculate_les_grad_u(g_nl)
 
       ! Compute modulus of strain rate
-      do i=1,NLOC_U
+      do i=1,NLOC(U,ele)
         s=0.5*(g_nl(:,:,i)+transpose(g_nl(:,:,i)))
         ! Calculate modulus of strain rate
         s_mod(i)=sqrt(2*sum(s**2))
@@ -1359,7 +1368,7 @@
       ! apply Van Driest damping functions
       if (associated(distance_to_wall)) then
         y_wall = ele_val(distance_to_wall, ele)
-        do i=1,NLOC_U
+        do i=1,NLOC(U,ele)
           y_plus(i) = y_wall(i) * sqrt(norm2(g_nl(:,:,i)+transpose(g_nl(:,:,i))))/sqrt(isotropic_visc(i))
         end do
         les_filter_width = (1 - exp(-1.0*y_plus/25.0))*les_filter_width
@@ -1442,67 +1451,71 @@
     ! Matrix for assembling primal fluxes
     ! Note that this assumes same order polys in each element
     ! Code will need reorganising for p-refinement
-    real, dimension(2,FLOC,NLOC_U) ::&
+    real, dimension(2,FLOC(U,face),NLOC(U,ele)) ::&
          & primal_fluxes_mat
 
     ! Matrix for assembling penalty fluxes
     ! Note that this assumes same order polys in each element
     ! Code will need reorganising for p-refinement
-    real, dimension(2,FLOC,FLOC) ::&
+    real, dimension(2,FLOC(U,face),FLOC(U,face)) ::&
          & penalty_fluxes_mat
 
     ! \Int_{s_ele} N_iN_j n ds, used for CDG fluxes
-    real, dimension(mesh_dim(U),NLOC_U,NLOC_U) :: &
+    real, dimension(MDIM(U),FLOC(U,face),FLOC(U,face)) :: &
          & normal_mat
 
     ! \Int_{s_ele} N_iN_j kappa.n ds, used for CDG fluxes
     ! Note that this assumes same order polys in each element
     ! Code will need reorganising for p-refinement
-    real, dimension(mesh_dim(U),FLOC,FLOC) :: &
+    real, dimension(MDIM(U),FLOC(U,face),FLOC(U,face)) :: &
          & kappa_normal_mat
 
     ! Face objects and numberings.
     type(element_type), pointer :: u_shape, u_shape_2, p_shape, q_shape
-    integer, dimension(FLOC) :: u_face_l
+    integer, dimension(FLOC(U,face)) :: u_face_l
     ! This has to be a pointer to work around a stupid gcc bug.
     integer, dimension(:), pointer :: q_face_l
 
     ! Note that both sides of the face can be assumed to have the same
     ! number of quadrature points.
-    real, dimension(FNGI) :: Rho_q, nvfrac_gi
-    real, dimension(NDIM_U, FNGI) :: normal, u_nl_q,&
+    real, dimension(FNGI(U_nl,face)) :: Rho_q, nvfrac_gi
+    real, dimension(NDIM(U), FNGI(U_nl,face)) :: normal, u_nl_q,&
          & u_f_q, u_f2_q, div_u_f_q
-    logical, dimension(FNGI) :: inflow
-    real, dimension(FNGI) :: u_nl_q_dotn, income
+    logical, dimension(FNGI(U,face)) :: inflow
+    real, dimension(FNGI(U,face)) :: u_nl_q_dotn, income
     ! Variable transform times quadrature weights.
-    real, dimension(FNGI) :: detwei
-    real, dimension(FNGI) :: inner_advection_integral, outer_advection_integral
+    real, dimension(FNGI(U_nl,face)) :: detwei
+    real, dimension(FNGI(U_nl,face)) :: inner_advection_integral, outer_advection_integral
 
     ! Bilinear forms
-    real, dimension(FLOC,FLOC) :: nnAdvection_out
-    real, dimension(FLOC,face_loc(U,face_2)) :: nnAdvection_in
-    real, dimension(1,mesh_dim(U), P_FLOC,FLOC) :: mnCT
+    real, dimension(FLOC(U,face),FLOC(U,face)) :: nnAdvection_out
+    real, dimension(FLOC(U,face),FLOC(U,face_2)) :: nnAdvection_in
+    real, dimension(1,MDIM(U), P_FLOC,FLOC(U,face)) :: mnCT
     
     ! Viscosity values on face (used for CDG and IP fluxes)
     real, dimension(:,:,:), allocatable :: kappa_gi
 
     ! surfacetension stuff
-    real, dimension(NDIM_U, NDIM_U, FLOC) :: tension_q
+    real, dimension(NDIM(U), NDIM(U), FLOC(U,face)) :: tension_q
     
     integer :: dim, start, finish, floc
     logical :: boundary, free_surface, no_normal_flow, l_have_pressure_bc
-    logical, dimension(NDIM_U) :: dirichlet
+    logical, dimension(NDIM(U)) :: dirichlet
 
     logical :: p0
 
     integer :: d1, d2
 
-    floc = FLOC
+    floc = FLOC(U,face)
 
-    start=ele_loc(u,ele)+(ni-1)*face_loc(U, face_2)+1
-    finish=start+face_loc(U, face_2)-1
+    start=NLOC(u,ele)+(ni-1)*FLOC(U, face_2)+1
+    finish=start+FLOC(U, face_2)-1
     
+#ifdef GENERIC
     p0=(element_degree(u,ele)==0)
+#else
+    p0 = .false.
+#endif
 
     ! Get Density and (non-linear) PhaseVolumeFraction values 
     ! at the Gauss points on the current face.
@@ -1514,7 +1527,7 @@
 
     if(present(viscosity)) then
        allocate( kappa_gi(Viscosity%dim(1), Viscosity%dim(2), &
-            face_ngi(Viscosity,face)) )
+            FNGI(Viscosity,face)) )
 
        kappa_gi = face_val_at_quad(Viscosity, face)
 
@@ -1766,7 +1779,7 @@
     subroutine arbitrary_upwind_viscosity
 
        !! Arbitrary upwinding scheme.
-       do dim=1,mesh_dim(U)
+       do dim=1,MDIM(U)
 
           if (normal(dim,1)>0) then          
              ! Internal face.
@@ -1796,9 +1809,9 @@
 
     subroutine bassi_rebay_viscosity
 
-      real, dimension(face_ngi(u_nl, face)) :: coefficient_detwei
+      real, dimension(FNGI(u_nl, face)) :: coefficient_detwei
       
-      do dim=1,mesh_dim(U)
+      do dim=1,MDIM(U)
 
          coefficient_detwei = detwei*normal(dim,:)
          if(multiphase) then
@@ -1841,8 +1854,8 @@
       !!< indices are (dim1, loc1, loc2)
 
       kappa_normal_mat = 0
-      do d1 = 1, mesh_dim(U)
-         do d2 = 1, mesh_dim(U)
+      do d1 = 1, MDIM(U)
+         do d2 = 1, MDIM(U)
             kappa_normal_mat(d1,:,:) = kappa_normal_mat(d1,:,:) + &
                  & shape_shape(U_shape,U_shape,detwei* &
                  & kappa_gi(d1,d2,:)*normal(d2,:))
@@ -1929,15 +1942,15 @@
 
       if(viscosity_scheme==CDG) then
          flux_factor = 0.0
-         CDG_switch_in = (sum(switch_g(1:mesh_dim(U))*sum(normal,2)/size(normal,2))>0)
+         CDG_switch_in = (sum(switch_g(1:MDIM(U))*sum(normal,2)/size(normal,2))>0)
          if(CDG_switch_in) flux_factor = 1.0
       else
          flux_factor = 0.5
          CDG_switch_in = .true.
       end if
 
-      do d1 = 1, mesh_dim(U)
-         do d2 = 1, mesh_dim(U)
+      do d1 = 1, MDIM(U)
+         do d2 = 1, MDIM(U)
             !  -Int_e 1/2 (u^+ - u^-)n^+.kappa^+ grad v^+
             if(.not.boundary) then
                ! Internal face.
@@ -2026,8 +2039,8 @@
       nf = face_loc(U,face)
 
       kappa_n = 0.0
-      do d1 = 1, mesh_dim(U)
-         do d2 = 1, mesh_dim(U)
+      do d1 = 1, MDIM(U)
+         do d2 = 1, MDIM(U)
             kappa_n = kappa_n + &
                  normal(d1,:)*kappa_gi(d1,d2,:)*normal(d2,:)
          end do
@@ -2035,7 +2048,7 @@
 
       if(EDGE_LENGTH_OPTION==USE_FACE_INTEGRALS) then
          h0 = sum(detwei)
-         if(mesh_dim(U)==3) h0 = sqrt(h0) 
+         if(MDIM(U)==3) h0 = sqrt(h0) 
       end if
 
       if(cdg_penalty) then
@@ -2063,10 +2076,10 @@
 
       integer :: d
       integer :: nfele, nele
-      integer, dimension(face_loc(U,face)) :: U_face_loc
+      integer, dimension(FLOC(U,face)) :: U_face_loc
 
-      nfele = face_loc(U,face)
-      nele = ele_loc(U,ele)
+      nfele = FLOC(U,face)
+      nele = NLOC(U,ele)
       u_face_loc=face_local_nodes(U, face)
 
 
@@ -2083,7 +2096,7 @@
                     Viscosity_mat(d,d,u_face_loc,u_face_loc) + &
                     penalty_fluxes_mat(1,:,:)
 
-               !! External Degrees of Freedom
+               !! External Degrees of Frfeedom
                
                !!penalty fluxes
 
@@ -2121,9 +2134,9 @@
 
       integer :: j,d
       integer :: nele
-      integer, dimension(face_loc(U,face)) :: U_face_loc
+      integer, dimension(FLOC(U,face)) :: U_face_loc
 
-      nele = ele_loc(U,ele)
+      nele = NLOC(U,ele)
       u_face_loc=face_local_nodes(U, face)
 
 
@@ -2275,32 +2288,32 @@
       !!< inverse_mass_mat is the inverse mass in E
 
       integer :: i,j,d1,d2,nele,face1,face2,d
-      integer, dimension(face_loc(U,face)) :: U_face_loc    
-      real, dimension(mesh_dim(U),ele_loc(U,ele),face_loc(U,face)) :: R_mat
-      real, dimension(2,2,face_loc(U,face),face_loc(U,face)) :: add_mat
+      integer, dimension(FLOC(U,face)) :: U_face_loc    
+      real, dimension(MDIM(U),NLOC(U,ele),FLOC(U,face)) :: R_mat
+      real, dimension(2,2,FLOC(U,face),FLOC(U,face)) :: add_mat
 
-      nele = ele_loc(U,ele)
+      nele = NLOC(U,ele)
       u_face_loc=face_local_nodes(U, face)
 
       R_mat = 0.
-      do d1 = 1, mesh_dim(U)
-         do i = 1, ele_loc(U,ele)
-            do j = 1, face_loc(U,face)
+      do d1 = 1, MDIM(U)
+         do i = 1, NLOC(U,ele)
+            do j = 1, FLOC(U,face)
                R_mat(d1,i,j) = &
                     &sum(inverse_mass_mat(i,u_face_loc)*normal_mat(d1,:,j))
             end do
          end do
       end do
 
-      do d=1,U%dim
+      do d=1,NDIM(U)
 
          add_mat = 0.0
          if(boundary) then
             if (dirichlet(d)) then
                !Boundary case
                ! R(/tau,u) = -\int_e \tau.n u  dS
-               !do d1 = 1, mesh_dim(U)
-               !   do d2 = 1, mesh_dim(U)
+               !do d1 = 1, MDIM(U)
+               !   do d2 = 1, MDIM(U)
                !      add_mat(1,1,:,:) = add_mat(1,1,:,:) + &
                !           matmul(transpose(R_mat(d1,:,:)), &
                !           &matmul(kappa_mat(d1,d2,:,:),R_mat(d2,:,:)))
@@ -2312,8 +2325,8 @@
                
                do face1 = 1, 2
                   do face2 = 1, 2
-                     do d1 = 1, mesh_dim(U)
-                        do d2 = 1, mesh_dim(U)
+                     do d1 = 1, MDIM(U)
+                        do d2 = 1, MDIM(U)
                            add_mat(face1,face2,:,:) = add_mat(face1,face2,:,:) + &
                                 &(-1.)**(face1+face2)*matmul(transpose(R_mat(d1,:,:)), &
                                 &matmul(kappa_mat(d1,d2,:,:),R_mat(d2,:,:)))
@@ -2328,8 +2341,8 @@
             ! R(\tau,u) = -\int_e \tau.n^+(u^+ - u^-) dS
             do face1 = 1, 2
                do face2 = 1, 2
-                  do d1 = 1, mesh_dim(U)
-                     do d2 = 1, mesh_dim(U)
+                  do d1 = 1, MDIM(U)
+                     do d2 = 1, MDIM(U)
                         add_mat(face1,face2,:,:) = add_mat(face1,face2,:,:) + &
                              &(-1.)**(face1+face2)*matmul(transpose(R_mat(d1,:,:)), &
                              &matmul(kappa_mat(d1,d2,:,:),R_mat(d2,:,:)))
