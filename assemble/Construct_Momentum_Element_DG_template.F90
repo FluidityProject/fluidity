@@ -986,7 +986,7 @@
         !--------------
 
         if (dg) then
-            finish=start+face_loc(U, face_2)-1
+            finish=start+FLOC(U, face_2)-1
   
             local_glno(start:finish)=face_global_nodes(U, face_2)
         end if
@@ -1080,7 +1080,7 @@
 
                     ! Dirichlet condition.
 
-                    finish=start+face_loc(U, face)-1
+                    finish=start+FLOC(U, face)-1
 
                     if (i==1) then
                       !// Wipe out boundary condition's coupling to itself.
@@ -1102,7 +1102,7 @@
                     face=face_neigh(turbine_conn_mesh, face)
                   end if
                 end if
-                start=start+face_loc(U, face)
+                start=start+FLOC(U, face)
 
               end do boundary_neighbourloop
 
@@ -1321,7 +1321,7 @@
             if (ele_2>0) then
               ! obtain corresponding faces, and complete local node map
               face=ele_face(U, ele_2, ele)
-              finish=start+face_loc(U, face)-1  
+              finish=start+FLOC(U, face)-1  
               ! for interior faces we use the face values  
               g_nl(dim1,dim2,:)=g_nl(dim1,dim2,:)+matmul(grad_U_mat_q(dim2,:,start:finish), face_val(u_nl,dim1,face))
             else
@@ -1527,7 +1527,7 @@
 
     if(present(viscosity)) then
        allocate( kappa_gi(Viscosity%dim(1), Viscosity%dim(2), &
-            face_ngi(Viscosity,face)) )
+            FNGI(Viscosity,face)) )
 
        kappa_gi = face_val_at_quad(Viscosity, face)
 
@@ -1809,7 +1809,7 @@
 
     subroutine bassi_rebay_viscosity
 
-      real, dimension(face_ngi(u_nl, face)) :: coefficient_detwei
+      real, dimension(FNGI(u_nl, face)) :: coefficient_detwei
       
       do dim=1,MDIM(U)
 
@@ -2134,7 +2134,7 @@
 
       integer :: j,d
       integer :: nele
-      integer, dimension(face_loc(U,face)) :: U_face_loc
+      integer, dimension(FLOC(U,face)) :: U_face_loc
 
       nele = NLOC(U,ele)
       u_face_loc=face_local_nodes(U, face)
