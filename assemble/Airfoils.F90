@@ -53,10 +53,6 @@ module airfoils
   integer, allocatable :: nTBL(:)   ! Number of AOA values for each Re number, in each section data table
   integer  :: nRET   ! Number of Re number values in each section data table
 
-  ! Airfoil params for BV dyn stall
-  real, allocatable :: alstlp(:)    ! Stall AOA (positive) at all Re numbers
-  real, allocatable :: alstln(:)    ! Stall AOA (negative) at all Re numbers
-
   ! Airfoil params for Leisham Beddoes dyn stall
   real, allocatable :: CLaData(:)
   real, allocatable :: CLCritPData(:)
@@ -113,8 +109,6 @@ contains
     airfoil1%TCM(1:MaxAOAVals,1:MaxReVals)=airfoil2%TCM(1:MaxAOAVals,1:MaxReVals)
     airfoil1%TRE(1:MaxReVals)=airfoil2%TRE(1:MaxReVals)
     airfoil1%nTBL(1:MaxReVals)=airfoil2%nTBL(1:MaxReVals)
-    airfoil1%alstlp(1:MaxReVals)=airfoil2%alstlp(1:MaxReVals)
-    airfoil1%alstln(1:MaxReVals)=airfoil2%alstln(1:MaxReVals)
     airfoil1%CLaData(1:MaxReVals)=airfoil2%CLaData(1:MaxReVals)
     airfoil1%CLCritPData(1:MaxReVals)=airfoil2%CLCritPData(1:MaxReVals)
     airfoil1%CLCritNData(1:MaxReVals)=airfoil2%CLCritNData(1:MaxReVals)
@@ -192,12 +186,6 @@ contains
         ! Read Re and dyn. stall data
         read(ReadLine(index(ReadLine,':')+1:),*) airfoil%TRE(i)
         read(15,'(A)') ReadLine                          
-        read(ReadLine(index(ReadLine,':')+1:),*) airfoil%alstlp(i)
-        airfoil%alstlp(i)=airfoil%alstlp(i)*conrad
-        read(15,'(A)') ReadLine                          
-        read(ReadLine(index(ReadLine,':')+1:),*) airfoil%alstln(i)
-        airfoil%alstln(i)=airfoil%alstln(i)*conrad
-        read(15,'(A)') ReadLine                          
         read(ReadLine(index(ReadLine,':')+1:),*) airfoil%CLaData(i)
         read(15,'(A)') ReadLine                          
         read(ReadLine(index(ReadLine,':')+1:),*) airfoil%CLCritPData(i)
@@ -206,9 +194,6 @@ contains
 
         ! Reverse camber direction if desired
         if (airfoil%camb == 1) then
-            temp = airfoil%alstlp(i)
-            airfoil%alstlp(i) = -airfoil%alstln(i)
-            airfoil%alstln(i) = -temp   
             temp = airfoil%CLCritPData(i)
             airfoil%CLCritPData(i) = -airfoil%CLCritNData(i)
             airfoil%CLCritNData(i) = -temp 
@@ -318,8 +303,6 @@ contains
     allocate(airfoil%TCM(MaxAOAVals,MaxReVals))
     allocate(airfoil%TRE(MAxReVals))
     allocate(airfoil%nTBL(MaxReVals))
-    allocate(airfoil%alstln(MaxReVals))
-    allocate(airfoil%alstlp(MaxReVals))
     allocate(airfoil%CLaData(MaxReVals))
     allocate(airfoil%CLCritPData(MaxReVals))
     allocate(airfoil%CLCritNData(MaxReVals))
