@@ -2478,8 +2478,12 @@ optimal size)</a:documentation>
                       <a:documentation>Tip Speed Ratio of the turbine</a:documentation>
                       <ref name="real"/>
                     </element>
+                    <element name="nu">
+                      <a:documentation>Average reference Velocity upstream the turbine (usually taken one diameter upstream at hub height 
+Effective viscosity</a:documentation>
+                      <ref name="real"/>
+                    </element>
                     <element name="Uref">
-                      <a:documentation>Average reference Velocity upstream the turbine (usually taken one diameter upstream at hub height </a:documentation>
                       <ref name="real"/>
                     </element>
                   </element>

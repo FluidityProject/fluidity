@@ -325,10 +325,11 @@ contains
 
       real,dimension(v_field%dim) :: Scoords , Rcoords, DSource
       type(scalar_field), pointer :: density
-      type(vector_field), pointer :: positions, velocity
+      type(vector_field), pointer :: positions, velocity, viscosity
       integer :: i,j,ele, iturb, jblade, kelem
       real, dimension(v_field%dim+1) :: local_coord
       real, dimension(v_field%dim) :: value_vel
+      real, dimension(v_field%dim,v_field%dim) :: visc_tensor
       real :: dr2, d, epsilon_par, Area, radius, V_rel,V_rel2,loc_kern, nu
       real :: volume, meshFactor, dragFactor, chordFactor
       real :: epsilon_par_drag, epsilon_par_chord, epsilon_par_mesh, epsilon_threshold
@@ -346,7 +347,7 @@ contains
       !> Get Position and Velocity Field
       positions => extract_vector_field(states,"Coordinate")  
       velocity  => extract_vector_field(states, "Velocity")
-      
+
       !> Read the Cmax values
       call get_option(trim(complete_field_path(trim(v_field%option_path))) // &        
                     "/algorithm[0]/meshFactor", meshFactor, default=2.0)   
@@ -357,8 +358,6 @@ contains
      
       !Read kinematic viscosity 
       
-    
-      nu=1e-6
 
       ! there should be two models: one for checking a single airfoil
       ! And another for checking the turbine
@@ -379,8 +378,8 @@ contains
                   !* Evaluates the velocity at the point of interest 
                   !* It does not work for parallel 
                   value_vel=eval_field(ele,velocity, local_coord) 
-
-                  call Compute_Element_Forces(iTurb,jblade,kelem,value_vel,nu)
+                  
+                  call Compute_Element_Forces(iTurb,jblade,kelem,value_vel)
                    
                   !***********************************************
                   ! This is for inducing the velocities

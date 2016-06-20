@@ -1761,6 +1761,10 @@ start =
                         real
                     },
                     ## Average reference Velocity upstream the turbine (usually taken one diameter upstream at hub height 
+                    ## Effective viscosity
+                    element nu{
+                        real
+                    },
                     element Uref{
                         real
                     }

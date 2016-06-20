@@ -106,7 +106,7 @@ type TurbineType
     character(len=100) :: geom_file 
     integer :: NBlades, NAirfoilData
     real, dimension(3) :: RotN, RotP ! Rotational vectors in the normal and perpendicular directions
-    real :: Rmax, Uref ! Reference radius and reference velocity
+    real :: Rmax, Uref, nu ! Reference radius and reference velocity
     real :: TSR , angularVel
     real :: AzimAngle=0.0
     logical :: Is_constant_rotation_operated = .false. ! For a constant rotational velocity (in Revolutions Per Minute)
@@ -204,6 +204,7 @@ contains
        if (have_option(trim(turbine_path(i))//"/operation/constant_rotational_velocity")) then
             Turbine(i)%Is_constant_rotation_operated= .true.
             call get_option("/ALM_Turbine/alm_turbine["//int2str(i-1)//"]/operation/constant_rotational_velocity/TSR",Turbine(i)%TSR)
+            call get_option("/ALM_Turbine/alm_turbine["//int2str(i-1)//"]/operation/constant_rotational_velocity/nu",Turbine(i)%nu)
             call get_option("/ALM_Turbine/alm_turbine["//int2str(i-1)//"]/operation/constant_rotational_velocity/Uref",Turbine(i)%Uref)
        else if(have_option(trim("/ALM_Turbine/alm_turbine["//int2str(i-1)//"]")//"/operation/force_based_rotational_velocity")) then
             Turbine(i)%Is_force_based_operated = .true. 
@@ -318,11 +319,11 @@ subroutine calculate_performance(turbine)
 
 end subroutine calculate_performance
 
-subroutine Compute_Element_Forces(iturb,iblade,ielem,Local_Vel,nu)
+subroutine Compute_Element_Forces(iturb,iblade,ielem,Local_Vel)
        
     implicit none
     integer,intent(in) :: iturb, iblade, ielem
-    real, intent(in) :: Local_Vel(3), nu
+    real, intent(in) :: Local_Vel(3)
     real :: R(3)
     real :: wRotX,wRotY,wRotZ,Rx,Ry,Rz,ublade,vblade,wblade
     real :: nxe,nye,nze,txe,tye,tze,sxe,sye,sze,ElemArea,ElemChord
@@ -374,7 +375,7 @@ subroutine Compute_Element_Forces(iturb,iblade,ielem,Local_Vel,nu)
     alpha=atan2(urdn,urdc)
     wPNorm=wP*ElemChord/(2.0*max(ur,0.001)) 
     
-    Re = ur*ElemChord/nu
+    Re = ur*ElemChord/Turbine(iturb)%nu
     alpha5=alpha
     alpha75=alpha
      
