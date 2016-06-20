@@ -13,9 +13,44 @@ import argparse
 import time
 from numpy import genfromtxt
 import matplotlib.pyplot as plt
-from math import sqrt
+from math import *
 
-from CreateTurbine import CreateHATTurbine
+#======================================
+# Classes
+#=====================================
+
+class Blade:
+    def __init__(self,nel,rtoR,ctoR,pitch,thtoC):
+        self.Nelem=nel;
+        self.r=rtoR;
+        self.c=ctoR;
+        self.pitch=pitch;
+        self.thtoC=thtoC;
+
+    def create(self,radius):
+        for i in range(0, 1,self.Nelem):
+            self.r[i]=self.r[i]*radius;
+            self.c[i]=self.c[i]*radius;
+            self.pitch[i]=self.pitch[i];
+            self.thtoC[i]=self.thtoC[i];
+
+    def rotate(self,Theta,nR,Origin):
+
+        print('Rotating blade');
+
+    def QuatRot(v,Theta,nR,Origin):
+        # Perform rotation of vector(s) v around normal vector nR using the
+        # quaternion machinery
+
+        # Force normalize nR
+        nR=nR/sqrt(sum(pow(nR,2)));
+
+        # Quaternion form of v
+
+class HATT:
+    def __init__(self,nbs):
+        self.Nblades=nbs;
+        self.Blade(nbs)
 
 # ====================================
 # Parser Arguments
@@ -55,11 +90,12 @@ Yaw = Turbine_Par[4]
 set_angle = Turbine_Par[5]
 NBlades = Turbine_Par[6]
 
+
+B=Blade(NElem,rtoR,ctoR,Pitch,thtoC)
+B.create(Radius)
+
+print(B.r)
+print(B.c)
+
 # Create the Outputfile
-OFN = 'Bahaj2007_tilt'+str(Tilt)+'_yaw'+str(Yaw)+'_setangle'+str(set_angle)+'.geom'
-
-CreateHATTurbine(NBlades,NElem,RefR,RotN,RotP,RefAR,RMaxR,HubRR,rb,CR,bTwist,bi,eta,bCone,Tilt)
-
-class Turbine():
-    def __init__(self,
-
+#OFN = 'Bahaj2007_tilt'+str(Tilt)+'_yaw'+str(Yaw)+'_setangle'+str(set_angle)+'.geom'

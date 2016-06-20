@@ -108,6 +108,7 @@ type TurbineType
     real, dimension(3) :: RotN, RotP ! Rotational vectors in the normal and perpendicular directions
     real :: Rmax, Uref ! Reference radius and reference velocity
     real :: TSR , angularVel
+    real :: AzimAngle=0.0
     logical :: Is_constant_rotation_operated = .false. ! For a constant rotational velocity (in Revolutions Per Minute)
     logical :: Is_force_based_operated = .false. ! For a forced based rotational velocity (Computed during the simulation)
     logical :: IsRotating = .false.
@@ -193,8 +194,8 @@ contains
         ewrite(2,*) 'Populating blade airfoils for turbine ',i,' Blade ', j
         call populate_blade_airfoils(Turbine(i)%Blade(j)%NElem,Turbine(i)%Blade(j)%EAirfoil,Turbine(i)%AirfoilData,Turbine(i)%Blade(j)%ETtoC)
        ! Write the initial angle of attack
-        Turbine(i)%Blade(j)%AOA_LAST(:)=0
-        Turbine(i)%Blade(j)%Un_LAST(:)=0
+        Turbine(i)%Blade(j)%AOA_LAST(:)=1.e7
+        Turbine(i)%Blade(j)%Un_LAST(:)=1.e7
         enddo
         
         call get_option("/timestepping/timestep",deltaT) 
@@ -246,6 +247,7 @@ subroutine turbine_operate
         ewrite(2,*) 'Operating Turbine with a constant rotational Velocity'
         Turbine(i)%angularVel = Turbine(i)%TSR*Turbine(i)%Uref/Turbine(i)%Rmax  
         theta=Turbine(i)%angularVel*deltaT ! 1 revolution/minute = 2 pi tads / 60 s
+        Turbine(i)%AzimAngle=Turbine(i)%AzimAngle+theta*360.0/(2.0*pi)
         call rotate_turbines(theta) 
         call calculate_performance(Turbine(i))
     elseif(Turbine(i)%Is_force_based_operated) then
@@ -302,13 +304,14 @@ subroutine calculate_performance(turbine)
     turbine%CFx=FX/(0.5*pi*R**2*U_ref**2)
     turbine%CFy=FY/(0.5*pi*R**2*U_ref**2)
     turbine%CFz=Fz/(0.5*pi*R**2*U_ref**2)
-    turbine%CT=sqrt(turbine%CFx**2+turbine%CFy**2+turbine%CFz**2)
-    turbine%CP=abs(TR*turbine%angularVel/(0.5*pi*R**2*U_ref**3))
+    turbine%CT=sqrt(turbine%CFx**2.0+turbine%CFy**2.0+turbine%CFz**2.0)
+    turbine%CP=abs(TR*turbine%angularVel/(0.5*pi*R**2.0*U_ref**3.0))
     
     ewrite(2,*) '--------------------------------------------------------'
     ewrite(2,*) 'Calculate performance for Turbine : ',turbine%turb_name
+    ewrite(2,*) 'Azimuthal Angle (degrees) : ', turbine%AzimAngle
     ewrite(2,*) 'Thrust Coefficient : ', turbine%CT
-    ewrite(2,*) 'Power Coefficient " ', turbine%CP
+    ewrite(2,*) 'Power Coefficient : ', turbine%CP
     ewrite(2,*) '--------------------------------------------------------'
     
     ewrite(2,*) 'Exiting calculate_performance'
@@ -323,9 +326,9 @@ subroutine Compute_Element_Forces(iturb,iblade,ielem,Local_Vel,nu)
     real :: R(3)
     real :: wRotX,wRotY,wRotZ,Rx,Ry,Rz,ublade,vblade,wblade
     real :: nxe,nye,nze,txe,tye,tze,sxe,sye,sze,ElemArea,ElemChord
-    real :: urdn,urdc, wP,ur,alpha,Re,alpha5,alpha75,alphadot
+    real :: urdn,urdc, wP,ur,alpha,Re,alpha5,alpha75,adotnorm
     real :: CL,CD,CN,CT,CLCirc,CM25,MS,FN,FT,FS,FX,Fy,Fz,te
-    real :: TRx,TRy,TRz,RotX,RotY,RotZ, dal, Undot
+    real :: TRx,TRy,TRz,RotX,RotY,RotZ, dal, wPNorm
     integer :: i
   
     ewrite(2,*) 'Entering Compute_Forces '
@@ -365,30 +368,33 @@ subroutine Compute_Element_Forces(iturb,iblade,ielem,Local_Vel,nu)
     
     urdc=txe*(Local_vel(1)-ublade)+tye*(Local_vel(2)-vblade)+tze*(Local_vel(3)-wblade) ! Tangential
 
+    wP = sxe*wRotX+sye*wRotY+sze*wRotZ
+
     ur=sqrt(urdn**2.0+urdc**2.0)
     alpha=atan2(urdn,urdc)
-     
+    wPNorm=wP*ElemChord/(2.0*max(ur,0.001)) 
+    
     Re = ur*ElemChord/nu
     alpha5=alpha
     alpha75=alpha
-    
-    if(Turbine(iturb)%Blade(iblade)%AOA_Last(ielem)==0) then
-    alphadot=0.0
-    Undot=0.0
+     
+    if(Turbine(iturb)%Blade(iblade)%AOA_Last(ielem)>1e6) then
+    dal=0
     else
-    alphadot=(alpha75-Turbine(iturb)%Blade(iblade)%AOA_Last(ielem))/deltaT
-    Undot=(urdn-Turbine(iturb)%Blade(iblade)%Un_Last(ielem))/deltaT;
+    dal=(alpha75-Turbine(iturb)%Blade(iblade)%AOA_Last(ielem))
     endif
     
-    ewrite(2,*) ur, Re, alphadot, Undot
+    adotnorm=dal/deltaT*ElemChord/(2.0*max(ur,0.001)) ! adot*c/(2*U)
+    
+    ewrite(2,*) ur, Re, adotnorm, wPNorm, Turbine(iturb)%RotN
 
-    call compute_aeroCoeffs(Turbine(iturb)%Blade(iblade)%EAirfoil(ielem),alpha75,alpha5,Re,Undot,alphadot,ElemChord,urdn,urdc,ur,CN,CT,CM25)
+    call compute_aeroCoeffs(Turbine(iturb)%Blade(iblade)%EAirfoil(ielem),alpha75,alpha5,Re,WPNorm,adotnorm,CN,CT,CM25)
 
     FN=0.5*CN*ElemArea*ur**2.0
     FT=0.5*CT*ElemArea*ur**2.0
     FS=0.0 ! Makes sure that there is no spanwise force
 
-    MS=0.5*CM25*ElemChord*pi*ElemArea*ur**2
+    MS=0.5*CM25*ElemChord*ElemArea*ur**2
 
     ! Compute forces in the X, Y, Z axis and torque    
 
@@ -409,8 +415,7 @@ subroutine Compute_Element_Forces(iturb,iblade,ielem,Local_Vel,nu)
     Turbine(iturb)%Blade(iblade)%Torque(ielem)=te 
     
     !! Set the AOA_LAST before exiting the routine
-    Turbine(iturb)%Blade(iblade)%AOA_LAST(ielem)=alpha 
-    Turbine(iturb)%Blade(iblade)%Un_LAST(ielem)=urdn 
+    Turbine(iturb)%Blade(iblade)%AOA_LAST(ielem)=alpha75 
 
 
     ewrite(2,*) 'Exiting Compute_Forces'

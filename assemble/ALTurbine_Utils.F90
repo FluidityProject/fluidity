@@ -102,7 +102,31 @@ contains
         vRz=pR(4,1)+Oz
 
     end subroutine QuatRot
-  
+
+    real function IDW(Ncol,Colldist,dist,threshold,limit,p)
+        implicit none
+        integer, intent(in) :: Ncol
+        real, dimension(Ncol),intent(in) :: Colldist
+        real, intent(in) :: dist, threshold, limit
+        integer,intent(in) :: p
+        real :: suma,w
+        integer :: i
+
+        if(dist<threshold) then
+            IDW=1
+        elseif(dist>=threshold.and.dist<=limit) then
+            suma=0
+            do i=1,Ncol
+            suma=suma+1.0/Colldist(i)**p
+            end do
+            w=1.0/suma
+            IDW=1.0/dist*w
+        else
+            IDW=0
+        end if
+
+    end function IDW
+
     real function Kernel(dr,epsilon_par,dim)
     
         implicit none

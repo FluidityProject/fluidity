@@ -355,7 +355,7 @@ contains
       call get_option(trim(complete_field_path(trim(v_field%option_path))) // &        
                     "/algorithm[0]/chordFactor", chordFactor, default=0.25)   
      
-      ! Read kinematic viscosity 
+      !Read kinematic viscosity 
       
     
       nu=1e-6
@@ -368,8 +368,7 @@ contains
           do jblade=1,Turbine(iTurb)%NBlades
 
               do kelem=1,Turbine(iTurb)%Blade(jblade)%NElem
-
-                  
+ 
                   ! Set the elements
                   Scoords(1)=Turbine(iTurb)%Blade(jblade)%PEx(kelem)
                   Scoords(2)=Turbine(iTurb)%Blade(jblade)%PEy(kelem)
@@ -382,7 +381,6 @@ contains
                   value_vel=eval_field(ele,velocity, local_coord) 
 
                   call Compute_Element_Forces(iTurb,jblade,kelem,value_vel,nu)
-                  
                    
                   !***********************************************
                   ! This is for inducing the velocities
@@ -390,7 +388,8 @@ contains
                   ! To find the parameter which will be used to distribute the loads
                   ! on the mesh points we need first to take the mamimum of the local mesh
                   ! size and the chord of the element
-                  volume=element_volume(positions,ele)
+
+                 volume=element_volume(positions,ele)
                   
                   epsilon_par_mesh  = 2.0*meshFactor*volume**(1.0/3.0) 
                   epsilon_par_drag  = 1.1*dragFactor*Turbine(iTurb)%Blade(jblade)%EC(kelem)/2.0      
@@ -403,6 +402,8 @@ contains
                   else
                       epsilon_par=epsilon_par_mesh
                   end if
+
+
 
                   do i = 1, node_count(v_field)
                       ! Compute a Sphere of Influence with diameter equal to chord/2
@@ -426,11 +427,7 @@ contains
                   DSource(1)=-loc_kern*Turbine(iturb)%Blade(jblade)%Fx(kelem)
                   DSource(2)=-loc_kern*Turbine(iturb)%Blade(jblade)%Fy(kelem)
                   DSource(3)=-loc_kern*Turbine(iturb)%Blade(jblade)%Fz(kelem)
-                  if(sqrt(DSource(1)**2+DSource(2)**2+DSource(3)**2)>100) then
-                      ewrite(2,*) jblade, kelem ,loc_kern , dr2, epsilon_par
-                      ewrite(2,*) Rcoords 
-                      stop
-                  endif
+                  
                   call addto(v_field,i,DSource)
 
                   end do
