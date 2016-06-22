@@ -106,7 +106,8 @@ type TurbineType
     character(len=100) :: geom_file 
     integer :: NBlades, NAirfoilData
     real, dimension(3) :: RotN, RotP ! Rotational vectors in the normal and perpendicular directions
-    real :: Rmax, Uref, nu ! Reference radius and reference velocity
+    real :: Rmax, Uref, nu ! Reference radius, velocity, viscosity
+    real :: A   ! Rotor area
     real :: TSR , angularVel
     real :: AzimAngle=0.0
     logical :: Is_constant_rotation_operated = .false. ! For a constant rotational velocity (in Revolutions Per Minute)
@@ -269,7 +270,7 @@ subroutine calculate_performance(turbine)
     implicit none
     type(TurbineType), intent(inout) :: turbine
     real :: TR_i,FX_i,FY_i,FZ_i, FX,FY,FZ,TR
-    real :: U_ref, R
+    real :: U_ref, R, A
     integer :: iblade, ielem
     ewrite(2,*) 'In calculate_performance'
 
@@ -302,16 +303,19 @@ subroutine calculate_performance(turbine)
     
     U_ref=turbine%Uref
     R=turbine%Rmax
-    turbine%CFx=FX/(0.5*pi*R**2*U_ref**2)
-    turbine%CFy=FY/(0.5*pi*R**2*U_ref**2)
-    turbine%CFz=Fz/(0.5*pi*R**2*U_ref**2)
+    A=turbine%A
+    turbine%CFx=FX/(0.5*A*U_ref**2)
+    turbine%CFy=FY/(0.5*A*U_ref**2)
+    turbine%CFz=Fz/(0.5*A*U_ref**2)
     turbine%CT=sqrt(turbine%CFx**2.0+turbine%CFy**2.0+turbine%CFz**2.0)
-    turbine%CP=abs(TR*turbine%angularVel/(0.5*pi*R**2.0*U_ref**3.0))
+    turbine%CTR=TR/(0.5*A*R*U_ref**2.0)
+    turbine%CP= turbine%CTR*turbine%TSR
     
     ewrite(2,*) '--------------------------------------------------------'
     ewrite(2,*) 'Calculate performance for Turbine : ',turbine%turb_name
     ewrite(2,*) 'Azimuthal Angle (degrees) : ', turbine%AzimAngle
     ewrite(2,*) 'Thrust Coefficient : ', turbine%CT
+    ewrite(2,*) 'Torque Coefficient : ', turbine%CTR
     ewrite(2,*) 'Power Coefficient : ', turbine%CP
     ewrite(2,*) '--------------------------------------------------------'
     
@@ -387,9 +391,9 @@ subroutine Compute_Element_Forces(iturb,iblade,ielem,Local_Vel)
     
     adotnorm=dal/deltaT*ElemChord/(2.0*max(ur,0.001)) ! adot*c/(2*U)
     
-    ewrite(2,*) ur, Re, adotnorm, wPNorm, Turbine(iturb)%RotN
+    ewrite(2,*) alpha, ur, Re 
 
-    call compute_aeroCoeffs(Turbine(iturb)%Blade(iblade)%EAirfoil(ielem),alpha75,alpha5,Re,WPNorm,adotnorm,CN,CT,CM25)
+    call compute_aeroCoeffs(Turbine(iturb)%Blade(iblade)%EAirfoil(ielem),alpha75,alpha5,Re,wPNorm,adotnorm,CN,CT,CM25)
 
     FN=0.5*CN*ElemArea*ur**2.0
     FT=0.5*CT*ElemArea*ur**2.0
@@ -615,7 +619,7 @@ subroutine turbine_geometry_read(i,FN)
     ! Read the perpendicular Axis of Rotation
     read(15,'(A)') ReadLine
     read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Rmax 
-
+    Turbine(i)%A=pi*Turbine(i)%Rmax**2.0
     read(15,'(A)') ReadLine ! Defines the Type of the Turbine
 
     
