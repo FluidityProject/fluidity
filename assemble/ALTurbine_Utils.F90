@@ -29,19 +29,18 @@
 
 
 
+
 module alturbine_utils
 
     use fldebug
-use global_parameters, only:FIELD_NAME_LEN,OPTION_PATH_LEN, PYTHON_FUNC_LEN, pi
+    use global_parameters, only:FIELD_NAME_LEN,OPTION_PATH_LEN, PYTHON_FUNC_LEN, pi
 
     implicit none
 
-    public QuatRot, cross
+    public QuatRot, cross, Kernel
 
 contains 
  
-    
-
     SUBROUTINE cross(ax,ay,az,bx,by,bz,cx,cy,cz) 
 
         real ax,ay,az,bx,by,bz,cx,cy,cz 
@@ -52,56 +51,57 @@ contains
 
     End SUBROUTINE cross
 
+   subroutine QuatRot(vx,vy,vz,Theta,Rx,Ry,Rz,Ox,Oy,Oz,vRx,vRy,vRz)
+   
+   ! % Perform rotation of vector v around normal vector nR using the
+   ! % quaternion machinery.
+   ! % v: input vector
+   ! % Theta: rotation angle (rad)
+   ! % nR: normal vector around which to rotate
+   ! % Origin: origin point of rotation
+   ! %
+   ! % vR: Rotated vector
 
-    subroutine QuatRot(vx,vy,vz,Theta,nRx,nRy,nRz,Ox,Oy,Oz,vRx,vRy,vRz)
+   implicit none
+   real,intent(in) :: vx,vy,vz,Theta,Rx,Ry,Rz,Ox,Oy,Oz
+   real,intent(inout):: vRx,vRy,vRz     
+   real :: nRx,nRy,nRz 
+   real :: p(4,1), pR(4,1), q(4), qbar(4), RMag, vOx, vOy, vOz
+   real :: QL(4,4), QbarR(4,4)
+    
+   ! Force normalize nR
+   RMag=sqrt(Rx**2.0+Ry**2.0+Rz**2.0)
+   nRx=Rx/RMag
+   nRy=Ry/RMag
+   nRz=Rz/RMag
 
-        ! % Perform rotation of vector v around normal vector nR using the
-        ! % quaternion machinery.
-        ! % v: input vector
-        ! % Theta: rotation angle (rad)
-        ! % nR: normal vector around which to rotate
-        ! % Origin: origin point of rotation
-        ! %
-        ! % vR: Rotated vector
+   ! Quaternion form of v
+   vOx=vx-Ox
+   vOy=vy-Oy
+   vOz=vz-Oz
+   p=reshape((/0.0,vOx,vOy,vOz/),(/4,1/))
+   
+   ! Rotation quaternion and conjugate
+    q=(/cos(Theta/2),nRx*sin(Theta/2),nRy*sin(Theta/2),nRz*sin(Theta/2)/)
+   qbar=(/q(1),-q(2),-q(3),-q(4)/)
 
-        real :: vx,vy,vz,Theta,nRx,nRy,nRz,Ox,Oy,Oz,vRx,vRy,vRz     
+   QL=transpose(reshape((/q(1), -q(2), -q(3), -q(4), &
+       q(2),  q(1), -q(4),  q(3), &
+       q(3),  q(4),  q(1), -q(2), &
+       q(4), -q(3),  q(2),  q(1)/),(/4,4/)))
 
-        real :: p(4,1), pR(4,1), q(4), qbar(4), nRMag, vOx, vOy, vOz
-        real :: QL(4,4), QbarR(4,4)
+   QbarR=transpose(reshape((/qbar(1), -qbar(2), -qbar(3), -qbar(4), &
+       qbar(2),  qbar(1),  qbar(4), -qbar(3), &
+       qbar(3), -qbar(4),  qbar(1),  qbar(2), &
+       qbar(4),  qbar(3), -qbar(2),  qbar(1)/),(/4,4/)))
 
-        ! Force normalize nR
-        nRMag=sqrt(nRx**2+nRy**2+nRz**2)
-        nRx=nRx/nRMag
-        nRy=nRy/nRMag
-        nRz=nRz/nRMag
-
-        ! Quaternion form of v
-        vOx=vx-Ox
-        vOy=vy-Oy
-        vOz=vz-Oz
-        p=reshape((/0.0,vOx,vOy,vOz/),(/4,1/))
-
-        ! Rotation quaternion and conjugate
-        q=(/cos(Theta/2),nRx*sin(Theta/2),nRy*sin(Theta/2),nRz*sin(Theta/2)/)
-        qbar=(/q(1),-q(2),-q(3),-q(4)/)
-
-        QL=transpose(reshape((/q(1), -q(2), -q(3), -q(4), &
-            q(2),  q(1), -q(4),  q(3), &
-            q(3),  q(4),  q(1), -q(2), &
-            q(4), -q(3),  q(2),  q(1)/),(/4,4/)))
-
-        QbarR=transpose(reshape((/qbar(1), -qbar(2), -qbar(3), -qbar(4), &
-            qbar(2),  qbar(1),  qbar(4), -qbar(3), &
-            qbar(3), -qbar(4),  qbar(1),  qbar(2), &
-            qbar(4),  qbar(3), -qbar(2),  qbar(1)/),(/4,4/)))
-
-        ! Rotate p
-        pR=matmul(matmul(QbarR,QL),p)
-        vRx=pR(2,1)+Ox
-        vRy=pR(3,1)+Oy
-        vRz=pR(4,1)+Oz
-
-    end subroutine QuatRot
+   ! Rotate p
+   pR=matmul(matmul(QbarR,QL),p)
+   vRx=pR(2,1)+Ox
+   vRy=pR(3,1)+Oy
+   vRz=pR(4,1)+Oz
+   
+   end subroutine QuatRot
 
     real function IDW(Ncol,Colldist,dist,threshold,limit,p)
         implicit none

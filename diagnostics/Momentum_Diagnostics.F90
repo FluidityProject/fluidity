@@ -345,8 +345,8 @@ contains
       call zero(v_field)
       
       !> Get Position and Velocity Field
-      positions => extract_vector_field(states,"Coordinate")  
-      velocity  => extract_vector_field(states, "Velocity")
+      positions => extract_vector_field(states(state_index),"Coordinate")  
+      velocity  => extract_vector_field(states(state_index), "Velocity")
 
       !> Read the Cmax values
       call get_option(trim(complete_field_path(trim(v_field%option_path))) // &        

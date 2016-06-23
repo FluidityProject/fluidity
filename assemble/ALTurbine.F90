@@ -763,7 +763,7 @@ SUBROUTINE set_blade_geometry(blade)
     ! Element length
 
     ! Set spannwise and tangential vectors
-    sE=-(/blade%QCx(nej)-blade%QCx(nej-1),blade%QCy(nej)-blade%QCy(nej-1),blade%QCz(nej)-blade%QCz(nej-1)/) ! nominal element spanwise direction set opposite to QC line
+    sE=(/blade%QCx(nej)-blade%QCx(nej-1),blade%QCy(nej)-blade%QCy(nej-1),blade%QCz(nej)-blade%QCz(nej-1)/) ! nominal element spanwise direction set opposite to QC line
     sEM=sqrt(dot_product(sE,sE))
 
     blade%EDS(nej-1) = sEM
