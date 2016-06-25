@@ -360,23 +360,20 @@ contains
         CT=-CL5*sin(alpha5)+CD5*cos(alpha5) 
 
         ! Method as presented in Cactus
-
         dCTAM=2.0/cos(alpha5)*wPNorm*CM25stat-CLstat5/2.0*wPNorm
         ! Add in alphadot added mass effects
         dCLAD=pi*adotnorm
         dCTAM=dCTAM-dCLAD*sin(alpha5)
         dCNAM=dCLAD*cos(alpha5)
 
-        ! Add in added mass effects at low AOA 
+        ! Add in added mass effects at low AOA (models not accurate at high AOA)
         Fac=1.0
         aref=abs(alpha5)
-        if((aref>pi/4.0).AND.(aref<3.0*pi/4.0)) then
-            Fac = abs(1.0-4.0/pi*(aref-pi/4.0))
+        if ((aref > pi/4.0) .AND. (aref < 3.0*pi/4.0)) then
+            Fac = abs(1-4.0/pi*(aref-pi/4.0))
         end if
-
-        CN=CN+Fac*dCNAM
         CT=CT+Fac*dCTAM
-
+        CN=CN+Fac*dCNAM
 
         ewrite(2,*) 'Exiting compute_aeroCoeffs_one_airfoil'
 
@@ -509,7 +506,7 @@ contains
         real,intent(OUT):: CL, CD, CM25
         integer :: i,j               
         real :: XRE, XA 
-        real :: CLA(2),CDA(2),CM25A(2)                                      
+        real,dimension(2) :: CLA,CDA,CM25A                                      
         type(AirfoilType),intent(IN) :: airfoil 
         integer :: U1, X1, iUB, iLB, NTB, L1
         logical :: NotDone                                               
@@ -523,15 +520,14 @@ contains
     if (RE >= airfoil%TRE(1)) then                                                                                                   
             ! Find Re upper and lower bounds.                                     
             NotDone=.true.    
-            iUB=2 ! maxloc(airfoil%TRE,1) ?                                                             
+    iUB=2 ! maxloc(airfoil%TRE,1) ?                                                             
             do while (NotDone)   
 
         if (RE <= airfoil%TRE(iUB)) then
                     ! Done
                     NotDone=.false.
                     if (RE == airfoil%TRE(iUB)) then
-                        iLB=iUB
-                    
+                        iLB=iUB                    
                     else
                         iLB=iUB-1                                                           
                         XRE=(RE-airfoil%TRE(iLB))/(airfoil%TRE(iUB)-airfoil%TRE(iLB))
@@ -557,14 +553,10 @@ contains
             ! warning: no lower bound in table, take first point and set warning                                               
             iLB=1                                                             
             iUB=1                                                             
-            XRE=0.0                                                                                                 
+            XRE=0.0                                                                                               
             !airfoil%ILXTP=1
-
     ewrite(2,*) 'Warning : The lower Reynolds number available data was exceeded. Calculate CD,CL,CM with : Re = ', airfoil%TRE(iLB)
-
-
         end if
-
 
         ! INTERPOLATE ON THE ANGLE OF ATTACK                               
         i=1                                                               

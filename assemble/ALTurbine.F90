@@ -56,31 +56,31 @@ module alturbine
 ! Define the types that will be used
 
 type BladeType
-    integer :: NElem                ! Number of Elements of the Blade
-    integer :: FlipN                ! 
-    real, allocatable :: QCx(:)     ! Blade quarter-chord line x coordinates at element ends
-    real, allocatable :: QCy(:)     ! Blade quarter-chord line y coordinates at element ends
-    real, allocatable :: QCz(:)     ! Blade quarter-chord line z coordinates at element ends
-    real, allocatable :: tx(:)      ! Blade unit tangent vector (rearward chord line direction) x-componenst at element ends
-    real, allocatable :: ty(:)      ! Blade unit tangent vector (rearward chord line direction) y-componenst at element ends 
-    real, allocatable :: tz(:)      ! Blade unit tangent vector (rearward chord line direction) z-componenst at element ends  
-    real, allocatable :: C(:)       ! Blade chord length at element ends
-    real, allocatable :: PEx(:)     ! Element centre x coordinates
-    real, allocatable :: PEy(:)     ! Element centre y coordinates
-    real, allocatable :: PEz(:)     ! Element centre z coordinates
-    real, allocatable :: tEx(:)     ! Element unit tangent vector (rearward chord line direction) x-component
-    real, allocatable :: tEy(:)     ! Element unit tangent vector (rearward chord line direction) y-component
-    real, allocatable :: tEz(:)     ! Element unit tangent vector (rearward chord line direction) z-component
-    real, allocatable :: nEx(:)     ! Element unit normal vector x-component
-    real, allocatable :: nEy(:)     ! Element unit normal vector y-component
-    real, allocatable :: nEz(:)     ! Element unit normal vector z-component
-    real, allocatable :: sEx(:)     ! Element unit spanwise vector x-component 
-    real, allocatable :: sEy(:)     ! Element unit spanwise vector y-component
-    real, allocatable :: sEz(:)     ! Element unit spanwise vector z-component
-    real, allocatable :: EC(:)      ! Element chord lenght
-    real, allocatable :: EDS(:)     ! Element spanwise distance (length)
-    real, allocatable :: CircSign(:)! Direction of segment circulation on wake
-    real, allocatable :: EArea(:)   ! Element Area
+    integer :: NElem                     ! Number of Elements of the Blade
+    integer :: FlipN                     ! 
+    real, allocatable :: QCx(:)          ! Blade quarter-chord line x coordinates at element ends
+    real, allocatable :: QCy(:)          ! Blade quarter-chord line y coordinates at element ends
+    real, allocatable :: QCz(:)          ! Blade quarter-chord line z coordinates at element ends
+    real, allocatable :: tx(:)           ! Blade unit tangent vector (rearward chord line direction) x-componenst at element ends
+    real, allocatable :: ty(:)           ! Blade unit tangent vector (rearward chord line direction) y-componenst at element ends 
+    real, allocatable :: tz(:)           ! Blade unit tangent vector (rearward chord line direction) z-componenst at element ends  
+    real, allocatable :: C(:)            ! Blade chord length at element ends
+    real, allocatable :: PEx(:)          ! Element centre x coordinates
+    real, allocatable :: PEy(:)         ! Element centre y coordinates
+    real, allocatable :: PEz(:)         ! Element centre z coordinates
+    real, allocatable :: tEx(:)         ! Element unit tangent vector (rearward chord line direction) x-component
+    real, allocatable :: tEy(:)         ! Element unit tangent vector (rearward chord line direction) y-component
+    real, allocatable :: tEz(:)         ! Element unit tangent vector (rearward chord line direction) z-component
+    real, allocatable :: nEx(:)         ! Element unit normal vector x-component
+    real, allocatable :: nEy(:)         ! Element unit normal vector y-component
+    real, allocatable :: nEz(:)         ! Element unit normal vector z-component
+    real, allocatable :: sEx(:)         ! Element unit spanwise vector x-component 
+    real, allocatable :: sEy(:)         ! Element unit spanwise vector y-component
+    real, allocatable :: sEz(:)         ! Element unit spanwise vector z-component
+    real, allocatable :: EC(:)          ! Element chord lenght
+    real, allocatable :: EDS(:)         ! Element spanwise distance (length)
+    real, allocatable :: CircSign(:)    ! Direction of segment circulation on wake
+    real, allocatable :: EArea(:)       ! Element Area
     real, allocatable :: ETtoC(:)       ! Element thickness to Chord ratio
     real, allocatable :: AOA_LAST(:)    ! Last angle of Attack (used in added mass terms)
     real, allocatable :: Un_LAST(:)     ! Last normal velocity (used in added mass terms)
@@ -332,8 +332,8 @@ subroutine Compute_Element_Forces(iturb,iblade,ielem,Local_Vel)
     real :: wRotX,wRotY,wRotZ,Rx,Ry,Rz,ublade,vblade,wblade
     real :: nxe,nye,nze,txe,tye,tze,sxe,sye,sze,ElemArea,ElemChord
     real :: urdn,urdc, wP,ur,alpha,Re,alpha5,alpha75,adotnorm
-    real :: CL,CD,CN,CT,CLCirc,CM25,MS,FN,FT,FS,FX,Fy,Fz,te
-    real :: TRx,TRy,TRz,RotX,RotY,RotZ, dal, wPNorm
+    real :: CL,CD,CN,CT,CLCirc,CM25,MS,FN,FT,FS,FX,Fy,Fz,te, F1, g1
+    real :: TRx,TRy,TRz,RotX,RotY,RotZ, dal, wPNorm, relem
     integer :: i
   
     ewrite(2,*) 'Entering Compute_Forces '
@@ -349,6 +349,7 @@ subroutine Compute_Element_Forces(iturb,iblade,ielem,Local_Vel)
     Rx=-Turbine(iturb)%RotP(1)+Turbine(iturb)%Blade(iblade)%PEx(ielem);
     Ry=-Turbine(iturb)%RotP(2)+Turbine(iturb)%Blade(iblade)%PEy(ielem);
     Rz=-Turbine(iturb)%RotP(3)+Turbine(iturb)%Blade(iblade)%PEz(ielem);
+    relem=sqrt(Rx**2+Ry**2+Rz**2)
 
     nxe=Turbine(iturb)%Blade(iblade)%nEx(ielem)
     nye=Turbine(iturb)%Blade(iblade)%nEy(ielem)
@@ -395,8 +396,13 @@ subroutine Compute_Element_Forces(iturb,iblade,ielem,Local_Vel)
 
     call compute_aeroCoeffs(Turbine(iturb)%Blade(iblade)%EAirfoil(ielem),alpha75,alpha5,Re,wPNorm,adotnorm,CN,CT,CM25)
 
-    FN=0.5*CN*ElemArea*ur**2.0
-    FT=0.5*CT*ElemArea*ur**2.0
+
+    ! Apply a Tip Loss Correction Factor according to Shen Et Al. 2005
+    g1=exp(-0.125*(Turbine(iturb)%NBlades*Turbine(iturb)%TSR-21.0))+0.1
+    F1=2.0/pi*acos(exp(-g1*Turbine(iturb)%NBlades*(Turbine(iturb)%Rmax-relem)/(2.0*Turbine(iturb)%Rmax*sin(alpha+asin(Turbine(iturb)%Blade(iblade)%tx(ielem))))))
+
+    FN=0.5*CN*ElemArea*ur**2.0*F1
+    FT=0.5*CT*ElemArea*ur**2.0*F1
     FS=0.0 ! Makes sure that there is no spanwise force
 
     MS=0.5*CM25*ElemChord*ElemArea*ur**2
