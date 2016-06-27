@@ -209,7 +209,7 @@ interface
        & pressure_bc, pressure_bc_type, hb_pressure, &
        & subcycle_m_tensor_addto, subcycle_rhs_addto, nvfrac, &
        & ele2grad_mat, kappa_mat, inverse_mass_mat, &
-       & viscosity, viscosity_mat)
+       & viscosity, viscosity_mat, partial_stress )
        use fields, only: scalar_field, vector_field, tensor_field, mesh_type
        implicit none
        integer, intent(in) :: ele, face, face_2, ni
@@ -241,6 +241,7 @@ interface
        type(tensor_field), intent(in), optional :: viscosity
        !! Local viscosity matrix for assembly.
        real, intent(inout), dimension(:,:,:,:), optional :: viscosity_mat
+       logical, intent(in) :: partial_stress
 
      end subroutine construct_momentum_interface_dg_interface
   end interface

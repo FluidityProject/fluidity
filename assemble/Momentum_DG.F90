@@ -1785,7 +1785,9 @@ contains
                         & subcycle_m_tensor_addto, subcycle_rhs_addto, nvfrac, &
                         & ele2grad_mat=ele2grad_mat, kappa_mat=kappa_mat, &
                         & inverse_mass_mat=inverse_mass_mat, &
-                        & viscosity=viscosity, viscosity_mat=viscosity_mat)
+                        & viscosity=viscosity, viscosity_mat=viscosity_mat,&
+                        & partial_stress=partial_stress)
+                        
            end if
         else
             if(.not. turbine_face .or. turbine_fluxfac>=0) then
@@ -1795,7 +1797,8 @@ contains
                         & Rho, U, U_nl, U_mesh, P, q_mesh, surfacetension, &
                         & velocity_bc, velocity_bc_type, &
                         & pressure_bc, pressure_bc_type, hb_pressure, &
-                        & subcycle_m_tensor_addto, subcycle_rhs_addto, nvfrac)
+                        & subcycle_m_tensor_addto, subcycle_rhs_addto, nvfrac,&
+                        & partial_stress=partial_stress)
             end if
         end if
 
@@ -2616,7 +2619,8 @@ contains
        end if
 
        if (have_option(trim(dg_path)//"/viscosity_scheme/partial_stress_form") .and. .not. &
-            have_option(trim(dg_path)//"/viscosity_scheme/bassi_rebay")) then
+            ( have_option(trim(dg_path)//"/viscosity_scheme/bassi_rebay")&
+            .or.have_option(trim(dg_path)//"/viscosity_scheme/compact_discontinuous_galerkin" ))) then
          FLAbort("partial stress form is only implemented for the bassi-rebay viscosity scheme in DG")
        end if
 
