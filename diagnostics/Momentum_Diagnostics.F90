@@ -350,7 +350,7 @@ contains
 
       !> Read the Cmax values
       call get_option(trim(complete_field_path(trim(v_field%option_path))) // &        
-                    "/algorithm[0]/meshFactor", meshFactor, default=2.0)   
+                    "/algorithm[0]/meshFactor", meshFactor, default=2.75)   
       call get_option(trim(complete_field_path(trim(v_field%option_path))) // &        
                     "/algorithm[0]/dragFactor", dragFactor, default=1.0)   
       call get_option(trim(complete_field_path(trim(v_field%option_path))) // &        
@@ -373,7 +373,7 @@ contains
                   Scoords(2)=Turbine(iTurb)%Blade(jblade)%PEy(kelem)
                   Scoords(3)=Turbine(iTurb)%Blade(jblade)%PEz(kelem)
 
-                  call picker_inquire(positions,Scoords,ele,local_coord,.false.)
+                  call picker_inquire(positions,Scoords,ele,local_coord,.true.)
                   
                   !* Evaluates the velocity at the point of interest 
                   !* It does not work for parallel 
