@@ -132,11 +132,10 @@ end type TurbineType
 
 contains
     
-    subroutine turbine_init(state)
+    subroutine turbine_init
     
     implicit none
     
-    type(state_type) :: state
     character(len=OPTION_PATH_LEN)::  turbine_name
     integer :: i, j,k
     integer, parameter :: MaxReadLine = 1000    
@@ -796,7 +795,7 @@ SUBROUTINE set_blade_geometry(blade)
     blade%nEz(nej-1)=normE(3)
 
     ! Flip normal direction if requested
-    blade%CircSign(nej)=1.0
+    blade%CircSign(nej-1)=1.0
     if (FlipN .eq. 1) then
         blade%nEx(nej-1)= -blade%nEx(nej-1)
         blade%nEy(nej-1)= -blade%nEy(nej-1)

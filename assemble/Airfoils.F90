@@ -180,7 +180,7 @@ contains
     end do
 
     ! Read data for each Reynolds value
-     
+        i=0 
     do while (EOF>=0 .and. (i<MaxReVals))
         i=i+1
         ! Read Re and dyn. stall data

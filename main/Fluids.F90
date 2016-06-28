@@ -224,7 +224,7 @@ contains
     !GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
     ! Initilise the Actuator Line Model 
     if (have_option("/ALM_Turbine")) then
-        call turbine_init(state(1))
+        call turbine_init
     end if
     !GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
 
