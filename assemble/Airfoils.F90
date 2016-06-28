@@ -312,7 +312,7 @@ contains
     end subroutine allocate_airfoil
 
    
-    subroutine compute_aeroCoeffs(airfoil,alpha75,alpha5,Re,wPNorm,adotnorm,CN,CT,CM25)
+    subroutine compute_aeroCoeffs(airfoil,alpha75,alpha5,Re,A1,A2,A3,adotnorm,CN,CT,CM25)
 
         implicit none
 
@@ -337,10 +337,10 @@ contains
         ! GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
         type(AirfoilType),intent(IN) :: airfoil
         !type(LB_type),intent(IN),optional :: lb_model
-        real,intent(IN) :: alpha75, alpha5, adotnorm, Re, wPNorm 
+        real,intent(IN) :: alpha75, alpha5, adotnorm, Re, A1 , A2, A3 
         real,intent(OUT) :: CN, CT, CM25
-        real :: CLstat75, CLstat5, CDstat75, CLdyn5, CDdyn5, dCTAM,dCNAM, CL5, CD5, C, C1, CM25stat, dCLAD
-        real :: alphaL, alphaD, aref, Fac  
+        real :: CLstat75, CLstat5, CDstat75, CLdyn5, CDdyn5, CL5, CD5, C, C1, CM25stat
+        real :: alphaL, alphaD, CTAM, CNAM,CMAM 
 
         ewrite(2,*) 'Entering compute_aeroCoeffs_one_airfoil'
 
@@ -359,21 +359,16 @@ contains
         CN=CL5*cos(alpha5)+CD5*sin(alpha5)                                   
         CT=-CL5*sin(alpha5)+CD5*cos(alpha5) 
 
-        ! Method as presented in Cactus
-        dCTAM=2.0/cos(alpha5)*wPNorm*CM25stat-CLstat5/2.0*wPNorm
-        ! Add in alphadot added mass effects
-        dCLAD=pi*adotnorm
-        dCTAM=dCTAM-dCLAD*sin(alpha5)
-        dCNAM=dCLAD*cos(alpha5)
+       
+        ! Added mass according to Strickland
+        CNAM=-pi*A2/8.0
+        CTAM=pi*adotnorm*A1/4.0
+        CMAM=-CNAM/4.0-A3/8.0
 
-        ! Add in added mass effects at low AOA (models not accurate at high AOA)
-        Fac=1.0
-        aref=abs(alpha5)
-        if ((aref > pi/4.0) .AND. (aref < 3.0*pi/4.0)) then
-            Fac = abs(1-4.0/pi*(aref-pi/4.0))
-        end if
-        CT=CT+Fac*dCTAM
-        CN=CN+Fac*dCNAM
+        CT=CT+CTAM
+        CN=CN+CNAM
+        CM25=CM25+CMAM
+
 
         ewrite(2,*) 'Exiting compute_aeroCoeffs_one_airfoil'
 

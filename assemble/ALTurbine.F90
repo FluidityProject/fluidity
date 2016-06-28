@@ -124,9 +124,10 @@ type TurbineType
     
 end type TurbineType
 
-    type(TurbineType), allocatable :: Turbine(:) ! Turbine 
-    integer :: notur, NBlades, NElem      ! Number of the turbines 
-    real :: deltaT
+    type(TurbineType), allocatable, save :: Turbine(:) ! Turbine 
+    integer,save :: notur, NBlades, NElem      ! Number of the turbines 
+    real,save :: deltaT
+    
     private turbine_geometry_read, allocate_turbine_elements, allocate_turbine_blades 
     public  turbine_init, turbine_operate
 
@@ -330,7 +331,7 @@ subroutine Compute_Element_Forces(iturb,iblade,ielem,Local_Vel)
     real :: R(3)
     real :: wRotX,wRotY,wRotZ,Rx,Ry,Rz,ublade,vblade,wblade
     real :: nxe,nye,nze,txe,tye,tze,sxe,sye,sze,ElemArea,ElemChord
-    real :: urdn,urdc, wP,ur,alpha,Re,alpha5,alpha75,adotnorm
+    real :: urdn,urdc, wP,ur,alpha,Re,alpha5,alpha75,adotnorm, A, B, C, dUnorm
     real :: CL,CD,CN,CT,CLCirc,CM25,MS,FN,FT,FS,FX,Fy,Fz,te, F1, g1
     real :: TRx,TRy,TRz,RotX,RotY,RotZ, dal, wPNorm, relem
     integer :: i
@@ -385,15 +386,20 @@ subroutine Compute_Element_Forces(iturb,iblade,ielem,Local_Vel)
      
     if(Turbine(iturb)%Blade(iblade)%AOA_Last(ielem)>1e6) then
     dal=0
+    dUnorm=0
     else
     dal=(alpha75-Turbine(iturb)%Blade(iblade)%AOA_Last(ielem))
+    dUnorm=urdn-Turbine(iturb)%Blade(iblade)%Un_last(ielem)
     endif
     
     adotnorm=dal/deltaT*ElemChord/(2.0*max(ur,0.001)) ! adot*c/(2*U)
-    
+    A = urdn/max(ur,0.001)
+    B = ElemChord*dUnorm/(deltaT*max(ur**2,0.001))
+    C = urdn*urdc/max(ur**2,0.001)
+
     ewrite(2,*) alpha, ur, Re 
 
-    call compute_aeroCoeffs(Turbine(iturb)%Blade(iblade)%EAirfoil(ielem),alpha75,alpha5,Re,wPNorm,adotnorm,CN,CT,CM25)
+    call compute_aeroCoeffs(Turbine(iturb)%Blade(iblade)%EAirfoil(ielem),alpha75,alpha5,Re,A,B,C,adotnorm,CN,CT,CM25)
 
 
     ! Apply a Tip Loss Correction Factor according to Shen Et Al. 2005
@@ -426,7 +432,7 @@ subroutine Compute_Element_Forces(iturb,iblade,ielem,Local_Vel)
     
     !! Set the AOA_LAST before exiting the routine
     Turbine(iturb)%Blade(iblade)%AOA_LAST(ielem)=alpha75 
-
+    Turbine(iturb)%Blade(iblade)%Un_last(ielem)=urdn
 
     ewrite(2,*) 'Exiting Compute_Forces'
 
