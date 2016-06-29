@@ -319,19 +319,18 @@ contains
         ! GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
         ! inputs :
         !           airfoil : The airfoil under consideration
-        !           iStall  : Dynamic Stall Flag (0=no stall, 1= BV stall model, 2=LB)
         !           alpha75 : Angle of Attack at 3/4 of the element 
         !           alpha5  : Angle of Attack at 1/2 (middle) of the element
         !           Re      : Element Reynolds Number
+        !           A1      : Un/Urel
+        !           A2      : c*UdotN/Urel**2
+        !           A3      : Un*Uc/Urel**2
         !           adotnorm: rate of change of the angle of attack (locally)
-        !           umach   : local element Mach Number 
         ! 
         ! outputs: 
-        !           CL      : Lift Coefficient
-        !           CD      : Drag Coefficient
         !           CN      : Normal Force Coefficient
-        !           CD      : Tangential Force Coefficient
-        !           CLCirc  :
+        !           CT      : Tangential Force Coefficient
+        !           CM25    : Pitch moment at 1/4 from the LE
         !               
         !       
         ! GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
@@ -344,27 +343,34 @@ contains
 
         ewrite(2,*) 'Entering compute_aeroCoeffs_one_airfoil'
 
-        ! Calculate static characteristics
-        ewrite(2,*) airfoil%afname
+        !==============
+        ! Static Loads
+        !==============
         call intp(Re,alpha75*condeg,CLstat75,CDstat75,CM25stat,airfoil) 
         call intp(Re,alpha5*condeg,CLstat5,C,C1,airfoil)
-
-        ! Apply pitch rate effects by analogy to pitching flat plate potential flow theory (SAND report)
         CL5=CLstat75
         CD5=CDstat75
         CM25=CM25stat+cos(alpha5)*(CLstat75-CLstat5)/4.0
         alphaL=alpha75
-
         ! Tangential and normal coeffs
         CN=CL5*cos(alpha5)+CD5*sin(alpha5)                                   
         CT=-CL5*sin(alpha5)+CD5*cos(alpha5) 
 
-       
-        ! Added mass according to Strickland
+        !=============================================================================
+        ! Added mass according to Strickland et al, taken from Banchant et al 2016
+        !============================================================================
         CNAM=-pi*A2/8.0
         CTAM=pi*adotnorm*A1/4.0
         CMAM=-CNAM/4.0-A3/8.0
+     
+        !================================================
+        ! Dynamic Stall according to Leishman and Beddoes
+        !================================================
+        
 
+        !============================
+        ! Final CT and CN coeffients
+        !============================
         CT=CT+CTAM
         CN=CN+CNAM
         CM25=CM25+CMAM

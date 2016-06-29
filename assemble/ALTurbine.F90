@@ -337,11 +337,14 @@ subroutine Compute_Element_Forces(iturb,iblade,ielem,Local_Vel)
     integer :: i
   
     ewrite(2,*) 'Entering Compute_Forces '
-    ! Compute angular velocity
+    
+    !========================================================
+    ! Compute Element local rotational velocity
+    !========================================================
     wRotX=Turbine(iturb)%angularVel*Turbine(iturb)%RotN(1)
     wRotY=Turbine(iturb)%angularVel*Turbine(iturb)%RotN(2)
     wRotZ=Turbine(iturb)%angularVel*Turbine(iturb)%RotN(3)
-
+    
     RotX=Turbine(iturb)%RotN(1)
     RotY=Turbine(iturb)%RotN(2)
     RotZ=Turbine(iturb)%RotN(3)
@@ -367,23 +370,20 @@ subroutine Compute_Element_Forces(iturb,iblade,ielem,Local_Vel)
     ! Find the cross product Ublade = Omega x R
     call cross(wRotX,wRotY,wRotZ,Rx,Ry,Rz,ublade,vblade,wblade)
 
+    !==============================================================
     ! Calculate element normal and tangential velocity components. 
-    ! Calculate element pitch rate
-
-    urdn=nxe*(Local_vel(1)-ublade)+nye*(Local_vel(2)-vblade)+nze*(Local_vel(3)-wblade) ! Normal
-    
-    urdc=txe*(Local_vel(1)-ublade)+tye*(Local_vel(2)-vblade)+tze*(Local_vel(3)-wblade) ! Tangential
-
-    wP = sxe*wRotX+sye*wRotY+sze*wRotZ
-
+    !==============================================================
+    urdn=nxe*(Local_vel(1)-ublade)+nye*(Local_vel(2)-vblade)+nze*(Local_vel(3)-wblade)! Normal 
+    urdc=txe*(Local_vel(1)-ublade)+tye*(Local_vel(2)-vblade)+tze*(Local_vel(3)-wblade)! Tangential
     ur=sqrt(urdn**2.0+urdc**2.0)
     alpha=atan2(urdn,urdc)
-    wPNorm=wP*ElemChord/(2.0*max(ur,0.001)) 
-    
     Re = ur*ElemChord/Turbine(iturb)%nu
     alpha5=alpha
     alpha75=alpha
-     
+    
+    !=========================================================
+    ! Compute rate of change of Unormal and angle of attack
+    !=========================================================
     if(Turbine(iturb)%Blade(iblade)%AOA_Last(ielem)>1e6) then
     dal=0
     dUnorm=0
@@ -391,37 +391,46 @@ subroutine Compute_Element_Forces(iturb,iblade,ielem,Local_Vel)
     dal=(alpha75-Turbine(iturb)%Blade(iblade)%AOA_Last(ielem))
     dUnorm=urdn-Turbine(iturb)%Blade(iblade)%Un_last(ielem)
     endif
-    
     adotnorm=dal/deltaT*ElemChord/(2.0*max(ur,0.001)) ! adot*c/(2*U)
     A = urdn/max(ur,0.001)
     B = ElemChord*dUnorm/(deltaT*max(ur**2,0.001))
     C = urdn*urdc/max(ur**2,0.001)
 
-    ewrite(2,*) alpha, ur, Re 
-
+    !====================================
+    ! Compute the Aerofoil Coefficients
+    !====================================
     call compute_aeroCoeffs(Turbine(iturb)%Blade(iblade)%EAirfoil(ielem),alpha75,alpha5,Re,A,B,C,adotnorm,CN,CT,CM25)
 
-
+    ! ================================================================
     ! Apply a Tip Loss Correction Factor according to Shen Et Al. 2005
+    ! ================================================================
     g1=exp(-0.125*(Turbine(iturb)%NBlades*Turbine(iturb)%TSR-21.0))+0.1
     F1=2.0/pi*acos(exp(-g1*Turbine(iturb)%NBlades*(Turbine(iturb)%Rmax-relem)/(2.0*Turbine(iturb)%Rmax*sin(alpha+asin(Turbine(iturb)%Blade(iblade)%tx(ielem))))))
 
+    !========================================================
+    ! Apply Coeffs to calculate tangential and normal Forces
+    !========================================================
     FN=0.5*CN*ElemArea*ur**2.0*F1
     FT=0.5*CT*ElemArea*ur**2.0*F1
     FS=0.0 ! Makes sure that there is no spanwise force
+    MS=0.5*CM25*ElemChord*ElemArea*ur**2.0
 
-    MS=0.5*CM25*ElemChord*ElemArea*ur**2
-
-    ! Compute forces in the X, Y, Z axis and torque    
-
+    !===============================================
+    ! Compute forces in the X, Y, Z axis and torque  
+    !===============================================
     FX=FN*nxe+FT*txe+FS*sxe
     FY=FN*nye+FT*tye+FS*sye
     FZ=FN*nze+FT*tze+FS*sze
 
+    !=============================================
+    ! Compute Torque
+    !=============================================
     call cross(Rx,Ry,Rz,Fx,Fy,Fz,TRx,TRy,TRz)
-
     te=(TRx*RotX+Try*RotY+TRz*RotZ)+MS*(sxe*RotX+sye*RotY+sze*RotZ)
     
+    !==========================================
+    ! Assign the derived types
+    !==========================================
     Turbine(iturb)%Blade(iblade)%FN(ielem)=FN
     Turbine(iturb)%Blade(iblade)%FT(ielem)=FT
     Turbine(iturb)%Blade(iblade)%FS(ielem)=FS
@@ -430,7 +439,9 @@ subroutine Compute_Element_Forces(iturb,iblade,ielem,Local_Vel)
     Turbine(iturb)%Blade(iblade)%FZ(ielem)=FZ
     Turbine(iturb)%Blade(iblade)%Torque(ielem)=te 
     
+    !===============================================
     !! Set the AOA_LAST before exiting the routine
+    !===============================================
     Turbine(iturb)%Blade(iblade)%AOA_LAST(ielem)=alpha75 
     Turbine(iturb)%Blade(iblade)%Un_last(ielem)=urdn
 
@@ -490,7 +501,6 @@ subroutine populate_blade_airfoils(NElem,EAirfoil,AirfoilData,ETtoC)
 end subroutine populate_blade_airfoils
 
 subroutine rotate_turbines(theta)
-
     implicit none
 
     real :: theta,nrx,nry,nrz,px,py,pz 
