@@ -130,8 +130,6 @@ module lbdynstall
             CLID=IDS*(CLaI*(aIDc-1.0/d1*sin(d1*aIDc))+CLaI/d1*sin(d1*aID))
         end if
     end if
-
-
     
     end subroutine LB_EvalIdealCL
 
@@ -265,8 +263,8 @@ module lbdynstall
     end if
 
     ! Update states, first order lag equations, exponential recursion form (midpoint rule version)
-    lb%dp=lb%dp*exp(-ds/Tp)+(lb%CLRef-lb%CLRef_Last)*exp(-ds/(2*Tp))
-    lb%dF=lb%dF*exp(-ds/Tf)+(lb%Fstat-lb%Fstat_Last)*exp(-ds/(2*Tf))
+     lb%dp=lb%dp*exp(-ds/Tp)+(lb%CLRef-lb%CLRef_Last)*exp(-ds/(2*Tp))
+     lb%dF=lb%dF*exp(-ds/Tf)+(lb%Fstat-lb%Fstat_Last)*exp(-ds/(2*Tf))
      lb%dCNv=lb%dCNv*exp(-ds/Tv)+lb%dcv*exp(-ds/(2*Tv))
 
     ! update lagged values
@@ -274,7 +272,6 @@ module lbdynstall
     lb%CLRefLE_Last=lb%CLRefLE
     lb%Fstat_Last=lb%Fstat 
     lb%cv_Last=lb%cv
-
 
     End SUBROUTINE LB_UpdateStates
 

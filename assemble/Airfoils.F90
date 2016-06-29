@@ -352,6 +352,10 @@ contains
         CD5=CDstat75
         CM25=CM25stat+cos(alpha5)*(CLstat75-CLstat5)/4.0
         alphaL=alpha75
+        !================================================
+        ! Dynamic Stall according to Leishman and Beddoes
+        !================================================
+         
         ! Tangential and normal coeffs
         CN=CL5*cos(alpha5)+CD5*sin(alpha5)                                   
         CT=-CL5*sin(alpha5)+CD5*cos(alpha5) 
@@ -363,11 +367,6 @@ contains
         CTAM=pi*adotnorm*A1/4.0
         CMAM=-CNAM/4.0-A3/8.0
      
-        !================================================
-        ! Dynamic Stall according to Leishman and Beddoes
-        !================================================
-        
-
         !============================
         ! Final CT and CN coeffients
         !============================
@@ -380,7 +379,7 @@ contains
 
     end subroutine compute_aeroCoeffs
 
-    subroutine LB_DynStall(airfoil,lb,CLstat,CDstat,alphaL,alpha5,umach,Re,CL,CD)
+    subroutine LB_DynStall(airfoil,lb,CLstat,CDstat,alphaL,alpha5,Re,CL,CD)
     ! GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
     ! Routine that computes the Leishmann-Beddoes dynamic stall model
     ! with incompressible reduction and returns corrected values for 
@@ -388,9 +387,9 @@ contains
     ! GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
 
     implicit none
-    type(AirfoilType) :: airfoil        ! Airfoil structure
-    type(LB_Type) :: lb                 ! Leishmann-Beddoes model structure
-    real :: CLstat, CDstat, alphaL, alpha5, umach, Re, CL, CD
+    type(AirfoilType) :: airfoil       ! Airfoil structure
+    type(LB_Type) :: lb                ! Leishmann-Beddoes model structure
+    real :: CLstat, CDstat, alphaL, alpha5, Re, CL, CD
     real :: AOA0, CLID, Trans, dCLRefLE, dAOARefLE, AOARefLE, CLstatF, C, C1, CLIDF 
     real :: CLRatio, CLsep, CLF, dCDF, KD, CLa, NOF, dCLv, dCDv, acut, CLCritP, CLCritN
 
