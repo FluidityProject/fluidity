@@ -318,6 +318,7 @@ contains
       use pickers_inquire
       use alturbine
       use alturbine_utils
+      use mpi
 
       type(state_type), dimension(:), intent(inout) :: states
       integer, intent(in) :: state_index
@@ -335,6 +336,10 @@ contains
       real :: epsilon_par_drag, epsilon_par_chord, epsilon_par_mesh, epsilon_threshold
       character(len = OPTION_PATH_LEN) :: base_path, RANS_option_path
 
+      ! MPI related parameters declaration
+      integer :: count,dest, ierr, num_procs, rank, status(MPI_Status_size), tag
+      integer, dimension(4) :: request
+      integer :: status_array(MPI_STATUS_SIZE,4)
       ewrite(1,*) 'In ALM Momentum Source' 
       
 
@@ -358,51 +363,52 @@ contains
      
       !Read kinematic viscosity 
       
-
       ! there should be two models: one for checking a single airfoil
       ! And another for checking the turbine
       
       do iTurb=1,notur
+      do jblade=1,Turbine(iTurb)%NBlades
+      do kelem=1,Turbine(iTurb)%Blade(jblade)%NElem
+
+      ! Set the elements
+      Scoords(1)=Turbine(iTurb)%Blade(jblade)%PEx(kelem)
+      Scoords(2)=Turbine(iTurb)%Blade(jblade)%PEy(kelem)
+      Scoords(3)=Turbine(iTurb)%Blade(jblade)%PEz(kelem)
+        
+      ! Call a 
+      call picker_inquire(positions,Scoords,ele,local_coord,.true.)
+      if (ele<0) then
+          ewrite(2,*) 'I dont own the element'
+          Turbine(iturb)%Blade(jblade)%mpi_flag=.false.
+          Turbine(iturb)%Blade(jblade)%Fx(kelem)=0.0
+          Turbine(iturb)%Blade(jblade)%Fy(kelem)=0.0
+          Turbine(iturb)%Blade(jblade)%Fz(kelem)=0.0
+      else
+          ewrite(2,*) 'I own the element'
           
-          do jblade=1,Turbine(iTurb)%NBlades
+          value_vel=eval_field(ele,velocity,local_coord)
+          
+          Turbine(iturb)%Blade(jblade)%Vx(kelem)=value_vel(1)
+          Turbine(iturb)%Blade(jblade)%Vy(kelem)=value_vel(2)
+          Turbine(iturb)%Blade(jblade)%Vz(kelem)=value_vel(3)
 
-              do kelem=1,Turbine(iTurb)%Blade(jblade)%NElem
- 
-                  ! Set the elements
-                  Scoords(1)=Turbine(iTurb)%Blade(jblade)%PEx(kelem)
-                  Scoords(2)=Turbine(iTurb)%Blade(jblade)%PEy(kelem)
-                  Scoords(3)=Turbine(iTurb)%Blade(jblade)%PEz(kelem)
+          call Compute_Element_Forces(iTurb,jblade,kelem,value_vel) 
+          Turbine(iturb)%Blade(jblade)%mpi_flag=.true.
 
-                  call picker_inquire(positions,Scoords,ele,local_coord,.true.)
-                  
-                  !* Evaluates the velocity at the point of interest 
-                  !* It does not work for parallel 
-                  value_vel=eval_field(ele,velocity, local_coord) 
-                  
-                  call Compute_Element_Forces(iTurb,jblade,kelem,value_vel)
-                   
-                  !***********************************************
-                  ! This is for inducing the velocities
-                  !***********************************************
-                  ! To find the parameter which will be used to distribute the loads
-                  ! on the mesh points we need first to take the mamimum of the local mesh
-                  ! size and the chord of the element
+          volume=element_volume(positions,ele)
 
-                 volume=element_volume(positions,ele)
-                  
-                  epsilon_par_mesh  = 2.0*meshFactor*volume**(1.0/3.0) 
-                  epsilon_par_drag  = 1.1*dragFactor*Turbine(iTurb)%Blade(jblade)%EC(kelem)/2.0      
-                  epsilon_par_chord = chordFactor*Turbine(iTurb)%Blade(jblade)%EC(kelem)
-                  
-                  epsilon_threshold = max(epsilon_par_drag,epsilon_par_chord)
+          epsilon_par_mesh  = 2.0*meshFactor*volume**(1.0/3.0) 
+          epsilon_par_drag  = 1.1*dragFactor*Turbine(iTurb)%Blade(jblade)%EC(kelem)/2.0      
+          epsilon_par_chord = chordFactor*Turbine(iTurb)%Blade(jblade)%EC(kelem)
 
-                  if(epsilon_threshold >= epsilon_par_mesh) then
-                    epsilon_par=epsilon_threshold
-                  else
-                      epsilon_par=epsilon_par_mesh
-                  end if
+          epsilon_threshold = max(epsilon_par_drag,epsilon_par_chord)
 
-
+          if(epsilon_threshold >= epsilon_par_mesh) then
+              epsilon_par=epsilon_threshold
+          else
+              epsilon_par=epsilon_par_mesh
+          end if
+     endif
 
                   do i = 1, node_count(v_field)
                       ! Compute a Sphere of Influence with diameter equal to chord/2
@@ -428,12 +434,11 @@ contains
                   DSource(3)=-loc_kern*Turbine(iturb)%Blade(jblade)%Fz(kelem)
                   
                   call addto(v_field,i,DSource)
-
-                  end do
-              end do
-          end do
+                end do
       end do
-
+      end do
+      end do
+      
       ewrite(1,*) 'Exiting ALM Momentum Source'
   end subroutine calculate_actuator_line_momentum_source
 

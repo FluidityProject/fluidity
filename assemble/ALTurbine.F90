@@ -56,16 +56,16 @@ module alturbine
 ! Define the types that will be used
 
 type BladeType
-    integer :: NElem                     ! Number of Elements of the Blade
-    integer :: FlipN                     ! 
-    real, allocatable :: QCx(:)          ! Blade quarter-chord line x coordinates at element ends
-    real, allocatable :: QCy(:)          ! Blade quarter-chord line y coordinates at element ends
-    real, allocatable :: QCz(:)          ! Blade quarter-chord line z coordinates at element ends
-    real, allocatable :: tx(:)           ! Blade unit tangent vector (rearward chord line direction) x-componenst at element ends
-    real, allocatable :: ty(:)           ! Blade unit tangent vector (rearward chord line direction) y-componenst at element ends 
-    real, allocatable :: tz(:)           ! Blade unit tangent vector (rearward chord line direction) z-componenst at element ends  
-    real, allocatable :: C(:)            ! Blade chord length at element ends
-    real, allocatable :: PEx(:)          ! Element centre x coordinates
+    integer :: NElem                    ! Number of Elements of the Blade
+    integer :: FlipN                    ! 
+    real, allocatable :: QCx(:)         ! Blade quarter-chord line x coordinates at element ends
+    real, allocatable :: QCy(:)         ! Blade quarter-chord line y coordinates at element ends
+    real, allocatable :: QCz(:)         ! Blade quarter-chord line z coordinates at element ends
+    real, allocatable :: tx(:)          ! Blade unit tangent vector (rearward chord line direction) x-componenst at element ends
+    real, allocatable :: ty(:)          ! Blade unit tangent vector (rearward chord line direction) y-componenst at element ends 
+    real, allocatable :: tz(:)          ! Blade unit tangent vector (rearward chord line direction) z-componenst at element ends  
+    real, allocatable :: C(:)           ! Blade chord length at element ends
+    real, allocatable :: PEx(:)         ! Element centre x coordinates
     real, allocatable :: PEy(:)         ! Element centre y coordinates
     real, allocatable :: PEz(:)         ! Element centre z coordinates
     real, allocatable :: tEx(:)         ! Element unit tangent vector (rearward chord line direction) x-component
@@ -84,8 +84,14 @@ type BladeType
     real, allocatable :: ETtoC(:)       ! Element thickness to Chord ratio
     real, allocatable :: AOA_LAST(:)    ! Last angle of Attack (used in added mass terms)
     real, allocatable :: Un_LAST(:)     ! Last normal velocity (used in added mass terms)
+    real, allocatable :: epsilon(:)     ! Epsilon 
     type(AirfoilType), allocatable :: EAirfoil(:) ! Element Airfoil 
     type(LB_Type), allocatable :: E_LB_Model(:)   ! Element Leishman-Beddoes Model
+   
+    ! Compute Local Velocities at the elements
+    real, allocatable :: Vx(:)         ! Element x-Velocity
+    real, allocatable :: Vy(:)         ! Element y-Velocity
+    real, allocatable :: Vz(:)         ! Element z-Velocity
 
     ! Momentum Sink Forces in the nts direction
     real, allocatable :: Fn(:)     ! Element Force in the normal direction
@@ -97,6 +103,10 @@ type BladeType
     real, allocatable :: Fy(:)     ! Element Force in the global y-direction
     real, allocatable :: Fz(:)     ! Element Force in the global z-direction
     real, allocatable :: Torque(:)   ! Element Torque over the point of rotation 
+    ! MPI FLAG (used in parallel simulations)
+    logical :: mpi_flag=.false.
+
+    
 end type BladeType
 
 type TurbineType
@@ -127,7 +137,7 @@ end type TurbineType
     type(TurbineType), allocatable, save :: Turbine(:) ! Turbine 
     integer,save :: notur, NBlades, NElem      ! Number of the turbines 
     real,save :: deltaT
-    
+    real,allocatable :: Ux,Uy,Uz,Fx,Fy,Fz,eps
     private turbine_geometry_read, allocate_turbine_elements, allocate_turbine_blades 
     public  turbine_init, turbine_operate
 
@@ -597,8 +607,12 @@ subroutine allocate_turbine_elements(ITurbine,IBlade,NElem)
     allocate(Turbine(ITurbine)%Blade(IBlade)%ETtoC(NElem))
     allocate(Turbine(ITurbine)%Blade(IBlade)%EAirfoil(Nelem))
     allocate(Turbine(ITurbine)%Blade(IBlade)%E_LB_Model(Nelem))
+    allocate(Turbine(ITurbine)%Blade(IBlade)%epsilon(Nelem))
     allocate(Turbine(ITurbine)%Blade(IBlade)%AOA_LAST(Nelem))
     allocate(Turbine(ITurbine)%Blade(IBlade)%Un_LAST(Nelem))
+    allocate(Turbine(ITurbine)%Blade(IBlade)%Vx(NElem))
+    allocate(Turbine(ITurbine)%Blade(IBlade)%Vy(NElem))
+    allocate(Turbine(ITurbine)%Blade(IBlade)%Vz(NElem))
     allocate(Turbine(ITurbine)%Blade(IBlade)%Fn(NElem))
     allocate(Turbine(ITurbine)%Blade(IBlade)%Ft(NElem))
     allocate(Turbine(ITurbine)%Blade(IBlade)%Fs(NElem))
