@@ -335,9 +335,9 @@ contains
       real :: volume, meshFactor, dragFactor, chordFactor
       real :: epsilon_par_drag, epsilon_par_chord, epsilon_par_mesh, epsilon_threshold
       character(len = OPTION_PATH_LEN) :: base_path, RANS_option_path
-
+      real :: Send(5), Recv(5)
       ! MPI related parameters declaration
-      integer :: count,dest, ierr, num_procs, rank, status(MPI_Status_size), tag
+      integer :: count,dest, ierr, num_procs, rank, status(MPI_Status_size), tag,irank
       integer, dimension(4) :: request
       integer :: status_array(MPI_STATUS_SIZE,4)
       ewrite(1,*) 'In ALM Momentum Source' 
@@ -365,7 +365,11 @@ contains
       
       ! there should be two models: one for checking a single airfoil
       ! And another for checking the turbine
-      
+      call MPI_Comm_rank(MPI_COMM_WORLD,rank,ierr)
+      call MPI_Comm_size(MPI_COMM_WORLD,num_procs,ierr)
+            
+      tag=2016
+
       do iTurb=1,notur
       do jblade=1,Turbine(iTurb)%NBlades
       do kelem=1,Turbine(iTurb)%Blade(jblade)%NElem
@@ -379,10 +383,13 @@ contains
       call picker_inquire(positions,Scoords,ele,local_coord,.true.)
       if (ele<0) then
           ewrite(2,*) 'I dont own the element'
-          Turbine(iturb)%Blade(jblade)%mpi_flag=.false.
-          Turbine(iturb)%Blade(jblade)%Fx(kelem)=0.0
-          Turbine(iturb)%Blade(jblade)%Fy(kelem)=0.0
-          Turbine(iturb)%Blade(jblade)%Fz(kelem)=0.0
+          call MPI_recv(Recv,5,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,tag,MPI_COMM_WORLD,status,ierr)
+        Turbine(iturb)%Blade(jblade)%Fx(kelem)=Recv(1)
+        Turbine(iturb)%Blade(jblade)%Fy(kelem)=Recv(2)
+        Turbine(iturb)%Blade(jblade)%Fz(kelem)=Recv(3)
+        Turbine(iturb)%Blade(jblade)%epsilon(kelem)=Recv(4)
+        Turbine(iturb)%Blade(jblade)%Torque(kelem)=Recv(5)
+        ewrite(2,*) 'Received', Recv, ' from processor', status(MPI_SOURCE)
       else
           ewrite(2,*) 'I own the element'
           
@@ -393,7 +400,6 @@ contains
           Turbine(iturb)%Blade(jblade)%Vz(kelem)=value_vel(3)
 
           call Compute_Element_Forces(iTurb,jblade,kelem,value_vel) 
-          Turbine(iturb)%Blade(jblade)%mpi_flag=.true.
 
           volume=element_volume(positions,ele)
 
@@ -408,7 +414,38 @@ contains
           else
               epsilon_par=epsilon_par_mesh
           end if
-     endif
+
+        Turbine(iturb)%Blade(jblade)%epsilon(kelem)=epsilon_par
+          
+
+        do irank=0,num_procs-1
+        if(irank.ne.rank) then
+        Send(1)=Turbine(iturb)%Blade(jblade)%Fx(kelem)
+        Send(2)=Turbine(iturb)%Blade(jblade)%Fy(kelem)
+        Send(3)=Turbine(iturb)%Blade(jblade)%Fz(kelem)
+        Send(4)=Turbine(iturb)%Blade(jblade)%epsilon(kelem)
+        Send(5)=Turbine(iturb)%Blade(jblade)%Torque(kelem)
+        call MPI_Send(Send,5,MPI_DOUBLE_PRECISION,irank,tag,MPI_COMM_WORLD,ierr)
+        ewrite(2,*) 'Sent' , Send, ' to processor ', irank 
+       
+        end if 
+        
+        end do
+
+      endif
+        
+      end do
+      end do
+      end do
+
+      do iTurb=1,notur
+      do jblade=1,Turbine(iTurb)%NBlades
+      do kelem=1,Turbine(iTurb)%Blade(jblade)%NElem
+
+      ! Set the elements
+      Scoords(1)=Turbine(iTurb)%Blade(jblade)%PEx(kelem)
+      Scoords(2)=Turbine(iTurb)%Blade(jblade)%PEy(kelem)
+      Scoords(3)=Turbine(iTurb)%Blade(jblade)%PEz(kelem)
 
                   do i = 1, node_count(v_field)
                       ! Compute a Sphere of Influence with diameter equal to chord/2
@@ -422,8 +459,8 @@ contains
                           dr2=dr2+d**2.0
                       end do
                       
-                      if(sqrt(dr2)<Turbine(iTurb)%Blade(jblade)%EDS(kelem)/2.0+epsilon_par*sqrt(3.0)) then
-                        loc_kern=Kernel(sqrt(dr2),epsilon_par,v_field%dim)
+                      if(sqrt(dr2)<Turbine(iTurb)%Blade(jblade)%EDS(kelem)/2.0+Turbine(iturb)%Blade(jblade)%epsilon(kelem)*sqrt(3.0)) then
+                        loc_kern=Kernel(sqrt(dr2),Turbine(iturb)%Blade(jblade)%epsilon(kelem),v_field%dim)
                       else
                           loc_kern=0.0
                       endif
