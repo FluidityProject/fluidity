@@ -338,6 +338,7 @@ contains
       real :: Send(5), Recv(5)
       ! MPI related parameters declaration
       integer :: count,dest, ierr, num_procs, rank, status(MPI_Status_size), tag,irank
+      real :: tic,toc, mpi_time
       integer, dimension(4) :: request
       integer :: status_array(MPI_STATUS_SIZE,4)
       ewrite(1,*) 'In ALM Momentum Source' 
@@ -369,6 +370,9 @@ contains
       call MPI_Comm_size(MPI_COMM_WORLD,num_procs,ierr)
             
       tag=2016
+      
+      
+      call cpu_time(tic)
 
       do iTurb=1,notur
       do jblade=1,Turbine(iTurb)%NBlades
@@ -380,6 +384,7 @@ contains
       Scoords(3)=Turbine(iTurb)%Blade(jblade)%PEz(kelem)
         
       ! Call a 
+
       call picker_inquire(positions,Scoords,ele,local_coord,.true.)
       if (ele<0) then
           ewrite(2,*) 'I dont own the element'
@@ -426,8 +431,7 @@ contains
         Send(4)=Turbine(iturb)%Blade(jblade)%epsilon(kelem)
         Send(5)=Turbine(iturb)%Blade(jblade)%Torque(kelem)
         call MPI_Send(Send,5,MPI_DOUBLE_PRECISION,irank,tag,MPI_COMM_WORLD,ierr)
-        ewrite(2,*) 'Sent' , Send, ' to processor ', irank 
-       
+        ewrite(2,*) 'Sent' , Send, ' to processor ', irank        
         end if 
         
         end do
@@ -437,6 +441,10 @@ contains
       end do
       end do
       end do
+
+      call cpu_time(toc)
+      mpi_time=toc-tic
+      ewrite(2,*) 'MPI_Communication Time', mpi_time
 
       do iTurb=1,notur
       do jblade=1,Turbine(iTurb)%NBlades
