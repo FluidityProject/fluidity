@@ -147,7 +147,7 @@ end type TurbineType
     type(TurbineType), allocatable, save :: Turbine(:) ! Turbine 
     integer,save :: notur, NBlades, NElem      ! Number of the turbines 
     real,save :: deltaT
-    real,allocatable :: Ux,Uy,Uz,Fx,Fy,Fz,eps
+    
     private turbine_geometry_read, allocate_turbine_elements, allocate_turbine_blades 
     public  turbine_init, turbine_operate
 
@@ -378,7 +378,6 @@ subroutine Compute_Turbine_Local_RotVel(iturb,iblade,ielem)
     ewrite(2,*) 'Entering Compute_Turbine_Local_Vel '
 
 end subroutine Compute_Turbine_Local_RotVel
-
 
 subroutine Compute_Element_Forces(iturb,iblade,ielem,Local_Vel)
        
