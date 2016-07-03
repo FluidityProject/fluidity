@@ -79,7 +79,6 @@ type BladeType
     real, allocatable :: sEz(:)         ! Element unit spanwise vector z-component
     real, allocatable :: EC(:)          ! Element chord lenght
     real, allocatable :: EDS(:)         ! Element spanwise distance (length)
-    real, allocatable :: CircSign(:)    ! Direction of segment circulation on wake
     real, allocatable :: EArea(:)       ! Element Area
     real, allocatable :: ETtoC(:)       ! Element thickness to Chord ratio
     real, allocatable :: AOA_LAST(:)    ! Last angle of Attack (used in added mass terms)
@@ -87,11 +86,12 @@ type BladeType
     real, allocatable :: epsilon(:)     ! Epsilon 
     type(AirfoilType), allocatable :: EAirfoil(:) ! Element Airfoil 
     type(LB_Type), allocatable :: E_LB_Model(:)   ! Element Leishman-Beddoes Model
-   
-    ! Compute Local Velocities at the elements
-    real, allocatable :: Vx(:)         ! Element x-Velocity
-    real, allocatable :: Vy(:)         ! Element y-Velocity
-    real, allocatable :: Vz(:)         ! Element z-Velocity
+    real, allocatable :: root_dist(:)   ! Distance of the element from the root
+
+    ! Compute Local rotational Velocities at the elements
+    real, allocatable :: Vrotx(:)         ! Element x-direction rotational Velocity
+    real, allocatable :: Vroty(:)         ! Element y-direction rotational Velocity
+    real, allocatable :: Vrotz(:)         ! Element z-direction rotational Velocity
 
     ! Momentum Sink Forces in the nts direction
     real, allocatable :: Fn(:)     ! Element Force in the normal direction
@@ -104,13 +104,21 @@ type BladeType
     real, allocatable :: Fz(:)     ! Element Force in the global z-direction
     real, allocatable :: Torque(:)   ! Element Torque over the point of rotation 
     ! MPI FLAG (used in parallel simulations)
-    logical :: mpi_flag=.false.
-
     
 end type BladeType
 
-type TurbineType
+type ALType 
+    real,dimension(3)  :: RotN, RotP
+    character(len=100) :: al_name
+    character(len=100) :: geom_file
+    type(BladeType) :: al
+    real :: CFx ! Fx coefficient 
+    real :: CFy ! Fy coefficient 
+    real :: CFz ! Fz coefficient 
+    real :: CT  ! Thrust coefficient
+end type ALType
 
+type TurbineType
     real,dimension(3) :: axis_loc
     character(len=100) :: turb_name
     character(len=100) :: geom_file 
@@ -125,14 +133,16 @@ type TurbineType
     logical :: IsRotating = .false.
     type(BladeType), allocatable :: Blade(:)
     type(AirfoilType), allocatable :: AirfoilData(:)
+    type(ALType) :: hub, tower
     real :: CP  ! Power coefficient 
     real :: CTR ! Torque coefficient 
     real :: CFx ! Fx coefficient 
     real :: CFy ! Fy coefficient 
     real :: CFz ! Fz coefficient 
-    real :: CT  ! Thrust coefficient
-    
+    real :: CT  ! Thrust coefficient    
 end type TurbineType
+
+
 
     type(TurbineType), allocatable, save :: Turbine(:) ! Turbine 
     integer,save :: notur, NBlades, NElem      ! Number of the turbines 
@@ -332,6 +342,43 @@ subroutine calculate_performance(turbine)
     ewrite(2,*) 'Exiting calculate_performance'
 
 end subroutine calculate_performance
+
+subroutine Compute_Turbine_Local_RotVel(iturb,iblade,ielem)
+
+    implicit none
+    integer,intent(in) :: iturb,iblade,ielem
+    real :: wRotX,wRotY,wRotZ,Rx,Ry,Rz,ublade,vblade,wblade
+    real :: RotX,RotY,RotZ 
+    ewrite(2,*) 'Entering Compute_Turbine_Local_Vel '
+    
+    !========================================================
+    ! Compute Element local rotational velocity
+    !========================================================
+    wRotX=Turbine(iturb)%angularVel*Turbine(iturb)%RotN(1)
+    wRotY=Turbine(iturb)%angularVel*Turbine(iturb)%RotN(2)
+    wRotZ=Turbine(iturb)%angularVel*Turbine(iturb)%RotN(3)
+    
+    RotX=Turbine(iturb)%RotN(1)
+    RotY=Turbine(iturb)%RotN(2)
+    RotZ=Turbine(iturb)%RotN(3)
+
+    Rx=-Turbine(iturb)%RotP(1)+Turbine(iturb)%Blade(iblade)%PEx(ielem);
+    Ry=-Turbine(iturb)%RotP(2)+Turbine(iturb)%Blade(iblade)%PEy(ielem);
+    Rz=-Turbine(iturb)%RotP(3)+Turbine(iturb)%Blade(iblade)%PEz(ielem);
+    Turbine(iturb)%Blade(iblade)%root_dist=sqrt(Rx**2+Ry**2+Rz**2)
+
+    ! Find the cross product Ublade = Omega x R
+    call cross(wRotX,wRotY,wRotZ,Rx,Ry,Rz,ublade,vblade,wblade)
+    
+    Turbine(iturb)%Blade(iblade)%Vrotx(ielem)=ublade
+    Turbine(iturb)%Blade(iblade)%Vroty(ielem)=vblade
+    Turbine(iturb)%Blade(iblade)%Vrotz(ielem)=wblade
+
+
+    ewrite(2,*) 'Entering Compute_Turbine_Local_Vel '
+
+end subroutine Compute_Turbine_Local_RotVel
+
 
 subroutine Compute_Element_Forces(iturb,iblade,ielem,Local_Vel)
        
@@ -603,16 +650,16 @@ subroutine allocate_turbine_elements(ITurbine,IBlade,NElem)
     allocate(Turbine(ITurbine)%Blade(IBlade)%EC(NElem))
     allocate(Turbine(ITurbine)%Blade(IBlade)%EDS(NElem))
     allocate(Turbine(ITurbine)%Blade(IBlade)%EArea(NElem))
-    allocate(Turbine(ITurbine)%Blade(IBlade)%CircSign(NElem))
     allocate(Turbine(ITurbine)%Blade(IBlade)%ETtoC(NElem))
     allocate(Turbine(ITurbine)%Blade(IBlade)%EAirfoil(Nelem))
     allocate(Turbine(ITurbine)%Blade(IBlade)%E_LB_Model(Nelem))
     allocate(Turbine(ITurbine)%Blade(IBlade)%epsilon(Nelem))
+    allocate(Turbine(ITurbine)%Blade(IBlade)%root_dist(Nelem))
     allocate(Turbine(ITurbine)%Blade(IBlade)%AOA_LAST(Nelem))
     allocate(Turbine(ITurbine)%Blade(IBlade)%Un_LAST(Nelem))
-    allocate(Turbine(ITurbine)%Blade(IBlade)%Vx(NElem))
-    allocate(Turbine(ITurbine)%Blade(IBlade)%Vy(NElem))
-    allocate(Turbine(ITurbine)%Blade(IBlade)%Vz(NElem))
+    allocate(Turbine(ITurbine)%Blade(IBlade)%Vrotx(NElem))
+    allocate(Turbine(ITurbine)%Blade(IBlade)%Vroty(NElem))
+    allocate(Turbine(ITurbine)%Blade(IBlade)%Vrotz(NElem))
     allocate(Turbine(ITurbine)%Blade(IBlade)%Fn(NElem))
     allocate(Turbine(ITurbine)%Blade(IBlade)%Ft(NElem))
     allocate(Turbine(ITurbine)%Blade(IBlade)%Fs(NElem))
@@ -825,7 +872,6 @@ SUBROUTINE set_blade_geometry(blade)
     blade%nEz(nej-1)=normE(3)
 
     ! Flip normal direction if requested
-    blade%CircSign(nej-1)=1.0
     if (FlipN .eq. 1) then
         blade%nEx(nej-1)= -blade%nEx(nej-1)
         blade%nEy(nej-1)= -blade%nEy(nej-1)
@@ -836,7 +882,6 @@ SUBROUTINE set_blade_geometry(blade)
         blade%tEx(nej-1)= -blade%tEx(nej-1)
         blade%tEy(nej-1)= -blade%tEy(nej-1)
         blade%tEz(nej-1)= -blade%tEz(nej-1)
-        blade%CircSign(nej-1)=-1.0
     end if
 
     ! Calc element area and chord
