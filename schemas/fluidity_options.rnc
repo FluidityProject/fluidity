@@ -1729,11 +1729,93 @@ start =
          }?,
          
          ## Actuator Line Model Turbine
-         element ALM_Turbine{
+         element actuator_line_model{
           ## specifies an ALM Turbine
-             element alm_turbine {
+             element turbine {
                  attribute name {xsd:string},
                 ## geometry file
+                  element blade_specs_file {
+                    attribute file_name { xsd:string },
+                    ## The format of the input file containing field data.
+                        element string_value {
+                        "ascii"
+                        }
+                  },
+                  ## Blade Section Airfoils  
+                  element airfoil_sections{ 
+                      element section{
+                          attribute name{xsd:string},
+                          attribute airfoil_file{xsd:string},
+                          element string_value {
+                              "ascii"
+                          }
+                      }*
+                  },
+
+                  element turbine_specs{
+                    element type{
+                    (
+                    element Horizontal_Axis{
+                            element Number_of_blades{
+                                integer
+                            },
+                            ## This is the axis of rotation
+                            element origin{
+                                real_dim_vector
+                            },
+                            element hub_tilt_angle{
+                                real
+                            },
+                            element blade_cone_angle{
+                                real
+                            },
+                            element yaw_angle{
+                                real
+                            }
+                    }|
+                    element Vertical_Axis{
+                        empty
+                    }
+                    )
+                    }
+                },
+                 element operation {
+                 (
+                    ## constant rotational velocity given in RPM (revolutions per minute)
+                 element constant_rotational_velocity  {
+                    ## Tip Speed Ratio of the turbine
+                    element TSR{
+                        real
+                    },
+                    element rotation_direction{
+                    (
+                    element clockwise{
+                     empty
+                     }|
+                     element counter_clockwise{
+                     empty
+                     }
+                     )
+                    },
+                    ## Average reference Velocity upstream the turbine (usually taken one diameter upstream at hub height 
+                    ## Effective viscosity
+                    element nu{
+                        real
+                    },
+                    element Uref{
+                        real
+                    }
+
+                  }|
+                 element force_based_rotational_velocity {
+                    attribute name {xsd:string}
+                  }
+                 )
+                }              
+             }*,
+             element actuatorline{
+                attribute name {xsd:string},
+                ## actuator line file
                   element geometry_file {
                     attribute file_name { xsd:string },
                     ## The format of the input file containing field data.
@@ -1751,31 +1833,28 @@ start =
                           }
                       }*
                   },
-                 
-                 element operation {
+                 element kinematics {
                  (
                     ## constant rotational velocity given in RPM (revolutions per minute)
-                 element constant_rotational_velocity  {
-                    ## Tip Speed Ratio of the turbine
-                    element TSR{
+                 element no_motion  {            
+                    empty
+                    }|
+                 element prescribed_pitch_motion  {
+                    ## pitch motion frequency 
+                    element omega{
                         real
                     },
-                    ## Average reference Velocity upstream the turbine (usually taken one diameter upstream at hub height 
-                    ## Effective viscosity
-                    element nu{
-                        real
-                    },
-                    element Uref{
+                    element U{
                         real
                     }
 
                   }|
-                 element force_based_rotational_velocity {
+                 element prescribed_plunge_motion {
                     attribute name {xsd:string}
                   }
                  )
                 }              
-             }*
+            }*
          }?,
 
 

@@ -316,8 +316,8 @@ contains
   subroutine calculate_actuator_line_momentum_source(states, state_index, v_field)
 
       use pickers_inquire
-      use alturbine
-      use alturbine_utils
+      use actuator_line_model
+      use actuator_line_model_utils
       use mpi
 
       type(state_type), dimension(:), intent(inout) :: states
@@ -334,7 +334,7 @@ contains
       real :: dr2, d, epsilon_par, Area, radius, V_rel,V_rel2,loc_kern, nu
       real :: volume, meshFactor, dragFactor, chordFactor
       real :: epsilon_par_drag, epsilon_par_chord, epsilon_par_mesh, epsilon_threshold
-      character(len = OPTION_PATH_LEN) :: base_path, RANS_option_path
+      character(len = OPTION_PATH_LEN) :: base_path
       real :: Send(5), Recv(5)
       ! MPI related parameters declaration
       integer :: count,dest, ierr, num_procs, rank, status(MPI_Status_size), tag,irank
@@ -370,11 +370,11 @@ contains
       call MPI_Comm_size(MPI_COMM_WORLD,num_procs,ierr)
             
       tag=2016
-      
-      
+          
       call cpu_time(tic)
-
-      do iTurb=1,notur
+    
+      ! ################## Starting the Actuator_Line_model Interface ###################
+      do iTurb=1,Ntur
       do jblade=1,Turbine(iTurb)%NBlades
       do kelem=1,Turbine(iTurb)%Blade(jblade)%NElem
 
@@ -400,10 +400,6 @@ contains
           
           value_vel=eval_field(ele,velocity,local_coord)
           
-          Turbine(iturb)%Blade(jblade)%Vx(kelem)=value_vel(1)
-          Turbine(iturb)%Blade(jblade)%Vy(kelem)=value_vel(2)
-          Turbine(iturb)%Blade(jblade)%Vz(kelem)=value_vel(3)
-
           call Compute_Element_Forces(iTurb,jblade,kelem,value_vel) 
 
           volume=element_volume(positions,ele)
@@ -446,7 +442,7 @@ contains
       mpi_time=toc-tic
       ewrite(2,*) 'MPI_Communication Time', mpi_time
 
-      do iTurb=1,notur
+      do iTurb=1,Ntur
       do jblade=1,Turbine(iTurb)%NBlades
       do kelem=1,Turbine(iTurb)%Blade(jblade)%NElem
 
@@ -483,7 +479,9 @@ contains
       end do
       end do
       end do
-      
+     
+      call actuator_line_model_update
+
       ewrite(1,*) 'Exiting ALM Momentum Source'
   end subroutine calculate_actuator_line_momentum_source
 

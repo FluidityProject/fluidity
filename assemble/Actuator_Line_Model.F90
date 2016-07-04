@@ -26,7 +26,7 @@
 !    USA
 #include "fdebug.h"
 
-module alturbine
+module actuator_line_model
 
   use fldebug
   use spud
@@ -48,23 +48,27 @@ module alturbine
 
   !use the ALTurbine Modules
   use airfoils
-  use alturbine_utils
+  use actuator_line_model_utils
   use lbdynstall
 
   implicit none
 !GGGGG
 ! Define the types that will be used
 
-type BladeType
+type ActuatorLineType
     integer :: NElem                    ! Number of Elements of the Blade
-    integer :: FlipN                    ! 
+    character(len=100):: name           ! Actuator line name
+    ! Values at the elements' end stations
+    logical :: FlipN =.false.           ! Flip Normal
     real, allocatable :: QCx(:)         ! Blade quarter-chord line x coordinates at element ends
     real, allocatable :: QCy(:)         ! Blade quarter-chord line y coordinates at element ends
     real, allocatable :: QCz(:)         ! Blade quarter-chord line z coordinates at element ends
     real, allocatable :: tx(:)          ! Blade unit tangent vector (rearward chord line direction) x-componenst at element ends
     real, allocatable :: ty(:)          ! Blade unit tangent vector (rearward chord line direction) y-componenst at element ends 
     real, allocatable :: tz(:)          ! Blade unit tangent vector (rearward chord line direction) z-componenst at element ends  
-    real, allocatable :: C(:)           ! Blade chord length at element ends
+    real, allocatable :: C(:)        ! Blade chord length at element ends
+    real, allocatable :: thick(:) 
+    ! Element Center values
     real, allocatable :: PEx(:)         ! Element centre x coordinates
     real, allocatable :: PEy(:)         ! Element centre y coordinates
     real, allocatable :: PEz(:)         ! Element centre z coordinates
@@ -80,18 +84,17 @@ type BladeType
     real, allocatable :: EC(:)          ! Element chord lenght
     real, allocatable :: EDS(:)         ! Element spanwise distance (length)
     real, allocatable :: EArea(:)       ! Element Area
+    real, allocatable :: epsilon(:)       ! Element thickness to Chord ratio
     real, allocatable :: ETtoC(:)       ! Element thickness to Chord ratio
     real, allocatable :: AOA_LAST(:)    ! Last angle of Attack (used in added mass terms)
     real, allocatable :: Un_LAST(:)     ! Last normal velocity (used in added mass terms)
-    real, allocatable :: epsilon(:)     ! Epsilon 
     type(AirfoilType), allocatable :: EAirfoil(:) ! Element Airfoil 
     type(LB_Type), allocatable :: E_LB_Model(:)   ! Element Leishman-Beddoes Model
     real, allocatable :: root_dist(:)   ! Distance of the element from the root
-
-    ! Compute Local rotational Velocities at the elements
-    real, allocatable :: Vrotx(:)         ! Element x-direction rotational Velocity
-    real, allocatable :: Vroty(:)         ! Element y-direction rotational Velocity
-    real, allocatable :: Vrotz(:)         ! Element z-direction rotational Velocity
+     
+    real, allocatable :: Vbx(:)    ! Element Local body Velocity in the global x-direction
+    real, allocatable :: Vby(:)    ! Element Local body Velocity in the global y-direction
+    real, allocatable :: Vbz(:)    ! Element Local body Velocity in the global z-direction
 
     ! Momentum Sink Forces in the nts direction
     real, allocatable :: Fn(:)     ! Element Force in the normal direction
@@ -105,25 +108,15 @@ type BladeType
     real, allocatable :: Torque(:)   ! Element Torque over the point of rotation 
     ! MPI FLAG (used in parallel simulations)
     
-end type BladeType
-
-type ALType 
-    real,dimension(3)  :: RotN, RotP
-    character(len=100) :: al_name
-    character(len=100) :: geom_file
-    type(BladeType) :: al
-    real :: CFx ! Fx coefficient 
-    real :: CFy ! Fy coefficient 
-    real :: CFz ! Fz coefficient 
-    real :: CT  ! Thrust coefficient
-end type ALType
+end type ActuatorLineType
 
 type TurbineType
-    real,dimension(3) :: axis_loc
-    character(len=100) :: turb_name
-    character(len=100) :: geom_file 
+    character(len=100) :: name
+    character(len=100) :: blade_specs_file
+    character(len=100) :: type
     integer :: NBlades, NAirfoilData
-    real, dimension(3) :: RotN, RotP ! Rotational vectors in the normal and perpendicular directions
+    real, dimension(3) :: RotN, origin ! Rotational vectors in the normal and perpendicular directions
+    real :: hub_tilt_angle,blade_cone_angle,yaw_angle 
     real :: Rmax, Uref, nu ! Reference radius, velocity, viscosity
     real :: A   ! Rotor area
     real :: TSR , angularVel
@@ -131,9 +124,11 @@ type TurbineType
     logical :: Is_constant_rotation_operated = .false. ! For a constant rotational velocity (in Revolutions Per Minute)
     logical :: Is_force_based_operated = .false. ! For a forced based rotational velocity (Computed during the simulation)
     logical :: IsRotating = .false.
-    type(BladeType), allocatable :: Blade(:)
+    logical :: IsClockwise = .false.
+    logical :: IsCounterClockwise = .false. 
+    type(ActuatorLineType), allocatable :: Blade(:)
     type(AirfoilType), allocatable :: AirfoilData(:)
-    type(ALType) :: hub, tower
+    type(ActuatorLineType) :: hub, tower
     real :: CP  ! Power coefficient 
     real :: CTR ! Torque coefficient 
     real :: CFx ! Fx coefficient 
@@ -143,28 +138,21 @@ type TurbineType
 end type TurbineType
 
 
-
+    type(ActuatorLineType), allocatable, save :: Actuatorline(:)
     type(TurbineType), allocatable, save :: Turbine(:) ! Turbine 
-    integer,save :: notur, NBlades, NElem      ! Number of the turbines 
+    integer,save :: Ntur, Nal ! Number of the turbines 
+    integer,save :: NSource
     real,save :: deltaT
-    
-    private turbine_geometry_read, allocate_turbine_elements, allocate_turbine_blades 
-    public  turbine_init, turbine_operate
+    real,allocatable,save :: Xpos(:),Ypos(:),Zpos(:),VelX(:),VelY(:), VelZ(:),Chord(:) 
+ 
+    public  actuator_line_model_init, actuator_line_model_update 
 
 contains
     
-    subroutine turbine_init
-    
-    implicit none
-    
-    character(len=OPTION_PATH_LEN)::  turbine_name
-    integer :: i, j,k
-    integer, parameter :: MaxReadLine = 1000    
-    character(MaxReadLine) :: FN    ! path to geometry input file 
-    integer :: NElem
-    character(MaxReadLine) :: ReadLine
-    character(len=OPTION_PATH_LEN), allocatable :: turbine_path(:)
-    character(len=OPTION_PATH_LEN) :: section_path
+    subroutine actuator_line_model_init
+   
+        implicit none
+        integer :: itur,iblade,ielem, counter
     ewrite(1,*) 'Entering the ALTurbine_init '
 
     !GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
@@ -174,30 +162,70 @@ contains
     ! multiple turbines. 
     !GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
 
-    notur = option_count("/ALM_Turbine/alm_turbine")
-    ewrite(2,*) 'Number of Actuator Line Turbines : ', notur
-    ! Allocate Turbines Array 
-    Allocate(Turbine(notur))
-    Allocate(turbine_path(notur))
+
+    ! Get Global Time 
+    call get_option("/timestepping/timestep",deltaT) 
+
+    !### Specify Turbines
+    call get_turbine_options
+   
+    do itur=1,Ntur
+    call set_turbine_geometry(Turbine(itur))
+    end do
     
+    !##### Initialize Source Vectors
+    counter=0
+    if(Ntur>0) then
+    do itur=1,Ntur
+    do iblade=1,turbine(itur)%Nblades
+    do ielem=1,turbine(itur)%blade(iblade)%Nelem
+        counter=counter+1
+    enddo
+    enddo
+    enddo
+    endif
+    NSource=counter
+
+    allocate(Xpos(NSource),Ypos(NSource),Zpos(NSource),Velx(NSource),Vely(NSource),Velz(NSource),chord(NSource))
+
+    end subroutine actuator_line_model_init
+
+    subroutine get_turbine_options
     
-    do i=1, notur
-       
-       turbine_path(i)="/ALM_Turbine/alm_turbine["//int2str(i-1)//"]"
-       call get_option("/ALM_Turbine/alm_turbine["//int2str(i-1)//"]/name",Turbine(i)%turb_name)
-       call get_option("/ALM_Turbine/alm_turbine["//int2str(i-1)//"]/geometry_file/file_name",Turbine(i)%geom_file)
-       
+    implicit none
+    
+    character(len=OPTION_PATH_LEN)::  turbine_name, actuatorline_name
+    integer :: i,j,k
+    integer, parameter :: MaxReadLine = 1000    
+    character(MaxReadLine) :: FN    ! path to geometry input file 
+    integer :: NElem
+    character(MaxReadLine) :: ReadLine
+    character(len=OPTION_PATH_LEN) :: section_path
+    character(len=OPTION_PATH_LEN), allocatable :: turbine_path(:), actuatorline_path(:)
+    
+    ewrite(2,*) 'Entering get_turbine_options'
+    
+    Ntur = option_count("/actuator_line_model/turbine")
+    ewrite(2,*) 'Number of Turbines : ', Ntur
+    
+    ! Allocate Turbines Arrays
+    Allocate(Turbine(Ntur))
+    Allocate(turbine_path(Ntur))
+    
+
+    ! ==========================================
+    ! Get Turbines' options and INITIALIZE THEM
+    ! ==========================================
+    do i=1, Ntur 
+       turbine_path(i)="/actuator_line_model/turbine["//int2str(i-1)//"]"
+       call get_option("/actuator_line_model/turbine["//int2str(i-1)//"]/name",Turbine(i)%name)
+       call get_option("/actuator_line_model/turbine["//int2str(i-1)//"]/blade_specs_file/file_name",Turbine(i)%blade_specs_file)
        ! Count how many Airfoil Sections are available
-       Turbine(i)%NAirfoilData=option_count("/ALM_Turbine/alm_turbine["//int2str(i-1)//"]/airfoil_sections/section") 
+       Turbine(i)%NAirfoilData=option_count("/actuator_line_model/turbine["//int2str(i-1)//"]/airfoil_sections/section") 
        ewrite(2,*) 'Number of Airfoils available : ', Turbine(i)%NAirfoilData
        ! Allocate the memory of the Airfoils
        Allocate(Turbine(i)%AirfoilData(Turbine(i)%NAirfoilData))
        
-       call turbine_geometry_read(i,Turbine(i)%geom_file) 
-       ewrite(2,*) 'Turbine ',i,' : ', Turbine(i)%turb_name
-       ewrite(2,*) '---------------'
-       ewrite(2,*) 'Axis location : ',Turbine(i)%RotP
-       ewrite(2,*) 'Geometry file :    ',Turbine(i)%geom_file
        
        do k=1, Turbine(i)%NAirfoilData
            
@@ -207,67 +235,65 @@ contains
            call airfoil_init_data(Turbine(i)%AirfoilData(k))
        end do
 
-       do j=1,Turbine(i)%NBlades 
-       ! Set turbine geometry
-        
-         call set_blade_geometry(Turbine(i)%Blade(j))
-       ! Populate Turbine Airfoil Sections
-        ewrite(2,*) 'Populating blade airfoils for turbine ',i,' Blade ', j
-        call populate_blade_airfoils(Turbine(i)%Blade(j)%NElem,Turbine(i)%Blade(j)%EAirfoil,Turbine(i)%AirfoilData,Turbine(i)%Blade(j)%ETtoC)
-       ! Write the initial angle of attack
-        Turbine(i)%Blade(j)%AOA_LAST(:)=1.e7
-        Turbine(i)%Blade(j)%Un_LAST(:)=1.e7
-        enddo
-        
-        call get_option("/timestepping/timestep",deltaT) 
-
-       ! Check the type of Turbine Operation
+   !########## Get turbine_specs #################
+   ! Check the typ of Turbine (choose between Horizontal and Vertical Axis turbines) 
+   if(have_option(trim(turbine_path(i))//"/turbine_specs/type/Horizontal_Axis")) then
+        Turbine(i)%Type='Horizontal_Axis'
+        call get_option(trim(turbine_path(i))//"/turbine_specs/type/Horizontal_Axis/Number_of_blades",Turbine(i)%Nblades)
+        call get_option(trim(turbine_path(i))//"/turbine_specs/type/Horizontal_Axis/origin",Turbine(i)%origin)
+        call get_option(trim(turbine_path(i))//"/turbine_specs/type/Horizontal_Axis/hub_tilt_angle",Turbine(i)%hub_tilt_angle)
+        call get_option(trim(turbine_path(i))//"/turbine_specs/type/Horizontal_Axis/blade_cone_angle",Turbine(i)%blade_cone_angle)
+        call get_option(trim(turbine_path(i))//"/turbine_specs/type/Horizontal_Axis/yaw_angle",Turbine(i)%yaw_angle)
+    elseif(have_option(trim(turbine_path(i))//"/turbine_specs/type/Vertical_Axis")) then
+    
+        FLExit("At the moment only the Horizontal_Axis Turbine is available")
+    else
+        FLExit("You should not be here")
+    end if
+   
+   !##############3 Get Operation Options ######################
        if (have_option(trim(turbine_path(i))//"/operation/constant_rotational_velocity")) then
             Turbine(i)%Is_constant_rotation_operated= .true.
-            call get_option("/ALM_Turbine/alm_turbine["//int2str(i-1)//"]/operation/constant_rotational_velocity/TSR",Turbine(i)%TSR)
-            call get_option("/ALM_Turbine/alm_turbine["//int2str(i-1)//"]/operation/constant_rotational_velocity/nu",Turbine(i)%nu)
-            call get_option("/ALM_Turbine/alm_turbine["//int2str(i-1)//"]/operation/constant_rotational_velocity/Uref",Turbine(i)%Uref)
-       else if(have_option(trim("/ALM_Turbine/alm_turbine["//int2str(i-1)//"]")//"/operation/force_based_rotational_velocity")) then
+            call get_option("/actuator_line_model/turbine["//int2str(i-1)//"]/operation/constant_rotational_velocity/TSR",Turbine(i)%TSR)
+            if(have_option(trim(turbine_path(i))//"/operation/constant_rotational_velocity/rotation_direction/clockwise")) then
+                Turbine(i)%IsClockwise=.true.
+            elseif(have_option(trim(turbine_path(i))//"/operation/constant_rotational_velocity/rotation_direction/counter_clockwise")) then
+                Turbine(i)%IsCounterClockwise=.true.
+            else
+                FLExit("You should not be here. The options are clockwise and counterclockwise")
+            endif
+                call get_option("/actuator_line_model/turbine["//int2str(i-1)//"]/operation/constant_rotational_velocity/nu",Turbine(i)%nu)
+            call get_option("/actuator_line_model/turbine["//int2str(i-1)//"]/operation/constant_rotational_velocity/Uref",Turbine(i)%Uref)
+        
+        else if(have_option(trim("/actuator_line_model/turbine["//int2str(i-1)//"]")//"/operation/force_based_rotational_velocity")) then
             Turbine(i)%Is_force_based_operated = .true. 
        else
            FLExit("At the moment only the constant and the force_based rotational velocity models are supported") 
        endif
        
-       ! Specify the operation mode of the turbine
-       if(Turbine(i)%Is_constant_rotation_operated) then
-       ewrite(2,*) 'Constant rotational velocity : ', Turbine(i)%Is_constant_rotation_operated 
-       ewrite(2,*) 'Tip Speed Ratio : ', Turbine(i)%TSR
-       else
-       ewrite(2,*) 'Forced-based rotational velocity : ', Turbine(i)%Is_force_based_operated
-       endif
-       ewrite(2,*) ' '
-       
-   
    end do
-  
-   ewrite(1,*) 'Exiting the ALTurbine_init'
+ 
+   ewrite(2,*) 'Exiting get_turbine_options'
 
-end subroutine turbine_init
+end subroutine get_turbine_options 
 
-subroutine turbine_operate
+
+subroutine actuator_line_model_update
  
     implicit none
     
     integer :: i,j,k
     real :: theta
     ! Zero the Source Term at each time step
-    
-    ewrite(1,*) 'Entering the turbine_timeloop'
-    
-    ! First we need to get the dt in order to rotate the turbine
-    call get_option("/timestepping/timestep",deltaT) 
-    
-    do i=1,notur
+        
+    ewrite(1,*) 'Entering the actuator_line_model_update'
+     
+    if (Ntur>0) then
+    do i=1,Ntur
     ! Depending on whether the turbine is using a constant or a forced
     ! Based model for its operation: we will have the following options
      if(Turbine(i)%Is_constant_rotation_operated) then
         ewrite(2,*) 'Operating Turbine with a constant rotational Velocity'
-        Turbine(i)%angularVel = Turbine(i)%TSR*Turbine(i)%Uref/Turbine(i)%Rmax  
         theta=Turbine(i)%angularVel*deltaT ! 1 revolution/minute = 2 pi tads / 60 s
         Turbine(i)%AzimAngle=Turbine(i)%AzimAngle+theta*360.0/(2.0*pi)
         call rotate_turbines(theta) 
@@ -277,13 +303,85 @@ subroutine turbine_operate
      else
          FLExit("At the moment only constant rotational velocity and the force-based approach are supported") 
      endif
-    
     end do
+    end if
 
-    ewrite(1,*) 'Exiting the turbine_timeloop'
+
+    ewrite(1,*) 'Exiting actuator_line_model_update'
     return
 
-end subroutine turbine_operate
+end subroutine actuator_line_model_update
+
+subroutine set_turbine_geometry(turbine)
+
+    implicit none
+    type(TurbineType),intent(inout) :: turbine
+    real, allocatable :: rR(:),ctoR(:),pitch(:),thick(:)
+    real :: SVec(3), theta, origin(3)
+    integer :: Nstations, iblade, Istation
+
+    ewrite(2,*) 'Entering set_turbine_geometry'
+
+    ewrite(2,*) 'Turbine Name : ', turbine%name 
+    ewrite(2,*) '============================='
+    ewrite(2,*) 'Number of Blades : ', turbine%Nblades
+    ewrite(2,*) 'Origin           : ', turbine%origin
+    ewrite(2,*) 'Hub Tilt Angle   : ', turbine%hub_tilt_angle
+    ewrite(2,*) 'Blade Cone Angle : ', turbine%blade_cone_angle
+    ewrite(2,*) 'Yaw Angle        : ', turbine%yaw_angle
+
+    allocate(turbine%blade(turbine%Nblades))
+
+    call read_actuatorline_geometry(turbine%blade_specs_file,turbine%Rmax,SVec,rR,ctoR,pitch,thick,Nstations)
+    ! Make sure that the spanwise is [0 0 1]
+    Svec = (/0.0,0.0,1.0/)
+    ! Make sure that origin is [0,0,0] : we set everything to origin 0 and then translate the
+    ! turbine to the actual origin(this is for simplicity)
+    origin= (/0.0,0.0,0.0/)
+    theta=2*pi/turbine%Nblades
+    do iblade=1,turbine%Nblades
+    call allocate_actuatorline(Turbine%blade(iblade),Nstations)
+    turbine%blade(iblade)%name=turbine%name//int2str(iblade)
+    do istation=1,Nstations
+    turbine%blade(iblade)%QCx(istation)=rR(istation)*turbine%Rmax*Svec(1)
+    turbine%blade(iblade)%QCy(istation)=rR(istation)*turbine%Rmax*Svec(2)
+    turbine%blade(iblade)%QCz(istation)=rR(istation)*turbine%Rmax*Svec(3) 
+    if(turbine%IsCounterClockwise) then
+        turbine%RotN=(/-1.0,0.0,0.0/)
+        turbine%blade(iblade)%tx(istation)=sin(pitch(istation)/180.0*pi)    
+        turbine%blade(iblade)%ty(istation)=-cos(pitch(istation)/180.0*pi)    
+        turbine%blade(iblade)%tz(istation)= 0.0
+        turbine%blade(iblade)%C(istation)=ctoR(istation)*turbine%Rmax
+        turbine%blade(iblade)%thick(istation)=thick(istation)
+    elseif(turbine%IsClockwise) then
+        turbine%RotN=(/1.0,0.0,0.0/)
+        turbine%blade(iblade)%tx(istation)=sin(pitch(istation)/180.0*pi)    
+        turbine%blade(iblade)%ty(istation)=cos(pitch(istation)/180.0*pi)    
+        turbine%blade(iblade)%tz(istation)= 0.0
+        turbine%blade(iblade)%C(istation)=ctoR(istation)*turbine%Rmax
+        turbine%blade(iblade)%thick(istation)=thick(istation)
+        turbine%blade(iblade)%FlipN = .true.
+    endif
+    end do
+    ! Always rotate counterclockwise to assign the turbine blades
+    call rotate_actuatorline(turbine%blade(iblade),origin,(/-1.0,0.0,0.0/),(iblade-1)*theta)   
+    ! Rotate through incidence (hub tilt) and coning angle
+    call set_actuatorline_geometry(turbine%blade(iblade))
+    ! Populate element Airfoils 
+    call populate_blade_airfoils(turbine%blade(iblade)%NElem,turbine%Blade(iblade)%EAirfoil,turbine%AirfoilData,turbine%Blade(iblade)%ETtoC)
+    
+    turbine%Blade(iblade)%AOA_LAST(:)=1.e7
+    turbine%Blade(iblade)%Un_LAST(:)=1.e7
+    
+    end do
+    
+    turbine%angularVel = turbine%TSR*turbine%Uref/turbine%Rmax  
+    call Compute_Turbine_Local_RotVel
+
+    ewrite(2,*) 'Exiting set_turbine_geometry'
+
+end subroutine set_turbine_geometry
+
 
 subroutine calculate_performance(turbine)
 
@@ -332,7 +430,7 @@ subroutine calculate_performance(turbine)
     turbine%CP= turbine%CTR*turbine%TSR
     
     ewrite(2,*) '--------------------------------------------------------'
-    ewrite(2,*) 'Calculate performance for Turbine : ',turbine%turb_name
+    ewrite(2,*) 'Calculate performance for Turbine : ',turbine%name
     ewrite(2,*) 'Azimuthal Angle (degrees) : ', turbine%AzimAngle
     ewrite(2,*) 'Thrust Coefficient : ', turbine%CT
     ewrite(2,*) 'Torque Coefficient : ', turbine%CTR
@@ -343,10 +441,10 @@ subroutine calculate_performance(turbine)
 
 end subroutine calculate_performance
 
-subroutine Compute_Turbine_Local_RotVel(iturb,iblade,ielem)
+subroutine Compute_Turbine_Local_RotVel
 
     implicit none
-    integer,intent(in) :: iturb,iblade,ielem
+    integer :: iturb,iblade,ielem
     real :: wRotX,wRotY,wRotZ,Rx,Ry,Rz,ublade,vblade,wblade
     real :: RotX,RotY,RotZ 
     ewrite(2,*) 'Entering Compute_Turbine_Local_Vel '
@@ -354,6 +452,10 @@ subroutine Compute_Turbine_Local_RotVel(iturb,iblade,ielem)
     !========================================================
     ! Compute Element local rotational velocity
     !========================================================
+    do iturb=1,Ntur
+    do iblade=1,Turbine(iturb)%NBlades
+    do ielem=1,Turbine(iturb)%Blade(iblade)%Nelem
+    
     wRotX=Turbine(iturb)%angularVel*Turbine(iturb)%RotN(1)
     wRotY=Turbine(iturb)%angularVel*Turbine(iturb)%RotN(2)
     wRotZ=Turbine(iturb)%angularVel*Turbine(iturb)%RotN(3)
@@ -361,23 +463,29 @@ subroutine Compute_Turbine_Local_RotVel(iturb,iblade,ielem)
     RotX=Turbine(iturb)%RotN(1)
     RotY=Turbine(iturb)%RotN(2)
     RotZ=Turbine(iturb)%RotN(3)
+    
 
-    Rx=-Turbine(iturb)%RotP(1)+Turbine(iturb)%Blade(iblade)%PEx(ielem);
-    Ry=-Turbine(iturb)%RotP(2)+Turbine(iturb)%Blade(iblade)%PEy(ielem);
-    Rz=-Turbine(iturb)%RotP(3)+Turbine(iturb)%Blade(iblade)%PEz(ielem);
-    Turbine(iturb)%Blade(iblade)%root_dist=sqrt(Rx**2+Ry**2+Rz**2)
+    Rx=-Turbine(iturb)%origin(1)+Turbine(iturb)%Blade(iblade)%PEx(ielem);
+    Ry=-Turbine(iturb)%origin(2)+Turbine(iturb)%Blade(iblade)%PEy(ielem);
+    Rz=-Turbine(iturb)%origin(3)+Turbine(iturb)%Blade(iblade)%PEz(ielem);
+    Turbine(iturb)%Blade(iblade)%root_dist(ielem)=sqrt(Rx**2+Ry**2+Rz**2)
+
 
     ! Find the cross product Ublade = Omega x R
     call cross(wRotX,wRotY,wRotZ,Rx,Ry,Rz,ublade,vblade,wblade)
     
-    Turbine(iturb)%Blade(iblade)%Vrotx(ielem)=ublade
-    Turbine(iturb)%Blade(iblade)%Vroty(ielem)=vblade
-    Turbine(iturb)%Blade(iblade)%Vrotz(ielem)=wblade
+    Turbine(iturb)%Blade(iblade)%Vbx(ielem)=ublade
+    Turbine(iturb)%Blade(iblade)%Vby(ielem)=vblade
+    Turbine(iturb)%Blade(iblade)%Vbz(ielem)=wblade
+    end do
+    end do
+    end do
 
 
     ewrite(2,*) 'Entering Compute_Turbine_Local_Vel '
 
 end subroutine Compute_Turbine_Local_RotVel
+!
 
 subroutine Compute_Element_Forces(iturb,iblade,ielem,Local_Vel)
        
@@ -385,7 +493,7 @@ subroutine Compute_Element_Forces(iturb,iblade,ielem,Local_Vel)
     integer,intent(in) :: iturb, iblade, ielem
     real, intent(in) :: Local_Vel(3)
     real :: R(3)
-    real :: wRotX,wRotY,wRotZ,Rx,Ry,Rz,ublade,vblade,wblade
+    real :: wRotX,wRotY,wRotZ,Rx,Ry,Rz,ub,vb,wb
     real :: nxe,nye,nze,txe,tye,tze,sxe,sye,sze,ElemArea,ElemChord
     real :: urdn,urdc, wP,ur,alpha,Re,alpha5,alpha75,adotnorm, A, B, C, dUnorm
     real :: CL,CD,CN,CT,CLCirc,CM25,MS,FN,FT,FS,FX,Fy,Fz,te, F1, g1
@@ -394,21 +502,9 @@ subroutine Compute_Element_Forces(iturb,iblade,ielem,Local_Vel)
   
     ewrite(2,*) 'Entering Compute_Forces '
     
-    !========================================================
-    ! Compute Element local rotational velocity
-    !========================================================
-    wRotX=Turbine(iturb)%angularVel*Turbine(iturb)%RotN(1)
-    wRotY=Turbine(iturb)%angularVel*Turbine(iturb)%RotN(2)
-    wRotZ=Turbine(iturb)%angularVel*Turbine(iturb)%RotN(3)
-    
-    RotX=Turbine(iturb)%RotN(1)
-    RotY=Turbine(iturb)%RotN(2)
-    RotZ=Turbine(iturb)%RotN(3)
-
-    Rx=-Turbine(iturb)%RotP(1)+Turbine(iturb)%Blade(iblade)%PEx(ielem);
-    Ry=-Turbine(iturb)%RotP(2)+Turbine(iturb)%Blade(iblade)%PEy(ielem);
-    Rz=-Turbine(iturb)%RotP(3)+Turbine(iturb)%Blade(iblade)%PEz(ielem);
-    relem=sqrt(Rx**2+Ry**2+Rz**2)
+    !===========================================================
+    ! Assign global values to local values (to make life easier
+    !==========================================================
 
     nxe=Turbine(iturb)%Blade(iblade)%nEx(ielem)
     nye=Turbine(iturb)%Blade(iblade)%nEy(ielem)
@@ -419,18 +515,17 @@ subroutine Compute_Element_Forces(iturb,iblade,ielem,Local_Vel)
     sxe=Turbine(iturb)%Blade(iblade)%sEx(ielem)
     sye=Turbine(iturb)%Blade(iblade)%sEy(ielem)
     sze=Turbine(iturb)%Blade(iblade)%sEz(ielem)
-
     ElemArea=Turbine(iturb)%Blade(iblade)%EArea(ielem)
-    ElemChord=Turbine(iturb)%Blade(iblade)%EC(ielem)
-
-    ! Find the cross product Ublade = Omega x R
-    call cross(wRotX,wRotY,wRotZ,Rx,Ry,Rz,ublade,vblade,wblade)
-
+    ElemChord=Turbine(iturb)%Blade(iblade)%EC(ielem) 
+    ub=Turbine(iturb)%Blade(iblade)%Vbx(ielem)
+    vb=Turbine(iturb)%Blade(iblade)%Vbx(ielem)
+    wb=Turbine(iturb)%Blade(iblade)%Vbx(ielem)
+    
     !==============================================================
     ! Calculate element normal and tangential velocity components. 
     !==============================================================
-    urdn=nxe*(Local_vel(1)-ublade)+nye*(Local_vel(2)-vblade)+nze*(Local_vel(3)-wblade)! Normal 
-    urdc=txe*(Local_vel(1)-ublade)+tye*(Local_vel(2)-vblade)+tze*(Local_vel(3)-wblade)! Tangential
+    urdn=nxe*(Local_vel(1)-ub)+nye*(Local_vel(2)-vb)+nze*(Local_vel(3)-wb)! Normal 
+    urdc=txe*(Local_vel(1)-ub)+tye*(Local_vel(2)-vb)+tze*(Local_vel(3)-wb)! Tangential
     ur=sqrt(urdn**2.0+urdc**2.0)
     alpha=atan2(urdn,urdc)
     Re = ur*ElemChord/Turbine(iturb)%nu
@@ -504,7 +599,7 @@ subroutine Compute_Element_Forces(iturb,iblade,ielem,Local_Vel)
     ewrite(2,*) 'Exiting Compute_Forces'
 
 end subroutine compute_element_forces
-
+!
 subroutine populate_blade_airfoils(NElem,EAirfoil,AirfoilData,ETtoC)
 
     !GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
@@ -555,7 +650,7 @@ subroutine populate_blade_airfoils(NElem,EAirfoil,AirfoilData,ETtoC)
     ewrite(2,*) 'Exiting populate_blade_airfoils'
 
 end subroutine populate_blade_airfoils
-
+!
 subroutine rotate_turbines(theta)
     implicit none
 
@@ -566,7 +661,7 @@ subroutine rotate_turbines(theta)
     ! Rotates data in blade arrays. Rotate element end geometry and recalculate element geometry.
 
     ewrite(1,*) 'Entering rotate_turbines'
-    do i=1,notur
+    do i=1,Ntur
         
         ! Specify the rotation axis and the normal vector of rotation
         
@@ -574,9 +669,9 @@ subroutine rotate_turbines(theta)
         nry=Turbine(i)%RotN(2)
         nrz=Turbine(i)%RotN(3)
         
-        px=Turbine(i)%RotP(1)
-        py=Turbine(i)%RotP(2)
-        pz=Turbine(i)%RotP(3)
+        px=Turbine(i)%origin(1)
+        py=Turbine(i)%origin(2)
+        pz=Turbine(i)%origin(3)
 
 
         do j=1,Turbine(i)%NBlades
@@ -604,234 +699,178 @@ subroutine rotate_turbines(theta)
   
             end do
             
-            call set_blade_geometry(Turbine(i)%Blade(j))
+            call set_actuatorline_geometry(Turbine(i)%Blade(j))
         end do 
     end do
     
     ewrite(1,*) 'Exiting rotate_turbines'
 
-end subroutine rotate_turbines
-    
-subroutine allocate_turbine_blades(ITurbine,NBlades)
-    implicit none
+end subroutine rotate_turbines  
 
-    integer :: ITurbine,NBlades
-
-    allocate(Turbine(ITurbine)%Blade(NBlades))
-    
-end subroutine allocate_turbine_blades
-
-subroutine allocate_turbine_elements(ITurbine,IBlade,NElem)
+subroutine rotate_actuatorline(actuatorline,origin,rotN,theta)
 
     implicit none
+    type(ActuatorLineType),intent(inout) :: actuatorline
+    real,intent(in) :: origin(3), rotN(3)
+    real :: theta,nrx,nry,nrz,px,py,pz 
+    integer :: j,ielem,i
+    real :: vrx,vry,vrz,VMag
+    real :: xtmp,ytmp,ztmp, txtmp, tytmp, tztmp
+    ! Rotates data in blade arrays. Rotate element end geometry and recalculate element geometry.
 
-    integer :: ITurbine,IBlade,NElem
-     
-    allocate(Turbine(ITurbine)%Blade(IBlade)%QCx(NElem+1))
-    allocate(Turbine(ITurbine)%Blade(IBlade)%QCy(NElem+1))
-    allocate(Turbine(ITurbine)%Blade(IBlade)%QCz(NElem+1))
-    allocate(Turbine(ITurbine)%Blade(IBlade)%tx(NElem+1))
-    allocate(Turbine(ITurbine)%Blade(IBlade)%ty(NElem+1))
-    allocate(Turbine(ITurbine)%Blade(IBlade)%tz(NElem+1))
-    allocate(Turbine(ITurbine)%Blade(IBlade)%C(NElem+1))
-    allocate(Turbine(ITurbine)%Blade(IBlade)%PEx(NElem))
-    allocate(Turbine(ITurbine)%Blade(IBlade)%PEy(NElem))
-    allocate(Turbine(ITurbine)%Blade(IBlade)%PEz(NElem))
-    allocate(Turbine(ITurbine)%Blade(IBlade)%tEx(NElem))
-    allocate(Turbine(ITurbine)%Blade(IBlade)%tEy(NElem))
-    allocate(Turbine(ITurbine)%Blade(IBlade)%tEz(NElem))
-    allocate(Turbine(ITurbine)%Blade(IBlade)%nEx(NElem))
-    allocate(Turbine(ITurbine)%Blade(IBlade)%nEy(NElem))
-    allocate(Turbine(ITurbine)%Blade(IBlade)%nEz(NElem))
-    allocate(Turbine(ITurbine)%Blade(IBlade)%sEx(NElem))
-    allocate(Turbine(ITurbine)%Blade(IBlade)%sEy(NElem))
-    allocate(Turbine(ITurbine)%Blade(IBlade)%sEz(NElem))
-    allocate(Turbine(ITurbine)%Blade(IBlade)%EC(NElem))
-    allocate(Turbine(ITurbine)%Blade(IBlade)%EDS(NElem))
-    allocate(Turbine(ITurbine)%Blade(IBlade)%EArea(NElem))
-    allocate(Turbine(ITurbine)%Blade(IBlade)%ETtoC(NElem))
-    allocate(Turbine(ITurbine)%Blade(IBlade)%EAirfoil(Nelem))
-    allocate(Turbine(ITurbine)%Blade(IBlade)%E_LB_Model(Nelem))
-    allocate(Turbine(ITurbine)%Blade(IBlade)%epsilon(Nelem))
-    allocate(Turbine(ITurbine)%Blade(IBlade)%root_dist(Nelem))
-    allocate(Turbine(ITurbine)%Blade(IBlade)%AOA_LAST(Nelem))
-    allocate(Turbine(ITurbine)%Blade(IBlade)%Un_LAST(Nelem))
-    allocate(Turbine(ITurbine)%Blade(IBlade)%Vrotx(NElem))
-    allocate(Turbine(ITurbine)%Blade(IBlade)%Vroty(NElem))
-    allocate(Turbine(ITurbine)%Blade(IBlade)%Vrotz(NElem))
-    allocate(Turbine(ITurbine)%Blade(IBlade)%Fn(NElem))
-    allocate(Turbine(ITurbine)%Blade(IBlade)%Ft(NElem))
-    allocate(Turbine(ITurbine)%Blade(IBlade)%Fs(NElem))
-    allocate(Turbine(ITurbine)%Blade(IBlade)%Fx(NElem))
-    allocate(Turbine(ITurbine)%Blade(IBlade)%Fy(NElem))
-    allocate(Turbine(ITurbine)%Blade(IBlade)%Fz(NElem))
-    allocate(Turbine(ITurbine)%Blade(IBlade)%Torque(NElem))
+    ewrite(1,*) 'Entering rotate_actuatorline'
+        
+        ! Specify the rotation axis and the normal vector of rotation
+        
+        nrx=rotN(1)
+        nry=RotN(2)
+        nrz=RotN(3)
+        
+        px=origin(1)
+        py=origin(2)
+        pz=origin(3)
+
+
+        do ielem=1,actuatorline%Nelem+1
+        ! Blade end locations (quarter chord). xBE(MaxSegEnds)
+        xtmp=actuatorline%QCx(ielem)
+        ytmp=actuatorline%QCy(ielem)
+        ztmp=actuatorline%QCz(ielem)
+        
+        Call QuatRot(xtmp,ytmp,ztmp,theta,nrx,nry,nrz,px,py,pz,vrx,vry,vrz)
+        actuatorline%QCx(ielem)=vrx                                       
+        actuatorline%QCy(ielem)=vry                                       
+        actuatorline%QCz(ielem)=vrz                                  
+        
+        txtmp=actuatorline%tx(ielem)
+        tytmp=actuatorline%ty(ielem)
+        tztmp=actuatorline%tz(ielem)
+        
+        ! Tangent vectors
+        Call QuatRot(txtmp,tytmp,tztmp,theta,nrx,nry,nrz,px,py,pz,vrx,vry,vrz)
+        VMag=sqrt(vrx**2+vry**2+vrz**2)
+        actuatorline%tx(ielem)=vrx/VMag                                      
+        actuatorline%ty(ielem)=vry/VMag                                  
+        actuatorline%tz(ielem)=vrz/VMag                                       
+  
+        end do
+    
+    ewrite(1,*) 'Exiting rotate_actuatorline'
+
+
+end subroutine rotate_actuatorline
+
+subroutine allocate_actuatorline(actuatorline,NStations)
+
+    implicit none
+    
+    type(ActuatorLineType) :: actuatorline
+    integer,intent(in) :: Nstations
+    integer :: NElem
+    
+    Nelem=Nstations-1
+    actuatorline%Nelem = Nelem
+
+    allocate(actuatorline%QCx(NElem+1))
+    allocate(actuatorline%QCy(NElem+1))
+    allocate(actuatorline%QCz(NElem+1))
+    allocate(actuatorline%tx(NElem+1))
+    allocate(actuatorline%ty(NElem+1))
+    allocate(actuatorline%tz(NElem+1))
+    allocate(actuatorline%C(NElem+1))
+    allocate(actuatorline%thick(NElem+1))
+    allocate(actuatorline%PEx(NElem))
+    allocate(actuatorline%PEy(NElem))
+    allocate(actuatorline%PEz(NElem))
+    allocate(actuatorline%tEx(NElem))
+    allocate(actuatorline%tEy(NElem))
+    allocate(actuatorline%tEz(NElem))
+    allocate(actuatorline%nEx(NElem))
+    allocate(actuatorline%nEy(NElem))
+    allocate(actuatorline%nEz(NElem))
+    allocate(actuatorline%sEx(NElem))
+    allocate(actuatorline%sEy(NElem))
+    allocate(actuatorline%sEz(NElem))
+    allocate(actuatorline%EC(NElem))
+    allocate(actuatorline%EDS(NElem))
+    allocate(actuatorline%EArea(NElem))
+    allocate(actuatorline%ETtoC(NElem))
+    allocate(actuatorline%epsilon(NElem))
+    allocate(actuatorline%EAirfoil(Nelem))
+    allocate(actuatorline%E_LB_Model(Nelem))
+    allocate(actuatorline%root_dist(Nelem))
+    allocate(actuatorline%Vbx(NElem))
+    allocate(actuatorline%Vby(NElem))
+    allocate(actuatorline%Vbz(NElem))
+    allocate(actuatorline%AOA_LAST(Nelem))
+    allocate(actuatorline%Un_LAST(Nelem))
+    allocate(actuatorline%Fn(NElem))
+    allocate(actuatorline%Ft(NElem))
+    allocate(actuatorline%Fs(NElem))
+    allocate(actuatorline%Fx(NElem))
+    allocate(actuatorline%Fy(NElem))
+    allocate(actuatorline%Fz(NElem))
+    allocate(actuatorline%Torque(NElem))
 
     
-end subroutine allocate_turbine_elements
-    
-subroutine turbine_geometry_read(i,FN)
+end subroutine allocate_actuatorline
+!    
+subroutine read_actuatorline_geometry(FN,Rmax,SpanwiseVec,rR,ctoR,pitch,thick,Nstations)
     
     implicit none
-    character(len=*) :: FN ! FileName of the geometry file
+    character(len=100),intent(in)  :: FN ! FileName of the geometry file
+    real,dimension(3) :: SpanwiseVec
+    real, allocatable,intent(out) :: rR(:),ctoR(:),pitch(:),thick(:)  
+    real, intent(out) :: Rmax  
+    integer, intent(out) :: Nstations
     integer :: i,j
     character(1000) :: ReadLine
-    
-    if(i>notur) then
-        FLExit("turbine index in turbine_geometry_read has exceeded the number of the turbines")
-    endif
     
     open(15,file=FN)
     ! Read the Number of Blades
     read(15,'(A)') ReadLine
-    read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%NBlades
+    read(ReadLine(index(ReadLine,':')+1:),*) Rmax 
+    
+    !Read Spanwise actuator line axis
+    read(15,'(A)') ReadLine
+    read(ReadLine(index(ReadLine,':')+1:),*) SpanwiseVec(1), SpanwiseVec(2), SpanwiseVec(3)
      
-    call allocate_turbine_blades(i,Turbine(i)%NBlades)
-    
-    ! Read the Turbine rotation axis normal vector (x y z values)
     read(15,'(A)') ReadLine
-    read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%RotN(1), Turbine(i)%RotN(2), Turbine(i)%RotN(3)
-    
-    ! Read the Turbine rotation origin point (x y z values)
-    read(15,'(A)') ReadLine
-    read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%RotP(1), Turbine(i)%RotP(2), Turbine(i)%RotP(3)
-    
+    read(ReadLine(index(ReadLine,':')+1:),*) Nstations
 
-    ! Read the perpendicular Axis of Rotation
-    read(15,'(A)') ReadLine
-    read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Rmax 
-    Turbine(i)%A=pi*Turbine(i)%Rmax**2.0
-    read(15,'(A)') ReadLine ! Defines the Type of the Turbine
-
+    allocate(rR(Nstations),ctoR(Nstations),pitch(Nstations),thick(Nstations))
+    ! Read the stations specs
+    do i=1,NStations
     
-    do j=1,Turbine(i)%NBlades
-    
-        read(15,'(A)') ReadLine ! Blade ....
-    
-        !Read Number of Elements
-        read(15,'(A)') ReadLine
-        read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Blade(j)%NElem
+    read(15,'(A)') ReadLine ! Blade ....
 
-        call allocate_turbine_elements(i,j,Turbine(i)%Blade(j)%NElem)
-        
-        !Read FlipN
-        read(15,'(A)') ReadLine
-        read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Blade(j)%FlipN
+    read(ReadLine,*) rR(i), ctoR(i), pitch(i), thick(i)
 
-        !Read QCx(1:NElem+1)
-        read(15,'(A)') ReadLine
-        read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Blade(j)%QCx(1:Turbine(i)%Blade(j)%Nelem+1)
-        
-        !Read QCy(1:NElem+1)
-        read(15,'(A)') ReadLine
-        read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Blade(j)%QCy(1:Turbine(i)%Blade(j)%Nelem+1)
-        
-        !Read QCz(1:NElem+1)
-        read(15,'(A)') ReadLine
-        read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Blade(j)%QCz(1:Turbine(i)%Blade(j)%Nelem+1)
-        
-        !Read tx(1:NElem+1)
-        read(15,'(A)') ReadLine
-        read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Blade(j)%tx(1:Turbine(i)%Blade(j)%Nelem+1)
-        
-        !Read ty(1:NElem+1)
-        read(15,'(A)') ReadLine
-        read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Blade(j)%ty(1:Turbine(i)%Blade(j)%Nelem+1)
-        
-        !Read tz(1:NElem+1)
-        read(15,'(A)') ReadLine
-        read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Blade(j)%tz(1:Turbine(i)%Blade(j)%Nelem+1)
-      
-        !Read C(1:NElem+1)
-        read(15,'(A)') ReadLine
-        read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Blade(j)%C(1:Turbine(i)%Blade(j)%Nelem+1)
-        
-        !Read PEx(1:NElem)
-        read(15,'(A)') ReadLine
-        read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Blade(j)%PEx(1:Turbine(i)%Blade(j)%Nelem)
-
-        !Read PEy(1:NElem)
-        read(15,'(A)') ReadLine
-        read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Blade(j)%PEy(1:Turbine(i)%Blade(j)%Nelem)
-        
-        !Read PEz(1:NElem)
-        read(15,'(A)') ReadLine
-        read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Blade(j)%PEz(1:Turbine(i)%Blade(j)%Nelem)
-        
-        !Read tEx(1:NElem)
-        read(15,'(A)') ReadLine
-        read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Blade(j)%tEx(1:Turbine(i)%Blade(j)%Nelem)
-        
-        !Read tEy(1:NElem)
-        read(15,'(A)') ReadLine
-        read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Blade(j)%tEy(1:Turbine(i)%Blade(j)%Nelem)
-        
-        !Read tEz(1:NElem)
-        read(15,'(A)') ReadLine
-        read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Blade(j)%tEz(1:Turbine(i)%Blade(j)%Nelem)
-        
-        !Read nEx(1:NElem)
-        read(15,'(A)') ReadLine
-        read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Blade(j)%nEx(1:Turbine(i)%Blade(j)%Nelem)
-        
-        !Read nEy(1:NElem)
-        read(15,'(A)') ReadLine
-        read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Blade(j)%nEy(1:Turbine(i)%Blade(j)%Nelem)
-        
-        !Read nEz(1:NElem)
-        read(15,'(A)') ReadLine
-        read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Blade(j)%nEz(1:Turbine(i)%Blade(j)%Nelem)
-        
-        !Read sEx(1:NElem)
-        read(15,'(A)') ReadLine
-        read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Blade(j)%sEx(1:Turbine(i)%Blade(j)%Nelem)
-        
-        !Read sEy(1:NElem)
-        read(15,'(A)') ReadLine
-        read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Blade(j)%sEy(1:Turbine(i)%Blade(j)%Nelem)
-        
-        !Read sEz(1:NElem)
-        read(15,'(A)') ReadLine
-        read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Blade(j)%sEz(1:Turbine(i)%Blade(j)%Nelem)
-        
-        !Read EC(1:NElem)
-        read(15,'(A)') ReadLine
-        read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Blade(j)%EC(1:Turbine(i)%Blade(j)%Nelem)
-        
-        !Read EArea(1:NElem)
-        read(15,'(A)') ReadLine
-        read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Blade(j)%EArea(1:Turbine(i)%Blade(j)%Nelem)
-        
-        !Read ETtoC(1:NElem)
-        read(15,'(A)') ReadLine
-        read(ReadLine(index(ReadLine,':')+1:),*) Turbine(i)%Blade(j)%ETtoC(1:Turbine(i)%Blade(j)%Nelem)
-        
     end do
     
     close(15)
 
 
-end subroutine turbine_geometry_read
+end subroutine read_actuatorline_geometry 
 
-SUBROUTINE set_blade_geometry(blade)
+
+SUBROUTINE set_actuatorline_geometry(blade)
 
     implicit none
 
-    type(BladeType),intent(INOUT) :: blade
+    type(ActuatorLineType),intent(INOUT) :: blade ! For simplity I leave it as blade. In fact this is an actuator line 
     integer :: BNum
-    integer :: nbe, nei, FlipN, nej, j
+    integer :: nbe, nei, nej, j
     real :: sEM, tEM, nEM, dx,dy,dz
     real :: PE(3), sE(3), tE(3), normE(3), P1(3), P2(3), P3(3), P4(3), V1(3), V2(3), V3(3), V4(3), A1(3), A2(3)
 
-    ewrite(2,*) 'Entering set_blade_geometry'
+    ewrite(2,*) 'Entering set_actuatorline_geometry'
     ! Calculates element geometry from element end geometry
 
     ! JCM: Eventually, should just be able to loop through Blades(BNum) data structure
     ! While data is still held in arrays concatenated across blades, need to replicate
     ! nbe (stored in configr) from Blades(1).NElem
     nbe=blade%NElem
-
-    FlipN=blade%FlipN
 
     do j=1,nbe
     nej=1+j
@@ -870,19 +909,14 @@ SUBROUTINE set_blade_geometry(blade)
     blade%nEy(nej-1)=normE(2)
     blade%nEz(nej-1)=normE(3)
 
-    ! Flip normal direction if requested
-    if (FlipN .eq. 1) then
-        blade%nEx(nej-1)= -blade%nEx(nej-1)
-        blade%nEy(nej-1)= -blade%nEy(nej-1)
-        blade%nEz(nej-1)= -blade%nEz(nej-1)
-        blade%sEx(nej-1)= -blade%sEx(nej-1)
-        blade%sEy(nej-1)= -blade%sEy(nej-1)
-        blade%sEz(nej-1)= -blade%sEz(nej-1)
-        blade%tEx(nej-1)= -blade%tEx(nej-1)
-        blade%tEy(nej-1)= -blade%tEy(nej-1)
-        blade%tEz(nej-1)= -blade%tEz(nej-1)
-    end if
-
+    if (blade%FlipN) then
+    blade%nEx(nej-1)=-blade%nEx(nej-1)
+    blade%nEy(nej-1)=-blade%nEy(nej-1)
+    blade%nEz(nej-1)=-blade%nEz(nej-1)
+    blade%sEx(nej-1)=-blade%sEx(nej-1)
+    blade%sEy(nej-1)=-blade%sEy(nej-1)
+    blade%sEz(nej-1)=-blade%sEz(nej-1)
+    endif
     ! Calc element area and chord
     P1=(/blade%QCx(nej-1)-0.25*blade%C(nej-1)*blade%tx(nej-1),blade%QCy(nej-1)-0.25*blade%C(nej-1)*blade%ty(nej-1),blade%QCz(nej-1)-0.25*blade%C(nej-1)*blade%tz(nej-1)/)
 
@@ -904,11 +938,10 @@ SUBROUTINE set_blade_geometry(blade)
     blade%EArea(nej-1)=sqrt(dot_product(A1,A1))+sqrt(dot_product(A2,A2))
     ! Calc average element chord from area and span
     blade%EC(nej-1)=blade%EArea(nej-1)/sEM
-
+    blade%ETtoC(nej-1)=0.5*(blade%thick(nej)+blade%thick(nej-1))
     end do
-    ewrite(2,*) 'Exiting set_blade_geometry'
+    ewrite(2,*) 'Exiting set_actuatorline_geometry'
 
-End SUBROUTINE set_blade_geometry 
+End SUBROUTINE set_actuatorline_geometry 
 
-end module alturbine
-
+end module actuator_line_model

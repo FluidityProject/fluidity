@@ -2436,16 +2436,110 @@ optimal size)</a:documentation>
         </element>
       </optional>
       <optional>
-        <element name="ALM_Turbine">
+        <element name="actuator_line_model">
           <a:documentation>Actuator Line Model Turbine</a:documentation>
           <zeroOrMore>
-            <element name="alm_turbine">
+            <element name="turbine">
               <a:documentation>specifies an ALM Turbine</a:documentation>
               <attribute name="name">
                 <data type="string"/>
               </attribute>
-              <element name="geometry_file">
+              <element name="blade_specs_file">
                 <a:documentation>geometry file</a:documentation>
+                <attribute name="file_name">
+                  <data type="string"/>
+                </attribute>
+                <element name="string_value">
+                  <a:documentation>The format of the input file containing field data.</a:documentation>
+                  <value>ascii</value>
+                </element>
+              </element>
+              <element name="airfoil_sections">
+                <a:documentation>Blade Section Airfoils  </a:documentation>
+                <zeroOrMore>
+                  <element name="section">
+                    <attribute name="name">
+                      <data type="string"/>
+                    </attribute>
+                    <attribute name="airfoil_file">
+                      <data type="string"/>
+                    </attribute>
+                    <element name="string_value">
+                      <value>ascii</value>
+                    </element>
+                  </element>
+                </zeroOrMore>
+              </element>
+              <element name="turbine_specs">
+                <element name="type">
+                  <choice>
+                    <element name="Horizontal_Axis">
+                      <element name="Number_of_blades">
+                        <ref name="integer"/>
+                      </element>
+                      <element name="origin">
+                        <a:documentation>This is the axis of rotation</a:documentation>
+                        <ref name="real_dim_vector"/>
+                      </element>
+                      <element name="hub_tilt_angle">
+                        <ref name="real"/>
+                      </element>
+                      <element name="blade_cone_angle">
+                        <ref name="real"/>
+                      </element>
+                      <element name="yaw_angle">
+                        <ref name="real"/>
+                      </element>
+                    </element>
+                    <element name="Vertical_Axis">
+                      <empty/>
+                    </element>
+                  </choice>
+                </element>
+              </element>
+              <element name="operation">
+                <choice>
+                  <element name="constant_rotational_velocity">
+                    <a:documentation>constant rotational velocity given in RPM (revolutions per minute)</a:documentation>
+                    <element name="TSR">
+                      <a:documentation>Tip Speed Ratio of the turbine</a:documentation>
+                      <ref name="real"/>
+                    </element>
+                    <element name="rotation_direction">
+                      <choice>
+                        <element name="clockwise">
+                          <empty/>
+                        </element>
+                        <element name="counter_clockwise">
+                          <empty/>
+                        </element>
+                      </choice>
+                    </element>
+                    <element name="nu">
+                      <a:documentation>Average reference Velocity upstream the turbine (usually taken one diameter upstream at hub height 
+Effective viscosity</a:documentation>
+                      <ref name="real"/>
+                    </element>
+                    <element name="Uref">
+                      <ref name="real"/>
+                    </element>
+                  </element>
+                  <element name="force_based_rotational_velocity">
+                    <attribute name="name">
+                      <data type="string"/>
+                    </attribute>
+                  </element>
+                </choice>
+              </element>
+            </element>
+          </zeroOrMore>
+          <zeroOrMore>
+            <element name="actuatorline">
+              <attribute name="name">
+                <data type="string"/>
+              </attribute>
+              <element name="geometry_file">
+                <a:documentation>actuator line file</a:documentation>
                 <attribute name="file_name">
                   <data type="string"/>
                 </attribute>
@@ -2470,24 +2564,22 @@ optimal size)</a:documentation>
                   </element>
                 </zeroOrMore>
               </element>
-              <element name="operation">
+              <element name="kinematics">
                 <choice>
-                  <element name="constant_rotational_velocity">
+                  <element name="no_motion">
                     <a:documentation>constant rotational velocity given in RPM (revolutions per minute)</a:documentation>
-                    <element name="TSR">
-                      <a:documentation>Tip Speed Ratio of the turbine</a:documentation>
+                    <empty/>
+                  </element>
+                  <element name="prescribed_pitch_motion">
+                    <element name="omega">
+                      <a:documentation>pitch motion frequency </a:documentation>
                       <ref name="real"/>
                     </element>
-                    <element name="nu">
-                      <a:documentation>Average reference Velocity upstream the turbine (usually taken one diameter upstream at hub height 
-Effective viscosity</a:documentation>
-                      <ref name="real"/>
-                    </element>
-                    <element name="Uref">
+                    <element name="U">
                       <ref name="real"/>
                     </element>
                   </element>
-                  <element name="force_based_rotational_velocity">
+                  <element name="prescribed_plunge_motion">
                     <attribute name="name">
                       <data type="string"/>
                     </attribute>

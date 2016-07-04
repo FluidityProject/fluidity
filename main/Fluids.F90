@@ -103,7 +103,7 @@ module fluids_module
   use saturation_distribution_search_hookejeeves
   use gls
   use iceshelf_meltrate_surf_normal
-  use alturbine
+  use actuator_line_model 
 
 #ifdef HAVE_HYPERLIGHT
   use hyperlight
@@ -223,8 +223,8 @@ contains
     
     !GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
     ! Initilise the Actuator Line Model 
-    if (have_option("/ALM_Turbine")) then
-        call turbine_init
+    if (have_option("/actuator_line_model")) then
+        call actuator_line_model_init
     end if
     !GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
 
@@ -750,11 +750,10 @@ contains
              call coupled_cv_field_eqn(state, global_it=its)
           end if
        
-          !If the ALTurbine Model is switched on then move turbine and compute the 
-       ! forcing terms to be added to the momentum equation
-          if (have_option("/ALM_Turbine")) then
-            call turbine_operate
-          end if
+          !If the actuator_line_model is switched on update fields
+          !if (have_option("/actuator_line_model")) then
+          !  call actuator_line_model_update
+          !end if
 
           
           

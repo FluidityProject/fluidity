@@ -26,11 +26,7 @@
 !    USA
 #include "fdebug.h"
   
-
-
-
-
-module alturbine_utils
+module actuator_line_model_utils
 
     use fldebug
     use global_parameters, only:FIELD_NAME_LEN,OPTION_PATH_LEN, PYTHON_FUNC_LEN, pi
@@ -189,4 +185,4 @@ contains
 
 
  
-end module alturbine_utils
+end module actuator_line_model_utils
