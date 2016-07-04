@@ -2,6 +2,8 @@
 
 module meshmovement
 
+  use iso_c_binding
+
   use global_parameters
   use fldebug
   use vector_tools, only: solve, mat_diag_mat, eigendecomposition_symmetric
@@ -38,10 +40,26 @@ module meshmovement
      subroutine reset_debug_level
      end subroutine reset_debug_level
   end interface
+
+  interface
+     subroutine lap_smoother(dim, num_nodes,&
+          num_elements, num_surf_elements,&
+          connectivity, phys_mesh, smooth_mesh,&
+          comp_mesh, surf_connectivity) bind(c)
+       use iso_c_binding
+       
+       integer (c_int), value :: dim, num_nodes, num_elements, num_surf_elements
+       integer (c_int), dimension((dim+1)*num_elements) :: connectivity
+       real (c_double), dimension(num_nodes) :: phys_mesh, smooth_mesh, comp_mesh
+       integer (c_int), dimension(dim*num_elements) :: surf_connectivity
+       
+     end subroutine lap_smoother
+  end interface
   
   private
   
-  public :: move_mesh_imposed_velocity, move_mesh_pseudo_lagrangian, movemeshy
+  public :: move_mesh_imposed_velocity, move_mesh_pseudo_lagrangian, movemeshy,&
+       move_mesh_laplacian_smoothing, move_mesh_initialise_laplacian_smoothing
 
 contains
   subroutine movemeshy(state,move_option,TimeStep)
@@ -1174,7 +1192,7 @@ contains
   end subroutine apply_lagrangian_multiplier
 
   subroutine move_mesh_imposed_velocity(states)
-  type(state_type), dimension(:), intent(inout) :: states
+    type(state_type), dimension(:), intent(inout) :: states
   
     type(vector_field), pointer :: coordinate, old_coordinate, new_coordinate
     type(vector_field), pointer :: velocity
@@ -1196,26 +1214,27 @@ contains
     new_coordinate => extract_vector_field(states(1), "IteratedCoordinate")
     
     call get_option("/timestepping/timestep", dt)
+
     
     found_velocity = .false.
     do i = 1, size(states)
-      velocity => extract_vector_field(states(i), "Velocity", stat)
-      if(stat==0 .and. .not. velocity%aliased) then
-        call get_option(trim(velocity%option_path)//"/prognostic/temporal_discretisation/relaxation", itheta, stat)
-        if(found_velocity.and.(stat==0)) then
-          FLExit("Only one prognostic velocity allowed with imposed mesh movement.")
-        else
-          found_velocity = (stat==0)
-        end if
-      end if
+       velocity => extract_vector_field(states(i), "Velocity", stat)
+       if(stat==0 .and. .not. velocity%aliased) then
+          call get_option(trim(velocity%option_path)//"/prognostic/temporal_discretisation/relaxation", itheta, stat)
+          if(found_velocity.and.(stat==0)) then
+             FLExit("Only one prognostic velocity allowed with imposed mesh movement.")
+          else
+             found_velocity = (stat==0)
+          end if
+       end if
     end do
     if(.not.found_velocity) then
-      itheta = 0.5
+       itheta = 0.5
     end if
     
     call set(new_coordinate, old_coordinate)
     call addto(new_coordinate, grid_velocity, scale=dt)
-    
+  
     call set(coordinate, new_coordinate, old_coordinate, itheta)
   
   end subroutine move_mesh_imposed_velocity
@@ -1279,6 +1298,107 @@ contains
     call set(coordinate, new_coordinate, old_coordinate, itheta)
   
   end subroutine move_mesh_pseudo_lagrangian
+
+
+  subroutine move_mesh_laplacian_smoothing(states)
+    type(state_type), dimension(:), intent(inout) :: states
+  
+    type(vector_field), pointer :: coordinate, old_coordinate, new_coordinate,&
+         initial_coordinate
+    type(vector_field), pointer :: velocity
+    type(vector_field), pointer :: grid_velocity
+    type(mesh_type), pointer    :: surface_mesh
+    
+    integer :: i, stat
+    real :: itheta, dt
+    logical :: found_velocity
+
+    !!! This routine drives a call to C code which does the actual assembly and
+    !!! solution for a Laplacian smoothed grid velocity.
+
+    !!! The boundary conditions from the grid velocity field specified in diamond
+    !!! should be satisfied by this solution.
+
+    if (.not. have_option("/mesh_adaptivity/mesh_movement/laplacian_smoothing")) return
+
+    ewrite(1,*) 'Entering move_mesh_laplacian_smoothing'
+    
+    grid_velocity => extract_vector_field(states(1), "GridVelocity")
+    
+    coordinate => extract_vector_field(states(1), "Coordinate")
+    old_coordinate => extract_vector_field(states(1), "OldCoordinate")
+    new_coordinate => extract_vector_field(states(1), "IteratedCoordinate")
+    initial_coordinate => extract_vector_field(states(1), "InitialCoordinate")
+    surface_mesh => extract_mesh(states(1),"FullCoordinateSurfaceMesh")
+    
+    call get_option("/timestepping/timestep", dt)
+
+    
+    found_velocity = .false.
+    do i = 1, size(states)
+       velocity => extract_vector_field(states(i), "Velocity", stat)
+       if(stat==0 .and. .not. velocity%aliased) then
+          call get_option(trim(velocity%option_path)//"/prognostic/temporal_discretisation/relaxation", itheta, stat)
+          if(found_velocity.and.(stat==0)) then
+             FLExit("Only one prognostic velocity allowed with imposed mesh movement.")
+          else
+             found_velocity = (stat==0)
+          end if
+       end if
+    end do
+    if(.not.found_velocity) then
+       itheta = 0.5
+    end if
+       
+    call set(coordinate, old_coordinate) 
+    call addto(coordinate, grid_velocity, scale = dt)       
+  
+    !!! actual call out to the C code.
+     
+    call lap_smoother(mesh_dim(coordinate), node_count(coordinate),&
+          element_count(coordinate), surface_element_count(coordinate),&
+          coordinate%mesh%ndglno, coordinate%val, new_coordinate%val,&
+          initial_coordinate%val, surface_mesh%ndglno)
+
+    !!! Convert the new coordinates returned into a grid velocity
+    !!! and calculate the coordinate field at the theta time level.
+
+    call set(grid_velocity,new_coordinate)
+    call addto(grid_velocity, old_coordinate, scale = -1.0)
+    call scale(grid_velocity, 1.0/dt)
+
+    call set(coordinate, new_coordinate, old_coordinate, itheta)
+
+
+  end subroutine move_mesh_laplacian_smoothing
+
+  subroutine move_mesh_initialise_laplacian_smoothing(states)
+    type(state_type), dimension(:), intent(inout) :: states
+
+    type(vector_field), pointer :: coordinate
+    type(vector_field) :: initial_coordinate
+    type(mesh_type) :: surface_mesh
+
+    !!! Store the initial mesh for use as the computational geometry for the
+    !!  Laplacian mesh smoothing library.
+
+    coordinate => extract_vector_field(states(1), "Coordinate")
+
+    call allocate(initial_coordinate, mesh=coordinate%mesh, dim=coordinate%dim,&
+         name="InitialCoordinate")
+    call set(initial_coordinate, coordinate)
+    call insert(states(1), initial_coordinate, "InitialCoordinate")
+    call deallocate(initial_coordinate)
+
+    !!! Add the surface mesh. This needs revisiting for parallel
+
+    call extract_surface_mesh(surface_mesh, coordinate%mesh, "FullCoordinateSurfaceMesh")
+    call insert(states(1), surface_mesh, "FullCoordinateSurfaceMesh")
+    call deallocate(surface_mesh)
+
+  end subroutine move_mesh_initialise_laplacian_smoothing
+
+
 
 end module meshmovement
 

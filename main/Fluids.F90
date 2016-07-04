@@ -335,6 +335,11 @@ contains
     !    they will be updated (inside the call)
     call move_mesh_free_surface(state, initialise=.true.)
 
+    !! initialise laplacian smoothing if necessary
+    if (have_option("/mesh_adaptivity/mesh_movement/laplacian_smoothing")) then
+       call move_mesh_initialise_laplacian_smoothing(state)
+    end if
+
     call run_diagnostics(state)
 
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
@@ -523,6 +528,7 @@ contains
        ! to ensure those properties are satisfied on the new mesh not the old one.
        call move_mesh_imposed_velocity(state)
        call move_mesh_pseudo_lagrangian(state)
+       call move_mesh_laplacian_smoothing(state)
 
        call enforce_discrete_properties(state, only_prescribed=.true., &
             exclude_interpolated=.true., &

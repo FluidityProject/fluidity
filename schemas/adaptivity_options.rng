@@ -2205,6 +2205,12 @@ on the cost of a worse internal representation of the wetting and drying interfa
 Requires a prescribed GridVelocity field (see below).</a:documentation>
               <empty/>
             </element>
+            <element name="laplacian_smoothing">
+              <a:documentation>Enable movement of mesh to satisfy a moving mesh PDE.
+The boundary condition on the GridVelocity field is imposed
+on the calculated solution.</a:documentation>
+              <empty/>
+            </element>
             <element name="pseudo_lagrangian">
               <a:documentation>Enable movement of mesh by the Velocity.
 Note that this is only pseudo-lagrangian as the
