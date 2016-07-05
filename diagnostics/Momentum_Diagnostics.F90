@@ -335,7 +335,7 @@ contains
       real :: volume, meshFactor, dragFactor, chordFactor
       real :: epsilon_par_drag, epsilon_par_chord, epsilon_par_mesh, epsilon_threshold
       character(len = OPTION_PATH_LEN) :: base_path
-      real :: Send(5), Recv(5)
+      real :: Send(4), Recv(4)
       ! MPI related parameters declaration
       integer :: count,dest, ierr, num_procs, rank, status(MPI_Status_size), tag,irank
       real :: tic,toc, mpi_time
@@ -388,20 +388,17 @@ contains
       call picker_inquire(positions,Scoords,ele,local_coord,.true.)
       if (ele<0) then
           ewrite(2,*) 'I dont own the element'
-          call MPI_recv(Recv,5,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,tag,MPI_COMM_WORLD,status,ierr)
-        Turbine(iturb)%Blade(jblade)%Fx(kelem)=Recv(1)
-        Turbine(iturb)%Blade(jblade)%Fy(kelem)=Recv(2)
-        Turbine(iturb)%Blade(jblade)%Fz(kelem)=Recv(3)
+          call MPI_recv(Recv,4,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,tag,MPI_COMM_WORLD,status,ierr)
+        Turbine(iturb)%Blade(jblade)%Vx(kelem)=Recv(1)
+        Turbine(iturb)%Blade(jblade)%Vy(kelem)=Recv(2)
+        Turbine(iturb)%Blade(jblade)%Vz(kelem)=Recv(3)
         Turbine(iturb)%Blade(jblade)%epsilon(kelem)=Recv(4)
-        Turbine(iturb)%Blade(jblade)%Torque(kelem)=Recv(5)
         ewrite(2,*) 'Received', Recv, ' from processor', status(MPI_SOURCE)
       else
           ewrite(2,*) 'I own the element'
           
           value_vel=eval_field(ele,velocity,local_coord)
           
-          call Compute_Element_Forces(iTurb,jblade,kelem,value_vel) 
-
           volume=element_volume(positions,ele)
 
           epsilon_par_mesh  = 2.0*meshFactor*volume**(1.0/3.0) 
@@ -415,25 +412,25 @@ contains
           else
               epsilon_par=epsilon_par_mesh
           end if
-
+        
+        Turbine(iturb)%Blade(jblade)%Vx(kelem)=value_vel(1)
+        Turbine(iturb)%Blade(jblade)%Vy(kelem)=value_vel(2)
+        Turbine(iturb)%Blade(jblade)%Vz(kelem)=value_vel(3)
         Turbine(iturb)%Blade(jblade)%epsilon(kelem)=epsilon_par
           
-
         do irank=0,num_procs-1
         if(irank.ne.rank) then
-        Send(1)=Turbine(iturb)%Blade(jblade)%Fx(kelem)
-        Send(2)=Turbine(iturb)%Blade(jblade)%Fy(kelem)
-        Send(3)=Turbine(iturb)%Blade(jblade)%Fz(kelem)
+        Send(1)=Turbine(iturb)%Blade(jblade)%Vx(kelem)
+        Send(2)=Turbine(iturb)%Blade(jblade)%Vy(kelem)
+        Send(3)=Turbine(iturb)%Blade(jblade)%Vz(kelem)
         Send(4)=Turbine(iturb)%Blade(jblade)%epsilon(kelem)
-        Send(5)=Turbine(iturb)%Blade(jblade)%Torque(kelem)
-        call MPI_Send(Send,5,MPI_DOUBLE_PRECISION,irank,tag,MPI_COMM_WORLD,ierr)
+        call MPI_Send(Send,4,MPI_DOUBLE_PRECISION,irank,tag,MPI_COMM_WORLD,ierr)
         ewrite(2,*) 'Sent' , Send, ' to processor ', irank        
         end if 
         
         end do
 
-      endif
-        
+      endif 
       end do
       end do
       end do
@@ -441,6 +438,12 @@ contains
       call cpu_time(toc)
       mpi_time=toc-tic
       ewrite(2,*) 'MPI_Communication Time', mpi_time
+
+      !################## END OF MPI INTERFACE ############################
+    
+      !## Compute the forces
+      !
+      !## 
 
       do iTurb=1,Ntur
       do jblade=1,Turbine(iTurb)%NBlades
