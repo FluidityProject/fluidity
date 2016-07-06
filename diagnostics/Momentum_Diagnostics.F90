@@ -325,13 +325,14 @@ contains
       type(vector_field), intent(inout) :: v_field
 
       real,dimension(v_field%dim) :: Scoords , Rcoords, DSource
-      type(scalar_field), pointer :: density
-      type(vector_field), pointer :: positions, velocity, viscosity
-      integer :: i,j,ele, iturb, jblade, kelem
+      type(vector_field), pointer :: positions, velocity
+      type(tensor_field), pointer :: ViscosityTens
+      integer :: i,j,ele, iturb, jblade, kelem, ial
       real, dimension(v_field%dim+1) :: local_coord
       real, dimension(v_field%dim) :: value_vel
       real, dimension(v_field%dim,v_field%dim) :: visc_tensor
-      real :: dr2, d, epsilon_par, Area, radius, V_rel,V_rel2,loc_kern, nu
+      real :: dr2, d, epsilon_par, Area, radius, V_rel,V_rel2,loc_kern
+      real,dimension(3,3) :: nu
       real :: volume, meshFactor, dragFactor, chordFactor
       real :: epsilon_par_drag, epsilon_par_chord, epsilon_par_mesh, epsilon_threshold
       character(len = OPTION_PATH_LEN) :: base_path
@@ -353,7 +354,9 @@ contains
       !> Get Position and Velocity Field
       positions => extract_vector_field(states(state_index),"Coordinate")  
       velocity  => extract_vector_field(states(state_index), "Velocity")
-
+    
+      ViscosityTens => extract_tensor_field(states(state_index),"Viscosity")
+        
       !> Read the Cmax values
       call get_option(trim(complete_field_path(trim(v_field%option_path))) // &        
                     "/algorithm[0]/meshFactor", meshFactor, default=2.75)   
@@ -374,14 +377,12 @@ contains
       call cpu_time(tic)
     
       ! ################## Starting the Actuator_Line_model Interface ###################
-      do iTurb=1,Ntur
-      do jblade=1,Turbine(iTurb)%NBlades
-      do kelem=1,Turbine(iTurb)%Blade(jblade)%NElem
-
+      do ial=1,Nal
+        do kelem=1,actuatorline(ial)%NElem
       ! Set the elements
-      Scoords(1)=Turbine(iTurb)%Blade(jblade)%PEx(kelem)
-      Scoords(2)=Turbine(iTurb)%Blade(jblade)%PEy(kelem)
-      Scoords(3)=Turbine(iTurb)%Blade(jblade)%PEz(kelem)
+      Scoords(1)=actuatorline(ial)%PEx(kelem)
+      Scoords(2)=actuatorline(ial)%PEy(kelem)
+      Scoords(3)=actuatorline(ial)%PEz(kelem)
         
       ! Call a 
 
@@ -389,21 +390,24 @@ contains
       if (ele<0) then
           ewrite(2,*) 'I dont own the element'
           call MPI_recv(Recv,4,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,tag,MPI_COMM_WORLD,status,ierr)
-        Turbine(iturb)%Blade(jblade)%Vx(kelem)=Recv(1)
-        Turbine(iturb)%Blade(jblade)%Vy(kelem)=Recv(2)
-        Turbine(iturb)%Blade(jblade)%Vz(kelem)=Recv(3)
-        Turbine(iturb)%Blade(jblade)%epsilon(kelem)=Recv(4)
+        actuatorline(ial)%EVx(kelem)=Recv(1)
+        actuatorline(ial)%EVy(kelem)=Recv(2)
+        actuatorline(ial)%EVz(kelem)=Recv(3)
+        actuatorline(ial)%Eepsilon(kelem)=Recv(4)
         ewrite(2,*) 'Received', Recv, ' from processor', status(MPI_SOURCE)
       else
           ewrite(2,*) 'I own the element'
           
           value_vel=eval_field(ele,velocity,local_coord)
-          
+          nu=eval_field(ele,ViscosityTens,local_coord)
+        
+          Visc=1.0/3.0*(nu(1,1)+nu(2,2)+nu(3,3)) ! Compute trace of the viscosity tensor 
+
           volume=element_volume(positions,ele)
 
           epsilon_par_mesh  = 2.0*meshFactor*volume**(1.0/3.0) 
-          epsilon_par_drag  = 1.1*dragFactor*Turbine(iTurb)%Blade(jblade)%EC(kelem)/2.0      
-          epsilon_par_chord = chordFactor*Turbine(iTurb)%Blade(jblade)%EC(kelem)
+          epsilon_par_drag  = 1.1*dragFactor*actuatorline(ial)%EC(kelem)/2.0      
+          epsilon_par_chord = chordFactor*actuatorline(ial)%EC(kelem)
 
           epsilon_threshold = max(epsilon_par_drag,epsilon_par_chord)
 
@@ -413,17 +417,17 @@ contains
               epsilon_par=epsilon_par_mesh
           end if
         
-        Turbine(iturb)%Blade(jblade)%Vx(kelem)=value_vel(1)
-        Turbine(iturb)%Blade(jblade)%Vy(kelem)=value_vel(2)
-        Turbine(iturb)%Blade(jblade)%Vz(kelem)=value_vel(3)
-        Turbine(iturb)%Blade(jblade)%epsilon(kelem)=epsilon_par
+        actuatorline(ial)%EVx(kelem)=value_vel(1)
+        actuatorline(ial)%EVy(kelem)=value_vel(2)
+        actuatorline(ial)%EVz(kelem)=value_vel(3)
+        actuatorline(ial)%Eepsilon(kelem)=epsilon_par
           
         do irank=0,num_procs-1
         if(irank.ne.rank) then
-        Send(1)=Turbine(iturb)%Blade(jblade)%Vx(kelem)
-        Send(2)=Turbine(iturb)%Blade(jblade)%Vy(kelem)
-        Send(3)=Turbine(iturb)%Blade(jblade)%Vz(kelem)
-        Send(4)=Turbine(iturb)%Blade(jblade)%epsilon(kelem)
+        Send(1)=actuatorline(ial)%EVx(kelem)
+        Send(2)=actuatorline(ial)%EVy(kelem)
+        Send(3)=actuatorline(ial)%EVz(kelem)
+        Send(4)=actuatorline(ial)%Eepsilon(kelem)
         call MPI_Send(Send,4,MPI_DOUBLE_PRECISION,irank,tag,MPI_COMM_WORLD,ierr)
         ewrite(2,*) 'Sent' , Send, ' to processor ', irank        
         end if 
@@ -431,7 +435,6 @@ contains
         end do
 
       endif 
-      end do
       end do
       end do
 
@@ -444,15 +447,13 @@ contains
       !## Compute the forces
       !
       !## 
-
-      do iTurb=1,Ntur
-      do jblade=1,Turbine(iTurb)%NBlades
-      do kelem=1,Turbine(iTurb)%Blade(jblade)%NElem
+      do ial=1,Nal
+        do kelem=1,actuatorline(ial)%NElem
 
       ! Set the elements
-      Scoords(1)=Turbine(iTurb)%Blade(jblade)%PEx(kelem)
-      Scoords(2)=Turbine(iTurb)%Blade(jblade)%PEy(kelem)
-      Scoords(3)=Turbine(iTurb)%Blade(jblade)%PEz(kelem)
+      Scoords(1)=actuatorline(ial)%PEx(kelem)
+      Scoords(2)=actuatorline(ial)%PEy(kelem)
+      Scoords(3)=actuatorline(ial)%PEz(kelem)
 
                   do i = 1, node_count(v_field)
                       ! Compute a Sphere of Influence with diameter equal to chord/2
@@ -466,20 +467,19 @@ contains
                           dr2=dr2+d**2.0
                       end do
                       
-                      if(sqrt(dr2)<Turbine(iTurb)%Blade(jblade)%EDS(kelem)/2.0+Turbine(iturb)%Blade(jblade)%epsilon(kelem)*sqrt(3.0)) then
-                        loc_kern=Kernel(sqrt(dr2),Turbine(iturb)%Blade(jblade)%epsilon(kelem),v_field%dim)
+                      if(sqrt(dr2)<actuatorline(ial)%EDS(kelem)/2.0+actuatorline(ial)%Eepsilon(kelem)*sqrt(3.0)) then
+                        loc_kern=Kernel(sqrt(dr2),actuatorline(ial)%Eepsilon(kelem),v_field%dim)
                       else
                           loc_kern=0.0
                       endif
 
                   ! The (-) means that the fluid and the body are in equilibrium at each time
-                  DSource(1)=-loc_kern*Turbine(iturb)%Blade(jblade)%Fx(kelem)
-                  DSource(2)=-loc_kern*Turbine(iturb)%Blade(jblade)%Fy(kelem)
-                  DSource(3)=-loc_kern*Turbine(iturb)%Blade(jblade)%Fz(kelem)
+                  DSource(1)=-loc_kern*actuatorline(ial)%EFx(kelem)
+                  DSource(2)=-loc_kern*actuatorline(ial)%EFy(kelem)
+                  DSource(3)=-loc_kern*actuatorline(ial)%EFz(kelem)
                   
                   call addto(v_field,i,DSource)
                 end do
-      end do
       end do
       end do
      

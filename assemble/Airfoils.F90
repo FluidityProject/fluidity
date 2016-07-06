@@ -32,7 +32,7 @@ module airfoils
 
   use fldebug
   use global_parameters, only:FIELD_NAME_LEN,OPTION_PATH_LEN, PYTHON_FUNC_LEN, pi
-  use lbdynstall
+  use dynstall
 
   implicit none
   
