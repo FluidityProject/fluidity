@@ -839,9 +839,9 @@
           if (partial_stress) then
              Viscosity_mat(:,:,:loc,:loc) = &
                   Viscosity_mat(:,:,:loc,:loc) &
-             +0.5*dshape_tensor_dot_dshape(du_t, ele_val_at_quad(Viscosity,ele), &
+             +0.5*dshape_tensor_outer_dshape(du_t, ele_val_at_quad(Viscosity,ele), &
                   du_t, detwei) &
-                  +0.5*dshape_dot_tensor_dshape(du_t, ele_val_at_quad(Viscosity,ele), &
+                  +0.5*dshape_outer_tensor_dshape(du_t, ele_val_at_quad(Viscosity,ele), &
                   du_t, detwei)
           end if
 
@@ -1574,7 +1574,7 @@
     no_normal_flow=.false.
     l_have_pressure_bc=.false.
     if (boundary) then
-       do dim=1,U%dim
+       do dim=1,NDIM(U)
           if (velocity_bc_type(dim,face)==1) then
              dirichlet(dim)=.true.
           end if
@@ -1677,7 +1677,7 @@
              &                       outer_advection_integral * detwei * Rho_q)
       end if
 
-      do dim = 1, u%dim
+      do dim = 1, NDIM(U)
       
          ! Insert advection in matrix.
          if(subcycle) then
@@ -1752,8 +1752,9 @@
           call local_assembly_primal_face
           if (partial_stress) then
              call local_assembly_cdg_partial_stress_face
+          else
+             call local_assembly_cdg_face
           end if
-          call local_assembly_cdg_face
           call local_assembly_ip_face
        end select
 
@@ -1781,7 +1782,7 @@
        !      /
        ! add -|  N_i M_j \vec n p_j, where p_j are the prescribed bc values
        !      /
-       do dim = 1, U%dim
+       do dim = 1, NDIM(U)
           if(subtract_out_reference_profile) then
             rhs_addto(dim,u_face_l) = rhs_addto(dim,u_face_l) - &
                  matmul( ele_val(pressure_bc, face) - face_val(hb_pressure, face), mnCT(1,dim,:,:) )
@@ -2089,10 +2090,11 @@
 
       integer :: d, d1, d2
       real :: flux_factor
+      real, dimension(FLOC(U,face), FLOC(U,face)) :: temp
 
       if(viscosity_scheme==CDG) then
          flux_factor = 0.0
-         CDG_switch_in = (sum(switch_g(1:mesh_dim(U))*sum(normal,2)/size(normal,2))>0)
+         CDG_switch_in = (sum(switch_g(1:MDIM(U))*sum(normal,2)/size(normal,2))>0)
          if(CDG_switch_in) flux_factor = 1.0
       else
          flux_factor = 0.5
@@ -2100,48 +2102,42 @@
       end if
 
       do d2 = 1, mesh_dim(U)
+
+         temp(:,:) = shape_shape(U_shape,U_shape, &
+              & detwei * sum(normal(:,:) * kappa_gi(:,d2,:), dim=1))
+    
          do d1 = 1, mesh_dim(U)
-            do d = 1, mesh_dim(U)
             !  -Int_e 1/2 (u^+ - u^-)n^+.kappa^+ grad v^+
-               if(.not.boundary) then
+            if(.not.boundary) then
                ! Internal face.
-                  if(CDG_switch_in) then
-                     primal_fluxes_mat_partial_stress(1,d1,d2,:,:) =&
-                          primal_fluxes_mat_partial_stress(1,d1,d2,:,:)&
-                          -flux_factor*matmul( &
-                          shape_shape(U_shape,U_shape, &
-                          & detwei * normal(d,:) * kappa_gi(d,d2,:)), &
-                          ele2grad_mat(d1,U_face_l,:))
-                     
-                     ! External face.
-                     primal_fluxes_mat_partial_stress(2,d1,d2,:,:) =&
-                          primal_fluxes_mat_partial_stress(2,d1,d2,:,:)&
-                          +flux_factor*matmul( &
-                          shape_shape(U_shape,U_shape, &
-                          & detwei * normal(d,:) * kappa_gi(d,d2,:)), &
-                          ele2grad_mat(d1,U_face_l,:)) 
-                  end if
-               else
-                  !If a Dirichlet boundary, we add these terms, otherwise not.
-                  
-                  !we do the entire integral on the inside face
+               if(CDG_switch_in) then
                   primal_fluxes_mat_partial_stress(1,d1,d2,:,:) =&
                        primal_fluxes_mat_partial_stress(1,d1,d2,:,:)&
-                       -matmul( &
-                       shape_shape(U_shape,U_shape, &
-                       & detwei * normal(d,:) * kappa_gi(d,d2,:)), &
-                       ele2grad_mat(d1,U_face_l,:)) 
-                  
-                  !There is also a corresponding boundary condition integral
-                  !on the RHS
+                       -flux_factor*matmul( temp,  &
+                       ele2grad_mat(d1,U_face_l,:))
+                     
+                     ! External face.
                   primal_fluxes_mat_partial_stress(2,d1,d2,:,:) =&
                        primal_fluxes_mat_partial_stress(2,d1,d2,:,:)&
-                       +matmul( &
-                       shape_shape(U_shape,U_shape, &
-                       & detwei * normal(d,:) * kappa_gi(d,d2,:)), &
+                       +flux_factor*matmul( temp, &
                        ele2grad_mat(d1,U_face_l,:)) 
                end if
-            end do
+            else
+               !If a Dirichlet boundary, we add these terms, otherwise not.
+               
+               !we do the entire integral on the inside face
+               primal_fluxes_mat_partial_stress(1,d1,d2,:,:) =&
+                    primal_fluxes_mat_partial_stress(1,d1,d2,:,:)&
+                    -matmul( temp, &
+                    ele2grad_mat(d1,U_face_l,:)) 
+               
+               !There is also a corresponding boundary condition integral
+               !on the RHS
+               primal_fluxes_mat_partial_stress(2,d1,d2,:,:) =&
+                    primal_fluxes_mat_partial_stress(2,d1,d2,:,:)&
+                    +matmul( temp, &
+                    ele2grad_mat(d1,U_face_l,:)) 
+            end if
          end do
       end do
 
@@ -2259,7 +2255,7 @@
             end if
          end do
       else
-         do d=1,U%dim
+         do d=1,NDIM(U)
             !! Internal Degrees of Freedom
             
             !penalty flux
@@ -2311,46 +2307,40 @@
                        primal_fluxes_mat(1,j,:) 
                end do
 
-               if (partial_stress) then
-
-                  do i=1,NDIM(U)
-
-                     Viscosity_mat(i,d,u_face_loc,1:nele) = &
-                          Viscosity_mat(i,d,u_face_loc,1:nele) + &
-                          primal_fluxes_mat_partial_stress(1,i,d,:,:)
-               
-                     do j = 1, size(u_face_loc)
-                        Viscosity_mat(i,d,1:nele,u_face_loc(j)) = &
-                             Viscosity_mat(i,d,1:nele,u_face_loc(j)) + &
-                             primal_fluxes_mat_partial_stress(1,d,i,j,:)
-                     end do
-                  end do
-
-               end if
-
                !primal fluxes
 
                Viscosity_mat(d,d,1:nele,start:finish) = &
                     Viscosity_mat(d,d,1:nele,start:finish) + &
                     transpose(primal_fluxes_mat(2,:,:)) 
+               
+            end if
 
-              if (partial_stress) then
-
-                  do i=1,NDIM(U)
+            if (partial_stress) then
+               
+               do i=1,NDIM(U)
+                  if (dirichlet(i)) then
+                     Viscosity_mat(i,d,u_face_loc,1:nele) = &
+                          Viscosity_mat(i,d,u_face_loc,1:nele) + &
+                          primal_fluxes_mat_partial_stress(1,i,d,:,:)
+                     
+                     do j = 1, size(u_face_loc)
+                        Viscosity_mat(i,d,1:nele,u_face_loc(j)) = &
+                             Viscosity_mat(i,d,1:nele,u_face_loc(j)) + &
+                             primal_fluxes_mat_partial_stress(1,d,i,j,:)
+                     end do
 
                      Viscosity_mat(i,d,1:nele,start:finish) = &
                           Viscosity_mat(i,d,1:nele,start:finish) + &
-                          transpose(primal_fluxes_mat_partial_stress(2,d,i,:,:))
-                         
-               
-                  end do
+                          transpose(primal_fluxes_mat_partial_stress(2,d,i,:,:))  
 
-               end if
-               
+                  end if 
+               end do
+
             end if
+
          end do
       else
-         do d=1,U%dim
+         do d=1,NDIM(U)
             !! Internal Degrees of Freedom
             
             !primal fluxes
@@ -2365,22 +2355,22 @@
                     primal_fluxes_mat(1,j,:) 
             end do
 
-               if (partial_stress) then
+            if (partial_stress) then
 
-                  do i=1,NDIM(U)
+               do i=1,NDIM(U)
 
-                     Viscosity_mat(i,d,u_face_loc,1:nele) = &
-                          Viscosity_mat(i,d,u_face_loc,1:nele) + &
-                          primal_fluxes_mat_partial_stress(1,i,d,:,:)
-               
-                     do j = 1, size(u_face_loc)
-                        Viscosity_mat(i,d,1:nele,u_face_loc(j)) = &
-                             Viscosity_mat(i,d,1:nele,u_face_loc(j)) + &
-                             primal_fluxes_mat_partial_stress(1,d,i,j,:) 
-                     end do
+                  Viscosity_mat(i,d,u_face_loc,1:nele) = &
+                       Viscosity_mat(i,d,u_face_loc,1:nele) + &
+                       primal_fluxes_mat_partial_stress(1,i,d,:,:)
+                  
+                  do j = 1, size(u_face_loc)
+                     Viscosity_mat(i,d,1:nele,u_face_loc(j)) = &
+                          Viscosity_mat(i,d,1:nele,u_face_loc(j)) + &
+                          primal_fluxes_mat_partial_stress(1,d,i,j,:) 
                   end do
+               end do
 
-               end if
+            end if
             
             !! External Degrees of Freedom
             
@@ -2508,17 +2498,17 @@
 
       integer :: i,j,d1,d2,nele,face1,face2,d
       integer, dimension(FLOC(U,face)) :: U_face_loc    
-      real, dimension(MDIM(U),NLOC(U,ele),FLOC(U,face)) :: R_mat
-      real, dimension(2,2,FLOC(U,face),FLOC(U,face)) :: add_mat
+      real, dimension(NLOC(U,ele),FLOC(U,face),MDIM(U)) :: R_mat
+      real, dimension(FLOC(U,face),FLOC(U,face),2,2) :: add_mat
 
       nele = NLOC(U,ele)
       u_face_loc=face_local_nodes(U, face)
 
       R_mat = 0.
       do d1 = 1, MDIM(U)
-         do i = 1, NLOC(U,ele)
-            do j = 1, FLOC(U,face)
-               R_mat(d1,i,j) = &
+         do j = 1, FLOC(U,face)
+            do i = 1, NLOC(U,ele)
+               R_mat(i,j,d1) = &
                     &sum(inverse_mass_mat(i,u_face_loc)*normal_mat(d1,:,j))
             end do
          end do
@@ -2542,13 +2532,13 @@
                !   end do
                !end do
                
-               do face1 = 1, 2
-                  do face2 = 1, 2
+               do face2 = 1, 2
+                  do face1 = 1, 2
                      do d1 = 1, MDIM(U)
                         do d2 = 1, MDIM(U)
-                           add_mat(face1,face2,:,:) = add_mat(face1,face2,:,:) + &
-                                &(-1.)**(face1+face2)*matmul(transpose(R_mat(d1,:,:)), &
-                                &matmul(kappa_mat(d1,d2,:,:),R_mat(d2,:,:)))
+                           add_mat(:,:,face1,face2) = add_mat(:,:,face1,face2) + &
+                                &(-1.)**(face1+face2)*matmul(transpose(R_mat(:,:,d1)), &
+                                &matmul(kappa_mat(d1,d2,:,:),R_mat(:,:,d2)))
                         end do
                      end do
                   end do
@@ -2558,13 +2548,13 @@
          else if(CDG_switch_in) then
             ! interior case
             ! R(\tau,u) = -\int_e \tau.n^+(u^+ - u^-) dS
-            do face1 = 1, 2
-               do face2 = 1, 2
+            do face2 = 1, 2
+               do face1 = 1, 2
                   do d1 = 1, MDIM(U)
                      do d2 = 1, MDIM(U)
-                        add_mat(face1,face2,:,:) = add_mat(face1,face2,:,:) + &
-                             &(-1.)**(face1+face2)*matmul(transpose(R_mat(d1,:,:)), &
-                             &matmul(kappa_mat(d1,d2,:,:),R_mat(d2,:,:)))
+                        add_mat(:,:,face1,face2) = add_mat(:,:,face1,face2) + &
+                             &(-1.)**(face1+face2)*matmul(transpose(R_mat(:,:,d1)), &
+                             &matmul(kappa_mat(d1,d2,:,:),R_mat(:,:,d2)))
                      end do
                   end do
                end do
@@ -2575,25 +2565,25 @@
          
          Viscosity_mat(d,d,u_face_loc,u_face_loc) = &
               &Viscosity_mat(d,d,u_face_loc,u_face_loc) + &
-              &add_mat(1,1,:,:)
+              &add_mat(:,:,1,1)
          
          !face1 = 1, face2 = 2
          
          Viscosity_mat(d,d,u_face_loc,start:finish) = &
               &Viscosity_mat(d,d,u_face_loc,start:finish) + &
-              &add_mat(1,2,:,:)
+              &add_mat(:,:,1,2)
          
          !face1 = 2, face2 = 1
          
          Viscosity_mat(d,d,start:finish,u_face_loc) = &
               Viscosity_mat(d,d,start:finish,u_face_loc) + &
-              &add_mat(2,1,:,:)
+              &add_mat(:,:,2,1)
          
          !face1 = 2, face2 = 2
          
          Viscosity_mat(d,d,start:finish,start:finish) = &
               &Viscosity_mat(d,d,start:finish,start:finish) + &
-              &add_mat(2,2,:,:)
+              &add_mat(:,:,2,2)
       end do
 
     end subroutine local_assembly_cdg_face
@@ -2686,27 +2676,36 @@
       !!< inverse_mass_mat is the inverse mass in E
 
       integer :: i,j,d1,d2,nele,face1,face2,d
-      integer, dimension(face_loc(U,face)) :: U_face_loc    
-      real, dimension(mesh_dim(U),ele_loc(U,ele),face_loc(U,face)) :: R_mat
-      real, dimension(2,2,mesh_dim(U),mesh_dim(U),face_loc(U,face),face_loc(U,face)) :: add_mat
+      integer, dimension(FLOC(U,face)) :: U_face_loc    
+      real, dimension(NLOC(U,ele),FLOC(U,face),MDIM(U)) :: R_mat
+      real, dimension(MDIM(U),MDIM(U),FLOC(U,face),FLOC(U,face),2,2) :: add_mat
 
-      nele = ele_loc(U,ele)
+      real, dimension(FLOC(U,face),FLOC(U,face)) :: temp, temp2
+      real, dimension(FLOC(U,face),NLOC(U,ele)) :: tempA
+      real, dimension(NLOC(U,ele), FLOC(U,face),MDIM(U)) :: tempB
+
+
+      
+
+      nele = NLOC(U,ele)
       u_face_loc=face_local_nodes(U, face)
 
       R_mat = 0.
-      do d1 = 1, mesh_dim(U)
-         do i = 1, ele_loc(U,ele)
-            do j = 1, face_loc(U,face)
-               R_mat(d1,i,j) = &
-                    &sum(inverse_mass_mat(i,u_face_loc)*normal_mat(d1,:,j))
-            end do
-         end do
+      do d1 = 1, MDIM(U)
+!         do j = 1, FLOC(U,face)
+!            do i = 1, NLOC(U,ele)
+               R_mat(:,:,d1) = &
+                    &matmul(inverse_mass_mat(:,u_face_loc),normal_mat(d1,:,:))
+!            end do
+!         end do
       end do
 
 
+      temp2 =0.0
+
       add_mat = 0.0
       if(boundary) then
-         
+
          !Boundary case
          ! R(/tau,u) = -\int_e \tau.n u  dS
          !do d1 = 1, mesh_dim(U)
@@ -2718,70 +2717,113 @@
          !           matmul(transpose(R_mat(d1,:,:)), &
          !           &matmul(kappa_mat(d1,d2,:,:),R_mat(d2,:,:)))
          !   end do
-         !end do
-         
+         !end do        
+
+         do d2 = 1, mesh_dim(U)
+            do d = 1, mesh_dim(U)
+               temp2 = temp2 + matmul(transpose(R_mat(:,:,d)), &
+                    &matmul(kappa_mat(d,d2,:,:),R_mat(:,:,d2)))
+            end do
+         end do 
+
          do d2 = 1, mesh_dim(U)
             if (dirichlet(d2)) then
-               do d1 = 1, mesh_dim(U)
+               do face2 = 1, 2
                   do face1 = 1, 2
-                     do face2 = 1, 2
-                        do d = 1, mesh_dim(U)
-                           add_mat(face1,face2,d1,d2,:,:) = add_mat(face1,face2,d1,d2,:,:) + &
-                                &0.5*(-1.)**(face1+face2)*(matmul(transpose(R_mat(d,:,:)), &
-                                &matmul(kappa_mat(d,d2,:,:),R_mat(d1,:,:)))&
-                                + matmul(transpose(R_mat(d2,:,:)), &
-                                &matmul(kappa_mat(d1,d,:,:),R_mat(d,:,:))))
-                        end do
-                     end do
+                     add_mat(d2,d2,:,:,face1,face2) = add_mat(d2,d2,:,:,face1,face2) + &
+                          &(-1.)**(face1+face2)*temp2
                   end do
                end do
             end if
+
+            do d1 = 1, mesh_dim(U)
+               if (dirichlet(d1)) then
+
+                  temp = 0.0 
+
+                  do d = 1, mesh_dim(U)
+                     temp = temp + matmul(transpose(R_mat(:,:,d)), &
+                          &matmul(kappa_mat(d,d2,:,:),R_mat(:,:,d1)))&
+                          + matmul(transpose(R_mat(:,:,d2)), &
+                          &matmul(kappa_mat(d1,d,:,:),R_mat(:,:,d)))
+                  end do
+                  do face2 = 1, 2
+                     do face1 = 1, 2
+                        add_mat(d1,d2,:,:,face1,face2) = add_mat(d1,d2,:,:,face1,face2) + &
+                                &0.5*(-1.)**(face1+face2)*temp
+                     end do
+                  end do
+               end if
+            end do
          end do
          
       else if(CDG_switch_in) then
          ! interior case
          ! R(\tau,u) = -\int_e \tau.n^+(u^+ - u^-) dS
+
+         tempB = 0.0
+
          do d2 = 1, mesh_dim(U)
-            do d1 = 1, mesh_dim(U)
+            do d = 1, mesh_dim(U)
+               temp2 = temp2 + matmul(transpose(R_mat(:,:,d)), &
+                    &matmul(kappa_mat(d,d2,:,:),R_mat(:,:,d2)))
+               tempB(:,:,d2) = tempB(:,:,d2) + &
+                    matmul(kappa_mat(d2,d,:,:),R_mat(:,:,d))
+            end do
+         end do
+
+         do d2 = 1, mesh_dim(U)
+            do face2 = 1, 2
                do face1 = 1, 2
-                  do face2 = 1, 2
-                     do d = 1, mesh_dim(U)
-                        add_mat(face1,face2,d1,d2,:,:) = add_mat(face1,face2,d1,d2,:,:) + &
-                             &0.5*(-1.)**(face1+face2)*(matmul(transpose(R_mat(d,:,:)), &
-                             &matmul(kappa_mat(d,d2,:,:),R_mat(d1,:,:)))&
-                             + matmul(transpose(R_mat(d2,:,:)), &
-                             &matmul(kappa_mat(d1,d,:,:),R_mat(d,:,:))))
-                        
-                     end do
+                  add_mat(d2,d2,:,:,face1,face2) = add_mat(d2,d2,:,:,face1,face2) + &
+                       &(-1.)**(face1+face2)*temp2
+               end do
+            end do
+
+            tempA = 0.0
+            do d = 1, mesh_dim(U)
+               tempA = tempA + matmul(transpose(R_mat(:,:,d)), &
+                    kappa_mat(d,d2,:,:))
+            end do
+
+            do d1 = 1, mesh_dim(U)
+               temp = matmul(tempA,R_mat(:,:,d1)) &
+                    + matmul(transpose(R_mat(:,:,d2)), tempB(:,:,d1))
+
+               do face2 = 1, 2
+                  do face1 = 1, 2
+                     add_mat(d1,d2,:,:,face1,face2) = add_mat(d1,d2,:,:,face1,face2) + &
+                          &0.5*(-1.)**(face1+face2)*temp
                   end do
                end do
             end do
          end do
 
-         !face1 = 1, face2 = 1
-         
-         Viscosity_mat(:,:,u_face_loc,u_face_loc) = &
-              &Viscosity_mat(:,:,u_face_loc,u_face_loc) + &
-              &add_mat(1,1,:,:,:,:)
-         
-         !face1 = 1, face2 = 2
-         
-         Viscosity_mat(:,:,u_face_loc,start:finish) = &
-              &Viscosity_mat(:,:,u_face_loc,start:finish) + &
-              &add_mat(1,2,:,:,:,:)
-         
-         !face1 = 2, face2 = 1
-         
-         Viscosity_mat(:,:,start:finish,u_face_loc) = &
-              Viscosity_mat(:,:,start:finish,u_face_loc) + &
-              &add_mat(2,1,:,:,:,:)
-         
-         !face1 = 2, face2 = 2
-         
-         Viscosity_mat(:,:,start:finish,start:finish) = &
-              &Viscosity_mat(:,:,start:finish,start:finish) + &
-              &add_mat(2,2,:,:,:,:)
       end if
+
+      !face1 = 1, face2 = 1
+            
+      Viscosity_mat(:,:,u_face_loc,u_face_loc) = &
+           &Viscosity_mat(:,:,u_face_loc,u_face_loc) + &
+           &add_mat(:,:,:,:,1,1)
+         
+      !face1 = 1, face2 = 2
+      
+      Viscosity_mat(:,:,u_face_loc,start:finish) = &
+           &Viscosity_mat(:,:,u_face_loc,start:finish) + &
+           &add_mat(:,:,:,:,1,2)
+      
+      !face1 = 2, face2 = 1
+      
+      Viscosity_mat(:,:,start:finish,u_face_loc) = &
+           Viscosity_mat(:,:,start:finish,u_face_loc) + &
+           &add_mat(:,:,:,:,2,1)
+         
+      !face1 = 2, face2 = 2
+            
+      Viscosity_mat(:,:,start:finish,start:finish) = &
+           &Viscosity_mat(:,:,start:finish,start:finish) + &
+           &add_mat(:,:,:,:,2,2)
 
     end subroutine local_assembly_cdg_partial_stress_face
 

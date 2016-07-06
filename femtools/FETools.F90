@@ -671,6 +671,8 @@ contains
 
     real, dimension(size(dshape1,1),size(dshape2,1)) :: R
 
+    real, dimension(size(dshape1,3)) :: temp
+
     integer :: iloc,jloc, gi
     integer :: loc1, loc2, ngi, dim
     
@@ -684,16 +686,18 @@ contains
     R=0.0
     
     do gi=1,ngi
-       forall(iloc=1:loc1,jloc=1:loc2)
-          r(iloc,jloc)=r(iloc,jloc) &
-               +dot_product(matmul(dshape1(iloc,gi,:), tensor(:,:,gi)),&
-               &       dshape2(jloc,gi,:))*detwei(gi)
-       end forall
+       do jloc=1,loc2
+          temp = matmul(tensor(:,:,gi),dshape2(jloc,gi,:))*detwei(gi)
+          do iloc=1,loc1
+             r(iloc,jloc)=r(iloc,jloc) &
+                  +dot_product(dshape1(iloc,gi,:), temp)
+          end do
+       end do
     end do
 
   end function dshape_tensor_dshape
 
-function dshape_dot_tensor_dshape(dshape1, tensor, dshape2, detwei) result (R)
+function dshape_outer_tensor_dshape(dshape1, tensor, dshape2, detwei) result (R)
     !!<
     !!< Evaluate: (Grad N1)'_k T_ki (Grad N2)_j For shape N and tensor T.
     !!<          
@@ -701,7 +705,9 @@ function dshape_dot_tensor_dshape(dshape1, tensor, dshape2, detwei) result (R)
     real, dimension(size(dshape1,3),size(dshape1,3),size(dshape1,2)), intent(in) :: tensor
     real, dimension(size(dshape1,2)) :: detwei
 
-    real, dimension(size(dshape1,3),size(dshape1,3),size(dshape1,1),size(dshape2,1)) :: R
+    real, dimension(size(dshape1,3),size(dshape2,3),size(dshape1,1),size(dshape2,1)) :: R
+
+    real, dimension(size(dshape1,1),size(dshape2,2)) :: temp
 
     integer :: iloc,jloc, gi, idim
     integer :: loc1, loc2, ngi, dim
@@ -715,17 +721,18 @@ function dshape_dot_tensor_dshape(dshape1, tensor, dshape2, detwei) result (R)
     
     R=0.0
     
+
     do gi=1,ngi
+       temp = matmul(dshape1(:,gi,:), tensor(:,:,gi)) * detwei(gi)
        forall(iloc=1:loc1,jloc=1:loc2,idim=1:dim)
-          r(:,idim,iloc,jloc)=r(:,idim,iloc,jloc) &
-               +dot_product(dshape1(iloc,gi,:), tensor(:,idim,gi))&
-               *dshape2(jloc,gi,:)*detwei(gi)
+             r(:,idim,iloc,jloc)=r(:,idim,iloc,jloc) &
+                  +dshape2(jloc,gi,:)*temp(iloc,idim)
        end forall
     end do
 
-  end function dshape_dot_tensor_dshape
+  end function dshape_outer_tensor_dshape
 
-function dshape_tensor_dot_dshape(dshape1, tensor, dshape2, detwei) result (R)
+function dshape_tensor_outer_dshape(dshape1, tensor, dshape2, detwei) result (R)
     !!<
     !!< Evaluate: (Grad N1)'_j T_ik (Grad N2)_k For shape N and tensor T.
     !!<          
@@ -734,6 +741,7 @@ function dshape_tensor_dot_dshape(dshape1, tensor, dshape2, detwei) result (R)
     real, dimension(size(dshape1,2)) :: detwei
 
     real, dimension(size(dshape1,3),size(dshape1,3),size(dshape1,1),size(dshape2,1)) :: R
+    real, dimension(size(dshape1,3),size(dshape2,1)) :: temp
 
     integer :: iloc,jloc, gi, idim
     integer :: loc1, loc2, ngi, dim
@@ -741,21 +749,21 @@ function dshape_tensor_dot_dshape(dshape1, tensor, dshape2, detwei) result (R)
     loc1=size(dshape1,1)
     loc2=size(dshape2,1)
     ngi=size(dshape1,2)
-    dim=size(dshape1,3)
+    dim=size(dshape2,3)
     
     assert(loc1==loc2)
     
     R=0.0
     
     do gi=1,ngi
+       temp = matmul(tensor(:,:,gi),transpose(dshape2(:,gi,:)))*detwei(gi)
        forall(iloc=1:loc1,jloc=1:loc2,idim=1:dim)
           r(:,idim,iloc,jloc)=r(:,idim,iloc,jloc) &
-               +dshape1(iloc,gi,idim)*matmul(tensor(:,:,gi),dshape2(jloc,gi,:))&
-               *detwei(gi)
+               +temp(:,jloc)*dshape1(iloc,gi,idim)
        end forall
     end do
 
-  end function dshape_tensor_dot_dshape
+  end function dshape_tensor_outer_dshape
 
   function dshape_dot_vector_shape(dshape, vector, shape, detwei) result (R)
     !!< 
