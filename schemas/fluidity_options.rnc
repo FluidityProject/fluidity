@@ -1102,7 +1102,8 @@ start =
                         element diagnostic {
                            velocity_mesh_choice,
                            (
-                              sediment_concentration_dependent_viscosity_algorithm
+                              sediment_concentration_dependent_viscosity_algorithm|
+                              tensor_python_diagnostic_algorithm
                            ),
                            diagnostic_tensor_field
                         }
@@ -1613,8 +1614,11 @@ start =
             ## Phase interaction options for Fluidity's multiphase flow model
             element multiphase_properties {
                comment,
-               element particle_diameter { 
-                     real 
+               (element particle_diameter { real }|
+       	       element particle_dia_use_scalar_field { anystring })?,
+               element apply_diameter_cap {
+                  # default value 1.0E-12
+                  element lower_cap { real }
                }?,
                ## If this is the fluid phase, 
                ## the effective conductivity is required 
