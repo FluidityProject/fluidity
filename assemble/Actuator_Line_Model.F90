@@ -71,8 +71,6 @@ type ActuatorLineType
     real, allocatable :: tz(:)          ! Blade unit tangent vector (rearward chord line direction) z-comp at element ends  
     real, allocatable :: C(:)        ! Blade chord length at element ends
     real, allocatable :: thick(:) 
-    real, dimension(3):: SpanWise       ! SpanWise Vector
-    real, dimension(3):: origin         ! Origin
     !######################################################################
     
     !################################################################
@@ -136,10 +134,13 @@ type ActuatorLineType
     real :: Fz     ! Element Force in the global z-direction
     real :: Torque ! Element Torque over the point of rotation 
 
-    ! Kinematics flags
-    logical :: Is_Pitch_Enabled =.false.
-    logical :: Is_Plunge_Enabled=.false.
-
+    ! Degrees of Freedom
+    
+    real :: RotP(3)       ! Point of Rotation
+    real :: SpanWise(3)   ! Point of Rotation
+    integer          :: NDoF          ! Number of Degrees of Freedom
+    real,allocatable :: RotN(:,:)     ! Maximum Degrees of Freedom 6 
+    
 end type ActuatorLineType
 
 type TurbineType
@@ -311,7 +312,7 @@ subroutine get_actuatorline_options
     integer :: i,j,k
     integer, parameter :: MaxReadLine = 1000    
     character(MaxReadLine) :: FN    ! path to geometry input file 
-    integer :: NElem
+    integer :: NElem, iDoF
     character(MaxReadLine) :: ReadLine
     character(len=OPTION_PATH_LEN) :: section_path
     character(len=OPTION_PATH_LEN), allocatable :: actuatorline_path(:)
@@ -347,19 +348,25 @@ subroutine get_actuatorline_options
            call airfoil_init_data(Actuatorline(i)%AirfoilData(k))
        end do
  
-   !############## Get Actuator line kinematics Options ######################
-       if (have_option(trim(actuatorline_path(i))//"/kinematics/no_motion")) then
+       !############## Get Actuator line DoF ######################
+       Actuatorline(i)%NDoF=option_count("actuator_line_model/actuatorline/DoF")       
        
-       else if(have_option(trim("/actuator_line_model/actuatorline["//int2str(i-1)//"]")//"/kinematics/prescribed_pitch_motion")) then
-            Actuatorline(i)%Is_Pitch_Enabled = .true. 
-       else if(have_option(trim("/actuator_line_model/actuatorline["//int2str(i-1)//"]")//"/kinematics/prescribed_plunge_motion")) then
-            Actuatorline(i)%Is_Plunge_Enabled = .true. 
-       else
-           FLExit("Option not available. Options are: no_motion, prescribed_pitch_motion and precribed_plunge_motion ") 
+       allocate(actuatorline(i)%RotN(Actuatorline(i)%NDoF,3))
+        
+       do iDof=1,actuatorline(i)%NDoF
+       if (have_option(trim(actuatorline_path(i))//"/DoF/Pitch")) then
+           actuatorline(i)%RotN(iDoF,:)=(/0.0,1.0,0.0/)
+       else if(have_option(trim(actuatorline_path(i))//"/DoF/Roll")) then
+           actuatorline(i)%RotN(iDoF,:)=(/1.0,0.0,0.0/)
+       else if(have_option(trim(actuatorline_path(i))//"/DoF/Yaw")) then
+           actuatorline(i)%RotN(iDoF,:)=(/0.0,0.0,1.0/) 
+       else 
+           FLExit("Option not available. Options are: Pitch, Roll and Yaw ") 
        endif
+       end do
        
    end do
- 
+    
    ewrite(2,*) 'Exiting get_actuatorline_options'
 
 end subroutine get_actuatorline_options 
@@ -378,7 +385,7 @@ subroutine actuator_line_model_update
     do i=1,Ntur
     ! Depending on whether the turbine is using a constant or a forced
     ! Based model for its operation: we will have the following options
-     if(Turbine(i)%Is_constant_rotation_operated) then
+    if(Turbine(i)%Is_constant_rotation_operated) then
         !ewrite(2,*) 'Operating Turbine with a constant rotational Velocity'
         !theta=Turbine(i)%angularVel*deltaT ! 1 revolution/minute = 2 pi tads / 60 s
         !Turbine(i)%AzimAngle=Turbine(i)%AzimAngle+theta*360.0/(2.0*pi)
@@ -386,12 +393,21 @@ subroutine actuator_line_model_update
         !call calculate_performance(Turbine(i))
     elseif(Turbine(i)%Is_force_based_operated) then
         ewrite(2,*) 'Operating Turbine with a force-based approach'
-     else
+    else
          FLExit("At the moment only constant rotational velocity and the force-based approach are supported") 
-     endif
+    endif
     end do
     end if
 
+    !############Actuator line Update#############################
+    if (Nal>0) then
+    do i=1,Nal
+
+    call Compute_ActuatorLine_Forces(ActuatorLine(i))
+
+    end do
+    end if
+    !#############################################################
 
     ewrite(1,*) 'Exiting actuator_line_model_update'
     return
@@ -611,7 +627,7 @@ end subroutine set_actuatorline_geometry
 !
 !end subroutine Compute_Turbine_Local_RotVel
 
-subroutine Compute_ActuatorLine_Element_Forces(act_line)
+subroutine Compute_ActuatorLine_Forces(act_line)
        
     implicit none
     type(ActuatorLineType),intent(inout) :: act_line
@@ -625,6 +641,15 @@ subroutine Compute_ActuatorLine_Element_Forces(act_line)
   
     ewrite(2,*) 'Entering Compute_Forces '
     
+    !======================================================================
+    ! Compute the Body forces (prescribed motion of the actuatorlines etc..
+    !======================================================================
+
+    ! Temporarily 
+    act_line%EVbx(:)=0.0
+    act_line%EVby(:)=0.0
+    act_line%EVbz(:)=0.0
+ 
     !===========================================================
     ! Assign global values to local values (to make life easier
     !==========================================================
@@ -643,8 +668,8 @@ subroutine Compute_ActuatorLine_Element_Forces(act_line)
     ElemChord=act_line%EC(ielem) 
     u=act_line%EVx(ielem)
     v=act_line%EVx(ielem)
-    w=act_line%EVx(ielem)
-    
+    w=act_line%EVx(ielem) 
+
     ub=act_line%EVbx(ielem)
     vb=act_line%EVbx(ielem)
     wb=act_line%EVbx(ielem)
@@ -712,14 +737,18 @@ subroutine Compute_ActuatorLine_Element_Forces(act_line)
     act_line%EUn_last(ielem)=urdn 
     end do
 
-
     !=============================================
     ! Apply the finite-length correction
     !=============================================
+        
+
+    !=============================================
+    ! Compute Total Forces
+    !============================================
 
     ewrite(2,*) 'Exiting Compute_Forces'
 
-end subroutine compute_Actuatorline_Element_Forces
+end subroutine compute_Actuatorline_Forces
 
 subroutine populate_blade_airfoils(NElem,EAirfoil,AirfoilData,ETtoC)
 

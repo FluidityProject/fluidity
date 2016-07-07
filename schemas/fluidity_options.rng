@@ -2564,28 +2564,24 @@ Effective viscosity</a:documentation>
                   </element>
                 </zeroOrMore>
               </element>
-              <element name="kinematics">
-                <choice>
-                  <element name="no_motion">
-                    <a:documentation>constant rotational velocity given in RPM (revolutions per minute)</a:documentation>
-                    <empty/>
-                  </element>
-                  <element name="prescribed_pitch_motion">
-                    <element name="omega">
-                      <a:documentation>pitch motion frequency </a:documentation>
-                      <ref name="real"/>
+              <zeroOrMore>
+                <element name="DoF">
+                  <attribute name="name">
+                    <data type="string"/>
+                  </attribute>
+                  <choice>
+                    <element name="Pitch">
+                      <empty/>
                     </element>
-                    <element name="U">
-                      <ref name="real"/>
+                    <element name="Roll">
+                      <empty/>
                     </element>
-                  </element>
-                  <element name="prescribed_plunge_motion">
-                    <attribute name="name">
-                      <data type="string"/>
-                    </attribute>
-                  </element>
-                </choice>
-              </element>
+                    <element name="Yaw">
+                      <empty/>
+                    </element>
+                  </choice>
+                </element>
+              </zeroOrMore>
             </element>
           </zeroOrMore>
         </element>

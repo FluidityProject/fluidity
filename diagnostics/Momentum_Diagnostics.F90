@@ -70,14 +70,16 @@ contains
     type(tensor_field), intent(inout) :: t_field
     
     type(vector_field), pointer :: source_field
-    type(vector_field), pointer :: positions
+    type(vector_field), pointer :: positions,velocity
 
     positions => extract_vector_field(state, "Coordinate")
+    
     source_field => vector_source_field(state, t_field)
 
     call check_source_mesh_derivative(source_field, "strain_rate")
 
     call strain_rate(source_field, positions, t_field)
+      
 
   end subroutine calculate_strain_rate
 
@@ -93,7 +95,7 @@ contains
     ewrite(1,*) 'In calculate_strain_rate_second_invariant'
     positions => extract_vector_field(state, "Coordinate")
     velocity  => extract_vector_field(state, "IteratedVelocity")
-
+    
     ! Allocate strain_rate tensor:
     call allocate(strain_rate_tensor, s_field%mesh, name="strain_rate_II")
 
@@ -329,6 +331,7 @@ contains
       type(tensor_field), pointer :: ViscosityTens
       integer :: i,j,ele, iturb, jblade, kelem, ial
       real, dimension(v_field%dim+1) :: local_coord
+      type(vector_field) :: remapped_pos
       real, dimension(v_field%dim) :: value_vel
       real, dimension(v_field%dim,v_field%dim) :: visc_tensor
       real :: dr2, d, epsilon_par, Area, radius, V_rel,V_rel2,loc_kern
@@ -354,7 +357,10 @@ contains
       !> Get Position and Velocity Field
       positions => extract_vector_field(states(state_index),"Coordinate")  
       velocity  => extract_vector_field(states(state_index), "Velocity")
-    
+   
+      call allocate(remapped_pos, mesh=velocity%mesh, dim=positions%dim, name="RemappedField")
+      call remap_field(positions, remapped_pos)
+
       ViscosityTens => extract_tensor_field(states(state_index),"Viscosity")
         
       !> Read the Cmax values
@@ -445,8 +451,9 @@ contains
       !################## END OF MPI INTERFACE ############################
     
       !## Compute the forces
-      !
-      !## 
+      call actuator_line_model_update  
+      !##
+    
       do ial=1,Nal
         do kelem=1,actuatorline(ial)%NElem
 
@@ -459,7 +466,7 @@ contains
                       ! Compute a Sphere of Influence with diameter equal to chord/2
                       DSource(:)=0.0
                       ! Compute a molification function in 3D 
-                      Rcoords=node_val(positions,i)
+                      Rcoords=node_val(remapped_pos,i)
                       dr2=0.0
                       d=0.0
                       do j=1, v_field%dim
@@ -477,14 +484,13 @@ contains
                   DSource(1)=-loc_kern*actuatorline(ial)%EFx(kelem)
                   DSource(2)=-loc_kern*actuatorline(ial)%EFy(kelem)
                   DSource(3)=-loc_kern*actuatorline(ial)%EFz(kelem)
-                  
                   call addto(v_field,i,DSource)
                 end do
       end do
       end do
-     
-      call actuator_line_model_update
 
+      call deallocate(remapped_pos)
+     
       ewrite(1,*) 'Exiting ALM Momentum Source'
   end subroutine calculate_actuator_line_momentum_source
 

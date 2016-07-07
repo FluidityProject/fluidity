@@ -1833,27 +1833,21 @@ start =
                           }
                       }*
                   },
-                 element kinematics {
-                 (
-                    ## constant rotational velocity given in RPM (revolutions per minute)
-                 element no_motion  {            
+                 element DoF {
+                 
+                    attribute name {xsd:string},
+                ( 
+                 element Pitch  {            
                     empty
                     }|
-                 element prescribed_pitch_motion  {
-                    ## pitch motion frequency 
-                    element omega{
-                        real
-                    },
-                    element U{
-                        real
+                 element Roll  {
+                    empty
+                    }|
+                 element Yaw {
+                    empty
                     }
-
-                  }|
-                 element prescribed_plunge_motion {
-                    attribute name {xsd:string}
-                  }
                  )
-                }              
+                }*              
             }*
          }?,
 
