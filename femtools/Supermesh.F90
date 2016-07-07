@@ -14,10 +14,10 @@ module supermesh_construction
   use metric_tools
   use unify_meshes_module
   use transform_elements
-  use tetrahedron_intersection_module
 #ifdef HAVE_LIBSUPERMESH
   use libsupermesh, only : libsupermesh_intersect_elements => intersect_elements
 #endif
+  use tetrahedron_intersection_module
   implicit none
 
 #ifdef HAVE_LIBSUPERMESH

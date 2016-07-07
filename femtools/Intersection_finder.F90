@@ -15,7 +15,6 @@ use linked_lists
 use fields_allocates
 use parallel_fields
 use transform_elements
-use supermesh_construction
 #ifdef HAVE_LIBSUPERMESH
 use libsupermesh, only : intersections, deallocate, &
   & rtree_intersection_finder_reset, &
@@ -27,6 +26,7 @@ use libsupermesh, only : &
   & libsupermesh_rtree_intersection_finder_set_input => rtree_intersection_finder_set_input, &
   & libsupermesh_rtree_intersection_finder_find => rtree_intersection_finder_find
 #endif
+use supermesh_construction
 
 implicit none
 
