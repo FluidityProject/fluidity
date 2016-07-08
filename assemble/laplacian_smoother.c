@@ -190,16 +190,16 @@ for(i=1; i< dimension*num_surf_elements; i++){
   PetscPrintf(PETSC_COMM_SELF,"Istart=%d,Iend=%d\n",Istart,Iend);
   
   for(n=0;n<num_surf_elements;n++){
-    x_bound_points[n]=comp_mesh[2*surf_connectivity[n]];
-    y_bound_points[n]=comp_mesh[(2*surf_connectivity[n])+1];
+    x_bound_points[n]=phys_mesh[2*(surf_connectivity[n]-1)];
+    y_bound_points[n]=phys_mesh[(2*(surf_connectivity[n]-1))+1];
     printf("surf_connectivity[%d]=[%f,%f]\n",n,x_bound_points[n],y_bound_points[n]);
 
   }
   for(Ii=Istart;Ii<Iend;Ii++){
 
-    MatSetValue(K,Ii,Ii,1.0,INSERT_VALUES);
-    VecSetValue(Fx,Ii,x_bound_points[Ii],INSERT_VALUES);
-    VecSetValue(Fy,Ii,y_bound_points[Ii],INSERT_VALUES);
+    MatSetValue(K,surf_connectivity[Ii]-1,surf_connectivity[Ii]-1,1.0,INSERT_VALUES);
+    VecSetValue(Fx,surf_connectivity[Ii]-1,x_bound_points[Ii],INSERT_VALUES);
+    VecSetValue(Fy,surf_connectivity[Ii]-1,y_bound_points[Ii],INSERT_VALUES);
   }
 
   
