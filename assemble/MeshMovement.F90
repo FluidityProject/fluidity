@@ -1355,6 +1355,7 @@ contains
   
     !!! actual call out to the C code.
      
+!Figure out indexing between C and Fortran
     call lap_smoother(mesh_dim(coordinate), node_count(coordinate),&
           element_count(coordinate), surface_element_count(coordinate),&
           coordinate%mesh%ndglno, coordinate%val, new_coordinate%val,&
