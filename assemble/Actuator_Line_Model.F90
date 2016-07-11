@@ -104,16 +104,18 @@ type ActuatorLineType
     real, allocatable :: EVby(:)        ! Element Local body Velocity in the global y-direction
     real, allocatable :: EVbz(:)        ! Element Local body Velocity in the global z-direction
 
-    ! Momentum Sink Forces in the nts direction
+    ! Element Forces in the nts direction
     real, allocatable :: EFn(:)         ! Element Force in the normal direction
     real, allocatable :: EFt(:)         ! Element Force in the tangential direction (rearward chord line direction) 
     real, allocatable :: EFs(:)         ! Element Force in the spanwise direction
 
-    ! Momentum Sink Forces in the xyz direction
+    ! Element Forces and Torque in the xyz direction
     real, allocatable :: EFx(:)         ! Element Force in the global x-direction
     real, allocatable :: EFy(:)         ! Element Force in the global y-direction
     real, allocatable :: EFz(:)         ! Element Force in the global z-direction
-    real, allocatable :: ETorque(:)     ! Element Torque over the point of rotation 
+    real, allocatable :: ETRx(:)     ! Element Torque over the point of rotation 
+    real, allocatable :: ETRy(:)     ! Element Torque over the point of rotation 
+    real, allocatable :: ETRz(:)     ! Element Torque over the point of rotation 
     real, allocatable :: ERdist(:)      ! Element Distance from the origin 
     
     ! Element Airfoil Data
@@ -132,11 +134,15 @@ type ActuatorLineType
     real :: Fx     ! Element Force in the global x-direction
     real :: Fy     ! Element Force in the global y-direction
     real :: Fz     ! Element Force in the global z-direction
-    real :: Torque ! Element Torque over the point of rotation 
+    real :: TRX    ! Element Torque X over the point of rotation 
+    real :: TRY    ! Element Torque Y over the point of rotation 
+    real :: TRZ    ! Element Torque Z over the point of rotation 
+
+    real :: Area   ! Effective Airfoil Area
 
     ! Degrees of Freedom
     
-    real :: RotP(3)       ! Point of Rotation
+    real :: COR(3)       ! Center of Rotation
     real :: SpanWise(3)   ! Point of Rotation
     integer          :: NDoF          ! Number of Degrees of Freedom
     real,allocatable :: RotN(:,:)     ! Maximum Degrees of Freedom 6 
@@ -352,10 +358,10 @@ subroutine get_actuatorline_options
        Actuatorline(i)%NDoF=option_count("actuator_line_model/actuatorline/DoF")       
        
        allocate(actuatorline(i)%RotN(Actuatorline(i)%NDoF,3))
-        
+       ! So far only pitch works
        do iDof=1,actuatorline(i)%NDoF
        if (have_option(trim(actuatorline_path(i))//"/DoF/Pitch")) then
-           actuatorline(i)%RotN(iDoF,:)=(/0.0,1.0,0.0/)
+           actuatorline(i)%RotN(iDoF,:)=actuatorline(i)%SpanWise
        else if(have_option(trim(actuatorline_path(i))//"/DoF/Roll")) then
            actuatorline(i)%RotN(iDoF,:)=(/1.0,0.0,0.0/)
        else if(have_option(trim(actuatorline_path(i))//"/DoF/Yaw")) then
@@ -376,7 +382,7 @@ subroutine actuator_line_model_update
     implicit none
     
     integer :: i,j,k
-    real :: theta
+    real :: theta, pitchangle, omega
     ! Zero the Source Term at each time step
         
     ewrite(1,*) 'Entering the actuator_line_model_update'
@@ -386,11 +392,7 @@ subroutine actuator_line_model_update
     ! Depending on whether the turbine is using a constant or a forced
     ! Based model for its operation: we will have the following options
     if(Turbine(i)%Is_constant_rotation_operated) then
-        !ewrite(2,*) 'Operating Turbine with a constant rotational Velocity'
-        !theta=Turbine(i)%angularVel*deltaT ! 1 revolution/minute = 2 pi tads / 60 s
-        !Turbine(i)%AzimAngle=Turbine(i)%AzimAngle+theta*360.0/(2.0*pi)
-        !call rotate_turbines(theta) 
-        !call calculate_performance(Turbine(i))
+    
     elseif(Turbine(i)%Is_force_based_operated) then
         ewrite(2,*) 'Operating Turbine with a force-based approach'
     else
@@ -402,9 +404,12 @@ subroutine actuator_line_model_update
     !############Actuator line Update#############################
     if (Nal>0) then
     do i=1,Nal
-
     call Compute_ActuatorLine_Forces(ActuatorLine(i))
-
+    ewrite(2,*) 'Forces X,Y,Z', ActuatorLine(i)%FX, ActuatorLine(i)%FY, ActuatorLine(i)%FZ  
+    ! Do pitch
+    !omega=15! Omega is the angular pitching frequency 
+    !pitchangle=10*sin(omega*DeltaT)
+    !call rotate_actuatorline(ActuatorLine(i),ActuatorLine(i)%COR,ActuatorLine(i)%SpanWise,pitchangle)
     end do
     end if
     !#############################################################
@@ -413,6 +418,7 @@ subroutine actuator_line_model_update
     return
 
 end subroutine actuator_line_model_update
+
 ! Turb
 !subroutine set_turbine_geometry(turbine)
 !
@@ -490,7 +496,7 @@ subroutine set_actuatorline_geometry(actuatorline)
     type(ActuatorLineType),intent(inout) :: actuatorline
     real, allocatable :: rR(:),ctoR(:),pitch(:),thick(:)
     real :: SVec(3), theta, origin(3), length 
-    integer :: Nstations, iact, Istation
+    integer :: Nstations, iact, Istation, ielem
 
     ewrite(2,*) 'Entering set_actuatorline_geometry'
 
@@ -501,25 +507,36 @@ subroutine set_actuatorline_geometry(actuatorline)
     
     call allocate_actuatorline(actuatorline,Nstations)
    
+    actuatorline%SpanWise=SVec
+    actuatorline%COR=(/0.0, 0.0, 0.0/)
+
     ! The directions of vectors etc are just hacked ...
     do istation=1,Nstations
     actuatorline%QCx(istation)=rR(istation)*length*Svec(1)
     actuatorline%QCy(istation)=rR(istation)*length*Svec(2)
     actuatorline%QCz(istation)=rR(istation)*length*Svec(3)      
-    actuatorline%tx(istation)=-cos(pitch(istation)/180.0*pi)    
-    actuatorline%tz(istation)= sin(pitch(istation)/180.0*pi)    
+    actuatorline%tx(istation)= cos(pitch(istation)/180.0*pi)    
     actuatorline%ty(istation)= 0.0
+    actuatorline%tz(istation)= sin(pitch(istation)/180.0*pi)     
     actuatorline%C(istation)=ctoR(istation)*length
     actuatorline%thick(istation)=thick(istation)
     end do
    
     call make_actuatorline_geometry(actuatorline)
+    ! Compute the Area 
+    do ielem=1,actuatorline%Nelem
+    actuatorline%Area=actuatorline%Area+actuatorline%EArea(ielem)
+    end do
+    
     ! Populate element Airfoils 
     call populate_blade_airfoils(actuatorline%NElem,actuatorline%EAirfoil,actuatorline%AirfoilData,actuatorline%ETtoC)
     
     actuatorline%EAOA_LAST(:)=1.e7
     actuatorline%EUn_LAST(:)=1.e7
     
+    do ielem=1,actuatorline%Nelem
+    call dystl_init_LB(actuatorline%E_LB_Model(ielem))
+    end do
     ewrite(2,*) 'Exiting set_actuatorline_geometry'
 
 end subroutine set_actuatorline_geometry
@@ -633,10 +650,10 @@ subroutine Compute_ActuatorLine_Forces(act_line)
     type(ActuatorLineType),intent(inout) :: act_line
     real :: R(3)
     real :: wRotX,wRotY,wRotZ,Rx,Ry,Rz,ub,vb,wb,u,v,w
-    real :: nxe,nye,nze,txe,tye,tze,sxe,sye,sze,ElemArea,ElemChord
+    real :: xe,ye,ze,nxe,nye,nze,txe,tye,tze,sxe,sye,sze,ElemArea,ElemChord
     real :: urdn,urdc, wP,ur,alpha,Re,alpha5,alpha75,adotnorm, A, B, C, dUnorm
     real :: CL,CD,CN,CT,CLCirc,CM25,MS,FN,FT,FS,FX,Fy,Fz,te, F1, g1
-    real :: TRx,TRy,TRz,RotX,RotY,RotZ, dal, wPNorm, relem
+    real :: TRx,TRy,TRz, TRn,TRt, TRs, RotX,RotY,RotZ, dal, wPNorm, relem, ds
     integer :: ielem
   
     ewrite(2,*) 'Entering Compute_Forces '
@@ -655,6 +672,10 @@ subroutine Compute_ActuatorLine_Forces(act_line)
     !==========================================================
     do ielem=1,act_line%NElem
     
+    xe=act_line%PEX(ielem)
+    ye=act_line%PEY(ielem)
+    ze=act_line%PEZ(ielem)
+
     nxe=act_line%nEx(ielem)
     nye=act_line%nEy(ielem)
     nze=act_line%nEz(ielem)
@@ -703,7 +724,11 @@ subroutine Compute_ActuatorLine_Forces(act_line)
     !====================================
     ! Compute the Aerofoil Coefficients
     !====================================
-    call compute_aeroCoeffs(act_line%EAirfoil(ielem),alpha75,alpha5,Re,A,B,C,adotnorm,CN,CT,CM25)
+    call compute_aeroCoeffs(act_line%EAirfoil(ielem),act_line%E_LB_Model(ielem),alpha75,alpha5,Re,A,B,C,adotnorm,CN,CT,CM25,CL,CLCIrc,CD)
+    
+    ! Update Dynamic Stall States
+    ds=2.0*ur*DeltaT/ElemChord
+    call LB_UpdateStates(act_line%E_LB_MODEL(ielem),ds)
 
     !========================================================
     ! Apply Coeffs to calculate tangential and normal Forces
@@ -719,17 +744,29 @@ subroutine Compute_ActuatorLine_Forces(act_line)
     FX=FN*nxe+FT*txe+FS*sxe
     FY=FN*nye+FT*tye+FS*sye
     FZ=FN*nze+FT*tze+FS*sze
-   
+    
+    call cross(xe-act_line%COR(1),ye-act_line%COR(2),ze-act_line%COR(3),FN,FT,FS,TRn,TRt,TRs)
+    
+    TRX=TRN*nxe+TRT*txe+(TRS+MS)*sxe
+    TRY=TRN*nye+TRT*tye+(TRS+MS)*sye
+    TRZ=TRN*nze+TRT*tze+(TRS+MS)*sze
+
     !==========================================
     ! Assign the derived types
     !==========================================
+    ! Local Forces
     act_line%EFN(ielem)=FN
     act_line%EFT(ielem)=FT
     act_line%EFS(ielem)=FS
+    
+    ! Global Forces and Torques
     act_line%EFX(ielem)=FX
     act_line%EFY(ielem)=FY
     act_line%EFZ(ielem)=FZ
-    
+    act_line%ETRX(ielem)=TRX
+    act_line%ETRY(ielem)=TRY
+    act_line%ETRZ(ielem)=TRZ
+
     !===============================================
     !! Set the AOA_LAST before exiting the routine
     !===============================================
@@ -745,6 +782,15 @@ subroutine Compute_ActuatorLine_Forces(act_line)
     !=============================================
     ! Compute Total Forces
     !============================================
+    act_line%FX=0.0
+    act_line%FY=0.0
+    act_line%FZ=0.0
+    
+    do ielem=1,act_line%NElem
+        act_line%FX=act_line%FX+act_line%EFX(ielem)
+        act_line%FY=act_line%FY+act_line%EFY(ielem)
+        act_line%FZ=act_line%FZ+act_line%EFZ(ielem)
+    end do
 
     ewrite(2,*) 'Exiting Compute_Forces'
 
@@ -965,8 +1011,9 @@ subroutine allocate_actuatorline(actuatorline,NStations)
     allocate(actuatorline%EFx(NElem))
     allocate(actuatorline%EFy(NElem))
     allocate(actuatorline%EFz(NElem))
-    allocate(actuatorline%ETorque(NElem))
-
+    allocate(actuatorline%ETRx(NElem))
+    allocate(actuatorline%ETRy(NElem))
+    allocate(actuatorline%ETRz(NElem))
     
 end subroutine allocate_actuatorline
     

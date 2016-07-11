@@ -489,6 +489,20 @@ contains
       end do
       end do
 
+      !do ial=1,Nal
+      !do i=1,node_count(v_field)
+
+      !Rcoords=node_val(remapped_pos,i)
+      !DSource(:)=0.0 
+     !call IDW(actuatorline(ial)%NElem,actuatorline(ial)%PEx,actuatorline(ial)%PEy,actuatorline(ial)%PEz,actuatorline(ial)%EFx,actuatorline(ial)%EFy,actuatorline(ial)%EFz,2,Rcoords(1),Rcoords(2),Rcoords(3),DSource(1),DSource(2),DSource(3))
+      
+     !call addto(v_field,i,-DSource)
+
+      !end do
+
+      !end do        
+
+
       call deallocate(remapped_pos)
      
       ewrite(1,*) 'Exiting ALM Momentum Source'

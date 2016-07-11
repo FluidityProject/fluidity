@@ -42,7 +42,7 @@ module dynstall
     type LB_Type
     
     logical :: StallFlag = .false.
-
+    
     real :: dp
     real :: dF
     real :: dCNv
@@ -87,7 +87,7 @@ module dynstall
         lb%CLRefLE_Last=0.0
         lb%Fstat_Last=1.0
         lb%cv_Last=0.0
-   
+ 
         lb%LB_LogicOutputs(:)=0
 
     end subroutine dystl_init_LB
@@ -98,7 +98,7 @@ module dynstall
     ! AOA0 is zero lift AOA
     ! RefFlag defines whether to output reference CL or ideal CL
     ! CLa is reference lift slope (per radian) to be used for reference CL (ideal CLa is 2*pi)
-
+    implicit none
     real :: AOA, AOA0, CLa
     integer :: RefFlag
     real :: CLID
@@ -134,6 +134,9 @@ module dynstall
     end subroutine LB_EvalIdealCL
 
     subroutine Force180(a)
+    
+        implicit none
+
         real :: a
         ! alpha in radians
         if (a>pi) then
@@ -143,15 +146,15 @@ module dynstall
         endif
     end subroutine Force180
     
-    SUBROUTINE LB_UpdateStates(lb)
+    SUBROUTINE LB_UpdateStates(lb,ds)
 
-        ! Update states for the LB model 
-        ! Note dynstall should be included eventually in an expanded blade module, at which point it would have 
-        ! access to the geometry info it needs...
-        type(LB_Type) :: lb
+        implicit none
+
+        type(LB_Type),intent(inout) :: lb
+        real, intent(in) :: ds
         integer :: i, nei, j, IsBE
-
-        real :: ds,Tf,TfRef,Tp,TvRef, Tv, TvL
+        
+        real :: Tf,TfRef,Tp,TvRef, Tv, TvL
 
         ! Set model parameters. All of these are potentially a function of Mach
         ! and are set to low mach values...

@@ -99,29 +99,42 @@ contains
    
    end subroutine QuatRot
 
-    real function IDW(Ncol,Colldist,dist,threshold,limit,p)
+    subroutine IDW(Ncol,Xcol,Ycol,Zcol,Fxcol,Fycol,Fzcol,p,Xmesh,Ymesh,Zmesh,Fxmesh,Fymesh,Fzmesh)
         implicit none
         integer, intent(in) :: Ncol
-        real, dimension(Ncol),intent(in) :: Colldist
-        real, intent(in) :: dist, threshold, limit
+        real, dimension(Ncol),intent(in) :: Xcol,Ycol,Zcol,Fxcol,Fycol,Fzcol 
+        real, intent(in) :: Xmesh,Ymesh,Zmesh
         integer,intent(in) :: p
-        real :: suma,w
-        integer :: i
+        real, intent(inout) :: Fxmesh,Fymesh,Fzmesh
+        
+        real,dimension(Ncol) :: d(Ncol), w(Ncol)
+        real ::  wsum
+        integer :: i,imin
 
-        if(dist<threshold) then
-            IDW=1
-        elseif(dist>=threshold.and.dist<=limit) then
-            suma=0
-            do i=1,Ncol
-            suma=suma+1.0/Colldist(i)**p
-            end do
-            w=1.0/suma
-            IDW=1.0/dist*w
+        wsum=0.0
+        do i=1,Ncol     
+        d(i)=sqrt((Xcol(i)-Xmesh)**2+(Ycol(i)-Ymesh)**2+(Zcol(i)-Zmesh)**2)
+        w(i)=1/d(i)**p
+        wsum=wsum+w(i)
+        end do
+        
+        if (minval(d)<0.001) then
+            imin=minloc(d,1)
+            Fxmesh=Fxcol(imin)
+            Fymesh=Fycol(imin)
+            Fzmesh=Fzcol(imin)
         else
-            IDW=0
-        end if
+            Fxmesh=0.0
+            Fymesh=0.0
+            Fzmesh=0.0
+            do i=1,Ncol
+            Fxmesh=Fxmesh+w(i)*Fxcol(i)/wsum
+            Fymesh=Fymesh+w(i)*Fycol(i)/wsum
+            Fzmesh=Fzmesh+w(i)*Fzcol(i)/wsum
+            enddo
+        endif
 
-    end function IDW
+    end subroutine IDW
 
     real function Kernel(dr,epsilon_par,dim)
     
