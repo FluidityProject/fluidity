@@ -749,14 +749,7 @@ contains
           if(option_count("/material_phase/scalar_field/prognostic/spatial_discretisation/coupled_cv")>0) then
              call coupled_cv_field_eqn(state, global_it=its)
           end if
-       
-          !If the actuator_line_model is switched on update fields
-          !if (have_option("/actuator_line_model")) then
-          !  call actuator_line_model_update
-          !end if
-
-          
-          
+        
           !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
           !
           ! Assemble and solve N.S equations.
