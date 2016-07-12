@@ -19,7 +19,8 @@ def read_fortran_file(filename):
     flag = True
     for line in file_handle.readlines():
         clean_line=" ".join(line.strip().rstrip().split(" "))+'\n'
-        if clean_line.lower().startswith("interface"):
+        if (clean_line.lower().startswith("interface") or 
+            clean_line.lower().startswith("abstract interface")):
             flag = False
         if flag:
             data += clean_line

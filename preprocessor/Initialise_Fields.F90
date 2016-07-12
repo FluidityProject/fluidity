@@ -40,6 +40,7 @@ use fluxes
 use nemo_states_module
 use physics_from_options
 use load_netcdf_module
+use plugin_functions
 
 implicit none
 
@@ -83,7 +84,8 @@ contains
     type(vector_field) :: field_position
     real :: const
     character(len=OPTION_PATH_LEN) :: format, field_name, filename
-    character(len=PYTHON_FUNC_LEN) :: func
+    character(len=PYTHON_FUNC_LEN) :: func, interface_type
+    character(len=OPTION_PATH_LEN) :: plugin_name,function_name 
     real :: current_time
     real :: gravity_magnitude
     
@@ -106,6 +108,17 @@ contains
        end if
        ! Set initial condition from python function
        call set_from_python_function(field, trim(func), position, current_time)
+    else if(have_option(trim(path)//"/plugin_function")) then
+       call get_option(trim(path)//"/plugin_function/path", plugin_name)
+       call get_option(trim(path)//"/plugin_function/name", function_name)
+       call get_option(trim(path)//"/plugin_function/interface_type/name", interface_type)
+       ! Get current time
+       if (present(time)) then
+         current_time=time
+       else
+         call get_option("/timestepping/current_time", current_time)
+       end if
+       call set_from_plugin_function(field, trim(plugin_name),trim(function_name), position, current_time,interface_type)
     else if(have_option(trim(path)//"/generic_function")) then
        FLExit("Generic functions are obsolete. Please use a Python function.")
     else if(have_option(trim(path)//"/internally_calculated")) then
@@ -231,6 +244,7 @@ contains
     real, dimension(1:field%dim) :: const
     character(len=OPTION_PATH_LEN) :: format, field_name, filename, varname1, varname2
     character(len=PYTHON_FUNC_LEN) :: func
+    character(len=OPTION_PATH_LEN) :: plugin_name,function_name, interface_type
     real :: current_time
     integer :: i
     real :: longitude, latitude, scalars(2), x, y
@@ -252,6 +266,17 @@ contains
        end if
        ! Set initial condition from python function
        call set_from_python_function(field, trim(func), position, current_time)
+    else if(have_option(trim(path)//"/plugin_function")) then
+       call get_option(trim(path)//"/plugin_function/path", plugin_name)
+       call get_option(trim(path)//"/plugin_function/name", function_name)
+       call get_option(trim(path)//"/plugin_function/interface_type/name", interface_type)
+       ! Get current time
+       if (present(time)) then
+         current_time=time
+       else
+         call get_option("/timestepping/current_time", current_time)
+       end if
+       call set_from_plugin_function(field, trim(plugin_name),trim(function_name), position, current_time,interface_type)
     else if (have_option(trim(path)//"/generic_function")) then
        call get_option(trim(path)//"/generic_function", func)
        ! Python rules
@@ -385,6 +410,7 @@ contains
     logical :: is_isotropic, is_diagonal, is_symmetric
     ! name of python function
     character(len=OPTION_PATH_LEN) :: func
+    character(len=OPTION_PATH_LEN) :: plugin_name,function_name, interface_type
     ! time and position needed for python function...
     real :: current_time    
     ! to read in constant initial value
@@ -436,6 +462,18 @@ contains
              call set(field, i, i, sfield)
           end do
           call deallocate(sfield)
+       else if(have_option(trim(path)//"/plugin_function")) then
+          call get_option(trim(path)//"/plugin_function/path", plugin_name)
+          call get_option(trim(path)//"/plugin_function/name", function_name)
+          call get_option(trim(path)//"/plugin_function/interface_type/name",&
+               interface_type)
+       ! Get current time
+       if (present(time)) then
+         current_time=time
+       else
+         call get_option("/timestepping/current_time", current_time)
+       end if
+       call set_from_plugin_function(field, trim(plugin_name),trim(function_name), position, current_time,interface_type)
        else if (have_option(trim(tpath)//"/generic_function")) then
           FLExit("Generic functions are obsolete. Use a Python function.")
        else if(have_option(trim(path)//"/internally_calculated")) then

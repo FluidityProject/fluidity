@@ -959,6 +959,75 @@ boundary condition \eqref{NormalStressBC} instead of $p=\patm$, you should add a
 prognostic FreeSurface (instead of a diagnostic). The initial condition is then
 also set for that field.
 
+\subsubsection{Setting fields using a shared object plugin function}\label{sec:setting_with_shared_object}
+\index{field!Shared object function}
+\index{Shared object!prescribed field values}
+
+The python interface described in Section \ref{sec:setting_with_python} is the recommended method to use when initializing a spatially or temporally varying field. Nevertheless, when prescribing scalar fields it is also possible to use C or Fortran functions which have been individually compiled into a shared object library to be loaded at runtime. This provides significant computational efficiencies when initializing fields on largedomains, but has the disadvantage of making debugging errors in the initialisation routines far more complicated.
+
+ To define a \option{\ldots/plugin\_function} it is necessary to give the relative path to the shared object library and the name of the function within that file. Three interface types are declared:
+\begin{enumerate}
+\item A generic C style interface. This may also be used for Fortran procedures making use of the ISO C bindings.
+\begin{example}
+  \begin{lstlisting}[language=C]
+    int val(int *dim,int *n,double field[],double X[][*dim],double *t)  {
+      int i;
+      for (i=0;i<*n;i++) {
+        field[i]=X[i][0]*X[i][0]-X[i][1];
+      };
+      return 0;
+    }
+  \end{lstlisting}
+  \caption{A simple C function returning the field $x^2-y$}
+\end{example}
+\begin{example}
+  \begin{lstlisting}[language=Fortran]
+    subroutine val(dim,n,field,X,t) bind(C)
+    use iso_c_binding
+    integer(c_int) :: dim, n
+    real(c_double), dimension(n) :: field
+    real(c_double), dimension(dim,n) :: X
+    real(c_double) :: t
+
+    field=X(1,:)**2-X(2,:)
+    end subroutine val
+  \end{lstlisting}
+  \caption{A Fortran subroutine using the ISO C bindings returning the field $x^2-y$}
+  \label{ex:fortran-bind-c}
+\end{example}
+\item A Fortran 77 style interface. \emph{For this interface type the function name must be given in lower case only}. Although interoperability for this interface type is likely between most modern comilers, it cannot be guaranteed.
+\begin{example}
+  \begin{lstlisting}[language=Fortran]
+    subroutine val(dim,n,field,X,t)
+    integer :: dim, n
+    double precision, dimension(n) :: field
+    double precision, dimension(dim,n) :: X
+    double precision :: t
+    field=X(1,:)**2-X(2,:)
+    end subroutine val
+  \end{lstlisting}
+  \caption{A pure Fortran subroutine returning the field $x^2-y$}
+\end{example}
+\item A Fortran 90 style interface using assumed shape arrays. \emph{For this interface type the function name must be given in lower case only}. This interface is provided as a courtesy, but is only likely to work when both the shared object function and the \fluidity binary are built with the same compiler.
+\begin{example}
+  \begin{lstlisting}[language=Fortran]
+    subroutine val(field,X,t)
+    double precision, dimension(:) :: field
+    double precision, dimension(:,:) :: X
+    double precision :: t
+    field=X(1,:)**2-X(2,:)
+    end subroutine val
+  \end{lstlisting}
+  \caption{A Fortran 90 subroutine with assumed shape arrays returning the field $x^2-y$}
+\end{example} 
+\end{enumerate}
+ In order to interact successfully, the plugin function must be compiled with the flags \lstinline[language=Bash]+-shared -fPIC+ passed to the relevant compiler. If the file \lstinline[language=Bash]+example.F90+ contained the code given in Example \ref{ex:fortran-bind-c} it could be combined into a suitable shared object file called \lstinline[language=Bash]+example.so+ by issuing the shell command
+\begin{lstlisting}[language=Bash]
+gfortran -shared -fPIC -o example.so example.F90
+\end{lstlisting}
+within the directory containing the Fortran file.
+
+
 \subsection{Region IDs}
 \index{region ID}
 If the input mesh defines a number of region IDs then these may be employed
