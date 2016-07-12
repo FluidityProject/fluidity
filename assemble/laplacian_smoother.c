@@ -4,54 +4,39 @@ static char help[] = "Solves 2D Laplacian equation in serial.\n\n";
 #include <string.h>
 #include <stdlib.h>
 
-void lap_smoother(int dimension, int num_nodes, int num_elements, int num_surf_elements, int * connectivity, double * phys_mesh, double* smooth_mesh, double * comp_mesh, int * surf_connectivity) {
+void lap_smoother(int dimension, int num_nodes, int num_elements, int num_surf_elements, int num_owned_nodes, int* mapping, int * connectivity, double * phys_mesh, double* smooth_mesh, double * comp_mesh, int * surf_connectivity) {
   
-  Vec            F,Fx,Fy,U_hx,U_hy,line_ele_vec;
-  Mat            K,tri_ele_mat;            
-  KSP            ksp_x,ksp_y; 
+  Vec            F,Fx,Fy,U_hx,U_hy;
+  Mat            K;            
+  KSP            ksp_x;
+  PC             pc;
   PetscErrorCode ierr;
   PetscInt       i,n,m,col[3]={0,1,2},col_new[3],convert[3],line_total=num_surf_elements,c[num_surf_elements],
-                 Istart,Iend,Ii,its,num_nodes_col[num_nodes],j_other=0,len_new=1,j;
+					Istart,Iend,Ii,its,num_nodes_col[num_nodes],j_other=0,len_new=1,j, local_surf_connectivity[dimension*num_surf_elements], global_surf_connectivity[dimension*num_surf_elements];
   PetscMPIInt    size;
-  PetscScalar    holder_new[3],p_value[3],A_holder[9],grad_holder[6],det,Fe,x_bound_points[num_surf_elements],
+  PetscInt       *holder_new;
+  PetscScalar    p_value[3],A_holder[9],grad_holder[6],det,Fe,x_bound_points[num_surf_elements],
                  y_bound_points[num_surf_elements],Area,Ke[3][3],smoothed_x[num_nodes],smoothed_y[num_nodes],value[5];
   PetscViewer    viewer;
   float          A_inv_holder[3][3];
-
-  
-  //Creating PetscMat just for triangular elements
-  MatCreate(PETSC_COMM_WORLD,&tri_ele_mat);
-  PetscObjectSetName((PetscObject) tri_ele_mat, "triangle_connectivty");
-  MatSetSizes(tri_ele_mat,PETSC_DECIDE,PETSC_DECIDE,num_elements,3);
-  MatSetType(tri_ele_mat,MATAIJ);
-  MatSetUp(tri_ele_mat);
-  
-  for (i=0;i<num_elements;i++){
-    value[0]=connectivity[j_other]; value[1]=connectivity[j_other+1];value[2]=connectivity[j_other+2];
-    MatSetValues(tri_ele_mat,1,&i,3,col,value,INSERT_VALUES);
-    j_other+=3;
-  }
-  
-  MatAssemblyBegin(tri_ele_mat,MAT_FINAL_ASSEMBLY);
-  MatAssemblyEnd(tri_ele_mat,MAT_FINAL_ASSEMBLY);
   
   MatCreate(PETSC_COMM_WORLD,&K);
   PetscObjectSetName((PetscObject) K, "Stiffness Matrix");
-  MatSetSizes(K,PETSC_DECIDE,PETSC_DECIDE,num_nodes,num_nodes);
+  MatSetSizes(K,num_owned_nodes,num_owned_nodes,PETSC_DETERMINE,PETSC_DETERMINE);
   MatSetUp(K);
 
   VecCreate(PETSC_COMM_WORLD,&F);
   PetscObjectSetName((PetscObject) F, "Load Vector");
-  VecSetSizes(F,PETSC_DECIDE,num_nodes);
+  VecSetSizes(F,num_owned_nodes,PETSC_DECIDE);
   VecSetFromOptions(F);
 
-  MatGetOwnershipRange(tri_ele_mat,&Istart,&Iend);
-
   //Assembly of Stiffness Matrix K
-  for (Ii=Istart;Ii<Iend;Ii++){
+  for (Ii=0;Ii<num_elements;Ii++){
 
-      MatGetValues(tri_ele_mat,1,&Ii,3,col,holder_new);
-      convert[0]=holder_new[0]-1;convert[1]=holder_new[1]-1;convert[2]=holder_new[2]-1;
+    holder_new = &(connectivity[(dimension+1)*Ii]);
+      convert[0]=holder_new[0]-1;
+      convert[1]=holder_new[1]-1;
+      convert[2]=holder_new[2]-1;
       int counter = 0;
       
     for(m=0;m<3;m++){
@@ -83,16 +68,25 @@ void lap_smoother(int dimension, int num_nodes, int num_elements, int num_surf_e
 
      Fe=(Area/3.0)*0.0;//As called for in Laplacian Smoothing
 
-     MatSetValue(K,convert[0],convert[0],Ke[0][0],ADD_VALUES);MatSetValue(K,convert[0],convert[1],Ke[0][1],ADD_VALUES);
-     MatSetValue(K,convert[0],convert[2],Ke[0][2],ADD_VALUES);MatSetValue(K,convert[1],convert[0],Ke[1][0],ADD_VALUES);
-     MatSetValue(K,convert[1],convert[1],Ke[1][1],ADD_VALUES);MatSetValue(K,convert[1],convert[2],Ke[1][2],ADD_VALUES);
-     MatSetValue(K,convert[2],convert[0],Ke[2][0],ADD_VALUES);MatSetValue(K,convert[2],convert[1],Ke[2][1],ADD_VALUES);
-     MatSetValue(K,convert[2],convert[2],Ke[2][2],ADD_VALUES);
-     
-     VecSetValue(F,convert[0],Fe,ADD_VALUES);
-     VecSetValue(F,convert[1],Fe,ADD_VALUES);
-     VecSetValue(F,convert[2],Fe,ADD_VALUES);
-    
+
+     if (holder_new[0]<=num_owned_nodes) {
+       MatSetValue(K,mapping[convert[0]],mapping[convert[0]],Ke[0][0],ADD_VALUES);
+       MatSetValue(K,mapping[convert[0]],mapping[convert[1]],Ke[0][1],ADD_VALUES);
+       MatSetValue(K,mapping[convert[0]],mapping[convert[2]],Ke[0][2],ADD_VALUES);
+       VecSetValue(F,mapping[convert[0]],Fe,ADD_VALUES);
+     }
+     if (holder_new[1]<=num_owned_nodes) {
+       MatSetValue(K,mapping[convert[1]],mapping[convert[0]],Ke[1][0],ADD_VALUES);
+       MatSetValue(K,mapping[convert[1]],mapping[convert[1]],Ke[1][1],ADD_VALUES);
+       MatSetValue(K,mapping[convert[1]],mapping[convert[2]],Ke[1][2],ADD_VALUES);
+       VecSetValue(F,mapping[convert[1]],Fe,ADD_VALUES);
+     }
+     if (holder_new[2]<=num_owned_nodes) {
+       MatSetValue(K,mapping[convert[2]],mapping[convert[0]],Ke[2][0],ADD_VALUES);
+       MatSetValue(K,mapping[convert[2]],mapping[convert[1]],Ke[2][1],ADD_VALUES);
+       MatSetValue(K,mapping[convert[2]],mapping[convert[2]],Ke[2][2],ADD_VALUES);
+       VecSetValue(F,mapping[convert[2]],Fe,ADD_VALUES);
+     }
    }
       
   MatAssemblyBegin(K,MAT_FINAL_ASSEMBLY);
@@ -101,51 +95,50 @@ void lap_smoother(int dimension, int num_nodes, int num_elements, int num_surf_e
   VecAssemblyEnd(F);
 
   //Removing duplicate points in in surf_connectivity
+  local_surf_connectivity[0] = surf_connectivity[0] - 1;
   for(i=1; i< dimension*num_surf_elements; i++){
+
+    if(surf_connectivity[i]>num_owned_nodes) continue;
 
    for(j=0; j< len_new ; j++)
    {
 
-      if(surf_connectivity[i] == surf_connectivity[j])
+      if(surf_connectivity[i] == local_surf_connectivity[j]+1)
       break;
    }
 
      if (j==len_new)
-        surf_connectivity[len_new++] = surf_connectivity[i];
+        local_surf_connectivity[len_new++] = surf_connectivity[i]-1;
    }
 
- 
-  MatZeroRows(K,num_surf_elements,surf_connectivity-1,0.0,NULL,NULL);
+  for(i=0; i<len_new; i++) {
+    global_surf_connectivity[i]=mapping[local_surf_connectivity[i]];
+  }
+
+  MatZeroRows(K,len_new,global_surf_connectivity,1.0,NULL,NULL);
   
   //Decomposing F into F_x and F_y, owing to nature of Laplace's equation (independence of variabls) 
   VecCreate(PETSC_COMM_WORLD,&Fx);
   PetscObjectSetName((PetscObject) Fx, "Fx");
-  VecSetSizes(Fx,PETSC_DECIDE,num_nodes);
+  VecSetSizes(Fx,num_owned_nodes,PETSC_DECIDE);
   VecSetFromOptions(Fx);
   VecDuplicate(Fx,&F);
 
   VecCreate(PETSC_COMM_WORLD,&Fy);
   PetscObjectSetName((PetscObject) Fy, "Fy");
-  VecSetSizes(Fy,PETSC_DECIDE,num_nodes);
+  VecSetSizes(Fy,num_owned_nodes,PETSC_DECIDE);
   VecSetFromOptions(Fy);
   VecDuplicate(Fy,&F);
-
-  VecCreate(PETSC_COMM_WORLD,&line_ele_vec);
-  PetscObjectSetName((PetscObject) line_ele_vec, "line_ele_vector");
-  VecSetSizes(line_ele_vec,PETSC_DECIDE,num_surf_elements);
-  VecSetFromOptions(line_ele_vec);
-  VecGetOwnershipRange(line_ele_vec,&Istart,&Iend);
   
-  for(n=0;n<num_surf_elements;n++){
-    x_bound_points[n]=phys_mesh[2*(surf_connectivity[n]-1)];
-    y_bound_points[n]=phys_mesh[(2*(surf_connectivity[n]-1))+1];
+  for(n=0;n<len_new;n++){
+    x_bound_points[n]=phys_mesh[2*(local_surf_connectivity[n])];
+    y_bound_points[n]=phys_mesh[2*(local_surf_connectivity[n])+1];
   }
   
-  for(Ii=Istart;Ii<Iend;Ii++){
-
-    MatSetValue(K,surf_connectivity[Ii]-1,surf_connectivity[Ii]-1,1.0,INSERT_VALUES);
-    VecSetValue(Fx,surf_connectivity[Ii]-1,x_bound_points[Ii],INSERT_VALUES);
-    VecSetValue(Fy,surf_connectivity[Ii]-1,y_bound_points[Ii],INSERT_VALUES);
+  for(Ii=0;Ii<len_new;Ii++){
+    if (local_surf_connectivity[Ii]<num_owned_nodes) {
+      VecSetValue(Fx,global_surf_connectivity[Ii],x_bound_points[Ii],INSERT_VALUES);
+      VecSetValue(Fy,global_surf_connectivity[Ii],y_bound_points[Ii],INSERT_VALUES);}
   }
 
   
@@ -157,67 +150,71 @@ void lap_smoother(int dimension, int num_nodes, int num_elements, int num_surf_e
   VecAssemblyBegin(Fy);
   VecAssemblyEnd(Fy);
   
-  MatAssemblyBegin(K,MAT_FINAL_ASSEMBLY);
-  MatAssemblyEnd(K,MAT_FINAL_ASSEMBLY);
 
   KSPCreate(PETSC_COMM_WORLD,&ksp_x);
-  KSPCreate(PETSC_COMM_WORLD,&ksp_y);
 
   KSPSetOperators(ksp_x,K,K);
-  KSPSetOperators(ksp_y,K,K);
 
   KSPSetType(ksp_x,KSPGMRES);
-  KSPSetType(ksp_y,KSPGMRES);
+
+  KSPGetPC(ksp_x,&pc);
+  PCSetType(pc,PCSOR);
+
+  KSPSetInitialGuessNonzero(ksp_x,PETSC_TRUE);
   
   KSPSetTolerances(ksp_x,1e-7,1e-7,PETSC_DEFAULT,PETSC_DEFAULT);
-  KSPSetTolerances(ksp_y,1e-7,1e-7,PETSC_DEFAULT,PETSC_DEFAULT);
   
   KSPSetFromOptions(ksp_x);
-  KSPSetFromOptions(ksp_y);
 
   VecCreate(PETSC_COMM_WORLD,&U_hx);
   PetscObjectSetName((PetscObject) U_hx, "U_hx");
-  VecSetSizes(U_hx,PETSC_DECIDE,num_nodes);
+  VecSetSizes(U_hx,num_owned_nodes,PETSC_DECIDE);
   VecSetFromOptions(U_hx);
  
   VecCreate(PETSC_COMM_WORLD,&U_hy);
   PetscObjectSetName((PetscObject) U_hy, "U_hy");
-  VecSetSizes(U_hy,PETSC_DECIDE,num_nodes);
+  VecSetSizes(U_hy,num_owned_nodes,PETSC_DECIDE);
   VecSetFromOptions(U_hy);
-  
-  KSPSolve(ksp_x,Fx,U_hx);
-  KSPSolve(ksp_y,Fy,U_hy);
- 
-  KSPGetIterationNumber(ksp_x,&its);
-  PetscPrintf(PETSC_COMM_WORLD,"ksp_x iter: %D\n", its);
-  KSPGetIterationNumber(ksp_y,&its);
-  PetscPrintf(PETSC_COMM_WORLD,"ksp_y iter: %D\n", its);
 
-  
-  KSPConvergedReason reason;
-  KSPGetConvergedReason(ksp_x,&reason);
-  PetscPrintf(PETSC_COMM_WORLD,"KSPConvergedReasonX: %D\n", reason);
-  KSPGetConvergedReason(ksp_y,&reason);
-  PetscPrintf(PETSC_COMM_WORLD,"KSPConvergedReasonY: %D\n", reason);
 
+  for(n=0;n<num_owned_nodes;n++){
+    VecSetValue(U_hx,mapping[n],phys_mesh[2*n],INSERT_VALUES);
+    VecSetValue(U_hy,mapping[n],phys_mesh[2*n+1],INSERT_VALUES);
+  }
+  
   VecAssemblyBegin(U_hx);
   VecAssemblyEnd(U_hx);
   VecAssemblyBegin(U_hy);
   VecAssemblyEnd(U_hy);
-  
-  for(n=0;n<num_nodes;n++){
-    num_nodes_col[n]=n;
-  }
-  VecGetValues(U_hx,num_nodes,num_nodes_col,smoothed_x);
-  VecGetValues(U_hy,num_nodes,num_nodes_col,smoothed_y);
 
- for(n=0;n<num_nodes; n++){
+  KSPSolve(ksp_x,Fx,U_hx);
+  KSPGetIterationNumber(ksp_x,&its);
+  PetscPrintf(PETSC_COMM_WORLD,"ksp_x iter: %D\n", its);
+  KSPConvergedReason reason;
+  KSPGetConvergedReason(ksp_x,&reason);
+  PetscPrintf(PETSC_COMM_WORLD,"KSPConvergedReasonX: %D\n", reason);
+
+  KSPSolve(ksp_x,Fy,U_hy);
+  KSPGetIterationNumber(ksp_x,&its);
+  PetscPrintf(PETSC_COMM_WORLD,"ksp_y iter: %D\n", its);
+  KSPGetConvergedReason(ksp_x,&reason);
+  PetscPrintf(PETSC_COMM_WORLD,"KSPConvergedReasonY: %D\n", reason);
+
+  
+  
+  for(n=0;n<num_owned_nodes;n++){
+    num_nodes_col[n]=mapping[n];
+  }
+  VecGetValues(U_hx,num_owned_nodes,num_nodes_col,smoothed_x);
+  VecGetValues(U_hy,num_owned_nodes,num_nodes_col,smoothed_y);
+
+ for(n=0;n<num_owned_nodes; n++){
     smooth_mesh[2*n+0] = smoothed_x[n];
     smooth_mesh[2*n+1] = smoothed_y[n];
   }
 
-  VecDestroy(&Fx);VecDestroy(&Fy);VecDestroy(&U_hx);VecDestroy(&U_hy);VecDestroy(&line_ele_vec);
-  MatDestroy(&K);MatDestroy(&tri_ele_mat);
-  KSPDestroy(&ksp_x);KSPDestroy(&ksp_y);
+  VecDestroy(&Fx);VecDestroy(&Fy);VecDestroy(&U_hx);VecDestroy(&U_hy);
+  MatDestroy(&K);
+  KSPDestroy(&ksp_x);
  
 }

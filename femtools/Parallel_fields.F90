@@ -53,7 +53,7 @@ module parallel_fields
        & element_owner, node_owned, assemble_ele, &
        & surface_element_owned, nowned_nodes
   ! Apparently ifort has a problem with the generic name node_owned
-  public :: node_owned_mesh, zero_non_owned
+  public :: node_owned_mesh, zero_non_owned, universal_numbering
   
   interface node_owned
     module procedure node_owned_mesh, node_owned_scalar, node_owned_vector, &
@@ -99,6 +99,12 @@ module parallel_fields
     module procedure nowned_nodes_mesh, nowned_nodes_scalar, &
       & nowned_nodes_vector, nowned_nodes_tensor
   end interface nowned_nodes
+
+  interface universal_numbering
+     module procedure universal_numbering_mesh, universal_numbering_scalar,&
+          universal_numbering_vector, universal_numbering_tensor
+  end interface universal_numbering
+
 
 contains
   
@@ -757,4 +763,48 @@ contains
   
   end function nowned_nodes_tensor
 
+
+  function universal_numbering_mesh(mesh) result(map)
+    type(mesh_type), intent(in) :: mesh
+    
+    integer, dimension(node_count(mesh)) :: map
+
+    integer :: nhalos, i
+    
+    nhalos = halo_count(mesh)
+    if(nhalos > 0) then
+      call get_universal_numbering(mesh%halos(nhalos), map)
+    else
+      map = [(i,i=1,node_count(mesh))]
+    end if
+  
+  end function universal_numbering_mesh
+
+  function universal_numbering_scalar(s_field) result(map)
+    type(scalar_field), intent(in) :: s_field
+
+    integer, dimension(node_count(s_field)) :: map
+
+    map = universal_numbering_mesh(s_field%mesh)
+
+  end function universal_numbering_scalar
+
+  function universal_numbering_vector(v_field) result(map)
+    type(vector_field), intent(in) :: v_field
+
+    integer, dimension(node_count(v_field)) :: map
+
+    map = universal_numbering_mesh(v_field%mesh)
+
+  end function universal_numbering_vector
+
+  function universal_numbering_tensor(t_field) result(map)
+    type(tensor_field), intent(in) :: t_field
+
+    integer, dimension(node_count(t_field)) :: map
+
+    map = universal_numbering_mesh(t_field%mesh)
+
+  end function universal_numbering_tensor
+    
 end module parallel_fields

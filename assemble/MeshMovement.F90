@@ -22,6 +22,7 @@ module meshmovement
   use vtk_interfaces
   use sparse_matrices_fields
   use solvers
+  use parallel_fields
   use fefields
   use field_derivatives
   use sparsity_patterns
@@ -43,12 +44,16 @@ module meshmovement
 
   interface
      subroutine lap_smoother(dim, num_nodes,&
-          num_elements, num_surf_elements,&
-          connectivity, phys_mesh, smooth_mesh,&
+          num_elements, num_surf_elements, num_owned_nodes,& 
+          mapping, connectivity, phys_mesh, smooth_mesh,&
           comp_mesh, surf_connectivity) bind(c)
        use iso_c_binding
+
+       implicit none
        
-       integer (c_int), value :: dim, num_nodes, num_elements, num_surf_elements
+       integer (c_int), value :: dim, num_nodes, num_elements, &
+            num_surf_elements, num_owned_nodes
+       integer (c_int), dimension(num_nodes) :: mapping
        integer (c_int), dimension((dim+1)*num_elements) :: connectivity
        real (c_double), dimension(num_nodes) :: phys_mesh, smooth_mesh, comp_mesh
        integer (c_int), dimension(dim*num_elements) :: surf_connectivity
@@ -1358,8 +1363,11 @@ contains
 !Figure out indexing between C and Fortran
     call lap_smoother(mesh_dim(coordinate), node_count(coordinate),&
           element_count(coordinate), surface_element_count(coordinate),&
+          nowned_nodes(coordinate), universal_numbering(coordinate)-1,&
           coordinate%mesh%ndglno, coordinate%val, new_coordinate%val,&
           initial_coordinate%val, surface_mesh%ndglno)
+
+    call halo_update(new_coordinate)
 
     !!! Convert the new coordinates returned into a grid velocity
     !!! and calculate the coordinate field at the theta time level.
