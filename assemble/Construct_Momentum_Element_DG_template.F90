@@ -1560,7 +1560,7 @@
     no_normal_flow=.false.
     l_have_pressure_bc=.false.
     if (boundary) then
-       do dim=1,U%dim
+       do dim=1,NDIM(U)
           if (velocity_bc_type(dim,face)==1) then
              dirichlet(dim)=.true.
           end if
@@ -1663,7 +1663,7 @@
              &                       outer_advection_integral * detwei * Rho_q)
       end if
 
-      do dim = 1, u%dim
+      do dim = 1, NDIM(U)
       
          ! Insert advection in matrix.
          if(subcycle) then
@@ -1762,7 +1762,7 @@
        !      /
        ! add -|  N_i M_j \vec n p_j, where p_j are the prescribed bc values
        !      /
-       do dim = 1, U%dim
+       do dim = 1, NDIM(U)
           if(subtract_out_reference_profile) then
             rhs_addto(dim,u_face_l) = rhs_addto(dim,u_face_l) - &
                  matmul( ele_val(pressure_bc, face) - face_val(hb_pressure, face), mnCT(1,dim,:,:) )
@@ -2084,7 +2084,7 @@
 
 
       if (boundary) then
-         do d=1,U%dim
+         do d=1,NDIM(U)
             if(dirichlet(d)) then
                !!These terms are not included on Neumann integrals
 
@@ -2107,7 +2107,7 @@
             end if
          end do
       else
-         do d=1,U%dim
+         do d=1,NDIM(U)
             !! Internal Degrees of Freedom
             
             !penalty flux
@@ -2141,7 +2141,7 @@
 
 
       if (boundary) then
-         do d=1,U%dim
+         do d=1,NDIM(U)
             if(dirichlet(d)) then
                !!These terms are not included on Neumann integrals
                
@@ -2168,7 +2168,7 @@
             end if
          end do
       else
-         do d=1,U%dim
+         do d=1,NDIM(U)
             !! Internal Degrees of Freedom
             
             !primal fluxes
