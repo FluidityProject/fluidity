@@ -330,21 +330,19 @@ contains
       real,dimension(v_field%dim) :: Scoords , Rcoords, DSource
       type(vector_field), pointer :: positions, velocity
       type(tensor_field), pointer :: ViscosityTens
-      integer :: i,j,ele, iturb, jblade, kelem, ial
+      integer :: i,j, isource, ele
       real, dimension(v_field%dim+1) :: local_coord
       type(vector_field) :: remapped_pos
       real, dimension(v_field%dim) :: value_vel
       real, dimension(v_field%dim,v_field%dim) :: visc_tensor
-      real :: dr2, d, epsilon_par, Area, radius, V_rel,V_rel2,loc_kern
+      real :: d, epsilon_par, loc_kern
       real,dimension(3,3) :: nu
       real :: volume, meshFactor, dragFactor, chordFactor
-      real :: epsilon_par_drag, epsilon_par_chord, epsilon_par_mesh, epsilon_threshold
-      character(len = OPTION_PATH_LEN) :: base_path
+      real :: epsilon_par_drag, epsilon_par_chord, epsilon_par_mesh, epsilon_threshold,chord
       real :: Send(4), Recv(4)
       ! MPI related parameters declaration
       integer :: count,dest, ierr, num_procs, rank, status(MPI_Status_size), tag,irank
       real :: tic,toc, mpi_time
-      integer, dimension(4) :: request
       integer :: status_array(MPI_STATUS_SIZE,4)
       ewrite(1,*) 'In ALM Momentum Source' 
       
@@ -366,7 +364,7 @@ contains
         
       !> Read the Cmax values
       call get_option(trim(complete_field_path(trim(v_field%option_path))) // &        
-                    "/algorithm[0]/meshFactor", meshFactor, default=2.75)   
+                    "/algorithm[0]/meshFactor", meshFactor, default=2.00)   
       call get_option(trim(complete_field_path(trim(v_field%option_path))) // &        
                     "/algorithm[0]/dragFactor", dragFactor, default=1.0)   
       call get_option(trim(complete_field_path(trim(v_field%option_path))) // &        
@@ -380,25 +378,27 @@ contains
       call MPI_Comm_size(MPI_COMM_WORLD,num_procs,ierr)
             
       tag=2016
-          
-      call cpu_time(tic)
       
-      ! ################## Starting the Actuator_Line_model Interface ###################
-      do ial=1,Nal
-        do kelem=1,actuatorline(ial)%NElem
-      ! Set the elements
-      Scoords(1)=actuatorline(ial)%PEx(kelem)
-      Scoords(2)=actuatorline(ial)%PEy(kelem)
-      Scoords(3)=actuatorline(ial)%PEz(kelem)
+        
+      call get_locations
+      
+      call cpu_time(tic)
     
+      ! ################## Starting the Actuator_Line_model Interface ###################
+      do isource=1,NSource
+      ! Set the elements
+      Scoords(1)=Sx(isource)
+      Scoords(2)=Sy(isource)
+      Scoords(3)=Sz(isource)
+
       call picker_inquire(positions,Scoords,ele,local_coord,.true.)
       if (ele<0) then
           ewrite(2,*) 'I dont own the element'
           call MPI_recv(Recv,4,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,tag,MPI_COMM_WORLD,status,ierr)
-        actuatorline(ial)%EVx(kelem)=Recv(1)
-        actuatorline(ial)%EVy(kelem)=Recv(2)
-        actuatorline(ial)%EVz(kelem)=Recv(3)
-        actuatorline(ial)%Eepsilon(kelem)=Recv(4)
+        Su(isource)=Recv(1)
+        Sv(isource)=Recv(2)
+        Sw(isource)=Recv(3)
+        Se(isource)=Recv(4)
         ewrite(2,*) 'Received', Recv, ' from processor', status(MPI_SOURCE)
       else
           ewrite(2,*) 'I own the element'
@@ -411,8 +411,8 @@ contains
           volume=element_volume(positions,ele)
 
           epsilon_par_mesh  = 2.0*meshFactor*volume**(1.0/3.0) 
-          epsilon_par_drag  = 1.1*dragFactor*actuatorline(ial)%EC(kelem)/2.0      
-          epsilon_par_chord = chordFactor*actuatorline(ial)%EC(kelem)
+          epsilon_par_drag  = 1.1*dragFactor*Sc(isource)/2.0      
+          epsilon_par_chord = chordFactor*Sc(isource)
 
           epsilon_threshold = max(epsilon_par_drag,epsilon_par_chord)
 
@@ -422,17 +422,17 @@ contains
               epsilon_par=epsilon_par_mesh
           end if
         
-        actuatorline(ial)%EVx(kelem)=value_vel(1)
-        actuatorline(ial)%EVy(kelem)=value_vel(2)
-        actuatorline(ial)%EVz(kelem)=value_vel(3)
-        actuatorline(ial)%Eepsilon(kelem)=epsilon_par
-          
+        Su(isource)=value_vel(1)
+        Sv(isource)=value_vel(2)
+        Sw(isource)=value_vel(3)
+        Se(isource)=epsilon_par
+
         do irank=0,num_procs-1
         if(irank.ne.rank) then
-        Send(1)=actuatorline(ial)%EVx(kelem)
-        Send(2)=actuatorline(ial)%EVy(kelem)
-        Send(3)=actuatorline(ial)%EVz(kelem)
-        Send(4)=actuatorline(ial)%Eepsilon(kelem)
+        Send(1)=Su(isource)
+        Send(2)=Sv(isource)
+        Send(3)=Sw(isource)
+        Send(4)=Se(isource)
         call MPI_Send(Send,4,MPI_DOUBLE_PRECISION,irank,tag,MPI_COMM_WORLD,ierr)
         ewrite(2,*) 'Sent' , Send, ' to processor ', irank        
         end if 
@@ -440,7 +440,7 @@ contains
         end do
 
       endif 
-      end do
+      
       end do
 
       call cpu_time(toc)
@@ -448,46 +448,36 @@ contains
       ewrite(2,*) 'MPI_Communication Time', mpi_time
 
       !################## END OF MPI INTERFACE ############################
-    
+      call set_vel
+
       !## Compute the forces
-      call actuator_line_model_update  
+      call actuator_line_model_compute_forces  
       !##
+      
+      call get_forces  
     
-      do ial=1,Nal
-        do kelem=1,actuatorline(ial)%NElem
+      do isource=1,NSource
 
       ! Set the elements
-      Scoords(1)=actuatorline(ial)%PEx(kelem)
-      Scoords(2)=actuatorline(ial)%PEy(kelem)
-      Scoords(3)=actuatorline(ial)%PEz(kelem)
+      do i = 1, node_count(v_field)
+      ! Compute a Sphere of Influence with diameter equal to chord/2
+      DSource(:)=0.0
+      ! Compute a molification function in 3D 
+      Rcoords=node_val(remapped_pos,i)
+      d=sqrt((Sx(isource)-Rcoords(1))**2+(Sy(isource)-Rcoords(2))**2+(Sz(isource)-Rcoords(3))**2)
+      loc_kern=Kernel(d,Se(isource),3)
 
-                  do i = 1, node_count(v_field)
-                      ! Compute a Sphere of Influence with diameter equal to chord/2
-                      DSource(:)=0.0
-                      ! Compute a molification function in 3D 
-                      Rcoords=node_val(remapped_pos,i)
-                      dr2=0.0
-                      d=0.0
-                      do j=1, v_field%dim
-                          d = Scoords(j)-Rcoords(j)
-                          dr2=dr2+d**2.0
-                      end do
-                      
-                      if(sqrt(dr2)<actuatorline(ial)%EDS(kelem)/2.0+actuatorline(ial)%Eepsilon(kelem)*sqrt(3.0)) then
-                        loc_kern=Kernel(sqrt(dr2),actuatorline(ial)%Eepsilon(kelem),v_field%dim)
-                      else
-                          loc_kern=0.0
-                      endif
+      ! The (-) means that the fluid and the body are in equilibrium at each time
+      DSource(1)=-loc_kern*SFx(isource)
+      DSource(2)=-loc_kern*SFy(isource)
+      DSource(3)=-loc_kern*SFz(isource)
 
-                  ! The (-) means that the fluid and the body are in equilibrium at each time
-                  DSource(1)=-loc_kern*actuatorline(ial)%EFx(kelem)
-                  DSource(2)=-loc_kern*actuatorline(ial)%EFy(kelem)
-                  DSource(3)=-loc_kern*actuatorline(ial)%EFz(kelem)
-                  call addto(v_field,i,DSource)
-                end do
+      call addto(v_field,i,DSource)
       end do
       end do
 
+      call actuator_line_model_update
+      
       call deallocate(remapped_pos)
 
       ewrite(1,*) 'Exiting ALM Momentum Source'

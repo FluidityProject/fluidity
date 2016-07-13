@@ -162,13 +162,14 @@ type TurbineType
     real :: hub_tilt_angle, blade_cone_angle, yaw_angle 
     real :: Rmax ! Reference radius, velocity, viscosity
     real :: A   ! Rotor area
-    real :: TSR , angularVel
+    real :: angularVel
     real :: AzimAngle=0.0
     logical :: Is_constant_rotation_operated = .false. ! For a constant rotational velocity (in Revolutions Per Minute)
     logical :: Is_force_based_operated = .false. ! For a forced based rotational velocity (Computed during the simulation)
     logical :: IsRotating = .false.
     logical :: IsClockwise = .false.
     logical :: IsCounterClockwise = .false. 
+    logical :: Has_Hub, Has_Tower
     type(ActuatorLineType), allocatable :: Blade(:)
     type(AirfoilType), allocatable :: AirfoilData(:)
     type(ActuatorLineType) :: hub, tower
@@ -183,12 +184,12 @@ end type TurbineType
 
     type(ActuatorLineType), allocatable, save :: Actuatorline(:)
     type(TurbineType), allocatable, save :: Turbine(:) ! Turbine 
-    real, allocatable :: Sx(:),Sy(:),Sz(:),Su(:),Sv(:),Sw(:),Se(:),Sfx(:),Sfy(:),Sfz(:)
+    real, allocatable :: Sx(:),Sy(:),Sz(:),Se(:),Su(:),Sv(:),Sw(:),Sc(:),Sfx(:),Sfy(:),Sfz(:)
     integer,save :: Ntur, Nal ! Number of the turbines 
-    integer,save :: NSource,counter
+    integer,save :: NSource
     real,save :: deltaT, Visc
  
-    public  actuator_line_model_init, actuator_line_model_update 
+    public  actuator_line_model_init, actuator_line_model_compute_forces 
 
 contains
     
@@ -196,7 +197,7 @@ contains
    
         implicit none
         integer :: itur,ial 
-    ewrite(1,*) 'Entering the ALTurbine_init '
+    ewrite(1,*) 'Entering the actuator_line_model_init '
 
     !GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
     !* This a routine from which fluidity reads the information about the turbine model 
@@ -204,7 +205,6 @@ contains
     ! In the final version of the code we should be able to enable 
     ! multiple turbines. 
     !GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
-
 
     ! Get Global Time 
     call get_option("/timestepping/timestep",deltaT) 
@@ -216,7 +216,6 @@ contains
     do itur=1,Ntur
     call set_turbine_geometry(Turbine(itur))
     end do
-
     endif
    
     !### Speficy Actuator Lines
@@ -228,9 +227,146 @@ contains
     end do
     endif
 
+    !############## Specify Source Terms ########################
+    call allocate_source_terms
+
+    ewrite(1,*) 'Exiting the actuator_line_model_init '
+
     end subroutine actuator_line_model_init
     
+    subroutine allocate_source_terms
 
+    implicit none
+    integer :: counter,itur,iblade,ielem,ial
+    
+    ewrite(1,*) 'entering allocate_source_terms'
+    counter=0
+    if (Ntur>0) then
+        do itur=1,Ntur
+            do iblade=1,Turbine(itur)%Nblades
+                do ielem=1,Turbine(itur)%Blade(iblade)%Nelem
+                counter=counter+1
+                end do
+            end do
+        end do
+    endif
+    
+    if (Nal>0) then
+        do ial=1,Nal
+            do ielem=1,actuatorline(ial)%NElem
+                counter=counter+1
+            end do
+        end do
+    endif
+    NSource=counter
+    allocate(Sx(NSource),Sy(NSource),Sz(NSource),Sc(Nsource),Su(NSource),Sv(NSource),Sw(NSource),Se(NSource),Sfx(NSource),Sfy(NSource),Sfz(NSource))
+
+    ewrite(1,*) 'exiting allocate_source_terms'
+
+    end subroutine allocate_source_terms
+
+
+    subroutine get_locations
+    
+    implicit none
+    integer :: counter,itur,iblade,ielem,ial
+
+    counter=0
+    if (Ntur>0) then
+        do itur=1,Ntur
+            do iblade=1,Turbine(itur)%Nblades
+                do ielem=1,Turbine(itur)%Blade(iblade)%Nelem
+                counter=counter+1
+                Sx(counter)=Turbine(itur)%Blade(iblade)%PEX(ielem)
+                Sy(counter)=Turbine(itur)%Blade(iblade)%PEY(ielem)
+                Sz(counter)=Turbine(itur)%Blade(iblade)%PEZ(ielem)
+                Sc(counter)=Turbine(itur)%Blade(iblade)%EC(ielem)
+                end do
+            end do
+        end do
+    endif
+    
+    if (Nal>0) then
+        do ial=1,Nal
+            do ielem=1,actuatorline(ial)%NElem
+                counter=counter+1
+                Sx(counter)=actuatorline(ial)%PEX(ielem)
+                Sy(counter)=actuatorline(ial)%PEY(ielem)
+                Sz(counter)=actuatorline(ial)%PEZ(ielem)
+                Sc(counter)=actuatorline(ial)%EC(ielem)
+            end do
+        end do
+    endif
+  
+    end subroutine get_locations
+    
+    subroutine set_vel
+    
+    implicit none
+    integer :: counter,itur,iblade,ielem,ial
+    
+    ewrite(1,*) 'Entering set_vel'
+    counter=0
+    if (Ntur>0) then
+        do itur=1,Ntur
+            do iblade=1,Turbine(itur)%Nblades
+                do ielem=1,Turbine(itur)%Blade(iblade)%Nelem
+                counter=counter+1
+                Turbine(itur)%Blade(iblade)%EVX(ielem)=Su(counter)
+                Turbine(itur)%Blade(iblade)%EVY(ielem)=Sv(counter)
+                Turbine(itur)%Blade(iblade)%EVZ(ielem)=Sw(counter)
+                end do
+            end do
+        end do
+    endif
+    
+    if (Nal>0) then
+        do ial=1,Nal
+            do ielem=1,actuatorline(ial)%NElem
+                counter=counter+1
+                actuatorline(ial)%EVX(ielem)=Su(counter)
+                actuatorline(ial)%EVY(ielem)=Sv(counter)
+                actuatorline(ial)%EVZ(ielem)=Sw(counter)
+            end do
+        end do
+    endif
+
+    ewrite(1,*) 'Exiting set_vel'
+  
+    end subroutine set_vel
+    
+    subroutine get_forces
+    
+    implicit none
+    integer :: counter,itur,iblade,ielem,ial
+
+    counter=0
+    if (Ntur>0) then
+        do itur=1,Ntur
+            do iblade=1,Turbine(itur)%Nblades
+                do ielem=1,Turbine(itur)%Blade(iblade)%Nelem
+                counter=counter+1
+                Sfx(counter)=Turbine(itur)%Blade(iblade)%EFX(ielem)
+                Sfy(counter)=Turbine(itur)%Blade(iblade)%EFY(ielem)
+                Sfz(counter)=Turbine(itur)%Blade(iblade)%EFZ(ielem)
+                end do
+            end do
+        end do
+    endif
+    
+    if (Nal>0) then
+        do ial=1,Nal
+            do ielem=1,actuatorline(ial)%NElem
+                counter=counter+1
+                Sfx(counter)=actuatorline(ial)%EFX(ielem)
+                Sfy(counter)=actuatorline(ial)%EFY(ielem)
+                Sfz(counter)=actuatorline(ial)%EFZ(ielem)
+            end do
+        end do
+    endif
+  
+    end subroutine get_forces
+    
     subroutine get_turbine_options
     
     implicit none
@@ -381,15 +517,15 @@ subroutine get_actuatorline_options
 
 end subroutine get_actuatorline_options 
 
-subroutine operate_actuatorline(act_line)
+subroutine actuator_line_model_update
 
     implicit none
-    type(ActuatorLineType),intent(inout) :: act_line
-    integer :: iDof
 
-end subroutine operate_actuatorline
+    ! This routine updates the location of the actuator lines
 
-subroutine actuator_line_model_update
+end subroutine actuator_line_model_update
+
+subroutine actuator_line_model_compute_forces
  
     implicit none
     
@@ -401,32 +537,23 @@ subroutine actuator_line_model_update
      
     if (Ntur>0) then
     do i=1,Ntur
-    ! Depending on whether the turbine is using a constant or a forced
-    ! Based model for its operation: we will have the following options
-    if(Turbine(i)%Is_constant_rotation_operated) then
-    
-    elseif(Turbine(i)%Is_force_based_operated) then
-        ewrite(2,*) 'Operating Turbine with a force-based approach'
-    else
-         FLExit("At the moment only constant rotational velocity and the force-based approach are supported") 
-    endif
+        do j=1,Turbine(i)%Nblades
+            call Compute_ActuatorLine_Forces(Turbine(i)%Blade(j))
+        end do
     end do
     end if
 
-    !############Actuator line Update#############################
     if (Nal>0) then
     do i=1,Nal
     call Compute_ActuatorLine_Forces(ActuatorLine(i))
     ewrite(2,*) 'Forces X,Y,Z', ActuatorLine(i)%FX, ActuatorLine(i)%FY, ActuatorLine(i)%FZ  
     end do
     end if
-    !#############################################################
 
     ewrite(1,*) 'Exiting actuator_line_model_update'
     return
 
-end subroutine actuator_line_model_update
-
+end subroutine actuator_line_model_compute_forces
 
 subroutine set_turbine_geometry(turbine)
 
@@ -582,7 +709,6 @@ subroutine calculate_performance(turbine)
 end subroutine calculate_performance
 
 subroutine Compute_Turbine_RotVel
-
     implicit none
     integer :: iturb,iblade,ielem
     real :: wRotX,wRotY,wRotZ,Rx,Ry,Rz,ublade,vblade,wblade
