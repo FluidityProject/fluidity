@@ -91,15 +91,19 @@ type ActuatorLineType
     real, allocatable :: EDS(:)         ! Element spanwise distance (length)
     real, allocatable :: EArea(:)       ! Element Area
     real, allocatable :: Eepsilon(:)    ! Element Force Projection Parameter
+    real, allocatable :: ERdist(:)      ! Element Distance from the origin 
     real, allocatable :: ETtoC(:)       ! Element thickness to Chord ratio
     real, allocatable :: EAOA(:)        ! Element Last angle of Attack (used in added mass terms)
     real, allocatable :: EUn(:)         ! Element Last normal velocity (used in added mass terms)
     real, allocatable :: EAOA_LAST(:)   ! Element Last angle of Attack (used in added mass terms)
     real, allocatable :: EUn_LAST(:)    ! Element Last normal velocity (used in added mass terms)
+    
+    ! Velocity of the Fluid at the actuator Line Locations
     real, allocatable :: EVx(:)         ! Element Local fluid Velocity in the global x-direction
     real, allocatable :: EVy(:)         ! Element Local fluid Velocity in the global y-direction
     real, allocatable :: EVz(:)         ! Element Local fluid Velocity in the global z-direction
-     
+    
+    ! Body Velocity of the Actuator Line 
     real, allocatable :: EVbx(:)        ! Element Local body Velocity in the global x-direction
     real, allocatable :: EVby(:)        ! Element Local body Velocity in the global y-direction
     real, allocatable :: EVbz(:)        ! Element Local body Velocity in the global z-direction
@@ -116,7 +120,7 @@ type ActuatorLineType
     real, allocatable :: ETRx(:)     ! Element Torque over the point of rotation 
     real, allocatable :: ETRy(:)     ! Element Torque over the point of rotation 
     real, allocatable :: ETRz(:)     ! Element Torque over the point of rotation 
-    real, allocatable :: ERdist(:)      ! Element Distance from the origin 
+
     
     ! Element Airfoil Data
     type(AirfoilType), allocatable :: EAirfoil(:) ! Element Airfoil 
@@ -126,7 +130,7 @@ type ActuatorLineType
     !##########################################################################################
 
     !##########################################################################################
-    ! ActuatorLine 
+    ! Forces and Torques on the ActuatorLine 
     real :: Fn     ! Force in the normal direction
     real :: Ft     ! Force in the tangential direction (rearward chord line direction) 
     real :: Fs     ! Force in the spanwise direction
@@ -156,7 +160,7 @@ type TurbineType
     integer :: NBlades, NAirfoilData
     real, dimension(3) :: RotN, origin ! Rotational vectors in the normal and perpendicular directions
     real :: hub_tilt_angle, blade_cone_angle, yaw_angle 
-    real :: Rmax, Uref, nu ! Reference radius, velocity, viscosity
+    real :: Rmax ! Reference radius, velocity, viscosity
     real :: A   ! Rotor area
     real :: TSR , angularVel
     real :: AzimAngle=0.0
@@ -179,8 +183,9 @@ end type TurbineType
 
     type(ActuatorLineType), allocatable, save :: Actuatorline(:)
     type(TurbineType), allocatable, save :: Turbine(:) ! Turbine 
+    real, allocatable :: Sx(:),Sy(:),Sz(:),Su(:),Sv(:),Sw(:),Se(:),Sfx(:),Sfy(:),Sfz(:)
     integer,save :: Ntur, Nal ! Number of the turbines 
-    integer,save :: NSource
+    integer,save :: NSource,counter
     real,save :: deltaT, Visc
  
     public  actuator_line_model_init, actuator_line_model_update 
@@ -211,6 +216,7 @@ contains
     do itur=1,Ntur
     call set_turbine_geometry(Turbine(itur))
     end do
+
     endif
    
     !### Speficy Actuator Lines
@@ -223,7 +229,8 @@ contains
     endif
 
     end subroutine actuator_line_model_init
-! Turb
+    
+
     subroutine get_turbine_options
     
     implicit none
@@ -287,17 +294,14 @@ contains
    !##############3 Get Operation Options ######################
        if (have_option(trim(turbine_path(i))//"/operation/constant_rotational_velocity")) then
             Turbine(i)%Is_constant_rotation_operated= .true.
-            call get_option("/actuator_line_model/turbine["//int2str(i-1)//"]/operation/constant_rotational_velocity/TSR",Turbine(i)%TSR)
+            call get_option("/actuator_line_model/turbine["//int2str(i-1)//"]/operation/constant_rotational_velocity/omega",Turbine(i)%angularVel)
             if(have_option(trim(turbine_path(i))//"/operation/constant_rotational_velocity/rotation_direction/clockwise")) then
                 Turbine(i)%IsClockwise=.true.
             elseif(have_option(trim(turbine_path(i))//"/operation/constant_rotational_velocity/rotation_direction/counter_clockwise")) then
                 Turbine(i)%IsCounterClockwise=.true.
             else
                 FLExit("You should not be here. The options are clockwise and counterclockwise")
-            endif
-                call get_option("/actuator_line_model/turbine["//int2str(i-1)//"]/operation/constant_rotational_velocity/nu",Turbine(i)%nu)
-            call get_option("/actuator_line_model/turbine["//int2str(i-1)//"]/operation/constant_rotational_velocity/Uref",Turbine(i)%Uref)
-        
+            endif 
         else if(have_option(trim("/actuator_line_model/turbine["//int2str(i-1)//"]")//"/operation/force_based_rotational_velocity")) then
             Turbine(i)%Is_force_based_operated = .true. 
        else
@@ -377,6 +381,14 @@ subroutine get_actuatorline_options
 
 end subroutine get_actuatorline_options 
 
+subroutine operate_actuatorline(act_line)
+
+    implicit none
+    type(ActuatorLineType),intent(inout) :: act_line
+    integer :: iDof
+
+end subroutine operate_actuatorline
+
 subroutine actuator_line_model_update
  
     implicit none
@@ -414,7 +426,8 @@ subroutine actuator_line_model_update
     return
 
 end subroutine actuator_line_model_update
-!
+
+
 subroutine set_turbine_geometry(turbine)
 
     implicit none
@@ -481,7 +494,6 @@ subroutine set_turbine_geometry(turbine)
     
     end do
     
-    turbine%angularVel = turbine%TSR*turbine%Uref/turbine%Rmax  
     call Compute_Turbine_RotVel
 
     ewrite(2,*) 'Exiting set_turbine_geometry'

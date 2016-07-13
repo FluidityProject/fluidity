@@ -1,3 +1,300 @@
+!    Copyright (C) 2006 Imperial College London and others.
+!    
+!    Please see the AUTHORS file in the main source directory for a full list
+!    of copyright holders.
+!
+!    Prof. C Pain
+!    Applied Modelling and Computation Group
+!    Department of Earth Science and Engineering
+!    Imperial College London
+!
+!    amcgsoftware@imperial.ac.uk
+!    
+!    This library is free software; you can redistribute it and/or
+!    modify it under the terms of the GNU Lesser General Public
+!    License as published by the Free Software Foundation,
+!    version 2.1 of the License.
+!
+!    This library is distributed in the hope that it will be useful,
+!    but WITHOUT ANY WARRANTY; without even the implied warranty of
+!    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+!    Lesser General Public License for more details.
+!
+!    You should have received a copy of the GNU Lesser General Public
+!    License along with this library; if not, write to the Free Software
+!    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
+!    USA
+
+#include "fdebug.h"
+
+module momentum_diagnostics
+
+  use fldebug
+  use global_parameters, only : OPTION_PATH_LEN, FIELD_NAME_LEN, pi
+  use spud
+  use sparse_tools
+  use fetools
+  use fields
+  use state_module
+  use boundary_conditions
+  use coriolis_module, only : two_omega => coriolis
+  use field_options
+  use diagnostic_source_fields
+  use field_derivatives
+  use solvers
+  use sparsity_patterns_meshes
+  use state_fields_module
+  use sediment, only : get_n_sediment_fields, get_sediment_item
+  use geostrophic_pressure
+  use multimaterial_module
+
+  
+  implicit none
+  
+  private
+  
+  public :: calculate_strain_rate, calculate_bulk_viscosity, calculate_strain_rate_second_invariant, &
+            calculate_sediment_concentration_dependent_viscosity, &
+            calculate_buoyancy, calculate_coriolis, calculate_tensor_second_invariant, &
+            calculate_imposed_material_velocity_source, &
+            calculate_actuator_line_momentum_source,&
+            calculate_imposed_material_velocity_absorption, &
+            calculate_scalar_potential, calculate_projection_scalar_potential, &
+            calculate_geostrophic_velocity, calculate_viscous_dissipation
+           
+  
+contains
+
+  subroutine calculate_strain_rate(state, t_field)
+    type(state_type), intent(inout) :: state
+    type(tensor_field), intent(inout) :: t_field
+    
+    type(vector_field), pointer :: source_field
+    type(vector_field), pointer :: positions,velocity
+
+    positions => extract_vector_field(state, "Coordinate")
+    
+    source_field => vector_source_field(state, t_field)
+
+    call check_source_mesh_derivative(source_field, "strain_rate")
+
+    call strain_rate(source_field, positions, t_field)
+      
+
+  end subroutine calculate_strain_rate
+
+  subroutine calculate_strain_rate_second_invariant(state, s_field)
+    type(state_type), intent(inout) :: state
+    type(scalar_field), intent(inout) :: s_field
+
+    type(vector_field), pointer :: positions
+    type(vector_field), pointer :: velocity
+
+    type(tensor_field) :: strain_rate_tensor
+
+    ewrite(1,*) 'In calculate_strain_rate_second_invariant'
+    positions => extract_vector_field(state, "Coordinate")
+    velocity  => extract_vector_field(state, "IteratedVelocity")
+    
+    ! Allocate strain_rate tensor:
+    call allocate(strain_rate_tensor, s_field%mesh, name="strain_rate_II")
+
+    call check_source_mesh_derivative(velocity, "strain_rate_second_invariant")
+
+    ! Calculate strain_rate and second invariant:
+    call strain_rate(velocity, positions, strain_rate_tensor)
+    call tensor_second_invariant(strain_rate_tensor, s_field)
+
+    ! Clean-up:
+    call deallocate(strain_rate_tensor)
+
+    ! Prin min and max:
+    ewrite_minmax(s_field) 
+
+  end subroutine calculate_strain_rate_second_invariant
+
+  subroutine calculate_sediment_concentration_dependent_viscosity(state, t_field)
+    ! calculates viscosity based upon total sediment concentration
+    type(state_type), intent(inout) :: state
+    type(tensor_field), intent(inout) :: t_field
+    
+    type(scalar_field_pointer), dimension(:), allocatable :: sediment_concs
+    type(tensor_field), pointer :: zero_conc_viscosity
+    type(scalar_field) :: rhs
+    integer :: sediment_classes, i
+    character(len = FIELD_NAME_LEN) :: field_name
+    
+    ewrite(1,*) 'In calculate_sediment_concentration_dependent_viscosity'
+
+    sediment_classes = get_n_sediment_fields()
+
+    if (sediment_classes > 0) then
+        allocate(sediment_concs(sediment_classes))
+        
+        call get_sediment_item(state, 1, sediment_concs(1)%ptr)
+        
+        call allocate(rhs, sediment_concs(1)%ptr%mesh, name="Rhs")
+        call set(rhs, 1.0)
+        
+        ! get sediment concentrations and remove c/0.65 from rhs
+        do i=1, sediment_classes
+           call get_sediment_item(state, i, sediment_concs(i)%ptr)
+           call addto(rhs, sediment_concs(i)%ptr, scale=-(1.0/0.65))
+        end do
+        
+        ! raise rhs to power of -1.625
+        do i = 1, node_count(rhs)
+           call set(rhs, i, node_val(rhs, i)**(-1.625))
+        end do
+        
+        ! check for presence of ZeroSedimentConcentrationViscosity field
+        if (.not. has_tensor_field(state, "ZeroSedimentConcentrationViscosity")) then
+           FLExit("You must specify an zero sediment concentration viscosity to be able &
+                &to calculate sediment concentration dependent viscosity field values")
+        endif
+        zero_conc_viscosity => extract_tensor_field(state, 'ZeroSedimentConcentrationViscosity')
+        
+        call set(t_field, zero_conc_viscosity)
+        call scale(t_field, rhs)
+        ewrite_minmax(t_field) 
+
+        deallocate(sediment_concs)
+        call deallocate(rhs)
+    else
+        ewrite(1,*) 'No sediment in problem definition'
+    end if  
+  end subroutine calculate_sediment_concentration_dependent_viscosity
+  
+  subroutine calculate_tensor_second_invariant(state, s_field)
+    type(state_type), intent(inout) :: state
+    type(scalar_field), intent(inout) :: s_field
+
+    type(tensor_field), pointer :: source_field
+
+    source_field => tensor_source_field(state, s_field)
+
+    call tensor_second_invariant(source_field, s_field)
+
+  end subroutine calculate_tensor_second_invariant
+
+  subroutine calculate_viscous_dissipation(state, s_field)
+    ! A routine to calculate the viscous dissipation. Currently
+    ! assumes a constant viscosity tensor:
+    type(state_type), intent(inout) :: state
+    type(scalar_field), intent(inout) :: s_field
+
+    type(vector_field), pointer :: positions
+    type(vector_field), pointer :: velocity
+    type(tensor_field), pointer :: viscosity
+
+    type(scalar_field) :: velocity_divergence
+    type(scalar_field) :: viscosity_component, viscosity_component_remap
+    type(tensor_field) :: strain_rate_tensor
+
+    integer :: dim1, dim2, node
+    real :: val
+
+    ewrite(1,*) 'In calculate_viscous_dissipation'
+
+    ! Extract velocity field from state - will be used to calculate strain-
+    ! rate tensor:
+    velocity => extract_vector_field(state, "NonlinearVelocity")
+    ! Check velocity field is not on a discontinous mesh:
+    call check_source_mesh_derivative(velocity, "Viscous_Dissipation")
+
+    ! Extract positions field from state:
+    positions => extract_vector_field(state, "Coordinate")
+
+    ! Allocate and initialize strain rate tensor:
+    call allocate(strain_rate_tensor, s_field%mesh, "Strain_Rate_VD")
+    call zero(strain_rate_tensor)
+
+    ! Calculate strain rate tensor:
+    call strain_rate(velocity, positions, strain_rate_tensor)
+
+    ! Calculate velocity divergence for correct definition of stress:
+    call allocate(velocity_divergence, s_field%mesh, 'Velocity_divergence')
+    call div(velocity, positions, velocity_divergence)
+    ewrite_minmax(velocity_divergence)
+
+    ! Extract viscosity from state and remap to s_field mesh:
+    viscosity => extract_tensor_field(state, "Viscosity")
+    ! Extract first component of viscosity tensor from full tensor:
+    !*** This is not ideal - only valid for constant viscosity tensors
+    !*** though they can still vary spatially and temporally.
+    viscosity_component = extract_scalar_field(viscosity,1,1)  
+    call allocate(viscosity_component_remap, s_field%mesh, "RemappedViscosityComponent")
+    call remap_field(viscosity_component, viscosity_component_remap)
+
+    ! Calculate viscous dissipation (scalar s_field):
+    do node=1,node_count(s_field)
+       val = 0.
+       do dim1 = 1, velocity%dim
+          do dim2 = 1, velocity%dim
+             if(dim1==dim2) then
+                ! Add divergence of velocity term to diagonal only: 
+                val = val + 2.*node_val(viscosity_component_remap, node) * & 
+                     & (node_val(strain_rate_tensor,dim1,dim2,node)      - &
+                     & 1./3. * node_val(velocity_divergence, node))**2
+             else
+                val = val + 2.*node_val(viscosity_component_remap, node) * & 
+                     & node_val(strain_rate_tensor,dim1,dim2,node)**2   
+             end if
+          end do
+       end do
+       call set(s_field, node, val)
+    end do
+
+    ewrite_minmax(s_field)
+
+    ! Deallocate:
+    call deallocate(strain_rate_tensor)
+    call deallocate(viscosity_component_remap)
+    call deallocate(velocity_divergence)
+
+  end subroutine calculate_viscous_dissipation
+
+  subroutine calculate_bulk_viscosity(states, t_field)
+    type(state_type), dimension(:), intent(inout) :: states
+    type(tensor_field), intent(inout) :: t_field
+
+    character(len = OPTION_PATH_LEN) :: mean_type
+    
+    call get_option(trim(complete_field_path(trim(t_field%option_path))) // &
+                    "/algorithm[0]/mean/name", mean_type, default="arithmetic")
+
+    call calculate_bulk_property(states, t_field, "MaterialViscosity", &
+      & mean_type = mean_type, momentum_diagnostic = .true.)
+  
+  end subroutine calculate_bulk_viscosity
+  
+  subroutine calculate_imposed_material_velocity_source(states, state_index, v_field)
+    type(state_type), dimension(:), intent(inout) :: states
+    integer, intent(in) :: state_index
+    type(vector_field), intent(inout) :: v_field
+    
+    logical :: prescribed
+    integer :: i, stat
+    type(vector_field), pointer :: absorption, mat_vel
+  
+    call zero(v_field)
+    
+    do i = 1, size(states)
+  
+      mat_vel => extract_vector_field(states(i), "MaterialVelocity", stat)
+      
+      if(stat==0) then
+      
+        call add_scaled_material_property(states(i), v_field, mat_vel, &
+                                          momentum_diagnostic=.true.)
+                                          
+      else
+        ! alternatively use the Velocity field from the state
+        
+        mat_vel => extract_vector_field(states(i), "Velocity", stat)
+        
+        if(stat==0) then
+          prescribed = have_option(trim(mat_vel%option_path)//"/prescribed")
       prescribed = have_option(trim(mat_vel%option_path)//"/prescribed")
           
           if(prescribed.and.(.not.aliased(mat_vel))) then
