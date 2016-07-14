@@ -748,21 +748,14 @@ subroutine Compute_Turbine_RotVel
    ! ! Find the cross product Ublade = Omega x R
     call cross(wRotX,wRotY,wRotZ,Rx,Ry,Rz,ublade,vblade,wblade)
     
-    if(Turbine(iturb)%IsClockwise) then
-    Turbine(iturb)%Blade(iblade)%EVbx(ielem)=ublade
-    Turbine(iturb)%Blade(iblade)%EVby(ielem)=vblade
-    Turbine(iturb)%Blade(iblade)%EVbz(ielem)=wblade
-    elseif(Turbine(iturb)%IsCounterClockwise) then
     Turbine(iturb)%Blade(iblade)%EVbx(ielem)=-ublade
     Turbine(iturb)%Blade(iblade)%EVby(ielem)=-vblade
     Turbine(iturb)%Blade(iblade)%EVbz(ielem)=-wblade
-    endif
-
+    
     end do
     end do
 
     end do
-
 
 
     ewrite(2,*) 'Entering Compute_Turbine_Local_Vel '
