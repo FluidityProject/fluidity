@@ -265,7 +265,6 @@ contains
 
     end subroutine allocate_source_terms
 
-
     subroutine get_locations
     
     implicit none
@@ -520,8 +519,17 @@ end subroutine get_actuatorline_options
 subroutine actuator_line_model_update
 
     implicit none
-
+    integer :: i
+    real :: theta
     ! This routine updates the location of the actuator lines
+    if (Ntur>0) then
+        do i=1,Ntur
+        if(Turbine(i)%Is_constant_rotation_operated) then
+            theta=Turbine(i)%angularVel*DeltaT
+            call rotate_turbines(theta)
+        endif
+        enddo
+    endif
 
 end subroutine actuator_line_model_update
 
@@ -740,12 +748,21 @@ subroutine Compute_Turbine_RotVel
    ! ! Find the cross product Ublade = Omega x R
     call cross(wRotX,wRotY,wRotZ,Rx,Ry,Rz,ublade,vblade,wblade)
     
+    if(Turbine(iturb)%IsClockwise) then
+    Turbine(iturb)%Blade(iblade)%EVbx(ielem)=ublade
+    Turbine(iturb)%Blade(iblade)%EVby(ielem)=vblade
+    Turbine(iturb)%Blade(iblade)%EVbz(ielem)=wblade
+    elseif(Turbine(iturb)%IsCounterClockwise) then
     Turbine(iturb)%Blade(iblade)%EVbx(ielem)=-ublade
     Turbine(iturb)%Blade(iblade)%EVby(ielem)=-vblade
     Turbine(iturb)%Blade(iblade)%EVbz(ielem)=-wblade
+    endif
+
     end do
     end do
+
     end do
+
 
 
     ewrite(2,*) 'Entering Compute_Turbine_Local_Vel '
@@ -765,16 +782,7 @@ subroutine Compute_ActuatorLine_Forces(act_line)
     integer :: ielem
   
     ewrite(2,*) 'Entering Compute_Forces '
-    
-    !======================================================================
-    ! Compute the Body forces (prescribed motion of the actuatorlines etc..
-    !======================================================================
-
-    ! Temporarily 
-    act_line%EVbx(:)=0.0
-    act_line%EVby(:)=0.0
-    act_line%EVbz(:)=0.0
-
+     
     !===========================================================
     ! Assign global values to local values (to make life easier
     !==========================================================
@@ -800,8 +808,8 @@ subroutine Compute_ActuatorLine_Forces(act_line)
     w=act_line%EVz(ielem) 
 
     ub=act_line%EVbx(ielem)
-    vb=act_line%EVbx(ielem)
-    wb=act_line%EVbx(ielem)
+    vb=act_line%EVby(ielem)
+    wb=act_line%EVbz(ielem)
     
     !==============================================================
     ! Calculate element normal and tangential velocity components. 
@@ -883,11 +891,6 @@ subroutine Compute_ActuatorLine_Forces(act_line)
     act_line%EAOA_LAST(ielem)=alpha75 
     act_line%EUn_last(ielem)=urdn 
     end do
-
-    !=============================================
-    ! Apply the finite-length correction
-    !=============================================
-        
 
     !=============================================
     ! Compute Total Forces
@@ -1005,7 +1008,7 @@ subroutine rotate_turbines(theta)
   
             end do
             
-            call set_actuatorline_geometry(Turbine(i)%Blade(j))
+            call make_actuatorline_geometry(Turbine(i)%Blade(j))
         end do 
     end do
     

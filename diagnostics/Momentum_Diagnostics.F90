@@ -339,7 +339,7 @@ contains
       real,dimension(3,3) :: nu
       real :: volume, meshFactor, dragFactor, chordFactor
       real :: epsilon_par_drag, epsilon_par_chord, epsilon_par_mesh, epsilon_threshold,chord
-      real :: Send(4), Recv(4)
+      real :: Send(5), Recv(5)
       ! MPI related parameters declaration
       integer :: count,dest, ierr, num_procs, rank, status(MPI_Status_size), tag,irank
       real :: tic,toc, mpi_time
@@ -392,13 +392,15 @@ contains
       Scoords(3)=Sz(isource)
 
       call picker_inquire(positions,Scoords,ele,local_coord,.true.)
+      
       if (ele<0) then
           ewrite(2,*) 'I dont own the element'
-          call MPI_recv(Recv,4,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,tag,MPI_COMM_WORLD,status,ierr)
+          call MPI_recv(Recv,5,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,tag,MPI_COMM_WORLD,status,ierr)
         Su(isource)=Recv(1)
         Sv(isource)=Recv(2)
         Sw(isource)=Recv(3)
         Se(isource)=Recv(4)
+        Visc=Recv(5)
         ewrite(2,*) 'Received', Recv, ' from processor', status(MPI_SOURCE)
       else
           ewrite(2,*) 'I own the element'
@@ -407,7 +409,7 @@ contains
           nu=eval_field(ele,ViscosityTens,local_coord)
         
           Visc=1.0/3.0*(nu(1,1)+nu(2,2)+nu(3,3)) ! Compute trace of the viscosity tensor 
-
+            
           volume=element_volume(positions,ele)
 
           epsilon_par_mesh  = 2.0*meshFactor*volume**(1.0/3.0) 
@@ -433,7 +435,8 @@ contains
         Send(2)=Sv(isource)
         Send(3)=Sw(isource)
         Send(4)=Se(isource)
-        call MPI_Send(Send,4,MPI_DOUBLE_PRECISION,irank,tag,MPI_COMM_WORLD,ierr)
+        Send(5)=Visc
+        call MPI_Send(Send,5,MPI_DOUBLE_PRECISION,irank,tag,MPI_COMM_WORLD,ierr)
         ewrite(2,*) 'Sent' , Send, ' to processor ', irank        
         end if 
         
