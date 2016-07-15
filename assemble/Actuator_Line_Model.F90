@@ -314,6 +314,7 @@ contains
                 Turbine(itur)%Blade(iblade)%EVX(ielem)=Su(counter)
                 Turbine(itur)%Blade(iblade)%EVY(ielem)=Sv(counter)
                 Turbine(itur)%Blade(iblade)%EVZ(ielem)=Sw(counter)
+                Turbine(itur)%Blade(iblade)%Eepsilon(ielem)=Se(counter) 
                 end do
             end do
         end do
@@ -326,6 +327,7 @@ contains
                 actuatorline(ial)%EVX(ielem)=Su(counter)
                 actuatorline(ial)%EVY(ielem)=Sv(counter)
                 actuatorline(ial)%EVZ(ielem)=Sw(counter)
+                actuatorline(ial)%Eepsilon(ielem)=Se(counter)
             end do
         end do
     endif
@@ -468,7 +470,7 @@ subroutine get_actuatorline_options
     ewrite(2,*) 'Number of Actuatorlines : ', Nal
     
     ! Allocate Turbines Arrays
-    Allocate(actuatorline(Nal))
+    allocate(actuatorline(Nal))
     Allocate(actuatorline_path(Nal))
     
     ! ==========================================
@@ -748,9 +750,9 @@ subroutine Compute_Turbine_RotVel
    ! ! Find the cross product Ublade = Omega x R
     call cross(wRotX,wRotY,wRotZ,Rx,Ry,Rz,ublade,vblade,wblade)
     
-    Turbine(iturb)%Blade(iblade)%EVbx(ielem)=-ublade
-    Turbine(iturb)%Blade(iblade)%EVby(ielem)=-vblade
-    Turbine(iturb)%Blade(iblade)%EVbz(ielem)=-wblade
+    Turbine(iturb)%Blade(iblade)%EVbx(ielem)=ublade
+    Turbine(iturb)%Blade(iblade)%EVby(ielem)=vblade
+    Turbine(iturb)%Blade(iblade)%EVbz(ielem)=wblade
     
     end do
     end do
@@ -807,8 +809,8 @@ subroutine Compute_ActuatorLine_Forces(act_line)
     !==============================================================
     ! Calculate element normal and tangential velocity components. 
     !==============================================================
-    urdn=nxe*(u+ub)+nye*(v+vb)+nze*(w+wb)! Normal 
-    urdc=txe*(u+ub)+tye*(v+vb)+tze*(w+wb)! Tangential
+    urdn=nxe*(u-ub)+nye*(v-vb)+nze*(w-wb)! Normal 
+    urdc=txe*(u-ub)+tye*(v-vb)+tze*(w-wb)! Tangential
     ur=sqrt(urdn**2.0+urdc**2.0)
     alpha=atan2(urdn,urdc)
     Re = ur*ElemChord/Visc
@@ -839,7 +841,7 @@ subroutine Compute_ActuatorLine_Forces(act_line)
     ! Update Dynamic Stall Model 
     !===================================
     ds=2.0*ur*DeltaT/ElemChord
-    call LB_UpdateStates(act_line%E_LB_MODEL(ielem),ds)
+    !call LB_UpdateStates(act_line%E_LB_MODEL(ielem),ds)
 
     !========================================================
     ! Apply Coeffs to calculate tangential and normal Forces

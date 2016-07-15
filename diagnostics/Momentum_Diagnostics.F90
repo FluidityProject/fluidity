@@ -343,7 +343,7 @@ contains
       ! MPI related parameters declaration
       integer :: count,dest, ierr, num_procs, rank, status(MPI_Status_size), tag,irank
       real :: tic,toc, mpi_time
-      integer :: status_array(MPI_STATUS_SIZE,4)
+      
       ewrite(1,*) 'In ALM Momentum Source' 
       
 
@@ -391,7 +391,7 @@ contains
       Scoords(2)=Sy(isource)
       Scoords(3)=Sz(isource)
 
-      call picker_inquire(positions,Scoords,ele,local_coord,.true.)
+      call picker_inquire(remapped_pos,Scoords,ele,local_coord,.true.)
       
       if (ele<0) then
           ewrite(2,*) 'I dont own the element'
