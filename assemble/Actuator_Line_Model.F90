@@ -97,17 +97,17 @@ type ActuatorLineType
     real, allocatable :: EUn(:)         ! Element Last normal velocity (used in added mass terms)
     real, allocatable :: EAOA_LAST(:)   ! Element Last angle of Attack (used in added mass terms)
     real, allocatable :: EUn_LAST(:)    ! Element Last normal velocity (used in added mass terms)
-    
+    real, allocatable :: ETip_Correction(:) ! Element Tip Correction
     ! Velocity of the Fluid at the actuator Line Locations
     real, allocatable :: EVx(:)         ! Element Local fluid Velocity in the global x-direction
     real, allocatable :: EVy(:)         ! Element Local fluid Velocity in the global y-direction
     real, allocatable :: EVz(:)         ! Element Local fluid Velocity in the global z-direction
-    
+     
     ! Body Velocity of the Actuator Line 
     real, allocatable :: EVbx(:)        ! Element Local body Velocity in the global x-direction
     real, allocatable :: EVby(:)        ! Element Local body Velocity in the global y-direction
     real, allocatable :: EVbz(:)        ! Element Local body Velocity in the global z-direction
-
+    
     ! Element Forces in the nts direction
     real, allocatable :: EFn(:)         ! Element Force in the normal direction
     real, allocatable :: EFt(:)         ! Element Force in the tangential direction (rearward chord line direction) 
@@ -162,7 +162,7 @@ type TurbineType
     real :: hub_tilt_angle, blade_cone_angle, yaw_angle 
     real :: Rmax ! Reference radius, velocity, viscosity
     real :: A   ! Rotor area
-    real :: angularVel
+    real :: angularVel,TSR,Uref
     real :: AzimAngle=0.0
     logical :: Is_constant_rotation_operated = .false. ! For a constant rotational velocity (in Revolutions Per Minute)
     logical :: Is_force_based_operated = .false. ! For a forced based rotational velocity (Computed during the simulation)
@@ -189,7 +189,8 @@ end type TurbineType
     integer,save :: NSource
     real,save :: deltaT, Visc
  
-    public  actuator_line_model_init, actuator_line_model_compute_forces 
+    public  actuator_line_model_init, actuator_line_model_compute_forces, actuator_line_model_update, & 
+        get_locations, get_forces, set_vel 
 
 contains
     
@@ -432,6 +433,7 @@ contains
        if (have_option(trim(turbine_path(i))//"/operation/constant_rotational_velocity")) then
             Turbine(i)%Is_constant_rotation_operated= .true.
             call get_option("/actuator_line_model/turbine["//int2str(i-1)//"]/operation/constant_rotational_velocity/omega",Turbine(i)%angularVel)
+            call get_option("/actuator_line_model/turbine["//int2str(i-1)//"]/operation/constant_rotational_velocity/TSR",Turbine(i)%TSR)
             if(have_option(trim(turbine_path(i))//"/operation/constant_rotational_velocity/rotation_direction/clockwise")) then
                 Turbine(i)%IsClockwise=.true.
             elseif(have_option(trim(turbine_path(i))//"/operation/constant_rotational_velocity/rotation_direction/counter_clockwise")) then
@@ -548,7 +550,10 @@ subroutine actuator_line_model_compute_forces
     if (Ntur>0) then
     do i=1,Ntur
         do j=1,Turbine(i)%Nblades
-            call Compute_ActuatorLine_Forces(Turbine(i)%Blade(j))
+            call Compute_Turbine_RotVel 
+            call Compute_ActuatorLine_Tip_Correction(Turbine(i)%Blade(j),Turbine(i)%TSR,Turbine(i)%Nblades,Turbine(i)%Rmax)
+            call Compute_ActuatorLine_Forces(Turbine(i)%Blade(j))    
+            ! Compute Rotor Torque --here
         end do
     end do
     end if
@@ -571,7 +576,7 @@ subroutine set_turbine_geometry(turbine)
     type(TurbineType),intent(inout) :: turbine
     real, allocatable :: rR(:),ctoR(:),pitch(:),thick(:)
     real :: SVec(3), theta, origin(3)
-    integer :: Nstations, iblade, Istation
+    integer :: Nstations, iblade, Istation,ielem
 
     ewrite(2,*) 'Entering set_turbine_geometry'
 
@@ -626,11 +631,22 @@ subroutine set_turbine_geometry(turbine)
     ! Populate element Airfoils 
     call populate_blade_airfoils(turbine%blade(iblade)%NElem,turbine%Blade(iblade)%EAirfoil,turbine%AirfoilData,turbine%Blade(iblade)%ETtoC)
     
-    turbine%Blade(iblade)%EAOA_LAST(:)=1.e7
-    turbine%Blade(iblade)%EUn_LAST(:)=1.e7
+    turbine%Blade(iblade)%EAOA_LAST(:)=-666
+    turbine%Blade(iblade)%EUn_LAST(:)=0.0
+    
+    ! Initialize LB_model and Tip Correction Coeffs
+    do ielem=1,turbine%blade(iblade)%Nelem
+    call dystl_init_LB(turbine%blade(iblade)%E_LB_Model(ielem))
+    turbine%blade(iblade)%ETip_Correction(ielem)=1.0
+    end do
     
     end do
     
+    !========================================================
+    !Compute a number of global parameters for the turbine
+    !========================================================
+    turbine%Uref=turbine%angularVel*turbine%Rmax/turbine%TSR
+
     call Compute_Turbine_RotVel
 
     ewrite(2,*) 'Exiting set_turbine_geometry'
@@ -685,6 +701,7 @@ subroutine set_actuatorline_geometry(actuatorline)
     
     do ielem=1,actuatorline%Nelem
     call dystl_init_LB(actuatorline%E_LB_Model(ielem))
+    actuatorline%ETip_Correction(ielem)=1.0
     end do
     ewrite(2,*) 'Exiting set_actuatorline_geometry'
 
@@ -764,6 +781,26 @@ subroutine Compute_Turbine_RotVel
 
 end subroutine Compute_Turbine_RotVel
 
+subroutine Compute_ActuatorLine_Tip_Correction(act_line,tsr,NBlades,Rmax)
+    
+    implicit none
+    type(ActuatorLineType),intent(inout) :: act_line
+    real,intent(in) :: tsr,Rmax
+    integer,intent(in) :: NBlades
+    integer :: ielem
+    real ::g1,alpha,pitch
+
+    do ielem=1,act_line%NElem
+    g1=exp(-0.125*NBlades*tsr-21.0)+0.1
+    alpha=act_line%EAOA_Last(ielem)
+    pitch=abs(acos(act_line%tEx(ielem)))
+    act_line%ETip_Correction(ielem)=2.0/pi*acos(exp(-g1*Nblades*(Rmax-act_line%ERdist(ielem))/(2.0*Rmax*sin(alpha+pitch))))
+    end do
+
+
+end subroutine Compute_Actuatorline_Tip_Correction
+
+
 subroutine Compute_ActuatorLine_Forces(act_line)
        
     implicit none
@@ -820,7 +857,7 @@ subroutine Compute_ActuatorLine_Forces(act_line)
     !=========================================================
     ! Compute rate of change of Unormal and angle of attack
     !=========================================================
-    if(act_line%EAOA_Last(ielem)>1e6) then
+    if(act_line%EAOA_Last(ielem)<0) then
     dal=0
     dUnorm=0
     else
@@ -841,13 +878,13 @@ subroutine Compute_ActuatorLine_Forces(act_line)
     ! Update Dynamic Stall Model 
     !===================================
     ds=2.0*ur*DeltaT/ElemChord
-    !call LB_UpdateStates(act_line%E_LB_MODEL(ielem),ds)
+    call LB_UpdateStates(act_line%E_LB_MODEL(ielem),ds)
 
     !========================================================
     ! Apply Coeffs to calculate tangential and normal Forces
     !========================================================
-    FN=0.5*CN*ElemArea*ur**2.0
-    FT=0.5*CT*ElemArea*ur**2.0
+    FN=0.5*CN*ElemArea*ur**2.0*act_line%ETip_Correction(ielem)
+    FT=0.5*CT*ElemArea*ur**2.0*act_line%ETip_Correction(ielem)
     FS=0.0 ! Makes sure that there is no spanwise force
     MS=0.5*CM25*ElemChord*ElemArea*ur**2.0
 
@@ -885,7 +922,7 @@ subroutine Compute_ActuatorLine_Forces(act_line)
     !===============================================
     act_line%EAOA_LAST(ielem)=alpha75 
     act_line%EUn_last(ielem)=urdn 
-    end do
+    end do 
 
     !=============================================
     ! Compute Total Forces
@@ -1113,6 +1150,7 @@ subroutine allocate_actuatorline(actuatorline,NStations)
     allocate(actuatorline%EUn(Nelem))
     allocate(actuatorline%EAOA_LAST(Nelem))
     allocate(actuatorline%EUn_LAST(Nelem))
+    allocate(actuatorline%ETip_Correction(Nelem))
     allocate(actuatorline%EFn(NElem))
     allocate(actuatorline%EFt(NElem))
     allocate(actuatorline%EFs(NElem))

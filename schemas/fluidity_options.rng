@@ -2505,6 +2505,9 @@ optimal size)</a:documentation>
                       <a:documentation>Angular Velocity of Turbine Rotor</a:documentation>
                       <ref name="real"/>
                     </element>
+                    <element name="TSR">
+                      <ref name="real"/>
+                    </element>
                     <element name="rotation_direction">
                       <choice>
                         <element name="clockwise">

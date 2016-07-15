@@ -1787,6 +1787,9 @@ start =
                     element omega{
                         real
                     },
+                    element TSR{
+                        real
+                    },
                     element rotation_direction{
                     (
                     element clockwise{
