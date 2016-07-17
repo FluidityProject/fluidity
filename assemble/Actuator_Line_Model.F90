@@ -218,7 +218,7 @@ contains
     call set_turbine_geometry(Turbine(itur))
     end do
     endif
-   
+
     !### Speficy Actuator Lines
 
     call get_actuatorline_options 
@@ -234,7 +234,9 @@ contains
     ewrite(1,*) 'Exiting the actuator_line_model_init '
 
     end subroutine actuator_line_model_init
-    
+
+    ! INTERFACE WITH MOMENTUM SOURCES
+!################################################################################################
     subroutine allocate_source_terms
 
     implicit none
@@ -368,7 +370,8 @@ contains
     endif
   
     end subroutine get_forces
-    
+
+!################################################################################3
     subroutine get_turbine_options
     
     implicit none
@@ -548,10 +551,12 @@ subroutine actuator_line_model_compute_forces
     ewrite(1,*) 'Entering the actuator_line_model_update'
      
     if (Ntur>0) then
-    do i=1,Ntur
+
+    ! Get into each Turbine and Compute the Forces blade by blade and element by element
+    do i=1,Ntur 
+    call Compute_Turbine_RotVel(Turbine(i))  
         do j=1,Turbine(i)%Nblades
-            call Compute_Turbine_RotVel 
-            call Compute_ActuatorLine_Tip_Correction(Turbine(i)%Blade(j),Turbine(i)%TSR,Turbine(i)%Nblades,Turbine(i)%Rmax)
+            !call Compute_ActuatorLine_Tip_Correction(Turbine(i)%Blade(j),Turbine(i)%TSR,Turbine(i)%Nblades,Turbine(i)%Rmax)
             call Compute_ActuatorLine_Forces(Turbine(i)%Blade(j))    
             ! Compute Rotor Torque --here
         end do
@@ -601,6 +606,7 @@ subroutine set_turbine_geometry(turbine)
     turbine%blade(iblade)%name=turbine%name//int2str(iblade)
     
     turbine%blade(iblade)%COR=turbine%origin
+    turbine%blade(iblade)%NElem=Nstations-1 
     
     do istation=1,Nstations
     turbine%blade(iblade)%QCx(istation)=rR(istation)*turbine%Rmax*Svec(1)+turbine%blade(iblade)%COR(1)
@@ -647,8 +653,8 @@ subroutine set_turbine_geometry(turbine)
     !========================================================
     turbine%Uref=turbine%angularVel*turbine%Rmax/turbine%TSR
 
-    call Compute_Turbine_RotVel
-
+    call Compute_Turbine_RotVel(turbine)
+    
     ewrite(2,*) 'Exiting set_turbine_geometry'
 
 end subroutine set_turbine_geometry
@@ -674,6 +680,7 @@ subroutine set_actuatorline_geometry(actuatorline)
     actuatorline%COR=(/0.0, 0.0, 0.0/)
 
     ! The directions of vectors etc are just hacked ...
+    actuatorline%Nelem=Nstations-1 
     do istation=1,Nstations
     actuatorline%QCx(istation)=rR(istation)*length*Svec(1)
     actuatorline%QCy(istation)=rR(istation)*length*Svec(2)
@@ -735,9 +742,10 @@ subroutine calculate_performance(turbine)
 
 end subroutine calculate_performance
 
-subroutine Compute_Turbine_RotVel
+subroutine Compute_Turbine_RotVel(turbine)
     implicit none
-    integer :: iturb,iblade,ielem
+    type(TurbineType),intent(inout) :: turbine
+    integer :: iblade,ielem
     real :: wRotX,wRotY,wRotZ,Rx,Ry,Rz,ublade,vblade,wblade
     real :: RotX,RotY,RotZ 
     ewrite(2,*) 'Entering Compute_Turbine_Local_Vel '
@@ -745,39 +753,29 @@ subroutine Compute_Turbine_RotVel
     !========================================================
     ! Compute Element local rotational velocity
     !========================================================
-    do iturb=1,Ntur
-    do iblade=1,Turbine(iturb)%NBlades
-    do ielem=1,Turbine(iturb)%Blade(iblade)%Nelem
+    wRotX=turbine%angularVel*turbine%RotN(1)
+    wRotY=turbine%angularVel*turbine%RotN(2)
+    wRotZ=turbine%angularVel*turbine%RotN(3)
     
-    wRotX=Turbine(iturb)%angularVel*Turbine(iturb)%RotN(1)
-    wRotY=Turbine(iturb)%angularVel*Turbine(iturb)%RotN(2)
-    wRotZ=Turbine(iturb)%angularVel*Turbine(iturb)%RotN(3)
-    
-    RotX=Turbine(iturb)%RotN(1)
-    RotY=Turbine(iturb)%RotN(2)
-    RotZ=Turbine(iturb)%RotN(3)
-    
-
-    Rx=-Turbine(iturb)%origin(1)+Turbine(iturb)%Blade(iblade)%PEx(ielem);
-    Ry=-Turbine(iturb)%origin(2)+Turbine(iturb)%Blade(iblade)%PEy(ielem);
-    Rz=-Turbine(iturb)%origin(3)+Turbine(iturb)%Blade(iblade)%PEz(ielem);
-    Turbine(iturb)%Blade(iblade)%ERdist(ielem)=sqrt(Rx**2+Ry**2+Rz**2)
-
+    do iblade=1,turbine%NBlades
+    do ielem=1,turbine%Blade(iblade)%Nelem
+     
+    Rx=-turbine%blade(iblade)%COR(1)+turbine%Blade(iblade)%PEx(ielem);
+    Ry=-turbine%blade(iblade)%COR(2)+turbine%Blade(iblade)%PEy(ielem);
+    Rz=-turbine%blade(iblade)%COR(3)+turbine%Blade(iblade)%PEz(ielem);
+    turbine%Blade(iblade)%ERdist(ielem)=sqrt(Rx**2+Ry**2+Rz**2)
 
    ! ! Find the cross product Ublade = Omega x R
     call cross(wRotX,wRotY,wRotZ,Rx,Ry,Rz,ublade,vblade,wblade)
     
-    Turbine(iturb)%Blade(iblade)%EVbx(ielem)=ublade
-    Turbine(iturb)%Blade(iblade)%EVby(ielem)=vblade
-    Turbine(iturb)%Blade(iblade)%EVbz(ielem)=wblade
+    turbine%Blade(iblade)%EVbx(ielem)=ublade
+    turbine%Blade(iblade)%EVby(ielem)=vblade
+    turbine%Blade(iblade)%EVbz(ielem)=wblade
     
     end do
     end do
-
-    end do
-
-
-    ewrite(2,*) 'Entering Compute_Turbine_Local_Vel '
+    
+    ewrite(2,*) 'Exiting Compute_Turbine_Local_Vel '
 
 end subroutine Compute_Turbine_RotVel
 
