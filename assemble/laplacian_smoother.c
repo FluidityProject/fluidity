@@ -152,6 +152,13 @@ void lap_smoother(int dimension, int num_nodes, int num_elements, int num_surf_e
     //determ of a 4x4 matrix [Double check this as well]
     
     det = A_holder[0]*A_inv_holder[0][0] + A_holder[1]*A_inv_holder[1][0] + A_holder[2]*A_inv_holder[2][0] + A_holder[3]*A_inv_holder[3][0];
+
+//NOTE: A_inv_holder = A_inv_holder * (1.f/det)
+	for(i=0;i<4;i++){
+		for(j=0;j<4;j++){
+			A_inv_holder[i][j] = A_inv_holder[i][j] *(1.f/det);
+		}
+	}	
     /*
       det = 
       A_holder[0]*(A_holder[5]*(A_holder[10]*A_holder[15]-A_holder[11]*A_holder[14]) -A_holder[6]*(A_holder[9]*A_holder[15]-A_holder[11]*A_holder[13]) + A_holder[7]*(A_holder[9]*A_holder[14]-A_holder[10]*A_holder[13]))
