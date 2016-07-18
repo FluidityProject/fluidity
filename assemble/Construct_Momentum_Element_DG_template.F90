@@ -212,11 +212,6 @@
 
     dg=continuity(U)<0
     p0=(element_degree(u,ele)==0)
-
-!    print*, "start"
-!    print*, NDIM(U), NLOC_X ,NLOC(U,ele),&
-!         NGI(U,ele), FNGI(U_nl,face), EFLOC(U,ele), FLOC(u,face), P_FLOC
-
     
     ! In parallel, we construct terms on elements we own and those in
     ! the L1 element halo.

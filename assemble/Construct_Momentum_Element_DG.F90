@@ -1,14 +1,4 @@
 #include "fdebug.h"  
-#undef ASSERT
-#ifdef NDEBUG
-#define ASSERT(X)
-#else
-#ifdef FORTRAN_DISALLOWS_LONG_LINES
-#define ASSERT(X) IF(.NOT.(X)) FLAbort("Failed assertion ")
-#else
-#define ASSERT(X) IF(.NOT.(X)) FLAbort("Failed assertion X")
-#endif
-#endif
 
 module momentum_element_dg
 

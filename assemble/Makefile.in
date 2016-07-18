@@ -35,6 +35,7 @@ FCFLAGS = -I../include @MOD_FLAG@../include @CPPFLAGS@ @FCFLAGS@ -I/usr/local/in
 MPIF90  = @MPIF90@
 
 CPP     = @CPP@ 
+CPP_FORTRAN = @CPP_FORTRAN@
 
 CC      = @CC@
 CFLAGS  = @CPPFLAGS@ @CFLAGS@ -I../include -I/usr/local/include -g
@@ -102,10 +103,14 @@ default: $(LIB)
 %.o: %.mod
 
 clean:
-	rm -f *.o *.d *.mod
+	rm -f *.o *.d *.mod Construct_Momentum_Element_DG_processed.F90
 
 Construct_Momentum_Element_DG_processed.F90:Construct_Momentum_Element_DG.F90 Construct_Momentum_Element_DG_template.F90
-	$(CPP) -x c $(CFLAGS) $(GENFLAGS) Construct_Momentum_Element_DG.F90 -o Construct_Momentum_Element_DG_processed.F90
+ifeq ("@CPP_FORTRAN@","fpp")
+	$(CPP_FORTRAN) -P -C $(CFLAGS) $(GENFLAGS) Construct_Momentum_Element_DG.F90 Construct_Momentum_Element_DG_processed.F90
+else
+	$(CPP_FORTRAN) -P -C -std=c99 -x c  $(CFLAGS) $(GENFLAGS) Construct_Momentum_Element_DG.F90 -o Construct_Momentum_Element_DG_processed.F90
+endif
 
 Construct_Momentum_Element_DG_processed.o: Construct_Momentum_Element_DG_processed.F90
 	@echo "        FC Construct_Momentum_Element_DG"

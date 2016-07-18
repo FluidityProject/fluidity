@@ -1724,6 +1724,18 @@ fi
 
 #*******************
 
+#***** CPP_FORTAN_FLAGS *********
+# Sets flags passed when calling the C preprocessor on Fortran
+
+if test "x$USING_GFORTRAN" = "xyes"; then
+   CPP_FORTRAN="$CPP"
+else
+# Assume we're using the intel Fortran preprocessor.
+   CPP_FORTRAN="fpp"
+fi
+#********************************
+
+AC_SUBST(CPP_FORTRAN)
 
 AC_PROG_SED
 AC_PROG_GREP
