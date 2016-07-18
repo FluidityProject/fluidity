@@ -18,7 +18,7 @@ void lap_smoother(int dimension, int num_nodes, int num_elements, int num_surf_e
   PetscScalar    p_value[4],A_holder[16],grad_holder[6],det,Fe,x_bound_points[num_surf_elements],Vol,
                  y_bound_points[num_surf_elements],Area,Ke[4][4],smoothed_x[num_nodes],smoothed_y[num_nodes],value[5];
   PetscViewer    viewer;
-  float          A_inv_holder[4][4];
+  PetscScalar   A_inv_holder[4][4];
   
   MatCreate(PETSC_COMM_WORLD,&K);
   PetscObjectSetName((PetscObject) K, "Stiffness Matrix");
@@ -115,14 +115,53 @@ void lap_smoother(int dimension, int num_nodes, int num_elements, int num_surf_e
       A_holder[counter]=p_value[0];A_holder[counter+1]=p_value[1];A_holder[counter+2]=p_value[2];A_holder[counter+3]=p_value[3];
       counter+=4;
      }
-//determinant of a 4x4 matrix
+//inverse  of a 4x4 matrix [THIS needs to be tested to make sure it is correct meaning, no typos]
+
+    A_inv_holder[0][0] =  A_holder[5]*A_holder[10]*A_holder[15] - A_holder[5]*A_holder[11]*A_holder[14] - A_holder[9]*A_holder[6]*A_holder[15] + A_holder[9]*A_holder[7]*A_holder[14] + A_holder[13]*A_holder[6]*A_holder[11] - A_holder[13]*A_holder[7]*A_holder[10];
+
+    A_inv_holder[0][1] = -A_holder[1]*A_holder[10]*A_holder[15] + A_holder[1]*A_holder[11]*A_holder[14] + A_holder[9]*A_holder[2]*A_holder[15] - A_holder[9]*A_holder[3]*A_holder[14] - A_holder[13]*A_holder[2]*A_holder[11] + A_holder[13]*A_holder[3]*A_holder[10];
+
+    A_inv_holder[0][2] =  A_holder[1]*A_holder[6]*A_holder[15] - A_holder[1]*A_holder[7]*A_holder[14] - A_holder[5]*A_holder[2]*A_holder[15] + A_holder[5]*A_holder[3]*A_holder[14] + A_holder[13]*A_holder[2]*A_holder[7] - A_holder[13]*A_holder[3]*A_holder[6];
+
+    A_inv_holder[0][3] = -A_holder[1]*A_holder[6]*A_holder[11] + A_holder[1]*A_holder[7]*A_holder[10] + A_holder[5]*A_holder[2]*A_holder[11] - A_holder[5]*A_holder[3]*A_holder[10] - A_holder[9]*A_holder[2]*A_holder[7] + A_holder[9]*A_holder[3]*A_holder[6];
+
+    A_inv_holder[1][0] = -A_holder[4]*A_holder[10]*A_holder[15] + A_holder[4]*A_holder[11]*A_holder[14] + A_holder[8]*A_holder[6]*A_holder[15] - A_holder[8]*A_holder[7]*A_holder[14] - A_holder[12]*A_holder[6]*A_holder[11] + A_holder[12]*A_holder[7]*A_holder[10];
+
+    A_inv_holder[1][1] =  A_holder[0]*A_holder[10]*A_holder[15] - A_holder[0]*A_holder[11]*A_holder[14] - A_holder[8]*A_holder[2]*A_holder[15] + A_holder[8]*A_holder[3]*A_holder[14] + A_holder[12]*A_holder[2]*A_holder[11] - A_holder[12]*A_holder[3]*A_holder[10];
+
+    A_inv_holder[1][2] = -A_holder[0]*A_holder[6]*A_holder[15] + A_holder[0]*A_holder[7]*A_holder[14] + A_holder[4]*A_holder[2]*A_holder[15] - A_holder[4]*A_holder[3]*A_holder[14] - A_holder[12]*A_holder[2]*A_holder[7] + A_holder[12]*A_holder[3]*A_holder[6];
+
+    A_inv_holder[1][3] =  A_holder[0]*A_holder[6]*A_holder[11] - A_holder[0]*A_holder[7]*A_holder[10] - A_holder[4]*A_holder[2]*A_holder[11] + A_holder[4]*A_holder[3]*A_holder[10] + A_holder[8]*A_holder[2]*A_holder[7] - A_holder[8]*A_holder[3]*A_holder[6];
+
+    A_inv_holder[2][0] =  A_holder[4]*A_holder[9]*A_holder[15] - A_holder[4]*A_holder[11]*A_holder[13] - A_holder[8]*A_holder[5]*A_holder[15] + A_holder[8]*A_holder[7]*A_holder[13] + A_holder[12]*A_holder[5]*A_holder[11] - A_holder[12]*A_holder[7]*A_holder[9];
+
+    A_inv_holder[2][1] = -A_holder[0]*A_holder[9]*A_holder[15] + A_holder[0]*A_holder[11]*A_holder[13] + A_holder[8]*A_holder[1]*A_holder[15] - A_holder[8]*A_holder[3]*A_holder[13] - A_holder[12]*A_holder[1]*A_holder[11] + A_holder[12]*A_holder[3]*A_holder[9];
+
+    A_inv_holder[2][2] =  A_holder[0]*A_holder[5]*A_holder[15] - A_holder[0]*A_holder[7]*A_holder[13] - A_holder[4]*A_holder[1]*A_holder[15] + A_holder[4]*A_holder[3]*A_holder[13] + A_holder[12]*A_holder[1]*A_holder[7] - A_holder[12]*A_holder[3]*A_holder[5];
+
+    A_inv_holder[2][3] = -A_holder[0]*A_holder[5]*A_holder[11] + A_holder[0]*A_holder[7]*A_holder[9] + A_holder[4]*A_holder[1]*A_holder[11] - A_holder[4]*A_holder[3]*A_holder[9] - A_holder[8]*A_holder[1]*A_holder[7] + A_holder[8]*A_holder[3]*A_holder[5];
+
+    A_inv_holder[3][0] = -A_holder[4]*A_holder[9]*A_holder[14] + A_holder[4]*A_holder[10]*A_holder[13] + A_holder[8]*A_holder[5]*A_holder[14] - A_holder[8]*A_holder[6]*A_holder[13] - A_holder[12]*A_holder[5]*A_holder[10] + A_holder[12]*A_holder[6]*A_holder[9];
+
+    A_inv_holder[3][1] =  A_holder[0]*A_holder[9]*A_holder[14] - A_holder[0]*A_holder[10]*A_holder[13] - A_holder[8]*A_holder[1]*A_holder[14] + A_holder[8]*A_holder[2]*A_holder[13] + A_holder[12]*A_holder[1]*A_holder[10] - A_holder[12]*A_holder[2]*A_holder[9];
+
+    A_inv_holder[3][2] = -A_holder[0]*A_holder[5]*A_holder[14] + A_holder[0]*A_holder[6]*A_holder[13] + A_holder[4]*A_holder[1]*A_holder[14] - A_holder[4]*A_holder[2]*A_holder[13] - A_holder[12]*A_holder[1]*A_holder[6] + A_holder[12]*A_holder[2]*A_holder[5];
+
+    A_inv_holder[3][3] =  A_holder[0]*A_holder[5]*A_holder[10] - A_holder[0]*A_holder[6]*A_holder[9] - A_holder[4]*A_holder[1]*A_holder[10] + A_holder[4]*A_holder[2]*A_holder[9] + A_holder[8]*A_holder[1]*A_holder[6] - A_holder[8]*A_holder[2]*A_holder[5];
+
+    //determ of a 4x4 matrix [Double check this as well]
+    
+    det = A_holder[0]*A_inv_holder[0][0] + A_holder[1]*A_inv_holder[1][0] + A_holder[2]*A_inv_holder[2][0] + A_holder[3]*A_inv_holder[3][0];
+    /*
       det = 
       A_holder[0]*(A_holder[5]*(A_holder[10]*A_holder[15]-A_holder[11]*A_holder[14]) -A_holder[6]*(A_holder[9]*A_holder[15]-A_holder[11]*A_holder[13]) + A_holder[7]*(A_holder[9]*A_holder[14]-A_holder[10]*A_holder[13]))
       - A_holder[1]*(A_holder[4]*(A_holder[10]*A_holder[15]-A_holder[11]*A_holder[14]) -A_holder[6]*(A_holder[8]*A_holder[15]-A_holder[11]*A_holder[12]) + A_holder[7]*(A_holder[8]*A_holder[14]-A_holder[10]*A_holder[12]))
       + A_holder[2]*(A_holder[4]*(A_holder[9]*A_holder[15]-A_holder[11]*A_holder[13]) -A_holder[5]*(A_holder[8]*A_holder[15]-A_holder[11]*A_holder[12]) + A_holder[7]*(A_holder[8]*A_holder[13]-A_holder[9]*A_holder[12]))
       - A_holder[3]*(A_holder[4]*(A_holder[9]*A_holder[14]-A_holder[10]*A_holder[13]) -A_holder[5]*(A_holder[8]*A_holder[14]-A_holder[10]*A_holder[12]) + A_holder[6]*(A_holder[8]*A_holder[13]- A_holder[9]*A_holder[12]));
+    */
 
       Vol = fabs(det)/6.0;
+
 
      if (holder_new[0]<=num_owned_nodes) {
        MatSetValue(K,mapping[convert[0]],mapping[convert[0]],Ke[0][0],ADD_VALUES);
@@ -145,7 +184,7 @@ void lap_smoother(int dimension, int num_nodes, int num_elements, int num_surf_e
        MatSetValue(K,mapping[convert[2]],mapping[convert[3]],Ke[2][3],ADD_VALUES);
        VecSetValue(F,mapping[convert[2]],Fe,ADD_VALUES);
      }
-     if (holder_new[2]<=num_owned_nodes) {
+     if (holder_new[3]<=num_owned_nodes) {
        MatSetValue(K,mapping[convert[3]],mapping[convert[0]],Ke[3][0],ADD_VALUES);
        MatSetValue(K,mapping[convert[3]],mapping[convert[1]],Ke[3][1],ADD_VALUES);
        MatSetValue(K,mapping[convert[3]],mapping[convert[2]],Ke[3][2],ADD_VALUES);
