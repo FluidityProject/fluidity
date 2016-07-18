@@ -435,6 +435,9 @@ contains
        end do
     end do
 
+    call MPI_WAITALL(nprocs, sendRequest, MPI_STATUSES_IGNORE, IERROR)
+    assert(ierror == MPI_SUCCESS)
+
     ! Deallocate buffers after exchange
     do target_proc=1, nprocs
        deallocate(send_buffer(target_proc)%ptr)
@@ -442,9 +445,6 @@ contains
     end do
     deallocate(send_buffer)
     deallocate(recv_buffer)
-
-    call MPI_WAITALL(nprocs, sendRequest, MPI_STATUSES_IGNORE, IERROR)
-    assert(ierror == MPI_SUCCESS)
 
     call deallocate(ele_numbering_inverse)
 
