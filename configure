@@ -621,6 +621,7 @@ ac_includes_default="\
 ac_subst_vars='LTLIBOBJS
 LIBOBJS
 SED
+CPP_FORTRAN
 HYPERLIGHT
 MEMORY_STATS
 MBA3D
@@ -15950,6 +15951,18 @@ $as_echo "$as_me: Linking against $with-libnuma" >&6;}
 fi
 
 #*******************
+
+#***** CPP_FORTAN_FLAGS *********
+# Sets flags passed when calling the C preprocessor on Fortran
+
+if test "x$USING_GFORTRAN" = "xyes"; then
+   CPP_FORTRAN="$CPP"
+else
+# Assume we're using the intel Fortran preprocessor.
+   CPP_FORTRAN="fpp"
+fi
+#********************************
+
 
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for a sed that does not truncate output" >&5

@@ -186,6 +186,31 @@ Compressible_Projection.o ../include/compressible_projection.mod: \
    ../include/state_module.mod ../include/transform_elements.mod \
    ../include/upwind_stabilisation.mod
 
+../include/momentum_element_dg.mod: Construct_Momentum_Element_DG_processed.o
+	@true
+
+Construct_Momentum_Element_DG_processed.o ../include/momentum_element_dg.mod: \
+   Construct_Momentum_Element_DG_processed.F90 \
+   ../include/boundary_conditions.mod \
+   ../include/boundary_conditions_from_options.mod ../include/colouring.mod \
+   ../include/coordinates.mod ../include/coriolis_module.mod \
+   ../include/dgtools.mod ../include/diagnostic_fields.mod \
+   ../include/fefields.mod ../include/fetools.mod \
+   ../include/field_derivatives.mod ../include/field_options.mod \
+   ../include/fields.mod ../include/fldebug.mod \
+   ../include/global_parameters.mod ../include/halos.mod \
+   ../include/integer_set_module.mod ../include/multiphase_module.mod \
+   ../include/parallel_fields.mod ../include/parallel_tools.mod \
+   ../include/petsc_tools.mod ../include/profiler.mod \
+   ../include/shape_functions.mod ../include/slope_limiters_dg.mod \
+   ../include/smoothing_module.mod ../include/solvers.mod \
+   ../include/sparse_matrices_fields.mod ../include/sparse_tools.mod \
+   ../include/sparse_tools_petsc.mod ../include/sparsity_patterns.mod \
+   ../include/sparsity_patterns_meshes.mod ../include/spud.mod \
+   ../include/state_module.mod ../include/transform_elements.mod \
+   ../include/turbine.mod ../include/vector_tools.mod \
+   ../include/vtk_interfaces.mod
+
 ../include/coriolis_module.mod: Coriolis.o
 	@true
 
@@ -580,26 +605,8 @@ Momentum_CG.o ../include/momentum_cg.mod: Momentum_CG.F90 \
 ../include/momentum_dg.mod: Momentum_DG.o
 	@true
 
-Momentum_DG.o ../include/momentum_dg.mod: Momentum_DG.F90 \
-   ../include/boundary_conditions.mod \
-   ../include/boundary_conditions_from_options.mod ../include/colouring.mod \
-   ../include/coordinates.mod ../include/coriolis_module.mod \
-   ../include/dgtools.mod ../include/diagnostic_fields.mod ../include/fdebug.h \
-   ../include/fefields.mod ../include/fetools.mod \
-   ../include/field_derivatives.mod ../include/field_options.mod \
-   ../include/fields.mod ../include/fldebug.mod \
-   ../include/global_parameters.mod ../include/halos.mod \
-   ../include/integer_set_module.mod ../include/multiphase_module.mod \
-   ../include/parallel_fields.mod ../include/parallel_tools.mod \
-   ../include/petsc_tools.mod ../include/profiler.mod \
-   ../include/shape_functions.mod ../include/slope_limiters_dg.mod \
-   ../include/smoothing_module.mod ../include/solvers.mod \
-   ../include/sparse_matrices_fields.mod ../include/sparse_tools.mod \
-   ../include/sparse_tools_petsc.mod ../include/sparsity_patterns.mod \
-   ../include/sparsity_patterns_meshes.mod ../include/spud.mod \
-   ../include/state_module.mod ../include/transform_elements.mod \
-   ../include/turbine.mod ../include/vector_tools.mod \
-   ../include/vtk_interfaces.mod
+Momentum_DG.o ../include/momentum_dg.mod: Momentum_DG.F90 ../include/fdebug.h \
+   ../include/momentum_element_dg.mod
 
 ../include/momentum_diagnostic_fields.mod: Momentum_Diagnostic_Fields.o
 	@true

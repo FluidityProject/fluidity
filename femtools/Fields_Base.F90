@@ -343,6 +343,10 @@ module fields_base
   interface write_minmax
     module procedure write_minmax_scalar, write_minmax_vector, write_minmax_tensor
   end interface
+  
+  interface field_dim
+     module procedure vector_field_dim, tensor_field_dim
+  end interface field_dim
 
   private
 
@@ -367,7 +371,7 @@ module fields_base
 	    extract_scalar_field_from_tensor_field, ele_curl_at_quad,&
 	    eval_shape, ele_jacobian_at_quad, ele_div_at_quad_tensor,&
 	    ele_2d_curl_at_quad, getsndgln, local_coords_matrix,&
-            local_coords_interpolation
+            local_coords_interpolation, field_dim
     
 contains
 
@@ -406,6 +410,20 @@ contains
     mesh_dim=field%mesh%shape%dim
 
   end function mesh_dim_tensor
+
+  pure function vector_field_dim(field) result (field_dim)
+    integer field_dim
+    type(vector_field), intent(in) :: field
+    
+    field_dim = field%dim
+  end function vector_field_dim
+
+  pure function tensor_field_dim(field) result (field_dim)
+    integer, dimension(2) :: field_dim
+    type(tensor_field), intent(in) :: field
+    
+    field_dim = field%dim
+  end function tensor_field_dim
 
   pure function mesh_periodic_mesh(mesh) result (mesh_periodic)
     ! Return the periodic flag of the mesh
