@@ -1734,26 +1734,67 @@ start =
              element turbine {
                  attribute name {xsd:string},
                 ## geometry file
-                  element blade_specs_file {
-                    attribute file_name { xsd:string },
-                    ## The format of the input file containing field data.
+                  element Blades {
+                      element blade_geometry{
+                        attribute file_name { xsd:string },
+                        ## The format of the input file containing field data.
                         element string_value {
                         "ascii"
                         }
+                      },
+                      ## Blade Section Airfoils  
+                      element airfoil_sections{ 
+                            element section{
+                                attribute name{xsd:string},
+                                attribute airfoil_file{xsd:string},
+                                element string_value {
+                                    "ascii"
+                                }
+                            }*
+                      }
                   },
-                  ## Blade Section Airfoils  
-                  element airfoil_sections{ 
-                      element section{
-                          attribute name{xsd:string},
-                          attribute airfoil_file{xsd:string},
-                          element string_value {
-                              "ascii"
-                          }
-                      }*
-                  },
-
-                  element turbine_specs{
-                    element type{
+                  element hub{
+                      ## Hub Geometry
+                      element hub_geometry{
+                        attribute file_name { xsd:string },
+                        ## The format of the input file containing field data.
+                        element string_value {
+                        "ascii"
+                        }
+                      },
+                      ## Hub Section foils  
+                      element airfoil_sections{ 
+                            element section{
+                                attribute name{xsd:string},
+                                attribute airfoil_file{xsd:string},
+                                element string_value {
+                                    "ascii"
+                                }
+                            }*
+                      }
+                  }?,
+                  element tower{
+                      ## Tower Geometry
+                      element tower_geometry{
+                        attribute file_name { xsd:string },
+                        ## The format of the input file containing field data.
+                        element string_value {
+                        "ascii"
+                        }
+                      },
+                      ## Tower Section foils  
+                      element airfoil_sections{ 
+                            element section{
+                                attribute name{xsd:string},
+                                attribute airfoil_file{xsd:string},
+                                element string_value {
+                                    "ascii"
+                                }
+                            }*
+                      }
+                  }?,
+ 
+                  element type{
                     (
                     element Horizontal_Axis{
                             element Number_of_blades{
@@ -1777,8 +1818,7 @@ start =
                         empty
                     }
                     )
-                    }
-                },
+                 },
                  element operation {
                  (
                     ## constant rotational velocity given in RPM (revolutions per minute)
@@ -1806,6 +1846,18 @@ start =
                     attribute name {xsd:string}
                   }
                  )
+                 },
+                 element unsteady_modelling {
+                    element added_mass {
+                        empty
+                    }?,
+                    element dynamic_stall {
+                        empty
+                    }?,
+                    element tip_correction {
+                        empty
+                    }?
+
                 }              
              }*,
              element actuatorline{

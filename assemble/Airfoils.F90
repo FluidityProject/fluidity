@@ -357,11 +357,11 @@ contains
         ! Dynamic Stall according to Leishman and Beddoes
         !================================================
 
-        !call LB_DynStall(airfoil,lb,CL5,CD5,alphaL,alpha5,Re,CLdyn5,CDdyn5)
+        call LB_DynStall(airfoil,lb,CL5,CD5,alphaL,alpha5,Re,CLdyn5,CDdyn5)
         
-        !CL5=CLdyn5
-        !CD5=CDdyn5
-        !CLCirc=CLdyn5
+        CL5=CLdyn5
+        CD5=CDdyn5
+        CLCirc=CLdyn5
 
         ! Tangential and normal coeffs
         CN=CL5*cos(alpha5)+CD5*sin(alpha5)                                   

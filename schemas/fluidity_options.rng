@@ -2444,58 +2444,118 @@ optimal size)</a:documentation>
               <attribute name="name">
                 <data type="string"/>
               </attribute>
-              <element name="blade_specs_file">
+              <element name="Blades">
                 <a:documentation>geometry file</a:documentation>
-                <attribute name="file_name">
-                  <data type="string"/>
-                </attribute>
-                <element name="string_value">
-                  <a:documentation>The format of the input file containing field data.</a:documentation>
-                  <value>ascii</value>
+                <element name="blade_geometry">
+                  <attribute name="file_name">
+                    <data type="string"/>
+                  </attribute>
+                  <element name="string_value">
+                    <a:documentation>The format of the input file containing field data.</a:documentation>
+                    <value>ascii</value>
+                  </element>
+                </element>
+                <element name="airfoil_sections">
+                  <a:documentation>Blade Section Airfoils  </a:documentation>
+                  <zeroOrMore>
+                    <element name="section">
+                      <attribute name="name">
+                        <data type="string"/>
+                      </attribute>
+                      <attribute name="airfoil_file">
+                        <data type="string"/>
+                      </attribute>
+                      <element name="string_value">
+                        <value>ascii</value>
+                      </element>
+                    </element>
+                  </zeroOrMore>
                 </element>
               </element>
-              <element name="airfoil_sections">
-                <a:documentation>Blade Section Airfoils  </a:documentation>
-                <zeroOrMore>
-                  <element name="section">
-                    <attribute name="name">
-                      <data type="string"/>
-                    </attribute>
-                    <attribute name="airfoil_file">
+              <optional>
+                <element name="hub">
+                  <element name="hub_geometry">
+                    <a:documentation>Hub Geometry</a:documentation>
+                    <attribute name="file_name">
                       <data type="string"/>
                     </attribute>
                     <element name="string_value">
+                      <a:documentation>The format of the input file containing field data.</a:documentation>
                       <value>ascii</value>
                     </element>
                   </element>
-                </zeroOrMore>
-              </element>
-              <element name="turbine_specs">
-                <element name="type">
-                  <choice>
-                    <element name="Horizontal_Axis">
-                      <element name="Number_of_blades">
-                        <ref name="integer"/>
+                  <element name="airfoil_sections">
+                    <a:documentation>Hub Section foils  </a:documentation>
+                    <zeroOrMore>
+                      <element name="section">
+                        <attribute name="name">
+                          <data type="string"/>
+                        </attribute>
+                        <attribute name="airfoil_file">
+                          <data type="string"/>
+                        </attribute>
+                        <element name="string_value">
+                          <value>ascii</value>
+                        </element>
                       </element>
-                      <element name="origin">
-                        <a:documentation>This is the axis of rotation</a:documentation>
-                        <ref name="real_dim_vector"/>
-                      </element>
-                      <element name="hub_tilt_angle">
-                        <ref name="real"/>
-                      </element>
-                      <element name="blade_cone_angle">
-                        <ref name="real"/>
-                      </element>
-                      <element name="yaw_angle">
-                        <ref name="real"/>
-                      </element>
-                    </element>
-                    <element name="Vertical_Axis">
-                      <empty/>
-                    </element>
-                  </choice>
+                    </zeroOrMore>
+                  </element>
                 </element>
+              </optional>
+              <optional>
+                <element name="tower">
+                  <element name="tower_geometry">
+                    <a:documentation>Tower Geometry</a:documentation>
+                    <attribute name="file_name">
+                      <data type="string"/>
+                    </attribute>
+                    <element name="string_value">
+                      <a:documentation>The format of the input file containing field data.</a:documentation>
+                      <value>ascii</value>
+                    </element>
+                  </element>
+                  <element name="airfoil_sections">
+                    <a:documentation>Tower Section foils  </a:documentation>
+                    <zeroOrMore>
+                      <element name="section">
+                        <attribute name="name">
+                          <data type="string"/>
+                        </attribute>
+                        <attribute name="airfoil_file">
+                          <data type="string"/>
+                        </attribute>
+                        <element name="string_value">
+                          <value>ascii</value>
+                        </element>
+                      </element>
+                    </zeroOrMore>
+                  </element>
+                </element>
+              </optional>
+              <element name="type">
+                <choice>
+                  <element name="Horizontal_Axis">
+                    <element name="Number_of_blades">
+                      <ref name="integer"/>
+                    </element>
+                    <element name="origin">
+                      <a:documentation>This is the axis of rotation</a:documentation>
+                      <ref name="real_dim_vector"/>
+                    </element>
+                    <element name="hub_tilt_angle">
+                      <ref name="real"/>
+                    </element>
+                    <element name="blade_cone_angle">
+                      <ref name="real"/>
+                    </element>
+                    <element name="yaw_angle">
+                      <ref name="real"/>
+                    </element>
+                  </element>
+                  <element name="Vertical_Axis">
+                    <empty/>
+                  </element>
+                </choice>
               </element>
               <element name="operation">
                 <choice>
@@ -2525,6 +2585,23 @@ optimal size)</a:documentation>
                     </attribute>
                   </element>
                 </choice>
+              </element>
+              <element name="unsteady_modelling">
+                <optional>
+                  <element name="added_mass">
+                    <empty/>
+                  </element>
+                </optional>
+                <optional>
+                  <element name="dynamic_stall">
+                    <empty/>
+                  </element>
+                </optional>
+                <optional>
+                  <element name="tip_correction">
+                    <empty/>
+                  </element>
+                </optional>
               </element>
             </element>
           </zeroOrMore>

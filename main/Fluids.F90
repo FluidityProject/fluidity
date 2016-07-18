@@ -104,7 +104,7 @@ module fluids_module
   use gls
   use iceshelf_meltrate_surf_normal
   use actuator_line_model 
-
+  use actuator_line_source
 #ifdef HAVE_HYPERLIGHT
   use hyperlight
 #endif
@@ -225,6 +225,7 @@ contains
     ! Initilise the Actuator Line Model 
     if (have_option("/actuator_line_model")) then
         call actuator_line_model_init
+        call initialize_actuator_source
     end if
     !GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
 

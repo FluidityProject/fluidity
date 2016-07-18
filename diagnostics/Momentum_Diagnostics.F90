@@ -321,6 +321,7 @@ contains
       use pickers_inquire
       use actuator_line_model
       use actuator_line_model_utils
+      use actuator_line_source
       use mpi
 
       type(state_type), dimension(:), intent(inout) :: states
