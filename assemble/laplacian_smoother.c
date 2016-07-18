@@ -94,9 +94,10 @@ void lap_smoother(int dimension, int num_nodes, int num_elements, int num_surf_e
   VecAssemblyBegin(F);
   VecAssemblyEnd(F);
 
+
+  len_new = 0;
   //Removing duplicate points in in surf_connectivity
-  local_surf_connectivity[0] = surf_connectivity[0] - 1;
-  for(i=1; i< dimension*num_surf_elements; i++){
+  for(i=0; i< dimension*num_surf_elements; i++){
 
     if(surf_connectivity[i]>num_owned_nodes) continue;
 
