@@ -312,7 +312,7 @@ contains
     end subroutine allocate_airfoil
 
    
-    subroutine compute_aeroCoeffs(airfoil,lb,alpha75,alpha5,Re,A1,A2,A3,adotnorm,CN,CT,CM25,CL,CLCirc,CD)
+    subroutine compute_aeroCoeffs(DStallFlag,AddedMassFlag,airfoil,lb,alpha75,alpha5,Re,A1,A2,A3,adotnorm,CN,CT,CM25,CL,CLCirc,CD)
 
         implicit none
 
@@ -339,6 +339,7 @@ contains
         !type(LB_type),intent(IN),optional :: lb_model
         real,intent(IN) :: alpha75, alpha5, adotnorm, Re, A1 , A2, A3 
         real,intent(OUT) :: CN, CT, CM25, CL, CLCirc, CD
+        logical,intent(in) :: DStallFlag, AddedMassFlag
         real :: CLstat75, CLstat5, CDstat75, CLdyn5, CDdyn5, CL5, CD5, C, C1, CM25stat
         real :: alphaL, alphaD, CTAM, CNAM,CMAM 
 
@@ -356,12 +357,13 @@ contains
         !================================================
         ! Dynamic Stall according to Leishman and Beddoes
         !================================================
-
+        if(DStallFlag) then
         call LB_DynStall(airfoil,lb,CL5,CD5,alphaL,alpha5,Re,CLdyn5,CDdyn5)
         
         CL5=CLdyn5
         CD5=CDdyn5
         CLCirc=CLdyn5
+        endif
 
         ! Tangential and normal coeffs
         CN=CL5*cos(alpha5)+CD5*sin(alpha5)                                   
@@ -370,16 +372,15 @@ contains
         !=============================================================================
         ! Added mass according to Strickland et al, taken from Banchant et al 2016
         !============================================================================
+        if(AddedMassFlag) then
         CNAM=-pi*A2/8.0
         CTAM=pi*adotnorm*A1/4.0
         CMAM=-CNAM/4.0-A3/8.0
-     
-        !============================
-        ! Final CT and CN coeffients
-        !============================
+        ! Augment tangential and normal coeffs 
         CT=CT+CTAM
         CN=CN+CNAM
         CM25=CM25+CMAM
+        endif
 
         CL=CN*cos(alpha5)-CT*sin(alpha5)
         CD=CN*sin(alpha5)+CT*cos(alpha5)

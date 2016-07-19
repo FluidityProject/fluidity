@@ -22,8 +22,8 @@ type ActuatorLineType
     real, allocatable :: tx(:)          ! Blade unit tangent vector (rearward chord line direction) x-comp at element ends
     real, allocatable :: ty(:)          ! Blade unit tangent vector (rearward chord line direction) y-comp at element ends 
     real, allocatable :: tz(:)          ! Blade unit tangent vector (rearward chord line direction) z-comp at element ends  
-    real, allocatable :: C(:)        ! Blade chord length at element ends
-    real, allocatable :: thick(:) 
+    real, allocatable :: C(:)           ! Blade chord length at element ends
+    real, allocatable :: thick(:)       ! Blade thickness at element ends
     
     ! Element Element Values
     real, allocatable :: PEx(:)         ! Element centre x coordinates
@@ -97,9 +97,9 @@ type ActuatorLineType
     real,allocatable :: RotN(:,:)     ! Maximum Degrees of Freedom 6 
    
     ! Unsteady Loading
-    logical :: has_added_mass=.false.
-    logical :: has_dynamic_stall=.false.
-    logical :: has_tip_correction=.false.
+    logical :: do_added_mass=.false.
+    logical :: do_dynamic_stall=.false.
+    logical :: do_tip_correction=.false.
 
 end type ActuatorLineType
 
@@ -147,7 +147,7 @@ end type ActuatorLineType
     end do
     
     ! Populate element Airfoils 
-    call populate_blade_airfoils(actuatorline%NElem,actuatorline%EAirfoil,actuatorline%AirfoilData,actuatorline%ETtoC)
+    call populate_blade_airfoils(actuatorline%NElem,actuatorline%NAirfoilData,actuatorline%EAirfoil,actuatorline%AirfoilData,actuatorline%ETtoC)
     
     actuatorline%EAOA_LAST(:)=1.e7
     actuatorline%EUn_LAST(:)=1.e7
@@ -159,25 +159,6 @@ end type ActuatorLineType
     ewrite(2,*) 'Exiting set_actuatorline_geometry'
 
     end subroutine set_actuatorline_geometry
-
-    !subroutine Compute_ActuatorLine_Tip_Correction(act_line,tsr,NBlades,Rmax)
-    !
-    !implicit none
-    !type(ActuatorLineType),intent(inout) :: act_line
-    !real,intent(in) :: tsr,Rmax
-    !integer,intent(in) :: NBlades
-    !integer :: ielem
-    !real ::g1,alpha,pitch
-
-    !do ielem=1,act_line%NElem
-    !g1=exp(-0.125*NBlades*tsr-21.0)+0.1
-    !alpha=act_line%EAOA_Last(ielem)
-    !pitch=abs(acos(act_line%tEx(ielem)))
-    !act_line%ETip_Correction(ielem)=2.0/pi*acos(exp(-g1*Nblades*(Rmax-act_line%ERdist(ielem))/(2.0*Rmax*sin(alpha+pitch))))
-    !end do
-
-    !end subroutine Compute_Actuatorline_Tip_Correction
-
 
     subroutine Compute_ActuatorLine_Forces(act_line,visc,dt)
        
@@ -251,18 +232,21 @@ end type ActuatorLineType
     !====================================
     ! Compute the Aerofoil Coefficients
     !====================================
-    call compute_aeroCoeffs(act_line%EAirfoil(ielem),act_line%E_LB_Model(ielem),alpha75,alpha5,Re,A,B,C,adotnorm,CN,CT,CM25,CL,CLCIrc,CD) 
+    call compute_aeroCoeffs(act_line%do_dynamic_stall,act_line%do_added_mass,act_line%EAirfoil(ielem),act_line%E_LB_Model(ielem),alpha75,alpha5,Re,A,B,C,adotnorm,CN,CT,CM25,CL,CLCIrc,CD) 
+    
     !===================================
     ! Update Dynamic Stall Model 
     !===================================
+    if(act_line%do_dynamic_stall) then
     ds=2.0*ur*dt/ElemChord
     call LB_UpdateStates(act_line%E_LB_MODEL(ielem),ds)
-
+    endif
+    
     !========================================================
     ! Apply Coeffs to calculate tangential and normal Forces
     !========================================================
-    FN=0.5*CN*ElemArea*ur**2.0*act_line%ETip_Correction(ielem)
-    FT=0.5*CT*ElemArea*ur**2.0*act_line%ETip_Correction(ielem)
+    FN=0.5*CN*ElemArea*ur**2.0
+    FT=0.5*CT*ElemArea*ur**2.0
     FS=0.0 ! Makes sure that there is no spanwise force
     MS=0.5*CM25*ElemChord*ElemArea*ur**2.0
 
@@ -297,25 +281,23 @@ end type ActuatorLineType
 
     end subroutine compute_Actuatorline_Forces
 
-    subroutine populate_blade_airfoils(NElem,EAirfoil,AirfoilData,ETtoC)
+    subroutine populate_blade_airfoils(NElem,NData,EAirfoil,AirfoilData,ETtoC)
 
     !GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
     ! This routine initialises the airfoil struct for the blades
     ! by interpolating from the data
     !GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
     implicit none
-    integer,intent(IN) :: NElem
-    type(AirfoilType),dimension(:) :: EAirfoil, AirfoilData
-    real,dimension(:) :: ETtoC
-    real,allocatable ::  Thicks(:), diffthicks(:)
-    integer :: ielem,idata,NData,imin,imax,iint
+    integer,intent(IN) :: NElem,NData
+    type(AirfoilType),dimension(NElem) :: EAirfoil
+    type(AirfoilType),dimension(NData):: AirfoilData
+    real,dimension(NElem),intent(in) ::  ETtoC
+    real,dimension(NData) ::  Thicks, diffthicks
+    integer :: ielem,idata,imin,imax,iint
 
     ewrite(2,*) 'Entering populate_blade_airfoils'    
     ! We need to interpolate from two or more 
-    NData=size(AirfoilData)
-    allocate(Thicks(NData),diffthicks(NData))
     
-
     do ielem=1,NElem
     EAirfoil(ielem)%afname = int2str(ielem)
     call allocate_airfoil(EAirfoil(ielem),MaxAOAVals,MaxReVals) 

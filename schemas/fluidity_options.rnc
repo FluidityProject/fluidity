@@ -1733,8 +1733,12 @@ start =
           ## specifies an ALM Turbine
              element turbine {
                  attribute name {xsd:string},
-                ## geometry file
+                  element location{
+                        real_dim_vector
+                  }, 
+                  ## Blade Characteristics
                   element Blades {
+                      ## Number of Blades
                       element number_of_blades{
                          integer 
                       },
@@ -1745,11 +1749,11 @@ start =
                         "ascii"
                         }
                       },
-                      ## Blade Section Airfoils  
-                      element airfoil_sections{ 
-                            element section{
+                      ## Blade Foils Static Data 
+                      element static_foil_data{ 
+                            element foil{
                                 attribute name{xsd:string},
-                                attribute airfoil_file{xsd:string},
+                                attribute foil_file{xsd:string},
                                 element string_value {
                                     "ascii"
                                 }
@@ -1766,10 +1770,10 @@ start =
                         }
                       },
                       ## Hub Section foils  
-                      element sections{ 
-                            element section{
+                      element static_foil_data{ 
+                            element foil{
                                 attribute name{xsd:string},
-                                attribute airfoil_file{xsd:string},
+                                attribute foil_file{xsd:string},
                                 element string_value {
                                     "ascii"
                                 }
@@ -1786,10 +1790,10 @@ start =
                         }
                       },
                       ## Tower Section foils  
-                      element airfoil_sections{ 
-                            element section{
+                      element static_foil_data{ 
+                            element foil{
                                 attribute name{xsd:string},
-                                attribute airfoil_file{xsd:string},
+                                attribute foil_file{xsd:string},
                                 element string_value {
                                     "ascii"
                                 }
@@ -1800,16 +1804,15 @@ start =
                   element type{
                     (
                     element Horizontal_Axis{
-                            ## This is the axis of rotation
-                            element origin{
-                                real_dim_vector
-                            },
+                            ## Hub Tilt Angles 
                             element hub_tilt_angle{
                                 real
                             },
+                            ## Turbine Coning Angle
                             element blade_cone_angle{
                                 real
                             },
+                            ## Yaw Angles
                             element yaw_angle{
                                 real
                             }

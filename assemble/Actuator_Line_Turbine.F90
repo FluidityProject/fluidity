@@ -14,9 +14,9 @@ module actuator_line_turbine
 
 type TurbineType 
     character(len=100) :: name
-    character(len=100) :: blade_specs_file
+    character(len=100) :: blade_geom_file
     character(len=100) :: type
-    integer :: NBlades, NAirfoilData
+    integer :: NBlades
     real, dimension(3) :: RotN, origin ! Rotational vectors in the normal and perpendicular directions
     real :: hub_tilt_angle, blade_cone_angle, yaw_angle 
     real :: Rmax ! Reference radius, velocity, viscosity
@@ -29,9 +29,7 @@ type TurbineType
     logical :: IsCounterClockwise = .false. 
     logical :: Has_Hub=.false.
     logical :: Has_Tower=.false.
-    logical :: do_added_mass=.false.
-    logical :: do_dynamic_stall=.false.
-    logical :: do_tip_correction=.false.
+    logical :: do_tip_correction
 
     type(ActuatorLineType), allocatable :: Blade(:)
     type(AirfoilType), allocatable :: AirfoilData(:)
@@ -67,9 +65,7 @@ contains
     ewrite(2,*) 'Blade Cone Angle : ', turbine%blade_cone_angle
     ewrite(2,*) 'Yaw Angle        : ', turbine%yaw_angle
 
-    allocate(turbine%blade(turbine%Nblades))
-
-    call read_actuatorline_geometry(turbine%blade_specs_file,turbine%Rmax,SVec,rR,ctoR,pitch,thick,Nstations)
+    call read_actuatorline_geometry(turbine%blade_geom_file,turbine%Rmax,SVec,rR,ctoR,pitch,thick,Nstations)
     ! Make sure that the spanwise is [0 0 1]
     Svec = (/0.0,0.0,1.0/)
     ! Make sure that origin is [0,0,0] : we set everything to origin 0 and then translate the
@@ -109,14 +105,16 @@ contains
     ! Rotate through incidence (hub tilt) and coning angle
     call make_actuatorline_geometry(turbine%blade(iblade))
     ! Populate element Airfoils 
-    call populate_blade_airfoils(turbine%blade(iblade)%NElem,turbine%Blade(iblade)%EAirfoil,turbine%AirfoilData,turbine%Blade(iblade)%ETtoC)
+    call populate_blade_airfoils(turbine%blade(iblade)%NElem,turbine%Blade(iblade)%NAirfoilData,turbine%Blade(iblade)%EAirfoil,turbine%Blade(iblade)%AirfoilData,turbine%Blade(iblade)%ETtoC)
     
     turbine%Blade(iblade)%EAOA_LAST(:)=-666
     turbine%Blade(iblade)%EUn_LAST(:)=0.0
     
     ! Initialize LB_model and Tip Correction Coeffs
     do ielem=1,turbine%blade(iblade)%Nelem
+    if(turbine%blade(iblade)%do_dynamic_stall) then
     call dystl_init_LB(turbine%blade(iblade)%E_LB_Model(ielem))
+    endif
     end do
     
     end do
@@ -159,6 +157,31 @@ contains
     ewrite(2,*) 'Exiting calculate_performance'
 
     end subroutine calculate_performance
+    
+    subroutine Compute_Turbine_Tip_Correction(turbine)
+    
+    implicit none
+    type(TurbineType),intent(inout) :: turbine
+    integer :: iblade,ielem
+    real ::g1,alpha,pitch,F
+        
+    g1=exp(-0.125*turbine%NBlades*turbine%tsr-21.0)+0.1
+    
+    do iblade=1,turbine%Nblades
+        do ielem=1,turbine%blade(iblade)%Nelem
+        
+        alpha=turbine%blade(iblade)%EAOA_Last(ielem)
+        pitch=abs(acos(turbine%blade(iblade)%tEx(ielem)))
+        F=2.0/pi*acos(exp(-g1*turbine%Nblades*(turbine%Rmax-turbine%blade(iblade)%ERdist(ielem))/(2.0*turbine%Rmax*sin(alpha+pitch))))
+        
+        turbine%blade(iblade)%EFX(ielem)=F*turbine%blade(iblade)%EFX(ielem)
+        turbine%blade(iblade)%EFY(ielem)=F*turbine%blade(iblade)%EFY(ielem)
+        turbine%blade(iblade)%EFZ(ielem)=F*turbine%blade(iblade)%EFZ(ielem)
+
+        end do
+    end do
+
+    end subroutine Compute_Turbine_Tip_Correction
 
     subroutine Compute_Turbine_RotVel(turbine)
     implicit none

@@ -2444,9 +2444,13 @@ optimal size)</a:documentation>
               <attribute name="name">
                 <data type="string"/>
               </attribute>
+              <element name="location">
+                <ref name="real_dim_vector"/>
+              </element>
               <element name="Blades">
-                <a:documentation>geometry file</a:documentation>
+                <a:documentation>Blade Characteristics</a:documentation>
                 <element name="number_of_blades">
+                  <a:documentation>Number of Blades</a:documentation>
                   <ref name="integer"/>
                 </element>
                 <element name="blade_geometry">
@@ -2458,14 +2462,14 @@ optimal size)</a:documentation>
                     <value>ascii</value>
                   </element>
                 </element>
-                <element name="airfoil_sections">
-                  <a:documentation>Blade Section Airfoils  </a:documentation>
+                <element name="static_foil_data">
+                  <a:documentation>Blade Foils Static Data </a:documentation>
                   <zeroOrMore>
-                    <element name="section">
+                    <element name="foil">
                       <attribute name="name">
                         <data type="string"/>
                       </attribute>
-                      <attribute name="airfoil_file">
+                      <attribute name="foil_file">
                         <data type="string"/>
                       </attribute>
                       <element name="string_value">
@@ -2487,14 +2491,14 @@ optimal size)</a:documentation>
                       <value>ascii</value>
                     </element>
                   </element>
-                  <element name="sections">
+                  <element name="static_foil_data">
                     <a:documentation>Hub Section foils  </a:documentation>
                     <zeroOrMore>
-                      <element name="section">
+                      <element name="foil">
                         <attribute name="name">
                           <data type="string"/>
                         </attribute>
-                        <attribute name="airfoil_file">
+                        <attribute name="foil_file">
                           <data type="string"/>
                         </attribute>
                         <element name="string_value">
@@ -2517,14 +2521,14 @@ optimal size)</a:documentation>
                       <value>ascii</value>
                     </element>
                   </element>
-                  <element name="airfoil_sections">
+                  <element name="static_foil_data">
                     <a:documentation>Tower Section foils  </a:documentation>
                     <zeroOrMore>
-                      <element name="section">
+                      <element name="foil">
                         <attribute name="name">
                           <data type="string"/>
                         </attribute>
-                        <attribute name="airfoil_file">
+                        <attribute name="foil_file">
                           <data type="string"/>
                         </attribute>
                         <element name="string_value">
@@ -2538,17 +2542,16 @@ optimal size)</a:documentation>
               <element name="type">
                 <choice>
                   <element name="Horizontal_Axis">
-                    <element name="origin">
-                      <a:documentation>This is the axis of rotation</a:documentation>
-                      <ref name="real_dim_vector"/>
-                    </element>
                     <element name="hub_tilt_angle">
+                      <a:documentation>Hub Tilt Angles </a:documentation>
                       <ref name="real"/>
                     </element>
                     <element name="blade_cone_angle">
+                      <a:documentation>Turbine Coning Angle</a:documentation>
                       <ref name="real"/>
                     </element>
                     <element name="yaw_angle">
+                      <a:documentation>Yaw Angles</a:documentation>
                       <ref name="real"/>
                     </element>
                   </element>
