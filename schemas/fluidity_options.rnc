@@ -1735,6 +1735,9 @@ start =
                  attribute name {xsd:string},
                 ## geometry file
                   element Blades {
+                      element number_of_blades{
+                         integer 
+                      },
                       element blade_geometry{
                         attribute file_name { xsd:string },
                         ## The format of the input file containing field data.
@@ -1763,7 +1766,7 @@ start =
                         }
                       },
                       ## Hub Section foils  
-                      element airfoil_sections{ 
+                      element sections{ 
                             element section{
                                 attribute name{xsd:string},
                                 attribute airfoil_file{xsd:string},
@@ -1797,9 +1800,6 @@ start =
                   element type{
                     (
                     element Horizontal_Axis{
-                            element Number_of_blades{
-                                integer
-                            },
                             ## This is the axis of rotation
                             element origin{
                                 real_dim_vector

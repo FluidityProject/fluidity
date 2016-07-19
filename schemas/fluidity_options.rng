@@ -2446,6 +2446,9 @@ optimal size)</a:documentation>
               </attribute>
               <element name="Blades">
                 <a:documentation>geometry file</a:documentation>
+                <element name="number_of_blades">
+                  <ref name="integer"/>
+                </element>
                 <element name="blade_geometry">
                   <attribute name="file_name">
                     <data type="string"/>
@@ -2484,7 +2487,7 @@ optimal size)</a:documentation>
                       <value>ascii</value>
                     </element>
                   </element>
-                  <element name="airfoil_sections">
+                  <element name="sections">
                     <a:documentation>Hub Section foils  </a:documentation>
                     <zeroOrMore>
                       <element name="section">
@@ -2535,9 +2538,6 @@ optimal size)</a:documentation>
               <element name="type">
                 <choice>
                   <element name="Horizontal_Axis">
-                    <element name="Number_of_blades">
-                      <ref name="integer"/>
-                    </element>
                     <element name="origin">
                       <a:documentation>This is the axis of rotation</a:documentation>
                       <ref name="real_dim_vector"/>
