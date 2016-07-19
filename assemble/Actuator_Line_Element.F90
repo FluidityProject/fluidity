@@ -62,7 +62,7 @@ type ActuatorLineType
     ! Element Forces in the nts direction
     real, allocatable :: EFn(:)         ! Element Force in the normal direction
     real, allocatable :: EFt(:)         ! Element Force in the tangential direction (rearward chord line direction) 
-    real, allocatable :: EFs(:)         ! Element Force in the spanwise direction
+    real, allocatable :: EMS(:)         ! Element Moment 
 
     ! Element Forces and Torque in the xyz direction
     real, allocatable :: EFx(:)         ! Element Force in the global x-direction
@@ -76,16 +76,9 @@ type ActuatorLineType
     type(LB_Type), allocatable :: E_LB_Model(:)   ! Element Leishman-Beddoes Model
     
     ! Forces and Torques on the ActuatorLine 
-    real :: Fn     ! Force in the normal direction
-    real :: Ft     ! Force in the tangential direction (rearward chord line direction) 
-    real :: Fs     ! Force in the spanwise direction
-
     real :: Fx     ! Element Force in the global x-direction
     real :: Fy     ! Element Force in the global y-direction
     real :: Fz     ! Element Force in the global z-direction
-    real :: TRX    ! Element Torque X over the point of rotation 
-    real :: TRY    ! Element Torque Y over the point of rotation 
-    real :: TRZ    ! Element Torque Z over the point of rotation 
 
     real :: Area   ! Effective Airfoil Area
 
@@ -247,15 +240,14 @@ end type ActuatorLineType
     !========================================================
     FN=0.5*CN*ElemArea*ur**2.0
     FT=0.5*CT*ElemArea*ur**2.0
-    FS=0.0 ! Makes sure that there is no spanwise force
     MS=0.5*CM25*ElemChord*ElemArea*ur**2.0
 
     !===============================================
     ! Compute forces in the X, Y, Z axis and torque  
     !===============================================
-    FX=FN*nxe+FT*txe+FS*sxe
-    FY=FN*nye+FT*tye+FS*sye
-    FZ=FN*nze+FT*tze+FS*sze
+    FX=FN*nxe+FT*txe
+    FY=FN*nye+FT*tye
+    FZ=FN*nze+FT*tze
     
     !==========================================
     ! Assign the derived types
@@ -263,8 +255,8 @@ end type ActuatorLineType
     ! Local Forces
     act_line%EFN(ielem)=FN
     act_line%EFT(ielem)=FT
-    act_line%EFS(ielem)=FS
-    
+    act_line%EMS(ielem)=MS
+
     ! Global Forces and Torques
     act_line%EFX(ielem)=FX
     act_line%EFY(ielem)=FY
@@ -440,8 +432,7 @@ end type ActuatorLineType
     blade%PEx(nej-1)=(blade%QCx(nej)+blade%QCx(nej-1))/2.0
     blade%PEy(nej-1)=(blade%QCy(nej)+blade%QCy(nej-1))/2.0
     blade%PEz(nej-1)=(blade%QCz(nej)+blade%QCz(nej-1))/2.0
-
-    ! Element length
+    blade%ERdist(nej-1)=sqrt((blade%PEX(nej-1)-blade%COR(1))**2 +(blade%PEY(nej-1)-blade%COR(2))**2+(blade%PEZ(nej-1)-blade%COR(3))**2)    ! Element length
 
     ! Set spannwise and tangential vectors
     sE=(/blade%QCx(nej)-blade%QCx(nej-1),blade%QCy(nej)-blade%QCy(nej-1),blade%QCz(nej)-blade%QCz(nej-1)/) ! nominal element spanwise direction set opposite to QC line
@@ -556,7 +547,7 @@ end type ActuatorLineType
     allocate(actuatorline%EUn_LAST(Nelem))
     allocate(actuatorline%EFn(NElem))
     allocate(actuatorline%EFt(NElem))
-    allocate(actuatorline%EFs(NElem))
+    allocate(actuatorline%EMS(NElem))
     allocate(actuatorline%EFx(NElem))
     allocate(actuatorline%EFy(NElem))
     allocate(actuatorline%EFz(NElem))

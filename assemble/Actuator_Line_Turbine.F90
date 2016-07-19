@@ -123,7 +123,8 @@ contains
     !Compute a number of global parameters for the turbine
     !========================================================
     turbine%Uref=turbine%angularVel*turbine%Rmax/turbine%TSR
-
+    turbine%A=pi*turbine%Rmax
+        
     call Compute_Turbine_RotVel(turbine)
     
     ewrite(2,*) 'Exiting set_turbine_geometry'
@@ -134,17 +135,56 @@ contains
 
     implicit none
     type(TurbineType), intent(inout) :: turbine
-    real :: TRX_i,TRY_i,TRZ_i,FX_i,FY_i,FZ_i, FX,FY,FZ,TRX,TRY,TRZ
+    real :: Torque_i,FX_i,FY_i,FZ_i,fx_tot,fy_tot,fz_tot,torq_tot 
+    real :: xe,ye,ze,o1,o2,o3,fx,fy,fz,trx,try,trz,te,ms,sxe,sye,sze
+    real :: rotx,roty,rotz
     real :: U_ref, R, A
     integer :: iblade, ielem
     ewrite(2,*) 'In calculate_performance'
 
-    !turbine%CFx=FX/(0.5*A*U_ref**2)
-    !turbine%CFy=FY/(0.5*A*U_ref**2)
-    !turbine%CFz=Fz/(0.5*A*U_ref**2)
-    !turbine%CT=sqrt(turbine%CFx**2.0+turbine%CFy**2.0+turbine%CFz**2.0)
-    !turbine%CTR=TRX/(0.5*A*R*U_ref**2.0)
-    !turbine%CP= turbine%CTR*turbine%TSR
+    RotX=turbine%RotN(1)
+    RotY=turbine%RotN(2)
+    RotZ=turbine%RotN(3)
+
+    ! Compute Torque for each Blade
+    do iblade=1,turbine%Nblades
+        do ielem=1,turbine%blade(iblade)%NElem
+            
+            xe=turbine%blade(iblade)%PEX(ielem)
+            ye=turbine%blade(iblade)%PEY(ielem)
+            ze=turbine%blade(iblade)%PEZ(ielem)
+            o1=turbine%blade(iblade)%COR(1)
+            o2=turbine%blade(iblade)%COR(2)
+            o3=turbine%blade(iblade)%COR(3)
+            fx=turbine%blade(iblade)%EFX(ielem)
+            fy=turbine%blade(iblade)%EFY(ielem)
+            fz=turbine%blade(iblade)%EFZ(ielem)
+            ms=turbine%blade(iblade)%EMS(ielem)
+            sxe=turbine%blade(iblade)%sex(ielem)
+            sye=turbine%blade(iblade)%sez(ielem)
+            sze=turbine%blade(iblade)%sez(ielem)
+
+            call cross(xe-o1,ye-o2,ze-o3,fx,fy,fz,trx,try,trz)
+            te=(trx*RotX+try*RotY+trz*RotZ)+ms*(sxe*RotX+sye*RotY+sze*RotZ)
+            
+            Fx_i=Fx_i+fx
+            Fy_i=Fy_i+fy
+            Fz_i=Fz_i+fz
+            Torque_i=Torque_i+te
+        end do
+            
+            Fx_tot=Fx_tot+Fx_i
+            Fy_tot=Fy_tot+Fy_i
+            Fz_tot=Fz_tot+Fz_i
+            Torq_tot=torq_tot+Torque_i
+    end do
+
+    turbine%CFx=FX_tot/(0.5*turbine%A*turbine%Uref**2)
+    turbine%CFy=FY_tot/(0.5*turbine%A*turbine%Uref**2)
+    turbine%CFz=Fz_tot/(0.5*turbine%A*turbine%Uref**2)
+    turbine%CT=sqrt(turbine%CFx**2.0+turbine%CFy**2.0+turbine%CFz**2.0)
+    turbine%CTR=Torq_tot/(0.5*turbine%A*turbine%Rmax*turbine%Uref**2.0)
+    turbine%CP= turbine%CTR*turbine%TSR
     
     ewrite(2,*) '--------------------------------------------------------'
     ewrite(2,*) 'Calculate performance for Turbine : ',turbine%name
@@ -165,7 +205,7 @@ contains
     integer :: iblade,ielem
     real ::g1,alpha,pitch,F
         
-    g1=exp(-0.125*turbine%NBlades*turbine%tsr-21.0)+0.1
+    g1=exp(-0.125*(turbine%NBlades*turbine%tsr-21.0))+0.1
     
     do iblade=1,turbine%Nblades
         do ielem=1,turbine%blade(iblade)%Nelem
@@ -174,6 +214,7 @@ contains
         pitch=abs(acos(turbine%blade(iblade)%tEx(ielem)))
         F=2.0/pi*acos(exp(-g1*turbine%Nblades*(turbine%Rmax-turbine%blade(iblade)%ERdist(ielem))/(2.0*turbine%Rmax*sin(alpha+pitch))))
         
+        ! Apply Coeffs to Element velocities
         turbine%blade(iblade)%EFX(ielem)=F*turbine%blade(iblade)%EFX(ielem)
         turbine%blade(iblade)%EFY(ielem)=F*turbine%blade(iblade)%EFY(ielem)
         turbine%blade(iblade)%EFZ(ielem)=F*turbine%blade(iblade)%EFZ(ielem)
@@ -204,7 +245,6 @@ contains
     Rx=-turbine%blade(iblade)%COR(1)+turbine%Blade(iblade)%PEx(ielem);
     Ry=-turbine%blade(iblade)%COR(2)+turbine%Blade(iblade)%PEy(ielem);
     Rz=-turbine%blade(iblade)%COR(3)+turbine%Blade(iblade)%PEz(ielem);
-    turbine%Blade(iblade)%ERdist(ielem)=sqrt(Rx**2+Ry**2+Rz**2)
 
    ! ! Find the cross product Ublade = Omega x R
     call cross(wRotX,wRotY,wRotZ,Rx,Ry,Rz,ublade,vblade,wblade)
