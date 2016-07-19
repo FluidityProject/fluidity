@@ -46,7 +46,7 @@ subroutine vertical_integration(target_basename_, target_basename_len, &
   character(len = output_basename_len) :: output_basename
   character(len = *), parameter :: solver_path = "/temporary/solver/path"
   character(len = OPTION_PATH_LEN) :: base_path, mesh_path
-  integer :: dim, ele_a, ele_b, ele_b_surf, i, index, j, k, nele_as, stat, ntests
+  integer :: dim, ele_a, ele_b, ele_b_surf, i, index, j, k, nele_as, stat
   integer, parameter :: quad_degree = 4
   real, dimension(:, :), allocatable :: lshape
   type(csr_matrix) :: matrix
@@ -284,7 +284,7 @@ subroutine vertical_integration(target_basename_, target_basename_len, &
   deallocate(field_c)
 
   call deallocate(positions_b_ext)
-  call rtree_intersection_finder_reset(ntests)
+  call rtree_intersection_finder_reset()
   if(dim == 3) call finalise_tet_intersector()
 
   ! Step 4: Solve

@@ -16,6 +16,8 @@ except ImportError:
     class TestCase(object):
         def __init__(self,*args,**kwargs):
             pass
+        def add_failure_info(self,*args,**kwargs):
+            pass
 
 
 class TestProblem:

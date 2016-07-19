@@ -632,6 +632,7 @@ SPUD_ONLY
 JUDY_CFLAGS
 CLEAN_LIBADAPT
 BUILD_LIBADAPT
+HAVE_LIBSUPERMESH
 DEFINE_MPI
 USE_CPP
 FLLINKER
@@ -727,7 +728,6 @@ infodir
 docdir
 oldincludedir
 includedir
-runstatedir
 localstatedir
 sharedstatedir
 sysconfdir
@@ -769,6 +769,7 @@ with_x
 enable_sam
 enable_dp
 enable_profiling
+enable_libsupermesh
 enable_spatialindex_version
 with_arpack_lib
 enable_vtk
@@ -839,7 +840,6 @@ datadir='${datarootdir}'
 sysconfdir='${prefix}/etc'
 sharedstatedir='${prefix}/com'
 localstatedir='${prefix}/var'
-runstatedir='${localstatedir}/run'
 includedir='${prefix}/include'
 oldincludedir='/usr/include'
 docdir='${datarootdir}/doc/${PACKAGE_TARNAME}'
@@ -1092,15 +1092,6 @@ do
   | -silent | --silent | --silen | --sile | --sil)
     silent=yes ;;
 
-  -runstatedir | --runstatedir | --runstatedi | --runstated \
-  | --runstate | --runstat | --runsta | --runst | --runs \
-  | --run | --ru | --r)
-    ac_prev=runstatedir ;;
-  -runstatedir=* | --runstatedir=* | --runstatedi=* | --runstated=* \
-  | --runstate=* | --runstat=* | --runsta=* | --runst=* | --runs=* \
-  | --run=* | --ru=* | --r=*)
-    runstatedir=$ac_optarg ;;
-
   -sbindir | --sbindir | --sbindi | --sbind | --sbin | --sbi | --sb)
     ac_prev=sbindir ;;
   -sbindir=* | --sbindir=* | --sbindi=* | --sbind=* | --sbin=* \
@@ -1238,7 +1229,7 @@ fi
 for ac_var in	exec_prefix prefix bindir sbindir libexecdir datarootdir \
 		datadir sysconfdir sharedstatedir localstatedir includedir \
 		oldincludedir docdir infodir htmldir dvidir pdfdir psdir \
-		libdir localedir mandir runstatedir
+		libdir localedir mandir
 do
   eval ac_val=\$$ac_var
   # Remove trailing slashes.
@@ -1391,7 +1382,6 @@ Fine tuning of the installation directories:
   --sysconfdir=DIR        read-only single-machine data [PREFIX/etc]
   --sharedstatedir=DIR    modifiable architecture-independent data [PREFIX/com]
   --localstatedir=DIR     modifiable single-machine data [PREFIX/var]
-  --runstatedir=DIR       modifiable per-process data [LOCALSTATEDIR/run]
   --libdir=DIR            object code libraries [EPREFIX/lib]
   --includedir=DIR        C header files [PREFIX/include]
   --oldincludedir=DIR     C header files for non-gcc [/usr/include]
@@ -1447,6 +1437,7 @@ Optional Features:
                           rebalancing
   --enable-dp=flag        compile with 64 bit floating point numbers (default)
   --enable-profiling      enable gprof profiling
+  --enable-libsupermesh   enable use of the libsupermesh library
   --enable-spatialindex-version
                           Select required version of spatialindex library:
                           1.8.0
@@ -13960,6 +13951,145 @@ FC=$MPIF90
 CC=$MPICC
 CXX=$MPICXX
 LINKER=$CXX
+
+# Check whether --enable-libsupermesh was given.
+if test "${enable_libsupermesh+set}" = set; then :
+  enableval=$enable_libsupermesh;
+fi
+
+if test "x$enable_libsupermesh" = "xyes" ; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking libsupermesh" >&5
+$as_echo_n "checking libsupermesh... " >&6; }
+  ac_ext=cpp
+ac_cpp='$CXXCPP $CPPFLAGS'
+ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing libsupermesh_build_rtree" >&5
+$as_echo_n "checking for library containing libsupermesh_build_rtree... " >&6; }
+if ${ac_cv_search_libsupermesh_build_rtree+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_func_search_save_LIBS=$LIBS
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char libsupermesh_build_rtree ();
+#ifdef F77_DUMMY_MAIN
+
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int F77_DUMMY_MAIN() { return 1; }
+
+#endif
+#ifdef FC_DUMMY_MAIN
+#ifndef FC_DUMMY_MAIN_EQ_F77
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int FC_DUMMY_MAIN() { return 1; }
+#endif
+#endif
+int
+main ()
+{
+return libsupermesh_build_rtree ();
+  ;
+  return 0;
+}
+_ACEOF
+for ac_lib in '' supermesh; do
+  if test -z "$ac_lib"; then
+    ac_res="none required"
+  else
+    ac_res=-l$ac_lib
+    LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
+  fi
+  if ac_fn_cxx_try_link "$LINENO"; then :
+  ac_cv_search_libsupermesh_build_rtree=$ac_res
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext
+  if ${ac_cv_search_libsupermesh_build_rtree+:} false; then :
+  break
+fi
+done
+if ${ac_cv_search_libsupermesh_build_rtree+:} false; then :
+
+else
+  ac_cv_search_libsupermesh_build_rtree=no
+fi
+rm conftest.$ac_ext
+LIBS=$ac_func_search_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_search_libsupermesh_build_rtree" >&5
+$as_echo "$ac_cv_search_libsupermesh_build_rtree" >&6; }
+ac_res=$ac_cv_search_libsupermesh_build_rtree
+if test "$ac_res" != no; then :
+  test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
+
+fi
+
+  if test "$ac_cv_search_libsupermesh_build_rtree" = "none required" ; then
+    as_fn_error $? "\"Unexpected error when checking for libsupermesh\"" "$LINENO" 5
+  elif test "$ac_cv_search_libsupermesh_build_rtree" = "no" ; then
+    as_fn_error $? "\"libsupermesh not found\"" "$LINENO" 5
+  else
+    LIBS="$LIBS $ac_cv_search_libsupermesh_build_rtree"
+  fi
+  ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+
+  ac_ext=${ac_fc_srcext-f}
+ac_compile='$FC -c $FCFLAGS $ac_fcflags_srcext conftest.$ac_ext >&5'
+ac_link='$FC -o conftest$ac_exeext $FCFLAGS $LDFLAGS $ac_fcflags_srcext conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_fc_compiler_gnu
+
+  tmpFCFLAGS="$FCFLAGS"
+  FCFLAGS="$FCFLAGS $CPPFLAGS"
+  cat > conftest.$ac_ext <<_ACEOF
+
+      program test_libsupermesh
+       use libsupermesh
+      end program test_libsupermesh
+
+
+_ACEOF
+if ac_fn_fc_try_link "$LINENO"; then :
+
+      { $as_echo "$as_me:${as_lineno-$LINENO}: result: libsupermesh Fortran module found" >&5
+$as_echo "libsupermesh Fortran module found" >&6; }
+
+else
+
+      as_fn_error $? "\"libsupermesh Fortran module not found\"" "$LINENO" 5
+
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+  FCFLAGS="$tmpFCFLAGS"
+  ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+  $as_echo "#define HAVE_LIBSUPERMESH 1" >>confdefs.h
+
+fi
+
 
 # Configure adaptivity
 if test -d libadaptivity ; then

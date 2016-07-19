@@ -167,7 +167,6 @@ contains
     type(vector_field), intent(out) :: stripped_positions
     type(tensor_field), intent(out):: stripped_metric
 
-    type(halo_type), dimension(:), pointer :: save_halos
     type(mesh_type):: stripped_mesh, mesh
     integer, dimension(:), pointer :: node_list, nodes
     integer, dimension(:), allocatable :: non_halo2_elements
@@ -195,9 +194,6 @@ contains
     ! the new element halos are recreated from the new nodal halo without
     ! using those of the input positions%mesh
     mesh = positions%mesh
-    if (.not. size(save_halos)/=2) then
-      FLAbort("In strip_l2_halo: halo2 is already stripped?")
-    end if
     ! since mesh is a copy of positons%mesh, we can change mesh%halos
     ! without changing positions%mesh%halos
     allocate(mesh%halos(1))
