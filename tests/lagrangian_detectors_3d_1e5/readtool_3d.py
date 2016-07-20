@@ -4,7 +4,7 @@ from numpy import zeros,fromfile, ones, shape
 def readstat_3d():
     s = stat_parser("lagrangian_detectors.detectors")
 
-    num_detectors = 100000
+    num_detectors = 1000000
     zfill_length  = int(len(str(num_detectors)))
     array_name    = "Steve_"
     last_locations_error = zeros((3,num_detectors))

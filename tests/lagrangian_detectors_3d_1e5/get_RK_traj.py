@@ -1,13 +1,13 @@
 from scipy import *
 from pylab import *
-num_detectors = 100000
+num_detectors = 1000000
 x = 0.5+0.25*arange(0,float(num_detectors))/float(num_detectors)
 y = zeros(num_detectors) + 0.5
 
 t = 0.
 n_cycles = 1
 dt = 0.1/n_cycles
-tmax = 8
+tmax = 16
 
 def vel(x,y):
     return [-(y-0.5),x-0.5]
