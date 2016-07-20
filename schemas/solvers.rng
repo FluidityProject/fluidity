@@ -697,14 +697,6 @@ PETSc has to do extra computations.</a:documentation>
           </element>
         </optional>
         <optional>
-          <element name="preconditioned_residual_graph">
-            <a:documentation>Draws a graph over the convergence of the preconditioned residual
-during the solve. This option only works for systems where PETSc
-has been linked with the X library.</a:documentation>
-            <empty/>
-          </element>
-        </optional>
-        <optional>
           <element name="true_error">
             <a:documentation>Prints the error by computing the difference with the provided
 exact solution each time step.</a:documentation>
