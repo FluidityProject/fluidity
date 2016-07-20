@@ -7,7 +7,7 @@ y = zeros(num_detectors) + 0.5
 t = 0.
 n_cycles = 1
 dt = 0.1/n_cycles
-tmax = 7
+tmax = 8
 
 def vel(x,y):
     return [-(y-0.5),x-0.5]
