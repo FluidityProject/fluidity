@@ -379,8 +379,15 @@ contains
       call MPI_Comm_size(MPI_COMM_WORLD,num_procs,ierr)
             
       tag=2016
-      
-        
+     
+      ! Initialize Output only for rank 0
+      if (rank==0) then
+          if (actuator_line_model_writeFlag.eqv..false.) then
+              call actuator_line_model_init_output
+              actuator_line_model_writeFlag=.true.
+          end if
+      end if
+
       call get_locations
       
       call cpu_time(tic)
@@ -457,6 +464,10 @@ contains
       !## Compute the forces
       call actuator_line_model_compute_forces  
       !##
+
+      if (rank==0) then
+          call actuator_line_model_write_output
+      end if
       
       call get_forces  
     

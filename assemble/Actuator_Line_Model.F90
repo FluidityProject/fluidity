@@ -46,7 +46,8 @@ module actuator_line_model
     type(TurbineType), allocatable, save :: Turbine(:) ! Turbine 
     integer,save :: Ntur, Nal ! Number of the turbines 
     real,save :: deltaT, Visc
- 
+    logical,save :: actuator_line_model_writeFlag=.false.
+
     public  actuator_line_model_init, actuator_line_model_compute_forces, actuator_line_model_update 
 
 contains
@@ -67,6 +68,7 @@ contains
     if (Ntur>0) then
     do itur=1,Ntur
     call set_turbine_geometry(Turbine(itur))
+    call init_turbine_output_file(Turbine(itur))
     end do
     endif
 
@@ -82,6 +84,32 @@ contains
     ewrite(1,*) 'Exiting the actuator_line_model_init '
 
     end subroutine actuator_line_model_init
+    
+    subroutine actuator_line_model_init_output
+        
+        implicit none
+        integer :: itur,ial
+
+        if (Ntur>0) then
+        do itur=1,Ntur
+        call init_turbine_output_file(Turbine(itur))
+        end do
+        endif
+
+    end subroutine actuator_line_model_init_output
+    
+    subroutine actuator_line_model_write_output
+        
+        implicit none
+        integer :: itur,ial
+
+        if (Ntur>0) then
+        do itur=1,Ntur
+        call write_turbine_output_file(Turbine(itur))
+        end do
+        endif
+        
+    end subroutine actuator_line_model_write_output
 
     subroutine get_turbine_options
     
@@ -121,7 +149,10 @@ contains
        ! Allocate Blades
        Allocate(Turbine(i)%Blade(Turbine(i)%NBlades))
        ! Count how many Airfoil Sections are available
-       nfoils = option_count("/actuator_line_model/turbine["//int2str(i-1)//"]/Blades/static_foil_data/foil") 
+       nfoils = option_count("/actuator_line_model/turbine["//int2str(i-1)//"]/Blades/static_foil_data/foil")
+       if(nfoils==0) then
+           FLExit("You need to provide at least on static_foils_data entry for the computation of the blade forces")
+       end if
        ewrite(2,*) 'Number of Static Foil Data available  for the analysis of the blades: ', nfoils
        ! Allocate the memory of the Airfoils
        
@@ -298,6 +329,7 @@ subroutine get_actuatorline_options
         do i=1,Ntur
         if(Turbine(i)%Is_constant_rotation_operated) then
             theta=Turbine(i)%angularVel*DeltaT
+            Turbine(i)%AzimAngle=Turbine(i)%AzimAngle+theta
             call rotate_turbine(turbine(i),theta)
             call Compute_Turbine_RotVel(Turbine(i))  
         endif
@@ -324,7 +356,8 @@ subroutine get_actuatorline_options
             call Compute_ActuatorLine_Forces(Turbine(i)%Blade(j),visc,deltaT)    
         end do
             call Compute_Turbine_Tip_Correction(Turbine(i))
-    end do
+            call Compute_performance(Turbine(i))
+        end do
     end if
 
     if (Nal>0) then

@@ -29,7 +29,7 @@ type TurbineType
     logical :: IsCounterClockwise = .false. 
     logical :: Has_Hub=.false.
     logical :: Has_Tower=.false.
-    logical :: do_tip_correction
+    logical :: do_tip_correction=.false.
 
     type(ActuatorLineType), allocatable :: Blade(:)
     type(AirfoilType), allocatable :: AirfoilData(:)
@@ -123,15 +123,15 @@ contains
     !Compute a number of global parameters for the turbine
     !========================================================
     turbine%Uref=turbine%angularVel*turbine%Rmax/turbine%TSR
-    turbine%A=pi*turbine%Rmax
-        
+    turbine%A=pi*turbine%Rmax**2
+    
     call Compute_Turbine_RotVel(turbine)
     
     ewrite(2,*) 'Exiting set_turbine_geometry'
 
     end subroutine set_turbine_geometry
     
-    subroutine calculate_performance(turbine)
+    subroutine compute_performance(turbine)
 
     implicit none
     type(TurbineType), intent(inout) :: turbine
@@ -147,7 +147,17 @@ contains
     RotZ=turbine%RotN(3)
 
     ! Compute Torque for each Blade
-    do iblade=1,turbine%Nblades
+        Fx_tot=0.
+        Fy_tot=0.
+        Fz_tot=0.
+        Torq_tot=0
+
+        do iblade=1,turbine%Nblades
+        Fx_i=0.
+        Fy_i=0.
+        Fz_i=0.
+        Torque_i=0.
+
         do ielem=1,turbine%blade(iblade)%NElem
             
             xe=turbine%blade(iblade)%PEX(ielem)
@@ -193,11 +203,27 @@ contains
     ewrite(2,*) 'Torque Coefficient : ', turbine%CTR
     ewrite(2,*) 'Power Coefficient : ', turbine%CP
     ewrite(2,*) '--------------------------------------------------------'
-    
-    ewrite(2,*) 'Exiting calculate_performance'
+   
+    ewrite(2,*) 'Exiting compute_performance'
 
-    end subroutine calculate_performance
+    end subroutine compute_performance
     
+    subroutine init_turbine_output_file(turbine) 
+        implicit none
+        type(TurbineType),intent(in) :: turbine
+
+        open(unit=2016,File=trim(turbine%name)//'_perf.dat')
+        write(2016,*) 'Azimuthal Angle,Thrust Coeff., Torque_Coeff.,Power_Coeff.'
+    end subroutine init_turbine_output_file
+
+    subroutine write_turbine_output_file(turbine) 
+        implicit none
+        type(TurbineType),intent(in) :: turbine
+
+        write(2016,*) Turbine%AzimAngle,',',Turbine%CT,',',turbine%CTR,',',turbine%CP
+    
+    end subroutine write_turbine_output_file
+
     subroutine Compute_Turbine_Tip_Correction(turbine)
     
     implicit none
