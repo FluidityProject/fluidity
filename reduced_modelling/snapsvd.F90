@@ -38,6 +38,7 @@
 #include "fdebug.h"
 
 module snapsvd_module
+  use FLDebug
   use vector_tools 
   implicit none
 
@@ -157,8 +158,6 @@ contains
     !     | MAXNCV: Maximum NCV allowed                          |
     !     %------------------------------------------------------%
     !
-
-    use FLDebug
 
     !include 'paramnew.h'
 
@@ -763,8 +762,6 @@ contains
     !     | MAXNCV: Maximum NCV allowed                          |
     !     %------------------------------------------------------%
     !
-
-    use FLDebug
 
     !IMPLICIT NONE
     !include 'paramnew.h'

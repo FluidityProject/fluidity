@@ -27,19 +27,22 @@
 #include "fdebug.h"
 module Petsc_Tools
   use FLDebug
-  use Sparse_Tools
+  use global_parameters, only: FIELD_NAME_LEN
+  use futils
   use parallel_tools
-  use fields_base
-  use fields_manipulation
+  use Reference_Counting
   use halo_data_types
   use halos_base
-  use halos_communications
-  use halos_numbering
-  use Reference_Counting
-  use profiler
 #ifdef HAVE_PETSC_MODULES
   use petsc 
 #endif
+  use Sparse_Tools
+  use fields_data_types
+  use fields_base
+  use halos_communications
+  use halos_numbering
+  use fields_manipulation
+  use profiler
   implicit none
 
 #include "petsc_legacy.h"
@@ -119,11 +122,11 @@ module Petsc_Tools
   ! for unit-testing:
   logical, public, save :: petsc_test_error_handler_called = .false.
   public petsc_test_error_handler
-#if PETSC_VERSION_MINOR>=3
-  public MatCreateSeqAIJ, MatCreateMPIAIJ, MatCreateSeqBAIJ, MatCreateMPIBAIJ
-#endif
 #if PETSC_VERSION_MINOR<5
   public mykspgetoperators
+#endif
+#if PETSC_VERSION_MINOR<7
+  public NullPetscViewerAndFormatCreate
 #endif
 contains
 
@@ -601,13 +604,8 @@ contains
 
     nnodp = petsc_numbering%nprivatenodes
 
-#if PETSC_VERSION_MINOR>=2
     call ISCreateGeneral(MPI_COMM_FEMTOOLS, nnodp, petsc_numbering%gnn2unn(:,dim), &
          PETSC_COPY_VALUES, index_set, ierr)
-#else
-    call ISCreateGeneral(MPI_COMM_FEMTOOLS, nnodp, petsc_numbering%gnn2unn(:,dim), &
-         index_set, ierr)
-#endif
        
   end function petsc_numbering_create_is_dim
   
@@ -1125,8 +1123,9 @@ contains
 
     end do
     
-    call MatCreateSeqAIJ(MPI_COMM_SELF, nprows, npcols, &
-      PETSC_NULL_INTEGER, nnz, M, ierr)
+    call MatCreateAIJ(MPI_COMM_SELF, nprows, npcols, nprows, npcols, &
+      PETSC_NULL_INTEGER, nnz, 0, PETSC_NULL_INTEGER, M, ierr)
+    call MatSetup(M, ierr)
       
     call MatSetOption(M, MAT_USE_INODES, PETSC_FALSE, ierr)
 
@@ -1223,7 +1222,7 @@ contains
     deallocate(nnz)
       
   end function csr2petsc_CreateSeqAIJ
-
+  
   function csr2petsc_CreateMPIAIJ(sparsity, row_numbering, col_numbering, only_diagonal_blocks, use_inodes) result(M)
   !!< Creates a parallel PETSc Mat of size corresponding with
   !!< row_numbering and col_numbering.
@@ -1299,8 +1298,9 @@ contains
       end do
     end do
 
-    call MatCreateMPIAIJ(MPI_COMM_FEMTOOLS, nrowsp, ncolsp, nrows, ncols, &
+    call MatCreateAIJ(MPI_COMM_FEMTOOLS, nrowsp, ncolsp, nrows, ncols, &
       PETSC_NULL_INTEGER, d_nnz, PETSC_NULL_INTEGER, o_nnz, M, ierr)
+    call MatSetup(M, ierr)
       
     if (.not. present_and_true(use_inodes)) then
       call MatSetOption(M, MAT_USE_INODES, PETSC_FALSE, ierr)
@@ -1520,12 +1520,8 @@ contains
 
 ! Simple dummy error handler that just tracks whether it's been called or not
 ! Useful for unittesting to see that petsc gives error messages at the right moment
-#if PETSC_VERSION_MINOR>=2
 subroutine petsc_test_error_handler(comm,line, func, file, dir, n, p, mess, ctx, ierr)
   MPI_Comm:: comm
-#else
-subroutine petsc_test_error_handler(line, func, file, dir, n, p, mess, ctx, ierr)
-#endif
   PetscInt:: line
   character(len=*):: func, file, dir
   PetscErrorCode:: n
@@ -1538,68 +1534,6 @@ subroutine petsc_test_error_handler(line, func, file, dir, n, p, mess, ctx, ierr
   petsc_test_error_handler_called = .true.
   
 end subroutine petsc_test_error_handler
-
-! In petsc-3.3 the MatCreate[B]{Seq|MPI}() routines have changed to MatCreate[B]Aij
-! and MatSetup always needs to be called
-#if PETSC_VERSION_MINOR>=3
-  subroutine MatCreateSeqAIJ(MPI_Comm, nrows, ncols, &
-      nz, nnz, M, ierr)
-    integer, intent(in):: MPI_Comm
-    PetscInt, intent(in):: nrows, ncols, nz
-    PetscInt, dimension(:), intent(in):: nnz
-    Mat, intent(out):: M
-    PetscErrorCode, intent(out):: ierr
-
-    call MatCreateAij(MPI_Comm, nrows, ncols, nrows, ncols, &
-      nz, nnz, 0, PETSC_NULL_INTEGER, M, ierr)
-    call MatSetup(M, ierr)
-
-  end subroutine MatCreateSeqAIJ
-
-  subroutine MatCreateMPIAIJ(MPI_Comm, nprows, npcols, &
-      nrows, ncols, &
-      dnz, dnnz, onz, onnz, M, ierr)
-    integer, intent(in):: MPI_Comm
-    PetscInt, intent(in):: nprows, npcols,nrows, ncols, dnz, onz
-    PetscInt, dimension(:), intent(in):: dnnz, onnz
-    Mat, intent(out):: M
-    PetscErrorCode, intent(out):: ierr
-
-    call MatCreateAij(MPI_Comm, nprows, npcols, nrows, ncols, &
-      dnz, dnnz, onz, onnz, M, ierr)
-    call MatSetup(M, ierr)
-
-  end subroutine MatCreateMPIAIJ
-
-  subroutine MatCreateSeqBAIJ(MPI_Comm, bs, nrows, ncols, &
-      nz, nnz, M, ierr)
-    integer, intent(in):: MPI_Comm
-    PetscInt, intent(in):: bs, nrows, ncols, nz
-    PetscInt, dimension(:), intent(in):: nnz
-    Mat, intent(out):: M
-    PetscErrorCode, intent(out):: ierr
-
-    call MatCreateBAij(MPI_Comm, bs, nrows, ncols, nrows, ncols, &
-      nz, nnz, 0, PETSC_NULL_INTEGER, M, ierr)
-    call MatSetup(M, ierr)
-
-  end subroutine MatCreateSeqBAIJ
-
-  subroutine MatCreateMPIBAIJ(MPI_Comm, bs, nprows, npcols, &
-      nrows, ncols, &
-      dnz, dnnz, onz, onnz, M, ierr)
-    integer, intent(in):: MPI_Comm
-    PetscInt, intent(in):: bs, nprows, npcols,nrows, ncols, dnz, onz
-    PetscInt, dimension(:), intent(in):: dnnz, onnz
-    Mat, intent(out):: M
-    PetscErrorCode, intent(out):: ierr
-
-    call MatCreateBAij(MPI_Comm, bs, nprows, npcols, nrows, ncols, &
-      dnz, dnnz, onz, onnz, M, ierr)
-    call MatSetup(M, ierr)
-
-  end subroutine MatCreateMPIBAIJ
-#endif
 
 ! this is a wrapper around KSPGetOperators, that in petsc <3.5
 ! has an extra mat_structure flag. We need to wrap this because
@@ -1617,6 +1551,21 @@ subroutine mykspgetoperators(ksp, amat, pmat, ierr)
   call  kspgetoperators(ksp, amat, pmat, mat_structure, ierr)
 
 end subroutine mykspgetoperators
+#endif
+
+#if PETSC_VERSION_MINOR<7
+subroutine NullPetscViewerAndFormatCreate(viewer, format, vf, ierr)
+  PetscViewer, intent(in) :: viewer
+  PetscEnum, intent(in) :: format
+  PetscObject, intent(out) :: vf
+  PetscErrorCode, intent(out) :: ierr
+
+  assert(viewer==PETSC_VIEWER_STDOUT_WORLD)
+  assert(format==PETSC_VIEWER_DEFAULT)
+  vf = PETSC_NULL_OBJECT
+  ierr = 0
+
+end subroutine NullPetscViewerAndFormatCreate
 #endif
 
 #include "Reference_count_petsc_numbering_type.F90"

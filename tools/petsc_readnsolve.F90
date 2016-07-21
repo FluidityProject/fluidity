@@ -61,8 +61,6 @@ implicit none
   ! read in the matrix equation and init. guess:
   call PetscViewerBinaryOpen(MPI_COMM_FEMTOOLS, trim(filename), &
      FILE_MODE_READ, viewer, ierr)
-#if PETSC_VERSION_MINOR>=2
-  ! in petsc 3.2 MatLoad and VecLoad do no longer create a new vector
   call MatCreate(MPI_COMM_FEMTOOLS, matrix, ierr)
   call VecCreate(MPI_COMM_FEMTOOLS, rhs, ierr)
   if (IsParallel()) then
@@ -85,22 +83,6 @@ implicit none
     end if
     call VecLoad(x, viewer, ierr)
   end if
-#else
-  if (IsParallel()) then
-    call MatLoad(viewer, MATMPIAIJ, matrix, ierr)
-    call VecLoad(viewer, VECMPI, rhs, ierr)
-  else
-    call MatLoad(viewer, MATSEQAIJ, matrix, ierr)
-    call VecLoad(viewer, VECSEQ, rhs, ierr)
-  end if
-  if (zero_init_guess) then
-    call VecDuplicate(rhs, x, ierr)
-  else if (IsParallel()) then
-    call VecLoad(viewer, VECMPI, x, ierr)
-  else
-    call VecLoad(viewer, VECSEQ, x, ierr)
-  end if
-#endif
   call PetscViewerDestroy(viewer, ierr)
   if (random_rhs) then
     call PetscRandomCreate(PETSC_COMM_WORLD, pr, ierr)
@@ -203,8 +185,8 @@ contains
     krylov_method=KSPGMRES
     pc_method=PCSOR
     
-    call PetscOptionsGetString('', "-ksp_type", krylov_method, flag, ierr)
-    call PetscOptionsGetString('', "-pc_type", pc_method, flag, ierr)
+    call PetscOptionsGetString(PETSC_NULL_OBJECT, '', "-ksp_type", krylov_method, flag, ierr)
+    call PetscOptionsGetString(PETSC_NULL_OBJECT, '', "-pc_type", pc_method, flag, ierr)
     call KSPCreate(MPI_COMM_FEMTOOLS, krylov, ierr)
     call KSPSetType(krylov, krylov_method, ierr)
     call KSPSetOperators(krylov, matrix, matrix, ierr)
@@ -721,14 +703,8 @@ contains
     ncomponents=size(petsc_numbering%gnn2unn, 2)
     allocate(unns(1:n*ncomponents))
     unns=reshape( petsc_numbering%gnn2unn(1:n,:), (/ n*ncomponents /))
-#if PETSC_VERSION_MINOR>=2
-    ! for petsc 3.2 we have an extra PetscCopyMode argument
     call ISCreateGeneral(MPI_COMM_FEMTOOLS, &
        size(unns), unns, PETSC_COPY_VALUES, row_indexset, ierr)
-#else
-    call ISCreateGeneral(MPI_COMM_FEMTOOLS, &
-       size(unns), unns, row_indexset, ierr)
-#endif
        
     m=petsc_numbering%universal_length ! global length
        
@@ -784,28 +760,28 @@ contains
     PetscBool flag
     PetscErrorCode ierr
     
-    call PetscOptionsGetString('prns_', '-filename', filename, flag, ierr)
+    call PetscOptionsGetString(PETSC_NULL_OBJECT, 'prns_', '-filename', filename, flag, ierr)
     if (.not. flag) then
       filename='matrixdump'
     end if
 
-    call PetscOptionsGetString('prns_', '-flml', flml, flag, ierr)
+    call PetscOptionsGetString(PETSC_NULL_OBJECT, 'prns_', '-flml', flml, flag, ierr)
     if (.not. flag) then
       flml=''
     end if
     
-    call PetscOptionsGetString('prns_', '-field', field, flag, ierr)
+    call PetscOptionsGetString(PETSC_NULL_OBJECT, 'prns_', '-field', field, flag, ierr)
     if (.not. flag) then
       field=''
     end if
     
-    call PetscOptionsHasName('prns_', '-zero_init_guess', zero_init_guess, ierr)
+    call PetscOptionsHasName(PETSC_NULL_OBJECT, 'prns_', '-zero_init_guess', zero_init_guess, ierr)
 
-    call PetscOptionsHasName('prns_', '-scipy', scipy, ierr)
+    call PetscOptionsHasName(PETSC_NULL_OBJECT, 'prns_', '-scipy', scipy, ierr)
 
-    call PetscOptionsHasName('prns_', '-random_rhs', random_rhs, ierr)
+    call PetscOptionsHasName(PETSC_NULL_OBJECT, 'prns_', '-random_rhs', random_rhs, ierr)
     
-    call PetscOptionsGetInt('prns_', '-verbosity', current_debug_level, flag, ierr)
+    call PetscOptionsGetInt(PETSC_NULL_OBJECT, 'prns_', '-verbosity', current_debug_level, flag, ierr)
     if (.not.flag) then
       current_debug_level=3
     end if

@@ -29,53 +29,55 @@
 #define INLINE_MATMUL
 
 module implicit_solids
-! these 5 need to be on top and in this order, 
-! so as not to confuse silly old intel compiler 
+  use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN, &
+PYTHON_FUNC_LEN, dt, timestep, current_time
+  use fldebug
+  use vector_tools
   use quadrature
+  use futils
+  use element_numbering, only: FAMILY_SIMPLEX
   use elements
+  use shape_functions
+  use spud
+  use parallel_tools
+  use data_structures
   use sparse_tools
-  use fields
-  use state_module
-!
-  use vtk_interfaces
   use linked_lists
-  use intersection_finder_module
+  use tensors
+  use adjacency_lists
+  use fields_allocates
+  use fields_manipulation
+  use parallel_fields
+  use transform_elements
   use tetrahedron_intersection_module
   use unify_meshes_module
   use unittest_tools
-  use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN, &
-       PYTHON_FUNC_LEN, dt, timestep, current_time
-  use spud
-  use timeloop_utilities
+  use supermesh_construction
+  use intersection_finder_module
+  use fetools
+  use fields_calculations, only: field_integral
+  use state_module
+  use field_options, only: complete_field_path
+  use vtk_interfaces
+  use sparse_matrices_fields
+  use halos
   use fefields, only: compute_lumped_mass
-  use parallel_tools
-  use diagnostic_variables
-  use qmesh_module
-  use mesh_files
-  use read_triangle
-  use fields_manipulation
+  use timeloop_utilities
+  use boundary_conditions
+  use field_derivatives
+  use meshdiagnostics
   use solvers
   use pickers_inquire
-  use transform_elements
-  use field_derivatives
-  use FLDebug
-  use supermesh_construction
-  use futils
-  use meshdiagnostics
   use sparsity_patterns
-  use vector_tools
-  use tensors
-  use fetools
-  use interpolation_module
-  use adjacency_lists
-  use sparse_matrices_fields
-  use bound_field_module
-  use halos
-  use diagnostic_fields
-  use boundary_conditions
-  use data_structures
-  use edge_length_module
   use detector_tools, only: set_detector_coords_from_python
+  use diagnostic_variables
+  use edge_length_module
+  use mesh_files
+  use read_triangle
+  use interpolation_module
+  use diagnostic_fields
+  use qmesh_module
+  use bound_field_module
 
   implicit none
 
@@ -371,7 +373,7 @@ contains
     integer :: ele_A, ele_B, ele_C
     type(tet_type) :: tet_A, tet_B
     type(plane_type), dimension(:), allocatable :: planes_A
-    integer :: stat, nintersections, i, j, k, ntests
+    integer :: stat, nintersections, i, j, k
     integer, dimension(:), pointer :: ele_A_nodes
     type(vector_field) :: intersection
     real, dimension(:, :), allocatable :: pos_A
@@ -497,7 +499,7 @@ contains
     call bound_concentration()
 
     call finalise_tet_intersector
-    call rtree_intersection_finder_reset(ntests)
+    call rtree_intersection_finder_reset()
 
     call deallocate(external_positions_local)
 
@@ -892,7 +894,7 @@ contains
     deallocate(boundary_ids)
 
     call deallocate(mesh)
-    call deallocate_element(shape)
+    call deallocate(shape)
     call deallocate(quad)
 
     external_positions%dim=3
@@ -1924,7 +1926,6 @@ contains
     ! femdem
     logical :: femdem_in
     logical, intent(in), optional :: femdem_out
-    integer :: ntests
     type(scalar_field), intent(inout), optional :: solid
 
     ewrite(1, *) "In interpolation_galerkin_scalars"
@@ -2469,7 +2470,7 @@ contains
     deallocate(little_rhs)
 
     call finalise_tet_intersector
-    call rtree_intersection_finder_reset(ntests)
+    call rtree_intersection_finder_reset()
 
     ewrite(1, *) "Exiting interpolation_galerkin_scalars"
     

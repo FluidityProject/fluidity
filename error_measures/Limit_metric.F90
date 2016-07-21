@@ -2,19 +2,22 @@
 
 module limit_metric_module
 
-  use elements
-  use fields
   use fldebug
-  use meshdiagnostics
-  use spud
   use vector_tools, only : determinant => det
+  use futils, only: present_and_true
+  use elements
+  use spud
+  use parallel_tools
+  use parallel_fields
+  use fields
+  use meshdiagnostics
 
   implicit none
 
   private
 
   public :: limit_metric, limit_metric_elements, expected_elements, &
-    & expected_nodes, determinant
+    & expected_nodes, determinant, limit_metric_module_check_options
 
   interface expected_nodes
     module procedure expected_nodes_expected_elements, expected_nodes_metric

@@ -29,17 +29,18 @@
 
 module halos_repair
 
-  use fields_data_types
-  use fields_base
-  use parallel_tools
   use fldebug
+  use futils
+  use mpi_interfaces
+  use parallel_tools
   use halo_data_types
+  use quicksort
   use halos_base
   use halos_debug
+  use fields_data_types
+  use fields_base
   use halos_numbering
   use halos_ownership
-  use mpi_interfaces
-  use quicksort
 
   implicit none
 

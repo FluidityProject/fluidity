@@ -25,10 +25,21 @@ import unittest
 
 import fluidity.diagnostics.debug as debug
 
-try:
-  import Scientific.IO.NetCDF as netcdf
-except:
-  debug.deprint("Warning: Failed to import Scientific.IO.NetCDF module")
+from scipy.version import version as SciPyVersion
+
+if tuple(int(x) for x in SciPyVersion.split('.')) < (0, 9, 0):
+  try:
+    import Scientific.IO.NetCDF as netcdf
+  except:
+    debug.deprint("Warning: Your SciPy version is too old (<0.9.0) and \nthe Scientific.IO.NetCDF module failed to import")
+else:
+  try:
+    import scipy.io.netcdf as netcdf
+  except:
+    debug.deprint("Warning: Failed to import scipy.io.netcdf module")
+
+
+
 
 import fluidity.diagnostics.calc as calc
 import fluidity.diagnostics.filehandling as filehandling
@@ -43,7 +54,7 @@ class Era15:
   _epoch = datetime.datetime(1900, 1, 1, 0, 0, 0)
 
   def __init__(self, filename, latitudeName = "latitude", longitudeName = "longitude", timeName = "time"):
-    self._file = netcdf.NetCDFFile(filename, "r")
+    self._file = netcdf.netcdf_file(filename, "r")
     self._latitudes = self.Values(latitudeName)
     self._longitudes = self.Values(longitudeName)
     self._times = self.Values(timeName)
@@ -254,8 +265,14 @@ class Era15:
 
 class eraUnittests(unittest.TestCase):
   def testNetcdfSupport(self):
-    import Scientific.IO.NetCDF
-    
+
+    from scipy.version import version as SciPyVersion
+
+    if tuple(int(x) for x in SciPyVersion.split('.')) < (0, 9, 0):
+        import Scientific.IO.NetCDF
+    else:
+        import scipy.io.netcdf
+
     return
 
 class eraDataUnittests(unittest.TestCase):

@@ -31,6 +31,8 @@ subroutine test_length_scale_tensor
 
    use unittest_tools
    use mesh_files
+   use elements
+   use transform_elements, only: transform_to_physical
    use fields
    use smoothing_module
    use global_parameters, only : pi

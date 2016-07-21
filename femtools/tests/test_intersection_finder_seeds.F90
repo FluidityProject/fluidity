@@ -34,6 +34,7 @@ subroutine test_intersection_finder_seeds
   use linked_lists
   use quadrature
   use unittest_tools
+  use intersection_finder_module
   
   implicit none
   
@@ -71,7 +72,8 @@ subroutine test_intersection_finder_seeds
   seeds_vec = list2vector(seeds)
   call report_test("[seed]", seeds_vec(1) /= 1, .false., "Incorrect seed")
   call report_test("[seed]", seeds_vec(2) /= 3, .false., "Incorrect seed")
-  
+
+#ifndef HAVE_LIBSUPERMESH
   map = advancing_front_intersection_finder(positions, positions, seed = seeds_vec(1))
   ele_found = .false.
   do i = 1, size(map)
@@ -101,6 +103,7 @@ subroutine test_intersection_finder_seeds
   do i = 1, size(map)
     call deallocate(map(i))
   end do
+#endif
   
   call deallocate(seeds)
   call deallocate(positions)

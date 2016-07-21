@@ -63,17 +63,6 @@ module global_parameters
   integer, parameter :: real_size=4
 #endif
 
-  integer, parameter :: int_4 = selected_int_kind(4), &
-                      & int_8 = selected_int_kind(8), &
-                     & int_16 = selected_int_kind(16)
-  ! real variable declarations of the form:
-  !   real*4 :: real_var
-  ! are not portable. Use these instead:
-  !   real(real_4) :: real_val
-  integer, parameter :: real_4 = selected_real_kind(4), &
-                      & real_8 = selected_real_kind(8), &
-                     & real_16 = selected_real_kind(16)
-
   !------------------------------------------------------------------------
   ! Parameters controlling the scheme used in the flow core.
   !------------------------------------------------------------------------

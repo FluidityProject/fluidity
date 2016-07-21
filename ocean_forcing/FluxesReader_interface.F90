@@ -108,7 +108,7 @@ contains
   end subroutine fluxes_SetSimulationTimeunits
   
   subroutine fluxes_SetTimeSeconds(time)
-    real(real_8), intent(in) :: time
+    real(c_double), intent(in) :: time
     call fluxes_SetTimeSeconds_c(time)
   end subroutine fluxes_SetTimeSeconds
   

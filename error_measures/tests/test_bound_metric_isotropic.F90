@@ -4,6 +4,7 @@ subroutine test_bound_metric_isotropic
   use node_boundary, only: pseudo2d_coord
   use metric_assemble
   use adapt_state_module
+  use fields
   use form_metric_field
   use state_module
   use vtk_interfaces

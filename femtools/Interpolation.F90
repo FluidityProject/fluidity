@@ -1,18 +1,19 @@
 #include "fdebug.h"
 
 module interpolation_module
-  use fields
-  use superconvergence
-  use field_derivatives
-  use state_module
-  use sparse_tools
-  use supermesh_construction
+  use fldebug
   use futils
+  use superconvergence
+  use sparse_tools
   use transform_elements
+  use supermesh_construction
+  use parallel_fields
+  use fields
+  use state_module
+  use field_derivatives
   use meshdiagnostics
   use field_options
   use node_ownership
-  use parallel_fields
   implicit none
 
   interface linear_interpolation
@@ -28,6 +29,11 @@ module interpolation_module
   interface cubic_interpolation
     module procedure cubic_interpolation_cf_scalar, cubic_interpolation_cf_vector
   end interface
+
+  private
+
+  public :: linear_interpolation, quadratic_interpolation, cubic_interpolation,&
+      get_element_mapping, linear_interpolate_states
 
   contains
 

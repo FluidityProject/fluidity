@@ -28,27 +28,30 @@
 #include "fdebug.h"
 
 module k_epsilon
-  use quadrature
-  use elements
-  use field_derivatives
-  use fields
-  use field_options
-  use state_module
-  use spud
-  use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN, timestep, current_time
-  use state_fields_module
-  use boundary_conditions
-  use fields_manipulation
-  use surface_integrals
-  use smoothing_module
-  use fetools
-  use vector_tools
-  use sparsity_patterns_meshes
-  use FLDebug
-  use vtk_interfaces
-  use solvers
 
-implicit none
+  use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN, timestep, current_time
+  use fldebug
+  use futils, only: int2str
+  use vector_tools
+  use quadrature
+  use spud
+  use sparse_tools
+  use elements
+  use fetools
+  use parallel_fields
+  use fields
+  use state_module
+  use boundary_conditions
+  use vtk_interfaces
+  use field_derivatives
+  use field_options
+  use sparsity_patterns_meshes
+  use state_fields_module
+  use surface_integrals
+  use solvers
+  use smoothing_module
+
+  implicit none
 
   private
 
@@ -203,19 +206,19 @@ subroutine keps_calculate_rhs(state)
   type(scalar_field), dimension(3) :: src_abs_terms
   type(scalar_field), dimension(2) :: fields
   type(scalar_field), pointer :: src, abs, f_1, f_2, debug
-  type(scalar_field) :: src_to_abs
+  type(scalar_field) :: src_to_abs, vfrac
   type(vector_field), pointer :: x, u, g
   type(scalar_field), pointer :: dummydensity, density, buoyancy_density, scalar_eddy_visc
   integer :: i, ele, term, stat
   real :: g_magnitude, c_eps_1, c_eps_2, sigma_p
-  logical :: have_buoyancy_turbulence = .true., lump_mass
+  logical :: have_buoyancy_turbulence = .true., lump_mass, multiphase
   character(len=OPTION_PATH_LEN) :: option_path 
   character(len=FIELD_NAME_LEN), dimension(2) :: field_names
   character(len=FIELD_NAME_LEN) :: equation_type, implementation
 
   type(vector_field) :: bc_value
   integer, dimension(:,:), allocatable :: bc_type    
-  logical :: dg_velocity
+  logical :: dg_velocity, dg_keps
 
   option_path = trim(state%option_path)//'/subgridscale_parameterisations/k-epsilon/'
 
@@ -275,6 +278,14 @@ subroutine keps_calculate_rhs(state)
      buoyancy_density => dummydensity
   end if
 
+  ! PhaseVolumeFraction for multiphase flow simulations
+  if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1) then
+     multiphase = .true.
+     call time_averaged_value(state, vfrac, "PhaseVolumeFraction", .true., option_path)
+  else
+     multiphase = .false.
+  end if
+  
   field_names(1) = 'TurbulentKineticEnergy'
   field_names(2) = 'TurbulentDissipation'
 
@@ -301,6 +312,10 @@ subroutine keps_calculate_rhs(state)
 
      !-----------------------------------------------------------------------------------
 
+     ! Check if k and epsilon are on a discontinuous mesh.
+     ! It is currently assumed here that both fields are on the same mesh.
+     dg_keps = continuity(fields(1))<0
+
      ! Assembly loop
      do ele = 1, ele_count(fields(1))  
        ! In parallel, we construct terms on elements we own and those in
@@ -311,15 +326,15 @@ subroutine keps_calculate_rhs(state)
        ! ele is owned.  For example, if ele is the only owned element on
        ! this process.  Hence we have to check for element ownership
        ! directly as well.
-       if (.not.dg_velocity.or.element_neighbour_owned(u, ele).or.element_owned(u, ele)) then
+       if (.not.dg_keps.or.element_neighbour_owned(u, ele).or.element_owned(u, ele)) then
          call assemble_rhs_ele(src_abs_terms, fields(i), fields(3-i), scalar_eddy_visc, u, &
-              density, buoyancy_density, have_buoyancy_turbulence, g, g_magnitude, x, &
-              c_eps_1, c_eps_2, sigma_p, f_1, f_2, ele, i, bc_value, bc_type)
+              density, buoyancy_density, have_buoyancy_turbulence, g, g_magnitude, multiphase, &
+              vfrac, x, c_eps_1, c_eps_2, sigma_p, f_1, f_2, ele, i, bc_value, bc_type)
        end if
      end do
 
      ! halo update to fill in halo_2 values with a dg velocity
-     if (dg_velocity) then
+     if (dg_keps) then
        do term = 1, 3
          call halo_update(src_abs_terms(term))
        end do
@@ -398,27 +413,31 @@ subroutine keps_calculate_rhs(state)
   end do field_loop
   
   !! deallocate velocity bc_type
-  if(continuity(u)<0) then
+  if(dg_velocity) then
       deallocate(bc_type)
       call deallocate(bc_value)	
   end if
   call deallocate(dummydensity)
   deallocate(dummydensity)
 
+  if(multiphase) then
+     call deallocate(vfrac)
+  end if
+
 end subroutine keps_calculate_rhs
     
 !------------------------------------------------------------------------------!
 
 subroutine assemble_rhs_ele(src_abs_terms, k, eps, scalar_eddy_visc, u, density, &
-     buoyancy_density, have_buoyancy_turbulence, g, g_magnitude, &
+     buoyancy_density, have_buoyancy_turbulence, g, g_magnitude, multiphase, vfrac, &
      X, c_eps_1, c_eps_2, sigma_p, f_1, f_2, ele, field_id, bc_value, bc_type)
 
   type(scalar_field), dimension(3), intent(inout) :: src_abs_terms
-  type(scalar_field), intent(in) :: k, eps, scalar_eddy_visc, f_1, f_2
+  type(scalar_field), intent(in) :: k, eps, scalar_eddy_visc, f_1, f_2, vfrac
   type(vector_field), intent(in) :: X, u, g
   type(scalar_field), intent(in) :: density, buoyancy_density
   real, intent(in) :: g_magnitude, c_eps_1, c_eps_2, sigma_p
-  logical, intent(in) :: have_buoyancy_turbulence
+  logical, intent(in) :: have_buoyancy_turbulence, multiphase
   integer, intent(in) :: ele, field_id
 
   real, dimension(ele_loc(k, ele), ele_ngi(k, ele), x%dim) :: dshape
@@ -426,13 +445,15 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, scalar_eddy_visc, u, density,
   real, dimension(3, ele_loc(k, ele)) :: rhs_addto
   integer, dimension(ele_loc(k, ele)) :: nodes
   real, dimension(ele_loc(k, ele), ele_loc(k, ele)) :: invmass
-  real, dimension(u%dim, u%dim, ele_ngi(k, ele)) :: reynolds_stress, grad_u
-  type(element_type), pointer :: shape
+  real, dimension(u%dim, u%dim, ele_ngi(u, ele)) :: reynolds_stress, grad_u
+  type(element_type), pointer :: shape, shape_u
   integer :: term, ngi, dim, gi, i
 
   type(vector_field), intent(in) :: bc_value	
   integer, dimension(:,:), intent(in) :: bc_type    
-  
+
+  real, dimension(:, :, :), allocatable :: dshape_u
+
   ! For buoyancy turbulence stuff
   real, dimension(u%dim, ele_ngi(u, ele))  :: vector, u_quad, g_quad
   real :: u_z, u_xy
@@ -455,11 +476,19 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, scalar_eddy_visc, u, density,
      eps_ele(gi) = max(eps_ele(gi), fields_min)
   end do
 
-  ! Compute Reynolds stress	
-  if(continuity(u)<0) then
-     grad_u = dg_ele_grad_at_quad(u, ele, shape, X, bc_value, bc_type)
+  ! Compute Reynolds stress
+  if(.not.(u%mesh == k%mesh)) then
+     shape_u => ele_shape(u, ele)
+     allocate(dshape_u(ele_loc(u, ele), ele_ngi(u, ele), X%dim))
+     call transform_to_physical( X, ele, shape_u, dshape=dshape_u )
+     grad_u = ele_grad_at_quad(u, ele, dshape_u)
+     deallocate(dshape_u)  
   else
-     grad_u = ele_grad_at_quad(u, ele, dshape)
+     if(continuity(u)<0) then
+        grad_u = dg_ele_grad_at_quad(u, ele, shape, X, bc_value, bc_type)
+     else
+        grad_u = ele_grad_at_quad(u, ele, dshape)
+     end if
   end if
 
   scalar_eddy_visc_ele = ele_val_at_quad(scalar_eddy_visc, ele)
@@ -476,15 +505,23 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, scalar_eddy_visc, u, density,
   if (field_id==2) then
      rhs = rhs*c_eps_1*ele_val_at_quad(f_1,ele)*eps_ele/k_ele
   end if
-  rhs_addto(1,:) = shape_rhs(shape, detwei*rhs)
+  if(multiphase) then
+     rhs_addto(1,:) = shape_rhs(shape, detwei*rhs*ele_val_at_quad(vfrac,ele))
+  else
+     rhs_addto(1,:) = shape_rhs(shape, detwei*rhs)
+  end if
 
   ! A:
   rhs = -1.0*eps_ele*ele_val_at_quad(density, ele)
   if (field_id==2) then
      rhs = rhs*c_eps_2*ele_val_at_quad(f_2,ele)*eps_ele/k_ele
   end if
-  rhs_addto(2,:) = shape_rhs(shape, detwei*rhs)
-
+  if(multiphase) then
+     rhs_addto(2,:) = shape_rhs(shape, detwei*rhs*ele_val_at_quad(vfrac,ele))
+  else
+     rhs_addto(2,:) = shape_rhs(shape, detwei*rhs)
+  end if
+  
   ! Gk:  
   ! Calculate buoyancy turbulence term and add to addto array
   if(have_buoyancy_turbulence) then    
@@ -526,7 +563,11 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, scalar_eddy_visc, u, density,
     end if
 
     ! multiply by determinate weights, integrate and assign to rhs
-    rhs_addto(3,:) = shape_rhs(shape, scalar * detwei)
+    if(multiphase) then
+       rhs_addto(3,:) = shape_rhs(shape, scalar * detwei * ele_val_at_quad(vfrac,ele))
+    else
+       rhs_addto(3,:) = shape_rhs(shape, scalar * detwei)
+    end if
     
     deallocate(dshape_density)
     
@@ -576,6 +617,7 @@ subroutine keps_eddyvisc(state, advdif)
   type(state_type), intent(inout)  :: state
   logical, intent(in) :: advdif
 
+  type(tensor_field)               :: visc_dg
   type(tensor_field), pointer      :: eddy_visc, viscosity, bg_visc
   type(vector_field), pointer      :: x, u
   type(scalar_field)               :: kk, eps
@@ -644,7 +686,23 @@ subroutine keps_eddyvisc(state, advdif)
 
   ! Initialise viscosity to background value
   if (have_visc) then
-     call set(viscosity, bg_visc)
+     ewrite(1,*) "Entering Initialise Viscosity to Background Viscosity"   
+     ! Checking if the viscosity field is on a discontinuous mesh and the bg_viscosity is on continuous mesh
+     ! We need to remap before setting the field as the set subroutine does not remap automatically.
+     if (continuity(viscosity)<0 .and. continuity(bg_visc)>=0) then     
+        ewrite(1,*) "Entering background viscosity remap conditional"
+        call allocate(visc_dg, viscosity%mesh, "RemappedBackgroundViscosityDG")
+        call remap_field(bg_visc,visc_dg,stat)
+        if (stat/=0) then
+           FLExit('There was some problem remapping the continuous backgroud viscosity to discontinuous mesh')
+        end if
+        call set(viscosity, visc_dg)
+        call deallocate(visc_dg)
+     else if (continuity(viscosity) == continuity(bg_visc)) then
+        ewrite(1,*) "Continuity of viscosity is the same as the continuity of bg_visc"
+        call set(viscosity, bg_visc)
+     end if
+     ewrite(1,*) "Exiting initialise viscosity to bg visc"
   end if
   
   ! Compute the length scale diagnostic field here.
@@ -689,6 +747,8 @@ subroutine keps_eddyvisc(state, advdif)
   ! this is skipped if zero_eddy_viscosity is set - this is the easiest way to
   ! disable feedback from the k-epsilon model back into the rest of the model
   if (.not. have_option(trim(option_path)//'debugging_options/zero_reynolds_stress_tensor')) then
+     ! Although the k-epsilon model assumes isotropic viscosity all terms of the viscosity tensor are modified 
+     ! because of the way CG method treats the viscosity tensor.
      do i = 1, eddy_visc%dim(1)
         do j = 1, eddy_visc%dim(1)
            call set(eddy_visc, i, j, scalar_eddy_visc)
@@ -698,6 +758,8 @@ subroutine keps_eddyvisc(state, advdif)
 
   ! Add turbulence model contribution to viscosity field
   if (have_visc) then
+     ! Tensor addto subroutine will remap the second tensor to the mesh of tensor1 if they are on different meshes.
+     ! So we don't need to manually remap in this case.
      call addto(viscosity, eddy_visc)
   end if
 
@@ -814,9 +876,11 @@ subroutine keps_diffusion(state)
   type(state_type), intent(inout)   :: state
 
   type(tensor_field), pointer :: diff, bg_visc, eddy_visc
+  type(scalar_field) :: vfrac, remapvfrac
   real :: sigma_k, sigma_eps
   integer :: i, j
   character(len=OPTION_PATH_LEN) :: option_path 
+  logical :: multiphase
 
   ewrite(1,*) 'in keps_diffusion'
   
@@ -829,21 +893,47 @@ subroutine keps_diffusion(state)
 
   ! Set diffusivity
   diff => extract_tensor_field(state, "TurbulentKineticEnergyDiffusivity")
+  
+  ! PhaseVolumeFraction for multiphase flow simulations
+  if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1) then
+     multiphase = .true.
+     call time_averaged_value(state, vfrac, "PhaseVolumeFraction", .true., option_path)
+     call allocate(remapvfrac, diff%mesh, "RemppedPhaseVolumeFraction")
+     call remap_field(vfrac, remapvfrac)
+  else
+     multiphase = .false.
+  end if
+  
   call zero(diff)
   do i = 1, node_count(diff)
      do j = 1, diff%dim(1)
-        call addto(diff, j, j, i, node_val(bg_visc, j, j, i))
-        call addto(diff, j, j, i, node_val(eddy_visc, j, j, i) / sigma_k)
+        if(multiphase) then
+           call addto(diff, j, j, i, node_val(bg_visc, j, j, i)*node_val(remapvfrac, i))
+           call addto(diff, j, j, i, node_val(eddy_visc, j, j, i)*node_val(remapvfrac, i) / sigma_k)
+        else
+           call addto(diff, j, j, i, node_val(bg_visc, j, j, i))
+           call addto(diff, j, j, i, node_val(eddy_visc, j, j, i) / sigma_k)
+        end if
      end do
   end do
   diff => extract_tensor_field(state, "TurbulentDissipationDiffusivity")
   call zero(diff)
   do i = 1, node_count(diff)
      do j = 1, diff%dim(1)
-        call addto(diff, j, j, i, node_val(bg_visc, j, j, i))
-        call addto(diff, j, j, i, node_val(eddy_visc, j, j, i) / sigma_eps)
+        if(multiphase) then
+           call addto(diff, j, j, i, node_val(bg_visc, j, j, i)*node_val(remapvfrac, i))
+           call addto(diff, j, j, i, node_val(eddy_visc, j, j, i)*node_val(remapvfrac, i) / sigma_eps)
+        else   
+           call addto(diff, j, j, i, node_val(bg_visc, j, j, i))
+           call addto(diff, j, j, i, node_val(eddy_visc, j, j, i) / sigma_eps)
+        end if
      end do
   end do
+  
+  if(multiphase) then
+     call deallocate(remapvfrac)
+     call deallocate(vfrac)
+  end if
 
 end subroutine keps_diffusion
 
@@ -943,7 +1033,7 @@ subroutine keps_bcs(state)
   type(scalar_field), pointer                :: density, dummydensity
   type(vector_field), pointer                :: X, u
   type(tensor_field), pointer                :: bg_visc
-  type(scalar_field)                         :: rhs_field, surface_values, masslump
+  type(scalar_field)                         :: rhs_field, surface_values
   type(mesh_type), pointer                   :: surface_mesh
   integer                                    :: i, j, sele, index, nbcs, stat
   integer, dimension(:), pointer             :: surface_elements, surface_node_list
@@ -1126,13 +1216,9 @@ subroutine k_epsilon_check_options
   character(len=FIELD_NAME_LEN)  :: kmsh, emsh, vmsh
   integer                        :: dimension, stat, n_phases, istate
 
-  ewrite(1,*) "In keps_check_options"
+  ewrite(2,*) "Checking k-epsilon options"
 
   n_phases = option_count("/material_phase")
-  
-  if(option_count("/material_phase/subgridscale_parameterisations/k-epsilon") > 1) then
-     FLExit("The k-epsilon model can only be applied to a single-phase.")
-  end if
 
   do istate = 0, n_phases-1
 
@@ -1251,8 +1337,8 @@ subroutine k_epsilon_check_options
            FLExit("You must use a prognostic or prescribed Velocity field")
         end if
      end if
-     if(.not. kmsh==emsh .or. .not. kmsh==vmsh .or. .not. emsh==vmsh) then
-        FLExit("You must use the Velocity mesh for TurbulentKineticEnergy and TurbulentDissipation fields")
+     if(.not. kmsh==emsh) then
+        FLExit("You must use same mesh for TurbulentKineticEnergy and TurbulentDissipation fields")
      end if
 
      ! Velocity field options
@@ -1274,6 +1360,8 @@ subroutine k_epsilon_check_options
      end if
 
   end do
+
+  ewrite(1,*) "Finished keps_check_options"
 
 end subroutine k_epsilon_check_options
 

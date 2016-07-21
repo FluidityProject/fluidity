@@ -8,19 +8,24 @@ module field_derivatives
     !!< (Since the k-th derivative of a scalar field is a rank-k tensor,
     !!< anything with k > 2 rapidly becomes far too big to store in memory.)
 
-    use elements
-    use fetools, only: shape_shape, shape_dshape, dshape_outer_dshape
-    use fields
-    use halos
-    use eventcounter
-    use transform_elements
+    use fldebug
     use vector_tools
-    use vector_set
-    use node_boundary
-    use surfacelabels
-    use vtk_interfaces
+    use elements
+    use eventcounter
     use superconvergence
+    use sparse_tools
+    use tensors, only: tensormul
+    use transform_elements
+    use fetools, only: shape_shape, shape_dshape, dshape_outer_dshape,&
+     shape_vector_rhs
+    use parallel_fields
+    use fields
     use state_module
+    use vtk_interfaces
+    use halos
+    use vector_set
+    use surfacelabels
+    use node_boundary
     use boundary_conditions, only: get_entire_boundary_condition
     implicit none
 
@@ -53,7 +58,7 @@ module field_derivatives
     private
 
     public :: strain_rate, differentiate_field, grad, compute_hessian, &
-      domain_is_2d, patch_type, get_patch_ele, get_patch_node, get_quadratic_fit_qf, curl, &
+      domain_is_2d, get_quadratic_fit_qf, curl, &
       get_quadratic_fit_eqf, div, u_dot_nabla, get_cubic_fit_cf, differentiate_field_lumped, &
       dg_ele_grad_at_quad, dg_ele_grad
 
@@ -1634,8 +1639,8 @@ module field_derivatives
       logical, dimension(:), intent(in) :: derivatives
       type(scalar_field), dimension(:), intent(inout) :: pardiff
 
-      type(scalar_field), intent(in) :: bc_value
-      integer, dimension(:), intent(in) :: bc_type
+      type(scalar_field), intent(in), optional :: bc_value
+      integer, dimension(:), intent(in), optional :: bc_type
       
       integer :: ele, i
 
@@ -1666,8 +1671,8 @@ module field_derivatives
       logical, dimension(:), intent(in) :: derivatives
       type(scalar_field), dimension(:), intent(inout) :: pardiff  
       integer, intent(in) :: ele
-      type(scalar_field), intent(in) :: bc_value
-      integer, dimension(:), intent(in) :: bc_type    
+      type(scalar_field), intent(in), optional :: bc_value
+      integer, dimension(:), intent(in), optional :: bc_type    
       
       ! variables for interior integral
       type(element_type), pointer :: shape

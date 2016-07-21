@@ -32,6 +32,7 @@ module initialise_ocean_forcing_module
   use global_parameters, only: OPTION_PATH_LEN
   use climatology
   use fluxes
+  use nemo_v2
   use nemo_states_module
 
   implicit none

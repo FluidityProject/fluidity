@@ -30,18 +30,20 @@
 module assemble_CMC
 
   use fldebug
-  use state_module
-  use sparse_tools
-  use sparse_tools_petsc
   use spud
+  use global_parameters, only: OPTION_PATH_LEN
+  use sparse_tools
+  use linked_lists
+  use elements
+  use transform_elements
+  use fetools, only: shape_shape
   use fields
-  use fields_base
-  use fefields
+  use boundary_conditions
+  use sparse_tools_petsc
+  use state_module
   use sparse_matrices_fields
   use field_options
-  use global_parameters, only: OPTION_PATH_LEN
-  use linked_lists
-  use boundary_conditions
+  use fefields
   
   implicit none 
 
@@ -137,7 +139,7 @@ contains
       !!< This is used as a preconditioner for the full projection solve
       !!< when using the full momentum matrix.
 
-      ! Fluidity velocity:
+      ! Fluidity velocity vector:
       type(vector_field), intent(in):: u
       ! Divergence matrices:
       type(block_csr_matrix), intent(in) :: ctp_m, ct_m

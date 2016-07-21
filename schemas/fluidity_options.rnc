@@ -1102,7 +1102,8 @@ start =
                         element diagnostic {
                            velocity_mesh_choice,
                            (
-                              sediment_concentration_dependent_viscosity_algorithm
+                              sediment_concentration_dependent_viscosity_algorithm|
+                              tensor_python_diagnostic_algorithm
                            ),
                            diagnostic_tensor_field
                         }
@@ -1613,8 +1614,11 @@ start =
             ## Phase interaction options for Fluidity's multiphase flow model
             element multiphase_properties {
                comment,
-               element particle_diameter { 
-                     real 
+               (element particle_diameter { real }|
+       	       element particle_dia_use_scalar_field { anystring })?,
+               element apply_diameter_cap {
+                  # default value 1.0E-12
+                  element lower_cap { real }
                }?,
                ## If this is the fluid phase, 
                ## the effective conductivity is required 
@@ -4326,20 +4330,6 @@ scalar_field_choice =
                }|
                element aliased {
                   generic_aliased_field
-               }
-            )
-         }|
-         ## Second invariant of the strain_rate tensor field. Selecting this field ensures
-         ## that it is updated as part of the momeuntum diagnostics (i.e. 
-         ## at the start of each momentum solve - within non-linear iterations.)
-         element scalar_field {
-            attribute rank { "0" },
-            attribute name { "StrainRateSecondInvariant" },
-            (
-               element diagnostic {
-                  strain_rate_second_invariant_algorithm,
-                  velocity_mesh_choice,
-                  diagnostic_scalar_field
                }
             )
          }|

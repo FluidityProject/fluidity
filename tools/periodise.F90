@@ -6,6 +6,9 @@ program periodise
   !! Make it so that the periodic mesh is external, and the previously external mesh
   !! is derived from it instead.
 
+  use fldebug
+  use futils, only: int2str
+  use global_parameters, only: FIELD_NAME_LEN
   use populate_state_module
   use state_module
   use fields

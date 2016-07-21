@@ -51,7 +51,7 @@ for filename in fortran_files:
 
     for module in modules:
 
-        if re.search(r"^\s*subroutine\s+"+module+"_check_options\s*$",\
+        if re.search(r"^\s*subroutine\s+"+module+"_check_options\S*\s*$",\
                          fortran,\
                          re.IGNORECASE|re.MULTILINE):
             module_list.append(module)

@@ -28,14 +28,14 @@
 
 module mesh_diagnostics
 
-  use diagnostic_source_fields
-  use field_options
-  use fields
   use fldebug
-  use state_module
   use spud
   use global_parameters, only: FIELD_NAME_LEN
   use halos_numbering
+  use fields
+  use state_module
+  use field_options
+  use diagnostic_source_fields
 
   implicit none
   

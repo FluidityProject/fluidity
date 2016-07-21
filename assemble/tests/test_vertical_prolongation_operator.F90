@@ -1,6 +1,7 @@
 subroutine test_vertical_prolongation_operator()
 use quadrature
 use sparse_tools
+use elements
 use fields
 use state_module
 use mesh_files

@@ -29,6 +29,7 @@
 
 subroutine test_strip_level_2_halo
 
+  use fldebug
   use fields
   use halos
   use parallel_tools

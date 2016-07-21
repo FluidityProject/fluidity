@@ -31,11 +31,15 @@ module read_triangle
   !!< This module reads triangle files and results in a vector field of
   !!< positions.
    
+  use fldebug
   use futils
+  use quadrature
+  use element_numbering
   use elements
+  use spud
+  use parallel_tools
   use fields
   use state_module
-  use spud
 
   implicit none
 
@@ -463,9 +467,7 @@ contains
     end if
     
     ! deallocate our references of shape and quadrature:
-    ! NOTE: we're using the specific deallocate interface here
-    !       to make the intel compiler shut up
-    call deallocate_element(shape)
+    call deallocate(shape)
     call deallocate(quad)
 
   end function read_triangle_simple
@@ -731,9 +733,7 @@ contains
     field=read_triangle_files_serial(filename, shape)
 
     ! deallocate our references of shape and quadrature:
-    ! NOTE: we're using the specific deallocate interface here
-    !       to make the intel compiler shut up
-    call deallocate_element(shape)
+    call deallocate(shape)
     call deallocate(quad)
 
   end function read_triangle_serial

@@ -30,21 +30,20 @@
 module checkpoint
   !!< Checkpointing routines
 
-  use fields
-  use fields_data_types
-  use field_options
   use fldebug
-  use futils
   use global_parameters, only : FIELD_NAME_LEN, OPTION_PATH_LEN, simulation_start_time
-  use halos
+  use futils
+  use mpi_interfaces
   use parallel_tools
   use spud
+  use fields
   use state_module
+  use field_options
   use vtk_interfaces
+  use halos
   use mesh_files
   use detector_data_types
   use diagnostic_variables
-  use mpi_interfaces
 
   implicit none
 

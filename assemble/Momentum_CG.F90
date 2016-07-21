@@ -29,45 +29,48 @@
 
   module momentum_cg
 
-    use fields
-    use state_module
     use spud
     use fldebug
-    use sparse_tools
-    use boundary_conditions
-    use boundary_conditions_from_options
-    use solvers
-    use petsc_solve_state_module
-    use sparse_tools_petsc
-    use sparse_matrices_fields
-    use field_options
-    use halos
     use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN, timestep, &
          COLOURING_CG1
-    use elements
-    use transform_elements, only: transform_to_physical
-    use coriolis_module
-    use vector_tools
-    use fetools
-    use upwind_stabilisation
-    use les_module
-    use smoothing_module
-    use metric_tools
-    use field_derivatives
-    use state_fields_module
-    use state_matrices_module
-    use sparsity_patterns_meshes
-    use fefields
-    use rotated_boundary_conditions
-    use Coordinates
-    use multiphase_module
-    use edge_length_module
-    use physics_from_options
-    use colouring
-    use Profiler
 #ifdef _OPENMP
     use omp_lib
 #endif
+    use integer_set_module
+    use sparse_tools
+    use vector_tools
+    use elements
+    use transform_elements, only: transform_to_physical
+    use fetools
+    use metric_tools
+    use fields
+    use profiler
+    use sparse_tools_petsc
+    use state_module
+    use boundary_conditions
+    use sparse_matrices_fields
+    use halos
+    use solvers
+    use field_options
+    use sparsity_patterns_meshes, only: get_csr_sparsity_firstorder
+    use physics_from_options
+    use smoothing_module
+    use fefields
+    use state_fields_module, only: get_lumped_mass
+    use field_derivatives
+    use coordinates, only: radial_inward_normal_at_quad_face,&
+         rotate_diagonal_to_sphere_face, radial_inward_normal_at_quad_ele,&
+	 rotate_diagonal_to_sphere_gi
+    use boundary_conditions_from_options
+    use petsc_solve_state_module, only: petsc_solve
+    use coriolis_module, only: coriolis, set_coriolis_parameters
+    use upwind_stabilisation, only: make_supg_element, supg_test_function, element_upwind_stabilisation, get_upwind_options
+    use les_module
+    use multiphase_module
+    use state_matrices_module, only: get_pressure_stabilisation_matrix
+    use rotated_boundary_conditions
+    use edge_length_module
+    use colouring
 
     implicit none
 

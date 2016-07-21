@@ -80,6 +80,25 @@ FLFEMDEM="femdem"
 # Check system type
 AC_CANONICAL_HOST
 
+case $host_os in
+     darwin* ) 
+	     LINUX=no
+         DARWIN=yes
+	     FCFLAGS="-DDARWIN $FCFLAGS"
+	     CXXFLAGS="-DDARWIN -fpermissive $CXXFLAGS"
+	     CPPFLAGS="-DDARWIN $CPPFLAGS"
+# Should really check for Mac OS vs. straight Darwin here, or at least test
+# that the framework is valid
+	     LIBS="$LIBS -framework Carbon";;
+     linux*  )
+       LINUX=yes
+       DARWIN=no;;
+     *       )
+       LINUX=no
+	     DARWIN=no;;
+esac
+
+
 # Find compilers
 AC_MSG_NOTICE([*** Fishing for legacy fortran compiler.])
 AC_PROG_F77(ifort ifc efc sunf95 gfortran pgf95 pathf95 g95 f90,,f90,$PATH)
@@ -145,10 +164,16 @@ if test "$fcompiler" = "ifort" ; then
     FCFLAGS="$FCFLAGS -vec-report=0"
 fi
 
-AC_PROG_CC(icc ecc suncc pgcc gcc cc)
-AC_PROG_CXX(icpc icc ecc sunCC pgCC g++ CC)
+AC_PROG_CC(icc ecc suncc pgcc gcc cc clang)
+AC_PROG_CXX(icpc icc ecc sunCC pgCC g++ CC clang++)
 AC_PROG_CPP
 LINKER=$CXX
+
+if $CC -v 2>&1 | grep 'clang'; then
+   USING_CLANG="yes"
+else
+   USING_CLANG="no"
+fi
 
 AC_LONG_64_BITS
 
@@ -577,7 +602,9 @@ EOF
     FCFLAGS="-fbounds-check -Wall -Wimplicit-interface -Wno-surprising ${FCFLAGS}"
     CFLAGS="-fbounds-check -Wall ${CFLAGS}"
     CXXFLAGS="-fbounds-check -Wall ${CXXFLAGS}"
-    LDFLAGS="-rdynamic ${LDFLAGS}"
+    if test "$DARWIN" = "no" ; then
+        LDFLAGS="-rdynamic ${LDFLAGS}"
+    fi
   elif test "$fcompiler" = "g95" ; then
     FFLAGS="-fbounds-check -ftrace=full ${FFLAGS}"
     FCFLAGS="-fbounds-check -ftrace=full ${FCFLAGS}"
@@ -596,7 +623,7 @@ EOF
     OPTIMISATION_FLAGS="$OPTIMISATION_FLAGS -O3"
     if test "$fcompiler" = "ifort" ; then
       # add inlining and cpu-specific optimisations for intel
-      OPTIMISATION_FLAGS="$OPTIMISATION_FLAGS -ip -xHost"
+      OPTIMISATION_FLAGS="$OPTIMISATION_FLAGS -ip"
     fi
 
     AC_CHECK_LIB(tcmalloc,malloc,,AC_MSG_WARN([No tcmalloc support available.]))
@@ -974,6 +1001,44 @@ fi
 
 AC_LANG_POP([Fortran])
 
+AC_LANG_SAVE
+AC_LANG(Fortran)
+c_ext=F90
+
+AC_RUN_IFELSE([AC_LANG_PROGRAM([], [
+	implicit none
+
+	integer :: unit = 10
+	integer :: i, data(3)
+
+	open(access='stream', action='write', form='formatted', file='conftest.data', unit=unit)
+	do i = 1, 3
+ 	   write(fmt='(i0)', unit=unit) i
+	end do
+	close(unit=unit)
+
+	open(access='stream', action='read', form='formatted', file='conftest.data', unit=unit)
+	read(fmt='(i1)', advance='no', unit=unit)
+	read(fmt=*, unit=unit) data(1)
+	read(fmt=*, unit=unit) data(2)
+	read(fmt=*, unit=unit) data(3)
+	close(unit=unit)
+
+	if (all(data == (/1,2,3/))) then
+ 	   call exit(0)
+	else
+	   call exit(-1)
+  	end if
+])],
+ [  IO_ADVANCE_BUG="no"],
+ [AC_MSG_NOTICE(fortran compiler has bugged advance io)
+  AC_DEFINE(IO_ADVANCE_BUG, [1])
+  IO_ADVANCE_BUG="yes"
+  ])
+AC_SUBST(IO_ADVANCE_BUG)
+
+AC_LANG_RESTORE
+
 AC_ARG_ENABLE(dp,
 [AC_HELP_STRING([--enable-dp[=flag]],
 [compile with 64 bit floating point numbers (default)])])
@@ -1170,6 +1235,42 @@ CC=$MPICC
 CXX=$MPICXX
 LINKER=$CXX
 
+AC_ARG_ENABLE(libsupermesh, [AC_HELP_STRING([--enable-libsupermesh], [enable use of the libsupermesh library])])
+if test "x$enable_libsupermesh" = "xyes" ; then
+  AC_MSG_CHECKING([libsupermesh])
+  AC_LANG_PUSH([C++])
+  AC_SEARCH_LIBS([libsupermesh_build_rtree], [supermesh])
+  if test "$ac_cv_search_libsupermesh_build_rtree" = "none required" ; then
+    AC_MSG_ERROR("Unexpected error when checking for libsupermesh")
+  elif test "$ac_cv_search_libsupermesh_build_rtree" = "no" ; then
+    AC_MSG_ERROR("libsupermesh not found")
+  else
+    LIBS="$LIBS $ac_cv_search_libsupermesh_build_rtree"
+  fi
+  AC_LANG_POP([C++])
+   
+  AC_LANG_PUSH([Fortran])
+  tmpFCFLAGS="$FCFLAGS"
+  FCFLAGS="$FCFLAGS $CPPFLAGS"
+  AC_LINK_IFELSE(
+    [AC_LANG_SOURCE([
+      program test_libsupermesh
+       use libsupermesh
+      end program test_libsupermesh
+      ])
+    ],
+    [
+      AC_MSG_RESULT([libsupermesh Fortran module found])
+    ],
+    [
+      AC_MSG_ERROR("libsupermesh Fortran module not found")
+    ])    
+  FCFLAGS="$tmpFCFLAGS"
+  AC_LANG_POP([Fortran])
+  AC_DEFINE(HAVE_LIBSUPERMESH, [1])
+fi
+AC_SUBST(HAVE_LIBSUPERMESH)
+
 # Configure adaptivity
 if test -d libadaptivity ; then
     AC_MSG_NOTICE([%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%])
@@ -1211,7 +1312,24 @@ else
 fi
 
 # Configure libjudy
-if test -d libjudy ; then
+
+AC_ARG_WITH([judy],
+	[AC_HELP_STRING([--with-judy=<lib>], [specify Judy library <lib>])])
+
+if test -n "$with_judy"; then
+    AC_MSG_NOTICE([Linking against $with_judy])
+   	case $with_judy in
+	      -l* | */* | *.a | *.so | *.so.* | *.o) acx_judy_lib="$with_judy" ;;
+	      *) acx_judy_lib="-l$with_judy" ;;
+	esac	      
+   	FLIBJUDY="$acx_judy_lib"
+    if test "x$ARCHER" != "x" ; then
+        FLLINKER=$CXX
+    else
+        FLLINKER=$FC
+    fi
+    AC_SUBST(FLLINKER)
+elif test -d libjudy ; then
     AC_MSG_NOTICE([%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%])
     AC_MSG_NOTICE([Configuring libjudy])
     AC_MSG_NOTICE([%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%])
@@ -1234,11 +1352,13 @@ if test -d libjudy ; then
     fi
     # this is a workaround for https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=755099
     if echo "$CFLAGS" | grep -q -- "-O[[2-3]]"; then
-      if test "x$USING_GFORTRAN" = "xyes" -a "x$GFORTRAN_4_8_OR_NEWER" = "xyes"; then
+      if test "x$USING_GFORTRAN" = "xyes" -a "x$GFORTRAN_4_8_OR_NEWER" = "xyes" -a "x$USING_CLANG" = "xno"; then
         JUDY_CFLAGS="$JUDY_CFLAGS -fno-aggressive-loop-optimizations"
       fi
     fi
     AC_SUBST(JUDY_CFLAGS)
+    LIBJUDY=-ljudy
+    FLIBJUDY="./lib/libjudy.a"
 
     
 cat >> confdefs.h << EOF
@@ -1247,9 +1367,18 @@ EOF
 else
     AC_MSG_ERROR("libjudy directory missing!!")
 fi
+AC_SUBST(FLIBJUDY)
 
 # Configure libspud
-if test -d libspud ; then
+AC_ARG_WITH([libspud-root],
+	[AC_HELP_STRING([--with-libspud-root=<lib>], [specify external libspud installation root directory])])
+
+if test -n "$with_libspud_root"; then
+   	SPUDLIB="${with_libspud_root}/lib/libspud.a"
+	SPUDHEADER="${with_libspud_root}/include/spud.h"
+	CPPFLAGS="$CPPFLAGS -I${with_libspud_root}/include"
+	FCFLAGS="$FCFLAGS -I${with_libspud_root}/include"
+elif test -d libspud ; then
     AC_MSG_NOTICE([%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%])
     AC_MSG_NOTICE([Configuring libspud])
     AC_MSG_NOTICE([%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%])
@@ -1268,6 +1397,9 @@ if test -d libspud ; then
     if test "$enable_profiling" = "yes" ; then
         CONFIG_FLAG="${CONFIG_FLAG} --enable-profiling"
     fi
+
+    SPUDLIB="${PWD}/lib/libspud.a"
+    SPUDHEADER="${PWD}/include/spud.h"
 
     AC_SUBST(SPUD_ONLY)
 
@@ -1292,11 +1424,16 @@ EOF
 else
     AC_MSG_ERROR("libspud directory missing!!")
 fi
+AC_SUBST(SPUDLIB)
+AC_SUBST(SPUDHEADER)
 
 #*************SpatialIndex******
 AC_ARG_ENABLE(spatialindex-version, 
 [AC_HELP_STRING([--enable-spatialindex-version],
 [Select required version of spatialindex library: 1.8.0])])
+AC_ARG_WITH([spatialindex-root],
+	[AC_HELP_STRING([--with-spatialindex-root=<dir>],
+        [specify root directory of system spatialindex installation])])
 
 if test "x$enable_spatialindex_version" != "x"
 then
@@ -1305,6 +1442,14 @@ else
   enable_spatialindex_version="1.8.0"
   SPATIALINDEXDIR="spatialindex-1.8.0"
 fi
+
+if test -n "$with_spatialindex_root"; then
+   LIBSPATIALINDEX="${with_spatialindex_root}/lib/libspatialindex.a"
+   CPPFLAGS="$CPPFLAGS -I${with_spatialindex_root}/include/spatialindex/"
+else
+
+LIBSPATIALINDEX="${PWD}/lib/libspatialindex.a"
+
 AC_SUBST(SPATIALINDEXDIR)
 
 AC_MSG_NOTICE([%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%])
@@ -1325,6 +1470,8 @@ if test "$?" -ne "0"; then
   exit -1
 fi
 cd ../
+fi
+AC_SUBST(LIBSPATIALINDEX)
 
 #*************ARPACK*********
 AC_LANG_PUSH([Fortran])
@@ -1483,6 +1630,7 @@ if test "$enable_vtk" != "no" ; then
                 ])
             AC_CHECK_LIB(vtkIOXML, main)
             AC_CHECK_LIB(vtkIOParallel, main)
+            AC_CHECK_LIB(vtkIOParallelXML, main)
             AC_CHECK_LIB(vtkIOCore, main)
             AC_CHECK_LIB(vtkCommonDataModel, main)
             AC_CHECK_LIB(vtkCommonExecutionModel, main)
@@ -1628,6 +1776,10 @@ fi
 
 #*******************
 
+
+AC_PROG_SED
+AC_PROG_GREP
+
 AC_OUTPUT(Makefile
           debug/Makefile
           bathymetry/Makefile
@@ -1659,4 +1811,5 @@ AC_OUTPUT(Makefile
           libjudy/src/JudyHS/Makefile
           libwm/Makefile
           libvtkfortran/Makefile
-	  reduced_modelling/Makefile)
+	  reduced_modelling/Makefile
+	  tests/tools.mk)

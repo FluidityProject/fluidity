@@ -2,6 +2,7 @@ subroutine test_differentiate_field_discontinuous
   ! unit test to test differentiate_field_discontinuous in field_derivatives
   ! computes linear discontuous gradient of pressure field from 
   ! quadratic polynomial, so should give the exact answer
+  use elements
   use quadrature
   use fields
   use field_derivatives

@@ -1,6 +1,6 @@
 module wandzura_quadrature
 
-  use global_parameters, only : real_4, real_8
+  use iso_c_binding, only: c_float, c_double
 
   implicit none
 
@@ -1133,11 +1133,11 @@ module wandzura_quadrature
   subroutine wandzura_rule_sp(rule, order_num, xy, w)
     integer, intent(in) :: rule
     integer, intent(in) :: order_num
-    real(kind = real_4), dimension(2, order_num), intent(out) :: xy
-    real(kind = real_4), dimension(order_num), intent(out) :: w
+    real(kind = c_float), dimension(2, order_num), intent(out) :: xy
+    real(kind = c_float), dimension(order_num), intent(out) :: w
     
-    real(kind = real_8), dimension(2, order_num) :: lxy
-    real(kind = real_8), dimension(order_num) :: lw
+    real(kind = c_double), dimension(2, order_num) :: lxy
+    real(kind = c_double), dimension(order_num) :: lw
     
     call wandzura_rule(rule, order_num, lxy, lw)
     xy = lxy

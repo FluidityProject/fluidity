@@ -29,18 +29,20 @@
 
 module sediment_diagnostics 
 
-  ! these 5 need to be on top and in this order, so as not to confuse silly old intel compiler
+  use fldebug
+  use global_parameters, only:FIELD_NAME_LEN, OPTION_PATH_LEN, dt, timestep
+  use futils, only: int2str
+  use vector_tools
   use quadrature
   use elements
+  use spud
   use sparse_tools
+  use fetools
   use fields
   use state_module
-
   use fefields
-  use global_parameters, only:FIELD_NAME_LEN, OPTION_PATH_LEN, dt, timestep
-  use spud
-  use sediment
   use boundary_conditions
+  use sediment, only: get_n_sediment_fields, get_sediment_item
 
   implicit none
   

@@ -29,6 +29,9 @@
 
 subroutine test_make_mesh_tri
 
+  use futils
+  use element_numbering
+  use elements
   use fields
   use fldebug
   use mesh_files

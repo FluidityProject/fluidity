@@ -26,15 +26,19 @@
 !    USA
 #include "fdebug.h"
 module boundary_conditions
-use fields_data_types
-use fields
-use sparse_tools
-use sparse_tools_petsc
-use state_module
-use spud
-use global_parameters, only: OPTION_PATH_LEN
-use data_structures
-implicit none
+  use fldebug
+  use spud
+  use global_parameters, only: OPTION_PATH_LEN, FIELD_NAME_LEN
+  use data_structures
+  use futils
+  use parallel_tools
+  use sparse_tools
+  use fetools, only : INFINITY
+  use fields
+  use sparse_tools_petsc
+  use state_module
+
+  implicit none
     
   interface add_boundary_condition
      module procedure add_scalar_boundary_condition, &
@@ -2340,7 +2344,7 @@ contains
     end do bcloop
 
   end subroutine apply_dirichlet_conditions_vector_component_lumped
-
+  
   subroutine derive_collapsed_bcs(input_states, collapsed_states, bctype)
     !!< For the collapsed state collapsed_states, containing the collapsed
     !!< components of fields in input_states, copy across the component

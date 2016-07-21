@@ -27,24 +27,25 @@
 #include "fdebug.h"
 module solvers
   use FLDebug
+  use Global_Parameters
+  use futils, only: present_and_true, int2str, free_unit, real_format
   use elements
+  use spud
+  use parallel_tools
+#ifdef HAVE_PETSC_MODULES
+  use petsc
+#endif
+  use Sparse_Tools
+  use Fields
+  use profiler
   use Petsc_tools
   use Signal_Vars
   use Multigrid
-  use Sparse_Tools
   use sparse_tools_petsc
   use sparse_matrices_fields
-  use Fields
-  use Global_Parameters
-  use spud
-  use halos
-  use profiler
   use vtk_interfaces
-  use parallel_tools
+  use halos
   use MeshDiagnostics
-#ifdef HAVE_PETSC_MODULES
-  use petsc 
-#endif
   implicit none
   ! Module to provide explicit interfaces to matrix solvers.
 
@@ -764,8 +765,7 @@ type(vector_field), intent(in), optional :: positions
   ! Note the explicitly-described options rcm, 1wd and natural are now not
   ! listed explicitly in the schema (but can still be used by adding the
   ! appropriate string in the solver reordering node).
-  call PetscOptionsGetString("", "-ordering_type", ordering_type, &
-        use_reordering, ierr)
+  call PetscOptionsGetString(PETSC_NULL_OBJECT, "", "-ordering_type", ordering_type, use_reordering, ierr)
   if (.not. use_reordering) then
     call get_option(trim(solver_option_path)//'/reordering[0]/name', &
       ordering_type, stat=ierr)
@@ -1572,7 +1572,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     type(csr_matrix), optional, intent(in) :: matrix_csr
     integer, optional, intent(in) :: internal_smoothing_option
     
-#if PETSC_VERSION_MINOR<6
+#if PETSC_VERSION_MINOR<6 || (PETSC_VERSION_MINOR==6 && PETSC_VERSION_SUBMINOR==0)
     MatNullSpace nullsp
 #endif
     KSPType ksptype
@@ -1580,6 +1580,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     PetscReal rtol, atol, dtol
     PetscInt max_its
     PetscErrorCode ierr
+    PetscObject vf
     
     logical startfromzero, remove_null_space
     
@@ -1646,22 +1647,17 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     ! Set up the monitors:
     if (have_option(trim(solver_option_path)// &
        '/diagnostics/monitors/preconditioned_residual')) then
-        call KSPMonitorSet(ksp, KSPMonitorDefault, PETSC_NULL_OBJECT, &
-           PETSC_NULL_FUNCTION, ierr)
+        call PetscViewerAndFormatCreate(PETSC_VIEWER_STDOUT_WORLD, &
+           PETSC_VIEWER_DEFAULT,vf,ierr)
+        call KSPMonitorSet(ksp, KSPMonitorDefault, vf, &
+           PetscViewerAndFormatDestroy, ierr)
     end if
     if (have_option(trim(solver_option_path)// &
        '/diagnostics/monitors/true_residual')) then
-        call KSPMonitorSet(ksp, KSPMonitorTrueResidualNorm, PETSC_NULL_OBJECT, &
-           PETSC_NULL_FUNCTION, ierr)
-    end if
-    if (have_option(trim(solver_option_path)// &
-       '/diagnostics/monitors/preconditioned_residual_graph')) then
-#if PETSC_VERSION_MINOR<4
-        call KSPMonitorSet(ksp, KSPMonitorLG, PETSC_NULL_OBJECT, &
-           PETSC_NULL_FUNCTION, ierr)
-#else
-        FLExit("Solver option diagnostics/monitors/preconditioned_residual_graph not supported with petsc version >=3.4")
-#endif
+        call PetscViewerAndFormatCreate(PETSC_VIEWER_STDOUT_WORLD, &
+           PETSC_VIEWER_DEFAULT,vf,ierr)
+        call KSPMonitorSet(ksp, KSPMonitorTrueResidualNorm, vf, &
+           PetscViewerAndFormatDestroy, ierr)
     end if
 
     if (have_option(trim(solver_option_path)// &
@@ -1715,7 +1711,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
         end if
       end if
     end if
-#elif PETSC_VERSION_SUBMINOR==0
+#elif PETSC_VERSION_MINOR==6 && PETSC_VERSION_SUBMINOR==0
     ! this is 3.6.0 case where KSPSetNullSpace no longer exists, but the nullspace picked up
     ! in the krylov iteration is from *pmat* not mat (as it is in 3.6.1 and later)
     if (mat/=pmat) then
@@ -1764,9 +1760,6 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
           FLExit("multigrid_near_null_space removal only valid when using gamg preconditioner")
        end if
 
-#if PETSC_VERSION_MINOR<3
-       FLExit("multigrid_near_null_space only available in petsc version>=3.3")
-#else
        if (.not. present(petsc_numbering)) then
           FLAbort("Need petsc_numbering for multigrid near null space")
        end if
@@ -1779,7 +1772,6 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
          call MatSetNearNullSpace(mat, null_space, ierr)
        end if
        call MatNullSpaceDestroy(null_space, ierr)
-#endif
     end if
 
     if (have_option(trim(solver_option_path)//'/remove_null_space')) then
@@ -1957,7 +1949,6 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
           call PCFactorSetMatSolverPackage(pc, matsolverpackage, ierr)
        end if
 
-#if PETSC_VERSION_MINOR>=3
       if (pctype==PCGAMG) then
         ! we think this is a more useful default - the default value of 0.0
         ! causes spurious "unsymmetric" failures as well
@@ -1970,7 +1961,6 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
 !        call PCSetType(pc_coarse, PCSOR, ierr)
 !        call KSPSetTolerances(ksp_coarse, 1e-50, 1e-50, 1e50, 10, ierr)
       end if
-#endif
       
     end if
 
@@ -1999,11 +1989,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
 
     do i=1, size(subksps)
       index_set = petsc_numbering_create_is(petsc_numbering, dim=i)
-#if PETSC_VERSION_MINOR>=2
       call PCFieldSplitSetIS(pc, PETSC_NULL_CHARACTER, index_set, ierr)
-#else
-      call PCFieldSplitSetIS(pc, index_set, ierr)
-#endif
     end do
 
     call get_option(trim(option_path)//"/fieldsplit_type/name", &
