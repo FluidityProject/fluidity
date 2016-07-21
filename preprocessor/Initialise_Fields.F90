@@ -31,7 +31,12 @@ use spud
 use global_parameters, only: OPTION_PATH_LEN, PYTHON_FUNC_LEN, is_active_process
 use futils
 use parallel_tools
+use sparse_tools, only: csr_matrix
+use transform_elements, only: transform_to_physical
+use fetools, only: shape_rhs
 use fields
+use state_module
+use field_options, only: complete_field_path
 use coordinates
 use tictoc
 use vtk_cache_module
