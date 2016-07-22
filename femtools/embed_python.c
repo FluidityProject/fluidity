@@ -430,6 +430,217 @@ void set_vector_field_from_python(char *function, int *function_len, int *dim,
 #endif
 }
 
+void set_scalar_field_from_python_with_numpy(char *function, int *function_len, int *dim, 
+                                  int *nodes, 
+                                  double* x, double *t, 
+                                  double result[],
+				  int* stat)
+{
+#ifndef HAVE_PYTHON
+  int i;
+  strncpy(function, "No Python support!\n", (size_t) *function_len);
+  for (i=0; i < *function_len; i++)
+  {
+    if (function[i] == '\0')
+      function[i] = ' ';
+  }
+  *stat=1;
+  return;
+#else
+  PyObject *pMain, *pGlobals, *pLocals, *pFunc, *pCode, *pResult, 
+    *pArgs, *pPos, *px, *pT;
+  int i, j;
+    
+  import_array();
+
+  // Get a reference to the main module and global dictionary
+  pMain = PyImport_AddModule("__main__");  PyObject *pDict = PyModule_GetDict(pMain);
+  pGlobals = PyModule_GetDict(pMain);
+  // Global and local namespace dictionaries for our code.
+  pLocals=PyDict_New();
+  
+  // Execute the user's code.
+  pCode=PyRun_String(function, Py_file_input, pGlobals, pLocals);
+  
+  // Extract the function from the code.
+  pFunc=PyDict_GetItemString(pLocals, "val");
+  
+  // Check for errors in executing user code.
+  if (PyErr_Occurred()){
+    PyErr_Print();
+    *stat=1;
+    return;
+  }
+  
+  // Python form of time variable.
+  pT=PyFloat_FromDouble(*t);
+  
+  // Array containing the current position vector.
+  npy_intp dims[] = {*dim};
+  pPos=PyArray_SimpleNewFromData(1, dims, PyArray_DOUBLE, (char*)(&x[0]));
+  
+  // Tuple of arguments to function;
+  pArgs=PyTuple_New(2);
+  PyTuple_SetItem(pArgs, 0, pPos);
+  PyTuple_SetItem(pArgs, 1, pT);
+  
+  // Check for a Python error in the function call
+  if (PyErr_Occurred()){
+    PyErr_Print();
+    *stat=1;
+    return;
+  }
+  
+  for (i = 0; i < *nodes; i++){
+
+    PyArray_BYTES(pPos) = (void*) &(x[(*dim)*i]) ;
+    
+    pResult=PyObject_CallObject(pFunc, pArgs);
+    // Check for a Python error in the function call
+    if (PyErr_Occurred()){
+      PyErr_Print();
+      *stat=1;
+      return;
+    }
+    
+    result[i]=PyFloat_AsDouble(pResult);
+
+    // Check for a Python error in result.
+    if (PyErr_Occurred()){
+      PyErr_Print();
+      *stat=1;
+      return;
+    }
+
+    Py_DECREF(pResult);
+  }
+  
+  // Clean up
+  Py_DECREF(pArgs);  
+  Py_DECREF(pLocals);  
+  Py_DECREF(pCode);  
+  
+  // Force a garbage collection
+  PyGC_Collect();
+  
+  *stat=0;
+  return;
+#endif
+}
+
+void set_vector_field_from_python_with_numpy(char *function, int *function_len, int *dim, 
+                                  int *nodes, 
+                                  double* x, double *t, 
+                                  int *result_dim, 
+                                  double result_x[],
+				  int* stat)
+{
+#ifndef HAVE_PYTHON
+  int i;
+  strncpy(function, "No Python support!\n", (size_t) *function_len);
+  for (i=0; i < *function_len; i++)
+  {
+    if (function[i] == '\0')
+      function[i] = ' ';
+  }
+  *stat=1;
+  return;
+#else
+  PyObject *pMain, *pGlobals, *pLocals, *pFunc, *pCode, *pResult, 
+    *pArgs, *pPos, *px, *pT;
+  int i, j;
+
+  
+  import_array();
+    
+  // Get a reference to the main module and global dictionary
+  pMain = PyImport_AddModule("__main__");  PyObject *pDict = PyModule_GetDict(pMain);
+  pGlobals = PyModule_GetDict(pMain);
+  // Global and local namespace dictionaries for our code.
+  pLocals=PyDict_New();
+  
+  // Execute the user's code.
+  pCode=PyRun_String(function, Py_file_input, pGlobals, pLocals);
+  
+  // Extract the function from the code.
+  pFunc=PyDict_GetItemString(pLocals, "val");
+  
+  // Check for errors in executing user code.
+  if (PyErr_Occurred()){
+    PyErr_Print();
+    *stat=1;
+    return;
+  }
+  
+  // Python form of time variable.
+  pT=PyFloat_FromDouble(*t);
+  
+  // Array containing the current position vector.
+  npy_intp dims[] = {*dim};
+  pPos=PyArray_SimpleNewFromData(1, dims, PyArray_DOUBLE, (char*)(&x[0]));
+  
+  // Tuple of arguments to function;
+  pArgs=PyTuple_New(2);
+  PyTuple_SetItem(pArgs, 0, pPos);
+  PyTuple_SetItem(pArgs, 1, pT);
+  
+  // Check for a Python error in the function call
+  if (PyErr_Occurred()){
+    PyErr_Print();
+    *stat=1;
+    return;
+  }
+  
+  for (i = 0; i < *nodes; i++){
+
+    PyArray_BYTES(pPos) = (void*) &(x[(*dim)*i]) ;
+    
+    pResult=PyObject_CallObject(pFunc, pArgs);
+    // Check for a Python error in the function call
+    if (PyErr_Occurred()){
+      PyErr_Print();
+      *stat=1;
+      return;
+    }
+
+    if (PyObject_Length(pResult) != *result_dim) 
+    {
+      fprintf(stderr, "Error: length of object returned from python (%d) does not match the allocated dimension of the vector field (%d).\n",
+              (int) PyObject_Length(pResult), *result_dim);
+      *stat = 1;
+      return;
+    }
+
+
+    for (j=0;j<*result_dim;j++) {
+    
+      px=PySequence_GetItem(pResult, j);
+    
+      result_x[(*result_dim)*i+j]=PyFloat_AsDouble(px);
+      // Check for a Python error in unpacking tuple.
+      if (PyErr_Occurred()){
+	PyErr_Print();
+	*stat=1;
+	return;
+      }
+      Py_DECREF(px);
+    }
+    Py_DECREF(pResult);  
+  }
+  
+  // Clean up
+  Py_DECREF(pArgs);  
+  Py_DECREF(pLocals);  
+  Py_DECREF(pCode);  
+  
+  // Force a garbage collection
+  PyGC_Collect();
+  
+  *stat=0;
+  return;
+#endif
+}
+
 #define set_tensor_field_from_python F77_FUNC(set_tensor_field_from_python, SET_TENSOR_FIELD_FROM_PYTHON)
 void set_tensor_field_from_python(char *function, int *function_len, int *dim, 
                                   int *nodes, 

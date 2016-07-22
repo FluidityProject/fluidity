@@ -92,6 +92,43 @@ module embed_python
       integer, intent(out) :: stat
     end subroutine set_vector_field_from_python
   end interface set_vector_field_from_python
+
+  interface
+    subroutine set_scalar_field_from_python_with_numpy(function, function_len, dim,&
+         & nodes, x, t, result,&
+         & stat) bind(c)
+      !! Interface to c wrapper function.
+      use iso_c_binding, only: c_double, c_char
+      implicit none
+      integer, intent(in) :: function_len
+      character  :: function(*)
+      integer, intent(in) :: dim
+      integer, intent(in) :: nodes
+      real(kind = c_double), dimension(dim, nodes), intent(in) :: x
+      real(kind = c_double), intent(in) :: t
+      real(kind = c_double), dimension(nodes), intent(out) :: result
+      integer, intent(out) :: stat
+    end subroutine set_scalar_field_from_python_with_numpy
+ end interface
+
+  interface
+    subroutine set_vector_field_from_python_with_numpy(function, function_len, dim,&
+         & nodes, x, t, result_dim, result_x,&
+         & stat) bind(c)
+      !! Interface to c wrapper function.
+      use iso_c_binding, only: c_double, c_char
+      implicit none
+      integer, intent(in) :: function_len
+      character  :: function(*)
+      integer, intent(in) :: dim
+      integer, intent(in) :: nodes
+      real(kind = c_double), dimension(dim, nodes), intent(in) :: x
+      real(kind = c_double), intent(in) :: t
+      integer, intent(in) :: result_dim
+      real(kind = c_double), dimension(result_dim, nodes), intent(out) :: result_x
+      integer, intent(out) :: stat
+    end subroutine set_vector_field_from_python_with_numpy
+ end interface
   
   interface set_tensor_field_from_python
     module procedure set_tensor_field_from_python_sp
@@ -253,7 +290,10 @@ module embed_python
     & set_vector_field_from_python, set_tensor_field_from_python, &
     & set_particle_sfield_from_python, set_particle_vfield_from_python, &
     & set_detectors_from_python, real_from_python, real_vector_from_python, &
-    & integer_from_python, string_from_python, integer_vector_from_python
+    & integer_from_python, string_from_python, integer_vector_from_python,&
+    & set_scalar_field_from_python_with_numpy, &
+    & set_vector_field_from_python_with_numpy
+  
 
 contains
 

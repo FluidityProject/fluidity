@@ -26,6 +26,7 @@
 !    USA
 #include "fdebug.h"
 module fields_manipulation
+  use iso_c_binding, only: c_null_char, c_char
   use fldebug
   use vector_tools
   use futils, only: present_and_true
@@ -1460,6 +1461,11 @@ module fields_manipulation
              z=>position%val(3,:)
           end if
        end if
+
+       call set_scalar_field_from_python_with_numpy(func//C_NULL_CHAR,&
+            & len_trim(func), dim,&
+            & node_count(field), position%val, time, &
+            & field%val, stat)
     else
        ! Remap position first.
        lposition = get_remapped_coordinates(position, field%mesh)
@@ -1476,10 +1482,17 @@ module fields_manipulation
              z=>lposition%val(3,:)
           end if
        end if
+
+       call set_scalar_field_from_python_with_numpy(func//C_NULL_CHAR,&
+            & len_trim(func), dim,&
+            & node_count(field), lposition%val, time, &
+            & field%val, stat)
     end if
 
-    call set_scalar_field_from_python(func, len(func), dim,&
-            & node_count(field), x, y, z, time, field%val, stat)
+!    call set_scalar_field_from_python(func, len(func), dim,&
+!!            & node_count(field), x, y, z, time, field%val, stat)
+
+
 
     if (stat/=0) then
       ewrite(-1, *) "Python error while setting field: "//trim(field%name)
@@ -1504,7 +1517,7 @@ module fields_manipulation
     !!  def val(X, t)
     !! where X is a tuple containing the position of a point and t is the
     !! time. The result must be a float. 
-    character(len=*), intent(in) :: func
+    character(len=*, kind = c_char), intent(in) :: func
     type(vector_field), intent(in), target :: position
     real, intent(in) :: time
 
@@ -1534,6 +1547,11 @@ module fields_manipulation
              z=>position%val(3,:)
           end if
        end if
+
+           call set_vector_field_from_python_with_numpy(func//C_NULL_CHAR,&
+            & len_trim(func), dim,&
+            & node_count(field), position%val, time, field%dim, &
+            & field%val, stat)
     else
        ! Remap position first.
        lposition = get_remapped_coordinates(position, field%mesh)
@@ -1550,6 +1568,12 @@ module fields_manipulation
              z=>lposition%val(3,:)
           end if
        end if
+
+       call set_vector_field_from_python_with_numpy(func//C_NULL_CHAR,&
+            & len_trim(func), dim,&
+            & node_count(field), lposition%val, time, field%dim, &
+            & field%val, stat)
+
     end if
 
     fx=>zero
@@ -1563,12 +1587,14 @@ module fields_manipulation
        if (field%dim>2) then
           fz=>field%val(3,:)
        end if
+
     end if
     
 
-    call set_vector_field_from_python(func, len_trim(func), dim,&
-            & node_count(field), x, y, z, time, field%dim, &
-            & fx, fy, fz, stat)
+!    call set_vector_field_from_python(func, len_trim(func), dim,&
+!            & node_count(field), x, y, z, time, field%dim, &
+!            & fx, fy, fz, stat)
+
 
     if (stat/=0) then
       ewrite(-1, *) "Python error while setting field: "//trim(field%name)
