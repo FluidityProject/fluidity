@@ -1798,10 +1798,15 @@ phases respectively, and d is the particle diameter.</a:documentation>
 and also the Density, PhaseVolumeFraction and Viscosity fields of the continuous phase.</a:documentation>
         <ref name="anystring"/>
       </element>
-      <element name="particle_diameter">
+      <choice>
         <a:documentation>The particle diameter</a:documentation>
-        <ref name="real"/>
-      </element>
+        <element name="particle_diameter">
+          <ref name="real"/>
+        </element>
+        <element name="particle_diameter_use_scalar_field">
+          <ref name="anystring"/>
+        </element>
+      </choice>
       <element name="continuous_phase_name">
         <a:documentation>The name of the state representing the continuous phase</a:documentation>
         <data type="string" datatypeLibrary=""/>

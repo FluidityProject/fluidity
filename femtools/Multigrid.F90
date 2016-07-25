@@ -675,23 +675,23 @@ integer, intent(out):: nosmd, nosmu, clustersize
   PetscBool flag
   PetscErrorCode ierr
 
-    call PetscOptionsGetReal('', '-mymg_epsilon', epsilon, flag, ierr)
+    call PetscOptionsGetReal(PETSC_NULL_OBJECT, '', '-mymg_epsilon', epsilon, flag, ierr)
     if (.not. flag) then
       epsilon=MULTIGRID_EPSILON_DEFAULT
     end if
-    call PetscOptionsGetReal('', '-mymg_epsilon_decay', epsilon_decay, flag, ierr)
+    call PetscOptionsGetReal(PETSC_NULL_OBJECT, '', '-mymg_epsilon_decay', epsilon_decay, flag, ierr)
     if (.not. flag) then
       epsilon_decay=MULTIGRID_EPSILON_DECAY_DEFAULT
     end if
-    call PetscOptionsGetReal('', '-mymg_omega', omega, flag, ierr)
+    call PetscOptionsGetReal(PETSC_NULL_OBJECT, '', '-mymg_omega', omega, flag, ierr)
     if (.not. flag) then
       omega=MULTIGRID_OMEGA_DEFAULT
     end if
-    call PetscOptionsGetInt('', '-mymg_maxlevels', maxlevels, flag, ierr)
+    call PetscOptionsGetInt(PETSC_NULL_OBJECT, '', '-mymg_maxlevels', maxlevels, flag, ierr)
     if (.not. flag) then
       maxlevels=MULTIGRID_MAXLEVELS_DEFAULT
     end if
-    call PetscOptionsGetInt('', '-mymg_coarsesize', coarsesize, flag, ierr)
+    call PetscOptionsGetInt(PETSC_NULL_OBJECT, '', '-mymg_coarsesize', coarsesize, flag, ierr)
     if (.not. flag) then
       if (IsParallel()) then
         coarsesize=MULTIGRID_COARSESIZE_DEFAULT_PARALLEL
@@ -699,15 +699,15 @@ integer, intent(out):: nosmd, nosmu, clustersize
         coarsesize=MULTIGRID_COARSESIZE_DEFAULT_SERIAL
       end if
     end if
-    call PetscOptionsGetInt('', '-mymg_nosmd', nosmd, flag, ierr)
+    call PetscOptionsGetInt(PETSC_NULL_OBJECT, '', '-mymg_nosmd', nosmd, flag, ierr)
     if (.not. flag) then
       nosmd=MULTIGRID_NOSMD_DEFAULT
     end if
-    call PetscOptionsGetInt('', '-mymg_nosmu', nosmu, flag, ierr)
+    call PetscOptionsGetInt(PETSC_NULL_OBJECT, '', '-mymg_nosmu', nosmu, flag, ierr)
     if (.not. flag) then
       nosmu=MULTIGRID_NOSMU_DEFAULT
     end if
-    call PetscOptionsGetInt('', '-mymg_clustersize', clustersize, flag, ierr)
+    call PetscOptionsGetInt(PETSC_NULL_OBJECT, '', '-mymg_clustersize', clustersize, flag, ierr)
     if (.not. flag) then
       clustersize=MULTIGRID_CLUSTERSIZE_DEFAULT
     end if
@@ -882,7 +882,7 @@ subroutine create_prolongator(P, nrows, ncols, findN, N, R, A, base, omega)
     allocate(onnz(1:nrows))
     onnz=0
     
-    call MatCreateMPIAIJ(MPI_COMM_FEMTOOLS, nrows, ncols, PETSC_DECIDE, PETSC_DECIDE, &
+    call MatCreateAIJ(MPI_COMM_FEMTOOLS, nrows, ncols, PETSC_DECIDE, PETSC_DECIDE, &
       PETSC_NULL_INTEGER, dnnz, PETSC_NULL_INTEGER, onnz, P, ierr)
     call MatSetOption(P, MAT_USE_INODES, PETSC_FALSE, ierr)
       
@@ -891,12 +891,13 @@ subroutine create_prolongator(P, nrows, ncols, findN, N, R, A, base, omega)
     ! subtract 1 to convert from 1-based fortran to 0 based petsc
     coarse_base=coarse_base-1
   else
-    call MatCreateSeqAIJ(MPI_COMM_SELF, nrows, ncols, &
-      PETSC_NULL_INTEGER, dnnz, P, ierr)
+    call MatCreateAIJ(MPI_COMM_SELF, nrows, ncols, nrows, ncols, &
+      PETSC_NULL_INTEGER, dnnz, 0, PETSC_NULL_INTEGER, P, ierr)
     call MatSetOption(P, MAT_USE_INODES, PETSC_FALSE, ierr)
     ! subtract 1 from each cluster no to get petsc 0-based numbering
     coarse_base=-1
   end if
+  call MatSetup(P, ierr)
   
   myPETSC_NULL_OBJECT=PETSC_NULL_OBJECT
   call MatCreateVecs(A, rowsum_vec, PETSC_NULL_OBJECT, ierr)

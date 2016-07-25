@@ -162,6 +162,13 @@ void print_version(ostream& stream){
 #else
       <<"no\n"
 #endif
+      <<"libsupermesh support\t\t"
+#ifdef HAVE_LIBSUPERMESH
+      <<"yes\n"
+#else
+      <<"no\n"
+#endif
+
       ;
   stream.flush();
   return;

@@ -65,7 +65,7 @@ LINKER  = @LINKER@ @LDFLAGS@ $(CXXFLAGS)
 FLLINKER = @FLLINKER@ @LDFLAGS@ $(FCFLAGS)
 
 LIBS    = -L./lib -l$(FLUIDITY) @LIB_FEMDEM@ ./lib/libadaptivity.a \
-           ./lib/libvtkfortran.a ./lib/libspatialindex.a ./lib/libspud.a ./lib/libjudy.a \
+           ./lib/libvtkfortran.a @LIBSPATIALINDEX@  @SPUDLIB@ @FLIBJUDY@ \
            @LIBS@ @BLAS_LIBS@
 
 OBJS = $(shell find . -mindepth 2 -maxdepth 2 -name '*.c' -o -name '*.cpp' -o -name '*.[fF]' -o -name '*.F90' | grep -v ^./lib | xargs)
@@ -76,6 +76,8 @@ AR = @AR@
 ARFLAGS	= -cr
 
 EVAL = tools/silenteval.sh
+
+SED = @SED@
 
 ifeq (@MBA2D@,yes)
 LIBMBA2D = lib/libmba2d.a
@@ -112,10 +114,10 @@ endif
 default: bin/$(FLUIDITY)
 
 sub_system: $(LIBMBA2D) $(LIBMBA3D) @LIB_FEMDEM@ \
-	lib/libadaptivity.a lib/libvtkfortran.a lib/libspatialindex.a \
-	lib/libspud.a lib/libjudy.a include/version.h
+	lib/libadaptivity.a lib/libvtkfortran.a @LIBSPATIALINDEX@ \
+	@SPUDLIB@ @FLIBJUDY@ include/version.h
 
-lib/libjudy.a:
+@FLIBJUDY@:
 	@echo '    MKDIR lib'; mkdir -p lib
 	echo '    MAKE libjudy'; $(MAKE) -C libjudy > make.log && $(MAKE) -C libjudy install >> make.log
 
@@ -135,11 +137,11 @@ lib/libvtkfortran.a:
 	@echo '    MKDIR lib'; mkdir -p lib
 	echo '    MAKE libvtkfortran'; $(MAKE) -C libvtkfortran 2>make.log 2>&1 && cp libvtkfortran/libvtkfortran.a lib/ && cp libvtkfortran/*.mod include/
 
-lib/libspatialindex.a:
+@LIBSPATIALINDEX@:
 	@echo '    MKDIR lib'; mkdir -p lib
 	echo '    MAKE libspatialindex'; $(MAKE) -C @SPATIALINDEXDIR@ && $(MAKE) -C @SPATIALINDEXDIR@ install >> make.log 2>&1
 
-lib/libspud.a:
+@SPUDLIB@:
 	@echo '    MKDIR lib'; mkdir -p lib
 ifeq (@SPUD_ONLY@,yes)
 	echo '    MAKE libspud'; $(MAKE) -C libspud && $(MAKE) -C libspud install-libspud
@@ -160,9 +162,9 @@ ifeq (@FEMDEM@,yes)
 	@$(MAKE) -C @FLFEMDEM_PATH@
 endif
 
-include/spud.h: lib/libspud.a
+@SPUDHEADER@: @SPUDLIB@
 
-main.o: include/version.h include/spud.h
+main.o: include/version.h @SPUDHEADER@
 
 include/version.h: version-info
 	@bin/version-info $@
@@ -370,8 +372,10 @@ clean: clean-light clean-test python_clean clean-debian
 	@cd libvtkfortran; $(MAKE) clean
 	@echo "    CLEAN libjudy"
 	@cd libjudy; $(MAKE) clean >> make.log 2>&1
+ifeq (@SPUDLIB@,$(abspath lib/libspud.a))
 	@echo "    CLEAN libspud"
 	@cd libspud; $(MAKE) clean
+endif
 	@echo "    CLEAN libspatialindex"
 	@cd @SPATIALINDEXDIR@; $(MAKE) clean >> make.log
 	@echo "    CLEAN libmba2d"
@@ -465,8 +469,10 @@ setuputs:
 	@ln -sf ../../tests/data bin/tests/data
 
 build_unittest: fluidity_library libfemtools setuputs
+ifeq (@SPUDLIB@,./lib/libspud.a)
 	@echo "    UNITTEST libspud"
-	@cd libspud/src/tests; $(MAKE) test-binaries; find bin/* -maxdepth 1 -type f -exec ln -sf ../../libspud/src/tests/{} ../../../bin/tests \; 
+	@cd libspud/src/tests; $(MAKE) test-binaries; find bin/* -maxdepth 1 -type f -exec ln -sf ../../libspud/src/tests/{} ../../../bin/tests \;
+endif
 	@echo "    UNITTEST error_measures"
 	@cd error_measures/tests; $(MAKE) unittest
 	@echo "    UNITTEST horizontal_adaptivity"
@@ -549,13 +555,13 @@ install: default fltools
 	rm -f $(DESTDIR)$(bindir)/spud-* $(DESTDIR)$(bindir)/diamond $(DESTDIR)$(bindir)/silenteval $(DESTDIR)$(bindir)/runut
 	[ -f manual/fluidity_manual.pdf ] && cp manual/fluidity_manual.pdf $(DESTDIR)$(docdir)/fluidity || true
 	mkdir -p $(DESTDIR)$(datadir)/fluidity
-	cp -r schemas/ $(DESTDIR)$(datadir)/fluidity/
+	cp -R schemas $(DESTDIR)$(datadir)/fluidity/
 	mkdir -p $(DESTDIR)$(datadir)/diamond/schemata
-	sed 's/$${datadir}/$(subst /,\/,$(datadir))/g' schemas/flml.in > $(DESTDIR)$(datadir)/diamond/schemata/flml
+	$(SED) 's/$${datadir}/$(subst /,\/,$(datadir))/g' schemas/flml.in > $(DESTDIR)$(datadir)/diamond/schemata/flml
 	cd python ; python setup.py install --root=$(shell echo ${DESTDIR} | sed 's/^$$/\//') --prefix="$(prefix)" $$FLUIDITY_PYTHON_INSTALL_ARGS
-	cp -r examples/ $(DESTDIR)$(docdir)/fluidity
-	find $(DESTDIR)$(docdir)/fluidity/examples -type f -exec sed -i "s/\.\.\/\.\.\/\.\.\/bin\///" '{}' \;
-	find $(DESTDIR)$(docdir)/fluidity/examples -type f -exec sed -i "s/\.\.\/\.\.\/bin\///" '{}' \;
+	cp -R examples $(DESTDIR)$(docdir)/fluidity
+	find $(DESTDIR)$(docdir)/fluidity/examples -type f -exec $(SED) -i "s/\.\.\/\.\.\/\.\.\/bin\///" '{}' \;
+	find $(DESTDIR)$(docdir)/fluidity/examples -type f -exec $(SED) -i "s/\.\.\/\.\.\/bin\///" '{}' \;
 	cd $(DESTDIR)$(docdir)/fluidity ; tar -czvf $(DESTDIR)$(docdir)/fluidity/examples.tar.gz examples/
 	rm -rf $(DESTDIR)$(docdir)/fluidity/examples/
 

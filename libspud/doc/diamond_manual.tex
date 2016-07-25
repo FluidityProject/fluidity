@@ -38,10 +38,20 @@ The colour are specified with X11 colour names, see \href{http://en.wikipedia.or
 \subsection{Schemas}
 
 Diamond needs to know which Spud schemas are installed and available on the
-current system. This is specified in the \verb+schemata+ subdirectory of the
-\verb+/etc/diamond+ and \verb+~/.diamond+ directories. The file names in the
+current system. This is specified in the \verb+schemata+ subdirectory of:
+\begin{itemize}
+\item the \verb+/usr/share/diamond+ directory
+\item the \verb+/etc/diamond+ directory
+\item the \verb+~/.diamond+ directory
+\item any directories specified in the \verb+$DIAMOND_CONFIG_PATH+ environment variable.
+\end{itemize}
+Directories are searched in the above order.  The file names in the
 \verb+schemata+ directory give the filename extension associated with a
-particular problem description language. The content of the file is two or
+particular problem description language. If multiple files corresponding to a particular extension are found the last file takes
+precendence (i.e. a file found in a \verb+schemata+ subdirectory of \verb+$DIAMOND_CONFIG_PATH+ will take precendence over 
+one in \verb+~/.diamond/schemata+).  
+
+The content of the file is two or
 more lines. The first line is the name of the problem description language,
 the remaining lines are key value pairs (key = value) of alias names and the 
 path of the XML syntax (\verb+.rng+) version of the corresponding schema.

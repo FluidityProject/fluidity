@@ -627,11 +627,16 @@ MBA3D
 MBA2D
 MODINC_FLAG
 ARFLAGS
+LIBSPATIALINDEX
 SPATIALINDEXDIR
+SPUDHEADER
+SPUDLIB
 SPUD_ONLY
+FLIBJUDY
 JUDY_CFLAGS
 CLEAN_LIBADAPT
 BUILD_LIBADAPT
+HAVE_LIBSUPERMESH
 DEFINE_MPI
 USE_CPP
 FLLINKER
@@ -727,7 +732,6 @@ infodir
 docdir
 oldincludedir
 includedir
-runstatedir
 localstatedir
 sharedstatedir
 sysconfdir
@@ -769,7 +773,11 @@ with_x
 enable_sam
 enable_dp
 enable_profiling
+enable_libsupermesh
+with_judy
+with_libspud_root
 enable_spatialindex_version
+with_spatialindex_root
 with_arpack_lib
 enable_vtk
 enable_2d_adaptivity
@@ -839,7 +847,6 @@ datadir='${datarootdir}'
 sysconfdir='${prefix}/etc'
 sharedstatedir='${prefix}/com'
 localstatedir='${prefix}/var'
-runstatedir='${localstatedir}/run'
 includedir='${prefix}/include'
 oldincludedir='/usr/include'
 docdir='${datarootdir}/doc/${PACKAGE_TARNAME}'
@@ -1092,15 +1099,6 @@ do
   | -silent | --silent | --silen | --sile | --sil)
     silent=yes ;;
 
-  -runstatedir | --runstatedir | --runstatedi | --runstated \
-  | --runstate | --runstat | --runsta | --runst | --runs \
-  | --run | --ru | --r)
-    ac_prev=runstatedir ;;
-  -runstatedir=* | --runstatedir=* | --runstatedi=* | --runstated=* \
-  | --runstate=* | --runstat=* | --runsta=* | --runst=* | --runs=* \
-  | --run=* | --ru=* | --r=*)
-    runstatedir=$ac_optarg ;;
-
   -sbindir | --sbindir | --sbindi | --sbind | --sbin | --sbi | --sb)
     ac_prev=sbindir ;;
   -sbindir=* | --sbindir=* | --sbindi=* | --sbind=* | --sbin=* \
@@ -1238,7 +1236,7 @@ fi
 for ac_var in	exec_prefix prefix bindir sbindir libexecdir datarootdir \
 		datadir sysconfdir sharedstatedir localstatedir includedir \
 		oldincludedir docdir infodir htmldir dvidir pdfdir psdir \
-		libdir localedir mandir runstatedir
+		libdir localedir mandir
 do
   eval ac_val=\$$ac_var
   # Remove trailing slashes.
@@ -1391,7 +1389,6 @@ Fine tuning of the installation directories:
   --sysconfdir=DIR        read-only single-machine data [PREFIX/etc]
   --sharedstatedir=DIR    modifiable architecture-independent data [PREFIX/com]
   --localstatedir=DIR     modifiable single-machine data [PREFIX/var]
-  --runstatedir=DIR       modifiable per-process data [LOCALSTATEDIR/run]
   --libdir=DIR            object code libraries [EPREFIX/lib]
   --includedir=DIR        C header files [PREFIX/include]
   --oldincludedir=DIR     C header files for non-gcc [/usr/include]
@@ -1447,6 +1444,7 @@ Optional Features:
                           rebalancing
   --enable-dp=flag        compile with 64 bit floating point numbers (default)
   --enable-profiling      enable gprof profiling
+  --enable-libsupermesh   enable use of the libsupermesh library
   --enable-spatialindex-version
                           Select required version of spatialindex library:
                           1.8.0
@@ -1472,6 +1470,12 @@ Optional Packages:
   --with-exodusii[=exodus_ROOT]
                           specify where to find lib/ and include/ for exodusii
   --with-x                use the X Window System
+  --with-judy=<lib>       specify Judy library <lib>
+  --with-libspud-root=<lib>
+                          specify external libspud installation root directory
+  --with-spatialindex-root=<dir>
+                          specify root directory of system spatialindex
+                          installation
   --with-arpack-lib[=<lib>]
                           specify arpack library
   --with-libnuma[=libnuma_library]
@@ -3800,7 +3804,7 @@ ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 if test -n "$ac_tool_prefix"; then
-  for ac_prog in icc ecc suncc pgcc gcc cc
+  for ac_prog in icc ecc suncc pgcc gcc cc clang
   do
     # Extract the first word of "$ac_tool_prefix$ac_prog", so it can be a program name with args.
 set dummy $ac_tool_prefix$ac_prog; ac_word=$2
@@ -3844,7 +3848,7 @@ fi
 fi
 if test -z "$CC"; then
   ac_ct_CC=$CC
-  for ac_prog in icc ecc suncc pgcc gcc cc
+  for ac_prog in icc ecc suncc pgcc gcc cc clang
 do
   # Extract the first word of "$ac_prog", so it can be a program name with args.
 set dummy $ac_prog; ac_word=$2
@@ -4151,7 +4155,7 @@ if test -z "$CXX"; then
     CXX=$CCC
   else
     if test -n "$ac_tool_prefix"; then
-  for ac_prog in icpc icc ecc sunCC pgCC g++ CC
+  for ac_prog in icpc icc ecc sunCC pgCC g++ CC clang++
   do
     # Extract the first word of "$ac_tool_prefix$ac_prog", so it can be a program name with args.
 set dummy $ac_tool_prefix$ac_prog; ac_word=$2
@@ -4195,7 +4199,7 @@ fi
 fi
 if test -z "$CXX"; then
   ac_ct_CXX=$CXX
-  for ac_prog in icpc icc ecc sunCC pgCC g++ CC
+  for ac_prog in icpc icc ecc sunCC pgCC g++ CC clang++
 do
   # Extract the first word of "$ac_prog", so it can be a program name with args.
 set dummy $ac_prog; ac_word=$2
@@ -4536,6 +4540,12 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 LINKER=$CXX
+
+if $CC -v 2>&1 | grep 'clang'; then
+   USING_CLANG="yes"
+else
+   USING_CLANG="no"
+fi
 
 
 
@@ -12608,8 +12618,8 @@ implicit none
       one  = 1.0
       neg_one = -1.0
       ione    = 1
-      call PetscOptionsGetInt(PETSC_NULL_CHARACTER,'-m',m,flg,ierr)
-      call PetscOptionsGetInt(PETSC_NULL_CHARACTER,'-n',n,flg,ierr)
+      call PetscOptionsGetInt(PETSC_NULL_OBJECT, PETSC_NULL_CHARACTER,'-m',m,flg,ierr)
+      call PetscOptionsGetInt(PETSC_NULL_OBJECT, PETSC_NULL_CHARACTER,'-n',n,flg,ierr)
 
       call MatCreate(PETSC_COMM_WORLD,A,ierr)
       call MatSetSizes(A,PETSC_DECIDE,PETSC_DECIDE,m*n,m*n,ierr)
@@ -13961,6 +13971,145 @@ CC=$MPICC
 CXX=$MPICXX
 LINKER=$CXX
 
+# Check whether --enable-libsupermesh was given.
+if test "${enable_libsupermesh+set}" = set; then :
+  enableval=$enable_libsupermesh;
+fi
+
+if test "x$enable_libsupermesh" = "xyes" ; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking libsupermesh" >&5
+$as_echo_n "checking libsupermesh... " >&6; }
+  ac_ext=cpp
+ac_cpp='$CXXCPP $CPPFLAGS'
+ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing libsupermesh_build_rtree" >&5
+$as_echo_n "checking for library containing libsupermesh_build_rtree... " >&6; }
+if ${ac_cv_search_libsupermesh_build_rtree+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_func_search_save_LIBS=$LIBS
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char libsupermesh_build_rtree ();
+#ifdef F77_DUMMY_MAIN
+
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int F77_DUMMY_MAIN() { return 1; }
+
+#endif
+#ifdef FC_DUMMY_MAIN
+#ifndef FC_DUMMY_MAIN_EQ_F77
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int FC_DUMMY_MAIN() { return 1; }
+#endif
+#endif
+int
+main ()
+{
+return libsupermesh_build_rtree ();
+  ;
+  return 0;
+}
+_ACEOF
+for ac_lib in '' supermesh; do
+  if test -z "$ac_lib"; then
+    ac_res="none required"
+  else
+    ac_res=-l$ac_lib
+    LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
+  fi
+  if ac_fn_cxx_try_link "$LINENO"; then :
+  ac_cv_search_libsupermesh_build_rtree=$ac_res
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext
+  if ${ac_cv_search_libsupermesh_build_rtree+:} false; then :
+  break
+fi
+done
+if ${ac_cv_search_libsupermesh_build_rtree+:} false; then :
+
+else
+  ac_cv_search_libsupermesh_build_rtree=no
+fi
+rm conftest.$ac_ext
+LIBS=$ac_func_search_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_search_libsupermesh_build_rtree" >&5
+$as_echo "$ac_cv_search_libsupermesh_build_rtree" >&6; }
+ac_res=$ac_cv_search_libsupermesh_build_rtree
+if test "$ac_res" != no; then :
+  test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
+
+fi
+
+  if test "$ac_cv_search_libsupermesh_build_rtree" = "none required" ; then
+    as_fn_error $? "\"Unexpected error when checking for libsupermesh\"" "$LINENO" 5
+  elif test "$ac_cv_search_libsupermesh_build_rtree" = "no" ; then
+    as_fn_error $? "\"libsupermesh not found\"" "$LINENO" 5
+  else
+    LIBS="$LIBS $ac_cv_search_libsupermesh_build_rtree"
+  fi
+  ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+
+  ac_ext=${ac_fc_srcext-f}
+ac_compile='$FC -c $FCFLAGS $ac_fcflags_srcext conftest.$ac_ext >&5'
+ac_link='$FC -o conftest$ac_exeext $FCFLAGS $LDFLAGS $ac_fcflags_srcext conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_fc_compiler_gnu
+
+  tmpFCFLAGS="$FCFLAGS"
+  FCFLAGS="$FCFLAGS $CPPFLAGS"
+  cat > conftest.$ac_ext <<_ACEOF
+
+      program test_libsupermesh
+       use libsupermesh
+      end program test_libsupermesh
+
+
+_ACEOF
+if ac_fn_fc_try_link "$LINENO"; then :
+
+      { $as_echo "$as_me:${as_lineno-$LINENO}: result: libsupermesh Fortran module found" >&5
+$as_echo "libsupermesh Fortran module found" >&6; }
+
+else
+
+      as_fn_error $? "\"libsupermesh Fortran module not found\"" "$LINENO" 5
+
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+  FCFLAGS="$tmpFCFLAGS"
+  ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+  $as_echo "#define HAVE_LIBSUPERMESH 1" >>confdefs.h
+
+fi
+
+
 # Configure adaptivity
 if test -d libadaptivity ; then
     { $as_echo "$as_me:${as_lineno-$LINENO}: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&5
@@ -14005,7 +14154,29 @@ else
 fi
 
 # Configure libjudy
-if test -d libjudy ; then
+
+
+# Check whether --with-judy was given.
+if test "${with_judy+set}" = set; then :
+  withval=$with_judy;
+fi
+
+
+if test -n "$with_judy"; then
+    { $as_echo "$as_me:${as_lineno-$LINENO}: Linking against $with_judy" >&5
+$as_echo "$as_me: Linking against $with_judy" >&6;}
+   	case $with_judy in
+	      -l* | */* | *.a | *.so | *.so.* | *.o) acx_judy_lib="$with_judy" ;;
+	      *) acx_judy_lib="-l$with_judy" ;;
+	esac
+   	FLIBJUDY="$acx_judy_lib"
+    if test "x$ARCHER" != "x" ; then
+        FLLINKER=$CXX
+    else
+        FLLINKER=$FC
+    fi
+
+elif test -d libjudy ; then
     { $as_echo "$as_me:${as_lineno-$LINENO}: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&5
 $as_echo "$as_me: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&6;}
     { $as_echo "$as_me:${as_lineno-$LINENO}: Configuring libjudy" >&5
@@ -14063,11 +14234,13 @@ _ACEOF
     fi
     # this is a workaround for https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=755099
     if echo "$CFLAGS" | grep -q -- "-O[2-3]"; then
-      if test "x$USING_GFORTRAN" = "xyes" -a "x$GFORTRAN_4_8_OR_NEWER" = "xyes"; then
+      if test "x$USING_GFORTRAN" = "xyes" -a "x$GFORTRAN_4_8_OR_NEWER" = "xyes" -a "x$USING_CLANG" = "xno"; then
         JUDY_CFLAGS="$JUDY_CFLAGS -fno-aggressive-loop-optimizations"
       fi
     fi
 
+    LIBJUDY=-ljudy
+    FLIBJUDY="./lib/libjudy.a"
 
 
 cat >> confdefs.h << EOF
@@ -14077,8 +14250,21 @@ else
     as_fn_error $? "\"libjudy directory missing!!\"" "$LINENO" 5
 fi
 
+
 # Configure libspud
-if test -d libspud ; then
+
+# Check whether --with-libspud-root was given.
+if test "${with_libspud_root+set}" = set; then :
+  withval=$with_libspud_root;
+fi
+
+
+if test -n "$with_libspud_root"; then
+   	SPUDLIB="${with_libspud_root}/lib/libspud.a"
+	SPUDHEADER="${with_libspud_root}/include/spud.h"
+	CPPFLAGS="$CPPFLAGS -I${with_libspud_root}/include"
+	FCFLAGS="$FCFLAGS -I${with_libspud_root}/include"
+elif test -d libspud ; then
     { $as_echo "$as_me:${as_lineno-$LINENO}: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&5
 $as_echo "$as_me: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&6;}
     { $as_echo "$as_me:${as_lineno-$LINENO}: Configuring libspud" >&5
@@ -14101,6 +14287,9 @@ $as_echo "$as_me: Building on ARCHER; disabling shared libraries" >&6;}
     if test "$enable_profiling" = "yes" ; then
         CONFIG_FLAG="${CONFIG_FLAG} --enable-profiling"
     fi
+
+    SPUDLIB="${PWD}/lib/libspud.a"
+    SPUDHEADER="${PWD}/include/spud.h"
 
 
 
@@ -14126,10 +14315,18 @@ else
     as_fn_error $? "\"libspud directory missing!!\"" "$LINENO" 5
 fi
 
+
+
 #*************SpatialIndex******
 # Check whether --enable-spatialindex-version was given.
 if test "${enable_spatialindex_version+set}" = set; then :
   enableval=$enable_spatialindex_version;
+fi
+
+
+# Check whether --with-spatialindex-root was given.
+if test "${with_spatialindex_root+set}" = set; then :
+  withval=$with_spatialindex_root;
 fi
 
 
@@ -14140,6 +14337,14 @@ else
   enable_spatialindex_version="1.8.0"
   SPATIALINDEXDIR="spatialindex-1.8.0"
 fi
+
+if test -n "$with_spatialindex_root"; then
+   LIBSPATIALINDEX="${with_spatialindex_root}/lib/libspatialindex.a"
+   CPPFLAGS="$CPPFLAGS -I${with_spatialindex_root}/include/spatialindex/"
+else
+
+LIBSPATIALINDEX="${PWD}/lib/libspatialindex.a"
+
 
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&5
@@ -14163,6 +14368,8 @@ if test "$?" -ne "0"; then
   exit -1
 fi
 cd ../
+fi
+
 
 #*************ARPACK*********
 ac_ext=${ac_fc_srcext-f}

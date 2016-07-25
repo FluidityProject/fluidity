@@ -2768,7 +2768,9 @@ contains
                            ! Vector detector data
                          & detector_list%total_num_det * detector_list%num_vfields * dim
 
-    location_to_write = (detector_list%mpi_write_count - 1) * number_total_columns * realsize
+    ! raise kind of one of the variables (each individually is a 4 byte-integer) such that the calculation is coerced to be of MPI_OFFSET_KIND (typically 8 bytes)
+    ! this is necessary for files bigger than 2GB
+    location_to_write = (int(detector_list%mpi_write_count, kind=MPI_OFFSET_KIND) - 1) * number_total_columns * realsize
 
     if(procno == 1) then
       ! Output time data

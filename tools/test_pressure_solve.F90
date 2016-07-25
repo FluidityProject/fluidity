@@ -317,41 +317,35 @@
     logical, intent(out) :: vl_as, vl, no_vl, sor, vl_as_wsor
     real, intent(out) :: eps0
 
-#if PETSC_VERSION_MINOR>=2
     PetscBool:: flag
-#else
-    PetscTruth:: flag
-#endif
     PetscErrorCode :: ierr
     PetscReal :: number_in=0.0
 
-    call PetscOptionsGetString(&
-         &PETSC_NULL_CHARACTER, '-filename', filename, flag, ierr)
+    call PetscOptionsGetString(PETSC_NULL_OBJECT, PETSC_NULL_CHARACTER, '-filename', filename, flag, ierr)
     if (.not. flag) then
        call usage()
     end if
 
-    call PetscOptionsGetReal(PETSC_NULL_CHARACTER, '-epsilon', number_in, flag, ierr)
+    call PetscOptionsGetReal(PETSC_NULL_OBJECT, PETSC_NULL_CHARACTER, '-epsilon', number_in, flag, ierr)
     if(.not. flag) then
        call usage()
     end if
     eps0 = number_in
 
-    call PetscOptionsGetString(PETSC_NULL_CHARACTER, '-exact_solution', &
-         & exact_sol_filename, flag, ierr) 
+    call PetscOptionsGetString(PETSC_NULL_OBJECT, PETSC_NULL_CHARACTER, '-exact_solution', exact_sol_filename, flag, ierr)
     if (.not. flag) then 
        call usage()
     end if
 
-    call PetscOptionsHasName(PETSC_NULL_CHARACTER, '-vl_as', vl_as, ierr)
+    call PetscOptionsHasName(PETSC_NULL_OBJECT, PETSC_NULL_CHARACTER, '-vl_as', vl_as, ierr)
 
-    call PetscOptionsHasName(PETSC_NULL_CHARACTER, '-vl_as_wsor', vl_as_wsor, ierr)
+    call PetscOptionsHasName(PETSC_NULL_OBJECT, PETSC_NULL_CHARACTER, '-vl_as_wsor', vl_as_wsor, ierr)
 
-    call PetscOptionsHasName(PETSC_NULL_CHARACTER, '-vl', vl, ierr)
+    call PetscOptionsHasName(PETSC_NULL_OBJECT, PETSC_NULL_CHARACTER, '-vl', vl, ierr)
 
-    call PetscOptionsHasName(PETSC_NULL_CHARACTER, '-no_vl', no_vl, ierr)
+    call PetscOptionsHasName(PETSC_NULL_OBJECT, PETSC_NULL_CHARACTER, '-no_vl', no_vl, ierr)
 
-    call PetscOptionsHasName(PETSC_NULL_CHARACTER, '-sor', sor, ierr)
+    call PetscOptionsHasName(PETSC_NULL_OBJECT, PETSC_NULL_CHARACTER, '-sor', sor, ierr)
 
   end subroutine pressure_solve_options
 

@@ -14,9 +14,15 @@ module supermesh_construction
   use metric_tools
   use unify_meshes_module
   use transform_elements
+#ifdef HAVE_LIBSUPERMESH
+  use libsupermesh, only : libsupermesh_intersect_elements => intersect_elements
+#endif
   use tetrahedron_intersection_module
   implicit none
 
+#ifdef HAVE_LIBSUPERMESH
+  real, dimension(:, :, :), allocatable, save :: elements_c
+#else
   interface cintersector_set_input
     module procedure intersector_set_input_sp
   
@@ -67,8 +73,9 @@ module supermesh_construction
   end interface
   
   ! I hope this is big enough ...
-  real, dimension(1024) :: nodes_tmp
-  logical :: intersector_exactness = .false.
+  real, dimension(1024), save :: nodes_tmp
+#endif
+  logical, save :: intersector_exactness = .false.
 
   private
 
@@ -76,7 +83,76 @@ module supermesh_construction
   public :: construct_supermesh, compute_projection_error, intersector_exactness
 
   contains
+
+#ifdef HAVE_LIBSUPERMESH
+  subroutine intersector_set_dimension(ndim)
+    integer, intent(in) :: ndim
+    
+    if(allocated(elements_c)) then
+      if(size(elements_c, 1) == ndim) return
+      deallocate(elements_c)
+    end if
+    
+    select case(ndim)
+      case(1)
+        allocate(elements_c(1, 2, 2))
+      case(2)
+        allocate(elements_c(2, 3, 62))
+      case(3)
+        allocate(elements_c(3, 4, 3645))
+      case default
+        FLAbort("Invalid dimension")
+    end select
+    
+  end subroutine intersector_set_dimension
+
+  function intersect_elements(positions_A, ele_A, posB, shape) result(intersection)
+    type(vector_field), intent(in) :: positions_A
+    integer, intent(in) :: ele_A
+    real, dimension(:, :), intent(in) :: posB
+    type(element_type), intent(in) :: shape
+    
+    type(vector_field) :: intersection
+    
+    integer :: i, n_elements_c
+    type(mesh_type) :: intersection_mesh
+
+    call libsupermesh_intersect_elements(reordered(ele_val(positions_A, ele_A)), reordered(posB), elements_c, n_elements_c)
+
+    call allocate(intersection_mesh, size(elements_c, 2) * n_elements_c, n_elements_c, shape, "IntersectionMesh")
+    intersection_mesh%continuity = -1
+    forall(i = 1:size(elements_c, 2) * n_elements_c)
+      intersection_mesh%ndglno(i) = i
+    end forall
+    
+    call allocate(intersection, size(elements_c, 1), intersection_mesh, "IntersectionCoordinates")
+    do i = 1, n_elements_c
+      call set(intersection, ele_nodes(intersection, i), elements_c(:, :, i))
+    end do
+    
+    call deallocate(intersection_mesh)
+    
+  contains
   
+    function reordered(element)
+      ! dim x loc
+      real, dimension(:, :), intent(in) :: element
+      
+      real, dimension(size(element, 1), size(element, 2)) :: reordered
+      
+      ! See toFluidityElementNodeOrdering in femtools/GMSH_Common.F90
+      if(size(element, 1) == 2 .and. size(element, 2) == 4) then
+        reordered = element(:, (/1, 2, 4, 3/))
+      else if(size(element, 1) == 3 .and. size(element, 2) == 8) then
+        reordered = element(:, (/1, 2, 4, 3, 5, 6, 8, 7/))
+      else
+        reordered = element
+      end if
+    
+    end function reordered
+
+  end function intersect_elements
+#else
   subroutine intersector_set_input_sp(nodes_A, nodes_B, ndim, loc)
     real(kind = c_float), dimension(ndim, loc), intent(in) :: nodes_A
     real(kind = c_float), dimension(ndim, loc), intent(in) :: nodes_B
@@ -136,7 +212,7 @@ module supermesh_construction
 #ifdef DDEBUG
       intersection_mesh%ndglno = -1
 #endif
-      call cintersector_get_output(nonods, totele, dim, loc, nodes_tmp, intersection_mesh%ndglno)
+      call cintersector_get_output(nonods, totele, dim, dim + 1, nodes_tmp, intersection_mesh%ndglno)
 
       do i = 1, dim
         intersection%val(i,:) = nodes_tmp((i - 1) * nonods + 1:i * nonods)
@@ -146,9 +222,16 @@ module supermesh_construction
     call deallocate(intersection_mesh)
 
   end function intersect_elements
+#endif
 
   subroutine intersector_set_exactness(exactness)
     logical, intent(in) :: exactness
+
+#ifdef HAVE_LIBSUPERMESH
+    if(exactness) then
+      FLAbort("Arbitrary precision arithmetic not supported by libsupermesh")
+    end if
+#else
     integer :: exact
 
     if (exactness) then
@@ -159,6 +242,8 @@ module supermesh_construction
     intersector_exactness = exactness
 
     call cintersector_set_exactness(exact)
+#endif
+
   end subroutine intersector_set_exactness
 
   ! A higher-level interface to supermesh construction.
