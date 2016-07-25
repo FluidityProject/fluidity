@@ -51,11 +51,21 @@ contains
     counter=0
     if (Ntur>0) then
         do itur=1,Ntur
+            
+            ! Blades
             do iblade=1,Turbine(itur)%Nblades
                 do ielem=1,Turbine(itur)%Blade(iblade)%Nelem
                 counter=counter+1
                 end do
             end do
+            
+            ! Tower 
+            if(turbine(itur)%has_tower) then
+                do ielem=1,Turbine(itur)%Tower%Nelem
+                counter=counter+1
+                end do
+            endif
+
         end do
     endif
     
@@ -90,6 +100,17 @@ contains
                 Sc(counter)=Turbine(itur)%Blade(iblade)%EC(ielem)
                 end do
             end do
+                !Tower 
+                if(turbine(itur)%has_tower) then
+                do ielem=1,Turbine(itur)%Tower%Nelem
+                counter=counter+1
+                Sx(counter)=Turbine(itur)%Tower%PEX(ielem)
+                Sy(counter)=Turbine(itur)%Tower%PEY(ielem)
+                Sz(counter)=Turbine(itur)%Tower%PEZ(ielem)
+                Sc(counter)=Turbine(itur)%Tower%EC(ielem) 
+                end do
+                endif
+                
         end do
     endif
     
@@ -116,6 +137,7 @@ contains
     counter=0
     if (Ntur>0) then
         do itur=1,Ntur
+            ! Blades
             do iblade=1,Turbine(itur)%Nblades
                 do ielem=1,Turbine(itur)%Blade(iblade)%Nelem
                 counter=counter+1
@@ -125,6 +147,16 @@ contains
                 Turbine(itur)%Blade(iblade)%Eepsilon(ielem)=Se(counter) 
                 end do
             end do
+            
+            if(turbine(itur)%has_tower) then
+                do ielem=1,Turbine(itur)%Tower%Nelem
+                counter=counter+1
+                Turbine(itur)%Tower%EVX(ielem)=Su(counter)
+                Turbine(itur)%Tower%EVY(ielem)=Sv(counter)
+                Turbine(itur)%Tower%EVZ(ielem)=Sw(counter)
+                Turbine(itur)%Tower%Eepsilon(ielem)=Se(counter) 
+                end do
+            endif
         end do
     endif
     
@@ -152,6 +184,7 @@ contains
     counter=0
     if (Ntur>0) then
         do itur=1,Ntur
+            !Blade
             do iblade=1,Turbine(itur)%Nblades
                 do ielem=1,Turbine(itur)%Blade(iblade)%Nelem
                 counter=counter+1
@@ -160,6 +193,17 @@ contains
                 Sfz(counter)=Turbine(itur)%Blade(iblade)%EFZ(ielem)
                 end do
             end do
+            
+            !Tower 
+            if(turbine(itur)%has_tower) then
+                do ielem=1,Turbine(itur)%Tower%Nelem
+                counter=counter+1
+                Sfx(counter)=Turbine(itur)%Tower%EFX(ielem)
+                Sfy(counter)=Turbine(itur)%Tower%EFY(ielem)
+                Sfz(counter)=Turbine(itur)%Tower%EFZ(ielem)
+                end do
+            endif
+
         end do
     endif
     

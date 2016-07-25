@@ -66,9 +66,9 @@ contains
     call get_turbine_options
     
     if (Ntur>0) then
+    
     do itur=1,Ntur
     call set_turbine_geometry(Turbine(itur))
-    call init_turbine_output_file(Turbine(itur))
     end do
     endif
 
@@ -91,9 +91,7 @@ contains
         integer :: itur,ial
 
         if (Ntur>0) then
-        do itur=1,Ntur
-        call init_turbine_output_file(Turbine(itur))
-        end do
+        call init_turbine_output_file
         endif
 
     end subroutine actuator_line_model_init_output
@@ -140,7 +138,7 @@ contains
 
         turbine_path(i)="/actuator_line_model/turbine["//int2str(i-1)//"]"
         call get_option("/actuator_line_model/turbine["//int2str(i-1)//"]/name",Turbine(i)%name)
-        
+        Turbine(i)%ID=i    
     !###########1 Blade Specs #############################################   
     call get_option("/actuator_line_model/turbine["//int2str(i-1)//"]/location/",Turbine(i)%origin) 
     call get_option("/actuator_line_model/turbine["//int2str(i-1)//"]/Blades/number_of_blades/",Turbine(i)%NBlades)
@@ -185,16 +183,20 @@ contains
         ! ## Tower ?
         if (have_option("/actuator_line_model/turbine["//int2str(i-1)//"]/tower")) then
         Turbine(i)%Has_Tower=.true.
+        call get_option("/actuator_line_model/turbine["//int2str(i-1)//"]/tower/offset",Turbine(i)%TowerOffset)
         call get_option("/actuator_line_model/turbine["//int2str(i-1)//"]/tower/tower_geometry/file_name",Turbine(i)%Tower%geom_file)
         nfoils=option_count("/actuator_line_model/turbine["//int2str(i-1)//"]/tower/static_foil_data/foil")
         ewrite(2,*) 'Number of Static Foil Data available for the analysis of the tower: ', nfoils
         Allocate(Turbine(i)%tower%AirfoilData(nfoils))
-        
+       
+        turbine(i)%Tower%NAirfoilData=nfoils
+
         do k=1, Turbine(i)%tower%NAirfoilData
             call get_option(trim(turbine_path(i))//"/tower/static_foil_data/foil["//int2str(k-1)//"]/foil_file",Turbine(i)%tower%AirfoilData(k)%afname)   
             ! Read and Store Airfoils
             call airfoil_init_data(Turbine(i)%tower%AirfoilData(k))
         end do
+
         endif
         
         !#############2  Get turbine_specs #################
@@ -352,11 +354,18 @@ subroutine get_actuatorline_options
 
     ! Get into each Turbine and Compute the Forces blade by blade and element by element
     do i=1,Ntur 
+        ! Blades
         do j=1,Turbine(i)%Nblades
             call Compute_ActuatorLine_Forces(Turbine(i)%Blade(j),visc,deltaT)    
         end do
             call Compute_Turbine_Tip_Correction(Turbine(i))
             call Compute_performance(Turbine(i))
+        
+        ! Tower
+        if(Turbine(i)%has_tower) then
+            call Compute_ActuatorLine_Forces(Turbine(i)%Tower,visc,deltaT)
+        endif
+
         end do
     end if
 

@@ -24,7 +24,8 @@ type ActuatorLineType
     real, allocatable :: tz(:)          ! Blade unit tangent vector (rearward chord line direction) z-comp at element ends  
     real, allocatable :: C(:)           ! Blade chord length at element ends
     real, allocatable :: thick(:)       ! Blade thickness at element ends
-    
+    real, allocatable :: pitch(:)       ! Blade station pitch at element ends
+
     ! Element Element Values
     real, allocatable :: PEx(:)         ! Element centre x coordinates
     real, allocatable :: PEy(:)         ! Element centre y coordinates
@@ -44,6 +45,9 @@ type ActuatorLineType
     real, allocatable :: Eepsilon(:)    ! Element Force Projection Parameter
     real, allocatable :: ERdist(:)      ! Element Distance from the origin 
     real, allocatable :: ETtoC(:)       ! Element thickness to Chord ratio
+    
+    ! Angle of Attack and Pitch
+    real, allocatable :: Epitch(:)         ! Element pitch angle
     real, allocatable :: EAOA(:)        ! Element Last angle of Attack (used in added mass terms)
     real, allocatable :: EUn(:)         ! Element Last normal velocity (used in added mass terms)
     real, allocatable :: EAOA_LAST(:)   ! Element Last angle of Attack (used in added mass terms)
@@ -206,7 +210,7 @@ end type ActuatorLineType
     Re = ur*ElemChord/Visc
     alpha5=alpha
     alpha75=alpha
-    
+   
     !=========================================================
     ! Compute rate of change of Unormal and angle of attack
     !=========================================================
@@ -491,6 +495,7 @@ end type ActuatorLineType
     ! Calc average element chord from area and span
     blade%EC(nej-1)=blade%EArea(nej-1)/sEM
     blade%ETtoC(nej-1)=0.5*(blade%thick(nej)+blade%thick(nej-1))
+    blade%Epitch(nej-1)=0.5*(blade%pitch(nej)+blade%pitch(nej-1))
     end do
     ewrite(2,*) 'Exiting make_actuatorline_geometry'
 
@@ -515,6 +520,7 @@ end type ActuatorLineType
     allocate(actuatorline%tz(NElem+1))
     allocate(actuatorline%C(NElem+1))
     allocate(actuatorline%thick(NElem+1))
+    allocate(actuatorline%pitch(NElem+1))
     allocate(actuatorline%PEx(NElem))
     allocate(actuatorline%PEy(NElem))
     allocate(actuatorline%PEz(NElem))
@@ -541,6 +547,7 @@ end type ActuatorLineType
     allocate(actuatorline%EVbx(NElem))
     allocate(actuatorline%EVby(NElem))
     allocate(actuatorline%EVbz(NElem))
+    allocate(actuatorline%Epitch(Nelem))
     allocate(actuatorline%EAOA(Nelem))
     allocate(actuatorline%EUn(Nelem))
     allocate(actuatorline%EAOA_LAST(Nelem))

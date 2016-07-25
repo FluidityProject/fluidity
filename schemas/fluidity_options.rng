@@ -2511,6 +2511,10 @@ optimal size)</a:documentation>
               </optional>
               <optional>
                 <element name="tower">
+                  <element name="offset">
+                    <a:documentation>Offset from the Axis of rotaion</a:documentation>
+                    <ref name="real"/>
+                  </element>
                   <element name="tower_geometry">
                     <a:documentation>Tower Geometry</a:documentation>
                     <attribute name="file_name">

@@ -16,6 +16,7 @@ type TurbineType
     character(len=100) :: name
     character(len=100) :: blade_geom_file
     character(len=100) :: type
+    integer :: ID
     integer :: NBlades
     real, dimension(3) :: RotN, origin ! Rotational vectors in the normal and perpendicular directions
     real :: hub_tilt_angle, blade_cone_angle, yaw_angle 
@@ -29,6 +30,7 @@ type TurbineType
     logical :: IsCounterClockwise = .false. 
     logical :: Has_Hub=.false.
     logical :: Has_Tower=.false.
+    real :: Towerheight, hublength, TowerOffset
     logical :: do_tip_correction=.false.
 
     type(ActuatorLineType), allocatable :: Blade(:)
@@ -89,6 +91,7 @@ contains
         turbine%blade(iblade)%tz(istation)= 0.0
         turbine%blade(iblade)%C(istation)=ctoR(istation)*turbine%Rmax
         turbine%blade(iblade)%thick(istation)=thick(istation)
+        turbine%blade(iblade)%pitch(istation)=pitch(istation)/180.0*pi
     elseif(turbine%IsClockwise) then
         turbine%RotN=(/1.0,0.0,0.0/)
         turbine%blade(iblade)%tx(istation)=sin(pitch(istation)/180.0*pi)    
@@ -96,6 +99,7 @@ contains
         turbine%blade(iblade)%tz(istation)= 0.0
         turbine%blade(iblade)%C(istation)=ctoR(istation)*turbine%Rmax
         turbine%blade(iblade)%thick(istation)=thick(istation)
+        turbine%blade(iblade)%pitch(istation)=pitch(istation)/180.0*pi
         turbine%blade(iblade)%FlipN = .true.
     endif
     end do
@@ -118,7 +122,40 @@ contains
     end do
     
     end do
+
+    !=========================================================
+    ! Create a Tower
+    !=========================================================
+    if(turbine%has_Tower) then
+    call read_actuatorline_geometry(turbine%tower%geom_file,turbine%Towerheight,SVec,rR,ctoR,pitch,thick,Nstations)
+    ! Make sure that the spanwise is [0 0 1]
+    Svec = (/0.0,0.0,1.0/)
     
+    call allocate_actuatorline(Turbine%Tower,Nstations)
+   
+    turbine%Tower%COR=turbine%origin
+    turbine%Tower%NElem=Nstations-1  
+    
+    do istation=1,Nstations
+    turbine%Tower%QCx(istation)= turbine%Tower%COR(1) + turbine%TowerOffset 
+    turbine%Tower%QCy(istation)= turbine%Tower%COR(2)
+    turbine%Tower%QCz(istation)= turbine%Tower%COR(3) - rR(istation)*turbine%Towerheight*Svec(3)
+    turbine%Tower%tx(istation)=sin(pitch(istation)/180.0*pi)    
+    turbine%Tower%ty(istation)=cos(pitch(istation)/180.0*pi)    
+    turbine%Tower%tz(istation)= 0.0
+    turbine%Tower%C(istation)=ctoR(istation)*turbine%Towerheight
+    turbine%Tower%thick(istation)=thick(istation)
+    turbine%Tower%pitch(istation)=pitch(istation)/180.0*pi
+    enddo
+    
+    call make_actuatorline_geometry(turbine%tower)
+    ! Populate element Airfoils 
+    call populate_blade_airfoils(turbine%tower%NElem,turbine%tower%NAirfoilData,turbine%tower%EAirfoil,turbine%tower%AirfoilData,turbine%tower%ETtoC)
+    
+    turbine%tower%EAOA_LAST(:)=-666
+    turbine%tower%EUn_LAST(:)=0.0
+
+    endif
     !========================================================
     !Compute a number of global parameters for the turbine
     !========================================================
@@ -208,19 +245,18 @@ contains
 
     end subroutine compute_performance
     
-    subroutine init_turbine_output_file(turbine) 
+    subroutine init_turbine_output_file 
         implicit none
-        type(TurbineType),intent(in) :: turbine
-
-        open(unit=2016,File=trim(turbine%name)//'_perf.dat')
-        write(2016,*) 'Azimuthal Angle,Thrust Coeff., Torque_Coeff.,Power_Coeff.'
+        open(2016,File='turbine_perf.dat')
+        write(2016,*) 'Turbine ID, Azimuthal Angle,Thrust Coeff., Torque_Coeff.,Power_Coeff.'
     end subroutine init_turbine_output_file
 
     subroutine write_turbine_output_file(turbine) 
         implicit none
         type(TurbineType),intent(in) :: turbine
+        integer :: unit_numb=2016
 
-        write(2016,*) Turbine%AzimAngle,',',Turbine%CT,',',turbine%CTR,',',turbine%CP
+        write(2016,*) turbine%ID,',',turbine%AzimAngle,',',Turbine%CT,',',turbine%CTR,',',turbine%CP
     
     end subroutine write_turbine_output_file
 
@@ -229,16 +265,20 @@ contains
     implicit none
     type(TurbineType),intent(inout) :: turbine
     integer :: iblade,ielem
-    real ::g1,alpha,pitch,F
+    real ::g1,alpha,pitch,F,r
         
     g1=exp(-0.125*(turbine%NBlades*turbine%tsr-21.0))+0.1
     
     do iblade=1,turbine%Nblades
-        do ielem=1,turbine%blade(iblade)%Nelem
+    ! Compute angle phi at the tip 
         
+    do ielem=1,turbine%blade(iblade)%Nelem
+       
+        r=turbine%blade(iblade)%ERdist(ielem)
         alpha=turbine%blade(iblade)%EAOA_Last(ielem)
-        pitch=abs(acos(turbine%blade(iblade)%tEx(ielem)))
-        F=2.0/pi*acos(exp(-g1*turbine%Nblades*(turbine%Rmax-turbine%blade(iblade)%ERdist(ielem))/(2.0*turbine%Rmax*sin(alpha+pitch))))
+        pitch=turbine%blade(iblade)%Epitch(ielem)
+
+        F=2.0/pi*acos(exp(-g1*turbine%Nblades*(turbine%Rmax-turbine%blade(iblade)%ERdist(ielem))/(2.0*r*sin(alpha+pitch))))
         
         ! Apply Coeffs to Element velocities
         turbine%blade(iblade)%EFX(ielem)=F*turbine%blade(iblade)%EFX(ielem)

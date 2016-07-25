@@ -1781,6 +1781,10 @@ start =
                       }
                   }?,
                   element tower{
+                      ## Offset from the Axis of rotaion
+                      element offset{
+                          real
+                      },
                       ## Tower Geometry
                       element tower_geometry{
                         attribute file_name { xsd:string },
