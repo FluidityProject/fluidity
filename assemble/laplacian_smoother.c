@@ -1,4 +1,4 @@
-static char help[] = "Solves 2D and 3D Laplace's equation in serial and parallel.\n\n";
+static char help[] = "Solves 1D, 2D and 3D Laplace's equation in serial and parallel.\n\n";
 #include <petscksp.h>
 #include <stdio.h>
 #include <string.h>
@@ -13,10 +13,9 @@ void lap_smoother(int dimension, int num_nodes, int num_elements, int num_surf_e
   PetscErrorCode ierr;
   PetscInt       i,n,m,col[3]={0,1,2},col_new[3],convert[4],line_total=num_surf_elements,c[num_surf_elements],*holder_new,
 		 Istart,Iend,Ii,its,num_nodes_col[num_nodes],j_other=0,len_new=0,j,local_surf_connectivity[dimension*num_surf_elements], global_surf_connectivity[dimension*num_surf_elements];
-  PetscScalar    p_value[4],A_holder[16],grad_holder[12],det,Fe,x_bound_points[num_surf_elements],Vol,A_inv_holder[4][4],
+  PetscScalar    p_value[4],A_holder[16],grad_holder[12],det,Fe,x_bound_points[num_surf_elements],Vol,A_inv_holder[4][4],length,
                  y_bound_points[num_surf_elements],z_bound_points[num_surf_elements],Area,Ke[4][4],smoothed_x[num_nodes],smoothed_y[num_nodes],smoothed_z[num_nodes],value[5];
 
-  
   MatCreate(PETSC_COMM_WORLD,&K);
   PetscObjectSetName((PetscObject) K, "Stiffness Matrix");
   MatSetSizes(K,num_owned_nodes,num_owned_nodes,PETSC_DETERMINE,PETSC_DETERMINE);
@@ -29,37 +28,69 @@ void lap_smoother(int dimension, int num_nodes, int num_elements, int num_surf_e
 
   //Assembly of Stiffness Matrix K
   if (dimension == 1){
-  for (Ii=0;Ii<num_elements;Ii++){
-
+  for(Ii=0;Ii<num_elements;Ii++){
+  
       holder_new = &(connectivity[(dimension+1)*Ii]);
       convert[0]=holder_new[0]-1;
       convert[1]=holder_new[1]-1;
       int counter = 0;
+      
+    for(m=0;m<dimension+1;m++){
+      p_value[0]=1.0;p_value[1]=comp_mesh[dimension*convert[m]];
+      A_holder[counter]=p_value[0];A_holder[counter+1]=p_value[1];
+      counter+=dimension+1;
+     }
+           
+     det=A_holder[0]*A_holder[3] - A_holder[1]*A_holder[2];
+ 
+     A_inv_holder[0][0]=(1/det)*A_holder[3];
+     A_inv_holder[0][1]=-1.0*(1/det)*A_holder[1];
+     A_inv_holder[1][0]=-1.0*(1/det)*A_holder[2];
+     A_inv_holder[1][1]=(1/det)*A_holder[0];
 
-      //Do assembly of 1D P1 Elements
-    }
+     length = fabs(det);
+  
+     grad_holder[0]=A_inv_holder[1][0];grad_holder[1]=A_inv_holder[1][1];
+          
+     Ke[0][0]=length*(pow(grad_holder[0],2));
+     Ke[0][1]=length*(grad_holder[0]*grad_holder[1]);
+     Ke[1][0]=length*(grad_holder[1]*grad_holder[0]);
+     Ke[1][1]=length*(pow(grad_holder[1],2));
+     
+     Fe=(length/2.0)*0.0;//As called for in Laplacian Smoothing
+
+     if (holder_new[0]<=num_owned_nodes) {
+       MatSetValue(K,mapping[convert[0]],mapping[convert[0]],Ke[0][0],ADD_VALUES);
+       MatSetValue(K,mapping[convert[0]],mapping[convert[1]],Ke[0][1],ADD_VALUES);
+       VecSetValue(F,mapping[convert[0]],Fe,ADD_VALUES);
+     }
+     if (holder_new[1]<=num_owned_nodes) {
+       MatSetValue(K,mapping[convert[1]],mapping[convert[0]],Ke[1][0],ADD_VALUES);
+       MatSetValue(K,mapping[convert[1]],mapping[convert[1]],Ke[1][1],ADD_VALUES);
+       VecSetValue(F,mapping[convert[1]],Fe,ADD_VALUES);
+     }
+      
+    }//End of 1D Assembly
 
   MatAssemblyBegin(K,MAT_FINAL_ASSEMBLY);
   MatAssemblyEnd(K,MAT_FINAL_ASSEMBLY);
   VecAssemblyBegin(F);
   VecAssemblyEnd(F);
   //Removing duplicate points in surf_connectivity
-  for(i=0; i< dimension*num_surf_elements; i++){
-
+ 
+ for(i=0; i< dimension*num_surf_elements; i++){
     if(surf_connectivity[i]>num_owned_nodes) continue;
-
    for(j=0; j< len_new ; j++)
    {
-
       if(surf_connectivity[i] == local_surf_connectivity[j]+1)
       break;
    }
-
      if (j==len_new)
         local_surf_connectivity[len_new++] = surf_connectivity[i]-1;
    }
 
-  for(i=0; i<len_new; i++) {
+
+  for(i=0; i<len_new; i++){
     global_surf_connectivity[i]=mapping[local_surf_connectivity[i]];
   }
 
@@ -108,7 +139,7 @@ void lap_smoother(int dimension, int num_nodes, int num_elements, int num_surf_e
   VecSetFromOptions(U_hx);
 
   for(n=0;n<num_owned_nodes;n++){
-    VecSetValue(U_hx,mapping[n],phys_mesh[2*n],INSERT_VALUES);
+    VecSetValue(U_hx,mapping[n],phys_mesh[dimension*n],INSERT_VALUES);
   }
   
   VecAssemblyBegin(U_hx);
@@ -125,7 +156,7 @@ void lap_smoother(int dimension, int num_nodes, int num_elements, int num_surf_e
      num_nodes_col[n]=mapping[n];
    }
    VecGetValues(U_hx,num_owned_nodes,num_nodes_col,smoothed_x);
-
+  
   for(n=0;n<num_owned_nodes; n++){
     smooth_mesh[dimension*n+0] = smoothed_x[n];
    }
@@ -136,7 +167,7 @@ void lap_smoother(int dimension, int num_nodes, int num_elements, int num_surf_e
    KSPDestroy(&ksp_x);
   } //End of 1D
 
-    else if (dimension == 2){
+  else if (dimension == 2){//Beginning of 2D assembly
      for (Ii=0;Ii<num_elements;Ii++){
 
       holder_new = &(connectivity[(dimension+1)*Ii]);
@@ -144,11 +175,11 @@ void lap_smoother(int dimension, int num_nodes, int num_elements, int num_surf_e
       convert[1]=holder_new[1]-1;
       convert[2]=holder_new[2]-1;
       int counter = 0;
-      
-    for(m=0;m<3;m++){
-      p_value[0]=1.0;p_value[1]=comp_mesh[2*convert[m]];p_value[2]=comp_mesh[2*convert[m]+1];
-	A_holder[counter]=p_value[0];A_holder[counter+1]=p_value[1];A_holder[counter+2]=p_value[2];
-	counter+=3;
+    
+    for(m=0;m<dimension+1;m++){
+      p_value[0]=1.0;p_value[1]=comp_mesh[dimension*convert[m]];p_value[2]=comp_mesh[dimension*convert[m]+1];
+      A_holder[counter]=p_value[0];A_holder[counter+1]=p_value[1];A_holder[counter+2]=p_value[2];
+      counter+=dimension+1;
      }
            
      det=A_holder[0]*(A_holder[4]*A_holder[8]-A_holder[5]*A_holder[7])-A_holder[1]*(A_holder[3]*A_holder[8]
@@ -171,7 +202,7 @@ void lap_smoother(int dimension, int num_nodes, int num_elements, int num_surf_e
      Ke[1][1]=Area*(pow(grad_holder[1],2)+pow(grad_holder[4],2));Ke[1][2]=Area*(grad_holder[1]*grad_holder[2]+grad_holder[4]*grad_holder[5]);
      Ke[2][0]=Area*(grad_holder[2]*grad_holder[0]+grad_holder[5]*grad_holder[3]);Ke[2][1]=Area*(grad_holder[2]*grad_holder[1]+grad_holder[5]*grad_holder[4]);
      Ke[2][2]=Area*(pow(grad_holder[2],2)+pow(grad_holder[5],2));
-
+     
      Fe=(Area/3.0)*0.0;//As called for in Laplacian Smoothing
 
      if (holder_new[0]<=num_owned_nodes) {
@@ -192,7 +223,7 @@ void lap_smoother(int dimension, int num_nodes, int num_elements, int num_surf_e
        MatSetValue(K,mapping[convert[2]],mapping[convert[2]],Ke[2][2],ADD_VALUES);
        VecSetValue(F,mapping[convert[2]],Fe,ADD_VALUES);
      }
-     } //End of 2D Assembly
+   } //End of 2D Assembly
   MatAssemblyBegin(K,MAT_FINAL_ASSEMBLY);
   MatAssemblyEnd(K,MAT_FINAL_ASSEMBLY);
   VecAssemblyBegin(F);
@@ -200,19 +231,16 @@ void lap_smoother(int dimension, int num_nodes, int num_elements, int num_surf_e
 
   //Removing duplicate points in surf_connectivity
   for(i=0;i< dimension*num_surf_elements;i++){
-
     if(surf_connectivity[i]>num_owned_nodes) continue;
-
    for(j=0;j<len_new;j++)
    {
-
       if(surf_connectivity[i] == local_surf_connectivity[j]+1)
       break;
    }
-
      if (j==len_new)
-        local_surf_connectivity[len_new++] = surf_connectivity[i]-1;
+       local_surf_connectivity[len_new++] = surf_connectivity[i]-1;
    }
+
 
   for(i=0;i<len_new;i++){
     global_surf_connectivity[i]=mapping[local_surf_connectivity[i]];
@@ -279,8 +307,8 @@ void lap_smoother(int dimension, int num_nodes, int num_elements, int num_surf_e
   VecSetFromOptions(U_hy);
 
   for(n=0;n<num_owned_nodes;n++){
-    VecSetValue(U_hx,mapping[n],phys_mesh[2*n],INSERT_VALUES);
-    VecSetValue(U_hy,mapping[n],phys_mesh[2*n+1],INSERT_VALUES);
+    VecSetValue(U_hx,mapping[n],phys_mesh[dimension*n],INSERT_VALUES);
+    VecSetValue(U_hy,mapping[n],phys_mesh[dimension*n+1],INSERT_VALUES);
   }
   
   VecAssemblyBegin(U_hx);
@@ -318,7 +346,7 @@ void lap_smoother(int dimension, int num_nodes, int num_elements, int num_surf_e
    KSPDestroy(&ksp_x);
  }// End of 2D 
 
-    else{ //Beginning of 3D  
+ else{//Beginning of 3D  
      for (Ii=0;Ii<num_elements;Ii++){
 
       holder_new = &(connectivity[(dimension+1)*Ii]);
@@ -328,10 +356,10 @@ void lap_smoother(int dimension, int num_nodes, int num_elements, int num_surf_e
       convert[3]=holder_new[3]-1;
       int counter = 0;
 
-    for(m=0;m<4;m++){
+    for(m=0;m<dimension+1;m++){
       p_value[0]=1.0;p_value[1]=comp_mesh[dimension*convert[m]];p_value[2]=comp_mesh[dimension*convert[m]+1];p_value[3]=comp_mesh[dimension*convert[m]+2];
       A_holder[counter]=p_value[0];A_holder[counter+1]=p_value[1];A_holder[counter+2]=p_value[2];A_holder[counter+3]=p_value[3];
-      counter+=4;
+      counter+=dimension+1;
      }
 //inverse  of a 4x4 matrix [Works thus far: shown to generate correct total volume of a unit cube]
 
@@ -367,9 +395,8 @@ void lap_smoother(int dimension, int num_nodes, int num_elements, int num_surf_e
 
     A_inv_holder[3][3] =  A_holder[0]*A_holder[5]*A_holder[10] - A_holder[0]*A_holder[6]*A_holder[9] - A_holder[4]*A_holder[1]*A_holder[10] + A_holder[4]*A_holder[2]*A_holder[9] + A_holder[8]*A_holder[1]*A_holder[6] - A_holder[8]*A_holder[2]*A_holder[5];
 
-    //determ of a 4x4 matrix [Double check this as well]
     
-     det = A_holder[0]*A_inv_holder[0][0] + A_holder[1]*A_inv_holder[1][0] + A_holder[2]*A_inv_holder[2][0] + A_holder[3]*A_inv_holder[3][0];
+   det = A_holder[0]*A_inv_holder[0][0] + A_holder[1]*A_inv_holder[1][0] + A_holder[2]*A_inv_holder[2][0] + A_holder[3]*A_inv_holder[3][0];
     
 //NOTE: A_inv_holder = A_inv_holder * (1.f/det)
      for(i=0;i<4;i++){
@@ -405,6 +432,8 @@ void lap_smoother(int dimension, int num_nodes, int num_elements, int num_surf_e
      Ke[3][1]=Vol*(grad_holder[3]*grad_holder[1]+grad_holder[7]*grad_holder[5]+grad_holder[11]*grad_holder[9]);
      Ke[3][2]=Vol*(grad_holder[3]*grad_holder[2]+grad_holder[7]*grad_holder[6]+grad_holder[11]*grad_holder[10]);
      Ke[3][3]=Vol*(pow(grad_holder[3],2)+pow(grad_holder[7],2)+pow(grad_holder[11],2));
+
+     Fe=0.0;//As called for in Laplacian Smoothing
 
      if (holder_new[0]<=num_owned_nodes){
        MatSetValue(K,mapping[convert[0]],mapping[convert[0]],Ke[0][0],ADD_VALUES);
@@ -534,10 +563,9 @@ void lap_smoother(int dimension, int num_nodes, int num_elements, int num_surf_e
   VecSetFromOptions(U_hz);
 
   for(n=0;n<num_owned_nodes;n++){
-    VecSetValue(U_hx,mapping[n],phys_mesh[2*n],INSERT_VALUES);
-    VecSetValue(U_hy,mapping[n],phys_mesh[2*n+1],INSERT_VALUES);
-    VecSetValue(U_hz,mapping[n],phys_mesh[2*n+2],INSERT_VALUES);
-
+   VecSetValue(U_hx,mapping[n],phys_mesh[dimension*n],INSERT_VALUES);
+   VecSetValue(U_hy,mapping[n],phys_mesh[dimension*n+1],INSERT_VALUES);
+   VecSetValue(U_hz,mapping[n],phys_mesh[dimension*n+2],INSERT_VALUES);
   }
   
   VecAssemblyBegin(U_hx);
