@@ -140,8 +140,8 @@ contains
     turbine%Tower%QCx(istation)= turbine%Tower%COR(1) + turbine%TowerOffset 
     turbine%Tower%QCy(istation)= turbine%Tower%COR(2)
     turbine%Tower%QCz(istation)= turbine%Tower%COR(3) - rR(istation)*turbine%Towerheight*Svec(3)
-    turbine%Tower%tx(istation)=sin(pitch(istation)/180.0*pi)    
-    turbine%Tower%ty(istation)=cos(pitch(istation)/180.0*pi)    
+    turbine%Tower%tx(istation)= 1.0    
+    turbine%Tower%ty(istation)= 0.0    
     turbine%Tower%tz(istation)= 0.0
     turbine%Tower%C(istation)=ctoR(istation)*turbine%Towerheight
     turbine%Tower%thick(istation)=thick(istation)
@@ -154,6 +154,11 @@ contains
     
     turbine%tower%EAOA_LAST(:)=-666
     turbine%tower%EUn_LAST(:)=0.0
+    
+    !Set the tower body velocity to zero
+    turbine%tower%EVbx(:)=0.0
+    turbine%tower%EVby(:)=0.0
+    turbine%tower%EVbz(:)=0.0
 
     endif
     !========================================================
@@ -208,7 +213,7 @@ contains
             fz=turbine%blade(iblade)%EFZ(ielem)
             ms=turbine%blade(iblade)%EMS(ielem)
             sxe=turbine%blade(iblade)%sex(ielem)
-            sye=turbine%blade(iblade)%sez(ielem)
+            sye=turbine%blade(iblade)%sey(ielem)
             sze=turbine%blade(iblade)%sez(ielem)
 
             call cross(xe-o1,ye-o2,ze-o3,fx,fy,fz,trx,try,trz)

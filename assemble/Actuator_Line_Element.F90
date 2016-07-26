@@ -210,6 +210,9 @@ end type ActuatorLineType
     Re = ur*ElemChord/Visc
     alpha5=alpha
     alpha75=alpha
+    ewrite(2,*) "ielem | urdn | urdc | alpha | Re"
+    ewrite(2,*) "--------------------------------"
+    ewrite(2,*) ielem, urdn, urdc, alpha , Re
    
     !=========================================================
     ! Compute rate of change of Unormal and angle of attack
