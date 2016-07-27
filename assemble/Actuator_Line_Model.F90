@@ -172,6 +172,8 @@ contains
         ewrite(2,*) 'Number of Static Foil Data available for the analysis of the hub: ', nfoils
         Allocate(Turbine(i)%hub%AirfoilData(nfoils))
         
+        turbine(i)%hub%NAirfoilData=nfoils
+        
         do k=1, Turbine(i)%hub%NAirfoilData
             call get_option(trim(turbine_path(i))//"/hub/static_foil_data/foil["//int2str(k-1)//"]/foil_file",Turbine(i)%hub%AirfoilData(k)%afname)   
             ! Read and Store Airfoils
@@ -364,6 +366,11 @@ subroutine get_actuatorline_options
         ! Tower
         if(Turbine(i)%has_tower) then
             call Compute_ActuatorLine_Forces(Turbine(i)%Tower,visc,deltaT)
+        endif
+        
+        ! Hub
+        if(Turbine(i)%has_hub) then
+            call Compute_ActuatorLine_Forces(Turbine(i)%hub,visc,deltaT)
         endif
 
         end do

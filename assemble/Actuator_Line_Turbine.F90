@@ -161,6 +161,46 @@ contains
     turbine%tower%EVbz(:)=0.0
 
     endif
+    
+    !=========================================================
+    ! Create a hub
+    !=========================================================
+    if(turbine%has_hub) then
+    call read_actuatorline_geometry(turbine%hub%geom_file,turbine%hublength,SVec,rR,ctoR,pitch,thick,Nstations)
+    ! Make sure that the spanwise is [0 0 1]
+    Svec = (/0.0,0.0,1.0/)
+    
+    call allocate_actuatorline(Turbine%hub,Nstations)
+   
+    turbine%hub%COR=turbine%origin
+    turbine%hub%NElem=Nstations-1  
+    
+    do istation=1,Nstations
+    turbine%hub%QCx(istation)= turbine%hub%COR(1)  
+    turbine%hub%QCy(istation)= turbine%hub%COR(2)
+    turbine%hub%QCz(istation)= turbine%hub%COR(3) + rR(istation)*turbine%hublength*Svec(3)
+    turbine%hub%tx(istation)= 1.0    
+    turbine%hub%ty(istation)= 0.0    
+    turbine%hub%tz(istation)= 0.0
+    turbine%hub%C(istation)=ctoR(istation)*turbine%hublength
+    turbine%hub%thick(istation)=thick(istation)
+    turbine%hub%pitch(istation)=pitch(istation)/180.0*pi
+    enddo
+    
+    call make_actuatorline_geometry(turbine%hub)
+    ! Populate element Airfoils 
+    call populate_blade_airfoils(turbine%hub%NElem,turbine%hub%NAirfoilData,turbine%hub%EAirfoil,turbine%hub%AirfoilData,turbine%hub%ETtoC)
+    
+    turbine%hub%EAOA_LAST(:)=-666
+    turbine%hub%EUn_LAST(:)=0.0
+    
+    !Set the tower body velocity to zero
+    turbine%hub%EVbx(:)=0.0
+    turbine%hub%EVby(:)=0.0
+    turbine%hub%EVbz(:)=0.0
+
+    endif
+    
     !========================================================
     !Compute a number of global parameters for the turbine
     !========================================================
