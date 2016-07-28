@@ -409,6 +409,12 @@ contains
 
     call initialise_diagnostics(filename, state)
 
+    !! initialise laplacian smoothing if necessary
+    if (have_option("/mesh_adaptivity/mesh_movement/laplacian_smoothing")) then
+       call move_mesh_initialise_laplacian_smoothing(state)
+       call move_mesh_laplacian_smoothing(state)
+    end if
+
     ! Initialise ice_meltrate, read constatns, allocate surface, and calculate melt rate
     if (have_option("/ocean_forcing/iceshelf_meltrate/Holland08")) then
         call melt_surf_init(state(1))
@@ -903,6 +909,12 @@ contains
              if(have_option("/io/stat/output_after_adapts")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)
              call run_diagnostics(state)
  
+             !! initialise laplacian smoothing if necessary
+             if (have_option("/mesh_adaptivity/mesh_movement/laplacian_smoothing")) then
+                call move_mesh_initialise_laplacian_smoothing(state)
+                call move_mesh_laplacian_smoothing(state)
+             end if
+
           end if
        else if(have_option("/mesh_adaptivity/prescribed_adaptivity")) then
           if(do_adapt_state_prescribed(current_time)) then
@@ -917,6 +929,12 @@ contains
 
              if(have_option("/io/stat/output_after_adapts")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)
              call run_diagnostics(state)
+
+             !! initialise laplacian smoothing if necessary
+             if (have_option("/mesh_adaptivity/mesh_movement/laplacian_smoothing")) then
+                call move_mesh_initialise_laplacian_smoothing(state)
+                call move_mesh_laplacian_smoothing(state)
+             end if
 
           end if
 
