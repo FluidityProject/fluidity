@@ -481,6 +481,11 @@ contains
        do i=1,size(sfields)
           if(mesh_dim(sfields(i))/=mesh_dim(l_model)) cycle
           
+          if(sfields(i)%field_type==FIELD_TYPE_CONSTANT) then
+             call vtkwritefield(sfields(i)%val(1), trim(sfields(i)%name))
+             cycle
+          end if
+
           if (sfields(i)%mesh%shape%degree /= 0) then
 
             call remap_field(from_field=sfields(i), to_field=l_model, stat=lstat)
@@ -513,17 +518,9 @@ contains
             call vtkwritesn(l_model%val, trim(sfields(i)%name))
 
           else
+            
+             call vtkwritesc(sfields(i)%val, trim(sfields(i)%name))
 
-            if(sfields(i)%field_type==FIELD_TYPE_CONSTANT) then
-              allocate(tempval(element_count(l_model),1))
-
-              tempval = sfields(i)%val(1)
-              call vtkwritesc(tempval(:,1), trim(sfields(i)%name))
-
-              deallocate(tempval)
-            else
-              call vtkwritesc(sfields(i)%val, trim(sfields(i)%name))
-            end if
 
           end if
           

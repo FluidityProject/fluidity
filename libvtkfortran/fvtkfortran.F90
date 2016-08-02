@@ -57,7 +57,7 @@ module vtkfortran
   public :: vtkopen, vtkclose, vtkpclose, vtkwritemesh, vtkwritesn,&
        & vtkwritesc, vtkwritevn, vtkwritevc, vtkwritetn, vtkwritetc, &
        & vtksetactivescalars, vtksetactivevectors, &
-       & vtksetactivetensors
+       & vtksetactivetensors, vtkwritefield
 
   interface vtkopen
      subroutine vtkopen_c(outName, len1, vtkTitle, len2) bind(c,name="vtkopen")
@@ -115,6 +115,18 @@ module vtkfortran
        integer(kind=c_int) :: elementSizes(*)
      end SUBROUTINE VTKWRITEMESHD
   end interface
+
+  interface vtkwritefield
+     ! Write a global as vtk field data
+     subroutine vtkwritedfield(data, name, len) bind(c)
+       use iso_c_binding
+       implicit none
+       real(kind=c_double), value :: data
+       character(kind=c_char,len=1), dimension(*) :: name
+       integer(kind=c_int) :: len
+     end subroutine vtkwritedfield
+     module procedure vtkwritedfield_f90
+  end interface vtkwritefield
 
   interface vtkwritesn
      ! Write a scalar field to the current vtk file.
@@ -354,6 +366,14 @@ contains
 
     call vtkwritedsn_c(vect, name, len(name))
   end subroutine vtkwritedsn_f90
+
+  subroutine vtkwritedfield_f90(data, name)
+    ! Wrapper routine with nicer interface.
+    real(c_double), intent(in) :: data
+    character(len=*), intent(in) :: name
+
+    call vtkwritedfield(data, name, len(name))
+  end subroutine vtkwritedfield_f90
 
   subroutine vtkwriteisc_f90(vect, name)
     ! Wrapper routine with nicer interface.

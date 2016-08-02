@@ -439,6 +439,26 @@ extern "C" {
     return;
   }
 
+  /**
+     Writes field double (8 byte real) value.
+     @param[in] vect Data .
+     @param[in] name Variable name to be written to metadata.
+     @param[in] len Length of variable name.
+  */
+  void vtkwritedfield(double vect, char *name, int *len){ 
+    string tag(name, *len);
+    vtkDoubleArray *newScalar = vtkDoubleArray::New();
+    newScalar->SetName( tag.c_str() );
+    newScalar->SetNumberOfComponents(1);
+    newScalar->SetNumberOfTuples(1);
+    newScalar->InsertValue(0, vect);
+  
+    dataSet->GetFieldData()->AddArray(newScalar);
+  
+    newScalar->Delete();
+    return;
+  }
+
   void vtkstartc(){}
 
   /**
