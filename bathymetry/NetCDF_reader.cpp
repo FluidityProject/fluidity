@@ -52,7 +52,7 @@ NetCDF_reader::NetCDF_reader(const char *filename, bool _verbose){
   // - unknown
   data_source = unknown;
   {
-    // Check if this is GEBCO 1 minuite data
+    // Check if this is GEBCO 1 minute data
     size_t lenp;
     if(nc_inq_attlen(ncid, NC_GLOBAL, "title", &lenp)==NC_NOERR){
       char *title = new char[lenp+1];
@@ -73,7 +73,9 @@ NetCDF_reader::NetCDF_reader(const char *filename, bool _verbose){
           data_source = coards;
         }else if(string("COARDS/CF-1.0").compare(Conventions)==0){
           data_source = coards_cf10;
-        }
+        }else if(string("COARDS, CF-1.5").compare(Conventions)==0){
+	    data_source=coards_cf10;
+	  }
         delete [] Conventions;
       }
     }
@@ -83,7 +85,7 @@ NetCDF_reader::NetCDF_reader(const char *filename, bool _verbose){
     cout<<"NetCDF dataset - ";
     if(data_source==gebco) cout<<"GEBCO"<<endl;
     if(data_source==coards) cout<<"COARDS"<<endl;
-    if(data_source==coards_cf10) cout<<"COARDS/CF-1.0"<<endl;
+    if(data_source==coards_cf10) cout<<"COARDS/CF-1.0 or CF-1.5"<<endl;
     if(data_source==unknown) cout<<"unknown"<<endl;
   }
   
