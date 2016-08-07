@@ -1446,14 +1446,16 @@ contains
     static_dete = option_count("/io/detectors/static_detector")
     lagrangian_dete = option_count("/io/detectors/lagrangian_detector")
     python_functions_or_files = option_count("/io/detectors/detector_array")
-    python_dete = 0
- 
+
+    ! Count number of detectors in arrays:
+    python_dete = 0 
     do i=1,python_functions_or_files
        write(buffer, "(a,i0,a)") "/io/detectors/detector_array[",i-1,"]"
        call get_option(trim(buffer)//"/number_of_detectors", j)
        python_dete=python_dete+j
     end do
    
+    ! Total number of detectors and groups:
     total_dete=static_dete+lagrangian_dete+python_dete
     default_stat%detector_list%total_num_det=total_dete
 
