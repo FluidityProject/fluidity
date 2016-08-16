@@ -33,8 +33,11 @@ def register_plugin(applies, name, cb):
 
 def configure_plugins(suffix):
   homedir = os.path.expanduser('~')
-  dirs = [os.path.join(homedir, ".diamond", "plugins", suffix),
-      "@prefix@/share/diamond/plugins/" + suffix]
+  dirs=[]
+  if "DIAMOND_CONFIG_PATH" in os.environ:
+    dirs += os.environ["DIAMOND_CONFIG_PATH"].split(":")
+  dirs.append(os.path.join(homedir, ".diamond", "plugins", suffix))
+  dirs.append("@prefix@/share/diamond/plugins/" + suffix)
   if sys.platform != "win32" and sys.platform != "win64":
     dirs.append("/etc/diamond/plugins/" + suffix)
 

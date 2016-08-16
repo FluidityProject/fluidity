@@ -51,24 +51,14 @@ where Re_p is the particle Reynolds number.</a:documentation>
         <ref name="comment"/>
       </element>
       <element name="drag_correlation">
-        <attribute name="name">
-          <value>schiller_naumann_fluent</value>
-        </attribute>
-        <ref name="comment"/>
-      </element>
-      <element name="drag_correlation">
-        <attribute name="name">
-          <value>schiller_naumann_fluidity</value>
-        </attribute>
-        <ref name="comment"/>
-      </element>
-      <element name="drag_correlation">
+        <a:documentation>Fluid-particle drag term by Lain et al. (1999). See the manual for details. </a:documentation>
         <attribute name="name">
           <value>lain_1_1999</value>
         </attribute>
         <ref name="comment"/>
       </element>
       <element name="drag_correlation">
+        <a:documentation>Fluid-particle drag term by Lain et al. (2002). See the manual for details. </a:documentation>
         <attribute name="name">
           <value>lain_2_2002</value>
         </attribute>

@@ -490,6 +490,7 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, scalar_eddy_visc, u, density,
         grad_u = ele_grad_at_quad(u, ele, dshape)
      end if
   end if
+
   scalar_eddy_visc_ele = ele_val_at_quad(scalar_eddy_visc, ele)
   dim = u%dim
   do gi = 1, ngi
@@ -685,11 +686,11 @@ subroutine keps_eddyvisc(state, advdif)
 
   ! Initialise viscosity to background value
   if (have_visc) then
-     ewrite(2,*) "Entering Initialise Viscosity to Background Viscosity"   
+     ewrite(1,*) "Entering Initialise Viscosity to Background Viscosity"   
      ! Checking if the viscosity field is on a discontinuous mesh and the bg_viscosity is on continuous mesh
      ! We need to remap before setting the field as the set subroutine does not remap automatically.
      if (continuity(viscosity)<0 .and. continuity(bg_visc)>=0) then     
-        ewrite(2,*) "Entering background viscosity remap conditional"
+        ewrite(1,*) "Entering background viscosity remap conditional"
         call allocate(visc_dg, viscosity%mesh, "RemappedBackgroundViscosityDG")
         call remap_field(bg_visc,visc_dg,stat)
         if (stat/=0) then
@@ -698,10 +699,10 @@ subroutine keps_eddyvisc(state, advdif)
         call set(viscosity, visc_dg)
         call deallocate(visc_dg)
      else if (continuity(viscosity) == continuity(bg_visc)) then
-        ewrite(2,*) "Continuity of viscosity is the same as the continuity of bg_visc"
+        ewrite(1,*) "Continuity of viscosity is the same as the continuity of bg_visc"
         call set(viscosity, bg_visc)
      end if
-     ewrite(2,*) "Exiting initialise viscosity to bg visc"
+     ewrite(1,*) "Exiting initialise viscosity to bg visc"
   end if
   
   ! Compute the length scale diagnostic field here.
@@ -746,9 +747,12 @@ subroutine keps_eddyvisc(state, advdif)
   ! this is skipped if zero_eddy_viscosity is set - this is the easiest way to
   ! disable feedback from the k-epsilon model back into the rest of the model
   if (.not. have_option(trim(option_path)//'debugging_options/zero_reynolds_stress_tensor')) then
+     ! Although the k-epsilon model assumes isotropic viscosity all terms of the viscosity tensor are modified 
+     ! because of the way CG method treats the viscosity tensor.
      do i = 1, eddy_visc%dim(1)
-           ! Eddy viscosity tensor is assumed to be isotropic in k-epsilon model
-           call set(eddy_visc, i, i, scalar_eddy_visc)
+        do j = 1, eddy_visc%dim(1)
+           call set(eddy_visc, i, j, scalar_eddy_visc)
+        end do
      end do
   end if
 

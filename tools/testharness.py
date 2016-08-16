@@ -404,7 +404,7 @@ if __name__ == "__main__":
                       help="number of tests to run at the same time", default=1)
     parser.add_option("-v", "--valgrind", action="store_true", dest="valgrind")
     parser.add_option("-c", "--clean", action="store_true", dest="clean", default = False)
-    parser.add_option("--just-test", action="store_true", dest="justtest")
+    parser.add_option("--just-test", action="store_true", dest="justtest", default=False)
     parser.add_option("--just-list", action="store_true", dest="justlist")
     parser.add_option("--genpbs", action="store_true", dest="genpbs")
     parser.add_option("-x","--xml-output", dest="xml_outfile", default="", help="filename for xml output")

@@ -2196,19 +2196,18 @@ probably equal to the location of the borehole</a:documentation>
               <a:documentation>Phase interaction options for Fluidity's multiphase flow model</a:documentation>
               <ref name="comment"/>
               <optional>
-                <element name="particle_diameter">
-                  <choice>
-                    <element name="constant">
-                      <ref name="real"/>
-                    </element>
-                    <element name="use_scalar_field">
-                      <ref name="anystring"/>
-                    </element>
-                  </choice>
-                </element>
+                <choice>
+                  <element name="particle_diameter">
+                    <ref name="real"/>
+                  </element>
+                  <element name="particle_dia_use_scalar_field">
+                    <ref name="anystring"/>
+                  </element>
+                </choice>
               </optional>
               <optional>
                 <element name="apply_diameter_cap">
+                  <!-- default value 1.0E-12 -->
                   <element name="lower_cap">
                     <ref name="real"/>
                   </element>

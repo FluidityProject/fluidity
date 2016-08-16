@@ -612,7 +612,7 @@ EOF
     OPTIMISATION_FLAGS="$OPTIMISATION_FLAGS -O3"
     if test "$fcompiler" = "ifort" ; then
       # add inlining and cpu-specific optimisations for intel
-      OPTIMISATION_FLAGS="$OPTIMISATION_FLAGS -ip -xHost"
+      OPTIMISATION_FLAGS="$OPTIMISATION_FLAGS -ip"
     fi
 fi
 
