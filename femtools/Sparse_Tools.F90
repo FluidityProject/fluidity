@@ -29,9 +29,9 @@ module sparse_tools
   !!< This module implements abstract data types for sparse matrices and
   !!< operations on them.
   use FLDebug
+  use Global_Parameters, only: FIELD_NAME_LEN
   use Futils
   use Reference_Counting
-  use Global_Parameters, only: FIELD_NAME_LEN
   use Halo_data_types
   use halos_allocates
   use memory_diagnostics
@@ -774,7 +774,7 @@ contains
     totalmem=rows+1 + lentries
     
     if (ldiag) then
-       allocate(sparsity%centrm(min(rows, columns)), stat=lstat)
+       allocate(sparsity%centrm(rows), stat=lstat)
        if (lstat/=0) goto 42
        totalmem=totalmem + size(sparsity%centrm)
     else

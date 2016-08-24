@@ -158,6 +158,7 @@ extern "C" {
 
     vtkIdType cell[20];
     int *elem = enlist;
+    dataSet->Allocate(ecnt);
     for(unsigned i=0; i<ecnt; i++){
       // Node ordering blues
       if(elementTypes[i] == 9){
@@ -217,6 +218,7 @@ extern "C" {
 
     vtkIdType cell[20];
     int *elem = enlist;
+    dataSet->Allocate(ecnt);
     for(unsigned i=0; i<ecnt; i++){
       // Node ordering blues
       if(elementTypes[i] == 9){
@@ -669,8 +671,11 @@ extern "C" {
     writer->SetDataModeToAppended();
     writer->EncodeAppendedDataOff();
 
-
+#if VTK_MAJOR_VERSION <= 5
     writer->SetInput(dataSet);
+#else
+    writer->SetInputData(dataSet);
+#endif
   
     writer->SetCompressor(compressor);
     compressor->Delete();
@@ -717,7 +722,11 @@ extern "C" {
     writer->SetGhostLevel(1);
     writer->SetStartPiece(*rank);
     writer->SetEndPiece(*rank);
+#if VTK_MAJOR_VERSION <= 5
     writer->SetInput(dataSet);
+#else
+    writer->SetInputData(dataSet);
+#endif
     writer->SetCompressor(compressor);
     
     compressor->Delete();

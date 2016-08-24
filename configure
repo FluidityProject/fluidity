@@ -620,24 +620,30 @@ ac_includes_default="\
 
 ac_subst_vars='LTLIBOBJS
 LIBOBJS
+SED
 HYPERLIGHT
 MEMORY_STATS
 MBA3D
 MBA2D
 MODINC_FLAG
 ARFLAGS
+LIBSPATIALINDEX
 SPATIALINDEXDIR
+SPUDHEADER
+SPUDLIB
 SPUD_ONLY
+FLIBJUDY
 JUDY_CFLAGS
 CLEAN_LIBADAPT
 BUILD_LIBADAPT
+HAVE_LIBSUPERMESH
 DEFINE_MPI
 USE_CPP
 FLLINKER
 LINKER
 FORTRAN_REAL_8
 PROFILING_FLAG
-HAVE_ADJOINT
+IO_ADVANCE_BUG
 HAVE_ZOLTAN
 CXXCPP
 HAVE_PETSC33
@@ -765,10 +771,13 @@ with_exodusii
 enable_petsc_fortran_modules
 with_x
 enable_sam
-with_adjoint
 enable_dp
 enable_profiling
+enable_libsupermesh
+with_judy
+with_libspud_root
 enable_spatialindex_version
+with_spatialindex_root
 with_arpack_lib
 enable_vtk
 enable_2d_adaptivity
@@ -1435,6 +1444,7 @@ Optional Features:
                           rebalancing
   --enable-dp=flag        compile with 64 bit floating point numbers (default)
   --enable-profiling      enable gprof profiling
+  --enable-libsupermesh   enable use of the libsupermesh library
   --enable-spatialindex-version
                           Select required version of spatialindex library:
                           1.8.0
@@ -1460,7 +1470,12 @@ Optional Packages:
   --with-exodusii[=exodus_ROOT]
                           specify where to find lib/ and include/ for exodusii
   --with-x                use the X Window System
-  --with-adjoint=prefix        Prefix where libadjoint is installed
+  --with-judy=<lib>       specify Judy library <lib>
+  --with-libspud-root=<lib>
+                          specify external libspud installation root directory
+  --with-spatialindex-root=<dir>
+                          specify root directory of system spatialindex
+                          installation
   --with-arpack-lib[=<lib>]
                           specify arpack library
   --with-libnuma[=libnuma_library]
@@ -3042,6 +3057,25 @@ case $host_os in *\ *) host_os=`echo "$host_os" | sed 's/ /-/g'`;; esac
 
 
 
+case $host_os in
+     darwin* )
+	     LINUX=no
+         DARWIN=yes
+	     FCFLAGS="-DDARWIN $FCFLAGS"
+	     CXXFLAGS="-DDARWIN -fpermissive $CXXFLAGS"
+	     CPPFLAGS="-DDARWIN $CPPFLAGS"
+# Should really check for Mac OS vs. straight Darwin here, or at least test
+# that the framework is valid
+	     LIBS="$LIBS -framework Carbon";;
+     linux*  )
+       LINUX=yes
+       DARWIN=no;;
+     *       )
+       LINUX=no
+	     DARWIN=no;;
+esac
+
+
 # Find compilers
 { $as_echo "$as_me:${as_lineno-$LINENO}: *** Fishing for legacy fortran compiler." >&5
 $as_echo "$as_me: *** Fishing for legacy fortran compiler." >&6;}
@@ -3770,7 +3804,7 @@ ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 if test -n "$ac_tool_prefix"; then
-  for ac_prog in icc ecc suncc pgcc gcc cc
+  for ac_prog in icc ecc suncc pgcc gcc cc clang
   do
     # Extract the first word of "$ac_tool_prefix$ac_prog", so it can be a program name with args.
 set dummy $ac_tool_prefix$ac_prog; ac_word=$2
@@ -3814,7 +3848,7 @@ fi
 fi
 if test -z "$CC"; then
   ac_ct_CC=$CC
-  for ac_prog in icc ecc suncc pgcc gcc cc
+  for ac_prog in icc ecc suncc pgcc gcc cc clang
 do
   # Extract the first word of "$ac_prog", so it can be a program name with args.
 set dummy $ac_prog; ac_word=$2
@@ -4121,7 +4155,7 @@ if test -z "$CXX"; then
     CXX=$CCC
   else
     if test -n "$ac_tool_prefix"; then
-  for ac_prog in icpc icc ecc sunCC pgCC g++ CC
+  for ac_prog in icpc icc ecc sunCC pgCC g++ CC clang++
   do
     # Extract the first word of "$ac_tool_prefix$ac_prog", so it can be a program name with args.
 set dummy $ac_tool_prefix$ac_prog; ac_word=$2
@@ -4165,7 +4199,7 @@ fi
 fi
 if test -z "$CXX"; then
   ac_ct_CXX=$CXX
-  for ac_prog in icpc icc ecc sunCC pgCC g++ CC
+  for ac_prog in icpc icc ecc sunCC pgCC g++ CC clang++
 do
   # Extract the first word of "$ac_prog", so it can be a program name with args.
 set dummy $ac_prog; ac_word=$2
@@ -4506,6 +4540,12 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 LINKER=$CXX
+
+if $CC -v 2>&1 | grep 'clang'; then
+   USING_CLANG="yes"
+else
+   USING_CLANG="no"
+fi
 
 
 
@@ -10615,7 +10655,9 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
     FCFLAGS="-fbounds-check -Wall -Wimplicit-interface -Wno-surprising ${FCFLAGS}"
     CFLAGS="-fbounds-check -Wall ${CFLAGS}"
     CXXFLAGS="-fbounds-check -Wall ${CXXFLAGS}"
-    LDFLAGS="-rdynamic ${LDFLAGS}"
+    if test "$DARWIN" = "no" ; then
+        LDFLAGS="-rdynamic ${LDFLAGS}"
+    fi
   elif test "$fcompiler" = "g95" ; then
     FFLAGS="-fbounds-check -ftrace=full ${FFLAGS}"
     FCFLAGS="-fbounds-check -ftrace=full ${FCFLAGS}"
@@ -10635,7 +10677,7 @@ EOF
     OPTIMISATION_FLAGS="$OPTIMISATION_FLAGS -O3"
     if test "$fcompiler" = "ifort" ; then
       # add inlining and cpu-specific optimisations for intel
-      OPTIMISATION_FLAGS="$OPTIMISATION_FLAGS -ip -xHost"
+      OPTIMISATION_FLAGS="$OPTIMISATION_FLAGS -ip"
     fi
 
     { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ltcmalloc" >&5
@@ -12576,8 +12618,8 @@ implicit none
       one  = 1.0
       neg_one = -1.0
       ione    = 1
-      call PetscOptionsGetInt(PETSC_NULL_CHARACTER,'-m',m,flg,ierr)
-      call PetscOptionsGetInt(PETSC_NULL_CHARACTER,'-n',n,flg,ierr)
+      call PetscOptionsGetInt(PETSC_NULL_OBJECT, PETSC_NULL_CHARACTER,'-m',m,flg,ierr)
+      call PetscOptionsGetInt(PETSC_NULL_OBJECT, PETSC_NULL_CHARACTER,'-n',n,flg,ierr)
 
       call MatCreate(PETSC_COMM_WORLD,A,ierr)
       call MatSetSizes(A,PETSC_DECIDE,PETSC_DECIDE,m*n,m*n,ierr)
@@ -13321,10 +13363,6 @@ if ac_fn_c_try_link "$LINENO"; then :
     { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 
-                                            $as_echo "#define HAVE_ZOLTAN 1" >>confdefs.h
-
-                                            HAVE_ZOLTAN=yes
-
 
 else
 
@@ -13384,11 +13422,16 @@ fi
 $as_echo "$ac_cv_lib_zoltan_Zoltan_Create" >&6; }
 if test "x$ac_cv_lib_zoltan_Zoltan_Create" = xyes; then :
 
-                                            $as_echo "#define HAVE_ZOLTAN 1" >>confdefs.h
-
-                                            HAVE_ZOLTAN=yes
-
        LIBS="-lzoltan $LIBS"
+else
+
+      { $as_echo "$as_me:${as_lineno-$LINENO}: Fluidity can be built without zoltan by configuring with the --enable-sam flag. This gives limited functionality when using parallel adaptivity. See the manual for more details." >&5
+$as_echo "$as_me: Fluidity can be built without zoltan by configuring with the --enable-sam flag. This gives limited functionality when using parallel adaptivity. See the manual for more details." >&6;}
+      { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "\"Could not link with Zoltan library.\"
+See \`config.log' for more details" "$LINENO" 5; }
+
 fi
 
 
@@ -13404,140 +13447,58 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
 
-fi
+
+  # Small test for zoltan .mod files:
+  ac_ext=${ac_fc_srcext-f}
+ac_compile='$FC -c $FCFLAGS $ac_fcflags_srcext conftest.$ac_ext >&5'
+ac_link='$FC -o conftest$ac_exeext $FCFLAGS $LDFLAGS $ac_fcflags_srcext conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_fc_compiler_gnu
+
+  c_ext=F90
+  # In fluidity's makefile we explicitly add CPPFLAGS, temporarily add it to
+  # FCFLAGS here for this zoltan test:
+  tmpFCFLAGS="$FCFLAGS"
+  FCFLAGS="$FCFLAGS $CPPFLAGS"
+  cat > conftest.$ac_ext <<_ACEOF
+
+      program test_zoltan
+       use zoltan
+      end program test_zoltan
 
 
-HAVE_ADJOINT=no
-CAN_USE_ADJOINT=yes
-WANTS_ADJOINT=yes
-if test "$USING_GFORTRAN" = "yes"; then # check gfortran version >= 4.5
-  # test really is so retarded that it can't lexicographically compare strings
-  if test "$GFORTRAN_4_5_OR_NEWER" != "yes"; then
-    CAN_USE_ADJOINT=no
-  fi
-fi
-
-if test "$with_adjoint" = no || test -z "$with_adjoint"; then
-  WANTS_ADJOINT=no
-fi
-
-if test "$CAN_USE_ADJOINT" = "no" && test "$WANTS_ADJOINT" = "yes"; then
-  echo "Wanted adjoint, but you need gcc > 4.5"
-  exit 1
-fi
-
-if test "$with_adjoint" != "no"; then
-  if test "$CAN_USE_ADJOINT" != "no"; then
-
-# Set variables...
-
-# Check whether --with-adjoint was given.
-if test "${with_adjoint+set}" = set; then :
-  withval=$with_adjoint; adjoint="$withval"
-fi
-
-
-bakLIBS=$LIBS
-tmpLIBS=$LIBS
-tmpCPPFLAGS=$CPPFLAGS
-if test "$adjoint" != "no"; then
-  if test -d "$adjoint" ; then
-    adjoint_LIBS_PATH="$adjoint/lib"
-    adjoint_INCLUDES_PATH="$adjoint/include"
-    # Ensure the comiler finds the library...
-    tmpLIBS="$tmpLIBS -L$adjoint/lib"
-    tmpCPPFLAGS="$tmpCPPFLAGS  -I$adjoint/include -I$adjoint/include/libadjoint"
-  fi
-  if [ -f /usr/lib/libadjoint.a -o -f /usr/local/lib/libadjoint.a ] ; then
-    tmpLIBS="$tmpLIBS -L/usr/lib -L/usr/local/lib/ -ladjoint"
-    tmpCPPFLAGS="$tmpCPPFLAGS -I/usr/include/ -I/usr/local/include/ -I/usr/include/libadjoint -I/usr/local/include/libadjoint"
-  fi
-fi
-LIBS=$tmpLIBS
-CPPFLAGS=$tmpCPPFLAGS
-
-
-ac_ext=c
-ac_cpp='$CPP $CPPFLAGS'
-ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
-ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
-ac_compiler_gnu=$ac_cv_c_compiler_gnu
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for adj_get_adjoint_equation in -ladjoint" >&5
-$as_echo_n "checking for adj_get_adjoint_equation in -ladjoint... " >&6; }
-if ${ac_cv_lib_adjoint_adj_get_adjoint_equation+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-ladjoint  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char adj_get_adjoint_equation ();
-#ifdef F77_DUMMY_MAIN
-
-#  ifdef __cplusplus
-     extern "C"
-#  endif
-   int F77_DUMMY_MAIN() { return 1; }
-
-#endif
-#ifdef FC_DUMMY_MAIN
-#ifndef FC_DUMMY_MAIN_EQ_F77
-#  ifdef __cplusplus
-     extern "C"
-#  endif
-   int FC_DUMMY_MAIN() { return 1; }
-#endif
-#endif
-int
-main ()
-{
-return adj_get_adjoint_equation ();
-  ;
-  return 0;
-}
 _ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_adjoint_adj_get_adjoint_equation=yes
+if ac_fn_fc_try_link "$LINENO"; then :
+
+    { $as_echo "$as_me:${as_lineno-$LINENO}: Great success! Zoltan .mod files exist and are usable" >&5
+$as_echo "$as_me: Great success! Zoltan .mod files exist and are usable" >&6;}
+
 else
-  ac_cv_lib_adjoint_adj_get_adjoint_equation=no
+
+      cp conftest.F90 test_zoltan.F90
+      { $as_echo "$as_me:${as_lineno-$LINENO}: Fluiidity can be build without zoltan by configuring with the --enable-sam flag. This gives limited functionality when using parallel adaptivity. See the manual for more details." >&5
+$as_echo "$as_me: Fluiidity can be build without zoltan by configuring with the --enable-sam flag. This gives limited functionality when using parallel adaptivity. See the manual for more details." >&6;}
+      { $as_echo "$as_me:${as_lineno-$LINENO}: Failed to compile with zoltan.mod fortran module. This means the module can either not be found - please add the necessary -I flag to CPPFLAGS - or, the zoltan fortran module has been compiled with a different (version of the) fortran compiler than you are using to compile fluidity - in which case please rebuild zoltan with the same compiler." >&5
+$as_echo "$as_me: Failed to compile with zoltan.mod fortran module. This means the module can either not be found - please add the necessary -I flag to CPPFLAGS - or, the zoltan fortran module has been compiled with a different (version of the) fortran compiler than you are using to compile fluidity - in which case please rebuild zoltan with the same compiler." >&6;}
+      { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "Failed to find usable zoltan.mod file
+See \`config.log' for more details" "$LINENO" 5; }
+
+
 fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_adjoint_adj_get_adjoint_equation" >&5
-$as_echo "$ac_cv_lib_adjoint_adj_get_adjoint_equation" >&6; }
-if test "x$ac_cv_lib_adjoint_adj_get_adjoint_equation" = xyes; then :
-
-$as_echo "#define HAVE_ADJOINT 1" >>confdefs.h
-HAVE_ADJOINT=yes
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Could not link in libadjoint ...  " >&5
-$as_echo "$as_me: WARNING: Could not link in libadjoint ...  " >&2;};HAVE_ADJOINT=no;LIBS=$bakLIBS
-fi
-
-# Save variables...
-ac_ext=c
+  # And now revert FCFLAGS
+  FCFLAGS="$tmpFCFLAGS"
+  ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
 ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
+  $as_echo "#define HAVE_ZOLTAN 1" >>confdefs.h
 
-
-  fi
-  if test "$HAVE_ADJOINT" = "no" && test "$WANTS_ADJOINT" = "yes"; then
-    echo "Wanted adjoint, but couldn't find it"
-    exit 1
-  fi
+  HAVE_ZOLTAN=yes
 fi
 
 
@@ -13695,6 +13656,72 @@ fi
 if test -z "$FORTRAN_REAL_8" ; then
    as_fn_error $? "none found" "$LINENO" 5
 fi
+
+ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+
+
+ac_ext=${ac_fc_srcext-f}
+ac_compile='$FC -c $FCFLAGS $ac_fcflags_srcext conftest.$ac_ext >&5'
+ac_link='$FC -o conftest$ac_exeext $FCFLAGS $LDFLAGS $ac_fcflags_srcext conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_fc_compiler_gnu
+
+c_ext=F90
+
+if test "$cross_compiling" = yes; then :
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "cannot run test program while cross compiling
+See \`config.log' for more details" "$LINENO" 5; }
+else
+  cat > conftest.$ac_ext <<_ACEOF
+      program main
+
+	implicit none
+
+	integer :: unit = 10
+	integer :: i, data(3)
+
+	open(access='stream', action='write', form='formatted', file='conftest.data', unit=unit)
+	do i = 1, 3
+ 	   write(fmt='(i0)', unit=unit) i
+	end do
+	close(unit=unit)
+
+	open(access='stream', action='read', form='formatted', file='conftest.data', unit=unit)
+	read(fmt='(i1)', advance='no', unit=unit)
+	read(fmt=*, unit=unit) data(1)
+	read(fmt=*, unit=unit) data(2)
+	read(fmt=*, unit=unit) data(3)
+	close(unit=unit)
+
+	if (all(data == (/1,2,3/))) then
+ 	   call exit(0)
+	else
+	   call exit(-1)
+  	end if
+
+      end
+_ACEOF
+if ac_fn_fc_try_run "$LINENO"; then :
+    IO_ADVANCE_BUG="no"
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: fortran compiler has bugged advance io" >&5
+$as_echo "$as_me: fortran compiler has bugged advance io" >&6;}
+  $as_echo "#define IO_ADVANCE_BUG 1" >>confdefs.h
+
+  IO_ADVANCE_BUG="yes"
+
+fi
+rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
+  conftest.$ac_objext conftest.beam conftest.$ac_ext
+fi
+
+
 
 ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
@@ -13910,9 +13937,10 @@ fi
 
 if test "$enable_profiling" = "yes" ; then
   PROFILING_FLAG="-pg"
-  CPPFLAGS="-pg $CPPFLAGS"
   FFLAGS="-pg $FFLAGS"
   FCFLAGS="-pg $FCFLAGS"
+  CFLAGS="-pg $CFLAGS"
+  CXXFLAGS="-pg $CXXFLAGS"
 
   LINKER="$LINKER -pg"
   LIBS="$LIBS -pg"
@@ -13942,6 +13970,145 @@ FC=$MPIF90
 CC=$MPICC
 CXX=$MPICXX
 LINKER=$CXX
+
+# Check whether --enable-libsupermesh was given.
+if test "${enable_libsupermesh+set}" = set; then :
+  enableval=$enable_libsupermesh;
+fi
+
+if test "x$enable_libsupermesh" = "xyes" ; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking libsupermesh" >&5
+$as_echo_n "checking libsupermesh... " >&6; }
+  ac_ext=cpp
+ac_cpp='$CXXCPP $CPPFLAGS'
+ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing libsupermesh_build_rtree" >&5
+$as_echo_n "checking for library containing libsupermesh_build_rtree... " >&6; }
+if ${ac_cv_search_libsupermesh_build_rtree+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_func_search_save_LIBS=$LIBS
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char libsupermesh_build_rtree ();
+#ifdef F77_DUMMY_MAIN
+
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int F77_DUMMY_MAIN() { return 1; }
+
+#endif
+#ifdef FC_DUMMY_MAIN
+#ifndef FC_DUMMY_MAIN_EQ_F77
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int FC_DUMMY_MAIN() { return 1; }
+#endif
+#endif
+int
+main ()
+{
+return libsupermesh_build_rtree ();
+  ;
+  return 0;
+}
+_ACEOF
+for ac_lib in '' supermesh; do
+  if test -z "$ac_lib"; then
+    ac_res="none required"
+  else
+    ac_res=-l$ac_lib
+    LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
+  fi
+  if ac_fn_cxx_try_link "$LINENO"; then :
+  ac_cv_search_libsupermesh_build_rtree=$ac_res
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext
+  if ${ac_cv_search_libsupermesh_build_rtree+:} false; then :
+  break
+fi
+done
+if ${ac_cv_search_libsupermesh_build_rtree+:} false; then :
+
+else
+  ac_cv_search_libsupermesh_build_rtree=no
+fi
+rm conftest.$ac_ext
+LIBS=$ac_func_search_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_search_libsupermesh_build_rtree" >&5
+$as_echo "$ac_cv_search_libsupermesh_build_rtree" >&6; }
+ac_res=$ac_cv_search_libsupermesh_build_rtree
+if test "$ac_res" != no; then :
+  test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
+
+fi
+
+  if test "$ac_cv_search_libsupermesh_build_rtree" = "none required" ; then
+    as_fn_error $? "\"Unexpected error when checking for libsupermesh\"" "$LINENO" 5
+  elif test "$ac_cv_search_libsupermesh_build_rtree" = "no" ; then
+    as_fn_error $? "\"libsupermesh not found\"" "$LINENO" 5
+  else
+    LIBS="$LIBS $ac_cv_search_libsupermesh_build_rtree"
+  fi
+  ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+
+  ac_ext=${ac_fc_srcext-f}
+ac_compile='$FC -c $FCFLAGS $ac_fcflags_srcext conftest.$ac_ext >&5'
+ac_link='$FC -o conftest$ac_exeext $FCFLAGS $LDFLAGS $ac_fcflags_srcext conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_fc_compiler_gnu
+
+  tmpFCFLAGS="$FCFLAGS"
+  FCFLAGS="$FCFLAGS $CPPFLAGS"
+  cat > conftest.$ac_ext <<_ACEOF
+
+      program test_libsupermesh
+       use libsupermesh
+      end program test_libsupermesh
+
+
+_ACEOF
+if ac_fn_fc_try_link "$LINENO"; then :
+
+      { $as_echo "$as_me:${as_lineno-$LINENO}: result: libsupermesh Fortran module found" >&5
+$as_echo "libsupermesh Fortran module found" >&6; }
+
+else
+
+      as_fn_error $? "\"libsupermesh Fortran module not found\"" "$LINENO" 5
+
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+  FCFLAGS="$tmpFCFLAGS"
+  ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+  $as_echo "#define HAVE_LIBSUPERMESH 1" >>confdefs.h
+
+fi
+
 
 # Configure adaptivity
 if test -d libadaptivity ; then
@@ -13987,7 +14154,29 @@ else
 fi
 
 # Configure libjudy
-if test -d libjudy ; then
+
+
+# Check whether --with-judy was given.
+if test "${with_judy+set}" = set; then :
+  withval=$with_judy;
+fi
+
+
+if test -n "$with_judy"; then
+    { $as_echo "$as_me:${as_lineno-$LINENO}: Linking against $with_judy" >&5
+$as_echo "$as_me: Linking against $with_judy" >&6;}
+   	case $with_judy in
+	      -l* | */* | *.a | *.so | *.so.* | *.o) acx_judy_lib="$with_judy" ;;
+	      *) acx_judy_lib="-l$with_judy" ;;
+	esac
+   	FLIBJUDY="$acx_judy_lib"
+    if test "x$ARCHER" != "x" ; then
+        FLLINKER=$CXX
+    else
+        FLLINKER=$FC
+    fi
+
+elif test -d libjudy ; then
     { $as_echo "$as_me:${as_lineno-$LINENO}: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&5
 $as_echo "$as_me: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&6;}
     { $as_echo "$as_me:${as_lineno-$LINENO}: Configuring libjudy" >&5
@@ -14045,11 +14234,13 @@ _ACEOF
     fi
     # this is a workaround for https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=755099
     if echo "$CFLAGS" | grep -q -- "-O[2-3]"; then
-      if test "x$USING_GFORTRAN" = "xyes" -a "x$GFORTRAN_4_8_OR_NEWER" = "xyes"; then
+      if test "x$USING_GFORTRAN" = "xyes" -a "x$GFORTRAN_4_8_OR_NEWER" = "xyes" -a "x$USING_CLANG" = "xno"; then
         JUDY_CFLAGS="$JUDY_CFLAGS -fno-aggressive-loop-optimizations"
       fi
     fi
 
+    LIBJUDY=-ljudy
+    FLIBJUDY="./lib/libjudy.a"
 
 
 cat >> confdefs.h << EOF
@@ -14059,8 +14250,21 @@ else
     as_fn_error $? "\"libjudy directory missing!!\"" "$LINENO" 5
 fi
 
+
 # Configure libspud
-if test -d libspud ; then
+
+# Check whether --with-libspud-root was given.
+if test "${with_libspud_root+set}" = set; then :
+  withval=$with_libspud_root;
+fi
+
+
+if test -n "$with_libspud_root"; then
+   	SPUDLIB="${with_libspud_root}/lib/libspud.a"
+	SPUDHEADER="${with_libspud_root}/include/spud.h"
+	CPPFLAGS="$CPPFLAGS -I${with_libspud_root}/include"
+	FCFLAGS="$FCFLAGS -I${with_libspud_root}/include"
+elif test -d libspud ; then
     { $as_echo "$as_me:${as_lineno-$LINENO}: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&5
 $as_echo "$as_me: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&6;}
     { $as_echo "$as_me:${as_lineno-$LINENO}: Configuring libspud" >&5
@@ -14083,6 +14287,9 @@ $as_echo "$as_me: Building on ARCHER; disabling shared libraries" >&6;}
     if test "$enable_profiling" = "yes" ; then
         CONFIG_FLAG="${CONFIG_FLAG} --enable-profiling"
     fi
+
+    SPUDLIB="${PWD}/lib/libspud.a"
+    SPUDHEADER="${PWD}/include/spud.h"
 
 
 
@@ -14108,10 +14315,18 @@ else
     as_fn_error $? "\"libspud directory missing!!\"" "$LINENO" 5
 fi
 
+
+
 #*************SpatialIndex******
 # Check whether --enable-spatialindex-version was given.
 if test "${enable_spatialindex_version+set}" = set; then :
   enableval=$enable_spatialindex_version;
+fi
+
+
+# Check whether --with-spatialindex-root was given.
+if test "${with_spatialindex_root+set}" = set; then :
+  withval=$with_spatialindex_root;
 fi
 
 
@@ -14122,6 +14337,14 @@ else
   enable_spatialindex_version="1.8.0"
   SPATIALINDEXDIR="spatialindex-1.8.0"
 fi
+
+if test -n "$with_spatialindex_root"; then
+   LIBSPATIALINDEX="${with_spatialindex_root}/lib/libspatialindex.a"
+   CPPFLAGS="$CPPFLAGS -I${with_spatialindex_root}/include/spatialindex/"
+else
+
+LIBSPATIALINDEX="${PWD}/lib/libspatialindex.a"
+
 
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&5
@@ -14145,6 +14368,8 @@ if test "$?" -ne "0"; then
   exit -1
 fi
 cd ../
+fi
+
 
 #*************ARPACK*********
 ac_ext=${ac_fc_srcext-f}
@@ -14360,9 +14585,66 @@ rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
 
     if test "x$search_for_vtk" = "xyes" ; then
-        # Usually the location of the libraries is not a mystery. The
-        # header files are another matter.
-        { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -ldl" >&5
+
+        # Need to check what version of VTK is on the system.
+
+        # User may set the install directory for VTK but use
+        # the default sensible location if not.
+        if test "x$VTK_INSTALL_PREFIX" == "x"; then
+            VTK_INSTALL_PREFIX=/usr/include
+        fi
+
+        # Loop through potential vtk installations and get the highest version number
+        vtk_version=0
+        vtk_include_dir=""
+        vtk_version_file=""
+        for i in $(ls -d $VTK_INSTALL_PREFIX/vtk*) $VTK_INCLUDE; do
+            # VTK 6 has a version macros file
+            if test -r $i/vtkVersionMacros.h; then
+                # Get the version number from the macros file
+                this_vtk_version=$(grep VTK_MAJOR_VERSION $i/vtkVersionMacros.h | sed 's/#define VTK_MAJOR_VERSION //')
+                # Use the latest version available
+                if [ $this_vtk_version -gt $vtk_version ]; then
+                   vtk_version=$this_vtk_version
+                   vtk_include_dir=$i
+                   vtk_version_file="vtkVersionMacros.h"
+                fi
+            # VTK 5 has a configure file that defined the macros
+            elif test -r $i/vtkConfigure.h; then
+                # Get the version number from the configure file
+                this_vtk_version=$(grep VTK_MAJOR_VERSION $i/vtkConfigure.h | sed 's/#define VTK_MAJOR_VERSION //')
+                # Use the latest version available
+                if [ $this_vtk_version -gt $vtk_version ]; then
+                   vtk_version=$this_vtk_version
+                   vtk_include_dir=$i
+                   vtk_version_file="vtkConfigure.h"
+                fi
+            else
+              { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Found VTK folder $i but could not find file to get version." >&5
+$as_echo "$as_me: WARNING: Found VTK folder $i but could not find file to get version." >&2;}
+            fi
+        done
+
+        # Add to include path
+        as_ac_Header=`$as_echo "ac_cv_header_$vtk_include_dir/$vtk_version_file" | $as_tr_sh`
+ac_fn_cxx_check_header_mongrel "$LINENO" "$vtk_include_dir/$vtk_version_file" "$as_ac_Header" "$ac_includes_default"
+if eval test \"x\$"$as_ac_Header"\" = x"yes"; then :
+  CPPFLAGS="$CPPFLAGS -I$vtk_include_dir -DHAVE_VTK=1"
+                         VTK=yes
+else
+  as_fn_error $? "Cannot find vtk installation." "$LINENO" 5
+fi
+
+
+
+        { $as_echo "$as_me:${as_lineno-$LINENO}: Found and using VTK major version: $vtk_version" >&5
+$as_echo "$as_me: Found and using VTK major version: $vtk_version" >&6;}
+
+        # Link the correct libraries depending on the version
+        if [ "x$vtk_version" == "x5" ]; then
+            # Usually the location of the libraries is not a mystery. The
+            # header files are another matter.
+            { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -ldl" >&5
 $as_echo_n "checking for main in -ldl... " >&6; }
 if ${ac_cv_lib_dl_main+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -14417,62 +14699,7 @@ _ACEOF
 
 fi
 
-        { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lvtksys" >&5
-$as_echo_n "checking for main in -lvtksys... " >&6; }
-if ${ac_cv_lib_vtksys_main+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lvtksys  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-
-#ifdef F77_DUMMY_MAIN
-
-#  ifdef __cplusplus
-     extern "C"
-#  endif
-   int F77_DUMMY_MAIN() { return 1; }
-
-#endif
-#ifdef FC_DUMMY_MAIN
-#ifndef FC_DUMMY_MAIN_EQ_F77
-#  ifdef __cplusplus
-     extern "C"
-#  endif
-   int FC_DUMMY_MAIN() { return 1; }
-#endif
-#endif
-int
-main ()
-{
-return main ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_cxx_try_link "$LINENO"; then :
-  ac_cv_lib_vtksys_main=yes
-else
-  ac_cv_lib_vtksys_main=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_vtksys_main" >&5
-$as_echo "$ac_cv_lib_vtksys_main" >&6; }
-if test "x$ac_cv_lib_vtksys_main" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBVTKSYS 1
-_ACEOF
-
-  LIBS="-lvtksys $LIBS"
-
-fi
-
-        { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lvtkCommon" >&5
+            { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lvtkCommon" >&5
 $as_echo_n "checking for main in -lvtkCommon... " >&6; }
 if ${ac_cv_lib_vtkCommon_main+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -14527,9 +14754,9 @@ _ACEOF
 
 else
   if test "x$VTK_LIBS" != "x" ; then
-                LIBS="$LIBS -L$VTK_LIBS"
-                unset ac_cv_lib_vtkCommon_main
-                { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lvtkCommon" >&5
+                    LIBS="$LIBS -L$VTK_LIBS"
+                    unset ac_cv_lib_vtkCommon_main
+                    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lvtkCommon" >&5
 $as_echo_n "checking for main in -lvtkCommon... " >&6; }
 if ${ac_cv_lib_vtkCommon_main+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -14584,19 +14811,19 @@ _ACEOF
 
 else
 
-                      as_fn_error $? "Cannot find vtk installation." "$LINENO" 5
-                      exit -1
+                          as_fn_error $? "Cannot find vtk installation." "$LINENO" 5
+                          exit -1
 
 fi
 
-             else
-                as_fn_error $? "Cannot find vtk installation." "$LINENO" 5
-                exit -1
-             fi
+                 else
+                    as_fn_error $? "Cannot find vtk installation." "$LINENO" 5
+                    exit -1
+                 fi
 
 fi
 
-        { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lvtkzlib" >&5
+            { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lvtkzlib" >&5
 $as_echo_n "checking for main in -lvtkzlib... " >&6; }
 if ${ac_cv_lib_vtkzlib_main+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -14651,7 +14878,7 @@ _ACEOF
 
 fi
 
-        { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lvtkexpat" >&5
+            { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lvtkexpat" >&5
 $as_echo_n "checking for main in -lvtkexpat... " >&6; }
 if ${ac_cv_lib_vtkexpat_main+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -14706,7 +14933,7 @@ _ACEOF
 
 fi
 
-        { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lvtkFiltering" >&5
+            { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lvtkFiltering" >&5
 $as_echo_n "checking for main in -lvtkFiltering... " >&6; }
 if ${ac_cv_lib_vtkFiltering_main+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -14761,7 +14988,7 @@ _ACEOF
 
 fi
 
-        { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lvtkGraphics" >&5
+            { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lvtkGraphics" >&5
 $as_echo_n "checking for main in -lvtkGraphics... " >&6; }
 if ${ac_cv_lib_vtkGraphics_main+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -14816,7 +15043,7 @@ _ACEOF
 
 fi
 
-        { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lvtkIO" >&5
+            { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lvtkIO" >&5
 $as_echo_n "checking for main in -lvtkIO... " >&6; }
 if ${ac_cv_lib_vtkIO_main+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -14872,28 +15099,28 @@ _ACEOF
 fi
 
 
-        # check at the usual places:
-        for i in $(ls -d /usr/include/vtk*) $VTK_INCLUDE; do
-            if test -r $i/vtkCellData.h; then
-                CPPFLAGS="-I$i $CPPFLAGS"
-            fi
-        done
-        ac_fn_cxx_check_header_mongrel "$LINENO" "vtkCellData.h" "ac_cv_header_vtkCellData_h" "$ac_includes_default"
+            # check at the usual places:
+            for i in $(ls -d /usr/include/vtk*) $VTK_INCLUDE; do
+                if test -r $i/vtkCellData.h; then
+                    CPPFLAGS="-I$i $CPPFLAGS"
+                fi
+            done
+            ac_fn_cxx_check_header_mongrel "$LINENO" "vtkCellData.h" "ac_cv_header_vtkCellData_h" "$ac_includes_default"
 if test "x$ac_cv_header_vtkCellData_h" = xyes; then :
   CPPFLAGS="$CPPFLAGS -DHAVE_VTK=1"
-                VTK=yes
+                    VTK=yes
 
 else
   ac_fn_cxx_check_header_mongrel "$LINENO" "vtk-5.0/vtkCellData.h" "ac_cv_header_vtk_5_0_vtkCellData_h" "$ac_includes_default"
 if test "x$ac_cv_header_vtk_5_0_vtkCellData_h" = xyes; then :
   CPPFLAGS="$CPPFLAGS -DHAVE_VTK=1"
-                        VTK=yes
-                        vtk_header_relative_path="vtk-5.0/"
+                            VTK=yes
+                            vtk_header_relative_path="vtk-5.0/"
 
 else
 
-                        as_fn_error $? "Cannot find vtk installation." "$LINENO" 5
-                        exit -1
+                            as_fn_error $? "Cannot find vtk installation." "$LINENO" 5
+                            exit -1
 
 fi
 
@@ -14902,6 +15129,575 @@ fi
 fi
 
 
+        elif [ "x$vtk_version" == "x6" ]; then
+            if test -d /usr/lib64/vtk ; then
+                LIBS="$LIBS -L/usr/lib64/vtk"
+            fi
+            { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lvtkCommonCore" >&5
+$as_echo_n "checking for main in -lvtkCommonCore... " >&6; }
+if ${ac_cv_lib_vtkCommonCore_main+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lvtkCommonCore  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+#ifdef F77_DUMMY_MAIN
+
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int F77_DUMMY_MAIN() { return 1; }
+
+#endif
+#ifdef FC_DUMMY_MAIN
+#ifndef FC_DUMMY_MAIN_EQ_F77
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int FC_DUMMY_MAIN() { return 1; }
+#endif
+#endif
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"; then :
+  ac_cv_lib_vtkCommonCore_main=yes
+else
+  ac_cv_lib_vtkCommonCore_main=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_vtkCommonCore_main" >&5
+$as_echo "$ac_cv_lib_vtkCommonCore_main" >&6; }
+if test "x$ac_cv_lib_vtkCommonCore_main" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBVTKCOMMONCORE 1
+_ACEOF
+
+  LIBS="-lvtkCommonCore $LIBS"
+
+else
+  if test "x$VTK_LIBS" != "x" ; then
+                    LIBS="$LIBS -L$VTK_LIBS"
+                    unset ac_cv_lib_vtkCommonCore_main
+                    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lvtkCommonCore" >&5
+$as_echo_n "checking for main in -lvtkCommonCore... " >&6; }
+if ${ac_cv_lib_vtkCommonCore_main+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lvtkCommonCore  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+#ifdef F77_DUMMY_MAIN
+
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int F77_DUMMY_MAIN() { return 1; }
+
+#endif
+#ifdef FC_DUMMY_MAIN
+#ifndef FC_DUMMY_MAIN_EQ_F77
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int FC_DUMMY_MAIN() { return 1; }
+#endif
+#endif
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"; then :
+  ac_cv_lib_vtkCommonCore_main=yes
+else
+  ac_cv_lib_vtkCommonCore_main=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_vtkCommonCore_main" >&5
+$as_echo "$ac_cv_lib_vtkCommonCore_main" >&6; }
+if test "x$ac_cv_lib_vtkCommonCore_main" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBVTKCOMMONCORE 1
+_ACEOF
+
+  LIBS="-lvtkCommonCore $LIBS"
+
+else
+
+                          as_fn_error $? "Cannot find vtk installation." "$LINENO" 5
+                          exit -1
+
+fi
+
+                 else
+                    as_fn_error $? "Cannot find vtk installation." "$LINENO" 5
+                    exit -1
+                 fi
+
+fi
+
+            { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lvtkIOXML" >&5
+$as_echo_n "checking for main in -lvtkIOXML... " >&6; }
+if ${ac_cv_lib_vtkIOXML_main+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lvtkIOXML  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+#ifdef F77_DUMMY_MAIN
+
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int F77_DUMMY_MAIN() { return 1; }
+
+#endif
+#ifdef FC_DUMMY_MAIN
+#ifndef FC_DUMMY_MAIN_EQ_F77
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int FC_DUMMY_MAIN() { return 1; }
+#endif
+#endif
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"; then :
+  ac_cv_lib_vtkIOXML_main=yes
+else
+  ac_cv_lib_vtkIOXML_main=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_vtkIOXML_main" >&5
+$as_echo "$ac_cv_lib_vtkIOXML_main" >&6; }
+if test "x$ac_cv_lib_vtkIOXML_main" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBVTKIOXML 1
+_ACEOF
+
+  LIBS="-lvtkIOXML $LIBS"
+
+fi
+
+            { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lvtkIOParallel" >&5
+$as_echo_n "checking for main in -lvtkIOParallel... " >&6; }
+if ${ac_cv_lib_vtkIOParallel_main+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lvtkIOParallel  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+#ifdef F77_DUMMY_MAIN
+
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int F77_DUMMY_MAIN() { return 1; }
+
+#endif
+#ifdef FC_DUMMY_MAIN
+#ifndef FC_DUMMY_MAIN_EQ_F77
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int FC_DUMMY_MAIN() { return 1; }
+#endif
+#endif
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"; then :
+  ac_cv_lib_vtkIOParallel_main=yes
+else
+  ac_cv_lib_vtkIOParallel_main=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_vtkIOParallel_main" >&5
+$as_echo "$ac_cv_lib_vtkIOParallel_main" >&6; }
+if test "x$ac_cv_lib_vtkIOParallel_main" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBVTKIOPARALLEL 1
+_ACEOF
+
+  LIBS="-lvtkIOParallel $LIBS"
+
+fi
+
+            { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lvtkIOParallelXML" >&5
+$as_echo_n "checking for main in -lvtkIOParallelXML... " >&6; }
+if ${ac_cv_lib_vtkIOParallelXML_main+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lvtkIOParallelXML  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+#ifdef F77_DUMMY_MAIN
+
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int F77_DUMMY_MAIN() { return 1; }
+
+#endif
+#ifdef FC_DUMMY_MAIN
+#ifndef FC_DUMMY_MAIN_EQ_F77
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int FC_DUMMY_MAIN() { return 1; }
+#endif
+#endif
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"; then :
+  ac_cv_lib_vtkIOParallelXML_main=yes
+else
+  ac_cv_lib_vtkIOParallelXML_main=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_vtkIOParallelXML_main" >&5
+$as_echo "$ac_cv_lib_vtkIOParallelXML_main" >&6; }
+if test "x$ac_cv_lib_vtkIOParallelXML_main" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBVTKIOPARALLELXML 1
+_ACEOF
+
+  LIBS="-lvtkIOParallelXML $LIBS"
+
+fi
+
+            { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lvtkIOCore" >&5
+$as_echo_n "checking for main in -lvtkIOCore... " >&6; }
+if ${ac_cv_lib_vtkIOCore_main+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lvtkIOCore  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+#ifdef F77_DUMMY_MAIN
+
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int F77_DUMMY_MAIN() { return 1; }
+
+#endif
+#ifdef FC_DUMMY_MAIN
+#ifndef FC_DUMMY_MAIN_EQ_F77
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int FC_DUMMY_MAIN() { return 1; }
+#endif
+#endif
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"; then :
+  ac_cv_lib_vtkIOCore_main=yes
+else
+  ac_cv_lib_vtkIOCore_main=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_vtkIOCore_main" >&5
+$as_echo "$ac_cv_lib_vtkIOCore_main" >&6; }
+if test "x$ac_cv_lib_vtkIOCore_main" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBVTKIOCORE 1
+_ACEOF
+
+  LIBS="-lvtkIOCore $LIBS"
+
+fi
+
+            { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lvtkCommonDataModel" >&5
+$as_echo_n "checking for main in -lvtkCommonDataModel... " >&6; }
+if ${ac_cv_lib_vtkCommonDataModel_main+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lvtkCommonDataModel  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+#ifdef F77_DUMMY_MAIN
+
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int F77_DUMMY_MAIN() { return 1; }
+
+#endif
+#ifdef FC_DUMMY_MAIN
+#ifndef FC_DUMMY_MAIN_EQ_F77
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int FC_DUMMY_MAIN() { return 1; }
+#endif
+#endif
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"; then :
+  ac_cv_lib_vtkCommonDataModel_main=yes
+else
+  ac_cv_lib_vtkCommonDataModel_main=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_vtkCommonDataModel_main" >&5
+$as_echo "$ac_cv_lib_vtkCommonDataModel_main" >&6; }
+if test "x$ac_cv_lib_vtkCommonDataModel_main" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBVTKCOMMONDATAMODEL 1
+_ACEOF
+
+  LIBS="-lvtkCommonDataModel $LIBS"
+
+fi
+
+            { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lvtkCommonExecutionModel" >&5
+$as_echo_n "checking for main in -lvtkCommonExecutionModel... " >&6; }
+if ${ac_cv_lib_vtkCommonExecutionModel_main+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lvtkCommonExecutionModel  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+#ifdef F77_DUMMY_MAIN
+
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int F77_DUMMY_MAIN() { return 1; }
+
+#endif
+#ifdef FC_DUMMY_MAIN
+#ifndef FC_DUMMY_MAIN_EQ_F77
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int FC_DUMMY_MAIN() { return 1; }
+#endif
+#endif
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"; then :
+  ac_cv_lib_vtkCommonExecutionModel_main=yes
+else
+  ac_cv_lib_vtkCommonExecutionModel_main=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_vtkCommonExecutionModel_main" >&5
+$as_echo "$ac_cv_lib_vtkCommonExecutionModel_main" >&6; }
+if test "x$ac_cv_lib_vtkCommonExecutionModel_main" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBVTKCOMMONEXECUTIONMODEL 1
+_ACEOF
+
+  LIBS="-lvtkCommonExecutionModel $LIBS"
+
+fi
+
+            { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lvtkIOLegacy" >&5
+$as_echo_n "checking for main in -lvtkIOLegacy... " >&6; }
+if ${ac_cv_lib_vtkIOLegacy_main+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lvtkIOLegacy  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+#ifdef F77_DUMMY_MAIN
+
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int F77_DUMMY_MAIN() { return 1; }
+
+#endif
+#ifdef FC_DUMMY_MAIN
+#ifndef FC_DUMMY_MAIN_EQ_F77
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int FC_DUMMY_MAIN() { return 1; }
+#endif
+#endif
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"; then :
+  ac_cv_lib_vtkIOLegacy_main=yes
+else
+  ac_cv_lib_vtkIOLegacy_main=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_vtkIOLegacy_main" >&5
+$as_echo "$ac_cv_lib_vtkIOLegacy_main" >&6; }
+if test "x$ac_cv_lib_vtkIOLegacy_main" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBVTKIOLEGACY 1
+_ACEOF
+
+  LIBS="-lvtkIOLegacy $LIBS"
+
+fi
+
+            { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lvtkFiltersGeneral" >&5
+$as_echo_n "checking for main in -lvtkFiltersGeneral... " >&6; }
+if ${ac_cv_lib_vtkFiltersGeneral_main+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lvtkFiltersGeneral  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+#ifdef F77_DUMMY_MAIN
+
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int F77_DUMMY_MAIN() { return 1; }
+
+#endif
+#ifdef FC_DUMMY_MAIN
+#ifndef FC_DUMMY_MAIN_EQ_F77
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int FC_DUMMY_MAIN() { return 1; }
+#endif
+#endif
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"; then :
+  ac_cv_lib_vtkFiltersGeneral_main=yes
+else
+  ac_cv_lib_vtkFiltersGeneral_main=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_vtkFiltersGeneral_main" >&5
+$as_echo "$ac_cv_lib_vtkFiltersGeneral_main" >&6; }
+if test "x$ac_cv_lib_vtkFiltersGeneral_main" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBVTKFILTERSGENERAL 1
+_ACEOF
+
+  LIBS="-lvtkFiltersGeneral $LIBS"
+
+fi
+
+        fi
     fi
 fi
 cat > include/vtk.h <<EOF
@@ -15232,7 +16028,141 @@ fi
 
 #*******************
 
-ac_config_files="$ac_config_files Makefile debug/Makefile bathymetry/Makefile ocean_forcing/Makefile ocean_forcing/tests/Makefile sediments/Makefile hyperlight/Makefile femtools/Makefile femtools/tests/Makefile forward_interfaces/Makefile horizontal_adaptivity/Makefile horizontal_adaptivity/tests/Makefile preprocessor/Makefile error_measures/Makefile error_measures/tests/Makefile parameterisation/Makefile parameterisation/tests/Makefile fldecomp/Makefile assemble/Makefile assemble/tests/Makefile diagnostics/Makefile main/Makefile tools/Makefile tools/version-info python/setup.py adjoint/Makefile adjoint/tests/Makefile climatology/Makefile libmba2d/Makefile libmba3d/Makefile libjudy/Makefile libjudy/src/Makefile libjudy/src/JudyCommon/Makefile libjudy/src/Judy1/Makefile libjudy/src/JudyL/Makefile libjudy/src/JudySL/Makefile libjudy/src/JudyHS/Makefile libwm/Makefile libvtkfortran/Makefile schemas/flml reduced_modelling/Makefile"
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for a sed that does not truncate output" >&5
+$as_echo_n "checking for a sed that does not truncate output... " >&6; }
+if ${ac_cv_path_SED+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+            ac_script=s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/
+     for ac_i in 1 2 3 4 5 6 7; do
+       ac_script="$ac_script$as_nl$ac_script"
+     done
+     echo "$ac_script" 2>/dev/null | sed 99q >conftest.sed
+     { ac_script=; unset ac_script;}
+     if test -z "$SED"; then
+  ac_path_SED_found=false
+  # Loop through the user's path and test for each of PROGNAME-LIST
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_prog in sed gsed; do
+    for ac_exec_ext in '' $ac_executable_extensions; do
+      ac_path_SED="$as_dir/$ac_prog$ac_exec_ext"
+      as_fn_executable_p "$ac_path_SED" || continue
+# Check for GNU ac_path_SED and select it if it is found.
+  # Check for GNU $ac_path_SED
+case `"$ac_path_SED" --version 2>&1` in
+*GNU*)
+  ac_cv_path_SED="$ac_path_SED" ac_path_SED_found=:;;
+*)
+  ac_count=0
+  $as_echo_n 0123456789 >"conftest.in"
+  while :
+  do
+    cat "conftest.in" "conftest.in" >"conftest.tmp"
+    mv "conftest.tmp" "conftest.in"
+    cp "conftest.in" "conftest.nl"
+    $as_echo '' >> "conftest.nl"
+    "$ac_path_SED" -f conftest.sed < "conftest.nl" >"conftest.out" 2>/dev/null || break
+    diff "conftest.out" "conftest.nl" >/dev/null 2>&1 || break
+    as_fn_arith $ac_count + 1 && ac_count=$as_val
+    if test $ac_count -gt ${ac_path_SED_max-0}; then
+      # Best one so far, save it but keep looking for a better one
+      ac_cv_path_SED="$ac_path_SED"
+      ac_path_SED_max=$ac_count
+    fi
+    # 10*(2^10) chars as input seems more than enough
+    test $ac_count -gt 10 && break
+  done
+  rm -f conftest.in conftest.tmp conftest.nl conftest.out;;
+esac
+
+      $ac_path_SED_found && break 3
+    done
+  done
+  done
+IFS=$as_save_IFS
+  if test -z "$ac_cv_path_SED"; then
+    as_fn_error $? "no acceptable sed could be found in \$PATH" "$LINENO" 5
+  fi
+else
+  ac_cv_path_SED=$SED
+fi
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_path_SED" >&5
+$as_echo "$ac_cv_path_SED" >&6; }
+ SED="$ac_cv_path_SED"
+  rm -f conftest.sed
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for grep that handles long lines and -e" >&5
+$as_echo_n "checking for grep that handles long lines and -e... " >&6; }
+if ${ac_cv_path_GREP+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if test -z "$GREP"; then
+  ac_path_GREP_found=false
+  # Loop through the user's path and test for each of PROGNAME-LIST
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH$PATH_SEPARATOR/usr/xpg4/bin
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_prog in grep ggrep; do
+    for ac_exec_ext in '' $ac_executable_extensions; do
+      ac_path_GREP="$as_dir/$ac_prog$ac_exec_ext"
+      as_fn_executable_p "$ac_path_GREP" || continue
+# Check for GNU ac_path_GREP and select it if it is found.
+  # Check for GNU $ac_path_GREP
+case `"$ac_path_GREP" --version 2>&1` in
+*GNU*)
+  ac_cv_path_GREP="$ac_path_GREP" ac_path_GREP_found=:;;
+*)
+  ac_count=0
+  $as_echo_n 0123456789 >"conftest.in"
+  while :
+  do
+    cat "conftest.in" "conftest.in" >"conftest.tmp"
+    mv "conftest.tmp" "conftest.in"
+    cp "conftest.in" "conftest.nl"
+    $as_echo 'GREP' >> "conftest.nl"
+    "$ac_path_GREP" -e 'GREP$' -e '-(cannot match)-' < "conftest.nl" >"conftest.out" 2>/dev/null || break
+    diff "conftest.out" "conftest.nl" >/dev/null 2>&1 || break
+    as_fn_arith $ac_count + 1 && ac_count=$as_val
+    if test $ac_count -gt ${ac_path_GREP_max-0}; then
+      # Best one so far, save it but keep looking for a better one
+      ac_cv_path_GREP="$ac_path_GREP"
+      ac_path_GREP_max=$ac_count
+    fi
+    # 10*(2^10) chars as input seems more than enough
+    test $ac_count -gt 10 && break
+  done
+  rm -f conftest.in conftest.tmp conftest.nl conftest.out;;
+esac
+
+      $ac_path_GREP_found && break 3
+    done
+  done
+  done
+IFS=$as_save_IFS
+  if test -z "$ac_cv_path_GREP"; then
+    as_fn_error $? "no acceptable grep could be found in $PATH$PATH_SEPARATOR/usr/xpg4/bin" "$LINENO" 5
+  fi
+else
+  ac_cv_path_GREP=$GREP
+fi
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_path_GREP" >&5
+$as_echo "$ac_cv_path_GREP" >&6; }
+ GREP="$ac_cv_path_GREP"
+
+
+
+ac_config_files="$ac_config_files Makefile debug/Makefile bathymetry/Makefile ocean_forcing/Makefile ocean_forcing/tests/Makefile sediments/Makefile hyperlight/Makefile femtools/Makefile femtools/tests/Makefile forward_interfaces/Makefile horizontal_adaptivity/Makefile horizontal_adaptivity/tests/Makefile preprocessor/Makefile error_measures/Makefile error_measures/tests/Makefile parameterisation/Makefile parameterisation/tests/Makefile fldecomp/Makefile assemble/Makefile assemble/tests/Makefile diagnostics/Makefile main/Makefile tools/Makefile tools/version-info python/setup.py climatology/Makefile libmba2d/Makefile libmba3d/Makefile libjudy/Makefile libjudy/src/Makefile libjudy/src/JudyCommon/Makefile libjudy/src/Judy1/Makefile libjudy/src/JudyL/Makefile libjudy/src/JudySL/Makefile libjudy/src/JudyHS/Makefile libwm/Makefile libvtkfortran/Makefile reduced_modelling/Makefile tests/tools.mk"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -15950,8 +16880,6 @@ do
     "tools/Makefile") CONFIG_FILES="$CONFIG_FILES tools/Makefile" ;;
     "tools/version-info") CONFIG_FILES="$CONFIG_FILES tools/version-info" ;;
     "python/setup.py") CONFIG_FILES="$CONFIG_FILES python/setup.py" ;;
-    "adjoint/Makefile") CONFIG_FILES="$CONFIG_FILES adjoint/Makefile" ;;
-    "adjoint/tests/Makefile") CONFIG_FILES="$CONFIG_FILES adjoint/tests/Makefile" ;;
     "climatology/Makefile") CONFIG_FILES="$CONFIG_FILES climatology/Makefile" ;;
     "libmba2d/Makefile") CONFIG_FILES="$CONFIG_FILES libmba2d/Makefile" ;;
     "libmba3d/Makefile") CONFIG_FILES="$CONFIG_FILES libmba3d/Makefile" ;;
@@ -15964,8 +16892,8 @@ do
     "libjudy/src/JudyHS/Makefile") CONFIG_FILES="$CONFIG_FILES libjudy/src/JudyHS/Makefile" ;;
     "libwm/Makefile") CONFIG_FILES="$CONFIG_FILES libwm/Makefile" ;;
     "libvtkfortran/Makefile") CONFIG_FILES="$CONFIG_FILES libvtkfortran/Makefile" ;;
-    "schemas/flml") CONFIG_FILES="$CONFIG_FILES schemas/flml" ;;
     "reduced_modelling/Makefile") CONFIG_FILES="$CONFIG_FILES reduced_modelling/Makefile" ;;
+    "tests/tools.mk") CONFIG_FILES="$CONFIG_FILES tests/tools.mk" ;;
 
   *) as_fn_error $? "invalid argument: \`$ac_config_target'" "$LINENO" 5;;
   esac

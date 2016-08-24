@@ -33,9 +33,9 @@ module reserve_state_module
   !!< them are also saved. After an adapt, all this information is reinserted
   !!< into state
   
-  use fields
   use global_parameters, only: OPTION_PATH_LEN
   use spud
+  use fields
   use state_module
   
   implicit none

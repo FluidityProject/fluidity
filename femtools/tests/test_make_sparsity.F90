@@ -2,6 +2,7 @@ subroutine test_make_sparsity
 
   use vtk_interfaces
   use fields
+  use sparse_tools
   use sparsity_patterns
   use state_module
   use unittest_tools

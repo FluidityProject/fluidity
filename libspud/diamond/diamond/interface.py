@@ -156,7 +156,12 @@ class Diamond:
 
     self.logofile = logofile
     if self.logofile is not None:
-      gtk.window_set_default_icon_from_file(self.logofile)
+      for l in self.logofile:
+		  try:
+			gtk.window_set_default_icon_from_file(l)
+			break
+		  except:
+		    pass
 
     self.init_treemodel()
 
@@ -617,8 +622,14 @@ class Diamond:
                       "along with Diamond.  If not, see http://www.gnu.org/licenses/.")
 
     if self.logofile is not None:
-      logo = gtk.gdk.pixbuf_new_from_file(self.logofile)
-      about.set_logo(logo)
+      for l in self.logofile:
+        try:
+          logo = gtk.gdk.pixbuf_new_from_file(l)
+          about.set_logo(logo)
+          break
+        except:
+          pass
+        
       
     try:
       image = about.get_children()[0].get_children()[0].get_children()[0]
@@ -626,7 +637,8 @@ class Diamond:
     except:
       pass
     
-    about.show()
+    about.run()
+    about.destroy()
 
     return
 

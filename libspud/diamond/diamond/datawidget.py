@@ -385,6 +385,8 @@ class DataWidget(gtk.VBox):
            and (self.node.data is None
                 or self.node.data.split(" ")[j + i * dim2] != entry_values[j + i * dim2])):
           changed = True
+          break
+
     if not changed:
       return True
     elif (self.node.data is None and False in self.interacted) or "" in entry_values:
@@ -461,10 +463,10 @@ class DataWidget(gtk.VBox):
     """
 
     dim1, dim2 = self.node.tensor_shape(self.geometry_dim_tree)
-    if not self.interacted[col + row * dim2]:
-      self.interacted[col + row * dim2] = True
+    if not self.interacted[row + col * dim2]:
+      self.interacted[row + col * dim2] = True
       if self.node.is_symmetric_tensor(self.geometry_dim_tree):
-        self.interacted[row + col * dim1] = True
+        self.interacted[col + row * dim1] = True
       if self.node.data is None:
         widget.set_text("")
         widget.modify_text(gtk.STATE_NORMAL, gtk.gdk.color_parse("black"))

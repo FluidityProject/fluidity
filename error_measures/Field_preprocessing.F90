@@ -2,11 +2,12 @@
 
 module field_preprocessing_module
 
+  use spud
+  use global_parameters
   use fields
   use smoothing_module
-  use spud
   use field_options
-  use global_parameters
+
   implicit none
 
   private

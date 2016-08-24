@@ -29,16 +29,16 @@
 
 module pickers_allocates
 
-  use elements
-  use eventcounter
-  use fields_base
-  use fields_data_types
   use fldebug
   use global_parameters, only : empty_name
-  use node_owner_finder
+  use elements
+  use eventcounter
   use picker_data_types
+  use fields_data_types
+  use fields_base
   use pickers_base
   use pickers_deallocates
+  use node_owner_finder
 
   implicit none
 

@@ -29,16 +29,19 @@
 
 module surface_integrals
 
-  use quadrature
-  use elements
-  use field_options
-  use fields
   use fldebug
-  use global_parameters, only : OPTION_PATH_LEN
-  use parallel_fields
+  use global_parameters, only : OPTION_PATH_LEN, FIELD_NAME_LEN
   use spud
+  use futils
+  use quadrature
+  use element_numbering, only: FAMILY_SIMPLEX
+  use elements
+  use parallel_tools
+  use parallel_fields
+  use transform_elements
+  use fields
   use state_module
-  !use smoothing_module
+  use field_options
 
   implicit none
   
@@ -486,7 +489,7 @@ contains
 
   subroutine diagnostic_body_drag(state, force, surface_integral_name, pressure_force, viscous_force)
     type(state_type), intent(in) :: state
-    real, dimension(:), intent(out) :: force
+    real, dimension(:) :: force
     character(len = FIELD_NAME_LEN), intent(in) :: surface_integral_name
     real, dimension(size(force)), optional, intent(out) :: pressure_force
     real, dimension(size(force)), optional, intent(out) :: viscous_force

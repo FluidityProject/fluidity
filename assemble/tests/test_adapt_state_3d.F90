@@ -29,6 +29,7 @@
 
 subroutine test_adapt_state_3d
 
+  use fldebug
   use adapt_state_module
   use field_options
   use fields

@@ -30,17 +30,20 @@ module sparse_tools_petsc
   !!< implements a csr matrix type 'petsc_csr_matrix' that directly
   !!< stores the matrix in petsc format.
   use FLDebug
-  use Sparse_Tools
+  use global_parameters, only: FIELD_NAME_LEN
+  use futils
   use Reference_Counting
   use parallel_tools
   use halo_data_types
   use halos_allocates
-  use fields_base
-  use fields_manipulation
-  use petsc_tools
 #ifdef HAVE_PETSC_MODULES
   use petsc
 #endif
+  use Sparse_Tools
+  use fields_data_types
+  use fields_base
+  use fields_manipulation
+  use petsc_tools
   implicit none
 #include "petsc_legacy.h"
   private
@@ -361,16 +364,16 @@ contains
       assert( size(dnnz)==urows/element_size )
       
       ! Create serial block matrix:
-      call MatCreateSeqBAIJ(MPI_COMM_SELF, element_size, &
-         urows, ucols, PETSC_NULL_INTEGER, &
-         dnnz, matrix%M, ierr)
+      call MatCreateBAIJ(MPI_COMM_SELF, element_size, &
+         urows, ucols, urows, ucols, &
+         PETSC_NULL_INTEGER, dnnz, 0, PETSC_NULL_INTEGER, matrix%M, ierr)
          
     elseif (use_element_blocks) then
       
       assert( size(dnnz)==nprows*blocks(1)/element_size )
       assert( size(onnz)==nprows*blocks(1)/element_size )
       
-      call MatCreateMPIBAIJ(MPI_COMM_FEMTOOLS, element_size, &
+      call MatCreateBAIJ(MPI_COMM_FEMTOOLS, element_size, &
          nprows*blocks(1), npcols*blocks(2), &
          urows, ucols, &
          PETSC_NULL_INTEGER, dnnz, PETSC_NULL_INTEGER, onnz, matrix%M, ierr)
@@ -380,19 +383,20 @@ contains
       assert( size(dnnz)==urows )
       
       ! Create serial matrix:
-      call MatCreateSeqAIJ(MPI_COMM_SELF, urows, ucols, PETSC_NULL_INTEGER, &
-         dnnz, matrix%M, ierr)
+      call MatCreateAIJ(MPI_COMM_SELF, urows, ucols, urows, ucols, &
+         PETSC_NULL_INTEGER, dnnz, 0, PETSC_NULL_INTEGER, matrix%M, ierr)
       
     else
       
       assert( size(dnnz)==nprows*blocks(1) )
       assert( size(onnz)==nprows*blocks(1) )
       
-      call MatCreateMPIAIJ(MPI_COMM_FEMTOOLS, nprows*blocks(1), npcols*blocks(2), &
+      call MatCreateAIJ(MPI_COMM_FEMTOOLS, nprows*blocks(1), npcols*blocks(2), &
          urows, ucols, &
          PETSC_NULL_INTEGER, dnnz, PETSC_NULL_INTEGER, onnz, matrix%M, ierr)
       
     endif
+    call MatSetup(matrix%M, ierr)
     
     if (.not. use_element_blocks) then
       ! this is very important for assembly routines (e.g. DG IP viscosity)

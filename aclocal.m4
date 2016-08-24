@@ -505,8 +505,8 @@ implicit none
       one  = 1.0
       neg_one = -1.0
       ione    = 1
-      call PetscOptionsGetInt(PETSC_NULL_CHARACTER,'-m',m,flg,ierr)
-      call PetscOptionsGetInt(PETSC_NULL_CHARACTER,'-n',n,flg,ierr)
+      call PetscOptionsGetInt(PETSC_NULL_OBJECT, PETSC_NULL_CHARACTER,'-m',m,flg,ierr)
+      call PetscOptionsGetInt(PETSC_NULL_OBJECT, PETSC_NULL_CHARACTER,'-n',n,flg,ierr)
 
       call MatCreate(PETSC_COMM_WORLD,A,ierr)
       call MatSetSizes(A,PETSC_DECIDE,PETSC_DECIDE,m*n,m*n,ierr)
@@ -944,76 +944,6 @@ EOD`
 	# all done!
 	#
 ])
-
-AC_DEFUN([ACX_zoltan], [
-# Set variables...
-AC_ARG_WITH(
-	[zoltan],
-	[  --with-zoltan=prefix        Prefix where zoltan is installed],
-	[zoltan="$withval"],
-    [])
-
-tmpLIBS=$LIBS
-tmpCPPFLAGS=$CPPFLAGS
-if test $zoltan != no; then
-  if test $zoltan != yes; then
-    zoltan_LIBS_PATH="$zoltan/lib"
-    zoltan_INCLUDES_PATH="$zoltan/include"
-    # Ensure the comiler finds the library...
-    tmpLIBS="$tmpLIBS -L$zoltan_LIBS_PATH"
-    tmpCPPFLAGS="$tmpCPPFLAGS  -I/$zoltan_INCLUDES_PATH"
-  fi
-  tmpLIBS="$tmpLIBS -L/usr/lib -L/usr/local/lib/ -lzoltan -lparmetis -lmetis $ZOLTAN_DEPS"
-  tmpCPPFLAGS="$tmpCPPFLAGS -I/usr/include/ -I/usr/local/include/"
-fi
-LIBS=$tmpLIBS
-CPPFLAGS=$tmpCPPFLAGS
-# Check that the compiler uses the library we specified...
-if test -e $zoltan_LIBS_PATH/libzoltan.a; then
-  echo "note: using $zoltan_LIBS_PATH/libzoltan.a"
-fi 
-
-# Check that the compiler uses the include path we specified...
-if test -e $zoltan_INCLUDES_PATH/zoltan.mod; then
-	echo "note: using $zoltan_INCLUDES_PATH/zoltan.mod"
-fi 
-
-AC_LANG_SAVE
-AC_LANG_C
-AC_CHECK_LIB(
-	[zoltan],
-	[Zoltan_Initialize],
-	[AC_DEFINE(HAVE_ZOLTAN,1,[Define if you have zoltan library.])],
-	[AC_MSG_ERROR( [Could not link in the zoltan library... exiting] )] )
-
-# Small test for zoltan .mod files:
-AC_LANG(Fortran)
-ac_ext=F90
-# In fluidity's makefile we explicitly add CPPFLAGS, temporarily add it to
-# FCFLAGS here for this zoltan test:
-tmpFCFLAGS="$FCFLAGS"
-FCFLAGS="$FCFLAGS $CPPFLAGS"
-AC_LINK_IFELSE(
-[AC_LANG_SOURCE([
-program test_zoltan
- use zoltan
-end program test_zoltan
-])],
-[
-AC_MSG_NOTICE([Great success! Zoltan .mod files exist and are usable])
-],
-[
-cp conftest.F90 test_zoltan.F90
-AC_MSG_FAILURE([Failed to find zoltan.mod files])])
-# And now revert FCFLAGS
-FCFLAGS="$tmpFCFLAGS"
-AC_LANG_RESTORE
-
-ZOLTAN="yes"
-AC_SUBST(ZOLTAN)
-
-echo $LIBS
-])dnl ACX_zoltan
 
 AC_DEFUN([ACX_adjoint], [
 # Set variables...

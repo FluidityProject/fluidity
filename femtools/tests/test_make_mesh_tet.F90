@@ -29,6 +29,9 @@
 
 subroutine test_make_mesh_tet
 
+  use futils, only: int2str
+  use element_numbering, only: FAMILY_SIMPLEX, te
+  use elements
   use fields
   use fldebug
   use mesh_files

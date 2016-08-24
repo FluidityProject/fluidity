@@ -33,15 +33,18 @@ module read_exodusii
   ! given an ID, e.g. for setting physical boundaries)
 
   use iso_c_binding, only: C_INT, C_FLOAT, C_CHAR, C_NULL_CHAR
+  use fldebug
+  use global_parameters, only : OPTION_PATH_LEN
   use futils
+  use quadrature
   use elements
+  use spud
+  use parallel_tools
   use fields
   use state_module
-  use spud
   use vtk_interfaces
   use exodusii_common
   use exodusii_f_interface
-  use global_parameters, only : OPTION_PATH_LEN, real_4
 
   implicit none
 
@@ -93,7 +96,7 @@ contains
 
     field=read_exodusii_file(filename, shape)
 
-    call deallocate_element(shape)
+    call deallocate(shape)
     call deallocate(quad)
 
     ewrite(2,*) "Out of read_exodusii_simple"
@@ -219,7 +222,7 @@ contains
     integer :: num_node_sets, num_side_sets
 
     ! exodusii lib variables:
-    real(real_4), allocatable, dimension(:) :: coord_x, coord_y, coord_z
+    real(kind=c_float), allocatable, dimension(:) :: coord_x, coord_y, coord_z
     integer, allocatable, dimension(:) :: node_map, elem_num_map, elem_order_map
     integer, allocatable, dimension(:) :: block_ids, num_elem_in_block, num_nodes_per_elem
     integer, allocatable, dimension(:) :: elem_type, elem_connectivity
@@ -228,7 +231,7 @@ contains
     integer, allocatable, dimension(:) :: total_side_sets_node_cnt_list
 
     ! variables for conversion to fluidity structure:
-    real(real_4), allocatable, dimension(:,:) :: node_coord
+    real(c_float), allocatable, dimension(:,:) :: node_coord
     integer, allocatable, dimension(:) :: total_elem_node_list
     integer, allocatable, dimension(:) :: sndglno, boundaryIDs
     
@@ -1079,7 +1082,7 @@ contains
     integer, intent(in) :: eff_dim
     integer, intent(in) :: num_nodes
     integer, allocatable, dimension(:), intent(in) :: node_map
-    real(real_4), dimension(:,:), intent(in) :: node_coord
+    real(kind=c_float), dimension(:,:), intent(in) :: node_coord
     type(vector_field), intent(inout) :: field
 
     type(EXOnode), pointer, dimension(:) :: exo_nodes

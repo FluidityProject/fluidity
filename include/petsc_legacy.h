@@ -6,44 +6,19 @@
 ! still need #ifdef PETSC_VERSION>... in the main code
 #include "petscversion.h"
 #ifdef HAVE_PETSC_MODULES
-#if PETSC_VERSION_RELEASE==0
+#if PETSC_VERSION_MINOR>=6
 #include "petsc/finclude/petscdef.h"
 #else
 #include "finclude/petscdef.h"
 #endif
 #else
-#if PETSC_VERSION_RELEASE==0
+#if PETSC_VERSION_MINOR>=6
 #include "petsc/finclude/petsc.h"
 #else
 #include "finclude/petsc.h"
 #endif
 #endif
-! this is the one exception where we keep the old names for now (until
-! we get rid of petsc 3.1 and 3.2 support). MatCreate{Seq|MPI}[B]AIJ()
-! no longer exists in petsc>=3.3. Instead we need to call MatCreateAIJ()
-! followed by MatSetUp() (now required). We provide wrapper routines
-! in the petsc_tools module.
-#if PETSC_VERSION_MINOR>=3
-#define MatCreateSeqAIJ myMatCreateSeqAIJ
-#define MatCreateMPIAIJ myMatCreateMPIAIJ
-#define MatCreateSeqBAIJ myMatCreateSeqBAIJ
-#define MatCreateMPIBAIJ myMatCreateMPIBAIJ
-#endif
 
-#if PETSC_VERSION_MINOR<2
-#define KSP_NORM_NONE KSP_NORM_NO
-#endif
-#if PETSC_VERSION_MINOR<3
-#define KSPCHEBYSHEV KSPCHEBYCHEV
-#define KSPChebyshevSetEigenvalues KSPChebychevSetEigenvalues
-#endif
-#if PETSC_VERSION_MINOR<2
-#define PetscBool PetscTruth
-#endif
-#if PETSC_VERSION_MINOR<2
-#define VecSqrtAbs VecSqrt
-#endif
-! workaround sily bug in petsc 3.1
 #ifndef PC_COMPOSITE_SYMMETRIC_MULTIPLICATIVE
 #define PC_COMPOSITE_SYMMETRIC_MULTIPLICATIVE PC_COMPOSITE_SYM_MULTIPLICATIVE
 #endif
@@ -62,7 +37,19 @@
 ! mykspgetoperators is a wrapper function defined in Petsc_Tools.F90:
 #define KSPGetOperators(ksp, amat, pmat, ierr) mykspgetoperators(ksp, amat, pmat, ierr)
 #endif
-! renamed in petsc master
-#if PETSC_VERSION_RELEASE==0
-#define MatGetVecs MatCreateVecs
+#if PETSC_VERSION_MINOR<6
+#define MatCreateVecs MatGetVecs
+#endif
+! from petsc 3.7 onward all PetscOptionsXXX() calls have an additional PetscOptions first argument
+#if PETSC_VERSION_MINOR<7
+#define PetscOptionsGetInt(options, pre, name, ivalue, set, ierr) petscoptionsgetint(pre, name, ivalue, set, ierr)
+#define PetscOptionsGetReal(options, pre, name, dvalue, set, ierr) petscoptionsgetreal(pre, name, dvalue, set, ierr)
+#define PetscOptionsGetString(options, pre, name, string, set, ierr) petscoptionsgetstring(pre, name, string, set, ierr)
+#define PetscOptionsHasName(options, pre, name, set, ierr) petscoptionshasname(pre, name, set, ierr)
+#endif
+! these PetscViewerAndFormatCreate/Destroy don't exist in petsc<3.7
+! but we only use them to combine PETSC_VIEWER_STDOUT_WORLD and PETSC_VIEWER_DEFAULT
+#if PETSC_VERSION_MINOR<7
+#define PetscViewerAndFormatCreate NullPetscViewerAndFormatCreate
+#define PetscViewerAndFormatDestroy PETSC_NULL_FUNCTION
 #endif

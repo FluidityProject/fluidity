@@ -8,9 +8,12 @@ adaptivity_preprocessing =
             ## before using it to adapt. This can help with noisy
             ## fields.
             element helmholtz_smoother {
-                 element smoothing_length_scale {
-                     real_dim_symmetric_tensor
-                 },
+               ## The characteristic scale factor alpha used by the smoother.
+               ## The length scale is alpha*local element width (a scalar)
+               ## 2 is recommended.
+                 element smoothing_scale_factor {
+                     real
+                 }?,
                  element solver {
                    linear_solver_options_sym
                  }
@@ -937,6 +940,26 @@ hr_adaptivity =
                     element method {
                     "graph"|"hypergraph"
                     }
+                }
+            }?,
+            ## Load-balancing approach, for all but the final adapt iteration. For the final
+	    ## adapt iteration we always use the PARTITION approach, to ensure the best 
+	    ## possible load balance after adaptivity.
+            element  load_balancing_approach {
+                ## PARTITION (default): partition from scratch, not taking the current data 
+		## distribution into account
+                element partition {
+                    empty
+                }|
+                ## REPARTITION: partition but try to stay close to the current 
+		## partition/distribution
+                element repartition {
+                    empty
+                }|
+                ## REFINE: refine the current partition/distribution; assumes only 
+		## small changes
+                element refine {
+                    empty
                 }
             }?,
             ## Element quality cut off. 

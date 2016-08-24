@@ -28,7 +28,7 @@
 #include "fdebug.h"
 
 module fsi_projections
-
+  use fldebug
   use supermesh_construction
   use solvers
   use global_parameters, only: OPTION_PATH_LEN
@@ -37,6 +37,32 @@ module fsi_projections
   use fefields, only: compute_lumped_mass, project_field
   use tetrahedron_intersection_module
   use tictoc
+  use fields_data_types
+  use quadrature
+  use elements
+  use sparse_tools
+
+
+   use intersection_finder_module
+   use sparsity_patterns
+   use fldebug
+   use fields
+   use global_parameters, only: pi
+   use vector_tools, only: norm2
+   use state_module
+   use parallel_fields
+   use parallel_tools
+   use futils
+   use vector_tools
+
+   use state_module
+   use futils
+   use spud
+   use global_parameters, only : OPTION_PATH_LEN
+   use fields
+   use field_options 
+   use parallel_tools
+   use fetools
 
   implicit none
 
@@ -673,7 +699,7 @@ module fsi_projections
      end do
 
      call finalise_tet_intersector
-     call rtree_intersection_finder_reset(ntests)
+     call rtree_intersection_finder_reset()
 
      ! Bound field:
      call bound_scalar_field(alpha_coordinatemesh, 0.0, 1.0)
@@ -714,7 +740,7 @@ module fsi_projections
       integer, dimension(face_loc(positionsS, 1)) :: solid_face_nodes
       integer :: face_number
 
-      ewrite(2,*) "inside fsi_get_interface"
+      !ewrite(2,*) "inside fsi_get_interface"
 
       ! Set the dimension for the intersection finder:
       dim = mesh_dim(positionsS)

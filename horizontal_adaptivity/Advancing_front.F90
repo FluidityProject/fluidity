@@ -1,16 +1,22 @@
 #include "fdebug.h"
 
 module hadapt_advancing_front
-  use fields
-  use sparse_tools
+
+  use fldebug
+  use futils
   use quicksort
-  use linked_lists
-  use adjacency_lists
-  use meshdiagnostics
   use data_structures
   use spud
-  use halos
+  use parallel_tools
+  use sparse_tools
+  use linked_lists
+  use adjacency_lists
+  use parallel_fields
+  use fields
+  use meshdiagnostics
   use halos_derivation
+  use halos
+
   implicit none
   
   private
@@ -59,6 +65,8 @@ module hadapt_advancing_front
     integer :: n_regions, r
     integer :: ele, h_ele, snloc
     integer :: i, j, k, l
+
+    logical :: radial_layering
     
     real :: vol
     
@@ -78,8 +86,9 @@ module hadapt_advancing_front
     
     nelist => extract_nelist(h_mesh)
 
+    radial_layering = have_option('/geometry/spherical_earth')
     ! Sort the new nodes by height
-    if (have_option('/geometry/spherical_earth')) then
+    if (radial_layering) then
       ! sort on radius
       height_field = magnitude(mesh)
     else
@@ -94,7 +103,7 @@ module hadapt_advancing_front
       call qsort(heights, sorted)
     end if
 
-    if (have_option('/geometry/spherical_earth')) then
+    if (radial_layering) then
       call deallocate( height_field )
     end if
     
@@ -393,10 +402,21 @@ module hadapt_advancing_front
     end if
 
     if (has_faces(h_mesh%mesh)) then
-      ! Add the top faces, and the bottom ones:
-      call add_faces(mesh%mesh, sndgln=sndgln(1:faces_seen*snloc), &
-        element_owner=element_owners(1:faces_seen), &
-        boundary_ids=boundary_ids(1:faces_seen))
+      if (has_discontinuous_internal_boundaries(h_mesh%mesh)) then
+        ! horizontal has element ownership information allowing internal facet pairs
+        ! to have seperate surface ids (used in periodic meshes) - this means
+        ! the same holds for the extruded mesh
+        call add_faces(mesh%mesh, sndgln=sndgln(1:faces_seen*snloc), &
+          element_owner=element_owners(1:faces_seen), &
+          boundary_ids=boundary_ids(1:faces_seen))
+      else
+        ! no element ownership is necessary, but in this case only one of each
+        ! pair of internal facets should be provided in sndgln unless we tell
+        ! add_faces() to filter these out (reordering the facets)
+        call add_faces(mesh%mesh, sndgln=sndgln(1:faces_seen*snloc), &
+          boundary_ids=boundary_ids(1:faces_seen), &
+          allow_duplicate_internal_facets=.true.)
+      end if
     end if
     
     if (associated(h_mesh%mesh%halos)) then

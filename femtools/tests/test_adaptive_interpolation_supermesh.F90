@@ -1,6 +1,7 @@
 subroutine test_adaptive_interpolation_supermesh
 
   use quadrature
+  use elements
   use fields
   use adaptive_interpolation_module
   use mesh_files
@@ -21,6 +22,10 @@ subroutine test_adaptive_interpolation_supermesh
       real, dimension(:), intent(in) :: pos
       real :: solution
     end function
+
+     subroutine set_global_debug_level(level)
+       integer :: level
+     end subroutine set_global_debug_level
   end interface
 
   call set_global_debug_level(3)

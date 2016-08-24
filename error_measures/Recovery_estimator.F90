@@ -9,10 +9,15 @@ module recovery_estimator
 !!< The elementwise error is then estimated as
 !!< int(|G(u_x) - grad(u_x)|^2) over the element.
 
+  use elements
   use transform_elements, only: transform_to_physical
   use fields
   use field_derivatives, only: grad
   implicit none
+
+  private
+
+  public :: form_recovery_estimator
 
   contains
 

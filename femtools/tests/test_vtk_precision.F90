@@ -30,10 +30,11 @@
 subroutine test_vtk_precision
   !!< Test the precision of VTK I/O
 
+  use iso_c_binding, only: c_float, c_double
+  use quadrature
   use elements  
   use fields
   use fields_data_types
-  use global_parameters, only : real_4, real_8
   use state_module
   use unittest_tools
   use vtk_interfaces
@@ -42,7 +43,7 @@ subroutine test_vtk_precision
   
   character(len = 255) :: filename
   integer :: i, stat
-  integer, parameter :: D = real_8, S = real_4
+  integer, parameter :: D = c_double, S = c_float
   type(element_type) :: shape
   type(mesh_type) :: mesh
   type(quadrature_type) :: quad
@@ -107,11 +108,11 @@ subroutine test_vtk_precision
     
   call vtk_read_state(filename, state = read_state)
   read_v_field => extract_vector_field(read_state, "Coordinate")
-  call report_test("[Coordinate field, tiny, real_4 precision]", read_v_field%val(1,1) < tiny(0.0_S), .false., "[Insufficient precision]")
+  call report_test("[Coordinate field, tiny, c_float precision]", read_v_field%val(1,1) < tiny(0.0_S), .false., "[Insufficient precision]")
   read_s_field => extract_scalar_field(read_state, "TestScalarField")
   read_v_field => extract_vector_field(read_state, "TestVectorField")
-  call report_test("[Scalar field, tiny, real_4 precision]", any(read_s_field%val < tiny(0.0_S)), .false., "[Insufficient precision]")
-  call report_test("[Vector field, tiny, real_4 precision]", any(read_v_field%val(1,:) < tiny(0.0_S)), .false., "[Insufficient precision]")
+  call report_test("[Scalar field, tiny, c_float precision]", any(read_s_field%val < tiny(0.0_S)), .false., "[Insufficient precision]")
+  call report_test("[Vector field, tiny, c_float precision]", any(read_v_field%val(1,:) < tiny(0.0_S)), .false., "[Insufficient precision]")
   call deallocate(read_state)
   nullify(read_s_field)
   nullify(read_v_field)
@@ -125,11 +126,11 @@ subroutine test_vtk_precision
     
   call vtk_read_state(filename, state = read_state)
   read_v_field => extract_vector_field(read_state, "Coordinate")
-  call report_test("[Coordinate field, tiny, real_8 precision]", read_v_field%val(1,1) < tiny(0.0_D), .false., "[Insufficient precision]")
+  call report_test("[Coordinate field, tiny, c_double precision]", read_v_field%val(1,1) < tiny(0.0_D), .false., "[Insufficient precision]")
   read_s_field => extract_scalar_field(read_state, "TestScalarField")
   read_v_field => extract_vector_field(read_state, "TestVectorField")
-  call report_test("[Scalar field, tiny, real_8 precision]", any(read_s_field%val < tiny(0.0_D)), .false., "[Insufficient precision]")
-  call report_test("[Vector field, tiny, real_8 precision]", any(read_v_field%val(1,:) < tiny(0.0_D)), .false., "[Insufficient precision]")
+  call report_test("[Scalar field, tiny, c_double precision]", any(read_s_field%val < tiny(0.0_D)), .false., "[Insufficient precision]")
+  call report_test("[Vector field, tiny, c_double precision]", any(read_v_field%val(1,:) < tiny(0.0_D)), .false., "[Insufficient precision]")
   call deallocate(read_state)
   nullify(read_s_field)
   nullify(read_v_field)

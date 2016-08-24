@@ -29,12 +29,12 @@
 
 module coriolis_module
 
-  use embed_python 
-  use fldebug
-  use parallel_tools, only: abort_if_in_parallel_region
-  use global_parameters, only : current_time, PYTHON_FUNC_LEN
   use spud
-  
+  use fldebug
+  use global_parameters, only : current_time, PYTHON_FUNC_LEN
+  use embed_python
+  use parallel_tools, only: abort_if_in_parallel_region
+
   implicit none
   
   !! Coriolis parameters:
@@ -59,7 +59,7 @@ module coriolis_module
      
   private
   
-  public :: coriolis, funome, set_coriolis_parameters
+  public :: coriolis, funome, set_coriolis_parameters, coriolis_module_check_options
 
   contains
 

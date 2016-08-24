@@ -2,14 +2,16 @@
 
 module reference_meshes
   
-  use conformity_measurement
-  use fields
   use fldebug
   use global_parameters, only : OPTION_PATH_LEN
-  use interpolation_module
-  use merge_tensors
+  use futils, only: int2str
   use spud
+  use fields
   use state_module
+  use field_options, only: get_coordinate_field
+  use merge_tensors
+  use conformity_measurement
+  use interpolation_module
   
   implicit none
   

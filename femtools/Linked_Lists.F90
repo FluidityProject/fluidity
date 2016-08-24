@@ -113,6 +113,13 @@ module linked_lists
     module procedure list_maxval
   end interface maxval
 
+  private
+  public:: inode, ilist, edgenode, elist, rlist, insert_ascending,&
+       has_value, deallocate,&
+       insert, flush_list, flush_lists, pop, fetch, spop, list2vector,&
+       pop_last, size_intersection, has_value_sorted, print_list,&
+       intersect_ascending, copy, maxval
+
 contains
 
   integer function list_maxval(list)

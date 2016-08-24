@@ -30,6 +30,7 @@
 subroutine vtu_bins(input_filename_, input_filename_len, input_fieldname_, &
             & input_fieldname_len, bounds, nbounds) bind(c)
 
+  use transform_elements, only: element_volume
   use fields
   use fldebug
   use futils

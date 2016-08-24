@@ -640,12 +640,6 @@ miscellaneous_solver_options =
             element true_residual {
                empty
             }?,
-            ## Draws a graph over the convergence of the preconditioned residual
-            ## during the solve. This option only works for systems where PETSc
-            ## has been linked with the X library.
-            element preconditioned_residual_graph {
-               empty
-            }?,
             ## Prints the error by computing the difference with the provided
             ## exact solution each time step.
             element true_error {

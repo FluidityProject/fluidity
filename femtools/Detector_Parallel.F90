@@ -28,15 +28,20 @@
 #include "fdebug.h"
 
 module detector_parallel
-  use state_module
-  use fields
   use spud
+  use fldebug
+  use futils, only: int2str
   use integer_hash_table_module
+  use mpi_interfaces
+  use elements
+  use halo_data_types
+  use parallel_tools
+  use halos_numbering
+  use parallel_fields
+  use fields
+  use state_module
   use detector_data_types
   use detector_tools
-  use halo_data_types
-  use halos_numbering
-  use mpi_interfaces
   use pickers
 
   implicit none
@@ -430,6 +435,9 @@ contains
        end do
     end do
 
+    call MPI_WAITALL(nprocs, sendRequest, MPI_STATUSES_IGNORE, IERROR)
+    assert(ierror == MPI_SUCCESS)
+
     ! Deallocate buffers after exchange
     do target_proc=1, nprocs
        deallocate(send_buffer(target_proc)%ptr)
@@ -437,9 +445,6 @@ contains
     end do
     deallocate(send_buffer)
     deallocate(recv_buffer)
-
-    call MPI_WAITALL(nprocs, sendRequest, MPI_STATUSES_IGNORE, IERROR)
-    assert(ierror == MPI_SUCCESS)
 
     call deallocate(ele_numbering_inverse)
 

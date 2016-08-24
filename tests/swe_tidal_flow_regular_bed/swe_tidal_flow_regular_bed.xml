@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<testproblem>
+  
+  <!-- A shallow water simulation of tidal flow over a regular bed, using the set-up described by Bermudez and Vazquez (1994). -->
+  
+  <name>swe_tidal_flow_regular_bed</name>
+  <owner userid="ctj10"/>
+  <tags>flml</tags>
+  
+  <problem_definition length="medium" nprocs="1">
+    <command_line>fluidity swe_tidal_flow_regular_bed.flml</command_line>
+  </problem_definition>
+  
+  <variables>
+    
+    <variable name="ux_difference" language="python">
+import vtktools
+import numpy
+
+file = vtktools.vtu('swe_tidal_flow_regular_bed_1.vtu')
+file.GetFieldNames()
+
+L = 14000.0
+t = 10000.0
+x = numpy.linspace(0, L, 1000)
+
+H = 50.5 - 40*x/L - 10*numpy.sin(numpy.pi*(4*x/L - 0.5))
+h_analytical = H + 4 - 4*numpy.sin(numpy.pi*(4*t/86400.0 + 0.5))
+ux_analytical = ((x - 14000.0)*numpy.pi/(5400.0*h_analytical))*numpy.cos(numpy.pi*(4*t/86400.0 + 0.5))
+
+ux = numpy.zeros(len(ux_analytical))
+for i in range(len(ux)):
+   ux[i] = vtktools.vtu.ProbeData(file, numpy.array([[x[i], 500, 0]]), 'Velocity')[0][0]
+
+ux_difference = abs(ux_analytical - ux)
+    </variable>
+    
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
+    
+  </variables>
+    
+  <pass_tests>
+  
+    <test name="Difference between analytical and numerical Velocity is, at most, 5e-3" language="python">
+assert(max(ux_difference) &lt; 5.0e-3)
+    </test> 
+    
+    <test name="Solvers converged" language="python">
+assert(solvers_converged)
+    </test>
+  </pass_tests>
+  
+  <warn_tests>
+  </warn_tests>
+  
+</testproblem>
