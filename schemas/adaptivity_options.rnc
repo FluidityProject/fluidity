@@ -1870,6 +1870,12 @@ mesh_adaptivity_options =
             element laplacian_smoothing {
                empty
             }|
+	    ## Enable Lineal Spring.
+            ## The boundary condition on the GridVelocity field is imposed
+            ## on the calculated solution.
+            element lineal_smoothing {
+               empty
+            }|
             ## Enable movement of mesh by the Velocity.
             ## Note that this is only pseudo-lagrangian as the
             ## Velocity and GridVelocity only match at the beginning of
