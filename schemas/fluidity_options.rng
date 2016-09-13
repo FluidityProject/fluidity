@@ -2478,6 +2478,23 @@ optimal size)</a:documentation>
                     </element>
                   </zeroOrMore>
                 </element>
+                <element name="unsteady_modelling">
+                  <optional>
+                    <element name="added_mass">
+                      <empty/>
+                    </element>
+                  </optional>
+                  <optional>
+                    <element name="dynamic_stall">
+                      <empty/>
+                    </element>
+                  </optional>
+                </element>
+                <optional>
+                  <element name="tip_loss_correction">
+                    <empty/>
+                  </element>
+                </optional>
               </element>
               <optional>
                 <element name="hub">
@@ -2592,23 +2609,6 @@ optimal size)</a:documentation>
                     </attribute>
                   </element>
                 </choice>
-              </element>
-              <element name="unsteady_modelling">
-                <optional>
-                  <element name="added_mass">
-                    <empty/>
-                  </element>
-                </optional>
-                <optional>
-                  <element name="dynamic_stall">
-                    <empty/>
-                  </element>
-                </optional>
-                <optional>
-                  <element name="tip_correction">
-                    <empty/>
-                  </element>
-                </optional>
               </element>
             </element>
           </zeroOrMore>

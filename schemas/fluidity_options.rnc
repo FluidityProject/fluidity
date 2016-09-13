@@ -1758,8 +1758,19 @@ start =
                                     "ascii"
                                 }
                             }*
-                      }
-                  },
+                      },
+                      element unsteady_modelling {
+                        element added_mass {
+                            empty
+                            }?,
+                        element dynamic_stall {
+                            empty
+                            }?
+                      },
+                      element tip_loss_correction {
+                            empty
+                            }?               
+                    },
                   element hub{
                       ## Hub Geometry
                       element hub_geometry{
@@ -1853,19 +1864,7 @@ start =
                     attribute name {xsd:string}
                   }
                  )
-                 },
-                 element unsteady_modelling {
-                    element added_mass {
-                        empty
-                    }?,
-                    element dynamic_stall {
-                        empty
-                    }?,
-                    element tip_correction {
-                        empty
-                    }?
-
-                }              
+                 }
              }*,
              element actuatorline{
                 attribute name {xsd:string},

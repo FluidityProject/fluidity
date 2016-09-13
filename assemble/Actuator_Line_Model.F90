@@ -233,19 +233,19 @@ contains
        endif
 
     !##################4 Get Unsteady Modelling Options ##################
-    if(have_option(trim(turbine_path(i))//"/unsteady_modelling/added_mass")) then
+    if(have_option(trim(turbine_path(i))//"/Blades/unsteady_modelling/added_mass")) then
         do j=1,Turbine(i)%NBlades
             Turbine(i)%Blade(j)%do_added_mass=.true.
         end do
     endif
     
-    if(have_option(trim(turbine_path(i))//"/unsteady_modelling/dynamic_stall")) then
+    if(have_option(trim(turbine_path(i))//"/Blades/unsteady_modelling/dynamic_stall")) then
         do j=1,Turbine(i)%NBlades
             Turbine(i)%Blade(j)%do_dynamic_stall=.true.
         end do
     endif
     
-    if(have_option(trim(turbine_path(i))//"/unsteady_modelling/tip_correction")) then
+    if(have_option(trim(turbine_path(i))//"/Blades/unsteady_modelling/tip_loss_correction")) then
             Turbine(i)%do_tip_correction=.true.
     endif
     
