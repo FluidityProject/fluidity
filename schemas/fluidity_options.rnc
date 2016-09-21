@@ -1867,7 +1867,10 @@ start =
                  }
              }*,
              element actuatorline{
-                attribute name {xsd:string},
+                 attribute name {xsd:string},
+                  element location{
+                        real_dim_vector
+                  }, 
                 ## actuator line file
                   element geometry_file {
                     attribute file_name { xsd:string },
@@ -1886,21 +1889,14 @@ start =
                           }
                       }*
                   },
-                 element DoF {
-                 
-                    attribute name {xsd:string},
-                ( 
-                 element Pitch  {            
-                    empty
-                    }|
-                 element Roll  {
-                    empty
-                    }|
-                 element Yaw {
-                    empty
-                    }
-                 )
-                }*              
+                  element unsteady_modelling {
+                        element added_mass {
+                            empty
+                            }?,
+                        element dynamic_stall {
+                            empty
+                            }?
+                }                 
             }*
          }?,
 

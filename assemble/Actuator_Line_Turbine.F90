@@ -45,7 +45,6 @@ type TurbineType
     
 end type TurbineType
     
-    !public set_turbine_geometry
 
 contains
     
@@ -301,7 +300,7 @@ contains
         type(TurbineType),intent(in) :: turbine
         integer :: unit_numb=2016
 
-        write(2016,*) turbine%ID,',',turbine%AzimAngle,',',Turbine%CT,',',turbine%CTR,',',turbine%CP
+        write(2016,'(I2,F3.5,F3.5,F3.5,F3.5)') turbine%ID,',',turbine%AzimAngle,',',Turbine%CT,',',turbine%CTR,',',turbine%CP
     
     end subroutine write_turbine_output_file
 

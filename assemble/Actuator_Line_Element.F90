@@ -47,9 +47,9 @@ type ActuatorLineType
     real, allocatable :: ETtoC(:)       ! Element thickness to Chord ratio
     
     ! Angle of Attack and Pitch
-    real, allocatable :: Epitch(:)         ! Element pitch angle
-    real, allocatable :: EAOA(:)        ! Element Last angle of Attack (used in added mass terms)
-    real, allocatable :: EUn(:)         ! Element Last normal velocity (used in added mass terms)
+    real, allocatable :: Epitch(:)      ! Element pitch angle
+    real, allocatable :: EAOA(:)        ! Element Current angle of Attack (used in added mass terms)
+    real, allocatable :: EUn(:)         ! Element Current normal velocity (used in added mass terms)
     real, allocatable :: EAOA_LAST(:)   ! Element Last angle of Attack (used in added mass terms)
     real, allocatable :: EUn_LAST(:)    ! Element Last normal velocity (used in added mass terms)
     
@@ -60,8 +60,13 @@ type ActuatorLineType
      
     ! Body Velocity of the Actuator Line 
     real, allocatable :: EVbx(:)        ! Element Local body Velocity in the global x-direction
-    real, allocatable :: EVby(:)        ! Element Local body Velocity in the global y-direction
+    real, allocatable :: EVby(:)       ! Element Local body Velocity in the global y-direction
     real, allocatable :: EVbz(:)        ! Element Local body Velocity in the global z-direction
+    
+    ! Element Forces in the nts direction
+    real, allocatable :: ECD(:)         ! Element Drag Coefficient
+    real, allocatable :: ECL(:)         ! Element Lift Coefficient 
+    real, allocatable :: ECM(:)         ! Element Moment Coefficient
     
     ! Element Forces in the nts direction
     real, allocatable :: EFn(:)         ! Element Force in the normal direction
@@ -137,17 +142,22 @@ end type ActuatorLineType
     end do
    
     call make_actuatorline_geometry(actuatorline)
+    
     ! Compute the Area
-
     do ielem=1,actuatorline%Nelem
     actuatorline%Area=actuatorline%Area+actuatorline%EArea(ielem)
     end do
     
+    ! Set the body velocity to zero
+    actuatorline%EVbx(:)=0.0
+    actuatorline%EVby(:)=0.0
+    actuatorline%EVbz(:)=0.0
+    
     ! Populate element Airfoils 
     call populate_blade_airfoils(actuatorline%NElem,actuatorline%NAirfoilData,actuatorline%EAirfoil,actuatorline%AirfoilData,actuatorline%ETtoC)
     
-    actuatorline%EAOA_LAST(:)=1.e7
-    actuatorline%EUn_LAST(:)=1.e7
+    actuatorline%EAOA_LAST(:)=-666
+    actuatorline%EUn_LAST(:)=0.0
     
     do ielem=1,actuatorline%Nelem
     call dystl_init_LB(actuatorline%E_LB_Model(ielem))
@@ -156,6 +166,24 @@ end type ActuatorLineType
     ewrite(2,*) 'Exiting set_actuatorline_geometry'
 
     end subroutine set_actuatorline_geometry
+    
+    subroutine init_actuator_line_output_file 
+        implicit none
+        open(2017,File='actuator_line_loads.dat')
+        write(2017,*) 'ielem, AOA, CD, CDL,CM'
+    end subroutine init_actuator_line_output_file
+
+    subroutine write_actuator_line_output_file(act_line) 
+        implicit none
+        type(ActuatorLineType),intent(in) :: act_line
+        integer :: unit_numb=2017
+        integer :: ielem
+
+        do ielem=1,act_line%NElem
+        write(2017,*) ielem,',',act_line%EAOA_Last(ielem),',',act_line%ECD(ielem),',',act_line%ECL(ielem),',',act_line%ECM(ielem)
+        end do
+
+    end subroutine write_actuator_line_output_file
 
     subroutine Compute_ActuatorLine_Forces(act_line,visc,dt)
        
@@ -259,6 +287,11 @@ end type ActuatorLineType
     !==========================================
     ! Assign the derived types
     !==========================================
+    ! Local Load Coefficients
+    act_line%ECD(ielem)=CD
+    act_line%ECL(ielem)=CL
+    act_line%ECM(ielem)=CM25
+
     ! Local Forces
     act_line%EFN(ielem)=FN
     act_line%EFT(ielem)=FT
@@ -555,6 +588,9 @@ end type ActuatorLineType
     allocate(actuatorline%EUn(Nelem))
     allocate(actuatorline%EAOA_LAST(Nelem))
     allocate(actuatorline%EUn_LAST(Nelem))
+    allocate(actuatorline%ECD(Nelem))
+    allocate(actuatorline%ECL(Nelem))
+    allocate(actuatorline%ECM(Nelem))
     allocate(actuatorline%EFn(NElem))
     allocate(actuatorline%EFt(NElem))
     allocate(actuatorline%EMS(NElem))

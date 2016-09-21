@@ -93,6 +93,10 @@ contains
         if (Ntur>0) then
         call init_turbine_output_file
         endif
+        
+        if (Nal>0) then
+        call init_actuator_line_output_file
+        endif
 
     end subroutine actuator_line_model_init_output
     
@@ -104,6 +108,12 @@ contains
         if (Ntur>0) then
         do itur=1,Ntur
         call write_turbine_output_file(Turbine(itur))
+        end do
+        endif
+        
+        if (Nal>0) then
+        do ial=1,Nal
+        call write_actuator_line_output_file(actuatorline(ial))
         end do
         endif
         
@@ -284,6 +294,7 @@ subroutine get_actuatorline_options
     do i=1, Nal
        actuatorline_path(i)="/actuator_line_model/actuatorline["//int2str(i-1)//"]"
        call get_option("/actuator_line_model/actuatorline["//int2str(i-1)//"]/name",Actuatorline(i)%name)
+       call get_option("/actuator_line_model/actuatorline["//int2str(i-1)//"]/location/",Actuatorline(i)%COR) 
        call get_option("/actuator_line_model/actuatorline["//int2str(i-1)//"]/geometry_file/file_name",Actuatorline(i)%geom_file)
        
        ! Count how many Airfoil Sections are available
@@ -299,24 +310,17 @@ subroutine get_actuatorline_options
            ! Read and Store Airfoils
            call airfoil_init_data(Actuatorline(i)%AirfoilData(k))
        end do
- 
-       !############## Get Actuator line DoF ######################
-       Actuatorline(i)%NDoF=option_count("actuator_line_model/actuatorline/DoF")       
-       
-       allocate(actuatorline(i)%RotN(Actuatorline(i)%NDoF,3))
-       ! So far only pitch works
-       do iDof=1,actuatorline(i)%NDoF
-       if (have_option(trim(actuatorline_path(i))//"/DoF/Pitch")) then
-           actuatorline(i)%RotN(iDoF,:)=actuatorline(i)%SpanWise
-       else if(have_option(trim(actuatorline_path(i))//"/DoF/Roll")) then
-           actuatorline(i)%RotN(iDoF,:)=(/1.0,0.0,0.0/)
-       else if(have_option(trim(actuatorline_path(i))//"/DoF/Yaw")) then
-           actuatorline(i)%RotN(iDoF,:)=(/0.0,0.0,1.0/) 
-       else 
-           FLExit("Option not available. Options are: Pitch, Roll and Yaw ") 
-       endif
-       end do
-       
+    
+       !##################4 Get Unsteady Modelling Options ##################
+    if(have_option(trim(actuatorline_path(i))//"/unsteady_modelling/added_mass")) then
+            Actuatorline%do_added_mass=.true.
+    endif
+    
+    if(have_option(trim(actuatorline_path(i))//"/unsteady_modelling/added_mass")) then
+            Actuatorline%do_dynamic_stall=.true.
+    endif
+    
+  
    end do
     
    ewrite(2,*) 'Exiting get_actuatorline_options'

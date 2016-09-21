@@ -2617,6 +2617,9 @@ optimal size)</a:documentation>
               <attribute name="name">
                 <data type="string"/>
               </attribute>
+              <element name="location">
+                <ref name="real_dim_vector"/>
+              </element>
               <element name="geometry_file">
                 <a:documentation>actuator line file</a:documentation>
                 <attribute name="file_name">
@@ -2643,24 +2646,18 @@ optimal size)</a:documentation>
                   </element>
                 </zeroOrMore>
               </element>
-              <zeroOrMore>
-                <element name="DoF">
-                  <attribute name="name">
-                    <data type="string"/>
-                  </attribute>
-                  <choice>
-                    <element name="Pitch">
-                      <empty/>
-                    </element>
-                    <element name="Roll">
-                      <empty/>
-                    </element>
-                    <element name="Yaw">
-                      <empty/>
-                    </element>
-                  </choice>
-                </element>
-              </zeroOrMore>
+              <element name="unsteady_modelling">
+                <optional>
+                  <element name="added_mass">
+                    <empty/>
+                  </element>
+                </optional>
+                <optional>
+                  <element name="dynamic_stall">
+                    <empty/>
+                  </element>
+                </optional>
+              </element>
             </element>
           </zeroOrMore>
         </element>
