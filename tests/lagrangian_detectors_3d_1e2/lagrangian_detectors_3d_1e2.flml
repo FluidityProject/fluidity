@@ -60,10 +60,11 @@
         <python>
           <string_value lines="20" type="code" language="python">def val(t):
   from numpy import arange,zeros,reshape,concatenate
-  x = 0.5+0.25*arange(0,100.)/100.
-  y = zeros(100) + 0.5
-  z = zeros(100) + 0.5
-  return reshape(concatenate((x,y,z)),(3,100)).T</string_value>
+  num_detectors = 100
+  x = 0.5+0.25*arange(0,float(num_detectors))/float(num_detectors)
+  y = zeros(num_detectors) + 0.5
+  z = zeros(num_detectors) + 0.5
+  return reshape(concatenate((x,y,z)),(3,num_detectors)).T</string_value>
         </python>
       </detector_array>
       <fail_outside_domain/>
