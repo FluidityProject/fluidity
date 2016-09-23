@@ -338,7 +338,7 @@ contains
       real, dimension(v_field%dim,v_field%dim) :: visc_tensor
       real :: d, epsilon_par, loc_kern
       real,dimension(3,3) :: nu
-      real :: volume, meshFactor, dragFactor, chordFactor
+      real :: volume
       real :: epsilon_par_drag, epsilon_par_chord, epsilon_par_mesh, epsilon_threshold,chord
       real :: Send(5), Recv(5)
       ! MPI related parameters declaration
@@ -362,17 +362,7 @@ contains
       call remap_field(positions, remapped_pos)
 
       ViscosityTens => extract_tensor_field(states(state_index),"Viscosity")
-        
-      !> Read the Cmax values
-      call get_option(trim(complete_field_path(trim(v_field%option_path))) // &        
-                    "/algorithm[0]/meshFactor", meshFactor, default=2.00)   
-      call get_option(trim(complete_field_path(trim(v_field%option_path))) // &        
-                    "/algorithm[0]/dragFactor", dragFactor, default=1.0)   
-      call get_option(trim(complete_field_path(trim(v_field%option_path))) // &        
-                    "/algorithm[0]/chordFactor", chordFactor, default=0.25)   
-     
-      !Read kinematic viscosity 
-      
+         
       ! there should be two models: one for checking a single airfoil
       ! And another for checking the turbine
       call MPI_Comm_rank(MPI_COMM_WORLD,rank,ierr)

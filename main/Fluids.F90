@@ -223,7 +223,7 @@ contains
     
     !GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
     ! Initilise the Actuator Line Model 
-    if (have_option("/actuator_line_model")) then
+    if (have_option("/turbine_models/actuator_line_model")) then
         call actuator_line_model_init
         call initialize_actuator_source
     end if

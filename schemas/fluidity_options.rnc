@@ -14,6 +14,7 @@ include "spatial_discretisation.rnc"
 include "temporal_discretisation.rnc"
 include "embedded_models.rnc"
 include "flredecomp.rnc"
+include "turbine_models.rnc"
 include "porous_media.rnc"
 include "multiphase_interaction.rnc"
 include "equation_of_state.rnc"
@@ -1728,179 +1729,6 @@ start =
             element output_particle_vtus{empty}?         
          }?,
          
-         ## Actuator Line Model Turbine
-         element actuator_line_model{
-          ## specifies an ALM Turbine
-             element turbine {
-                 attribute name {xsd:string},
-                  element location{
-                        real_dim_vector
-                  }, 
-                  ## Blade Characteristics
-                  element Blades {
-                      ## Number of Blades
-                      element number_of_blades{
-                         integer 
-                      },
-                      element blade_geometry{
-                        attribute file_name { xsd:string },
-                        ## The format of the input file containing field data.
-                        element string_value {
-                        "ascii"
-                        }
-                      },
-                      ## Blade Foils Static Data 
-                      element static_foil_data{ 
-                            element foil{
-                                attribute name{xsd:string},
-                                attribute foil_file{xsd:string},
-                                element string_value {
-                                    "ascii"
-                                }
-                            }*
-                      },
-                      element unsteady_modelling {
-                        element added_mass {
-                            empty
-                            }?,
-                        element dynamic_stall {
-                            empty
-                            }?
-                      },
-                      element tip_loss_correction {
-                            empty
-                            }?               
-                    },
-                  element hub{
-                      ## Hub Geometry
-                      element hub_geometry{
-                        attribute file_name { xsd:string },
-                        ## The format of the input file containing field data.
-                        element string_value {
-                        "ascii"
-                        }
-                      },
-                      ## Hub Section foils  
-                      element static_foil_data{ 
-                            element foil{
-                                attribute name{xsd:string},
-                                attribute foil_file{xsd:string},
-                                element string_value {
-                                    "ascii"
-                                }
-                            }*
-                      }
-                  }?,
-                  element tower{
-                      ## Offset from the Axis of rotaion
-                      element offset{
-                          real
-                      },
-                      ## Tower Geometry
-                      element tower_geometry{
-                        attribute file_name { xsd:string },
-                        ## The format of the input file containing field data.
-                        element string_value {
-                        "ascii"
-                        }
-                      },
-                      ## Tower Section foils  
-                      element static_foil_data{ 
-                            element foil{
-                                attribute name{xsd:string},
-                                attribute foil_file{xsd:string},
-                                element string_value {
-                                    "ascii"
-                                }
-                            }*
-                      }
-                  }?,
- 
-                  element type{
-                    (
-                    element Horizontal_Axis{
-                            ## Hub Tilt Angles 
-                            element hub_tilt_angle{
-                                real
-                            },
-                            ## Turbine Coning Angle
-                            element blade_cone_angle{
-                                real
-                            },
-                            ## Yaw Angles
-                            element yaw_angle{
-                                real
-                            }
-                    }|
-                    element Vertical_Axis{
-                        empty
-                    }
-                    )
-                 },
-                 element operation {
-                 (
-                    ## constant rotational velocity given in RPM (revolutions per minute)
-                 element constant_rotational_velocity  {
-                    ## Angular Velocity of Turbine Rotor
-                    element omega{
-                        real
-                    },
-                    element TSR{
-                        real
-                    },
-                    element rotation_direction{
-                    (
-                    element clockwise{
-                     empty
-                     }|
-                     element counter_clockwise{
-                     empty
-                     }
-                     )
-                    }
-                    
-                  }|
-                 element force_based_rotational_velocity {
-                    attribute name {xsd:string}
-                  }
-                 )
-                 }
-             }*,
-             element actuatorline{
-                 attribute name {xsd:string},
-                  element location{
-                        real_dim_vector
-                  }, 
-                ## actuator line file
-                  element geometry_file {
-                    attribute file_name { xsd:string },
-                    ## The format of the input file containing field data.
-                        element string_value {
-                        "ascii"
-                        }
-                  },
-                  ## Airfoil Sections  
-                  element airfoil_sections{ 
-                      element section{
-                          attribute name{xsd:string},
-                          attribute airfoil_file{xsd:string},
-                          element string_value {
-                              "ascii"
-                          }
-                      }*
-                  },
-                  element unsteady_modelling {
-                        element added_mass {
-                            empty
-                            }?,
-                        element dynamic_stall {
-                            empty
-                            }?
-                }                 
-            }*
-         }?,
-
-
          ## turbine model
          element turbine_model {
            ## specifies a turbine
@@ -1977,6 +1805,7 @@ start =
                )
            }*
          }?, 
+         turbine_models?,
          biology?,
          forcing?,
          reduced_model?,

@@ -1,0 +1,199 @@
+turbine_models=(
+        element turbine_models{
+
+## Actuator Line Model Turbine
+        element actuator_line_model {
+
+        element turbine{
+        attribute name {xsd:string},
+        element location{
+        real_dim_vector
+        }, 
+## Blade Characteristics
+        element Blades {
+## Number of Blades
+        element number_of_blades{
+        integer 
+        },
+        element blade_geometry{
+        attribute file_name { xsd:string },
+## The format of the input file containing field data.
+        element string_value {
+            "ascii"
+        }
+        },
+## Blade Foils Static Data 
+        element static_foil_data{ 
+            element foil{
+                attribute name{xsd:string},
+                attribute foil_file{xsd:string},
+                element string_value {
+                    "ascii"
+                }
+            }*
+        },
+        element unsteady_modelling {
+            element added_mass {
+                empty
+            }?,
+            element dynamic_stall {
+                empty
+            }?
+        },
+        element tip_loss_correction {
+            empty
+        }?               
+        },
+        element hub{
+## Hub Geometry
+            element hub_geometry{
+                attribute file_name { xsd:string },
+## The format of the input file containing field data.
+                element string_value {
+                    "ascii"
+                }
+            },
+## Hub Section foils  
+            element static_foil_data{ 
+                element foil{
+                    attribute name{xsd:string},
+                    attribute foil_file{xsd:string},
+                    element string_value {
+                        "ascii"
+                    }
+                }*
+            }
+        }?,
+        element tower{
+## Offset from the Axis of rotaion
+            element offset{
+                real
+            },
+## Tower Geometry
+            element tower_geometry{
+                attribute file_name { xsd:string },
+## The format of the input file containing field data.
+                element string_value {
+                    "ascii"
+                }
+            },
+## Tower Section foils  
+            element static_foil_data{ 
+                element foil{
+                    attribute name{xsd:string},
+                    attribute foil_file{xsd:string},
+                    element string_value {
+                        "ascii"
+                    }
+                }*
+            }
+        }?,
+
+        element type{
+            (
+             element Horizontal_Axis{
+## Hub Tilt Angles 
+             element hub_tilt_angle{
+             real
+             },
+## Turbine Coning Angle
+             element blade_cone_angle{
+             real
+             },
+## Yaw Angles
+             element yaw_angle{
+             real
+             }
+             }|
+             element Vertical_Axis{
+             empty
+             }
+            )
+        },
+        element operation {
+            (
+## constant rotational velocity given in RPM (revolutions per minute)
+             element constant_rotational_velocity  {
+## Angular Velocity of Turbine Rotor
+             element omega{
+             real
+             },
+             element TSR{
+             real
+             },
+             element rotation_direction{
+             (
+              element clockwise{
+              empty
+              }|
+              element counter_clockwise{
+              empty
+              }
+             )
+             }
+
+             }|
+            element force_based_rotational_velocity {
+                attribute name {xsd:string}
+            }
+            )
+        }
+        }*,
+                element actuatorline{
+                    attribute name {xsd:string},
+                    element location{
+                        real_dim_vector
+                    }, 
+## actuator line file
+                    element geometry_file {
+                        attribute file_name { xsd:string },
+## The format of the input file containing field data.
+                        element string_value {
+                            "ascii"
+                        }
+                    },
+## Airfoil Sections  
+                    element airfoil_sections{ 
+                        element section{
+                            attribute name{xsd:string},
+                            attribute airfoil_file{xsd:string},
+                            element string_value {
+                                "ascii"
+                            }
+                        }*
+                    },
+                    element unsteady_modelling {
+                        element added_mass {
+                            empty
+                        }?,
+                        element dynamic_stall {
+                            empty
+                        }?
+                    }                 
+                }*,
+
+                element source_term_parameters{
+## Mesh factor that takes into account the aspect ratio of the elements.
+## It takes values between 1 and 2 when the aspect ratio of the elements
+## is 1 and 2 when skewed elements are considered. Default value : 2.0
+                    element  meshFactor{
+                        real
+                    }?,
+## Drag factor that takes into account the width due to the wake caused
+## by the foil drag force, and it is of the order of the momentum thickness
+## Cd=2*theta/l. Default value : 1.00
+                    element dragFactor {
+                        real
+                    }?,
+## Chord factor (0.14-0.25). Default value: 0.25 
+                    element chordFactor {
+                        real
+                    }?
+                }
+
+        }?,
+        element actuator_disc_model{
+                    empty
+        }?
+    }
+)?

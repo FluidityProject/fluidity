@@ -34,7 +34,7 @@ module actuator_line_source
     use actuator_line_model
 
     implicit none
-
+    real,save :: meshFactor, dragFactor, chordFactor
     real, allocatable :: Sx(:),Sy(:),Sz(:),Sc(:),Se(:),Su(:),Sv(:),Sw(:),SFX(:),SFY(:),SFZ(:)
     integer :: NSource
  
@@ -47,7 +47,12 @@ contains
     implicit none
     integer :: counter,itur,iblade,ielem,ial
     
-    ewrite(1,*) 'entering initialize_source_terms'
+    ewrite(1,*) 'entering initialize_source_terms'  
+    !> Get Source term parameters
+    call get_option("/turbine_models/actuator_line_model/source_term_parameters/meshFactor",meshFactor,default=2.00)
+    call get_option("/turbine_models/actuator_line_model/source_term_parameters/dragFactor",dragFactor,default=1.00)
+    call get_option("/turbine_models/actuator_line_model/source_term_parameters/chordFactor",chordFactor,default=0.25)
+    
     counter=0
     if (Ntur>0) then
         do itur=1,Ntur

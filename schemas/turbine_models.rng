@@ -1,0 +1,264 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<grammar xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+  <define name="turbine_models">
+    <optional>
+      <element name="turbine_models">
+        <optional>
+          <element name="actuator_line_model">
+            <a:documentation>Actuator Line Model Turbine</a:documentation>
+            <zeroOrMore>
+              <element name="turbine">
+                <attribute name="name">
+                  <data type="string"/>
+                </attribute>
+                <element name="location">
+                  <ref name="real_dim_vector"/>
+                </element>
+                <element name="Blades">
+                  <a:documentation>Blade Characteristics</a:documentation>
+                  <element name="number_of_blades">
+                    <a:documentation>Number of Blades</a:documentation>
+                    <ref name="integer"/>
+                  </element>
+                  <element name="blade_geometry">
+                    <attribute name="file_name">
+                      <data type="string"/>
+                    </attribute>
+                    <element name="string_value">
+                      <a:documentation>The format of the input file containing field data.</a:documentation>
+                      <value>ascii</value>
+                    </element>
+                  </element>
+                  <element name="static_foil_data">
+                    <a:documentation>Blade Foils Static Data </a:documentation>
+                    <zeroOrMore>
+                      <element name="foil">
+                        <attribute name="name">
+                          <data type="string"/>
+                        </attribute>
+                        <attribute name="foil_file">
+                          <data type="string"/>
+                        </attribute>
+                        <element name="string_value">
+                          <value>ascii</value>
+                        </element>
+                      </element>
+                    </zeroOrMore>
+                  </element>
+                  <element name="unsteady_modelling">
+                    <optional>
+                      <element name="added_mass">
+                        <empty/>
+                      </element>
+                    </optional>
+                    <optional>
+                      <element name="dynamic_stall">
+                        <empty/>
+                      </element>
+                    </optional>
+                  </element>
+                  <optional>
+                    <element name="tip_loss_correction">
+                      <empty/>
+                    </element>
+                  </optional>
+                </element>
+                <optional>
+                  <element name="hub">
+                    <element name="hub_geometry">
+                      <a:documentation>Hub Geometry</a:documentation>
+                      <attribute name="file_name">
+                        <data type="string"/>
+                      </attribute>
+                      <element name="string_value">
+                        <a:documentation>The format of the input file containing field data.</a:documentation>
+                        <value>ascii</value>
+                      </element>
+                    </element>
+                    <element name="static_foil_data">
+                      <a:documentation>Hub Section foils  </a:documentation>
+                      <zeroOrMore>
+                        <element name="foil">
+                          <attribute name="name">
+                            <data type="string"/>
+                          </attribute>
+                          <attribute name="foil_file">
+                            <data type="string"/>
+                          </attribute>
+                          <element name="string_value">
+                            <value>ascii</value>
+                          </element>
+                        </element>
+                      </zeroOrMore>
+                    </element>
+                  </element>
+                </optional>
+                <optional>
+                  <element name="tower">
+                    <element name="offset">
+                      <a:documentation>Offset from the Axis of rotaion</a:documentation>
+                      <ref name="real"/>
+                    </element>
+                    <element name="tower_geometry">
+                      <a:documentation>Tower Geometry</a:documentation>
+                      <attribute name="file_name">
+                        <data type="string"/>
+                      </attribute>
+                      <element name="string_value">
+                        <a:documentation>The format of the input file containing field data.</a:documentation>
+                        <value>ascii</value>
+                      </element>
+                    </element>
+                    <element name="static_foil_data">
+                      <a:documentation>Tower Section foils  </a:documentation>
+                      <zeroOrMore>
+                        <element name="foil">
+                          <attribute name="name">
+                            <data type="string"/>
+                          </attribute>
+                          <attribute name="foil_file">
+                            <data type="string"/>
+                          </attribute>
+                          <element name="string_value">
+                            <value>ascii</value>
+                          </element>
+                        </element>
+                      </zeroOrMore>
+                    </element>
+                  </element>
+                </optional>
+                <element name="type">
+                  <choice>
+                    <element name="Horizontal_Axis">
+                      <element name="hub_tilt_angle">
+                        <a:documentation>Hub Tilt Angles </a:documentation>
+                        <ref name="real"/>
+                      </element>
+                      <element name="blade_cone_angle">
+                        <a:documentation>Turbine Coning Angle</a:documentation>
+                        <ref name="real"/>
+                      </element>
+                      <element name="yaw_angle">
+                        <a:documentation>Yaw Angles</a:documentation>
+                        <ref name="real"/>
+                      </element>
+                    </element>
+                    <element name="Vertical_Axis">
+                      <empty/>
+                    </element>
+                  </choice>
+                </element>
+                <element name="operation">
+                  <choice>
+                    <element name="constant_rotational_velocity">
+                      <a:documentation>constant rotational velocity given in RPM (revolutions per minute)</a:documentation>
+                      <element name="omega">
+                        <a:documentation>Angular Velocity of Turbine Rotor</a:documentation>
+                        <ref name="real"/>
+                      </element>
+                      <element name="TSR">
+                        <ref name="real"/>
+                      </element>
+                      <element name="rotation_direction">
+                        <choice>
+                          <element name="clockwise">
+                            <empty/>
+                          </element>
+                          <element name="counter_clockwise">
+                            <empty/>
+                          </element>
+                        </choice>
+                      </element>
+                    </element>
+                    <element name="force_based_rotational_velocity">
+                      <attribute name="name">
+                        <data type="string"/>
+                      </attribute>
+                    </element>
+                  </choice>
+                </element>
+              </element>
+            </zeroOrMore>
+            <zeroOrMore>
+              <element name="actuatorline">
+                <attribute name="name">
+                  <data type="string"/>
+                </attribute>
+                <element name="location">
+                  <ref name="real_dim_vector"/>
+                </element>
+                <element name="geometry_file">
+                  <a:documentation>actuator line file</a:documentation>
+                  <attribute name="file_name">
+                    <data type="string"/>
+                  </attribute>
+                  <element name="string_value">
+                    <a:documentation>The format of the input file containing field data.</a:documentation>
+                    <value>ascii</value>
+                  </element>
+                </element>
+                <element name="airfoil_sections">
+                  <a:documentation>Airfoil Sections  </a:documentation>
+                  <zeroOrMore>
+                    <element name="section">
+                      <attribute name="name">
+                        <data type="string"/>
+                      </attribute>
+                      <attribute name="airfoil_file">
+                        <data type="string"/>
+                      </attribute>
+                      <element name="string_value">
+                        <value>ascii</value>
+                      </element>
+                    </element>
+                  </zeroOrMore>
+                </element>
+                <element name="unsteady_modelling">
+                  <optional>
+                    <element name="added_mass">
+                      <empty/>
+                    </element>
+                  </optional>
+                  <optional>
+                    <element name="dynamic_stall">
+                      <empty/>
+                    </element>
+                  </optional>
+                </element>
+              </element>
+            </zeroOrMore>
+            <element name="source_term_parameters">
+              <optional>
+                <element name="meshFactor">
+                  <a:documentation>Mesh factor that takes into account the aspect ratio of the elements.
+It takes values between 1 and 2 when the aspect ratio of the elements
+is 1 and 2 when skewed elements are considered. Default value : 2.0</a:documentation>
+                  <ref name="real"/>
+                </element>
+              </optional>
+              <optional>
+                <element name="dragFactor">
+                  <a:documentation>Drag factor that takes into account the width due to the wake caused
+by the foil drag force, and it is of the order of the momentum thickness
+Cd=2*theta/l. Default value : 1.00</a:documentation>
+                  <ref name="real"/>
+                </element>
+              </optional>
+              <optional>
+                <element name="chordFactor">
+                  <a:documentation>Chord factor (0.14-0.25). Default value: 0.25 </a:documentation>
+                  <ref name="real"/>
+                </element>
+              </optional>
+            </element>
+          </element>
+        </optional>
+        <optional>
+          <element name="actuator_disc_model">
+            <empty/>
+          </element>
+        </optional>
+      </element>
+    </optional>
+  </define>
+</grammar>

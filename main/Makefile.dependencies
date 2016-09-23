@@ -3,6 +3,7 @@
 	@true
 
 Fluids.o ../include/fluids_module.mod: Fluids.F90 \
+   ../include/actuator_line_model.mod ../include/actuator_line_source.mod \
    ../include/adapt_state_module.mod \
    ../include/adapt_state_prescribed_module.mod \
    ../include/adaptive_timestepping.mod ../include/adjacency_lists.mod \

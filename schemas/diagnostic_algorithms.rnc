@@ -947,24 +947,7 @@ actuator_line_momentum_source =
        element algorithm {
           attribute name { "actuator_line_momentum_source" },
           attribute material_phase_support { "multiple "},
-          attribute depends { "Velocity" },
-          ## Mesh factor that takes into account the aspect ratio of the elements.
-          ## It takes values between 1 and 2 when the aspect ratio of the elements
-          ## is 1 and 2 when skewed elements are considered. Default value : 2.0
-          element  meshFactor{
-              real
-          }?,
-          ## Drag factor that takes into account the width due to the wake caused
-          ## by the foil drag force, and it is of the order of the momentum thickness
-          ## Cd=2*theta/l. Default value : 1.00
-          element dragFactor {
-              real
-          }?,
-          ## Chord factor (0.14-0.25). Default value: 0.25 
-          element chordFactor {
-              real
-          }?
-
+          attribute depends { "Velocity" }
         }
   )
 

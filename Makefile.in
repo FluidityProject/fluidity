@@ -254,6 +254,8 @@ ifeq (@HYPERLIGHT@,yes)
 endif
 	@echo "    MAKE sediments"
 	@cd sediments; $(MAKE)
+	@echo "    MAKE turbine_models"
+	@cd turbine_models; $(MAKE)
 	@echo "    MAKE parameterisation"
 	@cd parameterisation; $(MAKE)
 	@echo "    MAKE forward_interfaces"
@@ -286,6 +288,7 @@ femtools/*.o \
 bathymetry/*.o \
 ocean_forcing/*.o \
 sediments/*.o \
+turbine_models/*.o \
 parameterisation/*.o \
 forward_interfaces/*.o \
 horizontal_adaptivity/*.o \
@@ -326,6 +329,8 @@ clean-light:
 	@cd parameterisation; $(MAKE) clean
 	@echo "    CLEAN sediments"
 	@cd sediments; $(MAKE) clean
+	@echo "    CLEAN turbine_models"
+	@cd turbine_models; $(MAKE) clean
 	@echo "    CLEAN parameterisation/tests"
 	@cd parameterisation/tests; $(MAKE) clean
 	@echo "    CLEAN assemble"
@@ -517,6 +522,8 @@ endif
 	@cd ocean_forcing; ../bin/create_makefile $(TESTOPTS)
 	@echo "    Generating sediments dependencies"
 	@cd sediments; ../bin/create_makefile $(TESTOPTS)
+	@echo "    Generating turbine_models dependencies"
+	@cd turbine_models; ../bin/create_makefile $(TESTOPTS)
 	@echo "    Generating parameterisation dependencies"
 	@cd parameterisation; ../bin/create_makefile $(TESTOPTS)
 	@echo "    Generating forward_interfaces dependencies"

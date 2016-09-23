@@ -134,7 +134,7 @@ contains
     
     ewrite(2,*) 'Entering get_turbine_options'
     
-    Ntur = option_count("/actuator_line_model/turbine")
+    Ntur = option_count("/turbine_models/actuator_line_model/turbine")
     ewrite(2,*) 'Number of Turbines : ', Ntur
     
     ! Allocate Turbines Arrays
@@ -146,18 +146,18 @@ contains
     ! ==========================================
     do i=1, Ntur 
 
-        turbine_path(i)="/actuator_line_model/turbine["//int2str(i-1)//"]"
-        call get_option("/actuator_line_model/turbine["//int2str(i-1)//"]/name",Turbine(i)%name)
+        turbine_path(i)="/turbine_models/actuator_line_model/turbine["//int2str(i-1)//"]"
+        call get_option("/turbine_models/actuator_line_model/turbine["//int2str(i-1)//"]/name",Turbine(i)%name)
         Turbine(i)%ID=i    
     !###########1 Blade Specs #############################################   
-    call get_option("/actuator_line_model/turbine["//int2str(i-1)//"]/location/",Turbine(i)%origin) 
-    call get_option("/actuator_line_model/turbine["//int2str(i-1)//"]/Blades/number_of_blades/",Turbine(i)%NBlades)
-    call get_option("/actuator_line_model/turbine["//int2str(i-1)//"]/Blades/blade_geometry/file_name",Turbine(i)%blade_geom_file)
+    call get_option("/turbine_models/actuator_line_model/turbine["//int2str(i-1)//"]/location/",Turbine(i)%origin) 
+    call get_option("/turbine_models/actuator_line_model/turbine["//int2str(i-1)//"]/Blades/number_of_blades/",Turbine(i)%NBlades)
+    call get_option("/turbine_models/actuator_line_model/turbine["//int2str(i-1)//"]/Blades/blade_geometry/file_name",Turbine(i)%blade_geom_file)
        
        ! Allocate Blades
        Allocate(Turbine(i)%Blade(Turbine(i)%NBlades))
        ! Count how many Airfoil Sections are available
-       nfoils = option_count("/actuator_line_model/turbine["//int2str(i-1)//"]/Blades/static_foil_data/foil")
+       nfoils = option_count("/turbine_models/actuator_line_model/turbine["//int2str(i-1)//"]/Blades/static_foil_data/foil")
        if(nfoils==0) then
            FLExit("You need to provide at least on static_foils_data entry for the computation of the blade forces")
        end if
@@ -175,10 +175,10 @@ contains
        end do
 
         ! ## HUB ?
-        if (have_option("/actuator_line_model/turbine["//int2str(i-1)//"]/hub")) then
+        if (have_option("/turbine_models/actuator_line_model/turbine["//int2str(i-1)//"]/hub")) then
         Turbine(i)%Has_Hub=.true.
-        call get_option("/actuator_line_model/turbine["//int2str(i-1)//"]/hub/hub_geometry/file_name",Turbine(i)%Hub%geom_file)
-        nfoils=option_count("/actuator_line_model/turbine["//int2str(i-1)//"]/hub/static_foil_data/foil")
+        call get_option("/turbine_models/actuator_line_model/turbine["//int2str(i-1)//"]/hub/hub_geometry/file_name",Turbine(i)%Hub%geom_file)
+        nfoils=option_count("turbine_models/actuator_line_model/turbine["//int2str(i-1)//"]/hub/static_foil_data/foil")
         ewrite(2,*) 'Number of Static Foil Data available for the analysis of the hub: ', nfoils
         Allocate(Turbine(i)%hub%AirfoilData(nfoils))
         
@@ -193,11 +193,11 @@ contains
         endif
         
         ! ## Tower ?
-        if (have_option("/actuator_line_model/turbine["//int2str(i-1)//"]/tower")) then
+        if (have_option("/turbine_models/actuator_line_model/turbine["//int2str(i-1)//"]/tower")) then
         Turbine(i)%Has_Tower=.true.
-        call get_option("/actuator_line_model/turbine["//int2str(i-1)//"]/tower/offset",Turbine(i)%TowerOffset)
-        call get_option("/actuator_line_model/turbine["//int2str(i-1)//"]/tower/tower_geometry/file_name",Turbine(i)%Tower%geom_file)
-        nfoils=option_count("/actuator_line_model/turbine["//int2str(i-1)//"]/tower/static_foil_data/foil")
+        call get_option("/turbine_models/actuator_line_model/turbine["//int2str(i-1)//"]/tower/offset",Turbine(i)%TowerOffset)
+        call get_option("/turbine_models/actuator_line_model/turbine["//int2str(i-1)//"]/tower/tower_geometry/file_name",Turbine(i)%Tower%geom_file)
+        nfoils=option_count("/turbine_models/actuator_line_model/turbine["//int2str(i-1)//"]/tower/static_foil_data/foil")
         ewrite(2,*) 'Number of Static Foil Data available for the analysis of the tower: ', nfoils
         Allocate(Turbine(i)%tower%AirfoilData(nfoils))
        
@@ -227,8 +227,8 @@ contains
    !##############3 Get Operation Options ######################
        if (have_option(trim(turbine_path(i))//"/operation/constant_rotational_velocity")) then
             Turbine(i)%Is_constant_rotation_operated= .true.
-            call get_option("/actuator_line_model/turbine["//int2str(i-1)//"]/operation/constant_rotational_velocity/omega",Turbine(i)%angularVel)
-            call get_option("/actuator_line_model/turbine["//int2str(i-1)//"]/operation/constant_rotational_velocity/TSR",Turbine(i)%TSR)
+            call get_option("/turbine_models/actuator_line_model/turbine["//int2str(i-1)//"]/operation/constant_rotational_velocity/omega",Turbine(i)%angularVel)
+            call get_option("/turbine_models/actuator_line_model/turbine["//int2str(i-1)//"]/operation/constant_rotational_velocity/TSR",Turbine(i)%TSR)
             if(have_option(trim(turbine_path(i))//"/operation/constant_rotational_velocity/rotation_direction/clockwise")) then
                 Turbine(i)%IsClockwise=.true.
             elseif(have_option(trim(turbine_path(i))//"/operation/constant_rotational_velocity/rotation_direction/counter_clockwise")) then
@@ -236,7 +236,7 @@ contains
             else
                 FLExit("You should not be here. The options are clockwise and counterclockwise")
             endif 
-        else if(have_option(trim("/actuator_line_model/turbine["//int2str(i-1)//"]")//"/operation/force_based_rotational_velocity")) then
+        else if(have_option(trim("turbine_models/actuator_line_model/turbine["//int2str(i-1)//"]")//"/operation/force_based_rotational_velocity")) then
             Turbine(i)%Is_force_based_operated = .true. 
        else
            FLExit("At the moment only the constant and the force_based rotational velocity models are supported") 
@@ -281,7 +281,7 @@ subroutine get_actuatorline_options
     
     ewrite(2,*) 'Entering get_actuatorline_options'
     
-    Nal = option_count("/actuator_line_model/actuatorline")
+    Nal = option_count("/turbine_models/actuator_line_model/actuatorline")
     ewrite(2,*) 'Number of Actuatorlines : ', Nal
     
     ! Allocate Turbines Arrays
@@ -292,13 +292,13 @@ subroutine get_actuatorline_options
     ! Get Turbines' options and INITIALIZE THEM
     ! ==========================================
     do i=1, Nal
-       actuatorline_path(i)="/actuator_line_model/actuatorline["//int2str(i-1)//"]"
-       call get_option("/actuator_line_model/actuatorline["//int2str(i-1)//"]/name",Actuatorline(i)%name)
-       call get_option("/actuator_line_model/actuatorline["//int2str(i-1)//"]/location/",Actuatorline(i)%COR) 
-       call get_option("/actuator_line_model/actuatorline["//int2str(i-1)//"]/geometry_file/file_name",Actuatorline(i)%geom_file)
+       actuatorline_path(i)="/turbine_models/actuator_line_model/actuatorline["//int2str(i-1)//"]"
+       call get_option("/turbine_models/actuator_line_model/actuatorline["//int2str(i-1)//"]/name",Actuatorline(i)%name)
+       call get_option("/turbine_models/actuator_line_model/actuatorline["//int2str(i-1)//"]/location/",Actuatorline(i)%COR) 
+       call get_option("/turbine_models/actuator_line_model/actuatorline["//int2str(i-1)//"]/geometry_file/file_name",Actuatorline(i)%geom_file)
        
        ! Count how many Airfoil Sections are available
-       Actuatorline(i)%NAirfoilData=option_count("/actuator_line_model/actuatorline["//int2str(i-1)//"]/airfoil_sections/section") 
+       Actuatorline(i)%NAirfoilData=option_count("/turbine_models/actuator_line_model/actuatorline["//int2str(i-1)//"]/airfoil_sections/section") 
        ewrite(2,*) 'Number of Airfoils available : ', Actuatorline(i)%NAirfoilData
        ! Allocate the memory of the Airfoils
        Allocate(Actuatorline(i)%AirfoilData(Actuatorline(i)%NAirfoilData))
