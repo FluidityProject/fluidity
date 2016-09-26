@@ -14,7 +14,7 @@ type ActuatorLineType
     character(len=100):: name           ! Actuator line name
     character(len=100):: geom_file      ! Actuator line file name (is not used for the turbines)
 
-    ! Station Values
+    ! Station parameters
     logical :: FlipN =.false.           ! Flip Normal
     real, allocatable :: QCx(:)         ! Blade quarter-chord line x coordinates at element ends
     real, allocatable :: QCy(:)         ! Blade quarter-chord line y coordinates at element ends
@@ -26,7 +26,7 @@ type ActuatorLineType
     real, allocatable :: thick(:)       ! Blade thickness at element ends
     real, allocatable :: pitch(:)       ! Blade station pitch at element ends
 
-    ! Element Element Values
+    ! Element parameters 
     real, allocatable :: PEx(:)         ! Element centre x coordinates
     real, allocatable :: PEy(:)         ! Element centre y coordinates
     real, allocatable :: PEz(:)         ! Element centre z coordinates
@@ -63,7 +63,7 @@ type ActuatorLineType
     real, allocatable :: EVby(:)       ! Element Local body Velocity in the global y-direction
     real, allocatable :: EVbz(:)        ! Element Local body Velocity in the global z-direction
     
-    ! Element Forces in the nts direction
+    ! Element Forces CD, CL CM25 
     real, allocatable :: ECD(:)         ! Element Drag Coefficient
     real, allocatable :: ECL(:)         ! Element Lift Coefficient 
     real, allocatable :: ECM(:)         ! Element Moment Coefficient
@@ -312,6 +312,24 @@ end type ActuatorLineType
     ewrite(2,*) 'Exiting Compute_Forces'
 
     end subroutine compute_Actuatorline_Forces
+
+    subroutine pitch_actuator_line(act_line,pitch_angle)
+
+    implicit none
+    type(ActuatorLineType),intent(INOUT) :: act_line
+    real :: pitch_angle
+    integer :: istation, Nstation
+    !> Change the pitch angle by changing n,t and s unit vectors
+    Nstation=act_line%Nelem+1
+    do istation=1,Nstation
+    act_line%tx(istation)= cos(pitch_angle/180.0*pi)    
+    act_line%ty(istation)= 0.0
+    act_line%tz(istation)= -sin(pitch_angle/180.0*pi)     
+    end do
+    
+    call make_actuatorline_geometry(act_line)
+
+    end subroutine pitch_actuator_line 
 
     subroutine populate_blade_airfoils(NElem,NData,EAirfoil,AirfoilData,ETtoC)
 
