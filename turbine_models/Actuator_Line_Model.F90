@@ -332,8 +332,6 @@ subroutine get_actuatorline_options
                 call get_option(trim(actuatorline_path(i))//"/allow_pitch/harmonic/angular_pitching_frequency",actuatorline(i)%angular_pitch_freq)
                 actuatorline(i)%angular_pitch_freq=actuatorline(i)%angular_pitch_freq*pi/180.0
             endif
-            !> Set the initial Pitch Angle
-            call pitch_actuator_line(actuatorline(i),actuatorline(i)%pitch_angle_init)
     endif
      
    end do

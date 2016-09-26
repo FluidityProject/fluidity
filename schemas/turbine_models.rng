@@ -225,6 +225,27 @@
                     </element>
                   </optional>
                 </element>
+                <optional>
+                  <element name="allow_pitch">
+                    <element name="harmonic">
+                      <a:documentation>Harmonic means that is in form of Theta=Theta0 + sin(Omega t)
+where Theta0 is the intial pitch_angle and Omega is the angular pitching frequency
+to be defined by the user</a:documentation>
+                      <element name="initial_pitch_angle">
+                        <a:documentation>Insert in degrees</a:documentation>
+                        <ref name="real"/>
+                      </element>
+                      <element name="pitch_amplitude">
+                        <a:documentation>Insert in degrees</a:documentation>
+                        <ref name="real"/>
+                      </element>
+                      <element name="angular_pitching_frequency">
+                        <a:documentation>degrees/sec</a:documentation>
+                        <ref name="real"/>
+                      </element>
+                    </element>
+                  </element>
+                </optional>
               </element>
             </zeroOrMore>
             <element name="source_term_parameters">

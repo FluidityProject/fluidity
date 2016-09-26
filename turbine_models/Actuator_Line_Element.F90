@@ -330,8 +330,8 @@ end type ActuatorLineType
 
     !> Change the pitch angle by changing n,t and s unit vectors
     Nstation=act_line%Nelem+1
-    do istation=1,Nstation
-    
+
+    do istation=1,Nstation 
     t(1,1)=act_line%tx(istation)
     t(2,1)=act_line%ty(istation)
     t(3,1)=act_line%tz(istation)     
