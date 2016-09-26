@@ -320,7 +320,22 @@ subroutine get_actuatorline_options
             Actuatorline%do_dynamic_stall=.true.
     endif
     
-  
+       !##################4 Get Pitching Opions ##################
+    if(have_option(trim(actuatorline_path(i))//"/allow_pitch")) then
+            Actuatorline%allow_pitch=.true.
+        
+            if(have_option(trim(actuatorline_path(i))//"/allow_pitch/harmonic")) then
+                call get_option(trim(actuatorline_path(i))//"/allow_pitch/harmonic/initial_pitch_angle",actuatorline(i)%pitch_angle_init)
+                actuatorline(i)%pitch_angle_init=actuatorline(i)%pitch_angle_init*pi/180.0
+                call get_option(trim(actuatorline_path(i))//"/allow_pitch/harmonic/pitch_amplitude",actuatorline(i)%pitchAmp)
+                actuatorline(i)%pitchAmp=actuatorline(i)%pitchAmp*pi/180.0
+                call get_option(trim(actuatorline_path(i))//"/allow_pitch/harmonic/angular_pitching_frequency",actuatorline(i)%angular_pitch_freq)
+                actuatorline(i)%angular_pitch_freq=actuatorline(i)%angular_pitch_freq*pi/180.0
+            endif
+            !> Set the initial Pitch Angle
+            call pitch_actuator_line(actuatorline(i),actuatorline(i)%pitch_angle_init)
+    endif
+     
    end do
     
    ewrite(2,*) 'Exiting get_actuatorline_options'
@@ -331,7 +346,9 @@ subroutine get_actuatorline_options
 
     implicit none
     integer :: i
-    real :: theta
+    real :: theta 
+
+    ewrite(1,*) 'Entering the actuator_line_model_update'
     ! This routine updates the location of the actuator lines
     if (Ntur>0) then
         do i=1,Ntur
@@ -344,6 +361,16 @@ subroutine get_actuatorline_options
         enddo
     endif
 
+    if (Nal>0) then
+        do i=1,Nal
+        if(ActuatorLine(i)%allow_pitch) then
+            theta=actuatorline(i)%pitch_angle_init+actuatorline(i)%pitchAmp*sin(actuatorline(i)%angular_pitch_freq*DeltaT)
+            call pitch_actuator_line(actuatorline(i),theta)
+        endif
+        enddo
+    endif
+    ewrite(1,*) 'Exiting the actuator_line_model_update'
+
     end subroutine actuator_line_model_update
 
     subroutine actuator_line_model_compute_forces
@@ -354,7 +381,7 @@ subroutine get_actuatorline_options
     real :: theta, pitchangle, omega
     ! Zero the Source Term at each time step
         
-    ewrite(1,*) 'Entering the actuator_line_model_update'
+    ewrite(1,*) 'Entering the actuator_line_model_compute_forces'
      
     if (Ntur>0) then
 
@@ -386,7 +413,7 @@ subroutine get_actuatorline_options
     end do
     end if
 
-    ewrite(1,*) 'Exiting actuator_line_model_update'
+    ewrite(1,*) 'Exiting actuator_line_model_compute_forces'
     return
 
     end subroutine actuator_line_model_compute_forces

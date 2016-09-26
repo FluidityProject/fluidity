@@ -95,13 +95,17 @@ type ActuatorLineType
     
     real :: COR(3)       ! Center of Rotation
     real :: SpanWise(3)   ! Point of Rotation
-    integer          :: NDoF          ! Number of Degrees of Freedom
-    real,allocatable :: RotN(:,:)     ! Maximum Degrees of Freedom 6 
    
     ! Unsteady Loading
     logical :: do_added_mass=.false.
     logical :: do_dynamic_stall=.false.
     logical :: do_tip_correction=.false.
+
+    ! Blade/Actuator_line Pitch
+    logical :: allow_pitch=.false.
+    real :: angular_pitch_freq=0.0
+    real :: pitch_angle_init=0.0
+    real :: pitchAmp=0.0
 
 end type ActuatorLineType
 
@@ -317,16 +321,27 @@ end type ActuatorLineType
 
     implicit none
     type(ActuatorLineType),intent(INOUT) :: act_line
-    real :: pitch_angle
+    real,intent(in) :: pitch_angle !Pitch in rads
+    real :: R(3,3), t(3,1)
     integer :: istation, Nstation
+    
+    !> Define the Pitch Rotation Matrix
+    R=reshape((/cos(pitch_angle),0.0,-sin(pitch_angle),0.0,1.0,0.0,sin(pitch_angle),0.0,cos(pitch_angle)/),(/3,3/))
+
     !> Change the pitch angle by changing n,t and s unit vectors
     Nstation=act_line%Nelem+1
     do istation=1,Nstation
-    act_line%tx(istation)= cos(pitch_angle/180.0*pi)    
-    act_line%ty(istation)= 0.0
-    act_line%tz(istation)= -sin(pitch_angle/180.0*pi)     
-    end do
     
+    t(1,1)=act_line%tx(istation)
+    t(2,1)=act_line%ty(istation)
+    t(3,1)=act_line%tz(istation)     
+    t=matmul(R,t)
+    !>Reassign the tangential vector
+    act_line%tx(istation)=t(1,1)
+    act_line%ty(istation)=t(2,1)
+    act_line%tz(istation)=t(3,1)
+
+    end do
     call make_actuatorline_geometry(act_line)
 
     end subroutine pitch_actuator_line 
