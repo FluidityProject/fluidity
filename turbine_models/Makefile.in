@@ -44,7 +44,7 @@ ARFLAGS = @ARFLAGS@
 
 LIB = ../lib/lib$(FLUIDITY).a
 
-OBJS = Actuator_Line_Model_Utils.o DynStall.o Airfoils.o Actuator_Line_Element.o Actuator_Line_Turbine.o Actuator_Line_Model.o Actuator_Line_Source.o \
+OBJS = Actuator_Line_Model_Utils.o DynStall.o Airfoils.o Actuator_Line_Element.o Actuator_Line_Turbine.o Actuator_Line_Write_Output.o Actuator_Line_Model.o Actuator_Line_Source.o \
 
 .SUFFIXES: .f90 .F90 .c .o .a
 

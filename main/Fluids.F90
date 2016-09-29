@@ -105,6 +105,7 @@ module fluids_module
   use iceshelf_meltrate_surf_normal
   use actuator_line_model 
   use actuator_line_source
+
 #ifdef HAVE_HYPERLIGHT
   use hyperlight
 #endif
@@ -224,8 +225,13 @@ contains
     !GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
     ! Initilise the Actuator Line Model 
     if (have_option("/turbine_models/actuator_line_model")) then
+        if (have_option("/material_phase/vector_field::Velocity/prognostic/vector_field::Source/diagnostic/algorithm::actuator_line_momentum_source")) then
         call actuator_line_model_init
         call initialize_actuator_source
+        else
+        FLExit("The actuator_line_model needs a Source term/diagnostic with algorithm::actuator_line_momentum_source")
+        end if
+
     end if
     !GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
 
@@ -438,7 +444,13 @@ contains
          & .and. .not. have_option("/io/disable_dump_at_start") &
          & ) then
        call write_state(dump_no, state)
-    end if
+        
+       !> write actuator_line_model output
+       if (have_option("/turbine_models/actuator_line_model")) then
+            call actuator_line_model_write_output(dump_no-1)
+       endif
+    
+   end if
 
     call initialise_convergence(filename, state)
     call initialise_steady_state(filename, state)
@@ -492,8 +504,15 @@ contains
           if(do_checkpoint_simulation(dump_no)) then
              call checkpoint_simulation(state, cp_no = dump_no)
           end if
+
           call write_state(dump_no, state)
-       end if
+         
+          !> write actuator_line_model output
+          if (have_option("/turbine_models/actuator_line_model")) then
+            call actuator_line_model_write_output(dump_no-1)
+          endif
+
+    end if
 
        ewrite(2,*)'steady_state_tolerance,nonlinear_iterations:',steady_state_tolerance,nonlinear_iterations
 
@@ -546,9 +565,8 @@ contains
           call set_irradiance_from_hyperlight(state(1))
        end if
 #endif
+    
         
-          
-
        ! nonlinear_iterations=maximum no of iterations within a time step
 
        nonlinear_iteration_loop: do  ITS=1,nonlinear_iterations
@@ -858,7 +876,13 @@ contains
        ! calculate and write diagnostics before the timestep gets changed
        call calculate_diagnostic_variables(State, exclude_nonrecalculated=.true.)
        call calculate_diagnostic_variables_new(state, exclude_nonrecalculated = .true.)
-          
+       
+       !> Update the actuator_line_model output
+       if (have_option("/turbine_models/actuator_line_model")) then
+            call actuator_line_model_update(current_time,dt)        
+       endif
+      
+
 
        ! Call the modern and significantly less satanic version of study
        call write_diagnostics(state, current_time, dt, timestep)

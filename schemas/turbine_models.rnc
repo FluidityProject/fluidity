@@ -170,25 +170,34 @@ turbine_models=(
                             empty
                         }?
                     },
-                    
-                    element allow_pitch{
-                    ## Harmonic means that is in form of Theta=Theta0 + sin(Omega t)
-                    ## where Theta0 is the intial pitch_angle and Omega is the angular pitching frequency
-                    ## to be defined by the user
-                    element harmonic {
-                            ## Insert in degrees
+
+                    element pitch_control{
+## Harmonic means that is in form of Theta=Theta0 + sin(Omega t)
+## where Theta0 is the intial pitch_angle and Omega is the angular pitching frequency
+## to be defined by the user
+                        element harmonic {
+## Insert in degrees
                             element initial_pitch_angle{
                                 real 
                             },
-                            ## Insert in degrees
+## Insert in degrees
                             element pitch_amplitude{
                                 real 
                             },
-                            ## degrees/sec
+## degrees/sec
                             element angular_pitching_frequency{
                                 real
                             }
+                        },
+## Start time for pitch control
+                        element start_time{
+                            real
+                        },
+## End time for pitch control
+                        element end_time{
+                            real
                         }
+
                     }?
 
                 }*,

@@ -102,10 +102,14 @@ type ActuatorLineType
     logical :: do_tip_correction=.false.
 
     ! Blade/Actuator_line Pitch
-    logical :: allow_pitch=.false.
-    real :: angular_pitch_freq=0.0
-    real :: pitch_angle_init=0.0
-    real :: pitchAmp=0.0
+    logical :: pitch_control=.false.
+    real    :: pitch_start_time
+    real    :: pitch_end_time
+
+    ! Harmonic Pitch control parameters
+    real    :: angular_pitch_freq
+    real    :: pitch_angle_init
+    real    :: pitchAmp
 
 end type ActuatorLineType
 
@@ -137,14 +141,20 @@ end type ActuatorLineType
     actuatorline%QCx(istation)=rR(istation)*length*Svec(1)
     actuatorline%QCy(istation)=rR(istation)*length*Svec(2)
     actuatorline%QCz(istation)=rR(istation)*length*Svec(3)      
+    
+    if(actuatorline%pitch_control) then
+         pitch(istation)=actuatorline%pitch_angle_init   
+    endif
+
     actuatorline%tx(istation)= cos(pitch(istation)/180.0*pi)    
     actuatorline%ty(istation)= 0.0
     actuatorline%tz(istation)= -sin(pitch(istation)/180.0*pi)     
+
     actuatorline%C(istation)=ctoR(istation)*length
     actuatorline%thick(istation)=thick(istation)
     actuatorline%FlipN=.true.
     end do
-   
+
     call make_actuatorline_geometry(actuatorline)
     
     ! Compute the Area
@@ -171,23 +181,6 @@ end type ActuatorLineType
 
     end subroutine set_actuatorline_geometry
     
-    subroutine init_actuator_line_output_file 
-        implicit none
-        open(2017,File='actuator_line_loads.dat')
-        write(2017,*) 'ielem, AOA, CD, CDL,CM'
-    end subroutine init_actuator_line_output_file
-
-    subroutine write_actuator_line_output_file(act_line) 
-        implicit none
-        type(ActuatorLineType),intent(in) :: act_line
-        integer :: unit_numb=2017
-        integer :: ielem
-
-        do ielem=1,act_line%NElem
-        write(2017,*) ielem,',',act_line%EAOA_Last(ielem),',',act_line%ECD(ielem),',',act_line%ECL(ielem),',',act_line%ECM(ielem)
-        end do
-
-    end subroutine write_actuator_line_output_file
 
     subroutine Compute_ActuatorLine_Forces(act_line,visc,dt)
        
@@ -244,7 +237,7 @@ end type ActuatorLineType
     alpha75=alpha
     ewrite(2,*) "ielem | urdn | urdc | alpha | Re"
     ewrite(2,*) "--------------------------------"
-    ewrite(2,*) ielem, urdn, urdc, alpha , Re
+    ewrite(2,*) ielem, urdn, urdc, alpha , Re, dt
    
     !=========================================================
     ! Compute rate of change of Unormal and angle of attack
@@ -253,12 +246,12 @@ end type ActuatorLineType
     dal=0
     dUnorm=0
     else
-    dal=(alpha75-act_line%EAOA_Last(ielem))
+    dal=(alpha5-act_line%EAOA_Last(ielem))
     dUnorm=urdn-act_line%EUn_last(ielem)
     endif
-    adotnorm=dal/dt*ElemChord/(2.0*max(ur,0.001)) ! adot*c/(2*U)
+    adotnorm=dal/(max(dt,0.001))*ElemChord/(2.0*max(ur,0.001)) ! adot*c/(2*U)
     A = urdn/max(ur,0.001)
-    B = ElemChord*dUnorm/(dt*max(ur**2,0.001))
+    B = ElemChord*dUnorm/(max(dt,0.001)*max(ur**2,0.001))
     C = urdn*urdc/max(ur**2,0.001)
 
     !====================================
@@ -309,7 +302,7 @@ end type ActuatorLineType
     !===============================================
     !! Set the AOA_LAST before exiting the routine
     !===============================================
-    act_line%EAOA_LAST(ielem)=alpha75 
+    act_line%EAOA_LAST(ielem)=alpha5 
     act_line%EUn_last(ielem)=urdn 
     end do 
 
@@ -317,21 +310,22 @@ end type ActuatorLineType
 
     end subroutine compute_Actuatorline_Forces
 
-    subroutine pitch_actuator_line(act_line,pitch_angle)
+    subroutine pitch_actuator_line(act_line)
 
     implicit none
     type(ActuatorLineType),intent(INOUT) :: act_line
-    real,intent(in) :: pitch_angle !Pitch in rads
+    real :: pitch_angle !Pitch in degrees
     real :: R(3,3), t(3,1)
     integer :: istation, Nstation
     
-    !> Define the Pitch Rotation Matrix
-    R=reshape((/cos(pitch_angle),0.0,-sin(pitch_angle),0.0,1.0,0.0,sin(pitch_angle),0.0,cos(pitch_angle)/),(/3,3/))
-
     !> Change the pitch angle by changing n,t and s unit vectors
     Nstation=act_line%Nelem+1
 
     do istation=1,Nstation 
+
+    pitch_angle=act_line%pitch(istation)
+    !> Define the Pitch Rotation Matrix
+    R=reshape((/cos(pitch_angle*pi/180.0),0.0,-sin(pitch_angle*pi/180.0),0.0,1.0,0.0,sin(pitch_angle*pi/180.0),0.0,cos(pitch_angle*pi/180.0)/),(/3,3/))
     t(1,1)=act_line%tx(istation)
     t(2,1)=act_line%ty(istation)
     t(3,1)=act_line%tz(istation)     
@@ -340,8 +334,8 @@ end type ActuatorLineType
     act_line%tx(istation)=t(1,1)
     act_line%ty(istation)=t(2,1)
     act_line%tz(istation)=t(3,1)
-
     end do
+
     call make_actuatorline_geometry(act_line)
 
     end subroutine pitch_actuator_line 

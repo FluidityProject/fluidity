@@ -226,7 +226,7 @@
                   </optional>
                 </element>
                 <optional>
-                  <element name="allow_pitch">
+                  <element name="pitch_control">
                     <element name="harmonic">
                       <a:documentation>Harmonic means that is in form of Theta=Theta0 + sin(Omega t)
 where Theta0 is the intial pitch_angle and Omega is the angular pitching frequency
@@ -243,6 +243,14 @@ to be defined by the user</a:documentation>
                         <a:documentation>degrees/sec</a:documentation>
                         <ref name="real"/>
                       </element>
+                    </element>
+                    <element name="start_time">
+                      <a:documentation>Start time for pitch control</a:documentation>
+                      <ref name="real"/>
+                    </element>
+                    <element name="end_time">
+                      <a:documentation>End time for pitch control</a:documentation>
+                      <ref name="real"/>
                     </element>
                   </element>
                 </optional>
