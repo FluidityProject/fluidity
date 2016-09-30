@@ -331,9 +331,12 @@ end type ActuatorLineType
     t(3,1)=act_line%tz(istation)     
     t=matmul(R,t)
     !>Reassign the tangential vector
-    act_line%tx(istation)=t(1,1)
-    act_line%ty(istation)=t(2,1)
-    act_line%tz(istation)=t(3,1)
+    !act_line%tx(istation)=t(1,1)
+    !act_line%ty(istation)=t(2,1)
+    !act_line%tz(istation)=t(3,1)
+    act_line%tx(istation)=cos(pitch_angle*pi/180.0)
+    act_line%ty(istation)=0.0
+    act_line%tz(istation)=-sin(pitch_angle*pi/180.0)
     end do
 
     call make_actuatorline_geometry(act_line)

@@ -1,0 +1,44 @@
+<?xml version='1.0' encoding='utf-8'?>
+<test>
+<turbine_models>
+    <actuator_line_model>
+      <actuatorline name="Test">
+        <location>
+          <real_value shape="3" dim1="dim" rank="1">0.0 0.0 0.0</real_value>
+        </location>
+        <geometry_file file_name="Test.dat">
+          <string_value>ascii</string_value>
+        </geometry_file>
+        <airfoil_sections>
+          <section airfoil_file="FoilData/NACA_0012.dat" name="NACA_0012">
+            <string_value>ascii</string_value>
+          </section>
+        </airfoil_sections>
+        <unsteady_modelling>
+            <dynamic_stall/>
+            <added_mass/>
+        </unsteady_modelling>
+        <pitch_control>
+          <harmonic>
+            <initial_pitch_angle>
+              <real_value rank="0">10</real_value>
+            </initial_pitch_angle>
+            <pitch_amplitude>
+              <real_value rank="0">10</real_value>
+            </pitch_amplitude>
+            <angular_pitching_frequency>
+              <real_value rank="0">12.5</real_value>
+            </angular_pitching_frequency>
+          </harmonic>
+          <start_time>
+            <real_value rank="0">0</real_value>
+          </start_time>
+          <end_time>
+            <real_value rank="0">1.0</real_value>
+          </end_time>
+        </pitch_control>
+      </actuatorline>
+      <source_term_parameters/>
+    </actuator_line_model>
+</turbine_models>
+</test>

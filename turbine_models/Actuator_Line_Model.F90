@@ -318,11 +318,11 @@ contains
 
         if (Nal>0) then
             do i=1,Nal
-            if(ActuatorLine(i)%pitch_control.and. Time > ActuatorLine(i)%pitch_start_time.and. Time < ActuatorLine(i)%pitch_end_time) then    
+            if(ActuatorLine(i)%pitch_control.and.Time > ActuatorLine(i)%pitch_start_time.and.Time < ActuatorLine(i)%pitch_end_time) then    
                 !> Do harmonic pitch control for all elements of the actuator line
                 Nstation=ActuatorLine(i)%NElem+1
                 do j=1,Nstation
-                ActuatorLine(i)%pitch(j)=ActuatorLine(i)%pitch(j)+actuatorline(i)%pitchAmp*sin(actuatorline(i)%angular_pitch_freq*(Time-ActuatorLine(i)%pitch_start_time))
+                ActuatorLine(i)%pitch(j)=ActuatorLine(i)%pitch_angle_init+actuatorline(i)%pitchAmp*sin(actuatorline(i)%angular_pitch_freq*(Time-ActuatorLine(i)%pitch_start_time))
                 end do
                 call pitch_actuator_line(actuatorline(i))
             endif
