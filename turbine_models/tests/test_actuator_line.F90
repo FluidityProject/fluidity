@@ -19,10 +19,10 @@ subroutine test_actuator_line
  write(*,*) 'that works without a dynamic inflow model        '
  write(*,*) '================================================='
 
- call load_options("test_actuator_line_model.flml")
+ call load_options("TestDynStall.flml")
  
- Ntimesteps=100
- deltaT=0.01
+ Ntimesteps=5000
+ deltaT=0.001
  visc=1.5e-5
  current_time=0.0
  
@@ -47,7 +47,6 @@ subroutine test_actuator_line
     call actuator_line_model_update(current_time,deltaT)
    
     do ial=1, Nal
-    write(*,*) Actuatorline(ial)%EAOA_Last(11)
     call actuator_line_model_write_output(istep)
     end do
 

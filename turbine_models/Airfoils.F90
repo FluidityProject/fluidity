@@ -345,9 +345,9 @@ contains
         ! Added mass according to Strickland et al, taken from Banchant et al 2016
         !============================================================================
         if(AddedMassFlag) then
-        CNAM=-pi*A2/8.0
-        CTAM=pi*adotnorm*A1/4.0
-        CMAM=-CNAM/4.0-A3/8.0
+        CNAM=-pi*A2/2.0
+        CTAM=pi*adotnorm*A1/2.0
+        CMAM=-CNAM/2.0-A3/4.0
         ! Augment tangential and normal coeffs 
         CT=CT+CTAM
         CN=CN+CNAM

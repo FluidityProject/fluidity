@@ -52,7 +52,7 @@ DISABLED_TESTS=
 TEST_BINARIES=$(filter-out $(DISABLED_TESTS), $(basename $(wildcard *.F90)))
 
 #unittest: $(TEST_BINARIES) 
-#	ln -sf $(addprefix ../../turbine_models/tests/,$(TEST_BINARIES)) ../../bin/tests/
+#	ln -sf $(addprefix ../../turbine_models/tests/,$(TEST_BINARIES)) 
 
 
 .SUFFIXES: .f90 .F90 .c .cpp .o .a $(.SUFFIXES)
@@ -83,3 +83,4 @@ clean:
 	rm -f $(TEST_BINARIES)
 	rm -f *.o *.mod
 	rm -f lib
+	rm -f Test_*

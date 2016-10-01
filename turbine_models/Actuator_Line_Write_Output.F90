@@ -12,14 +12,14 @@ module actuator_line_write_output
 
 contains
 
-    subroutine actuator_line_element_write_output(act_line,dumb_num)
+    subroutine actuator_line_element_write_output(act_line,dump_num)
 
         implicit none
         type(ActuatorLineType),intent(in) :: act_line
-        integer,intent(in) :: dumb_num
+        integer,intent(in) :: dump_num
         integer :: ielem
 
-        open(2017,File=trim(act_line%name)//'_'//int2str(dumb_num)//'.dat')
+        open(2017,File=trim(act_line%name)//'_'//int2str(dump_num)//'.dat')
         write(2017,*) 'ielem, AOA, CD, CDL,CM'
         do ielem=1,act_line%NElem
         write(2017,*) ielem,',',act_line%EAOA_Last(ielem),',',act_line%ECD(ielem),',',act_line%ECL(ielem),',',act_line%ECM(ielem)
