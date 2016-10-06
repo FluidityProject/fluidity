@@ -1325,8 +1325,9 @@ contains
   end subroutine move_mesh_pseudo_lagrangian
 
 
-  subroutine move_mesh_laplacian_smoothing(states)
+  subroutine move_mesh_laplacian_smoothing(states, diagnostic_only)
     type(state_type), dimension(:), intent(inout) :: states
+    logical, optional, intent(in) :: diagnostic_only
   
     type(vector_field), pointer :: coordinate, old_coordinate, new_coordinate,&
          initial_coordinate
@@ -1396,7 +1397,12 @@ contains
     call addto(grid_velocity, old_coordinate, scale = -1.0)
     call scale(grid_velocity, 1.0/dt)
 
-    call set(coordinate, new_coordinate, old_coordinate, itheta)
+    if (present_and_true(diagnostic_only)) then
+       call set(coordinate, old_coordinate)
+       call set(new_coordinate, old_coordinate)
+    else
+       call set(coordinate, new_coordinate, old_coordinate, itheta)
+    end if
 
 
   end subroutine move_mesh_laplacian_smoothing
@@ -1427,8 +1433,9 @@ contains
 
   end subroutine move_mesh_initialise_laplacian_smoothing
 
-  subroutine move_mesh_lineal_smoothing(states)
+  subroutine move_mesh_lineal_smoothing(states, diagnostic_only)
     type(state_type), dimension(:), intent(inout) :: states
+    logical, optional, intent(in) :: diagnostic_only
   
     type(vector_field), pointer :: coordinate, old_coordinate, new_coordinate,&
          initial_coordinate
@@ -1498,7 +1505,12 @@ contains
     call addto(grid_velocity, old_coordinate, scale = -1.0)
     call scale(grid_velocity, 1.0/dt)
 
-    call set(coordinate, new_coordinate, old_coordinate, itheta)
+    if (present_and_true(diagnostic_only)) then
+       call set(coordinate, old_coordinate)
+       call set(new_coordinate, old_coordinate)
+    else
+       call set(coordinate, new_coordinate, old_coordinate, itheta)
+    end if
 
 
   end subroutine move_mesh_lineal_smoothing
