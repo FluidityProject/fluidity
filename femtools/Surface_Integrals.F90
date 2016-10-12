@@ -31,6 +31,7 @@ module surface_integrals
 
   use fldebug
   use global_parameters, only : OPTION_PATH_LEN, FIELD_NAME_LEN
+  use vector_tools, only : cross_product
   use spud
   use futils
   use quadrature
@@ -50,7 +51,7 @@ module surface_integrals
   public :: calculate_surface_integral, gradient_normal_surface_integral, &
     & normal_surface_integral, surface_integral, surface_gradient_normal, &
     & surface_normal_distance_sele
-  public :: diagnostic_body_drag
+  public :: diagnostic_body_drag, diagnostic_body_torque
   
   interface integrate_over_surface_element
     module procedure integrate_over_surface_element_mesh, &
@@ -634,6 +635,225 @@ contains
     ewrite(1, *) "Exiting diagnostic_body_drag"
     
   end subroutine diagnostic_body_drag
+
+  subroutine diagnostic_body_torque(state, torque, surface_integral_name, pressure_torque, viscous_torque)
+    type(state_type), intent(in) :: state
+    real :: torque
+    character(len = FIELD_NAME_LEN), intent(in) :: surface_integral_name
+    real, optional, intent(out) :: pressure_torque
+    real, optional, intent(out) :: viscous_torque
+
+    type(vector_field), pointer :: velocity
+    character(len=OPTION_PATH_LEN) :: option_path
+    integer, dimension(:), allocatable :: surface_ids
+    integer, dimension(2) :: shape_option
+    real, dimension(:), allocatable :: axis, point
+
+    ewrite(1,*) 'In diagnostic_body_torque'
+    ewrite(1,*) 'Computing body torques for label "'//trim(surface_integral_name)//'"'
+
+    velocity => extract_vector_field(state, "Velocity")
+    option_path = velocity%option_path          
+    shape_option = option_shape(trim(option_path)//'/prognostic/stat/compute_body_torque_on_surfaces::'//trim(surface_integral_name)//'/surface_ids')
+
+    allocate( surface_ids(shape_option(1)), &
+         axis(mesh_dim(velocity)), point(mesh_dim(velocity)))
+
+    call get_option(trim(option_path)//'/prognostic/stat/compute_body_torque_on_surfaces::'//trim(surface_integral_name)//'/surface_ids', surface_ids)
+    ewrite(2,*) 'Calculating torques on surfaces with these IDs: ', surface_ids
+
+    call get_option(trim(option_path)//'/prognostic/stat/compute_body_torque_on_surfaces::'//trim(surface_integral_name)//'/axis_of_rotation', axis)
+    call get_option(trim(option_path)//'/prognostic/stat/compute_body_torque_on_surfaces::'//trim(surface_integral_name)//'/point_on_axis', point)
+
+    call torque_on_surface(state, torque, surface_ids, axis, point,&
+         pressure_torque, viscous_torque)
+
+    ewrite(1, *) "Exiting diagnostic_body_torque"
+
+  end subroutine diagnostic_body_torque
+
+ subroutine torque_on_surface(state, torque, surface_ids, axis, point,&
+      pressure_torque, viscous_torque)
+    type(state_type), intent(in) :: state
+    real :: torque
+    integer, dimension(:), intent(in) :: surface_ids
+    real, dimension(:), intent(in) :: axis, point
+    real, optional, intent(out) :: pressure_torque
+    real, optional, intent(out) :: viscous_torque
+
+    type(vector_field), pointer :: velocity, position
+    type(tensor_field), pointer :: viscosity
+    type(scalar_field), pointer :: pressure
+    type(element_type), pointer :: x_f_shape, x_shape, u_shape, u_f_shape
+    integer :: ele,sele,nloc,snloc,sngi,ngi,stotel,nfaces,meshdim, gi
+    real, dimension(:), allocatable :: face_detwei, face_pressure, torque_at_quad
+    real, dimension(:,:), allocatable :: velocity_ele, normal, strain, r_ele
+    real, dimension(:,:,:), allocatable :: dn_t,viscosity_ele, tau, vol_dshape_face
+    real :: sarea
+    integer :: stat
+    logical :: have_viscosity
+
+    position => extract_vector_field(state, "Coordinate")
+    pressure => extract_scalar_field(state, "Pressure")
+    velocity => extract_vector_field(state, "Velocity")  
+    viscosity=> extract_tensor_field(state, "Viscosity", stat)
+    have_viscosity = stat == 0
+    
+    meshdim = mesh_dim(velocity)
+    x_shape => ele_shape(position, 1)
+    u_shape => ele_shape(velocity, 1)
+    x_f_shape => face_shape(position, 1)
+    u_f_shape => face_shape(velocity, 1)
+    nloc = ele_loc(velocity, 1)
+    snloc = face_loc(velocity, 1)
+    ngi   = ele_ngi(velocity, 1)
+    sngi  = face_ngi(velocity, 1)
+    stotel = surface_element_count(velocity)
+    allocate( face_detwei(sngi), &
+              dn_t(nloc, ngi, meshdim), &
+              velocity_ele(meshdim, nloc), normal(meshdim, sngi), &
+              face_pressure(sngi), viscosity_ele(meshdim, meshdim, sngi), &
+              r_ele(meshdim, sngi), &
+              tau(meshdim, meshdim, sngi), strain(meshdim, meshdim), &
+              torque_at_quad(sngi))
+
+    allocate(vol_dshape_face(ele_loc(velocity, 1), face_ngi(velocity, 1),meshdim))
+
+    sarea = 0.0
+    nfaces = 0
+    torque = 0.0
+    if(present(pressure_torque)) pressure_torque = 0.0
+    if(present(viscous_torque)) viscous_torque = 0.0
+    do sele=1,stotel
+      if(integrate_over_surface_element(velocity, sele, surface_ids = surface_ids)) then
+        ! Get face_detwei and normal
+        ele = face_ele(velocity, sele)
+          call transform_facet_to_physical( &
+             position, sele, detwei_f=face_detwei, normal=normal)
+          call transform_to_physical(position, ele, &
+             shape=u_shape, dshape=dn_t)
+          velocity_ele = ele_val(velocity,ele)
+
+          ! Compute tau only if viscosity is present
+          if(have_viscosity) then
+            viscosity_ele = face_val_at_quad(viscosity,sele)
+            r_ele = get_radial(axis,point,face_val_at_quad(position,sele))
+
+          !
+          ! Form the stress tensor
+          !
+
+            if (u_shape%degree == 1 .and. u_shape%numbering%family == FAMILY_SIMPLEX) then
+              strain = matmul(velocity_ele, dn_t(:, 1, :))
+              strain = (strain + transpose(strain)) / 2.0
+              do gi=1,sngi
+                tau(:, :, gi) = 2 * matmul(viscosity_ele(:, :, gi), strain)
+              end do
+            else
+              call transform_facet_to_physical(position, sele, u_shape, vol_dshape_face)
+
+              do gi=1,sngi
+                strain = matmul(velocity_ele, vol_dshape_face(:, gi, :))
+                strain = (strain + transpose(strain)) / 2.0
+                tau(:, :, gi) = 2 * matmul(viscosity_ele(:, :, gi), strain)
+              end do
+            end if
+
+          end if
+
+          face_pressure = face_val_at_quad(pressure, sele)
+          nfaces = nfaces + 1
+          sarea = sarea + sum(face_detwei)
+
+
+          if(have_viscosity) then
+            do gi=1,sngi
+              torque_at_quad(gi) = cross(r_ele(:,gi), normal(:, gi), axis) * face_pressure(gi) - cross(r_ele(:,gi), matmul(normal(:, gi), tau(:, :, gi)), axis)
+            end do
+          else
+            do gi=1,sngi
+              torque_at_quad(gi) = cross(r_ele(:,gi), normal(:, gi), axis) * face_pressure(gi)
+            end do
+          end if
+          torque = torque + dot_product(torque_at_quad, face_detwei)
+
+          if(present(pressure_torque)) then
+            do gi=1,sngi
+              torque_at_quad(gi) = cross(r_ele(:, gi), normal(:, gi), axis) * face_pressure(gi)
+            end do
+            pressure_torque = pressure_torque + dot_product(torque_at_quad, face_detwei)
+          end if
+          if(present(viscous_torque)) then
+            do gi=1,sngi
+              torque_at_quad(gi) = - cross(r_ele(:,gi), matmul(normal(:, gi), tau(:, :, gi)), axis)
+            end do
+            viscous_torque = viscous_torque +dot_product(torque_at_quad, face_detwei)
+          end if
+       end if
+    enddo
+
+    call allsum(nfaces)
+    call allsum(sarea)
+    call allsum(torque)
+    if(present(pressure_torque)) call allsum(pressure_torque)
+    if(present(viscous_torque)) call allsum(viscous_torque)
+
+    ewrite(2,*) 'Integrated over this number of faces and total area: ', nfaces, sarea
+    ewrite(2, *) "Torque on surface: ", torque
+    if(present(pressure_torque)) then
+      ewrite(2,*) 'Pressure force on surface: ', pressure_torque
+    end if
+    if(present(viscous_torque)) then
+      ewrite(2,*) 'Viscous force on surface: ', viscous_torque
+    end if
+
+    contains
+
+      function cross(r,f,ax)
+        real, dimension(:) , intent(in) :: r , f,ax
+        real :: cross
+
+        real, dimension(size(r)) :: t
+
+        ! returns the magnitude of the cross product between r and f
+
+        select case(size(r))
+        case(2)
+           cross = r(1)*f(2)-r(2)*f(1)
+        case(3)
+           t(1)=r(2)*f(3)-r(3)*f(2)
+           t(2)=r(3)*f(1)-r(1)*f(3)
+           t(3)=r(1)*f(2)-r(2)*f(1)
+           cross = sqrt(sum(t*ax))
+        end select
+
+      end function cross
+
+      function get_radial(ax,p,x) result(radial)
+        real, dimension(:), intent(in)  :: ax,p
+        real,  dimension(:,:), intent(in) :: x
+
+        real, dimension(size(x,1), size(x,2)) :: radial
+
+        integer :: itr
+
+        ! return the radial vectors from an axis of rotation to the points x
+        ! The acis is defined by a point on the axis (p) and the unit vector along it (ax)
+
+        do itr = 1, size(x,2)
+
+           select case(size(p))
+           case(2)
+              radial(:, itr) = x(:, itr) - p
+           case(3)
+              radial(:, itr) = cross_product( cross_product(x(:,itr) - p,ax), ax)
+           end select
+
+        end do
+
+      end function get_radial
+    
+  end subroutine torque_on_surface
   
   function calculate_surface_integral_scalar(s_field, positions, index) result(integral)
     !!< Calculates a surface integral for the specified scalar field based upon

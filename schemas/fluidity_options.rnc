@@ -3618,6 +3618,28 @@ prognostic_velocity_stat_options.stat &=
           }?
         )
       }*,
+      element compute_body_torque_on_surfaces {
+        attribute name { xsd:string },
+        (
+          ## What surface IDs do you want to do the calculation over?
+          element surface_ids {
+            integer_vector
+          },
+          ## Unit vector in direction of rotation axis (3d), otherwise ignored
+          element axis_of_rotation {
+            real_dim_vector
+          },
+          ## A point lying on the axis of rotation
+          element point_on_axis {
+            real_dim_vector
+          },
+          ## Enable to output the pressure and viscous terms separately (as well
+          ## as the total force)
+          element output_terms {
+             comment
+          }?
+        )
+      }*,
       ## Compute the divergence of this field at the Gauss points
       ## and return its stats.  This is a direct measure of the
       ## divergence at the gauss points rather than a discrete measure

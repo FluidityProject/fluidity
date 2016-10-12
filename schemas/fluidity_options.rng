@@ -4879,6 +4879,34 @@ as the total force)</a:documentation>
         </group>
       </element>
     </zeroOrMore>
+    <zeroOrMore>
+      <element name="compute_body_torque_on_surfaces">
+        <attribute name="name">
+          <data type="string"/>
+        </attribute>
+        <group>
+          <element name="surface_ids">
+            <a:documentation>What surface IDs do you want to do the calculation over?</a:documentation>
+            <ref name="integer_vector"/>
+          </element>
+          <element name="axis_of_rotation">
+            <a:documentation>Unit vector in direction of rotation axis (3d), otherwise ignored</a:documentation>
+            <ref name="real_dim_vector"/>
+          </element>
+          <element name="point_on_axis">
+            <a:documentation>A point lying on the axis of rotation</a:documentation>
+            <ref name="real_dim_vector"/>
+          </element>
+          <optional>
+            <element name="output_terms">
+              <a:documentation>Enable to output the pressure and viscous terms separately (as well
+as the total force)</a:documentation>
+              <ref name="comment"/>
+            </element>
+          </optional>
+        </group>
+      </element>
+    </zeroOrMore>
     <optional>
       <element name="divergence_stats">
         <a:documentation>Compute the divergence of this field at the Gauss points
