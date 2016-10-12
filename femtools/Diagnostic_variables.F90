@@ -783,6 +783,27 @@ contains
              end do
            end if
 
+! drag calculation
+           if(have_option(trim(complete_field_path(vfield%option_path, stat=stat)) // "/stat/compute_body_torque_on_surfaces")) then
+             do s = 0, option_count(trim(complete_field_path(vfield%option_path, stat = stat)) // "/stat/compute_body_torque_on_surfaces") - 1
+               call get_option(trim(complete_field_path(vfield%option_path))//"/stat/compute_body_torque_on_surfaces[" // int2str(s) // "]/name", surface_integral_name)
+               column = column + 1
+               buffer = field_tag(name=trim(vfield%name), column=column, statistic="torque_"//trim(surface_integral_name),&
+                    material_phase_name=material_phase_name)
+               write(default_stat%diag_unit, '(a)') trim(buffer)
+               if(have_option(trim(complete_field_path(vfield%option_path, stat=stat)) // "/stat/compute_torque_forces_on_surfaces[" // int2str(s) // "]/output_terms")) then
+                  column = column + 1
+                  buffer = field_tag(name=trim(vfield%name), column=column, statistic="pressure_torque_"//trim(surface_integral_name),&
+                       material_phase_name=material_phase_name)
+                  write(default_stat%diag_unit, '(a)') trim(buffer)
+                  column = column + 1
+                  buffer = field_tag(name=trim(vfield%name), column=column, statistic="viscous_torque_"//trim(surface_integral_name),&
+                       material_phase_name=material_phase_name)
+                  write(default_stat%diag_unit, '(a)') trim(buffer)
+               end if
+             end do
+           end if
+
            if(have_option(trim(complete_field_path(vfield%option_path, stat=stat)) // "/stat/divergence_stats")) then
               column=column+1
               buffer=field_tag(name=vfield%name, column=column, statistic="divergence%min", material_phase_name=material_phase_name)
@@ -2083,7 +2104,8 @@ contains
          end do
 
          ! drag calculation
-         if(have_option(trim(complete_field_path(vfield%option_path, stat=stat)) // "/stat/compute_body_forces_on_surfaces")) then
+         if(have_option(trim(complete_field_path(vfield%option_path, stat=stat)) // "/stat/compute_body_forces_on_surfaces") .or. &
+             have_option(trim(complete_field_path(vfield%option_path, stat=stat)) // "/stat/compute_body_torque_on_surfaces") ) then
            call write_body_forces(state(phase), vfield)  
          end if
 
@@ -2183,6 +2205,7 @@ contains
       logical :: have_viscosity      
       integer :: i, s
       real :: force(vfield%dim), pressure_force(vfield%dim), viscous_force(vfield%dim)
+      real :: torque , pressure_torque, viscous_torque
       character(len = FIELD_NAME_LEN) :: surface_integral_name
     
       viscosity=>extract_tensor_field(state, "Viscosity", stat)
@@ -2218,6 +2241,32 @@ contains
              do i=1, mesh_dim(vfield%mesh)
                 write(default_stat%diag_unit, trim(format), advance="no") force(i)
              end do
+            end if     
+        end if
+      end do
+
+      do s = 0, option_count(trim(complete_field_path(vfield%option_path, stat = stat)) // "/stat/compute_body_torque_on_surfaces") - 1
+        call get_option(trim(complete_field_path(vfield%option_path))//"/stat/compute_body_torque_on_surfaces[" // int2str(s) // "]/name", surface_integral_name)
+
+        if(have_option(trim(complete_field_path(vfield%option_path, stat=stat)) // "/stat/compute_body_torque_on_surfaces[" // int2str(s) // "]/output_terms")) then
+          if(have_viscosity) then
+            ! calculate the forces on the surface
+            call diagnostic_body_torque(state, torque, surface_integral_name, pressure_torque = pressure_torque, viscous_torque = viscous_torque)
+          else
+            call diagnostic_body_torque(state, torque, surface_integral_name, pressure_torque = pressure_torque)   
+          end if
+          if(getprocno() == 1) then
+              write(default_stat%diag_unit, trim(format), advance="no") torque
+              write(default_stat%diag_unit, trim(format), advance="no") pressure_torque
+            if(have_viscosity) then
+               write(default_stat%diag_unit, trim(format), advance="no") viscous_torque
+            end if
+          end if
+        else
+            ! calculate the torques on the surface
+            call diagnostic_body_torque(state, torque, surface_integral_name) 
+            if(getprocno() == 1) then
+                write(default_stat%diag_unit, trim(format), advance="no") torque
             end if     
         end if
       end do
