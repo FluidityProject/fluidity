@@ -8,10 +8,11 @@ module actuator_line_source
     use actuator_line_model
 
     implicit none
-    real,save :: meshFactor, dragFactor, chordFactor
+    real,save :: meshFactor, thicknessFactor, chordFactor
     real, allocatable :: Sx(:),Sy(:),Sz(:),Sc(:),Se(:),Su(:),Sv(:),Sw(:),SFX(:),SFY(:),SFZ(:)
+    real, allocatable :: Snx(:),Sny(:),Snz(:),Stx(:),Sty(:),Stz(:),Ssx(:),Ssy(:),Ssz(:),Ssegm(:) 
     integer :: NSource
- 
+    logical, save :: anisotropic_source=.false. 
     public get_locations, get_forces, set_vel, initialize_actuator_source
     
 contains
@@ -24,9 +25,13 @@ contains
     ewrite(1,*) 'entering initialize_source_terms'  
     !> Get Source term parameters
     call get_option("/turbine_models/actuator_line_model/source_term_parameters/meshFactor",meshFactor,default=2.00)
-    call get_option("/turbine_models/actuator_line_model/source_term_parameters/dragFactor",dragFactor,default=1.00)
-    call get_option("/turbine_models/actuator_line_model/source_term_parameters/chordFactor",chordFactor,default=0.25)
+    call get_option("/turbine_models/actuator_line_model/source_term_parameters/dragFactor",thicknessFactor,default=0.2)
+    call get_option("/turbine_models/actuator_line_model/source_term_parameters/chordFactor",chordFactor,default=0.4)
     
+    if(have_option("/turbine_models/actuator_line_model/source_term_parameters/anisotropic_source")) then
+        anisotropic_source=.true.
+    endif
+
     counter=0
     if (Ntur>0) then
         do itur=1,Ntur
@@ -64,6 +69,7 @@ contains
     endif
     NSource=counter
     allocate(Sx(NSource),Sy(NSource),Sz(NSource),Sc(Nsource),Su(NSource),Sv(NSource),Sw(NSource),Se(NSource),Sfx(NSource),Sfy(NSource),Sfz(NSource))
+    allocate(Snx(NSource),Sny(NSource),Snz(NSource),Stx(Nsource),Sty(NSource),Stz(NSource),Ssx(NSource),Ssy(NSource),Ssz(NSource),Ssegm(NSource))
 
     ewrite(1,*) 'exiting initialize_source_terms'
 
@@ -84,6 +90,17 @@ contains
                 Sy(counter)=Turbine(itur)%Blade(iblade)%PEY(ielem)
                 Sz(counter)=Turbine(itur)%Blade(iblade)%PEZ(ielem)
                 Sc(counter)=Turbine(itur)%Blade(iblade)%EC(ielem)
+                Snx(counter)=Turbine(itur)%Blade(iblade)%nEx(ielem)
+                Sny(counter)=Turbine(itur)%Blade(iblade)%nEy(ielem)
+                Snz(counter)=Turbine(itur)%Blade(iblade)%nEz(ielem)
+                Stx(counter)=Turbine(itur)%Blade(iblade)%tEx(ielem)
+                Sty(counter)=Turbine(itur)%Blade(iblade)%tEy(ielem)
+                Stz(counter)=Turbine(itur)%Blade(iblade)%tEz(ielem)
+                Ssx(counter)=Turbine(itur)%Blade(iblade)%sEx(ielem)
+                Ssy(counter)=Turbine(itur)%Blade(iblade)%sEy(ielem)
+                Ssz(counter)=Turbine(itur)%Blade(iblade)%sEz(ielem)
+                Ssegm(counter)=Turbine(itur)%Blade(iblade)%EDS(ielem)
+
                 end do
             end do
                 !Tower 
@@ -94,6 +111,16 @@ contains
                 Sy(counter)=Turbine(itur)%Tower%PEY(ielem)
                 Sz(counter)=Turbine(itur)%Tower%PEZ(ielem)
                 Sc(counter)=Turbine(itur)%Tower%EC(ielem) 
+                Snx(counter)=Turbine(itur)%Tower%nEx(ielem)
+                Sny(counter)=Turbine(itur)%Tower%nEy(ielem)
+                Snz(counter)=Turbine(itur)%Tower%nEz(ielem)
+                Stx(counter)=Turbine(itur)%Tower%tEx(ielem)
+                Sty(counter)=Turbine(itur)%Tower%tEy(ielem)
+                Stz(counter)=Turbine(itur)%Tower%tEz(ielem)
+                Ssx(counter)=Turbine(itur)%Tower%sEx(ielem)
+                Ssy(counter)=Turbine(itur)%Tower%sEy(ielem)
+                Ssz(counter)=Turbine(itur)%Tower%sEz(ielem)
+                Ssegm(counter)=Turbine(itur)%Tower%EDS(ielem)
                 end do
                 endif
                 ! Hub 
@@ -104,6 +131,16 @@ contains
                 Sy(counter)=Turbine(itur)%hub%PEY(ielem)
                 Sz(counter)=Turbine(itur)%hub%PEZ(ielem)
                 Sc(counter)=Turbine(itur)%hub%EC(ielem) 
+                Snx(counter)=Turbine(itur)%hub%nEx(ielem)
+                Sny(counter)=Turbine(itur)%hub%nEy(ielem)
+                Snz(counter)=Turbine(itur)%hub%nEz(ielem)
+                Stx(counter)=Turbine(itur)%hub%tEx(ielem)
+                Sty(counter)=Turbine(itur)%hub%tEy(ielem)
+                Stz(counter)=Turbine(itur)%hub%tEz(ielem)
+                Ssx(counter)=Turbine(itur)%hub%sEx(ielem)
+                Ssy(counter)=Turbine(itur)%hub%sEy(ielem)
+                Ssz(counter)=Turbine(itur)%hub%sEz(ielem)
+                Ssegm(counter)=Turbine(itur)%hub%EDS(ielem)
                 end do
                 endif
                 
@@ -118,6 +155,16 @@ contains
                 Sy(counter)=actuatorline(ial)%PEY(ielem)
                 Sz(counter)=actuatorline(ial)%PEZ(ielem)
                 Sc(counter)=actuatorline(ial)%EC(ielem)
+                Snx(counter)=actuatorline(ial)%nEx(ielem)
+                Sny(counter)=actuatorline(ial)%nEy(ielem)
+                Snz(counter)=actuatorline(ial)%nEz(ielem)
+                Stx(counter)=actuatorline(ial)%tEx(ielem)
+                Sty(counter)=actuatorline(ial)%tEy(ielem)
+                Stz(counter)=actuatorline(ial)%tEz(ielem)
+                Ssx(counter)=actuatorline(ial)%sEx(ielem)
+                Ssy(counter)=actuatorline(ial)%sEy(ielem)
+                Ssz(counter)=actuatorline(ial)%sEz(ielem)
+                Ssegm(counter)=actuatorline(ial)%EDS(ielem)
             end do
         end do
     endif

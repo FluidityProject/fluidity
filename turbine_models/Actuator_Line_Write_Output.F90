@@ -22,10 +22,10 @@ contains
 
 
         open(2017,File=trim(act_line%name)//'_'//int2str(dump_num)//'.dat')
-        write(2017,*) 'ielem, AOA, CD, CDL,CM'
+        write(2017,*) 'ielem, AOA, CL, CD,CM'
         Format="(I5,A,F10.5,A,F10.5,A,F10.5,A,F10.5)"
         do ielem=1,act_line%NElem
-        write(2017,Format) ielem,',',act_line%EAOA_Last(ielem),',',act_line%ECD(ielem),',',act_line%ECL(ielem),',',act_line%ECM(ielem)
+        write(2017,Format) ielem,',',pi*act_line%Epitch(ielem)/180,',',act_line%ECL(ielem),',',act_line%ECD(ielem),',',act_line%ECM(ielem)
         end do
         close(2017)
 

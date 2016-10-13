@@ -337,10 +337,10 @@ contains
       type(vector_field) :: remapped_pos
       real, dimension(v_field%dim) :: value_vel
       real, dimension(v_field%dim,v_field%dim) :: visc_tensor
-      real :: d, epsilon_par, loc_kern
+      real :: d, epsilon_par, loc_kern, dx,dy,dz,ec,et,es
       real,dimension(3,3) :: nu
       real :: volume
-      real :: epsilon_par_drag, epsilon_par_chord, epsilon_par_mesh, epsilon_threshold,chord
+      real :: epsilon_par_thick, epsilon_par_chord, epsilon_par_mesh, epsilon_threshold,chord
       real :: Send(5), Recv(5)
       ! MPI related parameters declaration
       integer :: count,dest, ierr, num_procs, rank, status(MPI_Status_size), tag,irank
@@ -380,7 +380,7 @@ contains
       Scoords(1)=Sx(isource)
       Scoords(2)=Sy(isource)
       Scoords(3)=Sz(isource)
-
+      
       call picker_inquire(remapped_pos,Scoords,ele,local_coord,.true.)
       
       if (ele<0) then
@@ -403,22 +403,12 @@ contains
           volume=element_volume(positions,ele)
 
           epsilon_par_mesh  = 2.0*meshFactor*volume**(1.0/3.0) 
-          epsilon_par_drag  = 1.1*dragFactor*Sc(isource)/2.0      
-          epsilon_par_chord = chordFactor*Sc(isource)
-
-          epsilon_threshold = max(epsilon_par_drag,epsilon_par_chord)
-
-          if(epsilon_threshold >= epsilon_par_mesh) then
-              epsilon_par=epsilon_threshold
-          else
-              epsilon_par=epsilon_par_mesh
-          end if
-        
+         
         Su(isource)=value_vel(1)
         Sv(isource)=value_vel(2)
         Sw(isource)=value_vel(3)
-        Se(isource)=epsilon_par
-
+        Se(isource)=epsilon_par_mesh
+  
         do irank=0,num_procs-1
         if(irank.ne.rank) then
         Send(1)=Su(isource)
@@ -456,13 +446,36 @@ contains
       DSource(:)=0.0
       ! Compute a molification function in 3D 
       Rcoords=node_val(remapped_pos,i)
+       
+      if(anisotropic_source) then
+      
+      dx=-Sx(isource)+Rcoords(1)
+      dy=-Sy(isource)+Rcoords(2)
+      dx=-Sz(isource)+Rcoords(3)
+
+      ec=chordFactor*Sc(isource)
+      et=thicknessFactor*Sc(isource)
+      es=Ssegm(isource)/2.0
+      loc_kern=AnIsoKernel(dx,dy,dz,Snx(isource),Sny(isource),Snz(isource),Stx(isource),Sty(isource),Stz(isource),Ssx(isource),Ssy(isource),Ssz(isource),ec,et,es)
+      
+      ! The (-) means that the fluid and the body are in equilibrium at each time
+      DSource(1)=-loc_kern*SFx(isource)
+      DSource(2)=-loc_kern*SFy(isource)
+      DSource(3)=-loc_kern*SFz(isource)
+      
+      else
+      
       d=sqrt((Sx(isource)-Rcoords(1))**2+(Sy(isource)-Rcoords(2))**2+(Sz(isource)-Rcoords(3))**2)
-      loc_kern=Kernel(d,Se(isource),3)
+     
+      loc_kern=IsoKernel(d,Se(isource),Sc(isource),3)
 
       ! The (-) means that the fluid and the body are in equilibrium at each time
       DSource(1)=-loc_kern*SFx(isource)
       DSource(2)=-loc_kern*SFy(isource)
       DSource(3)=-loc_kern*SFz(isource)
+      
+      endif
+
 
       call addto(v_field,i,DSource)
       end do

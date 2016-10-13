@@ -33,7 +33,7 @@ module actuator_line_model_utils
 
     implicit none
 
-    public QuatRot, cross, Kernel
+    public QuatRot, cross, IsoKernel, AnIsoKernel
 
 contains 
  
@@ -136,23 +136,52 @@ contains
 
     end subroutine IDW
 
-    real function Kernel(dr,epsilon_par,dim)
+    real function IsoKernel(dr,mesh_size,chord,dim)
     
         implicit none
         integer,intent(in) :: dim
-        real,intent(in) ::dr, epsilon_par
+        real,intent(in) ::dr, mesh_size,chord
+        real :: epsilon_par,epsilon_threshold,epsilon_chord
         integer :: j
     
+          
+           epsilon_threshold = 2.0*mesh_size
+           epsilon_chord = 0.4*chord
+           
+           if(epsilon_chord >= epsilon_threshold) then
+              epsilon_par=epsilon_chord
+           else
+              epsilon_par=epsilon_threshold
+           end if
+               
 
             if(dim==2) then    
-            Kernel = 1.0/(epsilon_par**2*pi)*exp(-(dr/epsilon_par)**2.0)
+            IsoKernel = 1.0/(epsilon_par**2*pi)*exp(-(dr/epsilon_par)**2.0)
             elseif(dim==3) then
-            Kernel = 1.0/(epsilon_par**3.0*pi**1.5)*exp(-(dr/epsilon_par)**2.0)
+            IsoKernel = 1.0/(epsilon_par**3.0*pi**1.5)*exp(-(dr/epsilon_par)**2.0)
             else 
             FLAbort("1D source not implemented")
             endif
         
-    end function Kernel
+    end function IsoKernel
+    
+    real function AnIsoKernel(dx,dy,dz,nx,ny,nz,tx,ty,tz,sx,sy,sz,ec,et,es)
+    
+        implicit none
+        real,intent(in) :: dx,dy,dz,nx,ny,nz,tx,ty,tz,sx,sy,sz,ec,et,es
+        real :: n,t,s
+
+        n=dx*nx+dy*ny+dz*nz ! normal projection
+        t=dx*tx+dy*ty+dz*tz ! Chordwise projection
+        s=dx*sx+dy*sy+dz*sz ! Spanwise projection
+
+        if(abs(s)<=es) then
+        AnIsoKernel = exp(-((n/et)**2.0+(t/ec)**2.0))/(ec*et*pi)
+        else
+        AnIsoKernel = 0.0
+        endif
+    
+    end function AnIsoKernel
 
     integer function FindMinimum(x,Start,End)
     implicit none

@@ -11,15 +11,16 @@ subroutine test_actuator_line
     
  implicit none
 
- integer:: istep, Ntimesteps,ial
+ integer:: istep, Ntimesteps,ial,nargin,FNLength,status
  real   :: current_time, final_time, dt
-
+ character(80) :: InputFN
+ 
  write(*,*) '================================================='
  write(*,*) 'This is a reduced model for uALM/uBEM model that '
  write(*,*) 'that works without a dynamic inflow model        '
  write(*,*) '================================================='
 
- call load_options("TestDynStall.flml")
+ call load_options("Test.flml")
  
  Ntimesteps=5000
  deltaT=0.001
@@ -28,8 +29,8 @@ subroutine test_actuator_line
  
  call actuator_line_model_init
  
- write(*,*) 'Number of Actuator lines :', Nal
- write(*,*) 'Number of Elements of the AL :', Actuatorline(1:Nal)%Nelem
+ write(6,*) 'Number of Actuator lines :', Nal
+ write(6,*) 'Number of Elements of the AL :', Actuatorline(1:Nal)%Nelem
 
  do istep=1,Ntimesteps
 

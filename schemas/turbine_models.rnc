@@ -212,12 +212,15 @@ turbine_models=(
 ## Drag factor that takes into account the width due to the wake caused
 ## by the foil drag force, and it is of the order of the momentum thickness
 ## Cd=2*theta/l. Default value : 1.00
-                    element dragFactor {
+                    element thicknessFactor {
                         real
                     }?,
 ## Chord factor (0.14-0.25). Default value: 0.25 
                     element chordFactor {
                         real
+                    }?,
+                    element anisotropic_source{
+                        empty
                     }?
                 }
 

@@ -266,7 +266,7 @@ is 1 and 2 when skewed elements are considered. Default value : 2.0</a:documenta
                 </element>
               </optional>
               <optional>
-                <element name="dragFactor">
+                <element name="thicknessFactor">
                   <a:documentation>Drag factor that takes into account the width due to the wake caused
 by the foil drag force, and it is of the order of the momentum thickness
 Cd=2*theta/l. Default value : 1.00</a:documentation>
@@ -277,6 +277,11 @@ Cd=2*theta/l. Default value : 1.00</a:documentation>
                 <element name="chordFactor">
                   <a:documentation>Chord factor (0.14-0.25). Default value: 0.25 </a:documentation>
                   <ref name="real"/>
+                </element>
+              </optional>
+              <optional>
+                <element name="anisotropic_source">
+                  <empty/>
                 </element>
               </optional>
             </element>

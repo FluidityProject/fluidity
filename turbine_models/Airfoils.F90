@@ -326,6 +326,7 @@ contains
         CD5=CDstat75
         CM25=CM25stat+cos(alpha5)*(CLstat75-CLstat5)/4.0
         alphaL=alpha75
+        CLCirc=CLstat75
         !================================================
         ! Dynamic Stall according to Leishman and Beddoes
         !================================================

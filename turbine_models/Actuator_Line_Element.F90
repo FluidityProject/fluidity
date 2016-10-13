@@ -231,13 +231,16 @@ end type ActuatorLineType
     urdn=nxe*(u-ub)+nye*(v-vb)+nze*(w-wb)! Normal 
     urdc=txe*(u-ub)+tye*(v-vb)+tze*(w-wb)! Tangential
     ur=sqrt(urdn**2.0+urdc**2.0)
+    ! This is the dynamic angle of attack 
     alpha=atan2(urdn,urdc)
     Re = ur*ElemChord/Visc
+    
     alpha5=alpha
     alpha75=alpha
-    ewrite(2,*) "ielem | urdn | urdc | alpha | Re"
-    ewrite(2,*) "--------------------------------"
-    ewrite(2,*) ielem, urdn, urdc, alpha , Re, dt
+    
+    !ewrite(2,*) "ielem | urdn | urdc | alpha | Re"
+    !ewrite(2,*) "--------------------------------"
+    !ewrite(2,*) ielem, urdn, urdc, alpha , Re, dt
    
     !=========================================================
     ! Compute rate of change of Unormal and angle of attack
