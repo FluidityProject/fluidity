@@ -3557,7 +3557,7 @@ cells (kg ore)^-1</a:documentation>
                       <value>0</value>
                     </attribute>
                     <attribute name="name">
-                      <value>phi_ore</value>
+                      <value>phi_ore1</value>
                     </attribute>
                     <element name="diagnostic">
                       <ref name="mesh_choice_pressure"/>
@@ -3568,6 +3568,46 @@ cells (kg ore)^-1</a:documentation>
                       </optional>
                     </element>
                   </element>
+                  <optional>
+                    <element name="scalar_field">
+                      <attribute name="rank">
+                        <a:documentation>This is the concentraction of bacteria attached to rock
+cells (kg ore)^-1</a:documentation>
+                        <value>0</value>
+                      </attribute>
+                      <attribute name="name">
+                        <value>phi_ore2</value>
+                      </attribute>
+                      <element name="diagnostic">
+                        <ref name="mesh_choice_pressure"/>
+                        <ref name="darcy_impes_internal_algorithm"/>
+                        <ref name="darcy_impes_diagnostic_scalar_field"/>
+                        <optional>
+                          <ref name="darcy_impes_recalculation_options"/>
+                        </optional>
+                      </element>
+                    </element>
+                  </optional>
+                  <optional>
+                    <element name="scalar_field">
+                      <attribute name="rank">
+                        <a:documentation>This is the concentraction of bacteria attached to rock
+cells (kg ore)^-1</a:documentation>
+                        <value>0</value>
+                      </attribute>
+                      <attribute name="name">
+                        <value>phi_ore3</value>
+                      </attribute>
+                      <element name="diagnostic">
+                        <ref name="mesh_choice_pressure"/>
+                        <ref name="darcy_impes_internal_algorithm"/>
+                        <ref name="darcy_impes_diagnostic_scalar_field"/>
+                        <optional>
+                          <ref name="darcy_impes_recalculation_options"/>
+                        </optional>
+                      </element>
+                    </element>
+                  </optional>
                   <element name="scalar_field">
                     <attribute name="rank">
                       <a:documentation>This is the first-order growth rate constant of bacteria
@@ -3575,7 +3615,7 @@ cells (kg ore)^-1</a:documentation>
                       <value>0</value>
                     </attribute>
                     <attribute name="name">
-                      <value>miu</value>
+                      <value>miu1</value>
                     </attribute>
                     <element name="diagnostic">
                       <ref name="mesh_choice_pressure"/>
@@ -3585,28 +3625,120 @@ cells (kg ore)^-1</a:documentation>
                         <ref name="darcy_impes_recalculation_options"/>
                       </optional>
                     </element>
+                    <element name="k1">
+                      <ref name="comment"/>
+                      <ref name="real"/>
+                    </element>
+                    <element name="k2">
+                      <ref name="comment"/>
+                      <ref name="real"/>
+                    </element>
+                    <element name="k_death">
+                      <ref name="comment"/>
+                      <ref name="real"/>
+                    </element>
+                    <element name="phi_max">
+                      <ref name="comment"/>
+                      <ref name="real"/>
+                    </element>
+                    <element name="miu_max">
+                      <ref name="comment"/>
+                      <ref name="real"/>
+                    </element>
+                    <element name="T_shift">
+                      <ref name="comment"/>
+                      <ref name="real"/>
+                    </element>
                   </element>
+                  <optional>
+                    <element name="scalar_field">
+                      <attribute name="rank">
+                        <a:documentation>This is the first-order growth rate constant of bacteria
+cells (kg ore)^-1</a:documentation>
+                        <value>0</value>
+                      </attribute>
+                      <attribute name="name">
+                        <value>miu2</value>
+                      </attribute>
+                      <element name="diagnostic">
+                        <ref name="mesh_choice_pressure"/>
+                        <ref name="darcy_impes_internal_algorithm"/>
+                        <ref name="darcy_impes_diagnostic_scalar_field"/>
+                        <optional>
+                          <ref name="darcy_impes_recalculation_options"/>
+                        </optional>
+                      </element>
+                      <element name="k1">
+                        <ref name="comment"/>
+                        <ref name="real"/>
+                      </element>
+                      <element name="k2">
+                        <ref name="comment"/>
+                        <ref name="real"/>
+                      </element>
+                      <element name="k_death">
+                        <ref name="comment"/>
+                        <ref name="real"/>
+                      </element>
+                      <element name="phi_max">
+                        <ref name="comment"/>
+                        <ref name="real"/>
+                      </element>
+                      <element name="miu_max">
+                        <ref name="comment"/>
+                        <ref name="real"/>
+                      </element>
+                      <element name="T_shift">
+                        <ref name="comment"/>
+                        <ref name="real"/>
+                      </element>
+                    </element>
+                  </optional>
+                  <optional>
+                    <element name="scalar_field">
+                      <attribute name="rank">
+                        <a:documentation>This is the first-order growth rate constant of bacteria
+cells (kg ore)^-1</a:documentation>
+                        <value>0</value>
+                      </attribute>
+                      <attribute name="name">
+                        <value>miu3</value>
+                      </attribute>
+                      <element name="diagnostic">
+                        <ref name="mesh_choice_pressure"/>
+                        <ref name="darcy_impes_internal_algorithm"/>
+                        <ref name="darcy_impes_diagnostic_scalar_field"/>
+                        <optional>
+                          <ref name="darcy_impes_recalculation_options"/>
+                        </optional>
+                      </element>
+                      <element name="k1">
+                        <ref name="comment"/>
+                        <ref name="real"/>
+                      </element>
+                      <element name="k2">
+                        <ref name="comment"/>
+                        <ref name="real"/>
+                      </element>
+                      <element name="k_death">
+                        <ref name="comment"/>
+                        <ref name="real"/>
+                      </element>
+                      <element name="phi_max">
+                        <ref name="comment"/>
+                        <ref name="real"/>
+                      </element>
+                      <element name="miu_max">
+                        <ref name="comment"/>
+                        <ref name="real"/>
+                      </element>
+                      <element name="T_shift">
+                        <ref name="comment"/>
+                        <ref name="real"/>
+                      </element>
+                    </element>
+                  </optional>
                   <element name="Y">
-                    <ref name="comment"/>
-                    <ref name="real"/>
-                  </element>
-                  <element name="k1">
-                    <ref name="comment"/>
-                    <ref name="real"/>
-                  </element>
-                  <element name="k2">
-                    <ref name="comment"/>
-                    <ref name="real"/>
-                  </element>
-                  <element name="k_death">
-                    <ref name="comment"/>
-                    <ref name="real"/>
-                  </element>
-                  <element name="phi_max">
-                    <ref name="comment"/>
-                    <ref name="real"/>
-                  </element>
-                  <element name="miu_max">
                     <ref name="comment"/>
                     <ref name="real"/>
                   </element>
@@ -3860,7 +3992,7 @@ NOT Finished yet</a:documentation>
         <value>0</value>
       </attribute>
       <attribute name="name">
-        <value>phi_l</value>
+        <value>phi_l1</value>
       </attribute>
       <element name="prognostic">
         <ref name="mesh_choice_pressure"/>
@@ -3964,6 +4096,228 @@ mole per volume of immobile solution</a:documentation>
         <ref name="interpolation_algorithm_scalar"/>
       </element>
     </element>
+    <optional>
+      <element name="scalar_field">
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>phi_l2</value>
+        </attribute>
+        <element name="prognostic">
+          <ref name="mesh_choice_pressure"/>
+          <ref name="darcy_impes_asym_solver_options"/>
+          <ref name="darcy_impes_generic_scalar_field_face_value"/>
+          <oneOrMore>
+            <ref name="initial_condition_scalar"/>
+          </oneOrMore>
+          <zeroOrMore>
+            <ref name="darcy_impes_generic_scalar_field_bc"/>
+          </zeroOrMore>
+          <optional>
+            <ref name="darcy_impes_generic_scalar_field_diff"/>
+          </optional>
+          <optional>
+            <ref name="darcy_impes_generic_scalar_field_src"/>
+          </optional>
+          <element name="LeachingChemicalSourceTerm">
+            <a:documentation>The source term from the chemical reactions for heap leaching</a:documentation>
+            <optional>
+              <element name="Source_Linearization">
+                <a:documentation>to ensure the scalar field always-positive</a:documentation>
+                <ref name="comment"/>
+              </element>
+            </optional>
+            <optional>
+              <element name="field_maximun_value">
+                <a:documentation>place a cap of the field
+to limit the maximun value, ensure the stability of the sigular corner of the heap                 </a:documentation>
+                <ref name="real"/>
+              </element>
+            </optional>
+            <element name="SolutionPhaseSource">
+              <element name="scalar_field">
+                <attribute name="rank">
+                  <value>0</value>
+                </attribute>
+                <attribute name="name">
+                  <value>Bacteria_Ferrous_oxidation</value>
+                </attribute>
+                <element name="diagnostic">
+                  <ref name="mesh_choice_pressure"/>
+                  <ref name="darcy_impes_internal_algorithm"/>
+                  <ref name="darcy_impes_chemical_stoichiometric_factor"/>
+                  <ref name="darcy_impes_diagnostic_scalar_field"/>
+                  <optional>
+                    <ref name="darcy_impes_recalculation_options"/>
+                  </optional>
+                </element>
+              </element>
+            </element>
+            <optional>
+              <element name="Mobile_Immobile_Model">
+                <a:documentation>This is the the leaching chemical source terms from the mobile concentration</a:documentation>
+                <element name="scalar_field">
+                  <a:documentation>This is the average leaching chemical source term based on the mobile solution
+mole per  volume of mobile solution
+while the chemical source term under the prognostic field is mole per total volume of solution, which is based on the average mass of both mobile and immobile solution </a:documentation>
+                  <attribute name="rank">
+                    <value>0</value>
+                  </attribute>
+                  <attribute name="name">
+                    <value>Mobile_chemical_src</value>
+                  </attribute>
+                  <element name="diagnostic">
+                    <ref name="mesh_choice_pressure"/>
+                    <ref name="darcy_impes_internal_algorithm"/>
+                    <ref name="darcy_impes_diagnostic_scalar_field"/>
+                    <optional>
+                      <ref name="darcy_impes_recalculation_options"/>
+                    </optional>
+                  </element>
+                </element>
+                <element name="scalar_field">
+                  <a:documentation>This is the chemical source term of the contribution from the immobile part
+mole per volume of immobile solution</a:documentation>
+                  <attribute name="rank">
+                    <value>0</value>
+                  </attribute>
+                  <attribute name="name">
+                    <value>Immobile_chemical_src</value>
+                  </attribute>
+                  <element name="diagnostic">
+                    <ref name="mesh_choice_pressure"/>
+                    <ref name="darcy_impes_internal_algorithm"/>
+                    <ref name="darcy_impes_diagnostic_scalar_field"/>
+                    <optional>
+                      <ref name="darcy_impes_recalculation_options"/>
+                    </optional>
+                  </element>
+                </element>
+              </element>
+            </optional>
+          </element>
+          <optional>
+            <ref name="darcy_MIM_generic_scalar_field_immobile_src"/>
+          </optional>
+          <ref name="field_output_options"/>
+          <ref name="darcy_impes_include_stat"/>
+          <ref name="adaptivity_options_prognostic_scalar_field"/>
+          <ref name="interpolation_algorithm_scalar"/>
+        </element>
+      </element>
+    </optional>
+    <optional>
+      <element name="scalar_field">
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>phi_l3</value>
+        </attribute>
+        <element name="prognostic">
+          <ref name="mesh_choice_pressure"/>
+          <ref name="darcy_impes_asym_solver_options"/>
+          <ref name="darcy_impes_generic_scalar_field_face_value"/>
+          <oneOrMore>
+            <ref name="initial_condition_scalar"/>
+          </oneOrMore>
+          <zeroOrMore>
+            <ref name="darcy_impes_generic_scalar_field_bc"/>
+          </zeroOrMore>
+          <optional>
+            <ref name="darcy_impes_generic_scalar_field_diff"/>
+          </optional>
+          <optional>
+            <ref name="darcy_impes_generic_scalar_field_src"/>
+          </optional>
+          <element name="LeachingChemicalSourceTerm">
+            <a:documentation>The source term from the chemical reactions for heap leaching</a:documentation>
+            <optional>
+              <element name="Source_Linearization">
+                <a:documentation>to ensure the scalar field always-positive</a:documentation>
+                <ref name="comment"/>
+              </element>
+            </optional>
+            <optional>
+              <element name="field_maximun_value">
+                <a:documentation>place a cap of the field
+to limit the maximun value, ensure the stability of the sigular corner of the heap                 </a:documentation>
+                <ref name="real"/>
+              </element>
+            </optional>
+            <element name="SolutionPhaseSource">
+              <element name="scalar_field">
+                <attribute name="rank">
+                  <value>0</value>
+                </attribute>
+                <attribute name="name">
+                  <value>Bacteria_Ferrous_oxidation</value>
+                </attribute>
+                <element name="diagnostic">
+                  <ref name="mesh_choice_pressure"/>
+                  <ref name="darcy_impes_internal_algorithm"/>
+                  <ref name="darcy_impes_chemical_stoichiometric_factor"/>
+                  <ref name="darcy_impes_diagnostic_scalar_field"/>
+                  <optional>
+                    <ref name="darcy_impes_recalculation_options"/>
+                  </optional>
+                </element>
+              </element>
+            </element>
+            <optional>
+              <element name="Mobile_Immobile_Model">
+                <a:documentation>This is the the leaching chemical source terms from the mobile concentration</a:documentation>
+                <element name="scalar_field">
+                  <a:documentation>This is the average leaching chemical source term based on the mobile solution
+mole per  volume of mobile solution
+while the chemical source term under the prognostic field is mole per total volume of solution, which is based on the average mass of both mobile and immobile solution </a:documentation>
+                  <attribute name="rank">
+                    <value>0</value>
+                  </attribute>
+                  <attribute name="name">
+                    <value>Mobile_chemical_src</value>
+                  </attribute>
+                  <element name="diagnostic">
+                    <ref name="mesh_choice_pressure"/>
+                    <ref name="darcy_impes_internal_algorithm"/>
+                    <ref name="darcy_impes_diagnostic_scalar_field"/>
+                    <optional>
+                      <ref name="darcy_impes_recalculation_options"/>
+                    </optional>
+                  </element>
+                </element>
+                <element name="scalar_field">
+                  <a:documentation>This is the chemical source term of the contribution from the immobile part
+mole per volume of immobile solution</a:documentation>
+                  <attribute name="rank">
+                    <value>0</value>
+                  </attribute>
+                  <attribute name="name">
+                    <value>Immobile_chemical_src</value>
+                  </attribute>
+                  <element name="diagnostic">
+                    <ref name="mesh_choice_pressure"/>
+                    <ref name="darcy_impes_internal_algorithm"/>
+                    <ref name="darcy_impes_diagnostic_scalar_field"/>
+                    <optional>
+                      <ref name="darcy_impes_recalculation_options"/>
+                    </optional>
+                  </element>
+                </element>
+              </element>
+            </optional>
+          </element>
+          <optional>
+            <ref name="darcy_MIM_generic_scalar_field_immobile_src"/>
+          </optional>
+          <ref name="field_output_options"/>
+          <ref name="darcy_impes_include_stat"/>
+          <ref name="adaptivity_options_prognostic_scalar_field"/>
+          <ref name="interpolation_algorithm_scalar"/>
+        </element>
+      </element>
+    </optional>
   </define>
   <define name="darcy_impes_pmesh_porosity_viscosity_field">
     <element name="scalar_field">

@@ -39,19 +39,21 @@ module darcy_impes_leaching_types
   
   type leaching_bio_ferrous_oxi
      logical :: ifbio = .false.
-     type(scalar_field), pointer :: phi_ore => null()
-     type(scalar_field), pointer :: phi_l => null()
-     type(scalar_field), pointer :: miu => null()
-     type(scalar_field), pointer :: phi_l_src => null()
+     type(scalar_field_pointer), dimension(:), pointer ::  phi_ore => null()
+     type(scalar_field_pointer), dimension(:), pointer ::  phi_l => null()
+     type(scalar_field_pointer), dimension(:), pointer ::  miu => null()
+     type(scalar_field_pointer), dimension(:), pointer :: phi_l_src => null()
+     type(scalar_field) :: phi_l_src_t
+     type(scalar_field) :: dcdt
      type(scalar_field), pointer :: cl => null()
      type(scalar_field), pointer :: cfe2 => null()
-     type(scalar_field) :: s_po
-     real :: phi_max
+     real, dimension(:), allocatable  :: phi_max
      real :: Y
-     real :: k1
-     real :: k2
-     real :: k_death
-     real :: miu_max
+     real,dimension(:), allocatable  :: k1
+     real,dimension(:), allocatable  :: k2
+     real,dimension(:), allocatable  :: k_death
+     real,dimension(:), allocatable  :: miu_max
+     real,dimension(:), allocatable  :: T_shift
      real :: kmo
      real :: kmfe2
   end type leaching_bio_ferrous_oxi
