@@ -3759,7 +3759,8 @@ contains
     X => extract_vector_field(state, "Coordinate")
     ! We can't use the external mesh in the extruded case -- these have to go on the
     ! CoordinateMesh.
-    !mesh => get_external_mesh((/state/))    mesh => extract_mesh(state, trim(topology_mesh_name))
+    !mesh => get_external_mesh((/state/))
+    mesh => extract_mesh(state, trim(topology_mesh_name))
 
     if (.not. have_option(path // "/tensor_field::MinimumEdgeLengths")) then
       ewrite(-1,*) "Warning: adaptivity turned on, but no edge length limits available?"
