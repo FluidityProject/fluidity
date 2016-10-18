@@ -151,6 +151,10 @@ module conservative_interpolation_module
         end if
       else
         intersection = intersect_elements(old_position, ele_A, pos_B, supermesh_shape)
+        if (.not. has_references(intersection)) then
+           llnode => llnode%next
+           cycle
+        end if
       end if
 
 #ifdef DUMP_SUPERMESH_INTERSECTIONS
@@ -1055,6 +1059,11 @@ module conservative_interpolation_module
         end do
 
         intersection = intersect_elements(old_position, ele_A, pos_B, supermesh_shape)
+        if (.not. has_references(intersection)) then
+           llnode => llnode%next
+           cycle
+        end if
+
         do ele_C=1,ele_count(intersection)
           vol_C = simplex_volume(intersection, ele_C)
           do field=1,field_cnt
