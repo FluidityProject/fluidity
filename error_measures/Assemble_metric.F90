@@ -31,6 +31,7 @@ module metric_assemble
   use gradation_metric
   use goal_metric
   use bounding_box_metric
+  use actuator_line_metric
   use boundary_metric
   use geometric_constraints_metric
   use limit_metric_module
@@ -101,6 +102,8 @@ module metric_assemble
     call initialise_metric_advection
     call initialise_richardson_number_metric
 
+    call initialise_actuator_line_metric
+
     if (use_goal_metric) then
 !     ***** Note that the following interface causes issues with the Intel compiler. Changed for now as a workaround ******
 !      call form_goal_metric(state, error_metric)
@@ -146,6 +149,11 @@ module metric_assemble
       call form_bounding_box_metric(positions, error_metric, max_tensor)
       call halo_update(error_metric)
     end if
+
+    if (use_actuator_line_metric) then
+      call form_actuator_line_metric(positions,error_metric, max_tensor)
+      call halo_update(error_metric)
+    endif
 
     call bound_metric_aspect_ratio(error_metric)
     ! for vertically structured, the limiting should happen after the vertical collapsing

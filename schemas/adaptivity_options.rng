@@ -744,6 +744,14 @@ considerations. By default, it is set to 2.0.</a:documentation>
         </element>
       </optional>
       <optional>
+        <element name="actuator_line_factor">
+          <a:documentation>Actuator-line adaptivity
+
+If the length scales specified by the </a:documentation>
+          <ref name="real"/>
+        </element>
+      </optional>
+      <optional>
         <element name="goal_based_adaptivity">
           <a:documentation>Goal-based adaptivity. 
 

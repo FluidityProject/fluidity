@@ -50,7 +50,7 @@ TESTLIBS = $(shell echo @LIBS@ | sed 's@./lib/lib\([a-z]*\)\.a@-l\1@g')
 
 # These are all the objects that are supposed to go into the makefile
 OBJS = Form_metric.o Assemble_metric.o Interpolation_metric.o Edge_lengths.o \
-	   Gradation_metric.o Bounding_box_metric.o \
+	   Gradation_metric.o Actuator_line_metric.o Bounding_box_metric.o \
      Boundary_metric.o \
      Recovery_estimator.o Aspect_ratios.o Interpolation_error.o Geometric_constraints_metric.o Goals.o Goal_metric.o \
      Conformity_measurement.o Metric_advection.o  Mba_adapt.o Limit_metric.o Anisotropic_gradation_metric.o \

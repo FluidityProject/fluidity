@@ -646,6 +646,12 @@ hr_adaptivity =
          element bounding_box_factor {
             real
          }?,
+         ## Actuator-line adaptivity
+         ## 
+         ## If the length scales specified by the 
+         element actuator_line_factor {
+            real
+         }?, 
          ## Goal-based adaptivity. 
          ##
          ## With this option,
