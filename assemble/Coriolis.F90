@@ -227,6 +227,7 @@ module coriolis_module
   subroutine set_coriolis_parameters
     
     real:: omega
+    integer :: dim(2)
     
     if (coriolis_option/=NOT_INITIALISED) return
 

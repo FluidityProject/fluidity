@@ -63,7 +63,7 @@
 	 rotate_diagonal_to_sphere_gi
     use boundary_conditions_from_options
     use petsc_solve_state_module, only: petsc_solve
-    use coriolis_module, only: coriolis, set_coriolis_parameters
+    use coriolis_module, only: coriolis, set_coriolis_parameters, centrifugal_force
     use upwind_stabilisation, only: make_supg_element, supg_test_function, element_upwind_stabilisation, get_upwind_options
     use les_module
     use multiphase_module

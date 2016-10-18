@@ -63,7 +63,7 @@ module momentum_DG
   use smoothing_module
   use sparsity_patterns_meshes
   use boundary_conditions_from_options
-  use coriolis_module, only : coriolis, set_coriolis_parameters
+  use coriolis_module, only : coriolis, set_coriolis_parameters, centrifugal_force
   use turbine
   use diagnostic_fields
   use slope_limiters_dg
