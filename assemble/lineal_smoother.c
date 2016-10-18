@@ -12,7 +12,7 @@ void lin_smoother(int dimension, int num_nodes, int num_elements, int num_surf_e
   KSP            ksp;
   PC             pc;
   PetscErrorCode ierr;
-  PetscInt       i,n,m,its,Istart,Iend,Ii,len_new=0,j,local_surf_connectivity[dimension*num_surf_elements], global_surf_connectivity[dimension*num_surf_elements],
+  PetscInt       i,n,m,j,its,nodei,Ii,len_new=0,local_surf_connectivity[dimension*num_surf_elements], global_surf_connectivity[dimension*num_surf_elements],
                  num_nodes_col_x[num_nodes],num_nodes_col_y[num_nodes];
   PetscScalar    length,x_disp[num_surf_elements],y_disp[num_surf_elements],z_disp[num_surf_elements],smoothed_x[num_nodes],smoothed_y[num_nodes],smoothed_z[num_nodes];
 
@@ -59,7 +59,7 @@ void lin_smoother(int dimension, int num_nodes, int num_elements, int num_surf_e
   }
 
   int conn_mat[num_elements][3];
-  for(int m=0;m<num_elements;++m){
+  for(m=0;m<num_elements;++m){
     conn_mat[m][0]=*(connectivity+(3*m));
     conn_mat[m][1]=*(connectivity+(3*m)+1);
     conn_mat[m][2]=*(connectivity+(3*m)+2);
@@ -68,11 +68,11 @@ void lin_smoother(int dimension, int num_nodes, int num_elements, int num_surf_e
 
   /*Neighbour Matrix*/
   int neb_mat[num_owned_nodes][8];
-  for(int nodei=0;nodei<num_owned_nodes;nodei++){
+  for(nodei=0;nodei<num_owned_nodes;nodei++){
     int neb_a_count=0; int neb_b_count=0; int neb_c_count=0;
     int neb_a[8]={};int neb_b[8]={};int neb_c[8]={};int neb_tot[24]={};int neb_fin[8]={};
     
-    for(int m=0;m<num_elements;++m){
+    for(m=0;m<num_elements;++m){
      
       if (nodei+1 == conn_mat[m][0]){
 	neb_a[neb_a_count]=conn_mat[m][1];
@@ -90,15 +90,15 @@ void lin_smoother(int dimension, int num_nodes, int num_elements, int num_surf_e
 	  neb_c_count+=2;}\
     }
     
-    for(int n =0;n<8;n++){
+    for(n=0;n<8;n++){
       neb_tot[n]=neb_a[n];
       neb_tot[8+n]=neb_b[n];
       neb_tot[16+n]=neb_c[n];
     }
 
    //Removing duplicates 
-   for(int m=0;m<24;++m){
-     for(int n=m+1;n<24;++n){
+   for(m=0;m<24;++m){
+     for(n=m+1;n<24;++n){
        if(neb_tot[m]==neb_tot[n]){
     	  neb_tot[n]=0;
        }
@@ -106,8 +106,8 @@ void lin_smoother(int dimension, int num_nodes, int num_elements, int num_surf_e
    }
 
    //sorting
-   for(int i=1; i<=24-1; i++){
-     for(int j=1; j<=24-i; j++){
+   for(i=1;i<=24-1; i++){
+     for(j=1; j<=24-i; j++){
        if(neb_tot[j-1] <= neb_tot[j]){
 	 int t = neb_tot[j-1];
 	 neb_tot[j-1]=neb_tot[j];
@@ -117,7 +117,7 @@ void lin_smoother(int dimension, int num_nodes, int num_elements, int num_surf_e
    }
 
    //Only interested in first 8 ints
-   for(int m=0;m<8;m++){
+   for(m=0;m<8;m++){
      neb_mat[nodei][m]=neb_tot[m];}
   }
 
@@ -127,8 +127,8 @@ void lin_smoother(int dimension, int num_nodes, int num_elements, int num_surf_e
   MatSetSizes(K,2*num_owned_nodes,2*num_owned_nodes,PETSC_DETERMINE,PETSC_DETERMINE);
   MatSetUp(K);
 
-  for(int Ii=0;Ii<num_owned_nodes;Ii++){
-       for(int n=0;n<8;n++){
+  for(Ii=0;Ii<num_owned_nodes;Ii++){
+       for(n=0;n<8;n++){
      	  int neb_hold = neb_mat[Ii][n];
 	  if(neb_hold != 0){	    
 	    MatSetValue(K,2*mapping[Ii],2*mapping[Ii],*(K_lin(Ii,neb_hold)+0),ADD_VALUES);
@@ -164,7 +164,7 @@ void lin_smoother(int dimension, int num_nodes, int num_elements, int num_surf_e
   VecSetFromOptions(F);
 
   //Removing duplicate points in surf_connectivity
-  for(int i=0;i<dimension*num_surf_elements;i++){
+  for(i=0;i<dimension*num_surf_elements;i++){
     if(surf_connectivity[i]>num_owned_nodes){
       continue;}
     
@@ -179,7 +179,7 @@ void lin_smoother(int dimension, int num_nodes, int num_elements, int num_surf_e
   }
 
   
-  for(int i=0;i<len_new;i++){
+  for(i=0;i<len_new;i++){
     global_surf_connectivity[2*i]=2*mapping[local_surf_connectivity[i]];
     global_surf_connectivity[2*i+1]=2*mapping[local_surf_connectivity[i]]+1;
   }
@@ -187,7 +187,7 @@ void lin_smoother(int dimension, int num_nodes, int num_elements, int num_surf_e
 
   MatZeroRows(K,2*len_new,global_surf_connectivity,1.0,NULL,NULL);
 
- for(int n=0;n<len_new;n++){
+ for(n=0;n<len_new;n++){
    x_disp[n]=phys_mesh[dimension*(local_surf_connectivity[n])] - comp_mesh[dimension*(local_surf_connectivity[n])];
    y_disp[n]=phys_mesh[dimension*(local_surf_connectivity[n])+1] - comp_mesh[dimension*(local_surf_connectivity[n])+1];
   }
