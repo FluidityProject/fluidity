@@ -31,6 +31,7 @@ module stochastic
 
   use fldebug
   use fields
+  use futils, only: int2str, free_unit
   use parallel_tools
   use data_structures
 
@@ -38,6 +39,9 @@ module stochastic
   use global_parameters, only: OPTION_PATH_LEN
   use spud
   use parallel_tools
+  use parallel_fields
+  use transform_elements, only: element_volume
+  
   use mpi_interfaces
   
   implicit none

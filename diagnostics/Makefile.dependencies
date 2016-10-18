@@ -121,7 +121,7 @@ Simple_Diagnostics.o ../include/simple_diagnostics.mod: Simple_Diagnostics.F90 \
    ../include/futils.mod ../include/global_parameters.mod \
    ../include/initialise_fields_module.mod ../include/parallel_tools.mod \
    ../include/state_fields_module.mod ../include/state_module.mod \
-   ../include/vtk_cache_module.mod
+   ../include/stochastic.mod ../include/vtk_cache_module.mod
 
 ../include/surface_diagnostics.mod: Surface.o
 	@true

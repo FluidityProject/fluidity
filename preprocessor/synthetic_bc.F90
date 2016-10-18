@@ -31,10 +31,12 @@ module synthetic_bc
 
 use fldebug
 use spud
+use futils, only: int2str
 use vtpfortran
 use global_parameters, only: dt, option_path_len
 use elements
 use parallel_tools
+use parallel_fields, only: element_owned
 use transform_elements
 use fetools
 use fields

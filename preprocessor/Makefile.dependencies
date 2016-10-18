@@ -117,9 +117,10 @@ VTK_Cache.o ../include/vtk_cache_module.mod: VTK_Cache.F90 ../include/fdebug.h \
 	@true
 
 synthetic_bc.o ../include/synthetic_bc.mod: synthetic_bc.F90 \
-   ../include/elements.mod ../include/fdebug.h ../include/fields.mod \
-   ../include/fldebug.mod ../include/global_parameters.mod \
-   ../include/parallel_tools.mod ../include/spud.mod \
-   ../include/state_module.mod ../include/stochastic.mod \
+   ../include/elements.mod ../include/fdebug.h ../include/fetools.mod \
+   ../include/fields.mod ../include/fldebug.mod ../include/futils.mod \
+   ../include/global_parameters.mod ../include/parallel_fields.mod \
+   ../include/parallel_tools.mod ../include/state_module.mod \
+   ../include/stochastic.mod ../include/transform_elements.mod \
    ../include/vtpfortran.mod
 
