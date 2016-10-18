@@ -290,6 +290,10 @@ module supermesh_construction
         assert(continuity(intersection(j)) < 0)
       else
         intersection(j) = intersect_elements(old_positions, ele_A, pos_B, supermesh_shape)
+        if (.not. has_references(intersection(j))) then
+          llnode => llnode%next
+          cycle
+        end if
         assert(continuity(intersection(j)) < 0)
       end if
 
