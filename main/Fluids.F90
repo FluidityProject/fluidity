@@ -416,12 +416,12 @@ contains
     !! initialise laplacian smoothing if necessary
     if (have_option("/mesh_adaptivity/mesh_movement/laplacian_smoothing")) then
        call move_mesh_initialise_laplacian_smoothing(state)
-       call move_mesh_laplacian_smoothing(state, diagnostic_only=.true.)
+      !! call move_mesh_laplacian_smoothing(state, diagnostic_only=.true.)
     end if
 
     if (have_option("/mesh_adaptivity/mesh_movement/lineal_smoothing")) then
        call move_mesh_initialise_lineal_smoothing(state)
-       call move_mesh_lineal_smoothing(state, diagnostic_only=.true.)
+     !!  call move_mesh_lineal_smoothing(state, diagnostic_only=.true.)
     end if
 
     ! Initialise ice_meltrate, read constatns, allocate surface, and calculate melt rate
