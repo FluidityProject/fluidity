@@ -314,6 +314,8 @@ contains
     !    they will be updated (inside the call)
     call move_mesh_free_surface(state, initialise=.true.)
 
+    call add_surface_positions(state(1))
+
     call run_diagnostics(state)
 
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
@@ -474,6 +476,8 @@ contains
           call set_irradiance_from_hyperlight(state(1))
        end if
 #endif
+
+       call add_surface_positions(state(1))
 
        ! nonlinear_iterations=maximum no of iterations within a time step
 
@@ -796,6 +800,8 @@ contains
              call adapt_state_prescribed(state, current_time)
              call update_state_post_adapt(state, metric_tensor, dt, sub_state, nonlinear_iterations, nonlinear_iterations_adapt)
 
+             call add_surface_positions(state(1))
+
              if(have_option("/io/stat/output_after_adapts")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)
              call run_diagnostics(state)
 
@@ -1065,5 +1071,30 @@ contains
     end do
 
   end subroutine check_old_code_path
+
+
+  subroutine add_surface_positions(state)
+    !!! add a coordiante field of the positions of the surface mesh
+    !!! and the surface_ids to state
+    
+    type(state_type) :: state
+
+    type(vector_field), pointer :: positions
+    type(vector_field) :: surface_positions
+    type(scalar_field) :: surface_ids, surface_nodes
+
+    positions=>extract_vector_field(state,"Coordinate")
+    call get_surface_coordinate(positions,&
+         surface_positions, surface_ids, surface_nodes)
+    call insert(state,surface_positions,"SurfaceCoordinate")
+    call insert(state,surface_ids,"SurfaceIds")
+    call insert(state,surface_nodes,"SurfaceLocalNodeIds")
+    call insert(state,surface_positions%mesh,"SurfaceCoordinateMesh")
+    call insert(state,surface_ids%mesh,"SurfaceElementMesh")
+    call deallocate(surface_positions)
+    call deallocate(surface_ids)
+    call deallocate(surface_nodes)
+
+  end subroutine add_surface_positions
 
   end module fluids_module

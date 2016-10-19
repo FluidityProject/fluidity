@@ -61,7 +61,8 @@ implicit none
     & wrap_tensor_field
   public :: add_lists, extract_lists, add_nnlist, extract_nnlist, add_nelist, &
     & extract_nelist, add_eelist, extract_eelist, remove_lists, remove_nnlist, &
-    & remove_nelist, remove_eelist, extract_elements, remove_boundary_conditions
+    & remove_nelist, remove_eelist, extract_elements, remove_boundary_conditions,&
+    & get_surface_coordinate
 
   interface allocate
      module procedure allocate_scalar_field, allocate_vector_field,&
@@ -2026,6 +2027,52 @@ contains
     end subroutine fix_periodic_face_orientation_face
     
   end subroutine fix_periodic_face_orientation
+
+  subroutine get_surface_coordinate(positions,&
+       surface_positions, surface_ids, surface_nodes)
+    !! convenience routine which extracts the surface entries from
+    !! the input positions, by calling the more general routine below
+
+    !! Input coordinate field
+    type(vector_field), intent(in):: positions
+    !!! this field is populated with the surface node locations
+    type(vector_field), intent(out) :: surface_positions  
+    !!! if the scalar surface_ids is provided, this points to the
+    !!! the surface_id labels in a p0 manner
+    type(scalar_field), intent(out), optional:: surface_ids
+    type(scalar_field), intent(out), optional:: surface_nodes
+
+    !! locals
+    integer, dimension(:), pointer:: surface_nodes_list
+    type(element_type):: p0shape
+    type(mesh_type):: surface_mesh, p0mesh 
+
+    call create_surface_mesh(surface_mesh, surface_nodes_list, &
+         positions%mesh, name="SurfaceMesh")
+    call allocate(surface_positions,positions%dim,surface_mesh,&
+         "SurfaceCoordinate")
+    surface_positions%val=positions%val(:,surface_nodes_list)
+
+    if (present(surface_nodes)) then
+       call allocate(surface_nodes,surface_mesh,&
+            "SurfaceLocalNodeIds")
+       surface_nodes%val=surface_nodes_list
+    end if
+
+    if (present(surface_ids)) then
+       p0shape=make_element_shape(surface_mesh%shape,degree=0)
+       p0mesh=make_mesh(surface_mesh, p0shape, continuity=-1,&
+            name="SurfaceElementMesh")
+       call allocate(surface_ids,p0mesh,"SurfaceIds")
+       surface_ids%val=positions%mesh%faces%boundary_ids
+       call deallocate(p0mesh)
+       call deallocate(p0shape)
+    end if
+
+    deallocate(surface_nodes_list)
+    call deallocate(surface_mesh)
+  
+  end subroutine get_surface_coordinate
 
   subroutine create_surface_mesh(surface_mesh, surface_nodes, &
     mesh, surface_elements, name)
