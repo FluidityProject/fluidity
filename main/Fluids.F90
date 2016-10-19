@@ -259,9 +259,6 @@ contains
          call get_option('/timestepping/nonlinear_iterations/nonlinear_iterations_at_adapt',nonlinear_iterations_adapt)
          nonlinear_iterations = nonlinear_iterations_adapt
        end if
-      
-       ! set population balance initial conditions - for first adaptivity
-       call dqmom_init(state)
 
        call adapt_state_first_timestep(state)
 
@@ -358,6 +355,8 @@ contains
     if (have_option("/mesh_adaptivity/mesh_movement/centroid_relaxer")) then
        call move_mesh_initialise_centroid_relaxer(state)
     end if
+
+    call add_surface_positions(state(1))
 
     call run_diagnostics(state)
 
@@ -578,6 +577,8 @@ contains
           call set_irradiance_from_hyperlight(state(1))
        end if
 #endif
+
+       call add_surface_positions(state(1))
 
        ! nonlinear_iterations=maximum no of iterations within a time step
 
@@ -1285,5 +1286,30 @@ contains
     end do
 
   end subroutine check_old_code_path
+
+
+  subroutine add_surface_positions(state)
+    !!! add a coordiante field of the positions of the surface mesh
+    !!! and the surface_ids to state
+    
+    type(state_type) :: state
+
+    type(vector_field), pointer :: positions
+    type(vector_field) :: surface_positions
+    type(scalar_field) :: surface_ids, surface_nodes
+
+    positions=>extract_vector_field(state,"Coordinate")
+    call get_surface_coordinate(positions,&
+         surface_positions, surface_ids, surface_nodes)
+    call insert(state,surface_positions,"SurfaceCoordinate")
+    call insert(state,surface_ids,"SurfaceIds")
+    call insert(state,surface_nodes,"SurfaceLocalNodeIds")
+    call insert(state,surface_positions%mesh,"SurfaceCoordinateMesh")
+    call insert(state,surface_ids%mesh,"SurfaceElementMesh")
+    call deallocate(surface_positions)
+    call deallocate(surface_ids)
+    call deallocate(surface_nodes)
+
+  end subroutine add_surface_positions
 
   end module fluids_module
