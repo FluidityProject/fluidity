@@ -24,25 +24,25 @@
 #    License along with this library; if not, write to the Free Software
 #    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 #    USA
-SHELL = @SHELL@
+SHELL = /bin/bash
 
-PACKAGE_NAME = @PACKAGE_NAME@
+PACKAGE_NAME = fluidity
 FLUIDITY = $(PACKAGE_NAME)
 
-FC      = @FC@
-FCFLAGS = -I../include @MOD_FLAG@../include @CPPFLAGS@ @FCFLAGS@ -I/usr/local/include -I./
+FC      = mpif90
+FCFLAGS = -I../include -J../include -I/usr/include/vtk-5.10 -I/usr/include/python2.7 -DHAVE_NUMPY -I/usr/lib/python2.7/dist-packages/numpy/core/include -I/usr/lib/petscdir/3.6.3/include -I/usr/lib/petscdir/3.6.3/linux-gnu-c-opt/include -I/usr/include -I/usr/include/hdf5/openmpi -I/usr/lib/openmpi/include -I/usr/lib/openmpi/include/openmpi/opal/mca/event/libevent2021/libevent -I/usr/lib/openmpi/include/openmpi/opal/mca/event/libevent2021/libevent/include -I/usr/lib/openmpi/include/openmpi -Iinclude/ -DHAVE_PETSC  -I/usr/include/vtk-5.10 -DHAVE_VTK=1 -DHAVE_VTK=1 -ffast-math -frecord-marker=4 -DHAVE_NUMPY -I/usr/lib/python2.7/dist-packages/numpy/core/include -fno-realloc-lhs -ffree-line-length-none -ffixed-line-length-none -O3 -I/usr/lib/petscdir/3.6.3/include -I/usr/lib/petscdir/3.6.3/linux-gnu-c-opt/include -I/usr/include -I/usr/include/hdf5/openmpi -I/usr/lib/openmpi/include -I/usr/lib/openmpi/include/openmpi/opal/mca/event/libevent2021/libevent -I/usr/lib/openmpi/include/openmpi/opal/mca/event/libevent2021/libevent/include -I/usr/lib/openmpi/include/openmpi -Iinclude/ -fdefault-real-8 -fdefault-double-8 -I/usr/local/include -I./
 
-MPIF90  = @MPIF90@
+MPIF90  = mpif90
 
-CC      = @CC@
-CFLAGS  = @CPPFLAGS@ @CFLAGS@ -I../include -I/usr/local/include -g
+CC      = mpicc
+CFLAGS  = -I/usr/include/vtk-5.10 -I/usr/include/python2.7 -DHAVE_NUMPY -I/usr/lib/python2.7/dist-packages/numpy/core/include -I/usr/lib/petscdir/3.6.3/include -I/usr/lib/petscdir/3.6.3/linux-gnu-c-opt/include -I/usr/include -I/usr/include/hdf5/openmpi -I/usr/lib/openmpi/include -I/usr/lib/openmpi/include/openmpi/opal/mca/event/libevent2021/libevent -I/usr/lib/openmpi/include/openmpi/opal/mca/event/libevent2021/libevent/include -I/usr/lib/openmpi/include/openmpi -Iinclude/ -DHAVE_PETSC  -I/usr/include/vtk-5.10 -DHAVE_VTK=1 -DHAVE_VTK=1  -I/usr/include/python2.7 -DHAVE_NUMPY -I/usr/lib/python2.7/dist-packages/numpy/core/include  -O3 -I../include -I/usr/local/include -g
 
-CXX     = @CXX@
-CXXFLAGS= @CPPFLAGS@ @CXXFLAGS@ -I../include -I/usr/local/include
+CXX     = mpicxx
+CXXFLAGS= -I/usr/include/vtk-5.10 -I/usr/include/python2.7 -DHAVE_NUMPY -I/usr/lib/python2.7/dist-packages/numpy/core/include -I/usr/lib/petscdir/3.6.3/include -I/usr/lib/petscdir/3.6.3/linux-gnu-c-opt/include -I/usr/include -I/usr/include/hdf5/openmpi -I/usr/lib/openmpi/include -I/usr/lib/openmpi/include/openmpi/opal/mca/event/libevent2021/libevent -I/usr/lib/openmpi/include/openmpi/opal/mca/event/libevent2021/libevent/include -I/usr/lib/openmpi/include/openmpi -Iinclude/ -DHAVE_PETSC  -I/usr/include/vtk-5.10 -DHAVE_VTK=1 -DHAVE_VTK=1  -I/usr/include/python2.7 -DHAVE_NUMPY -I/usr/lib/python2.7/dist-packages/numpy/core/include  -O3 -I../include -I/usr/local/include
 
-MAKE    = @MAKE@
-AR  = @AR@
-ARFLAGS = @ARFLAGS@
+MAKE    = make
+AR  = ar
+ARFLAGS = cr
 
 LIB = ../lib/lib$(FLUIDITY).a
 OBJS    = Momentum_Diagnostic_Fields.o \
@@ -103,11 +103,11 @@ clean:
 	rm -f *.o *.d *.mod
 
 # Special case mba dependencies
-ifeq (@MBA2D@,yes)
+ifeq (,yes)
 Mba2d_Integration.o ../include/mba2d_integration.mod: \
 ../include/mba2d_module.mod
 endif
-ifeq (@MBA3D@,yes)
+ifeq (,yes)
 Mba3d_Integration.o ../include/mba3d_integration.mod: \
 ../include/mba3d_mba_nodal.mod
 endif

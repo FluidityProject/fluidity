@@ -79,12 +79,32 @@ module meshmovement
        
      end subroutine lin_smoother
   end interface
+
+   interface
+    subroutine lin_tor_smoother(dim, num_nodes,&
+          num_elements, num_surf_elements, num_owned_nodes,& 
+          mapping, connectivity, phys_mesh, smooth_mesh,&
+          comp_mesh, surf_connectivity) bind(c)
+       use iso_c_binding
+
+       implicit none
+       
+       integer (c_int), value :: dim, num_nodes, num_elements, &
+            num_surf_elements, num_owned_nodes
+       integer (c_int), dimension(num_nodes) :: mapping
+       integer (c_int), dimension((dim+1)*num_elements) :: connectivity
+       real (c_double), dimension(num_nodes) :: phys_mesh, smooth_mesh, comp_mesh
+       integer (c_int), dimension(dim*num_elements) :: surf_connectivity
+       
+     end subroutine lin_tor_smoother
+  end interface
   
   private
   
   public :: move_mesh_imposed_velocity, move_mesh_pseudo_lagrangian, movemeshy,&
        move_mesh_laplacian_smoothing, move_mesh_initialise_laplacian_smoothing,&
-       move_mesh_lineal_smoothing, move_mesh_initialise_lineal_smoothing
+       move_mesh_lineal_smoothing, move_mesh_initialise_lineal_smoothing,&
+       move_mesh_lineal_torsional_smoothing, move_mesh_initialise_lineal_torsional_smoothing
 
 contains
   subroutine movemeshy(state,move_option,TimeStep)
@@ -1539,7 +1559,116 @@ contains
     call insert(states(1), surface_mesh, "FullCoordinateSurfaceMesh")
     call deallocate(surface_mesh)
 
-  end subroutine move_mesh_initialise_lineal_smoothing  
+  end subroutine move_mesh_initialise_lineal_smoothing
+
+  subroutine move_mesh_lineal_torsional_smoothing(states, diagnostic_only)
+    type(state_type), dimension(:), intent(inout) :: states
+    logical, optional, intent(in) :: diagnostic_only
+  
+    type(vector_field), pointer :: coordinate, old_coordinate, new_coordinate,&
+         initial_coordinate
+    type(vector_field), pointer :: velocity
+    type(vector_field), pointer :: grid_velocity
+    type(mesh_type), pointer    :: surface_mesh
+    
+    integer :: i, stat
+    real :: itheta, dt
+    logical :: found_velocity
+
+    !!! This routine drives a call to C code which does the actual assembly and
+    !!! solution for a Lineal Torsional Spring smoothed grid velocity.
+
+    !!! The boundary conditions from the grid velocity field specified in diamond
+    !!! should be satisfied by this solution.
+
+    if (.not. have_option("/mesh_adaptivity/mesh_movement/lineal_torsional_smoothing")) return
+
+    ewrite(1,*) 'Entering move_mesh_lineal_torsional_smoothing'
+    
+    grid_velocity => extract_vector_field(states(1), "GridVelocity")
+    
+    coordinate => extract_vector_field(states(1), "Coordinate")
+    old_coordinate => extract_vector_field(states(1), "OldCoordinate")
+    new_coordinate => extract_vector_field(states(1), "IteratedCoordinate")
+    initial_coordinate => extract_vector_field(states(1), "InitialCoordinate")
+    surface_mesh => extract_mesh(states(1),"FullCoordinateSurfaceMesh")
+    
+    call get_option("/timestepping/timestep", dt)
+
+    
+    found_velocity = .false.
+    do i = 1, size(states)
+       velocity => extract_vector_field(states(i), "Velocity", stat)
+       if(stat==0 .and. .not. velocity%aliased) then
+          call get_option(trim(velocity%option_path)//"/prognostic/temporal_discretisation/relaxation", itheta, stat)
+          if(found_velocity.and.(stat==0)) then
+             FLExit("Only one prognostic velocity allowed with imposed mesh movement.")
+          else
+             found_velocity = (stat==0)
+          end if
+       end if
+    end do
+    if(.not.found_velocity) then
+       itheta = 0.5
+    end if
+       
+    call set(coordinate, old_coordinate) 
+    call addto(coordinate, grid_velocity, scale = dt)       
+  
+    !!! actual call out to the C code.
+     
+!Figure out indexing between C and Fortran
+    call lin_tor_smoother(mesh_dim(coordinate), node_count(coordinate),&
+          element_count(coordinate), surface_element_count(coordinate),&
+          nowned_nodes(coordinate), universal_numbering(coordinate)-1,&
+          coordinate%mesh%ndglno, coordinate%val, new_coordinate%val,&
+          initial_coordinate%val, surface_mesh%ndglno)
+
+    call halo_update(new_coordinate)
+
+    !!! Convert the new coordinates returned into a grid velocity
+    !!! and calculate the coordinate field at the theta time level.
+
+    call set(grid_velocity,new_coordinate)
+    call addto(grid_velocity, old_coordinate, scale = -1.0)
+    call scale(grid_velocity, 1.0/dt)
+
+    if (present_and_true(diagnostic_only)) then
+       call set(coordinate, old_coordinate)
+       call set(new_coordinate, old_coordinate)
+    else
+       call set(coordinate, new_coordinate, old_coordinate, itheta)
+    end if
+
+  end subroutine move_mesh_lineal_torsional_smoothing
+
+  
+  subroutine move_mesh_initialise_lineal_torsional_smoothing(states)
+    type(state_type), dimension(:), intent(inout) :: states
+
+    type(vector_field), pointer :: coordinate
+    type(vector_field) :: initial_coordinate
+    type(mesh_type) :: surface_mesh
+
+    !!! Store the initial mesh for use as the computational geometry for the
+    !!  Lineal Torsional mesh smoothing library.
+
+    coordinate => extract_vector_field(states(1), "Coordinate")
+
+    call allocate(initial_coordinate, mesh=coordinate%mesh, dim=coordinate%dim,&
+         name="InitialCoordinate")
+    call set(initial_coordinate, coordinate)
+    call insert(states(1), initial_coordinate, "InitialCoordinate")
+    call deallocate(initial_coordinate)
+
+    !!! Add the surface mesh. This needs revisiting for parallel
+
+    call extract_surface_mesh(surface_mesh, coordinate%mesh, "FullCoordinateSurfaceMesh")
+    call insert(states(1), surface_mesh, "FullCoordinateSurfaceMesh")
+    call deallocate(surface_mesh)
+
+  end subroutine move_mesh_initialise_lineal_torsional_smoothing
+
 
 end module meshmovement
 

@@ -2217,6 +2217,12 @@ The boundary condition on the GridVelocity field is imposed
 on the calculated solution.</a:documentation>
               <empty/>
             </element>
+	    <element name="lineal_torsional_smoothing">
+              <a:documentation>Enable Lineal Torsional Spring.
+The boundary condition on the GridVelocity field is imposed
+on the calculated solution.</a:documentation>
+              <empty/>
+            </element>
             <element name="pseudo_lagrangian">
               <a:documentation>Enable movement of mesh by the Velocity.
 Note that this is only pseudo-lagrangian as the
