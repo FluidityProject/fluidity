@@ -12,9 +12,17 @@ void lin_tor_smoother(int dimension, int num_nodes, int num_elements, int num_su
   KSP            ksp;
   PC             pc;
   PetscErrorCode ierr;
-  PetscInt       i,n,m,j,its,k1,k2,nodei,Ii,len_new=0,local_surf_connectivity[dimension*num_surf_elements], global_surf_connectivity[dimension*num_surf_elements],
+  PetscInt       i,n,m,j,its,Ii,len_new=0,local_surf_connectivity[dimension*num_surf_elements], global_surf_connectivity[dimension*num_surf_elements],
                  num_nodes_col_x[num_nodes],num_nodes_col_y[num_nodes];
   PetscScalar    length,x_disp[num_surf_elements],y_disp[num_surf_elements],z_disp[num_surf_elements],smoothed_x[num_nodes],smoothed_y[num_nodes],smoothed_z[num_nodes];
+
+
+  int conn_mat[num_elements][3];
+  for(m=0;m<num_elements;m++){
+    conn_mat[m][0]=*(connectivity+(3*m));
+    conn_mat[m][1]=*(connectivity+(3*m)+1);
+    conn_mat[m][2]=*(connectivity+(3*m)+2);
+  }
 
   double lij(int dimension, int nodei, int nodej){
     nodei--;nodej--;
@@ -119,6 +127,7 @@ void lin_tor_smoother(int dimension, int num_nodes, int num_elements, int num_su
   double * rot(int nodei, int nodej, int nodek){
     double* rot_mat;
     rot_mat = malloc(sizeof(double)*18);
+
     rot_mat[0]=b_rot(nodei,nodek)-b_rot(nodei,nodej);
     rot_mat[1]=a_rot(nodei,nodej)-a_rot(nodei,nodek);
     rot_mat[2]=b_rot(nodei,nodej);
@@ -198,7 +207,7 @@ void lin_tor_smoother(int dimension, int num_nodes, int num_elements, int num_su
       }
     }
     free(A_mat);free(C_hold);free(rot_hold);
-    //Only interested in first four rows though
+
     for(i=0;i<4;i++){
       for(j=0;j<6;j++){
 	K_tor_mat_trim[(6*i+j)]=K_tor_mat[(6*i+j)];
@@ -208,93 +217,80 @@ void lin_tor_smoother(int dimension, int num_nodes, int num_elements, int num_su
     return K_tor_mat_trim;
   }
 
-  int conn_mat[num_elements][3];
-  for(m=0;m<num_elements;++m){
-    conn_mat[m][0]=*(connectivity+(3*m));
-    conn_mat[m][1]=*(connectivity+(3*m)+1);
-    conn_mat[m][2]=*(connectivity+(3*m)+2);
-  }
+  int *neb_tri(int nodei, int nodej,int * connectivity){
+    int n,i=0;
+    static int k[2];
 
-  int * neb_tri(int nodei, int nodej){
-    int n;
-    int* k;
-    k = malloc(sizeof(int)*2);
-    
-    int i=0;
     while(i<3){
     for(n=0;n<num_elements;n++){
-      
-      if(nodei==conn_mat[n][0]){
-	if(nodej==conn_mat[n][1]){
-	  k[i]=conn_mat[n][2];
+      if(nodei==*(connectivity+(3*n))){
+	if(nodej==*(connectivity+(3*n)+1)){
+	  k[i]=*(connectivity+(3*n)+2);
+	  i++;
+	  continue;
+	   }
+      }
+      if(nodei==*(connectivity+(3*n))){
+	if(nodej==*(connectivity+(3*n)+2)){
+	  k[i]=*(connectivity+(3*n)+1);
 	  i++;
 	  continue;
 	}
       }
-      if(nodei==conn_mat[n][0]){
-	if(nodej==conn_mat[n][2]){
-	  k[i]=conn_mat[n][1];
+      if(nodei==*(connectivity+(3*n)+1)){
+	if(nodej==*(connectivity+(3*n))){
+	  k[i]=*(connectivity+(3*n)+2);
 	  i++;
 	  continue;
 	}
       }
-      if(nodei==conn_mat[n][1]){
-	if(nodej==conn_mat[n][0]){
-	  k[i]=conn_mat[n][2];
+      if(nodei==*(connectivity+(3*n)+1)){
+	if(nodej==*(connectivity+(3*n)+2)){
+	  k[i]=*(connectivity+(3*n));
 	  i++;
 	  continue;
 	}
       }
-      if(nodei==conn_mat[n][1]){
-	if(nodej==conn_mat[n][2]){
-	  k[i]=conn_mat[n][0];
+      if(nodei==*(connectivity+(3*n)+2)){
+	if(nodej==*(connectivity+(3*n))){
+	  k[i]=*(connectivity+(3*n)+1);
 	  i++;
 	  continue;
 	}
       }
-      if(nodei==conn_mat[n][2]){
-	if(nodej==conn_mat[n][0]){
-	  k[i]=conn_mat[n][1];
-	  i++;
-	  continue;
-	}
-      }
-      if(nodei==conn_mat[n][2]){
-	if(nodej==conn_mat[n][1]){
-	  k[i]=conn_mat[n][0];
+      if(nodei==*(connectivity+(3*n)+2)){
+	if(nodej==*(connectivity+(3*n)+1)){
+	  k[i]=*(connectivity+(3*n));
 	  i++;
 	  continue;
 	}
       }
     }
     }
-
     if(k[0]==k[1]){
       k[1]=0;}
-    
     return k;
-
   }
 
   /*Neighbour Matrix*/
   int neb_mat[num_owned_nodes][8];
-  for(nodei=0;nodei<num_owned_nodes;nodei++){
+  for(Ii=0;Ii<num_owned_nodes;Ii++){
     int neb_a_count=0; int neb_b_count=0; int neb_c_count=0;
     int neb_a[8]={};int neb_b[8]={};int neb_c[8]={};int neb_tot[24]={};int neb_fin[8]={};
     
     for(m=0;m<num_elements;++m){
      
-      if (nodei+1 == conn_mat[m][0]){
+      if (Ii+1 == conn_mat[m][0]){
 	neb_a[neb_a_count]=conn_mat[m][1];
 	neb_a[neb_a_count+1]=conn_mat[m][2];
 	neb_a_count+=2;}
       
-      if (nodei+1 == conn_mat[m][1]){
+      if (Ii+1 == conn_mat[m][1]){
 	neb_b[neb_b_count]=conn_mat[m][0];
 	neb_b[neb_b_count+1]=conn_mat[m][2];
 	neb_b_count+=2;}
       
-      if (nodei+1 == conn_mat[m][2]){
+      if (Ii+1 == conn_mat[m][2]){
 	  neb_c[neb_c_count]=conn_mat[m][0];
 	  neb_c[neb_c_count+1]=conn_mat[m][1];
 	  neb_c_count+=2;}
@@ -328,7 +324,7 @@ void lin_tor_smoother(int dimension, int num_nodes, int num_elements, int num_su
 
    //Only interested in first 8 ints
    for(m=0;m<8;m++){
-     neb_mat[nodei][m]=neb_tot[m];}
+     neb_mat[Ii][m]=neb_tot[m];}
   }
 
   MatCreate(PETSC_COMM_WORLD,&K);
@@ -336,12 +332,12 @@ void lin_tor_smoother(int dimension, int num_nodes, int num_elements, int num_su
   MatSetSizes(K,2*num_owned_nodes,2*num_owned_nodes,PETSC_DETERMINE,PETSC_DETERMINE);
   MatSetUp(K);
 
-  int *k_holder;
+
   for(Ii=0;Ii<num_owned_nodes;Ii++){
        for(n=0;n<8;n++){
      	  int neb_hold = neb_mat[Ii][n];
 	  if(neb_hold != 0){
-
+	    
 	    MatSetValue(K,2*mapping[Ii],2*mapping[Ii],*(K_lin(Ii+1,neb_hold)+0),ADD_VALUES);
 	    MatSetValue(K,2*mapping[Ii],2*mapping[Ii]+1,*(K_lin(Ii+1,neb_hold)+1),ADD_VALUES);
 	    MatSetValue(K,2*mapping[Ii],2*mapping[neb_hold-1],*(K_lin(Ii+1,neb_hold)+2),ADD_VALUES);
@@ -362,12 +358,10 @@ void lin_tor_smoother(int dimension, int num_nodes, int num_elements, int num_su
 	    MatSetValue(K,2*mapping[neb_hold-1]+1,2*mapping[neb_hold-1],*(K_lin(Ii+1,neb_hold)+14),ADD_VALUES);
 	    MatSetValue(K,2*mapping[neb_hold-1]+1,2*mapping[neb_hold-1]+1,*(K_lin(Ii+1,neb_hold)+15),ADD_VALUES);
 
+	    
+	    int k1=*(neb_tri(Ii+1,neb_hold,connectivity)+0);int k2=*(neb_tri(Ii+1,neb_hold,connectivity)+1);
+	    double *K_tor1_holder=K_tor(Ii+1,neb_hold,k1);	    
 
-	    k_holder=neb_tri(Ii+1,neb_hold);
-	    k1=k_holder[0];k2=k_holder[1];
-	    double *K_tor1_holder, *K_tor2_holder;
-
-	    K_tor1_holder=K_tor(Ii+1,neb_hold,k1);
 	    MatSetValue(K,2*mapping[Ii],2*mapping[Ii],*(K_tor1_holder+0),ADD_VALUES);
 	    MatSetValue(K,2*mapping[Ii],2*mapping[Ii]+1,*(K_tor1_holder+1),ADD_VALUES);
 	    MatSetValue(K,2*mapping[Ii],2*mapping[neb_hold-1],*(K_tor1_holder+2),ADD_VALUES);
@@ -396,10 +390,10 @@ void lin_tor_smoother(int dimension, int num_nodes, int num_elements, int num_su
 	    MatSetValue(K,2*mapping[neb_hold-1]+1,2*mapping[k1-1],*(K_tor1_holder+22),ADD_VALUES);
 	    MatSetValue(K,2*mapping[neb_hold-1]+1,2*mapping[k1-1]+1,*(K_tor1_holder+23),ADD_VALUES);
 
-            free(K_tor1_holder);
-
+	    free(K_tor1_holder);
+	    
 	    if(k2 != 0){
-	      K_tor2_holder=K_tor(Ii+1,neb_hold,k2);
+	      double *K_tor2_holder=K_tor(Ii+1,neb_hold,k2);
 
 	      MatSetValue(K,2*mapping[Ii],2*mapping[Ii],*(K_tor2_holder+0),ADD_VALUES);
 	      MatSetValue(K,2*mapping[Ii],2*mapping[Ii]+1,*(K_tor2_holder+1),ADD_VALUES);
@@ -431,16 +425,15 @@ void lin_tor_smoother(int dimension, int num_nodes, int num_elements, int num_su
 	      
 	      free(K_tor2_holder);
 	    }
+	    
 	  }
        }
-       free(k_holder);
+       
   }
     
   MatAssemblyBegin(K,MAT_FINAL_ASSEMBLY);
   MatAssemblyEnd(K,MAT_FINAL_ASSEMBLY);
 
-  //MatView(K,PETSC_VIEWER_STDOUT_WORLD);
-  
   VecCreate(PETSC_COMM_WORLD,&F);
   PetscObjectSetName((PetscObject) F, "Load Vector");
   VecSetSizes(F,2*num_owned_nodes,PETSC_DECIDE);
