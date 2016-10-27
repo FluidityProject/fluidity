@@ -1,0 +1,22 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>laplacian_smoothing</name>
+  <owner userid="jrper"/>
+  <problem_definition length="short" nprocs="1">
+    <command_line>fluidity stress_free_mesh_movement.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="bbox" language="python">import vtk
+
+reader = vtk.vtkXMLUnstructuredGridReader()
+reader.SetFileName('stress_free_mesh_movement_1.vtu')
+reader.Update()
+
+ugrid = reader.GetOutput()
+bbox = ugrid.GetBounds()</variable>
+  </variables>
+  <pass_tests>
+    <test name="CheckBounds" language="python">import numpy
+assert(all(numpy.array([abs(x-y) for x,y in zip(bbox, (0,1,0,1.15,0,0))])&lt;1.0e-32))</test>
+  </pass_tests>
+</testproblem>

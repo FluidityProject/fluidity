@@ -151,6 +151,9 @@ contains
           vfield => extract_vector_field(states(p+1), f)
           field_path=vfield%option_path
           
+          call populate_vector_boundary_conditions(states(p+1),vfield, &
+               trim(field_path)//'/diagnostic/algorithm/boundary_conditions', position, suppress_warnings=suppress_warnings)
+          
           if (.not. have_option(trim(field_path)//'/prognostic')) cycle
 
           ! only prognostic fields from here:
@@ -390,7 +393,7 @@ contains
        end if
 
        select case(trim(bc_type))
-       case("dirichlet", "neumann", "weakdirichlet", "flux")
+       case("dirichlet", "neumann", "weakdirichlet", "flux", "solid_body", "weaksolid_body")
 
           if(have_option(trim(bc_path_i)//"/type[0]/align_bc_with_cartesian")) then
              aligned_components=cartesian_aligned_components
@@ -674,6 +677,13 @@ contains
        do f = 1, nfields
           vfield => extract_vector_field(states(p+1), f)
           field_path=vfield%option_path
+
+
+          call set_vector_boundary_conditions_values(states(p+1), vfield, &
+               trim(field_path)//'/diagnostic/algorithm/boundary_conditions', &
+               position, shift_time=shift_time)
+
+
           if (.not. have_option(trim(field_path)//'/prognostic')) cycle
 
           ! only prognostic fields from here:

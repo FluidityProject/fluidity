@@ -1956,8 +1956,26 @@ mesh_adaptivity_options =
             attribute name { "GridVelocity" },
             attribute rank { "1" },
             (
-               element diagnostic {
-                 internal_algorithm,
+                element diagnostic {
+                   (
+                      ## This diagnostic is internal - i.e. it is calculated 
+                      ## somewhere within the main code, and is not wrapped by
+                      ## the automatic diagnostics wrappers.
+                      element algorithm {
+                         attribute name { "Internal" },
+                         attribute material_phase_support { "multiple" },
+                         element boundary_conditions {
+                            attribute name { string },
+                            ## Surface id:
+                            element surface_ids {
+                               integer_vector
+                            },
+                            velocity_boundary_conditions
+                         }*
+                      }
+                   |
+                      stress_free_field_algorithm
+                   ),
                  element mesh {
                    attribute name {  "CoordinateMesh" }
                  },

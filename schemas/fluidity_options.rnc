@@ -5672,6 +5672,20 @@ vector_field_choice =
                   diagnostic_vector_field
                }
             )
+         }|
+         ## Store the initial mesh coordinates, for solids/mesh movement
+         element vector_field {
+            attribute rank { "1" },
+            attribute name { "InitialCoordinate" },
+            (
+               element diagnostic {
+                  internal_algorithm,
+                  element mesh {
+                     attribute name {"CoordinateMesh"}
+                  },
+                  diagnostic_vector_field
+               }
+            )
          }
 
 # Insert new diagnostic vector field here using the template:

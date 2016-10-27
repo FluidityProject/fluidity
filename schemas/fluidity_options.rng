@@ -7207,6 +7207,24 @@ algorithm option).</a:documentation>
           <ref name="diagnostic_vector_field"/>
         </element>
       </element>
+      <element name="vector_field">
+        <a:documentation>Store the initial mesh coordinates, for solids/mesh movement</a:documentation>
+        <attribute name="rank">
+          <value>1</value>
+        </attribute>
+        <attribute name="name">
+          <value>InitialCoordinate</value>
+        </attribute>
+        <element name="diagnostic">
+          <ref name="internal_algorithm"/>
+          <element name="mesh">
+            <attribute name="name">
+              <value>CoordinateMesh</value>
+            </attribute>
+          </element>
+          <ref name="diagnostic_vector_field"/>
+        </element>
+      </element>
     </choice>
     <!--
       Insert new diagnostic vector field here using the template:

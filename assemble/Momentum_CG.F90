@@ -78,7 +78,8 @@
     public :: construct_momentum_cg, correct_masslumped_velocity, &
               correct_velocity_cg, assemble_masslumped_poisson_rhs, &
               add_kmk_matrix, add_kmk_rhs, assemble_kmk_matrix, &
-              deallocate_cg_mass, assemble_poisson_rhs
+              deallocate_cg_mass, assemble_poisson_rhs, &
+              get_stress_free_field
 
     ! are we lumping the mass, absorption or source
     logical :: lump_mass, lump_absorption, lump_source
@@ -2774,5 +2775,126 @@
       call mult(rhs, kmk, pressure)
       call scale(rhs, dt)
     end subroutine add_kmk_rhs
+
+
+    subroutine get_stress_free_field(state, positions, vfield,&
+         chi, C1, C2, lame1, lame2, option_path,&
+         ufield)
+
+      type(state_type) :: state
+      type(vector_field), intent(in) :: positions
+      type(vector_field), intent(inout) :: vfield
+      real, intent(in) :: chi, C1, C2, lame1, lame2
+      character(len=*), optional, intent(in) :: option_path
+      type(vector_field), optional, intent(in) :: ufield
+
+      type(petsc_csr_matrix) :: M
+
+      integer :: i, ele
+      integer, dimension(:), pointer :: nodes
+      type(element_type), pointer :: u_shape
+      real, dimension(ele_loc(vfield, 1), ele_ngi(vfield, 1), vfield%dim) :: du_t
+      real, dimension(vfield%dim, vfield%dim, ele_ngi(vfield, 1)) :: lame1_tensor, lame2_tensor
+      real, dimension(ele_ngi(vfield, 1)) :: detwei
+      real, dimension(vfield%dim, ele_ngi(vfield, 1)) :: ugi
+      type(vector_field) :: rhs
+      type(csr_sparsity), pointer :: u_sparsity
+
+      lame1_tensor = lame1
+      lame2_tensor = lame2
+
+      u_sparsity => get_csr_sparsity_firstorder(state, vfield%mesh, vfield%mesh)
+
+      call allocate(M, u_sparsity, [vfield%dim, vfield%dim],&
+           diagonal = .false., name = "StiffnessMatrix")
+      call allocate(rhs, dim = vfield%dim, mesh= vfield%mesh, name = "RHS")
+
+      call zero(M)
+      call zero(rhs)
+
+      do ele = 1, element_count(vfield)
+
+         nodes => ele_nodes(vfield, ele)
+         u_shape=>ele_shape(vfield, ele)
+
+         if (present(ufield)) then
+            ugi = ele_val_at_quad(ufield,ele)
+         else
+            ugi = 0.0
+         end if
+
+         call transform_to_physical(positions, ele, &
+              u_shape, dshape=du_t, detwei=detwei)
+
+         call addto(M, nodes, nodes, stiffness_matrix(du_t, lame1_tensor,&
+              lame2_tensor, detwei**(1.0- chi)))
+
+         do i=1,vfield%dim
+            call addto(M, i,i, nodes, nodes, shape_shape(u_shape,u_shape,(C1*detwei)**(1.0- chi)))
+         end do
+         call addto(rhs,nodes,shape_vector_rhs(u_shape,ugi,(C2*detwei)**(1.0- chi)))
+
+      end do
+
+      call apply_dirichlet_conditions(matrix=M, rhs=rhs, field=vfield)
+
+
+      call petsc_solve(vfield, M, rhs, option_path)
+
+      call deallocate(M)
+      call deallocate(rhs)
+
+
+      contains
+        function stiffness_matrix(dshape, l1, l2, detwei) result (matrix)
+          !!< Calculates the element stiffness matrix.
+   
+          real, dimension(:,:,:), intent(in) :: dshape
+          real, dimension(size(dshape,3),size(dshape,3),size(dshape,2)), intent(in) :: l1, l2
+          real, dimension(size(dshape,2)), intent(in) :: detwei
+
+          real, dimension(size(dshape,3),size(dshape,3),size(dshape,1),size(dshape,1)) :: matrix
+
+          real, dimension(size(dshape,3),size(dshape,2)) :: tensor_diag, tensor_entries
+
+          integer :: iloc,jloc, gi, i, j
+          integer :: loc, ngi, dim
+
+          loc=size(dshape,1)
+          ngi=size(dshape,2)
+          dim=size(dshape,3)
+          
+          tensor_diag = 0.0
+          tensor_entries = 0.0
+
+          matrix =0.0
+         
+          do i=1,dim
+            ! extract the relevent tensor entries into a vector
+            do j = 1, i-1
+              tensor_entries(j,:) = l2(j,i,:)
+            end do
+            do j = i, dim
+              tensor_entries(j,:) = l2(i,j,:)
+            end do
+            matrix(i,i,:,:) = dshape_vector_dshape(dshape, 2.0*tensor_entries, dshape, detwei)
+          end do
+
+          do gi=1,ngi
+            forall(iloc=1:loc,jloc=1:loc)
+              matrix(:,:,iloc,jloc) = matrix(:,:,iloc,jloc) &
+                                      +(spread(dshape(iloc,gi,:), 1, dim) &
+                                       *spread(dshape(jloc,gi,:), 2, dim) &
+                                       *2.0*l2(:,:,gi) &
+                                      +spread(dshape(iloc,gi,:), 2, dim) &
+                                       *spread(dshape(jloc,gi,:), 1, dim) &
+                                       *l1(:,:,gi)) &
+                                      *detwei(gi)
+            end forall
+          end do
+
+         end function stiffness_matrix
+
+  end subroutine get_stress_free_field
 
   end module momentum_cg

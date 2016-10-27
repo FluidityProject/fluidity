@@ -18,6 +18,7 @@ module meshmovement
   use fetools
   use unittest_tools
   use fields
+  use boundary_conditions, only : get_boundary_condition, get_boundary_condition_count
   use state_module
   use vtk_interfaces
   use sparse_matrices_fields
@@ -1371,6 +1372,8 @@ contains
     
     grid_velocity => extract_vector_field(states(1), "GridVelocity")
     
+    call set_boundary_values(grid_velocity)
+    
     coordinate => extract_vector_field(states(1), "Coordinate")
     old_coordinate => extract_vector_field(states(1), "OldCoordinate")
     new_coordinate => extract_vector_field(states(1), "IteratedCoordinate")
@@ -1478,6 +1481,8 @@ contains
     ewrite(1,*) 'Entering move_mesh_lineal_smoothing'
     
     grid_velocity => extract_vector_field(states(1), "GridVelocity")
+
+    call set_boundary_values(grid_velocity)
     
     coordinate => extract_vector_field(states(1), "Coordinate")
     old_coordinate => extract_vector_field(states(1), "OldCoordinate")
@@ -1586,6 +1591,8 @@ contains
     ewrite(1,*) 'Entering move_mesh_lineal_torsional_smoothing'
     
     grid_velocity => extract_vector_field(states(1), "GridVelocity")
+
+    call set_boundary_values(grid_velocity)
     
     coordinate => extract_vector_field(states(1), "Coordinate")
     old_coordinate => extract_vector_field(states(1), "OldCoordinate")
@@ -1668,6 +1675,27 @@ contains
     call deallocate(surface_mesh)
 
   end subroutine move_mesh_initialise_lineal_torsional_smoothing
+
+  subroutine set_boundary_values(vfield)
+    type(vector_field), intent(inout) :: vfield
+
+    type(vector_field), pointer:: surface_field
+    integer, dimension(:), pointer :: surface_node_list
+
+    integer :: i, node
+
+    do i=1,get_boundary_condition_count(vfield)
+
+       call get_boundary_condition(vfield, i, surface_node_list= surface_node_list)
+       surface_field => vfield%bc%boundary_condition(i)%surface_fields(1)
+
+       do node=1, node_count(surface_field)
+          call set(vfield, surface_node_list(node), node_val(surface_field,node))
+       end do
+
+    end do
+
+  end subroutine set_boundary_values
 
 
 end module meshmovement

@@ -2211,13 +2211,13 @@ The boundary condition on the GridVelocity field is imposed
 on the calculated solution.</a:documentation>
               <empty/>
             </element>
-	    <element name="lineal_smoothing">
+            <element name="lineal_smoothing">
               <a:documentation>Enable Lineal Spring.
 The boundary condition on the GridVelocity field is imposed
 on the calculated solution.</a:documentation>
               <empty/>
             </element>
-	    <element name="lineal_torsional_smoothing">
+            <element name="lineal_torsional_smoothing">
               <a:documentation>Enable Lineal Torsional Spring.
 The boundary condition on the GridVelocity field is imposed
 on the calculated solution.</a:documentation>
@@ -2370,7 +2370,32 @@ Please specify a scalar field</a:documentation>
             </attribute>
             <choice>
               <element name="diagnostic">
-                <ref name="internal_algorithm"/>
+                <choice>
+                  <element name="algorithm">
+                    <a:documentation>This diagnostic is internal - i.e. it is calculated 
+somewhere within the main code, and is not wrapped by
+the automatic diagnostics wrappers.</a:documentation>
+                    <attribute name="name">
+                      <value>Internal</value>
+                    </attribute>
+                    <attribute name="material_phase_support">
+                      <value>multiple</value>
+                    </attribute>
+                    <zeroOrMore>
+                      <element name="boundary_conditions">
+                        <attribute name="name">
+                          <data type="string" datatypeLibrary=""/>
+                        </attribute>
+                        <element name="surface_ids">
+                          <a:documentation>Surface id:</a:documentation>
+                          <ref name="integer_vector"/>
+                        </element>
+                        <ref name="velocity_boundary_conditions"/>
+                      </element>
+                    </zeroOrMore>
+                  </element>
+                  <ref name="stress_free_field_algorithm"/>
+                </choice>
                 <element name="mesh">
                   <attribute name="name">
                     <value>CoordinateMesh</value>
