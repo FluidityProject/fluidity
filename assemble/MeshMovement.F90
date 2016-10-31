@@ -66,7 +66,7 @@ module meshmovement
      subroutine lin_smoother(dim, num_nodes,&
           num_elements, num_surf_elements, num_owned_nodes,& 
           mapping, connectivity, phys_mesh, smooth_mesh,&
-          comp_mesh, surf_connectivity) bind(c)
+          comp_mesh, surf_connectivity,findrm, colm) bind(c)
        use iso_c_binding
 
        implicit none
@@ -77,6 +77,9 @@ module meshmovement
        integer (c_int), dimension((dim+1)*num_elements) :: connectivity
        real (c_double), dimension(num_nodes) :: phys_mesh, smooth_mesh, comp_mesh
        integer (c_int), dimension(dim*num_elements) :: surf_connectivity
+       integer (c_int), dimension(num_nodes+1) :: findrm
+       integer (c_int), dimension(findrm(num_nodes+1)-1) :: colm
+       
        
      end subroutine lin_smoother
   end interface
@@ -1513,13 +1516,20 @@ contains
     call addto(coordinate, grid_velocity, scale = dt)       
   
     !!! actual call out to the C code.
+
+
+    if (.not. associated(coordinate%mesh%adj_lists%nnlist)) &
+         call add_nnlist(coordinate%mesh)
      
 !Figure out indexing between C and Fortran
     call lin_smoother(mesh_dim(coordinate), node_count(coordinate),&
           element_count(coordinate), surface_element_count(coordinate),&
           nowned_nodes(coordinate), universal_numbering(coordinate)-1,&
           coordinate%mesh%ndglno, coordinate%val, new_coordinate%val,&
-          initial_coordinate%val, surface_mesh%ndglno)
+          initial_coordinate%val, surface_mesh%ndglno,&
+          coordinate%mesh%adj_lists%nnlist%findrm,&
+          coordinate%mesh%adj_lists%nnlist%colm)
+    
 
     call halo_update(new_coordinate)
 
