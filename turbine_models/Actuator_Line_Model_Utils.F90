@@ -225,6 +225,19 @@ contains
     end do
     end subroutine
 
+  function dirname(number)
+    integer,intent(in)    :: number
+    character(len=6)  :: dirname
+
+    ! Cast the (rounded) number to string using 6 digits and
+    ! leading zeros
+    write (dirname, '(I6.1)')  number
+    ! This is the same w/o leading zeros  
+    !write (dirname, '(I6)')  nint(number)
+
+    ! This is for one digit (no rounding)
+    !write (dirname, '(F4.1)')  number
+  end function
 
  
 end module actuator_line_model_utils

@@ -46,12 +46,15 @@ type ActuatorLineType
     real, allocatable :: ERdist(:)      ! Element Distance from the origin 
     real, allocatable :: ETtoC(:)       ! Element thickness to Chord ratio
     
-    ! Angle of Attack and Pitch
+    ! Angle of Attack, Pitch, local Reynolds number and relative velocity
     real, allocatable :: Epitch(:)      ! Element pitch angle
     real, allocatable :: EAOA(:)        ! Element Current angle of Attack (used in added mass terms)
+    real, allocatable :: EAOAdot(:)     ! Element AOA rate of change
     real, allocatable :: EUn(:)         ! Element Current normal velocity (used in added mass terms)
     real, allocatable :: EAOA_LAST(:)   ! Element Last angle of Attack (used in added mass terms)
     real, allocatable :: EUn_LAST(:)    ! Element Last normal velocity (used in added mass terms)
+    real, allocatable :: ERe(:)         ! Element local Reynolds number
+    real, allocatable :: EUr(:)         ! Element local Reynolds number
     
     ! Velocity of the Fluid at the actuator Line Locations
     real, allocatable :: EVx(:)         ! Element Local fluid Velocity in the global x-direction
@@ -231,17 +234,14 @@ end type ActuatorLineType
     urdn=nxe*(u-ub)+nye*(v-vb)+nze*(w-wb)! Normal 
     urdc=txe*(u-ub)+tye*(v-vb)+tze*(w-wb)! Tangential
     ur=sqrt(urdn**2.0+urdc**2.0)
+    act_line%EUr(ielem)=ur
     ! This is the dynamic angle of attack 
     alpha=atan2(urdn,urdc)
-    Re = ur*ElemChord/Visc
+    act_line%EAOA(ielem)=alpha
+    act_line%ERe(ielem) = ur*ElemChord/Visc
     
     alpha5=alpha
-    alpha75=alpha
-    
-    !ewrite(2,*) "ielem | urdn | urdc | alpha | Re"
-    !ewrite(2,*) "--------------------------------"
-    !ewrite(2,*) ielem, urdn, urdc, alpha , Re, dt
-   
+    alpha75=alpha 
     !=========================================================
     ! Compute rate of change of Unormal and angle of attack
     !=========================================================
@@ -252,15 +252,16 @@ end type ActuatorLineType
     dal=(alpha5-act_line%EAOA_Last(ielem))
     dUnorm=urdn-act_line%EUn_last(ielem)
     endif
-    adotnorm=dal/(max(dt,0.001))*ElemChord/(2.0*max(ur,0.001)) ! adot*c/(2*U)
-    A = urdn/max(ur,0.001)
-    B = ElemChord*dUnorm/(max(dt,0.001)*max(ur**2,0.001))
-    C = urdn*urdc/max(ur**2,0.001)
+    act_line%EAOAdot(ielem)=dal/max(dt,0.00001)
+    adotnorm=act_line%EAOAdot(ielem)*ElemChord/(2.0*max(ur,0.00001)) ! adot*c/(2*U)
+    A = urdn/max(ur,0.00001)
+    B = ElemChord*dUnorm/(max(dt,0.00001)*max(ur**2,0.00001))
+    C = urdn*urdc/max(ur**2,0.00001)
 
     !====================================
     ! Compute the Aerofoil Coefficients
     !====================================
-    call compute_aeroCoeffs(act_line%do_dynamic_stall,act_line%do_added_mass,act_line%EAirfoil(ielem),act_line%E_LB_Model(ielem),alpha75,alpha5,Re,A,B,C,adotnorm,CN,CT,CM25,CL,CLCIrc,CD) 
+    call compute_aeroCoeffs(act_line%do_dynamic_stall,act_line%do_added_mass,act_line%EAirfoil(ielem),act_line%E_LB_Model(ielem),alpha75,alpha5,act_line%ERe(ielem),A,B,C,adotnorm,CN,CT,CM25,CL,CLCIrc,CD) 
     
     !===================================
     ! Update Dynamic Stall Model 
@@ -268,22 +269,19 @@ end type ActuatorLineType
     if(act_line%do_dynamic_stall) then
     ds=2.0*ur*dt/ElemChord
     call LB_UpdateStates(act_line%E_LB_MODEL(ielem),ds)
-    endif
-    
+    endif 
     !========================================================
     ! Apply Coeffs to calculate tangential and normal Forces
     !========================================================
     FN=0.5*CN*ElemArea*ur**2.0
     FT=0.5*CT*ElemArea*ur**2.0
     MS=0.5*CM25*ElemChord*ElemArea*ur**2.0
-
     !===============================================
     ! Compute forces in the X, Y, Z axis and torque  
     !===============================================
     FX=FN*nxe+FT*txe
     FY=FN*nye+FT*tye
     FZ=FN*nze+FT*tze
-    
     !==========================================
     ! Assign the derived types
     !==========================================
@@ -618,6 +616,9 @@ end type ActuatorLineType
     allocate(actuatorline%EVbz(NElem))
     allocate(actuatorline%Epitch(Nelem))
     allocate(actuatorline%EAOA(Nelem))
+    allocate(actuatorline%EAOAdot(Nelem))
+    allocate(actuatorline%ERE(Nelem))
+    allocate(actuatorline%EUr(Nelem))
     allocate(actuatorline%EUn(Nelem))
     allocate(actuatorline%EAOA_LAST(Nelem))
     allocate(actuatorline%EUn_LAST(Nelem))

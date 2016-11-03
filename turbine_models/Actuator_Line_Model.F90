@@ -60,14 +60,28 @@ contains
 
         implicit none
         integer,intent(in) :: dump_no
-        integer :: itur,ial
+        integer :: itur,ial,iblade
+        character(len=100) :: dir
 
-        if (Nal>0) then
-            do ial=1,Nal
-            call actuator_line_element_write_output(actuatorline(ial),dump_no)
+        call system('mkdir -p ALM/'//adjustl(trim(dirname(dump_no))))
+        
+        dir='ALM/'//adjustl(trim(dirname(dump_no)))
+
+        if (Ntur>0) then
+            do itur=1,Ntur
+                call actuator_line_turbine_write_output(turbine(itur),dir)
+                do iblade=1,turbine(itur)%NBlades
+                 call actuator_line_element_write_output(turbine(itur)%Blade(iblade),dir)
+                end do
             end do
         endif
 
+        if (Nal>0) then
+            do ial=1,Nal
+            call actuator_line_element_write_output(actuatorline(ial),dir)
+            end do
+        endif
+    
     end subroutine actuator_line_model_write_output
 
     subroutine get_turbine_options

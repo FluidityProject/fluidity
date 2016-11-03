@@ -24,6 +24,7 @@ type TurbineType
     real :: A   ! Rotor area
     real :: angularVel,TSR,Uref
     real :: AzimAngle=0.0
+    integer :: No_rev=0.0
     logical :: Is_constant_rotation_operated = .false. ! For a constant rotational velocity (in Revolutions Per Minute)
     logical :: Is_force_based_operated = .false. ! For a forced based rotational velocity (Computed during the simulation)
     logical :: IsClockwise = .false.
@@ -74,7 +75,7 @@ contains
     theta=2*pi/turbine%Nblades
     do iblade=1,turbine%Nblades
     call allocate_actuatorline(Turbine%blade(iblade),Nstations)
-    turbine%blade(iblade)%name=turbine%name//int2str(iblade)
+    turbine%blade(iblade)%name=trim(turbine%name)//'_blade'//int2str(iblade)
     
     turbine%blade(iblade)%COR=turbine%origin
     turbine%blade(iblade)%NElem=Nstations-1 
@@ -275,7 +276,7 @@ contains
     turbine%CFz=Fz_tot/(0.5*turbine%A*turbine%Uref**2)
     turbine%CT=sqrt(turbine%CFx**2.0+turbine%CFy**2.0+turbine%CFz**2.0)
     turbine%CTR=Torq_tot/(0.5*turbine%A*turbine%Rmax*turbine%Uref**2.0)
-    turbine%CP= turbine%CTR*turbine%TSR
+    turbine%CP= abs(turbine%CTR)*turbine%TSR
     
     ewrite(2,*) '--------------------------------------------------------'
     ewrite(2,*) 'Calculate performance for Turbine : ',turbine%name
@@ -289,21 +290,6 @@ contains
 
     end subroutine compute_performance
     
-    subroutine init_turbine_output_file 
-        implicit none
-        open(2016,File='turbine_perf.dat')
-        write(2016,*) 'Turbine ID, Azimuthal Angle,Thrust Coeff., Torque_Coeff.,Power_Coeff.'
-    end subroutine init_turbine_output_file
-
-    subroutine write_turbine_output_file(turbine) 
-        implicit none
-        type(TurbineType),intent(in) :: turbine
-        integer :: unit_numb=2016
-
-        write(2016,'(I2,F3.5,F3.5,F3.5,F3.5)') turbine%ID,',',turbine%AzimAngle,',',Turbine%CT,',',turbine%CTR,',',turbine%CP
-    
-    end subroutine write_turbine_output_file
-
     subroutine Compute_Turbine_Tip_Correction(turbine)
     
     implicit none
