@@ -141,8 +141,6 @@ contains
     
     type(csr_matrix) :: matrix
     type(scalar_field) :: delta_t, rhs
-!    type(scalar_field) :: unity, temp_scalar
-!    type(scalar_field), pointer :: ke, ke_adjust
     type(scalar_field), pointer :: t
     
     ewrite(1, *) "In solve_field_equation_cg"
@@ -173,24 +171,6 @@ contains
     
     call finalise_advection_diffusion_cg(delta_t, matrix, rhs)
     call profiler_toc(t, "assembly")
-!ke_adjust => extract_scalar_field(state(istate), "ke_adjust")
-!ke => extract_scalar_field(state(istate), "TurbulentKineticEnergy")
-!call allocate(unity, ke%mesh, "UnityScalar")
-!call allocate(temp_scalar, ke%mesh, "TemporaryScalar")
-!call set(unity,-1.0)
-!call scale(ke, ke_adjust)
-!call set(temp_scalar, ke_adjust)
-!call addto(temp_scalar, unity)
-!call addto(ke, temp_scalar, -1.0e-3)
-!
-!ke => extract_scalar_field(state(istate), "TurbulentDissipation")
-!call scale(ke, ke_adjust)
-!call set(temp_scalar, ke_adjust)
-!call addto(temp_scalar, unity)
-!call addto(ke, temp_scalar, -1.0e-3)
-!call deallocate(temp_scalar)
-!call deallocate(unity)
-
 
     ewrite(1, *) "Exiting solve_field_equation_cg"
     
@@ -950,11 +930,7 @@ contains
       end if
     case(FIELD_EQUATION_KEPSILON)      
       density_at_quad = ele_val_at_quad(density, ele)
-      if(multiphase) then
-         mass_matrix = shape_shape(test_function, ele_shape(t, ele), detwei*density_at_quad*ele_val_at_quad(nvfrac, ele))
-      else
-         mass_matrix = shape_shape(test_function, ele_shape(t, ele), detwei*density_at_quad)
-      end if
+      mass_matrix = shape_shape(test_function, ele_shape(t, ele), detwei*density_at_quad)
     case default
     
       if(move_mesh) then
@@ -1043,10 +1019,6 @@ contains
       velocity_at_quad = velocity_at_quad - ele_val_at_quad(grid_velocity, ele)
     end if
     
-    if(multiphase) then
-       nvfrac_at_quad = ele_val_at_quad(nvfrac, ele)
-    end if
-      
     select case(equation_type)
     case(FIELD_EQUATION_INTERNALENERGY)
       assert(ele_ngi(density, ele)==ele_ngi(olddensity, ele))
@@ -1056,6 +1028,10 @@ contains
       densitygrad_at_quad = density_theta*ele_grad_at_quad(density, ele, drho_t) &
                            +(1.-density_theta)*ele_grad_at_quad(olddensity, ele, drho_t)
       udotgradrho_at_quad = sum(densitygrad_at_quad*velocity_at_quad, 1)
+      
+      if(multiphase) then
+         nvfrac_at_quad = ele_val_at_quad(nvfrac, ele)
+      end if
 
     case(FIELD_EQUATION_KEPSILON)
       density_at_quad = ele_val_at_quad(density, ele)
@@ -1092,11 +1068,7 @@ contains
           end if
         end if
       case(FIELD_EQUATION_KEPSILON)
-        if(multiphase) then
-           advection_mat = -dshape_dot_vector_shape(dt_t, velocity_at_quad, t_shape, detwei*density_at_quad*nvfrac_at_quad)
-        else
-           advection_mat = -dshape_dot_vector_shape(dt_t, velocity_at_quad, t_shape, detwei*density_at_quad)
-        end if
+        advection_mat = -dshape_dot_vector_shape(dt_t, velocity_at_quad, t_shape, detwei*density_at_quad)
         if(abs(1.0 - beta) > epsilon(0.0)) then
           velocity_div_at_quad = ele_div_at_quad(velocity, ele, du_t)
           advection_mat = advection_mat &
@@ -1145,11 +1117,7 @@ contains
           end if
         end if
       case(FIELD_EQUATION_KEPSILON)
-        if(multiphase) then
-           advection_mat = shape_vector_dot_dshape(test_function, velocity_at_quad, dt_t, detwei*density_at_quad*nvfrac_at_quad)
-        else
-           advection_mat = shape_vector_dot_dshape(test_function, velocity_at_quad, dt_t, detwei*density_at_quad)
-        end if
+        advection_mat = shape_vector_dot_dshape(test_function, velocity_at_quad, dt_t, detwei*density_at_quad)
         if(abs(beta) > epsilon(0.0)) then
           velocity_div_at_quad = ele_div_at_quad(velocity, ele, du_t)
           advection_mat = advection_mat &

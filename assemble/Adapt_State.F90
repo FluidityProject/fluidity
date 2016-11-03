@@ -968,7 +968,7 @@ contains
     type(state_type), dimension(:), intent(inout) :: states
 
     character(len = *), parameter :: base_path = "/mesh_adaptivity/hr_adaptivity/adapt_at_first_timestep"
-    integer :: adapt_iterations, i, i_state
+    integer :: adapt_iterations, i
     type(mesh_type), pointer :: old_mesh
     type(tensor_field) :: metric
     type(vector_field), pointer :: output_positions
@@ -986,6 +986,7 @@ contains
       call copy_to_stored_values(states,"Old")
       call copy_to_stored_values(states,"Iterated")
       call relax_to_nonlinear(states)
+
       call calculate_diagnostic_variables(states)
       call calculate_diagnostic_variables_new(states)
 
@@ -1006,11 +1007,9 @@ contains
       ! interpolating them
       call adapt_state(states, metric, initialise_fields = .true.)
       
-      ! dqmom_init helps to recalculate the abscissas and weights based on moment initial conditions (if provided)
+      ! Population balance equation initialise - dqmom_init() helps to recalculate the abscissas and weights 
+      ! based on moment initial conditions (if provided)
       call dqmom_init(states)
-!      do i_state = 1, option_count("/material_phase")
-!          call dqmom_calculate_moments(states(i_state))
-!      end do
     end do
 
     if(have_option(trim(base_path) // "/output_adapted_mesh")) then

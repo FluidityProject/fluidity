@@ -82,7 +82,7 @@ contains
     type(state_type), dimension(:), pointer :: submaterials
     
     ewrite(1, *) "In calculate_diagnostic_variables"
-
+ 
     do i = 1, size(state)
 
        ! start of fields that can be called through the generic calculate_diagnostic_variable
@@ -558,8 +558,8 @@ contains
        ! End of sediment diagnostics.
        
        ! Start of population balance diagnostics.
-       call dqmom_calculate_moments(state(i))
-       call dqmom_calculate_statistics(state(i))
+          call dqmom_calculate_moments(state(i))
+          call dqmom_calculate_statistics(state(i))
        ! End of population balance diagnostics.
 
        ! Multiphase-related diagnostic fields

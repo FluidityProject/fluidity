@@ -638,9 +638,7 @@
             <string_value lines="1">Water::Density,   Water::Velocity,  Water::PhaseVolumeFraction,  Tephra::Velocity</string_value>
           </depends>
           <particle_diameter>
-            <constant>
-              <real_value rank="0">48e-6</real_value>
-            </constant>
+            <real_value rank="0">48e-6</real_value>
           </particle_diameter>
           <continuous_phase_name>Water</continuous_phase_name>
         </algorithm>
@@ -660,9 +658,7 @@
     </scalar_field>
     <multiphase_properties>
       <particle_diameter>
-        <constant>
-          <real_value rank="0">48e-6</real_value>
-        </constant>
+        <real_value rank="0">48e-6</real_value>
       </particle_diameter>
     </multiphase_properties>
   </material_phase>

@@ -65,8 +65,7 @@ module fields_manipulation
   public :: remap_to_subdomain, remap_to_full_domain
   public :: get_coordinates_remapped_to_surface, get_remapped_coordinates
   public :: power
-  public :: remap_field_vector_dg_cont_average
- 
+  
   integer, parameter, public :: REMAP_ERR_DISCONTINUOUS_CONTINUOUS = 1, &
                                 REMAP_ERR_HIGHER_LOWER_CONTINUOUS  = 2, &
                                 REMAP_ERR_UNPERIODIC_PERIODIC      = 3, &
@@ -1896,7 +1895,7 @@ module fields_manipulation
                   local_coords(toloc, to_field%mesh%shape))
           end do
         end do
-
+        
         ! Now loop over the elements.
         do ele=1,element_count(from_field)
           from_ele=>ele_nodes(from_field, ele)
@@ -2036,95 +2035,6 @@ module fields_manipulation
     end do
     
   end subroutine remap_vector_field
-
-!--------------------------------gb812
-  subroutine remap_field_vector_dg_cont_average(from_field, to_field, stat, scalar_field_count_node_shares)
-    !!< Remap the components of from_field onto the locations of to_field.
-    !!< This is used to change the element type of a field.
-    !!<
-    !!< The result will only be valid if to_field is DG.
-    type(vector_field), intent(in) :: from_field
-    type(vector_field), intent(inout) :: to_field
-    integer, intent(out), optional :: stat
-    type(scalar_field), intent(inout) :: scalar_field_count_node_shares
-
-    real, dimension(to_field%mesh%shape%loc, from_field%mesh%shape%loc) :: locweight
-
-    integer :: fromloc, toloc, ele, i
-    integer, dimension(:), pointer :: from_ele, to_ele
-    
-    if(present(stat)) stat = 0
-
-    assert(to_field%dim>=from_field%dim)
-    
-    if (mesh_dim(from_field)/=mesh_dim(to_field)) then
-       ewrite (0,*)"Remapping "//trim(from_field%name)//" to "&
-            &//trim(to_field%name)
-       ewrite (0,'(a,i0)')"Mesh dimension of "//trim(from_field%name)//&
-            " is ", mesh_dim(from_field)
-       ewrite (0,'(a,i0)')"Mesh dimension of "//trim(to_field%name)//&
-            " is ", mesh_dim(to_field)
-       FLExit("Mesh dimensions inconsistent")
-    end if
-
-    call zero(to_field)  !gb812
-    call zero(scalar_field_count_node_shares)   !gb812
-
-    if(from_field%mesh==to_field%mesh) then
-    
-      call set(to_field, from_field)
-      
-    else
-
-      select case(from_field%field_type)
-      case(FIELD_TYPE_NORMAL)
-
-        call test_remap_validity(from_field, to_field, stat=stat)
-
-        ! First construct remapping weights.
-        do toloc=1,size(locweight,1)
-          do fromloc=1,size(locweight,2)
-              locweight(toloc,fromloc)=eval_shape(from_field%mesh%shape, fromloc, &
-                  local_coords(toloc, to_field%mesh%shape))
-          end do
-        end do
-        
-        ! Now loop over the elements.
-        do ele=1,element_count(from_field)
-          from_ele=>ele_nodes(from_field, ele)
-          to_ele=>ele_nodes(to_field, ele)
-          call addto(scalar_field_count_node_shares, to_ele, to_ele*0.0+1.0)    !gb812
-                           
-          do i=1,from_field%dim
-              to_field%val(i,to_ele)= &
-                  to_field%val(i,to_ele)+matmul(locweight,from_field%val(i,from_ele))          !gb812
-!              to_field%val(i,to_ele)= &
-!                  matmul(locweight,from_field%val(i,from_ele))          
-          end do
-          
-        end do
-
-        do i=1,node_count(scalar_field_count_node_shares)   !gb812
-           call set(scalar_field_count_node_shares, i, 1./node_val(scalar_field_count_node_shares, i))   !gb812
-        end do
-        call scale(to_field, scalar_field_count_node_shares)   !gb812
-        
-      case(FIELD_TYPE_CONSTANT)
-        do i=1,from_field%dim
-          to_field%val(i,:) = from_field%val(i,1)
-        end do
-      end select
-  
-    end if
-    
-    ! Zero any left-over dimensions
-    do i=from_field%dim+1,to_field%dim
-      to_field%val(i,:)=0.0
-    end do
-    
-  end subroutine remap_field_vector_dg_cont_average
-!--------------------------------gb812
-
 
   subroutine remap_vector_field_specific(from_field, to_field, elements, output, locweight, stat)
     !!< Remap the components of from_field onto the locations of to_field.

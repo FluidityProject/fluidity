@@ -29,8 +29,6 @@
 
 module fluids_module
 
-  use mpi_interfaces
-  use vtk_cache_module
   use fldebug
   use auxilaryoptions
   use spud
@@ -38,9 +36,8 @@ module fluids_module
        simulation_start_time, &
        simulation_start_cpu_time, &
        simulation_start_wall_time, &
-       topology_mesh_name, FIELD_NAME_LEN, &
-       is_active_process
-  use futils, only: int2str, trim_file_extension
+       topology_mesh_name, FIELD_NAME_LEN
+  use futils, only: int2str
   use reference_counting, only: print_references
   use parallel_tools
   use memory_diagnostics
@@ -125,7 +122,7 @@ module fluids_module
 contains
 
   SUBROUTINE FLUIDS()
-    character(len = OPTION_PATH_LEN) :: filename, filename_pvtu
+    character(len = OPTION_PATH_LEN) :: filename
 
     INTEGER :: &
          & NTSOL,  &
@@ -181,20 +178,8 @@ contains
 
     !     backward compatibility with new option structure - crgw 21/12/07
     logical::use_advdif=.true.  ! decide whether we enter advdif or not
-    type(scalar_field), pointer :: temp_scalar_1, temp_scalar_2, temp_scalar_3, &
-                                   turbulent_dissipation, effective_viscosity, air_effective_viscosity
-    type(scalar_field) :: eff_visc_remap, air_eff_visc_remap
-    type(tensor_field), pointer :: water_visc, air_visc
-    type(scalar_field), dimension(2) :: turbulent_scalars
-    type(mesh_type), pointer :: model_mesh
-    integer :: num_turb, stat
-    real :: time_turbulent
-    character (len=5) :: num_turb_padded
+
     INTEGER :: adapt_count
-    character(len=200)::command
-    real::zero_value
-    integer :: ierr
-    logical :: filename_pvtu_exists
 
     ! Absolute first thing: check that the options, if present, are valid.
     call check_options
@@ -267,7 +252,7 @@ contains
          & default=1)
     call get_option("/timestepping/nonlinear_iterations/tolerance", &
          & nonlinear_iteration_tolerance, default=0.0)
-
+    
     if(have_option("/mesh_adaptivity/hr_adaptivity/adapt_at_first_timestep")) then
 
        if(have_option("/timestepping/nonlinear_iterations/nonlinear_iterations_at_adapt")) then
@@ -322,7 +307,7 @@ contains
     end if
 
     ! set population balance initial conditions
-    call dqmom_init(state)
+       call dqmom_init(state)
 
     ! Calculate the number of scalar fields to solve for and their correct
     ! solve order taking into account dependencies.
@@ -463,44 +448,6 @@ contains
         call gls_init(state(1))
     end if
 
-    ! gb812 ----
-    if (have_option("/extract_turbulent_fields_from_fluent")) then
-!       turbulent_dissipation=>extract_scalar_field(state(1),"TurbulentDissipationRate")
-!       call set(turbulent_dissipation, 1.0e-8) 
-       effective_viscosity=>extract_scalar_field(state(1),"Water_Viscosity_Eff")
-       call set(effective_viscosity, 0.00101)
-       air_effective_viscosity=>extract_scalar_field(state(2),"Air_Viscosity_Eff")
-       call set(air_effective_viscosity, 1.254e-5)
-       water_visc=>extract_tensor_field(state(1),"Viscosity")
-       air_visc=>extract_tensor_field(state(2),"Viscosity")
-
-       !allocate remap fields
-       call allocate(eff_visc_remap,water_visc%mesh,"RemappedEffectiveViscosity")
-       call allocate(air_eff_visc_remap,air_visc%mesh,"RemappedAirEffectiveViscosity")
-
-       ! remap scalar viscosities onto Viscosity mesh
-       call remap_field(effective_viscosity,eff_visc_remap, stat)
-       if (stat/=0) then
-          FLExit('There was some problem remapping the continuous effective viscosity to discontinuous mesh')
-       end if
-       call remap_field(air_effective_viscosity, air_eff_visc_remap, stat)
-       if (stat/=0) then
-          FLExit('There was some problem remapping the continuous effective viscosity to discontinuous mesh')
-       end if
-
-       call zero(air_visc)
-       call zero(water_visc)
-       do i=1, air_visc%dim(1)
-       call set(air_visc, i, i, air_eff_visc_remap)
-       call set(water_visc, i, i, eff_visc_remap)
-       end do
-
-       call deallocate(eff_visc_remap)
-       call deallocate(air_eff_visc_remap)
-       call get_option('/extract_turbulent_fields_from_fluent/num_turb', num_turb, default=1)
-    end if
-    !---------
-
     ! ******************************
     ! *** Start of timestep loop ***
     ! ******************************
@@ -544,111 +491,7 @@ contains
        end if
 
        ewrite(2,*)'steady_state_tolerance,nonlinear_iterations:',steady_state_tolerance,nonlinear_iterations
-! gb812       
-       if (have_option("/extract_turbulent_fields_from_fluent")) then
-          ! Writes turbulent_fields.pvtu containing TurbulentDissipationRate
-          ! and EffectiveViscosity and AirEffectiveViscosity
-          !turbulent_scalars(1)=extract_scalar_field(state(1),"TurbulentDissipationRate")
-!          turbulent_scalars(1)=extract_scalar_field(state(1),"Water_Viscosity_Eff")
-!          turbulent_scalars(2)=extract_scalar_field(state(2),"Air_Viscosity_Eff")
-!          model_mesh => extract_mesh(state(1), "CoordinateMesh")
-!          call vtk_write_fields("turbulent_fields", & 
-!              position=extract_vector_field(state(1),"Coordinate"), &
-!              model=model_mesh,  &
-!              sfields=turbulent_scalars, &
-!              write_region_ids=.true.)
-          time_turbulent = num_turb*0.01
-          if (current_time>=time_turbulent) then
-             write (num_turb_padded,'(I5.5)') num_turb
-             num_turb = num_turb + 1
-             ! Write a vtu first if adaptivity is present
-             if(have_option("/extract_turbulent_fields_from_fluent/adaptivity_present")) then
-                turbulent_scalars(1)=extract_scalar_field(state(1),"TurbulentDissipationRate")
-!                turbulent_scalars(2)=extract_scalar_field(state(1),"EffectiveViscosity")
-                model_mesh => extract_mesh(state(1), "CoordinateMesh")
-                call vtk_write_fields("turbulent_fields", & 
-                    position=extract_vector_field(state(1),"Coordinate"), &
-                    model=model_mesh,  &
-                    sfields=turbulent_scalars, &
-                    write_region_ids=.true.)
 
-                ! If adaptivity present, then run a script to interpolate Fluent turbulence fields on to vtu mesh
-                if(getrank()==0) then
-                   ewrite(2,*) "Running python script fluent_interpolate.py"
-                   command = "python fluent_interpolate.py "//trim(num_turb_padded) ! the python script to run
-                   call system(command)
-                end if
-                if(isparallel()) then
-                   call mpi_bcast(zero_value, 1, getpreal(), 0, MPI_COMM_WORLD, ierr)
-                   assert(ierr == MPI_SUCCESS)
-                end if
-
-             end if
-
-             if(is_active_process) then
-               if(isparallel()) then
-                  if(have_option("/extract_turbulent_fields_from_fluent/adaptivity_present")) then
-                     filename_pvtu = parallel_filename(trim_file_extension('turbulent_fields.pvtu'),".vtu")
-                     inquire(file="turbulent_fields/"//trim(filename_pvtu), exist=filename_pvtu_exists)
-                  else
-                     filename_pvtu = parallel_filename(trim_file_extension('turbulent_fields_'//trim(num_turb_padded)//'.pvtu'),".vtu")
-                     inquire(file="turbulent_fields_"//trim(num_turb_padded)//"/"//trim(filename_pvtu), exist=filename_pvtu_exists)
-                  end if
-               else
-                  if(have_option("/extract_turbulent_fields_from_fluent/adaptivity_present")) then
-                     filename_pvtu = 'turbulent_fields.vtu'
-                     inquire(file=trim(filename_pvtu), exist=filename_pvtu_exists)
-                  else
-                     filename_pvtu = 'turbulent_fields_'//trim(num_turb_padded)//'.vtu'
-                     inquire(file=trim(filename_pvtu), exist=filename_pvtu_exists)
-                  end if
-               end if
-
-               if(filename_pvtu_exists) then
-!                  temp_scalar_1=>vtk_cache_read_scalar_field(filename_pvtu,'TurbulentDissipationRate')
-                  temp_scalar_2=>vtk_cache_read_scalar_field(filename_pvtu,'Water_Viscosity_Eff')
-                  temp_scalar_3=>vtk_cache_read_scalar_field(filename_pvtu,'Air_Viscosity_Eff')
-
-!                  turbulent_dissipation=>extract_scalar_field(state(1),"TurbulentDissipationRate")
-                  effective_viscosity=>extract_scalar_field(state(1),"Water_Viscosity_Eff")
-                  air_effective_viscosity=>extract_scalar_field(state(2),"Air_Viscosity_Eff")
-!                  call set(turbulent_dissipation, temp_scalar_1)
-                  call set(effective_viscosity, temp_scalar_2)
-                  call set(air_effective_viscosity,temp_scalar_3)
-               else
-                  ewrite(1,*) "The file "//trim(filename_pvtu)//" does not exist"
-               end if
-             end if
-             water_visc=>extract_tensor_field(state(1),"Viscosity")
-             air_visc=>extract_tensor_field(state(2),"Viscosity")
-
-             !allocate remap fields
-             call allocate(eff_visc_remap,water_visc%mesh,"RemappedEffectiveViscosity")
-             call allocate(air_eff_visc_remap,air_visc%mesh,"RemappedAirEffectiveViscosity")
-
-             ! remap scalar viscosities onto Viscosity mesh
-             call remap_field(effective_viscosity,eff_visc_remap, stat)
-             if (stat/=0) then
-                FLExit('There was some problem remapping the continuous effective viscosity to discontinuous mesh')
-             end if
-             call remap_field(air_effective_viscosity, air_eff_visc_remap, stat)
-             if (stat/=0) then
-                FLExit('There was some problem remapping the continuous effective viscosity to discontinuous mesh')
-             end if
-
-             call zero(air_visc)
-             call zero(water_visc)
-             do i=1, air_visc%dim(1)
-                call set(air_visc, i, i, air_eff_visc_remap)
-                call set(water_visc, i, i, eff_visc_remap)
-             end do
-
-             call deallocate(eff_visc_remap)
-             call deallocate(air_eff_visc_remap)
-
-          end if
-       end if
-! ---
        call copy_to_stored_values(state,"Old")
        if (have_option('/mesh_adaptivity/mesh_movement') .and. .not. have_option('/mesh_adaptivity/mesh_movement/free_surface')) then
           ! Coordinate isn't handled by the standard timeloop utility calls.
@@ -740,8 +583,8 @@ contains
 
           call compute_goals(state)
 
-          ! Calculate source terms for populations ------
-          call dqmom_calculate_source_terms(state, ITS)
+          ! Calculate source terms for population balance scalars
+             call dqmom_calculate_source_terms(state, ITS)
 
           !------------------------------------------------
           ! Addition for calculating drag force ------ jem 05-06-2008
@@ -922,7 +765,6 @@ contains
             end if
           end do 
 
-
           ! This is where the non-legacy momentum stuff happens
           ! a loop over state (hence over phases) is incorporated into this subroutine call
           ! hence this lives outside the phase_loop
@@ -938,7 +780,7 @@ contains
           ! Apply minimum weight condition on weights - population balance
           call dqmom_apply_min_weight(state)
 
-          ! calculate abscissa for populations -----
+          ! calculate abscissa in the population balance equation
           ! this must be done at the end of each non-linear iteration
           call dqmom_calculate_abscissa(state)
           do i = 1, size(state)

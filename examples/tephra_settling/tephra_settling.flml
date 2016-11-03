@@ -586,9 +586,7 @@
     </scalar_field>
     <multiphase_properties>
       <particle_diameter>
-        <constant>
-          <real_value rank="0">48e-6</real_value>
-        </constant>
+        <real_value rank="0">48e-6</real_value>
       </particle_diameter>
     </multiphase_properties>
   </material_phase>

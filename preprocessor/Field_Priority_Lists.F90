@@ -136,7 +136,7 @@ contains
              end do
           end if
 
-          ! added as hack for now - but this whole set up of fields could be way better!
+          ! this whole set up of fields could be improved to ensure that multiple PBEs can be used per phase
           ! prognostic pop balance fields - very limited applicability
           if (have_option('/material_phase['//int2str(p)//']/population_balance/')) then
              do f = 0, option_count('/material_phase['//int2str(p)//&

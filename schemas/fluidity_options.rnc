@@ -1816,10 +1816,6 @@ start =
          embedded_models?,
          flredecomp?,
          multiphase_interaction?,
-         element extract_turbulent_fields_from_fluent{
-            element adaptivity_present{empty}?,
-            element num_turb{integer}?
-         }?,
          element population_balance_continuous_phase_name{ string }?
       }
    )      
@@ -1886,7 +1882,7 @@ population_balance =
                ## Field type
                element prognostic {
                   velocity_mesh_choice,
-                  prognostic_scalar_field_source_adapt
+                  prognostic_scalar_field
                }
             },
             element scalar_field {
@@ -1895,7 +1891,7 @@ population_balance =
                ## Field type
                element prognostic {
                   velocity_mesh_choice,
-                  prognostic_scalar_field_source_adapt
+                  prognostic_scalar_field
                }
             },
             element scalar_field {
@@ -1904,7 +1900,7 @@ population_balance =
                ## Field type
                element prognostic {
                   velocity_mesh_choice,
-                  prognostic_scalar_field_source_adapt
+                  prognostic_scalar_field
                }
             }*
          },
@@ -1915,7 +1911,7 @@ population_balance =
                ## Field type
                element prognostic {
                   velocity_mesh_choice,
-                  prognostic_scalar_field_source_adapt
+                  prognostic_scalar_field
                }
             },
             element scalar_field {
@@ -1924,7 +1920,7 @@ population_balance =
                ## Field type
                element prognostic {
                   velocity_mesh_choice,
-                  prognostic_scalar_field_source_adapt
+                  prognostic_scalar_field
                }
             },
             element scalar_field {
@@ -1933,7 +1929,7 @@ population_balance =
                ## Field type
                element prognostic {
                   velocity_mesh_choice,
-                  prognostic_scalar_field_source_adapt
+                  prognostic_scalar_field
                }
             }*
          },

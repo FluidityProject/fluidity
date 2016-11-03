@@ -2565,20 +2565,6 @@ while a factor of 1 represents a connected domain.</a:documentation>
         <ref name="multiphase_interaction"/>
       </optional>
       <optional>
-        <element name="extract_turbulent_fields_from_fluent">
-          <optional>
-            <element name="adaptivity_present">
-              <empty/>
-            </element>
-          </optional>
-          <optional>
-            <element name="num_turb">
-              <ref name="integer"/>
-            </element>
-          </optional>
-        </element>
-      </optional>
-      <optional>
         <element name="population_balance_continuous_phase_name">
           <data type="string" datatypeLibrary=""/>
         </element>
@@ -2666,7 +2652,7 @@ options</a:documentation>
           <element name="prognostic">
             <a:documentation>Field type</a:documentation>
             <ref name="velocity_mesh_choice"/>
-            <ref name="prognostic_scalar_field_source_adapt"/>
+            <ref name="prognostic_scalar_field"/>
           </element>
         </element>
         <element name="scalar_field">
@@ -2679,7 +2665,7 @@ options</a:documentation>
           <element name="prognostic">
             <a:documentation>Field type</a:documentation>
             <ref name="velocity_mesh_choice"/>
-            <ref name="prognostic_scalar_field_source_adapt"/>
+            <ref name="prognostic_scalar_field"/>
           </element>
         </element>
         <zeroOrMore>
@@ -2693,7 +2679,7 @@ options</a:documentation>
             <element name="prognostic">
               <a:documentation>Field type</a:documentation>
               <ref name="velocity_mesh_choice"/>
-              <ref name="prognostic_scalar_field_source_adapt"/>
+              <ref name="prognostic_scalar_field"/>
             </element>
           </element>
         </zeroOrMore>
@@ -2709,7 +2695,7 @@ options</a:documentation>
           <element name="prognostic">
             <a:documentation>Field type</a:documentation>
             <ref name="velocity_mesh_choice"/>
-            <ref name="prognostic_scalar_field_source_adapt"/>
+            <ref name="prognostic_scalar_field"/>
           </element>
         </element>
         <element name="scalar_field">
@@ -2722,7 +2708,7 @@ options</a:documentation>
           <element name="prognostic">
             <a:documentation>Field type</a:documentation>
             <ref name="velocity_mesh_choice"/>
-            <ref name="prognostic_scalar_field_source_adapt"/>
+            <ref name="prognostic_scalar_field"/>
           </element>
         </element>
         <zeroOrMore>
@@ -2736,7 +2722,7 @@ options</a:documentation>
             <element name="prognostic">
               <a:documentation>Field type</a:documentation>
               <ref name="velocity_mesh_choice"/>
-              <ref name="prognostic_scalar_field_source_adapt"/>
+              <ref name="prognostic_scalar_field"/>
             </element>
           </element>
         </zeroOrMore>

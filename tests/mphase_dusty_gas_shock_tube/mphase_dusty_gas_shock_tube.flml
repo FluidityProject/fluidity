@@ -626,9 +626,7 @@ The normalised mass concentration is 1.0 in the dusty gas region, so we divide 1
             <string_value lines="1">Dust::Velocity,Air::Velocity,Air::PhaseVolumeFraction,Air::Density</string_value>
           </depends>
           <particle_diameter>
-            <constant>
-              <real_value rank="0">10e-6</real_value>
-            </constant>
+            <real_value rank="0">10e-6</real_value>
           </particle_diameter>
           <continuous_phase_name>Air</continuous_phase_name>
         </algorithm>
@@ -730,9 +728,7 @@ InternalEnergy needed for a Pressure of 1.013e5 = 205894.308943</comment>
     </scalar_field>
     <multiphase_properties>
       <particle_diameter>
-        <constant>
-          <real_value rank="0">10e-6</real_value>
-        </constant>
+        <real_value rank="0">10e-6</real_value>
       </particle_diameter>
       <specific_heat>
         <real_value rank="0">758</real_value>

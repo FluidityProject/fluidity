@@ -38,7 +38,6 @@ module dqmom
   use global_parameters, only: OPTION_PATH_LEN, FIELD_NAME_LEN
   use fldebug
   use futils, only: int2str
-!  use sparsity_patterns_meshes
   use sparse_tools
   use solvers
 
@@ -51,23 +50,13 @@ module dqmom
 
   real, save     :: fields_min = 1.0e-11
   !! TODO:
-  !! 1. Make field_finding algorithm work for multiple phases and make sure it works for
-  !!    several pop_balances
-  !! 3. Make check_options run
-  !! 4. Check all prognostic fields are identical (possible bar initial conditions)
-  !! 5. Check prognostic Source terms are set to diagnostic, Internal
-  !! 6. Minimum weight
-  !! 7. Check diagnostic fields are set to Internal
-  !! 8. Entire set up of fields is a horrible hack - could do with sorting out - suggest 
-  !!    new blueprint for how this could work - will only work for one pop_balance per phase. IMPORTANT
-  !! 9. Make changes to function dqmom_calculate_abscissa so that it works for a state insteaad of all states. 
-  !!    Make necessary changes to the place this is called in the code. 
-  !! 10.In Fluids.F90 use conditions on presence of population balance tree and call the functions inside the if condition.
-  !!    Loop on states inside Fluids.F90 (or any other file where DQMOM functions are called) instead of doing it inside DQMOM functions.  
+  !! 1. Make the algorithm work for multiple phases and make sure it works for
+  !!    several pop_balances - currently works for only one population balance 
+  !! 2. Make check_options run
+  !! 3. Check all prognostic fields are identical (possible bar initial conditions)
+  !! 4. Check prognostic Source terms are set to diagnostic, Internal
+  !! 5. Check diagnostic fields are set to Internal
 
-  !! Changes made by gb812
-  !! 1. in 'Construct C matrix (rhs pt. 2)' -> took grad_D out or squared term
-  !! 2. in 'Construct C matrix (rhs pt. 2)' -> while summing grad_D in the next line, changed from sum(grad_D) to sum(grad_D,1) 
 contains
 
   subroutine get_pop_field(state, i_pop, i_field, type, item, stat, iterated)
@@ -379,10 +368,6 @@ contains
     logical :: have_internal_dispersion = .FALSE.
     logical :: have_aggregation = .FALSE.
     logical :: have_breakage = .FALSE.
-!type(scalar_field), pointer :: cont_field, disc_field
-!type(element_type), pointer :: shape_cont, shape_disc
-!real, dimension(:,:,:), allocatable :: dshape_cont, dshape_disc
-!real, dimension(:), allocatable :: detwei_cont, detwei_disc
 
     call get_pop_option_path(state, i_pop, option_path)
     N = option_count(trim(option_path)//'/abscissa/scalar_field')
@@ -546,8 +531,6 @@ contains
     else if (have_option(trim(option_path)//'/ill_conditioned_matrices/perturbate')) then 
        singular_option = 'perturbate';
        call get_option(trim(option_path)//'/ill_conditioned_matrices/perturbate/perturbation', perturb_val)
-!    else if (have_option(trim(option_path)//'/ill_conditioned_matrices/average_surrounding_nodes')) then        
-!       singular_option = 'average_surrounding_nodes';
     else if (have_option(trim(option_path)//'/ill_conditioned_matrices/do_nothing')) then
        singular_option = 'do_nothing';
     end if
@@ -563,27 +546,6 @@ contains
                 &turbulent_dissipation, viscosity_continuous, X, singular_option, perturb_val, cond, i)       
     end do
     
-
-!    print*, "test values min max"
-!    ewrite_minmax(s_weighted_abscissa(1)%ptr) 
-
-!cont_field => extract_scalar_field(state, "Cont_Field", stat=stat)
-!disc_field => extract_scalar_field(state, "Disc_Field", stat=stat)
-!allocate(dshape_cont(ele_loc(cont_field,2), ele_ngi(cont_field, 2), X%dim))
-!allocate(dshape_disc(ele_loc(disc_field,2), ele_ngi(disc_field, 2), X%dim))
-!allocate(detwei_cont(ele_ngi(cont_field, 2)))
-!allocate(detwei_disc(ele_ngi(disc_field, 2)))
-!shape_cont=>ele_shape(cont_field,2)
-!shape_disc=>ele_shape(disc_field,2)
-!call transform_to_physical( X, 20, shape_cont, dshape=dshape_cont, detwei=detwei_cont )
-!call transform_to_physical( X, 20, shape_disc, dshape=dshape_disc, detwei=detwei_disc )
-!print*, "contcont", dshape_cont
-!print*, "discdisc", dshape_disc
-!deallocate(dshape_cont)
-!deallocate(dshape_disc)
-!deallocate(detwei_cont)
-!deallocate(detwei_disc)
-
     ! Checking if the source terms need to be implemented as absorption
     if(have_option(trim(option_path)//'/apply_source_as_absorption')) then
        do i =1, N
@@ -613,7 +575,8 @@ contains
               a_weighted_abscissa(i)%ptr%val=-1./fields_min
           end where
           call scale(a_weighted_abscissa(i)%ptr, s_weighted_abscissa(i)%ptr)
-          ! make source terms zero now to prevent applying it twice
+
+          ! make source terms zero now to prevent applying them twice
           call zero(s_weight(i)%ptr)
           call zero(s_weighted_abscissa(i)%ptr)
        end do
@@ -640,7 +603,8 @@ contains
 
     end if
 
-    ! S = S_c + S_p phi_p. If S is positive, S=S_c otherwise S=S_p phi_p. This makes sure that the scalar remains non-negative.
+    ! S = S_c + S_p phi_p. If S is positive, S=S_c otherwise S=S_p phi_p. This makes sure that the scalar remains non-negative. 
+    ! See Pg 145 Numerical Heat Transfer and Fluid Flow by Suhas V. Patankar
     if(have_option(trim(option_path)//'/apply_source_as_absorption_for_negative_source_only')) then
        do i =1, N
           a_weight(i)%ptr => extract_scalar_field(state, trim(weight(i)%ptr%name)//'Absorption', stat)
@@ -743,7 +707,6 @@ contains
     real, dimension(1, size(abscissa)) :: abscissa_S
     real, dimension(1, size(weight)) :: weight_S
     real :: eps_node
-!    real, dimension(viscosity_continuous%dim(1), viscosity_continuous%dim(1)) :: visc_node
     real, dimension(:,:), allocatable :: visc_node
     real, dimension(size(abscissa)*2, size(abscissa)*2) :: svd_tmp1, svd_tmp2
     real, dimension(size(abscissa)*2) :: SV
@@ -759,13 +722,30 @@ contains
     end do
     A = A_matrix(abscissa_val)
 
-    !! gb nov-2012---
     ! initialize dqmom source term to zero 
     S_rhs = 0.0
 
     ! construct S vector (rhs pt.3) for GROWTH term
+    if (have_growth) then
+       if (growth_type=='power_law_growth') then
+          do i = 1, 2*N
+             do j = 1, N
+                S_rhs(1,i) = S_rhs(1,i) + (i-1)*node_val(weight(j), node)*abscissa_val(1,j)**(i-2+growth_r)
+             end do
+          end do
+       end if
+    end if
 
-    !!! construct S vector for BREAKAGE
+    ! construct S vector (rhs pt.3) for INTERNAL DISPERSION
+    if (have_internal_dispersion) then
+       do i = 1, 2*N
+          do j = 1, N
+             S_rhs(1,i) = S_rhs(1,i) + (i-1)*(i-2)*node_val(weight(j), node)*(abscissa_val(1,j)**(i-3))*internal_dispersion_coeff
+          end do
+       end do
+    end if
+
+    ! construct S vector for BREAKAGE
     
     if (have_breakage) then
        if (breakage_freq_type=='power_law_breakage') then
@@ -776,14 +756,7 @@ contains
           density_continuous = 998.2
           density_dispersed = 1.205
           sigma = 0.072
-!eps_node=1.0e-8
           eps_node = node_val(turbulent_dissipation,node)
-!print*, "epsilon", eps_node          
-!if((abscissa_val(1,1)<0.0) .or. (abscissa_val(1,2)<0.0)) then
-!  print*, "negative abscissas", abscissa_val(1,:)
-!end if
-          ! Assuming isotropic molecular viscosity here
-!visc_node=0.001
           allocate(visc_node(viscosity_continuous%dim(1), viscosity_continuous%dim(1)))
           visc_node = node_val(viscosity_continuous,node)
           do i = 1, N
@@ -826,9 +799,7 @@ contains
           density_continuous = 998.2
           sigma = 0.072
           eps_node = node_val(turbulent_dissipation, node)
-!eps_node=1.0e-8
           ! Assuming isotropic molecular viscosity here   
-!visc_node=0.001
           allocate(visc_node(viscosity_continuous%dim(1), viscosity_continuous%dim(1)))
           visc_node=node_val(viscosity_continuous, node)
           do i = 1, N
@@ -867,14 +838,11 @@ contains
        call svd(A(1,:,:), svd_tmp1, SV, svd_tmp2)
        if (SV(size(SV))/SV(1) < cond) then
           ewrite(2,*) 'ill-conditioned matrix found but doing nothing about it', SV(size(SV))/SV(1)
-print*, "node number", node          
-print*, "coordinates  of node", node_val(X, node)
        end if
     else if(singular_option=='perturbate') then
        call svd(A(1,:,:), svd_tmp1, SV, svd_tmp2)
        if (SV(size(SV))/SV(1) < cond) then
           ewrite(2,*) 'ill-conditioned matrix found and perturbating', SV(size(SV))/SV(1)
-print*, "node number", node
           do i=1,N-1
              abscissa_val(1,i)=abscissa_val(1,i)-perturb_val
           end do
@@ -1094,9 +1062,10 @@ print*, "node number", node
 
 !    type(state_type), intent(in) :: state
     
-    integer :: i_pop, i_state
-    integer :: n_abscissa, n_weights, n_weighted_abscissa, n_moments
+    integer :: i_pop, i_state, i_field
+    integer :: n_abscissa, n_weights, n_weighted_abscissa, n_moments, n_statistics
     character(len=OPTION_PATH_LEN) :: option_path 
+    character(len=FIELD_NAME_LEN)  :: old_msh, amsh, wmsh, wamsh, mmsh, smsh
 
     write(*,*) 'in dqmom_check_options'
 
@@ -1109,16 +1078,117 @@ print*, "node number", node
           n_weights = option_count(trim(option_path)//'/weights/scalar_field')
           n_weighted_abscissa = option_count(trim(option_path)// &
                '/weighted_abscissa/scalar_field')
-          assert(n_weights == n_abscissa) 
-          assert(n_weights == n_weighted_abscissa)
+          if((n_weights /= n_abscissa) .or. (n_weights /= n_weighted_abscissa)) then
+             FLExit("The number of weights, abscissas and weighted abscissa scalar fields must be the same in the population balance solver")
+          end if
 
-          ! Check there are sufficient abscissa to calculate requested moments
+          ! Check there are sufficient abscissas to calculate requested moments
           n_moments = option_count(trim(option_path)//'/moments/scalar_field')
-          assert((n_moments / 2) == n_abscissa)       
+          if((n_moments / 2) /= n_abscissa) then
+             FLExit("The number of moments must be twice the number of abscissas in the population balance solver")
+          end if       
 
           ! Need to check that all fields are on the same mesh
+    
+          type='abscissa'
+          do i_field = 1, n_abscissa
+             call get_option(trim(option_path)//'/'//trim(type)//'/scalar_field['//int2str(i_field - 1)//']/diagnostic/mesh/name', amsh, stat)
+             if (stat /= 0) then
+                FLExit("Abscissa scalar field must be diagnostic in population balance solver")
+             else
+                if (i_field==1) then 
+                   old_msh=amsh
+                else 
+                   if (trim(amsh)/=trim(old_msh)) then
+                      FLExit("All abscissas must be on the same mesh")
+                   else
+                      old_msh=amsh
+                   end if
+                end if
+             end if  
+          end do
+
+          type='weights'
+          do i_field = 1, n_abscissa
+             call get_option(trim(option_path)//'/'//trim(type)//'/scalar_field['//int2str(i_field - 1)//']/prognostic/mesh/name', wmsh, stat)
+             if (stat /= 0) then
+                FLExit("Weight scalar field must be prognostic in population balance solver")
+             else
+                if (i_field==1) then
+                   old_msh=wmsh
+                else                
+                   if (trim(wmsh)/=trim(old_msh)) then
+                      FLExit("All weights must be on the same mesh")
+                   else
+                      old_msh=wmsh
+                   end if
+                end if
+             end if             
+          end do
+
+          type='weighted_abscissa'
+          do i_field = 1, n_abscissa
+             call get_option(trim(option_path)//'/'//trim(type)//'/scalar_field['//int2str(i_field - 1)//']/prognostic/mesh/name', wamsh, stat)
+             if (stat /= 0) then
+                FLExit("Weighted abscissa scalar field must be prognostic in population balance solver")
+             else
+                if (i_field==1) then
+                   old_msh=wamsh
+                else
+                   if (trim(wamsh)/=trim(old_msh)) then
+                      FLExit("All weighted abscissas must be on the same mesh")
+                   else
+                      old_msh=wamsh
+                   end if
+                end if
+             end if
+          end do
+
+          type='moments'
+          do i_field = 1, n_moments
+             call get_option(trim(option_path)//'/'//trim(type)//'/scalar_field['//int2str(i_field - 1)//']/diagnostic/mesh/name', mmsh, stat)
+             if (stat /= 0) then
+                FLExit("Moment scalar field must be diagnostic in population balance solver")
+             else
+                if (i_field==1) then
+                   old_msh=mmsh
+                else
+                   if (trim(mmsh)/=trim(old_msh)) then
+                      FLExit("All moments must be on the same mesh")
+                   else
+                      old_msh=mmsh
+                   end if
+                end if
+             end if
+          end do          
+
+          n_statistics = option_count(trim(option_path)//'/statistics/scalar_field')
+          type='statistics'
+          do i_field = 1, n_statistics
+             call get_option(trim(option_path)//'/'//trim(type)//'/scalar_field['//int2str(i_field - 1)//']/diagnostic/mesh/name', smsh, stat)
+             if (stat /= 0) then
+                FLExit("Statitics scalar field must be diagnostic in population balance solver")
+             else
+                if (i_field==1) then
+                   old_msh=smsh
+                else
+                   if (trim(smsh)/=trim(old_msh)) then
+                      FLExit("All statistics must be on the same mesh")
+                   else
+                      old_msh=smsh
+                   end if
+                end if
+             end if
+          end do        
+
+          if ((amsh/=wmsh) .or. (amsh/=wamsh) .or. (amsh/=mmsh) .or. (amsh/=smsh)) then
+             FLExit("Abscissas, weights, weighted abscissas, moments and statistics - all must be on the same mesh in population balance solver")
+          end if
+
        end do
     end do
+
+    write(*,*) 'Finished dqmom_check_options'
   end subroutine dqmom_check_options
 
 end module dqmom
