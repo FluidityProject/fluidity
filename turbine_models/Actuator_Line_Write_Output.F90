@@ -22,9 +22,9 @@ contains
         integer :: ielem
         open(2017,File=trim(dir)//'/'//trim(act_line%name)//'_loads.dat')
         write(2017,*) 'ielem,pitch,AOA,adot,RE,ur,CL,CD,CM25,CN,CT,Fx,Fy,Fz'
-        Format="(I5,A,13(E14.7,A))"
+        Format="(I5,A,14(E14.7,A))"
         do ielem=1,act_line%NElem
-write(2017,Format)ielem,',',act_line%Epitch(ielem)*pi/180,',',act_line%EAOA(ielem)*pi/180,',',act_line%EAOAdot(ielem)*pi/180,',',act_line%ERE(ielem),',',act_line%ECL(ielem),',',act_line%ECD(ielem),',',act_line%ECM(ielem),',',act_line%EFx(ielem),',',act_line%EFy(ielem),',',act_line%EFz(ielem)
+write(2017,Format)ielem,',',act_line%Epitch(ielem)*pi/180,',',act_line%EAOA(ielem)*pi/180,',',act_line%EAOAdot(ielem)*pi/180,',',act_line%ERE(ielem),',',act_line%EUr(ielem),',',act_line%ECL(ielem),',',act_line%ECD(ielem),',',act_line%ECM(ielem),',',act_line%EFx(ielem),',',act_line%EFy(ielem),',',act_line%EFz(ielem)
         end do
         close(2017)
  

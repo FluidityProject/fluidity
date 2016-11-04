@@ -495,18 +495,15 @@ contains
         logical :: NotDone                                               
         
         ewrite(2,*) 'Entering intp subroutine'
-        !    INTERPOLATE ON RE NO. AND ANGLE OF ATTACK TO GET AIRFOIL CHARACTERISTICS                                            
+    ! INTERPOLATE ON RE NO. AND ANGLE OF ATTACK TO GET AIRFOIL CHARACTERISTICS                                            
         CLA(:)=0.0                                                        
         CDA(:)=0.0  
-        CM25A(:)=0.0
-          
-    if (RE >= airfoil%TRE(1)) then                                                                                                   
-            ! Find Re upper and lower bounds.                                     
+        CM25A(:)=0.0         
+        if (RE >= airfoil%TRE(1)) then ! Find Re upper and lower bounds.                                     
             NotDone=.true.    
-    iUB=2 ! maxloc(airfoil%TRE,1) ?                                                             
+            iUB=2 ! maxloc(airfoil%TRE,1) ?                                                                 
             do while (NotDone)   
-
-        if (RE <= airfoil%TRE(iUB)) then
+               if (RE <= airfoil%TRE(iUB)) then
                     ! Done
                     NotDone=.false.
                     if (RE == airfoil%TRE(iUB)) then
@@ -517,21 +514,18 @@ contains
                     end if
                 else
                     if (iUB == airfoil%nRET) then       
-                        ! warning: no upper bound in table, take last point and set warning...
+                        ! If we have exceeded the maximum number of the reynolds number then take the 
                         NotDone=.false.                                                       
                         iLB=iUB                                                           
                         XRE=0.0                                                           
-                        !airfoil%IUXTP=1
-
-    ewrite(2,*) 'Warning : The upper Reynolds number available data was exceeded. Calculate CD,CL,CM with : Re = ', airfoil%TRE(iUB)
+ewrite(2,*) 'Warning : The upper Reynolds number available data was exceeded. Calculate CD,CL,CM with : Re = ', airfoil%TRE(iUB)
+                        exit 
                     else    
                         ! No upper bound, increment and continue                                
                         iUB=iUB+1
                     end if
                 end if
-
             end do
-
         else        
             ! warning: no lower bound in table, take first point and set warning                                               
             iLB=1                                                             
@@ -540,43 +534,33 @@ contains
             !airfoil%ILXTP=1
     ewrite(2,*) 'Warning : The lower Reynolds number available data was exceeded. Calculate CD,CL,CM with : Re = ', airfoil%TRE(iLB)
         end if
-
         ! INTERPOLATE ON THE ANGLE OF ATTACK                               
-        i=1                                                               
+        I=1                                                               
         do j=iLB,iUB                                                  
-
             NTB=airfoil%NTBL(j) ! # of alpha values in table for this section                                                
-        
             ! Find upper and lower bound indicies on alpha                                                                     
-
             ! DO INTERVAL HALVING LOOK UP                                      
-
             U1=NTB                                                                                              
             L1=1                                                              
             X1=NTB/2 
             NotDone=.true. 
-
             do while (NotDone)                                                        
-                if (ALPHA < airfoil%TA(X1,J)) then
-                    U1=X1                                                                                                            
+            if (ALPHA < airfoil%TA(X1,J)) then
+                    U1=X1                          
                 else    
                     L1=X1 
                 end if
-
                 if ((U1-L1) == 1) then
                     NotDone=.false.
                 else 
                     X1=L1+(U1-L1)/2
                 end if
             end do
-
             ! DO STRAIGHT LINE INTERPOLATION ON ALPHA                          
-
             XA=(ALPHA-airfoil%TA(L1,J))/(airfoil%TA(U1,J)-airfoil%TA(L1,J))                  
             CLA(I)=airfoil%TCL(L1,J)+XA*(airfoil%TCL(U1,J)-airfoil%TCL(L1,J))                
             CDA(I)=airfoil%TCD(L1,J)+XA*(airfoil%TCD(U1,J)-airfoil%TCD(L1,J))    
             CM25A(I)=airfoil%TCM(L1,J)+XA*(airfoil%TCM(U1,J)-airfoil%TCM(L1,J)) 
-
             I=I+1           
         end do
 
