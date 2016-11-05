@@ -519,7 +519,7 @@ contains
                         iLB=iUB                                                           
                         XRE=0.0                                                           
 ewrite(2,*) 'Warning : The upper Reynolds number available data was exceeded. Calculate CD,CL,CM with : Re = ', airfoil%TRE(iUB)
-                        exit 
+                    exit
                     else    
                         ! No upper bound, increment and continue                                
                         iUB=iUB+1

@@ -310,7 +310,10 @@ contains
 
         F=2.0/pi*acos(exp(-g1*turbine%Nblades*(turbine%Rmax-turbine%blade(iblade)%ERdist(ielem))/(2.0*r*sin(alpha+pitch))))
         
-        ! Apply Coeffs to Element velocities
+        ! Apply Coeffs to the local Element forces
+        turbine%blade(iblade)%EFN(ielem)=F*turbine%blade(iblade)%EFN(ielem)
+        turbine%blade(iblade)%EFT(ielem)=F*turbine%blade(iblade)%EFT(ielem)
+        ! Apply to the global forces 
         turbine%blade(iblade)%EFX(ielem)=F*turbine%blade(iblade)%EFX(ielem)
         turbine%blade(iblade)%EFY(ielem)=F*turbine%blade(iblade)%EFY(ielem)
         turbine%blade(iblade)%EFZ(ielem)=F*turbine%blade(iblade)%EFZ(ielem)

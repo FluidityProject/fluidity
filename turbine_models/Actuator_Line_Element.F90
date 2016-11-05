@@ -254,7 +254,7 @@ end type ActuatorLineType
     endif
     act_line%EAOAdot(ielem)=dal/max(dt,0.00001)
     adotnorm=act_line%EAOAdot(ielem)*ElemChord/(2.0*max(ur,0.00001)) ! adot*c/(2*U)
-    A = urdn/max(ur,0.00001)
+    A = urdn/ur
     B = ElemChord*dUnorm/(max(dt,0.00001)*max(ur**2,0.00001))
     C = urdn*urdc/max(ur**2,0.00001)
 
@@ -290,7 +290,7 @@ end type ActuatorLineType
     act_line%ECL(ielem)=CL
     act_line%ECM(ielem)=CM25
 
-    ! Local Forces
+    ! Local Coordinate-system Forces
     act_line%EFN(ielem)=FN
     act_line%EFT(ielem)=FT
     act_line%EMS(ielem)=MS

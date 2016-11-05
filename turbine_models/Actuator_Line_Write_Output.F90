@@ -1,4 +1,4 @@
-#include "fdebug.h"
+#include"fdebug.h"
 
 module actuator_line_write_output
     
@@ -20,11 +20,11 @@ contains
         character(len=100),intent(in) :: dir
         character(LEN=22) :: Format
         integer :: ielem
-        open(2017,File=trim(dir)//'/'//trim(act_line%name)//'_loads.dat')
-        write(2017,*) 'ielem,pitch,AOA,adot,RE,ur,CL,CD,CM25,CN,CT,Fx,Fy,Fz'
-        Format="(I5,A,14(E14.7,A))"
+        open(2017,File=trim(dir)//'/'//trim(act_line%name)//'.load')
+        write(2017,*) 'ielem,rdist,pitch,AOA,adot,RE,ur,CL,CD,CM25,CN,CT,Fn,Ft,Ms,Fx,Fy,Fz'
+        Format="(I5,A,15(E14.7,A))"
         do ielem=1,act_line%NElem
-write(2017,Format)ielem,',',act_line%Epitch(ielem)*pi/180,',',act_line%EAOA(ielem)*pi/180,',',act_line%EAOAdot(ielem)*pi/180,',',act_line%ERE(ielem),',',act_line%EUr(ielem),',',act_line%ECL(ielem),',',act_line%ECD(ielem),',',act_line%ECM(ielem),',',act_line%EFx(ielem),',',act_line%EFy(ielem),',',act_line%EFz(ielem)
+write(2017,Format)ielem,',',act_line%ERdist(ielem),',',act_line%Epitch(ielem)*180/pi,',',act_line%EAOA(ielem)*180/pi,',',act_line%EAOAdot(ielem)*pi/180,',',act_line%ERE(ielem),',',act_line%EUr(ielem),',',act_line%ECL(ielem),',',act_line%ECD(ielem),',',act_line%ECM(ielem),',',act_line%EFn(ielem),',',act_line%EFt(ielem),',',act_line%EMs(ielem),',',act_line%EFx(ielem),',',act_line%EFy(ielem),',',act_line%EFz(ielem)
         end do
         close(2017)
  
@@ -38,7 +38,7 @@ write(2017,Format)ielem,',',act_line%Epitch(ielem)*pi/180,',',act_line%EAOA(iele
         character(LEN=22) :: Format
         integer :: ielem
         
-        open(2016,File=trim(dir)//'/'//trim(turbine%name)//'_perf.dat')
+        open(2016,File=trim(dir)//'/'//trim(turbine%name)//'.perf')
         write(2016,*) 'Azimuth_Angle, CFx , CFy , CFz , CT , CTR , CP'
         Format="(7(E14.7,A))"
 write(2016,Format) turbine%AzimAngle,',',turbine%CFx,',',turbine%CFy,',',turbine%CFz,',',turbine%CT,',',turbine%CTR,',',turbine%CP
