@@ -239,7 +239,6 @@ end type ActuatorLineType
     alpha=atan2(urdn,urdc)
     act_line%EAOA(ielem)=alpha
     act_line%ERe(ielem) = ur*ElemChord/Visc
-    
     alpha5=alpha
     alpha75=alpha 
     !=========================================================
@@ -249,20 +248,18 @@ end type ActuatorLineType
     dal=0
     dUnorm=0
     else
-    dal=(alpha5-act_line%EAOA_Last(ielem))
+    dal=alpha5-act_line%EAOA_Last(ielem)
     dUnorm=urdn-act_line%EUn_last(ielem)
     endif
     act_line%EAOAdot(ielem)=dal/max(dt,0.00001)
-    adotnorm=act_line%EAOAdot(ielem)*ElemChord/(2.0*max(ur,0.00001)) ! adot*c/(2*U)
-    A = urdn/ur
-    B = ElemChord*dUnorm/(max(dt,0.00001)*max(ur**2,0.00001))
-    C = urdn*urdc/max(ur**2,0.00001)
-
+    adotnorm=act_line%EAOAdot(ielem)*ElemChord/(2.0*max(ur,0.0001)) ! adot*c/(2*U)
+    A = urdn/max(ur,0.00001)
+    B = ElemChord*dUnorm/(max(dt,0.00001)*max(ur**2.0,0.0001))
+    C = urdn*urdc/max(ur**2.0,0.0001) 
     !====================================
     ! Compute the Aerofoil Coefficients
     !====================================
-    call compute_aeroCoeffs(act_line%do_dynamic_stall,act_line%do_added_mass,act_line%EAirfoil(ielem),act_line%E_LB_Model(ielem),alpha75,alpha5,act_line%ERe(ielem),A,B,C,adotnorm,CN,CT,CM25,CL,CLCIrc,CD) 
-    
+    call compute_aeroCoeffs(act_line%do_dynamic_stall,act_line%do_added_mass,act_line%EAirfoil(ielem),act_line%E_LB_Model(ielem),alpha75,alpha5,act_line%ERe(ielem),A,B,C,adotnorm,CN,CT,CM25,CL,CLCIrc,CD)  
     !===================================
     ! Update Dynamic Stall Model 
     !===================================
@@ -289,17 +286,14 @@ end type ActuatorLineType
     act_line%ECD(ielem)=CD
     act_line%ECL(ielem)=CL
     act_line%ECM(ielem)=CM25
-
     ! Local Coordinate-system Forces
     act_line%EFN(ielem)=FN
     act_line%EFT(ielem)=FT
     act_line%EMS(ielem)=MS
-
     ! Global Forces and Torques
     act_line%EFX(ielem)=FX
     act_line%EFY(ielem)=FY
     act_line%EFZ(ielem)=FZ
-
     !===============================================
     !! Set the AOA_LAST before exiting the routine
     !===============================================
