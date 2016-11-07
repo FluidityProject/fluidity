@@ -1495,6 +1495,13 @@ if test "$with_VTK" = no ; then enable_vtk=no; fi
 if test "$enable_VTK" = no ; then enable_vtk=no; fi
 if test "$enable_vtk" != "no" ; then
     AC_MSG_NOTICE([Checking for VTK automagic.])
+    VTK_FLAGS=`cmake --find-package -DNAME=VTK -DCOMPILER_ID=gcc -DLANGUAGE=Fortran -DMODE=COMPILE`
+    VTK_LIBS=`cmake --find-package -DNAME=VTK -DCOMPILER_ID=gcc -DLANGUAGE=Fortran -DMODE=LINK`
+
+    OLD_CPPFLAGS="$CPPFLAGS"
+    CPPFLAGS="$CPPFLAGS $VTK_FLAGS"
+    OLD_LIBS="$LIBS"
+    LIBS="$LIBS $VTK_LIBS" 
     AC_LANG_PUSH([C++])
     AC_LINK_IFELSE(
 	[AC_LANG_PROGRAM([[
@@ -1514,7 +1521,9 @@ if test "$enable_vtk" != "no" ; then
             ],
 	[
             AC_MSG_NOTICE([No VTK automagic])
-	    search_for_vtk=yes	    
+	    search_for_vtk=yes
+	    CPPFLAGS="$OLD_CPPFLAGS"
+	    LIBS="$OLD_LIBS"	    
 	])
     
     if test "x$search_for_vtk" = "xyes" ; then
