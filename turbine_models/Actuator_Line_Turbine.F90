@@ -132,6 +132,7 @@ contains
     Svec = (/0.0,0.0,1.0/)
     
     call allocate_actuatorline(Turbine%Tower,Nstations)
+    turbine%tower%name=trim(turbine%name)//'_tower'
    
     turbine%Tower%COR=turbine%origin
     turbine%Tower%NElem=Nstations-1  
@@ -149,8 +150,6 @@ contains
     enddo
     
     call make_actuatorline_geometry(turbine%tower)
-    ! Populate element Airfoils 
-    call populate_blade_airfoils(turbine%tower%NElem,turbine%tower%NAirfoilData,turbine%tower%EAirfoil,turbine%tower%AirfoilData,turbine%tower%ETtoC)
     
     turbine%tower%EAOA_LAST(:)=-666
     turbine%tower%EUn_LAST(:)=0.0

@@ -73,6 +73,7 @@ contains
                 do iblade=1,turbine(itur)%NBlades
                  call actuator_line_element_write_output(turbine(itur)%Blade(iblade),dir)
                 end do
+                 call actuator_line_element_write_output(turbine(itur)%tower,dir) 
             end do
         endif
 
@@ -337,7 +338,6 @@ contains
 
             ! Tower
             if(Turbine(i)%has_tower) then
-                write(6,*) 'in tower compute'
                 call Compute_Tower_Forces(Turbine(i)%Tower,visc,Time)
             endif
 
