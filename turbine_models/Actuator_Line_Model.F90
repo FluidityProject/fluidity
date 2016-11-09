@@ -139,41 +139,11 @@ contains
         end do
         end do
 
-        ! ## HUB ?
-        if (have_option("/turbine_models/actuator_line_model/turbine["//int2str(i-1)//"]/hub")) then
-            Turbine(i)%Has_Hub=.true.
-            call get_option("/turbine_models/actuator_line_model/turbine["//int2str(i-1)//"]/hub/hub_geometry/file_name",Turbine(i)%Hub%geom_file)
-            nfoils=option_count("turbine_models/actuator_line_model/turbine["//int2str(i-1)//"]/hub/static_foil_data/foil")
-            ewrite(2,*) 'Number of Static Foil Data available for the analysis of the hub: ', nfoils
-            Allocate(Turbine(i)%hub%AirfoilData(nfoils))
-
-            turbine(i)%hub%NAirfoilData=nfoils
-
-            do k=1, Turbine(i)%hub%NAirfoilData
-            call get_option(trim(turbine_path(i))//"/hub/static_foil_data/foil["//int2str(k-1)//"]/foil_file",Turbine(i)%hub%AirfoilData(k)%afname)   
-            ! Read and Store Airfoils
-            call airfoil_init_data(Turbine(i)%hub%AirfoilData(k))
-            end do
-
-        endif
-
         ! ## Tower ?
         if (have_option("/turbine_models/actuator_line_model/turbine["//int2str(i-1)//"]/tower")) then
             Turbine(i)%Has_Tower=.true.
             call get_option("/turbine_models/actuator_line_model/turbine["//int2str(i-1)//"]/tower/offset",Turbine(i)%TowerOffset)
             call get_option("/turbine_models/actuator_line_model/turbine["//int2str(i-1)//"]/tower/tower_geometry/file_name",Turbine(i)%Tower%geom_file)
-            nfoils=option_count("/turbine_models/actuator_line_model/turbine["//int2str(i-1)//"]/tower/static_foil_data/foil")
-            ewrite(2,*) 'Number of Static Foil Data available for the analysis of the tower: ', nfoils
-            Allocate(Turbine(i)%tower%AirfoilData(nfoils))
-
-            turbine(i)%Tower%NAirfoilData=nfoils
-
-            do k=1, Turbine(i)%tower%NAirfoilData
-            call get_option(trim(turbine_path(i))//"/tower/static_foil_data/foil["//int2str(k-1)//"]/foil_file",Turbine(i)%tower%AirfoilData(k)%afname)   
-            ! Read and Store Airfoils
-            call airfoil_init_data(Turbine(i)%tower%AirfoilData(k))
-            end do
-
         endif
 
         !#############2  Get turbine_specs #################
@@ -317,8 +287,6 @@ contains
         Time=current_time
         DeltaT=dt
 
-        ewrite(1,*) DeltaT, Time
-
         if (Ntur>0) then
             do i=1,Ntur
             if(Turbine(i)%Is_constant_rotation_operated) then
@@ -369,7 +337,8 @@ contains
 
             ! Tower
             if(Turbine(i)%has_tower) then
-                call Compute_ActuatorLine_Forces(Turbine(i)%Tower,visc,deltaT)
+                write(6,*) 'in tower compute'
+                call Compute_Tower_Forces(Turbine(i)%Tower,visc,Time)
             endif
 
             ! Hub

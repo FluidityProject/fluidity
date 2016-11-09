@@ -305,6 +305,81 @@ end type ActuatorLineType
 
     end subroutine compute_Actuatorline_Forces
 
+    subroutine compute_Tower_Forces(tower,visc,time)
+        implicit none
+        type(ActuatorLineType),intent(inout) :: tower
+        real,intent(in) ::visc,time
+        real :: R(3)
+        real :: xe,ye,ze,nxe,nye,nze,txe,tye,tze,sxe,sye,sze,ElemArea,ElemChord
+        real :: u,v,w,ub,vb,wb,urdn,urdc, ur,Diameter,freq
+        real :: CL,CD,CN,CT,CLCirc,CM25,MS,FN,FT,FS,FX,Fy,Fz
+        integer :: ielem
+    
+        ewrite(2,*) 'Entering compute_tower_forces'
+        
+        do ielem=1,tower%NElem
+    
+            xe=tower%PEX(ielem)
+            ye=tower%PEY(ielem)
+            ze=tower%PEZ(ielem)
+
+            nxe=tower%nEx(ielem)
+            nye=tower%nEy(ielem)
+            nze=tower%nEz(ielem)
+            txe=tower%tEx(ielem)
+            tye=tower%tEy(ielem)
+            tze=tower%tEz(ielem)
+            sxe=tower%sEx(ielem)
+            sye=tower%sEy(ielem)
+            sze=tower%sEz(ielem)
+            Diameter=tower%EC(ielem) 
+            ElemArea=pi*Diameter**2/4.0
+            u=tower%EVx(ielem)
+            v=tower%EVy(ielem)
+            w=tower%EVz(ielem) 
+
+            ub=0.0
+            vb=0.0
+            wb=0.0
+            
+            !==============================================================
+            ! Calculate element normal and tangential velocity components. 
+            !==============================================================
+            urdn=nxe*(u-ub)+nye*(v-vb)+nze*(w-wb)! Normal 
+            urdc=txe*(u-ub)+tye*(v-vb)+tze*(w-wb)! Tangential
+            ur=sqrt(urdn**2.0+urdc**2.0)
+            tower%EUr(ielem)=ur
+            
+            freq=0.2*ur/max(Diameter,0.0001)
+            CN= 0.3*sin(2*pi*freq*time)
+            CT=-1.2
+            !========================================================
+            ! Apply Coeffs to calculate tangential and normal Forces
+            !========================================================
+            FN=0.5*CN*ElemArea*ur**2.0
+            FT=0.5*CT*ElemArea*ur**2.0
+            !===============================================
+            ! Compute forces in the X, Y, Z axis and torque  
+            !===============================================
+            FX=FN*nxe+FT*txe
+            FY=FN*nye+FT*tye
+            FZ=FN*nze+FT*tze
+            !==========================================
+            ! Assign the derived types
+            !==========================================
+            tower%EFN(ielem)=FN
+            tower%EFT(ielem)=FT
+            tower%EMS(ielem)=0.0
+            tower%EFX(ielem)=FX
+            tower%EFY(ielem)=FY
+            tower%EFZ(ielem)=FZ
+             
+        enddo
+
+        ewrite(2,*) 'Exiting compute_tower_forces'
+
+    end subroutine compute_Tower_Forces
+
     subroutine pitch_actuator_line(act_line)
 
     implicit none

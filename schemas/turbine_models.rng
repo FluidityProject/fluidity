@@ -109,22 +109,6 @@
                         <value>ascii</value>
                       </element>
                     </element>
-                    <element name="static_foil_data">
-                      <a:documentation>Tower Section foils  </a:documentation>
-                      <zeroOrMore>
-                        <element name="foil">
-                          <attribute name="name">
-                            <data type="string"/>
-                          </attribute>
-                          <attribute name="foil_file">
-                            <data type="string"/>
-                          </attribute>
-                          <element name="string_value">
-                            <value>ascii</value>
-                          </element>
-                        </element>
-                      </zeroOrMore>
-                    </element>
                   </element>
                 </optional>
                 <element name="type">

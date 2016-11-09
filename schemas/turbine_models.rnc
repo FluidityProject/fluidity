@@ -76,17 +76,7 @@ turbine_models=(
                 element string_value {
                     "ascii"
                 }
-            },
-## Tower Section foils  
-            element static_foil_data{ 
-                element foil{
-                    attribute name{xsd:string},
-                    attribute foil_file{xsd:string},
-                    element string_value {
-                        "ascii"
-                    }
-                }*
-            }
+            } 
         }?,
 
         element type{
