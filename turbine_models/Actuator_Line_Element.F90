@@ -311,7 +311,7 @@ end type ActuatorLineType
         real,intent(in) ::visc,time
         real :: R(3)
         real :: xe,ye,ze,nxe,nye,nze,txe,tye,tze,sxe,sye,sze,ElemArea,ElemChord
-        real :: u,v,w,ub,vb,wb,urdn,urdc, ur,Diameter,freq
+        real :: u,v,w,ub,vb,wb,urdn,urdc, ur,Diameter,freq, alpha
         real :: CL,CD,CN,CT,CLCirc,CM25,MS,FN,FT,FS,FX,Fy,Fz
         integer :: ielem
     
@@ -322,7 +322,6 @@ end type ActuatorLineType
             xe=tower%PEX(ielem)
             ye=tower%PEY(ielem)
             ze=tower%PEZ(ielem)
-
             nxe=tower%nEx(ielem)
             nye=tower%nEy(ielem)
             nze=tower%nEz(ielem)
@@ -333,7 +332,7 @@ end type ActuatorLineType
             sye=tower%sEy(ielem)
             sze=tower%sEz(ielem)
             Diameter=tower%EC(ielem) 
-            ElemArea=pi*Diameter**2/4.0
+            ElemArea=tower%EArea(ielem)
             u=tower%EVx(ielem)
             v=tower%EVy(ielem)
             w=tower%EVz(ielem) 
@@ -349,10 +348,16 @@ end type ActuatorLineType
             urdc=txe*(u-ub)+tye*(v-vb)+tze*(w-wb)! Tangential
             ur=sqrt(urdn**2.0+urdc**2.0)
             tower%EUr(ielem)=ur
-            
+            alpha=atan2(urdn,urdc)
+            tower%EAOA(ielem)=alpha
+            tower%ERE(ielem)=ur*Diameter/visc
             freq=0.2*ur/max(Diameter,0.0001)
-            CN= 0.3*sin(2*pi*freq*time)
-            CT=-1.2
+            tower%ECL(ielem)=0.3*sin(2.0*freq*pi*time)
+            tower%ECL(ielem)=tower%ECL(ielem)*(1.0+0.25*(-1.0+2*rand()))
+            tower%ECD(ielem)=1.2
+            CN=tower%ECL(ielem)*cos(alpha)+tower%ECD(ielem)*sin(alpha)                                   
+            CT=-tower%ECL(ielem)*sin(alpha)+tower%ECD(ielem)*cos(alpha) 
+            
             !========================================================
             ! Apply Coeffs to calculate tangential and normal Forces
             !========================================================

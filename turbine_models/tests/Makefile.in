@@ -51,7 +51,7 @@ DISABLED_TESTS=
 # the test programs to be built:
 TEST_BINARIES=$(filter-out $(DISABLED_TESTS), $(basename $(wildcard *.F90)))
 
-#unittest: $(TEST_BINARIES) 
+unittest: $(TEST_BINARIES) 
 	ln -sf $(addprefix ../../turbine_models/tests/,$(TEST_BINARIES)) 
 
 

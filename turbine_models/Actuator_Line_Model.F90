@@ -73,7 +73,9 @@ contains
                 do iblade=1,turbine(itur)%NBlades
                  call actuator_line_element_write_output(turbine(itur)%Blade(iblade),dir)
                 end do
-                 call actuator_line_element_write_output(turbine(itur)%tower,dir) 
+                if(turbine(itur)%Has_Tower) then 
+                call actuator_line_element_write_output(turbine(itur)%tower,dir)
+                endif
             end do
         endif
 

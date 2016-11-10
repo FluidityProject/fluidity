@@ -1,60 +1,3 @@
-!subroutine test_actuator_line
-!
-! use fldebug
-! use spud
-! use global_parameters, only:pi
-! use futils
-!
-! use actuator_line_model
-! use actuator_line_source
-!    
-! implicit none
-!
-! integer:: istep, Ntimesteps,ial,nargin,FNLength,status,dump_step
-! real   :: current_time, final_time, dt
-! character(80) :: InputFN
-! 
-! write(*,*) '================================================='
-! write(*,*) 'This is a reduced model for uALM/uBEM model that '
-! write(*,*) 'that works without a dynamic inflow model        '
-! write(*,*) '================================================='
-!
-! call load_options("TestAL.flml")
-! 
-! Ntimesteps=5000
-! deltaT=0.001
-! visc=1.5e-5
-! current_time=0.0
-! dump_step=1000
-! call actuator_line_model_init
-! 
-! write(6,*) 'Number of Actuator lines :', Nal
-! write(6,*) 'Number of Elements of the AL :', Actuatorline(1:Nal)%Nelem
-!
-! do istep=1,Ntimesteps
-!
-! !> Set the velocities
-!    do ial=1, Nal
-!        Actuatorline(ial)%EVx(:)=1.0
-!        Actuatorline(ial)%EVy(:)=0.0
-!        Actuatorline(ial)%EVz(:)=0.0
-!    end do
-!    
-!    call actuator_line_model_compute_forces    
-!
-!    current_time=current_time+deltaT
-!
-!    call actuator_line_model_update(current_time,deltaT)
-!  
-!    if (mod(istep,dump_step)==0) then
-!    do ial=1, Nal
-!    call actuator_line_model_write_output(istep)
-!    end do
-!    endif
-!
-!end do
-!
-!end subroutine test_actuator_line
 
 subroutine test_turbine
 
@@ -79,11 +22,11 @@ subroutine test_turbine
 
  call load_options("TestTurbine.flml")
  
- Ntimesteps=10000
- deltaT=0.0005
+ Ntimesteps=1000
+ deltaT=0.001
  visc=1.5e-5
  current_time=0.0
- dump_step=1000
+ dump_step=1
  
  call actuator_line_model_init
  
@@ -97,14 +40,17 @@ subroutine test_turbine
  !> Set the velocities
     do itur=1, Ntur
         do iblade=1,Turbine(itur)%NBlades
-        Turbine(itur)%Blade(iblade)%EVx(:)=10.0
+        Turbine(itur)%Blade(iblade)%EVx(:)=1.0
         Turbine(itur)%Blade(iblade)%EVy(:)=0.0
         Turbine(itur)%Blade(iblade)%EVz(:)=0.0
         enddo
+        Turbine(itur)%tower%EVx(:)=1.0
+        Turbine(itur)%tower%EVy(:)=0.0
+        Turbine(itur)%tower%EVz(:)=0.0
     end do
-    
-    call actuator_line_model_compute_forces    
 
+    call actuator_line_model_compute_forces    
+    
     current_time=current_time+deltaT
 
     call actuator_line_model_update(current_time,deltaT)
