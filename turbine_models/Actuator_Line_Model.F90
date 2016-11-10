@@ -20,7 +20,7 @@ module actuator_line_model
     type(ActuatorLineType), allocatable, save :: Actuatorline(:)
     type(TurbineType), allocatable, save :: Turbine(:) ! Turbine 
     integer,save :: Ntur, Nal ! Number of the turbines 
-    real,save :: deltaT, Visc, Time
+    real,save :: deltaT, Visc, ctime
     logical,save :: actuator_line_model_writeFlag=.true.
 
     public  actuator_line_model_init, actuator_line_model_compute_forces, actuator_line_model_update 
@@ -287,7 +287,7 @@ contains
         ewrite(1,*) 'Entering the actuator_line_model_update'
         ! This routine updates the location of the actuator lines
 
-        Time=current_time
+        ctime=current_time
         DeltaT=dt
 
         if (Ntur>0) then
@@ -303,11 +303,11 @@ contains
 
         if (Nal>0) then
             do i=1,Nal
-            if(ActuatorLine(i)%pitch_control.and.Time > ActuatorLine(i)%pitch_start_time.and.Time < ActuatorLine(i)%pitch_end_time) then    
+            if(ActuatorLine(i)%pitch_control.and.ctime > ActuatorLine(i)%pitch_start_time.and.ctime < ActuatorLine(i)%pitch_end_time) then    
                 !> Do harmonic pitch control for all elements of the actuator line
                 Nstation=ActuatorLine(i)%NElem+1
                 do j=1,Nstation
-                ActuatorLine(i)%pitch(j)=ActuatorLine(i)%pitch_angle_init+actuatorline(i)%pitchAmp*sin(actuatorline(i)%angular_pitch_freq*(Time-ActuatorLine(i)%pitch_start_time))
+                ActuatorLine(i)%pitch(j)=ActuatorLine(i)%pitch_angle_init+actuatorline(i)%pitchAmp*sin(actuatorline(i)%angular_pitch_freq*(ctime-ActuatorLine(i)%pitch_start_time))
                 end do
                 call pitch_actuator_line(actuatorline(i))
             endif
@@ -340,7 +340,7 @@ contains
 
             ! Tower
             if(Turbine(i)%has_tower) then
-                call Compute_Tower_Forces(Turbine(i)%Tower,visc,Time)
+                call Compute_Tower_Forces(Turbine(i)%Tower,visc,ctime)
             endif
 
             ! Hub
