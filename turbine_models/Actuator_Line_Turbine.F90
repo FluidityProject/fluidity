@@ -134,11 +134,11 @@ contains
     call allocate_actuatorline(Turbine%Tower,Nstations)
     turbine%tower%name=trim(turbine%name)//'_tower'
    
-    turbine%Tower%COR=turbine%origin+turbine%TowerOffset
+    turbine%Tower%COR=turbine%origin
     turbine%Tower%NElem=Nstations-1  
     
     do istation=1,Nstations
-    turbine%Tower%QCx(istation)= turbine%Tower%COR(1)  
+    turbine%Tower%QCx(istation)= turbine%Tower%COR(1) + turbine%TowerOffset  
     turbine%Tower%QCy(istation)= turbine%Tower%COR(2)
     turbine%Tower%QCz(istation)= turbine%Tower%COR(3) - rR(istation)*turbine%Towerheight*Svec(3)
     turbine%Tower%tx(istation)= 1.0    
