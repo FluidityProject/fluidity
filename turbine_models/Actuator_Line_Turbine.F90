@@ -78,6 +78,7 @@ contains
     turbine%blade(iblade)%name=trim(turbine%name)//'_blade'//int2str(iblade)
     
     turbine%blade(iblade)%COR=turbine%origin
+    turbine%blade(iblade)%L=turbine%Rmax
     turbine%blade(iblade)%NElem=Nstations-1 
     
     do istation=1,Nstations

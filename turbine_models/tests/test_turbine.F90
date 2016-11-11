@@ -40,11 +40,11 @@ subroutine test_turbine
  !> Set the velocities
     do itur=1, Ntur
         do iblade=1,Turbine(itur)%NBlades
-        Turbine(itur)%Blade(iblade)%EVx(:)=1.0
+        Turbine(itur)%Blade(iblade)%EVx(:)=10.0
         Turbine(itur)%Blade(iblade)%EVy(:)=0.0
         Turbine(itur)%Blade(iblade)%EVz(:)=0.0
         enddo
-        Turbine(itur)%tower%EVx(:)=1.0
+        Turbine(itur)%tower%EVx(:)=10.0
         Turbine(itur)%tower%EVy(:)=0.0
         Turbine(itur)%tower%EVz(:)=0.0
     end do

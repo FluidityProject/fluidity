@@ -93,7 +93,7 @@ type ActuatorLineType
     real :: Fz     ! Element Force in the global z-direction
 
     real :: Area   ! Effective Airfoil Area
-
+    real :: L 
     ! Degrees of Freedom
     
     real :: COR(3)       ! Center of Rotation
@@ -137,6 +137,7 @@ end type ActuatorLineType
    
     actuatorline%SpanWise=SVec
     actuatorline%COR=(/0.0, 0.0, 0.0/)
+    actuatorline%L=length
 
     ! The directions of vectors etc are just hacked ...
     actuatorline%Nelem=Nstations-1 
