@@ -1042,6 +1042,8 @@ subroutine keps_bcs(state)
   real                                       :: c_mu
   character(len=FIELD_NAME_LEN)              :: equation_type
 
+  real                                       :: yPlus
+
   option_path = trim(state%option_path)//'/subgridscale_parameterisations/k-epsilon/'
 
   ewrite(2,*) "In keps_bcs"
@@ -1103,6 +1105,25 @@ subroutine keps_bcs(state)
            ! lowRe BC's are just zero Dirichlet or Neumann - damping functions get calculated in 
            ! keps_calc_rhs
            low_Re = .true.
+        elseif (trim(bc_type)=="k_epsilon" .and. wall_fns=="high_Re") then
+
+           !yPlus = 11.06 ! fixed value used atm
+           yPlus = 11.06 
+           ewrite(2,*) 'Setting yPlus to ', yPlus
+
+           ! extract k and epsilon values at the wall (i.e. on the boundary) => k_wall, epsilon_wall
+
+           ! calc friction velocity: u_tau_1 = |u|/yPlus, u_tau_2 = C_mu^0.25*sqrt(k), u_tau = max ( u_tau_1 , u_tau_2 )
+
+           ! calc nut_wall = kappa*yPlus*nu_bg
+
+           ! set epsilon neumann bc: n.grad(epsilon) = (kappa*u_tau_1)/nut_wall * epsilon_wall
+
+           ! set k zero flux bc <= this has already been applied in Boundary_Conditions_From_Options.F90
+
+           ! modify P_k at the wall (strong bc): P_k = ( u_tau_1^3*|u| )/( nut_wall*yPlus )
+           
+
         end if
      end do boundary_conditions
   end do field_loop
