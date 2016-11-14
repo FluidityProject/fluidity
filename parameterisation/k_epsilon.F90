@@ -1200,7 +1200,11 @@ subroutine keps_bcs(state)
                      inode = surface_elements(iloc) !get the global node number
 
                      u_tau_val  = sqrt(node_val(field2,inode)) * c_mu**0.25
-                     eps_bc_val = kappa*u_tau_val/node_val(scalar_eddy_visc,inode) * node_val(field1,inode)
+                     if(node_val(scalar_eddy_visc,inode) .le. 1.0e-16) then
+                        eps_bc_val = 0.0
+                     else
+                        eps_bc_val = (kappa*u_tau_val/node_val(scalar_eddy_visc,inode)) * node_val(field1,inode)
+                     endif
                      call set(surface_field, inode, eps_bc_val)
                      !surface_field%val(inode) = eps_bc_val
                   end do
