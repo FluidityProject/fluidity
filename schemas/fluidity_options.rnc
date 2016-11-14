@@ -2760,6 +2760,12 @@ velocity_boundary_conditions =
               ## This means that the drag coefficient has units of momentum.
               element linear_drag {
                 empty
+              }|
+              ## Wall function for k_epsilon RANS model.
+              ## Shear stress at the wall is set following
+              ## the methodology outlined in Kuzmin and Mierka (2006).
+              element k_epsilon_wall_function {
+                empty
               }
             )
          }|

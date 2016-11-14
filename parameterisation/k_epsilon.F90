@@ -220,6 +220,13 @@ subroutine keps_calculate_rhs(state)
   integer, dimension(:,:), allocatable :: bc_type    
   logical :: dg_velocity, dg_keps
 
+  integer                        :: wnode, nbcs, ii, j
+  real                           :: Pk_val, u_tau_val, mag_u_val, yPlus
+  character(len=FIELD_NAME_LEN)  :: bctype, bc_name, wall_fns
+  character(len=OPTION_PATH_LEN) :: bc_path, bc_path_i
+  integer, dimension(:), pointer :: surface_node_list
+  type(scalar_field), pointer    :: field1, field2
+
   option_path = trim(state%option_path)//'/subgridscale_parameterisations/k-epsilon/'
 
   if (.not. have_option(trim(option_path))) then 
@@ -347,6 +354,58 @@ subroutine keps_calculate_rhs(state)
            call solve_cg_inv_mass(state, src_abs_terms(term), lump_mass, option_path)           
         end do
      end if
+
+     !-----------------------------------------------------------------------------------
+     ! high Re wall functions: modify production term P_k on the boundary!
+
+     yPlus = 11.06 !using fixed yPlus value atm
+
+     if(i==1) then
+        field1 => extract_scalar_field(state, "TurbulentKineticEnergy")
+        field2 => null()
+     else
+        field1 => extract_scalar_field(state, "TurbulentDissipation")
+        field2 => extract_scalar_field(state, "TurbulentKineticEnergy")
+     end if
+
+     bc_path=trim(field1%option_path)//'/prognostic/boundary_conditions'
+     nbcs=option_count(trim(bc_path))
+
+     ! Loop over boundary conditions for fields(i): (i.e. k then epsilon)
+     boundary_conditions: do ii=0, nbcs-1
+
+        bc_path_i=trim(bc_path)//"["//int2str(ii)//"]"
+
+        ! Get name and type of boundary condition
+        call get_option(trim(bc_path_i)//"/name", bc_name)
+        call get_option(trim(bc_path_i)//"/type[0]/name", bctype)
+        call get_option(trim(bc_path_i)//"/type::k_epsilon/", wall_fns, stat=stat)
+
+        ! Do we have high Re wall functions?
+        if (trim(bctype)=="k_epsilon" .and. wall_fns=="high_Re") then
+
+           call get_boundary_condition(field1, ii+1, type=bctype, surface_node_list=surface_node_list)
+
+           do j=1, size(surface_node_list)
+              wnode = surface_node_list(j)
+
+              mag_u_val = sqrt(sum(node_val(u,wnode)**2, dim=1))
+              !mag_u_val = sqrt(node_val(u,1,wnode)**2 + node_val(u,2,wnode)**2 + node_val(u,3,wnode)**2)
+
+              if (i==1) then
+                 u_tau_val = max( sqrt(node_val(field1,wnode))*0.09**0.25, mag_u_val/yPlus )
+                 Pk_val    = ((u_tau_val**3)*mag_u_val)/(node_val(scalar_eddy_visc,wnode)*yPlus)
+              elseif (i==2) then
+                 u_tau_val = max( sqrt(node_val(field2,wnode))*0.09**0.25, mag_u_val/yPlus )
+                 Pk_val    = ((u_tau_val**3)*mag_u_val)/(node_val(scalar_eddy_visc,wnode)*yPlus) &
+                           * (node_val(field1,wnode)/node_val(field2,wnode))
+              end if 
+
+              call set(src, wnode, Pk_val)
+              !src%val(wnode) = Pk_val
+           end do
+        end if
+     end do boundary_conditions
      !-----------------------------------------------------------------------------------
 
      ! Source disabling for debugging purposes
@@ -1042,7 +1101,10 @@ subroutine keps_bcs(state)
   real                                       :: c_mu
   character(len=FIELD_NAME_LEN)              :: equation_type
 
-  real                                       :: yPlus
+  integer, dimension(:), pointer             :: surface_element_list
+  real                                       :: yPlus, kappa, u_tau_val, nut_val, eps_bc_val
+  real, dimension(:), allocatable            :: friction_velocity
+  integer                                    :: sngi, surface_node, ele, iloc, inode
 
   option_path = trim(state%option_path)//'/subgridscale_parameterisations/k-epsilon/'
 
@@ -1077,6 +1139,12 @@ subroutine keps_bcs(state)
 
   call get_option(trim(option_path)//"C_mu", c_mu, default = 0.09)
 
+  sngi=face_ngi(u, 1)
+  allocate(friction_velocity(1:sngi))
+
+  yPlus = 11.06 !using fixed yPlus value atm
+  kappa = 0.41
+
   field_loop: do index=1,2
 
      if(index==1) then
@@ -1107,23 +1175,38 @@ subroutine keps_bcs(state)
            low_Re = .true.
         elseif (trim(bc_type)=="k_epsilon" .and. wall_fns=="high_Re") then
 
-           !yPlus = 11.06 ! fixed value used atm
-           yPlus = 11.06 
-           ewrite(2,*) 'Setting yPlus to ', yPlus
+!!!           if(index==2) then
 
-           ! extract k and epsilon values at the wall (i.e. on the boundary) => k_wall, epsilon_wall
+           call get_boundary_condition(field1, i+1, surface_node_list=surface_node_list)
 
-           ! calc friction velocity: u_tau_1 = |u|/yPlus, u_tau_2 = C_mu^0.25*sqrt(k), u_tau = max ( u_tau_1 , u_tau_2 )
+           do j=1, size(surface_node_list)
+              surface_node = surface_node_list(j)
 
-           ! calc nut_wall = kappa*yPlus*nu_bg
+              ! Calculate nut_wall = kappa*yPlus*nu_bg
+              nut_val = kappa*yPlus*node_val(bg_visc,1,1,surface_node)
+              call set(scalar_eddy_visc, surface_node, nut_val)
+           end do
 
-           ! set epsilon neumann bc: n.grad(epsilon) = (kappa*u_tau_1)/nut_wall * epsilon_wall
+           if(index==2) then ! field1 is epsilon and field2 is k
+              ! pull out the bc value field:
+              surface_field => extract_surface_field(field1, bc_name, 'value')
 
-           ! set k zero flux bc <= this has already been applied in Boundary_Conditions_From_Options.F90
+              ! set epsilon neumann bc: n.grad(epsilon) = (kappa*u_tau)/nut_wall * epsilon_wall
+              do ele=1, ele_count(surface_field)
+                  ! Establish local node lists for surface_field
+                  surface_elements => ele_nodes(surface_field,ele)
+                  ! Loop the nodes
+                  do iloc=1, size(surface_elements)
+                     inode = surface_elements(iloc) !get the global node number
 
-           ! modify P_k at the wall (strong bc): P_k = ( u_tau_1^3*|u| )/( nut_wall*yPlus )
-           
+                     u_tau_val  = sqrt(node_val(field2,inode)) * c_mu**0.25
+                     eps_bc_val = kappa*u_tau_val/node_val(scalar_eddy_visc,inode) * node_val(field1,inode)
+                     call set(surface_field, inode, eps_bc_val)
+                     !surface_field%val(inode) = eps_bc_val
+                  end do
+              end do
 
+           end if
         end if
      end do boundary_conditions
   end do field_loop

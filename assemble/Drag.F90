@@ -65,7 +65,11 @@ subroutine drag_surface(bigm, rhs, state, density)
    integer i, j, k, nobcs, stat
    integer snloc, sele, sngi
    logical:: parallel_dg, have_distance_bottom, have_distance_top, have_gravity, manning_strickler
-     
+
+   real                            :: yPlus
+   type(scalar_field), pointer     :: TKE
+   real, dimension(:), allocatable :: friction_velocity
+
    ewrite(1,*) 'Inside drag_surface'
    
    velocity => extract_vector_field(state, "Velocity")
@@ -93,6 +97,10 @@ subroutine drag_surface(bigm, rhs, state, density)
    allocate(faceglobalnodes(1:snloc), &
      face_detwei(1:sngi), coefficient(1:sngi), &
      drag_mat(1:snloc,1:snloc), density_face_gi(1:sngi))
+
+   TKE => extract_scalar_field(state, "TurbulentKineticEnergy")
+   allocate(friction_velocity(1:sngi))
+
    
    nobcs=option_count(trim(velocity%option_path)//'/prognostic/boundary_conditions')
    do i=1, nobcs
@@ -123,6 +131,19 @@ subroutine drag_surface(bigm, rhs, state, density)
                '/prognostic/boundary_conditions['//int2str(i-1)//']/type[0]/linear_drag')) then
               ! drag coefficient: C_D
               coefficient=ele_val_at_quad(drag_coefficient, j)
+
+            elseif(have_option(trim(velocity%option_path)//&
+               '/prognostic/boundary_conditions['//int2str(i-1)//']/type[0]/k_epsilon_wall_function')) then
+
+              yPlus = 11.06 !using fixed yPlus value atm
+
+              ! calc friction velocity: u_tau_1 = |u_wall|/yPlus, u_tau_2 = C_mu^0.25*sqrt(k), u_tau = max ( u_tau_1 , u_tau_2 )
+              friction_velocity = max( sqrt(sum(face_val_at_quad(nl_velocity, sele)**2, dim=1)) / yPlus , &
+                                       sqrt(face_val_at_quad(TKE, sele)) * 0.09**0.25 )
+
+              ! calc wall shear stress: tau_wall = - (u_tau/yPlus)*|u_wall|
+              coefficient = (friction_velocity/yPlus)*sqrt(sum(face_val_at_quad(nl_velocity, sele)**2, dim=1))
+
             else ! default to quadratic_drag
               ! drag coefficient: C_D * |u|
               coefficient=ele_val_at_quad(drag_coefficient, j)* &
