@@ -430,8 +430,8 @@ subroutine keps_calculate_rhs(state)
               end if 
 
               !call set(src, wnode, Pk_val)
-              call set(src_abs_terms(1), wnode, Pk_val)
-!              call set(src_abs_terms(1), wnode, 0.0)
+!              call set(src_abs_terms(1), wnode, Pk_val)
+              call set(src_abs_terms(1), wnode, 0.0)
               !src%val(wnode) = Pk_val
 !  ewrite(1,*) 'AMIN: Are we here yet?', node_val(src_abs_terms(1),wnode), Pk_val
            end do
@@ -721,12 +721,13 @@ subroutine keps_eddyvisc(state, advdif)
   logical                          :: lump_mass, have_visc = .true.
   character(len=FIELD_NAME_LEN)    :: equation_type
 
-  integer                        :: wnode, nbcs, ii, jj
+  integer                        :: wnode, nbcs, ii, jj, sele, snloc, jjj
   real                           :: yPlus, nut_val, kappa
   character(len=FIELD_NAME_LEN)  :: bctype, bc_name, wall_fns
   character(len=OPTION_PATH_LEN) :: bc_path, bc_path_i
-  integer, dimension(:), pointer :: surface_node_list
+  integer, dimension(:), pointer :: surface_node_list, surface_element_list
   type(scalar_field), pointer    :: fieldk
+  integer, dimension(:), allocatable :: faceglobalnodes
 
   option_path = trim(state%option_path)//'/subgridscale_parameterisations/k-epsilon/'
 
@@ -819,9 +820,12 @@ subroutine keps_eddyvisc(state, advdif)
      kappa = 0.41
      fieldk => extract_scalar_field(state, "TurbulentKineticEnergy")
 
+     snloc=face_loc(u,1)
+     allocate(faceglobalnodes(1:snloc))
+
      bc_path=trim(fieldk%option_path)//'/prognostic/boundary_conditions' !!! FIX THIS !!!
      nbcs=option_count(trim(bc_path))
-!  ewrite(1,*) 'AMIN: Are we here yet?', nbcs, bc_path
+
      ! Loop over boundary conditions for fields(i): (i.e. k then epsilon)
      do ii=0, nbcs-1
 
@@ -835,17 +839,22 @@ subroutine keps_eddyvisc(state, advdif)
         ! Do we have high Re wall functions?
         if (trim(bctype)=="k_epsilon" .and. wall_fns=="high_Re") then
 
-           call get_boundary_condition(fieldk, ii+1, type=bctype, surface_node_list=surface_node_list)
+           call get_boundary_condition(fieldk, ii+1, type=bctype, surface_element_list=surface_element_list)
 
-           do jj=1, size(surface_node_list) !!! j is used again later!!! => use jj
-              wnode = surface_node_list(jj)
+           do jj=1, size(surface_element_list) !!! j is used again later!!! => use jj
+              sele=surface_element_list(jj)
 
-              ! Calculate nut_wall = kappa*yPlus*nu_bg
-              nut_val   = kappa*yPlus*node_val(bg_visc,1,1,wnode)
+              ! nodes_ids for the field on this surface element
+              faceglobalnodes=face_global_nodes(scalar_eddy_visc, sele)
 
-!  ewrite(1,*) 'AMIN: Are we here yet?', node_val(scalar_eddy_visc,wnode), nut_val
-              call set(scalar_eddy_visc, wnode, nut_val)
-!  ewrite(1,*) 'AMIN: Are we here yet?', node_val(scalar_eddy_visc,wnode), nut_val
+              do jjj=1, size(faceglobalnodes)
+                   nut_val   = kappa*yPlus*node_val(bg_visc,1,1,faceglobalnodes(jjj))
+                   call set(scalar_eddy_visc, faceglobalnodes(jjj), nut_val)
+              end do
+
+              !wnode = surface_node_list(jj)
+              !nut_val   = kappa*yPlus*node_val(bg_visc,1,1,wnode)
+              !call set(scalar_eddy_visc, wnode, nut_val)
            end do
         end if
      end do
@@ -1254,37 +1263,37 @@ subroutine keps_bcs(state)
 
            if(index==2) then
 
-           call get_boundary_condition(field1, i+1, surface_node_list=surface_node_list)
+!           call get_boundary_condition(field1, i+1, surface_node_list=surface_node_list)
 
-           do j=1, size(surface_node_list)
-              surface_node = surface_node_list(j)
+!           do j=1, size(surface_node_list)
+!              surface_node = surface_node_list(j)
 
-              ! Calculate y = yPlus*nu_bg / c_mu**0.25*sqrt(k)
-              y_val = ( yPlus*node_val(bg_visc,1,1,surface_node) )/( (c_mu**0.25)*sqrt(node_val(field2,surface_node)) )
+!              ! Calculate y = yPlus*nu_bg / c_mu**0.25*sqrt(k)
+!              y_val = ( yPlus*node_val(bg_visc,1,1,surface_node) )/( (c_mu**0.25)*sqrt(node_val(field2,surface_node)) )
 
-              ! Calculate eps_wall = c_mu**0.75*k**1.5 / kappa*y
-              eps_bc_val = ( c_mu**0.75*node_val(field2,surface_node)**1.5 )/( kappa*y_val )
-!              eps_bc_val = ( c_mu*node_val(field2,surface_node)**2 )/( kappa*yPlus*node_val(bg_visc,1,1,surface_node) ) 
+!              ! Calculate eps_wall = c_mu**0.75*k**1.5 / kappa*y
+!              eps_bc_val = ( c_mu**0.75*node_val(field2,surface_node)**1.5 )/( kappa*y_val )
+!!              eps_bc_val = ( c_mu*node_val(field2,surface_node)**2 )/( kappa*yPlus*node_val(bg_visc,1,1,surface_node) ) 
 
-              call set(field2, surface_node, eps_bc_val)
-           end do
+!              call set(field2, surface_node, eps_bc_val)
+!           end do
 
 !!!           if(index==2) then ! field1 is epsilon and field2 is k
               ! pull out the bc value field:
-!              surface_field => extract_surface_field(field1, bc_name, 'value')
+              surface_field => extract_surface_field(field1, bc_name, 'value')
 
-!              ! set epsilon neumann bc: n.grad(epsilon) = (kappa*u_tau)/nut_wall * epsilon_wall
-!              do ele=1, ele_count(surface_field)
-!                  ! Establish local node lists for surface_field
-!                  surface_elements => ele_nodes(surface_field,ele)
-!                  ! Loop the nodes
-!                  do iloc=1, size(surface_elements)
-!                     inode = surface_elements(iloc) !get the global node number
+              ! set epsilon neumann bc: n.grad(epsilon) = (kappa*u_tau)/nut_wall * epsilon_wall
+              do ele=1, ele_count(surface_field)
+                  ! Establish local node lists for surface_field
+                  surface_elements => ele_nodes(surface_field,ele)
+                  ! Loop the nodes
+                  do iloc=1, size(surface_elements)
+                     inode = surface_elements(iloc) !get the global node number
 
 !                     u_tau_val  = sqrt(node_val(field2,inode)) * c_mu**0.25
-
-!!                     nut_val    = kappa*yPlus*node_val(bg_visc,1,1,inode)
-!!                     eps_bc_val = (kappa*u_tau_val/nut_val) * node_val(field1,inode)
+                     eps_bc_val = ( c_mu*node_val(field2,inode)**2 )/( kappa*yPlus*node_val(bg_visc,1,1,inode) ) 
+!                     nut_val    = kappa*yPlus*node_val(bg_visc,1,1,inode)
+!                     eps_bc_val = (kappa*u_tau_val/nut_val) * node_val(field1,inode)
 
 !                     if(node_val(scalar_eddy_visc,inode) .le. 1.0e-16) then
 !                        eps_bc_val = 0.0
@@ -1292,10 +1301,10 @@ subroutine keps_bcs(state)
 !                        eps_bc_val = (kappa*u_tau_val/node_val(scalar_eddy_visc,inode)) * node_val(field1,inode)
 !                     endif
 
-!                     call set(surface_field, inode, eps_bc_val)
-!                     !surface_field%val(inode) = eps_bc_val
-!                  end do
-!              end do
+                     call set(surface_field, inode, eps_bc_val)
+                     !surface_field%val(inode) = eps_bc_val
+                  end do
+              end do
 
            end if
         end if
