@@ -2223,6 +2223,14 @@ The boundary condition on the GridVelocity field is imposed
 on the calculated solution.</a:documentation>
               <empty/>
             </element>
+            <element name="centroid_relaxer">
+              <a:documentation>Enable Centroid Relaxer.  This relaxer is an adaptation of Johnson's 
+"Using Parameterization and Springs to Determine Aneurysm Wall Thickess". 
+DOI: 10.1007/978-3-642-04319-2_23.
+The boundary condition on the GridVelocity field is imposed
+on the calculated solution.</a:documentation>
+              <empty/>
+            </element>
             <element name="pseudo_lagrangian">
               <a:documentation>Enable movement of mesh by the Velocity.
 Note that this is only pseudo-lagrangian as the

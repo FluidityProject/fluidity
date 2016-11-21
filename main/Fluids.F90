@@ -348,6 +348,10 @@ contains
        call move_mesh_initialise_lineal_torsional_smoothing(state)
     end if
 
+    if (have_option("/mesh_adaptivity/mesh_movement/centroid_relaxer")) then
+       call move_mesh_initialise_centroid_relaxer(state)
+    end if
+
     call run_diagnostics(state)
 
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
@@ -555,6 +559,7 @@ contains
        call move_mesh_laplacian_smoothing(state)
        call move_mesh_lineal_smoothing(state)
        call move_mesh_lineal_torsional_smoothing(state)
+       call move_mesh_centroid_relaxer(state)
 
        call enforce_discrete_properties(state, only_prescribed=.true., &
             exclude_interpolated=.true., &
@@ -945,6 +950,11 @@ contains
                 call move_mesh_lineal_torsional_smoothing(state, diagnostic_only=.true.)
              end if
 
+             if (have_option("/mesh_adaptivity/mesh_movement/centroid_relaxer")) then
+                call move_mesh_initialise_centroid_relaxer(state)
+                call move_mesh_centroid_relaxer(state, diagnostic_only=.true.)
+             end if
+
           end if
        else if(have_option("/mesh_adaptivity/prescribed_adaptivity")) then
           if(do_adapt_state_prescribed(current_time)) then
@@ -974,6 +984,11 @@ contains
              if (have_option("/mesh_adaptivity/mesh_movement/lineal_torsional_smoothing")) then
                 call move_mesh_initialise_lineal_torsional_smoothing(state)
                 call move_mesh_lineal_torsional_smoothing(state)
+             end if
+
+             if (have_option("/mesh_adaptivity/mesh_movement/centroid_relaxer")) then
+                call move_mesh_initialise_centroid_relaxer(state)
+                call move_mesh_centroid_relaxer(state)
              end if
 
           end if

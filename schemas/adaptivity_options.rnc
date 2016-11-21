@@ -1882,6 +1882,14 @@ mesh_adaptivity_options =
             element lineal_torsional_smoothing {
                empty
             }|
+	    ## Enable Centroid Relaxer.  This relaxer is an adaptation of Johnson's 
+	    ## "Using Parameterization and Springs to Determine Aneurysm Wall Thickess". 
+	    ## DOI: 10.1007/978-3-642-04319-2_23.
+            ## The boundary condition on the GridVelocity field is imposed
+            ## on the calculated solution.
+            element centroid_relaxer {
+               empty
+            }|
             ## Enable movement of mesh by the Velocity.
             ## Note that this is only pseudo-lagrangian as the
             ## Velocity and GridVelocity only match at the beginning of

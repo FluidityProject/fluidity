@@ -1,0 +1,36 @@
+<header>
+<constant name="FluidityVersion" type="string" value="mesh_smoothing_tm:d35f97bf82dc1db86c729f3e7ae63ec118838963" />
+<constant name="CompileTime" type="string" value="Nov 21 2016 15:48:06" />
+<constant name="StartTime" type="string" value="20161121 165629.494+0000" />
+<constant name="HostName" type="string" value="Unknown" />
+<constant name="format" type="string" value="plain_text" />
+<field column="1" name="ElapsedTime" statistic="value"/>
+<field column="2" name="dt" statistic="value"/>
+<field column="3" name="ElapsedWallTime" statistic="value"/>
+<field column="4" name="CoordinateMesh" statistic="nodes"/>
+<field column="5" name="CoordinateMesh" statistic="elements"/>
+<field column="6" name="CoordinateMesh" statistic="surface_elements"/>
+<field column="7" name="Velocity%magnitude" statistic="min" material_phase="Fluid"/>
+<field column="8" name="Velocity%magnitude" statistic="max" material_phase="Fluid"/>
+<field column="9" name="Velocity%magnitude" statistic="l2norm" material_phase="Fluid"/>
+<field column="10" name="Velocity%1" statistic="min" material_phase="Fluid"/>
+<field column="11" name="Velocity%1" statistic="max" material_phase="Fluid"/>
+<field column="12" name="Velocity%1" statistic="l2norm" material_phase="Fluid"/>
+<field column="13" name="Velocity%1" statistic="integral" material_phase="Fluid"/>
+<field column="14" name="Velocity%2" statistic="min" material_phase="Fluid"/>
+<field column="15" name="Velocity%2" statistic="max" material_phase="Fluid"/>
+<field column="16" name="Velocity%2" statistic="l2norm" material_phase="Fluid"/>
+<field column="17" name="Velocity%2" statistic="integral" material_phase="Fluid"/>
+<field column="18" name="GridVelocity%magnitude" statistic="min" material_phase="Fluid"/>
+<field column="19" name="GridVelocity%magnitude" statistic="max" material_phase="Fluid"/>
+<field column="20" name="GridVelocity%magnitude" statistic="l2norm" material_phase="Fluid"/>
+<field column="21" name="GridVelocity%1" statistic="min" material_phase="Fluid"/>
+<field column="22" name="GridVelocity%1" statistic="max" material_phase="Fluid"/>
+<field column="23" name="GridVelocity%1" statistic="l2norm" material_phase="Fluid"/>
+<field column="24" name="GridVelocity%1" statistic="integral" material_phase="Fluid"/>
+<field column="25" name="GridVelocity%2" statistic="min" material_phase="Fluid"/>
+<field column="26" name="GridVelocity%2" statistic="max" material_phase="Fluid"/>
+<field column="27" name="GridVelocity%2" statistic="l2norm" material_phase="Fluid"/>
+<field column="28" name="GridVelocity%2" statistic="integral" material_phase="Fluid"/>
+</header>
+  0.10000000000000000E+001  0.10000000000000000E+001  0.23000000000000000E-001 568 1054 80  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000
