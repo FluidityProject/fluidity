@@ -56,7 +56,7 @@ module fluids_module
   use equation_of_state
   use timers
   use synthetic_bc
-  use k_epsilon, only: keps_advdif_diagnostics
+  use k_epsilon, only: keps_advdif_diagnostics, keps_bound
   use tictoc
   use boundary_conditions_from_options
   use reserve_state_module
@@ -638,6 +638,7 @@ contains
                    end if
                    ewrite_minmax(sfield)
                 end if
+                !call keps_bound(state(i))
                 call keps_advdif_diagnostics(state(i))
              end if
           end do
