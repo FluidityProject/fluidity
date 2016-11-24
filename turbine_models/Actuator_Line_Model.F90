@@ -82,6 +82,11 @@ contains
         if (Nal>0) then
             do ial=1,Nal
             call actuator_line_element_write_output(actuatorline(ial),dir)
+
+            if (actuatorline(ial)%do_dynamic_stall) then
+               call dynamic_stall_write_output(actuatorline(ial),dir) 
+            end if
+       
             end do
         endif
     

@@ -384,7 +384,7 @@ contains
       call picker_inquire(remapped_pos,Scoords,ele,local_coord,.true.)
       
       if (ele<0) then
-          ewrite(2,*) 'I dont own the element'
+          !ewrite(2,*) 'I dont own the element'
           call MPI_recv(Recv,5,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,tag,MPI_COMM_WORLD,status,ierr)
         Su(isource)=Recv(1)
         Sv(isource)=Recv(2)
@@ -417,7 +417,7 @@ contains
         Send(4)=Se(isource)
         Send(5)=Visc
         call MPI_Send(Send,5,MPI_DOUBLE_PRECISION,irank,tag,MPI_COMM_WORLD,ierr)
-        ewrite(2,*) 'Sent' , Send, ' to processor ', irank        
+        !ewrite(2,*) 'Sent' , Send, ' to processor ', irank        
         end if 
         
         end do

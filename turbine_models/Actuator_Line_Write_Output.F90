@@ -30,6 +30,23 @@ write(2017,Format)ielem,',',act_line%ERdist(ielem)/act_line%L,',',act_line%Epitc
  
     end subroutine actuator_line_element_write_output
     
+    subroutine dynamic_stall_write_output(act_line,dir)
+
+        implicit none
+        type(ActuatorLineType),intent(in) :: act_line
+        character(len=100),intent(in) :: dir
+        character(LEN=22) :: Format
+        integer :: ielem
+        open(2018,File=trim(dir)//'/'//trim(act_line%name)//'.dynstall')
+        write(2018,*) 'ielem,rdist/R,pitch,AOA,f'
+        Format="(I5,A,15(E14.7,A))"
+        do ielem=1,act_line%NElem
+write(2018,Format)ielem,',',act_line%ERdist(ielem)/act_line%L,',',act_line%Epitch(ielem)*180/pi,',',act_line%EAOA(ielem)*180/pi,',',act_line%E_LB_MODEL(ielem)%F
+        end do
+        close(2018)
+ 
+    end subroutine dynamic_stall_write_output
+    
     subroutine actuator_line_turbine_write_output(turbine,dir)
 
         implicit none
