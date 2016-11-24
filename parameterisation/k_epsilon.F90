@@ -1182,6 +1182,7 @@ subroutine keps_bcs(state)
   type(mesh_type), pointer                   :: surface_mesh
   integer                                    :: i, j, sele, index, nbcs, stat
   integer, dimension(:), pointer             :: surface_elements, surface_node_list
+  integer, allocatable, dimension(:)         :: vol_nodes
   character(len=FIELD_NAME_LEN)              :: bc_type, bc_name, wall_fns
   character(len=OPTION_PATH_LEN)             :: bc_path, bc_path_i, option_path 
   real                                       :: c_mu
@@ -1190,7 +1191,7 @@ subroutine keps_bcs(state)
   integer, dimension(:), pointer             :: surface_element_list
   real                                       :: yPlus, kappa, u_tau_val, nut_val, eps_bc_val, y_val
   real, dimension(:), allocatable            :: friction_velocity
-  integer                                    :: sngi, surface_node, ele, iloc, inode
+  integer                                    :: sngi, surface_node, ele, iloc, inode, vnode
 
   option_path = trim(state%option_path)//'/subgridscale_parameterisations/k-epsilon/'
 
@@ -1263,7 +1264,7 @@ subroutine keps_bcs(state)
 
            if(index==2) then
 
-!           call get_boundary_condition(field1, i+1, surface_node_list=surface_node_list)
+           call get_boundary_condition(field1, i+1, surface_element_list=surface_element_list)
 
 !           do j=1, size(surface_node_list)
 !              surface_node = surface_node_list(j)
@@ -1278,6 +1279,8 @@ subroutine keps_bcs(state)
 !              call set(field2, surface_node, eps_bc_val)
 !           end do
 
+              allocate(vol_nodes(face_loc(field2,1)))
+
 !!!           if(index==2) then ! field1 is epsilon and field2 is k
               ! pull out the bc value field:
               surface_field => extract_surface_field(field1, bc_name, 'value')
@@ -1286,12 +1289,14 @@ subroutine keps_bcs(state)
               do ele=1, ele_count(surface_field)
                   ! Establish local node lists for surface_field
                   surface_elements => ele_nodes(surface_field,ele)
+                  vol_nodes = face_global_nodes(field2,surface_element_list(ele))
                   ! Loop the nodes
                   do iloc=1, size(surface_elements)
-                     inode = surface_elements(iloc) !get the global node number
+                     inode = surface_elements(iloc) !get the surface node number
+                     vnode = vol_nodes(iloc)        !get the volume node number
 
 !                     u_tau_val  = sqrt(node_val(field2,inode)) * c_mu**0.25
-                     eps_bc_val = ( c_mu*node_val(field2,inode)**2 )/( kappa*yPlus*node_val(bg_visc,1,1,inode) ) 
+                     eps_bc_val = ( c_mu*node_val(field2,vnode)**2 )/( kappa*yPlus*node_val(bg_visc,1,1,1) ) 
 !                     nut_val    = kappa*yPlus*node_val(bg_visc,1,1,inode)
 !                     eps_bc_val = (kappa*u_tau_val/nut_val) * node_val(field1,inode)
 
