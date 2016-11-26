@@ -449,6 +449,21 @@ tensor_difference_algorithm =
       }
    ) 
    
+outer_product_tensor_algorithm =
+   (
+      ## Outer product tensor from the vector fields, field 1 - field 2
+      # T_ij=a_i*b_j
+      element algorithm {
+         attribute name { "outer_product_tensor" },
+         attribute material_phase_support { "single" },
+         vector_source_field_1,
+         vector_source_field_2,
+         ## If enabled, the absolute value of the difference is taken
+         element outer_product {
+            comment
+         }?
+      }
+   ) 
 
 # Time aggregated diagnostics
 
@@ -1495,6 +1510,25 @@ vector_time_averaged_algorithm =
       }
    )
 
+tensor_time_averaged_algorithm =
+   (
+      ## Algorithm for time averaging tensor fields.
+      ## This field needs to be interpolated between adapts.
+      element algorithm {
+         attribute name { "time_averaged_tensor" },
+         attribute material_phase_support { "single" },
+         tensor_source_field,
+         ## When to start sampling?  Defaults to simulation start time.
+         element spin_up_time {
+            real
+         }?,
+         ## If enabled, the average of the absolute value is taken
+         element absolute_values {
+            comment
+         }?
+      }
+   )
+
 vector_scalar_time_averaged_algorithm =
    (
       ## Algorithm for time averaging vector times scalar fields.
@@ -1591,6 +1625,7 @@ vector_diagnostic_algorithms |= curl_algorithm
 vector_diagnostic_algorithms |= vector_python_diagnostic_algorithm
 
 tensor_diagnostic_algorithms = tensor_copy_algorithm
+tensor_diagnostic_algorithms |= tensor_time_averaged_algorithm
 tensor_diagnostic_algorithms |= grad_vector_algorithm
 tensor_diagnostic_algorithms |= strain_rate_algorithm
 tensor_diagnostic_algorithms |= hessian_algorithm
@@ -1599,3 +1634,5 @@ tensor_diagnostic_algorithms |= helmholtz_anisotropic_smoothed_tensor_algorithm
 tensor_diagnostic_algorithms |= field_tolerance_algorithm
 tensor_diagnostic_algorithms |= tensor_python_diagnostic_algorithm
 tensor_diagnostic_algorithms |= tensor_difference_algorithm
+tensor_diagnostic_algorithms |= outer_product_tensor_algorithm
+

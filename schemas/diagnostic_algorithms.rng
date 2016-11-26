@@ -592,6 +592,26 @@ The length scale is alpha*local element size (a tensor).
       </optional>
     </element>
   </define>
+  <define name="outer_product_tensor_algorithm">
+    <!-- T_ij=a_i*b_j -->
+    <element name="algorithm">
+      <a:documentation>Outer product tensor from the vector fields, field 1 - field 2</a:documentation>
+      <attribute name="name">
+        <value>outer_product_tensor</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <ref name="vector_source_field_1"/>
+      <ref name="vector_source_field_2"/>
+      <optional>
+        <element name="outer_product">
+          <a:documentation>If enabled, the absolute value of the difference is taken</a:documentation>
+          <ref name="comment"/>
+        </element>
+      </optional>
+    </element>
+  </define>
   <!-- Time aggregated diagnostics -->
   <!-- Temporal maximum diagnostic algorithm for scalar fields. -->
   <define name="scalar_temporalmax_algorithm">
@@ -2000,6 +2020,31 @@ This field needs to be interpolated between adapts.</a:documentation>
       </optional>
     </element>
   </define>
+  <define name="tensor_time_averaged_algorithm">
+    <element name="algorithm">
+      <a:documentation>Algorithm for time averaging tensor fields.
+This field needs to be interpolated between adapts.</a:documentation>
+      <attribute name="name">
+        <value>time_averaged_tensor</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <ref name="tensor_source_field"/>
+      <optional>
+        <element name="spin_up_time">
+          <a:documentation>When to start sampling?  Defaults to simulation start time.</a:documentation>
+          <ref name="real"/>
+        </element>
+      </optional>
+      <optional>
+        <element name="absolute_values">
+          <a:documentation>If enabled, the average of the absolute value is taken</a:documentation>
+          <ref name="comment"/>
+        </element>
+      </optional>
+    </element>
+  </define>
   <define name="vector_scalar_time_averaged_algorithm">
     <element name="algorithm">
       <a:documentation>Algorithm for time averaging vector times scalar fields.
@@ -2221,6 +2266,9 @@ a horizontal vector living on the specified surface.</a:documentation>
     <ref name="tensor_copy_algorithm"/>
   </define>
   <define name="tensor_diagnostic_algorithms" combine="choice">
+    <ref name="tensor_time_averaged_algorithm"/>
+  </define>
+  <define name="tensor_diagnostic_algorithms" combine="choice">
     <ref name="grad_vector_algorithm"/>
   </define>
   <define name="tensor_diagnostic_algorithms" combine="choice">
@@ -2243,5 +2291,8 @@ a horizontal vector living on the specified surface.</a:documentation>
   </define>
   <define name="tensor_diagnostic_algorithms" combine="choice">
     <ref name="tensor_difference_algorithm"/>
+  </define>
+  <define name="tensor_diagnostic_algorithms" combine="choice">
+    <ref name="outer_product_tensor_algorithm"/>
   </define>
 </grammar>
