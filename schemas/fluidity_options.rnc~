@@ -2764,8 +2764,8 @@ velocity_boundary_conditions =
               ## Wall function for k_epsilon RANS model.
               ## Shear stress at the wall is set following
               ## the methodology outlined in Kuzmin and Mierka (2006).
-              ## Constant not needed! Set to zero (or whatever).
-              element log_law_friction_velocity {
+              ## Constant not needed! Set to zero.
+              element k_epsilon_wall_function {
                 empty
               }
             )
