@@ -1382,6 +1382,31 @@ universal_column_id_algorithm =
       }
    )
 
+mesh_quality_algorithm =
+   (
+      ## Mesh Quality function. Basics taken from VTK. See the documentation
+      ## there for further details of specific function choices.
+      ##
+      ##
+
+      element algorithm {
+        attribute name { "mesh_quality" },
+        attribute material_phase_support { "single" },
+	(
+	  element quality_function{ attribute name{"radius_ratio" } }|
+	  element quality_function{ attribute name{"aspect_ratio" } }|
+	  element quality_function{ attribute name{"aspect_frobenius" } }|
+	  element quality_function{ attribute name{"edge_ratio" } }|
+	  element quality_function{ attribute name{"condition" } }|
+          element quality_function{ attribute name{"min_angle" } }|		
+          element quality_function{ attribute name{"max_angle" } }|
+          element quality_function{ attribute name{"shape" } }|		
+          element quality_function{ attribute name{"shape_and_size" } }|
+	  element quality_function{ attribute name{"area_or_volume"} }
+	)
+      }
+   )
+
 viscous_dissipation_algorithm =
    (
       ## algorithm for calculating the viscous dissipation.
@@ -1542,6 +1567,7 @@ scalar_diagnostic_algorithms |= projection_scalar_potential_algorithm
 scalar_diagnostic_algorithms |= particle_reynolds_number_algorithm
 scalar_diagnostic_algorithms |= apparent_density_algorithm
 scalar_diagnostic_algorithms |= node_halo_diagnostic_algorithm
+scalar_diagnostic_algorithms |= mesh_quality_algorithm
 scalar_diagnostic_algorithms |= lumped_mass_smoothed_scalar_algorithm
 scalar_diagnostic_algorithms |= l2norm_algorithm
 scalar_diagnostic_algorithms |= helmholtz_smoothed_scalar_algorithm

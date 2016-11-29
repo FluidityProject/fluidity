@@ -1867,6 +1867,72 @@ The mesh must be directly extruded.</a:documentation>
       </attribute>
     </element>
   </define>
+  <define name="mesh_quality_algorithm">
+    <element name="algorithm">
+      <a:documentation>Mesh Quality function. Basics taken from VTK. See the documentation
+there for further details of specific function choices.
+
+</a:documentation>
+      <attribute name="name">
+        <value>mesh_quality</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <choice>
+        <element name="quality_function">
+          <attribute name="name">
+            <value>radius_ratio</value>
+          </attribute>
+        </element>
+        <element name="quality_function">
+          <attribute name="name">
+            <value>aspect_ratio</value>
+          </attribute>
+        </element>
+        <element name="quality_function">
+          <attribute name="name">
+            <value>aspect_frobenius</value>
+          </attribute>
+        </element>
+        <element name="quality_function">
+          <attribute name="name">
+            <value>edge_ratio</value>
+          </attribute>
+        </element>
+        <element name="quality_function">
+          <attribute name="name">
+            <value>condition</value>
+          </attribute>
+        </element>
+        <element name="quality_function">
+          <attribute name="name">
+            <value>min_angle</value>
+          </attribute>
+        </element>
+        <element name="quality_function">
+          <attribute name="name">
+            <value>max_angle</value>
+          </attribute>
+        </element>
+        <element name="quality_function">
+          <attribute name="name">
+            <value>shape</value>
+          </attribute>
+        </element>
+        <element name="quality_function">
+          <attribute name="name">
+            <value>shape_and_size</value>
+          </attribute>
+        </element>
+        <element name="quality_function">
+          <attribute name="name">
+            <value>area_or_volume</value>
+          </attribute>
+        </element>
+      </choice>
+    </element>
+  </define>
   <define name="viscous_dissipation_algorithm">
     <element name="algorithm">
       <a:documentation>algorithm for calculating the viscous dissipation.</a:documentation>
@@ -2099,6 +2165,9 @@ a horizontal vector living on the specified surface.</a:documentation>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="node_halo_diagnostic_algorithm"/>
+  </define>
+  <define name="scalar_diagnostic_algorithms" combine="choice">
+    <ref name="mesh_quality_algorithm"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="lumped_mass_smoothed_scalar_algorithm"/>
