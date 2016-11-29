@@ -146,26 +146,24 @@ contains
   subroutine calculate_outer_product_tensor(state, t_field)
     type(state_type), intent(in) :: state
     type(tensor_field), intent(inout) :: t_field
-    
+
     character(len = OPTION_PATH_LEN) :: path
     integer :: i, j
     type(vector_field), pointer :: source_field_1, source_field_2
     
     source_field_1 => vector_source_field(state, t_field, index = 1)
     source_field_2 => vector_source_field(state, t_field, index = 2)
- 
+    
     if (source_field_1%dim.ne.source_field_2%dim) then
         FLExit("Vectors need to be of the same size. If you use discountinuous vector fields you need to remap the velocies")
     end if
 
-    path = trim(complete_field_path(t_field%option_path)) // "/algorithm"
-    if(have_option(trim(path) // "/outer_product_tensor")) then
-      do i = 1, t_field%dim(1)
-        do j = 1, t_field%dim(2)
+    !path = trim(complete_field_path(t_field%option_path)) // "/algorithm"
+    do i = 1,source_field_1%dim
+      do j = 1,source_field_2%dim
           t_field%val(i,j,:) = source_field_1%val(i,:)*source_field_2%val(j,:) 
-        end do
       end do
-    end if
+    end do
   
   end subroutine calculate_outer_product_tensor
 
