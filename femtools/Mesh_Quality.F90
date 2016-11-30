@@ -29,6 +29,7 @@ module mesh_quality
 
   use iso_c_binding
   use FLdebug
+  use element_numbering, only: FAMILY_SIMPLEX
   use fields
 
 
@@ -88,6 +89,11 @@ contains
 
     assert(element_count(positions) == element_count(s_field))
     assert(node_count(s_field) == element_count(s_field))
+
+    if (positions%mesh%shape%numbering%family /= FAMILY_SIMPLEX&
+         .or. positions%mesh%shape%loc /= positions%mesh%shape%dim+1) then
+       FLAbort("Trying to get mesh quality for a mesh which isn't linear simplicial. This isn't currently supported.")
+    endif
 
     call mesh_quality_c(positions%dim, node_count(positions), ele_count(positions),&
          size(positions%mesh%ndglno), quality_measure,&

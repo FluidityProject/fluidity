@@ -1872,7 +1872,9 @@ The mesh must be directly extruded.</a:documentation>
       <a:documentation>Mesh Quality function. Basics taken from VTK. See the documentation
 there for further details of specific function choices.
 
-</a:documentation>
+The output mesh for this field must be discontinous P0 and the
+underlying CoordinateMesh must consist of linear triangles
+ or tetrahedra only.</a:documentation>
       <attribute name="name">
         <value>mesh_quality</value>
       </attribute>

@@ -1387,7 +1387,9 @@ mesh_quality_algorithm =
       ## Mesh Quality function. Basics taken from VTK. See the documentation
       ## there for further details of specific function choices.
       ##
-      ##
+      ## The output mesh for this field must be discontinous P0 and the
+      ## underlying CoordinateMesh must consist of linear triangles
+      ##  or tetrahedra only.
 
       element algorithm {
         attribute name { "mesh_quality" },
