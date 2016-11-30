@@ -18,7 +18,7 @@ ugrid = reader.GetOutput()
 
 flt = vtk.vtkMeshQuality()
 if vtk.VTK_MAJOR_VERSION&gt;5:
-  flt.SetinputData(ugrid)
+  flt.SetInputData(ugrid)
 else:
   flt.SetInput(ugrid)
   
