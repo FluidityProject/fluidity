@@ -269,8 +269,9 @@ contains
              ewrite(2,*) "Changing low_Re epsilon BC type to neumann"
              bc_type = "neumann"
           elseif (trim(bc_type) .eq. "high_Re" .and. trim(field%name) .eq. "TurbulentDissipation") then
-             ewrite(2,*) "Changing high_Re epsilon BC type to dirichlet"
-             bc_type = "dirichlet"
+             ewrite(2,*) "Changing high_Re epsilon BC type to neumann"
+!             bc_type = "dirichlet"
+             bc_type = "neumann"
           elseif (trim(bc_type) .eq. "high_Re" .and. trim(field%name) .eq. "TurbulentKineticEnergy") then
              ewrite(2,*) "Changing high_Re k BC type to zero flux"
              bc_type = "zero_flux"

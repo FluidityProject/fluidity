@@ -98,9 +98,9 @@ subroutine drag_surface(bigm, rhs, state, density)
      face_detwei(1:sngi), coefficient(1:sngi), &
      drag_mat(1:snloc,1:snloc), density_face_gi(1:sngi))
 
-   if(have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon")) then
-     TKE => extract_scalar_field(state, "TurbulentKineticEnergy")
-   end if
+!   if(have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon")) then
+!     TKE => extract_scalar_field(state, "TurbulentKineticEnergy")
+!   end if
    allocate(friction_velocity(1:sngi))
 
    

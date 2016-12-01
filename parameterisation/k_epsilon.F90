@@ -431,7 +431,7 @@ subroutine keps_calculate_rhs(state)
 
               !call set(src, wnode, Pk_val)
 !              call set(src_abs_terms(1), wnode, Pk_val)
-              call set(src_abs_terms(1), wnode, 0.0)
+!              call set(src_abs_terms(1), wnode, 0.0)
               !src%val(wnode) = Pk_val
 !  ewrite(1,*) 'AMIN: Are we here yet?', node_val(src_abs_terms(1),wnode), Pk_val
            end do
@@ -1296,17 +1296,18 @@ subroutine keps_bcs(state)
                      vnode = vol_nodes(iloc)        !get the volume node number
 
 !                     u_tau_val  = sqrt(node_val(field2,inode)) * c_mu**0.25
-                     eps_bc_val = ( c_mu*node_val(field2,vnode)**2 )/( kappa*yPlus*node_val(bg_visc,1,1,1) ) 
+!                     eps_bc_val = ( c_mu*node_val(field2,vnode)**2 )/( kappa*yPlus*node_val(bg_visc,1,1,1) ) 
 !                     nut_val    = kappa*yPlus*node_val(bg_visc,1,1,inode)
 !                     eps_bc_val = (kappa*u_tau_val/nut_val) * node_val(field1,inode)
 
-!                     if(node_val(scalar_eddy_visc,inode) .le. 1.0e-16) then
-!                        eps_bc_val = 0.0
-!                     else
-!                        eps_bc_val = (kappa*u_tau_val/node_val(scalar_eddy_visc,inode)) * node_val(field1,inode)
-!                     endif
+                     if(node_val(scalar_eddy_visc,vnode) .le. 1.0e-16) then
+                        eps_bc_val = 0.0
+                     else
+                        eps_bc_val = (kappa*u_tau_val/node_val(scalar_eddy_visc,vnode)) * node_val(field1,vnode)
+                     endif
 
-                     call set(surface_field, inode, eps_bc_val)
+!                     call set(surface_field, inode, eps_bc_val)
+                     call set(surface_field, vnode, eps_bc_val)
                      !surface_field%val(inode) = eps_bc_val
                   end do
               end do
