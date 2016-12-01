@@ -764,6 +764,13 @@ Mesh_Files.o ../include/mesh_files.mod: Mesh_Files.F90 ../include/elements.mod \
    ../include/state_module.mod ../include/write_gmsh.mod \
    ../include/write_triangle.mod
 
+../include/mesh_quality.mod: Mesh_Quality.o
+	@true
+
+Mesh_Quality.o ../include/mesh_quality.mod: Mesh_Quality.F90 \
+   ../include/element_numbering.mod ../include/fdebug.h ../include/fields.mod \
+   ../include/fldebug.mod
+
 ../include/metric_tools.mod: Metric_tools.o
 	@true
 
