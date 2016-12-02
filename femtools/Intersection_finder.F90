@@ -701,6 +701,11 @@ contains
       node => map_ab(i)%firstnode
       do while(associated(node))
         intersection = intersect_elements(mesh_field_a, i, ele_val(mesh_field_b, node%value), shape)
+        if (.not. has_references(intersection)) then
+           node => node%next
+           cycle
+        end if
+
         do j = 1, ele_count(intersection)
           allocate(detwei(shape%ngi))
           call transform_to_physical(intersection, j, detwei = detwei)
@@ -715,6 +720,11 @@ contains
       node => map_ab_reference(i)%firstnode
       do while(associated(node))
         intersection = intersect_elements(mesh_field_a, i, ele_val(mesh_field_b, node%value), shape)
+        if (.not. has_references(intersection)) then
+           node => node%next
+           cycle
+        end if
+
         do j = 1, ele_count(intersection)
           allocate(detwei(shape%ngi))
           call transform_to_physical(intersection, j, detwei = detwei)

@@ -60,7 +60,7 @@ Mesh_Diagnostics.o ../include/mesh_diagnostics.mod: Mesh_Diagnostics.F90 \
    ../include/diagnostic_source_fields.mod ../include/fdebug.h \
    ../include/field_options.mod ../include/fields.mod ../include/fldebug.mod \
    ../include/global_parameters.mod ../include/halos_numbering.mod \
-   ../include/state_module.mod
+   ../include/mesh_quality.mod ../include/state_module.mod
 
 ../include/metric_diagnostics.mod: Metric_Diagnostics.o
 	@true
