@@ -284,7 +284,7 @@ contains
     end subroutine allocate_airfoil
 
    
-    subroutine compute_aeroCoeffs(DStallFlag,AddedMassFlag,airfoil,lb,alpha75,alpha5,Re,A1,A2,A3,adotnorm,CN,CT,CM25,CL,CLCirc,CD)
+    subroutine compute_aeroCoeffs(DStallFlag,AddedMassFlag,airfoil,lb,alpha75,alpha5,Re,wPNorm,adotnorm,CN,CT,CM25,CL,CLCirc,CD)
 
         implicit none
 
@@ -309,11 +309,11 @@ contains
         type(AirfoilType),intent(IN) :: airfoil
         type(LB_type),intent(INOUT) :: lb
         !type(LB_type),intent(IN),optional :: lb_model
-        real,intent(IN) :: alpha75, alpha5, adotnorm, Re, A1 , A2, A3 
+        real,intent(IN) :: alpha75, alpha5, wPNorm, adotnorm, Re  
         real,intent(OUT) :: CN, CT, CM25, CL, CLCirc, CD
         logical,intent(in) :: DStallFlag, AddedMassFlag
         real :: CLstat75, CLstat5, CDstat75, CLdyn5, CDdyn5, CL5, CD5, C, C1, CM25stat
-        real :: alphaL, alphaD, CTAM, CNAM,CMAM 
+        real :: alphaL, alphaD, dCTAM,dCLAD,dCNAM,aref, Fac, CTAM,CNAM 
 
         ewrite(2,*) 'Entering compute_aeroCoeffs_one_airfoil'
 
@@ -345,15 +345,23 @@ contains
         !=============================================================================
         ! Added mass according to Strickland et al, taken from Banchant et al 2016
         !============================================================================
-        if(AddedMassFlag) then
-        CNAM=-pi*A2/2.0
-        CTAM=pi*adotnorm*A1/2.0
-        CMAM=-CNAM/2.0-A3/4.0
+        dCTAM=2.0/cos(alpha5)*wPNorm*CM25stat-CLstat5/2.0*wPNorm
+        dCLAD=pi*adotnorm
+        dCTAM=dCTAM-dCLAD*sin(alpha5)
+        dCNAM=dCLAD*cos(alpha5)
+        
+        Fac=1.0
+        aref=abs(alpha5)
+        if ((aref>pi/4.0).AND.(aref<3.0*pi/4.0)) then
+            Fac=abs(1-4.0/pi*(aref-pi/4.0))
+        end if
+       
+        ! Added mass components
+        CTAM=Fac*dcTAM
+        CNAM=Fac*dcNAM
         ! Augment tangential and normal coeffs 
         CT=CT+CTAM
         CN=CN+CNAM
-        CM25=CM25+CMAM
-        endif
 
         CL=CN*cos(alpha5)-CT*sin(alpha5)
         CD=CN*sin(alpha5)+CT*cos(alpha5)

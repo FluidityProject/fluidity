@@ -65,6 +65,9 @@ type ActuatorLineType
     real, allocatable :: EVbx(:)        ! Element Local body Velocity in the global x-direction
     real, allocatable :: EVby(:)       ! Element Local body Velocity in the global y-direction
     real, allocatable :: EVbz(:)        ! Element Local body Velocity in the global z-direction
+    real, allocatable :: EObx(:)        ! Element Local body angular Velocity in the global x-direction
+    real, allocatable :: EOby(:)       ! Element Local body angular Velocity in the global y-direction
+    real, allocatable :: EObz(:)        ! Element Local body angular Velocity in the global z-direction
     
     ! Element Forces CD, CL CM25 
     real, allocatable :: ECD(:)         ! Element Drag Coefficient
@@ -174,7 +177,7 @@ end type ActuatorLineType
     ! Populate element Airfoils 
     call populate_blade_airfoils(actuatorline%NElem,actuatorline%NAirfoilData,actuatorline%EAirfoil,actuatorline%AirfoilData,actuatorline%ETtoC)
     
-    actuatorline%EAOA_LAST(:)=-666
+    actuatorline%EAOA_LAST(:)=0.0
     actuatorline%EUn_LAST(:)=0.0
     
     do ielem=1,actuatorline%Nelem
@@ -194,9 +197,10 @@ end type ActuatorLineType
     real :: R(3)
     real :: wRotX,wRotY,wRotZ,Rx,Ry,Rz,ub,vb,wb,u,v,w
     real :: xe,ye,ze,nxe,nye,nze,txe,tye,tze,sxe,sye,sze,ElemArea,ElemChord
-    real :: urdn,urdc, wP,ur,alpha,Re,alpha5,alpha75,adotnorm, A, B, C, dUnorm
+    real :: xe5,ye5,ze5,xe75,ye75,ze75,ub5,vb5,wb5,ub75,vb75,wb75,urdn5,urdn75 
+    real :: urdn,urdc,wP,ur,alpha,Re,alpha5,alpha75,adotnorm, wPnorm,ur5,ur75
     real :: CL,CD,CN,CT,CLCirc,CM25,MS,FN,FT,FS,FX,Fy,Fz,te, F1, g1
-    real :: TRx,TRy,TRz, TRn,TRt, TRs, RotX,RotY,RotZ, dal, wPNorm, relem, ds
+    real :: TRx,TRy,TRz, TRn,TRt, TRs, RotX,RotY,RotZ, dal, relem, ds
     integer :: ielem
   
     ewrite(2,*) 'Entering Compute_Forces '
@@ -225,42 +229,64 @@ end type ActuatorLineType
     v=act_line%EVy(ielem)
     w=act_line%EVz(ielem) 
 
+    !=====================================
+    ! Solid Body Rotation of the elements
+    !=====================================
     ub=act_line%EVbx(ielem)
     vb=act_line%EVby(ielem)
     wb=act_line%EVbz(ielem)
-    
+    wRotx=act_line%EObx(ielem)
+    wRoty=act_line%EOby(ielem)
+    wRotz=act_line%EObz(ielem)
+
     !==============================================================
     ! Calculate element normal and tangential velocity components. 
     !==============================================================
     urdn=nxe*(u-ub)+nye*(v-vb)+nze*(w-wb)! Normal 
     urdc=txe*(u-ub)+tye*(v-vb)+tze*(w-wb)! Tangential
+    wP = sxe*wRotX+sye*wRotY+sze*wRotZ
+    
     ur=sqrt(urdn**2.0+urdc**2.0)
     act_line%EUr(ielem)=ur
+    
     ! This is the dynamic angle of attack 
     alpha=atan2(urdn,urdc)
     act_line%EAOA(ielem)=alpha
     act_line%ERe(ielem) = ur*ElemChord/Visc
-    alpha5=alpha
-    alpha75=alpha 
-    !=========================================================
-    ! Compute rate of change of Unormal and angle of attack
-    !=========================================================
-    if(act_line%EAOA_Last(ielem)<0) then
-    dal=0
-    dUnorm=0
+   
+    wPNorm = wP*ElemChord/(2.0*max(ur,0.001))
+
+    ! Calculate half chord and 75% chord velocites to be used in the pitch rate effects
+    if(act_line%do_added_mass) then
+    xe5=xe+0.25*ElemChord*txe
+    ye5=ye+0.25*ElemChord*tye
+    ze5=ze+0.25*ElemChord*tze
+    xe75=xe+0.5*ElemChord*txe
+    ye75=ye+0.5*ElemChord*tye
+    ze75=ze+0.5*ElemChord*tze
+    call cross(wRotX,wRotY,wRotZ,xe5,ye5,ze5,ub5,vb5,wb5)
+    call cross(wRotX,wRotY,wRotZ,xe75,ye75,ze75,ub75,vb75,wb75)
+    urdn5=nxe*(u-ub5)+nye*(v-vb5)+nze*(w-wb5)! Normal 
+    ur5=sqrt(urdn5**2+urdc**2)
+    alpha5=atan2(urdn5,urdc)
+    urdn75=nxe*(u-ub75)+nye*(v-vb75)+nze*(w-wb75)! Normal 
+    ur75=sqrt(urdn75**2+urdc**2)
+    alpha75=atan2(urdn75,urdc)
     else
-    dal=alpha5-act_line%EAOA_Last(ielem)
-    dUnorm=urdn-act_line%EUn_last(ielem)
+        alpha5=alpha
+        alpha75=alpha
+        wPNorm=0.0
     endif
-    act_line%EAOAdot(ielem)=dal/max(dt,0.00001)
-    adotnorm=act_line%EAOAdot(ielem)*ElemChord/(2.0*max(ur,0.0001)) ! adot*c/(2*U)
-    A = urdn/max(ur,0.00001)
-    B = ElemChord*dUnorm/(max(dt,0.00001)*max(ur**2.0,0.0001))
-    C = urdn*urdc/max(ur**2.0,0.0001) 
+    
+    dal=alpha75-act_line%EAOA_Last(ielem)
+    act_line%EAOAdot(ielem)=dal/max(dt,0.001)
+    
+    adotnorm=act_line%EAOAdot(ielem)*ElemChord/(2.0*max(ur,0.001)) ! adot*c/(2*U)
+    write(6,*) adotnorm, wPNorm
     !====================================
     ! Compute the Aerofoil Coefficients
     !====================================
-    call compute_aeroCoeffs(act_line%do_dynamic_stall,act_line%do_added_mass,act_line%EAirfoil(ielem),act_line%E_LB_Model(ielem),alpha75,alpha5,act_line%ERe(ielem),A,B,C,adotnorm,CN,CT,CM25,CL,CLCIrc,CD)  
+    call compute_aeroCoeffs(act_line%do_dynamic_stall,act_line%do_added_mass,act_line%EAirfoil(ielem),act_line%E_LB_Model(ielem),alpha75,alpha5,act_line%ERe(ielem),wPNorm,adotnorm,CN,CT,CM25,CL,CLCIrc,CD)  
     !===================================
     ! Update Dynamic Stall Model 
     !===================================
@@ -298,7 +324,7 @@ end type ActuatorLineType
     !===============================================
     !! Set the AOA_LAST before exiting the routine
     !===============================================
-    act_line%EAOA_LAST(ielem)=alpha5 
+    act_line%EAOA_LAST(ielem)=alpha75 
     act_line%EUn_last(ielem)=urdn 
     end do 
 
@@ -415,7 +441,7 @@ end type ActuatorLineType
     act_line%tz(istation)=-sin(pitch_angle*pi/180.0)
     end do
 
-    call make_actuatorline_geometry(act_line)
+    call make_actuatorline_geometry(act_line) 
 
     end subroutine pitch_actuator_line 
 
@@ -689,6 +715,9 @@ end type ActuatorLineType
     allocate(actuatorline%EVbx(NElem))
     allocate(actuatorline%EVby(NElem))
     allocate(actuatorline%EVbz(NElem))
+    allocate(actuatorline%EObx(NElem))
+    allocate(actuatorline%EOby(NElem))
+    allocate(actuatorline%EObz(NElem))
     allocate(actuatorline%Epitch(Nelem))
     allocate(actuatorline%EAOA(Nelem))
     allocate(actuatorline%EAOAdot(Nelem))

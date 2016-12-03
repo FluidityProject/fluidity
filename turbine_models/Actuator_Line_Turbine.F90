@@ -355,6 +355,9 @@ contains
     turbine%Blade(iblade)%EVbx(ielem)=ublade
     turbine%Blade(iblade)%EVby(ielem)=vblade
     turbine%Blade(iblade)%EVbz(ielem)=wblade
+    turbine%Blade(iblade)%EObx(ielem)=wRotX
+    turbine%Blade(iblade)%EOby(ielem)=wRotY
+    turbine%Blade(iblade)%EObz(ielem)=wRotZ
     
     end do
     end do
