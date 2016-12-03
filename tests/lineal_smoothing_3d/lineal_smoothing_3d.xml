@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<testproblem>
+  <name>lineal smoothing 3d</name>
+  <owner userid="tmcmanus"/>
+  <tags>flml radapt</tags>
+    <problem_definition length="short" nprocs="1">
+    <command_line>fluidity -v2 -l lineal_smoothing_3d.flml</command_line>
+  </problem_definition>  
+  <variables>  
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
+    <variable name="mingridvelocity_x_3d" language="python">
+from fluidity_tools import stat_parser                                                                                                                                                                            
+s=stat_parser("lineal_smoothing_3d.stat") 
+mingridvelocity_x_3d=s["Fluid"]["GridVelocity%1"]["min"][-1]
+    </variable>
+    <variable name="maxgridvelocity_x_3d" language="python">
+from fluidity_tools import stat_parser
+s=stat_parser("lineal_smoothing_3d.stat")
+maxgridvelocity_x_3d=s["Fluid"]["GridVelocity%1"]["max"][-1]
+    </variable>
+    <variable name="mingridvelocity_y_3d" language="python">
+from fluidity_tools import stat_parser
+s=stat_parser("lineal_smoothing_3d.stat")
+mingridvelocity_y_3d=s["Fluid"]["GridVelocity%2"]["min"][-1]
+    </variable>
+    <variable name="maxgridvelocity_y_3d" language="python">
+from fluidity_tools import stat_parser
+s=stat_parser("lineal_smoothing_3d.stat")
+maxgridvelocity_y_3d=s["Fluid"]["GridVelocity%2"]["max"][-1]
+    </variable>
+    <variable name="mingridvelocity_z_3d" language="python">
+from fluidity_tools import stat_parser
+s=stat_parser("lineal_smoothing_3d.stat")
+mingridvelocity_z_3d=s["Fluid"]["GridVelocity%3"]["min"][-1]
+    </variable>
+    <variable name="maxgridvelocity_z_3d" language="python">
+from fluidity_tools import stat_parser
+s=stat_parser("lineal_smoothing_3d.stat")
+maxgridvelocity_z_3d=s["Fluid"]["GridVelocity%3"]["max"][-1]
+    </variable>
+  </variables>    
+  <pass_tests> 
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
+    <test name="Check minimum grid velocity in x-direction for 3D Lin." language="python">
+print 'min(GridVelocity%1)_3d = ', mingridvelocity_x_3d
+assert mingridvelocity_x_3d &lt; 1E-5
+    </test>
+    <test name="Check maximum grid velocity in x-direction for 3D Lin." language="python">
+print 'max(GridVelocity%1)_3d = ', maxgridvelocity_x_3d
+assert maxgridvelocity_x_3d &lt; 1E-5
+    </test>
+    <test name="Check minimum grid velocity in y-direction for 3D Lin." language="python">
+print 'min(GridVelocity%2)_3d = ', mingridvelocity_y_3d
+assert mingridvelocity_y_3d &lt; 1E-5
+    </test>
+    <test name="Check maximum grid velocity in y-direction for 3D Lin." language="python">
+print 'max(GridVelocity%2)_3d = ', maxgridvelocity_y_3d
+assert maxgridvelocity_y_3d &lt; 1E-5  
+    </test>
+    <test name="Check minimum grid velocity in z-direction for 3D Lin." language="python">
+print 'min(GridVelocity%3)_3d = ', mingridvelocity_z_3d
+assert mingridvelocity_z_3d &gt; -0.3 and mingridvelocity_z_3d &lt; 0
+    </test>
+    <test name="Check maximum grid velocity in z-direction for 3D Lin." language="python">
+print 'max(GridVelocity%3)_3d = ', maxgridvelocity_z_3d
+assert maxgridvelocity_z_3d &gt; 0 and maxgridvelocity_z_3d &lt; 0.3 
+    </test>
+  </pass_tests>
+</testproblem>

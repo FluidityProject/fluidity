@@ -30,15 +30,15 @@ PACKAGE_NAME = fluidity
 FLUIDITY = $(PACKAGE_NAME)
 
 FC      = mpif90
-FCFLAGS = -I../include -J../include -I/usr/include/vtk-5.10 -I/usr/include/python2.7 -DHAVE_NUMPY -I/usr/lib/python2.7/dist-packages/numpy/core/include -I/usr/lib/petscdir/3.6.3/include -I/usr/lib/petscdir/3.6.3/linux-gnu-c-opt/include -I/usr/include -I/usr/include/hdf5/openmpi -I/usr/lib/openmpi/include -I/usr/lib/openmpi/include/openmpi/opal/mca/event/libevent2021/libevent -I/usr/lib/openmpi/include/openmpi/opal/mca/event/libevent2021/libevent/include -I/usr/lib/openmpi/include/openmpi -Iinclude/ -DHAVE_PETSC  -I/usr/include/vtk-5.10 -DHAVE_VTK=1 -DHAVE_VTK=1 -ffast-math -frecord-marker=4 -DHAVE_NUMPY -I/usr/lib/python2.7/dist-packages/numpy/core/include -fno-realloc-lhs -ffree-line-length-none -ffixed-line-length-none -O3 -I/usr/lib/petscdir/3.6.3/include -I/usr/lib/petscdir/3.6.3/linux-gnu-c-opt/include -I/usr/include -I/usr/include/hdf5/openmpi -I/usr/lib/openmpi/include -I/usr/lib/openmpi/include/openmpi/opal/mca/event/libevent2021/libevent -I/usr/lib/openmpi/include/openmpi/opal/mca/event/libevent2021/libevent/include -I/usr/lib/openmpi/include/openmpi -Iinclude/ -fdefault-real-8 -fdefault-double-8 -I/usr/local/include -I./
+FCFLAGS = -I../include -J../include -I/usr/include/vtk-5.8 -I/usr/include/python2.7 -DHAVE_NUMPY -I/usr/local/lib/python2.7/dist-packages/numpy/core/include -I/usr/lib/petscdir/3.6.3/include -I/usr/lib/petscdir/3.6.3/linux-gnu-c-opt/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/include/openmpi -Iinclude/ -DHAVE_PETSC  -I/usr/include/vtk-5.8 -DHAVE_VTK=1 -DHAVE_VTK=1 -ffast-math -frecord-marker=4 -DHAVE_NUMPY -I/usr/local/lib/python2.7/dist-packages/numpy/core/include -fno-realloc-lhs -ffree-line-length-none -ffixed-line-length-none -O3 -I/usr/lib/petscdir/3.6.3/include -I/usr/lib/petscdir/3.6.3/linux-gnu-c-opt/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/include/openmpi -Iinclude/ -fdefault-real-8 -fdefault-double-8 -I/usr/local/include -I./
 
 MPIF90  = mpif90
 
 CC      = mpicc
-CFLAGS  = -I/usr/include/vtk-5.10 -I/usr/include/python2.7 -DHAVE_NUMPY -I/usr/lib/python2.7/dist-packages/numpy/core/include -I/usr/lib/petscdir/3.6.3/include -I/usr/lib/petscdir/3.6.3/linux-gnu-c-opt/include -I/usr/include -I/usr/include/hdf5/openmpi -I/usr/lib/openmpi/include -I/usr/lib/openmpi/include/openmpi/opal/mca/event/libevent2021/libevent -I/usr/lib/openmpi/include/openmpi/opal/mca/event/libevent2021/libevent/include -I/usr/lib/openmpi/include/openmpi -Iinclude/ -DHAVE_PETSC  -I/usr/include/vtk-5.10 -DHAVE_VTK=1 -DHAVE_VTK=1  -I/usr/include/python2.7 -DHAVE_NUMPY -I/usr/lib/python2.7/dist-packages/numpy/core/include  -O3 -I../include -I/usr/local/include -g
+CFLAGS  = -I/usr/include/vtk-5.8 -I/usr/include/python2.7 -DHAVE_NUMPY -I/usr/local/lib/python2.7/dist-packages/numpy/core/include -I/usr/lib/petscdir/3.6.3/include -I/usr/lib/petscdir/3.6.3/linux-gnu-c-opt/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/include/openmpi -Iinclude/ -DHAVE_PETSC  -I/usr/include/vtk-5.8 -DHAVE_VTK=1 -DHAVE_VTK=1  -I/usr/include/python2.7 -DHAVE_NUMPY -I/usr/local/lib/python2.7/dist-packages/numpy/core/include  -O3 -I../include -I/usr/local/include -g
 
 CXX     = mpicxx
-CXXFLAGS= -I/usr/include/vtk-5.10 -I/usr/include/python2.7 -DHAVE_NUMPY -I/usr/lib/python2.7/dist-packages/numpy/core/include -I/usr/lib/petscdir/3.6.3/include -I/usr/lib/petscdir/3.6.3/linux-gnu-c-opt/include -I/usr/include -I/usr/include/hdf5/openmpi -I/usr/lib/openmpi/include -I/usr/lib/openmpi/include/openmpi/opal/mca/event/libevent2021/libevent -I/usr/lib/openmpi/include/openmpi/opal/mca/event/libevent2021/libevent/include -I/usr/lib/openmpi/include/openmpi -Iinclude/ -DHAVE_PETSC  -I/usr/include/vtk-5.10 -DHAVE_VTK=1 -DHAVE_VTK=1  -I/usr/include/python2.7 -DHAVE_NUMPY -I/usr/lib/python2.7/dist-packages/numpy/core/include  -O3 -I../include -I/usr/local/include
+CXXFLAGS= -I/usr/include/vtk-5.8 -I/usr/include/python2.7 -DHAVE_NUMPY -I/usr/local/lib/python2.7/dist-packages/numpy/core/include -I/usr/lib/petscdir/3.6.3/include -I/usr/lib/petscdir/3.6.3/linux-gnu-c-opt/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/include/openmpi -Iinclude/ -DHAVE_PETSC  -I/usr/include/vtk-5.8 -DHAVE_VTK=1 -DHAVE_VTK=1  -I/usr/include/python2.7 -DHAVE_NUMPY -I/usr/local/lib/python2.7/dist-packages/numpy/core/include  -O3 -I../include -I/usr/local/include
 
 MAKE    = make
 AR  = ar
@@ -103,7 +103,7 @@ clean:
 	rm -f *.o *.d *.mod
 
 # Special case mba dependencies
-ifeq (,yes)
+ifeq (yes,yes)
 Mba2d_Integration.o ../include/mba2d_integration.mod: \
 ../include/mba2d_module.mod
 endif

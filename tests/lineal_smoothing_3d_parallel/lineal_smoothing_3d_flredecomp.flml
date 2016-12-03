@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<fluidity_options>
+    <simulation_name>
+        <string_value lines="1">lineal_smoothing_3d</string_value>
+    </simulation_name>
+    <problem_type>
+        <string_value lines="1">fluids</string_value>
+    </problem_type>
+    <geometry>
+        <dimension>
+            <integer_value rank="0">3</integer_value>
+        </dimension>
+        <mesh name="CoordinateMesh">
+            <from_file file_name="lineal_smoothing_3d_flredecomp_CoordinateMesh">
+                <format name="gmsh"></format>
+                <stat>
+                    <include_in_stat></include_in_stat>
+                </stat>
+            </from_file>
+        </mesh>
+        <quadrature>
+            <degree>
+                <integer_value rank="0">4</integer_value>
+            </degree>
+        </quadrature>
+    </geometry>
+    <io>
+        <dump_format>
+            <string_value>vtk</string_value>
+        </dump_format>
+        <dump_period>
+            <constant>
+                <real_value rank="0">0</real_value>
+            </constant>
+        </dump_period>
+        <output_mesh name="CoordinateMesh"></output_mesh>
+        <stat></stat>
+    </io>
+    <timestepping>
+        <current_time>
+            <real_value rank="0">0</real_value>
+        </current_time>
+        <timestep>
+            <real_value rank="0">1</real_value>
+        </timestep>
+        <finish_time>
+            <real_value rank="0">1</real_value>
+        </finish_time>
+    </timestepping>
+    <material_phase name="Fluid">
+        <vector_field name="Velocity" rank="1">
+            <prescribed>
+                <mesh name="CoordinateMesh"></mesh>
+                <value name="WholeMesh">
+                    <constant>
+                        <real_value rank="1" shape="3" dim1="dim">0 0 0</real_value>
+                    </constant>
+                </value>
+                <output></output>
+                <stat>
+                    <include_in_stat></include_in_stat>
+                </stat>
+                <detectors>
+                    <exclude_from_detectors></exclude_from_detectors>
+                </detectors>
+            </prescribed>
+        </vector_field>
+    </material_phase>
+    <mesh_adaptivity>
+        <mesh_movement>
+            <lineal_smoothing></lineal_smoothing>
+            <vector_field name="GridVelocity" rank="1">
+                <prescribed>
+                    <mesh name="CoordinateMesh"></mesh>
+                    <value name="WholeMesh">
+                        <python>
+                            <string_value lines="20" type="code" language="python">import numpy&#x0A;def val(X,t):&#x0A;&#x0A;  if X[2]&gt;=1.0:&#x0A;    #return (0.0,0.1-0.4*(X[0]-0.5)**2)&#x0A;    return (0.0,0.0,0.2*numpy.sin(2*numpy.pi*X[0])*numpy.sin(2*numpy.pi*X[1]))&#x0A;  else:&#x0A;    return (0.0,0.0,0.0)</string_value>
+                        </python>
+                    </value>
+                    <output></output>
+                    <stat>
+                        <include_in_stat></include_in_stat>
+                    </stat>
+                    <detectors>
+                        <exclude_from_detectors></exclude_from_detectors>
+                    </detectors>
+                </prescribed>
+            </vector_field>
+        </mesh_movement>
+    </mesh_adaptivity>
+</fluidity_options>

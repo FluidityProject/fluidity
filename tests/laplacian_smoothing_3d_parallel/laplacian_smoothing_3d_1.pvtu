@@ -1,0 +1,17 @@
+<VTKFile type="PUnstructuredGrid" version="0.1" byte_order="LittleEndian" compressor="vtkZLibDataCompressor">
+    <PUnstructuredGrid GhostLevel="1">
+        <PPointData Scalars="Time" Vectors="Velocity">
+            <PDataArray type="Float64" Name="Time" />
+            <PDataArray type="Float64" Name="Velocity" NumberOfComponents="3" />
+            <PDataArray type="Float64" Name="GridVelocity" NumberOfComponents="3" />
+        </PPointData>
+        <PCellData Scalars="vtkGhostLevels">
+            <PDataArray type="UInt8" Name="vtkGhostLevels" />
+        </PCellData>
+        <PPoints>
+            <PDataArray type="Float64" Name="Points" NumberOfComponents="3" />
+        </PPoints>
+        <Piece Source="laplacian_smoothing_3d_1/laplacian_smoothing_3d_1_0.vtu" />
+        <Piece Source="laplacian_smoothing_3d_1/laplacian_smoothing_3d_1_1.vtu" />
+    </PUnstructuredGrid>
+</VTKFile>
