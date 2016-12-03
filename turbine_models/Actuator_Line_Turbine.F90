@@ -33,6 +33,9 @@ type TurbineType
     logical :: Has_Tower=.false.
     real :: Towerheight, hublength, TowerOffset
     logical :: do_tip_correction=.false.
+    
+    !!! In case of Tower !!!
+    real :: tower_cd, tower_cl, tower_strouhal
 
     type(ActuatorLineType), allocatable :: Blade(:)
     type(AirfoilType), allocatable :: AirfoilData(:)
@@ -136,6 +139,7 @@ contains
     turbine%tower%name=trim(turbine%name)//'_tower'
    
     turbine%Tower%COR=turbine%origin
+    turbine%Tower%L=turbine%Towerheight
     turbine%Tower%NElem=Nstations-1  
     
     do istation=1,Nstations

@@ -306,14 +306,14 @@ end type ActuatorLineType
 
     end subroutine compute_Actuatorline_Forces
 
-    subroutine compute_Tower_Forces(tower,visc,time)
+    subroutine compute_Tower_Forces(tower,CD,CL,Str_freq,visc,time)
         implicit none
         type(ActuatorLineType),intent(inout) :: tower
-        real,intent(in) ::visc,time
+        real,intent(in) ::CD,CL,Str_freq,visc,time
         real :: R(3),rand(1000)
         real :: xe,ye,ze,nxe,nye,nze,txe,tye,tze,sxe,sye,sze,ElemArea,ElemChord
         real :: u,v,w,ub,vb,wb,urdn,urdc, ur,Diameter,freq, alpha
-        real :: CL,CD,CN,CT,CLCirc,CM25,MS,FN,FT,FS,FX,Fy,Fz
+        real :: CN,CT,CLCirc,CM25,MS,FN,FT,FS,FX,Fy,Fz
         integer :: ielem
     
         ewrite(2,*) 'Entering compute_tower_forces'
@@ -352,10 +352,10 @@ end type ActuatorLineType
             alpha=atan2(urdn,urdc)
             tower%EAOA(ielem)=alpha
             tower%ERE(ielem)=ur*Diameter/visc
-            freq=0.2*ur/max(Diameter,0.0001)
-            tower%ECL(ielem)=0.3*sin(2.0*freq*pi*time)
+            freq=Str_freq*ur/max(Diameter,0.0001)
+            tower%ECL(ielem)=CL*sin(2.0*freq*pi*time)
             tower%ECL(ielem)=tower%ECL(ielem)*(1.0+0.25*(-1.0+2*rand(ielem)))
-            tower%ECD(ielem)=1.2
+            tower%ECD(ielem)=CD
             CN=tower%ECL(ielem)*cos(alpha)+tower%ECD(ielem)*sin(alpha)                                   
             CT=-tower%ECL(ielem)*sin(alpha)+tower%ECD(ielem)*cos(alpha) 
             

@@ -64,36 +64,6 @@
                   </optional>
                 </element>
                 <optional>
-                  <element name="hub">
-                    <element name="hub_geometry">
-                      <a:documentation>Hub Geometry</a:documentation>
-                      <attribute name="file_name">
-                        <data type="string"/>
-                      </attribute>
-                      <element name="string_value">
-                        <a:documentation>The format of the input file containing field data.</a:documentation>
-                        <value>ascii</value>
-                      </element>
-                    </element>
-                    <element name="static_foil_data">
-                      <a:documentation>Hub Section foils  </a:documentation>
-                      <zeroOrMore>
-                        <element name="foil">
-                          <attribute name="name">
-                            <data type="string"/>
-                          </attribute>
-                          <attribute name="foil_file">
-                            <data type="string"/>
-                          </attribute>
-                          <element name="string_value">
-                            <value>ascii</value>
-                          </element>
-                        </element>
-                      </zeroOrMore>
-                    </element>
-                  </element>
-                </optional>
-                <optional>
                   <element name="tower">
                     <element name="offset">
                       <a:documentation>Offset from the Axis of rotaion</a:documentation>
@@ -107,6 +77,17 @@
                       <element name="string_value">
                         <a:documentation>The format of the input file containing field data.</a:documentation>
                         <value>ascii</value>
+                      </element>
+                    </element>
+                    <element name="tower_forces">
+                      <element name="Drag_coeff">
+                        <ref name="real"/>
+                      </element>
+                      <element name="Lift_coeff">
+                        <ref name="real"/>
+                      </element>
+                      <element name="Strouhal_number">
+                        <ref name="real"/>
                       </element>
                     </element>
                   </element>
