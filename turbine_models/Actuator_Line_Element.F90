@@ -173,6 +173,10 @@ end type ActuatorLineType
     actuatorline%EVbx(:)=0.0
     actuatorline%EVby(:)=0.0
     actuatorline%EVbz(:)=0.0
+    actuatorline%EObx(:)=0.0
+    actuatorline%EOby(:)=0.0
+    actuatorline%EObz(:)=0.0
+
     
     ! Populate element Airfoils 
     call populate_blade_airfoils(actuatorline%NElem,actuatorline%NAirfoilData,actuatorline%EAirfoil,actuatorline%AirfoilData,actuatorline%ETtoC)
@@ -254,7 +258,7 @@ end type ActuatorLineType
     act_line%EAOA(ielem)=alpha
     act_line%ERe(ielem) = ur*ElemChord/Visc
    
-    wPNorm = wP*ElemChord/(2.0*max(ur,0.001))
+    wPNorm = wP*ElemChord/(2.0*max(ur,0.0001))
 
     ! Calculate half chord and 75% chord velocites to be used in the pitch rate effects
     if(act_line%do_added_mass) then
@@ -282,7 +286,7 @@ end type ActuatorLineType
     act_line%EAOAdot(ielem)=dal/max(dt,0.001)
     
     adotnorm=act_line%EAOAdot(ielem)*ElemChord/(2.0*max(ur,0.001)) ! adot*c/(2*U)
-    write(6,*) adotnorm, wPNorm
+    
     !====================================
     ! Compute the Aerofoil Coefficients
     !====================================

@@ -362,7 +362,7 @@ contains
         ! Augment tangential and normal coeffs 
         CT=CT+CTAM
         CN=CN+CNAM
-
+        
         CL=CN*cos(alpha5)-CT*sin(alpha5)
         CD=CN*sin(alpha5)+CT*cos(alpha5)
 
