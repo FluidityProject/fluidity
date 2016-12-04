@@ -394,9 +394,9 @@ contains
         Sw(isource)=Recv(3)
         Se(isource)=Recv(4)
         Visc=Recv(5)
-        !ewrite(2,*) 'Received', Recv, ' from processor', status(MPI_SOURCE)
+        ewrite(2,*) 'Received', Recv, ' from processor', status(MPI_SOURCE)
       else
-          !ewrite(2,*) 'I own the element'
+          ewrite(2,*) 'I own the element'
           
           value_vel=eval_field(ele,velocity,local_coord)
           nu=eval_field(ele,ViscosityTens,local_coord)
