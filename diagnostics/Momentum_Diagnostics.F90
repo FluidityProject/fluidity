@@ -360,9 +360,12 @@ contains
    
       call allocate(remapped_pos, mesh=velocity%mesh, dim=positions%dim, name="RemappedField")
       call remap_field(positions, remapped_pos)
-
+    
+      if (have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon") ) then
+      ViscosityTens => extract_tensor_field(states(state_index),"BackgroundViscosity")
+      else
       ViscosityTens => extract_tensor_field(states(state_index),"Viscosity")
-         
+      endif   
       ! there should be two models: one for checking a single airfoil
       ! And another for checking the turbine
       call MPI_Comm_rank(MPI_COMM_WORLD,rank,ierr)
