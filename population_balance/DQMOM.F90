@@ -699,10 +699,10 @@ contains
     
     real, dimension(1, size(abscissa)) :: abscissa_val
     real, dimension(1, size(abscissa)*2, size(abscissa)*2) :: A
-    real, dimension(1, size(abscissa)*2) :: S_rhs  ! source term (includes growth, breakage and coalescence term): gb 15-11-2012
+    real, dimension(1, size(abscissa)*2) :: S_rhs  ! source term (includes growth, breakage and coalescence term)
     real, dimension(1, size(abscissa)*2, size(abscissa)) :: moment_daughter_dist_func
     real, dimension(1, size(abscissa)) :: break_freq
-    real, dimension(1, size(abscissa), size(abscissa)) :: aggregation_freq   ! at present it is not dependent on space coordinate, but can be dependent and will have to be a scalar fields
+    real, dimension(1, size(abscissa), size(abscissa)) :: aggregation_freq   ! at present it is not dependent on space coordinate, but can be dependent and will have to be a scalar field
     real, dimension(size(abscissa)*2, 1) :: b
     real, dimension(1, size(abscissa)) :: abscissa_S
     real, dimension(1, size(weight)) :: weight_S
@@ -748,7 +748,9 @@ contains
     ! construct S vector for BREAKAGE
     
     if (have_breakage) then
-       if (breakage_freq_type=='power_law_breakage') then
+       if (breakage_freq_type=='constant_breakage') then
+          break_freq = breakage_freq_const
+       else if (breakage_freq_type=='power_law_breakage') then
           do i = 1, N
              break_freq(1,i) = breakage_freq_const*abscissa_val(1,i)**breakage_freq_degree
           end do
@@ -757,6 +759,7 @@ contains
           density_dispersed = 1.205
           sigma = 0.072
           eps_node = node_val(turbulent_dissipation,node)
+          ! Assuming isotropic molecular viscosity here   
           allocate(visc_node(viscosity_continuous%dim(1), viscosity_continuous%dim(1)))
           visc_node = node_val(viscosity_continuous,node)
           do i = 1, N
@@ -765,7 +768,13 @@ contains
           deallocate(visc_node)
        end if
 
-       if (breakage_dist_type=='mcCoy_madras_2003') then
+       if (breakage_dist_type=='symmetric_fragmentation') then
+          do i = 1, 2*N
+             do j = 1, N
+                moment_daughter_dist_func(1,i,j) = (2.0**(((3-(i-1))/3.0)))*(abscissa_val(1,j)**(i-1))   
+             end do
+          end do
+       else if (breakage_dist_type=='mcCoy_madras_2003') then
           do i = 1, 2*N
              do j = 1, N
                 moment_daughter_dist_func(1,i,j) = (6.0/((i-1)+3.0))*(abscissa_val(1,j)**(i-1))
@@ -794,7 +803,18 @@ contains
     if (have_aggregation) then
        if (aggregation_freq_type=='constant_aggregation') then
           aggregation_freq = aggregation_freq_const
-
+       else if (aggregation_freq_type=='hydrodynamic_aggregation') then
+          do i = 1, N
+             do j = 1, N
+                aggregation_freq(1,i,j) = abscissa_val(1,i)**3 + abscissa_val(1,j)**3
+             end do
+          end do
+       else if (aggregation_freq_type=='sum_aggregation') then
+          do i = 1, N
+             do j = 1, N
+                aggregation_freq(1,i,j) = (abscissa_val(1,i) + abscissa_val(1,j))*aggregation_freq_const
+             end do
+          end do
        else if (aggregation_freq_type=='laakkonen_2007_aggregation') then
           density_continuous = 998.2
           sigma = 0.072
@@ -824,6 +844,7 @@ contains
        end do
     endif
 
+    ! check for ill-conditioned matrices
     if (singular_option=='set_source_to_zero') then
        call svd(A(1,:,:), svd_tmp1, SV, svd_tmp2)
        if (SV(size(SV))/SV(1) < cond) then
