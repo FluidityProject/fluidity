@@ -44,6 +44,26 @@ turbine_models=(
             empty
         }?               
         },
+        element hub{
+## Hub Geometry
+            element hub_geometry{
+                attribute file_name { xsd:string },
+## The format of the input file containing field data.
+                element string_value {
+                    "ascii"
+                }
+            },
+## Hub Section foils  
+            element static_foil_data{ 
+                element foil{
+                    attribute name{xsd:string},
+                    attribute foil_file{xsd:string},
+                    element string_value {
+                        "ascii"
+                    }
+                }*
+            }
+        }?,
         element tower{
 ## Offset from the Axis of rotaion
             element offset{
@@ -56,18 +76,7 @@ turbine_models=(
                 element string_value {
                     "ascii"
                 }
-            },
-            element tower_forces{
-                element Drag_coeff{
-                    real
-                },
-                element Lift_coeff{
-                    real
-                },
-                element Strouhal_number{
-                    real
-                }
-            }
+            } 
         }?,
 
         element type{
