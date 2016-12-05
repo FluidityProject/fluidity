@@ -3338,6 +3338,11 @@ guided search particle tracking</a:documentation>
 This is calculated at all boundaries</a:documentation>
           <ref name="real"/>
         </element>
+        <element name="friction_velocity">
+          <a:documentation>density*friction_velocity/yPlus*u 
+This is calculated at all boundaries</a:documentation>
+          <empty/>
+        </element>
         <element name="velocity_gradient">
           <a:documentation>nu * (grad(u) + grad(u).T)
 This uses the velocity gradient at the boundaries to calculate the 

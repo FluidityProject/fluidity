@@ -2445,6 +2445,11 @@ diagnostic_vector_field_bed_shear_stress =
             element drag_coefficient {
                real
             }|
+            ## density*friction_velocity/yPlus*u 
+            ## This is calculated at all boundaries
+            element friction_velocity {
+               empty
+            }|
             ## nu * (grad(u) + grad(u).T)
             ## This uses the velocity gradient at the boundaries to calculate the 
             ## bed shear stress. Valid for non parameterised velocity boundaries.
