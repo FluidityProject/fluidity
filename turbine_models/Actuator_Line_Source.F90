@@ -49,14 +49,6 @@ contains
                 counter=counter+1
                 end do
             endif
-            
-            ! Hub 
-            if(turbine(itur)%has_hub) then
-                do ielem=1,Turbine(itur)%hub%Nelem
-                counter=counter+1
-                end do
-            endif
-
         end do
     endif
     
@@ -122,28 +114,7 @@ contains
                 Ssz(counter)=Turbine(itur)%Tower%sEz(ielem)
                 Ssegm(counter)=Turbine(itur)%Tower%EDS(ielem)
                 end do
-                endif
-                ! Hub 
-                if(turbine(itur)%has_hub) then
-                do ielem=1,Turbine(itur)%hub%Nelem
-                counter=counter+1
-                Sx(counter)=Turbine(itur)%hub%PEX(ielem)
-                Sy(counter)=Turbine(itur)%hub%PEY(ielem)
-                Sz(counter)=Turbine(itur)%hub%PEZ(ielem)
-                Sc(counter)=Turbine(itur)%hub%EC(ielem) 
-                Snx(counter)=Turbine(itur)%hub%nEx(ielem)
-                Sny(counter)=Turbine(itur)%hub%nEy(ielem)
-                Snz(counter)=Turbine(itur)%hub%nEz(ielem)
-                Stx(counter)=Turbine(itur)%hub%tEx(ielem)
-                Sty(counter)=Turbine(itur)%hub%tEy(ielem)
-                Stz(counter)=Turbine(itur)%hub%tEz(ielem)
-                Ssx(counter)=Turbine(itur)%hub%sEx(ielem)
-                Ssy(counter)=Turbine(itur)%hub%sEy(ielem)
-                Ssz(counter)=Turbine(itur)%hub%sEz(ielem)
-                Ssegm(counter)=Turbine(itur)%hub%EDS(ielem)
-                end do
-                endif
-                
+                endif 
         end do
     endif
     
@@ -200,18 +171,6 @@ contains
                 Turbine(itur)%Tower%Eepsilon(ielem)=Se(counter) 
                 end do
             endif
-            
-            ! Hub
-            if(turbine(itur)%has_hub) then
-                do ielem=1,Turbine(itur)%hub%Nelem
-                counter=counter+1
-                Turbine(itur)%hub%EVX(ielem)=Su(counter)
-                Turbine(itur)%hub%EVY(ielem)=Sv(counter)
-                Turbine(itur)%hub%EVZ(ielem)=Sw(counter)
-                Turbine(itur)%hub%Eepsilon(ielem)=Se(counter) 
-                end do
-            endif
-
         end do
     endif
     
@@ -258,17 +217,6 @@ contains
                 Sfz(counter)=Turbine(itur)%Tower%EFZ(ielem)
                 end do
             endif
-            
-            ! Hub 
-            if(turbine(itur)%has_hub) then
-                do ielem=1,Turbine(itur)%hub%Nelem
-                counter=counter+1
-                Sfx(counter)=Turbine(itur)%hub%EFX(ielem)
-                Sfy(counter)=Turbine(itur)%hub%EFY(ielem)
-                Sfz(counter)=Turbine(itur)%hub%EFZ(ielem)
-                end do
-            endif
-
         end do
     endif
     

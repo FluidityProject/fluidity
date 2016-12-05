@@ -73,6 +73,8 @@ type ActuatorLineType
     real, allocatable :: ECD(:)         ! Element Drag Coefficient
     real, allocatable :: ECL(:)         ! Element Lift Coefficient 
     real, allocatable :: ECM(:)         ! Element Moment Coefficient
+    real, allocatable :: ECN(:)         ! Element Normal Force Coefficient
+    real, allocatable :: ECT(:)         ! Element Tangential Force Coefficient 
     
     ! Element Forces in the nts direction
     real, allocatable :: EFn(:)         ! Element Force in the normal direction
@@ -181,7 +183,7 @@ end type ActuatorLineType
     ! Populate element Airfoils 
     call populate_blade_airfoils(actuatorline%NElem,actuatorline%NAirfoilData,actuatorline%EAirfoil,actuatorline%AirfoilData,actuatorline%ETtoC)
     
-    actuatorline%EAOA_LAST(:)=0.0
+    actuatorline%EAOA_LAST(:)=-666.0
     actuatorline%EUn_LAST(:)=0.0
     
     do ielem=1,actuatorline%Nelem
@@ -282,10 +284,15 @@ end type ActuatorLineType
         wPNorm=0.0
     endif
     
+    if(act_line%EAOA_Last(ielem)<0) then
+    dal=0.0
+    else
     dal=alpha75-act_line%EAOA_Last(ielem)
+    endif
+    
     act_line%EAOAdot(ielem)=dal/max(dt,0.001)
     
-    adotnorm=act_line%EAOAdot(ielem)*ElemChord/(2.0*max(ur,0.001)) ! adot*c/(2*U)
+    adotnorm=act_line%EAOAdot(ielem)*ElemChord/(2.0*max(ur,0.0001)) ! adot*c/(2*U)
     
     !====================================
     ! Compute the Aerofoil Coefficients
@@ -317,6 +324,9 @@ end type ActuatorLineType
     act_line%ECD(ielem)=CD
     act_line%ECL(ielem)=CL
     act_line%ECM(ielem)=CM25
+    act_line%ECN(ielem)=CN
+    act_line%ECT(ielem)=CT
+    
     ! Local Coordinate-system Forces
     act_line%EFN(ielem)=FN
     act_line%EFT(ielem)=FT
@@ -336,14 +346,14 @@ end type ActuatorLineType
 
     end subroutine compute_Actuatorline_Forces
 
-    subroutine compute_Tower_Forces(tower,visc,time)
+    subroutine compute_Tower_Forces(tower,visc,time,CD,CL,Str)
         implicit none
         type(ActuatorLineType),intent(inout) :: tower
-        real,intent(in) ::visc,time
+        real,intent(in) ::visc,time,CD,CL,Str
         real :: R(3),rand(1000)
         real :: xe,ye,ze,nxe,nye,nze,txe,tye,tze,sxe,sye,sze,ElemArea,ElemChord
         real :: u,v,w,ub,vb,wb,urdn,urdc, ur,Diameter,freq, alpha
-        real :: CL,CD,CN,CT,CLCirc,CM25,MS,FN,FT,FS,FX,Fy,Fz
+        real :: CN,CT,CLCirc,CM25,MS,FN,FT,FS,FX,Fy,Fz
         integer :: ielem
     
         ewrite(2,*) 'Entering compute_tower_forces'
@@ -382,10 +392,10 @@ end type ActuatorLineType
             alpha=atan2(urdn,urdc)
             tower%EAOA(ielem)=alpha
             tower%ERE(ielem)=ur*Diameter/visc
-            freq=0.2*ur/max(Diameter,0.0001)
-            tower%ECL(ielem)=0.3*sin(2.0*freq*pi*time)
+            freq=Str*ur/max(Diameter,0.0001)
+            tower%ECL(ielem)=CL*sin(2.0*freq*pi*time)
             tower%ECL(ielem)=tower%ECL(ielem)*(1.0+0.25*(-1.0+2*rand(ielem)))
-            tower%ECD(ielem)=1.2
+            tower%ECD(ielem)=CD
             CN=tower%ECL(ielem)*cos(alpha)+tower%ECD(ielem)*sin(alpha)                                   
             CT=-tower%ECL(ielem)*sin(alpha)+tower%ECD(ielem)*cos(alpha) 
             
@@ -733,6 +743,8 @@ end type ActuatorLineType
     allocate(actuatorline%ECD(Nelem))
     allocate(actuatorline%ECL(Nelem))
     allocate(actuatorline%ECM(Nelem))
+    allocate(actuatorline%ECN(Nelem))
+    allocate(actuatorline%ECT(Nelem))
     allocate(actuatorline%EFn(NElem))
     allocate(actuatorline%EFt(NElem))
     allocate(actuatorline%EMS(NElem))

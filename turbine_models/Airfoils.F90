@@ -365,7 +365,8 @@ contains
         
         CL=CN*cos(alpha5)-CT*sin(alpha5)
         CD=CN*sin(alpha5)+CT*cos(alpha5)
-
+        
+        return
         ewrite(2,*) 'Exiting compute_aeroCoeffs_one_airfoil'
 
     end subroutine compute_aeroCoeffs

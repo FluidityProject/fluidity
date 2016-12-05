@@ -152,6 +152,10 @@ contains
             Turbine(i)%Has_Tower=.true.
             call get_option("/turbine_models/actuator_line_model/turbine["//int2str(i-1)//"]/tower/offset",Turbine(i)%TowerOffset)
             call get_option("/turbine_models/actuator_line_model/turbine["//int2str(i-1)//"]/tower/tower_geometry/file_name",Turbine(i)%Tower%geom_file)
+            call get_option("/turbine_models/actuator_line_model/turbine["//int2str(i-1)//"]/tower/tower_loading/Drag_coeff",Turbine(i)%TowerDrag)
+            call get_option("/turbine_models/actuator_line_model/turbine["//int2str(i-1)//"]/tower/tower_loading/Lift_coeff",Turbine(i)%TowerLift)
+            call get_option("/turbine_models/actuator_line_model/turbine["//int2str(i-1)//"]/tower/tower_loading/Strouhal_number",Turbine(i)%TowerStrouhal)
+        
         endif
 
         !#############2  Get turbine_specs #################
@@ -345,14 +349,9 @@ contains
 
             ! Tower
             if(Turbine(i)%has_tower) then
-                call Compute_Tower_Forces(Turbine(i)%Tower,visc,ctime)
+                call Compute_Tower_Forces(Turbine(i)%Tower,visc,ctime,Turbine(i)%TowerDrag,Turbine(i)%TowerLift,Turbine(i)%TowerStrouhal)
             endif
-
-            ! Hub
-            if(Turbine(i)%has_hub) then
-                call Compute_ActuatorLine_Forces(Turbine(i)%hub,visc,deltaT)
-            endif
-
+            
             end do
         end if
 
