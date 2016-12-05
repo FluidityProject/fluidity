@@ -1950,6 +1950,12 @@ Bedload field
 Note: To use sediment, a linear equation of state must also be enabled
 \option{\ldots/equation\_of\_state/fluids/linear}
 
+\section{Population balance model}
+\label{config:pbe}
+
+The population balance model can be enabled by activating the \option{population\_balance (DQMOM)} option under the material phase.
+The number of \option{abscissa}, \option{weights} and \option{weighted-abscissa} scalar fields must be chosed equal to the desired number of mesh nodes $N$ in the DQMOM quadrature approximation (Eq \eqref{eq:DQMOM_ndf}). 
+
 \section{Configuring ocean simulations}
 \label{sec:large-scale-ocean}
 

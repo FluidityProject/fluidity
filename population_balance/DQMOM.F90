@@ -1062,10 +1062,10 @@ contains
 
 !    type(state_type), intent(in) :: state
     
-    integer :: i_pop, i_state, i_field
+    integer :: i_pop, i_state, i_field, stat
     integer :: n_abscissa, n_weights, n_weighted_abscissa, n_moments, n_statistics
     character(len=OPTION_PATH_LEN) :: option_path 
-    character(len=FIELD_NAME_LEN)  :: old_msh, amsh, wmsh, wamsh, mmsh, smsh
+    character(len=FIELD_NAME_LEN)  :: old_msh, amsh, wmsh, wamsh, mmsh, smsh, type
 
     write(*,*) 'in dqmom_check_options'
 

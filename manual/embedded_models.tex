@@ -516,11 +516,11 @@ Note: a ZeroSedimentConcentrationViscosity tensor field is required.
 
 \newpage
 
-\section{Population Balance Model}
+\section{Population balance modelling}
 
 Dispersed objects are found widely in many diverse applications and the need to model their evolution has given rise to the development of the population balance equation (PBE). Dispersed items, which may be particles, cells or molecules, have a distribution that usually changes in time and space. The population balance equation is a conservation equation for the number of dispersed particles that models the evolution of this distribution \citep{ramkrishna2000population}. Fluidity can solve the PBE using the direct quadrature method of moments (DQMOM), which is a quadrature based moment method (QBMM) proposed by \citet{marchisio2005solution}.
 
-\subsection{Population Balance Equation}
+\subsection{Population balance equation}
 The PBE can be written as \citep{ramkrishna2000population}:
 \begin{equation}
 \frac{\partial n(\xi,\vec{x},t)}{\partial t} + \nabla \cdot \left( \langle \vec{u}|\xi \rangle \, n \right) - \nabla \cdot \left( \overline{\overline D}_\vec{x} (\xi,\vec{x},t) \nabla n \right) = S_\xi (\xi,\vec{x},t),
@@ -594,22 +594,22 @@ and
 D_C(\xi) =\int_0^{\infty} \beta (\xi, \xi_1) n(\xi) n(\xi_1) \d \xi_1,
 \end{equation}
 respectively, where $\beta(\xi',\xi_1)$ is the coalescence frequency for particles of sizes $\xi'$ and $\xi_1$, and it has the units \SI{}{\metre\cubed\per\second}.
-In general, the coalescence frequency may also depend on the spatial coordinates of the two aggregating particles and time, but for simplicity it is assumed to be a function of particle size only.
+In general, the coalescence frequency may also depend on the spatial coordinates of the two aggregating particles and time, but for simplicity it is assumed to be a function of particle size only in this implementation.
 As for breakage, coalescence frequency is also determined from physical models.
 The parameter $\tilde{\delta}$ represents the number of times identical pairs have been considered in the interval of integration and is equal to two for binary coalescence, which is the most common scenario for dilute systems \citep{ramkrishna2000population}.
-In Equation~\eqref{eq:birth_coalescence}, $\xi'$ is given as $\xi'^3=\xi^3-\xi_1^3$, i.e. the particles are considered three-dimensional and the volume of the resulting particle class ($\xi$) is the sum of the volumes from the contributing size classes ($\xi'$ and $\xi_1$). See \citet{bhutani2016} and \citet{bhutani2016polydispersed} for details. 
+In Equation~\eqref{eq:birth_coalescence}, $\xi'$ is given as $\xi'^3=\xi^3-\xi_1^3$, i.e. the particles are considered three-dimensional and the volume of the resulting particle class ($\xi$) is the sum of the volumes from the contributing size classes ($\xi'$ and $\xi_1$). See \citet{bhutani2016} and \citet{bhutani2016polydispersed} for more details on the breakage and coalescence terms. 
 
 \subsection{Solution method -- DQMOM}
 
 Fluidity uses the direct quadrature method of moments \citep{marchisio2005solution} to solve the population balance equation.
-This method requires fewer equations to be solved in order to get a good estimate of the particle size distribution, i.e. 4--6 equations against 50--200 for the other popular method---the classes method \citep{marchisio2003quadratureb}. 
+This method requires fewer equations to be solved in order to get a good estimate of the particle size distribution, i.e. 4--6 equations against 50--200 equations needed in the other popular method---the classes method \citep{marchisio2003quadratureb}. 
 \subsubsection{DQMOM approximation}
 This method uses a quadrature approximation to the NDF, given by:
 \begin{equation}
 n \left( \xi, \vec{x}, t \right) = \sum_{j=1}^N w_{j} \left( \vec{x}, t \right) \delta \left[ \xi - \langle \xi \rangle_{j} \left( \vec{x}, t \right) \right],
 \label{eq:DQMOM_ndf}
 \end{equation}
-as opposed to approximating the integrals in the other methods of moments. $\delta$ in the above equation is the Dirac delta function, $N$ is the total number of quadrature points, and $w_j$ and $\langle \xi \rangle_{j}$ are the weights and abscissas in the DQMOM approximation, respectively. This choice for the approximation to the NDF provides a convenient closure for the source term $S_{\xi}$ in Equation~\eqref{eq:pbe}.
+as opposed to approximating the integrals in some other methods of moments. $\delta$ in the above equation is the Dirac delta function, $N$ is the total number of quadrature points, and $w_j$ and $\langle \xi \rangle_{j}$ are the weights and abscissas in the DQMOM approximation, respectively. This choice for the approximation to the NDF provides a convenient closure for the source term $S_{\xi}$ in Equation~\eqref{eq:pbe}.
 
 The major advantages of using DQMOM over any other method of moments is that each weight and abscissa can be defined as a function of space, which makes it easier to implement this method, and very few abscissas are needed to accurately model the NDF due to the adaptive quadrature approach.
 Additionally, each node can have its own velocity field, if required, as stated in \citet{marchisio2005solution}.
@@ -637,7 +637,7 @@ By substituting Equation~\eqref{eq:DQMOM_ndf} in the PBE (Equation~\eqref{eq:pbe
 \end{equation}
 where $\delta'(\xi - \langle \xi \rangle_{j})$ and $\delta''(\xi - \langle \xi \rangle_{j})$ are the first and second derivatives of the function $\delta(\xi - \langle \xi \rangle_{j})$.
 
-Although the advection term in Equation~\eqref{eq:pbe} included a velocity field conditional on the abscissa, a common velocity field approximation to the dispersed phase was is used in Fluidity without any dependence on the particle size for simplicity. This velocity field is obtained from the solution to the momentum equation.
+Although the advection term in Equation~\eqref{eq:pbe} included a velocity field conditional on the abscissa, a common velocity field approximation to the dispersed phase is used in Fluidity without any dependence on the particle size for simplicity. This velocity field is obtained from the solution to the momentum equation.
 
 The DQMOM transport equations are defined as:
 \begin{subequations}
@@ -656,7 +656,7 @@ Taking the $k^{\textrm{th}}$ moment of Equation~\eqref{eq:dqmomdiff}, it gets tr
 \begin{equation} \label{eq:dqmom_lineq_raw}
 (1-k) \sum_{j=1}^N \langle \xi \rangle_{j}^k \widetilde{g}_{j} + k \sum_{j=1}^N \langle \xi \rangle_{j}^{k-1} \widetilde{h}_{j} = \overline{S}_k^{(N)} + \overline{C}_k,
 \end{equation}
-which can be solved to obtain $\widetilde{g}_{j}$ and $\widetilde{h}_{j}$. Integration properties of the Dirac delta function and its derivatives were used to arrive at the above form. In deriving this linear system, either integral or fractional-order moments can be used depending on physical considerations. Since a length-based formulation is used for the NDF in Fluidity, integral moments make more sense and hence $k=1,2,...,2N$ is used.
+which can be solved to obtain $\widetilde{g}_{j}$ and $\widetilde{h}_{j}$. In deriving this linear system, either integral or fractional-order moments can be used depending on physical considerations. Since a length-based formulation is used for the NDF in Fluidity, integral moments make more sense and hence $k=1,2,...,2N$ is used.
 In the above equation $\overline{S}_k^{(N)}$ is the $k$\textsuperscript{th} moment of the source term of the PBE with the DQMOM quadrature approximation applied, i.e.
 \begin{equation}
 \overline{S}_k^{(N)} = \int_{0}^{\infty} \xi^k S_{\xi} d\xi.
@@ -685,7 +685,7 @@ Equations~\eqref{eq:dqmomweight} and \eqref{eq:dqmomweightabscissa} form a syste
 These equations are solved for the weights $w_j$ and the weighted-abscissas $\varsigma_j$, which are then used to calculate the moments and eventually the Sauter mean diameter $d_{32}$.
 
 The number of equations that need to be solved depends on the value of the number of quadrature nodes, $N$, chosen to represent the NDF. Solution accuracy improves as the number of nodes are increased but $N=2$ to $N=3$ has been reported to produce sufficiently accurate solution of the PBE  with a small computation cost \citep{marchisio2005solution}. 
-DQMOM has been implemented in Fluidity to solve the PBE for any value for the number of nodes $N$.
+DQMOM however has been implemented in Fluidity to solve the PBE for any value for the number of nodes $N$.
 
 \subsubsection{Matrix form of the DQMOM linear system}
 The DQMOM linear system (Equation~\eqref{eq:dqmom_lineq_raw}) is implemented in Fluidity in a matrix form as:
