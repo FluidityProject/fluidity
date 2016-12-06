@@ -132,11 +132,7 @@ periodic_boundary_option_path, domain_bbox, domain_volume, surface_radius
 contains
 
   subroutine populate_state(states, solid_states)
-!    use Profiler
 
-!=======
-!  subroutine populate_state(states)
-!>>>>>>> master
     type(state_type), pointer, dimension(:) :: states
     type(state_type), pointer, dimension(:), optional :: solid_states
 
