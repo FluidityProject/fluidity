@@ -171,20 +171,20 @@ end type ActuatorLineType
     actuatorline%Area=actuatorline%Area+actuatorline%EArea(ielem)
     end do
     
-    ! Set the body velocity to zero
+    ! Initial Values for the body linear and angular velocities 
     actuatorline%EVbx(:)=0.0
     actuatorline%EVby(:)=0.0
     actuatorline%EVbz(:)=0.0
     actuatorline%EObx(:)=0.0
     actuatorline%EOby(:)=0.0
     actuatorline%EObz(:)=0.0
+    actuatorline%Eepsilon(:)=0.0
 
     
     ! Populate element Airfoils 
     call populate_blade_airfoils(actuatorline%NElem,actuatorline%NAirfoilData,actuatorline%EAirfoil,actuatorline%AirfoilData,actuatorline%ETtoC)
     
     actuatorline%EAOA_LAST(:)=-666.0
-    actuatorline%EUn_LAST(:)=0.0
     
     do ielem=1,actuatorline%Nelem
     call dystl_init_LB(actuatorline%E_LB_Model(ielem))
@@ -279,9 +279,9 @@ end type ActuatorLineType
     ur75=sqrt(urdn75**2+urdc**2)
     alpha75=atan2(urdn75,urdc)
     else
-        alpha5=alpha
-        alpha75=alpha
-        wPNorm=0.0
+    alpha5=alpha
+    alpha75=alpha
+    wPNorm=0.0
     endif
     
     if(act_line%EAOA_Last(ielem)<0) then
@@ -290,7 +290,7 @@ end type ActuatorLineType
     dal=alpha75-act_line%EAOA_Last(ielem)
     endif
     
-    act_line%EAOAdot(ielem)=dal/max(dt,0.001)
+    act_line%EAOAdot(ielem)=dal/max(dt,0.0001)
     
     adotnorm=act_line%EAOAdot(ielem)*ElemChord/(2.0*max(ur,0.0001)) ! adot*c/(2*U)
     
@@ -346,13 +346,13 @@ end type ActuatorLineType
 
     end subroutine compute_Actuatorline_Forces
 
-    subroutine compute_Tower_Forces(tower,visc,time,CD,CL,Str)
+    subroutine compute_Tower_Forces(tower,visc,time,CL,CD,Str)
         implicit none
         type(ActuatorLineType),intent(inout) :: tower
-        real,intent(in) ::visc,time,CD,CL,Str
-        real :: R(3),rand(1000)
+        real,intent(in) ::visc, time, CL, CD, Str
+        real :: R(3),rand(3000)
         real :: xe,ye,ze,nxe,nye,nze,txe,tye,tze,sxe,sye,sze,ElemArea,ElemChord
-        real :: u,v,w,ub,vb,wb,urdn,urdc, ur,Diameter,freq, alpha
+        real :: u,v,w,ub,vb,wb,urdn,urdc,ur,Diameter,freq,alpha
         real :: CN,CT,CLCirc,CM25,MS,FN,FT,FS,FX,Fy,Fz
         integer :: ielem
     
@@ -381,7 +381,7 @@ end type ActuatorLineType
             ub=0.0
             vb=0.0
             wb=0.0
-            
+           
             !==============================================================
             ! Calculate element normal and tangential velocity components. 
             !==============================================================
@@ -394,11 +394,10 @@ end type ActuatorLineType
             tower%ERE(ielem)=ur*Diameter/visc
             freq=Str*ur/max(Diameter,0.0001)
             tower%ECL(ielem)=CL*sin(2.0*freq*pi*time)
-            tower%ECL(ielem)=tower%ECL(ielem)*(1.0+0.25*(-1.0+2*rand(ielem)))
+            tower%ECL(ielem)=tower%ECL(ielem)*(1.0+0.25*(-1.0+2.0*rand(ielem)))
             tower%ECD(ielem)=CD
             CN=tower%ECL(ielem)*cos(alpha)+tower%ECD(ielem)*sin(alpha)                                   
             CT=-tower%ECL(ielem)*sin(alpha)+tower%ECD(ielem)*cos(alpha) 
-            
             !========================================================
             ! Apply Coeffs to calculate tangential and normal Forces
             !========================================================
@@ -413,13 +412,15 @@ end type ActuatorLineType
             !==========================================
             ! Assign the derived types
             !==========================================
+            tower%ECN(ielem)=CN
+            tower%ECT(ielem)=CT
             tower%EFN(ielem)=FN
             tower%EFT(ielem)=FT
             tower%EMS(ielem)=0.0
             tower%EFX(ielem)=FX
             tower%EFY(ielem)=FY
             tower%EFZ(ielem)=FZ
-             
+         
         enddo
 
         ewrite(2,*) 'Exiting compute_tower_forces'
@@ -447,9 +448,6 @@ end type ActuatorLineType
     t(3,1)=act_line%tz(istation)     
     t=matmul(R,t)
     !>Reassign the tangential vector
-    !act_line%tx(istation)=t(1,1)
-    !act_line%ty(istation)=t(2,1)
-    !act_line%tz(istation)=t(3,1)
     act_line%tx(istation)=cos(pitch_angle*pi/180.0)
     act_line%ty(istation)=0.0
     act_line%tz(istation)=-sin(pitch_angle*pi/180.0)

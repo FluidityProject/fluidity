@@ -20,7 +20,7 @@ module actuator_line_model
     type(ActuatorLineType), allocatable, save :: Actuatorline(:)
     type(TurbineType), allocatable, save :: Turbine(:) ! Turbine 
     integer,save :: Ntur, Nal ! Number of the turbines 
-    real,save :: deltaT, Visc, ctime
+    real :: deltaT, Visc, ctime
     logical,save :: actuator_line_model_writeFlag=.true.
 
     public  actuator_line_model_init, actuator_line_model_compute_forces, actuator_line_model_update 
@@ -52,6 +52,9 @@ contains
             end do
         endif
 
+        !##### Initialize Time
+        ctime=0.0
+        call get_option("/timestepping/timestep",deltaT)
         ewrite(1,*) 'Exiting the actuator_line_model_init '
 
     end subroutine actuator_line_model_init
@@ -72,6 +75,11 @@ contains
                 call actuator_line_turbine_write_output(turbine(itur),dir)
                 do iblade=1,turbine(itur)%NBlades
                  call actuator_line_element_write_output(turbine(itur)%Blade(iblade),dir)
+                 
+                 if (turbine(itur)%Blade(iblade)%do_dynamic_stall) then
+                    call dynamic_stall_write_output(turbine(itur)%Blade(iblade),dir) 
+                 end if
+
                 end do
                 if(turbine(itur)%Has_Tower) then 
                 call actuator_line_element_write_output(turbine(itur)%tower,dir)
@@ -147,7 +155,7 @@ contains
         end do
         end do
 
-        ! ## Tower ?
+        ! ## Tower ##
         if (have_option("/turbine_models/actuator_line_model/turbine["//int2str(i-1)//"]/tower")) then
             Turbine(i)%Has_Tower=.true.
             call get_option("/turbine_models/actuator_line_model/turbine["//int2str(i-1)//"]/tower/offset",Turbine(i)%TowerOffset)
@@ -155,7 +163,6 @@ contains
             call get_option("/turbine_models/actuator_line_model/turbine["//int2str(i-1)//"]/tower/tower_loading/Drag_coeff",Turbine(i)%TowerDrag)
             call get_option("/turbine_models/actuator_line_model/turbine["//int2str(i-1)//"]/tower/tower_loading/Lift_coeff",Turbine(i)%TowerLift)
             call get_option("/turbine_models/actuator_line_model/turbine["//int2str(i-1)//"]/tower/tower_loading/Strouhal_number",Turbine(i)%TowerStrouhal)
-        
         endif
 
         !#############2  Get turbine_specs #################
@@ -298,7 +305,7 @@ contains
 
         ctime=current_time
         DeltaT=dt
-
+        ewrite(2,*) ctime, DeltaT
         if (Ntur>0) then
             do i=1,Ntur
             if(Turbine(i)%Is_constant_rotation_operated) then
@@ -349,7 +356,7 @@ contains
 
             ! Tower
             if(Turbine(i)%has_tower) then
-                call Compute_Tower_Forces(Turbine(i)%Tower,visc,ctime,Turbine(i)%TowerDrag,Turbine(i)%TowerLift,Turbine(i)%TowerStrouhal)
+                call Compute_Tower_Forces(Turbine(i)%Tower,visc,ctime,Turbine(i)%TowerLift,Turbine(i)%TowerDrag,Turbine(i)%TowerStrouhal)
             endif
             
             end do

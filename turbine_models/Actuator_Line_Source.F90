@@ -49,6 +49,7 @@ contains
                 counter=counter+1
                 end do
             endif
+        
         end do
     endif
     

@@ -112,15 +112,13 @@ contains
     call populate_blade_airfoils(turbine%blade(iblade)%NElem,turbine%Blade(iblade)%NAirfoilData,turbine%Blade(iblade)%EAirfoil,turbine%Blade(iblade)%AirfoilData,turbine%Blade(iblade)%ETtoC)
     
     turbine%Blade(iblade)%EAOA_LAST(:)=-666
-    turbine%Blade(iblade)%EUn_LAST(:)=0.0
     
     ! Initialize LB_model and Tip Correction Coeffs
     do ielem=1,turbine%blade(iblade)%Nelem
     if(turbine%blade(iblade)%do_dynamic_stall) then
     call dystl_init_LB(turbine%blade(iblade)%E_LB_Model(ielem))
     endif
-    end do
-    
+    end do 
     end do
 
     !=========================================================
@@ -135,6 +133,7 @@ contains
     turbine%tower%name=trim(turbine%name)//'_tower'
    
     turbine%Tower%COR=turbine%origin
+    turbine%Tower%L=turbine%Towerheight
     turbine%Tower%NElem=Nstations-1  
     
     do istation=1,Nstations
@@ -152,7 +151,6 @@ contains
     call make_actuatorline_geometry(turbine%tower)
     
     turbine%tower%EAOA_LAST(:)=-666
-    turbine%tower%EUn_LAST(:)=0.0
     
     !Set the tower body velocity to zero
     turbine%tower%EVbx(:)=0.0
@@ -161,7 +159,7 @@ contains
     turbine%tower%EObx(:)=0.0
     turbine%tower%EOby(:)=0.0
     turbine%tower%EObz(:)=0.0
-
+    turbine%tower%Eepsilon(:)=0.0
     endif
      
     !========================================================
