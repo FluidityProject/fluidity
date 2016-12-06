@@ -83,6 +83,7 @@
 !      use diagnostic_fields, only: calculate_diagnostic_variable
 !      use dgtools, only: dg_apply_mass
 !      use slope_limiters_dg
+
       use implicit_solids
       use pressure_dirichlet_bcs_cv
       use shallow_water_equations

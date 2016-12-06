@@ -202,7 +202,6 @@ contains
     character(len = OPTION_PATH_LEN) :: dump_filename, sim_name, dump_format
     character(len = FIELD_NAME_LEN) :: mesh_name
     integer :: max_dump_no, stat
-
     integer :: increment
     integer :: i
 

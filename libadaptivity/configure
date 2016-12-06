@@ -9664,6 +9664,12 @@ fi
 if test "x$enable_vtk" != "xno" ; then
     { $as_echo "$as_me:${as_lineno-$LINENO}: Checking for VTK automagic." >&5
 $as_echo "$as_me: Checking for VTK automagic." >&6;}
+    VTK_FLAGS=`cmake --find-package -DNAME=VTK -DCOMPILER_ID=gcc -DLANGUAGE=Fortran -DMODE=COMPILE`
+    VTK_LIBS=`cmake --find-package -DNAME=VTK -DCOMPILER_ID=gcc -DLANGUAGE=Fortran -DMODE=LINK`
+    OLD_CPPFLAGS="$CPPFLAGS"
+    CPPFLAGS="$CPPFLAGS $VTK_FLAGS"
+    OLD_LIBS="$LIBS"
+    LIBS="$LIBS $VTK_LIBS"
     cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
@@ -9711,6 +9717,8 @@ else
             { $as_echo "$as_me:${as_lineno-$LINENO}: No VTK automagic" >&5
 $as_echo "$as_me: No VTK automagic" >&6;}
 	    search_for_vtk=yes
+	    CPPFLAGS="$OLD_CPPFLAGS"
+	    LIBS="$OLD_LIBS"
 
 fi
 rm -f core conftest.err conftest.$ac_objext \

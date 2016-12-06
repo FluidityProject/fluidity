@@ -20,8 +20,7 @@ Fluids.o ../include/fluids_module.mod: Fluids.F90 \
    ../include/fdebug.h ../include/field_equations_cv.mod \
    ../include/field_priority_lists.mod ../include/fields.mod \
    ../include/fldebug.mod ../include/foam_flow_module.mod \
-   ../include/free_surface_module.mod ../include/fsi_model.mod \
-   ../include/futils.mod \
+   ../include/free_surface_module.mod ../include/futils.mod \
    ../include/global_parameters.mod ../include/gls.mod ../include/goals.mod \
    ../include/halos.mod ../include/iceshelf_meltrate_surf_normal.mod \
    ../include/implicit_solids.mod ../include/k_epsilon.mod \
