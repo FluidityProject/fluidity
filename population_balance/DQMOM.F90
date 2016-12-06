@@ -873,14 +873,11 @@ contains
        end if
     end if
 
-    ! solve linear system to find source values
-    b(:,1) = S_rhs(1,:)   !! gb 15-11-2012! added S_rhs term
+    ! solve linear system to find source values for weights and weighted-abscissa equations
+    b(:,1) = S_rhs(1,:)   
     call dqmom_solve(A(1,:,:), b, stat)
     weight_S(1,:) = b(:N,1)
     abscissa_S(1,:) = b(N+1:,1)
-    if ((SV(size(SV))/SV(1) < cond) .and. (singular_option=='do_nothing')) then
-       print*, abscissa_val(1,:)
-    end if
 
     ! Add to source fields
     do i = 1, N

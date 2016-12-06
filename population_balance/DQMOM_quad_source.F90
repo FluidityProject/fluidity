@@ -32,6 +32,8 @@ module dqmom
   use vector_tools
   use spud
   use fields
+  use elements
+  use fetools
   use state_module
   use state_fields_module
   use initialise_fields_module
@@ -748,10 +750,6 @@ contains
     real, dimension(size(abscissa)*2, size(abscissa)*2) :: svd_tmp1, svd_tmp2
     real, dimension(size(abscissa)*2) :: SV
     integer :: stat, N, i, j, k
-    real :: curr_time
-    real, dimension(size(abscissa)) :: perturb
-    integer :: p_num
-    real, dimension(size(abscissa)) :: absc_init
 
     real :: sigma, density_continuous, density_dispersed
 
@@ -797,7 +795,7 @@ contains
        if (growth_type=='power_law_growth') then
           do i = 1, 2*N
              do j = 1, N
-                S_rhs(:,i) = S_rhs(:,i) + (i-1)*ele_val_at_quad(weight(j), ele)*(ele_val_at_quad(abscissa(j), ele)**(i-2+growth_r)
+                S_rhs(:,i) = S_rhs(:,i) + (i-1)*ele_val_at_quad(weight(j), ele)*(ele_val_at_quad(abscissa(j), ele)**(i-2+growth_r))
              end do
           end do
        end if
@@ -912,94 +910,45 @@ contains
     endif
 
     ! check for ill-conditioned matrices
-    if (singular_option=='perturbate') then
-       do i = 1, ele_ngi(abscissa(1), ele)
-          call svd(A(i,:,:), svd_tmp1, SV, svd_tmp2)
-          p_num=1
-          do while (SV(size(SV))/SV(1) < cond)
-          !if (SV(size(SV))/SV(1) < cond) then
-             print*, "SINGULAR MATRIX"
-             print*, "condition number=", (SV(size(SV))/SV(1))
-             do j = 1, N
-                !! perturbation coefficient should be taken from diamond options with a check for default value
-                call random_number(perturb(1))
-                perturb(1)=-1.0+2.0*perturb(1)
-                print*, "perturb(1)=", N, perturb(1)
-                abscissa_val_at_quad(i,j) = abscissa_val_at_quad(i,j)*(1.0+perturb(1)*perturb_val)
-                print*, "abscissa", j, " = ", abscissa_val_at_quad(i,j)
-             end do
-             A = A_matrix(abscissa_val_at_quad)
-             call svd(A(i,:,:), svd_tmp1, SV, svd_tmp2)
-             print*, "perturbed condition number=", (SV(size(SV))/SV(1))
-             p_num=p_num+1
-             print*, "p_num=", p_num
-!             if (SV(size(SV))/SV(1) < cond) then
-!                print*, "perturbing does not help"
-!             end if
-!          end if
-          end do
-       end do
-    else if (singular_option=='set_source_to_zero') then
+    if (singular_option=='set_source_to_zero') then
        do i = 1, ele_ngi(abscissa(1), ele)
           call svd(A(i,:,:), svd_tmp1, SV, svd_tmp2)
           if (SV(size(SV))/SV(1) < cond) then
              ewrite(2,*) 'ill-conditioned matrix found', SV(size(SV))/SV(1)
+             S_rhs(i,:)=0.0
              A(i,:,:) = 0.0
              A_3(i,:,:) = 0.0
              C(i,:) = 0.0
              do j = 1, 2*N
                 A(i,j,j) = 1.0
              end do
+          end if    
+       end do
+    else if (singular_option=='do_nothing') then
+       do i = 1, ele_ngi(abscissa(1), ele)
+          call svd(A(i,:,:), svd_tmp1, SV, svd_tmp2)
+          if (SV(size(SV))/SV(1) < cond) then
+             ewrite(2,*) 'ill-conditioned matrix found but doing nothing about it', SV(size(SV))/SV(1)
+          end if
+       end do
+    else if (singular_option=='perturbate') then
+       do i = 1, ele_ngi(abscissa(1), ele)
+          call svd(A(i,:,:), svd_tmp1, SV, svd_tmp2)
+          if (SV(size(SV))/SV(1) < cond) then
+             ewrite(2,*) 'ill-conditioned matrix found and perturbating', SV(size(SV))/SV(1)
+             do j = 1, N
+                abscissa_val_at_quad(i,j) = abscissa_val_at_quad(i,j)-perturb_val
+             end do
+             A = A_matrix(abscissa_val_at_quad)
+             call svd(A(i,:,:), svd_tmp1, SV, svd_tmp2)
+             ewrite(2,*) 'Condition number after perturbating', SV(size(SV))/SV(1)
           end if
        end do
     end if
-!!       p_num = 1
 
-
-!!       do j = 1, N
-!!          absc_init(j) = abscissa_val_at_quad(i,j)
-!!       end do
-
-!!       do while (SV(size(SV))/SV(1) < cond)
-!          call get_option("/timestepping/current_time", curr_time)   ! get the current simulation time
-          !! a better check for the first timestep instead of small value of the current time
- !         if (curr_time < 1e-7) then   ! this block perturbates the abscissas in A matrix if current time is 0
-!!             print*, "perturbing %g \n", p_num
-!!             do j = 1, N
-                !! perturbation coefficient should be taken from diamond options with a check for default value
-!!                call random_number(perturb(1))
-!!                abscissa_val_at_quad(i,j) = absc_init(j) + perturb(1)
-!                abscissa_val_at_quad(:,j) = abscissa_val_at_quad(:,j) + (2-j)*(0.1) 
-!!                print*, "abscissa", j, " = ", abscissa_val_at_quad(i,j)
-!!             end do
-!!             A = A_matrix(abscissa_val_at_quad)
-!!             call svd(A(i,:,:), svd_tmp1, SV, svd_tmp2)
-!!             print*, "condition number=", (SV(size(SV))/SV(1))
-!!             p_num = p_num+1
-!             print*, "perturbed condition number=", (SV(size(SV))/SV(1))
-!             if (SV(size(SV))/SV(1) < cond) then
-!                print*, "perturbing does not help"
-!             end if
-
-!          else          
-!             ewrite(2,*) 'ill-conditioned matrix found'
-!             A(i,:,:) = 0.0
-!             A_3(i,:,:) = 0.0
-!             C(i,:) = 0.0
-!             do j = 1, 2*N
-!                A(i,j,j) = 1.0
-!             end do
-!          end if
-!       end if
-!!       end do
-!    end do
-           
-
-
-
-    ! solve linear system to find source values
+    ! solve linear system to find source values for weights and weighted-abscissa equations
     do i = 1, ele_ngi(abscissa(1), ele)
-       b(:,1) = matmul(A_3(i,:,:), C(i,:)) + S_rhs(i,:)   !! gb 15-11-2012! added S_rhs term
+       b(:,1) = matmul(A_3(i,:,:), C(i,:)) + S_rhs(i,:)   
        call dqmom_solve(A(i,:,:), b, stat)
        weight_S_at_quad(i,:) = b(:N,1)
        abscissa_S_at_quad(i,:) = b(N+1:,1)
@@ -1211,34 +1160,137 @@ contains
 
   end subroutine dqmom_calculate_statistics
 
-  subroutine dqmom_check_options(state)
+  subroutine dqmom_check_options
 
-    type(state_type), intent(in) :: state
+!    type(state_type), intent(in) :: state
     
-    integer :: i_pop
-    integer :: n_abscissa, n_weights, n_weighted_abscissa, n_moments
+    integer :: i_pop, i_state, i_field, stat
+    integer :: n_abscissa, n_weights, n_weighted_abscissa, n_moments, n_statistics
     character(len=OPTION_PATH_LEN) :: option_path 
+    character(len=FIELD_NAME_LEN)  :: old_msh, amsh, wmsh, wamsh, mmsh, smsh, type
 
     write(*,*) 'in dqmom_check_options'
 
-    do i_pop = 1, option_count(trim(state%option_path)//'/population_balance')
-       option_path = trim(state%option_path)//'/population_balance['//int2str(i_pop)//']'
+    do i_state = 1, option_count("/material_phase")
+       do i_pop = 1, option_count('material_phase['//int2str(i_state-1)//']/population_balance')
+          option_path = 'material_phase['//int2str(i_state-1)//']/population_balance['//int2str(i_pop-1)//']'
 
-       ! Check there are the same number of abscissa, weight and weighted abscissa fields
-       n_abscissa = option_count(trim(option_path)//'/abscissa/scalar_field')
-       n_weights = option_count(trim(option_path)//'/weights/scalar_field')
-       n_weighted_abscissa = option_count(trim(option_path)// &
-            '/weighted_abscissa/scalar_field')
-       assert(n_weights == n_abscissa) 
-       assert(n_weights == n_weighted_abscissa)
+          ! Check there are the same number of abscissa, weight and weighted abscissa fields
+          n_abscissa = option_count(trim(option_path)//'/abscissa/scalar_field')
+          n_weights = option_count(trim(option_path)//'/weights/scalar_field')
+          n_weighted_abscissa = option_count(trim(option_path)// &
+               '/weighted_abscissa/scalar_field')
+          if((n_weights /= n_abscissa) .or. (n_weights /= n_weighted_abscissa)) then
+             FLExit("The number of weights, abscissas and weighted abscissa scalar fields must be the same in the population balance solver")
+          end if
 
-       ! Check there are sufficient abscissa to calculate requested moments
-       n_moments = option_count(trim(option_path)//'/moments/scalar_field')
-       assert((n_moments / 2) == n_abscissa)       
+          ! Check there are sufficient abscissas to calculate requested moments
+          n_moments = option_count(trim(option_path)//'/moments/scalar_field')
+          if((n_moments / 2) /= n_abscissa) then
+             FLExit("The number of moments must be twice the number of abscissas in the population balance solver")
+          end if       
 
-       ! Need to check that all fields are on the same mesh
+          ! Need to check that all fields are on the same mesh
+    
+          type='abscissa'
+          do i_field = 1, n_abscissa
+             call get_option(trim(option_path)//'/'//trim(type)//'/scalar_field['//int2str(i_field - 1)//']/diagnostic/mesh/name', amsh, stat)
+             if (stat /= 0) then
+                FLExit("Abscissa scalar field must be diagnostic in population balance solver")
+             else
+                if (i_field==1) then 
+                   old_msh=amsh
+                else 
+                   if (trim(amsh)/=trim(old_msh)) then
+                      FLExit("All abscissas must be on the same mesh")
+                   else
+                      old_msh=amsh
+                   end if
+                end if
+             end if  
+          end do
+
+          type='weights'
+          do i_field = 1, n_abscissa
+             call get_option(trim(option_path)//'/'//trim(type)//'/scalar_field['//int2str(i_field - 1)//']/prognostic/mesh/name', wmsh, stat)
+             if (stat /= 0) then
+                FLExit("Weight scalar field must be prognostic in population balance solver")
+             else
+                if (i_field==1) then
+                   old_msh=wmsh
+                else                
+                   if (trim(wmsh)/=trim(old_msh)) then
+                      FLExit("All weights must be on the same mesh")
+                   else
+                      old_msh=wmsh
+                   end if
+                end if
+             end if             
+          end do
+
+          type='weighted_abscissa'
+          do i_field = 1, n_abscissa
+             call get_option(trim(option_path)//'/'//trim(type)//'/scalar_field['//int2str(i_field - 1)//']/prognostic/mesh/name', wamsh, stat)
+             if (stat /= 0) then
+                FLExit("Weighted abscissa scalar field must be prognostic in population balance solver")
+             else
+                if (i_field==1) then
+                   old_msh=wamsh
+                else
+                   if (trim(wamsh)/=trim(old_msh)) then
+                      FLExit("All weighted abscissas must be on the same mesh")
+                   else
+                      old_msh=wamsh
+                   end if
+                end if
+             end if
+          end do
+
+          type='moments'
+          do i_field = 1, n_moments
+             call get_option(trim(option_path)//'/'//trim(type)//'/scalar_field['//int2str(i_field - 1)//']/diagnostic/mesh/name', mmsh, stat)
+             if (stat /= 0) then
+                FLExit("Moment scalar field must be diagnostic in population balance solver")
+             else
+                if (i_field==1) then
+                   old_msh=mmsh
+                else
+                   if (trim(mmsh)/=trim(old_msh)) then
+                      FLExit("All moments must be on the same mesh")
+                   else
+                      old_msh=mmsh
+                   end if
+                end if
+             end if
+          end do          
+
+          n_statistics = option_count(trim(option_path)//'/statistics/scalar_field')
+          type='statistics'
+          do i_field = 1, n_statistics
+             call get_option(trim(option_path)//'/'//trim(type)//'/scalar_field['//int2str(i_field - 1)//']/diagnostic/mesh/name', smsh, stat)
+             if (stat /= 0) then
+                FLExit("Statitics scalar field must be diagnostic in population balance solver")
+             else
+                if (i_field==1) then
+                   old_msh=smsh
+                else
+                   if (trim(smsh)/=trim(old_msh)) then
+                      FLExit("All statistics must be on the same mesh")
+                   else
+                      old_msh=smsh
+                   end if
+                end if
+             end if
+          end do        
+
+          if ((amsh/=wmsh) .or. (amsh/=wamsh) .or. (amsh/=mmsh) .or. (amsh/=smsh)) then
+             FLExit("Abscissas, weights, weighted abscissas, moments and statistics - all must be on the same mesh in population balance solver")
+          end if
+
+       end do
     end do
 
+    write(*,*) 'Finished dqmom_check_options'
   end subroutine dqmom_check_options
 
 end module dqmom
