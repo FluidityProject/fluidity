@@ -387,8 +387,8 @@ contains
       call picker_inquire(remapped_pos,Scoords,ele,local_coord,.true.)
       
       if (ele<0) then
-          !ewrite(2,*) 'I dont own the element'
-          call MPI_recv(Recv,5,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,tag,MPI_COMM_WORLD,status,ierr)
+        ewrite(2,*) 'I dont own the element'
+        call MPI_recv(Recv,5,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,tag,MPI_COMM_WORLD,status,ierr)
         Su(isource)=Recv(1)
         Sv(isource)=Recv(2)
         Sw(isource)=Recv(3)
@@ -398,20 +398,19 @@ contains
       else
           ewrite(2,*) 'I own the element'
           
-          value_vel=eval_field(ele,velocity,local_coord)
-          nu=eval_field(ele,ViscosityTens,local_coord)
+        value_vel=eval_field(ele,velocity,local_coord)
+        nu=eval_field(ele,ViscosityTens,local_coord)
         
-          Visc=1.0/3.0*(nu(1,1)+nu(2,2)+nu(3,3)) ! Compute trace of the viscosity tensor 
+        Visc=1.0/3.0*(nu(1,1)+nu(2,2)+nu(3,3)) ! Compute trace of the viscosity tensor 
             
-          volume=element_volume(positions,ele)
+        volume=element_volume(positions,ele)
 
-          epsilon_par_mesh  = 2.0*meshFactor*volume**(1.0/3.0) 
+        epsilon_par_mesh  = 2.0*meshFactor*volume**(1.0/3.0) 
          
         Su(isource)=value_vel(1)
         Sv(isource)=value_vel(2)
         Sw(isource)=value_vel(3)
         Se(isource)=epsilon_par_mesh
-  
         do irank=0,num_procs-1
         if(irank.ne.rank) then
         Send(1)=Su(isource)
@@ -420,7 +419,7 @@ contains
         Send(4)=Se(isource)
         Send(5)=Visc
         call MPI_Send(Send,5,MPI_DOUBLE_PRECISION,irank,tag,MPI_COMM_WORLD,ierr)
-        !ewrite(2,*) 'Sent' , Send, ' to processor ', irank        
+        ewrite(2,*) 'Sent' , Send, ' to processor ', irank        
         end if 
         
         end do
@@ -428,7 +427,7 @@ contains
       endif 
       
       end do
-
+        
       call cpu_time(toc)
       mpi_time=toc-tic
       ewrite(2,*) 'MPI_Communication Time', mpi_time

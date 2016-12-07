@@ -313,7 +313,7 @@ contains
         real,intent(OUT) :: CN, CT, CM25, CL, CLCirc, CD
         logical,intent(in) :: DStallFlag, AddedMassFlag
         real :: CLstat75, CLstat5, CDstat75, CLdyn5, CDdyn5, CL5, CD5, C, C1, CM25stat
-        real :: alphaL, alphaD, dCTAM,dCLAD,dCNAM,aref, Fac, CTAM,CNAM 
+        real :: alphaL, dCTAM,dCLAD,dCNAM,aref, Fac, CTAM,CNAM 
 
         ewrite(2,*) 'Entering compute_aeroCoeffs_one_airfoil'
 
@@ -322,17 +322,18 @@ contains
         !==============
         call intp(Re,alpha75*condeg,CLstat75,CDstat75,CM25stat,airfoil) 
         call intp(Re,alpha5*condeg,CLstat5,C,C1,airfoil)
+        
         CL5=CLstat75
         CD5=CDstat75
         CM25=CM25stat+cos(alpha5)*(CLstat75-CLstat5)/4.0
         alphaL=alpha75
         CLCirc=CLstat75
+
         !================================================
         ! Dynamic Stall according to Leishman and Beddoes
         !================================================
         if(DStallFlag) then
-        call LB_DynStall(airfoil,lb,CL5,CD5,alphaL,alpha5,Re,CLdyn5,CDdyn5)
-        
+        call LB_DynStall(airfoil,lb,CL5,CD5,alphaL,alpha5,Re,CLdyn5,CDdyn5)        
         CL5=CLdyn5
         CD5=CDdyn5
         CLCirc=CLdyn5
@@ -342,9 +343,9 @@ contains
         CN=CL5*cos(alpha5)+CD5*sin(alpha5)                                   
         CT=-CL5*sin(alpha5)+CD5*cos(alpha5) 
 
-        !=============================================================================
-        ! Added mass according to Strickland et al, taken from Banchant et al 2016
-        !============================================================================
+        !===============================================
+        ! Added mass according to Strickland et al,1973
+        !===============================================
         dCTAM=2.0/cos(alpha5)*wPNorm*CM25stat-CLstat5/2.0*wPNorm
         dCLAD=pi*adotnorm
         dCTAM=dCTAM-dCLAD*sin(alpha5)
@@ -365,7 +366,8 @@ contains
         
         CL=CN*cos(alpha5)-CT*sin(alpha5)
         CD=CN*sin(alpha5)+CT*cos(alpha5)
-
+        
+        return
         ewrite(2,*) 'Exiting compute_aeroCoeffs_one_airfoil'
 
     end subroutine compute_aeroCoeffs
@@ -373,7 +375,7 @@ contains
     subroutine LB_DynStall(airfoil,lb,CLstat,CDstat,alphaL,alpha5,Re,CL,CD)
     ! GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
     ! Routine that computes the Leishmann-Beddoes dynamic stall model
-    ! with incompressible reduction and returns corrected values for 
+    ! with incompressible reductionand returns corrected values for 
     ! CL and CD having taken into account the dynamic stall effects
     ! GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
 

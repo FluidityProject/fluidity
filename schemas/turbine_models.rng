@@ -109,6 +109,17 @@
                         <value>ascii</value>
                       </element>
                     </element>
+                    <element name="tower_loading">
+                      <element name="Drag_coeff">
+                        <ref name="real"/>
+                      </element>
+                      <element name="Lift_coeff">
+                        <ref name="real"/>
+                      </element>
+                      <element name="Strouhal_number">
+                        <ref name="real"/>
+                      </element>
+                    </element>
                   </element>
                 </optional>
                 <element name="type">

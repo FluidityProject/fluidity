@@ -76,6 +76,17 @@ turbine_models=(
                 element string_value {
                     "ascii"
                 }
+            },
+            element tower_loading{
+                element Drag_coeff{
+                    real
+                },
+                element Lift_coeff{
+                    real
+                },
+                element Strouhal_number{
+                    real
+                }
             } 
         }?,
 

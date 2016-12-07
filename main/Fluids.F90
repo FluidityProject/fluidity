@@ -879,7 +879,7 @@ contains
        
        !> Update the actuator_line_model output
        if (have_option("/turbine_models/actuator_line_model")) then
-            call actuator_line_model_update(current_time,dt)        
+           call actuator_line_model_update(current_time,dt)        
        endif
       
 
@@ -889,8 +889,7 @@ contains
        ! Work out the domain volume by integrating the water depth function over the surface if using wetting and drying
        if (have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")) then
           ewrite(1, *) "Domain volume (\int_{fs} (\eta.-b)n.n_z)): ", calculate_volume_by_surface_integral(state(1))
-       end if 
-
+       end if  
 
        if(have_option("/timestepping/adaptive_timestep")) call calc_cflnumber_field_based_dt(state, dt)
 

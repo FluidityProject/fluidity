@@ -14,10 +14,10 @@ Dynamic_AOA=[];
 Dynamic_CL=[];
 time=[];
 
-for i in range (1,5000):
-    DynamicData=np.genfromtxt('Test_'+str(i)+'.dat',skip_header=1,delimiter=', ')
-    Dynamic_AOA.append(DynamicData[11,1]*180.0/pi)
-    Dynamic_CL.append(DynamicData[11,2])
+for i in range (1,4999):
+    DynamicData=np.genfromtxt('ALM/'+str(i)+'/Test.load',skip_header=1,delimiter=',')
+    Dynamic_AOA.append(DynamicData[11,6])
+    Dynamic_CL.append(DynamicData[11,11])
     time.append(i*0.001/T)
 
 plt.figure(1)

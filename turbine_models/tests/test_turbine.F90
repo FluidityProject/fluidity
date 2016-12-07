@@ -44,9 +44,6 @@ subroutine test_turbine
         Turbine(itur)%Blade(iblade)%EVy(:)=0.0
         Turbine(itur)%Blade(iblade)%EVz(:)=0.0
         enddo
-        Turbine(itur)%tower%EVx(:)=10.0
-        Turbine(itur)%tower%EVy(:)=0.0
-        Turbine(itur)%tower%EVz(:)=0.0
     end do
 
     call actuator_line_model_compute_forces    
