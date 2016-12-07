@@ -3,7 +3,6 @@
 module meshmovement
 
   use iso_c_binding
-
   use global_parameters
   use fldebug
   use vector_tools, only: solve, mat_diag_mat, eigendecomposition_symmetric
@@ -17,13 +16,13 @@ module meshmovement
   use eventcounter
   use fetools
   use unittest_tools
+  use parallel_fields
   use fields
-  use boundary_conditions, only : get_boundary_condition, get_boundary_condition_count
   use state_module
+  use boundary_conditions, only : get_boundary_condition, get_boundary_condition_count
   use vtk_interfaces
   use sparse_matrices_fields
   use solvers
-  use parallel_fields
   use fefields
   use field_derivatives
   use sparsity_patterns

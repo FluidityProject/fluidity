@@ -45,9 +45,9 @@ module momentum_diagnostics
   use sparsity_patterns_meshes
   use state_fields_module
   use sediment, only : get_n_sediment_fields, get_sediment_item
+  use momentum_cg, only: get_stress_free_field
   use geostrophic_pressure
   use multimaterial_module
-  use momentum_cg, only: get_stress_free_field
   
   implicit none
   
