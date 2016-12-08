@@ -1283,6 +1283,10 @@ contains
              end if
           end do        
 
+          if (n_statistics == 0) then
+             smsh = amsh
+          end if
+
           if ((amsh/=wmsh) .or. (amsh/=wamsh) .or. (amsh/=mmsh) .or. (amsh/=smsh)) then
              FLExit("Abscissas, weights, weighted abscissas, moments and statistics - all must be on the same mesh in population balance solver")
           end if
