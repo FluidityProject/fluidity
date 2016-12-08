@@ -70,6 +70,7 @@ module adapt_state_module
   use reserve_state_module
   use fields_halos
   use populate_state_module
+  use dqmom
   use diagnostic_fields_wrapper
   use discrete_properties_module
   use interpolation_manager
@@ -82,7 +83,6 @@ module adapt_state_module
   use sam_integration
   use timeloop_utilities
   use write_gmsh
-  use dqmom
 #ifdef HAVE_ZOLTAN
   use zoltan_integration
 #endif

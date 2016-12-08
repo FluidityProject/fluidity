@@ -72,6 +72,7 @@ module fluids_module
   use free_surface_module
   use momentum_diagnostic_fields, only: calculate_densities
   use sediment_diagnostics, only: calculate_sediment_flux
+  use dqmom
   use diagnostic_fields_wrapper
   use checkpoint
   use goals
@@ -103,7 +104,6 @@ module fluids_module
   use saturation_distribution_search_hookejeeves
   use gls
   use iceshelf_meltrate_surf_normal
-  use DQMOM
 #ifdef HAVE_HYPERLIGHT
   use hyperlight
 #endif
