@@ -257,10 +257,9 @@ end type ActuatorLineType
     
     ! This is the dynamic angle of attack 
     alpha=atan2(urdn,urdc)
-    act_line%EAOA(ielem)=alpha
     act_line%ERe(ielem) = ur*ElemChord/Visc
    
-    wPNorm = wP*ElemChord/(2.0*max(ur,0.0001))
+    wPNorm = wP*ElemChord/(2.0*max(ur,0.001))
 
     ! Calculate half chord and 75% chord velocites to be used in the pitch rate effects
     if(act_line%do_added_mass) then
@@ -284,15 +283,17 @@ end type ActuatorLineType
     wPNorm=0.0
     endif
     
+    act_line%EAOA(ielem)=alpha75
+    
     if(act_line%EAOA_Last(ielem)<0) then
     dal=0.0
     else
     dal=alpha75-act_line%EAOA_Last(ielem)
     endif
     
-    act_line%EAOAdot(ielem)=dal/max(dt,0.0001)
+    act_line%EAOAdot(ielem)=dal/dt
     
-    adotnorm=act_line%EAOAdot(ielem)*ElemChord/(2.0*max(ur,0.0001)) ! adot*c/(2*U)
+    adotnorm=act_line%EAOAdot(ielem)*ElemChord/(2.0*max(ur,0.001)) ! adot*c/(2*U)
     
     !====================================
     ! Compute the Aerofoil Coefficients

@@ -359,8 +359,8 @@ contains
             Fac=abs(1-4.0/pi*(aref-pi/4.0))
         end if
         ! Added mass components
-        CTAM=Fac*dcTAM
-        CNAM=Fac*dcNAM
+        CTAM=Fac*dCTAM
+        CNAM=Fac*dCNAM
         ! Augment tangential and normal coeffs 
         end if
 
