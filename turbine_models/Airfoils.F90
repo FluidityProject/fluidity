@@ -294,16 +294,14 @@ contains
         !           alpha75 : Angle of Attack at 3/4 of the element 
         !           alpha5  : Angle of Attack at 1/2 (middle) of the element
         !           Re      : Element Reynolds Number
-        !           A1      : Un/Urel
-        !           A2      : c*UdotN/Urel**2
-        !           A3      : Un*Uc/Urel**2
         !           adotnorm: rate of change of the angle of attack (locally)
         ! 
         ! outputs: 
         !           CN      : Normal Force Coefficient
         !           CT      : Tangential Force Coefficient
         !           CM25    : Pitch moment at 1/4 from the LE
-        !               
+        !           CL      : Lift Coefficient
+        !           CD      : Drag Coefficient
         !       
         ! GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
         type(AirfoilType),intent(IN) :: airfoil
@@ -346,21 +344,26 @@ contains
         !===============================================
         ! Added mass according to Strickland et al,1973
         !===============================================
+        ! First zero CTAM and CNAM
+        CTAM=0.0
+        CNAM=0.0
+        
+        if(AddedMassFlag) then
         dCTAM=2.0/cos(alpha5)*wPNorm*CM25stat-CLstat5/2.0*wPNorm
         dCLAD=pi*adotnorm
         dCTAM=dCTAM-dCLAD*sin(alpha5)
         dCNAM=dCLAD*cos(alpha5)
-        
         Fac=1.0
         aref=abs(alpha5)
         if ((aref>pi/4.0).AND.(aref<3.0*pi/4.0)) then
             Fac=abs(1-4.0/pi*(aref-pi/4.0))
         end if
-       
         ! Added mass components
         CTAM=Fac*dcTAM
         CNAM=Fac*dcNAM
         ! Augment tangential and normal coeffs 
+        end if
+
         CT=CT+CTAM
         CN=CN+CNAM
         

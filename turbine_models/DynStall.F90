@@ -130,9 +130,9 @@ module dynstall
 
         ! Set model parameters. All of these are potentially a function of Mach
         ! and are set to low mach values...
-        Tp=1.7                  ! time constant on LE pressure response to change in CL
+        Tp=4.0                  ! time constant on LE pressure response to change in CL
         TfRef=3.0               ! time constant on TE separation point travel
-        TvRef=6.0               ! time constant on LE vortex lift indicial function
+        TvRef=6.3               ! time constant on LE vortex lift indicial function
         TvL=11.0                ! Characteristic LE vortex travel time
 
 

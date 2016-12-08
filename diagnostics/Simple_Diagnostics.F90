@@ -305,7 +305,8 @@ contains
     if(absolute_vals) source_field%val = abs(source_field%val)
 
     if (current_time>spin_up_time) then
-      a = (current_time-spin_up_time-dt)/(current_time-spin_up_time); b = dt/(current_time-spin_up_time)
+      a = (current_time-spin_up_time-dt)/(current_time-spin_up_time)
+      b = dt/(current_time-spin_up_time)
       ! v_field = a*v_field + b*source_field
       call scale(v_field, a)
       call addto(v_field, source_field, b)
@@ -331,14 +332,14 @@ contains
     call get_option("/timestepping/current_time", current_time)
     call get_option("/timestepping/timestep", dt)
 
-    absolute_vals=have_option(trim(t_field%option_path)//"/diagnostic/algorithm/absolute_values")
     call get_option(trim(t_field%option_path)//"/diagnostic/algorithm/spin_up_time", spin_up_time, stat)
+    
     if (stat /=0) spin_up_time=0.
     source_field => tensor_source_field(state, t_field)
-    if(absolute_vals) source_field%val = abs(source_field%val)
 
     if (current_time>spin_up_time) then
-      a = (current_time-spin_up_time-dt)/(current_time-spin_up_time); b = dt/(current_time-spin_up_time)
+      a = (current_time-spin_up_time-dt)/(current_time-spin_up_time)
+      b = dt/(current_time-spin_up_time)
       ! v_field = a*v_field + b*source_field
       call scale(t_field, a)
       call addto(t_field, source_field, b)

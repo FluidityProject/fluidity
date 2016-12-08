@@ -241,7 +241,7 @@ contains
     
     ewrite(2,*) '--------------------------------------------------------'
     ewrite(2,*) 'Calculate performance for Turbine : ',turbine%name
-    ewrite(2,*) 'Azimuthal Angle (degrees) : ', turbine%AzimAngle
+    ewrite(2,*) 'Number of Revolutions : ', turbine%AzimAngle/(2*pi)
     ewrite(2,*) 'Thrust Coefficient : ', turbine%CT
     ewrite(2,*) 'Torque Coefficient : ', turbine%CTR
     ewrite(2,*) 'Power Coefficient : ', turbine%CP

@@ -1,0 +1,129 @@
+#!/usr/bin/env python
+# 
+# Georgios (Yorgos) Deskos
+# This script reads the .load files and plots the loads
+import os, glob
+import shutil
+import sys
+import string
+import filecmp
+import difflib
+import subprocess
+import math
+import re
+import argparse
+import csv
+import time
+import numpy as np
+from numpy import genfromtxt
+import matplotlib.pyplot as plt
+from math import sqrt
+
+# ====================================
+# Parser Arguments
+# ====================================
+parser = argparse.ArgumentParser(description="Script that reads from one or more files and plots Blade load statistics")
+parser.add_argument("-v","--verbose",action="store_true",help="Prints a script description on the screen")
+parser.add_argument("-p","--plot",action="store_true",help="Plots the Cp versus the TSR")
+parser.add_argument("-w","--write",help="Write results in a .dat file",type=str)
+parser.add_argument("FILENAME", type=str, help="Filename, should end with .load")
+
+args = parser.parse_args()
+input_file = args.FILENAME
+
+Data = genfromtxt(input_file,delimiter=',',skip_header=1)
+N=len(Data)
+X=np.zeros((N,1));
+Y=np.zeros((N,1));
+Z=np.zeros((N,1));
+rdistR=np.zeros((N,1));
+pitch=np.zeros((N,1));
+AOA=np.zeros((N,1));
+AOAdot=np.zeros((N,1));
+Re=np.zeros((N,1));
+Ur=np.zeros((N,1));
+epsilon=np.zeros((N,1));
+CL=np.zeros((N,1));
+CD=np.zeros((N,1));
+CM=np.zeros((N,1));
+CN=np.zeros((N,1));
+CT=np.zeros((N,1));
+Fn=np.zeros((N,1));
+Ft=np.zeros((N,1));
+
+for i in range(N):
+    X[i]=Data[i,1];
+    Y[i]=Data[i,2];
+    Z[i]=Data[i,3];
+    rdistR[i]=Data[i,4];
+    pitch[i]=Data[i,5];
+    AOA[i]=Data[i,6];
+    AOAdot[i]=Data[i,7];
+    Re[i]=Data[i,8];
+    Ur[i]=Data[i,9];
+    epsilon[i]=Data[i,10];
+    CL[i]=Data[i,11];
+    CD[i]=Data[i,12];
+    CM[i]=Data[i,13];
+    CN[i]=Data[i,14];
+    CT[i]=Data[i,15];
+    Fn[i]=Data[i,16];
+    Ft[i]=Data[i,17];
+    
+####--------------- Plotting -------------------##### 
+plt.figure(1)
+plt.subplot(221)
+plt.plot(rdistR,pitch,'-k.')
+plt.xlabel('Root distance r [m]')
+plt.ylabel('Blade Pitch angle [degrees]')
+plt.subplot(222)
+plt.plot(rdistR,AOA,'-k.')
+plt.xlabel('Root distance r [m]')
+plt.ylabel('Effective AOA [degrees]')
+plt.subplot(223)
+plt.plot(rdistR,AOAdot,'-k.')
+plt.xlabel('Root distance r [m]')
+plt.ylabel('AOA rate of change [degrees/s]')
+plt.subplot(224)
+plt.plot(rdistR,Ur,'-k.')
+plt.xlabel('Root distance r [m]')
+plt.ylabel('Relative Velocity [m/s]')
+plt.show()
+
+plt.figure(2)
+plt.subplot(221)
+plt.plot(rdistR,CL,'-k.')
+plt.ylim(0,1.1*max(CL))
+plt.xlabel('Root distance r [m]')
+plt.ylabel('Lift Coefficient C_L')
+plt.subplot(222)
+plt.plot(rdistR,CD,'-k.')
+plt.ylim(0,1.1*max(CD))
+plt.xlabel('Root distance r [m]')
+plt.ylabel('Drag Coefficient C_D')
+plt.subplot(223)
+plt.plot(rdistR,CN,'-k.')
+plt.ylim(0,1.1*max(CN))
+plt.xlabel('Root distance r [m]')
+plt.ylabel('Normal Force Coefficient C_N')
+plt.subplot(224)
+plt.plot(rdistR,CT,'-k.')
+plt.xlabel('Root distance r [m]')
+plt.ylabel('Tangential Force Coefficient C_T')
+plt.show()
+
+plt.figure(3)
+plt.subplot(311)
+plt.plot(rdistR,Fn,'-k.')
+plt.xlabel('Root distance r [m]')
+plt.ylabel('Fn')
+plt.subplot(312)
+plt.plot(rdistR,Ft,'-k.')
+plt.xlabel('Root distance r [m]')
+plt.ylabel('Ft')
+plt.subplot(313)
+plt.plot(rdistR,epsilon,'-k.')
+plt.xlabel('Root distance r [m]')
+plt.ylabel('epsilon')
+plt.show()
+
