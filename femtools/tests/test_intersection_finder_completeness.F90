@@ -38,6 +38,10 @@ subroutine test_intersection_finder_completeness
     do while(associated(llnode))
       ele_A = llnode%value
       intersection = intersect_elements(positionsA, ele_A, ele_val(positionsB, ele_B), ele_shape(positionsB, ele_B))
+      if (.not. has_references(intersection)) then
+         llnode => llnode%next
+         cycle
+      end if
       do ele_C=1,ele_count(intersection)
         call transform_to_physical(intersection, ele_C, detwei=detwei)
         vols_C = vols_C + sum(detwei)

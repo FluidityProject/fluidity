@@ -743,9 +743,13 @@ extern "C" {
     dataSet->Delete();
     dataSet = NULL;
   
-    if(is_pvtu && (*rank)==0){
-      rename(filename.c_str(), fl_vtkFileName.c_str());
-      pvtu_fix_path(fl_vtkFileName.c_str(), basename.c_str());
+    if(is_pvtu){
+      // Ensure all processes are finished writing before we fiddle with the .ptvu
+      MPI::COMM_WORLD.Barrier();
+      if((*rank)==0){
+        rename(filename.c_str(), fl_vtkFileName.c_str());
+        pvtu_fix_path(fl_vtkFileName.c_str(), basename.c_str());
+      }
     }
 
     return;

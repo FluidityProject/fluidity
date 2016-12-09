@@ -205,6 +205,11 @@ module supermesh_construction
     call cintersector_set_input(ele_val(positions_A, ele_A), posB, dim, loc)
     call cintersector_drive
     call cintersector_query(nonods, totele)
+
+    if (totele==0) then
+       return
+    end if
+    
     call allocate(intersection_mesh, nonods, totele, shape, "IntersectionMesh")
     intersection_mesh%continuity = -1
     call allocate(intersection, dim, intersection_mesh, "IntersectionCoordinates")
@@ -285,6 +290,10 @@ module supermesh_construction
         assert(continuity(intersection(j)) < 0)
       else
         intersection(j) = intersect_elements(old_positions, ele_A, pos_B, supermesh_shape)
+        if (.not. has_references(intersection(j))) then
+          llnode => llnode%next
+          cycle
+        end if
         assert(continuity(intersection(j)) < 0)
       end if
 

@@ -59,6 +59,10 @@ subroutine test_quad_supermesh
     do while(associated(llnode))
       ele_A = llnode%value
       intersection = intersect_elements(positionsA, ele_A, ele_val(positionsB, ele_B), supermesh_shape)
+      if (.not. has_references(intersection)) then
+         llnode => llnode%next
+         cycle
+      end if
 #define DUMP_SUPERMESH_INTERSECTIONS
 #ifdef DUMP_SUPERMESH_INTERSECTIONS
       if (ele_count(intersection) /= 0) then
