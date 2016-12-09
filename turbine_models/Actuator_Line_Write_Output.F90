@@ -56,9 +56,9 @@ write(2018,Format)ielem,',',act_line%ERdist(ielem)/act_line%L,',',act_line%Epitc
         integer :: ielem
         
         open(2016,File=trim(dir)//'/'//trim(turbine%name)//'.perf')
-        write(2016,*) 'Azimuth_Angle, CFx , CFy , CFz , CT , CTR , CP'
+        write(2016,*) 'Number of Revs, CFx , CFy , CFz , CT , CTR , CP'
         Format="(7(E14.7,A))"
-write(2016,Format) turbine%AzimAngle,',',turbine%CFx,',',turbine%CFy,',',turbine%CFz,',',turbine%CT,',',turbine%CTR,',',turbine%CP
+write(2016,Format) turbine%AzimAngle/(2*pi),',',turbine%CFx,',',turbine%CFy,',',turbine%CFz,',',turbine%CT,',',turbine%CTR,',',turbine%CP
         close(2016)
 
     end subroutine actuator_line_turbine_write_output
