@@ -972,6 +972,11 @@ contains
     ! Dump at end, unless explicitly disabled
     if(.not. have_option("/io/disable_dump_at_end")) then
        call write_state(dump_no, state)
+       
+       !> write actuator_line_model output
+       if (have_option("/turbine_models/actuator_line_model")) then
+            call actuator_line_model_write_output(dump_no-1)
+       endif
     end if
 
     ! cleanup GLS
