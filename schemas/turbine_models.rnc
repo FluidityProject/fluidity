@@ -204,6 +204,11 @@ turbine_models=(
                 }*,
 
                 element source_term_parameters{
+                    (
+                    element constant_epsilon{
+                        real
+                    }|
+                    element mesh_based_epsilon{
 ## Mesh factor that takes into account the aspect ratio of the elements.
 ## It takes values between 1 and 2 when the aspect ratio of the elements
 ## is 1 and 2 when skewed elements are considered. Default value : 2.0
@@ -220,12 +225,13 @@ turbine_models=(
                     element chordFactor {
                         real
                     }?,
-                    element anisotropic_source{
+                    element anisotropic_projection{
                         empty
                     }?
                 }
-
-        }?,
+                )
+                }       
+        },
                 element actuator_disc_model{
                     empty
                 }?

@@ -8,11 +8,13 @@ module actuator_line_source
     use actuator_line_model
 
     implicit none
-    real,save :: meshFactor, thicknessFactor, chordFactor
+    real,save :: constant_epsilon, meshFactor, thicknessFactor, chordFactor
     real, allocatable :: Sx(:),Sy(:),Sz(:),Sc(:),Se(:),Su(:),Sv(:),Sw(:),SFX(:),SFY(:),SFZ(:)
     real, allocatable :: Snx(:),Sny(:),Snz(:),Stx(:),Sty(:),Stz(:),Ssx(:),Ssy(:),Ssz(:),Ssegm(:) 
     integer :: NSource
-    logical, save :: anisotropic_source=.false. 
+    logical, save :: anisotropic_projection=.false. 
+    logical, save :: has_mesh_based_epsilon=.false.
+    logical, save :: has_constant_epsilon=.false.
     public get_locations, get_forces, set_vel, initialize_actuator_source
     
 contains
@@ -22,15 +24,22 @@ contains
     implicit none
     integer :: counter,itur,iblade,ielem,ial
     
-    ewrite(1,*) 'entering initialize_source_terms'  
+    ewrite(1,*) 'Entering initialize_source_terms'  
     !> Get Source term parameters
-    call get_option("/turbine_models/actuator_line_model/source_term_parameters/meshFactor",meshFactor,default=2.00)
-    call get_option("/turbine_models/actuator_line_model/source_term_parameters/dragFactor",thicknessFactor,default=0.2)
-    call get_option("/turbine_models/actuator_line_model/source_term_parameters/chordFactor",chordFactor,default=0.4)
-    
+    if (have_option("/turbine_models/actuator_line_model/source_term_parameters/constant_epsilon")) then
+        has_constant_epsilon=.true.
+        call get_option("/turbine_models/actuator_line_model/source_term_parameters/constant_epsilon",constant_epsilon)
+    else if (have_option("/turbine_models/actuator_line_model/source_term_parameters/mesh_based_epsilon")) then
+        has_mesh_based_epsilon=.true.
+        call get_option("/turbine_models/actuator_line_model/source_term_parameters/meshFactor",meshFactor,default=2.00)
+        call get_option("/turbine_models/actuator_line_model/source_term_parameters/dragFactor",thicknessFactor,default=0.2)
+        call get_option("/turbine_models/actuator_line_model/source_term_parameters/chordFactor",chordFactor,default=0.4)
     if(have_option("/turbine_models/actuator_line_model/source_term_parameters/anisotropic_source")) then
-        anisotropic_source=.true.
+        anisotropic_projection=.true.
     endif
+    else
+        FLAbort("Source term parameters not set")
+    end if
 
     counter=0
     if (Ntur>0) then

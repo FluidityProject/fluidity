@@ -448,36 +448,35 @@ contains
       DSource(:)=0.0
       ! Compute a molification function in 3D 
       Rcoords=node_val(remapped_pos,i)
-       
-      if(anisotropic_source) then
-      
-      dx=-Sx(isource)+Rcoords(1)
-      dy=-Sy(isource)+Rcoords(2)
-      dx=-Sz(isource)+Rcoords(3)
+    
+      if(has_constant_epsilon) then 
+        
+          Se(isource)=constant_epsilon
 
-      ec=chordFactor*Sc(isource)
-      et=thicknessFactor*Sc(isource)
-      es=Ssegm(isource)/2.0
-      loc_kern=AnIsoKernel(dx,dy,dz,Snx(isource),Sny(isource),Snz(isource),Stx(isource),Sty(isource),Stz(isource),Ssx(isource),Ssy(isource),Ssz(isource),ec,et,es)
+      else if (has_mesh_based_epsilon) then
+        if(anisotropic_projection) then
       
-      ! The (-) means that the fluid and the body are in equilibrium at each time
-      DSource(1)=-loc_kern*SFx(isource)
-      DSource(2)=-loc_kern*SFy(isource)
-      DSource(3)=-loc_kern*SFz(isource)
-      
-      else
-      
-      d=sqrt((Sx(isource)-Rcoords(1))**2+(Sy(isource)-Rcoords(2))**2+(Sz(isource)-Rcoords(3))**2)
-     
-      loc_kern=IsoKernel(d,Se(isource),Sc(isource),3)
+            dx=-Sx(isource)+Rcoords(1)
+            dy=-Sy(isource)+Rcoords(2)
+            dz=-Sz(isource)+Rcoords(3)
+            ec=chordFactor*Sc(isource)
+            et=thicknessFactor*Sc(isource)
+            es=Ssegm(isource)/2.0
+            loc_kern=AnIsoKernel(dx,dy,dz,Snx(isource),Sny(isource),Snz(isource),Stx(isource),Sty(isource),Stz(isource),Ssx(isource),Ssy(isource),Ssz(isource),ec,et,es)
+            ! The (-) means that the fluid and the body are in equilibrium at each time
+            DSource(1)=-loc_kern*SFx(isource)
+            DSource(2)=-loc_kern*SFy(isource)
+            DSource(3)=-loc_kern*SFz(isource)
+        else 
+            d=sqrt((Sx(isource)-Rcoords(1))**2+(Sy(isource)-Rcoords(2))**2+(Sz(isource)-Rcoords(3))**2)
+            loc_kern=IsoKernel(d,Se(isource),Sc(isource),3)
+            ! The (-) means that the fluid and the body are in equilibrium at each time
+            DSource(1)=-loc_kern*SFx(isource)
+            DSource(2)=-loc_kern*SFy(isource)
+            DSource(3)=-loc_kern*SFz(isource)
+        endif
 
-      ! The (-) means that the fluid and the body are in equilibrium at each time
-      DSource(1)=-loc_kern*SFx(isource)
-      DSource(2)=-loc_kern*SFy(isource)
-      DSource(3)=-loc_kern*SFz(isource)
-      
       endif
-
 
       call addto(v_field,i,DSource)
       end do
