@@ -137,6 +137,8 @@ contains
        measure=VTK_QUALITY_SHAPE_AND_SIZE
     case("area_or_volume")
        measure=VTK_QUALITY_AREA
+    case("simple_anisotropic")
+       measure=FLUIDITY_QUALITY_SIMPLE_ANISOTROPIC
     case default
         FLAbort("Unknown quality function for "//trim(s_field%name) )
     end select

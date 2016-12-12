@@ -1932,6 +1932,23 @@ underlying CoordinateMesh must consist of linear triangles
             <value>area_or_volume</value>
           </attribute>
         </element>
+        <element name="quality_function">
+          <a:documentation>This function implements the quality measure used in papers by
+Frederic Alauzet's group. 
+
+Q_E = C_N (\sum_i |e^E_i|^2)^(N/2)/V_E
+
+where E is an element index, N the dimension, e_i are edge vectors,
+V is the volume/area of the simplex and the C_N is chosen such that
+Q_E = 1 for a regular simplex. All geometry is calculated in the
+supplied metric, averaged to the relevant element. 
+
+See Mesh Generation: Application to Finite Elements by
+Pascal Jean Frey &amp; Paul-Louis George for references.</a:documentation>
+          <attribute name="name">
+            <value>simple_anisotropic</value>
+          </attribute>
+        </element>
       </choice>
     </element>
   </define>

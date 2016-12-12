@@ -1404,7 +1404,20 @@ mesh_quality_algorithm =
           element quality_function{ attribute name{"max_angle" } }|
           element quality_function{ attribute name{"shape" } }|		
           element quality_function{ attribute name{"shape_and_size" } }|
-	  element quality_function{ attribute name{"area_or_volume"} }
+	  element quality_function{ attribute name{"area_or_volume"} }|
+          ## This function implements the quality measure used in papers by
+          ## Frederic Alauzet's group. 
+          ##
+          ## Q_E = C_N (\sum_i |e^E_i|^2)^(N/2)/V_E
+          ##
+          ## where E is an element index, N the dimension, e_i are edge vectors,
+          ## V is the volume/area of the simplex and the C_N is chosen such that
+          ## Q_E = 1 for a regular simplex. All geometry is calculated in the
+          ## supplied metric, averaged to the relevant element. 
+          ##
+          ## See Mesh Generation: Application to Finite Elements by
+          ## Pascal Jean Frey & Paul-Louis George for references.
+          element quality_function{ attribute name{"simple_anisotropic"} }
 	)
       }
    )

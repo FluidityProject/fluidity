@@ -32,6 +32,7 @@ module mesh_quality
   use element_numbering, only: FAMILY_SIMPLEX
   use fields
 
+  implicit none
 
   interface
      subroutine mesh_quality_c(dim, n_nodes, n_elements, connectivity_len,&
@@ -49,7 +50,7 @@ module mesh_quality
   public :: get_mesh_quality
 
 
-  integer, public :: VTK_QUALITY_EDGE_RATIO = 0, &
+  integer, public, parameter :: VTK_QUALITY_EDGE_RATIO = 0, &
        VTK_QUALITY_ASPECT_RATIO = 1, &
        VTK_QUALITY_RADIUS_RATIO = 2, &
        VTK_QUALITY_ASPECT_FROBENIUS = 3, &
@@ -78,7 +79,8 @@ module mesh_quality
        VTK_QUALITY_ASPECT_WARPAGE = 26, &
        VTK_QUALITY_ASPECT_GAMMA = 27, &
        VTK_QUALITY_AREA = 28, &
-       VTK_QUALITY_ASPECT_BETA = 29
+       VTK_QUALITY_ASPECT_BETA = 29,&
+       FLUIDITY_QUALITY_SIMPLE_ANISOTROPIC = -1
 
 contains
 
@@ -95,11 +97,144 @@ contains
        FLAbort("Trying to get mesh quality for a mesh which isn't linear simplicial. This isn't currently supported.")
     endif
 
-    call mesh_quality_c(positions%dim, node_count(positions), ele_count(positions),&
-         size(positions%mesh%ndglno), quality_measure,&
-         positions%val, positions%mesh%ndglno,&
-         s_field%val)
+    if (quality_measure>=0) then
+       call mesh_quality_c(positions%dim, node_count(positions), ele_count(positions),&
+            size(positions%mesh%ndglno), quality_measure,&
+            positions%val, positions%mesh%ndglno,&
+            s_field%val)
+    else
+
+       select case(quality_measure)
+       case(FLUIDITY_QUALITY_SIMPLE_ANISOTROPIC)
+          call simple_anisotropic_measure(positions,s_field)
+       end select
+    end if
 
   end subroutine get_mesh_quality
+
+  subroutine simple_anisotropic_measure(positions, s_field, metric)
+
+    !!! This function implements the quality measure used in papers by
+    !!! Frederic Alauzet's group. 
+    !!!
+    !!! Q_E = C_N (\sum_i |e^E_i|^2)^(N/2)/V_E
+    !!! 
+    !!! where E is an element index, N the dimension, e_i are edge vectors,
+    !!! V is the volume/area of the simplex and the C_N is chosen such that
+    !!! Q_E = 1 for a regular simplex.
+    !!!
+    !!! See Mesh Generation: Application to Finite Elements by
+    !!! Pascal Jean Frey & Paul-Louis George for references.
+
+    type(vector_field), intent(in) :: positions
+    type(scalar_field), intent(inout) :: s_field
+    type(tensor_field), intent(in), optional :: metric
+
+    integer :: ele, i, j, k
+    real    :: n, coeff, quality
+    real    :: X(mesh_dim(positions), ele_loc(positions,1))
+    real    :: M(mesh_dim(positions),mesh_dim(positions))
+    real    :: l(mesh_dim(positions)*(mesh_dim(positions)+1)/2)
+    
+
+    !!! This measure is trivial in 1d
+
+    select case(mesh_dim(positions))
+    case(1)
+       call set(s_field,1.0)
+       return
+    case(2)
+       n = 2.0
+       coeff = 1.0/6.0
+    case(3)
+       n = 3.0
+       coeff = sqrt(3.0)/216.0
+    end select
+
+    if (.not. present(metric)) then
+       !!! if no metric is supplied, we use the identity
+       M=0
+       do i=1, size(M,1)
+          M(i,i) = 1.0
+       end do
+    end if
+
+    do ele=1,element_count(positions)
+
+       if (present(metric)) then
+          !!! average the metric over the element in case it's not P0
+          M = sum(ele_val(metric, ele))/ele_loc(metric, ele)
+       end if
+
+       quality=0.0
+       k=1
+       X = ele_val(positions,ele)
+       do i=1, ele_loc(positions,ele)
+          do j=i+1,ele_loc(positions,ele)
+             l(k)=length2(X(:,i),X(:,j),M)
+             quality = quality + l(k)
+             l(k)=sqrt(l(k))
+             k=k+1
+          end do
+       end do
+
+       print*, l, quality, cell_measure(L)
+
+       quality = coeff*quality**(n/2.0)/cell_measure(L)
+
+       call set(s_field, ele, quality)
+    end do
+
+    contains
+
+      real function length2(p1,p2,M)
+        real, intent(in) :: p1(:),p2(:),M(:,:)
+
+        length2 = dot_product(matmul(p2-p1,M),p2-p1)
+      end function length2
+
+      real function cell_measure(lengths)
+        real, dimension(:), intent(in) :: lengths
+        real :: s
+        
+        select case(size(lengths))
+        case(3)
+           s= sum(lengths)/2.0
+           !! In 2d use Heron's formula for the area
+           cell_measure = sqrt(abs(s*(s-l(1))*(s-l(2))*(s-l(3))))
+        case(6)
+           !! In 3D use the (hideous) Cayley-Menger determinant.
+           !!
+           !! | 0    1     1     1     1   |
+           !! | 1    0   d_1^2 d_2^2 d_3^2 |
+           !! | 1  d_1^2   0   d_4^2 d_5^2 |  = 288V^2
+           !! | 1  d_2^2 d_4^2   0   d_6^2 |
+           !! | 1  d_3^2 d_5^2 d_6^2   0   |
+           cell_measure = sqrt(abs(-2.0*(l(1)**2*l(6))**2&
+                -2.0*(l(1)*l(2)*l(4))**2&
+                +2.0*(l(1)*l(2)*l(5))**2&
+                +2.0*(l(1)*l(3)*l(4))**2&
+                -2.0*(l(1)*l(3)*l(5))**2&
+                +2.0*(l(1)*l(3)*l(6))**2&
+                +2.0*(l(1)*l(4)*l(6))**2&
+                +2.0*(l(1)*l(5)*l(6))**2&
+                -2.0*(l(1)*l(6)**2)**2&
+                -2.0*(l(2)**2*l(5))**2&
+                +2.0*(l(2)*l(3)*l(5))**2&
+                -2.0*(l(2)*l(3)*l(6))**2&
+                +2.0*(l(2)*l(3)*l(5))**2&
+                -2.0*(l(2)*l(5)**2)**2&
+                +2.0*(l(2)*l(5)*l(6))**2&
+                -2.0*(l(3)**2*l(4))**2&
+                -2.0*(l(3)*l(4)**2)**2&
+                +2.0*(l(3)*l(4)*l(5))**2&
+                +2.0*(l(3)*l(4)*l(6))**2&
+                -2.0*(l(4)*l(5)*l(6))**2)/288.0)
+        case default
+        end select
+           
+      end function cell_measure
+
+    end subroutine simple_anisotropic_measure
 
 end module mesh_quality
