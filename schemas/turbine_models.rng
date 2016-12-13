@@ -146,8 +146,9 @@
                 <choice>
                   <element name="constant_rotational_velocity">
                     <a:documentation>constant rotational velocity given in RPM (revolutions per minute)</a:documentation>
-                    <element name="omega">
-                      <a:documentation>Angular Velocity of Turbine Rotor</a:documentation>
+                    <element name="Uref">
+                      <a:documentation>Upstream reference Velocity of the turbine (Needed for the calculation of Power, Thrust coefficient)
+and calculation of the actual rotational velocity of the rotor</a:documentation>
                       <ref name="real"/>
                     </element>
                     <element name="TSR">

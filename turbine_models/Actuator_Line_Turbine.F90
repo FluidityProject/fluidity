@@ -164,7 +164,7 @@ contains
     !========================================================
     !Compute a number of global parameters for the turbine
     !========================================================
-    turbine%Uref=turbine%angularVel*turbine%Rmax/turbine%TSR
+    turbine%angularVel=turbine%Uref*turbine%TSR/turbine%Rmax
     turbine%A=pi*turbine%Rmax**2
     
     call Compute_Turbine_RotVel(turbine)
@@ -247,21 +247,25 @@ contains
     implicit none
     type(TurbineType),intent(inout) :: turbine
     integer :: iblade,ielem
-    real ::g1,alpha,pitch,F,r
+    real ::g1,alpha,pitch,F,Froot,Ftip,rtip, rroot, phi
         
-    g1=exp(-0.125*(turbine%NBlades*turbine%tsr-21.0))+0.1
+    g1=1.0!exp(-0.125*(turbine%NBlades*turbine%TSR-21.0))+0.1
     
     do iblade=1,turbine%Nblades
     ! Compute angle phi at the tip 
         
     do ielem=1,turbine%blade(iblade)%Nelem
        
-        r=turbine%blade(iblade)%ERdist(ielem)
-        alpha=turbine%blade(iblade)%EAOA_Last(ielem)
+        rroot=turbine%blade(iblade)%ERdist(ielem)
+        rtip=1-rroot
+        alpha=turbine%blade(iblade)%EAOA(ielem)
         pitch=turbine%blade(iblade)%Epitch(ielem)
-
-        F=2.0/pi*acos(exp(-g1*turbine%Nblades/2.0*(1/turbine%blade(iblade)%ERdist(ielem)-1.0)/sin(alpha+pitch)))
         
+        phi=alpha+pitch
+
+        Ftip=2.0/pi*acos(exp(-g1*turbine%Nblades/2.0*(1.0/rroot-1.0)/sin(phi)))
+        Froot=2.0/pi*acos(exp(-g1*turbine%Nblades/2.0*(1.0/rtip-1.0)/sin(phi)))
+        F=Ftip*Froot 
         ! Apply Coeffs to the local Element forces
         turbine%blade(iblade)%EFN(ielem)=F*turbine%blade(iblade)%EFN(ielem)
         turbine%blade(iblade)%EFT(ielem)=F*turbine%blade(iblade)%EFT(ielem)

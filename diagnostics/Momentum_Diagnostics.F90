@@ -459,8 +459,7 @@ contains
       ! Compute a molification function in 3D 
       Rcoords=node_val(remapped_pos,i)
     
-        if(anisotropic_projection) then
-      
+        if(anisotropic_projection) then 
             dx=-Sx(isource)+Rcoords(1)
             dy=-Sy(isource)+Rcoords(2)
             dz=-Sz(isource)+Rcoords(3)

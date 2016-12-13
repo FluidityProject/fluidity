@@ -115,8 +115,9 @@ turbine_models=(
             (
 ## constant rotational velocity given in RPM (revolutions per minute)
              element constant_rotational_velocity  {
-## Angular Velocity of Turbine Rotor
-             element omega{
+## Upstream reference Velocity of the turbine (Needed for the calculation of Power, Thrust coefficient)
+## and calculation of the actual rotational velocity of the rotor
+             element Uref{
              real
              },
              element TSR{

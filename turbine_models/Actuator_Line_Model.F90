@@ -181,7 +181,7 @@ contains
         !##############3 Get Operation Options ######################
         if (have_option(trim(turbine_path(i))//"/operation/constant_rotational_velocity")) then
             Turbine(i)%Is_constant_rotation_operated= .true.
-            call get_option("/turbine_models/actuator_line_model/turbine["//int2str(i-1)//"]/operation/constant_rotational_velocity/omega",Turbine(i)%angularVel)
+            call get_option("/turbine_models/actuator_line_model/turbine["//int2str(i-1)//"]/operation/constant_rotational_velocity/Uref",Turbine(i)%Uref)
             call get_option("/turbine_models/actuator_line_model/turbine["//int2str(i-1)//"]/operation/constant_rotational_velocity/TSR",Turbine(i)%TSR)
             if(have_option(trim(turbine_path(i))//"/operation/constant_rotational_velocity/rotation_direction/clockwise")) then
                 Turbine(i)%IsClockwise=.true.
