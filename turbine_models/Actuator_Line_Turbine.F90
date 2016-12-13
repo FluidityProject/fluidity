@@ -237,15 +237,7 @@ contains
     turbine%CT=sqrt(turbine%CFx**2.0+turbine%CFy**2.0+turbine%CFz**2.0)
     turbine%CTR=Torq_tot/(0.5*turbine%A*turbine%Rmax*turbine%Uref**2.0)
     turbine%CP= abs(turbine%CTR)*turbine%TSR
-    
-    ewrite(2,*) '--------------------------------------------------------'
-    ewrite(2,*) 'Calculate performance for Turbine : ',turbine%name
-    ewrite(2,*) 'Number of Revolutions : ', turbine%AzimAngle/(2*pi)
-    ewrite(2,*) 'Thrust Coefficient : ', turbine%CT
-    ewrite(2,*) 'Torque Coefficient : ', turbine%CTR
-    ewrite(2,*) 'Power Coefficient : ', turbine%CP
-    ewrite(2,*) '--------------------------------------------------------'
-   
+     
     ewrite(2,*) 'Exiting compute_performance'
 
     end subroutine compute_performance
@@ -268,7 +260,7 @@ contains
         alpha=turbine%blade(iblade)%EAOA_Last(ielem)
         pitch=turbine%blade(iblade)%Epitch(ielem)
 
-        F=2.0/pi*acos(exp(-g1*turbine%Nblades*(turbine%Rmax-turbine%blade(iblade)%ERdist(ielem))/(2.0*r*sin(alpha+pitch))))
+        F=2.0/pi*acos(exp(-g1*turbine%Nblades/2.0*(1/turbine%blade(iblade)%ERdist(ielem)-1.0)/sin(alpha+pitch)))
         
         ! Apply Coeffs to the local Element forces
         turbine%blade(iblade)%EFN(ielem)=F*turbine%blade(iblade)%EFN(ielem)

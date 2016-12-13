@@ -398,19 +398,29 @@ contains
       else
           ewrite(2,*) 'I own the element'
           
+        ! Compute Velocities
+
         value_vel=eval_field(ele,velocity,local_coord)
+        Su(isource)=value_vel(1)
+        Sv(isource)=value_vel(2)
+        Sw(isource)=value_vel(3)
+        
+        ! Local Background Compute Viscosity
         nu=eval_field(ele,ViscosityTens,local_coord)
         
         Visc=1.0/3.0*(nu(1,1)+nu(2,2)+nu(3,3)) ! Compute trace of the viscosity tensor 
             
+        ! Compute epsilon
         volume=element_volume(positions,ele)
 
-        epsilon_par_mesh  = 2.0*meshFactor*volume**(1.0/3.0) 
-         
-        Su(isource)=value_vel(1)
-        Sv(isource)=value_vel(2)
-        Sw(isource)=value_vel(3)
-        Se(isource)=epsilon_par_mesh
+        epsilon_par_mesh  = meshFactor*2.0*volume**(1.0/3.0) 
+      
+        if(has_constant_epsilon) then
+            Se(isource)=constant_epsilon
+        else 
+            Se(isource)=epsilon_par_mesh
+        end if
+        
         do irank=0,num_procs-1
         if(irank.ne.rank) then
         Send(1)=Su(isource)
@@ -449,11 +459,6 @@ contains
       ! Compute a molification function in 3D 
       Rcoords=node_val(remapped_pos,i)
     
-      if(has_constant_epsilon) then 
-        
-          Se(isource)=constant_epsilon
-
-      else if (has_mesh_based_epsilon) then
         if(anisotropic_projection) then
       
             dx=-Sx(isource)+Rcoords(1)
@@ -475,8 +480,6 @@ contains
             DSource(2)=-loc_kern*SFy(isource)
             DSource(3)=-loc_kern*SFz(isource)
         endif
-
-      endif
 
       call addto(v_field,i,DSource)
       end do

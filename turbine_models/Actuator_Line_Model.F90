@@ -209,7 +209,7 @@ contains
             end do
         endif
 
-        if(have_option(trim(turbine_path(i))//"/Blades/unsteady_modelling/tip_loss_correction")) then
+        if(have_option(trim(turbine_path(i))//"/Blades/tip_loss_correction")) then
             Turbine(i)%do_tip_correction=.true.
         endif
 

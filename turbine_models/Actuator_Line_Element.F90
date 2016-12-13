@@ -288,7 +288,7 @@ end type ActuatorLineType
     if(act_line%EAOA_Last(ielem)<0) then
     dal=0.0
     else
-    dal=alpha75-act_line%EAOA_Last(ielem)
+    dal=act_line%EAOA(ielem)-act_line%EAOA_Last(ielem)
     endif
     
     act_line%EAOAdot(ielem)=dal/dt

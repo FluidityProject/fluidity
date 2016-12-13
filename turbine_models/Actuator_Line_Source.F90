@@ -31,10 +31,10 @@ contains
         call get_option("/turbine_models/actuator_line_model/source_term_parameters/constant_epsilon",constant_epsilon)
     else if (have_option("/turbine_models/actuator_line_model/source_term_parameters/mesh_based_epsilon")) then
         has_mesh_based_epsilon=.true.
-        call get_option("/turbine_models/actuator_line_model/source_term_parameters/meshFactor",meshFactor,default=2.00)
-        call get_option("/turbine_models/actuator_line_model/source_term_parameters/dragFactor",thicknessFactor,default=0.2)
-        call get_option("/turbine_models/actuator_line_model/source_term_parameters/chordFactor",chordFactor,default=0.4)
-    if(have_option("/turbine_models/actuator_line_model/source_term_parameters/anisotropic_source")) then
+        call get_option("/turbine_models/actuator_line_model/source_term_parameters/mesh_based_epsilon/meshFactor",meshFactor,default=1.00)
+        call get_option("/turbine_models/actuator_line_model/source_term_parameters/mesh_based_epsilon/dragFactor",thicknessFactor,default=0.2)
+        call get_option("/turbine_models/actuator_line_model/source_term_parameters/mesh_based_epsilon/chordFactor",chordFactor,default=0.4)
+    if(have_option("/turbine_models/actuator_line_model/source_term_parameters/mesh_based_epsilon/anisotropic_source")) then
         anisotropic_projection=.true.
     endif
     else
