@@ -29,6 +29,7 @@ module mesh_quality
 
   use iso_c_binding
   use FLdebug
+  use vector_tools, only: trace_mat, det
   use element_numbering, only: FAMILY_SIMPLEX
   use fields
 
@@ -80,7 +81,9 @@ module mesh_quality
        VTK_QUALITY_ASPECT_GAMMA = 27, &
        VTK_QUALITY_AREA = 28, &
        VTK_QUALITY_ASPECT_BETA = 29,&
-       FLUIDITY_QUALITY_SIMPLE_ANISOTROPIC = -1
+       FLUIDITY_QUALITY_SIMPLE_ANISOTROPIC = -1, &
+       FLUIDITY_QUALITY_ALGEBRAIC_SHAPE_ONE = -2, &
+       FLUIDITY_QUALITY_ALGEBRAIC_SHAPE_TWO = -3
 
 contains
 
@@ -107,6 +110,12 @@ contains
        select case(quality_measure)
        case(FLUIDITY_QUALITY_SIMPLE_ANISOTROPIC)
           call simple_anisotropic_measure(positions,s_field)
+       case(FLUIDITY_QUALITY_ALGEBRAIC_SHAPE_ONE)
+          call algebraic_shape_one_measure(positions,s_field)
+       case(FLUIDITY_QUALITY_ALGEBRAIC_SHAPE_TWO)
+          call algebraic_shape_two_measure(positions,s_field)
+       case default
+          FLAbort("Unknown mesh quality function.")
        end select
     end if
 
@@ -178,8 +187,6 @@ contains
           end do
        end do
 
-       print*, l, quality, cell_measure(L)
-
        quality = coeff*quality**(n/2.0)/cell_measure(L)
 
        call set(s_field, ele, quality)
@@ -236,5 +243,78 @@ contains
       end function cell_measure
 
     end subroutine simple_anisotropic_measure
+
+    subroutine algebraic_shape_one_measure(positions, s_field)
+
+    !!! This function implements the quality measure
+
+    type(vector_field), intent(in) :: positions
+    type(scalar_field), intent(inout) :: s_field
+
+    integer :: ele, i, j, dim
+
+    integer, pointer, dimension(:) :: nodes
+
+    real, dimension(mesh_dim(positions)) :: edge
+    real, dimension(mesh_dim(positions), mesh_dim(positions)) :: m
+
+    dim = mesh_dim(positions)
+
+    do ele = 1, element_count(s_field)
+       nodes => ele_nodes(positions, ele)
+       m = 0.0
+       do i = 1, ele_loc(positions, ele)-1
+          do j = i, ele_loc(positions, ele)
+             edge = node_val(positions, nodes(i)) - node_val(positions, nodes(j))
+
+             m = m + outer_product(edge, edge)
+          end do
+       end do
+
+       m = 2.0*m/(dim+1.0)
+
+       call set(s_field, ele, dim*det(m)**(1.0/(1.0*dim))/trace_mat(m))
+
+    end do
+
+  end subroutine algebraic_shape_one_measure
+
+    subroutine algebraic_shape_two_measure(positions, s_field)
+
+    !!! This function implements the quality measure
+
+    type(vector_field), intent(in) :: positions
+    type(scalar_field), intent(inout) :: s_field
+
+    integer :: ele, i, j, dim
+
+    integer, pointer, dimension(:) :: nodes
+
+    real :: q_k
+    real, dimension(mesh_dim(positions)) :: edge
+    real, dimension(mesh_dim(positions), mesh_dim(positions)) :: m
+
+    dim = mesh_dim(positions)
+
+    do ele = 1, element_count(s_field)
+       nodes => ele_nodes(positions, ele)
+       m = 0.0
+       do i = 1, ele_loc(positions, ele)-1
+          do j = i, ele_loc(positions, ele)
+             edge = node_val(positions, nodes(i)) - node_val(positions, nodes(j))
+
+             m = m + outer_product(edge, edge)
+          end do
+       end do
+
+       q_k = trace_mat(m)
+       call invert(m)
+       q_k = dim**2/(q_k*trace_mat(m))
+
+       call set(s_field, ele, q_k)
+
+    end do
+
+  end subroutine algebraic_shape_two_measure
 
 end module mesh_quality

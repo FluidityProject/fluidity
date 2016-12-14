@@ -139,6 +139,10 @@ contains
        measure=VTK_QUALITY_AREA
     case("simple_anisotropic")
        measure=FLUIDITY_QUALITY_SIMPLE_ANISOTROPIC
+    case("algebraic_shape_one")
+       measure=FLUIDITY_QUALITY_ALGEBRAIC_SHAPE_ONE
+    case("algebraic_shape_two")
+       measure=FLUIDITY_QUALITY_ALGEBRAIC_SHAPE_TWO
     case default
         FLAbort("Unknown quality function for "//trim(s_field%name) )
     end select

@@ -43,7 +43,8 @@ module vector_tools
   private
   public blasmul, solve, norm2, cross_product, invert, inverse, cholesky_factor, &
      mat_diag_mat, eigendecomposition, eigendecomposition_symmetric, eigenrecomposition, &
-     outer_product, det, det_2, det_3, scalar_triple_product, svd, cross_product2
+     outer_product, det, det_2, det_3, scalar_triple_product, svd, cross_product2, &
+     trace_mat
 
 contains
 
@@ -587,6 +588,19 @@ contains
     end select
     
   end function det
+
+  function trace_mat(mat) result(trace_out)
+    real, dimension(:, :), intent(in) :: mat
+    real :: trace_out
+
+    integer :: i
+
+    trace_out = 0.0
+    do i=1, size(mat,1)
+       trace_out = trace_out + mat(i,i)
+    end do
+
+  end function trace_mat
 
   subroutine svd(input, U, sigma, VT)
     real, dimension(:, :), intent(in) :: input

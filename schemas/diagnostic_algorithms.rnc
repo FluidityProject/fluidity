@@ -1417,7 +1417,9 @@ mesh_quality_algorithm =
           ##
           ## See Mesh Generation: Application to Finite Elements by
           ## Pascal Jean Frey & Paul-Louis George for references.
-          element quality_function{ attribute name{"simple_anisotropic"} }
+          element quality_function{ attribute name{"simple_anisotropic"} }|
+          element quality_function{ attribute name{"algebraic_shape_one"} }|
+          element quality_function{ attribute name{"algebraic_shape_two"} }
 	)
       }
    )

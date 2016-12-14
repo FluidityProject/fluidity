@@ -1949,6 +1949,16 @@ Pascal Jean Frey &amp; Paul-Louis George for references.</a:documentation>
             <value>simple_anisotropic</value>
           </attribute>
         </element>
+        <element name="quality_function">
+          <attribute name="name">
+            <value>algebraic_shape_one</value>
+          </attribute>
+        </element>
+        <element name="quality_function">
+          <attribute name="name">
+            <value>algebraic_shape_two</value>
+          </attribute>
+        </element>
       </choice>
     </element>
   </define>
