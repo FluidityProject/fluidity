@@ -85,7 +85,9 @@ type ActuatorLineType
     real, allocatable :: EFx(:)         ! Element Force in the global x-direction
     real, allocatable :: EFy(:)         ! Element Force in the global y-direction
     real, allocatable :: EFz(:)         ! Element Force in the global z-direction
-    
+   
+    real, allocatable :: EEndeffects_factor(:) ! End effects factor for the blade (initialize as one)
+
     ! Element Airfoil Data
     type(AirfoilType), allocatable :: EAirfoil(:) ! Element Airfoil 
     integer :: NAirfoilData
@@ -179,7 +181,7 @@ end type ActuatorLineType
     actuatorline%EOby(:)=0.0
     actuatorline%EObz(:)=0.0
     actuatorline%Eepsilon(:)=0.0
-
+    actuatorline%EEndeffects_factor(:)=1.0
     
     ! Populate element Airfoils 
     call populate_blade_airfoils(actuatorline%NElem,actuatorline%NAirfoilData,actuatorline%EAirfoil,actuatorline%AirfoilData,actuatorline%ETtoC)
@@ -305,7 +307,19 @@ end type ActuatorLineType
     if(act_line%do_dynamic_stall) then
     ds=2.0*ur*dt/ElemChord
     call LB_UpdateStates(act_line%E_LB_MODEL(ielem),ds)
-    endif 
+    endif
+
+    !==========================================================================
+    ! Apply end effects for actuator line (only to the lift coefficient)
+    ! The value is initialized to 1.0 it should not make any difference
+    ! when it is not activated
+    ! ========================================================================
+    CL=CL*act_line%EEndeffects_factor(ielem)
+        
+    ! Tangential and normal coeffs
+    CN=CL*cos(alpha5)+CD*sin(alpha5)                                   
+    CT=-CL*sin(alpha5)+CD*cos(alpha5) 
+
     !========================================================
     ! Apply Coeffs to calculate tangential and normal Forces
     !========================================================
@@ -750,6 +764,7 @@ end type ActuatorLineType
     allocate(actuatorline%EFx(NElem))
     allocate(actuatorline%EFy(NElem))
     allocate(actuatorline%EFz(NElem))
+    allocate(actuatorline%EEndeffects_factor(NElem)) ! End effects factor for the blade
     
     end subroutine allocate_actuatorline
 

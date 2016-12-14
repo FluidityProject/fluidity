@@ -106,7 +106,7 @@ contains
 
         character(len=OPTION_PATH_LEN)::  turbine_name, actuatorline_name
         integer :: i,j,k
-        integer, parameter :: MaxReadLine = 1000    
+    integer, parameter :: MaxReadLine = 1000    
         character(MaxReadLine) :: FN    ! path to geometry input file 
         integer :: NElem, nfoils
         character(MaxReadLine) :: ReadLine
@@ -347,11 +347,16 @@ contains
 
             ! Get into each Turbine and Compute the Forces blade by blade and element by element
             do i=1,Ntur 
-            ! Blades
+            
+            ! First compute the end effects on the turbine and
+            if (Turbine(i)%do_tip_correction) then
+            call Compute_Turbine_EndEffects(Turbine(i))
+            endif
+            
+            ! Then compute the coefficients
             do j=1,Turbine(i)%Nblades
             call Compute_ActuatorLine_Forces(Turbine(i)%Blade(j),visc,deltaT)    
             end do
-            call Compute_Turbine_Tip_Correction(Turbine(i))
             call Compute_performance(Turbine(i))
 
             ! Tower

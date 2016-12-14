@@ -112,6 +112,8 @@ contains
     call populate_blade_airfoils(turbine%blade(iblade)%NElem,turbine%Blade(iblade)%NAirfoilData,turbine%Blade(iblade)%EAirfoil,turbine%Blade(iblade)%AirfoilData,turbine%Blade(iblade)%ETtoC)
     
     turbine%Blade(iblade)%EAOA_LAST(:)=-666
+    turbine%Blade(iblade)%Eepsilon(:)=0.0
+    turbine%Blade(iblade)%EEndeffects_factor(:)=1.0
     
     ! Initialize LB_model and Tip Correction Coeffs
     do ielem=1,turbine%blade(iblade)%Nelem
@@ -242,7 +244,7 @@ contains
 
     end subroutine compute_performance
     
-    subroutine Compute_Turbine_Tip_Correction(turbine)
+    subroutine Compute_Turbine_EndEffects(turbine)
     
     implicit none
     type(TurbineType),intent(inout) :: turbine
@@ -255,29 +257,20 @@ contains
     ! Compute angle phi at the tip 
         
     do ielem=1,turbine%blade(iblade)%Nelem
-       
-        rroot=turbine%blade(iblade)%ERdist(ielem)
-        rtip=1-rroot
-        alpha=turbine%blade(iblade)%EAOA(ielem)
-        pitch=turbine%blade(iblade)%Epitch(ielem)
         
+        rroot=turbine%blade(iblade)%ERdist(ielem)/turbine%Rmax
+        rtip=(turbine%Rmax-turbine%blade(iblade)%ERdist(ielem))/turbine%Rmax
+        alpha=turbine%blade(iblade)%EAOA(ielem)
+        pitch=turbine%blade(iblade)%Epitch(ielem) 
         phi=alpha+pitch
-
         Ftip=2.0/pi*acos(exp(-g1*turbine%Nblades/2.0*(1.0/rroot-1.0)/sin(phi)))
-        Froot=2.0/pi*acos(exp(-g1*turbine%Nblades/2.0*(1.0/rtip-1.0)/sin(phi)))
-        F=Ftip*Froot 
         ! Apply Coeffs to the local Element forces
-        turbine%blade(iblade)%EFN(ielem)=F*turbine%blade(iblade)%EFN(ielem)
-        turbine%blade(iblade)%EFT(ielem)=F*turbine%blade(iblade)%EFT(ielem)
-        ! Apply to the global forces 
-        turbine%blade(iblade)%EFX(ielem)=F*turbine%blade(iblade)%EFX(ielem)
-        turbine%blade(iblade)%EFY(ielem)=F*turbine%blade(iblade)%EFY(ielem)
-        turbine%blade(iblade)%EFZ(ielem)=F*turbine%blade(iblade)%EFZ(ielem)
+        turbine%blade(iblade)%EEndeffects_factor(ielem)=Ftip
 
         end do
     end do
 
-    end subroutine Compute_Turbine_Tip_Correction
+    end subroutine Compute_Turbine_EndEffects
 
     subroutine Compute_Turbine_RotVel(turbine)
     implicit none
