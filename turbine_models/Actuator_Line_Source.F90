@@ -8,10 +8,13 @@ module actuator_line_source
     use actuator_line_model
 
     implicit none
-    real,save :: constant_epsilon, meshFactor, thicknessFactor, chordFactor
+    real,save :: constant_epsilon, meshFactor, thicknessFactor,chordFactor
     real, allocatable :: Sx(:),Sy(:),Sz(:),Sc(:),Se(:),Su(:),Sv(:),Sw(:),SFX(:),SFY(:),SFZ(:)
     real, allocatable :: Snx(:),Sny(:),Snz(:),Stx(:),Sty(:),Stz(:),Ssx(:),Ssy(:),Ssz(:),Ssegm(:) 
+    real, allocatable :: lamdax(:),lamday(:),lamdaz(:),A(:,:)
     integer :: NSource
+    logical, save :: rbf_interpolation=.false.
+    logical, save :: pointwise_interpolation=.false.
     logical, save :: anisotropic_projection=.false. 
     logical, save :: has_mesh_based_epsilon=.false.
     logical, save :: has_constant_epsilon=.false.
@@ -26,17 +29,25 @@ contains
     
     ewrite(1,*) 'Entering initialize_source_terms'  
     !> Get Source term parameters
-    if (have_option("/turbine_models/actuator_line_model/source_term_parameters/constant_epsilon")) then
+    if (have_option("/turbine_models/actuator_line_model/source_terms_interpolation/radial_basis_function_interpolation")) then
+        rbf_interpolation=.true.
         has_constant_epsilon=.true.
-        call get_option("/turbine_models/actuator_line_model/source_term_parameters/constant_epsilon",constant_epsilon)
-    else if (have_option("/turbine_models/actuator_line_model/source_term_parameters/mesh_based_epsilon")) then
-        has_mesh_based_epsilon=.true.
-        call get_option("/turbine_models/actuator_line_model/source_term_parameters/mesh_based_epsilon/meshFactor",meshFactor,default=1.00)
-        call get_option("/turbine_models/actuator_line_model/source_term_parameters/mesh_based_epsilon/dragFactor",thicknessFactor,default=0.2)
-        call get_option("/turbine_models/actuator_line_model/source_term_parameters/mesh_based_epsilon/chordFactor",chordFactor,default=0.4)
-    if(have_option("/turbine_models/actuator_line_model/source_term_parameters/mesh_based_epsilon/anisotropic_source")) then
-        anisotropic_projection=.true.
-    endif
+        call get_option("/turbine_models/actuator_line_model/source_terms_interpolation/radial_basis_function_interpolation/constant_epsilon",constant_epsilon)
+    else if (have_option("/turbine_models/actuator_line_model/source_terms_interpolation/pointwise_interpolation")) then
+        pointwise_interpolation=.true.
+        if (have_option("/turbine_models/actuator_line_model/source_terms_interpolation/pointwise_interpolation/constant_epsilon")) then
+            has_constant_epsilon=.true.
+            call get_option("/turbine_models/actuator_line_model/source_terms_interpolation/pointwise_interpolation/constant_epsilon",constant_epsilon)
+        else if (have_option("/turbine_models/actuator_line_model/source_terms_interpolation/pointwise_interpolation/mesh_based_epsilon")) then
+            has_mesh_based_epsilon=.true.
+            call get_option("/turbine_models/actuator_line_model/source_terms_interpolation/pointwise_interpolation/mesh_based_epsilon/meshFactor",meshFactor,default=2.00)
+            call get_option("/turbine_models/actuator_line_model/source_terms_interpolation/pointwise_interpolation/mesh_based_epsilon/chordFactor",chordFactor,default=0.25)
+        else 
+            FLAbort("Source term parameters not set")
+        end if
+        if(have_option("/turbine_models/actuator_line_model/source_terms_interpolation/pointwise_interpolation/mesh_based_epsilon/anisotropic_source")) then
+            anisotropic_projection=.true.
+        endif
     else
         FLAbort("Source term parameters not set")
     end if
@@ -72,7 +83,7 @@ contains
     NSource=counter
     allocate(Sx(NSource),Sy(NSource),Sz(NSource),Sc(Nsource),Su(NSource),Sv(NSource),Sw(NSource),Se(NSource),Sfx(NSource),Sfy(NSource),Sfz(NSource))
     allocate(Snx(NSource),Sny(NSource),Snz(NSource),Stx(Nsource),Sty(NSource),Stz(NSource),Ssx(NSource),Ssy(NSource),Ssz(NSource),Ssegm(NSource))
-
+    allocate(A(NSource,NSource),lamdax(NSource),lamday(NSource),lamdaz(NSource))
     ewrite(1,*) 'exiting initialize_source_terms'
 
     end subroutine initialize_actuator_source

@@ -136,24 +136,12 @@ contains
 
     end subroutine IDW
 
-    real function IsoKernel(dr,mesh_size,chord,dim)
+    real function IsoKernel(dr,epsilon_par,dim)
     
         implicit none
         integer,intent(in) :: dim
-        real,intent(in) ::dr, mesh_size,chord
-        real :: epsilon_par,epsilon_threshold,epsilon_chord
-        integer :: j
-    
-          
-           epsilon_threshold = 2.0*mesh_size
-           epsilon_chord = 0.4*chord
-           
-           if(epsilon_chord >= epsilon_threshold) then
-              epsilon_par=epsilon_chord
-           else
-              epsilon_par=epsilon_threshold
-           end if
-               
+        real,intent(in) ::dr, epsilon_par
+        integer :: j 
 
             if(dim==2) then    
             IsoKernel = 1.0/(epsilon_par**2*pi)*exp(-(dr/epsilon_par)**2.0)
@@ -238,6 +226,22 @@ contains
     ! This is for one digit (no rounding)
     !write (dirname, '(F4.1)')  number
   end function
+    
+  !real function rbf_int(N,r,
+  !      implicit none
+  !      integer,intent(in) :: dim
+  !      real,intent(in) ::dr, epsilon_par!mesh_size,chord
+  !      !real :: epsilon_par !,epsilon_threshold,epsilon_chord
+  !      integer :: j 
 
- 
+  !          if(dim==2) then    
+  !          IsoKernel = 1.0/(epsilon_par**2*pi)*exp(-(dr/epsilon_par)**2.0)
+  !          elseif(dim==3) then
+  !          IsoKernel = 1.0/(epsilon_par**3.0*pi**1.5)*exp(-(dr/epsilon_par)**2.0)
+  !          else 
+  !          FLAbort("1D source not implemented")
+  !          endif
+  !
+  !end function rbf_int 
+
 end module actuator_line_model_utils

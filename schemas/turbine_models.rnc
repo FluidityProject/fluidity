@@ -204,33 +204,44 @@ turbine_models=(
 
                 }*,
 
-                element source_term_parameters{
+                element source_terms_interpolation{ 
                     (
-                    element constant_epsilon{
-                        real
+                    element radial_basis_function_interpolation{
+                        element constant_epsilon{
+                            real
+                        }                    
                     }|
-                    element mesh_based_epsilon{
+                   
+                    element pointwise_interpolation{
+                        (
+                        element constant_epsilon{
+                            real
+                        }|
+                        element mesh_based_epsilon{
 ## Mesh factor that takes into account the aspect ratio of the elements.
 ## It takes values between 1 and 2 when the aspect ratio of the elements
 ## is 1 and 2 when skewed elements are considered. Default value : 2.0
-                    element  meshFactor{
-                        real
-                    }?,
+                        element  meshFactor{
+                            real
+                        }?,
 ## Drag factor that takes into account the width due to the wake caused
 ## by the foil drag force, and it is of the order of the momentum thickness
 ## Cd=2*theta/l. Default value : 1.00
-                    element thicknessFactor {
-                        real
-                    }?,
+                        element thicknessFactor {
+                            real
+                        }?,
 ## Chord factor (0.14-0.25). Default value: 0.25 
-                    element chordFactor {
-                        real
-                    }?,
-                    element anisotropic_projection{
-                        empty
-                    }?
-                }
-                )
+                        element chordFactor {
+                            real
+                        }?,
+                        element anisotropic_projection{
+                            empty
+                        }?
+                        }
+                        )
+                    }
+                    )
+                    
                 }       
         },
                 element actuator_disc_model{

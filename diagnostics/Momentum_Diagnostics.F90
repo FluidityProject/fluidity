@@ -42,6 +42,7 @@ module momentum_diagnostics
   use diagnostic_source_fields
   use field_derivatives
   use solvers
+  use vector_tools
   use sparsity_patterns_meshes
   use state_fields_module
   use sediment, only : get_n_sediment_fields, get_sediment_item
@@ -332,7 +333,7 @@ contains
       real,dimension(v_field%dim) :: Scoords , Rcoords, DSource
       type(vector_field), pointer :: positions, velocity
       type(tensor_field), pointer :: ViscosityTens
-      integer :: i,j, isource, ele
+      integer :: i,j, isource, jsource, ele
       real, dimension(v_field%dim+1) :: local_coord
       type(vector_field) :: remapped_pos
       real, dimension(v_field%dim) :: value_vel
@@ -409,16 +410,17 @@ contains
         nu=eval_field(ele,ViscosityTens,local_coord)
         
         Visc=1.0/3.0*(nu(1,1)+nu(2,2)+nu(3,3)) ! Compute trace of the viscosity tensor 
-            
-        ! Compute epsilon
-        volume=element_volume(positions,ele)
-
-        epsilon_par_mesh  = meshFactor*2.0*volume**(1.0/3.0) 
-      
+             
         if(has_constant_epsilon) then
             Se(isource)=constant_epsilon
-        else 
-            Se(isource)=epsilon_par_mesh
+        else if (has_mesh_based_epsilon) then 
+            ! Compute a mesh_based epsilon
+            volume=element_volume(positions,ele)
+            epsilon_par_mesh  = meshFactor*2.0*volume**(1.0/3.0) 
+            Se(isource)=max(epsilon_par_mesh,chordFactor*Sc(isource))
+        else
+            FLExit("epsilon not set, fluidity did not recognise the option you entered for epsilon. Please choose between a constant
+            and a mesh_based epsilon")
         end if
         
         do irank=0,num_procs-1
@@ -449,12 +451,47 @@ contains
       call actuator_line_model_compute_forces  
       !## 
       call get_forces  
-    
-      do isource=1,NSource
+       
+      !gggggggggggggggggggggggggggggggggggggggggggggggg
+      ! In case the interpolation is the RBF one
+      ! we need to find the coefficients lmabda
+      ! by solving a system of equations before the
+      ! interpolation step.
+      if(rbf_interpolation) then
+              do isource=1,NSource
+                do jsource=1,NSource
+                    d=sqrt((Sx(isource)-Sx(jsource))**2+(Sy(isource)-Sy(jsource))**2+(Sz(isource)-Sz(jsource))**2)
+                    A(isource,jsource)=exp(-d**2/Se(isource)**2)
+                enddo
+                    ! Set lamda_x,y,z to be the rhs to work with solve_single
+                    lamdax(isource)=SFx(isource)
+                    lamday(isource)=SFy(isource)
+                    lamdaz(isource)=SFz(isource)
+              enddo
+                call solve(A,lamdax)               
+                call solve(A,lamday)               
+                call solve(A,lamdaz)               
+                
+        endif
+      !!ggggggggggggggggggggggggggggggggggggggggggggggg
 
       ! Set the elements
       do i = 1, node_count(v_field)
-      ! Compute a Sphere of Influence with diameter equal to chord/2
+      ! Do RBF interpolation with gaussian function
+      if (rbf_interpolation) then 
+      DSource(:)=0.0
+      ! Compute a molification function in 3D 
+      Rcoords=node_val(remapped_pos,i)
+        do isource=1,NSource
+            d=sqrt((Sx(isource)-Rcoords(1))**2+(Sy(isource)-Rcoords(2))**2+(Sz(isource)-Rcoords(3))**2)
+            Dsource(1)=Dsource(1)+lamdax(isource)*exp(-d**2/Se(isource)**2)
+            Dsource(2)=Dsource(2)+lamday(isource)*exp(-d**2/Se(isource)**2)
+            Dsource(3)=Dsource(3)+lamdaz(isource)*exp(-d**2/Se(isource)**2)
+        enddo
+      call addto(v_field,i,DSource) 
+      else if (pointwise_interpolation) then 
+      ! Pointwise interpolation
+      do isource=1,NSource
       DSource(:)=0.0
       ! Compute a molification function in 3D 
       Rcoords=node_val(remapped_pos,i)
@@ -473,17 +510,22 @@ contains
             DSource(3)=-loc_kern*SFz(isource)
         else 
             d=sqrt((Sx(isource)-Rcoords(1))**2+(Sy(isource)-Rcoords(2))**2+(Sz(isource)-Rcoords(3))**2)
-            loc_kern=IsoKernel(d,Se(isource),Sc(isource),3)
+            loc_kern=IsoKernel(d,Se(isource),3)
             ! The (-) means that the fluid and the body are in equilibrium at each time
             DSource(1)=-loc_kern*SFx(isource)
             DSource(2)=-loc_kern*SFy(isource)
             DSource(3)=-loc_kern*SFz(isource)
         endif
-
+      
       call addto(v_field,i,DSource)
       end do
+      
+      else 
+        FLAbort("interpolation failed")
+      endif
+      
       end do
- 
+
       call deallocate(remapped_pos)
 
       ewrite(1,*) 'Exiting ALM Momentum Source'

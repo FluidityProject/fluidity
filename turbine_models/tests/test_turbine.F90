@@ -16,11 +16,10 @@ subroutine test_turbine
  character(80) :: InputFN
  
  write(*,*) '================================================='
- write(*,*) 'This is a reduced model for uALM/uBEM model that '
- write(*,*) 'that works without a dynamic inflow model        '
+ write(*,*) 'This is a reduced model for the ALM '
  write(*,*) '================================================='
 
- call load_options("TestTurbine.flml")
+ call load_options("Test.flml")
  
  Ntimesteps=1000
  deltaT=0.001

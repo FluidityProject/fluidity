@@ -251,39 +251,48 @@ to be defined by the user</a:documentation>
               </optional>
             </element>
           </zeroOrMore>
-          <element name="source_term_parameters">
+          <element name="source_terms_interpolation">
             <choice>
-              <element name="constant_epsilon">
-                <ref name="real"/>
+              <element name="radial_basis_function_interpolation">
+                <element name="constant_epsilon">
+                  <ref name="real"/>
+                </element>
               </element>
-              <element name="mesh_based_epsilon">
-                <optional>
-                  <element name="meshFactor">
-                    <a:documentation>Mesh factor that takes into account the aspect ratio of the elements.
+              <element name="pointwise_interpolation">
+                <choice>
+                  <element name="constant_epsilon">
+                    <ref name="real"/>
+                  </element>
+                  <element name="mesh_based_epsilon">
+                    <optional>
+                      <element name="meshFactor">
+                        <a:documentation>Mesh factor that takes into account the aspect ratio of the elements.
 It takes values between 1 and 2 when the aspect ratio of the elements
 is 1 and 2 when skewed elements are considered. Default value : 2.0</a:documentation>
-                    <ref name="real"/>
-                  </element>
-                </optional>
-                <optional>
-                  <element name="thicknessFactor">
-                    <a:documentation>Drag factor that takes into account the width due to the wake caused
+                        <ref name="real"/>
+                      </element>
+                    </optional>
+                    <optional>
+                      <element name="thicknessFactor">
+                        <a:documentation>Drag factor that takes into account the width due to the wake caused
 by the foil drag force, and it is of the order of the momentum thickness
 Cd=2*theta/l. Default value : 1.00</a:documentation>
-                    <ref name="real"/>
+                        <ref name="real"/>
+                      </element>
+                    </optional>
+                    <optional>
+                      <element name="chordFactor">
+                        <a:documentation>Chord factor (0.14-0.25). Default value: 0.25 </a:documentation>
+                        <ref name="real"/>
+                      </element>
+                    </optional>
+                    <optional>
+                      <element name="anisotropic_projection">
+                        <empty/>
+                      </element>
+                    </optional>
                   </element>
-                </optional>
-                <optional>
-                  <element name="chordFactor">
-                    <a:documentation>Chord factor (0.14-0.25). Default value: 0.25 </a:documentation>
-                    <ref name="real"/>
-                  </element>
-                </optional>
-                <optional>
-                  <element name="anisotropic_projection">
-                    <empty/>
-                  </element>
-                </optional>
+                </choice>
               </element>
             </choice>
           </element>
