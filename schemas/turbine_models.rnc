@@ -32,38 +32,19 @@ turbine_models=(
                 }
             }*
         },
-        element unsteady_modelling {
-            element added_mass {
-                empty
-            }?,
-            element dynamic_stall {
-                empty
-            }?
-        },
+        element added_mass{
+            empty
+        }?, 
+        element dynamic_stall{
+            empty
+        }?,
         element tip_loss_correction {
             empty
-        }?               
-        },
-        element hub{
-## Hub Geometry
-            element hub_geometry{
-                attribute file_name { xsd:string },
-## The format of the input file containing field data.
-                element string_value {
-                    "ascii"
-                }
-            },
-## Hub Section foils  
-            element static_foil_data{ 
-                element foil{
-                    attribute name{xsd:string},
-                    attribute foil_file{xsd:string},
-                    element string_value {
-                        "ascii"
-                    }
-                }*
-            }
         }?,
+        element flow_curvature{
+            empty
+        }?
+        },
         element tower{
 ## Offset from the Axis of rotaion
             element offset{

@@ -197,13 +197,13 @@ contains
         endif
 
         !##################4 Get Unsteady Modelling Options ##################
-        if(have_option(trim(turbine_path(i))//"/Blades/unsteady_modelling/added_mass")) then
+        if(have_option(trim(turbine_path(i))//"/Blades/added_mass")) then
             do j=1,Turbine(i)%NBlades
             Turbine(i)%Blade(j)%do_added_mass=.true.
             end do
         endif
 
-        if(have_option(trim(turbine_path(i))//"/Blades/unsteady_modelling/dynamic_stall")) then
+        if(have_option(trim(turbine_path(i))//"/Blades/dynamic_stall")) then
             do j=1,Turbine(i)%NBlades
             Turbine(i)%Blade(j)%do_dynamic_stall=.true.
             end do
@@ -265,15 +265,14 @@ contains
         call airfoil_init_data(Actuatorline(i)%AirfoilData(k))
         end do
 
-        !##################4 Get Unsteady Modelling Options ##################
-        if(have_option(trim(actuatorline_path(i))//"/unsteady_modelling/added_mass")) then
+        !##################4 Get Dynamic Loads Modelling Options ##################
+        if(have_option(trim(actuatorline_path(i))//"/dynamic_effects")) then
             Actuatorline%do_added_mass=.true.
         endif
 
-        if(have_option(trim(actuatorline_path(i))//"/unsteady_modelling/added_mass")) then
+        if(have_option(trim(actuatorline_path(i))//"/dynamic_effects")) then
             Actuatorline%do_dynamic_stall=.true.
         endif
-
         !##################4 Get Pitching Opions ##################
         if(have_option(trim(actuatorline_path(i))//"/pitch_control")) then
             Actuatorline%pitch_control=.true.

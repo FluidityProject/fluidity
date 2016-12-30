@@ -51,6 +51,7 @@ type ActuatorLineType
     real, allocatable :: EAOA(:)        ! Element Current angle of Attack (used in added mass terms)
     real, allocatable :: EAOAdot(:)     ! Element AOA rate of change
     real, allocatable :: EUn(:)         ! Element Current normal velocity (used in added mass terms)
+    real, allocatable :: EUndot(:)         ! Element Current normal velocity (used in added mass terms)
     real, allocatable :: EAOA_LAST(:)   ! Element Last angle of Attack (used in added mass terms)
     real, allocatable :: EUn_LAST(:)    ! Element Last normal velocity (used in added mass terms)
     real, allocatable :: ERe(:)         ! Element local Reynolds number
@@ -205,10 +206,10 @@ end type ActuatorLineType
     real :: R(3)
     real :: wRotX,wRotY,wRotZ,Rx,Ry,Rz,ub,vb,wb,u,v,w
     real :: xe,ye,ze,nxe,nye,nze,txe,tye,tze,sxe,sye,sze,ElemArea,ElemChord
-    real :: xe5,ye5,ze5,xe75,ye75,ze75,ub5,vb5,wb5,ub75,vb75,wb75,urdn5,urdn75 
-    real :: urdn,urdc,wP,ur,alpha,Re,alpha5,alpha75,adotnorm, wPnorm,ur5,ur75
+    real :: urdn,urdc, ur,alpha,Re
     real :: CL,CD,CN,CT,CLCirc,CM25,MS,FN,FT,FS,FX,Fy,Fz,te, F1, g1
-    real :: TRx,TRy,TRz, TRn,TRt, TRs, RotX,RotY,RotZ, dal, relem, ds
+    real :: TRx,TRy,TRz, TRn,TRt, TRs, RotX,RotY,RotZ, dal,dUn,relem, ds
+    real :: CNAM,CTAM,CMAM
     integer :: ielem
   
     ewrite(2,*) 'Entering Compute_Forces '
@@ -252,7 +253,6 @@ end type ActuatorLineType
     !==============================================================
     urdn=nxe*(u-ub)+nye*(v-vb)+nze*(w-wb)! Normal 
     urdc=txe*(u-ub)+tye*(v-vb)+tze*(w-wb)! Tangential
-    wP = sxe*wRotX+sye*wRotY+sze*wRotZ
     
     ur=sqrt(urdn**2.0+urdc**2.0)
     act_line%EUr(ielem)=ur
@@ -260,55 +260,50 @@ end type ActuatorLineType
     ! This is the dynamic angle of attack 
     alpha=atan2(urdn,urdc)
     act_line%ERe(ielem) = ur*ElemChord/Visc
-   
-    wPNorm = wP*ElemChord/(2.0*max(ur,0.001))
-
-    ! Calculate half chord and 75% chord velocites to be used in the pitch rate effects
-    if(act_line%do_added_mass) then
-    xe5=xe+0.25*ElemChord*txe
-    ye5=ye+0.25*ElemChord*tye
-    ze5=ze+0.25*ElemChord*tze
-    xe75=xe+0.5*ElemChord*txe
-    ye75=ye+0.5*ElemChord*tye
-    ze75=ze+0.5*ElemChord*tze
-    call cross(wRotX,wRotY,wRotZ,xe5,ye5,ze5,ub5,vb5,wb5)
-    call cross(wRotX,wRotY,wRotZ,xe75,ye75,ze75,ub75,vb75,wb75)
-    urdn5=nxe*(u-ub5)+nye*(v-vb5)+nze*(w-wb5)! Normal 
-    ur5=sqrt(urdn5**2+urdc**2)
-    alpha5=atan2(urdn5,urdc)
-    urdn75=nxe*(u-ub75)+nye*(v-vb75)+nze*(w-wb75)! Normal 
-    ur75=sqrt(urdn75**2+urdc**2)
-    alpha75=atan2(urdn75,urdc)
-    else
-    alpha5=alpha
-    alpha75=alpha
-    wPNorm=0.0
-    endif
     
-    act_line%EAOA(ielem)=alpha75
+    act_line%EAOA(ielem)=alpha
+    act_line%EUn(ielem)=urdn 
     
-    if(act_line%EAOA_Last(ielem)<0) then
+    if(act_line%EAOA_Last(ielem)<-665) then
     dal=0.0
+    dUn=0.0
     else
     dal=act_line%EAOA(ielem)-act_line%EAOA_Last(ielem)
+    dUn=act_line%EUn(ielem)-act_line%EUn_LAST(ielem)
     endif
     
     act_line%EAOAdot(ielem)=dal/dt
-    
-    adotnorm=act_line%EAOAdot(ielem)*ElemChord/(2.0*max(ur,0.001)) ! adot*c/(2*U)
-    
+    act_line%EUndot(ielem)=dUn/dt
+    !====================================
+    ! Correct for flow curvature
+    !====================================
+         
     !====================================
     ! Compute the Aerofoil Coefficients
     !====================================
-    call compute_aeroCoeffs(act_line%do_dynamic_stall,act_line%do_added_mass,act_line%EAirfoil(ielem),act_line%E_LB_Model(ielem),alpha75,alpha5,act_line%ERe(ielem),wPNorm,adotnorm,CN,CT,CM25,CL,CLCIrc,CD)  
-    !===================================
-    ! Update Dynamic Stall Model 
-    !===================================
-    if(act_line%do_dynamic_stall) then
-    ds=2.0*ur*dt/ElemChord
-    call LB_UpdateStates(act_line%E_LB_MODEL(ielem),ds)
-    endif
+    call compute_StaticLoads(act_line%EAirfoil(ielem),alpha,act_line%ERe(ielem),CN,CT,CM25,CL,CD)  
 
+    !===============================================
+    ! Correct for dynamic stall 
+    !=============================================== 
+    if(act_line%do_dynamic_stall) then 
+    end if
+    
+    !===============================================
+    ! Correct for added mass
+    !=============================================== 
+    if(act_line%do_added_mass) then 
+    CNAM=-pi*Elemchord*act_line%EUndot(ielem)/(8.0*ur**2)
+    CTAM= pi*Elemchord*act_line%EAOAdot(ielem)*urdn/(8.0*ur*2)
+    CMAM=-CNAM/4.0-urdn*urdc/(8.0*ur**2)
+    CT=CT+CTAM
+    CN=CN+CNAM
+    CL=CN*cos(alpha)-CT*sin(alpha)
+    CD=CN*sin(alpha)+CT*cos(alpha)
+    CM25=CM25+CMAM
+    end if
+   
+    ! Correct for three-dimensional effects
     !==========================================================================
     ! Apply end effects for actuator line (only to the lift coefficient)
     ! The value is initialized to 1.0 it should not make any difference
@@ -317,8 +312,8 @@ end type ActuatorLineType
     CL=CL*act_line%EEndeffects_factor(ielem)
         
     ! Tangential and normal coeffs
-    CN=CL*cos(alpha5)+CD*sin(alpha5)                                   
-    CT=-CL*sin(alpha5)+CD*cos(alpha5) 
+    CN=CL*cos(alpha)+CD*sin(alpha)                                   
+    CT=-CL*sin(alpha)+CD*cos(alpha) 
 
     !========================================================
     ! Apply Coeffs to calculate tangential and normal Forces
@@ -353,7 +348,7 @@ end type ActuatorLineType
     !===============================================
     !! Set the AOA_LAST before exiting the routine
     !===============================================
-    act_line%EAOA_LAST(ielem)=alpha75 
+    act_line%EAOA_LAST(ielem)=alpha 
     act_line%EUn_last(ielem)=urdn 
     end do 
 
@@ -561,7 +556,7 @@ end type ActuatorLineType
         tztmp=actuatorline%tz(ielem)
     
     ! Tangent vectors
-        Call QuatRot(txtmp,tytmp,tztmp,theta,nrx,nry,nrz,px,py,pz,vrx,vry,vrz)
+        Call QuatRot(txtmp,tytmp,tztmp,theta,nrx,nry,nrz,0.0,0.0,0.0,vrx,vry,vrz)
         VMag=sqrt(vrx**2+vry**2+vrz**2)
         actuatorline%tx(ielem)=vrx/VMag                                      
         actuatorline%ty(ielem)=vry/VMag                                  
@@ -748,6 +743,7 @@ end type ActuatorLineType
     allocate(actuatorline%Epitch(Nelem))
     allocate(actuatorline%EAOA(Nelem))
     allocate(actuatorline%EAOAdot(Nelem))
+    allocate(actuatorline%EUndot(Nelem))
     allocate(actuatorline%ERE(Nelem))
     allocate(actuatorline%EUr(Nelem))
     allocate(actuatorline%EUn(Nelem))

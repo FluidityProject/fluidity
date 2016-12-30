@@ -76,7 +76,7 @@ contains
     call allocate_actuatorline(Turbine%blade(iblade),Nstations)
     turbine%blade(iblade)%name=trim(turbine%name)//'_blade'//int2str(iblade)
     
-    turbine%blade(iblade)%COR=turbine%origin
+    turbine%blade(iblade)%COR(1:3)=turbine%origin(1:3)
     turbine%blade(iblade)%L=turbine%Rmax
     turbine%blade(iblade)%NElem=Nstations-1 
     
@@ -348,8 +348,8 @@ contains
         tytmp=turbine%Blade(j)%ty(ielem)
         tztmp=turbine%Blade(j)%tz(ielem)
         
-        ! Tangent vectors
-        Call QuatRot(txtmp,tytmp,tztmp,theta,nrx,nry,nrz,px,py,pz,vrx,vry,vrz)
+        ! Tangent vectors (rotated assuming the origina as 0)
+        Call QuatRot(txtmp,tytmp,tztmp,theta,nrx,nry,nrz,0.0,0.0,0.0,vrx,vry,vrz)
         VMag=sqrt(vrx**2+vry**2+vrz**2)
         turbine%Blade(j)%tx(ielem)=vrx/VMag                                      
         turbine%Blade(j)%ty(ielem)=vry/VMag                                  

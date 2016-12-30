@@ -390,22 +390,21 @@ contains
       if (ele<0) then
         ewrite(2,*) 'I dont own the element'
         call MPI_recv(Recv,5,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,tag,MPI_COMM_WORLD,status,ierr)
+        ewrite(2,*) 'Received', Recv, ' from processor', status(MPI_SOURCE)
         Su(isource)=Recv(1)
         Sv(isource)=Recv(2)
         Sw(isource)=Recv(3)
         Se(isource)=Recv(4)
         Visc=Recv(5)
-        ewrite(2,*) 'Received', Recv, ' from processor', status(MPI_SOURCE)
+        call MPI_recv(inside_the_domain(isource),1,MPI_LOGICAL,MPI_ANY_SOURCE,tag,MPI_COMM_WORLD,status,ierr)
       else
-          ewrite(2,*) 'I own the element'
-          
+        ewrite(2,*) 'I own the element'  
         ! Compute Velocities
-
+        inside_the_domain(isource)=.true.
         value_vel=eval_field(ele,velocity,local_coord)
         Su(isource)=value_vel(1)
         Sv(isource)=value_vel(2)
         Sw(isource)=value_vel(3)
-        
         ! Local Background Compute Viscosity
         nu=eval_field(ele,ViscosityTens,local_coord)
         
@@ -432,6 +431,7 @@ contains
         Send(5)=Visc
         call MPI_Send(Send,5,MPI_DOUBLE_PRECISION,irank,tag,MPI_COMM_WORLD,ierr)
         ewrite(2,*) 'Sent' , Send, ' to processor ', irank        
+        call MPI_Send(inside_the_domain(isource),1,MPI_LOGICAL,irank,tag,MPI_COMM_WORLD,ierr)
         end if 
         
         end do

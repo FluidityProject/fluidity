@@ -41,7 +41,7 @@ module airfoils
   private intp, read_airfoil
  
   ! Public subroutines
-  public airfoil_init_data, compute_aeroCoeffs ,CalcLBStallAOALim,allocate_airfoil, copy_airfoil_values
+  public airfoil_init_data, compute_StaticLoads ,allocate_airfoil, copy_airfoil_values
 
 
 contains
@@ -280,21 +280,18 @@ contains
     allocate(airfoil%CLCritNData(MaxReVals))
 
     ewrite(1,*) 'Exiting allocate_airfoil'
-
+    
     end subroutine allocate_airfoil
 
-   
-    subroutine compute_aeroCoeffs(DStallFlag,AddedMassFlag,airfoil,lb,alpha75,alpha5,Re,wPNorm,adotnorm,CN,CT,CM25,CL,CLCirc,CD)
+    subroutine compute_StaticLoads(airfoil,alpha,Re,CN,CT,CM25,CL,CD)
 
         implicit none
 
         ! GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
         ! inputs :
         !           airfoil : The airfoil under consideration
-        !           alpha75 : Angle of Attack at 3/4 of the element 
-        !           alpha5  : Angle of Attack at 1/2 (middle) of the element
+        !           alpha   : Angle of Attack at 1/4 of the element
         !           Re      : Element Reynolds Number
-        !           adotnorm: rate of change of the angle of attack (locally)
         ! 
         ! outputs: 
         !           CN      : Normal Force Coefficient
@@ -305,194 +302,143 @@ contains
         !       
         ! GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
         type(AirfoilType),intent(IN) :: airfoil
-        type(LB_type),intent(INOUT) :: lb
-        !type(LB_type),intent(IN),optional :: lb_model
-        real,intent(IN) :: alpha75, alpha5, wPNorm, adotnorm, Re  
-        real,intent(OUT) :: CN, CT, CM25, CL, CLCirc, CD
-        logical,intent(in) :: DStallFlag, AddedMassFlag
-        real :: CLstat75, CLstat5, CDstat75, CLdyn5, CDdyn5, CL5, CD5, C, C1, CM25stat
-        real :: alphaL, dCTAM,dCLAD,dCNAM,aref, Fac, CTAM,CNAM 
+        real,intent(IN) :: alpha, Re
+        real,intent(OUT) :: CN, CT, CM25, CL, CD
 
-        ewrite(2,*) 'Entering compute_aeroCoeffs_one_airfoil'
+        ewrite(2,*) 'Entering compute_StaticLoads'
 
-        !==============
-        ! Static Loads
-        !==============
-        call intp(Re,alpha75*condeg,CLstat75,CDstat75,CM25stat,airfoil) 
-        call intp(Re,alpha5*condeg,CLstat5,C,C1,airfoil)
-        
-        CL5=CLstat75
-        CD5=CDstat75
-        CM25=CM25stat+cos(alpha5)*(CLstat75-CLstat5)/4.0
-        alphaL=alpha75
-        CLCirc=CLstat75
-
-        !================================================
-        ! Dynamic Stall according to Leishman and Beddoes
-        !================================================
-        if(DStallFlag) then
-        call LB_DynStall(airfoil,lb,CL5,CD5,alphaL,alpha5,Re,CLdyn5,CDdyn5)        
-        CL5=CLdyn5
-        CD5=CDdyn5
-        CLCirc=CLdyn5
-        endif
+        !========================================================
+        ! Find Static Coefficients by interpolation Static Loads
+        !========================================================
+        call intp(Re,alpha*condeg,CL,CD,CM25,airfoil) 
 
         ! Tangential and normal coeffs
-        CN=CL5*cos(alpha5)+CD5*sin(alpha5)                                   
-        CT=-CL5*sin(alpha5)+CD5*cos(alpha5) 
-
-        !===============================================
-        ! Added mass according to Strickland et al,1973
-        !===============================================
-        ! First zero CTAM and CNAM
-        CTAM=0.0
-        CNAM=0.0
-        
-        if(AddedMassFlag) then
-        dCTAM=2.0/cos(alpha5)*wPNorm*CM25stat-CLstat5/2.0*wPNorm
-        dCLAD=pi*adotnorm
-        dCTAM=dCTAM-dCLAD*sin(alpha5)
-        dCNAM=dCLAD*cos(alpha5)
-        Fac=1.0
-        aref=abs(alpha5)
-        if ((aref>pi/4.0).AND.(aref<3.0*pi/4.0)) then
-            Fac=abs(1-4.0/pi*(aref-pi/4.0))
-        end if
-        ! Added mass components
-        CTAM=Fac*dCTAM
-        CNAM=Fac*dCNAM
-        ! Augment tangential and normal coeffs 
-        end if
-
-        CT=CT+CTAM
-        CN=CN+CNAM
-        
-        CL=CN*cos(alpha5)-CT*sin(alpha5)
-        CD=CN*sin(alpha5)+CT*cos(alpha5)
-        
+        CN=CL*cos(alpha)+CD*sin(alpha)                                   
+        CT=-CL*sin(alpha)+CD*cos(alpha) 
+ 
         return
-        ewrite(2,*) 'Exiting compute_aeroCoeffs_one_airfoil'
+        ewrite(2,*) 'Exiting compute_StaticLoads'
 
-    end subroutine compute_aeroCoeffs
+    end subroutine compute_StaticLoads
 
-    subroutine LB_DynStall(airfoil,lb,CLstat,CDstat,alphaL,alpha5,Re,CL,CD)
-    ! GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
-    ! Routine that computes the Leishmann-Beddoes dynamic stall model
-    ! with incompressible reductionand returns corrected values for 
-    ! CL and CD having taken into account the dynamic stall effects
-    ! GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
+    !subroutine LB_DynStall(airfoil,lb,CLstat,CDstat,alphaL,alpha5,Re,CL,CD)
+    !! GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
+    !! Routine that computes the Leishmann-Beddoes dynamic stall model
+    !! with incompressible reductionand returns corrected values for 
+    !! CL and CD having taken into account the dynamic stall effects
+    !! GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
 
-    implicit none
-    type(AirfoilType) :: airfoil       ! Airfoil structure
-    type(LB_Type) :: lb                ! Leishmann-Beddoes model structure
-    real :: CLstat, CDstat, alphaL, alpha5, Re, CL, CD
-    real :: AOA0, CLID, Trans, dCLRefLE, dAOARefLE, AOARefLE, CLstatF, C, C1, CLIDF 
-    real :: CLRatio, CLsep, CLF, dCDF, KD, CLa, NOF, dCLv, dCDv, acut, CLCritP, CLCritN
+    !implicit none
+    !type(AirfoilType) :: airfoil       ! Airfoil structure
+    !type(LB_Type) :: lb                ! Leishmann-Beddoes model structure
+    !real :: CLstat, CDstat, alphaL, alpha5, Re, CL, CD
+    !real :: AOA0, CLID, Trans, dCLRefLE, dAOARefLE, AOARefLE, CLstatF, C, C1, CLIDF 
+    !real :: CLRatio, CLsep, CLF, dCDF, KD, CLa, NOF, dCLv, dCDv, acut, CLCritP, CLCritN
 
-    ! Airfoil data
-    AOA0=airfoil%alzer
-    call CalcLBStallAOALim(airfoil,lb,Re,CLa)
-    
-    ! Model constants
-    KD=0.1          ! Trailing Edge separation drag factor
+    !! Airfoil data
+    !AOA0=airfoil%alzer
+    !call CalcLBStallAOALim(airfoil,lb,Re,CLa)
+    !
+    !! Model constants
+    !KD=0.1          ! Trailing Edge separation drag factor
 
-    ! Evaluate the ideal CL curve at current AOA
-    call LB_EvalIdealCL(alphaL,AOA0,CLa,1,lb%CLRef) 
-    call LB_EvalIdealCL(alphaL,AOA0,CLa,0,CLID)
-    
-    ! calc lagged ideal CL for comparison with critical LE separation CL
-    Trans=(cos(alphaL-AOA0))**2 ! fair effect to zero at 90 deg. AOA...
-    dCLRefLE=Trans*lb%dp  ! dp is lagged CLRef change
-    dAOARefLE=dCLRefLE/CLa
+    !! Evaluate the ideal CL curve at current AOA
+    !call LB_EvalIdealCL(alphaL,AOA0,CLa,1,lb%CLRef) 
+    !call LB_EvalIdealCL(alphaL,AOA0,CLa,0,CLID)
+    !
+    !! calc lagged ideal CL for comparison with critical LE separation CL
+    !Trans=(cos(alphaL-AOA0))**2 ! fair effect to zero at 90 deg. AOA...
+    !dCLRefLE=Trans*lb%dp  ! dp is lagged CLRef change
+    !dAOARefLE=dCLRefLE/CLa
 
-    ! define reference LE CL and AOA
-    lb%CLRefLE=lb%CLRef-dCLRefLE
-    if (lb%CLRefLE*(lb%CLRefLE-lb%CLRefLE_Last) > 0) then
-        lb%CLRateFlag=1
-    else
-        lb%CLRateFlag=0
-    end if
-    AOARefLE=alphaL-dAOARefLE
-    Call Force180(AOARefLE)
+    !! define reference LE CL and AOA
+    !lb%CLRefLE=lb%CLRef-dCLRefLE
+    !if (lb%CLRefLE*(lb%CLRefLE-lb%CLRefLE_Last) > 0) then
+    !    lb%CLRateFlag=1
+    !else
+    !    lb%CLRateFlag=0
+    !end if
+    !AOARefLE=alphaL-dAOARefLE
+    !Call Force180(AOARefLE)
 
-    ! calc effective static TE separation point using effective LE AOA
-    Call intp(Re,AOARefLE*condeg,CLstatF,C,C1,airfoil)
-    Call LB_EvalIdealCL(AOARefLE,AOA0,CLa,0,CLIDF)
-    if (abs(CLIDF)<0.001) then
-        CLRatio=999
-    else
-        CLRatio=CLstatF/CLIDF;
-    end if
+    !! calc effective static TE separation point using effective LE AOA
+    !Call intp(Re,AOARefLE*condeg,CLstatF,C,C1,airfoil)
+    !Call LB_EvalIdealCL(AOARefLE,AOA0,CLa,0,CLIDF)
+    !if (abs(CLIDF)<0.001) then
+    !    CLRatio=999
+    !else
+    !    CLRatio=CLstatF/CLIDF;
+    !end if
 
-    if (CLRatio > 0.25) then
-        lb%Fstat=min((sqrt(4.0*CLRatio)-1.0)**2,1.0)
+    !if (CLRatio > 0.25) then
+    !    lb%Fstat=min((sqrt(4.0*CLRatio)-1.0)**2,1.0)
 
-        ! Test logic
-        lb%LB_LogicOutputs(1)=1
-    else
-        lb%Fstat=0
+    !    ! Test logic
+    !    lb%LB_LogicOutputs(1)=1
+    !else
+    !    lb%Fstat=0
 
-        ! Test logic
-        lb%LB_LogicOutputs(1)=2
-    end if
-    ! calc lagged Fstat to represent dynamic TE separation point
-    lb%F=lb%Fstat-lb%dF
-    ! force limits on lagged F (needed due to discretization error...)
-    lb%F=min(max(lb%F,0.0),1.0)
+    !    ! Test logic
+    !    lb%LB_LogicOutputs(1)=2
+    !end if
+    !! calc lagged Fstat to represent dynamic TE separation point
+    !lb%F=lb%Fstat-lb%dF
+    !! force limits on lagged F (needed due to discretization error...)
+    !lb%F=min(max(lb%F,0.0),1.0)
 
-    ! Calc dynamic CL due to TE separation as fairing between fully attached and fully separated predictions from the Kirchoff approximation at current AOA
-    if (abs(CLID)<0.001) then
-        CLRatio=999
-    else
-        CLRatio=CLstat/CLID
-    end if
+    !! Calc dynamic CL due to TE separation as fairing between fully attached and fully separated predictions from the Kirchoff approximation at current AOA
+    !if (abs(CLID)<0.001) then
+    !    CLRatio=999
+    !else
+    !    CLRatio=CLstat/CLID
+    !end if
 
-    if (CLRatio > 1.0) then
-        CLID=CLstat
+    !if (CLRatio > 1.0) then
+    !    CLID=CLstat
 
-        ! Test logic
-        lb%LB_LogicOutputs(2)=1
-    end if
+    !    ! Test logic
+    !    lb%LB_LogicOutputs(2)=1
+    !end if
 
-    if (CLRatio > 0.25) then
-        CLsep=CLID/4.0
+    !if (CLRatio > 0.25) then
+    !    CLsep=CLID/4.0
 
-        ! Test logic
-        lb%LB_LogicOutputs(3)=1
-    else
-        CLsep=CLstat
+    !    ! Test logic
+    !    lb%LB_LogicOutputs(3)=1
+    !else
+    !    CLsep=CLstat
 
-        ! Test logic
-        lb%LB_LogicOutputs(3)=2
-    end if
-    CLF=CLsep+CLID*0.25*(lb%F+2.0*sqrt(lb%F))
-    dCDF=KD*(CLstat-CLF)*sign(1.0,CLstat)
+    !    ! Test logic
+    !    lb%LB_LogicOutputs(3)=2
+    !end if
+    !CLF=CLsep+CLID*0.25*(lb%F+2.0*sqrt(lb%F))
+    !dCDF=KD*(CLstat-CLF)*sign(1.0,CLstat)
 
-    ! LE vortex lift component, dCNv is a lagged change in the added normal force due
-    ! to LE vortex shedding. Assumed to affect lift coeff as an added circulation...
-    dCLv=lb%dCNv*cos(alpha5)
-    dCDv=lb%dCNv*sin(alpha5)
-    ! vortex feed is given by the rate at which lift (circulation) is being shed due to dynamic separation. Lift component due to separation is defined by the
-    ! difference between the ideal lift and the lift including dynamic separation effects.
-    lb%cv=CLID-CLF
-    lb%dcv=lb%cv-lb%cv_Last
-    ! If the sign of dcv is opposite the reference LE CL, set to zero to disallow negative vorticity from shedding from the leading edge. Also, limit the model 
-    ! at AOA>acut or if the magnitude of the reference CL is decreasing...
-    acut=50.0*conrad
-    if (sign(1.0,lb%dcv*lb%CLRefLE)<0 .OR. abs(alphaL-AOA0)>acut .OR. lb%CLRateFlag<0) then
-        lb%dcv=0.0
+    !! LE vortex lift component, dCNv is a lagged change in the added normal force due
+    !! to LE vortex shedding. Assumed to affect lift coeff as an added circulation...
+    !dCLv=lb%dCNv*cos(alpha5)
+    !dCDv=lb%dCNv*sin(alpha5)
+    !! vortex feed is given by the rate at which lift (circulation) is being shed due to dynamic separation. Lift component due to separation is defined by the
+    !! difference between the ideal lift and the lift including dynamic separation effects.
+    !lb%cv=CLID-CLF
+    !lb%dcv=lb%cv-lb%cv_Last
+    !! If the sign of dcv is opposite the reference LE CL, set to zero to disallow negative vorticity from shedding from the leading edge. Also, limit the model 
+    !! at AOA>acut or if the magnitude of the reference CL is decreasing...
+    !acut=50.0*conrad
+    !if (sign(1.0,lb%dcv*lb%CLRefLE)<0 .OR. abs(alphaL-AOA0)>acut .OR. lb%CLRateFlag<0) then
+    !    lb%dcv=0.0
 
-        ! Test logic
-        lb%LB_LogicOutputs(4)=1
-    end if
+    !    ! Test logic
+    !    lb%LB_LogicOutputs(4)=1
+    !end if
 
-    ! Total lift and drag
-    CL=CLF+dCLv
-    CD=CDstat+dCDF+dCDv
-    
-    return
+    !! Total lift and drag
+    !CL=CLF+dCLv
+    !CD=CDstat+dCDF+dCDv
+    !
+    !return
 
-    end subroutine LB_DynStall
+    !end subroutine LB_DynStall
    
     subroutine intp(RE,ALPHA,CL,CD,CM25,airfoil)   
         
@@ -586,58 +532,58 @@ ewrite(2,*) 'Warning : The upper Reynolds number available data was exceeded. Ca
         ewrite(2,*) 'Exiting intp subroutine'
     END SUBROUTINE intp
 
-    Subroutine CalcLBStallAOALim(airfoil,lb,Re,CLa)
+    !Subroutine CalcLBStallAOALim(airfoil,lb,Re,CLa)
 
-        ! Get stall data for LB model from airfoil data
-        real :: Re, CLa, XRE
-        type(AirfoilType),intent(IN) :: airfoil
-        type(LB_type),intent(INOUT) :: lb
-        integer :: iUB, iLB
-        logical :: NotDone 
+    !    ! Get stall data for LB model from airfoil data
+    !    real :: Re, CLa, XRE
+    !    type(AirfoilType),intent(IN) :: airfoil
+    !    type(LB_type),intent(INOUT) :: lb
+    !    integer :: iUB, iLB
+    !    logical :: NotDone 
 
-        ! Find Re upper and lower bounds.                                     
+    !    ! Find Re upper and lower bounds.                                     
 
-        if (RE >= airfoil%TRE(1)) then                                                                                                                                  
-            NotDone=.true.    
-            iUB=2                                                                 
-            do while (NotDone)   
+    !    if (RE >= airfoil%TRE(1)) then                                                                                                                                  
+    !        NotDone=.true.    
+    !        iUB=2                                                                 
+    !        do while (NotDone)   
 
-                if (RE <= airfoil%TRE(iUB)) then
-                    ! Done
-                    NotDone=.false.
-                    if (RE == airfoil%TRE(iUB)) then
-                        iLB=iUB
-                    else
-                        iLB=iUB-1                                                           
-                        XRE=(RE-airfoil%TRE(iLB))/(airfoil%TRE(iUB)-airfoil%TRE(iLB))
-                    end if
-                else
-                    if (iUB == airfoil%nRET) then       
-                        ! No upper bound in table, take last point...
-                        NotDone=.false.                                                       
-                        iLB=iUB                                                           
-                        XRE=0.0                                                           
-                    else    
-                        ! No upper bound, increment and continue                                
-                        iUB=iUB+1
-                    end if
-                end if
+    !            if (RE <= airfoil%TRE(iUB)) then
+    !                ! Done
+    !                NotDone=.false.
+    !                if (RE == airfoil%TRE(iUB)) then
+    !                    iLB=iUB
+    !                else
+    !                    iLB=iUB-1                                                           
+    !                    XRE=(RE-airfoil%TRE(iLB))/(airfoil%TRE(iUB)-airfoil%TRE(iLB))
+    !                end if
+    !            else
+    !                if (iUB == airfoil%nRET) then       
+    !                    ! No upper bound in table, take last point...
+    !                    NotDone=.false.                                                       
+    !                    iLB=iUB                                                           
+    !                    XRE=0.0                                                           
+    !                else    
+    !                    ! No upper bound, increment and continue                                
+    !                    iUB=iUB+1
+    !                end if
+    !            end if
 
-            end do
+    !        end do
 
-        else        
-            ! No lower bound in table, take first point.                                            
-            iLB=1                                                             
-            iUB=1                                                             
-            XRE=0.0                                                                                                 
-        end if
+    !    else        
+    !        ! No lower bound in table, take first point.                                            
+    !        iLB=1                                                             
+    !        iUB=1                                                             
+    !        XRE=0.0                                                                                                 
+    !    end if
 
-        ! Interp
-        CLa=airfoil%CLaData(iLB)+xRE*(airfoil%CLaData(iUB)-airfoil%CLaData(iLB))            
-        lb%CLCritP=airfoil%CLCritPData(iLB)+xRE*(airfoil%CLCritPData(iUB)-airfoil%CLCritPData(iLB))  
-        lb%CLCritN=airfoil%CLCritNData(iLB)+xRE*(airfoil%CLCritNData(iUB)-airfoil%CLCritNData(iLB)) 
-    
-    End Subroutine CalcLBStallAOALim
+    !    ! Interp
+    !    CLa=airfoil%CLaData(iLB)+xRE*(airfoil%CLaData(iUB)-airfoil%CLaData(iLB))            
+    !    lb%CLCritP=airfoil%CLCritPData(iLB)+xRE*(airfoil%CLCritPData(iUB)-airfoil%CLCritPData(iLB))  
+    !    lb%CLCritN=airfoil%CLCritNData(iLB)+xRE*(airfoil%CLCritNData(iUB)-airfoil%CLCritNData(iLB)) 
+    !
+    !End Subroutine CalcLBStallAOALim
     
 
 end module airfoils 
