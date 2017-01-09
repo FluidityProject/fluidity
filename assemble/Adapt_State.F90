@@ -99,6 +99,8 @@ module adapt_state_module
     module procedure adapt_state_single, adapt_state_multiple
   end interface adapt_state
 
+  type(vector_field) :: original_base_geometry
+
 contains
 
   subroutine adapt_mesh_simple(old_positions, metric, new_positions, node_ownership, force_preserve_regions, &
@@ -1063,7 +1065,7 @@ contains
     type(detector_type), pointer :: detector => null()
 
     real :: global_min_quality, quality_tolerance
-    type(scalar_field) :: radius, base_radius
+    type(scalar_field) :: radius, base_radius, interpolated_radius
     logical :: have_spherical_adaptivity=.true.
     integer :: index=0
 
@@ -1144,11 +1146,11 @@ contains
           call insert(states(1), old_positions, positions_name)
           call incref(old_positions)
         else
-          ! first time around we need to insert the radius of the base geometry
-          radius = magnitude(old_positions)
-          radius%name = trim(positions_name)//"Radius"
-          call insert(states(1), radius, radius%name)
-          call deallocate(radius)
+          ! first time around: make a copy of the base geometry
+          original_base_geometry = old_positions
+          original_base_geometry%name = trim(old_positions%name)//"OriginalBaseGeometry"
+          ! FIXME: this reference is not going to go away
+          call incref(old_positions)
         end if
         call vtk_write_state("base_geometry_before", index, old_positions%mesh%name, states)
       end if
@@ -1163,10 +1165,6 @@ contains
         call select_fields_to_interpolate(states(j), interpolate_states(j), &
           & first_time_step = initialise_fields)
       end do
-      if (have_spherical_adaptivity) then
-        radius = extract_scalar_field(states(1), trim(positions_name)//"Radius")
-        call insert(interpolate_states(1), radius, radius%name)
-      end if
 
       do j = 1, size(states)
         call deallocate(states(j))
@@ -1263,11 +1261,6 @@ contains
                                              interpolate_states(1), states(1), &
                                              metric_name = metric_name)
       end if
-      if (have_spherical_adaptivity) then
-        call allocate(radius, new_positions%mesh, trim(new_positions%name)//"Radius")
-        call insert(states(1), radius, radius%name)
-        call deallocate(radius)
-      end if
 
       ! We're done with the old metric, so we may deallocate it / drop our
       ! reference
@@ -1311,17 +1304,21 @@ contains
         call insert(states(1), old_positions, old_positions%name)
         call vtk_write_state("base_geometry_after", index, old_positions%mesh%name, states)
         call deallocate(old_positions)
+
+        radius = magnitude(original_base_geometry)
         ! extract the interpolated radius
-        radius = extract_scalar_field(states(1), trim(positions_name)//"Radius")
+        call allocate(interpolated_radius, new_positions%mesh, "InterpolatedRadius")
+        call linear_interpolation(radius, original_base_geometry, interpolated_radius, new_positions)
         ! and compute the current unpopped radius
         base_radius = magnitude(new_positions)
         ! normalize the unpoped new positions, and then scale them back using the
         ! interpolated radius to pop them out back onto the sphere
         call invert(base_radius)
         call scale(new_positions, base_radius)
-        call scale(new_positions, radius)
+        call scale(new_positions, interpolated_radius)
         call deallocate(base_radius)
-        ! we leave the interpolated radius in state, to be used in the next adapt
+        call deallocate(interpolated_radius)
+        call deallocate(radius)
         ! drop our reference for new_positions again (still stored in state)
         call deallocate(new_positions)
         call vtk_write_state("popped_geometry_after", index, new_positions%mesh%name, states)
