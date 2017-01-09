@@ -16,19 +16,21 @@ subroutine test_turbine
  character(80) :: InputFN
  
  write(*,*) '================================================='
- write(*,*) 'This is a reduced model for the ALM '
+ write(*,*) 'This is a reduced model for uALM/uBEM model that '
+ write(*,*) 'that works without a dynamic inflow model        '
  write(*,*) '================================================='
 
- call load_options("Test.flml")
+ call load_options("TestTurbine.flml")
  
  Ntimesteps=1000
  deltaT=0.001
  visc=1.5e-5
  current_time=0.0
- dump_step=1
+ dump_step=50
  
  call actuator_line_model_init
- 
+ call initialize_actuator_source
+
  write(6,*) 'Number of Turbines :', Ntur
  write(6,*) 'Number of Blades :', Turbine(1:Ntur)%NBlades
     
@@ -42,7 +44,13 @@ subroutine test_turbine
         Turbine(itur)%Blade(iblade)%EVx(:)=10.0
         Turbine(itur)%Blade(iblade)%EVy(:)=0.0
         Turbine(itur)%Blade(iblade)%EVz(:)=0.0
+        Turbine(itur)%Blade(iblade)%Eepsilon(:)=constant_epsilon
+        
         enddo
+        Turbine(itur)%Tower%EVx(:)=10.0
+        Turbine(itur)%Tower%EVy(:)=0.0
+        Turbine(itur)%Tower%EVz(:)=0.0
+        Turbine(itur)%Tower%Eepsilon(:)=constant_epsilon
     end do
 
     call actuator_line_model_compute_forces    

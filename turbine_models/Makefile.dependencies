@@ -14,7 +14,8 @@ Actuator_Line_Element.o ../include/actuator_line_element.mod: \
 Actuator_Line_Model.o ../include/actuator_line_model.mod: \
    Actuator_Line_Model.F90 ../include/actuator_line_element.mod \
    ../include/actuator_line_model_utils.mod \
-   ../include/actuator_line_turbine.mod ../include/airfoils.mod \
+   ../include/actuator_line_turbine.mod \
+   ../include/actuator_line_write_output.mod ../include/airfoils.mod \
    ../include/dynstall.mod ../include/fdebug.h ../include/fldebug.mod \
    ../include/futils.mod ../include/global_parameters.mod ../include/spud.mod
 
@@ -41,15 +42,24 @@ Actuator_Line_Turbine.o ../include/actuator_line_turbine.mod: \
    ../include/airfoils.mod ../include/fdebug.h ../include/fldebug.mod \
    ../include/futils.mod ../include/global_parameters.mod ../include/spud.mod
 
+../include/actuator_line_write_output.mod: Actuator_Line_Write_Output.o
+	@true
+
+Actuator_Line_Write_Output.o ../include/actuator_line_write_output.mod: \
+   Actuator_Line_Write_Output.F90 ../include/actuator_line_element.mod \
+   ../include/actuator_line_turbine.mod ../include/fdebug.h \
+   ../include/fldebug.mod ../include/futils.mod \
+   ../include/global_parameters.mod ../include/spud.mod
+
 ../include/airfoils.mod: Airfoils.o
 	@true
 
-Airfoils.o ../include/airfoils.mod: Airfoils.F90 ../include/dynstall.mod \
-   ../include/fdebug.h ../include/fldebug.mod ../include/global_parameters.mod
+Airfoils.o ../include/airfoils.mod: Airfoils.F90 ../include/fdebug.h \
+   ../include/fldebug.mod ../include/global_parameters.mod
 
 ../include/dynstall.mod: DynStall.o
 	@true
 
-DynStall.o ../include/dynstall.mod: DynStall.F90 ../include/fdebug.h \
-   ../include/fldebug.mod ../include/global_parameters.mod
+DynStall.o ../include/dynstall.mod: DynStall.F90 ../include/airfoils.mod \
+   ../include/fdebug.h ../include/fldebug.mod ../include/global_parameters.mod
 

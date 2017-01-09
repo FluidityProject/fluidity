@@ -38,12 +38,9 @@ module Airfoils
   ! Globla parameters
   integer, parameter :: MaxReVals = 20
   integer, parameter :: MaxAOAVals = 1000
-  
-  ! Private subroutines
-  private EvalStaticCoeff, read_airfoil
  
   ! Public subroutines
-  public airfoil_init_data, compute_StaticLoads ,allocate_airfoil, copy_airfoil_values
+  public airfoil_init_data, compute_StaticLoads , EvalStaticCoeff, read_airfoil,allocate_airfoil, copy_airfoil_values
 
 
 contains
