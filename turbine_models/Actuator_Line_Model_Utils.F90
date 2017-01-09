@@ -141,7 +141,6 @@ contains
         implicit none
         integer,intent(in) :: dim
         real,intent(in) ::dr, epsilon_par
-        integer :: j 
 
             if(dim==2) then    
             IsoKernel = 1.0/(epsilon_par**2*pi)*exp(-(dr/epsilon_par)**2.0)

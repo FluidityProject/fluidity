@@ -1,12 +1,14 @@
 #include "fdebug.h"
 
-module airfoils 
+module Airfoils 
 
   use fldebug
   use global_parameters, only:FIELD_NAME_LEN,OPTION_PATH_LEN, PYTHON_FUNC_LEN, pi
-  use dynstall
 
   implicit none
+    
+  real, parameter :: conrad = pi / 180.0 
+  real, parameter :: condeg = 180.0 / pi  
   
   type AirfoilType
   
@@ -25,10 +27,10 @@ module airfoils
   integer, allocatable :: nTBL(:)   ! Number of AOA values for each Re number, in each section data table
   integer  :: nRET   ! Number of Re number values in each section data table
 
-  ! Airfoil params for Leisham Beddoes dyn stall
+  ! Airfoil parameterss for Leishman-Beddoes Dynamic stall model
   real, allocatable :: CLaData(:)
-  real, allocatable :: CLCritPData(:)
-  real, allocatable :: CLCritNData(:)
+  real, allocatable :: alphaSSPData(:)
+  real, allocatable :: alphaSSNData(:)
 
   end type AirfoilType
  
@@ -38,7 +40,7 @@ module airfoils
   integer, parameter :: MaxAOAVals = 1000
   
   ! Private subroutines
-  private intp, read_airfoil
+  private EvalStaticCoeff, read_airfoil
  
   ! Public subroutines
   public airfoil_init_data, compute_StaticLoads ,allocate_airfoil, copy_airfoil_values
@@ -82,8 +84,8 @@ contains
     airfoil1%TRE(1:MaxReVals)=airfoil2%TRE(1:MaxReVals)
     airfoil1%nTBL(1:MaxReVals)=airfoil2%nTBL(1:MaxReVals)
     airfoil1%CLaData(1:MaxReVals)=airfoil2%CLaData(1:MaxReVals)
-    airfoil1%CLCritPData(1:MaxReVals)=airfoil2%CLCritPData(1:MaxReVals)
-    airfoil1%CLCritNData(1:MaxReVals)=airfoil2%CLCritNData(1:MaxReVals)
+    airfoil1%alphaSSPData(1:MaxReVals)=airfoil2%alphaSSPData(1:MaxReVals)
+    airfoil1%alphaSSNData(1:MaxReVals)=airfoil2%alphaSSNData(1:MaxReVals)
 
     ewrite(2,*) 'Exiting copy_airfoil_values'
 
@@ -160,15 +162,15 @@ contains
         read(15,'(A)') ReadLine                          
         read(ReadLine(index(ReadLine,':')+1:),*) airfoil%CLaData(i)
         read(15,'(A)') ReadLine                          
-        read(ReadLine(index(ReadLine,':')+1:),*) airfoil%CLCritPData(i)
+        read(ReadLine(index(ReadLine,':')+1:),*) airfoil%alphaSSPData(i)
         read(15,'(A)') ReadLine                          
-        read(ReadLine(index(ReadLine,':')+1:),*) airfoil%CLCritNData(i)
+        read(ReadLine(index(ReadLine,':')+1:),*) airfoil%alphaSSNData(i)
 
         ! Reverse camber direction if desired
         if (airfoil%camb == 1) then
-            temp = airfoil%CLCritPData(i)
-            airfoil%CLCritPData(i) = -airfoil%CLCritNData(i)
-            airfoil%CLCritNData(i) = -temp 
+            temp = airfoil%alphaSSPData(i)
+            airfoil%alphaSSPData(i) = -airfoil%alphaSSNData(i)
+            airfoil%alphaSSNData(i) = -temp 
         end if
 
         ! Read AOA data
@@ -276,8 +278,8 @@ contains
     allocate(airfoil%TRE(MAxReVals))
     allocate(airfoil%nTBL(MaxReVals))
     allocate(airfoil%CLaData(MaxReVals))
-    allocate(airfoil%CLCritPData(MaxReVals))
-    allocate(airfoil%CLCritNData(MaxReVals))
+    allocate(airfoil%alphaSSPData(MaxReVals))
+    allocate(airfoil%alphaSSNData(MaxReVals))
 
     ewrite(1,*) 'Exiting allocate_airfoil'
     
@@ -310,7 +312,7 @@ contains
         !========================================================
         ! Find Static Coefficients by interpolation Static Loads
         !========================================================
-        call intp(Re,alpha*condeg,CL,CD,CM25,airfoil) 
+        call EvalStaticCoeff(Re,alpha*condeg,CL,CD,CM25,airfoil) 
 
         ! Tangential and normal coeffs
         CN=CL*cos(alpha)+CD*sin(alpha)                                   
@@ -320,127 +322,8 @@ contains
         ewrite(2,*) 'Exiting compute_StaticLoads'
 
     end subroutine compute_StaticLoads
-
-    !subroutine LB_DynStall(airfoil,lb,CLstat,CDstat,alphaL,alpha5,Re,CL,CD)
-    !! GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
-    !! Routine that computes the Leishmann-Beddoes dynamic stall model
-    !! with incompressible reductionand returns corrected values for 
-    !! CL and CD having taken into account the dynamic stall effects
-    !! GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
-
-    !implicit none
-    !type(AirfoilType) :: airfoil       ! Airfoil structure
-    !type(LB_Type) :: lb                ! Leishmann-Beddoes model structure
-    !real :: CLstat, CDstat, alphaL, alpha5, Re, CL, CD
-    !real :: AOA0, CLID, Trans, dCLRefLE, dAOARefLE, AOARefLE, CLstatF, C, C1, CLIDF 
-    !real :: CLRatio, CLsep, CLF, dCDF, KD, CLa, NOF, dCLv, dCDv, acut, CLCritP, CLCritN
-
-    !! Airfoil data
-    !AOA0=airfoil%alzer
-    !call CalcLBStallAOALim(airfoil,lb,Re,CLa)
-    !
-    !! Model constants
-    !KD=0.1          ! Trailing Edge separation drag factor
-
-    !! Evaluate the ideal CL curve at current AOA
-    !call LB_EvalIdealCL(alphaL,AOA0,CLa,1,lb%CLRef) 
-    !call LB_EvalIdealCL(alphaL,AOA0,CLa,0,CLID)
-    !
-    !! calc lagged ideal CL for comparison with critical LE separation CL
-    !Trans=(cos(alphaL-AOA0))**2 ! fair effect to zero at 90 deg. AOA...
-    !dCLRefLE=Trans*lb%dp  ! dp is lagged CLRef change
-    !dAOARefLE=dCLRefLE/CLa
-
-    !! define reference LE CL and AOA
-    !lb%CLRefLE=lb%CLRef-dCLRefLE
-    !if (lb%CLRefLE*(lb%CLRefLE-lb%CLRefLE_Last) > 0) then
-    !    lb%CLRateFlag=1
-    !else
-    !    lb%CLRateFlag=0
-    !end if
-    !AOARefLE=alphaL-dAOARefLE
-    !Call Force180(AOARefLE)
-
-    !! calc effective static TE separation point using effective LE AOA
-    !Call intp(Re,AOARefLE*condeg,CLstatF,C,C1,airfoil)
-    !Call LB_EvalIdealCL(AOARefLE,AOA0,CLa,0,CLIDF)
-    !if (abs(CLIDF)<0.001) then
-    !    CLRatio=999
-    !else
-    !    CLRatio=CLstatF/CLIDF;
-    !end if
-
-    !if (CLRatio > 0.25) then
-    !    lb%Fstat=min((sqrt(4.0*CLRatio)-1.0)**2,1.0)
-
-    !    ! Test logic
-    !    lb%LB_LogicOutputs(1)=1
-    !else
-    !    lb%Fstat=0
-
-    !    ! Test logic
-    !    lb%LB_LogicOutputs(1)=2
-    !end if
-    !! calc lagged Fstat to represent dynamic TE separation point
-    !lb%F=lb%Fstat-lb%dF
-    !! force limits on lagged F (needed due to discretization error...)
-    !lb%F=min(max(lb%F,0.0),1.0)
-
-    !! Calc dynamic CL due to TE separation as fairing between fully attached and fully separated predictions from the Kirchoff approximation at current AOA
-    !if (abs(CLID)<0.001) then
-    !    CLRatio=999
-    !else
-    !    CLRatio=CLstat/CLID
-    !end if
-
-    !if (CLRatio > 1.0) then
-    !    CLID=CLstat
-
-    !    ! Test logic
-    !    lb%LB_LogicOutputs(2)=1
-    !end if
-
-    !if (CLRatio > 0.25) then
-    !    CLsep=CLID/4.0
-
-    !    ! Test logic
-    !    lb%LB_LogicOutputs(3)=1
-    !else
-    !    CLsep=CLstat
-
-    !    ! Test logic
-    !    lb%LB_LogicOutputs(3)=2
-    !end if
-    !CLF=CLsep+CLID*0.25*(lb%F+2.0*sqrt(lb%F))
-    !dCDF=KD*(CLstat-CLF)*sign(1.0,CLstat)
-
-    !! LE vortex lift component, dCNv is a lagged change in the added normal force due
-    !! to LE vortex shedding. Assumed to affect lift coeff as an added circulation...
-    !dCLv=lb%dCNv*cos(alpha5)
-    !dCDv=lb%dCNv*sin(alpha5)
-    !! vortex feed is given by the rate at which lift (circulation) is being shed due to dynamic separation. Lift component due to separation is defined by the
-    !! difference between the ideal lift and the lift including dynamic separation effects.
-    !lb%cv=CLID-CLF
-    !lb%dcv=lb%cv-lb%cv_Last
-    !! If the sign of dcv is opposite the reference LE CL, set to zero to disallow negative vorticity from shedding from the leading edge. Also, limit the model 
-    !! at AOA>acut or if the magnitude of the reference CL is decreasing...
-    !acut=50.0*conrad
-    !if (sign(1.0,lb%dcv*lb%CLRefLE)<0 .OR. abs(alphaL-AOA0)>acut .OR. lb%CLRateFlag<0) then
-    !    lb%dcv=0.0
-
-    !    ! Test logic
-    !    lb%LB_LogicOutputs(4)=1
-    !end if
-
-    !! Total lift and drag
-    !CL=CLF+dCLv
-    !CD=CDstat+dCDF+dCDv
-    !
-    !return
-
-    !end subroutine LB_DynStall
-   
-    subroutine intp(RE,ALPHA,CL,CD,CM25,airfoil)   
+ 
+    subroutine EvalStaticCoeff(RE,ALPHA,CL,CD,CM25,airfoil)   
         
         implicit none
 
@@ -530,60 +413,58 @@ ewrite(2,*) 'Warning : The upper Reynolds number available data was exceeded. Ca
         CM25=CM25A(1)+XRE*(CM25A(2)-CM25A(1))
 
         ewrite(2,*) 'Exiting intp subroutine'
-    END SUBROUTINE intp
+    END SUBROUTINE EvalStaticCoeff
 
-    !Subroutine CalcLBStallAOALim(airfoil,lb,Re,CLa)
+    Subroutine EvalStaticStallParams(airfoil,Re,alphaSSP,alphaSSN,CLAlpha)
 
-    !    ! Get stall data for LB model from airfoil data
-    !    real :: Re, CLa, XRE
-    !    type(AirfoilType),intent(IN) :: airfoil
-    !    type(LB_type),intent(INOUT) :: lb
-    !    integer :: iUB, iLB
-    !    logical :: NotDone 
+        implicit none
+        type(AirfoilType),intent(IN) :: airfoil
+        real,intent(in) :: Re
+        real, intent(out) :: alphaSSP, alphaSSN, CLAlpha
+        real :: XRE
+        integer :: iUB, iLB
+        logical :: NotDone 
 
-    !    ! Find Re upper and lower bounds.                                     
+        ! Find Re upper and lower bounds.                               
 
-    !    if (RE >= airfoil%TRE(1)) then                                                                                                                                  
-    !        NotDone=.true.    
-    !        iUB=2                                                                 
-    !        do while (NotDone)   
+        if(RE>=airfoil%TRE(1))then            
+            NotDone=.true.    
+            iUB=2                                                                 
+            do while (NotDone)   
+            if (RE <= airfoil%TRE(iUB)) then
+                ! Done
+                NotDone=.false.
+                if (RE == airfoil%TRE(iUB)) then
+                    iLB=iUB
+                else
+                    iLB=iUB-1                                                           
+                    XRE=(RE-airfoil%TRE(iLB))/(airfoil%TRE(iUB)-airfoil%TRE(iLB))
+                end if
+            else
+                if (iUB == airfoil%nRET) then       
+                    ! No upper bound in table, take last point...
+                    NotDone=.false.                                                       
+                    iLB=iUB                                                           
+                    XRE=0.0                                                           
+                else    
+                    ! No upper bound, increment and continue                                
+                    iUB=iUB+1
+                end if
+            end if
 
-    !            if (RE <= airfoil%TRE(iUB)) then
-    !                ! Done
-    !                NotDone=.false.
-    !                if (RE == airfoil%TRE(iUB)) then
-    !                    iLB=iUB
-    !                else
-    !                    iLB=iUB-1                                                           
-    !                    XRE=(RE-airfoil%TRE(iLB))/(airfoil%TRE(iUB)-airfoil%TRE(iLB))
-    !                end if
-    !            else
-    !                if (iUB == airfoil%nRET) then       
-    !                    ! No upper bound in table, take last point...
-    !                    NotDone=.false.                                                       
-    !                    iLB=iUB                                                           
-    !                    XRE=0.0                                                           
-    !                else    
-    !                    ! No upper bound, increment and continue                                
-    !                    iUB=iUB+1
-    !                end if
-    !            end if
+            end do
 
-    !        end do
+        else        
+            iLB=1                                                             
+            iUB=1                                                             
+            XRE=0.0                                                      
+        end if
 
-    !    else        
-    !        ! No lower bound in table, take first point.                                            
-    !        iLB=1                                                             
-    !        iUB=1                                                             
-    !        XRE=0.0                                                                                                 
-    !    end if
+        ! Interp
+        CLAlpha=airfoil%CLaData(iLB)+xRE*(airfoil%CLaData(iUB)-airfoil%CLaData(iLB))            
+        alphaSSP=airfoil%alphaSSPData(iLB)+xRE*(airfoil%alphaSSPData(iUB)-airfoil%alphaSSPData(iLB))  
+        alphaSSN=airfoil%alphaSSNData(iLB)+xRE*(airfoil%alphaSSNData(iUB)-airfoil%alphaSSNData(iLB)) 
 
-    !    ! Interp
-    !    CLa=airfoil%CLaData(iLB)+xRE*(airfoil%CLaData(iUB)-airfoil%CLaData(iLB))            
-    !    lb%CLCritP=airfoil%CLCritPData(iLB)+xRE*(airfoil%CLCritPData(iUB)-airfoil%CLCritPData(iLB))  
-    !    lb%CLCritN=airfoil%CLCritNData(iLB)+xRE*(airfoil%CLCritNData(iUB)-airfoil%CLCritNData(iLB)) 
-    !
-    !End Subroutine CalcLBStallAOALim
-    
+    End Subroutine EvalStaticStallParams
 
-end module airfoils 
+end module Airfoils 

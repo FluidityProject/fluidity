@@ -104,14 +104,10 @@ contains
 
         implicit none
 
-        character(len=OPTION_PATH_LEN)::  turbine_name, actuatorline_name
         integer :: i,j,k
-    integer, parameter :: MaxReadLine = 1000    
-        character(MaxReadLine) :: FN    ! path to geometry input file 
-        integer :: NElem, nfoils
-        character(MaxReadLine) :: ReadLine
-        character(len=OPTION_PATH_LEN) :: section_path
-        character(len=OPTION_PATH_LEN), allocatable :: turbine_path(:), actuatorline_path(:)
+        integer, parameter :: MaxReadLine = 1000    
+        integer :: nfoils
+        character(len=OPTION_PATH_LEN), allocatable :: turbine_path(:)
 
         ewrite(2,*) 'Entering get_turbine_options'
 
@@ -224,13 +220,8 @@ contains
 
         implicit none
 
-        character(len=OPTION_PATH_LEN)::  actuatorline_name
-        integer :: i,j,k
+        integer :: i,k
         integer, parameter :: MaxReadLine = 1000    
-        character(MaxReadLine) :: FN    ! path to geometry input file 
-        integer :: NElem, iDoF
-        character(MaxReadLine) :: ReadLine
-        character(len=OPTION_PATH_LEN) :: section_path
         character(len=OPTION_PATH_LEN), allocatable :: actuatorline_path(:)
 
         ewrite(2,*) 'Entering get_actuatorline_options'
@@ -336,8 +327,7 @@ contains
 
         implicit none
 
-        integer :: i,j,k
-        real :: theta, pitchangle, omega
+        integer :: i,j
         ! Zero the Source Term at each time step
 
         ewrite(1,*) 'Entering the actuator_line_model_compute_forces'
@@ -354,7 +344,7 @@ contains
             
             ! Then compute the coefficients
             do j=1,Turbine(i)%Nblades
-            call Compute_ActuatorLine_Forces(Turbine(i)%Blade(j),visc,deltaT)    
+            call Compute_ActuatorLine_Forces(Turbine(i)%Blade(j),visc,deltaT,ctime)    
             end do
             call Compute_performance(Turbine(i))
 
@@ -368,7 +358,7 @@ contains
 
         if (Nal>0) then
             do i=1,Nal
-            call Compute_ActuatorLine_Forces(ActuatorLine(i),visc,deltaT)
+            call Compute_ActuatorLine_Forces(ActuatorLine(i),visc,deltaT,ctime)
             end do
         end if
 

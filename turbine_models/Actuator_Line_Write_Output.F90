@@ -53,7 +53,6 @@ write(2018,Format)ielem,',',act_line%ERdist(ielem)/act_line%L,',',act_line%Epitc
         type(TurbineType),intent(in) :: turbine
         character(len=100),intent(in) :: dir
         character(LEN=22) :: Format
-        integer :: ielem
         
         open(2016,File=trim(dir)//'/'//trim(turbine%name)//'.perf')
         write(2016,*) 'Number of Revs, CFx , CFy , CFz , CT , CTR , CP'

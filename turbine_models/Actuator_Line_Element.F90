@@ -131,8 +131,8 @@ end type ActuatorLineType
     implicit none
     type(ActuatorLineType),intent(inout) :: actuatorline
     real, allocatable :: rR(:),ctoR(:),pitch(:),thick(:)
-    real :: SVec(3), theta, origin(3), length 
-    integer :: Nstations, iact, Istation, ielem
+    real :: SVec(3), length 
+    integer :: Nstations, Istation, ielem
 
     ewrite(2,*) 'Entering set_actuatorline_geometry'
 
@@ -198,17 +198,16 @@ end type ActuatorLineType
     end subroutine set_actuatorline_geometry
     
 
-    subroutine Compute_ActuatorLine_Forces(act_line,visc,dt)
+    subroutine Compute_ActuatorLine_Forces(act_line,visc,dt,time)
        
     implicit none
     type(ActuatorLineType),intent(inout) :: act_line
-    real,intent(in) ::visc,dt
-    real :: R(3)
-    real :: wRotX,wRotY,wRotZ,Rx,Ry,Rz,ub,vb,wb,u,v,w
+    real,intent(in) ::visc,dt,time
+    real :: wRotX,wRotY,wRotZ,ub,vb,wb,u,v,w
     real :: xe,ye,ze,nxe,nye,nze,txe,tye,tze,sxe,sye,sze,ElemArea,ElemChord
-    real :: urdn,urdc, ur,alpha,Re
-    real :: CL,CD,CN,CT,CLCirc,CM25,MS,FN,FT,FS,FX,Fy,Fz,te, F1, g1
-    real :: TRx,TRy,TRz, TRn,TRt, TRs, RotX,RotY,RotZ, dal,dUn,relem, ds
+    real :: urdn,urdc,ur,alpha
+    real :: CL,CD,CN,CT,CM25,MS,FN,FT,FX,Fy,Fz
+    real :: dal,dUn
     real :: CNAM,CTAM,CMAM
     integer :: ielem
   
@@ -219,10 +218,6 @@ end type ActuatorLineType
     !==========================================================
     do ielem=1,act_line%NElem
     
-    xe=act_line%PEX(ielem)
-    ye=act_line%PEY(ielem)
-    ze=act_line%PEZ(ielem)
-
     nxe=act_line%nEx(ielem)
     nye=act_line%nEy(ielem)
     nze=act_line%nEz(ielem)
@@ -287,6 +282,7 @@ end type ActuatorLineType
     ! Correct for dynamic stall 
     !=============================================== 
     if(act_line%do_dynamic_stall) then 
+    call LeishmanBeddoesCorrect(act_line%E_LB_Model(ielem),act_line%EAirfoil(ielem),time,dt,ur,ElemChord,alpha,act_line%ERe(ielem),CL,CD,CM25)
     end if
     
     !===============================================
@@ -360,10 +356,10 @@ end type ActuatorLineType
         implicit none
         type(ActuatorLineType),intent(inout) :: tower
         real,intent(in) ::visc, time, CL, CD, Str
-        real :: R(3),rand(3000)
-        real :: xe,ye,ze,nxe,nye,nze,txe,tye,tze,sxe,sye,sze,ElemArea,ElemChord
+        real :: rand(3000)
+        real :: xe,ye,ze,nxe,nye,nze,txe,tye,tze,sxe,sye,sze,ElemArea
         real :: u,v,w,ub,vb,wb,urdn,urdc,ur,Diameter,freq,alpha
-        real :: CN,CT,CLCirc,CM25,MS,FN,FT,FS,FX,Fy,Fz
+        real :: CN,CT,FN,FT,FX,Fy,Fz
         integer :: ielem
     
         ewrite(2,*) 'Entering compute_tower_forces'
@@ -522,7 +518,7 @@ end type ActuatorLineType
     type(ActuatorLineType),intent(inout) :: actuatorline
     real,intent(in) :: origin(3), rotN(3)
     real :: theta,nrx,nry,nrz,px,py,pz 
-    integer :: j,ielem,i
+    integer :: ielem
     real :: vrx,vry,vrz,VMag
     real :: xtmp,ytmp,ztmp, txtmp, tytmp, tztmp
     ! Rotates data in blade arrays. Rotate element end geometry and recalculate element geometry.
@@ -576,7 +572,7 @@ end type ActuatorLineType
     real, allocatable,intent(out) :: rR(:),ctoR(:),pitch(:),thick(:)  
     real, intent(out) :: Rmax  
     integer, intent(out) :: Nstations
-    integer :: i,j
+    integer :: i
     character(1000) :: ReadLine
     
     open(15,file=FN)
@@ -611,9 +607,9 @@ end type ActuatorLineType
     implicit none
 
     type(ActuatorLineType),intent(INOUT) :: blade ! For simplity I leave it as blade. In fact this is an actuator line 
-    integer :: nbe, nei, nej, j
-    real :: sEM, tEM, nEM, dx,dy,dz
-    real :: PE(3), sE(3), tE(3), normE(3), P1(3), P2(3), P3(3), P4(3), V1(3), V2(3), V3(3), V4(3), A1(3), A2(3)
+    integer :: nbe, nej, j
+    real :: sEM, tEM, nEM 
+    real :: sE(3), tE(3), normE(3), P1(3), P2(3), P3(3), P4(3), V1(3), V2(3), V3(3), V4(3), A1(3), A2(3)
 
     ewrite(2,*) 'Entering make_actuatorline_geometry'
     ! Calculates element geometry from element end geometry
