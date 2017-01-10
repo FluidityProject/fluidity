@@ -363,9 +363,11 @@ contains
       call remap_field(positions, remapped_pos)
     
       if (have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon") ) then
-      ViscosityTens => extract_tensor_field(states(state_index),"BackgroundViscosity")
+        ViscosityTens => extract_tensor_field(states(state_index),"BackgroundViscosity")
+      else if (have_option("/material_phase[0]/subgridscale_parameterisations/k-omega") ) then 
+        ViscosityTens => extract_tensor_field(states(state_index),"BackgroundViscosity") 
       else
-      ViscosityTens => extract_tensor_field(states(state_index),"Viscosity")
+        ViscosityTens => extract_tensor_field(states(state_index),"Viscosity")
       endif   
       ! there should be two models: one for checking a single airfoil
       ! And another for checking the turbine
@@ -418,8 +420,7 @@ contains
             epsilon_par_mesh  = meshFactor*2.0*volume**(1.0/3.0) 
             Se(isource)=max(epsilon_par_mesh,chordFactor*Sc(isource))
         else
-            FLExit("epsilon not set, fluidity did not recognise the option you entered for epsilon. Please choose between a constant
-            and a mesh_based epsilon")
+            FLExit("epsilon not set, fluidity did not recognise the option you entered for epsilon epsilon")
         end if
         
         do irank=0,num_procs-1

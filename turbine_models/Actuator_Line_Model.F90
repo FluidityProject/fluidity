@@ -201,15 +201,36 @@ contains
 
         if(have_option(trim(turbine_path(i))//"/Blades/dynamic_stall")) then
             do j=1,Turbine(i)%NBlades
-            Turbine(i)%Blade(j)%do_dynamic_stall=.true.
+            Turbine(i)%Blade(j)%do_dynamic_stall=.true.  
+            if(have_option(trim(turbine_path(i))//"/Blades/dynamic_stall/do_calcAlphaEquiv")) then
+                Turbine(i)%Blade(j)%do_DynStall_AlphaEquiv=.true.
+            endif
             end do
         endif
 
-        if(have_option(trim(turbine_path(i))//"/Blades/tip_loss_correction")) then
-            Turbine(i)%do_tip_correction=.true.
+        if(have_option(trim(turbine_path(i))//"/Blades/BladeEndEffects")) then
+            Turbine(i)%Has_BladeEndEffectModelling=.true.
+            if(have_option(trim(turbine_path(i))//"/Blades/BladeEndEffects/tip_correction")) then
+                Turbine(i)%do_tip_correction=.true.
+                if(have_option(trim(turbine_path(i))//"/Blades/BladeEndEffects/tip_correction/Glauret")) then
+                    Turbine(i)%EndEffectModel_is_Glauret=.true.
+                else if(have_option(trim(turbine_path(i))//"/Blades/BladeEndEffects/tip_correction/ShenEtAl2005")) then
+                    Turbine(i)%EndEffectModel_is_Shen=.true.
+                    call get_option(trim(turbine_path(i))//"Blades/BladeEndEffects/tip_correction/ShenEtAl2005/c1",Turbine(i)%ShenCoeff_c1)
+                    call get_option(trim(turbine_path(i))//"Blades/BladeEndEffects/tip_correction/ShenEtAl2005/c2",Turbine(i)%ShenCoeff_c2)
+                endif
+            endif
+            if(have_option(trim(turbine_path(i))//"/Blades/BladeEndEffects/root_correction")) then
+                Turbine(i)%do_root_correction=.true.
+                if(have_option(trim(turbine_path(i))//"/Blades/BladeEndEffects/root_correction/Glauret")) then
+                    Turbine(i)%EndEffectModel_is_Glauret=.true.
+                else if(have_option(trim(turbine_path(i))//"/Blades/BladeEndEffects/root_correction/ShenEtAl2005")) then
+                    Turbine(i)%EndEffectModel_is_Shen=.true.
+                    call get_option(trim(turbine_path(i))//"Blades/BladeEndEffects/root_correction/ShenEtAl2005/c1",Turbine(i)%ShenCoeff_c1)
+                    call get_option(trim(turbine_path(i))//"Blades/BladeEndEffects/root_correction/ShenEtAl2005/c2",Turbine(i)%ShenCoeff_c2)
+                endif 
+            endif
         endif
-
-
         end do
 
         ewrite(2,*) 'Exiting get_turbine_options'
@@ -263,6 +284,9 @@ contains
 
         if(have_option(trim(actuatorline_path(i))//"/dynamic_effects")) then
             Actuatorline%do_dynamic_stall=.true.
+            if(have_option(trim(actuatorline_path(i))//"/dynamic_stall/do_calcAlphaEquiv")) then
+                Actuatorline%do_DynStall_AlphaEquiv=.true.
+            endif
         endif
         !##################4 Get Pitching Opions ##################
         if(have_option(trim(actuatorline_path(i))//"/pitch_control")) then
@@ -338,7 +362,7 @@ contains
             do i=1,Ntur 
             
             ! First compute the end effects on the turbine and
-            if (Turbine(i)%do_tip_correction) then
+            if (Turbine(i)%Has_BladeEndEffectModelling) then
             call Compute_Turbine_EndEffects(Turbine(i))
             endif
             

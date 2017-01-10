@@ -31,8 +31,12 @@ type TurbineType
     logical :: IsCounterClockwise = .false. 
     logical :: Has_Tower=.false.
     real :: Towerheight, TowerOffset, TowerDrag, TowerLift, TowerStrouhal
+    logical :: Has_BladeEndEffectModelling=.false.
     logical :: do_tip_correction=.false.
-
+    logical :: do_root_correction=.false.
+    logical :: EndEffectModel_is_Glauret=.false.
+    logical :: EndEffectModel_is_Shen=.false.
+    real :: ShenCoeff_c1, ShenCoeff_c2
     type(ActuatorLineType), allocatable :: Blade(:)
     type(AirfoilType), allocatable :: AirfoilData(:)
     type(ActuatorLineType) :: tower
@@ -118,7 +122,10 @@ contains
     ! Initialize LB_model and Tip Correction Coeffs
     do ielem=1,turbine%blade(iblade)%Nelem
     if(turbine%blade(iblade)%do_dynamic_stall) then
-    call dystl_init_LB(turbine%blade(iblade)%E_LB_Model(ielem))
+        if (turbine%blade(iblade)%do_DynStall_AlphaEquiv) then
+            turbine%blade(iblade)%E_LB_Model(ielem)%do_calcAlphaEquiv=.true.
+        endif
+        call dystl_init_LB(turbine%blade(iblade)%E_LB_Model(ielem))
     endif
     end do 
     end do
@@ -250,7 +257,7 @@ contains
     integer :: iblade,ielem
     real ::g1,alpha,pitch,F,Froot,Ftip,rtip, rroot, phi
     real :: nxe,nye,nze,txe,tye,tze,sxe,sye,sze,u,v,w,ub,vb,wb,urdc,urdn,ur
-    g1=1.0!exp(-0.125*(turbine%NBlades*turbine%TSR-21.0))+0.1
+    
     
     do iblade=1,turbine%Nblades
     ! Compute angle phi at the tip 
@@ -284,9 +291,31 @@ contains
         rtip=(turbine%Rmax-turbine%blade(iblade)%ERdist(ielem))/turbine%Rmax
         pitch=turbine%blade(iblade)%Epitch(ielem) 
         phi=alpha+pitch
-        Ftip=2.0/pi*acos(exp(-g1*turbine%Nblades/2.0*(1.0/rroot-1.0)/sin(phi)))
-        ! Apply Coeffs to the local Element forces
-        turbine%blade(iblade)%EEndeffects_factor(ielem)=Ftip
+        
+        ! Set them into 1.0 before the calculation
+        Ftip=1.0
+        Froot=1.0
+        if (turbine%do_tip_correction) then 
+            if (turbine%EndEffectModel_is_Glauret) then
+                g1=1.0
+            else if (turbine%EndEffectModel_is_Shen) then
+                g1=exp(-turbine%ShenCoeff_c1*(turbine%NBlades*turbine%TSR-turbine%ShenCoeff_c2))+0.1
+            else
+                FLAbort("Only Glauret and ShenEtAl2005 are available at the moment")
+            endif
+            Ftip=2.0/pi*acos(exp(-g1*turbine%Nblades/2.0*(1.0/rroot-1.0)/sin(phi)))
+        endif
+        if (turbine%do_root_correction) then
+            if (turbine%EndEffectModel_is_Glauret) then
+                g1=1.0
+            else if (turbine%EndEffectModel_is_Shen) then
+                g1=exp(-turbine%ShenCoeff_c1*(turbine%NBlades*turbine%TSR-turbine%ShenCoeff_c2))+0.1
+            else
+                FLAbort("Only Glauret and ShenEtAl2005 are available at the moment")
+            endif
+            Froot=2.0/pi*acos(exp(-g1*turbine%Nblades/2.0*(1.0/rtip-1.0)/sin(phi)))
+        endif
+            turbine%blade(iblade)%EEndeffects_factor(ielem)=Ftip*Froot
         end do
     end do
 

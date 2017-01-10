@@ -311,7 +311,7 @@ module dynstall
         end if
 
         if (lb%nNewTimes <=1) then
-            lb%alpha_Prev=lb%alpha
+            lb%alpha_Prev=alpha
         endif
 
         lb%Alpha=alpha

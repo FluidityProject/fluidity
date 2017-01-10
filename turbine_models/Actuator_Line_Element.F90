@@ -110,7 +110,7 @@ type ActuatorLineType
     ! Unsteady Loading
     logical :: do_added_mass=.false.
     logical :: do_dynamic_stall=.false.
-    logical :: do_tip_correction=.false.
+    logical :: do_DynStall_AlphaEquiv=.false.
 
     ! Blade/Actuator_line Pitch
     logical :: pitch_control=.false.
@@ -190,6 +190,9 @@ end type ActuatorLineType
     actuatorline%EAOA_LAST(:)=-666.0
     
     do ielem=1,actuatorline%Nelem
+        if (actuatorline%do_DynStall_AlphaEquiv) then
+            actuatorline%E_LB_Model(ielem)%do_calcAlphaEquiv=.true.
+        endif
     call dystl_init_LB(actuatorline%E_LB_Model(ielem))
     end do
     
