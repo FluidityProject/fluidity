@@ -448,22 +448,23 @@ module interpolation_module
     ! Vector fields
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    j=1
+    j = 0
     do i=1, vector_field_count(old_state)
-      old_fields_v(j) = extract_vector_field(old_state, i)
       ! skip coordinate fields
-      if (.not. (old_fields_v(j)%name=="Coordinate" .or. &
-         old_fields_v(j)%name==trim(old_fields_v(j)%mesh%name)//"Coordinate")) then
+      old_fields_v(j+1) = extract_vector_field(old_state, old_state%vector_names(i))
+      if (.not. (old_state%vector_names(i)=="Coordinate" .or. &
+         old_state%vector_names(i)==trim(old_fields_v(j+1)%mesh%name)//"Coordinate")) then
            
+         j = j + 1
+         old_fields_v(j) = extract_vector_field(old_state, old_state%vector_names(i))
          new_fields_v(j) = extract_vector_field(new_state, old_state%vector_names(i))
          if (.not. present_and_true(different_domains)) then
            call zero(new_fields_v(j))
          end if
-         j=j+1
          
       end if
     end do
-    field_count_v=j-1
+    field_count_v = j
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! Tensor fields
