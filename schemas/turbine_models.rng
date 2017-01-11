@@ -51,12 +51,49 @@
                 </optional>
                 <optional>
                   <element name="dynamic_stall">
-                    <empty/>
+                    <optional>
+                      <element name="do_calcAlphaEquiv">
+                        <empty/>
+                      </element>
+                    </optional>
                   </element>
                 </optional>
                 <optional>
-                  <element name="tip_loss_correction">
-                    <empty/>
+                  <element name="BladeEndEffects">
+                    <element name="tip_correction">
+                      <choice>
+                        <element name="Glauret">
+                          <empty/>
+                        </element>
+                        <element name="ShenEtAl2005">
+                          <!-- Recommended Value 0.125 -->
+                          <element name="c1">
+                            <ref name="real"/>
+                          </element>
+                          <!-- Recommended Value 21 -->
+                          <element name="c2">
+                            <ref name="real"/>
+                          </element>
+                        </element>
+                      </choice>
+                    </element>
+                    <optional>
+                      <element name="root_correction">
+                        <choice>
+                          <element name="Glauret">
+                            <empty/>
+                          </element>
+                          <element name="ShenEtAl2005">
+                            <element name="c1">
+                              <ref name="real"/>
+                            </element>
+                            <element name="c2">
+                              <ref name="real"/>
+                            </element>
+                          </element>
+                        </choice>
+                      </element>
+                    </optional>
                   </element>
                 </optional>
                 <optional>
@@ -181,18 +218,25 @@ and calculation of the actual rotational velocity of the rotor</a:documentation>
                   </element>
                 </zeroOrMore>
               </element>
-              <element name="unsteady_modelling">
-                <optional>
-                  <element name="added_mass">
-                    <empty/>
-                  </element>
-                </optional>
-                <optional>
-                  <element name="dynamic_stall">
-                    <empty/>
-                  </element>
-                </optional>
-              </element>
+              <optional>
+                <element name="added_mass">
+                  <empty/>
+                </element>
+              </optional>
+              <optional>
+                <element name="dynamic_stall">
+                  <optional>
+                    <element name="do_calcAlphaEquiv">
+                      <empty/>
+                    </element>
+                  </optional>
+                </element>
+              </optional>
+              <optional>
+                <element name="flow_curvature">
+                  <empty/>
+                </element>
+              </optional>
               <optional>
                 <element name="pitch_control">
                   <element name="harmonic">

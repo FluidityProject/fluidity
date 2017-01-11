@@ -4,7 +4,7 @@
 
 Actuator_Line_Element.o ../include/actuator_line_element.mod: \
    Actuator_Line_Element.F90 ../include/actuator_line_model_utils.mod \
-   ../include/airfoils.mod ../include/dynstall.mod ../include/fdebug.h \
+   ../include/airfoils.mod ../include/dynstall_legacy.mod ../include/fdebug.h \
    ../include/fldebug.mod ../include/futils.mod \
    ../include/global_parameters.mod
 
@@ -16,7 +16,7 @@ Actuator_Line_Model.o ../include/actuator_line_model.mod: \
    ../include/actuator_line_model_utils.mod \
    ../include/actuator_line_turbine.mod \
    ../include/actuator_line_write_output.mod ../include/airfoils.mod \
-   ../include/dynstall.mod ../include/fdebug.h ../include/fldebug.mod \
+   ../include/dynstall_legacy.mod ../include/fdebug.h ../include/fldebug.mod \
    ../include/futils.mod ../include/global_parameters.mod ../include/spud.mod
 
 ../include/actuator_line_model_utils.mod: Actuator_Line_Model_Utils.o
@@ -57,9 +57,17 @@ Actuator_Line_Write_Output.o ../include/actuator_line_write_output.mod: \
 Airfoils.o ../include/airfoils.mod: Airfoils.F90 ../include/fdebug.h \
    ../include/fldebug.mod ../include/global_parameters.mod
 
-../include/dynstall.mod: DynStall.o
+../include/dynstall.mod: LeishmanBeddoes.o
 	@true
 
-DynStall.o ../include/dynstall.mod: DynStall.F90 ../include/airfoils.mod \
-   ../include/fdebug.h ../include/fldebug.mod ../include/global_parameters.mod
+LeishmanBeddoes.o ../include/dynstall.mod: LeishmanBeddoes.F90 \
+   ../include/airfoils.mod ../include/fdebug.h ../include/fldebug.mod \
+   ../include/global_parameters.mod
+
+../include/dynstall_legacy.mod: dynstall_legacy.o
+	@true
+
+dynstall_legacy.o ../include/dynstall_legacy.mod: dynstall_legacy.F90 \
+   ../include/airfoils.mod ../include/fdebug.h ../include/fldebug.mod \
+   ../include/global_parameters.mod
 

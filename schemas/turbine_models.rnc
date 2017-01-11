@@ -36,10 +36,43 @@ turbine_models=(
             empty
         }?, 
         element dynamic_stall{
-            empty
+           element do_calcAlphaEquiv{
+               empty
+           }?
         }?,
-        element tip_loss_correction {
-            empty
+        element BladeEndEffects {
+            element tip_correction{
+                (
+                element Glauret{
+                    empty
+                }|
+                element ShenEtAl2005{
+                    # Recommended Value 0.125
+                    element c1{
+                        real
+                    },
+                    # Recommended Value 21
+                    element c2{
+                        real
+                    }
+                }
+                )
+            },
+            element root_correction{
+                (
+                element Glauret{
+                    empty
+                }|
+                element ShenEtAl2005{
+                    element c1{
+                        real
+                    },
+                    element c2{
+                        real
+                    }
+                }
+                )
+            }?
         }?,
         element flow_curvature{
             empty
@@ -145,15 +178,17 @@ turbine_models=(
                             }
                         }*
                     },
-                    element unsteady_modelling {
-                        element added_mass {
-                            empty
-                        }?,
-                        element dynamic_stall {
+                    element added_mass{
+                        empty
+                    }?, 
+                    element dynamic_stall{
+                        element do_calcAlphaEquiv{
                             empty
                         }?
-                    },
-
+                    }?,
+                    element flow_curvature{
+                        empty
+                    }?,
                     element pitch_control{
 ## Harmonic means that is in form of Theta=Theta0 + sin(Omega t)
 ## where Theta0 is the intial pitch_angle and Omega is the angular pitching frequency

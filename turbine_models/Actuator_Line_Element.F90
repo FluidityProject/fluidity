@@ -7,7 +7,7 @@ module actuator_line_element
     use futils 
     use airfoils
     use actuator_line_model_utils 
-    use dynstall
+    use dynstall_legacy
 
 type ActuatorLineType
     integer :: NElem                    ! Number of Elements of the Blade
@@ -190,9 +190,6 @@ end type ActuatorLineType
     actuatorline%EAOA_LAST(:)=-666.0
     
     do ielem=1,actuatorline%Nelem
-        if (actuatorline%do_DynStall_AlphaEquiv) then
-            actuatorline%E_LB_Model(ielem)%do_calcAlphaEquiv=.true.
-        endif
     call dystl_init_LB(actuatorline%E_LB_Model(ielem))
     end do
     
@@ -208,10 +205,10 @@ end type ActuatorLineType
     real,intent(in) ::visc,dt,time
     real :: wRotX,wRotY,wRotZ,ub,vb,wb,u,v,w
     real :: xe,ye,ze,nxe,nye,nze,txe,tye,tze,sxe,sye,sze,ElemArea,ElemChord
-    real :: urdn,urdc,ur,alpha
+    real :: urdn,urdc,ur,alpha,ds
     real :: CL,CD,CN,CT,CM25,MS,FN,FT,FX,Fy,Fz
     real :: dal,dUn
-    real :: CNAM,CTAM,CMAM
+    real :: CLdyn,CDdyn,CNAM,CTAM,CMAM
     integer :: ielem
   
     ewrite(2,*) 'Entering Compute_Forces '
@@ -285,7 +282,11 @@ end type ActuatorLineType
     ! Correct for dynamic stall 
     !=============================================== 
     if(act_line%do_dynamic_stall) then 
-    call LeishmanBeddoesCorrect(act_line%E_LB_Model(ielem),act_line%EAirfoil(ielem),time,dt,ur,ElemChord,alpha,act_line%ERe(ielem),CL,CD,CM25)
+    call LB_DynStall(act_line%EAirfoil(ielem),act_line%E_LB_Model(ielem),CL,CD,alpha,alpha,act_line%ERe(ielem),CLdyn,CDdyn) 
+    CL=CLdyn
+    CD=CDdyn
+    ds=2*ur*dt/ElemChord
+    call LB_UpdateStates(act_line%E_LB_Model(ielem),act_line%EAirfoil(ielem),act_line%ERE(ielem),ds)
     end if
     
     !===============================================

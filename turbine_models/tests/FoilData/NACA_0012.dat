@@ -4,9 +4,9 @@ Zero Lift AOA (deg): 0.0
 Reverse Camber Direction: 0
 
 Reynolds Number : 7.7e4
-LB Dyn. Stall Model - Lift Coeff. Slope at Zero Lift AOA (per radian): 0.108
-LB Dyn. Stall Model - Positive Critical Lift Coeff.: 10
-LB Dyn. Stall Model - Negative Critical Lift Coeff.: -10
+LB Dyn. Stall Model - Lift Coeff. Slope at Zero Lift AOA (per radian): 5.72 
+LB Dyn. Stall Model - Positive Static Stall Angle:  1
+LB Dyn. Stall Model - Negative Static Stall Angle: -1
 AOA (deg) CL CD Cm25
 -180.00                0.00                 0.00    0.00
 -8.084632516703786    -0.9501992031872515  0.03270  0.00   
@@ -53,9 +53,9 @@ AOA (deg) CL CD Cm25
 180.00                 0.00                0.000    0.0
 
 Reynolds Number : 1e6
-LB Dyn. Stall Model - Lift Coeff. Slope at Zero Lift AOA (per radian): 0.108
-LB Dyn. Stall Model - Positive Critical Lift Coeff.: 10
-LB Dyn. Stall Model - Negative Critical Lift Coeff.: -10
+LB Dyn. Stall Model - Lift Coeff. Slope at Zero Lift AOA (per radian): 5.72
+LB Dyn. Stall Model - Positive Critical Lift Coeff.: 1
+LB Dyn. Stall Model - Negative Critical Lift Coeff.: -1
 AOA (deg) CL CD Cm25
 -180.00                0.00                 0.00    0.00
 -8.084632516703786    -0.9501992031872515  0.03270  0.00   
@@ -100,4 +100,3 @@ AOA (deg) CL CD Cm25
 31.202672605790653     1.1294820717131477  0.360    0.0
 32.204899777282854     1.1733067729083666  0.375    0.0
 180.00                 0.00                0.000    0.0
-

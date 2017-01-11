@@ -122,9 +122,6 @@ contains
     ! Initialize LB_model and Tip Correction Coeffs
     do ielem=1,turbine%blade(iblade)%Nelem
     if(turbine%blade(iblade)%do_dynamic_stall) then
-        if (turbine%blade(iblade)%do_DynStall_AlphaEquiv) then
-            turbine%blade(iblade)%E_LB_Model(ielem)%do_calcAlphaEquiv=.true.
-        endif
         call dystl_init_LB(turbine%blade(iblade)%E_LB_Model(ielem))
     endif
     end do 

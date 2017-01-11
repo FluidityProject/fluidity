@@ -29,8 +29,8 @@ module Airfoils
 
   ! Airfoil parameterss for Leishman-Beddoes Dynamic stall model
   real, allocatable :: CLaData(:)
-  real, allocatable :: alphaSSPData(:)
-  real, allocatable :: alphaSSNData(:)
+  real, allocatable :: CLCritPData(:)
+  real, allocatable :: CLCritNData(:)
 
   end type AirfoilType
  
@@ -81,8 +81,8 @@ contains
     airfoil1%TRE(1:MaxReVals)=airfoil2%TRE(1:MaxReVals)
     airfoil1%nTBL(1:MaxReVals)=airfoil2%nTBL(1:MaxReVals)
     airfoil1%CLaData(1:MaxReVals)=airfoil2%CLaData(1:MaxReVals)
-    airfoil1%alphaSSPData(1:MaxReVals)=airfoil2%alphaSSPData(1:MaxReVals)
-    airfoil1%alphaSSNData(1:MaxReVals)=airfoil2%alphaSSNData(1:MaxReVals)
+    airfoil1%CLCritPData(1:MaxReVals)=airfoil2%CLCritPData(1:MaxReVals)
+    airfoil1%CLCritNData(1:MaxReVals)=airfoil2%CLCritNData(1:MaxReVals)
 
     ewrite(2,*) 'Exiting copy_airfoil_values'
 
@@ -159,15 +159,15 @@ contains
         read(15,'(A)') ReadLine                          
         read(ReadLine(index(ReadLine,':')+1:),*) airfoil%CLaData(i)
         read(15,'(A)') ReadLine                          
-        read(ReadLine(index(ReadLine,':')+1:),*) airfoil%alphaSSPData(i)
+        read(ReadLine(index(ReadLine,':')+1:),*) airfoil%CLcritPData(i)
         read(15,'(A)') ReadLine                          
-        read(ReadLine(index(ReadLine,':')+1:),*) airfoil%alphaSSNData(i)
+        read(ReadLine(index(ReadLine,':')+1:),*) airfoil%CLcritNData(i)
 
         ! Reverse camber direction if desired
         if (airfoil%camb == 1) then
-            temp = airfoil%alphaSSPData(i)
-            airfoil%alphaSSPData(i) = -airfoil%alphaSSNData(i)
-            airfoil%alphaSSNData(i) = -temp 
+            temp = airfoil%CLcritPData(i)
+            airfoil%CLCritPData(i) = -airfoil%CLcritNData(i)
+            airfoil%CLCritNData(i) = -temp 
         end if
 
         ! Read AOA data
@@ -275,8 +275,8 @@ contains
     allocate(airfoil%TRE(MAxReVals))
     allocate(airfoil%nTBL(MaxReVals))
     allocate(airfoil%CLaData(MaxReVals))
-    allocate(airfoil%alphaSSPData(MaxReVals))
-    allocate(airfoil%alphaSSNData(MaxReVals))
+    allocate(airfoil%CLCritPData(MaxReVals))
+    allocate(airfoil%CLCritNData(MaxReVals))
 
     ewrite(1,*) 'Exiting allocate_airfoil'
     
@@ -412,12 +412,12 @@ ewrite(2,*) 'Warning : The upper Reynolds number available data was exceeded. Ca
         ewrite(2,*) 'Exiting intp subroutine'
     END SUBROUTINE EvalStaticCoeff
 
-    Subroutine EvalStaticStallParams(airfoil,Re,alphaSSP,alphaSSN,CLAlpha)
+    Subroutine EvalStaticStallParams(airfoil,Re,CLCritP,CLCritN,CLAlpha)
 
         implicit none
         type(AirfoilType),intent(IN) :: airfoil
         real,intent(in) :: Re
-        real, intent(out) :: alphaSSP, alphaSSN, CLAlpha
+        real, intent(out) :: CLcritP, CLcritN, CLAlpha
         real :: XRE
         integer :: iUB, iLB
         logical :: NotDone 
@@ -459,8 +459,8 @@ ewrite(2,*) 'Warning : The upper Reynolds number available data was exceeded. Ca
 
         ! Interp
         CLAlpha=airfoil%CLaData(iLB)+xRE*(airfoil%CLaData(iUB)-airfoil%CLaData(iLB))            
-        alphaSSP=airfoil%alphaSSPData(iLB)+xRE*(airfoil%alphaSSPData(iUB)-airfoil%alphaSSPData(iLB))  
-        alphaSSN=airfoil%alphaSSNData(iLB)+xRE*(airfoil%alphaSSNData(iUB)-airfoil%alphaSSNData(iLB)) 
+        CLcritP=airfoil%CLcritPData(iLB)+xRE*(airfoil%CLcritPData(iUB)-airfoil%CLcritPData(iLB))  
+        CLcritN=airfoil%CLcritNData(iLB)+xRE*(airfoil%CLcritNData(iUB)-airfoil%CLcritNData(iLB)) 
 
     End Subroutine EvalStaticStallParams
 

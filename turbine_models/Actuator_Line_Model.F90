@@ -13,7 +13,7 @@ module actuator_line_model
     use actuator_line_element
     use actuator_line_turbine
     use actuator_line_write_output
-    use dynstall
+    use dynstall_legacy
 
     implicit none
 
@@ -278,11 +278,11 @@ contains
         end do
 
         !##################4 Get Dynamic Loads Modelling Options ##################
-        if(have_option(trim(actuatorline_path(i))//"/dynamic_effects")) then
+        if(have_option(trim(actuatorline_path(i))//"/added_mass")) then
             Actuatorline%do_added_mass=.true.
         endif
 
-        if(have_option(trim(actuatorline_path(i))//"/dynamic_effects")) then
+        if(have_option(trim(actuatorline_path(i))//"/dynamic_stall")) then
             Actuatorline%do_dynamic_stall=.true.
             if(have_option(trim(actuatorline_path(i))//"/dynamic_stall/do_calcAlphaEquiv")) then
                 Actuatorline%do_DynStall_AlphaEquiv=.true.
