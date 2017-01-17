@@ -46,6 +46,9 @@ module reserve_state_module
     
   public :: no_reserved_meshes, create_reserve_state, restore_reserved_meshes, &
     & restore_reserved_fields, deallocate_reserve_state
+
+  ! FIXME: discuss with CianW
+  public :: reserve_state
   
 contains
 

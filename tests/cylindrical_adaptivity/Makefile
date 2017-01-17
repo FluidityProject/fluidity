@@ -1,6 +1,6 @@
 input:
-	gmsh -2 src/transfinite_cylinder.geo -o transfinite.msh
+	gmsh -1 src/circle.geo -o circle.msh
 
 clean:
-	rm -rf fluidity.* transfinite.msh cylindrical.stat *.vtu
+	rm -rf fluidity.* circle.msh cylindrical.stat *.vtu
 	rm -rf matrixdump*

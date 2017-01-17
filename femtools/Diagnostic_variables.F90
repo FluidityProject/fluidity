@@ -2039,6 +2039,8 @@ contains
          vfield => extract_vector_field(state(phase), &
            & default_stat%vfield_list(phase)%ptr(i))
           
+         ! FIXME:
+         if (.not. has_mesh(state(phase), vfield%mesh%name)) cycle
          xfield=get_diagnostic_coordinate_field(state(phase), vfield%mesh)
 
          ! Standard scalar field stats for vector field magnitude

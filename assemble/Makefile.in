@@ -72,7 +72,8 @@ OBJS    = Momentum_Diagnostic_Fields.o \
         Petsc_Solve_State.o Adaptivity_1D.o \
 	Zoltan_global_variables.o Zoltan_integration.o Zoltan_callbacks.o Zoltan_detectors.o \
         Diagnostic_Children.o Turbine.o \
-	Manifold_Projections.o Hybridized_Helmholtz.o Burgers_Assembly.o Pressure_Dirichlet_BCS_CV.o
+	Manifold_Projections.o Hybridized_Helmholtz.o Burgers_Assembly.o Pressure_Dirichlet_BCS_CV.o \
+	Spherical_Adaptivity.o
 
 .SUFFIXES: .F90 .c .cpp .o .a
 

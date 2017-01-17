@@ -83,6 +83,7 @@ module adapt_state_module
   use sam_integration
   use timeloop_utilities
   use write_gmsh
+  use spherical_adaptivity
 #ifdef HAVE_ZOLTAN
   use zoltan_integration
 #endif
@@ -98,8 +99,6 @@ module adapt_state_module
   interface adapt_state
     module procedure adapt_state_single, adapt_state_multiple
   end interface adapt_state
-
-  type(vector_field) :: original_base_geometry
 
 contains
 
@@ -1065,8 +1064,7 @@ contains
     type(detector_type), pointer :: detector => null()
 
     real :: global_min_quality, quality_tolerance
-    type(scalar_field) :: radius, base_radius, interpolated_radius
-    logical :: have_spherical_adaptivity=.true.
+    logical :: have_spherical_adaptivity
     integer :: index=0
 
     ewrite(1, *) "In adapt_state_internal"
@@ -1135,22 +1133,16 @@ contains
       end if
       ewrite(2, *) "Mesh field to be adapted: " // trim(old_positions%name)
 
+      have_spherical_adaptivity = have_option("/geometry/spherical_earth")
       if (have_spherical_adaptivity) then
-        index = index+1
-        positions_name = old_positions%name
-        if (has_vector_field(states(1), trim(old_positions%name)//"BaseGeometry")) then
-          ! toss out the popped up positions field and replace with the base geometry
+        index = index + 1
+        if (has_vector_field(states(1), trim(positions_name)//"BaseGeometry")) then
           call deallocate(old_positions)
-          old_positions = extract_vector_field(states(1), trim(old_positions%name)//"BaseGeometry")
-          old_positions%name = positions_name
-          call insert(states(1), old_positions, positions_name)
+          old_positions = extract_vector_field(states(1), trim(positions_name)//"BaseGeometry")
           call incref(old_positions)
         else
-          ! first time around: make a copy of the base geometry
-          original_base_geometry = old_positions
-          original_base_geometry%name = trim(old_positions%name)//"OriginalBaseGeometry"
-          ! FIXME: this reference is not going to go away
-          call incref(old_positions)
+          call prepare_spherical_adaptivity(states, old_positions)
+          call spherical_adaptivity_pop_in(states, old_positions)
         end if
         call vtk_write_state("base_geometry_before", index, old_positions%mesh%name, states)
       end if
@@ -1305,23 +1297,10 @@ contains
         call vtk_write_state("base_geometry_after", index, old_positions%mesh%name, states)
         call deallocate(old_positions)
 
-        radius = magnitude(original_base_geometry)
-        ! extract the interpolated radius
-        call allocate(interpolated_radius, new_positions%mesh, "InterpolatedRadius")
-        call linear_interpolation(radius, original_base_geometry, interpolated_radius, new_positions)
-        ! and compute the current unpopped radius
-        base_radius = magnitude(new_positions)
-        ! normalize the unpoped new positions, and then scale them back using the
-        ! interpolated radius to pop them out back onto the sphere
-        call invert(base_radius)
-        call scale(new_positions, base_radius)
-        call scale(new_positions, interpolated_radius)
-        call deallocate(base_radius)
-        call deallocate(interpolated_radius)
-        call deallocate(radius)
+        call spherical_adaptivity_pop_out(states, new_positions)
+        call vtk_write_state("popped_geometry_after", index, new_positions%mesh%name, states)
         ! drop our reference for new_positions again (still stored in state)
         call deallocate(new_positions)
-        call vtk_write_state("popped_geometry_after", index, new_positions%mesh%name, states)
       end if
 
       if(present_and_true(initialise_fields)) then

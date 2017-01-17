@@ -80,6 +80,8 @@ public vertical_element_ordering
 public VerticalProlongationOperator
 public vertical_extrapolation_module_check_options
 public compute_face_normal_gravity
+public map2horizontal_sphere
+public create_horizontal_positions_sphere
 
 ! with /geometry/spherical_earth the vertical extrapolation is done using a gnomonic
 ! projection of each of the 3*dim sides of the cubed sphere. The gnomonic projection projects
