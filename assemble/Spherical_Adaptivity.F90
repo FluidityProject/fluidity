@@ -31,8 +31,11 @@ module spherical_adaptivity
   use spud
   use fldebug
   use global_parameters, only : OPTION_PATH_LEN
+  use mpi_interfaces
   use futils, only: int2str
+  use parallel_tools
   use fields
+  use parallel_fields
   use state_module
   use vtk_interfaces
   use vertical_extrapolation_module
@@ -41,6 +44,7 @@ module spherical_adaptivity
   use pickers
   use reserve_state_module
   use populate_state_module
+  use halos
   implicit none
 
   private
@@ -70,6 +74,10 @@ module spherical_adaptivity
       bottom_positions = construct_base_geometry_surface_positions(horizontal_positions, &
         external_mesh, element_map, current_positions, 'bottom', 'BaseGeometryBottomPositions')
 
+      if (isparallel()) then
+        call base_geometry_allgather(external_mesh, element_map, horizontal_positions, top_positions, bottom_positions)
+      end if
+
       !call insert(reserve_state, horizontal_positions%mesh, horizontal_positions%mesh%name)
       call insert(reserve_state, horizontal_positions, horizontal_positions%name)
       call insert(reserve_state, top_positions, top_positions%name)
@@ -89,6 +97,80 @@ module spherical_adaptivity
     end if
 
   end subroutine prepare_spherical_adaptivity
+
+  subroutine base_geometry_allgather(external_mesh, element_map, horizontal_positions, top_positions, bottom_positions)
+    type(mesh_type), intent(in) :: external_mesh
+    integer, dimension(:), intent(in) :: element_map
+    type(vector_field), intent(inout) :: horizontal_positions, top_positions, bottom_positions
+
+    type(mesh_type) :: universal_mesh
+    integer, dimension(:), allocatable :: owned_per_proc, displacements
+    integer owned_elements, universal_elements
+    integer rank, nprocs, communicator, ierr
+    integer i, j, dim
+
+    assert(associated(external_mesh%element_halos))
+    assert(external_mesh%element_halos(1)%ordering_scheme==HALO_ORDER_TRAILING_RECEIVES)
+    do i=1, element_count(horizontal_positions)
+      if (.not. element_owned(external_mesh, element_map(i))) exit
+    end do
+    owned_elements = max(i-1, 0)
+    dim = top_positions%dim
+    assert(all(horizontal_positions%mesh%ndglno(1:owned_elements*dim)==(/ (i, i=1, owned_elements*dim) /)))
+
+    communicator = halo_communicator(external_mesh%element_halos(1))
+    rank = getrank(communicator)
+    nprocs = getnprocs(communicator)
+
+    ! work out n/o element owned by each proc
+    allocate(owned_per_proc(1:nprocs), displacements(1:nprocs))
+    call mpi_allgather(owned_elements, 1, getpinteger(), owned_per_proc, 1, getpinteger(), communicator, ierr)
+    assert(ierr == MPI_SUCCESS)
+    universal_elements = sum(owned_per_proc)
+
+    ! now change it to store n/o owned nodes per proc
+    owned_per_proc = owned_per_proc * dim
+    ! and compute starting index in buffer for each when node data is gathered (0-indexed)
+    j = 0
+    do i = 1, size(displacements)
+      displacements(i) = j
+      j = j + owned_per_proc(i)
+    end do
+
+    ! setup trivial universal DG mesh
+    call allocate(universal_mesh, universal_elements*dim, universal_elements, &
+      horizontal_positions%mesh%shape, horizontal_positions%mesh%name)
+    universal_mesh%continuity = -1
+    do i=1, element_count(universal_mesh)
+      call set_ele_nodes(universal_mesh, i, (/ (j, j=(i-1)*dim+1, i*dim) /))
+    end do
+
+    call allgather_positions(horizontal_positions, universal_mesh, owned_elements*dim, owned_per_proc, displacements, communicator)
+    call allgather_positions(top_positions, universal_mesh, owned_elements*dim, owned_per_proc, displacements, communicator)
+    call allgather_positions(bottom_positions, universal_mesh, owned_elements*dim, owned_per_proc, displacements, communicator)
+
+  end subroutine base_geometry_allgather
+
+  subroutine allgather_positions(positions, universal_mesh, owned_nodes, owned_per_proc, displacements, communicator)
+    type(vector_field), intent(inout) :: positions
+    type(mesh_type), intent(in) :: universal_mesh
+    integer, intent(in) :: owned_nodes
+    integer, dimension(:), intent(in) :: owned_per_proc, displacements
+    integer, intent(in) :: communicator
+
+    type(vector_field) :: universal_positions
+    integer gdim, ierr
+
+    gdim = positions%dim
+    call allocate(universal_positions, gdim, universal_mesh, positions%name)
+    call mpi_allgatherv(positions%val, owned_nodes*gdim, getpreal(), &
+      universal_positions%val, owned_per_proc*gdim, displacements*gdim, getpreal(), &
+      communicator, ierr)
+    assert(ierr == MPI_SUCCESS)
+    call deallocate(positions)
+    positions = universal_positions
+
+  end subroutine allgather_positions
 
   function construct_base_geometry_surface_positions(external_horizontal_positions, external_mesh, element_map, positions, &
     surface_name, positions_name) result (base_geometry_surface_positions)
@@ -191,7 +273,7 @@ module spherical_adaptivity
       call set(horizontal_positions, i, map2horizontal_sphere(node_val(positions, i)))
     end do
     allocate(eles(1:node_count(positions)), loc_coords(1:positions%dim, 1:node_count(positions)))
-    call picker_inquire(horizontal_base_geometry, horizontal_positions, eles, loc_coords)
+    call picker_inquire(horizontal_base_geometry, horizontal_positions, eles, loc_coords, global=.false.)
 
     top_positions => extract_vector_field(reserve_state, "BaseGeometryTopPositions")
     bottom_positions => extract_vector_field(reserve_state, "BaseGeometryBottomPositions")
@@ -224,7 +306,7 @@ module spherical_adaptivity
       call set(horizontal_positions, i, map2horizontal_sphere(node_val(positions, i)))
     end do
     allocate(eles(1:node_count(positions)), loc_coords(1:positions%dim, 1:node_count(positions)))
-    call picker_inquire(horizontal_base_geometry, horizontal_positions, eles, loc_coords)
+    call picker_inquire(horizontal_base_geometry, horizontal_positions, eles, loc_coords, global=.false.)
 
     top_positions => extract_vector_field(states, "BaseGeometryTopPositions")
     bottom_positions => extract_vector_field(states, "BaseGeometryBottomPositions")
