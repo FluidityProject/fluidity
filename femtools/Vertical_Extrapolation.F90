@@ -586,11 +586,14 @@ subroutine create_horizontal_positions_sphere(surface_positions, &
         shift = sign(3*i*GNOMONIC_BOX_WIDTH, xyz(i,1))
         nele = nele + 1
         call add_horizontal_ele(hxy(:, (nele-1)*nloc+1:nele*nloc), i, shift)
+      else if (any(maxloc(abs(xyz), dim=1)==i)) then
+        ! one of the vertices will be mapped to this gnomonic plane by map2horizontal_sphere
+        ! but the entire projected facet does not fit within the GNOMONIC_BOX_WIDTH on the gnomonic plane
+        FLAbort("Spherical input mesh is too coarse")
       end if
     end do
     if (nele<ele_start(ele)) then
-      ewrite(-1,*) "This probably means the surface mesh is too coarse"
-      FLAbort("Failed to construct horizontally projected surface mesh")
+      FLExit("Spherical input mesh is too coarse")
     end if
   end do
   ele_start(ele) = nele + 1
