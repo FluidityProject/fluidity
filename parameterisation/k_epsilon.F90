@@ -428,11 +428,11 @@ subroutine keps_calculate_rhs(state)
 !                 Pk_val    = ((u_tau_val**3)*mag_u_val)/(nut_val*yPlus) &
 !                           * (node_val(field1,wnode)/node_val(field2,wnode))
                  Pk_val    = 0.0
-                 Abs_val   = (node_val(field1,wnode)**2.0)/(node_val(field2,wnode))*(c_eps_2-c_eps_1)
+                 Abs_val   = (node_val(field1,wnode))/(node_val(field2,wnode))*(c_eps_2-c_eps_1) !A! (eps**2/k)*(C1-C2)
               end if 
 
-              !call set(src_abs_terms(1), wnode, Pk_val)
-              !call set(src_abs_terms(2), wnode, Abs_val)
+              call set(src_abs_terms(1), wnode, Pk_val)
+              call set(src_abs_terms(2), wnode, Abs_val)
 !  ewrite(1,*) 'AMIN: Are we here yet?', node_val(src_abs_terms(1),wnode), Pk_val, node_val(src_abs_terms(2),wnode), Abs_val
            end do
         end if
@@ -813,6 +813,18 @@ subroutine keps_eddyvisc(state, advdif)
      call keps_eddyvisc_ele(ele, X, kk, eps, scalar_eddy_visc, f_mu, density, ev_rhs)
   end do
 
+
+  ! For non-DG we apply inverse mass globally
+  if(continuity(scalar_eddy_visc)>=0) then
+     lump_mass = have_option(trim(option_path)//'mass_terms/lump_mass')
+     call solve_cg_inv_mass(state, ev_rhs, lump_mass, option_path)  
+  end if
+  
+  ! Allow for prescribed eddy-viscosity
+  if (.not. have_option(trim(option_path)//'/scalar_field::ScalarEddyViscosity/prescribed')) then
+     call set(scalar_eddy_visc, ev_rhs)
+  end if
+
   !-----------------------------------------------------------------------------------
   ! Update eddy viscosity at the wall if wall function is selected:
 
@@ -848,28 +860,23 @@ subroutine keps_eddyvisc(state, advdif)
               faceglobalnodes=face_global_nodes(scalar_eddy_visc, sele)
 
               do jjj=1, size(faceglobalnodes)
+!ewrite(1,*) 'AMIN: Before:', sele, jjj, faceglobalnodes(jjj), node_val(scalar_eddy_visc,faceglobalnodes(jjj))
                    nut_val   = kappa*yPlus*node_val(bg_visc,1,1,faceglobalnodes(jjj))
-                   !call set(scalar_eddy_visc, faceglobalnodes(jjj), nut_val) !AMIN
+                   call set(scalar_eddy_visc, faceglobalnodes(jjj), nut_val) !AMIN
+!ewrite(1,*) 'AMIN: After :', sele, jjj, faceglobalnodes(jjj), node_val(scalar_eddy_visc,faceglobalnodes(jjj)), node_val(x,1,faceglobalnodes(jjj)), node_val(x,2,faceglobalnodes(jjj))
               end do
-
-              !wnode = surface_node_list(jj)
-              !nut_val   = kappa*yPlus*node_val(bg_visc,1,1,wnode)
-              !call set(scalar_eddy_visc, wnode, nut_val)
            end do
+
+!           call get_boundary_condition(fieldk, ii+1, type=bctype, surface_node_list=surface_node_list)
+!           do jj=1, size(surface_node_list)
+!              wnode = surface_node_list(jj)
+!              nut_val   = kappa*yPlus*node_val(bg_visc,1,1,wnode)
+!              call set(scalar_eddy_visc, wnode, nut_val)
+!           end do
+
         end if
      end do
-   !-----------------------------------------------------------------------------------
-
-  ! For non-DG we apply inverse mass globally
-  if(continuity(scalar_eddy_visc)>=0) then
-     lump_mass = have_option(trim(option_path)//'mass_terms/lump_mass')
-     call solve_cg_inv_mass(state, ev_rhs, lump_mass, option_path)  
-  end if
-  
-  ! Allow for prescribed eddy-viscosity
-  if (.not. have_option(trim(option_path)//'/scalar_field::ScalarEddyViscosity/prescribed')) then
-     call set(scalar_eddy_visc, ev_rhs)
-  end if
+  !-----------------------------------------------------------------------------------
 
   ! If VLES then scale by filter function
   filter => extract_scalar_field(state, 'VLESFilter', stat)
@@ -897,6 +904,9 @@ subroutine keps_eddyvisc(state, advdif)
      do i = 1, eddy_visc%dim(1)
         do j = 1, eddy_visc%dim(1)
            call set(eddy_visc, i, j, scalar_eddy_visc)
+!           do jj = 1, node_count(scalar_eddy_visc)
+!              ewrite(1,*) 'AMIN: Are we here yet?', node_val(eddy_visc,i,j,jj), node_val(x,1,jj), node_val(x,2,jj)
+!           end do
         end do
      end do
   end if
@@ -1295,12 +1305,15 @@ subroutine keps_bcs(state)
                      vnode = vol_nodes(iloc)        !get the volume node number
 
                      u_tau_val  = sqrt(node_val(field2,vnode)) * c_mu**0.25
+                     !u_tau_val  = max( sqrt(sum(node_val(u, vnode)**2, dim=1)) / yPlus , u_tau_val)
 
                      if(node_val(scalar_eddy_visc,vnode) .le. 1.0e-16) then
                         eps_bc_val = 0.0
                      else
-                        eps_bc_val = ((kappa*u_tau_val)/node_val(scalar_eddy_visc,vnode)) * node_val(field1,vnode) ! Neumann
+                        !eps_bc_val = ((kappa*u_tau_val)/node_val(scalar_eddy_visc,vnode)) * node_val(field1,vnode) ! Neumann
+                        !eps_bc_val = (u_tau_val**5.0)/( node_val(scalar_eddy_visc,vnode)*yPlus*node_val(bg_visc,1,1,1) ) ! Neumann II
                         !eps_bc_val = ( c_mu*node_val(field2,vnode)**2 )/( kappa*yPlus*node_val(bg_visc,1,1,1) ) ! Dirichlet
+                        eps_bc_val = ((kappa*u_tau_val)/1.3) * node_val(field1,vnode) ! Flux
                         !eps_bc_val = 0.0
                      endif
 
