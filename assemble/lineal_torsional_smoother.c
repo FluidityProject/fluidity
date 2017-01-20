@@ -5,10 +5,9 @@ static char help[] = "2D Lineal Torsional Spring Analogy Smoother in serial and 
 #include <stdlib.h>
 
 
-void lin_tor_smoother(int dimension, int num_nodes, int num_elements, int num_surf_elements, int num_owned_nodes, int * mapping, int * connectivity, double * phys_mesh, double * smooth_mesh, double * comp_mesh, int * surf_connectivity, int* findrm, int* colm) {
+void lin_tor_smoother(int dimension, int num_nodes, int num_elements, int num_surf_elements, int num_owned_nodes, int * mapping, int * connectivity, double * phys_mesh, double * smooth_mesh, double * comp_mesh, int * surf_connectivity, int* findrm, int* colm, Mat* K) {
   
-  Vec            F,U_h;
-  Mat            K;            
+  Vec            F,U_h;         
   KSP            ksp;
   PC             pc;
   PetscErrorCode ierr;
@@ -218,27 +217,21 @@ void lin_tor_smoother(int dimension, int num_nodes, int num_elements, int num_su
     free(K_tor_mat);
     return K_tor_mat_trim;
   }
-
-  MatCreate(PETSC_COMM_WORLD,&K);
-  PetscObjectSetName((PetscObject) K, "Stiffness Matrix");
-  MatSetSizes(K,2*num_owned_nodes,2*num_owned_nodes,PETSC_DETERMINE,PETSC_DETERMINE);
-  MatSetUp(K);
-
   
   for(Ii=0;Ii<num_owned_nodes;Ii++){
     for(n=findrm[Ii];n<findrm[Ii+1];++n){
       int neb_hold = colm[n-1];
       double * tmp = K_lin(Ii,neb_hold);
 
-      MatSetValue(K,2*mapping[Ii],2*mapping[neb_hold-1],*(tmp+0),ADD_VALUES);
-      MatSetValue(K,2*mapping[Ii],2*mapping[neb_hold-1]+1,*(tmp+1),ADD_VALUES);
-      MatSetValue(K,2*mapping[Ii]+1,2*mapping[neb_hold-1],*(tmp+1),ADD_VALUES);
-      MatSetValue(K,2*mapping[Ii]+1,2*mapping[neb_hold-1]+1,*(tmp+2),ADD_VALUES);
+      MatSetValue(*K,2*mapping[Ii],2*mapping[neb_hold-1],*(tmp+0),ADD_VALUES);
+      MatSetValue(*K,2*mapping[Ii],2*mapping[neb_hold-1]+1,*(tmp+1),ADD_VALUES);
+      MatSetValue(*K,2*mapping[Ii]+1,2*mapping[neb_hold-1],*(tmp+1),ADD_VALUES);
+      MatSetValue(*K,2*mapping[Ii]+1,2*mapping[neb_hold-1]+1,*(tmp+2),ADD_VALUES);
 
-      MatSetValue(K,2*mapping[neb_hold-1],2*mapping[neb_hold-1],-1.0*(*(tmp+0)),ADD_VALUES);
-      MatSetValue(K,2*mapping[neb_hold-1],2*mapping[neb_hold-1]+1,-1.0*(*(tmp+1)),ADD_VALUES);
-      MatSetValue(K,2*mapping[neb_hold-1]+1,2*mapping[neb_hold-1],-1.0*(*(tmp+1)),ADD_VALUES);
-      MatSetValue(K,2*mapping[neb_hold-1]+1,2*mapping[neb_hold-1]+1,-1.0*(*(tmp+2)),ADD_VALUES);	
+      MatSetValue(*K,2*mapping[neb_hold-1],2*mapping[neb_hold-1],-1.0*(*(tmp+0)),ADD_VALUES);
+      MatSetValue(*K,2*mapping[neb_hold-1],2*mapping[neb_hold-1]+1,-1.0*(*(tmp+1)),ADD_VALUES);
+      MatSetValue(*K,2*mapping[neb_hold-1]+1,2*mapping[neb_hold-1],-1.0*(*(tmp+1)),ADD_VALUES);
+      MatSetValue(*K,2*mapping[neb_hold-1]+1,2*mapping[neb_hold-1]+1,-1.0*(*(tmp+2)),ADD_VALUES);	
     }	    
   }
 
@@ -255,39 +248,39 @@ void lin_tor_smoother(int dimension, int num_nodes, int num_elements, int num_su
 
       double *K_tor1_holder=K_tor(Ii+1,neb_hold,k1);	    
 
-      MatSetValue(K,2*mapping[Ii],2*mapping[Ii],(*(K_tor1_holder+0)),ADD_VALUES);
-      MatSetValue(K,2*mapping[Ii],2*mapping[Ii]+1,(*(K_tor1_holder+1)),ADD_VALUES);
-      MatSetValue(K,2*mapping[Ii],2*mapping[neb_hold-1],(*(K_tor1_holder+2)),ADD_VALUES);
-      MatSetValue(K,2*mapping[Ii],2*mapping[neb_hold-1]+1,(*(K_tor1_holder+3)),ADD_VALUES);
-      MatSetValue(K,2*mapping[Ii],2*mapping[k1-1],(*(K_tor1_holder+4)),ADD_VALUES);
-      MatSetValue(K,2*mapping[Ii],2*mapping[k1-1]+1,(*(K_tor1_holder+5)),ADD_VALUES);
+      MatSetValue(*K,2*mapping[Ii],2*mapping[Ii],(*(K_tor1_holder+0)),ADD_VALUES);
+      MatSetValue(*K,2*mapping[Ii],2*mapping[Ii]+1,(*(K_tor1_holder+1)),ADD_VALUES);
+      MatSetValue(*K,2*mapping[Ii],2*mapping[neb_hold-1],(*(K_tor1_holder+2)),ADD_VALUES);
+      MatSetValue(*K,2*mapping[Ii],2*mapping[neb_hold-1]+1,(*(K_tor1_holder+3)),ADD_VALUES);
+      MatSetValue(*K,2*mapping[Ii],2*mapping[k1-1],(*(K_tor1_holder+4)),ADD_VALUES);
+      MatSetValue(*K,2*mapping[Ii],2*mapping[k1-1]+1,(*(K_tor1_holder+5)),ADD_VALUES);
 
-      MatSetValue(K,2*mapping[Ii]+1,2*mapping[Ii],(*(K_tor1_holder+6)),ADD_VALUES);
-      MatSetValue(K,2*mapping[Ii]+1,2*mapping[Ii]+1,(*(K_tor1_holder+7)),ADD_VALUES);
-      MatSetValue(K,2*mapping[Ii]+1,2*mapping[neb_hold-1],(*(K_tor1_holder+8)),ADD_VALUES);
-      MatSetValue(K,2*mapping[Ii]+1,2*mapping[neb_hold-1]+1,(*(K_tor1_holder+9)),ADD_VALUES);
-      MatSetValue(K,2*mapping[Ii]+1,2*mapping[k1-1],(*(K_tor1_holder+10)),ADD_VALUES);
-      MatSetValue(K,2*mapping[Ii]+1,2*mapping[k1-1]+1,(*(K_tor1_holder+11)),ADD_VALUES);
+      MatSetValue(*K,2*mapping[Ii]+1,2*mapping[Ii],(*(K_tor1_holder+6)),ADD_VALUES);
+      MatSetValue(*K,2*mapping[Ii]+1,2*mapping[Ii]+1,(*(K_tor1_holder+7)),ADD_VALUES);
+      MatSetValue(*K,2*mapping[Ii]+1,2*mapping[neb_hold-1],(*(K_tor1_holder+8)),ADD_VALUES);
+      MatSetValue(*K,2*mapping[Ii]+1,2*mapping[neb_hold-1]+1,(*(K_tor1_holder+9)),ADD_VALUES);
+      MatSetValue(*K,2*mapping[Ii]+1,2*mapping[k1-1],(*(K_tor1_holder+10)),ADD_VALUES);
+      MatSetValue(*K,2*mapping[Ii]+1,2*mapping[k1-1]+1,(*(K_tor1_holder+11)),ADD_VALUES);
 
-      MatSetValue(K,2*mapping[neb_hold-1],2*mapping[Ii],(*(K_tor1_holder+12)),ADD_VALUES);
-      MatSetValue(K,2*mapping[neb_hold-1],2*mapping[Ii]+1,(*(K_tor1_holder+13)),ADD_VALUES);
-      MatSetValue(K,2*mapping[neb_hold-1],2*mapping[neb_hold-1],(*(K_tor1_holder+14)),ADD_VALUES);
-      MatSetValue(K,2*mapping[neb_hold-1],2*mapping[neb_hold-1]+1,(*(K_tor1_holder+15)),ADD_VALUES);
-      MatSetValue(K,2*mapping[neb_hold-1],2*mapping[k1-1],(*(K_tor1_holder+16)),ADD_VALUES);
-      MatSetValue(K,2*mapping[neb_hold-1],2*mapping[k1-1]+1,(*(K_tor1_holder+17)),ADD_VALUES);
+      MatSetValue(*K,2*mapping[neb_hold-1],2*mapping[Ii],(*(K_tor1_holder+12)),ADD_VALUES);
+      MatSetValue(*K,2*mapping[neb_hold-1],2*mapping[Ii]+1,(*(K_tor1_holder+13)),ADD_VALUES);
+      MatSetValue(*K,2*mapping[neb_hold-1],2*mapping[neb_hold-1],(*(K_tor1_holder+14)),ADD_VALUES);
+      MatSetValue(*K,2*mapping[neb_hold-1],2*mapping[neb_hold-1]+1,(*(K_tor1_holder+15)),ADD_VALUES);
+      MatSetValue(*K,2*mapping[neb_hold-1],2*mapping[k1-1],(*(K_tor1_holder+16)),ADD_VALUES);
+      MatSetValue(*K,2*mapping[neb_hold-1],2*mapping[k1-1]+1,(*(K_tor1_holder+17)),ADD_VALUES);
 
-      MatSetValue(K,2*mapping[neb_hold-1]+1,2*mapping[Ii],(*(K_tor1_holder+18)),ADD_VALUES);
-      MatSetValue(K,2*mapping[neb_hold-1]+1,2*mapping[Ii]+1,(*(K_tor1_holder+19)),ADD_VALUES);
-      MatSetValue(K,2*mapping[neb_hold-1]+1,2*mapping[neb_hold-1],(*(K_tor1_holder+20)),ADD_VALUES);
-      MatSetValue(K,2*mapping[neb_hold-1]+1,2*mapping[neb_hold-1]+1,(*(K_tor1_holder+21)),ADD_VALUES);
-      MatSetValue(K,2*mapping[neb_hold-1]+1,2*mapping[k1-1],(*(K_tor1_holder+22)),ADD_VALUES);
-      MatSetValue(K,2*mapping[neb_hold-1]+1,2*mapping[k1-1]+1,(*(K_tor1_holder+23)),ADD_VALUES);
+      MatSetValue(*K,2*mapping[neb_hold-1]+1,2*mapping[Ii],(*(K_tor1_holder+18)),ADD_VALUES);
+      MatSetValue(*K,2*mapping[neb_hold-1]+1,2*mapping[Ii]+1,(*(K_tor1_holder+19)),ADD_VALUES);
+      MatSetValue(*K,2*mapping[neb_hold-1]+1,2*mapping[neb_hold-1],(*(K_tor1_holder+20)),ADD_VALUES);
+      MatSetValue(*K,2*mapping[neb_hold-1]+1,2*mapping[neb_hold-1]+1,(*(K_tor1_holder+21)),ADD_VALUES);
+      MatSetValue(*K,2*mapping[neb_hold-1]+1,2*mapping[k1-1],(*(K_tor1_holder+22)),ADD_VALUES);
+      MatSetValue(*K,2*mapping[neb_hold-1]+1,2*mapping[k1-1]+1,(*(K_tor1_holder+23)),ADD_VALUES);
   
     }
   }
     
-  MatAssemblyBegin(K,MAT_FINAL_ASSEMBLY);
-  MatAssemblyEnd(K,MAT_FINAL_ASSEMBLY);
+  MatAssemblyBegin(*K,MAT_FINAL_ASSEMBLY);
+  MatAssemblyEnd(*K,MAT_FINAL_ASSEMBLY);
 
   VecCreate(PETSC_COMM_WORLD,&F);
   PetscObjectSetName((PetscObject) F, "Load Vector");
@@ -316,7 +309,7 @@ void lin_tor_smoother(int dimension, int num_nodes, int num_elements, int num_su
   }
   
 
-  MatZeroRows(K,2*len_new,global_surf_connectivity,1.0,NULL,NULL);
+  MatZeroRows(*K,2*len_new,global_surf_connectivity,1.0,NULL,NULL);
 
  for(n=0;n<len_new;n++){
    x_disp[n]=phys_mesh[dimension*(local_surf_connectivity[n])] - comp_mesh[dimension*(local_surf_connectivity[n])];
@@ -333,12 +326,12 @@ void lin_tor_smoother(int dimension, int num_nodes, int num_elements, int num_su
   VecAssemblyBegin(F);
   VecAssemblyEnd(F);
 
-  MatAssemblyBegin(K,MAT_FINAL_ASSEMBLY);
-  MatAssemblyEnd(K,MAT_FINAL_ASSEMBLY);
+  MatAssemblyBegin(*K,MAT_FINAL_ASSEMBLY);
+  MatAssemblyEnd(*K,MAT_FINAL_ASSEMBLY);
 
   KSPCreate(PETSC_COMM_WORLD,&ksp);
 
-  KSPSetOperators(ksp,K,K);
+  KSPSetOperators(ksp,*K,*K);
 
   KSPSetType(ksp,KSPGMRES);
 
@@ -377,5 +370,5 @@ void lin_tor_smoother(int dimension, int num_nodes, int num_elements, int num_su
    }
 
   
-  VecDestroy(&F);VecDestroy(&U_h);MatDestroy(&K);KSPDestroy(&ksp);
+  VecDestroy(&F);VecDestroy(&U_h);KSPDestroy(&ksp);
 }

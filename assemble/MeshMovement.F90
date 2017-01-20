@@ -26,6 +26,7 @@ module meshmovement
   use fefields
   use field_derivatives
   use sparsity_patterns
+  use sparse_tools_petsc
   use sparsity_patterns_meshes
 
   implicit none
@@ -46,10 +47,13 @@ module meshmovement
      subroutine lap_smoother(dim, num_nodes,&
           num_elements, num_surf_elements, num_owned_nodes,& 
           mapping, connectivity, phys_mesh, smooth_mesh,&
-          comp_mesh, surf_connectivity) bind(c)
-       use iso_c_binding
-
+          comp_mesh, surf_connectivity, matrix) bind(c)
+       use iso_c_binding  
+#ifdef HAVE_PETSC_MODULES
+       use petsc
+#endif
        implicit none
+#include "petsc_legacy.h"
        
        integer (c_int), value :: dim, num_nodes, num_elements, &
             num_surf_elements, num_owned_nodes
@@ -57,6 +61,7 @@ module meshmovement
        integer (c_int), dimension((dim+1)*num_elements) :: connectivity
        real (c_double), dimension(num_nodes) :: phys_mesh, smooth_mesh, comp_mesh
        integer (c_int), dimension(dim*num_elements) :: surf_connectivity
+       Mat :: matrix
        
      end subroutine lap_smoother
   end interface
@@ -65,10 +70,13 @@ module meshmovement
      subroutine lin_smoother(dim, num_nodes,&
           num_elements, num_surf_elements, num_owned_nodes,& 
           mapping, connectivity, phys_mesh, smooth_mesh,&
-          comp_mesh, surf_connectivity,findrm, colm) bind(c)
+          comp_mesh, surf_connectivity,findrm, colm, matrix) bind(c)
        use iso_c_binding
-
+#ifdef HAVE_PETSC_MODULES
+       use petsc
+#endif
        implicit none
+#include "petsc_legacy.h"
        
        integer (c_int), value :: dim, num_nodes, num_elements, &
             num_surf_elements, num_owned_nodes
@@ -78,6 +86,7 @@ module meshmovement
        integer (c_int), dimension(dim*num_elements) :: surf_connectivity
        integer (c_int), dimension(num_nodes+1) :: findrm
        integer (c_int), dimension(findrm(num_nodes+1)-1) :: colm
+       Mat :: matrix
        
        
      end subroutine lin_smoother
@@ -87,10 +96,13 @@ module meshmovement
     subroutine lin_tor_smoother(dim, num_nodes,&
           num_elements, num_surf_elements, num_owned_nodes,& 
           mapping, connectivity, phys_mesh, smooth_mesh,&
-          comp_mesh, surf_connectivity,findrm, colm) bind(c)
+          comp_mesh, surf_connectivity,findrm, colm, matrix) bind(c)
        use iso_c_binding
-
+#ifdef HAVE_PETSC_MODULES
+       use petsc
+#endif
        implicit none
+#include "petsc_legacy.h"
        
        integer (c_int), value :: dim, num_nodes, num_elements, &
             num_surf_elements, num_owned_nodes
@@ -99,7 +111,8 @@ module meshmovement
        real (c_double), dimension(num_nodes) :: phys_mesh, smooth_mesh, comp_mesh
        integer (c_int), dimension(dim*num_elements) :: surf_connectivity
        integer (c_int), dimension(num_nodes+1) :: findrm
-       integer (c_int), dimension(findrm(num_nodes+1)-1) :: colm       
+       integer (c_int), dimension(findrm(num_nodes+1)-1) :: colm  
+       Mat :: matrix
      end subroutine lin_tor_smoother
   end interface
 
@@ -1384,6 +1397,7 @@ contains
     integer :: i, stat
     real :: itheta, dt
     logical :: found_velocity
+    type(petsc_csr_matrix) :: A
 
     !!! This routine drives a call to C code which does the actual assembly and
     !!! solution for a Laplacian smoothed grid velocity.
@@ -1425,7 +1439,11 @@ contains
     end if
        
     call set(coordinate, old_coordinate) 
-    call addto(coordinate, grid_velocity, scale = dt)       
+    call addto(coordinate, grid_velocity, scale = dt)
+    call allocate(A, &
+         get_csr_sparsity_firstorder(states, coordinate%mesh, coordinate%mesh),&
+         [1,1],"StiffnessMatrix")
+    call zero(A)
   
     !!! actual call out to the C code.
      
@@ -1434,7 +1452,9 @@ contains
           element_count(coordinate), surface_element_count(coordinate),&
           nowned_nodes(coordinate), universal_numbering(coordinate)-1,&
           coordinate%mesh%ndglno, coordinate%val, new_coordinate%val,&
-          initial_coordinate%val, surface_mesh%ndglno)
+          initial_coordinate%val, surface_mesh%ndglno, A%M)
+
+    call deallocate(A)
 
     call halo_update(new_coordinate)
 
@@ -1494,6 +1514,7 @@ contains
     integer :: i, stat
     real :: itheta, dt
     logical :: found_velocity
+    type(petsc_csr_matrix) :: A
 
     !!! This routine drives a call to C code which does the actual assembly and
     !!! solution for a Lineal Spring smoothed grid velocity.
@@ -1535,8 +1556,12 @@ contains
     end if
        
     call set(coordinate, old_coordinate) 
-    call addto(coordinate, grid_velocity, scale = dt)       
-  
+    call addto(coordinate, grid_velocity, scale = dt)
+    call allocate(A, &
+         get_csr_sparsity_secondorder(states, coordinate%mesh, coordinate%mesh),&
+         [mesh_dim(coordinate),mesh_dim(coordinate)],"StiffnessMatrix")
+    call zero(A)
+
     !!! actual call out to the C code.
 
 
@@ -1550,7 +1575,7 @@ contains
           coordinate%mesh%ndglno, coordinate%val, new_coordinate%val,&
           initial_coordinate%val, surface_mesh%ndglno,&
           coordinate%mesh%adj_lists%nnlist%findrm,&
-          coordinate%mesh%adj_lists%nnlist%colm)
+          coordinate%mesh%adj_lists%nnlist%colm, A%M)
     
 
     call halo_update(new_coordinate)
@@ -1568,7 +1593,7 @@ contains
     else
        call set(coordinate, new_coordinate, old_coordinate, itheta)
     end if
-
+    call deallocate(A)
 
   end subroutine move_mesh_lineal_smoothing
 
@@ -1611,6 +1636,7 @@ contains
     integer :: i, stat
     real :: itheta, dt
     logical :: found_velocity
+    type(petsc_csr_matrix) :: A
 
     !!! This routine drives a call to C code which does the actual assembly and
     !!! solution for a Lineal Torsional Spring smoothed grid velocity.
@@ -1652,7 +1678,11 @@ contains
     end if
        
     call set(coordinate, old_coordinate) 
-    call addto(coordinate, grid_velocity, scale = dt)       
+    call addto(coordinate, grid_velocity, scale = dt)   
+    call allocate(A, &
+         get_csr_sparsity_secondorder(states, coordinate%mesh, coordinate%mesh),&
+         [mesh_dim(coordinate),mesh_dim(coordinate)],"StiffnessMatrix")
+    call zero(A)    
   
     !!! actual call out to the C code.
     if (.not. associated(coordinate%mesh%adj_lists%nnlist)) &
@@ -1665,7 +1695,7 @@ contains
           coordinate%mesh%ndglno, coordinate%val, new_coordinate%val,&
           initial_coordinate%val, surface_mesh%ndglno,&
           coordinate%mesh%adj_lists%nnlist%findrm,&
-          coordinate%mesh%adj_lists%nnlist%colm)
+          coordinate%mesh%adj_lists%nnlist%colm, A%M)
 
     call halo_update(new_coordinate)
 
@@ -1682,6 +1712,7 @@ contains
     else
        call set(coordinate, new_coordinate, old_coordinate, itheta)
     end if
+    call deallocate(A)
 
   end subroutine move_mesh_lineal_torsional_smoothing
 
