@@ -149,6 +149,9 @@ module spherical_adaptivity
     call allgather_positions(top_positions, universal_mesh, owned_elements*dim, owned_per_proc, displacements, communicator)
     call allgather_positions(bottom_positions, universal_mesh, owned_elements*dim, owned_per_proc, displacements, communicator)
 
+    call deallocate(universal_mesh)
+    deallocate(owned_per_proc, displacements)
+
   end subroutine base_geometry_allgather
 
   subroutine allgather_positions(positions, universal_mesh, owned_nodes, owned_per_proc, displacements, communicator)
@@ -189,7 +192,6 @@ module spherical_adaptivity
     integer, dimension(:), pointer :: surface_element_list, nodes
     integer, dimension(:), allocatable :: eles, surface_ids
     integer i, j
-
 
     extrude_region_option_path = trim(positions%mesh%option_path) // '/from_mesh/extrude/regions'
     allocate(surface_ids(option_count(extrude_region_option_path)))
@@ -284,6 +286,7 @@ module spherical_adaptivity
       call set(positions, i, ((r-r_bottom) * xyz_top + (r_top-r) * xyz_bottom)/(r_top-r_bottom))
     end do
 
+    call deallocate(horizontal_positions)
     deallocate(eles, loc_coords)
 
   end subroutine spherical_adaptivity_pop_in
@@ -320,6 +323,7 @@ module spherical_adaptivity
       call set(positions, i, r_new * node_val(positions, i) / r_current)
     end do
 
+    call deallocate(horizontal_positions)
     deallocate(eles, loc_coords)
 
   end subroutine spherical_adaptivity_pop_out
