@@ -47,39 +47,44 @@ module meshmovement
      subroutine lap_smoother(dim, num_nodes,&
           num_elements, num_surf_elements, num_owned_nodes,& 
           mapping, connectivity, phys_mesh, smooth_mesh,&
-          comp_mesh, surf_connectivity, matrix) bind(c)
+          comp_mesh, surf_connectivity, matrix,&
+          options, debug_level) bind(c)
        use iso_c_binding  
 #ifdef HAVE_PETSC_MODULES
        use petsc
 #endif
+       use solvers, only: solver_options_type
        implicit none
 #include "petsc_legacy.h"
        
        integer (c_int), value :: dim, num_nodes, num_elements, &
-            num_surf_elements, num_owned_nodes
+            num_surf_elements, num_owned_nodes, debug_level
        integer (c_int), dimension(num_nodes) :: mapping
        integer (c_int), dimension((dim+1)*num_elements) :: connectivity
        real (c_double), dimension(num_nodes) :: phys_mesh, smooth_mesh, comp_mesh
        integer (c_int), dimension(dim*num_elements) :: surf_connectivity
        Mat :: matrix
+       type(solver_options_type) :: options
        
      end subroutine lap_smoother
   end interface
 
-    interface
+  interface
      subroutine lin_smoother(dim, num_nodes,&
           num_elements, num_surf_elements, num_owned_nodes,& 
           mapping, connectivity, phys_mesh, smooth_mesh,&
-          comp_mesh, surf_connectivity,findrm, colm, matrix) bind(c)
+          comp_mesh, surf_connectivity,findrm, colm, matrix,&
+          options, debug_level) bind(c)
        use iso_c_binding
 #ifdef HAVE_PETSC_MODULES
        use petsc
 #endif
+       use solvers, only: solver_options_type
        implicit none
 #include "petsc_legacy.h"
        
        integer (c_int), value :: dim, num_nodes, num_elements, &
-            num_surf_elements, num_owned_nodes
+            num_surf_elements, num_owned_nodes, debug_level
        integer (c_int), dimension(num_nodes) :: mapping
        integer (c_int), dimension((dim+1)*num_elements) :: connectivity
        real (c_double), dimension(num_nodes) :: phys_mesh, smooth_mesh, comp_mesh
@@ -87,7 +92,7 @@ module meshmovement
        integer (c_int), dimension(num_nodes+1) :: findrm
        integer (c_int), dimension(findrm(num_nodes+1)-1) :: colm
        Mat :: matrix
-       
+       type(solver_options_type) :: options
        
      end subroutine lin_smoother
   end interface
@@ -96,16 +101,18 @@ module meshmovement
     subroutine lin_tor_smoother(dim, num_nodes,&
           num_elements, num_surf_elements, num_owned_nodes,& 
           mapping, connectivity, phys_mesh, smooth_mesh,&
-          comp_mesh, surf_connectivity,findrm, colm, matrix) bind(c)
+          comp_mesh, surf_connectivity,findrm, colm, matrix,&
+          options, debug_level) bind(c)
        use iso_c_binding
 #ifdef HAVE_PETSC_MODULES
        use petsc
 #endif
+       use solvers, only: solver_options_type
        implicit none
 #include "petsc_legacy.h"
        
        integer (c_int), value :: dim, num_nodes, num_elements, &
-            num_surf_elements, num_owned_nodes
+            num_surf_elements, num_owned_nodes, debug_level
        integer (c_int), dimension(num_nodes) :: mapping
        integer (c_int), dimension((dim+1)*num_elements) :: connectivity
        real (c_double), dimension(num_nodes) :: phys_mesh, smooth_mesh, comp_mesh
@@ -113,6 +120,7 @@ module meshmovement
        integer (c_int), dimension(num_nodes+1) :: findrm
        integer (c_int), dimension(findrm(num_nodes+1)-1) :: colm  
        Mat :: matrix
+       type(solver_options_type) :: options
      end subroutine lin_tor_smoother
   end interface
 
@@ -1397,6 +1405,7 @@ contains
     integer :: i, stat
     real :: itheta, dt
     logical :: found_velocity
+    type(solver_options_type) :: solver_options
     type(petsc_csr_matrix) :: A
 
     !!! This routine drives a call to C code which does the actual assembly and
@@ -1410,6 +1419,18 @@ contains
     ewrite(1,*) 'Entering move_mesh_laplacian_smoothing'
     
     grid_velocity => extract_vector_field(states(1), "GridVelocity")
+    if (have_option('/mesh_adaptivity/mesh_movement/solver')) then
+       call populate_solver_options_struct_from_path(solver_options,&
+            '/mesh_adaptivity/mesh_movement/solver')
+       solver_options%ksptype=trim(solver_options%ksptype)//c_null_char
+       solver_options%pctype=trim(solver_options%pctype)//c_null_char
+    else 
+       solver_options%ksptype=KSPGMRES//c_null_char
+       solver_options%pctype=PCSOR//c_null_char
+       solver_options%rtol=1.0e-7
+       solver_options%atol=1.0e-7
+       solver_options%max_its=1000
+    end if
     
     call set_boundary_values(grid_velocity)
     
@@ -1446,13 +1467,14 @@ contains
     call zero(A)
   
     !!! actual call out to the C code.
-     
+
 !Figure out indexing between C and Fortran
     call lap_smoother(mesh_dim(coordinate), node_count(coordinate),&
           element_count(coordinate), surface_element_count(coordinate),&
           nowned_nodes(coordinate), universal_numbering(coordinate)-1,&
           coordinate%mesh%ndglno, coordinate%val, new_coordinate%val,&
-          initial_coordinate%val, surface_mesh%ndglno, A%M)
+          initial_coordinate%val, surface_mesh%ndglno,&
+          A%M, solver_options, debug_level())
 
     call deallocate(A)
 
@@ -1514,6 +1536,7 @@ contains
     integer :: i, stat
     real :: itheta, dt
     logical :: found_velocity
+    type(solver_options_type) :: solver_options
     type(petsc_csr_matrix) :: A
 
     !!! This routine drives a call to C code which does the actual assembly and
@@ -1527,6 +1550,18 @@ contains
     ewrite(1,*) 'Entering move_mesh_lineal_smoothing'
     
     grid_velocity => extract_vector_field(states(1), "GridVelocity")
+    if (have_option('/mesh_adaptivity/mesh_movement/solver')) then
+       call populate_solver_options_struct_from_path(solver_options,&
+            '/mesh_adaptivity/mesh_movement/solver')
+       solver_options%ksptype=trim(solver_options%ksptype)//c_null_char
+       solver_options%pctype=trim(solver_options%pctype)//c_null_char
+    else 
+       solver_options%ksptype=KSPGMRES//c_null_char
+       solver_options%pctype=PCSOR//c_null_char
+       solver_options%rtol=1.0e-7
+       solver_options%atol=1.0e-7
+       solver_options%max_its=1000
+    end if
 
     call set_boundary_values(grid_velocity)
     
@@ -1575,7 +1610,8 @@ contains
           coordinate%mesh%ndglno, coordinate%val, new_coordinate%val,&
           initial_coordinate%val, surface_mesh%ndglno,&
           coordinate%mesh%adj_lists%nnlist%findrm,&
-          coordinate%mesh%adj_lists%nnlist%colm, A%M)
+          coordinate%mesh%adj_lists%nnlist%colm, A%M,&
+          solver_options, debug_level())
     
 
     call halo_update(new_coordinate)
@@ -1636,6 +1672,7 @@ contains
     integer :: i, stat
     real :: itheta, dt
     logical :: found_velocity
+	type(solver_options_type) :: solver_options
     type(petsc_csr_matrix) :: A
 
     !!! This routine drives a call to C code which does the actual assembly and
@@ -1649,6 +1686,18 @@ contains
     ewrite(1,*) 'Entering move_mesh_lineal_torsional_smoothing'
     
     grid_velocity => extract_vector_field(states(1), "GridVelocity")
+    if (have_option('/mesh_adaptivity/mesh_movement/solver')) then
+       call populate_solver_options_struct_from_path(solver_options,&
+            '/mesh_adaptivity/mesh_movement/solver')
+       solver_options%ksptype=trim(solver_options%ksptype)//c_null_char
+       solver_options%pctype=trim(solver_options%pctype)//c_null_char
+    else 
+       solver_options%ksptype=KSPGMRES//c_null_char
+       solver_options%pctype=PCSOR//c_null_char
+       solver_options%rtol=1.0e-7
+       solver_options%atol=1.0e-7
+       solver_options%max_its=1000
+    end if
 
     call set_boundary_values(grid_velocity)
     
@@ -1695,7 +1744,8 @@ contains
           coordinate%mesh%ndglno, coordinate%val, new_coordinate%val,&
           initial_coordinate%val, surface_mesh%ndglno,&
           coordinate%mesh%adj_lists%nnlist%findrm,&
-          coordinate%mesh%adj_lists%nnlist%colm, A%M)
+          coordinate%mesh%adj_lists%nnlist%colm, A%M,&
+          solver_options, debug_level())
 
     call halo_update(new_coordinate)
 

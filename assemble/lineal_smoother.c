@@ -3,9 +3,10 @@ static char help[] = "2D/3D Lineal Spring Analogy Smoother in serial and paralle
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include "solver_options.h"
 
 
-void lin_smoother(int dimension, int num_nodes, int num_elements, int num_surf_elements, int num_owned_nodes, int * mapping, int connectivity[][3], double * phys_mesh, double * smooth_mesh, double * comp_mesh, int * surf_connectivity, int* findrm, int* colm, Mat* K) {
+void lin_smoother(int dimension, int num_nodes, int num_elements, int num_surf_elements, int num_owned_nodes, int * mapping, int connectivity[][3], double * phys_mesh, double * smooth_mesh, double * comp_mesh, int * surf_connectivity, int* findrm, int* colm, Mat* K, struct solver_options* options, int debug_level) {
   
   Vec            F,U_h;
   KSP            ksp;
@@ -208,12 +209,12 @@ void lin_smoother(int dimension, int num_nodes, int num_elements, int num_surf_e
 
   KSPSetOperators(ksp,*K,*K);
 
-  KSPSetType(ksp,KSPGMRES);
+  KSPSetType(ksp,options->ksptype);
 
   KSPGetPC(ksp,&pc);
-  PCSetType(pc,PCSOR);
-  KSPSetInitialGuessNonzero(ksp,PETSC_TRUE);
-  KSPSetTolerances(ksp,1e-7,1e-7,PETSC_DEFAULT,PETSC_DEFAULT);
+  PCSetType(pc,options->pctype);
+  KSPSetInitialGuessNonzero(ksp,~options->start_from_zero);
+  KSPSetTolerances(ksp,options->rtol,options->atol,PETSC_DEFAULT,options->max_its);
   KSPSetFromOptions(ksp);
 
   VecCreate(PETSC_COMM_WORLD,&U_h);
@@ -226,10 +227,10 @@ void lin_smoother(int dimension, int num_nodes, int num_elements, int num_surf_e
 
   KSPSolve(ksp,F,U_h);
   KSPGetIterationNumber(ksp,&its);
-  PetscPrintf(PETSC_COMM_WORLD,"ksp iter: %D\n", its);
+  if (debug_level>1) PetscPrintf(PETSC_COMM_WORLD,"ksp iter: %D\n", its);
   KSPConvergedReason reason;
   KSPGetConvergedReason(ksp,&reason);
-  PetscPrintf(PETSC_COMM_WORLD,"KSPConvergedReason: %D\n", reason);
+  if (debug_level>1) PetscPrintf(PETSC_COMM_WORLD,"KSPConvergedReason: %D\n", reason);
 
   if(dimension==2){
     for(n=0;n<num_owned_nodes;n++){

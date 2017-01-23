@@ -2368,6 +2368,12 @@ Please specify a scalar field</a:documentation>
               </optional>
             </element>
           </choice>
+          <optional>
+            <element name="solver">
+              <a:documentation>Specify the solver options for methods which solve a linear equation using an internal algorithm. Default optionds are used otherwise.</a:documentation>
+              <ref name="pc_ksp_solver_options"/>
+            </element>
+          </optional>
           <element name="vector_field">
             <a:documentation>The velocity of the mesh.</a:documentation>
             <attribute name="name">

@@ -26,6 +26,7 @@
 !    USA
 #include "fdebug.h"
 module solvers
+  use iso_c_binding
   use FLDebug
   use Global_Parameters
   use futils, only: present_and_true, int2str, free_unit, real_format
@@ -50,6 +51,15 @@ module solvers
   ! Module to provide explicit interfaces to matrix solvers.
 
 #include "petsc_legacy.h"
+
+  type, bind(C) :: solver_options_type
+     KSPType :: ksptype
+     PCType :: pctype
+     PetscReal :: atol
+     PetscReal :: rtol
+     PetscInt :: max_its
+     PetscBool :: start_from_zero
+  end type solver_options_type
 
   ! stuff used in the PETSc monitor (see petsc_solve_callback_setup() below)
   integer :: petsc_monitor_iteration = 0
@@ -79,7 +89,8 @@ module solvers
 private
 
 public petsc_solve, set_solver_options, &
-   complete_solver_option_path, petsc_solve_needs_positions
+   complete_solver_option_path, petsc_solve_needs_positions,&
+   solver_options_type, populate_solver_options_struct_from_path
 
 ! meant for unit-testing solver code only:
 public petsc_solve_setup, petsc_solve_core, petsc_solve_destroy, &
@@ -2191,6 +2202,25 @@ subroutine set_solver_options_tensor(field, &
       start_from_zero=start_from_zero, petsc_options=petsc_options)
 
 end subroutine set_solver_options_tensor
+
+subroutine populate_solver_options_struct_from_path(solver_options, option_path)
+  type(solver_options_type), intent(out) :: solver_options
+  character(len=*), intent(in):: option_path
+
+  call get_option(trim(option_path)//'/iterative_method/name', solver_options%ksptype)
+  call get_option(trim(option_path)//'/preconditioner/name', solver_options%pctype)
+  call get_option(trim(option_path)//'/absolute_error', &
+       solver_options%atol, default=0.0)
+  call get_option(trim(option_path)//'/relative_error',solver_options%rtol)
+  call get_option(trim(option_path)//'/max_iterations',solver_options%max_its)
+
+  if (have_option(trim(option_path)//'/start_from_zero')) then
+     solver_options%start_from_zero=PETSC_TRUE
+  else
+     solver_options%start_from_zero=PETSC_FALSE
+  endif
+
+end subroutine populate_solver_options_struct_from_path
 
 subroutine petsc_monitor_setup(petsc_numbering, max_its)
   ! sets up the petsc monitors "exact" or "iteration_vtus"

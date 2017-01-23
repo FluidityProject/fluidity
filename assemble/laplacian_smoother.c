@@ -3,8 +3,9 @@ static char help[] = "Solves 1D, 2D and 3D Laplace's equation in serial and para
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include "solver_options.h"
 
-void lap_smoother(int dimension, int num_nodes, int num_elements, int num_surf_elements, int num_owned_nodes, int* mapping, int * connectivity, double * phys_mesh, double* smooth_mesh, double * comp_mesh, int * surf_connectivity, Mat* K) {
+void lap_smoother(int dimension, int num_nodes, int num_elements, int num_surf_elements, int num_owned_nodes, int* mapping, int * connectivity, double * phys_mesh, double* smooth_mesh, double * comp_mesh, int * surf_connectivity, Mat* K, struct solver_options* options, int debug_level) {
   
   Vec            F,Fx,Fy,Fz,U_hx,U_hy,U_hz;           
   KSP            ksp_x;
@@ -116,14 +117,14 @@ void lap_smoother(int dimension, int num_nodes, int num_elements, int num_surf_e
 
   KSPSetOperators(ksp_x,*K,*K);
 
-  KSPSetType(ksp_x,KSPGMRES);
+  KSPSetType(ksp_x,options->ksptype);
 
   KSPGetPC(ksp_x,&pc);
-  PCSetType(pc,PCSOR);
+  PCSetType(pc,options->pctype);
 
-  KSPSetInitialGuessNonzero(ksp_x,PETSC_TRUE);
+  KSPSetInitialGuessNonzero(ksp_x,~options->start_from_zero);
   
-  KSPSetTolerances(ksp_x,1e-7,1e-7,PETSC_DEFAULT,PETSC_DEFAULT);
+  KSPSetTolerances(ksp_x,options->rtol,options->atol,PETSC_DEFAULT,options->max_its);
   
   KSPSetFromOptions(ksp_x);
 
@@ -141,10 +142,10 @@ void lap_smoother(int dimension, int num_nodes, int num_elements, int num_surf_e
 
   KSPSolve(ksp_x,Fx,U_hx);
   KSPGetIterationNumber(ksp_x,&its);
-  PetscPrintf(PETSC_COMM_WORLD,"ksp_x iter: %D\n", its);
+  if (debug_level>1) PetscPrintf(PETSC_COMM_WORLD,"ksp_x iter: %D\n", its);
   KSPConvergedReason reason;
   KSPGetConvergedReason(ksp_x,&reason);
-  PetscPrintf(PETSC_COMM_WORLD,"KSPConvergedReasonX: %D\n", reason);
+  if (debug_level>1) PetscPrintf(PETSC_COMM_WORLD,"KSPConvergedReasonX: %D\n", reason);
 
   for(n=0;n<num_owned_nodes;n++){
      num_nodes_col[n]=mapping[n];
@@ -278,14 +279,14 @@ void lap_smoother(int dimension, int num_nodes, int num_elements, int num_surf_e
 
   KSPSetOperators(ksp_x,*K,*K);
 
-  KSPSetType(ksp_x,KSPGMRES);
+  KSPSetType(ksp_x,options->ksptype);
 
   KSPGetPC(ksp_x,&pc);
-  PCSetType(pc,PCSOR);
+  KSPSetType(ksp_x,options->ksptype);
 
-  KSPSetInitialGuessNonzero(ksp_x,PETSC_TRUE);
+  KSPSetInitialGuessNonzero(ksp_x,~options->start_from_zero);
   
-  KSPSetTolerances(ksp_x,1e-7,1e-7,PETSC_DEFAULT,PETSC_DEFAULT);
+  KSPSetTolerances(ksp_x,options->rtol,options->atol,PETSC_DEFAULT,options->max_its);
   
   KSPSetFromOptions(ksp_x);
 
@@ -311,16 +312,16 @@ void lap_smoother(int dimension, int num_nodes, int num_elements, int num_surf_e
 
   KSPSolve(ksp_x,Fx,U_hx);
   KSPGetIterationNumber(ksp_x,&its);
-  PetscPrintf(PETSC_COMM_WORLD,"ksp_x iter: %D\n", its);
+  if (debug_level>1) PetscPrintf(PETSC_COMM_WORLD,"ksp_x iter: %D\n", its);
   KSPConvergedReason reason;
   KSPGetConvergedReason(ksp_x,&reason);
-  PetscPrintf(PETSC_COMM_WORLD,"KSPConvergedReasonX: %D\n", reason);
+  if (debug_level>1) PetscPrintf(PETSC_COMM_WORLD,"KSPConvergedReasonX: %D\n", reason);
 
   KSPSolve(ksp_x,Fy,U_hy);
   KSPGetIterationNumber(ksp_x,&its);
-  PetscPrintf(PETSC_COMM_WORLD,"ksp_y iter: %D\n", its);
+  if (debug_level>1) PetscPrintf(PETSC_COMM_WORLD,"ksp_y iter: %D\n", its);
   KSPGetConvergedReason(ksp_x,&reason);
-  PetscPrintf(PETSC_COMM_WORLD,"KSPConvergedReasonY: %D\n", reason);
+  if (debug_level>1) PetscPrintf(PETSC_COMM_WORLD,"KSPConvergedReasonY: %D\n", reason);
  
   for(n=0;n<num_owned_nodes;n++){
      num_nodes_col[n]=mapping[n];
@@ -528,14 +529,14 @@ void lap_smoother(int dimension, int num_nodes, int num_elements, int num_surf_e
 
   KSPSetOperators(ksp_x,*K,*K);
 
-  KSPSetType(ksp_x,KSPGMRES);
+  KSPSetType(ksp_x,options->ksptype);
 
   KSPGetPC(ksp_x,&pc);
-  PCSetType(pc,PCSOR);
+  PCSetType(pc,options->pctype);
 
-  KSPSetInitialGuessNonzero(ksp_x,PETSC_TRUE);
+  KSPSetInitialGuessNonzero(ksp_x,~options->start_from_zero);
   
-  KSPSetTolerances(ksp_x,1e-7,1e-7,PETSC_DEFAULT,PETSC_DEFAULT);
+  KSPSetTolerances(ksp_x,options->rtol,options->atol,PETSC_DEFAULT,options->max_its);
   
   KSPSetFromOptions(ksp_x);
 
@@ -569,22 +570,22 @@ void lap_smoother(int dimension, int num_nodes, int num_elements, int num_surf_e
 
   KSPSolve(ksp_x,Fx,U_hx);
   KSPGetIterationNumber(ksp_x,&its);
-  PetscPrintf(PETSC_COMM_WORLD,"ksp_x iter: %D\n", its);
+  if (debug_level>1) PetscPrintf(PETSC_COMM_WORLD,"ksp_x iter: %D\n", its);
   KSPConvergedReason reason;
   KSPGetConvergedReason(ksp_x,&reason);
-  PetscPrintf(PETSC_COMM_WORLD,"KSPConvergedReasonX: %D\n", reason);
+  if (debug_level>1) PetscPrintf(PETSC_COMM_WORLD,"KSPConvergedReasonX: %D\n", reason);
 
   KSPSolve(ksp_x,Fy,U_hy);
   KSPGetIterationNumber(ksp_x,&its);
-  PetscPrintf(PETSC_COMM_WORLD,"ksp_y iter: %D\n", its);
+  if (debug_level>1) PetscPrintf(PETSC_COMM_WORLD,"ksp_y iter: %D\n", its);
   KSPGetConvergedReason(ksp_x,&reason);
-  PetscPrintf(PETSC_COMM_WORLD,"KSPConvergedReasonY: %D\n", reason);
+  if (debug_level>1) PetscPrintf(PETSC_COMM_WORLD,"KSPConvergedReasonY: %D\n", reason);
 
   KSPSolve(ksp_x,Fz,U_hz);
   KSPGetIterationNumber(ksp_x,&its);
-  PetscPrintf(PETSC_COMM_WORLD,"ksp_z iter: %D\n", its);
+  if (debug_level>1) PetscPrintf(PETSC_COMM_WORLD,"ksp_z iter: %D\n", its);
   KSPGetConvergedReason(ksp_x,&reason);
-  PetscPrintf(PETSC_COMM_WORLD,"KSPConvergedReasonZ: %D\n", reason); 
+  if (debug_level>1) PetscPrintf(PETSC_COMM_WORLD,"KSPConvergedReasonZ: %D\n", reason); 
   
   for(n=0;n<num_owned_nodes;n++){
      num_nodes_col[n]=mapping[n];

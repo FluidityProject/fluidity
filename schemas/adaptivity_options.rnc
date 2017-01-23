@@ -1959,6 +1959,10 @@ mesh_adaptivity_options =
                )
             }                  
          ),
+	 ## Specify the solver options for methods which solve a linear equation using an internal algorithm. Default optionds are used otherwise.
+	 element solver {
+	    pc_ksp_solver_options
+         }?,
          ## The velocity of the mesh.
          element vector_field {
             attribute name { "GridVelocity" },
