@@ -121,7 +121,12 @@ turbine_models=(
              }
              }|
              element Vertical_Axis{
-             empty
+                element axis_of_rotation{
+                    real_dim_vector
+                },
+                element distance_from_axis{
+                    real
+                }
              }
             )
         },

@@ -44,7 +44,6 @@ contains
         endif
 
         !### Speficy Actuator Lines
-
         call get_actuatorline_options 
         if(Nal>0) then
             do ial=1,Nal
@@ -90,11 +89,9 @@ contains
         if (Nal>0) then
             do ial=1,Nal
             call actuator_line_element_write_output(actuatorline(ial),dir)
-
             if (actuatorline(ial)%do_dynamic_stall) then
                call dynamic_stall_write_output(actuatorline(ial),dir) 
             end if
-       
             end do
         endif
     
@@ -122,11 +119,10 @@ contains
         ! Get Turbines' options and INITIALIZE THEM
         ! ==========================================
         do i=1, Ntur 
-
         turbine_path(i)="/turbine_models/actuator_line_model/turbine["//int2str(i-1)//"]"
         call get_option("/turbine_models/actuator_line_model/turbine["//int2str(i-1)//"]/name",Turbine(i)%name)
         Turbine(i)%ID=i    
-        !###########1 Blade Specs #############################################   
+        !##################################### Blade Specs #############################################   
         call get_option("/turbine_models/actuator_line_model/turbine["//int2str(i-1)//"]/location/",Turbine(i)%origin) 
         call get_option("/turbine_models/actuator_line_model/turbine["//int2str(i-1)//"]/Blades/number_of_blades/",Turbine(i)%NBlades)
         call get_option("/turbine_models/actuator_line_model/turbine["//int2str(i-1)//"]/Blades/blade_geometry/file_name",Turbine(i)%blade_geom_file)
@@ -136,7 +132,7 @@ contains
         ! Count how many Airfoil Sections are available
         nfoils = option_count("/turbine_models/actuator_line_model/turbine["//int2str(i-1)//"]/Blades/static_foil_data/foil")
         if(nfoils==0) then
-            FLExit("You need to provide at least on static_foils_data entry for the computation of the blade forces")
+            FLExit("You need to provide at least one static_foils_data entry for the computation of the blade forces")
         end if
         ewrite(2,*) 'Number of Static Foil Data available  for the analysis of the blades: ', nfoils
         ! Allocate the memory of the Airfoils
@@ -165,11 +161,13 @@ contains
         ! Check the typ of Turbine (choose between Horizontal and Vertical Axis turbines) 
         if(have_option(trim(turbine_path(i))//"/type/Horizontal_Axis")) then
             Turbine(i)%Type='Horizontal_Axis'
+            Turbine(i)%RotN=(/1.0,0.0,0.0/)   
             call get_option(trim(turbine_path(i))//"/type/Horizontal_Axis/hub_tilt_angle",Turbine(i)%hub_tilt_angle)
             call get_option(trim(turbine_path(i))//"/type/Horizontal_Axis/blade_cone_angle",Turbine(i)%blade_cone_angle)
             call get_option(trim(turbine_path(i))//"/type/Horizontal_Axis/yaw_angle",Turbine(i)%yaw_angle)
         elseif(have_option(trim(turbine_path(i))//"/type/Vertical_Axis")) then
-            FLExit("At the moment only the Horizontal_Axis Turbine is available")
+            call get_option(trim(turbine_path(i))//"/type/Vertical_Axis/axis_of_rotation",Turbine(i)%RotN) 
+            call get_option(trim(turbine_path(i))//"/type/Vertical_Axis/distance_from_axis",Turbine(i)%dist_from_axis)
         else
             FLExit("You should not be here")
         end if
@@ -216,8 +214,8 @@ contains
                     Turbine(i)%EndEffectModel_is_Glauret=.true.
                 else if(have_option(trim(turbine_path(i))//"/Blades/BladeEndEffects/tip_correction/ShenEtAl2005")) then
                     Turbine(i)%EndEffectModel_is_Shen=.true.
-                    call get_option(trim(turbine_path(i))//"Blades/BladeEndEffects/tip_correction/ShenEtAl2005/c1",Turbine(i)%ShenCoeff_c1)
-                    call get_option(trim(turbine_path(i))//"Blades/BladeEndEffects/tip_correction/ShenEtAl2005/c2",Turbine(i)%ShenCoeff_c2)
+                    call get_option(trim(turbine_path(i))//"/Blades/BladeEndEffects/tip_correction/ShenEtAl2005/c1",Turbine(i)%ShenCoeff_c1)
+                    call get_option(trim(turbine_path(i))//"/Blades/BladeEndEffects/tip_correction/ShenEtAl2005/c2",Turbine(i)%ShenCoeff_c2)
                 endif
             endif
             if(have_option(trim(turbine_path(i))//"/Blades/BladeEndEffects/root_correction")) then

@@ -24,6 +24,7 @@ type TurbineType
     real :: A   ! Rotor area
     real :: angularVel,TSR,Uref
     real :: AzimAngle=0.0
+    real :: dist_from_axis=0.0
     integer :: No_rev=0.0
     logical :: Is_constant_rotation_operated = .false. ! For a constant rotational velocity (in Revolutions Per Minute)
     logical :: Is_force_based_operated = .false. ! For a forced based rotational velocity (Computed during the simulation)
@@ -66,10 +67,8 @@ contains
     ewrite(2,*) '============================='
     ewrite(2,*) 'Number of Blades : ', turbine%Nblades
     ewrite(2,*) 'Origin           : ', turbine%origin
-    ewrite(2,*) 'Hub Tilt Angle   : ', turbine%hub_tilt_angle
-    ewrite(2,*) 'Blade Cone Angle : ', turbine%blade_cone_angle
-    ewrite(2,*) 'Yaw Angle        : ', turbine%yaw_angle
-
+    ewrite(2,*) 'Axis of Rotation : ', turbine%RotN
+ 
     call read_actuatorline_geometry(turbine%blade_geom_file,turbine%Rmax,SVec,rR,ctoR,pitch,thick,Nstations)
     ! Make sure that the spanwise is [0 0 1]
     Svec = (/0.0,0.0,1.0/)
@@ -85,11 +84,11 @@ contains
     turbine%blade(iblade)%NElem=Nstations-1 
     
     do istation=1,Nstations
-    turbine%blade(iblade)%QCx(istation)=rR(istation)*turbine%Rmax*Svec(1)+turbine%blade(iblade)%COR(1)
+    turbine%blade(iblade)%QCx(istation)=rR(istation)*turbine%Rmax*Svec(1)+turbine%blade(iblade)%COR(1)+turbine%dist_from_axis
     turbine%blade(iblade)%QCy(istation)=rR(istation)*turbine%Rmax*Svec(2)+turbine%blade(iblade)%COR(2)
     turbine%blade(iblade)%QCz(istation)=rR(istation)*turbine%Rmax*Svec(3)+turbine%blade(iblade)%COR(3)
     if(turbine%IsCounterClockwise) then
-        turbine%RotN=(/-1.0,0.0,0.0/)
+        turbine%RotN=-turbine%RotN
         turbine%blade(iblade)%tx(istation)=sin(pitch(istation)/180.0*pi)    
         turbine%blade(iblade)%ty(istation)=-cos(pitch(istation)/180.0*pi)    
         turbine%blade(iblade)%tz(istation)= 0.0
@@ -97,7 +96,7 @@ contains
         turbine%blade(iblade)%thick(istation)=thick(istation)
         turbine%blade(iblade)%pitch(istation)=pitch(istation)/180.0*pi
     elseif(turbine%IsClockwise) then
-        turbine%RotN=(/1.0,0.0,0.0/)
+        turbine%RotN=turbine%RotN
         turbine%blade(iblade)%tx(istation)=sin(pitch(istation)/180.0*pi)    
         turbine%blade(iblade)%ty(istation)=cos(pitch(istation)/180.0*pi)    
         turbine%blade(iblade)%tz(istation)= 0.0

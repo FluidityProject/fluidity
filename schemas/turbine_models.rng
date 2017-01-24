@@ -148,7 +148,12 @@
                     </element>
                   </element>
                   <element name="Vertical_Axis">
-                    <empty/>
+                    <element name="axis_of_rotation">
+                      <ref name="real_dim_vector"/>
+                    </element>
+                    <element name="distance_from_axis">
+                      <ref name="real"/>
+                    </element>
                   </element>
                 </choice>
               </element>
