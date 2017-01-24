@@ -18,6 +18,7 @@ module meshmovement
   use unittest_tools
   use parallel_fields
   use fields
+  use profiler
   use state_module
   use boundary_conditions, only : get_boundary_condition, get_boundary_condition_count
   use vtk_interfaces
@@ -85,7 +86,7 @@ module meshmovement
        
        integer (c_int), value :: dim, num_nodes, num_elements, &
             num_surf_elements, num_owned_nodes, debug_level
-       integer (c_int), dimension(num_nodes) :: mapping
+       integer (c_int), dimension(num_nodes,dim) :: mapping
        integer (c_int), dimension((dim+1)*num_elements) :: connectivity
        real (c_double), dimension(num_nodes) :: phys_mesh, smooth_mesh, comp_mesh
        integer (c_int), dimension(dim*num_elements) :: surf_connectivity
@@ -113,7 +114,7 @@ module meshmovement
        
        integer (c_int), value :: dim, num_nodes, num_elements, &
             num_surf_elements, num_owned_nodes, debug_level
-       integer (c_int), dimension(num_nodes) :: mapping
+       integer (c_int), dimension(num_nodes,dim) :: mapping
        integer (c_int), dimension((dim+1)*num_elements) :: connectivity
        real (c_double), dimension(num_nodes) :: phys_mesh, smooth_mesh, comp_mesh
        integer (c_int), dimension(dim*num_elements) :: surf_connectivity
@@ -1440,6 +1441,8 @@ contains
     initial_coordinate => extract_vector_field(states(1), "InitialCoordinate")
     surface_mesh => extract_mesh(states(1),"FullCoordinateSurfaceMesh")
     
+    call profiler_tic(coordinate, "laplacian_smoother")
+
     call get_option("/timestepping/timestep", dt)
 
     
@@ -1458,7 +1461,7 @@ contains
     if(.not.found_velocity) then
        itheta = 0.5
     end if
-       
+
     call set(coordinate, old_coordinate) 
     call addto(coordinate, grid_velocity, scale = dt)
     call allocate(A, &
@@ -1478,6 +1481,8 @@ contains
 
     call deallocate(A)
 
+
+
     call halo_update(new_coordinate)
 
     !!! Convert the new coordinates returned into a grid velocity
@@ -1494,6 +1499,7 @@ contains
        call set(coordinate, new_coordinate, old_coordinate, itheta)
     end if
 
+    call profiler_toc(coordinate, "laplacian_smoother")
 
   end subroutine move_mesh_laplacian_smoothing
 
@@ -1571,6 +1577,8 @@ contains
     initial_coordinate => extract_vector_field(states(1), "InitialCoordinate")
     surface_mesh => extract_mesh(states(1),"FullCoordinateSurfaceMesh")
     
+    call profiler_tic(coordinate, "lineal_smoother")
+
     call get_option("/timestepping/timestep", dt)
 
     
@@ -1593,7 +1601,7 @@ contains
     call set(coordinate, old_coordinate) 
     call addto(coordinate, grid_velocity, scale = dt)
     call allocate(A, &
-         get_csr_sparsity_secondorder(states, coordinate%mesh, coordinate%mesh),&
+         get_csr_sparsity_firstorder(states, coordinate%mesh, coordinate%mesh),&
          [mesh_dim(coordinate),mesh_dim(coordinate)],"StiffnessMatrix")
     call zero(A)
 
@@ -1606,7 +1614,7 @@ contains
 !Figure out indexing between C and Fortran
     call lin_smoother(mesh_dim(coordinate), node_count(coordinate),&
           element_count(coordinate), surface_element_count(coordinate),&
-          nowned_nodes(coordinate), universal_numbering(coordinate)-1,&
+          nowned_nodes(coordinate), A%column_numbering%gnn2unn,&
           coordinate%mesh%ndglno, coordinate%val, new_coordinate%val,&
           initial_coordinate%val, surface_mesh%ndglno,&
           coordinate%mesh%adj_lists%nnlist%findrm,&
@@ -1630,6 +1638,8 @@ contains
        call set(coordinate, new_coordinate, old_coordinate, itheta)
     end if
     call deallocate(A)
+
+    call profiler_toc(coordinate, "lineal_smoother")
 
   end subroutine move_mesh_lineal_smoothing
 
@@ -1707,6 +1717,8 @@ contains
     initial_coordinate => extract_vector_field(states(1), "InitialCoordinate")
     surface_mesh => extract_mesh(states(1),"FullCoordinateSurfaceMesh")
     
+    call profiler_tic(coordinate, "lineal_torsional_smoother")
+
     call get_option("/timestepping/timestep", dt)
 
     
@@ -1740,7 +1752,7 @@ contains
 !Figure out indexing between C and Fortran
     call lin_tor_smoother(mesh_dim(coordinate), node_count(coordinate),&
           element_count(coordinate), surface_element_count(coordinate),&
-          nowned_nodes(coordinate), universal_numbering(coordinate)-1,&
+          nowned_nodes(coordinate), A%column_numbering%gnn2unn,&
           coordinate%mesh%ndglno, coordinate%val, new_coordinate%val,&
           initial_coordinate%val, surface_mesh%ndglno,&
           coordinate%mesh%adj_lists%nnlist%findrm,&
@@ -1763,6 +1775,8 @@ contains
        call set(coordinate, new_coordinate, old_coordinate, itheta)
     end if
     call deallocate(A)
+
+    call profiler_toc(coordinate, "lineal_torsional_smoother")
 
   end subroutine move_mesh_lineal_torsional_smoothing
 

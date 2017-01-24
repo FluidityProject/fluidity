@@ -44,7 +44,6 @@ void lin_smoother(int dimension, int num_nodes, int num_elements, int num_surf_e
   /*Lineal Stiffness*/
   double * K_lin(int nodei, int nodej){
     
-    nodej = nodej-1;
     int n;
     double xi,yi,xj,yj,x_edge,y_edge,alpha,inv_length;
 
@@ -87,47 +86,50 @@ void lin_smoother(int dimension, int num_nodes, int num_elements, int num_surf_e
   
        for(n=findrm[Ii];n<findrm[Ii+1];++n){
 	 
-	 int neb_hold = colm[n-1];
+	 int neb_hold = colm[n-1]-1;
 	 double * tmp = K_lin(Ii,neb_hold);
-	 
-	 MatSetValue(*K,2*mapping[Ii],2*mapping[neb_hold-1],*(tmp+0),ADD_VALUES);
-	 MatSetValue(*K,2*mapping[Ii],2*mapping[neb_hold-1]+1,*(tmp+1),ADD_VALUES);
-	 MatSetValue(*K,2*mapping[Ii]+1,2*mapping[neb_hold-1],*(tmp+1),ADD_VALUES);
-	 MatSetValue(*K,2*mapping[Ii]+1,2*mapping[neb_hold-1]+1,*(tmp+2),ADD_VALUES);
 
-	 MatSetValue(*K,2*mapping[neb_hold-1],2*mapping[neb_hold-1],-1.0*(*(tmp+0)),ADD_VALUES);
-	 MatSetValue(*K,2*mapping[neb_hold-1],2*mapping[neb_hold-1]+1,-1.0*(*(tmp+1)),ADD_VALUES);
-	 MatSetValue(*K,2*mapping[neb_hold-1]+1,2*mapping[neb_hold-1],-1.0*(*(tmp+1)),ADD_VALUES);
-	 MatSetValue(*K,2*mapping[neb_hold-1]+1,2*mapping[neb_hold-1]+1,-1.0*(*(tmp+2)),ADD_VALUES);
-	    
+	 MatSetValue(*K,mapping[Ii],mapping[neb_hold],*(tmp+0),ADD_VALUES);
+	 MatSetValue(*K,mapping[Ii],mapping[num_nodes+neb_hold],*(tmp+1),ADD_VALUES);
+	 MatSetValue(*K,mapping[num_nodes+Ii],mapping[neb_hold],*(tmp+1),ADD_VALUES);
+	 MatSetValue(*K,mapping[num_nodes+Ii],mapping[num_nodes+neb_hold],*(tmp+2),ADD_VALUES);
+	 
+	 tmp = K_lin(neb_hold,Ii);
+
+	 MatSetValue(*K,mapping[Ii],mapping[Ii],-1.0*(*(tmp+0)),ADD_VALUES);
+	 MatSetValue(*K,mapping[Ii],mapping[num_nodes+Ii],-1.0*(*(tmp+1)),ADD_VALUES);
+	 MatSetValue(*K,mapping[num_nodes+Ii],mapping[Ii],-1.0*(*(tmp+1)),ADD_VALUES);
+	 MatSetValue(*K,mapping[num_nodes+Ii],mapping[num_nodes+Ii],-1.0*(*(tmp+2)),ADD_VALUES);
+
        }
     }
     else{
        for(n=findrm[Ii];n<findrm[Ii+1];++n){
 	 
-	 int neb_hold = colm[n-1];
+	 int neb_hold = colm[n-1]-1;
 	 double * tmp = K_lin(Ii,neb_hold);
 	 
-	 MatSetValue(*K,3*mapping[Ii],3*mapping[neb_hold-1],*(tmp+0),ADD_VALUES);
-	 MatSetValue(*K,3*mapping[Ii],3*mapping[neb_hold-1]+1,*(tmp+1),ADD_VALUES);
-	 MatSetValue(*K,3*mapping[Ii],3*mapping[neb_hold-1]+2,*(tmp+2),ADD_VALUES);
-	 MatSetValue(*K,3*mapping[Ii]+1,3*mapping[neb_hold-1],*(tmp+1),ADD_VALUES);
-	 MatSetValue(*K,3*mapping[Ii]+1,3*mapping[neb_hold-1]+1,*(tmp+3),ADD_VALUES);
-	 MatSetValue(*K,3*mapping[Ii]+1,3*mapping[neb_hold-1]+2,*(tmp+4),ADD_VALUES);
+	 MatSetValue(*K,mapping[Ii],mapping[neb_hold],*(tmp+0),ADD_VALUES);
+	 MatSetValue(*K,mapping[Ii],mapping[num_nodes+neb_hold],*(tmp+1),ADD_VALUES);
+	 MatSetValue(*K,mapping[Ii],mapping[2*num_nodes+neb_hold],*(tmp+2),ADD_VALUES);
+	 MatSetValue(*K,mapping[num_nodes+Ii],mapping[neb_hold],*(tmp+1),ADD_VALUES);
+	 MatSetValue(*K,mapping[num_nodes+Ii],mapping[num_nodes+neb_hold],*(tmp+3),ADD_VALUES);
+	 MatSetValue(*K,mapping[num_nodes+Ii],mapping[2*num_nodes+neb_hold],*(tmp+4),ADD_VALUES);
+	 MatSetValue(*K,mapping[2*num_nodes+Ii],mapping[neb_hold-1],*(tmp+5),ADD_VALUES);
+	 MatSetValue(*K,mapping[2*num_nodes+Ii],mapping[num_nodes+neb_hold-1],*(tmp+6),ADD_VALUES);
+	 MatSetValue(*K,mapping[2*num_nodes+Ii],mapping[2*num_nodes+neb_hold-1],*(tmp+7),ADD_VALUES);
 
-	 MatSetValue(*K,3*mapping[Ii]+2,3*mapping[neb_hold-1],*(tmp+5),ADD_VALUES);
-	 MatSetValue(*K,3*mapping[Ii]+2,3*mapping[neb_hold-1]+1,*(tmp+6),ADD_VALUES);
-	 MatSetValue(*K,3*mapping[Ii]+2,3*mapping[neb_hold-1]+2,*(tmp+7),ADD_VALUES);
-	 MatSetValue(*K,3*mapping[neb_hold-1],3*mapping[neb_hold-1],-1.0*(*(tmp+0)),ADD_VALUES);
-	 MatSetValue(*K,3*mapping[neb_hold-1],3*mapping[neb_hold-1]+1,-1.0*(*(tmp+1)),ADD_VALUES);
-	 MatSetValue(*K,3*mapping[neb_hold-1],3*mapping[neb_hold-1]+2,-1.0*(*(tmp+2)),ADD_VALUES);
+	 tmp = K_lin(neb_hold,Ii);
 
-	 MatSetValue(*K,3*mapping[neb_hold-1]+1,3*mapping[neb_hold-1],-1.0*(*(tmp+1)),ADD_VALUES);
-	 MatSetValue(*K,3*mapping[neb_hold-1]+1,3*mapping[neb_hold-1]+1,-1.0*(*(tmp+3)),ADD_VALUES);
-	 MatSetValue(*K,3*mapping[neb_hold-1]+1,3*mapping[neb_hold-1]+2,-1.0*(*(tmp+4)),ADD_VALUES);
-	 MatSetValue(*K,3*mapping[neb_hold-1]+2,3*mapping[neb_hold-1],-1.0*(*(tmp+5)),ADD_VALUES);
-	 MatSetValue(*K,3*mapping[neb_hold-1]+2,3*mapping[neb_hold-1]+1,-1.0*(*(tmp+6)),ADD_VALUES);
-	 MatSetValue(*K,3*mapping[neb_hold-1]+2,3*mapping[neb_hold-1]+2,-1.0*(*(tmp+7)),ADD_VALUES);
+	 MatSetValue(*K,mapping[Ii],mapping[Ii],-1.0*(*(tmp+0)),ADD_VALUES);
+	 MatSetValue(*K,mapping[Ii],mapping[num_nodes+Ii],-1.0*(*(tmp+1)),ADD_VALUES);
+	 MatSetValue(*K,mapping[Ii],mapping[2*num_nodes+Ii],-1.0*(*(tmp+2)),ADD_VALUES);
+	 MatSetValue(*K,mapping[num_nodes+Ii],mapping[Ii],-1.0*(*(tmp+1)),ADD_VALUES);
+	 MatSetValue(*K,mapping[num_nodes+Ii],mapping[num_nodes+Ii],-1.0*(*(tmp+3)),ADD_VALUES);
+	 MatSetValue(*K,mapping[num_nodes+Ii],mapping[2*num_nodes+Ii],-1.0*(*(tmp+4)),ADD_VALUES);
+	 MatSetValue(*K,mapping[2*num_nodes+Ii],mapping[Ii],-1.0*(*(tmp+5)),ADD_VALUES);
+	 MatSetValue(*K,mapping[2*num_nodes+Ii],mapping[num_nodes+Ii],-1.0*(*(tmp+6)),ADD_VALUES);
+	 MatSetValue(*K,mapping[2*num_nodes+Ii],mapping[2*num_nodes+Ii],-1.0*(*(tmp+7)),ADD_VALUES);
 
        }
     }
@@ -158,15 +160,15 @@ void lin_smoother(int dimension, int num_nodes, int num_elements, int num_surf_e
 
   if(dimension==2){
     for(i=0;i<len_new;i++){
-      global_surf_connectivity[dimension*i]=dimension*mapping[local_surf_connectivity[i]];
-      global_surf_connectivity[dimension*i+1]=dimension*mapping[local_surf_connectivity[i]]+1;
+      global_surf_connectivity[dimension*i]=mapping[local_surf_connectivity[i]];
+      global_surf_connectivity[dimension*i+1]=mapping[num_nodes+local_surf_connectivity[i]];
     }
   }
   else{
     for(i=0;i<len_new;i++){
-      global_surf_connectivity[dimension*i]=dimension*mapping[local_surf_connectivity[i]];
-      global_surf_connectivity[dimension*i+1]=dimension*mapping[local_surf_connectivity[i]]+1;
-      global_surf_connectivity[dimension*i+2]=dimension*mapping[local_surf_connectivity[i]]+2;
+      global_surf_connectivity[dimension*i]=mapping[local_surf_connectivity[i]];
+      global_surf_connectivity[dimension*i+1]=mapping[num_nodes+local_surf_connectivity[i]];
+      global_surf_connectivity[dimension*i+2]=mapping[2*num_nodes+local_surf_connectivity[i]];
     }
   }
 
@@ -213,7 +215,7 @@ void lin_smoother(int dimension, int num_nodes, int num_elements, int num_surf_e
 
   KSPGetPC(ksp,&pc);
   PCSetType(pc,options->pctype);
-  KSPSetInitialGuessNonzero(ksp,~options->start_from_zero);
+  KSPSetInitialGuessNonzero(ksp,PETSC_FALSE);
   KSPSetTolerances(ksp,options->rtol,options->atol,PETSC_DEFAULT,options->max_its);
   KSPSetFromOptions(ksp);
 
@@ -234,8 +236,8 @@ void lin_smoother(int dimension, int num_nodes, int num_elements, int num_surf_e
 
   if(dimension==2){
     for(n=0;n<num_owned_nodes;n++){
-      num_nodes_col_x[n]=dimension*mapping[n];
-      num_nodes_col_y[n]=dimension*mapping[n]+1;
+      num_nodes_col_x[n]=mapping[n];
+      num_nodes_col_y[n]=mapping[num_nodes+n];
     }
     VecGetValues(U_h,num_owned_nodes,num_nodes_col_x,smoothed_x);
     VecGetValues(U_h,num_owned_nodes,num_nodes_col_y,smoothed_y);
@@ -247,9 +249,9 @@ void lin_smoother(int dimension, int num_nodes, int num_elements, int num_surf_e
   }
   else{
     for(n=0;n<num_owned_nodes;n++){
-      num_nodes_col_x[n]=dimension*mapping[n];
-      num_nodes_col_y[n]=dimension*mapping[n]+1;
-      num_nodes_col_z[n]=dimension*mapping[n]+2;
+      num_nodes_col_x[n]=mapping[n];
+      num_nodes_col_y[n]=mapping[num_nodes+n];
+      num_nodes_col_z[n]=mapping[2*num_nodes+n];
     }
     VecGetValues(U_h,num_owned_nodes,num_nodes_col_x,smoothed_x);
     VecGetValues(U_h,num_owned_nodes,num_nodes_col_y,smoothed_y);
