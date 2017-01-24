@@ -443,7 +443,7 @@ contains
         
       call cpu_time(toc)
       mpi_time=toc-tic
-      ewrite(2,*) 'MPI_Communication Time', mpi_time
+      ewrite(2,*) 'MPI_Communication time for ALM', mpi_time
 
       !################## END OF MPI INTERFACE ############################
       call set_vel
@@ -459,37 +459,33 @@ contains
       ! by solving a system of equations before the
       ! interpolation step.
       if(rbf_interpolation) then
-              do isource=1,NSource
-                do jsource=1,NSource
-                    d=sqrt((Sx(isource)-Sx(jsource))**2+(Sy(isource)-Sy(jsource))**2+(Sz(isource)-Sz(jsource))**2)
-                    A(isource,jsource)=exp(-d**2/Se(isource)**2)
-                enddo
-                    ! Set lamda_x,y,z to be the rhs to work with solve_single
-                    lamdax(isource)=SFx(isource)
-                    lamday(isource)=SFy(isource)
-                    lamdaz(isource)=SFz(isource)
-              enddo
-                call solve(A,lamdax)               
-                call solve(A,lamday)               
-                call solve(A,lamdaz)               
-                
+          !> Form matrix for RBF     
+          do isource=1,NSource
+            do jsource=1,NSource
+                d=sqrt((Sx(isource)-Sx(jsource))**2+(Sy(isource)-Sy(jsource))**2+(Sz(isource)-Sz(jsource))**2)
+                A(isource,jsource)=IsoKernel(d,Se(isource),3)
+            enddo
+          enddo
+                call solve(A,SFx)               
+                call solve(A,SFy)               
+                call solve(A,SFz)                         
         endif
       !!ggggggggggggggggggggggggggggggggggggggggggggggg
 
       ! Set the elements
       do i = 1, node_count(v_field)
-      ! Do RBF interpolation with gaussian function
       if (rbf_interpolation) then 
-      DSource(:)=0.0
-      ! Compute a molification function in 3D 
+      ! Do RBF interpolation with gaussian function
       Rcoords=node_val(remapped_pos,i)
+
         do isource=1,NSource
-            d=sqrt((Sx(isource)-Rcoords(1))**2+(Sy(isource)-Rcoords(2))**2+(Sz(isource)-Rcoords(3))**2)
-            Dsource(1)=Dsource(1)+lamdax(isource)*exp(-d**2/Se(isource)**2)
-            Dsource(2)=Dsource(2)+lamday(isource)*exp(-d**2/Se(isource)**2)
-            Dsource(3)=Dsource(3)+lamdaz(isource)*exp(-d**2/Se(isource)**2)
+        d=sqrt((Sx(isource)-Rcoords(1))**2+(Sy(isource)-Rcoords(2))**2+(Sz(isource)-Rcoords(3))**2)
+        Dsource(1)=-SFx(isource)*IsoKernel(d,Se(isource),3)
+        Dsource(2)=-SFy(isource)*IsoKernel(d,Se(isource),3)
+        Dsource(3)=-SFz(isource)*IsoKernel(d,Se(isource),3) 
+        call addto(v_field,i,DSource) 
         enddo
-      call addto(v_field,i,DSource) 
+
       else if (pointwise_interpolation) then 
       ! Pointwise interpolation
       do isource=1,NSource

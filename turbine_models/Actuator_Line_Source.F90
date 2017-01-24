@@ -11,7 +11,7 @@ module actuator_line_source
     real,save :: constant_epsilon, meshFactor, thicknessFactor,chordFactor
     real, allocatable :: Sx(:),Sy(:),Sz(:),Sc(:),Se(:),Su(:),Sv(:),Sw(:),SFX(:),SFY(:),SFZ(:)
     real, allocatable :: Snx(:),Sny(:),Snz(:),Stx(:),Sty(:),Stz(:),Ssx(:),Ssy(:),Ssz(:),Ssegm(:) 
-    real, allocatable :: lamdax(:),lamday(:),lamdaz(:),A(:,:)
+    real, allocatable :: A(:,:)
     logical, allocatable :: inside_the_domain(:)
     integer :: NSource
     logical, save :: rbf_interpolation=.false.
@@ -84,7 +84,7 @@ contains
     NSource=counter
     allocate(Sx(NSource),Sy(NSource),Sz(NSource),Sc(Nsource),Su(NSource),Sv(NSource),Sw(NSource),Se(NSource),Sfx(NSource),Sfy(NSource),Sfz(NSource))
     allocate(Snx(NSource),Sny(NSource),Snz(NSource),Stx(Nsource),Sty(NSource),Stz(NSource),Ssx(NSource),Ssy(NSource),Ssz(NSource),Ssegm(NSource))
-    allocate(A(NSource,NSource),lamdax(NSource),lamday(NSource),lamdaz(NSource))
+    allocate(A(NSource,NSource))
     allocate(inside_the_domain(NSource))
     ewrite(1,*) 'exiting initialize_source_terms'
 
