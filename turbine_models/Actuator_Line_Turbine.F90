@@ -251,7 +251,7 @@ contains
     implicit none
     type(TurbineType),intent(inout) :: turbine
     integer :: iblade,ielem
-    real ::g1,alpha,pitch,F,Froot,Ftip,rtip, rroot, phi
+    real ::g1,alpha,pitch,F,Froot,Ftip,rtip, rroot, phi, axis_mag
     real :: nxe,nye,nze,txe,tye,tze,sxe,sye,sze,u,v,w,ub,vb,wb,urdc,urdn,ur
     
     
@@ -281,12 +281,11 @@ contains
         urdc=txe*(u-ub)+tye*(v-vb)+tze*(w-wb)! Tangential
         ur=sqrt(urdn**2.0+urdc**2.0) 
         ! This is the dynamic angle of attack 
-        alpha=atan2(urdn,urdc)
-        
+        axis_mag=sqrt(turbine%RotN(1)**2+turbine%RotN(2)**2+turbine%RotN(3)**2)
+        phi=asin(-(turbine%RotN(1)*(u-ub)+turbine%RotN(2)*(v-vb)+turbine%RotN(3)*(w-wb))/(axis_mag*ur))
+     
         rroot=turbine%blade(iblade)%ERdist(ielem)/turbine%Rmax
         rtip=(turbine%Rmax-turbine%blade(iblade)%ERdist(ielem))/turbine%Rmax
-        pitch=turbine%blade(iblade)%Epitch(ielem) 
-        phi=alpha+pitch
         
         ! Set them into 1.0 before the calculation
         Ftip=1.0
