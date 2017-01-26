@@ -172,8 +172,6 @@ void lin_smoother(int dimension, int num_nodes, int num_elements, int num_surf_e
     }
   }
 
-  MatZeroRows(*K,dimension*len_new,global_surf_connectivity,1.0,NULL,NULL);
-
  if(dimension==2){
  for(n=0;n<len_new;n++){
    x_disp[n]=phys_mesh[dimension*(local_surf_connectivity[n])] - comp_mesh[dimension*(local_surf_connectivity[n])];
@@ -201,6 +199,9 @@ void lin_smoother(int dimension, int num_nodes, int num_elements, int num_surf_e
       }
     }
   }
+
+  MatZeroRowsColumns(*K,dimension*len_new,global_surf_connectivity,1.0,F,F);
+
   VecAssemblyBegin(F);
   VecAssemblyEnd(F);
 
