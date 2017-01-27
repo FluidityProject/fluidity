@@ -242,7 +242,7 @@ subroutine keps_calculate_rhs(state)
   integer, dimension(:,:), allocatable :: bc_type    
   logical :: dg_velocity, dg_keps
 
-  integer                        :: wnode, nbcs, ii, j
+  integer                        :: wnode, nbcs, ii, j, jj
   real                           :: Pk_val, u_tau_val, mag_u_val, yPlus, nut_val, kappa, Abs_val
   character(len=FIELD_NAME_LEN)  :: bctype, bc_name, wall_fns
   character(len=OPTION_PATH_LEN) :: bc_path, bc_path_i
@@ -381,7 +381,7 @@ subroutine keps_calculate_rhs(state)
      !-----------------------------------------------------------------------------------
      ! high Re wall functions: modify production term P_k on the boundary!
 
-     yPlus = 11.06 !using fixed yPlus value atm
+     yPlus = 300.0 !!! 11.06 !using fixed yPlus value atm
      kappa = 0.41
 
      if(i==1) then
@@ -421,22 +421,28 @@ subroutine keps_calculate_rhs(state)
               if (i==1) then
 !                 u_tau_val = max( sqrt(node_val(field1,wnode))*0.09**0.25, mag_u_val/yPlus )
 !                 Pk_val    = ((u_tau_val**3)*mag_u_val)/(nut_val*yPlus)
-                 PK_val    = 0.0
+                 Pk_val    = 0.0
                  Abs_val   = 0.0
               elseif (i==2) then
 !                 u_tau_val = max( sqrt(node_val(field2,wnode))*0.09**0.25, mag_u_val/yPlus )
 !                 Pk_val    = ((u_tau_val**3)*mag_u_val)/(nut_val*yPlus) &
 !                           * (node_val(field1,wnode)/node_val(field2,wnode))
                  Pk_val    = 0.0
-                 Abs_val   = (node_val(field1,wnode))/(node_val(field2,wnode))*(c_eps_2-c_eps_1) !A! (eps**2/k)*(C1-C2)
+                 Abs_val   = -(node_val(field1,wnode)**2.0)/(node_val(field2,wnode))*(c_eps_2-c_eps_1) !A! (eps**2/k)*(C1-C2)
               end if 
 
               call set(src_abs_terms(1), wnode, Pk_val)
               call set(src_abs_terms(2), wnode, Abs_val)
-!  ewrite(1,*) 'AMIN: Are we here yet?', node_val(src_abs_terms(1),wnode), Pk_val, node_val(src_abs_terms(2),wnode), Abs_val
+!if (i==2) then
+!ewrite(1,*) 'AMIN: Are we here yet?', Abs_val, node_val(field1,wnode), node_val(field2,wnode), c_eps_2, c_eps_1
+!end if
            end do
         end if
      end do boundary_conditions
+
+!     do jj = 1, node_count(src_abs_terms(1))
+!           ewrite(1,*) 'AMIN: Are we here yet?', node_val(src_abs_terms(1),jj), node_val(src_abs_terms(2),jj), node_val(x,1,jj), node_val(x,2,jj)
+!     end do
      !-----------------------------------------------------------------------------------
 
      ! Source disabling for debugging purposes
@@ -828,7 +834,7 @@ subroutine keps_eddyvisc(state, advdif)
   !-----------------------------------------------------------------------------------
   ! Update eddy viscosity at the wall if wall function is selected:
 
-     yPlus = 11.06 !using fixed yPlus value atm
+     yPlus = 300.0 !!! 11.06 !using fixed yPlus value atm
      kappa = 0.41
      fieldk => extract_scalar_field(state, "TurbulentKineticEnergy")
 
@@ -1239,7 +1245,7 @@ subroutine keps_bcs(state)
   sngi=face_ngi(u, 1)
   allocate(friction_velocity(1:sngi))
 
-  yPlus = 11.06 !using fixed yPlus value atm
+  yPlus = 300.0 !!! 11.06 !using fixed yPlus value atm
   kappa = 0.41
 
   field_loop: do index=1,2
@@ -1299,6 +1305,7 @@ subroutine keps_bcs(state)
                   ! Establish local node lists for surface_field
                   surface_elements => ele_nodes(surface_field,ele)
                   vol_nodes = face_global_nodes(field2,surface_element_list(ele))
+                  !vol_nodes = face_global_nodes(field2,ele)
                   ! Loop the nodes
                   do iloc=1, size(surface_elements)
                      inode = surface_elements(iloc) !get the surface node number
@@ -1313,7 +1320,8 @@ subroutine keps_bcs(state)
                         !eps_bc_val = ((kappa*u_tau_val)/node_val(scalar_eddy_visc,vnode)) * node_val(field1,vnode) ! Neumann
                         !eps_bc_val = (u_tau_val**5.0)/( node_val(scalar_eddy_visc,vnode)*yPlus*node_val(bg_visc,1,1,1) ) ! Neumann II
                         !eps_bc_val = ( c_mu*node_val(field2,vnode)**2 )/( kappa*yPlus*node_val(bg_visc,1,1,1) ) ! Dirichlet
-                        eps_bc_val = ((kappa*u_tau_val)/1.3) * node_val(field1,vnode) ! Flux
+                        !eps_bc_val = ((kappa*u_tau_val)/1.3) * node_val(field1,vnode) ! Flux
+                        eps_bc_val = (u_tau_val**5.0)/( 1.3*yPlus*node_val(bg_visc,1,1,1) ) ! Neumann III
                         !eps_bc_val = 0.0
                      endif
 

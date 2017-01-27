@@ -137,7 +137,7 @@ subroutine drag_surface(bigm, rhs, state, density)
             elseif(have_option(trim(velocity%option_path)//&
                '/prognostic/boundary_conditions['//int2str(i-1)//']/type[0]/log_law_friction_velocity')) then
 
-              yPlus = 11.06 !using fixed yPlus value atm
+              yPlus = 300.0 !!! 11.06 !using fixed yPlus value atm
 
               if(have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon")) then
                 TKE => extract_scalar_field(state, "TurbulentKineticEnergy")
