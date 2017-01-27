@@ -282,8 +282,7 @@ contains
         ur=sqrt(urdn**2.0+urdc**2.0) 
         ! This is the dynamic angle of attack 
         axis_mag=sqrt(turbine%RotN(1)**2+turbine%RotN(2)**2+turbine%RotN(3)**2)
-        phi=asin(-(turbine%RotN(1)*(u-ub)+turbine%RotN(2)*(v-vb)+turbine%RotN(3)*(w-wb))/(axis_mag*ur))
-     
+        phi=asin((turbine%RotN(1)*(u-ub)+turbine%RotN(2)*(v-vb)+turbine%RotN(3)*(w-wb))/(axis_mag*ur))
         rroot=turbine%blade(iblade)%ERdist(ielem)/turbine%Rmax
         rtip=(turbine%Rmax-turbine%blade(iblade)%ERdist(ielem))/turbine%Rmax
         
@@ -298,7 +297,11 @@ contains
             else
                 FLAbort("Only Glauret and ShenEtAl2005 are available at the moment")
             endif
+            if (abs(exp(-g1*turbine%Nblades/2.0*(1.0/rroot-1.0)/sin(phi)))>1) then
+                FLAbort("Something is wrong with the tip correction model")
+            endif
             Ftip=2.0/pi*acos(exp(-g1*turbine%Nblades/2.0*(1.0/rroot-1.0)/sin(phi)))
+            ewrite(2,*) "Ftip ", g1, pi, rroot, Ftip, sin(phi), turbine%Nblades
         endif
         if (turbine%do_root_correction) then
             if (turbine%EndEffectModel_is_Glauret) then
