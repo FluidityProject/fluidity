@@ -2200,7 +2200,7 @@ probably equal to the location of the borehole</a:documentation>
                   <element name="particle_diameter">
                     <ref name="real"/>
                   </element>
-                  <element name="particle_dia_use_scalar_field">
+                  <element name="particle_diameter_use_scalar_field">
                     <ref name="anystring"/>
                   </element>
                 </choice>

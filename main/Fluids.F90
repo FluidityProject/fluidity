@@ -307,7 +307,7 @@ contains
     end if
 
     ! set population balance initial conditions
-       call dqmom_init(state)
+    call dqmom_init(state)
 
     ! Calculate the number of scalar fields to solve for and their correct
     ! solve order taking into account dependencies.
@@ -584,7 +584,7 @@ contains
           call compute_goals(state)
 
           ! Calculate source terms for population balance scalars
-             call dqmom_calculate_source_terms(state, ITS)
+          call dqmom_calculate_source_terms(state, ITS)
 
           !------------------------------------------------
           ! Addition for calculating drag force ------ jem 05-06-2008

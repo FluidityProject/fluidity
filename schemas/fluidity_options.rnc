@@ -1616,7 +1616,7 @@ start =
             element multiphase_properties {
                comment,
                (element particle_diameter { real }|
-       	       element particle_dia_use_scalar_field { anystring })?,
+       	       element particle_diameter_use_scalar_field { anystring })?,
                element apply_diameter_cap {
                   # default value 1.0E-12
                   element lower_cap { real }

@@ -397,8 +397,8 @@
                   if(have_option(trim(state(istate_particle)%option_path)//"/multiphase_properties/particle_diameter")) then
                      call get_option(trim(state(istate_particle)%option_path)//"/multiphase_properties/particle_diameter", d)
                      have_constant_d = .true.
-                  else if(have_option(trim(state(istate_particle)%option_path)//"/multiphase_properties/particle_dia_use_scalar_field")) then
-                     call get_option(trim(state(istate_particle)%option_path)//"/multiphase_properties/particle_dia_use_scalar_field", d_field_name)
+                  else if(have_option(trim(state(istate_particle)%option_path)//"/multiphase_properties/particle_diameter_use_scalar_field")) then
+                     call get_option(trim(state(istate_particle)%option_path)//"/multiphase_properties/particle_diameter_use_scalar_field", d_field_name)
                      d_field => extract_scalar_field(state(istate_particle), d_field_name)
                      have_constant_d = .false.
                   end if
