@@ -29,18 +29,18 @@
 
 module dqmom
 
+  use fldebug
   use vector_tools
   use spud
-  use fields
+  use global_parameters, only: OPTION_PATH_LEN, FIELD_NAME_LEN
+  use futils, only: int2str
   use elements
+  use sparse_tools
   use fetools
+  use fields
   use state_module
   use state_fields_module
   use initialise_fields_module
-  use global_parameters, only: OPTION_PATH_LEN, FIELD_NAME_LEN
-  use fldebug
-  use futils, only: int2str
-  use sparse_tools
   use solvers
 
   implicit none
