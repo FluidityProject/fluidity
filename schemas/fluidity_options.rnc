@@ -1473,6 +1473,7 @@ start =
             scalar_field_choice*,
             vector_field_choice*,
             tensor_field_choice*,
+            population_balance*,
             ## Parameters required to model spontaneous electrical potentials in porous media.
             element electrical_properties {
                (
@@ -1615,7 +1616,7 @@ start =
             element multiphase_properties {
                comment,
                (element particle_diameter { real }|
-       	       element particle_dia_use_scalar_field { anystring })?,
+       	       element particle_diameter_use_scalar_field { anystring })?,
                element apply_diameter_cap {
                   # default value 1.0E-12
                   element lower_cap { real }
@@ -1814,9 +1815,489 @@ start =
          porous_media_model?,
          embedded_models?,
          flredecomp?,
-         multiphase_interaction?
+         multiphase_interaction?,
+         element population_balance_continuous_phase_name{ string }?
       }
    )      
+
+population_balance = 
+   (
+      ##
+      element population_balance {
+         (
+            ## Determine initial weighted_abscissa and weights using the PD algorithm and the 
+            ## initial conditions set in the diagnostic moment fields.
+            ## 
+            ## In this case it does not matter what is set in the weighted_abscissa and weights
+            ## fields initial conditions option
+            element calculate_initial_conditions_from_moments {
+               empty
+            }|
+            ## Use initial conditions set in the weighted_abscissa and weights prognostic
+            ## fields
+            ## 
+            ## In this case it does not matter what is set in the moment field initial conditions 
+            ## options
+            element use_prognostic_field_initial_conditions {
+               empty
+            }
+         ),
+         attribute name { xsd:string },
+         element abscissa {
+            element scalar_field {
+               attribute rank { "0" },
+               attribute name { "Abscissa_0" },
+               ## Field type
+               element diagnostic {
+                  internal_algorithm,
+                  velocity_mesh_choice,
+                  diagnostic_scalar_field
+               }
+            },
+            element scalar_field {
+               attribute rank { "0" },
+               attribute name { "Abscissa_1" },
+               ## Field type
+               element diagnostic {
+                  internal_algorithm,
+                  velocity_mesh_choice,
+                  diagnostic_scalar_field
+               }
+            },
+            element scalar_field {
+               attribute rank { "0" },
+               attribute name { xsd:string },
+               ## Field type
+               element diagnostic {
+                  internal_algorithm,
+                  velocity_mesh_choice,
+                  diagnostic_scalar_field
+               }
+            }*
+         },
+         element weights {
+            element scalar_field {
+               attribute rank { "0" },
+               attribute name { "Weight_0" },
+               ## Field type
+               element prognostic {
+                  velocity_mesh_choice,
+                  prognostic_scalar_field
+               }
+            },
+            element scalar_field {
+               attribute rank { "0" },
+               attribute name { "Weight_1" },
+               ## Field type
+               element prognostic {
+                  velocity_mesh_choice,
+                  prognostic_scalar_field
+               }
+            },
+            element scalar_field {
+               attribute rank { "0" },
+               attribute name { xsd:string },
+               ## Field type
+               element prognostic {
+                  velocity_mesh_choice,
+                  prognostic_scalar_field
+               }
+            }*
+         },
+         element weighted_abscissa {
+            element scalar_field {
+               attribute rank { "0" },
+               attribute name { "WeightedAbscissa_0" },
+               ## Field type
+               element prognostic {
+                  velocity_mesh_choice,
+                  prognostic_scalar_field
+               }
+            },
+            element scalar_field {
+               attribute rank { "0" },
+               attribute name { "WeightedAbscissa_1" },
+               ## Field type
+               element prognostic {
+                  velocity_mesh_choice,
+                  prognostic_scalar_field
+               }
+            },
+            element scalar_field {
+               attribute rank { "0" },
+               attribute name { xsd:string },
+               ## Field type
+               element prognostic {
+                  velocity_mesh_choice,
+                  prognostic_scalar_field
+               }
+            }*
+         },
+         ## This option only works if you are using a continuous mesh for the population balance scalar fields.
+         ## A DG mesh will use inverse mass calculated at element level.
+         ## In the population balance DQMOM algorithm all sources for the 
+         ## advection-diffusion equations are calculated at the quadrature points first 
+         ## and then interpolated back to the nodal points. 
+         ## For a continuous mesh, this interpolation is made by inverting the mass matrix. 
+         ## Mass lumping is fairly quick and can be used with 1st order continuous meshes. 
+         ## But the error is high for higher order continuous meshes and full mass matrix should be used.
+         element adv_diff_source_term_interpolation {
+            ## The mass matrix is lumped to obtain source fields at nodal points.
+            element use_mass_lumping { empty } |
+            ## Full mass marix is used and the linear system is solved iteratively to obtain source fields at nodal points.
+            element use_full_mass_matrix {
+               ## This block specifies the solver options for solving the linear system to interpolate advection-diffusion source terms at nodal points.
+               element solver {
+                  linear_solver_options_asym_scalar
+               }
+            }
+         },
+         element moments {
+            element scalar_field {
+               attribute rank { "0" },
+               attribute name { "Moment_0" },
+               element diagnostic {
+                  internal_algorithm,
+                  velocity_mesh_choice,
+                  (
+                     ## Initial condition for WholeMesh
+                     ##
+                     ## Only specify one condition if not using mesh regions.
+                     ## Otherwise select other initial_condition option, specify region_ids
+                     ## and distinct names.  Then add extra intial conditions for other regions.
+                     element initial_condition {
+                        attribute name { "WholeMesh" },
+                        input_choice_initial_condition_real
+                     }|
+                     ## Multiple initial_conditions are allowed if specifying
+                     ## different values in different
+                     ## regions of the mesh (defined by region_ids).  In this case
+                     ## each initial_condition
+                     ## requires a distinct name for the options dictionary.
+                     element initial_condition {
+                        attribute name { string },
+                        region_ids?,
+                        input_choice_initial_condition_real
+                     }
+                  )+,
+                  diagnostic_scalar_field
+               }
+            },
+            element scalar_field {
+               attribute rank { "0" },
+               attribute name { "Moment_1" },
+               element diagnostic {
+                  internal_algorithm,
+                  velocity_mesh_choice,
+                  (
+                     ## Initial condition for WholeMesh
+                     ##
+                     ## Only specify one condition if not using mesh regions.
+                     ## Otherwise select other initial_condition option, specify region_ids
+                     ## and distinct names.  Then add extra intial conditions for other regions.
+                     element initial_condition {
+                        attribute name { "WholeMesh" },
+                        input_choice_initial_condition_real
+                     }|
+                     ## Multiple initial_conditions are allowed if specifying
+                     ## different values in different
+                     ## regions of the mesh (defined by region_ids).  In this case
+                     ## each initial_condition
+                     ## requires a distinct name for the options dictionary.
+                     element initial_condition {
+                        attribute name { string },
+                        region_ids?,
+                        input_choice_initial_condition_real
+                     }
+                  )+,
+                  diagnostic_scalar_field
+               }
+            },
+            element scalar_field {
+               attribute rank { "0" },
+               attribute name { "Moment_2" },
+               element diagnostic {
+                  internal_algorithm,
+                  velocity_mesh_choice,
+                  (
+                     ## Initial condition for WholeMesh
+                     ##
+                     ## Only specify one condition if not using mesh regions.
+                     ## Otherwise select other initial_condition option, specify region_ids
+                     ## and distinct names.  Then add extra intial conditions for other regions.
+                     element initial_condition {
+                        attribute name { "WholeMesh" },
+                        input_choice_initial_condition_real
+                     }|
+                     ## Multiple initial_conditions are allowed if specifying
+                     ## different values in different
+                     ## regions of the mesh (defined by region_ids).  In this case
+                     ## each initial_condition
+                     ## requires a distinct name for the options dictionary.
+                     element initial_condition {
+                        attribute name { string },
+                        region_ids?,
+                        input_choice_initial_condition_real
+                     }
+                  )+,
+                  diagnostic_scalar_field
+               }
+            },
+            element scalar_field {
+               attribute rank { "0" },
+               attribute name { "Moment_3" },
+               element diagnostic {
+                  internal_algorithm,
+                  velocity_mesh_choice,
+                  (
+                     ## Initial condition for WholeMesh
+                     ##
+                     ## Only specify one condition if not using mesh regions.
+                     ## Otherwise select other initial_condition option, specify region_ids
+                     ## and distinct names.  Then add extra intial conditions for other regions.
+                     element initial_condition {
+                        attribute name { "WholeMesh" },
+                        input_choice_initial_condition_real
+                     }|
+                     ## Multiple initial_conditions are allowed if specifying
+                     ## different values in different
+                     ## regions of the mesh (defined by region_ids).  In this case
+                     ## each initial_condition
+                     ## requires a distinct name for the options dictionary.
+                     element initial_condition {
+                        attribute name { string },
+                        region_ids?,
+                        input_choice_initial_condition_real
+                     }
+                  )+,
+                  diagnostic_scalar_field
+               }
+            },
+            element scalar_field {
+               attribute rank { "0" },
+               attribute name { xsd:string },
+               element diagnostic {
+                  internal_algorithm,
+                  velocity_mesh_choice,
+                  (
+                     ## Initial condition for WholeMesh
+                     ##
+                     ## Only specify one condition if not using mesh regions.
+                     ## Otherwise select other initial_condition option, specify region_ids
+                     ## and distinct names.  Then add extra intial conditions for other regions.
+                     element initial_condition {
+                        attribute name { "WholeMesh" },
+                        input_choice_initial_condition_real
+                     }|
+                     ## Multiple initial_conditions are allowed if specifying
+                     ## different values in different
+                     ## regions of the mesh (defined by region_ids).  In this case
+                     ## each initial_condition
+                     ## requires a distinct name for the options dictionary.
+                     element initial_condition {
+                        attribute name { string },
+                        region_ids?,
+                        input_choice_initial_condition_real
+                     }
+                  )+,
+                  diagnostic_scalar_field
+               }
+            }*
+         },
+         element statistics {
+            element scalar_field {
+               attribute rank { "0" },
+               attribute name { "Mean" },
+               ## Field type
+               element diagnostic {
+                  internal_algorithm,
+                  velocity_mesh_choice,
+                  diagnostic_scalar_field
+               }
+            }?,
+            element scalar_field {
+               attribute rank { "0" },
+               attribute name { "StandardDeviation" },
+               ## Field type
+               element diagnostic {
+                  internal_algorithm,
+                  velocity_mesh_choice,
+                  diagnostic_scalar_field
+               }
+            }?,
+            element scalar_field {
+               attribute rank { "0" },
+               attribute name { "Skew" },
+               ## Field type
+               element diagnostic {
+                  internal_algorithm,
+                  velocity_mesh_choice,
+                  diagnostic_scalar_field
+               }
+            }?,
+            element scalar_field {
+               attribute rank { "0" },
+               attribute name { "SauterMeanDia" },
+               ## Field type
+               element diagnostic {
+                  internal_algorithm,
+                  velocity_mesh_choice,
+                  diagnostic_scalar_field
+               }
+            }?,
+            element scalar_field {
+               attribute rank { "0" },
+               attribute name { "MeanDia10" },
+               ## Field type
+               element diagnostic {
+                  internal_algorithm,
+                  velocity_mesh_choice,
+                  diagnostic_scalar_field
+               }
+            }?
+         },   
+
+         ## Source terms for the population balance equation like growth, 
+         ## breakage, aggegation and internal dispersion
+         element population_balance_source_terms {
+            ## Growth term in the internal coordinate space
+            element growth{ 
+               ## Enter the growth degree (r) for the power-law growth G(\xi)=\xi^{r}
+               element power_law_growth{ real }
+            }?,
+            ## Dispersion coefficient D. Currently it only works for constant dispersion and can't handle dispersion varying with internal coordinate
+            element internal_dispersion{ real }?,
+            ##
+            element aggregation{
+               ##
+               element aggregation_frequency{
+                  ##
+                  element constant_aggregation{ real }|
+                  ## aggregation frequency is given by \beta_{alpha gamma} = \xi_{alpha}^3 + \xi_{gamma}^3
+                  element hydrodynamic_aggregation{ empty }|
+                  ## aggregation frequency is given by \beta_{alpha gamma} = \beta_o (\xi_{alpha} + \xi_{gamma}). Enter the value of constant \beta_o below
+                  element sum_aggregation{ real }|
+                  ## 
+                  element laakkonen_2007_aggregation{ 
+                     ## enter the value of the coefficient C5 in Laakkonen's aggregation rate expression. default: 0.88  
+                     element C5{ real }? 
+                  }
+               }
+            }?,
+            ##
+            element breakage{
+               ##
+               element breakage_frequency{
+                  ##
+                  element constant_breakage{ real }|
+                  ## breakage frequency is given by a_{alpha} = p * \xi_{alpha}^r
+                  element power_law_breakage{
+                     ## coefficient p in breakage frequency a_{alpha} = p * \xi_{alpha}^r
+                     element coefficient{ real },
+                     ## degree r in breakage frequency a_{alpha} = p * \xi_{alpha}^r
+                     element degree{ real }
+                  }|
+                  element laakkonen_breakage{ empty }
+               },
+               element distribution_function{
+                  ##
+                  element symmetric_fragmentation{ empty }|
+                  ## McCoy and Madras (2003) used P(v|v') = 2/v' for v<v' and 0 otherwise, where v stands for volume. 
+                  ## When written in terms of particle diameter, this converts to P(x|x')=(6x^2)/x'^3 for x<x' and 0 otherwise.
+                  element mcCoy_madras_2003{ empty } |
+                  element laakkonen_2007{ empty }
+               }
+            }?
+         },
+
+         ## At each vertex a linear system is solved to determine source terms
+         ## for the abscissa and weight transport equations. This requires inversion
+         ## of a matrix that has terms that are a function of the weighted abscissa.
+         ## If any two abscissa happen to lie very close to one another this can cause
+         ## this matrix to be ill-conditioned which can cause large errors or solver
+         ## failures when attempting to invert the matrix. There several options for 
+         ## evading this problem:
+         ##
+         ## (a) Set the abscissa and weight source terms to zero at the offending vertex.
+         ## (b) Perturbate the weighted absciss used to construct the matrix until the 
+         ## matrix is no longer ill conditioned and can be inverted.
+         ## (c) Use the source terms of neighbouring cells (not implemented)
+         element ill_conditioned_matrices {
+            ## The required condition number of the matrix. Recommended value of 1e-12
+            element required_condition_number{ real },
+            (
+               ## This is a better option when much of the domain has a minimum 0'th moment
+               element set_source_to_zero { empty }|
+               element perturbate{
+                  ## The amount to perturbate the weighted abscissa. The values are 
+                  ## iteratively perturbated by rand(-1,1)*perturbation until the matrix
+                  ## exceeds the required condition number. Too low a value can cause
+                  ## very long run times but a higher value will lead to larger errors.
+                  ## After every ten perturbations at any one grid location a message is 
+                  ## printed to the log file noting the difficulties in solving the linear 
+                  ## system.
+                  ## Recommended value of 1e-7
+                  element perturbation{ real }
+               }|
+               ## Do not check for ill-conditioning of matrix A
+               element do_nothing{ empty }
+            )
+         },
+         ## weights of zero can cause instabilities. It is recommended that a minimum
+         ## weight of approx 1e-10 is used.
+         element minimum_weight{ real },
+         ## In case the user wants to apply a minimum cap for weighted abscissas. Not Recommended. 
+         element minimum_weighted_abscissa{ real }?,
+         ## Scaling factor to be used for the Sauter Mean Diameter / Mean Diameter calculated in the 
+         ## statistics. It is useful in a non-dimensional implementation of the PBE.
+         element scaling_factor_Dia{ real }?,
+         ## This is the submerged specific gravity, R, of this population balance
+         ## as a function of internal coordinate, Z. 
+         ## It will be used in the equation of state.
+         ## 
+         ## R(Z) = (rho_c(Z) - rho_a)/(rho_a)
+         ## 
+         ## Where: rho_c(Z) is the density of the dispersed phase and rho_a is 
+         ## the ambient fluid density
+         ##
+         ## Must be given as a python function in the form:
+         ## 
+         ##  def R(Z): 
+         ##     # Function code
+         ##     return # Return value of R
+         element submerged_specific_gravity {
+            python_code
+         }?,
+         element output_abscissa_and_weights{ empty }?,
+         element output_sources{ empty }?,
+         ## This will apply all source terms for the weights and weighted_abscissa scalar 
+         ## fields as absorption terms.
+         element apply_source_as_absorption{ 
+            ## For including a sponge region for weights and weighted_abscissas (which are 
+            ## applied as absorption terms) a sponge field is defined which will be analogous to 
+            ## an absorption term. This field is zero everywhere except where a large absorption
+            ## is present. 
+            element include_sponge_region{
+               ## Name of the scalar field which is the sponge scalar field. Note: This sponge field must
+               ## be defined the the same material phase.
+               element sponge_scalar_field_name{ string }
+            }?         
+         }?,
+         ## This will apply selected source terms for the weights and weighted_abscissa scalar 
+         ## fields as absorption terms wherever the source is negative.
+         element apply_source_as_absorption_for_negative_source_only{
+            ## For including a sponge region for weights and weighted_abscissas (which are 
+            ## applied as absorption terms) a sponge field is defined which will be analogous to 
+            ## an absorption term. This field is zero everywhere except where a large absorption
+            ## is present. 
+            element include_sponge_region{
+               ## Name of the scalar field which is the sponge scalar field. Note: This sponge field must
+               ## be defined the the same material phase.
+               element sponge_scalar_field_name{ string }
+            }?
+         }?
+      }
+   )
 
 sediment = 
    (
