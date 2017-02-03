@@ -1441,7 +1441,7 @@ contains
     initial_coordinate => extract_vector_field(states(1), "InitialCoordinate")
     surface_mesh => extract_mesh(states(1),"FullCoordinateSurfaceMesh")
     
-    call profiler_tic(coordinate, "laplacian_smoother")
+    call profiler_tic("laplacian_smoother")
 
     call get_option("/timestepping/timestep", dt)
 
@@ -1499,7 +1499,7 @@ contains
        call set(coordinate, new_coordinate, old_coordinate, itheta)
     end if
 
-    call profiler_toc(coordinate, "laplacian_smoother")
+    call profiler_toc("laplacian_smoother")
 
   end subroutine move_mesh_laplacian_smoothing
 
@@ -1741,7 +1741,7 @@ contains
     call set(coordinate, old_coordinate) 
     call addto(coordinate, grid_velocity, scale = dt)   
     call allocate(A, &
-         get_csr_sparsity_secondorder(states, coordinate%mesh, coordinate%mesh),&
+         get_csr_sparsity_firstorder(states, coordinate%mesh, coordinate%mesh),&
          [mesh_dim(coordinate),mesh_dim(coordinate)],"StiffnessMatrix")
     call zero(A)    
   

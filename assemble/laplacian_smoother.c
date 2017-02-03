@@ -310,14 +310,18 @@ void lap_smoother(int dimension, int num_nodes, int num_elements, int num_surf_e
   VecAssemblyBegin(U_hy);
   VecAssemblyEnd(U_hy);
 
+  cprofiler_tic("laplacian_smoother::solve");
   KSPSolve(ksp_x,Fx,U_hx);
+  cprofiler_toc("laplacian_smoother::solve");
   KSPGetIterationNumber(ksp_x,&its);
   if (debug_level>1) PetscPrintf(PETSC_COMM_WORLD,"ksp_x iter: %D\n", its);
   KSPConvergedReason reason;
   KSPGetConvergedReason(ksp_x,&reason);
   if (debug_level>1) PetscPrintf(PETSC_COMM_WORLD,"KSPConvergedReasonX: %D\n", reason);
 
+  cprofiler_tic("laplacian_smoother::solve");
   KSPSolve(ksp_x,Fy,U_hy);
+  cprofiler_toc("laplacian_smoother::solve");
   KSPGetIterationNumber(ksp_x,&its);
   if (debug_level>1) PetscPrintf(PETSC_COMM_WORLD,"ksp_y iter: %D\n", its);
   KSPGetConvergedReason(ksp_x,&reason);
@@ -568,7 +572,9 @@ void lap_smoother(int dimension, int num_nodes, int num_elements, int num_surf_e
   VecAssemblyBegin(U_hz);
   VecAssemblyEnd(U_hz);
 
+  cprofiler_tic("laplacian_smoother::solve");
   KSPSolve(ksp_x,Fx,U_hx);
+  cprofiler_toc("laplacian_smoother::solve");
   KSPGetIterationNumber(ksp_x,&its);
   if (debug_level>1) PetscPrintf(PETSC_COMM_WORLD,"ksp_x iter: %D\n", its);
   KSPConvergedReason reason;

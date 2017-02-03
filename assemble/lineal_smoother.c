@@ -228,7 +228,9 @@ void lin_smoother(int dimension, int num_nodes, int num_elements, int num_surf_e
   VecAssemblyBegin(U_h);
   VecAssemblyEnd(U_h);
 
+  cprofiler_tic("lineal_smoother::solve");
   KSPSolve(ksp,F,U_h);
+  cprofiler_toc("lineal_smoother::solve");
   KSPGetIterationNumber(ksp,&its);
   if (debug_level>1) PetscPrintf(PETSC_COMM_WORLD,"ksp iter: %D\n", its);
   KSPConvergedReason reason;

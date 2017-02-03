@@ -16,13 +16,6 @@ void lin_tor_smoother(int dimension, int num_nodes, int num_elements, int num_su
                  num_nodes_col_x[num_nodes],num_nodes_col_y[num_nodes];
   PetscScalar    length,x_disp[num_surf_elements],y_disp[num_surf_elements],z_disp[num_surf_elements],smoothed_x[num_nodes],smoothed_y[num_nodes],smoothed_z[num_nodes];
 
-
-  int conn_mat[num_elements][3];
-  for(m=0;m<num_elements;m++){
-    conn_mat[m][0]=*(connectivity+(3*m));
-    conn_mat[m][1]=*(connectivity+(3*m)+1);
-    conn_mat[m][2]=*(connectivity+(3*m)+2);
-  }
   
   double lij(int nodei, int nodej){
     double xi,yi,zi,xj,yj,zj,length;
@@ -265,6 +258,7 @@ void lin_tor_smoother(int dimension, int num_nodes, int num_elements, int num_su
       	MatSetValue(*K,mapping[num_nodes+Ii],mapping[k1],(*(K_tor1_holder+10)),ADD_VALUES);
       	MatSetValue(*K,mapping[num_nodes+Ii],mapping[num_nodes+k1],(*(K_tor1_holder+11)),ADD_VALUES);
 
+	free(K_tor1_holder);
 	K_tor1_holder=K_tor(neb_hold,Ii,k1);	    
 
       	MatSetValue(*K,mapping[Ii],mapping[neb_hold],(*(K_tor1_holder+12)),ADD_VALUES);
@@ -281,6 +275,8 @@ void lin_tor_smoother(int dimension, int num_nodes, int num_elements, int num_su
       	MatSetValue(*K,mapping[num_nodes+Ii],mapping[k1],(*(K_tor1_holder+22)),ADD_VALUES);
       	MatSetValue(*K,mapping[num_nodes+Ii],mapping[num_nodes+k1],(*(K_tor1_holder+23)),ADD_VALUES);
 
+	free(K_tor1_holder);
+	
       }
     }
   }
