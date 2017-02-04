@@ -1047,6 +1047,7 @@ void real_vector_from_python(char* function, int* function_len,
                              int* result_len, 
                              int* stat)
 {
+ int i;
 #ifndef HAVE_PYTHON
   strncpy(function, "No Python support!\n", (size_t) *function_len);
   for (i=0; i < *function_len; i++)
@@ -1062,8 +1063,6 @@ void real_vector_from_python(char* function, int* function_len,
   
   char *function_c;
 
-  int i;
-  
   // the function string passed down from Fortran needs terminating,
   // so make a copy and fiddle with it (remember to free it)
   function_c = (char *)malloc(*function_len+3);
@@ -1172,6 +1171,7 @@ void integer_vector_from_python(char* function, int* function_len,
                              int* result_len, 
                              int* stat)
 {
+ int i;
 #ifndef HAVE_PYTHON
   strncpy(function, "No Python support!\n", (size_t) *function_len);
   for (i=0; i < *function_len; i++)
@@ -1187,8 +1187,6 @@ void integer_vector_from_python(char* function, int* function_len,
   
   char *function_c;
 
-  int i;
-  
   // the function string passed down from Fortran needs terminating,
   // so make a copy and fiddle with it (remember to free it)
   function_c = (char *)malloc(*function_len+3);

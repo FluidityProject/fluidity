@@ -1,7 +1,8 @@
 from scipy import *
 from pylab import *
-x = 0.5+0.25*arange(0,100.)/100.
-y = zeros(100) + 0.5
+num_detectors = 100
+x = 0.5+0.25*arange(0,float(num_detectors))/float(num_detectors)
+y = zeros(num_detectors) + 0.5
 
 t = 0.
 n_cycles = 1
@@ -21,7 +22,7 @@ while(t<tmax):
     y = y + dt*(k1_y/6.+k2_y/3. + k3_y/3. + k4_y/6.)
 
 plot(x,y,'.')
-show()
+#show()
 
 x.tofile('Xvals.txt',sep=' ')
 y.tofile('Yvals.txt',sep=' ')

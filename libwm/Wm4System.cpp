@@ -34,6 +34,8 @@ static bool gs_bInitializedTime = false;
 
 // support for locating the application directory
 #ifdef __APPLE__
+#undef  __OSX_AVAILABLE_BUT_DEPRECATED_MSG
+#define __OSX_AVAILABLE_BUT_DEPRECATED_MSG(a,b,c,d,e)
 #include <Carbon/Carbon.h>
 #endif
 

@@ -207,7 +207,7 @@
           </use_projection_method>
         </scheme>
         <solver>
-          <iterative_method name="cg"/>
+          <iterative_method name="fgmres"/>
           <preconditioner name="ksp">
             <solver>
               <iterative_method name="cg"/>

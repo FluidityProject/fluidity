@@ -1,0 +1,43 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>mesh_quality</name>
+  <owner userid="jrper"/>
+  <tags>flml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>fluidity -v2 -l mesh_quality.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="vtk_checks" language="python">import vtk
+vtk_checks = {}
+
+reader=vtk.vtkXMLUnstructuredGridReader()
+reader.SetFileName("mesh_quality_0.vtu")
+reader.Update()
+
+ugrid = reader.GetOutput()
+
+flt = vtk.vtkMeshQuality()
+if vtk.VTK_MAJOR_VERSION&gt;5:
+  flt.SetInputData(ugrid)
+else:
+  flt.SetInput(ugrid)
+  
+flt.SetTriangleQualityMeasure(vtk.VTK_QUALITY_RADIUS_RATIO)
+flt.Update()
+vgrid = flt.GetOutput()
+vtk_checks['radius_ratio']= vgrid.GetCellData().GetArray("Quality").GetTuple1(0)-vgrid.GetCellData().GetArray("RadiusRatio").GetTuple1(0)
+
+flt.SetTriangleQualityMeasure(vtk.VTK_QUALITY_MIN_ANGLE)
+flt.Update()
+vgrid = flt.GetOutput()
+vtk_checks['min_angle']= vgrid.GetCellData().GetArray("Quality").GetTuple1(0)-vgrid.GetCellData().GetArray("MinAngle").GetTuple1(0)
+
+vtk_checks['area']=sum([vgrid.GetCellData().GetArray("Area").GetTuple1(_) for _ in range(vgrid.GetNumberOfCells())])
+</variable>
+  </variables>
+  <pass_tests>
+    <test name="test_radius_ratio" language="python">assert(abs(vtk_checks['radius_ratio'])&lt;1.0e-16)</test>
+    <test name="test_min_angle" language="python">assert(abs(vtk_checks['min_angle'])&lt;1.0e-16)</test>
+    <test name="test_area" language="python">assert(abs(vtk_checks['area']-4.0)&lt;1.0e-8)</test>
+  </pass_tests>
+</testproblem>

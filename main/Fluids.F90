@@ -57,6 +57,7 @@ module fluids_module
   use timers
   use synthetic_bc
   use k_epsilon, only: keps_advdif_diagnostics
+  use k_omega, only: komega_advdif_diagnostics
   use tictoc
   use boundary_conditions_from_options
   use reserve_state_module
@@ -676,6 +677,31 @@ contains
           
 
 
+          ! Do we have the k-omega turbulence model? !Amin!
+          ! If we do then we want to calculate source terms and diffusivity for the k and omega 
+          ! fields and also tracer field diffusivities at n + theta_nl
+          ! Buoyancy not included in the current k-omega implementation!
+          do i= 1, size(state)
+             if(have_option("/material_phase["//&
+                  int2str(i-1)//"]/subgridscale_parameterisations/k-omega")) then
+                if(timestep == 1 .and. its == 1 .and. have_option('/physical_parameters/gravity')) then
+                   ! The very first time k-omega is called, VelocityBuoyancyDensity
+                   ! is set to zero until calculate_densities is called in the momentum equation
+                   ! solve. Calling calculate_densities here is a work-around for this problem.  
+                   sfield => extract_scalar_field(state, 'VelocityBuoyancyDensity')
+                   if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1) then 
+                      call get_phase_submaterials(state, i, submaterials)
+                      call calculate_densities(submaterials, buoyancy_density=sfield)
+                      deallocate(submaterials)
+                   else
+                      call calculate_densities(state, buoyancy_density=sfield)
+                   end if
+                   ewrite_minmax(sfield)
+                end if
+                call komega_advdif_diagnostics(state(i))
+             end if
+          end do
+
           field_loop: do it = 1, ntsol
              ewrite(2, "(a,i0,a,i0)") "Considering scalar field ", it, " of ", ntsol
              ewrite(1, *) "Considering scalar field " // trim(field_name_list(it)) // " in state " // trim(state(field_state_list(it))%name)
@@ -700,7 +726,7 @@ contains
                   '/prognostic/equation[0]/name', &
                   option_buffer, default="UnknownEquationType")
              select case(trim(option_buffer))
-             case ( "AdvectionDiffusion", "ConservationOfMass", "ReducedConservationOfMass", "InternalEnergy", "HeatTransfer", "KEpsilon" )
+             case ( "AdvectionDiffusion", "ConservationOfMass", "ReducedConservationOfMass", "InternalEnergy", "HeatTransfer", "KEpsilon", "KOmega") !Amin!
                 use_advdif=.true.
              case default
                 use_advdif=.false.

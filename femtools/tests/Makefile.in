@@ -40,7 +40,7 @@ CXXFLAGS= @CPPFLAGS@ @CXXFLAGS@ -I../../include
 
 LDFLAGS  = @LDFLAGS@
 
-LIBS = ./lib/libvtkfortran.a @LIBS@ ./lib/libspud.a ./lib/libjudy.a ./lib/libspatialindex.a @LAPACK_LIBS@
+LIBS = ./lib/libvtkfortran.a @LIBS@ @LIBSPATIALINDEX@ @SPUDLIB@ @FLIBJUDY@ @LAPACK_LIBS@
 LIBFLUIDITY=../../lib/lib$(FLUIDITY).a
 
 # the test binaries NOT to be built

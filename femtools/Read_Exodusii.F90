@@ -473,7 +473,7 @@ contains
       allocate( field%mesh%region_ids(num_elem) )
       field%mesh%region_ids = 0
     end if
-    call adding_elements_to_field(num_dim, num_elem, exo_element, field)
+    call adding_elements_to_field(num_dim, num_elem, exo_element, node_map, field)
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! Assemble array with faces and boundaryIDs !
@@ -484,7 +484,7 @@ contains
        allocate(boundaryIDs(1:num_faces))
     end if
     do f=1, num_faces
-       sndglno((f-1)*sloc+1:f*sloc) = exo_face(f)%nodeIDs(1:sloc)
+       sndglno((f-1)*sloc+1:f*sloc) = node_map(exo_face(f)%nodeIDs(1:sloc))
        if(haveBoundaries) boundaryIDs(f) = exo_face(f)%tags(1)
     end do
 
@@ -1112,10 +1112,11 @@ contains
 
   ! -----------------------------------------------------------------
 
-  subroutine adding_elements_to_field(num_dim, num_elem, exo_element, field)
+  subroutine adding_elements_to_field(num_dim, num_elem, exo_element, node_map, field)
     integer, intent(in) :: num_dim
     integer, intent(in) :: num_elem
     type(EXOelement), pointer, dimension(:), intent(in) :: exo_element
+    integer, dimension(:), intent(in) :: node_map
     type(vector_field), intent(inout) :: field
 
     integer :: elementType, num_nodes_per_elem_ele
@@ -1132,7 +1133,7 @@ contains
          !these are normal elements:
           num_nodes_per_elem_ele = size(exo_element(exo_e)%nodeIDs)
           do n=1, num_nodes_per_elem_ele
-             field%mesh%ndglno(n+z) = exo_element(exo_e)%nodeIDs(n)
+             field%mesh%ndglno(n+z) = node_map(exo_element(exo_e)%nodeIDs(n))
           end do
           ! Set region_id of element (this will be its blockID in exodus)
           field%mesh%region_ids(i) = exo_element(exo_e)%blockID

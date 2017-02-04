@@ -364,16 +364,16 @@ contains
       assert( size(dnnz)==urows/element_size )
       
       ! Create serial block matrix:
-      call MatCreateSeqBAIJ(MPI_COMM_SELF, element_size, &
-         urows, ucols, PETSC_NULL_INTEGER, &
-         dnnz, matrix%M, ierr)
+      call MatCreateBAIJ(MPI_COMM_SELF, element_size, &
+         urows, ucols, urows, ucols, &
+         PETSC_NULL_INTEGER, dnnz, 0, PETSC_NULL_INTEGER, matrix%M, ierr)
          
     elseif (use_element_blocks) then
       
       assert( size(dnnz)==nprows*blocks(1)/element_size )
       assert( size(onnz)==nprows*blocks(1)/element_size )
       
-      call MatCreateMPIBAIJ(MPI_COMM_FEMTOOLS, element_size, &
+      call MatCreateBAIJ(MPI_COMM_FEMTOOLS, element_size, &
          nprows*blocks(1), npcols*blocks(2), &
          urows, ucols, &
          PETSC_NULL_INTEGER, dnnz, PETSC_NULL_INTEGER, onnz, matrix%M, ierr)
@@ -383,19 +383,20 @@ contains
       assert( size(dnnz)==urows )
       
       ! Create serial matrix:
-      call MatCreateSeqAIJ(MPI_COMM_SELF, urows, ucols, PETSC_NULL_INTEGER, &
-         dnnz, matrix%M, ierr)
+      call MatCreateAIJ(MPI_COMM_SELF, urows, ucols, urows, ucols, &
+         PETSC_NULL_INTEGER, dnnz, 0, PETSC_NULL_INTEGER, matrix%M, ierr)
       
     else
       
       assert( size(dnnz)==nprows*blocks(1) )
       assert( size(onnz)==nprows*blocks(1) )
       
-      call MatCreateMPIAIJ(MPI_COMM_FEMTOOLS, nprows*blocks(1), npcols*blocks(2), &
+      call MatCreateAIJ(MPI_COMM_FEMTOOLS, nprows*blocks(1), npcols*blocks(2), &
          urows, ucols, &
          PETSC_NULL_INTEGER, dnnz, PETSC_NULL_INTEGER, onnz, matrix%M, ierr)
       
     endif
+    call MatSetup(matrix%M, ierr)
     
     if (.not. use_element_blocks) then
       ! this is very important for assembly routines (e.g. DG IP viscosity)

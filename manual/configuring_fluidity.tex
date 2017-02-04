@@ -2622,7 +2622,7 @@ For an $N$ phase problem, $N$ material\_phases are required and hence $N$ PhaseV
 For compressible multiphase simulations, the diagnostic PhaseVolumeFraction field should always be in the compressible (fluid) phase. This is because we do not include the Density in the advection-diffusion equation for prognostic PhaseVolumeFraction fields, so solving this equation in the compressible phase would not be correct. The particle phases on the other hand are always incompressible where the density is constant.
 
 \subsubsection{Inter-phase momentum interaction}
-Currently, \fluidity\ only supports fluid-particle drag between the continuous phase and dispersed phase(s). This can be enabled by switching on the \option{/multiphase\_interaction/fluid\_particle\_drag} option in Diamond and specifying the drag correlation: Stokes, \cite{wen_yu_1966} or \cite{ergun1952}.
+Currently, \fluidity\ only supports fluid-particle drag between the continuous phase and dispersed phase(s). This can be enabled by switching on the \option{/multiphase\_interaction/fluid\_particle\_drag} option in Diamond and specifying the drag correlation: Stokes, \cite{wen_yu_1966}, \cite{ergun1952}, \cite{schiller1935drag}, \cite{lain1999experimental} or \cite{lain2002modelling}.
 
 The drag force using the Stokes drag correlation is given by:
 \begin{equation}\label{eq:stokes_drag_force}
@@ -2652,7 +2652,26 @@ For dense multiphase flows with $\alpha_p > 0.2$, the drag correlation by \cite{
 \mathbf{F}_D = \left(150\frac{\alpha_p^2\mu_f}{\alpha_f d_p^2} + 1.75\frac{\alpha_p\rho_f|\mathbf{u}_f-\mathbf{u}_p|}{d_p}\right)\left(\mathbf{u}_f-\mathbf{u}_p\right).
 \end{equation}
 
-Note that within each dispersed phase, a value for $d$ must be specified in \option{../multiphase\_properties/particle\_diameter} regardless of which drag correlation is used.
+The interphase drag force $\mathbf{F}_D$, and the drag coefficient $C_D$ for the standard \cite{schiller1935drag} drag correlation is given by:
+\begin{equation}\label{eq:schillernaumann_drag_force}
+\mathbf{F}_D = \frac{3\ \alpha_p\ C_D\ \alpha_f\ \rho_f\ |\mathbf{u}_f-\mathbf{u}_p|\ (\mathbf{u}_f-\mathbf{u}_p)}{4\ d},
+\end{equation}
+\begin{equation}\label{eq:schillernaumann_drag_coefficient}
+C_D=
+\begin{cases}
+  \dfrac{24}{Re} \left( 1+0.15 {Re}^{0.687} \right)& \text{if}\ Re<1000, \\[2ex]
+  0.44                                               & \text{otherwise},
+\end{cases}
+\end{equation}
+with a slightly different definition for the Reynolds number than above:
+\begin{equation}\label{eq:particle_reynolds_number_2}
+\mathrm{Re} = \frac{\rho_f\ d\ |\mathbf{u}_f-\mathbf{u}_p|}{\mu_f}.
+\end{equation}
+The above drag force correlation was developed for a spherical and solid dispersed phase but dispersed fluids with slight impurities can be modelled using the same correlation. \cite{schiller1935drag} drag has been used for the modelling of dilute bubble columns successfully. 
+
+Note that within each dispersed phase, a value for $d$ must be specified in \option{../multiphase\_properties/particle\_diameter} regardless of which drag correlation is used. A scalar field can also be used instead of a constant dispersed phase diameter by choosing the \option{../multiphase\_properties/particle\_dia\_use\_scalar\_field} option instead. The latter option is useful when the multiphase model is coupled to the population balance equation \citep{bhutani2016polydispersed}.
+
+Additionally, it is also possible to cap the dispersed phase diameter, which is useful when using a scalar field for the diameter. For instance, a very small diameter can result in a very large drag force which can result in a failing simulation.
 
 \subsubsection{Inter-phase energy interaction}
 This subsection considers compressible multiphase flow simulations where each phase has its own InternalEnergy field. Users can choose to include the inter-phase heat transfer term by \cite{gunn1978}, denoted $Q$ in Section \ref{sec:multiphase_equations}, on the RHS of each internal energy equation:

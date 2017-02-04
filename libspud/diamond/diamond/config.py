@@ -27,6 +27,8 @@ if sys.platform != "win32" and sys.platform != "win64":
   dirs.append("/usr/share/diamond")
   dirs.append("/etc/diamond")
 dirs.append(os.path.join(os.path.expanduser('~'), ".diamond"))
+if "DIAMOND_CONFIG_PATH" in os.environ:
+  dirs += reversed(os.environ["DIAMOND_CONFIG_PATH"].split(":"))
 
 config = ConfigParser.SafeConfigParser()
 config.read([os.path.join(path, "settings") for path in reversed(dirs)]) #reversed to load usr last
@@ -48,9 +50,7 @@ __set_default("subupdate", "cornflowerblue")
 __set_default("diffadd", "lightgreen")
 __set_default("diffsub", "indianred")
 
-# Here we hard-code a default for flml
-# so that users don't have to tweak this to run it.
-schemata = {'flml': ('Fluidity markup language', { None: 'http://bazaar.launchpad.net/~fluidity-core/fluidity/4.0-release/download/head:/fluidity_options.rng-20110415014759-hdavpx17hi2vz53z-811/fluidity_options.rng'})}
+schemata = {}
 
 for dir in [os.path.join(path, "schemata") for path in dirs]:
   try:
@@ -76,7 +76,13 @@ for dir in [os.path.join(path, "schemata") for path in dirs]:
         line = lines[i]
 
         keyvalue = [x.strip() for x in line.split("=")]
-        key, value = ("default", keyvalue[0]) if len(keyvalue) == 1 else keyvalue
+        if len(keyvalue) == 1:
+          key, value = ("default", keyvalue[0])
+        elif len(keyvalue) == 2:
+          (key, value) = keyvalue
+        else:
+          debug.deprint("Warning: ignoring line %s" % line)
+          continue
 
         value = os.path.expandvars(value)
 
