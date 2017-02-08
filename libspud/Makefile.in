@@ -1,4 +1,3 @@
-#    Copyright (C) 2007 Imperial College London and others.
 #
 #    Please see the AUTHORS file in the main source directory for a full list
 #    of copyright holders.
@@ -102,7 +101,7 @@ else
 endif
 
 install-dxdiff:
-ifeq ($(origin DESTDIR),undefined)
+ifeq ($(origin BUILDING_DEBIAN),undefined)
 	cd dxdiff; python setup.py install --prefix=$(DESTDIR)@prefix@; cd ..
 else
 	cd dxdiff; for python in $(shell pyversions -r); do $$python setup.py install --prefix=$(DESTDIR)@prefix@ --install-layout=deb; done; cd ..
@@ -124,3 +123,8 @@ distclean: clean
 	rm -f Makefile src/tests/Makefile examples/Makefile
 	rm -f bin/spud-preprocess
 	rm -f diamond/setup.py diamond/diamond/plugins.py diamond/diamond/preprocess.py
+	rm -fr debian/diamond debian/python-dxdiff debian/python-spud
+	rm -fr debian/spudtools debian/libspud-dev
+	rm -rf diamond/diamond.egg-info/
+	rm -f debian/*.debhelper* debian/*.substvars 
+	rm -f build-* debian/files

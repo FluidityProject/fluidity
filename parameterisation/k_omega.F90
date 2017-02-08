@@ -28,7 +28,8 @@
 #include "fdebug.h"
 
 module k_omega
-  use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN, timestep, current_time
+  
+    use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN, timestep, current_time
   use fldebug
   use futils, only: int2str
   use vector_tools
@@ -48,16 +49,14 @@ module k_omega
   use state_fields_module
   use surface_integrals
   use solvers
-  use smoothing_module 
-  use fields_manipulation
-  use fetools
+  use smoothing_module
 
-implicit none
+  implicit none
 
   private
 
   ! locally allocatad fields
-  real, save     :: fields_min = 1.0e-11 !A! remove
+  real, save     :: fields_min = 1.0e-11
   !A!logical, save  :: low_Re = .false.
 
   public :: komega_advdif_diagnostics, komega_momentum_diagnostics, & !A! komega_bcs removed
@@ -73,7 +72,7 @@ subroutine komega_advdif_diagnostics(state)            !A! called in Fluids.F90
 
   type(state_type), intent(inout) :: state
   
-  call komega_blending_functions(state, advdif=.true.) !A! blending functions for k-omega SST !A!
+  call komega_blending_functions(state, advdif=.true.) !A! blending functions for k-omega SST
   call komega_eddyvisc(state, advdif=.true.)           !A! eddy viscosity
   call komega_diffusion(state)                         !A! diff coeff
   call komega_tracer_diffusion(state)                  !A! ???
@@ -218,14 +217,12 @@ subroutine komega_calculate_rhs(state)
   character(len=FIELD_NAME_LEN), dimension(2) :: field_names
   character(len=FIELD_NAME_LEN)               :: equation_type, implementation
 
-  !A! ADM correction terms
-  real    :: C_T, C_omega, beta_p, beta_d
-  integer :: region_id_near_disc
-  integer :: ndiscs
-  integer, dimension(:), allocatable :: region_id_disc
-  type(scalar_field), pointer :: NodeOnTurbine
+!A!  real    :: C_T, C_omega, beta_p, beta_d
+!A!  integer :: region_id_near_disc
+!A!  integer :: ndiscs
+!A!  integer, dimension(:), allocatable :: region_id_disc
+!A!  type(scalar_field), pointer :: NodeOnTurbine
 
-  !A! SST
   logical :: have_SST
   real    :: gama_1, gama_2, beta_1, beta_2
   type(scalar_field), pointer :: F_1, F_2, CD_komg
@@ -248,23 +245,23 @@ subroutine komega_calculate_rhs(state)
   call get_option(trim(option_path)//'/Beta_Star', beta_star, default = 0.09)
 
   !A! get ADM correction term constants
-  call get_option('/ADM/C_T', C_T, default = 0.0)
-  call get_option('/ADM/C_Omega', C_omega, default = 4.0) ! Rados et al (2008)
-  call get_option('/ADM/Beta_p', beta_p, default = 0.05)  ! Rethore et al (2009)
-  call get_option('/ADM/Beta_d', beta_d, default = 1.50)  ! Rethore et al (2009)
+!A!  call get_option('/ADM/C_T', C_T, default = 0.0)
+!A!  call get_option('/ADM/C_Omega', C_omega, default = 4.0) ! Rados et al (2008)
+!A!  call get_option('/ADM/Beta_p', beta_p, default = 0.05)  ! Rethore et al (2009)
+!A!  call get_option('/ADM/Beta_d', beta_d, default = 1.50)  ! Rethore et al (2009)
 
-  call get_option('/ADM/NearDiscRegionID', region_id_near_disc, default = 902)
+!A!  call get_option('/ADM/NearDiscRegionID', region_id_near_disc, default = 902)
 
-  call get_option('/ADM/NDiscs', ndiscs)
-  allocate(region_id_disc(ndiscs))
-  region_id_disc = 0
-  call get_option('/ADM/DiscRegionID', region_id_disc)
+!A!  call get_option('/ADM/NDiscs', ndiscs)
+!A!  allocate(region_id_disc(ndiscs))
+!A!  region_id_disc = 0
+!A!  call get_option('/ADM/DiscRegionID', region_id_disc)
 
   ! get field data
   x => extract_vector_field(state, "Coordinate")
   u => extract_vector_field(state, "NonlinearVelocity")
   scalar_eddy_visc => extract_scalar_field(state, "ScalarEddyViscosity")
-  NodeOnTurbine => extract_scalar_field(state, "NodeOnTurbine") !A!
+!A!  NodeOnTurbine => extract_scalar_field(state, "NodeOnTurbine") !A!
 
   !A! SST terms
   if(have_SST) then
@@ -278,17 +275,10 @@ subroutine komega_calculate_rhs(state)
     call get_option(trim(option_path)//'/Sigma_omg2', sigma_omg2, default = 0.85616)
   end if
 
-!A!  g => extract_vector_field(state, "GravityDirection", stat)
-!A!  call get_option('/physical_parameters/gravity/magnitude', g_magnitude, stat)
-!A!  if (stat /= 0) then
-!A!     have_buoyancy_turbulence = .false. !!! interesting
-!A!  end if
-
   allocate(dummydensity)
   call allocate(dummydensity, X%mesh, "DummyDensity", field_type=FIELD_TYPE_CONSTANT)
   call set(dummydensity, 1.0)
   dummydensity%option_path = ""
-  
   ! Depending on the equation type, extract the density or set it to some dummy field allocated above
   call get_option(trim(state%option_path)//&
        "/vector_field::Velocity/prognostic/equation[0]/name", equation_type, stat=stat)
@@ -308,12 +298,6 @@ subroutine komega_calculate_rhs(state)
     end select
   end if
   
-!A!  if(have_buoyancy_turbulence) then
-!A!     buoyancy_density => extract_scalar_field(state, 'VelocityBuoyancyDensity')
-!A!  else
-!A!     buoyancy_density => dummydensity
-!A!  end if
-
   field_names(1) = 'TurbulentKineticEnergy'
   field_names(2) = 'TurbulentFrequency'
 
@@ -345,10 +329,10 @@ subroutine komega_calculate_rhs(state)
      do ele = 1, ele_count(fields(1))
 
         call assemble_rhs_ele(src_abs_terms, fields(i), fields(3-i), scalar_eddy_visc, u, &
-             density, g, g_magnitude, x, &
+             density, x, &
              alpha, beta, beta_star, ele, i, &
-             C_T, C_omega, beta_p, beta_d, ndiscs, region_id_disc, region_id_near_disc, NodeOnTurbine, &
-             have_SST, gama_1, gama_2, beta_1, beta_2, F_1, F_2, CD_komg) !A! buoyancy_density, have_buoyancy_turbulence
+!A!             C_T, C_omega, beta_p, beta_d, ndiscs, region_id_disc, region_id_near_disc, NodeOnTurbine, &
+             have_SST, gama_1, gama_2, beta_1, beta_2, F_1, F_2, CD_komg) !A! buoyancy_density, have_buoyancy_turbulence, g, g_magnitude
      end do
 
      ! For non-DG we apply inverse mass globally
@@ -431,16 +415,15 @@ end subroutine komega_calculate_rhs
 !------------------------------------------------------------------------------!
 
 subroutine assemble_rhs_ele(src_abs_terms, k, omega, scalar_eddy_visc, u, density, &
-     g, g_magnitude, &
      X, alpha, beta, beta_star, ele, field_id, &
-     C_T, C_omega, beta_p, beta_d, ndiscs, region_id_disc, region_id_near_disc, NodeOnTurbine, &
-     have_SST, gama_1, gama_2, beta_1, beta_2, F_1, F_2, CD_komg) !A! have_buoyancy_turbulence, buoyancy_density
+!A!     C_T, C_omega, beta_p, beta_d, ndiscs, region_id_disc, region_id_near_disc, NodeOnTurbine, &
+     have_SST, gama_1, gama_2, beta_1, beta_2, F_1, F_2, CD_komg)
 
   type(scalar_field), dimension(2), intent(inout) :: src_abs_terms !A! 3 to 2
   type(scalar_field), intent(in) :: k, omega, scalar_eddy_visc
-  type(vector_field), intent(in) :: X, u, g
+  type(vector_field), intent(in) :: X, u !A! g
   type(scalar_field), intent(in) :: density !A! buoyancy_density
-  real, intent(in)               :: g_magnitude, alpha, beta, beta_star
+  real, intent(in)               :: alpha, beta, beta_star !A! g_magnitude
 !A!  logical, intent(in) :: have_buoyancy_turbulence
   integer, intent(in)            :: ele, field_id
 
@@ -461,14 +444,14 @@ subroutine assemble_rhs_ele(src_abs_terms, k, omega, scalar_eddy_visc, u, densit
 !A!  real, dimension(:, :, :), allocatable :: dshape_density
 
   !A! For ADM correction terms
-  type(scalar_field), intent(in)   :: NodeOnTurbine
-  real, intent(in)                 :: C_T, C_omega, beta_p, beta_d
-  integer                          :: discs
-  integer, intent(in)              :: region_id_near_disc, ndiscs
-  integer, dimension(ndiscs), intent(in)              :: region_id_disc
-  real                             :: a_fac, C_x, u_ele, volume
-  real, dimension(u%dim)           :: vel_integral
-  real, dimension(ele_ngi(k, ele)) :: ADM_source
+!A!  type(scalar_field), intent(in)   :: NodeOnTurbine
+!A!  real, intent(in)                 :: C_T, C_omega, beta_p, beta_d
+!A!  integer                          :: discs
+!A!  integer, intent(in)              :: region_id_near_disc, ndiscs
+!A!  integer, dimension(ndiscs), intent(in)              :: region_id_disc
+!A!  real                             :: a_fac, C_x, u_ele, volume
+!A!  real, dimension(u%dim)           :: vel_integral
+!A!  real, dimension(ele_ngi(k, ele)) :: ADM_source
 
   !A! SST terms
   logical, intent(in)            :: have_SST
@@ -503,13 +486,13 @@ subroutine assemble_rhs_ele(src_abs_terms, k, omega, scalar_eddy_visc, u, densit
   end do
 
   !A! ADM: get u_ele for elements within the disc
-  do discs = 1, ndiscs
-    if (X%mesh%region_ids(ele)==region_id_disc(discs)) then
-      volume=dot_product(ele_val_at_quad(NodeOnTurbine, ele), detwei)
-      vel_integral=matmul(matmul(ele_val(u, ele), u%mesh%shape%n), detwei)
-      u_ele = vel_integral(1)/volume
-    end if
-  end do
+!A!  do discs = 1, ndiscs
+!A!    if (X%mesh%region_ids(ele)==region_id_disc(discs)) then
+!A!      volume=dot_product(ele_val_at_quad(NodeOnTurbine, ele), detwei)
+!A!      vel_integral=matmul(matmul(ele_val(u, ele), u%mesh%shape%n), detwei)
+!A!      u_ele = vel_integral(1)/volume
+!A!    end if
+!A!  end do
 
   ! Compute P (Production)
   if (field_id==1) then !A! id=1 => k
@@ -517,13 +500,13 @@ subroutine assemble_rhs_ele(src_abs_terms, k, omega, scalar_eddy_visc, u, densit
     if(have_SST) then !A! Menter k-omega SST (2003):
       rhs = min(rhs,10.0*omega_ele*k_ele*beta_star*ele_val_at_quad(density, ele))
     endif
-    do discs = 1, ndiscs
-      if (X%mesh%region_ids(ele)==region_id_disc(discs)) then ! Disc production term
-       a_fac = 0.5*(1.0-sqrt(1.0-C_T))
-       C_x = (4.0*a_fac)/(1.0 - a_fac)
-       rhs = rhs +      0.5*C_x*(  beta_p*u_ele**3.0 -  beta_d*u_ele*k_ele) ! Rethore et al
-      end if
-    end do
+!A!    do discs = 1, ndiscs
+!A!      if (X%mesh%region_ids(ele)==region_id_disc(discs)) then ! Disc production term
+!A!       a_fac = 0.5*(1.0-sqrt(1.0-C_T))
+!A!       C_x = (4.0*a_fac)/(1.0 - a_fac)
+!A!       rhs = rhs +      0.5*C_x*(  beta_p*u_ele**3.0 -  beta_d*u_ele*k_ele) ! Rethore et al
+!A!      end if
+!A!    end do
   end if
 
   if (field_id==2) then !A! id=2 => omega
@@ -531,7 +514,7 @@ subroutine assemble_rhs_ele(src_abs_terms, k, omega, scalar_eddy_visc, u, densit
     if(have_SST) then !A! Menter k-omega SST (2003):
       rhs = min(rhs,10.0*omega_ele*k_ele*beta_star*ele_val_at_quad(density, ele))
     endif
-    ADM_Source = (C_omega*rhs*rhs)/(k_ele*k_ele) !ADM!
+!A!    ADM_Source = (C_omega*rhs*rhs)/(k_ele*k_ele) !ADM!
 
     if(have_SST) then !A! Menter k-omega SST:
 
@@ -539,20 +522,20 @@ subroutine assemble_rhs_ele(src_abs_terms, k, omega, scalar_eddy_visc, u, densit
                 ( ele_val_at_quad(density, ele) / scalar_eddy_visc_ele ) + &
                 (1.0-ele_val_at_quad(F_1, ele))*ele_val_at_quad(CD_komg, ele)
 
-      do discs = 1, ndiscs
-        if ((X%mesh%region_ids(ele)==region_id_disc(discs)) .or. (X%mesh%region_ids(ele)==region_id_near_disc)) then !ADM!
-          rhs = rhs + ADM_Source
-        endif
-      end do
+!A!      do discs = 1, ndiscs
+!A!        if ((X%mesh%region_ids(ele)==region_id_disc(discs)) .or. (X%mesh%region_ids(ele)==region_id_near_disc)) then !ADM!
+!A!          rhs = rhs + ADM_Source
+!A!        endif
+!A!      end do
 
     else !A! Wilcox k-omega:
 
       rhs = rhs*alpha*(omega_ele/k_ele) !A! since eddy_visc = rho*(k/omega)
-      do discs = 1, ndiscs
-        if ((X%mesh%region_ids(ele)==region_id_disc(discs)) .or. (X%mesh%region_ids(ele)==region_id_near_disc)) then !ADM!
-          rhs = rhs + ADM_Source
-        end if
-      end do
+!A!      do discs = 1, ndiscs
+!A!        if ((X%mesh%region_ids(ele)==region_id_disc(discs)) .or. (X%mesh%region_ids(ele)==region_id_near_disc)) then !ADM!
+!A!          rhs = rhs + ADM_Source
+!A!        end if
+!A!      end do
 
     endif
   end if

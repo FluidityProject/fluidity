@@ -684,7 +684,7 @@ libspud_set_option(PyObject *self, PyObject *args)
         PyErr_SetString(SpudError,"Error: set_option takes exactly 2 arguments.");
         return NULL;
     }
-    
+
     firstArg = PyTuple_GetItem(args, 0);
     secondArg = PyTuple_GetItem(args, 1);
     PyArg_Parse(firstArg, "s", &key);
@@ -694,7 +694,7 @@ libspud_set_option(PyObject *self, PyObject *args)
         int outcomeAddOption = spud_add_option(key, key_len);
         error_checking(outcomeAddOption, "set option");
     } 
-  
+    
     if (PyInt_Check(secondArg)){ //just an int
         type = SPUD_INT;
         rank = 0;

@@ -107,7 +107,8 @@ module field_options
                                 FIELD_EQUATION_INTERNALENERGY            = 4, &
                                 FIELD_EQUATION_HEATTRANSFER              = 5, &
                                 FIELD_EQUATION_ELECTRICALPOTENTIAL       = 6, &
-                                FIELD_EQUATION_KEPSILON       = 7
+                                FIELD_EQUATION_KEPSILON       		     = 7, &
+                                FIELD_EQUATION_KOMEGA       		     = 8
 
 contains
 
@@ -950,6 +951,8 @@ contains
       equation_type_index = FIELD_EQUATION_ELECTRICALPOTENTIAL
     case ( "KEpsilon" )
       equation_type_index = FIELD_EQUATION_KEPSILON
+    case ( "KOmega" )
+      equation_type_index = FIELD_EQUATION_KOMEGA
     case default
       equation_type_index = FIELD_EQUATION_UNKNOWN
     end select
@@ -1248,6 +1251,13 @@ contains
                           trim(mat_name)//"."
             FLExit("Selected equation type only compatible with continuous galerkin spatial_discretisation")
           end if  
+        case(FIELD_EQUATION_KOMEGA)
+          if(.not.cg_disc) then
+            ewrite(-1,*) "Options checking field "//&
+                          trim(field_name)//" in material_phase "//&
+                          trim(mat_name)//"."
+            FLExit("Selected equation type only compatible with continuous galerkin spatial_discretisation")
+          end if
         end select
       end do
     end do

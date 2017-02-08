@@ -505,8 +505,8 @@ implicit none
       one  = 1.0
       neg_one = -1.0
       ione    = 1
-      call PetscOptionsGetInt(PETSC_NULL_CHARACTER,'-m',m,flg,ierr)
-      call PetscOptionsGetInt(PETSC_NULL_CHARACTER,'-n',n,flg,ierr)
+      call PetscOptionsGetInt(PETSC_NULL_OBJECT, PETSC_NULL_CHARACTER,'-m',m,flg,ierr)
+      call PetscOptionsGetInt(PETSC_NULL_OBJECT, PETSC_NULL_CHARACTER,'-n',n,flg,ierr)
 
       call MatCreate(PETSC_COMM_WORLD,A,ierr)
       call MatSetSizes(A,PETSC_DECIDE,PETSC_DECIDE,m*n,m*n,ierr)

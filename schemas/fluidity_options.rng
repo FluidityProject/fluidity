@@ -1417,7 +1417,10 @@ IMPORTANT: make velocity/viscosity diagnostic.</a:documentation>
                       </element>
                       <element name="diagnostic">
                         <ref name="velocity_mesh_choice"/>
-                        <ref name="sediment_concentration_dependent_viscosity_algorithm"/>
+                        <choice>
+                          <ref name="sediment_concentration_dependent_viscosity_algorithm"/>
+                          <ref name="tensor_python_diagnostic_algorithm"/>
+                        </choice>
                         <ref name="diagnostic_tensor_field"/>
                       </element>
                     </choice>
@@ -1845,14 +1848,14 @@ ScalarEddyViscosity is still calculated as normal.</a:documentation>
               </optional>
               <optional>
                 <element name="k-omega">
-                  <a:documentation>Standard k-omega turbulence model (see Wilcox 1998).
+                  <a:documentation>Standard k-omega (see Wilcox 1998) or k-omega SST (see Menter 2003) turbulence model.
 Solves 2 additional equations for TurbulentFrequency (omega) and TurbulentKineticEnergy (k),
 in order to close momentum equations.
 Generates an isotropic 'eddy viscosity', added to molecular viscosity field, that
 carries the influence of turbulence onto the velocity field. See the manual for details.</a:documentation>
                   <optional>
                     <element name="k-omega_SST">
-                      <a:documentation>Menter k-omega SST (2003).
+                      <a:documentation>k-omega SST (Menter 2003).
 Select to use k-omega SST model.</a:documentation>
                       <empty/>
                     </element>
@@ -1916,7 +1919,10 @@ IMPORTANT: make velocity/viscosity diagnostic.</a:documentation>
                       </element>
                       <element name="diagnostic">
                         <ref name="velocity_mesh_choice"/>
-                        <ref name="sediment_concentration_dependent_viscosity_algorithm"/>
+                        <choice>
+                          <ref name="sediment_concentration_dependent_viscosity_algorithm"/>
+                          <ref name="tensor_python_diagnostic_algorithm"/>
+                        </choice>
                         <ref name="diagnostic_tensor_field"/>
                       </element>
                     </choice>
@@ -2708,8 +2714,21 @@ probably equal to the location of the borehole</a:documentation>
               <a:documentation>Phase interaction options for Fluidity's multiphase flow model</a:documentation>
               <ref name="comment"/>
               <optional>
-                <element name="particle_diameter">
-                  <ref name="real"/>
+                <choice>
+                  <element name="particle_diameter">
+                    <ref name="real"/>
+                  </element>
+                  <element name="particle_dia_use_scalar_field">
+                    <ref name="anystring"/>
+                  </element>
+                </choice>
+              </optional>
+              <optional>
+                <element name="apply_diameter_cap">
+                  <!-- default value 1.0E-12 -->
+                  <element name="lower_cap">
+                    <ref name="real"/>
+                  </element>
                 </element>
               </optional>
               <optional>

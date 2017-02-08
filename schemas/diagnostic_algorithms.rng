@@ -1832,10 +1832,15 @@ phases respectively, and d is the particle diameter.</a:documentation>
 and also the Density, PhaseVolumeFraction and Viscosity fields of the continuous phase.</a:documentation>
         <ref name="anystring"/>
       </element>
-      <element name="particle_diameter">
+      <choice>
         <a:documentation>The particle diameter</a:documentation>
-        <ref name="real"/>
-      </element>
+        <element name="particle_diameter">
+          <ref name="real"/>
+        </element>
+        <element name="particle_diameter_use_scalar_field">
+          <ref name="anystring"/>
+        </element>
+      </choice>
       <element name="continuous_phase_name">
         <a:documentation>The name of the state representing the continuous phase</a:documentation>
         <data type="string" datatypeLibrary=""/>
@@ -1894,6 +1899,74 @@ The mesh must be directly extruded.</a:documentation>
       <attribute name="material_phase_support">
         <value>single</value>
       </attribute>
+    </element>
+  </define>
+  <define name="mesh_quality_algorithm">
+    <element name="algorithm">
+      <a:documentation>Mesh Quality function. Basics taken from VTK. See the documentation
+there for further details of specific function choices.
+
+The output mesh for this field must be discontinous P0 and the
+underlying CoordinateMesh must consist of linear triangles
+ or tetrahedra only.</a:documentation>
+      <attribute name="name">
+        <value>mesh_quality</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <choice>
+        <element name="quality_function">
+          <attribute name="name">
+            <value>radius_ratio</value>
+          </attribute>
+        </element>
+        <element name="quality_function">
+          <attribute name="name">
+            <value>aspect_ratio</value>
+          </attribute>
+        </element>
+        <element name="quality_function">
+          <attribute name="name">
+            <value>aspect_frobenius</value>
+          </attribute>
+        </element>
+        <element name="quality_function">
+          <attribute name="name">
+            <value>edge_ratio</value>
+          </attribute>
+        </element>
+        <element name="quality_function">
+          <attribute name="name">
+            <value>condition</value>
+          </attribute>
+        </element>
+        <element name="quality_function">
+          <attribute name="name">
+            <value>min_angle</value>
+          </attribute>
+        </element>
+        <element name="quality_function">
+          <attribute name="name">
+            <value>max_angle</value>
+          </attribute>
+        </element>
+        <element name="quality_function">
+          <attribute name="name">
+            <value>shape</value>
+          </attribute>
+        </element>
+        <element name="quality_function">
+          <attribute name="name">
+            <value>shape_and_size</value>
+          </attribute>
+        </element>
+        <element name="quality_function">
+          <attribute name="name">
+            <value>area_or_volume</value>
+          </attribute>
+        </element>
+      </choice>
     </element>
   </define>
   <define name="viscous_dissipation_algorithm">
@@ -2153,6 +2226,9 @@ a horizontal vector living on the specified surface.</a:documentation>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="node_halo_diagnostic_algorithm"/>
+  </define>
+  <define name="scalar_diagnostic_algorithms" combine="choice">
+    <ref name="mesh_quality_algorithm"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="lumped_mass_smoothed_scalar_algorithm"/>

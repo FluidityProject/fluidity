@@ -181,6 +181,7 @@ contains
                 Turbine(i)%IsClockwise=.true.
             elseif(have_option(trim(turbine_path(i))//"/operation/constant_rotational_velocity/rotation_direction/counter_clockwise")) then
                 Turbine(i)%IsCounterClockwise=.true.
+                Turbine(i)%RotN=-Turbine(i)%RotN
             else
                 FLExit("You should not be here. The options are clockwise and counterclockwise")
             endif 

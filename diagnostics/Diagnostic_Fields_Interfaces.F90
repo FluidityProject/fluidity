@@ -162,7 +162,7 @@ subroutine calculate_diagnostic_variable_dep_scalar(states, states_size, state_i
   use fldebug
   use fields
   use state_module
-  use diagnostic_fields_new, only:calculate_diagnostic_variable_dep
+  use diagnostic_fields_new, only: calculate_diagnostic_variable_dep
 
   implicit none
 
@@ -219,7 +219,7 @@ subroutine calculate_diagnostic_variable_dep_vector(states, states_size, state_i
   use fldebug
   use fields
   use state_module
-  use diagnostic_fields_new, only:calculate_diagnostic_variable_dep
+  use diagnostic_fields_new, only: calculate_diagnostic_variable_dep
 
   implicit none
 
@@ -274,7 +274,7 @@ subroutine calculate_diagnostic_variable_dep_tensor(states, states_size, state_i
   use fldebug
   use fields
   use state_module
-  use diagnostic_fields_new, only:calculate_diagnostic_variable_dep
+  use diagnostic_fields_new, only: calculate_diagnostic_variable_dep
 
   implicit none
 

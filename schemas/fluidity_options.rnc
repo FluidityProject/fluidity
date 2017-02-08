@@ -1103,7 +1103,8 @@ start =
                         element diagnostic {
                            velocity_mesh_choice,
                            (
-                              sediment_concentration_dependent_viscosity_algorithm
+                              sediment_concentration_dependent_viscosity_algorithm|
+                              tensor_python_diagnostic_algorithm
                            ),
                            diagnostic_tensor_field
                         }
@@ -1393,13 +1394,13 @@ start =
                      element zero_reynolds_stress_tensor{ empty }?
                   }?
                }?,
-		## Standard k-omega turbulence model (see Wilcox 1998).
+               ## Standard k-omega (see Wilcox 1998) or k-omega SST (see Menter 2003) turbulence model.
                ## Solves 2 additional equations for TurbulentFrequency (omega) and TurbulentKineticEnergy (k),
                ## in order to close momentum equations.
                ## Generates an isotropic 'eddy viscosity', added to molecular viscosity field, that
                ## carries the influence of turbulence onto the velocity field. See the manual for details.
                element k-omega {
-                  ## Menter k-omega SST (2003).
+                  ## k-omega SST (Menter 2003).
                   ## Select to use k-omega SST model.
                   element k-omega_SST{empty}?,
                   ## Turbulent kinetic energy (k).
@@ -1450,7 +1451,8 @@ start =
                         element diagnostic {
                            velocity_mesh_choice,
                            (
-                              sediment_concentration_dependent_viscosity_algorithm
+                              sediment_concentration_dependent_viscosity_algorithm|
+                              tensor_python_diagnostic_algorithm
                            ),
                            diagnostic_tensor_field
                         }
@@ -1954,8 +1956,11 @@ start =
             ## Phase interaction options for Fluidity's multiphase flow model
             element multiphase_properties {
                comment,
-               element particle_diameter { 
-                     real 
+               (element particle_diameter { real }|
+       	       element particle_dia_use_scalar_field { anystring })?,
+               element apply_diameter_cap {
+                  # default value 1.0E-12
+                  element lower_cap { real }
                }?,
                ## If this is the fluid phase, 
                ## the effective conductivity is required 

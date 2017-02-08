@@ -71,11 +71,13 @@ install-prereq:
 
 install-python%:
 # Force setuptools, but reset sys.argv[0] to 'setup.py' because setup.py files expect that.
-	cd diamond;python$* -c "import setuptools,sys;f='setup.py';sys.argv[0]=f;execfile(f,{'__file__':f,'__name__':'__main__'})" install --prefix=/usr --no-compile --single-version-externally-managed		 --root $(CURDIR)/debian/${PACKAGE_NAME}
+	cd diamond;python$* -c "import setuptools,sys;f='setup.py';sys.argv[0]=f;execfile(f,{'__file__':f,'__name__':'__main__'})" install --prefix=/usr --no-compile --single-version-externally-managed --root=$(CURDIR)/debian/${PACKAGE_NAME}
 	if [ -d debian/${PACKAGE_NAME}/usr/lib/python$*/site-packages/${MODULE_NAME}-${DEB_UPSTREAM_VERSION}.egg-info ]; then \
-	    mv debian/${PACKAGE_NAME}/usr/lib/python$*/site-packages/${MODULE_NAME}-${DEB_UPSTREAM_VERSION}.egg-info		 debian/${PACKAGE_NAME}/usr/lib/python$*/site-packages/${MODULE_NAME}.egg-info ; \
+	    mv debian/${PACKAGE_NAME}/usr/lib/python$*/site-packages  debian/${PACKAGE_NAME}/usr/lib/python$*/dist-packages ; \
+	    mv debian/${PACKAGE_NAME}/usr/lib/python$*/dist-packages/${MODULE_NAME}-${DEB_UPSTREAM_VERSION}.egg-info		 debian/${PACKAGE_NAME}/usr/lib/python$*/dist-packages/${MODULE_NAME}.egg-info ; \
 	elif [ -d debian/${PACKAGE_NAME}/usr/lib/python$*/site-packages/${MODULE_NAME}-${DEB_UPSTREAM_VERSION}-py$*.egg-info ]; then \
-	    mv debian/${PACKAGE_NAME}/usr/lib/python$*/site-packages/${MODULE_NAME}-${DEB_UPSTREAM_VERSION}-py$*.egg-info		 debian/${PACKAGE_NAME}/usr/lib/python$*/site-packages/${MODULE_NAME}.egg-info ; \
+	    mv debian/${PACKAGE_NAME}/usr/lib/python$*/site-packages  debian/${PACKAGE_NAME}/usr/lib/python$*/dist-packages ; \
+	    mv debian/${PACKAGE_NAME}/usr/lib/python$*/dist-packages/${MODULE_NAME}-${DEB_UPSTREAM_VERSION}-py$*.egg-info		 debian/${PACKAGE_NAME}/usr/lib/python$*/dist-packages/${MODULE_NAME}.egg-info ; \
 	else \
 	    echo "Failed to locate python egg, was it built correctly?" && exit 1 ; \
 	fi
@@ -99,8 +101,7 @@ binary-arch: build-libspud install-libspud install-spudtools install-pyspud
 #	dh_installemacsen
 #	dh_installpam
 #	dh_installmime
-#	Fallback to dh_pysupport of dh_python2 is not available (as on Ubuntu Lucid)
-	([ -x $(which dh_python2) ] && dh_python2) || dh_pysupport
+	dh_python2
 #	dh_installinit
 #	dh_installcron
 #	dh_installinfo
@@ -120,8 +121,7 @@ binary-arch: build-libspud install-libspud install-spudtools install-pyspud
 binary-indep: build-diamond install-diamond build-libspud install-libspud install-spudtools install-dxdiff
 	dh_testdir -i
 	dh_testroot -i
-#	Fallback to dh_pysupport of dh_python2 is not available (as on Ubuntu Lucid)
-	([ -x $(which dh_python2) ] && dh_python2 -i) || dh_pysupport -i
+	dh_python2 -i
 	dh_installdocs -i
 	dh_installdirs -i
 	dh_installexamples  -i

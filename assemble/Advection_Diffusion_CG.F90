@@ -570,6 +570,34 @@ contains
       end select
       ewrite_minmax(density)
 
+    case(FIELD_EQUATION_KOMEGA)
+      ewrite(2,*) "Solving k-omega equation"
+      if(move_mesh) then
+        FLExit("Haven't implemented a moving mesh k-omega equation yet.")
+      end if
+      
+      ! Depending on the equation type, extract the density or set it to some dummy field allocated above
+      temp_velocity_ptr => extract_vector_field(state, "Velocity")
+      call get_option(trim(temp_velocity_ptr%option_path)//"/prognostic/equation[0]/name", velocity_equation_type)
+      select case(velocity_equation_type)
+         case("LinearMomentum")
+            density=>extract_scalar_field(state, "Density")
+            olddensity => dummydensity
+            density_theta = 1.0
+         case("Boussinesq")
+            density=>dummydensity
+            olddensity => dummydensity
+            density_theta = 1.0
+         case("Drainage")
+            density=>dummydensity
+            olddensity => dummydensity
+            density_theta = 1.0
+         case default
+            ! developer error... out of sync options input and code
+            FLAbort("Unknown equation type for velocity")
+      end select
+      ewrite_minmax(density)
+
     case default
       FLExit("Unknown field equation type for cg advection diffusion.")
     end select
@@ -805,6 +833,11 @@ contains
            & ele_shape(velocity, ele), dshape = du_t)
     end if
     
+    if(have_advection.or.(equation_type==FIELD_EQUATION_INTERNALENERGY).or.equation_type==FIELD_EQUATION_KOMEGA) then
+      call transform_to_physical(positions, ele, &
+           & ele_shape(velocity, ele), dshape = du_t)
+    end if
+
     if(have_advection.and.move_mesh.and..not.integrate_advection_by_parts) then
       call transform_to_physical(positions, ele, &
           & ele_shape(grid_velocity, ele), dshape = dug_t)
@@ -824,6 +857,15 @@ contains
       end if
     end if
     
+    if(have_advection.and.(equation_type==FIELD_EQUATION_INTERNALENERGY .or. equation_type==FIELD_EQUATION_KOMEGA)) then
+      if(ele_shape(density, ele)==t_shape) then
+        drho_t = dt_t
+      else
+        call transform_to_physical(positions, ele, &
+          & ele_shape(density, ele), dshape = drho_t)
+      end if
+    end if    
+
     if(have_advection .and. multiphase .and. (equation_type==FIELD_EQUATION_INTERNALENERGY)) then
       ! If the field and nvfrac meshes are different, then we need to
       ! compute the derivatives of the nvfrac shape functions.    
@@ -929,6 +971,9 @@ contains
         end if
       end if
     case(FIELD_EQUATION_KEPSILON)      
+      density_at_quad = ele_val_at_quad(density, ele)
+      mass_matrix = shape_shape(test_function, ele_shape(t, ele), detwei*density_at_quad)
+    case(FIELD_EQUATION_KOMEGA)      
       density_at_quad = ele_val_at_quad(density, ele)
       mass_matrix = shape_shape(test_function, ele_shape(t, ele), detwei*density_at_quad)
     case default
@@ -1037,6 +1082,10 @@ contains
       density_at_quad = ele_val_at_quad(density, ele)
       densitygrad_at_quad = ele_grad_at_quad(density, ele, drho_t)
       udotgradrho_at_quad = sum(densitygrad_at_quad*velocity_at_quad, 1)
+    case(FIELD_EQUATION_KOMEGA)
+      density_at_quad = ele_val_at_quad(density, ele)
+      densitygrad_at_quad = ele_grad_at_quad(density, ele, drho_t)
+      udotgradrho_at_quad = sum(densitygrad_at_quad*velocity_at_quad, 1)
     end select
                 
     if(integrate_advection_by_parts) then
@@ -1068,6 +1117,14 @@ contains
           end if
         end if
       case(FIELD_EQUATION_KEPSILON)
+        advection_mat = -dshape_dot_vector_shape(dt_t, velocity_at_quad, t_shape, detwei*density_at_quad)
+        if(abs(1.0 - beta) > epsilon(0.0)) then
+          velocity_div_at_quad = ele_div_at_quad(velocity, ele, du_t)
+          advection_mat = advection_mat &
+                    - (1.0-beta) * shape_shape(test_function, t_shape, (velocity_div_at_quad*density_at_quad &
+                                                                      +udotgradrho_at_quad)* detwei)
+        end if
+      case(FIELD_EQUATION_KOMEGA)
         advection_mat = -dshape_dot_vector_shape(dt_t, velocity_at_quad, t_shape, detwei*density_at_quad)
         if(abs(1.0 - beta) > epsilon(0.0)) then
           velocity_div_at_quad = ele_div_at_quad(velocity, ele, du_t)
@@ -1117,6 +1174,14 @@ contains
           end if
         end if
       case(FIELD_EQUATION_KEPSILON)
+        advection_mat = shape_vector_dot_dshape(test_function, velocity_at_quad, dt_t, detwei*density_at_quad)
+        if(abs(beta) > epsilon(0.0)) then
+          velocity_div_at_quad = ele_div_at_quad(velocity, ele, du_t)
+          advection_mat = advection_mat &
+                    + beta*shape_shape(test_function, t_shape, (velocity_div_at_quad*density_at_quad &
+                                                                +udotgradrho_at_quad)*detwei)
+        end if
+      case(FIELD_EQUATION_KOMEGA)
         advection_mat = shape_vector_dot_dshape(test_function, velocity_at_quad, dt_t, detwei*density_at_quad)
         if(abs(beta) > epsilon(0.0)) then
           velocity_div_at_quad = ele_div_at_quad(velocity, ele, du_t)
@@ -1541,6 +1606,7 @@ contains
             if(option_count(trim(path) // "/boundary_conditions/type::neumann") > 0 &
               & .and. .not. (have_option(trim(path) // "/tensor_field::Diffusivity") &
               & .or. have_option(trim(path) // "/subgridscale_parameterisation::k-epsilon") &
+              & .or. have_option(trim(path) // "/subgridscale_parameterisation::k-omega") &
               & .or. have_option(trim(path) // "/subgridscale_parameterisation::GLS"))) then
                 call field_warning(state_name, field_name, &
                 & "Neumann boundary condition set, but have no diffusivity - boundary condition will not be applied")

@@ -14,6 +14,7 @@ import glob
 
 prefix = None
 import sys
+packaging=False
 
 # We may also be given prefix, either as a configuration option (which will be
 # dealt with by substitutions later) or as a command line option. If a command
@@ -44,22 +45,31 @@ for i, arg in enumerate(sys.argv):
 # First parse the plugin directories
 plugin_dirs = [dir for dir in os.listdir('plugins') if os.path.isdir(os.path.join('plugins', dir)) and dir[0] != '.']
 plugin_data_files = []
-for plugin in plugin_dirs:
-  if prefix is None:
-    plugin_data_files.append(("@prefix@/share/diamond/plugins/" + plugin,
-      glob.glob('plugins/' + plugin + '/*.py')))
-  else:
-    plugin_data_files.append((prefix + "/share/diamond/plugins/" + plugin,
-      glob.glob('plugins/' + plugin + '/*.py')))
+if sys.platform == 'darwin' and packaging:
+	for plugin in plugin_dirs:
+  		plugin_data_files.append(("./plugins/" + plugin,
+		  glob.glob('plugins/' + plugin + '/*.py')))
+else:
+	for plugin in plugin_dirs:
+	  if prefix is None:
+		plugin_data_files.append(("@prefix@/share/diamond/plugins/" + plugin,
+		  glob.glob('plugins/' + plugin + '/*.py')))
+	  else:
+		plugin_data_files.append((prefix + "/share/diamond/plugins/" + plugin,
+		  glob.glob('plugins/' + plugin + '/*.py')))
 
 # Now parse the GUI directories
 gui_data_files = []
-if prefix is None:
-  gui_data_files.append(("@prefix@/share/diamond/gui",
-    ["gui/gui.glade", "gui/diamond.svg"]))
+if sys.platform == 'darwin' and packaging	:
+  gui_data_files.append(("./gui",
+    ["gui/gui.glade", "gui/diamond.svg", "gui/diamond.png"]))
 else:
-  gui_data_files.append((prefix + "/share/diamond/gui",
-    ["gui/gui.glade", "gui/diamond.svg"]))
+	if prefix is None:
+	  gui_data_files.append(("@prefix@/share/diamond/gui",
+		["gui/gui.glade", "gui/diamond.svg"]))
+	else:
+	  gui_data_files.append((prefix + "/share/diamond/gui",
+		["gui/gui.glade", "gui/diamond.svg"]))
 
 # We now have all the information we need; run setup.
 setup(
