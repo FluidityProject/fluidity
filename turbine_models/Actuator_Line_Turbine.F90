@@ -88,7 +88,6 @@ contains
     turbine%blade(iblade)%QCy(istation)=rR(istation)*turbine%Rmax*Svec(2)+turbine%blade(iblade)%COR(2)
     turbine%blade(iblade)%QCz(istation)=rR(istation)*turbine%Rmax*Svec(3)+turbine%blade(iblade)%COR(3)
     if(turbine%IsCounterClockwise) then
-        turbine%RotN=-turbine%RotN
         turbine%blade(iblade)%tx(istation)=sin(pitch(istation)/180.0*pi)    
         turbine%blade(iblade)%ty(istation)=-cos(pitch(istation)/180.0*pi)    
         turbine%blade(iblade)%tz(istation)= 0.0
@@ -96,7 +95,6 @@ contains
         turbine%blade(iblade)%thick(istation)=thick(istation)
         turbine%blade(iblade)%pitch(istation)=pitch(istation)/180.0*pi
     elseif(turbine%IsClockwise) then
-        turbine%RotN=turbine%RotN
         turbine%blade(iblade)%tx(istation)=sin(pitch(istation)/180.0*pi)    
         turbine%blade(iblade)%ty(istation)=cos(pitch(istation)/180.0*pi)    
         turbine%blade(iblade)%tz(istation)= 0.0
@@ -107,8 +105,7 @@ contains
     endif
     end do
 
-    ! Always rotate counterclockwise to assign the turbine blades
-    call rotate_actuatorline(turbine%blade(iblade),turbine%blade(iblade)%COR,(/-1.0,0.0,0.0/),(iblade-1)*theta)   
+    call rotate_actuatorline(turbine%blade(iblade),turbine%blade(iblade)%COR,turbine%RotN,(iblade-1)*theta)   
     ! Rotate through incidence (hub tilt) and coning angle
     call make_actuatorline_geometry(turbine%blade(iblade))
     ! Populate element Airfoils 

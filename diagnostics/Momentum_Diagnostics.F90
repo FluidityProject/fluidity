@@ -411,12 +411,16 @@ contains
         nu=eval_field(ele,ViscosityTens,local_coord)
         
         Visc=1.0/3.0*(nu(1,1)+nu(2,2)+nu(3,3)) ! Compute trace of the viscosity tensor 
-             
+        
+        volume=element_volume(positions,ele)
+
         if(has_constant_epsilon) then
             Se(isource)=constant_epsilon
+            if (Se(isource)>4.0*volume**(1/3.0)) then
+                ewrite(1,*) 'problem with the source term of ', isource
+            endif
         else if (has_mesh_based_epsilon) then 
             ! Compute a mesh_based epsilon
-            volume=element_volume(positions,ele)
             epsilon_par_mesh  = meshFactor*2.0*volume**(1.0/3.0) 
             Se(isource)=max(epsilon_par_mesh,chordFactor*Sc(isource))
         else
