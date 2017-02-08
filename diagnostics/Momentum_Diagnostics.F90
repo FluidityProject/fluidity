@@ -416,7 +416,7 @@ contains
 
         if(has_constant_epsilon) then
             Se(isource)=constant_epsilon
-            if (Se(isource)>4.0*volume**(1/3.0)) then
+            if (Se(isource)<4.0*volume**(1/3.0)) then
                 ewrite(1,*) 'problem with the source term of ', isource
             endif
         else if (has_mesh_based_epsilon) then 
