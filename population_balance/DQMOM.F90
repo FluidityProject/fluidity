@@ -1169,7 +1169,7 @@ contains
     character(len=OPTION_PATH_LEN) :: option_path 
     character(len=FIELD_NAME_LEN)  :: old_msh, amsh, wmsh, wamsh, mmsh, smsh, type
 
-    write(*,*) 'in dqmom_check_options'
+    ewrite(1,*) 'in dqmom_check_options'
 
     do i_state = 1, option_count("/material_phase")
        do i_pop = 1, option_count('material_phase['//int2str(i_state-1)//']/population_balance')
@@ -1294,7 +1294,7 @@ contains
        end do
     end do
 
-    write(*,*) 'Finished dqmom_check_options'
+    ewrite(1,*) 'Finished dqmom_check_options'
   end subroutine dqmom_check_options
 
 end module dqmom
