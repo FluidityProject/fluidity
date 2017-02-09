@@ -61,6 +61,7 @@ module spherical_adaptivity
     type(vector_field) :: horizontal_positions, top_positions, bottom_positions
     type(mesh_type), pointer :: external_mesh
     integer, dimension(:), pointer :: element_map
+    integer nlayers
 
     if (.not. has_vector_field(states(1), "BaseGeometryMeshHorizontalCoordinate")) then
       external_mesh => get_external_mesh(states)
@@ -68,11 +69,16 @@ module spherical_adaptivity
       assert(external_positions%mesh==external_mesh)
 
       call create_horizontal_positions_sphere(external_positions, &
-        horizontal_positions, element_map, "BaseGeometryMesh")
+          horizontal_positions, element_map, "BaseGeometryMesh")
       top_positions = construct_base_geometry_surface_positions(horizontal_positions, &
-        external_mesh, element_map, current_positions, 'top', 'BaseGeometryTopPositions')
+          external_mesh, element_map, current_positions, &
+          trim(current_positions%mesh%option_path) // '/from_mesh/extrude/layer[0]/regions', &
+          'top', 'BaseGeometryTopPositions')
+      nlayers = option_count(trim(current_positions%mesh%option_path) // '/from_mesh/extrude/layer')
       bottom_positions = construct_base_geometry_surface_positions(horizontal_positions, &
-        external_mesh, element_map, current_positions, 'bottom', 'BaseGeometryBottomPositions')
+          external_mesh, element_map, current_positions, &
+          trim(current_positions%mesh%option_path) // '/from_mesh/extrude/layer[' // int2str(nlayers-1) // ']/regions', &
+          'bottom', 'BaseGeometryBottomPositions')
 
       if (isparallel()) then
         call base_geometry_allgather(external_mesh, element_map, horizontal_positions, top_positions, bottom_positions)
@@ -176,28 +182,27 @@ module spherical_adaptivity
   end subroutine allgather_positions
 
   function construct_base_geometry_surface_positions(external_horizontal_positions, external_mesh, element_map, positions, &
-    surface_name, positions_name) result (base_geometry_surface_positions)
+    layer_regions_option_path, surface_name, positions_name) result (base_geometry_surface_positions)
     type(vector_field), intent(inout) :: external_horizontal_positions
     type(mesh_type), intent(in) :: external_mesh
     integer, dimension(:), intent(in) :: element_map
     type(vector_field), intent(inout) :: positions ! FIXME: should be intent(in)
+    character(len=*), intent(in) :: layer_regions_option_path
     character(len=*), intent(in) :: surface_name, positions_name
     type(vector_field) :: base_geometry_surface_positions
 
     type(vector_field) :: surface_positions, surface_horizontal_positions, external_surface_positions
     type(mesh_type), pointer :: surface_mesh
-    character(len=OPTION_PATH_LEN) :: extrude_region_option_path, surface_id_option_path
     real, dimension(:,:), allocatable :: loc_coords
     real, dimension(:), allocatable :: max_loc_coords
     integer, dimension(:), pointer :: surface_element_list, nodes
     integer, dimension(:), allocatable :: eles, surface_ids
     integer i, j
 
-    extrude_region_option_path = trim(positions%mesh%option_path) // '/from_mesh/extrude/regions'
-    allocate(surface_ids(option_count(extrude_region_option_path)))
+    allocate(surface_ids(option_count(layer_regions_option_path)))
     do i=1, size(surface_ids)
-      surface_id_option_path = trim(extrude_region_option_path) // '[' // int2str(i-1) // ']/' // trim(surface_name) // '_surface_id'
-      call get_option(surface_id_option_path, surface_ids(i))
+      call get_option(trim(layer_regions_option_path) // '[' // int2str(i-1) // ']/' // &
+        trim(surface_name)//'_surface_id', surface_ids(i))
     end do
 
     ! FIXME: adding a temp. bc. only to create a surface mesh from boundary ids
