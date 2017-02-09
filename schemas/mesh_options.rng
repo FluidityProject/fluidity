@@ -163,85 +163,40 @@ parallel periodic boundary conditions.</a:documentation>
         <optional>
           <element name="extrude">
             <a:documentation>Extrude a horizontal (1D or 2D) mesh in the vertical</a:documentation>
-            <oneOrMore>
-              <choice>
-                <element name="regions">
-                  <a:documentation>Extrusion options for WholeMesh
-
-Only specify one set of parameters if not using mesh regions.
-Otherwise use the dropdown menu to specify a named region,
-specify the region_ids in the surface mesh that define this
-named region, and then hen add extra regions for other regions.</a:documentation>
-                  <attribute name="name">
-                    <value>WholeMesh</value>
-                  </attribute>
-                  <oneOrMore>
-                    <choice>
-                      <element name="layers">
-                        <a:documentation>Extrusion options for WholeDepth
+            <choice>
+              <element name="layer">
+                <a:documentation>Extrusion options for WholeDepth
 
 Only specify one set of parameters for the entire depth. If
 you want to have different extrusion parameters in different
 layers, use the dropdown menu to select a named layer for the top
 layer, and add extra layers to specify the extrusion in layers below.</a:documentation>
-                        <attribute name="name">
-                          <value>WholeDepth</value>
-                        </attribute>
-                        <ref name="extrusion_options"/>
-                      </element>
-                      <element name="layers">
-                        <a:documentation>Multiple extrusion options are allowed if specifying different
-values in different named layers</a:documentation>
-                        <attribute name="name">
-                          <data type="string" datatypeLibrary=""/>
-                        </attribute>
-                        <ref name="extrusion_options"/>
-                      </element>
-                    </choice>
-                  </oneOrMore>
-                </element>
-                <element name="regions">
-                  <a:documentation>Multiple extrusion options are allowed if specifying
-different values in different
-regions of the mesh (defined by region_ids).  In this case
-each set of options
-requires a distinct name for the options dictionary.</a:documentation>
-                  <attribute name="name">
-                    <data type="string" datatypeLibrary=""/>
-                  </attribute>
-                  <optional>
-                    <ref name="region_ids"/>
-                  </optional>
-                  <oneOrMore>
-                    <choice>
-                      <element name="layers">
-                        <a:documentation>Extrusion options for WholeDepth
-
-Only specify one set of parameters for the entire depth. If
-you want to have different extrusion parameters in different
-layers, use the dropdown menu to select a named layer for the top
-layer, and add extra layers to specify the extrusion in layers below.</a:documentation>
-                        <attribute name="name">
-                          <value>WholeDepth</value>
-                        </attribute>
-                        <ref name="extrusion_options"/>
-                      </element>
-                      <element name="layers">
-                        <a:documentation>Multiple extrusion options are allowed if specifying different
-values in different named layers</a:documentation>
-                        <attribute name="name">
-                          <data type="string" datatypeLibrary=""/>
-                        </attribute>
-                        <ref name="extrusion_options"/>
-                      </element>
-                    </choice>
-                  </oneOrMore>
-                </element>
-              </choice>
-            </oneOrMore>
+                <attribute name="name">
+                  <value>WholeDepth</value>
+                </attribute>
+                <ref name="top_layer_extrusion_options"/>
+              </element>
+              <element name="layer">
+                <a:documentation>Extrusion options for the top layer. Give this layer a unique name
+and if necessary add more layers below with different extrusion options.</a:documentation>
+                <attribute name="name">
+                  <data type="string" datatypeLibrary=""/>
+                </attribute>
+                <ref name="top_layer_extrusion_options"/>
+              </element>
+            </choice>
+            <zeroOrMore>
+              <element name="layer">
+                <a:documentation>Continue mesh extrusion under the previous extrusion layer with possibly different options.</a:documentation>
+                <attribute name="name">
+                  <data type="string" datatypeLibrary=""/>
+                </attribute>
+                <ref name="next_layer_extrusion_options"/>
+              </element>
+            </zeroOrMore>
             <optional>
               <element name="checkpoint_from_file">
-                <a:documentation>This is an internal option used by checkpointing. The 
+                <a:documentation>This is an internal option used by checkpointing. The
 option is switched on automatically in writing a 
 checkpoint, so that when starting from the checkpoint .flml
 fluidity picks up the extruded mesh from file. After the next
@@ -318,6 +273,114 @@ Enter the base name without the .edge .ele, .face or
       <ref name="mesh_stat_options_disabled_default"/>
     </element>
   </define>
+  <define name="top_layer_extrusion_options">
+    <choice>
+      <element name="regions">
+        <a:documentation>Extrusion options for WholeMesh
+
+Only specify one set of parameters if not using mesh regions.
+Otherwise use the dropdown menu to specify a named region,
+specify the region_ids in the surface mesh that define this
+named region, and then hen add extra regions for other regions.</a:documentation>
+        <attribute name="name">
+          <value>WholeMesh</value>
+        </attribute>
+        <ref name="top_layer_regional_extrusion_options"/>
+      </element>
+      <element name="regions">
+        <a:documentation>Multiple extrusion options are allowed if specifying
+different values in different
+regions of the mesh (defined by region_ids).  In this case
+each set of options
+requires a distinct name for the options dictionary.</a:documentation>
+        <attribute name="name">
+          <data type="string" datatypeLibrary=""/>
+        </attribute>
+        <optional>
+          <ref name="region_ids"/>
+        </optional>
+        <ref name="top_layer_regional_extrusion_options"/>
+      </element>
+    </choice>
+    <zeroOrMore>
+      <element name="regions">
+        <attribute name="name">
+          <data type="string" datatypeLibrary=""/>
+        </attribute>
+        <optional>
+          <ref name="region_ids"/>
+        </optional>
+        <ref name="top_layer_regional_extrusion_options"/>
+      </element>
+    </zeroOrMore>
+  </define>
+  <define name="next_layer_extrusion_options">
+    <choice>
+      <element name="regions">
+        <a:documentation>Extrusion options for WholeMesh
+
+Only specify one set of parameters if not using mesh regions.
+Otherwise use the dropdown menu to specify a named region,
+specify the region_ids in the surface mesh that define this
+named region, and then hen add extra regions for other regions.</a:documentation>
+        <attribute name="name">
+          <value>WholeMesh</value>
+        </attribute>
+        <ref name="next_layer_regional_extrusion_options"/>
+      </element>
+      <element name="regions">
+        <a:documentation>Multiple extrusion options are allowed if specifying
+different values in different
+regions of the mesh (defined by region_ids).  In this case
+each set of options
+requires a distinct name for the options dictionary.</a:documentation>
+        <attribute name="name">
+          <data type="string" datatypeLibrary=""/>
+        </attribute>
+        <optional>
+          <ref name="region_ids"/>
+        </optional>
+        <ref name="next_layer_regional_extrusion_options"/>
+      </element>
+    </choice>
+    <zeroOrMore>
+      <element name="regions">
+        <attribute name="name">
+          <data type="string" datatypeLibrary=""/>
+        </attribute>
+        <optional>
+          <ref name="region_ids"/>
+        </optional>
+        <ref name="next_layer_regional_extrusion_options"/>
+      </element>
+    </zeroOrMore>
+  </define>
+  <!-- in the top layer we can specify both top and bottom surface id in each region: -->
+  <define name="top_layer_regional_extrusion_options">
+    <ref name="extrusion_options"/>
+    <optional>
+      <element name="top_surface_id">
+        <a:documentation>surface_id to assign to the top of the extruded mesh</a:documentation>
+        <ref name="integer"/>
+      </element>
+    </optional>
+    <optional>
+      <element name="bottom_surface_id">
+        <a:documentation>surface_id to assign to the bottom of the extruded mesh</a:documentation>
+        <ref name="integer"/>
+      </element>
+    </optional>
+  </define>
+  <!-- in the next layers we can only specify the bottom surface id in each region: -->
+  <define name="next_layer_regional_extrusion_options">
+    <ref name="extrusion_options"/>
+    <optional>
+      <element name="bottom_surface_id">
+        <a:documentation>surface_id to assign to the bottom of the layer</a:documentation>
+        <ref name="integer"/>
+      </element>
+    </optional>
+  </define>
   <define name="extrusion_options">
     <element name="bottom_depth">
       <a:documentation>Depth over which to extrude
@@ -347,18 +410,6 @@ to have at least this fraction of the layer depth above it.
 
 Default is 1e-3.</a:documentation>
         <ref name="real"/>
-      </element>
-    </optional>
-    <optional>
-      <element name="top_surface_id">
-        <a:documentation>surface_id to assign to the top of the extruded mesh</a:documentation>
-        <ref name="integer"/>
-      </element>
-    </optional>
-    <optional>
-      <element name="bottom_surface_id">
-        <a:documentation>surface_id to assign to the bottom of the extruded mesh</a:documentation>
-        <ref name="integer"/>
       </element>
     </optional>
   </define>
