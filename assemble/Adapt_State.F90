@@ -1197,6 +1197,20 @@ contains
       ! We're done with old_positions, so we may deallocate it
       call deallocate(old_positions)
 
+      if (have_spherical_adaptivity) then
+        positions_name = new_positions%name
+        ! make a copy of the new (still unpopped) positions and store it as the base geometry
+        call allocate(old_positions, new_positions%dim, new_positions%mesh, trim(positions_name)//"BaseGeometry")
+        call set(old_positions, new_positions)
+        call insert(states(1), old_positions, old_positions%name)
+        call vtk_write_fields("base_geometry_after", index, old_positions, old_positions%mesh)
+        call deallocate(old_positions)
+
+        call spherical_adaptivity_pop_out(states, new_positions)
+        call vtk_write_fields("popped_geometry_after", index, new_positions, new_positions%mesh)
+      end if
+
+
       ! Insert meshes from reserve states
       call restore_reserved_meshes(states)
       ! Next we recreate all derived meshes
@@ -1285,22 +1299,6 @@ contains
         metric = extract_and_remove_metric(states(1), metric_name)
         ! we haven't interpolated in halo2 nodes, so we need to halo update it
         call halo_update(metric)
-      end if
-
-      if (have_spherical_adaptivity) then
-        new_positions = get_coordinate_field(states(1), extract_mesh(states(1), topology_mesh_name))
-        positions_name = new_positions%name
-        ! make a copy of the new (still unpopped) positions and store it as the base geometry
-        call allocate(old_positions, new_positions%dim, new_positions%mesh, trim(positions_name)//"BaseGeometry")
-        call set(old_positions, new_positions)
-        call insert(states(1), old_positions, old_positions%name)
-        call vtk_write_state("base_geometry_after", index, old_positions%mesh%name, states)
-        call deallocate(old_positions)
-
-        call spherical_adaptivity_pop_out(states, new_positions)
-        call vtk_write_state("popped_geometry_after", index, new_positions%mesh%name, states)
-        ! drop our reference for new_positions again (still stored in state)
-        call deallocate(new_positions)
       end if
 
       if(present_and_true(initialise_fields)) then

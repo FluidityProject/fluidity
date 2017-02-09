@@ -303,7 +303,7 @@ module spherical_adaptivity
     integer, dimension(:), allocatable :: eles
     integer i, j
 
-    horizontal_base_geometry => extract_vector_field(states, "BaseGeometryMeshHorizontalCoordinate")
+    horizontal_base_geometry => extract_vector_field(reserve_state, "BaseGeometryMeshHorizontalCoordinate")
     call allocate(horizontal_positions, positions%dim-1, positions%mesh, "HorizontalPositions")
     do i = 1, node_count(positions)
       call set(horizontal_positions, i, map2horizontal_sphere(node_val(positions, i)))
@@ -311,8 +311,8 @@ module spherical_adaptivity
     allocate(eles(1:node_count(positions)), loc_coords(1:positions%dim, 1:node_count(positions)))
     call picker_inquire(horizontal_base_geometry, horizontal_positions, eles, loc_coords, global=.false.)
 
-    top_positions => extract_vector_field(states, "BaseGeometryTopPositions")
-    bottom_positions => extract_vector_field(states, "BaseGeometryBottomPositions")
+    top_positions => extract_vector_field(reserve_state, "BaseGeometryTopPositions")
+    bottom_positions => extract_vector_field(reserve_state, "BaseGeometryBottomPositions")
     do i = 1, node_count(positions)
       call ray_plane_interpolate_xyz_radius(ele_val(top_positions, eles(i)), node_val(positions, i), xyz_top, r_top)
       call ray_plane_interpolate_xyz_radius(ele_val(bottom_positions, eles(i)), node_val(positions, i), xyz_bottom, r_bottom)
