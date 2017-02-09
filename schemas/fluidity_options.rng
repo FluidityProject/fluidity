@@ -1621,6 +1621,12 @@ for thermal fields. This is used to calculate the turbulent buoyancy term.
 Recommended value (default): 1.0.</a:documentation>
                     <ref name="real"/>
                   </element>
+                  <optional>
+                    <element name="yPlus">
+                      <a:documentation>yPlus value (default): 11.06.</a:documentation>
+                      <ref name="real"/>
+                    </element>
+                  </optional>
                   <element name="time_discretisation">
                     <a:documentation>Time discretisation of the source terms in the k and epsilon equations and also
 of the eddy viscosity</a:documentation>
@@ -3727,8 +3733,14 @@ This means that the drag coefficient has units of momentum.</a:documentation>
             <a:documentation>Wall function for k_epsilon RANS model.
 Shear stress at the wall is set following
 the methodology outlined in Kuzmin and Mierka (2006).
-Constant not needed! Set to zero (or whatever).</a:documentation>
-            <empty/>
+Constant not needed! Set to zero (or whatever).
+Set yPlus value to the same value set under k-epsilon!</a:documentation>
+            <optional>
+              <element name="yPlus">
+                <a:documentation>yPlus value (default): 11.06.</a:documentation>
+                <ref name="real"/>
+              </element>
+            </optional>
           </element>
         </choice>
       </element>

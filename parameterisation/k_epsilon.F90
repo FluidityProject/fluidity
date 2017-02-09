@@ -381,7 +381,8 @@ subroutine keps_calculate_rhs(state)
      !-----------------------------------------------------------------------------------
      ! high Re wall functions: modify production term P_k on the boundary!
 
-     yPlus = 300.0 !!! 11.06 !using fixed yPlus value atm
+     !A! yPlus = 300.0 !!! 11.06 !using fixed yPlus value atm
+     call get_option(trim(option_path)//'/yPlus', yPlus, default = 11.06) !A! grab yPlus from diamond
      kappa = 0.41
 
      if(i==1) then
@@ -834,7 +835,8 @@ subroutine keps_eddyvisc(state, advdif)
   !-----------------------------------------------------------------------------------
   ! Update eddy viscosity at the wall if wall function is selected:
 
-     yPlus = 300.0 !!! 11.06 !using fixed yPlus value atm
+     !A! yPlus = 300.0 !!! 11.06 !using fixed yPlus value atm
+     call get_option(trim(option_path)//'/yPlus', yPlus, default = 11.06) !A! grab yPlus from diamond
      kappa = 0.41
      fieldk => extract_scalar_field(state, "TurbulentKineticEnergy")
 
@@ -1245,7 +1247,8 @@ subroutine keps_bcs(state)
   sngi=face_ngi(u, 1)
   allocate(friction_velocity(1:sngi))
 
-  yPlus = 300.0 !!! 11.06 !using fixed yPlus value atm
+  !A! yPlus = 300.0 !!! 11.06 !using fixed yPlus value atm
+  call get_option(trim(option_path)//'/yPlus', yPlus, default = 11.06) !A! grab yPlus from diamond
   kappa = 0.41
 
   field_loop: do index=1,2

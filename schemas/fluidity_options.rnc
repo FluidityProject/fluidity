@@ -1258,6 +1258,8 @@ start =
                   ## for thermal fields. This is used to calculate the turbulent buoyancy term.
                   ## Recommended value (default): 1.0.
                   element sigma_p {real},
+                  ## yPlus value (default): 11.06.
+                  element yPlus {real}?,
                   ## Time discretisation of the source terms in the k and epsilon equations and also
                   ## of the eddy viscosity
                   element time_discretisation {  
@@ -2770,8 +2772,10 @@ velocity_boundary_conditions =
               ## Shear stress at the wall is set following
               ## the methodology outlined in Kuzmin and Mierka (2006).
               ## Constant not needed! Set to zero (or whatever).
+              ## Set yPlus value to the same value set under k-epsilon!
               element log_law_friction_velocity {
-                empty
+                ## yPlus value (default): 11.06.
+                element yPlus {real}?
               }
             )
          }|

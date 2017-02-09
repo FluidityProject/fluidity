@@ -137,7 +137,9 @@ subroutine drag_surface(bigm, rhs, state, density)
             elseif(have_option(trim(velocity%option_path)//&
                '/prognostic/boundary_conditions['//int2str(i-1)//']/type[0]/log_law_friction_velocity')) then
 
-              yPlus = 300.0 !!! 11.06 !using fixed yPlus value atm
+              !A! yPlus = 300.0 !!! 11.06 !using fixed yPlus value atm
+              call get_option(trim(velocity%option_path)//&
+                   '/prognostic/boundary_conditions['//int2str(i-1)//']/type[0]/log_law_friction_velocity/yPlus', yPlus, default = 11.06) !A! grab yPlus from diamond
 
               if(have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon")) then
                 TKE => extract_scalar_field(state, "TurbulentKineticEnergy")
@@ -151,8 +153,9 @@ subroutine drag_surface(bigm, rhs, state, density)
               end if
 
               ! calc wall shear stress: tau_wall = - (u_tau/yPlus)*|u_wall|
-              coefficient = (friction_velocity/yPlus)*sqrt(sum(face_val_at_quad(nl_velocity, sele)**2, dim=1))
-
+              !coefficient = (friction_velocity/yPlus)*sqrt(sum(face_val_at_quad(nl_velocity, sele)**2, dim=1))
+              coefficient = (friction_velocity/yPlus)
+              !ewrite(1,*) 'AMIN: Are we here yet?', yPlus, coefficient, coefficient*sqrt(sum(face_val_at_quad(nl_velocity, sele)**2, dim=1))
             else ! default to quadratic_drag
               ! drag coefficient: C_D * |u|
               coefficient=ele_val_at_quad(drag_coefficient, j)* &
