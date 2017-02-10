@@ -70,20 +70,18 @@ for f in args.file:
 
 def update_extrusion_with_layers():
   global changed
-  elements = tree.findall("//extrude/regions")
-  if len(elements) != 0:
-    for element in elements:
-      if len(element.findall('layers'))>0:
+  elements = tree.findall("/geometry/mesh/from_mesh/extrude")
+  for element in elements:
+      regions = element.findall('regions')
+      if len(regions)==0:
           continue
-      layer = etree.SubElement(element, "layers", attrib={"name": "WholeDepth"})
-      for child in element.getchildren():
-          print child.tag
-          # region_ids remains directly under regions
-          if child.tag == 'region_ids' or child.tag == 'layers':
-              continue
-          # all other items go under the new layer
-          layer.append(child)
-    changed = True
+      changed = True
+      layer = etree.SubElement(element, "layer", attrib={"name": "WholeDepth"})
+      for region in regions:
+          # remove it from directly under extrude/
+          element.remove(region)
+          # and put it under the new "WholeDepth" layer
+          layer.append(region)
 
 for filename in filenames:
   print 'Updating: '+filename

@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <fluidity_options>
   <simulation_name>
     <string_value lines="1">mmat-balancepressure-p0p1cv-hpp2dg</string_value>
@@ -14,7 +14,7 @@
       <from_mesh>
         <mesh name="InputMesh"/>
         <extrude>
-          <regions name="WholeMesh">
+          <layer name="WholeDepth"><regions name="WholeMesh">
             <bottom_depth>
               <constant>
                 <real_value rank="0">1.0</real_value>
@@ -32,7 +32,7 @@
               <integer_value rank="0">6</integer_value>
             </bottom_surface_id>
           </regions>
-        </extrude>
+        </layer></extrude>
         <stat>
           <include_in_stat/>
         </stat>
