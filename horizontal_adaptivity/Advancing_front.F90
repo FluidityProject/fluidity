@@ -46,7 +46,7 @@ module hadapt_advancing_front
     ! x number of faces per element (in the absence of face_count, use ele_loc)
     integer, dimension(:), allocatable :: element_owners, boundary_ids
     integer, dimension(:), target, allocatable :: sndgln
-    integer, dimension(:), allocatable :: bottom_surface_ids, top_surface_ids
+    integer, dimension(:), allocatable :: bottom_surface_ids, top_surface_ids, extruded_region_ids
     integer, dimension(:), allocatable :: sorted, unn, integer_heights
     real, dimension(:), allocatable :: heights
     integer, dimension(:), allocatable :: hanging_node, column_size, column_count
@@ -64,7 +64,7 @@ module hadapt_advancing_front
     
     integer, dimension(2) :: shape_option
     integer, dimension(1) :: other_node
-    integer :: top_surface_id, bottom_surface_id
+    integer :: top_surface_id, bottom_surface_id, extruded_region_id, extruded_region_id_stat
     integer :: faces_seen
     integer :: h_node, node, column, dim
     integer :: n_regions, r, layer
@@ -79,8 +79,11 @@ module hadapt_advancing_front
     allocate(element_owners(ele_count(mesh) * ele_loc(mesh, 1)))
     allocate(boundary_ids(ele_count(mesh) * ele_loc(mesh, 1)))
     allocate(sndgln(ele_count(mesh) * ele_loc(mesh, 1) * mesh_dim(mesh)))
+
     allocate(bottom_surface_ids(ele_count(h_mesh)))
     allocate(top_surface_ids(ele_count(h_mesh)))
+    allocate(extruded_region_ids(ele_count(h_mesh)))
+
     allocate(hanging_node(node_count(h_mesh)))
     allocate(column_size(node_count(h_mesh)))
     allocate(column_count(node_count(h_mesh)))
@@ -202,6 +205,7 @@ module hadapt_advancing_front
           call get_option(trim(region_option_path) // '/top_surface_id', top_surface_id, default=0)
         end if
         call get_option(trim(region_option_path) // '/bottom_surface_id', bottom_surface_id, default=0)
+        call get_option(trim(region_option_path) // '/extruded_region_id', extruded_region_id, stat=extruded_region_id_stat)
 
         do h_ele = 1, size(top_surface_ids)
           if(apply_region_ids) then
@@ -212,6 +216,11 @@ module hadapt_advancing_front
             top_surface_ids(h_ele) = top_surface_id
           end if
           bottom_surface_ids(h_ele) = bottom_surface_id
+          if (extruded_region_id_stat==0) then
+            extruded_region_ids(h_ele) = extruded_region_id
+          else
+            extruded_region_ids(h_ele) = h_mesh%mesh%region_ids(h_ele)
+          end if
         end do
 
         if(apply_region_ids) deallocate(region_ids)
@@ -285,7 +294,7 @@ module hadapt_advancing_front
 
           ! if the horizontal mesh has region_ids these may as well be preserved here
           if(propagate_region_ids) then
-            mesh%mesh%region_ids(ele) = h_mesh%mesh%region_ids(h_ele)
+            mesh%mesh%region_ids(ele) = extruded_region_ids(h_ele)
           end if
 
           ! we now know the relationship between the mesh element and the h_mesh surface element
@@ -465,6 +474,7 @@ module hadapt_advancing_front
     deallocate(sndgln)
     deallocate(bottom_surface_ids)
     deallocate(top_surface_ids)
+    deallocate(extruded_region_ids)
     deallocate(hanging_node)
     deallocate(column_size)
     deallocate(column_count)

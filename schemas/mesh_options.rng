@@ -412,6 +412,13 @@ Default is 1e-3.</a:documentation>
         <ref name="real"/>
       </element>
     </optional>
+    <optional>
+      <element name="extruded_region_id">
+        <a:documentation>Change the region_id of this extruded region. If not specified
+the region obtains the region_id of the horizontal mesh above.</a:documentation>
+        <ref name="integer"/>
+      </element>
+    </optional>
   </define>
   <!-- Most common mesh choices -->
   <define name="mesh_choice">

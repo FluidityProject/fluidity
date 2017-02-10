@@ -290,7 +290,9 @@ top_layer_regional_extrusion_options =
       element top_surface_id {
           integer
       }?,
-      ## surface_id to assign to the bottom of the extruded mesh
+      ## surface_id to assign to the bottom of the extruded mesh, or to the internal
+      ## boundary below the current extrusion layer if multiple extrusion layers
+      ## are specified.
       element bottom_surface_id {
           integer
       }?
@@ -312,17 +314,17 @@ extrusion_options =
       ## top will be at z=0
       ## bottom will be at z=-bottom_depth
       element bottom_depth {
-          input_choice_real_plus_map
+         input_choice_real_plus_map
       },
       ## Constant or function to specify the depth of the
       ## layers. The function is a function of all coordinates
       ## (so in 2+1D: x,y and z) to specify a layer depth that
       ## varies both in the horizontal as in the vertical.
       element sizing_function {
-          input_choice_real_plus_list,
+         input_choice_real_plus_list,
       ## If your sizing function only varies in depth enable this option.
       ## Do not use if your function depends on x and/or y as it takes a column of depth values and re-uses it. 
-          element varies_only_in_depth {empty}?
+         element varies_only_in_depth {empty}?
       },
       ## To prevent infinitesimally thin bottom layer if sizing function
       ## is an integer multiple of total depth, the bottom layer needs
@@ -330,7 +332,12 @@ extrusion_options =
       ##
       ## Default is 1e-3.
       element minimum_bottom_layer_fraction {
-          real
+         real
+      }?,
+      ## Change the region_id of this extruded region. If not specified
+      ## the region obtains the region_id of the horizontal mesh above.
+      element extruded_region_id {
+         integer
       }?
    )
 
