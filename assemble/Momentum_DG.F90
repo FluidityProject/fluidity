@@ -923,7 +923,7 @@ contains
     ! Neighbour element, face, neighbour face, no. internal element nodes
     integer :: ele_2, ele_2_X, face, face_2, loc
     ! Count variable for loops over dimension.
-    integer :: dim, dim1, dim2, dim3, dim4
+    integer :: dim, dim1, dim2
     ! Loops over faces.
     integer :: ni
     ! Array bounds for faces of the 2nd order element.
@@ -1883,7 +1883,7 @@ contains
                 else   
                   ! Boundary face
                   face=ele_face(U, ele, ele_2)
-                  if (velocity_bc_type(dim,face)==1) then
+                  if (velocity_bc_type(dim,face)==1 .or. velocity_bc_type(1,face)==3) then
 
                     ! Dirichlet condition.
 
@@ -1893,15 +1893,17 @@ contains
                       ! Wipe out boundary condition's coupling to itself.
                       Viscosity_mat(:,dim,start:finish,:)=0.0
                     else
-                      ! Add BC into RHS
-                      !
-                      do dim1=1,u%dim
-                        rhs_addto(dim1,:) = rhs_addto(dim1,:) &
+                       if (velocity_bc_type(dim,face)==1) then
+                         ! Add BC into RHS
+                         !
+                         do dim1=1,u%dim
+                           rhs_addto(dim1,:) = rhs_addto(dim1,:) &
                              & -matmul(Viscosity_mat(dim1,dim,:,start:finish), &
                              & ele_val(velocity_bc,dim,face))
-                      end do
+                         end do
                       ! Ensure it is not used again.
-                      Viscosity_mat(:,dim,:,start:finish)=0.0
+                         Viscosity_mat(:,dim,:,start:finish)=0.0
+                      end if
                     end if
                     ! Check if face is turbine face (note: get_entire_boundary_condition only returns 
                     ! "applied" boundaries and we reset the apply status in each timestep)
@@ -2062,17 +2064,10 @@ contains
 
       do dim1=1,u%dim
         do dim2=1,u%dim
-          do dim3=1,u%dim 
-            do dim4=1,u%dim
-              if (dim1==dim2 .and. dim2==dim3 .and. dim3==dim4) then
-                Viscosity_mat(dim1,dim3,:,:) = Viscosity_mat(dim1,dim3,:,:) &
-                     + 2.0 * matmul(matmul(transpose(grad_U_mat_q(dim2,:,:)),Q_visc),grad_U_mat_q(dim4,:,:))
-              else if  ((dim1==dim3 .and. dim2==dim4) .or. (dim2==dim3 .and. dim1==dim4)) then
-                Viscosity_mat(dim1,dim3,:,:) = Viscosity_mat(dim1,dim3,:,:) &
-                     + matmul(matmul(transpose(grad_U_mat_q(dim2,:,:)),Q_visc),grad_U_mat_q(dim4,:,:))
-              end if
-            end do
-          end do
+           Viscosity_mat(dim1,dim1,:,:) = Viscosity_mat(dim1,dim1,:,:)&
+           +matmul(matmul(transpose(grad_U_mat_q(dim2,:,:)),Q_visc),grad_U_mat_q(dim2,:,:))
+           Viscosity_mat(dim2,dim1,:,:) = Viscosity_mat(dim2,dim1,:,:)&
+           +matmul(matmul(transpose(grad_U_mat_q(dim2,:,:)),Q_visc),grad_U_mat_q(dim1,:,:))
         end do
       end do
       
@@ -2628,12 +2623,19 @@ contains
             
             ! External face.
             Grad_U_mat(dim, q_face_l, start:finish)=&
-               +0.5*shape_shape(q_shape, U_shape_2, coefficient_detwei) 
-         else
+               +0.5*shape_shape(q_shape, U_shape_2, coefficient_detwei)
+         elseif (velocity_bc_type(dim,face) == 1) then
             ! Boundary case. Put the whole integral in the external bit.
 
             ! External face.
             Grad_U_mat(dim, q_face_l, start:finish)=&
+               +shape_shape(q_shape, U_shape_2, coefficient_detwei)
+         else
+            ! Boundary case. Put the whole integral in the internal bit.
+
+            ! Internal face.
+            Grad_U_mat(dim, q_face_l, U_face_l)=&
+                 Grad_U_mat(dim, q_face_l, U_face_l) &
                +shape_shape(q_shape, U_shape_2, coefficient_detwei)
          end if
       end do
