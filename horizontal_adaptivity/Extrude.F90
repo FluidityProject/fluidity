@@ -198,7 +198,6 @@ module hadapt_extrude
     
     regions2: do r = 1, nregions
 
-      if (key_count(region_columns(r))==0) cycle
       region_option_path = trim(layer_option_path)//"/regions["//int2str(r-1)//"]"
 
       call get_regional_extrusion_options(region_option_path, &
@@ -211,6 +210,9 @@ module hadapt_extrude
       else
         sigma_layers = regional_sigma_layers
       end if
+
+      ! note that a region having no nodal columns to extrude, does not mean it has no elemental columns
+      if (key_count(region_columns(r))==0) cycle
 
       if (depth_from_map) then
         call populate_depth_vector(h_mesh,file_name,depth_vector,surface_height,radial_extrusion)
