@@ -13,6 +13,9 @@ volume = stat["State"]["Field"]["integral"][-1]</variable>
 import numpy
 stat = stat_parser("analytic.stat")
 surface_integrals = numpy.array([stat["State"]["Field"]["surface_integral%"+`i`][-1] for i in xrange(1,7)])</variable>
+    <variable name="region_id_integral" language="python">from fluidity_tools import stat_parser
+stat = stat_parser("analytic.stat")
+region_id_integral = stat["State"]["RegionIDs"]["integral"]</variable>
   </variables>
   <pass_tests>
     <test name="volume_integral" language="python">from math import pi
@@ -29,6 +32,15 @@ assert(abs(surface_integrals[1]-2*pi*Rm)&lt;1e-5)</test>
 Rb=0.9
 assert(abs(surface_integrals[2]-pi*Rb)&lt;1e-5)</test>
     <test name="integrals_left_and_right_are_the_same" language="python">assert(abs(surface_integrals[0:3]-surface_integrals[3:]).max()&lt;1e-5)</test>
+    <test name="region_id_integral" language="python">from math import pi
+Rb=0.9
+Rm1=1.2
+Rm2=1.5
+Rt=2.2
+integral = pi * (Rt**2-Rb**2) / 2.0
+integral += pi * ((Rt**2-Rm2**2) + (Rm1**2-Rb**2)) * (9+10+15+16) / 8.0
+integral += pi * (Rm2**2-Rm1**2) * 2.0 / 2.0
+assert(abs(region_id_integral-integral)&lt;5e-2)</test>
   </pass_tests>
   <warn_tests/>
 </testproblem>
