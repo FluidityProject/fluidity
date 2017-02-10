@@ -24,7 +24,7 @@ Rt=2.2
 assert(abs(surface_integrals[0]-pi*Rt)&lt;1e-5)</test>
     <test name="middle_integral" language="python">from math import pi
 Rm=1.2
-assert(abs(surface_integrals[1]-pi*Rm)&lt;1e-5)</test>
+assert(abs(surface_integrals[1]-2*pi*Rm)&lt;1e-5)</test>
     <test name="bottom_integral" language="python">from math import pi
 Rb=0.9
 assert(abs(surface_integrals[2]-pi*Rb)&lt;1e-5)</test>

@@ -3,6 +3,7 @@
 module hadapt_advancing_front
 
   use fldebug
+  use global_parameters, only: OPTION_PATH_LEN
   use futils
   use quicksort
   use data_structures
@@ -38,6 +39,7 @@ module hadapt_advancing_front
     type(scalar_field) :: height_field
     type(mesh_type) :: in_mesh
     type(integer_hash_table):: old2new_ele
+    character(len=OPTION_PATH_LEN) :: region_option_path
  
     ! the maximum amount of faces you could possibly want to add is
     ! number of elements in the extruded mesh (ele_count(mesh))
@@ -117,10 +119,6 @@ module hadapt_advancing_front
     end if
 #endif
 
-    ! get the region id information used for extrusion (if any) plus the top and bottom surface ids
-    n_regions = option_count(trim(mesh%mesh%option_path)//'/from_mesh/extrude/regions')
-    apply_region_ids = (n_regions>1)
-
     faces_seen = 0
     if (has_faces(h_mesh%mesh)) then
       snloc = dim
@@ -177,32 +175,42 @@ module hadapt_advancing_front
         column_size = column_size + 1
       end if
 
+      ! get the region id information used for extrusion (if any) plus the top and bottom surface ids
+      n_regions = option_count(trim(mesh%mesh%option_path)//'/from_mesh/extrude/layer[' &
+        // int2str(layer-1) // ']/regions')
+      apply_region_ids = (n_regions>1)
+
+      if (layer>1) then
+        ! layers below take over the bottom_surface_id from the layer above as their top_surface_id
+        top_surface_ids = bottom_surface_ids
+      end if
+
 
       do r = 0, n_regions-1
 
+        region_option_path = trim(mesh%mesh%option_path) // &
+            "/from_mesh/extrude/layer[" // int2str(layer-1) // &
+            "]/regions[" // int2str(r) // "]"
         if(apply_region_ids) then
-          shape_option=option_shape(trim(mesh%mesh%option_path)//&
-                                    "/from_mesh/extrude/regions["//int2str(r)//&
-                                    "]/region_ids")
+          shape_option=option_shape(trim(region_option_path)// "/region_ids")
           allocate(region_ids(1:shape_option(1)))
-          call get_option(trim(mesh%mesh%option_path)//&
-                          "/from_mesh/extrude/regions["//int2str(r)//&
-                          "]/region_ids", region_ids)
+          call get_option(trim(region_option_path) // "/region_ids", region_ids)
         end if
-        
-        call get_option(trim(mesh%mesh%option_path)// &
-                        '/from_mesh/extrude/regions['//int2str(r)//&
-                        ']/layers['//int2str(layer-1)//']/top_surface_id', top_surface_id, default=0)
-        call get_option(trim(mesh%mesh%option_path)// &
-                        '/from_mesh/extrude/regions['//int2str(r)//&
-                        ']/layers['//int2str(layer-1)//']/bottom_surface_id', bottom_surface_id, default=0)
+
+        if (layer==1) then
+          ! only the top layer specifies a top_surface_id
+          call get_option(trim(region_option_path) // '/top_surface_id', top_surface_id, default=0)
+        end if
+        call get_option(trim(region_option_path) // '/bottom_surface_id', bottom_surface_id, default=0)
 
         do h_ele = 1, size(top_surface_ids)
           if(apply_region_ids) then
             if(.not. any(h_mesh%mesh%region_ids(h_ele)==region_ids)) cycle
           end if
 
-          top_surface_ids(h_ele) = top_surface_id
+          if (layer==1) then
+            top_surface_ids(h_ele) = top_surface_id
+          end if
           bottom_surface_ids(h_ele) = bottom_surface_id
         end do
 

@@ -205,7 +205,7 @@ module hadapt_extrude
                depth_is_constant, depth, depth_from_python, depth_function, depth_from_map, &
                file_name, have_min_depth, min_depth, surface_height, sizing_is_constant, constant_sizing, list_sizing, &
                sizing_function, sizing_vector, min_bottom_layer_frac, varies_only_in_depth, regional_sigma_layers, number_sigma_layers)
-      if (r>1 .and. regional_sigma_layers .neqv. sigma_layers) then
+      if (r>1 .and. (regional_sigma_layers .neqv. sigma_layers)) then
         ewrite(-1,*) "In extrusion options for layer: ", trim(layer_option_path)
         FLExit("When using sigma layers, in one region this should be done in every region")
       else
