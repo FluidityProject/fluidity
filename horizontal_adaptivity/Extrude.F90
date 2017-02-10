@@ -7,12 +7,12 @@ module hadapt_extrude
 
   use fldebug
   use global_parameters
+  use global_parameters
   use futils, only: int2str
+  use quadrature
   use quadrature
   use elements
   use spud
-  use quadrature
-  use global_parameters
   use data_structures
   use parallel_tools
   use sparse_tools
