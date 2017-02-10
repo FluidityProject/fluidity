@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='UTF-8'?>
+<?xml version='1.0' encoding='utf-8'?>
 <fluidity_options>
   <simulation_name>
     <string_value lines="1">biology_conservation</string_value>
@@ -16,24 +16,22 @@
         <mesh name="2DMesh"/>
         <extrude>
           <regions name="WholeMesh">
-            <layers name="WholeDepth">
-              <bottom_depth>
-                <constant>
-                  <real_value rank="0">2100</real_value>
-                </constant>
-              </bottom_depth>
-              <sizing_function>
-                <constant>
-                  <real_value rank="0">10</real_value>
-                </constant>
-              </sizing_function>
-              <top_surface_id>
-                <integer_value rank="0">111</integer_value>
-              </top_surface_id>
-              <bottom_surface_id>
-                <integer_value rank="0">333</integer_value>
-              </bottom_surface_id>
-            </layers>
+            <bottom_depth>
+              <constant>
+                <real_value rank="0">2100</real_value>
+              </constant>
+            </bottom_depth>
+            <sizing_function>
+              <constant>
+                <real_value rank="0">10</real_value>
+              </constant>
+            </sizing_function>
+            <top_surface_id>
+              <integer_value rank="0">111</integer_value>
+            </top_surface_id>
+            <bottom_surface_id>
+              <integer_value rank="0">333</integer_value>
+            </bottom_surface_id>
           </regions>
         </extrude>
         <stat>

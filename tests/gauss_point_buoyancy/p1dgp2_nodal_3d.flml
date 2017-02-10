@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='UTF-8'?>
+<?xml version='1.0' encoding='utf-8'?>
 <fluidity_options>
   <simulation_name>
     <string_value lines="1">p1dgp2_nodal_3d</string_value>
@@ -79,7 +79,7 @@
             <region_ids>
               <integer_value rank="1" shape="1">25</integer_value>
             </region_ids>
-            <layers name="WholeDepth"><bottom_depth>
+            <bottom_depth>
               <constant>
                 <real_value rank="0">1.5</real_value>
               </constant>
@@ -95,12 +95,12 @@
             <bottom_surface_id>
               <integer_value rank="0">1</integer_value>
             </bottom_surface_id>
-          </layers></regions>
+          </regions>
           <regions name="26">
             <region_ids>
               <integer_value rank="1" shape="1">26</integer_value>
             </region_ids>
-            <layers name="WholeDepth"><bottom_depth>
+            <bottom_depth>
               <constant>
                 <real_value rank="0">1.5</real_value>
               </constant>
@@ -116,12 +116,12 @@
             <bottom_surface_id>
               <integer_value rank="0">2</integer_value>
             </bottom_surface_id>
-          </layers></regions>
+          </regions>
           <regions name="27">
             <region_ids>
               <integer_value rank="1" shape="1">27</integer_value>
             </region_ids>
-            <layers name="WholeDepth"><bottom_depth>
+            <bottom_depth>
               <constant>
                 <real_value rank="0">1.5</real_value>
               </constant>
@@ -137,12 +137,12 @@
             <bottom_surface_id>
               <integer_value rank="0">3</integer_value>
             </bottom_surface_id>
-          </layers></regions>
+          </regions>
           <regions name="28">
             <region_ids>
               <integer_value rank="1" shape="1">28</integer_value>
             </region_ids>
-            <layers name="WholeDepth"><bottom_depth>
+            <bottom_depth>
               <constant>
                 <real_value rank="0">1.5</real_value>
               </constant>
@@ -158,12 +158,12 @@
             <bottom_surface_id>
               <integer_value rank="0">4</integer_value>
             </bottom_surface_id>
-          </layers></regions>
+          </regions>
           <regions name="29">
             <region_ids>
               <integer_value rank="1" shape="1">29</integer_value>
             </region_ids>
-            <layers name="WholeDepth"><bottom_depth>
+            <bottom_depth>
               <constant>
                 <real_value rank="0">1.5</real_value>
               </constant>
@@ -179,12 +179,12 @@
             <bottom_surface_id>
               <integer_value rank="0">5</integer_value>
             </bottom_surface_id>
-          </layers></regions>
+          </regions>
           <regions name="30">
             <region_ids>
               <integer_value rank="1" shape="1">30</integer_value>
             </region_ids>
-            <layers name="WholeDepth"><bottom_depth>
+            <bottom_depth>
               <constant>
                 <real_value rank="0">1.5</real_value>
               </constant>
@@ -200,12 +200,12 @@
             <bottom_surface_id>
               <integer_value rank="0">6</integer_value>
             </bottom_surface_id>
-          </layers></regions>
+          </regions>
           <regions name="31">
             <region_ids>
               <integer_value rank="1" shape="1">31</integer_value>
             </region_ids>
-            <layers name="WholeDepth"><bottom_depth>
+            <bottom_depth>
               <constant>
                 <real_value rank="0">1.5</real_value>
               </constant>
@@ -221,12 +221,12 @@
             <bottom_surface_id>
               <integer_value rank="0">7</integer_value>
             </bottom_surface_id>
-          </layers></regions>
+          </regions>
           <regions name="32">
             <region_ids>
               <integer_value rank="1" shape="1">32</integer_value>
             </region_ids>
-            <layers name="WholeDepth"><bottom_depth>
+            <bottom_depth>
               <constant>
                 <real_value rank="0">1.5</real_value>
               </constant>
@@ -242,12 +242,12 @@
             <bottom_surface_id>
               <integer_value rank="0">8</integer_value>
             </bottom_surface_id>
-          </layers></regions>
+          </regions>
           <regions name="33">
             <region_ids>
               <integer_value rank="1" shape="1">33</integer_value>
             </region_ids>
-            <layers name="WholeDepth"><bottom_depth>
+            <bottom_depth>
               <constant>
                 <real_value rank="0">1.5</real_value>
               </constant>
@@ -263,12 +263,12 @@
             <bottom_surface_id>
               <integer_value rank="0">9</integer_value>
             </bottom_surface_id>
-          </layers></regions>
+          </regions>
           <regions name="34">
             <region_ids>
               <integer_value rank="1" shape="1">34</integer_value>
             </region_ids>
-            <layers name="WholeDepth"><bottom_depth>
+            <bottom_depth>
               <constant>
                 <real_value rank="0">1.5</real_value>
               </constant>
@@ -284,12 +284,12 @@
             <bottom_surface_id>
               <integer_value rank="0">10</integer_value>
             </bottom_surface_id>
-          </layers></regions>
+          </regions>
           <regions name="35">
             <region_ids>
               <integer_value rank="1" shape="1">35</integer_value>
             </region_ids>
-            <layers name="WholeDepth"><bottom_depth>
+            <bottom_depth>
               <constant>
                 <real_value rank="0">1.5</real_value>
               </constant>
@@ -305,12 +305,12 @@
             <bottom_surface_id>
               <integer_value rank="0">11</integer_value>
             </bottom_surface_id>
-          </layers></regions>
+          </regions>
           <regions name="36">
             <region_ids>
               <integer_value rank="1" shape="1">36</integer_value>
             </region_ids>
-            <layers name="WholeDepth"><bottom_depth>
+            <bottom_depth>
               <constant>
                 <real_value rank="0">1.5</real_value>
               </constant>
@@ -326,12 +326,12 @@
             <bottom_surface_id>
               <integer_value rank="0">12</integer_value>
             </bottom_surface_id>
-          </layers></regions>
+          </regions>
           <regions name="37">
             <region_ids>
               <integer_value rank="1" shape="1">37</integer_value>
             </region_ids>
-            <layers name="WholeDepth"><bottom_depth>
+            <bottom_depth>
               <constant>
                 <real_value rank="0">1.5</real_value>
               </constant>
@@ -347,12 +347,12 @@
             <bottom_surface_id>
               <integer_value rank="0">13</integer_value>
             </bottom_surface_id>
-          </layers></regions>
+          </regions>
           <regions name="38">
             <region_ids>
               <integer_value rank="1" shape="1">38</integer_value>
             </region_ids>
-            <layers name="WholeDepth"><bottom_depth>
+            <bottom_depth>
               <constant>
                 <real_value rank="0">1.5</real_value>
               </constant>
@@ -368,12 +368,12 @@
             <bottom_surface_id>
               <integer_value rank="0">14</integer_value>
             </bottom_surface_id>
-          </layers></regions>
+          </regions>
           <regions name="39">
             <region_ids>
               <integer_value rank="1" shape="1">39</integer_value>
             </region_ids>
-            <layers name="WholeDepth"><bottom_depth>
+            <bottom_depth>
               <constant>
                 <real_value rank="0">1.5</real_value>
               </constant>
@@ -389,12 +389,12 @@
             <bottom_surface_id>
               <integer_value rank="0">15</integer_value>
             </bottom_surface_id>
-          </layers></regions>
+          </regions>
           <regions name="40">
             <region_ids>
               <integer_value rank="1" shape="1">40</integer_value>
             </region_ids>
-            <layers name="WholeDepth"><bottom_depth>
+            <bottom_depth>
               <constant>
                 <real_value rank="0">1.5</real_value>
               </constant>
@@ -410,7 +410,7 @@
             <bottom_surface_id>
               <integer_value rank="0">16</integer_value>
             </bottom_surface_id>
-          </layers></regions>
+          </regions>
         </extrude>
         <stat>
           <include_in_stat/>

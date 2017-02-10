@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='UTF-8'?>
+<?xml version='1.0' encoding='utf-8'?>
 <fluidity_options>
   <simulation_name>
     <string_value lines="1">spherical_segment</string_value>
@@ -60,7 +60,7 @@
         <mesh name="InputMesh"/>
         <extrude>
           <regions name="WholeMesh">
-            <layers name="WholeDepth"><bottom_depth>
+            <bottom_depth>
               <constant>
                 <real_value rank="0">90</real_value>
               </constant>
@@ -76,7 +76,7 @@
             <bottom_surface_id>
               <integer_value rank="0">2</integer_value>
             </bottom_surface_id>
-          </layers></regions>
+          </regions>
         </extrude>
         <stat>
           <include_in_stat/>
