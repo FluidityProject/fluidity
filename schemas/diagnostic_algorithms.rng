@@ -1841,6 +1841,18 @@ i.e. Density multiplied by the PhaseVolumeFraction field.</a:documentation>
     </element>
   </define>
   <!-- Mesh -->
+  <define name="region_id_algorithm">
+    <element name="algorithm">
+      <a:documentation>Convert the region_ids to a field. Best stored on a DG mesh as these are
+element-wise values.</a:documentation>
+      <attribute name="name">
+        <value>region_ids</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+    </element>
+  </define>
   <define name="column_id_algorithm">
     <element name="algorithm">
       <a:documentation>Convert the column_ids to a field.
@@ -2281,6 +2293,9 @@ integral being zero.</a:documentation>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="curl_2d_algorithm"/>
+  </define>
+  <define name="scalar_diagnostic_algorithms" combine="choice">
+    <ref name="region_id_algorithm"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="column_id_algorithm"/>

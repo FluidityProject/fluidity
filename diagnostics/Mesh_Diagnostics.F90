@@ -43,7 +43,7 @@ module mesh_diagnostics
   private
   
   public :: calculate_column_ids, calculate_universal_column_ids
-  public :: calculate_mesh_quality
+  public :: calculate_mesh_quality, calculate_region_ids
 
 contains
 
@@ -145,5 +145,21 @@ contains
 
   end subroutine calculate_mesh_quality
 
+  subroutine calculate_region_ids(state, s_field)
+
+    type(state_type), intent(in) :: state
+    type(scalar_field), intent(inout) :: s_field
+
+    ewrite(1, *) "In calculate_region_ids"
+
+    if(.not.associated(s_field%mesh%region_ids)) then
+      FLAbort("No region ids stored on mesh.")
+    end if
+
+    call set_all(s_field, float(s_field%mesh%region_ids))
+
+    ewrite(1, *) "Exiting calculate_region_ids"
+
+  end subroutine calculate_region_ids
 
 end module mesh_diagnostics
