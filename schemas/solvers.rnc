@@ -113,10 +113,10 @@ kspgmres_options =
          attribute name { "gmres" },
          ## Restart value for gmres iteration
          ## Higher values give better convergence but require more memory.
-         ## Suggested value: 30
+         ## Default value: 30
          element restart {
             integer
-         }
+         }?
       }
    )
    

@@ -1578,7 +1578,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     KSPType ksptype
     PC pc
     PetscReal rtol, atol, dtol
-    PetscInt max_its
+    PetscInt max_its, lrestart
     PetscErrorCode ierr
     PetscObject vf
     
@@ -1610,6 +1610,15 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     ! set ksptype again to force the flml choice
     call KSPSetType(ksp, ksptype, ierr)
     ewrite(2, *) 'ksp_type:', trim(ksptype)
+
+    if(trim(ksptype) == 'gmres') then
+       call get_option(trim(solver_option_path)//&
+            '/iterative_method::gmres/restart', lrestart, default=-1)
+       if (lrestart >= 0) then
+          call KSPGMRESSetRestart(ksp, lrestart, ierr)
+          ewrite(2, *) 'restart:', lrestart
+       end if
+    end if
 
     ! set max. iterations and tolerances:
     ! =======================================
