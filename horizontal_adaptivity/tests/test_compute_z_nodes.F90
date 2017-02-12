@@ -12,8 +12,8 @@ subroutine test_compute_z_nodes
   logical :: fail
 
   call set_option("/geometry/quadrature/degree", 4, stat=stat)
-  call set_option("/geometry/mesh::ExtrudedMesh/from_mesh/extrude/regions[0]/bottom_depth", 1.0, stat=stat)
-  call set_option("/geometry/mesh::ExtrudedMesh/from_mesh/extrude/regions[0]/sizing_function/constant", 0.1, stat=stat)
+  call set_option("/geometry/mesh::ExtrudedMesh/from_mesh/extrude/layer[0]/regions[0]/bottom_depth", 1.0, stat=stat)
+  call set_option("/geometry/mesh::ExtrudedMesh/from_mesh/extrude/layer[0]/regions[0]/sizing_function/constant", 0.1, stat=stat)
   
   top_depth = 0.0
   call compute_z_nodes(z_mesh, 1.0, (/ 0.0 /), top_depth, min_bottom_layer_frac=1e-3, radial_extrusion=.false., sizing=0.1)

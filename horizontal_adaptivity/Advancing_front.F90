@@ -114,13 +114,8 @@ module hadapt_advancing_front
     assert(associated(mesh%mesh%element_columns))
 
     ! if the horizontal mesh has region ids associated with it, the elements below
-    ! can inherit these ids
+    ! can inherit these ids (not necessarily true in unittests)
     propagate_region_ids = associated(mesh%mesh%region_ids)
-#ifdef DDEBUG
-    if(propagate_region_ids) then
-      assert(associated(h_mesh%mesh%region_ids))
-    end if
-#endif
 
     faces_seen = 0
     if (has_faces(h_mesh%mesh)) then
@@ -183,6 +178,10 @@ module hadapt_advancing_front
         // int2str(layer-1) // ']/regions')
       apply_region_ids = (n_regions>1)
 
+      if (apply_region_ids .and. .not. propagate_region_ids) then
+        FLAbort("Multiple extrude regions in options tree but no region ids in mesh")
+      end if
+
       if (layer>1) then
         ! layers below take over the bottom_surface_id from the layer above as their top_surface_id
         top_surface_ids = bottom_surface_ids
@@ -218,7 +217,7 @@ module hadapt_advancing_front
           bottom_surface_ids(h_ele) = bottom_surface_id
           if (extruded_region_id_stat==0) then
             extruded_region_ids(h_ele) = extruded_region_id
-          else
+          else if (propagate_region_ids) then
             extruded_region_ids(h_ele) = h_mesh%mesh%region_ids(h_ele)
           end if
         end do
