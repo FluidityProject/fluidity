@@ -20,7 +20,8 @@ module meshmovement
   use fields
   use profiler
   use state_module
-  use boundary_conditions, only : get_boundary_condition, get_boundary_condition_count
+  use boundary_conditions, only : get_boundary_condition, get_boundary_condition_count,&
+       extract_surface_field
   use vtk_interfaces
   use sparse_matrices_fields
   use solvers
@@ -1425,6 +1426,7 @@ contains
             '/mesh_adaptivity/mesh_movement/solver')
        solver_options%ksptype=trim(solver_options%ksptype)//c_null_char
        solver_options%pctype=trim(solver_options%pctype)//c_null_char
+       solver_options%hypretype=trim(solver_options%hypretype)//c_null_char
     else 
        solver_options%ksptype=KSPGMRES//c_null_char
        solver_options%pctype=PCSOR//c_null_char
@@ -1561,6 +1563,7 @@ contains
             '/mesh_adaptivity/mesh_movement/solver')
        solver_options%ksptype=trim(solver_options%ksptype)//c_null_char
        solver_options%pctype=trim(solver_options%pctype)//c_null_char
+       solver_options%hypretype=trim(solver_options%hypretype)//c_null_char
     else 
        solver_options%ksptype=KSPGMRES//c_null_char
        solver_options%pctype=PCSOR//c_null_char
@@ -1701,6 +1704,7 @@ contains
             '/mesh_adaptivity/mesh_movement/solver')
        solver_options%ksptype=trim(solver_options%ksptype)//c_null_char
        solver_options%pctype=trim(solver_options%pctype)//c_null_char
+       solver_options%hypretype=trim(solver_options%hypretype)//c_null_char
     else 
        solver_options%ksptype=KSPGMRES//c_null_char
        solver_options%pctype=PCSOR//c_null_char
@@ -1935,7 +1939,7 @@ contains
     do i=1,get_boundary_condition_count(vfield)
 
        call get_boundary_condition(vfield, i, surface_node_list= surface_node_list)
-       surface_field => vfield%bc%boundary_condition(i)%surface_fields(1)
+       surface_field => extract_surface_field(vfield,i,"value")
 
        do node=1, node_count(surface_field)
           call set(vfield, surface_node_list(node), node_val(surface_field,node))

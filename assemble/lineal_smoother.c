@@ -9,15 +9,14 @@ static char help[] = "2D/3D Lineal Spring Analogy Smoother in serial and paralle
 void lin_smoother(int dimension, int num_nodes, int num_elements, int num_surf_elements, int num_owned_nodes, int * mapping, int connectivity[][3], double * phys_mesh, double * smooth_mesh, double * comp_mesh, int * surf_connectivity, int* findrm, int* colm, Mat* K, struct solver_options* options, int debug_level) {
   
   Vec            F,U_h;
-  KSP            ksp;
-  PC             pc;
-  PetscErrorCode ierr;
-  PetscInt       i,n,m,j,its,nodei,Ii,len_new=0,local_surf_connectivity[dimension*num_surf_elements], global_surf_connectivity[dimension*num_surf_elements],
-    num_nodes_col_x[num_nodes],num_nodes_col_y[num_nodes],num_nodes_col_z[num_nodes];
-  PetscScalar    length,x_disp[num_surf_elements],y_disp[num_surf_elements],z_disp[num_surf_elements],smoothed_x[num_nodes],smoothed_y[num_nodes],smoothed_z[num_nodes];
+  PetscInt       i,n,j,its,Ii,len_new=0,local_surf_connectivity[dimension*num_surf_elements], global_surf_connectivity[dimension*num_surf_elements];
+  PetscScalar    x_disp[num_surf_elements],y_disp[num_surf_elements],z_disp[num_surf_elements];
+
+  MatSetOption(*K,MAT_SYMMETRIC,PETSC_TRUE);
 
   double lij(int nodei, int nodej){
     double xi,yi,zi,xj,yj,zj,length;
+
     if (nodei == nodej){
     PetscPrintf(PETSC_COMM_WORLD,"Failure: nodei is the same as nodej.\n");
     length = 0.0;
@@ -43,8 +42,7 @@ void lin_smoother(int dimension, int num_nodes, int num_elements, int num_surf_e
 
   /*Lineal Stiffness*/
   double * K_lin(int nodei, int nodej){
-    
-    int n;
+
     double xi,yi,xj,yj,x_edge,y_edge,alpha,inv_length;
 
     xi = comp_mesh[dimension*nodei];yi = comp_mesh[dimension*nodei+1];
@@ -200,7 +198,29 @@ void lin_smoother(int dimension, int num_nodes, int num_elements, int num_surf_e
     }
   }
 
-  MatZeroRowsColumns(*K,dimension*len_new,global_surf_connectivity,1.0,F,F);
+  VecCreate(PETSC_COMM_WORLD,&U_h);
+  PetscObjectSetName((PetscObject) U_h, "lineal_smoother");
+  VecSetSizes(U_h,dimension*num_owned_nodes,PETSC_DECIDE);
+  VecSetFromOptions(U_h);
+
+  PetscScalar *aU_h;
+
+  //Get a pointer to the vector array and set directly
+  VecGetArray(U_h,&aU_h);
+  for(n=0;n<num_owned_nodes;n++){
+    for(j=0;j<dimension;++j){
+      // This uses the local row numbering for aU_h
+      aU_h[j*num_owned_nodes+n] = phys_mesh[dimension*n+j]-comp_mesh[dimension*n+j];
+    }
+  }
+  // Must call this to clean the array up afterwards
+  VecRestoreArray(U_h,&aU_h);
+
+  // Apply boundary conditions
+  MatZeroRowsColumns(*K,dimension*len_new,global_surf_connectivity,1.0,U_h,F);
+
+  VecAssemblyBegin(U_h);
+  VecAssemblyEnd(U_h);
 
   VecAssemblyBegin(F);
   VecAssemblyEnd(F);
@@ -208,66 +228,18 @@ void lin_smoother(int dimension, int num_nodes, int num_elements, int num_surf_e
   MatAssemblyBegin(*K,MAT_FINAL_ASSEMBLY);
   MatAssemblyEnd(*K,MAT_FINAL_ASSEMBLY);
 
-  KSPCreate(PETSC_COMM_WORLD,&ksp);
+  // Actual call to do the solve, in C_Solvers.c
+  petsc_solve_c(U_h, *K, F, options, debug_level);
 
-  KSPSetOperators(ksp,*K,*K);
-
-  KSPSetType(ksp,options->ksptype);
-
-  KSPGetPC(ksp,&pc);
-  PCSetType(pc,options->pctype);
-  KSPSetInitialGuessNonzero(ksp,PETSC_FALSE);
-  KSPSetTolerances(ksp,options->rtol,options->atol,PETSC_DEFAULT,options->max_its);
-  KSPSetFromOptions(ksp);
-
-  VecCreate(PETSC_COMM_WORLD,&U_h);
-  PetscObjectSetName((PetscObject) U_h, "U_h");
-  VecSetSizes(U_h,dimension*num_owned_nodes,PETSC_DECIDE);
-  VecSetFromOptions(U_h);
-
-  VecAssemblyBegin(U_h);
-  VecAssemblyEnd(U_h);
-
-  cprofiler_tic("lineal_smoother::solve");
-  KSPSolve(ksp,F,U_h);
-  cprofiler_toc("lineal_smoother::solve");
-  KSPGetIterationNumber(ksp,&its);
-  if (debug_level>1) PetscPrintf(PETSC_COMM_WORLD,"ksp iter: %D\n", its);
-  KSPConvergedReason reason;
-  KSPGetConvergedReason(ksp,&reason);
-  if (debug_level>1) PetscPrintf(PETSC_COMM_WORLD,"KSPConvergedReason: %D\n", reason);
-
-  if(dimension==2){
-    for(n=0;n<num_owned_nodes;n++){
-      num_nodes_col_x[n]=mapping[n];
-      num_nodes_col_y[n]=mapping[num_nodes+n];
-    }
-    VecGetValues(U_h,num_owned_nodes,num_nodes_col_x,smoothed_x);
-    VecGetValues(U_h,num_owned_nodes,num_nodes_col_y,smoothed_y);
-
-    for(n=0;n<num_owned_nodes; n++){
-      smooth_mesh[dimension*n+0] = smoothed_x[n]+comp_mesh[dimension*n+0];
-      smooth_mesh[dimension*n+1] = smoothed_y[n]+comp_mesh[dimension*n+1];
+  // Copy back the result, correcting the numbering switch
+  VecGetArray(U_h,&aU_h);
+  for(n=0;n<num_owned_nodes;n++){
+    for(j=0;j<dimension;++j) {
+      smooth_mesh[dimension*n+j] = aU_h[j*num_owned_nodes+n]+comp_mesh[dimension*n+j];
     }
   }
-  else{
-    for(n=0;n<num_owned_nodes;n++){
-      num_nodes_col_x[n]=mapping[n];
-      num_nodes_col_y[n]=mapping[num_nodes+n];
-      num_nodes_col_z[n]=mapping[2*num_nodes+n];
-    }
-    VecGetValues(U_h,num_owned_nodes,num_nodes_col_x,smoothed_x);
-    VecGetValues(U_h,num_owned_nodes,num_nodes_col_y,smoothed_y);
-    VecGetValues(U_h,num_owned_nodes,num_nodes_col_z,smoothed_z);
+  VecRestoreArray(U_h,&aU_h);
 
-    for(n=0;n<num_owned_nodes;n++){
-      smooth_mesh[dimension*n+0] = smoothed_x[n]+comp_mesh[dimension*n+0];
-      smooth_mesh[dimension*n+1] = smoothed_y[n]+comp_mesh[dimension*n+1];
-      smooth_mesh[dimension*n+2] = smoothed_z[n]+comp_mesh[dimension*n+2];
-    }
-
-  }
-
-  
-  VecDestroy(&F);VecDestroy(&U_h);KSPDestroy(&ksp);
+  // Cleanup
+  VecDestroy(&F);VecDestroy(&U_h);
 }

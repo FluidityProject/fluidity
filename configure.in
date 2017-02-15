@@ -228,10 +228,12 @@ then
 	    CPPFLAGS="$CPPFLAGS $PYTHON_CPPFLAGS"
             CFLAGS="$CFLAGS $PYTHON_CPPFLAGS"
         fi
+    else
+       AC_PATH_PROG([PYTHON],[python[$PYTHON_VERSION]])
     fi
     
     # Additionally check for numpy
-    NUMPY=$(python -c 'import numpy; print numpy.get_include()' 2>/dev/null)
+    NUMPY=$($PYTHON -c 'import numpy; print numpy.get_include()' 2>/dev/null)
     if ! test -z "$NUMPY"; then	
 	echo "Numpy is " $NUMPY	
 	CXXFLAGS="$CXXFLAGS -DHAVE_NUMPY -I$NUMPY"
@@ -1495,6 +1497,13 @@ if test "$with_VTK" = no ; then enable_vtk=no; fi
 if test "$enable_VTK" = no ; then enable_vtk=no; fi
 if test "$enable_vtk" != "no" ; then
     AC_MSG_NOTICE([Checking for VTK automagic.])
+    VTK_FLAGS=`cmake --find-package -DNAME=VTK -DCOMPILER_ID=gcc -DLANGUAGE=Fortran -DMODE=COMPILE`
+    VTK_LIBS=`cmake --find-package -DNAME=VTK -DCOMPILER_ID=gcc -DLANGUAGE=Fortran -DMODE=LINK`
+
+    OLD_CPPFLAGS="$CPPFLAGS"
+    CPPFLAGS="$CPPFLAGS $VTK_FLAGS"
+    OLD_LIBS="$LIBS"
+    LIBS="$LIBS $VTK_LIBS" 
     AC_LANG_PUSH([C++])
     AC_LINK_IFELSE(
 	[AC_LANG_PROGRAM([[
@@ -1514,7 +1523,9 @@ if test "$enable_vtk" != "no" ; then
             ],
 	[
             AC_MSG_NOTICE([No VTK automagic])
-	    search_for_vtk=yes	    
+	    search_for_vtk=yes
+	    CPPFLAGS="$OLD_CPPFLAGS"
+	    LIBS="$OLD_LIBS"	    
 	])
     
     if test "x$search_for_vtk" = "xyes" ; then
@@ -1785,6 +1796,7 @@ AC_OUTPUT(Makefile
           bathymetry/Makefile
           ocean_forcing/Makefile ocean_forcing/tests/Makefile
           sediments/Makefile
+          population_balance/Makefile
           hyperlight/Makefile
           femtools/Makefile femtools/tests/Makefile
           forward_interfaces/Makefile

@@ -54,7 +54,9 @@ module solvers
 
   type, bind(C) :: solver_options_type
      KSPType :: ksptype
+     PetscInt :: restart
      PCType :: pctype
+     character(len=80) :: hypretype
      PetscReal :: atol
      PetscReal :: rtol
      PetscInt :: max_its
@@ -2208,7 +2210,11 @@ subroutine populate_solver_options_struct_from_path(solver_options, option_path)
   character(len=*), intent(in):: option_path
 
   call get_option(trim(option_path)//'/iterative_method/name', solver_options%ksptype)
+  if (trim(solver_options%ksptype)=="gmres") &
+       call get_option(trim(option_path)//'/iterative_method/restart', solver_options%restart)
   call get_option(trim(option_path)//'/preconditioner/name', solver_options%pctype)
+  if (trim(solver_options%pctype)=="hypre") &
+       call get_option(trim(option_path)//'/preconditioner/hypre_type/name', solver_options%hypretype)
   call get_option(trim(option_path)//'/absolute_error', &
        solver_options%atol, default=0.0)
   call get_option(trim(option_path)//'/relative_error',solver_options%rtol)

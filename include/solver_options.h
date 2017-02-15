@@ -31,11 +31,21 @@
 
 struct solver_options {
   char ksptype[80];
+  PetscInt restart;
   char pctype[80];
+  char hypretype[80];
   PetscReal  atol;
   PetscReal rtol;
   PetscInt max_its;
   PetscBool start_from_zero;
 };
+
+void setup_ksp_from_options_c(KSP ksp, struct solver_options *options);
+void petsc_solve_many_c(Vec *x, Mat M, Vec *b, int neqns,
+		   struct solver_options *options,
+		   int debug_level);
+void petsc_solve_c(Vec x, Mat M, Vec b,
+		   struct solver_options *options,
+		   int debug_level);
 
 #endif
