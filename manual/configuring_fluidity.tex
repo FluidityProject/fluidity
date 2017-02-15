@@ -1950,6 +1950,56 @@ Bedload field
 Note: To use sediment, a linear equation of state must also be enabled
 \option{\ldots/equation\_of\_state/fluids/linear}
 
+\section{Population balance model}
+\label{config:pbe}
+
+The population balance model can be enabled by activating the \option{population\_balance (DQMOM)} option under the material phase.
+The number of \option{abscissa}, \option{weights} and \option{weighted-abscissa} scalar fields must be chosen to be equal to the desired number of mesh nodes $N$ in the DQMOM quadrature approximation (Eq \eqref{eq:DQMOM_ndf}). 
+
+\option{weights} and \option{weighted-abscissa} are prognostic fields and the \option{equation(AdvectionDiffusion)} option much be selected for all of these fields. The source terms in these prognostic scalars must be set to \option{diagnostic} with \option{algorithm(Internal)}. \option{abscissa} fields on the other hand are diagnostic fields. All scalars in the population balance tree must be defined on the same mesh. When the population balance model is used in conjunction with the multiphase flow equations for modelling polydispersed flows, it is suggested that the control volume discretisation should be used for the population balance scalars to ensure conservation and to ensure a realisable moment set (see the section on \emph{moment corruption} in \citet{bhutani2016}). 
+
+Spatial diffusion coefficient must be identically specified for all prognostic scalars in the population balance model, if the spatial diffusion is present. 
+
+\subsection{Source terms}
+The following source terms are available for the PBE to be used in \fluidity\ :
+\subsubsection{Growth}
+\begin{itemize}
+\item power law growth
+\end{itemize}
+\subsubsection{Internal Dispersion}
+\begin{itemize}
+\item constant internal dispersion coefficient
+\end{itemize}
+\subsubsection{Aggregation}
+\begin{itemize}
+\item constant aggregation
+\item hydrodynamic aggregation
+\item sum aggregation
+\item turbulent aggregation -- \citet{laakkonen2007modelling}
+\end{itemize}
+\subsubsection{Breakage}
+Breakage frequency:
+\begin{itemize}
+\item constant
+\item power law breakage
+\item turbulent breakage -- \citet{laakkonen2007modelling}
+\end{itemize}
+
+Breakage daughter distribution function:
+\begin{itemize}
+\item symmetric fragmentation
+\item \citet{mccoymadras2003analytical}
+\item \citet{laakkonen2007modelling}
+\end{itemize}
+
+\subsection{Initial conditions}
+It is possible to specify initial condition for the prognostic scalars, i.e. weights and the weighted-abscissas (\option{use\_prognostic\_field\_initial\_conditions}), or the moments (\option{calculate\_initial\_conditions\_from\_moments}). 
+
+\subsection{Moments and statistics}
+Diagnostic scalar fields such as moments and statistics of the NDF can be calculated by enabling these options under \option{moments} and \option{statistics}, respectively. The moments must be named as \emph{Moment\_X} where \emph{X} is the moment number. The following statistics are available currently: mean, standard deviation, skew, Sauter mean diameter ($m_3$/$m_2$), and mean diameter ($m_1$/$m_0$). 
+
+Further details of the population balance model can be found in \citet{bhutani2016polydispersed} and \citet{bhutani2016}.
+
 \section{Configuring ocean simulations}
 \label{sec:large-scale-ocean}
 

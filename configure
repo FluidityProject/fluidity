@@ -16212,7 +16212,7 @@ $as_echo "$ac_cv_path_GREP" >&6; }
 
 
 
-ac_config_files="$ac_config_files Makefile debug/Makefile bathymetry/Makefile ocean_forcing/Makefile ocean_forcing/tests/Makefile sediments/Makefile hyperlight/Makefile femtools/Makefile femtools/tests/Makefile forward_interfaces/Makefile horizontal_adaptivity/Makefile horizontal_adaptivity/tests/Makefile preprocessor/Makefile error_measures/Makefile error_measures/tests/Makefile parameterisation/Makefile parameterisation/tests/Makefile fldecomp/Makefile assemble/Makefile assemble/tests/Makefile diagnostics/Makefile main/Makefile tools/Makefile tools/version-info python/setup.py climatology/Makefile libmba2d/Makefile libmba3d/Makefile libjudy/Makefile libjudy/src/Makefile libjudy/src/JudyCommon/Makefile libjudy/src/Judy1/Makefile libjudy/src/JudyL/Makefile libjudy/src/JudySL/Makefile libjudy/src/JudyHS/Makefile libwm/Makefile libvtkfortran/Makefile reduced_modelling/Makefile tests/tools.mk"
+ac_config_files="$ac_config_files Makefile debug/Makefile bathymetry/Makefile ocean_forcing/Makefile ocean_forcing/tests/Makefile sediments/Makefile population_balance/Makefile hyperlight/Makefile femtools/Makefile femtools/tests/Makefile forward_interfaces/Makefile horizontal_adaptivity/Makefile horizontal_adaptivity/tests/Makefile preprocessor/Makefile error_measures/Makefile error_measures/tests/Makefile parameterisation/Makefile parameterisation/tests/Makefile fldecomp/Makefile assemble/Makefile assemble/tests/Makefile diagnostics/Makefile main/Makefile tools/Makefile tools/version-info python/setup.py climatology/Makefile libmba2d/Makefile libmba3d/Makefile libjudy/Makefile libjudy/src/Makefile libjudy/src/JudyCommon/Makefile libjudy/src/Judy1/Makefile libjudy/src/JudyL/Makefile libjudy/src/JudySL/Makefile libjudy/src/JudyHS/Makefile libwm/Makefile libvtkfortran/Makefile reduced_modelling/Makefile tests/tools.mk"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -16911,6 +16911,7 @@ do
     "ocean_forcing/Makefile") CONFIG_FILES="$CONFIG_FILES ocean_forcing/Makefile" ;;
     "ocean_forcing/tests/Makefile") CONFIG_FILES="$CONFIG_FILES ocean_forcing/tests/Makefile" ;;
     "sediments/Makefile") CONFIG_FILES="$CONFIG_FILES sediments/Makefile" ;;
+    "population_balance/Makefile") CONFIG_FILES="$CONFIG_FILES population_balance/Makefile" ;;
     "hyperlight/Makefile") CONFIG_FILES="$CONFIG_FILES hyperlight/Makefile" ;;
     "femtools/Makefile") CONFIG_FILES="$CONFIG_FILES femtools/Makefile" ;;
     "femtools/tests/Makefile") CONFIG_FILES="$CONFIG_FILES femtools/tests/Makefile" ;;

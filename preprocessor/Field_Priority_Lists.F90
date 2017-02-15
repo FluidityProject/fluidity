@@ -136,6 +136,37 @@ contains
              end do
           end if
 
+          ! this whole set up of fields could be improved to ensure that multiple PBEs can be used per phase
+          ! prognostic pop balance fields - very limited applicability
+          if (have_option('/material_phase['//int2str(p)//']/population_balance/')) then
+             do f = 0, option_count('/material_phase['//int2str(p)//&
+                  ']/population_balance/weights/scalar_field') - 1
+                nsol=nsol+1
+                temp_field_optionpath_list(nsol)='/material_phase['//int2str(p)// &
+                     ']/population_balance/weights/scalar_field['//int2str(f)//']'
+                call get_option('/material_phase['//int2str(p)//&
+                     ']/population_balance/weights/scalar_field['//int2str(f)//&
+                     ']/name',temp_field_name_list(nsol))
+                call get_option('/material_phase['//int2str(p)//&
+                     ']/population_balance/weights/scalar_field['//int2str(f)//&
+                     ']/prognostic/priority', priority(nsol), default=0)
+                temp_field_state_list(nsol) = p+1
+             end do
+             do f = 0, option_count('/material_phase['//int2str(p)//&
+                  ']/population_balance/weighted_abscissa/scalar_field') - 1
+                nsol=nsol+1
+                temp_field_optionpath_list(nsol)='/material_phase['//int2str(p)// &
+                     ']/population_balance/weighted_abscissa/scalar_field['//int2str(f)//']'
+                call get_option('/material_phase['//int2str(p)//&
+                     ']/population_balance/weighted_abscissa/scalar_field['//int2str(f)//&
+                     ']/name',temp_field_name_list(nsol))
+                call get_option('/material_phase['//int2str(p)//&
+                     ']/population_balance/weighted_abscissa/scalar_field['//int2str(f)//&
+                     ']/prognostic/priority', priority(nsol), default=0)
+                temp_field_state_list(nsol) = p+1
+             end do
+          end if
+
           ! prognostic Mellor Yamada fields:
           if (have_option('/material_phase[' &
                //int2str(p)//']/subgridscale_parameterisations/Mellor_Yamada/scalar_field::KineticEnergy/prognostic')) then
@@ -318,6 +349,17 @@ contains
              ntsol = ntsol + 1
           end if
        end do
+    
+       ! added as hack for now - but this whole set up of fields could be way better!
+       ! prognostic pop balance fields - very limited applicability
+       if (have_option('/material_phase['//int2str(p)//']/population_balance/')) then
+          ntsol = ntsol + &
+               option_count('/material_phase['//int2str(p)//&
+               ']/population_balance/weights/scalar_field') + &
+               option_count('/material_phase['//int2str(p)//&
+               ']/population_balance/weighted_abscissa/scalar_field')
+       end if
+
        ! prognostic scalar fields for Mellor Yamada:
        if (have_option('/material_phase[' &
             //int2str(p)//']/subgridscale_parameterisations/Mellor_Yamada/scalar_field::KineticEnergy/prognostic')) then

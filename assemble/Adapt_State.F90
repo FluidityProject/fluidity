@@ -70,6 +70,7 @@ module adapt_state_module
   use reserve_state_module
   use fields_halos
   use populate_state_module
+  use dqmom
   use diagnostic_fields_wrapper
   use discrete_properties_module
   use interpolation_manager
@@ -1005,6 +1006,10 @@ contains
       ! Adapt state, initialising fields from the options tree rather than
       ! interpolating them
       call adapt_state(states, metric, initialise_fields = .true.)
+      
+      ! Population balance equation initialise - dqmom_init() helps to recalculate the abscissas and weights 
+      ! based on moment initial conditions (if provided)
+      call dqmom_init(states)
     end do
 
     if(have_option(trim(base_path) // "/output_adapted_mesh")) then

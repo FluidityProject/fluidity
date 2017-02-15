@@ -2247,7 +2247,7 @@
             ! For example, since we do not include the Density in the advection-diffusion equation for the PhaseVolumeFraction,
             ! solving this equation for the compressible fluid phase would not be correct. The particle phases on the other hand
             ! are always incompressible where the density is constant.
-            if(have_option("/material_phase["//int2str(i)//"]/multiphase_properties/particle_diameter") .and. &
+            if((have_option("/material_phase["//int2str(i)//"]/multiphase_properties/particle_diameter") .or. have_option("/material_phase["//int2str(i)//"]/multiphase_properties/particle_dia_use_scalar_field")) .and. &
                .not.(have_option("/material_phase["//int2str(i)//"]/scalar_field::PhaseVolumeFraction/prognostic") .or. &
                have_option("/material_phase["//int2str(i)//"]/scalar_field::PhaseVolumeFraction/prescribed"))) then
                FLExit("All particle phases must have a prognostic/prescribed PhaseVolumeFraction field. The diagnostic PhaseVolumeFraction field should always be in the continuous/fluid phase.")
