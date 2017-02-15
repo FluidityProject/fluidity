@@ -3098,24 +3098,30 @@ velocity_components_choice =
       (
          element align_bc_with_cartesian {
             element x_component {
-               input_choice_real_bc_component
+               input_choice_real_bc_component,
+               bc_smoothing
             }?,
             element y_component {
-               input_choice_real_bc_component
+               input_choice_real_bc_component,
+               bc_smoothing
             }?,
             element z_component {
-               input_choice_real_bc_component
+               input_choice_real_bc_component,
+               bc_smoothing
             }?
          }|
          element align_bc_with_surface {
             element normal_component {
-               input_choice_real_plus_field
+               input_choice_real_plus_field,
+               bc_smoothing
             }?,
             element tangent_component_1 {
-               input_choice_real_plus_field
+               input_choice_real_plus_field,
+               bc_smoothing
             }?,
             element tangent_component_2 {
-               input_choice_real_plus_field
+               input_choice_real_plus_field,
+               bc_smoothing
             }?,
             rotation_matrix_components,
             ## this will calculate the determinant of the

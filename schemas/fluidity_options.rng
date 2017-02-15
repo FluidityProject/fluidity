@@ -4239,16 +4239,19 @@ If off then fluidity computes the tangent.  </a:documentation>
         <optional>
           <element name="x_component">
             <ref name="input_choice_real_bc_component"/>
+            <ref name="bc_smoothing"/>
           </element>
         </optional>
         <optional>
           <element name="y_component">
             <ref name="input_choice_real_bc_component"/>
+            <ref name="bc_smoothing"/>
           </element>
         </optional>
         <optional>
           <element name="z_component">
             <ref name="input_choice_real_bc_component"/>
+            <ref name="bc_smoothing"/>
           </element>
         </optional>
       </element>
@@ -4256,16 +4259,19 @@ If off then fluidity computes the tangent.  </a:documentation>
         <optional>
           <element name="normal_component">
             <ref name="input_choice_real_plus_field"/>
+            <ref name="bc_smoothing"/>
           </element>
         </optional>
         <optional>
           <element name="tangent_component_1">
             <ref name="input_choice_real_plus_field"/>
+            <ref name="bc_smoothing"/>
           </element>
         </optional>
         <optional>
           <element name="tangent_component_2">
             <ref name="input_choice_real_plus_field"/>
+            <ref name="bc_smoothing"/>
           </element>
         </optional>
         <ref name="rotation_matrix_components"/>
