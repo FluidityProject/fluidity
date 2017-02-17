@@ -128,7 +128,7 @@ contains
 
       ! Boundary condition types
       integer, parameter :: BC_TYPE_WEAKDIRICHLET = 1, BC_TYPE_NO_NORMAL_FLOW = 2, BC_TYPE_INTERNAL = 3, &
-                            BC_TYPE_FREE_SURFACE = 4
+                            BC_TYPE_FREE_SURFACE = 4, BC_TYPE_DRAG=5
 
       ! =============================================================
       ! Subroutine to construct the matrix CT_m (a.k.a. C1/2/3T).
@@ -321,7 +321,8 @@ contains
         call get_entire_boundary_condition(field, (/"weakdirichlet ", &
                                                     "no_normal_flow", &
                                                     "internal      ", &
-                                                    "free_surface  "/), field_bc, field_bc_type)
+                                                    "free_surface  ", &
+                                                    "drag          "/), field_bc, field_bc_type)
   
         allocate(x_ele_bdy(x%dim,x%mesh%faces%shape%loc), &
                 detwei_bdy(x_cvbdyshape%ngi), &
@@ -336,7 +337,8 @@ contains
   
           ! cycle if this is a no_normal_flow or a periodic or a free_surface boundary then cycle
           if(any(field_bc_type(:,sele)==BC_TYPE_NO_NORMAL_FLOW).or.any(field_bc_type(:,sele)==BC_TYPE_INTERNAL)&
-             .or.any(field_bc_type(:,sele)==BC_TYPE_FREE_SURFACE)) cycle
+             .or.any(field_bc_type(:,sele)==BC_TYPE_FREE_SURFACE)&
+             .or.any(field_bc_type(:,sele)==BC_TYPE_DRAG)) cycle
           
           ! cycle if there's no rhs present or there's no weakdirichlet conditions or we're not
           ! assembling the matrix
@@ -739,12 +741,14 @@ contains
 
       call get_entire_boundary_condition(u, (/"weakdirichlet ", &
                                               "no_normal_flow", &
-                                              "internal      "/), &
+                                              "internal      ", &
+                                              "drag          "/), &
                                              velocity_bc, velocity_bc_type)
 
       surface_element_loop: do sele = 1, surface_element_count(p)
 
-        if(any(velocity_bc_type(:,sele)==2).or.any(velocity_bc_type(:,sele)==3)) cycle
+        if(any(velocity_bc_type(:,sele)==2).or.any(velocity_bc_type(:,sele)==3&
+             .or.any(velocity_bc_type(:,sele)==4))) cycle
 
         ele = face_ele(x, sele)
         x_ele = ele_val(x, ele)
@@ -1290,11 +1294,12 @@ contains
           end if
           call get_entire_boundary_condition(matdens, (/"weakdirichlet"/), matdens_bc, matdens_bc_type)
 
-          call get_entire_boundary_condition(u, (/"weakdirichlet ", "no_normal_flow", "internal      "/), velocity_bc, velocity_bc_type)
+          call get_entire_boundary_condition(u, (/"weakdirichlet ", "no_normal_flow", "internal      ","drag          "/), velocity_bc, velocity_bc_type)
 
           do sele = 1, surface_element_count(p)
 
-            if(any(velocity_bc_type(:,sele)==2).or.any(velocity_bc_type(:,sele)==3)) cycle
+            if(any(velocity_bc_type(:,sele)==2).or.any(velocity_bc_type(:,sele)==3)&
+                 .or.any(velocity_bc_type(:,sele)==4)) cycle
 
             ele = face_ele(x, sele)
             x_ele = ele_val(x, ele)

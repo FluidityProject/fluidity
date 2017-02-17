@@ -305,13 +305,15 @@ module divergence_matrix_cg
           "no_normal_flow         ", &
           "internal               ", &
           "free_surface           ", &
-          "prescribed_normal_flow "/), field_bc, field_bc_type)
+          "prescribed_normal_flow ", &
+          "drag                   " /), field_bc, field_bc_type)
 
         do sele = 1, surface_element_count(test_mesh)
 
           if(any(field_bc_type(:,sele)==2)&
                .or.any(field_bc_type(:,sele)==3)&
-               .or.any(field_bc_type(:,sele)==4)) cycle
+               .or.any(field_bc_type(:,sele)==4)&
+               .or.any(field_bc_type(:,sele)==6)) cycle
 
           test_shape=>face_shape(test_mesh, sele)
           field_shape=>face_shape(field, sele)
@@ -707,7 +709,8 @@ module divergence_matrix_cg
           "weakdirichlet ", &
           "no_normal_flow", &
           "internal      ", &
-          "free_surface  "/), field_bc, field_bc_type)
+          "free_surface  ", &
+          "drag          "/), field_bc, field_bc_type)
 
         allocate(density_bc_type(surface_element_count(density)))
         call get_entire_boundary_condition(density, (/ &
@@ -717,7 +720,8 @@ module divergence_matrix_cg
 
           if(any(field_bc_type(:,sele)==2)&
                .or.any(field_bc_type(:,sele)==3)&
-               .or.any(field_bc_type(:,sele)==4)) cycle
+               .or.any(field_bc_type(:,sele)==4)&
+               .or.any(field_bc_type(:,sele)==5)) cycle
           
           test_shape_ptr=>face_shape(test_mesh, sele)
           field_shape=>face_shape(field, sele)
