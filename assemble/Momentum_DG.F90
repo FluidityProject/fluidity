@@ -76,6 +76,7 @@ module momentum_DG
   character(len=255), private :: message
 
   private
+  
   public construct_momentum_dg, &
         momentum_DG_check_options, correct_velocity_dg, &
         assemble_poisson_rhs_dg, allocate_big_m_dg, &
@@ -85,6 +86,7 @@ module momentum_DG
   ! do dictionary lookups for every element (or element face!)
   real :: dt, theta, theta_nl
   logical :: lump_mass, lump_abs, lump_source, subcycle
+  real :: min_viscosity
 
   ! Whether the advection term is only integrated by parts once.
   logical :: integrate_by_parts_once=.false.
@@ -110,6 +112,24 @@ module momentum_DG
   integer, parameter :: USE_FACE_INTEGRALS=1
   integer, parameter :: USE_ELEMENT_CENTRES=2
 
+  ! Velocity Boundary conditions
+
+  character(len=OPTION_PATH_LEN), dimension(7) :: velocity_bc_names=[&
+       "weakdirichlet         ", &
+       "free_surface          ", &
+       "no_normal_flow        ", &
+       "turbine_flux_penalty  ", &
+       "turbine_flux_dg       ", &
+       "prescribed_normal_flow", &
+       "drag                  "] 
+  integer, parameter :: VELOCITY_BC_WEAKDIRICHLET=1,&
+       VELOCITY_BC_FREE_SURFACE=2,&
+       VELOCITY_BC_NO_NORMAL_FLOW=3,&
+       VELOCITY_BC_TURBINE_FLUX_PENALTY=4,&
+       VELOCITY_BC_TURBINE_FLUX_DG=5,&
+       VELOCITY_BC_PRESCRIBED_NORMAL_FLOW=6,&
+       VELOCITY_BC_DRAG=7
+       
   ! Parameters for interior penalty method
   real :: Interior_Penalty_Parameter, edge_length_power, h0
 
@@ -601,6 +621,9 @@ contains
          &"/partial_stress_form")) then
 
       partial_stress = .true.
+
+      min_viscosity=minval(viscosity%val(1,1,:))
+      call allmin(min_viscosity)
       
       ! if we have stress form then we may be doing LES modelling
     end if
@@ -687,15 +710,12 @@ contains
     ! numbering of types, determined by ordering here, i.e.
     ! weakdirichlet=1, free_surface=2
     allocate(velocity_bc_type(U%dim, surface_element_count(U)))
-    call get_entire_boundary_condition(U, (/ &
-      "weakdirichlet       ", &
-      "free_surface        ", &
-      "no_normal_flow      ", &
-      "turbine_flux_penalty", &
-      "turbine_flux_dg     " /), velocity_bc, velocity_bc_type)
+    call get_entire_boundary_condition(U, velocity_bc_names, &
+         velocity_bc, velocity_bc_type)
 
     ! the turbine connectivity mesh is only needed if one of the boundaries is a turbine.
-    if (any(velocity_bc_type==4) .or. any(velocity_bc_type==5)) then
+    if (any(velocity_bc_type==VELOCITY_BC_TURBINE_FLUX_PENALTY) &
+         .or. any(velocity_bc_type==VELOCITY_BC_TURBINE_FLUX_DG)) then
         turbine_conn_mesh=get_periodic_mesh(state, u%mesh)
     end if
 
@@ -911,7 +931,7 @@ contains
      ! \Int_{ele} N_i kappa N_j dV, used for CDG fluxes
     real, dimension(mesh_dim(U),mesh_dim(U), &
          & ele_loc(U,ele),ele_loc(U,ele)) :: kappa_mat
-   
+
     ! Local assembly matrices.
     real, dimension(ele_loc(U,ele)) :: l_MassLump, l_move_masslump
 
@@ -1754,7 +1774,7 @@ contains
             ! Internal faces.
             face_2=ele_face(U, ele_2, ele)
         ! Check if face is turbine face (note: get_entire_boundary_condition only returns "applied" boundaries and we reset the apply status in each timestep)
-        elseif (velocity_bc_type(1,face)==4 .or. velocity_bc_type(1,face)==5) then
+        elseif (velocity_bc_type(1,face)==VELOCITY_BC_TURBINE_FLUX_PENALTY .or. velocity_bc_type(1,face)==VELOCITY_BC_TURBINE_FLUX_DG) then
            face_2=face_neigh(turbine_conn_mesh, face)
            turbine_face=.true.
         else 
@@ -1883,8 +1903,9 @@ contains
                 else   
                   ! Boundary face
                   face=ele_face(U, ele, ele_2)
-                  if (velocity_bc_type(dim,face)==1 .or. velocity_bc_type(1,face)==3) then
-
+                  if (velocity_bc_type(dim,face)==VELOCITY_BC_WEAKDIRICHLET &
+                       .or. velocity_bc_type(1,face)==VELOCITY_BC_NO_NORMAL_FLOW &
+                       .or. velocity_bc_type(1,face)==VELOCITY_BC_DRAG) then
                     ! Dirichlet condition.
 
                     finish=start+face_loc(U, face)-1
@@ -1893,7 +1914,7 @@ contains
                       ! Wipe out boundary condition's coupling to itself.
                       Viscosity_mat(:,dim,start:finish,:)=0.0
                     else
-                       if (velocity_bc_type(dim,face)==1) then
+                       if (velocity_bc_type(dim,face)==VELOCITY_BC_WEAKDIRICHLET) then
                          ! Add BC into RHS
                          !
                          do dim1=1,u%dim
@@ -1907,7 +1928,7 @@ contains
                     end if
                     ! Check if face is turbine face (note: get_entire_boundary_condition only returns 
                     ! "applied" boundaries and we reset the apply status in each timestep)
-                  elseif (velocity_bc_type(dim,face)==4 .or. velocity_bc_type(dim,face)==5) then  
+                  elseif (velocity_bc_type(dim,face)==VELOCITY_BC_TURBINE_FLUX_PENALTY .or. velocity_bc_type(dim,face)==VELOCITY_BC_TURBINE_FLUX_DG) then  
                     face=face_neigh(turbine_conn_mesh, face)
                   end if
                 end if
@@ -2052,22 +2073,26 @@ contains
       !   where a_{b,c} = \partial a_b / \partial x_c
       ! off diagonal terms define the coupling between the velocity components
 
-      real, dimension(size(Q_inv,1), size(Q_inv,2)) :: Q_visc
-      real, dimension(ele_loc(u, ele)) :: isotropic_visc
+      real, dimension(size(Q_inv,1), size(Q_inv,2)) :: Q_visc, Q2_visc, Q3_visc
+      real, dimension(ele_loc(u, ele)) :: isotropic_visc, mvisc
 
       dim = Viscosity%dim(1)
       isotropic_visc = Viscosity_ele(1,1,:)
+      mvisc = min_viscosity
       if (have_les) then
         call les_viscosity(isotropic_visc)
       end if
       Q_visc = mat_diag_mat(Q_inv, isotropic_visc)
+      Q2_visc = mat_diag_mat(Q_inv, isotropic_visc-mvisc)
+      Q3_visc = mat_diag_mat(Q_inv, mvisc)
 
       do dim1=1,u%dim
         do dim2=1,u%dim
            Viscosity_mat(dim1,dim1,:,:) = Viscosity_mat(dim1,dim1,:,:)&
            +matmul(matmul(transpose(grad_U_mat_q(dim2,:,:)),Q_visc),grad_U_mat_q(dim2,:,:))
            Viscosity_mat(dim2,dim1,:,:) = Viscosity_mat(dim2,dim1,:,:)&
-           +matmul(matmul(transpose(grad_U_mat_q(dim2,:,:)),Q_visc),grad_U_mat_q(dim1,:,:))
+           +matmul(matmul(transpose(grad_U_mat_q(dim1,:,:)),Q2_visc),grad_U_mat_q(dim2,:,:)) &
+           +matmul(matmul(transpose(grad_U_mat_q(dim2,:,:)),Q3_visc),grad_U_mat_q(dim1,:,:))
         end do
       end do
       
@@ -2131,7 +2156,7 @@ contains
               face=ele_face(U, ele, ele_2)
               finish=start+face_loc(U, face)-1 
               ! for boundary faces the value we use depends upon if a weak bc is applied
-              if (velocity_bc_type(dim1,face)==1) then
+              if (velocity_bc_type(dim1,face)==VELOCITY_BC_WEAKDIRICHLET) then
                 ! weak bc! use the bc value
                 g_nl(dim1,dim2,:)=g_nl(dim1,dim2,:)+matmul(grad_U_mat_q(dim2,:,start:finish), ele_val(velocity_bc,dim1,face))
               else
@@ -2358,16 +2383,17 @@ contains
     l_have_pressure_bc=.false.
     if (boundary) then
        do dim=1,U%dim
-          if (velocity_bc_type(dim,face)==1) then
+          if (velocity_bc_type(dim,face)==VELOCITY_BC_WEAKDIRICHLET) then
              dirichlet(dim)=.true.
           end if
        end do
        ! free surface b.c. is set for the 1st (normal) component
-       if (velocity_bc_type(1,face)==2) then
+       if (velocity_bc_type(1,face)==VELOCITY_BC_FREE_SURFACE) then
           free_surface=.true.
        end if
        ! no normal flow b.c. is set for the 1st (normal) component
-       if (velocity_bc_type(1,face)==3) then
+       if (velocity_bc_type(1,face)==VELOCITY_BC_NO_NORMAL_FLOW &
+            .or. velocity_bc_type(1,face)==VELOCITY_BC_DRAG) then
           ! No normal flow is implemented here by switching off the
           ! advection boundary integral.
           no_normal_flow=.true.
@@ -2624,7 +2650,7 @@ contains
             ! External face.
             Grad_U_mat(dim, q_face_l, start:finish)=&
                +0.5*shape_shape(q_shape, U_shape_2, coefficient_detwei)
-         elseif (velocity_bc_type(dim,face) == 1) then
+         elseif (velocity_bc_type(dim,face) == VELOCITY_BC_WEAKDIRICHLET) then
             ! Boundary case. Put the whole integral in the external bit.
 
             ! External face.
@@ -2636,7 +2662,7 @@ contains
             ! Internal face.
             Grad_U_mat(dim, q_face_l, U_face_l)=&
                  Grad_U_mat(dim, q_face_l, U_face_l) &
-               +shape_shape(q_shape, U_shape_2, coefficient_detwei)
+               +shape_shape(q_shape, U_shape, coefficient_detwei)
          end if
       end do
 
