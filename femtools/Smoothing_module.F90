@@ -37,19 +37,14 @@ contains
     !local variables
     type(csr_matrix) :: M
     type(csr_sparsity) :: M_sparsity
-    type(scalar_field) :: RHSFIELD
+    type(scalar_field) :: rhsfield
     integer :: ele
 
-    !allocate smoothing matrix
-    M_sparsity=make_sparsity(field_in%mesh, &
-         & field_in%mesh, name='HelmholtzScalarSparsity')
-    call allocate(M, M_sparsity, name="HelmholtzScalarSmoothingMatrix")   
-    call deallocate(M_sparsity) 
-    call zero(M)
-    
-    !allocate RHSFIELD
+    !allocate smoothing matrix, RHS
+    M_sparsity=make_sparsity(field_in%mesh, field_in%mesh, name='HelmholtzScalarSparsity')
+    call allocate(M, M_sparsity, name="HelmholtzScalarSmoothingMatrix")
     call allocate(rhsfield, field_in%mesh, "HelmholtzScalarSmoothingRHS")
-    call zero(rhsfield)
+    call zero(M); call zero(rhsfield); call zero(field_out)
 
     ! Assemble M element by element.
     do ele=1, element_count(field_in)
@@ -57,14 +52,12 @@ contains
     end do
 
     ! Boundary conditions
-    ewrite(2,*) "Applying strong Dirichlet boundary conditions to filtered field"
+    ewrite(2,*) "Applying strong Dirichlet boundary conditions to filtered scalar field"
     call apply_dirichlet_conditions(M, rhsfield, field_in)
 
-    call zero(field_out)
     call petsc_solve(field_out, M, rhsfield, option_path=trim(path))
 
-    call deallocate(rhsfield)
-    call deallocate(M)
+    call deallocate(rhsfield); call deallocate(M); call deallocate(M_sparsity)
 
   end subroutine smooth_scalar
 
@@ -80,42 +73,35 @@ contains
     type(vector_field), intent(inout) :: field_out
     character(len=*), intent(in) :: path
     
-    !local variables
+    !local quantities
     type(csr_matrix) :: M
     type(csr_sparsity) :: M_sparsity
-    type(vector_field) :: RHSFIELD
-    integer :: ele, dim
+    type(vector_field) :: rhsfield
+    integer :: ele, i
 
-    !allocate smoothing matrix
-    M_sparsity=make_sparsity(field_in%mesh, &
-         & field_in%mesh, name='HelmholtzVectorSparsity')
-    call allocate(M, M_sparsity, name="HelmholtzVectorSmoothingMatrix")   
-    call deallocate(M_sparsity) 
-    call zero(M)
-    
-    !allocate RHSFIELD
+    !allocate smoothing matrix, RHS
+    M_sparsity=make_sparsity(field_in%mesh, field_in%mesh, name='HelmholtzVectorSparsity')
+    call allocate(M, M_sparsity, name="HelmholtzVectorSmoothingMatrix")
     call allocate(rhsfield, field_in%dim, field_in%mesh, "HelmholtzVectorSmoothingRHS")
-    call zero(rhsfield)
-
+    call zero(M); call zero(rhsfield); call zero(field_out)
+    
     ! Assemble M element by element.
     do ele=1, element_count(field_in)
        call assemble_smooth_vector(M, rhsfield, positions, field_in, alpha, ele)
     end do
 
-    ewrite(2,*) "Applying strong Dirichlet boundary conditions to filtered field"    
-    do dim=1, field_in%dim
-      call apply_dirichlet_conditions(matrix=M, rhs=rhsfield, field=field_in, dim=dim)
+    ewrite(2,*) "Applying strong Dirichlet boundary conditions to filtered vector field"
+    do i=1, field_in%dim
+      call apply_dirichlet_conditions(matrix=M, rhs=rhsfield, field=field_out, dim=i)
     end do
 
-    call zero(field_out)
     call petsc_solve(field_out, M, rhsfield, option_path=trim(path))
 
-    call deallocate(rhsfield)
-    call deallocate(M)
+    call deallocate(rhsfield); call deallocate(M); call deallocate(M_sparsity)
 
   end subroutine smooth_vector
 
-  subroutine smooth_tensor(field_in,positions,field_out,alpha, path)
+  subroutine smooth_tensor(field_in,positions,field_out,alpha,path,vector_field_bc)
 
     !smoothing length
     real, intent(in) :: alpha
@@ -126,34 +112,45 @@ contains
     !output field, should have same mesh as input field
     type(tensor_field), intent(inout) :: field_out
     character(len=*), intent(in) :: path
-    
+    ! optional vector field to 'borrow' Dirichlet BCs from
+    type(vector_field), intent(in), optional :: vector_field_bc
+
     !local variables
     type(csr_matrix) :: M
     type(csr_sparsity) :: M_sparsity
     type(tensor_field) :: rhsfield
-    integer :: ele
+    integer :: ele, i, j
 
-    !allocate smoothing matrix
-    M_sparsity=make_sparsity(field_in%mesh, &
-         & field_in%mesh, name='HelmholtzTensorSparsity')
-    call allocate(M, M_sparsity, name="HelmholtzTensorSmoothingMatrix")   
-    call deallocate(M_sparsity) 
-    call zero(M)
-    
-    !allocate RHSFIELD
+    !allocate smoothing matrix, RHS
+    M_sparsity=make_sparsity(field_in%mesh, field_in%mesh, name='HelmholtzTensorSparsity')
+    call allocate(M, M_sparsity, name="HelmholtzTensorSmoothingMatrix")
     call allocate(rhsfield, field_in%mesh, "HelmholtzTensorSmoothingRHS")
-    call zero(rhsfield)
-
+    call zero(M); call zero(rhsfield); call zero(field_out)
+    
     ! Assemble M element by element.
     do ele=1, element_count(field_in)
        call assemble_smooth_tensor(M, rhsfield, positions, field_in, alpha, ele)
     end do
 
-    call zero(field_out)
+    ewrite(2,*) "Applying strong Dirichlet boundary conditions to filtered tensor field"
+    if(present(vector_field_bc)) then
+      ewrite(2,*) "Getting Dirichlet BCs from vector field: ", trim(vector_field_bc%name)
+      do i=1, field_in%dim(1)
+        do j=1, field_in%dim(2)
+          call apply_dirichlet_conditions(matrix=M, rhs=rhsfield, field=vector_field_bc, dim1=i, dim2=j)
+        end do
+      end do
+    else
+      do i=1, field_in%dim(1)
+        do j=1, field_in%dim(2)
+          call apply_dirichlet_conditions(matrix=M, rhs=rhsfield, field=field_out, dim1=i, dim2=j)
+        end do
+      end do
+    end if
+
     call petsc_solve(field_out, M, rhsfield, option_path=trim(path))
 
-    call deallocate(rhsfield)
-    call deallocate(M)
+    call deallocate(rhsfield); call deallocate(M); call deallocate(M_sparsity)
 
   end subroutine smooth_tensor
 
@@ -212,7 +209,7 @@ contains
     type(csr_matrix) :: M
     type(csr_sparsity) :: M_sparsity
     type(vector_field) :: rhsfield
-    integer :: ele, dim
+    integer :: ele, i
 
     !allocate smoothing matrix
     M_sparsity=make_sparsity(field_in%mesh, field_in%mesh, name='HelmholtzVectorSparsity')
@@ -226,8 +223,8 @@ contains
     end do
 
     ewrite(2,*) "Applying strong Dirichlet boundary conditions to filtered field"    
-    do dim=1, field_in%dim
-      call apply_dirichlet_conditions(matrix=M, rhs=rhsfield, field=field_in, dim=dim)
+    do i=1, field_in%dim
+      call apply_dirichlet_conditions(matrix=M, rhs=rhsfield, field=field_in, dim=i)
     end do
 
     call petsc_solve(field_out, M, rhsfield, option_path=trim(path))
@@ -252,35 +249,35 @@ contains
     type(csr_matrix) :: M
     type(csr_sparsity) :: M_sparsity
     type(tensor_field) :: rhsfield
-    integer :: ele
+    integer :: ele, i, j
 
-    !allocate smoothing matrix
-    M_sparsity=make_sparsity(field_in%mesh, &
-         & field_in%mesh, name='HelmholtzTensorSparsity')
-    call allocate(M, M_sparsity, name="HelmholtzTensorSmoothingMatrix")   
-    call deallocate(M_sparsity) 
-    call zero(M)
-    
-    !allocate RHSFIELD
+    !allocate smoothing matrix, RHS
+    M_sparsity=make_sparsity(field_in%mesh, field_in%mesh, name='HelmholtzTensorSparsity')
+    call allocate(M, M_sparsity, name="HelmholtzTensorSmoothingMatrix")
     call allocate(rhsfield, field_in%mesh, "HelmholtzTensorSmoothingRHS")
-    call zero(rhsfield)
-
+    call zero(M); call zero(rhsfield); call zero(field_out)
+    
     ! Assemble M element by element.
     do ele=1, element_count(field_in)
        call assemble_anisotropic_smooth_tensor(M, rhsfield, positions, field_in, alpha, ele)
     end do
 
-    call zero(field_out)
+    ewrite(2,*) "Applying strong Dirichlet boundary conditions to filtered tensor field"
+    do i=1, field_in%dim(1)
+      do j=1, field_in%dim(2)
+        call apply_dirichlet_conditions(matrix=M, rhs=rhsfield, field=field_out, dim1=i, dim2=j)
+      end do
+    end do
+
     call petsc_solve(field_out, M, rhsfield, option_path=trim(path))
 
-    call deallocate(rhsfield)
-    call deallocate(M)
+    call deallocate(rhsfield); call deallocate(M); call deallocate(M_sparsity)
 
   end subroutine anisotropic_smooth_tensor
 
   subroutine assemble_smooth_scalar(M, rhsfield, positions, field_in, alpha, ele)
     type(csr_matrix), intent(inout) :: M
-    type(scalar_field), intent(inout) :: RHSFIELD
+    type(scalar_field), intent(inout) :: rhsfield
     type(vector_field), intent(in) :: positions
     type(scalar_field), intent(in) :: field_in
     real, intent(in) :: alpha
@@ -341,7 +338,7 @@ contains
   subroutine assemble_smooth_vector(M, rhsfield, positions, field_in, alpha, ele)
 
     type(csr_matrix), intent(inout) :: M
-    type(vector_field), intent(inout) :: RHSFIELD
+    type(vector_field), intent(inout) :: rhsfield
     type(vector_field), intent(in) :: positions
     type(vector_field), intent(in) :: field_in
     real, intent(in) :: alpha
@@ -402,7 +399,7 @@ contains
   subroutine assemble_smooth_tensor(M, rhsfield, positions, field_in, alpha, ele)
 
     type(csr_matrix), intent(inout) :: M
-    type(tensor_field), intent(inout) :: RHSFIELD
+    type(tensor_field), intent(inout) :: rhsfield
     type(vector_field), intent(in) :: positions
     type(tensor_field), intent(in) :: field_in
     real, intent(in) :: alpha
@@ -510,7 +507,6 @@ contains
     type(vector_field), intent(in) :: field_in
     real, intent(in) :: alpha
     integer, intent(in) :: ele
-    integer :: dim
     real, dimension(positions%dim,ele_ngi(positions,ele))                        :: field_in_quad
     real,dimension(positions%dim,positions%dim,ele_ngi(positions,ele))           :: mesh_tensor_quad
     real, dimension(ele_loc(field_in,ele), ele_ngi(field_in,ele), positions%dim) :: dshape_field_in

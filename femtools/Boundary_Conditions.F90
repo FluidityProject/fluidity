@@ -26,6 +26,7 @@
 !    USA
 #include "fdebug.h"
 module boundary_conditions
+  
   use fldebug
   use spud
   use global_parameters, only: OPTION_PATH_LEN, FIELD_NAME_LEN
@@ -36,29 +37,35 @@ module boundary_conditions
   use fields
   use sparse_tools_petsc
   use state_module
+  use smoothing_module
+  use les_module
+  use fields_data_types
 
-  implicit none
+implicit none
     
   interface add_boundary_condition
      module procedure add_scalar_boundary_condition, &
-       add_vector_boundary_condition
+       add_vector_boundary_condition, add_tensor_boundary_condition
   end interface add_boundary_condition
 
   interface remove_boundary_condition
      module procedure remove_scalar_boundary_condition, &
-       remove_vector_boundary_condition
+       remove_vector_boundary_condition, remove_tensor_boundary_condition
   end interface remove_boundary_condition
 
   interface add_boundary_condition_surface_elements
      module procedure add_scalar_boundary_condition_surface_elements, &
-       add_vector_boundary_condition_surface_elements
+       add_vector_boundary_condition_surface_elements, &
+       add_tensor_boundary_condition_surface_elements
   end interface add_boundary_condition_surface_elements
 
   interface get_boundary_condition
      module procedure get_scalar_boundary_condition_by_number, &
        get_vector_boundary_condition_by_number, &
+       get_tensor_boundary_condition_by_number, &
        get_scalar_boundary_condition_by_name, &
-       get_vector_boundary_condition_by_name
+       get_vector_boundary_condition_by_name, &
+       get_tensor_boundary_condition_by_name
   end interface
     
   interface insert_surface_field
@@ -66,12 +73,14 @@ module boundary_conditions
        insert_vector_surface_field, insert_scalar_surface_field_by_name, &
        insert_vector_surface_field_by_name, &
        insert_vector_scalar_surface_field, &
-       insert_vector_scalar_surface_field_by_name
+       insert_vector_scalar_surface_field_by_name, &
+       insert_tensor_surface_field, insert_tensor_surface_field_by_name
   end interface
     
   interface extract_surface_field
      module procedure extract_scalar_surface_field_by_number, &
        extract_vector_surface_field_by_number, &
+       extract_tensor_surface_field_by_number, &
        extract_scalar_surface_field_by_name, &
        extract_vector_surface_field_by_name       
   end interface
@@ -88,7 +97,7 @@ module boundary_conditions
     
   interface get_boundary_condition_count
      module procedure get_scalar_boundary_condition_count, &
-       get_vector_boundary_condition_count
+       get_vector_boundary_condition_count, get_tensor_boundary_condition_count
   end interface
     
   interface get_entire_boundary_condition
@@ -127,7 +136,9 @@ module boundary_conditions
                       apply_dirichlet_conditions_vector_petsc_csr, &
                       apply_dirichlet_conditions_vector_component, &
                       apply_dirichlet_conditions_vector_lumped, &
-                      apply_dirichlet_conditions_vector_component_lumped
+                      apply_dirichlet_conditions_vector_component_lumped, &
+                      apply_dirichlet_conditions_tensor_component, &
+                      apply_dirichlet_conditions_tensor_vector
   end interface apply_dirichlet_conditions    
 
   private
@@ -140,7 +151,7 @@ module boundary_conditions
     set_reference_node, &
     get_periodic_boundary_condition, remove_boundary_condition, &
     set_dirichlet_consistent, apply_dirichlet_conditions, &
-    derive_collapsed_bcs
+    derive_collapsed_bcs, calculate_dynamic_slip_coefficient
 
 contains
 
@@ -335,6 +346,104 @@ contains
 
   end subroutine add_vector_boundary_condition_surface_elements
     
+  subroutine add_tensor_boundary_condition(field, name, type, boundary_ids, &
+      applies, option_path, suppress_warnings)
+  !!< Add boundary condition to tensor field
+  type(tensor_field), intent(inout):: field
+  !! all things should have a name
+  character(len=*), intent(in):: name
+  !! type can be any of: ...
+  character(len=*), intent(in):: type
+  !! boundary ids indicating the part of the surface to apply this b.c. to
+  integer, dimension(:), intent(in):: boundary_ids
+  !! boundary condition only applies to component with applies==.true.
+  logical, dimension(:,:), intent(in), optional:: applies
+  !! path to options for this b.c. in the options tree
+  character(len=*), optional, intent(in) :: option_path
+  !! suppress warnings about non-existant surface ids:
+  logical, intent(in), optional:: suppress_warnings
+    
+    logical, dimension(1:size(boundary_ids)):: boundary_id_used
+    integer, dimension(:), allocatable:: surface_element_list
+    integer i, ele_count
+
+    assert(associated(field%mesh%faces))
+    
+    allocate( surface_element_list(1:surface_element_count(field)) )
+    
+    ! generate list of surface elements where this b.c. is applied
+    ele_count=0
+    boundary_id_used=.false.
+    do i=1, surface_element_count(field)
+      if (any(boundary_ids==surface_element_id(field, i))) then
+        ele_count=ele_count+1
+        surface_element_list(ele_count)=i
+        where (boundary_ids==surface_element_id(field, i))
+          boundary_id_used=.true.
+        end where
+      end if
+    end do
+        
+    if (.not. IsParallel() .and. .not. all(boundary_id_used) .and. .not. present_and_true(suppress_warnings)) then
+      ewrite(0,*) "WARNING: for boundary condition: ", trim(name)
+      ewrite(0,*) "added to field: ", trim(field%name)
+      ewrite(0,*) "The following boundary ids were specified, but they don't appear in the surface mesh:"
+      ewrite(0,*) pack(boundary_ids, mask=.not. boundary_id_used)
+    end if
+
+    call add_tensor_boundary_condition_surface_elements(field, name, type, &
+      surface_element_list(1:ele_count), applies=applies, option_path=option_path)
+        
+    deallocate(surface_element_list)
+    
+  end subroutine add_tensor_boundary_condition
+
+  subroutine add_tensor_boundary_condition_surface_elements(field, name, type, surface_element_list, &
+      applies, option_path)
+      
+  !!< Add boundary condition to tensor field
+  type(tensor_field), intent(inout):: field
+  !! all things should have a name
+  character(len=*), intent(in):: name
+  !! type can be any of: ...
+  character(len=*), intent(in):: type
+  !! list of surface elements where this b.c. is to be applied
+  integer, dimension(:), intent(in):: surface_element_list
+  !! boundary condition only applies to component with applies==.true.
+  logical, dimension(:,:), intent(in), optional:: applies
+  !! path to options for this b.c. in the options tree
+  character(len=*), optional, intent(in) :: option_path
+  
+    type(tensor_boundary_condition), pointer:: tmp_boundary_condition(:)
+    integer nobcs
+
+    assert(associated(field%mesh%faces))
+    
+    if (.not. associated(field%bc%boundary_condition)) then
+      allocate(field%bc%boundary_condition(1))
+      nobcs=1
+    else
+      nobcs=size(field%bc%boundary_condition)+1
+      ! save existing b.c.'s
+      tmp_boundary_condition => field%bc%boundary_condition
+      ! allocate new array with 1 new entry
+      allocate(field%bc%boundary_condition(nobcs))
+      ! copy back existing entries
+      field%bc%boundary_condition(1:nobcs-1)=tmp_boundary_condition
+      ! deallocate old b.c. array
+      deallocate(tmp_boundary_condition)
+    end if
+
+    call allocate(field%bc%boundary_condition(nobcs), field%mesh, &
+      surface_element_list=surface_element_list, &
+      name=name, type=type, applies=applies)
+    
+    if (present(option_path)) then
+      field%bc%boundary_condition(nobcs)%option_path=option_path
+    end if
+
+  end subroutine add_tensor_boundary_condition_surface_elements
+
   subroutine remove_scalar_boundary_condition(field, name)
   !!< Removed boundary condition from scalar field
   type(scalar_field), intent(inout):: field
@@ -399,6 +508,38 @@ contains
   
   end subroutine remove_vector_boundary_condition
   
+  subroutine remove_tensor_boundary_condition(field, name)
+  !!< Removed boundary condition from tensor field
+  type(tensor_field), intent(inout):: field
+  character(len=*), intent(in):: name
+  
+    type(tensor_boundary_condition), pointer:: tmp_boundary_condition(:)
+    integer:: i, nobcs
+    
+    if (associated(field%bc%boundary_condition)) then
+      nobcs=size(field%bc%boundary_condition)
+      do i=1, nobcs
+        if (field%bc%boundary_condition(i)%name==name) then
+          call deallocate(field%bc%boundary_condition(i))
+          ! save existing b.c.'s
+          tmp_boundary_condition => field%bc%boundary_condition
+          ! allocate new array with 1 less entry
+          allocate(field%bc%boundary_condition(nobcs-1))
+          ! copy back existing ones, except the i-th
+          field%bc%boundary_condition(1:i-1)=tmp_boundary_condition(1:i-1)
+          field%bc%boundary_condition(i:)=tmp_boundary_condition(i+1:)
+          ! deallocate the old bcs array
+          deallocate( tmp_boundary_condition )
+          return
+        end if
+      end do
+    end if
+    ewrite(-1,*) 'In remove_tensor_boundary_condition'
+    ewrite(-1,*) 'Unknown boundary condition: ', name
+    FLAbort("Sorry!")
+  
+  end subroutine remove_tensor_boundary_condition
+
   subroutine insert_scalar_surface_field(field, n, surface_field)
   !!< Adds a surface_field to a boundary condition: a field over the 
   !!< part of the surface mesh that this b.c. applies to. This can be used
@@ -481,6 +622,47 @@ contains
     
   end subroutine insert_vector_surface_field
     
+  subroutine insert_tensor_surface_field(field, n, surface_field)
+  !!< Adds a surface_field to a boundary condition: a field over the 
+  !!< part of the surface mesh that this b.c. applies to. This can be used
+  !!< to store b.c. values
+  !! field to add surface_field to
+  type(tensor_field), intent(in):: field
+  !! add to n-th b.c.
+  integer, intent(in):: n
+  !! field to insert, callers of this routine should deallocate their copy
+  !! of this field afterwards.
+  type(tensor_field), intent(in):: surface_field
+    
+    type(tensor_field), dimension(:), pointer:: tmp_surface_fields
+    type(tensor_boundary_condition), pointer:: bc
+    integer i
+
+    assert(n>=1 .and. n<=size(field%bc%boundary_condition))
+    bc => field%bc%boundary_condition(n)
+    
+    if (.not. associated(bc%surface_fields)) then
+      allocate(bc%surface_fields(1))
+      i=1
+    else
+      ! save existing surface fields
+      tmp_surface_fields => bc%surface_fields
+      ! allocate one extra
+      i=size(bc%surface_fields)+1
+      allocate(bc%surface_fields(i))
+      ! copy back existing surface fields
+      bc%surface_fields(1:i-1)=tmp_surface_fields
+    end if
+    
+    bc%surface_fields(i)=surface_field
+    
+    ! To remain consistent with insert_field for state we incref here
+    ! so users of this routine should deallocate their copy of the
+    ! surface_field. 
+    call incref(surface_field)
+    
+  end subroutine insert_tensor_surface_field
+
   subroutine insert_vector_scalar_surface_field(field, n, surface_field)
   !!< Adds a surface_field to a boundary condition: a field over the 
   !!< part of the surface mesh that this b.c. applies to. This can be used
@@ -568,6 +750,29 @@ contains
 
   end subroutine insert_vector_surface_field_by_name
   
+  subroutine insert_tensor_surface_field_by_name(field, name, surface_field)
+  !!< Adds a surface_field to a boundary condition: a field over the 
+  !!< part of the surface mesh that this b.c. applies to. This can be used
+  !!< to store b.c. values
+  type(tensor_field), intent(in):: field
+  !! add to b.c. with name:
+  character(len=*), intent(in):: name
+  !! field to insert, callers of this routine should deallocate their copy
+  !! of this field afterwards.
+  type(tensor_field), intent(in):: surface_field
+    
+    integer i
+    do i=1, size(field%bc%boundary_condition)
+      if (field%bc%boundary_condition(i)%name==name) then
+        call insert_tensor_surface_field(field, i, surface_field)
+        return
+      end if
+    end do
+    ewrite(-1,*) 'Unknown boundary condition: ', name
+    FLAbort("Hasta la vista")
+
+  end subroutine insert_tensor_surface_field_by_name
+
   subroutine insert_vector_scalar_surface_field_by_name(field, name, surface_field)
   !!< Adds a surface_field to a boundary condition: a field over the 
   !!< part of the surface mesh that this b.c. applies to. This can be used
@@ -662,6 +867,42 @@ contains
     end if
     
   end function extract_vector_surface_field_by_number
+
+  function extract_tensor_surface_field_by_number(field, n, name, stat) result (surface_field)
+  !!< Extracts one of the surface_fields by name of the n-th b.c. of field
+  type(tensor_field), pointer:: surface_field
+  type(tensor_field), intent(in):: field
+  integer, intent(in):: n
+  character(len=*), intent(in):: name
+  integer, intent(out), optional:: stat
+  
+    type(tensor_boundary_condition), pointer:: bc
+    integer i
+
+    assert(n>=1 .and. n<=size(field%bc%boundary_condition))
+    bc => field%bc%boundary_condition(n)
+    
+    if(present(stat)) then
+      stat = 0
+    end if
+    
+    if (associated(bc%surface_fields)) then
+      do i=1, size(bc%surface_fields)
+        if (bc%surface_fields(i)%name==name) then
+          surface_field => bc%surface_fields(i)
+          return
+        end if
+      end do
+    end if
+    
+    if (present(stat)) then
+      stat = 1
+    else    
+      ewrite(-1, '(a," is not a surface_field of boundary condition n=",i0," of field ",a)') trim(name), n, trim(field%name)
+      FLAbort("Sorry!")
+    end if
+    
+  end function extract_tensor_surface_field_by_number
 
   function extract_vector_scalar_surface_field(field, n, name, stat) result (surface_field)
   !!< Extracts one of the surface_fields by name of the n-th b.c. of field
@@ -888,6 +1129,18 @@ contains
   
   end function get_vector_boundary_condition_count
 
+  integer function get_tensor_boundary_condition_count(field)
+  !!< Get number of boundary conditions of a scalar field
+  type(tensor_field), intent(in):: field
+    
+    if (associated(field%bc%boundary_condition)) then
+      get_tensor_boundary_condition_count=size(field%bc%boundary_condition)
+    else
+      get_tensor_boundary_condition_count=0
+    end if
+  
+  end function get_tensor_boundary_condition_count
+
   subroutine get_scalar_boundary_condition_by_number(field, n, name, type, &
     surface_element_list, surface_node_list, surface_mesh, &
     option_path)
@@ -996,6 +1249,63 @@ contains
     
   end subroutine get_vector_boundary_condition_by_number
 
+  subroutine get_tensor_boundary_condition_by_number(field, n, name, type, &
+    surface_element_list, surface_node_list, applies, surface_mesh, &
+    option_path)
+  !!< Get boundary condition of a tensor field
+  type(tensor_field), intent(in):: field
+  !! which boundary condition
+  integer, intent(in):: n
+  !! name of the b.c.
+  character(len=*), intent(out), optional:: name
+  !! type of b.c., any of: ...
+  character(len=*), intent(out), optional:: type
+  !! pointer to list of surface elements where this b.c. is applied
+  integer, dimension(:), pointer, optional:: surface_element_list
+  !! pointer to list of surface nodes where this b.c. is applied
+  integer, dimension(:), pointer, optional:: surface_node_list
+  !! tensor components to which this b.c. applies
+  logical, dimension(:,:), intent(out), optional:: applies
+  !! surface mesh on which surface fields can be allocated
+  type(mesh_type), pointer, optional:: surface_mesh
+  !! option_path for the bc
+  character(len=*), intent(out), optional:: option_path
+  
+    type(tensor_boundary_condition), pointer:: bc
+
+    assert(n>=1 .and. n<=size(field%bc%boundary_condition))
+    bc => field%bc%boundary_condition(n)
+    
+    if (present(name)) then
+      name=bc%name
+    end if
+    
+    if (present(type)) then
+      type=bc%type
+    end if
+    
+    if (present(surface_element_list)) then
+      surface_element_list => bc%surface_element_list
+    end if
+    
+    if (present(surface_node_list)) then
+      surface_node_list => bc%surface_node_list
+    end if
+    
+    if (present(applies)) then
+      applies=bc%applies(1:size(applies,1),1:size(applies,2))
+    end if
+        
+    if (present(surface_mesh)) then
+      surface_mesh => bc%surface_mesh
+    end if
+    
+    if (present(option_path)) then
+      option_path = bc%option_path
+    end if
+    
+  end subroutine get_tensor_boundary_condition_by_number
+
   subroutine get_scalar_boundary_condition_by_name(field, name, &
     type, surface_node_list, surface_element_list, surface_mesh, &
     option_path)
@@ -1065,6 +1375,42 @@ contains
     FLAbort("Hasta la vista")
   
   end subroutine get_vector_boundary_condition_by_name
+
+  subroutine get_tensor_boundary_condition_by_name(field, name, &
+    type, surface_element_list, surface_node_list, applies, surface_mesh, &
+    option_path)
+  !!< Get boundary condition of a tensor field
+  type(tensor_field), intent(in):: field
+  !! which boundary condition
+  character(len=*), intent(in):: name
+  !! type of b.c., any of: ...
+  character(len=*), intent(out), optional:: type
+  !! pointer to list of surface elements where this b.c. is applied
+  integer, dimension(:), pointer, optional:: surface_element_list
+  !! pointer to list of surface nodes where this b.c. is applied
+  integer, dimension(:), pointer, optional:: surface_node_list
+  !! tensor components to which this b.c. applies
+  logical, dimension(:,:), intent(out), optional:: applies
+  !! surface mesh on which surface fields can be allocated
+  type(mesh_type), pointer, optional:: surface_mesh
+  !! option_path for the bc
+  character(len=*), intent(out), optional:: option_path
+  
+    integer i
+    do i=1, size(field%bc%boundary_condition)
+      if (field%bc%boundary_condition(i)%name==name) then
+        call get_tensor_boundary_condition_by_number(field, i, &
+            type, surface_element_list=surface_element_list, &
+              surface_node_list=surface_node_list, &
+              applies=applies, surface_mesh=surface_mesh, &
+              option_path=option_path)
+        return
+      end if
+    end do
+    ewrite(-1,*) 'Unknown boundary condition: ', name
+    FLAbort("Hasta la vista")
+  
+  end subroutine get_tensor_boundary_condition_by_name
 
   subroutine get_periodic_boundary_condition(mesh, periodic_bc_list)
     !!< Gets a list of the surface elements which are periodic
@@ -1169,7 +1515,7 @@ contains
                 if (size(field%bc%boundary_condition(i)%surface_fields) > 1) then
                    surface_field_second_value => field%bc%boundary_condition(i)%surface_fields(2)
                 else
-                   FLAbort('Boundary condition surface_fields not off sufficient size for assigning robin second boundary value')
+                   FLAbort('Boundary condition surface_fields not of sufficient size for assigning robin second boundary value')
                 end if
              else
                 FLAbort('Robin boundary condition cannot be assigned without the optional argument boundary_second_value')  
@@ -1239,7 +1585,7 @@ contains
   end subroutine get_entire_scalar_boundary_condition
     
   subroutine get_entire_vector_boundary_condition(field, &
-     types, boundary_value, bc_type_list, bc_number_list)
+     types, boundary_value, bc_type_list, bc_number_list, boundary_second_value)
     !!< Gets the boundary conditions on the entire surface mesh for all
     !!< bc types requested
     
@@ -1265,8 +1611,11 @@ contains
     !! which can be used to extract further information
     !! BC can be set for each component separately, so ndim x surface_element_count()
     integer, dimension(:,:), intent(out), optional:: bc_number_list
+    !! This field is for Robin BCs and should be deallocated after use.
+    type(vector_field), intent(out), optional:: boundary_second_value
     
     type(vector_field), pointer:: surface_field
+    type(vector_field), pointer:: surface_field_second_value
     type(mesh_type), pointer:: surface_mesh, volume_mesh
     character(len=FIELD_NAME_LEN) bctype
     integer, dimension(:), pointer:: surface_element_list
@@ -1284,6 +1633,11 @@ contains
     call zero(boundary_value)
     bc_type_list=0
     
+    if (present(boundary_second_value)) then
+       call allocate(boundary_second_value, field%dim, surface_mesh, name=trim(field%name)//"EntireBCSecondValue")
+       call zero(boundary_second_value)    
+    end if
+
     bcloop: do i=1, get_boundary_condition_count(field)
        call get_boundary_condition(field, i, type=bctype, applies=applies, &
           surface_element_list=surface_element_list)
@@ -1297,8 +1651,22 @@ contains
        if (associated(field%bc%boundary_condition(i)%surface_fields)) then
           ! extract 1st surface field
           surface_field => field%bc%boundary_condition(i)%surface_fields(1)
+          if (trim(bctype) == 'robin' .or. trim(bctype) == 'dynamic_slip') then
+             if (present(boundary_second_value)) then
+                if (size(field%bc%boundary_condition(i)%surface_fields) > 1) then
+                   surface_field_second_value => field%bc%boundary_condition(i)%surface_fields(2)
+                else
+                   FLAbort('Boundary condition surface_fields not of sufficient size for assigning robin second boundary value')
+                end if
+             else
+                FLAbort('Robin boundary condition cannot be assigned without the optional argument boundary_second_value')  
+             end if
+          else
+             nullify(surface_field_second_value)
+          end if
        else
           nullify(surface_field)
+          nullify(surface_field_second_value)
        end if       
        
        faceloop: do k=1, size(surface_element_list)
@@ -1313,7 +1681,7 @@ contains
                    ewrite(0,*) 'to each surface element.'
                    ewrite(0,*) 'Surface element nr.:', sele
                    ewrite(0,*) 'Component nr:', n
-                   ewrite(0,*) 'has types', types(bc_type_list(j, sele)), bctype
+                   ewrite(0,*) 'has types', bc_type_list(j, sele), bctype
                    FLAbort("Can't have that.")
                 end if
                 bc_type_list(n, sele)=j
@@ -1325,7 +1693,13 @@ contains
                    call set(boundary_value, n, ele_nodes(surface_mesh, sele), &
                       ele_val(surface_field, n, k))
                 end if
+
+                if (associated(surface_field_second_value)) then
+                   call set(boundary_second_value, n, ele_nodes(surface_mesh, sele), &
+                      ele_val(surface_field_second_value, n, k))
+                end if
              end if
+
           end do
           
        end do faceloop
@@ -1927,9 +2301,9 @@ contains
        if (bctype/="dirichlet") cycle bcloop
        
        call set_inactive(matrix, surface_node_list)
-       
+
        surface_field => extract_surface_field(field, i, "value")
-       
+
        if (present(dt)) then
           do j=1, size(surface_node_list)
             call set(rhs, surface_node_list(j), &
@@ -2072,7 +2446,7 @@ contains
           surface_node_list=surface_node_list, applies=applies)
 
        if (bctype/="dirichlet") cycle bcloop
-       
+
        surface_field => extract_surface_field(field, i, "value")
        
        do j=1,size(surface_node_list)
@@ -2299,6 +2673,124 @@ contains
 
   end subroutine apply_dirichlet_conditions_vector_component_lumped
   
+  subroutine apply_dirichlet_conditions_tensor_component(matrix, rhs, field, dt, dim1, dim2)
+    !!< Apply dirichlet boundary conditions from field to the problem
+    !!< defined by matrix and rhs.
+    !!<
+    !!< This assumes that boundary conditions are applied in rate of change
+    !!< form and that the matrix has dim x dim blocks.
+    type(csr_matrix), intent(inout) :: matrix
+    type(tensor_field), intent(inout), optional :: rhs
+    type(tensor_field), intent(in) :: field
+    real, intent(in), optional :: dt
+    integer, intent(in) :: dim1, dim2
+
+    type(scalar_field) :: rhscomponent, bccomponent
+
+    logical, dimension(dim1,dim2):: applies
+    character(len=FIELD_NAME_LEN):: bctype
+    type(tensor_field), pointer:: surface_field
+    integer, dimension(:), pointer:: surface_node_list
+    integer :: i,j
+
+    bcloop: do i=1, get_boundary_condition_count(field)
+       call get_boundary_condition(field, i, type=bctype, &
+          surface_node_list=surface_node_list, applies=applies)
+
+       if (bctype/="dirichlet") cycle bcloop
+
+       surface_field => extract_surface_field(field, i, "value")
+       
+       do j=1,size(surface_node_list)
+         
+          if(applies(dim1,dim2)) then
+            
+            call set_diag(matrix, surface_node_list(j), INFINITY)
+
+            if(present(rhs)) then
+              rhscomponent = extract_scalar_field_from_tensor_field(rhs, dim1, dim2)
+              bccomponent = extract_scalar_field_from_tensor_field(surface_field, dim1, dim2)
+
+              if(present(dt)) then
+                call set(rhscomponent, &
+                            surface_node_list(j), &
+                            ((node_val(bccomponent, j) &
+                              -node_val(field,dim1,dim2,surface_node_list(j)) &
+                            ) /dt)*INFINITY)
+              else
+                call set(rhscomponent, &
+                            surface_node_list(j), &
+                            node_val(bccomponent, j)*INFINITY)
+              end if
+
+            end if
+
+          end if
+       end do
+
+    end do bcloop
+
+  end subroutine apply_dirichlet_conditions_tensor_component
+
+  subroutine apply_dirichlet_conditions_tensor_vector(matrix, rhs, field, dt, dim1, dim2)
+    !!< Apply dirichlet boundary conditions from vector field to the problem
+    !!< defined by matrix and rhs.
+    !!<
+    !!< This assumes that boundary conditions are applied in rate of change
+    !!< form and that the matrix has dim x dim blocks.
+    type(csr_matrix), intent(inout) :: matrix
+    type(tensor_field), intent(inout), optional :: rhs
+    type(vector_field), intent(in) :: field
+    real, intent(in), optional :: dt
+    integer, intent(in) :: dim1, dim2
+
+    type(scalar_field) :: rhscomponent, bccomponent
+
+    logical, dimension(dim1):: applies
+    character(len=FIELD_NAME_LEN):: bctype
+    type(vector_field), pointer:: surface_field
+    integer, dimension(:), pointer:: surface_node_list
+    integer :: i,j
+
+    bcloop: do i=1, get_boundary_condition_count(field)
+       call get_boundary_condition(field, i, type=bctype, &
+          surface_node_list=surface_node_list, applies=applies)
+
+       if (bctype/="dirichlet") cycle bcloop
+
+       surface_field => extract_surface_field(field, i, "value")
+       
+       do j=1,size(surface_node_list)
+         
+          if(applies(dim1)) then
+            
+            call set_diag(matrix, surface_node_list(j), INFINITY)
+
+            if(present(rhs)) then
+              rhscomponent = extract_scalar_field_from_tensor_field(rhs, dim1, dim2)
+              bccomponent = extract_scalar_field_from_vector_field(surface_field, dim1)
+
+              if(present(dt)) then
+                call set(rhscomponent, &
+                            surface_node_list(j), &
+                            ((node_val(bccomponent, j) &
+                              -node_val(field,dim1,surface_node_list(j)) &
+                            ) /dt)*INFINITY)
+              else
+                call set(rhscomponent, &
+                            surface_node_list(j), &
+                            node_val(bccomponent, j)*INFINITY)
+              end if
+
+            end if
+
+          end if
+       end do
+
+    end do bcloop
+
+  end subroutine apply_dirichlet_conditions_tensor_vector
+
   subroutine derive_collapsed_bcs(input_states, collapsed_states, bctype)
     !!< For the collapsed state collapsed_states, containing the collapsed
     !!< components of fields in input_states, copy across the component
@@ -2388,5 +2880,383 @@ contains
     ewrite(1, *) "Exiting derive_collapsed_bcs"
   
   end subroutine derive_collapsed_bcs
-  
+
+  subroutine calculate_dynamic_slip_coefficient(x, u, fnu, tnu, leonard, strainprod, sgstensor, dyn_coeff, alpha, gamma, dynamic_les, exact_sgs)
+
+    type(vector_field), intent(in) :: x, u
+
+    ! Fields/vars for dynamic slip model
+    type(scalar_field), intent(in)    :: dyn_coeff
+    type(vector_field), intent(in)    :: fnu, tnu
+    type(tensor_field), intent(in)    :: leonard, strainprod, sgstensor
+    real, intent(in)                  :: alpha, gamma
+    logical, intent(in)               :: dynamic_les, exact_sgs
+
+    ! local vars
+    type(vector_field), pointer     :: surface_field, surface_field_2
+    real, dimension(face_loc(u, 1)) :: surface_field_addto
+    real, dimension(u%dim)          :: slipsum
+    character(len=OPTION_PATH_LEN)  :: bc_path_i, bc_type_path, bc_component_path
+    character(len=FIELD_NAME_LEN)   :: bc_name, bc_type
+    integer, dimension(:), pointer  :: surface_element_list, surface_node_list
+    integer                         :: i, j, k, sele, nbcs, dim_set
+    logical                         :: applies(3)
+    character(len=20), dimension(3) :: aligned_components
+    character(len=20), parameter, dimension(3) :: &
+      cartesian_aligned_components=(/"x_component","y_component","z_component"/), &
+      surface_aligned_components=(/"normal_component   ","tangent_component_1","tangent_component_2"/)
+
+    ewrite(2,*) "Calculating dynamic_slip coefficient"
+
+    ! Get number of boundary conditions
+    nbcs=option_count(trim(u%option_path)//'/prognostic/boundary_conditions')
+
+    ! Loop over boundary conditions
+    do i=1, nbcs
+
+      call get_boundary_condition(u, i, type=bc_type, name=bc_name, surface_element_list=surface_element_list, &
+              surface_node_list=surface_node_list, applies=applies, option_path=bc_path_i)
+
+      ! Skip partitions with no surface elements with this BC
+      if(size(surface_element_list)==0) cycle
+
+      ! Consider only dynamic slip BCs
+      if(trim(bc_type)=='dynamic_slip') then
+
+        if(have_option(trim(bc_path_i)//"/type[0]/align_bc_with_cartesian")) then
+           aligned_components=cartesian_aligned_components
+           bc_type_path=trim(bc_path_i)//"/type[0]/align_bc_with_cartesian"
+        else
+           aligned_components=surface_aligned_components             
+           bc_type_path=trim(bc_path_i)//"/type[0]/align_bc_with_surface"
+        end if
+
+        surface_field   => extract_surface_field(u, bc_name, name="order_zero_coefficient")
+        surface_field_2 => extract_surface_field(u, bc_name, name="order_one_coefficient")
+        call zero(surface_field)
+        call zero(surface_field_2)
+
+        dim_set = 0
+        slipsum = 0
+        surface_field_addto = 0.0
+
+        do j=1,3
+
+          bc_component_path=trim(bc_type_path)//"/"//aligned_components(j)
+          applies(j)=have_option(trim(bc_component_path))
+
+          if (applies(j)) then
+
+            ! Set zero order coeff at ele nodes
+            do k=1, size(surface_node_list)
+              call set(surface_field, j, k, 0.0)
+            end do
+
+            ! Calculate dynamic slip coefficient
+            ! But only if we haven't done it already for another component
+            if(dim_set==0) then
+
+              do k=1, size(surface_element_list)
+                sele = surface_element_list(k)
+
+                call calculate_dynamic_slip_coefficient_face(x, u, fnu, tnu, &
+                     leonard, strainprod, sgstensor, dyn_coeff, alpha, gamma, &
+                     dynamic_les, exact_sgs, surface_field_addto, sele)
+
+                ! add contribution to surface field
+                call addto(surface_field_2, j, ele_nodes(surface_field_2, k), surface_field_addto)
+              end do
+
+              do k=1, size(surface_node_list)
+                slipsum(j) = slipsum(j) + node_val(surface_field_2, j, k)
+              end do
+
+              ! flag this dimension so we don't have to recalculate the coeff
+              dim_set = j
+            else
+              do k=1, size(surface_node_list)
+                call set(surface_field_2, j, k, node_val(surface_field_2, dim_set, k))
+              end do
+            end if
+          end if
+        end do
+        ewrite_minmax(surface_field)
+        ewrite_minmax(surface_field_2)
+        ewrite(2,*) "sum(slip coeff): ", slipsum
+      end if
+    end do
+
+  end subroutine calculate_dynamic_slip_coefficient
+
+  subroutine calculate_dynamic_slip_coefficient_face(x, u, fnu, tnu, leonard, strainprod, sgstensor, dyn_coeff, alpha, gamma, dynamic_les, exact_sgs, surface_field_addto, sele)
+
+    type(scalar_field), intent(in)    :: dyn_coeff
+    type(vector_field), intent(in)    :: x, u, fnu, tnu
+    type(tensor_field), intent(in)    :: leonard, strainprod, sgstensor
+    logical, intent(in)               :: dynamic_les, exact_sgs
+    real, intent(in)                  :: alpha, gamma
+    integer, intent(in)               :: sele
+    real, dimension(face_loc(u, sele)), intent(out) :: surface_field_addto
+
+    ! FE quantities
+    integer :: i, j, gi, ngi, lface, ele
+    real, dimension(face_ngi(u, sele))                                       :: detwei_bdy
+    real, dimension(u%dim, face_ngi(u, sele))                                :: normal_bdy
+    real, dimension(u%dim, u%dim, ele_ngi(u, face_ele(u, sele)))             :: invj
+    real, dimension(u%dim, u%dim, face_ngi(u, sele))                         :: invj_face
+    real, dimension(ele_loc(u, face_ele(u, sele)), face_ngi(u, sele), u%dim) :: dshape_face
+
+    type(element_type)          :: augmented_shape
+    type(element_type), pointer :: u_shape, fshape, x_shape, source_shape
+
+    ! Local quantities specific to dynamic slip wall model
+    real, dimension(u%dim, u%dim, face_ngi(u, sele))  :: leonard_gi, strain_gi, t_strain_gi, strainprod_gi
+    real, dimension(u%dim, u%dim, face_ngi(u, sele))  :: tau_gi, tautest_gi
+    real, dimension(u%dim, u%dim)                     :: mij, grad_fnu, grad_tnu
+    real, dimension(u%dim, face_ngi(u, sele))         :: fnu_gi, tnu_gi, laplacian_gi
+    real, dimension(u%dim, ele_loc(u, sele))          :: fnu_ele, tnu_ele
+    real, dimension(u%dim)                            :: grad_fnu_dot_n, grad_tnu_dot_n
+    real, dimension(face_ngi(u, sele))                :: f_scalar_gi, t_scalar_gi, les_coef_gi, beta_gi
+    real, dimension(ele_loc(u, sele))                 :: laplacian
+    real                                              :: strain_mod, t_strain_mod, denom
+    character(len=OPTION_PATH_LEN)                    :: les_option_path, HOT
+
+    ele = face_ele(x, sele)
+    u_shape => face_shape(u, sele)
+    x_shape => ele_shape(x, ele)
+    fshape => face_shape(u, sele)
+    source_shape => ele_shape(u, ele)
+    lface = local_face_number(u, sele)
+    ngi = face_ngi(u, sele)
+
+    call transform_facet_to_physical(X, sele, detwei_f=detwei_bdy, normal=normal_bdy)
+
+    ! Get shape fn and its gradient on surface element
+    if(associated(source_shape%dn_s)) then
+      augmented_shape = source_shape
+      call incref(augmented_shape)
+    else
+      augmented_shape = make_element_shape(x_shape%loc, source_shape%dim, &
+        & source_shape%degree, source_shape%quadrature, quad_s = fshape%quadrature)
+    end if
+
+    call compute_inverse_jacobian(ele_val(x, ele), x_shape, invj = invj)
+
+    assert(x_shape%degree == 1)
+    assert(ele_numbering_family(x_shape) == FAMILY_SIMPLEX)
+    invj_face = spread(invj(:, :, 1), 3, size(invj_face, 3))
+
+    dshape_face = eval_volume_dshape_at_face_quad(augmented_shape, lface, invj_face)
+    call deallocate(augmented_shape)
+
+    ! first-filtered velocity at nodes and gauss pts
+    fnu_ele = ele_val(fnu, ele)
+    fnu_gi = face_val_at_quad(fnu, sele)
+
+    ! test-filtered velocity at nodes and gauss pts
+    tnu_ele = ele_val(tnu, ele)
+    tnu_gi = face_val_at_quad(tnu, sele)
+
+    ! Calculate velocity gradients w.r.t. surface normal
+    do gi = 1, ngi
+
+      ! Calculate grad fnu, tnu at the surface element quadrature points
+      !grad_fnu = matmul(fnu_ele, dshape_face(:,gi,:))
+      !grad_tnu = matmul(tnu_ele, dshape_face(:,gi,:))
+      forall(i = 1:u%dim, j = 1:u%dim)
+        grad_fnu(i,j) = dot_product(fnu_ele(i,:), dshape_face(:,gi,j))
+        grad_tnu(i,j) = dot_product(tnu_ele(i,:), dshape_face(:,gi,j))
+      end forall
+
+      ! Calculate grad fnu dot dn at the surface element quadrature points
+      do i=1, u%dim
+        grad_fnu_dot_n(i) = dot_product(grad_fnu(i,:), normal_bdy(:,gi))
+        grad_tnu_dot_n(i) = dot_product(grad_tnu(i,:), normal_bdy(:,gi))
+      end do
+
+    end do
+
+    ! SGS model quantities common to both models
+
+    ! Filtered SGS stress tensor (from dynamic LES computation)
+    !tau_gi = face_val_at_quad(sgstensor, sele)
+    ! Leonard tensor at Gauss points
+    leonard_gi = face_val_at_quad(leonard, sele)
+
+    ! scalar_gi first filter width G1 = alpha^2*meshsize (units length^2)
+    f_scalar_gi = alpha**2/24*length_scale_scalar(x, ele)
+    ! Combined width G2 = (1+gamma^2)*G1
+    t_scalar_gi = (1.0+gamma**2)*f_scalar_gi
+
+    les_option_path = trim(u%option_path)//"/prognostic/spatial_discretisation/continuous_galerkin/les_model"
+
+    ! Choose SGS model
+    if(dynamic_les) then
+
+      ! Get some dynamic LES model terms at the surface quadrature points
+
+      ! Get strain terms S1, S2
+      strain_gi = les_strain_rate(dshape_face, fnu_ele)
+      t_strain_gi = les_strain_rate(dshape_face, tnu_ele)
+
+      ! Dynamic Smagorinsky coeff and strain product at Gauss points
+      strainprod_gi = face_val_at_quad(strainprod, sele)
+      les_coef_gi = face_val_at_quad(dyn_coeff, sele)
+
+      do gi=1, ngi
+        !ewrite(2,*) "gi: ", gi
+
+        ! Recompute dynamic LES model terms
+
+        ! Strain moduli |S1|, |S2|
+        strain_mod = sqrt(2*sum(strain_gi(:,:,gi)*strain_gi(:,:,gi)))
+        t_strain_mod = sqrt(2*sum(t_strain_gi(:,:,gi)*t_strain_gi(:,:,gi)))
+
+        ! Tensor M_ij = (|S2|*S2)G2 - ((|S1|S1)^f2)G1
+        mij = t_strain_mod*t_strain_gi(:,:,gi)*t_scalar_gi(gi) - strainprod_gi(:,:,gi)*f_scalar_gi(gi)
+        denom = sum(mij*mij)
+
+        ! Dynamic LES Model coeff C_S = -(L_ij M_ij) / 2(M_ij M_ij)
+        ! Subtract tnu_i tnu_j from Leonard tensor
+        if (denom > epsilon(0.0)) then
+          les_coef_gi(gi) = -0.5*sum((leonard_gi(:,:,gi)-outer_product(tnu_gi(:,gi), tnu_gi(:,gi)))*mij) / denom
+        else
+          les_coef_gi(gi) = 0.0
+        endif
+        !ewrite(2,*) "Cs: ", les_coef_gi(gi)
+
+        ! Constrain C_S to be between 0 and 0.04.
+        les_coef_gi(gi) = min(max(les_coef_gi(gi),0.0), 0.04)
+
+        ! Dynamic LES Model terms: T_ij = -2C_S|S2|.alpha^2.G2.S2, tau_ij = -2C_S|S1|.alpha^2.G1.S1
+        tau_gi(:,:,gi)     = 2.0*les_coef_gi(gi)*strain_mod*f_scalar_gi(gi)*strain_gi(:,:,gi)
+        tautest_gi(:,:,gi) = 2.0*les_coef_gi(gi)*t_strain_mod*t_scalar_gi(gi)*t_strain_gi(:,:,gi)
+
+      end do
+
+    ! Germano's exact SGS closure or the LANS-alpha model
+    else if(exact_sgs) then
+
+      ewrite(2,*) "calculate_boundaries: ", trim(les_option_path)//"/exact_sgs/calculate_boundaries"
+
+      ! If setting SGS tensor = 0 on boundaries, do not calculate tau_gi, tautest_gi here.
+      if(have_option(trim(les_option_path)//"/exact_sgs/calculate_boundaries")) then
+
+        do gi = 1, ngi
+          tau_gi(:,:,gi) = 0.0
+          tautest_gi(:,:,gi) = 0.0
+        end do
+
+      ! Compute SGS tensors at both filter levels
+      else
+
+        select case(HOT)
+
+        ! Clark or Gradient model
+        case("none")
+          do gi = 1, ngi
+            ! SGS tensors at both filter levels composed of 1 gradient product term:
+            ! (du_i/dx_k) (du_j/dx_k)
+            tau_gi(:,:,gi)     = f_scalar_gi(gi)*(matmul(grad_fnu, transpose(grad_fnu)))
+            tautest_gi(:,:,gi) = t_scalar_gi(gi)*(matmul(grad_tnu, transpose(grad_tnu)))
+          end do
+
+        ! Germano's exact closure
+        case("exact")
+          do gi = 1, ngi
+            ! SGS tensors at both filter levels composed of 1 gradient product term:
+            ! 2 (du_i/dx_k) (du_j/dx_k)
+            tau_gi(:,:,gi) = 2.0*f_scalar_gi(gi)*matmul(grad_fnu, transpose(grad_fnu))
+            tautest_gi(:,:,gi) = 2.0*t_scalar_gi(gi)*matmul(grad_tnu, transpose(grad_tnu))
+
+            ! Laplacian operator: dim.dim = dim
+            do i = 1, ele_loc(fnu, ele)
+              laplacian(i) = dot_product(dshape_face(i,gi,:), dshape_face(i,gi,:))
+            end do
+
+            ! Laplacian of filtered velocity: (dim*loc)*loc = dim
+            laplacian_gi(:,gi) = matmul(fnu_ele, laplacian)
+
+            ! Add 4th-order Laplacian product term to SGS tensor
+            tau_gi(:,:,gi)     = tau_gi(:,:,gi) &
+                                 + f_scalar_gi(gi)**4*outer_product(laplacian_gi(:,gi), laplacian_gi(:,gi))
+
+            ! Laplacian of test-filtered velocity
+            laplacian_gi(:,gi) = matmul(tnu_ele, laplacian)
+
+            ! SGS tensor at test filter level
+            tautest_gi(:,:,gi) = tautest_gi(:,:,gi) &
+                                 + t_scalar_gi(gi)**4*outer_product(laplacian_gi(:,gi), laplacian_gi(:,gi))
+          end do
+
+        ! LANS-alpha closure
+        case("lans")
+          do gi = 1, ngi
+            ! SGS tensors at both filter levels composed of 3 gradient product terms:
+            ! (du_i/dx_k) (du_j/dx_k) - (du_k/dx_i) (du_k/dx_j) + (du_i/dx_k) (du_k/dx_j)
+            tau_gi(:,:,gi)     = f_scalar_gi(gi)*(matmul(grad_fnu, transpose(grad_fnu)) &
+                                                - matmul(transpose(grad_fnu), grad_fnu) &
+                                                + matmul(grad_fnu, grad_fnu))
+
+            tautest_gi(:,:,gi) = t_scalar_gi(gi)*(matmul(grad_tnu, transpose(grad_tnu)) &
+                                                - matmul(transpose(grad_tnu), grad_tnu) &
+                                                + matmul(grad_tnu, grad_tnu))
+          end do
+
+        end select
+      end if
+    end if
+
+    ! Now compute dynamic slip wall model terms
+    do gi=1, ngi
+
+      ! Recalculate M_ij
+      forall(i = 1:u%dim, j = 1:u%dim)
+        mij(i,j) = gamma**2*grad_tnu_dot_n(i)*grad_tnu_dot_n(j) - grad_fnu_dot_n(i)*grad_fnu_dot_n(j)
+      end forall
+
+      ! Alternative form. UNSTABLE - GIVES BETA < 0
+      !forall(i = 1:u%dim, j = 1:u%dim)
+      !  mij(i,j) = gamma*(tnu_gi(i,gi)*grad_tnu_dot_n(j) + tnu_gi(j,gi)*grad_tnu_dot_n(i)) &
+      !           & - fnu_gi(i,gi)*grad_fnu_dot_n(j) - fnu_gi(j,gi)*grad_fnu_dot_n(i)
+      !end forall
+
+      denom = sum(mij*mij)
+
+      ! Subtract fnu_i fnu_j from Leonard tensor
+      leonard_gi(:,:,gi) = leonard_gi(:,:,gi) - outer_product(fnu_gi(:,gi), fnu_gi(:,gi))
+
+      ! Slip coeff beta = sqrt((L_ij-T_ij+tau_ij) M_ij / M_ij M_ij)
+      beta_gi(gi) = sum(mij(:,:)*(leonard_gi(:,:,gi) - tautest_gi(:,:,gi) + tau_gi(:,:,gi))) / denom
+      !beta_gi(gi) = sum(mij(:,:)*leonard_gi(:,:,gi)) / denom
+
+      if (beta_gi(gi) > epsilon(0.0)) then
+        beta_gi(gi) = 1.0/sqrt(beta_gi(gi))
+      ! If using alternative form, don't take sqrt of beta.
+      !if (abs(beta_gi(gi)) > epsilon(0.0)) then
+      !  beta_gi(gi) = 1.0/beta_gi(gi)
+      else ! what is a sensible alternative? Face-averaged value?
+        beta_gi(gi) = 0.0
+      endif
+
+      !ewrite(2,*) "Cs: ", les_coef_gi(gi)
+      ewrite(2,*) "Lij: ", leonard_gi(:,:,gi)
+      ewrite(2,*) "tau: ", tau_gi(:,:,gi)
+      ewrite(2,*) "tautest: ", tautest_gi(:,:,gi)
+      !ewrite(2,*) "d/dxj(fnu): ", grad_fnu
+      !ewrite(2,*) "d/dxj(tnu): ", grad_tnu
+      !ewrite(2,*) "d/dn(fnu): ", grad_fnu_dot_n
+      !ewrite(2,*) "d/dn(tnu): ", grad_tnu_dot_n
+      ewrite(2,*) "Mij: ", mij
+      !ewrite(2,*) "MijMij: ", denom
+
+    end do
+
+    ewrite(2,*) "beta: ", beta_gi
+
+    ! add contribution to surface field
+    surface_field_addto = shape_rhs(u_shape, beta_gi*detwei_bdy)
+
+  end subroutine calculate_dynamic_slip_coefficient_face
+
 end module boundary_conditions

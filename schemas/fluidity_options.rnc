@@ -2913,6 +2913,124 @@ velocity_components_choice =
       )
    )
 
+robin_velocity_components_choice =
+   (
+      (
+         element align_bc_with_surface {
+            element normal_component {
+               element order_zero_coefficient {
+                  input_choice_real
+               },
+               element order_one_coefficient {
+                  input_choice_real
+               }
+            }?,
+            element tangent_component_1 {
+               element order_zero_coefficient {
+                  input_choice_real
+               },
+               element order_one_coefficient {
+                  input_choice_real
+               }
+            }?,
+            element tangent_component_2 {
+               element order_zero_coefficient {
+                  input_choice_real
+               },
+               element order_one_coefficient {
+                  input_choice_real
+               }
+            }?,
+            rotation_matrix_components
+         }|
+         element align_bc_with_cartesian {
+            element x_component {
+               element order_zero_coefficient {
+                  input_choice_real
+               },
+               element order_one_coefficient {
+                  input_choice_real
+               }
+            }?,
+            element y_component {
+               element order_zero_coefficient {
+                  input_choice_real
+               },
+               element order_one_coefficient {
+                  input_choice_real
+               }
+            }?,
+            element z_component {
+               element order_zero_coefficient {
+                  input_choice_real
+               },
+               element order_one_coefficient {
+                  input_choice_real
+               }
+            }?
+         }
+      )
+   )
+
+dynamic_slip_velocity_components_choice =
+   (
+      (
+         element align_bc_with_surface {
+            element normal_component {
+               element order_zero_coefficient {
+                  input_choice_internal
+               },
+               element order_one_coefficient {
+                  input_choice_internal
+               }
+            }?,
+            element tangent_component_1 {
+               element order_zero_coefficient {
+                  input_choice_internal
+               },
+               element order_one_coefficient {
+                  input_choice_internal
+               }
+            }?,
+            element tangent_component_2 {
+               element order_zero_coefficient {
+                  input_choice_internal
+               },
+               element order_one_coefficient {
+                  input_choice_internal
+               }
+            }?,
+            rotation_matrix_components
+         }|
+         element align_bc_with_cartesian {
+            element x_component {
+               element order_zero_coefficient {
+                  input_choice_internal
+               },
+               element order_one_coefficient {
+                  input_choice_internal
+               }
+            }?,
+            element y_component {
+               element order_zero_coefficient {
+                  input_choice_internal
+               },
+               element order_one_coefficient {
+                  input_choice_internal
+               }
+            }?,
+            element z_component {
+               element order_zero_coefficient {
+                  input_choice_internal
+               },
+               element order_one_coefficient {
+                  input_choice_internal
+               }
+            }?
+         }
+      )
+   )
+
 # Mainly tidal harmonic diagnostics
 free_surface_diagnostic_options = 
    (
@@ -2955,6 +3073,14 @@ velocity_boundary_conditions =
          element type {
             attribute name { "neumann" },
             velocity_components_choice
+         }|
+         element type {
+            attribute name { "robin" },
+            robin_velocity_components_choice
+         }|
+         element type {
+            attribute name { "dynamic_slip" },
+            dynamic_slip_velocity_components_choice
          }|
          ## Add a bulk formulae boundary condition. Only makes sense
          ## on the Velocity field.

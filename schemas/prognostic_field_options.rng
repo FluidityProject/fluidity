@@ -801,40 +801,6 @@ The 'tensor' length scale uses the metric from the adaptivity process. Using thi
                     </element>
                   </optional>
                   <optional>
-                    <element name="vector_field">
-                      <a:documentation>First filtered velocity (diagnostic). This is the Velocity field filtered
-with the first filter - see manual.</a:documentation>
-                      <attribute name="rank">
-                        <value>2</value>
-                      </attribute>
-                      <attribute name="name">
-                        <value>FirstFilteredVelocity</value>
-                      </attribute>
-                      <element name="diagnostic">
-                        <ref name="internal_algorithm"/>
-                        <ref name="velocity_mesh_choice"/>
-                        <ref name="diagnostic_tensor_field"/>
-                      </element>
-                    </element>
-                  </optional>
-                  <optional>
-                    <element name="vector_field">
-                      <a:documentation>Test filtered velocity (diagnostic). This is the first filtered velocity field filtered
-again with the test filter - see manual.</a:documentation>
-                      <attribute name="rank">
-                        <value>2</value>
-                      </attribute>
-                      <attribute name="name">
-                        <value>TestFilteredVelocity</value>
-                      </attribute>
-                      <element name="diagnostic">
-                        <ref name="internal_algorithm"/>
-                        <ref name="velocity_mesh_choice"/>
-                        <ref name="diagnostic_tensor_field"/>
-                      </element>
-                    </element>
-                  </optional>
-                  <optional>
                     <element name="tensor_field">
                       <a:documentation>First filter width tensor (diagnostic): G_f = meshsize^2*alpha^2.</a:documentation>
                       <attribute name="rank">
@@ -874,6 +840,130 @@ carries the influence of turbulence onto the velocity field.</a:documentation>
                       </attribute>
                       <attribute name="name">
                         <value>EddyViscosity</value>
+                      </attribute>
+                      <element name="diagnostic">
+                        <ref name="internal_algorithm"/>
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="diagnostic_tensor_field"/>
+                        <element name="mass_matrix">
+                          <choice>
+                            <element name="use_lumped_mass_matrix">
+                              <optional>
+                                <element name="use_submesh">
+                                  <empty/>
+                                </element>
+                              </optional>
+                            </element>
+                            <element name="use_consistent_mass_matrix">
+                              <empty/>
+                            </element>
+                          </choice>
+                        </element>
+                      </element>
+                    </element>
+                  </optional>
+                  <optional>
+                    <element name="tensor_field">
+                      <a:documentation>SGS stress tensor.</a:documentation>
+                      <attribute name="rank">
+                        <value>2</value>
+                      </attribute>
+                      <attribute name="name">
+                        <value>SGSTensor</value>
+                      </attribute>
+                      <element name="diagnostic">
+                        <ref name="internal_algorithm"/>
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="diagnostic_tensor_field"/>
+                        <element name="mass_matrix">
+                          <choice>
+                            <element name="use_lumped_mass_matrix">
+                              <optional>
+                                <element name="use_submesh">
+                                  <empty/>
+                                </element>
+                              </optional>
+                            </element>
+                            <element name="use_consistent_mass_matrix">
+                              <empty/>
+                            </element>
+                          </choice>
+                        </element>
+                      </element>
+                    </element>
+                  </optional>
+                </element>
+                <element name="exact_sgs">
+                  <a:documentation>exact expression for subgrid stresses derived from inverse Helmholtz filter</a:documentation>
+                  <element name="alpha">
+                    <a:documentation>Filtering scale factor alpha: the ratio between the mesh size and first filter width G_f.
+First filtering is achieved by applying the inverse Helmholtz operator:
+u_f = (1-alpha^2/24*M*L)^-1 * u, where M is the mesh size squared (a tensor) and L is the Laplacian.
+Lower values will result in less information being filtered out of the velocity.
+
+default value: 2.0</a:documentation>
+                    <ref name="real"/>
+                  </element>
+                  <optional>
+                    <element name="explicit_filter">
+                      <a:documentation>If turned on, solve NS for explicitly filtered velocity. Otherwise solve for unfiltered velocity.</a:documentation>
+                      <empty/>
+                    </element>
+                  </optional>
+                  <optional>
+                    <element name="calculate_boundaries">
+                      <a:documentation>If turned on, apply zero Dirichlet BC to exact SGS field.
+Otherwise no BCs are set.</a:documentation>
+                      <empty/>
+                    </element>
+                  </optional>
+                  <element name="HOT">
+                    <a:documentation>Choose whether a 4th order term is included in the model.
+Choices are none (i.e. 2nd order term (Clark or Gradient model) only),
+the LANS-alpha or the exact SGS formulation.</a:documentation>
+                    <choice>
+                      <value>none</value>
+                      <value>exact</value>
+                      <value>lans</value>
+                    </choice>
+                  </element>
+                  <element name="length_scale_type">
+                    <a:documentation>The 'scalar' length scale is the cube root of the element's volume in 3D. In 2D, it is the square root of the element's area. Using this will result in an isotropic eddy viscosity tensor.
+
+The 'tensor' length scale uses the metric from the adaptivity process. Using this will result in an anisotropic eddy viscosity tensor.</a:documentation>
+                    <choice>
+                      <value>scalar</value>
+                      <value>tensor</value>
+                    </choice>
+                  </element>
+                  <element name="solver">
+                    <a:documentation>Solver options are required for calculation of Helmholtz-smoothed velocity.</a:documentation>
+                    <ref name="linear_solver_options_sym"/>
+                  </element>
+                  <optional>
+                    <element name="vector_field">
+                      <a:documentation>Explicitly filtered velocity.</a:documentation>
+                      <attribute name="name">
+                        <value>FilteredVelocity</value>
+                      </attribute>
+                      <attribute name="rank">
+                        <value>1</value>
+                      </attribute>
+                      <element name="diagnostic">
+                        <ref name="internal_algorithm"/>
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="diagnostic_vector_field"/>
+                      </element>
+                    </element>
+                  </optional>
+                  <optional>
+                    <element name="tensor_field">
+                      <a:documentation>subgrid stress tensor</a:documentation>
+                      <attribute name="rank">
+                        <value>2</value>
+                      </attribute>
+                      <attribute name="name">
+                        <value>SGSTensor</value>
                       </attribute>
                       <element name="diagnostic">
                         <ref name="internal_algorithm"/>

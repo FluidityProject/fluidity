@@ -231,7 +231,7 @@ module fields_base
 
   interface surface_element_id
     module procedure surface_element_id_scalar, surface_element_id_vector, &
-      surface_element_id_mesh
+      surface_element_id_tensor, surface_element_id_mesh
   end interface
 
   interface ele_region_id
@@ -744,6 +744,20 @@ contains
     id=field%mesh%faces%boundary_ids(ele)
     
   end function surface_element_id_vector
+  
+  pure function surface_element_id_tensor(field, ele) result (id)
+    !!< Return the boundary id of the given surface element
+    type(tensor_field), intent(in):: field
+    integer, intent(in):: ele
+    integer id
+    
+    ! sorry can't assert in pure
+    !assert(associated(field%mesh%faces))
+    !assert(ele>0 .and. ele<size(field%mesh%faces%boundary_ids))
+    
+    id=field%mesh%faces%boundary_ids(ele)
+    
+  end function surface_element_id_tensor
   
   elemental function ele_region_id_mesh(mesh, ele) result(id)
     !!< Return the region id of an element
@@ -3001,6 +3015,7 @@ contains
         return
       end if
     end if
+
     assert(dim1 .le. tfield%dim(1))
     assert(dim2 .le. tfield%dim(2))
 

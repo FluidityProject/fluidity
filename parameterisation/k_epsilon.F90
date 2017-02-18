@@ -55,9 +55,9 @@ module k_epsilon
 
   private
 
-  ! locally allocatad fields
+  ! locally allocated fields
   real, save     :: fields_min = 1.0e-11
-  logical, save  :: low_Re = .false.                     
+  logical, save  :: low_Re = .false.
 
   public :: keps_advdif_diagnostics, keps_momentum_diagnostics, keps_bcs, &
        & k_epsilon_check_options, tensor_inner_product
@@ -72,7 +72,7 @@ contains
 subroutine keps_advdif_diagnostics(state)
 
   type(state_type), intent(inout) :: state
-  
+  write(*,*) 'testing k_epsilon'
   call keps_damping_functions(state, advdif=.true.)
   call keps_eddyvisc(state, advdif=.true.)
   call keps_diffusion(state)
@@ -204,7 +204,7 @@ subroutine keps_calculate_rhs(state)
   type(state_type), intent(inout) :: state
 
   type(scalar_field), dimension(3) :: src_abs_terms
-  type(scalar_field), dimension(2) :: fields
+  type(scalar_field), dimension(2) :: fields_keps
   type(scalar_field), pointer :: src, abs, f_1, f_2, debug
   type(scalar_field) :: src_to_abs, vfrac
   type(vector_field), pointer :: x, u, g
@@ -301,12 +301,12 @@ subroutine keps_calculate_rhs(state)
      src => extract_scalar_field(state, trim(field_names(i))//"Source")
      abs => extract_scalar_field(state, trim(field_names(i))//"Absorption")
 
-     call time_averaged_value(state, fields(1), trim(field_names(i)), .true., option_path)
-     call time_averaged_value(state, fields(2), trim(field_names(3-i)), .true., option_path)
+     call time_averaged_value(state, fields_keps(1), trim(field_names(i)), .true., option_path)
+     call time_averaged_value(state, fields_keps(2), trim(field_names(3-i)), .true., option_path)
 
-     call allocate(src_abs_terms(1), fields(1)%mesh, name="production_term")
-     call allocate(src_abs_terms(2), fields(1)%mesh, name="destruction_term")
-     call allocate(src_abs_terms(3), fields(1)%mesh, name="buoyancy_term")
+     call allocate(src_abs_terms(1), fields_keps(1)%mesh, name="production_term")
+     call allocate(src_abs_terms(2), fields_keps(1)%mesh, name="destruction_term")
+     call allocate(src_abs_terms(3), fields_keps(1)%mesh, name="buoyancy_term")
      call zero(src_abs_terms(1)); call zero(src_abs_terms(2)); call zero(src_abs_terms(3))
      call zero(src); call zero(abs)
 
@@ -341,7 +341,7 @@ subroutine keps_calculate_rhs(state)
      end if
 
      ! For non-DG we apply inverse mass globally
-     if(continuity(fields(1))>=0) then
+     if(continuity(fields_keps(1))>=0) then
         lump_mass = have_option(trim(option_path)//'mass_terms/lump_mass')
         do term = 1, 3
            call solve_cg_inv_mass(state, src_abs_terms(term), lump_mass, option_path)           
@@ -377,8 +377,8 @@ subroutine keps_calculate_rhs(state)
         case("source")
            call addto(src, src_abs_terms(term))
         case("absorbtion")
-           call allocate(src_to_abs, fields(1)%mesh, name='SourceToAbsorbtion')
-           call set(src_to_abs, fields(1))
+           call allocate(src_to_abs, fields_keps(1)%mesh, name='SourceToAbsorbtion')
+           call set(src_to_abs, fields_keps(1))
            where (src_to_abs%val >= fields_min)
               src_to_abs%val=1./src_to_abs%val
            elsewhere
@@ -407,8 +407,8 @@ subroutine keps_calculate_rhs(state)
      do term = 1, 3
         call deallocate(src_abs_terms(term))
      end do
-     call deallocate(fields(1))
-     call deallocate(fields(2))
+     call deallocate(fields_keps(1))
+     call deallocate(fields_keps(2))
 
   end do field_loop
   
@@ -792,7 +792,7 @@ subroutine keps_eddyvisc(state, advdif)
         allocate(rhs_addto(size(nodes_ev)))
         do i=1, size(nodes_ev)
           patch = get_patch_ele(scalar_eddy_visc%mesh, nodes_ev(i))
-          rhs_addto(i) = sqrt(length_scale_scalar(X, ele))/patch%count
+          rhs_addto(i) = 0.0!sqrt(length_scale_scalar(X, ele))/patch%count
           deallocate(patch%elements)
         end do
         call addto(delta, nodes_ev, rhs_addto)
@@ -1029,7 +1029,7 @@ subroutine keps_bcs(state)
   type(state_type), intent(in)               :: state
   type(scalar_field), pointer                :: field1, field2    ! k or epsilon
   type(scalar_field), pointer                :: f_1, f_2, f_mu
-  type(scalar_field), pointer                :: surface_field, scalar_eddy_visc
+  type(scalar_field), pointer                :: scalar_eddy_visc
   type(scalar_field), pointer                :: density, dummydensity
   type(vector_field), pointer                :: X, u
   type(tensor_field), pointer                :: bg_visc
@@ -1038,7 +1038,7 @@ subroutine keps_bcs(state)
   integer                                    :: i, j, sele, index, nbcs, stat
   integer, dimension(:), pointer             :: surface_elements, surface_node_list
   character(len=FIELD_NAME_LEN)              :: bc_type, bc_name, wall_fns
-  character(len=OPTION_PATH_LEN)             :: bc_path, bc_path_i, option_path 
+  character(len=OPTION_PATH_LEN)             :: bc_path, bc_path_i, option_path
   real                                       :: c_mu
   character(len=FIELD_NAME_LEN)              :: equation_type
 

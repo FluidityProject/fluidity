@@ -487,6 +487,20 @@ LES.o ../include/les_module.mod: LES.F90 ../include/fdebug.h \
    ../include/sparse_tools.mod ../include/state_fields_module.mod \
    ../include/state_module.mod ../include/vector_tools.mod
 
+../include/linear_shallow_water.mod: Linear_Shallow_Water.o
+	@true
+
+Linear_Shallow_Water.o ../include/linear_shallow_water.mod: \
+   Linear_Shallow_Water.F90 ../include/assemble_cmc.mod \
+   ../include/diagnostic_fields_wrapper.mod \
+   ../include/diagnostic_variables.mod ../include/fdebug.h \
+   ../include/fields.mod ../include/fldebug.mod \
+   ../include/global_parameters.mod ../include/populate_state_module.mod \
+   ../include/solvers.mod ../include/sparse_matrices_fields.mod \
+   ../include/sparsity_patterns_meshes.mod ../include/spud.mod \
+   ../include/state_module.mod ../include/timeloop_utilities.mod \
+   ../include/write_state_module.mod
+
 ../include/manifold_projections.mod: Manifold_Projections.o
 	@true
 
