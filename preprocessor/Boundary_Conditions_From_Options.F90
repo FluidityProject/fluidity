@@ -514,8 +514,6 @@ contains
           call insert_surface_field(field, i+1, surface_field)
           call deallocate(surface_field)
 
-          call deallocate(surface_field2)
-
        case("drag")
 
           call add_boundary_condition(field, trim(bc_name), trim(bc_type), &
