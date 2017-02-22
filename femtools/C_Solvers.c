@@ -81,8 +81,8 @@ void petsc_solve_many_c(Vec *x, Mat M, Vec *b, int neqns,
   char profiler_title[80];
   const char     *matname;
   PetscObjectGetName((PetscObject)(x[0]),&matname);
-  strlcpy(profiler_title,matname,80);
-  strlcat(profiler_title,"::solve",80);
+  strncpy(profiler_title,matname,80);
+  strncat(profiler_title,"::solve",80);
 
   cprofiler_tic(profiler_title);
   for (n=0;n<neqns;++n) {
