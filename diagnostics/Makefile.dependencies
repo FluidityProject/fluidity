@@ -83,8 +83,8 @@ Momentum_Diagnostics.o ../include/momentum_diagnostics.mod: \
    ../include/fdebug.h ../include/fetools.mod ../include/field_derivatives.mod \
    ../include/field_options.mod ../include/fields.mod ../include/fldebug.mod \
    ../include/geostrophic_pressure.mod ../include/global_parameters.mod \
-   ../include/multimaterial_module.mod ../include/sediment.mod \
-   ../include/solvers.mod ../include/sparse_tools.mod \
+   ../include/momentum_cg.mod ../include/multimaterial_module.mod \
+   ../include/sediment.mod ../include/solvers.mod ../include/sparse_tools.mod \
    ../include/sparsity_patterns_meshes.mod ../include/state_fields_module.mod \
    ../include/state_module.mod
 
