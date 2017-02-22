@@ -1259,6 +1259,13 @@ contains
       ! Set their values
       call set_boundary_conditions_values(states)
 
+      if (have_spherical_adaptivity) then
+        ! for interpolation we temporarily "pop back in" to ensure the target domain matches the donor
+        old_positions = extract_vector_field(states, trim(positions_name)//"BaseGeometry")
+        old_positions%name = positions_name
+        call insert(states, old_positions, positions_name)
+      end if
+
       if((.not. final_adapt_iteration) .or. isparallel()) then
         ! If there are remaining adapt iterations, or we will be calling
         ! sam_drive or zoltan_drive, insert the old metric into interpolate_states(1) and a
@@ -1271,8 +1278,6 @@ contains
       ! We're done with the old metric, so we may deallocate it / drop our
       ! reference
       call deallocate(metric)
-      ! We're done with the new_positions, so we may drop our reference
-      call deallocate(new_positions)
 
       ! Interpolate fields
       if(associated(node_ownership)) then
@@ -1300,6 +1305,13 @@ contains
         ! we haven't interpolated in halo2 nodes, so we need to halo update it
         call halo_update(metric)
       end if
+
+      if (have_spherical_adaptivity) then
+        ! reinsert the popped out coordinate field
+        call insert(states, new_positions, positions_name)
+      end if
+      ! We're done with the new_positions, so we may drop our reference
+      call deallocate(new_positions)
 
       if(present_and_true(initialise_fields)) then
         ! Reinitialise the prognostic fields (where possible)
