@@ -47,7 +47,9 @@ subroutine test_tet_intersector
       fail = (vol_libwm .fne. vol_fort)
       call report_test("[tet_intersector volumes]", fail, .false., "Should give the same volumes of intersection")
 
-      call deallocate(libwm)
+      if (has_references(libwm)) then
+         call deallocate(libwm)
+      end if
       if (stat == 0) then
         call deallocate(fort)
       end if

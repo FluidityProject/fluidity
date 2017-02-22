@@ -33,6 +33,10 @@ namespace Spud{
 
   // OptionManager CLASS METHODS
 
+  // PRIVATE VARIABLES
+
+  bool OptionManager::deallocated = false;
+
   // PUBLIC METHODS
 
   void OptionManager::clear_options() {
@@ -674,7 +678,7 @@ namespace Spud{
 
   OptionManager::Option::~Option(){
     for(deque< pair<string, Option*> >::iterator it=children.begin();it!=children.end();++it){
-      delete it->second;
+      if(it->second) delete it->second;
     }
 
     return;

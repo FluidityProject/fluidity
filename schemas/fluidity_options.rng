@@ -1960,6 +1960,9 @@ via a compressible equation of state.</a:documentation>
           <zeroOrMore>
             <ref name="tensor_field_choice"/>
           </zeroOrMore>
+          <zeroOrMore>
+            <ref name="population_balance"/>
+          </zeroOrMore>
           <optional>
             <element name="electrical_properties">
               <a:documentation>Parameters required to model spontaneous electrical potentials in porous media.</a:documentation>
@@ -2197,7 +2200,7 @@ probably equal to the location of the borehole</a:documentation>
                   <element name="particle_diameter">
                     <ref name="real"/>
                   </element>
-                  <element name="particle_dia_use_scalar_field">
+                  <element name="particle_diameter_use_scalar_field">
                     <ref name="anystring"/>
                   </element>
                 </choice>
@@ -2561,8 +2564,710 @@ while a factor of 1 represents a connected domain.</a:documentation>
       <optional>
         <ref name="multiphase_interaction"/>
       </optional>
+      <optional>
+        <element name="population_balance_continuous_phase_name">
+          <data type="string" datatypeLibrary=""/>
+        </element>
+      </optional>
     </element>
   </start>
+  <define name="population_balance">
+    <element name="population_balance">
+      <a:documentation/>
+      <choice>
+        <element name="calculate_initial_conditions_from_moments">
+          <a:documentation>Determine initial weighted_abscissa and weights using the PD algorithm and the 
+initial conditions set in the diagnostic moment fields.
+
+In this case it does not matter what is set in the weighted_abscissa and weights
+fields initial conditions option</a:documentation>
+          <empty/>
+        </element>
+        <element name="use_prognostic_field_initial_conditions">
+          <a:documentation>Use initial conditions set in the weighted_abscissa and weights prognostic
+fields
+
+In this case it does not matter what is set in the moment field initial conditions 
+options</a:documentation>
+          <empty/>
+        </element>
+      </choice>
+      <attribute name="name">
+        <data type="string"/>
+      </attribute>
+      <element name="abscissa">
+        <element name="scalar_field">
+          <attribute name="rank">
+            <value>0</value>
+          </attribute>
+          <attribute name="name">
+            <value>Abscissa_0</value>
+          </attribute>
+          <element name="diagnostic">
+            <a:documentation>Field type</a:documentation>
+            <ref name="internal_algorithm"/>
+            <ref name="velocity_mesh_choice"/>
+            <ref name="diagnostic_scalar_field"/>
+          </element>
+        </element>
+        <element name="scalar_field">
+          <attribute name="rank">
+            <value>0</value>
+          </attribute>
+          <attribute name="name">
+            <value>Abscissa_1</value>
+          </attribute>
+          <element name="diagnostic">
+            <a:documentation>Field type</a:documentation>
+            <ref name="internal_algorithm"/>
+            <ref name="velocity_mesh_choice"/>
+            <ref name="diagnostic_scalar_field"/>
+          </element>
+        </element>
+        <zeroOrMore>
+          <element name="scalar_field">
+            <attribute name="rank">
+              <value>0</value>
+            </attribute>
+            <attribute name="name">
+              <data type="string"/>
+            </attribute>
+            <element name="diagnostic">
+              <a:documentation>Field type</a:documentation>
+              <ref name="internal_algorithm"/>
+              <ref name="velocity_mesh_choice"/>
+              <ref name="diagnostic_scalar_field"/>
+            </element>
+          </element>
+        </zeroOrMore>
+      </element>
+      <element name="weights">
+        <element name="scalar_field">
+          <attribute name="rank">
+            <value>0</value>
+          </attribute>
+          <attribute name="name">
+            <value>Weight_0</value>
+          </attribute>
+          <element name="prognostic">
+            <a:documentation>Field type</a:documentation>
+            <ref name="velocity_mesh_choice"/>
+            <ref name="prognostic_scalar_field"/>
+          </element>
+        </element>
+        <element name="scalar_field">
+          <attribute name="rank">
+            <value>0</value>
+          </attribute>
+          <attribute name="name">
+            <value>Weight_1</value>
+          </attribute>
+          <element name="prognostic">
+            <a:documentation>Field type</a:documentation>
+            <ref name="velocity_mesh_choice"/>
+            <ref name="prognostic_scalar_field"/>
+          </element>
+        </element>
+        <zeroOrMore>
+          <element name="scalar_field">
+            <attribute name="rank">
+              <value>0</value>
+            </attribute>
+            <attribute name="name">
+              <data type="string"/>
+            </attribute>
+            <element name="prognostic">
+              <a:documentation>Field type</a:documentation>
+              <ref name="velocity_mesh_choice"/>
+              <ref name="prognostic_scalar_field"/>
+            </element>
+          </element>
+        </zeroOrMore>
+      </element>
+      <element name="weighted_abscissa">
+        <element name="scalar_field">
+          <attribute name="rank">
+            <value>0</value>
+          </attribute>
+          <attribute name="name">
+            <value>WeightedAbscissa_0</value>
+          </attribute>
+          <element name="prognostic">
+            <a:documentation>Field type</a:documentation>
+            <ref name="velocity_mesh_choice"/>
+            <ref name="prognostic_scalar_field"/>
+          </element>
+        </element>
+        <element name="scalar_field">
+          <attribute name="rank">
+            <value>0</value>
+          </attribute>
+          <attribute name="name">
+            <value>WeightedAbscissa_1</value>
+          </attribute>
+          <element name="prognostic">
+            <a:documentation>Field type</a:documentation>
+            <ref name="velocity_mesh_choice"/>
+            <ref name="prognostic_scalar_field"/>
+          </element>
+        </element>
+        <zeroOrMore>
+          <element name="scalar_field">
+            <attribute name="rank">
+              <value>0</value>
+            </attribute>
+            <attribute name="name">
+              <data type="string"/>
+            </attribute>
+            <element name="prognostic">
+              <a:documentation>Field type</a:documentation>
+              <ref name="velocity_mesh_choice"/>
+              <ref name="prognostic_scalar_field"/>
+            </element>
+          </element>
+        </zeroOrMore>
+      </element>
+      <element name="adv_diff_source_term_interpolation">
+        <a:documentation>This option only works if you are using a continuous mesh for the population balance scalar fields.
+A DG mesh will use inverse mass calculated at element level.
+In the population balance DQMOM algorithm all sources for the 
+advection-diffusion equations are calculated at the quadrature points first 
+and then interpolated back to the nodal points. 
+For a continuous mesh, this interpolation is made by inverting the mass matrix. 
+Mass lumping is fairly quick and can be used with 1st order continuous meshes. 
+But the error is high for higher order continuous meshes and full mass matrix should be used.</a:documentation>
+        <choice>
+          <element name="use_mass_lumping">
+            <a:documentation>The mass matrix is lumped to obtain source fields at nodal points.</a:documentation>
+            <empty/>
+          </element>
+          <element name="use_full_mass_matrix">
+            <a:documentation>Full mass marix is used and the linear system is solved iteratively to obtain source fields at nodal points.</a:documentation>
+            <element name="solver">
+              <a:documentation>This block specifies the solver options for solving the linear system to interpolate advection-diffusion source terms at nodal points.</a:documentation>
+              <ref name="linear_solver_options_asym_scalar"/>
+            </element>
+          </element>
+        </choice>
+      </element>
+      <element name="moments">
+        <element name="scalar_field">
+          <attribute name="rank">
+            <value>0</value>
+          </attribute>
+          <attribute name="name">
+            <value>Moment_0</value>
+          </attribute>
+          <element name="diagnostic">
+            <ref name="internal_algorithm"/>
+            <ref name="velocity_mesh_choice"/>
+            <oneOrMore>
+              <choice>
+                <element name="initial_condition">
+                  <a:documentation>Initial condition for WholeMesh
+
+Only specify one condition if not using mesh regions.
+Otherwise select other initial_condition option, specify region_ids
+and distinct names.  Then add extra intial conditions for other regions.</a:documentation>
+                  <attribute name="name">
+                    <value>WholeMesh</value>
+                  </attribute>
+                  <ref name="input_choice_initial_condition_real"/>
+                </element>
+                <element name="initial_condition">
+                  <a:documentation>Multiple initial_conditions are allowed if specifying
+different values in different
+regions of the mesh (defined by region_ids).  In this case
+each initial_condition
+requires a distinct name for the options dictionary.</a:documentation>
+                  <attribute name="name">
+                    <data type="string" datatypeLibrary=""/>
+                  </attribute>
+                  <optional>
+                    <ref name="region_ids"/>
+                  </optional>
+                  <ref name="input_choice_initial_condition_real"/>
+                </element>
+              </choice>
+            </oneOrMore>
+            <ref name="diagnostic_scalar_field"/>
+          </element>
+        </element>
+        <element name="scalar_field">
+          <attribute name="rank">
+            <value>0</value>
+          </attribute>
+          <attribute name="name">
+            <value>Moment_1</value>
+          </attribute>
+          <element name="diagnostic">
+            <ref name="internal_algorithm"/>
+            <ref name="velocity_mesh_choice"/>
+            <oneOrMore>
+              <choice>
+                <element name="initial_condition">
+                  <a:documentation>Initial condition for WholeMesh
+
+Only specify one condition if not using mesh regions.
+Otherwise select other initial_condition option, specify region_ids
+and distinct names.  Then add extra intial conditions for other regions.</a:documentation>
+                  <attribute name="name">
+                    <value>WholeMesh</value>
+                  </attribute>
+                  <ref name="input_choice_initial_condition_real"/>
+                </element>
+                <element name="initial_condition">
+                  <a:documentation>Multiple initial_conditions are allowed if specifying
+different values in different
+regions of the mesh (defined by region_ids).  In this case
+each initial_condition
+requires a distinct name for the options dictionary.</a:documentation>
+                  <attribute name="name">
+                    <data type="string" datatypeLibrary=""/>
+                  </attribute>
+                  <optional>
+                    <ref name="region_ids"/>
+                  </optional>
+                  <ref name="input_choice_initial_condition_real"/>
+                </element>
+              </choice>
+            </oneOrMore>
+            <ref name="diagnostic_scalar_field"/>
+          </element>
+        </element>
+        <element name="scalar_field">
+          <attribute name="rank">
+            <value>0</value>
+          </attribute>
+          <attribute name="name">
+            <value>Moment_2</value>
+          </attribute>
+          <element name="diagnostic">
+            <ref name="internal_algorithm"/>
+            <ref name="velocity_mesh_choice"/>
+            <oneOrMore>
+              <choice>
+                <element name="initial_condition">
+                  <a:documentation>Initial condition for WholeMesh
+
+Only specify one condition if not using mesh regions.
+Otherwise select other initial_condition option, specify region_ids
+and distinct names.  Then add extra intial conditions for other regions.</a:documentation>
+                  <attribute name="name">
+                    <value>WholeMesh</value>
+                  </attribute>
+                  <ref name="input_choice_initial_condition_real"/>
+                </element>
+                <element name="initial_condition">
+                  <a:documentation>Multiple initial_conditions are allowed if specifying
+different values in different
+regions of the mesh (defined by region_ids).  In this case
+each initial_condition
+requires a distinct name for the options dictionary.</a:documentation>
+                  <attribute name="name">
+                    <data type="string" datatypeLibrary=""/>
+                  </attribute>
+                  <optional>
+                    <ref name="region_ids"/>
+                  </optional>
+                  <ref name="input_choice_initial_condition_real"/>
+                </element>
+              </choice>
+            </oneOrMore>
+            <ref name="diagnostic_scalar_field"/>
+          </element>
+        </element>
+        <element name="scalar_field">
+          <attribute name="rank">
+            <value>0</value>
+          </attribute>
+          <attribute name="name">
+            <value>Moment_3</value>
+          </attribute>
+          <element name="diagnostic">
+            <ref name="internal_algorithm"/>
+            <ref name="velocity_mesh_choice"/>
+            <oneOrMore>
+              <choice>
+                <element name="initial_condition">
+                  <a:documentation>Initial condition for WholeMesh
+
+Only specify one condition if not using mesh regions.
+Otherwise select other initial_condition option, specify region_ids
+and distinct names.  Then add extra intial conditions for other regions.</a:documentation>
+                  <attribute name="name">
+                    <value>WholeMesh</value>
+                  </attribute>
+                  <ref name="input_choice_initial_condition_real"/>
+                </element>
+                <element name="initial_condition">
+                  <a:documentation>Multiple initial_conditions are allowed if specifying
+different values in different
+regions of the mesh (defined by region_ids).  In this case
+each initial_condition
+requires a distinct name for the options dictionary.</a:documentation>
+                  <attribute name="name">
+                    <data type="string" datatypeLibrary=""/>
+                  </attribute>
+                  <optional>
+                    <ref name="region_ids"/>
+                  </optional>
+                  <ref name="input_choice_initial_condition_real"/>
+                </element>
+              </choice>
+            </oneOrMore>
+            <ref name="diagnostic_scalar_field"/>
+          </element>
+        </element>
+        <zeroOrMore>
+          <element name="scalar_field">
+            <attribute name="rank">
+              <value>0</value>
+            </attribute>
+            <attribute name="name">
+              <data type="string"/>
+            </attribute>
+            <element name="diagnostic">
+              <ref name="internal_algorithm"/>
+              <ref name="velocity_mesh_choice"/>
+              <oneOrMore>
+                <choice>
+                  <element name="initial_condition">
+                    <a:documentation>Initial condition for WholeMesh
+
+Only specify one condition if not using mesh regions.
+Otherwise select other initial_condition option, specify region_ids
+and distinct names.  Then add extra intial conditions for other regions.</a:documentation>
+                    <attribute name="name">
+                      <value>WholeMesh</value>
+                    </attribute>
+                    <ref name="input_choice_initial_condition_real"/>
+                  </element>
+                  <element name="initial_condition">
+                    <a:documentation>Multiple initial_conditions are allowed if specifying
+different values in different
+regions of the mesh (defined by region_ids).  In this case
+each initial_condition
+requires a distinct name for the options dictionary.</a:documentation>
+                    <attribute name="name">
+                      <data type="string" datatypeLibrary=""/>
+                    </attribute>
+                    <optional>
+                      <ref name="region_ids"/>
+                    </optional>
+                    <ref name="input_choice_initial_condition_real"/>
+                  </element>
+                </choice>
+              </oneOrMore>
+              <ref name="diagnostic_scalar_field"/>
+            </element>
+          </element>
+        </zeroOrMore>
+      </element>
+      <element name="statistics">
+        <optional>
+          <element name="scalar_field">
+            <attribute name="rank">
+              <value>0</value>
+            </attribute>
+            <attribute name="name">
+              <value>Mean</value>
+            </attribute>
+            <element name="diagnostic">
+              <a:documentation>Field type</a:documentation>
+              <ref name="internal_algorithm"/>
+              <ref name="velocity_mesh_choice"/>
+              <ref name="diagnostic_scalar_field"/>
+            </element>
+          </element>
+        </optional>
+        <optional>
+          <element name="scalar_field">
+            <attribute name="rank">
+              <value>0</value>
+            </attribute>
+            <attribute name="name">
+              <value>StandardDeviation</value>
+            </attribute>
+            <element name="diagnostic">
+              <a:documentation>Field type</a:documentation>
+              <ref name="internal_algorithm"/>
+              <ref name="velocity_mesh_choice"/>
+              <ref name="diagnostic_scalar_field"/>
+            </element>
+          </element>
+        </optional>
+        <optional>
+          <element name="scalar_field">
+            <attribute name="rank">
+              <value>0</value>
+            </attribute>
+            <attribute name="name">
+              <value>Skew</value>
+            </attribute>
+            <element name="diagnostic">
+              <a:documentation>Field type</a:documentation>
+              <ref name="internal_algorithm"/>
+              <ref name="velocity_mesh_choice"/>
+              <ref name="diagnostic_scalar_field"/>
+            </element>
+          </element>
+        </optional>
+        <optional>
+          <element name="scalar_field">
+            <attribute name="rank">
+              <value>0</value>
+            </attribute>
+            <attribute name="name">
+              <value>SauterMeanDia</value>
+            </attribute>
+            <element name="diagnostic">
+              <a:documentation>Field type</a:documentation>
+              <ref name="internal_algorithm"/>
+              <ref name="velocity_mesh_choice"/>
+              <ref name="diagnostic_scalar_field"/>
+            </element>
+          </element>
+        </optional>
+        <optional>
+          <element name="scalar_field">
+            <attribute name="rank">
+              <value>0</value>
+            </attribute>
+            <attribute name="name">
+              <value>MeanDia10</value>
+            </attribute>
+            <element name="diagnostic">
+              <a:documentation>Field type</a:documentation>
+              <ref name="internal_algorithm"/>
+              <ref name="velocity_mesh_choice"/>
+              <ref name="diagnostic_scalar_field"/>
+            </element>
+          </element>
+        </optional>
+      </element>
+      <element name="population_balance_source_terms">
+        <a:documentation>Source terms for the population balance equation like growth, 
+breakage, aggegation and internal dispersion</a:documentation>
+        <optional>
+          <element name="growth">
+            <a:documentation>Growth term in the internal coordinate space</a:documentation>
+            <element name="power_law_growth">
+              <a:documentation>Enter the growth degree (r) for the power-law growth G(\xi)=\xi^{r}</a:documentation>
+              <ref name="real"/>
+            </element>
+          </element>
+        </optional>
+        <optional>
+          <element name="internal_dispersion">
+            <a:documentation>Dispersion coefficient D. Currently it only works for constant dispersion and can't handle dispersion varying with internal coordinate</a:documentation>
+            <ref name="real"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="aggregation">
+            <a:documentation/>
+            <element name="aggregation_frequency">
+              <a:documentation/>
+              <choice>
+                <element name="constant_aggregation">
+                  <a:documentation/>
+                  <ref name="real"/>
+                </element>
+                <element name="hydrodynamic_aggregation">
+                  <a:documentation>aggregation frequency is given by \beta_{alpha gamma} = \xi_{alpha}^3 + \xi_{gamma}^3</a:documentation>
+                  <empty/>
+                </element>
+                <element name="sum_aggregation">
+                  <a:documentation>aggregation frequency is given by \beta_{alpha gamma} = \beta_o (\xi_{alpha} + \xi_{gamma}). Enter the value of constant \beta_o below</a:documentation>
+                  <ref name="real"/>
+                </element>
+                <element name="laakkonen_2007_aggregation">
+                  <a:documentation/>
+                  <optional>
+                    <element name="C5">
+                      <a:documentation>enter the value of the coefficient C5 in Laakkonen's aggregation rate expression. default: 0.88  </a:documentation>
+                      <ref name="real"/>
+                    </element>
+                  </optional>
+                </element>
+              </choice>
+            </element>
+          </element>
+        </optional>
+        <optional>
+          <element name="breakage">
+            <a:documentation/>
+            <element name="breakage_frequency">
+              <a:documentation/>
+              <choice>
+                <element name="constant_breakage">
+                  <a:documentation/>
+                  <ref name="real"/>
+                </element>
+                <element name="power_law_breakage">
+                  <a:documentation>breakage frequency is given by a_{alpha} = p * \xi_{alpha}^r</a:documentation>
+                  <element name="coefficient">
+                    <a:documentation>coefficient p in breakage frequency a_{alpha} = p * \xi_{alpha}^r</a:documentation>
+                    <ref name="real"/>
+                  </element>
+                  <element name="degree">
+                    <a:documentation>degree r in breakage frequency a_{alpha} = p * \xi_{alpha}^r</a:documentation>
+                    <ref name="real"/>
+                  </element>
+                </element>
+                <element name="laakkonen_breakage">
+                  <empty/>
+                </element>
+              </choice>
+            </element>
+            <element name="distribution_function">
+              <choice>
+                <element name="symmetric_fragmentation">
+                  <a:documentation/>
+                  <empty/>
+                </element>
+                <element name="mcCoy_madras_2003">
+                  <a:documentation>McCoy and Madras (2003) used P(v|v') = 2/v' for v&lt;v' and 0 otherwise, where v stands for volume. 
+When written in terms of particle diameter, this converts to P(x|x')=(6x^2)/x'^3 for x&lt;x' and 0 otherwise.</a:documentation>
+                  <empty/>
+                </element>
+                <element name="laakkonen_2007">
+                  <empty/>
+                </element>
+              </choice>
+            </element>
+          </element>
+        </optional>
+      </element>
+      <element name="ill_conditioned_matrices">
+        <a:documentation>At each vertex a linear system is solved to determine source terms
+for the abscissa and weight transport equations. This requires inversion
+of a matrix that has terms that are a function of the weighted abscissa.
+If any two abscissa happen to lie very close to one another this can cause
+this matrix to be ill-conditioned which can cause large errors or solver
+failures when attempting to invert the matrix. There several options for 
+evading this problem:
+
+(a) Set the abscissa and weight source terms to zero at the offending vertex.
+(b) Perturbate the weighted absciss used to construct the matrix until the 
+matrix is no longer ill conditioned and can be inverted.
+(c) Use the source terms of neighbouring cells (not implemented)</a:documentation>
+        <element name="required_condition_number">
+          <a:documentation>The required condition number of the matrix. Recommended value of 1e-12</a:documentation>
+          <ref name="real"/>
+        </element>
+        <choice>
+          <element name="set_source_to_zero">
+            <a:documentation>This is a better option when much of the domain has a minimum 0'th moment</a:documentation>
+            <empty/>
+          </element>
+          <element name="perturbate">
+            <element name="perturbation">
+              <a:documentation>The amount to perturbate the weighted abscissa. The values are 
+iteratively perturbated by rand(-1,1)*perturbation until the matrix
+exceeds the required condition number. Too low a value can cause
+very long run times but a higher value will lead to larger errors.
+After every ten perturbations at any one grid location a message is 
+printed to the log file noting the difficulties in solving the linear 
+system.
+Recommended value of 1e-7</a:documentation>
+              <ref name="real"/>
+            </element>
+          </element>
+          <element name="do_nothing">
+            <a:documentation>Do not check for ill-conditioning of matrix A</a:documentation>
+            <empty/>
+          </element>
+        </choice>
+      </element>
+      <element name="minimum_weight">
+        <a:documentation>weights of zero can cause instabilities. It is recommended that a minimum
+weight of approx 1e-10 is used.</a:documentation>
+        <ref name="real"/>
+      </element>
+      <optional>
+        <element name="minimum_weighted_abscissa">
+          <a:documentation>In case the user wants to apply a minimum cap for weighted abscissas. Not Recommended. </a:documentation>
+          <ref name="real"/>
+        </element>
+      </optional>
+      <optional>
+        <element name="scaling_factor_Dia">
+          <a:documentation>Scaling factor to be used for the Sauter Mean Diameter / Mean Diameter calculated in the 
+statistics. It is useful in a non-dimensional implementation of the PBE.</a:documentation>
+          <ref name="real"/>
+        </element>
+      </optional>
+      <optional>
+        <element name="submerged_specific_gravity">
+          <a:documentation>This is the submerged specific gravity, R, of this population balance
+as a function of internal coordinate, Z. 
+It will be used in the equation of state.
+
+R(Z) = (rho_c(Z) - rho_a)/(rho_a)
+
+Where: rho_c(Z) is the density of the dispersed phase and rho_a is 
+the ambient fluid density
+
+Must be given as a python function in the form:
+
+ def R(Z): 
+    # Function code
+    return # Return value of R</a:documentation>
+          <ref name="python_code"/>
+        </element>
+      </optional>
+      <optional>
+        <element name="output_abscissa_and_weights">
+          <empty/>
+        </element>
+      </optional>
+      <optional>
+        <element name="output_sources">
+          <empty/>
+        </element>
+      </optional>
+      <optional>
+        <element name="apply_source_as_absorption">
+          <a:documentation>This will apply all source terms for the weights and weighted_abscissa scalar 
+fields as absorption terms.</a:documentation>
+          <optional>
+            <element name="include_sponge_region">
+              <a:documentation>For including a sponge region for weights and weighted_abscissas (which are 
+applied as absorption terms) a sponge field is defined which will be analogous to 
+an absorption term. This field is zero everywhere except where a large absorption
+is present. </a:documentation>
+              <element name="sponge_scalar_field_name">
+                <a:documentation>Name of the scalar field which is the sponge scalar field. Note: This sponge field must
+be defined the the same material phase.</a:documentation>
+                <data type="string" datatypeLibrary=""/>
+              </element>
+            </element>
+          </optional>
+        </element>
+      </optional>
+      <optional>
+        <element name="apply_source_as_absorption_for_negative_source_only">
+          <a:documentation>This will apply selected source terms for the weights and weighted_abscissa scalar 
+fields as absorption terms wherever the source is negative.</a:documentation>
+          <optional>
+            <element name="include_sponge_region">
+              <a:documentation>For including a sponge region for weights and weighted_abscissas (which are 
+applied as absorption terms) a sponge field is defined which will be analogous to 
+an absorption term. This field is zero everywhere except where a large absorption
+is present. </a:documentation>
+              <element name="sponge_scalar_field_name">
+                <a:documentation>Name of the scalar field which is the sponge scalar field. Note: This sponge field must
+be defined the the same material phase.</a:documentation>
+                <data type="string" datatypeLibrary=""/>
+              </element>
+            </element>
+          </optional>
+        </element>
+      </optional>
+    </element>
+  </define>
   <define name="sediment">
     <element name="sediment">
       <a:documentation>A sediment model. See the manual for details on how to use this model.</a:documentation>

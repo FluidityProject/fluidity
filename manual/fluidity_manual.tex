@@ -23,6 +23,14 @@
 \usepackage{multirow}
 \usepackage{rotating} 
 %\usepackage{stmaryrd}
+\usepackage{siunitx}
+\usepackage{algpseudocode}
+\makeatletter
+\newcommand{\algmargin}{\the\ALG@thistlm}
+\makeatother
+\algnewcommand{\parState}[1]{\State%
+  \parbox[t]{\dimexpr\linewidth-\algmargin}{\strut #1\strut}}
+
 
 %Flag for htlatex compilation to html.
 \newboolean{HTLatex}

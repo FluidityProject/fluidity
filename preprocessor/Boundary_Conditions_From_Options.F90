@@ -463,7 +463,7 @@ contains
           call insert_surface_field(field, i+1, surface_field)
           call insert_surface_field(field, i+1, surface_field2)
           call deallocate(surface_field)
-          call deallocate(surface_field)
+          call deallocate(surface_field2)
 
        case("drag")
 
