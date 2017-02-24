@@ -464,8 +464,8 @@ contains
       ! interpolation step.
       if(rbf_interpolation) then
           !> Form matrix for RBF     
-          do isource=1,NSource
-            do jsource=1,NSource
+          do jsource=1,NSource
+            do isource=1,NSource
                 d=sqrt((Sx(isource)-Sx(jsource))**2+(Sy(isource)-Sy(jsource))**2+(Sz(isource)-Sz(jsource))**2)
                 A(isource,jsource)=IsoKernel(d,Se(isource),3)
             enddo
