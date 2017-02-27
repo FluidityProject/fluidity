@@ -2,8 +2,8 @@
 
 module quicksort
 
+  use iso_c_binding, only: c_float
   use fldebug
-  use global_parameters, only : real_4
 
   implicit none
 
@@ -250,7 +250,7 @@ SUBROUTINE qsortsp(x, ind)
 
 IMPLICIT NONE
 
-REAL (kind = real_4), INTENT(IN)  :: x(:)
+REAL (kind = c_float), INTENT(IN)  :: x(:)
 INTEGER, INTENT(OUT)   :: ind(:)
 INTEGER :: n
 
@@ -294,7 +294,7 @@ INTEGER :: n
 INTEGER   :: iu(21), il(21)
 INTEGER   :: m, i, j, k, l, ij, it, itt, indx
 REAL      :: r
-REAL (kind = real_4) :: t
+REAL (kind = c_float) :: t
 
 n = size(x)
 

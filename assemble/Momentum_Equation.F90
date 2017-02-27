@@ -275,6 +275,8 @@
          type(state_type), dimension(:), pointer :: submaterials
          ! The index of the current phase (i.e. state(istate)) in the submaterials array
          integer :: submaterials_istate
+         ! The full list of indices between submaterials and state
+         integer, dimension(:), pointer :: submaterials_indices
          ! Do we have fluid-particle drag between phases?
          logical :: have_fp_drag
 
@@ -394,9 +396,10 @@
 
             ! This sets up an array of the submaterials of a phase.
             ! NB: The submaterials array includes the current state itself, at index submaterials_istate.
-            call get_phase_submaterials(state, istate, submaterials, submaterials_istate)
-            call calculate_momentum_diagnostics(state, istate, submaterials, submaterials_istate)
+            call get_phase_submaterials(state, istate, submaterials, submaterials_istate, submaterials_indices)
+            call calculate_momentum_diagnostics(state, istate, submaterials, submaterials_istate, submaterials_indices)
             deallocate(submaterials)
+            deallocate(submaterials_indices)
 
             call profiler_toc("momentum_diagnostics")
 
@@ -2244,7 +2247,7 @@
             ! For example, since we do not include the Density in the advection-diffusion equation for the PhaseVolumeFraction,
             ! solving this equation for the compressible fluid phase would not be correct. The particle phases on the other hand
             ! are always incompressible where the density is constant.
-            if(have_option("/material_phase["//int2str(i)//"]/multiphase_properties/particle_diameter") .and. &
+            if((have_option("/material_phase["//int2str(i)//"]/multiphase_properties/particle_diameter") .or. have_option("/material_phase["//int2str(i)//"]/multiphase_properties/particle_dia_use_scalar_field")) .and. &
                .not.(have_option("/material_phase["//int2str(i)//"]/scalar_field::PhaseVolumeFraction/prognostic") .or. &
                have_option("/material_phase["//int2str(i)//"]/scalar_field::PhaseVolumeFraction/prescribed"))) then
                FLExit("All particle phases must have a prognostic/prescribed PhaseVolumeFraction field. The diagnostic PhaseVolumeFraction field should always be in the continuous/fluid phase.")

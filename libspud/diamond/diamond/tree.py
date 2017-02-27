@@ -230,20 +230,18 @@ class Tree(gobject.GObject):
     outlist = []
 
     for tree in treelist:
-      new_tree = None
       found = False
       for t in self.children:
         if t.schemaname == tree.schemaname:
-          tree = t
+          outlist.append(t)
           found = True
-          break
+
       if not found:
         tree.set_parent(self)
 
         self.children.append(tree)
         tree.recompute_validity()
-
-      outlist.append(tree)
+        outlist.append(tree)
 
       for tree in outlist:
         if tree.cardinality in ['+', '*']:

@@ -29,9 +29,10 @@
 
 module diagnostic_variables
   !!< A module to calculate and output diagnostics. This replaces the .s file.
+  use iso_c_binding, only: c_long
   use fldebug 
   use global_parameters, only:FIELD_NAME_LEN,OPTION_PATH_LEN, &
-& PYTHON_FUNC_LEN, int_16, integer_size, real_size
+& PYTHON_FUNC_LEN, integer_size, real_size
   use quadrature
   use futils
   use elements
@@ -174,7 +175,7 @@ module diagnostic_variables
     
     !! Recording wall time since the system start
     integer :: current_count, count_rate, count_max
-    integer(kind = int_16) :: elapsed_count
+    integer(kind = c_long) :: elapsed_count
   end type stat_type
 
   type(stat_type), save, target :: default_stat
@@ -2767,7 +2768,9 @@ contains
                            ! Vector detector data
                          & detector_list%total_num_det * detector_list%num_vfields * dim
 
-    location_to_write = (detector_list%mpi_write_count - 1) * number_total_columns * realsize
+    ! raise kind of one of the variables (each individually is a 4 byte-integer) such that the calculation is coerced to be of MPI_OFFSET_KIND (typically 8 bytes)
+    ! this is necessary for files bigger than 2GB
+    location_to_write = (int(detector_list%mpi_write_count, kind=MPI_OFFSET_KIND) - 1) * number_total_columns * realsize
 
     if(procno == 1) then
       ! Output time data

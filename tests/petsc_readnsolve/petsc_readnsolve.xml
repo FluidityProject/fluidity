@@ -3,7 +3,7 @@
   <name>petsc_readnsolve</name>
   <owner userid="skramer"/>
   <tags> parallel </tags>
-  <problem_definition length="short" nprocs="4">
+  <problem_definition length="special" nprocs="4">
     <comment>First make a common flredecomped mesh and edit the flml files to use this, then do the actual test.</comment>
     <command_line>mpiexec ../../bin/flredecomp -i 1 -o 4 -v -l standing_wave_failing_velocity standing_wave_failing_velocity_flredecomp;
 mpiexec ../../bin/flredecomp -i 1 -o 4 -v -l standing_wave_failing_pressure standing_wave_failing_pressure_flredecomp;

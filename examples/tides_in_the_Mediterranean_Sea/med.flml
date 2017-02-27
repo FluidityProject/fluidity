@@ -342,7 +342,9 @@
                 <length_scale_type>tensor</length_scale_type>
               </second_order>
             </les_model>
-            <buoyancy/>
+            <buoyancy>
+              <radial_gravity_direction_at_gauss_points/>
+            </buoyancy>
           </continuous_galerkin>
           <conservative_advection>
             <real_value rank="0">0.0</real_value>

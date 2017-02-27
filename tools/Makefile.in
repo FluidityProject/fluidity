@@ -42,7 +42,7 @@ LINKER = @LINKER@ @LDFLAGS@
 
 FLLINKER = @FLLINKER@ @LDFLAGS@ $(FCFLAGS)
 
-LIBS = -L../lib ./lib/libadaptivity.a ./lib/libspatialindex.a ./lib/libspud.a ./lib/libvtkfortran.a ./lib/libjudy.a @LIBS@ @BLAS_LIBS@ @LIB_FEMDEM@
+LIBS = -L../lib ./lib/libadaptivity.a @LIBSPATIALINDEX@ @SPUDLIB@ ./lib/libvtkfortran.a @FLIBJUDY@ @LIBS@ @BLAS_LIBS@ @LIB_FEMDEM@
 FLIBS = -L../lib @FLIBS@
 
 # These objects are needed in each program as they provide the code related to
@@ -56,7 +56,6 @@ STREAMFUNCTION_2D = ../bin/streamfunction_2d
 FLREDECOMP = ../bin/flredecomp
 MESHCONV = ../bin/meshconv
 TEST_LAPLACIAN= ../bin/test_laplacian
-TEST_LAPLACIAN_VECTOR= ../bin/test_laplacian_vector
 VISUALISE_ELEMENTS= ../bin/visualise_elements
 GMSH2VTU= ../bin/gmsh2vtu
 TRIANGLE2VTU= ../bin/triangle2vtu
@@ -76,11 +75,10 @@ SUPERMESH_DIFFERENCE=../bin/supermesh_difference
 DIFFERENTIATE_VTU=../bin/differentiate_vtu
 VTU_BINS=../bin/vtu_bins
 FLADAPT=../bin/fladapt
-TIME_AVERAGE_PARALLEL=../bin/time_average_parallel
 VTKPROJECTION=../bin/vtk_projection
 PERIODISE=../bin/periodise
 
-BINARIES = $(DRAWTIMNEW) $(MAKTIMUNIFORM) $(VTKDIAGNOSTIC)		\
+BINARIES = $(VTKDIAGNOSTIC)		\
   $(FLDIAGNOSTICS) $(FLREDECOMP) $(PETSC_READNSOLVE)			\
   $(VERTICAL_INTEGRATION) $(EVMERGE) $(FLADAPT) $(CHECKMESH)		\
   $(PROJECT_VTU) $(PROBE_VTU) $(SUPERMESH_DIFFERENCE)			\
@@ -149,14 +147,8 @@ $(TRIANGLE_TEST_MESH): triangle_test_mesh.o
 $(TEST_LAPLACIAN): test_laplacian.o
 	$(FLLINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
 
-$(TEST_LAPLACIAN_VECTOR): test_laplacian_vector.o
-	$(FLLINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
-
 $(VISUALISE_ELEMENTS): visualise_elements.o
 	$(FLLINKER) $(CXXFLAGS) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
-
-$(TIME_AVERAGE_PARALLEL): time_average_parallel.o
-	$(FLLINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
 
 $(VERTICAL_INTEGRATION): Vertical_Integration.o Vertical_Integration_main.o lib/
 	$(LINKER) $(CXXFLAGS) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
@@ -173,9 +165,6 @@ $(TEST_PRESSURE_SOLVE): test_pressure_solve_main.o test_pressure_solve.o \
 # libraries (i.e. ./lib/libadaptivity.a instead of -ladaptivity)
 lib/:
 	ln -sf ../lib
-
-Flint_volumeroutines.o:Flint_generalroutines.o
-Flint_integralroutines.o:Flint_generalroutines.o
 
 $(VTKDIAGNOSTIC): vtkdiagnostic.cpp lib/
 	$(LINKER) $(CXXFLAGS) -I../include -o $(VTKDIAGNOSTIC) vtkdiagnostic.cpp $(LIBS)

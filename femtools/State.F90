@@ -92,7 +92,7 @@ module state_module
        insert_and_alias_scalar_field, insert_and_alias_vector_field, insert_and_alias_tensor_field, &
        insert_and_alias_csr_matrix, insert_and_alias_block_csr_matrix, insert_and_alias_mesh, &
        insert_and_alias_halo, insert_and_alias_csr_sparsity, insert_petsc_csr_matrix, &
-       insert_and_alias_petsc_csr_matrix
+       insert_and_alias_petsc_csr_matrix, insert_state_fields
   end interface
 
   interface extract_scalar_field
@@ -1089,6 +1089,34 @@ contains
 
   end subroutine insert_and_alias_petsc_csr_matrix
   
+  subroutine insert_state_fields(state, donor)
+    !!< Insert fields contained in donor into state
+
+    type(state_type), intent(inout) :: state
+    type(state_type), intent(in) :: donor
+
+    integer :: i
+    type(scalar_field), pointer :: s_field
+    type(tensor_field), pointer :: t_field
+    type(vector_field), pointer :: v_field
+
+    do i = 1, scalar_field_count(donor)
+      s_field => extract_scalar_field(donor, i)
+      call insert(state, s_field, s_field%name)
+    end do
+
+    do i = 1, vector_field_count(donor)
+      v_field => extract_vector_field(donor, i)
+      call insert(state, v_field, v_field%name)
+    end do
+
+    do i = 1, tensor_field_count(donor)
+      t_field => extract_tensor_field(donor, i)
+      call insert(state, t_field, t_field%name)
+    end do
+
+  end subroutine insert_state_fields
+
   subroutine remove_tensor_field(state, name, stat)
   type(state_type), intent(inout) :: state
   character(len=*), intent(in) :: name

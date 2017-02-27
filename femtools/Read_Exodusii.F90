@@ -34,7 +34,7 @@ module read_exodusii
 
   use iso_c_binding, only: C_INT, C_FLOAT, C_CHAR, C_NULL_CHAR
   use fldebug
-  use global_parameters, only : OPTION_PATH_LEN, real_4
+  use global_parameters, only : OPTION_PATH_LEN
   use futils
   use quadrature
   use elements
@@ -222,7 +222,7 @@ contains
     integer :: num_node_sets, num_side_sets
 
     ! exodusii lib variables:
-    real(real_4), allocatable, dimension(:) :: coord_x, coord_y, coord_z
+    real(kind=c_float), allocatable, dimension(:) :: coord_x, coord_y, coord_z
     integer, allocatable, dimension(:) :: node_map, elem_num_map, elem_order_map
     integer, allocatable, dimension(:) :: block_ids, num_elem_in_block, num_nodes_per_elem
     integer, allocatable, dimension(:) :: elem_type, elem_connectivity
@@ -231,7 +231,7 @@ contains
     integer, allocatable, dimension(:) :: total_side_sets_node_cnt_list
 
     ! variables for conversion to fluidity structure:
-    real(real_4), allocatable, dimension(:,:) :: node_coord
+    real(c_float), allocatable, dimension(:,:) :: node_coord
     integer, allocatable, dimension(:) :: total_elem_node_list
     integer, allocatable, dimension(:) :: sndglno, boundaryIDs
     
@@ -473,7 +473,7 @@ contains
       allocate( field%mesh%region_ids(num_elem) )
       field%mesh%region_ids = 0
     end if
-    call adding_elements_to_field(num_dim, num_elem, exo_element, field)
+    call adding_elements_to_field(num_dim, num_elem, exo_element, node_map, field)
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! Assemble array with faces and boundaryIDs !
@@ -484,7 +484,7 @@ contains
        allocate(boundaryIDs(1:num_faces))
     end if
     do f=1, num_faces
-       sndglno((f-1)*sloc+1:f*sloc) = exo_face(f)%nodeIDs(1:sloc)
+       sndglno((f-1)*sloc+1:f*sloc) = node_map(exo_face(f)%nodeIDs(1:sloc))
        if(haveBoundaries) boundaryIDs(f) = exo_face(f)%tags(1)
     end do
 
@@ -1082,7 +1082,7 @@ contains
     integer, intent(in) :: eff_dim
     integer, intent(in) :: num_nodes
     integer, allocatable, dimension(:), intent(in) :: node_map
-    real(real_4), dimension(:,:), intent(in) :: node_coord
+    real(kind=c_float), dimension(:,:), intent(in) :: node_coord
     type(vector_field), intent(inout) :: field
 
     type(EXOnode), pointer, dimension(:) :: exo_nodes
@@ -1112,10 +1112,11 @@ contains
 
   ! -----------------------------------------------------------------
 
-  subroutine adding_elements_to_field(num_dim, num_elem, exo_element, field)
+  subroutine adding_elements_to_field(num_dim, num_elem, exo_element, node_map, field)
     integer, intent(in) :: num_dim
     integer, intent(in) :: num_elem
     type(EXOelement), pointer, dimension(:), intent(in) :: exo_element
+    integer, dimension(:), intent(in) :: node_map
     type(vector_field), intent(inout) :: field
 
     integer :: elementType, num_nodes_per_elem_ele
@@ -1132,7 +1133,7 @@ contains
          !these are normal elements:
           num_nodes_per_elem_ele = size(exo_element(exo_e)%nodeIDs)
           do n=1, num_nodes_per_elem_ele
-             field%mesh%ndglno(n+z) = exo_element(exo_e)%nodeIDs(n)
+             field%mesh%ndglno(n+z) = node_map(exo_element(exo_e)%nodeIDs(n))
           end do
           ! Set region_id of element (this will be its blockID in exodus)
           field%mesh%region_ids(i) = exo_element(exo_e)%blockID

@@ -70,6 +70,7 @@ module adapt_state_module
   use reserve_state_module
   use fields_halos
   use populate_state_module
+  use dqmom
   use diagnostic_fields_wrapper
   use discrete_properties_module
   use interpolation_manager
@@ -167,7 +168,6 @@ contains
     type(vector_field), intent(out) :: stripped_positions
     type(tensor_field), intent(out):: stripped_metric
 
-    type(halo_type), dimension(:), pointer :: save_halos
     type(mesh_type):: stripped_mesh, mesh
     integer, dimension(:), pointer :: node_list, nodes
     integer, dimension(:), allocatable :: non_halo2_elements
@@ -195,9 +195,6 @@ contains
     ! the new element halos are recreated from the new nodal halo without
     ! using those of the input positions%mesh
     mesh = positions%mesh
-    if (.not. size(save_halos)/=2) then
-      FLAbort("In strip_l2_halo: halo2 is already stripped?")
-    end if
     ! since mesh is a copy of positons%mesh, we can change mesh%halos
     ! without changing positions%mesh%halos
     allocate(mesh%halos(1))
@@ -1009,6 +1006,10 @@ contains
       ! Adapt state, initialising fields from the options tree rather than
       ! interpolating them
       call adapt_state(states, metric, initialise_fields = .true.)
+      
+      ! Population balance equation initialise - dqmom_init() helps to recalculate the abscissas and weights 
+      ! based on moment initial conditions (if provided)
+      call dqmom_init(states)
     end do
 
     if(have_option(trim(base_path) // "/output_adapted_mesh")) then
