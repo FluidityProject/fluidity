@@ -852,23 +852,26 @@ type(vector_field), intent(in), optional :: positions
   if (have_cache) then
     ! write the cached solver options to log:
     call ewrite_ksp_options(ksp)
-  else if (present(preconditioner_matrix)) then
-    ewrite(2,*)  'Using provided preconditioner matrix'
-    pmat=csr2petsc(preconditioner_matrix, petsc_numbering)
   else
-    pmat=A
-  end if
 
-  ewrite(2, *) 'Using solver options defined at: ', trim(solver_option_path)
-  call attach_null_space_from_options(A, solver_option_path, pmat=pmat, &
-    positions=positions, petsc_numbering=petsc_numbering)
-    
-  call SetupKSP(ksp, A, pmat, solver_option_path, parallel, &
-    petsc_numbering, &
-    startfromzero_in=startfromzero_in, &
-    prolongators=prolongators, surface_node_list=surface_node_list, &
-    matrix_csr=matrix, &
-    internal_smoothing_option=internal_smoothing_option)
+    if (present(preconditioner_matrix)) then
+      ewrite(2,*)  'Using provided preconditioner matrix'
+      pmat=csr2petsc(preconditioner_matrix, petsc_numbering)
+    else
+      pmat=A
+    end if
+
+    ewrite(2, *) 'Using solver options defined at: ', trim(solver_option_path)
+    call attach_null_space_from_options(A, solver_option_path, pmat=pmat, &
+      positions=positions, petsc_numbering=petsc_numbering)
+
+    call SetupKSP(ksp, A, pmat, solver_option_path, parallel, &
+      petsc_numbering, &
+      startfromzero_in=startfromzero_in, &
+      prolongators=prolongators, surface_node_list=surface_node_list, &
+      matrix_csr=matrix, &
+      internal_smoothing_option=internal_smoothing_option)
+  end if
   
   if (.not. have_cache .and. have_option(trim(solver_option_path)// &
     &'/cache_solver_context')) then
