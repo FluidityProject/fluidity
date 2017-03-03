@@ -1953,13 +1953,8 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
         ! we think this is a more useful default - the default value of 0.0
         ! causes spurious "unsymmetric" failures as well
         call PCGAMGSetThreshold(pc, 0.01, ierr)
+        ! this was the old default:
         call PCGAMGSetCoarseEqLim(pc, 800, ierr)
-!        call PCSetup(pc,ierr)
-!        call PCMGGETCoarseSolve(pc, ksp_coarse, ierr)
-!        call KSPSetType(ksp_coarse, KSPPREONLY, ierr)
-!        call KSPGetPC(ksp_coarse, pc_coarse, ierr)
-!        call PCSetType(pc_coarse, PCSOR, ierr)
-!        call KSPSetTolerances(ksp_coarse, 1e-50, 1e-50, 1e50, 10, ierr)
       end if
       
     end if
