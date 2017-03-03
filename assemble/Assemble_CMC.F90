@@ -38,13 +38,13 @@ module assemble_CMC
   use transform_elements
   use fetools, only: shape_shape
   use fields
-  use boundary_conditions
   use sparse_tools_petsc
   use state_module
+  use boundary_conditions
   use sparse_matrices_fields
   use field_options
   use fefields
-  
+
   implicit none 
 
   private

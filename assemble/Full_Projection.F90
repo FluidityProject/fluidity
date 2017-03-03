@@ -27,8 +27,6 @@
 #include "fdebug.h"
 
   module Full_Projection
-
- 
     use fldebug
     use global_parameters
     use elements
@@ -37,6 +35,7 @@
     use petsc
 #endif
     use parallel_tools
+    use data_structures
     use sparse_tools
     use fields
     use petsc_tools
@@ -47,15 +46,12 @@
     use halos
     use multigrid
     use solvers
+    use boundary_conditions
     use petsc_solve_state_module
     use boundary_conditions_from_options
-    use data_structures
-    use boundary_conditions
-
 
     implicit none
-    ! Module to provide solvers, preconditioners etc... for full_projection Solver.
-    ! Not this is currently tested for Full CMC solves and Stokes flow:
+
 #include "petsc_legacy.h"
     
     private
