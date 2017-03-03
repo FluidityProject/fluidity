@@ -365,53 +365,73 @@
          end if
       end if
       
-      ! Set ksp for M block solver inside the Schur Complement (the inner, inner solve!). 
-      call MatSchurComplementGetKSP(A,ksp_schur,ierr)
-      call petsc_solve_state_setup(inner_solver_option_path, prolongators, surface_nodes, &
-        state, inner_mesh, blocks(div_matrix_comp,2), inner_option_path, matrix_has_solver_cache=.false., &
-        mesh_positions=mesh_positions)
-      rotation_matrix => extract_petsc_csr_matrix(state, "RotationMatrix", stat=rotation_stat)
+      if (have_option(trim(inner_option_path)//"/solver") .or. inner_M%ksp==PETSC_NULL_OBJECT) then
+        if (inner_M%ksp/=PETSC_NULL_OBJECT) then
+          ! for the moment, if separate solver options are specified under inner_option_path,
+          ! we throw away the existing ksp, which is based on the velocity option path
+          ! do this before setting up the new one to save memory
+          call KSPDestroy(inner_M%ksp, ierr)
+        end if
+        if (.not. have_option(trim(inner_option_path)//"/solver")) then
+          ! for FullMomentum solver/ is optional - if it's not there we reuse the option path of velocity
+          inner_option_path = velocity%option_path
+        end if
 
-      if (associated(mesh_positions)) then
-        if (rotation_stat==0) then
+        ! Set ksp for M block solver inside the Schur Complement (the inner, inner solve!).
+        call MatSchurComplementGetKSP(A,ksp_schur,ierr)
+        call petsc_solve_state_setup(inner_solver_option_path, prolongators, surface_nodes, &
+          state, inner_mesh, blocks(div_matrix_comp,2), inner_option_path, matrix_has_solver_cache=.false., &
+          mesh_positions=mesh_positions)
+        rotation_matrix => extract_petsc_csr_matrix(state, "RotationMatrix", stat=rotation_stat)
+
+        if (associated(mesh_positions)) then
+          if (rotation_stat==0) then
+            call attach_null_space_from_options(inner_M%M, inner_solver_option_path, &
+              positions=mesh_positions, rotation_matrix=rotation_matrix%M, &
+              petsc_numbering=petsc_numbering_u)
+          else
+            call attach_null_space_from_options(inner_M%M, inner_solver_option_path, &
+              positions=mesh_positions, petsc_numbering=petsc_numbering_u)
+          end if
+        elseif (rotation_stat==0) then
           call attach_null_space_from_options(inner_M%M, inner_solver_option_path, &
-            positions=mesh_positions, rotation_matrix=rotation_matrix%M, &
-            petsc_numbering=petsc_numbering_u)
+            rotation_matrix=rotation_matrix%M, petsc_numbering=petsc_numbering_u)
         else
           call attach_null_space_from_options(inner_M%M, inner_solver_option_path, &
-            positions=mesh_positions, petsc_numbering=petsc_numbering_u)
-        end if
-      elseif (rotation_stat==0) then
-        call attach_null_space_from_options(inner_M%M, inner_solver_option_path, &
-          rotation_matrix=rotation_matrix%M, petsc_numbering=petsc_numbering_u)
-      else
-        call attach_null_space_from_options(inner_M%M, inner_solver_option_path, &
-          petsc_numbering=petsc_numbering_u)
-      end if
-
-      if (associated(prolongators)) then
-        if (rotation_stat==0) then
-          FLExit("Rotated boundary conditions do not work with mg prolongators")
+            petsc_numbering=petsc_numbering_u)
         end if
 
-        if (associated(surface_nodes)) then
-          FLExit("Internal smoothing not available for inner solve")
+        if (associated(prolongators)) then
+          if (rotation_stat==0) then
+            FLExit("Rotated boundary conditions do not work with mg prolongators")
+          end if
+
+          if (associated(surface_nodes)) then
+            FLExit("Internal smoothing not available for inner solve")
+          end if
+          call setup_ksp_from_options(ksp_schur, inner_M%M, inner_M%M, &
+            inner_solver_option_path, petsc_numbering=petsc_numbering_u, startfromzero_in=.true., &
+            prolongators=prolongators)
+          do i=1, size(prolongators)
+            call deallocate(prolongators(i))
+          end do
+          deallocate(prolongators)
+        else
+          call setup_ksp_from_options(ksp_schur, inner_M%M, inner_M%M, &
+            inner_solver_option_path, petsc_numbering=petsc_numbering_u, startfromzero_in=.true.)
         end if
-        call setup_ksp_from_options(ksp_schur, inner_M%M, inner_M%M, &
-          inner_solver_option_path, petsc_numbering=petsc_numbering_u, startfromzero_in=.true., &
-          prolongators=prolongators)
-        do i=1, size(prolongators)
-          call deallocate(prolongators(i))
-        end do
-        deallocate(prolongators)
+
+        if (associated(mesh_positions)) then
+          call deallocate(mesh_positions)
+          deallocate(mesh_positions)
+        end if
+
+        ! we keep our own reference, so it can be re-used in the velocity correction solve
+        call PetscObjectReference(ksp_schur, ierr)
+        inner_M%ksp = ksp_schur
       else
-        call setup_ksp_from_options(ksp_schur, inner_M%M, inner_M%M, &
-          inner_solver_option_path, petsc_numbering=petsc_numbering_u, startfromzero_in=.true.)
-      end if
-      
-      if (associated(mesh_positions)) then
-        call deallocate(mesh_positions)
-        deallocate(mesh_positions)
+        ! we have a ksp (presumably from the first velocity solve), try to reuse it
+        call MatSchurComplementSetKSP(A, inner_M%ksp, ierr)
       end if
        
       ! leaving out petsc_numbering and mesh, so "iteration_vtus" monitor won't work!

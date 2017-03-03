@@ -419,7 +419,6 @@ subroutine petsc_solve_scalar_petsc_csr(x, matrix, rhs, option_path, &
   !! surface_node_list for internal smoothing
   integer, dimension(:), optional, intent(in) :: surface_node_list
 
-  KSP ksp
   Vec y, b
 
   character(len=OPTION_PATH_LEN) solver_option_path
@@ -431,7 +430,7 @@ subroutine petsc_solve_scalar_petsc_csr(x, matrix, rhs, option_path, &
   assert(size(rhs%val)==size(matrix,1))
   
   ! setup PETSc object and petsc_numbering from options and 
-  call petsc_solve_setup_petsc_csr(y, b, ksp, &
+  call petsc_solve_setup_petsc_csr(y, b, &
         solver_option_path, lstartfromzero, &
         matrix, &
         sfield=x, &
@@ -443,7 +442,7 @@ subroutine petsc_solve_scalar_petsc_csr(x, matrix, rhs, option_path, &
      petsc_numbering=matrix%row_numbering, startfromzero=lstartfromzero)
     
   ! the solve and convergence check
-  call petsc_solve_core(y, matrix%M, b, ksp, matrix%row_numbering, &
+  call petsc_solve_core(y, matrix%M, b, matrix%ksp, matrix%row_numbering, &
           solver_option_path, lstartfromzero, literations, &
           sfield=x, x0=x%val)
         
@@ -451,7 +450,7 @@ subroutine petsc_solve_scalar_petsc_csr(x, matrix, rhs, option_path, &
   call petsc2field(y, matrix%column_numbering, x)
   
   ! destroy all PETSc objects and the petsc_numbering
-  call petsc_solve_destroy_petsc_csr(y, b, ksp, solver_option_path)
+  call petsc_solve_destroy_petsc_csr(y, b, solver_option_path)
   
 end subroutine petsc_solve_scalar_petsc_csr
 
@@ -486,7 +485,7 @@ subroutine petsc_solve_vector_petsc_csr(x, matrix, rhs, option_path, &
   assert(rhs%dim==blocks(matrix,1))
   
   ! setup PETSc object and petsc_numbering from options and 
-  call petsc_solve_setup_petsc_csr(y, b, ksp, &
+  call petsc_solve_setup_petsc_csr(y, b, &
         solver_option_path, lstartfromzero, &
         matrix, vfield=x, option_path=option_path, &
         prolongators=prolongators, &
@@ -497,7 +496,7 @@ subroutine petsc_solve_vector_petsc_csr(x, matrix, rhs, option_path, &
      matrix%row_numbering, lstartfromzero)
     
   ! the solve and convergence check
-  call petsc_solve_core(y, matrix%M, b, ksp, matrix%row_numbering, &
+  call petsc_solve_core(y, matrix%M, b, matrix%ksp, matrix%row_numbering, &
           solver_option_path, lstartfromzero, literations, &
           vfield=x, vector_x0=x)
         
@@ -505,7 +504,7 @@ subroutine petsc_solve_vector_petsc_csr(x, matrix, rhs, option_path, &
   call petsc2field(y, matrix%column_numbering, x)
   
   ! destroy all PETSc objects and the petsc_numbering
-  call petsc_solve_destroy_petsc_csr(y, b, ksp, solver_option_path)
+  call petsc_solve_destroy_petsc_csr(y, b, solver_option_path)
   
 end subroutine petsc_solve_vector_petsc_csr
 
@@ -924,7 +923,7 @@ type(vector_field), intent(in), optional :: positions
   
 end subroutine petsc_solve_setup
   
-subroutine petsc_solve_setup_petsc_csr(y, b, ksp, &
+subroutine petsc_solve_setup_petsc_csr(y, b, &
   solver_option_path, startfromzero, &
   matrix, sfield, vfield, tfield, &
   option_path, startfromzero_in, &
@@ -937,8 +936,6 @@ subroutine petsc_solve_setup_petsc_csr(y, b, ksp, &
 Vec, intent(out):: y
 !! PETSc rhs vector
 Vec, intent(out):: b
-!! Solver object
-Mat, intent(out):: ksp
 !! returns the option path to solver/ block for new options, otherwise ""
 character(len=*), intent(out):: solver_option_path
 !! whether to start with zero initial guess
@@ -1016,12 +1013,16 @@ Mat, intent(in), optional:: rotation_matrix
   else
     parallel= .false.
   end if
+
+  if (matrix%ksp==PETSC_NULL_OBJECT) then
   
-  ewrite(2, *) 'Using solver options defined at: ', trim(solver_option_path)
-  call SetupKSP(ksp, matrix%M, matrix%M, solver_option_path, parallel, &
-      matrix%column_numbering, &
-      startfromzero_in=startfromzero_in, &
-      prolongators=prolongators, surface_node_list=surface_node_list)
+    ewrite(2, *) 'Using solver options defined at: ', trim(solver_option_path)
+    call SetupKSP(matrix%ksp, matrix%M, matrix%M, solver_option_path, parallel, &
+        matrix%column_numbering, &
+        startfromzero_in=startfromzero_in, &
+        prolongators=prolongators, surface_node_list=surface_node_list)
+
+  end if
   
   b=PetscNumberingCreateVec(matrix%column_numbering)
   call VecDuplicate(b, y, ierr)
@@ -1323,24 +1324,15 @@ character(len=*), intent(in):: solver_option_path
   
 end subroutine petsc_solve_destroy
 
-subroutine petsc_solve_destroy_petsc_csr(y, b, ksp, solver_option_path)
+subroutine petsc_solve_destroy_petsc_csr(y, b, solver_option_path)
 Vec, intent(inout):: y
 Vec, intent(inout):: b
-KSP, intent(inout):: ksp
 character(len=*), intent(in):: solver_option_path
 
-  PC pc
-  PCType pctype
   integer ierr
   
   call VecDestroy(y, ierr)
   call VecDestroy(b, ierr)
-  call KSPGetPC(ksp, pc, ierr)
-  call PCGetType(pc, pctype, ierr)
-  if (pctype==PCMG) then
-    call DestroyMultigrid(pc)
-  end if
-  call KSPDestroy(ksp, ierr)
   
   ! destroy everything associated with the monitors
   if(have_option(trim(solver_option_path)// &
