@@ -1236,9 +1236,9 @@ logical, optional, intent(in):: nomatrixdump
   if (timing) then
     call cpu_time(time2)
     call PetscGetFlops(flops2, ierr)
-    ewrite(2,*) 'CPU time spent in solver:', time2-time1
-    ewrite(2,*) 'MFlops counted by Petsc:', (flops2-flops1)/1e6
-    ewrite(2,*) 'MFlops/sec:', (flops2-flops1)/((time2-time1)*1e6)
+    ewrite(2,*) trim(name)// ' CPU time spent in solver: ',time2-time1
+    ewrite(2,*) trim(name)// ' MFlops counted by Petsc: ',(flops2-flops1)/1e6
+    ewrite(2,*) trim(name)// ' MFlops/sec: ',(flops2-flops1)/((time2-time1)*1e6)
   end if
   
   if(have_option(trim(solver_option_path)//'/diagnostics/dump_matrix')) then
