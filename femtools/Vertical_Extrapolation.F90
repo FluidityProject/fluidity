@@ -81,7 +81,21 @@ public VerticalProlongationOperator
 public vertical_extrapolation_module_check_options
 public compute_face_normal_gravity
 
-  real, parameter :: GNOMONIC_BOX_WIDTH = 10.0
+! with /geometry/spherical_earth the vertical extrapolation is done using a gnomonic
+! projection of each of the 3*dim sides of the cubed sphere. The gnomonic projection projects
+! each of the sides to the [-1,1]x[-1,1] square (dim=3 case) - but we allow some overlap so that
+! facets on the surface mesh are represented in at least one (and possibly multiple) sides of the
+! cubed sphere projection. This is done by including any facet that maps entirely
+! within [-w,w]x[-w,w] where w=GNOMONIC_BOX_WIDTH. The 3*dim images of the projected sides of the
+! cubed sphere are then shifted (shifting the origin with multiples of 3*w) - so they no
+! longer overlap. To search any arbitrary other position (not necessarily on the surface),
+! we choose the most suitable of the 3*dim projections by looking at its maxloc(abs(xyz)),
+! project and apply the same shift. This way we should find a triangle within one of the 3*dim
+! projected sides of the cubed sphere surface mesh.
+! Choosing GNOMONIC_BOX_WIDTH too small, we may end up with large surface triangles that do not
+! map entirely within any of the projected sides. In 2D, the minimal angle of such a facet (line
+! segment) would have to be 2*atan(w)-90 deg (for w=10 that's 78.5 deg)
+real, parameter :: GNOMONIC_BOX_WIDTH = 10.0
 
 contains
   
@@ -286,7 +300,7 @@ subroutine VerticalExtrapolationMultiple(from_fields, to_fields, &
   end if
   
   ! project the positions of to_fields(1)%mesh into the horizontal plane
-  ! and returns 'seles' (indices in surface_element_list) and loc_coords 
+  ! and returns 'seles' (facet numbers) and loc_coords
   ! to tell where these projected nodes are found in the surface mesh
   call horizontal_picker(to_fields(1)%mesh, positions, vertical_normal, &
       surface_element_list, lsurface_name, &
@@ -338,7 +352,7 @@ subroutine horizontal_picker(mesh, positions, vertical_normal, &
   !! the same surface_element_list should again be provided.
   character(len=*), intent(in):: surface_name
   
-  !! returned surface elements (entry in surface_element_list)
+  !! returned surface elements (facet numbers in 'mesh')
   !! and loc coords each node has been found in
   !! size(seles)==size(loc_coords,2)==nowned_nodes(mesh)
   integer, dimension(:), intent(out):: seles
@@ -435,14 +449,12 @@ subroutine get_horizontal_positions(positions, surface_element_list, vertical_no
   character(len=*), intent(in):: surface_name
   
   ! Returns the horizontal positions on a horizontal mesh, this mesh
-  ! may have some of the faces in surface_element_list duplicated -
+  ! may have some of the facets in surface_element_list duplicated -
   ! this is only in the spherical case where the horizontal mesh
-  ! consists of two disjoint regions representing the two hemispheres
-  ! and surface elements near the equator may be represented in both.
+  ! consists of multiple disjoint regions representing the sides of a cubed sphere
+  ! and surface elements near the boundaries of these regions may be represented multiple times.
   ! Therefore we also return a map between elements in the horizontal positions mesh
-  ! and entries in surface_element_list. If ele is an element in the horizontal 
-  ! position mesh, then surface_element_list(horizontal_mesh(ele)) 
-  ! is the face number in the full  mesh
+  ! and facet numbers in the full mesh (in the planar case this is the same as surface_element_list)
   ! horizontal_positions is a borrowed reference, don't deallocate
   ! also horizontal_mesh_list should not be deallocated
   type(vector_field), pointer:: horizontal_positions
@@ -455,13 +467,10 @@ subroutine get_horizontal_positions(positions, surface_element_list, vertical_no
     
   horizontal_positions => extract_surface_field(positions, surface_name, &
     trim(surface_name)//"HorizontalCoordinate")
-    
-  call vtk_write_fields('horizontal_mesh', 0,      horizontal_positions, &
-     horizontal_positions%mesh)
-    
+
   call get_boundary_condition(positions, surface_name, &
       surface_element_list=horizontal_mesh_list)
-  
+
 end subroutine get_horizontal_positions
   
 subroutine create_horizontal_positions(positions, surface_element_list, vertical_normal, surface_name)
@@ -504,7 +513,7 @@ subroutine create_horizontal_positions(positions, surface_element_list, vertical
     ! now we need to fix its surface_element_list
     ! we have surface_element_map which maps from elements in surface_positions to entries
     ! in the original surface_element_list, which in turn maps to facets in the positions%mesh
-    ! the new surface_element_list is therefore simply a compositions of these two maps
+    ! the new surface_element_list is therefore simply a composition of these two maps
 
     nobcs = size(positions%bc%boundary_condition)
     last_bc => positions%bc%boundary_condition(nobcs)
