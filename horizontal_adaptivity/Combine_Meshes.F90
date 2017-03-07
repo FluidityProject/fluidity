@@ -91,11 +91,8 @@ module hadapt_combine_meshes
     ! it lies under
     allocate(mesh%element_columns(total_out_elements))
     mesh%element_columns = 0
-    ! if the horizontal mesh has region ids these can be propagated down into the full
-    ! mesh.  allocate space for this...
-    if(associated(h_mesh%mesh%region_ids)) then
-      allocate(mesh%region_ids(total_out_elements))
-    end if
+    ! to keep things simple, always allocate region_ids for the extruded mesh, regardless of whether h_mesh has them
+    allocate(mesh%region_ids(total_out_elements))
     if (mesh_name=="CoordinateMesh") then
       call allocate(out_mesh, mesh_dim(h_mesh)+1, mesh, "Coordinate")
     else

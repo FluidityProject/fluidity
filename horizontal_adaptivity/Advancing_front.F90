@@ -59,7 +59,7 @@ module hadapt_advancing_front
     
     logical:: adjacent_to_owned_element, adjacent_to_owned_column, shared_face
     logical :: top_element, bottom_element
-    logical :: apply_region_ids, propagate_region_ids
+    logical :: multiple_regions
     integer, dimension(:), allocatable :: old_element_data
     
     integer, dimension(2) :: shape_option
@@ -113,9 +113,7 @@ module hadapt_advancing_front
     assert(associated(mesh%mesh%columns))
     assert(associated(mesh%mesh%element_columns))
 
-    ! if the horizontal mesh has region ids associated with it, the elements below
-    ! can inherit these ids (not necessarily true in unittests)
-    propagate_region_ids = associated(mesh%mesh%region_ids)
+    mesh%mesh%region_ids = 0
 
     faces_seen = 0
     if (has_faces(h_mesh%mesh)) then
@@ -176,9 +174,9 @@ module hadapt_advancing_front
       ! get the region id information used for extrusion (if any) plus the top and bottom surface ids
       n_regions = option_count(trim(mesh%mesh%option_path)//'/from_mesh/extrude/layer[' &
         // int2str(layer-1) // ']/regions')
-      apply_region_ids = (n_regions>1)
+      multiple_regions = (n_regions>1)
 
-      if (apply_region_ids .and. .not. propagate_region_ids) then
+      if (multiple_regions .and. .not. associated(h_mesh%mesh%region_ids)) then
         FLAbort("Multiple extrude regions in options tree but no region ids in mesh")
       end if
 
@@ -193,7 +191,7 @@ module hadapt_advancing_front
         region_option_path = trim(mesh%mesh%option_path) // &
             "/from_mesh/extrude/layer[" // int2str(layer-1) // &
             "]/regions[" // int2str(r) // "]"
-        if(apply_region_ids) then
+        if(multiple_regions) then
           shape_option=option_shape(trim(region_option_path)// "/region_ids")
           allocate(region_ids(1:shape_option(1)))
           call get_option(trim(region_option_path) // "/region_ids", region_ids)
@@ -207,7 +205,7 @@ module hadapt_advancing_front
         call get_option(trim(region_option_path) // '/extruded_region_id', extruded_region_id, stat=extruded_region_id_stat)
 
         do h_ele = 1, size(top_surface_ids)
-          if(apply_region_ids) then
+          if(multiple_regions) then
             if(.not. any(h_mesh%mesh%region_ids(h_ele)==region_ids)) cycle
           end if
 
@@ -217,12 +215,12 @@ module hadapt_advancing_front
           bottom_surface_ids(h_ele) = bottom_surface_id
           if (extruded_region_id_stat==0) then
             extruded_region_ids(h_ele) = extruded_region_id
-          else if (propagate_region_ids) then
+          else if (associated(h_mesh%mesh%region_ids)) then
             extruded_region_ids(h_ele) = h_mesh%mesh%region_ids(h_ele)
           end if
         end do
 
-        if(apply_region_ids) deallocate(region_ids)
+        if(multiple_regions) deallocate(region_ids)
 
       end do
 
@@ -291,10 +289,7 @@ module hadapt_advancing_front
             ndglno_ptr(2) = l
           end if
 
-          ! if the horizontal mesh has region_ids these may as well be preserved here
-          if(propagate_region_ids) then
-            mesh%mesh%region_ids(ele) = extruded_region_ids(h_ele)
-          end if
+          mesh%mesh%region_ids(ele) = extruded_region_ids(h_ele)
 
           ! we now know the relationship between the mesh element and the h_mesh surface element
           ! save this for later...
@@ -430,15 +425,12 @@ module hadapt_advancing_front
       end do
       deallocate(old_element_data)
       
-      ! renumber the region_ids
-      if(propagate_region_ids) then
-        allocate(old_element_data(size(mesh%mesh%region_ids)))
-        old_element_data = mesh%mesh%region_ids
-        do i = 1, size(mesh%mesh%region_ids)
-          mesh%mesh%region_ids(fetch(old2new_ele, i)) = old_element_data(i)
-        end do
-        deallocate(old_element_data)
-      end if
+      allocate(old_element_data(size(mesh%mesh%region_ids)))
+      old_element_data = mesh%mesh%region_ids
+      do i = 1, size(mesh%mesh%region_ids)
+        mesh%mesh%region_ids(fetch(old2new_ele, i)) = old_element_data(i)
+      end do
+      deallocate(old_element_data)
       
       call deallocate(old2new_ele)
       
