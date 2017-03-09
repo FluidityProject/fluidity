@@ -46,6 +46,7 @@ module vtk_interfaces
   use parallel_fields
   use fields
   use state_module
+  use fefields
   use vtkfortran
   
   implicit none
@@ -55,6 +56,9 @@ module vtk_interfaces
   public :: vtk_write_state, vtk_write_fields, vtk_read_state, &
     vtk_write_surface_mesh, vtk_write_internal_face_mesh, &
     vtk_get_sizes, vtk_read_file
+
+  integer, parameter, public :: DGIFY=0, GAUSSIAN_PROJECTION=1, MASS_LUMPED_PROJECTION=2
+
   
   interface 
        subroutine vtk_read_file(&
@@ -219,7 +223,8 @@ contains
   end subroutine vtk_write_state
 
   subroutine vtk_write_fields(filename, index, position, model, sfields,&
-       & vfields, tfields, write_region_ids, write_columns, number_of_partitions, stat)
+       & vfields, tfields, write_region_ids, write_columns, number_of_partitions,&
+       projection, state, stat)
     !!< Write the state variables out to a vtu file. Two different elements
     !!< are supported along with fields corresponding to each of them.
     !!<
@@ -240,6 +245,8 @@ contains
     logical, intent(in), optional :: write_columns
     !!< If present, only write for processes 1:number_of_partitions (assumes the other partitions are empty)
     integer, optional, intent(in):: number_of_partitions
+    integer, optional, intent(in) :: projection
+    type(state_type), optional, intent(inout) :: state
     integer, intent(out), optional :: stat
     
     integer :: NNod, sz_enlist, i, dim, j, k, nparts
@@ -256,21 +263,28 @@ contains
     integer, allocatable, dimension(:)::ghost_levels
     real, allocatable, dimension(:,:) :: tempval
     integer :: lstat
+    integer :: lprojection
     
+    if (present(projection)) then
+       lprojection = projection
+    else
+       lprojection = 0
+    end if
+
     if (present(stat)) stat = 0
     
     dgify_fields = .false.
-    if (present(sfields)) then
+    if (present(sfields) .and. lprojection == DGIFY) then
       do i=1,size(sfields)
         if ( (sfields(i)%mesh%continuity .lt. 0 .and. sfields(i)%mesh%shape%degree /= 0) ) dgify_fields = .true.
       end do
     end if
-    if (present(vfields)) then
+    if (present(vfields) .and. lprojection == DGIFY) then
       do i=1,size(vfields)
         if ( (vfields(i)%mesh%continuity .lt. 0 .and. vfields(i)%mesh%shape%degree /= 0) ) dgify_fields = .true.
       end do
     end if
-    if (present(tfields)) then
+    if (present(tfields) .and. lprojection == DGIFY ) then
       do i=1,size(tfields)
         if ( (tfields(i)%mesh%continuity .lt. 0 .and. tfields(i)%mesh%shape%degree /= 0) ) dgify_fields = .true.
       end do
@@ -483,32 +497,40 @@ contains
           
           if (sfields(i)%mesh%shape%degree /= 0) then
 
-            call remap_field(from_field=sfields(i), to_field=l_model, stat=lstat)
-            ! if this is being called from something other than the main output routines
-            ! then these tests can be disabled by passing in the optional stat argument
-            ! to vtk_write_fields
-            if(lstat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
-              if(present(stat)) then
-                stat = lstat
-              else
-                FLAbort("Just remapped from a discontinuous to a continuous field!")
-              end if
-            else if(lstat==REMAP_ERR_UNPERIODIC_PERIODIC) then
-              if(present(stat)) then
-                stat = lstat
-              else
-                FLAbort("Just remapped from an unperiodic to a periodic continuous field!")
-              end if
-            else if ((lstat/=0).and. &
-                     (lstat/=REMAP_ERR_BUBBLE_LAGRANGE).and. &
-                     (lstat/=REMAP_ERR_HIGHER_LOWER_CONTINUOUS)) then
-              if(present(stat)) then
-                stat = lstat
-              else
-                FLAbort("Unknown error when remapping field.")
-              end if
+            if (lprojection == DGIFY) then
+               call remap_field(from_field=sfields(i), to_field=l_model, stat=lstat)
+               ! if this is being called from something other than the main output routines
+               ! then these tests can be disabled by passing in the optional stat argument
+               ! to vtk_write_fields
+               if(lstat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
+                  if(present(stat)) then
+                     stat = lstat
+                  else
+                     FLAbort("Just remapped from a discontinuous to a continuous field!")
+                  end if
+               else if(lstat==REMAP_ERR_UNPERIODIC_PERIODIC) then
+                  if(present(stat)) then
+                     stat = lstat
+                  else
+                     FLAbort("Just remapped from an unperiodic to a periodic continuous field!")
+                  end if
+               else if ((lstat/=0).and. &
+                    (lstat/=REMAP_ERR_BUBBLE_LAGRANGE).and. &
+                    (lstat/=REMAP_ERR_HIGHER_LOWER_CONTINUOUS)) then
+                  if(present(stat)) then
+                     stat = lstat
+                  else
+                     FLAbort("Unknown error when remapping field.")
+                  end if
+               end if
+               ! we've just allowed remapping from a higher order to a lower order continuous field
+            else if (lprojection == GAUSSIAN_PROJECTION) then
+               call project_field(from_field=sfields(i), to_field=l_model, X=position,&
+                    state=state, option_path="/io/project/full_projection")
+            else if (lprojection == MASS_LUMPED_PROJECTION) then
+               call project_field(from_field=sfields(i), to_field=l_model, &
+                    X=position, state=state)
             end if
-            ! we've just allowed remapping from a higher order to a lower order continuous field
             
             call vtkwritesn(l_model%val, trim(sfields(i)%name))
 
@@ -581,33 +603,40 @@ contains
           if(mesh_dim(vfields(i))/=mesh_dim(v_model(vfields(i)%dim))) cycle
 
           if(vfields(i)%mesh%shape%degree /= 0) then
-
-            call remap_field(from_field=vfields(i), to_field=v_model(vfields(i)%dim), stat=lstat)
-            ! if this is being called from something other than the main output routines
-            ! then these tests can be disabled by passing in the optional stat argument
-            ! to vtk_write_fields
-            if(lstat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
-              if(present(stat)) then
-                stat = lstat
-              else
-                FLAbort("Just remapped from a discontinuous to a continuous field!")
-              end if
-            else if(lstat==REMAP_ERR_UNPERIODIC_PERIODIC) then
-              if(present(stat)) then
-                stat = lstat
-              else
-                FLAbort("Just remapped from an unperiodic to a periodic continuous field!")
-              end if
-            else if ((lstat/=0).and. &
+             if (lprojection == DGIFY) then
+                call remap_field(from_field=vfields(i), to_field=v_model(vfields(i)%dim), stat=lstat)
+                ! if this is being called from something other than the main output routines
+                ! then these tests can be disabled by passing in the optional stat argument
+                ! to vtk_write_fields
+                if(lstat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
+                   if(present(stat)) then
+                      stat = lstat
+                   else
+                      FLAbort("Just remapped from a discontinuous to a continuous field!")
+                   end if
+                else if(lstat==REMAP_ERR_UNPERIODIC_PERIODIC) then
+                   if(present(stat)) then
+                      stat = lstat
+                   else
+                      FLAbort("Just remapped from an unperiodic to a periodic continuous field!")
+                   end if
+                else if ((lstat/=0).and. &
                      (lstat/=REMAP_ERR_BUBBLE_LAGRANGE).and. &
                      (lstat/=REMAP_ERR_HIGHER_LOWER_CONTINUOUS)) then
-              if(present(stat)) then
-                stat = lstat
-              else
-                FLAbort("Unknown error when remapping field.")
-              end if
+                   if(present(stat)) then
+                      stat = lstat
+                   else
+                      FLAbort("Unknown error when remapping field.")
+                   end if
+                end if
+                ! we've just allowed remapping from a higher order to a lower order continuous field
+           else if (lprojection == GAUSSIAN_PROJECTION) then
+               call project_field(from_field=vfields(i), to_field=v_model(vfields(i)%dim), X=position,&
+                    state=state, option_path="/io/project/full_projection")
+            else if (lprojection == MASS_LUMPED_PROJECTION) then
+               call project_field(from_field=vfields(i), to_field=v_model(vfields(i)%dim), &
+                    X=position, state=state)
             end if
-            ! we've just allowed remapping from a higher order to a lower order continuous field
           
             do k=1, vfields(i)%dim
               v_field_buffer(:,k)=v_model(vfields(i)%dim)%val(k,:)
@@ -671,33 +700,40 @@ contains
           
           if(tfields(i)%mesh%shape%degree /= 0) then
 
-            call remap_field(from_field=tfields(i), to_field=t_model, stat=lstat)
-            ! if this is being called from something other than the main output routines
-            ! then these tests can be disabled by passing in the optional stat argument
-            ! to vtk_write_fields
-            if(lstat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
-              if(present(stat)) then
-                stat = lstat
-              else
-                FLAbort("Just remapped from a discontinuous to a continuous field!")
-              end if
-            else if(lstat==REMAP_ERR_UNPERIODIC_PERIODIC) then
-              if(present(stat)) then
-                stat = lstat
-              else
-                FLAbort("Just remapped from an unperiodic to a periodic continuous field!")
-              end if
-            else if ((lstat/=0).and. &
-                     (lstat/=REMAP_ERR_BUBBLE_LAGRANGE).and. &
-                     (lstat/=REMAP_ERR_HIGHER_LOWER_CONTINUOUS)) then
-              if(present(stat)) then
-                stat = lstat
-              else
-                FLAbort("Unknown error when remapping field.")
-              end if
-            end if
-            ! we've just allowed remapping from a higher order to a lower order continuous field
-            
+            if (lprojection == DGIFY) then
+               call remap_field(from_field=tfields(i), to_field=t_model, stat=lstat)
+               ! if this is being called from something other than the main output routines
+               ! then these tests can be disabled by passing in the optional stat argument
+               ! to vtk_write_fields
+               if(lstat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
+                  if(present(stat)) then
+                     stat = lstat
+                  else
+                     FLAbort("Just remapped from a discontinuous to a continuous field!")
+                  end if
+               else if(lstat==REMAP_ERR_UNPERIODIC_PERIODIC) then
+                  if(present(stat)) then
+                     stat = lstat
+                  else
+                     FLAbort("Just remapped from an unperiodic to a periodic continuous field!")
+                  end if
+               else if ((lstat/=0).and. &
+                    (lstat/=REMAP_ERR_BUBBLE_LAGRANGE).and. &
+                    (lstat/=REMAP_ERR_HIGHER_LOWER_CONTINUOUS)) then
+                  if(present(stat)) then
+                     stat = lstat
+                  else
+                     FLAbort("Unknown error when remapping field.")
+                  end if
+               end if
+               ! we've just allowed remapping from a higher order to a lower order continuous field
+            else if (lprojection == GAUSSIAN_PROJECTION) then
+               call project_field(from_field=tfields(i), to_field=t_model, X=position,&
+                    state=state, option_path="/io/project/full_projection")
+            else if (lprojection == MASS_LUMPED_PROJECTION) then
+               call project_field(from_field=tfields(i), to_field=t_model, &
+                    X=position, state=state)
+            end if          
             allocate(tensor_values(node_count(t_model), 3, 3))
             tensor_values=0.0
             do j=1,dim

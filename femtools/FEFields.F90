@@ -3,18 +3,23 @@ module fefields
   !!< Module containing general tools for discretising Finite Element problems.
 
   use fldebug
+  use global_parameters, only: FIELD_NAME_LEN
   use data_structures
   use element_numbering
   use elements, only: element_type
   use parallel_tools
   use sparse_tools
   use transform_elements, only: transform_to_physical, element_volume
-  use fetools, only: shape_shape, shape_rhs, shape_vector_rhs
+  use fetools, only: shape_shape, shape_rhs, shape_vector_rhs, shape_tensor_rhs
   use fields
   use state_module
   use field_options, only: get_coordinate_field
   use halos
   use sparse_matrices_fields
+  use sparsity_patterns
+  use sparsity_patterns_meshes
+  use eventcounter 
+  use solvers, only: petsc_solve
   implicit none
 
   interface add_source_to_rhs
@@ -22,14 +27,22 @@ module fefields
   end interface add_source_to_rhs
 
   interface project_field
-     module procedure project_scalar_field, project_vector_field
+     module procedure project_scalar_field, project_vector_field, project_tensor_field
   end interface
+
+ interface get_lumped_mass
+    module procedure get_lumped_mass_single_state, get_lumped_mass_multiple_states
+  end interface get_lumped_mass
+  
+  interface get_mass_matrix
+    module procedure get_mass_matrix_single_state, get_mass_matrix_multiple_states
+  end interface get_mass_matrix
   
   private
   public :: compute_lumped_mass, compute_mass, compute_projection_matrix, add_source_to_rhs, &
             compute_lumped_mass_on_submesh, compute_cv_mass, project_field
-  public :: create_subdomain_mesh
-
+  public :: create_subdomain_mesh, get_lumped_mass, get_mass_matrix
+       
 contains
   
   subroutine compute_cv_mass(positions, cv_mass, porosity)
@@ -441,17 +454,24 @@ contains
 
   end function compute_projection_matrix
 
-  subroutine project_scalar_field(from_field, to_field, X)
+  subroutine project_scalar_field(from_field, to_field, X, option_path, state)
     !!< Project from_field onto to_field. If to_field is discontinuous then
     !!< this will be calculated using the full mass matrix locally.
-    !!< Otherwise, the mass will be lumped.
+    !!< Otherwise, the mass will be lumped, unless an option path for a
+    !!< solver node is provided, in which case a linear solve occurs
+
     type(scalar_field), intent(in) :: from_field
     type(scalar_field), intent(inout) :: to_field    
     type(vector_field), intent(in) :: X
+    character(len=*), optional :: option_path
+    type(state_type), optional, intent(inout) :: state
 
     type(scalar_field) ::  masslump
+    type(scalar_field), pointer  ::  pmass
     integer :: ele
+    type(csr_sparsity) :: sparsity
     type(csr_matrix)   :: P
+    type(csr_matrix), pointer :: mass
     type(mesh_type)    :: dg_mesh, cg_mesh
 
 
@@ -472,26 +492,62 @@ contains
           ! DG to CG case
         
           cg_mesh=to_field%mesh
-
-          call allocate(masslump, cg_mesh, "LumpedMass")
-      
-          call compute_lumped_mass(X, masslump)
-          ! Invert lumped mass.
-          masslump%val=1./masslump%val
-
           dg_mesh=from_field%mesh
-      
-          P=compute_projection_matrix(cg_mesh, dg_mesh , X)
-      
-          call zero(to_field) 
-          ! Perform projection.
-          call mult(to_field, P, from_field)
-          ! Apply inverted lumped mass to projected quantity.
-          call scale(to_field, masslump)
-
-          call deallocate(masslump)
-          call deallocate(P)
           
+          P=compute_projection_matrix(cg_mesh, dg_mesh , X)
+
+          if (present(option_path)) then
+             !! do a full Galerkin projection
+
+             call zero(to_field)
+             if (present(state)) then
+                mass => get_mass_matrix_single_state(state,cg_mesh)
+             else
+                allocate(mass)
+                sparsity = make_sparsity(cg_mesh, cg_mesh, "MassSparsity")
+                call allocate(mass, sparsity, name="MassMatrix")
+             
+                call compute_mass(X, to_field%mesh, mass) 
+             end if
+             
+             ! Perform projection.
+             call mult(to_field, P, from_field)
+
+             call petsc_solve(to_field, mass, to_field, option_path=option_path)
+
+             if (.not. present(state)) then
+                call deallocate(mass)
+                deallocate(mass)
+                call deallocate(sparsity)
+             end if
+             
+          else
+
+             !! use lumped mass
+
+             call allocate(masslump, cg_mesh, "LumpedMass")
+
+             if (present(state)) then
+                pmass=>get_lumped_mass_single_state(state, cg_mesh)
+                call invert(pmass, masslump)
+             else
+                call compute_lumped_mass(X, masslump)
+             ! Invert lumped mass.
+                masslump%val=1./masslump%val
+             end if
+      
+             call zero(to_field) 
+             ! Perform projection.
+             call mult(to_field, P, from_field)
+             ! Apply inverted lumped mass to projected quantity.
+             call scale(to_field, masslump)
+             
+             call deallocate(masslump)
+
+          end if
+          
+          call deallocate(P)
+
        end if
 
     end if
@@ -524,17 +580,22 @@ contains
 
   end subroutine project_scalar_field
   
-  subroutine project_vector_field(from_field, to_field, X)
+  subroutine project_vector_field(from_field, to_field, X, option_path, state)
     !!< Project from_field onto to_field. If to_field is discontinuous then
     !!< this will be calculated using the full mass matrix locally.
     !!< Otherwise, the mass will be lumped.
     type(vector_field), intent(in) :: from_field
     type(vector_field), intent(inout) :: to_field    
     type(vector_field), intent(in) :: X
+    character(len=*), optional :: option_path
+    type(state_type), optional, intent(inout) :: state
 
     type(scalar_field) ::  masslump, dg_scalar, cg_scalar
+    type(scalar_field), pointer  ::  pmass
     integer :: ele
+    type(csr_sparsity) :: sparsity
     type(csr_matrix)   :: P
+    type(csr_matrix), pointer :: mass
     type(mesh_type)    :: dg_mesh, cg_mesh
     integer            :: j
 
@@ -556,34 +617,70 @@ contains
           ! CG case
 
           cg_mesh=to_field%mesh
-
-          call allocate(masslump, cg_mesh, "LumpedMass")
-      
-          call compute_lumped_mass(X, masslump)
-          ! Invert lumped mass.
-          masslump%val=1./masslump%val
-
           dg_mesh=from_field%mesh
-      
-          P=compute_projection_matrix(cg_mesh, dg_mesh, X)
-      
-          call zero(to_field) 
-          ! Perform projection.     
-          do j=1,to_field%dim
-              cg_scalar=extract_scalar_field_from_vector_field(to_field, j)
-              dg_scalar=extract_scalar_field_from_vector_field(from_field, j)
-              call mult(cg_scalar, P, dg_scalar)
-              call set(to_field, j, cg_scalar)
-          end do
+          P=compute_projection_matrix(cg_mesh, dg_mesh , X)
 
-          ! Apply inverted lumped mass to projected quantity.
-          call scale(to_field, masslump)
+          if (present(option_path)) then
+             !! do a full Galerkin projection
+             
+             call zero(to_field)
+             if (present(state)) then
+                mass => get_mass_matrix_single_state(state,cg_mesh)
+             else
+                allocate(mass)
+                sparsity = make_sparsity(cg_mesh, cg_mesh, "MassSparsity")
+                call allocate(mass, sparsity, name="MassMatrix")
+                
+                call compute_mass(X, to_field%mesh, mass) 
+             end if
+             
+             ! Perform projection.
+             do j=1,to_field%dim
+                cg_scalar=extract_scalar_field_from_vector_field(to_field, j)
+                dg_scalar=extract_scalar_field_from_vector_field(from_field, j)
+                call mult(cg_scalar, P, dg_scalar)
+                call petsc_solve(cg_scalar, mass, cg_scalar, option_path=option_path)
+                call set(to_field, j, cg_scalar)
+             end do
+             
+             if (.not. present(state)) then
+                call deallocate(mass)
+                deallocate(mass)
+                call deallocate(sparsity)
+             end if
+             
+          else
+             
+             !! use lumped mass
 
-          call deallocate(masslump)
-          call deallocate(P)
+             call allocate(masslump, cg_mesh, "LumpedMass")
+      
+             if (present(state)) then
+                pmass=>get_lumped_mass_single_state(state, cg_mesh)
+                call invert(pmass, masslump)
+             else
+                call compute_lumped_mass(X, masslump)
+                ! Invert lumped mass.
+                masslump%val=1./masslump%val
+             end if
+      
+             call zero(to_field) 
+             ! Perform projection.     
+             do j=1,to_field%dim
+                cg_scalar=extract_scalar_field_from_vector_field(to_field, j)
+                dg_scalar=extract_scalar_field_from_vector_field(from_field, j)
+                call mult(cg_scalar, P, dg_scalar)
+                call set(to_field, j, cg_scalar)
+             end do
+
+             ! Apply inverted lumped mass to projected quantity.
+             call scale(to_field, masslump)
+
+             call deallocate(masslump)
           
+          end if
+          call deallocate(P)
        end if
-
     end if
 
   contains
@@ -639,6 +736,170 @@ contains
     end subroutine cg_projection_ele
 
   end subroutine project_vector_field
+
+  subroutine project_tensor_field(from_field, to_field, X, option_path, state)
+    !!< Project from_field onto to_field. If to_field is discontinuous then
+    !!< this will be calculated using the full mass matrix locally.
+    !!< Otherwise, the mass will be lumped.
+    type(tensor_field), intent(in) :: from_field
+    type(tensor_field), intent(inout) :: to_field    
+    type(vector_field), intent(in) :: X
+    character(len=*), optional :: option_path
+    type(state_type), optional, intent(inout) :: state
+
+    type(scalar_field) ::  masslump, dg_scalar, cg_scalar
+    type(scalar_field), pointer  ::  pmass
+    integer :: ele
+    type(csr_sparsity) :: sparsity
+    type(csr_matrix)   :: P
+    type(csr_matrix), pointer :: mass
+    type(mesh_type)    :: dg_mesh, cg_mesh
+    integer            :: j, k
+
+    
+    if(from_field%mesh==to_field%mesh) then
+       
+       call set(to_field, from_field)
+       
+    else
+
+       if (to_field%mesh%continuity<0) then
+          ! DG case
+
+          do ele=1,element_count(to_field)
+             call dg_projection_ele(ele, from_field, to_field, X)
+          end do
+
+       else
+          ! CG case
+
+          cg_mesh=to_field%mesh
+          dg_mesh=from_field%mesh
+          P=compute_projection_matrix(cg_mesh, dg_mesh , X)
+
+          if (present(option_path)) then
+             !! do a full Galerkin projection
+             
+             call zero(to_field)
+             if (present(state)) then
+                mass => get_mass_matrix_single_state(state,cg_mesh)
+             else
+                allocate(mass)
+                sparsity = make_sparsity(cg_mesh, cg_mesh, "MassSparsity")
+                call allocate(mass, sparsity, name="MassMatrix")
+                
+                call compute_mass(X, to_field%mesh, mass) 
+             end if
+             
+             ! Perform projection.
+             do k=1,to_field%dim(2)
+                do j=1,to_field%dim(1)
+                   cg_scalar=extract_scalar_field_from_tensor_field(to_field, j, k)
+                   dg_scalar=extract_scalar_field_from_tensor_field(from_field, j, k)
+                   call mult(cg_scalar, P, dg_scalar)
+                   call petsc_solve(cg_scalar, mass, cg_scalar, option_path=option_path)
+                   call set(to_field, j, k, cg_scalar)
+                end do
+             end do
+             
+             if (.not. present(state)) then
+                call deallocate(mass)
+                deallocate(mass)
+                call deallocate(sparsity)
+             end if
+             
+          else
+             
+             !! use lumped mass
+             call allocate(masslump, cg_mesh, "LumpedMass")
+             
+             if (present(state)) then
+                pmass=>get_lumped_mass_single_state(state, cg_mesh)
+                call invert(pmass, masslump)
+             else
+                call compute_lumped_mass(X, masslump)
+                ! Invert lumped mass.
+                masslump%val=1./masslump%val
+             end if
+             
+             call zero(to_field) 
+             ! Perform projection.     
+             do k=1,to_field%dim(2)
+                do j=1,to_field%dim(1)
+                   cg_scalar=extract_scalar_field_from_tensor_field(to_field, j, k)
+                   dg_scalar=extract_scalar_field_from_tensor_field(from_field, j, k)
+                   call mult(cg_scalar, P, dg_scalar)
+                   call set(to_field, j, k, cg_scalar)
+                end do
+             end do
+             
+             ! Apply inverted lumped mass to projected quantity.
+             call scale(to_field, masslump)
+             
+             call deallocate(masslump)
+             
+          end if
+          
+          call deallocate(P)
+          
+       end if
+
+    end if
+
+  contains
+
+    subroutine dg_projection_ele(ele, from_field, to_field, X)
+      integer :: ele
+      type(tensor_field), intent(in) :: from_field
+      type(tensor_field), intent(inout) :: to_field    
+      type(vector_field), intent(in) :: X
+      
+      real, dimension(ele_loc(to_field,ele), ele_loc(to_field,ele)) :: mass
+      real, dimension(ele_ngi(to_field,ele)) :: detwei
+      type(element_type), pointer :: to_shape
+      integer :: dim1, dim2
+
+      call transform_to_physical(X, ele, detwei)
+
+      to_shape=>ele_shape(to_field, ele)
+
+      mass=shape_shape(to_shape, to_shape, detwei) 
+      
+      call invert(mass)
+
+      do dim2 = 1, to_field%dim(2)
+         do dim1 = 1, to_field%dim(1)
+            call set(to_field, dim1, dim2, ele_nodes(to_field, ele), &
+                 matmul(mass, shape_rhs(to_shape, &
+                 ele_val_at_quad(from_field, dim1, dim2, ele)* detwei)))
+         end do
+      end do
+
+    end subroutine dg_projection_ele
+
+    subroutine cg_projection_ele(ele, from_field, to_field, masslump, X)
+      integer :: ele
+      type(tensor_field), intent(in) :: from_field
+      type(tensor_field), intent(inout) :: to_field
+      type(scalar_field), intent(inout) :: masslump
+      type(vector_field), intent(in) :: X
+      
+      real, dimension(ele_ngi(to_field,ele)) :: detwei
+      type(element_type), pointer :: to_shape
+
+      to_shape=>ele_shape(to_field, ele)
+
+      call transform_to_physical(X, ele, detwei)
+
+      call addto(masslump, ele_nodes(to_field, ele), &
+           shape_rhs(to_shape, detwei))
+
+      call addto(to_field, ele_nodes(to_field, ele), &
+           shape_tensor_rhs(to_shape, ele_val_at_quad(from_field, ele), detwei))
+
+    end subroutine cg_projection_ele
+
+  end subroutine project_tensor_field
   
   subroutine add_source_to_rhs_scalar(rhs, source, positions)
     !!< Add in a source field to the rhs of a FE equation, 
@@ -892,5 +1153,96 @@ contains
     end if
 
   end subroutine generate_subdomain_halos
+
+    function get_lumped_mass_single_state(state, mesh) result(lumped_mass)
+    !!< extracts the lumped mass from states or creates it if it doesn't find it
+    type(scalar_field), pointer :: lumped_mass
+    type(state_type), intent(inout) :: state
+    type(mesh_type), intent(inout) :: mesh
+    
+    type(state_type), dimension(1) :: states
+    
+    states = (/state/)
+    lumped_mass => get_lumped_mass(states, mesh)
+    state = states(1)
+  
+  end function get_lumped_mass_single_state
+
+  function get_lumped_mass_multiple_states(states, mesh) result(lumped_mass)
+    !!< extracts the lumped mass from states or creates it if it doesn't find it
+    type(scalar_field), pointer :: lumped_mass
+    type(state_type), dimension(:), intent(inout) :: states
+    type(mesh_type), intent(inout) :: mesh
+    
+    integer :: stat
+    character(len=FIELD_NAME_LEN) :: name
+    type(scalar_field) :: temp_lumped_mass
+    type(vector_field), pointer :: positions
+    integer, save :: last_mesh_movement = -1
+    
+    name = trim(mesh%name)//"LumpedMass"
+    
+    lumped_mass => extract_scalar_field(states, trim(name), stat)
+    
+    if((stat/=0).or.(eventcount(EVENT_MESH_MOVEMENT)/=last_mesh_movement)) then
+    
+      positions => extract_vector_field(states(1), "Coordinate")
+      call allocate(temp_lumped_mass, mesh, name=trim(name))
+      call compute_lumped_mass(positions, temp_lumped_mass)
+      call insert(states, temp_lumped_mass, trim(name))
+      call deallocate(temp_lumped_mass)
+      
+      lumped_mass => extract_scalar_field(states, trim(name))
+      last_mesh_movement = eventcount(EVENT_MESH_MOVEMENT)
+    end if
+  
+  end function get_lumped_mass_multiple_states
+
+  function get_mass_matrix_single_state(state, mesh) result(mass)
+    !!< extracts the mass from states or creates it if it doesn't find it
+    type(csr_matrix), pointer :: mass
+    type(state_type), intent(inout) :: state
+    type(mesh_type), intent(inout) :: mesh
+    
+    type(state_type), dimension(1) :: states
+    
+    states = (/state/)
+    mass => get_mass_matrix(states, mesh)
+    state = states(1)
+  
+  end function get_mass_matrix_single_state
+
+  function get_mass_matrix_multiple_states(states, mesh) result(mass)
+    !!< extracts the mass from states or creates it if it doesn't find it
+    type(csr_matrix), pointer :: mass
+    type(state_type), dimension(:), intent(inout) :: states
+    type(mesh_type), intent(inout) :: mesh
+    
+    integer :: stat
+    character(len=FIELD_NAME_LEN) :: name
+    type(csr_matrix) :: temp_mass
+    type(csr_sparsity), pointer :: temp_mass_sparsity
+    type(vector_field), pointer :: positions
+    
+    integer, save :: last_mesh_movement = -1
+    
+    name = trim(mesh%name)//"MassMatrix"
+    
+    mass => extract_csr_matrix(states, trim(name), stat)
+    
+    if((stat/=0).or.(eventcount(EVENT_MESH_MOVEMENT)/=last_mesh_movement)) then
+      positions => extract_vector_field(states(1), "Coordinate")
+      
+      temp_mass_sparsity => get_csr_sparsity_firstorder(states, mesh, mesh)
+      call allocate(temp_mass, temp_mass_sparsity, name=trim(name))
+      call compute_mass(positions, mesh, temp_mass)
+      call insert(states, temp_mass, trim(name))
+      call deallocate(temp_mass)
+      
+      mass => extract_csr_matrix(states, trim(name))
+      last_mesh_movement = eventcount(EVENT_MESH_MOVEMENT)
+    end if
+  
+  end function get_mass_matrix_multiple_states
 
 end module fefields

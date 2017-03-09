@@ -609,11 +609,10 @@ Halos_Derivation.o ../include/halos_derivation.mod: Halos_Derivation.F90 \
 	@true
 
 Halos_Diagnostics.o ../include/halos_diagnostics.mod: Halos_Diagnostics.F90 \
-   ../include/fdebug.h ../include/fields_allocates.mod \
+   ../include/fdebug.h ../include/fields.mod ../include/fields_allocates.mod \
    ../include/fields_base.mod ../include/fields_data_types.mod \
    ../include/fields_manipulation.mod ../include/halo_data_types.mod \
-   ../include/halos_numbering.mod ../include/shape_functions.mod \
-   ../include/vtk_interfaces.mod
+   ../include/halos_numbering.mod ../include/shape_functions.mod
 
 ../include/halos_numbering.mod: Halos_Numbering.o
 	@true
@@ -1260,12 +1259,13 @@ Unittest_tools.o ../include/unittest_tools.mod: Unittest_tools.F90 \
 
 VTK_interfaces.o ../include/vtk_interfaces.mod: VTK_interfaces.F90 \
    ../include/data_structures.mod ../include/elements.mod ../include/fdebug.h \
-   ../include/fetools.mod ../include/fields.mod ../include/fldebug.mod \
-   ../include/futils.mod ../include/global_numbering.mod \
-   ../include/global_parameters.mod ../include/mpi_interfaces.mod \
-   ../include/parallel_fields.mod ../include/parallel_tools.mod \
-   ../include/quadrature.mod ../include/sparse_tools.mod \
-   ../include/state_module.mod ../include/vtkfortran.mod
+   ../include/fefields.mod ../include/fetools.mod ../include/fields.mod \
+   ../include/fldebug.mod ../include/futils.mod \
+   ../include/global_numbering.mod ../include/global_parameters.mod \
+   ../include/mpi_interfaces.mod ../include/parallel_fields.mod \
+   ../include/parallel_tools.mod ../include/quadrature.mod \
+   ../include/sparse_tools.mod ../include/state_module.mod \
+   ../include/vtkfortran.mod
 
 ../include/vector_tools.mod: Vector_Tools.o
 	@true
