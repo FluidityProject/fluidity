@@ -1955,6 +1955,8 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
         call PCGAMGSetThreshold(pc, 0.01, ierr)
         ! this was the old default:
         call PCGAMGSetCoarseEqLim(pc, 800, ierr)
+        ! PC setup seems to be required so that the Coarse Eq Lim option is used.
+        call PCSetup(pc,ierr)
       end if
       
     end if
