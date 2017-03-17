@@ -1014,14 +1014,15 @@ Mat, intent(in), optional:: rotation_matrix
     parallel= .false.
   end if
 
+  ewrite(2, *) 'Using solver options defined at: ', trim(solver_option_path)
   if (matrix%ksp==PETSC_NULL_OBJECT) then
   
-    ewrite(2, *) 'Using solver options defined at: ', trim(solver_option_path)
     call create_ksp_from_options(matrix%ksp, matrix%M, matrix%M, solver_option_path, parallel, &
         matrix%column_numbering, &
         startfromzero_in=startfromzero_in, &
        prolongators=prolongators, surface_node_list=surface_node_list)
   else
+    ewrite(2, *) "Reusing ksp from a previous solve"
     call setup_ksp_from_options(matrix%ksp, matrix%M, matrix%M, solver_option_path, &
         matrix%column_numbering, &
         startfromzero_in=startfromzero_in, &
@@ -1652,6 +1653,9 @@ subroutine create_ksp_from_options(ksp, mat, pmat, solver_option_path, parallel,
       max_its, atol, rtol, dtol
     ewrite(2, *) 'startfromzero:', startfromzero
     
+    ! cancel all existing monitors (if reusing the same ksp)
+    call KSPMonitorCancel(ksp, ierr)
+
     ! Set up the monitors:
     if (have_option(trim(solver_option_path)// &
        '/diagnostics/monitors/preconditioned_residual')) then
