@@ -102,7 +102,7 @@ module boundary_conditions
   end interface
 
   interface set_reference_node
-     module procedure set_reference_node_scalar, set_reference_node_vector_petsc
+     module procedure set_reference_node_scalar, set_reference_node_scalar_inactive_mask, set_reference_node_vector_petsc
   end interface set_reference_node
 
   interface has_boundary_condition
@@ -122,6 +122,7 @@ module boundary_conditions
 
   interface apply_dirichlet_conditions
      module procedure apply_dirichlet_conditions_scalar, &
+                      apply_dirichlet_conditions_scalar_inactive_mask, &
                       apply_dirichlet_conditions_scalar_lumped, &
                       apply_dirichlet_conditions_vector, &
                       apply_dirichlet_conditions_vector_petsc_csr, &
@@ -1567,6 +1568,50 @@ contains
     
   end subroutine set_reference_node_scalar
 
+  subroutine set_reference_node_scalar_inactive_mask(inactive_mask, node, rhs, reference_value, reference_node_owned)
+    !!< Sets a reference node for which the value is fixed in the equation
+    !!< This is typically done for a Poisson equation with all Neumann
+    !!< bcs to eliminate the spurious freedom of adding a constant value
+    !!< to the solution.
+    !!< This version of this routine returns the reference node location through
+    !!< an inactive mask array (inactive_mask), that is true in the location of
+    !!< the reference node.
+    logical, dimension(:), intent(inout) :: inactive_mask
+    integer, intent(in):: node
+    !! if rhs is not provided, you have to make sure the rhs at 
+    !! the reference node has the right value, usually 0, yourself:
+    type(scalar_field), optional, intent(inout) :: rhs
+    !! by default the field gets set to 0 at the reference node
+    real, optional, intent(in) :: reference_value
+    !! in parallel all processes need to call this routine, only one
+    !! of them actually sets the reference node - this processor should
+    !! call with reference_node_owned=.true., other processes with reference_node_owned=.false.
+    !! if reference_node_owned is not present, we will assume that only process with rank 0
+    !! owns and thus sets the reference node
+    logical, optional, intent(in) :: reference_node_owned
+    
+    logical:: lnode_owned
+
+    if (present(reference_node_owned)) then
+       lnode_owned = reference_node_owned
+    else
+       lnode_owned = GetProcNo()==1
+    end if
+       
+    if (.not. lnode_owned) return
+    
+    inactive_mask(node) = .true.
+    
+    if (present(rhs)) then
+       if (present(reference_value)) then
+          call set(rhs, node, reference_value)
+       else
+          call set(rhs, node, 0.0)
+       end if
+    end if
+    
+  end subroutine set_reference_node_scalar_inactive_mask
+
   subroutine set_reference_node_vector_petsc(matrix, node, rhs, mask, reference_value, reference_node_owned)
     !!< Sets a reference node for which the value is fixed in the equation
     !!< This is typically done for a Poisson equation with all Neumann
@@ -1947,6 +1992,53 @@ contains
     end do bcloop
     
   end subroutine apply_dirichlet_conditions_scalar
+
+  subroutine apply_dirichlet_conditions_scalar_inactive_mask(inactive_mask, rhs, field, dt)
+    !!< Apply dirichlet boundary conditions from field to the problem
+    !!<
+    !!< If dt is supplied, this assumes that boundary 
+    !!< conditions are applied in rate of change form.
+    !!<
+    !!< This version of this routine returns the boundary condition location(s) through
+    !!< an inactive mask array (inactive_mask), that is true in the location of the
+    !!< dofs where the boundary condition is being applied.
+    logical, dimension(:):: inactive_mask
+    type(scalar_field), intent(inout) :: rhs
+    type(scalar_field), intent(in) :: field
+    real, optional, intent(in) :: dt
+    
+    type(scalar_field), pointer:: surface_field
+    integer, dimension(:), pointer:: surface_node_list
+    character(len=FIELD_NAME_LEN):: bctype
+    integer :: i,j
+
+    bcloop: do i=1, get_boundary_condition_count(field)
+       call get_boundary_condition(field, i, type=bctype, &
+          surface_node_list=surface_node_list)
+
+       if (bctype/="dirichlet") cycle bcloop
+       
+       inactive_mask(surface_node_list)=.true.
+       
+       surface_field => extract_surface_field(field, i, "value")
+       
+       if (present(dt)) then
+          do j=1, size(surface_node_list)
+            call set(rhs, surface_node_list(j), &
+                 (node_val(surface_field, j)- &
+                  node_val(field, surface_node_list(j)) &
+                 )/dt)
+          end do
+       else
+          do j=1, size(surface_node_list)
+            call set(rhs, surface_node_list(j), &
+                 node_val(surface_field, j))
+          end do
+       end if
+       
+    end do bcloop
+    
+  end subroutine apply_dirichlet_conditions_scalar_inactive_mask
 
   subroutine apply_dirichlet_conditions_scalar_lumped(lhs, rhs, field, dt)
     !!< Apply dirichlet boundary conditions from field to the problem
