@@ -1840,6 +1840,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     
     KSP:: subksp
     PC:: subpc
+    MatNullSpace:: nullsp
     PCType:: pctype, hypretype
     MatSolverPackage:: matsolverpackage
     PetscErrorCode:: ierr
@@ -1966,6 +1967,20 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
         call PCGAMGSetCoarseEqLim(pc, 800, ierr)
         ! PC setup seems to be required so that the Coarse Eq Lim option is used.
         call PCSetup(pc,ierr)
+
+        call MatGetNullSpace(pmat, nullsp, ierr)
+        if (ierr==0  .and. nullsp/=PETSC_NULL_OBJECT) then
+          ! if the preconditioner matrix has a nullspace, this may still be present
+          ! at the coarsest level (the constant null vector always will be, the rotational
+          ! are as well if a near-null-space is provided). In this case the default of 
+          ! using a direct solver at the coarsest level causes issues. Instead we use
+          ! a fixed number of SOR iterations
+          call PCMGGETCoarseSolve(pc, subksp, ierr)
+          call KSPSetType(subksp, KSPPREONLY, ierr)
+          call KSPGetPC(subksp, subpc, ierr)
+          call PCSetType(subpc, PCSOR, ierr)
+          call KSPSetTolerances(subksp, 1e-50, 1e-50, 1e50, 10, ierr)
+        end if
       end if
       
     end if
