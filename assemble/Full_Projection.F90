@@ -457,7 +457,7 @@
       parallel=IsParallel()
 
       call attach_null_space_from_options(A, solver_option_path, pmat=pmat, petsc_numbering=petsc_numbering_p)
-      call SetupKSP(ksp,A,pmat,solver_option_path,parallel,petsc_numbering_p, lstartfromzero)
+      call create_ksp_from_options(ksp,A,pmat,solver_option_path,parallel,petsc_numbering_p, lstartfromzero)
       
       ! Destroy the matrices setup for the schur complement computation. While
       ! these matrices are destroyed here, they are still required for the inner solve,

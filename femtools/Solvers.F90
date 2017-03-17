@@ -84,7 +84,7 @@ public petsc_solve, set_solver_options, &
 ! meant for unit-testing solver code only:
 public petsc_solve_setup, petsc_solve_core, petsc_solve_destroy, &
   petsc_solve_copy_vectors_from_scalar_fields, &
-  setup_ksp_from_options, SetupKSP, petsc_solve_monitor_exact, &
+  setup_ksp_from_options, create_ksp_from_options, petsc_solve_monitor_exact, &
   petsc_solve_monitor_iteration_vtus, attach_null_space_from_options
 
 interface petsc_solve
@@ -864,7 +864,7 @@ type(vector_field), intent(in), optional :: positions
     call attach_null_space_from_options(A, solver_option_path, pmat=pmat, &
       positions=positions, petsc_numbering=petsc_numbering)
 
-    call SetupKSP(ksp, A, pmat, solver_option_path, parallel, &
+    call create_ksp_from_options(ksp, A, pmat, solver_option_path, parallel, &
       petsc_numbering, &
       startfromzero_in=startfromzero_in, &
       prolongators=prolongators, surface_node_list=surface_node_list, &
@@ -1017,11 +1017,15 @@ Mat, intent(in), optional:: rotation_matrix
   if (matrix%ksp==PETSC_NULL_OBJECT) then
   
     ewrite(2, *) 'Using solver options defined at: ', trim(solver_option_path)
-    call SetupKSP(matrix%ksp, matrix%M, matrix%M, solver_option_path, parallel, &
+    call create_ksp_from_options(matrix%ksp, matrix%M, matrix%M, solver_option_path, parallel, &
         matrix%column_numbering, &
         startfromzero_in=startfromzero_in, &
-        prolongators=prolongators, surface_node_list=surface_node_list)
-
+       prolongators=prolongators, surface_node_list=surface_node_list)
+  else
+    call setup_ksp_from_options(matrix%ksp, matrix%M, matrix%M, solver_option_path, &
+        matrix%column_numbering, &
+        startfromzero_in=startfromzero_in, &
+       prolongators=prolongators, surface_node_list=surface_node_list)
   end if
   
   b=PetscNumberingCreateVec(matrix%column_numbering)
@@ -1503,7 +1507,7 @@ subroutine dump_matrix_option(solver_option_path, startfromzero, A, b, &
  
 end subroutine dump_matrix_option
 
-subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
+subroutine create_ksp_from_options(ksp, mat, pmat, solver_option_path, parallel, &
        petsc_numbering, &
        startfromzero_in, &
        prolongators, surface_node_list, matrix_csr, &
@@ -1544,7 +1548,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
       matrix_csr=matrix_csr, &
       internal_smoothing_option=internal_smoothing_option)
       
-  end subroutine SetupKSP
+  end subroutine create_ksp_from_options
     
   recursive subroutine setup_ksp_from_options(ksp, mat, pmat, solver_option_path, &
       petsc_numbering, startfromzero_in, prolongators, surface_node_list, matrix_csr, &
