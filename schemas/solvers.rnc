@@ -536,6 +536,11 @@ null_space_options =
       ## test you need to run fluidity with a verbosity level of at least -v1.
       element test_null_space {
          empty
+      }?,
+      ## For debugging purposes: write a vtu file containing the null space vector fields
+      ## for each solve.
+      element write_null_space {
+         empty
       }?
    )
 

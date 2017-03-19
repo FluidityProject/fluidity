@@ -44,7 +44,7 @@ assert(solvers_converged)
 </test>
 
 <test name="GAMG solver behaving as expected" language="python">
-assert(DeltaU_iterations_GAMG &lt; 40)
+assert(DeltaU_iterations_GAMG &lt; 17)
 </test>
 
 <test name="Fieldsplit solver behaving as expected" language="python">
@@ -52,11 +52,11 @@ assert(abs(DeltaU_iterations_FS - 8) &lt; 2)
 </test>
 
 <test name="MG solver behaving as expected" language="python">
-assert(abs(DeltaU_iterations_MG - 120) &lt; 2)
+assert(abs(DeltaU_iterations_MG - 118) &lt; 5)
 </test>
 
 <test name="SOR solver behaving as expected" language="python">
-assert(abs(DeltaU_iterations_SOR - 151) &lt; 2)
+assert(abs(DeltaU_iterations_SOR - 170) &lt; 5)
 </test>
 
 </pass_tests>

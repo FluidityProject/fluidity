@@ -49,8 +49,8 @@ module geostrophic_pressure
   use sparse_matrices_fields
   use vtk_interfaces
   use fefields
-  use assemble_cmc
   use boundary_conditions
+  use assemble_cmc
   use sparsity_patterns
   use dgtools
   use solvers

@@ -1840,6 +1840,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     
     KSP:: subksp
     PC:: subpc
+    MatNullSpace:: nullsp
     PCType:: pctype, hypretype
     MatSolverPackage:: matsolverpackage
     PetscErrorCode:: ierr
@@ -1962,6 +1963,24 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
         ! we think this is a more useful default - the default value of 0.0
         ! causes spurious "unsymmetric" failures as well
         call PCGAMGSetThreshold(pc, 0.01, ierr)
+        ! this was the old default:
+        call PCGAMGSetCoarseEqLim(pc, 800, ierr)
+        ! PC setup seems to be required so that the Coarse Eq Lim option is used.
+        call PCSetup(pc,ierr)
+
+        call MatGetNullSpace(pmat, nullsp, ierr)
+        if (ierr==0  .and. nullsp/=PETSC_NULL_OBJECT) then
+          ! if the preconditioner matrix has a nullspace, this may still be present
+          ! at the coarsest level (the constant null vector always will be, the rotational
+          ! are as well if a near-null-space is provided). In this case the default of 
+          ! using a direct solver at the coarsest level causes issues. Instead we use
+          ! a fixed number of SOR iterations
+          call PCMGGETCoarseSolve(pc, subksp, ierr)
+          call KSPSetType(subksp, KSPPREONLY, ierr)
+          call KSPGetPC(subksp, subpc, ierr)
+          call PCSetType(subpc, PCSOR, ierr)
+          call KSPSetTolerances(subksp, 1e-50, 1e-50, 1e50, 10, ierr)
+        end if
       end if
       
     end if
@@ -2342,6 +2361,7 @@ subroutine MyKSPMonitor(ksp,n,rnorm,dummy,ierr)
   PetscErrorCode, intent(out) :: ierr
   
   PetscScalar :: rnorm
+  MatNullSpace :: nullsp
   PetscLogDouble :: flops
   Mat:: Amat, Pmat
   PC:: pc
@@ -2365,11 +2385,14 @@ subroutine MyKSPMonitor(ksp,n,rnorm,dummy,ierr)
   end if
   
   if (petsc_monitor_iteration_vtus) then
+    ! store the solution
     if (size(petsc_monitor_numbering%gnn2unn,2)==1) then
       call petsc2field(petsc_monitor_x, petsc_monitor_numbering, petsc_monitor_sfields(1))
     else
       call petsc2field(petsc_monitor_x, petsc_monitor_numbering, petsc_monitor_vfields(1))
     end if
+
+    ! then (re)compute the (true) residual
     call KSPGetRhs(ksp, rhs, ierr)
     call KSPGetOperators(ksp, Amat, Pmat, ierr)
     call VecDuplicate(petsc_monitor_x, r, ierr)
@@ -2380,14 +2403,22 @@ subroutine MyKSPMonitor(ksp,n,rnorm,dummy,ierr)
     else
       call petsc2field(r, petsc_monitor_numbering, petsc_monitor_vfields(2))
     end if
+
+    ! now (re)compute the preconditioned residual - which is what we usually look at for convergence
     call VecCopy(r, petsc_monitor_x, ierr)
     call KSPGetPC(ksp, pc, ierr)
     call PCApply(pc, petsc_monitor_x, r, ierr)
+    ! within petsc the nullspace is removed directly after pcapply (see KSP_PCApply)
+    call MatGetNullSpace(Pmat, nullsp, ierr)
+    if (ierr==0  .and. nullsp/=PETSC_NULL_OBJECT) then
+      call MatNullSpaceRemove(nullsp, r, PETSC_NULL_OBJECT, ierr)
+    end if
     if (size(petsc_monitor_numbering%gnn2unn,2)==1) then
       call petsc2field(r, petsc_monitor_numbering, petsc_monitor_sfields(3))
     else
       call petsc2field(r, petsc_monitor_numbering, petsc_monitor_vfields(3))
     end if
+
     if (size(petsc_monitor_numbering%gnn2unn,2)==1) then
       call vtk_write_fields(petsc_monitor_vtu_name, index=n, &
         model=petsc_monitor_positions%mesh, position=petsc_monitor_positions, &
@@ -2444,7 +2475,9 @@ function create_null_space_from_options_vector(mat, null_space_option_path, &
    Mat, intent(in), optional:: rotation_matrix
    MatNullSpace :: null_space
 
-   Vec, allocatable, dimension(:) :: null_space_array, rot_null_space_array
+   Vec, allocatable, dimension(:) :: null_space_array
+   Vec :: aux_vec, swap
+   PetscReal, dimension(:), allocatable :: dots
    PetscReal :: norm
    PetscErrorCode :: ierr
    PetscBool :: isnull
@@ -2454,6 +2487,8 @@ function create_null_space_from_options_vector(mat, null_space_option_path, &
    logical, dimension(size(petsc_numbering%gnn2unn,2)) :: mask
    real, dimension(:,:), allocatable :: null_vector
    type(vector_field) :: null_vector_field
+   type(vector_field), allocatable, dimension(:) :: vtk_vector_fields(:)
+   integer, save :: vtk_index = 0
 
    integer, dimension(5), parameter:: permutations=(/ 1,2,3,1,2 /)
 
@@ -2544,6 +2579,7 @@ function create_null_space_from_options_vector(mat, null_space_option_path, &
      if (mask(comp)) then
        i = i + 1
        null_vector = 0.0
+       ! ensure the translations are orthonormal:
        null_vector(:,comp)=1.0/sqrt(real(universal_nodes))
        null_space_array(i)=PetscNumberingCreateVec(petsc_numbering)
        call array2petsc(reshape(null_vector,(/nnodes*dim/)), petsc_numbering, null_space_array(i))
@@ -2575,7 +2611,6 @@ function create_null_space_from_options_vector(mat, null_space_option_path, &
            extract_scalar_field(positions, permutations(comp+1)))
          null_space_array(i)=PetscNumberingCreateVec(petsc_numbering)
          call field2petsc(null_vector_field, petsc_numbering, null_space_array(i))
-         call VecNormalize(null_space_array(i), norm, ierr)
        end if
      end do
      call deallocate(null_vector_field)
@@ -2584,18 +2619,38 @@ function create_null_space_from_options_vector(mat, null_space_option_path, &
 
    assert(i==nnulls)
 
-   if (present(rotation_matrix)) then
-     allocate(rot_null_space_array(1:nnulls))
+   if (present(rotation_matrix) .and. nnulls>0) then
+     call VecDuplicate(null_space_array(1), aux_vec, ierr)
      do i=1, nnulls
-       call VecDuplicate(null_space_array(i), rot_null_space_array(i), ierr)
-       call MatMultTranspose(rotation_matrix, null_space_array(i), rot_null_space_array(i), ierr)
+       ! rotate the null vector and store it in aux_vec
+       call MatMultTranspose(rotation_matrix, null_space_array(i), aux_vec, ierr)
+       ! swap the unrotated null_space_array(i) with aux_vec
+       ! so that we store the rotated one in null_space_array(i) 
+       ! and can use the unrotated as aux_vec in the next iteration
+       swap = null_space_array(i)
+       null_space_array(i) = aux_vec
+       aux_vec = swap
      end do
-     call MatNullSpaceCreate(MPI_COMM_FEMTOOLS, PETSC_FALSE, nnulls, &
-       rot_null_space_array, null_space, ierr)
-   else
-     call MatNullSpaceCreate(MPI_COMM_FEMTOOLS, PETSC_FALSE, nnulls, &
-       null_space_array, null_space, ierr)
+     call VecDestroy(aux_vec, ierr)
    end if
+
+   ! finally we need to ensure that the nullspace vectors are orthonormal
+   if (any(rot_mask)) then
+     ! but only the rotational ones, as the translations are orthonormal already
+     allocate(dots(1:nnulls))
+     do i=count(mask)+1, nnulls
+       ! take the dot product with all previous vectors:
+       call VecMDot(null_space_array(i), i-1, null_space_array(1:i-1), dots(1:i-1), ierr)
+       dots = -dots
+       ! then subtract their components
+       call VecMAXPY(null_space_array(i), i-1, dots(1:i-1), null_space_array(1:i-1), ierr)
+       call VecNormalize(null_space_array(i), norm, ierr)
+     end do
+     deallocate(dots)
+   end if
+
+   call MatNullSpaceCreate(MPI_COMM_FEMTOOLS, PETSC_FALSE, nnulls, &
+       null_space_array, null_space, ierr)
 
    if(have_option(trim(null_space_option_path)//'/test_null_space')) then
      call MatNullSpaceTest(null_space, mat, isnull, ierr)
@@ -2607,18 +2662,28 @@ function create_null_space_from_options_vector(mat, null_space_option_path, &
      end if
    end if
 
+   if(have_option(trim(null_space_option_path)//'/write_null_space')) then
+     allocate(vtk_vector_fields(1:nnulls))
+     do i=1, nnulls
+       call allocate(vtk_vector_fields(i), positions%dim, positions%mesh, name="NullVector"//int2str(i))
+       call petsc2field(null_space_array(i), petsc_numbering, vtk_vector_fields(i))
+     end do
+     vtk_index = vtk_index + 1
+     call vtk_write_fields("null_space", index=vtk_index, &
+       model=positions%mesh, position=positions, &
+       vfields=vtk_vector_fields)
+     do i=1, nnulls
+       call deallocate(vtk_vector_fields(i))
+     end do
+     deallocate(vtk_vector_fields)
+   end if
+
    ! get rid of our Vec references
    do i=1, nnulls
      call VecDestroy(null_space_array(i), ierr)
    end do
    deallocate(null_space_array)
 
-   if (present(rotation_matrix)) then
-     do i=1, nnulls
-       call VecDestroy(rot_null_space_array(i), ierr)
-     end do
-     deallocate(rot_null_space_array)
-   end if
 
 end function create_null_space_from_options_vector
 

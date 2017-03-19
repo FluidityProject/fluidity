@@ -40,10 +40,11 @@ module assemble_CMC
   use fields
   use sparse_tools_petsc
   use state_module
+  use boundary_conditions
   use sparse_matrices_fields
   use field_options
   use fefields
-  
+
   implicit none 
 
   private
@@ -166,7 +167,9 @@ contains
 
       end if
 
-      call mult_div_invvector_div_T(schur_diagonal_matrix, ctp_m, inner_m_diagonal, ct_m)
+      call invert(inner_m_diagonal)
+      call zero_dirichlet_rows(u, inner_m_diagonal)
+      call mult_div_vector_div_T(schur_diagonal_matrix, ctp_m, inner_m_diagonal, ct_m)
       ewrite_minmax(schur_diagonal_matrix)
       call deallocate(inner_m_diagonal)
 

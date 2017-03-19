@@ -29,6 +29,7 @@ module boundary_conditions
   use fldebug
   use spud
   use global_parameters, only: OPTION_PATH_LEN, FIELD_NAME_LEN
+  use data_structures
   use futils
   use parallel_tools
   use sparse_tools
@@ -130,6 +131,10 @@ module boundary_conditions
                       apply_dirichlet_conditions_vector_component_lumped
   end interface apply_dirichlet_conditions    
 
+  interface zero_dirichlet_rows
+     module procedure zero_dirichlet_rows_vector
+  end interface zero_dirichlet_rows
+
   private
   public add_boundary_condition, add_boundary_condition_surface_elements, &
     get_boundary_condition, get_boundary_condition_count, &
@@ -140,7 +145,8 @@ module boundary_conditions
     set_reference_node, &
     get_periodic_boundary_condition, remove_boundary_condition, &
     set_dirichlet_consistent, apply_dirichlet_conditions, &
-    derive_collapsed_bcs
+    derive_collapsed_bcs, &
+    collect_vector_dirichlet_conditions, zero_dirichlet_rows
 
 contains
 
@@ -2048,15 +2054,17 @@ contains
 
   end subroutine apply_dirichlet_conditions_vector
 
-  subroutine apply_dirichlet_conditions_vector_petsc_csr(matrix, rhs, field, dt)
-    !!< Apply dirichlet boundary conditions from field to the problem
-    !!< defined by matrix and rhs.
-    !!<
-    !!< This assumes that boundary conditions are applied in rate of change
-    !!< form and that the matrix has dim x dim blocks.
-    type(petsc_csr_matrix), intent(inout) :: matrix
-    type(vector_field), intent(inout), optional :: rhs
+  subroutine collect_vector_dirichlet_conditions(field, boundary_row_set, rhs, dt)
+    ! returns for each component of the vector field an integer set of those nodes
+    ! to which a strong dirichlet boundary condition is applied.
     type(vector_field), intent(in) :: field
+    type(integer_set), dimension(field%dim), intent(out):: boundary_row_set
+    ! if supplied the boundary condition value is set in the corresponding
+    ! rows of the 'rhs' field (should be allocated beforehand)
+    type(vector_field), intent(inout), optional :: rhs
+    ! if 'dt' is provided, assume the equation is solved in acceleration form, so
+    ! that the rhs values are (current_value-bc_val)/dt 
+    ! current_value is obtained from 'field'
     real, intent(in), optional :: dt
 
     type(scalar_field) :: rhscomponent, bccomponent
@@ -2066,6 +2074,10 @@ contains
     type(vector_field), pointer:: surface_field
     integer, dimension(:), pointer:: surface_node_list
     integer :: i,j,k
+
+    do k=1, field%dim 
+      call allocate(boundary_row_set(k))
+    end do
 
     bcloop: do i=1, get_boundary_condition_count(field)
        call get_boundary_condition(field, i, type=bctype, &
@@ -2084,35 +2096,69 @@ contains
                 bccomponent = extract_scalar_field_from_vector_field(surface_field, k)
 
                 if(present(dt)) then
-                  ! this is an addto because petsc_csr matrices can only
-                  ! addto at the moment... hence with time varying bc we
-                  ! end up with an average of the bcs at any node with two
-                  ! (or more) set (i.e. corner nodes with inconsistent bc
-                  ! on the sides)
-                  call addto(rhscomponent, &
+                  call set(rhscomponent, &
                             surface_node_list(j), &
-                            ((node_val(bccomponent,j)&
+                            (node_val(bccomponent,j)&
                               -node_val(field, k, surface_node_list(j)) &
-                              ) /dt)*INFINITY)
+                            )/dt)
                 else
-                  ! this is an addto because petsc_csr matrices can only
-                  ! addto at the moment... hence with time varying bc we
-                  ! end up with an average of the bcs at any node with two
-                  ! (or more) set (i.e. corner nodes with inconsistent bc
-                  ! on the sides)
-                  call addto(rhscomponent, &
+                  call set(rhscomponent, &
                             surface_node_list(j), &
-                            node_val(bccomponent,j)*INFINITY)
+                            node_val(bccomponent,j))
                 end if
               end if
+              call insert(boundary_row_set(k), surface_node_list(j))
 
-              call addto(matrix, k, k, surface_node_list(j), &
-                surface_node_list(j), INFINITY)
             end if
           end do
        end do
 
     end do bcloop
+
+  end subroutine collect_vector_dirichlet_conditions
+
+  subroutine zero_dirichlet_rows_vector(field, rhs)
+    !!< Zero the rows corresponding to dirichlet boundary conditions
+    !!< This can be used when the lhs matrix already had dirichlet bcs
+    !!< applied (zeroing corresponding rows and columns)
+    !!< and only a homogeneous boundary condition is required.
+    type(vector_field), intent(in):: field
+    type(vector_field), intent(inout):: rhs
+
+    type(integer_set), dimension(field%dim) :: boundary_row_set
+    integer :: i, j
+
+    call collect_vector_dirichlet_conditions(field, boundary_row_set)
+    do i=1, field%dim
+      do j=1, key_count(boundary_row_set(i))
+        call set(rhs, i, fetch(boundary_row_set(i), j), 0.0)
+      end do
+      call deallocate(boundary_row_set(i))
+    end do
+
+  end subroutine zero_dirichlet_rows_vector
+
+  subroutine apply_dirichlet_conditions_vector_petsc_csr(matrix, rhs, field, dt)
+    !!< Apply dirichlet boundary conditions from field to the problem
+    !!< defined by matrix and rhs.
+    !!<
+    !!< This assumes that boundary conditions are applied in rate of change
+    !!< form and that the matrix has dim x dim blocks.
+    type(petsc_csr_matrix), intent(inout) :: matrix
+    type(vector_field), intent(inout), optional :: rhs
+    type(vector_field), intent(in) :: field
+    real, intent(in), optional :: dt
+
+    type(integer_set), dimension(field%dim):: boundary_row_set
+    integer:: i
+
+    call collect_vector_dirichlet_conditions(field, boundary_row_set, rhs=rhs, dt=dt)
+
+    call lift_boundary_conditions(matrix, boundary_row_set, rhs=rhs)
+
+    do i=1, field%dim
+      call deallocate(boundary_row_set(i))
+    end do
 
   end subroutine apply_dirichlet_conditions_vector_petsc_csr
   

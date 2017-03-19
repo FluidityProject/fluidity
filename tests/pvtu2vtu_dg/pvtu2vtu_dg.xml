@@ -22,12 +22,12 @@ field = vtu.GetField('Field')
 # build map from uid -&gt; xy locations
 uid2xy = numpy.zeros((int(pfield.max()), 2))
 for uid, loc in zip(pfield, pxyz):
-  uid2xy[uid[0]-1] = loc[0:2]
+  uid2xy[int(uid[0])-1] = loc[0:2]
 
 # check that each node in vtu is still present and at the same location
 same = True
 for uid, loc in zip(field, xyz):
-  same = same and abs(uid2xy[uid[0]-1]-loc[0:2]).max()&lt;1e-7
+  same = same and abs(uid2xy[int(uid[0])-1]-loc[0:2]).max()&lt;1e-7
 
 # also check that there are no duplicate nodes left:
 same = same and len(field)==len(uid2xy)
