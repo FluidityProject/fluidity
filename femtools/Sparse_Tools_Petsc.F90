@@ -1002,6 +1002,9 @@ contains
     
     ! make up a name
     c%name=trim(a%name)//"_"//trim(p%name)//"_ptap"
+
+    allocate(c%ksp)
+    c%ksp = PETSC_NULL_OBJECT
     
     ! the new c get its own reference:
     nullify(c%refcount) ! Hack for gfortran component initialisation
