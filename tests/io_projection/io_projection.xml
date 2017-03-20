@@ -1,0 +1,36 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>io_projection</name>
+  <owner userid="jrper"/>
+  <problem_definition length="short" nprocs="1">
+    <command_line>fluidity io_projection_lumped.flml
+fluidity io_projection_full.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="lumped_stats" language="python">from fluidity_tools import stat_parser
+s=stat_parser('io_projection_lumped.stat')
+sdata=s['Fluid']['Scalar']
+vdata=s['Fluid']['Velocity%magnitude']
+tdata=s['Fluid']['Tensor%magnitude']
+lumped_stats=[[sdata['min'],vdata['min'],tdata['min']],
+              [sdata['max'],vdata['max'],tdata['max']],
+              sdata['integral']]</variable>
+    <variable name="full_stats" language="python">from fluidity_tools import stat_parser
+s=stat_parser('io_projection_full.stat')
+sdata=s['Fluid']['Scalar']
+vdata=s['Fluid']['Velocity%magnitude']
+tdata=s['Fluid']['Tensor%magnitude']
+full_stats=[[sdata['min'],vdata['min'],tdata['min']],
+              [sdata['max'],vdata['max'],tdata['max']],
+              sdata['integral']]</variable>
+  </variables>
+  <pass_tests>
+    <test name="minimum" language="python">assert(all([abs(x[0]-x[1])&lt;1.0e-8 for x in zip(lumped_stats[0],[0, 1, 0])]) and
+  all([abs(x[0]-x[1])&lt;1.0e-8 for x in zip(full_stats[0],[0, 1, 0])]))</test>
+    <test name="maximum" language="python">from numpy import sqrt
+assert(all([abs(x[0]-x[1])&lt;1.0e-8 for x in zip(lumped_stats[1],[1, 1, sqrt(2)])]) and
+  all([abs(x[0]-x[1])&lt;1.0e-8 for x in zip(full_stats[1],[1, 1, sqrt(2)])]))</test>
+    <test name="integral" language="python">from numpy import sqrt
+assert(abs(lumped_stats[2]-0.5)&lt;1.0e-8 and abs(full_stats[2]-0.5)&lt;1.0e-8)</test>
+  </pass_tests>
+</testproblem>

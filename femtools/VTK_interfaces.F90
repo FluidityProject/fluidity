@@ -268,7 +268,7 @@ contains
     if (present(projection)) then
        lprojection = projection
     else
-       lprojection = 0
+       lprojection = DGIFY
     end if
 
     if (present(stat)) stat = 0
@@ -289,6 +289,7 @@ contains
         if ( (tfields(i)%mesh%continuity .lt. 0 .and. tfields(i)%mesh%shape%degree /= 0) ) dgify_fields = .true.
       end do
     end if
+    if (model%continuity .lt. 0) lprojection = DGIFY
     
     if (present(number_of_partitions)) then
       nparts = number_of_partitions
