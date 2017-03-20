@@ -365,6 +365,13 @@ logical, intent(in), optional :: no_top_smoothing
     ! this might be already done, but it doesn't hurt:
     call PCSetType(prec, PCMG, ierr)
 
+    call PCMGGetLevels(prec, nolevels, ierr)
+    if (ierr==0 .and. nolevels>0) then
+      ewrite(2,*) "Assuming mg preconditioner is used with the same matrix and same options as before"
+      ierror = 0
+      return
+    end if
+
     lno_top_smoothing = .false.
     if(present(no_top_smoothing)) then
        lno_top_smoothing = no_top_smoothing
