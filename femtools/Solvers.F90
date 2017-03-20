@@ -2007,14 +2007,29 @@ subroutine create_ksp_from_options(ksp, mat, pmat, solver_option_path, parallel,
     MatNullSpace :: null_space
     IS:: index_set
     PetscErrorCode:: ierr
-    integer:: i
+    integer:: i, n
 
     call PCSetType(pc, "fieldsplit", ierr)
 
-    do i=1, size(subksps)
-      index_set = petsc_numbering_create_is(petsc_numbering, dim=i)
-      call PCFieldSplitSetIS(pc, PETSC_NULL_CHARACTER, index_set, ierr)
-    end do
+    call PCFieldSplitGetSubKSP(pc, n, subksps, ierr)
+    if (n==0) then
+      ! first time this pc set to type fieldplit: it's the first time we set it up,
+      ! or it was previously set to a different type - in this case, PCSetType will
+      ! have called PCCreate_FieldSplit which will have set n/o splits to zero
+      do i=1, size(subksps)
+        index_set = petsc_numbering_create_is(petsc_numbering, dim=i)
+        call PCFieldSplitSetIS(pc, PETSC_NULL_CHARACTER, index_set, ierr)
+        call ISDestroy(index_set, ierr)
+      end do
+
+    elseif (n/=size(subksps)) then
+
+      ! if this pc is reused (and we've previously already set it up with fieldsplit)
+      ! we need to check the n/o fieldsplits is the same
+
+      FLAbort("PC being reused with different number of fieldsplits")
+
+    end if
 
     call get_option(trim(option_path)//"/fieldsplit_type/name", &
       fieldsplit_type, ierr)
@@ -2029,7 +2044,10 @@ subroutine create_ksp_from_options(ksp, mat, pmat, solver_option_path, parallel,
       FLAbort("Unknown fieldsplit_type")
     end select
 
-    call pcfieldsplitgetsubksp(pc, PETSC_NULL_INTEGER, subksps, ierr)
+    call pcfieldsplitgetsubksp(pc, n, subksps, ierr)
+    
+    assert(n==size(subksps))
+
     do i=1, size(subksps)
 
       call KSPGetOperators(subksps(i), mat, pmat, ierr)
