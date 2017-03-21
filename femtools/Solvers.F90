@@ -82,7 +82,7 @@ public petsc_solve, set_solver_options, &
    complete_solver_option_path, petsc_solve_needs_positions
 
 ! meant for unit-testing solver code only:
-public petsc_solve_setup, petsc_solve_core, petsc_solve_destroy, &
+public petsc_solve_core, petsc_solve_destroy, &
   petsc_solve_copy_vectors_from_scalar_fields, &
   setup_ksp_from_options, create_ksp_from_options, petsc_solve_monitor_exact, &
   petsc_solve_monitor_iteration_vtus, attach_null_space_from_options
@@ -686,42 +686,39 @@ type(vector_field), intent(in), optional :: positions
   logical:: parallel, timing, have_cache
   type(halo_type), pointer ::  halo
   integer i, j
+  character(len=FIELD_NAME_LEN) :: name
   KSP, pointer:: ksp_pointer
 
   ! Initialise profiler
   if(present(sfield)) then
      call profiler_tic(sfield, "petsc_setup")
+     name = sfield%name
   else if(present(vfield)) then
      call profiler_tic(vfield, "petsc_setup")
+     name = vfield%name
   else if(present(tfield)) then
      call profiler_tic(tfield, "petsc_setup")
-  end if
-  
-  if (present(sfield)) then
-    if (present(option_path)) then
-      solver_option_path=complete_solver_option_path(option_path)
-    else
-      solver_option_path=complete_solver_option_path(sfield%option_path)
-    end if
-  else if (present(vfield)) then
-    if (present(option_path)) then
-      solver_option_path=complete_solver_option_path(option_path)
-    else
-      solver_option_path=complete_solver_option_path(vfield%option_path)
-    end if
-  else if (present(tfield)) then
-    if (present(option_path)) then
-      solver_option_path=complete_solver_option_path(option_path)
-    else
-      solver_option_path=complete_solver_option_path(tfield%option_path)
-    end if
+     name = tfield%name
   else
-    FLAbort("Need to provide either sfield or vfield to petsc_solve_setup.")
+     FLAbort("petsc_solve_setup should be called with sfield, vfield or tfield")
   end if
-  
+
   timing=(debug_level()>=2)
   if (timing) then
     call cpu_time(time1)
+  end if
+  
+  
+  if (present(option_path)) then
+    solver_option_path=complete_solver_option_path(option_path)
+  else if (present(sfield)) then
+    solver_option_path=complete_solver_option_path(sfield%option_path)
+  else if (present(vfield)) then
+    solver_option_path=complete_solver_option_path(vfield%option_path)
+  else if (present(tfield)) then
+    solver_option_path=complete_solver_option_path(tfield%option_path)
+  else
+    FLAbort("Need to provide either sfield, vfield or tfield to petsc_solve_setup.")
   end if
   
   startfromzero=have_option(trim(solver_option_path)//'/start_from_zero')
@@ -910,7 +907,7 @@ type(vector_field), intent(in), optional :: positions
   
   if (timing) then
     call cpu_time(time2)
-    ewrite(2,*) "Time spent in Petsc setup: ", time2-time1
+    ewrite(2,*) trim(name)// " CPU time spent in PETSc setup: ", time2-time1
   end if
 
   if(present(sfield)) then
@@ -968,32 +965,37 @@ Mat, intent(in), optional:: rotation_matrix
   real time1, time2
   integer ierr
   logical parallel, timing
+  character(len=FIELD_NAME_LEN) :: name
 
-  if (present(sfield)) then
-    if (present(option_path)) then
-      solver_option_path=complete_solver_option_path(option_path)
-    else
-      solver_option_path=complete_solver_option_path(sfield%option_path)
-    end if
-  else if (present(vfield)) then
-    if (present(option_path)) then
-      solver_option_path=complete_solver_option_path(option_path)
-    else
-      solver_option_path=complete_solver_option_path(vfield%option_path)
-    end if
-  else if (present(tfield)) then
-    if (present(option_path)) then
-      solver_option_path=complete_solver_option_path(option_path)
-    else
-      solver_option_path=complete_solver_option_path(tfield%option_path)
-    end if
+  ! Initialise profiler
+  if(present(sfield)) then
+     call profiler_tic(sfield, "petsc_setup")
+     name = sfield%name
+  else if(present(vfield)) then
+     call profiler_tic(vfield, "petsc_setup")
+     name = vfield%name
+  else if(present(tfield)) then
+     call profiler_tic(tfield, "petsc_setup")
+     name = tfield%name
   else
-    FLAbort("Need to provide either sfield, vfield or tfield to petsc_solve_setup.")
+     FLAbort("petsc_solve_setup should be called with sfield, vfield or tfield")
   end if
 
   timing=(debug_level()>=2)
   if (timing) then
     call cpu_time(time1)
+  end if
+
+  if (present(option_path)) then
+    solver_option_path=complete_solver_option_path(option_path)
+  else if (present(sfield)) then
+    solver_option_path=complete_solver_option_path(sfield%option_path)
+  else if (present(vfield)) then
+    solver_option_path=complete_solver_option_path(vfield%option_path)
+  else if (present(tfield)) then
+    solver_option_path=complete_solver_option_path(tfield%option_path)
+  else
+    FLAbort("Need to provide either sfield, vfield or tfield to petsc_solve_setup.")
   end if
   
   call assemble(matrix)
@@ -1034,7 +1036,15 @@ Mat, intent(in), optional:: rotation_matrix
 
   if (timing) then
     call cpu_time(time2)
-    ewrite(2,*) "Time spent in Petsc setup: ", time2-time1
+    ewrite(2,*) trim(name)// " CPU time spent in PETSc setup: ", time2-time1
+  end if
+
+  if(present(sfield)) then
+     call profiler_toc(sfield, "petsc_setup")
+  else if(present(vfield)) then
+     call profiler_toc(vfield, "petsc_setup")
+  else if(present(tfield)) then
+     call profiler_toc(tfield, "petsc_setup")
   end if
       
 end subroutine petsc_solve_setup_petsc_csr
@@ -1199,6 +1209,8 @@ logical, optional, intent(in):: nomatrixdump
   else if(present(tfield)) then
     name=tfield%name
     call profiler_tic(tfield, "solve")
+  else
+    FLAbort("petsc_solve_core should be called with sfield, vfield or tfield")
   end if
   
   timing=( debug_level()>=2 )
