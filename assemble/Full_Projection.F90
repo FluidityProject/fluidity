@@ -27,8 +27,6 @@
 #include "fdebug.h"
 
   module Full_Projection
-
- 
     use fldebug
     use global_parameters
     use elements
@@ -37,6 +35,7 @@
     use petsc
 #endif
     use parallel_tools
+    use data_structures
     use sparse_tools
     use fields
     use petsc_tools
@@ -47,13 +46,12 @@
     use halos
     use multigrid
     use solvers
+    use boundary_conditions
     use petsc_solve_state_module
     use boundary_conditions_from_options
 
-
     implicit none
-    ! Module to provide solvers, preconditioners etc... for full_projection Solver.
-    ! Not this is currently tested for Full CMC solves and Stokes flow:
+
 #include "petsc_legacy.h"
     
     private
@@ -63,7 +61,7 @@
   contains
     
 !--------------------------------------------------------------------------------------------------------------------
-    subroutine petsc_solve_full_projection(x,ctp_m,inner_m,ct_m,rhs,pmat,&
+    subroutine petsc_solve_full_projection(x,ctp_m,inner_m,ct_m,rhs,pmat, velocity, &
       state, inner_mesh, auxiliary_matrix)
 !--------------------------------------------------------------------------------------------------------------------
 
@@ -79,6 +77,7 @@
       ! momentum matrix. If preconditioner is set to ScaledPressureMassMatrix, this comes in as the pressure mass matrix,
       ! scaled by the inverse of viscosity.
       type(csr_matrix), intent(inout) :: pmat
+      type(vector_field), intent(in) :: velocity ! used to retrieve strong diricihlet bcs
       ! state, and inner_mesh are used to setup mg preconditioner of inner solve
       type(state_type), intent(in):: state
       type(mesh_type), intent(in):: inner_mesh
@@ -107,7 +106,7 @@
       ewrite(2,*) 'Entering PETSc setup for Full Projection Solve'
       call petsc_solve_setup_full_projection(y,A,b,ksp,petsc_numbering,name,solver_option_path, &
            lstartfromzero,inner_m,ctp_m,ct_m,x%option_path,pmat, &
-           rhs, state, inner_mesh, auxiliary_matrix)
+           rhs, velocity, state, inner_mesh, auxiliary_matrix)
 
       ewrite(2,*) 'Create RHS and solution Vectors in PETSc Format'
       ! create PETSc vec for rhs using above numbering:
@@ -140,7 +139,7 @@
 !--------------------------------------------------------------------------------------------------------
     subroutine petsc_solve_setup_full_projection(y,A,b,ksp,petsc_numbering_p,name,solver_option_path, &
          lstartfromzero,inner_m,div_matrix_comp, div_matrix_incomp,option_path,preconditioner_matrix,rhs, &
-         state, inner_mesh, auxiliary_matrix)
+         velocity, state, inner_mesh, auxiliary_matrix)
          
 !--------------------------------------------------------------------------------------------------------
 
@@ -178,6 +177,7 @@
       type(csr_matrix), optional, intent(in) :: auxiliary_matrix
       ! Option path:
       character(len=*), intent(in):: option_path
+      type(vector_field), intent(in) :: velocity ! used to retrieve strong diricihlet bcs
       ! state, and inner_mesh are used to setup mg preconditioner of inner solve
       type(state_type), intent(in):: state
       type(mesh_type), intent(in):: inner_mesh
@@ -205,7 +205,8 @@
       Mat pmat ! PETSc preconditioning matrix
       
       character(len=OPTION_PATH_LEN) :: inner_option_path, inner_solver_option_path
-      
+      integer, dimension(:,:), pointer :: save_gnn2unn
+      type(integer_set), dimension(velocity%dim):: boundary_row_set      
       integer reference_node, stat, i, rotation_stat
       logical parallel, have_auxiliary_matrix, have_preconditioner_matrix
 
@@ -277,6 +278,7 @@
       ! set up numbering used in PETSc objects:
       call allocate(petsc_numbering_u, &
            nnodes=block_size(div_matrix_comp,2), nfields=blocks(div_matrix_comp,2), &
+           group_size=inner_m%row_numbering%group_size, &
            halo=div_matrix_comp%sparsity%column_halo)
       call allocate(petsc_numbering_p, &
            nnodes=block_size(div_matrix_comp,1), nfields=1, &
@@ -290,10 +292,40 @@
            ! 1. is it definitely appropriate for all its other used (the divergence matrix and the pressure vectors)?
            ! 2. can it be made appropriate for the auxiliary matrix at the same time as being appropriate for the current uses?
 
+      ! the rows of the gradient matrix (ct_m^T) and columns of ctp_m 
+      ! corresponding to dirichlet bcs have not been zeroed
+      ! This is because lifting the dirichlet bcs from the continuity
+      ! equation into ct_rhs would require maintaining the lifted contributions.
+      ! Typically, we reassemble ct_rhs every nl.it. but keeping ctp_m
+      ! which means that we can't recompute those contributions as the columns 
+      ! are already zeroed. Thus instead we only zero the corresponding rows and columns
+      ! when copying into the div and grad matrices used in the Schur complement solve.
+      ! The lifting of bc values in the continuity equation is already taken care of, as
+      ! the projec_rhs contains the ctp_m u^* term, where u^* already satisfies the bcs
+      ! and ctp_m does not have the corresponding columns zeroed out.
+
+      ! in order to not copy over these entries we mark out the corresponding entries in petsc_nubering_u out with a -1
+      ! but first we keep a copy of the original
+      allocate(save_gnn2unn(1:size(petsc_numbering_u%gnn2unn,1),1:size(petsc_numbering_u%gnn2unn,2)))
+      save_gnn2unn = petsc_numbering_u%gnn2unn
+      ! find out which velocity indices are associated with strong bcs:
+      call collect_vector_dirichlet_conditions(velocity, boundary_row_set)
+      ! mark these out with -1
+      do i=1, velocity%dim
+        petsc_numbering_u%gnn2unn(set2vector(boundary_row_set(i)), i) = -1
+        call deallocate(boundary_row_set(i))
+      end do
+
       ! Convert Divergence matrix (currently stored as block_csr matrix) to petsc format:   
       ! Create PETSc Div Matrix (comp & incomp) using this numbering:
       G_t_comp=block_csr2petsc(div_matrix_comp, petsc_numbering_p, petsc_numbering_u)
       G_t_incomp=block_csr2petsc(div_matrix_incomp, petsc_numbering_p, petsc_numbering_u)
+
+      ! restore petsc_numbering_u - since we have the only reference to petsc_numbering_u
+      ! (as we've only just allocated it above) we can simply repoint %gnn2unn
+      ! restoring is necessary for things like fieldsplit in setup_ksp_from_options() below
+      deallocate(petsc_numbering_u%gnn2unn)
+      petsc_numbering_u%gnn2unn => save_gnn2unn
 
       ! Scale G_t_comp to fit PETSc sign convention:
       call MatScale(G_t_comp,real(-1.0, kind = PetscScalar_kind),ierr)
