@@ -1268,6 +1268,7 @@ contains
       end if
       call set(field, rhs)
       call scale(field, masslump)
+      call halo_update(field)
       ewrite_minmax(field)
     end do
 
