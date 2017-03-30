@@ -156,7 +156,7 @@ module bound_field_module
     call addto(diffused, deviation, -1.0)
     call addto(field, diffused, 2.0)
 
-    call halo_update(field, 1)
+    call halo_update(field, 1, verbose=.false.)
   end do iterloop
   
   ewrite(2,*) "Bounded interpolation for field ", trim(field%name), " took ", k, " iterations"
