@@ -122,13 +122,14 @@ contains
         call dystl_init_LB(turbine%blade(iblade)%E_LB_Model(ielem))
     endif
     end do 
-    ! Rotate the turbine according to the tilt and yaw angle
-    ! Yaw
-    call rotate_turbine(turbine,(/0.0,0.0,-1.0/),turbine%yaw_angle*pi/180.0)
-    ! Tilt
-    call rotate_turbine(turbine,(/0.0,-1.0,0.0/),turbine%hub_tilt_angle*pi/180.0)
+
 
     end do
+    ! Rotate the turbine according to the tilt and yaw angle
+    ! Yaw 
+    call rotate_turbine(turbine,(/0.0,0.0,1.0/),turbine%yaw_angle*pi/180.0)
+    ! Tilt clockwise with the y axis
+    call rotate_turbine(turbine,(/0.0,1.0,0.0/),turbine%hub_tilt_angle*pi/180.0)
 
     !=========================================================
     ! Create a Tower
@@ -387,7 +388,7 @@ contains
         do ielem=1,turbine%Blade(j)%Nelem+1
         ! Blade end locations (quarter chord). xBE(MaxSegEnds)
         xtmp=turbine%Blade(j)%QCx(ielem)
-        ytmp=turbine%Blade(J)%QCy(ielem)
+        ytmp=turbine%Blade(j)%QCy(ielem)
         ztmp=turbine%Blade(j)%QCz(ielem)
         
         Call QuatRot(xtmp,ytmp,ztmp,theta,nrx,nry,nrz,px,py,pz,vrx,vry,vrz)
