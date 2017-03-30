@@ -2,8 +2,9 @@
 <testproblem>
   <name>bc-smoothing</name>
   <owner userid="skramer"/>
-  <problem_definition length="short" nprocs="1">
-    <command_line>mpiexec fluidity -v2 -l smoothed_bcs.flml</command_line>
+  <problem_definition length="short" nprocs="2">
+    <command_line>mpiexec flredecomp -i 1 -o 2 smoothed_bcs smoothed_bcs_parallel &amp;&amp;
+mpiexec fluidity -v2 -l smoothed_bcs_parallel.flml</command_line>
   </problem_definition>
   <variables>
     <variable name="velocity_max" language="python">from fluidity_tools import stat_parser
