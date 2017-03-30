@@ -1067,7 +1067,7 @@ contains
    call get_boundary_condition(fs, "_implicit_free_surface", surface_mesh=surface_mesh, &
      surface_node_list=surface_node_list)
    if (IsParallel()) then
-     call generate_free_surface_halos(fs%mesh, surface_mesh, surface_node_list)
+     call generate_surface_mesh_halos(fs%mesh, surface_mesh, surface_node_list)
    end if
 
    call allocate(scaled_fs, surface_mesh, "ScaledFreeSurface")
@@ -1192,50 +1192,6 @@ contains
 
   end subroutine solve_initial_scaled_free_surface
 
-
-  subroutine generate_free_surface_halos(full_mesh, surface_mesh, surface_nodes)
-    type(mesh_type), intent(in):: full_mesh
-    type(mesh_type), intent(inout):: surface_mesh
-    integer, dimension(:), intent(in):: surface_nodes
-
-    integer :: ihalo, nhalos
-
-    ewrite(1, *) "In generate_free_surface_halos"
-
-    ! hm, is this only gonna work for p1cg fs+pressure?
-    assert(continuity(surface_mesh) == 0)
-    assert(.not. associated(surface_mesh%halos))
-    assert(.not. associated(surface_mesh%element_halos))
-
-    ! Initialise key MPI information:
-
-    nhalos = halo_count(full_mesh)
-    ewrite(2,*) "Number of surface_mesh halos = ",nhalos
-
-    if(nhalos == 0) return
-
-    ! Allocate subdomain mesh halos:
-    allocate(surface_mesh%halos(nhalos))
-
-    ! Derive subdomain_mesh halos:
-    do ihalo = 1, nhalos
-
-       surface_mesh%halos(ihalo) = derive_sub_halo(full_mesh%halos(ihalo), surface_nodes)
-
-       assert(trailing_receives_consistent(surface_mesh%halos(ihalo)))
-       assert(halo_valid_for_communication(surface_mesh%halos(ihalo)))
-       call create_global_to_universal_numbering(surface_mesh%halos(ihalo))
-       call create_ownership(surface_mesh%halos(ihalo))
-       
-    end do ! ihalo 
-    
-    allocate(surface_mesh%element_halos(nhalos))
-    ! the element order of the surface mesh will not be trailing receive - do we care?
-    call derive_element_halo_from_node_halo(surface_mesh, &
-        & ordering_scheme = HALO_ORDER_GENERAL, create_caches = .true.)
-
-  end subroutine generate_free_surface_halos
-
   subroutine initialise_prognostic_free_surface(fs, u)
     type(scalar_field), intent(inout):: fs
     type(vector_field), intent(in):: u
@@ -1271,7 +1227,7 @@ contains
    if (IsParallel()) then
      call get_boundary_condition(fs, "_free_surface", surface_mesh=surface_mesh, &
        surface_node_list=surface_node_list)
-     call generate_free_surface_halos(fs%mesh, surface_mesh, surface_node_list)
+     call generate_surface_mesh_halos(fs%mesh, surface_mesh, surface_node_list)
    end if
 
   end subroutine initialise_prognostic_free_surface
