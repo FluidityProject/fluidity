@@ -1285,9 +1285,9 @@ contains
       end if
       call set(field, rhs)
       call scale(field, masslump)
-      call halo_update(field)
-      ewrite_minmax(field)
+      call halo_update(field, verbose=.false.)
     end do
+    ewrite_minmax(field)
 
     call deallocate(masslump)
     call deallocate(rhs)
