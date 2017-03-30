@@ -1153,7 +1153,7 @@ contains
           bc_position = get_coordinates_remapped_to_surface(position, surface_mesh, surface_element_list) 
           surface_field_component=extract_scalar_field(surface_field, 1)
           call initialise_vector_field_component(surface_field_component, state,  &
-            bc_component_path, bc_position, surface_element_list, 1, time)
+            bc_path_i, bc_position, surface_element_list, 1, time)
 
           call deallocate(bc_position)
 
