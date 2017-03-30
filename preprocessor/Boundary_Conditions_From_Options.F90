@@ -27,10 +27,9 @@
 
 #include "fdebug.h"
 module boundary_conditions_from_options
-
   use fldebug
   use global_parameters, only: OPTION_PATH_LEN, PYTHON_FUNC_LEN, pi,&
-       current_debug_level, FIELD_NAME_LEN
+current_debug_level, FIELD_NAME_LEN
   use futils, only: int2str, present_and_true
   use vector_tools
   use quadrature
@@ -44,12 +43,12 @@ module boundary_conditions_from_options
   use transform_elements
   use halos_numbering
   use halos_derivation
+  use transform_elements
+  use fetools
   use fields
   use sparse_tools_petsc
   use state_module
   use field_options
-  use transform_elements
-  use fetools
   use vtk_interfaces
   use fefields
   use boundary_conditions
