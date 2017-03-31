@@ -51,6 +51,8 @@ module spherical_adaptivity
 
   public prepare_spherical_adaptivity, spherical_adaptivity_pop_in, spherical_adaptivity_pop_out
 
+  public check_inverted_elements
+
   contains
 
   subroutine prepare_spherical_adaptivity(states, current_positions)
@@ -366,5 +368,39 @@ module spherical_adaptivity
     tuv = matmul(m, xyz_plane(:,1))
 
   end subroutine ray_plane_intersection
+
+  subroutine check_inverted_elements(positions)
+    type(vector_field), intent(in) :: positions
+
+    real, dimension(3, 4) :: tet_xyz
+    real vol1, vol2
+    integer ele, j, ele2, k
+    integer, dimension(:), pointer:: neigh, facets, nodes, nodes2
+
+    do ele=1, element_count(positions)
+      neigh => ele_neigh(positions, ele)
+      facets => ele_faces(positions, ele)
+      nodes => ele_nodes(positions, ele)
+      do j=1, size(neigh)
+        if (neigh(j)>0) then
+          tet_xyz(:, 1:3) = face_val(positions, facets(j))
+          tet_xyz(:, 4) = node_val(positions, nodes(j))
+          vol1 = tetvol(tet_xyz(1,:), tet_xyz(2,:), tet_xyz(3,:))
+
+          ele2 = neigh(j)
+          nodes2 => ele_nodes(positions, ele2)
+          k = local_face_number(positions, face_neigh(positions, facets(j)))
+          tet_xyz(:, 4) = node_val(positions, nodes2(k))
+          vol2 = tetvol(tet_xyz(1,:), tet_xyz(2,:), tet_xyz(3,:))
+          if (vol1*vol2>0.0) then
+            ewrite(0,*) "Element 1:", ele_val(positions, ele)
+            ewrite(0,*) "Element 2:", ele_val(positions, ele2)
+            ewrite(-1,*) "INVERTED ELEMENT!!!"
+          end if
+        end if
+      end do
+    end do
+
+  end subroutine check_inverted_elements
 
 end module spherical_adaptivity

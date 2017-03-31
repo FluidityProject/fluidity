@@ -1203,11 +1203,13 @@ contains
         call allocate(old_positions, new_positions%dim, new_positions%mesh, trim(positions_name)//"BaseGeometry")
         call set(old_positions, new_positions)
         call insert(states(1), old_positions, old_positions%name)
-        call vtk_write_fields("base_geometry_after", index, old_positions, old_positions%mesh)
+        call vtk_write_fields("base_geometry_after", index, old_positions, old_positions%mesh, write_region_ids=.true.)
         call deallocate(old_positions)
 
-        call spherical_adaptivity_pop_out(states, new_positions)
-        call vtk_write_fields("popped_geometry_after", index, new_positions, new_positions%mesh)
+        if (final_adapt_iteration) then
+          call spherical_adaptivity_pop_out(states, new_positions)
+          call vtk_write_fields("popped_geometry_after", index, new_positions, new_positions%mesh)
+        end if
       end if
 
 
@@ -1259,7 +1261,7 @@ contains
       ! Set their values
       call set_boundary_conditions_values(states)
 
-      if (have_spherical_adaptivity) then
+      if (have_spherical_adaptivity .and. final_adapt_iteration) then
         ! for interpolation we temporarily "pop back in" to ensure the target domain matches the donor
         old_positions = extract_vector_field(states, trim(positions_name)//"BaseGeometry")
         old_positions%name = positions_name
@@ -1306,7 +1308,7 @@ contains
         call halo_update(metric)
       end if
 
-      if (have_spherical_adaptivity) then
+      if (have_spherical_adaptivity .and. final_adapt_iteration) then
         ! reinsert the popped out coordinate field
         call insert(states, new_positions, positions_name)
       end if

@@ -36,6 +36,7 @@ module adapt_integration
   use elements
   use spud
   use parallel_tools
+  use sparse_tools
   use fields
   use vtk_interfaces
   use halos
@@ -222,7 +223,8 @@ contains
     integer, dimension(:), allocatable :: elmreg
     logical :: clcgmy
     integer :: szsnls
-    integer, dimension(:), allocatable :: snlbas, snlist, surfid, prdnds
+    integer, dimension(:), allocatable :: snlbas, prdnds
+    integer, dimension(:), pointer :: snlist, surfid
     integer :: nprdnd
     real, dimension(:), pointer :: nodx, nody, nodz
     integer :: intnnd, intnel, intszl
@@ -253,6 +255,9 @@ contains
     real :: mestp1
     type(halo_type), pointer :: old_halo
     type(mesh_type), pointer :: output_mesh
+
+    ! map from (interleaved) region id pair to internal surface id
+    type(integer_hash_table) :: internal_boundary_map
     
     integer, save :: output_quality_index = 0
     logical :: output_quality
@@ -284,9 +289,9 @@ contains
     nnod = node_count(input_positions)  ! Number of nodes
     nelm = element_count(input_positions)  ! Number of volume elements
     szenls = nloc * nelm  ! Size of the volume element list
-    nselm = surface_element_count(input_positions)  ! Number of surface elements
+    nselm = unique_surface_element_count(input_positions%mesh)  ! Number of surface elements
     totfre = 0  ! Number of fields
-    xpctel = expected_elements(input_positions, metric) * expected_elements_buffer  ! Expected number of volume elements
+    xpctel = int(expected_elements(input_positions, metric) * expected_elements_buffer)  ! Expected number of volume elements
     xpctnd = -1  ! Expected number of nodes
     xpctse = -1  ! Expected number of surface elements
     have_metric = .true.  ! Unknown
@@ -326,7 +331,8 @@ contains
     
     ! Maximum number of nodes
     absolutemxnods = max_nodes(input_positions, expected_nodes(input_positions, int(xpctel / expected_elements_buffer), global = .false.))
-    absolutemxnods = absolutemxnods * mxnods_buffer
+    absolutemxnods = int(absolutemxnods * mxnods_buffer)
+
     ewrite(2, "(a,i0)") "Max. nodes: ", absolutemxnods
     
     ! Volume element list
@@ -345,30 +351,34 @@ contains
       elmreg = 0
     end if
     
+    ! Surface IDs
+    if (minval(input_positions%mesh%faces%boundary_ids)<=0) then
+      FLAbort("With 3D adaptivity all surface ids need to be strictly positive")
+    end if
+    allocate(surfid(nselm))
+    call interleave_surface_ids(input_positions%mesh, surfid, max_coplanar_id)
+
     ! Surface element list
     clcgmy = .true.  ! Is .true. if the geometry should be calculated, and ignore snlist
+    if (surface_element_count(input_positions)/=unique_surface_element_count(input_positions%mesh)) then
+      ewrite(0,*) "It appears you have an internal boundary and you're trying to use 3D adaptivity."
+      ewrite(0,*) "This combination is only supported to a limited extent."
+      call prepare_internal_boundary(input_positions%mesh, internal_boundary_map, snlist, surfid)
+      nselm = size(surfid)
+    else
+      ! nselm == surface_element_count == unique_surface_element_count
+      allocate(snlist(nselm * snloc))
+      if(nselm > 0) then
+        call getsndgln(input_positions%mesh, snlist)
+      end if
+    end if
+
     szsnls = nselm * snloc
     allocate(snlbas(nselm + 1))
     do i = 1, nselm + 1
        snlbas(i) = (i - 1) * snloc
     end do
-    allocate(snlist(nselm * snloc))
-    if(nselm > 0) then
-      call getsndgln(input_positions%mesh, snlist)
-    end if
-
-    if (surface_element_count(input_positions)/=unique_surface_element_count(input_positions%mesh)) then
-      ewrite(0,*) "It appears you have an internal boundary and you're trying to use 3D adaptivity."
-      ewrite(0,*) "This combination has not been implemented yet."
-      ! You could try to see if it somehow does work, by simply removing this FLExit()
-      ! (make sure to check you still have the right internal boundary ids after the adapt)
-      ! Feel free to discuss on the fluidity mailing list.
-      FLExit("Cannot have internal boundaries with 3D adaptivity")
-    end if
     
-    ! Surface IDs
-    allocate(surfid(nselm))
-    call interleave_surface_ids(input_positions%mesh, surfid, max_coplanar_id)
     
     ! Node locking
     if(present(lock_faces)) then
@@ -644,12 +654,16 @@ contains
     allocate(boundary_ids(nwnsel))
     allocate(coplanar_ids(nwnsel))
     call deinterleave_surface_ids(intarr(nwsfid:nwsfid + nwnsel - 1), max_coplanar_id, boundary_ids, coplanar_ids)
-    call add_faces(output_mesh, sndgln = intarr(nwsnls:nwsnls + nwszsn - 1), boundary_ids = boundary_ids)
-    deallocate(boundary_ids)
-    if(associated(input_positions%mesh%faces%coplanar_ids)) then
-      allocate(output_mesh%faces%coplanar_ids(nwnsel))
-      output_mesh%faces%coplanar_ids = coplanar_ids
+    if (surface_element_count(input_positions)/=unique_surface_element_count(input_positions%mesh)) then
+      call reconstruct_internal_boundary(output_mesh, internal_boundary_map, intarr(nwsnls:nwsnls + nwszsn - 1), boundary_ids, coplanar_ids)
+    else
+      call add_faces(output_mesh, sndgln = intarr(nwsnls:nwsnls + nwszsn - 1), boundary_ids = boundary_ids)
+      if(associated(input_positions%mesh%faces%coplanar_ids)) then
+        allocate(output_mesh%faces%coplanar_ids(nwnsel))
+        output_mesh%faces%coplanar_ids = coplanar_ids
+      end if
     end if
+    deallocate(boundary_ids)
     deallocate(coplanar_ids)
           
     ewrite(2, *) "Finished constructing output surface data"  
@@ -879,7 +893,215 @@ contains
     end do
     
   end subroutine rescale_mesh_and_metric
-  
+
+  subroutine prepare_internal_boundary(mesh, internal_boundary_map, snlist, surfid)
+    type(mesh_type), intent(in) :: mesh
+    ! returns a map between interleaved region id pairs and surface ids (as stored in the mesh, i.e. not interleaved!)
+    type(integer_hash_table), intent(out) :: internal_boundary_map
+    ! returns the surface mesh with exterior facets only (allocated here)
+    integer, dimension(:), pointer :: snlist
+    ! in: surfids of both exterior and interior facets (these may be interleaved already)
+    ! out: reallocated array of interior facets only (in the order of snlist)
+    integer, dimension(:), pointer :: surfid
+    ! the returned snlist and surfid (containing the exterior mesh only) are what's passed to adptvy
+
+    integer, dimension(:), pointer :: surfid_out
+    integer, dimension(:), pointer :: rid, neigh, facets
+    integer :: max_rid, external_facet_count, snloc
+    integer :: ele, j, key, sid, sid2
+    integer, parameter :: NO_INTERIOR_SURFACE_ID = -1 ! used to mark a boundary between regions that is not marked with a physical surface id
+
+    ! we can only maintain internal boundaries by telling libadaptivity to maintain region boundaries
+    if (.not. have_option('/mesh_adaptivity/hr_adaptivity/preserve_mesh_regions')) then
+      ewrite(0, *) "This mesh has internal boundaries (internal facets marked with physical ids)"
+      ewrite(0, *) "The only way to maintain these during adaptivity is the mark the regions on"
+      ewrite(0, *) "either side of the internal boundary with different region ids"
+      ewrite(0, *) "and use the /mesh_adaptivity/hr_adaptivity/preserve_mesh_regions option"
+      FLAbort("Internal boundaries require option /mesh_adaptivity/hr_adaptivity/preserve_mesh_regions")
+    end if
+
+    ! this routine should only be called if we have interior facets
+    ! in which case unique_surface_element_count = #exterior_facets + #interior_facets
+    ! and surface_element_count = #exterior_facets + 2 * #interior_facets
+    assert(unique_surface_element_count(mesh)<surface_element_count(mesh))
+    external_facet_count = 2*unique_surface_element_count(mesh) - surface_element_count(mesh)
+    snloc = face_loc(mesh, 1)
+    allocate(snlist(snloc*external_facet_count))
+    allocate(surfid_out(external_facet_count))
+
+    rid => ele_region_ids(mesh)
+    max_rid = maxval(rid)
+
+    call allocate(internal_boundary_map)
+
+    external_facet_count = 0
+    do ele = 1, element_count(mesh)
+      neigh => ele_neigh(mesh, ele)
+      facets => ele_faces(mesh, ele)
+      neigh_loop: do j=1, size(neigh)
+        if (neigh(j)>0) then
+          ! check to see if we're on a region boundary and construct a unique key from the pair of region ids
+          if (rid(ele)<rid(neigh(j))) then
+            key = rid(ele) * max_rid + rid(neigh(j))
+          else if (rid(ele)>rid(neigh(j))) then
+            key = rid(ele) * max_rid + rid(neigh(j))
+          else if (facets(j)<surface_element_count(mesh)) then
+            ! we're not on a region boundary - but the facet is marked as an internal boundary
+            ! we can't support that as libadaptivity only retains internal boundaries when they are region boundaries
+            FLAbort("With 3D adaptivity every internal boundary should have different region ids on either side")
+          else
+            ! no region or internal boundary
+            cycle neigh_loop
+          end if
+
+          ! look up surface id of inbetween facet
+          if (facets(j)<=surface_element_count(mesh)) then
+            sid = surface_element_id(mesh, facets(j))
+          else
+            sid = NO_INTERIOR_SURFACE_ID
+          end if
+
+          ! store the surface id, but check there is only one internal surface id associated
+          ! with every region id pair
+          if (has_key(internal_boundary_map, key)) then
+            sid2 = fetch(internal_boundary_map, key)
+            if (sid/=sid2) then
+              ewrite(0, *) "Between regions marked with regionids", rid(ele), " and ", rid(neigh(j))
+              if (sid2==NO_INTERIOR_SURFACE_ID) then
+                ewrite(0, *) "Some part of the internal boundary between the regions is not marked with a physical surface id"
+              else
+                ewrite(0, *) "Some part of the internal boundary between the regions is marked with physical surface id ", sid2
+              end if
+              if (sid==NO_INTERIOR_SURFACE_ID) then
+                ewrite(0, *) "whereas another part is not marked with a physical surface id"
+              else
+                ewrite(0, *) "whereas another part is marked with physical surface id ", sid
+              end if
+              ewrite(0, *) "With 3D adaptivity every boundary between regions should be marked with the same physical surface id"
+              ewrite(0, *) "or not be marked at all"
+              FLAbort("Internal boundaries between regions not compliant")
+            end if
+          else
+            call insert(internal_boundary_map, key, sid)
+          end if
+
+        else if (facets(j)<=size(surfid)) then
+          ! external facet that is actually part of the surface_mesh (in parallel the halo ends are not)
+          external_facet_count = external_facet_count + 1
+          surfid_out(external_facet_count) = surfid(facets(j))
+          snlist((external_facet_count-1)*snloc+1:external_facet_count*snloc) = face_global_nodes(mesh, facets(j))
+        end if
+      end do neigh_loop
+    end do
+
+    assert(external_facet_count==size(surfid_out))
+    deallocate(surfid)
+    surfid => surfid_out
+
+  end subroutine prepare_internal_boundary
+
+  subroutine reconstruct_internal_boundary(mesh, internal_boundary_map, snlist, boundary_ids, coplanar_ids)
+    type(mesh_type), intent(inout) :: mesh
+    ! the map between region pairs and surface ids previously constructed in prepare_internal_boundary
+    type(integer_hash_table), intent(in) :: internal_boundary_map
+    ! surface mesh, boundary ids and coplanar ids for the exterior facets of the new mesh
+    integer, dimension(:), intent(in) :: snlist, boundary_ids, coplanar_ids
+
+    type(csr_sparsity), pointer :: eelist
+    integer, dimension(:), pointer :: rid, neigh, nodes
+    integer, dimension(:), allocatable :: all_sndgln, all_boundary_ids
+    integer :: max_rid, snloc, internal_facet_count, snidx
+    integer :: ele, j, key, sid
+    integer, parameter :: NO_INTERIOR_SURFACE_ID = -1 ! used to mark a boundary between regions that is not marked with a physical surface id
+
+    snloc = mesh_dim(mesh) ! no face_loc, as we haven't called add_faces() yet
+    assert(size(boundary_ids)==size(coplanar_ids))
+    assert(size(snlist)==size(boundary_ids)*snloc)
+
+    rid => ele_region_ids(mesh)
+    max_rid = maxval(rid)
+
+    ! can't use ele_neigh, as we haven't called add_faces() yet
+    eelist => extract_eelist(mesh)
+
+    ! first let's count how many internal facets we actually have
+    internal_facet_count = 0
+    do ele = 1, element_count(mesh)
+      neigh => row_m_ptr(eelist, ele)
+      do j=1, size(neigh)
+        if (neigh(j)>0) then
+          ! check to see if we're on a region boundary and construct a unique key from the pair of region ids
+          if (rid(ele)<rid(neigh(j))) then
+            key = rid(ele) * max_rid + rid(neigh(j))
+          else
+            ! note that we don't count the case rid(ele)>rid(neigh(j)), so that internal facets
+            ! are only counted once
+            cycle
+          end if
+          ! if this fails we have a new region boundary which shouldn't happen if regions are preserved
+          sid = fetch(internal_boundary_map, key)
+          ! only count if there was a interior facet previously:
+          if (sid==NO_INTERIOR_SURFACE_ID) cycle
+
+          internal_facet_count = internal_facet_count + 1
+        end if
+      end do
+    end do
+
+    allocate(all_boundary_ids(internal_facet_count + size(boundary_ids)))
+    allocate(all_sndgln(size(all_boundary_ids)*snloc))
+    ! copy the information about external facets returned by adptvy()
+    all_boundary_ids(1:size(boundary_ids)) = boundary_ids
+    all_sndgln(1:size(boundary_ids)*snloc) = snlist
+
+    ! now loop again and fill in the internal facets
+    internal_facet_count = 0
+    snidx = size(snlist)+1 ! next position in all_sndgln
+    do ele = 1, element_count(mesh)
+      neigh => row_m_ptr(eelist, ele)
+      do j=1, size(neigh)
+        if (neigh(j)>0) then
+          ! check to see if we're on a region boundary and construct a unique key from the pair of region ids
+          if (rid(ele)<rid(neigh(j))) then
+            key = rid(ele) * max_rid + rid(neigh(j))
+          else
+            ! note that we ignore the case rid(ele)>rid(neigh(j)), so that internal facets
+            ! are only registered once
+            cycle
+          end if
+
+
+          ! if this fails we have a new region boundary which shouldn't happen if regions are preserved
+          sid = fetch(internal_boundary_map, key)
+          ! only count if there was a interior facet previously:
+          if (sid==NO_INTERIOR_SURFACE_ID) cycle
+
+          internal_facet_count = internal_facet_count + 1
+
+          ! the nodes are copied from the current element, leaving out the node opposite
+          ! the facet - the local number of this node is the same as the local facet number j
+          nodes => ele_nodes(mesh, ele)
+          all_sndgln(snidx:snidx+j-2) = nodes(1:j-1)
+          all_sndgln(snidx+j-1:snidx+snloc-1) = nodes(j+1:)
+          snidx = snidx + snloc
+
+          all_boundary_ids(size(boundary_ids)+internal_facet_count) = sid
+        end if
+      end do
+    end do
+    assert(snidx==size(all_sndgln)+1)
+
+    call add_faces(mesh, sndgln=all_sndgln, boundary_ids=all_boundary_ids)
+    ! note that surface_element_count is now bigger than size(all_boundary_ids), as add_faces has duplicated the internal facets
+    allocate(mesh%faces%coplanar_ids(1:surface_element_count(mesh)))
+    mesh%faces%coplanar_ids(1:size(coplanar_ids)) = coplanar_ids
+    ! the coplanar ids that were calculated  at the start of the run are now lost, but we didn't need them in the first place
+    mesh%faces%coplanar_ids(size(coplanar_ids)+1:) = 0
+
+    deallocate(all_boundary_ids, all_sndgln)
+
+  end subroutine reconstruct_internal_boundary
+
   subroutine adapt_integration_check_options
     !!< Checks libadaptivity integration related options
     
