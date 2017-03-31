@@ -759,7 +759,25 @@ contains
                
        else if (make_new_mesh) then
 
-         mesh = make_mesh_from_options(model_mesh, mesh_path)
+          ! the dummy mesh does need a shape of the right dimension
+          h_dim = mesh_dim(modelposition)
+          call get_option("/geometry/quadrature/degree", quadrature_degree)
+          quad = make_quadrature(vertices=h_dim + 2, dim=h_dim + 1, degree=quadrature_degree)
+          full_shape = make_element_shape(vertices=h_dim + 2, dim=h_dim + 1, degree=1, quad=quad)
+          call deallocate(quad)
+          
+          call allocate(mesh, nodes=0, elements=0, shape=full_shape, name=mesh_name)
+          call deallocate(full_shape)
+          allocate(mesh%columns(1:0))
+          call add_faces(mesh)
+          mesh%periodic=modelposition%mesh%periodic
+          call allocate(extrudedposition, h_dim+1, mesh, "EmptyCoordinate") ! name is fixed below
+          if (IsParallel()) call create_empty_halo(extrudedposition)          
+          mesh = extrudedposition%mesh
+          call deallocate(extrudedposition)
+ 
+
+!          mesh = make_mesh_from_options(model_mesh, mesh_path)
              
        else if (periodic) then
                 
