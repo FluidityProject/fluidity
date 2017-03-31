@@ -647,6 +647,7 @@ module conservative_interpolation_module
           if(any(bounded(mesh,:)).or.any(lumped(mesh,:))) then
             call allocate(inverse_M_B_L, M_B_L(mesh)%mesh, "InverseLumpedMass")
             call invert(M_B_L(mesh), inverse_M_B_L)
+            call halo_update(inverse_M_B_L)
           end if
           
           do field=1,field_counts(mesh)
