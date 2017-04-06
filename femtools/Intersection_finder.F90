@@ -669,6 +669,7 @@ contains
     type(quadrature_type) :: quad
     type(inode), pointer :: node
     type(vector_field) :: intersection
+    logical :: empty_intersection
     
     ewrite(1, *) "Entering verify_map"
         
@@ -700,8 +701,8 @@ contains
       intersection_volume = 0.0
       node => map_ab(i)%firstnode
       do while(associated(node))
-        intersection = intersect_elements(mesh_field_a, i, ele_val(mesh_field_b, node%value), shape)
-        if (.not. has_references(intersection)) then
+        intersection = intersect_elements(mesh_field_a, i, ele_val(mesh_field_b, node%value), shape, empty_intersection)
+        if (empty_intersection) then
            node => node%next
            cycle
         end if
@@ -719,8 +720,8 @@ contains
       reference_intersection_volume = 0.0
       node => map_ab_reference(i)%firstnode
       do while(associated(node))
-        intersection = intersect_elements(mesh_field_a, i, ele_val(mesh_field_b, node%value), shape)
-        if (.not. has_references(intersection)) then
+        intersection = intersect_elements(mesh_field_a, i, ele_val(mesh_field_b, node%value), shape, empty_intersection)
+        if (empty_intersection) then
            node => node%next
            cycle
         end if
