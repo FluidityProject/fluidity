@@ -800,7 +800,6 @@ contains
               end if
               MIM_src%val(j)=-MIM_src%val(j)
             end do
-            !-(S_NegativeMobile*theta_d/theta_d_old*Cd_old+alpha^2*dt/(theta_s_new+alpha*dt-(theta_s_new-theta_s_old)-dt*S_NegativeImmobie/Cs_old)-alpha)+(theta_s_new-theta_s_old)/dt
             call addto(MIM_src, dtheta_s_c_dt)
             call compute_cv_mass(di%positions,src_cv_mass, MIM_src)
             call addto(di%lhs, src_cv_mass)

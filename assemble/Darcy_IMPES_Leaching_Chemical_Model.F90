@@ -272,7 +272,28 @@ module darcy_impes_leaching_chemical_model
              
               call get_option(trim(option_path)//'['//int2str(f-1)//']/name', reaction_name)
               select case(trim(reaction_name))
-              
+                
+                case('CuFeS2_oxidation_aqueous_ferric_sulfate_SCM')
+                  di%lc%dis%chal%dcdt => extract_scalar_field(di%state(2), 'chal_dCuFeS2_dt', stat=stat)
+                  if (.not. stat==0) then
+                    FLAbort('failed to extract the leaching reaction named chal_dCuFeS2_dt')
+                  end if
+                  !get extraction rate
+                  di%lc%dis%chal%ex_r => extract_scalar_field(di%state(2), 'chal_extraction_rate', stat=stat)
+                  if (.not. stat==0) then
+                    FLAbort('failed to extract the leaching reaction named chal_extraction_rate')
+                  end if
+                  !get current extraction
+                  di%lc%dis%chal%ex => extract_scalar_field(di%state(2), 'chal_current_extraction', stat=stat)
+                  if (.not. stat==0) then
+                    FLAbort('failed to extract the leaching reaction named chal_current_extraction')
+                  end if
+                  !get the molar concentraction of the mineral, mole per volume of heap
+                  di%lc%dis%chal%mc => extract_scalar_field(di%state(2), 'chal_molar_concentration', stat=stat)
+                  if (.not. stat==0) then
+                    FLAbort('failed to extract the leaching reaction named chal_molar_concentration')
+                  end if                 
+                
                 case('CuFeS2_oxidation_aqueous_ferric_sulfate')
                   if (have_option(trim(trim(option_path)//'::'//trim(reaction_name)//'/Optimum_Eh'))) then
                      di%lc%dis%chal%check_Eh=.true.
@@ -280,7 +301,7 @@ module darcy_impes_leaching_chemical_model
                              di%lc%dis%chal%max_Eh)
                      call get_option(trim(option_path)//'::'//trim(reaction_name)//'/Optimum_Eh/higher_activation_energy', & 
                           di%lc%dis%chal%ak%second_ae)
-
+                  
                   else
                      di%lc%dis%chal%check_Eh=.false.
                   end if
@@ -296,6 +317,7 @@ module darcy_impes_leaching_chemical_model
                         call get_option(trim(option_path)//'::'//trim(reaction_name)//'/Cap_field/name', & 
                              cap_name)
                         call get_option(trim(option_path)//'::'//trim(reaction_name)//'/Cap_field::'//trim(cap_name)//'/field_maximun_value', di%lc%dis%chal%cap%cap_val(i))
+                        
                         
                         do isf=1,size(di%generic_prog_sfield)
                            if (trim(cap_name)==trim(di%generic_prog_sfield(isf)%sfield%name)) then
@@ -381,7 +403,28 @@ module darcy_impes_leaching_chemical_model
                   !do cubic spline interpolation
                   call cubic_spline_coefficient(di%lc%dis%chal%exp_ex,di%lc%dis%chal%exp_exrk,di%lc%dis%chal%spline_coe)
                 
-                
+                case('FeS2_oxidation_aqueous_ferric_sulfate_SCM')
+
+                  di%lc%dis%pyri%dcdt => extract_scalar_field(di%state(2), 'pyri_dFeS2_dt', stat=stat)
+                  if (.not. stat==0) then
+                    FLAbort('failed to extract the leaching reaction named pyri_dFeS2_dt')
+                  end if
+                  !get extraction rate
+                  di%lc%dis%pyri%ex_r => extract_scalar_field(di%state(2), 'pyri_extraction_rate', stat=stat)
+                  if (.not. stat==0) then
+                    FLAbort('failed to extract the leaching reaction named pyri_extraction_rate')
+                  end if
+                  !get current extraction
+                  di%lc%dis%pyri%ex => extract_scalar_field(di%state(2), 'pyri_current_extraction', stat=stat)
+                  if (.not. stat==0) then
+                    FLAbort('failed to extract the leaching reaction named pyri_current_extraction')
+                  end if
+                  !get the molar concentraction of the mineral, mole per volume of heap
+                  di%lc%dis%pyri%mc => extract_scalar_field(di%state(2), 'pyri_molar_concentration', stat=stat)
+                  if (.not. stat==0) then
+                    FLAbort('failed to extract the leaching reaction named pyri_molar_concentration')
+                  end if
+                  
                 case('FeS2_oxidation_aqueous_ferric_sulfate')
                   di%lc%dis%pyri%check_Eh=.false.
                   if (have_option(trim(trim(option_path)//'::'//trim(reaction_name)//'/Cap_field'))) then
@@ -758,6 +801,14 @@ module darcy_impes_leaching_chemical_model
              
           end if
           
+          if (have_option(trim(option_path)//'/prognostic/LeachingChemicalSourceTerm/non_negative')) then
+             di%generic_prog_sfield(f)%nonnegative=.true.   
+
+          else
+             di%generic_prog_sfield(f)%nonnegative=.false.   
+             
+          end if
+          
           !---check for heat transfer source under temperature field
           !check the source linearization
           if (have_option(trim(option_path)//'/prognostic/leaching_temperature_sources/Source_Linearization')) then
@@ -923,6 +974,7 @@ module darcy_impes_leaching_chemical_model
                  deallocate(di%lc%sol%feox%bio%phi_l_src)
                  deallocate(di%lc%sol%feox%bio%phi_max)
                  deallocate(di%lc%sol%feox%bio%miu_max)
+                 deallocate(di%lc%sol%feox%bio%k_death)
                  deallocate(di%lc%sol%feox%bio%T_shift)
                  deallocate(di%lc%sol%feox%bio%k1)
                  deallocate(di%lc%sol%feox%bio%k2) 
@@ -972,6 +1024,18 @@ module darcy_impes_leaching_chemical_model
               end if
               di%lc%dis%chal%check_Eh=.false.
               nullify(di%lc%Eh)
+           
+           case('CuFeS2_oxidation_aqueous_ferric_sulfate_SCM')
+              nullify(di%lc%dis%chal%dcdt)
+              nullify(di%lc%dis%chal%ex_r)
+              nullify(di%lc%dis%chal%ex)
+              nullify(di%lc%dis%chal%mc)
+           
+           case('FeS2_oxidation_aqueous_ferric_sulfate_SCM')
+              nullify(di%lc%dis%pyri%dcdt)
+              nullify(di%lc%dis%pyri%ex_r)
+              nullify(di%lc%dis%pyri%ex)
+              nullify(di%lc%dis%pyri%mc)   
               
            case('FeS2_oxidation_aqueous_ferric_sulfate')
               nullify(di%lc%dis%pyri%dcdt)
@@ -1007,6 +1071,10 @@ module darcy_impes_leaching_chemical_model
      do f=1, size(di%generic_prog_sfield)
         if (di%generic_prog_sfield(f)%have_cap) then
            di%generic_prog_sfield(f)%have_cap=.false.
+        end if
+        
+        if (di%generic_prog_sfield(f)%nonnegative) then
+           di%generic_prog_sfield(f)%nonnegative=.false.
         end if
         
         if (di%generic_prog_sfield(f)%MIM%chem%if_src_linear) then
@@ -1115,6 +1183,7 @@ module darcy_impes_leaching_chemical_model
       real :: T,ft, dt
       real, dimension(:), allocatable :: A !pre-factor of the arrhenius rate constant
       type(scalar_field), pointer :: rock_temperature
+      character(len=FIELD_NAME_LEN) :: mineral_name
       
       if (di%lc%have_dis) then  
          if (.not. di%lc%ht%heat_transfer_single) then
@@ -1131,13 +1200,27 @@ module darcy_impes_leaching_chemical_model
 
         !--------------for mineral dissolution-----------------
         ! Chalcopyrite oxidation 
-         if (associated(di%lc%dis%chal%dcdt)) call calculate_mineral_dissolution_semi_empirical_model(di,di%state,&
+         if (associated(di%lc%dis%chal%dcdt)) then 
+           if (associated(di%lc%dis%chal%ak%A)) then
+             call calculate_mineral_dissolution_semi_empirical_model(di,di%state,&
                                           rock_temperature,di%number_pmesh_node,dt,di%lc%dis%chal,&
                                           di%saturation(2)%ptr)
+           else
+             mineral_name='chal'
+             call calculate_mineral_dissolution_SCM(di,mineral_name, di%lc%dis%chal)
+           end if
+         end if
          !pyrite dissolution
-         if (associated(di%lc%dis%pyri%dcdt)) call calculate_mineral_dissolution_semi_empirical_model(di,di%state,&
+         if (associated(di%lc%dis%pyri%dcdt)) then 
+           if (associated(di%lc%dis%pyri%ak%A)) then
+              call calculate_mineral_dissolution_semi_empirical_model(di,di%state,&
                                           rock_temperature,di%number_pmesh_node,dt,di%lc%dis%pyri,&
                                           di%saturation(2)%ptr)
+           else
+              mineral_name='pyri'
+              call calculate_mineral_dissolution_SCM(di,mineral_name, di%lc%dis%pyri)
+           end if
+         end if
          !S0 dissolution
          if (associated(di%lc%dis%sulf%dcdt)) call calculate_S0_dissolution(di)
          !gangue mineral dissolution
@@ -1200,14 +1283,65 @@ module darcy_impes_leaching_chemical_model
            call calculate_oxygen_dissolution(di)
          end if
 
-        if (di%lc%dis%chal%check_Eh) then
+        if (di%lc%dis%chal%check_Eh .or. have_option('/Leaching_chemical_model/scalar_field::Eh')) then
            call calculate_Eh(di)
          end if
          
       end if
      
       contains 
+        subroutine calculate_mineral_dissolution_SCM(di,mineral_name,mineral)
+            type(darcy_impes_type), intent(inout) :: di
+            character(len=FIELD_NAME_LEN), intent(in) :: mineral_name
+            type(leaching_semi_empirical_model_type), intent(inout) :: mineral                 
+            type(scalar_field), pointer :: cfe
+            integer :: i
+            real :: ext, c, tc, td, dedt, ext1, dcdt, mc, wet_eff, wet_eff_cali
+            
+            cfe => extract_scalar_field(di%state(2), 'Fe3')
+            wet_eff_cali=0.069664557 !the wetting factor of calibration experiment 
+            
+            
+            if (mineral_name=='chal') then
+              tc=179.4
+              td=21423.29866542
+            else if (mineral_name=='pyri') then
+              tc=67860.49031911
+              td=16138.45086489
+            else
+            
+              FLAbort('invalid mineral description')
+            end if
+            node_loop: do i=1, di%number_pmesh_node
+              ext=node_val(mineral%ex,i)
+              ext1=1.0-ext
+              if (ext1<=1.0D-15) then
+                !stop reaction
+                call set(mineral%ex, i, ext)
+                call set(mineral%dcdt, i, 0.0)
+                call set(mineral%ex_r, i, 0.0)
+              else 
+                 c=node_val(cfe,i)                 
+                 
+                 dedt=3.0*c*(ext1**(2.0/3.0))/(tc+6.0*td*(ext1**(1.0/3.0))*(1.0-ext1**(1.0/3.0)))/wet_eff_cali
+                 !calculate wetting efficiency
+                 if (di%lc%wet_eff%have_wet_eff) then
+                     call calculate_solid_liquid_wetting_efficiency(di, i, wet_eff)
+                 end if
+                 dedt=dedt*wet_eff
+                 !update the new extraction rate, unit is extraction per day
+                 call set(mineral%ex_r, i, dedt)
+              
+                 mc= node_val(mineral%mc, i)
+                 ext=ext+(dedt/86400.0)*di%dt
+                 dcdt= -(dedt/86400.0)*mc
+                 call set(mineral%ex, i, ext)                       
+                 call set(mineral%dcdt, i, dcdt)
+              end if    
+            end do node_loop
 
+        end subroutine calculate_mineral_dissolution_SCM
+        
         subroutine calculate_mineral_dissolution_semi_empirical_model(di,states,temperature,node_number,dt,mineral,sat)
               type(darcy_impes_type), intent(inout) :: di
               type(leaching_semi_empirical_model_type), intent(inout) :: mineral
@@ -1449,7 +1583,7 @@ module darcy_impes_leaching_chemical_model
            do isp= 1, nspecies                 
               cb_n = node_val(cb(isp)%ptr, node)
 
-              if (cb_n <=0.00000001) then
+              if (cb_n <=0.0000000001) then
                  if (m(isp) > 0.0) then
                    k_rate=0.0  !the species with positive order is the reactant, stop reaction
 
@@ -1744,16 +1878,30 @@ module darcy_impes_leaching_chemical_model
              theta_m=di%porosity_pmesh%val(i)*di%MIM_options%mobile_saturation(2)%ptr%val(i)
              theta_im=di%porosity_pmesh%val(i)*di%MIM_options%immobile_saturation(2)%ptr%val(i)
              !concentration in mole per volume of immobile liquid solution
-             o2_im%val(i)=o2%val(i)*theta2*Fs/theta_im
+             if (theta_im > 1.0E-7) then
+                 o2_im%val(i)=o2%val(i)*theta2*Fs/theta_im
+             else
+                 o2_im%val(i)=0.0
+             end if
              !concentration in mole per volume of mobile liquid solution
-             o2_m%val(i)=o2%val(i)*theta2*Fd/theta_m
+             if (theta_m > 1.0E-7) then
+                o2_m%val(i)=o2%val(i)*theta2*Fd/theta_m
+             else
+                o2_m%val(i)=0.0
+             end if
+             
 
              !the source of mobile part in mole per volume of immobile liquid solution
              src=di%generic_prog_sfield(f)%MIM%chem%im_src%sfield%val(i)
-             di%generic_prog_sfield(f)%MIM%chem%im_src%sfield%val(i)=src+o2_src%val(i)*theta2*Fs/theta_im
+             if (theta_im > 1.0E-7) then
+               di%generic_prog_sfield(f)%MIM%chem%im_src%sfield%val(i)=src+o2_src%val(i)*theta2*Fs/theta_im
+             end if
              !the source of mobile part in mole per volume of mobile liquid solution
              src=di%generic_prog_sfield(f)%MIM%chem%mo_src%sfield%val(i)
-             di%generic_prog_sfield(f)%MIM%chem%mo_src%sfield%val(i)=src+o2_src%val(i)*theta2*Fd/theta_m
+             if (theta_m > 1.0E-7) then
+               di%generic_prog_sfield(f)%MIM%chem%mo_src%sfield%val(i)=src+o2_src%val(i)*theta2*Fd/theta_m
+             end if
+             
           end if
         end do node_loop
         nullify(og)
@@ -1777,20 +1925,20 @@ module darcy_impes_leaching_chemical_model
 
      node_loop: do i=1,di%number_pmesh_node
          
-         !change the concentration fron mole/m3 to kg/m3 
-         cl=di%lc%sol%feox%bio%cl%val(i)*0.016
-         cfe2=di%lc%sol%feox%bio%cfe2%val(i)*0.056
+       !change the concentration fron mole/m3 to kg/m3 
+       cl=di%lc%sol%feox%bio%cl%val(i)*0.016
+       cfe2=di%lc%sol%feox%bio%cfe2%val(i)*0.056
          
-         !-------------calculate f(t)-----------------
-         !the temperature T is based on the average of liquid and ore
-         if (di%lc%ht%heat_transfer_single) then
-           Ta=di%lc%ht%liquid_temperature%val(i)
-         else
-           Ta=(di%lc%ht%rock_temperature%val(i)+di%lc%ht%liquid_temperature%val(i))/2.0
-         end if
+       !-------------calculate f(t)-----------------
+       !the temperature T is based on the average of liquid and ore
+       if (di%lc%ht%heat_transfer_single) then
+         Ta=di%lc%ht%liquid_temperature%val(i)
+       else
+         Ta=(di%lc%ht%rock_temperature%val(i)+di%lc%ht%liquid_temperature%val(i))/2.0
+       end if
          
-         phi_loop: do j=1,size(di%lc%sol%feox%bio%miu)
-           
+       phi_loop: do j=1,size(di%lc%sol%feox%bio%miu)
+         
            Tas=Ta-di%lc%sol%feox%bio%T_shift(j)
            ft=21830090.0*Tas*exp(-7000.0/Tas)/(1.0+exp(236.0-74000.0/Tas))
 
@@ -1819,23 +1967,24 @@ module darcy_impes_leaching_chemical_model
            
             
 
-           di%lc%sol%feox%bio%dcdt%val(i)=di%lc%sol%feox%bio%dcdt%val(i)-di%lc%sol%feox%bio%phi_l(j)%ptr%val(i)*miu/di%lc%sol%feox%bio%Y
-           !-------------------------calculate new phi_ore-------------------------------------
-           !initially, phi_ore=phi_max
-           if (di%current_time<=1.0e-10) then
-              old_phi_o=0.0!di%lc%sol%feox%bio%phi_max
-           else
-              old_phi_o=phi_o
-           end if
+           di%lc%sol%feox%bio%dcdt%val(i)=di%lc%sol%feox%bio%dcdt%val(i)-(lh*phi_l+rho_h*phi_o)*miu/di%lc%sol%feox%bio%Y
+
+         !-------------------------calculate new phi_ore-------------------------------------
+         !initially, phi_ore=phi_max
+         if (di%current_time<=1.0e-10) then
+            old_phi_o=0.0!di%lc%sol%feox%bio%phi_max
+         else
+            old_phi_o=phi_o
+         end if
          
-           !in kg/m^3_ore
-           if (src_o>=0.0) then
-              di%lc%sol%feox%bio%phi_ore(j)%ptr%val(i)=old_phi_o+src_o*di%dt/rho_h
-           else
-              di%lc%sol%feox%bio%phi_ore(j)%ptr%val(i)=old_phi_o/(1.0-src_o*di%dt/(rho_h*old_phi_o))
-           end if
+         !in kg/m^3_ore
+         if (src_o>=0.0) then
+            di%lc%sol%feox%bio%phi_ore(j)%ptr%val(i)=old_phi_o+src_o*di%dt/rho_h
+         else
+            di%lc%sol%feox%bio%phi_ore(j)%ptr%val(i)=old_phi_o/(1.0-src_o*di%dt/(rho_h*old_phi_o))
+         end if
            
-         end do phi_loop
+       end do phi_loop
          
      end do node_loop
      
@@ -1845,19 +1994,49 @@ module darcy_impes_leaching_chemical_model
      type(darcy_impes_type), intent(inout) :: di
 
      !local variables
-     integer :: i,n_s,n_l,nsrc_s,nsrc_l,nd,nr,n2_s,n2_l
-     real :: Crs,Crl,prts,dTsl,ktp,Hs,Hr,miu
+     type(tensor_field), pointer :: lambda => null()
+     integer :: i,n_s,n_l,nsrc_s,nsrc_l,nd,nr,n2_s,n2_l,stat
+     real :: Crs,Crl,prts,dTsl,ktp,Hs,Hr,mu,lam,pr,rho,u,d,Re,ht,at,wet_eff
 
      !---------------for two phase heat transfer--------------------
      !count the number of sources term for solid temperature
      nsrc_s=size(di%lc%ht%two_phase_src_solid)
      nsrc_l=size(di%lc%ht%two_phase_src_liquid)
-
+     
+     !calculate effective liquid-solid  heat transfer coefficient
+     lambda => extract_tensor_field(di%state(2), 'TemperatureDiffusivity', stat=stat)
+       
+     if (.not. stat==0) then              
+       FLAbort('failed to extract the diffusivity of liquid temperature')             
+     end if
+     lam=maxval(lambda%val)
+       
      node_loop: do i=1,di%number_pmesh_node
        prts=1.0-di%porosity_pmesh%val(i)
        Crs=di%lc%ht%rock_cp%val(i)*di%lc%ht%rock_density%val(i)
        Crl=di%lc%ht%liquid_cp%val(i)*di%density(2)%ptr%val(i)
        dTsl=di%lc%ht%rock_temperature%val(i)-di%lc%ht%liquid_temperature%val(i)
+       
+       if(have_option('/Leaching_chemical_model/heat_transfer_model/two_phases_heat_transfer/heat_transfer_sources/scalar_field::solid_liquid_heat_transfer_rock_phase/scalar_field::K_eff_sl/diagnostic')) then
+         mu=node_val(di%lviscosity_pmesh,i)
+         pr=mu*di%lc%ht%liquid_cp%val(i)/lam
+         !the velocity magnitude of darcy flux
+         u=norm2(node_val(di%darcy_velocity(2)%ptr,i))
+
+         !liquid density
+         rho=node_val(di%density(2)%ptr,i)
+
+         !rock particle diameter
+         d=node_val(di%heap%rock_d,i)
+
+         !Reynolds number
+         Re=u*rho*d/mu/prts
+         ht=lam*(2.0+1.1*(pr**(1.0/3.0))*(Re**0.6))/d
+         wet_eff=node_val(di%lc%wet_eff%wet_eff,i)
+         at=wet_eff*6.0*prts/d
+         di%lc%ht%K_eff_ls%val(i)=ht*at      
+       end if
+       
        ktp=di%lc%ht%K_eff_ls%val(i)*dTsl*prts
        
        !loop the liquid temperature source terms
@@ -1911,7 +2090,7 @@ module darcy_impes_leaching_chemical_model
       
 
      end do node_loop
-
+     nullify(lambda)
    end subroutine calculate_leach_heat_transfer_src
 
    subroutine calculate_leach_rock_temperature(di)
@@ -1964,7 +2143,7 @@ module darcy_impes_leaching_chemical_model
        integer,optional,intent(in) :: isub
        
        !local variables
-       integer :: i,n,nsrc,p
+       integer :: i,n,nsrc,p,j
        real :: isub_e,isub_s,theta_d,old_theta_d
        type(scalar_field) :: src, src_p,src_n, theta_m, theta_im, src_cv_mass
        
@@ -2032,13 +2211,26 @@ module darcy_impes_leaching_chemical_model
           end if
            
           !allocate the chemical src to the immobile part
-          call invert(theta_im)
+          do j=1,di%number_pmesh_node
+            if (theta_im%val(j)<1.0E-7) then
+               theta_im%val(j)=0.0
+            else
+               theta_im%val(j)=1.0/theta_im%val(j)
+            end if
+          end do
           call set(di%generic_prog_sfield(f)%MIM%chem%im_src%sfield, src)
           call scale(di%generic_prog_sfield(f)%MIM%chem%im_src%sfield,di%generic_prog_sfield(f)%MIM%Fs)
           call scale(di%generic_prog_sfield(f)%MIM%chem%im_src%sfield,theta_im) !in k/s
           
           !allocate the chemical src to the mobile part
-          call invert(theta_m)
+          do j=1,di%number_pmesh_node
+            if (theta_m%val(j)<1.0E-7) then
+               theta_m%val(j)=0.0
+            else
+               theta_m%val(j)=1.0/theta_m%val(j)
+            end if
+          end do
+          
           call set(di%generic_prog_sfield(f)%MIM%chem%mo_src%sfield, src)
           call scale(di%generic_prog_sfield(f)%MIM%chem%mo_src%sfield,di%generic_prog_sfield(f)%MIM%Fd)
           call scale(di%generic_prog_sfield(f)%MIM%chem%mo_src%sfield,theta_m) !in k/s
@@ -2083,9 +2275,7 @@ module darcy_impes_leaching_chemical_model
           call allocate(src_cv_mass,di%pressure_mesh)
           !with src linearization
           if(di%generic_prog_sfield(f)%lh_src%src_linear%have) then
-             call compute_cv_mass(di%positions,src_cv_mass,src_p)
-             call addto(di%rhs,src_cv_mass) !S_positive
-
+             
              node_loop3: do i=1,di%number_pmesh_node
                 if (di%lcsub%have_leach_subcycle) then
                  
@@ -2102,9 +2292,7 @@ module darcy_impes_leaching_chemical_model
                    if (di%generic_prog_sfield(f)%sfield%val(i)<=1.0D-15) then
                       src_n%val(i)=0.0
                    else
-                      theta_d=di%sat_ADE%val(i)*di%porosity_pmesh%val(i)
-                      old_theta_d=di%old_sat_ADE%val(i)*di%old_porosity_pmesh%val(i)
-                      src_n%val(i)=-src_n%val(i)*theta_d/(di%generic_prog_sfield(f)%old_sfield%val(i)*old_theta_d) !'-S_negative*thta_d/(C_old*theta_d_old' 
+                      src_n%val(i)=-src_n%val(i)/di%generic_prog_sfield(f)%old_sfield%val(i)!'-S_negative/C_old' 
                    end if
                  
                 end if
@@ -2112,11 +2300,14 @@ module darcy_impes_leaching_chemical_model
 
              call compute_cv_mass(di%positions, src_cv_mass, src_n )
              call addto(di%lhs, src_cv_mass)
+              
+      
+             call compute_cv_mass(di%positions,src_cv_mass,src_p)
+             call addto(di%rhs,src_cv_mass) !S_positive
           else
              !without source linearizatiom
              call compute_cv_mass(di%positions,src_cv_mass,src)
              call addto(di%rhs,src_cv_mass)
-       
           end if
           call deallocate(src_cv_mass)
           
@@ -2143,7 +2334,7 @@ module darcy_impes_leaching_chemical_model
       
       !local variables
       type(scalar_field) :: leach_src,leach_src_p,leach_src_n, single_src, theta_m, theta_im, src_cv_mass
-      integer :: n,p,i,stat
+      integer :: n,p,i,stat,j
       real :: s_factor !the stoichemistry factor
       real :: isub_e,isub_s, theta_d, old_theta_d
       character(len=FIELD_NAME_LEN) :: lc_name,phin
@@ -2250,12 +2441,22 @@ module darcy_impes_leaching_chemical_model
                if (.not. associated(di%lc%dis%chal%dcdt)) &
                FLAbort('CuFeS2_oxidation_aqueous_ferric_sulfate is turned off in the leaching chemical model,while its source term is turned on under the prognostic scaler field')
                src => di%lc%dis%chal%dcdt
-
+             
+             case("CuFeS2_oxidation_aqueous_ferric_sulfate_SCM")
+               if (.not. associated(di%lc%dis%chal%dcdt)) &
+               FLAbort('CuFeS2_oxidation_aqueous_ferric_sulfate is turned off in the leaching chemical model,while its source term is turned on under the prognostic scaler field')
+               src => di%lc%dis%chal%dcdt
+               
              case('FeS2_oxidation_aqueous_ferric_sulfate')
                if (.not. associated(di%lc%dis%pyri%dcdt)) &
                FLAbort('FeS2_oxidation_aqueous_ferric_sulfate is turned off in the leaching chemical model, while its source term is turned on under the prognostic scaler field')
                src => di%lc%dis%pyri%dcdt 
-
+               
+             case('FeS2_oxidation_aqueous_ferric_sulfate_SCM')
+               if (.not. associated(di%lc%dis%pyri%dcdt)) &
+               FLAbort('FeS2_oxidation_aqueous_ferric_sulfate is turned off in the leaching chemical model, while its source term is turned on under the prognostic scaler field')
+               src => di%lc%dis%pyri%dcdt 
+               
              case('S0_dissolution')
                if (.not. associated(di%lc%dis%sulf%dcdt)) &
                FLAbort('S0_dissolution is turned off in the leaching chemical model,while its source term is turned on under the prognostic scaler field')
@@ -2307,7 +2508,7 @@ module darcy_impes_leaching_chemical_model
              call set(theta_m,di%lcsub%sub_lht(p))
              call scale(theta_m,isub_e)
              call addto(theta_m,di%lcsub%old_sub_lht(p),scale=(1-isub_e))
-
+             
              !immobile liquid hold up  
              call set(theta_im,di%lcsub%sub_lht_im(p))
              call scale(theta_im,isub_e)
@@ -2323,13 +2524,27 @@ module darcy_impes_leaching_chemical_model
          end if
        
          !allocate the chemical src to the immobile part
-         call invert(theta_im)
+         do j=1,di%number_pmesh_node
+            if (theta_im%val(j)<1.0E-7) then
+               theta_im%val(j)=0.0
+            else
+               theta_im%val(j)=1.0/theta_im%val(j)
+            end if
+         end do
+
          call set(di%generic_prog_sfield(f)%MIM%chem%im_src%sfield, leach_src)
          call scale(di%generic_prog_sfield(f)%MIM%chem%im_src%sfield,di%generic_prog_sfield(f)%MIM%Fs)
          call scale(di%generic_prog_sfield(f)%MIM%chem%im_src%sfield, theta_im) !in mole per volume of immobile liquid/s
          
          !allocate the chemical src to the mobile part
-         call invert(theta_m)                         
+         do j=1,di%number_pmesh_node
+            if (theta_m%val(j)<1.0E-7) then
+               theta_m%val(j)=0.0
+            else
+               theta_m%val(j)=1.0/theta_m%val(j)
+            end if
+         end do   
+                             
          call set(di%generic_prog_sfield(f)%MIM%chem%mo_src%sfield, leach_src)!in mole per volume of heap/s
          call scale(di%generic_prog_sfield(f)%MIM%chem%mo_src%sfield,di%generic_prog_sfield(f)%MIM%Fd)
          call scale(di%generic_prog_sfield(f)%MIM%chem%mo_src%sfield, theta_m) !in mole per volume of mobile liquid/s
@@ -2376,8 +2591,6 @@ module darcy_impes_leaching_chemical_model
          call allocate(src_cv_mass,di%pressure_mesh)
          !with src linearization
          if(di%generic_prog_sfield(f)%lc_src%src_linear%have) then
-            call compute_cv_mass(di%positions,src_cv_mass,leach_src_p)
-            call addto(di%rhs,src_cv_mass) !S_positive
             !linearize the negative source and add to lhs
             node_loop3: do i=1,di%number_pmesh_node
               if (di%lcsub%have_leach_subcycle) then
@@ -2396,9 +2609,7 @@ module darcy_impes_leaching_chemical_model
                  if (di%generic_prog_sfield(f)%sfield%val(i)<=1.0D-15) then
                     leach_src_n%val(i)=0.0
                  else
-                    theta_d=di%sat_ADE%val(i)*di%porosity_pmesh%val(i)
-                    old_theta_d=di%old_sat_ADE%val(i)*di%old_porosity_pmesh%val(i)
-                    leach_src_n%val(i)=-leach_src_n%val(i)*theta_d/(di%generic_prog_sfield(f)%sfield%val(i)*old_theta_d) !'-S_negative*thta_d/(C_old*theta_d_old'
+                    leach_src_n%val(i)=-leach_src_n%val(i)/di%generic_prog_sfield(f)%old_sfield%val(i) !'-S_negative/C_old'
                     
                  end if
                  
@@ -2406,14 +2617,15 @@ module darcy_impes_leaching_chemical_model
             end do node_loop3                   
             call compute_cv_mass(di%positions, src_cv_mass, leach_src_n )
             call addto(di%lhs, src_cv_mass)
+
             call compute_cv_mass(di%positions,src_cv_mass,leach_src_p)
             call addto(di%rhs,src_cv_mass)
             
          else
-            !without source linearizatiom
+            !without source linearization
             call compute_cv_mass(di%positions,src_cv_mass,leach_src)
             call addto(di%rhs,src_cv_mass)
-         
+
          end if
          call deallocate(src_cv_mass)
          
@@ -2443,10 +2655,11 @@ module darcy_impes_leaching_chemical_model
 
       !the gravity magnitude
       g=di%gravity_magnitude
+      
       if (g<=1.0e-10) then
          g=9.8
       end if
-     
+
       !the liquid viscosity
       mu=node_val(di%lviscosity_pmesh,node)
 

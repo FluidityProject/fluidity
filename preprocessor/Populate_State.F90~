@@ -1478,7 +1478,7 @@ contains
              ! Get Field name
              call get_option(trim(path)//"/name", field_name)
              ! Reset path to have field name rather than index
-             path=trim(state_path_MIM)//"/tensor_field::Dispersivity_MIM/correlation_Lima/scalar_field::"//trim(field_name)
+             path=trim(state_path_MIM)//"/scalar_field::"//trim(field_name)
   
              call allocate_and_insert_scalar_field(trim(path), state, field_name=field_name, &
                dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
@@ -1494,7 +1494,7 @@ contains
              ! Get Field name
              call get_option(trim(path)//"/name", field_name)
              ! Reset path to have field name rather than index
-             path=trim(state_path_MIM)//"/tensor_field::Dispersivity_MIM/correlation_Ilankoon/scalar_field::"//trim(field_name)
+             path=trim(state_path_MIM)//"/scalar_field::"//trim(field_name)
   
              call allocate_and_insert_scalar_field(trim(path), state, field_name=field_name, &
                dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)

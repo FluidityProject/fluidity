@@ -126,6 +126,7 @@ module darcy_impes_assemble_type
       !for limite the field by a maximun value
       logical::have_cap=.false.
       real :: cap_val
+      logical :: nonnegative= .false. !force the field to be non-negative
       !***********LCai*******end***************
    end type darcy_impes_generic_prog_sfield_type
   

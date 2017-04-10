@@ -33,7 +33,13 @@ module darcy_transport_types
       type(scalar_field_pointer), dimension(:), pointer :: old_mobile_saturation
       type(scalar_field_pointer), dimension(:), pointer :: mass_trans_coef
       type(scalar_field_pointer), dimension(:), pointer :: old_mass_trans_coef
-      ! *** Flag for Whether there is Mobile-Immobile model
+      type(scalar_field_pointer), dimension(:), pointer :: vel_pmsh
+      type(scalar_field_pointer), dimension(:), pointer :: vel_elemsh
+      type(tensor_field_pointer), dimension(:), pointer :: Dispersivity_mim
+
+      
+      type(tensor_field), pointer :: constant_zero_tfield_elementwisemesh
+      ! *** Flag for Whether there is Mobile-Immobile model      
       logical, dimension(:), pointer :: have_MIM
       ! *** Flag to check wether the MIM exist in at least one phase
       logical :: have_MIM_phase
@@ -51,6 +57,7 @@ module darcy_transport_types
      type (scalar_field), pointer :: Fd !the weight factor for the mobile field, which is ratio of mobile part to average mass
      type (scalar_field), pointer :: Fs !the weight factor for the immobile field, which is ratio of immobile part to average mass
      type(leach_chemical_MIM_type) :: chem
+     logical :: if_dynamic_D=.false.
   end type prog_sfield_MIM_type
 
   type heap_property_type

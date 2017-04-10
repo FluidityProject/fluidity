@@ -1500,6 +1500,7 @@ contains
        do i=1,size(state%tensor_fields)
           if (trim(name)==trim(state%tensor_names(i))) then
              ! Found the right field
+             print *, name, i
              field=>state%tensor_fields(i)%ptr
              return
           end if

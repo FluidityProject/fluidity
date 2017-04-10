@@ -65,7 +65,7 @@ module darcy_impes_leaching_types
   end type leaching_arrhenius_reaction_type
   
   type leaching_reaction_cap_type
-     logical :: have_cap= .false. !the cap used to limit the max value of the concentration, useful for the singular corner of heap
+     logical :: have_cap= .false. !the cap used to limit the max value of the concentration, useful for the singular corner of heap    
      integer, dimension(:), allocatable :: field_index
      integer, dimension(:), allocatable :: field_phase
      real, dimension(:), allocatable  :: cap_val !the maximun value of the field

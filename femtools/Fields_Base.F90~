@@ -2111,6 +2111,7 @@ contains
     integer, dimension(:), pointer :: nodes
     integer :: i
     
+    print *, field%mesh%shape%loc
     select case(field%field_type)
     case(FIELD_TYPE_NORMAL)
       nodes=>ele_nodes(field,ele_number)

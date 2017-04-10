@@ -1842,10 +1842,11 @@ Default value is 1.</a:documentation>
           <ref name="prescribed_tensor_field_no_adapt"/>
         </element>
         <element name="diagnostic">
-          <optional>
-            <ref name="mesh_choice_element_wise"/>
-          </optional>
-          <ref name="tensor_python_diagnostic_algorithm"/>
+          <ref name="mesh_choice_element_wise"/>
+          <choice>
+            <ref name="tensor_python_diagnostic_algorithm"/>
+            <ref name="darcy_impes_internal_algorithm"/>
+          </choice>
           <ref name="darcy_impes_diagnostic_tensor_field_no_adapt"/>
         </element>
       </choice>
@@ -1993,7 +1994,7 @@ i.e. if the name of this scalar field is 'cd', then the name will be changed to 
           <empty/>
         </element>
       </choice>
-      <ref name="input_choice_real"/>
+      <ref name="input_choice_real_plus_field"/>
     </element>
   </define>
   <define name="darcy_impes_strong_dirichlet_bc">
@@ -2759,6 +2760,106 @@ Please turn on the corresponding immobile field under the mobile prognostic fiel
           </choice>
         </element>
       </optional>
+      <optional>
+        <element name="tensor_field">
+          <a:documentation>The dispersivity MIM on element mesh which is dependent on the mobile velocity, please turn on 
+the Mobile_velocity_magnitude_pressure_mesh and Mobile_velocity_magnitude_ele_mesh 	 </a:documentation>
+          <attribute name="rank">
+            <value>2</value>
+          </attribute>
+          <attribute name="name">
+            <value>Dispersivity_MIM</value>
+          </attribute>
+          <group>
+            <choice>
+              <element name="correlation_Lima">
+                <a:documentation>choose the algorithm used to calculate the dispersivity
+correlation_Lima used the empirical correlation from Lima, 2006</a:documentation>
+                <element name="scalar_field">
+                  <attribute name="rank">
+                    <value>0</value>
+                  </attribute>
+                  <attribute name="name">
+                    <value>dispersivity_pressure_mesh</value>
+                  </attribute>
+                  <element name="diagnostic">
+                    <a:documentation>Field type</a:documentation>
+                    <ref name="mesh_choice_pressure"/>
+                    <ref name="darcy_impes_internal_algorithm"/>
+                    <ref name="darcy_impes_diagnostic_scalar_field"/>
+                  </element>
+                </element>
+                <element name="scalar_field">
+                  <attribute name="rank">
+                    <value>0</value>
+                  </attribute>
+                  <attribute name="name">
+                    <value>dispersivity_element_mesh</value>
+                  </attribute>
+                  <element name="diagnostic">
+                    <a:documentation>Field type</a:documentation>
+                    <ref name="mesh_choice_element_wise"/>
+                    <element name="algorithm">
+                      <attribute name="name">
+                        <value>Internal</value>
+                      </attribute>
+                    </element>
+                    <element name="source_field_name">
+                      <value>dispersivity_pressure_mesh</value>
+                    </element>
+                    <ref name="darcy_impes_diagnostic_scalar_field"/>
+                  </element>
+                </element>
+              </element>
+              <element name="correlation_Ilankoon">
+                <a:documentation>correlation_Ilankoon used the empirical correlation from Ilankoon, 2012</a:documentation>
+                <element name="scalar_field">
+                  <a:documentation>The mobile velocity based on the pressure mesh	 </a:documentation>
+                  <attribute name="rank">
+                    <value>0</value>
+                  </attribute>
+                  <attribute name="name">
+                    <value>Mobile_velocity_magnitude_pressure_mesh</value>
+                  </attribute>
+                  <element name="diagnostic">
+                    <a:documentation>Field type</a:documentation>
+                    <ref name="mesh_choice_pressure"/>
+                    <ref name="darcy_impes_internal_algorithm"/>
+                    <ref name="darcy_impes_diagnostic_scalar_field"/>
+                  </element>
+                </element>
+                <element name="scalar_field">
+                  <attribute name="rank">
+                    <value>0</value>
+                  </attribute>
+                  <attribute name="name">
+                    <value>Mobile_velocity_magnitude_element_mesh</value>
+                  </attribute>
+                  <element name="diagnostic">
+                    <a:documentation>Field type</a:documentation>
+                    <ref name="mesh_choice_element_wise"/>
+                    <element name="algorithm">
+                      <attribute name="name">
+                        <value>Internal</value>
+                      </attribute>
+                    </element>
+                    <element name="source_field_name">
+                      <value>Mobile_velocity_magnitude_pressure_mesh</value>
+                    </element>
+                    <ref name="darcy_impes_diagnostic_scalar_field"/>
+                  </element>
+                </element>
+              </element>
+            </choice>
+            <element name="diagnostic">
+              <a:documentation>Field type</a:documentation>
+              <ref name="mesh_choice_element_wise"/>
+              <ref name="darcy_impes_internal_algorithm"/>
+              <ref name="darcy_impes_diagnostic_tensor_field_no_adapt"/>
+            </element>
+          </group>
+        </element>
+      </optional>
     </element>
   </define>
   <define name="cv_stats">
@@ -2813,6 +2914,12 @@ Please turn on the corresponding immobile field under the mobile prognostic fiel
           <a:documentation>place a cap of the field
 to limit the maximun value, ensure the stability of the sigular corner of the heap</a:documentation>
           <ref name="real"/>
+        </element>
+      </optional>
+      <optional>
+        <element name="non_negative">
+          <a:documentation>force the field to be positive</a:documentation>
+          <ref name="comment"/>
         </element>
       </optional>
       <optional>
@@ -3180,6 +3287,77 @@ The internal algorithms currently available are for chalcopyrite leaching</a:doc
 by ferric sulfate
 the value of this reaction is based on unit: mole/m^3_heap</a:documentation>
               <attribute name="name">
+                <value>CuFeS2_oxidation_aqueous_ferric_sulfate_SCM</value>
+              </attribute>
+              <element name="scalar_field">
+                <a:documentation>when the reacting species reach the extreme values somewhere. stop the reaction at that place 
+fill in the same name of the field in the phase to limite reaction</a:documentation>
+                <attribute name="rank">
+                  <a:documentation>This is the concentraction change rate of CuFeS2
+mole/s per m^3 of heap</a:documentation>
+                  <value>0</value>
+                </attribute>
+                <attribute name="name">
+                  <value>dCuFeS2_dt</value>
+                </attribute>
+                <element name="diagnostic">
+                  <ref name="mesh_choice_pressure"/>
+                  <ref name="darcy_impes_internal_algorithm"/>
+                  <ref name="darcy_impes_diagnostic_scalar_field"/>
+                  <optional>
+                    <ref name="darcy_impes_recalculation_options"/>
+                  </optional>
+                </element>
+              </element>
+              <element name="scalar_field">
+                <a:documentation>This is the extaction rate of chalcopyrite
+positive along</a:documentation>
+                <attribute name="rank">
+                  <value>0</value>
+                </attribute>
+                <attribute name="name">
+                  <value>extraction_rate</value>
+                </attribute>
+                <element name="diagnostic">
+                  <ref name="mesh_choice_pressure"/>
+                  <ref name="darcy_impes_internal_algorithm"/>
+                  <ref name="darcy_impes_diagnostic_scalar_field"/>
+                  <optional>
+                    <ref name="darcy_impes_recalculation_options"/>
+                  </optional>
+                </element>
+              </element>
+              <element name="scalar_field">
+                <a:documentation>This is the current extaction of chalcopyrite</a:documentation>
+                <attribute name="rank">
+                  <value>0</value>
+                </attribute>
+                <attribute name="name">
+                  <value>current_extraction</value>
+                </attribute>
+                <element name="diagnostic">
+                  <ref name="mesh_choice_pressure"/>
+                  <ref name="darcy_impes_internal_algorithm"/>
+                  <ref name="darcy_impes_diagnostic_scalar_field"/>
+                  <optional>
+                    <ref name="darcy_impes_recalculation_options"/>
+                  </optional>
+                </element>
+              </element>
+              <element name="scalar_field">
+                <a:documentation>This is the molar amount of the current mineral species per volume of heap
+i.e. mole per m^3  of heap</a:documentation>
+                <attribute name="rank">
+                  <value>0</value>
+                </attribute>
+                <attribute name="name">
+                  <value>molar_concentration</value>
+                </attribute>
+                <ref name="leaching_scalar_field_prescribed_or_python_diagnostic_pressure_mesh"/>
+              </element>
+            </element>
+            <element name="reaction">
+              <attribute name="name">
                 <value>CuFeS2_oxidation_aqueous_ferric_sulfate</value>
               </attribute>
               <zeroOrMore>
@@ -3234,6 +3412,80 @@ mole/s per m^3 of heap</a:documentation>
               </element>
               <ref name="leaching_semi_empirical_model_extraction"/>
               <ref name="rate_constant"/>
+            </element>
+            <element name="reaction">
+              <a:documentation>This is the semi-empirical model for pyrite dissolution 
+by ferric sulfate
+the value of this reaction is based on unit: mole/m^3_heap</a:documentation>
+              <attribute name="name">
+                <value>FeS2_oxidation_aqueous_ferric_sulfate_SCM</value>
+              </attribute>
+              <element name="scalar_field">
+                <a:documentation>when the reacting species reach the extreme values somewhere. stop the reaction at that place 
+fill in the same name of the field in the phase to limite reaction</a:documentation>
+                <attribute name="rank">
+                  <a:documentation>This is the concentraction change rate of FeS2
+mole/s per m^3 of heap</a:documentation>
+                  <value>0</value>
+                </attribute>
+                <attribute name="name">
+                  <value>dFeS2_dt</value>
+                </attribute>
+                <element name="diagnostic">
+                  <ref name="mesh_choice_pressure"/>
+                  <ref name="darcy_impes_internal_algorithm"/>
+                  <ref name="darcy_impes_diagnostic_scalar_field"/>
+                  <optional>
+                    <ref name="darcy_impes_recalculation_options"/>
+                  </optional>
+                </element>
+              </element>
+              <element name="scalar_field">
+                <a:documentation>This is the extaction rate of pyrite
+positive along</a:documentation>
+                <attribute name="rank">
+                  <value>0</value>
+                </attribute>
+                <attribute name="name">
+                  <value>extraction_rate</value>
+                </attribute>
+                <element name="diagnostic">
+                  <ref name="mesh_choice_pressure"/>
+                  <ref name="darcy_impes_internal_algorithm"/>
+                  <ref name="darcy_impes_diagnostic_scalar_field"/>
+                  <optional>
+                    <ref name="darcy_impes_recalculation_options"/>
+                  </optional>
+                </element>
+              </element>
+              <element name="scalar_field">
+                <a:documentation>This is the current extaction of pyrite</a:documentation>
+                <attribute name="rank">
+                  <value>0</value>
+                </attribute>
+                <attribute name="name">
+                  <value>current_extraction</value>
+                </attribute>
+                <element name="diagnostic">
+                  <ref name="mesh_choice_pressure"/>
+                  <ref name="darcy_impes_internal_algorithm"/>
+                  <ref name="darcy_impes_diagnostic_scalar_field"/>
+                  <optional>
+                    <ref name="darcy_impes_recalculation_options"/>
+                  </optional>
+                </element>
+              </element>
+              <element name="scalar_field">
+                <a:documentation>This is the molar amount of the current mineral species per volume of heap
+i.e. mole per m^3  of heap</a:documentation>
+                <attribute name="rank">
+                  <value>0</value>
+                </attribute>
+                <attribute name="name">
+                  <value>molar_concentration</value>
+                </attribute>
+                <ref name="leaching_scalar_field_prescribed_or_python_diagnostic_pressure_mesh"/>
+              </element>
             </element>
             <element name="reaction">
               <a:documentation>This is the semi-empirical model for pyrite dissolution 
@@ -4025,6 +4277,12 @@ to limit the maximun value, ensure the stability of the sigular corner of the he
               <ref name="real"/>
             </element>
           </optional>
+          <optional>
+            <element name="non_negative">
+              <a:documentation>force the field to be positive</a:documentation>
+              <ref name="comment"/>
+            </element>
+          </optional>
           <element name="SolutionPhaseSource">
             <element name="scalar_field">
               <attribute name="rank">
@@ -4133,6 +4391,12 @@ mole per volume of immobile solution</a:documentation>
                 <a:documentation>place a cap of the field
 to limit the maximun value, ensure the stability of the sigular corner of the heap                 </a:documentation>
                 <ref name="real"/>
+              </element>
+            </optional>
+            <optional>
+              <element name="non_negative">
+                <a:documentation>force the field to be positive</a:documentation>
+                <ref name="comment"/>
               </element>
             </optional>
             <element name="SolutionPhaseSource">
@@ -4244,6 +4508,12 @@ mole per volume of immobile solution</a:documentation>
                 <a:documentation>place a cap of the field
 to limit the maximun value, ensure the stability of the sigular corner of the heap                 </a:documentation>
                 <ref name="real"/>
+              </element>
+            </optional>
+            <optional>
+              <element name="non_negative">
+                <a:documentation>force the field to be positive</a:documentation>
+                <ref name="comment"/>
               </element>
             </optional>
             <element name="SolutionPhaseSource">
@@ -4677,7 +4947,7 @@ kw/(k*m^3)  </a:documentation>
           <choice>
             <element name="diagnostic">
               <ref name="mesh_choice_pressure"/>
-              <ref name="darcy_impes_scalar_python_diagnostic_algorithm"/>
+              <ref name="darcy_impes_internal_algorithm"/>
               <ref name="darcy_impes_diagnostic_scalar_field"/>
             </element>
             <element name="prescribed">

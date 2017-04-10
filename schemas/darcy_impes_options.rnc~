@@ -3909,13 +3909,7 @@ darcy_impes_non_first_phase_temperature_field =
                 element field_maximun_value{
                    real
                  } 
-                )?, 
-                (
-          ##force the field to be positive
-          element non_negative{
-                comment
-             }
-              )?,     
+                )?,   
           element SolutionPhaseSource{
               ( 
 		     element scalar_field {
@@ -4002,12 +3996,6 @@ darcy_impes_non_first_phase_temperature_field =
                    real
                  } 
                 )?,   
-                (
-          ##force the field to be positive
-          element non_negative{
-                comment
-             }
-              )?,   
           element SolutionPhaseSource{
               ( 
 		     element scalar_field {
@@ -4094,12 +4082,6 @@ darcy_impes_non_first_phase_temperature_field =
                    real
                  } 
                 )?,   
-                (
-          ##force the field to be positive
-          element non_negative{
-                comment
-             }
-              )?,   
           element SolutionPhaseSource{
               ( 
 		     element scalar_field {

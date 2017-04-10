@@ -94,7 +94,7 @@ module darcy_impes_assemble_module
              darcy_impes_calculate_divergence_total_darcy_velocity, &
              darcy_impes_calculate_inverse_cv_sa, &
              calculate_leach_prog_sfield_subcycle_terms, &
-             leaching_prog_sfield_subcycle_initialize, &
+             leaching_prog_sfield_subcycle_initialize, &!subcycle for leaching is not working properply
              leaching_prog_sfield_subcycle_finalize, &
              darcy_trans_leaching_sub_copy_to_old, &
              darcy_trans_leaching_sub_copy_to_iterated, &
@@ -249,6 +249,10 @@ module darcy_impes_assemble_module
       call darcy_impes_assemble_and_solve_phase_saturations(di, &
                                                             form_new_subcycle_relperm_face_values, &
                                                             have_dual)
+                                                            
+      !************Lcai***************************  
+                                                 
+      if (di%MIM_options%have_MIM_phase)   call calculate_mobile_velocity_dispersity(di)
 
       !****lcai****03Mar2015********leaching_temporary_changes
       if (di%lcsub%have_leach_subcycle) then         
@@ -263,6 +267,7 @@ module darcy_impes_assemble_module
         !end if
 
       else
+
         call darcy_impes_assemble_and_solve_generic_prog_sfields(di)       
         ! Calculate the sum of the saturations
         call darcy_impes_calculate_sum_saturation(di)
@@ -273,8 +278,7 @@ module darcy_impes_assemble_module
         call darcy_impes_calculate_relperm_fields(di)
         
       end if
-
-            
+     
       ewrite(1,*) 'Finished Darcy IMPES assemble and solve part three'
            
    end subroutine darcy_impes_assemble_and_solve_part_three
@@ -2322,7 +2326,19 @@ dot_product((grad_pressure_face_quad(:,ggi) - di%cached_face_value%den(ggi,vele,
                
             end  do
          end if
-                                 
+         
+         !------------lcai-----temporary-----------------------
+         if (di%generic_prog_sfield(f)%nonnegative) then
+           do node = 1, di%number_pmesh_node
+               if (di%generic_prog_sfield(f)%sfield%val(node)<0.0) then
+                  di%generic_prog_sfield(f)%sfield%val(node)=0.0
+               end if
+               
+            end  do
+            
+         end if 
+        
+                                
       end do sfield_loop
 
       ewrite(1,*) 'Finished assemble and solve generic prognostic scalar fields'
@@ -2399,6 +2415,8 @@ dot_product((grad_pressure_face_quad(:,ggi) - di%cached_face_value%den(ggi,vele,
          
       end if
       
+   
+         
       call addto(di%lhs, 1.0/di%dt)            
       call scale(di%lhs, di%cv_mass_pressure_mesh_with_porosity)
       call scale(di%lhs, di%sat_ADE)  ! *****27 July 2013 LCai***change the saturation into pointed one 
@@ -2417,15 +2435,15 @@ dot_product((grad_pressure_face_quad(:,ggi) - di%cached_face_value%den(ggi,vele,
          call addto(di%rhs, di%cv_mass_pressure_mesh_with_source)
          
       end if
-
       
       ! *********************************************LCai ********************************!
       if (di%generic_prog_sfield(f)%MIM%have_MIM_source) then
-         
          call allocate(shared_rhs, di%pressure_mesh)
          call allocate(shared_lhs, di%pressure_mesh)
          call zero(shared_rhs)
          call zero(shared_lhs)
+         
+         
         
          if (di%generic_prog_sfield(f)%lc_src%have_chem_src) then
             call allocate_leaching_chemical_prog_sfield_src(di,f,shared_rhs,shared_lhs)
@@ -2439,13 +2457,14 @@ dot_product((grad_pressure_face_quad(:,ggi) - di%cached_face_value%den(ggi,vele,
          if (di%generic_prog_sfield(f)%lc_src%have_chem_src) then
             call allocate_leaching_chemical_prog_sfield_src(di,f)
          else if (di%generic_prog_sfield(f)%lh_src%have_heat_src) then
-            call allocate_leach_heat_transfer_prog_Temperature_src(di,f)           
+            call allocate_leach_heat_transfer_prog_Temperature_src(di,f) 
+                      
          end if
          
       end if  
-
-     !*******************end********Cai******************************** 
       
+     !*******************end********Cai********************************
+  
       ! Add implicit low order advection and diffusion terms to matrix and rhs
        if (di%generic_prog_sfield(f)%have_adv .or. di%generic_prog_sfield(f)%have_diff) then
          
@@ -2494,6 +2513,7 @@ dot_product((grad_pressure_face_quad(:,ggi) - di%cached_face_value%den(ggi,vele,
       if (di%generic_prog_sfield(f)%MIM%have_MIM_source) then 
          
          call darcy_trans_assemble_and_solve_immobile_sfield(di, p, f, shared_rhs, shared_lhs) 
+
          call deallocate(shared_rhs)
          call deallocate(shared_lhs)
 
@@ -2630,9 +2650,9 @@ dot_product((grad_pressure_face_quad(:,ggi) - di%cached_face_value%den(ggi,vele,
                   
          if (di%generic_prog_sfield(f)%have_diff) then
        
-            ! get the sfield diffusivity 
+            ! get the sfield diffusivity           
             diff_ele = ele_val(di%generic_prog_sfield(f)%sfield_diff,vele)
-            
+
             ! get the element values for porosity
             porosity_ele = ele_val(di%porosity, vele)
             
@@ -2948,7 +2968,7 @@ dot_product((grad_pressure_face_quad_bdy(:,ggi) - di%cached_face_value%den_bdy(g
 
          end do sele_loop
       end if have_adv_so_add_bc
-  
+      
       ! deallocate local variables as required
       deallocate(x_ele)
       if (di%cached_face_value%cached_p_dshape) then
@@ -2956,6 +2976,7 @@ dot_product((grad_pressure_face_quad_bdy(:,ggi) - di%cached_face_value%den_bdy(g
       else
          deallocate(p_dshape)
       end if
+
       if (di%cached_face_value%cached_detwei_normal) then
          nullify(detwei)
          nullify(normal)      
@@ -2969,9 +2990,10 @@ dot_product((grad_pressure_face_quad_bdy(:,ggi) - di%cached_face_value%den_bdy(g
       deallocate(x_face_quad)
       deallocate(grad_pressure_face_quad)
       deallocate(grav_ele)
+
       deallocate(diff_ele)
       deallocate(sat_ele)      
-
+      
       deallocate(grav_ele_bdy)
       deallocate(ghost_sfield_ele_bdy)
       deallocate(grad_pressure_face_quad_bdy)
@@ -2989,7 +3011,9 @@ dot_product((grad_pressure_face_quad_bdy(:,ggi) - di%cached_face_value%den_bdy(g
       deallocate(rhs_local_bdy)
       deallocate(matrix_local_bdy)
       deallocate(x_ele_bdy)
-      deallocate(p_nodes_bdy)      
+      deallocate(p_nodes_bdy)  
+      
+         
    end subroutine darcy_impes_assemble_generic_prog_sfield_adv_diff
 
 ! ----------------------------------------------------------------------------
