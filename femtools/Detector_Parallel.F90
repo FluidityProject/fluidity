@@ -36,9 +36,9 @@ module detector_parallel
   use elements
   use parallel_tools
   use parallel_fields
-  use halos
   use fields
   use state_module
+  use halos
   use detector_data_types
   use detector_tools
   use pickers
