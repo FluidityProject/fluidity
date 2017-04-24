@@ -1,0 +1,1972 @@
+<?xml version='1.0' encoding='utf-8'?>
+<darcy_impes_options>
+  <geometry>
+    <dimension>
+      <integer_value rank="0">1</integer_value>
+    </dimension>
+    <mesh name="CoordinateMesh">
+      <from_file file_name="line">
+        <format name="triangle"/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+      </from_file>
+    </mesh>
+    <mesh name="PressureMesh">
+      <from_mesh>
+        <mesh name="CoordinateMesh"/>
+        <mesh_shape>
+          <polynomial_degree>
+            <integer_value rank="0">1</integer_value>
+          </polynomial_degree>
+          <element_type>
+            <string_value>lagrangian</string_value>
+          </element_type>
+        </mesh_shape>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <mesh name="ElementWiseMesh">
+      <from_mesh>
+        <mesh name="CoordinateMesh"/>
+        <mesh_shape>
+          <polynomial_degree>
+            <integer_value rank="0">0</integer_value>
+          </polynomial_degree>
+          <element_type>
+            <string_value>lagrangian</string_value>
+          </element_type>
+        </mesh_shape>
+        <mesh_continuity>
+          <string_value>discontinuous</string_value>
+        </mesh_continuity>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <quadrature>
+      <degree>
+        <integer_value rank="0">4</integer_value>
+      </degree>
+      <controlvolume_surface_degree>
+        <integer_value rank="0">3</integer_value>
+      </controlvolume_surface_degree>
+    </quadrature>
+    <disable_geometric_data_cache/>
+  </geometry>
+  <io>
+    <dump_format>
+      <string_value>vtk</string_value>
+    </dump_format>
+    <dump_period>
+      <constant>
+        <real_value rank="0">60000</real_value>
+      </constant>
+    </dump_period>
+    <output_mesh name="PressureMesh"/>
+    <checkpointing>
+      <checkpoint_period_in_dumps>
+        <integer_value rank="0">50</integer_value>
+      </checkpoint_period_in_dumps>
+      <checkpoint_at_end/>
+    </checkpointing>
+    <stat>
+      <output_at_start/>
+    </stat>
+  </io>
+  <timestepping>
+    <current_time>
+      <real_value rank="0">0.0</real_value>
+    </current_time>
+    <timestep>
+      <real_value rank="0">30</real_value>
+    </timestep>
+    <finish_time>
+      <real_value rank="0">14688000</real_value>
+    </finish_time>
+  </timestepping>
+  <physical_parameters/>
+  <material_phase name="Phase1">
+    <scalar_field name="Pressure" rank="0">
+      <prognostic>
+        <mesh name="PressureMesh"/>
+        <solver name="DefaultSolverOptionsGMRESMG">
+          <iterative_method name="gmres">
+            <restart>
+              <integer_value rank="0">30</integer_value>
+            </restart>
+          </iterative_method>
+          <preconditioner name="mg"/>
+          <relative_error>
+            <real_value rank="0">1.0e-10</real_value>
+          </relative_error>
+          <max_iterations>
+            <integer_value rank="0">1000</integer_value>
+          </max_iterations>
+          <never_ignore_solver_failures/>
+        </solver>
+        <initial_condition name="WholeMesh">
+          <constant>
+            <real_value rank="0">1.0e5</real_value>
+          </constant>
+        </initial_condition>
+        <boundary_conditions name="pressure_top">
+          <surface_ids>
+            <integer_value shape="1" rank="1">1</integer_value>
+          </surface_ids>
+          <type name="dirichlet">
+            <apply_strongly/>
+            <constant>
+              <real_value rank="0">1.0e5</real_value>
+            </constant>
+          </type>
+        </boundary_conditions>
+        <boundary_conditions name="bottom">
+          <surface_ids>
+            <integer_value shape="1" rank="1">2</integer_value>
+          </surface_ids>
+          <type name="dirichlet">
+            <apply_strongly/>
+            <constant>
+              <real_value rank="0">1.0e5</real_value>
+            </constant>
+          </type>
+        </boundary_conditions>
+        <output/>
+        <stat>
+          <exclude_from_stat/>
+          <include_cv_stats/>
+        </stat>
+        <consistent_interpolation/>
+      </prognostic>
+    </scalar_field>
+    <scalar_field name="Saturation" rank="0">
+      <diagnostic>
+        <mesh name="PressureMesh"/>
+        <algorithm name="Internal"/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <output/>
+        <stat>
+          <exclude_from_stat/>
+          <include_cv_stats/>
+        </stat>
+        <consistent_interpolation/>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="RelativePermeability" rank="0">
+      <diagnostic>
+        <mesh name="PressureMesh"/>
+        <algorithm name="Internal"/>
+        <correlation name="Corey2PhaseOpposite_Correct">
+          <residual_saturations>
+            <real_value shape="2" rank="1">0.0 0.1</real_value>
+          </residual_saturations>
+        </correlation>
+        <face_value name="FirstOrderUpwind"/>
+        <output/>
+        <stat>
+          <exclude_from_stat/>
+          <include_cv_stats/>
+        </stat>
+        <consistent_interpolation/>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="Viscosity" rank="0">
+      <prescribed>
+        <mesh name="ElementWiseMesh"/>
+        <value name="WholeMesh">
+          <constant>
+            <real_value rank="0">2.017e-005</real_value>
+          </constant>
+        </value>
+        <output/>
+        <stat>
+          <exclude_from_stat/>
+          <include_cv_stats/>
+        </stat>
+      </prescribed>
+    </scalar_field>
+    <scalar_field name="Density" rank="0">
+      <diagnostic>
+        <mesh name="PressureMesh"/>
+        <algorithm name="Internal"/>
+        <equation_of_state name="IncompressibleLinear">
+          <reference_density>
+            <real_value rank="0">1.067</real_value>
+          </reference_density>
+        </equation_of_state>
+        <face_value name="FiniteElement">
+          <limit_face_value>
+            <limiter name="Sweby"/>
+          </limit_face_value>
+        </face_value>
+        <output/>
+        <stat>
+          <exclude_from_stat/>
+          <include_cv_stats/>
+        </stat>
+        <consistent_interpolation/>
+      </diagnostic>
+    </scalar_field>
+    <vector_field name="DarcyVelocity" rank="0">
+      <diagnostic>
+        <mesh name="PressureMesh"/>
+        <algorithm name="Internal"/>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <consistent_interpolation/>
+      </diagnostic>
+    </vector_field>
+    <scalar_field name="DarcyVelocityOverPorosityCFL" rank="0">
+      <diagnostic>
+        <mesh name="PressureMesh"/>
+        <algorithm name="Internal"/>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <consistent_interpolation/>
+      </diagnostic>
+    </scalar_field>
+    <vector_field name="TotalDarcyVelocity" rank="0">
+      <diagnostic>
+        <mesh name="PressureMesh"/>
+        <algorithm name="Internal"/>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <consistent_interpolation/>
+      </diagnostic>
+    </vector_field>
+    <scalar_field name="DivergenceTotalDarcyVelocity" rank="0">
+      <diagnostic>
+        <mesh name="PressureMesh"/>
+        <algorithm name="Internal"/>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <consistent_interpolation/>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="Mobility" rank="0">
+      <diagnostic>
+        <mesh name="PressureMesh"/>
+        <algorithm name="Internal"/>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <consistent_interpolation/>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="TotalMobility" rank="0">
+      <diagnostic>
+        <mesh name="PressureMesh"/>
+        <algorithm name="Internal"/>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <consistent_interpolation/>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="FractionalFlow" rank="0">
+      <diagnostic>
+        <mesh name="PressureMesh"/>
+        <algorithm name="Internal"/>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <consistent_interpolation/>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="SumSaturation" rank="0">
+      <diagnostic>
+        <mesh name="PressureMesh"/>
+        <algorithm name="Internal"/>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <consistent_interpolation/>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="AveragePressure" rank="0">
+      <diagnostic>
+        <mesh name="PressureMesh"/>
+        <algorithm name="Internal"/>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <consistent_interpolation/>
+      </diagnostic>
+    </scalar_field>
+    <vector_field name="BulkDarcyVelocity" rank="1">
+      <diagnostic>
+        <mesh name="PressureMesh"/>
+        <algorithm name="Internal"/>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <consistent_interpolation/>
+      </diagnostic>
+    </vector_field>
+    <scalar_field name="Og">
+      <prognostic>
+        <mesh name="PressureMesh"/>
+        <solver name="DefaultSolverOptionsGMRESSOR">
+          <iterative_method name="gmres">
+            <restart>
+              <integer_value rank="0">30</integer_value>
+            </restart>
+          </iterative_method>
+          <preconditioner name="sor"/>
+          <relative_error>
+            <real_value rank="0">1.0e-10</real_value>
+          </relative_error>
+          <max_iterations>
+            <integer_value rank="0">1000</integer_value>
+          </max_iterations>
+          <never_ignore_solver_failures/>
+        </solver>
+        <face_value name="FirstOrderUpwind"/>
+        <initial_condition name="WholeMesh">
+          <constant>
+            <real_value rank="0">7.6838</real_value>
+          </constant>
+        </initial_condition>
+        <boundary_conditions name="top">
+          <surface_ids>
+            <integer_value shape="1" rank="1">1</integer_value>
+          </surface_ids>
+          <type name="dirichlet">
+            <apply_strongly/>
+            <constant>
+              <real_value rank="0">7.6838</real_value>
+            </constant>
+          </type>
+        </boundary_conditions>
+        <tensor_field name="Diffusivity" rank="2">
+          <prescribed>
+            <mesh name="ElementWiseMesh"/>
+            <value name="WholeMesh">
+              <isotropic>
+                <constant>
+                  <real_value rank="0">2.82e-06</real_value>
+                </constant>
+              </isotropic>
+            </value>
+          </prescribed>
+        </tensor_field>
+        <LeachingChemicalSourceTerm>
+          <SolutionPhaseSource>
+            <scalar_field name="Oxygen_dissolution_gas_phase" rank="0">
+              <diagnostic>
+                <mesh name="PressureMesh"/>
+                <algorithm name="Internal"/>
+                <stoichiometric_factor>
+                  <real_value rank="0">1.0</real_value>
+                </stoichiometric_factor>
+                <output/>
+                <stat>
+                  <include_in_stat/>
+                </stat>
+                <consistent_interpolation/>
+              </diagnostic>
+            </scalar_field>
+          </SolutionPhaseSource>
+        </LeachingChemicalSourceTerm>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <consistent_interpolation/>
+      </prognostic>
+    </scalar_field>
+  </material_phase>
+  <material_phase name="Phase2">
+    <scalar_field name="Pressure" rank="0">
+      <diagnostic>
+        <mesh name="PressureMesh"/>
+        <algorithm name="Internal"/>
+        <output/>
+        <stat>
+          <exclude_from_stat/>
+          <include_cv_stats/>
+        </stat>
+        <consistent_interpolation/>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="CapilliaryPressure" rank="0">
+      <diagnostic>
+        <mesh name="PressureMesh"/>
+        <algorithm name="scalar_python_diagnostic" material_phase_support="multiple">
+          <string_value lines="20" type="code" language="python">import math
+swt=states["Phase2"].scalar_fields["Saturation"]
+msh=states["Phase2"].vector_fields["Coordinate"]
+rho_wn=states["Phase2"].scalar_fields["Density"]
+rho_an=states["Phase1"].scalar_fields["Density"]
+pn=states["Phase1"].scalar_fields["Saturation"]
+sr=0.0
+m=2.0
+p0=17.0  #923.13
+
+for n in range(field.node_count):
+  y=msh.node_val(n)
+  rho_w=rho_wn.node_val(n)
+  rho_a=rho_an.node_val(n)
+  rgh=(rho_w-rho_a)*9.8*y[0]
+  #sw=swt.node_val(n)
+  #se=(sw-sr)/(1.0-sr)
+  
+  #s1=math.pow(se,-1.0/m)
+  #print pn.node_val(n)
+  #print s1
+  #pc_with_potential=p0*s1+rgh
+  pc_with_potential=-rgh
+  
+  field.set(n,pc_with_potential)</string_value>
+        </algorithm>
+        <output/>
+        <stat>
+          <exclude_from_stat/>
+          <include_cv_stats/>
+        </stat>
+        <consistent_interpolation/>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="Saturation" rank="0">
+      <prognostic>
+        <mesh name="PressureMesh"/>
+        <initial_condition name="WholeMesh">
+          <constant>
+            <real_value rank="0">0.1753149606</real_value>
+          </constant>
+        </initial_condition>
+        <boundary_conditions name="Top_flow">
+          <surface_ids>
+            <integer_value shape="1" rank="1">1</integer_value>
+          </surface_ids>
+          <type name="dirichlet">
+            <apply_strongly/>
+            <constant>
+              <real_value rank="0">0.1753149606</real_value>
+            </constant>
+          </type>
+        </boundary_conditions>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <output/>
+        <stat>
+          <include_in_stat/>
+          <include_cv_stats/>
+        </stat>
+        <consistent_interpolation/>
+      </prognostic>
+    </scalar_field>
+    <scalar_field name="RelativePermeability" rank="0">
+      <diagnostic>
+        <mesh name="PressureMesh"/>
+        <algorithm name="Internal"/>
+        <output/>
+        <stat>
+          <exclude_from_stat/>
+          <include_cv_stats/>
+        </stat>
+        <consistent_interpolation/>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="Viscosity" rank="0">
+      <prescribed>
+        <mesh name="ElementWiseMesh"/>
+        <value name="WholeMesh">
+          <constant>
+            <real_value rank="0">1.002e-03</real_value>
+          </constant>
+        </value>
+        <output/>
+        <stat>
+          <exclude_from_stat/>
+          <include_cv_stats/>
+        </stat>
+      </prescribed>
+    </scalar_field>
+    <scalar_field name="Density" rank="0">
+      <diagnostic>
+        <mesh name="PressureMesh"/>
+        <algorithm name="Internal"/>
+        <equation_of_state name="IncompressibleLinear">
+          <reference_density>
+            <real_value rank="0">983.0</real_value>
+          </reference_density>
+        </equation_of_state>
+        <output/>
+        <stat>
+          <exclude_from_stat/>
+          <include_cv_stats/>
+        </stat>
+        <consistent_interpolation/>
+      </diagnostic>
+    </scalar_field>
+    <vector_field name="DarcyVelocity" rank="0">
+      <diagnostic>
+        <mesh name="PressureMesh"/>
+        <algorithm name="Internal"/>
+        <boundary_conditions name="flow_top">
+          <surface_ids>
+            <integer_value shape="1" rank="1">1</integer_value>
+          </surface_ids>
+          <type name="prescribed_normal_flow">
+            <constant>
+              <real_value rank="0">1.08323584210754E-006</real_value>
+            </constant>
+          </type>
+        </boundary_conditions>
+        <output/>
+        <stat>
+          <include_in_stat/>
+          <include_cv_stats/>
+        </stat>
+        <consistent_interpolation/>
+      </diagnostic>
+    </vector_field>
+    <scalar_field name="DarcyVelocityOverPorosityCFL" rank="0">
+      <diagnostic>
+        <mesh name="PressureMesh"/>
+        <algorithm name="Internal"/>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <consistent_interpolation/>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="Mobility" rank="0">
+      <diagnostic>
+        <mesh name="PressureMesh"/>
+        <algorithm name="Internal"/>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <consistent_interpolation/>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="FractionalFlow" rank="0">
+      <diagnostic>
+        <mesh name="PressureMesh"/>
+        <algorithm name="Internal"/>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <consistent_interpolation/>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="Temperature" rank="0">
+      <prescribed>
+        <mesh name="PressureMesh"/>
+        <value name="WholeMesh">
+          <constant>
+            <real_value rank="0">333.16</real_value>
+          </constant>
+        </value>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+      </prescribed>
+    </scalar_field>
+    <scalar_field name="Porosity_pmesh" rank="0">
+      <prescribed>
+        <mesh name="PressureMesh"/>
+        <value name="WholeMesh">
+          <constant>
+            <real_value rank="0">0.400488031</real_value>
+          </constant>
+        </value>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+      </prescribed>
+    </scalar_field>
+    <scalar_field name="Viscosity_pmesh" rank="0">
+      <prescribed>
+        <mesh name="PressureMesh"/>
+        <value name="WholeMesh">
+          <constant>
+            <real_value rank="0">1.002e-03</real_value>
+          </constant>
+        </value>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+      </prescribed>
+    </scalar_field>
+    <scalar_field name="H">
+      <prognostic>
+        <mesh name="PressureMesh"/>
+        <solver name="DefaultSolverOptionsGMRESSOR">
+          <iterative_method name="gmres">
+            <restart>
+              <integer_value rank="0">30</integer_value>
+            </restart>
+          </iterative_method>
+          <preconditioner name="sor"/>
+          <relative_error>
+            <real_value rank="0">1.0e-10</real_value>
+          </relative_error>
+          <max_iterations>
+            <integer_value rank="0">1000</integer_value>
+          </max_iterations>
+          <never_ignore_solver_failures/>
+        </solver>
+        <face_value name="FirstOrderUpwind"/>
+        <initial_condition name="WholeMesh">
+          <constant>
+            <real_value rank="0">63.1</real_value>
+          </constant>
+        </initial_condition>
+        <boundary_conditions name="top">
+          <surface_ids>
+            <integer_value shape="1" rank="1">1</integer_value>
+          </surface_ids>
+          <type name="dirichlet">
+            <apply_strongly/>
+            <constant>
+              <real_value rank="0">63.1</real_value>
+            </constant>
+          </type>
+        </boundary_conditions>
+        <tensor_field name="Diffusivity" rank="2">
+          <prescribed>
+            <mesh name="ElementWiseMesh"/>
+            <value name="WholeMesh">
+              <isotropic>
+                <constant>
+                  <real_value rank="0">2.2e-06</real_value>
+                </constant>
+              </isotropic>
+            </value>
+          </prescribed>
+        </tensor_field>
+        <scalar_field name="Immobile" rank="0">
+          <diagnostic>
+            <mesh name="PressureMesh"/>
+            <algorithm name="Internal"/>
+            <initial_condition name="WholeMesh">
+              <constant>
+                <real_value rank="0">0.0</real_value>
+              </constant>
+            </initial_condition>
+            <output/>
+            <stat>
+              <include_in_stat/>
+            </stat>
+            <consistent_interpolation/>
+          </diagnostic>
+          <scalar_field name="Average_mass" rank="0">
+            <diagnostic>
+              <mesh name="PressureMesh"/>
+              <algorithm name="Internal"/>
+              <output/>
+              <stat>
+                <include_in_stat/>
+              </stat>
+              <consistent_interpolation/>
+            </diagnostic>
+          </scalar_field>
+          <scalar_field name="Mobile_ratio" rank="0">
+            <diagnostic>
+              <mesh name="PressureMesh"/>
+              <algorithm name="Internal"/>
+              <output/>
+              <stat>
+                <include_in_stat/>
+              </stat>
+              <consistent_interpolation/>
+            </diagnostic>
+          </scalar_field>
+          <scalar_field name="Immobile_ratio" rank="0">
+            <diagnostic>
+              <mesh name="PressureMesh"/>
+              <algorithm name="Internal"/>
+              <output/>
+              <stat>
+                <include_in_stat/>
+              </stat>
+              <consistent_interpolation/>
+            </diagnostic>
+          </scalar_field>
+        </scalar_field>
+        <LeachingChemicalSourceTerm>
+          <Source_Linearization/>
+          <SolutionPhaseSource>
+            <scalar_field name="Ferrous_Oxidation" rank="0">
+              <diagnostic>
+                <mesh name="PressureMesh"/>
+                <algorithm name="Internal"/>
+                <stoichiometric_factor>
+                  <real_value rank="0">1.0</real_value>
+                </stoichiometric_factor>
+                <output/>
+                <stat>
+                  <include_in_stat/>
+                </stat>
+                <consistent_interpolation/>
+              </diagnostic>
+            </scalar_field>
+            <scalar_field name="Jarosite_Precipitation" rank="0">
+              <diagnostic>
+                <mesh name="PressureMesh"/>
+                <algorithm name="Internal"/>
+                <stoichiometric_factor>
+                  <real_value rank="0">-2.0</real_value>
+                </stoichiometric_factor>
+                <output/>
+                <stat>
+                  <include_in_stat/>
+                </stat>
+                <consistent_interpolation/>
+              </diagnostic>
+            </scalar_field>
+          </SolutionPhaseSource>
+          <MineralDissolutionSource>
+            <scalar_field name="FeS2_oxidation_aqueous_ferric_sulfate" rank="0">
+              <diagnostic>
+                <mesh name="PressureMesh"/>
+                <algorithm name="Internal"/>
+                <stoichiometric_factor>
+                  <real_value rank="0">-16.0</real_value>
+                </stoichiometric_factor>
+                <output/>
+                <stat>
+                  <include_in_stat/>
+                </stat>
+                <consistent_interpolation/>
+              </diagnostic>
+            </scalar_field>
+            <scalar_field name="S0_dissolution" rank="0">
+              <diagnostic>
+                <mesh name="PressureMesh"/>
+                <algorithm name="Internal"/>
+                <stoichiometric_factor>
+                  <real_value rank="0">-2.0</real_value>
+                </stoichiometric_factor>
+                <output/>
+                <stat>
+                  <include_in_stat/>
+                </stat>
+                <consistent_interpolation/>
+              </diagnostic>
+            </scalar_field>
+            <scalar_field name="Gangue_mineral_acid_dissolution" rank="0">
+              <diagnostic>
+                <mesh name="PressureMesh"/>
+                <algorithm name="Internal"/>
+                <stoichiometric_factor>
+                  <real_value rank="0">1.0</real_value>
+                </stoichiometric_factor>
+                <output/>
+                <stat>
+                  <include_in_stat/>
+                </stat>
+                <consistent_interpolation/>
+              </diagnostic>
+            </scalar_field>
+          </MineralDissolutionSource>
+          <Mobile_Immobile_Model>
+            <scalar_field name="Mobile_chemical_src" rank="0">
+              <diagnostic>
+                <mesh name="PressureMesh"/>
+                <algorithm name="Internal"/>
+                <output/>
+                <stat>
+                  <include_in_stat/>
+                </stat>
+                <consistent_interpolation/>
+              </diagnostic>
+            </scalar_field>
+            <scalar_field name="Immobile_chemical_src" rank="0">
+              <diagnostic>
+                <mesh name="PressureMesh"/>
+                <algorithm name="Internal"/>
+                <output/>
+                <stat>
+                  <include_in_stat/>
+                </stat>
+                <consistent_interpolation/>
+              </diagnostic>
+            </scalar_field>
+          </Mobile_Immobile_Model>
+        </LeachingChemicalSourceTerm>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <consistent_interpolation/>
+      </prognostic>
+    </scalar_field>
+    <scalar_field name="Fe3">
+      <prognostic>
+        <mesh name="PressureMesh"/>
+        <solver name="DefaultSolverOptionsGMRESSOR">
+          <iterative_method name="gmres">
+            <restart>
+              <integer_value rank="0">30</integer_value>
+            </restart>
+          </iterative_method>
+          <preconditioner name="sor"/>
+          <relative_error>
+            <real_value rank="0">1.0e-10</real_value>
+          </relative_error>
+          <max_iterations>
+            <integer_value rank="0">1000</integer_value>
+          </max_iterations>
+          <never_ignore_solver_failures/>
+        </solver>
+        <face_value name="FirstOrderUpwind"/>
+        <initial_condition name="WholeMesh">
+          <constant>
+            <real_value rank="0">0.0</real_value>
+          </constant>
+        </initial_condition>
+        <boundary_conditions name="top">
+          <surface_ids>
+            <integer_value shape="1" rank="1">1</integer_value>
+          </surface_ids>
+          <type name="dirichlet">
+            <apply_strongly/>
+            <constant>
+              <real_value rank="0">90.0</real_value>
+            </constant>
+          </type>
+        </boundary_conditions>
+        <tensor_field name="Diffusivity" rank="2">
+          <prescribed>
+            <mesh name="ElementWiseMesh"/>
+            <value name="WholeMesh">
+              <isotropic>
+                <constant>
+                  <real_value rank="0">2.2e-06</real_value>
+                </constant>
+              </isotropic>
+            </value>
+          </prescribed>
+        </tensor_field>
+        <scalar_field name="Immobile" rank="0">
+          <diagnostic>
+            <mesh name="PressureMesh"/>
+            <algorithm name="Internal"/>
+            <initial_condition name="WholeMesh">
+              <constant>
+                <real_value rank="0">0.0</real_value>
+              </constant>
+            </initial_condition>
+            <output/>
+            <stat>
+              <include_in_stat/>
+            </stat>
+            <consistent_interpolation/>
+          </diagnostic>
+          <scalar_field name="Average_mass" rank="0">
+            <diagnostic>
+              <mesh name="PressureMesh"/>
+              <algorithm name="Internal"/>
+              <output/>
+              <stat>
+                <include_in_stat/>
+              </stat>
+              <consistent_interpolation/>
+            </diagnostic>
+          </scalar_field>
+          <scalar_field name="Mobile_ratio" rank="0">
+            <diagnostic>
+              <mesh name="PressureMesh"/>
+              <algorithm name="Internal"/>
+              <output/>
+              <stat>
+                <include_in_stat/>
+              </stat>
+              <consistent_interpolation/>
+            </diagnostic>
+          </scalar_field>
+          <scalar_field name="Immobile_ratio" rank="0">
+            <diagnostic>
+              <mesh name="PressureMesh"/>
+              <algorithm name="Internal"/>
+              <output/>
+              <stat>
+                <include_in_stat/>
+              </stat>
+              <consistent_interpolation/>
+            </diagnostic>
+          </scalar_field>
+        </scalar_field>
+        <LeachingChemicalSourceTerm>
+          <Source_Linearization/>
+          <SolutionPhaseSource>
+            <scalar_field name="Ferrous_Oxidation" rank="0">
+              <diagnostic>
+                <mesh name="PressureMesh"/>
+                <algorithm name="Internal"/>
+                <stoichiometric_factor>
+                  <real_value rank="0">-1.0</real_value>
+                </stoichiometric_factor>
+                <output/>
+                <stat>
+                  <include_in_stat/>
+                </stat>
+                <consistent_interpolation/>
+              </diagnostic>
+            </scalar_field>
+            <scalar_field name="Jarosite_Precipitation" rank="0">
+              <diagnostic>
+                <mesh name="PressureMesh"/>
+                <algorithm name="Internal"/>
+                <stoichiometric_factor>
+                  <real_value rank="0">1.0</real_value>
+                </stoichiometric_factor>
+                <output/>
+                <stat>
+                  <include_in_stat/>
+                </stat>
+                <consistent_interpolation/>
+              </diagnostic>
+            </scalar_field>
+          </SolutionPhaseSource>
+          <MineralDissolutionSource>
+            <scalar_field name="CuFeS2_oxidation_aqueous_ferric_sulfate" rank="0">
+              <diagnostic>
+                <mesh name="PressureMesh"/>
+                <algorithm name="Internal"/>
+                <stoichiometric_factor>
+                  <real_value rank="0">4.0</real_value>
+                </stoichiometric_factor>
+                <output/>
+                <stat>
+                  <include_in_stat/>
+                </stat>
+                <consistent_interpolation/>
+              </diagnostic>
+            </scalar_field>
+            <scalar_field name="FeS2_oxidation_aqueous_ferric_sulfate" rank="0">
+              <diagnostic>
+                <mesh name="PressureMesh"/>
+                <algorithm name="Internal"/>
+                <stoichiometric_factor>
+                  <real_value rank="0">14.0</real_value>
+                </stoichiometric_factor>
+                <output/>
+                <stat>
+                  <include_in_stat/>
+                </stat>
+                <consistent_interpolation/>
+              </diagnostic>
+            </scalar_field>
+          </MineralDissolutionSource>
+          <Mobile_Immobile_Model>
+            <scalar_field name="Mobile_chemical_src" rank="0">
+              <diagnostic>
+                <mesh name="PressureMesh"/>
+                <algorithm name="Internal"/>
+                <output/>
+                <stat>
+                  <include_in_stat/>
+                </stat>
+                <consistent_interpolation/>
+              </diagnostic>
+            </scalar_field>
+            <scalar_field name="Immobile_chemical_src" rank="0">
+              <diagnostic>
+                <mesh name="PressureMesh"/>
+                <algorithm name="Internal"/>
+                <output/>
+                <stat>
+                  <include_in_stat/>
+                </stat>
+                <consistent_interpolation/>
+              </diagnostic>
+            </scalar_field>
+          </Mobile_Immobile_Model>
+        </LeachingChemicalSourceTerm>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <consistent_interpolation/>
+      </prognostic>
+    </scalar_field>
+    <scalar_field name="Cu">
+      <prognostic>
+        <mesh name="PressureMesh"/>
+        <solver name="DefaultSolverOptionsGMRESSOR">
+          <iterative_method name="gmres">
+            <restart>
+              <integer_value rank="0">30</integer_value>
+            </restart>
+          </iterative_method>
+          <preconditioner name="sor"/>
+          <relative_error>
+            <real_value rank="0">1.0e-10</real_value>
+          </relative_error>
+          <max_iterations>
+            <integer_value rank="0">1000</integer_value>
+          </max_iterations>
+          <never_ignore_solver_failures/>
+        </solver>
+        <face_value name="FirstOrderUpwind"/>
+        <initial_condition name="WholeMesh">
+          <constant>
+            <real_value rank="0">0.0</real_value>
+          </constant>
+        </initial_condition>
+        <boundary_conditions name="top0">
+          <surface_ids>
+            <integer_value shape="1" rank="1">1</integer_value>
+          </surface_ids>
+          <type name="dirichlet">
+            <apply_strongly/>
+            <constant>
+              <real_value rank="0">0.0</real_value>
+            </constant>
+          </type>
+        </boundary_conditions>
+        <tensor_field name="Diffusivity" rank="2">
+          <prescribed>
+            <mesh name="ElementWiseMesh"/>
+            <value name="WholeMesh">
+              <isotropic>
+                <constant>
+                  <real_value rank="0">2.2e-06</real_value>
+                </constant>
+              </isotropic>
+            </value>
+          </prescribed>
+        </tensor_field>
+        <scalar_field name="Immobile" rank="0">
+          <diagnostic>
+            <mesh name="PressureMesh"/>
+            <algorithm name="Internal"/>
+            <initial_condition name="WholeMesh">
+              <constant>
+                <real_value rank="0">0.0</real_value>
+              </constant>
+            </initial_condition>
+            <output/>
+            <stat>
+              <include_in_stat/>
+            </stat>
+            <consistent_interpolation/>
+          </diagnostic>
+          <scalar_field name="Average_mass" rank="0">
+            <diagnostic>
+              <mesh name="PressureMesh"/>
+              <algorithm name="Internal"/>
+              <output/>
+              <stat>
+                <include_in_stat/>
+              </stat>
+              <consistent_interpolation/>
+            </diagnostic>
+          </scalar_field>
+          <scalar_field name="Mobile_ratio" rank="0">
+            <diagnostic>
+              <mesh name="PressureMesh"/>
+              <algorithm name="Internal"/>
+              <output/>
+              <stat>
+                <include_in_stat/>
+              </stat>
+              <consistent_interpolation/>
+            </diagnostic>
+          </scalar_field>
+          <scalar_field name="Immobile_ratio" rank="0">
+            <diagnostic>
+              <mesh name="PressureMesh"/>
+              <algorithm name="Internal"/>
+              <output/>
+              <stat>
+                <include_in_stat/>
+              </stat>
+              <consistent_interpolation/>
+            </diagnostic>
+          </scalar_field>
+        </scalar_field>
+        <LeachingChemicalSourceTerm>
+          <MineralDissolutionSource>
+            <scalar_field name="CuFeS2_oxidation_aqueous_ferric_sulfate" rank="0">
+              <diagnostic>
+                <mesh name="PressureMesh"/>
+                <algorithm name="Internal"/>
+                <stoichiometric_factor>
+                  <real_value rank="0">-1.0</real_value>
+                </stoichiometric_factor>
+                <output/>
+                <stat>
+                  <include_in_stat/>
+                </stat>
+                <consistent_interpolation/>
+              </diagnostic>
+            </scalar_field>
+          </MineralDissolutionSource>
+          <Mobile_Immobile_Model>
+            <scalar_field name="Mobile_chemical_src" rank="0">
+              <diagnostic>
+                <mesh name="PressureMesh"/>
+                <algorithm name="Internal"/>
+                <output/>
+                <stat>
+                  <include_in_stat/>
+                </stat>
+                <consistent_interpolation/>
+              </diagnostic>
+            </scalar_field>
+            <scalar_field name="Immobile_chemical_src" rank="0">
+              <diagnostic>
+                <mesh name="PressureMesh"/>
+                <algorithm name="Internal"/>
+                <output/>
+                <stat>
+                  <include_in_stat/>
+                </stat>
+                <consistent_interpolation/>
+              </diagnostic>
+            </scalar_field>
+          </Mobile_Immobile_Model>
+        </LeachingChemicalSourceTerm>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <consistent_interpolation/>
+      </prognostic>
+    </scalar_field>
+    <scalar_field name="Fe2">
+      <prognostic>
+        <mesh name="PressureMesh"/>
+        <solver name="DefaultSolverOptionsGMRESSOR">
+          <iterative_method name="gmres">
+            <restart>
+              <integer_value rank="0">30</integer_value>
+            </restart>
+          </iterative_method>
+          <preconditioner name="sor"/>
+          <relative_error>
+            <real_value rank="0">1.0e-10</real_value>
+          </relative_error>
+          <max_iterations>
+            <integer_value rank="0">1000</integer_value>
+          </max_iterations>
+          <never_ignore_solver_failures/>
+        </solver>
+        <face_value name="FirstOrderUpwind"/>
+        <initial_condition name="WholeMesh">
+          <constant>
+            <real_value rank="0">0.0</real_value>
+          </constant>
+        </initial_condition>
+        <boundary_conditions name="top">
+          <surface_ids>
+            <integer_value shape="1" rank="1">1</integer_value>
+          </surface_ids>
+          <type name="dirichlet">
+            <apply_strongly/>
+            <constant>
+              <real_value rank="0">0.0</real_value>
+            </constant>
+          </type>
+        </boundary_conditions>
+        <tensor_field name="Diffusivity" rank="2">
+          <prescribed>
+            <mesh name="ElementWiseMesh"/>
+            <value name="WholeMesh">
+              <isotropic>
+                <constant>
+                  <real_value rank="0">2.2e-06</real_value>
+                </constant>
+              </isotropic>
+            </value>
+          </prescribed>
+        </tensor_field>
+        <scalar_field name="Immobile" rank="0">
+          <diagnostic>
+            <mesh name="PressureMesh"/>
+            <algorithm name="Internal"/>
+            <initial_condition name="WholeMesh">
+              <constant>
+                <real_value rank="0">0.0</real_value>
+              </constant>
+            </initial_condition>
+            <output/>
+            <stat>
+              <include_in_stat/>
+            </stat>
+            <consistent_interpolation/>
+          </diagnostic>
+          <scalar_field name="Average_mass" rank="0">
+            <diagnostic>
+              <mesh name="PressureMesh"/>
+              <algorithm name="Internal"/>
+              <output/>
+              <stat>
+                <include_in_stat/>
+              </stat>
+              <consistent_interpolation/>
+            </diagnostic>
+          </scalar_field>
+          <scalar_field name="Mobile_ratio" rank="0">
+            <diagnostic>
+              <mesh name="PressureMesh"/>
+              <algorithm name="Internal"/>
+              <output/>
+              <stat>
+                <include_in_stat/>
+              </stat>
+              <consistent_interpolation/>
+            </diagnostic>
+          </scalar_field>
+          <scalar_field name="Immobile_ratio" rank="0">
+            <diagnostic>
+              <mesh name="PressureMesh"/>
+              <algorithm name="Internal"/>
+              <output/>
+              <stat>
+                <include_in_stat/>
+              </stat>
+              <consistent_interpolation/>
+            </diagnostic>
+          </scalar_field>
+        </scalar_field>
+        <LeachingChemicalSourceTerm>
+          <SolutionPhaseSource>
+            <scalar_field name="Ferrous_Oxidation" rank="0">
+              <diagnostic>
+                <mesh name="PressureMesh"/>
+                <algorithm name="Internal"/>
+                <stoichiometric_factor>
+                  <real_value rank="0">1.0</real_value>
+                </stoichiometric_factor>
+                <output/>
+                <stat>
+                  <include_in_stat/>
+                </stat>
+                <consistent_interpolation/>
+              </diagnostic>
+            </scalar_field>
+          </SolutionPhaseSource>
+          <MineralDissolutionSource>
+            <scalar_field name="CuFeS2_oxidation_aqueous_ferric_sulfate" rank="0">
+              <diagnostic>
+                <mesh name="PressureMesh"/>
+                <algorithm name="Internal"/>
+                <stoichiometric_factor>
+                  <real_value rank="0">-5.0</real_value>
+                </stoichiometric_factor>
+                <output/>
+                <stat>
+                  <include_in_stat/>
+                </stat>
+                <consistent_interpolation/>
+              </diagnostic>
+            </scalar_field>
+            <scalar_field name="FeS2_oxidation_aqueous_ferric_sulfate" rank="0">
+              <diagnostic>
+                <mesh name="PressureMesh"/>
+                <algorithm name="Internal"/>
+                <stoichiometric_factor>
+                  <real_value rank="0">-15.0</real_value>
+                </stoichiometric_factor>
+                <output/>
+                <stat>
+                  <include_in_stat/>
+                </stat>
+                <consistent_interpolation/>
+              </diagnostic>
+            </scalar_field>
+          </MineralDissolutionSource>
+          <Mobile_Immobile_Model>
+            <scalar_field name="Mobile_chemical_src" rank="0">
+              <diagnostic>
+                <mesh name="PressureMesh"/>
+                <algorithm name="Internal"/>
+                <output/>
+                <stat>
+                  <include_in_stat/>
+                </stat>
+                <consistent_interpolation/>
+              </diagnostic>
+            </scalar_field>
+            <scalar_field name="Immobile_chemical_src" rank="0">
+              <diagnostic>
+                <mesh name="PressureMesh"/>
+                <algorithm name="Internal"/>
+                <output/>
+                <stat>
+                  <include_in_stat/>
+                </stat>
+                <consistent_interpolation/>
+              </diagnostic>
+            </scalar_field>
+          </Mobile_Immobile_Model>
+        </LeachingChemicalSourceTerm>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <consistent_interpolation/>
+      </prognostic>
+    </scalar_field>
+    <scalar_field name="DO">
+      <prognostic>
+        <mesh name="PressureMesh"/>
+        <solver name="DefaultSolverOptionsGMRESSOR">
+          <iterative_method name="gmres">
+            <restart>
+              <integer_value rank="0">30</integer_value>
+            </restart>
+          </iterative_method>
+          <preconditioner name="sor"/>
+          <relative_error>
+            <real_value rank="0">1.0e-10</real_value>
+          </relative_error>
+          <max_iterations>
+            <integer_value rank="0">1000</integer_value>
+          </max_iterations>
+          <never_ignore_solver_failures/>
+        </solver>
+        <face_value name="FirstOrderUpwind"/>
+        <initial_condition name="WholeMesh">
+          <constant>
+            <real_value rank="0">0.03887</real_value>
+          </constant>
+        </initial_condition>
+        <boundary_conditions name="Top">
+          <surface_ids>
+            <integer_value shape="1" rank="1">1</integer_value>
+          </surface_ids>
+          <type name="dirichlet">
+            <apply_strongly/>
+            <constant>
+              <real_value rank="0">0.03887</real_value>
+            </constant>
+          </type>
+        </boundary_conditions>
+        <tensor_field name="Diffusivity" rank="2">
+          <prescribed>
+            <mesh name="ElementWiseMesh"/>
+            <value name="WholeMesh">
+              <isotropic>
+                <constant>
+                  <real_value rank="0">2.2e-06</real_value>
+                </constant>
+              </isotropic>
+            </value>
+          </prescribed>
+        </tensor_field>
+        <scalar_field name="Immobile" rank="0">
+          <diagnostic>
+            <mesh name="PressureMesh"/>
+            <algorithm name="Internal"/>
+            <initial_condition name="WholeMesh">
+              <constant>
+                <real_value rank="0">0.0</real_value>
+              </constant>
+            </initial_condition>
+            <output/>
+            <stat>
+              <include_in_stat/>
+            </stat>
+            <consistent_interpolation/>
+          </diagnostic>
+          <scalar_field name="Average_mass" rank="0">
+            <diagnostic>
+              <mesh name="PressureMesh"/>
+              <algorithm name="Internal"/>
+              <output/>
+              <stat>
+                <include_in_stat/>
+              </stat>
+              <consistent_interpolation/>
+            </diagnostic>
+          </scalar_field>
+          <scalar_field name="Mobile_ratio" rank="0">
+            <diagnostic>
+              <mesh name="PressureMesh"/>
+              <algorithm name="Internal"/>
+              <output/>
+              <stat>
+                <include_in_stat/>
+              </stat>
+              <consistent_interpolation/>
+            </diagnostic>
+          </scalar_field>
+          <scalar_field name="Immobile_ratio" rank="0">
+            <diagnostic>
+              <mesh name="PressureMesh"/>
+              <algorithm name="Internal"/>
+              <output/>
+              <stat>
+                <include_in_stat/>
+              </stat>
+              <consistent_interpolation/>
+            </diagnostic>
+          </scalar_field>
+        </scalar_field>
+        <LeachingChemicalSourceTerm>
+          <Source_Linearization/>
+          <SolutionPhaseSource>
+            <scalar_field name="Ferrous_Oxidation" rank="0">
+              <diagnostic>
+                <mesh name="PressureMesh"/>
+                <algorithm name="Internal"/>
+                <stoichiometric_factor>
+                  <real_value rank="0">0.25</real_value>
+                </stoichiometric_factor>
+                <output/>
+                <stat>
+                  <include_in_stat/>
+                </stat>
+                <consistent_interpolation/>
+              </diagnostic>
+            </scalar_field>
+            <scalar_field name="Oxygen_dissolution_liquid_phase" rank="0">
+              <diagnostic>
+                <mesh name="PressureMesh"/>
+                <algorithm name="Internal"/>
+                <stoichiometric_factor>
+                  <real_value rank="0">1.0</real_value>
+                </stoichiometric_factor>
+                <output/>
+                <stat>
+                  <include_in_stat/>
+                </stat>
+                <consistent_interpolation/>
+              </diagnostic>
+            </scalar_field>
+          </SolutionPhaseSource>
+          <MineralDissolutionSource>
+            <scalar_field name="S0_dissolution" rank="0">
+              <diagnostic>
+                <mesh name="PressureMesh"/>
+                <algorithm name="Internal"/>
+                <stoichiometric_factor>
+                  <real_value rank="0">1.5</real_value>
+                </stoichiometric_factor>
+                <output/>
+                <stat>
+                  <include_in_stat/>
+                </stat>
+                <consistent_interpolation/>
+              </diagnostic>
+            </scalar_field>
+          </MineralDissolutionSource>
+          <Mobile_Immobile_Model>
+            <scalar_field name="Mobile_chemical_src" rank="0">
+              <diagnostic>
+                <mesh name="PressureMesh"/>
+                <algorithm name="Internal"/>
+                <output/>
+                <stat>
+                  <include_in_stat/>
+                </stat>
+                <consistent_interpolation/>
+              </diagnostic>
+            </scalar_field>
+            <scalar_field name="Immobile_chemical_src" rank="0">
+              <diagnostic>
+                <mesh name="PressureMesh"/>
+                <algorithm name="Internal"/>
+                <output/>
+                <stat>
+                  <include_in_stat/>
+                </stat>
+                <consistent_interpolation/>
+              </diagnostic>
+            </scalar_field>
+          </Mobile_Immobile_Model>
+        </LeachingChemicalSourceTerm>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <consistent_interpolation/>
+      </prognostic>
+    </scalar_field>
+    <MobileImmobileModel>
+      <scalar_field name="ImmobileSaturation" rank="0">
+        <diagnostic>
+          <mesh name="PressureMesh"/>
+          <algorithm name="Internal"/>
+          <output/>
+          <stat>
+            <include_in_stat/>
+          </stat>
+          <consistent_interpolation/>
+        </diagnostic>
+      </scalar_field>
+      <scalar_field name="MobileSaturation" rank="0">
+        <diagnostic>
+          <mesh name="PressureMesh"/>
+          <algorithm name="Internal"/>
+          <output/>
+          <stat>
+            <include_in_stat/>
+          </stat>
+          <consistent_interpolation/>
+        </diagnostic>
+      </scalar_field>
+      <scalar_field name="MassTransferCoefficient" rank="0">
+        <diagnostic>
+          <mesh name="PressureMesh"/>
+          <algorithm name="Internal"/>
+          <output/>
+          <stat>
+            <include_in_stat/>
+          </stat>
+          <consistent_interpolation/>
+        </diagnostic>
+      </scalar_field>
+    </MobileImmobileModel>
+  </material_phase>
+  <Leaching_chemical_model>
+    <MineralDissolution>
+      <reaction name="CuFeS2_oxidation_aqueous_ferric_sulfate">
+        <scalar_field name="dCuFeS2_dt" rank="0">
+          <diagnostic>
+            <mesh name="PressureMesh"/>
+            <algorithm name="Internal"/>
+            <output/>
+            <stat>
+              <include_in_stat/>
+            </stat>
+            <consistent_interpolation/>
+          </diagnostic>
+        </scalar_field>
+        <scalar_field name="extraction_rate" rank="0">
+          <diagnostic>
+            <mesh name="PressureMesh"/>
+            <algorithm name="Internal"/>
+            <output/>
+            <stat>
+              <include_in_stat/>
+            </stat>
+            <consistent_interpolation/>
+          </diagnostic>
+        </scalar_field>
+        <scalar_field name="current_extraction" rank="0">
+          <diagnostic>
+            <mesh name="PressureMesh"/>
+            <algorithm name="Internal"/>
+            <output/>
+            <stat>
+              <include_in_stat/>
+            </stat>
+            <consistent_interpolation/>
+          </diagnostic>
+        </scalar_field>
+        <scalar_field name="molar_concentration" rank="0">
+          <prescribed>
+            <mesh name="PressureMesh"/>
+            <value name="WholeMesh">
+              <constant>
+                <real_value rank="0">147.1</real_value>
+              </constant>
+            </value>
+            <output/>
+            <stat>
+              <include_in_stat/>
+            </stat>
+          </prescribed>
+        </scalar_field>
+        <experiment_data>
+          <number_of_data_points>
+            <integer_value rank="0">13</integer_value>
+          </number_of_data_points>
+          <extraction>
+            <real_value shape="13" rank="1">0 0.1544535825 0.2748526645 0.3625068659 0.412745937 0.4674295763 0.5282583069 0.5772440306 0.6187169157 0.7164262117 0.7931250187 0.8385892222 0.8957380133</real_value>
+          </extraction>
+          <empirical_extraction_rate_over_k>
+            <real_value shape="13" rank="1">465551.405739268 222746.50041104 71490.0562038284 40160.0110529437 30404.6483212624 22341.2101837181 16887.2635367788 13686.945167314 11622.3225977264 8054.7611536909 5932.9777585416 5215.9437972879 4336.6710260859</real_value>
+          </empirical_extraction_rate_over_k>
+        </experiment_data>
+        <rate_constant_Arrhenius>
+          <scalar_field name="prefactor" rank="0">
+            <prescribed>
+              <mesh name="PressureMesh"/>
+              <value name="WholeMesh">
+                <constant>
+                  <real_value rank="0">1.0</real_value>
+                </constant>
+              </value>
+              <output/>
+              <stat>
+                <include_in_stat/>
+              </stat>
+            </prescribed>
+          </scalar_field>
+          <activation_energy>
+            <real_value rank="0">-48100.0</real_value>
+          </activation_energy>
+          <gas_constant>
+            <real_value rank="0">8.314</real_value>
+          </gas_constant>
+        </rate_constant_Arrhenius>
+        <bulk_fluid_conditions>
+          <bulk_concentration name="H">
+            <phase>
+              <integer_value rank="0">2</integer_value>
+            </phase>
+            <order>
+              <real_value rank="0">0.8</real_value>
+            </order>
+          </bulk_concentration>
+          <bulk_concentration name="Fe3">
+            <phase>
+              <integer_value rank="0">2</integer_value>
+            </phase>
+            <order>
+              <real_value rank="0">0.42</real_value>
+            </order>
+          </bulk_concentration>
+        </bulk_fluid_conditions>
+      </reaction>
+      <reaction name="FeS2_oxidation_aqueous_ferric_sulfate">
+        <scalar_field name="dFeS2_dt" rank="0">
+          <diagnostic>
+            <mesh name="PressureMesh"/>
+            <algorithm name="Internal"/>
+            <output/>
+            <stat>
+              <include_in_stat/>
+            </stat>
+            <consistent_interpolation/>
+          </diagnostic>
+        </scalar_field>
+        <scalar_field name="extraction_rate" rank="0">
+          <diagnostic>
+            <mesh name="PressureMesh"/>
+            <algorithm name="Internal"/>
+            <output/>
+            <stat>
+              <include_in_stat/>
+            </stat>
+            <consistent_interpolation/>
+          </diagnostic>
+        </scalar_field>
+        <scalar_field name="current_extraction" rank="0">
+          <diagnostic>
+            <mesh name="PressureMesh"/>
+            <algorithm name="Internal"/>
+            <output/>
+            <stat>
+              <include_in_stat/>
+            </stat>
+            <consistent_interpolation/>
+          </diagnostic>
+        </scalar_field>
+        <scalar_field name="molar_concentration" rank="0">
+          <prescribed>
+            <mesh name="PressureMesh"/>
+            <value name="WholeMesh">
+              <constant>
+                <real_value rank="0">1109.9</real_value>
+              </constant>
+            </value>
+            <output/>
+            <stat>
+              <include_in_stat/>
+            </stat>
+          </prescribed>
+        </scalar_field>
+        <experiment_data>
+          <number_of_data_points>
+            <integer_value rank="0">9</integer_value>
+          </number_of_data_points>
+          <extraction>
+            <real_value shape="9" rank="1">0 0.0153804932 0.0335251477 0.0688175045 0.124797508 0.2268637619 0.2977037813 0.3440036145 0.4059548783</real_value>
+          </extraction>
+          <empirical_extraction_rate_over_k>
+            <real_value shape="9" rank="1">134898.477869708 164829.237515642 156431.816771099 147542.729829267 137063.228489949 110423.994358445 98887.8915469746 91300.6576370167 81949.7534079575</real_value>
+          </empirical_extraction_rate_over_k>
+        </experiment_data>
+        <rate_constant_Arrhenius>
+          <scalar_field name="prefactor" rank="0">
+            <prescribed>
+              <mesh name="PressureMesh"/>
+              <value name="WholeMesh">
+                <constant>
+                  <real_value rank="0">1.0</real_value>
+                </constant>
+              </value>
+              <output/>
+              <stat>
+                <include_in_stat/>
+              </stat>
+            </prescribed>
+          </scalar_field>
+          <activation_energy>
+            <real_value rank="0">-50000.0</real_value>
+          </activation_energy>
+          <gas_constant>
+            <real_value rank="0">8.314</real_value>
+          </gas_constant>
+        </rate_constant_Arrhenius>
+        <bulk_fluid_conditions>
+          <bulk_concentration name="Fe3">
+            <phase>
+              <integer_value rank="0">2</integer_value>
+            </phase>
+            <order>
+              <real_value rank="0">0.93</real_value>
+            </order>
+          </bulk_concentration>
+          <bulk_concentration name="Fe2">
+            <phase>
+              <integer_value rank="0">2</integer_value>
+            </phase>
+            <order>
+              <real_value rank="0">-0.4</real_value>
+            </order>
+          </bulk_concentration>
+        </bulk_fluid_conditions>
+      </reaction>
+      <reaction name="S0_dissolution">
+        <scalar_field name="S0" rank="0">
+          <diagnostic>
+            <mesh name="PressureMesh"/>
+            <algorithm name="Internal"/>
+            <output/>
+            <stat>
+              <include_in_stat/>
+            </stat>
+            <consistent_interpolation/>
+          </diagnostic>
+        </scalar_field>
+        <scalar_field name="dS0_dt" rank="0">
+          <diagnostic>
+            <mesh name="PressureMesh"/>
+            <algorithm name="Internal"/>
+            <output/>
+            <stat>
+              <include_in_stat/>
+            </stat>
+            <consistent_interpolation/>
+          </diagnostic>
+        </scalar_field>
+        <Dissolution_Algorithm name="Non-bio_leaching">
+          <percentage_of_dissolve>
+            <real_value rank="0">0.9</real_value>
+          </percentage_of_dissolve>
+        </Dissolution_Algorithm>
+        <o2_name>DO</o2_name>
+        <H_name>H</H_name>
+      </reaction>
+      <reaction name="Gangue_mineral_acid_dissolution">
+        <scalar_field name="dG_dt" rank="0">
+          <diagnostic>
+            <mesh name="PressureMesh"/>
+            <algorithm name="Internal"/>
+            <output/>
+            <stat>
+              <include_in_stat/>
+            </stat>
+            <consistent_interpolation/>
+          </diagnostic>
+        </scalar_field>
+        <rate_constant>
+          <real_value rank="0">0.00005</real_value>
+        </rate_constant>
+        <H_name>H</H_name>
+      </reaction>
+    </MineralDissolution>
+    <SolutionPhaseReactions>
+      <reaction name="Ferrous_Oxidation">
+        <scalar_field name="dFe2_dt" rank="0">
+          <diagnostic>
+            <mesh name="PressureMesh"/>
+            <algorithm name="Internal"/>
+            <output/>
+            <stat>
+              <include_in_stat/>
+            </stat>
+            <consistent_interpolation/>
+          </diagnostic>
+        </scalar_field>
+        <Dissolution_Algorithm name="Non-bio_leaching">
+          <rate_constant_Arrhenius>
+            <scalar_field name="prefactor" rank="0">
+              <prescribed>
+                <mesh name="PressureMesh"/>
+                <value name="WholeMesh">
+                  <constant>
+                    <real_value rank="0">-16.2</real_value>
+                  </constant>
+                </value>
+                <output/>
+                <stat>
+                  <include_in_stat/>
+                </stat>
+              </prescribed>
+            </scalar_field>
+            <activation_energy>
+              <real_value rank="0">-74000</real_value>
+            </activation_energy>
+            <gas_constant>
+              <real_value rank="0">8.3144621</real_value>
+            </gas_constant>
+          </rate_constant_Arrhenius>
+          <bulk_fluid_conditions>
+            <bulk_concentration name="Fe2">
+              <phase>
+                <integer_value rank="0">2</integer_value>
+              </phase>
+              <order>
+                <real_value rank="0">2.0</real_value>
+              </order>
+            </bulk_concentration>
+            <bulk_concentration name="DO">
+              <phase>
+                <integer_value rank="0">2</integer_value>
+              </phase>
+              <order>
+                <real_value rank="0">1</real_value>
+              </order>
+            </bulk_concentration>
+            <bulk_concentration name="H">
+              <phase>
+                <integer_value rank="0">2</integer_value>
+              </phase>
+              <order>
+                <real_value rank="0">-0.25</real_value>
+              </order>
+            </bulk_concentration>
+          </bulk_fluid_conditions>
+        </Dissolution_Algorithm>
+      </reaction>
+      <reaction name="Jarosite_Precipitation">
+        <scalar_field name="dM_dt" rank="0">
+          <diagnostic>
+            <mesh name="PressureMesh"/>
+            <algorithm name="Internal"/>
+            <output/>
+            <stat>
+              <include_in_stat/>
+            </stat>
+            <consistent_interpolation/>
+          </diagnostic>
+        </scalar_field>
+        <scalar_field name="molar_concentration" rank="0">
+          <diagnostic>
+            <mesh name="PressureMesh"/>
+            <algorithm name="Internal"/>
+            <output/>
+            <stat>
+              <include_in_stat/>
+            </stat>
+            <consistent_interpolation/>
+          </diagnostic>
+        </scalar_field>
+        <H_name>H</H_name>
+        <Fe3_name>Fe3</Fe3_name>
+        <rate_constant>
+          <real_value rank="0">2.0E-6</real_value>
+        </rate_constant>
+      </reaction>
+      <reaction name="Oxygen_dissolution">
+        <scalar_field name="dOg_dt" rank="0">
+          <diagnostic>
+            <mesh name="PressureMesh"/>
+            <algorithm name="Internal"/>
+            <output/>
+            <stat>
+              <include_in_stat/>
+            </stat>
+            <consistent_interpolation/>
+          </diagnostic>
+        </scalar_field>
+        <og_name>Og</og_name>
+        <o2_name>DO</o2_name>
+      </reaction>
+    </SolutionPhaseReactions>
+    <heat_transfer_model>
+      <single_phase_heat_transfer>
+        <algorithm name="Internal"/>
+      </single_phase_heat_transfer>
+    </heat_transfer_model>
+    <liquid_solid_wetting_efficiency>
+      <scalar_field name="Wetting_efficiency" rank="0">
+        <diagnostic>
+          <mesh name="PressureMesh"/>
+          <algorithm name="Internal"/>
+          <output/>
+          <stat>
+            <include_in_stat/>
+          </stat>
+          <consistent_interpolation/>
+        </diagnostic>
+      </scalar_field>
+    </liquid_solid_wetting_efficiency>
+  </Leaching_chemical_model>
+  <porous_media>
+    <scalar_field name="Porosity">
+      <prescribed>
+        <mesh name="ElementWiseMesh"/>
+        <value name="WholeMesh">
+          <constant>
+            <real_value rank="0">0.400488031</real_value>
+          </constant>
+        </value>
+        <output/>
+        <stat>
+          <exclude_from_stat/>
+          <include_cv_stats/>
+        </stat>
+      </prescribed>
+    </scalar_field>
+    <scalar_field name="AbsolutePermeability">
+      <prescribed>
+        <mesh name="ElementWiseMesh"/>
+        <value name="WholeMesh">
+          <constant>
+            <real_value rank="0">2.30000000000E-009</real_value>
+          </constant>
+        </value>
+        <output/>
+        <stat>
+          <exclude_from_stat/>
+          <include_cv_stats/>
+        </stat>
+      </prescribed>
+    </scalar_field>
+    <scalar_field name="Rock_diameter" rank="0">
+      <prescribed>
+        <mesh name="PressureMesh"/>
+        <value name="WholeMesh">
+          <constant>
+            <real_value rank="0">0.01</real_value>
+          </constant>
+        </value>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+      </prescribed>
+    </scalar_field>
+  </porous_media>
+</darcy_impes_options>

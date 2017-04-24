@@ -1828,8 +1828,7 @@ darcy_MIM_generic_scalar_field_immobile_src =
 			    darcy_impes_internal_algorithm,
 			    initial_condition_scalar,
 			    darcy_impes_diagnostic_scalar_field,
-			    darcy_impes_recalculation_options?,
-			    darcy_impes_include_stat
+			    darcy_impes_recalculation_options?
 			    }
                     ),
                (
@@ -1841,8 +1840,7 @@ darcy_MIM_generic_scalar_field_immobile_src =
                    mesh_choice_pressure,
 			    darcy_impes_internal_algorithm,
 			    darcy_impes_diagnostic_scalar_field,
-			    darcy_impes_recalculation_options?,
-			    darcy_impes_include_stat
+			    darcy_impes_recalculation_options?
                      }
                     }
 			    ),
@@ -1855,8 +1853,7 @@ darcy_MIM_generic_scalar_field_immobile_src =
                        mesh_choice_pressure,
 			        darcy_impes_internal_algorithm,
 			        darcy_impes_diagnostic_scalar_field,
-			        darcy_impes_recalculation_options?,
-			        darcy_impes_include_stat
+			        darcy_impes_recalculation_options?
 			        }
 			       }
 			      ),
@@ -1869,8 +1866,7 @@ darcy_MIM_generic_scalar_field_immobile_src =
                        mesh_choice_pressure,
 			        darcy_impes_internal_algorithm,
 			        darcy_impes_diagnostic_scalar_field,
-			        darcy_impes_recalculation_options?,
-			        darcy_impes_include_stat
+			        darcy_impes_recalculation_options?
 			       }
 			      }
 			     ) 
@@ -3327,7 +3323,7 @@ leaching_mineral_dissolution_options =
                       ),
                       
                     (    
-                    ##The scalar filed name for liquid oxygen in Phase 1
+                    ##The scalar filed name for liquid oxygen in Phase 2
                       element o2_name {string }   
                    ),   
 
@@ -3402,7 +3398,7 @@ leaching_semi_empirical_model_extraction =
                          }
                  ), 
     ( 
-     ##This is the molar amount of the current mineral species per volume of heap
+     ##This is the molar amount of the mineral species per volume of heap
      ##i.e. mole per m^3  of heap
     element scalar_field {
                           attribute rank { "0" },
@@ -4275,7 +4271,7 @@ darcy_impes_non_first_phase_temperature_field =
       ##Please turn on the rock temperature when choosing the two phase
       ##or three phase heat transfer
       ##The conduction heat transfers through rocks are neglected 
-      ##equation tobe solved: (d(T_s*(1-porosity))/dt)=-k_eff(T_s-T_l)*(T_s-T_l)*(1-porosity)/(Cp_s*rho_s)+H_dissolution/(Cp_s*rho_s)
+      ##equation tobe solved: (d(T_s*(1-porosity))/dt)=-ht*at*(T_s-T_l)/(Cp_s*rho_s)+H_dissolution/(Cp_s*rho_s)
       element scalar_field {
 	     attribute rank { "0" },
 		attribute name { "Rock_Temperature" },
@@ -4479,7 +4475,6 @@ darcy_impes_non_first_phase_temperature_field =
            
            (
             ##the source term of the heat released by mineral dissolution reactions
-            ##now only support the chalcopyrite leaching
             ##H_dissolution/(cp_r*rho_r),unit: (k/s)*(m^3_r/m^3_heap)
             element scalar_field {
                attribute rank { "0" },
@@ -4604,7 +4599,6 @@ darcy_impes_non_first_phase_temperature_field =
            
            (
             ##the source term of the heat released by solution phase reactions
-            ##now only support the chalcopyrite leaching
             ##H_solution_reaction/(cp_l*rho_l),unit: (k/s)*(m^3_l/m^3_heap)
             element scalar_field {
                attribute rank { "0" },

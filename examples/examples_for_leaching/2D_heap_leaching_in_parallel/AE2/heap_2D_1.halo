@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<halos process="1" nprocs="4">
+    <halo level="1" n_private_nodes="744">
+        <halo_data process="0">
+            <send>3 85 95 130 138 156 187 261 272 285 310 323 346 366 436 447 510 526 529 561 600 630 688 </send>
+            <receive>745 746 747 748 749 750 751 752 753 754 755 756 757 758 759 760 761 762 763 764 765 766 767 768 </receive>
+        </halo_data>
+        <halo_data process="1">
+            <send></send>
+            <receive></receive>
+        </halo_data>
+        <halo_data process="2">
+            <send></send>
+            <receive></receive>
+        </halo_data>
+        <halo_data process="3">
+            <send></send>
+            <receive></receive>
+        </halo_data>
+    </halo>
+    <halo level="2" n_private_nodes="744">
+        <halo_data process="0">
+            <send>3 4 84 85 95 118 130 138 156 184 187 203 242 252 261 272 277 285 286 310 323 346 366 379 383 394 410 433 436 447 490 494 510 526 529 561 562 574 577 578 600 630 645 682 688 698 710 713 735 744 </send>
+            <receive>769 745 746 770 771 747 748 749 750 751 772 752 753 754 755 773 774 775 776 777 778 779 756 780 757 758 781 782 783 784 785 786 759 760 761 762 763 787 764 788 789 790 765 791 766 792 793 767 768 794 </receive>
+        </halo_data>
+        <halo_data process="1">
+            <send></send>
+            <receive></receive>
+        </halo_data>
+        <halo_data process="2">
+            <send></send>
+            <receive></receive>
+        </halo_data>
+        <halo_data process="3">
+            <send></send>
+            <receive></receive>
+        </halo_data>
+    </halo>
+</halos>

@@ -1894,7 +1894,6 @@ i.e. if the name of this scalar field is 'cd', then the name will be changed to 
           <optional>
             <ref name="darcy_impes_recalculation_options"/>
           </optional>
-          <ref name="darcy_impes_include_stat"/>
         </element>
         <element name="scalar_field">
           <a:documentation>this is the averaged mass between mobile and immobile field</a:documentation>
@@ -1911,7 +1910,6 @@ i.e. if the name of this scalar field is 'cd', then the name will be changed to 
             <optional>
               <ref name="darcy_impes_recalculation_options"/>
             </optional>
-            <ref name="darcy_impes_include_stat"/>
           </element>
         </element>
         <element name="scalar_field">
@@ -1929,7 +1927,6 @@ i.e. if the name of this scalar field is 'cd', then the name will be changed to 
             <optional>
               <ref name="darcy_impes_recalculation_options"/>
             </optional>
-            <ref name="darcy_impes_include_stat"/>
           </element>
         </element>
         <element name="scalar_field">
@@ -1947,7 +1944,6 @@ i.e. if the name of this scalar field is 'cd', then the name will be changed to 
             <optional>
               <ref name="darcy_impes_recalculation_options"/>
             </optional>
-            <ref name="darcy_impes_include_stat"/>
           </element>
         </element>
       </element>
@@ -3596,7 +3592,7 @@ please specify the percentage of the S0 to dissolve,noramlly 0.05 to 0.2 </a:doc
                 </element>
               </choice>
               <element name="o2_name">
-                <a:documentation>The scalar filed name for liquid oxygen in Phase 1</a:documentation>
+                <a:documentation>The scalar filed name for liquid oxygen in Phase 2</a:documentation>
                 <data type="string" datatypeLibrary=""/>
               </element>
               <element name="H_name">
@@ -3678,7 +3674,7 @@ positive along</a:documentation>
       </element>
     </element>
     <element name="scalar_field">
-      <a:documentation>This is the molar amount of the current mineral species per volume of heap
+      <a:documentation>This is the molar amount of the mineral species per volume of heap
 i.e. mole per m^3  of heap</a:documentation>
       <attribute name="rank">
         <value>0</value>
@@ -4711,7 +4707,7 @@ each point is seperated by space</a:documentation>
       <a:documentation>Please turn on the rock temperature when choosing the two phase
 or three phase heat transfer
 The conduction heat transfers through rocks are neglected 
-equation tobe solved: (d(T_s*(1-porosity))/dt)=-k_eff(T_s-T_l)*(T_s-T_l)*(1-porosity)/(Cp_s*rho_s)+H_dissolution/(Cp_s*rho_s)</a:documentation>
+equation tobe solved: (d(T_s*(1-porosity))/dt)=-ht*at*(T_s-T_l)/(Cp_s*rho_s)+H_dissolution/(Cp_s*rho_s)</a:documentation>
       <attribute name="rank">
         <value>0</value>
       </attribute>
@@ -4965,7 +4961,6 @@ kw/(k*m^3)  </a:documentation>
       <optional>
         <element name="scalar_field">
           <a:documentation>the source term of the heat released by mineral dissolution reactions
-now only support the chalcopyrite leaching
 H_dissolution/(cp_r*rho_r),unit: (k/s)*(m^3_r/m^3_heap)</a:documentation>
           <attribute name="rank">
             <value>0</value>
@@ -5090,7 +5085,6 @@ k_eff(T_r-T_l)*(1-porosity)/(Cp_l*rho_l), unit: (k/s)*(m^3_l/m^3_heap)</a:docume
         <optional>
           <element name="scalar_field">
             <a:documentation>the source term of the heat released by solution phase reactions
-now only support the chalcopyrite leaching
 H_solution_reaction/(cp_l*rho_l),unit: (k/s)*(m^3_l/m^3_heap)</a:documentation>
             <attribute name="rank">
               <value>0</value>
