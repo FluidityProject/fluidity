@@ -51,7 +51,7 @@ module parallel_fields
 
   public :: halo_communicator, element_owned, element_neighbour_owned, &
        & element_owner, node_owned, assemble_ele, &
-       & surface_element_owned, nowned_nodes
+       & surface_element_owned, nowned_nodes, nowned_elements
   ! Apparently ifort has a problem with the generic name node_owned
   public :: node_owned_mesh, zero_non_owned
   
@@ -99,6 +99,11 @@ module parallel_fields
     module procedure nowned_nodes_mesh, nowned_nodes_scalar, &
       & nowned_nodes_vector, nowned_nodes_tensor
   end interface nowned_nodes
+
+  interface nowned_elements
+    module procedure nowned_elements_mesh, nowned_elements_scalar, &
+      & nowned_elements_vector, nowned_elements_tensor
+  end interface nowned_elements
 
 contains
   
@@ -756,5 +761,48 @@ contains
     nodes = nowned_nodes(t_field%mesh)
   
   end function nowned_nodes_tensor
+
+  pure function nowned_elements_mesh(mesh) result(elements)
+    type(mesh_type), intent(in) :: mesh
+    
+    integer :: elements
+    
+    integer :: nhalos
+    
+    nhalos = element_halo_count(mesh)
+    if(nhalos > 0) then
+      elements = halo_nowned_nodes(mesh%element_halos(nhalos))
+    else
+      elements = node_count(mesh)
+    end if
+  
+  end function nowned_elements_mesh
+
+  pure function nowned_elements_scalar(s_field) result(elements)
+    type(scalar_field), intent(in) :: s_field
+    
+    integer :: elements
+    
+    elements = nowned_elements(s_field%mesh)
+  
+  end function nowned_elements_scalar
+  
+  pure function nowned_elements_vector(v_field) result(elements)
+    type(vector_field), intent(in) :: v_field
+    
+    integer :: elements
+    
+    elements = nowned_elements(v_field%mesh)
+  
+  end function nowned_elements_vector
+  
+  pure function nowned_elements_tensor(t_field) result(elements)
+    type(tensor_field), intent(in) :: t_field
+    
+    integer :: elements
+    
+    elements = nowned_elements(t_field%mesh)
+  
+  end function nowned_elements_tensor
 
 end module parallel_fields

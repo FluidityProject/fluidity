@@ -33,7 +33,7 @@ module mba2d_integration
   
   private
   
-  public :: adapt_mesh_mba2d, mba2d_integration_check_options
+  public :: adapt_mesh_mba2d, adapt_mesh_mba2d_delaunay_short, mba2d_integration_check_options
 
   contains
 
@@ -257,9 +257,12 @@ module mba2d_integration
        allocate(nipe(3,npe))
        nipe=ipe(:,1:npe)
     else
+       npe = totele
        do i=1,totele
           ipe(:, i) = ele_nodes(xmesh, i)
        end do
+       allocate(nipe(3,npe))
+       nipe=ipe(:,1:npe)
     end if
 
     nhalos = halo_count(xmesh)
@@ -444,7 +447,7 @@ module mba2d_integration
        end do
     end if
 
-    assert( j==npe+1)
+   assert( j==npe+1)
 
     call allocate(new_mesh, nonods, totele, ele_shape(xmesh, 1), trim(xmesh%name))
     ! Hack: untag these references so that people (i.e. me) don't get confused.
@@ -628,6 +631,108 @@ module mba2d_integration
 #endif
   end subroutine adapt_mesh_mba2d
 
+  subroutine adapt_mesh_mba2d_delaunay_short(input_positions, ele_mask)
+    type(vector_field), intent(inout), target :: input_positions
+    logical, dimension(:), intent(in), optional :: ele_mask
+
+#ifdef HAVE_MBA_2D
+
+    type(mesh_type), pointer :: xmesh
+
+    integer :: nonods, mxnods, totele, stotel, orig_stotel, stotel_external
+    real, dimension(:, :), allocatable :: pos
+    integer, dimension(:, :), allocatable :: ipe
+    real, dimension(:, :), allocatable :: parcrv
+    integer :: i, j, maxele, mxface, nfree_ele, nhalos
+    integer :: iPrint, ierr, maxWr, maxWi
+    real, dimension(:), allocatable :: rW
+    integer, dimension(:), allocatable :: iW
+    integer, dimension(:), allocatable :: sndgln
+    integer :: maxp
+    integer :: proc
+
+#ifdef GIVE_LIPNIKOV_OUTPUT
+    integer :: rank
+    character(len=255) :: filename
+#endif
+
+    ewrite(1, *) "In adapt_mesh_mba2d_delaunay_short"
+
+    xmesh => input_positions%mesh
+
+    ! mxnods is an option to adaptivity specifying the maximum number of nodes
+    mxnods = node_count(xmesh)
+
+    nonods = node_count(xmesh)
+    totele = ele_count(xmesh)
+    if (present(ele_mask)) then
+       nfree_ele = count(ele_mask)
+    else
+       nfree_ele = totele
+    end if
+    orig_stotel = unique_surface_element_count(xmesh)
+    stotel = surface_element_count(xmesh)
+    mxface = int(max((float(mxnods) / float(nonods)) * orig_stotel * 3.5, 10000.0))
+    maxele = int(max((float(mxnods) / float(nonods)) * nfree_ele * 1.5, 10000.0))
+
+    allocate(pos(2, nonods))
+    pos = 0.0
+    do i=1,2
+      pos = input_positions%val
+    end do
+
+    allocate(ipe(3, nfree_ele))
+
+    if (present(ele_mask)) then
+       j=1
+       do i=1,totele
+          if (.not. ele_mask(i)) cycle
+          ipe(:, j) = ele_nodes(xmesh, i)
+          j=j+1
+       end do
+    else
+       ipe = reshape(xmesh%ndglno,[3,totele])
+    end if
+
+    maxWr = ( 14 * nonods + mxface + maxele)  * 1.5
+    maxWi = ( 16 * nonods + 19 * mxface + 11 * maxele + 12 * totele) * 1.5
+    allocate(rW(maxWr))
+    allocate(iW(maxWi))
+
+    call Delaunay(nonods,nfree_ele,pos,ipe,&
+         maxWr, maxWi, rW, iW)
+
+    call incrementeventcounter(EVENT_ADAPTIVITY)
+    call incrementeventcounter(EVENT_MESH_MOVEMENT)
+
+    ! Hooray! You didn't crash. Congratulations. Now let's assemble the output and interpolate.
+
+    if (present(ele_mask)) then
+       j=1
+       do i=1, totele
+          if (ele_mask(i)) then
+            xmesh%ndglno(3*i-2:3*i) = ipe(:,j)
+            j=j+1
+         else
+            xmesh%ndglno(3*i-2:3*i) = ele_nodes(xmesh, i)
+         end if
+       end do
+    else
+       xmesh%ndglno = reshape(ipe(:, 1:totele), (/size(xmesh%ndglno)/))
+    end if
+
+    deallocate(pos)
+    deallocate(ipe)
+    deallocate(rW)
+    deallocate(iW)
+    
+    ewrite(1, *) "Exiting adapt_mesh_mba2d_delaunay_short"
+
+#else
+    FLExit("You called mba_adapt without the mba2d library. Reconfigure with --enable-2d-adaptivity")
+#endif
+  end subroutine adapt_mesh_mba2d_delaunay_short
+
   subroutine relax_metric_locked_regions(metric, locked_elements, positions)
     ! in the locked regions (halo regions in parallel) and the region immediately
     ! adjacent to it, mba can't satisfy what we ask for in the metric
@@ -709,8 +814,8 @@ module mba2d_integration
     integer, dimension(:), pointer :: neighbours, nodes
 
 
-    if (isParallel()) then
-       nhalos = halo_count(xmesh)
+    nhalos = halo_count(xmesh)
+    if (isParallel() .and. nhalos>0) then
        nodes => ele_nodes(xmesh,ele)
        do k=1, size(nodes)
           if (.not. node_owned(xmesh%halos(nhalos), nodes(k))) then
@@ -719,7 +824,12 @@ module mba2d_integration
           end if
        end do
     end if
-    valid = .not. has_value(region_list,ele_region_id(xmesh,ele))
+    if (associated(xmesh%region_ids)) then
+       valid = .not. has_value(region_list,ele_region_id(xmesh,ele))
+    else
+       valid = .true.
+    end if
+
 
   end function valid_delaunay_element
 

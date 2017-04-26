@@ -88,6 +88,7 @@ module adapt_state_module
 #ifdef HAVE_ZOLTAN
   use zoltan_integration
 #endif
+  use surface_id_interleaving
 
   implicit none
 
@@ -95,7 +96,9 @@ module adapt_state_module
 
   public :: adapt_mesh, adapt_state, adapt_state_first_timestep
   public :: insert_metric_for_interpolation, extract_and_remove_metric, sam_options
-  public :: adapt_state_module_check_options, update_base_coordinates
+  public :: adapt_state_module_check_options, update_base_coordinates, strip_l2_halo, strip_halos
+  public :: parallel_connectivity_adaptivity, serialise_coordinate
+  public :: update_parallel_from_serial_coordinate
 
   interface adapt_state
     module procedure adapt_state_single, adapt_state_multiple
@@ -171,9 +174,9 @@ contains
     ! the halo 2 region (in addition to halo 1) - halo 2 regions will be regrown automatically
     ! after repartioning in zoltan
     type(vector_field), intent(in) :: positions
-    type(tensor_field), intent(in):: metric
+    type(tensor_field), intent(in), optional:: metric
     type(vector_field), intent(out) :: stripped_positions
-    type(tensor_field), intent(out):: stripped_metric
+    type(tensor_field), intent(out), optional:: stripped_metric
 
     type(mesh_type):: stripped_mesh, mesh
     integer, dimension(:), pointer :: node_list, nodes
@@ -213,9 +216,9 @@ contains
     deallocate(mesh%halos)
 
     call allocate(stripped_positions, positions%dim, stripped_mesh, name=positions%name)
-    call allocate(stripped_metric, stripped_mesh, name=metric%name)
+    if (present(metric)) call allocate(stripped_metric, stripped_mesh, name=metric%name)
     call set_all(stripped_positions, node_val(positions, node_list))
-    call set_all(stripped_metric, node_val(metric, node_list))
+    if (present(metric)) call set_all(stripped_metric, node_val(metric, node_list))
 
     call deallocate(stripped_mesh)
     deallocate(node_list)
@@ -223,6 +226,60 @@ contains
     ewrite(1,*) "Exiting strip_l2_halo"
 
   end subroutine strip_l2_halo
+
+  subroutine strip_halos(positions, metric, stripped_positions, stripped_metric)
+    ! strip all halo from mesh
+    type(vector_field), intent(in) :: positions
+    type(tensor_field), intent(in), optional:: metric
+    type(vector_field), intent(out) :: stripped_positions
+    type(tensor_field), intent(out), optional:: stripped_metric
+
+    type(mesh_type):: stripped_mesh, mesh
+    integer, dimension(:), pointer :: node_list, nodes
+    integer, dimension(:), allocatable :: non_halo2_elements
+    integer :: ele, j, non_halo2_count
+    logical, dimension(ele_loc(positions,1)) :: lnodes
+
+    ewrite(1,*) "Inside strip_halos"
+
+    allocate(non_halo2_elements(1:element_count(positions)))
+    non_halo2_count = 0
+    ele_loop: do ele=1, element_count(positions)
+       nodes => ele_nodes(positions, ele)
+       do j=1, size(nodes)
+          lnodes(j) = node_owned(positions, nodes(j))
+       end do
+       if (all(lnodes)) then
+          non_halo2_count = non_halo2_count + 1
+          non_halo2_elements(non_halo2_count) = ele
+       end if
+    end do ele_loop
+
+    ! to avoid create_subdomain_mesh recreating a new halo 2
+    ! temporarily take it away from the input positions%mesh
+    ! (create_sudomain_mesh would correctly recreate a halo2, but since
+    ! all halo2 nodes are stripped, it would end up being the same as halo 1)
+    ! the new element halos are recreated from the new nodal halo without
+    ! using those of the input positions%mesh
+    mesh = positions%mesh
+    ! since mesh is a copy of positons%mesh, we can change mesh%halos
+    ! without changing positions%mesh%halos
+    nullify(mesh%halos)
+
+    call create_subdomain_mesh(mesh, non_halo2_elements(1:non_halo2_count), &
+      mesh%name, stripped_mesh, node_list)
+
+    call allocate(stripped_positions, positions%dim, stripped_mesh, name=positions%name)
+    if (present(metric)) call allocate(stripped_metric, stripped_mesh, name=metric%name)
+    call set_all(stripped_positions, node_val(positions, node_list))
+    if (present(metric)) call set_all(stripped_metric, node_val(metric, node_list))
+
+    call deallocate(stripped_mesh)
+    deallocate(node_list)
+
+    ewrite(1,*) "Exiting strip_halos"
+
+  end subroutine strip_halos
 
   subroutine adapt_mesh_periodic(old_positions, metric, new_positions, force_preserve_regions)
     type(vector_field), intent(in) :: old_positions
@@ -1832,5 +1889,414 @@ contains
     end if
 
   end subroutine adapt_state_module_check_options
+
+  subroutine parallel_connectivity_adaptivity(X)
+    
+    type(vector_field), intent(inout) ::  x
+    type(vector_field) :: x_global
+    
+    type(halo_type) :: halo
+    logical, allocatable, dimension(:) :: node_mask, ele_mask
+    integer :: i, j, nloc
+    integer, dimension(:), pointer :: nodes
+
+    allocate(node_mask(node_count(x)), ele_mask(element_count(x)))
+
+    ele_mask=.true.
+    
+    node_mask =.false.
+
+    do i=1, halo_proc_count(x%mesh%halos(1))
+       node_mask(halo_receives(x%mesh%halos(1),i)) =.true.
+    end do
+
+    do i=1, element_count(x)
+       if (any(node_mask(ele_nodes(x,i)))) then
+          ele_mask(i) =.false.
+       end if
+    end do
+    
+    call adapt_mesh_mba2d_delaunay_short(x, ele_mask)
+
+    node_mask =.false.
+
+    do i=1, halo_proc_count(x%mesh%halos(1))
+       node_mask(halo_sends(x%mesh%halos(1),i)) =.true.
+    end do
+
+    ele_mask = .false.
+    do i = 1, element_count(x)
+       if (.not. element_owned(x,i)) cycle
+       nodes => ele_nodes(x,i)
+       if (any(node_mask(nodes))) ele_mask(i) = .true.
+    end do
+
+    call serialise_coordinate(X, X_global, halo, ele_mask)
+    
+    call adapt_mesh_mba2d_delaunay_short(x_global)
+  
+    ele_mask (nowned_elements(x)+1:element_count(x)) =.true.
+
+    call update_parallel_from_serial_coordinate(x, x_global, halo,&
+         .not. ele_mask)
+
+    call deallocate(x_global)
+
+  end subroutine parallel_connectivity_adaptivity
+
+     subroutine serialise_coordinate(local_X, global_X, halo, ele_mask)
+
+!     Given a decomposed coordinate field in parallel, this function generates a serial mesh and coordinate field on all processes. If the optional node_mask and ele_mask masks are provided, then only these nodes/elements are included.
+
+       type(vector_field), intent(in) :: local_X
+       type(vector_field), intent(out) :: global_X
+       type(halo_type), intent(out) :: halo
+       logical, dimension(:), intent(in), optional :: ele_mask
+
+       type(mesh_type) :: mesh
+
+       integer, dimension(:), allocatable :: ndglno
+       integer, dimension(node_count(local_X)) :: local_to_global_map
+       real, dimension(:,:), allocatable :: passed_X
+       integer, dimension(:), pointer :: nodes
+       logical, dimension(node_count(local_X)) :: node_mask
+
+       integer, dimension(:), allocatable:: offset, recvcount, nsends, nreceives
+
+       integer :: i, j, k, local_nodes, local_eles,  global_node_count,&
+            global_element_count, dim, nloc, ierr, nhalo, nproc, iproc
+
+       nproc = getnprocs()
+
+       allocate(offset(nproc), recvcount(nproc))
+       allocate(nsends(nproc), nreceives(nproc)) 
+       iproc = getprocno()
+
+       dim = local_X%dim
+
+       if (present(ele_mask)) then
+          node_mask =.false.
+          do i = 1, size(ele_mask)
+             nodes => ele_nodes(local_X,i)
+             node_mask(nodes) =.true.
+          end do
+       else
+          node_mask=.true.
+       end if
+       node_mask(nowned_nodes(local_X)+1:node_count(local_X)) =.false.
+
+       local_nodes = count(node_mask)
+       allocate(passed_X(dim,local_nodes))
+       j=1
+       do i=1, nowned_nodes(local_X)
+          if (.not. node_mask(i)) cycle
+          passed_X(:,j) = local_X%val(:,i)
+          j=j+1
+       end do
+
+       recvcount(iproc) = local_nodes       
+       call mpi_allgather(MPI_IN_PLACE, 1, getpinteger(), &
+            recvcount, 1, getpinteger(), MPI_COMM_FEMTOOLS, ierr)
+       offset(1)=0
+       do i=1, nproc-1
+          offset(i+1)=offset(i)+recvcount(i)
+       end do
+
+       nsends = local_nodes
+       nsends(iproc) = 0
+       nreceives = recvcount
+       nreceives(iproc) = 0
+
+       call allocate(halo, nsends, nreceives, "GlobalHalo", nprocs=nproc,&
+            nowned_nodes=local_nodes)
+
+       do j=1, nproc
+          if (j == iproc) cycle
+          call set_halo_receives(halo,j,&
+               [(i,i=offset(j)+1,offset(j)+recvcount(j))])
+          call set_halo_sends(halo,j,&
+               [(i,i=offset(iproc)+1,offset(iproc)+local_nodes)])
+       end do
+
+       j = offset(iproc) + 1
+       local_to_global_map = -1
+       do i=1, nowned_nodes(local_X)
+          if (.not. node_mask(i)) cycle
+          local_to_global_map(i)  = j
+          j = j + 1
+       end do
+
+       nhalo = halo_count(local_X%mesh)
+       call halo_update(local_X%mesh%halos(1), local_to_global_map)
+          
+       nloc = ele_loc(local_X,1)
+       if (present(ele_mask)) then
+          local_eles = count(ele_mask)
+       else
+          local_eles = nowned_elements(local_X)
+       end if
+       allocate(ndglno(nloc*local_eles))
+
+       if (present(ele_mask)) then
+          j=1
+          do i=1, element_count(local_X)
+             if (.not. ele_mask(i)) cycle
+             nodes => ele_nodes(local_X,i)
+             do k=1,nloc
+                ndglno(nloc*(j-1)+k) = &
+                     local_to_global_map(nodes(k))
+             end do
+             j = j+1
+          end do
+       else
+          do i=1, local_eles
+             nodes => ele_nodes(local_X,i)
+             do k=1,nloc
+                ndglno(nloc*(i-1)+k) = &
+                     local_to_global_map(nodes(k))
+             end do
+          end do
+       end if
+
+       global_node_count = local_nodes
+       call allsum(global_node_count)
+       global_element_count = local_eles
+       call allsum(global_element_count)
+
+       assert(all(ndglno>0))
+       assert(all(ndglno<=global_node_count))
+
+       call allocate(mesh, global_node_count, global_element_count,&
+            local_X%mesh%shape, local_X%mesh%name)
+
+       nullify(mesh%halos)
+
+       call allocate(global_X,dim,mesh,"Coordinate")
+
+       recvcount = recvcount*dim
+       offset = offset*dim
+
+       call mpi_allgatherv(passed_X(:,1:local_nodes), dim*local_nodes, getpreal(), &
+            global_X%val, recvcount, offset,  getpreal(), &
+            MPI_COMM_FEMTOOLS, ierr)
+
+       recvcount(iproc) = nloc*local_eles       
+       call mpi_allgather(MPI_IN_PLACE, 1, getpinteger(), &
+            recvcount, 1, getpinteger(), MPI_COMM_FEMTOOLS, ierr)
+       offset(1)=0
+       do i=1, nproc-1
+          offset(i+1)=offset(i)+recvcount(i)
+       end do
+
+       call mpi_allgatherv(ndglno(1:nloc*local_eles), nloc*local_eles, getpinteger(), &
+            mesh%ndglno, recvcount, offset, getpinteger(), MPI_COMM_FEMTOOLS, ierr)
+
+     end subroutine serialise_coordinate
+
+     subroutine update_parallel_from_serial_coordinate(local_X, global_X, halo, locked_element)
+
+       type(vector_field) :: local_X, global_X
+       type(halo_type) :: halo
+       logical, dimension(element_count(local_X)) :: locked_element
+
+       type(mesh_type) :: new_mesh
+       type(vector_field) :: updated_X
+
+       integer :: n, i, j, k, nloc, nproc, iproc, local_element_count, nhalo, ierr
+       integer, dimension(halo_proc_count(halo)+1) :: offset
+       integer, dimension(halo_proc_count(halo)) :: sdisp, rdisp, nsends, nreceives
+       logical, dimension(node_count(global_X),2) :: halo_node
+       integer, dimension(node_count(global_X)) :: global_to_local_map
+       integer, dimension(node_count(local_X)) :: local_to_global_map
+       logical, dimension(element_count(global_X)) :: local_element
+       integer, dimension(:), pointer :: ndglno
+       real, dimension(:,:), pointer :: val
+       integer, allocatable, dimension(:) :: global_receives, global_sends, renumber_permutation,&
+            boundary_ids, surface_ids, coplanar_ids
+       integer, allocatable, dimension(:,:) :: new_sndgln
+       integer :: max_coplanar_id, partition_surface_id, stotel
+
+       local_element = .false.
+       nloc = local_X%mesh%shape%loc
+       nhalo = halo_count(local_X)
+       nproc = getnprocs()
+       iproc = getprocno()
+
+       offset(1)=0
+       do i=1, iproc-1
+          offset(i+1) = offset(i) + halo_receive_count(halo, i)
+       end do
+       offset(iproc+1) = offset(iproc) + halo_nowned_nodes(halo)
+       do i=iproc+1, nproc
+          offset(i+1) = offset(i) + halo_receive_count(halo, i)
+       end do
+
+       !! identify relevant elements in the global mesh
+
+       halo_node(:,:) = .false.
+       halo_node(offset(iproc)+1:offset(iproc+1),1) = .true.
+       do n=1, 1
+          do i=1, element_count(global_X)
+             if (any(halo_node(ele_nodes(global_X,i),1))) then
+                halo_node(ele_nodes(global_X,i),2) = .true.
+                local_element(i) = .true.
+             end if
+          end do
+          halo_node(:,1)=halo_node(:,2)
+       end do
+
+       halo_node(offset(iproc)+1:offset(iproc+1),2) = .false.
+
+       call allocate(new_mesh, nowned_nodes(local_X)+count(halo_node(:,2)),&
+            count(locked_element)+count(local_element), &
+            ele_shape(local_X, 1), trim(local_X%mesh%name))
+       new_mesh%shape%refcount%tagged = .false.
+       new_mesh%shape%quadrature%refcount%tagged = .false.
+       new_mesh%option_path=local_X%mesh%option_path
+
+       !! now update the stored nodes
+
+       global_to_local_map = -1
+       local_to_global_map = -1
+
+       j = 1
+       do i=1, element_count(local_X)
+          if (.not. locked_element(i)) cycle
+          new_mesh%ndglno(nloc*(j-1)+1:nloc*j) = local_X%mesh%ndglno(nloc*(i-1)+1:nloc*i)
+          j = j+1
+       end do
+
+
+       j=offset(iproc)+1
+       do i=1, nowned_nodes(local_X)
+          if (.not. all(node_val(local_X,i) == node_val(global_X,j))) cycle
+          global_to_local_map(j) = i
+          local_to_global_map(i)=j
+          j = j+1
+          if (j> node_count(global_X)) exit
+       end do
+       call halo_update(local_X%mesh%halos(1), local_to_global_map)
+
+       call allocate(updated_X, local_X%dim, new_mesh, trim(local_X%name))
+       updated_X%option_path=local_X%option_path
+       do i=1, nowned_nodes(local_X)
+          call set(updated_X, i,  node_val(local_X,i))
+       end do
+       j = nowned_nodes(local_X)+1
+       do i=1, node_count(global_X)
+          if (halo_node(i,2)) then
+             updated_X%val(:,j) = global_X%val(:,i)
+             global_to_local_map(i) = j
+             j = j+1
+          end if
+       end do      
+
+
+       j=count(locked_element)+1
+       do i=1, element_count(global_X)
+          if (.not. local_element(i)) cycle
+          new_mesh%ndglno(nloc*(j-1)+1:nloc*j) = global_to_local_map(ele_nodes(global_X,i))
+          j = j+1
+       end do  
+
+       !! Finally, sort out the halo.
+
+       allocate(updated_X%mesh%halos(1))
+
+       do i=1, nproc
+          nreceives(i) = count(halo_node(offset(i)+1:offset(i+1),2))
+       end do
+       nsends = invert_comms_sizes(nreceives, MPI_COMM_FEMTOOLS)
+       allocate(global_receives(sum(nreceives)), global_sends(sum(nsends)))
+       call allocate(updated_X%mesh%halos(1), local_X%mesh%halos(1))
+       call reallocate(updated_X%mesh%halos(1), nsends, nreceives)
+       do i=1, nproc
+          call set_halo_receives(updated_X%mesh%halos(1), i, &
+               pack(global_to_local_map(offset(i)+1:offset(i+1)),&
+               halo_node(offset(i)+1:offset(i+1),2)))
+       end do
+       global_receives=pack([(i, i=1, node_count(global_X))], halo_node(:,2))
+
+       sdisp(1) = 0
+       rdisp(1) = 0
+       do i=1, nproc-1
+          rdisp(i+1) = rdisp(i) + nreceives(i)
+          sdisp(i+1) = sdisp(i) + nsends(i)
+       end do
+
+       call mpi_alltoallv(global_receives, nreceives, rdisp , getpinteger(), &
+            global_sends, nsends, sdisp,  getpinteger(), &
+            MPI_COMM_FEMTOOLS, ierr)
+
+       do i=1, nproc
+          call set_halo_sends(updated_X%mesh%halos(1), i, &
+               global_to_local_map(global_sends(sdisp(i)+1:sdisp(i)+nsends(i))))
+       end do
+
+       call create_ownership(updated_X%mesh%halos(1))
+       call create_global_to_universal_numbering(updated_X%mesh%halos(1))
+
+
+        ! Nodes already set up for trailing receives
+        
+        allocate(updated_X%mesh%element_halos(1))
+        ! Reorder the elements for trailing receives consistency
+        call derive_element_halo_from_node_halo(updated_X%mesh, &
+          & ordering_scheme = HALO_ORDER_GENERAL, create_caches = .false.)
+        allocate(renumber_permutation(element_count(updated_X)))
+        call renumber_positions_elements_trailing_receives(updated_X,&
+             permutation=renumber_permutation)
+
+       call deallocate(new_mesh)
+
+       !! add back the faces
+
+       allocate(surface_ids(unique_surface_element_count(local_X%mesh)))
+       call interleave_surface_ids(local_X%mesh, surface_ids, max_coplanar_id)
+       partition_surface_id = maxval(surface_ids) + 1
+
+       stotel=count(surface_ids .ne. partition_surface_id)
+
+       allocate(boundary_ids(stotel), new_sndgln(nloc-1,stotel))
+
+       j=0
+       do i=1, unique_surface_element_count(local_X%mesh)
+          if (surface_ids(i) == partition_surface_id) cycle
+          j=j+1
+          new_sndgln(:,j) = face_global_nodes(local_X, i)
+          boundary_ids(j) = surface_ids(i)
+          do k=1,nloc-1
+             if (new_sndgln(k,j)>nowned_nodes(local_X)) &
+                  new_sndgln(k,j)= global_to_local_map(local_to_global_map(new_sndgln(k,j)))
+          end do
+       end do
+
+       assert(j == stotel)
+       
+       call add_faces(updated_X%mesh, sndgln=reshape(new_sndgln, (/ (nloc-1)*stotel /) ), &
+            boundary_ids=boundary_ids)
+       deallocate(boundary_ids)
+
+    ! and only deinterleave now we know the total number of elements in the surface mesh
+    ! add_faces will have copied the interleaved id to the second copy of each interior facet
+       stotel = surface_element_count(updated_X%mesh)
+       allocate(boundary_ids(stotel), coplanar_ids(stotel))
+       call deinterleave_surface_ids(updated_X%mesh%faces%boundary_ids, &
+            max_coplanar_id, boundary_ids, coplanar_ids)
+       
+       updated_X%mesh%faces%boundary_ids = boundary_ids
+
+
+       if(associated(local_X%mesh%faces%coplanar_ids)) then
+          allocate(updated_X%mesh%faces%coplanar_ids(1:stotel))
+          updated_X%mesh%faces%coplanar_ids = coplanar_ids
+       end if
+       deallocate(boundary_ids, coplanar_ids)
+
+       call deallocate(local_x)
+
+       local_X = updated_X
+       
+     end subroutine update_parallel_from_serial_coordinate
 
 end module adapt_state_module
