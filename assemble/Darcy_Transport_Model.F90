@@ -4,6 +4,7 @@
 
 module darcy_transport_model
 
+  use futils, only : int2str
   use spud
   use fields
   use state_module

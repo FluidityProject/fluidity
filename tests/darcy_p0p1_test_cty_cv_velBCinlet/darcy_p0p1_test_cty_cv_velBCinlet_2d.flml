@@ -197,6 +197,7 @@ the geometry is 2d (although this is a 1d problem) and one time step is done (as
                 <twice/>
               </integrate_advection_by_parts>
             </advection_scheme>
+            <buoyancy/>
           </discontinuous_galerkin>
           <conservative_advection>
             <real_value rank="0">0.0</real_value>

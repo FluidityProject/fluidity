@@ -29,16 +29,24 @@
 
 module rotated_boundary_conditions
 
-use fields
-use halos
-use boundary_conditions
 use spud
+use fldebug
 use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN
-use halos_base
+use parallel_tools
+use sparse_tools
+use parallel_fields, only: zero_non_owned
+use fields
 use sparse_tools_petsc
 use state_module
+use halos
+use boundary_conditions
 
 implicit none
+
+private
+
+public :: have_rotated_bcs, create_rotation_matrix, rotate_momentum_equation,&
+     rotate_ct_m, rotate_velocity, rotate_velocity_back
 
 contains
   
@@ -111,22 +119,22 @@ contains
              if (parallel) then
                 if (node>mynodes) cycle
              endif
-             if (any(dnnz(node:node+(u%dim-1)*mynodes:mynodes)>1)) then
+             if (any(dnnz( (node-1)*u%dim+1:node*u%dim )>1)) then
                FLExit("Two rotated boundary condition specifications for the same node.")
              end if
-             dnnz( node:node+(u%dim-1)*mynodes:mynodes)=u%dim
+             dnnz( (node-1)*u%dim+1:node*u%dim ) = u%dim
           end do
 
        end if
     end do
 
     call allocate(rotation_m, nodes, nodes, &
-         dnnz, onnz, (/ u%dim, u%dim /), "RotationMatrix", halo=halo)
+         dnnz, onnz, (/ u%dim, u%dim /), group_size=(/u%dim, u%dim/), name="RotationMatrix", halo=halo)
 
     ! put a 1.0 on the diagonal for non-rotated nodes
     do i=1, mynodes
        ! skip rotated nodes
-       if (dnnz(i)/=1) cycle
+       if (dnnz(i*u%dim)/=1) cycle
 
        do j=1, u%dim
           call addto(rotation_m, j, j, i, i, 1.0)

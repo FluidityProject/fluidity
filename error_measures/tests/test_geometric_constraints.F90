@@ -1,7 +1,7 @@
 
 subroutine test_geometric_constraints
   use fields
-  use read_triangle
+  use mesh_files
   use unittest_tools
   use geometric_constraints_metric
   use vtk_interfaces
@@ -15,7 +15,7 @@ subroutine test_geometric_constraints
   real :: a, b
   integer :: stat
 
-  X=read_triangle_files("data/tet", quad_degree=4)
+  X=read_mesh_files("data/tet", quad_degree=4, format="gmsh")
   mesh => X%mesh
 
   call allocate(metric, mesh, "ErrorMetric")

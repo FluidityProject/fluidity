@@ -4,6 +4,7 @@
 
 module darcy_impes_leaching_chemical_model
 
+  use futils, only : int2str
   use spud
   use fields
   use state_module
@@ -12,7 +13,7 @@ module darcy_impes_leaching_chemical_model
   use spud
   use data_structures
   use initialise_fields_module
-  use global_parameters, only: OPTION_PATH_LEN
+  use global_parameters, only: OPTION_PATH_LEN, FIELD_NAME_LEN
   use darcy_impes_leaching_types
   use vtk_cache_module, only:vtk_cache_finalise
   use fefields, only: compute_cv_mass

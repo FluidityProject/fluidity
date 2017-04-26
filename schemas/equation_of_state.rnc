@@ -55,8 +55,10 @@ fluids_eos_options =
                }?,
                ## Enable to add a generic scalar field
                ## dependency to the equation of state.
+               ##
+               ## The name of this dependency must correspond to a scalar field in this material_phase.
                element generic_scalar_field_dependency {
-                  attribute scalar_field_name { xsd:string },
+                  attribute name { xsd:string },
                   ## The reference or background value 
                   ## for the generic scalar field.
                   element reference_value {

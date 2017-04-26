@@ -28,12 +28,15 @@
 
 module equation_of_state
   !!< This module contains functions used to evaluate the equation of state.
+
   use fldebug
+  use global_parameters, only: OPTION_PATH_LEN
+  use futils, only: int2str
+  use spud
   use fields
   use state_module
-  use global_parameters, only: OPTION_PATH_LEN
   use sediment, only: get_n_sediment_fields, get_sediment_item
-  use spud
+
   implicit none
   
   private
@@ -127,7 +130,7 @@ contains
        if (have_option(trim(option_path)//'/generic_scalar_field_dependency')) then
           do f = 1, option_count(trim(option_path)//'/generic_scalar_field_dependency')
              dep_option_path=trim(option_path)//'/generic_scalar_field_dependency['//int2str(f-1)//']'
-             call get_option(trim(dep_option_path)//'/scalar_field_name', sfield_name)
+             call get_option(trim(dep_option_path)//'/name', sfield_name)
              call get_option(trim(dep_option_path)//'/reference_value', T0)
              call get_option(trim(dep_option_path)//'/expansion_coefficient', gamma)
              T => extract_scalar_field(state, trim(sfield_name))

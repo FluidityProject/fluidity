@@ -2,7 +2,7 @@
 <testproblem>
   <name>viscous_fs_zhong</name>
   <owner userid="cwilson"/>
-  <tags>flml</tags>
+  <tags>flml zoltan</tags>
   <problem_definition length="medium" nprocs="3">
     <command_line>mpiexec ../../bin/flredecomp -i 1 -o 3 viscous_fs_zhong_A viscous_fs_zhong_A_parallel; mpiexec ../../bin/flredecomp -i 1 -o 3 viscous_fs_zhong_B viscous_fs_zhong_B_parallel; mpiexec ../../bin/fluidity -v2 -l viscous_fs_zhong_A_parallel.flml ; mpiexec ../../bin/fluidity -v2 -l viscous_fs_zhong_B_parallel.flml</command_line>
   </problem_definition>

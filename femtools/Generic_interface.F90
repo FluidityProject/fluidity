@@ -28,15 +28,14 @@
 module generic_interface
   !!< This module provides routines for setting fields and boundary
   !!< conditions using generic functions provided in strings.
+  use fldebug
   use fields
   implicit none
 
   interface set_from_generic_function
      module procedure set_from_generic_function_scalar,&
           & set_values_from_generic_scalar
-  end interface
 
-  interface 
      subroutine set_from_external_function_scalar(function, function_len,&
           & nodes, x, y, z, result, stat)
        !! Interface to c wrapper function.
@@ -48,6 +47,10 @@ module generic_interface
        integer, intent(out) :: stat
      end subroutine set_from_external_function_scalar
   end interface
+
+  private
+
+  public :: set_from_generic_function, set_from_external_function_scalar
   
 contains
 

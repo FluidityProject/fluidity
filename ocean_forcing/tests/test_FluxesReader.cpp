@@ -16,7 +16,7 @@ void test_FluxesReader_fc() {
   FluxesReader data;
   FluxesReader data2;
   data.VerboseOff();
-  const int nFields = 1;
+  const int nFields = 2;
   double values[nFields];
   double value;
   double correct, correct_t, correct_d;

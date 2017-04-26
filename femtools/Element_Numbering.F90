@@ -44,16 +44,16 @@ module element_numbering
   !!<
   !!< Nodes are subdivided into four disjoint sets: vertex nodes, those lying
   !!< on edges, those lying on faces and those interior to elements. 
-  use futils
   use FLDebug
+  use futils
   implicit none
 
-  integer, parameter :: ELEMENT_LAGRANGIAN=1, ELEMENT_NONCONFORMING=2, ELEMENT_BUBBLE=3, &
+  integer, parameter, public  :: ELEMENT_LAGRANGIAN=1, ELEMENT_NONCONFORMING=2, ELEMENT_BUBBLE=3, &
                         ELEMENT_CONTROLVOLUMEBDY_SURFACE=4, ELEMENT_CONTROLVOLUME_SURFACE=5, &
                         ELEMENT_CONTROLVOLUME_SURFACE_BODYDERIVATIVES=6, &
                         ELEMENT_TRACE=7
 
-  integer, parameter :: FAMILY_SIMPLEX=1, FAMILY_CUBE=2
+  integer, parameter, public :: FAMILY_SIMPLEX=1, FAMILY_CUBE=2
 
   type ele_numbering_type
      ! Type to record element numbering details.
@@ -163,6 +163,13 @@ module element_numbering
   interface operator(==)
      module procedure element_num_equal
   end interface
+
+private
+
+public :: find_element_numbering, local_coords, local_vertices, vertex_num,&
+     boundary_numbering, edge_num, face_num, boundary_local_num, operator(==),&
+     ele_numbering_type, boundary_num_length, ele_local_num, face_local_num,&
+     edge_local_num, tr, te
 
 contains
 
@@ -2011,6 +2018,7 @@ contains
     logical, intent(in) :: interior
 
     integer, dimension(face_num_length(ele_num,interior)) :: face_local_num_int
+    integer, dimension(1:ele_num%vertices) :: vertices
 
     integer, dimension(4) :: l
     integer :: i, j, k, cnt, j12, j13, inc12, inc13, tmp
@@ -2059,6 +2067,15 @@ contains
           ! differ and the increment in this coordinate needed to walk 
           ! from node1 to node2, stored in j12 and inc12 resp.
           ! same for node1 and node3, stored in j13 and inc13
+      
+          ! If a quad element has degree zero then the local 
+          if(ele_num%degree == 0) then
+            face_local_num_int = 1
+            return
+          end if
+         
+          ! Get local node numbers of vertices
+          vertices=local_vertices(ele_num)
           
           l=0
           k=1 ! bit mask
@@ -2066,10 +2083,10 @@ contains
           j13=0
           do i=ele_num%dimension, 1, -1
              ! compute ith 'count' coordinate
-             l(i)=iand(nodes(1)-1, k)/k
+             l(i)=iand(vertices(nodes(1))-1, k)/k
              
              ! increment to go from node 1 to node 2: 0, -1 or +1
-             tmp=iand(nodes(2)-1, k)/k-l(i)
+             tmp=iand(vertices(nodes(2))-1, k)/k-l(i)
              ! remember the coordinate in which node 1 and 2 differ:
              if (tmp /= 0) then
                j12=i
@@ -2077,7 +2094,7 @@ contains
              end if
 
              ! increment to go from node 1 to node 3: 0, -1 or +1
-             tmp=iand(nodes(3)-1, k)/k-l(i)
+             tmp=iand(vertices(nodes(3))-1, k)/k-l(i)
              ! remember the coordinate in which node 1 and 3 differ:
              if (tmp/=0) then
                j13=i

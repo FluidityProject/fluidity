@@ -4,6 +4,7 @@
 
 subroutine test_u_dot_nabla
 
+  use fldebug
   use field_derivatives
   use fields
   use fields_data_types

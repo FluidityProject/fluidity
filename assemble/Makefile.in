@@ -73,7 +73,6 @@ OBJS    = Momentum_Diagnostic_Fields.o \
         Spontaneous_Potentials.o LES.o \
         Saturation_Distribution_Search_HookeJeeves.o \
         Petsc_Solve_State.o Adaptivity_1D.o \
-	Linear_Shallow_Water.o \
 	Zoltan_global_variables.o Zoltan_integration.o Zoltan_callbacks.o Zoltan_detectors.o \
         Diagnostic_Children.o Reduced_Model_Runtime.o Turbine.o Implicit_Solids.o \
 				Manifold_Projections.o Hybridized_Helmholtz.o Burgers_Assembly.o Pressure_Dirichlet_BCS_CV.o \

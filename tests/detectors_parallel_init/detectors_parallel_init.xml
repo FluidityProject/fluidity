@@ -1,62 +1,39 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-
+<?xml version='1.0' encoding='utf-8'?>
 <testproblem>
   <name>detectors_parallel_init</name>
   <owner userid="mlange"/>
-  <tags>flml</tags>
+  <tags>flml zoltan<comment>zoltan tag added due to use of flredecomp options</comment></tags>
   <problem_definition length="short" nprocs="2">
     <command_line>mpiexec ../../bin/flredecomp -i 1 -o 2 detectors detectors_flredecomp &amp;&amp;
-      mpiexec ../../bin/fluidity detectors_flredecomp.flml </command_line>
-    <!-- Test that detectors are initialised correctly in parallel. -->
+      mpiexec ../../bin/fluidity detectors_flredecomp.flml</command_line>
   </problem_definition>
   <variables>
-    <variable name="solvers_converged" language="python">
-import os
+    <variable name="solvers_converged" language="python">import os
 files = os.listdir("./")
-solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
-    </variable>
-    <variable name = "time" language = "python">
-from fluidity_tools import stat_parser
-time = stat_parser("detectors.stat")["ElapsedTime"]["value"]
-    </variable>
-    <variable name = "det_midpoint" language = "python">
-from fluidity_tools import stat_parser
-det_midpoint = stat_parser("detectors.detectors")["MidPoint"]['position']
-    </variable>
-    <variable name = "det_arr1" language = "python">
-from fluidity_tools import stat_parser
-det_arr1 = stat_parser("detectors.detectors")["DArray_1"]['position']
-    </variable>
-    <variable name = "det_arr2" language = "python">
-from fluidity_tools import stat_parser
-det_arr2 = stat_parser("detectors.detectors")["DArray_2"]['position']
-    </variable>
-    <variable name = "det_arr3" language = "python">
-from fluidity_tools import stat_parser
-det_arr3 = stat_parser("detectors.detectors")["DArray_3"]['position']
-    </variable>
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files</variable>
+    <variable name="time" language="python">from fluidity_tools import stat_parser
+time = stat_parser("detectors.stat")["ElapsedTime"]["value"]</variable>
+    <variable name="det_midpoint" language="python">from fluidity_tools import stat_parser
+det_midpoint = stat_parser("detectors.detectors")["MidPoint"]['position']</variable>
+    <variable name="det_arr1" language="python">from fluidity_tools import stat_parser
+det_arr1 = stat_parser("detectors.detectors")["DArray_1"]['position']</variable>
+    <variable name="det_arr2" language="python">from fluidity_tools import stat_parser
+det_arr2 = stat_parser("detectors.detectors")["DArray_2"]['position']</variable>
+    <variable name="det_arr3" language="python">from fluidity_tools import stat_parser
+det_arr3 = stat_parser("detectors.detectors")["DArray_3"]['position']</variable>
   </variables>
   <pass_tests>
-    <test name="Solvers converged" language="python">
-      assert(solvers_converged)
-    </test>
-    <test name="Test finished" language="python">
-assert abs(time - 1.0) &lt; 1.0e-6
-    </test>
-    <test name="Detector output" language="python">
-assert abs(len(time) - len(det_midpoint[-1])) &lt; 1.0e-6
-    </test>
-    <test name="Detectors initialised correctly" language="python">
-assert abs(det_midpoint[0] - 0.5).all() &lt; 1.0e-6
+    <test name="Solvers converged" language="python">assert(solvers_converged)</test>
+    <test name="Test finished" language="python">assert abs(time - 1.0) &lt; 1.0e-6</test>
+    <test name="Detector output" language="python">assert abs(len(time) - len(det_midpoint[-1])) &lt; 1.0e-6</test>
+    <test name="Detectors initialised correctly" language="python">assert abs(det_midpoint[0] - 0.5).all() &lt; 1.0e-6
 assert abs(det_midpoint[1] - 0.5).all() &lt; 1.0e-6
 assert abs(det_arr1[0]).all() &lt; 1.0e-6
 assert abs(det_arr1[1] - 1.0).all() &lt; 1.0e-6
 assert abs(det_arr2[0] - 0.5).all() &lt; 1.0e-6
 assert abs(det_arr2[1] - 0.5).all() &lt; 1.0e-6
 assert abs(det_arr3[0] - 1.0).all() &lt; 1.0e-6
-assert abs(det_arr3[1]).all() &lt; 1.0e-6
-    </test>
+assert abs(det_arr3[1]).all() &lt; 1.0e-6</test>
   </pass_tests>
-  <warn_tests>
-  </warn_tests>
+  <warn_tests/>
 </testproblem>

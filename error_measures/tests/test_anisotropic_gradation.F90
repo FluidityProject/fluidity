@@ -1,6 +1,6 @@
 subroutine test_anisotropic_gradation
 
-  use read_triangle
+  use mesh_files
   use anisotropic_gradation
   use vtk_interfaces
   use metric_assemble
@@ -19,7 +19,7 @@ subroutine test_anisotropic_gradation
   real, dimension(3, 3) :: id, nid, answer
   logical :: fail
 
-  positions = read_triangle_files("data/tet", quad_degree=4)
+  positions = read_mesh_files("data/tet", quad_degree=4, format="gmsh")
   call allocate(metric, positions%mesh, "Metric")
 
   id = reshape((/1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0/), (/3, 3/))

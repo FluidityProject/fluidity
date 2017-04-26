@@ -4,9 +4,10 @@
 
 Adapt_Integration.o ../include/adapt_integration.mod: Adapt_Integration.F90 \
    ../include/data_structures.mod ../include/elements.mod ../include/fdebug.h \
-   ../include/fields.mod ../include/fldebug.mod ../include/halos.mod \
-   ../include/limit_metric_module.mod ../include/meshdiagnostics.mod \
-   ../include/node_locking.mod ../include/quadrature.mod ../include/spud.mod \
+   ../include/fields.mod ../include/fldebug.mod ../include/futils.mod \
+   ../include/halos.mod ../include/limit_metric_module.mod \
+   ../include/meshdiagnostics.mod ../include/node_locking.mod \
+   ../include/parallel_tools.mod ../include/quadrature.mod \
    ../include/surface_id_interleaving.mod ../include/tictoc.mod \
    ../include/vtk_interfaces.mod
 
@@ -22,22 +23,26 @@ Adapt_State.o ../include/adapt_state_module.mod: Adapt_State.F90 \
    ../include/detector_parallel.mod ../include/diagnostic_fields_wrapper.mod \
    ../include/diagnostic_fields_wrapper_new.mod \
    ../include/diagnostic_variables.mod \
-   ../include/discrete_properties_module.mod ../include/edge_length_module.mod \
-   ../include/elements.mod ../include/eventcounter.mod ../include/fdebug.h \
+   ../include/discrete_properties_module.mod ../include/dqmom.mod \
+   ../include/edge_length_module.mod ../include/elements.mod \
+   ../include/eventcounter.mod ../include/fdebug.h ../include/fefields.mod \
    ../include/field_options.mod ../include/fields.mod \
-   ../include/fields_halos.mod ../include/global_parameters.mod \
-   ../include/hadapt_extrude.mod ../include/hadapt_metric_based_extrude.mod \
-   ../include/halos.mod ../include/interpolation_manager.mod \
-   ../include/interpolation_module.mod \
-   ../include/intersection_finder_module.mod ../include/mba2d_integration.mod \
+   ../include/fields_halos.mod ../include/fldebug.mod ../include/futils.mod \
+   ../include/global_parameters.mod ../include/hadapt_extrude.mod \
+   ../include/hadapt_metric_based_extrude.mod ../include/halos.mod \
+   ../include/interpolation_manager.mod ../include/interpolation_module.mod \
+   ../include/intersection_finder_module.mod \
+   ../include/limit_metric_module.mod ../include/mba2d_integration.mod \
    ../include/mba3d_integration.mod ../include/mba_adapt_module.mod \
-   ../include/metric_assemble.mod ../include/mpi_interfaces.mod \
-   ../include/parallel_tools.mod ../include/pickers.mod \
-   ../include/populate_state_module.mod \
+   ../include/metric_assemble.mod ../include/metric_tools.mod \
+   ../include/mpi_interfaces.mod ../include/node_boundary.mod \
+   ../include/parallel_fields.mod ../include/parallel_tools.mod \
+   ../include/pickers.mod ../include/populate_state_module.mod \
    ../include/project_metric_to_surface_module.mod ../include/quadrature.mod \
-   ../include/reserve_state_module.mod ../include/sam_integration.mod \
-   ../include/sparse_tools.mod ../include/state_module.mod \
-   ../include/tictoc.mod ../include/timeloop_utilities.mod \
+   ../include/reference_counting.mod ../include/reserve_state_module.mod \
+   ../include/sam_integration.mod ../include/sparse_tools.mod \
+   ../include/state_module.mod ../include/tictoc.mod \
+   ../include/timeloop_utilities.mod ../include/vtk_interfaces.mod \
    ../include/write_gmsh.mod ../include/zoltan_integration.mod
 
 ../include/adapt_state_prescribed_module.mod: Adapt_State_Prescribed.o
@@ -46,29 +51,34 @@ Adapt_State.o ../include/adapt_state_module.mod: Adapt_State.F90 \
 Adapt_State_Prescribed.o ../include/adapt_state_prescribed_module.mod: \
    Adapt_State_Prescribed.F90 ../include/boundary_conditions.mod \
    ../include/boundary_conditions_from_options.mod ../include/embed_python.mod \
-   ../include/fdebug.h ../include/field_options.mod ../include/fields.mod \
+   ../include/eventcounter.mod ../include/fdebug.h \
+   ../include/field_options.mod ../include/fields.mod ../include/fldebug.mod \
    ../include/global_parameters.mod ../include/interpolation_manager.mod \
    ../include/mesh_files.mod ../include/node_boundary.mod \
-   ../include/populate_state_module.mod ../include/reserve_state_module.mod \
-   ../include/spud.mod ../include/state_module.mod
+   ../include/parallel_tools.mod ../include/populate_state_module.mod \
+   ../include/reserve_state_module.mod ../include/state_module.mod
 
 ../include/adapt_state_unittest_module.mod: Adapt_State_Unittest.o
 	@true
 
 Adapt_State_Unittest.o ../include/adapt_state_unittest_module.mod: \
    Adapt_State_Unittest.F90 ../include/adapt_integration.mod \
-   ../include/adapt_state_module.mod ../include/eventcounter.mod \
-   ../include/fdebug.h ../include/field_options.mod ../include/fields.mod \
+   ../include/adapt_state_module.mod ../include/elements.mod \
+   ../include/eventcounter.mod ../include/fdebug.h \
+   ../include/field_options.mod ../include/fields.mod ../include/fldebug.mod \
+   ../include/futils.mod ../include/global_parameters.mod \
    ../include/interpolation_module.mod ../include/mba2d_integration.mod \
-   ../include/node_boundary.mod ../include/sam_integration.mod \
-   ../include/state_module.mod
+   ../include/node_boundary.mod ../include/parallel_tools.mod \
+   ../include/sam_integration.mod ../include/state_module.mod
 
 ../include/adaptivity_1d.mod: Adaptivity_1D.o
 	@true
 
 Adaptivity_1D.o ../include/adaptivity_1d.mod: Adaptivity_1D.F90 \
-   ../include/fdebug.h ../include/fields.mod ../include/fldebug.mod \
-   ../include/hadapt_metric_based_extrude.mod ../include/node_locking.mod \
+   ../include/elements.mod ../include/fdebug.h ../include/fields.mod \
+   ../include/fldebug.mod ../include/futils.mod \
+   ../include/hadapt_metric_based_extrude.mod ../include/metric_tools.mod \
+   ../include/node_locking.mod ../include/parallel_tools.mod \
    ../include/tictoc.mod
 
 ../include/advection_diffusion_cg.mod: Advection_Diffusion_CG.o
@@ -77,14 +87,15 @@ Adaptivity_1D.o ../include/adaptivity_1d.mod: Adaptivity_1D.F90 \
 Advection_Diffusion_CG.o ../include/advection_diffusion_cg.mod: \
    Advection_Diffusion_CG.F90 ../include/boundary_conditions.mod \
    ../include/boundary_conditions_from_options.mod ../include/colouring.mod \
-   ../include/elements.mod ../include/fdebug.h ../include/field_options.mod \
-   ../include/fields.mod ../include/fldebug.mod \
-   ../include/global_parameters.mod ../include/multiphase_module.mod \
+   ../include/elements.mod ../include/fdebug.h ../include/fetools.mod \
+   ../include/field_options.mod ../include/fields.mod ../include/fldebug.mod \
+   ../include/futils.mod ../include/global_parameters.mod \
+   ../include/integer_set_module.mod ../include/multiphase_module.mod \
    ../include/petsc_solve_state_module.mod ../include/porous_media.mod \
    ../include/profiler.mod ../include/quadrature.mod \
    ../include/sparse_tools.mod ../include/sparse_tools_petsc.mod \
-   ../include/sparsity_patterns_meshes.mod ../include/spud.mod \
-   ../include/state_module.mod ../include/upwind_stabilisation.mod
+   ../include/sparsity_patterns_meshes.mod ../include/state_module.mod \
+   ../include/transform_elements.mod ../include/upwind_stabilisation.mod
 
 ../include/advection_diffusion_dg.mod: Advection_Diffusion_DG.o
 	@true
@@ -95,13 +106,15 @@ Advection_Diffusion_DG.o ../include/advection_diffusion_dg.mod: \
    ../include/coordinates.mod ../include/dgtools.mod \
    ../include/diagnostic_fields.mod ../include/elements.mod \
    ../include/fdebug.h ../include/fefields.mod ../include/fetools.mod \
-   ../include/field_options.mod ../include/fields.mod ../include/fldebug.mod \
-   ../include/global_parameters.mod ../include/petsc_solve_state_module.mod \
-   ../include/porous_media.mod ../include/profiler.mod \
-   ../include/shape_functions.mod ../include/slope_limiters_dg.mod \
-   ../include/sparse_matrices_fields.mod ../include/sparse_tools.mod \
-   ../include/sparsity_patterns.mod ../include/sparsity_patterns_meshes.mod \
-   ../include/spud.mod ../include/state_module.mod \
+   ../include/field_derivatives.mod ../include/field_options.mod \
+   ../include/fields.mod ../include/fldebug.mod \
+   ../include/global_parameters.mod ../include/integer_set_module.mod \
+   ../include/parallel_fields.mod ../include/parallel_tools.mod \
+   ../include/petsc_solve_state_module.mod ../include/porous_media.mod \
+   ../include/profiler.mod ../include/shape_functions.mod \
+   ../include/slope_limiters_dg.mod ../include/sparse_matrices_fields.mod \
+   ../include/sparse_tools.mod ../include/sparsity_patterns.mod \
+   ../include/sparsity_patterns_meshes.mod ../include/state_module.mod \
    ../include/transform_elements.mod ../include/upwind_stabilisation.mod \
    ../include/vector_tools.mod ../include/vtk_interfaces.mod
 
@@ -111,24 +124,31 @@ Advection_Diffusion_DG.o ../include/advection_diffusion_dg.mod: \
 Advection_Diffusion_FV.o ../include/advection_diffusion_fv.mod: \
    Advection_Diffusion_FV.F90 ../include/boundary_conditions.mod \
    ../include/boundary_conditions_from_options.mod ../include/colouring.mod \
-   ../include/elements.mod ../include/fdebug.h ../include/fetools.mod \
-   ../include/field_options.mod ../include/fields.mod ../include/fldebug.mod \
-   ../include/global_parameters.mod ../include/petsc_solve_state_module.mod \
-   ../include/profiler.mod ../include/quadrature.mod \
-   ../include/shape_functions.mod ../include/sparse_tools.mod \
-   ../include/sparsity_patterns_meshes.mod ../include/spud.mod \
-   ../include/state_module.mod ../include/transform_elements.mod
+   ../include/coordinates.mod ../include/dgtools.mod \
+   ../include/diagnostic_fields.mod ../include/elements.mod \
+   ../include/fdebug.h ../include/fefields.mod ../include/fetools.mod \
+   ../include/field_derivatives.mod ../include/field_options.mod \
+   ../include/fields.mod ../include/fldebug.mod \
+   ../include/global_parameters.mod ../include/integer_set_module.mod \
+   ../include/petsc_solve_state_module.mod ../include/porous_media.mod \
+   ../include/profiler.mod ../include/shape_functions.mod \
+   ../include/slope_limiters_dg.mod ../include/sparse_matrices_fields.mod \
+   ../include/sparse_tools.mod ../include/sparsity_patterns.mod \
+   ../include/sparsity_patterns_meshes.mod ../include/state_module.mod \
+   ../include/transform_elements.mod ../include/upwind_stabilisation.mod \
+   ../include/vector_tools.mod ../include/vtk_interfaces.mod
 
 ../include/assemble_cmc.mod: Assemble_CMC.o
 	@true
 
 Assemble_CMC.o ../include/assemble_cmc.mod: Assemble_CMC.F90 \
-   ../include/fdebug.h ../include/fefields.mod ../include/field_options.mod \
-   ../include/fields.mod ../include/fields_base.mod ../include/fldebug.mod \
+   ../include/boundary_conditions.mod ../include/elements.mod \
+   ../include/fdebug.h ../include/fefields.mod ../include/fetools.mod \
+   ../include/field_options.mod ../include/fields.mod ../include/fldebug.mod \
    ../include/global_parameters.mod ../include/linked_lists.mod \
    ../include/sparse_matrices_fields.mod ../include/sparse_tools.mod \
-   ../include/sparse_tools_petsc.mod ../include/spud.mod \
-   ../include/state_module.mod
+   ../include/sparse_tools_petsc.mod ../include/state_module.mod \
+   ../include/transform_elements.mod
 
 ../include/biology.mod: Biology.o
 	@true
@@ -136,37 +156,37 @@ Assemble_CMC.o ../include/assemble_cmc.mod: Assemble_CMC.F90 \
 Biology.o ../include/biology.mod: Biology.F90 \
    ../include/boundary_conditions.mod ../include/fdebug.h \
    ../include/fefields.mod ../include/fetools.mod ../include/field_options.mod \
-   ../include/fields.mod ../include/global_parameters.mod \
-   ../include/python_state.mod ../include/solvers.mod \
-   ../include/sparse_tools.mod ../include/sparsity_patterns_meshes.mod \
-   ../include/spud.mod ../include/state_module.mod
+   ../include/fields.mod ../include/fldebug.mod \
+   ../include/global_parameters.mod ../include/python_state.mod \
+   ../include/solvers.mod ../include/sparse_tools.mod \
+   ../include/sparsity_patterns_meshes.mod ../include/state_module.mod
 
 ../include/burgers_assembly.mod: Burgers_Assembly.o
 	@true
 
 Burgers_Assembly.o ../include/burgers_assembly.mod: Burgers_Assembly.F90 \
    ../include/fetools.mod ../include/fields.mod ../include/sparse_tools.mod \
-   ../include/spud.mod ../include/transform_elements.mod
+   ../include/transform_elements.mod
 
 ../include/compressible_projection.mod: Compressible_Projection.o
 	@true
 
 Compressible_Projection.o ../include/compressible_projection.mod: \
-   Compressible_Projection.F90 ../include/equation_of_state.mod \
-   ../include/fdebug.h ../include/fefields.mod ../include/field_options.mod \
-   ../include/fields.mod ../include/fldebug.mod \
+   Compressible_Projection.F90 ../include/elements.mod \
+   ../include/equation_of_state.mod ../include/fdebug.h \
+   ../include/fefields.mod ../include/fetools.mod ../include/field_options.mod \
+   ../include/fields.mod ../include/fldebug.mod ../include/futils.mod \
    ../include/global_parameters.mod ../include/multiphase_module.mod \
    ../include/sparse_matrices_fields.mod ../include/sparse_tools.mod \
-   ../include/spud.mod ../include/state_fields_module.mod \
-   ../include/state_module.mod ../include/upwind_stabilisation.mod
+   ../include/state_fields_module.mod ../include/state_module.mod \
+   ../include/transform_elements.mod ../include/upwind_stabilisation.mod
 
 ../include/coriolis_module.mod: Coriolis.o
 	@true
 
 Coriolis.o ../include/coriolis_module.mod: Coriolis.F90 \
    ../include/embed_python.mod ../include/fdebug.h ../include/fldebug.mod \
-   ../include/global_parameters.mod ../include/parallel_tools.mod \
-   ../include/spud.mod
+   ../include/global_parameters.mod ../include/parallel_tools.mod
 
 ../include/darcy_impes_assemble_module.mod: Darcy_IMPES_Assemble.o
 	@true
@@ -186,8 +206,8 @@ Darcy_IMPES_Assemble.o ../include/darcy_impes_assemble_module.mod: \
    ../include/petsc_solve_state_module.mod ../include/porous_media.mod \
    ../include/quadrature.mod ../include/signal_vars.mod \
    ../include/sparse_matrices_fields.mod ../include/sparse_tools.mod \
-   ../include/sparse_tools_petsc.mod ../include/spud.mod \
-   ../include/state_module.mod ../include/transform_elements.mod
+   ../include/sparse_tools_petsc.mod ../include/state_module.mod \
+   ../include/transform_elements.mod
 
 ../include/darcy_impes_assemble_type.mod: Darcy_IMPES_Assemble_type.o
 	@true
@@ -195,10 +215,10 @@ Darcy_IMPES_Assemble.o ../include/darcy_impes_assemble_module.mod: \
 Darcy_IMPES_Assemble_type.o ../include/darcy_impes_assemble_type.mod: \
    Darcy_IMPES_Assemble_type.F90 ../include/cv_faces.mod \
    ../include/darcy_impes_leaching_types.mod \
-   ../include/darcy_transport_types.mod ../include/fdebug.h \
-   ../include/fields.mod ../include/fldebug.mod \
-   ../include/global_parameters.mod ../include/sparse_tools_petsc.mod \
-   ../include/spud.mod ../include/state_module.mod
+   ../include/darcy_transport_types.mod ../include/elements.mod \
+   ../include/fdebug.h ../include/fields.mod ../include/fldebug.mod \
+   ../include/global_parameters.mod ../include/sparse_tools.mod \
+   ../include/sparse_tools_petsc.mod ../include/state_module.mod
 
 ../include/darcy_impes_leaching_chemical_model.mod: \
    Darcy_IMPES_Leaching_Chemical_Model.o
@@ -211,18 +231,17 @@ Darcy_IMPES_Leaching_Chemical_Model.o \
    ../include/darcy_impes_leaching_types.mod \
    ../include/darcy_transport_model.mod ../include/data_structures.mod \
    ../include/fdebug.h ../include/fefields.mod ../include/field_options.mod \
-   ../include/fields.mod ../include/fldebug.mod \
+   ../include/fields.mod ../include/fldebug.mod ../include/futils.mod \
    ../include/global_parameters.mod ../include/initialise_fields_module.mod \
-   ../include/spud.mod ../include/state_module.mod \
-   ../include/vtk_cache_module.mod
+   ../include/state_module.mod ../include/vtk_cache_module.mod
 
 ../include/darcy_impes_leaching_types.mod: Darcy_IMPES_Leaching_types.o
 	@true
 
 Darcy_IMPES_Leaching_types.o ../include/darcy_impes_leaching_types.mod: \
    Darcy_IMPES_Leaching_types.F90 ../include/fdebug.h ../include/fields.mod \
-   ../include/fldebug.mod ../include/global_parameters.mod ../include/spud.mod \
-   ../include/state_module.mod
+   ../include/fldebug.mod ../include/global_parameters.mod \
+   ../include/sparse_tools.mod ../include/state_module.mod
 
 ../include/darcy_transport_model.mod: Darcy_Transport_Model.o
 	@true
@@ -230,10 +249,11 @@ Darcy_IMPES_Leaching_types.o ../include/darcy_impes_leaching_types.mod: \
 Darcy_Transport_Model.o ../include/darcy_transport_model.mod: \
    Darcy_Transport_Model.F90 ../include/darcy_impes_assemble_type.mod \
    ../include/darcy_impes_leaching_types.mod ../include/data_structures.mod \
-   ../include/fdebug.h ../include/fefields.mod ../include/field_options.mod \
-   ../include/fields.mod ../include/fldebug.mod \
+   ../include/diagnostic_fields.mod ../include/fdebug.h \
+   ../include/fefields.mod ../include/field_options.mod ../include/fields.mod \
+   ../include/fldebug.mod ../include/futils.mod \
    ../include/global_parameters.mod ../include/initialise_fields_module.mod \
-   ../include/solvers.mod ../include/sparsity_patterns.mod ../include/spud.mod \
+   ../include/solvers.mod ../include/sparsity_patterns.mod \
    ../include/state_module.mod ../include/vtk_cache_module.mod
 
 ../include/darcy_transport_types.mod: Darcy_Transport_types.o
@@ -242,16 +262,14 @@ Darcy_Transport_Model.o ../include/darcy_transport_model.mod: \
 Darcy_Transport_types.o ../include/darcy_transport_types.mod: \
    Darcy_Transport_types.F90 ../include/darcy_impes_leaching_types.mod \
    ../include/fdebug.h ../include/fields.mod ../include/fldebug.mod \
-   ../include/global_parameters.mod ../include/spud.mod \
-   ../include/state_module.mod
+   ../include/global_parameters.mod ../include/state_module.mod
 
 ../include/diagnostic_children.mod: Diagnostic_Children.o
 	@true
 
 Diagnostic_Children.o ../include/diagnostic_children.mod: \
    Diagnostic_Children.F90 ../include/diagnostic_fields_wrapper_new.mod \
-   ../include/fdebug.h ../include/fields.mod ../include/spud.mod \
-   ../include/state_module.mod
+   ../include/fdebug.h ../include/fields.mod ../include/state_module.mod
 
 ../include/diagnostic_fields_matrices.mod: Diagnostic_Fields_Matrices.o
 	@true
@@ -260,31 +278,31 @@ Diagnostic_Fields_Matrices.o ../include/diagnostic_fields_matrices.mod: \
    Diagnostic_Fields_Matrices.F90 ../include/divergence_matrix_cg.mod \
    ../include/divergence_matrix_cv.mod ../include/fdebug.h \
    ../include/fetools.mod ../include/field_derivatives.mod \
-   ../include/fields.mod ../include/futils.mod \
+   ../include/fields.mod ../include/fldebug.mod ../include/futils.mod \
    ../include/global_parameters.mod ../include/gradient_matrix_cg.mod \
    ../include/halos.mod ../include/parallel_fields.mod \
    ../include/parallel_tools.mod ../include/solvers.mod \
    ../include/sparse_matrices_fields.mod ../include/sparse_tools.mod \
    ../include/sparsity_patterns.mod ../include/sparsity_patterns_meshes.mod \
-   ../include/spud.mod ../include/state_fields_module.mod \
-   ../include/state_matrices_module.mod ../include/state_module.mod \
-   ../include/transform_elements.mod
+   ../include/state_fields_module.mod ../include/state_matrices_module.mod \
+   ../include/state_module.mod ../include/transform_elements.mod
 
 ../include/diagnostic_fields_wrapper.mod: Diagnostic_fields_wrapper.o
 	@true
 
 Diagnostic_fields_wrapper.o ../include/diagnostic_fields_wrapper.mod: \
    Diagnostic_fields_wrapper.F90 ../include/diagnostic_fields.mod \
-   ../include/diagnostic_fields_matrices.mod ../include/equation_of_state.mod \
-   ../include/fdebug.h ../include/fetools.mod ../include/field_derivatives.mod \
-   ../include/field_options.mod ../include/fields.mod \
+   ../include/diagnostic_fields_matrices.mod ../include/dqmom.mod \
+   ../include/equation_of_state.mod ../include/fdebug.h ../include/fetools.mod \
+   ../include/field_derivatives.mod ../include/field_options.mod \
+   ../include/fields.mod ../include/fldebug.mod \
    ../include/free_surface_module.mod ../include/futils.mod \
    ../include/geostrophic_pressure.mod ../include/global_parameters.mod \
    ../include/momentum_diagnostic_fields.mod \
    ../include/multimaterial_module.mod ../include/multiphase_module.mod \
    ../include/parallel_tools.mod ../include/sediment_diagnostics.mod \
    ../include/sparse_matrices_fields.mod ../include/spontaneous_potentials.mod \
-   ../include/spud.mod ../include/state_module.mod ../include/tidal_module.mod \
+   ../include/state_module.mod ../include/tidal_module.mod \
    ../include/vorticity_diagnostics.mod
 
 ../include/discrete_properties_module.mod: Discrete_Properties.o
@@ -292,9 +310,9 @@ Diagnostic_fields_wrapper.o ../include/diagnostic_fields_wrapper.mod: \
 
 Discrete_Properties.o ../include/discrete_properties_module.mod: \
    Discrete_Properties.F90 ../include/fdebug.h ../include/field_options.mod \
-   ../include/fields.mod ../include/global_parameters.mod \
-   ../include/solenoidal_interpolation_module.mod ../include/spud.mod \
-   ../include/state_module.mod
+   ../include/fields.mod ../include/fldebug.mod ../include/futils.mod \
+   ../include/global_parameters.mod \
+   ../include/solenoidal_interpolation_module.mod ../include/state_module.mod
 
 ../include/divergence_matrix_cg.mod: Divergence_Matrix_CG.o
 	@true
@@ -305,8 +323,9 @@ Divergence_Matrix_CG.o ../include/divergence_matrix_cg.mod: \
    ../include/field_derivatives.mod ../include/field_options.mod \
    ../include/fields.mod ../include/fldebug.mod ../include/futils.mod \
    ../include/global_parameters.mod ../include/multiphase_module.mod \
-   ../include/quadrature.mod ../include/spud.mod ../include/state_module.mod \
-   ../include/transform_elements.mod ../include/upwind_stabilisation.mod
+   ../include/quadrature.mod ../include/sparse_tools.mod \
+   ../include/state_module.mod ../include/transform_elements.mod \
+   ../include/upwind_stabilisation.mod
 
 ../include/divergence_matrix_cv.mod: Divergence_Matrix_CV.o
 	@true
@@ -318,32 +337,35 @@ Divergence_Matrix_CV.o ../include/divergence_matrix_cv.mod: \
    ../include/cv_shape_functions.mod ../include/cv_upwind_values.mod \
    ../include/cvtools.mod ../include/diagnostic_fields.mod ../include/fdebug.h \
    ../include/fetools.mod ../include/field_derivatives.mod \
-   ../include/field_options.mod ../include/fields.mod ../include/futils.mod \
-   ../include/global_parameters.mod ../include/multiphase_module.mod \
-   ../include/quadrature.mod ../include/sparsity_patterns_meshes.mod \
-   ../include/spud.mod ../include/state_module.mod
+   ../include/field_options.mod ../include/fields.mod ../include/fldebug.mod \
+   ../include/futils.mod ../include/global_parameters.mod \
+   ../include/multiphase_module.mod ../include/quadrature.mod \
+   ../include/sparse_tools.mod ../include/sparsity_patterns_meshes.mod \
+   ../include/state_module.mod
 
 ../include/drag_module.mod: Drag.o
 	@true
 
 Drag.o ../include/drag_module.mod: Drag.F90 ../include/boundary_conditions.mod \
    ../include/fdebug.h ../include/fetools.mod ../include/fields.mod \
-   ../include/fields_data_types.mod ../include/global_parameters.mod \
-   ../include/sparse_tools.mod ../include/sparse_tools_petsc.mod \
-   ../include/spud.mod ../include/state_module.mod
+   ../include/fldebug.mod ../include/futils.mod \
+   ../include/global_parameters.mod ../include/parallel_fields.mod \
+   ../include/parallel_tools.mod ../include/sparse_tools.mod \
+   ../include/sparse_tools_petsc.mod ../include/state_module.mod
 
 ../include/ale_module.mod: Explicit_ALE.o
 	@true
 
 Explicit_ALE.o ../include/ale_module.mod: Explicit_ALE.F90 \
-   ../include/boundary_conditions.mod ../include/edge_length_module.mod \
-   ../include/elements.mod ../include/eventcounter.mod ../include/fdebug.h \
-   ../include/fefields.mod ../include/fetools.mod ../include/fields.mod \
+   ../include/adapt_integration.mod ../include/boundary_conditions.mod \
+   ../include/edge_length_module.mod ../include/elements.mod \
+   ../include/eventcounter.mod ../include/fdebug.h ../include/fefields.mod \
+   ../include/fetools.mod ../include/fields.mod \
    ../include/fields_manipulation.mod ../include/fldebug.mod \
    ../include/form_metric_field.mod ../include/global_parameters.mod \
    ../include/metric_assemble.mod ../include/quadrature.mod \
-   ../include/solidconfiguration.mod ../include/spud.mod \
-   ../include/state_module.mod ../include/transform_elements.mod
+   ../include/solidconfiguration.mod ../include/state_module.mod \
+   ../include/transform_elements.mod
 
 ../include/field_equations_cv.mod: Field_Equations_CV.o
 	@true
@@ -356,14 +378,15 @@ Field_Equations_CV.o ../include/field_equations_cv.mod: Field_Equations_CV.F90 \
    ../include/cv_shape_functions.mod ../include/cv_upwind_values.mod \
    ../include/cvtools.mod ../include/diagnostic_fields.mod \
    ../include/diagnostic_variables.mod ../include/divergence_matrix_cv.mod \
+   ../include/element_numbering.mod ../include/elements.mod \
    ../include/fdebug.h ../include/fefields.mod ../include/field_options.mod \
-   ../include/fields.mod ../include/global_parameters.mod ../include/halos.mod \
+   ../include/fields.mod ../include/fldebug.mod ../include/futils.mod \
+   ../include/global_parameters.mod ../include/halos.mod \
    ../include/multiphase_module.mod ../include/parallel_tools.mod \
    ../include/petsc_solve_state_module.mod ../include/porous_media.mod \
-   ../include/sparse_matrices_fields.mod \
-   ../include/sparsity_patterns_meshes.mod ../include/spud.mod \
-   ../include/state_fields_module.mod ../include/state_module.mod \
-   ../include/transform_elements.mod
+   ../include/sparse_matrices_fields.mod ../include/sparse_tools.mod \
+   ../include/sparsity_patterns_meshes.mod ../include/state_fields_module.mod \
+   ../include/state_module.mod ../include/transform_elements.mod
 
 ../include/foam_drainage.mod: Foam_Drainage.o
 	@true
@@ -371,8 +394,8 @@ Field_Equations_CV.o ../include/field_equations_cv.mod: Field_Equations_CV.F90 \
 Foam_Drainage.o ../include/foam_drainage.mod: Foam_Drainage.F90 \
    ../include/cv_upwind_values.mod ../include/diagnostic_fields_matrices.mod \
    ../include/fdebug.h ../include/field_options.mod ../include/fields.mod \
-   ../include/fldebug.mod ../include/spud.mod \
-   ../include/state_fields_module.mod ../include/state_module.mod
+   ../include/fldebug.mod ../include/state_fields_module.mod \
+   ../include/state_module.mod
 
 ../include/foam_flow_module.mod: Foam_Flow.o
 	@true
@@ -385,7 +408,7 @@ Foam_Flow.o ../include/foam_flow_module.mod: Foam_Flow.F90 \
    ../include/petsc_solve_state_module.mod ../include/quadrature.mod \
    ../include/solvers.mod ../include/sparse_matrices_fields.mod \
    ../include/sparse_tools.mod ../include/sparsity_patterns.mod \
-   ../include/sparsity_patterns_meshes.mod ../include/spud.mod \
+   ../include/sparsity_patterns_meshes.mod \
    ../include/state_matrices_module.mod ../include/state_module.mod \
    ../include/transform_elements.mod ../include/vector_tools.mod \
    ../include/vtk_interfaces.mod
@@ -396,28 +419,33 @@ Foam_Flow.o ../include/foam_flow_module.mod: Foam_Flow.F90 \
 Free_Surface.o ../include/free_surface_module.mod: Free_Surface.F90 \
    ../include/boundary_conditions.mod ../include/cv_faces.mod \
    ../include/cv_shape_functions.mod ../include/data_structures.mod \
-   ../include/eventcounter.mod ../include/fdebug.h \
-   ../include/field_options.mod ../include/fields.mod \
-   ../include/global_parameters.mod ../include/halos.mod \
-   ../include/integer_set_module.mod ../include/parallel_tools.mod \
-   ../include/physics_from_options.mod ../include/solvers.mod \
-   ../include/sparse_matrices_fields.mod ../include/sparse_tools.mod \
+   ../include/eventcounter.mod ../include/fdebug.h ../include/fetools.mod \
+   ../include/field_options.mod ../include/fields.mod ../include/fldebug.mod \
+   ../include/futils.mod ../include/global_parameters.mod ../include/halos.mod \
+   ../include/integer_set_module.mod ../include/parallel_fields.mod \
+   ../include/parallel_tools.mod ../include/physics_from_options.mod \
+   ../include/solvers.mod ../include/sparse_matrices_fields.mod \
+   ../include/sparse_tools.mod ../include/sparse_tools_petsc.mod \
    ../include/sparsity_patterns.mod ../include/sparsity_patterns_meshes.mod \
-   ../include/spud.mod ../include/state_module.mod ../include/tidal_module.mod \
+   ../include/state_module.mod ../include/tidal_module.mod \
+   ../include/transform_elements.mod \
    ../include/vertical_extrapolation_module.mod
 
 ../include/full_projection.mod: Full_Projection.o
 	@true
 
 Full_Projection.o ../include/full_projection.mod: Full_Projection.F90 \
-   ../include/boundary_conditions_from_options.mod ../include/elements.mod \
-   ../include/fdebug.h ../include/fields_base.mod ../include/fldebug.mod \
+   ../include/boundary_conditions.mod \
+   ../include/boundary_conditions_from_options.mod \
+   ../include/data_structures.mod ../include/elements.mod ../include/fdebug.h \
+   ../include/fields.mod ../include/fldebug.mod \
    ../include/global_parameters.mod ../include/halos.mod \
-   ../include/multigrid.mod ../include/petsc_solve_state_module.mod \
+   ../include/multigrid.mod ../include/parallel_tools.mod \
+   ../include/petsc_legacy.h ../include/petsc_solve_state_module.mod \
    ../include/petsc_tools.mod ../include/signal_vars.mod \
    ../include/solvers.mod ../include/sparse_matrices_fields.mod \
    ../include/sparse_tools.mod ../include/sparse_tools_petsc.mod \
-   ../include/spud.mod ../include/state_module.mod
+   ../include/state_module.mod
 
 ../include/geostrophic_pressure.mod: Geostrophic_Pressure.o
 	@true
@@ -429,17 +457,20 @@ Geostrophic_Pressure.o ../include/geostrophic_pressure.mod: \
    ../include/conservative_interpolation_module.mod \
    ../include/coriolis_module.mod ../include/data_structures.mod \
    ../include/dgtools.mod ../include/divergence_matrix_cg.mod \
-   ../include/elements.mod ../include/eventcounter.mod ../include/fdebug.h \
-   ../include/fefields.mod ../include/field_options.mod ../include/fields.mod \
-   ../include/fldebug.mod ../include/global_parameters.mod \
-   ../include/hydrostatic_pressure.mod ../include/momentum_cg.mod \
-   ../include/momentum_dg.mod ../include/petsc_solve_state_module.mod \
-   ../include/pickers.mod ../include/quadrature.mod ../include/solvers.mod \
+   ../include/element_numbering.mod ../include/elements.mod \
+   ../include/eventcounter.mod ../include/fdebug.h ../include/fefields.mod \
+   ../include/fetools.mod ../include/field_options.mod ../include/fields.mod \
+   ../include/fldebug.mod ../include/futils.mod \
+   ../include/global_parameters.mod ../include/hydrostatic_pressure.mod \
+   ../include/momentum_cg.mod ../include/momentum_dg.mod \
+   ../include/parallel_fields.mod ../include/parallel_tools.mod \
+   ../include/petsc_solve_state_module.mod ../include/pickers.mod \
+   ../include/quadrature.mod ../include/solvers.mod \
    ../include/sparse_matrices_fields.mod ../include/sparse_tools.mod \
    ../include/sparsity_patterns.mod ../include/sparsity_patterns_meshes.mod \
-   ../include/spud.mod ../include/state_fields_module.mod \
-   ../include/state_module.mod ../include/surfacelabels.mod \
-   ../include/unittest_tools.mod ../include/vtk_interfaces.mod
+   ../include/state_fields_module.mod ../include/state_module.mod \
+   ../include/surfacelabels.mod ../include/unittest_tools.mod \
+   ../include/vector_tools.mod ../include/vtk_interfaces.mod
 
 ../include/gradient_matrix_cg.mod: Gradient_Matrix_CG.o
 	@true
@@ -449,37 +480,37 @@ Gradient_Matrix_CG.o ../include/gradient_matrix_cg.mod: Gradient_Matrix_CG.F90 \
    ../include/fetools.mod ../include/field_derivatives.mod \
    ../include/field_options.mod ../include/fields.mod ../include/fldebug.mod \
    ../include/futils.mod ../include/global_parameters.mod \
-   ../include/quadrature.mod ../include/spud.mod ../include/state_module.mod \
-   ../include/transform_elements.mod
+   ../include/quadrature.mod ../include/sparse_tools.mod \
+   ../include/state_module.mod ../include/transform_elements.mod
 
 ../include/hybridized_helmholtz.mod: Hybridized_Helmholtz.o
 	@true
 
 Hybridized_Helmholtz.o ../include/hybridized_helmholtz.mod: \
    Hybridized_Helmholtz.F90 ../include/assemble_cmc.mod \
-   ../include/diagnostic_fields_wrapper.mod \
-   ../include/diagnostic_variables.mod ../include/fdebug.h \
-   ../include/fields.mod ../include/fldebug.mod ../include/futils.mod \
+   ../include/diagnostic_variables.mod ../include/element_numbering.mod \
+   ../include/fdebug.h ../include/fetools.mod ../include/fields.mod \
+   ../include/fldebug.mod ../include/futils.mod \
    ../include/global_parameters.mod ../include/manifold_projections.mod \
    ../include/populate_state_module.mod ../include/solvers.mod \
-   ../include/sparse_matrices_fields.mod \
-   ../include/sparsity_patterns_meshes.mod ../include/spud.mod \
-   ../include/state_module.mod ../include/timeloop_utilities.mod \
-   ../include/vector_tools.mod ../include/write_state_module.mod
+   ../include/sparse_matrices_fields.mod ../include/sparse_tools.mod \
+   ../include/sparsity_patterns_meshes.mod ../include/state_module.mod \
+   ../include/timeloop_utilities.mod ../include/vector_tools.mod \
+   ../include/write_state_module.mod
 
 ../include/hydrostatic_pressure.mod: Hydrostatic_Pressure.o
 	@true
 
 Hydrostatic_Pressure.o ../include/hydrostatic_pressure.mod: \
    Hydrostatic_Pressure.F90 ../include/boundary_conditions.mod \
-   ../include/elements.mod ../include/fdebug.h ../include/fields.mod \
-   ../include/fldebug.mod ../include/parallel_tools.mod \
-   ../include/profiler.mod ../include/quadrature.mod \
-   ../include/shape_functions.mod ../include/solvers.mod \
-   ../include/sparse_tools.mod ../include/spud.mod \
+   ../include/elements.mod ../include/fdebug.h ../include/fetools.mod \
+   ../include/fields.mod ../include/fldebug.mod ../include/parallel_fields.mod \
+   ../include/parallel_tools.mod ../include/profiler.mod \
+   ../include/quadrature.mod ../include/shape_functions.mod \
+   ../include/solvers.mod ../include/sparse_tools.mod \
    ../include/state_matrices_module.mod ../include/state_module.mod \
    ../include/transform_elements.mod ../include/upwind_stabilisation.mod \
-   ../include/vertical_extrapolation_module.mod
+   ../include/vector_tools.mod ../include/vertical_extrapolation_module.mod
 
 ../include/implicit_solids.mod: Implicit_Solids.o
 	@true
@@ -489,21 +520,23 @@ Implicit_Solids.o ../include/implicit_solids.mod: Implicit_Solids.F90 \
    ../include/boundary_conditions.mod ../include/data_structures.mod \
    ../include/detector_tools.mod ../include/diagnostic_fields.mod \
    ../include/diagnostic_variables.mod ../include/edge_length_module.mod \
-   ../include/elements.mod ../include/fdebug.h ../include/fefields.mod \
-   ../include/fetools.mod ../include/field_derivatives.mod \
-   ../include/fields.mod ../include/fields_manipulation.mod \
-   ../include/fldebug.mod ../include/futils.mod \
-   ../include/global_parameters.mod ../include/halos.mod \
+   ../include/element_numbering.mod ../include/elements.mod \
+   ../include/fdebug.h ../include/fefields.mod ../include/fetools.mod \
+   ../include/field_derivatives.mod ../include/field_options.mod \
+   ../include/fields_allocates.mod ../include/fields_calculations.mod \
+   ../include/fields_manipulation.mod ../include/fldebug.mod \
+   ../include/futils.mod ../include/global_parameters.mod ../include/halos.mod \
    ../include/interpolation_module.mod \
    ../include/intersection_finder_module.mod ../include/linked_lists.mod \
    ../include/mesh_files.mod ../include/meshdiagnostics.mod \
-   ../include/parallel_tools.mod ../include/pickers_inquire.mod \
-   ../include/qmesh_module.mod ../include/quadrature.mod \
-   ../include/read_triangle.mod ../include/solvers.mod \
+   ../include/parallel_fields.mod ../include/parallel_tools.mod \
+   ../include/pickers_inquire.mod ../include/qmesh_module.mod \
+   ../include/quadrature.mod ../include/read_triangle.mod \
+   ../include/shape_functions.mod ../include/solvers.mod \
    ../include/sparse_matrices_fields.mod ../include/sparse_tools.mod \
-   ../include/sparsity_patterns.mod ../include/spud.mod \
-   ../include/state_module.mod ../include/supermesh_construction.mod \
-   ../include/tensors.mod ../include/tetrahedron_intersection_module.mod \
+   ../include/sparsity_patterns.mod ../include/state_module.mod \
+   ../include/supermesh_construction.mod ../include/tensors.mod \
+   ../include/tetrahedron_intersection_module.mod \
    ../include/timeloop_utilities.mod ../include/transform_elements.mod \
    ../include/unify_meshes_module.mod ../include/unittest_tools.mod \
    ../include/vector_tools.mod ../include/vtk_interfaces.mod
@@ -514,46 +547,34 @@ Implicit_Solids.o ../include/implicit_solids.mod: Implicit_Solids.F90 \
 Interpolation_manager.o ../include/interpolation_manager.mod: \
    Interpolation_manager.F90 ../include/boundary_conditions_from_options.mod \
    ../include/conservative_interpolation_module.mod \
-   ../include/dg_interpolation_module.mod ../include/fdebug.h \
-   ../include/field_options.mod ../include/fields.mod \
+   ../include/dg_interpolation_module.mod ../include/element_numbering.mod \
+   ../include/elements.mod ../include/fdebug.h ../include/field_options.mod \
+   ../include/fields.mod ../include/fldebug.mod ../include/futils.mod \
    ../include/geostrophic_pressure.mod ../include/global_parameters.mod \
    ../include/interpolation_module.mod \
    ../include/intersection_finder_module.mod ../include/linked_lists.mod \
    ../include/populate_state_module.mod \
-   ../include/pseudo_consistent_interpolation.mod ../include/spud.mod \
-   ../include/state_module.mod ../include/supermesh_construction.mod \
-   ../include/tictoc.mod ../include/vtk_interfaces.mod
+   ../include/pseudo_consistent_interpolation.mod ../include/state_module.mod \
+   ../include/supermesh_construction.mod ../include/tictoc.mod \
+   ../include/vtk_interfaces.mod
 
 ../include/les_module.mod: LES.o
 	@true
 
 LES.o ../include/les_module.mod: LES.F90 ../include/fdebug.h \
    ../include/fetools.mod ../include/field_options.mod ../include/fields.mod \
-   ../include/global_parameters.mod ../include/smoothing_module.mod \
-   ../include/solvers.mod ../include/spud.mod \
-   ../include/state_fields_module.mod ../include/state_module.mod \
-   ../include/vector_tools.mod
-
-../include/linear_shallow_water.mod: Linear_Shallow_Water.o
-	@true
-
-Linear_Shallow_Water.o ../include/linear_shallow_water.mod: \
-   Linear_Shallow_Water.F90 ../include/assemble_cmc.mod \
-   ../include/diagnostic_fields_wrapper.mod \
-   ../include/diagnostic_variables.mod ../include/fdebug.h \
-   ../include/fields.mod ../include/fldebug.mod \
-   ../include/global_parameters.mod ../include/populate_state_module.mod \
-   ../include/solvers.mod ../include/sparse_matrices_fields.mod \
-   ../include/sparsity_patterns_meshes.mod ../include/spud.mod \
-   ../include/state_module.mod ../include/timeloop_utilities.mod \
-   ../include/write_state_module.mod
+   ../include/fldebug.mod ../include/global_parameters.mod \
+   ../include/smoothing_module.mod ../include/solvers.mod \
+   ../include/sparse_tools.mod ../include/state_fields_module.mod \
+   ../include/state_module.mod ../include/vector_tools.mod
 
 ../include/manifold_projections.mod: Manifold_Projections.o
 	@true
 
 Manifold_Projections.o ../include/manifold_projections.mod: \
-   Manifold_Projections.F90 ../include/fdebug.h ../include/fields.mod \
-   ../include/fields_base.mod ../include/state_module.mod
+   Manifold_Projections.F90 ../include/fdebug.h ../include/fetools.mod \
+   ../include/fields.mod ../include/fldebug.mod ../include/futils.mod \
+   ../include/state_module.mod ../include/vector_tools.mod
 
 ../include/mba2d_integration.mod: Mba2d_Integration.o
 	@true
@@ -561,12 +582,14 @@ Manifold_Projections.o ../include/manifold_projections.mod: \
 Mba2d_Integration.o ../include/mba2d_integration.mod: Mba2d_Integration.F90 \
    ../include/adapt_integration.mod ../include/data_structures.mod \
    ../include/elements.mod ../include/eventcounter.mod ../include/fdebug.h \
-   ../include/fields.mod ../include/global_parameters.mod ../include/halos.mod \
+   ../include/fields.mod ../include/fldebug.mod ../include/futils.mod \
+   ../include/global_parameters.mod ../include/halos.mod \
    ../include/interpolation_module.mod ../include/limit_metric_module.mod \
    ../include/mba_adapt_module.mod ../include/meshdiagnostics.mod \
    ../include/metric_tools.mod ../include/node_boundary.mod \
-   ../include/node_locking.mod ../include/quadrature.mod \
-   ../include/quicksort.mod ../include/state_module.mod \
+   ../include/node_locking.mod ../include/parallel_tools.mod \
+   ../include/quadrature.mod ../include/quicksort.mod \
+   ../include/sparse_tools.mod ../include/state_module.mod \
    ../include/surface_id_interleaving.mod ../include/vtk_interfaces.mod
 
 ../include/mba3d_integration.mod: Mba3d_Integration.o
@@ -574,9 +597,10 @@ Mba2d_Integration.o ../include/mba2d_integration.mod: Mba2d_Integration.F90 \
 
 Mba3d_Integration.o ../include/mba3d_integration.mod: Mba3d_Integration.F90 \
    ../include/adapt_integration.mod ../include/elements.mod \
-   ../include/fdebug.h ../include/fields.mod ../include/global_parameters.mod \
-   ../include/halos.mod ../include/limit_metric_module.mod \
-   ../include/node_locking.mod ../include/quadrature.mod ../include/spud.mod \
+   ../include/fdebug.h ../include/fields.mod ../include/fldebug.mod \
+   ../include/futils.mod ../include/halos.mod \
+   ../include/limit_metric_module.mod ../include/node_locking.mod \
+   ../include/parallel_tools.mod ../include/quadrature.mod \
    ../include/surface_id_interleaving.mod
 
 ../include/meshmovement.mod: MeshMovement.o
@@ -591,8 +615,8 @@ MeshMovement.o ../include/meshmovement.mod: MeshMovement.F90 \
    ../include/shape_functions.mod ../include/solvers.mod \
    ../include/sparse_matrices_fields.mod ../include/sparse_tools.mod \
    ../include/sparsity_patterns.mod ../include/sparsity_patterns_meshes.mod \
-   ../include/spud.mod ../include/state_module.mod \
-   ../include/unittest_tools.mod ../include/vtk_interfaces.mod
+   ../include/state_module.mod ../include/unittest_tools.mod \
+   ../include/vector_tools.mod ../include/vtk_interfaces.mod
 
 ../include/momentum_cg.mod: Momentum_CG.o
 	@true
@@ -606,13 +630,13 @@ Momentum_CG.o ../include/momentum_cg.mod: Momentum_CG.F90 \
    ../include/field_derivatives.mod ../include/field_options.mod \
    ../include/fields.mod ../include/fldebug.mod \
    ../include/global_parameters.mod ../include/halos.mod \
-   ../include/les_module.mod ../include/metric_tools.mod \
-   ../include/multiphase_module.mod ../include/petsc_solve_state_module.mod \
-   ../include/physics_from_options.mod ../include/profiler.mod \
-   ../include/rotated_boundary_conditions.mod ../include/smoothing_module.mod \
-   ../include/solvers.mod ../include/sparse_matrices_fields.mod \
-   ../include/sparse_tools.mod ../include/sparse_tools_petsc.mod \
-   ../include/sparsity_patterns_meshes.mod ../include/spud.mod \
+   ../include/integer_set_module.mod ../include/les_module.mod \
+   ../include/metric_tools.mod ../include/multiphase_module.mod \
+   ../include/petsc_solve_state_module.mod ../include/physics_from_options.mod \
+   ../include/profiler.mod ../include/rotated_boundary_conditions.mod \
+   ../include/smoothing_module.mod ../include/solvers.mod \
+   ../include/sparse_matrices_fields.mod ../include/sparse_tools.mod \
+   ../include/sparse_tools_petsc.mod ../include/sparsity_patterns_meshes.mod \
    ../include/state_fields_module.mod ../include/state_matrices_module.mod \
    ../include/state_module.mod ../include/transform_elements.mod \
    ../include/upwind_stabilisation.mod ../include/vector_tools.mod
@@ -624,20 +648,21 @@ Momentum_DG.o ../include/momentum_dg.mod: Momentum_DG.F90 \
    ../include/boundary_conditions.mod \
    ../include/boundary_conditions_from_options.mod ../include/colouring.mod \
    ../include/coordinates.mod ../include/coriolis_module.mod \
-   ../include/dgtools.mod ../include/diagnostic_fields.mod \
-   ../include/elements.mod ../include/fdebug.h ../include/fefields.mod \
-   ../include/fetools.mod ../include/field_options.mod ../include/fields.mod \
-   ../include/fields_manipulation.mod ../include/fldebug.mod \
+   ../include/dgtools.mod ../include/diagnostic_fields.mod ../include/fdebug.h \
+   ../include/fefields.mod ../include/fetools.mod \
+   ../include/field_derivatives.mod ../include/field_options.mod \
+   ../include/fields.mod ../include/fldebug.mod \
    ../include/global_parameters.mod ../include/halos.mod \
-   ../include/multiphase_module.mod ../include/petsc_tools.mod \
-   ../include/profiler.mod ../include/shape_functions.mod \
-   ../include/slope_limiters_dg.mod ../include/smoothing_module.mod \
-   ../include/solvers.mod ../include/sparse_matrices_fields.mod \
-   ../include/sparse_tools.mod ../include/sparsity_patterns.mod \
-   ../include/sparsity_patterns_meshes.mod ../include/spud.mod \
-   ../include/state_module.mod ../include/transform_elements.mod \
-   ../include/turbine.mod ../include/vector_tools.mod \
-   ../include/vtk_interfaces.mod
+   ../include/integer_set_module.mod ../include/multiphase_module.mod \
+   ../include/parallel_fields.mod ../include/parallel_tools.mod \
+   ../include/petsc_tools.mod ../include/profiler.mod \
+   ../include/shape_functions.mod ../include/slope_limiters_dg.mod \
+   ../include/smoothing_module.mod ../include/solvers.mod \
+   ../include/sparse_matrices_fields.mod ../include/sparse_tools.mod \
+   ../include/sparse_tools_petsc.mod ../include/sparsity_patterns.mod \
+   ../include/sparsity_patterns_meshes.mod ../include/state_module.mod \
+   ../include/transform_elements.mod ../include/turbine.mod \
+   ../include/vector_tools.mod ../include/vtk_interfaces.mod
 
 ../include/momentum_diagnostic_fields.mod: Momentum_Diagnostic_Fields.o
 	@true
@@ -646,10 +671,10 @@ Momentum_Diagnostic_Fields.o ../include/momentum_diagnostic_fields.mod: \
    Momentum_Diagnostic_Fields.F90 ../include/diagnostic_fields_wrapper_new.mod \
    ../include/equation_of_state.mod ../include/fdebug.h \
    ../include/field_priority_lists.mod ../include/fields.mod \
-   ../include/fldebug.mod ../include/global_parameters.mod \
-   ../include/initialise_fields_module.mod ../include/k_epsilon.mod \
-   ../include/multimaterial_module.mod ../include/multiphase_module.mod \
-   ../include/spud.mod ../include/state_module.mod
+   ../include/fldebug.mod ../include/futils.mod \
+   ../include/global_parameters.mod ../include/initialise_fields_module.mod \
+   ../include/k_epsilon.mod ../include/multimaterial_module.mod \
+   ../include/multiphase_module.mod ../include/state_module.mod
 
 ../include/momentum_equation.mod: Momentum_Equation.o
 	@true
@@ -660,26 +685,28 @@ Momentum_Equation.o ../include/momentum_equation.mod: Momentum_Equation.F90 \
    ../include/compressible_projection.mod ../include/coordinates.mod \
    ../include/dgtools.mod ../include/diagnostic_fields.mod \
    ../include/divergence_matrix_cg.mod ../include/divergence_matrix_cv.mod \
-   ../include/drag_module.mod ../include/fdebug.h ../include/field_options.mod \
+   ../include/drag_module.mod ../include/element_numbering.mod \
+   ../include/fdebug.h ../include/field_options.mod \
    ../include/field_priority_lists.mod ../include/fields.mod \
    ../include/fldebug.mod ../include/foam_drainage.mod \
    ../include/free_surface_module.mod ../include/full_projection.mod \
-   ../include/geostrophic_pressure.mod ../include/hydrostatic_pressure.mod \
+   ../include/futils.mod ../include/geostrophic_pressure.mod \
+   ../include/global_parameters.mod ../include/hydrostatic_pressure.mod \
    ../include/implicit_solids.mod ../include/linked_lists.mod \
    ../include/momentum_cg.mod ../include/momentum_dg.mod \
    ../include/momentum_diagnostic_fields.mod ../include/multiphase_module.mod \
-   ../include/oceansurfaceforcing.mod ../include/parallel_tools.mod \
-   ../include/petsc_solve_state_module.mod \
+   ../include/oceansurfaceforcing.mod ../include/parallel_fields.mod \
+   ../include/parallel_tools.mod ../include/petsc_solve_state_module.mod \
    ../include/pressure_dirichlet_bcs_cv.mod ../include/profiler.mod \
    ../include/reduced_model_runtime.mod \
    ../include/rotated_boundary_conditions.mod \
    ../include/shallow_water_equations.mod ../include/slope_limiters_dg.mod \
    ../include/solvers.mod ../include/sparse_matrices_fields.mod \
    ../include/sparse_tools.mod ../include/sparse_tools_petsc.mod \
-   ../include/sparsity_patterns_meshes.mod ../include/spud.mod \
-   ../include/state_fields_module.mod ../include/state_matrices_module.mod \
-   ../include/state_module.mod ../include/tidal_module.mod \
-   ../include/vertical_balance_pressure.mod ../include/vtk_interfaces.mod
+   ../include/sparsity_patterns_meshes.mod ../include/state_fields_module.mod \
+   ../include/state_matrices_module.mod ../include/state_module.mod \
+   ../include/tidal_module.mod ../include/vertical_balance_pressure.mod \
+   ../include/vtk_interfaces.mod
 
 ../include/multimaterial_module.mod: Multimaterials.o
 	@true
@@ -689,8 +716,8 @@ Multimaterials.o ../include/multimaterial_module.mod: Multimaterials.F90 \
    ../include/equation_of_state.mod ../include/fdebug.h \
    ../include/fefields.mod ../include/field_options.mod \
    ../include/field_priority_lists.mod ../include/fields.mod \
-   ../include/fldebug.mod ../include/global_parameters.mod ../include/spud.mod \
-   ../include/state_module.mod
+   ../include/fldebug.mod ../include/futils.mod \
+   ../include/global_parameters.mod ../include/state_module.mod
 
 ../include/multiphase_module.mod: Multiphase.o
 	@true
@@ -699,15 +726,16 @@ Multiphase.o ../include/multiphase_module.mod: Multiphase.F90 \
    ../include/fdebug.h ../include/fetools.mod ../include/field_options.mod \
    ../include/field_priority_lists.mod ../include/fields.mod \
    ../include/fldebug.mod ../include/global_parameters.mod \
-   ../include/profiler.mod ../include/sparse_tools_petsc.mod \
-   ../include/spud.mod ../include/state_module.mod
+   ../include/parallel_fields.mod ../include/profiler.mod \
+   ../include/sparse_tools.mod ../include/sparse_tools_petsc.mod \
+   ../include/state_module.mod
 
 ../include/node_locking.mod: Node_Locking.o
 	@true
 
 Node_Locking.o ../include/node_locking.mod: Node_Locking.F90 \
    ../include/embed_python.mod ../include/fdebug.h ../include/fields.mod \
-   ../include/fldebug.mod ../include/global_parameters.mod ../include/spud.mod
+   ../include/fldebug.mod ../include/global_parameters.mod
 
 ../include/oceansurfaceforcing.mod: OceanSurfaceForcing.o
 	@true
@@ -715,8 +743,9 @@ Node_Locking.o ../include/node_locking.mod: Node_Locking.F90 \
 OceanSurfaceForcing.o ../include/oceansurfaceforcing.mod: \
    OceanSurfaceForcing.F90 ../include/boundary_conditions.mod \
    ../include/coordinates.mod ../include/elements.mod ../include/fdebug.h \
-   ../include/fetools.mod ../include/fields.mod \
-   ../include/global_parameters.mod ../include/spud.mod \
+   ../include/fetools.mod ../include/fields.mod ../include/fldebug.mod \
+   ../include/futils.mod ../include/global_parameters.mod \
+   ../include/parallel_fields.mod ../include/parallel_tools.mod \
    ../include/state_module.mod ../include/transform_elements.mod
 
 ../include/petsc_solve_state_module.mod: Petsc_Solve_State.o
@@ -724,17 +753,18 @@ OceanSurfaceForcing.o ../include/oceansurfaceforcing.mod: \
 
 Petsc_Solve_State.o ../include/petsc_solve_state_module.mod: \
    Petsc_Solve_State.F90 ../include/fdebug.h ../include/field_options.mod \
-   ../include/fields.mod ../include/free_surface_module.mod \
-   ../include/global_parameters.mod ../include/solvers.mod \
+   ../include/fields.mod ../include/fldebug.mod \
+   ../include/free_surface_module.mod ../include/global_parameters.mod \
+   ../include/parallel_fields.mod ../include/solvers.mod \
    ../include/sparse_tools.mod ../include/sparse_tools_petsc.mod \
-   ../include/spud.mod ../include/state_module.mod
+   ../include/state_module.mod
 
 ../include/porous_media.mod: Porous_Media.o
 	@true
 
 Porous_Media.o ../include/porous_media.mod: Porous_Media.F90 \
-   ../include/fdebug.h ../include/fields.mod ../include/futils.mod \
-   ../include/global_parameters.mod ../include/spud.mod \
+   ../include/fdebug.h ../include/fields.mod ../include/fldebug.mod \
+   ../include/futils.mod ../include/global_parameters.mod \
    ../include/state_module.mod
 
 ../include/pressure_dirichlet_bcs_cv.mod: Pressure_Dirichlet_BCS_CV.o
@@ -742,15 +772,14 @@ Porous_Media.o ../include/porous_media.mod: Porous_Media.F90 \
 
 Pressure_Dirichlet_BCS_CV.o ../include/pressure_dirichlet_bcs_cv.mod: \
    Pressure_Dirichlet_BCS_CV.F90 ../include/boundary_conditions.mod \
-   ../include/cv_face_values.mod ../include/cv_faces.mod \
-   ../include/cv_fields.mod ../include/cv_options.mod \
+   ../include/cv_faces.mod ../include/cv_fields.mod ../include/cv_options.mod \
    ../include/cv_shape_functions.mod ../include/cv_upwind_values.mod \
    ../include/cvtools.mod ../include/diagnostic_fields.mod ../include/fdebug.h \
    ../include/fetools.mod ../include/field_derivatives.mod \
-   ../include/field_options.mod ../include/fields.mod ../include/futils.mod \
-   ../include/global_parameters.mod ../include/multiphase_module.mod \
-   ../include/quadrature.mod ../include/sparsity_patterns_meshes.mod \
-   ../include/spud.mod ../include/state_module.mod
+   ../include/field_options.mod ../include/fields.mod ../include/fldebug.mod \
+   ../include/futils.mod ../include/global_parameters.mod \
+   ../include/multiphase_module.mod ../include/quadrature.mod \
+   ../include/sparsity_patterns_meshes.mod ../include/state_module.mod
 
 ../include/pseudo_supermesh.mod: Pseudo_supermesh.o
 	@true
@@ -760,7 +789,8 @@ Pseudo_supermesh.o ../include/pseudo_supermesh.mod: Pseudo_supermesh.F90 \
    ../include/conformity_measurement.mod ../include/edge_length_module.mod \
    ../include/fdebug.h ../include/fields.mod \
    ../include/interpolation_module.mod ../include/limit_metric_module.mod \
-   ../include/merge_tensors.mod ../include/vtk_interfaces.mod
+   ../include/merge_tensors.mod ../include/state_module.mod \
+   ../include/vtk_interfaces.mod
 
 ../include/reduced_model_runtime.mod: Reduced_Model_Runtime.o
 	@true
@@ -769,9 +799,8 @@ Reduced_Model_Runtime.o ../include/reduced_model_runtime.mod: \
    Reduced_Model_Runtime.F90 ../include/fdebug.h ../include/field_options.mod \
    ../include/fields.mod ../include/fldebug.mod \
    ../include/sparse_matrices_fields.mod ../include/sparse_tools.mod \
-   ../include/sparse_tools_petsc.mod ../include/spud.mod \
-   ../include/state_module.mod ../include/vector_tools.mod \
-   ../include/vtk_interfaces.mod
+   ../include/sparse_tools_petsc.mod ../include/state_module.mod \
+   ../include/vector_tools.mod ../include/vtk_interfaces.mod
 
 ../include/sam_integration.mod: Sam_integration.o
 	@true
@@ -782,13 +811,14 @@ Sam_integration.o ../include/sam_integration.mod: Sam_integration.F90 \
    ../include/data_structures.mod ../include/detector_data_types.mod \
    ../include/detector_tools.mod ../include/diagnostic_variables.mod \
    ../include/elements.mod ../include/fdebug.h ../include/field_options.mod \
-   ../include/fields.mod ../include/global_parameters.mod ../include/halos.mod \
+   ../include/fields.mod ../include/fldebug.mod ../include/futils.mod \
+   ../include/global_parameters.mod ../include/halos.mod \
    ../include/ieee_arithmetic.mod ../include/memory_diagnostics.mod \
    ../include/metric_tools.mod ../include/mpi_interfaces.mod \
    ../include/node_boundary.mod ../include/parallel_tools.mod \
    ../include/pickers.mod ../include/populate_state_module.mod \
-   ../include/quadrature.mod ../include/reserve_state_module.mod \
-   ../include/spud.mod ../include/state_module.mod \
+   ../include/quadrature.mod ../include/reference_counting.mod \
+   ../include/reserve_state_module.mod ../include/state_module.mod \
    ../include/surface_id_interleaving.mod ../include/surfacelabels.mod \
    ../include/tictoc.mod
 
@@ -800,29 +830,32 @@ Saturation_Distribution_Search_HookeJeeves.o \
    ../include/saturation_distribution_search_hookejeeves.mod: \
    Saturation_Distribution_Search_HookeJeeves.F90 \
    ../include/diagnostic_fields_wrapper_new.mod ../include/fdebug.h \
-   ../include/field_options.mod ../include/fields.mod \
-   ../include/fields_base.mod ../include/fldebug.mod \
+   ../include/fetools.mod ../include/field_options.mod ../include/fields.mod \
+   ../include/fldebug.mod ../include/futils.mod \
    ../include/global_parameters.mod ../include/momentum_equation.mod \
-   ../include/spontaneous_potentials.mod ../include/spud.mod \
-   ../include/state_module.mod ../include/write_state_module.mod
+   ../include/spontaneous_potentials.mod ../include/state_module.mod \
+   ../include/write_state_module.mod
 
 ../include/shallow_water_equations.mod: Shallow_Water_Equations.o
 	@true
 
 Shallow_Water_Equations.o ../include/shallow_water_equations.mod: \
    Shallow_Water_Equations.F90 ../include/boundary_conditions.mod \
-   ../include/fdebug.h ../include/fields.mod ../include/global_parameters.mod \
-   ../include/spud.mod ../include/state_module.mod
+   ../include/fdebug.h ../include/fetools.mod ../include/fields.mod \
+   ../include/fldebug.mod ../include/global_parameters.mod \
+   ../include/sparse_tools.mod ../include/state_module.mod \
+   ../include/transform_elements.mod
 
 ../include/slope_limiters_dg.mod: Slope_limiters_DG.o
 	@true
 
 Slope_limiters_DG.o ../include/slope_limiters_dg.mod: Slope_limiters_DG.F90 \
    ../include/bound_field_module.mod ../include/elements.mod \
-   ../include/eventcounter.mod ../include/fdebug.h ../include/fields.mod \
-   ../include/fldebug_parameters.mod ../include/ieee_arithmetic.mod \
-   ../include/spud.mod ../include/state_fields_module.mod \
-   ../include/state_module.mod ../include/transform_elements.mod \
+   ../include/eventcounter.mod ../include/fdebug.h \
+   ../include/field_options.mod ../include/fields.mod ../include/fldebug.mod \
+   ../include/ieee_arithmetic.mod ../include/sparse_tools.mod \
+   ../include/state_fields_module.mod ../include/state_module.mod \
+   ../include/transform_elements.mod ../include/vector_tools.mod \
    ../include/vtk_interfaces.mod
 
 ../include/solenoidal_interpolation_module.mod: Solenoidal_interpolation.o
@@ -833,27 +866,29 @@ Solenoidal_interpolation.o ../include/solenoidal_interpolation_module.mod: \
    ../include/boundary_conditions.mod \
    ../include/boundary_conditions_from_options.mod ../include/dgtools.mod \
    ../include/divergence_matrix_cg.mod ../include/divergence_matrix_cv.mod \
-   ../include/fdebug.h ../include/fefields.mod ../include/fetools.mod \
-   ../include/fields.mod ../include/futils.mod \
+   ../include/element_numbering.mod ../include/fdebug.h \
+   ../include/fefields.mod ../include/fetools.mod ../include/field_options.mod \
+   ../include/fields.mod ../include/fldebug.mod ../include/futils.mod \
    ../include/global_parameters.mod ../include/interpolation_module.mod \
-   ../include/momentum_cg.mod ../include/momentum_dg.mod \
-   ../include/solvers.mod ../include/sparse_matrices_fields.mod \
-   ../include/sparse_tools.mod ../include/sparsity_patterns.mod \
-   ../include/spud.mod ../include/supermesh_construction.mod \
-   ../include/tensors.mod ../include/transform_elements.mod \
-   ../include/vector_tools.mod
+   ../include/linked_lists.mod ../include/momentum_cg.mod \
+   ../include/momentum_dg.mod ../include/solvers.mod \
+   ../include/sparse_matrices_fields.mod ../include/sparse_tools.mod \
+   ../include/sparsity_patterns.mod ../include/state_module.mod \
+   ../include/supermesh_construction.mod ../include/tensors.mod \
+   ../include/transform_elements.mod ../include/vector_tools.mod
 
 ../include/solidconfiguration.mod: Solid_Configuration.o
 	@true
 
 Solid_Configuration.o ../include/solidconfiguration.mod: \
    Solid_Configuration.F90 ../include/boundary_conditions.mod \
-   ../include/fdebug.h ../include/fefields.mod ../include/fetools.mod \
-   ../include/fields.mod ../include/fldebug.mod \
-   ../include/global_parameters.mod ../include/parallel_tools.mod \
-   ../include/spud.mod ../include/state_module.mod \
-   ../include/transform_elements.mod ../include/vector_tools.mod \
-   ../include/vtk_interfaces.mod ../include/write_triangle.mod
+   ../include/embed_python.mod ../include/fdebug.h ../include/fefields.mod \
+   ../include/fetools.mod ../include/fields.mod ../include/fldebug.mod \
+   ../include/futils.mod ../include/global_parameters.mod \
+   ../include/parallel_fields.mod ../include/parallel_tools.mod \
+   ../include/state_module.mod ../include/transform_elements.mod \
+   ../include/vector_tools.mod ../include/vtk_interfaces.mod \
+   ../include/write_triangle.mod
 
 ../include/spontaneous_potentials.mod: Spontaneous_Potentials.o
 	@true
@@ -861,9 +896,10 @@ Solid_Configuration.o ../include/solidconfiguration.mod: \
 Spontaneous_Potentials.o ../include/spontaneous_potentials.mod: \
    Spontaneous_Potentials.F90 ../include/boundary_conditions.mod \
    ../include/boundary_conditions_from_options.mod ../include/fdebug.h \
-   ../include/field_options.mod ../include/fields.mod ../include/fldebug.mod \
-   ../include/solvers.mod ../include/sparsity_patterns_meshes.mod \
-   ../include/spud.mod ../include/state_module.mod
+   ../include/fetools.mod ../include/field_options.mod ../include/fields.mod \
+   ../include/fldebug.mod ../include/futils.mod ../include/solvers.mod \
+   ../include/sparse_tools.mod ../include/sparsity_patterns_meshes.mod \
+   ../include/state_module.mod
 
 ../include/state_matrices_module.mod: State_Matrices.o
 	@true
@@ -871,9 +907,9 @@ Spontaneous_Potentials.o ../include/spontaneous_potentials.mod: \
 State_Matrices.o ../include/state_matrices_module.mod: State_Matrices.F90 \
    ../include/divergence_matrix_cg.mod ../include/divergence_matrix_cv.mod \
    ../include/eventcounter.mod ../include/fdebug.h \
-   ../include/field_options.mod ../include/fields.mod \
+   ../include/field_options.mod ../include/fields.mod ../include/futils.mod \
    ../include/global_parameters.mod ../include/gradient_matrix_cg.mod \
-   ../include/sparsity_patterns_meshes.mod ../include/spud.mod \
+   ../include/sparse_tools.mod ../include/sparsity_patterns_meshes.mod \
    ../include/state_module.mod
 
 ../include/surface_id_interleaving.mod: Surface_Id_Interleaving.o
@@ -889,15 +925,17 @@ Surface_Id_Interleaving.o ../include/surface_id_interleaving.mod: \
 
 Timeloop_utilities.o ../include/timeloop_utilities.mod: Timeloop_utilities.F90 \
    ../include/fdebug.h ../include/fefields.mod ../include/fields.mod \
-   ../include/global_parameters.mod ../include/signal_vars.mod \
-   ../include/spud.mod ../include/state_module.mod ../include/timers.mod
+   ../include/fldebug.mod ../include/global_parameters.mod \
+   ../include/parallel_tools.mod ../include/signal_vars.mod \
+   ../include/state_module.mod ../include/timers.mod
 
 ../include/turbine.mod: Turbine.o
 	@true
 
-Turbine.o ../include/turbine.mod: Turbine.F90 ../include/fdebug.h \
-   ../include/fields.mod ../include/futils.mod \
-   ../include/global_parameters.mod ../include/spud.mod
+Turbine.o ../include/turbine.mod: Turbine.F90 ../include/elements.mod \
+   ../include/fdebug.h ../include/fetools.mod ../include/fields.mod \
+   ../include/fldebug.mod ../include/futils.mod \
+   ../include/global_parameters.mod ../include/transform_elements.mod
 
 ../include/upwind_stabilisation.mod: Upwind_Stabilisation.o
 	@true
@@ -905,26 +943,26 @@ Turbine.o ../include/turbine.mod: Turbine.F90 ../include/fdebug.h \
 Upwind_Stabilisation.o ../include/upwind_stabilisation.mod: \
    Upwind_Stabilisation.F90 ../include/fdebug.h ../include/fields.mod \
    ../include/metric_tools.mod ../include/shape_functions.mod \
-   ../include/spud.mod
+   ../include/vector_tools.mod
 
 ../include/vertical_balance_pressure.mod: Vertical_Balance_Pressure.o
 	@true
 
 Vertical_Balance_Pressure.o ../include/vertical_balance_pressure.mod: \
    Vertical_Balance_Pressure.F90 ../include/boundary_conditions.mod \
-   ../include/elements.mod ../include/fdebug.h ../include/fields.mod \
-   ../include/fldebug.mod ../include/parallel_tools.mod \
-   ../include/profiler.mod ../include/solvers.mod ../include/sparse_tools.mod \
-   ../include/spud.mod ../include/state_matrices_module.mod \
-   ../include/state_module.mod ../include/transform_elements.mod \
-   ../include/upwind_stabilisation.mod
+   ../include/elements.mod ../include/fdebug.h ../include/fetools.mod \
+   ../include/fields.mod ../include/fldebug.mod ../include/parallel_fields.mod \
+   ../include/parallel_tools.mod ../include/profiler.mod \
+   ../include/solvers.mod ../include/sparse_tools.mod \
+   ../include/state_matrices_module.mod ../include/state_module.mod \
+   ../include/transform_elements.mod ../include/upwind_stabilisation.mod
 
 ../include/vorticity_diagnostics.mod: Vorticity_Diagnostics.o
 	@true
 
 Vorticity_Diagnostics.o ../include/vorticity_diagnostics.mod: \
    Vorticity_Diagnostics.F90 ../include/coriolis_module.mod \
-   ../include/fdebug.h ../include/field_derivatives.mod \
+   ../include/fdebug.h ../include/fetools.mod ../include/field_derivatives.mod \
    ../include/field_options.mod ../include/fields.mod ../include/fldebug.mod \
    ../include/state_fields_module.mod ../include/state_module.mod
 
@@ -934,7 +972,9 @@ Vorticity_Diagnostics.o ../include/vorticity_diagnostics.mod: \
 Zoltan_callbacks.o ../include/zoltan_callbacks.mod: Zoltan_callbacks.F90 \
    ../include/data_structures.mod ../include/detector_data_types.mod \
    ../include/detector_parallel.mod ../include/detector_tools.mod \
-   ../include/fdebug.h ../include/global_parameters.mod ../include/halos.mod \
+   ../include/element_numbering.mod ../include/elements.mod \
+   ../include/fdebug.h ../include/fields.mod ../include/fldebug.mod \
+   ../include/global_parameters.mod ../include/halos.mod \
    ../include/halos_derivation.mod ../include/metric_tools.mod \
    ../include/mpi_interfaces.mod ../include/parallel_tools.mod \
    ../include/sparse_tools.mod ../include/state_module.mod \
@@ -946,7 +986,8 @@ Zoltan_callbacks.o ../include/zoltan_callbacks.mod: Zoltan_callbacks.F90 \
 Zoltan_detectors.o ../include/zoltan_detectors.mod: Zoltan_detectors.F90 \
    ../include/data_structures.mod ../include/detector_data_types.mod \
    ../include/detector_parallel.mod ../include/detector_tools.mod \
-   ../include/fdebug.h ../include/fields.mod \
+   ../include/fdebug.h ../include/fields.mod ../include/fldebug.mod \
+   ../include/parallel_fields.mod ../include/parallel_tools.mod \
    ../include/zoltan_global_variables.mod
 
 ../include/zoltan_global_variables.mod: Zoltan_global_variables.o
@@ -962,12 +1003,13 @@ Zoltan_global_variables.o ../include/zoltan_global_variables.mod: \
 	@true
 
 Zoltan_integration.o ../include/zoltan_integration.mod: Zoltan_integration.F90 \
-   ../include/boundary_conditions.mod \
+   ../include/adapt_integration.mod ../include/boundary_conditions.mod \
    ../include/boundary_conditions_from_options.mod ../include/c_interfaces.mod \
    ../include/data_structures.mod ../include/detector_data_types.mod \
    ../include/detector_parallel.mod ../include/detector_tools.mod \
-   ../include/elements.mod ../include/fdebug.h ../include/field_options.mod \
-   ../include/fields.mod ../include/fields_halos.mod \
+   ../include/element_numbering.mod ../include/elements.mod \
+   ../include/fdebug.h ../include/field_options.mod ../include/fields.mod \
+   ../include/fields_halos.mod ../include/fldebug.mod ../include/futils.mod \
    ../include/global_parameters.mod ../include/hadapt_advancing_front.mod \
    ../include/halos.mod ../include/halos_derivation.mod \
    ../include/halos_ownership.mod ../include/linked_lists.mod \
@@ -988,7 +1030,7 @@ qmesh.o ../include/qmesh_module.mod: qmesh.F90 \
    ../include/edge_length_module.mod ../include/fdebug.h \
    ../include/field_derivatives.mod ../include/fields.mod \
    ../include/fldebug.mod ../include/form_metric_field.mod \
-   ../include/metric_assemble.mod ../include/spud.mod \
+   ../include/metric_assemble.mod ../include/parallel_tools.mod \
    ../include/state_module.mod ../include/tictoc.mod \
    ../include/vtk_interfaces.mod
 

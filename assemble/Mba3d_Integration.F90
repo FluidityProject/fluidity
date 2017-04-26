@@ -29,19 +29,22 @@
 
 module mba3d_integration 
 
-  use adapt_integration
+  use iso_c_binding, only: c_double
+  use fldebug
+  use futils, only: present_and_true
   use quadrature
   use elements
+  use spud
+  use parallel_tools
   use fields
-  use global_parameters, only : real_8
   use halos
   use limit_metric_module
   use node_locking
+  use surface_id_interleaving
+  use adapt_integration
 #ifdef HAVE_MBA_3D
   use mba3d_mba_nodal
 #endif
-  use spud
-  use surface_id_interleaving
 
   implicit none
   
@@ -77,7 +80,7 @@ contains
     ! mbanodal arguments
     ! Group (M)
     integer :: np, maxp, nf, maxf, ne, maxe
-    real(kind = real_8), dimension(:, :), allocatable :: xyp
+    real(kind = c_double), dimension(:, :), allocatable :: xyp
     integer, dimension(:, :), allocatable :: ipf, ipe
     integer, dimension(:), allocatable :: lbf, lbe
     integer :: nestar
@@ -88,11 +91,11 @@ contains
     integer :: status
     ! Group (Q)
     integer :: maxskipe, maxqitr
-    real(kind = real_8), dimension(:, :), allocatable :: metric_handle
-    real(kind = real_8) :: quality, rquality
+    real(kind = c_double), dimension(:, :), allocatable :: metric_handle
+    real(kind = c_double) :: quality, rquality
     ! Group (W)
     integer :: maxwr, maxwi
-    real(kind = real_8), dimension(:), allocatable :: rw
+    real(kind = c_double), dimension(:), allocatable :: rw
     integer, dimension(:), allocatable :: iw
     integer :: iprint, ierr
 
@@ -117,7 +120,7 @@ contains
     ! Factor of limit_buffer buffers in limits
     np = node_count(input_positions)
     maxp = max_nodes(input_positions, expected_nodes(input_positions, nestar, global = .false.)) * limit_buffer
-    nf = surface_element_count(input_positions)
+    nf = unique_surface_element_count(input_positions%mesh)
     maxf = max(int(((maxp * 1.0) / (np * 1.0)) * nf), nf) * limit_buffer + 1
     ne = ele_count(input_positions)
     maxe = max(nestar, ne) * limit_buffer + 1
@@ -203,7 +206,7 @@ contains
       metric_handle(6, i) = node_val(metric, 1, 3, i)
     end do
 
-    call get_option(base_path // "/adaptivity_library/libmba3d/quality", quality, default = real(0.6, kind = real_8))
+    call get_option(base_path // "/adaptivity_library/libmba3d/quality", quality, default = real(0.6, kind = c_double))
     ! Output variable - initialise just in case it's also used as input
     rquality = 0.0
 
@@ -288,6 +291,11 @@ contains
     call deinterleave_surface_ids(lbf(:nf), max_coplanar_id, boundary_ids, coplanar_ids)
     call add_faces(output_mesh, sndgln = reshape(ipf(:, :nf), (/nf * snloc/)), boundary_ids = boundary_ids)
     deallocate(boundary_ids)
+    if (nf/=surface_element_count(output_mesh)) then
+      ! add_faces has duplicated internal boundary facets - this needs to be fixed
+      ! see the mba2d wrapper
+      FLAbort("Mba3d wrapper does not support internal boundary facets.")
+    end if
     allocate(output_mesh%faces%coplanar_ids(nf))
     output_mesh%faces%coplanar_ids = coplanar_ids
     deallocate(coplanar_ids)

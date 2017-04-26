@@ -34,7 +34,7 @@ subroutine test_adapt_mesh_mba3d
   use limit_metric_module
   use mba3d_integration
   use metric_assemble
-  use read_triangle
+  use mesh_files
   use spud
   use state_module
   use unittest_tools
@@ -52,7 +52,7 @@ subroutine test_adapt_mesh_mba3d
 
   integer :: expected_eles, i, stat
 
-  input_mesh_field = read_triangle_files("data/cube_unstructured", quad_degree = 1)
+  input_mesh_field = read_mesh_files("data/cube_unstructured", quad_degree = 1, format="gmsh")
   
   mesh => input_mesh_field%mesh
   mesh%name = "CoordinateMesh"

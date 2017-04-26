@@ -26,9 +26,12 @@
 !    USA
 #include "fdebug.h"
 module manifold_projections
-  use state_module
+  use fldebug
+  use futils, only: present_and_true
+  use vector_tools, only: solve
+  use fetools
   use fields
-  use fields_base
+  use state_module
 
   implicit none
   
@@ -112,7 +115,7 @@ module manifold_projections
 
     dim=U_local%dim
 
-    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J, detwei, detJ)
+    call compute_jacobian(X, ele, J, detwei, detJ)
 
     U_shape=>ele_shape(U_local,ele)
     U_quad=ele_val_at_quad(U_cartesian,ele)
@@ -173,7 +176,7 @@ module manifold_projections
 
     dim=U_local%dim
 
-    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J, detwei, detJ)
+    call compute_jacobian(X, ele, J, detwei, detJ)
 
     U_shape=>ele_shape(U_local,ele)
     U_quad=ele_val_at_quad(U_cartesian,ele)
@@ -285,7 +288,7 @@ module manifold_projections
     type(element_type), pointer :: U_shape
     integer :: d, gi
 
-    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J=J, detwei=detwei)
+    call compute_jacobian(X, ele, J=J, detwei=detwei)
 
     U_shape=>ele_shape(U_cartesian,ele)
     U_quad=ele_val_at_quad(U_local,ele)
@@ -322,7 +325,7 @@ module manifold_projections
     type(element_type), pointer :: U_shape
     integer :: d, gi
 
-    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J=J, detwei=detwei)
+    call compute_jacobian(X, ele, J=J, detwei=detwei)
 
     U_shape=>ele_shape(U_cartesian,ele)
 

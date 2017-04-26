@@ -3,7 +3,7 @@
 subroutine test_intersection_finder_completeness_3d
 
   use unittest_tools
-  use read_triangle
+  use mesh_files
   use fields
   use linked_lists
   use intersection_finder_module
@@ -20,8 +20,8 @@ subroutine test_intersection_finder_completeness_3d
   type(inode), pointer :: llnode
   type(vector_field) :: intersection
 
-  positionsA = read_triangle_files("data/cube.1", quad_degree=6)
-  positionsB = read_triangle_files("data/cube.2", quad_degree=6)
+  positionsA = read_mesh_files("data/cube.1", quad_degree=6, format="gmsh")
+  positionsB = read_mesh_files("data/cube.2", quad_degree=6, format="gmsh")
 
   allocate(map_BA(ele_count(positionsB)))
   allocate(detwei(ele_ngi(positionsA, 1)))
@@ -41,6 +41,10 @@ subroutine test_intersection_finder_completeness_3d
     do while(associated(llnode))
       ele_A = llnode%value
       intersection = intersect_elements(positionsA, ele_A, ele_val(positionsB, ele_B), ele_shape(positionsB, ele_B))
+      if (.not. has_references(intersection)) then
+         llnode => llnode%next
+         cycle
+      end if
       do ele_C=1,ele_count(intersection)
         call transform_to_physical(intersection, ele_C, detwei=detwei)
         vols_C = vols_C + sum(detwei)

@@ -15,7 +15,7 @@ femtools_manual.html: femtools_manual.tex notation.tex \
 #linear_1d_mesh.png: linear_1d_mesh.fig
 
 %.tex: %.pstex_t %.pstex
-	./bin/wrap_pstex $<
+	./scripts/wrap_pstex $<
 
 %.dvi: %.tex 
 	pdflatex -output-format dvi $<
@@ -70,7 +70,9 @@ bibliography.bib:
 # ps files which should go in $(PSFILES)
 clean: htclean_femtools_manual
 	rm $(TARGETS) $(PSFILES) *.dvi *.aux *.log *.bbl *.blg *.toc \
-*.out *.pdftex *_tex.pdf *.pdftex_t *.pstex *.pstex_t *.png 2>/dev/null||true
+	*.out *.pdftex *_tex.pdf *.pdftex_t *.pstex *.pstex_t \
+	$(addsuffix .png, $(IMAGES)) femtools_manual*.png \
+	femtools_manual-fig1.* tmp.inputs 2>/dev/null||true
 
 htclean_%:
 	rm $*.4ct $*.4tc $*.css $*.idv $*.lg $*.tmp $*.xref *.html 2>/dev/null||true

@@ -550,6 +550,7 @@ int readVTKFile(const char * const filename,
       return -1;
     }else
       dataSet = read1->GetUnstructuredGridOutput();
+      read1->Update();
   } else if( strncmp(ext,".vtu",4)==0 ) {
     //printf("Reading from VTK XML file: %s\n",filename);
     read2 = vtkXMLUnstructuredGridReader::New();
@@ -560,6 +561,7 @@ int readVTKFile(const char * const filename,
     read2->SetFileName(filename);
     //reader->SetScalarsName("temp");
     dataSet = read2->GetOutput();
+    read2->Update();
   }else{
     const char * const pext = filename + strlen(filename) - 5;
     if( strncmp(pext,".pvtu",5)==0 ) {
@@ -572,6 +574,7 @@ int readVTKFile(const char * const filename,
       read3->SetFileName(filename);
       //reader->SetScalarsName("temp");
       dataSet = read3->GetOutput();
+      read3->Update();
     }else{
       cerr<<"ERROR: Filename: "<<filename<<endl
           <<"Don't know what this file is (should end in .vtk, .vtu or .pvtu)\n";
@@ -589,7 +592,6 @@ int readVTKFile(const char * const filename,
     return -1;
   }
 
-  dataSet->Update();
   vtkIdType nnodes = dataSet->GetNumberOfPoints();
   if( nnodes==0 ) {
     cerr<<"ERROR: Something went wrong (got no nodes) - aborting\n";
@@ -641,8 +643,8 @@ int readVTKFile(const char * const filename,
           if( addall==0 ) {
             Field_Info *newfld=fieldlst, *gotfld=NULL;
             while( newfld!=NULL ) {
-              if( strlen(&(newfld->name))==l ) {
-                if( strncmp(&(newfld->name),T->GetName(),l)==0 ) {
+              if( strlen(newfld->name)==l ) {
+                if( strncmp(newfld->name,T->GetName(),l)==0 ) {
                   gotfld = newfld;
                   gotfld->ncomponents = k;
                   gotfld->identifier = i;
@@ -664,9 +666,10 @@ int readVTKFile(const char * const filename,
               0;
               //cerr<<" (only for output)\n";
           } else {
-            Field_Info *newfld=(Field_Info *)malloc(l+sizeof(Field_Info));
+            Field_Info *newfld=(Field_Info *)malloc(sizeof(Field_Info));
             assert(newfld!=NULL);
-            strcpy(&(newfld->name),T->GetName());
+            newfld->name = (char*)malloc(l+1);
+            strcpy(newfld->name, T->GetName());
             newfld->interperr = 1.0;
             newfld->ncomponents = k;
             newfld->next = NULL;
@@ -712,8 +715,8 @@ int readVTKFile(const char * const filename,
           if( addall==0 ) {
             Field_Info *newfld=fieldlst, *gotfld=NULL;
             while( newfld!=NULL ) {
-              if( strlen(&(newfld->name))==l ) {
-                if( strncmp(&(newfld->name),P->GetName(),l)==0 ) {
+              if( strlen(newfld->name)==l ) {
+                if( strncmp(newfld->name,P->GetName(),l)==0 ) {
                   gotfld = newfld;
                   gotfld->ncomponents = k;
                   gotfld->identifier = i;
@@ -735,9 +738,10 @@ int readVTKFile(const char * const filename,
               0;
               //cerr<<" (only for output)\n";
           } else {
-            Field_Info *newfld=(Field_Info *)malloc(l+sizeof(Field_Info));
+            Field_Info *newfld=(Field_Info *)malloc(sizeof(Field_Info));
             assert(newfld!=NULL);
-            strcpy(&(newfld->name),P->GetName());
+            newfld->name = (char*)malloc(l+1);
+            strcpy(newfld->name, P->GetName());
             newfld->interperr = 1.0;
             newfld->ncomponents = k;
             newfld->next = NULL;
@@ -1286,11 +1290,18 @@ int readVTKFile(const char * const filename,
   }
 
   if(onlyinfo==0) {
-    if(read1) read1->ReleaseDataFlagOn();
-    if(read2) read2->ReleaseDataFlagOn();
-    if(read3) read3->ReleaseDataFlagOn();
-    dataSet->ReleaseDataFlagOn();
-    dataSet->Update();
+    if (read1) {
+      read1->ReleaseDataFlagOn();
+      read1->Update();
+    }
+    if (read2) {
+      read2->ReleaseDataFlagOn();
+      read2->Update();
+    }
+    if (read3) {
+      read3->ReleaseDataFlagOn();
+      read3->Update();
+    }
   }
 
   //dataSet->Delete();
@@ -1350,13 +1361,14 @@ int fgetvtksizes(char *fortname, int *namelen,
   while( fieldlst != NULL ) {
     Field_Info *newfld = fieldlst;
     fieldlst = newfld->next;
-    char *thisname=&(newfld->name);
+    char *thisname=newfld->name;
     int l = strlen(thisname);
     if( newfld->ncomponents > 9 )
       l+=2;
     else if( newfld->ncomponents > 1 )
       l++;
     if( l > *maxlen )  *maxlen = l;
+    free(newfld->name);
     free(newfld);
   }
 
@@ -1413,7 +1425,7 @@ int freadvtkfile(char *fortname, int *namelen,
   while( fieldlst != NULL ) {
     Field_Info *newfld = fieldlst;
     fieldlst = newfld->next;
-    char *thisname=&(newfld->name);
+    char *thisname=newfld->name;
     int l = strlen(thisname), j=0;
     if( l>*maxlen )
       l = *maxlen;
@@ -1439,6 +1451,7 @@ int freadvtkfile(char *fortname, int *namelen,
         NAMES[ipos+i] = 32;
       ipos += *maxlen;
     }
+    free(newfld->name);
     free(newfld);
   }
 

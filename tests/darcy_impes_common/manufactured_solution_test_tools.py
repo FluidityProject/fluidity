@@ -48,7 +48,7 @@ class Parameterisation:
       if dim==1:
          m_t = None
          g_e = '.sh'
-         m_e_l = ['.bound', '.ele', '.node']
+         m_e_l = ['.msh']
       else:
          m_t = mesh_type
          g_e = '.geo'
@@ -74,7 +74,7 @@ class Parameterisation:
       
       # dictionary entries
       if self.dim==1:
-         self.mesh_format = 'triangle'
+         self.mesh_format = 'gmsh'
          # for collapsing inappropriate wall BCs
          self.begin_rm_if_1D = '<!--'
          self.end_rm_if_1D = '-->'

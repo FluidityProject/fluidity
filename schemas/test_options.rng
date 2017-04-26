@@ -30,6 +30,7 @@
             <value>short</value>
             <value>medium</value>
             <value>long</value>
+            <value>vlong</value>
             <value>special</value>
           </choice>
         </attribute>

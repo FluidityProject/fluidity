@@ -2,24 +2,15 @@
 <testproblem>
   <name>flredecomp-2d-fieldweighted</name>
   <owner userid="rhodrid"/>
-  <tags>flml</tags>
-
+  <tags>flml zoltan</tags>
   <problem_definition length="medium" nprocs="16">
     <command_line>mpiexec flredecomp -i 1 -o 16 flredecomp-2d-fieldweighted Parallel-NP16-flredecomp-2d-fieldweighted</command_line>
   </problem_definition>
-
   <variables>
-    <variable name="max_load_imbalance" language="python">
-from check_partitions import *
-max_load_imbalance = calculate_partition_weights()
-      <comment>Calculates the weight of each partition (i.e. sums weights of elements in each partition). The weights are prescribed in the flml to be 1.0 for region 27, and 0.005 elsewhere.</comment>
-    </variable>
+    <variable name="max_load_imbalance" language="python">from check_partitions import *
+max_load_imbalance = calculate_partition_weights()<comment>Calculates the weight of each partition (i.e. sums weights of elements in each partition). The weights are prescribed in the flml to be 1.0 for region 27, and 0.005 elsewhere.</comment></variable>
   </variables>
-
   <pass_tests>
-    <test name="maximum load imbalance .lt. 1.5 " language="python">
-      assert ( max_load_imbalance &lt; 1.5 )
-    </test>
+    <test name="maximum load imbalance .lt. 1.6 " language="python">assert ( max_load_imbalance &lt; 1.6 )</test>
   </pass_tests>
-
 </testproblem>

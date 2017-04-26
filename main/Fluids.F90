@@ -29,80 +29,84 @@
 
 module fluids_module
 
-  use AuxilaryOptions
-  use MeshDiagnostics
-  use signal_vars
+  use fldebug
+  use auxilaryoptions
   use spud
-  use equation_of_state
-  use timers
-  use adapt_state_module
-  use adapt_state_prescribed_module
-  use FLDebug
+  use global_parameters, only: current_time, dt, timestep, OPTION_PATH_LEN, &
+       simulation_start_time, &
+       simulation_start_cpu_time, &
+       simulation_start_wall_time, &
+       topology_mesh_name, FIELD_NAME_LEN
+  use futils, only: int2str
+  use reference_counting, only: print_references
+  use parallel_tools
+  use memory_diagnostics
   use sparse_tools
   use elements
+  use adjacency_lists
+  use eventcounter
+  use transform_elements, only: cache_transform_elements, deallocate_transform_cache
+  use meshdiagnostics
+  use signal_vars
   use fields
-  use boundary_conditions_from_options
-  use populate_state_module
-  use populate_sub_state_module
-  use reserve_state_module
+  use state_module
   use vtk_interfaces
-  use Diagnostic_variables
-  use diagnostic_fields_new, only : &
-    & calculate_diagnostic_variables_new => calculate_diagnostic_variables, &
-    & check_diagnostic_dependencies
-  use diagnostic_fields_wrapper
-  use diagnostic_children
-  use advection_diffusion_cg
-  use advection_diffusion_DG
-  use advection_diffusion_FV
-  use field_equations_cv, only: solve_field_eqn_cv, initialise_advection_convergence, coupled_cv_field_eqn
-  use vertical_extrapolation_module
-  use qmesh_module
-  use checkpoint
-  use write_state_module
+  use boundary_conditions
+  use halos
+  use equation_of_state
+  use timers
   use synthetic_bc
+  use k_epsilon, only: keps_advdif_diagnostics
+  use tictoc
+  use boundary_conditions_from_options
+  use reserve_state_module
+  use write_state_module
+  use detector_parallel, only: sync_detector_coordinates, deallocate_detector_list_array
+  use diagnostic_variables
+  use populate_state_module
+  use vertical_extrapolation_module
+  use field_priority_lists
+  use multiphase_module
+  use multimaterial_module
+  use spontaneous_potentials, only: calculate_electrical_potential
+  use free_surface_module
+  use momentum_diagnostic_fields, only: calculate_densities
+  use sediment_diagnostics, only: calculate_sediment_flux
+  use dqmom
+  use diagnostic_fields_wrapper
+  use checkpoint
   use goals
   use adaptive_timestepping
   use conformity_measurement
-  ! Use Solid-fluid coupling and ALE - Julian- 18-09-06
-  use ale_module
-  use adjacency_lists
-  use multimaterial_module
-  use parallel_tools
-  use SolidConfiguration
-  use MeshMovement
+  use timeloop_utilities
+  use discrete_properties_module
+  use adapt_state_module
+  use adapt_state_prescribed_module
+  use populate_sub_state_module
+  use diagnostic_fields_new, only : &
+       & calculate_diagnostic_variables_new => calculate_diagnostic_variables, &
+       & check_diagnostic_dependencies
+  use diagnostic_children
+  use advection_diffusion_cg
+  use advection_diffusion_dg
+  use advection_diffusion_fv
+  use field_equations_cv, only: solve_field_eqn_cv, initialise_advection_convergence, coupled_cv_field_eqn
+  use qmesh_module
   use write_triangle
+  use solidconfiguration
+  use ale_module
+  use meshmovement
   use biology
   use foam_flow_module, only: calculate_potential_flow, calculate_foam_velocity
-  use momentum_equation
-  use timeloop_utilities
-  use field_priority_lists
-  use boundary_conditions
-  use spontaneous_potentials, only: calculate_electrical_potential
-  use saturation_distribution_search_hookejeeves
-  use discrete_properties_module
-  use gls
-  use k_epsilon
-  use iceshelf_meltrate_surf_normal
-  use halos
-  use memory_diagnostics
-  use free_surface_module
-  use global_parameters, only: current_time, dt, timestep, OPTION_PATH_LEN, &
-                               simulation_start_time, &
-                               simulation_start_cpu_time, &
-                               simulation_start_wall_time, &
-                               topology_mesh_name
-  use eventcounter
   use reduced_model_runtime
   use implicit_solids
-  use sediment
+  use momentum_equation
+  use saturation_distribution_search_hookejeeves
+  use gls
+  use iceshelf_meltrate_surf_normal
 #ifdef HAVE_HYPERLIGHT
   use hyperlight
 #endif
-  use multiphase_module
-  use detector_parallel, only: sync_detector_coordinates, deallocate_detector_list_array
-  use momentum_diagnostic_fields, only: calculate_densities
-  use sediment_diagnostics, only: calculate_sediment_flux
 
   implicit none
 
@@ -255,6 +259,9 @@ contains
          call get_option('/timestepping/nonlinear_iterations/nonlinear_iterations_at_adapt',nonlinear_iterations_adapt)
          nonlinear_iterations = nonlinear_iterations_adapt
        end if
+      
+       ! set population balance initial conditions - for first adaptivity
+       call dqmom_init(state)
 
        call adapt_state_first_timestep(state)
 
@@ -298,6 +305,9 @@ contains
     if(use_sub_state()) then
        call populate_sub_state(state,sub_state)
     end if
+
+    ! set population balance initial conditions
+    call dqmom_init(state)
 
     ! Calculate the number of scalar fields to solve for and their correct
     ! solve order taking into account dependencies.
@@ -458,6 +468,8 @@ contains
 
        if(simulation_completed(current_time, timestep)) exit timestep_loop
 
+       call tic(TICTOC_ID_TIMESTEP)
+
        if( &
                                 ! Do not dump at the start of the simulation (this is handled by write_state call earlier)
             & current_time > simulation_start_time &
@@ -570,6 +582,9 @@ contains
           end if
 
           call compute_goals(state)
+
+          ! Calculate source terms for population balance scalars
+          call dqmom_calculate_source_terms(state, ITS)
 
           !------------------------------------------------
           ! Addition for calculating drag force ------ jem 05-06-2008
@@ -762,6 +777,17 @@ contains
              call solve_momentum(state,at_first_timestep=((timestep==1).and.(its==1)),timestep=timestep, POD_state=POD_state)
           end if
 
+          ! Apply minimum weight condition on weights - population balance
+          call dqmom_apply_min_weight(state)
+
+          ! calculate abscissa in the population balance equation
+          ! this must be done at the end of each non-linear iteration
+          call dqmom_calculate_abscissa(state)
+          do i = 1, size(state)
+             call dqmom_calculate_moments(state(i))
+             call dqmom_calculate_statistics(state(i))
+          end do
+
           if(nonlinear_iterations > 1) then
              ! Check for convergence between non linear iteration loops
              call test_and_write_convergence(state, current_time + dt, dt, its, change)
@@ -864,6 +890,10 @@ contains
           end if
 
        end if
+
+       call toc(TICTOC_ID_TIMESTEP)
+       call tictoc_report(2, TICTOC_ID_TIMESTEP)
+       call tictoc_clear(TICTOC_ID_TIMESTEP)
 
        if(simulation_completed(current_time)) exit timestep_loop
 

@@ -29,50 +29,54 @@
 
    module momentum_equation
 
-      use fields
-      use state_module
       use spud
       use fldebug
-      use momentum_cg
+      use global_parameters, only: FIELD_NAME_LEN
+      use futils, only: int2str
+      use parallel_tools
+      use element_numbering, only: FAMILY_SIMPLEX
+      use sparse_tools
+      use linked_lists
+      use parallel_fields, only: zero_non_owned
+      use fields
+      use profiler
+      use sparse_tools_petsc
+      use state_module
+      use field_options
+      use boundary_conditions
+      use sparsity_patterns_meshes
+      use sparse_matrices_fields
+      use vtk_interfaces
+      use dgtools, only: dg_apply_mass
+      use state_fields_module
+      use field_priority_lists
+      use solvers
+      use diagnostic_fields, only: calculate_diagnostic_variable
+      use multiphase_module
       use divergence_matrix_cv
       use divergence_matrix_cg
+      use coordinates
+      use tidal_module
+      use boundary_conditions_from_options
+      use free_surface_module
+      use petsc_solve_state_module
+      use state_matrices_module
+      use rotated_boundary_conditions
+      use momentum_cg
+      use slope_limiters_dg
       use momentum_dg
       use assemble_cmc
-      use field_priority_lists
       use momentum_diagnostic_fields, only: calculate_momentum_diagnostics
-      use field_options
       use compressible_projection
-      use boundary_conditions
-      use boundary_conditions_from_options
-      use sparse_matrices_fields
-      use sparse_tools
-      use sparse_tools_petsc
-      use free_surface_module
-      use solvers
       use full_projection
-      use petsc_solve_state_module
-      use Profiler
-      use geostrophic_pressure
       use hydrostatic_pressure
+      use geostrophic_pressure
       use vertical_balance_pressure
       use foam_drainage, only: calculate_drainage_source_absor
       use oceansurfaceforcing
       use drag_module
-      use parallel_tools
-      use linked_lists
-      use sparsity_patterns_meshes
-      use state_matrices_module
-      use vtk_interfaces
-      use rotated_boundary_conditions
       use reduced_model_runtime
-      use state_fields_module
-      use Tidal_module
-      use Coordinates
-      use diagnostic_fields, only: calculate_diagnostic_variable
-      use dgtools, only: dg_apply_mass
-      use slope_limiters_dg
       use implicit_solids
-      use multiphase_module
       use pressure_dirichlet_bcs_cv
       use shallow_water_equations
 
@@ -201,7 +205,10 @@
          type(vector_field), dimension(1:size(state)):: mom_rhs
          ! Projection RHS
          type(scalar_field) :: projec_rhs
+         ! RHS for continuity equation
          type(scalar_field), dimension(1:size(state)):: ct_rhs
+         ! RHS for subcycling containing advection bc terms
+         type(vector_field), dimension(1:size(state)):: subcycle_rhs
 
          ! Do we want to assemble the KMK stabilisation matrix?
          logical :: assemble_kmk
@@ -268,6 +275,8 @@
          type(state_type), dimension(:), pointer :: submaterials
          ! The index of the current phase (i.e. state(istate)) in the submaterials array
          integer :: submaterials_istate
+         ! The full list of indices between submaterials and state
+         integer, dimension(:), pointer :: submaterials_indices
          ! Do we have fluid-particle drag between phases?
          logical :: have_fp_drag
 
@@ -387,9 +396,10 @@
 
             ! This sets up an array of the submaterials of a phase.
             ! NB: The submaterials array includes the current state itself, at index submaterials_istate.
-            call get_phase_submaterials(state, istate, submaterials, submaterials_istate)
-            call calculate_momentum_diagnostics(state, istate, submaterials, submaterials_istate)
+            call get_phase_submaterials(state, istate, submaterials, submaterials_istate, submaterials_indices)
+            call calculate_momentum_diagnostics(state, istate, submaterials, submaterials_istate, submaterials_indices)
             deallocate(submaterials)
+            deallocate(submaterials_indices)
 
             call profiler_toc("momentum_diagnostics")
 
@@ -582,12 +592,13 @@
                   ! subcycle_m currently only contains advection, so diagonal=.true.
                   call allocate(subcycle_m(istate), u_sparsity, (/u%dim, u%dim/), &
                      diagonal=.true., name = "subcycle_m")
+                  call allocate(subcycle_rhs(istate), u%dim, u%mesh, "SubCycleMomentumRHS")
                end if
             else
                ! Create a sparsity if necessary or pull it from state:
                u_sparsity => get_csr_sparsity_firstorder(state, u%mesh, u%mesh)
                ! and then allocate
-               call allocate(big_m(istate), u_sparsity, (/u%dim, u%dim/), &
+               call allocate(big_m(istate), u_sparsity, (/u%dim, u%dim/), group_size=(/u%dim, u%dim/),&
                                        diagonal=diagonal_big_m, name="BIG_m")
             end if
 
@@ -631,7 +642,7 @@
                      inverse_masslump=inverse_masslump(istate), &
                      inverse_mass=inverse_mass(istate), &
                      include_pressure_bcs=.not. cv_pressure, &
-                     subcycle_m=subcycle_m(istate))
+                     subcycle_m=subcycle_m(istate), subcycle_rhs=subcycle_rhs(istate))
                else
                   call construct_momentum_dg(u, p, density, x, &
                      big_m(istate), mom_rhs(istate), state(istate), &
@@ -747,7 +758,6 @@
                end if
             end if
 
-            call apply_dirichlet_conditions(big_m(istate), mom_rhs(istate), u, dt)
             call profiler_toc(u, "assembly")
 
             if (associated(ct_m(istate)%ptr)) then
@@ -1052,7 +1062,7 @@
                   end if
 
                   call advance_velocity(state, istate, x, u, p_theta, big_m, ct_m, &
-                                        mom_rhs, subcycle_m, inverse_mass)
+                                        mom_rhs, subcycle_m, subcycle_rhs, inverse_mass)
 
                   if(prognostic_p) then
                      call assemble_projection(state, istate, u, old_u, p, cmc_m, reassemble_cmc_m, cmc_global, ctp_m, &
@@ -1252,7 +1262,7 @@
                                     &"/discontinuous_galerkin")) then
 
                call finalise_state(state, istate, u, mass, inverse_mass, inverse_masslump, &
-                                   big_m, mom_rhs, ct_rhs, subcycle_m)
+                                   big_m, mom_rhs, ct_rhs, subcycle_m, subcycle_rhs)
 
             end if
 
@@ -1479,11 +1489,11 @@
          if(full_schur) then
             if(assemble_schur_auxiliary_matrix) then
                call petsc_solve_full_projection(p_theta, ctp_m(prognostic_p_istate)%ptr, inner_m(prognostic_p_istate)%ptr, ct_m(prognostic_p_istate)%ptr, poisson_rhs, &
-                  full_projection_preconditioner, state(prognostic_p_istate), u%mesh, &
+                  full_projection_preconditioner, u, state(prognostic_p_istate), u%mesh, &
                   auxiliary_matrix=schur_auxiliary_matrix)
             else
                call petsc_solve_full_projection(p_theta, ctp_m(prognostic_p_istate)%ptr, inner_m(prognostic_p_istate)%ptr, ct_m(prognostic_p_istate)%ptr, poisson_rhs, &
-                  full_projection_preconditioner, state(prognostic_p_istate), u%mesh)
+                  full_projection_preconditioner, u, state(prognostic_p_istate), u%mesh)
             end if
          else
             !! Go ahead and solve for the pressure guess p^{*}
@@ -1516,7 +1526,7 @@
       end subroutine solve_poisson_pressure
 
 
-      subroutine advance_velocity(state, istate, x, u, p_theta, big_m, ct_m, mom_rhs, subcycle_m, inverse_mass)
+      subroutine advance_velocity(state, istate, x, u, p_theta, big_m, ct_m, mom_rhs, subcycle_m, subcycle_rhs, inverse_mass)
          !!< Solve momentum equation using pressure guess and advance velocity from u^{n} to u^{*}
 
          ! An array of buckets full of fields
@@ -1536,8 +1546,9 @@
 
          type(vector_field), dimension(:), intent(inout) :: mom_rhs
 
-         ! Matrix for split explicit advection
+         ! Matrix and rhs for split explicit advection
          type(block_csr_matrix), dimension(:), intent(in) :: subcycle_m
+         type(vector_field), dimension(:), intent(in) :: subcycle_rhs
 
          !! Local variables
          ! Change in velocity
@@ -1559,7 +1570,8 @@
 
          ! Apply advection subcycling
          if(subcycle(istate)) then
-            call subcycle_momentum_dg(u, mom_rhs(istate), subcycle_m(istate), inverse_mass(istate), state(istate))
+            call subcycle_momentum_dg(u, mom_rhs(istate), subcycle_m(istate), &
+              subcycle_rhs(istate), inverse_mass(istate), state(istate))
          end if
 
          if (associated(ct_m(istate)%ptr)) then
@@ -1608,6 +1620,7 @@
          ! Impose any reference nodes on velocity
          positions => extract_vector_field(state(istate), "Coordinate")
          call impose_reference_velocity_node(big_m(istate), mom_rhs(istate), trim(u%option_path), positions)
+         call apply_dirichlet_conditions(big_m(istate), mom_rhs(istate), u, dt)
 
          call profiler_toc(u, "assembly")
 
@@ -1823,11 +1836,11 @@
          if(full_schur) then
             if(assemble_schur_auxiliary_matrix) then
                call petsc_solve_full_projection(delta_p, ctp_m(prognostic_p_istate)%ptr, inner_m(prognostic_p_istate)%ptr, ct_m(prognostic_p_istate)%ptr, projec_rhs, &
-               full_projection_preconditioner, state(prognostic_p_istate), u%mesh, &
-               auxiliary_matrix=schur_auxiliary_matrix)
+                 full_projection_preconditioner, u, state(prognostic_p_istate), u%mesh, &
+                 auxiliary_matrix=schur_auxiliary_matrix)
             else
                call petsc_solve_full_projection(delta_p, ctp_m(prognostic_p_istate)%ptr, inner_m(prognostic_p_istate)%ptr, ct_m(prognostic_p_istate)%ptr, projec_rhs, &
-               full_projection_preconditioner, state(prognostic_p_istate), u%mesh)
+                 full_projection_preconditioner, u, state(prognostic_p_istate), u%mesh)
             end if
          else
             call petsc_solve(delta_p, cmc_m, projec_rhs, state(prognostic_p_istate))
@@ -1878,7 +1891,7 @@
 
 
       subroutine finalise_state(state, istate, u, mass, inverse_mass, inverse_masslump, &
-                               big_m, mom_rhs, ct_rhs, subcycle_m)
+                               big_m, mom_rhs, ct_rhs, subcycle_m, subcycle_rhs)
          !!< Does some finalisation steps to the velocity field and deallocates some memory
          !!< allocated for the specified state.
 
@@ -1900,8 +1913,9 @@
          ! Momentum RHS
          type(vector_field), dimension(:), intent(inout) :: mom_rhs
          type(scalar_field), dimension(:), intent(inout) :: ct_rhs
-         ! Matrix for split explicit advection
+         ! Matrix and rhs for split explicit advection
          type(block_csr_matrix), dimension(:), intent(inout) :: subcycle_m
+         type(vector_field), dimension(:), intent(inout) :: subcycle_rhs
 
          ! Local variables for reduced model
          integer :: d
@@ -1947,6 +1961,7 @@
          call deallocate(big_m(istate))
          if(subcycle(istate)) then
             call deallocate(subcycle_m(istate))
+            call deallocate(subcycle_rhs(istate))
          end if
 
       end subroutine finalise_state
@@ -2232,7 +2247,7 @@
             ! For example, since we do not include the Density in the advection-diffusion equation for the PhaseVolumeFraction,
             ! solving this equation for the compressible fluid phase would not be correct. The particle phases on the other hand
             ! are always incompressible where the density is constant.
-            if(have_option("/material_phase["//int2str(i)//"]/multiphase_properties/particle_diameter") .and. &
+            if((have_option("/material_phase["//int2str(i)//"]/multiphase_properties/particle_diameter") .or. have_option("/material_phase["//int2str(i)//"]/multiphase_properties/particle_dia_use_scalar_field")) .and. &
                .not.(have_option("/material_phase["//int2str(i)//"]/scalar_field::PhaseVolumeFraction/prognostic") .or. &
                have_option("/material_phase["//int2str(i)//"]/scalar_field::PhaseVolumeFraction/prescribed"))) then
                FLExit("All particle phases must have a prognostic/prescribed PhaseVolumeFraction field. The diagnostic PhaseVolumeFraction field should always be in the continuous/fluid phase.")

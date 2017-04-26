@@ -37,10 +37,12 @@ program Darcy_IMPES
 
 
   ! Ordering for Intel compiler
+   use global_parameters, only: FIELD_NAME_LEN
    use quadrature
    use elements 
    use sparse_tools
    use shape_functions
+   use transform_elements, only: deallocate_transform_cache
    use fields
    use state_module
   
@@ -107,25 +109,19 @@ program Darcy_IMPES
    use darcy_impes_leaching_chemical_model
    use darcy_impes_assemble_type
    use darcy_transport_model
+#ifdef HAVE_PETSC_MODULES
+  use petsc 
+#endif
+  use reference_counting, only: print_references
 
    implicit none
 
-#ifdef HAVE_PETSC
-#include "finclude/petsc.h"
-#endif
+#include "petsc_legacy.h"
 
    interface
       subroutine set_global_debug_level(n)
          integer, intent(in) :: n
       end subroutine set_global_debug_level
-
-      subroutine mpi_init(ierr)
-         integer, intent(out) :: ierr
-      end subroutine mpi_init
-
-      subroutine mpi_finalize(ierr)
-         integer, intent(out) :: ierr
-      end subroutine mpi_finalize
 
       subroutine python_init
       end subroutine python_init

@@ -30,9 +30,9 @@ nodesend= stat("water_collapse.stat")["CoordinateMesh"]["nodes"][-1]</variable>
   </variables>
   <pass_tests>
     <test name="finish_time" language="python">assert finishtime &gt; 2.4</test>
-    <test name="water_conservation" language="python">print 'mass loss = ', abs(vfracintend-vfracintstart)
-assert abs(vfracintend-vfracintstart) &lt; max(maxdivergence, mindivergence)</test>
-    <test name="conservation_tolerance" language="python">print 'divergence tolerance = ', max(maxdivergence, mindivergence)
+    <test name="water_conservation" language="python">print 'mass loss = ', abs(vfracintend-vfracintstart)/vfracintstart
+assert abs(vfracintend-vfracintstart)/vfracintstart &lt; 1.e-5</test>
+    <test name="divergence" language="python">print 'divergence = ', max(maxdivergence, mindivergence)
 assert max(maxdivergence, mindivergence) &lt; 1.E-5</test>
     <test name="max_volume_fraction_bound" language="python">assert abs(maxvfrac-1.0) &lt; 1.E-10</test>
     <test name="min_volume_fraction_bound" language="python">assert abs(minvfrac) &lt; 1.E-10</test>

@@ -27,34 +27,40 @@
 
 #include "fdebug.h"
 module populate_state_module
+
+  use fldebug
+  use global_parameters, only: OPTION_PATH_LEN, is_active_process, pi, &
+no_active_processes, topology_mesh_name, adaptivity_mesh_name, &
+periodic_boundary_option_path, domain_bbox, domain_volume, surface_radius
+  use futils, only: int2str, present_and_true, starts_with
+  use quadrature
+  use element_numbering
   use elements
-  use state_module
-  use FLDebug
   use spud
+  use mpi_interfaces, only: MPI_bcast
+  use parallel_tools
+  use data_structures
+  use metric_tools
+  use transform_elements
+  use fields
+  use profiler
+  use state_module
+  use boundary_conditions, only: set_dirichlet_consistent
   use mesh_files
   use vtk_cache_module
-  use global_parameters, only: OPTION_PATH_LEN, is_active_process, pi, &
-    no_active_processes, topology_mesh_name, adaptivity_mesh_name, &
-    periodic_boundary_option_path, domain_bbox, domain_volume, surface_radius
   use field_options
   use reserve_state_module
-  use fields_manipulation
-  use diagnostic_variables, only: convergence_field, steady_state_field
   use field_options
-  use surfacelabels
-  use climatology
-  use metric_tools
-  use coordinates
   use halos
+  use surfacelabels
+  use diagnostic_variables, only: convergence_field, steady_state_field
+  use climatology
+  use coordinates
   use tictoc
   use hadapt_extrude
-  use hadapt_extrude_radially
-  use initialise_fields_module
-  use transform_elements
-  use parallel_tools
-  use boundary_conditions_from_options
   use nemo_states_module
-  use data_structures
+  use initialise_fields_module
+  use boundary_conditions_from_options
   use fields_halos
   use read_triangle
   use initialise_ocean_forcing_module
@@ -98,7 +104,7 @@ module populate_state_module
        
   !! A list of relative paths under /material_phase[i]
   !! that are searched for additional fields to be added.
-  character(len=OPTION_PATH_LEN), dimension(13) :: additional_fields_relative=&
+  character(len=OPTION_PATH_LEN), dimension(20) :: additional_fields_relative=&
        (/ &
        "/subgridscale_parameterisations/Mellor_Yamada                                                       ", &
        "/subgridscale_parameterisations/prescribed_diffusivity                                              ", &
@@ -110,9 +116,16 @@ module populate_state_module
        "/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/fourth_order", &
        "/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/wale        ", &
        "/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/dynamic_les ", &
+       "/vector_field::Velocity/prognostic/spatial_discretisation/discontinuous_galerkin/les_model/         ", &
+       "/vector_field::Velocity/prognostic/spatial_discretisation/discontinuous_galerkin/les_model/debug/   ", &
        "/vector_field::Velocity/prognostic/equation::ShallowWater                                           ", &
        "/vector_field::Velocity/prognostic/equation::ShallowWater/bottom_drag                               ", &
-       "/vector_field::BedShearStress/diagnostic/calculation_method/velocity_gradient                       " &
+       "/vector_field::BedShearStress/diagnostic/calculation_method/velocity_gradient                       ", &
+       "/population_balance[#]/abscissa/                                                                    ", &
+       "/population_balance[#]/weights/                                                                     ", &
+       "/population_balance[#]/weighted_abscissa/                                                           ", &
+       "/population_balance[#]/moments/                                                                     ", &
+       "/population_balance[#]/statistics/                                                                  "  &
        /)
 
   !! Relative paths under a field that are searched for grandchildren
@@ -122,11 +135,25 @@ module populate_state_module
          &    "/spatial_discretisation/inner_element" &
          /)
 
+
+  !! Dynamic paths that are searched for fields
+  !! This allows for searching for field within paths that may branch several times
+  !! The index of any particular path should be replaced with #
+  character(len=OPTION_PATH_LEN), dimension(6):: &
+         dynamic_paths = (/&
+         &    "/material_phase[#]/equation_of_state/fluids/linear/        ", &
+         &    "/material_phase[#]/population_balance[#]/abscissa/         ", &
+         &    "/material_phase[#]/population_balance[#]/weights/          ", &
+         &    "/material_phase[#]/population_balance[#]/weighted_abscissa/", &
+         &    "/material_phase[#]/population_balance[#]/moments/          ", &
+         &    "/material_phase[#]/population_balance[#]/statistics/       " &
+         /)
+
+  character(len=OPTION_PATH_LEN), dimension(:), allocatable :: field_locations
+
 contains
 
-
   subroutine populate_state(states)
-    use Profiler
     type(state_type), pointer, dimension(:) :: states
 
     integer :: nstates ! number of states
@@ -192,7 +219,7 @@ contains
     character(len=OPTION_PATH_LEN) :: mesh_path, mesh_file_name,&
          & mesh_file_format, from_file_path
     integer, dimension(:), pointer :: coplanar_ids
-    integer, dimension(3) :: mesh_dims
+    integer, dimension(4) :: mesh_dims
     integer :: i, j, nmeshes, nstates, quad_degree, stat
     type(element_type), pointer :: shape
     type(quadrature_type), pointer :: quad
@@ -318,6 +345,11 @@ contains
                 else
                   mesh_dims(3)=0
                 end if
+                if (mesh%faces%has_discontinuous_internal_boundaries) then
+                  mesh_dims(4)=1
+                else
+                  mesh_dims(4)=0
+                end if
                 ! The coordinate dimension is not the same as the mesh dimension
                 ! in the case of spherical shells, and needs to be broadcast as
                 ! well.  And this needs to be here to allow for the special case
@@ -328,10 +360,11 @@ contains
                 call get_option('/geometry/dimension', mesh_dims(1))
                 mesh_dims(2)=mesh_dims(1)+1
                 mesh_dims(3)=0
+                mesh_dims(4)=0
                 dim = mesh_dims(1)
               end if
             end if
-            call MPI_bcast(mesh_dims, 3, getpinteger(), 0, MPI_COMM_FEMTOOLS, stat)
+            call MPI_bcast(mesh_dims, 4, getpinteger(), 0, MPI_COMM_FEMTOOLS, stat)
             call MPI_bcast(dim, 1, getpinteger(), 0, MPI_COMM_FEMTOOLS, stat)
           end if
 
@@ -352,6 +385,12 @@ contains
             call allocate(mesh, nodes=0, elements=0, shape=shape, name="EmptyMesh")
             call allocate(position, dim, mesh, "EmptyCoordinate")
             call add_faces(mesh)
+            if (mesh_dims(4)>0) then
+              ! rank 0 has element ownership for facets, allowing for multi-valued internal
+              ! facets (needed for periodic meshes). Setting this flag will allow us the
+              ! same when we receive facets after the redecomposition
+              mesh%faces%has_discontinuous_internal_boundaries=.true.
+            end if
             if (column_ids>0) then
               ! the association status of mesh%columns should be collective
               allocate(mesh%columns(1:0))
@@ -388,7 +427,7 @@ contains
           else 
              position%name="Coordinate"
           end if
-                       
+
           ! If running in parallel, additionally read in halo information and register the elements halo
           if(isparallel()) then
             if (no_active_processes == 1) then
@@ -512,6 +551,13 @@ contains
        end if
 
     end do outer_loop
+
+    ! not really a derived mesh but this is a relatively clean place to set the transform_to_physical
+    ! spherical flag so that the main Coordinate field is interpretted as being spherical at the gauss
+    ! points
+    if (have_option('/geometry/spherical_earth/analytical_mapping/')) then
+      call set_analytical_spherical_mapping()
+    end if
 
   end subroutine insert_derived_meshes
            
@@ -692,8 +738,6 @@ contains
               call allocate(extrudedposition, h_dim+1, mesh, "EmptyCoordinate") ! name is fixed below
               call deallocate(mesh)
               if (IsParallel()) call create_empty_halo(extrudedposition)
-            else if (have_option('/geometry/spherical_earth/')) then
-              call extrude_radially(modelposition, mesh_path, extrudedposition)
             else
               call extrude(modelposition, mesh_path, extrudedposition)
             end if
@@ -792,10 +836,12 @@ contains
           ! of the coordinates spans that of the external mesh
           call remap_field(from_field=modelposition, to_field=coordinateposition)
                 
-          if (mesh_name=="CoordinateMesh" .and. have_option('/geometry/spherical_earth/superparametric_mapping/')) then
+          if (mesh_name=="CoordinateMesh" .and. have_option('/geometry/spherical_earth/')) then
 
-             call higher_order_sphere_projection(modelposition, coordinateposition)
-                   
+            if (have_option('/geometry/spherical_earth/superparametric_mapping/')) then
+              call higher_order_sphere_projection(modelposition, coordinateposition)
+            end if
+
           endif
 
           ! insert into states(1) and alias to all others
@@ -3692,7 +3738,6 @@ contains
 
   function mesh_name(field_path)
     !!< given a field path, establish the mesh that the field is on.
-    use global_parameters, only: FIELD_NAME_LEN
     character(len=FIELD_NAME_LEN) :: mesh_name
     character(len=*), intent(in) :: field_path
 
@@ -3921,6 +3966,8 @@ contains
     ! Check mesh options
     call check_mesh_options
 
+    call check_geometry_options
+
     ! check problem specific options:
     call get_option("/problem_type", problem_type)
     select case (problem_type)
@@ -3944,6 +3991,34 @@ contains
     ewrite(2,*) 'Done with problem type choice'
 
   end subroutine populate_state_module_check_options
+
+  subroutine check_geometry_options
+
+    logical :: on_sphere
+    integer :: i, nstates
+
+    on_sphere = have_option("/geometry/spherical_earth")
+
+    if (on_sphere) then
+      nstates=option_count("/material_phase")
+
+      state_loop: do i=0, nstates-1
+        if (have_option("/material_phase[" // int2str(i) // "]/vector_field::Velocity/prognostic")) then
+          if (.not. (have_option("/material_phase[" // int2str(i) // "]/vector_field::Velocity/prognostic" // &
+                                 "/spatial_discretisation/continuous_galerkin/buoyancy" // &
+                                 "/radial_gravity_direction_at_gauss_points") .or. &
+                     have_option("/material_phase[" // int2str(i) // "]/vector_field::Velocity/prognostic" // &
+                                 "/spatial_discretisation/discontinuous_galerkin/buoyancy" // &
+                                 "/radial_gravity_direction_at_gauss_points"))) then
+            ewrite(0,*) "WARNING: the /geometry/spherical_earth option no long automatically makes the buoyancy radial."
+            ewrite(0,*) "To recreate the previous behaviour it is now necessary to turn on the "
+            ewrite(0,*) "buoyancy/radial_gravity_direction_at_gauss_points underneath the Velocity spatial_discretisation."
+          end if
+        end if
+      end do state_loop
+    end if
+
+  end subroutine check_geometry_options
 
   subroutine check_mesh_options
 
@@ -4027,7 +4102,8 @@ contains
           
           if (have_option("/geometry/mesh::"//trim(from_mesh_name)//&
              "/exclude_from_mesh_adaptivity") .and. .not. &
-             have_option(trim(path)//"/exclude_from_mesh_adaptivity")) then
+             have_option(trim(path)//"/exclude_from_mesh_adaptivity") .and. .not. &
+             have_option(trim(path)//"/from_mesh/extrude")) then
              ! if the from_mesh is excluded, the mesh itself also needs to be
              ewrite(-1,*) "In derivation of mesh ", trim(mesh_name), " from ", trim(from_mesh_name)
              ewrite(-1,*) "A mesh derived from a mesh with exclude_from_mesh_adaptivity needs to have this options as well."

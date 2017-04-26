@@ -33,23 +33,24 @@ subroutine fladapt(input_basename_, input_basename_len, &
   !!< Outputs the resulting mesh.
  
   use iso_c_binding
-  use adapt_state_module
-  use diagnostic_fields_wrapper
-  use diagnostic_fields_new, only : &
-    & calculate_diagnostic_variables_new => calculate_diagnostic_variables
-  use edge_length_module
-  use field_options
-  use fields
+  use global_parameters, only: FIELD_NAME_LEN
   use fldebug
-  use limit_metric_module
-  use metric_assemble
-  use populate_state_module
+  use parallel_tools, only: isparallel
   use reference_counting
   use spud
+  use fields
+  use edge_length_module
   use state_module
+  use field_options
   use vtk_interfaces
+  use diagnostic_fields_wrapper, only: calculate_diagnostic_variables
+  use limit_metric_module
   use mesh_files
   use populate_state_module
+  use metric_assemble
+  use adapt_state_module
+  use diagnostic_fields_new, only : &
+    & calculate_diagnostic_variables_new => calculate_diagnostic_variables
 
   implicit none
   

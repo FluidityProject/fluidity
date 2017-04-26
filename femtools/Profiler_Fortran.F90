@@ -26,7 +26,7 @@
 !    USA
 
 module Profiler
-  use global_parameters, only : real_8
+  use iso_c_binding, only : c_ptr, c_double
   use fields
 
   implicit none
@@ -69,11 +69,11 @@ module Profiler
     end subroutine cprofiler_toc
     
     subroutine cprofiler_get(key, key_len, time)
-      use global_parameters, only : real_8
+      use iso_c_binding, only: c_double
       implicit none
       integer, intent(in) :: key_len
       character(len = key_len), intent(in) :: key
-      real(kind = real_8), intent(out) :: time
+      real(kind = c_double), intent(out) :: time
     end subroutine cprofiler_get
 
     subroutine cprofiler_minorpagefaults(faults)
@@ -97,7 +97,7 @@ module Profiler
 
 contains
   
-  real(kind = real_8) function profiler_get_scalar(field, action)
+  real(kind = c_double) function profiler_get_scalar(field, action)
     !!< Starts profiling a certain 'action', .e.g.: assembly, solve, interpolation
     !!< for field and stores this under a unique key
     type(scalar_field), intent(in):: field
@@ -107,7 +107,7 @@ contains
     
   end function profiler_get_scalar
   
-  real(kind = real_8) function profiler_get_vector(field, action)
+  real(kind = c_double) function profiler_get_vector(field, action)
     !!< Starts profiling a certain 'action', .e.g.: assembly, solve, interpolation
     !!< for field and stores this under a unique key
     type(vector_field), intent(in):: field
@@ -117,7 +117,7 @@ contains
     
   end function profiler_get_vector
 
-  real(kind = real_8) function profiler_get_tensor(field, action)
+  real(kind = c_double) function profiler_get_tensor(field, action)
     !!< Starts profiling a certain 'action', .e.g.: assembly, solve, interpolation
     !!< for field and stores this under a unique key
     type(tensor_field), intent(in):: field
@@ -127,7 +127,7 @@ contains
     
   end function profiler_get_tensor
   
-  real(kind = real_8) function profiler_get_key(key)
+  real(kind = c_double) function profiler_get_key(key)
     character(len=*), intent(in)::key
     call cprofiler_get(key, len_trim(key), profiler_get_key)
   end function profiler_get_key
@@ -225,7 +225,6 @@ contains
   end subroutine profiler_majorpagefaults
 
   subroutine profiler_getresidence(ptr, residence)
-    use iso_c_binding, only : c_ptr
     type(c_ptr), intent(in) :: ptr
     integer, intent(out) :: residence
     call cprofiler_getresidence(ptr, residence)

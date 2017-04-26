@@ -29,11 +29,11 @@ module cv_options
   !!< Module containing general tools for discretising Control Volume problems.
   use spud
   use fldebug
-  use cvtools, only: complete_cv_field_path
-  use field_options, only: complete_field_path
   use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN
-  use element_numbering, only: FAMILY_SIMPLEX, FAMILY_CUBE
   use futils
+  use element_numbering, only: FAMILY_SIMPLEX, FAMILY_CUBE
+  use field_options, only: complete_field_path
+  use cvtools, only: complete_cv_field_path
 
   implicit none
 

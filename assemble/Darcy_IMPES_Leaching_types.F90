@@ -6,6 +6,7 @@ module darcy_impes_leaching_types
   use fields
   use state_module
   use fldebug
+  use sparse_tools
   use global_parameters, only: OPTION_PATH_LEN, FIELD_NAME_LEN
   
   

@@ -29,11 +29,15 @@
 
 module node_owner_finder
 
-  use data_structures
-  use fields
+  use iso_c_binding, only: c_float, c_double
   use fldebug
-  use global_parameters, only : real_4, real_8
+  use futils, only: present_and_false
+  use data_structures
+  use element_numbering, only: FAMILY_SIMPLEX
   use mpi_interfaces
+  use parallel_tools
+  use parallel_fields
+  use fields
 
   implicit none
   
@@ -64,14 +68,14 @@ module node_owner_finder
     module procedure node_owner_finder_set_input_sp
   
     subroutine cnode_owner_finder_set_input(id, positions, enlist, dim, loc, nnodes, nelements)
-      use global_parameters, only : real_8
+      use iso_c_binding, only: c_double
       implicit none
       integer, intent(out) :: id
       integer, intent(in) :: dim
       integer, intent(in) :: loc
       integer, intent(in) :: nnodes
       integer, intent(in) :: nelements
-      real(kind = real_8), dimension(nnodes * dim), intent(in) :: positions
+      real(kind = c_double), dimension(nnodes * dim), intent(in) :: positions
       integer, dimension(nelements * loc), intent(in) :: enlist
     end subroutine cnode_owner_finder_set_input
   end interface cnode_owner_finder_set_input
@@ -84,11 +88,11 @@ module node_owner_finder
     module procedure node_owner_finder_find_sp
   
     subroutine cnode_owner_finder_find(id, position, dim) 
-      use global_parameters, only : real_8
+      use iso_c_binding, only: c_double
       implicit none
       integer, intent(in) :: id
       integer, intent(in) :: dim
-      real(kind = real_8), dimension(dim), intent(in) :: position
+      real(kind = c_double), dimension(dim), intent(in) :: position
     end subroutine cnode_owner_finder_find
   end interface cnode_owner_finder_find
   
@@ -131,10 +135,10 @@ contains
     integer, intent(in) :: loc
     integer, intent(in) :: nnodes
     integer, intent(in) :: nelements
-    real(kind = real_4), dimension(nnodes * dim), intent(in) :: positions
+    real(kind = c_float), dimension(nnodes * dim), intent(in) :: positions
     integer, dimension(nelements * loc), intent(in) :: enlist
     
-    call cnode_owner_finder_set_input(id, real(positions, kind = real_8), enlist, dim, loc, nnodes, nelements)
+    call cnode_owner_finder_set_input(id, real(positions, kind = c_double), enlist, dim, loc, nnodes, nelements)
     
   end subroutine node_owner_finder_set_input_sp
   
@@ -162,9 +166,9 @@ contains
   subroutine node_owner_finder_find_sp(id, position, dim)
     integer, intent(in) :: id
     integer, intent(in) :: dim
-    real(kind = real_4), dimension(dim), intent(in) :: position
+    real(kind = c_float), dimension(dim), intent(in) :: position
     
-    call cnode_owner_finder_find(id, real(position, kind = real_8), dim)
+    call cnode_owner_finder_find(id, real(position, kind = c_double), dim)
     
   end subroutine node_owner_finder_find_sp
  

@@ -30,13 +30,15 @@
 module multiphase_diagnostics
    !!< Module containing all generic multiphase-related diagnostic algorithms.
 
-   use field_options
-   use fields
    use fldebug
    use global_parameters, only : OPTION_PATH_LEN
+   use vector_tools
    use spud
-   use state_fields_module
+   use fetools
+   use fields
    use state_module
+   use field_options
+   use state_fields_module
 
    implicit none
    
@@ -56,7 +58,10 @@ module multiphase_diagnostics
          type(scalar_field), intent(inout) :: s_field ! Particle Reynolds number field
 
          !! Sub-options of the diagnostic field
-         real :: d ! Particle diameter
+         real :: dia ! Particle diameter
+         character(len = OPTION_PATH_LEN) :: pd_field_name !name of scalar field that defines particle diameter (can be the sauter mean dia)
+         type(scalar_field), pointer :: pd_scalar_field ! scalar field referring to particle diameter 
+         logical :: have_constant_pd ! checks if the particle diameter is a constant or not
          character(len = OPTION_PATH_LEN) :: continuous_phase_name
 
          !! Other local variables
@@ -78,6 +83,7 @@ module multiphase_diagnostics
          real, dimension(mesh_dim(s_field), ele_ngi(s_field, 1)) :: u_continuous_gi, u_particle_gi
          real, dimension(mesh_dim(s_field), mesh_dim(s_field), ele_ngi(s_field, 1)) :: viscosity_gi
          real, dimension(ele_ngi(s_field, 1)) :: density_gi, vfrac_gi
+         real, dimension(ele_ngi(s_field, 1)) :: d_gi ! particle diameter at the Gauss points
 
          real, dimension(:), allocatable :: magnitude ! |v_f - v_p|
 
@@ -93,7 +99,14 @@ module multiphase_diagnostics
          ewrite(1,*) 'Entering calculate_particle_reynolds_number'
 
          ! Get sub-options from under the diagnostic field in the options tree
-         call get_option(trim(s_field%option_path)//'/diagnostic/algorithm::particle_reynolds_number/particle_diameter', d)
+         if(have_option(trim(s_field%option_path)//'/diagnostic/algorithm::particle_reynolds_number/particle_diameter')) then
+            call get_option(trim(s_field%option_path)//'/diagnostic/algorithm::particle_reynolds_number/particle_diameter', dia)
+            have_constant_pd = .true.
+         else if(have_option(trim(s_field%option_path)//'/diagnostic/algorithm::particle_reynolds_number/particle_dia_use_scalar_field')) then
+            call get_option(trim(s_field%option_path)//'/diagnostic/algorithm::particle_reynolds_number/particle_dia_use_scalar_field', pd_field_name)
+            pd_scalar_field => extract_scalar_field(states(state_index), pd_field_name)
+            have_constant_pd = .false.
+         end if
          call get_option(trim(s_field%option_path)//'/diagnostic/algorithm::particle_reynolds_number/continuous_phase_name', continuous_phase_name)
 
          ! Find the index of the continuous phase in states
@@ -109,7 +122,11 @@ module multiphase_diagnostics
          u_continuous => extract_vector_field(states(continuous_state_index), "Velocity")
          u_particle => extract_vector_field(states(state_index), "Velocity")
          x => extract_vector_field(states(state_index), "Coordinate")
-         viscosity => extract_tensor_field(states(continuous_state_index), "Viscosity")
+         if(have_option(trim(states(continuous_state_index)%option_path)//'/subgridscale_parameterisations/k-epsilon')) then
+            viscosity => extract_tensor_field(states(continuous_state_index),"BackgroundViscosity")
+         else
+            viscosity => extract_tensor_field(states(continuous_state_index), "Viscosity")
+         end if
          density => extract_scalar_field(states(continuous_state_index), "Density")
          vfrac => extract_scalar_field(states(continuous_state_index), "PhaseVolumeFraction")
 
@@ -130,13 +147,20 @@ module multiphase_diagnostics
             density_gi = ele_val_at_quad(density, ele)
             vfrac_gi = ele_val_at_quad(vfrac, ele)
 
+            ! Compute the particle diameter at the Gauss points
+            if(have_constant_pd) then
+               d_gi = dia
+            else
+               d_gi = ele_val_at_quad(pd_scalar_field, ele)
+            end if
+
             do gi = 1, ele_ngi(u_continuous, ele)
                magnitude(gi) = norm2(u_continuous_gi(:,gi) - u_particle_gi(:,gi))
             end do
 
             ! Compute the particle Reynolds number
             ! (Assumes isotropic viscosity for now)
-            particle_re_gi = (vfrac_gi*density_gi*magnitude*d) / viscosity_gi(1,1,:)
+            particle_re_gi = (vfrac_gi*density_gi*magnitude*d_gi) / viscosity_gi(1,1,:)
 
             ! Invert the mass matrix to get the particle_re value at each node
             particle_re_mat = matmul(inverse(shape_shape(particle_re_shape, particle_re_shape, detwei)), &

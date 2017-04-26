@@ -158,6 +158,7 @@ extern "C" {
 
     vtkIdType cell[20];
     int *elem = enlist;
+    dataSet->Allocate(ecnt);
     for(unsigned i=0; i<ecnt; i++){
       // Node ordering blues
       if(elementTypes[i] == 9){
@@ -217,6 +218,7 @@ extern "C" {
 
     vtkIdType cell[20];
     int *elem = enlist;
+    dataSet->Allocate(ecnt);
     for(unsigned i=0; i<ecnt; i++){
       // Node ordering blues
       if(elementTypes[i] == 9){
@@ -669,8 +671,11 @@ extern "C" {
     writer->SetDataModeToAppended();
     writer->EncodeAppendedDataOff();
 
-
+#if VTK_MAJOR_VERSION <= 5
     writer->SetInput(dataSet);
+#else
+    writer->SetInputData(dataSet);
+#endif
   
     writer->SetCompressor(compressor);
     compressor->Delete();
@@ -717,7 +722,11 @@ extern "C" {
     writer->SetGhostLevel(1);
     writer->SetStartPiece(*rank);
     writer->SetEndPiece(*rank);
+#if VTK_MAJOR_VERSION <= 5
     writer->SetInput(dataSet);
+#else
+    writer->SetInputData(dataSet);
+#endif
     writer->SetCompressor(compressor);
     
     compressor->Delete();
@@ -725,6 +734,7 @@ extern "C" {
     // Set to true binary format (not encoded as base 64)
     writer->SetDataModeToAppended();
     writer->EncodeAppendedDataOff();
+    writer->SetWriteSummaryFile((*rank)==0);
 
     
     writer->Write();
@@ -734,9 +744,11 @@ extern "C" {
     dataSet->Delete();
     dataSet = NULL;
   
-    if(is_pvtu && (*rank)==0){
-      rename(filename.c_str(), fl_vtkFileName.c_str());
-      pvtu_fix_path(fl_vtkFileName.c_str(), basename.c_str());
+    if(is_pvtu){
+      if((*rank)==0){
+        rename(filename.c_str(), fl_vtkFileName.c_str());
+        pvtu_fix_path(fl_vtkFileName.c_str(), basename.c_str());
+      }
     }
 
     return;

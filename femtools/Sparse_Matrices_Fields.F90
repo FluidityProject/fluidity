@@ -26,11 +26,12 @@
 !    USA
 #include "fdebug.h"
 module sparse_matrices_fields
-use fields
+use iso_c_binding
+use fldebug
 use sparse_tools
+use fields
 use sparse_tools_petsc
 use c_interfaces
-use iso_c_binding
 implicit none
 
   interface mult
@@ -62,6 +63,13 @@ implicit none
   interface extract_diagonal
      module procedure block_csr_extract_diagonal
   end interface
+
+private
+
+public :: mult, mult_addto, mult_T, mult_T_addto, mult_diag, addto_diag,&
+          extract_diagonal, mult_div_tensorinvscalar_div_t,&
+	  mult_div_tensorinvscalar_vector, mult_div_invscalar_div_t,&
+	  mult_div_vector_div_t, mult_div_invvector_div_t
   
 contains
 

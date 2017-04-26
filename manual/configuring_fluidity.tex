@@ -130,12 +130,67 @@ The quadrature degree is specified by setting \option{/geometry/quadrature/degre
 \subsubsection{Spherical Earth}
 \label{sec:spherical_earth}
 \index{spherical earth}
+\index{mesh!superparametric}
 
-Enabling \option{/geometry/spherical\_earth} informs \fluidity that your simulation is being carried out in an Earth like geometry, that is, a three dimensional geometry with gravity pointing towards the centre of the coordinate system. This has implications for various options and terms such as wind forcing (see section \ref{sec:wind_forcing}), the calculation of buoyancy and the `direction' of absorptions (see \ref{sec:Source}).
+Enabling \option{/geometry/spherical\_earth} informs \fluidity that your
+simulation is being carried out in an Earth like geometry. This means that the mesh domain is assumed to approximate (a part of) an
+N-sphere (sphere in three dimensions, circle in two dimensions). The domain is still described in
+general $x,y,z$ coordinates (no spherical/cylindrical coordinates)
+and the centre of the N-sphere must coincide with the origin.  Turning on this option has a number of effects.
 
-If this option is checked, wind forcing and \eg momentum forcing from bulk formulae (see \ref{sec:bulk_formulae}) will automatically be rotated and applied in the direction tangential to the Earth's surface. It will also result in absorption terms set through the options tree being rotated and applied in the longitudinal, latitudinal and radial directions respectively. Additionally, in many terms such as the buoyancy density, the direction of gravity is hard coded and calculated at explicitly at Gauss points when this option is enabled. Thus, if enabling this option, the direction of gravity specified in the options tree (see \ref{sec:Gravity}) must be set via a python function representing the inward normal to the sphere. Note however that the viscosity and diffusion operators are currently not rotated automatically and thus the user must carry such rotations out themselves. And example in which the viscosity is rotated is giving in section \ref{sec:tides_in_the_med}.
+In combination with extrusion options (see section \ref{sec:extruded_meshes}), 
+specifying a \option{spherical\_earth} will extrude radially from the top surface of the
+domain towards the origin.  Generally, the sphere is only extruded to a certain
+depth, leaving a void around the origin. The two main applications of this
+option are large-scale ocean simulations on the sphere, and geodynamic simulations of the
+Earth's mantle.
 
-Under \option{/geometry/spherical\_earth} the user must select \option{linear\_mapping} or \option{superparametric\_mapping}. The former results in cords between nodes being approximated as linear segments whilst the latter gives a better approximation to the Earth's shape through approximating cords with a higher order polynomial. The order of the polynomial is given by the degree of the mesh on which gravity is located.   
+When using this option the gravity direction should be defined manually in the radial
+direction (pointing to the origin) using python
+(\option{/physical\_parameters/gravity/vector\_field::GravityDirection/prescribed/value::WholeMesh/python}).  If used in conjunction with the
+\option{buoyancy/radial\_gravity\_direction\_at\_gauss\_points} option underneath the \option{spatial\_discretisation} option for
+Velocity then gravity will be automatically defined to be radial at the gauss points (rather than the nodes) in the buoyancy term
+(ignoring whatever gravity direction you have specified manually in the buoyancy term only).  Specifying the gravity direction at the
+gauss points in the buoyancy term helps eliminate spurious interpolation errors and non-physical imbalance in spherical simulations (see
+\ref{sec:configuring_fluidity!spatial_discretisation!buoyancy}).
+
+For ocean simulations, the option has implications for various options and terms such as wind forcing (see section \ref{sec:wind_forcing}), the calculation of buoyancy and the `direction' of absorptions (see \ref{sec:Source}).
+If this option is checked, wind forcing and \eg momentum forcing from bulk formulae (see \ref{sec:bulk_formulae}) will automatically be rotated and applied in the direction tangential to the Earth's surface. It will also result in absorption terms set through the options tree being rotated and applied in the longitudinal, latitudinal and radial directions respectively. Note however that the viscosity and diffusion operators are currently not rotated automatically and thus the user must carry such rotations out themselves. An example in which the viscosity is rotated is giving in section \ref{sec:tides_in_the_med}.
+
+Two options, \option{spherical\_earth/superparametric\_mapping} and
+\option{spherical\_earth/analytical\_mapping},
+are available to improve the approximation of the spherical domain
+by the mesh, in particular for coarse meshes.
+The general idea is that instead of using straight, linearly
+interpolated tets and triangles, the elements are bent to better fit the curved
+geometry (see section \ref{sec:coordinate_mesh_and_superparametric} for the
+exact formula). The mesh vertices are kept in place, but all points in the interior of
+an element are moved a little in the radial direction,
+such that the radial coordinate varies linearly
+between the vertices. For example, in the case of a triangle with all three
+points on a perfect sphere, this means the entire triangle is now curved
+to be exactly on that sphere. 
+
+Using the \option{superparametric\_mapping} option
+the curved elements are approximated by a higher order polynomial by using a
+higher order \option{CoordinateMesh}. To use this option, you therefore need a
+seperate \option{CoordinateMesh} that is derived from the usual continuous P1
+mesh (typically called \option{BaseMesh}). For example, when combining this with
+extrusion in 3D, one needs a 2D input mesh \option{InputMesh}, an extruded
+\option{BaseMesh} with extrusion options, and a \option{CoordinateMesh} derived
+from this that has set a higher order \option{mesh\_shape/polynomial\_degree}.
+Other meshes (function spaces) used in the discretisation, e.g. a \PoDG or a $P2$ mesh, are
+also derived from the \option{BaseMesh}.
+
+For the \option{analytical\_mapping} option a higher order
+\option{CoordinateMesh} is not necessary; the bending of the element is done
+directly at the gauss points using an analytical expression. Thus the
+conformance of a bended element with a perfect sphere is only limited by the
+quadrature degree. Nonetheless, for calculations that are done node-wise, in
+particular when setting a higher order prescribed field from a python
+function, it may still make sense to combine \option{superparametric\_mapping}
+and \option{analytical\_mapping}, so that the coordinates of the bended
+elements are available in the nodes of the higher order mesh.
 
 \subsubsection{Ocean Boundaries}\label{sec:ocean_boundaries}
 \index{boundary conditions!ocean}
@@ -209,9 +264,9 @@ limit.
 
 Up to five sets of files are created when checkpointing:
 \begin{enumerate}
-\item Mesh files - The from\_file meshes, in triangle format. Surface IDs
+\item Mesh files - The from\_file meshes, in Gmsh format. Surface IDs
   and (if present) region IDs are written to the mesh files, and adaptivity
-  is supported. In parallel a triangle mesh is written for each process.
+  is supported. In parallel a Gmsh mesh is written for each process.
 \item Halo files (in parallel) - Halo information for each process.
 \item Field files - A vtu is written for each mesh with prognostic fields in
   each state and (in parallel) for each process.
@@ -528,12 +583,12 @@ mesh associated with each field is referred to by name in the
 
 \subsection{Reading meshes from file}
 \index{mesh!input}
-There must always be one mesh which is read in from a set of files in
-triangle format. This is usually the \option{CoordinateMesh}. To specify the
-triangle files from which the coordinate mesh should be read, set the
+There must always be one mesh which is read in from a file in
+Gmsh format. This is usually the \option{CoordinateMesh}. To specify the
+Gmsh file from which the coordinate mesh should be read, set the
 \option{file\_name} attribute of
 \option{/geometry/dimension/mesh::CoordinateMesh/from\_file} to the basename
-of the triangle files (that is, the filename without .node, .ele, etc.)
+of the Gmsh file (that is, the filename without .msh)
 
 The coordinate mesh read in from file will always have linear elements and
 the Coordinate field is always continuous between elements.
@@ -545,7 +600,7 @@ by setting the \onlypdf\option{/geometry/mesh/from\_file/format}\ option
 to \onlypdf\option{gmsh}.  \fluidity\ will now look for a file with the extension 
 \lstinline[language=bash]+.msh+ when it runs.
 
-For information on generating meshes in gmsh and triangle format, see chapter
+For information on generating meshes in Gmsh format, see chapter
 \ref{chap:meshes}. 
 
 \subsection{Deriving meshes from other meshes}
@@ -680,7 +735,7 @@ version. The new regions need to be named and the region IDs to which they
 apply specified.
 
 As well as extruding 2D meshes (where only the $x$ and $y$ coordinates are
-specified in the triangle file), given a pseudo 2D mesh on a spherical
+specified in the Gmsh file), given a pseudo 2D mesh on a spherical
 shell, \fluidity\ can perform and extrusion in the radial direction. To
 perform such an extrusion simply enable the options as noted above and
 additionally check the \option{/geometry/spherical\_earth option}. With this
@@ -1074,6 +1129,21 @@ equation). If BETA is set to zero, the discretisation is left
 non-conservative. An intermediate value can alternatively be
 selected. Please refer to section \ref{sec:ND_momentum_equation} for a comprehensive discussion on the influence of this parameter.
 
+\subsubsection{Buoyancy}
+\label{sec:configuring_fluidity!spatial_discretisation!buoyancy}
+\index{spherical earth}
+
+When solving for momentum on a spherical or cylindrical domain it is possible to specify that the gravity direction should be automatically
+calculated to be radial (towards the origin) and evaluated directly at the gauss points using the
+\option{buoyancy/radial\_gravity\_direction\_at\_gauss\_points} option (underneath Velocity \option{spatial\_discretisation}).  This
+ignores the direction specified in \option{/physical\_parameters/gravity} but still uses the magnitude specified there.  Note
+that the direction is only ignored in the buoyancy term of the momentum equation and the version specified under
+\option{/physical\_parameters/gravity} may be used elsewhere in the model.
+
+Evaluating the gravity direction directly at gauss points, rather than interpolating it from the values specified at the nodes,
+avoids interpolation errors that introduce non-physical imbalances between buoyancy and pressure in spherical simulations.  As this
+is mostly used for simulations on N-spheres it is generally combined with the \option{/geometry/spherical\_earth} option (see
+\ref{sec:spherical_earth}).
 
 \subsection{Temporal discretisations}
 \label{sec:configuring_fluidity_temporal_discretisation}
@@ -1880,6 +1950,56 @@ Bedload field
 Note: To use sediment, a linear equation of state must also be enabled
 \option{\ldots/equation\_of\_state/fluids/linear}
 
+\section{Population balance model}
+\label{config:pbe}
+
+The population balance model can be enabled by activating the \option{population\_balance (DQMOM)} option under the material phase.
+The number of \option{abscissa}, \option{weights} and \option{weighted-abscissa} scalar fields must be chosen to be equal to the desired number of mesh nodes $N$ in the DQMOM quadrature approximation (Eq \eqref{eq:DQMOM_ndf}). 
+
+\option{weights} and \option{weighted-abscissa} are prognostic fields and the \option{equation(AdvectionDiffusion)} option much be selected for all of these fields. The source terms in these prognostic scalars must be set to \option{diagnostic} with \option{algorithm(Internal)}. \option{abscissa} fields on the other hand are diagnostic fields. All scalars in the population balance tree must be defined on the same mesh. When the population balance model is used in conjunction with the multiphase flow equations for modelling polydispersed flows, it is suggested that the control volume discretisation should be used for the population balance scalars to ensure conservation and to ensure a realisable moment set (see the section on \emph{moment corruption} in \citet{bhutani2016}). 
+
+Spatial diffusion coefficient must be identically specified for all prognostic scalars in the population balance model, if the spatial diffusion is present. 
+
+\subsection{Source terms}
+The following source terms are available for the PBE to be used in \fluidity\ :
+\subsubsection{Growth}
+\begin{itemize}
+\item power law growth
+\end{itemize}
+\subsubsection{Internal Dispersion}
+\begin{itemize}
+\item constant internal dispersion coefficient
+\end{itemize}
+\subsubsection{Aggregation}
+\begin{itemize}
+\item constant aggregation
+\item hydrodynamic aggregation
+\item sum aggregation
+\item turbulent aggregation -- \citet{laakkonen2007modelling}
+\end{itemize}
+\subsubsection{Breakage}
+Breakage frequency:
+\begin{itemize}
+\item constant
+\item power law breakage
+\item turbulent breakage -- \citet{laakkonen2007modelling}
+\end{itemize}
+
+Breakage daughter distribution function:
+\begin{itemize}
+\item symmetric fragmentation
+\item \citet{mccoymadras2003analytical}
+\item \citet{laakkonen2007modelling}
+\end{itemize}
+
+\subsection{Initial conditions}
+It is possible to specify initial condition for the prognostic scalars, i.e. weights and the weighted-abscissas (\option{use\_prognostic\_field\_initial\_conditions}), or the moments (\option{calculate\_initial\_conditions\_from\_moments}). 
+
+\subsection{Moments and statistics}
+Diagnostic scalar fields such as moments and statistics of the NDF can be calculated by enabling these options under \option{moments} and \option{statistics}, respectively. The moments must be named as \emph{Moment\_X} where \emph{X} is the moment number. The following statistics are available currently: mean, standard deviation, skew, Sauter mean diameter ($m_3$/$m_2$), and mean diameter ($m_1$/$m_0$). 
+
+Further details of the population balance model can be found in \citet{bhutani2016polydispersed} and \citet{bhutani2016}.
+
 \section{Configuring ocean simulations}
 \label{sec:large-scale-ocean}
 
@@ -2552,7 +2672,7 @@ For an $N$ phase problem, $N$ material\_phases are required and hence $N$ PhaseV
 For compressible multiphase simulations, the diagnostic PhaseVolumeFraction field should always be in the compressible (fluid) phase. This is because we do not include the Density in the advection-diffusion equation for prognostic PhaseVolumeFraction fields, so solving this equation in the compressible phase would not be correct. The particle phases on the other hand are always incompressible where the density is constant.
 
 \subsubsection{Inter-phase momentum interaction}
-Currently, \fluidity\ only supports fluid-particle drag between the continuous phase and dispersed phase(s). This can be enabled by switching on the \option{/multiphase\_interaction/fluid\_particle\_drag} option in Diamond and specifying the drag correlation: Stokes, \cite{wen_yu_1966} or \cite{ergun1952}.
+Currently, \fluidity\ only supports fluid-particle drag between the continuous phase and dispersed phase(s). This can be enabled by switching on the \option{/multiphase\_interaction/fluid\_particle\_drag} option in Diamond and specifying the drag correlation: Stokes, \cite{wen_yu_1966}, \cite{ergun1952}, \cite{schiller1935drag}, \cite{lain1999experimental} or \cite{lain2002modelling}.
 
 The drag force using the Stokes drag correlation is given by:
 \begin{equation}\label{eq:stokes_drag_force}
@@ -2582,7 +2702,26 @@ For dense multiphase flows with $\alpha_p > 0.2$, the drag correlation by \cite{
 \mathbf{F}_D = \left(150\frac{\alpha_p^2\mu_f}{\alpha_f d_p^2} + 1.75\frac{\alpha_p\rho_f|\mathbf{u}_f-\mathbf{u}_p|}{d_p}\right)\left(\mathbf{u}_f-\mathbf{u}_p\right).
 \end{equation}
 
-Note that within each dispersed phase, a value for $d$ must be specified in \option{../multiphase\_properties/particle\_diameter} regardless of which drag correlation is used.
+The interphase drag force $\mathbf{F}_D$, and the drag coefficient $C_D$ for the standard \cite{schiller1935drag} drag correlation is given by:
+\begin{equation}\label{eq:schillernaumann_drag_force}
+\mathbf{F}_D = \frac{3\ \alpha_p\ C_D\ \alpha_f\ \rho_f\ |\mathbf{u}_f-\mathbf{u}_p|\ (\mathbf{u}_f-\mathbf{u}_p)}{4\ d},
+\end{equation}
+\begin{equation}\label{eq:schillernaumann_drag_coefficient}
+C_D=
+\begin{cases}
+  \dfrac{24}{Re} \left( 1+0.15 {Re}^{0.687} \right)& \text{if}\ Re<1000, \\[2ex]
+  0.44                                               & \text{otherwise},
+\end{cases}
+\end{equation}
+with a slightly different definition for the Reynolds number than above:
+\begin{equation}\label{eq:particle_reynolds_number_2}
+\mathrm{Re} = \frac{\rho_f\ d\ |\mathbf{u}_f-\mathbf{u}_p|}{\mu_f}.
+\end{equation}
+The above drag force correlation was developed for a spherical and solid dispersed phase but dispersed fluids with slight impurities can be modelled using the same correlation. \cite{schiller1935drag} drag has been used for the modelling of dilute bubble columns successfully. 
+
+Note that within each dispersed phase, a value for $d$ must be specified in \option{../multiphase\_properties/particle\_diameter} regardless of which drag correlation is used. A scalar field can also be used instead of a constant dispersed phase diameter by choosing the \option{../multiphase\_properties/particle\_dia\_use\_scalar\_field} option instead. The latter option is useful when the multiphase model is coupled to the population balance equation \citep{bhutani2016polydispersed}.
+
+Additionally, it is also possible to cap the dispersed phase diameter, which is useful when using a scalar field for the diameter. For instance, a very small diameter can result in a very large drag force which can result in a failing simulation.
 
 \subsubsection{Inter-phase energy interaction}
 This subsection considers compressible multiphase flow simulations where each phase has its own InternalEnergy field. Users can choose to include the inter-phase heat transfer term by \cite{gunn1978}, denoted $Q$ in Section \ref{sec:multiphase_equations}, on the RHS of each internal energy equation:

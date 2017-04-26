@@ -28,18 +28,21 @@
 #include "fdebug.h"
 
 module tidal_diagnostics
-  use diagnostic_source_fields
-  use field_options
-  use fields_manipulation
-  use initialise_fields_module
-  use fields
+
   use fldebug
   use global_parameters, only : timestep, OPTION_PATH_LEN, current_time
   use spud
-  use state_fields_module
+  use futils
+  use vector_tools, only: solve
+  use fields
   use state_module
-  use Tidal_module
+  use field_options
+  use diagnostic_source_fields
+  use initialise_fields_module
+  use state_fields_module
+  use tidal_module
   use write_state_module, only: do_write_state
+
   implicit none
 
   private
@@ -103,6 +106,7 @@ subroutine calculate_free_surface_history(state, s_field)
     ewrite(3,*),'in free_surface_history_diagnostics'
 
     fs_field => extract_scalar_field(state,"FreeSurface",stat)
+    call halo_update(fs_field)
 
     if(stat /= 0) then
       FLExit('I do not have a FreeSurface field so can not calculate diagnostics on it. Please switch on the FreeSurface diagnostic.')
@@ -435,9 +439,6 @@ subroutine save_harmonic_x_in_fields(harmonic_x, residual, M, harmonic_fields, n
       if (harmonic_fields(i)%target=='Amplitude') then
          call set( harmonic_current, node, sqrt( harmonic_x(MM+1)**2 + harmonic_x(MM+1+M)**2 ) )
       elseif (harmonic_fields(i)%target=='Phase') then
-         if (harmonic_x(MM+1+M)==0 .and. harmonic_x(MM+1)==0) then
-            FLAbort('Error while calculating harmonic analysis phase!')
-         end if
          result = atan2(harmonic_x(MM+1+M),harmonic_x(MM+1))
          !*180.0/pi
          !if (phase < 0.0) phase = phase + 360.0

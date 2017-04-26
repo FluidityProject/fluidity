@@ -9,9 +9,14 @@ to fields before using them for the purposes of adaptivity.</a:documentation>
           <a:documentation>Invert a helmholtz operator to smooth out the field
 before using it to adapt. This can help with noisy
 fields.</a:documentation>
-          <element name="smoothing_length_scale">
-            <ref name="real_dim_symmetric_tensor"/>
-          </element>
+          <optional>
+            <element name="smoothing_scale_factor">
+              <a:documentation>The characteristic scale factor alpha used by the smoother.
+The length scale is alpha*local element width (a scalar)
+2 is recommended.</a:documentation>
+              <ref name="real"/>
+            </element>
+          </optional>
           <element name="solver">
             <ref name="linear_solver_options_sym"/>
           </element>
@@ -461,86 +466,28 @@ Source: Fluidity/ICOM manual draft version 1.2</a:documentation>
   <define name="hr_adaptivity">
     <element name="hr_adaptivity">
       <a:documentation>Anisotropic mesh hr-adaptivity</a:documentation>
-      <ref name="hr_adaptivity_period"/>
-      <optional>
-        <ref name="minimum_number_of_nodes"/>
-      </optional>
-      <optional>
-        <ref name="adaptive_timestep_at_adapt"/>
-      </optional>
-      <ref name="max_nodes_and_max_node_increase"/>
-      <optional>
-        <ref name="node_locking"/>
-      </optional>
-      <optional>
-        <ref name="functional_tolerance"/>
-      </optional>
-      <ref name="gradation_options_full"/>
-      <optional>
-        <ref name="metric_advection"/>
-      </optional>
-      <optional>
-        <ref name="geometric_constraints"/>
-      </optional>
-      <optional>
-        <ref name="bounding_box_factor"/>
-      </optional>
-      <optional>
-        <ref name="goal_based_adaptivity"/>
-      </optional>
-      <ref name="min_and_max_edge_and_reference_mesh_bound_and_aspect_ratio_bound"/>
-      <optional>
-        <ref name="adapt_at_first_timestep"/>
-      </optional>
-      <optional>
-        <ref name="preserve_mesh_regions"/>
-      </optional>
-      <optional>
-        <ref name="vertically_structured_adaptivity"/>
-      </optional>
-      <optional>
-        <ref name="zoltan_options"/>
-      </optional>
-      <optional>
-        <ref name="adaptivity_library"/>
-      </optional>
-      <optional>
-        <ref name="adapt_iterations"/>
-      </optional>
-      <optional>
-        <ref name="hr_adaptivity_debug"/>
-      </optional>
-    </element>
-  </define>
-  <define name="hr_adaptivity_period">
-    <choice>
-      <element name="period">
-        <a:documentation>Time interval (in simulation time) when mesh adaptivity performed.
-
-DO NOT SET THIS EQUAL TO OR LESS THAN ONE TIME-STEP SMALLER
-THAN YOUR DUMP PERIOD BECAUSE ALL YOUR DIAGNOSTIC FIELDS WILL
-APPEAR AS ZERO OR JUNK
-DIAGNOSTIC FIELDS GET ZEROED AFTER AN ADAPT
+      <choice>
+        <element name="period_in_timesteps">
+          <a:documentation>Time interval (in simulation time) when mesh adaptivity performed.
 
 Usually set to 10-20 times the timestep.</a:documentation>
-        <ref name="real"/>
-      </element>
-      <element name="period_in_timesteps">
-        <a:documentation>Adapt period in timesteps.</a:documentation>
-        <ref name="integer"/>
-      </element>
-    </choice>
-    <optional>
-      <element name="cpu_period">
-        <a:documentation>Time interval (in cpu time) when mesh adaptivity performed
+          <ref name="integer"/>
+        </element>
+        <element name="period">
+          <a:documentation>Specify the period in simulation time units</a:documentation>
+          <ref name="real"/>
+        </element>
+      </choice>
+      <optional>
+        <element name="cpu_period">
+          <a:documentation>Time interval (in cpu time) when mesh adaptivity performed
 Manual suggests disabling this option.</a:documentation>
-        <ref name="real"/>
-      </element>
-    </optional>
-  </define>
-  <define name="minimum_number_of_nodes">
-    <element name="minimum_number_of_nodes">
-      <a:documentation>The minimum number of nodes this simulation may use.
+          <ref name="real"/>
+        </element>
+      </optional>
+      <optional>
+        <element name="minimum_number_of_nodes">
+          <a:documentation>The minimum number of nodes this simulation may use.
 In parallel, by default, this is the global minimum number of nodes.
 
 If the mesh adaptivity algorithm wants to place fewer nodes
@@ -548,26 +495,25 @@ than this, the desired mesh is refined everywhere in space
 until it will exceed this limit. This option should generally
 only be used if a specified node count is being targetted.
 Default value: 0</a:documentation>
-      <optional>
-        <element name="per_process">
-          <a:documentation>Define minimum_number_of_nodes to be the minimum number of
+          <optional>
+            <element name="per_process">
+              <a:documentation>Define minimum_number_of_nodes to be the minimum number of
 nodes per process (rather than the global minimum number of
 nodes).</a:documentation>
-          <ref name="comment"/>
+              <ref name="comment"/>
+            </element>
+          </optional>
+          <ref name="integer"/>
         </element>
       </optional>
-      <ref name="integer"/>
-    </element>
-  </define>
-  <define name="adaptive_timestep_at_adapt">
-    <element name="adaptive_timestep_at_adapt">
-      <a:documentation>Use the minimum timestep at an adapt and ramp back up the maximum</a:documentation>
-      <empty/>
-    </element>
-  </define>
-  <define name="max_nodes_and_max_node_increase">
-    <element name="maximum_number_of_nodes">
-      <a:documentation>The maximum number of nodes this simulation may use.
+      <optional>
+        <element name="adaptive_timestep_at_adapt">
+          <a:documentation>Use the minimum timestep at an adapt and ramp back up the maximum</a:documentation>
+          <empty/>
+        </element>
+      </optional>
+      <element name="maximum_number_of_nodes">
+        <a:documentation>The maximum number of nodes this simulation may use.
 In parallel, by default, this is the global maximum number of nodes.
 
 If the mesh adaptivity algorithm wants to place more
@@ -582,30 +528,29 @@ maximum number of nodes in the horizontal mesh, i.e. the number
 of nodes in the full mesh will be much bigger and depends on the 
 number of layers specified, or if using inhomogenous_vertical_resolution
 on the resolution produced by the vertical adaptivity step.</a:documentation>
-      <optional>
-        <element name="per_process">
-          <a:documentation>Define maximum_number_of_nodes to be the maximum number of
+        <optional>
+          <element name="per_process">
+            <a:documentation>Define maximum_number_of_nodes to be the maximum number of
 nodes per process (rather than the global maximum number of
 nodes).</a:documentation>
-          <ref name="comment"/>
-        </element>
-      </optional>
-      <ref name="integer"/>
-    </element>
-    <optional>
-      <element name="max_node_increase">
-        <a:documentation>The maximum ratio by which the number of nodes is allowed to
+            <ref name="comment"/>
+          </element>
+        </optional>
+        <ref name="integer"/>
+      </element>
+      <optional>
+        <element name="max_node_increase">
+          <a:documentation>The maximum ratio by which the number of nodes is allowed to
 increase in an adapt. e.g., a value of 1.1 indicates that the
 number of nodes may be increased by at most 10%.</a:documentation>
-        <ref name="real"/>
-      </element>
-    </optional>
-  </define>
-  <define name="node_locking">
-    <element name="node_locking">
-      <a:documentation>Enable to lock nodes in the mesh.</a:documentation>
-      <element name="python">
-        <a:documentation>Python function defining nodes to lock. Return 0 for free
+          <ref name="real"/>
+        </element>
+      </optional>
+      <optional>
+        <element name="node_locking">
+          <a:documentation>Enable to lock nodes in the mesh.</a:documentation>
+          <element name="python">
+            <a:documentation>Python function defining nodes to lock. Return 0 for free
 nodes, and non-zero for locked nodes. Functions should be
 of the form:
 
@@ -614,14 +559,14 @@ of the form:
     return # Return value
 
 The return value must be an integer.</a:documentation>
-        <ref name="python_code"/>
-      </element>
-      <ref name="comment"/>
-    </element>
-  </define>
-  <define name="functional_tolerance">
-    <element name="functional_tolerance">
-      <a:documentation>Specifies the minimum element functional value for which elements
+            <ref name="python_code"/>
+          </element>
+          <ref name="comment"/>
+        </element>
+      </optional>
+      <optional>
+        <element name="functional_tolerance">
+          <a:documentation>Specifies the minimum element functional value for which elements
 are considered for adaptivity. For the Pain et al 2001 functional,
 ideal tetrahdera have a functional value of 0.0. A functional value
 of 0.5 corresponds to a tetrehedron with: unit edge lengths and
@@ -633,138 +578,128 @@ The minimum permitted value is 0.15 - the value supplied to
 libadaptivity is max(abs(user value), 0.15).
 
 Default value if not specified: 0.15</a:documentation>
-      <ref name="real"/>
-    </element>
-  </define>
-  <define name="metric_advection">
-    <element name="metric_advection">
-      <a:documentation>Metric advection algorithm.
+          <ref name="real"/>
+        </element>
+      </optional>
+      <ref name="gradation_options_full"/>
+      <optional>
+        <element name="metric_advection">
+          <a:documentation>Metric advection algorithm.
 By advecting the metric with the flow velocity,
 we can push mesh resolution ahead of the flow dynamics,
 rather than always lagging behind.</a:documentation>
-      <element name="spatial_discretisation">
-        <a:documentation>Spatial discretisation options</a:documentation>
-        <element name="control_volumes">
-          <ref name="standard_control_volume_options_excluding_cfl"/>
-        </element>
-        <element name="conservative_advection">
-          <a:documentation>Conservative discretisation of field advection equation
+          <element name="spatial_discretisation">
+            <a:documentation>Spatial discretisation options</a:documentation>
+            <element name="control_volumes">
+              <ref name="standard_control_volume_options_excluding_cfl"/>
+            </element>
+            <element name="conservative_advection">
+              <a:documentation>Conservative discretisation of field advection equation
  TBETA=1. -- conservative (divergence form)
  TBETA=0. -- non-conservative
  0. &lt; TBETA &lt; 1.</a:documentation>
-          <ref name="real"/>
-        </element>
-      </element>
-      <element name="temporal_discretisation">
-        <element name="theta">
-          <a:documentation>Implicit/explicit control (TTHETA)
+              <ref name="real"/>
+            </element>
+          </element>
+          <element name="temporal_discretisation">
+            <element name="theta">
+              <a:documentation>Implicit/explicit control (TTHETA)
  =0.  -- explicit
  =0.5 -- Crank-Nicolson
  =1.  -- implicit</a:documentation>
-          <ref name="real"/>
-        </element>
-        <choice>
-          <element name="maximum_courant_number_per_subcycle">
-            <a:documentation>Use subcycling to advect the metric.
+              <ref name="real"/>
+            </element>
+            <choice>
+              <element name="maximum_courant_number_per_subcycle">
+                <a:documentation>Use subcycling to advect the metric.
 
 Specify the maximum courant number per subcycle.</a:documentation>
-            <ref name="real"/>
-            <ref name="field_based_cfl_number_options"/>
-          </element>
-          <element name="number_advection_subcycles">
-            <a:documentation>Use subcycling to advect the metric.
+                <ref name="real"/>
+                <ref name="field_based_cfl_number_options"/>
+              </element>
+              <element name="number_advection_subcycles">
+                <a:documentation>Use subcycling to advect the metric.
 
 Specify the number of subcycles.</a:documentation>
-            <ref name="integer"/>
-          </element>
-        </choice>
-        <optional>
-          <element name="scale_advection_time">
-            <a:documentation>Scale the time period over which the metric is
+                <ref name="integer"/>
+              </element>
+            </choice>
+            <optional>
+              <element name="scale_advection_time">
+                <a:documentation>Scale the time period over which the metric is
 advected by this factor.
 
 Default is 1.1</a:documentation>
-            <ref name="real"/>
-          </element>
-        </optional>
-        <element name="control_volumes">
-          <a:documentation>Temporal discretisation options for the control volume discretisation</a:documentation>
-          <optional>
-            <element name="number_advection_iterations">
-              <a:documentation>Number of iterations within an advection solve.
+                <ref name="real"/>
+              </element>
+            </optional>
+            <element name="control_volumes">
+              <a:documentation>Temporal discretisation options for the control volume discretisation</a:documentation>
+              <optional>
+                <element name="number_advection_iterations">
+                  <a:documentation>Number of iterations within an advection solve.
 This increases the accuracy of the face values and ensures that
 the pivoted solution is cancelled out.
 Defaults to 1 if unselected.</a:documentation>
-              <ref name="integer"/>
-            </element>
-          </optional>
-          <optional>
-            <element name="limit_theta">
-              <a:documentation>If not active then the theta specified above will be used.
+                  <ref name="integer"/>
+                </element>
+              </optional>
+              <optional>
+                <element name="limit_theta">
+                  <a:documentation>If not active then the theta specified above will be used.
 Otherwise use variable limited theta on individual faces.</a:documentation>
-              <empty/>
-            </element>
-          </optional>
-          <optional>
-            <element name="pivot_theta">
-              <a:documentation>Time discretisation of upwind discretisation off which the
+                  <empty/>
+                </element>
+              </optional>
+              <optional>
+                <element name="pivot_theta">
+                  <a:documentation>Time discretisation of upwind discretisation off which the
 higher order solution is pivotted.
  - pivot_theta = 1 - implicit pivot (default if not set and 
                      best choice if not intentionally modifying
                      scheme to be explicit)
  - pivot_theta = 0 - explicit pivot</a:documentation>
-              <ref name="real"/>
+                  <ref name="real"/>
+                </element>
+              </optional>
             </element>
-          </optional>
-        </element>
-      </element>
-      <choice>
-        <element name="solver">
-          <a:documentation>Solver</a:documentation>
-          <ref name="linear_solver_options_asym"/>
-        </element>
-        <element name="explicit">
-          <a:documentation>Assume this field is being solved explicitly and skip the solver.
+          </element>
+          <choice>
+            <element name="solver">
+              <a:documentation>Solver</a:documentation>
+              <ref name="linear_solver_options_asym_scalar"/>
+            </element>
+            <element name="explicit">
+              <a:documentation>Assume this field is being solved explicitly and skip the solver.
 
 Assumes lhs matrix only has diagonal lumped mass
 and divides the rhs by this.</a:documentation>
-          <empty/>
+              <empty/>
+            </element>
+          </choice>
+          <optional>
+            <ref name="porosity_include"/>
+          </optional>
+          <element name="output">
+            <a:documentation>Debugging output options</a:documentation>
+            <optional>
+              <element name="output_subcycle_vtus">
+                <a:documentation>Output vtus of the advected metric and edge lengths at every subcycle</a:documentation>
+                <empty/>
+              </element>
+            </optional>
+            <optional>
+              <element name="output_final_vtus">
+                <a:documentation>Output vtus of the final metric merged over all the subcycles</a:documentation>
+                <empty/>
+              </element>
+            </optional>
+          </element>
         </element>
-      </choice>
-      <optional>
-        <ref name="metric_advection_velocity_name"/>
       </optional>
       <optional>
-        <ref name="porosity_include"/>
-      </optional>
-      <element name="output">
-        <a:documentation>Debugging output options</a:documentation>
-        <optional>
-          <element name="output_subcycle_vtus">
-            <a:documentation>Output vtus of the advected metric and edge lengths at every subcycle</a:documentation>
-            <empty/>
-          </element>
-        </optional>
-        <optional>
-          <element name="output_final_vtus">
-            <a:documentation>Output vtus of the final metric merged over all the subcycles</a:documentation>
-            <empty/>
-          </element>
-        </optional>
-      </element>
-    </element>
-  </define>
-  <define name="metric_advection_velocity_name">
-    <element name="advecting_velocity_field_name">
-      <a:documentation>The name of the field used to advect the metric
-that must exist in the first material_phase.
-If not given then the NonlinearVelocity is used.</a:documentation>
-      <data type="string"/>
-    </element>
-  </define>
-  <define name="geometric_constraints">
-    <element name="geometric_constraints">
-      <a:documentation>Apply geometric constraints to the metric formation.
+        <element name="geometric_constraints">
+          <a:documentation>Apply geometric constraints to the metric formation.
 
 As specified in (Pain, 2001), the mesh adaptivity
 scheme attempts to formulate an appropriate edge length
@@ -781,12 +716,12 @@ of the boundaries.
 
 If you get 'knife elements' near domain boundaries,
 turn this on.</a:documentation>
-      <empty/>
-    </element>
-  </define>
-  <define name="bounding_box_factor">
-    <element name="bounding_box_factor">
-      <a:documentation>Bounding box factor.
+          <empty/>
+        </element>
+      </optional>
+      <optional>
+        <element name="bounding_box_factor">
+          <a:documentation>Bounding box factor.
 
 If the length scales specified by the metric are
 unrealistically large, the mesh optimisation
@@ -805,13 +740,12 @@ in the mesh optimisation algorithm.
 This option is multiplied by the bounding box of the domain
 before it bounds the metric formed from other
 considerations. By default, it is set to 2.0.</a:documentation>
-      <ref name="real"/>
-    </element>
-  </define>
-  <define name="goal_based_adaptivity">
-    <optional>
-      <element name="goal_based_adaptivity">
-        <a:documentation>Goal-based adaptivity. 
+          <ref name="real"/>
+        </element>
+      </optional>
+      <optional>
+        <element name="goal_based_adaptivity">
+          <a:documentation>Goal-based adaptivity. 
 
 With this option,
 rather than taking the user-specified interpolation
@@ -835,31 +769,31 @@ Coding your own goal is also possible
 but currently undocumented. See
 error_measures/Goals.F90
 for examples.</a:documentation>
-        <choice>
-          <element name="enstrophy_goal">
-            <a:documentation>Optimise for the representation of
+          <choice>
+            <element name="enstrophy_goal">
+              <a:documentation>Optimise for the representation of
 enstrophy,
   0.5 * int( |curl(velocity)|**2 ) dV.</a:documentation>
-            <attribute name="subroutine">
-              <value>goal_enstrophy</value>
-            </attribute>
-            <attribute name="dependencies">
-              <value>Velocity%1 Velocity%2 Velocity%3</value>
-            </attribute>
-          </element>
-          <element name="temperature_gradient_goal">
-            <a:documentation>Optimise for the representation of
+              <attribute name="subroutine">
+                <value>goal_enstrophy</value>
+              </attribute>
+              <attribute name="dependencies">
+                <value>Velocity%1 Velocity%2 Velocity%3</value>
+              </attribute>
+            </element>
+            <element name="temperature_gradient_goal">
+              <a:documentation>Optimise for the representation of
 gradients of temperature,
   int(|grad(temperature)|**2) dV.</a:documentation>
-            <attribute name="subroutine">
-              <value>goal_temp</value>
-            </attribute>
-            <attribute name="dependencies">
-              <value>Temperature</value>
-            </attribute>
-          </element>
-          <element name="les_goal">
-            <a:documentation>Optimise for the contribution of the standard
+              <attribute name="subroutine">
+                <value>goal_temp</value>
+              </attribute>
+              <attribute name="dependencies">
+                <value>Temperature</value>
+              </attribute>
+            </element>
+            <element name="les_goal">
+              <a:documentation>Optimise for the contribution of the standard
 Smagorinsky LES tensor.
 
 In effect, this goal minimises
@@ -870,15 +804,15 @@ the sub-grid scale model has an effect.
 int( transpose(grad(u)) . kappa . grad(u) ) dV,
 with u ranging over the components of (nonlinear)
 velocity and kappa the LES tensor.</a:documentation>
-            <attribute name="subroutine">
-              <value>goal_les_velocity</value>
-            </attribute>
-            <attribute name="dependencies">
-              <value>NonlinearVelocity%1 NonlinearVelocity%2 NonlinearVelocity%3</value>
-            </attribute>
-            <optional>
-              <element name="nonlinear_iterations">
-                <a:documentation>The number of nonlinear iterations to perform when
+              <attribute name="subroutine">
+                <value>goal_les_velocity</value>
+              </attribute>
+              <attribute name="dependencies">
+                <value>NonlinearVelocity%1 NonlinearVelocity%2 NonlinearVelocity%3</value>
+              </attribute>
+              <optional>
+                <element name="nonlinear_iterations">
+                  <a:documentation>The number of nonlinear iterations to perform when
 forming the metric with this goal.
 
 Because the LES tensor explicitly depends on mesh sizing,
@@ -887,12 +821,12 @@ using the proposed mesh sizing instead of the current mesh.
 This allows us to simulate adapts without actually incurring
 the cost of adaptation, for the purposes of converging the metric.
 The default value is 3.</a:documentation>
-                <ref name="integer"/>
-              </element>
-            </optional>
-          </element>
-          <element name="higher_order_les_goal">
-            <a:documentation>Optimise for the contribution of the new 4th-order
+                  <ref name="integer"/>
+                </element>
+              </optional>
+            </element>
+            <element name="higher_order_les_goal">
+              <a:documentation>Optimise for the contribution of the new 4th-order
 LES tensor.
 
 In effect, this goal minimises
@@ -907,15 +841,15 @@ with u ranging over the components of (nonlinear)
 velocity, kappa the LES tensor,
 grad(.) differentiation of basis functions and
 grad_h(.) the Galerkin projection of the first derivative.</a:documentation>
-            <attribute name="subroutine">
-              <value>goal_les_velocity_4th</value>
-            </attribute>
-            <attribute name="dependencies">
-              <value>NonlinearVelocity%1 NonlinearVelocity%2 NonlinearVelocity%3</value>
-            </attribute>
-            <optional>
-              <element name="nonlinear_iterations">
-                <a:documentation>The number of nonlinear iterations to perform when
+              <attribute name="subroutine">
+                <value>goal_les_velocity_4th</value>
+              </attribute>
+              <attribute name="dependencies">
+                <value>NonlinearVelocity%1 NonlinearVelocity%2 NonlinearVelocity%3</value>
+              </attribute>
+              <optional>
+                <element name="nonlinear_iterations">
+                  <a:documentation>The number of nonlinear iterations to perform when
 forming the metric with this goal.
 
 Because the LES tensor explicitly depends on mesh sizing,
@@ -924,14 +858,14 @@ using the proposed mesh sizing instead of the current mesh.
 This allows us to simulate adapts without actually incurring
 the cost of adaptation, for the purposes of converging the metric.
 The default value is 3.</a:documentation>
-                <ref name="integer"/>
-              </element>
-            </optional>
-          </element>
-        </choice>
-        <choice>
-          <element name="relative_tolerance">
-            <a:documentation>The tolerance of the goal specifies the acceptable
+                  <ref name="integer"/>
+                </element>
+              </optional>
+            </element>
+          </choice>
+          <choice>
+            <element name="relative_tolerance">
+              <a:documentation>The tolerance of the goal specifies the acceptable
 error in the quantity computed. The adaptation scheme
 attempts to adapt the mesh to ensure that the
 goal computed from the primitive solution is 
@@ -941,10 +875,10 @@ A relative tolerance specifies that the acceptable error
 in the goal is some fraction of the value as computed
 from the primitive solution. It is generally 
 the easiest to use. This is a unitless percentage.</a:documentation>
-            <ref name="real"/>
-          </element>
-          <element name="absolute_tolerance">
-            <a:documentation>The tolerance of the goal specifies the acceptable
+              <ref name="real"/>
+            </element>
+            <element name="absolute_tolerance">
+              <a:documentation>The tolerance of the goal specifies the acceptable
 error in the quantity computed. The adaptation scheme
 attempts to adapt the mesh to ensure that the
 goal computed from the primitive solution is 
@@ -952,83 +886,80 @@ within the tolerance specified here.
 
 An absolute tolerance specifies the acceptable error
 in the goal, in the units of the goal itself.</a:documentation>
-            <ref name="real"/>
-          </element>
-        </choice>
-      </element>
-    </optional>
-  </define>
-  <define name="min_and_max_edge_and_reference_mesh_bound_and_aspect_ratio_bound">
-    <element name="tensor_field">
-      <a:documentation>Mesh size constraints: the minimum edge length bound.</a:documentation>
-      <attribute name="name">
-        <value>MinimumEdgeLengths</value>
-      </attribute>
-      <element name="anisotropic_symmetric">
-        <ref name="input_choice_real_dim_symmetric_tensor"/>
-      </element>
-    </element>
-    <element name="tensor_field">
-      <a:documentation>Mesh size constraints: the maximum edge length bound.</a:documentation>
-      <attribute name="name">
-        <value>MaximumEdgeLengths</value>
-      </attribute>
-      <element name="anisotropic_symmetric">
-        <ref name="input_choice_real_dim_symmetric_tensor"/>
-      </element>
-    </element>
-    <zeroOrMore>
-      <element name="reference_mesh">
-        <a:documentation>Supply a reference mesh with which to bound the metric</a:documentation>
-        <attribute name="name">
-          <data type="string"/>
-        </attribute>
-        <attribute name="mesh_name">
-          <data type="string"/>
-        </attribute>
-        <choice>
-          <element name="minimum">
-            <a:documentation>Use this reference mesh as a bound on the minimum edge
-length of the metric</a:documentation>
-            <ref name="comment"/>
-          </element>
-          <element name="maximum">
-            <a:documentation>Use this reference mesh as a bound on the maximum edge
-length of the metric</a:documentation>
-            <ref name="comment"/>
-          </element>
-        </choice>
-        <ref name="comment"/>
-      </element>
-    </zeroOrMore>
-    <optional>
-      <element name="aspect_ratio_bound">
-        <a:documentation>Maximum aspect ratio in the adapted mesh.</a:documentation>
-        <ref name="real"/>
-      </element>
-    </optional>
-  </define>
-  <define name="adapt_at_first_timestep">
-    <element name="adapt_at_first_timestep">
-      <a:documentation>Adapt at first timestep</a:documentation>
-      <element name="number_of_adapts">
-        <a:documentation>Number of adapts done after initialisation but
-before the actual simulation starts</a:documentation>
-        <ref name="integer"/>
-      </element>
-      <optional>
-        <element name="output_adapted_mesh">
-          <a:documentation>Write out the first timestep adapted mesh.
-This is useful when needing to re-run simulations
-without waiting for the first timestep adapt</a:documentation>
-          <ref name="comment"/>
+              <ref name="real"/>
+            </element>
+          </choice>
         </element>
       </optional>
-    </element>
-  </define>
-  <define name="preserve_mesh_regions">
-    <element name="preserve_mesh_regions">
-      <a:documentation>Enable this option to preserve any regions in your
+      <element name="tensor_field">
+        <a:documentation>Mesh size constraints: the minimum edge length bound.</a:documentation>
+        <attribute name="name">
+          <value>MinimumEdgeLengths</value>
+        </attribute>
+        <element name="anisotropic_symmetric">
+          <ref name="input_choice_real_dim_symmetric_tensor"/>
+        </element>
+      </element>
+      <element name="tensor_field">
+        <a:documentation>Mesh size constraints: the maximum edge length bound.</a:documentation>
+        <attribute name="name">
+          <value>MaximumEdgeLengths</value>
+        </attribute>
+        <element name="anisotropic_symmetric">
+          <ref name="input_choice_real_dim_symmetric_tensor"/>
+        </element>
+      </element>
+      <zeroOrMore>
+        <element name="reference_mesh">
+          <a:documentation>Supply a reference mesh with which to bound the metric</a:documentation>
+          <attribute name="name">
+            <data type="string"/>
+          </attribute>
+          <attribute name="mesh_name">
+            <data type="string"/>
+          </attribute>
+          <choice>
+            <element name="minimum">
+              <a:documentation>Use this reference mesh as a bound on the minimum edge
+length of the metric</a:documentation>
+              <ref name="comment"/>
+            </element>
+            <element name="maximum">
+              <a:documentation>Use this reference mesh as a bound on the maximum edge
+length of the metric</a:documentation>
+              <ref name="comment"/>
+            </element>
+          </choice>
+          <ref name="comment"/>
+        </element>
+      </zeroOrMore>
+      <optional>
+        <element name="aspect_ratio_bound">
+          <a:documentation>Maximum aspect ratio in the adapted mesh.</a:documentation>
+          <ref name="real"/>
+        </element>
+      </optional>
+      <optional>
+        <element name="adapt_at_first_timestep">
+          <a:documentation>Adapt at first timestep</a:documentation>
+          <element name="number_of_adapts">
+            <a:documentation>Number of adapts done after initialisation but
+before the actual simulation starts</a:documentation>
+            <ref name="integer"/>
+          </element>
+          <optional>
+            <element name="output_adapted_mesh">
+              <a:documentation>Write out the first timestep adapted mesh.
+This is useful when needing to re-run simulations
+without waiting for the first timestep adapt</a:documentation>
+              <ref name="comment"/>
+            </element>
+          </optional>
+        </element>
+      </optional>
+      <optional>
+        <element name="preserve_mesh_regions">
+          <a:documentation>Enable this option to preserve any regions in your
 mesh (i.e. those specified by region_ids).
 Also, any prescribed fields using region_ids will be
 reinitialised using them on the new mesh.
@@ -1037,75 +968,75 @@ Therefore this is a required option if you want your
 prescribed region_id fields to survive adapts!
 Obviously this does not apply to initial conditions
 set using region_ids.</a:documentation>
-      <ref name="comment"/>
-    </element>
-  </define>
-  <define name="vertically_structured_adaptivity">
-    <element name="vertically_structured_adaptivity">
-      <a:documentation>Vertically structured adaptivity.
+          <ref name="comment"/>
+        </element>
+      </optional>
+      <optional>
+        <element name="vertically_structured_adaptivity">
+          <a:documentation>Vertically structured adaptivity.
 
 The mesh will be unstructured in the horizontal, but columnar
 in the vertical.
 To enable this, your meshes must be derived by extrusion
 from a lower-dimensional horizontal mesh.
 This will give a columnar, layered mesh.</a:documentation>
-      <optional>
-        <element name="inhomogenous_vertical_resolution">
-          <a:documentation>If this is enabled, the resolution along each column
+          <optional>
+            <element name="inhomogenous_vertical_resolution">
+              <a:documentation>If this is enabled, the resolution along each column
 will be computed from the error metric.
 This will give a columnar mesh, but not a layered one.</a:documentation>
-          <optional>
-            <element name="adapt_in_vertical_only">
-              <a:documentation>Ignore the horizontal adapt, and *only* adapt in the vertical</a:documentation>
-              <empty/>
+              <optional>
+                <element name="adapt_in_vertical_only">
+                  <a:documentation>Ignore the horizontal adapt, and *only* adapt in the vertical</a:documentation>
+                  <empty/>
+                </element>
+              </optional>
             </element>
           </optional>
-        </element>
-      </optional>
-      <optional>
-        <element name="split_gradation">
-          <a:documentation>Apply a separate step of horizontal (and vertical, if using inhomogeneous_vertical_resolution)
+          <optional>
+            <element name="split_gradation">
+              <a:documentation>Apply a separate step of horizontal (and vertical, if using inhomogeneous_vertical_resolution)
 gradation to the horizontal (and vertical) metric.
 This replaces is the gradation applied to the full metric and uses the gradation
 algorithm specified above.</a:documentation>
-          <empty/>
-        </element>
-      </optional>
-      <choice>
-        <element name="vertically_align_metric">
-          <a:documentation>Remove components from each field's metric that aren't aligned either horizontally
+              <empty/>
+            </element>
+          </optional>
+          <choice>
+            <element name="vertically_align_metric">
+              <a:documentation>Remove components from each field's metric that aren't aligned either horizontally
 or vertically.  This can help prevent the horizontal metric from becoming
 contaminated by parts of the vertical metric.
 
 NOTE: Vertical is defined using the GravityDirection field.  This is unlike some other
 parts of the vertically_structured_adaptivity and extrusion routines where vertical is defined as the
 last dimension.</a:documentation>
-          <empty/>
-        </element>
-        <element name="use_full_metric">
-          <a:documentation>When separating the horizontal metric from the vertical use the full metric.  This
+              <empty/>
+            </element>
+            <element name="use_full_metric">
+              <a:documentation>When separating the horizontal metric from the vertical use the full metric.  This
 can lead to more constrained horizontal resolution due to leakage between the vertical
 and horizontal components.</a:documentation>
-          <empty/>
-        </element>
-      </choice>
-      <optional>
-        <element name="include_bottom_metric">
-          <a:documentation>When constructing the horizontal metric incorporate the components of the 
+              <empty/>
+            </element>
+          </choice>
+          <optional>
+            <element name="include_bottom_metric">
+              <a:documentation>When constructing the horizontal metric incorporate the components of the 
 full metric tangential to the bottom boundary.  For example, this is useful 
 when horizontal contours of a field intersect the bathymetry and this information
 is not automatically incorporated into the horizontal metric leading to
 the contact point being underresolved.
 
 Depends on /geometry/ocean_boundaries.</a:documentation>
-          <empty/>
+              <empty/>
+            </element>
+          </optional>
         </element>
       </optional>
-    </element>
-  </define>
-  <define name="zoltan_options">
-    <element name="zoltan_options">
-      <a:documentation>Zoltan Options
+      <optional>
+        <element name="zoltan_options">
+          <a:documentation>Zoltan Options
 
 Set up some Zoltan options, including which partitioner to use.
 Only works if you have the --with-zoltan option in your configure.
@@ -1113,82 +1044,106 @@ Only works if you have the --with-zoltan option in your configure.
 Note that Zoltan will become the default (replacing Sam at some point)
 and these options are currently here only for development and testing
 purposes. They are subject to change and may not be in the final "release".</a:documentation>
-      <optional>
-        <element name="partitioner">
-          <a:documentation>Select which partitioner to use during all but the last adapt iteration.
+          <optional>
+            <element name="partitioner">
+              <a:documentation>Select which partitioner to use during all but the last adapt iteration.
 Graph partitioners available are ParMETIS and Zoltan PHG. The Zoltan
 PHG hypergraph partitoner is also available.
 Default is the Zoltan PHG graph partitioner.</a:documentation>
-          <choice>
-            <element name="metis">
-              <a:documentation>Use the ParMETIS graph partitioner. ParMETIS setup to match as
+              <choice>
+                <element name="metis">
+                  <a:documentation>Use the ParMETIS graph partitioner. ParMETIS setup to match as
 closely as possible the setup used previously by Sam.</a:documentation>
-              <empty/>
-            </element>
-            <element name="scotch">
-              <a:documentation>Use the PT-Scotch graph partitioner.</a:documentation>
-              <empty/>
-            </element>
-            <element name="zoltan">
-              <a:documentation>Use the Zoltan PHG partitioner.</a:documentation>
-              <element name="method">
-                <a:documentation>Select the partitioning method you would like used by Zoltan PHG.
+                  <empty/>
+                </element>
+                <element name="scotch">
+                  <a:documentation>Use the PT-Scotch graph partitioner.</a:documentation>
+                  <empty/>
+                </element>
+                <element name="zoltan">
+                  <a:documentation>Use the Zoltan PHG partitioner.</a:documentation>
+                  <element name="method">
+                    <a:documentation>Select the partitioning method you would like used by Zoltan PHG.
 Currently hypergraph partitioning is the simplest implementation
 and can produce non-contiguous partitions for certain problems.</a:documentation>
-                <choice>
-                  <value>graph</value>
-                  <value>hypergraph</value>
-                </choice>
-              </element>
+                    <choice>
+                      <value>graph</value>
+                      <value>hypergraph</value>
+                    </choice>
+                  </element>
+                </element>
+              </choice>
             </element>
-          </choice>
-        </element>
-      </optional>
-      <optional>
-        <element name="final_partitioner">
-          <a:documentation>Select which partitioner to use after the final adapt iteration.
+          </optional>
+          <optional>
+            <element name="final_partitioner">
+              <a:documentation>Select which partitioner to use after the final adapt iteration.
 Graph partitioners available are ParMETIS and Zoltan PHG. The 
 Zoltan PHG hypergraph partitoner is also available.
 Default is the ParMETIS graph partitioner.</a:documentation>
-          <choice>
-            <element name="metis">
-              <a:documentation>Use the ParMETIS graph partitioner. ParMETIS setup to match as
+              <choice>
+                <element name="metis">
+                  <a:documentation>Use the ParMETIS graph partitioner. ParMETIS setup to match as
 closely as possible the setup used previously by Sam.</a:documentation>
-              <empty/>
-            </element>
-            <element name="scotch">
-              <a:documentation>Use the PT-Scotch graph partitioner.</a:documentation>
-              <empty/>
-            </element>
-            <element name="zoltan">
-              <a:documentation>Use the Zoltan PHG partitioner.</a:documentation>
-              <element name="method">
-                <a:documentation>Select the partitioning method you would like used by Zoltan PHG.
+                  <empty/>
+                </element>
+                <element name="scotch">
+                  <a:documentation>Use the PT-Scotch graph partitioner.</a:documentation>
+                  <empty/>
+                </element>
+                <element name="zoltan">
+                  <a:documentation>Use the Zoltan PHG partitioner.</a:documentation>
+                  <element name="method">
+                    <a:documentation>Select the partitioning method you would like used by Zoltan PHG.
 Currently hypergraph partitioning is the simplest implementation
 and can produce non-contiguous partitions for certain problems.</a:documentation>
-                <choice>
-                  <value>graph</value>
-                  <value>hypergraph</value>
-                </choice>
-              </element>
+                    <choice>
+                      <value>graph</value>
+                      <value>hypergraph</value>
+                    </choice>
+                  </element>
+                </element>
+              </choice>
             </element>
-          </choice>
-        </element>
-      </optional>
-      <optional>
-        <element name="element_quality_cutoff">
-          <a:documentation>Element quality cut off. 
+          </optional>
+          <optional>
+            <element name="load_balancing_approach">
+              <a:documentation>Load-balancing approach, for all but the final adapt iteration. For the final
+adapt iteration we always use the PARTITION approach, to ensure the best 
+possible load balance after adaptivity.</a:documentation>
+              <choice>
+                <element name="partition">
+                  <a:documentation>PARTITION (default): partition from scratch, not taking the current data 
+distribution into account</a:documentation>
+                  <empty/>
+                </element>
+                <element name="repartition">
+                  <a:documentation>REPARTITION: partition but try to stay close to the current 
+partition/distribution</a:documentation>
+                  <empty/>
+                </element>
+                <element name="refine">
+                  <a:documentation>REFINE: refine the current partition/distribution; assumes only 
+small changes</a:documentation>
+                  <empty/>
+                </element>
+              </choice>
+            </element>
+          </optional>
+          <optional>
+            <element name="element_quality_cutoff">
+              <a:documentation>Element quality cut off. 
 Elements with a quality greater than this will be liable to be
 on the parition boundary. Below this, they will be free to be adapted
 and improved. Range is 0 to 1, with default 0.6
 This should be set to the same value as used for the quality option
 in libmba2d or libmba3d</a:documentation>
-          <ref name="real"/>
-        </element>
-      </optional>
-      <optional>
-        <element name="load_imbalance_tolerance">
-          <a:documentation>Load imbalance tolerance.
+              <ref name="real"/>
+            </element>
+          </optional>
+          <optional>
+            <element name="load_imbalance_tolerance">
+              <a:documentation>Load imbalance tolerance.
 The amount of load imbalance the partitioning algorithm should deem acceptable.
 The imbalance is computed as the maximum load divided by the average load.
 A value for load_imbalance_tol of 1.2 indicates that 20% imbalance is okay.
@@ -1197,189 +1152,215 @@ but be able to move the partition boundaries easier to allow adaption. For some
 problems where the partitioner creates empty partitions lowering this (~1.075) will
 force Zoltan to create more evenly balanced partitions (no empty ones) but may
 require more adapt iterations to produce a fully adapted final mesh.</a:documentation>
-          <ref name="real"/>
-        </element>
-      </optional>
-      <optional>
-        <element name="additional_adapt_iterations">
-          <a:documentation>Additional adapt iterations.
+              <ref name="real"/>
+            </element>
+          </optional>
+          <optional>
+            <element name="additional_adapt_iterations">
+              <a:documentation>Additional adapt iterations.
 Zoltan returns the minimum element quality to adaptivity. By setting additional adapt
 iterations to a value greater than zero we allow Zoltan to do adapt_iterations plus
 additional_adapt_iterations calls to adaptivity. Additional calls over adapt iterations
 are only allowed if Zoltan returns a minimum element quality below the element quality
 cut off. Default is 0. </a:documentation>
-          <ref name="integer"/>
-        </element>
-      </optional>
-      <optional>
-        <element name="zoltan_debug">
-          <a:documentation>Zoltan Debugging
+              <ref name="integer"/>
+            </element>
+          </optional>
+          <optional>
+            <element name="field_weighted_partitions">
+              <element name="scalar_field">
+                <a:documentation>Field weighted partitions: turning on this option allows one to 
+weight mesh partitions, based upon a prescribed scalar field. 
+Note that the field should have a minimum value of 0 and a maximum
+value of 1 (no normalisation is done within the code).</a:documentation>
+                <attribute name="rank">
+                  <value>0</value>
+                </attribute>
+                <attribute name="name">
+                  <value>FieldWeightedPartitionValues</value>
+                </attribute>
+                <choice>
+                  <element name="prescribed">
+                    <ref name="coordinate_mesh_choice"/>
+                    <ref name="prescribed_scalar_field"/>
+                  </element>
+                  <element name="diagnostic">
+                    <ref name="coordinate_mesh_choice"/>
+                    <ref name="diagnostic_scalar_field"/>
+                  </element>
+                </choice>
+              </element>
+            </element>
+          </optional>
+          <optional>
+            <element name="zoltan_debug">
+              <a:documentation>Zoltan Debugging
 
 Turn on more verbose output for use when debugging Zoltan.</a:documentation>
-          <optional>
-            <element name="graph_checking">
-              <a:documentation>Turn on graph checking.
+              <optional>
+                <element name="graph_checking">
+                  <a:documentation>Turn on graph checking.
 When using ParMETIS or PT-Scotch options for turning on
 graph checking are provided by Zoltan.
 1 - on process checking,
 2 - full checking (very slow)</a:documentation>
-              <choice>
-                <value>1</value>
-                <value>2</value>
-              </choice>
-            </element>
-          </optional>
-          <optional>
-            <element name="dump_edge_counts">
-              <a:documentation>Print out a dump file of the edge counts.
+                  <choice>
+                    <value>1</value>
+                    <value>2</value>
+                  </choice>
+                </element>
+              </optional>
+              <optional>
+                <element name="dump_edge_counts">
+                  <a:documentation>Print out a dump file of the edge counts.
 Edge counts for each owned node are calculated in zoltan_cb_get_num_edges.
 This option dumps the edge count for each owned node.
 Dump is to the current directory, in a file called edge_counts_*.dat
 One dump file is created for each rank.
 Will get overwritten at each adapt.</a:documentation>
-              <empty/>
-            </element>
-          </optional>
-          <optional>
-            <element name="dump_edge_weights">
-              <a:documentation>Print out a dump file of the edge weights.
+                  <empty/>
+                </element>
+              </optional>
+              <optional>
+                <element name="dump_edge_weights">
+                  <a:documentation>Print out a dump file of the edge weights.
 Edge weights are calculated for each edge in zoltan_cb_get_edge_list.
 Permits a visualisation of how the edge weights are distributed.
 Dump is to the current directory, in a file called edge_weights_*.dat
 One dump file is created for each rank.
 Will get overwritten at each adapt.</a:documentation>
-              <empty/>
-            </element>
-          </optional>
-          <optional>
-            <element name="dump_node_sizes">
-              <a:documentation>Print out a dump file of node sizes.
+                  <empty/>
+                </element>
+              </optional>
+              <optional>
+                <element name="dump_node_sizes">
+                  <a:documentation>Print out a dump file of node sizes.
 Zoltan needs to be told how much data is associated with each node when
 doing phase one migration.
 Here we dump the size calculated by zoltan_cb_pack_node_sizes for each
 owned node.
 Dump is to the current directory, in a file called node_sizes_*.dat
 One dump file is created for each rank.</a:documentation>
-              <empty/>
-            </element>
-          </optional>
-          <optional>
-            <element name="dump_halo_node_sizes">
-              <a:documentation>Print out a dump file of halo node sizes.
+                  <empty/>
+                </element>
+              </optional>
+              <optional>
+                <element name="dump_halo_node_sizes">
+                  <a:documentation>Print out a dump file of halo node sizes.
 Zoltan needs to be told how much data is associated with each halo node when
 doing phase two migration.
 Here we dump the size calculated by zoltan_cb_pack_halo_node_sizes for each
 owned node.
 Dump is to the current directory, in a file called halo_node_sizes_*.dat
 One dump file is created for each rank.</a:documentation>
-              <empty/>
-            </element>
-          </optional>
-          <optional>
-            <element name="dump_field_sizes">
-              <a:documentation>Print out a dump file of field sizes.
+                  <empty/>
+                </element>
+              </optional>
+              <optional>
+                <element name="dump_field_sizes">
+                  <a:documentation>Print out a dump file of field sizes.
 Zoltan needs to be told how much data is associated with the fields for each 
 element when we're transfering fields.
 Here we dump the size calculated by zoltan_cb_pack_field_sizes for each
 owned node.
 Dump is to the current directory, in a file called field_sizes_*.dat
 One dump file is created for each rank.</a:documentation>
-              <empty/>
+                  <empty/>
+                </element>
+              </optional>
             </element>
           </optional>
         </element>
       </optional>
-    </element>
-  </define>
-  <define name="adaptivity_library">
-    <element name="adaptivity_library">
-      <a:documentation>Select the adaptivity library used by hr-adaptivity. If disabled,
+      <optional>
+        <element name="adaptivity_library">
+          <a:documentation>Select the adaptivity library used by hr-adaptivity. If disabled,
 the defaults are:
   In 3D: libadaptivity
   In 2D: libmba2d
   In 1D: adaptivity_1d</a:documentation>
-      <choice>
-        <element name="libadaptivity">
-          <a:documentation>libadaptivity. 3D, parallelised.</a:documentation>
-          <optional>
-            <element name="sweeps">
-              <a:documentation>The number of adaptivity sweeps. Default value: 10</a:documentation>
-              <ref name="integer"/>
-            </element>
-          </optional>
-          <optional>
-            <element name="disable_edge_split">
-              <a:documentation>Enable this option to turn off edge splitting</a:documentation>
-              <ref name="comment"/>
-            </element>
-          </optional>
-          <optional>
-            <element name="disable_edge_collapse">
-              <a:documentation>Enable this option to turn off edge collapsing</a:documentation>
-              <ref name="comment"/>
-            </element>
-          </optional>
-          <optional>
-            <element name="disable_edge_swap">
-              <a:documentation>Enable this option to turn off edge/face, face/edge and
+          <choice>
+            <element name="libadaptivity">
+              <a:documentation>libadaptivity. 3D, parallelised.</a:documentation>
+              <optional>
+                <element name="sweeps">
+                  <a:documentation>The number of adaptivity sweeps. Default value: 10</a:documentation>
+                  <ref name="integer"/>
+                </element>
+              </optional>
+              <optional>
+                <element name="disable_edge_split">
+                  <a:documentation>Enable this option to turn off edge splitting</a:documentation>
+                  <ref name="comment"/>
+                </element>
+              </optional>
+              <optional>
+                <element name="disable_edge_collapse">
+                  <a:documentation>Enable this option to turn off edge collapsing</a:documentation>
+                  <ref name="comment"/>
+                </element>
+              </optional>
+              <optional>
+                <element name="disable_edge_swap">
+                  <a:documentation>Enable this option to turn off edge/face, face/edge and
 edge/edge swapping</a:documentation>
-              <ref name="comment"/>
-            </element>
-          </optional>
-          <optional>
-            <element name="disable_node_movement">
-              <a:documentation>Enable this option to turn off node movement, and use
+                  <ref name="comment"/>
+                </element>
+              </optional>
+              <optional>
+                <element name="disable_node_movement">
+                  <a:documentation>Enable this option to turn off node movement, and use
 h-adaptivity only.</a:documentation>
-              <ref name="comment"/>
-            </element>
-          </optional>
-          <optional>
-            <element name="write_adapted_quality">
-              <a:documentation>Writes vtus containing the Pain 2001 P0 element functionals
+                  <ref name="comment"/>
+                </element>
+              </optional>
+              <optional>
+                <element name="write_adapted_quality">
+                  <a:documentation>Writes vtus containing the Pain 2001 P0 element functionals
 of the adapted meshes.</a:documentation>
+                  <ref name="comment"/>
+                </element>
+              </optional>
               <ref name="comment"/>
             </element>
-          </optional>
-          <ref name="comment"/>
-        </element>
-        <element name="libmba2d">
-          <a:documentation>libmba2d. 2D. A testing parallel implementation is available.</a:documentation>
-          <optional>
-            <element name="quality">
-              <a:documentation>Desired output mesh quality, 0 &lt;= quality &lt;= 1.
+            <element name="libmba2d">
+              <a:documentation>libmba2d. 2D. A testing parallel implementation is available.</a:documentation>
+              <optional>
+                <element name="quality">
+                  <a:documentation>Desired output mesh quality, 0 &lt;= quality &lt;= 1.
 Default value 0.6.</a:documentation>
-              <ref name="real"/>
+                  <ref name="real"/>
+                </element>
+              </optional>
+              <ref name="comment"/>
             </element>
-          </optional>
-          <ref name="comment"/>
-        </element>
-        <element name="adaptivity_1d">
-          <a:documentation>Re-uses 1D adaptivity code from 2+1D adaptivity. 1D, serial only.</a:documentation>
-          <ref name="comment"/>
-        </element>
-        <element name="libmba3d">
-          <a:documentation>libmba3d. 3D, serial only.</a:documentation>
-          <optional>
-            <element name="quality">
-              <a:documentation>Desired output mesh quality, 0 &lt;= quality &lt;= 1.
+            <element name="adaptivity_1d">
+              <a:documentation>Re-uses 1D adaptivity code from 2+1D adaptivity. 1D, serial only.</a:documentation>
+              <ref name="comment"/>
+            </element>
+            <element name="libmba3d">
+              <a:documentation>libmba3d. 3D, serial only.</a:documentation>
+              <optional>
+                <element name="quality">
+                  <a:documentation>Desired output mesh quality, 0 &lt;= quality &lt;= 1.
 Default value 0.6.</a:documentation>
-              <ref name="real"/>
+                  <ref name="real"/>
+                </element>
+              </optional>
+              <optional>
+                <element name="max_optimisations">
+                  <a:documentation>Maximum number of mesh optimisations. Default value 10^5.</a:documentation>
+                  <ref name="integer"/>
+                </element>
+              </optional>
+              <ref name="comment"/>
             </element>
-          </optional>
-          <optional>
-            <element name="max_optimisations">
-              <a:documentation>Maximum number of mesh optimisations. Default value 10^5.</a:documentation>
-              <ref name="integer"/>
-            </element>
-          </optional>
-          <ref name="comment"/>
+          </choice>
         </element>
-      </choice>
-    </element>
-  </define>
-  <define name="adapt_iterations">
-    <element name="adapt_iterations">
-      <a:documentation>Number of times the adaptivity library is called. In parallel elements
+      </optional>
+      <optional>
+        <element name="adapt_iterations">
+          <a:documentation>Number of times the adaptivity library is called. In parallel elements
 near the local domain boundary are locked during the mesh adaptation. The mesh
 is then redistributed in such a way that these locked regions are moved into the
 interior of local domains and adaptivity is called again to adapt these not-yet-adapted
@@ -1387,60 +1368,62 @@ regions. By default, in parallel, the number of times the adaptivity library is 
 in this way is three. If a relatively small mesh is distributed among a large number
 of processors, a large proportion of the mesh is locked during adaptivity and more
 iterations may be necessary.</a:documentation>
-      <ref name="integer"/>
-    </element>
-  </define>
-  <define name="hr_adaptivity_debug">
-    <element name="debug">
-      <a:documentation>hr adptivity debugging options</a:documentation>
+          <ref name="integer"/>
+        </element>
+      </optional>
       <optional>
-        <element name="write_metric_stages">
-          <a:documentation>Write out error metric at each stage of the processing
+        <element name="debug">
+          <a:documentation>hr adptivity debugging options</a:documentation>
+          <optional>
+            <element name="write_metric_stages">
+              <a:documentation>Write out error metric at each stage of the processing
 pipeline. This can be very useful in diagnosing why
 adaptivity is doing something you don't expect.</a:documentation>
-          <ref name="comment"/>
-        </element>
-      </optional>
-      <optional>
-        <element name="write_adapted_mesh">
-          <a:documentation>Write out the Coordinate field to a triangle mesh for every
-state adapt. In parallel, a triangle mesh and .halo files
+              <ref name="comment"/>
+            </element>
+          </optional>
+          <optional>
+            <element name="write_adapted_mesh">
+              <a:documentation>Write out the Coordinate field to a mesh for every
+state adapt. In parallel, mesh and .halo files
 will be written for every parallel adapt iteration.</a:documentation>
-          <ref name="comment"/>
-        </element>
-      </optional>
-      <optional>
-        <element name="write_adapted_state">
-          <a:documentation>Write out the system state to a vtu adapt every state adapt.
+              <ref name="comment"/>
+            </element>
+          </optional>
+          <optional>
+            <element name="write_adapted_state">
+              <a:documentation>Write out the system state to a vtu adapt every state adapt.
 In parallel, a vtu will be written for every parallel
 adapt iteration.</a:documentation>
-          <ref name="comment"/>
-        </element>
-      </optional>
-      <optional>
-        <element name="write_periodic_adapted_mesh">
-          <a:documentation>Write periodic meshes and surface IDs to vtus at each stage of the processing
+              <ref name="comment"/>
+            </element>
+          </optional>
+          <optional>
+            <element name="write_periodic_adapted_mesh">
+              <a:documentation>Write periodic meshes and surface IDs to vtus at each stage of the processing
 pipeline. This can be very useful in diagnosing why
 adaptivity is doing something you don't expect.</a:documentation>
-          <ref name="comment"/>
-        </element>
-      </optional>
-      <optional>
-        <element name="checkpoint">
-          <a:documentation>Checkpoint the simulation after every adapt. In parallel, a
+              <ref name="comment"/>
+            </element>
+          </optional>
+          <optional>
+            <element name="checkpoint">
+              <a:documentation>Checkpoint the simulation after every adapt. In parallel, a
 checkpoint will be written &lt;b&gt;only&lt;/b&gt; after the final adapt
 iteration. Checkpoints are postfixed with "adapt_checkpoint".</a:documentation>
-          <optional>
-            <element name="max_checkpoint_count">
-              <a:documentation>Number of checkpoints to write before overwriting existing
+              <optional>
+                <element name="max_checkpoint_count">
+                  <a:documentation>Number of checkpoints to write before overwriting existing
 checkpoints.</a:documentation>
-              <ref name="integer"/>
+                  <ref name="integer"/>
+                </element>
+              </optional>
+              <ref name="comment"/>
             </element>
           </optional>
           <ref name="comment"/>
         </element>
       </optional>
-      <ref name="comment"/>
     </element>
   </define>
   <define name="prescribed_adaptivity">
@@ -1486,9 +1469,9 @@ The return value must be a string.</a:documentation>
             <a:documentation>Read the mesh from file, rather than extracting it from the
 system state.</a:documentation>
             <element name="format">
-              <a:documentation>Input mesh file format.</a:documentation>
+              <a:documentation>GMSH mesh format</a:documentation>
               <attribute name="name">
-                <value>triangle</value>
+                <value>gmsh</value>
               </attribute>
               <ref name="comment"/>
             </element>
@@ -2005,195 +1988,92 @@ potential and pressure, while still being balance preserving.</a:documentation>
 If the field you are interpolating is continuous, then
 a linear solver is required to invert the mass matrix.</a:documentation>
       <optional>
-        <choice>
-          <element name="bounded">
-            <a:documentation>Use a bounded Galerkin projection. Conservative, bounded in the
+        <element name="bounded">
+          <a:documentation>Use a bounded Galerkin projection. Conservative, bounded in the
 limit, and minimally dissipative. This algorithm starts with the
 Galerkin projection and dissipates it until it achieves
 boundedness.
 If it does not converge, it may not be exactly bounded.
 Note well: this only works for linear fields.</a:documentation>
-            <attribute name="name">
-              <value>Diffuse</value>
-            </attribute>
-            <element name="boundedness_iterations">
-              <a:documentation>The number of dissipation iterations attempted to bound the
+          <attribute name="name">
+            <value>Diffuse</value>
+          </attribute>
+          <element name="boundedness_iterations">
+            <a:documentation>The number of dissipation iterations attempted to bound the
 Galerkin projection.</a:documentation>
-              <ref name="integer"/>
+            <ref name="integer"/>
+            <optional>
+              <element name="tolerance">
+                <a:documentation>Specify the tolerance to which boundedness is to be tested during the iterations.
+Defaults to computer precision if unspecified.</a:documentation>
+                <ref name="real"/>
+              </element>
+            </optional>
+          </element>
+          <optional>
+            <element name="bounds">
+              <a:documentation>If the bounds on this field are known then they can be set here.
+These can either further constrain the limits worked out by the
+lumped version of the projection (i.e. to make sure that errors 
+don't accumulate with succesive interpolations) or if apply_globally
+is set they are just made to be bounded within the bounds globally
+(i.e. anything between those bounds is not smoothed).</a:documentation>
+              <optional>
+                <element name="upper_bound">
+                  <ref name="real"/>
+                  <optional>
+                    <element name="apply_globally">
+                      <a:documentation>If this is set the upper_bound is used everywhere.
+If left unset the upper_bound is only used to constrain
+the smoothed bounds calculated by the code</a:documentation>
+                      <empty/>
+                    </element>
+                  </optional>
+                  <optional>
+                    <element name="coupled">
+                      <a:documentation>This field is to be considered as being coupled to another field
+such that the sum of the two fields is constrained to be less than
+the upper_bound specified above.
+
+The relationships between fields are worked out according to their
+priority ordering.
+
+This method is akin to the coupled_cv advection method.</a:documentation>
+                      <empty/>
+                    </element>
+                  </optional>
+                </element>
+              </optional>
+              <optional>
+                <element name="lower_bound">
+                  <ref name="real"/>
+                  <optional>
+                    <element name="apply_globally">
+                      <a:documentation>If this is set the upper_bound is used everywhere.
+If left unset the upper_bound is only used to constrain
+the smoothed bounds calculated by the code</a:documentation>
+                      <empty/>
+                    </element>
+                  </optional>
+                </element>
+              </optional>
+            </element>
+          </optional>
+          <optional>
+            <element name="repair_deviations">
+              <a:documentation>If, after performing all the boundedness_iterations, the field
+is still not bounded then perform surgery to redistribute the
+deviations to nodes that have less than their bounds.</a:documentation>
               <optional>
                 <element name="tolerance">
-                  <a:documentation>Specify the tolerance to which boundedness is to be tested during the iterations.
+                  <a:documentation>Specify the tolerance to which boundedness is to be tested during the repair.
 Defaults to computer precision if unspecified.</a:documentation>
                   <ref name="real"/>
                 </element>
               </optional>
             </element>
-            <optional>
-              <element name="bounds">
-                <a:documentation>If the bounds on this field are known then they can be set here.
-These can either further constrain the limits worked out by the
-lumped version of the projection (i.e. to make sure that errors 
-don't accumulate with succesive interpolations) or if apply_globally
-is set they are just made to be bounded within the bounds globally
-(i.e. anything between those bounds is not smoothed).</a:documentation>
-                <optional>
-                  <element name="upper_bound">
-                    <ref name="real"/>
-                    <optional>
-                      <element name="apply_globally">
-                        <a:documentation>If this is set the upper_bound is used everywhere.
-If left unset the upper_bound is only used to constrain
-the smoothed bounds calculated by the code</a:documentation>
-                        <empty/>
-                      </element>
-                    </optional>
-                    <optional>
-                      <element name="coupled">
-                        <a:documentation>This field is to be considered as being coupled to another field
-such that the sum of the two fields is constrained to be less than
-the upper_bound specified above.
-
-The relationships between fields are worked out according to their
-priority ordering.
-
-This method is akin to the coupled_cv advection method.</a:documentation>
-                        <empty/>
-                      </element>
-                    </optional>
-                  </element>
-                </optional>
-                <optional>
-                  <element name="lower_bound">
-                    <ref name="real"/>
-                    <optional>
-                      <element name="apply_globally">
-                        <a:documentation>If this is set the upper_bound is used everywhere.
-If left unset the upper_bound is only used to constrain
-the smoothed bounds calculated by the code</a:documentation>
-                        <empty/>
-                      </element>
-                    </optional>
-                  </element>
-                </optional>
-              </element>
-            </optional>
-            <optional>
-              <element name="repair_deviations">
-                <a:documentation>If, after performing all the boundedness_iterations, the field
-is still not bounded then perform surgery to redistribute the
-deviations to nodes that have less than their bounds.</a:documentation>
-                <optional>
-                  <element name="tolerance">
-                    <a:documentation>Specify the tolerance to which boundedness is to be tested during the repair.
-Defaults to computer precision if unspecified.</a:documentation>
-                    <ref name="real"/>
-                  </element>
-                </optional>
-              </element>
-            </optional>
-          </element>
-          <element name="bounded">
-            <a:documentation>Use a bounded Galerkin projection. Conservative, bounded in the
-limit, and hopefully minimally dissipative. This algorithm starts with the
-Galerkin projection and uses the optimisation library Algencan to bound
-it by minimising a functional within constraints on boundedness and conservation.
-Note well: this only works for linear fields.</a:documentation>
-            <attribute name="name">
-              <value>Algencan</value>
-            </attribute>
-            <choice>
-              <element name="functional">
-                <attribute name="name">
-                  <value>L2</value>
-                </attribute>
-                <optional>
-                  <element name="weight">
-                    <ref name="real"/>
-                  </element>
-                </optional>
-              </element>
-              <element name="functional">
-                <attribute name="name">
-                  <value>LumpedMassL2</value>
-                </attribute>
-                <optional>
-                  <element name="weight">
-                    <ref name="real"/>
-                  </element>
-                </optional>
-              </element>
-              <element name="functional">
-                <attribute name="name">
-                  <value>IntegralL2</value>
-                </attribute>
-                <optional>
-                  <element name="weight">
-                    <ref name="real"/>
-                  </element>
-                </optional>
-              </element>
-              <element name="functional">
-                <attribute name="name">
-                  <data type="string" datatypeLibrary=""/>
-                </attribute>
-                <optional>
-                  <element name="weight">
-                    <ref name="real"/>
-                  </element>
-                </optional>
-              </element>
-            </choice>
-            <optional>
-              <element name="bounds">
-                <a:documentation>If the bounds on this field are known then they can be set here.
-These can either further constrain the limits worked out by the
-lumped version of the projection (i.e. to make sure that errors 
-don't accumulate with succesive interpolations) or if apply_globally
-is set they are just made to be bounded within the bounds globally
-(i.e. anything between those bounds is not smoothed).</a:documentation>
-                <optional>
-                  <element name="upper_bound">
-                    <ref name="real"/>
-                    <optional>
-                      <element name="apply_globally">
-                        <a:documentation>If this is set the upper_bound is used everywhere.
-If left unset the upper_bound is only used to constrain
-the smoothed bounds calculated by the code</a:documentation>
-                        <empty/>
-                      </element>
-                    </optional>
-                    <optional>
-                      <element name="coupled">
-                        <a:documentation>This field is to be considered as being coupled to another field
-such that the sum of the two fields is constrained to be less than
-the upper_bound specified above.
-
-The relationships between fields are worked out according to their
-priority ordering.
-
-This method is akin to the coupled_cv advection method.</a:documentation>
-                        <empty/>
-                      </element>
-                    </optional>
-                  </element>
-                </optional>
-                <optional>
-                  <element name="lower_bound">
-                    <ref name="real"/>
-                    <optional>
-                      <element name="apply_globally">
-                        <a:documentation>If this is set the upper_bound is used everywhere.
-If left unset the upper_bound is only used to constrain
-the smoothed bounds calculated by the code</a:documentation>
-                        <empty/>
-                      </element>
-                    </optional>
-                  </element>
-                </optional>
-              </element>
-            </optional>
-          </element>
-        </choice>
+          </optional>
+        </element>
       </optional>
       <choice>
         <element name="solver">

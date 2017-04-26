@@ -30,18 +30,21 @@
 module assemble_CMC
 
   use fldebug
-  use state_module
-  use sparse_tools
-  use sparse_tools_petsc
   use spud
+  use global_parameters, only: OPTION_PATH_LEN
+  use sparse_tools
+  use linked_lists
+  use elements
+  use transform_elements
+  use fetools, only: shape_shape
   use fields
-  use fields_base
-  use fefields
+  use sparse_tools_petsc
+  use state_module
+  use boundary_conditions
   use sparse_matrices_fields
   use field_options
-  use global_parameters, only: OPTION_PATH_LEN
-  use linked_lists
-  
+  use fefields
+
   implicit none 
 
   private
@@ -164,7 +167,9 @@ contains
 
       end if
 
-      call mult_div_invvector_div_T(schur_diagonal_matrix, ctp_m, inner_m_diagonal, ct_m)
+      call invert(inner_m_diagonal)
+      call zero_dirichlet_rows(u, inner_m_diagonal)
+      call mult_div_vector_div_T(schur_diagonal_matrix, ctp_m, inner_m_diagonal, ct_m)
       ewrite_minmax(schur_diagonal_matrix)
       call deallocate(inner_m_diagonal)
 

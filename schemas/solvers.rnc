@@ -113,10 +113,10 @@ kspgmres_options =
          attribute name { "gmres" },
          ## Restart value for gmres iteration
          ## Higher values give better convergence but require more memory.
-         ## Suggested value: 30
+         ## Default value: 30
          element restart {
             integer
-         }
+         }?
       }
    )
    
@@ -536,6 +536,11 @@ null_space_options =
       ## test you need to run fluidity with a verbosity level of at least -v1.
       element test_null_space {
          empty
+      }?,
+      ## For debugging purposes: write a vtu file containing the null space vector fields
+      ## for each solve.
+      element write_null_space {
+         empty
       }?
    )
 
@@ -638,12 +643,6 @@ miscellaneous_solver_options =
             ## i.e. PETSc computes the L2-norm of r=A-bx. This may mean
             ## PETSc has to do extra computations.
             element true_residual {
-               empty
-            }?,
-            ## Draws a graph over the convergence of the preconditioned residual
-            ## during the solve. This option only works for systems where PETSc
-            ## has been linked with the X library.
-            element preconditioned_residual_graph {
                empty
             }?,
             ## Prints the error by computing the difference with the provided

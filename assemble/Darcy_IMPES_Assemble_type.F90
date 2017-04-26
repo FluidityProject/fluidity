@@ -10,6 +10,8 @@ module darcy_impes_assemble_type
   use fields
   use state_module
   use fldebug
+  use elements
+  use sparse_tools
   use sparse_tools_petsc
   use cv_faces
   use global_parameters, only: OPTION_PATH_LEN, FIELD_NAME_LEN

@@ -1,19 +1,24 @@
 #include "fdebug.h"
 
 module mba_adapt_module
+  use fldebug
+  use eventcounter
+  use metric_tools
   use fields
   use state_module
-  use interpolation_module
   use meshdiagnostics
   use vtk_interfaces
-  use eventcounter
   use node_boundary
-  use metric_tools
+  use interpolation_module
   use limit_metric_module
 #ifdef HAVE_MBA_2D
   use mba2d_module
 #endif
   implicit none
+
+  private
+
+  public :: mba_adapt, CrvFunction_ani, snap_positions, face_basis
 
   contains
 

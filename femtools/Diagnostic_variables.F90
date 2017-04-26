@@ -29,58 +29,64 @@
 
 module diagnostic_variables
   !!< A module to calculate and output diagnostics. This replaces the .s file.
-  use quadrature
-  use elements
+  use iso_c_binding, only: c_long
+  use fldebug 
   use global_parameters, only:FIELD_NAME_LEN,OPTION_PATH_LEN, &
-    & PYTHON_FUNC_LEN, int_16, integer_size, real_size
-  use fields
+& PYTHON_FUNC_LEN, integer_size, real_size
+  use quadrature
+  use futils
+  use elements
+  use spud
+  use mpi_interfaces
+  use parallel_tools
+  use memory_diagnostics
+  use integer_hash_table_module
+  use data_structures
+  use linked_lists
+  use halo_data_types
+  use halos_base
+  use halos_debug
+  use halos_allocates
+  use ieee_arithmetic
+  use sparse_tools
+  use embed_python
   use fields_base
+  use eventcounter
+  use fetools
+  use unittest_tools
+  use halos_communications
+  use halos_numbering
+  use halos_ownership
+  use parallel_fields, only: element_owned
+  use fields
+  use profiler
+  use state_module
+  use vtk_interfaces
+  use halos_derivation
+  use halos_registration
   use field_derivatives
   use field_options
-  use state_module
-  use futils
-  use fetools
+  use c_interfaces
   use fefields
-  use MeshDiagnostics
-  use spud
-  use parallel_tools
-  use Profiler
+  use meshdiagnostics
   use sparsity_patterns
   use solvers
   use write_state_module, only: vtk_write_state_new_options
   use surface_integrals
-  use vtk_interfaces
-  use embed_python
-  use eventcounter
-  use pickers
-  use sparse_tools
-  use mixing_statistics
-  use c_interfaces
-!  use checkpoint
-  use memory_diagnostics
-  use data_structures
-  use unittest_tools
-  use integer_hash_table_module
-  use halo_data_types
-  use halos_allocates
-  use halos_base
-  use halos_debug
-  use halos_numbering
-  use halos_ownership
-  use halos_derivation
-  use halos_communications
-  use halos_registration
-  use mpi_interfaces
-  use parallel_tools
-  use fields_manipulation
   use detector_data_types
+  use pickers
+  use mixing_statistics
   use detector_tools
   use detector_parallel
   use detector_move_lagrangian
-  use ieee_arithmetic, only: cget_nan
-  use state_fields_module, only: get_cv_mass
+  use state_fields_module
   
   implicit none
+
+  interface
+     subroutine register_diagnostics()
+     end subroutine register_diagnostics
+  end interface
 
   private
 
@@ -169,7 +175,7 @@ module diagnostic_variables
     
     !! Recording wall time since the system start
     integer :: current_count, count_rate, count_max
-    integer(kind = int_16) :: elapsed_count
+    integer(kind = c_long) :: elapsed_count
   end type stat_type
 
   type(stat_type), save, target :: default_stat
@@ -2762,7 +2768,9 @@ contains
                            ! Vector detector data
                          & detector_list%total_num_det * detector_list%num_vfields * dim
 
-    location_to_write = (detector_list%mpi_write_count - 1) * number_total_columns * realsize
+    ! raise kind of one of the variables (each individually is a 4 byte-integer) such that the calculation is coerced to be of MPI_OFFSET_KIND (typically 8 bytes)
+    ! this is necessary for files bigger than 2GB
+    location_to_write = (int(detector_list%mpi_write_count, kind=MPI_OFFSET_KIND) - 1) * number_total_columns * realsize
 
     if(procno == 1) then
       ! Output time data

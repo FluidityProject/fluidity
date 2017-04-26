@@ -33,6 +33,7 @@ module darcy_impes_assemble_module
    use quadrature
    use elements
    use sparse_tools
+   use transform_elements
    use fields
    use sparse_tools_petsc
    !

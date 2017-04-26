@@ -3,8 +3,11 @@
 
 subroutine test_unify_meshes
 
+  use fldebug
   use unittest_tools
-  use read_triangle
+  use mesh_files
+  use quadrature
+  use elements
   use fields
   use linked_lists
   use intersection_finder_module
@@ -30,8 +33,8 @@ subroutine test_unify_meshes
   type(mesh_type) :: accum_mesh
   type(vector_field) :: accum_positions, accum_positions_tmp
 
-  positionsA = read_triangle_files("data/dg_interpolation_quads_A", quad_degree=1)
-  positionsB = read_triangle_files("data/dg_interpolation_quads_B", quad_degree=1)
+  positionsA = read_mesh_files("data/dg_interpolation_quads_A", quad_degree=1, format="gmsh")
+  positionsB = read_mesh_files("data/dg_interpolation_quads_B", quad_degree=1, format="gmsh")
 
   dim = positionsA%dim
 
@@ -61,6 +64,11 @@ subroutine test_unify_meshes
     do while(associated(llnode))
       ele_A = llnode%value
       intersection = intersect_elements(positionsA, ele_A, ele_val(positionsB, ele_B), supermesh_shape)
+      if (.not. has_references(intersection)) then
+          llnode => llnode%next
+          cycle
+      end if
+
       call unify_meshes_quadratic(accum_positions, intersection, accum_positions_tmp)
       call deallocate(accum_positions)
       accum_positions = accum_positions_tmp

@@ -48,9 +48,9 @@ extern "C"{
 }
 
 void Usage(){
-  cout << "Usage: checkmesh TRIANGLE_BASENAME\n"
+  cout << "Usage: checkmesh MESH_BASENAME\n"
        << "\n"
-       << "Checks the validity of the supplied triangle mesh" << endl;
+       << "Checks the validity of the supplied mesh" << endl;
 }
 
 int main(int argc, char** argv){

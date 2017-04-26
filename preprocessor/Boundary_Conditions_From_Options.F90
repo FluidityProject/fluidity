@@ -27,38 +27,44 @@
 
 #include "fdebug.h"
 module boundary_conditions_from_options
-use fldebug
-use quadrature
-use elements
-use fields
-use field_options
-use state_module
-use sparse_tools_petsc
-use boundary_conditions
-use initialise_fields_module
-use global_parameters, only: OPTION_PATH_LEN, PYTHON_FUNC_LEN, pi, current_debug_level
-use tidal_module
-use SampleNetCDF
-use coordinates
-use synthetic_bc
-use spud
-use vector_tools
-use vtk_interfaces
-use pickers_inquire
-use bulk_parameterisations
-use k_epsilon
-use integer_set_module !for iceshelf
-use fields_base !for iceshelf
-use fields ! for iceshelf
-use sediment, only: set_sediment_reentrainment
-use halos_numbering
-use halos_base
-use fefields
 
-implicit none
+  use fldebug
+  use global_parameters, only: OPTION_PATH_LEN, PYTHON_FUNC_LEN, pi,&
+       current_debug_level, FIELD_NAME_LEN
+  use futils, only: int2str, present_and_true
+  use vector_tools
+  use quadrature
+  use spud
+  use integer_set_module
+  use parallel_tools
+  use halos_base
+  use sparse_tools
+  use elements
+  use embed_python, only: real_from_python
+  use transform_elements
+  use halos_numbering
+  use fields
+  use sparse_tools_petsc
+  use state_module
+  use field_options
+  use vtk_interfaces
+  use fefields
+  use boundary_conditions
+  use coordinates
+  use initialise_fields_module
+  use tidal_module
+  use samplenetcdf
+  use synthetic_bc, only : add_sem_bc, initialise_sem_memory, synthetic_eddy_method
+  use pickers_inquire, only: picker_inquire
+  use bulk_parameterisations, only: get_forcing_surface_element_list
+  use k_epsilon, only: keps_bcs
+  use sediment, only: set_sediment_reentrainment
+
+  implicit none
 
   private
-  public populate_boundary_conditions, set_boundary_conditions_values, &
+
+  public :: populate_boundary_conditions, set_boundary_conditions_values, &
        apply_dirichlet_conditions_inverse_mass, impose_reference_pressure_node, &
        find_reference_node_from_coordinates, impose_reference_velocity_node
   public :: populate_scalar_boundary_conditions, &
@@ -68,6 +74,32 @@ implicit none
      module procedure apply_dirichlet_conditions_inverse_mass_vector, &
                       apply_dirichlet_conditions_inverse_mass_vector_lumped
   end interface apply_dirichlet_conditions_inverse_mass
+
+  interface
+!! Explicit interface for get_era40_fluxes function as defined in
+!!    ocean_forcing/forcingERA40.cpp
+     subroutine get_era40_fluxes( time, X, Y, Z, temp,&
+          Vx, Vy, Vz, sal,F_as, Q_as, Tau_u, Tau_v, Q_s, &
+          NNodes, on_sphere, bulk_formula)
+
+       real :: time
+       real, dimension(*) :: X, Y, Z, temp, Vx, Vy, Vz, sal, F_as,&
+            Q_as, Tau_u, Tau_v, Q_s
+       integer :: NNodes, bulk_formula
+       logical*1 :: on_sphere
+
+     end subroutine get_era40_fluxes
+  end interface
+
+  interface
+!! Explicit interface for projections_spherical_cartesion function as defined in
+!!    femtools/projections.cpp
+     subroutine projections_spherical_cartesian(n, x, y, z)
+       integer :: n
+       real, dimension(:) :: x,y,z
+     end subroutine projections_spherical_cartesian
+
+  end interface
 
 contains
 
@@ -428,7 +460,7 @@ contains
           call insert_surface_field(field, i+1, surface_field)
           call insert_surface_field(field, i+1, surface_field2)
           call deallocate(surface_field)
-          call deallocate(surface_field)
+          call deallocate(surface_field2)
 
        case("drag")
 
@@ -1545,7 +1577,7 @@ contains
         transformation(1) = lat_long(2) ! Longtitude
         transformation(2) = lat_long(1) ! latitude
         transformation(3) = 0.0
-        call projections_spherical_cartesian(1, transformation(1), transformation(2), transformation(3))
+        call projections_spherical_cartesian(1, transformation(1:1), transformation(2:2), transformation(3:3))
     else
         transformation = 0.0
     end if
@@ -1814,7 +1846,7 @@ contains
          if (ele<0) then
              FLExit("Turbine error: The point defined in "//trim(turbine_path)//"/free_surface_point_"//int2str(j)//" is not located in a mesh element")
          end if
-         fs_val(j) = eval_field_scalar(ele, fs_field, local_coord)
+         fs_val(j) = eval_field(ele, fs_field, local_coord)
        end do
        ! Function head -> outflow
        call get_option(trim(turbine_path)//"/dirichlet/head_flux", func)
@@ -2390,7 +2422,7 @@ contains
        if(ele > 0) then
           allocate(ele_local_vertices(ele_vertices(mesh,ele)))
           ! List vertices of element incorporating desired coordinates:
-          ele_local_vertices = element_local_vertices(ele_shape(mesh,ele))
+          ele_local_vertices = local_vertices(ele_shape(mesh,ele))
           ! Find nearest vertex:
           local_vertex = maxloc(local_coord,dim=1)             
           ! List of nodes in element:

@@ -176,14 +176,15 @@ subroutine flredecomp(input_basename, input_basename_len, output_basename, outpu
   call zoltan_drive(state, .true., initialise_fields=.true., ignore_extrusion=skip_initial_extrusion, &
      & flredecomping=.true., input_procs = input_nprocs, target_procs = target_nprocs)
 #else
+  call sam_integration_check_options()
   call strip_level_2_halo(state, initialise_fields=.true.)
-  call sam_drive(state, sam_options(target_nprocs))
+  call sam_drive(state, sam_options(target_nprocs), initialise_fields=.true.)
 #endif
   
   ! Output
   assert(associated(state))
   call checkpoint_simulation(state, prefix = output_base, postfix = "", protect_simulation_name = .false., &
-    keep_initial_data=.true., ignore_detectors=.true.)
+    keep_initial_data=.true., ignore_detectors=.true., number_of_partitions=target_nprocs)
 
   do i = 1, size(state)
     call deallocate(state(i))

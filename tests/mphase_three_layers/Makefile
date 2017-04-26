@@ -1,7 +1,6 @@
 preprocess:
 	@echo **********Creating 2D mesh
 	gmsh -2 -o mphase_three_layers.msh src/mphase_three_layers.geo
-	../../bin/gmsh2triangle --2d mphase_three_layers.msh
 
 run:
 	@echo **********Running simulation

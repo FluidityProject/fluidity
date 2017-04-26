@@ -28,20 +28,23 @@
 #include "fdebug.h"
 
 module gls
+
+  use global_parameters, only:   OPTION_PATH_LEN, FIELD_NAME_LEN
+  use fldebug
   use quadrature
   use elements
-  use field_derivatives
-  use fields
-  use sparse_matrices_fields
-  use state_module
   use spud
-  use global_parameters, only:   OPTION_PATH_LEN
-  use equation_of_state
-  use state_fields_module
+  use sparse_tools
+  use fetools
+  use fields
+  use state_module
   use boundary_conditions
-  use Coordinates
-  use FLDebug
+  use field_derivatives
+  use sparse_matrices_fields
   use fefields
+  use state_fields_module
+  use equation_of_state
+  use coordinates
   use vertical_extrapolation_module
 
   implicit none
@@ -1463,7 +1466,7 @@ subroutine gls_buoyancy(state)
             end if
           
             if (on_sphere) then
-                grav_at_quads=sphere_inward_normal_at_quad_ele(positions, ele)
+                grav_at_quads=radial_inward_normal_at_quad_ele(positions, ele)
             else
                 grav_at_quads=ele_val_at_quad(gravity, ele)
             end if

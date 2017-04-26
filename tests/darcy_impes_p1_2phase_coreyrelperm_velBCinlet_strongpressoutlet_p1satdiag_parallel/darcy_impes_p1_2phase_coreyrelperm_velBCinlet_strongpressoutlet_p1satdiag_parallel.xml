@@ -96,8 +96,8 @@ assert abs(sum_sat_relpermupwind_integral_2d_A - 1.0) &lt; 1.0e-08
     <test name="Assert max absolute analytic error for saturation phase 2 using modrelpermupwind_satfesweby for 2d on mesh A is less than 5.1e-01" language="python">
 assert(abs(phase2_sat_relpermupwind_analytic_error_max_2d_A) &lt; 5.1e-01)
     </test>
-    <test name="Assert integral absolute analytic error for saturation phase 2 using modrelpermupwind_satfesweby for 2d on mesh A is less than 7.4e-03" language="python">
-assert(abs(phase2_sat_relpermupwind_analytic_error_integral_2d_A) &lt; 7.4e-03)
+    <test name="Assert integral absolute analytic error for saturation phase 2 using modrelpermupwind_satfesweby for 2d on mesh A is less than 7.5e-03" language="python">
+assert(abs(phase2_sat_relpermupwind_analytic_error_integral_2d_A) &lt; 7.5e-03)
     </test>
   </pass_tests>
   <warn_tests>

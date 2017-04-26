@@ -27,8 +27,12 @@
   
 #include "fdebug.h"
 program form_pod_basis
+  use fldebug
   use spud
+  use elements
+  use reference_counting, only: print_references
   use fields
+  use embed_python
   use state_module
   use write_state_module
   use timeloop_utilities
@@ -38,10 +42,12 @@ program form_pod_basis
   use vtk_interfaces
   use memory_diagnostics
 
-  implicit none
-#ifdef HAVE_PETSC
-#include "finclude/petsc.h"
+#ifdef HAVE_PETSC_MODULES
+  use petsc
 #endif
+  implicit none
+#include "petsc_legacy.h"
+
   type(state_type), dimension(:), allocatable :: state,state_test
   type(state_type), dimension(:,:), allocatable :: pod_state
 

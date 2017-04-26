@@ -8,7 +8,6 @@ preprocess: envcheck
 		ln -sf ../channel.flml .;\
 		ln -sf ../channel_tools.py .;\
 		ln -sf ../src/chan$(layers).msh ./channel.msh;\
-		${BINPREFIX}gmsh2triangle -2 ./channel.msh;\
 		cd ..; \
 	)
 

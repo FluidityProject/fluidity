@@ -29,19 +29,22 @@
 
 module adapt_state_prescribed_module
 
-  use embed_python
-  use field_options
-  use fields
+  use fldebug
   use global_parameters, only : OPTION_PATH_LEN
-  use interpolation_manager
-  use node_boundary
+  use embed_python
+  use spud
+  use parallel_tools
+  use eventcounter, only: EVENT_ADAPTIVITY, EVENT_MESH_MOVEMENT, incrementeventcounter
+  use fields
+  use state_module
+  use field_options
   use boundary_conditions
+  use node_boundary
   use boundary_conditions_from_options
-  use populate_state_module
   use mesh_files
   use reserve_state_module
-  use spud
-  use state_module
+  use populate_state_module
+  use interpolation_manager
 
   implicit none
   
@@ -133,6 +136,7 @@ contains
     type(mesh_type) :: lnew_positions_mesh
     type(mesh_type), pointer :: old_linear_mesh
     type(vector_field) :: old_positions, lnew_positions
+    integer :: unique_sids
   
     ewrite(1, *) "In adapt_state_prescribed_internal"
     
@@ -160,9 +164,10 @@ contains
       end do
       assert(associated(new_positions%mesh%faces))
       assert(associated(new_positions%mesh%faces%boundary_ids))
-      allocate(sndgln(surface_element_count(new_positions%mesh) * face_loc(new_positions%mesh, 1)))
+      unique_sids = unique_surface_element_count(new_positions%mesh)
+      allocate(sndgln(unique_sids * face_loc(new_positions%mesh, 1)))
       call getsndgln(new_positions%mesh, sndgln)
-      call add_faces(lnew_positions_mesh, sndgln = sndgln, boundary_ids = new_positions%mesh%faces%boundary_ids)
+      call add_faces(lnew_positions_mesh, sndgln = sndgln, boundary_ids = new_positions%mesh%faces%boundary_ids(1:unique_sids))
       deallocate(sndgln)
       if(associated(new_positions%mesh%region_ids)) then
         allocate(lnew_positions_mesh%region_ids(ele_count(new_positions%mesh)))

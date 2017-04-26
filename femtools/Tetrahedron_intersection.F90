@@ -1,17 +1,28 @@
-#define BUF_SIZE 150
 #include "fdebug.h"
+#ifdef HAVE_LIBSUPERMESH
+#define BUF_SIZE 3645
+#else
+#define BUF_SIZE 150
+#endif
 
 module tetrahedron_intersection_module
 
-  use elements
+  use fldebug
   use vector_tools
+  use element_numbering, only: FAMILY_CUBE, FAMILY_SIMPLEX
+  use elements
   use fields_data_types
   use fields_base
   use fields_allocates
   use fields_manipulation
   use transform_elements
+#ifdef HAVE_LIBSUPERMESH
+  use libsupermesh, only : tet_type, plane_type, intersect_polys
+#endif
+
   implicit none
 
+#ifndef HAVE_LIBSUPERMESH
   type tet_type
     real, dimension(3, 4) :: V ! vertices of the tet
     integer, dimension(4) :: colours = -1 ! surface colours
@@ -22,10 +33,14 @@ module tetrahedron_intersection_module
     real :: c
   end type plane_type
 
+  integer :: tet_cnt_tmp = 0
+#endif
   type(tet_type), dimension(BUF_SIZE), save :: tet_array, tet_array_tmp
-  integer :: tet_cnt = 0, tet_cnt_tmp = 0
+  integer :: tet_cnt = 0
   type(mesh_type), save :: intersection_mesh
   logical, save :: mesh_allocated = .false.
+
+  private
 
   public :: tet_type, plane_type, intersect_tets, get_planes, finalise_tet_intersector
 
@@ -58,11 +73,14 @@ module tetrahedron_intersection_module
     integer, intent(out) :: stat
 
     integer :: i, j, k, l
+    integer, dimension(3) :: idx_tmp
+    integer :: surface_eles
+    type(mesh_type) :: surface_mesh, pwc_surface_mesh
+#ifndef HAVE_LIBSUPERMESH
     real :: vol
     real, dimension(3) :: vec_tmp
-    integer, dimension(3) :: idx_tmp
-    integer :: surface_eles, colour_tmp
-    type(mesh_type) :: surface_mesh, pwc_surface_mesh
+    integer :: colour_tmp
+#endif
 
     if (present(surface_colours) .or. present(surface_positions) .or. present(surface_shape)) then
       assert(present(surface_positions))
@@ -75,9 +93,6 @@ module tetrahedron_intersection_module
     assert(shape%numbering%family == FAMILY_SIMPLEX)
     assert(shape%dim == 3)
 
-    tet_cnt = 1
-    tet_array(1) = tetA
-
     if (.not. mesh_allocated) then
       call allocate(intersection_mesh, BUF_SIZE * 4, BUF_SIZE, shape, name="IntersectionMesh")
       intersection_mesh%ndglno = (/ (i, i=1,BUF_SIZE*4) /)
@@ -85,6 +100,12 @@ module tetrahedron_intersection_module
       mesh_allocated = .true.
     end if
 
+#ifdef HAVE_LIBSUPERMESH
+    call intersect_polys(tetA, planesB, tet_array, tet_cnt, work = tet_array_tmp)
+#else
+    tet_cnt = 1
+    tet_array(1) = tetA
+    
     do i=1,size(planesB)
       ! Clip the tet_array against the i'th plane
       tet_cnt_tmp = 0
@@ -118,6 +139,7 @@ module tetrahedron_intersection_module
         end do
       end if
     end do
+#endif
 
     if (tet_cnt == 0) then
       stat=1
@@ -174,6 +196,7 @@ module tetrahedron_intersection_module
 
   end subroutine intersect_tets_dt
 
+#ifndef HAVE_LIBSUPERMESH
   subroutine clip(plane, tet)
   ! Clip tet against the plane
   ! and append any output to tet_array_tmp.
@@ -368,6 +391,7 @@ module tetrahedron_intersection_module
     end select
 
   end subroutine clip
+#endif
 
   pure function get_planes_tet(tet) result(plane)
     type(tet_type), intent(in) :: tet
@@ -447,6 +471,7 @@ module tetrahedron_intersection_module
     cross = cross / norm2(cross)
   end function unit_cross
 
+#ifndef HAVE_LIBSUPERMESH
   pure function distances_to_plane(plane, tet) result(dists)
     type(plane_type), intent(in) :: plane
     type(tet_type), intent(in) :: tet
@@ -484,5 +509,6 @@ module tetrahedron_intersection_module
     end do
 
   end function face_no
+#endif
 
 end module tetrahedron_intersection_module

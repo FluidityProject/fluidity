@@ -2,30 +2,42 @@
 
 module meshmovement
 
-  use elements
-  use solvers
-  use global_numbering
-  use shape_functions
-  use fields
-  use fefields
-  use fields_base
-  use element_numbering
-  use field_derivatives
-  use state_module
-  use fetools
-  use sparsity_patterns
   use global_parameters
-  use FLDebug
-  use sparse_tools
-  use vtk_interfaces
-  use unittest_tools
+  use fldebug
+  use vector_tools, only: solve, mat_diag_mat, eigendecomposition_symmetric
+  use element_numbering
+  use elements
+  use shape_functions
   use spud
-  use sparsity_patterns_meshes
+  use sparse_tools
+  use fields_base
+  use global_numbering
   use eventcounter
+  use fetools
+  use unittest_tools
+  use fields
+  use state_module
+  use vtk_interfaces
   use sparse_matrices_fields
+  use solvers
+  use fefields
+  use field_derivatives
+  use sparsity_patterns
+  use sparsity_patterns_meshes
 
   implicit none
   integer,save :: MeshCount=0
+
+  interface
+
+     subroutine set_debug_level(level)
+       implicit none
+       integer, intent(in) :: level
+     end subroutine set_debug_level
+
+     subroutine reset_debug_level
+     end subroutine reset_debug_level
+  end interface
   
   private
   
@@ -120,7 +132,7 @@ contains
    
     mesh = extract_mesh(state, "CoordinateMesh")
     ewrite(3,*) "coordinate mesh extracted "
-    mdim=mesh_dim_mesh(mesh)
+    mdim=mesh_dim(mesh)
 
     allocate(F1weight(mdim))
     allocate(F2weight(mdim))
@@ -266,7 +278,7 @@ contains
              ewrite(3,*) "No grid movement in Z "
           endif
 
-          if (lagrangian_multi>=mesh_dim_mesh(mesh)) then 
+          if (lagrangian_multi>=mesh_dim(mesh)) then 
              ewrite(0,*) "The grid is blocked in all direction!"
              ewrite(0,*) "Do you know what you're doing?"
           endif
@@ -313,12 +325,12 @@ contains
     ewrite(3,*) " size of grid velocity field",node_count(gridvelocity)
     ewrite(3,*) " size of temperature field",node_count(ifield)
 
-    cdim=2*mesh_dim_mesh(mesh)-1
+    cdim=2*mesh_dim(mesh)-1
 
-    call field_stats_vector(gridvelocity,positions, mini, maxi, l2norm2)
+    call field_stats(gridvelocity,positions, mini, maxi, l2norm2)
     ewrite(3,*) "##grid_vel at the start of routine :mini, max,norm2 ",mini, maxi,l2norm2
 
-    cdim=mesh_dim_mesh(mesh)+lagrangian_multi
+    cdim=mesh_dim(mesh)+lagrangian_multi
 
     ewrite(3,*) "we're gonna solve a system of dimension: ", cdim
     !if blcok5x5 was a block matrix...
@@ -336,11 +348,11 @@ contains
 
     if(scaling)then
        ewrite(3,*) "## scaling of the functional is untested :"
-       call field_stats_scalar(ifield,positions, mini, maxi, l2norm2)
+       call field_stats(ifield,positions, mini, maxi, l2norm2)
        rhorange=maxi-mini
        do i=1,velocity%dim
           field1=extract_scalar_field_from_vector_field(positions,i)
-          call field_stats_scalar(field1,positions, mini, maxi, l2norm2)
+          call field_stats(field1,positions, mini, maxi, l2norm2)
           MaxX(i)=maxi
           MinX(i)=mini
           rangeX(i)=maxi-mini
@@ -348,7 +360,7 @@ contains
          
           if(MeshCount.ge.1)then
              field1=extract_scalar_field_from_vector_field(velocity,i)
-             call field_stats_scalar(field1,positions, mini, maxi, l2norm2)
+             call field_stats(field1,positions, mini, maxi, l2norm2)
              speedrange(i)=maxi-mini
           endif
           if (option==1) F1weight(i)= 1/(rangeX(1)* rangeX(2)* rangeX(3)*(0.5*speedrange(i)*rhorange/rangeX(i))**2)
@@ -636,7 +648,7 @@ contains
                    end do
                 end do
 
-                call field_stats_scalar(Fe,positions, mini, maxi, l2norm2)
+                call field_stats(Fe,positions, mini, maxi, l2norm2)
                 Feweight(3)=1.0!/(maxi-mini)
                 Feweight(1)=0.0
                 Feweight(2)=0.0
@@ -782,7 +794,7 @@ contains
        if ((cos(MeshCount*pi/6.0)*sin(MeshCount*pi/6.0)).gt.0.0) then
           call set(gridvelocity,gridvelocity_yves)    
           ewrite(3,*) "Setting the grid Velocity positive " ,MeshCount*dt
-          call field_stats_vector(gridvelocity,positions, mini, maxi, l2norm2)
+          call field_stats(gridvelocity,positions, mini, maxi, l2norm2)
           ewrite(3,*) "##grid_vel:mini, max,norm2",mini, maxi,l2norm2
        endif
        if ((cos(MeshCount*pi/6.0)*sin(MeshCount*pi/6.0)).lt.0.0) then
@@ -792,7 +804,7 @@ contains
           !end do
 
           ewrite(3,*) "Setting the grid Velocity negative " ,MeshCount*dt
-          call field_stats_vector(gridvelocity,positions, mini, maxi, l2norm2)
+          call field_stats(gridvelocity,positions, mini, maxi, l2norm2)
           ewrite(3,*) "##grid_vel:mini, max,norm2",mini, maxi,l2norm2
        endif
     endif
@@ -803,7 +815,7 @@ contains
     if (option==2)  call deallocate(hessian)
     call deallocate(masslump)
     
-    call field_stats_vector(gridvelocity,positions, mini, maxi, l2norm2)
+    call field_stats(gridvelocity,positions, mini, maxi, l2norm2)
     ewrite(3,*) "##grid_vel:mini, max,norm2",mini, maxi,l2norm2
 
 
@@ -879,7 +891,7 @@ contains
     deallocate(BLOCK5X5)
     deallocate(BLOCK5X5L)
 
-    call field_stats_vector(gridvelocity,positions, mini, maxi, l2norm2)
+    call field_stats(gridvelocity,positions, mini, maxi, l2norm2)
     ewrite(3,*) "##grid_vel at end of routine :mini, max,norm2",mini, maxi,l2norm2
     if (associated(gridvelocity, linear_gridvelocity)) then
        ! extract the actual grid velocity
@@ -1060,11 +1072,11 @@ contains
     allocate(MaxX(positions%dim))
     do i=1,positions%dim
        field1=extract_scalar_field_from_vector_field(positions,i)
-       call field_stats_scalar(field1,positions,mini,maxi,l2norm)
+       call field_stats(field1,positions,mini,maxi,l2norm)
        MaxX(i)=maxi
        MinX(i)=mini
     end do
-    call field_stats_vector(MeshVelocity,positions, mini, maxi, l2norm)
+    call field_stats(MeshVelocity,positions, mini, maxi, l2norm)
     ewrite(3,*) "##grid_vel in move_internal_nodes :mini, max,norm2",mini, maxi,l2norm
     !call  get_time_step(DT)
     DThalf=DT
@@ -1111,7 +1123,7 @@ contains
     deallocate(MinX)
     deallocate(MaxX)
 
-    call field_stats_vector(MeshVelocity,positions, mini, maxi, l2norm)
+    call field_stats(MeshVelocity,positions, mini, maxi, l2norm)
     ewrite(3,*) "##grid_vel at end of routine :mini, max,norm2",mini, maxi,l2norm
 
 

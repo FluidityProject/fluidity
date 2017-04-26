@@ -82,7 +82,10 @@ def get_head_pos(file):
   data = reader.GetOutput()
   data.GetPointData().SetActiveScalars("Dense::MaterialVolumeFraction")
   contour = vtk.vtkContourFilter ()
-  contour.SetInput(data)
+  if vtk.vtkVersion.GetVTKMajorVersion() &lt;= 5:
+    contour.SetInput(data)
+  else:
+    contour.SetInputData(data)
   contour.SetValue(0, 0.025)
   contour.Update()
   polydata = contour.GetOutput()
@@ -120,7 +123,10 @@ def get_head_pos(file):
   data = reader.GetOutput()
   data.GetPointData().SetActiveScalars("Dense::MaterialVolumeFraction")
   contour = vtk.vtkContourFilter ()
-  contour.SetInput(data)
+  if vtk.vtkVersion.GetVTKMajorVersion() &lt;= 5:
+    contour.SetInput(data)
+  else:
+    contour.SetInputData(data)
   contour.SetValue(0, 0.5)
   contour.Update()
   polydata = contour.GetOutput()
@@ -158,7 +164,10 @@ def get_head_pos(file):
   data = reader.GetOutput()
   data.GetPointData().SetActiveScalars("Dense::MaterialVolumeFraction")
   contour = vtk.vtkContourFilter ()
-  contour.SetInput(data)
+  if vtk.vtkVersion.GetVTKMajorVersion() &lt;= 5:
+    contour.SetInput(data)
+  else:
+    contour.SetInputData(data)
   contour.SetValue(0, 0.975)
   contour.Update()
   polydata = contour.GetOutput()

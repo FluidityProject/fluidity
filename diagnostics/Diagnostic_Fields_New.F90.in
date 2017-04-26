@@ -29,13 +29,13 @@
 
 module diagnostic_fields_new
 
-  use field_options
-  use fields
   use fldebug
-  use futils
   use global_parameters, only : FIELD_NAME_LEN, OPTION_PATH_LEN
+  use futils
   use spud
+  use fields
   use state_module
+  use field_options
 
 USE_MODULES
   
@@ -44,7 +44,8 @@ USE_MODULES
   private
   
   public :: check_diagnostic_dependencies, calculate_diagnostic_variables, &
-    & calculate_diagnostic_variable, diagnostic_fields_new_check_options
+    & calculate_diagnostic_variable, calculate_diagnostic_variable_dep, &
+    & diagnostic_fields_new_check_options
       
   interface calculate_dependencies
     module procedure calculate_dependencies_scalar, &
@@ -70,6 +71,18 @@ USE_MODULES
       & calculate_diagnostic_variable_tensor_multiple_non_indexed, &
       & calculate_diagnostic_variable_tensor_multiple_indexed
   end interface calculate_diagnostic_variable
+
+  interface calculate_diagnostic_variable_dep
+    module procedure calculate_diagnostic_variable_dep_scalar_single, &
+      & calculate_diagnostic_variable_dep_scalar_multiple_non_indexed, &
+      & calculate_diagnostic_variable_dep_scalar_multiple_indexed, &
+      & calculate_diagnostic_variable_dep_vector_single, &
+      & calculate_diagnostic_variable_dep_vector_multiple_non_indexed, &
+      & calculate_diagnostic_variable_dep_vector_multiple_indexed, &
+      & calculate_diagnostic_variable_dep_tensor_single, &
+      & calculate_diagnostic_variable_dep_tensor_multiple_non_indexed, &
+      & calculate_diagnostic_variable_dep_tensor_multiple_indexed
+  end interface calculate_diagnostic_variable_dep
   
   interface get_dependencies
     module procedure get_dependencies_scalar, get_dependencies_vector, &
@@ -475,8 +488,10 @@ contains
         
         ! Only calculate non-aliased diagnostic fields
         if(.not. recalculate_diagnostic_variable(dep_s_field, exclude_nonrecalculated = exclude_nonrecalculated)) cycle
-        ! Check whether this field has already been calculated (as a dependency)
-        if(has_scalar_field(dep_states_mask(i), dep_s_field%name)) cycle
+        if(present(dep_states_mask)) then
+          ! Check whether this field has already been calculated (as a dependency)
+          if(has_scalar_field(dep_states_mask(i), dep_s_field%name)) cycle
+        end if
         
         ! Calculate dependencies
         call calculate_dependencies(states, i, dep_s_field, &
@@ -491,8 +506,10 @@ contains
         
         ! Only calculate non-aliased diagnostic fields
         if(.not. recalculate_diagnostic_variable(dep_v_field, exclude_nonrecalculated = exclude_nonrecalculated)) cycle
-        ! Check whether this field has already been calculated (as a dependency)
-        if(has_vector_field(dep_states_mask(i), dep_v_field%name)) cycle
+        if(present(dep_states_mask)) then
+          ! Check whether this field has already been calculated (as a dependency)
+          if(has_vector_field(dep_states_mask(i), dep_v_field%name)) cycle
+        end if
         
         ! Calculate dependencies
         call calculate_dependencies(states, i, dep_v_field, &
@@ -507,8 +524,10 @@ contains
         
         ! Only calculate non-aliased diagnostic fields
         if(.not. recalculate_diagnostic_variable(dep_t_field, exclude_nonrecalculated = exclude_nonrecalculated)) cycle
-        ! Check whether this field has already been calculated (as a dependency)
-        if(has_tensor_field(dep_states_mask(i), dep_t_field%name)) cycle
+        if(present(dep_states_mask)) then
+          ! Check whether this field has already been calculated (as a dependency)
+          if(has_tensor_field(dep_states_mask(i), dep_t_field%name)) cycle
+        end if
 
         ! Calculate dependencies
         call calculate_dependencies(states, i, dep_t_field, &
@@ -749,17 +768,17 @@ contains
     do i = 1, size(donor)
       do j = 1, scalar_field_count(donor(i))
         s_field => extract_scalar_field(donor(i), j)
-        call insert(target, s_field, s_field%name)
+        call insert(target(i), s_field, s_field%name)
       end do
       
       do j = 1, vector_field_count(donor(i))
         v_field => extract_vector_field(donor(i), j)
-        call insert(target, v_field, v_field%name)
+        call insert(target(i), v_field, v_field%name)
       end do
       
       do j = 1, tensor_field_count(donor(i))
         t_field => extract_tensor_field(donor(i), j)
-        call insert(target, t_field, t_field%name)
+        call insert(target(i), t_field, t_field%name)
       end do
     end do
     
@@ -965,8 +984,174 @@ MULTIPLE_STATE_TENSOR_DIAGNOSTICS
         end if
         FLAbort("Diagnostic tensor field algorithm " // trim(lalgorithm) // " not found")
     end select
-    
+
   end subroutine calculate_diagnostic_variable_tensor_multiple_indexed
+
+  subroutine calculate_diagnostic_variable_dep_scalar_single(state, s_field, algorithm, dep_states_mask, stat)
+    !!< Calculate a diagnostic field and dependencies using the named algorithm
+
+    type(state_type), intent(inout) :: state
+    type(scalar_field), intent(inout) :: s_field
+    character(len = *), optional, intent(in) :: algorithm
+    type(state_type), optional :: dep_states_mask
+    integer, optional, intent(out) :: stat
+
+    type(state_type), dimension(1) :: states, dep_states_masks
+
+    states = (/state/)
+    if (present(dep_states_mask)) then
+      dep_states_masks = (/dep_states_mask/)
+      call calculate_diagnostic_variable_dep(states, 1, s_field, algorithm = algorithm, dep_states_mask=dep_states_masks, stat = stat)
+      dep_states_mask = dep_states_masks(1)
+    else
+      call calculate_diagnostic_variable_dep(states, 1, s_field, algorithm = algorithm, stat = stat)
+    end if
+    state = states(1)
+
+  end subroutine calculate_diagnostic_variable_dep_scalar_single
+
+  subroutine calculate_diagnostic_variable_dep_scalar_multiple_non_indexed(states, s_field, algorithm, dep_states_mask, stat)
+    !!< Calculate a diagnostic field and dependencies using the named algorithm
+
+    type(state_type), dimension(:), target, intent(inout) :: states
+    type(scalar_field), intent(inout) :: s_field
+    character(len = *), optional, intent(in) :: algorithm
+    type(state_type), dimension(size(states)), optional :: dep_states_mask
+    integer, optional, intent(out) :: stat
+
+    call calculate_diagnostic_variable_dep(states, 1, s_field, algorithm = algorithm, dep_states_mask=dep_states_mask, stat = stat)
+
+  end subroutine calculate_diagnostic_variable_dep_scalar_multiple_non_indexed
+
+  subroutine calculate_diagnostic_variable_dep_scalar_multiple_indexed(states, state_index, s_field, algorithm, dep_states_mask, stat)
+    !!< Calculate a diagnostic field and dependencies using the named algorithm
+
+    type(state_type), dimension(:), target, intent(inout) :: states
+    integer, intent(in) :: state_index
+    type(scalar_field), intent(inout) :: s_field
+    character(len = *), optional, intent(in) :: algorithm
+    type(state_type), dimension(size(states)), optional :: dep_states_mask
+    integer, optional, intent(out) :: stat
+
+    character(len = OPTION_PATH_LEN) :: lalgorithm
+
+    call calculate_dependencies(states, state_index, s_field, dep_states_mask = dep_states_mask)
+    call calculate_diagnostic_variable(states, state_index, s_field, algorithm = algorithm, stat = stat)
+    if(present(dep_states_mask)) then
+       call insert(dep_states_mask(state_index), s_field, s_field%name)
+    end if
+
+  end subroutine calculate_diagnostic_variable_dep_scalar_multiple_indexed
+
+  subroutine calculate_diagnostic_variable_dep_vector_single(state, v_field, algorithm, dep_states_mask, stat)
+    !!< Calculate a diagnostic field and dependencies using the named algorithm
+
+    type(state_type), intent(inout) :: state
+    type(vector_field), intent(inout) :: v_field
+    character(len = *), optional, intent(in) :: algorithm
+    integer, optional, intent(out) :: stat
+    type(state_type), optional :: dep_states_mask
+
+    type(state_type), dimension(1) :: states, dep_states_masks
+
+    states = (/state/)
+    if (present(dep_states_mask)) then
+      dep_states_masks = (/dep_states_mask/)
+      call calculate_diagnostic_variable_dep(states, 1, v_field, algorithm = algorithm, dep_states_mask=dep_states_masks, stat = stat)
+      dep_states_mask = dep_states_masks(1)
+    else
+      call calculate_diagnostic_variable_dep(states, 1, v_field, algorithm = algorithm, stat = stat)
+    end if
+    state = states(1)
+
+  end subroutine calculate_diagnostic_variable_dep_vector_single
+
+  subroutine calculate_diagnostic_variable_dep_vector_multiple_non_indexed(states, v_field, algorithm, dep_states_mask, stat)
+    !!< Calculate a diagnostic field and dependencies using the named algorithm
+
+    type(state_type), dimension(:), target, intent(inout) :: states
+    type(vector_field), intent(inout) :: v_field
+    character(len = *), optional, intent(in) :: algorithm
+    type(state_type), dimension(size(states)), optional :: dep_states_mask
+    integer, optional, intent(out) :: stat
+
+    call calculate_diagnostic_variable_dep(states, 1, v_field, algorithm = algorithm, dep_states_mask=dep_states_mask, stat = stat)
+
+  end subroutine calculate_diagnostic_variable_dep_vector_multiple_non_indexed
+
+  subroutine calculate_diagnostic_variable_dep_vector_multiple_indexed(states, state_index, v_field, algorithm, dep_states_mask, stat)
+    !!< Calculate a diagnostic field and dependencies using the named algorithm
+
+    type(state_type), dimension(:), target, intent(inout) :: states
+    integer, intent(in) :: state_index
+    type(vector_field), intent(inout) :: v_field
+    type(state_type), dimension(size(states)), optional :: dep_states_mask
+    integer, optional, intent(out) :: stat
+    character(len = *), optional, intent(in) :: algorithm
+    character(len = OPTION_PATH_LEN) :: lalgorithm
+
+    call calculate_dependencies(states, state_index, v_field, dep_states_mask = dep_states_mask)
+    call calculate_diagnostic_variable(states, state_index, v_field, algorithm = algorithm, stat = stat)
+    if(present(dep_states_mask)) then
+       call insert(dep_states_mask(state_index), v_field, v_field%name)
+    end if
+
+  end subroutine calculate_diagnostic_variable_dep_vector_multiple_indexed
+
+  subroutine calculate_diagnostic_variable_dep_tensor_single(state, t_field, algorithm, dep_states_mask, stat)
+    !!< Calculate a diagnostic field and dependencies using the named algorithm
+
+    type(state_type), intent(inout) :: state
+    type(tensor_field), intent(inout) :: t_field
+    character(len = *), optional, intent(in) :: algorithm
+    type(state_type), optional :: dep_states_mask
+    integer, optional, intent(out) :: stat
+    type(state_type), dimension(1) :: states, dep_states_masks
+
+    states = (/state/)
+    if (present(dep_states_mask)) then
+      dep_states_masks = (/dep_states_mask/)
+      call calculate_diagnostic_variable_dep(states, 1, t_field, algorithm = algorithm, dep_states_mask=dep_states_masks, stat = stat)
+      dep_states_mask = dep_states_masks(1)
+    else
+      call calculate_diagnostic_variable_dep(states, 1, t_field, algorithm = algorithm, stat = stat)
+    end if
+    state = states(1)
+
+  end subroutine calculate_diagnostic_variable_dep_tensor_single
+
+  subroutine calculate_diagnostic_variable_dep_tensor_multiple_non_indexed(states, t_field, algorithm, dep_states_mask, stat)
+    !!< Calculate a diagnostic field and dependencies using the named algorithm
+
+    type(state_type), dimension(:), target, intent(inout) :: states
+    type(tensor_field), intent(inout) :: t_field
+    character(len = *), optional, intent(in) :: algorithm
+    type(state_type), dimension(size(states)), optional :: dep_states_mask
+    integer, optional, intent(out) :: stat
+
+    call calculate_diagnostic_variable_dep(states, 1, t_field, algorithm = algorithm, dep_states_mask=dep_states_mask, stat = stat)
+
+  end subroutine calculate_diagnostic_variable_dep_tensor_multiple_non_indexed
+
+  subroutine calculate_diagnostic_variable_dep_tensor_multiple_indexed(states, state_index, t_field, algorithm, dep_states_mask, stat)
+    !!< Calculate a diagnostic field and dependencies using the named algorithm
+
+    type(state_type), dimension(:), target, intent(inout) :: states
+    integer, intent(in) :: state_index
+    type(tensor_field), intent(inout) :: t_field
+    character(len = *), optional, intent(in) :: algorithm
+    type(state_type), dimension(size(states)), optional :: dep_states_mask
+    integer, optional, intent(out) :: stat
+
+    character(len = OPTION_PATH_LEN) :: lalgorithm
+
+    call calculate_dependencies(states, state_index, t_field, dep_states_mask = dep_states_mask)
+    call calculate_diagnostic_variable(states, state_index, t_field, algorithm = algorithm, stat = stat)
+    if(present(dep_states_mask)) then
+       call insert(dep_states_mask(state_index), t_field, t_field%name)
+    end if
+
+  end subroutine calculate_diagnostic_variable_dep_tensor_multiple_indexed
 
   subroutine diagnostic_fields_new_check_options
     !!< Checks diagnostic fields related options

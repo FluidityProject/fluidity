@@ -110,12 +110,14 @@ Your safest bet for non-symmetric systems.</a:documentation>
       <attribute name="name">
         <value>gmres</value>
       </attribute>
-      <element name="restart">
-        <a:documentation>Restart value for gmres iteration
+      <optional>
+        <element name="restart">
+          <a:documentation>Restart value for gmres iteration
 Higher values give better convergence but require more memory.
-Suggested value: 30</a:documentation>
-        <ref name="integer"/>
-      </element>
+Default value: 30</a:documentation>
+          <ref name="integer"/>
+        </element>
+      </optional>
     </element>
   </define>
   <define name="kspcg_options">
@@ -581,6 +583,13 @@ test you need to run fluidity with a verbosity level of at least -v1.</a:documen
         <empty/>
       </element>
     </optional>
+    <optional>
+      <element name="write_null_space">
+        <a:documentation>For debugging purposes: write a vtu file containing the null space vector fields
+for each solve.</a:documentation>
+        <empty/>
+      </element>
+    </optional>
   </define>
   <define name="basic_solver_options">
     <element name="relative_error">
@@ -693,14 +702,6 @@ This is the error estimation PETSc uses during the solve.</a:documentation>
             <a:documentation>Prints the "true" residual for each iteration of the solve,
 i.e. PETSc computes the L2-norm of r=A-bx. This may mean
 PETSc has to do extra computations.</a:documentation>
-            <empty/>
-          </element>
-        </optional>
-        <optional>
-          <element name="preconditioned_residual_graph">
-            <a:documentation>Draws a graph over the convergence of the preconditioned residual
-during the solve. This option only works for systems where PETSc
-has been linked with the X library.</a:documentation>
             <empty/>
           </element>
         </optional>

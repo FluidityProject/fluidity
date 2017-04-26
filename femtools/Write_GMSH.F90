@@ -29,13 +29,15 @@
 
 module write_gmsh
 
+  use fldebug
+
+  use global_parameters, only : OPTION_PATH_LEN
+  use futils
   use elements
+  use parallel_tools
   use fields
   use state_module
-  use futils
-  use parallel_tools
   use field_options
-  use global_parameters, only : OPTION_PATH_LEN
   use gmsh_common
 
   implicit none
@@ -61,21 +63,22 @@ contains
   ! -----------------------------------------------------------------
 
 
-  subroutine write_mesh_to_gmsh( filename, state, mesh )
+  subroutine write_mesh_to_gmsh(filename, state, mesh, number_of_partitions)
 
     character(len = *), intent(in) :: filename
     type(state_type), intent(in) :: state
     type(mesh_type), intent(in) :: mesh
+    !!< If present, only write for processes 1:number_of_partitions (assumes the other partitions are empty)
+    integer, optional, intent(in):: number_of_partitions
+
     type(vector_field) :: positions
 
     positions = get_nodal_coordinate_field( state, mesh )
 
-    call write_gmsh_file( filename, positions )
+    call write_gmsh_file( filename, positions, number_of_partitions=number_of_partitions)
 
     ! Deallocate node and element memory structures
     call deallocate(positions)
-
-    return
 
   end subroutine write_mesh_to_gmsh
 
@@ -86,17 +89,22 @@ contains
 
 
 
-  subroutine write_positions_to_gmsh(filename, positions)
+  subroutine write_positions_to_gmsh(filename, positions, number_of_partitions)
     !!< Write out the mesh given by the position field in GMSH file:
     !!< In parallel, empty trailing processes are not written.
     character(len=*), intent(in):: filename
     type(vector_field), intent(in):: positions
+    !!< If present, only write for processes 1:number_of_partitions (assumes the other partitions are empty)
+    integer, optional, intent(in):: number_of_partitions
     
     character(len=longStringLen) :: meshFile
     integer :: numParts, fileDesc
 
-    ! How many processes contain data?
-    numParts = get_active_nparts(ele_count(positions))
+    if (present(number_of_partitions)) then
+      numParts = number_of_partitions
+    else
+      numParts = getnprocs()
+    end if
     
     ! Write out data only for those processes that contain data - SPMD requires
     ! that there be no early return    
@@ -276,29 +284,37 @@ contains
 
     ! Number of nodes for elements and faces
     nloc = ele_loc(mesh, 1)
-    sloc = face_loc(mesh,1)
+    sloc = 0
+    if (numFaces > 0) then
+      sloc = face_loc(mesh,1)
+    end if
 
     ! Working out face and element types now
     faceType=0
     elemType=0
 
     select case(mesh_dim(mesh))
+       ! One dimension
+    case(1)
+       faceType=15
+       elemType=1
+
        ! Two dimensions
     case(2)
-       if (nloc==3 .and. sloc==2) then
+       if (nloc==3 .and. (sloc==2 .or. numFaces==0)) then
           faceType=1
           elemType=2
-       else if(nloc==4 .and. sloc==2) then
+       else if(nloc==4 .and. (sloc==2 .or. numFaces==0)) then
           faceType=1
-          elemType=4
+          elemType=3
        end if
 
        ! Three dimensions
     case(3)
-       if(nloc==4 .and. sloc==3) then
+       if(nloc==4 .and. (sloc==3 .or. numFaces==0)) then
           faceType=2
           elemType=4
-       else if(nloc==8 .and. sloc==4) then
+       else if(nloc==8 .and. (sloc==4 .or. numFaces==0)) then
           faceType=3
           elemType=5
        end if

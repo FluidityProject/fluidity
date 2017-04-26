@@ -102,11 +102,11 @@ import numpy
 assert(numpy.all(abs(no_nodes[1:] - no_nodes[0]) &lt; 1e-9))
     </test>
     <test name="tracer integral is initially 1.0" language="python">
-assert abs(tracer_integral[0] - 1.0) &lt; 1e-9
+assert abs(tracer_integral[0] - 1.0) &lt; 1e-8
     </test>
     <test name="tracer integral is constant" language="python">
 import numpy
-assert(numpy.all(abs(tracer_integral[1:] - tracer_integral[0]) &lt; 1e-9))
+assert(numpy.all(abs(tracer_integral[1:] - tracer_integral[0]) &lt; 1e-8))
     </test>
     <test name="tracer error is initially less than 0.01" language="python">
 assert tracer_error[0] &lt; 0.01 

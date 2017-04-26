@@ -30,7 +30,6 @@
 module embed_python
 
   use fldebug
-  use global_parameters, only : real_4, real_8
   use iso_c_binding
 
   implicit none
@@ -41,15 +40,15 @@ module embed_python
     subroutine set_scalar_field_from_python(function, function_len, dim,&
          & nodes, x, y, z, t, result, stat)
       !! Interface to c wrapper function.
-      use global_parameters, only : real_8
+      use iso_c_binding, only: c_double
       implicit none
       integer, intent(in) :: function_len
       character(len = function_len) :: function
       integer, intent(in) :: dim
       integer, intent(in) :: nodes
-      real(kind = real_8), dimension(nodes), intent(in) :: x, y, z
-      real(kind = real_8), intent(in) :: t
-      real(kind = real_8), dimension(nodes), intent(out) :: result
+      real(kind = c_double), dimension(nodes), intent(in) :: x, y, z
+      real(kind = c_double), intent(in) :: t
+      real(kind = c_double), dimension(nodes), intent(out) :: result
       integer, intent(out) :: stat
     end subroutine set_scalar_field_from_python
   end interface set_scalar_field_from_python
@@ -58,16 +57,16 @@ module embed_python
     module procedure set_integer_array_from_python_sp
 
     subroutine set_integer_array_from_python(function, function_len, dim, nodes, x, y, z, t, result, stat)
-      use global_parameters, only : real_8
+      use iso_c_binding, only: c_double
       implicit none
       integer, intent(in) :: function_len
       character(len = function_len), intent(in) :: function
       integer, intent(in) :: dim
       integer, intent(in) :: nodes
-      real(kind = real_8), dimension(nodes), intent(in) :: x
-      real(kind = real_8), dimension(nodes), intent(in) :: y
-      real(kind = real_8), dimension(nodes), intent(in) :: z
-      real(kind = real_8), intent(in) :: t
+      real(kind = c_double), dimension(nodes), intent(in) :: x
+      real(kind = c_double), dimension(nodes), intent(in) :: y
+      real(kind = c_double), dimension(nodes), intent(in) :: z
+      real(kind = c_double), intent(in) :: t
       integer, dimension(nodes), intent(out) :: result
       integer, intent(out) :: stat
     end subroutine set_integer_array_from_python
@@ -80,16 +79,16 @@ module embed_python
          & nodes, x, y, z, t, result_dim, result_x, result_y, result_z,&
          & stat)
       !! Interface to c wrapper function.
-      use global_parameters, only : real_8
+      use iso_c_binding, only: c_double
       implicit none
       integer, intent(in) :: function_len
       character(len = function_len) :: function
       integer, intent(in) :: dim
       integer, intent(in) :: nodes
-      real(kind = real_8), dimension(nodes), intent(in) :: x, y, z
-      real(kind = real_8), intent(in) :: t
+      real(kind = c_double), dimension(nodes), intent(in) :: x, y, z
+      real(kind = c_double), intent(in) :: t
       integer, intent(in) :: result_dim
-      real(kind = real_8), dimension(nodes), intent(out) :: result_x, result_y, result_z
+      real(kind = c_double), dimension(nodes), intent(out) :: result_x, result_y, result_z
       integer, intent(out) :: stat
     end subroutine set_vector_field_from_python
   end interface set_vector_field_from_python
@@ -100,16 +99,16 @@ module embed_python
     subroutine set_tensor_field_from_python(function, function_len, dim,&
          & nodes, x, y, z, t, result_dim, result, stat)
       !! Interface to c wrapper function.
-      use global_parameters, only : real_8
+      use iso_c_binding, only: c_double
       implicit none
       integer, intent(in) :: function_len
       character(len = function_len) :: function
       integer, intent(in) :: dim
       integer, intent(in) :: nodes
-      real(kind = real_8), dimension(nodes), intent(in) :: x, y, z
-      real(kind = real_8), intent(in) :: t
+      real(kind = c_double), dimension(nodes), intent(in) :: x, y, z
+      real(kind = c_double), intent(in) :: t
       integer,dimension(2), intent(in) :: result_dim
-      real(kind = real_8), dimension(result_dim(1), result_dim(2), nodes), intent(out) :: result
+      real(kind = c_double), dimension(result_dim(1), result_dim(2), nodes), intent(out) :: result
       integer, intent(out) :: stat
     end subroutine set_tensor_field_from_python
   end interface set_tensor_field_from_python
@@ -120,13 +119,13 @@ module embed_python
     subroutine set_particle_sfield_from_python(function, function_len,&
          & nparticles,t, result, stat)
       !! Interface to c wrapper function.
-      use global_parameters, only : real_8
+      use iso_c_binding, only: c_double
       implicit none
       integer, intent(in) :: function_len
       character(len = function_len) :: function
       integer, intent(in) :: nparticles
-      real(kind = real_8), intent(in) :: t
-      real(kind = real_8), dimension(nparticles), intent(out) :: result
+      real(kind = c_double), intent(in) :: t
+      real(kind = c_double), dimension(nparticles), intent(out) :: result
       integer, intent(out) :: stat
     end subroutine set_particle_sfield_from_python
   end interface set_particle_sfield_from_python
@@ -138,13 +137,13 @@ module embed_python
          & nparticles, t, result_x, result_y, result_z,&
          & stat)
       !! Interface to c wrapper function.
-      use global_parameters, only : real_8
+      use iso_c_binding, only: c_double
       implicit none
       integer, intent(in) :: function_len
       character(len = function_len) :: function
       integer, intent(in) :: nparticles
-      real(kind = real_8), intent(in) :: t
-      real(kind = real_8), dimension(nparticles), intent(out) :: result_x, result_y, result_z
+      real(kind = c_double), intent(in) :: t
+      real(kind = c_double), dimension(nparticles), intent(out) :: result_x, result_y, result_z
       integer, intent(out) :: stat
     end subroutine set_particle_vfield_from_python
   end interface set_particle_vfield_from_python
@@ -155,14 +154,14 @@ module embed_python
     subroutine set_detectors_from_python(function, function_len, dim,&
          ndete, t, rdim, result_x, result_y, result_z, stat)
       !! Interface to c wrapper function.
-      use global_parameters, only : real_8
+      use iso_c_binding, only: c_double
       implicit none
       integer, intent(in) :: function_len
       character(len = function_len) :: function
       integer, intent(in) :: dim,rdim
       integer, intent(in) :: ndete
-      real(kind = real_8), intent(in) :: t
-      real(kind = real_8), dimension(ndete), intent(out) :: result_x, result_y, result_z
+      real(kind = c_double), intent(in) :: t
+      real(kind = c_double), dimension(ndete), intent(out) :: result_x, result_y, result_z
       integer, intent(out) :: stat
     end subroutine set_detectors_from_python
   end interface set_detectors_from_python
@@ -171,12 +170,12 @@ module embed_python
     module procedure real_from_python_sp, real_from_python_interface
 
     subroutine real_from_python(function, function_len, t, result, stat)
-      use global_parameters, only : real_8
+      use iso_c_binding, only: c_double
       implicit none
       integer, intent(in) :: function_len
       character(len = function_len), intent(in) :: function
-      real(kind = real_8), intent(in) :: t
-      real(kind = real_8), intent(out) :: result
+      real(kind = c_double), intent(in) :: t
+      real(kind = c_double), intent(out) :: result
       integer, intent(out) :: stat
     end subroutine real_from_python
   end interface real_from_python
@@ -223,11 +222,11 @@ module embed_python
     module procedure integer_from_python_sp, integer_from_python_interface
 
     subroutine integer_from_python(function, function_len, t, result, stat)
-      use global_parameters, only : real_8
+      use iso_c_binding, only: c_double
       implicit none
       integer, intent(in) :: function_len
       character(len = function_len), intent(in) :: function
-      real(kind = real_8), intent(in) :: t
+      real(kind = c_double), intent(in) :: t
       integer, intent(out) :: result
       integer, intent(out) :: stat
     end subroutine integer_from_python
@@ -237,12 +236,12 @@ module embed_python
     module procedure string_from_python_sp, string_from_python_interface
 
     subroutine string_from_python(function, function_len, result_len, t, result, stat)
-      use global_parameters, only : real_8
+      use iso_c_binding, only: c_double
       implicit none
       integer, intent(in) :: function_len
       character(len = function_len), intent(in) :: function
       integer, intent(inout) :: result_len
-      real(kind = real_8), intent(in) :: t
+      real(kind = c_double), intent(in) :: t
       character(len = result_len), intent(out) :: result
       integer, intent(out) :: stat
     end subroutine string_from_python
@@ -265,17 +264,17 @@ contains
     character(len = function_len) :: function
     integer, intent(in) :: dim
     integer, intent(in) :: nodes
-    real(kind = real_4), dimension(nodes), intent(in) :: x
-    real(kind = real_4), dimension(:), intent(in) :: y
-    real(kind = real_4), dimension(:), intent(in) :: z
-    real(kind = real_4), intent(in) :: t
-    real(kind = real_4), dimension(nodes), intent(out) :: result
+    real(kind = c_float), dimension(nodes), intent(in) :: x
+    real(kind = c_float), dimension(:), intent(in) :: y
+    real(kind = c_float), dimension(:), intent(in) :: z
+    real(kind = c_float), intent(in) :: t
+    real(kind = c_float), dimension(nodes), intent(out) :: result
     integer, intent(out) :: stat
 
-    real(kind = real_8), dimension(nodes) :: lresult
+    real(kind = c_double), dimension(nodes) :: lresult
 
     call set_scalar_field_from_python(function, function_len, dim, &
-      & nodes, real(x, kind = real_8), real(y, kind = real_8), real(z, kind = real_8), real(t, kind = real_8), lresult, stat)
+      & nodes, real(x, kind = c_double), real(y, kind = c_double), real(z, kind = c_double), real(t, kind = c_double), lresult, stat)
     result = lresult
 
   end subroutine set_scalar_field_from_python_sp
@@ -285,14 +284,14 @@ contains
     character(len = function_len), intent(in) :: function
     integer, intent(in) :: dim
     integer, intent(in) :: nodes
-    real(kind = real_4), dimension(nodes), intent(in) :: x
-    real(kind = real_4), dimension(:), intent(in) :: y
-    real(kind = real_4), dimension(:), intent(in) :: z
-    real(kind = real_4), intent(in) :: t
+    real(kind = c_float), dimension(nodes), intent(in) :: x
+    real(kind = c_float), dimension(:), intent(in) :: y
+    real(kind = c_float), dimension(:), intent(in) :: z
+    real(kind = c_float), intent(in) :: t
     integer, dimension(nodes), intent(out) :: result
     integer, intent(out) :: stat
 
-    call set_integer_array_from_python(function, function_len, dim, nodes, real(x, kind = real_8), real(y, kind = real_8), real(z, kind = real_8), real(t, kind = real_8), result, stat)
+    call set_integer_array_from_python(function, function_len, dim, nodes, real(x, kind = c_double), real(y, kind = c_double), real(z, kind = c_double), real(t, kind = c_double), result, stat)
 
   end subroutine set_integer_array_from_python_sp
 
@@ -303,22 +302,22 @@ contains
     character(len = function_len) :: function
     integer, intent(in) :: dim
     integer, intent(in) :: nodes
-    real(kind = real_4), dimension(nodes), intent(in) :: x
-    real(kind = real_4), dimension(:), intent(in) :: y
-    real(kind = real_4), dimension(:), intent(in) :: z
-    real(kind = real_4), intent(in) :: t
+    real(kind = c_float), dimension(nodes), intent(in) :: x
+    real(kind = c_float), dimension(:), intent(in) :: y
+    real(kind = c_float), dimension(:), intent(in) :: z
+    real(kind = c_float), intent(in) :: t
     integer, intent(in) :: result_dim
-    real(kind = real_4), dimension(nodes), intent(out) :: result_x
-    real(kind = real_4), dimension(:), intent(out) :: result_y
-    real(kind = real_4), dimension(:), intent(out) :: result_z
+    real(kind = c_float), dimension(nodes), intent(out) :: result_x
+    real(kind = c_float), dimension(:), intent(out) :: result_y
+    real(kind = c_float), dimension(:), intent(out) :: result_z
     integer, intent(out) :: stat
    
-    real(kind = real_8), dimension(size(result_x)) :: lresult_x
-    real(kind = real_8), dimension(size(result_y)) :: lresult_y
-    real(kind = real_8), dimension(size(result_z)) :: lresult_z
+    real(kind = c_double), dimension(size(result_x)) :: lresult_x
+    real(kind = c_double), dimension(size(result_y)) :: lresult_y
+    real(kind = c_double), dimension(size(result_z)) :: lresult_z
 
     call set_vector_field_from_python(function, function_len, dim, &
-      & nodes, real(x, kind = real_8), real(y, kind = real_8), real(z, kind = real_8), real(t, kind = real_8), result_dim, lresult_x, lresult_y, lresult_z, &
+      & nodes, real(x, kind = c_double), real(y, kind = c_double), real(z, kind = c_double), real(t, kind = c_double), result_dim, lresult_x, lresult_y, lresult_z, &
       & stat)
     result_x = lresult_x
     result_y = lresult_y
@@ -332,18 +331,18 @@ contains
     character(len = function_len) :: function
     integer, intent(in) :: dim
     integer, intent(in) :: nodes
-    real(kind = real_4), dimension(nodes), intent(in) :: x
-    real(kind = real_4), dimension(:), intent(in) :: y
-    real(kind = real_4), dimension(:), intent(in) :: z
-    real(kind = real_4), intent(in) :: t
+    real(kind = c_float), dimension(nodes), intent(in) :: x
+    real(kind = c_float), dimension(:), intent(in) :: y
+    real(kind = c_float), dimension(:), intent(in) :: z
+    real(kind = c_float), intent(in) :: t
     integer, dimension(2), intent(in) :: result_dim
-    real(kind = real_4), dimension(:, :, :), intent(out) :: result
+    real(kind = c_float), dimension(:, :, :), intent(out) :: result
     integer, intent(out) :: stat
 
-    real(kind = real_8), dimension(size(result, 1), size(result, 2), size(result, 3)) :: lresult
+    real(kind = c_double), dimension(size(result, 1), size(result, 2), size(result, 3)) :: lresult
 
     call set_tensor_field_from_python(function, function_len, dim, &
-      & nodes, real(x, kind = real_8), real(y, kind = real_8), real(z, kind = real_8), real(t, kind = real_8), result_dim, lresult, stat)
+      & nodes, real(x, kind = c_double), real(y, kind = c_double), real(z, kind = c_double), real(t, kind = c_double), result_dim, lresult, stat)
     result = lresult
 
   end subroutine set_tensor_field_from_python_sp
@@ -354,18 +353,18 @@ contains
     character(len = function_len) :: function
     integer, intent(in) :: dim,rdim
     integer, intent(in) :: ndete
-    real(kind = real_4), intent(in) :: t
-    real(kind = real_4), dimension(ndete), intent(out) :: result_x
-    real(kind = real_4), dimension(:), intent(out) :: result_y
-    real(kind = real_4), dimension(:), intent(out) :: result_z
+    real(kind = c_float), intent(in) :: t
+    real(kind = c_float), dimension(ndete), intent(out) :: result_x
+    real(kind = c_float), dimension(:), intent(out) :: result_y
+    real(kind = c_float), dimension(:), intent(out) :: result_z
     integer, intent(out) :: stat
 
-    real(kind = real_8), dimension(size(result_x)) :: lresult_x
-    real(kind = real_8), dimension(size(result_y)) :: lresult_y
-    real(kind = real_8), dimension(size(result_z)) :: lresult_z
+    real(kind = c_double), dimension(size(result_x)) :: lresult_x
+    real(kind = c_double), dimension(size(result_y)) :: lresult_y
+    real(kind = c_double), dimension(size(result_z)) :: lresult_z
 
     call set_detectors_from_python(function, function_len, dim, &
-      & ndete, real(t, kind = real_8), rdim, lresult_x, lresult_y, lresult_z, stat)
+      & ndete, real(t, kind = c_double), rdim, lresult_x, lresult_y, lresult_z, stat)
     result_x = lresult_x
     result_y = lresult_y
     result_z = lresult_z
@@ -377,14 +376,14 @@ contains
     integer, intent(in) :: function_len
     character(len = function_len) :: function
     integer, intent(in) :: nparticles
-    real(kind = real_4), intent(in) :: t
-    real(kind = real_4), dimension(nparticles), intent(out) :: result
+    real(kind = c_float), intent(in) :: t
+    real(kind = c_float), dimension(nparticles), intent(out) :: result
     integer, intent(out) :: stat
 
-    real(kind = real_8), dimension(nparticles) :: lresult
+    real(kind = c_double), dimension(nparticles) :: lresult
 
     call set_particle_sfield_from_python(function, function_len,&
-      & nparticles, real(t, kind = real_8), lresult, stat)
+      & nparticles, real(t, kind = c_double), lresult, stat)
     result = lresult
 
   end subroutine set_particle_sfield_from_python_sp
@@ -395,18 +394,18 @@ contains
     integer, intent(in) :: function_len
     character(len = function_len) :: function
     integer, intent(in) :: nparticles
-    real(kind = real_4), intent(in) :: t
-    real(kind = real_4), dimension(nparticles), intent(out) :: result_x
-    real(kind = real_4), dimension(:), intent(out) :: result_y
-    real(kind = real_4), dimension(:), intent(out) :: result_z
+    real(kind = c_float), intent(in) :: t
+    real(kind = c_float), dimension(nparticles), intent(out) :: result_x
+    real(kind = c_float), dimension(:), intent(out) :: result_y
+    real(kind = c_float), dimension(:), intent(out) :: result_z
     integer, intent(out) :: stat
 
-    real(kind = real_8), dimension(size(result_x)) :: lresult_x
-    real(kind = real_8), dimension(size(result_y)) :: lresult_y
-    real(kind = real_8), dimension(size(result_z)) :: lresult_z
+    real(kind = c_double), dimension(size(result_x)) :: lresult_x
+    real(kind = c_double), dimension(size(result_y)) :: lresult_y
+    real(kind = c_double), dimension(size(result_z)) :: lresult_z
 
     call set_particle_vfield_from_python(function, function_len, &
-      & nparticles, real(t, kind = real_8), lresult_x, lresult_y, lresult_z,&
+      & nparticles, real(t, kind = c_double), lresult_x, lresult_y, lresult_z,&
       & stat)
     result_x = lresult_x
     result_y = lresult_y
@@ -417,13 +416,13 @@ contains
   subroutine real_from_python_sp(function, function_len, t, result, stat)
     integer, intent(in) :: function_len
     character(len = function_len), intent(in) :: function
-    real(kind = real_4), intent(in) :: t
-    real(kind = real_4), intent(out) :: result
+    real(kind = c_float), intent(in) :: t
+    real(kind = c_float), intent(out) :: result
     integer, intent(out) :: stat
 
-    real(kind = real_8) :: lresult
+    real(kind = c_double) :: lresult
 
-    call real_from_python(function, function_len, real(t, kind = real_8), lresult, stat)
+    call real_from_python(function, function_len, real(t, kind = c_double), lresult, stat)
     result = lresult
 
   end subroutine real_from_python_sp
@@ -455,13 +454,13 @@ contains
  
   subroutine real_vector_from_python_sp(function, current_time,  result, stat)
     character(len = *), intent(in) :: function
-    real(kind=real_4), intent(in) :: current_time
-    real(kind=real_4), dimension(:), pointer, intent(out) :: result
+    real(kind=c_float), intent(in) :: current_time
+    real(kind=c_float), dimension(:), pointer, intent(out) :: result
     integer, optional, intent(out) :: stat
 
-    real(kind=real_8), dimension(:), pointer :: lresult
+    real(kind=c_double), dimension(:), pointer :: lresult
     
-    call real_vector_from_python(function, real(current_time, kind=real_8),&
+    call real_vector_from_python(function, real(current_time, kind=c_double),&
          & lresult, stat)
 
     allocate(result(size(lresult)))
@@ -474,8 +473,8 @@ contains
 
   subroutine real_vector_from_python_interface(function, current_time,  result, stat)
     character(len = *), intent(in) :: function
-    real(kind=real_8), intent(in) :: current_time
-    real(kind=real_8), dimension(:), pointer, intent(out) :: result
+    real(kind=c_double), intent(in) :: current_time
+    real(kind=c_double), dimension(:), pointer, intent(out) :: result
     integer, optional, intent(out) :: stat
 
     
@@ -553,11 +552,11 @@ contains
   subroutine integer_from_python_sp(function, function_len, t, result, stat)
     integer, intent(in) :: function_len
     character(len = function_len), intent(in) :: function
-    real(kind = real_4), intent(in) :: t
+    real(kind = c_float), intent(in) :: t
     integer, intent(out) :: result
     integer, intent(out) :: stat
 
-    call integer_from_python(function, function_len, real(t, kind = real_8), result, stat)
+    call integer_from_python(function, function_len, real(t, kind = c_double), result, stat)
 
   end subroutine integer_from_python_sp
  
@@ -590,11 +589,11 @@ contains
     integer, intent(in) :: function_len
     character(len = function_len), intent(in) :: function
     integer, intent(inout) :: result_len
-    real(kind = real_4), intent(in) :: t
+    real(kind = c_float), intent(in) :: t
     character(len = result_len), intent(out) :: result
     integer, intent(out) :: stat
 
-    call string_from_python(function, function_len, result_len, real(t, kind = real_8), result, stat)
+    call string_from_python(function, function_len, result_len, real(t, kind = c_double), result, stat)
 
   end subroutine string_from_python_sp
 
