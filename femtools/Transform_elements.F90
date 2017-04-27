@@ -1112,10 +1112,10 @@ contains
                   J = jacobian_on_sphere(x_shape, gi, X_val, r_val, J)
                 end if
                 ! outer product
-                det=abs( &
-                     J(2,1)*J(3,2)-J(3,1)*J(2,2) &
-                     -J(3,1)*J(1,2)+J(1,1)*J(3,2) &
-                     +J(1,1)*J(2,2)-J(2,1)*J(1,2))
+                det=sqrt( &
+                      (J(2,1)*J(3,2)-J(3,1)*J(2,2))**2 &
+                     +(J(3,1)*J(1,2)-J(1,1)*J(3,2))**2 &
+                     +(J(1,1)*J(2,2)-J(2,1)*J(1,2))**2)
              end if
              ! outer product times quad. weight
              detwei(gi)=det *x_shape%quadrature%weight(gi)
