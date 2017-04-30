@@ -142,7 +142,7 @@
         <value name="WholeMesh">
           <python>
             <string_value lines="20" type="code" language="python">def val(X,t):
-   from math import tanh pi
+   from math import tanh, pi
    phi_inf=10.0
    phi_t = phi_inf*( (1.0+phi_inf*tanh(phi_inf*(t/2.0)))/(phi_inf+tanh(phi_inf*(t/2.0))) )
    k1 = (pi/2.)*phi_t**2
