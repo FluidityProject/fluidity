@@ -23,9 +23,10 @@ Adapt_State.o ../include/adapt_state_module.mod: Adapt_State.F90 \
    ../include/detector_parallel.mod ../include/diagnostic_fields_wrapper.mod \
    ../include/diagnostic_fields_wrapper_new.mod \
    ../include/diagnostic_variables.mod \
-   ../include/discrete_properties_module.mod ../include/edge_length_module.mod \
-   ../include/elements.mod ../include/eventcounter.mod ../include/fdebug.h \
-   ../include/fefields.mod ../include/field_options.mod ../include/fields.mod \
+   ../include/discrete_properties_module.mod ../include/dqmom.mod \
+   ../include/edge_length_module.mod ../include/elements.mod \
+   ../include/eventcounter.mod ../include/fdebug.h ../include/fefields.mod \
+   ../include/field_options.mod ../include/fields.mod \
    ../include/fields_halos.mod ../include/fldebug.mod ../include/futils.mod \
    ../include/global_parameters.mod ../include/hadapt_extrude.mod \
    ../include/hadapt_metric_based_extrude.mod ../include/halos.mod \
@@ -141,12 +142,13 @@ Advection_Diffusion_FV.o ../include/advection_diffusion_fv.mod: \
 	@true
 
 Assemble_CMC.o ../include/assemble_cmc.mod: Assemble_CMC.F90 \
-   ../include/elements.mod ../include/fdebug.h ../include/fefields.mod \
-   ../include/fetools.mod ../include/field_options.mod ../include/fields.mod \
-   ../include/fldebug.mod ../include/global_parameters.mod \
-   ../include/linked_lists.mod ../include/sparse_matrices_fields.mod \
-   ../include/sparse_tools.mod ../include/sparse_tools_petsc.mod \
-   ../include/state_module.mod ../include/transform_elements.mod
+   ../include/boundary_conditions.mod ../include/elements.mod \
+   ../include/fdebug.h ../include/fefields.mod ../include/fetools.mod \
+   ../include/field_options.mod ../include/fields.mod ../include/fldebug.mod \
+   ../include/global_parameters.mod ../include/linked_lists.mod \
+   ../include/sparse_matrices_fields.mod ../include/sparse_tools.mod \
+   ../include/sparse_tools_petsc.mod ../include/state_module.mod \
+   ../include/transform_elements.mod
 
 ../include/biology.mod: Biology.o
 	@true
@@ -214,9 +216,10 @@ Diagnostic_Fields_Matrices.o ../include/diagnostic_fields_matrices.mod: \
 
 Diagnostic_fields_wrapper.o ../include/diagnostic_fields_wrapper.mod: \
    Diagnostic_fields_wrapper.F90 ../include/diagnostic_fields.mod \
-   ../include/diagnostic_fields_matrices.mod ../include/equation_of_state.mod \
-   ../include/fdebug.h ../include/fetools.mod ../include/field_derivatives.mod \
-   ../include/field_options.mod ../include/fields.mod ../include/fldebug.mod \
+   ../include/diagnostic_fields_matrices.mod ../include/dqmom.mod \
+   ../include/equation_of_state.mod ../include/fdebug.h ../include/fetools.mod \
+   ../include/field_derivatives.mod ../include/field_options.mod \
+   ../include/fields.mod ../include/fldebug.mod \
    ../include/free_surface_module.mod ../include/futils.mod \
    ../include/geostrophic_pressure.mod ../include/global_parameters.mod \
    ../include/momentum_diagnostic_fields.mod \
@@ -356,8 +359,10 @@ Free_Surface.o ../include/free_surface_module.mod: Free_Surface.F90 \
 	@true
 
 Full_Projection.o ../include/full_projection.mod: Full_Projection.F90 \
-   ../include/boundary_conditions_from_options.mod ../include/elements.mod \
-   ../include/fdebug.h ../include/fields.mod ../include/fldebug.mod \
+   ../include/boundary_conditions.mod \
+   ../include/boundary_conditions_from_options.mod \
+   ../include/data_structures.mod ../include/elements.mod ../include/fdebug.h \
+   ../include/fields.mod ../include/fldebug.mod \
    ../include/global_parameters.mod ../include/halos.mod \
    ../include/multigrid.mod ../include/parallel_tools.mod \
    ../include/petsc_legacy.h ../include/petsc_solve_state_module.mod \

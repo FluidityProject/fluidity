@@ -55,11 +55,11 @@ Bound_field.o ../include/bound_field_module.mod: Bound_field.F90 \
 	@true
 
 Boundary_Conditions.o ../include/boundary_conditions.mod: \
-   Boundary_Conditions.F90 ../include/fdebug.h ../include/fetools.mod \
-   ../include/fields.mod ../include/fldebug.mod ../include/futils.mod \
-   ../include/global_parameters.mod ../include/parallel_tools.mod \
-   ../include/sparse_tools.mod ../include/sparse_tools_petsc.mod \
-   ../include/state_module.mod
+   Boundary_Conditions.F90 ../include/data_structures.mod ../include/fdebug.h \
+   ../include/fetools.mod ../include/fields.mod ../include/fldebug.mod \
+   ../include/futils.mod ../include/global_parameters.mod \
+   ../include/parallel_tools.mod ../include/sparse_tools.mod \
+   ../include/sparse_tools_petsc.mod ../include/state_module.mod
 
 ../include/cgal_tools.mod: CGAL_Tools.o
 	@true
@@ -1087,7 +1087,8 @@ Sparse_Tools.o ../include/sparse_tools.mod: Sparse_Tools.F90 \
 	@true
 
 Sparse_Tools_Petsc.o ../include/sparse_tools_petsc.mod: Sparse_Tools_Petsc.F90 \
-   ../include/fdebug.h ../include/fields_base.mod \
+   ../include/data_structures.mod ../include/fdebug.h \
+   ../include/fields_allocates.mod ../include/fields_base.mod \
    ../include/fields_data_types.mod ../include/fields_manipulation.mod \
    ../include/fldebug.mod ../include/futils.mod \
    ../include/global_parameters.mod ../include/halo_data_types.mod \
