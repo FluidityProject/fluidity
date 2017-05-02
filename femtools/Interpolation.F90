@@ -389,7 +389,7 @@ module interpolation_module
     integer :: field_count_t
     integer :: field_t
     integer, dimension(:), pointer :: node_list
-    integer :: i, j
+    integer :: i, j, k
     real :: val_s
     real, dimension(:), allocatable :: val_v
     real, dimension(:,:), allocatable :: val_t
@@ -424,7 +424,10 @@ module interpolation_module
           do field_s=1,field_count_s
              old_fields_s(field_s) = extract_scalar_field(old_state, trim(old_state%scalar_names(field_s)))
              new_fields_s(field_s) = extract_scalar_field(new_state, trim(old_state%scalar_names(field_s)))
-             call set(new_fields_s(field_s),old_fields_s(field_s))
+             do i=1, nowned_nodes(old_fields_s(field_s))
+                call set(new_fields_s(field_s),i, node_val(old_fields_s(field_s),i))
+             end do
+             call halo_update(new_fields_s(field_s))
           end do
        end if
        if (associated(old_state%vector_fields)) then
@@ -437,7 +440,10 @@ module interpolation_module
                   old_fields_v(j)%name==trim(old_fields_v(j)%mesh%name)//"Coordinate")) then
            
                 new_fields_v(j) = extract_vector_field(new_state, old_state%vector_names(i))
-                call set(new_fields_v(i),old_fields_v(j))
+                do k=1, nowned_nodes(old_fields_v(i))
+                   call set(new_fields_v(i),k, node_val(old_fields_v(j),k))
+                end do
+                call halo_update(new_fields_v(i))
              end if
           end do
        end if

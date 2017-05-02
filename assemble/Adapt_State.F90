@@ -136,21 +136,24 @@ contains
         call adapt_mesh_1d(stripped_positions, stripped_metric, new_positions, &
           & node_ownership = node_ownership, force_preserve_regions = force_preserve_regions)
       case(2)
-        call adapt_mesh_mba2d(stripped_positions, stripped_metric, new_positions, &
-          & force_preserve_regions=force_preserve_regions, lock_faces=lock_faces, &
-          & allow_boundary_elements=allow_boundary_elements, lock_all_nodes=lock_all_nodes)
+         if (present_and_true(lock_all_nodes) .and. isparallel()) then
+            call parallel_connectivity_adaptivity(stripped_positions, new_positions, 3)
+         else
+            call adapt_mesh_mba2d(stripped_positions, stripped_metric, new_positions, &
+                 & force_preserve_regions=force_preserve_regions, lock_faces=lock_faces, &
+                 & allow_boundary_elements=allow_boundary_elements)
+         end if
       case(3)
         if(have_option("/mesh_adaptivity/hr_adaptivity/adaptivity_library/libmba3d")) then
           assert(.not. present(lock_faces))
           call adapt_mesh_mba3d(stripped_positions, stripped_metric, new_positions, &
                              force_preserve_regions=force_preserve_regions)
         else
-           if(lock_all_nodes) then
+           if(present_and_true(lock_all_nodes)) then
               call adapt_mesh_tetgen(stripped_positions, new_positions)
            else
               call adapt_mesh_3d(stripped_positions, stripped_metric, new_positions, &
-                             force_preserve_regions=force_preserve_regions, lock_faces=lock_faces,&
-                             lock_all_nodes=lock_all_nodes)
+                             force_preserve_regions=force_preserve_regions, lock_faces=lock_faces)
            end if
         end if
       case default
@@ -1367,7 +1370,7 @@ contains
 
       default_stat%zoltan_drive_call=.false.
 
-      if(isparallel()) then
+      if(isparallel() .and. .not. present_and_true(lock_all_nodes)) then
 #ifdef HAVE_ZOLTAN
 
 #ifdef DDEBUG
@@ -1443,6 +1446,8 @@ contains
           ! only for re-load-balancing, hence it must be deallocated
           call deallocate(metric)
         end if
+      else if (isparallel() .and. final_adapt_iteration) then
+         call deallocate(metric)
       end if
 
       if(vertical_only) then
@@ -1890,9 +1895,32 @@ contains
 
   end subroutine adapt_state_module_check_options
 
-  subroutine parallel_connectivity_adaptivity(X)
+  subroutine parallel_connectivity_adaptivity(X_in, X_out, iterations)
+    type(vector_field), intent(in) ::  X_in
+    type(vector_field), intent(out) ::  X_out
+    integer, intent(in) :: iterations
+
+    type(mesh_type) :: mesh
+
+    integer :: i
+
+    mesh = deep_copy_mesh(X_in%mesh, trim(X_in%mesh%name))
+    call allocate(X_out, X_in%dim, mesh, name = X_in%name)
+
+    call set(X_out, X_in)
+    call deallocate(mesh)
+
+    do i = 1, iterations
+       call parallel_connectivity_adaptivity_in_place(x_out)
+    end do
+
+  end subroutine parallel_connectivity_adaptivity
+
+
+  subroutine parallel_connectivity_adaptivity_in_place(X)
     
-    type(vector_field), intent(inout) ::  x
+    type(vector_field), intent(inout) ::  X
+
     type(vector_field) :: x_global
     
     type(halo_type) :: halo
@@ -1940,11 +1968,12 @@ contains
     call update_parallel_from_serial_coordinate(x, x_global, halo,&
          .not. ele_mask)
 
+    call deallocate(halo)
     call deallocate(x_global)
 
-  end subroutine parallel_connectivity_adaptivity
+  end subroutine parallel_connectivity_adaptivity_in_place
 
-     subroutine serialise_coordinate(local_X, global_X, halo, ele_mask)
+  subroutine serialise_coordinate(local_X, global_X, halo, ele_mask)
 
 !     Given a decomposed coordinate field in parallel, this function generates a serial mesh and coordinate field on all processes. If the optional node_mask and ele_mask masks are provided, then only these nodes/elements are included.
 
@@ -2069,9 +2098,9 @@ contains
        call allocate(mesh, global_node_count, global_element_count,&
             local_X%mesh%shape, local_X%mesh%name)
 
-       nullify(mesh%halos)
-
        call allocate(global_X,dim,mesh,"Coordinate")
+       call deallocate(mesh)
+
 
        recvcount = recvcount*dim
        offset = offset*dim
@@ -2178,6 +2207,8 @@ contains
        call halo_update(local_X%mesh%halos(1), local_to_global_map)
 
        call allocate(updated_X, local_X%dim, new_mesh, trim(local_X%name))
+       call deallocate(new_mesh)
+
        updated_X%option_path=local_X%option_path
        do i=1, nowned_nodes(local_X)
           call set(updated_X, i,  node_val(local_X,i))
@@ -2247,31 +2278,25 @@ contains
         call renumber_positions_elements_trailing_receives(updated_X,&
              permutation=renumber_permutation)
 
-       call deallocate(new_mesh)
-
        !! add back the faces
 
        allocate(surface_ids(unique_surface_element_count(local_X%mesh)))
        call interleave_surface_ids(local_X%mesh, surface_ids, max_coplanar_id)
        partition_surface_id = maxval(surface_ids) + 1
 
-       stotel=count(surface_ids .ne. partition_surface_id)
+
+       stotel=unique_surface_element_count(local_X%mesh)
 
        allocate(boundary_ids(stotel), new_sndgln(nloc-1,stotel))
 
-       j=0
        do i=1, unique_surface_element_count(local_X%mesh)
-          if (surface_ids(i) == partition_surface_id) cycle
-          j=j+1
-          new_sndgln(:,j) = face_global_nodes(local_X, i)
-          boundary_ids(j) = surface_ids(i)
+          new_sndgln(:,i) = face_global_nodes(local_X, i)
+          boundary_ids(i) = surface_ids(i)
           do k=1,nloc-1
-             if (new_sndgln(k,j)>nowned_nodes(local_X)) &
-                  new_sndgln(k,j)= global_to_local_map(local_to_global_map(new_sndgln(k,j)))
+             if (new_sndgln(k,i)>nowned_nodes(local_X)) &
+                  new_sndgln(k,i)= global_to_local_map(local_to_global_map(new_sndgln(k,i)))
           end do
        end do
-
-       assert(j == stotel)
        
        call add_faces(updated_X%mesh, sndgln=reshape(new_sndgln, (/ (nloc-1)*stotel /) ), &
             boundary_ids=boundary_ids)
@@ -2285,7 +2310,6 @@ contains
             max_coplanar_id, boundary_ids, coplanar_ids)
        
        updated_X%mesh%faces%boundary_ids = boundary_ids
-
 
        if(associated(local_X%mesh%faces%coplanar_ids)) then
           allocate(updated_X%mesh%faces%coplanar_ids(1:stotel))

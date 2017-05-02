@@ -61,7 +61,8 @@ implicit none
     & wrap_tensor_field
   public :: add_lists, extract_lists, add_nnlist, extract_nnlist, add_nelist, &
     & extract_nelist, add_eelist, extract_eelist, remove_lists, remove_nnlist, &
-    & remove_nelist, remove_eelist, extract_elements, remove_boundary_conditions
+    & remove_nelist, remove_eelist, extract_elements, remove_boundary_conditions, &
+    deep_copy_mesh
 
   interface allocate
      module procedure allocate_scalar_field, allocate_vector_field,&
@@ -1100,6 +1101,80 @@ contains
     call addref(mesh)
 
   end function make_mesh
+
+  function deep_copy_mesh(old_mesh, name) result (mesh)
+    !!< Produce a mesh based on an old mesh but with new memory for the connectivity list
+
+    type(mesh_type) :: mesh
+
+    type(mesh_type), intent(in) :: old_mesh
+    character(len=*), intent(in), optional :: name
+
+    integer :: i
+
+    mesh%continuity=old_mesh%continuity
+
+    allocate(mesh%adj_lists)
+    mesh%elements=old_mesh%elements
+    mesh%nodes=old_mesh%nodes
+    mesh%periodic=old_mesh%periodic
+    mesh%wrapped=.false.
+
+    mesh%shape=old_mesh%shape
+    call incref(mesh%shape)
+
+    if (present(name)) then
+       mesh%name=name
+    else
+       mesh%name=empty_name
+    end if
+
+    if (associated(old_mesh%region_ids)) then
+       allocate(mesh%region_ids(size(old_mesh%region_ids)))
+       mesh%region_ids=old_mesh%region_ids
+    end if
+
+    allocate(mesh%ndglno(size(old_mesh%ndglno)))
+    mesh%ndglno = old_mesh%ndglno
+#ifdef HAVE_MEMORY_STATS
+    call register_allocation("mesh_type", "integer", &
+         size(mesh%ndglno), name=mesh%name)
+#endif
+
+    if (associated(old_mesh%halos)) then
+       assert(element_halo_count(old_mesh) > 0)
+       allocate(mesh%halos(size(old_mesh%halos)))
+       do i=1,size(mesh%halos)
+          mesh%halos(i)=old_mesh%halos(i)
+          call incref(mesh%halos(i))
+       end do
+
+       allocate(mesh%element_halos(size(old_mesh%element_halos)))
+       do i=1,size(mesh%element_halos)
+          mesh%element_halos(i)=old_mesh%element_halos(i)
+          call incref(mesh%element_halos(i))
+       end do
+    end if
+
+    nullify(mesh%refcount) ! Hack for gfortran component initialisation
+    !                         bug.
+
+    ! Transfer the eelist from mesh to mesh
+    assert(associated(old_mesh%adj_lists))
+    if(associated(old_mesh%adj_lists%eelist)) then
+      ewrite(2, *) "Transferring element-element list to mesh " // trim(mesh%name)
+      allocate(mesh%adj_lists%eelist)
+      mesh%adj_lists%eelist = old_mesh%adj_lists%eelist
+      call incref(mesh%adj_lists%eelist)
+    end if
+    
+    if(has_faces(old_mesh)) then
+      call add_faces(mesh, old_mesh)
+    end if
+
+    call addref(mesh)
+
+  end function deep_copy_mesh
 
   subroutine add_faces(mesh, model, sndgln, sngi, boundary_ids, &
     periodic_face_map, element_owner, incomplete_surface_mesh, &
