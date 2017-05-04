@@ -35,3 +35,5 @@ clean:
 input: clean
 	$(MAKE) preprocess
 
+config: envcheck
+	diamond -s $(FLOPTIONSPREFIX)/fluidity_options.rng  med.flml
