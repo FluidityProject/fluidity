@@ -28,10 +28,20 @@ closely as possible the setup used previously by Sam.</a:documentation>
                 <a:documentation>Select the partitioning method you would like used by Zoltan PHG.
 Currently hypergraph partitioning is the simplest implementation
 and can produce non-contiguous partitions for certain problems.</a:documentation>
-                <choice>
-                  <value>graph</value>
-                  <value>hypergraph</value>
-                </choice>
+                <element name="string_value">
+                  <!--
+                    Lines is a hint to the gui about the size of the text box.
+                    It is not an enforced limit on string length.
+                  -->
+                  <attribute name="lines">
+                    <value>1</value>
+                  </attribute>
+                  <choice>
+                    <value>graph</value>
+                    <value>hypergraph</value>
+                  </choice>
+                </element>
+                <ref name="comment"/>
               </element>
             </element>
           </choice>
