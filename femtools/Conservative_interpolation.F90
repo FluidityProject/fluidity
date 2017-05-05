@@ -102,6 +102,7 @@ module conservative_interpolation_module
     type(plane_type), dimension(4) :: planes_B
     type(tet_type) :: tet_A, tet_B
     integer :: lstat
+    logical :: empty_intersection
 
     real, dimension(size(local_rhs, 3)) :: tmp_local_rhs, tmp_ele_val
 
@@ -150,8 +151,8 @@ module conservative_interpolation_module
           cycle
         end if
       else
-        intersection = intersect_elements(old_position, ele_A, pos_B, supermesh_shape)
-        if (.not. has_references(intersection)) then
+        intersection = intersect_elements(old_position, ele_A, pos_B, supermesh_shape, empty_intersection=empty_intersection)
+        if (empty_intersection) then
            llnode => llnode%next
            cycle
         end if
@@ -1017,6 +1018,7 @@ module conservative_interpolation_module
     character(len=OPTION_PATH_LEN) :: old_path
     integer :: stat
     real, dimension(new_position%dim, ele_loc(new_position, 1)) :: pos_B
+    logical :: empty_intersection
 
     field_cnt = size(old_fields)
     dim = mesh_dim(new_position)
@@ -1059,8 +1061,8 @@ module conservative_interpolation_module
           integral_A(field) = dot_product(ele_val_at_quad(old_fields(field), ele_A), detwei_A)
         end do
 
-        intersection = intersect_elements(old_position, ele_A, pos_B, supermesh_shape)
-        if (.not. has_references(intersection)) then
+        intersection = intersect_elements(old_position, ele_A, pos_B, supermesh_shape, empty_intersection=empty_intersection)
+        if (empty_intersection) then
            llnode => llnode%next
            cycle
         end if

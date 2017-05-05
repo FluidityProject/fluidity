@@ -113,6 +113,7 @@ subroutine unifiedmesh(filename1_, filename1_len, &
 
     integer :: ele_A, ele_B
     integer :: new_start, new_end, step
+    logical :: empty_intersection
 
     call allocate(supermesh_mesh, 0, 0, supermesh_shape, "AccumulatedMesh")
     call allocate(supermesh, positionsA%dim, supermesh_mesh, "AccumulatedPositions")
@@ -123,11 +124,13 @@ subroutine unifiedmesh(filename1_, filename1_len, &
         llnode => map_BA(ele_B)%firstnode
         do while(associated(llnode))
           ele_A = llnode%value
-          supermesh_tmp = intersect_elements(positionsA, ele_A, ele_val(positionsB, ele_B), supermesh_shape)
-          call unify_meshes_quadratic(supermesh, supermesh_tmp, supermesh_accum)
-          call deallocate(supermesh)
-          call deallocate(supermesh_tmp)
-          supermesh = supermesh_accum
+          supermesh_tmp = intersect_elements(positionsA, ele_A, ele_val(positionsB, ele_B), supermesh_shape, empty_intersection=empty_intersection)
+          if (.not. empty_intersection) then
+            call unify_meshes_quadratic(supermesh, supermesh_tmp, supermesh_accum)
+            call deallocate(supermesh)
+            call deallocate(supermesh_tmp)
+            supermesh = supermesh_accum
+          end if
           llnode => llnode%next
         end do
       end do

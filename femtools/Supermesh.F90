@@ -106,11 +106,16 @@ module supermesh_construction
     
   end subroutine intersector_set_dimension
 
-  function intersect_elements(positions_A, ele_A, posB, shape) result(intersection)
+  function intersect_elements(positions_A, ele_A, posB, shape, empty_intersection) result(intersection)
     type(vector_field), intent(in) :: positions_A
     integer, intent(in) :: ele_A
     real, dimension(:, :), intent(in) :: posB
     type(element_type), intent(in) :: shape
+    ! if present, returns whether the intersection is empty or not
+    ! if present and the intersection is empty, no intersection mesh is returned (should be discarded and not deallocated)
+    ! if not present and the intersection is empty, a valid 0-element mesh is returned
+    ! this is an optimisation that avoids allocating lots of empty meshes inside supermesh loops
+    logical, optional, intent(out) :: empty_intersection
     
     type(vector_field) :: intersection
     
@@ -118,6 +123,15 @@ module supermesh_construction
     type(mesh_type) :: intersection_mesh
 
     call libsupermesh_intersect_elements(reordered(ele_val(positions_A, ele_A)), reordered(posB), elements_c, n_elements_c)
+
+    if (present(empty_intersection)) then
+      if (n_elements_c==0) then
+        empty_intersection = .true.
+        return
+      else
+        empty_intersection = .false.
+      end if
+    end if
 
     call allocate(intersection_mesh, size(elements_c, 2) * n_elements_c, n_elements_c, shape, "IntersectionMesh")
     intersection_mesh%continuity = -1
@@ -178,13 +192,18 @@ module supermesh_construction
     
   end subroutine intersector_get_output_sp
 
-  function intersect_elements(positions_A, ele_A, posB, shape) result(intersection)
+  function intersect_elements(positions_A, ele_A, posB, shape, empty_intersection) result(intersection)
     type(vector_field), intent(in) :: positions_A
     integer, intent(in) :: ele_A
     type(vector_field) :: intersection
     type(mesh_type) :: intersection_mesh
     type(element_type), intent(in) :: shape
     real, dimension(:, :), intent(in) :: posB
+    ! if present, returns whether the intersection is empty or not
+    ! if present and the intersection is empty, no intersection mesh is returned (should be discarded and not deallocated)
+    ! if not present and the intersection is empty, a valid 0-element mesh is returned
+    ! this is an optimisation that avoids allocating lots of empty meshes inside supermesh loops
+    logical, optional, intent(out) :: empty_intersection
 
     integer :: dim, loc
     integer :: nonods, totele
@@ -206,8 +225,13 @@ module supermesh_construction
     call cintersector_drive
     call cintersector_query(nonods, totele)
 
-    if (totele==0) then
-       return
+    if (present(empty_intersection)) then
+      if (totele==0) then
+         empty_intersection = .true.
+         return
+      else
+         empty_intersection = .false.
+      end if
     end if
     
     call allocate(intersection_mesh, nonods, totele, shape, "IntersectionMesh")
@@ -265,6 +289,7 @@ module supermesh_construction
     type(plane_type), dimension(4) :: planes_B
     type(tet_type) :: tet_A, tet_B
     integer :: lstat, dim, j, i
+    logical :: empty_intersection
 
     dim = new_positions%dim
 
@@ -289,8 +314,8 @@ module supermesh_construction
         end if
         assert(continuity(intersection(j)) < 0)
       else
-        intersection(j) = intersect_elements(old_positions, ele_A, pos_B, supermesh_shape)
-        if (.not. has_references(intersection(j))) then
+        intersection(j) = intersect_elements(old_positions, ele_A, pos_B, supermesh_shape, empty_intersection)
+        if (empty_intersection) then
           llnode => llnode%next
           cycle
         end if
