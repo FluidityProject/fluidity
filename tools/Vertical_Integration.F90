@@ -225,13 +225,10 @@ subroutine vertical_integration(target_basename_, target_basename_len, &
         end if
       else
         positions_c = intersect_elements(positions_b_ext, ele_b, ele_val(positions_a, ele_a), ele_shape(positions_a, ele_a), empty_intersection=empty_intersection)
-      end if
-
-      if(empty_intersection) then
-        ! No intersection to integrate
-        cycle
-      end if
-      if(dim /= 3 .or. (intersector_exactness .eqv. .true.)) then  ! The stat argument to intersect_tets checks this
+        if(empty_intersection) then
+          ! No intersection to integrate
+          cycle
+        end if
         if(volume(positions_c) < epsilon(0.0)) then
           ! Negligable intersection to integrate
           call deallocate(positions_c)
