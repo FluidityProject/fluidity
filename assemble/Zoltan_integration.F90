@@ -738,6 +738,14 @@ module zoltan_integration
     ierr = Zoltan_Set_Param(zz, "OBJ_WEIGHT_DIM", "1"); assert(ierr == ZOLTAN_OK)
     ierr = Zoltan_Set_Param(zz, "EDGE_WEIGHT_DIM", "1"); assert(ierr == ZOLTAN_OK)
     ierr = Zoltan_Set_Param(zz, "RETURN_LISTS", "ALL"); assert(ierr == ZOLTAN_OK)
+    ! scotch and parmetis do not behave correctly when one, or more input partitions are empty
+    ! setting this to 2, means doing a simple scatter of contiguous chunks of vertices (ignoring
+    ! any weighting) before going into scotch/parmetis
+    ! 0 = never scatter, 1 (default) = only scatter if there is just one non-empty partition, 3 = always scatter
+    ! I believe this is ignored with Zoltan Hypergraph
+    ! empty *input* partitions should only occur with flredecomp, as we don't handle empty output partitions
+    ! and adaptivity never reduces the number of vertices to 0
+    ierr = Zoltan_Set_Param(zz, "SCATTER_GRAPH", "2"); assert(ierr == ZOLTAN_OK)
     
     ierr = Zoltan_Set_Fn(zz, ZOLTAN_NUM_OBJ_FN_TYPE, zoltan_cb_owned_node_count);      assert(ierr == ZOLTAN_OK)
     ierr = Zoltan_Set_Fn(zz, ZOLTAN_OBJ_LIST_FN_TYPE, zoltan_cb_get_owned_nodes);      assert(ierr == ZOLTAN_OK)

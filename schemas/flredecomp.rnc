@@ -26,7 +26,13 @@ flredecomp =
                 ## Currently hypergraph partitioning is the simplest implementation
                 ## and can produce non-contiguous partitions for certain problems.
                 element method {
-                "graph"|"hypergraph"
+		  element string_value {
+		     # Lines is a hint to the gui about the size of the text box.
+		     # It is not an enforced limit on string length.
+                     attribute lines { "1" },
+                     ( "graph" | "hypergraph" )
+                  },
+                comment
                 }
             }
         }?,

@@ -48,7 +48,10 @@ def GetXandt(filelist):
       data = data.ugrid
       
       contour = vtk.vtkContourFilter()
-      contour.SetInput(data)
+      if vtk.vtkVersion.GetVTKMajorVersion() <= 5:
+        contour.SetInput(data)
+      else:
+        contour.SetInputData(data)
       contour.SetValue(0, 0.0)
       contour.Update()
       polydata = contour.GetOutput()

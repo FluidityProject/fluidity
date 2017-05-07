@@ -114,7 +114,9 @@
   <flredecomp>
     <final_partitioner>
       <zoltan>
-        <method>graph</method>
+        <method>
+          <string_value lines="1">graph</string_value>
+        </method>
       </zoltan>
     </final_partitioner>
   </flredecomp>

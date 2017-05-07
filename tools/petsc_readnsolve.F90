@@ -359,7 +359,7 @@ contains
       
         assert(halo_count(mesh) > 0)
         my_halo => mesh%halos(halo_count(mesh))
-        call allocate(petsc_numbering, node_count(mesh), 1, my_halo)
+        call allocate(petsc_numbering, node_count(mesh), 1, halo=my_halo)
       else
       
         call allocate(petsc_numbering, node_count(mesh), 1)
@@ -492,7 +492,7 @@ contains
     if (isparallel()) then
        halo => mesh%halos(halo_count(mesh)) 
        call allocate(petsc_numbering, node_count(mesh), components, &
-            & halo)
+            & halo=halo)
        call redistribute_matrix(matrix, x, rhs, petsc_numbering)
     else
        call allocate(petsc_numbering, node_count(mesh), components)

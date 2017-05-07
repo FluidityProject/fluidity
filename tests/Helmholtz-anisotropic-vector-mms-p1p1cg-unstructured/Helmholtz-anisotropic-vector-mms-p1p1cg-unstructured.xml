@@ -596,8 +596,8 @@ assert(d_zdiff &lt; 1.6e-7)
     <test name="ab_convergence_vel_x: L2 order > 2.1" language="python">
 assert(ab_convergence_vel[0][0] &gt; 2.1)
     </test>
-    <test name="ab_convergence_vel_y: L2 order > 1.5" language="python">
-assert(ab_convergence_vel[1][0] &gt; 1.5)
+    <test name="ab_convergence_vel_y: L2 order > 1.4" language="python">
+assert(ab_convergence_vel[1][0] &gt; 1.4)
     </test>
     <test name="bc_convergence_vel_x: L2 order > 2.1" language="python">
 assert(bc_convergence_vel[0][0] &gt; 2.1)
