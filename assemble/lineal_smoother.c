@@ -113,9 +113,9 @@ void lin_smoother(int dimension, int num_nodes, int num_elements, int num_surf_e
 	 MatSetValue(*K,mapping[num_nodes+Ii],mapping[neb_hold],*(tmp+1),ADD_VALUES);
 	 MatSetValue(*K,mapping[num_nodes+Ii],mapping[num_nodes+neb_hold],*(tmp+3),ADD_VALUES);
 	 MatSetValue(*K,mapping[num_nodes+Ii],mapping[2*num_nodes+neb_hold],*(tmp+4),ADD_VALUES);
-	 MatSetValue(*K,mapping[2*num_nodes+Ii],mapping[neb_hold-1],*(tmp+5),ADD_VALUES);
-	 MatSetValue(*K,mapping[2*num_nodes+Ii],mapping[num_nodes+neb_hold-1],*(tmp+6),ADD_VALUES);
-	 MatSetValue(*K,mapping[2*num_nodes+Ii],mapping[2*num_nodes+neb_hold-1],*(tmp+7),ADD_VALUES);
+	 MatSetValue(*K,mapping[2*num_nodes+Ii],mapping[neb_hold],*(tmp+5),ADD_VALUES);
+	 MatSetValue(*K,mapping[2*num_nodes+Ii],mapping[num_nodes+neb_hold],*(tmp+6),ADD_VALUES);
+	 MatSetValue(*K,mapping[2*num_nodes+Ii],mapping[2*num_nodes+neb_hold],*(tmp+7),ADD_VALUES);
 
 	 tmp = K_lin(neb_hold,Ii);
 
