@@ -23,7 +23,7 @@ endif
 
 postprocess: envcheck
 	@echo **********Reprojecting final output to long-lat and extracting RMS differences:
-	PYTHONPATH=${PWD}/../../python:$$PYTHONPATH python ./reproject-to-loglat.py
+	PYTHONPATH=${PWD}/../../python:$$PYTHONPATH python ./reproject-to-lonlat.py
 	PYTHONPATH=${PWD}/../../python:$$PYTHONPATH python ./Med-tides-probe.py
 
 

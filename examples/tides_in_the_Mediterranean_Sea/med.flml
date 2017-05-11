@@ -48,7 +48,7 @@
       </from_mesh>
     </mesh>
     <mesh name="InputMesh">
-      <from_file file_name="med">
+      <from_file file_name="mesh/med">
         <format name="gmsh"/>
         <stat>
           <exclude_from_stat/>
@@ -61,7 +61,7 @@
         <extrude>
           <regions name="WholeMesh">
             <bottom_depth>
-              <from_map file_name="globesampled.grd">
+              <from_map file_name="mesh/globesampled.grd">
                 <min_depth>
                   <real_value rank="0">3.0</real_value>
                 </min_depth>
@@ -93,7 +93,9 @@
         <integer_value rank="0">3</integer_value>
       </surface_degree>
     </quadrature>
-    <spherical_earth/>
+    <spherical_earth>
+      <superparametric_mapping/>
+    </spherical_earth>
     <ocean_boundaries>
       <top_surface_ids>
         <integer_value shape="1" rank="1">307</integer_value>
