@@ -359,7 +359,7 @@ contains
        ndet_to_send=send_list_array(target_proc)%length
        ! if we don't know any elements owned by target_proc - we shouldn't have anything to send
        if (halo_receive_count(ele_halo, target_proc)==0) then
-         ! check that this is te case
+         ! check that this is the case
          if (ndet_to_send>0) then
            FLAbort('send_list_array should only send detectors to known elements.')
          end if
