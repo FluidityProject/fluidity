@@ -34,12 +34,11 @@ module detector_parallel
   use integer_hash_table_module
   use mpi_interfaces
   use elements
-  use halo_data_types
   use parallel_tools
-  use halos_numbering
   use parallel_fields
   use fields
   use state_module
+  use halos
   use detector_data_types
   use detector_tools
   use pickers
@@ -309,6 +308,8 @@ contains
     ! receives serialised detectors from all procs and unpacks them.
     type(state_type), intent(in) :: state
     type(detector_linked_list), intent(inout) :: detector_list
+    ! the assumption is here that we only send detectors located in element that we know about
+    ! in the largest element halo
     type(detector_linked_list), dimension(:), intent(inout) :: send_list_array
 
     type(detector_buffer), dimension(:), allocatable :: send_buffer, recv_buffer
@@ -332,6 +333,7 @@ contains
     xfield => extract_vector_field(state,"Coordinate")
     dim=xfield%dim
     allocate( sendRequest(nprocs) )
+    sendRequest = MPI_REQUEST_NULL
 
     ! Get the element halo 
     halo_level = element_halo_count(xfield%mesh)
@@ -355,6 +357,14 @@ contains
     allocate(send_buffer(nprocs))
     do target_proc=1, nprocs
        ndet_to_send=send_list_array(target_proc)%length
+       ! if we don't know any elements owned by target_proc - we shouldn't have anything to send
+       if (halo_receive_count(ele_halo, target_proc)==0) then
+         ! check that this is the case
+         if (ndet_to_send>0) then
+           FLAbort('send_list_array should only send detectors to known elements.')
+         end if
+         cycle
+       end if
        allocate(send_buffer(target_proc)%ptr(ndet_to_send,det_size))
 
        if (ndet_to_send>0) then
@@ -395,6 +405,9 @@ contains
     ! Receive from all procs
     allocate(recv_buffer(nprocs))
     do receive_proc=1, nprocs
+       ! this should predict whether to expect a message:
+       if (halo_send_count(ele_halo, receive_proc)==0) cycle
+
        call MPI_PROBE(receive_proc-1, TAG, MPI_COMM_FEMTOOLS, status(:), IERROR) 
        assert(ierror == MPI_SUCCESS)
 
@@ -440,8 +453,12 @@ contains
 
     ! Deallocate buffers after exchange
     do target_proc=1, nprocs
-       deallocate(send_buffer(target_proc)%ptr)
-       deallocate(recv_buffer(target_proc)%ptr)
+       if (halo_receive_count(ele_halo, target_proc)>0) then
+         deallocate(send_buffer(target_proc)%ptr)
+       end if
+       if (halo_send_count(ele_halo, target_proc)>0) then
+         deallocate(recv_buffer(target_proc)%ptr)
+       end if
     end do
     deallocate(send_buffer)
     deallocate(recv_buffer)
