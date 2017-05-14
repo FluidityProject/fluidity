@@ -85,7 +85,8 @@ public petsc_solve, set_solver_options, &
 public petsc_solve_core, petsc_solve_destroy, &
   petsc_solve_copy_vectors_from_scalar_fields, &
   setup_ksp_from_options, create_ksp_from_options, petsc_solve_monitor_exact, &
-  petsc_solve_monitor_iteration_vtus, attach_null_space_from_options
+  petsc_solve_monitor_iteration_vtus, attach_null_space_from_options, &
+  petsc_solve_setup
 
 interface petsc_solve
    module procedure petsc_solve_scalar, petsc_solve_vector, &
