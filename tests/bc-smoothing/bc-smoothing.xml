@@ -1,0 +1,45 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>bc-smoothing</name>
+  <owner userid="skramer"/>
+  <problem_definition length="short" nprocs="2">
+    <command_line>mpiexec flredecomp -i 1 -o 2 smoothed_bcs smoothed_bcs_parallel &amp;&amp;
+mpiexec fluidity -v2 -l smoothed_bcs_parallel.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="velocity_max" language="python">from fluidity_tools import stat_parser
+from numpy import array
+stat = stat_parser('out.stat')
+velocity_max = []
+for i in '123':
+    velocity_max.append(stat['Fields']['Velocity%'+i]['max'][0])
+velocity_max=array(velocity_max)</variable>
+    <variable name="velocity_min" language="python">from fluidity_tools import stat_parser
+from numpy import array
+stat = stat_parser('out.stat')
+velocity_min = []
+for i in '123':
+    velocity_min.append(stat['Fields']['Velocity%'+i]['min'][0])
+velocity_min=array(velocity_min)</variable>
+    <variable name="velocity_grad_min" language="python">from fluidity_tools import stat_parser
+from numpy import array
+stat = stat_parser('out.stat')
+velocity_grad_min = []
+for i in '123':
+    velocity_grad_min.append(stat['Fields']['VelocityGradAlongSurface%'+i]['min'][0])
+velocity_grad_min=array(velocity_grad_min)</variable>
+    <variable name="velocity_grad_max" language="python">from fluidity_tools import stat_parser
+from numpy import array
+stat = stat_parser('out.stat')
+velocity_grad_max = []
+for i in '123':
+    velocity_grad_max.append(stat['Fields']['VelocityGradAlongSurface%'+i]['max'][0])
+velocity_grad_max=array(velocity_grad_max)</variable>
+  </variables>
+  <pass_tests>
+    <test name="check_velocity_max" language="python">assert all(velocity_max&gt;1-1e-5) and all(velocity_max&lt;1+1e-5)<comment>Both smoothed and non-smoothed bc values should be bounded (and not have smoothed so much that the extremum has changed)</comment></test>
+    <test name="check_velocity_min" language="python">assert all(velocity_min&gt;-1-1e-5) and all(velocity_min&lt;-1+1e-5)<comment>Both smoothed and non-smoothed bc values should be bounded (and not have smoothed so much that the extremum has changed)</comment></test>
+    <test name="check_velocity_grad_min" language="python">assert abs(velocity_grad_min[0]+20.)&lt;1e-5 and all(velocity_grad_min[1:]&gt;-1e-5)<comment>Non-smoothed bc (x-component) overshoots, causing a negative gradient, whereas the smoothed y and z components are a monotonic with a positive gradient.</comment></test>
+    <test name="check_velocity_grad_max" language="python">assert abs(velocity_grad_max[0]-60.)&lt;1e-5 and all(velocity_grad_max[1:]&lt;10.)<comment>Non-smoothed bc (x-component) overshoots, causing a negative gradient, whereas the smoothed y and z components are a monotonic with a positive gradient.</comment></test>
+  </pass_tests>
+</testproblem>

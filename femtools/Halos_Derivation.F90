@@ -58,7 +58,7 @@ module halos_derivation
   public :: derive_l1_from_l2_halo, derive_element_halo_from_node_halo, &
     & derive_maximal_surface_element_halo, derive_nonperiodic_halos_from_periodic_halos, derive_sub_halo
   public :: invert_comms_sizes, ele_owner, combine_halos, create_combined_numbering_trailing_receives
-  public :: expand_positions_halo
+  public :: expand_positions_halo, generate_surface_mesh_halos
   
   interface derive_l1_from_l2_halo
     module procedure derive_l1_from_l2_halo_mesh
@@ -1966,5 +1966,48 @@ contains
     ewrite(1,*) "Exiting expand_halo"
 
   end function expand_halo
+
+  subroutine generate_surface_mesh_halos(full_mesh, surface_mesh, surface_nodes)
+    type(mesh_type), intent(in):: full_mesh
+    type(mesh_type), intent(inout):: surface_mesh
+    integer, dimension(:), intent(in):: surface_nodes
+
+    integer :: ihalo, nhalos
+
+    ewrite(1, *) "In generate_surface_mesh for mesh: ", trim(surface_mesh%name)
+
+    ! hm, is this only gonna work for p1cg fs+pressure?
+    assert(continuity(surface_mesh) == 0)
+    assert(.not. associated(surface_mesh%halos))
+    assert(.not. associated(surface_mesh%element_halos))
+
+    ! Initialise key MPI information:
+
+    nhalos = halo_count(full_mesh)
+    ewrite(2,*) "Number of surface_mesh halos = ",nhalos
+
+    if(nhalos == 0) return
+
+    ! Allocate subdomain mesh halos:
+    allocate(surface_mesh%halos(nhalos))
+
+    ! Derive subdomain_mesh halos:
+    do ihalo = 1, nhalos
+
+       surface_mesh%halos(ihalo) = derive_sub_halo(full_mesh%halos(ihalo), surface_nodes)
+
+       assert(trailing_receives_consistent(surface_mesh%halos(ihalo)))
+       assert(halo_valid_for_communication(surface_mesh%halos(ihalo)))
+       call create_global_to_universal_numbering(surface_mesh%halos(ihalo))
+       call create_ownership(surface_mesh%halos(ihalo))
+       
+    end do ! ihalo 
+    
+    allocate(surface_mesh%element_halos(nhalos))
+    ! the element order of the surface mesh will not be trailing receive - do we care?
+    call derive_element_halo_from_node_halo(surface_mesh, &
+        & ordering_scheme = HALO_ORDER_GENERAL, create_caches = .true.)
+
+  end subroutine generate_surface_mesh_halos
 
 end module halos_derivation

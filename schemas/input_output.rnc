@@ -128,6 +128,19 @@ input_choice_real_contents =
       python_code
    }
 
+bc_smoothing =
+   (
+      ## Smoothing on mesh. This uses the lumped mass approach. When the mesh is not
+      ## linear and continuous, the boundary values are evaluated on a continuous
+      ## linear mesh first, then smoothed and then interpolated onto the actual mesh.
+      element smoothing {
+         ## Number of smoothing iterations. More iterations means more smoothing
+         element iterations {
+             integer
+         }
+      }?
+   )
+
 initial_condition_scalar = 
    (
       ## Initial condition for WholeMesh
