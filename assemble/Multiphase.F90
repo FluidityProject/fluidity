@@ -297,7 +297,7 @@
          ewrite(1, *) "Entering add_fluid_particle_drag"
          
          ! Let's check whether we actually have at least one particle phase.
-         if( (option_count("/material_phase/multiphase_properties/particle_diameter") == 0) .and. (option_count("/material_phase/multiphase_properties/particle_dia_use_scalar_field") == 0) ) then
+         if( (option_count("/material_phase/multiphase_properties/particle_diameter") == 0) .and. (option_count("/material_phase/multiphase_properties/particle_diameter_use_scalar_field") == 0) ) then
             FLExit("Fluid-particle drag enabled but no particle_diameter has been specified for the particle phase(s).")
          end if
                
@@ -315,13 +315,13 @@
          dg = continuity(u) < 0
 
          ! Is this phase a particle phase?
-         is_particle_phase = have_option(trim(state(istate)%option_path)//"/multiphase_properties/particle_diameter") .or. have_option(trim(state(istate)%option_path)//"/multiphase_properties/particle_dia_use_scalar_field")
+         is_particle_phase = have_option(trim(state(istate)%option_path)//"/multiphase_properties/particle_diameter") .or. have_option(trim(state(istate)%option_path)//"/multiphase_properties/particle_diameter_use_scalar_field")
               
          ! Retrieve the index of the fluid phase in the state array.
          not_found = .true.
          if(is_particle_phase) then    
             do i = 1, size(state)
-               if(.not.(have_option(trim(state(i)%option_path)//"/multiphase_properties/particle_diameter") .or. have_option(trim(state(i)%option_path)//"/multiphase_properties/particle_dia_use_scalar_field"))) then
+               if(.not.(have_option(trim(state(i)%option_path)//"/multiphase_properties/particle_diameter") .or. have_option(trim(state(i)%option_path)//"/multiphase_properties/particle_diameter_use_scalar_field"))) then
 
                   velocity_fluid => extract_vector_field(state(i), "Velocity")
                   ! Aliased material_phases will also not have a particle_diameter,
@@ -721,13 +721,13 @@
          dg = continuity(internal_energy) < 0
 
          ! Is this phase a particle phase?
-         is_particle_phase = have_option(trim(state(istate)%option_path)//"/multiphase_properties/particle_diameter") .or. have_option(trim(state(istate)%option_path)//"/multiphase_properties/particle_dia_use_scalar_field")
+         is_particle_phase = have_option(trim(state(istate)%option_path)//"/multiphase_properties/particle_diameter") .or. have_option(trim(state(istate)%option_path)//"/multiphase_properties/particle_diameter_use_scalar_field")
               
          ! Retrieve the index of the fluid phase in the state array.
          not_found = .true.
          if(is_particle_phase) then    
             do i = 1, size(state)
-               if(.not.(have_option(trim(state(i)%option_path)//"/multiphase_properties/particle_diameter") .or. have_option(trim(state(i)%option_path)//"/multiphase_properties/particle_dia_use_scalar_field"))) then
+               if(.not.(have_option(trim(state(i)%option_path)//"/multiphase_properties/particle_diameter") .or. have_option(trim(state(i)%option_path)//"/multiphase_properties/particle_diameter_use_scalar_field"))) then
 
                   velocity_fluid => extract_vector_field(state(i), "Velocity")
                   ! Aliased material_phases will also not have a particle_diameter,
@@ -801,8 +801,8 @@
                   if(have_option(trim(state(istate_particle)%option_path)//"/multiphase_properties/particle_diameter")) then
                      call get_option(trim(state(istate_particle)%option_path)//"/multiphase_properties/particle_diameter", d)
                      have_constant_d = .true.
-                  else if(have_option(trim(state(istate_particle)%option_path)//"/multiphase_properties/particle_dia_use_scalar_field")) then
-                     call get_option(trim(state(istate_particle)%option_path)//"/multiphase_properties/particle_dia_use_scalar_field", d_field_name)
+                  else if(have_option(trim(state(istate_particle)%option_path)//"/multiphase_properties/particle_diameter_use_scalar_field")) then
+                     call get_option(trim(state(istate_particle)%option_path)//"/multiphase_properties/particle_diameter_use_scalar_field", d_field_name)
                      d_field => extract_scalar_field(state(istate_particle), d_field_name)
                      have_constant_d = .false.
                   end if
