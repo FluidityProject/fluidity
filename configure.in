@@ -1823,4 +1823,5 @@ AC_OUTPUT(Makefile
           libwm/Makefile
           libvtkfortran/Makefile
 	  reduced_modelling/Makefile
+	  turbine_models/Makefile
 	  tests/tools.mk)

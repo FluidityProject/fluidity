@@ -1,4 +1,4 @@
-!    Copyright (C) 2006 Imperial College London and others.
+!   Copyright (C) 2006 Imperial College London and others.
 !    
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
@@ -318,13 +318,13 @@ contains
   end subroutine calculate_imposed_material_velocity_source
 
   subroutine calculate_actuator_line_momentum_source(states, state_index, v_field)
-
+      
+      use mpi_interfaces
       use pickers_inquire
       use actuator_line_model
       use actuator_line_write_output
       use actuator_line_model_utils
       use actuator_line_source
-      use mpi
 
       type(state_type), dimension(:), intent(inout) :: states
       integer, intent(in) :: state_index
