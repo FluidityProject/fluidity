@@ -73,9 +73,13 @@ type ActuatorLineType
     ! Element Forces CD, CL CM25 
     real, allocatable :: ECD(:)         ! Element Drag Coefficient
     real, allocatable :: ECL(:)         ! Element Lift Coefficient 
+    real, allocatable :: ECLcirc(:)     ! Element Circulation Lift Coefficient
     real, allocatable :: ECM(:)         ! Element Moment Coefficient
     real, allocatable :: ECN(:)         ! Element Normal Force Coefficient
     real, allocatable :: ECT(:)         ! Element Tangential Force Coefficient 
+    
+    ! Element Circulation Gamma 
+    real, allocatable :: EGamma(:)     ! Element Circulation (Gamma)
     
     ! Element Forces in the nts direction
     real, allocatable :: EFn(:)         ! Element Force in the normal direction
@@ -86,7 +90,10 @@ type ActuatorLineType
     real, allocatable :: EFx(:)         ! Element Force in the global x-direction
     real, allocatable :: EFy(:)         ! Element Force in the global y-direction
     real, allocatable :: EFz(:)         ! Element Force in the global z-direction
-   
+
+    ! Influence Matrix for rbf interpolations
+    real, allocatable ::A_rbf(:,:)     
+
     real, allocatable :: EEndeffects_factor(:) ! End effects factor for the blade (initialize as one)
 
     ! Element Airfoil Data
@@ -330,6 +337,7 @@ end type ActuatorLineType
     !==========================================
     ! Assign the derived types
     !==========================================
+    
     ! Local Load Coefficients
     act_line%ECD(ielem)=CD
     act_line%ECL(ielem)=CL
@@ -341,10 +349,12 @@ end type ActuatorLineType
     act_line%EFN(ielem)=FN
     act_line%EFT(ielem)=FT
     act_line%EMS(ielem)=MS
+    
     ! Global Forces and Torques
     act_line%EFX(ielem)=FX
     act_line%EFY(ielem)=FY
     act_line%EFZ(ielem)=FZ
+    
     !===============================================
     !! Set the AOA_LAST before exiting the routine
     !===============================================
@@ -751,7 +761,9 @@ end type ActuatorLineType
     allocate(actuatorline%EUn_LAST(Nelem))
     allocate(actuatorline%ECD(Nelem))
     allocate(actuatorline%ECL(Nelem))
+    allocate(actuatorline%ECLcirc(Nelem))
     allocate(actuatorline%ECM(Nelem))
+    allocate(actuatorline%EGamma(Nelem))
     allocate(actuatorline%ECN(Nelem))
     allocate(actuatorline%ECT(Nelem))
     allocate(actuatorline%EFn(NElem))
@@ -760,6 +772,7 @@ end type ActuatorLineType
     allocate(actuatorline%EFx(NElem))
     allocate(actuatorline%EFy(NElem))
     allocate(actuatorline%EFz(NElem))
+    allocate(actuatorline%A_rbf(NElem,NElem))
     allocate(actuatorline%EEndeffects_factor(NElem)) ! End effects factor for the blade
     
     end subroutine allocate_actuatorline

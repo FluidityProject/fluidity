@@ -162,7 +162,7 @@ contains
         if(have_option(trim(turbine_path(i))//"/type/Horizontal_Axis")) then
             Turbine(i)%Type='Horizontal_Axis'
             Turbine(i)%RotN=(/1.0,0.0,0.0/)   
-            call get_option(trim(turbine_path(i))//"/type/Horizontal_Axis/hub_tilt_angle",Turbine(i)%hub_tilt_angle)
+            call get_option(trim(turbine_path(i))//"/type/Horizontal_Axis/hub_tilt_angle",Turbine(i)%hub_tilt_angle) 
             call get_option(trim(turbine_path(i))//"/type/Horizontal_Axis/blade_cone_angle",Turbine(i)%blade_cone_angle)
             call get_option(trim(turbine_path(i))//"/type/Horizontal_Axis/yaw_angle",Turbine(i)%yaw_angle)
         elseif(have_option(trim(turbine_path(i))//"/type/Vertical_Axis")) then
@@ -324,7 +324,7 @@ contains
             if(Turbine(i)%Is_constant_rotation_operated) then
                 theta=Turbine(i)%angularVel*DeltaT
                 Turbine(i)%AzimAngle=Turbine(i)%AzimAngle+theta
-                call rotate_turbine(turbine(i),theta)
+                call rotate_turbine(Turbine(i),Turbine(i)%RotN,theta)
                 call Compute_Turbine_RotVel(Turbine(i))  
             endif
             enddo

@@ -5,11 +5,12 @@ module actuator_line_source
     use fldebug
     use spud
     use global_parameters, only:FIELD_NAME_LEN,OPTION_PATH_LEN, PYTHON_FUNC_LEN, pi
+    use solvers
     use actuator_line_model
 
     implicit none
     real,save :: constant_epsilon, meshFactor, thicknessFactor,chordFactor
-    real, allocatable :: Sx(:),Sy(:),Sz(:),Sc(:),Se(:),Su(:),Sv(:),Sw(:),SFX(:),SFY(:),SFZ(:)
+    real, allocatable :: Sx(:),Sy(:),Sz(:),Sc(:),Se(:),Sh(:),Su(:),Sv(:),Sw(:),SFX(:),SFY(:),SFZ(:)
     real, allocatable :: Snx(:),Sny(:),Snz(:),Stx(:),Sty(:),Stz(:),Ssx(:),Ssy(:),Ssz(:),Ssegm(:) 
     real, allocatable :: A(:,:)
     logical, allocatable :: inside_the_domain(:)
@@ -82,7 +83,7 @@ contains
         end do
     endif
     NSource=counter
-    allocate(Sx(NSource),Sy(NSource),Sz(NSource),Sc(Nsource),Su(NSource),Sv(NSource),Sw(NSource),Se(NSource),Sfx(NSource),Sfy(NSource),Sfz(NSource))
+    allocate(Sx(NSource),Sy(NSource),Sz(NSource),Sc(Nsource),Su(NSource),Sv(NSource),Sw(NSource),Se(NSource),Sh(NSource),Sfx(NSource),Sfy(NSource),Sfz(NSource))
     allocate(Snx(NSource),Sny(NSource),Snz(NSource),Stx(Nsource),Sty(NSource),Stz(NSource),Ssx(NSource),Ssy(NSource),Ssz(NSource),Ssegm(NSource))
     allocate(A(NSource,NSource))
     allocate(inside_the_domain(NSource))
@@ -256,4 +257,45 @@ contains
   
     end subroutine get_forces
 
+    !subroutine Compute_Momentum_Source_Term_RBF
+ 
+    !    implicit none
+    !    integer :: counter,itur,iblade,ielem,jelem,ial
+    !    real    :: dx,dy,dz,d
+    !    real,allocatable(:) :: Fx,Fy,Fz
+    !    
+    !    counter=0
+    !    if(Ntur>0) then
+    !        do itur=1,Ntur
+    !            !Blades>
+    !            do iblade=1,Turbine(itur)%Nblades
+    !                !> Form Matrix A_rbf
+    !                allocate(Fx(Turbine(itur)%Blade(iblade)%Nelem),Fy(Turbine(itur)%Blade(iblade)%Nelem),Fx(Turbine(itur)%Blade(iblade)%Nelem)
+    !                do jelem=1,Turbine(itur)%Blade(iblade)%Nelem
+    !                    do ielem=1,Turbine(itur)%Blade(iblade)%Nelem
+    !                    dx=Turbine(itur)%Blade(iblade)%PEx(ielem)-Turbine(itur)%Blade(iblade)%PEy(jelem)
+    !                    dy=Turbine(itur)%Blade(iblade)%PEy(ielem)-Turbine(itur)%Blade(iblade)%PEy(jelem)
+    !                    dz=Turbine(itur)%Blade(iblade)%PEz(ielem)-Turbine(itur)%Blade(iblade)%PEz(jelem) 
+    !                    d=sqrt(dx*dx+dy*dy+dz*dz)
+    !                    Turbine(itur)%Blade(iblade)%A_rbf(ielem,jelem)=IsoKernel(d,Turbine(itur)%Blade(iblade)%Eepsilon(ielem),3)
+    !                    enddo
+    !                enddo
+    !
+    !                !> Compute the forces by solving 
+    !                call solve(Turbine(itur)%Blade(iblade)%A_rfb,fx)
+    !                call solve(Turbine(itur)%Blade(iblade)%A_rfb,fy)
+    !                call solve(Turbine(itur)%Blade(iblade)%A_rfb,fz)
+    !                
+    !                do ielem=1,Turbine(itur)%Blade(iblade)%Nelem
+    !                counter=counter+1
+    !                Sfx(counter)=fx
+    !                Sfy(counter)=fy
+    !                Sfz(counter)=fz    
+    !                enddo
+    !                deallocate(fx,fy,fz)
+    !            enddo
+    !        enddo
+    !    endif
+    !end subroutine Compute_Momentum_Source_Term_RBF
+    
 end module actuator_line_source

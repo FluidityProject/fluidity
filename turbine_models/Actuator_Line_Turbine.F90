@@ -105,8 +105,9 @@ contains
     endif
     end do
 
+    ! Rotate Blade 1 to forme the other blades 
     call rotate_actuatorline(turbine%blade(iblade),turbine%blade(iblade)%COR,turbine%RotN,(iblade-1)*theta)   
-    ! Rotate through incidence (hub tilt) and coning angle
+    
     call make_actuatorline_geometry(turbine%blade(iblade))
     ! Populate element Airfoils 
     call populate_blade_airfoils(turbine%blade(iblade)%NElem,turbine%Blade(iblade)%NAirfoilData,turbine%Blade(iblade)%EAirfoil,turbine%Blade(iblade)%AirfoilData,turbine%Blade(iblade)%ETtoC)
@@ -121,7 +122,14 @@ contains
         call dystl_init_LB(turbine%blade(iblade)%E_LB_Model(ielem))
     endif
     end do 
+
+
     end do
+    ! Rotate the turbine according to the tilt and yaw angle
+    ! Yaw 
+    call rotate_turbine(turbine,(/0.0,0.0,1.0/),turbine%yaw_angle*pi/180.0)
+    ! Tilt clockwise with the y axis
+    call rotate_turbine(turbine,(/0.0,1.0,0.0/),turbine%hub_tilt_angle*pi/180.0)
 
     !=========================================================
     ! Create a Tower
@@ -354,10 +362,11 @@ contains
 
     end subroutine Compute_Turbine_RotVel
 
-    subroutine rotate_turbine(turbine,theta)
+    subroutine rotate_turbine(turbine,Axis,theta)
     
     implicit none
     type(TurbineType),intent(inout) :: turbine
+    real,intent(in) :: Axis(3)
     real,intent(in) :: theta
     real :: nrx,nry,nrz,px,py,pz 
     integer :: j,ielem,i
@@ -367,9 +376,9 @@ contains
 
     ewrite(1,*) 'Entering rotate_turbines'
         
-    nrx=turbine%RotN(1)
-    nry=turbine%RotN(2)
-    nrz=turbine%RotN(3) 
+    nrx=Axis(1)
+    nry=Axis(2)
+    nrz=Axis(3) 
     px =turbine%origin(1)
     py =turbine%origin(2)
     pz =turbine%origin(3)
@@ -379,7 +388,7 @@ contains
         do ielem=1,turbine%Blade(j)%Nelem+1
         ! Blade end locations (quarter chord). xBE(MaxSegEnds)
         xtmp=turbine%Blade(j)%QCx(ielem)
-        ytmp=turbine%Blade(J)%QCy(ielem)
+        ytmp=turbine%Blade(j)%QCy(ielem)
         ztmp=turbine%Blade(j)%QCz(ielem)
         
         Call QuatRot(xtmp,ytmp,ztmp,theta,nrx,nry,nrz,px,py,pz,vrx,vry,vrz)
