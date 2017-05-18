@@ -15,7 +15,7 @@
         <mesh name="BaseMesh"/>
         <mesh_shape>
           <polynomial_degree>
-            <integer_value rank="0">1</integer_value>
+            <integer_value rank="0">2</integer_value>
           </polynomial_degree>
         </mesh_shape>
         <stat>
@@ -27,7 +27,7 @@
       <from_mesh>
         <mesh name="BaseMesh"/>
         <mesh_continuity>
-          <string_value>continuous</string_value>
+          <string_value>discontinuous</string_value>
         </mesh_continuity>
         <stat>
           <exclude_from_stat/>
@@ -39,7 +39,7 @@
         <mesh name="BaseMesh"/>
         <mesh_shape>
           <polynomial_degree>
-            <integer_value rank="0">1</integer_value>
+            <integer_value rank="0">2</integer_value>
           </polynomial_degree>
         </mesh_shape>
         <stat>
@@ -148,7 +148,7 @@
         <real_value rank="0">72000.0</real_value>
       </constant>
     </dump_period>
-    <output_mesh name="VelocityMesh"/>
+    <output_mesh name="CoordinateMesh"/>
     <checkpointing>
       <checkpoint_period_in_dumps>
         <integer_value rank="0">100</integer_value>
@@ -201,7 +201,9 @@
   return [x_component, y_component, z_component]</string_value>
             </python>
           </value>
-          <output/>
+          <output>
+            <exclude_from_vtu/>
+          </output>
           <stat>
             <include_in_stat/>
           </stat>
@@ -323,31 +325,18 @@
         <mesh name="VelocityMesh"/>
         <equation name="Boussinesq"/>
         <spatial_discretisation>
-          <continuous_galerkin>
-            <stabilisation>
-              <no_stabilisation/>
-            </stabilisation>
-            <mass_terms>
-              <lump_mass_matrix/>
-            </mass_terms>
-            <advection_terms>
-              <integrate_advection_by_parts/>
-            </advection_terms>
-            <stress_terms>
+          <discontinuous_galerkin>
+            <viscosity_scheme>
+              <compact_discontinuous_galerkin/>
               <tensor_form/>
-            </stress_terms>
-            <les_model>
-              <second_order>
-                <smagorinsky_coefficient>
-                  <real_value rank="0">1.0</real_value>
-                </smagorinsky_coefficient>
-                <length_scale_type>tensor</length_scale_type>
-              </second_order>
-            </les_model>
-            <buoyancy>
-              <radial_gravity_direction_at_gauss_points/>
-            </buoyancy>
-          </continuous_galerkin>
+            </viscosity_scheme>
+            <advection_scheme>
+              <none/>
+              <integrate_advection_by_parts>
+                <twice/>
+              </integrate_advection_by_parts>
+            </advection_scheme>
+          </discontinuous_galerkin>
           <conservative_advection>
             <real_value rank="0">0.0</real_value>
           </conservative_advection>
@@ -359,6 +348,11 @@
           <relaxation>
             <real_value rank="0">1.0</real_value>
           </relaxation>
+          <discontinuous_galerkin>
+            <maximum_courant_number_per_subcycle>
+              <real_value rank="0">0.2</real_value>
+            </maximum_courant_number_per_subcycle>
+          </discontinuous_galerkin>
         </temporal_discretisation>
         <solver>
           <iterative_method name="gmres">
@@ -441,10 +435,14 @@
                 </python>
               </anisotropic_symmetric>
             </value>
-            <output/>
+            <output>
+              <exclude_from_vtu/>
+            </output>
           </prescribed>
         </tensor_field>
-        <output/>
+        <output>
+          <exclude_from_vtu/>
+        </output>
         <stat>
           <include_in_stat/>
           <previous_time_step>
@@ -669,7 +667,11 @@
     </scalar_field>
     <scalar_field name="Frees_max" rank="0">
       <diagnostic>
-        <algorithm source_field_name="FreeSurface" source_field_type="scalar" material_phase_support="single" name="temporalmax_scalar" persistent="true"/>
+        <algorithm source_field_name="FreeSurface" source_field_type="scalar" material_phase_support="single" name="temporalmax_scalar" persistent="true">
+          <spin_up_time>
+            <real_value rank="0">72000.0</real_value>
+          </spin_up_time>
+        </algorithm>
         <mesh name="PressureMesh"/>
         <output>
           <exclude_from_vtu/>
@@ -736,12 +738,84 @@
             <real_value rank="0">0.0</real_value>
           </constant>
         </value>
-        <output/>
+        <output>
+          <exclude_from_vtu/>
+        </output>
         <stat/>
         <detectors>
           <exclude_from_detectors/>
         </detectors>
       </prescribed>
+    </scalar_field>
+    <scalar_field name="CFLNumber" rank="0">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="VelocityMesh"/>
+        <output>
+          <exclude_from_vtu/>
+        </output>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="DG_CourantNumber" rank="0">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="VelocityMesh"/>
+        <output>
+          <exclude_from_vtu/>
+        </output>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="ProjectedCFLNumber" rank="0">
+      <diagnostic>
+        <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_galerkin_projection" source_field_name="CFLNumber">
+          <solver>
+            <iterative_method name="cg"/>
+            <preconditioner name="sor"/>
+            <relative_error>
+              <real_value rank="0">1e-7</real_value>
+            </relative_error>
+            <max_iterations>
+              <integer_value rank="0">2000</integer_value>
+            </max_iterations>
+            <never_ignore_solver_failures/>
+            <diagnostics>
+              <monitors/>
+            </diagnostics>
+          </solver>
+        </algorithm>
+        <mesh name="CoordinateMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
     </scalar_field>
     <vector_field name="BedShearStress" rank="1">
       <diagnostic>
@@ -755,7 +829,9 @@
             <real_value rank="0">0.0025</real_value>
           </drag_coefficient>
         </calculation_method>
-        <output/>
+        <output>
+          <exclude_from_vtu/>
+        </output>
         <stat>
           <include_in_stat/>
         </stat>
@@ -764,14 +840,167 @@
         </detectors>
       </diagnostic>
     </vector_field>
-    <vector_field name="MaxBedShearStress" rank="1">
+    <vector_field name="MaxBedShearStress_projection" rank="1">
       <diagnostic>
-        <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="VelocityMesh"/>
+        <algorithm source_field_name="BedShearStress_projection" source_field_type="vector" material_phase_support="single" name="temporalmax_vector" persistent="true">
+          <spin_up_time>
+            <real_value rank="0">72000.0</real_value>
+          </spin_up_time>
+        </algorithm>
+        <mesh name="CoordinateMesh"/>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
       </diagnostic>
-      <spin_up_time>
-        <real_value rank="0">7200</real_value>
-      </spin_up_time>
+    </vector_field>
+    <vector_field name="AveBedShearStress_projection" rank="1">
+      <diagnostic>
+        <algorithm source_field_type="vector" material_phase_support="single" name="time_averaged_vector" source_field_name="BedShearStress_projection">
+          <spin_up_time>
+            <real_value rank="0">72000.0</real_value>
+          </spin_up_time>
+          <absolute_values/>
+        </algorithm>
+        <mesh name="CoordinateMesh"/>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </vector_field>
+    <vector_field name="MaxVelocity_projection" rank="1">
+      <diagnostic>
+        <algorithm source_field_name="Velocity_projection" source_field_type="vector" material_phase_support="single" name="temporalmax_vector" persistent="true">
+          <spin_up_time>
+            <real_value rank="0">72000.0</real_value>
+          </spin_up_time>
+        </algorithm>
+        <mesh name="CoordinateMesh"/>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </vector_field>
+    <vector_field name="Velocity_projection" rank="1">
+      <diagnostic>
+        <algorithm source_field_type="vector" material_phase_support="single" name="vector_galerkin_projection" source_field_name="Velocity">
+          <solver>
+            <iterative_method name="cg"/>
+            <preconditioner name="sor"/>
+            <relative_error>
+              <real_value rank="0">1e-7</real_value>
+            </relative_error>
+            <max_iterations>
+              <integer_value rank="0">1000</integer_value>
+            </max_iterations>
+            <never_ignore_solver_failures/>
+            <diagnostics>
+              <monitors/>
+            </diagnostics>
+          </solver>
+        </algorithm>
+        <mesh name="CoordinateMesh"/>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </vector_field>
+    <vector_field name="AveVelocity_projection" rank="1">
+      <diagnostic>
+        <algorithm source_field_type="vector" material_phase_support="single" name="time_averaged_vector" source_field_name="Velocity_projection">
+          <spin_up_time>
+            <real_value rank="0">72000.0</real_value>
+          </spin_up_time>
+          <absolute_values/>
+        </algorithm>
+        <mesh name="CoordinateMesh"/>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </vector_field>
+    <vector_field name="BedShearStress_projection" rank="1">
+      <diagnostic>
+        <algorithm source_field_type="vector" material_phase_support="single" name="vector_galerkin_projection" source_field_name="BedShearStress">
+          <solver>
+            <iterative_method name="cg"/>
+            <preconditioner name="sor"/>
+            <relative_error>
+              <real_value rank="0">1e-7</real_value>
+            </relative_error>
+            <max_iterations>
+              <integer_value rank="0">3000</integer_value>
+            </max_iterations>
+            <never_ignore_solver_failures/>
+            <diagnostics>
+              <monitors/>
+            </diagnostics>
+          </solver>
+        </algorithm>
+        <mesh name="CoordinateMesh"/>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
     </vector_field>
   </material_phase>
   <ocean_forcing>
