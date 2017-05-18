@@ -628,7 +628,7 @@ assert abs(final_time-720000) &gt; -10
     </test>
     <test name="check RMS difference for M2 amp not too big" language="python">
 print RMS
-assert(RMS &lt; 4.5)
+assert(RMS &lt; 4.0)
     </test>
     <test name="check RMS difference for M2 amp not 0" language="python">
 print RMS
@@ -644,7 +644,7 @@ assert(S2RMS &gt; 0.1)
     </test>
     <test name="check RMS difference for K1 amp not too big" language="python">
 print K1RMS
-assert(K1RMS &lt; 1.8)
+assert(K1RMS &lt; 2.5)
     </test>
     <test name="check RMS difference for K1 amp not 0" language="python">
 print K1RMS
@@ -652,7 +652,7 @@ assert(K1RMS &gt; 0.1)
     </test>   
     <test name="check RMS difference for O1 amp not too big" language="python">
 print O1RMS
-assert(O1RMS &lt; 1.6)
+assert(O1RMS &lt; 2.5)
     </test>
     <test name="check RMS difference for O1 amp not 0" language="python">
 print O1RMS
